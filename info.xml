@@ -1,0 +1,29 @@
+<productinfo
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:noNamespaceSchemaLocation="optional">
+<?xml-stylesheet type="text/xsl" href="optional"?>
+
+<matlabrelease>14</matlabrelease>
+<name>EasySpin $ReleaseID$</name>
+<type>toolbox</type>
+<icon>../documentation/img/eslogo16.gif</icon>
+<help_location>../documentation</help_location>
+<!--<help_contents_icon>../documentation/img/eslogo16.gif</help_contents_icon>-->
+
+<list>
+
+<listitem>
+<label>Help</label>
+<callback>doc easyspin</callback>
+<icon>$toolbox/matlab/icons/book_mat.gif</icon>
+</listitem>
+
+<listitem>
+<label>Web site</label>
+<callback>web http://easyspin.org/ -browser;</callback>
+<icon>$toolbox/matlab/icons/webicon.gif</icon>
+</listitem>
+
+</list>
+
+</productinfo>
