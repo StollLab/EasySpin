@@ -828,38 +828,3 @@ if ~isfield(Dyn,'Exchange'), Dyn.Exchange=0; end
 Dyn.Exchange = Dyn.Exchange*2*pi*1e6;
 
 return
-
-%--------------------------------------------------------------------
-% wignerd  Compute Wigner rotation matrix for irreducible spherical tensors
-%
-%   D = wignerd(L,angles);
-%   D = wignerd(L,angles);
-%
-%   angles ... [alpha beta gamma], Euler angles in radians
-%   L      ... rank of tensor
-%   D      ... Wigner rotation matrix, size (2N+1)x(2N+1)
-
-function D = wignerd(L,angles)
-
-if ~any(angles)
-  
-  D = eye(2*L+1);
-
-else
-
-  %(1) Easy-to-read version
-  %Sz = diag(L:-1:-L);
-  %v = 1/2i * sqrt((1:2*L).*(2*L:-1:1));
-  %Sy = diag(v,+1)-diag(v,-1);
-  %D = expm(1i*angles(1)*Sz)*...
-  %    expm(1i*angles(2)*Sy)*...
-  %    expm(1i*angles(3)*Sz);
-
-  %(2) Faster version
-  v = sqrt((1:2*L).*(2*L:-1:1))/2;
-  b = diag(v,+1) - diag(v,-1);
-  m = (L:-1:-L);
-  ag = exp(1i*m.'*angles(1)) * exp(1i*m*angles(3));
-  D = ag.*expm(angles(2)*b);
-  
-end
