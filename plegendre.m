@@ -9,7 +9,13 @@
 %
 %    L and M are integers with L >= 0  and |M| <= L. x can
 %    be a scalar or an array of real numbers with |x|<=1.
-%
+
+% For a faster and numerically better algorithm see
+% Holmes, Featherstone,
+% A unified approach to the Clenshaw summation and the recursive
+% computation of very high degree and order normalised associated
+% Legendre functions.
+% Journal of Geodesy 2002 76:279-299
 
 function y = plegendre(L,M,x)
 
@@ -20,7 +26,7 @@ if (nargin==2)
   M = 0;
 end
 
-if (L<0) | (abs(M)>L) | any(abs(x)>1)
+if (L<0) || (abs(M)>L) || any(abs(x)>1)
   error('Wrong Associated Legendre Polynomial parameters!');
 end
 

@@ -1,8 +1,8 @@
 % wignerd  Compute Wigner D-matrix
 %
 %   D = wignerd(J,angles);
-%   D = wignerd(J,angles,'+');
 %   D = wignerd(J,angles,'-');
+%   D = wignerd(J,angles,'+');
 %
 %   This function computes the Wigner rotation matrix D^J_(m1,m2)
 %   where m1 and m2 run from J to -J.
@@ -21,17 +21,17 @@
 %     (sign convention as in Edmonds, Mathematica)
 %   If '-' is given, wignerd returns the (2J+1)x(2J+1) matrix representation of
 %     <Jm1|expm(-1i*alpha*Jz)*expm(-1i*beta*Jy)*expm(-1i*gamma*Jz)|Jm2>
-%     (sign convention as in Brink/Satcher, Zare, Sakurai)
+%     (sign convention as in Brink/Satcher, Zare, Sakurai, Varshalovich)
 %
-%   The basis is ordered +J..-J, so that e.g. the output matrix element D(1,2)
-%   corresponds to D^J_(J,J-1).
+%   The basis is ordered +J..-J from left to right and from top to bottom,
+%   so that e.g. the output matrix element D(1,2) corresponds to D^J_(J,J-1).
 
 function D = wignerd(J,angles,phase)
 
 switch nargin
   case 0, help(mfilename); return;
   case 1, error('Angles are missing');
-  case 2, phase = '+';
+  case 2, phase = '-';
 end
 
 switch numel(angles)
@@ -61,7 +61,7 @@ if ~any(angles)
   return;
 end
 
-v = sqrt((1:2*J).*(2*J:-1:1))/2; % construct off-diagonal
+v = sqrt((1:2*J).*(2*J:-1:1))/2; % off-diagonals of Jy matrix
 Jy = diag(v,+1) - diag(v,-1); % assemble Jy matrix
 if numel(angles)==1
   D = expm(angles*Jy);

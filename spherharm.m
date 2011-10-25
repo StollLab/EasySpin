@@ -20,20 +20,28 @@
 %   tesseral harmonic and the spherical harmonic are identical.
 %
 %   The spherical harmonics include the Condon-Shortley
-%   phase convention. The tesseral harmonics ('c'
-%   and 's') don't include it.
+%   phase convention. The tesseral harmonics ('c' and 's')
+%   do not include it.
 
-function y = spherharm(L,M,theta,phi,Type);
+function y = spherharm(L,M,theta,phi,Type)
 
 switch (nargin)
 case 0, help(mfilename); return;
-case 4,Type = 'e';
-case 5, % nop
+case 4, Type = 'e';
+case 5, % Type given
 otherwise, error('Wrong number of parameters!');
 end
 
-if (L<0) | (abs(M)>L)
-  error('Wrong integer parameters for spherical harmonic.');
+if (numel(L)~=1) || (L<0) || mod(L,1)
+  error('For spherical harmonics, L needs to be a non-negative integer (0, 1, 2, etc).');
+end
+
+if (numel(M)~=1) || abs(M)>L || mod(M,1)
+  error('For spherical harmonics, M needs to be an integer between -L and L.');
+end
+
+if numel(Type)~=1 || ~ischar(Type)
+  error('Type must be ''c'' or ''s''.');
 end
 
 if strfind(Type,'cs')
@@ -42,10 +50,10 @@ if strfind(Type,'cs')
   end
 end
 
-% Normalisation constant
+% Normalisation factor
 p = prod(L-abs(M)+1:L+abs(M));
 if (M>0), p = 1/p; end
-NormFactor = sqrt((2*L+1)/4/pi*p);
+NormFactor = sqrt((2*L+1)/(4*pi)*p);
 
 y = NormFactor * plegendre(L,M,cos(theta));
 
@@ -114,7 +122,7 @@ for N = 0:20
     xlabel('x'); ylabel('y'); zlabel('z');
 
     subplot(1,2,2);
-    h=surf(x.*abs(V),y.*abs(V),z.*abs(V),V);
+    h=surf(x.*abs(V),y.*abs(V),z.*abs(V),abs(V));
     axis equal, shading interp
     light, lighting phong
     set(h,'Ambient',0.7);
