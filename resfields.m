@@ -13,7 +13,7 @@
 %   - Par:    experimental parameter settings
 %             mwFreq:   in GHz
 %             Range:    [Bmin Bmax] in mT
-%             Temperature: in K, default inf
+%             Temperature: in K, by default off (NaN)
 %             Mode: 'perpendicular','parallel'
 %             Orientations:  orientations of the spin system in the spectrometer
 %                   2xn or 3xn array containing [phi;theta{;chi}] in
@@ -107,7 +107,7 @@ DefaultParams.mwFreq = NaN;
 DefaultParams.Range = NaN;
 DefaultParams.Orientations = NaN;
 DefaultParams.CenterSweep = NaN;
-DefaultParams.Temperature = inf;
+DefaultParams.Temperature = NaN;
 DefaultParams.Mode = 'perpendicular';
 DefaultParams.CrystalSymmetry = '';
 
@@ -155,11 +155,14 @@ if (nPop>1)
   ComputeNonEquiPops = 1;
   nElectronStates = prod(2*System.S+1);
   if (nPop~=nElectronStates)
-    error(sprintf('Params.Temperature must either be a scalar or a %d-vector',nElectronStates));
+    error('Params.Temperature must either be a scalar or a %d-vector',nElectronStates);
   end
 else
+  if isinf(Params.Temperature)
+    error('If given, Exp.Temperature must be a finite value.');
+  end
   ComputeNonEquiPops = 0;
-  ComputeBoltzmannPopulations = isfinite(Params.Temperature);
+  ComputeBoltzmannPopulations = ~isnan(Params.Temperature);
 end
 
 
@@ -1021,7 +1024,7 @@ for iOri = 1:nOrientations
             end
           end
           
-          % Compute polarization if temperature or zero-field populations are given.
+          % Compute polarizations if temperature or zero-field populations are given.
           if (ComputeBoltzmannPopulations)
             Populations = exp(BoltzmannPreFactor*(Energies-Energies(1)));
             Polarization = (Populations(u(iTrans)) - Populations(v(iTrans)))/sum(Populations);
@@ -1034,7 +1037,8 @@ for iOri = 1:nOrientations
             Polarization = PopulationU - PopulationV;
           else
             % no temperature given
-            Polarization = 1; % default polarization for each electron transition
+            Polarization = 1; % same polarization for each electron transition
+            %Polarization = Polarization/prod(2*System.S+1); % needed to make consistent with high-temp limit
             Polarization = Polarization/prod(2*System.I+1);
           end
           

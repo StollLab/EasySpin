@@ -10,7 +10,7 @@
 %    Par: parameter structure
 %      mwFreq: spectrometer frequency [GHz]
 %      Field:  magnetic field [mT]
-%      Temperature: in K (optional, default inf)
+%      Temperature: in K (optional, by default off (NaN))
 %      ExciteWidth: FWHM of excitation [MHz] (optional, default inf)
 %      Range: frequency range [MHz] (optional, default [])
 %      Ori: 2xn or 3xn array of Euler angles
@@ -68,7 +68,7 @@ Sys = adddefaults(Sys,DefaultSys);
 % Process parameters
 %---------------------------------------------------------------------
 DefaultPar.mwFreq = NaN;
-DefaultPar.Temperature = inf;
+DefaultPar.Temperature = NaN;
 DefaultPar.ExciteWidth = inf;
 DefaultPar.Field = NaN;
 DefaultPar.CrystalSymmetry = '';
@@ -91,8 +91,11 @@ if (nPop>1)
     error('Params.Temperature must either be a scalar or a %d-vector',nElectronStates);
   end
 else
+  if isinf(Par.Temperature)
+    error('If given, Params.Temperature must be a finite value.');
+  end
   ComputeNonEquiPops = 0;
-  ComputeBoltzmann = isfinite(Par.Temperature);
+  ComputeBoltzmann = ~isnan(Par.Temperature);
 end
 
 if isfield(Par,'ExciteWidth')

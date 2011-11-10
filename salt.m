@@ -15,7 +15,7 @@
 %       Field         magnetic field, in mT
 %       Range         radiofrequency range [low,high], in MHz
 %       nPoints       number of points
-%       Temperature   temperature of the sample, by default off
+%       Temperature   temperature of the sample, by default off (NaN)
 %       ExciteWidth   ENDOR excitation width, FWHM, in MHz
 %       Orientations  orientations for single-crystal simulations
 %       Ordering      coefficient for non-isotropic orientational distribution
@@ -154,7 +154,7 @@ DefaultExp.mwFreq = NaN;
 DefaultExp.Range = NaN;
 DefaultExp.CenterSweep = NaN;
 DefaultExp.nPoints = 1024;
-DefaultExp.Temperature = inf;
+DefaultExp.Temperature = NaN;
 DefaultExp.ExciteWidth = inf;
 DefaultExp.Orientations = [];
 DefaultExp.Ordering = [];

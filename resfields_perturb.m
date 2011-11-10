@@ -108,8 +108,11 @@ if isfield(Exp,'Temperature')
   if numel(Exp.Temperature)~=1
     err = 'Exp.Temperature must be a single number.';
   end
+  if isinf(Exp.Temperature)
+    err = 'If given, Exp.Temperature must have a finite value.';
+  end
 else
-  Exp.Temperature = inf;
+  Exp.Temperature = NaN;
 end
 if isfield(Exp,'CrystalSymmetry')
   if ~isempty(Exp.CrystalSymmetry)
@@ -339,10 +342,10 @@ for iOri = nOrientations:-1:1
 
 end
 
-if ~isinf(Exp.Temperature)
-  p = exp(-planck*(2*S:-1:0)*Exp.mwFreq*1e9/boltzm/Exp.Temperature);
-  p = p/sum(p);
-  Polarization = diff(p);
+if ~isnan(Exp.Temperature)
+  Populations = exp(-planck*(2*S:-1:0)*Exp.mwFreq*1e9/boltzm/Exp.Temperature);
+  Populations = Populations/sum(Populations);
+  Polarization = diff(Populations);
 else
   Polarization = ones(1,2*S);
 end

@@ -1,9 +1,9 @@
 %fit_levmar  Levenberg-Marquardt nonlinear least squares
 %
-%   xfit = levmar(funfcn,x0)
-%   [xfit,Info] = levmar(funfcn,x0)
-%   ... = levmar(funfcn,x0,Opt)
-%   ... = levmar(funfcn,x0,Opt,p1,p2,...)
+%   xfit = fit_levmar(funfcn,x0)
+%   [xfit,Info] = fit_levmar(funfcn,x0)
+%   ... = fit_levmar(funfcn,x0,Opt)
+%   ... = fit_levmar(funfcn,x0,Opt,p1,p2,...)
 %
 %   Find  xm = argmin{F(x)} , where  x = [x_1, ..., x_n]  and
 %   F(x) = 0.5 * sum(f_i(x)^2). The functions  f_i(x) (i=1,...,m)

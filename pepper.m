@@ -20,7 +20,7 @@
 %       CenterSweep   magnetic field range [center,sweep], in mT
 %       Range         magnetic field range [low,high], in mT
 %       nPoints       number of points
-%       Temperature   temperature of the sample, by default off
+%       Temperature   temperature of the sample, by default off (NaN)
 %       Harmonic      detection harmonic: 0, 1 (default), 2
 %       Mode          resonator mode: 'parallel', 'perpendicular' (default)
 %       Orientations  orientations for single-crystal simulations
@@ -233,7 +233,7 @@ DefaultExp.mwFreq = NaN;
 DefaultExp.CenterSweep = NaN;
 DefaultExp.Range = NaN;
 DefaultExp.nPoints = 1024;
-DefaultExp.Temperature = inf;
+DefaultExp.Temperature = NaN;
 DefaultExp.Harmonic = 1;
 DefaultExp.Mode = 'perpendicular';
 DefaultExp.Orientations = [];
