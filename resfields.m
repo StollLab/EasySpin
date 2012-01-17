@@ -27,7 +27,7 @@
 %   - Wid:    line widths
 %   - Trans:  list of transitions included in the computation
 
-function varargout = resfields(System,Params,Opt)
+function varargout = resfields(System,Exp,Opt)
 
 if (nargin==0), help(mfilename); return; end
 
@@ -52,7 +52,7 @@ if isempty(Opt)
   Opt = struct('ununsed',NaN);
 end
 
-if ~(isstruct(System) && isstruct(Params) && isstruct(Opt))
+if ~(isstruct(System) && isstruct(Exp) && isstruct(Opt))
   error('SpinSystem, Parameters and Options must be structures!');
 end
 
@@ -99,70 +99,70 @@ end
 
 % Process Parameters.
 %---------------------------------------------------------------------
-if isfield(Params,'Detection')
+if isfield(Exp,'Detection')
   error('Exp.Detection is obsolete. Use Exp.Mode instead.');
 end
 
-DefaultParams.mwFreq = NaN;
-DefaultParams.Range = NaN;
-DefaultParams.Orientations = NaN;
-DefaultParams.CenterSweep = NaN;
-DefaultParams.Temperature = NaN;
-DefaultParams.Mode = 'perpendicular';
-DefaultParams.CrystalSymmetry = '';
+DefaultExp.mwFreq = NaN;
+DefaultExp.Range = NaN;
+DefaultExp.Orientations = NaN;
+DefaultExp.CenterSweep = NaN;
+DefaultExp.Temperature = NaN;
+DefaultExp.Mode = 'perpendicular';
+DefaultExp.CrystalSymmetry = '';
 
-Params = adddefaults(Params,DefaultParams);
+Exp = adddefaults(Exp,DefaultExp);
 
-if isnan(Params.Orientations)
-  Params.Orientations = [0;0];
+if isnan(Exp.Orientations)
+  Exp.Orientations = [0;0];
   logmsg(0,'Exp.Orientations is missing, assuming [0;0].');
 end
 
-if isnan(Params.mwFreq), error('Experiment.mwFreq is missing!'); end
-mwFreq = Params.mwFreq*1e3; % GHz -> MHz
+if isnan(Exp.mwFreq), error('Experiment.mwFreq is missing!'); end
+mwFreq = Exp.mwFreq*1e3; % GHz -> MHz
 
-if ~isnan(Params.CenterSweep)
-  if ~isnan(Params.Range)
+if ~isnan(Exp.CenterSweep)
+  if ~isnan(Exp.Range)
     %logmsg(0,'Using Experiment.CenterSweep and ignoring Experiment.Range.');
   end
-  Params.Range = Params.CenterSweep(1) + [-1 1]*Params.CenterSweep(2)/2;
-  Params.Range = max(Params.Range,0);
+  Exp.Range = Exp.CenterSweep(1) + [-1 1]*Exp.CenterSweep(2)/2;
+  Exp.Range = max(Exp.Range,0);
 end
 
-if isfield(Params,'SearchRange'), Params.Range = Params.SearchRange; end
+if isfield(Exp,'SearchRange'), Exp.Range = Exp.SearchRange; end
 
-if isnan(Params.Range), error('Experiment.Range/Exp.CenterSweep is missing!'); end
-if (diff(Params.Range)<=0) | ~isfinite(Params.Range) | ~isreal(Params.Range) | any(Params.Range<0)
-  error('Params.Range is not valid!');
+if isnan(Exp.Range), error('Experiment.Range/Exp.CenterSweep is missing!'); end
+if (diff(Exp.Range)<=0) | ~isfinite(Exp.Range) | ~isreal(Exp.Range) | any(Exp.Range<0)
+  error('Exp.Range is not valid!');
 end
 
 % Resonator mode
-if isfield(Params,'Detection')
+if isfield(Exp,'Detection')
   error('Exp.Detection is obsolete. Use Exp.Mode instead.');
 end
-if strcmp(Params.Mode,'perpendicular')
+if strcmp(Exp.Mode,'perpendicular')
   ParallelMode = 0;
-elseif strcmp(Params.Mode,'parallel')
+elseif strcmp(Exp.Mode,'parallel')
   ParallelMode = 1;
 else
   error('Exp.Mode must be either ''perpendicular'' or ''parallel''.');
 end
-logmsg(1,'  %s mode',Params.Mode);
+logmsg(1,'  %s mode',Exp.Mode);
 
-nPop = numel(Params.Temperature);
+nPop = numel(Exp.Temperature);
 if (nPop>1)
   ComputeBoltzmannPopulations = 0;
   ComputeNonEquiPops = 1;
   nElectronStates = prod(2*System.S+1);
   if (nPop~=nElectronStates)
-    error('Params.Temperature must either be a scalar or a %d-vector',nElectronStates);
+    error('Exp.Temperature must either be a scalar or a %d-vector',nElectronStates);
   end
 else
-  if isinf(Params.Temperature)
+  if isinf(Exp.Temperature)
     error('If given, Exp.Temperature must be a finite value.');
   end
   ComputeNonEquiPops = 0;
-  ComputeBoltzmannPopulations = ~isnan(Params.Temperature);
+  ComputeBoltzmannPopulations = ~isnan(Exp.Temperature);
 end
 
 
@@ -175,7 +175,7 @@ end
 % direction, but B1 integrated over the plane if in perpendicular
 % mode). This only affects intensity computations in perpendicular
 % mode.
-Orientations = Params.Orientations;
+Orientations = Exp.Orientations;
 [n1,n2] = size(Orientations);
 if ((n2==2)||(n2==3)) && (n1~=2) && (n1~=3)
   Orientations = Orientations.';
@@ -192,8 +192,8 @@ switch nAngles
 end
 
 % Add symmetry-related sites if space group symmetry is given
-if ~isempty(Params.CrystalSymmetry)
-  R = sitetransforms(Params.CrystalSymmetry);
+if ~isempty(Exp.CrystalSymmetry)
+  R = sitetransforms(Exp.CrystalSymmetry);
   nSites  = numel(R);
   allOrientations = zeros(nOrientations*nSites,3);
   idx = 1;
@@ -407,7 +407,7 @@ nSHFNucStates = nFull/nCore;
 
 % Population vector for the core system
 if (ComputeNonEquiPops)
-  ZeroFieldPops = Params.Temperature(:);
+  ZeroFieldPops = Exp.Temperature(:);
   ZeroFieldPops = ZeroFieldPops/sum(ZeroFieldPops);
   nElStates = prod(2*System.S+1);
   ZeroFieldPops = kron(ZeroFieldPops,ones(nCore/nElStates,1));
@@ -499,14 +499,14 @@ else % Automatic pre-selection
       logmsg(2,'  ## (selection threshold %g, %d knots)',Opt.Threshold(1),Opt.nTRKnots);
       [phi,theta,TRWeights] = sphgrid('D2h',Opt.nTRKnots);
     else % single orientation
-      phi = Params.Orientations(1);
-      theta = Params.Orientations(2);
+      phi = Exp.Orientations(1);
+      theta = Exp.Orientations(2);
       TRWeights = 1;
     end
     % Pre-compute trigonometric functions.
     stp = sin([theta;phi].');
     ctp = cos([theta;phi].');
-    centreB = mean(Params.Range); % take field at centre of scan range
+    centreB = mean(Exp.Range); % take field at centre of scan range
     % Pre-allocate the transition rate matrix.
     TransitionRates = zeros(nCore);
     % Detector operator for transition selection.
@@ -671,7 +671,7 @@ if (ComputeStrains)
       AStrain = Rp*AStrain*Rp.';
     end
     % Diagonalize Hamiltonian at centre field.
-    centreB = mean(Params.Range);
+    centreB = mean(Exp.Range);
     [Vs,E] = eig(kF + centreB*kGzM);
     [E,idx] = sort(real(diag(E)));
     Vs = Vs(:,idx);
@@ -726,7 +726,7 @@ if (ComputeIntensities)
   end
   if ComputeBoltzmannPopulations
     % Pre-factor for thermal equilibrium populations computations.
-    BoltzmannPreFactor = -1e6*planck/boltzm/Params.Temperature; % MHz^-1
+    BoltzmannPreFactor = -1e6*planck/boltzm/Exp.Temperature; % MHz^-1
   end
   msg = [msg ', intensities'];
 else
@@ -813,7 +813,7 @@ for iOri = 1:nOrientations
   % V: eigenvectors, E: energies, D1: dE/dB
   % dE: transition energies for transitions in list Trans
   clear VV E D1 dE;
-  Knots = Params.Range;
+  Knots = Exp.Range;
   [VV{2},E{2},D1{2},dE{2}] = gethamdata(Knots(2),kF,kGzL,Trans);
   [VV{1},E{1},D1{1},dE{1}] = gethamdata(Knots(1),kF,kGzL,Trans);
   nDiagonalizations = nDiagonalizations+2;
@@ -1207,7 +1207,7 @@ logmsg(1,'  %d significant transitions with resonances in range',nTransitions);
 if (nTransitions==0)
   fprintf(['WARNING: No resonance fields at %g GHz between %g and %g mT.\n'...
       '         Check field range and spectrometer frequency.\n'],...
-    Params.mwFreq,Params.Range(1),Params.Range(2));
+    Exp.mwFreq,Exp.Range(1),Exp.Range(2));
   Output = {[],[],[],[],[]};
   varargout = Output(1:max(nargout,1));
   return

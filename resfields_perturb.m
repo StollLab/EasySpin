@@ -158,7 +158,6 @@ if ~isempty(Exp.CrystalSymmetry)
 else
   nSites = 1;
 end
-error(err);
 
 
 % Options

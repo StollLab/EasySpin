@@ -131,7 +131,7 @@ switch nAngles,
     error('Par.Orientations array has %d rows. It should have 2 or 3.',nAngles);
 end
 
-% Add symmetry-related sites
+% Add symmetry-related sites if space group symmetry is given
 if ~isempty(Par.CrystalSymmetry)
   R = sitetransforms(Par.CrystalSymmetry);
   nSites  = numel(R);

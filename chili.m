@@ -202,7 +202,7 @@ logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.Mode);
 
 % Temperature
 if ~isnan(Exp.Temperature)
-  if (num(Exp.Temperature)~=1) || isinf(Exp.Temperature) || (Exp.Temperature<0)
+  if (numel(Exp.Temperature)~=1) || isinf(Exp.Temperature) || (Exp.Temperature<0)
     error('If given, Exp.Temperature must be a positive value.')
   end
 end

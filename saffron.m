@@ -828,6 +828,28 @@ switch nAngles
   error(sprintf('Orientations array has %d rows instead of 2 or 3.',nAngles));
 end
 
+if ~isfield(Exp,'CrystalSymmetry'), Exp.CrystalSymmetry = ''; end
+
+% Add symmetry-related sites if space group symmetry is given
+if ~isempty(Exp.CrystalSymmetry)
+  R = sitetransforms(Exp.CrystalSymmetry);
+  nSites  = numel(R);
+  allOrientations = zeros(nOrientations*nSites,3);
+  idx = 1;
+  for iOri = 1:nOrientations
+    xyz0 = erot(Orientations(:,iOri)).'; % xL, yL, zL along columns
+    for iSite = 1:nSites
+      xyz = R{iSite}*xyz0; % active rotation
+      allOrientations(idx,:) = eulang(xyz.',1);
+      idx = idx + 1;
+    end
+  end
+  Orientations = allOrientations.';
+  [nAngles,nOrientations] = size(Orientations);
+else
+  nSites = 1;
+end
+
 
 %=====================================================================
 % Compute electronic Hamiltonian
