@@ -37,7 +37,7 @@
 %
 %     Exp.nPoints         number of points (default 1024)
 %     Exp.Harmonic        detection harmonic: 0, 1, 2 (default 1)
-%     Exp.MOMD            0: single orientation, 1: MOMD model
+%     Exp.MOMD            0: single orientation, 1: powder (MOMD)
 %     Exp.psi             "director tilt" orientation
 %
 %     Opt.LLKM            basis size: [evenLmax oddLmax Kmax Mmax]
@@ -177,7 +177,7 @@ if ~isfield(Exp,'Harmonic'), Exp.Harmonic = 1; end
 if ~isfield(Exp,'mwPhase'), Exp.mwPhase = 0; end
 if ~isfield(Exp,'MOMD'), Exp.MOMD = 0; end
 if ~isfield(Exp,'psi'), Exp.psi = 0; end
-if ~isfield(Exp,'Temperature'), Exp.Temperature = inf; end
+if ~isfield(Exp,'Temperature'), Exp.Temperature = NaN; end
 if ~isfield(Exp,'ModAmp'), Exp.ModAmp = 0; end
 if ~isfield(Exp,'Mode'), Exp.Mode = 'perpendicular'; end
 
@@ -199,6 +199,19 @@ switch Exp.Mode
 end
 logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.Mode);
 
+
+% Temperature
+if ~isnan(Exp.Temperature)
+  if (num(Exp.Temperature)~=1) || isinf(Exp.Temperature) || (Exp.Temperature<0)
+    error('If given, Exp.Temperature must be a positive value.')
+  end
+end
+
+% Powder
+if (Exp.MOMD) && isempty(Sys.lambda)
+  logmsg(0,'  No ordering potential given, skipping MOMD.');
+  Exp.MOMD = 0;
+end
 
 % Field modulation
 if (Exp.ModAmp>0)
@@ -539,8 +552,9 @@ end
 % Temperature: include Boltzmann equilibrium polarization
 if isfinite(Exp.Temperature)
   e = exp(-planck*Exp.mwFreq*1e9/boltzm/Exp.Temperature);
-  Population = [1 e]/(1+e);
-  Polarization = Population(1)-Population(2);
+  Population = [1 e];
+  Population = Population/sum(Population);
+  Polarization = Population(1) - Population(2);
   spec = spec*Polarization;
 end
 

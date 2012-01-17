@@ -62,7 +62,7 @@ for k = 1:length(Electrons)
 
   % Fourth-order terms a and F
   %---------------------------------------------------------
-  % Abragam/Bleaney p. 437
+  % Abragam/Bleaney p. 142, 437
   % Bleaney/Trenam, Proc Roy Soc A, 223(1152), 1-14, (1954)
   % Doetschman/McCool, Chem Phys 8, 1-16 (1975)
   % Scullane, JMR 47, 383 (1982)
@@ -89,15 +89,16 @@ for k = 1:length(Electrons)
     if (a~=0)
       Sp = sop(spvc,1,4,'sparse');
       Sm = sop(spvc,1,5,'sparse');
-      % along threefold axis (as in Abragam/Bleaney etc)
+      % along threefold axis (see Abragam/Bleaney p.142, p.437)
       if ~isfield(Sys,'aFrame'), Sys.aFrame = 3; end
+      B4 = a/120;
       if (Sys.aFrame==3)
         O43 = (Sz*(Sp^3+Sm^3)+(Sp^3+Sm^3)*Sz)/2;
-        H = H - a/180*(O40 + 10*sqrt(2)*O43);
+        H = H - 2/3*B4*(O40 + 10*sqrt(2)*O43);
       elseif (Sys.aFrame==4)
         % along fourfold (tetragonal) axis (used by some)
         O44 = (Sp^4+Sm^4)/2;
-        H = H + a/120*(O40 + 5*O44);
+        H = H + B4*(O40 + 5*O44);
       else
         error('Unknown Sys.aFrame value. Use 3 for trigonal and 4 for tetragonal (collinear with D).');
       end

@@ -74,7 +74,7 @@ if isstruct(ExpSpec) || ~isnumeric(ExpSpec)
 end
 
 % Scale experimental spectrum
-ExpSpec = ExpSpec/max(abs(ExpSpec));
+ExpSpecScaled = ExpSpec/max(abs(ExpSpec));
 
 
 % Vary structure
@@ -211,7 +211,7 @@ if ~isfield(FitOpt,'TolFun'), FitOpt.TolFun = 1e-4; end
 if ~isfield(FitOpt,'TolStep'), FitOpt.TolStep = 1e-6; end
 if ~isfield(FitOpt,'maxTime'), FitOpt.maxTime = inf; end
 if ~isfield(FitOpt,'RandomStart'), FitOpt.RandomStart = 0; end
-if ~isfield(FitOpt,'Scaling'), FitOpt.Scaling = 'maxabs'; end
+if ~isfield(FitOpt,'Scaling') || isempty(FitOpt.Scaling), FitOpt.Scaling = 'maxabs'; end
 
 if ~isfield(FitOpt,'GridSize'), FitOpt.GridSize = 7; end
 
@@ -283,16 +283,16 @@ end
 %rand('state',sum(clock*100)); % obsoleted in R2011a
 switch FitOpt.MethodID
   case 1 % Nelder/Mead simplex
-    bestx = fit_simplex(@rms_,startx,FitOpt,ExpSpec,Sys0,Vary,Exp,SimOpt,FitOpt);
+    bestx = fit_simplex(@rms_,startx,FitOpt,ExpSpecScaled,Sys0,Vary,Exp,SimOpt,FitOpt);
   case 2 % Levenberg/Marquardt
     FitOpt.Gradient = FitOpt.TolFun;
-    bestx = fit_levmar(@residuals_,startx,FitOpt,ExpSpec,Sys0,Vary,Exp,SimOpt,FitOpt);
+    bestx = fit_levmar(@residuals_,startx,FitOpt,ExpSpecScaled,Sys0,Vary,Exp,SimOpt,FitOpt);
   case 3 % Monte Carlo
-    bestx = fit_montecarlo(@assess,nParameters,FitOpt,ExpSpec,Sys0,Vary,Exp,SimOpt,FitOpt);
+    bestx = fit_montecarlo(@assess,nParameters,FitOpt,ExpSpecScaled,Sys0,Vary,Exp,SimOpt,FitOpt);
   case 4 % Evolutionary search
-    bestx = fit_genetic(@assess,nParameters,FitOpt,ExpSpec,Sys0,Vary,Exp,SimOpt,FitOpt);
+    bestx = fit_genetic(@assess,nParameters,FitOpt,ExpSpecScaled,Sys0,Vary,Exp,SimOpt,FitOpt);
   case 5 % Grid search
-    bestx = fit_grid(@assess,nParameters,FitOpt,ExpSpec,Sys0,Vary,Exp,SimOpt,FitOpt);
+    bestx = fit_grid(@assess,nParameters,FitOpt,ExpSpecScaled,Sys0,Vary,Exp,SimOpt,FitOpt);
   otherwise
     error('Unknown optimization method in FitOpt.Method.');
 end
@@ -315,9 +315,10 @@ for iSys=1:numel(Sys0)
   end
   BestSpec = BestSpec + b_;
 end
+BestSpecScaled = rescale(BestSpec,ExpSpecScaled,FitOpt.Scaling);
 BestSpec = rescale(BestSpec,ExpSpec,FitOpt.Scaling);
 
-[rms,Residuals_] = getresiduals(BestSpec(:),ExpSpec(:),FitOpt.TargetID);
+[rms,Residuals_] = getresiduals(BestSpecScaled(:),ExpSpecScaled(:),FitOpt.TargetID);
 RmsResidual = sqrt(mean(Residuals_.^2));
 MeanResidual = mean(abs(Residuals_));
 MaxResidual = max(abs(Residuals_));

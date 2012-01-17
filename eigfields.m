@@ -55,7 +55,7 @@ if isempty(Options)
   Options = struct('unused',NaN);
 end
 
-if ~(isstruct(SpinSystem) & isstruct(Parameters) & isstruct(Options))
+if ~(isstruct(SpinSystem) && isstruct(Parameters) && isstruct(Options))
   error('SpinSystem, Parameters and Options must be structures!');
 end
 
@@ -95,7 +95,7 @@ end
 DefaultParameters.mwFreq = NaN;
 DefaultParameters.Range = [0 realmax];
 DefaultParameters.Mode = 'perpendicular';
-DefaultParameters.Temperature = inf; % not implemented!!
+DefaultParameters.Temperature = NaN; % not implemented!!
 DefaultParameters.Orientations = NaN;
 
 Parameters = adddefaults(Parameters,DefaultParameters);
@@ -103,15 +103,15 @@ Parameters = adddefaults(Parameters,DefaultParameters);
 if isnan(Parameters.mwFreq), error('Parameters.mwFreq missing!'); end
 if isnan(Parameters.Orientations), error('Parameters.Orientations missing.'); end
 
-if (diff(Parameters.Range)<=0) | ~isfinite(Parameters.Range) | ...
-   ~isreal(Parameters.Range) | any(Parameters.Range<0) | (numel(Parameters.Range)~=2)
+if (diff(Parameters.Range)<=0) || any(~isfinite(Parameters.Range)) || ...
+   any(~isreal(Parameters.Range)) || any(Parameters.Range<0) || (numel(Parameters.Range)~=2)
   error('Parameters.Range is not valid!');
 end
 
 ParallelMode = (2==parseoption(Parameters,'Mode',{'perpendicular','parallel'}));
 
-if ~isinf(Parameters.Temperature)
-  warning('Boltzmann equilibrium not implemented. Parameters.Temperature is ignored!');
+if ~isnan(Parameters.Temperature)
+  warning('Thermal equilibrium populations not implemented. Parameters.Temperature is ignored!');
 end
 
 mwFreq = Parameters.mwFreq*1e3;
@@ -127,7 +127,7 @@ case 2,
 case 3,
   IntegrateOverChi = 0;
 otherwise
-  error(sprintf('Orientations array has %d rows instead of 2 or 3.',nAngles));
+  error('Orientations array has %d rows instead of 2 or 3.',nAngles);
 end
 
 % Process options structure.
@@ -138,7 +138,7 @@ DefaultOptions.RejectionRatio = 1e-8; % UNDOCUMENTED!
 
 Options = adddefaults(Options,DefaultOptions);
 
-if (Options.Freq2Field~=1)&(Options.Freq2Field~=0)
+if (Options.Freq2Field~=1)&&(Options.Freq2Field~=0)
   error('Options.Freq2Field incorrect!');
 end
 

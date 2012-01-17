@@ -94,7 +94,9 @@ end
 
 % Experiment
 %------------------------------------------------------
-err = '';
+if ~isfield(Exp,'CrystalSymmetry'), Exp.CrystalSymmetry = []; end
+
+  err = '';
 if ~isfield(Exp,'mwFreq'), err = 'Exp.mwFreq is missing.'; end
 if ~isfield(Exp,'Orientations'), err = 'Exp.Orientations is missing'; end
 if isfield(Exp,'Detection'), err = 'Exp.Detection is obsolete. Use Exp.Mode instead.'; end
@@ -114,32 +116,49 @@ if isfield(Exp,'Temperature')
 else
   Exp.Temperature = NaN;
 end
-if isfield(Exp,'CrystalSymmetry')
-  if ~isempty(Exp.CrystalSymmetry)
-    err = 'Space groups are not supported with perturbation theory.';
-  end
-end
 error(err);
 
+
 nu = Exp.mwFreq*1e3;
-Ori = Exp.Orientations;
 
 % Orientations
 %------------------------------------------------------
+Ori = Exp.Orientations;
 [n1,n2] = size(Ori);
 if ((n2==2)||(n2==3)) && (n1~=2) && (n1~=3)
   Ori = Ori.';
 end
 [nAngles,nOrientations] = size(Ori);
 switch nAngles
- case 2,
-  IntegrateOverChi = 1;
-  Ori(3,end) = 0; % Entire chi column is set to 0.
- case 3,
-  IntegrateOverChi = 0;
- otherwise
-  error('Orientations array has %d rows instead of 2 or 3.',nAngles);
+  case 2
+    IntegrateOverChi = 1;
+    Ori(3,end) = 0; % Entire chi column is set to 0.
+  case 3
+    IntegrateOverChi = 0;
+  otherwise
+    error('Orientations array has %d rows instead of 2 or 3.',nAngles);
 end
+
+% Add symmetry-related sites if space group symmetry is given
+if ~isempty(Exp.CrystalSymmetry)
+  R = sitetransforms(Exp.CrystalSymmetry);
+  nSites  = numel(R);
+  allOrientations = zeros(nOrientations*nSites,3);
+  idx = 1;
+  for iOri = 1:nOrientations
+    xyz0 = erot(Ori(:,iOri)).'; % xL, yL, zL along columns
+    for iSite = 1:nSites
+      xyz = R{iSite}*xyz0; % active rotation
+      allOrientations(idx,:) = eulang(xyz.',1);
+      idx = idx + 1;
+    end
+  end
+  Ori = allOrientations.';
+  [nAngles,nOrientations] = size(Ori);
+else
+  nSites = 1;
+end
+error(err);
 
 
 % Options
@@ -425,6 +444,14 @@ else
   end
   
   spec = 0;
+end
+
+% Reshape arrays in the case of crystals with site splitting
+if (nSites>1) && ~isfield(Opt,'peppercall')
+  siz = [nTransitions*nSites, numel(B)/nTransitions/nSites];
+  B = reshape(B,siz);
+  if ~isempty(Int), Int = reshape(Int,siz); end
+  if ~isempty(Wid), Wid = reshape(Wid,siz); end
 end
 
 % Arrange output

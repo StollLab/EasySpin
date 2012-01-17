@@ -238,7 +238,7 @@ DefaultExp.nPoints = 1024;
 DefaultExp.ModAmp = 0;
 DefaultExp.Mode = 'perpendicular';
 DefaultExp.mwPhase = 0;
-DefaultExp.Temperature = inf; % don't compute thermal equilibrium polarizations
+DefaultExp.Temperature = NaN; % don't compute thermal equilibrium polarizations
 
 Exp = adddefaults(Exp,DefaultExp);
 
@@ -293,6 +293,13 @@ else
   error('Exp.Mode must be either ''perpendicular'' or ''parallel''.');
 end
 logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.Mode);
+
+% Temperature
+if ~isnan(Exp.Temperature)
+  if isinf(Exp.Temperature)
+    error('If given, Exp.Temperature must be a finite value.')
+  end
+end
 
 % Modulation amplitude
 if any(Exp.ModAmp<0) || any(isnan(Exp.ModAmp)) || numel(Exp.ModAmp)~=1

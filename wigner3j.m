@@ -2,8 +2,8 @@
 %
 %   v = wigner3j(j1,j2,j3,m1,m2,m3)
 %   v = wigner3j(jm1,jm2,jm3)
-%   v = wigner3j(j,m)
-%   v = wigner3j(jm)
+%   v = wigner3j(jjj,mmm)
+%   v = wigner3j(jjjmmm)
 %
 %   Computes the value of the Wigner 3-j symbol
 %
@@ -13,8 +13,8 @@
 %
 %   Definitions for alternative input forms
 %   a)  jm1 = [j1 m2], jm2 = [j2 m2], jm3 = [j3 m3]
-%   b)  j = [j1 j2 j3], m = [m1 m2 m3]
-%   c)  jm = [j1 j2 j3 m1 m2 m3]
+%   b)  jjj = [j1 j2 j3], mmm = [m1 m2 m3]
+%   c)  jjjmmm = [j1 j2 j3 m1 m2 m3]
 
 function value = wigner3j(varargin)
 
@@ -55,11 +55,11 @@ if any([j1 j2 j3]<0)
   error('Nonphysical parameters. All j should satisfy j>=0');
 end
 
-if abs(m1)>j1 | abs(m2)>j2 | abs(m3)>j3
+if abs(m1)>j1 || abs(m2)>j2 || abs(m3)>j3
   error('Nonphysical parameters. m should be one of -j,-j+1,...,j-1,j.');
 end
 
-if ~isint(j1-m1) | ~isint(j2-m2) | ~isint(j3-m3)
+if ~isint(j1-m1) || ~isint(j2-m2) || ~isint(j3-m3)
   error('Nonphysical parameters. m should be one of -j,-j+1,...,j-1,j.');
 end
 
@@ -105,13 +105,13 @@ end
 mzero = ~any([m1,m2,m3]);
 if mzero
   if (j1==4)
-    if (j2==4)&(j3==4)
+    if (j2==4)&&(j3==4)
       value = sqrt(18/1001);
       return;
-    elseif (j2==4)&(j3==0)
+    elseif (j2==4)&&(j3==0)
       value = 1/3;
       return;
-    elseif (j2==0)&(j3==4)
+    elseif (j2==0)&&(j3==4)
       value = 1/3;
       return;
     end
@@ -120,70 +120,44 @@ if mzero
     % the formula from Edmonds p.125 is more prone to overflow errors
     J = j1+j2+j3;
     if mod(J,2)==1, value = 0; return; end
-    CBA = sort([-j1+j2+j3,j1-j2+j3,j1+j2-j3]);
-    C = CBA(1); B = CBA(2); A = CBA(3);
-    v = 1/(J+1);
-    for i=1:B/2, v = v*(B/2+i)*(A/2+i)^2/(A+i)/(A+B/2+i)/i; end
-    for i=1:C/2, v = v*(C/2+i)*(A/2+B/2+i)^2/(A+B+i)/(A+B+C/2+i)/i; end
-    value = (-1)^(J/2)*sqrt(v);
-    return;
+    if J<100000
+      CBA = sort([-j1+j2+j3,j1-j2+j3,j1+j2-j3]);
+      C = CBA(1); B = CBA(2); A = CBA(3);
+      v = 1/(J+1);
+      for i=1:B/2, v = v/i*(B/2+i)*(A/2+i)^2/(A+B/2+i)/(A+i); end
+      for i=1:C/2, v = v/i*(C/2+i)*(A/2+B/2+i)^2/(A+B+C/2+i)/(A+B+i); end
+      value = (-1)^(J/2)*sqrt(v);
+      return
+    end
   end
 end
 
 % General computation
 %==================================================================
-
 % Formula from Eq. (1)
 % Lai and Chiu, Computer Physics Communications 61 (1990) 350-360
 
-% Pre-factor
-%-----------------------------------------
-PrefactorMethod = '1';
-switch PrefactorMethod
-  case '0' % direct evaluation of expression
-    v = factorial(j1+m1)*factorial(j1-m1)*factorial(j2+m2)*factorial(j2-m2)*...
-      factorial(j3+m3)*factorial(j3-m3)/factorial(j1+j2-j3)/factorial(j1-j2+j3)/...
-      factorial(-j1+j2+j3)/factorial(j1+j2+j3+1);
-    prefactor = v;
-  case '1' % logarithmic form
-    v = facln(j1+m1) + facln(j1-m1) + facln(j2+m2) + facln(j2-m2) + ...
-      facln(j3+m3) + facln(j3-m3) - facln(j1+j2+j3+1) - ...
-      facln(j1+j2-j3) - facln(j1-j2+j3) - facln(-j1+j2+j3);
-    prefactor = exp(v/2);
-  case '2' % using prime number basis
-    v = mult_pr(1,fac_pr(j1+m1));
-    v = mult_pr(v,fac_pr(j1-m1));
-    v = mult_pr(v,fac_pr(j2+m2));
-    v = mult_pr(v,fac_pr(j2-m2));
-    v = mult_pr(v,fac_pr(j3+m3));
-    v = mult_pr(v,fac_pr(j3-m3));
-    v = divi_pr(v,fac_pr(+j1+j2-j3));
-    v = divi_pr(v,fac_pr(+j1-j2+j3));
-    v = divi_pr(v,fac_pr(-j1+j2+j3));
-    v = divi_pr(v,fac_pr(j1+j2+j3+1));
-    prefactor = pr2num(v/2);
-  otherwise
-    error('Unknown prefactor computation method.');
-end
-
-% Binomial sum
-%-----------------------------------------
 tmin = max([0,j1-j3+m2,j2-j3-m1]);
 tmax = min([j1+j2-j3,j1-m1,j2+m2]);
 
-BinsumMethod = 1;
+Method = 1;
 if max([j1 j2 j3])>20
-  BinsumMethod = 2;
+  Method = 2;
 end
-switch BinsumMethod
+switch Method
   case 1 % logarithmic form
+    v = facln(j1+m1) + facln(j1-m1) + facln(j2+m2) + facln(j2-m2) + ...
+      facln(j3+m3) + facln(j3-m3) - facln(j1+j2+j3+1) - ...
+      facln(j1+j2-j3) - facln(j1-j2+j3) - facln(-j1+j2+j3);
     binsum = 0;
     for t = tmin:tmax
       p = binoln(j1+j2-j3,t) + binoln(j1-j2+j3,j1-m1-t) + binoln(-j1+j2+j3,j2+m2-t);
-      p = (-1)^t*exp(p);
+      p = (-1)^t*exp(p+v/2);
       binsum = binsum + p;
     end
-  case 2 % direct evaluation using Java BigInteger class
+    value = (-1)^(j1-j2-m3)*binsum;
+  case 2 % direct evaluation using Java BigInteger and BigDecimal
+    % binomial sum
     t = tmin;
     p = binom_bi(j1+j2-j3,t);
     p = p.multiply(binom_bi( j1-j2+j3,j1-m1-t));
@@ -197,45 +171,16 @@ switch BinsumMethod
       p = mult(p,-1);
       binsum = binsum.add(p);
     end
-    binsum = binsum.doubleValue;
+    n = length(binsum.toString)-1; % 10-base exponent
+    b = java.math.BigDecimal(binsum).movePointLeft(n).doubleValue;
+    % logarithm of prefactor
+    v = facln(j1+m1) + facln(j1-m1) + facln(j2+m2) + facln(j2-m2) + ...
+      facln(j3+m3) + facln(j3-m3) - facln(j1+j2+j3+1) - ...
+      facln(j1+j2-j3) - facln(j1-j2+j3) - facln(-j1+j2+j3);
+    value = (-1)^(j1-j2-m3)*exp(v/2+n*log(10))*b;
   otherwise
-    error('Unknown computation method for binomial sum.');
+    error('Unknown computation method.');
 end
-
-value = (-1)^(j1-j2-m3)*prefactor*binsum;
-
-%---------------
-%   % Formula (29) from Tuzun 1998 (Comput.Phys.Commun.)
-% 
-%   alpha = [j2-j3-m1,0,j1-j3+m2];
-%   beta = [j2+m2,j1+j2-j3,j1-m1];
-%   A = sort(alpha); A1 = A(1); A2 = A(2); A3 = A(3);
-%   B = sort(beta);  B1 = B(1); B2 = B(2); B3 = B(3);
-%   
-%   %  buggy...
-%   
-%   %p = 1;
-%   %for k=1:A3-A2, p = p * (B3-A3+k)/(B2+B3-A1-A3+k); end
-%   %for k=1:B2-B1, p = p * (B1-A1+k)/(B1-A2+k)*(B1-A3+k)/(B1+B3-A1-A3+k); end
-%   %for k=1:B1-A3, p = p /(B3-A1+k)/(B2+B3-A1-A2+k); end
-%   %p = fac(B1-A3)*sqrt(p);
-%   
-%   J = j1+j2+j3;
-%   p = fac(A1-B1)*fac(A1-B2)/fac(A1-B3)*...
-%       fac(A2-B1)*fac(A2-B2)/fac(A2-B3)*...
-%       fac(A3-B1)*fac(A3-B2)/fac(A3-B3)/fac(J+1);
-%   p = sqrt(p);
-%   
-%   t = (-1)^A3*bino(B1-A1,B1-A3)*bino(B2-A2,B2-A3);
-%   s = t;
-%   for k = A3+1:B1
-%     t = -t*(B1+1-k)/(k-A1)*(B2+1-k)/(k-A2)*(B3+1-k)/(k-A3);
-%     s = s + t;
-%   end
-%   s
-%   
-%   value = (-1)^(j1-j2-m3)*p*s;
-%---------------
 
 if (Display)
   n = numel(t);
@@ -317,7 +262,7 @@ end
 function v = facln(x) % Logarithm of factorial
 v = gammaln(x+1);
 
-function v = binoln(n,k) % logarihtm of binomial coefficient
+function v = binoln(n,k) % logarithm of binomial coefficient
 v = facln(n) - facln(k) - facln(n-k);
 
 %-----------------------------------------------------------------
@@ -411,7 +356,7 @@ elseif (j2==2)
 
 else
 
-  if (m2==0) & (jdelta==0)
+  if (m2==0) && (jdelta==0)
     tmp2 = j1*(j1+1)*(x+2);
   else
     tmp2 = (x+1)*(x+2)*(x+3);
