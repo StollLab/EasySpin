@@ -1028,6 +1028,9 @@ for iOri = 1:nOrientations
           if (ComputeBoltzmannPopulations)
             Populations = exp(BoltzmannPreFactor*(Energies-Energies(1)));
             Polarization = (Populations(u(iTrans)) - Populations(v(iTrans)))/sum(Populations);
+            if (Polarization<0)
+              if abs(Polarization)<2e16, Polarization = 0; end
+            end
             if (nPerturbNuclei>0)
               Polarization = Polarization/prod(2*System.I+1);            
             end

@@ -72,9 +72,8 @@ for k = 1:length(Electrons)
   if (idx~=1), continue; end
 
   if isfield(Sys,'aF')
-    % not availabble if D frame is tilted
-    % (this would necessitate rotation of the a and F terms
-    % which is not implemented).
+    % not available if D frame is tilted (would necessitate rotation
+    % of the a and F terms which is not implemented).
     if isfield(Sys,'Dpa')
       if ~isempty(Sys.Dpa) && any(Sys.Dpa)
         error('It''s not possible to use Sys.aF with a tilted D frame (Sys.Dpa).');
@@ -84,27 +83,26 @@ for k = 1:length(Electrons)
     n = S*(S+1);
     Sz = sop(spvc,1,3,'sparse');
     O40 = (35*Sz^4-30*n*Sz^2+25*Sz^2-(6*n-3*n^2)*speye(length(Sz)));
-    a = Sys.aF(1);
     F = Sys.aF(2);
+    if (F~=0)
+      H = H + (F/180)*O40;
+    end
+    a = Sys.aF(1);
     if (a~=0)
       Sp = sop(spvc,1,4,'sparse');
       Sm = sop(spvc,1,5,'sparse');
-      % along threefold axis (see Abragam/Bleaney p.142, p.437)
-      if ~isfield(Sys,'aFrame'), Sys.aFrame = 3; end
-      B4 = a/120;
+      if ~isfield(Sys,'aFrame'), Sys.aFrame = 4; end
       if (Sys.aFrame==3)
+        % along threefold axis (see Abragam/Bleaney p.142, p.437)
         O43 = (Sz*(Sp^3+Sm^3)+(Sp^3+Sm^3)*Sz)/2;
-        H = H - 2/3*B4*(O40 + 10*sqrt(2)*O43);
+        H = H - 2/3*(a/120)*(O40 + 10*sqrt(2)*O43);
       elseif (Sys.aFrame==4)
         % along fourfold (tetragonal) axis (used by some)
         O44 = (Sp^4+Sm^4)/2;
-        H = H + B4*(O40 + 5*O44);
+        H = H + (a/120)*(O40 + 5*O44);
       else
         error('Unknown Sys.aFrame value. Use 3 for trigonal and 4 for tetragonal (collinear with D).');
       end
-    end
-    if (F~=0)
-      H = H + F/180*O40;
     end
   end
 

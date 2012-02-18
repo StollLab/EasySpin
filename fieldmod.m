@@ -49,6 +49,11 @@ if numel(Harmonic)~=1 || (Harmonic<1) || ~isreal(Harmonic) || mod(Harmonic,1)
   error('Harmonic must be a positive integer (1, 2, 3, etc)!');
 end
 
+% Check ModAmpl
+if (ModAmpl<=0)
+  error('Modulation amplitude (3rd argument) must be positive.');
+end
+
 % Get length of vectors.
 n = length(x);
 if length(y)~=n, error('x and y must have the same length!'); end

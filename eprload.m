@@ -148,13 +148,13 @@ case {'.DTA','.DSC','.dsc','.dta'}
   % CPLX indicates complex data, REAL indicates real data.
   if isfield(Parameters,'IKKF')
     switch Parameters.IKKF
-    case 'CPLX', Complex = 1;
-    case 'REAL', Complex = 0;
+    case 'CPLX', isComplex = 1;
+    case 'REAL', isComplex = 0;
     otherwise, error('Unknown value for keyword IKKF in .DSC file!');
     end
   else
     warning('Keyword IKKF not found in .DSC file! Assuming IKKF=REAL.');
-    Complex = 0;
+    isComplex = 0;
   end
   
   % XPTS: X Points   YPTS: Y Points   ZPTS: Z Points
@@ -244,7 +244,7 @@ case {'.DTA','.DSC','.dsc','.dta'}
   end
     
   % Read data matrix. 
-  Data = getmatrix([FullBaseName,SpcExtension],Dimensions,1:3,NumberFormat,ByteOrder,Complex);
+  Data = getmatrix([FullBaseName,SpcExtension],Dimensions,1:3,NumberFormat,ByteOrder,isComplex);
 
   % Scale spectrum/spectra
   if ~isempty(Scaling)
@@ -252,24 +252,25 @@ case {'.DTA','.DSC','.dsc','.dta'}
     % #SPL/EXPT: type of experiment
     cwExperiment = strcmp(Parameters.EXPT,'CW');
 
+    % #DSL/signalChannel/SctNorm: indicates whether CW data are already scaled
+    if ~isfield(Parameters,'SctNorm')
+      %error('Missing SctNorm field in the DSC file. Cannot determine whether data is already scaled')
+      DataPreScaled = 0;
+    else
+      DataPreScaled = strcmpi(Parameters.SctNorm,'true');
+    end
+    
     % Number of scans
     if any(Scaling=='n')
-      % #DSL/signalChannel/SctNorm: indicates whether CW data are averaged
-      if ~isfield(Parameters,'SctNorm')
-        %error('Missing SctNorm field in the DSC file. Cannot determine whether data is already scaled')
-        Averaged = 0;
-      else
-        Averaged = strcmp(Parameters.SctNorm,'true');
+      % #SPL/AVGS: number of averages
+      if ~isfield(Parameters,'AVGS')
+        error('Missing AVGS field in the DSC file.')
       end
-      if ~Averaged
-        % #SPL/AVGS: number of averages
-        if ~isfield(Parameters,'AVGS')
-          error('Missing AVGS field in the DSC file.')
-        end
-        nAverages = sscanf(Parameters.AVGS,'%d');
-        Data = Data/nAverages;
-      else
+      nAverages = sscanf(Parameters.AVGS,'%d');
+      if DataPreScaled
         error(sprintf('Scaling by number of scans not possible,\nsince data in DSC/DTA are already averaged\nover %d scans.',nAverages));
+      else
+        Data = Data/nAverages;
       end
     end
 
@@ -282,10 +283,29 @@ case {'.DTA','.DSC','.dsc','.dta'}
         end
         ReceiverGaindB = sscanf(Parameters.RCAG,'%f');
         ReceiverGain = 10^(ReceiverGaindB/10);
+        % Xenon (according to Feb 2011 manual) uses 20*10^(RCAG/20)
+        % ReceiverGain = 20*10^(ReceiverGaindB/20);
         Data = Data/ReceiverGain;
       end
     end
-
+    
+    % Conversion/sampling time
+    if cwExperiment && any(Scaling=='c')
+      %if ~DataPreScaled
+        % #SPL/SPTP: sampling time in seconds
+        if ~isfield(Parameters,'SPTP')
+          error('Cannot scale by sampling time, since SPTP in the DSC file is missing.');
+        end
+        % Xenon (according to Feb 2011 manual) already scaled data by ConvTime if
+        % normalization is specified (SctNorm=True). Question: which units are used?
+        ConversionTime = sscanf(Parameters.SPTP,'%f'); % in seconds
+        ConversionTime = ConversionTime*1000; % s -> ms
+        Data = Data/ConversionTime;
+      %else
+        %error('Scaling by conversion time not possible,\nsince data in DSC/DTA are already scaled.');
+      %end
+    end
+  
     % Microwave power
     if cwExperiment
       if any(Scaling=='P')
@@ -310,16 +330,6 @@ case {'.DTA','.DSC','.dsc','.dta'}
       end
       Temperature = sscanf(Parameters.STMP,'%f');
       Data = Data*Temperature;
-    end
-
-    % Conversion/sampling time
-    if any(Scaling=='c')
-      % #SPL/SPTP: sampling time in seconds
-      if ~isfield(Parameters,'SPTP')
-        error('Cannot scale by sampling time, since SPTP in the DSC file is missing.');
-      end
-      ConversionTime = sscanf(Parameters.SPTP,'%f')*1000; % convert to ms
-      Data = Data/ConversionTime;
     end
 
   end
@@ -351,7 +361,7 @@ case {'.PAR','.SPC','.par','.spc'}
   FileType = 'c';
   
   TwoD = 0; % Flag for two-dimensional data
-  Complex = 0; % Flag for complex data
+  isComplex = 0; % Flag for complex data
   nx = 1024;
   ny = 1;
   
@@ -366,7 +376,7 @@ case {'.PAR','.SPC','.par','.spc'}
   % Analyse data type flags stored in JSS.
   if isfield(Parameters,'JSS')
     Flags = sscanf(Parameters.JSS,'%f');
-    Complex = bitand(Flags,2^4);
+    isComplex = bitand(Flags,2^4);
     TwoD = bitand(Flags,2^12);
   end
   
@@ -375,7 +385,7 @@ case {'.PAR','.SPC','.par','.spc'}
     if TwoD,
       if FileType=='c', FileType='p'; end
       nx = sscanf(Parameters.SSX,'%f');
-      if Complex, nx = nx/2; end
+      if isComplex, nx = nx/2; end
     end
   end
   
@@ -393,7 +403,7 @@ case {'.PAR','.SPC','.par','.spc'}
     if ~TwoD,
       if FileType=='c', FileType='p'; end
       nx = nAnz;
-      if Complex, nx = nx/2; end
+      if isComplex, nx = nx/2; end
     else
       if (nx*ny~=nAnz)
         error('Two-dimensional data: SSX, SSY and ANZ in .par file are inconsistent.');
@@ -417,9 +427,9 @@ case {'.PAR','.SPC','.par','.spc'}
   
   % Set number format
   switch FileType
-  case 'c', Format = 'int32';
-  case 'w', Format = 'float'; % WinEPR/Simfonia: single float
-  case 'p', Format = 'int32'; % old: 'float'
+  case 'c', NumberFormat = 'int32';
+  case 'w', NumberFormat = 'float'; % WinEPR/Simfonia: single float
+  case 'p', NumberFormat = 'int32'; % old: 'float'
   end
   
   % Construct abscissa vector
@@ -526,7 +536,7 @@ case {'.PAR','.SPC','.par','.spc'}
   % Read data file.
   nz = 1;
   Dimensions = [nx ny nz];
-  Data = getmatrix([FullBaseName,SpcExtension],Dimensions,1:3,Format,Endian,Complex);
+  Data = getmatrix([FullBaseName,SpcExtension],Dimensions,1:3,NumberFormat,Endian,isComplex);
 
   % Scale spectrum/spectra
   if ~isempty(Scaling)
@@ -597,16 +607,16 @@ case {'.ECO','.eco'}
   
   % set dimensions and complex flag
   switch length(Data)
-  case 3, Dims = Data([1 2]); Complex = Data(3);
-  case 2, Dims = Data; Complex = 0;
-  case 1, Dims = [Data 1]; Complex = 0;
+  case 3, Dims = Data([1 2]); isComplex = Data(3);
+  case 2, Dims = Data; isComplex = 0;
+  case 1, Dims = [Data 1]; isComplex = 0;
   end
   
   % read data
-  Data = fscanf(fid,'%f',prod(Dims)*(Complex+1));
+  Data = fscanf(fid,'%f',prod(Dims)*(isComplex+1));
   
   % combine to complex and reshape
-  if Complex
+  if isComplex
     Data = complex(Data(1:2:end),Data(2:2:end));
   end
   Data = reshape(Data,Dims);
@@ -800,31 +810,31 @@ end
 return
 
 %--------------------------------------------------
-function out = getmatrix(FileName,Dims,DimOrder,NumberFormat,ByteOrder,Complex)
+function out = getmatrix(FileName,Dims,DimOrder,NumberFormat,ByteOrder,isComplex)
 
 % Open data file, error if fail.
-fid = fopen(FileName,'r',ByteOrder);
-if (fid<1), error('Unable to open %s',FileName); end
+FileID = fopen(FileName,'r',ByteOrder);
+if (FileID<1), error('Unable to open data file %s',FileName); end
 
 % Calculate expected number of elements and read in.
 % Real and imaginary data are interspersed.
-N = ((Complex~=0)+1)*prod(Dims);
-[x,effN] = fread(fid,N,NumberFormat);
+if isComplex, N = 2*prod(Dims); else N = prod(Dims); end
+[x,effN] = fread(FileID,N,NumberFormat);
 if (effN<N)
   error('Unable to read all expected data.');
 end
 
+% Close data file
+CloseStatus = fclose(FileID);
+if (CloseStatus<0), error('Unable to close data file %s',FileName); end
+
 % Combine real and imaginary data to complex.
-if Complex
+if isComplex
   x = complex(x(1:2:end),x(2:2:end));
 end
 
 % Reshape to matrix and permute dimensions if wanted.
 out = ipermute(reshape(x(:),Dims(DimOrder)),DimOrder);
-
-% Close file
-St = fclose(fid);
-if St<0, error('Unable to close data file.'); end
 
 return
 %--------------------------------------------------

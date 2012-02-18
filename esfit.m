@@ -7,7 +7,7 @@
 %   [bestsys,bestspc] = esfit(...)
 %
 %     simfunc   simulation function name:
-%                 'pepper', 'garlic' or 'chili'
+%                 'pepper', 'garlic', 'salt', 'chili', etc.
 %     expspc    experimental spectrum, a vector of data points
 %     Sys0      starting values for spin system parameters
 %     Vary      allowed variation of parameters
@@ -42,22 +42,10 @@ smallerr = [];
 
 % Simulation function name
 %--------------------------------------------------------------------
-if ~ischar(SimFunctionName)
+if ~ischar(SimFunctionName) && ~isa(SimFunctionName,'function_handle')
   error('First parameter must be simulation function name.');
 end
-
-switch SimFunctionName
-  case 'viola', % interface function to Dave Budil's code
-  case 'chili',
-  case 'garlic',
-  case 'pepper',
-  case 'salt',
-  case 'saffron'
-    %error('esfit cannot be used together with saffron.');
-  otherwise
-    error('Unknown simulation function ''%s''.',SimFunctionName);
-end
-SimFcnName = SimFunctionName;
+SimFcnName = SimFunctionName;  
 
 % System structure
 %--------------------------------------------------------------------
@@ -265,7 +253,7 @@ end
 
 if FitOpt.PrintLevel
   disp('-- esfit ------------------------------------------------');
-  fprintf('Simulation function:      %s\n',SimFunctionName);
+  fprintf('Simulation function:      %s\n',char(SimFunctionName));
   fprintf('Number of components:     %d\n',nSystems);
   fprintf('Number of parameters:     %d\n',nParameters);
   fprintf('Minimization method:      %s\n',MethodName{FitOpt.MethodID});

@@ -60,8 +60,9 @@ varargout = cell(1,nargout);
 if (nargin==0), help(mfilename); return; end
 
 switch (nargin)
-case 2, Options = [];
-case 3,
+  case 1, error('Experimental parameters (2nd input) are missing!');
+  case 2, Options = [];
+  case 3,
 otherwise, error('Wrong number of input parameters!');
 end
 
@@ -93,6 +94,7 @@ if ~isfield(Sys,'singlecomponent')
   
   if isstruct(Sys), Sys = {Sys}; end
 
+  % Loop over components
   spec = 0;
   for iSys = 1:numel(Sys)
     Sys{iSys}.singlecomponent = 1;

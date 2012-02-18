@@ -77,11 +77,11 @@ else
   % Rescaling with reference
   %----------------------------------------------------
   
-  ModeID = find(strcmp(Mode,{'maxabs','minmax','lsq','lsq0','lsq1','lsq2'}));
+  ModeID = find(strcmp(Mode,{'maxabs','minmax','shift','lsq','lsq0','lsq1','lsq2'}));
   if isempty(ModeID)
     error('Unknown scaling mode ''%s''',Mode);
   end
-  if (ModeID>=3)
+  if (ModeID>=4)
     if numel(y)~=numel(yref)
       error('For least-squares rescaling, vectors must have same number of elements.');
     end
@@ -97,7 +97,14 @@ else
     case 2 % minmax
       scalefactor = (max(yref)-min(yref))/(max(y)-min(y));
       ynew = scalefactor*(y-min(y)) + min(yref);
-    case 3 % lsq
+    case 3 % shift
+      nan = isnan(y) | isnan(yref);
+      if any(nan)
+        error('Cannot use shift scaling with data containing NaN.');
+      end
+      shift = mean(y)-mean(yref);
+      ynew = y - shift;
+    case 4 % lsq
       nan = isnan(y) | isnan(yref);
       y_ = y;
       yref_ = yref;
@@ -106,7 +113,7 @@ else
       scalefactor = y_\yref_;
       scalefactor = abs(scalefactor);
       ynew = scalefactor*y;
-    case 4 % lsq0
+    case 5 % lsq0
       nan = isnan(y) | isnan(yref);
       if any(nan)
         error('Cannot use lsq0 scaling with data containing NaN.');
@@ -114,7 +121,7 @@ else
       D = [y ones(N,1)];
       params = D\yref;
       ynew = D*params;
-    case 5 % lsq1
+    case 6 % lsq1
       nan = isnan(y) | isnan(yref);
       if any(nan)
         error('Cannot use lsq1 scaling with data containing NaN.');
@@ -123,7 +130,7 @@ else
       D = [y ones(N,1) x];
       params = D\yref;
       ynew = D*params;
-    case 6 % lsq2
+    case 7 % lsq2
       nan = isnan(y) | isnan(yref);
       if any(nan)
         error('Cannot use lsq2 scaling with data containing NaN.');

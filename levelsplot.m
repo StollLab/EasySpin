@@ -8,6 +8,7 @@
 %               Euler angles for the magnetic field
 %               alternatively, either 'x', 'y' or 'z'
 %    B          field range [Bmin Bmax] in mT
+%               alternatively, just Bmax in mT
 %    mwFreq     spectrometer frequency in GHz
 %
 %  If mwFreq is given, resonances are drawn. Red
@@ -22,9 +23,10 @@
 
 function levelsplot(Sys,varargin)
 
+nPoints = 201;
 switch (nargin)
 case 5
-  [Ori,B,mwFreq,N] = deal(varargin{:});
+  [Ori,B,mwFreq,nPoints] = deal(varargin{:});
 case 4
   [Ori,B,mwFreq] = deal(varargin{:});
 case 3
@@ -67,15 +69,12 @@ else
   error('Ori must be a two-element vector.');
 end
 
-N = 200;
-%N = 1001;
-
 switch numel(B)
   case 1
     B = [0 B];
-    Bvec = linspace(B(1),B(2),N);
+    Bvec = linspace(B(1),B(2),nPoints);
   case 2
-    Bvec = linspace(B(1),B(2),N);
+    Bvec = linspace(B(1),B(2),nPoints);
   otherwise
     Bvec = B;
 end
@@ -101,53 +100,51 @@ end
 
 if isfinite(mwFreq)
   Opt = struct('Threshold',0,'Freq2Field',0);
-  Par = struct('mwFreq',mwFreq,'Range',B([1 end]));
-  Par.Orientations = [phi;theta;0];
-  [eB,tp] = resfields(Sys,Par,Opt);
-  if ~isempty(eB)
-    if nElectrons==1
+  Exp = struct('mwFreq',mwFreq,'Range',B([1 end]));
+  Exp.Orientations = [phi;theta;0];
+  [resonFields,tp,w,Transitions] = resfields(Sys,Exp,Opt);
+  if ~isempty(resonFields)
+    if (nElectrons==1)
       % one electron spin: normalize amplitudes
-      n = ang2vec(phi,theta);
-      g = norm(diag(Sys.g)*n);
-      c = g*bmagn/planck/1e9;
-      tpMax = floor(Sys.S+0.5)*ceil(Sys.S+0.5)/4*c^2;
-      %tp(tp>tpMax) = tpMax; % guard agains round-off problems
+      %n = ang2vec(phi,theta);
+      %g = norm(diag(Sys.g)*n);
+      %c = g*bmagn/planck/1e9;
+      %tpMax = floor(Sys.S+0.5)*ceil(Sys.S+0.5)/4*c^2;
+      %tp(tp>tpMax) = tpMax; % guard against round-off problems
       tpMax = max(tp);
     else
       tpMax = max(tp);
     end
     if (tpMax>0), tp = tp/tpMax; end
-    [tp,i] = sort(tp);
-    eB = eB(i);
-    n = ang2vec(phi,theta);
-    idx = tril(ones(hsdim(Sys)));
-    [F,G] = sham(Sys,n);
+    
+    % sort transitions according to intensity to ensure more intense
+    % lines are plotted on top of less intense ones
+    [tp,ix] = sort(tp);
+    resonFields = resonFields(ix);
+    Transitions = Transitions(ix,:);
 
-    for ieB = 1:length(eB)
-      %if tp(ieB)<=Threshold; continue; end
-      H = F+G*eB(ieB);
-      E = sort(eig(H));
-      EE = E(:,ones(1,length(E)));
-      dE = triu(EE'-EE)-mwFreq*1e3;
-      dE(logical(idx)) = NaN;
-      [i,j] = find(abs(dE)==min(abs(dE(:))));
-      h = line(eB(ieB)*[1 1],E([i(1),j(1)])/1e3);
-      Color = tp(ieB)*AllowedColor + (1-tp(ieB))*ForbiddenColor;
+    % compute and plot lower and upper energy levels of transitions
+    n = ang2vec(phi,theta);
+    [F,G] = sham(Sys,n);
+    for iF = 1:numel(resonFields)
+      H = F + G*resonFields(iF);
+      E = sort(eig(H))/1e3;
+      h = line(resonFields(iF)*[1 1],E(Transitions(iF,:)));
+      Color = tp(iF)*AllowedColor + (1-tp(iF))*ForbiddenColor;
       set(h,'Color',Color);
-      if tp(ieB)>Threshold,
-        set(h,'Marker','.');
-      end
+      if tp(iF)>Threshold, set(h,'Marker','.'); end
     end
+    
   else
+    % no resonance fields
     xl = xlim; yl = ylim;
     h = text(xl(1),yl(1),' no resonances in range!');
     set(h,'Color','r','VerticalAl','bottom');
-    % no resonance fields
   end
 end
 
 axis tight;
-xlabel('magnetic field [mT]');
-ylabel('energy [GHz]');
+xlabel('magnetic field (mT)');
+ylabel('energy (GHz)');
 
 return

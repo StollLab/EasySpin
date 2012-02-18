@@ -18,13 +18,14 @@
 
 function value = wigner3j(varargin)
 
-Display = 0;
-
 if (nargin==0), help(mfilename); return; end
 
 % Parse input
 %---------------------------------------------------
+Method = [];
 switch nargin
+  case 7
+    [j1,j2,j3,m1,m2,m3,Method] = deal(varargin{:});
   case 6
     [j1,j2,j3,m1,m2,m3] = deal(varargin{:});
   case 3
@@ -82,7 +83,7 @@ end
 %--------------------------------------------------
 
 % Value for all zeros
-if ~any(jjjmmm)
+if all(jjjmmm==0)
   value = 1;
   return;
 end
@@ -102,7 +103,7 @@ if (j1==2)
 end
 
 % Values for [4 4 4; 0 0 0] and [4 4 0; 0 0 0] and [4 0 4; 0 0 0]
-mzero = ~any([m1,m2,m3]);
+mzero = all([m1,m2,m3]==0);
 if mzero
   if (j1==4)
     if (j2==4)&&(j3==4)
@@ -137,15 +138,19 @@ end
 % Formula from Eq. (1)
 % Lai and Chiu, Computer Physics Communications 61 (1990) 350-360
 
+if isempty(Method)
+  Method = 1;
+  if max([j1 j2 j3])>20
+    Method = 2;
+  end
+end
+
 tmin = max([0,j1-j3+m2,j2-j3-m1]);
 tmax = min([j1+j2-j3,j1-m1,j2+m2]);
-
-Method = 1;
-if max([j1 j2 j3])>20
-  Method = 2;
-end
 switch Method
-  case 1 % logarithmic form
+  case 1
+    % prefactor: logarithmic
+    % sum: each term logarithmic
     v = facln(j1+m1) + facln(j1-m1) + facln(j2+m2) + facln(j2-m2) + ...
       facln(j3+m3) + facln(j3-m3) - facln(j1+j2+j3+1) - ...
       facln(j1+j2-j3) - facln(j1-j2+j3) - facln(-j1+j2+j3);
@@ -156,40 +161,100 @@ switch Method
       binsum = binsum + p;
     end
     value = (-1)^(j1-j2-m3)*binsum;
-  case 2 % direct evaluation using Java BigInteger and BigDecimal
+
+  case 2
+    % prefactor: logarithmic
+    % sum: binomials, using Java BigInteger/BigDecimal
+    for q=j1+j2+j3:-1:1
+      %bigint(q) = java.math.BigInteger(sprintf('%d',q));
+    end
+    
     % binomial sum
     t = tmin;
     p = binom_bi(j1+j2-j3,t);
     p = p.multiply(binom_bi( j1-j2+j3,j1-m1-t));
     p = p.multiply(binom_bi(-j1+j2+j3,j2+m2-t));
-    p = mult(p,(-1)^t);
+    p = p.multiply(bi((-1)^t));
     binsum = p;
     for t = tmin+1:tmax
-      p = mult(p,j1+j2-j3-t+1); p = divi(p,t);
-      p = mult(p,j1-m1-t+1);    p = divi(p,-j2+j3+m1+t);
-      p = mult(p,j2+m2-t+1);    p = divi(p,-j1+j3-m2+t);
-      p = mult(p,-1);
+      q1 = (j1+j2-j3-t+1)*(j1-m1-t+1)*(j2+m2-t+1);
+      q2 = t*(-j2+j3+m1+t)*(-j1+j3-m2+t);
+      p = p.multiply(bi(q1));
+      p = p.divide(bi(q2));
+      p = p.multiply(bi(-1));
       binsum = binsum.add(p);
     end
     n = length(binsum.toString)-1; % 10-base exponent
     b = java.math.BigDecimal(binsum).movePointLeft(n).doubleValue;
-    % logarithm of prefactor
-    v = facln(j1+m1) + facln(j1-m1) + facln(j2+m2) + facln(j2-m2) + ...
+    
+    prefactor_ln = ...
+      facln(j1+m1) + facln(j1-m1) + facln(j2+m2) + facln(j2-m2) + ...
       facln(j3+m3) + facln(j3-m3) - facln(j1+j2+j3+1) - ...
       facln(j1+j2-j3) - facln(j1-j2+j3) - facln(-j1+j2+j3);
-    value = (-1)^(j1-j2-m3)*exp(v/2+n*log(10))*b;
+    
+    value = (-1)^(j1-j2-m3)*exp(prefactor_ln/2+n*log(10))*b;
+    
+  case 3
+    % prefactor: logarithmic
+    % sum: binomials, using my own arbitrary-precision integers
+    % (currently buggy)
+    
+    % binomial sum
+    t = tmin;
+    p = hpi_binom(j1+j2-j3,t);
+    p = hpi_multiply(p,hpi_binom( j1-j2+j3,j1-m1-t));
+    p = hpi_multiply(p,hpi_binom(-j1+j2+j3,j2+m2-t));
+    p = hpi_multiply(p,(-1)^t);
+    binsum = p;
+        
+    for t = tmin+1:tmax
+      q1 = (j1+j2-j3-t+1)*(j1-m1-t+1)*(j2+m2-t+1);
+      q2 = t*(-j2+j3+m1+t)*(-j1+j3-m2+t);
+      p = hpi_multiply(p,q1);
+      p = hpi_divide(p,q2);
+      p = hpi_multiply(p,-1);
+      binsum = hpi_add(binsum,p);
+    end    
+    sgn = binsum.sign;
+    binsum.sign = 1;
+    [b,n] = hpi_mantissaexponent(binsum);
+    
+    prefactor_ln = ...
+      facln(j1+m1) + facln(j1-m1) + facln(j2+m2) + facln(j2-m2) + ...
+      facln(j3+m3) + facln(j3-m3) - facln(j1+j2+j3+1) - ...
+      facln(j1+j2-j3) - facln(j1-j2+j3) - facln(-j1+j2+j3);
+    
+    value = sgn*(-1)^(j1-j2-m3)*exp(prefactor_ln/2+n*log(10))*b;
+
+  case 4
+    % prefactor: logarithmic
+    % sum: binomials, using John D'Errico's vpi
+    
+    % binomial sum
+    t = vpi(tmin);
+    p = nchoosek( j1+j2-j3,t)*...
+        nchoosek( j1-j2+j3,j1-m1-t)*...
+        nchoosek(-j1+j2+j3,j2+m2-t);
+    p = p*(-1)^t;
+    binsum = p;
+    for t = tmin+1:tmax
+      q1 = (j1+j2-j3-t+1)*(j1-m1-t+1)*(j2+m2-t+1);
+      q2 = t*(-j2+j3+m1+t)*(-j1+j3-m2+t);
+      p = -p*q1/q2;
+      binsum = binsum + p;
+    end
+    
+    binsum_ln = log(abs(binsum));
+    
+    prefactor_ln = ...
+      facln(j1+m1) + facln(j1-m1) + facln(j2+m2) + facln(j2-m2) + ...
+      facln(j3+m3) + facln(j3-m3) - facln(j1+j2+j3+1) - ...
+      facln(j1+j2-j3) - facln(j1-j2+j3) - facln(-j1+j2+j3);
+    
+    value = sign(binsum)*(-1)^(j1-j2-m3)*exp(prefactor_ln/2+binsum_ln);
+
   otherwise
     error('Unknown computation method.');
-end
-
-if (Display)
-  n = numel(t);
-  fprintf('sum over %d terms: %d facln in total\n',n,n*6+10);
-end
-
-% Remove numerical noise on zero results
-if abs(value)<1e-10
-  value = 0;
 end
 
 return
@@ -198,12 +263,6 @@ return
 
 
 %===========================================================
-
-function v = mult(p,a)
-v = p.multiply(bi(a));
-
-function v = divi(p,a)
-v = p.divide(bi(a));
 
 function v = binom_bi(n,k)
 v = bi(1);
@@ -262,7 +321,7 @@ end
 function v = facln(x) % Logarithm of factorial
 v = gammaln(x+1);
 
-function v = binoln(n,k) % logarithm of binomial coefficient
+function v = binoln(n,k) % Logarithm of binomial coefficient
 v = facln(n) - facln(k) - facln(n-k);
 
 %-----------------------------------------------------------------
@@ -410,3 +469,161 @@ for a = 0:maxJ
     end
   end
 end
+
+
+%%==============================================================
+function [mantissa,exponent] = hpi_mantissaexponent(N)
+if ~isstruct(N)
+  if isinf(N), error('N is Inf.'); end
+  N = hpi(N);
+end
+if N.sign==-1, error('N must be non-negative.'); end
+mantissa = 0;
+exponent = 0;
+nDigits = numel(N.digits);
+for k = 1:nDigits
+  mantissa = mantissa/1000 + N.digits(k);
+  exponent = exponent + 3;
+end
+exponent = exponent - 3;
+if mantissa>=100, mantissa=mantissa/100; exponent = exponent+2; end
+if mantissa>=10, mantissa=mantissa/10; exponent = exponent+1; end
+
+function c = hpi_add(a,b)
+
+% convert both to hpi
+if ~isstruct(a), a = hpi(a); end
+if ~isstruct(b), b = hpi(b); end
+
+% bring both to the same number of digits
+na = numel(a.digits);
+nb = numel(b.digits);
+if (na>nb), b.digits(na) = 0; end
+if (nb>na), a.digits(nb) = 0; end
+
+% add, including the sign
+result = a.sign*a.digits + b.sign*b.digits;
+
+% determine the sign of the result
+hsd = find(result,1,'last');
+if isempty(hsd)
+  c.sign = 1;
+  c.digits = 0;
+  return
+else
+  c.sign = sign(result(hsd));
+end
+if (c.sign==-1), result = -result; end
+
+base = 1000;
+
+% carry-over
+K = find((result<0) | (result>=base));
+while ~isempty(K)
+  if K(end) == numel(result), result(end+1) = 0; end
+  olddigits = result(K);
+  newdigits = mod(olddigits,base);
+  result(K) = newdigits;
+  carry = (olddigits - newdigits)/base;
+  K = K + 1;
+  result(K) = result(K) + carry;
+  K = K((result(K)<0) | (result(K)>=base));
+end
+
+% trim empty digits
+hsd = find(result,1,'last');
+if isempty(hsd)
+  c.digits = 0;
+elseif length(result)>hsd
+  c.digits = result(1:hsd);
+else
+  c.digits = result;
+end
+
+function c = hpi_divide(a,b)
+c.sign = a.sign;
+c.digits = [];
+if (b<0), c.sign = -c.sign; end
+cv = a.digits;
+nDigits = find(a.digits,1,'last');
+for d=nDigits:-1:1
+  result(d) = fix(cv(d)/b);
+  remainder = cv(d) - b*result(d);
+  if (d>1)
+    cv(d-1) = cv(d-1) + remainder*1000;
+  end
+end
+c.digits = result;
+return
+
+function value = hpi(a)
+if ischar(a)
+  value.sign = +1;
+  if a(1)=='+', value.sign = +1; a(1) = []; end
+  if a(1)=='-', value.sign = -1; a(1) = []; end
+  d = rem(length(a),3);
+  if (d==1), a = ['00' a]; end
+  if (d==2), a = ['0' a]; end
+  k = 1;
+  value.digits = [];
+  for idx = length(a)-2:-3:1
+    value.digits(k) = str2double(a(idx:idx+2));
+    k = k+1;
+  end  
+else
+  if (a<0), value.sign = -1; else value.sign = +1; end
+  a = abs(a);
+  k = 1;
+  value.digits(1) = 0;
+  while (a>0)
+    value.digits(k) = rem(a,1000);
+    a = fix(a/1000);
+    k = k+1;
+  end
+end
+
+function c = hpi_multiply(a,b)
+if ~isstruct(a), a = hpi(a); end
+if ~isstruct(b), b = hpi(b); end
+
+c.sign = a.sign*b.sign;
+cv = conv(a.digits,b.digits);
+
+% carry over
+nDigits = find(cv,1,'last');
+cv(nDigits+1) = 0;
+for i=1:nDigits
+  if cv(i)>1000
+    cv(i+1) = cv(i+1)+fix(cv(i)/1000);
+    cv(i) = rem(cv(i),1000);
+  end
+end
+if cv(end)==0, cv(end) = []; end
+c.digits = cv;
+
+function v = hpi_binom(n,k)
+v = hpi(1);
+for q = n-k+1:n, v = hpi_multiply(v,q); end
+for q = 1:k, v = hpi_divide(v,q); end
+
+function d = hpi_double(v)
+nDigits = find(v.digits,1,'last');
+d = 0;
+for i=nDigits:-1:1
+  d = d*1000 + v.digits(i);
+end
+d = d*v.sign;
+
+function hpi_show(v)
+fprintf([hpi_string(v) '\n']);
+
+function str = hpi_string(v)
+str = '';
+if v.sign<1, str = [str '-']; end
+dig = v.digits;
+hsd = find(dig,1,'last');
+for d=hsd:-1:1
+  str = [str sprintf('%03d',dig(d))];
+end
+if str(1)=='0'; str = str(2:end); end
+if str(1)=='0'; str = str(2:end); end

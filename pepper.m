@@ -354,7 +354,7 @@ if isfield(Exp,'Orientation')
 end
 PowderSimulation = isempty(Exp.Orientations);
 if ~PowderSimulation
-  % Make sure Exp.Oprientations is ok
+  % Make sure Exp.Orientations is ok
   [n1,n2] = size(Exp.Orientations);
   if ((n2==2)||(n2==3)) && (n1~=2) && (n1~=3)
     Exp.Orientations = Exp.Orientations.';
