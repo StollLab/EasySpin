@@ -23,18 +23,18 @@ Laue = [1 1 2 2 2 3 3 3 4 4 4 5 5 5 5 6 6 7 7 7 8 8 8 9 9 9 9 10 10 11 11 11];
 %--------------------------------------------------------
 LaueClass = [];
 if ischar(ID)
-  idx = strmatch(ID,PointGroupsS,'exact');
+  idx = strcmp(ID,PointGroupsS);
   if isempty(idx)
-    idx = strmatch(ID,PointGroupsHM,'exact');
+    idx = strcmp(ID,PointGroupsHM);
   end
   if ~isempty(idx)
     LaueClass = Laue(idx);
   else
-    idx = strmatch(ID,SpaceGroups,'exact');
+    idx = strcmp(ID,SpaceGroups);
     if ~isempty(idx)
       ID = idx;
     else
-      idx = strmatch(ID,LaueString,'exact');
+      idx = strcmp(ID,LaueString);
       if ~isempty(idx)
         LaueClass = idx;
       else

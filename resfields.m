@@ -73,8 +73,15 @@ DefaultSystem.HStrain = [0 0 0];
 DefaultSystem.gStrain = [0 0 0];
 DefaultSystem.AStrain = [0 0 0];
 DefaultSystem.DStrain = 0;
+DefaultSystem.gAStrainCorr = +1;
 
 System = adddefaults(System,DefaultSystem);
+
+if (numel(System.gAStrainCorr)~=1) || ~isnumeric(System.gAStrainCorr) || ...
+    (System.gAStrainCorr==0) || ~isfinite(System.gAStrainCorr)
+  error('Sys.gAStrainCorr must be a single number, either +1 or -1.');
+end
+System.gAStrainCorr = sign(System.gAStrainCorr);
 
 if (System.nElectrons>1)
   if any(System.gStrain) || any(System.AStrain)
@@ -681,7 +688,7 @@ if (ComputeStrains)
     % compute A strain array
     Aslw = reshape(mITr(:,ones(1,9)).',[3,3,nTransitions]).*...
       repmat(AStrain,[1,1,nTransitions]);
-    gAslw2 = (repmat(gslw,[1,1,nTransitions])+Aslw).^2;
+    gAslw2 = (repmat(gslw,[1,1,nTransitions])+System.gAStrainCorr*Aslw).^2;
     clear Aslw Vs E idx mI mITr
   else
     gAslw2 = repmat(gslw.^2,[1,1,nTransitions]);

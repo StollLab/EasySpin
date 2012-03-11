@@ -298,6 +298,8 @@ case {'.DTA','.DSC','.dsc','.dta'}
         end
         % Xenon (according to Feb 2011 manual) already scaled data by ConvTime if
         % normalization is specified (SctNorm=True). Question: which units are used?
+        % Xepr (2.6b.2) scales by conversion time even if data normalization is
+        % switched off!
         ConversionTime = sscanf(Parameters.SPTP,'%f'); % in seconds
         ConversionTime = ConversionTime*1000; % s -> ms
         Data = Data/ConversionTime;

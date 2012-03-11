@@ -43,8 +43,11 @@ if (nargout>4), error('Too many output arguments.'); end
 if (nargin<3), Opt = struct('unused',NaN); end
 if isempty(Opt), Opt = struct('unused',NaN); end
 
-if ~(isstruct(Sys) && isstruct(Exp) && isstruct(Opt))
-  error('All input arguments must be structures!');
+if ~isstruct(Exp)
+  error('Second input argument (Exp) must be a structure!');
+end
+if ~isstruct(Opt)
+  error('Third input argument (Opt) must be a structure!');
 end
 
 % A global variable sets the level of log display. The global variable
@@ -53,49 +56,74 @@ if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 0; end
 global EasySpinLogLevel
 EasySpinLogLevel = Opt.Verbosity;
 
-
+%
+% Loop over components and isotopologues
 %==================================================================
-% Loop over isotopologues.
-if ~isfield(Sys,'Nucs'), Sys.Nucs = ''; end
-if ~isfield(Sys,'Abund'), Sys.Abund = []; end
-if ~isfield(Sys,'singleiso'), Sys.singleiso = 0; end
-if ~Sys.singleiso
-  isoList = isotopologues(Sys.Nucs,Sys.Abund);
-  ysum = 0;
-  ftsum = 0;
-  TwoDim = (isfield(Exp,'Sequence') && ...
-            strcmp(Exp.Sequence,'HYSCORE')) || ...
-           (isfield(Exp,'Inc') && (max(abs(Exp.Inc))>1));
-  isENDOR = isfield(Exp,'Sequence') && strcmp(Exp.Sequence,'MimsENDOR');
-  for iIso = 1:isoList.nIso
-    Nucs = isoList.Nucs{iIso};
-    if ~isempty(Nucs)
-      Sys.Nucs = Nucs;
-      Sys.Ascale = isoList.Ascale{iIso};
-      Sys.Qscale = isoList.Qscale{iIso};
-    else
-      Sys.Nucs = [];
-    end
-    Sys.singleiso = 1;
-    if TwoDim
-      [x1,x2,y_,out] = saffron(Sys,Exp,Opt);
-    else
-      [x1,y_,out] = saffron(Sys,Exp,Opt);
-    end
-    ysum = ysum + isoList.Abund(iIso)*y_;
-    if ~isENDOR
-      ftsum = ftsum + isoList.Abund(iIso)*out.fd;
+TwoDim = (isfield(Exp,'Sequence') && ...
+  strcmp(Exp.Sequence,'HYSCORE')) || ...
+  (isfield(Exp,'Inc') && (max(abs(Exp.Inc))>1));
+isENDOR = isfield(Exp,'Sequence') && strcmp(Exp.Sequence,'MimsENDOR');
+
+if ~isfield(Sys,'singleiso')
+  
+  if isstruct(Sys), Sys = {Sys}; end
+
+  % Loop over components
+  ysum = 0; % direct domain (TD for ESEEM, FD for ENDOR)
+  zsum = 0; % inverse domain (FD for ESEEM)
+  for iSys = 1:numel(Sys)
+    Sys_ = Sys{iSys};
+    if isfield(Sys_,'weight'), componentWeight = Sys_.weight; else componentWeight = 1; end
+    if ~isfield(Sys_,'Nucs'), Sys_.Nucs = ''; end
+    if ~isfield(Sys_,'Abund'), Sys_.Abund = []; end
+    isoList = isotopologues(Sys_.Nucs,Sys_.Abund);
+    for iIso = 1:isoList.nIso
+      totalWeight = componentWeight*isoList.Abund(iIso);
+      Nucs = isoList.Nucs{iIso};
+      if ~isempty(Nucs)
+        Sys_.Nucs = Nucs;
+        Sys_.Ascale = isoList.Ascale{iIso};
+        Sys_.Qscale = isoList.Qscale{iIso};
+      else
+        Sys_.Nucs = [];
+      end
+      Sys_.singleiso = 1;
+      if TwoDim
+        [x1,x2,y_,out] = saffron(Sys_,Exp,Opt);
+      else
+        [x1,y_,out] = saffron(Sys_,Exp,Opt);
+      end
+      ysum = ysum + totalWeight*y_;
+      if ~isENDOR
+        zsum = zsum + totalWeight*out.fd;
+      end
     end
   end
   if ~isENDOR
-    out.fd = ftsum;
+    out.fd = zsum;
     out.td = ysum;
   else
     out.fd = ysum;
   end
-  
+
+  switch nargout
+    case 0, % plotting, done below
+    case 1, varargout = {ysum};
+    case 2, varargout = {x1,ysum};
+    case 3,
+      if TwoDim
+        varargout = {x1,x2,ysum};
+      else
+        varargout = {x1,ysum,out};
+      end
+    case 4,
+      if TwoDim
+        varargout = {x1,x2,ysum,out};
+      end
+  end
+
   %===============================================================
-  % Graphical rendering
+  % Plotting
   %===============================================================
   ShowPlots = (nargout==0);
   if ShowPlots
@@ -169,7 +197,7 @@ if ~Sys.singleiso
         xlabel('\nu (MHz)');
         ylabel('intensity (arb.u.)');
         title('Spectrum');
-        nuI = larmorfrq(Sys.Nucs,Exp.Field);
+        nuI = larmorfrq(Sys_.Nucs,Exp.Field);
         for k=1:numel(nuI)
           line([1 1]*abs(nuI(k)),ylim,'Color',[1 1 1]*0.8);
         end
@@ -212,23 +240,9 @@ if ~Sys.singleiso
       
     end
   end
-  
-  
-  
-  
-  
-  
-  
-  switch nargout
-    case 0
-      logmsg(0,'Cannot plot data for isotope mixtures');
-    case 1, varargout = {ysum};
-    case 2, varargout = {x1,ysum};
-    case 3, if TwoDim, varargout = {x1,x2,ysum}; else varargout={x1,ysum,out}; end
-    case 4, varargout = {x1,x2,ysum,out};
-  end
-  
+    
   return
+
 end
 %==================================================================
 

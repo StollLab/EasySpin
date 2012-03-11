@@ -14,16 +14,13 @@ function varargout = symparam(SymGroup)
 maxPhi = [2 2 1 2/3 1/2 1/3 1/2 1/2 1/3 1/4 1/4 1/6 0 0]*pi;
 nOctants = [8 4 2 2 1 1 1 1 1 1 1 1 0 -1];
 openPhi = [1 1 1 1 1 1 0 0 0 0 0 0 0 0];
-Groups = ['C1   ';'Ci   ';'C2h  ';'S6   ';'C4h  ';'C6h  ';'D2h  ';'Th   ';...
-          'D3d  ';'D4h  ';'Oh   ';'D6h  ';'Dinfh';'O3   '];
+Groups = {'C1','Ci','C2h','S6','C4h','C6h','D2h','Th',...
+          'D3d','D4h','Oh','D6h','Dinfh','O3'};
 
-SymGroup = [SymGroup '       '];
-idx = strmatch(SymGroup(1:5),Groups,'exact');
-if isempty(idx),
-  error(sprintf('Unsupported symmetry group %s!',SymGroup));
+idx = strcmp(SymGroup,Groups);
+if isempty(idx)
+  error('Unsupported symmetry group %s!',SymGroup);
+else
+  varargout = {maxPhi(idx),openPhi(idx),nOctants(idx)};
+  varargout = varargout(1:nargout);
 end
-
-varargout = {maxPhi(idx),openPhi(idx),nOctants(idx)};
-varargout = varargout(1:nargout);
-
-return;
