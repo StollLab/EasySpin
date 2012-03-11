@@ -34,10 +34,11 @@ if (nargin<5), error('Not enough inputs.'); end
 if (nargin<6), SimOpt = struct('unused',NaN); end
 if (nargin<7), FitOpt = struct('unused',NaN); end
   
-global SimFcnName hAxes hText smallerr bestspec
+global SimFcnName hAxes hText smallerr errorlist bestspec
 hAxes = [];
 hText = [];
 smallerr = [];
+errorlist = [];
 %bestspec = [];
 
 % Simulation function name
@@ -331,15 +332,16 @@ if (FitOpt.Plot) && (UserCommand~=99)
   if ishandle(hButtons), delete(hButtons); end
   subplot(4,1,4);
   plot(x,BestSpec(:)-ExpSpec(:));
-  xlabel('magnetic field [mT]');
+  %xlabel('magnetic field (mT)');
   h = legend('best fit - data');
   set(h,'FontSize',8);
   axis tight
   subplot(4,1,[1 2 3]);
   h=plot(x,ExpSpec,'k.-',x,BestSpec,'g');
   set(h(2),'Color',[0 0.8 0]);
-  %xlabel('magnetic field [mT]');
+  %xlabel('magnetic field (mT)');
   h = legend('data','best fit');
+  legend boxoff
   set(h,'FontSize',8);  
   axis tight
   yl = ylim;
@@ -382,7 +384,7 @@ rms = assess(x,ExpSpec,Sys0,Vary,Exp,SimOpt,FitOpt);
 %==========================================================================
 function varargout = assess(x,ExpSpec,Sys0,Vary,Exp,SimOpt,FitOpt)
 
-global UserCommand SimFcnName hAxes smallerr bestspec hText
+global UserCommand SimFcnName hAxes smallerr bestspec hText errorlist
 persistent BestSys;
 
 if isempty(smallerr), smallerr = inf; end
@@ -411,6 +413,7 @@ simspec = rescale(simspec,ExpSpec,FitOpt.Scaling);
 % Compute residuals ------------------------------
 [rms,residuals] = getresiduals(simspec(:),ExpSpec(:),FitOpt.TargetID);
 
+errorlist = [errorlist rms];
 isNewBest = rms<smallerr;
 
 if isNewBest
@@ -433,7 +436,7 @@ if (FitOpt.Plot) && (UserCommand~=99)
     axis tight
     set(gca,'YLim',[miny maxy] + [-1 1]*FitOpt.PlotStretchFactor*dy);
     text(min(xlim),max(ylim),' ','Vert','bottom','Tag','logLine','FontSize',7);
-    text(min(xlim),min(ylim),[' ' FitOpt.MethodString],'Vert','top','Tag','methodLine','FontSize',8);
+    text(min(xlim),min(ylim),[' ' FitOpt.MethodString],'Vert','top','Tag','methodLine','FontSize',8);    
     drawnow
   else
     if ishandle(hAxes)
@@ -457,6 +460,19 @@ if (FitOpt.Plot) && (UserCommand~=99)
       end
     end
   end
+  
+  hErrorLine = findobj('Tag','errorline');
+  if isempty(hErrorLine)
+    axes('Position',[0.73 0.73 0.175 0.195],'FontSize',6);
+    h = plot(1,NaN,'.');
+    set(h,'Tag','errorline','MarkerSize',5,'Color',[0.8 0.8 0.8]);
+    set(gca,'YScale','log');
+    title('RMS error','Color','k');
+  else
+    set(hErrorLine,'XData',1:numel(errorlist),'YData',errorlist);
+    drawnow
+  end
+  
 end
 
 

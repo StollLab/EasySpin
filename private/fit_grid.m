@@ -30,8 +30,9 @@ X = cell(1,nParameters);
 [X{:}] = ndgrid(grid{:});
 for k=1:nParameters, X{k} = X{k}(:); end
 X = [X{end:-1:1}];
-Randomize = 1;
-if Randomize, X = X(randperm(nGridPoints),:); end
+
+FitOpt.RandomizeGrid = 1;
+if FitOpt.RandomizeGrid, X = X(randperm(nGridPoints),:); end
 
 minerror = inf;
 bestx = zeros(nParameters,1);

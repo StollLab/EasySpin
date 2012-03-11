@@ -318,7 +318,7 @@ if ~any(Exp.Harmonic==[-1,0,1,2])
 end
 noBroadening = (~StrainWidths) && (~ConvWidth);
 if (Exp.Harmonic>0) && noBroadening
-  error(['No linewidth/broadening given. Cannot compute spectrum with Exp.Harmonic=%d.\n'...
+  error(['No or zero linewidth/broadening given. Cannot compute spectrum with Exp.Harmonic=%d.\n'...
     'Please specify a line broadening (lwpp, lw, gStrain, AStrain, DStrain).'],Exp.Harmonic);
 end
 

@@ -18,7 +18,7 @@
 %   Method in Low Dimensions", SIAM Journal of Optimization, 9(1):
 %   p.112-147, 1998.
 
-function [x,info] = fit_simplex(funfcn,x,Opt,varargin)
+function [x,info] = fit_simplex(errfcn,x,Opt,varargin)
 
 if (nargin==0), help(mfilename); return; end
 
@@ -46,40 +46,33 @@ if ~isfield(Opt,'PrintLevel'), Opt.PrintLevel = 1; end
 tolx = Opt.TolStep;
 tolf = Opt.TolFun;
 
-use_feval = sscanf(version,'%s',1)<7;
-
-% Convert to function handle as needed.
-funfcn = fcnchk(funfcn,length(varargin));
+constrain = @(x)sin(x*pi/2); unconstrain = @(x)acos(x)*2/pi;
+constrain = @(x)max(min(x,1),-1); unconstrain = @(x)x;
+constrain = @(x)x; unconstrain = constrain;
 n = numel(x);
 
 onesn = ones(1,n);
 two2np1 = 2:n+1;
-one2n = 1:n;
 
 % Set up a simplex near the initial guess.
-xin = x(:); % Force xin to be a column vector
-v = zeros(n,n+1);
-fv = zeros(1,n+1);
-v(:,1) = xin;
-x(:) = xin;    % Change x to the form expected by funfcn
-fv(:,1) = feval(funfcn,x,varargin{:});
+v = repmat(x(:),1,n+1);
+for j = 2:n+1
+  v(j-1,j) = v(j-1,j)+delta;
+end
+%v = v - repmat(mean(v,2),1,n+1);
+
 iIteration = 0;
 
 hLogLine = findobj('Tag','logLine');
+set(hLogLine,'String','initial simplex...');
 
-
-% Continue setting up the initial simplex.
-for j = 1:n
-  y = xin;
-  y(j) = y(j) + delta;
-  v(:,j+1) = y;
-  x(:) = y;
-  fv(1,j+1) = feval(funfcn,x,varargin{:});
+% Evaluate vertices of the n+1 simplex
+for j=1:n+1
+  fv(j) = errfcn(v(:,j),varargin{:});
 end
 
 % sort so v(1,:) has the lowest function value
-[fv,j] = sort(fv);
-v = v(:,j);
+[fv,j] = sort(fv); v = v(:,j);
 
 Procedure = 'initial simplex';
 iIteration = iIteration + 1;
@@ -98,12 +91,11 @@ end
 % Main algorithm: iterate until
 % (a) the maximum coordinate difference between the current best point and the
 % other points in the simplex is less than or equal to TolStep. Specifically,
-% until max(||v2-v1||,||v2-v1||,...,||v(n+1)-v1||) <= TolStep,
+% until max(||v2-v1||,||v3-v1||,...,||v(n+1)-v1||) <= TolStep,
 % where ||.|| is the infinity-norm, and v1 holds the
 % vertex with the current lowest value; AND
 % (b) the corresponding difference in function values is less than or equal
 % to TolFun. (Cannot use OR instead of AND.)
-
 
 startTime = cputime;
 
@@ -118,70 +110,70 @@ while 1
      (max(max(abs(v(:,two2np1)-v(:,onesn)))) <= tolx)
     stopCode = 3;
     break;
-  end  
+  end
 
   % Calculate the reflection point
 
   % xbar = average of the n (NOT n+1) best points
-  xbar = sum(v(:,one2n), 2)/n;
-  xr = (1 + rho)*xbar - rho*v(:,end);
-  x(:) = xr; fxr = feval(funfcn,x,varargin{:});
+  xbar = mean(v(:,1:end-1),2);
+  xr = (1+rho)*xbar - rho*v(:,end);
+  xr = constrain(xr);
+  fxr = errfcn(xr,varargin{:});
 
-  if fxr < fv(:,1)
+  if fxr<fv(:,1)
     % Calculate the expansion point
-    xe = (1 + rho*chi)*xbar - rho*chi*v(:,end);
-    x(:) = xe;
-    fxe = feval(funfcn,x,varargin{:});
-    if fxe < fxr
+    xe = (1+rho*chi)*xbar - rho*chi*v(:,end);
+    xe = constrain(xe);
+    fxe = errfcn(xe,varargin{:});
+    if fxe<fxr
+      Procedure = 'expansion';
       v(:,end) = xe;
       fv(:,end) = fxe;
-      Procedure = 'expansion';
     else
+      Procedure = 'reflection';
       v(:,end) = xr;
       fv(:,end) = fxr;
-      Procedure = 'reflection';
     end
   else % fxr >= fv(:,1)
-    if fxr < fv(:,n)
+    if fxr<fv(:,n)
+      Procedure = 'reflection';
       v(:,end) = xr;
       fv(:,end) = fxr;
-      Procedure = 'reflection';
-    else % fxr >= fv(:,n)
+    else % fxr>=fv(:,n)
       % Perform contraction
       if fxr < fv(:,end)
-        % Perform an outside contraction
-        xc = (1 + psi*rho)*xbar - psi*rho*v(:,end);
-        x(:) = xc;
-        fxc = feval(funfcn,x,varargin{:});
-
-        if fxc <= fxr
-          v(:,end) = xc;
-          fv(:,end) = fxc;
+        xco = (1+psi*rho)*xbar - psi*rho*v(:,end);
+        xco = constrain(xco);
+        fxco = errfcn(xco,varargin{:});
+        if fxco <= fxr
           Procedure = 'contraction outside';
+          v(:,end) = xco;
+          fv(:,end) = fxco;
         else
-          % perform a shrink
           Procedure = 'shrinkage';
+          for j=two2np1
+            xshr = v(:,1)+sigma*(v(:,j) - v(:,1));
+            xshr = constrain(xshr);
+            fv(:,j) = errfcn(xshr,varargin{:});
+            v(:,j) = xshr;
+          end
         end
       else
-        % Perform an inside contraction
-        xcc = (1-psi)*xbar + psi*v(:,end);
-        x(:) = xcc; 
-        fxcc = feval(funfcn,x,varargin{:});
-
-        if fxcc < fv(:,end)
-          v(:,end) = xcc;
-          fv(:,end) = fxcc;
+        xci = (1-psi)*xbar + psi*v(:,end);
+        xci = constrain(xci);
+        fxci = errfcn(xci,varargin{:});
+        if fxci < fv(:,end)
           Procedure = 'contraction inside';
+          v(:,end) = xci;
+          fv(:,end) = fxci;
         else
-          % perform a shrink
           Procedure = 'shrinkage';
-        end
-      end
-      if strcmp(Procedure,'shrinkage')
-        for j=two2np1
-          v(:,j)=v(:,1)+sigma*(v(:,j) - v(:,1));
-          x(:) = v(:,j);
-          fv(:,j) = feval(funfcn,x,varargin{:});
+          for j=two2np1
+            xshr = v(:,1)+sigma*(v(:,j) - v(:,1));
+            xshr = constrain(xshr);
+            fv(:,j) = errfcn(xshr,varargin{:});
+            v(:,j) = xshr;
+          end
         end
       end
     end
@@ -189,6 +181,7 @@ while 1
   [fv,j] = sort(fv);
   v = v(:,j);
   iIteration = iIteration + 1;
+  
   if (Opt.PrintLevel)
     thisstep = max(max(abs(v(:,two2np1)-v(:,onesn))));
     str = sprintf(template, iIteration, fv(1), thisstep, Procedure);
@@ -201,7 +194,8 @@ while 1
 
 end
 
-x(:) = v(:,1);
+x = v(:,1);
+x = unconstrain(x);
 info.F = fv(:,1);
 
 switch (stopCode)

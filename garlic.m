@@ -87,95 +87,56 @@ Link = 'epr@eth'; eschecker; error(LicErr); clear Link LicErr
 % --------License ------------------------------------------------
 
 
-
-% Loop over components
 %==================================================================
-if ~isfield(Sys,'singlecomponent')
+% Loop over components and isotopologues
+%==================================================================
+FieldAutoRange = ~isfield(Exp,'Range') & ~isfield(Exp,'CenterSweep');
+if ~isfield(Options,'IsoCutoff'), Options.IsoCutoff = 1e-6; end
+
+if ~isfield(Sys,'singleiso')
   
   if isstruct(Sys), Sys = {Sys}; end
-
-  % Loop over components
-  spec = 0;
-  for iSys = 1:numel(Sys)
-    Sys{iSys}.singlecomponent = 1;
-    [xAxis,spec_,Bres] = garlic(Sys{iSys},Exp,Options);
-    if isfield(Sys{iSys},'weight')
-      spec = spec + spec_*Sys{iSys}.weight;
-    else
-      spec = spec + spec_;
-    end
+  
+  nComponents = numel(Sys);
+  if (nComponents>1) && FieldAutoRange
+    error('Multiple components: Please specify magnetic field range manually using Exp.Range or Exp.CenterSweep.');
   end
+  
+  spec = 0;
+  for iComponent = 1:nComponents
+    Sys_ = Sys{iComponent};
+    if ~isfield(Sys_,'weight'), compWeight = 1; else compWeight = Sys_.weight; end
+    
+    if ~isfield(Sys_,'Nucs'), Sys_.Nucs = ''; end
+    if ~isfield(Sys_,'Abund'), Sys_.Abund = []; end
+    if ~isfield(Sys_,'n'), Sys_.n = []; end
+    isoList = isotopologues(Sys_.Nucs,Sys_.Abund,Sys_.n,Options.IsoCutoff);
+    
+    if (isoList.nIso>1) && FieldAutoRange
+      error('Isotope mixture: Please specify magnetic field range manually using Exp.Range or Exp.CenterSweep.');
+    end
 
+    for iIso = 1:isoList.nIso
+      Sys_.Nucs = isoList.Nucs{iIso};
+      if ~isempty(Sys_.Nucs)
+        Sys_.Ascale = isoList.Ascale{iIso};
+        Sys_.Qscale = isoList.Qscale{iIso};
+      end
+      Sys_.singleiso = 1;
+      [fieldAxis,spec_,Bres] = garlic(Sys_,Exp,Options);
+      spec = spec + spec_*compWeight*isoList.Abund(iIso);
+    end % iIso
+  end % iComponent
+  
   % Output and plotting
   switch nargout
     case 0
       cla
-      if (xAxis(2)<10000)
-        plot(xAxis,spec);
+      if (fieldAxis(2)<10000)
+        plot(fieldAxis,spec);
         xlabel('magnetic field (mT)');
       else
-        plot(xAxis/1e3,spec);
-        xlabel('magnetic field (T)');
-      end
-      axis tight
-      ylabel('intensity (arb.u.)');
-      if isfield(Sys,'tcorr')
-        fmStr = sprintf(', tcorr %g ns',Sys.tcorr*1e9);
-      else
-        fmStr = '';
-      end
-      title(sprintf('%0.8g GHz%s',...
-        Exp.mwFreq,fmStr));
-    case 1, varargout = {spec};
-    case 2, varargout = {xAxis,spec};
-    case 3, varargout = {xAxis,spec,Bres};
-  end
-  
-  return
-
-end
-
-% Loop over isotopologues
-%==================================================================
-if ~isfield(Sys,'singleiso')
-
-  if ~isfield(Sys,'Nucs'), Sys.Nucs = ''; end
-  if ~isfield(Sys,'Abund'), Sys.Abund = []; end
-  if ~isfield(Sys,'n'), Sys.n = []; end
-  if ~isfield(Options,'IsoCutoff'), Options.IsoCutoff = 1e-6; end
-  
-  isoList = isotopologues(Sys.Nucs,Sys.Abund,Sys.n,Options.IsoCutoff);
-  
-  if (isoList.nIso>1)
-    AutoRange = ~isfield(Exp,'Range') & ~isfield(Exp,'CenterSweep');
-    if AutoRange
-      error('Isotope mixture: Please specify magnetic field range manually using Exp.Range or Exp.CenterSweep.');
-    end
-  end
-  
-  spec = 0;
-  Sys.singleiso = 1;
-  for iIso = 1:isoList.nIso
-    Nucs = isoList.Nucs{iIso};
-    if ~isempty(Nucs)
-      Sys.Nucs = Nucs;
-      Sys.Ascale = isoList.Ascale{iIso};
-      Sys.Qscale = isoList.Qscale{iIso};
-    else
-      Sys.Nucs = [];
-    end
-    [xAxis,y,Bres] = garlic(Sys,Exp,Options);
-    spec = spec + isoList.Abund(iIso)*y;
-  end
-  
-  switch nargout
-    case 0
-      cla
-      if (xAxis(2)<10000)
-        plot(xAxis,spec);
-        xlabel('magnetic field (mT)');
-      else
-        plot(xAxis/1e3,spec);
+        plot(fieldAxis/1e3,spec);
         xlabel('magnetic field (T)');
       end
       axis tight
@@ -186,10 +147,10 @@ if ~isfield(Sys,'singleiso')
         fmStr = '';
       end
       title(sprintf('%0.8g GHz, %d points%s',...
-        Exp.mwFreq,numel(xAxis),fmStr));
+        Exp.mwFreq,numel(fieldAxis),fmStr));
     case 1, varargout = {spec};
-    case 2, varargout = {xAxis,spec};
-    case 3, varargout = {xAxis,spec,Bres};
+    case 2, varargout = {fieldAxis,spec};
+    case 3, varargout = {fieldAxis,spec,Bres};
   end
   return
 end
@@ -260,8 +221,8 @@ if isfield(Exp,'CenterSweep')
   Exp.Range = Exp.CenterSweep(1) + [-1 1]*Exp.CenterSweep(2)/2;
 end
 
-AutoRange = ~isfield(Exp,'Range');
-if ~AutoRange
+FieldAutoRange = ~isfield(Exp,'Range');
+if ~FieldAutoRange
   if (Exp.Range(1)>=Exp.Range(2)) || any(Exp.Range<0)
     error('Invalid magnetic field range!');
   end
@@ -517,7 +478,7 @@ else
   maxLw = max(Sys.lw);
 end
 
-if (AutoRange)
+if (FieldAutoRange)
   Brange = (Bmax-Bmin)*Options.Stretch;
   Exp.Range = [Bmin,Bmax] + [-1 1]*max(5*maxLw,Brange);
   logmsg(1,'  automatic field range from %g mT to %g mT',Exp.Range(1),Exp.Range(2));
@@ -664,28 +625,5 @@ Amplitudes(OutOfRange) = [];
 
 % Bin all remaining lines into spectrum
 Spectrum = full(sparse(1,idxPositions,Amplitudes,1,nPoints));
-
-return
-
-%=========================================================
-function str = assert(varargin)
-
-if (nargin<0)
-  error('Not enough input arguments!');
-end
-
-Condition = varargin{1};
-
-if (nargin>1)
-  Parameters = varargin(2:end);
-else
-  Parameters = {'Assertion failed in %s!'};
-end
-
-if (~Condition)
-  str = sprintf(Parameters{:});
-else
-  str = '';
-end
 
 return
