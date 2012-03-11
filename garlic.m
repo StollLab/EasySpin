@@ -90,43 +90,23 @@ Link = 'epr@eth'; eschecker; error(LicErr); clear Link LicErr
 %==================================================================
 % Loop over components and isotopologues
 %==================================================================
-FieldAutoRange = ~isfield(Exp,'Range') & ~isfield(Exp,'CenterSweep');
+FieldAutoRange = (~isfield(Exp,'Range') || isempty(Exp.Range)) && ...
+  (~isfield(Exp,'CenterSweep') || isempty(Exp.CenterSweep));
 if ~isfield(Options,'IsoCutoff'), Options.IsoCutoff = 1e-6; end
 
 if ~isfield(Sys,'singleiso')
   
-  if isstruct(Sys), Sys = {Sys}; end
-  
-  nComponents = numel(Sys);
-  if (nComponents>1) && FieldAutoRange
+  [SysList,weight] = expandcomponents(Sys,Options.IsoCutoff);
+    
+  if (numel(SysList)>1) && FieldAutoRange
     error('Multiple components: Please specify magnetic field range manually using Exp.Range or Exp.CenterSweep.');
   end
   
   spec = 0;
-  for iComponent = 1:nComponents
-    Sys_ = Sys{iComponent};
-    if ~isfield(Sys_,'weight'), compWeight = 1; else compWeight = Sys_.weight; end
-    
-    if ~isfield(Sys_,'Nucs'), Sys_.Nucs = ''; end
-    if ~isfield(Sys_,'Abund'), Sys_.Abund = []; end
-    if ~isfield(Sys_,'n'), Sys_.n = []; end
-    isoList = isotopologues(Sys_.Nucs,Sys_.Abund,Sys_.n,Options.IsoCutoff);
-    
-    if (isoList.nIso>1) && FieldAutoRange
-      error('Isotope mixture: Please specify magnetic field range manually using Exp.Range or Exp.CenterSweep.');
-    end
-
-    for iIso = 1:isoList.nIso
-      Sys_.Nucs = isoList.Nucs{iIso};
-      if ~isempty(Sys_.Nucs)
-        Sys_.Ascale = isoList.Ascale{iIso};
-        Sys_.Qscale = isoList.Qscale{iIso};
-      end
-      Sys_.singleiso = 1;
-      [fieldAxis,spec_,Bres] = garlic(Sys_,Exp,Options);
-      spec = spec + spec_*compWeight*isoList.Abund(iIso);
-    end % iIso
-  end % iComponent
+  for iComponent = 1:numel(SysList)
+    [fieldAxis,spec_,Bres] = garlic(SysList{iComponent},Exp,Options);
+    spec = spec + spec_*weight(iComponent);
+  end
   
   % Output and plotting
   switch nargout

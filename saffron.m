@@ -57,48 +57,32 @@ global EasySpinLogLevel
 EasySpinLogLevel = Opt.Verbosity;
 
 %
-% Loop over components and isotopologues
+% Loop over species and isotopologues
 %==================================================================
 TwoDim = (isfield(Exp,'Sequence') && ...
   strcmp(Exp.Sequence,'HYSCORE')) || ...
   (isfield(Exp,'Inc') && (max(abs(Exp.Inc))>1));
 isENDOR = isfield(Exp,'Sequence') && strcmp(Exp.Sequence,'MimsENDOR');
+if ~isfield(Opt,'IsoCutoff'), Opt.IsoCutoff = 1e-4; end
 
-if ~isfield(Sys,'singleiso')
+if ~isfield(Sys,'singleiso') || (Sys.singleiso==0)
   
-  if isstruct(Sys), Sys = {Sys}; end
-
-  % Loop over components
+  [SysList,weight] = expandcomponents(Sys,Opt.IsoCutoff);
+    
   ysum = 0; % direct domain (TD for ESEEM, FD for ENDOR)
   zsum = 0; % inverse domain (FD for ESEEM)
-  for iSys = 1:numel(Sys)
-    Sys_ = Sys{iSys};
-    if isfield(Sys_,'weight'), componentWeight = Sys_.weight; else componentWeight = 1; end
-    if ~isfield(Sys_,'Nucs'), Sys_.Nucs = ''; end
-    if ~isfield(Sys_,'Abund'), Sys_.Abund = []; end
-    isoList = isotopologues(Sys_.Nucs,Sys_.Abund);
-    for iIso = 1:isoList.nIso
-      totalWeight = componentWeight*isoList.Abund(iIso);
-      Nucs = isoList.Nucs{iIso};
-      if ~isempty(Nucs)
-        Sys_.Nucs = Nucs;
-        Sys_.Ascale = isoList.Ascale{iIso};
-        Sys_.Qscale = isoList.Qscale{iIso};
-      else
-        Sys_.Nucs = [];
-      end
-      Sys_.singleiso = 1;
-      if TwoDim
-        [x1,x2,y_,out] = saffron(Sys_,Exp,Opt);
-      else
-        [x1,y_,out] = saffron(Sys_,Exp,Opt);
-      end
-      ysum = ysum + totalWeight*y_;
-      if ~isENDOR
-        zsum = zsum + totalWeight*out.fd;
-      end
+  for iComponent = 1:numel(SysList)
+    if TwoDim
+      [x1,x2,y_,out] = saffron(SysList{iComponent},Exp,Opt);
+    else
+      [x1,y_,out] = saffron(SysList{iComponent},Exp,Opt);
+    end
+    ysum = ysum + y_*weight(iComponent);
+    if ~isENDOR
+      zsum = zsum + out.fd*weight(iComponent);
     end
   end
+ 
   if ~isENDOR
     out.fd = zsum;
     out.td = ysum;

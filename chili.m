@@ -76,47 +76,46 @@ EasySpinLogLevel = Opt.Verbosity;
 
 
 %==================================================================
-% Loop over components, if necessary. 
-if ~isfield(Sys,'singlecomponent')
-  
-  if isstruct(Sys), Sys = {Sys}; end
+% Loop over components and isotopologues
+%==================================================================
+FieldAutoRange = (~isfield(Exp,'Range') || isempty(Exp.Range)) && ...
+  (~isfield(Exp,'CenterSweep') || isempty(Exp.CenterSweep));
+if ~isfield(Opt,'IsoCutoff'), Opt.IsoCutoff = 1e-4; end
 
+if ~isfield(Sys,'singleiso')
+  
+  [SysList,weight] = expandcomponents(Sys,Opt.IsoCutoff);
+  
+  if (numel(SysList)>1) && FieldAutoRange
+    error('Multiple components: Please specify magnetic field range manually using Exp.Range or Exp.CenterSweep.');
+  end
+  
   spec = 0;
-  for iSys = 1:numel(Sys)
-    Sys{iSys}.singlecomponent = 1;
-    [xField,spec_] = chili(Sys{iSys},Exp,Opt);
-    if isfield(Sys{iSys},'weight')
-      spec = spec + spec_*Sys{iSys}.weight;
-    else
-      spec = spec + spec_;
-    end
+  for iComponent = 1:numel(SysList)
+    [fieldAxis,spec_] = chili(SysList{iComponent},Exp,Opt);
+    spec = spec + spec_*weight(iComponent);
   end
   
   % Output and plotting
-  switch (nargout)
-    case 0,
+  switch nargout
+    case 0
       cla
-      if (xField(2)<10000)
-        plot(xField,spec);
-        xlabel('magnetic field [mT]');
+      if (fieldAxis(2)<10000)
+        plot(fieldAxis,spec);
+        xlabel('magnetic field (mT)');
       else
-        plot(xField/1e3,spec);
-        xlabel('magnetic field [T]');
+        plot(fieldAxis/1e3,spec);
+        xlabel('magnetic field (T)');
       end
       axis tight
-      ylabel('intensity [a.u.]');
+      ylabel('intensity (arb.u.)');
       title(sprintf('%0.8g GHz',Exp.mwFreq));
-    case 1,
-      varargout = {spec};
-    case 2,
-      varargout = {xField,spec};
+    case 1, varargout = {spec};
+    case 2, varargout = {fieldAxis,spec};
   end
-
   return
-
 end
-
-
+%==================================================================
 
 
 logmsg(1,'-- slow motion regime simulation ----------------------------------');
@@ -131,7 +130,7 @@ end
 
 % add non-interacting nucleus if none given
 % (kernel cannot handle the absence of a nucleus)
-if ~isfield(Sys,'Nucs'), Sys.Nucs = '1H'; Sys.A = [0 0 0]; end
+if ~isfield(Sys,'Nucs') || isempty(Sys.Nucs), Sys.Nucs = '1H'; Sys.A = [0 0 0]; end
 
 out = isotopologues(Sys.Nucs);
 if (out.nIso>1)

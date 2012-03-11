@@ -66,22 +66,26 @@ EasySpinLogLevel = Opt.Verbosity;
 
 
 %==================================================================
-% Loop over components, if necessary. 
-if ~isfield(Sys,'singlecomponent')
+% Loop over species and isotopologues
+%==================================================================
+FrequencyAutoRange = (~isfield(Exp,'Range') || isempty(Exp.Range)) && ...
+  (~isfield(Exp,'CenterSweep') || isempty(Exp.CenterSweep));
+if ~isfield(Opt,'IsoCutoff'), Opt.IsoCutoff = 1e-4; end
+
+if ~isfield(Sys,'singleiso')
+
+  [SysList,weight] = expandcomponents(Sys,Opt.IsoCutoff);
   
-  if isstruct(Sys), Sys = {Sys}; end
-
-  spec = 0;
-  for iSys = 1:numel(Sys)
-    Sys{iSys}.singlecomponent = 1;
-    [xAxis,spec_,Transitions] = salt(Sys{iSys},Exp,Opt);
-    if isfield(Sys{iSys},'weight')
-      spec = spec + spec_*Sys{iSys}.weight;
-    else
-      spec = spec + spec_;
-    end
+  if (numel(SysList)>1) && FrequencyAutoRange
+    error('Multiple components: Please specify frequency range manually using Exp.Range or Exp.CenterSweep.');
   end
-
+  
+  spec = 0;
+  for iComponent = 1:numel(SysList)
+    [xAxis,spec_,Transitions] = salt(SysList{iComponent},Exp,Opt);
+    spec = spec + spec_*weight(iComponent);
+  end
+  
   % Output and plotting
   switch (nargout)
     case 0,
@@ -99,10 +103,9 @@ if ~isfield(Sys,'singlecomponent')
     case 2, varargout = {xAxis,spec};
     case 3, varargout = {xAxis,spec,Transitions};
   end
-  
   return
-
 end
+%==================================================================
 
 
 logmsg(1,'=begin=salt=======%s=================',datestr(now));

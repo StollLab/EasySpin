@@ -84,118 +84,52 @@ if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 0; end
 global EasySpinLogLevel
 EasySpinLogLevel = Opt.Verbosity;
 
-%==================================================================
-% Multiple components
-
-if ~isfield(Sys,'singlecomponent')
-  
-  if isstruct(Sys), Sys = {Sys}; end
-  
-  % Error if no field range given for multi-component simulation
-  if numel(Sys)>1
-    if ~isfield(Exp,'Range') || isempty(Exp.Range)
-      if ~isfield(Exp,'CenterSweep') || isempty(Exp.CenterSweep)
-        error('For multiple components, please provide a field range in Exp.Range or Exp.CenterSweep.');
-      end
-    end
-  end
-  
-  % Loop over components
-  spec = 0;
-  for k = 1:numel(Sys)
-    Sys{k}.singlecomponent = 1;
-    [xAxis,spec_,transitions] = pepper(Sys{k},Exp,Opt);
-    if isfield(Sys{k},'weight')
-      spec = spec + spec_*Sys{k}.weight;
-    else
-      spec = spec + spec_;
-    end
-  end
-
-  % Output and plotting
-  switch nargout
-    case 0
-      cla
-      if (xAxis(2)<10000)
-        plot(xAxis,spec);
-        xlabel('magnetic field (mT)');
-      else
-        plot(xAxis/1e3,spec);
-        xlabel('magnetic field (T)');
-      end
-      axis tight
-      ylabel('intensity (arb.u.)');
-      title(sprintf('%0.8g GHz',Exp.mwFreq));
-    case 1, varargout = {spec};
-    case 2, varargout = {xAxis,spec};
-    case 3, varargout = {xAxis,spec,transitions};
-  end
-  
-  return
-
-end
 
 %==================================================================
-% Loop over isotopologues, if necessary. 
+% Loop over species and isotopologues
+%==================================================================
+FieldAutoRange = (~isfield(Exp,'Range') || isempty(Exp.Range)) && ...
+  (~isfield(Exp,'CenterSweep') || isempty(Exp.CenterSweep));
+if ~isfield(Opt,'IsoCutoff'), Opt.IsoCutoff = 1e-4; end
+
 if ~isfield(Sys,'singleiso')
-  if ~isfield(Opt,'IsoCutoff'), Opt.IsoCutoff = 0.001; end
 
-  Sys.singleiso = 1;
-  if ~isfield(Sys,'Nucs'), Sys.Nucs = ''; end
-  if ~isfield(Sys,'Abund'), Sys.Abund = []; end
-  out = isotopologues(Sys.Nucs,Sys.Abund,[],Opt.IsoCutoff);
+  [SysList,weight] = expandcomponents(Sys,Opt.IsoCutoff);
   
-  if (out.nIso>1)
-    AutoRangeRequested = ~isfield(Exp,'Range') & ~isfield(Exp,'CenterSweep');
-    if AutoRangeRequested
-      error(sprintf('Cannot automatically determine field range.\nPlease manually specify the magnetic field range using Exp.Range or Exp.CenterSweep.'));
-    end
+  if (numel(SysList)>1) && FieldAutoRange
+    error('Multiple components: Please specify magnetic field range manually using Exp.Range or Exp.CenterSweep.');
   end
-
-  % Loop over isotope combinations
+  
   spec = 0;
-  for iIso = 1:out.nIso
-    q = out.Nucs{iIso};
-    if ~isempty(q)
-      Sys.Nucs = q;
-      Sys.Ascale = out.Ascale{iIso};
-      Sys.Qscale = out.Qscale{iIso};
-    else
-      Sys.Nucs = [];
-    end
-    [xAxis,spec_,transitions] = pepper(Sys,Exp,Opt);
-    if iIso>1
-      if size(spec_,1)~=size(spec,1)
-        error('Cannot combine spectra. Set Opt.Output to ''summmed''.');
-      end
-    end
-    spec = spec + out.Abund(iIso)*spec_;
+  for iComponent = 1:numel(SysList)
+    [fieldAxis,spec_,Bres] = pepper(SysList{iComponent},Exp,Opt);
+    spec = spec + spec_*weight(iComponent);
   end
-
+    
   % Output and plotting
   switch nargout
     case 0
       cla
-      if (xAxis(2)<10000)
-        plot(xAxis,spec);
+      if (fieldAxis(2)<10000)
+        plot(fieldAxis,spec);
         xlabel('magnetic field (mT)');
       else
-        plot(xAxis/1e3,spec);
+        plot(fieldAxis/1e3,spec);
         xlabel('magnetic field (T)');
       end
       axis tight
       ylabel('intensity (arb.u.)');
       title(sprintf('%0.8g GHz',Exp.mwFreq));
     case 1, varargout = {spec};
-    case 2, varargout = {xAxis,spec};
-    case 3, varargout = {xAxis,spec,transitions};
+    case 2, varargout = {fieldAxis,spec};
+    case 3, varargout = {fieldAxis,spec,Bres};
   end
   return
-
 end
 %==================================================================
 
 
+%==================================================================
 % Single-isotopologue spectrum
 %==================================================================
 
