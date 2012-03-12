@@ -94,7 +94,7 @@ FieldAutoRange = (~isfield(Exp,'Range') || isempty(Exp.Range)) && ...
   (~isfield(Exp,'CenterSweep') || isempty(Exp.CenterSweep));
 if ~isfield(Options,'IsoCutoff'), Options.IsoCutoff = 1e-6; end
 
-if ~isfield(Sys,'singleiso')
+if ~isfield(Sys,'singleiso') || (Sys.singleiso==0)
   
   [SysList,weight] = expandcomponents(Sys,Options.IsoCutoff);
     
@@ -491,6 +491,17 @@ if isfinite(Exp.Temperature)
   A = A*Polarization;
 end
 
+% Transition amplitudes
+%--------------------------------------------------------------
+% approximate only, but fairly accurate
+% (correct expression would be the average over theta and phi of
+% Eq. (A5) in Lund, Spectrochim Acta A 69 1294-1300 2008)
+g1mean2 = giso^2;
+TransitionRate = g1mean2*(bmagn/planck/1e9)^2;
+% 1/g factor
+dBdE = planck/(giso*bmagn)*1e9;
+A = A*TransitionRate*dBdE*2*pi^2;
+%--------------------------------------------------------------
 
 Harmonic2Do = Exp.Harmonic;
 

@@ -92,7 +92,7 @@ FieldAutoRange = (~isfield(Exp,'Range') || isempty(Exp.Range)) && ...
   (~isfield(Exp,'CenterSweep') || isempty(Exp.CenterSweep));
 if ~isfield(Opt,'IsoCutoff'), Opt.IsoCutoff = 1e-4; end
 
-if ~isfield(Sys,'singleiso')
+if ~isfield(Sys,'singleiso') || (Sys.singleiso==0)
 
   [SysList,weight] = expandcomponents(Sys,Opt.IsoCutoff);
   
