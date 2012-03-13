@@ -5,17 +5,17 @@
 %
 %   Returns the elementary charge
 %   in C. sigma is the standard
-%   uncertainty (2006 CODATA).
+%   uncertainty (2010 CODATA).
 
 function [e,sigma] = echarge
 
-% 2006 CODATA value
-% Value 1.602 176 487 x 10-19 C
-% Standard uncertainty 0.000 000 040 x 10-19 C
-% Relative standard uncertainty 2.5 x 10-8
-% Concise form 1.602 176 487(40) x 10-19 C
-
-e =     1.602176487e-19;
-sigma = 0.000000040e-19;
+% 2010 CODATA value
+%Value 	 1.602 176 565 x 10-19 C
+% Standard uncertainty 	 0.000 000 035 x 10-19 C
+%  Relative standard uncertainty 	  2.2 x 10-8
+% Concise form 	 1.602 176 565(35) x 10-19 C
+ 
+e =     1.602176565e-19;
+sigma = 0.000000035e-19;
 
 return

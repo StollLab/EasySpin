@@ -4,16 +4,15 @@
 %   [me,sigma] = emass
 %
 %   Returns the mass of the electron in kg.
-%   sigma is the standard uncertainty (2006 CODATA).
+%   sigma is the standard uncertainty (2010 CODATA).
 
 function [me,sigma] = emass
 
-% 2006 CODATA value
-% Value 9.109 382 15 x 10-31 kg
-% Standard uncertainty 0.000 000 45 x 10-31 kg
-% Relative standard uncertainty 5.0 x 10-8
-% Concise form 9.109 382 15(45) x 10-31 kg
+% 2010 CODATA value
+%Value 	 9.109 382 91 x 10-31 kg
+% Standard uncertainty 	 0.000 000 40 x 10-31 kg
+%  Relative standard uncertainty 	  4.4 x 10-8
+% Concise form 	 9.109 382 91(40) x 10-31 kg 
 
-me =    9.10938215e-31;
-sigma = 0.00000045e-31;
-
+me =    9.10938291e-31;
+sigma = 0.00000040e-31;

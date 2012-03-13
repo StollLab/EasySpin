@@ -165,6 +165,7 @@ for k = 1:numel(keywords)
     case 'montecarlo', FitOpt.MethodID = 3;
     case 'genetic',    FitOpt.MethodID = 4;
     case 'grid',       FitOpt.MethodID = 5;
+    case 'swarm',      FitOpt.MethodID = 6;
     case 'fcn',        FitOpt.TargetID = 1;
     case 'int',        FitOpt.TargetID = 2;
     case 'iint',       FitOpt.TargetID = 3;
@@ -181,6 +182,7 @@ MethodName{2} = 'Levenberg/Marquardt';
 MethodName{3} = 'Monte Carlo';
 MethodName{4} = 'genetic algorithm';
 MethodName{5} = 'grid search';
+MethodName{6} = 'particle swarm';
 
 TargetName{1} = 'function as is';
 TargetName{2} = 'integral';
@@ -192,6 +194,7 @@ TargetName{5} = 'Fourier transform';
 %------------------------------------------------------
 
 if ~isfield(FitOpt,'N'), FitOpt.N = 20000; end
+if ~isfield(FitOpt,'nParticles'), FitOpt.nParticles = 20; end
 
 if ~isfield(FitOpt,'Plot'), FitOpt.Plot = 1; end
 if ~isfield(FitOpt,'PrintLevel'), FitOpt.PrintLevel = 1; end
@@ -227,6 +230,7 @@ UserCommand = 0;
 if (FitOpt.Plot)
   hFig = figure(363);
   set(hFig,'Name','EasySpin least-squares fitting','NumberTitle','off');
+  %set(hFig,'Color','w');
   clf(hFig)
   set(hFig,'CloseRequestFcn',...
     'global UserCommand; UserCommand = 99; drawnow; delete(gcf);');
@@ -282,6 +286,8 @@ switch FitOpt.MethodID
     bestx = fit_genetic(@assess,nParameters,FitOpt,ExpSpecScaled,Sys0,Vary,Exp,SimOpt,FitOpt);
   case 5 % Grid search
     bestx = fit_grid(@assess,nParameters,FitOpt,ExpSpecScaled,Sys0,Vary,Exp,SimOpt,FitOpt);
+  case 6 % Particle swarm
+    bestx = fit_particleswarm(@assess,nParameters,FitOpt,ExpSpecScaled,Sys0,Vary,Exp,SimOpt,FitOpt);
   otherwise
     error('Unknown optimization method in FitOpt.Method.');
 end
@@ -466,10 +472,14 @@ if (FitOpt.Plot) && (UserCommand~=99)
     axes('Position',[0.73 0.73 0.175 0.195],'FontSize',6);
     h = plot(1,NaN,'.');
     set(h,'Tag','errorline','MarkerSize',5,'Color',[0.8 0.8 0.8]);
-    set(gca,'YScale','log');
-    title('RMS error','Color','k');
+    set(gca,'YScale','lin','XTickLabel','','YAxisLoc','right');
+    ylabel('log10(error)','Color','k');
   else
-    set(hErrorLine,'XData',1:numel(errorlist),'YData',errorlist);
+    nmax = 200;
+    nerrorlist = numel(errorlist);
+    n = min(nmax,nerrorlist);
+    set(hErrorLine,'XData',1:n,'YData',log10(errorlist(end-n+1:end)));
+    axis tight
     drawnow
   end
   
