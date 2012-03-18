@@ -378,8 +378,8 @@ case {'.PAR','.SPC','.par','.spc'}
   % Analyse data type flags stored in JSS.
   if isfield(Parameters,'JSS')
     Flags = sscanf(Parameters.JSS,'%f');
-    isComplex = bitand(Flags,2^4);
-    TwoD = bitand(Flags,2^12);
+    isComplex = bitand(Flags,2^4)~=0;
+    TwoD = bitand(Flags,2^12)~=0;
   end
   
   % If present, SSX contains the number of x points.
@@ -438,13 +438,14 @@ case {'.PAR','.SPC','.par','.spc'}
   if (nx>1)
 
     % Get experiment type
-    if ~isfield(Parameters,'JEX')
-      Parameters.JEX = 'field-sweep';
-    end
+    if ~isfield(Parameters,'JEX'), Parameters.JEX = 'field-sweep'; end
+    if ~isfield(Parameters,'JEY'), Parameters.JEY = ''; end
     JEX_Endor = strcmp(Parameters.JEX,'ENDOR');
     JEX_TimeSweep = strcmp(Parameters.JEX,'Time-Sweep');
+    JEY_PowerSweep = strcmp(Parameters.JEY,'mw-power-sweep');
 
     % Convert values of all possible range keywords
+    %-------------------------------------------------------
     GST = []; GSI = []; HCF = []; HSW = []; 
     XXLB = []; XXWI = []; XYLB = []; XYWI = [];
     if isfield(Parameters,'HCF')
@@ -461,8 +462,8 @@ case {'.PAR','.SPC','.par','.spc'}
     end
     
     % XXLB, XXWI, XYLB, XYWI
-    % In files from the pulse S-band spectrometer at ETH, HSW/HCF 
-    % and GST/GSI are absent so that these have to be read in.
+    % In files from the pulse S-band spectrometer at ETH,
+    % both HSW/HCF and GST/GSI are absent.
     if isfield(Parameters,'XXLB')
       XXLB = sscanf(Parameters.XXLB,'%f');
     end
@@ -476,31 +477,33 @@ case {'.PAR','.SPC','.par','.spc'}
       XYWI = sscanf(Parameters.XYWI,'%f');
     end
 
+    % Determine which abscissa range parameters to take
+    %-----------------------------------------------------------
     TakeGH = 0; % 1: take GST/GSI,  2: take HCF/HSW, 3: try XXLB
-
     if JEX_Endor
       % Endor experiment: take GST/GSI
       TakeGH = 1;
+    elseif ~isempty(XXLB) && ~isempty(XXWI) && ~isempty(XYLB) && ~isempty(XYWI)
+      % EMX 2D data -> use XXLB/XXWI/XYLB/XYWI
+      TakeGH = 3;
     elseif ~isempty(HCF) && ~isempty(HSW) && ~isempty(GST) && ~isempty(GSI)
-      % All fields present: take GST/GSI (even if inconsistent with
-      % HCF/HSW) (not sure this is correct in all cases)
+      % All fields present: take GST/GSI (even if inconsistent
+      % with HCF/HSW) (not sure this is correct in all cases)
       TakeGH = 1;
     elseif ~isempty(HCF) && ~isempty(HSW)
       % Only HCF and HSW given: take them
       TakeGH = 2;
-    else
-      if ~isempty(GST) && ~isempty(GSI)
-        TakeGH = 1;
-      end
-      if isempty(GSI) && isempty(HSW)
-        HSW = 50;
-        TakeGH = 2;
-        if isempty(HCF)
-          TakeGH = 3;
-        end
-      end
+    elseif ~isempty(GST) && ~isempty(GSI)
+      TakeGH = 1;
+    elseif isempty(GSI) && isempty(HSW)
+      HSW = 50;
+      TakeGH = 2;
+    elseif isempty(HCF)
+      TakeGH = 3;
     end
     
+    % Construct abscissa vector
+    %----------------------------------------------------
     if JEX_TimeSweep
       if isfield(Parameters,'RCT')
         ConversionTime = sscanf(Parameters.RCT,'%f');
