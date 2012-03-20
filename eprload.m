@@ -378,8 +378,8 @@ case {'.PAR','.SPC','.par','.spc'}
   % Analyse data type flags stored in JSS.
   if isfield(Parameters,'JSS')
     Flags = sscanf(Parameters.JSS,'%f');
-    isComplex = bitand(Flags,2^4)~=0;
-    TwoD = bitand(Flags,2^12)~=0;
+    isComplex = bitget(Flags,5);
+    TwoD = bitget(Flags,13);
   end
   
   % If present, SSX contains the number of x points.
