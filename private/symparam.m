@@ -17,7 +17,7 @@ openPhi = [1 1 1 1 1 1 0 0 0 0 0 0 0 0];
 Groups = {'C1','Ci','C2h','S6','C4h','C6h','D2h','Th',...
           'D3d','D4h','Oh','D6h','Dinfh','O3'};
 
-idx = strcmp(SymGroup,Groups);
+idx = find(strcmp(SymGroup,Groups));
 if isempty(idx)
   error('Unsupported symmetry group %s!',SymGroup);
 else

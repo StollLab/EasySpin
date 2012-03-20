@@ -213,7 +213,7 @@ Lines = [];
 if isempty(Element)
   Isotopes = 1:numel(Data.gn);
 else
-  Isotopes = strcmp(Element,Data.Element);
+  Isotopes = find(strcmp(Element,Data.Element));
 end
 for k = 1:numel(Isotopes)
   iIso = Isotopes(k);
