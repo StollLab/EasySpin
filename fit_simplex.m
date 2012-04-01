@@ -1,24 +1,18 @@
 %fit_simplex    Nelder/Mead downhill simplex minimization algorithm
 %
-%   xmin = fit_simplex(fcn,x0,Opt,varargin)
+%   xmin = fit_simplex(fcn,x0,FitOpt,...)
 %   [xmin,info] = ...
 %
-%   Tries to minimize fcn(x), starting at x0. Opt are options for
-%   the minimization algorithm, any additional parameters are passed
-%   to the function to be minimized, fcn, which can be a string or
-%   a function handle.
+%   Tries to minimize fcn(x), starting at x0. FitOpt are options for
+%   the minimization algorithm. Any additional parameters are passed
+%   to fcn, which can be a string or a function handle.
 %
 %   Options:
-%     Opt.SimplexPars    [rho cho psi sigma], default [1 2 0.5 0.5]
+%     Opt.SimplexPars    [rho chi psi sigma], default [1 2 0.5 0.5]
 %     Opt.maxTime        maximum time allowed, in minutes
 %     Opt.delta              initial extension of simplex
 
-%   Reference: Jeffrey C. Lagarias, James A. Reeds, Margaret H. Wright,
-%   Paul E. Wright, "Convergence Properties of the Nelder-Mead Simplex
-%   Method in Low Dimensions", SIAM Journal of Optimization, 9(1):
-%   p.112-147, 1998.
-
-function [x,info] = fit_simplex(errfcn,x,Opt,varargin)
+function [x,info] = fit_simplex(errfcn,x0,Opt,varargin)
 
 if (nargin==0), help(mfilename); return; end
 
@@ -37,49 +31,47 @@ if ~isfield(Opt,'SimplexPars'), Opt.SimplexPars = [1 2 0.5 0.5]; end
 rho = Opt.SimplexPars(1); % reflection coefficient
 chi = Opt.SimplexPars(2); % expansion coefficient
 psi = Opt.SimplexPars(3); % contraction coefficient
-sigma = Opt.SimplexPars(4); % shrinkage coefficient
+sigma = Opt.SimplexPars(4); % reduction coefficient
 
 if ~isfield(Opt,'Display'), Opt.Display = 'notify'; end
 if ~isfield(Opt,'TolStep'), Opt.TolStep = 1e-4; end
 if ~isfield(Opt,'TolFun'), Opt.TolFun = 1e-4; end
 if ~isfield(Opt,'PrintLevel'), Opt.PrintLevel = 1; end
-tolx = Opt.TolStep;
-tolf = Opt.TolFun;
 
-constrain = @(x)sin(x*pi/2); unconstrain = @(x)acos(x)*2/pi;
-constrain = @(x)max(min(x,1),-1); unconstrain = @(x)x;
+%constrain = @(x)sin(x*pi/2); unconstrain = @(x)acos(x)*2/pi;
+%constrain = @(x)max(min(x,1),-1); unconstrain = @(x)x;
 constrain = @(x)x; unconstrain = constrain;
-n = numel(x);
-
-onesn = ones(1,n);
-two2np1 = 2:n+1;
+n = numel(x0);
 
 % Set up a simplex near the initial guess.
-v = repmat(x(:),1,n+1);
+v = repmat(x0(:),1,n+1);
 for j = 2:n+1
   v(j-1,j) = v(j-1,j)+delta;
 end
-%v = v - repmat(mean(v,2),1,n+1);
+%v = v - repmat(mean(v,2),1,n+1); % center
 
 iIteration = 0;
+startTime = cputime;
 
 hLogLine = findobj('Tag','logLine');
 set(hLogLine,'String','initial simplex...');
 
-% Evaluate vertices of the n+1 simplex
-for j=1:n+1
-  fv(j) = errfcn(v(:,j),varargin{:});
+% Evaluate vertices of the simplex
+for iVertex = 1:n+1
+  x = constrain(v(:,iVertex));
+  fv(iVertex) = errfcn(x,varargin{:});
 end
 
-% sort so v(1,:) has the lowest function value
-[fv,j] = sort(fv); v = v(:,j);
+% sort so v(1,:) is the best vertex
+[fv,idx] = sort(fv); v = v(:,idx);
 
 Procedure = 'initial simplex';
 iIteration = iIteration + 1;
 
 if Opt.PrintLevel
   template = ' %4d:    %0.5e    %0.5e    %s';
-  str = sprintf(template, iIteration, fv(1), delta, Procedure);
+  str = sprintf(template,iIteration,fv(1),delta,Procedure);
+  hLogLine = findobj('Tag','logLine');
   if isempty(hLogLine)
     disp('  Iter      RMS error         Step        Procedure');
     disp(str);
@@ -89,102 +81,94 @@ if Opt.PrintLevel
 end
 
 % Main algorithm: iterate until
-% (a) the maximum coordinate difference between the current best point and the
-% other points in the simplex is less than or equal to TolStep. Specifically,
-% until max(||v2-v1||,||v3-v1||,...,||v(n+1)-v1||) <= TolStep,
-% where ||.|| is the infinity-norm, and v1 holds the
-% vertex with the current lowest value; AND
-% (b) the corresponding difference in function values is less than or equal
-% to TolFun. (Cannot use OR instead of AND.)
-
-startTime = cputime;
+% 1. the maximum distance between the current best vertex and the
+%    other vertex in the simplex is less than or equal to TolStep, and
+% 2. the corresponding difference in function values is less than or
+%    equal to TolFun.
 
 while 1
 
   % Check whether to stop the loop
   %-----------------------------------------------------------
-  elapsedTime =  (cputime-startTime)/60;
+  elapsedTime = (cputime-startTime)/60;
   if (elapsedTime>Opt.maxTime), stopCode = 1; break; end
   if (UserCommand==1 || UserCommand==4 || UserCommand==99), stopCode = 2; break; end
-  if (max(abs(fv(1)-fv(two2np1))) <= tolf) && ...
-     (max(max(abs(v(:,two2np1)-v(:,onesn)))) <= tolx)
+  if (max(abs(fv(1)-fv(2:n+1))) <= Opt.TolFun) && ...
+     (max(max(abs(v(:,2:n+1)-v(:,ones(1,n))))) <= Opt.TolStep)
     stopCode = 3;
     break;
   end
 
-  % Calculate the reflection point
-
-  % xbar = average of the n (NOT n+1) best points
-  xbar = mean(v(:,1:end-1),2);
+  % Calculate reflection point
+  xbar = mean(v(:,1:end-1),2); % average of the n best points
   xr = (1+rho)*xbar - rho*v(:,end);
   xr = constrain(xr);
-  fxr = errfcn(xr,varargin{:});
+  fr = errfcn(xr,varargin{:});
 
-  if fxr<fv(:,1)
-    % Calculate the expansion point
+  doReduction = 0;
+  if fr<fv(:,1) % reflection point is better than best vertex
+    % Calculate expansion point
     xe = (1+rho*chi)*xbar - rho*chi*v(:,end);
     xe = constrain(xe);
-    fxe = errfcn(xe,varargin{:});
-    if fxe<fxr
+    fe = errfcn(xe,varargin{:});
+    if fe<fr
       Procedure = 'expansion';
       v(:,end) = xe;
-      fv(:,end) = fxe;
+      fv(:,end) = fe;
     else
       Procedure = 'reflection';
       v(:,end) = xr;
-      fv(:,end) = fxr;
+      fv(:,end) = fr;
     end
-  else % fxr >= fv(:,1)
-    if fxr<fv(:,n)
-      Procedure = 'reflection';
-      v(:,end) = xr;
-      fv(:,end) = fxr;
-    else % fxr>=fv(:,n)
-      % Perform contraction
-      if fxr < fv(:,end)
-        xco = (1+psi*rho)*xbar - psi*rho*v(:,end);
-        xco = constrain(xco);
-        fxco = errfcn(xco,varargin{:});
-        if fxco <= fxr
-          Procedure = 'contraction outside';
-          v(:,end) = xco;
-          fv(:,end) = fxco;
-        else
-          Procedure = 'shrinkage';
-          for j=two2np1
-            xshr = v(:,1)+sigma*(v(:,j) - v(:,1));
-            xshr = constrain(xshr);
-            fv(:,j) = errfcn(xshr,varargin{:});
-            v(:,j) = xshr;
-          end
-        end
-      else
-        xci = (1-psi)*xbar + psi*v(:,end);
-        xci = constrain(xci);
-        fxci = errfcn(xci,varargin{:});
-        if fxci < fv(:,end)
-          Procedure = 'contraction inside';
-          v(:,end) = xci;
-          fv(:,end) = fxci;
-        else
-          Procedure = 'shrinkage';
-          for j=two2np1
-            xshr = v(:,1)+sigma*(v(:,j) - v(:,1));
-            xshr = constrain(xshr);
-            fv(:,j) = errfcn(xshr,varargin{:});
-            v(:,j) = xshr;
-          end
-        end
-      end
+  elseif fr<fv(:,n) % reflection point is better than second worst vertex
+    Procedure = 'reflection';
+    v(:,end) = xr;
+    fv(:,end) = fr;
+  elseif fr<fv(:,end) % reflection point is better than worst vertex
+    % Calculate outside contraction point
+    xco = (1+psi*rho)*xbar - psi*rho*v(:,end);
+    xco = constrain(xco);
+    f = errfcn(xco,varargin{:});
+    if f<=fr
+      Procedure = 'contraction outside';
+      v(:,end) = xco;
+      fv(:,end) = f;
+    else
+      doReduction = 1;
+    end
+  else % reflection point is worse than (or equal to) worst vertex
+    % Calculate inside contraction point
+    xci = (1-psi)*xbar + psi*v(:,end);
+    xci = constrain(xci);
+    f = errfcn(xci,varargin{:});
+    if f<fv(:,end)
+      Procedure = 'contraction inside';
+      v(:,end) = xci;
+      fv(:,end) = f;
+    else
+      doReduction = 1;
     end
   end
-  [fv,j] = sort(fv);
-  v = v(:,j);
+ 
+  if doReduction
+    Procedure = 'reduction';
+    for iVertex = 2:n+1
+      xshr = v(:,1) + sigma*(v(:,iVertex)-v(:,1));
+      xshr = constrain(xshr);
+      fv(:,iVertex) = errfcn(xshr,varargin{:});
+      v(:,iVertex) = xshr;
+    end
+  end
+  
+  [fv,idx] = sort(fv);
+  v = v(:,idx);
+  
   iIteration = iIteration + 1;
   
   if (Opt.PrintLevel)
-    thisstep = max(max(abs(v(:,two2np1)-v(:,onesn))));
-    str = sprintf(template, iIteration, fv(1), thisstep, Procedure);
+    thisstep = max(max(abs(v(:,2:n+1)-v(:,ones(1,n)))));
+    str = sprintf(template,iIteration,fv(1),thisstep,Procedure);
+    hLogLine = findobj('Tag','logLine');
     if isempty(hLogLine)
       disp(str);
     else
@@ -197,11 +181,13 @@ end
 x = v(:,1);
 x = unconstrain(x);
 info.F = fv(:,1);
+info.nIterations = iIteration;
+info.elapsedTime = elapsedTime;
 
 switch (stopCode)
   case 1, msg = sprintf('Time limit of %f minutes reached.',Opt.maxTime);
   case 2, msg = sprintf('Stopped by user.');
-  case 3, msg = sprintf('Converged (step < %g and function change < %g).',tolx, tolf);
+  case 3, msg = sprintf('Converged (step < %g and function change < %g).',Opt.TolStep,Opt.TolFun);
 end
 
 if (Opt.PrintLevel>1)
