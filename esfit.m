@@ -192,11 +192,10 @@ TargetName{5} = 'Fourier transform';
 
 
 %------------------------------------------------------
+if ~isfield(FitOpt,'Plot'), FitOpt.Plot = 1; end
 
 if ~isfield(FitOpt,'N'), FitOpt.N = 20000; end
-if ~isfield(FitOpt,'nParticles'), FitOpt.nParticles = 20; end
 
-if ~isfield(FitOpt,'Plot'), FitOpt.Plot = 1; end
 if ~isfield(FitOpt,'PrintLevel'), FitOpt.PrintLevel = 1; end
 
 if ~isfield(FitOpt,'TolFun'), FitOpt.TolFun = 1e-4; end
@@ -296,7 +295,7 @@ end
 % Final stage: finish
 %===================================================================
 
-BestSpec= 0;
+BestSpec = 0;
 for iSys=1:numel(Sys0)
   BestSys{iSys} = GetSystem(Sys0{iSys},Vary{iSys},bestx(Sys0{iSys}.xidx));
 end
