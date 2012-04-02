@@ -456,7 +456,11 @@ end
 
 % Check whether looping transitions are possible.
 MaxZeroFieldSplit = ZFEnergies(end) - ZFEnergies(1);
-logmsg(2,'  ## maximum splitting at zero field: %g MHz',MaxZeroFieldSplit);
+if MaxZeroFieldSplit>1e3
+  logmsg(2,'  ## maximum splitting at zero field: %g GHz',MaxZeroFieldSplit/1e3);
+else
+  logmsg(2,'  ## maximum splitting at zero field: %g MHz',MaxZeroFieldSplit);
+end
 LoopFields = MaxZeroFieldSplit/mwFreq > 1 - 1e-6;
 if (LoopFields)
   msg = '  looping transitions possible';
@@ -788,7 +792,8 @@ for iOri = 1:nOrientations
       seconds = remainingTime - 3600*hours - 60*minutes;
       logstr = sprintf('  %d/%d orientations, remaining time %02d:%02d:%0.1f\n', ...
         iOri, nOrientations, hours, minutes, seconds);
-      fprintf([backspace logstr]);
+      if EasySpinLogLevel==1, fprintf(backspace); end
+      fprintf(logstr);
     else
       if (nOrientations>1)
         logstr = sprintf('  1/%d orientations, remaining time unknown\n',nOrientations);

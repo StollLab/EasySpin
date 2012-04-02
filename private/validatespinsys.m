@@ -231,9 +231,14 @@ if ~isfield(Sys,'Nucs')
   Sys.Nucs = '';
 end
 
-if isempty(Sys.Nucs) && (isfield(Sys,'A')||isfield(Sys,'Apa')||isfield(Sys,'Q')||isfield(Sys,'Qpa'))
-  err = 'The system contains A and/or Q fields, but no nucleus is specified!';
-  if ~isempty(err), return; end
+if isempty(Sys.Nucs)
+  if isfield(Sys,'A')   && ~isempty(Sys.A) || ...
+     isfield(Sys,'Apa') && ~isempty(Sys.Apa) || ...
+     isfield(Sys,'Q')   && ~isempty(Sys.q) || ...
+     isfield(Sys,'Qpa') && ~isempty(Sys.Qpa)
+    err = 'The system contains A and/or Q fields, but no nucleus is specified!';
+    if ~isempty(err), return; end
+  end
 end
 
 if ~isempty(Sys.Nucs)

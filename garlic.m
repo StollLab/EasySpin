@@ -136,8 +136,9 @@ if ~isfield(Sys,'singleiso') || (Sys.singleiso==0)
 end
 %==================================================================
 
-
-logmsg(1,['=begin=garlic=====' datestr(now) '=================']);
+if EasySpinLogLevel>=1
+  logmsg(1,['=begin=garlic=====' datestr(now) '=================']);
+end
 
 %-------------------------------------------------------------------------
 % System structure check
@@ -576,7 +577,9 @@ switch (nargout)
   case 2, varargout = {x,spec};
   case 3, varargout = {x,spec,B};
 end
-logmsg(1,'=end=garlic=======%s=================\n',datestr(now));
+if EasySpinLogLevel>=1
+  logmsg(1,'=end=garlic=======%s=================\n',datestr(now));
+end
 clear global EasySpinLogLevel
 
 return

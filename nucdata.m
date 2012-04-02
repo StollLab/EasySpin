@@ -37,7 +37,7 @@ if isempty(IsotopeList)
   esPath = fileparts(which(mfilename));
   DataFile = [esPath filesep 'private' filesep 'isotopedata.txt'];
   if ~exist(DataFile,'file')
-    error(sprintf('Could not open nuclear data file %s',DataFile));
+    error('Could not open nuclear data file %s',DataFile);
   end
   
   % Load data file
@@ -72,7 +72,7 @@ if isempty(Isotopes)
   return
 end
 
-if ~ischar(Isotopes) & ~iscell(Isotopes)
+if ~ischar(Isotopes) && ~iscell(Isotopes)
   error('Argument must be a string or a cell array!');
 end
 

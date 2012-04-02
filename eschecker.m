@@ -30,7 +30,7 @@ if isempty(LicenseOK), LicenseOK = 0; end
 if isempty(nCalls), nCalls = 1; end
 
 if InternalCall
-  if LicenseOK && (nCalls<10)
+  if LicenseOK && (nCalls<100)
     nCalls = nCalls + 1;
     assignin('caller',Link2,'');
     return
