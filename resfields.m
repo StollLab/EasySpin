@@ -673,13 +673,17 @@ if (ComputeStrains)
   % g-A strain
   %-------------------------------------------------
   % g strain tensor is taken to be along the g tensor itself.
-  gslw = diag(CoreSys.gStrain./CoreSys.g(1,:)*mwFreq);
+  gStrainMatrix = diag(CoreSys.gStrain./CoreSys.g(1,:))*mwFreq;
+  if isfield(CoreSys,'gpa')
+    Rp = erot(CoreSys.gpa(1,:));
+    gStrainMatrix = Rp*gStrainMatrix*Rp.';
+  end
   if (CoreSys.nNuclei>0) && any(CoreSys.AStrain)
     % Get A strain matrix in g frame.
-    AStrain = diag(CoreSys.AStrain);
+    AStrainMatrix = diag(CoreSys.AStrain);
     if isfield(CoreSys,'Apa')
       Rp = erot(CoreSys.Apa(1,:));
-      AStrain = Rp*AStrain*Rp.';
+      AStrainMatrix = Rp*AStrainMatrix*Rp.';
     end
     % Diagonalize Hamiltonian at centre field.
     centreB = mean(Exp.Range);
@@ -690,12 +694,13 @@ if (ComputeStrains)
     mI = real(diag(Vs'*sop(CoreSys,2,3)*Vs));
     mITr = mean(mI(Transitions),2);
     % compute A strain array
-    Aslw = reshape(mITr(:,ones(1,9)).',[3,3,nTransitions]).*...
-      repmat(AStrain,[1,1,nTransitions]);
-    gAslw2 = (repmat(gslw,[1,1,nTransitions])+System.gAStrainCorr*Aslw).^2;
-    clear Aslw Vs E idx mI mITr
+    AStrainMatrix = reshape(mITr(:,ones(1,9)).',[3,3,nTransitions]).*...
+      repmat(AStrainMatrix,[1,1,nTransitions]);
+    corr = System.gAStrainCorr;
+    gAslw2 = (repmat(gStrainMatrix,[1,1,nTransitions])+corr*AStrainMatrix).^2;
+    clear AStrainMatrix Vs E idx mI mITr
   else
-    gAslw2 = repmat(gslw.^2,[1,1,nTransitions]);
+    gAslw2 = repmat(gStrainMatrix.^2,[1,1,nTransitions]);
   end
   clear gslw
   % gAslw2 = now an 3D array with 3x3 strain line-width matrices

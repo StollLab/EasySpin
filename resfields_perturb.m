@@ -32,7 +32,7 @@ if Sys.nElectrons~=1
   err = sprintf('Perturbation theory available only for systems with 1 electron. Yours has %d.',Sys.nElectrons);
 end
 if any(Sys.AStrain)
-  err = ('A strain (Sys.AStrain) not supported with perturbation theory. Use matrix diagonalization or remove Sys.AStrain.');
+%  err = ('A strain (Sys.AStrain) not supported with perturbation theory. Use matrix diagonalization or remove Sys.AStrain.');
 end
 if highSpin && any(Sys.DStrain) && any(mod(Sys.S,1))
   err = ('D strain not supported for half-integer spins with perturbation theory. Use matrix diagonalization or remove Sys.DStrain.');
@@ -42,6 +42,11 @@ if any(Sys.DStrain(:)) && any(Sys.Dpa(:))
 end
 error(err);
 
+if ~isfield(Sys,'gAStrainCorr')
+  Sys.gAStrainCorr = +1;
+else
+  Sys.gAStrainCorr = sign(Sys.gAStrainCorr(1));
+end
 
 if Sys.fullg
   g = Sys.g;
@@ -184,7 +189,7 @@ E0 = nu;
 for iNuc = 1:nNuclei
   A_ = A{iNuc};
   detA(iNuc) = det(A_);
-  invA{iNuc} = inv(A_); % gives an error with zero h couplings
+  invA{iNuc} = inv(A_); % gives an error with zero hf couplings
   trAA(iNuc) = trace(A_.'*A_);
 end
 
@@ -400,17 +405,48 @@ else
   % Widths
   %-------------------------------------------------------------------
   if any(Sys.HStrain)
+    
     lw2 = sum(Sys.HStrain.^2*vecs.^2,1);
     lw = sqrt(lw2)*1e6*planck./geff/bmagn*1e3;
     Wid = repmat(lw,nNucTrans*2*S,1);
-  elseif any(Sys.gStrain)
-    if any(Sys.gpa)
-      error('g strain and g tilt cannot be used simultaneously.');
+    
+  elseif any(Sys.gStrain) || any(Sys.AStrain)
+    
+    if any(Sys.gStrain)
+      gStrainMatrix = diag(Sys.gStrain./Sys.g)*Exp.mwFreq*1e3; % -> MHz
+      if isfield(Sys,'gpa') && any(Sys.gpa(1,:))
+        Rp = erot(Sys.gpa(1,:));
+        gStrainMatrix = Rp*gStrainMatrix*Rp.';
+      end
+    else
+      gStrainMatrix = zeros(3);
     end
-    gslw = Sys.gStrain./Sys.g*Exp.mwFreq*1e3;
-    lw = sqrt(sum(gslw.^2*vecs.^2,1)); % MHz
-    lw = planck*lw*1e6./geff/bmagn*1e3; % mT
-    Wid = repmat(lw,nNucTrans*2*S,1);
+    
+    if any(Sys.AStrain) && (Sys.nNuclei>0)
+      AStrainMatrix = diag(Sys.AStrain);
+      if isfield(Sys,'Apa')
+        Rp = erot(Sys.Apa(1,:));
+        AStrainMatrix = Rp*AStrainMatrix*Rp.';
+      end
+      corr = Sys.gAStrainCorr;
+      mI1 = -Sys.I(1):+Sys.I(1);
+      for idx = 1:numel(mI1)
+        StrainMatrix = gStrainMatrix + corr*(mI1(idx))*AStrainMatrix;
+        for iOri = 1:nOrientations
+          lw2(idx,iOri) = vecs(:,iOri).'*StrainMatrix.^2*vecs(:,iOri);
+        end
+      end
+      Wid = sqrt(lw2)*planck*1e6./repmat(geff,numel(mI1),1)/bmagn*1e3; % MHz -> mT
+      idx = repmat(1:numel(mI1),2*S*nNucTrans/numel(mI1),1);
+      Wid = Wid(idx(:),:);
+    else
+      StrainMatrix = gStrainMatrix;
+      for iOri = 1:nOrientations
+        lw2(1,iOri) = vecs(:,iOri).'*StrainMatrix.^2*vecs(:,iOri);
+      end
+      Wid = sqrt(lw2)*planck*1e6./geff/bmagn*1e3; % MHz -> mT
+      Wid = repmat(Wid,2*S*nNucTrans,1);
+    end
 
   elseif any(Sys.DStrain)
     x = vecs(1,:);
