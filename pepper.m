@@ -188,7 +188,7 @@ if (numel(Exp.mwFreq)~=1) || any(Exp.mwFreq<=0) || ~isreal(Exp.mwFreq)
 end
 
 % Automatic field range determination
-if isnan(Exp.CenterSweep) & isnan(Exp.Range)
+if all(isnan(Exp.CenterSweep)) && all(isnan(Exp.Range))
   if (Sys.S==1/2)
     logmsg(1,'  automatic determination of magnetic field range');
     I = nucspin(Sys.Nucs).';
@@ -231,7 +231,8 @@ if ~isnan(Exp.CenterSweep)
   Exp.Range = max(Exp.Range,0);
 end
 
-if (diff(Exp.Range)<=0) | ~isfinite(Exp.Range) | ~isreal(Exp.Range) | any(Exp.Range<0)
+if (diff(Exp.Range)<=0) || any(~isfinite(Exp.Range)) || ...
+    any(~isreal(Exp.Range)) || any(Exp.Range<0)
   %Exp.Range
   %Sys
   error('Exp.Range is not valid!');
@@ -261,9 +262,7 @@ if isfield(Exp,'Detection')
   error('Exp.Detection is obsolete. Use Exp.Mode instead.');
 end
 if strcmp(Exp.Mode,'perpendicular')
-  ParallelMode = 0;
 elseif strcmp(Exp.Mode,'parallel')
-  ParallelMode = 1;
 else
   error('Exp.Mode must be either ''perpendicular'' or ''parallel''.');
 end

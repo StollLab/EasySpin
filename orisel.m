@@ -51,6 +51,7 @@ DefaultParams.Orientations = [];
 
 if ~isfield(Params,'Field'), error('Params.Field is missing!'); end
 if ~isfield(Params,'mwFreq'), error('Params.mwFreq is missing!'); end
+if ~isfield(Params,'ExciteWidth'), error('Params.ExciteWidth is missing!'); end
 
 Params = adddefaults(Params,DefaultParams);
 

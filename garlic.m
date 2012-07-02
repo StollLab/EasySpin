@@ -462,6 +462,7 @@ end
 if (FieldAutoRange)
   Brange = (Bmax-Bmin)*Options.Stretch;
   Exp.Range = [Bmin,Bmax] + [-1 1]*max(5*maxLw,Brange);
+  Exp.Range(1) = max(Exp.Range(1),0);
   logmsg(1,'  automatic field range from %g mT to %g mT',Exp.Range(1),Exp.Range(2));
 end
 

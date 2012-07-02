@@ -26,7 +26,7 @@ if (nargin==2)
   M = 0;
 end
 
-if (L<0) || (abs(M)>L) || any(abs(x)>1)
+if (L<0) || (abs(M)>L) || any(abs(x(:))>1)
   error('Wrong Associated Legendre Polynomial parameters!');
 end
 

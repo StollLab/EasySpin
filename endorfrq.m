@@ -548,7 +548,7 @@ for iOri = 1:nOrientations
         Polarizations = abs(P - P.');
       end
       
-      % weight EPR transition propabilities with excitation shape
+      % weight EPR transition probabilities with excitation shape
       EPRIntensity = sqrt(2/pi)*...
         Polarizations.*EPRIntensity.*exp(-2/lw2*(mwFreq-abs(dE)).^2);
 

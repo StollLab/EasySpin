@@ -1,6 +1,6 @@
 % ESCHECKER   EasySpin expiry checker
 %
-%    eslicense
+%    eschecker
 %
 %   Checks the expiry of EasySpin
 
