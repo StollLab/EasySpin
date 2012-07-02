@@ -2,20 +2,21 @@
 %
 %   eprsave(FileName,x,y)
 %   eprsave(FileName,x,y,TitleString)
+%   eprsave(FileName,x,y,TitleString,mwFreq)
 %
 %   Saves the dataset in x and y in the Bruker BES3T
 %   format in a .DTA and a .DSC file with the file
 %   name given in FileName. x is the x axis data, and y
 %   is the intensity data. TitleString is the name of the
 %   dataset that will be displayed in the Bruker software.
+%   mwFreq is the microwave frequency, in GHz.
 
-function eprsave(filename,x,y,titlestring)
+function eprsave(filename,x,y,TitleString,mwFreq)
 
 if (nargin==0); help(mfilename); return; end
 
-if nargin<4
-  titlestring = '';
-end
+if (nargin<4), TitleString = ''; end
+if (nargin<5), mwFreq = NaN; end
 
 %{
 if (nargin==0)
@@ -31,20 +32,19 @@ if (nargin==0)
 end
 %}
 
-if ndims(y)>2
-  error('Cannot save data with more than 2 dimensions.')
-end
 if ndims(y)==2
   if min(size(y))>1
     error('Cannot save two-dimensional data.')
   end
+else
+  error('Cannot save data with more than 2 dimensions.')
 end
 
 complexData = ~isreal(y);
 
 BES3TVersion = 1.2;
 
-if BES3TVersion<1.2
+if (BES3TVersion<1.2)
   error('Cannot save in BES3T format versions older than 1.2.');
 end
 
@@ -72,10 +72,10 @@ fclose(fDTA);
 % Save parameters in DSC file
 %-----------------------------------------------------------
 fDSC = fopen([filename '.DSC'],'w',ByteOrder);
-writedsc = @(key,val)fprintf(fDSC,[key '\t' val '\n']);
+writedsckeyval = @(key,val)fprintf(fDSC,[key '\t' val '\n']);
+writedsc = @(val)fprintf(fDSC,[val '\n']);
 
 fprintf(fDSC,'* Exported from Matlab using EasySpin, %s\n',datestr(now));
-
 if BES3TVersion==1.2
   VersionString = '1.2';
 elseif BES3TVersion==1.3
@@ -83,20 +83,20 @@ elseif BES3TVersion==1.3
 elseif BES3TVersion==2.0
   VersionString = '2.0';
 end
-writedsc('#DESC',VersionString);
+writedsckeyval('#DESC',[VersionString ' * DESCRIPTOR INFORMATION ***********************']);
 
-writedsc('DSRC','MAN');
+writedsckeyval('DSRC','MAN');
 
 if strcmp(ByteOrder,'ieee-be')
-  writedsc('BSEQ','BIG');
+  writedsckeyval('BSEQ','BIG');
 else
-  writedsc('BSEQ','LIT');
+  writedsckeyval('BSEQ','LIT');
 end
 
 if complexData
-  writedsc('IKKF','CPLX');
+  writedsckeyval('IKKF','CPLX');
 else
-  writedsc('IKKF','REAL');
+  writedsckeyval('IKKF','REAL');
 end
 
 if strcmp(NumberFormat,'float64')
@@ -105,9 +105,9 @@ else
   error('Unsupported number format ''%s''',NumberFormat);
 end
 
-writedsc('IRFMT',NumberFormatCode);
+writedsckeyval('IRFMT',NumberFormatCode);
 if complexData
-  writedsc('IIFMT',NumberFormatCode);
+  writedsckeyval('IIFMT',NumberFormatCode);
 end
 
 % Axis information
@@ -131,36 +131,52 @@ if ~isLinearX
   fwrite(fGF,x(:),'float64',0,ByteOrder);
   fclose(fGF);
   if BES3TVersion<2.0
-    writedsc('XFMT','D');
+    writedsckeyval('XFMT','D');
   else
-    writedsc('AX1FMT','D');
+    writedsckeyval('AX1FMT','D');
   end
 end
 
 % Write axis types
 if (BES3TVersion<2.0)
-  writedsc('XTYP',XType);
-  writedsc('YTYP',YType);
-  writedsc('ZTYP',ZType);
+  writedsckeyval('XTYP',XType);
+  writedsckeyval('YTYP',YType);
+  writedsckeyval('ZTYP',ZType);
 else
-  writedsc('AX1TYP',XType);
+  writedsckeyval('AX1TYP',XType);
   %writedsc('AX2TYP',YType);
   %writedsc('AX3TYP',ZType);
 end
 
 % Write linear axis characteristics
 if BES3TVersion<2.0
-  writedsc('XPTS',sprintf('%d',numel(x)));
-  writedsc('XMIN',sprintf('%g',x(1)));
-  writedsc('XWID',sprintf('%g',x(end)-x(1)));
+  writedsckeyval('XPTS',sprintf('%d',numel(x)));
+  writedsckeyval('XMIN',sprintf('%g',x(1)));
+  writedsckeyval('XWID',sprintf('%g',x(end)-x(1)));
 else
-  writedsc('AX1PTS',sprintf('%d',numel(x)));
-  writedsc('AX1MIN',sprintf('%g',x(1)));
-  writedsc('AX1WID',sprintf('%g',x(end)-x(1)));
+  writedsckeyval('AX1PTS',sprintf('%d',numel(x)));
+  writedsckeyval('AX1MIN',sprintf('%g',x(1)));
+  writedsckeyval('AX1WID',sprintf('%g',x(end)-x(1)));
 end
 
-if ~isempty(titlestring)
-  writedsc('TITL',['''' titlestring '''']);
+if ~isempty(TitleString)
+  writedsckeyval('TITL',['''' TitleString '''']);
 end
 
+% Standard parameter layer (SPL)
+%------------------------------------------------------------------
+writedsc('*');
+writedsc('************************************************************');
+writedsc('*');
+writedsckeyval('#SPL',[VersionString ' * STANDARD PARAMETER LAYER']);
+writedsckeyval('OPER','');
+writedsckeyval('DATE',datestr(now,'dd/mm/yy'));
+writedsckeyval('TIME',datestr(now,'HH:MM:SS'));
+writedsckeyval('CMNT','');
+writedsckeyval('SAMP','');
+writedsckeyval('SFOR','');
+if ~isnan(mwFreq)
+  mwFreqString = sprintf('%0.9g',mwFreq*1e9); % BES3T requires Hz
+  writedsckeyval('MWFQ',mwFreqString);
+end
 fclose(fDSC);
