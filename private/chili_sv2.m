@@ -1,4 +1,4 @@
-function v = chili_startingvector(Sys,Basis,Diffusion,Options)
+function v = chili_startingvector2(Sys,Basis,Diffusion,Options)
 
 if nargin<4, Options = struct('ununsed',NaN); end
 
@@ -18,11 +18,18 @@ deltaL = Basis.deltaL;
 deltaK = Basis.deltaK;
 jkmn = Basis.jKmin;
 pSmin = Basis.pSmin;
-pImax = Basis.pImax;
+pI1max = Basis.pI1max;
+pI2max = Basis.pI2max;
 
 I = Sys.I;
+nNuclei = numel(I);
+if numel(I)~=2
+  error('chili_startingvector2: needs two nuclei.');
+end
+I1 = I(1);
+I2 = I(2);
 
-DirTilt = (Diffusion.psi~=0);
+DirTilt = (Sys.psi~=0);
 
 Potential = any(Diffusion.lambda);
 if (Potential)
@@ -39,7 +46,7 @@ else
 end
 
 Value = zeros(maxVals,1);
-Trans = zeros(maxVals,1);
+Trans = zeros(maxVals,nNuclei);
 Row   = zeros(maxVals,1);
 
 nRow = 0; % number of rows of the column vector v
@@ -78,33 +85,42 @@ for L = 0:deltaL:evenLmax
       
       Mmx = min(L,Mmax);
       for M = -Mmx:Mmx
+        
         for pS = pSmin:1
           qSmx = 1 - abs(pS);
           for qS = -qSmx:2:qSmx
-            for pI = -pImax:pImax
-              if ((~DirTilt)&&((pI+pS-1)~=M)), continue; end
+            for pI1 = -pI1max:pI1max
+              %if ((~DirTilt)&&((pI1+pS-1)~=M)), continue; end % Meirovich Eq.(A47)
               
-              %==============================================
-              NonZeroElement = (jK==1) & (M==0) & (pS~=0) & (pI==0);
-              %==============================================
-              
-              qImax = 2*I - abs(pI);
-              for qI = -qImax:2:qImax
+              qI1max = 2*I1 - abs(pI1);
+              for qI1 = -qI1max:2:qI1max
                 
-                nRow = nRow + 1;
-                
-                %==============================================
-                if NonZeroElement && ...
-                    (((~DirTilt) && (pS==1)) || ...
-                    (( DirTilt) && (abs(pS)==1)))
-                  if (thisValue~=0)
-                    idx = idx + 1;
-                    Value(idx) = thisValue;
-                    Trans(idx) = qI/2; % gives mI of transition
-                    Row(idx) = nRow;
+                for pI2 = -pI2max:pI2max
+                  qI2max = 2*I2 - abs(pI2);
+                  %==============================================
+                  NonZeroElement = (jK==1) && (M==0) && ...
+                    (pS~=0) && (pI1==0) && (pI2==0);
+                  %==============================================
+                  for qI2 = -qI2max:2:qI2max
+                    if ((~DirTilt)&&((pI1+pI2+pS-1)~=M)), continue; end % Meirovich Eq.(A47)
+                    
+                    nRow = nRow + 1;
+                    
+                    %==============================================
+                    if NonZeroElement && ...
+                        (((~DirTilt) && (pS==1)) || ...
+                        (( DirTilt) && (abs(pS)==1)))
+                      if (thisValue~=0)
+                        idx = idx + 1;
+                        Value(idx) = thisValue;
+                        Trans(idx,:) = [qI1 qI2]/2; % gives mI1 mI2 of transition
+                        Row(idx) = nRow;
+                      end
+                    end
+                    %==============================================
+                    
                   end
                 end
-                %==============================================
                 
               end
             end
@@ -116,14 +132,24 @@ for L = 0:deltaL:evenLmax
 end
 
 Value = Value(1:idx);
-Trans = Trans(1:idx);
+Trans = Trans(1:idx,:);
 Row = Row(1:idx);
 
 if (Options.SeparateTransitions)
-  v = full(sparse(Row,Trans+I+1,Value,nRow,2*I+1));
+  nColumns = prod(2*I+1);
+  if Sys.nNuclei>1
+    for k=1:Sys.nNuclei
+      TransIdx{k} = Trans(:,k) + I(k) + 1;
+    end
+    colIdx = sub2ind(2*I+1,TransIdx{:});
+  else
+    colIdx = Trans + I + 1;
+  end
 else
-  v = full(sparse(Row,1,Value,nRow,1));
+  nColumns = 1;
+  colIdx = 1;
 end
+v = full(sparse(Row,colIdx,Value,nRow,nColumns));
 
 for iCol = 1:size(v,2)
   v(:,iCol) = v(:,iCol)/norm(v(:,iCol));

@@ -130,7 +130,7 @@ end
 
 % add non-interacting nucleus if none given
 % (kernel cannot handle the absence of a nucleus)
-if ~isfield(Sys,'Nucs') || isempty(Sys.Nucs), Sys.Nucs = '1H'; Sys.A = [0 0 0]; end
+%if ~isfield(Sys,'Nucs') || isempty(Sys.Nucs), Sys.Nucs = '1H'; Sys.A = [0 0 0]; end
 
 out = isotopologues(Sys.Nucs);
 if (out.nIso>1)
@@ -145,7 +145,7 @@ mT2MHz = mt2mhz(1,mean(Sys.g));
 if (Sys.nNuclei>1)
   [val,maxNuc] = max(max(abs(Sys.A),[],2));
   if (maxNuc~=1)
-    error('Nucleus with largest hyperfine interaction must be first!');
+    %error('Nucleus with largest hyperfine interaction must be first!');
   end
 end
 
@@ -272,7 +272,7 @@ Opt.maxOffset = Exp.Sweep/2*mT2MHz*1e6; % Hz
 if ~isfield(Opt,'Rescale'), Opt.Rescale = 1; end % rescale A before Lanczos
 if ~isfield(Opt,'Threshold'), Opt.Threshold = 1e-6; end
 if ~isfield(Opt,'Diagnostic'), Opt.Diagnostic = 0; end
-if ~isfield(Opt,'Method'), Opt.Method = 'L'; end
+if ~isfield(Opt,'SolveMethod'), Opt.SolveMethod = 'L'; end
 if ~isfield(Opt,'Lentz'), Opt.Lentz = 1; end
 if ~isfield(Opt,'IncludeNZI'), Opt.IncludeNZI = 1; end
 if ~isfield(Opt,'Output'), Opt.Output = 'summed'; end
@@ -291,7 +291,7 @@ if ~isfield(Opt,'LLKM')
 end
 Basis.LLKM = Opt.LLKM;
 
-switch Opt.Method
+switch Opt.SolveMethod
   case 'L'
     logmsg(1,'  tridiagonalization: Lanczos algorithm');
     if Opt.Lentz==1 % Lentz method
@@ -305,32 +305,35 @@ switch Opt.Method
   case 'R'
     logmsg(1,'  Reference method: biconjugate gradients, stabilized');
   otherwise
-    error('Unknown method in Options.Method. Must be ''L'', ''R'' or ''C''.');
+    error('Unknown method in Options.SolveMethod. Must be ''L'', ''R'' or ''C''.');
 end
 
+maxElements = 5e6; % used in chili_lm
+maxRows = 2e5; % used in chili_lm
 if ~isfield(Opt,'Allocation')
-  Opt.Allocation = 1e6; % maxElements, used in chili_liouvmatrix
+  Opt.Allocation = [maxElements maxRows];
+elseif numel(Opt.Allocation)<2
+  Opt.Allocation(2) = maxRows;
 end
-if Opt.Allocation<1e3
+if Opt.Allocation(1)<1e3
   error('Opt.Allocation is too small.');
 end
-logmsg(2,'  allocation: %d max elements',Opt.Allocation(1));
+logmsg(2,'  allocation: %d max elements, %d max rows',Opt.Allocation(1),Opt.Allocation(2));
 
 % Process
 %-------------------------------------------------------
 Sys = processspinsys(Sys,Exp.CenterField);
-if ~Opt.IncludeNZI, Sys.NZI0 = 0; end
+if ~Opt.IncludeNZI, Sys.NZ0 = 0; Sys.NZ0b = 0; end
 [Dynamics,err] = processdynamics(Dynamics);
 error(err);
 
-logmsg(1,'Computing Xlk coefficients...');
+logmsg(1,'Computing X(l,k) coefficients...');
 Dynamics.xlk = chili_xlk(Dynamics);
 Dynamics.maxL = size(Dynamics.xlk,1)-1;
 
 Basis = processbasis(Sys,Basis,Dynamics);
 
 nu = linspace(-1,1,Exp.nPoints)*Opt.maxOffset;  % Hz
-%z = complex(1/(2*pi*Dynamics.T2),-nu+mwFreq); % Hz
 z0 = complex(1/(Dynamics.T2),2*pi*(-nu+Exp.mwFreq*1e9)); % Hz
 xField = nu/1e6/mT2MHz + Exp.CenterField;
 
@@ -362,22 +365,35 @@ end
 nOrientations = numel(psi);
 
 
+switch Sys.nNuclei
+  case 0
+    chili_lm = @chili_lm0;
+    chili_sv = @chili_sv0;
+  case 1
+    chili_lm = @chili_lm1;
+    chili_sv = @chili_sv1;
+  case 2
+    chili_lm = @chili_lm2;
+    chili_sv = @chili_sv2;
+  otherwise
+    error(sprintf('Cannot handle %d nuclei.',Sys.nNuclei));
+end
+
 % Loop over all orientations
 %=====================================================================
-
 for iOri = 1:nOrientations
   
   % Director tilt
   %-------------------------------------------------------
-  Dynamics.psi = psi(iOri);
-  Dynamics.d2psi = wignerd(2,[0 Dynamics.psi 0]);
+  Sys.psi = psi(iOri);
+  Sys.d2psi = wignerd(2,[0 Sys.psi 0]);
   logmsg(2,'orientation %d of %d: psi = %g° (weight %g)',...
     iOri,nOrientations,psi(iOri)*180/pi,GeomWeights(iOri));
 
   % Starting vector
   %-------------------------------------------------------
   logmsg(1,'Computing starting vector(s)...');
-  StartingVector = chili_startingvector(Sys,Basis,Dynamics,Opt);
+  StartingVector = chili_sv(Sys,Basis,Dynamics,Opt);
   BasisSize = size(StartingVector,1);
   nVectors = size(StartingVector,2);
   logmsg(1,'  basis size: %d, vectors: %d',BasisSize,nVectors);
@@ -387,8 +403,7 @@ for iOri = 1:nOrientations
   % Liouville matrix
   %-------------------------------------------------------
   logmsg(1,'Computing Liouville matrix...');
-  [r,c,Vals,nRows,nElm] = ...
-    chili_liouvmatrix(Sys,Basis.v,Dynamics,Opt.Allocation);
+  [r,c,Vals,nRows,nElm] = chili_lm(Sys,Basis.v,Dynamics,Opt.Allocation);
   if (nRows~=BasisSize)
     Msg = sprintf('Matrix size (%d) inconsistent with basis size (%d). Please report.',nRows,BasisSize);
     error(Msg);
@@ -404,9 +419,10 @@ for iOri = 1:nOrientations
   
   idx = 1:nElm;
   A = sparse(r(idx)+1,c(idx)+1,Vals(idx),nRows,nRows);
+  %figure; spy(A);
   %StartingVector = sparse(StartingVector);
 
-  maxDvalLim = 1e3;
+  maxDvalLim = 2e3;
   maxDval = max(abs(real(Vals)));
   logmsg(1,'  maxabs diffusion matrix: %g',maxDval);
   if maxDval>maxDvalLim
@@ -422,7 +438,7 @@ for iOri = 1:nOrientations
   logmsg(1,'Computing spectrum...');
   nDim = length(A);
 
-  switch Opt.Method
+  switch Opt.SolveMethod
     case 'L'
       for iVec = 1:nVectors
         [alpha,beta,minerr] = chili_lanczos(A,StartingVector(:,iVec),z,Opt);
@@ -455,17 +471,8 @@ for iOri = 1:nOrientations
 
   end
 
-  % Phasing
-  if (Exp.mwPhase~=0)
-    cph = cos(Exp.mwPhase);
-    sph = sin(Exp.mwPhase);
-    for iTrans = 1:nVectors
-      spec{iTrans}(iOri,:) = cph*real(thisspec(iTrans,:))-sph*imag(thisspec(iTrans,:));
-    end
-  else
-    for iTrans = 1:nVectors
-      spec{iTrans}(iOri,:) = real(thisspec(iTrans,:));
-    end
+  for iTrans = 1:nVectors
+    spec{iTrans}(iOri,:) = thisspec(iTrans,:);
   end
 
 end % orientation loop
@@ -485,16 +492,21 @@ for iTrans = 1:nVectors
   end
 end
 spec = totalspec;
-
 %==============================================================
 
 
+%==============================================================
+% Phasing
+%==============================================================
+spec = cos(Exp.mwPhase)*real(spec)-sin(Exp.mwPhase)*imag(spec);
+%spec = real(exp(1i*Exp.mwPhase)*spec);
+%==============================================================
 
 
 %==============================================================
 % Postconvolution
 %==============================================================
-if (numel(Sys.I)>1)
+if (numel(Sys.I)>2)
   logmsg(1,'Postconvolution...');
   shfSys.g = mean(Sys.g);
   shfSys.A = mean(Sys.A(2:end,:),2);
@@ -536,12 +548,12 @@ if (Opt.BasisAnalysis)
   Thr = [1e-3 1e-4 1e-5 1e-6 1e-8];
   for iThr = 1:numel(Thr)
     inc = (u_sum>Thr(iThr));
-    LL = Indices.L(inc);
+    LL = Indices(inc,1);
     Le = max(LL(mod(LL,2)==0));
     Lo = max(LL(mod(LL,2)~=0));
-    jK = max(Indices.jK(inc));
-    K = max(Indices.K(inc));
-    M = max(Indices.M(inc));
+    jK = max(Indices(inc,2));
+    K = max(Indices(inc,3));
+    M = max(Indices(inc,4));
     fprintf('%0.2e: %3d %3d %3d %3d %3d, size %d\n',Thr(iThr),Le,Lo,jK,K,M,sum(inc));
   end
 end
@@ -582,7 +594,7 @@ outspec = spec;
 
 
 %==============================================================
-% Field modulation, derivatives, etc
+% Field modulation, or derivatives
 %--------------------------------------------------------------
 if (Exp.ModAmp>0)
   logmsg(1,'  applying field modulation');
@@ -651,40 +663,48 @@ Sys.g0 = T0*Sys.g(:);
 
 Sys.g_axial = Sys.g(1)==Sys.g(2);
 
-if (nNucs>0)
-  [Sys.A0, Sys.A2] = isto(Sys.A(1,:));
-  Sys.A_axial = Sys.A2(1)==0;
-  Sys.gn0 = -sqrt(1/3)*(3*Sys.gn(1));
+% Hyperfine tensor and nuclear Zeeman
+%------------------------------------
+if nNucs>0
+  if ~isfield(Sys,'Apa'), Sys.Apa = zeros(nNucs,3); end
 end
-
-if (nNucs>0)
-  if ~isfield(Sys,'Apa'), Sys.Apa = [0 0 0]; end
-  RA = wignerd(2,Sys.Apa(1,:));
-  Sys.A2 = RDiff*RA*Sys.A2;
+for iNuc = 1:nNucs
+  [Sys.A0(iNuc), Sys.A2(:,iNuc)] = isto(Sys.A(iNuc,:));
+  Sys.A_axial(iNuc) = Sys.A2(1,iNuc)==0;
+  Sys.gn0(iNuc) = -sqrt(1/3)*(3*Sys.gn(iNuc));
+  RA = wignerd(2,Sys.Apa(iNuc,:));
+  Sys.A2(:,iNuc) = RDiff*RA*Sys.A2(:,iNuc);
 end
 
 % Convert all tensorial coefficients to units of Hz
 % - Electron Zeeman (rank 0 and 2)
 Sys.EZ0 = bmagn*Field/1e3*Sys.g0/planck;
 Sys.EZ2 = bmagn*Field/1e3*Sys.g2/planck;
+
+% Nuclear Zeeman (rank 0) and hyperfine (rank 0 and 2)
+Sys.NZ0 = 0;
+Sys.HF0 = 0;
+Sys.HF2 = 0;
 if (nNucs>0)
-  % Nuclear Zeeman (rank 0)
-  Sys.NZ0 = nmagn*Field/1e3*Sys.gn0/(planck);
-  % Hyperfine (rank 0 and 2)
+  Sys.NZ0 = nmagn*Field/1e3*Sys.gn0/planck;
   Sys.HF0 = Sys.A0*1e6;
   Sys.HF2 = Sys.A2*1e6;
-else
-  Sys.NZ0 = 0;
-  Sys.HF0 = 0;
-  Sys.HF2 = 0;
 end
 
 % Frequency (Hz) -> angular frequency
 Sys.EZ0 = 2*pi*Sys.EZ0;
 Sys.EZ2 = 2*pi*Sys.EZ2;
-Sys.NZ0 = 2*pi*Sys.NZ0;
 Sys.HF0 = 2*pi*Sys.HF0;
 Sys.HF2 = 2*pi*Sys.HF2;
+Sys.NZ0 = 2*pi*Sys.NZ0;
+
+% Adaption for two nuclei, to feed to chili_liouvmatrix2
+if (nNucs>=2)
+  Sys.Ib = Sys.I(2);
+  Sys.NZ0b = Sys.NZ0(2);
+  Sys.HF0b = Sys.HF0(2);
+  Sys.HF2b = Sys.HF2(:,2);
+end
 
 return
 
@@ -727,14 +747,22 @@ else
   Basis.jKmin = -1;
 end
 
-if (Sys.nNuclei>0)
-  pImax = 2*Sys.I(1);
+if (Sys.nNuclei==0)
+  Basis.pImax = 0;
+elseif (Sys.nNuclei==1)
+  pImax = 2*Sys.I;
   if ~isfield(Basis,'pImax')
     Basis.pImax = pImax;
   end
   Basis.pImax = min(Basis.pImax,pImax);
 else
-  Basis.pImax = 0;
+  pImax = 2*Sys.I;
+  if ~isfield(Basis,'pImax')
+    Basis.pImax = pImax;
+  end
+  Basis.pImax = min(Basis.pImax,pImax);
+  Basis.pI1max = Basis.pImax(1);
+  Basis.pI2max = Basis.pImax(2);
 end
 
 if ~isfield(Basis,'pSmin')
@@ -742,7 +770,12 @@ if ~isfield(Basis,'pSmin')
 end
 
 % Use only even K if there is no magnetic or diffusion tilt.
-if all(Sys.EZ2([2 4])==0) && all(Sys.HF2([2 4])==0)
+if (Sys.nNuclei>0)
+  noHFtilt = all(Sys.HF2([2 4])==0);
+else
+  noHFtilt = true;
+end
+if all(Sys.EZ2([2 4])==0) && noHFtilt
   Basis.deltaK = 2;
 else
   Basis.deltaK = 1;
@@ -751,7 +784,8 @@ end
 % Use only even L values (deltaL=2) and no K values (Kmx=0)
 % in case of axial magnetic tensors, axial potential, 
 % and no magnetic/diffusion tilt
-if Sys.g_axial && Sys.A_axial && (Basis.deltaK==2) && (max(Dyn.KK)==0)
+axialSystem = Sys.g_axial && ((Sys.nNuclei==0) || all(Sys.A_axial));
+if axialSystem && (Basis.deltaK==2) && (max(Dyn.KK)==0)
   Basis.deltaL = 2;
   Basis.Kmax = 0;
 else
@@ -760,7 +794,7 @@ end
 
 
 Basis.v = [Basis.evenLmax Basis.oddLmax Basis.Kmax Basis.Mmax, ...
-    Basis.jKmin Basis.pSmin Basis.pImax Basis.deltaL Basis.deltaK];
+    Basis.jKmin Basis.pSmin Basis.deltaL Basis.deltaK Basis.pImax];
 
 return
 % 

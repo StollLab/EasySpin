@@ -263,8 +263,8 @@ return phase*w3j;
 
 }
 
-long maxElements = 1000000;
-int maxRows = 50000;
+long maxElements = 5000000;
+int maxRows = 100000;
 
 const double sqrt12 = 0.70710678118655; /* sqrt(1.0/2.0); */
 const double sqrt13 = 0.57735026918963; /* sqrt(1.0/3.0); */
@@ -279,14 +279,15 @@ int Lemax, Lomax, Kmax, Mmax;
 int jKmin, pSmin, pImax, deltaL, deltaK;
 
 struct SystemStruct {
-  double I;
-  double EZI0, NZI0, HFI0;
-  double *ReEZI2, *ImEZI2, *ReHFI2, *ImHFI2;
+  double I, NZI0, HFI0, *ReHFI2, *ImHFI2;
+  double EZI0, *ReEZI2, *ImEZI2;
+  double *d2psi;
+  double psi;
 };
 
 struct DiffusionStruct {
-  double* xlk, *d2psi;
-  double psi, Rxx, Ryy, Rzz;
+  double* xlk;
+  double Rxx, Ryy, Rzz;
   double Exchange;
   int maxL;
 };
@@ -301,19 +302,20 @@ struct DiffusionStruct Diff;
 void makematrix()
 {
 
-const double I = Sys.I;
-const double NZI0 = Sys.NZI0;
-const double HFI0 = Sys.HFI0;
 const double EZI0 = Sys.EZI0;
 const double *ReEZI2 = Sys.ReEZI2;
 const double *ImEZI2 = Sys.ImEZI2;
+
+const double I = Sys.I;
+const double NZI0 = Sys.NZI0;
+const double HFI0 = Sys.HFI0;
 const double *ReHFI2 = Sys.ReHFI2;
 const double *ImHFI2 = Sys.ImHFI2;
 
 /* Diffusion parameters */
 /*--------------------------------------------- */
-const double psi = Diff.psi;
-const double *d2psi = Diff.d2psi;
+const double psi = Sys.psi;
+const double *d2psi = Sys.d2psi;
 const double Rxx = Diff.Rxx;
 const double Ryy = Diff.Ryy;
 const double Rzz = Diff.Rzz;
@@ -340,13 +342,14 @@ int pS2min, qS2min, qS2max, pI2min, qI2min, qI2max;
 int iRow = 0, iCol = 0, iElement = 0;
 
 bool Potential = Diff.maxL>=0;
-bool Exchange = (ExchangeFreq!=0);
+bool ExchangePresent = (ExchangeFreq!=0);
 
 double IsoDiffKdiag, IsoDiffKm2, IsoDiffKp2, PotDiff;
-bool diagRC, Ld2, diagLK, diagI;
-double N_L, N_K, NormFactor, R_EZI2, R_HFI2, a1, g1, a2, g2;
+bool diagRC, Ld2, diagLK, diagS, diagI;
+double N_L, N_K, NormFactor;
+double R_EZI2, R_HFI2, a1, g1, a2, g2;
 int parityLK2, L, pId, qId;
-double Term1, Term2, Xd, Xs;
+double Term1, Term2, X;
 int pd;
 bool includeRank0;
 double LiouvilleElement, GammaElement, t;
@@ -355,13 +358,11 @@ double d2jjj;
 const bool RhombicDiff = (Rxx!=Ryy);
 
 if (Display) {
-mexPrintf("   Potential: %d\n",Potential);
-mexPrintf("   Exchange:  %d\n",Exchange);
+  mexPrintf("   Potential: %d   Exchange: %d\n",Potential, ExchangePresent);
 mexPrintf("   Lemax Lomax deltaL:   %d  %d  %d\n",Lemax,Lomax,deltaL);
 mexPrintf("   jKmin Kmax Mmax:   %d  %d  %d\n",jKmin,Kmax,Mmax);
 mexPrintf("   pSmin  pImax:   %d  %d\n",pSmin, pImax);
 }
-
 
 /* All equation numbers refer to Meirovich et al, J.Chem.Phys. 77 (1982) */
 
@@ -374,6 +375,7 @@ for (L1=0;L1<=Lemax;L1+=deltaL) {
 
       /* Potential-independent part of diffusion operator */
       /*-------------------------------------------------------- */
+      /* depends only on L and K and is diagonal in all except K */
       IsoDiffKdiag = (Rxx+Ryy)/2*(L1*(L1+1))+K1*K1*(Rzz-(Rxx+Ryy)/2);
       if (RhombicDiff) {
         KK = K1-2;
@@ -384,13 +386,6 @@ for (L1=0;L1<=Lemax;L1+=deltaL) {
       else {
         IsoDiffKp2 = IsoDiffKm2 = 0;
       }
-/*
-      else {
-        IsoDiffKdiag = Rxx*L1*(L1+1)*pow(1+pmxl*L1*(L1+1),-pl) +
-                        K1*K1*(Rzz*pow(1+ pmz*K1*K1,-pkzz) -
-                               Rxx*pow(1+pmxk*K1*K1,-pkxy));
-      }
-*/
       /*-------------------------------------------------------- */
       
       
@@ -401,10 +396,9 @@ for (L1=0;L1<=Lemax;L1+=deltaL) {
           qS1max = 1 - abs(pS1);
           for (qS1=-qS1max;qS1<=qS1max;qS1+=2) {
             for (pI1 = -pImax;pI1<=pImax;pI1++) {
-              if ((psi==0) && ((pI1+pS1-1)!=M1)) continue;
+              if ((psi==0) && ((pI1+pS1-M1)!=1)) continue;  /* Eq. (A47) */
               qI1max = ((int)(2*I)) - abs(pI1);
               for (qI1=-qI1max;qI1<=qI1max;qI1+=2) {
-                /*mexPrintf("%3d %3d %3d %3d    %2d %2d %2d %2d\n",L1,jK1,K1,M1,pS1,qS1,pI1,qI1); */
                 iCol = iRow;
                 diagRC = true;
                 L2max = mini(Lemax,L1+Lband);
@@ -428,40 +422,41 @@ for (L1=0;L1<=Lemax;L1+=deltaL) {
                       Ks = K1 + K2;
                       parityLK2 = parity(L2+K2);
                       
-                      /*---------------------------------------------- */
+                      /*---------------------------------------------------------------------- */
+                      /* Pre-calculations for Liouville matrix elements, Eq. (A41)             */
+                      /*---------------------------------------------------------------------- */
                       /* R(mu=EZI,HFI;l=2), see Eq. (A42) and (A44) */
                       /*---------------------------------------------- */
                       R_EZI2 = 0; R_HFI2 = 0;
                       if (Ld2) {
-                        a1 = 0; g1 = 0;
+                        g1 = 0; a1 = 0;
                         if (abs(Kd)<=2) {
                           const double coeff = jjj(L1,2,L2,K1,-Kd,-K2);
                           /*mexPrintf("[wigner3j(%d,%d,%d,%d,%d,%d) %g]\n",L1,2,L2,K1,-Kd,-K2,coeff); */
                           if (jK1==jK2) {
-                            a1 = coeff*ReHFI2[Kd+2];
                             g1 = coeff*ReEZI2[Kd+2];
+                            a1 = coeff*ReHFI2[Kd+2];
                           }
                           else {
-                            if (ImHFI2) a1 = coeff*ImHFI2[Kd+2]*jK1;
                             if (ImEZI2) g1 = coeff*ImEZI2[Kd+2]*jK1;
+                            if (ImHFI2) a1 = coeff*ImHFI2[Kd+2]*jK1;
                           }
                         }
-                        a2 = 0; g2 = 0;
+                        g2 = 0; a2 = 0;
                         if (abs(Ks)<=2) {
                           const double coeff = jjj(L1,2,L2,K1,-Ks,K2);
                           if (jK1==jK2) {
-                            a2 = coeff*ReHFI2[Ks+2];
                             g2 = coeff*ReEZI2[Ks+2];
+                            a2 = coeff*ReHFI2[Ks+2];
                           }
                           else {
-                            if (ImHFI2) a2 = coeff*ImHFI2[Ks+2]*jK1;
                             if (ImEZI2) g2 = coeff*ImEZI2[Ks+2]*jK1;
+                            if (ImHFI2) a2 = coeff*ImHFI2[Ks+2]*jK1;
                           }
                         }
                         R_EZI2 = g1 + jK2*parityLK2*g2;
                         R_HFI2 = a1 + jK2*parityLK2*a2;
                       }
-                      /*---------------------------------------------- */
 
                       /* N_K(K_1,K_2)  normalization factor, Eq. (A43) */
                       N_K = 1.0;
@@ -470,31 +465,32 @@ for (L1=0;L1<=Lemax;L1+=deltaL) {
                       
                       /* Normalisation prefactor in Eq.(A40) and Eq.(A41) */
                       NormFactor = N_L*N_K*parity(M1+K1);
+                      /*---------------------------------------------------------------------- */
                       
                       /*---------------------------------------------------------------------- */
-                      /* Potential-dependent term of diffusion operator, Eq. (A40) */
+                      /* Potential-dependent term of diffusion operator, Eq. (A40)             */
                       /*---------------------------------------------------------------------- */
                       PotDiff = 0;
                       if (Potential) {
                         if ((abs(Ld)<=Lband)&&(parity(Ks)==1)&&
                             (jKd==0)&&(abs(Kd)<=Kband)&&(abs(Ks)<=Kband)) {
                           for (L=0; L<=Lband; L+=2) {
-                            Term1 = Term2 = 0;
+                            Term1 = 0;
                             if (Kd>=-L) {
-                              Xd = xlk[(Kd+L)*(Diff.maxL+1) + L];
-                              if (Xd!=0)
-                                Term1 = Xd * jjj(L1,L,L2,K1,-Kd,-K2);
+                              X = xlk[(Kd+L)*(Diff.maxL+1) + L]; /* X^L_{K1-K2} */
+                              if (X!=0)
+                                Term1 = X * jjj(L1,L,L2,K1,-Kd,-K2);
                             }
+                            Term2 = 0;
                             if (Ks<=L) {
-                              Xs = xlk[(Ks+L)*(Diff.maxL+1) + L];
-                              if (Xs!=0)
-                                Term2 = parityLK2*jK2* Xs *jjj(L1,L,L2,K1,-Ks,K2);
+                              X = xlk[(Ks+L)*(Diff.maxL+1) + L]; /* X^L_{K1+K2} */
+                              if (X!=0)
+                                Term2 = parityLK2*jK2* X * jjj(L1,L,L2,K1,-Ks,K2);
                             }
                             if (Term1 || Term2)
                               PotDiff += (Term1+Term2) * jjj(L1,L,L2,M1,0,-M1);
                           }
-                          
-                          PotDiff *= N_L*N_K*parity(M1+K1);
+                          PotDiff *= NormFactor;
                           
                           if (Display)
                             if (abs(PotDiff)>1e-10)
@@ -519,31 +515,32 @@ for (L1=0;L1<=Lemax;L1+=deltaL) {
                           qS2max = 1 - abs(pS2);
                           qS2min = (diagRC) ? qS1 : -qS2max;
                           for (qS2=qS2min;qS2<=qS2max;qS2+=2) {
-                            bool diagS = (pS1==pS2) && (qS1==qS2);
                             int qSd = qS1 - qS2;
+                            diagS = (pS1==pS2) && (qS1==qS2);
+                            
                             pI2min = (diagRC) ? pI1 : -pImax;
                             for (pI2=pI2min;pI2<=pImax;pI2++) {
-                              if ((psi==0) && ((pI2+pS2-1)!=M2)) continue;
+                              if ((psi==0) && ((pI2+pS2-M2)!=1)) continue;  /* Eq. (A47) */
                               pId = pI1 - pI2;
                               qI2max = ((int)(2*I)) - abs(pI2);
                               qI2min = (diagRC) ? qI1 : -qI2max;
                               for (qI2=qI2min;qI2<=qI2max;qI2+=2) {
                                 qId = qI1 - qI2;
                                 diagI = (pId==0) && (qId==0);
-                                
+                                pd = pSd + pId;
 
-                                /*-------------------------------------- */
-                                /* Matrix element of Liouville operator */
-                                /*-------------------------------------- */
-                                /* The isotropic terms are not normalized by any factor. */
+                                /*---------------------------------------------------------------------------- */
+                                /* Matrix element of Liouville operator (Hamiltonian superoperator)            */
+                                /*---------------------------------------------------------------------------- */
+                                /* For the rank-0 terms in (A41), the following simplifcations hold. */
+                                /* - L1==L2, K1==K2 and M1==M2, otherwise the 3j are zero */
+                                /* - The prefactor N_L*(-1)^(M1+K1) is canceled by the product of */
+                                /*   wigner3j(L,M;0,0;L,-M) within the sum and wigner3j(L,K;0,0;L,-K) from R. */
+                                /*    ( wigner3j(L,M;0,0;L,-M) = (-1)^(-M-L)/sqrt(2L+1)    */
                                 /* - The N_K factor is not needed because */
                                 /*   the l=0 ISTO components have not been transformed by */
                                 /*   the K-symmetrization. (following the formula, N_K is */
                                 /*   cancelled by R_0) */
-                                /* - The factor N_L*parityMK1 is canceled by the product of */
-                                /*   wigner3j(L,M;0,0;L,-M) and wigner3j(L,K,0,0,L,-K), */
-                                /*   which therefore do not need to be calculated. */
-                                pd = pSd + pId;
                                 includeRank0 = diagLKM && (pd==0);
                                 
                                 LiouvilleElement = 0;
@@ -555,7 +552,29 @@ for (L1=0;L1<=Lemax;L1+=deltaL) {
                                   
                                   d2jjj = d2psi[(pd+2)+(Md+2)*5]*Liou3j;
                                   
-                                  /* Hyperfine interaction */
+                                  /* Electronic Zeeman interaction */
+                                  /*----------------------------------------- */
+                                  if (diagI) { /* i.e. pId==0 and qId==0 for all nuclei */
+                                    /* Rank-2 term, Eq. (B7) */
+                                    /* Compute Clebsch-Gordan coeffs and S_g Eq. (B8) */
+                                    double C2, S_g;
+                                    if (pSd==0) {
+                                      C2 = +sqrt23; /* (112|000) */
+                                      S_g = pS1;
+                                    }
+                                    else {
+                                      C2 = +sqrt12;  /* (112|-10-1), (112|101) */
+                                      S_g = -qSd/sqrt(2.0);
+                                    }
+                                    LiouvilleElement += NormFactor*d2jjj*R_EZI2*(C2*S_g);
+                                    /* Rank-0 term */
+                                    if (includeRank0) {
+                                      const double C0 = -sqrt13; /* (110|000) */
+                                      LiouvilleElement += EZI0*(C0*pS1);
+                                    }
+                                  }
+                                  
+                                  /* Hyperfine interaction, nucleus 1 */
                                   /*----------------------------------------- */
                                   if ((I>0) && (pSd*pId==qSd*qId)) {
                                     /* Compute Clebsch-Gordan coeffs and S_A from Eq. (B7) */
@@ -590,65 +609,44 @@ for (L1=0;L1<=Lemax;L1+=deltaL) {
                                       }
                                     }
                                     /* Rank-2 term, Eq. (A41) */
-                                    LiouvilleElement += NormFactor*d2jjj*R_HFI2 * C2*S_A;
+                                    LiouvilleElement += NormFactor*d2jjj*R_HFI2 * C2*S_A; /* Eq. (A41) and (B7)*/
                                     /* Rank-0 term */
                                     if (includeRank0)
                                       LiouvilleElement += HFI0*C0*S_A;
                                   }
-                                  
-                                  /* Electronic Zeeman interaction */
-                                  /*----------------------------------------- */
-                                  if (diagI) { /* i.e. pId==0 and qId==0 */
-                                    /* Rank-2 term, Eq. (B7) */
-                                    /* Compute Clebsch-Gordan coeffs and S_g Eq. (B8) */
-                                    double C2, S_g;
-                                    if (pSd==0) {
-                                      C2 = +sqrt23; /* (112|000) */
-                                      S_g = C2*pS1;
-                                    }
-                                    else {
-                                      C2 = +sqrt12;  /* (112|-10-1), (112|101) */
-                                      S_g = -C2*qSd/sqrt(2.0);
-                                    }
-                                    LiouvilleElement += NormFactor*d2jjj*R_EZI2*S_g;
-                                    /* Rank-0 term */
-                                    if (includeRank0) {
-                                      const double C0 = -sqrt13; /* (110|000) */
-                                      LiouvilleElement += C0*EZI0*pS1;
-                                    }
-                                  }
-                                  
+                                                                    
                                   /* Nuclear Zeeman interaction */
                                   /*----------------------------------------- */
+                                  /* has only a rank-0 component */
                                   if (diagS && diagI && includeRank0) {
                                     const double C0 = -sqrt13; /* (110|000) */
-                                    LiouvilleElement += pI1*C0*NZI0;
+                                    LiouvilleElement += NZI0*C0*pI1;
                                   }
                                   
                                 }
                                 /*------------------------------------------- */
                                 
                                 
-                                /*------------------------------------------- */
-                                /* Matrix element of diffusion operator       */
-                                /*------------------------------------------- */
+                                /*------------------------------------------------------ */
+                                /* Matrix element of diffusion superoperator             */
+                                /*------------------------------------------------------ */
                                 GammaElement = 0;
-                                
-                                /* Potential-independent terms */
-                                if (diagS && diagI && (Ld==0) && (Md==0) && (jKd==0)) {
-                                  if (Kd==0) GammaElement += IsoDiffKdiag;
-                                  else if (Kd==+2) GammaElement += IsoDiffKm2/N_K;
-                                  else if (Kd==-2) GammaElement += IsoDiffKp2/N_K;
-                                }
-                                
-                                /* Potential-dependent terms */
-                                if (Potential) {
-                                  if (diagS && diagI && (Md==0) && (jKd==0))
-                                    GammaElement += PotDiff;
+                                if (diagS && diagI) { /* all potential terms are diagonal in the spin space */
+                                  /* Potential-independent terms, Eq. (A15) */
+                                  if ((Ld==0) && (Md==0) && (jKd==0)) {
+                                    if (Kd==0) GammaElement += IsoDiffKdiag;
+                                    else if (Kd==+2) GammaElement += IsoDiffKm2/N_K;
+                                    else if (Kd==-2) GammaElement += IsoDiffKp2/N_K;
+                                  }                        
+                                  /* Potential-dependent terms, Eq. (A40) */
+                                  if (Potential) {
+                                    if ((Md==0) && (jKd==0))
+                                      GammaElement += PotDiff;
+                                  }
                                 }
                                 
                                 /* Exchange term */
-                                if (Exchange) {
+                                if (ExchangePresent) {
                                   if ((pSd==0) && (pId==0) && diagLKM) {
                                     t = 0;
                                     if ((qId==0) && (qSd==0)) t += 1.0;
@@ -663,9 +661,7 @@ for (L1=0;L1<=Lemax;L1+=deltaL) {
                                 /*------------------------------------------- */
                                 /* Store element values and indices           */
                                 /*------------------------------------------- */
-                                /*mexPrintf("%d/%d %d/%d %d/%d %d/%d\n",L1,L2,jK1,jK2,K1,K2,M1,M2); */
                                 if ((GammaElement!=0) || (LiouvilleElement!=0)) {
-                                  /*if (Display) mexPrintf("     saving element %5d: %f  %f\n",iElement+1,GammaElement,LiouvilleElement);*/
                                   MatrixRe[iElement] = GammaElement;
                                   MatrixIm[iElement] = -LiouvilleElement;
                                   ridx[iElement] = iRow;
@@ -686,25 +682,26 @@ for (L1=0;L1<=Lemax;L1+=deltaL) {
                                 if (iCol>=maxRows)
                                   mexErrMsgTxt("Dimension too large. Increase Opt.Allocation(2).");
                                 
-                              }
-                            } 
-                          }
-                        }
-                      }
-                    }
-                  }
-                } /* all column index loops */
+                              } /* qI2 */
+                            } /* pI2 */ 
+                          } /* qS2 */
+                        } /* pS2 */
+                      } /* M2 */
+                    } /* K2 */
+                  } /* jK2 */
+                } /* L2 */ /* all column index loops */
 
                 iRow++;
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-} /* all row index loops */
-
+                if (iRow>=maxRows)
+                  mexErrMsgTxt("Dimension too large. Increase Opt.Allocation(2).");
+              } /* qI1 */
+            } /* pI1 */
+          } /* qS1 */
+        } /* pS1 */
+      } /* M1 */
+    } /* K1 */
+  } /* jK1 */
+} /* L1; all row index loops */
 nRows = iRow;
 nElements = iElement;
 
@@ -738,20 +735,20 @@ for (L1=0;L1<=Lemax;L1+=deltaL) {
           qS1max = 1 - abs(pS1);
           for (qS1=-qS1max;qS1<=qS1max;qS1+=2) {
             for (pI1 = -pImax;pI1<=pImax;pI1++) {
-              if ((Diff.psi==0)&&((pI1+pS1-1)!=M1)) continue;
+              if ((Sys.psi==0)&&((pI1+pS1-1)!=M1)) continue;
               qI1max = (int)(2*I) - abs(pI1);
               for (qI1=-qI1max;qI1<=qI1max;qI1+=2) {
                 /*mexPrintf("%3d %3d %3d %3d    %2d %2d %2d %2d\n",L1,jK1,K1,M1,pS1,qS1,pI1,qI1);*/
                 iRow++;
-              }
-            }
-          }
-        }
+              } /* qI1 */
+            } /* pI1 */
+          } /* qS1 */
+        } /* pS1 */
 		
-      }
-    }
-  }
-}
+      } /* M1 */
+    } /* K1 */
+  } /* jK1 */
+} /* L1 */
 
 return iRow; /* number of rows */
 
@@ -776,12 +773,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   if (nrhs!=4) mexErrMsgTxt("4 input arguments expected!");
   if (nlhs!=5) mexErrMsgTxt("3 output arguments expected!");
 
-  /*mexPrintf("Parsing system...\n"); */
+  if (Display) mexPrintf("Parsing system...\n");
   idxS = 0;
   Sys.I = mxGetScalar(mxGetField(prhs[idxS],0,"I"));
   Sys.EZI0 = mxGetScalar(mxGetField(prhs[idxS],0,"EZ0"));
   Sys.NZI0 = mxGetScalar(mxGetField(prhs[idxS],0,"NZ0"));
   Sys.HFI0 = mxGetScalar(mxGetField(prhs[idxS],0,"HF0"));
+  Sys.psi = mxGetScalar(mxGetField(prhs[idxS],0,"psi"));
+  Sys.d2psi = mxGetPr(mxGetField(prhs[idxS],0,"d2psi"));
 
   T = mxGetField(prhs[idxS],0,"EZ2");
   Sys.ReEZI2 = mxGetPr(T);
@@ -810,9 +809,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   Mmax = (int)basisopts[3];
   jKmin = (int)basisopts[4];
   pSmin = (int)basisopts[5];
-  pImax = (int)basisopts[6];
-  deltaL = (int)basisopts[7];
-  deltaK = (int)basisopts[8];
+  deltaL = (int)basisopts[6];
+  deltaK = (int)basisopts[7];
+  pImax = (int)basisopts[8];
 
   /*
   mexPrintf("(%d %d %d %d) jKmin %d, pSmin %d, pImax %d, deltaL %d, deltaK %d\n",
@@ -822,10 +821,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   /*mexPrintf("Parsing diffusion structure...\n"); */
   idxD = 2;
   Diff.Exchange = mxGetScalar(mxGetField(prhs[idxD],0,"Exchange"));
-  Diff.psi = mxGetScalar(mxGetField(prhs[idxD],0,"psi"));
   Diff.xlk = mxGetPr(mxGetField(prhs[idxD],0,"xlk"));
   Diff.maxL = mxGetScalar(mxGetField(prhs[idxD],0,"maxL"));
-  Diff.d2psi = mxGetPr(mxGetField(prhs[idxD],0,"d2psi"));
   
   R = mxGetPr(mxGetField(prhs[idxD],0,"Diff"));
   Diff.Rxx = R[0];
@@ -834,7 +831,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   allocationOptions = mxGetPr(prhs[3]);
   maxElements = (long)allocationOptions[0];
-  if (Display) mexPrintf("  max elements: %d\n",maxElements);
+  maxRows = (long)allocationOptions[1];
+  if (Display) mexPrintf("  max elements: %d,  max rows: %d\n",maxElements,maxRows);
   
   N = BasisSize();
   maxRows = N+1;
@@ -849,11 +847,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   MatrixRe = mxGetPr(plhs[2]);
   MatrixIm = mxGetPi(plhs[2]);
   
-  if (Display) mexPrintf("  starting matrix loops...\n");
+  if (Display) mexPrintf("  starting matrix make...\n");
 
   makematrix();
 
-  if (Display) mexPrintf("  finishing matrix loops...\n");
+  if (Display) mexPrintf("  finishing matrix make...\n");
 
   plhs[3] = mxCreateDoubleScalar(nRows);
   plhs[4] = mxCreateDoubleScalar(nElements);
