@@ -159,7 +159,13 @@ if ~isfield(Sys,'tcorr'), Sys.tcorr = 0; end
 
 FastMotionRegime = (Sys.tcorr~=0);
 if FastMotionRegime
-  if (numel(Sys.tcorr)~=1) || (Sys.tcorr<=0) || ~isreal(Sys.tcorr)
+  if (~isreal(Sys.tcorr))
+    error('Problem with System.tcorr: must be a number!');
+  end
+  if (numel(Sys.tcorr)~=1)
+    error('Problem with System.tcorr: must be a single number!');
+  end
+  if (Sys.tcorr<=0)
     error('Problem with System.tcorr: must be positive!');
   end
   if (Sys.tcorr<1e-13)
@@ -226,9 +232,6 @@ if (Exp.Harmonic>0) && ~FastMotionRegime && noBroadening
 end
 
 % Resonator mode
-if isfield(Exp,'Detection')
-  error('Exp.Detection is obsolete. Use Exp.Mode instead.');
-end
 if strcmp(Exp.Mode,'perpendicular')
   ParallelMode = 0;
 elseif strcmp(Exp.Mode,'parallel')
@@ -256,6 +259,18 @@ if (Exp.ModAmp>0)
   end
   Exp.Harmonic = Exp.Harmonic - 1;
 end
+
+% Complain if fields only valid in pepper() are given
+if isfield(Exp,'Orientations')
+  warning('Exp.Orientations is not used by garlic.');
+end
+if isfield(Exp,'Ordering')
+  warning('Exp.Ordering is not used by garlic.');
+end
+if isfield(Exp,'CrystalSymmetry')
+  warning('Exp.CrystalSymmetry is not used by garlic.');
+end
+
 
 %-------------------------------------------------------------------------
 

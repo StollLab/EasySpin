@@ -24,7 +24,15 @@ Defaults.maxOrder = 6;
 
 if (nargin==0), help(mfilename); return; end
 
-if (nargin<3) || (nargin>3), error('Wrong number of input arguments!'); end
+switch nargin
+  case 0, help(mfilename); return;
+  case 1, Dimension = 1; if size(Spectrum,1)==1, Dimension = 2; end; Order = 1;
+  case 2, Order = 1;
+  case 3,
+  otherwise
+    error('basecorr() needs 3 inputs: basecorr(Spectrum,Dimension,Order)');
+end
+
 if (nargout<1), error('Not enough output arguments.'); end
 if (nargout>2), error('Too many output arguments.'); end
 

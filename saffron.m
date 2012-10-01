@@ -181,7 +181,7 @@ if ~isfield(Sys,'singleiso') || (Sys.singleiso==0)
         xlabel('\nu (MHz)');
         ylabel('intensity (arb.u.)');
         title('Spectrum');
-        nuI = larmorfrq(Sys_.Nucs,Exp.Field);
+        nuI = larmorfrq(Sys.Nucs,Exp.Field);
         for k=1:numel(nuI)
           line([1 1]*abs(nuI(k)),ylim,'Color',[1 1 1]*0.8);
         end
@@ -720,7 +720,7 @@ if isfield(Opt,'Output'), logmsg(0,'saffron does not support Opt.Output.'); end
 if ~isfield(Opt,'OriThreshold'), Opt.OriThreshold = 0.005; end
 
 if ~isfield(Opt,'Window'),
-  if (nDimensions==1), Opt.Window = 'ham+'; else Opt.Window = 'ham'; end
+  if (nDimensions==1), Opt.Window = 'ham+'; else Opt.Window = 'ham+'; end
 end
 
 if ~isfield(Opt,'ZeroFillFactor');

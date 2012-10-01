@@ -61,7 +61,7 @@ if nNucs>0
   end
 end
 
-if (tau20<1e-12)
+if (tau20<1e-14)
   error('Correlation time too small!');
 end
 
