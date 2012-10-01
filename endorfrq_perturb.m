@@ -44,7 +44,7 @@ error(err);
 S = Sys.S;
 highSpin = (S>1/2);
 SS1 = S*(S+1);
-mS = S:-1:-S;
+mS = -S:1:S;
 mS2 = mS.^2;
 
 if Sys.fullg
@@ -65,8 +65,7 @@ end
 I = Sys.I;
 nNuclei = Sys.nNuclei;
 
-gn = Sys.gn;
-nuI = gn*nmagn*Exp.Field/1e3/planck/1e6;
+nuI = -Sys.gn*nmagn*Exp.Field/1e3/planck/1e6;
 
 for iNuc = nNuclei:-1:1
   mI{iNuc} = -I(iNuc):I(iNuc);
@@ -224,10 +223,10 @@ for iOri = nOrientations:-1:1
   [h1x,h1y,h] = erot(Orientations(:,iOri));
   h = h.';
   
-  % zero-order energy
+  % zero-order energy: electron Zeeman term only
   geff = norm(g*h);
-  u = g*h/geff;
   E0 = geff*bmagn*Exp.Field*1e-3/planck/1e6;
+  u = g*h/geff;
   
   % Compute energies --------------------------------------
   % first- and second-oder zero-field terms
@@ -242,28 +241,35 @@ for iOri = nOrientations:-1:1
       E2D_ = D1sq*mS.*(4*SS1-8*mS2-1) ...
         -D2sq/4*mS.*(2*SS1-2*mS2-1);
       E2D_ = -E2D_/(2*E0);
+    else
+      E2D_ = zeros(1,numel(mS));
     end
   else
     E1D_ = [0 0];
     E2D_ = [0 0];
   end
+  ElectronEnergies = mS*E0 + E1D_ + E2D_;
   
-  for n = 1:nNuclei
-    mI_ = mI{n};
-    Ah = A{n}*g/geff*h;
+  for iNuc = 1:nNuclei
+    mI_ = mI{iNuc};
+    Ah = A{iNuc}*g/geff*h; % hyperfine field vector
     for imS = 1:2*S+1
       mS_ = mS(imS);
       
       % first-order hyperfine/nuclear Zeeman term
-      Kh = mS_*Ah - nuI(n)*h;
+      HyperfineField = mS_*Ah;
+      LarmorField = nuI(iNuc)*h;
+      Kh = HyperfineField + LarmorField; % total field vector at nucleus
       normKh = norm(Kh);
       k = Kh/normKh;
       E1A_ = mI_*normKh;
+      strongCouplingCase = norm(HyperfineField) > norm(LarmorField);
+      if strongCouplingCase && (mS_<0), E1A_ = -E1A_; end
 
       % first-order nuclear quadrupole term
-      if hasQuadrupole(n)
-        kPk = k.'*P{n}*k;
-        E1Q_ = -kPk/2*(II1(n)-3*mI_.^2);
+      if hasQuadrupole(iNuc)
+        kPk = k.'*P{iNuc}*k;
+        E1Q_ = -kPk/2*(II1(iNuc)-3*mI_.^2);
       else
         E1Q_ = 0;
       end
@@ -271,18 +277,18 @@ for iOri = nOrientations:-1:1
       if secondOrder
         
         % second-order hyperfine term
-        Ak = A{n}.'*k;
+        Ak = A{iNuc}.'*k;
         kAu = Ak.'*u;
         kAAk = Ak.'*Ak;
         A1sq = kAAk - kAu^2;
-        A2 = detA(n)*(u.'*invA{n}*k);
-        A3 = trAA(n) - norm(A{n}*u)^2 - kAAk + kAu^2;
+        A2 = detA(iNuc)*(u.'*invA{iNuc}*k);
+        A3 = trAA(iNuc) - norm(A{iNuc}*u)^2 - kAAk + kAu^2;
         %E2A_ =  A1sq*mS_*mI_.^2 ...
         %     - A2*(SS1-mS_^2)*mI_*sign(mS_) ... % why sign?? seems wrong
         %     + A3/2*mS_*(II1(n)-mI_.^2);
         E2A_ =  A1sq*mS_*mI_.^2 ...
              - A2*(SS1-mS_^2)*mI_ ...
-             + A3/2*mS_*(II1(n)-mI_.^2);
+             + A3/2*mS_*(II1(iNuc)-mI_.^2);
         E2A_ = E2A_/(2*E0);
         
         % second-order zerofield-hyperfine crossterm
@@ -295,22 +301,22 @@ for iOri = nOrientations:-1:1
         end
         
         % second-order nuclear quadrupole term
-        if hasQuadrupole(n)
-          kPPk = k.'*P{n}^2*k;
+        if hasQuadrupole(iNuc)
+          kPPk = k.'*P{iNuc}^2*k;
           P1sq = kPPk - kPk^2;
-          P2sq = 2*trace(P{n})^2 + kPk^2 - 4*kPPk;
-          E2Q_ = P1sq*mI_.*(4*II1(n)-8*mI_.^2-1)...
-              -P2sq/4*mI_.*(2*II1(n)-2*mI_.^2-1);
+          P2sq = 2*trace(P{iNuc})^2 + kPk^2 - 4*kPPk;
+          E2Q_ = P1sq*mI_.*(4*II1(iNuc)-8*mI_.^2-1)...
+              -P2sq/4*mI_.*(2*II1(iNuc)-2*mI_.^2-1);
           E2Q_ = -E2Q_/(2*normKh);
         else
           E2Q_ = 0;
         end
         
-        Energies{n}(imS,:) = E1D_(imS)+E1Q_+E1A_+E2D_(imS)+E2A_+E2DA+E2Q_;
+        NuclearEnergyShifts{iNuc}(imS,:) = E1Q_+E1A_+E2A_+E2DA+E2Q_;
 
       else
         
-        Energies{n}(imS,:) = E1D_(imS)+E1Q_+E1A_;
+        NuclearEnergyShifts{iNuc}(imS,:) = E1Q_+E1A_;
       
       end % if secondOrder
 
@@ -318,11 +324,10 @@ for iOri = nOrientations:-1:1
   end % for n = 1:nNuclei
   % --------------------------------------------------------
   
-  
   % ENDOR frequencies --------------------------------------
   for iNuc = 1:nNuclei
-    dE_ = abs(diff(Energies{iNuc},1,2));
-    dE{iNuc}(iOri,:) = dE_(:).';
+    dE_ = abs(diff(NuclearEnergyShifts{iNuc},1,2));
+    EndorFrequencies{iNuc}(iOri,:) = dE_(:).';
   end
   % --------------------------------------------------------
 
@@ -333,30 +338,31 @@ for iOri = nOrientations:-1:1
     % compute EPR transition frequencies
     for imS = 1:2*S+1
       for iNuc = 1:nNuclei
-        Eee_(:,iNuc) = Energies{iNuc}(imS,states(:,iNuc));
+        EnergyShifts(:,iNuc) = NuclearEnergyShifts{iNuc}(imS,states(:,iNuc));
       end
-      Eee(:,imS) = sum(Eee_,2);
+      TotalEnergy(:,imS) = ElectronEnergies(imS) + sum(EnergyShifts,2);
     end
-    EPRfreq = -diff(Eee,1,2)+E0;
+    EPRfreq = diff(TotalEnergy,1,2);
     
     % compute excitation factors for EPR transitions
     lw2 = sum((Sys.HStrain.*h.').^2) + lwExcite2;
-    exciteFactor = exp(-2/lw2*(Exp.mwFreq*1e3-abs(EPRfreq)).^2);
+    offsetFreq = EPRfreq - Exp.mwFreq*1e3;
+    exciteFactor = exp(-2/lw2*offsetFreq.^2);
 
-    if (min(EPRfreq)<minEPRfreq), minEPRfreq = min(EPRfreq); end
-    if (max(EPRfreq)>maxEPRfreq), maxEPRfreq = max(EPRfreq); end
+    % collect statistics
+    if (min(EPRfreq(:))<minEPRfreq), minEPRfreq = min(EPRfreq(:)); end
+    if (max(EPRfreq(:))>maxEPRfreq), maxEPRfreq = max(EPRfreq(:)); end
     if (lw2<minExWidth^2), minExWidth = sqrt(lw2); end
 
     % for each ENDOR transition, combine excitation factors of
     % EPR transitions that share a level with the ENDOR transition
     for iNuc = 1:nNuclei
-      totalWeight_ = 0;
       for imI = 1:numel(mI{iNuc})-1
         idx = (states(:,iNuc)==imI) | (states(:,iNuc)==imI+1);
-        totalWeight_(imI) = sum(exciteFactor(idx));
+        totalWeight{iNuc}(iOri,imI) = sum(exciteFactor(idx));
       end
-      totalWeight{iNuc}(iOri,:) = totalWeight_;
     end
+    % totalWeight{iNuc} size: #orientations x (2*I+1)
   end
   %---------------------------------------------------------
   
@@ -375,8 +381,8 @@ Info.Selectivity = Selectivity;
 % Frequencies
 %-------------------------------------------------------------------
 EndorFreqs = [];
-for n = Opt.Nuclei
-  EndorFreqs = [EndorFreqs; dE{n}.'];
+for iNuc = Opt.Nuclei
+  EndorFreqs = [EndorFreqs; EndorFrequencies{iNuc}.'];
 end
 
 % Intensities
@@ -384,20 +390,23 @@ end
 EndorIntensities = [];
 nNucStates = 2*I+1;
 for iNuc = Opt.Nuclei
-  for imS = 1:2*S+1
-    matrixelement = sqrt((1:2*I(iNuc)).*(2*I(iNuc):-1:1))/2;
-    pre = gn(iNuc)*nmagn/planck/1e6/1e3; % MHz/mT
-    pre = pre*matrixelement;
-    if IntegratedIntensity
-      pre = 2*pi*pre.^2;
-    end
-    % array size: (2*I(iNuc)) x nOrientations
-    newIntensities = pre(:)/nNucStates(iNuc)*ones(1,nOrientations);
-    if (OrientationSelection)
-      newIntensities = newIntensities.*totalWeight{iNuc}.';
-    end
-    EndorIntensities = [EndorIntensities; newIntensities];
+  matrixelement = sqrt((1:2*I(iNuc)).*(2*I(iNuc):-1:1))/2;
+  pre = Sys.gn(iNuc)*nmagn/planck/1e6/1e3; % MHz/mT
+  pre = (pre*matrixelement).^2;
+  if IntegratedIntensity, pre = 2*pi*pre; end
+  newIntensities = pre(:)/nNucStates(iNuc);
+  newIntensities = repmat(newIntensities,1,nOrientations);
+  % array size now: (2*I(iNuc)) x nOrientations
+  if (OrientationSelection)
+    newIntensities = newIntensities.*totalWeight{iNuc}.';
   end
+  idx = 1:2*I(iNuc); idx = repmat(idx,2*S+1,1); idx = idx(:);
+  newIntensities = newIntensities(idx,:);
+  % transitions(=rows) ordered by 1) mI of lower level, 2) mS
+  % e.g. (-I,+1/2), (-I,-1/2), (-I+1,+1/2), (-I+1,-1/2), etc
+  % (identical to ordering of EndorFreqs).
+  EndorIntensities = [EndorIntensities; newIntensities];
+  
 end
 EndorIntensities = EndorIntensities*prod(2*Sys.I+1);
 

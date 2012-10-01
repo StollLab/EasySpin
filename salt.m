@@ -455,7 +455,7 @@ xAxis = Exp.Range(1) + (0:Exp.nPoints-1)*Exp.deltaX;
 % If the width of the EPR spectrum is much greater than the excitation width,
 % interpolation and projection is not advisable.
 
-if Info.Selectivity>0
+if (Info.Selectivity>0)
   logmsg(1,'  orientation selection: %g (<1 very weak, 1 weak, 10 strong, >10 very strong)',Info.Selectivity);
   GridTooCoarse = (Opt.nKnots(1)/Opt.minEffKnots<Info.Selectivity);
   if GridTooCoarse && PowderSimulation
@@ -595,7 +595,7 @@ elseif (nOctants==-1)
   % Isotropic powder spectra
   %=======================================================================
 
-  if (~AnisotropicIntensities), thisInt = 1; end
+  if (~AnisotropicIntensities), thisInt = Idat; end
   if (~AnisotropicWidths), thisWid = 0; end
   
   for iTrans = 1:nTransitions
