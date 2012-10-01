@@ -22,7 +22,7 @@ if (nargin==1)
   Nuclei = 1:nNuclei;
 end
 
-if any(Nuclei>nNuclei) | any(Nuclei<1)
+if any(Nuclei>nNuclei) || any(Nuclei<1)
   error('Nuclear spin index/indices (2nd argument) out of range!');
 end
 

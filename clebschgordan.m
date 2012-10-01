@@ -34,6 +34,6 @@ switch (nargin)
 end
 
 % Compute coefficient via 3-j symbol
-value = (-1)^(j1-j2+m) * sqrt(2*j+1) * wigner3j([j1,j2,j],[m1,m2,-m]);
+value = (-1)^(j1-j2+m) * sqrt(2*j+1) * wigner3j(j1,j2,j,m1,m2,-m);
 
 return

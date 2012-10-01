@@ -345,7 +345,12 @@ if (nNuclei>0)
       Sys.fullA = 1;
     elseif issize(Sys.A,[1 nNuclei])
       % Allow simple one-row syntax in the case of 1 eletron spin
-      Sys.A = Sys.A.'*[1 1 1];
+      if (nElectrons==1)
+        Sys.A = Sys.A.'*[1 1 1];
+      else
+        err = 'Size of Sys.A matrix is inconsistent with number of electrons and nuclei.';
+        if ~isempty(err), return; end
+      end
     elseif issize(Sys.A,[nNuclei,nElectrons])
       % Expand isotropic A into 3 equal principal values
       Sys.A = kron(Sys.A,[1 1 1]);

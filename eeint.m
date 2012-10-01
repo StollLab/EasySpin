@@ -1,21 +1,21 @@
-% eeint  Electron-electron interaction Hamiltonian 
+% eeint  Electron-electron spin interaction Hamiltonian 
 %
 %   F = eeint(SpinSystem)
 %   F = eeint(SpinSystem,eSpins)
 %
-%   Returns the electron-electron interaction (EEI)
-%   Hamiltonian [MHz].
+%   Returns the electron-electron spin interaction (EEI)
+%   Hamiltonian, in MHz.
 %
 %   Input:
 %   - SpinSystem: Spin system structure. EEI
-%       parameters are in the ee and eepa fields.
+%       parameters are in the ee, eepa, and ee2 fields.
 %   - eSpins: If given, specifies electron spins
 %       for which the EEI should be computed. If
-%       absent, all electrons are taken.
+%       absent, all electrons are included.
 %
 %   Output:
 %   - F: Hamiltonian matrix containing the EEI for
-%       electrons specified in eSpins.
+%       electron spins specified in eSpins.
 
 function F = eeint(System,Spins)
 
@@ -31,12 +31,12 @@ error(err);
 sys = spinvec(System);
 n = prod(2*sys+1);
 
-% Special cases: ee not given or all zero
+% Special cases: only one spins, ee not given or all zero
 F = zeros(n,n);
 if (System.nElectrons==1), return; end
 if ~any(System.ee(:)) & ~any(System.ee2), return; end
 
-if nargin<2, Spins = 1:System.nElectrons; end
+if (nargin<2), Spins = 1:System.nElectrons; end
 
 % Some error checking on the second input argument
 if numel(Spins)<2
@@ -83,14 +83,16 @@ for iE = 1:size(Electrons,1)
     J = Rp*diag(ee(iCoupling,:))*Rp.';
   end
   
-  % Construct S_e1*ee*S_e2
+  % Sum up Hamiltonian terms
   for c1 = 1:3
     so1 = sop(sys,Electrons(iE,1),c1,'sparse');
     for c2 = 1:3
       so2 = sop(sys,Electrons(iE,2),c2,'sparse');
+      
+      % Bilinear coupling S1*ee*S2
       F = F + so1*J(c1,c2)*so2;
 
-      % Isotropic biquadratic exchange +j*(S1.S2)^2
+      % Isotropic biquadratic exchange coupling +ee2*(S1.S2)^2
       if (c1==c2)
         if ee2(iE)~=0
           F = F + ee2(iE)*(so1*so2)^2;

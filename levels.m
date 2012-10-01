@@ -28,6 +28,8 @@ error(chkmlver); % Error if Matlab too old.
 switch nargin
 case 0
   help(mfilename); return;
+case 2
+  error('Third input argument (magnetic field range) is missing.');
 case 3
   OriList = 1;
   [SpinSystem,Ori,MagnField] = deal(varargin{:});
