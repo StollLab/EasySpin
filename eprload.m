@@ -315,8 +315,8 @@ case {'.DTA','.DSC','.dsc','.dta'}
         if ~isfield(Parameters,'MWPW')
           error('Cannot scale by power, since MWPW is absent in parameter file.');
         end
-        MicrowavePower = sscanf(Parameters.MWPW,'%f')*1000; % in milliwatt
-        Data = Data/sqrt(MicrowavePower);
+        mwPower = sscanf(Parameters.MWPW,'%f')*1000; % in milliwatt
+        Data = Data/sqrt(mwPower);
       end
     else
       if any(Scaling=='P')
@@ -569,8 +569,19 @@ case {'.PAR','.SPC','.par','.spc'}
       if ~isfield(Parameters,'MP')
         error('Cannot scale by power, since MP is absent in parameter file.');
       end
-      MicrowavePower = sscanf(Parameters.MP,'%f'); % in milliwatt
-      Data = Data/sqrt(MicrowavePower);
+      if ~JEY_PowerSweep
+        mwPower = sscanf(Parameters.MP,'%f'); % in milliwatt
+        Data = Data/sqrt(mwPower);
+      else
+        % 2D power sweep, power along second dimension
+        nPowers = size(Data,2);
+        dB = XYLB+linspace(0,XYWI,nPowers);
+        mwPower = sscanf(Parameters.MP,'%f'); % in milliwatt
+        mwPower = mwPower.*10.^(-dB/10);
+        for iPower = 1:nPowers
+          Data(:,iPower) = Data(:,iPower)/sqrt(mwPower(iPower));
+        end
+      end
     end
 
     % Temperature
