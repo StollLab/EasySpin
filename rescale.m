@@ -25,9 +25,7 @@ switch (nargin)
     help(mfilename);
     return
   case 1
-    y = varargin{1};
-    yref = [];
-    Mode = 'maxabs';
+    error('A second input argument (scaling mode) is needed!');
   case 2
     y = varargin{1};
     in2 = varargin{2};
@@ -35,8 +33,7 @@ switch (nargin)
       yref = [];
       Mode = in2;
     else
-      yref = in2;
-      Mode = 'maxabs';
+      error('A third input argument (scaling mode) is needed!');
     end
   case 3
     y = varargin{1};
