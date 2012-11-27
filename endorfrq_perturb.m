@@ -170,9 +170,7 @@ end
 
 
 % Add symmetry-related sites
-if ~isfield(Exp,'CrystalSymmetry')
-  Exp.CrystalSymmetry = [];
-end
+if ~isfield(Exp,'CrystalSymmetry'), Exp.CrystalSymmetry = ''; end
 if ~isempty(Exp.CrystalSymmetry)
   R = sitetransforms(Exp.CrystalSymmetry);
   nSites  = numel(R);

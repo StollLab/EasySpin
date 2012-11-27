@@ -626,9 +626,24 @@ if PredefinedExperiment
   end
 end
 
-
 % Orientations: crystal if given and not empty, powder if absent/empty
 if ~isfield(Exp,'Orientations'), Exp.Orientations = []; end
+if isfield(Exp,'Orientation')
+  disp('Exp.Orientation given, did you mean Exp.Orientations?');
+end
+PowderSimulation = isempty(Exp.Orientations);
+if (~PowderSimulation)
+  % Make sure Exp.Orientations is ok
+  [n1,n2] = size(Exp.Orientations);
+  % Transpose array if nx2 or nx3 array is given with n==1 or n>3
+  if ((n2==2)||(n2==3)) && (n1~=2) && (n1~=3)
+    Exp.Orientations = Exp.Orientations.';
+  end
+  [nAngles,nOrientations] = size(Exp.Orientations);
+  if (nAngles<2) || (nAngles>3)
+    error('Exp.Orientations array has %d rows instead of 2 or 3.',nAngles);
+  end
+end
 
 % Pick nuclei to be included in the ESEEM computation
 shfNuclei = 1:Sys.nNuclei;
@@ -741,8 +756,6 @@ if ~isfield(Opt,'TimeDomain'), Opt.TimeDomain = 0; end
 %==========================================================================
 logmsg(1,'-orientations------------------------------------------');
 
-PowderSimulation = isempty(Exp.Orientations);
-
 if (PowderSimulation)
   
   logmsg(1,'  powder sample (randomly oriented centers)');
@@ -809,9 +822,6 @@ if (PowderSimulation)
 
   Orientations = [phi;theta];
 else
-  if size(Exp.Orientations,1)~=2 && size(Exp.Orientations,2)==2
-    Exp.Orientations = Exp.Orientations.';
-  end
   Orientations = Exp.Orientations;
   nOrientations = size(Exp.Orientations,2);
   Weights = ones(1,nOrientations)/nOrientations;
@@ -849,9 +859,12 @@ else
 end
 
 
+logmsg(1,'-Hamiltonians------------------------------------------');
+
 %=====================================================================
 % Compute electronic Hamiltonian
 %=====================================================================
+
 logmsg(1,'setting up electronic Hamiltonian...');
 if (TwoElectronManifolds)
   % not needed, S=1/2 electronic Hamiltonian can be solved analytically
@@ -943,7 +956,8 @@ else
     
     % Nuclear quadrupole ---------------------------------------------
     if (Sys.I(iNuc)>=1)
-      Rq = erot(Sys.Qpa(iNuc,:));
+      Rq = eye(3);
+      if isfield(Sys,'Qpa'), Rq = erot(Sys.Qpa(iNuc,:)); end
       Q = Rq*diag(Sys.Q(iNuc,:))*Rq'; Q = (Q + Q.')/2;
       Hnq_ = ...
         Ix*(Q(1,1)*Ix + Q(1,2)*Iy + Q(1,3)*Iz) + ...

@@ -99,7 +99,7 @@ end
 
 % Experiment
 %------------------------------------------------------
-if ~isfield(Exp,'CrystalSymmetry'), Exp.CrystalSymmetry = []; end
+if ~isfield(Exp,'CrystalSymmetry'), Exp.CrystalSymmetry = ''; end
 
   err = '';
 if ~isfield(Exp,'mwFreq'), err = 'Exp.mwFreq is missing.'; end

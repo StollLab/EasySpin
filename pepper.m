@@ -173,7 +173,7 @@ DefaultExp.Harmonic = 1;
 DefaultExp.Mode = 'perpendicular';
 DefaultExp.Orientations = [];
 DefaultExp.Ordering = [];
-DefaultExp.CrystalSymmetry = [];
+DefaultExp.CrystalSymmetry = '';
 DefaultExp.ModAmp = 0;
 DefaultExp.mwPhase = 0;
 
@@ -289,16 +289,13 @@ PowderSimulation = isempty(Exp.Orientations);
 if ~PowderSimulation
   % Make sure Exp.Orientations is ok
   [n1,n2] = size(Exp.Orientations);
+  % Transpose array if nx2 or nx3 array is given with n==1 or n>3
   if ((n2==2)||(n2==3)) && (n1~=2) && (n1~=3)
     Exp.Orientations = Exp.Orientations.';
   end
   [nAngles,nOrientations] = size(Exp.Orientations);
   if (nAngles<2) || (nAngles>3)
     error('Exp.Orientations array has %d rows instead of 2 or 3.',nAngles);
-  end
-  % Make sure Exp.CrystalSymmetry is ok
-  if isempty(Exp.CrystalSymmetry)
-    Exp.CrystalSymmetry = []; % no site splitting
   end
 end
 Exp.PowderSimulation = PowderSimulation;

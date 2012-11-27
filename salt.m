@@ -214,13 +214,18 @@ if (Exp.mwFreq==0) && (all(diff(Sys.g)==0))
 end
 
 % Exp.Orientations gives orientations for single-crystal computations
+if isfield(Exp,'Orientation')
+  disp('Exp.Orientation given, did you mean Exp.Orientations?');
+end
 PowderSimulation = isempty(Exp.Orientations);
 if (~PowderSimulation)
+  % Make sure Exp.Orientations is ok
   [n1,n2] = size(Exp.Orientations);
+  % Transpose array if nx2 or nx3 array is given with n==1 or n>3
   if ((n2==2)||(n2==3)) && (n1~=2) && (n1~=3)
     Exp.Orientations = Exp.Orientations.';
   end
-  nAngles = size(Exp.Orientations,1);
+  [nAngles,nOrientations] = size(Exp.Orientations);
   if (nAngles<2) || (nAngles>3)
     error('Exp.Orientations array has %d rows instead of 2 or 3.',nAngles);
   end
