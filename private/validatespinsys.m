@@ -546,11 +546,11 @@ end
 
 
 % Check width parameters for correct size, assure that they are not negative
-Broad = {'HStrain','gStrain','AStrain'};
+BroadeningType = {'HStrain','gStrain','AStrain'};
 Elements = [3,3,3,2];
-for k = 1:numel(Broad)
-  fld = Broad{k};
-  if ~isfield(Sys,fld)
+for k = 1:numel(BroadeningType)
+  fld = BroadeningType{k};
+  if ~isfield(Sys,fld) || isempty(Sys.(fld))
     Sys.(fld) = zeros(1,Elements(k));
     continue
   end
