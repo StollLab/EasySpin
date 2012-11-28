@@ -45,7 +45,7 @@ end
 
 N = numel(y);
 if (length(y)~=N)
-  error('y must be a vector.');
+  error('y must be a row or column vector. rescale() does not work on 2D arrays.');
 end
 isRowVector = size(y,1)==1;
 
@@ -73,12 +73,12 @@ else
   
   % Rescaling with reference
   %----------------------------------------------------
-  
   ModeID = find(strcmp(Mode,{'maxabs','minmax','shift','lsq','lsq0','lsq1','lsq2'}));
+  IdenticalLengthNeeded = [0 0 0 1 1 1 1];
   if isempty(ModeID)
     error('Unknown scaling mode ''%s''',Mode);
   end
-  if (ModeID>=4)
+  if IdenticalLengthNeeded(ModeID)
     if numel(y)~=numel(yref)
       error('For least-squares rescaling, vectors must have same number of elements.');
     end
@@ -86,55 +86,35 @@ else
   
   y = y(:);
   yref = yref(:);
+  notnan = ~isnan(yref) & ~isnan(y);
 
   switch ModeID
     case 1 % maxabs
-      scalefactor = max(abs(yref))/max(abs(y));
+      scalefactor = max(abs(yref(notnan)))/max(abs(y(notnan)));
       ynew = scalefactor*y;
     case 2 % minmax
-      scalefactor = (max(yref)-min(yref))/(max(y)-min(y));
-      ynew = scalefactor*(y-min(y)) + min(yref);
+      scalefactor = (max(yref(notnan))-min(yref(notnan)))/(max(y(notnan))-min(y(notnan)));
+      ynew = scalefactor*(y-min(y(notnan))) + min(yref(notnan));
     case 3 % shift
-      nan = isnan(y) | isnan(yref);
-      if any(nan)
-        error('Cannot use shift scaling with data containing NaN.');
-      end
-      shift = mean(y)-mean(yref);
+      shift = mean(y(notnan)) - mean(yref(notnan));
       ynew = y - shift;
     case 4 % lsq
-      nan = isnan(y) | isnan(yref);
-      y_ = y;
-      yref_ = yref;
-      y_(nan) = [];
-      yref_(nan) = [];
-      scalefactor = y_\yref_;
+      scalefactor = y(notnan)\yref(notnan);
       scalefactor = abs(scalefactor);
       ynew = scalefactor*y;
     case 5 % lsq0
-      nan = isnan(y) | isnan(yref);
-      if any(nan)
-        error('Cannot use lsq0 scaling with data containing NaN.');
-      end
       D = [y ones(N,1)];
-      params = D\yref;
+      params = D(notnan,:)\yref(notnan);
       ynew = D*params;
     case 6 % lsq1
-      nan = isnan(y) | isnan(yref);
-      if any(nan)
-        error('Cannot use lsq1 scaling with data containing NaN.');
-      end
       x = (1:N).'/N;
       D = [y ones(N,1) x];
-      params = D\yref;
+      params = D(notnan,:)\yref(notnan);
       ynew = D*params;
     case 7 % lsq2
-      nan = isnan(y) | isnan(yref);
-      if any(nan)
-        error('Cannot use lsq2 scaling with data containing NaN.');
-      end
       x = (1:N).'/N;
       D = [y ones(N,1) x x.^2];
-      params = D\yref;
+      params = D(notnan,:)\yref(notnan);
       ynew = D*params;
   end
   
@@ -163,9 +143,3 @@ switch nargout
 end
 
 return
-%===========================================================
-
-%x = linspace(-1,1,1001)*5;
-%yref = 3*gaussian(x,0,1);
-%y = gaussian(x,0,0.95)/10 + (randn(size(x))-0.5)/150 + x*0.1;
-%rescale(y,yref,'lsq1');
