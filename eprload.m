@@ -558,7 +558,8 @@ case {'.PAR','.SPC','.par','.spc'}
     % Receiver gain
     if any(Scaling=='G')
       if ~isfield(Parameters,'RRG')
-        Parameters.RRG = '2e4'; % default value on ECS106
+        %Parameters.RRG = '2e4'; % default value on UC Davis ECS106
+        error('Cannot scale by gain, since RRG is absent in parameter file.');
       end
       ReceiverGain = sscanf(Parameters.RRG,'%f');
       Data = Data/ReceiverGain;
