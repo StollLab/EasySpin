@@ -66,50 +66,40 @@ clear functions
 % Display information
 %--------------------------------------------------------------
 if Display
-  fprintf('\n');
   fprintf('==================================================================\n');
-  fprintf('\n');
-  fprintf('  EasySpin, a MATLAB toolbox for Electron Paramagnetic Resonance\n');
-  fprintf('\n');
-  fprintf('    Release:          %s (%s)\n',esVersion,esDate);
-  fprintf('\n');
-  fprintf('==================================================================\n');
-  fprintf('\n');
+  fprintf('  Release:          %s (%s)\n',esVersion,esDate);
 end
 
 Diagnostics = 1;
 if Diagnostics && Display
-  fprintf('    Expiry date:      %s\n',esExpiryDate);
-  fprintf('    Directory:        %s\n',esPath);
-  fprintf('    MATLAB version:   %s\n',builtin('version'));
-  fprintf('    Platform:         %s\n',platform);
-  fprintf('    System date:      %s\n',datestr(now));
-  fprintf('    Temp dir:         %s\n',tempdir);
+  fprintf('  Expiry date:      %s\n',esExpiryDate);
+  fprintf('  Folder:           %s\n',esPath);
+  fprintf('  MATLAB version:   %s\n',builtin('version'));
+  fprintf('  Platform:         %s\n',platform);
   MexFiles = dir([esPath filesep 'private' filesep '*.c']);
   for k=1:numel(MexFiles)
     mexed(k) = exist(MexFiles(k).name(1:end-2))==3;
   end
-  fprintf('    mex-files:        ');
+  fprintf('  mex-files:        ');
   if all(mexed)
     fprintf([mexext, ', ok']);
   else
     fprintf([mexext, ', missing']);
   end
   fprintf('\n');
-  fprintf('\n');
+  fprintf('  System date:      %s\n',datestr(now));
+  fprintf('  Temp dir:         %s\n',tempdir);
   fprintf('==================================================================\n');
-  fprintf('\n');
 end
 
 
 % Determine whether EasySpin's directory is on the search path.
 %--------------------------------------------------------------
-OnSearchPath = findstr(upper([path ';']),upper([esPath ';']));
+OnSearchPath = strfind(upper([path ';']),upper([esPath ';']));
 
-if ~OnSearchPath
+if isempty(OnSearchPath)
   if Display
-    fprintf('    EasySpin''s directory is not in MATLAB''s search path!!\n');
-    fprintf('    Please add it!\n\n');
+    fprintf('The EasySpin folder is not in MATLAB''s search path. Please add it.\n\n');
   end
 end
 
