@@ -2,9 +2,10 @@ function [gX,info] = fit_particleswarm(funfcn,nParameters,FitOpt,varargin)
 
 if ~isfield(FitOpt,'maxTime'), FitOpt.maxTime = inf; end
 if ~isfield(FitOpt,'PrintLevel'); FitOpt.PrintLevel = 1; end
-
-if ~isfield(FitOpt,'nParticles'); FitOpt.nParticles = 30; end
 if ~isfield(FitOpt,'TolFun'), FitOpt.TolFun = 1e-5; end
+if ~isfield(FitOpt,'IterationPrintFunction') || ...
+  isempty(FitOpt.IterationPrintFunction), FitOpt.IterationPrintFunction = @(str)0; end
+if ~isfield(FitOpt,'nParticles'); FitOpt.nParticles = 30; end
 if ~isfield(FitOpt,'SwarmParams'), FitOpt.SwarmParams = [0.2 0.5 2 1]; end
 
 global UserCommand
@@ -33,13 +34,7 @@ globalbesterror = inf;
 minerror = inf;
 startTime = cputime;
   
-str = 'initial iteration';
-hLogLine = findobj('Tag','logLine');
-if isempty(hLogLine)
-  disp(str);
-else
-  set(hLogLine,'String',str);
-end
+FitOpt.IterationPrintFunction('initial iteration');
 
 iIteration = 1;
 stopCode = 0;
@@ -73,13 +68,7 @@ while 1
   
   if FitOpt.PrintLevel
     str=sprintf('  Iteration %4d:   error %0.5e  best so far',iIteration,globalbesterror);
-    hLogLine = findobj('Tag','logLine');
-    if isempty(hLogLine)
-      disp(str);
-    else
-      set(hLogLine,'String',str);
-      drawnow
-    end
+    FitOpt.IterationPrintFunction(str);
   end
   
   elapsedTime = (cputime-startTime)/60;
@@ -88,9 +77,8 @@ while 1
   if (globalbesterror<FitOpt.TolFun), stopCode = 3; break; end
 end
 
-if FitOpt.PrintLevel
+if FitOpt.PrintLevel>1
   switch (stopCode)
-    case 0, msg = 'Terminated: maximum number of iterations reached.';
     case 1, msg = sprintf('Terminated: Time limit of %f minutes reached.',FitOpt.maxTime);
     case 2, msg = 'Terminated: Stopped by user.';
     case 3, msg = sprintf('Terminated: Found a parameter set with error less than %g.',FitOpt.TolFun);

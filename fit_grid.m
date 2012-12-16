@@ -46,37 +46,16 @@ end
 stopCode = 0;
 for k = 1:nGridPoints
   thiserror = feval(funfcn,X(k,:),varargin{:});
-  hLogLine = findobj('Tag','logLine');
   if (thiserror<minerror)
     minerror = thiserror;
     bestx = X(k,:);
     if FitOpt.PrintLevel
       str = sprintf('  Point %4d:   error %0.5e  best so far',k,thiserror);
-      if isempty(hLogLine)
-        disp(str)
-      else
-        set(hLogLine,'String',str);
-      end
+      FitOpt.IterationPrintFunction(str);
     end
   end
   if FitOpt.Plot
     if (UserCommand==3)
-      set(FitOpt.hButtons(3),'Visible','off');
-      set(FitOpt.hButtons(2),'Visible','on');
-      UserCommand = 0;
-      if FitOpt.PrintLevel
-        fprintf('       local:');
-      end
-      FitOpt2 = FitOpt;
-      FitOpt2.PrintLevel = 0;
-      FitOpt2.TolX = FitOpt2.TolStep;
-      [bestx,info] = FitOpt.fitlocal(funfcn,bestx,FitOpt2,varargin{1:end-1},FitOpt2);
-      if (UserCommand==4 || UserCommand == 99), UserCommand = 0; end
-      if FitOpt.PrintLevel
-        fprintf('   error %0.5e\n',info.F);
-      end
-      set(FitOpt.hButtons(2),'Visible','off');
-      set(FitOpt.hButtons(3),'Visible','on');
     end
   end
   elapsedTime = (cputime-startTime)/60;
@@ -93,4 +72,4 @@ switch (stopCode)
   case 3, msg = sprintf('Terminated: Found a parameter set with error less than %g.',FitOpt.TolFun);
 end
 
-if FitOpt.PrintLevel, disp(msg); end
+if FitOpt.PrintLevel>1, disp(msg); end

@@ -63,7 +63,6 @@ if ~isfield(Opt,'delta'), Opt.delta = 1e-7; end
 if ~isfield(Opt,'PrintLevel'), Opt.PrintLevel = 1; end
 if ~isfield(Opt,'maxTime'), Opt.maxTime = inf; end
 
-
 startTime = cputime;
 
 % Check parameters and function call
@@ -85,7 +84,7 @@ end
 stop = 0;
 
 if (~stop)
-  [stop F f] = funeval(funfcn,x0,varargin{:});
+  [stop F f] = funeval(funfcn,x,varargin{:});
   nEvals = nEvals + 1;
   if (~stop)
     % Jacobian
@@ -104,7 +103,7 @@ end
 stop = 0;
 
 if (stop)
-  X = x0;
+  X = x;
   info.F = F;
   info.norm_g = norm_g;
   info.stop = stop;
@@ -122,13 +121,6 @@ j = 0;  % direction of last update
 global UserCommand;
 
 iIteration = 0;
-hLogLine = findobj('Tag','logLine');
-
-if Opt.PrintLevel
-  if isempty(hLogLine)
-    fprintf('  Iter   Evals      Function     Gradient          Step\n');
-  end
-end
 
 while (~stop)
   
@@ -142,19 +134,16 @@ while (~stop)
 
   if Opt.PrintLevel
     str = sprintf(' %4d:   %5d  %0.5e    %0.5e    %0.5e',iIteration,nEvals,sqrt(F*2),norm_g,norm_h);
-    if isempty(hLogLine)
-      disp(str)
-    else
-      set(hLogLine,'String',str);
-    end
+    Opt.IterationPrintFunction(str);
   end
   
   %if norm_h<=Opt.TolStep, stop = 2; break; end
   if norm_h<=Opt.TolStep*(Opt.TolStep + norm(x)), stop = 2; break; end
 
   xnew = x + h;
+  xnew = min(max(xnew,-1),+1); % apply bounds
   
-  [stop Fnew fnew] = funeval(funfcn,xnew,varargin{:});
+  [stop, Fnew, fnew] = funeval(funfcn,xnew,varargin{:});
   nEvals = nEvals+1;
   if (stop), break; end
 
@@ -216,7 +205,7 @@ switch (stop)
   case 4, msg = sprintf('Stopped by user');
 end
 
-if Opt.PrintLevel
+if Opt.PrintLevel>1
   fprintf('Terminated: %s\n',msg);
 end
 
@@ -287,10 +276,10 @@ err = 0;
 F = NaN;
 n = numel(x);
 
-f = feval(funfcn,x,varargin{:});
+f = funfcn(x,varargin{:});
 
 sf = size(f);
-if  sf(2) ~= 1 | ~isreal(f) | any(isnan(f(:))) | any(isinf(f(:)))
+if  sf(2)~=1 || any(~isreal(f)) || any(isnan(f(:))) || any(isinf(f(:)))
   error('f is not real-valued.');
 end
 

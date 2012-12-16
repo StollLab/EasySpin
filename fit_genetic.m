@@ -21,7 +21,7 @@ global UserCommand;
 if (nargin<3), FitOpt = struct('unused',NaN); end
 
 if ~isfield(FitOpt,'PopulationSize'), FitOpt.PopulationSize = 20; end
-if ~isfield(FitOpt,'maxGenerations'), FitOpt.maxGenerations = 100; end
+if ~isfield(FitOpt,'maxGenerations'), FitOpt.maxGenerations = 10000; end
 if ~isfield(FitOpt,'EliteCount')
   FitOpt.EliteCount = max(2,ceil(0.1*FitOpt.PopulationSize));
 end
@@ -48,30 +48,11 @@ bestx = Population(1,:)*0;
 Scores = ones(1,FitOpt.PopulationSize)*inf;
 for k = 1:FitOpt.PopulationSize
   Scores(k) = feval(funfcn,Population(k,:),varargin{:});
-  hLogLine = findobj('Tag','logLine');
   if Scores(k)<BestScore
     bestx = Population(k,:);
     BestScore = Scores(k);
   end
   if (UserCommand==1), stopCode = 3; break; end
-  if (UserCommand==3)
-    UserCommand = 0;
-    set(FitOpt.hButtons(3),'Visible','off');
-    set(FitOpt.hButtons(2),'Visible','on');
-    if FitOpt.PrintLevel
-      fprintf('       local:');
-    end
-    FitOpt2 = FitOpt;
-    FitOpt2.PrintLevel = 0;
-    [bestx,info] = FitOpt.fitlocal(funfcn,bestx,FitOpt2,varargin{1:end-1},FitOpt2);
-    BestScore = info.F;
-    if (UserCommand==4 || UserCommand==99), UserCommand = 0; end
-    if FitOpt.PrintLevel
-      fprintf('   error %g\n',info.F);
-    end
-    set(FitOpt.hButtons(2),'Visible','off');
-    set(FitOpt.hButtons(3),'Visible','on');
-  end
 end
 [Scores,idx] = sort(Scores);
 Population = Population(idx,:);
@@ -87,11 +68,7 @@ while 1
   
   if FitOpt.PrintLevel
     str = sprintf('%5d:  min %g   mean %g',g,min(Scores),mean(Scores));
-    if isempty(hLogLine)
-      disp(str)
-    else
-      set(hLogLine,'String',str);
-    end
+    FitOpt.IterationPrintFunction(str);
   end
   
   if (g>=FitOpt.maxGenerations), stopCode = 1; break; end
@@ -135,25 +112,6 @@ while 1
   for k = 1:FitOpt.PopulationSize
     offScores(k) = feval(funfcn,Offspring(k,:),varargin{:});
     if (UserCommand==1), stopCode = 3; break; end
-    if (UserCommand==3)
-      UserCommand = 0;
-      set(FitOpt.hButtons(3),'Visible','off');
-      set(FitOpt.hButtons(2),'Visible','on');
-      if FitOpt.PrintLevel
-        fprintf('       local:');
-      end
-      FitOpt2 = FitOpt;
-      FitOpt2.PrintLevel = 0;
-      [bestx,info] = fit_simplex(funfcn,bestx,FitOpt2,varargin{1:end-1},FitOpt2);
-      BestScore = info.F;
-      if (UserCommand==4), UserCommand = 0; end
-      if FitOpt.PrintLevel
-        fprintf('   error %g\n',info.F);
-      end
-      set(FitOpt.hButtons(2),'Visible','off');
-      set(FitOpt.hButtons(3),'Visible','on');
-    end
-  end
   if (stopCode==3), break; end
   [offScores,idx] = sort(offScores);
   Offspring = Offspring(idx,:);
@@ -173,7 +131,7 @@ while 1
   g = g + 1;
 end
 
-if FitOpt.PrintLevel
+if FitOpt.PrintLevel>1
   switch (stopCode)
     case 1, msg = sprintf('Maximum number of generations (%d) reached.',FitOpt.maxGenerations);
     case 2, msg = sprintf('Error below threshold %g.',FitOpt.TolFun);

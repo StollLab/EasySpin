@@ -38,9 +38,12 @@ if ~isfield(Opt,'TolStep'), Opt.TolStep = 1e-4; end
 if ~isfield(Opt,'TolFun'), Opt.TolFun = 1e-4; end
 if ~isfield(Opt,'PrintLevel'), Opt.PrintLevel = 1; end
 
+if ~isfield(Opt,'IterationPrintFunction') || ...
+  isempty(Opt.IterationPrintFunction), Opt.IterationPrintFunction = @(str)str; end
+
 %constrain = @(x)sin(x*pi/2); unconstrain = @(x)acos(x)*2/pi;
-%constrain = @(x)max(min(x,1),-1); unconstrain = @(x)x;
-constrain = @(x)x; unconstrain = constrain;
+constrain = @(x)max(min(x,+1),-1); unconstrain = @(x)x;
+%constrain = @(x)x; unconstrain = constrain;
 n = numel(x0);
 
 % Set up a simplex near the initial guess.
@@ -53,8 +56,9 @@ end
 iIteration = 0;
 startTime = cputime;
 
-hLogLine = findobj('Tag','logLine');
-set(hLogLine,'String','initial simplex...');
+if (Opt.PrintLevel)
+  Opt.IterationPrintFunction('initial simplex...');
+end
 
 % Evaluate vertices of the simplex
 for iVertex = 1:n+1
@@ -71,13 +75,7 @@ iIteration = iIteration + 1;
 if Opt.PrintLevel
   template = ' %4d:    %0.5e    %0.5e    %s';
   str = sprintf(template,iIteration,fv(1),delta,Procedure);
-  hLogLine = findobj('Tag','logLine');
-  if isempty(hLogLine)
-    disp('  Iter      RMS error         Step        Procedure');
-    disp(str);
-  else
-    set(hLogLine,'String',str);
-  end
+  Opt.IterationPrintFunction(str);
 end
 
 % Main algorithm: iterate until
@@ -168,12 +166,7 @@ while 1
   if (Opt.PrintLevel)
     thisstep = max(max(abs(v(:,2:n+1)-v(:,ones(1,n)))));
     str = sprintf(template,iIteration,fv(1),thisstep,Procedure);
-    hLogLine = findobj('Tag','logLine');
-    if isempty(hLogLine)
-      disp(str);
-    else
-      set(hLogLine,'String',str);
-    end
+    Opt.IterationPrintFunction(str);
   end
 
 end
