@@ -479,6 +479,11 @@ logmsg(1,msg);
 % selects the most intense transitions, their number being determined
 % by a threshold for the relative transitions rate. The relative transition
 % rate for the most intense transition is 1.
+%
+% The transition rates are determined at center field. As a consequence, this
+% pre-selection fails when states vary significantly over the field range, e.g.
+% for systems with large zero-field splittings and wide field ranges starting
+% at very low fields.
 
 logmsg(1,'- Transition pre-selection');  
 

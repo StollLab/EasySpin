@@ -62,11 +62,11 @@ if ischar(Ori)
   Ori = [philist(idx); thetalist(idx)];
 end
 
-if numel(Ori)==2
+if (numel(Ori)==2) || (numel(Ori)==3)
   phi = Ori(1);
   theta = Ori(2);
 else
-  error('Ori must be a two-element vector.');
+  error('Ori must be a two-element array.');
 end
 
 switch numel(B)
