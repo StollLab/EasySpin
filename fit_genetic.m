@@ -45,6 +45,7 @@ bestx = Population(1,:)*0;
 
 
 % Score initial population
+FitOpt.IterationPrintFunction('initial population');
 Scores = ones(1,FitOpt.PopulationSize)*inf;
 for k = 1:FitOpt.PopulationSize
   Scores(k) = feval(funfcn,Population(k,:),varargin{:});
@@ -67,7 +68,7 @@ while 1
   if (min(Scores)<BestScore), BestScore = min(Scores); end
   
   if FitOpt.PrintLevel
-    str = sprintf('%5d:  min %g   mean %g',g,min(Scores),mean(Scores));
+    str = sprintf('gen %5d:  min %g   mean %g',g,min(Scores),mean(Scores));
     FitOpt.IterationPrintFunction(str);
   end
   
@@ -112,6 +113,7 @@ while 1
   for k = 1:FitOpt.PopulationSize
     offScores(k) = feval(funfcn,Offspring(k,:),varargin{:});
     if (UserCommand==1), stopCode = 3; break; end
+  end
   if (stopCode==3), break; end
   [offScores,idx] = sort(offScores);
   Offspring = Offspring(idx,:);

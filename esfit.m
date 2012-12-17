@@ -34,11 +34,9 @@ if (nargin<5), error('Not enough inputs.'); end
 if (nargin<6), SimOpt = struct('unused',NaN); end
 if (nargin<7), FitOpt = struct('unused',NaN); end
 
-global smallestError errorlist
 global FitData FitOpts
-
-smallestError = [];
-errorlist = [];
+FitData = []; FitOpts = [];
+FitData.currFitSet = [];
 
 % Simulation function name
 %--------------------------------------------------------------------
@@ -99,18 +97,16 @@ for s = 1:nSystems
       error(['Field ' Fields{k} ' has more elements in Vary than in Sys0.']);
     end
   end
+  clear Fields
 end
 
 % count parameters and save indices into parameter vector for each system
-FitData.nParameters = 0;
-xidx = 1;
-for s=1:nSystems
-  [dummy,dummy,Vals] = getParameters(Vary{s});
-  FitData.nParameters = FitData.nParameters + numel(Vals);
-  FitData.xidx(s) = xidx;
-  xidx = xidx + numel(Vals);
+for iSys=1:nSystems
+  [dummy,dummy,v_] = getParameters(Vary{iSys});
+  VaryVals(iSys) = numel(v_);
 end
-FitData.xidx(s+1) = xidx;
+FitData.xidx = cumsum([1 VaryVals]);
+FitData.nParameters = sum(VaryVals);
 
 if (FitData.nParameters==0)
   error('No variable parameters to fit.');
@@ -207,6 +203,11 @@ ScalingString{5} = 'lsq1';
 ScalingString{6} = 'lsq2';
 FitData.ScalingString = ScalingString;
 
+StartpointNames{1} = 'center of range';
+StartpointNames{2} = 'random within range';
+StartpointNames{3} = 'selected fit set';
+
+
 FitOpt.ScalingID = find(strcmp(FitOpt.Scaling,ScalingString));
 if isempty(FitOpt.ScalingID)
   error('Unknown ''%s'' in FitOpt.Scaling.',FitOpt.Scaling);
@@ -223,7 +224,7 @@ if ~isfield(FitOpt,'nTrials'), FitOpt.nTrials = 20000; end
 if ~isfield(FitOpt,'TolFun'), FitOpt.TolFun = 1e-4; end
 if ~isfield(FitOpt,'TolStep'), FitOpt.TolStep = 1e-6; end
 if ~isfield(FitOpt,'maxTime'), FitOpt.maxTime = inf; end
-if ~isfield(FitOpt,'RandomStart'), FitOpt.RandomStart = 0; end
+if ~isfield(FitOpt,'RandomStart'), FitOpt.Startpoint = 1; else FitOpt.Startpoint = 0; end
 
 if ~isfield(FitOpt,'GridSize'), FitOpt.GridSize = 7; end
 
@@ -235,7 +236,7 @@ if (FitData.nParameters>FitOpt.maxParameters)
   error('Cannot fit more than %d parameters simultaneously.',...
     FitOpt.maxParameters);
 end
-FitData.activeParams = logical(ones(1,FitData.nParameters));
+FitData.inactiveParams = logical(zeros(1,FitData.nParameters));
 
 FitData.Sys0 = Sys0;
 FitData.SimOpt = SimOpt;
@@ -246,6 +247,7 @@ FitOpts = FitOpt;
 % Setup UI
 %=====================================================================
 if (FitData.GUI)
+  clc
   
   % main figure
   %------------------------------------------------------------------
@@ -271,7 +273,11 @@ if (FitData.GUI)
   %-----------------------------------------------------------------
   % data display
   hAx = axes('Units','pixels','Position',[50 30 600 560],'FontSize',8);
-  h = plot(hAx,1,NaN,'k.-',1,NaN,'g',1,NaN,'r');
+  NaNdata = ones(1,Exp.nPoints)*NaN;
+  h = plot(hAx,...
+    1:Exp.nPoints,NaNdata,'k.-',...
+    1:Exp.nPoints,NaNdata,'g',...
+    1:Exp.nPoints,NaNdata,'r');
   dispData = FitData.ExpSpecScaled;
   set(h(1),'Tag','expdata','XData',1:numel(dispData),'YData',dispData);
   set(h(2),'Tag','bestsimdata','Color',[0 0.8 0]);
@@ -280,144 +286,195 @@ if (FitData.GUI)
   set(hAx,'XLim',[1 numel(dispData)]);
   set(hAx,'YLim',[miny maxy] + [-1 1]*FitOpt.PlotStretchFactor*(maxy-miny));
   set(hAx,'XTick',[],'YTick',[]);
-  
-  text(mean(xlim),mean(ylim),'Press "Start" to start.',...
-    'Parent',hAx,'Tag','Welcome','Margin',20,...
-    'BackgroundColor',[0.7 0.9 0.7],'VerticalA','middle','HorizontalA','center');
-  
-  % error display
-  axes('Units','pixels','Position',[670 490 100 80],'FontSize',6,'Layer','top');
+    
+  % iteration and rms error displays
+  %-----------------------------------------------------------------
+  x0 = 660; y0 = 180;
+  axes('Units','pixels','Position',[x0 y0 100 80],'FontSize',6,'Layer','top');
   h = plot(1,NaN,'.');
   set(h,'Tag','errorline',...
     'MarkerSize',5,'Color',[0.2 0.2 0.8]);
   set(gca,'YScale','lin','XTickLabel','','YAxisLoc','right','Layer','top');
-  title('log10(error)','Color','k');
+  title('log10(rmsd)','Color','k','FontSize',7);
+    
+  h = uicontrol('Style','text','Position',[x0+125 y0+64 205 16]);
+  set(h,'FontSize',8,'String',' RMSD: -','ForegroundColor',[0 0 1],'Tooltip','Current best RMSD');
+  set(h,'Tag','RmsText','HorizontalAl','left');
+
+  h = uicontrol('Style','text','Position',[x0+125 y0 205 62]);
+  set(h,'FontSize',7,'Tag','logLine','Tooltip','Information from fitting algorithm');
+  set(h,'Horizontal','left');
   
-  % axes controls
+  
+  % Parameter table
   %-----------------------------------------------------------------
-  uicontrol('Style','pushbutton',...
-    'Tag','lineStyleButton',...
-    'Position',[50 7 20 20],...
-    'String','.-',...
-    'Callback',@lineStyleButtonCallback);
-  
-  % iteration and rms error displays
-  %-----------------------------------------------------------------
-  hIterText = uicontrol('Style','text','Position',[670 450 250 20]);
-  set(hIterText,'FontSize',7,'Tag','logLine');
-  set(hIterText,'Horizontal','left','BackgroundColor',get(gcf,'Color'));
-  
-  hRmsText = uicontrol('Style','text','Position',[660 330 130 30]);
-  set(hRmsText,'FontSize',8,'String','','ForegroundColor',[0 0.7 0]);
-  set(hRmsText,'Tag','RmsText','HorizontalAl','left');
-  
-  % parameter table
-  %-----------------------------------------------------------------
-  columnname = {'Vary','Name','best','curr'};
-  columnformat = {'logical','char','char','char'};
-  colEditable = [true false false false];
-  [Fields,Indices,Vals] = getParameters(Vary{1});
-  for f = 1:numel(Fields)
-    data{f,1} = true;
-    data{f,2} = [Fields{f} '(' sprintf('%d,%d',Indices(f,1),Indices(f,2)) ')'];
-    %data{f,3} = sprintf('%0.6g',Vals(f));
-    data{f,4} = '-';
-    data{f,3} = sprintf('%0.6g',Vals(f));
+  columnname = {'','Name','best','current','center','vary'};
+  columnformat = {'logical','char','char','char','char','char'};
+  colEditable = [true false false false false false];
+  [FitData.parNames,FitData.CenterVals,FitData.VaryVals] = getParamList(Sys0,Vary);
+  for p = 1:numel(FitData.parNames)
+    data{p,1} = true;
+    data{p,2} = FitData.parNames{p};
+    data{p,3} = '-';
+    data{p,4} = '-';
+    data{p,5} = sprintf('%0.6g',FitData.CenterVals(p));
+    data{p,6} = sprintf('%0.6g',FitData.VaryVals(p));
   end
-  %@@
-  uitable('Tag','ParameterTable',...
-    'Position',[660 150 330 150],...
+  x0 = 660; y0 = 290;
+  h = uitable('Tag','ParameterTable',...
+    'FontSize',8,...
+    'Position',[x0 y0 330 150],...
     'ColumnFormat',columnformat,...
     'ColumnName',columnname,...
     'ColumnEditable',colEditable,...
-    'ColumnWidth',{30,'auto','auto','auto'},...
+    'ColumnWidth',{20,62,62,62,62,60},...
     'RowName',[],...
     'Data',data);
-
-  % set list
-  %-----------------------------------------------------------------
-  uicontrol(hFig,'Style','listbox',...
-    'Tag','SetListBox',...
-    'Position',[820 350 160 100],...
-    'String','',...
-    'KeyPressFcn',@deleteSetListKeyPressFcn,...
-    'Tooltip','');
-  uicontrol(hFig,'Style','pushbutton',...
-    'Tag','deleteSetButton',...
-    'Position',[820 325 40 20],...
-    'String','rmv',...
-    'Tooltip','remove fit set',...
-    'Enable','off',...
-    'Callback',@deleteSetButtonCallback);
-
+  uicontrol('Style','text',...
+    'Position',[x0 y0+150 230 20],...
+    'BackgroundColor',get(gcf,'Color'),...
+    'FontSize',9,'String','Parameters',...
+    'HorizontalAl','left');
+  uicontrol('Style','pushbutton','Tag','selectInvButton',...
+    'Position',[x0+210 y0+150 50 20],...
+    'String','invert','Enable','on','Callback',@selectInvButtonCallback,...
+    'HorizontalAl','left',...
+    'Tooltip','Invert selection of parameters');
+  uicontrol('Style','pushbutton','Tag','selectAllButton',...
+    'Position',[x0+260 y0+150 30 20],...
+    'String','all','Enable','on','Callback',@selectAllButtonCallback,...
+    'HorizontalAl','left',...
+    'Tooltip','Select all parameters');
+  uicontrol('Style','pushbutton','Tag','selectNoneButton',...
+    'Position',[x0+290 y0+150 40 20],...
+    'String','none','Enable','on','Callback',@selectNoneButtonCallback,...
+    'HorizontalAl','left',...
+    'Tooltip','Unselect all parameters');
 
   % popup menus
   %-----------------------------------------------------------------
-  x0 = 660;
-  dx = 50;
-  y0 = 65; dy = 24;
+  x0 = 660; dx = 60; y0 = 490; dy = 24;
   uicontrol(hFig,'Style','text',...
     'String','Method',...
     'HorizontalAlign','left',...
     'BackgroundColor',get(gcf,'Color'),...
-    'Position',[x0 y0+2*dy-4 dx 20]);
+    'Position',[x0 y0+3*dy-4 dx 20]);
   uicontrol(hFig,'Style','popupmenu',...
     'Tag','MethodMenu',...
     'String',MethodNames,...
     'Value',FitOpt.MethodID,...
     'BackgroundColor','w',...
     'Tooltip','Fitting algorithm',...
-    'Position',[x0+dx y0+2*dy 150 20]);
+    'Position',[x0+dx y0+3*dy 150 20]);
   uicontrol(hFig,'Style','text',...
     'String','Target',...
     'HorizontalAlign','left',...
     'BackgroundColor',get(gcf,'Color'),...
-    'Position',[x0 y0+dy-4 dx 20]);
+    'Position',[x0 y0+2*dy-4 dx 20]);
   uicontrol(hFig,'Style','popupmenu',...
     'Tag','TargetMenu',...
     'String',TargetNames,...
     'Value',FitOpt.TargetID,...
     'BackgroundColor','w',...
     'Tooltip','Target function',...
-    'Position',[x0+dx y0+dy 150 20]);
+    'Position',[x0+dx y0+2*dy 150 20]);
   uicontrol(hFig,'Style','text',...
     'String','Scaling',...
     'HorizontalAlign','left',...
     'BackgroundColor',get(gcf,'Color'),...
-    'Position',[x0 y0-4 dx 20]);
+    'Position',[x0 y0+dy-4 dx 20]);
   uicontrol(hFig,'Style','popupmenu',...
     'Tag','ScalingMenu',...
     'String',ScalingNames,...
     'Value',FitOpt.ScalingID,...
     'BackgroundColor','w',...
     'Tooltip','Scaling mode',...
+    'Position',[x0+dx y0+dy 150 20]);
+  uicontrol(hFig,'Style','text',...
+    'String','Startpoint',...
+    'HorizontalAlign','left',...
+    'BackgroundColor',get(gcf,'Color'),...
+    'Position',[x0 y0-4 dx 20]);
+  h = uicontrol(hFig,'Style','popupmenu',...
+    'Tag','StartpointMenu',...
+    'String',StartpointNames,...
+    'Value',1,...
+    'BackgroundColor','w',...
+    'Tooltip','Starting point for fit',...
     'Position',[x0+dx y0 150 20]);
+  if (FitOpts.Startpoint==2), set(h,'Value',2); end
   
-  % buttons
+  % Start/Stop buttons
   %-----------------------------------------------------------------
-  hei = 40;
+  pos =  [x0+220 y0-3+30 110 67];
+  pos1 = [x0+220 y0-3    110 30];
   uicontrol(hFig,'Style','pushbutton',...
     'Tag','StartButton',...
     'String','Start',...
     'Callback',@runFitting,...
     'Visible','on',...
     'Tooltip','Start fitting',...
-    'Position',[660 5 60 hei]);
+    'Position',pos);
   uicontrol(hFig,'Style','pushbutton',...
     'Tag','StopButton',...
     'String','Stop',...
     'Visible','off',...
     'Tooltip','Stop fitting',...
     'Callback','global UserCommand; UserCommand = 1;',...
-    'Position',[660 5 60 hei]);
+    'Position',pos);
+  uicontrol(hFig,'Style','pushbutton',...
+    'Tag','SaveButton',...
+    'String','Save result',...
+    'Callback',@saveFitsetCallback,...
+    'Enable','off',...
+    'Tooltip','Save latest fitting result',...
+    'Position',pos1);
+
+  % Fitset list
+  %-----------------------------------------------------------------
+  x0 = 660; y0 = 30;
+  uicontrol('Style','text','Tag','SetListTitle',...
+    'Position',[x0 y0+100 230 20],...
+    'BackgroundColor',get(gcf,'Color'),...
+    'FontSize',9,'String','Fit sets',...
+    'HorizontalAl','left');
+  uicontrol(hFig,'Style','listbox','Tag','SetListBox',...
+    'Position',[x0 y0 330 100],...
+    'String','','Tooltip','',...
+    'BackgroundColor',[1 1 0.9],...
+    'KeyPressFcn',@deleteSetListKeyPressFcn,...
+    'Callback',@setListCallback);
+  uicontrol(hFig,'Style','pushbutton','Tag','deleteSetButton',...
+    'Position',[x0+280 y0+100 50 20],...
+    'String','delete',...
+    'Tooltip','Delete fit set','Enable','off',...
+    'Callback',@deleteSetButtonCallback);
+  uicontrol(hFig,'Style','pushbutton','Tag','exportSetButton',...
+    'Position',[x0+230 y0+100 50 20],...
+    'String','export',...
+    'Tooltip','Export fit set to workspace','Enable','off',...
+    'Callback',@exportSetButtonCallback);
+  uicontrol(hFig,'Style','pushbutton','Tag','sortIDSetButton',...
+    'Position',[x0+210 y0+100 20 20],...
+    'String','id',...
+    'Tooltip','Sort fit sets by ID','Enable','off',...
+    'Callback',@sortIDSetButtonCallback);
+  uicontrol(hFig,'Style','pushbutton','Tag','sortRMSDSetButton',...
+    'Position',[x0+180 y0+100 30 20],...
+    'String','rmsd',...
+    'Tooltip','Sort fit sets by rmsd','Enable','off',...
+    'Callback',@sortRMSDSetButtonCallback);
+
   drawnow
+  
+  set(hFig,'NextPlot','new');
   
 end
 
 % Run fitting routine
 %------------------------------------------------------------
 if (~FitData.GUI)
-  runFitting;
+  [FinalSys,BestSpec,Residuals] = runFitting;
 end
 
 % Arrange outputs
@@ -434,38 +491,53 @@ else
   varargout = cell(1,nargout);
 end
 
-clear global UserCommand smallestError
+clear global UserCommand
 
 %===================================================================
 %===================================================================
 %===================================================================
 
-function runFitting(object,src,event)
+function [FinalSys,BestSpec,Residuals] = runFitting(object,src,event)
 
-global FitOpts FitData UserCommand
+global FitOpts FitData UserCommand errorlist smallestError
+
 UserCommand = 0;
+errorlist = [];
+smallestError = inf;
 
 %===================================================================
 % Update UI, pull settings from UI
 %===================================================================
 if (FitData.GUI)
-  % Hide welcome text
-  delete(findobj('Tag','Welcome'));
     
   % Hide Start button, show Stop button
   set(findobj('Tag','StopButton'),'Visible','on');
   set(findobj('Tag','StartButton'),'Visible','off');
+  set(findobj('Tag','SaveButton'),'Enable','off');
   
   % Disable listboxes and parameter table
   set(findobj('Tag','MethodMenu'),'Enable','off');
   set(findobj('Tag','TargetMenu'),'Enable','off');
   set(findobj('Tag','ScalingMenu'),'Enable','off');
-  set(findobj('Tag','ParameterTable'),'ColumnEditable',[false false false false]);
+  set(findobj('Tag','StartpointMenu'),'Enable','off');
+  
+  % Disable parameter table
+  set(findobj('Tag','selectAllButton'),'Enable','off');
+  set(findobj('Tag','selectNoneButton'),'Enable','off');
+  set(findobj('Tag','selectInvButton'),'Enable','off');
+  set(findobj('Tag','ParameterTable'),'Enable','off');
+
+  % Disable fitset list controls
+  set(findobj('Tag','deleteSetButton'),'Enable','off');
+  set(findobj('Tag','exportSetButton'),'Enable','off');
+  set(findobj('Tag','sortIDSetButton'),'Enable','off');
+  set(findobj('Tag','sortRMSDSetButton'),'Enable','off');
   
   % Determine selected method, target, and scaling
   FitOpts.MethodID = get(findobj('Tag','MethodMenu'),'Value');
   FitOpts.TargetID = get(findobj('Tag','TargetMenu'),'Value');
   FitOpts.Scaling = FitData.ScalingString{get(findobj('Tag','ScalingMenu'),'Value')};
+  FitOpts.Startpoint = get(findobj('Tag','StartpointMenu'),'Value');
   
 end
 
@@ -477,9 +549,7 @@ if (~FitData.GUI)
   if FitOpts.PrintLevel
     disp('-- esfit ------------------------------------------------');
     fprintf('Simulation function:      %s\n',FitData.SimFcnName);
-    fprintf('Number of spectra:        %d\n',FitData.nSpectra);
-    fprintf('Number of components:     %d\n',FitData.nSystems);
-    fprintf('Number of parameters:     %d\n',FitData.nParameters);
+    fprintf('Problem size:             %d spectra, %d components, %d parameters\n',FitData.nSpectra,FitData.nSystems,FitData.nParameters);
     fprintf('Minimization method:      %s\n',FitData.MethodNames{FitOpts.MethodID});
     fprintf('Residuals computed from:  %s\n',FitData.TargetNames{FitOpts.TargetID});
     fprintf('Scaling mode:             %s\n',FitOpts.Scaling);
@@ -489,40 +559,96 @@ end
 
 FitData.bestspec = ones(1,numel(FitData.ExpSpec))*NaN;
 
-if (FitOpts.RandomStart)
-  startx = 2*rand(FitData.nParameters,1) - 1;
-else
-  startx = zeros(FitData.nParameters,1);
-end
-
 if (FitData.GUI)
   data = get(findobj('Tag','ParameterTable'),'Data');
   for iPar = 1:FitData.nParameters
-    FitData.activeParams(iPar) = data{iPar,1}==1;
+    FitData.inactiveParams(iPar) = data{iPar,1}==0;
   end
 end
 
-startx(~FitData.activeParams) = [];
-nParameters = numel(startx);
+switch FitOpts.Startpoint
+  case 1 % center of range
+    startx = zeros(FitData.nParameters,1);
+  case 2 % random
+    startx = 2*rand(FitData.nParameters,1) - 1;
+    startx(FitData.inactiveParams) = 0;
+  case 3 % selected fit set
+    h = findobj('Tag','SetListBox');
+    s = get(h,'String');
+    if ~isempty(s)
+      s = s{get(h,'Value')};
+      ID = sscanf(s,'%d');
+      startx = FitData.FitSets(ID).bestx;
+    else
+      startx = zeros(FitData.nParameters,1);
+    end
+end
+FitData.startx = startx;
 
-if (nParameters>0)
+x0_ = startx;
+x0_(FitData.inactiveParams) = [];
+nParameters_ = numel(x0_);
+
+bestx = startx;
+if (nParameters_>0)
   switch FitOpts.MethodID
     case 1 % Nelder/Mead simplex
-      bestx = fit_simplex(@assess,startx,FitOpts,FitData.ExpSpecScaled,FitData.Sys0,FitData.Vary,FitData.Exp,FitData.SimOpt,FitOpts);
+      bestx0_ = fit_simplex(@assess,x0_,FitOpts,FitData.ExpSpecScaled,FitData.Sys0,FitData.Vary,FitData.Exp,FitData.SimOpt,FitOpts);
     case 2 % Levenberg/Marquardt
       FitOpts.Gradient = FitOpts.TolFun;
-      bestx = fit_levmar(@residuals_,startx,FitOpts,FitData.ExpSpecScaled,FitData.Sys0,FitData.Vary,FitData.Exp,FitData.SimOpt,FitOpts);
+      bestx0_ = fit_levmar(@residuals_,x0_,FitOpts,FitData.ExpSpecScaled,FitData.Sys0,FitData.Vary,FitData.Exp,FitData.SimOpt,FitOpts);
     case 3 % Monte Carlo
-      bestx = fit_montecarlo(@assess,nParameters,FitOpts,FitData.ExpSpecScaled,FitData.Sys0,FitData.Vary,FitData.Exp,FitData.SimOpt,FitOpts);
+      bestx0_ = fit_montecarlo(@assess,nParameters_,FitOpts,FitData.ExpSpecScaled,FitData.Sys0,FitData.Vary,FitData.Exp,FitData.SimOpt,FitOpts);
     case 4 % Genetic
-      bestx = fit_genetic(@assess,nParameters,FitOpts,FitData.ExpSpecScaled,FitData.Sys0,FitData.Vary,FitData.Exp,FitData.SimOpt,FitOpts);
+      bestx0_ = fit_genetic(@assess,nParameters_,FitOpts,FitData.ExpSpecScaled,FitData.Sys0,FitData.Vary,FitData.Exp,FitData.SimOpt,FitOpts);
     case 5 % Grid search
-      bestx = fit_grid(@assess,nParameters,FitOpts,FitData.ExpSpecScaled,FitData.Sys0,FitData.Vary,FitData.Exp,FitData.SimOpt,FitOpts);
+      bestx0_ = fit_grid(@assess,nParameters_,FitOpts,FitData.ExpSpecScaled,FitData.Sys0,FitData.Vary,FitData.Exp,FitData.SimOpt,FitOpts);
     case 6 % Particle swarm
-      bestx = fit_particleswarm(@assess,nParameters,FitOpts,FitData.ExpSpecScaled,FitData.Sys0,FitData.Vary,FitData.Exp,FitData.SimOpt,FitOpts);
+      bestx0_ = fit_particleswarm(@assess,nParameters_,FitOpts,FitData.ExpSpecScaled,FitData.Sys0,FitData.Vary,FitData.Exp,FitData.SimOpt,FitOpts);
   end
-else
-  bestx = startx;
+  bestx(~FitData.inactiveParams) = bestx0_;
+end
+
+if FitData.GUI
+  
+  % Remove current values from parameter table
+  h = findobj('Tag','ParameterTable');
+  Data = get(h,'Data');
+  for p = 1:size(Data,1), Data{p,4} = '-'; end
+  set(h,'Data',Data);
+  
+  % Hide current sim plot in data axes
+  set(findobj('Tag','currsimdata'),'YData',NaN*ones(1,numel(FitData.ExpSpec)));
+  hErrorLine = findobj('Tag','errorline');
+  set(hErrorLine,'XData',1,'YData',NaN);
+  axis(get(hErrorLine,'Parent'),'tight');
+  drawnow
+  set(findobj('Tag','logLine'),'String','');
+
+  % Reactivate UI components
+  set(findobj('Tag','SaveButton'),'Enable','on');
+  
+  if isfield(FitData,'FitSets') && numel(FitData.FitSets)>0
+    set(findobj('Tag','deleteSetButton'),'Enable','on');
+    set(findobj('Tag','exportSetButton'),'Enable','on');
+    set(findobj('Tag','sortIDSetButton'),'Enable','on');
+    set(findobj('Tag','sortRMSDSetButton'),'Enable','on');
+  end
+  
+  set(findobj('Tag','StopButton'),'Visible','off');
+  set(findobj('Tag','StartButton'),'Visible','on');
+  
+  set(findobj('Tag','MethodMenu'),'Enable','on');
+  set(findobj('Tag','TargetMenu'),'Enable','on');
+  set(findobj('Tag','ScalingMenu'),'Enable','on');
+  set(findobj('Tag','StartpointMenu'),'Enable','on');
+  
+  % Re-enable parameter table
+  set(findobj('Tag','selectAllButton'),'Enable','on');
+  set(findobj('Tag','selectNoneButton'),'Enable','on');
+  set(findobj('Tag','selectInvButton'),'Enable','on');
+  set(findobj('Tag','ParameterTable'),'Enable','on');
+  
 end
 
 %===================================================================
@@ -530,29 +656,25 @@ end
 %===================================================================
 
 BestSpec = 0;
+% compile best-fit system structures
+[FinalSys,bestvalues] = getSystems(FitData.Sys0,FitData.Vary,bestx);
+
+% Simulate best-fit spectrum
 for iSys=1:numel(FitData.Sys0)
-  paramidx = FitData.xidx(iSys):FitData.xidx(iSys+1)-1;
-  inactive = FitData.inactiveParams(paramidx);
-  xx = zeros(1,numel(paramidx));
-  xx(~inactive) = bestx;
-  FinalSys{iSys} = getSystem(FitData.Sys0{iSys},FitData.Vary{iSys},xx(paramidx));
-end
-for iSys=1:numel(FitData.Sys0)
-  % Simulate spectrum, Sys.weight is taken into account by the simulation function
   if isfield(FinalSys{iSys},'fcn')
     [x,b_] = feval(FitData.SimFcnName,FinalSys{iSys}.fcn(FinalSys{iSys}),Exp,SimOpt);
   else
     [x,b_] = feval(FitData.SimFcnName,FinalSys{iSys},FitData.Exp,FitData.SimOpt);
   end
+  %(Sys.weight is taken into account by the simulation function)
   BestSpec = BestSpec + b_;
 end
 BestSpecScaled = rescale(BestSpec,FitData.ExpSpecScaled,FitOpts.Scaling);
 BestSpec = rescale(BestSpec,FitData.ExpSpec,FitOpts.Scaling);
 
-Residuals_ = getResiduals(BestSpecScaled(:),FitData.ExpSpecScaled(:),FitOpts.TargetID);
-RmsResidual = sqrt(mean(Residuals_.^2));
-Residuals.Rms = RmsResidual;
-
+Residuals = getResiduals(BestSpecScaled(:),FitData.ExpSpecScaled(:),FitOpts.TargetID);
+Residuals = Residuals.';
+rmsd = sqrt(mean(Residuals.^2));
 
 % Output
 %===================================================================
@@ -562,46 +684,30 @@ if (~FitData.GUI)
     disp('Best-fit parameters:');
     str = bestfitlist(FinalSys,FitData.Vary);
     fprintf(str);
-    fprintf('Residuals of best fit:\n    rms  %g\n',RmsResidual);
+    fprintf('Residuals of best fit:\n    rmsd  %g\n',rmsd);
     disp('=========================================================');
   end
 end
 
+  
 if FitData.GUI
   
-  % Add current set to set list
-  ID = FitData.lastSetID+1;
-  FitData.lastSetID = ID;
-  newFitSet.ID = ID;
-  newFitSet.rmsd = RmsResidual;
-  newFitSet.BestSpec = BestSpecScaled;
-  newFitSet.Residuals = Residuals_;
+  % Safe current set to set list
+  newFitSet.rmsd = rmsd;
+  newFitSet.fitSpec = BestSpecScaled;
+  newFitSet.expSpec = FitData.ExpSpecScaled;
+  newFitSet.residuals = Residuals;
+  newFitSet.bestx = bestx;
+  newFitSet.bestvalues = bestvalues;
+  TargetKey = {'fcn','int','iint','diff','fft'};
+  newFitSet.Target = TargetKey{FitOpts.TargetID};
+  if numel(FinalSys)==1
+    newFitSet.Sys = FinalSys{1};
+  else
+    newFitSet.Sys = FinalSys;
+  end
+  FitData.currFitSet = newFitSet;
   
-  FitData.FitSets(ID) = newFitSet;
-  
-  h = findobj('Tag','SetListBox');
-  str = get(h,'String');
-  str{end+1} = sprintf('%d. rmsd %f',newFitSet.ID,newFitSet.rmsd);
-  set(h,'String',str);
-  set(h,'Value',length(str));
-  set(findobj('Tag','deleteSetButton'),'Enable','on');
-
-  % Remove current values from parameter table
-  h = findobj('Tag','ParameterTable');
-  Data = get(h,'Data');
-  for p = 1:size(Data,1), Data{p,4} = '-'; end
-  set(h,'Data',Data);
-  
-  % Hide current sim plot in data axes
-  set(findobj('Tag','currsimdata'),'YData',NaN*ones(1,numel(BestSpec)));
-
-  % Reactivate UI components
-  set(findobj('Tag','StopButton'),'Visible','off');
-  set(findobj('Tag','StartButton'),'Visible','on');
-  set(findobj('Tag','MethodMenu'),'Enable','on');
-  set(findobj('Tag','TargetMenu'),'Enable','on');
-  set(findobj('Tag','ScalingMenu'),'Enable','on');
-  set(findobj('Tag','ParameterTable'),'ColumnEditable',[true false false false]);
 end
 
 return
@@ -618,16 +724,13 @@ function varargout = assess(x,ExpSpec,Sys0,Vary,Exp,SimOpt,FitOpt)
 global UserCommand FitData smallestError errorlist
 persistent BestSys;
 
-if isempty(smallestError), smallestError = inf; end
-
 % Simulate spectra ------------------------------------------
 simspec = 0;
+inactive = FitData.inactiveParams;
+x_all = FitData.startx;
+x_all(~inactive) = x;
+[SimSystems,simvalues] = getSystems(Sys0,Vary,x_all);
 for s = 1:numel(Sys0)
-  paramidx = FitData.xidx(s):FitData.xidx(s+1)-1;
-  inactive = FitData.inactiveParams(paramidx);
-  xx = zeros(1,numel(paramidx));
-  xx(~inactive) = x;
-  SimSystems{s} = getSystem(Sys0{s},Vary{s},xx(paramidx),inactive);
   % (SimSystems{s}.weight is taken into account in the simulation function)
   if isfield(SimSystems{s},'fcn')
     newsim_ = feval(FitData.SimFcnName,SimSystems{s}.fcn(SimSystems{s}),Exp,SimOpt);
@@ -642,13 +745,13 @@ simspec = rescale(simspec,ExpSpec,FitOpt.Scaling);
 
 % Compute residuals ------------------------------
 residuals = getResiduals(simspec(:),ExpSpec(:),FitOpt.TargetID);
-rms = sqrt(mean(residuals.^2));
+rmsd = sqrt(mean(residuals.^2));
 
-errorlist = [errorlist rms];
-isNewBest = rms<smallestError;
+errorlist = [errorlist rmsd];
+isNewBest = rmsd<smallestError;
 
 if isNewBest
-  smallestError = rms;
+  smallestError = rmsd;
   FitData.bestspec = simspec;
   BestSys = SimSystems;
 end
@@ -663,57 +766,62 @@ if (FitData.GUI) && (UserCommand~=99)
   set(findobj('Tag','currsimdata'),'XData',1:numel(ExpSpec),'YData',simspec);
   drawnow
   
+  % update numbers parameter table
   if (UserCommand~=99)
     
-    % current system is new best
-    if isNewBest
-      [str,values] = bestfitlist(BestSys,Vary);
-      str = [sprintf('RMS error: %g\n',smallestError)];
-      hRmsText = findobj('Tag','RmsText');
-      if ishandle(hRmsText)
-        set(hRmsText,'String',str);
+    % current system set
+    hParamTable = findobj('Tag','ParameterTable');
+    data = get(hParamTable,'data');
+    for p=1:numel(simvalues)
+      olddata = striphtml(data{p,4});
+      newdata = sprintf('%0.6f',simvalues(p));
+      idx = 1;
+      while (idx<=length(olddata)) && (idx<=length(newdata))
+        if olddata(idx)~=newdata(idx), break; end
+        idx = idx + 1;
       end
-      hParamTable = findobj('Tag','ParameterTable');
-      if ishandle(hParamTable)
-        data = get(hParamTable,'data');
-        for p=1:numel(values)
-          olddata = striphtml(data{p,3});
-          newdata = sprintf('%0.6g',values(p));
-          idx = 1;
-          while (idx<=length(olddata)) && (idx<=length(newdata))
-            if olddata(idx)~=newdata(idx), break; end
-            idx = idx + 1;
-          end
-          data{p,3} = ['<html><font color="#000000">' newdata(1:idx-1) '</font><font color="#009900">' newdata(idx:end) '</font></html>'];
-        end
-        set(hParamTable,'Data',data);
+      active = data{p,1};
+      if active
+        data{p,4} = ['<html><font color="#000000">' newdata(1:idx-1) '</font><font color="#ff0000">' newdata(idx:end) '</font></html>'];
+      else
+        data{p,4} = ['<html><font color="#888888">' newdata '</font></html>'];
       end
     end
     
-    % current system
-    [str,values] = bestfitlist(SimSystems,Vary);
-    hParamTable = findobj('Tag','ParameterTable');
-    if ishandle(hParamTable)
-      data = get(hParamTable,'data');
+    % current system set is new best
+    if isNewBest
+      [str,values] = getSystems(BestSys,Vary);
+      
+      str = [sprintf(' RMSD: %g\n',(smallestError))];
+      hRmsText = findobj('Tag','RmsText');
+      set(hRmsText,'String',str);
+      
       for p=1:numel(values)
-        olddata = striphtml(data{p,4});
-        newdata = sprintf('%0.6f',values(p));
+        olddata = striphtml(data{p,3});
+        newdata = sprintf('%0.6g',values(p));
         idx = 1;
         while (idx<=length(olddata)) && (idx<=length(newdata))
           if olddata(idx)~=newdata(idx), break; end
           idx = idx + 1;
         end
-        data{p,4} = ['<html><font color="#000000">' newdata(1:idx-1) '</font><font color="#ff0000">' newdata(idx:end) '</font></html>'];
+        active = data{p,1};
+        if active
+          data{p,3} = ['<html><font color="#000000">' newdata(1:idx-1) '</font><font color="#009900">' newdata(idx:end) '</font></html>'];
+        else
+          data{p,3} = ['<html><font color="#888888">' newdata '</font></html>'];
+        end
       end
-      set(hParamTable,'Data',data);
     end
+    set(hParamTable,'Data',data);
+    
   end
   
   hErrorLine = findobj('Tag','errorline');
   if ~isempty(hErrorLine)
-    n = min(200,numel(errorlist));
+    n = min(100,numel(errorlist));
     set(hErrorLine,'XData',1:n,'YData',log10(errorlist(end-n+1:end)));
-    axis(get(hErrorLine,'Parent'),'tight');
+    ax = get(hErrorLine,'Parent');
+    axis(ax,'tight');
     drawnow
   end
   
@@ -728,7 +836,7 @@ if (UserCommand==2)
   disp('---------------------------------------------')
 end
 
-out = {rms,residuals,simspec};
+out = {rmsd,residuals,simspec};
 varargout = out(1:nargout);
 return
 %==========================================================================
@@ -736,29 +844,69 @@ return
 
 
 %==========================================================================
-function Sys = getSystem(Sys0,Vary,x,skip)
-
-persistent Vary0 Fields Indices Vals;
-
-if isempty(Vary0) || ~isequal(Vary,Vary0);
-  Vary0 = Vary;
-  [Fields,Indices,Vals] = getParameters(Vary);
-end
-
-Sys = Sys0;
-Shifts = x(:).*Vals;
-if nargin>3, Shifts(skip) = 0; end
-for k = 1:numel(x)
-  f = Sys.(Fields{k});
-  idx = Indices(k,:);
-  f(idx(1),idx(2)) = f(idx(1),idx(2)) + Shifts(k);
-  Sys.(Fields{k}) = f;
+function [Sys,values] = getSystems(Sys0,Vary,x)
+global FitData
+values = [];
+if nargin==3, x = x(:); end
+for s=1:numel(Sys0)
+  [Fields,Indices,VaryVals] = getParameters(Vary{s});
+  
+  Sys_ = Sys0{s};
+  
+  pidx = FitData.xidx(s):FitData.xidx(s+1)-1;
+  if (nargin<3)
+    Shifts = zeros(1,numel(VaryVals)).';
+  else
+    Shifts = x(pidx).*VaryVals(:);
+  end
+  clear values_;
+  for p = 1:numel(VaryVals)
+    f = Sys_.(Fields{p});
+    idx = Indices(p,:);
+    values_(p) = f(idx(1),idx(2)) + Shifts(p);
+    f(idx(1),idx(2)) = values_(p);
+    Sys_.(Fields{p}) = f;
+  end
+  
+  values = [values values_];
+  Sys{s} = Sys_;
+  
 end
 
 return
 %==========================================================================
 
 
+function [parNames,parCenter,parVary] = getParamList(Sys,Vary)
+nSystems = numel(Sys);
+p = 1;
+for s = 1:nSystems
+  AllFields = fieldnames(Vary{s});
+  for iField = 1:numel(AllFields)
+    fieldname = AllFields{iField};
+    CenterFieldValue = Sys{s}.(fieldname);
+    VaryFieldValue = Vary{s}.(fieldname);
+    [idx1,idx2] = find(VaryFieldValue);
+    idx = sortrows([idx1(:) idx2(:)]);
+    singletonDims = sum(size(CenterFieldValue)==1);
+    for iVal = 1:numel(idx1)
+      parCenter(p) = CenterFieldValue(idx(iVal,1),idx(iVal,2));
+      parVary(p) = VaryFieldValue(idx(iVal,1),idx(iVal,2));
+      Indices = idx(iVal,:);
+      if singletonDims==1
+        parName_ = sprintf('(%d)',max(Indices));
+      elseif singletonDims==0
+        parName_ = sprintf('(%d,%d)',Indices(1),Indices(2));
+      else
+        parName_ = '';
+      end
+      parNames{p} = [fieldname parName_];
+      if (nSystems>1), parNames{p} = [char('A')-1+s '.' parNames{p}]; end
+      p = p + 1;
+    end
+  end
+end
+return
 
 %==========================================================================
 function [Fields,Indices,Values] = getParameters(Vary)
@@ -788,10 +936,10 @@ return
 function [str,Values] = bestfitlist(Sys,Vary)
 nSystems = numel(Sys);
 str = [];
+p = 1;
 for s=1:nSystems
   AllFields = fieldnames(Vary{s});
   if numel(AllFields)==0, continue; end
-  p = 1;
   for iField = 1:numel(AllFields)
     fieldname = AllFields{iField};
     FieldValue = Sys{s}.(fieldname);
@@ -803,26 +951,27 @@ for s=1:nSystems
       Indices(p,:) = idx(i,:);
       singletonDims(p) = singletonDims_;
       Values(p) = FieldValue(idx(i,1),idx(i,2));
+      Component(p) = s;
       p = p + 1;
     end
   end
-  if (nSystems>1)
-    str = [str sprintf('  Component %d\n',s)];
+end
+nParameters = p-1;
+
+for p=1:nParameters
+  if (nSystems>1) && ((p==1) || Component(p-1)~=Component(p))
+    str = [str sprintf('component %s\n',char('A'-1+Component(p)))];
   end
-  nValues = p-1;
-  for p = 1:nValues
-    if singletonDims(p)==2
-      str = [str sprintf('     %7s:   %0.7g\n',Fields{p},Values(p))];
-    elseif singletonDims(p)==1
-      str = [str sprintf('  %7s(%d):   %0.7g\n',Fields{p},max(Indices(p,:)),Values(p))];
-    else
-      str = [str sprintf('%7s(%d,%d):   %0.7g\n',Fields{p},Indices(p,1),Indices(p,2),Values(p))];
-    end
-  end
-  if (nargout==0)
-    fprintf(str);
+  if singletonDims(p)==2
+    str = [str sprintf('     %7s:   %0.7g\n',Fields{p},Values(p))];
+  elseif singletonDims(p)==1
+    str = [str sprintf('  %7s(%d):   %0.7g\n',Fields{p},max(Indices(p,:)),Values(p))];
+  else
+    str = [str sprintf('%7s(%d,%d):   %0.7g\n',Fields{p},Indices(p,1),Indices(p,2),Values(p))];
   end
 end
+
+if (nargout==0), fprintf(str); end
 return
 %==========================================================================
 
@@ -899,35 +1048,168 @@ if (FitOpt.Plot) && (UserCommand~=99)
 end
 return
 
-function lineStyleButtonCallback(object,src,event)
-h = findobj('Tag','ExpData');
-if get(h,'LineStyle')=='-'
-  set(h,'LineStyle','none');
-  set(h,'Marker','.');
-else
-  set(h,'LineStyle','-');
-  set(h,'Marker','.');
-end
-return
-
 function deleteSetButtonCallback(object,src,event)
+global FitData
 h = findobj('Tag','SetListBox');
 idx = get(h,'Value');
 str = get(h,'String');
-if ~isempty(str)
-  str(idx) = [];
-  if idx>length(str), idx = length(str); end
+nSets = numel(str);
+if (nSets>0)
+  ID = sscanf(str{idx},'%d');
+  for k = numel(FitData.FitSets):-1:1
+    if (FitData.FitSets(k).ID==ID)
+      FitData.FitSets(k) = [];
+    end
+  end
+  if idx>length(FitData.FitSets), idx = length(FitData.FitSets); end
   if (idx==0), idx = 1; end
   set(h,'Value',idx);
-  set(h,'String',str);
+  refreshFitsetList(0);
 end
+
+str = get(h,'String');
 if isempty(str)
   set(findobj('Tag','deleteSetButton'),'Enable','off');
+  set(findobj('Tag','exportSetButton'),'Enable','off');
+  set(findobj('Tag','sortIDSetButton'),'Enable','off');
+  set(findobj('Tag','sortRMSDSetButton'),'Enable','off');
 end
 return
 
 function deleteSetListKeyPressFcn(object,event)
 if strcmp(event.Key,'delete')
   deleteSetButtonCallback(object,gco,event);
+  displayFitSet
 end
+return
+
+function setListCallback(object,src,event)
+  displayFitSet
+return
+
+function displayFitSet
+global FitData
+h = findobj('Tag','SetListBox');
+idx = get(h,'Value');
+str = get(h,'String');
+if ~isempty(str)
+  ID = sscanf(str{idx},'%d');
+
+  idx = 0;
+  for k=1:numel(FitData.FitSets)
+    if FitData.FitSets(k).ID==ID, idx = k; break; end
+  end
+  
+  if (idx>0)
+    fitset = FitData.FitSets(idx);
+    
+    h = findobj('Tag','ParameterTable');
+    data = get(h,'data');
+    values = fitset.bestvalues;
+    for p = 1:numel(values)
+      data{p,3} = sprintf('%0.6g',values(p));
+    end
+    set(h,'Data',data);
+    
+    h = findobj('Tag','bestsimdata');
+    set(h,'YData',fitset.fitSpec);
+    drawnow
+  end
+else
+  h = findobj('Tag','bestsimdata');
+  set(h,'YData',get(h,'YData')*NaN);
+  drawnow;
+end
+
+return
+
+function exportSetButtonCallback(object,src,event)
+global FitData
+h = findobj('Tag','SetListBox');
+v = get(h,'Value');
+s = get(h,'String');
+ID = sscanf(s{v},'%d');
+for k=1:numel(FitData.FitSets), if FitData.FitSets(k).ID==ID, break; end, end
+varname = sprintf('fit%d',ID);
+fitSet = rmfield(FitData.FitSets(k),'bestx');
+assignin('base',varname,fitSet);
+fprintf('Fit set %d assigned to variable ''%s''.\n',ID,varname);
+evalin('base',varname);
+return
+
+function selectAllButtonCallback(object,src,event)
+h = findobj('Tag','ParameterTable');
+d = get(h,'Data');
+d(:,1) = {true};
+set(h,'Data',d);
+return
+
+function selectNoneButtonCallback(object,src,event)
+h = findobj('Tag','ParameterTable');
+d = get(h,'Data');
+d(:,1) = {false};
+set(h,'Data',d);
+return
+
+function selectInvButtonCallback(object,src,event)
+h = findobj('Tag','ParameterTable');
+d = get(h,'Data');
+for k=1:size(d,1)
+  d{k,1} = ~d{k,1};
+end
+set(h,'Data',d);
+return
+
+function sortIDSetButtonCallback(object,src,event)
+global FitData
+for k=1:numel(FitData.FitSets)
+  ID(k) = FitData.FitSets(k).ID;
+end
+[ID,idx] = sort(ID);
+FitData.FitSets = FitData.FitSets(idx);
+refreshFitsetList(0);
+return
+
+function sortRMSDSetButtonCallback(object,src,event)
+global FitData
+for k=1:numel(FitData.FitSets)
+  rmsd(k) = FitData.FitSets(k).rmsd;
+end
+[rmsd,idx] = sort(rmsd);
+FitData.FitSets = FitData.FitSets(idx);
+refreshFitsetList(0);
+return
+
+function refreshFitsetList(idx)
+global FitData FitOpts
+h = findobj('Tag','SetListBox');
+nSets = numel(FitData.FitSets);
+for k=1:nSets
+  s{k} = sprintf('%d. rmsd %g (%s)',...
+    FitData.FitSets(k).ID,FitData.FitSets(k).rmsd,FitData.FitSets(k).Target);
+end
+if nSets==0, s = {}; end
+set(h,'String',s);
+if (idx>0), set(h,'Value',idx); end
+if (idx==-1), set(h,'Value',numel(s)); end
+
+if nSets>0, state = 'on'; else state = 'off'; end
+set(findobj('Tag','deleteSetButton'),'Enable',state);
+set(findobj('Tag','exportSetButton'),'Enable',state);
+set(findobj('Tag','sortIDSetButton'),'Enable',state);
+set(findobj('Tag','sortRMSDSetButton'),'Enable',state);
+
+displayFitSet;
+return
+
+function saveFitsetCallback(object,src,event)
+global FitData
+FitData.lastSetID = FitData.lastSetID+1;
+FitData.currFitSet.ID = FitData.lastSetID;
+if ~isfield(FitData,'FitSets') || isempty(FitData.FitSets)
+  FitData.FitSets(1) = FitData.currFitSet;
+else
+  FitData.FitSets(end+1) = FitData.currFitSet;
+end
+refreshFitsetList(-1);
 return

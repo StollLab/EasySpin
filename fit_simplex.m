@@ -73,7 +73,7 @@ Procedure = 'initial simplex';
 iIteration = iIteration + 1;
 
 if Opt.PrintLevel
-  template = ' %4d:    %0.5e    %0.5e    %s';
+  template = ' %4d:  %0.5e  %0.5e  %s';
   str = sprintf(template,iIteration,fv(1),delta,Procedure);
   Opt.IterationPrintFunction(str);
 end
