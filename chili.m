@@ -188,9 +188,6 @@ end
 
 
 % Resonator mode
-if isfield(Exp,'Detection')
-  error('Exp.Detection is obsolete. Use Exp.Mode instead.');
-end
 switch Exp.Mode
   case 'perpendicular', ParallelMode = 0;
   case 'parallel', ParallelMode = 1;
@@ -265,6 +262,18 @@ end
 logmsg(1,'  field range [mT]: min %g, max %g, center %g, width %g',...
   Exp.Range(1),Exp.Range(2),Exp.CenterField,Exp.Sweep);
 
+% Complain if fields only valid in pepper() are given
+if isfield(Exp,'Orientations')
+  warning('Exp.Orientations is not used by chili.');
+end
+if isfield(Exp,'Ordering')
+  warning('Exp.Ordering is not used by chili.');
+end
+if isfield(Exp,'CrystalSymmetry')
+  warning('Exp.CrystalSymmetry is not used by chili.');
+end
+
+  
 % Options
 %-------------------------------------------------------------------
 if isempty(Opt), Opt = struct('unused',NaN); end
@@ -290,6 +299,14 @@ if ~isfield(Opt,'LLKM')
   Opt.LLKM = [14 7 6 2];
 end
 Basis.LLKM = Opt.LLKM;
+if ~isfield(Opt,'pSmin')
+  Opt.pSmin = 0;
+end
+Basis.pSmin = Opt.pSmin;
+if ~isfield(Opt,'pImax')
+  Opt.pImax = [];
+end
+Basis.pImax = Opt.pImax;
 
 switch Opt.SolveMethod
   case 'L'
@@ -345,7 +362,6 @@ logmsg(1,'Examining basis...');
 logmsg(1,'  Le,Lo,K,M:  %d,%d,%d,%d',...
   Basis.LLKM(1),Basis.LLKM(2),Basis.LLKM(3),Basis.LLKM(4));
 logmsg(1,'  basis size: %d',Basis.Size);
-
 
 % Set up list of orientations
 %=====================================================================
@@ -751,13 +767,13 @@ if (Sys.nNuclei==0)
   Basis.pImax = 0;
 elseif (Sys.nNuclei==1)
   pImax = 2*Sys.I;
-  if ~isfield(Basis,'pImax')
+  if ~isfield(Basis,'pImax') || isempty(Basis.pImax)
     Basis.pImax = pImax;
   end
   Basis.pImax = min(Basis.pImax,pImax);
 else
   pImax = 2*Sys.I;
-  if ~isfield(Basis,'pImax')
+  if ~isfield(Basis,'pImax') || isempty(Basis.pImax)
     Basis.pImax = pImax;
   end
   Basis.pImax = min(Basis.pImax,pImax);
@@ -765,6 +781,7 @@ else
   Basis.pI2max = Basis.pImax(2);
 end
 
+% pSmin
 if ~isfield(Basis,'pSmin')
   Basis.pSmin = 0;
 end
