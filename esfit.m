@@ -919,10 +919,11 @@ p = 1;
 for iField = 1:numel(allFields)
   FieldValue = Vary.(allFields{iField});
   [idx1,idx2] = find(FieldValue);
+  idx = sortrows([idx1(:) idx2(:)]);
   for i = 1:numel(idx1)
     Fields{p} = allFields{iField};
-    Indices(p,:) = [idx1(i) idx2(i)];
-    Values(p) = FieldValue(idx1(i),idx2(i));
+    Indices(p,:) = [idx(i,1) idx(i,2)];
+    Values(p) = FieldValue(idx(i,1),idx(i,2));
     p = p + 1;
   end
 end
