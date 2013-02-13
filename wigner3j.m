@@ -185,7 +185,10 @@ switch Method
       binsum = binsum.add(p);
     end
     n = length(binsum.toString)-1; % 10-base exponent
-    b = java.math.BigDecimal(binsum).movePointLeft(n).doubleValue;
+    % don't merge the following three lines - Matlab 7.5 throws an error
+    b = java.math.BigDecimal(binsum);
+    b = b.movePointLeft(n);
+    b = b.doubleValue;
     
     prefactor_ln = ...
       facln(j1+m1) + facln(j1-m1) + facln(j2+m2) + facln(j2-m2) + ...
