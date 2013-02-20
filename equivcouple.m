@@ -1,20 +1,19 @@
-% equivcouple   Coupling of equivalent spins 
+% equivcouple   Combination of equivalent spins 
 %
-%  [K,N] = equivcouple(I,n)
+%  [F,N] = equivcouple(I,n)
 %
-%  The states due to n spins-I can be coupled to give
+%  The states due to n spins-I can be combined to give
 %  a set of independent spins. Their quantum numbers
-%  are returned in K, their respective abundance
-%  in N.
+%  are returned in F, their respective abundances in N.
 %
 %  Example:
 %
-%     [K,N] = equivcouple(1/2,5)
+%     [F,N] = equivcouple(1/2,5)
 %
-%  5 spins-1/2 give rise to a first-order splitting
-%  pattern [1 5 10 10 5 1] (see the function
-%  equivsplit). This can be decomposed into one
-%  spin-5/2, four spin-3/2 and five spin-1/2 according to
+%  5 spins-1/2 give rise to a first-order splitting pattern
+%  [1 5 10 10 5 1] (see the function equivsplit). This can be
+%  decomposed into one spin-5/2, four spin-3/2 and five spin-1/2
+%  according to
 %
 %          5  5          5 spins-1/2
 %       4  4  4  4       4 spins-3/2
@@ -22,36 +21,37 @@
 %   ------------------
 %    1  5 10 10  5  1    sum
 %
-%  so K = [2.5 1.5 0.5] and N = [1 4 5].
+%  so F = [2.5 1.5 0.5] and N = [1 4 5].
+%
+%  In group theoretical terms, this corresponds to the reduction
+%  of a product of n irreps of dimension 2*I of the rotation group
+%  into a direct sum of irreps (Clebsch-Gordan decomposition).
 
-function [K,N] = equivcouple(I,n)
+function [F,N] = equivcouple(I,n)
 
 if (nargin==0), help(mfilename); return; end
 
-RowVec = equivsplit(I,n);
+% Special case n=1: no action
+if (n==1), F = I; N = n; return; end
 
-% List of recoupled spin quantum numbers
-%------------------------------------------------
-largestSpin = (length(RowVec)-1)/2;
-K = largestSpin:-1:0;
+% (1) List of reduced spin quantum numbers
+F = I*n:-1:0; 
 
-% Number of spins for each recoupled spin quantum number
-% -------------------------------------------------------
-nKSpins = length(K);
-N = [1 diff(RowVec(1:nKSpins))];
-
-if N(end)==0
-  K(end) = [];
-  N(end) = [];
+% (2) Compute number of spins for each reduced spin quantum number
+E = ones(1,2*I+1);
+RowVec = 1;
+for q = 1:n
+  RowVec = conv(RowVec,E);
 end
+RowVec = [0, RowVec];
+dRowVec = diff(RowVec);
+
+N = dRowVec(1:length(F));
+
+% Mathematical basis:
+% Reduction of tensor product representations of rotation group
+% using Clebsch-Gordan direct sum decomposition. For two spins:
+% D^(j1)xD(j2) = sum_{j=|j1-j2|}^{j1+j2} D^(j)
+% For multiple spins, recursive.
 
 return
-
-% test code
-[K,N] = equivcouple(1/2,5);
-TestOK(1) = all(K==[5/2 3/2 1/2]) & all(N==[1 4 5]);
-
-[K,N] = equivcouple(1,2);
-TestOK(2) = all(K==[2 1 0]) & all(N==[1 1 1]);
-
-TestOK
