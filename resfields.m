@@ -84,8 +84,11 @@ end
 System.gAStrainCorr = sign(System.gAStrainCorr);
 
 if (System.nElectrons>1)
-  if any(System.gStrain) || any(System.AStrain)
-    error('Cannot use D or g/A strain in spin system with more than one electron spin.');
+  if any(System.gStrain(:))
+    error('gStrain is not supported in spin systems with more than one electron spin.');
+  end
+  if any(System.AStrain(:))
+    error('AStrain is not supported in spin systems with more than one electron spin.');
   end
 end
 
@@ -93,7 +96,7 @@ if any(System.gStrain) || any(System.AStrain)
   gFull = size(System.g,1)==3*numel(System.S);
   %aFull = size(System.A,1)==3*(1+sum(System.Nucs==','));
   if gFull
-    error('gStrain and AStrain are not allowed when full g matrices are given!');
+    error('gStrain and AStrain are not supported when full g matrices are given!');
   end
   if any(System.DStrain)
     error('D strain and g/A strain cannot be used at the same time.');
@@ -101,7 +104,7 @@ if any(System.gStrain) || any(System.AStrain)
 end
 
 if any(System.DStrain(:)) && any(System.Dpa(:))
-  error('D stain cannot be used with tilted D tensors.');
+  error('D strain cannot be used with tilted D tensors.');
 end
 
 % Process Parameters.
@@ -619,8 +622,8 @@ if (ComputeStrains)
   %   = D*(2*Sz^2-Sx^2-Sy^2)/3 + E*(Sx^2-Sy^2)
   % D strain: independent distributions in D and E parameters.
   % System.DStrain: [FWHM_D FWHM_E] in MHz.
-  UseDStrain = any(CoreSys.DStrain(:));
-  if UseDStrain
+  useDStrain = any(CoreSys.DStrain(:));
+  if useDStrain
     for iEl = 1:CoreSys.nElectrons
       
       % Since S^T D S = S^T (R D_diag R^T) S = (S^T R) D_diag (R^T S),
@@ -677,18 +680,19 @@ if (ComputeStrains)
   
   % g-A strain
   %-------------------------------------------------
-  % g strain tensor is taken to be along the g tensor itself.
-  gStrainMatrix = diag(CoreSys.gStrain./CoreSys.g(1,:))*mwFreq;
+  % g strain tensor is taken to be aligned with the g tensor
+  % g/A strain is limited to the first electron and nuclear spin
+  gStrain1Matrix = diag(CoreSys.gStrain./CoreSys.g(1,:))*mwFreq;
   if isfield(CoreSys,'gpa')
     Rp = erot(CoreSys.gpa(1,:));
-    gStrainMatrix = Rp*gStrainMatrix*Rp.';
+    gStrain1Matrix = Rp*gStrain1Matrix*Rp.';
   end
   if (CoreSys.nNuclei>0) && any(CoreSys.AStrain)
     % Get A strain matrix in g frame.
-    AStrainMatrix = diag(CoreSys.AStrain);
+    AStrain1Matrix = diag(CoreSys.AStrain);
     if isfield(CoreSys,'Apa')
       Rp = erot(CoreSys.Apa(1,:));
-      AStrainMatrix = Rp*AStrainMatrix*Rp.';
+      AStrain1Matrix = Rp*AStrain1Matrix*Rp.';
     end
     % Diagonalize Hamiltonian at centre field.
     centreB = mean(Exp.Range);
@@ -699,22 +703,22 @@ if (ComputeStrains)
     mI = real(diag(Vs'*sop(CoreSys,2,3)*Vs));
     mITr = mean(mI(Transitions),2);
     % compute A strain array
-    AStrainMatrix = reshape(mITr(:,ones(1,9)).',[3,3,nTransitions]).*...
-      repmat(AStrainMatrix,[1,1,nTransitions]);
+    AStrain1Matrix = reshape(mITr(:,ones(1,9)).',[3,3,nTransitions]).*...
+      repmat(AStrain1Matrix,[1,1,nTransitions]);
     corr = System.gAStrainCorr;
-    gAslw2 = (repmat(gStrainMatrix,[1,1,nTransitions])+corr*AStrainMatrix).^2;
+    gAslw2 = (repmat(gStrain1Matrix,[1,1,nTransitions])+corr*AStrain1Matrix).^2;
     clear AStrainMatrix Vs E idx mI mITr
   else
-    gAslw2 = repmat(gStrainMatrix.^2,[1,1,nTransitions]);
+    gAslw2 = repmat(gStrain1Matrix.^2,[1,1,nTransitions]);
   end
   clear gslw
   % gAslw2 = now an 3D array with 3x3 strain line-width matrices
   % for each transition piled up along the third dimension.
-  gA = any(gAslw2(:)); % Switch to indicate g/A strain.
+  usegAStrain = any(gAslw2(:)); % Switch to indicate g/A strain.
   
   if any(HStrain2), logmsg(2,'  ## using H strain'); end
-  if gA, logmsg(2,'  ## using g/A strain'); end
-  if UseDStrain, logmsg(2,'  ## using D strain'); end
+  if usegAStrain, logmsg(2,'  ## using g/A strain'); end
+  if useDStrain, logmsg(2,'  ## using D strain'); end
   
 else
   logmsg(1,'  no strains specified',nTransitions);
@@ -1086,11 +1090,11 @@ for iOri = 1:nOrientations
           % H strain
           LineWidth2 = LineWidthSquared;
           % g and A strain
-          if gA
+          if usegAStrain
             LineWidth2 = LineWidth2 + zLab*gAslw2(:,:,iTrans)*zLab.';
           end
           % D strain
-          if UseDStrain
+          if useDStrain
             for iEl = 1:CoreSys.nElectrons
               % add D contribution
               LineWidth2 = LineWidth2 + abs(real((V'-U')*dHdD{iEl}*(V+U)))^2;
