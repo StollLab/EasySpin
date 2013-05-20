@@ -37,6 +37,7 @@ end
 str = NucString;
 
 str(isspace(str)) = []; % remove whitespace
+if str(end)==',', str(end) = []; end % remove trailing comma if present
 N = length(str);
 
 if (SingleIsotopologue)
