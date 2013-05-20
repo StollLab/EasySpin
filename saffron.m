@@ -956,9 +956,14 @@ else
     
     % Nuclear quadrupole ---------------------------------------------
     if (Sys.I(iNuc)>=1)
-      Rq = eye(3);
-      if isfield(Sys,'Qpa'), Rq = erot(Sys.Qpa(iNuc,:)); end
-      Q = Rq*diag(Sys.Q(iNuc,:))*Rq'; Q = (Q + Q.')/2;
+      if Sys.fullQ
+        Q = Sys.Q((iNuc-1)*3+(1:3),:);
+      else
+        Rq = eye(3);
+        if isfield(Sys,'Qpa'), Rq = erot(Sys.Qpa(iNuc,:)); end
+        Q = Rq*diag(Sys.Q(iNuc,:))*Rq';
+        Q = (Q + Q.')/2;
+      end
       Hnq_ = ...
         Ix*(Q(1,1)*Ix + Q(1,2)*Iy + Q(1,3)*Iz) + ...
         Iy*(Q(2,1)*Ix + Q(2,2)*Iy + Q(2,3)*Iz) + ...
