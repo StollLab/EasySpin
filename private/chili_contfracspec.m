@@ -10,8 +10,8 @@
 function spec = chili_contfracspec(z,alpha,beta,k,Method)
 
 if (nargin<4), k = numel(alpha); end
-if ((numel(alpha)<k) | (numel(beta)<k))
-  error(sprintf('alpha and/or beta have less than than %d elements!',k));
+if ((numel(alpha)<k) || (numel(beta)<k))
+  error('alpha and/or beta have less than than %d elements!',k);
 end
 
 % Evaluate continued-fraction expression
