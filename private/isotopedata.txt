@@ -17,8 +17,8 @@
 %            NaN indicates 'not measured'
 %
 % Nuclear magnetic moments are taken from Stone, Table of Nuclear
-% Magnetic Dipole and Electric Quadrupole Moments, Atomic Data
-% and Nuclear Data Tables 90, 75-176 (2005).
+% Magnetic Dipole and Electric Quadrupole Moments, International
+% Atomic Energy Agency, INDC(NDS)-0594, 2011.
 %
 % Nuclear quadrupole moments are taken from P.Pyykkö, Mol.Phys.
 % 99, 1617-1629 (2001) and the 2002 edition of the CRC Handbook
@@ -27,8 +27,8 @@
 %--------------------------------------------------------------
 % first period
 %--------------------------------------------------------------
- 1   1 - H   hydrogen       0.5 +5.5856912  99.9885    0
- 1   2 - H   hydrogen       1.0 +0.8574376   0.0115   +0.002860
+ 1   1 - H   hydrogen       0.5 +5.58569468 99.9885    0
+ 1   2 - H   hydrogen       1.0 +0.8574382   0.0115   +0.002860
  1   3 * H   hydrogen       0.5 +5.957920    0.0       0
  2   3 - He  helium         0.5 -4.255248    0.000137  0
  2   4 - He  helium         0.0  0.0        99.999863  0
@@ -41,14 +41,14 @@
  5  10 - B   boron          3.0 +0.600216   19.9      +0.08459
  5  11 - B   boron          1.5 +1.792424   80.1      +0.04059
  6  12 - C   carbon         0.0  0.0        98.93      0
- 6  13 - C   carbon         0.5 +1.40482     1.07      0
+ 6  13 - C   carbon         0.5 +1.4048236   1.07      0
  6  14 * C   carbon         3.0  0.273       0.0       NaN
- 7  14 - N   nitrogen       1.0 +0.4037607  99.632    +0.02044
- 7  15 - N   nitrogen       0.5 -0.5663784   0.368     0
+ 7  14 - N   nitrogen       1.0 +0.40376100 99.632    +0.02044
+ 7  15 - N   nitrogen       0.5 -0.56637768  0.368     0
  8  16 - O   oxygen         0.0  0.0        99.757     0
  8  17 - O   oxygen         2.5 -0.757516    0.038    -0.02558
  8  18 * O   oxygen         0.0  0.0         0.205     0
- 9  19 - F   fluorine       0.5 +5.257732  100.0       0
+ 9  19 - F   fluorine       0.5 +5.257736  100.0       0
 10  20 - Ne  neon           0.0  0.0        90.48      0
 10  21 - Ne  neon           1.5 -0.441197    0.27     +0.10155
 10  22 - Ne  neon           0.0  0.0         9.25      0
