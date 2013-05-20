@@ -321,6 +321,8 @@ switch Opt.SolveMethod
     logmsg(1,'  continued fraction: right-to-left evaluation');
   case 'R'
     logmsg(1,'  Reference method: biconjugate gradients, stabilized');
+  case '\'
+    logmsg(1,'  Backslash linear solver');
   otherwise
     error('Unknown method in Options.SolveMethod. Must be ''L'', ''R'' or ''C''.');
 end
@@ -419,9 +421,9 @@ for iOri = 1:nOrientations
   % Liouville matrix
   %-------------------------------------------------------
   logmsg(1,'Computing Liouville matrix...');
-  [r,c,Vals,nRows,nElm] = chili_lm(Sys,Basis.v,Dynamics,Opt.Allocation);
-  if (nRows~=BasisSize)
-    Msg = sprintf('Matrix size (%d) inconsistent with basis size (%d). Please report.',nRows,BasisSize);
+  [r,c,Vals,nDim,nElm] = chili_lm(Sys,Basis.v,Dynamics,Opt.Allocation);
+  if (nDim~=BasisSize)
+    Msg = sprintf('Matrix size (%d) inconsistent with basis size (%d). Please report.',nDim,BasisSize);
     error(Msg);
   end
 
@@ -434,8 +436,8 @@ for iOri = 1:nOrientations
   end
   
   idx = 1:nElm;
-  A = sparse(r(idx)+1,c(idx)+1,Vals(idx),nRows,nRows);
-  %figure; spy(A);
+  L = sparse(r(idx)+1,c(idx)+1,Vals(idx),nDim,nDim);
+  %figure; spy(L);
   %StartingVector = sparse(StartingVector);
 
   maxDvalLim = 2e3;
@@ -445,19 +447,18 @@ for iOri = 1:nOrientations
     error(sprintf('Numerical instability, values in diffusion matrix are too large (%g)!',maxDval));
   end
 
-  logmsg(1,'  non-zero elements: %d (%0.2f%%)',nnz(A),100*nnz(A)/length(A)^2);
+  logmsg(1,'  L sparsity: %d/%d (%0.2f%%)',nnz(L),length(L).^2,100*nnz(L)/length(L)^2);
 
   
   %==============================================================
   % Computation of the spectral function
   %==============================================================
   logmsg(1,'Computing spectrum...');
-  nDim = length(A);
 
   switch Opt.SolveMethod
-    case 'L'
+    case 'L' % Lanczos
       for iVec = 1:nVectors
-        [alpha,beta,minerr] = chili_lanczos(A,StartingVector(:,iVec),z,Opt);
+        [alpha,beta,minerr] = chili_lanczos(L,StartingVector(:,iVec),z,Opt);
         minerr = minerr(end);
         if (minerr<Opt.Threshold)
           thisspec(iVec,:) = chili_contfracspec(z,alpha,beta);
@@ -470,20 +471,32 @@ for iOri = 1:nOrientations
         end
       end
 
-    case 'C'
+    case 'C' % conjugated gradients
       CGshift = 1e-6 + 1e-6i;
-      [xx,alpha,beta,err,StepsDone] = chili_conjgrad(A,StartingVector,CGshift);
+      [xx,alpha,beta,err,StepsDone] = chili_conjgrad(L,StartingVector,CGshift);
 
       logmsg(1,'  step %d/%d: CG converged to within %g',...
         StepsDone,nDim,err);
 
       thisspec = chili_contfracspec(z,alpha,beta);
 
-    case 'R'
+    case 'R' % bi-conjugate gradients stabilized
       for iz = 1:numel(z)
-        u = bicgstab(A+z(iz)*speye(size(A)),StartingVector,Opt.Threshold,nDim);
+        u = bicgstab(L+z(iz)*speye(size(L)),StartingVector,Opt.Threshold,nDim);
         thisspec(iz) = real(u'*StartingVector);
       end
+      
+    case '\'
+      for iVec = 1:nVectors
+        rho0 = StartingVector(:,iVec);
+        for iz = 1:numel(z)
+          thisspec(iz) = real(rho0'*((L+z(iz)*speye(size(L)))\rho0));
+        end
+      end
+      
+    case 'D'
+      %
+      %Binsch method, TBD
 
   end
 
@@ -556,7 +569,7 @@ if (Opt.BasisAnalysis)
   zz = linspace(z(1),z(end),12);
   u_sum = 0;
   for iz = 1:numel(zz)
-    u = bicgstab(A+z(iz)*speye(size(A)),StartingVector,1e-7,180);
+    u = bicgstab(L+z(iz)*speye(size(L)),StartingVector,1e-7,180);
     u_sum = u_sum + abs(u)/abs(StartingVector'*u);
   end
   u_sum = u_sum/max(u_sum);
