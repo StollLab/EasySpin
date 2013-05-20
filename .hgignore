@@ -1,10 +1,2 @@
-private/sf_peaks.mexw64
-private/projectzones.mexw64
-private/projecttriangles.mexw64
-private/multinucstick.mexw64
-private/lisum1i.mexw64
-private/cubicsolve.mexw64
-private/chili_liouvmatrix.mexw64
-private/chili_lm2.mexw64
-private/chili_lm0.mexw64
-private/chili_lm1.mexw64
+syntax: glob
+private/*.mex*
