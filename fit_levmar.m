@@ -1,4 +1,4 @@
-%fit_levmar  Levenberg-Marquardt nonlinear least squares
+%fit_levmar  Levenberg-Marquardt nonlinear least squares fitting
 %
 %   xfit = fit_levmar(funfcn,x0)
 %   [xfit,Info] = fit_levmar(funfcn,x0)
@@ -6,43 +6,45 @@
 %   ... = fit_levmar(funfcn,x0,Opt,p1,p2,...)
 %
 %   Find  xm = argmin{F(x)} , where  x = [x_1, ..., x_n]  and
-%   F(x) = 0.5 * sum(f_i(x)^2). The functions  f_i(x) (i=1,...,m)
+%   F(x) = sum(f_i(x)^2)/2. The functions  f_i(x) (i=1,...,m)
 %   must be given by a Matlab function with declaration
-%              function  f = funfcn(x, p1,p2,...)
-%   p1,p2,... are parameters of the function.  In connection with 
-%   nonlinear data fitting they may be arrays with coordinates of 
-%   the data points.
+%              function  f = funfcn(x,p1,p2,...)
+%   p1,p2,... are parameters of the function and can be of any type and size.
+%
+%   The parameter search range is restricted to -1...+1 along each
+%   dimension.
 %
 % Input
-%   funfcn  :  Handle to the function.
-%   x0   :  Starting guess for xm.
-%   Opt  :  options
-%         Opt.lambda  starting value of Marquardt parameter
-%         Opt.Gradient  termination threshold for gradient
-%         Opt.TolStep   termination threshold for step
-%         Opt.maxTime   termination threshold for time
-%         Opt.delta     step width for Jacobian approximation
-%           delta  "relative" step length for difference approximations.
-%   p1,p2,..  are passed directly to the function FUN .    
+%   funfcn Handle to the function.
+%   x0     Starting vector in parameter space
+%   Opt    Options structure
+%            lambda    starting value of Marquardt parameter
+%            Gradient  termination threshold for gradient
+%            TolStep   termination threshold for step
+%            maxTime   termination threshold for time
+%            delta     step width for Jacobian approximation
+%   p1,p2,... are passed directly to the function funfcn.    
 %
 % Output
-%   xfit :  Computed solution vector.
-%   Info :  Performance information, vector with 7 elements:
-%           info(1:4) = final values of 
-%               [F(x)  ||F'||inf  ||dx||2  mu/max(A(i,i))] ,
-%             where  A = Je'* Je .
-%           info(5) = no. of iteration steps
-%           info(6) = 1 :  Stopped by small gradient
-%                     2 :  Stopped by small x-step
-%                     3 :  No. of iteration steps exceeded 
-%                    -4 :  Dimension mismatch in x, f, B0
-%                    -5 :  Overflow during computation
-%                    -6 :  Error in approximate Jacobian
-%           info(7) = no. of function evaluations
+%   xfit    Converged vector in parameter space
+%   Info    Performance information, vector with 7 elements:
+%           info(1) = final value of F(x)
+%           info(2) = final value of ||F'||inf
+%           info(3) = final value of ||dx||2
+%           info(4) = final value of mu/max(A(i,i)) with A = Je'* Je
+%           info(5) = number of iterations
+%           info(6) = 1 :  stopped by small gradient
+%                     2 :  stopped by small x-step
+%                     3 :  max no. of iterations exceeded 
+%                    -4 :  dimension mismatch in x, f, B0
+%                    -5 :  overflow during computation
+%                    -6 :  error in approximate Jacobian
+%           info(7) = number of function evaluations
 
 % Method:
 % Approximate Gauss-Newton with Levenberg-Marquardt damping and 
-% successive updating of Jacobian approximation.
+% successive updating of Jacobian approximation. Search range
+% bounded to -1...+1.
 
 function  [x,info] = fit_levmar(funfcn, x0, Opt, varargin)
 
@@ -59,6 +61,7 @@ if ~isfield(Opt,'TolStep'), Opt.TolStep = 1e-4; end
 
 % delta = relative step for difference approximation
 if ~isfield(Opt,'delta'), Opt.delta = 1e-7; end
+delta = Opt.delta;
 
 if ~isfield(Opt,'PrintLevel'), Opt.PrintLevel = 1; end
 if ~isfield(Opt,'maxTime'), Opt.maxTime = inf; end
@@ -70,21 +73,21 @@ F = NaN;
 norm_g = NaN;
 nEvals = 0;
 
-% Check options
-delta = Opt.delta;
-
+% Check starting point
 x0 = x0(:);
 n = numel(x0);
 if  any(~isreal(x0)) || any(isnan(x0)) || any(isinf(x0)) 
   error('x0 must be real and finite.');
-else
-  x = x0(:); 
 end
+if any(abs(x0)>1)
+ error('All elements in x0 must be between -1 and +1.');
+end
+x = x0(:); 
 
 stop = 0;
 
 if (~stop)
-  [stop F f] = funeval(funfcn,x,varargin{:});
+  [stop,F,f] = funeval(funfcn,x,varargin{:});
   nEvals = nEvals + 1;
   if (~stop)
     % Jacobian
@@ -95,15 +98,14 @@ if (~stop)
       g = Je'*f;
       norm_g = norm(g,inf);
       A = Je'*Je;
-      if  isinf(norm_g) || isinf(norm(A(:),inf)), stop = -5; end
+      if  isinf(norm_g) || isinf(norm(A(:),inf))
+        stop = -5;
+      end
     end
   end
 end
 
-stop = 0;
-
 if (stop)
-  X = x;
   info.F = F;
   info.norm_g = norm_g;
   info.stop = stop;
@@ -121,7 +123,6 @@ j = 0;  % direction of last update
 global UserCommand;
 
 iIteration = 0;
-
 while (~stop)
   
   iIteration = iIteration + 1;
@@ -143,7 +144,7 @@ while (~stop)
   xnew = x + h;
   xnew = min(max(xnew,-1),+1); % apply bounds
   
-  [stop, Fnew, fnew] = funeval(funfcn,xnew,varargin{:});
+  [stop,Fnew,fnew] = funeval(funfcn,xnew,varargin{:});
   nEvals = nEvals+1;
   if (stop), break; end
 
@@ -153,7 +154,7 @@ while (~stop)
   if (abs(h(j))<gamma*norm_h)  % recompute with finite differences
     xu = x;
     xu(j) = x(j) + delta;
-    [stop Fu fu] = funeval(funfcn,xu,varargin{:});
+    [stop,Fu,fu] = funeval(funfcn,xu,varargin{:});
     nEvals = nEvals+1;
     if (~stop)
       hu = xu - x;
@@ -174,7 +175,7 @@ while (~stop)
   
   % Update damping factor mu
   if (rho>0)
-    mu = mu*max(1/3,1-(2*rho-1)^3);
+    mu = mu * max(1/3,1-(2*rho-1)^3);
     nu = 2;
   else
     mu = mu*nu;
@@ -243,7 +244,7 @@ for j = 1:nx
 end
 
 % Check J
-if  ~isreal(J) | any(isnan(J(:))) | any(isinf(J(:)))
+if  ~isreal(J) || any(isnan(J(:))) || any(isinf(J(:)))
   err = -6;
 else
   err = 0;
@@ -251,30 +252,30 @@ end
 
 
 %======================================================================
-function  [h, mu] = ComputeLMStep(A,g,mu)
-% Solve  (Ah + mu*I)h = -g  with possible adjustment of  mu
+function [h,mu] = ComputeLMStep(A,g,mu)
+% Solve (A+mu*1)*h = -g, scaling mu if needed; using Cholesky factorization
 
-% Factorize with check of pos. def.
-n = size(A,1);  chp = 1;
-while  chp
-  [R chp] = chol(A + mu*eye(n));
-  if  chp == 0  % check for near singularity
-    chp = rcond(R) < 1e-15;
+notPosDef = true;
+while notPosDef
+  [R,notPosDef] = chol(A + mu*eye(size(A)));
+  if ~notPosDef
+    % check whether close to singular
+    notPosDef = rcond(R)<1e-15;
   end
-  if  chp,  mu = 10*mu; end
+  if notPosDef
+    mu = 10*mu;
+  end
 end
 
-% Solve  (R'*R)h = -g
-h = R \ (R' \ (-g));
+% Solve  (R'*R)*h = -g
+h = R\(R'\(-g));
 
 %======================================================================
-function  [err, F,f] = funeval(funfcn,x,varargin)
+function  [err,F,f] = funeval(funfcn,x,varargin)
 %funeval  Check Matlab function which is called by a 
 % nonlinear least squares solver.
 
 err = 0;
-F = NaN;
-n = numel(x);
 
 f = funfcn(x,varargin{:});
 
@@ -286,4 +287,4 @@ end
 % Objective function
 F = (f'*f)/2;
 %F = sqrt(mean(f.^2));
-if  isinf(F),  err = -5; end
+if isinf(F), err = -5; end
