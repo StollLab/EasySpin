@@ -408,8 +408,10 @@ for iNucGrp = 1:Sys.nNuclei
   else
     logmsg(1,'  perturbation expansion, order %d, accuracy %g',PerturbOrder,Options.Accuracy);
     
-    % Based on a 5th-order Taylor expansion in A of \Delta E - nu = 0
-    % with the Breit-Rabi expression for \Delta E
+    % Based on \Delta E - h nu = 0 with a 5th-order Taylor expansion in a of
+    % the Breit-Rabi expression for \Delta E. The resulting polynomial in a with terms
+    % (0,a,a^2,a^3,a^4,...) is also a polynomial in B with the same terms
+    % (B,0,1/B,1/B^2,1/B^3,...)
     maxIterationsDone = -1;
     pre = a .* (a/(giso*bmagn+gn(iNucGrp)*nmagn)/2).^(1:7);
     for iF = 1:nFSpins
