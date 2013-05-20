@@ -27,6 +27,9 @@
 %  of a product of n irreps of dimension 2*I of the rotation group
 %  into a direct sum of irreps (Clebsch-Gordan decomposition).
 
+% see J.H.Freed, G.K.Fraenkel, J.Chem.Phys. 39(2), 326-348 (1963)
+% eq. (4.32)
+
 function [F,N] = equivcouple(I,n)
 
 if (nargin==0), help(mfilename); return; end
