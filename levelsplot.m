@@ -2,6 +2,7 @@
 %
 %  levelsplot(Sys,Ori,B);
 %  levelsplot(Sys,Ori,B,mwFreq);
+%  levelsplot(Sys,Ori,B,mwFreq,Par);
 %
 %    Sys        spin system structure
 %    Ori        2-element vector [phi theta]
@@ -10,6 +11,13 @@
 %    B          field range [Bmin Bmax] in mT
 %               alternatively, just Bmax in mT
 %    mwFreq     spectrometer frequency in GHz
+%    Par        other parameters
+%        nPoints:     Number of points
+%        ColorThreshold: Coloring threshold. All transitions with
+%                        relative intensity below this will be gray.
+%                        Example: 0.01
+%        PlotThreshold:  All transitions below with relative intensity
+%                        below this value will not be plotted.
 %
 %  If mwFreq is given, resonances are drawn. Red
 %  lines indicate allowed transitions, gray lines
@@ -23,10 +31,10 @@
 
 function levelsplot(Sys,varargin)
 
-nPoints = 201;
+Para = struct;
 switch (nargin)
 case 5
-  [Ori,B,mwFreq,nPoints] = deal(varargin{:});
+  [Ori,B,mwFreq,Para] = deal(varargin{:});
 case 4
   [Ori,B,mwFreq] = deal(varargin{:});
 case 3
@@ -51,11 +59,20 @@ if isstruct(B)
   error('Third input argument (B) wrong: can''t be a structure.');
 end
 
+if ~isfield(Para,'nPoints')
+  Para.nPoints = 201;
+end
+if ~isfield(Para,'PlotThreshold')
+  Para.PlotThreshold = 0.001;
+end
+if ~isfield(Para,'ColorThreshold')
+  Para.ColorThreshold = 0.01;
+end
+
 if ischar(Ori)
-  str ='xyz';
-  idx = find(Ori==str);
+  idx = find(Ori=='xyz');
   if numel(idx)~=1
-    error('Orientation must be a 2-vector or either ''x'', ''y'' or ''z''');
+    error('Orientation must be a 2-element vector [phi theta] or either ''x'', ''y'' or ''z''');
   end
   philist = [0 pi/2 0];
   thetalist = [pi/2 pi/2 0];
@@ -66,15 +83,15 @@ if (numel(Ori)==2) || (numel(Ori)==3)
   phi = Ori(1);
   theta = Ori(2);
 else
-  error('Ori must be a two-element array.');
+  error('Ori must be a two-element array [phi theta].');
 end
 
 switch numel(B)
   case 1
     B = [0 B];
-    Bvec = linspace(B(1),B(2),nPoints);
+    Bvec = linspace(B(1),B(2),Para.nPoints);
   case 2
-    Bvec = linspace(B(1),B(2),nPoints);
+    Bvec = linspace(B(1),B(2),Para.nPoints);
   otherwise
     Bvec = B;
 end
@@ -85,7 +102,6 @@ plot(Bvec,E/1e3,'b');
 
 AllowedColor = [1 0 0];
 ForbiddenColor = [1 1 1]*0.8;
-Threshold = 0.01;
 
 if ~isfield(Sys,'S')
   nElectrons = 1;
@@ -127,12 +143,13 @@ if isfinite(mwFreq)
     n = ang2vec(phi,theta);
     [F,G] = sham(Sys,n);
     for iF = 1:numel(resonFields)
+      if tp(iF)<Para.PlotThreshold, continue; end
       H = F + G*resonFields(iF);
       E = sort(eig(H))/1e3;
       h = line(resonFields(iF)*[1 1],E(Transitions(iF,:)));
       Color = tp(iF)*AllowedColor + (1-tp(iF))*ForbiddenColor;
       set(h,'Color',Color);
-      if tp(iF)>Threshold, set(h,'Marker','.'); end
+      if tp(iF)>Para.ColorThreshold, set(h,'Marker','.'); end
     end
     
   else
@@ -140,11 +157,15 @@ if isfinite(mwFreq)
     xl = xlim; yl = ylim;
     h = text(xl(1),yl(1),' no resonances in range!');
     set(h,'Color','r','VerticalAl','bottom');
+    set(h,'tooltipString','asdf');
   end
 end
 
 axis tight;
 xlabel('magnetic field (mT)');
 ylabel('energy (GHz)');
+if isfinite(mwFreq)
+  title(sprintf('%g GHz',mwFreq));
+end
 
 return
