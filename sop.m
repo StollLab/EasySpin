@@ -105,13 +105,19 @@ else
     Coords(Coords=='-')=5;
     Coords(Coords=='p')=4;
     Coords(Coords=='m')=5;
-    if any(Coords>5)
+    Coords(Coords=='a')=6;
+    Coords(Coords=='b')=7;
+    if any(Coords>7)
       error('Unrecognized component specification! Must be e, x, y, z, +, or -.');
     end
-    Spins = 1:length(Coords);
     if length(Coords)~=length(SpinVec),
       error('Number of spins and number of components do not match!');
     end
+    if (any(SpinVec(Coords==6)~=1/2)) || ...
+       (any(SpinVec(Coords==7)~=1/2))
+      error('''a'' and ''b'' work only for spin-1/2.');
+    end
+    Spins = 1:length(Coords);
   end
 end
 
@@ -163,6 +169,14 @@ for iSpin = 1:length(SpinVec)
     ib = m+1;
     jb = m;
     sb = sqrt(m.*m(end:-1:1));
+   case 6 % alpha, for spin-1/2 only
+    ib = 1;
+    jb = 1;
+    sb = 1;
+   case 7 % beta, for spin-1/2 only
+    ib = 2;
+    jb = 2;
+    sb = 1;
    otherwise % officially 0, identity
     m = (1:n).';
     ib = m;
