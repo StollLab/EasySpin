@@ -319,7 +319,11 @@ end
 %-------------------------------------------------------------------------
 
 mwFreq = Exp.mwFreq*1e9; % GHz -> Hz
-giso = mean(Sys.g);
+if Sys.fullg
+  giso = mean(mean(Sys.g(1:3,:)));
+else
+  giso = mean(Sys.g(1,:));
+end
 CentralResonance = (mwFreq*planck)/(bmagn*giso)*1e3; % in the absence of nuclei,  mT
 
 if (FastMotionRegime)
