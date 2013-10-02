@@ -124,8 +124,6 @@ end
 [Sys,err] = validatespinsys(Sys);
 error(err);
 
-if (Sys.nNuclei==0), error('The system doesn''t contain any nuclei.'); end
-
 ConvWidth = any(Sys.lwEndor>0);
 
 logmsg(1,'  system with %d electron spin(s), %d nuclear spin(s), total %d states',...
@@ -361,6 +359,33 @@ end
 
 %==========================================================================
 
+%====================================================================
+% Special case: no nuclei
+%--------------------------------------------------------------
+if (Sys.nNuclei==0)
+  Exp.deltaX = diff(Exp.Range)/(Exp.nPoints-1);
+  xAxis = Exp.Range(1) + (0:Exp.nPoints-1)*Exp.deltaX;
+  spec = zeros(1,Exp.nPoints);
+  Transitions = [];
+  switch (nargout)
+    case 0,
+      cla
+      plot(xAxis,spec);
+      axis tight
+      xlabel('frequency (MHz)');
+      ylabel('intensity (arb.u.)');
+      if ~isnan(Exp.mwFreq)
+        title(sprintf('ENDOR at %0.8g GHz and %0.8g mT',Exp.mwFreq,Exp.Field));
+      else
+        title(sprintf('ENDOR at %0.8g mT',Exp.Field));
+      end
+    case 1, varargout = {spec};
+    case 2, varargout = {xAxis,spec};
+    case 3, varargout = {xAxis,spec,Transitions};
+  end
+  return
+end
+%====================================================================
 
 p_symandgrid;
 
