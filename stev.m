@@ -1,26 +1,34 @@
 % stev  Extended Stevens spin operators 
 %
 %   Op = stev(S,k,q)
+%   Op = stev(S,k,q,iSpin)
 %
 %   Constructs extended Stevens operators for
-%   0<=k<=2*S and -k<=q<=k for the spin S. If S
-%   is a vector representing the spins of a spin
-%   system, Op is computed for the first spin in
-%   the state space of the full spin system.
+%   0<=k<=2*S and -k<=q<=k for the spin S.
+%
+%   If S is a vector representing the spins of a
+%   spin system, Op is computed for the spin number
+%   iSpin (e.g. the first if iSpin==1) in the state
+%   space of the full spin system.
+%
 %   The maximum k supported is 12, the most common
 %   values for k are 2, 4 and 6.
 %
 %   Input:
-%   - S: spin quantum number
+%   - S: vector of spin quantum numbers
 %   - k,q: indices specifying O_k^q
+%   - iSpin: index of the spin for which the operator
+%       matrix should be computed
 %
 %   Output:
 %   - Op: extended Stevens operator matrix
 %
-%   Example:
+%   Examples:
 %    To obtain O_4^2 for a spin 5/2, type
-%
 %       stev(5/2,4,2)
+%    To obtain O_6^5 for the second spin in a spin
+%    system with two spins-3/2, type
+%       stev([3/2 3/2],6,5)
 
 % Abbreviations:
 %  ESO   extended Stevens operator
@@ -43,15 +51,24 @@
 %   St. Stoll, PhD thesis, ETH Zurich, 2003
 %   C.Rudowicz, Magn.Reson.Rev. 13, 1-87 (1987)
 
-function Op = stev(Spins,k,q)
+function Op = stev(Spins,k,q,iSpin)
 
 if (nargin==0), help(mfilename); return; end
 
-if (nargin<3) || (nargin>3), error('Wrong number of input arguments!'); end
+if (nargin<3) || (nargin>4), error('Wrong number of input arguments!'); end
+
+if (nargin<4)
+  iSpin = 1;
+end
+
+if isstruct(Spins)
+  Spins = spinvec(Spins);
+end
 
 % Initialization of prefactors
 %-------------------------------------------------
-% Computed in Mathematica using Ryabovs' formulae (1999).
+% Computed in Mathematica using expression from
+% Ryabov J.Magn.Reson. 1999
 persistent F;
 if isempty(F)
   F(13,1:13) = [1916006400 958003200 958003200 31933440 3991680 1995840 31680 15840 1584 264 24 12 1];
@@ -69,32 +86,40 @@ if isempty(F)
   F( 1,1)    = 1;
 end
 
-S = Spins(1);
-
 % Checks on input parameters S, k and q
 %-------------------------------------------------
-if mod(2*S,1) | ~isreal(S)
-  error('S must be a positive multiple of 1/2.');
+if (iSpin<0) || (iSpin>numel(Spins))
+  error('iSpin = %d is out of range. It should be between 1 and %d',iSpin,numel(Spins));
 end
+
+S = Spins(iSpin);
+
+if any(mod(2*Spins,1)) || any(~isreal(Spins))
+  error('S must contain positive multiples of 1/2.');
+end
+
 kmax = size(F,1)-1;
-if mod(k,1) | (k<0) | (k>kmax) | ~isreal(k)
-  error(sprintf('k too large. Maximum supported k is %d.',kmax));
+if numel(k)~=1 || numel(q)~=1
+  error('k and q must be single numbers.');
+end
+if mod(k,1) || (k<0) || (k>kmax) || ~isreal(k)
+  error('k too large. Maximum supported k is %d.',kmax);
 end
 if (k>2*S)
-  error(sprintf('k must not be larger than 2*S (%d with S=%g).',2*S,S));
+  error('k must not be larger than 2*S (%d with S=%g).',2*S,S);
 end
-if mod(q,1) | abs(q)>k | ~isreal(q)
-  error(sprintf('q must be an integer between -k and k (%d and %d).',-k,k));
+if mod(q,1) || abs(q)>k || ~isreal(q)
+  error('q must be an integer between -k and k (%d and %d).',-k,k);
 end
 
 % Computation of operator matrix
 %-------------------------------------------------
 % Compute component of STO using Racah's commutation
 % rule, but leaving out scaling and normalization
-% constants. This is possible since they are divided
+% constants N_kq. This is possible since they are divided
 % out again by the Stevens prefactors c (see below).
-Jp = sop(S,'+');
-Jm = sop(S,'-');
+Jp = sop(Spins,iSpin,4,'sparse');
+Jm = sop(Spins,iSpin,5,'sparse');
 T = Jp^k;
 for qq = k-1:-1:abs(q)
   T = Jm*T - T*Jm;
@@ -103,7 +128,7 @@ end
 % Linear combination coefficient for ESOs. alpha as defined by
 % Ryabov (1999).
 alpha = 1;
-if mod(q,2) & ~mod(k,2)
+if mod(q,2) && ~mod(k,2)
   alpha = 1/2;
 end
 c = alpha/F(k+1,abs(q)+1); % already without N_kq
@@ -119,8 +144,7 @@ if (q>=0)
 else
   Op = c/2i*(T - T'); % sine tesseral operator
 end
+Op = full(Op);
 %-------------------------------------------------
-
-Op = kron(Op,eye(prod(2*Spins+1)/(2*S+1)));
 
 return

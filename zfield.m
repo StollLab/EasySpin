@@ -26,9 +26,9 @@ end
 H = sparse(Sys.nStates,Sys.nStates);
 spvc = Sys.Spins;
 
-for k = 1:length(Electrons)
+for e = 1:length(Electrons)
   
-  idx = Electrons(k);
+  idx = Electrons(e);
 
   % S or I < 1 -> no internal interactions possible -> go to next spin
   if spvc(idx)<1, continue; end
@@ -107,8 +107,10 @@ for k = 1:length(Electrons)
   end
 
   % If D (and aF) are used, skip Stevens operator terms
-  if any(Sys.D(idx,:)), continue; end
-
+  D_present = any(Sys.D(idx,:));
+  if D_present
+    continue;
+  end
 
   % Extended Stevens operators
   %---------------------------------------------------------
@@ -116,23 +118,24 @@ for k = 1:length(Electrons)
     if 2*spvc(idx)<k, break; end
     for q = 0:k
       fi = sprintf('B%d%d',k,abs(q));
-      if isfield(Sys,fi)
-        if any(Sys.D)
-          warning('The extended Stevens operators are not used if Sys.D is given!!');
-        else
-          coeffs = Sys.(fi);
-          if (numel(coeffs)<1) || (numel(coeffs)>1+(q>0))
-            error('Wrong size of %s field in spin system structure!',fi);
-          else
-            H = H + coeffs(1)*stev(spvc,k,q);
-            if (numel(coeffs)==2) && (q>0)
-              H = H + coeffs(2)*stev(spvc,k,-q);
-            end
-          end
-        end
+      if ~isfield(Sys,fi), continue; end
+      if D_present
+        warning('Ignoring Bkq fields since Sys.D is given.');
+        break
       end
-    end
-  end
+        
+      coeffs = Sys.(fi);
+      if (numel(coeffs)<1) || (numel(coeffs)>1+(q>0))
+        error('Wrong size of %s field in spin system structure!',fi);
+      end
+      
+      H = H + coeffs(1)*stev(spvc,k,q,idx);
+      if (numel(coeffs)==2) && (q>0)
+        H = H + coeffs(2)*stev(spvc,k,-q,idx);
+      end
+      
+    end % for q = ...
+  end % for k = ...
 
 end % for all spins specified
 H = full(H);
