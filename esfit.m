@@ -848,18 +848,24 @@ function [Sys,values] = getSystems(Sys0,Vary,x)
 global FitData
 values = [];
 if nargin==3, x = x(:); end
-for s=1:numel(Sys0)
-  [Fields,Indices,VaryVals] = getParameters(Vary{s});
+for iSys = 1:numel(Sys0)
+  [Fields,Indices,VaryVals] = getParameters(Vary{iSys});
   
-  Sys_ = Sys0{s};
+  if isempty(VaryVals)
+    % no parameters varied in this spin system
+    Sys{iSys} = Sys0{iSys};
+    continue;
+  end
   
-  pidx = FitData.xidx(s):FitData.xidx(s+1)-1;
+  Sys_ = Sys0{iSys};
+  
+  pidx = FitData.xidx(iSys):FitData.xidx(iSys+1)-1;
   if (nargin<3)
-    Shifts = zeros(1,numel(VaryVals)).';
+    Shifts = zeros(numel(VaryVals),1);
   else
     Shifts = x(pidx).*VaryVals(:);
   end
-  clear values_;
+  values_ = [];
   for p = 1:numel(VaryVals)
     f = Sys_.(Fields{p});
     idx = Indices(p,:);
@@ -869,7 +875,7 @@ for s=1:numel(Sys0)
   end
   
   values = [values values_];
-  Sys{s} = Sys_;
+  Sys{iSys} = Sys_;
   
 end
 
