@@ -14,7 +14,7 @@
 %       gpa, Apa, Qpa, Dpa, eepa
 %       lw, lwpp
 %       HStrain, gStrain, AStrain, DStrain
-%       B20 etc.
+%       B2, B4, B6 etc.
 %   - Exp: experimental parameters
 %       mwFreq        spectrometer frequency, in GHz
 %       CenterSweep   magnetic field range [center,sweep], in mT

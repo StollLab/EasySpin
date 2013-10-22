@@ -179,7 +179,7 @@ if isfield(Sys,'aF')
   if ~isempty(err), return; end
 end
 
-% :TODO: B20 etc. ??
+% :TODO: B2, B4, etc. ?? (see zfield)
 
 %---------- electron-electron ------------------------------------------
 Sys.fullee = 0;

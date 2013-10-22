@@ -1,24 +1,29 @@
-% stev  Extended Stevens spin operators 
+% stev  Extended Stevens spin operator matrices
 %
 %   Op = stev(S,k,q)
 %   Op = stev(S,k,q,iSpin)
 %
-%   Constructs extended Stevens operators for
+%   Constructs extended Stevens operator matrices for
 %   0<=k<=2*S and -k<=q<=k for the spin S.
 %
 %   If S is a vector representing the spins of a
 %   spin system, Op is computed for the spin number
-%   iSpin (e.g. the first if iSpin==1) in the state
-%   space of the full spin system.
+%   iSpin (e.g. the second if iSpin==2) in the state
+%   space of the full spin system. If iSpin is omitted,
+%   iSpin is set to 1.
 %
-%   The maximum k supported is 12, the most common
-%   values for k are 2, 4 and 6.
+%   All k values from 0 to 12 are supported. The
+%   most common ones are 2, 4 and 6.
+%
+%   The extended Stevens operators are tesseral (as
+%   opposed to spherical) tensor operators and are
+%   therefore all Hermitian.
 %
 %   Input:
-%   - S: vector of spin quantum numbers
+%   - S: spin quantum number, or vector thereof
 %   - k,q: indices specifying O_k^q
-%   - iSpin: index of the spin for which the operator
-%       matrix should be computed
+%   - iSpin: index of the spin in the spin vector for
+%       which the operator matrix should be computed
 %
 %   Output:
 %   - Op: extended Stevens operator matrix
@@ -55,7 +60,7 @@ function Op = stev(Spins,k,q,iSpin)
 
 if (nargin==0), help(mfilename); return; end
 
-if (nargin<3) || (nargin>4), error('Wrong number of input arguments!'); end
+if (nargin<3) || (nargin>5), error('Wrong number of input arguments!'); end
 
 if (nargin<4)
   iSpin = 1;
@@ -68,7 +73,7 @@ end
 % Initialization of prefactors
 %-------------------------------------------------
 % Computed in Mathematica using expression from
-% Ryabov J.Magn.Reson. 1999
+% Ryabov, J.Magn.Reson. 140, 141-145 (1999)
 persistent F;
 if isempty(F)
   F(13,1:13) = [1916006400 958003200 958003200 31933440 3991680 1995840 31680 15840 1584 264 24 12 1];
@@ -116,19 +121,20 @@ end
 %-------------------------------------------------
 % Compute component of STO using Racah's commutation
 % rule, but leaving out scaling and normalization
-% constants N_kq. This is possible since they are divided
+% constants. This is possible since they are divided
 % out again by the Stevens prefactors c (see below).
+% (Ryabov, Eq.[1])
 Jp = sop(Spins,iSpin,4,'sparse');
 Jm = sop(Spins,iSpin,5,'sparse');
-T = Jp^k;
+T = Jp^k;  % T(k,k)
 for qq = k-1:-1:abs(q)
   T = Jm*T - T*Jm;
 end
 
-% Linear combination coefficient for ESOs. alpha as defined by
-% Ryabov (1999).
+% Linear combination coefficient for the ESO.
+% alpha as defined by Ryabov (1999).
 alpha = 1;
-if mod(q,2) && ~mod(k,2)
+if mod(q,2) && ~mod(k,2)  % for even k and odd q
   alpha = 1/2;
 end
 c = alpha/F(k+1,abs(q)+1); % already without N_kq
@@ -137,14 +143,14 @@ c = alpha/F(k+1,abs(q)+1); % already without N_kq
 % to be retained.
 c = (-1)^(k-q)*c;
 
-% Simple construction formulae for ESOs: constuction
+% Simple construction formulae for ESOs: construction
 % of cosine and sine tesseral operators from STOs.
+% (Ryabov, eq.21)
 if (q>=0)
   Op = c/2 *(T + T'); % cosine tesseral operator
 else
   Op = c/2i*(T - T'); % sine tesseral operator
 end
-Op = full(Op);
-%-------------------------------------------------
+Op = full(Op); % sparse to full conversion
 
 return

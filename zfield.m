@@ -114,6 +114,7 @@ for e = 1:length(Electrons)
 
   % Extended Stevens operators
   %---------------------------------------------------------
+  %{
   for k = 2:2:6
     if 2*spvc(idx)<k, break; end
     for q = 0:k
@@ -136,9 +137,39 @@ for e = 1:length(Electrons)
       
     end % for q = ...
   end % for k = ...
+  %}
+  
+  for k = 2:2:6
+    for q = 0:k
+      fi = sprintf('B%d%d',k,abs(q));
+      if isfield(Sys,fi)
+        warning('Sys.%s will be removed in the next version.\nUse Sys.B%d instead. See documentation for details.',fi,k);
+      end
+    end
+  end
+  
+  for k = 0:12
+    fieldname = sprintf('B%d',k);
+    if ~isfield(Sys,fieldname), continue; end
+    Bk = Sys.(fieldname);
+    if all(Bk==0), continue; end
+    if (numel(Bk)==1)
+      Bk = [zeros(1,k) Bk zeros(1,k)];
+    elseif (numel(Bk)==k+1)
+      Bk = [Bk zeros(1,k)];
+    end
+    if (numel(Bk)~=2*k+1)
+      error('Field %s has %d instead of %d elements.',fieldname,numel(Bkq),2*k+1);
+    end
+    for q = k:-1:-k
+      if Bk(k+1-q)==0, continue; end
+      H = H + Bk(k+1-q)*stev(spvc,k,q,idx);
+    end
+  end
 
 end % for all spins specified
-H = full(H);
+
 H = (H+H')/2; % Hermitianise
+H = full(H);
 
 return
