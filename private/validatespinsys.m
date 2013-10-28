@@ -179,7 +179,30 @@ if isfield(Sys,'aF')
   if ~isempty(err), return; end
 end
 
-% :TODO: B2, B4, etc. ?? (see zfield)
+% B1, B2, B3, B4, B5, B6, etc.
+for k=1:12
+  fieldname = sprintf('B%d',k);
+  if ~isfield(Sys,fieldname), continue; end
+  Bk = Sys.(fieldname);
+  
+  if (size(Bk,1)~=nElectrons)
+    error('Field Sys.%s has to have %d rows, since there are %d electron spins.',fieldname,nElectrons,nElectrons);
+  end
+  
+  if (size(Bk,2)==1)
+    Bk = [zeros(nElectrons,k) Bk(:) zeros(nElectrons,k)];
+  elseif (size(Bk,2)==k+1)
+    Bk = [Bk zeros(nElectrons,k)];
+  elseif (size(Bk,2)==2*k+1)
+    % full form
+  else
+    error('Field Sys.%s has %d instead of %d columns.',fieldname,size(Bk,2),2*k+1);
+  end
+  
+  Sys.(fieldname) = Bk;
+
+end
+
 
 %---------- electron-electron ------------------------------------------
 Sys.fullee = 0;

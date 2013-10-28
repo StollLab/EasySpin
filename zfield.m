@@ -68,10 +68,11 @@ for e = 1:length(Electrons)
   % Scullane, JMR 47, 383 (1982)
   % Jain/Lehmann, phys.stat.sol.(b) 159, 495 (1990)
 
-  % work only for first electron spin
-  if (idx~=1), continue; end
-
   if isfield(Sys,'aF')
+    % work only for first electron spin
+    if (idx~=1)
+      continue;
+    end
     % not available if D frame is tilted (would necessitate rotation
     % of the a and F terms which is not implemented).
     if isfield(Sys,'Dpa')
@@ -106,65 +107,38 @@ for e = 1:length(Electrons)
     end
   end
 
+  % High-order terms in extended Stevens operator format
+  %---------------------------------------------------------
+  % B1, B2, B3, ... (k = 1...12)
+  
   % If D (and aF) are used, skip Stevens operator terms
   D_present = any(Sys.D(idx,:));
   if D_present
     continue;
   end
-
-  % Extended Stevens operators
-  %---------------------------------------------------------
-  %{
-  for k = 2:2:6
-    if 2*spvc(idx)<k, break; end
-    for q = 0:k
-      fi = sprintf('B%d%d',k,abs(q));
-      if ~isfield(Sys,fi), continue; end
-      if D_present
-        warning('Ignoring Bkq fields since Sys.D is given.');
-        break
-      end
-        
-      coeffs = Sys.(fi);
-      if (numel(coeffs)<1) || (numel(coeffs)>1+(q>0))
-        error('Wrong size of %s field in spin system structure!',fi);
-      end
-      
-      H = H + coeffs(1)*stev(spvc,k,q,idx);
-      if (numel(coeffs)==2) && (q>0)
-        H = H + coeffs(2)*stev(spvc,k,-q,idx);
-      end
-      
-    end % for q = ...
-  end % for k = ...
-  %}
   
+  % Issue error when obsolete pre-4.5.2 syntax is used
   for k = 2:2:6
     for q = 0:k
       fi = sprintf('B%d%d',k,abs(q));
       if isfield(Sys,fi)
-        warning('Sys.%s will be removed in the next version.\nUse Sys.B%d instead. See documentation for details.',fi,k);
+        error('Sys.%s is no longer supported.\nUse Sys.B%d instead. See documentation for details.',fi,k);
       end
     end
   end
   
+  % Run over all Bk (B1, B2, B3, B4, ...)
   for k = 0:12
     fieldname = sprintf('B%d',k);
     if ~isfield(Sys,fieldname), continue; end
     Bk = Sys.(fieldname);
     if all(Bk==0), continue; end
-    if (numel(Bk)==1)
-      Bk = [zeros(1,k) Bk zeros(1,k)];
-    elseif (numel(Bk)==k+1)
-      Bk = [Bk zeros(1,k)];
-    end
-    if (numel(Bk)~=2*k+1)
-      error('Field %s has %d instead of %d elements.',fieldname,numel(Bkq),2*k+1);
-    end
+    
     for q = k:-1:-k
-      if Bk(k+1-q)==0, continue; end
-      H = H + Bk(k+1-q)*stev(spvc,k,q,idx);
+      if Bk(e,k+1-q)==0, continue; end
+      H = H + Bk(e,k+1-q)*stev(spvc,k,q,idx);
     end
+    
   end
 
 end % for all spins specified
