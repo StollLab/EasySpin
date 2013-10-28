@@ -686,7 +686,7 @@ if ~isfield(Opt,'Transitions')
   Opt.Transitions = [];
 end
 
-% Nuclei: which nuclei to include in the ESEEM sim
+% Nuclei: which nuclei to include in the simulation
 if isfield(Opt,'Nuclei')
   if isempty(Opt.Nuclei)
     error('Opt.Nuclei must contain the indices of nuclei to include in the simulation.');
@@ -696,7 +696,7 @@ if isfield(Opt,'Nuclei')
   end
   shfNuclei = Opt.Nuclei;
 else
-  % Pick nuclei to be included in the ESEEM computation
+  % Pick nuclei to be included in the ESEEM/ENDOR computation
   shfNuclei = 1:Sys.nNuclei;
   if all(idealPulse) && isfield(Exp,'ExciteWidth')
     idxStrongNuclei = max(abs(Sys.A),[],2)>Exp.ExciteWidth;
@@ -725,7 +725,7 @@ end
 % ProductRule: determines whether product rule is used or not
 if ~isfield(Opt,'ProductRule'), Opt.ProductRule = 0; end
 if (Sys.nNuclei==1), Opt.ProductRule = 0; end
-if (isENDOR), Opt.ProductRule = 1; end
+%if (isENDOR), Opt.ProductRule = 1; end
 
 if (any(realPulse) && Opt.ProductRule)
   error('saffron: Cannot apply product rule and real pulses at the same time.');
@@ -1482,8 +1482,7 @@ for iOri = 1:nOrientations
        
     % Apply product rule
     %--------------------------------------------------------------
-    if isENDOR
-    else
+    if ~isENDOR
       if Opt.ProductRule
 
         for iPathway = 1:nPathways
@@ -1511,7 +1510,9 @@ for iOri = 1:nOrientations
         % FD: IFFT is done after orientation loop
 
       end % if Opt.ProductRule
-    end % if isENDOR
+    else
+      % ENDOR: no action
+    end % if ~isENDOR
     
   end % electronic transition loop
 

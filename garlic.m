@@ -153,6 +153,9 @@ if (Sys.nElectrons~=1)
 elseif (Sys.S~=1/2)
   error('Only systems with electron spin S=1/2 are supported.');
 end
+if isfield(Sys,'Exchange') && (Sys.Exchange~=0)
+  error('garlic does not support Heisenberg exchange.');
+end
 
 if isfield(Sys,'logtcorr'), Sys.tcorr = 10.^Sys.logtcorr; end
 if ~isfield(Sys,'tcorr'), Sys.tcorr = 0; end

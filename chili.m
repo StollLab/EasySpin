@@ -335,7 +335,7 @@ elseif numel(Opt.Allocation)<2
   Opt.Allocation(2) = maxRows;
 end
 if Opt.Allocation(1)<1e3
-  error('Opt.Allocation is too small.');
+  error('Opt.Allocation(1) (maximum number elements) is too small.');
 end
 logmsg(2,'  allocation: %d max elements, %d max rows',Opt.Allocation(1),Opt.Allocation(2));
 

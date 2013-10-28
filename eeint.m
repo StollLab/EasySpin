@@ -34,7 +34,7 @@ n = prod(2*sys+1);
 % Special cases: only one spins, ee not given or all zero
 F = zeros(n,n);
 if (System.nElectrons==1), return; end
-if ~any(System.ee(:)) & ~any(System.ee2), return; end
+if ~any(System.ee(:)) && ~any(System.ee2(:)), return; end
 
 if (nargin<2), Spins = 1:System.nElectrons; end
 
@@ -56,12 +56,13 @@ Spins = sort(Spins);
 [idx1,idx2] = find(triu(ones(numel(Spins)),1));
 idx = [idx1,idx2];
 
-Electrons = Spins(idx);
-Coupl = Electrons(:,1) + (Electrons(:,2)-1)*System.nElectrons;
+Pairs = Spins(idx);
+nPairs = size(Pairs,1);
+Coupl = Pairs(:,1) + (Pairs(:,2)-1)*System.nElectrons;
 
-% Compile list of all interactions
+% Compile list of all spin pairs
 [e2,e1] = find(tril(ones(System.nElectrons),-1));
-allCoupl = e1 + (e2-1)*System.nElectrons;
+allPairsIdx = e1 + (e2-1)*System.nElectrons;
 
 ee = System.ee;
 if ~System.fullee
@@ -72,8 +73,8 @@ end
 ee2 = System.ee2;
 
 % Compute Hamiltonian matrix
-for iE = 1:size(Electrons,1)
-  iCoupling = find(Coupl(iE)==allCoupl);
+for iPair = 1:nPairs
+  iCoupling = find(Coupl(iPair)==allPairsIdx);
 
   % Construct matrix representing coupling tensor
   if System.fullee
@@ -85,17 +86,17 @@ for iE = 1:size(Electrons,1)
   
   % Sum up Hamiltonian terms
   for c1 = 1:3
-    so1 = sop(sys,Electrons(iE,1),c1,'sparse');
+    so1 = sop(sys,Pairs(iPair,1),c1,'sparse');
     for c2 = 1:3
-      so2 = sop(sys,Electrons(iE,2),c2,'sparse');
+      so2 = sop(sys,Pairs(iPair,2),c2,'sparse');
       
       % Bilinear coupling S1*ee*S2
       F = F + so1*J(c1,c2)*so2;
 
       % Isotropic biquadratic exchange coupling +ee2*(S1.S2)^2
       if (c1==c2)
-        if ee2(iE)~=0
-          F = F + ee2(iE)*(so1*so2)^2;
+        if ee2(iPair)~=0
+          F = F + ee2(iPair)*(so1*so2)^2;
         end
       end
 

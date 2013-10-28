@@ -42,6 +42,10 @@ if (nargin<5) || (nargin>7), error('Wrong number of input arguments!'); end
 
 if (nargin<6), IncScheme = 1; end
 
+if numel(n)~=1 || mod(n,1)~=0 || n<=0
+  error('n, the number of points (4th argument), must be a positive integer.');
+end
+
 % IncScheme check
 %------------------------------------------------------------
 ID = 0;
