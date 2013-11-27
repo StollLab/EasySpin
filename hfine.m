@@ -2,14 +2,24 @@
 %
 %   F = hfine(System)
 %   F = hfine(System,Spins)
+%   F = hfine(System,Spins,'sparse')
 %
 %   Returns the hyperfine interaction Hamiltonian
 %   [MHz] of the spins 'Spins' of the system
 %   'SpinSystem'. Spins = 1 is the first electron.
+%
+%   If 'sparse' is given, the matrix is returned in sparse format.
 
-function F = hfine(System,Spins)
+function F = hfine(System,Spins,opt)
 
 if (nargin==0), help(mfilename); return; end
+
+if (nargin<2), Spins = []; end
+if (nargin<3), opt = ''; end
+if ~ischar(opt)
+  error('Third input must be a string, ''sparse''.');
+end
+sparseResult = strcmp(opt,'sparse');
 
 % Validate spin system.
 [Sys,err] = validatespinsys(System);
@@ -21,13 +31,17 @@ nStates = Sys.nStates;
 nElectrons = Sys.nElectrons;
 nNuclei = Sys.nNuclei;
 
+F = sparse(nStates,nStates); % sparse zero matrix
+
 if (nNuclei==0)
-  F = zeros(nStates,nStates);
-  return;
+  if ~sparseResult
+    F = full(F); % convert sparse to full
+  end
+  return
 end
 
 % Get spin list
-if (nargin==1) % no 'Spins' specified -> all nuclei and all electrons
+if isempty(Spins) % no 'Spins' specified -> all nuclei and all electrons
   NucSpins = nElectrons+1:numel(SpinVec);
   ElSpins = 1:nElectrons;
 else
@@ -44,7 +58,6 @@ if (numel(NucSpins)<1) || (numel(ElSpins)<1)
   error('At least one electron and one nuclear spin must be specified!');
 end
 
-F = sparse(nStates,nStates); % sparse zero matrix
 
 FullAMatrix = size(System.A,1)>nNuclei;
 
@@ -73,7 +86,9 @@ for edx = 1:length(ElSpins)
   end % for all specified nuclei
 end % for all specified electrons
 
-F = full(F); % convert sparse to full
 F = (F+F')/2; % hermitianise, e.g. guards against small imaginary remainders on the diagonal
+if ~sparseResult
+  F = full(F); % convert sparse to full
+end
 
 return

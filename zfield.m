@@ -2,6 +2,7 @@
 %
 %   F = zfield(SpinSystem)
 %   F = zfield(SpinSystem,Electrons)
+%   F = zfield(SpinSystem,Electrons,'sparse')
 %
 %   Returns the electronic zero-field interaction (ZFI)
 %   Hamiltonian [MHz] of the system SpinSystem.
@@ -9,15 +10,24 @@
 %   If the vector Electrons is given, the ZFI of only the
 %   specified electrons is returned (1 is the first, 2 the
 %   second, etc). Otherwise, all electrons are included.
+%
+%   If 'sparse' is given, the matrix is returned in sparse format.
 
-function H = zfield(SpinSystem,Electrons)
+function H = zfield(SpinSystem,Electrons,opt)
 
 if (nargin==0), help(mfilename); return; end
 
 [Sys,err] = validatespinsys(SpinSystem);
 error(err);
 
-if (nargin==1), Electrons = 1:Sys.nElectrons; end
+if (nargin<2), Electrons = []; end
+if (nargin<3), opt = ''; end
+if ~ischar(opt)
+  error('Third input must be a string, ''sparse''.');
+end
+sparseResult = strcmp(opt,'sparse');
+
+if isempty(Electrons), Electrons = 1:Sys.nElectrons; end
 
 if any(Electrons>Sys.nElectrons) || any(Electrons<1),
   error('Electron spin index/indices (2nd argument) out of range!');
@@ -144,6 +154,8 @@ for e = 1:length(Electrons)
 end % for all spins specified
 
 H = (H+H')/2; % Hermitianise
-H = full(H);
+if ~sparseResult
+  H = full(H);
+end
 
 return

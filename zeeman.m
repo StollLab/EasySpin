@@ -2,6 +2,7 @@
 %
 %   [Zx, Zy, Zz] = zeeman(SpinSystem)
 %   [Zx, Zy, Zz] = zeeman(SpinSystem, Spins)
+%   [Zx, Zy, Zz] = zeeman(SpinSystem, Spins, 'sparse')
 %
 %   Returns the Zeeman interaction Hamiltonian for
 %   the spins 'Spins' of the spin system 'SpinSystem'.
@@ -12,6 +13,7 @@
 %     is the electron, >=2 are the nuclei. For two electron
 %     spins: 1 and 2 electrons, >=3 nuclei, etc. If Spins is
 %     omitted, all spins are included.
+%   - 'sparse': If given, the matrix is returned in sparse format.
 %
 %   Output:
 %   - Zx, Zy, Zz: components of the Zeeman interaction
@@ -19,12 +21,19 @@
 %     i=x,y,z where B_i are the cartesian components of
 %     the external field. Units are MHz/mT = 1e9 Hz/T.
 
-function [ZxM,ZyM,ZzM] = zeeman(SpinSystem,Spins)
+function [ZxM,ZyM,ZzM] = zeeman(SpinSystem,Spins,opt)
 
 if (nargin==0), help(mfilename); return; end
 
-if (nargin<1) || (nargin>2), error('Wrong number of input arguments!'); end
+if (nargin<1) || (nargin>3), error('Wrong number of input arguments!'); end
 if (nargout<3) || (nargout>3), error('Wrong number of output arguments!'); end
+
+if (nargin<2), Spins = []; end
+if (nargin<3), opt = ''; end
+if ~ischar(opt)
+  error('Third input must be a string, ''sparse''.');
+end
+sparseResult = strcmp(opt,'sparse');
 
 % Validate spin system
 [Sys,err] = validatespinsys(SpinSystem);
@@ -34,12 +43,10 @@ error(err);
 SpinVec = Sys.Spins;
 
 % No 'Spins' specified -> use all
-if (nargin==1),
-  Spins = 1:numel(SpinVec);
-end
+if isempty(Spins), Spins = 1:numel(SpinVec); end
 
 % Validate second argument (Spins)
-if isempty(Spins) || any(Spins<1) || any(Spins>length(SpinVec))
+if any(Spins<1) || any(Spins>length(SpinVec))
   error('Spin indices (2nd input argument) invalid!');
 end
 
@@ -48,9 +55,9 @@ nElectrons = Sys.nElectrons;
 nStates = Sys.nStates;
 
 % Initialize Zeeman interaction components to zero
-ZxM = zeros(nStates);
-ZyM = zeros(nStates);
-ZzM = zeros(nStates);
+ZxM = sparse(nStates,nStates);
+ZyM = sparse(nStates,nStates);
+ZzM = sparse(nStates,nStates);
 
 elFactor = bmagn/(planck*1e9)*Sys.g;
 nucFactor = -nmagn/(planck*1e9)*Sys.gn;
@@ -68,7 +75,7 @@ for idx = 1:numel(Spins)
     end  
     % Build EZI Hamiltonian in MHz/mT
     for k = 1:3
-      Sk = sop(SpinVec,iSpin,k);
+      Sk = sop(SpinVec,iSpin,k,'sparse');
       ZxM = ZxM + g(1,k)*Sk;
       ZyM = ZyM + g(2,k)*Sk;
       ZzM = ZzM + g(3,k)*Sk;
@@ -78,10 +85,16 @@ for idx = 1:numel(Spins)
     % Build NZI Hamiltonian in MHz/mT
     pre = nucFactor(iSpin-nElectrons);
     pre = pre * Sys.gnscale(iSpin-nElectrons);
-    ZxM = ZxM + pre*sop(SpinVec,iSpin,1);
-    ZyM = ZyM + pre*sop(SpinVec,iSpin,2);
-    ZzM = ZzM + pre*sop(SpinVec,iSpin,3);
+    ZxM = ZxM + pre*sop(SpinVec,iSpin,1,'sparse');
+    ZyM = ZyM + pre*sop(SpinVec,iSpin,2,'sparse');
+    ZzM = ZzM + pre*sop(SpinVec,iSpin,3,'sparse');
   end
+end
+
+if ~sparseResult
+  ZxM = full(ZxM);
+  ZyM = full(ZyM);
+  ZzM = full(ZzM);
 end
 
 return

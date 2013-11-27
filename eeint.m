@@ -2,6 +2,7 @@
 %
 %   F = eeint(SpinSystem)
 %   F = eeint(SpinSystem,eSpins)
+%   F = eeint(SpinSystem,eSpins,'sparse')
 %
 %   Returns the electron-electron spin interaction (EEI)
 %   Hamiltonian, in MHz.
@@ -12,18 +13,26 @@
 %   - eSpins: If given, specifies electron spins
 %       for which the EEI should be computed. If
 %       absent, all electrons are included.
-%
+%   - 'sparse': If given, the matrix is returned in sparse format.
+
 %   Output:
 %   - F: Hamiltonian matrix containing the EEI for
 %       electron spins specified in eSpins.
 
-function F = eeint(System,Spins)
+function F = eeint(System,Spins,opt)
 
 if (nargin==0), help(mfilename); return; end
 
-if (nargin<1) || (nargin>2), error('Wrong number of input arguments!'); end
+if (nargin<1) || (nargin>3), error('Wrong number of input arguments!'); end
 if (nargout<0), error('Not enough output arguments.'); end
 if (nargout>1), error('Too many output arguments.'); end
+
+if nargin<3, opt = ''; end
+if nargin<2, Spins = []; end
+if ~ischar(opt)
+  error('Third input must be a string, ''sparse''.');
+end
+sparseResult = strcmp(opt,'sparse');
 
 [System,err] = validatespinsys(System);
 error(err);
@@ -32,11 +41,11 @@ sys = spinvec(System);
 n = prod(2*sys+1);
 
 % Special cases: only one spins, ee not given or all zero
-F = zeros(n,n);
+F = sparse(n,n);
 if (System.nElectrons==1), return; end
 if ~any(System.ee(:)) && ~any(System.ee2(:)), return; end
 
-if (nargin<2), Spins = 1:System.nElectrons; end
+if isempty(Spins), Spins = 1:System.nElectrons; end
 
 % Some error checking on the second input argument
 if numel(Spins)<2
@@ -105,5 +114,8 @@ for iPair = 1:nPairs
   
 end
 
-F = full(F); % sparse -> full
 F = (F+F')/2; % Hermitianise
+if ~sparseResult
+  F = full(F); % sparse -> full
+end
+

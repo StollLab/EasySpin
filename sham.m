@@ -3,6 +3,7 @@
 %   [F,Gx,Gy,Gz] = sham(sys)
 %   [F,G] = sham(sys, B)
 %   H = sham(sys, B)
+%   ... = sham(sys, B,'sparse')
 %
 %   Constructs a spin Hamiltonian.
 %
@@ -15,22 +16,35 @@
 %   - 'F','G',Gx','Gy','Gz' ([MHz] and [MHz/mT])
 %      H = F + B(1)*Gx + B(2)*Gy + B(3)*Gz = F + |B|*G
 
-function varargout = sham(SpinSystem,B0)
+function varargout = sham(SpinSystem,B0,opt)
 
 if (nargin==0), help(mfilename); return; end
+
+if nargin<2, B0 = []; end
+if nargin<3, opt = ''; end
+if ~ischar(opt)
+  error('Third argument must be a string, ''sparse''.');
+end
+sparseResult = strcmp(opt,'sparse');
 
 [Sys,err] = validatespinsys(SpinSystem);
 error(err);
 
 % Field-independent interactions: ZFI, NQI, HFI, EEI
-F = zfield(Sys) + nquad(Sys) + hfine(Sys) + eeint(Sys);
-
 % Zeeman interaction: EZI, NZI
-[GxM,GyM,GzM] = zeeman(Sys);
+if sparseResult
+  F = zfield(Sys,[],'sparse') + nquad(Sys,[],'sparse') + ...
+    hfine(Sys,[],'sparse') + eeint(Sys,'sparse');
+  [GxM,GyM,GzM] = zeeman(Sys,[],'sparse');
+else
+  F = zfield(Sys) + nquad(Sys) + hfine(Sys) + eeint(Sys);
+  [GxM,GyM,GzM] = zeeman(Sys);
+end
+
 
 % arrange the output
-switch nargin
-case 1
+if isempty(B0)
+
   if (nargout==4)
     varargout = {F,GxM,GyM,GzM};
   elseif nargout==1
@@ -39,7 +53,8 @@ case 1
     error('4 output arguments expected!');
   end
   
-case 2
+else
+  
   if numel(B0)~=3
     error('Magnetic field must be 3-element vector!');
   end
