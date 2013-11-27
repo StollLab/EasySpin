@@ -527,7 +527,7 @@ if (FitData.GUI)
   set(findobj('Tag','selectAllButton'),'Enable','off');
   set(findobj('Tag','selectNoneButton'),'Enable','off');
   set(findobj('Tag','selectInvButton'),'Enable','off');
-  set(findobj('Tag','ParameterTable'),'Enable','off');
+  set(getParameterTableHandle,'Enable','off');
 
   % Disable fitset list controls
   set(findobj('Tag','deleteSetButton'),'Enable','off');
@@ -562,7 +562,7 @@ end
 FitData.bestspec = ones(1,numel(FitData.ExpSpec))*NaN;
 
 if (FitData.GUI)
-  data = get(findobj('Tag','ParameterTable'),'Data');
+  data = get(getParameterTableHandle,'Data');
   for iPar = 1:FitData.nParameters
     FitData.inactiveParams(iPar) = data{iPar,1}==0;
   end
@@ -614,7 +614,7 @@ end
 if FitData.GUI
   
   % Remove current values from parameter table
-  h = findobj('Tag','ParameterTable');
+  h = getParameterTableHandle;
   Data = get(h,'Data');
   for p = 1:size(Data,1), Data{p,4} = '-'; end
   set(h,'Data',Data);
@@ -649,7 +649,7 @@ if FitData.GUI
   set(findobj('Tag','selectAllButton'),'Enable','on');
   set(findobj('Tag','selectNoneButton'),'Enable','on');
   set(findobj('Tag','selectInvButton'),'Enable','on');
-  set(findobj('Tag','ParameterTable'),'Enable','on');
+  set(getParameterTableHandle,'Enable','on');
   
 end
 
@@ -772,7 +772,7 @@ if (FitData.GUI) && (UserCommand~=99)
   if (UserCommand~=99)
     
     % current system set
-    hParamTable = findobj('Tag','ParameterTable');
+    hParamTable = getParameterTableHandle;
     data = get(hParamTable,'data');
     for p=1:numel(simvalues)
       olddata = striphtml(data{p,4});
@@ -1112,7 +1112,7 @@ if ~isempty(str)
   if (idx>0)
     fitset = FitData.FitSets(idx);
     
-    h = findobj('Tag','ParameterTable');
+    h = getParameterTableHandle;
     data = get(h,'data');
     values = fitset.bestvalues;
     for p = 1:numel(values)
@@ -1147,21 +1147,21 @@ evalin('base',varname);
 return
 
 function selectAllButtonCallback(object,src,event)
-h = findobj('Tag','ParameterTable');
+h = getParameterTableHandle;
 d = get(h,'Data');
 d(:,1) = {true};
 set(h,'Data',d);
 return
 
 function selectNoneButtonCallback(object,src,event)
-h = findobj('Tag','ParameterTable');
+h = getParameterTableHandle;
 d = get(h,'Data');
 d(:,1) = {false};
 set(h,'Data',d);
 return
 
 function selectInvButtonCallback(object,src,event)
-h = findobj('Tag','ParameterTable');
+h = getParameterTableHandle;
 d = get(h,'Data');
 for k=1:size(d,1)
   d{k,1} = ~d{k,1};
@@ -1221,4 +1221,20 @@ else
   FitData.FitSets(end+1) = FitData.currFitSet;
 end
 refreshFitsetList(-1);
+return
+
+
+function hTable = getParameterTableHandle
+% uitable was introduced in R2008a, undocumented in
+% R2007b, where property 'Tag' doesn't work
+
+%h = findobj('Tag','ParameterTable'); % works only for R2008a and later
+
+% for R2007b compatibility
+hFig = findobj('Tag','esfitFigure');
+if ishandle(hFig)
+  hTable = findobj(hFig,'Type','uitable');
+else
+  hTable = [];
+end
 return
