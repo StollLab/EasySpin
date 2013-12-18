@@ -117,7 +117,7 @@ if ~isempty(Scaling)
 end
 
 % Determination of input file type
-ParseParameters = 0;
+ParseParameters = false;
 
 switch Extension
 
@@ -130,7 +130,7 @@ case {'.DTA','.DSC','.dsc','.dta'}
   % used on Bruker ELEXSYS and EMX machines
   % Code based on BES3T version 1.2 (Xepr 2.1)
   %--------------------------------------------------------
-  ParseParameters = 1;
+  ParseParameters = true;
 
   if ismember(Extension,{'.DSC','.DTA'})
     ParExtension = '.DSC';
@@ -144,17 +144,22 @@ case {'.DTA','.DSC','.dsc','.dta'}
   [Parameters,err] = readDSCfile([FullBaseName ParExtension]);
   error(err);
   
-  % IKKF: Item Complex Flag
+  % IKKF: Complex-data Flag
   % CPLX indicates complex data, REAL indicates real data.
   if isfield(Parameters,'IKKF')
-    switch Parameters.IKKF
-    case 'CPLX', isComplex = 1;
-    case 'REAL', isComplex = 0;
-    otherwise, error('Unknown value for keyword IKKF in .DSC file!');
+    parts = regexp(Parameters.IKKF,',','split');
+    nDataValues = numel(parts); % number of data values per parameter point
+    for k = 1:nDataValues
+      switch parts{k}
+        case 'CPLX', isComplex(k) = 1;
+        case 'REAL', isComplex(k) = 0;
+        otherwise, error('Unknown value for keyword IKKF in .DSC file!');
+      end
     end
   else
     warning('Keyword IKKF not found in .DSC file! Assuming IKKF=REAL.');
     isComplex = 0;
+    nDataValues = 1;
   end
   
   % XPTS: X Points   YPTS: Y Points   ZPTS: Z Points
@@ -185,16 +190,22 @@ case {'.DTA','.DSC','.dsc','.dta'}
   % Data format tag of BES3T is IRFMT for the real part and IIFMT
   % for the imaginary part.
   if isfield(Parameters,'IRFMT')
-    switch upper(Parameters.IRFMT)
-    case 'C', NumberFormat = 'int8';
-    case 'S', NumberFormat = 'int16';
-    case 'I', NumberFormat = 'int32';
-    case 'F', NumberFormat = 'float32';
-    case 'D', NumberFormat = 'float64';
-    case 'A', error('Cannot read BES3T data in ASCII format!');
-    case {'0','N'}, error('No BES3T data!');
-    otherwise
-      error('Unknown value for keyword IRFMT in .DSC file!');
+    parts = regexp(Parameters.IRFMT,',','split');
+    if numel(parts)~=nDataValues
+      error('Problem in BES3T DSC file: inconsistent IKKF and IRFMT fields.');
+    end
+    for k = 1:nDataValues
+      switch upper(parts{k})
+        case 'C', NumberFormat = 'int8';
+        case 'S', NumberFormat = 'int16';
+        case 'I', NumberFormat = 'int32';
+        case 'F', NumberFormat = 'float32';
+        case 'D', NumberFormat = 'float64';
+        case 'A', error('Cannot read BES3T data in ASCII format!');
+        case {'0','N'}, error('No BES3T data!');
+        otherwise
+          error('Unknown value for keyword IRFMT in .DSC file!');
+      end
     end
   else
     error('Keyword IRFMT not found in .DSC file!');
@@ -244,7 +255,7 @@ case {'.DTA','.DSC','.dsc','.dta'}
   end
     
   % Read data matrix. 
-  Data = getmatrix([FullBaseName,SpcExtension],Dimensions,1:3,NumberFormat,ByteOrder,isComplex);
+  Data = getmatrix([FullBaseName,SpcExtension],Dimensions,NumberFormat,ByteOrder,isComplex);
 
   % Scale spectrum/spectra
   if ~isempty(Scaling)
@@ -268,7 +279,7 @@ case {'.DTA','.DSC','.dsc','.dta'}
       end
       nAverages = sscanf(Parameters.AVGS,'%d');
       if DataPreScaled
-        error(sprintf('Scaling by number of scans not possible,\nsince data in DSC/DTA are already averaged\nover %d scans.',nAverages));
+        error('Scaling by number of scans not possible,\nsince data in DSC/DTA are already averaged\nover %d scans.',nAverages);
       else
         Data = Data/nAverages;
       end
@@ -344,7 +355,7 @@ case {'.PAR','.SPC','.par','.spc'}
   %   Bruker ESP machines
   %   Bruker WinEPR, Simfonia
   %--------------------------------------------------
-  ParseParameters = 1;
+  ParseParameters = true;
   
   % Read parameter file (contains key-value pairs)
   ParExtension = '.par';
@@ -541,7 +552,7 @@ case {'.PAR','.SPC','.par','.spc'}
   % Read data file.
   nz = 1;
   Dimensions = [nx ny nz];
-  Data = getmatrix([FullBaseName,SpcExtension],Dimensions,1:3,NumberFormat,Endian,isComplex);
+  Data = getmatrix([FullBaseName,SpcExtension],Dimensions,NumberFormat,Endian,isComplex);
 
   % Scale spectrum/spectra
   if ~isempty(Scaling)
@@ -808,26 +819,36 @@ switch (nargout)
   case 4
     varargout = {Abscissa, Data, Parameters, FileName};
   case 0
-    if min(size(Data))==1
-      if isreal(Data)
-        plot(Abscissa,Data);
+    if ~iscell(Data), Data = {Data}; end
+    nDataSets = numel(Data);
+    for k = 1:nDataSets
+      subplot(nDataSets,1,k);
+      if min(size(Data{k}))==1
+        if isreal(Data{k})
+          plot(Abscissa,Data{k});
+        else
+          plot(Abscissa,real(Data{k}),'b',Abscissa,imag(Data{k}),'r');
+        end
+        if (nDataSets>1)
+          title([FileName sprintf(', dataset %d',k)],'Interpreter','none');
+        else
+          title(FileName,'Interpreter','none');
+        end
+        axis tight
+        if ~isreal(Data{k})
+          legend('real','imag');
+          legend boxoff
+        end
       else
-        plot(Abscissa,real(Data),'b',Abscissa,imag(Data),'r');
+        pcolor(real(Data{k})); shading flat;
       end
-      title(FileName,'Interpreter','none');
-      axis tight
-      if ~isreal(Data)
-        legend('real','imag');
-      end
-    else
-      pcolor(real(Data)); shading flat;
     end
 end
 
 return
 
 %--------------------------------------------------
-function out = getmatrix(FileName,Dims,DimOrder,NumberFormat,ByteOrder,isComplex)
+function out = getmatrix(FileName,Dims,NumberFormat,ByteOrder,isComplex)
 
 % Open data file, error if fail.
 FileID = fopen(FileName,'r',ByteOrder);
@@ -835,9 +856,12 @@ if (FileID<1), error('Unable to open data file %s',FileName); end
 
 % Calculate expected number of elements and read in.
 % Real and imaginary data are interspersed.
-if isComplex, N = 2*prod(Dims); else N = prod(Dims); end
+nDataValuesPerPoint = numel(isComplex);
+nRealsPerPoint = sum(isComplex+1);
+N = nRealsPerPoint*prod(Dims);
+
 [x,effN] = fread(FileID,N,NumberFormat);
-if (effN<N)
+if (effN~=N)
   error('Unable to read all expected data.');
 end
 
@@ -845,13 +869,24 @@ end
 CloseStatus = fclose(FileID);
 if (CloseStatus<0), error('Unable to close data file %s',FileName); end
 
-% Combine real and imaginary data to complex.
-if isComplex
-  x = complex(x(1:2:end),x(2:2:end));
+% Reshape data and combine real and imaginary data to complex.
+x = reshape(x,nRealsPerPoint,[]);
+for k = 1:nDataValuesPerPoint
+  if isComplex(k)
+    data{k} = complex(x(k,:),x(k+1,:)).';
+    x(k+1,:) = [];
+  else
+    data{k} = x(k,:);
+  end
 end
 
 % Reshape to matrix and permute dimensions if wanted.
-out = ipermute(reshape(x(:),Dims(DimOrder)),DimOrder);
+DimOrder = 1:3;
+for k = 1:nDataValuesPerPoint
+  out{k} = reshape(data{k},Dims);
+end
+
+if numel(out)==1, out = out{1}; end
 
 return
 %--------------------------------------------------
