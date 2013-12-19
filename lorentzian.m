@@ -37,9 +37,11 @@ if any(diff<-1) || any(diff>2)
   error('Cannot compute lineshape for derivative %d.',diff);
 end
 
-% compute Lorentzian lineshape
-gamma = 0.57735026918963*fwhm; % distance from x0 to inflexion point
-pre = 0.36755259694786; % 2/pi/sqrt(3)
+% Compute Lorentzian lineshape
+%------------------------------------------------------------------
+% gamma = distance from center to inflexion point
+gamma = fwhm/sqrt(3);
+pre = 2/pi/sqrt(3);
 k = (x-x0)/gamma;
 switch diff
   case -1

@@ -68,14 +68,20 @@ elseif numel(fwhm)==1
 end
 
 % compute Gaussian component, if demanded
-if alphaGauss~=0
-  Gauss = gaussian(x,x0,fwhmG,diff);
+if (alphaGauss~=0)
+  [GaussAbs,GaussDisp] = gaussian(x,x0,fwhmG,diff);
+  if (phase~=0)
+    error('Can''t calculate Gaussian dispersion lineshape.');
+    Gauss = GaussAbs*cos(phase) +  GaussDisp*sin(phase);
+  else
+    Gauss = GaussAbs;
+  end
 else
   Gauss = 0;
 end
 
 % compute Lorentzian component, if demanded
-if alphaGauss~=1
+if (alphaGauss~=1)
   [LorentzAbs,LorentzDisp] = lorentzian(x,x0,fwhmL,diff);
   if (phase~=0)
     Lorentz = LorentzAbs*cos(phase) +  LorentzDisp*sin(phase);
