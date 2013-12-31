@@ -67,7 +67,7 @@ DefaultOptions.nKnots = 46; % same as in salt and nucfrq2d
 DefaultOptions.Symmetry = '';
 DefaultOptions.Display = (nargout==0);
 
-DefaultOptions.IntegratedIntensity = 1;
+DefaultOptions.IntegratedIntensity = true;
 
 Options = adddefaults(Options,DefaultOptions);
 
@@ -82,7 +82,13 @@ else
     SymmFrame = eye(3);
   end
   SymmGroup = Options.Symmetry;
-  Vectors = sphgrid(SymmGroup,Options.nKnots);
+  if Options.Display
+    % no open phi intervals, since sphtri only works for closed ones
+    gridopt = 'f'; 
+  else
+    gridopt = 'c';
+  end
+  Vectors = sphgrid(SymmGroup,Options.nKnots,gridopt);
   [phi,theta] = vec2ang(SymmFrame*Vectors);
   Orientations = [phi; theta];
 end
@@ -125,9 +131,9 @@ if isfinite(Params.ExciteWidth)
     [xLab,yLab,zLab] = erot(phi(iOri),theta(iOri),0);
     GxL = xLab(1)*GxM + xLab(2)*GyM + xLab(3)*GzM;
     GyL = yLab(1)*GxM + yLab(2)*GyM + yLab(3)*GzM;
-    Field = Params.Field*zLab;
+    GzL = zLab(1)*GxM + zLab(2)*GyM + zLab(3)*GzM;
     % Eigenvalues
-    [V,E] = eig(F + Field(1)*GxM + Field(2)*GyM + Field(3)*GzM);
+    [V,E] = eig(F + Params.Field*GzL);
     E = diag(E);
     [E,idx] = sort(E); % because of a bug in eig() in Matlab 7.0.0 (fixed in 7.0.1)
     V = V(idx,:);
