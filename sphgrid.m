@@ -47,7 +47,7 @@ if (nargin<2) || (nargin>3), error('Wrong number of input arguments!'); end
 
 if (nargin<3)
   Cartesian = 0;
-  explicitClosedPhi = 0;
+  explicitClosedPhi = false;
 else
   Cartesian = any(strfind(Options,'c'));
   explicitClosedPhi = any(strfind(Options,'f'));

@@ -33,7 +33,11 @@ end
 
 DebugMode = 0;
 
-explicitClosedPhi = any(findstr(Options,'f'));
+if ~ischar(Options)
+  error('Third input argument must be a string.');
+end
+
+explicitClosedPhi = any(Options=='f');
 
 switch (Symmetry)
   case 1, Symmetry = 'D2h';

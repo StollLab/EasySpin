@@ -314,6 +314,9 @@ if ~isempty(Exp.Ordering)
   if any(Sys.gStrain) || any(Sys.AStrain) || any(Sys.DStrain) || any(Sys.HStrain)
     error('Exp.Ordering and g/A/D/H strains cannot be used simultaneously.');
   end
+  if ~Exp.PowderSimulation
+    error('Exp.Ordering can only be used in a powder simulation.');
+  end
 end
 
 % Temperature and non-equilibrium populations
