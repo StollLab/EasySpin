@@ -54,8 +54,14 @@ if (nargout>3), error('Too many output arguments.'); end
 if (nargin<3), Opt = struct('unused',NaN); end
 if isempty(Opt), Opt = struct('unused',NaN); end
 
-if ~(isstruct(Sys) && isstruct(Exp) && isstruct(Opt))
-  error('Input pararmeters must be structures!');
+if ~isstruct(Sys) && ~iscell(Sys)
+  error('Sys must be a structure or a list of structures!');
+end
+if ~isstruct(Exp)
+  error('Exp must be a structure!');
+end
+if ~isstruct(Opt)
+  error('Opt must be a structure!');
 end
 
 % A global variable sets the level of log display. The global variable
