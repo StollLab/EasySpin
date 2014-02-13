@@ -255,6 +255,7 @@ if (FitData.GUI)
   if isempty(hFig)
     hFig = figure('Tag','esfitFigure','WindowStyle','normal');
   else
+    figure(hFig);
     clf(hFig);
   end
   
@@ -272,7 +273,7 @@ if (FitData.GUI)
   % axes
   %-----------------------------------------------------------------
   % data display
-  hAx = axes('Units','pixels','Position',[50 30 600 560],'FontSize',8);
+  hAx = axes('Parent',hFig,'Units','pixels','Position',[50 30 600 560],'FontSize',8);
   NaNdata = ones(1,Exp.nPoints)*NaN;
   h = plot(hAx,...
     1:Exp.nPoints,NaNdata,'k.-',...
@@ -290,7 +291,7 @@ if (FitData.GUI)
   % iteration and rms error displays
   %-----------------------------------------------------------------
   x0 = 660; y0 = 180;
-  axes('Units','pixels','Position',[x0 y0 100 80],'FontSize',6,'Layer','top');
+  axes('Parent',hFig,'Units','pixels','Position',[x0 y0 100 80],'FontSize',6,'Layer','top');
   h = plot(1,NaN,'.');
   set(h,'Tag','errorline',...
     'MarkerSize',5,'Color',[0.2 0.2 0.8]);
