@@ -267,7 +267,7 @@ if isfield(Exp,'Orientations')
   warning('Exp.Orientations is not used by chili.');
 end
 if isfield(Exp,'Ordering')
-  warning('Exp.Ordering is not used by chili.');
+  warning('Exp.Ordering is not used by chili. Use Sys.lambda instead.');
 end
 if isfield(Exp,'CrystalSymmetry')
   warning('Exp.CrystalSymmetry is not used by chili.');
@@ -295,6 +295,7 @@ if ~isfield(Opt,'nKnots'), Opt.nKnots = [5 0]; end
 if numel(Opt.nKnots)<1, Opt.nKnots(1) = 5; end
 if numel(Opt.nKnots)<2, Opt.nKnots(2) = 0; end
 
+% Basis settings
 if ~isfield(Opt,'LLKM')
   Opt.LLKM = [14 7 6 2];
 end
@@ -310,22 +311,21 @@ Basis.pImax = Opt.pImax;
 
 switch Opt.SolveMethod
   case 'L'
-    logmsg(1,'  tridiagonalization: Lanczos algorithm');
-    if Opt.Lentz==1 % Lentz method
-      logmsg(1,'  continued fraction evaluation: left-to-right');
+    if (Opt.Lentz==1) % Lentz method
+      SolverString = 'Lanczos tridiagonalization, left-to-right continued fraction evaluation';
     else
-      logmsg(1,'  continued fraction evaluation: right-to-left');
+      SolverString = 'Lanczos tridiagonalization, right-to-left continued fraction evaluation';
     end
   case 'C'
-    logmsg(1,'  tridiagonalization: conjugate gradients');
-    logmsg(1,'  continued fraction: right-to-left evaluation');
+    SolverString = 'conjugate gradients tridiagonalization, right-to-left continued fraction evaluation';
   case 'R'
-    logmsg(1,'  Reference method: biconjugate gradients, stabilized');
+    SolverString = 'biconjugate gradients, stabilized';
   case '\'
-    logmsg(1,'  Backslash linear solver');
+    SolverString = 'backslash linear';
   otherwise
     error('Unknown method in Options.SolveMethod. Must be ''L'', ''R'', ''C'', or ''\''.');
 end
+logmsg(1,'  solver: %s',SolverString);
 
 maxElements = 5e6; % used in chili_lm
 maxRows = 2e5; % used in chili_lm
@@ -353,7 +353,7 @@ Dynamics.maxL = size(Dynamics.xlk,1)-1;
 Basis = processbasis(Sys,Basis,Dynamics);
 
 nu = linspace(-1,1,Exp.nPoints)*Opt.maxOffset;  % Hz
-z0 = complex(1/(Dynamics.T2),2*pi*(-nu+Exp.mwFreq*1e9)); % Hz
+omega0 = complex(1/(Dynamics.T2),2*pi*(-nu+Exp.mwFreq*1e9)); % Hz
 xField = nu/1e6/mT2MHz + Exp.CenterField;
 
 
@@ -382,7 +382,8 @@ else
 end
 nOrientations = numel(psi);
 
-
+% Pick functions for the calculation of Liouvillian and starting vector
+%-----------------------------------------------------------------------
 switch Sys.nNuclei
   case 0
     chili_lm = @chili_lm0;
@@ -423,6 +424,10 @@ for iOri = 1:nOrientations
   %-------------------------------------------------------
   logmsg(1,'Computing Liouville matrix...');
   [r,c,Vals,nDim,nElm] = chili_lm(Sys,Basis.v,Dynamics,Opt.Allocation);
+  idx = 1:nElm;
+  r = r(idx);
+  c = c(idx);
+  Vals = Vals(idx);
   logmsg(1,'  size: %dx%d',nDim,nDim);
   if (nDim~=BasisSize)
     Msg = sprintf('Matrix size (%d) inconsistent with basis size (%d). Please report.',nDim,BasisSize);
@@ -432,18 +437,16 @@ for iOri = 1:nOrientations
     error('Liouville matrix contains %d NaN entries!',sum(isnan(Vals)));
   end
 
-  z = z0;
+  omega = omega0;
   
   if (Opt.Rescale)
+    % rescale my maximum in Hamiltonian superoperator
     scale = -min(imag(Vals));
     Vals = Vals/scale;
-    z = z/scale;
+    omega = omega/scale;
   end
   
-  idx = 1:nElm;
-  L = sparse(r(idx)+1,c(idx)+1,Vals(idx),nDim,nDim);
-  %figure; spy(L);
-  %StartingVector = sparse(StartingVector);
+  L = sparse(r+1,c+1,Vals,nDim,nDim);
 
   maxDvalLim = 2e3;
   maxDval = max(abs(real(Vals)));
@@ -463,14 +466,14 @@ for iOri = 1:nOrientations
   switch Opt.SolveMethod
     case 'L' % Lanczos
       for iVec = 1:nVectors
-        [alpha,beta,minerr] = chili_lanczos(L,StartingVector(:,iVec),z,Opt);
+        [alpha,beta,minerr] = chili_lanczos(L,StartingVector(:,iVec),omega,Opt);
         minerr = minerr(end);
         if (minerr<Opt.Threshold)
-          thisspec(iVec,:) = chili_contfracspec(z,alpha,beta);
+          thisspec(iVec,:) = chili_contfracspec(omega,alpha,beta);
           logmsg(1,'  vector %d: converged to within %g at iteration %d/%d',...
             iVec,Opt.Threshold,numel(alpha),nDim);
         else
-          thisspec = ones(size(z));
+          thisspec = ones(size(omega));
           logmsg(0,'  Tridiagonalization did not converge to within %g after %d steps!\n  Increase Options.LLKM (current settings [%d,%d,%d,%d])',...
             Opt.Threshold,nDim,Opt.LLKM');
         end
@@ -483,25 +486,27 @@ for iOri = 1:nOrientations
       logmsg(1,'  step %d/%d: CG converged to within %g',...
         StepsDone,nDim,err);
 
-      thisspec = chili_contfracspec(z,alpha,beta);
+      thisspec = chili_contfracspec(omega,alpha,beta);
 
     case 'R' % bi-conjugate gradients stabilized
-      for iz = 1:numel(z)
-        u = bicgstab(L+z(iz)*speye(size(L)),StartingVector,Opt.Threshold,nDim);
+      for iz = 1:numel(omega)
+        u = bicgstab(L+omega(iz)*speye(size(L)),StartingVector,Opt.Threshold,nDim);
         thisspec(iz) = real(u'*StartingVector);
       end
       
     case '\'
+      I = speye(size(L));
       for iVec = 1:nVectors
         rho0 = StartingVector(:,iVec);
-        for iz = 1:numel(z)
-          thisspec(iz) = real(rho0'*((L+z(iz)*speye(size(L)))\rho0));
+        for iz = 1:numel(omega)
+          thisspec(iVec,iz) = rho0'*((L+omega(iz)*I)\rho0);
         end
       end
+      thisspec = real(thisspec);
       
     case 'D'
       %
-      %Binsch method, TBD
+      %"direct" method by Binsch, to be implemented
 
   end
 
@@ -571,10 +576,10 @@ Opt.BasisAnalysis = 0;
 if (Opt.BasisAnalysis)
   logmsg(1,'-------------------------------------------------------------------');
   logmsg(1,'Basis set analysis');
-  zz = linspace(z(1),z(end),12);
+  omega_ = linspace(omega(1),omega(end),12);
   u_sum = 0;
-  for iz = 1:numel(zz)
-    u = bicgstab(L+z(iz)*speye(size(L)),StartingVector,1e-7,180);
+  for iz = 1:numel(omega_)
+    u = bicgstab(L+omega_(iz)*speye(size(L)),StartingVector,1e-7,180);
     u_sum = u_sum + abs(u)/abs(StartingVector'*u);
   end
   u_sum = u_sum/max(u_sum);
@@ -595,6 +600,7 @@ end
 
 
 % Temperature: include Boltzmann equilibrium polarization
+%---------------------------------------------------------------
 if isfinite(Exp.Temperature)
   e = exp(-planck*Exp.mwFreq*1e9/boltzm/Exp.Temperature);
   Population = [1 e];
