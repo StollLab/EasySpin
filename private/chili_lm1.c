@@ -160,9 +160,9 @@ if (j3<=2) {
   int J = j2;
   int M = m1;
 
-  int x = 2*J - 1 + jd;
-  int y = J - M;
-  int z = J + M;
+  double x = 2*J - 1 + jd;
+  double y = J - M;
+  double z = J + M;
   
   /* Prefactor (-1)^(J-M) */
   phase *= parity(J-M);
