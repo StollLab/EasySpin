@@ -30,7 +30,7 @@ switch (nargin)
     j1 = j(1); j2 = j(2); j = j(3);
     m1 = m(1); m2 = m(2); m = m(3);
   otherwise
-    error('Wrong number of parameters!');
+    error('Wrong number of parameters! Need either 2, 3 or 6.');
 end
 
 % Compute coefficient via 3-j symbol
