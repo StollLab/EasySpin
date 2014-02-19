@@ -111,6 +111,7 @@ Trans = Trans(1:idx);
 Row = Row(1:idx);
 
 if (Options.SeparateTransitions)
+  I = 0;
   v = full(sparse(Row,Trans+I+1,Value,nRow,2*I+1));
 else
   v = full(sparse(Row,1,Value,nRow,1));

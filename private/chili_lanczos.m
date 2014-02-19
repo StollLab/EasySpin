@@ -9,7 +9,7 @@ oldspec = inf;
 zTest = linspace(z(1),z(end),201);
 RecomputationInterval = min(10,ceil(nDim/20));
 
-% Lanczos initialisations
+% Lanczos initializations
 x = Vector;
 x = x/sqrt(x.'*x);
 y = 0;

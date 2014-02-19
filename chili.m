@@ -324,7 +324,7 @@ switch Opt.SolveMethod
   case '\'
     logmsg(1,'  Backslash linear solver');
   otherwise
-    error('Unknown method in Options.SolveMethod. Must be ''L'', ''R'' or ''C''.');
+    error('Unknown method in Options.SolveMethod. Must be ''L'', ''R'', ''C'', or ''\''.');
 end
 
 maxElements = 5e6; % used in chili_lm
@@ -415,16 +415,21 @@ for iOri = 1:nOrientations
   BasisSize = size(StartingVector,1);
   nVectors = size(StartingVector,2);
   logmsg(1,'  basis size: %d, vectors: %d',BasisSize,nVectors);
-  logmsg(1,'  total non-zero elements: %d (%0.2f%%)',...
-    nnz(StartingVector),100*nnz(StartingVector)/BasisSize);
+  logmsg(1,'  total non-zero elements: %d/%d (%0.2f%%)',...
+    nnz(StartingVector),numel(StartingVector),100*nnz(StartingVector)/BasisSize);
+  logmsg(1,'  maxabs %g',max(abs(StartingVector)));
 
   % Liouville matrix
   %-------------------------------------------------------
   logmsg(1,'Computing Liouville matrix...');
   [r,c,Vals,nDim,nElm] = chili_lm(Sys,Basis.v,Dynamics,Opt.Allocation);
+  logmsg(1,'  size: %dx%d',nDim,nDim);
   if (nDim~=BasisSize)
     Msg = sprintf('Matrix size (%d) inconsistent with basis size (%d). Please report.',nDim,BasisSize);
     error(Msg);
+  end
+  if any(isnan(Vals))
+    error('Liouville matrix contains %d NaN entries!',sum(isnan(Vals)));
   end
 
   z = z0;
@@ -442,12 +447,12 @@ for iOri = 1:nOrientations
 
   maxDvalLim = 2e3;
   maxDval = max(abs(real(Vals)));
-  logmsg(1,'  maxabs diffusion matrix: %g',maxDval);
+  logmsg(1,'  maxabs: %g',maxDval);
   if maxDval>maxDvalLim
     error(sprintf('Numerical instability, values in diffusion matrix are too large (%g)!',maxDval));
   end
 
-  logmsg(1,'  L sparsity: %d/%d (%0.2f%%)',nnz(L),length(L).^2,100*nnz(L)/length(L)^2);
+  logmsg(1,'  non-zero elements: %d/%d (%0.2f%%)',nnz(L),length(L).^2,100*nnz(L)/length(L)^2);
 
   
   %==============================================================
@@ -466,7 +471,7 @@ for iOri = 1:nOrientations
             iVec,Opt.Threshold,numel(alpha),nDim);
         else
           thisspec = ones(size(z));
-          logmsg(0,'Tridiagonalization did not converge to within %g after %d steps! Increase Options.LLKM (current settings [%d,%d,%d,%d])',...
+          logmsg(0,'  Tridiagonalization did not converge to within %g after %d steps!\n  Increase Options.LLKM (current settings [%d,%d,%d,%d])',...
             Opt.Threshold,nDim,Opt.LLKM');
         end
       end

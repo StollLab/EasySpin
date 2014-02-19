@@ -681,18 +681,19 @@ if (ComputeStrains)
   % g-A strain
   %-------------------------------------------------
   % g strain tensor is taken to be aligned with the g tensor
+  % A strain tensor is taken to be aligned with the A tensor
   % g/A strain is limited to the first electron and nuclear spin
-  gStrain1Matrix = diag(CoreSys.gStrain./CoreSys.g(1,:))*mwFreq;
+  gStrainMatrix = diag(CoreSys.gStrain./CoreSys.g(1,:))*mwFreq;
   if isfield(CoreSys,'gpa')
     Rp = erot(CoreSys.gpa(1,:));
-    gStrain1Matrix = Rp*gStrain1Matrix*Rp.';
+    gStrainMatrix = Rp*gStrainMatrix*Rp.';
   end
   if (CoreSys.nNuclei>0) && any(CoreSys.AStrain)
-    % Get A strain matrix in g frame.
-    AStrain1Matrix = diag(CoreSys.AStrain);
+    % Transform A strain matrix to molecular frame.
+    AStrainMatrix = diag(CoreSys.AStrain);
     if isfield(CoreSys,'Apa')
       Rp = erot(CoreSys.Apa(1,:));
-      AStrain1Matrix = Rp*AStrain1Matrix*Rp.';
+      AStrainMatrix = Rp*AStrainMatrix*Rp.';
     end
     % Diagonalize Hamiltonian at centre field.
     centreB = mean(Exp.Range);
@@ -703,13 +704,13 @@ if (ComputeStrains)
     mI = real(diag(Vs'*sop(CoreSys,2,3)*Vs));
     mITr = mean(mI(Transitions),2);
     % compute A strain array
-    AStrain1Matrix = reshape(mITr(:,ones(1,9)).',[3,3,nTransitions]).*...
-      repmat(AStrain1Matrix,[1,1,nTransitions]);
+    AStrainMatrix = reshape(mITr(:,ones(1,9)).',[3,3,nTransitions]).*...
+      repmat(AStrainMatrix,[1,1,nTransitions]);
     corr = System.gAStrainCorr;
-    gAslw2 = (repmat(gStrain1Matrix,[1,1,nTransitions])+corr*AStrain1Matrix).^2;
+    gAslw2 = (repmat(gStrainMatrix,[1,1,nTransitions])+corr*AStrainMatrix).^2;
     clear AStrainMatrix Vs E idx mI mITr
   else
-    gAslw2 = repmat(gStrain1Matrix.^2,[1,1,nTransitions]);
+    gAslw2 = repmat(gStrainMatrix.^2,[1,1,nTransitions]);
   end
   clear gslw
   % gAslw2 = now an 3D array with 3x3 strain line-width matrices
