@@ -121,12 +121,10 @@ for e = 1:length(Electrons)
   %---------------------------------------------------------
   % B1, B2, B3, ... (k = 1...12)
   
-  % If D (and aF) are used, skip Stevens operator terms
+  % If D and aF are used, skip corresponding Stevens operator terms
   D_present = any(Sys.D(idx,:));
-  if D_present
-    continue;
-  end
-  
+  aF_present = any(Sys.aF(:));
+
   % Issue error when obsolete pre-4.5.2 syntax is used
   for k = 2:2:6
     for q = 0:k
@@ -140,7 +138,12 @@ for e = 1:length(Electrons)
   % Run over all Bk (B1, B2, B3, B4, ...)
   for k = 0:12
     fieldname = sprintf('B%d',k);
+    
     if ~isfield(Sys,fieldname), continue; end
+    
+    if D_present && (k==2), continue; end
+    if aF_present && (k==4), continue; end
+    
     Bk = Sys.(fieldname);
     if all(Bk==0), continue; end
     
