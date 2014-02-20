@@ -123,7 +123,7 @@ for e = 1:length(Electrons)
   
   % If D and aF are used, skip corresponding Stevens operator terms
   D_present = any(Sys.D(idx,:));
-  aF_present = any(Sys.aF(:));
+  aF_present = isfield(Sys,'aF');
 
   % Issue error when obsolete pre-4.5.2 syntax is used
   for k = 2:2:6
