@@ -95,7 +95,7 @@ end
 
 % Determine whether EasySpin's directory is on the search path.
 %--------------------------------------------------------------
-OnSearchPath = strfind(upper([path ';']),upper([esPath ';']));
+OnSearchPath = strfind(upper([path pathsep]),upper([esPath pathsep]));
 
 if isempty(OnSearchPath)
   if Display
