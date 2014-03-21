@@ -47,6 +47,7 @@ Col = get(0,'defaultUicontrolBackgroundColor');
 set(handles.FreqList,'BackgroundColor',Col);
 set(handles.FieldList,'BackgroundColor',Col);
 set(hObject,'Color',get(0,'defaultUicontrolBackgroundColor'));
+set(hObject,'WindowStyle','normal','Resize','off');
 
 handles.FieldSI = [];
 handles.FreqSI = 9.8e9;
