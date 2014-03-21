@@ -74,12 +74,11 @@ Link = 'epr@eth'; eschecker; error(LicErr); clear Link LicErr
 global EasySpinLogLevel;
 EasySpinLogLevel = Opt.Verbosity;
 
-
 %==================================================================
 % Loop over components and isotopologues
 %==================================================================
 FieldAutoRange = (~isfield(Exp,'Range') || isempty(Exp.Range)) && ...
-  (~isfield(Exp,'CenterSweep') || isempty(Exp.CenterSweep));
+                 (~isfield(Exp,'CenterSweep') || isempty(Exp.CenterSweep));
 if ~isfield(Opt,'IsoCutoff'), Opt.IsoCutoff = 1e-4; end
 
 if ~isfield(Sys,'singleiso')
@@ -122,16 +121,6 @@ logmsg(1,'-- slow motion regime simulation ----------------------------------');
 
 % Spin system
 %-------------------------------------------------------------------
-if isfield(Sys,'S')
-  if (numel(Sys.S)~=1) || (Sys.S~=1/2)
-    error('Sys.S is invalid. Only S=1/2 systems are supported.');
-  end
-end
-
-% add non-interacting nucleus if none given
-% (kernel cannot handle the absence of a nucleus)
-%if ~isfield(Sys,'Nucs') || isempty(Sys.Nucs), Sys.Nucs = '1H'; Sys.A = [0 0 0]; end
-
 out = isotopologues(Sys.Nucs);
 if (out.nIso>1)
   error('chili does not support isotope mixtures. Please specify pure isotopes in Sys.Nucs.');
@@ -140,18 +129,21 @@ end
 [Sys,err] = validatespinsys(Sys);
 error(err);
 
-mT2MHz = mt2mhz(1,mean(Sys.g));
-
-if (Sys.nNuclei>1)
-  [val,maxNuc] = max(max(abs(Sys.A),[],2));
-  if (maxNuc~=1)
-    %error('Nucleus with largest hyperfine interaction must be first!');
-  end
+if (Sys.nElectrons~=1)
+  error('chili does not support systems with more than one electron spin.');
 end
-
+if (Sys.S~=1/2)
+  error('chili does not support systems with S > 1/2.');
+end
+if (Sys.nNuclei>2)
+  warning('chili does not fully treat systems with more than two nuclear spins. Starting from the third, post-convolution is used.');
+end
 if Sys.fullg
   error('chili does not support 3x3 g matrices in Sys.g.');
 end
+
+mT2MHz = mt2mhz(1,mean(Sys.g));
+
 
 % Dynamics
 %-------------------------------------------------------------------
@@ -281,7 +273,7 @@ Opt.maxOffset = Exp.Sweep/2*mT2MHz*1e6; % Hz
 if ~isfield(Opt,'Rescale'), Opt.Rescale = 1; end % rescale A before Lanczos
 if ~isfield(Opt,'Threshold'), Opt.Threshold = 1e-6; end
 if ~isfield(Opt,'Diagnostic'), Opt.Diagnostic = 0; end
-if ~isfield(Opt,'SolveMethod'), Opt.SolveMethod = 'L'; end
+if ~isfield(Opt,'Solver'), Opt.Solver = 'L'; end
 if ~isfield(Opt,'Lentz'), Opt.Lentz = 1; end
 if ~isfield(Opt,'IncludeNZI'), Opt.IncludeNZI = 1; end
 if ~isfield(Opt,'Output'), Opt.Output = 'summed'; end
@@ -309,7 +301,7 @@ if ~isfield(Opt,'pImax')
 end
 Basis.pImax = Opt.pImax;
 
-switch Opt.SolveMethod
+switch Opt.Solver
   case 'L'
     if (Opt.Lentz==1) % Lentz method
       SolverString = 'Lanczos tridiagonalization, left-to-right continued fraction evaluation';
@@ -323,7 +315,7 @@ switch Opt.SolveMethod
   case '\'
     SolverString = 'backslash linear';
   otherwise
-    error('Unknown method in Options.SolveMethod. Must be ''L'', ''R'', ''C'', or ''\''.');
+    error('Unknown method in Options.Solver. Must be ''L'', ''R'', ''C'', or ''\''.');
 end
 logmsg(1,'  solver: %s',SolverString);
 
@@ -395,7 +387,7 @@ switch Sys.nNuclei
     chili_lm = @chili_lm2;
     chili_sv = @chili_sv2;
   otherwise
-    error(sprintf('Cannot handle %d nuclei.',Sys.nNuclei));
+    error('chili cannot handle %d nuclei.',Sys.nNuclei);
 end
 
 % Loop over all orientations
@@ -430,8 +422,7 @@ for iOri = 1:nOrientations
   Vals = Vals(idx);
   logmsg(1,'  size: %dx%d',nDim,nDim);
   if (nDim~=BasisSize)
-    Msg = sprintf('Matrix size (%d) inconsistent with basis size (%d). Please report.',nDim,BasisSize);
-    error(Msg);
+    error('Matrix size (%d) inconsistent with basis size (%d). Please report.',nDim,BasisSize);
   end
   if any(isnan(Vals))
     error('Liouville matrix contains %d NaN entries!',sum(isnan(Vals)));
@@ -463,8 +454,8 @@ for iOri = 1:nOrientations
   %==============================================================
   logmsg(1,'Computing spectrum...');
 
-  switch Opt.SolveMethod
-    case 'L' % Lanczos
+  switch Opt.Solver
+    case 'L' % Lanczos method by Jack Freed
       for iVec = 1:nVectors
         [alpha,beta,minerr] = chili_lanczos(L,StartingVector(:,iVec),omega,Opt);
         minerr = minerr(end);
@@ -489,24 +480,22 @@ for iOri = 1:nOrientations
       thisspec = chili_contfracspec(omega,alpha,beta);
 
     case 'R' % bi-conjugate gradients stabilized
-      for iz = 1:numel(omega)
-        u = bicgstab(L+omega(iz)*speye(size(L)),StartingVector,Opt.Threshold,nDim);
-        thisspec(iz) = real(u'*StartingVector);
+      for iomega = 1:numel(omega)
+        u = bicgstab(L+omega(iomega)*speye(size(L)),StartingVector,Opt.Threshold,nDim);
+        thisspec(iomega) = real(u'*StartingVector);
       end
       
-    case '\'
+    case '\' % MATLAB backslash solver for linear system
       I = speye(size(L));
       for iVec = 1:nVectors
         rho0 = StartingVector(:,iVec);
-        for iz = 1:numel(omega)
-          thisspec(iVec,iz) = rho0'*((L+omega(iz)*I)\rho0);
+        for iomega = 1:numel(omega)
+          thisspec(iVec,iomega) = rho0'*((L+omega(iomega)*I)\rho0);
         end
       end
       thisspec = real(thisspec);
       
-    case 'D'
-      %
-      %"direct" method by Binsch, to be implemented
+    case 'D' %"direct" method by Binsch, to be implemented
 
   end
 
@@ -578,8 +567,8 @@ if (Opt.BasisAnalysis)
   logmsg(1,'Basis set analysis');
   omega_ = linspace(omega(1),omega(end),12);
   u_sum = 0;
-  for iz = 1:numel(omega_)
-    u = bicgstab(L+omega_(iz)*speye(size(L)),StartingVector,1e-7,180);
+  for iomega = 1:numel(omega_)
+    u = bicgstab(L+omega_(iomega)*speye(size(L)),StartingVector,1e-7,180);
     u_sum = u_sum + abs(u)/abs(StartingVector'*u);
   end
   u_sum = u_sum/max(u_sum);
