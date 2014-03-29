@@ -523,10 +523,10 @@ end
 % (correct expression would be the average over theta and phi of
 % Eq. (A5) in Lund, Spectrochim Acta A 69 1294-1300 2008)
 g1mean2 = giso^2;
-TransitionRate = g1mean2*(bmagn/planck/1e9)^2;
-% 1/g factor
+TransitionRate = (8*pi^2)*g1mean2*(bmagn/planck/1e9/2)^2;
+% 1/g factor (mT/MHz)
 dBdE = planck/(giso*bmagn)*1e9;
-A = A*TransitionRate*dBdE*2*pi^2;
+A = A*TransitionRate*dBdE;
 %--------------------------------------------------------------
 
 Harmonic2Do = Exp.Harmonic;

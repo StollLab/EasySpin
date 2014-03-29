@@ -160,10 +160,10 @@ end
 [nAngles,nOrientations] = size(Orientations);
 switch nAngles
   case 2,
-    IntegratedIntensity = 1;
+    AverageOverChi = true;
     Orientations(3,end) = 0; % Entire chi column is set to 0.
   case 3,
-    IntegratedIntensity = 0;
+    AverageOverChi = false;
   otherwise
     error('Orientations array has %d rows instead of 2 or 3.',nAngles);
 end
@@ -391,7 +391,7 @@ for iNuc = Opt.Nuclei
   matrixelement = sqrt((1:2*I(iNuc)).*(2*I(iNuc):-1:1))/2;
   pre = Sys.gn(iNuc)*nmagn/planck/1e6/1e3; % MHz/mT
   pre = (pre*matrixelement).^2;
-  if IntegratedIntensity, pre = 2*pi*pre; end
+  if AverageOverChi, end
   newIntensities = pre(:)/nNucStates(iNuc);
   newIntensities = repmat(newIntensities,1,nOrientations);
   % array size now: (2*I(iNuc)) x nOrientations

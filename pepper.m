@@ -688,6 +688,7 @@ elseif (~BruteForceSum)
         if (AnisotropicWidths), thisWid = Wdat(:,idx); end
         
         thisspec = lisum1i(Template,xT,wT,thisPos,thisInt,thisWid,xAxis);
+        thisspec = (8*pi^2)*thisspec; % for consistency with powder spectra (factor from integral over phi,theta,chi)
         
         if (SummedOutput)
           spec = spec + thisspec;
@@ -715,7 +716,8 @@ elseif (~BruteForceSum)
       if (AnisotropicIntensities), thisInt = Idat(iTrans,:); end
       if (AnisotropicWidths), thisWid = Wdat(iTrans,:); end
       
-      thisspec = 4*pi*lisum1i(Template,xT,wT,thisPos,thisInt,thisWid,xAxis);
+      thisspec = lisum1i(Template,xT,wT,thisPos,thisInt,thisWid,xAxis);
+      thisspec = (8*pi^2)*thisspec; % powder integral
       
       if (SummedOutput)
         spec = spec + thisspec;
@@ -856,6 +858,8 @@ elseif (~BruteForceSum)
         nBroadenings = nBroadenings + numel(Lambda);
       end
       
+      thisspec = thisspec*(2*pi); % integral over chi (0..2*pi)
+      
       % Accumulate subspectra
       %----------------------------------------------------------
       if (SummedOutput)
@@ -873,7 +877,7 @@ elseif (~BruteForceSum)
   end
   %=======================================================================
   
-else % if ~BruteForceSum else ...
+else % if Opt.DirectAccumulation elseif (~BruteForceSum) ...
   
   logmsg(1,'  no interpolation',nOrientations);
   logmsg(1,'  constructing stick spectrum');
@@ -882,12 +886,13 @@ else % if ~BruteForceSum else ...
   prefactor = (Exp.nPoints-1)/(Exp.Range(2)-Exp.Range(1));
   for k = 1:nOrientations
     if iscell(Pdat)
-      p = round(1+prefactor*(Pdat{k}-Exp.Range(1)));
+      thisP = Pdat{k};
       i = Idat{k};
     else
-      p = round(1+prefactor*(Pdat(:,k)-Exp.Range(1)));
+      thisP = Pdat(:,k);
       i = Idat(:,k);
     end
+    p = round(1+prefactor*(thisP-Exp.Range(1)));
     OutOfRange = (p<1) | (p>Exp.nPoints);
     p(OutOfRange) = [];
     i(OutOfRange) = [];
@@ -897,6 +902,13 @@ else % if ~BruteForceSum else ...
       spec = spec + full(sparse(1,p,Weights(k),1,Exp.nPoints));
     end
   end
+  
+  if PowderSimulation
+    spec = spec * (2*pi); % integral over chi (0..2*pi)
+  else
+    spec = spec * (8*pi^2); % integral over (phi,theta,chi)
+  end
+  
   spec = spec/Exp.deltaX;
   
 end

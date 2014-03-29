@@ -614,6 +614,7 @@ if (~PowderSimulation)
       %if (AnisotropicWidths), thisWid = Wdat(:,idx); end
 
       thisspec = lisum1i(Template.y,Template.x,Template.lw,thisPos,thisInt,thisWid,xAxis);
+      thisspec = (8*pi^2)*thisspec; % for consistency with powder spectra (factor from integral over phi,theta,chi)
 
       if (SummedOutput)
         spec = spec + thisspec;
@@ -642,6 +643,7 @@ elseif (nOctants==-1)
     %if (AnisotropicWidths), thisWid = Wdat(iTrans,:); end
     
     thisspec = lisum1i(Template.y,Template.x,Template.lw,thisPos,thisInt,thisWid,xAxis);
+    thisspec = thisspec*(8*pi^2); % powder integral (phi,theta,chi)
     
     if (SummedOutput)
       spec = spec + thisspec;
@@ -785,6 +787,8 @@ else
       sumBroadenings = sumBroadenings + sum(Lambda);
       nBroadenings = nBroadenings + numel(Lambda);
     end
+    
+    thisspec = thisspec*(2*pi); % powder integal over chi (0..2*pi)
     
     if (SummedOutput),
       spec = spec + thisspec;

@@ -193,10 +193,10 @@ end
 [nAngles,nOrientations] = size(Orientations);
 switch nAngles
   case 2
-    IntegrateOverChi = 1;
+    AverageOverChi = true;
     Orientations(3,end) = 0; % Entire chi row is set to 0.
   case 3
-    IntegrateOverChi = 0;
+    AverageOverChi = false;
   otherwise
     error('Orientations array has %d rows instead of 2 or 3.',nAngles);
 end
@@ -1032,20 +1032,20 @@ for iOri = 1:nOrientations
           
           % Compute quantum-mechanical transition rate
           if (ParallelMode)
-            if (IntegrateOverChi)
-              % Transition propability integrated over chi, the third
+            if (AverageOverChi)
+              % Transition rate averaged over chi, the third
               % Euler angle between lab and mol frames. 
-              TransitionRate = (2*pi)*abs(V'*kGzL*U).^2;
+              TransitionRate = abs(V'*kGzL*U).^2;
             else
               TransitionRate = abs(V'*kGzL*U).^2;
             end
           else % perpendicular mode
-            if (IntegrateOverChi)
-              % Transition propability integrated over chi, the third
+            if (AverageOverChi)
+              % Transition rate averaged over chi, the third
               % Euler angle between lab and mol frames. 
-              TransitionRate = pi * (abs(V'*kGxL*U).^2 + abs(V'*kGyL*U).^2);
+              TransitionRate = (abs(V'*kGxL*U).^2 + abs(V'*kGyL*U).^2)/2;
             else
-              % Transition propability along x lab axis, this is the line
+              % Transition rate along x lab axis. This is the line
               % intensity for a single (phi,theta,chi) orientation.
               TransitionRate = abs(V'*kGxL*U).^2;
             end

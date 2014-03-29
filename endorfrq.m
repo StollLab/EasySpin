@@ -123,10 +123,10 @@ end
 [nAngles,nOrientations] = size(Orientations);
 switch nAngles,
   case 2,
-    IntegratedIntensity = 1;
+    AverageOverChi = true;
     Orientations(3,end) = 0; % Entire chi row is set to zero.
   case 3,
-    IntegratedIntensity = 0;
+    AverageOverChi = false;
   otherwise
     error('Par.Orientations array has %d rows. It should have 2 or 3.',nAngles);
 end
@@ -500,14 +500,14 @@ for iOri = 1:nOrientations
       
     % mw: xLab, RF: yLab
     DyL = yLab(1)*DxM + yLab(2)*DyM + yLab(3)*DzM;
-    if (IntegratedIntensity)
-      % integrate over lab xy plane
+    if (AverageOverChi)
+      % average over lab xy plane
       DxL = xLab(1)*DxM + xLab(2)*DyM + xLab(3)*DzM;
-      EndorIntensity = pi*(abs(Vs'*DxL*Vs).^2 + abs(Vs'*DyL*Vs).^2);
+      EndorIntensity = (abs(Vs'*DxL*Vs).^2 + abs(Vs'*DyL*Vs).^2)/2;
       if (OrientationSelection)
         ExL = xLab(1)*ExM + xLab(2)*EyM + xLab(3)*EzM;
         EyL = yLab(1)*ExM + yLab(2)*EyM + yLab(3)*EzM;
-        EPRIntensity = pi*(abs(Vs'*ExL*Vs).^2+abs(Vs'*EyL*Vs).^2);
+        EPRIntensity = (abs(Vs'*ExL*Vs).^2+abs(Vs'*EyL*Vs).^2)/2;
       end
     else
       EndorIntensity = abs(Vs'*DyL*Vs).^2;

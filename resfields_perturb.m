@@ -136,10 +136,10 @@ end
 [nAngles,nOrientations] = size(Ori);
 switch nAngles
   case 2
-    IntegrateOverChi = 1;
+    AverageOverChi = true;
     Ori(3,end) = 0; % Entire chi column is set to 0.
   case 3
-    IntegrateOverChi = 0;
+    AverageOverChi = false;
   otherwise
     error('Orientations array has %d rows instead of 2 or 3.',nAngles);
 end
@@ -217,10 +217,9 @@ if directAccumulation
   spec = zeros(1,Exp.nPoints);
 end
 
-% Prefactor for transition probability
-g1pre = det(g)*inv(g).';
 gg = g'*g;
 trgg = trace(gg);
+c = (bmagn/planck/1e9/2)^2; % prefactor for transition rate
 
 
 % Loop over all orientations
@@ -237,20 +236,21 @@ for iOri = nOrientations:-1:1
   % frequency to field conversion factor
   preOri = 1e6*planck/(geff(iOri)*bmagn);
 
-  % g intensity (see Weil/Bolton p.104, also Abragam/Bleaney p.136 eq. 3.10b)
-  % reduce with cross(M*a,M*b) = det(M)*inv(M).^2*cross(a,b)
-  % A.Lund et al, 2008, appendix, eq. (A5)
-  if IntegrateOverChi
-    %g1(iOri) = pi*(norm(g1pre*h1x.')^2 + norm(g1pre*h1y.')^2)/geff(iOri)^2;
-    g1(iOri) = pi*(trgg-u.'*gg*u);
+  % Transition rate
+  % see Weil/Bolton p.104
+  % - A.Lund et al, 2008, appendix, eq. (A5)
+  % - Iwasaki 1974 eq. [40]
+  % - Abragam/Bleaney p.136 eq. (3.10b)
+  if (AverageOverChi)
+    TransitionRate(iOri) = c*(trgg-u.'*gg*u)/2;
   else
-    g1(iOri) = norm(g1pre*h1x.')^2/geff(iOri)^2;
+    % cross(M*a,M*b))= det(M)*inv(M.')*cross(a,b)
+    TransitionRate(iOri) = c*norm(cross(g.'*h1x.',u))^2;
   end
-  % Aasa-Vangard 1/g factor
-  dBdE = 1*(planck/bmagn)*1e9/geff(iOri);
-  g1(iOri) = g1(iOri)*dBdE;
-  % add units and prefactor to match matrix diagonalization value
-  g1(iOri) = (bmagn/planck/1e9/2)^2*g1(iOri);
+
+  % Add Aasa-Vänngård 1/g factor
+  dBdE = (planck/bmagn*1e9)/geff(iOri);
+  Intensity(iOri) = TransitionRate(iOri)*dBdE;
 
   if highSpin
     Du = D*u;
@@ -343,13 +343,13 @@ for iOri = nOrientations:-1:1
       else
         % accumulate into spectrum
         if (nNuclei>0)
-          spec = spec + g1(iOri)*Exp.AccumWeights(iOri)*...
+          spec = spec + Intensity(iOri)*Exp.AccumWeights(iOri)*...
             multinucstick(planck*1e6*B0*1e3,nStates,Bshifts*1e3,...
             Baxis(1),dB,Exp.nPoints);
         else
           idx = fix((B0*planck*1e9+Bshifts*1e3-Baxis(1))/dB+1);
           if (idx>1) && (idx<=Exp.nPoints)
-            spec(idx) = spec(idx) + g1(iOri)*Exp.AccumWeights(iOri);
+            spec(idx) = spec(idx) + Intensity(iOri)*Exp.AccumWeights(iOri);
           end
         end
       end
@@ -395,10 +395,10 @@ else
     Int_ = (S*(S+1) - mS.*(mS-1));
     Int = [];
     for iTrans = 1:2*S
-      Int = [Int; repmat(Polarization(iTrans)*g1,nNucSublevels,1)*Int_(iTrans)];
+      Int = [Int; repmat(Polarization(iTrans)*Intensity,nNucSublevels,1)*Int_(iTrans)];
     end
   else
-    Int = repmat(Polarization*g1,size(B,1),1);
+    Int = repmat(Polarization*Intensity,size(B,1),1);
   end
   Int = Int/nNucSublevels;
   

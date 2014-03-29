@@ -83,7 +83,7 @@ OldWarningState = warning('off');
 
 % Process SpinSystem structure.
 %===================================================================
-[FSys,err] = validatespinsys(SpinSystem);
+[SpinSystem,err] = validatespinsys(SpinSystem);
 error(err);
 
 % Process Parameter structure.
@@ -123,9 +123,9 @@ Orientation = Parameters.Orientations;
 switch nAngles
 case 2,
   Orientation(3,end) = 0;
-  IntegrateOverChi = 1;
+  AverageOverChi = true;
 case 3,
-  IntegrateOverChi = 0;
+  AverageOverChi = false;
 otherwise
   error('Orientations array has %d rows instead of 2 or 3.',nAngles);
 end
@@ -143,7 +143,6 @@ if (Options.Freq2Field~=1)&&(Options.Freq2Field~=0)
 end
 
 ComputeFreq2Field = (1==Options.Freq2Field);
-%ComputeFreq2Field = 1;
 
 % Build Hamiltonian components.
 %===================================================================
@@ -225,17 +224,21 @@ for iOri = 1:nOrientations
       idx = ones(1,length(EigenFields{iOri}));
       if (ParallelMode)
         vGzL = zLab(1)*vGx + zLab(2)*vGy + zLab(3)*vGz;
-        TransProp = abs(sum(vGzL(:,idx).*Vecs)).^2;
+        if (AverageOverChi)
+          TransitionRate = abs(sum(vGzL(:,idx).*Vecs)).^2;
+        else
+          TransitionRate = abs(sum(vGzL(:,idx).*Vecs)).^2;
+        end
       else
         xLab = Mol2LabRotation(1,:);
         vGxL = xLab(1)*vGx + xLab(2)*vGy + xLab(3)*vGz;
-        if (IntegrateOverChi)
+        if (AverageOverChi)
           yLab = Mol2LabRotation(2,:);
           vGyL = yLab(1)*vGx + yLab(2)*vGy + yLab(3)*vGz;
           % Calculate transition rate using <v|A|u> = trace(A|u><v|)
-          TransProp = pi * (abs(sum(vGxL(:,idx).*Vecs)).^2 + abs(sum(vGyL(:,idx).*Vecs)).^2);
+          TransitionRate = (abs(sum(vGxL(:,idx).*Vecs)).^2 + abs(sum(vGyL(:,idx).*Vecs)).^2)/2;
         else
-          TransProp = abs(sum(vGxL(:,idx).*Vecs)).^2;
+          TransitionRate = abs(sum(vGxL(:,idx).*Vecs)).^2;
         end
       end
       
@@ -246,17 +249,20 @@ for iOri = 1:nOrientations
         % |u><u| = (|u><v|)(|v><u|)
         n = length(F);
         Vecs = reshape(Vecs,n,n,numel(Vecs)/n^2);
-        Freq2Field = [];
+        dBdE = [];
         for iVec = 1:size(Vecs,3)
           V = Vecs(:,:,iVec);
-          Freq2Field(iVec) = 1/abs(trace(GzL*commute(V,V')));
+          dBdE(iVec) = 1/abs(trace(GzL*commute(V,V')));
         end
       else
-        Freq2Field = ones(size(TransProp));
+        dBdE = ones(size(TransitionRate));
       end
       
-      Intensities{iOri} = real(TransProp.*Freq2Field).';
+      % Compute polarization
+      Polarization = 1;
+      Polarization = Polarization/prod(2*SpinSystem.I+1);
       
+      Intensities{iOri} = Polarization*real(TransitionRate.*dBdE).';      
       idx = Intensities{iOri}>=Options.Threshold(1)*max(Intensities{iOri});
       EigenFields{iOri} = EigenFields{iOri}(idx);
       Intensities{iOri} = Intensities{iOri}(idx);
