@@ -82,7 +82,7 @@ else % no powder simulation
   openPhi = 1;
   nOrientations = numel(phi);
   nOctants = -2;
-  Weights = ones(1,nOrientations);
+  Weights = ones(1,nOrientations)*4*pi; % for consistency with powder sims (factor from integral over phi and theta)
   
   if (nOrientations==1)
     logmsg(1,'  single-crystal sample');

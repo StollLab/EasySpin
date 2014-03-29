@@ -507,7 +507,7 @@ for iOri = 1:nOrientations
       if (OrientationSelection)
         ExL = xLab(1)*ExM + xLab(2)*EyM + xLab(3)*EzM;
         EyL = yLab(1)*ExM + yLab(2)*EyM + yLab(3)*EzM;
-        EPRIntensity = (abs(Vs'*ExL*Vs).^2+abs(Vs'*EyL*Vs).^2)/2;
+        EPRIntensity = (2*pi)*(abs(Vs'*ExL*Vs).^2+abs(Vs'*EyL*Vs).^2)/2;
       end
     else
       EndorIntensity = abs(Vs'*DyL*Vs).^2;

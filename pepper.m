@@ -688,7 +688,8 @@ elseif (~BruteForceSum)
         if (AnisotropicWidths), thisWid = Wdat(:,idx); end
         
         thisspec = lisum1i(Template,xT,wT,thisPos,thisInt,thisWid,xAxis);
-        thisspec = (8*pi^2)*thisspec; % for consistency with powder spectra (factor from integral over phi,theta,chi)
+        thisspec = (2*pi)*thisspec; % for consistency with powder spectra (factor from integral over chi)
+        thisspec = Weights(iOri)*thisspec; % integral over (phi,theta)
         
         if (SummedOutput)
           spec = spec + thisspec;
@@ -699,7 +700,7 @@ elseif (~BruteForceSum)
         idx = idx + 1;
       end
     end
-    
+        
   elseif (nOctants==-1)
     
     %=======================================================================
@@ -717,7 +718,8 @@ elseif (~BruteForceSum)
       if (AnisotropicWidths), thisWid = Wdat(iTrans,:); end
       
       thisspec = lisum1i(Template,xT,wT,thisPos,thisInt,thisWid,xAxis);
-      thisspec = (8*pi^2)*thisspec; % powder integral
+      thisspec = (2*pi)*thisspec; % integral over chi (0..2*pi)
+      thisspec = Weights*thisspec; % integral over (phi,theta)
       
       if (SummedOutput)
         spec = spec + thisspec;
@@ -884,30 +886,26 @@ else % if Opt.DirectAccumulation elseif (~BruteForceSum) ...
   logmsg(1,'  summation over %d orientations',nOrientations);
   spec = zeros(1,Exp.nPoints);
   prefactor = (Exp.nPoints-1)/(Exp.Range(2)-Exp.Range(1));
-  for k = 1:nOrientations
+  for iOri = 1:nOrientations
     if iscell(Pdat)
-      thisP = Pdat{k};
-      i = Idat{k};
+      thisP = Pdat{iOri};
+      i = Idat{iOri};
     else
-      thisP = Pdat(:,k);
-      i = Idat(:,k);
+      thisP = Pdat(:,iOri);
+      i = Idat(:,iOri);
     end
     p = round(1+prefactor*(thisP-Exp.Range(1)));
     OutOfRange = (p<1) | (p>Exp.nPoints);
     p(OutOfRange) = [];
     i(OutOfRange) = [];
     if (AnisotropicIntensities)
-      spec = spec + full(sparse(1,p,Weights(k)*i,1,Exp.nPoints));
+      spec = spec + full(sparse(1,p,Weights(iOri)*i,1,Exp.nPoints));
     else
-      spec = spec + full(sparse(1,p,Weights(k),1,Exp.nPoints));
+      spec = spec + full(sparse(1,p,Weights(iOri),1,Exp.nPoints));
     end
   end
   
-  if PowderSimulation
-    spec = spec * (2*pi); % integral over chi (0..2*pi)
-  else
-    spec = spec * (8*pi^2); % integral over (phi,theta,chi)
-  end
+  spec = spec * (2*pi); % integral over chi (0..2*pi)
   
   spec = spec/Exp.deltaX;
   
