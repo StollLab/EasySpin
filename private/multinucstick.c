@@ -1,9 +1,9 @@
 #include <mex.h>
 
 /*
- * multinucstick(B0,nStates,shifts,startPos,deltaPos,endPos)
+ * multinucstick(B0,nStates,shifts,startPos,deltaPos,nPoints)
  *
- * shifts: array  MAX(2*i+1) x nNuclei
+ * shifts: array of size max(2*I+1) x nNuclei
  */
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])

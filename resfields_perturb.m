@@ -56,22 +56,22 @@ else
 end
 
 if highSpin
-  % make D traceless (needed for Iwasaki expressions)
-  if Sys.fullD
-    D = Sys.D - sum(diag(Sys.D))/3;
-  else
-    D = diag(Sys.D-mean(Sys.D));
+  if ~Sys.fullD
     RD = erot(Sys.Dpa);
-    D = RD*D*RD.';
+    D = RD*diag(Sys.D)*RD.';
   end
+  % make D traceless (required for Iwasaki expressions)
+  D = D - eye(3)*trace(D)/3;
 end
+
+nTransitions = 2*S; % number of allowed transitions for one electron spin
 
 I = Sys.I;
 nNuclei = Sys.nNuclei;
 if (nNuclei>0)
-  nStates = 2*I+1;
+  nNucStates = 2*I+1;
 else
-  nStates = 1;
+  nNucStates = 1;
 end
 
 % Guard against zero hyperfine couplings
@@ -93,7 +93,7 @@ for iNuc = 1:nNuclei
     A{iNuc} = RA*A_*RA';
   end
   mI{iNuc} = -I(iNuc):I(iNuc);
-  idxn{iNuc} = 1:nStates(iNuc);
+  idxn{iNuc} = 1:nNucStates(iNuc);
 end
 
 
@@ -101,7 +101,7 @@ end
 %------------------------------------------------------
 if ~isfield(Exp,'CrystalSymmetry'), Exp.CrystalSymmetry = ''; end
 
-  err = '';
+err = '';
 if ~isfield(Exp,'mwFreq'), err = 'Exp.mwFreq is missing.'; end
 if ~isfield(Exp,'Orientations'), err = 'Exp.Orientations is missing'; end
 if isfield(Exp,'Detection'), err = 'Exp.Detection is obsolete. Use Exp.Mode instead.'; end
@@ -123,21 +123,18 @@ else
 end
 error(err);
 
-
-nu = Exp.mwFreq*1e3;
-
 % Orientations
 %------------------------------------------------------
-Ori = Exp.Orientations;
-[n1,n2] = size(Ori);
+Orientations = Exp.Orientations;
+[n1,n2] = size(Orientations);
 if ((n2==2)||(n2==3)) && (n1~=2) && (n1~=3)
-  Ori = Ori.';
+  Orientations = Orientations.';
 end
-[nAngles,nOrientations] = size(Ori);
+[nAngles,nOrientations] = size(Orientations);
 switch nAngles
   case 2
     AverageOverChi = true;
-    Ori(3,end) = 0; % Entire chi column is set to 0.
+    Orientations(3,end) = 0; % Entire chi column is set to 0.
   case 3
     AverageOverChi = false;
   otherwise
@@ -151,15 +148,15 @@ if ~isempty(Exp.CrystalSymmetry)
   allOrientations = zeros(nOrientations*nSites,3);
   idx = 1;
   for iOri = 1:nOrientations
-    xyz0 = erot(Ori(:,iOri)).'; % xL, yL, zL along columns
+    xyz0 = erot(Orientations(:,iOri)).'; % xL, yL, zL along columns
     for iSite = 1:nSites
       xyz = R{iSite}*xyz0; % active rotation
       allOrientations(idx,:) = eulang(xyz.',1);
       idx = idx + 1;
     end
   end
-  Ori = allOrientations.';
-  [nAngles,nOrientations] = size(Ori);
+  Orientations = allOrientations.';
+  [nAngles,nOrientations] = size(Orientations);
 else
   nSites = 1;
 end
@@ -178,13 +175,10 @@ end
 if (Opt.PerturbOrder>2)
   error('Only 1st and 2nd order perturbation theory are supported.');
 end
-FourierDomain = 0;
-
 %----------------------------------------------------------
 
 
-
-E0 = nu;
+E0 = Exp.mwFreq*1e3; % MHz
 
 for iNuc = 1:nNuclei
   A_ = A{iNuc};
@@ -211,47 +205,59 @@ else
 end
 
 if directAccumulation
-  E1A = zeros(max(nStates),nNuclei);
+  E1A = zeros(max(nNucStates),nNuclei);
   Baxis = linspace(Exp.Range(1),Exp.Range(2),Exp.nPoints);
   dB = Baxis(2)-Baxis(1);
   spec = zeros(1,Exp.nPoints);
 end
 
-gg = g'*g;
-trgg = trace(gg);
-c = (bmagn/planck/1e9/2)^2; % prefactor for transition rate
+if ~isnan(Exp.Temperature)
+  Populations = exp(-planck*(2*S:-1:0).'*Exp.mwFreq*1e9/boltzm/Exp.Temperature);
+  Populations = Populations/sum(Populations);
+  Polarization = diff(Populations);
+  Polarization = Polarization(end:-1:1);
+else
+  Polarization = ones(2*S,1);
+end
 
+gg = g*g.';
+trgg = trace(gg);
+
+% prefactor for transition rate
+mS = S:-1:-S+1;
+c = (bmagn/planck/1e9/2)^2 * (S*(S+1)-mS.*(mS-1));
 
 % Loop over all orientations
 for iOri = nOrientations:-1:1
-  [h1x,h1y,h] = erot(Ori(:,iOri));
-  h = h.';
-  vecs(:,iOri) = h;
+  [n1x,n1y,n0] = erot(Orientations(:,iOri));
+  n0 = n0(:);
+  vecs(:,iOri) = n0;
   
-  % zero-order resonance field
-  geff(iOri) = norm(g*h);
-  u = g*h/geff(iOri);
-  B0 = E0/(geff(iOri)*bmagn);
+  geff(iOri) = norm(g.'*n0);
+  u = g.'*n0/geff(iOri);
   
   % frequency to field conversion factor
   preOri = 1e6*planck/(geff(iOri)*bmagn);
-
+  
+  % Compute intensities
+  %----------------------------------------------------------------
   % Transition rate
-  % see Weil/Bolton p.104
+  % - see Weil/Bolton p.104
   % - A.Lund et al, 2008, appendix, eq. (A5)
   % - Iwasaki 1974 eq. [40]
-  % - Abragam/Bleaney p.136 eq. (3.10b)
+  % - Kneubuehl 1961 eq. [5]
   if (AverageOverChi)
-    TransitionRate(iOri) = c*(trgg-u.'*gg*u)/2;
+    TransitionRate(:,iOri) = c*(trgg-u.'*gg*u)/2; % Iwasaki
   else
-    % cross(M*a,M*b))= det(M)*inv(M.')*cross(a,b)
-    TransitionRate(iOri) = c*norm(cross(g.'*h1x.',u))^2;
+    TransitionRate(:,iOri) = c*norm(cross(g.'*n1x.',u))^2; % Kneubuehl
   end
-
-  % Add Aasa-Vänngård 1/g factor
+  
+  % Aasa-Vänngård 1/g factor
   dBdE = (planck/bmagn*1e9)/geff(iOri);
-  Intensity(iOri) = TransitionRate(iOri)*dBdE;
-
+  
+  % Combine all factors into overall line intensity
+  Intensity(:,iOri) = Polarization.*TransitionRate(:,iOri)*dBdE;
+  
   if highSpin
     Du = D*u;
     uDu = u.'*Du;
@@ -277,7 +283,7 @@ for iOri = nOrientations:-1:1
         k(:,iNuc) = K/nK;
         E1A_ = mI{iNuc}*nK;
         if directAccumulation
-          E1A(1:nStates(iNuc),iNuc) = E1A_(:);
+          E1A(1:nNucStates(iNuc),iNuc) = E1A_(:);
         else
           E1A(:,iNuc) = E1A_(idxn(:,iNuc)).';
         end
@@ -287,13 +293,13 @@ for iOri = nOrientations:-1:1
     end
 
     % second-order
+    E2D = 0;
     if secondOrder
       if highSpin
         x =  D1sq*(4*S*(S+1)-3*(8*mS^2-8*mS+3))...
           - D2sq/4*(2*S*(S+1)-3*(2*mS^2-2*mS+1));
-        E2D = -x./(2*geff(iOri)*bmagn*B0);
+        E2D = -x./(2*E0);
       else
-        E2D = 0;
         E2DA = 0;
       end
       if (nNuclei>0)
@@ -306,18 +312,18 @@ for iOri = nOrientations:-1:1
           A2 = detA(n)*(u.'*invA{n}*k_);
           A3 = trAA(n) - norm(A{n}*u)^2 - kAAk + kAu^2;
           x = A1sq*mI{n}.^2 - A2*(1-2*mS)*mI{n} + A3/2*(II1(n)-mI{n}.^2);
-          E2A_ = +x./(2*geff(iOri)*bmagn*B0);
+          E2A_ = +x./(2*E0);
           if directAccumulation
-            E2A(1:nStates(n),n) = E2A_(:);
+            E2A(1:nNucStates(n),n) = E2A_(:);
           else
             E2A(:,n) = E2A_(idxn(:,n)).';
           end
           if highSpin
             DA = Du.'*Ak - uDu*kAu;
             y = DA*(3-6*mS)*mI{n};
-            E2DA_ = -y./(geff(iOri)*bmagn*B0);
+            E2DA_ = -y./E0;
             if directAccumulation
-              E2DA(1:nStates(n),n) = E2DA_;
+              E2DA(1:nNucStates(n),n) = E2DA_;
             else
               E2DA(:,n) = E2DA_(idxn(:,n)).';
             end
@@ -329,30 +335,18 @@ for iOri = nOrientations:-1:1
         E2DA = 0;
         E2A = 0;
       end
+    else
+      E2A = 0;
+      E2DA = 0;
     end
     
     if directAccumulation
+      B0 = (E0-E1D-E2D)*preOri*1e3; % mT
       % compute B shifts
-      if secondOrder
-        Bshifts = (-E1D-E2D-(E1A+E2A+E2DA))*1e6*planck/(geff(iOri)*bmagn);
-      else
-        Bshifts = (-E1D-sum(E1A,2))*1e6*planck/(geff(iOri)*bmagn);
-      end
-      % (intensities)
-      if FourierDomain
-      else
-        % accumulate into spectrum
-        if (nNuclei>0)
-          spec = spec + Intensity(iOri)*Exp.AccumWeights(iOri)*...
-            multinucstick(planck*1e6*B0*1e3,nStates,Bshifts*1e3,...
-            Baxis(1),dB,Exp.nPoints);
-        else
-          idx = fix((B0*planck*1e9+Bshifts*1e3-Baxis(1))/dB+1);
-          if (idx>1) && (idx<=Exp.nPoints)
-            spec(idx) = spec(idx) + Intensity(iOri)*Exp.AccumWeights(iOri);
-          end
-        end
-      end
+      Bshifts = (-(E1A+E2A+E2DA))*preOri*1e3; % mT
+      % directly accumulate into spectrum
+      spec = spec + Intensity(imS,iOri)*Exp.AccumWeights(iOri)*...
+        multinucstick(B0,nNucStates,Bshifts,Baxis(1),dB,Exp.nPoints);
     else
       if secondOrder
         Bfinal{imS}(iOri,:) = (E0-E1D-E2D-sum(E1A+E2A+E2DA,2))*preOri;
@@ -362,15 +356,7 @@ for iOri = nOrientations:-1:1
     end
     
   end
-
-end
-
-if ~isnan(Exp.Temperature)
-  Populations = exp(-planck*(2*S:-1:0)*Exp.mwFreq*1e9/boltzm/Exp.Temperature);
-  Populations = Populations/sum(Populations);
-  Polarization = diff(Populations);
-else
-  Polarization = ones(1,2*S);
+  
 end
 
 if directAccumulation
@@ -378,27 +364,23 @@ if directAccumulation
   Int = [];
   Wid = [];
   Transitions = [];
+  spec = spec/dB/prod(nNucStates);
+  spec = spec*(2*pi); % powder chi integral
 else
   % Positions
   %-------------------------------------------------------------------
   B = [];
-  for imS=1:2*S
-    B = [B Bfinal{imS}];
+  for iTrans = 1:nTransitions
+    B = [B Bfinal{iTrans}];
   end
-  B = B.'*1e3;
+  B = B.'*1e3; % T -> mT
   
   % Intensities
   %-------------------------------------------------------------------
-  nNucSublevels = prod(2*I+1);
-  if highSpin
-    mS = S:-1:-S+1;
-    Int_ = (S*(S+1) - mS.*(mS-1));
-    Int = [];
-    for iTrans = 1:2*S
-      Int = [Int; repmat(Polarization(iTrans)*Intensity,nNucSublevels,1)*Int_(iTrans)];
-    end
-  else
-    Int = repmat(Polarization*Intensity,size(B,1),1);
+  nNucSublevels = prod(nNucStates);
+  Int = [];
+  for iTrans = nTransitions:-1:1
+    Int = [Int; repmat(Intensity(iTrans,:),nNucSublevels,1)];
   end
   Int = Int/nNucSublevels;
   
@@ -452,7 +434,7 @@ else
     x = vecs(1,:);
     y = vecs(2,:);
     z = vecs(3,:);
-    mS = -S:S;
+    mS = S:-1:-S;
     mSS = mS.^2-S*(S+1)/3;
     for k = 1:numel(mS)
       dBdD_(k,:) = (3*z.^2-1)/2*mSS(k)*planck./geff/bmagn*1e9;
@@ -470,7 +452,7 @@ else
   
   % Transitions
   %-------------------------------------------------------------------
-  nI = prod(2*I+1);
+  nI = prod(nNucStates);
   Transitions = [];
   Manifold = (1:nI).';
   for k = 1:2*S
@@ -514,4 +496,3 @@ for iArg = 2:nargin
 end
 
 return
-
