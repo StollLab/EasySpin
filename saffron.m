@@ -313,7 +313,7 @@ if PredefinedExperiment
   logmsg(1,'Sequence: %s',ExpNames{ExperimentID});
   
   if isfield(Exp,'tp')
-    if any(tp~=0)
+    if any(Exp.tp~=0)
       error('You cannot use predefined sequences (Exp.Sequence) with real pulses (Exp.tp).');
     end
   end
