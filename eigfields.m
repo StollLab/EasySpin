@@ -161,7 +161,7 @@ A = eyekron(F) - kroneye(conj(F)) + mwFreq*eye(length(F)^2);
 E = diag(E);
 SimpleEigenproblem = all(E>0);
 if SimpleEigenproblem,
-  invA = V*diag(1./E)*V';
+  %invA = V*diag(1./E)*V';
   msg = 'reduced to simple eigenproblem';
 else
   msg = 'general eigenproblem';
@@ -189,7 +189,7 @@ for iOri = 1:nOrientations
   GzL = zLab(1)*Gx + zLab(2)*Gy + zLab(3)*Gz;
 
   B = kroneye(conj(GzL)) - eyekron(GzL);
-  if SimpleEigenproblem, BB = invA*B; end
+  if SimpleEigenproblem, BB = A\B; end
 
   if ComputeIntensities
     % Eigenvectors correspond to reshape(|u><v|,[],1) = kron(conj(v),u)
