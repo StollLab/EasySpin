@@ -493,13 +493,24 @@ logmsg(1,'- Transition pre-selection');
 UserTransitions = ~isempty(Opt.Transitions);
 if UserTransitions
 
-  % User-specified transitions present.
-  logmsg(1,'  using %d user-specified transitions',size(Opt.Transitions,1));
-  % Guarantee that lower index comes first (gives later u < v).
-  if size(Opt.Transitions,2)~=2
-    error('Options.Transitions must be a nx2 array of energy level indices.');
+  if ischar(Opt.Transitions)
+    if strcmp(Opt.Transitions,'all');
+      nSStates = prod(2*CoreSys.S+1);
+      logmsg(1,'  using all %d transitions',nSStates*(nSStates-1)/2);
+      [u,v] = find(triu(ones(nSStates),1));
+      Transitions = sortrows([u,v]);
+    else
+      error('Options.Transitions must be ''all'' or a nx2 array of enery level indices.');
+    end
+  else
+    % User-specified list of transitions.
+    logmsg(1,'  using %d user-specified transitions',size(Opt.Transitions,1));
+    % Guarantee that lower index comes first (gives later u < v).
+    if size(Opt.Transitions,2)~=2
+      error('Options.Transitions must be a nx2 array of energy level indices.');
+    end
+    Transitions = sort(Opt.Transitions,2);
   end
-  Transitions = sort(Opt.Transitions,2);
   nTransitions = size(Transitions,1);
 
 else % Automatic pre-selection
