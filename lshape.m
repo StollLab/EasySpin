@@ -21,8 +21,7 @@
 %   - alpha: Weighting factor for linear combination
 %       alpha*Gaussian + (1-alpha)*Lorentzian.
 %     Gaussian is default.
-%   - phase: phase of Lorentzian component
-%       0 pure absorption, pi/2 pure dispersion
+%   - phase: phase (0 pure absorption, pi/2 pure dispersion)
 %
 %   Output:
 %   - y: Vector of function values for abscissa x
@@ -71,7 +70,6 @@ end
 if (alphaGauss~=0)
   [GaussAbs,GaussDisp] = gaussian(x,x0,fwhmG,diff);
   if (phase~=0)
-    error('Can''t calculate Gaussian dispersion lineshape.');
     Gauss = GaussAbs*cos(phase) +  GaussDisp*sin(phase);
   else
     Gauss = GaussAbs;
