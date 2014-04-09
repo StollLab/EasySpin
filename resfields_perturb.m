@@ -106,11 +106,6 @@ if ~isfield(Exp,'mwFreq'), err = 'Exp.mwFreq is missing.'; end
 if ~isfield(Exp,'Orientations'), err = 'Exp.Orientations is missing'; end
 if isfield(Exp,'Detection'), err = 'Exp.Detection is obsolete. Use Exp.Mode instead.'; end
 
-if isfield(Exp,'Mode')
-  if strcmp(Exp.Mode,'parallel')
-    err = 'Parallel mode EPR cannot be done with perturbation theory. Use matrix diagonalization.';
-  end
-end
 if isfield(Exp,'Temperature')
   if numel(Exp.Temperature)~=1
     err = 'Exp.Temperature must be a single number.';
@@ -246,10 +241,14 @@ for iOri = nOrientations:-1:1
   % - A.Lund et al, 2008, appendix, eq. (A5)
   % - Iwasaki 1974 eq. [40]
   % - Kneubuehl 1961 eq. [5]
-  if (AverageOverChi)
-    TransitionRate(:,iOri) = c*(trgg-u.'*gg*u)/2; % Iwasaki
+  if ParallelMode
+    TransitionRate(:,iOri) = 0;
   else
-    TransitionRate(:,iOri) = c*norm(cross(g.'*n1x.',u))^2; % Kneubuehl
+    if (AverageOverChi)
+      TransitionRate(:,iOri) = c*(trgg-u.'*gg*u)/2; % Iwasaki
+    else
+      TransitionRate(:,iOri) = c*norm(cross(g.'*n1x.',u))^2; % Kneubuehl
+    end
   end
   
   % Aasa-Vänngård 1/g factor
