@@ -1,18 +1,18 @@
 % nquad  Nuclear quadrupole interaction Hamiltonian 
 %
-%   F = nquad(SpinSystem)
-%   F = nquad(SpinSystem,Nuclei)
-%   F = nquad(SpinSystem,Nuclei,'sparse')
+%   Hnq = nquad(SpinSystem)
+%   Hnq = nquad(SpinSystem,Nuclei)
+%   Hnq = nquad(SpinSystem,Nuclei,'sparse')
 %
 %   Returns the nuclear quadrupole interactions
-%   (NQI) Hamiltonian in MHz of the system
+%   (NQI) Hamiltonian Hnq in MHz of the system
 %   SpinSystem. If the vector Nuclei is given,
 %   only the NQI of the specified nuclei are
 %   computed. 1 is the first nucleus, etc.
 %
 %   If 'sparse' is given, the matrix is returned in sparse format.
 
-function F = nquad(SpinSystem,Nuclei,opt)
+function Hnq = nquad(SpinSystem,Nuclei,opt)
 
 if (nargin==0), help(mfilename); return; end
 
@@ -34,8 +34,7 @@ if any(Nuclei>nNuclei) || any(Nuclei<1)
   error('Nuclear spin index/indices (2nd argument) out of range!');
 end
 
-F = sparse(Sys.nStates,Sys.nStates);
-nucspvc = Sys.I;
+Hnq = sparse(Sys.nStates,Sys.nStates);
 spvc = Sys.Spins;
 nElectrons = Sys.nElectrons;
 
@@ -63,16 +62,16 @@ for iNuc = 1:length(Nuclei)
     end
     for k = 1:3
       for q = 1:3
-        F = F + Iop{k}*Q(k,q)*Iop{q};
+        Hnq = Hnq + Iop{k}*Q(k,q)*Iop{q};
       end
     end
   end
     
 end % for all spins specified
 
-F = (F+F')/2; % Hermitianise
+Hnq = (Hnq+Hnq')/2; % Hermitianise
 if ~sparseResult
-  F = full(F);
+  Hnq = full(Hnq);
 end
 
 return
