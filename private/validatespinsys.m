@@ -471,6 +471,14 @@ if (nNuclei>0)
     end
     err = sizecheck(Sys,'Qpa',[nNuclei 3]);
     if ~isempty(err), return; end
+  else
+    for iNuc=1:nNuclei
+      Q_ = Sys.Q(3*(iNuc-1)+(1:3),:);
+      if norm(Q_-Q_.')/norm(Q_)>1e-5
+        err = 'Sys.Q contains asymmetric full Q matrix. Only symmetric Q matrices are allowed.';
+        if ~isempty(err), return; end
+      end
+    end
   end
 
 end

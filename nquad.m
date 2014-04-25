@@ -44,7 +44,7 @@ for iNuc = 1:length(Nuclei)
   idx = Nuclei(iNuc);
 
   % I < 1 -> no internal interactions possible -> go to next spin
-  if nucspvc(idx)<1, continue; end
+  %if nucspvc(idx)<1, continue; end
   
   % Nuclear quadrupole interaction
   %---------------------------------------------------------
@@ -59,9 +59,11 @@ for iNuc = 1:length(Nuclei)
     Q = Q*Sys.Qscale(idx);
     % Construct NQI term.
     for k = 1:3
-      so = sop(spvc,idx+nElectrons,k,'sparse');
+      Iop{k} = sop(spvc,idx+nElectrons,k,'sparse');
+    end
+    for k = 1:3
       for q = 1:3
-        F = F + so*Q(k,q)*sop(spvc,idx+nElectrons,q,'sparse');
+        F = F + Iop{k}*Q(k,q)*Iop{q};
       end
     end
   end
