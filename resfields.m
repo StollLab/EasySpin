@@ -109,16 +109,13 @@ end
 
 % Process Parameters.
 %---------------------------------------------------------------------
-if isfield(Exp,'Detection')
-  error('Exp.Detection is obsolete. Use Exp.Mode instead.');
-end
-
 DefaultExp.mwFreq = NaN;
 DefaultExp.Range = NaN;
 DefaultExp.Orientations = NaN;
 DefaultExp.CenterSweep = NaN;
 DefaultExp.Temperature = NaN;
-DefaultExp.Mode = 'perpendicular';
+DefaultExp.Mode = '';
+DefaultExp.Polarization = '';
 DefaultExp.CrystalSymmetry = '';
 
 Exp = adddefaults(Exp,DefaultExp);
@@ -146,19 +143,10 @@ if (diff(Exp.Range)<=0) | ~isfinite(Exp.Range) | ~isreal(Exp.Range) | any(Exp.Ra
   error('Exp.Range is not valid!');
 end
 
-% Resonator mode
-if isfield(Exp,'Detection')
-  error('Exp.Detection is obsolete. Use Exp.Mode instead.');
-end
-if strcmp(Exp.Mode,'perpendicular')
-  ParallelMode = 0;
-elseif strcmp(Exp.Mode,'parallel')
-  ParallelMode = 1;
-else
-  error('Exp.Mode must be either ''perpendicular'' or ''parallel''.');
-end
-logmsg(1,'  %s mode',Exp.Mode);
+% Determine excitation mode
+p_excitationgeometry;
 
+% Temperature, non-equilibrium populations
 nPop = numel(Exp.Temperature);
 if (nPop>1)
   ComputeBoltzmannPopulations = 0;
@@ -186,8 +174,8 @@ end
 % mode). This only affects intensity computations in perpendicular
 % mode.
 Orientations = Exp.Orientations;
-[n1,n2] = size(Orientations);
-if ((n2==2)||(n2==3)) && (n1~=2) && (n1~=3)
+[nrows,n2] = size(Orientations);
+if ((n2==2)||(n2==3)) && (nrows~=2) && (nrows~=3)
   Orientations = Orientations.';
 end
 [nAngles,nOrientations] = size(Orientations);
@@ -227,7 +215,7 @@ end
 ObsoleteOptions = {''};
 for iOpt = 1:numel(ObsoleteOptions)
   if isfield(Opt,ObsoleteOptions{iOpt})
-    error(sprintf('Options.%s is obsolete. Please remove from code!',ObsoleteOptions{iOpt}));
+    error('Options.%s is obsolete. Please remove from code!',ObsoleteOptions{iOpt});
   end
 end
 
@@ -298,7 +286,6 @@ ComputeStrains = (nargout>2) & ...
 ComputeGradient = (ComputeStrains | (nargout>4)) & GradientSwitch;
 ComputeIntensities = ((nargout>1) & IntensitySwitch) | ComputeGradient;
 ComputeEigenPairs = ComputeIntensities | ComputeGradient | ComputeStrains;
-
 
 % Preparing kernel and perturbing system Hamiltonians.
 %-----------------------------------------------------------------------
@@ -836,7 +823,7 @@ for iOri = 1:nOrientations
   kGzL = zLab(1)*kGxM + zLab(2)*kGyM + zLab(3)*kGzM;
   % x laboratory axis: mw excitation field
   kGxL = xLab(1)*kGxM + xLab(2)*kGyM + xLab(3)*kGzM;
-  % y laboratory vector: needed for gradient calculation
+  % y laboratory axis: needed for gradient calculation
   % and the integration over all mw field orientations.
   kGyL = yLab(1)*kGxM + yLab(2)*kGyM + yLab(3)*kGzM;
 
@@ -1042,25 +1029,34 @@ for iOri = 1:nOrientations
         if (ComputeIntensities)
           
           % Compute quantum-mechanical transition rate
-          if (ParallelMode)
+          mu = [V'*kGxL*U; V'*kGyL*U; V'*kGzL*U];
+          if (linearpolarizedMode)
             if (AverageOverChi)
-              % Transition rate averaged over chi, the third
-              % Euler angle between lab and mol frames. 
-              TransitionRate = abs(V'*kGzL*U).^2;
+              mu0 = abs(nB0.'*mu);
+              TransitionRate = xi1^2*mu0^2 + (1-xi1^2)*(norm(mu)^2-mu0^2)/2;
             else
-              TransitionRate = abs(V'*kGzL*U).^2;
+              TransitionRate = abs(nB1.'*mu)^2;
             end
-          else % perpendicular mode
+          elseif (unpolarizedMode)
             if (AverageOverChi)
-              % Transition rate averaged over chi, the third
-              % Euler angle between lab and mol frames. 
-              TransitionRate = (abs(V'*kGxL*U).^2 + abs(V'*kGyL*U).^2)/2;
+              mu0 = abs(nB0.'*mu);
+              TransitionRate = ((1+xik^2)*norm(mu)^2+(1-3*xik^2)*mu0^2)/4;
             else
-              % Transition rate along x lab axis. This is the line
-              % intensity for a single (phi,theta,chi) orientation.
-              TransitionRate = abs(V'*kGxL*U).^2;
+              muk = abs(nk.'*mu);
+              TransitionRate = (norm(mu)^2-muk^2)/2;
+            end
+          elseif (circpolarizedMode)
+            if (AverageOverChi)
+              mu0 = abs(nB0.'*mu);
+              imumu = 1i*cross(mu,conj(mu));
+              TransitionRate = ((1+xik^2)*norm(mu)^2+(1-3*xik^2)*mu0^2+circpolarizedMode*2*nB0.'*imumu)/4;
+            else
+              muk = abs(nk.'*mu);
+              imumu = 1i*cross(mu,conj(mu));
+              TransitionRate = (norm(mu)^2-muk^2+circpolarizedMode*nk.'*imumu)/2;
             end
           end
+          if abs(TransitionRate)<1e-10, TransitionRate = 0; end
           
           % Compute polarizations if temperature or zero-field populations are given.
           if (ComputeBoltzmannPopulations)

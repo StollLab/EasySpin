@@ -170,7 +170,7 @@ DefaultExp.Range = NaN;
 DefaultExp.nPoints = 1024;
 DefaultExp.Temperature = NaN;
 DefaultExp.Harmonic = 1;
-DefaultExp.Mode = 'perpendicular';
+DefaultExp.Mode = '';
 DefaultExp.Orientations = [];
 DefaultExp.Ordering = [];
 DefaultExp.CrystalSymmetry = '';
@@ -258,13 +258,12 @@ if (Exp.Harmonic>0) && noBroadening
 end
 
 % Resonator mode
-if isfield(Exp,'Detection')
-  error('Exp.Detection is obsolete. Use Exp.Mode instead.');
-end
-if strcmp(Exp.Mode,'perpendicular')
-elseif strcmp(Exp.Mode,'parallel')
-else
-  error('Exp.Mode must be either ''perpendicular'' or ''parallel''.');
+if ischar(Exp.Mode) && ~isempty(Exp.Mode)
+  if strcmp(Exp.Mode,'perpendicular')
+  elseif strcmp(Exp.Mode,'parallel')
+  else
+    error('Exp.Mode must be either ''perpendicular'' or ''parallel''.');
+  end
 end
 logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.Mode);
 

@@ -108,9 +108,11 @@ if (diff(Parameters.Range)<=0) || any(~isfinite(Parameters.Range)) || ...
   error('Parameters.Range is not valid!');
 end
 
+if isempty(Parameters.Mode), Parameters.Mode = 'perpendicular'; end
+
 ParallelMode = (2==parseoption(Parameters,'Mode',{'perpendicular','parallel'}));
 
-if ~isnan(Parameters.Temperature)
+  if ~isnan(Parameters.Temperature)
   warning('Thermal equilibrium populations not implemented. Parameters.Temperature is ignored!');
 end
 

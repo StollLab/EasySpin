@@ -104,7 +104,8 @@ if ~isfield(Exp,'CrystalSymmetry'), Exp.CrystalSymmetry = ''; end
 err = '';
 if ~isfield(Exp,'mwFreq'), err = 'Exp.mwFreq is missing.'; end
 if ~isfield(Exp,'Orientations'), err = 'Exp.Orientations is missing'; end
-if isfield(Exp,'Detection'), err = 'Exp.Detection is obsolete. Use Exp.Mode instead.'; end
+
+p_excitationgeometry;
 
 if isfield(Exp,'Temperature')
   if numel(Exp.Temperature)~=1
@@ -220,38 +221,56 @@ trgg = trace(gg);
 
 % prefactor for transition rate
 mS = S:-1:-S+1;
-c = (bmagn/planck/1e9/2)^2 * (S*(S+1)-mS.*(mS-1));
+c = bmagn/2 * sqrt(S*(S+1)-mS.*(mS-1));
+c = c/planck/1e9;
+c2 = c.^2;
 
 % Loop over all orientations
 for iOri = nOrientations:-1:1
-  [n1x,n1y,n0] = erot(Orientations(:,iOri));
-  n0 = n0(:);
+  R = erot(Orientations(:,iOri));
+  n0 = R.'*nB0;  % transform to molecular frame representation
   vecs(:,iOri) = n0;
   
   geff(iOri) = norm(g.'*n0);
-  u = g.'*n0/geff(iOri);
+  u = g.'*n0/geff(iOri); % molecular frame representation
   
   % frequency to field conversion factor
   preOri = 1e6*planck/(geff(iOri)*bmagn);
   
   % Compute intensities
   %----------------------------------------------------------------
-  % Transition rate
-  % - see Weil/Bolton p.104
-  % - A.Lund et al, 2008, appendix, eq. (A5)
-  % - Iwasaki 1974 eq. [40]
-  % - Kneubuehl 1961 eq. [5]
-  if ParallelMode
-    TransitionRate(:,iOri) = 0;
-  else
+
+  % Compute quantum-mechanical transition rate
+  if (linearpolarizedMode)
     if (AverageOverChi)
-      TransitionRate(:,iOri) = c*(trgg-u.'*gg*u)/2; % Iwasaki
+      TransitionRate(:,iOri) = c2/2*(1-xi1^2)*(trgg-norm(g*u)^2);
     else
-      TransitionRate(:,iOri) = c*norm(cross(g.'*n1x.',u))^2; % Kneubuehl
+      nB1_ = R.'*nB1; % transform to molecular frame representation
+      TransitionRate(:,iOri) = c2*(norm(nB1_.'*g)^2-(u.'*g.'*nB1_)^2);
+    end
+  elseif (unpolarizedMode)
+    if (AverageOverChi)
+      TransitionRate(:,iOri) = c2/4*(1+xik^2)*(trgg-norm(g*u)^2);
+    else
+      nk_ = R.'*nk; % transform to molecular frame representation
+      TransitionRate(:,iOri) = c2/2*(trgg-norm(g*u)^2-norm(cross(g.'*nk_,u))^2);
+    end
+  elseif (circpolarizedMode)
+    %j = [u(2);-u(1);0]; j = j/norm(j);
+    %i = cross(j,u);
+    %gixgj = cross(g*i,g*j);
+    if (AverageOverChi)
+      %TransitionRate(:,iOri) = c2/4*((1+xik^2)*(trgg-norm(g*u)^2)-circpolarizedMode*4*xik^2*n0.'*gixgj);
+      TransitionRate(:,iOri) = c2/4*((1+xik^2)*(trgg-norm(g*u)^2)-circpolarizedMode*4*xik^2*det(g)/norm(g.'*n0));
+    else
+      nk_ = R.'*nk; % transform to molecular frame representation
+      %TransitionRate(:,iOri) = c2/2*(trgg-norm(g*u)^2-norm(cross(g.'*nk_,u))^2-circpolarizedMode*2*nk_.'*gixgj);
+      TransitionRate(:,iOri) = c2/2*(trgg-norm(g*u)^2-norm(cross(g.'*nk_,u))^2-circpolarizedMode*2*det(g)*xik/norm(g.'*n0));
     end
   end
-  
-  % Aasa-Vänngård 1/g factor
+  if abs(TransitionRate)<1e-10, TransitionRate = 0; end
+
+  % Compute Aasa-Vänngård 1/g factor (frequency-to-field conversion factor)
   dBdE = (planck/bmagn*1e9)/geff(iOri);
   
   % Combine all factors into overall line intensity
