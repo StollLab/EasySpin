@@ -4,11 +4,11 @@
 %   Hnq = nquad(SpinSystem,Nuclei)
 %   Hnq = nquad(SpinSystem,Nuclei,'sparse')
 %
-%   Returns the nuclear quadrupole interactions
-%   (NQI) Hamiltonian Hnq in MHz of the system
-%   SpinSystem. If the vector Nuclei is given,
-%   only the NQI of the specified nuclei are
-%   computed. 1 is the first nucleus, etc.
+%   Returns the nuclear quadrupole interactions (NQI)
+%   Hamiltonian, in MHz, of the spin system given in
+%   SpinSystem. If the vector Nuclei is given, only
+%   the NQI of the specified nuclei are computed. 1 is
+%   the first nucleus, etc.
 %
 %   If 'sparse' is given, the matrix is returned in sparse format.
 
@@ -41,9 +41,6 @@ nElectrons = Sys.nElectrons;
 for iNuc = 1:length(Nuclei)
   
   idx = Nuclei(iNuc);
-
-  % I < 1 -> no internal interactions possible -> go to next spin
-  %if nucspvc(idx)<1, continue; end
   
   % Nuclear quadrupole interaction
   %---------------------------------------------------------
@@ -69,7 +66,7 @@ for iNuc = 1:length(Nuclei)
     
 end % for all spins specified
 
-Hnq = (Hnq+Hnq')/2; % Hermitianise
+Hnq = (Hnq+Hnq')/2; % Hermitianize
 if ~sparseResult
   Hnq = full(Hnq);
 end
