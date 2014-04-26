@@ -32,7 +32,7 @@
 %     Exp.Range           [minField maxField], in mT
 %
 %          Exp.Range is only used if Exp.CenterSweep is not given.
-%          If both Exp.CenterField and Exp.Range are omitted, the
+%          If both Exp.CenterSweep and Exp.Range are omitted, the
 %          magnetic field range is determined automatically.
 %
 %     Exp.nPoints         number of points (default 1024)
@@ -77,7 +77,9 @@ EasySpinLogLevel = Opt.Verbosity;
 %==================================================================
 % Loop over components and isotopologues
 %==================================================================
-FieldAutoRange = (~isfield(Exp,'Range') || isempty(Exp.Range)) && ...
+FrequencySweep = ~isfield(Exp,'mwFreq') & isfield(Exp,'Field');
+
+SweepAutoRange = (~isfield(Exp,'Range') || isempty(Exp.Range)) && ...
                  (~isfield(Exp,'CenterSweep') || isempty(Exp.CenterSweep));
 if ~isfield(Opt,'IsoCutoff'), Opt.IsoCutoff = 1e-4; end
 
@@ -85,13 +87,13 @@ if ~isfield(Sys,'singleiso')
   
   [SysList,weight] = expandcomponents(Sys,Opt.IsoCutoff);
   
-  if (numel(SysList)>1) && FieldAutoRange
+  if (numel(SysList)>1) && SweepAutoRange
     error('Multiple components: Please specify magnetic field range manually using Exp.Range or Exp.CenterSweep.');
   end
   
   spec = 0;
   for iComponent = 1:numel(SysList)
-    [fieldAxis,spec_] = chili(SysList{iComponent},Exp,Opt);
+    [xAxis,spec_] = chili(SysList{iComponent},Exp,Opt);
     spec = spec + spec_*weight(iComponent);
   end
   
@@ -99,18 +101,29 @@ if ~isfield(Sys,'singleiso')
   switch nargout
     case 0
       cla
-      if (fieldAxis(2)<10000)
-        plot(fieldAxis,spec);
-        xlabel('magnetic field (mT)');
+      if FrequencySweep
+        if (xAxis(2)<1)
+          plot(xAxis*1e3,spec);
+          xlabel('frequency (MHz)');
+        else
+          plot(xAxis,spec);
+          xlabel('frequency (GHz)');
+        end
+        title(sprintf('%0.8g mT',Exp.Field));
       else
-        plot(fieldAxis/1e3,spec);
-        xlabel('magnetic field (T)');
+        if (xAxis(2)<10000)
+          plot(xAxis,spec);
+          xlabel('magnetic field (mT)');
+        else
+          plot(xAxis/1e3,spec);
+          xlabel('magnetic field (T)');
+        end
+        title(sprintf('%0.8g GHz',Exp.mwFreq));
       end
       axis tight
       ylabel('intensity (arb.u.)');
-      title(sprintf('%0.8g GHz',Exp.mwFreq));
     case 1, varargout = {spec};
-    case 2, varargout = {fieldAxis,spec};
+    case 2, varargout = {xAxis,spec};
   end
   return
 end
@@ -212,15 +225,29 @@ end
 
 % Microwave frequency
 if ~isfield(Exp,'mwFreq')
-  error('Please supply the microwave frequency in Exp.mwFreq.');
+  if ~isfield(Exp,'Field')
+    error('Please supply either the microwave frequency in Exp.mwFreq (for field sweeps) or the magnetic field in Exp.Field (for frequency sweeps).');
+  end
+  FieldSweep = false;
+else
+  if isfield(Exp,'Field')
+    error('Give either Exp.mwFreq (for a field sweep) or Exp.Frequency (for a frequency sweep), but not both.');
+  end
+  FieldSweep = true;
 end
-if (numel(Exp.mwFreq)~=1) || any(Exp.mwFreq<=0) || ~isreal(Exp.mwFreq)
-  error('Uninterpretable microwave frequency in Exp.mwFreq.');
+if FieldSweep
+  if (numel(Exp.mwFreq)~=1) || any(Exp.mwFreq<=0) || ~isreal(Exp.mwFreq)
+    error('Uninterpretable microwave frequency in Exp.mwFreq.');
+  end
+  logmsg(1,'  field sweep, mw frequency %0.8g GHz',Exp.mwFreq);
+else
+  if (numel(Exp.Field)~=1) || any(Exp.Field<=0) || ~isreal(Exp.Field)
+    error('Uninterpretable magnetic field in Exp.Field.');
+  end
+  logmsg(1,'  frequency sweep, magnetic field %0.8g mT',Exp.Field);
 end
-logmsg(1,'  mw frequency %0.8g GHz',Exp.mwFreq);
 
-
-% Magnetic field range
+% Sweep range (magnetic field, or frequency)
 if isfield(Exp,'CenterSweep')
   if isfield(Exp,'Range')
     logmsg(0,'Using Exp.CenterSweep and ignoring Exp.Range.');
@@ -229,7 +256,7 @@ else
   if isfield(Exp,'Range')
     Exp.CenterSweep = [mean(Exp.Range) diff(Exp.Range)];
   else
-    logmsg(1,'  automatic determination of magnetic field range');
+    logmsg(1,'  automatic determination of sweep range');
     I = nucspin(Sys.Nucs).';
     if numel(I)>0
       Amax = max(abs(Sys.A),[],2);
@@ -237,22 +264,40 @@ else
     else
       hf = 0;
     end
-    minB = planck*(Exp.mwFreq*1e9 - hf)/bmagn/max(Sys.g)/1e-3;
-    maxB = planck*(Exp.mwFreq*1e9 + hf)/bmagn/min(Sys.g)/1e-3;
-    Exp.CenterSweep = [(maxB+minB)/2, 1.25*(maxB-minB)];
+    if FieldSweep
+      minB = planck*(Exp.mwFreq*1e9 - hf)/bmagn/max(Sys.g)/1e-3;
+      maxB = planck*(Exp.mwFreq*1e9 + hf)/bmagn/min(Sys.g)/1e-3;
+      Exp.CenterSweep = [(maxB+minB)/2, 1.25*(maxB-minB)];
+    else
+      minE = bmagn*Exp.Field*1e-3*min(Sys.g)/planck - hf/1e9; % Hz
+      maxE = bmagn*Exp.Field*1e-3*max(Sys.g)/planck + hf/1e9; % Hz
+      Exp.CenterSweep = [(maxE+minE)/2, 1.25*(maxE-minE)]/1e9; % GHz
+    end
   end
 end
 
-Exp.CenterField = Exp.CenterSweep(1);
-Exp.Sweep = Exp.CenterSweep(2);
-Exp.Range = Exp.CenterField + [-1 1]/2*Exp.Sweep;
-
-if any(Exp.Range<0) || diff(Exp.Range)<=0
-  error('Invalid field range! Check Exp.CenterSweep or Exp.Range.');
+if FieldSweep
+  CenterField = Exp.CenterSweep(1);
+  Sweep = Exp.CenterSweep(2);
+  Exp.Range = Exp.CenterSweep(1) + [-1 1]/2*Sweep;
+else
+  CenterFreq = Exp.CenterSweep(1);
+  Sweep = Exp.CenterSweep(2);
+  Exp.Range = Exp.CenterSweep(1) + [-1 1]/2*Sweep;
+  CenterField = Exp.Field;
 end
 
-logmsg(1,'  field range [mT]: min %g, max %g, center %g, width %g',...
-  Exp.Range(1),Exp.Range(2),Exp.CenterField,Exp.Sweep);
+if any(Exp.Range<0) || diff(Exp.Range)<=0
+  error('Invalid sweep range! Check Exp.CenterSweep or Exp.Range.');
+end
+
+if FieldSweep
+  logmsg(1,'  field range (mT): min %g, max %g, center %g, width %g',...
+    Exp.Range(1),Exp.Range(2),CenterField,Sweep);
+else
+  logmsg(1,'  frequency range (GHz): min %g, max %g, center %g, width %g',...
+    Exp.Range(1),Exp.Range(2),CenterFreq,Sweep);
+end
 
 % Complain if fields only valid in pepper() are given
 if isfield(Exp,'Orientations')
@@ -269,7 +314,6 @@ end
 % Options
 %-------------------------------------------------------------------
 if isempty(Opt), Opt = struct('unused',NaN); end
-Opt.maxOffset = Exp.Sweep/2*mT2MHz*1e6; % Hz
 if ~isfield(Opt,'Rescale'), Opt.Rescale = 1; end % rescale A before Lanczos
 if ~isfield(Opt,'Threshold'), Opt.Threshold = 1e-6; end
 if ~isfield(Opt,'Diagnostic'), Opt.Diagnostic = 0; end
@@ -341,29 +385,37 @@ logmsg(2,'  allocation: %d max elements, %d max rows',Opt.Allocation(1),Opt.Allo
 
 % Process
 %-------------------------------------------------------
-Sys = processspinsys(Sys,Exp.CenterField);
+Sys = processspinsys(Sys,CenterField);
 if ~Opt.IncludeNZI, Sys.NZ0 = 0; Sys.NZ0b = 0; end
-[Dynamics,err] = processdynamics(Dynamics);
+[Dynamics,err] = processdynamics(Dynamics,FieldSweep);
 error(err);
 
-logmsg(1,'Computing X(l,k) coefficients...');
 Dynamics.xlk = chili_xlk(Dynamics);
 Dynamics.maxL = size(Dynamics.xlk,1)-1;
 
 Basis = processbasis(Sys,Basis,Dynamics);
 
-nu = linspace(-1,1,Exp.nPoints)*Opt.maxOffset;  % Hz
-omega0 = complex(1/(Dynamics.T2),2*pi*(-nu+Exp.mwFreq*1e9)); % Hz
-xField = nu/1e6/mT2MHz + Exp.CenterField;
-
+if FieldSweep
+  maxOffset = Sweep/2*mT2MHz*1e6; % Hz
+  nu = linspace(-1,1,Exp.nPoints)*maxOffset;  % Hz
+  omega0 = complex(1/(Dynamics.T2),2*pi*(-nu+Exp.mwFreq*1e9)); % Hz
+  xAxis = nu/1e6/mT2MHz + CenterField;
+else
+  nu = linspace(Exp.Range(1),Exp.Range(2),Exp.nPoints)*1e9;  % Hz
+  xAxis = nu/1e9; % GHz
+  omega0 = complex(1/(Dynamics.T2),2*pi*nu); % Hz
+end
 
 % Set up quantum numbers for basis
 %-------------------------------------------------------
-logmsg(1,'Examining basis...');
+logmsg(1,'Setting up basis...');
 [Basis.Size,Indices] = chili_basiscount(Sys,Basis,Exp.psi~=0);
-logmsg(1,'  Le,Lo,K,M:  %d,%d,%d,%d',...
-  Basis.LLKM(1),Basis.LLKM(2),Basis.LLKM(3),Basis.LLKM(4));
 logmsg(1,'  basis size: %d',Basis.Size);
+logmsg(1,'    Leven max %d, Lodd max %d, Kmax %d, Mmax %d',...
+  Basis.LLKM(1),Basis.LLKM(2),Basis.LLKM(3),Basis.LLKM(4));
+logmsg(1,'    deltaL %d, deltaK %d',Basis.deltaL,Basis.deltaK);
+logmsg(1,'    jKmin %+d, pSmin %+d, symm %d',...
+  Basis.jKmin,Basis.pSmin,Basis.MeirovitchSymm);
 
 % Set up list of orientations
 %=====================================================================
@@ -415,10 +467,10 @@ for iOri = 1:nOrientations
   StartingVector = chili_sv(Sys,Basis,Dynamics,Opt);
   BasisSize = size(StartingVector,1);
   nVectors = size(StartingVector,2);
-  logmsg(1,'  basis size: %d, vectors: %d',BasisSize,nVectors);
-  logmsg(1,'  total non-zero elements: %d/%d (%0.2f%%)',...
+  logmsg(1,'  vector size: %dx1, number of vectors: %d',BasisSize,nVectors);
+  logmsg(1,'  non-zero elements: %d/%d (%0.2f%%)',...
     nnz(StartingVector),numel(StartingVector),100*nnz(StartingVector)/BasisSize);
-  logmsg(1,'  maxabs %g',max(abs(StartingVector)));
+  logmsg(1,'  maxabs %g, norm %g',max(abs(StartingVector)),norm(StartingVector));
 
   % Liouville matrix
   %-------------------------------------------------------
@@ -437,7 +489,6 @@ for iOri = 1:nOrientations
   end
 
   omega = omega0;
-  
   if (Opt.Rescale)
     % rescale my maximum in Hamiltonian superoperator
     scale = -min(imag(Vals));
@@ -617,10 +668,19 @@ end
 %---------------------------------------------------------
 %
 GaussianFWHM = Sys.lw(1);
-dx = xField(2) - xField(1);
-if (GaussianFWHM>0)
-  logmsg(1,'Convoluting with Gaussian (FWHM %g mT)...',GaussianFWHM);
-  spec = convspec(spec,dx,GaussianFWHM,0,1);
+if FieldSweep
+  dx = xAxis(2) - xAxis(1);
+  if (GaussianFWHM>0)
+    logmsg(1,'Convoluting with Gaussian (FWHM %g mT)...',GaussianFWHM);
+    spec = convspec(spec,dx,GaussianFWHM,0,1);
+  end
+else
+  dx = xAxis(2) - xAxis(1); % GHz
+  dx = dx*1e3; % MHz
+  if (GaussianFWHM>0)
+    logmsg(1,'Convoluting with Gaussian (FWHM %g MHz)...',GaussianFWHM);
+    spec = convspec(spec,dx,GaussianFWHM,0,1);
+  end
 end
 
 % Lorentzian broadening is already included in the slow-motion
@@ -633,12 +693,15 @@ outspec = spec;
 %==============================================================
 % Field modulation, or derivatives
 %--------------------------------------------------------------
-if (Exp.ModAmp>0)
-  logmsg(1,'  applying field modulation');
-  outspec = fieldmod(xField,outspec,Exp.ModAmp,Exp.Harmonic);
+if FieldSweep
+  if (Exp.ModAmp>0)
+    logmsg(1,'  applying field modulation');
+    outspec = fieldmod(xAxis,outspec,Exp.ModAmp,Exp.Harmonic);
+  else
+    if (Exp.Harmonic>0), outspec = deriv(xAxis,outspec.').'; end
+    if (Exp.Harmonic>1), outspec = deriv(xAxis,outspec.').'; end
+  end
 else
-  if (Exp.Harmonic>0), outspec = deriv(xField,outspec.').'; end
-  if (Exp.Harmonic>1), outspec = deriv(xField,outspec.').'; end
 end
 %==============================================================
 
@@ -651,20 +714,33 @@ end
 switch (nargout)
 case 0,
   cla
-  if (xField(2)<10000)
-    plot(xField,outspec);
-    xlabel('magnetic field [mT]');
+  if FieldSweep
+    if (xAxis(2)<10000)
+      plot(xAxis,outspec);
+      xlabel('magnetic field (mT)');
+    else
+      plot(xAxis/1e3,outspec);
+      xlabel('magnetic field (T)');
+    end
+    axis tight
+    ylabel('intensity (arb.u.)');
+    title(sprintf('%0.8g GHz',Exp.mwFreq));
   else
-    plot(xField/1e3,outspec);
-    xlabel('magnetic field [T]');
+    if (xAxis(2)<1)
+      plot(xAxis*1e3,spec);
+      xlabel('frequency (MHz)');
+    else
+      plot(xAxis,spec);
+      xlabel('frequency (GHz)');
+    end
+    axis tight
+    ylabel('intensity (arb.u.)');
+    title(sprintf('%0.8g GHz',Exp.mwFreq));
   end
-  axis tight
-  ylabel('intensity [a.u.]');
-  title(sprintf('%0.8g GHz',Exp.mwFreq));
 case 1,
   varargout = {outspec};
 case 2,
-  varargout = {xField,outspec};
+  varargout = {xAxis,outspec};
 end
 %==============================================================
 
@@ -842,7 +918,7 @@ Basis.v = [...
 return
 % 
 %========================================================================
-function [Dyn,err] = processdynamics(D)
+function [Dyn,err] = processdynamics(D,FieldSweep)
 
 Dyn = D;
 err = '';
@@ -884,7 +960,11 @@ end
 
 if isfield(Dyn,'lw')
   if numel(Dyn.lw)>1
-    LorentzFWHM = Dyn.lw(2)*28 * 1e6; % mT -> MHz -> Hz
+    if FieldSweep
+      LorentzFWHM = Dyn.lw(2)*28 * 1e6; % mT -> MHz -> Hz
+    else
+      LorentzFWHM = Dyn.lw(2)*1e6; % MHz -> Hz
+    end
   else
     LorentzFWHM = 0;
   end

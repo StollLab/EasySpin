@@ -18,19 +18,20 @@ function X = chili_xlk(Dyn)
 % Missing minus in Earle: Is he correct and the others wrong?
 % No, sign depends on definition of U = -k T ... or U = + k T...
 
-R = Dyn.Diff;
-lambdalist = Dyn.lambda;
-LL = Dyn.LL;
-KK = Dyn.KK;
-
 
 % Shortcut if all lambda are zero
 %---------------------------------------------------------------
-if all(lambdalist==0) || isempty(lambdalist)
+if all(Dyn.lambda==0) || isempty(Dyn.lambda)
+  logmsg(1,'Ordering potential: absent');
   X = zeros(0,0);
   return
 end
+logmsg(1,'Ordering potential: computing X(l,k) coefficients.');
 
+lambdalist = Dyn.lambda;
+R = Dyn.Diff;
+LL = Dyn.LL;
+KK = Dyn.KK;
 
 % Get principal values of diffusion tensor
 %---------------------------------------------------------------
