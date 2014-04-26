@@ -90,21 +90,23 @@ Link = 'epr@eth'; eschecker; error(LicErr); clear Link LicErr
 %==================================================================
 % Loop over components and isotopologues
 %==================================================================
-FieldAutoRange = (~isfield(Exp,'Range') || isempty(Exp.Range)) && ...
-  (~isfield(Exp,'CenterSweep') || isempty(Exp.CenterSweep));
+FrequencySweep = ~isfield(Exp,'mwFreq') & isfield(Exp,'Field');
+
+SweepAutoRange = (~isfield(Exp,'Range') || isempty(Exp.Range)) && ...
+                 (~isfield(Exp,'CenterSweep') || isempty(Exp.CenterSweep));
 if ~isfield(Options,'IsoCutoff'), Options.IsoCutoff = 1e-6; end
 
 if ~isfield(Sys,'singleiso') || (Sys.singleiso==0)
   
   [SysList,weight] = expandcomponents(Sys,Options.IsoCutoff);
     
-  if (numel(SysList)>1) && FieldAutoRange
+  if (numel(SysList)>1) && SweepAutoRange
     error('Multiple components: Please specify magnetic field range manually using Exp.Range or Exp.CenterSweep.');
   end
   
   spec = 0;
   for iComponent = 1:numel(SysList)
-    [fieldAxis,spec_,Bres] = garlic(SysList{iComponent},Exp,Options);
+    [xAxis,spec_,Bres] = garlic(SysList{iComponent},Exp,Options);
     spec = spec + spec_*weight(iComponent);
   end
   
@@ -112,31 +114,36 @@ if ~isfield(Sys,'singleiso') || (Sys.singleiso==0)
   switch nargout
     case 0
       cla
-      if (fieldAxis(2)<10000)
-        plot(fieldAxis,spec);
-        xlabel('magnetic field (mT)');
+      if FrequencySweep
+        if (xAxis(end)<1)
+          plot(xAxis*1e3,spec);
+          xlabel('frequency (MHz)');
+        else
+          plot(xAxis,spec);
+          xlabel('frequency (GHz)');
+        end
+        title(sprintf('%0.8g mT, %d points',Exp.Field,numel(xAxis)));
       else
-        plot(fieldAxis/1e3,spec);
-        xlabel('magnetic field (T)');
+        if (xAxis(end)<10000)
+          plot(xAxis,spec);
+          xlabel('magnetic field (mT)');
+        else
+          plot(xAxis/1e3,spec);
+          xlabel('magnetic field (T)');
+        end
+        title(sprintf('%0.8g GHz, %d points',Exp.mwFreq,numel(xAxis)));
       end
       axis tight
-      ylabel('intensity (arb.u.)');
-      if isfield(Sys,'tcorr')
-        fmStr = sprintf(', tcorr %g ns',Sys.tcorr*1e9);
-      else
-        fmStr = '';
-      end
-      title(sprintf('%0.8g GHz, %d points%s',...
-        Exp.mwFreq,numel(fieldAxis),fmStr));
+      ylabel('intensity (arb.u.)');    
     case 1, varargout = {spec};
-    case 2, varargout = {fieldAxis,spec};
-    case 3, varargout = {fieldAxis,spec,Bres};
+    case 2, varargout = {xAxis,spec};
+    case 3, varargout = {xAxis,spec,Bres};
   end
   return
 end
 %==================================================================
 
-if EasySpinLogLevel>=1
+if (EasySpinLogLevel>=1)
   logmsg(1,['=begin=garlic=====' datestr(now) '=================']);
 end
 
@@ -196,26 +203,50 @@ DefaultExp.Temperature = NaN; % don't compute thermal equilibrium polarizations
 Exp = adddefaults(Exp,DefaultExp);
 
 % Microwave frequency
-if ~isfield(Exp,'mwFreq')
-  error('Please supply the microwave frequency in Exp.mwFreq.');
+if ~isfield(Exp,'mwFreq') || isempty(Exp.mwFreq)
+  if ~isfield(Exp,'Field')
+    error('Please supply either the microwave frequency in Exp.mwFreq (for field sweeps) or the magnetic field in Exp.Field (for frequency sweeps).');
+  end
+  FieldSweep = false;
+else
+  if isfield(Exp,'Field')
+    if ~isempty(Exp.Field)
+      error('Give either Exp.mwFreq (for a field sweep) or Exp.Frequency (for a frequency sweep), but not both.');
+    end
+  end
+  FieldSweep = true;
 end
-if (numel(Exp.mwFreq)~=1) || any(Exp.mwFreq<=0) || ~isreal(Exp.mwFreq)
-  error('Unintelligible microwave frequency in Exp.mwFreq.');
+if FieldSweep
+  if (numel(Exp.mwFreq)~=1) || any(Exp.mwFreq<=0) || ~isreal(Exp.mwFreq)
+    error('Uninterpretable microwave frequency in Exp.mwFreq.');
+  end
+  logmsg(1,'  field sweep, mw frequency %0.8g GHz',Exp.mwFreq);
+else
+  if (numel(Exp.Field)~=1) || any(Exp.Field<=0) || ~isreal(Exp.Field)
+    error('Uninterpretable magnetic field in Exp.Field.');
+  end
+  logmsg(1,'  frequency sweep, magnetic field %0.8g mT',Exp.Field);
 end
 
-% Magnetic field range
+% Sweep range (magnetic field or frequency)
+SweepAutoRange = false;
 if isfield(Exp,'CenterSweep')
   if isfield(Exp,'Range')
     logmsg(0,'Using Exp.CenterSweep and ignoring Exp.Range.');
   end
-  Exp.Range = Exp.CenterSweep(1) + [-1 1]*Exp.CenterSweep(2)/2;
-end
-
-FieldAutoRange = ~isfield(Exp,'Range');
-if ~FieldAutoRange
-  if (Exp.Range(1)>=Exp.Range(2)) || any(Exp.Range<0)
-    error('Invalid magnetic field range!');
+else
+  if isfield(Exp,'Range')
+    if (Exp.Range(1)>=Exp.Range(2)) || any(Exp.Range<0)
+      error('Invalid sweep range!');
+    end
+    Exp.CenterSweep = [mean(Exp.Range) diff(Exp.Range)];
+  else
+    logmsg(1,'  automatic determination of sweep range');
+    SweepAutoRange = true;
   end
+end
+if ~SweepAutoRange
+  Exp.Range = Exp.CenterSweep(1) + [-1 1]/2*Exp.CenterSweep(2);
 end
 
 % Number of points
@@ -251,7 +282,7 @@ if ~isnan(Exp.Temperature)
   end
 end
 
-% Modulation amplitude
+% Field modulation amplitude
 if any(Exp.ModAmp<0) || any(isnan(Exp.ModAmp)) || numel(Exp.ModAmp)~=1
   error('Exp.ModAmp must be either a single positive number or zero.');
 end
@@ -321,16 +352,24 @@ end
 
 %-------------------------------------------------------------------------
 
-mwFreq = Exp.mwFreq*1e9; % GHz -> Hz
 if Sys.fullg
   giso = mean(mean(Sys.g(1:3,:)));
 else
   giso = mean(Sys.g(1,:));
 end
-CentralResonance = (mwFreq*planck)/(bmagn*giso)*1e3; % in the absence of nuclei,  mT
+if FieldSweep
+  mwFreq = Exp.mwFreq*1e9; % GHz -> Hz
+  CentralResonance = (mwFreq*planck)/(bmagn*giso)*1e3; % mT, absence of nuclei
+else
+  CentralResonance = bmagn*giso*Exp.Field*1e-3/planck; % Hz
+end
 
 if (FastMotionRegime)
-  FastMotionLw = fastmotion(Sys,CentralResonance,Sys.tcorr);
+  if FieldSweep
+    FastMotionLw = fastmotion(Sys,CentralResonance,Sys.tcorr);
+  else
+    FastMotionLw = fastmotion(Sys,Exp.Field,Sys.tcorr);
+  end
   if all(FastMotionLw==0)
     error('Linewidths resulting from fast-motion lindwidth parameters must be positive! Did you supply isotropic values only?');
   elseif any(FastMotionLw<=0)
@@ -351,9 +390,11 @@ if (Sys.nNuclei>0)
   end
   a_all = a_all.*Sys.Ascale;
   n_all = Sys.n;
-  % Make sure zero field splitting is smaller than mw frequency.
-  if sum(abs(a_all).*I_all)*2>mwFreq
-    disp('Microwave frequency is smaller than largest splitting of levels at zero field. Spectrum might be inaccurate. Consider using the function pepper instead.');
+  if FieldSweep
+    % Make sure zero field splitting is smaller than mw frequency.
+    if sum(abs(a_all).*I_all)*2>mwFreq
+      disp('Microwave frequency is smaller than largest splitting of levels at zero field. Spectrum might be inaccurate. Consider using the function pepper instead.');
+    end
   end
   if any(I_all==0)
     error('Nuclei with spin 0 present.');
@@ -363,7 +404,7 @@ if (Sys.nNuclei>0)
   end
 end
 
-logmsg(1,'Computing resonance field shifts...');
+logmsg(1,'Computing resonance shifts...');
 p = 1;
 Shifts = {};
 Amp = {};
@@ -374,105 +415,160 @@ for iNucGrp = 1:Sys.nNuclei
   [I_this,nn] = equivcouple(I_all(iNucGrp),n_all(iNucGrp));
   nLines = (2*I_all(iNucGrp)+1)^n_all(iNucGrp);
   nFSpins = length(nn);
-  a = a_all(iNucGrp)*planck;
+  aiso = a_all(iNucGrp)*planck; % J
   Positions = [];
   Intensities = [];
 
-  if PerturbOrder==0
-    logmsg(1,'  Breit-Rabi solver, accuracy %g',Options.Accuracy);
-    maxIterationsDone = -1;
+  if FieldSweep
     
-    % Fixed-point iteration, based on the Breit-Rabi formula
-    % J. A. Weil, J. Magn. Reson. 4, 394-399 (1971)
-    gammae = giso*bmagn;
-    h = planck;
-    for iF = 1:nFSpins
-      if (nn(iF)==0), continue; end
-      I = I_this(iF);
-      mI = -I:I;
-      B = 0;
-      RelChangeB = inf;
-      gamman = 0; % to obtain start field, neglect NZI
-      for iter = 1:Options.MaxIterations
-        nu = mwFreq + gamman/h*B;
-        q = 1 - (a./(2*h*nu)).^2;
-        Bnew = a./(gammae+gamman)./q.* ...
-          (-mI+sign(a)*sqrt(mI.^2+q.*((h*nu/a).^2 - (I+1/2)^2)));
-        if (B~=0), RelChangeB = 1 - Bnew./B; end
-        B = Bnew;
-        gamman = gn(iNucGrp)*nmagn; % re-include NZI
-        if abs(RelChangeB)<Options.Accuracy, break; end
-      end
-      if (iter>maxIterationsDone), maxIterationsDone = iter; end
-      if (iter==Options.MaxIterations)
-        error(sprintf('Breit-Rabi solver didn''t converge after %d iterations!',iter));
-      end
-      Positions = [Positions B];
-      Intensities = [Intensities nn(iF)/nLines*ones(size(B))];
-    end
-    logmsg(1,'  maximum %d iterations done',maxIterationsDone);
-    
-  else
-    logmsg(1,'  perturbation expansion, order %d, accuracy %g',PerturbOrder,Options.Accuracy);
-    
-    % Based on \Delta E - h nu = 0 with a 5th-order Taylor expansion in a of
-    % the Breit-Rabi expression for \Delta E. The resulting polynomial in a with terms
-    % (0,a,a^2,a^3,a^4,...) is also a polynomial in B with the same terms
-    % (B,0,1/B,1/B^2,1/B^3,...)
-    maxIterationsDone = -1;
-    pre = a .* (a/(giso*bmagn+gn(iNucGrp)*nmagn)/2).^(1:7);
-    for iF = 1:nFSpins
-      if nn(iF)==0, continue; end
-      I = I_this(iF);
-      for mI = -I:I
-        c(6) = pre(4) * mI*(1+6*(I-1)*I*(I+1)*(I+2)-10*(-3+2*I*(I+1))*mI^2+14*mI^4);
-        c(5) = pre(3) * (I-2*I^3-I^4 + 6*(I^2+I-1)*mI^2-5*mI^4);
-        c(4) = pre(2) * mI*(1-2*I*(I+1)+2*mI^2);
-        c(3) = pre(1) * (I*(I+1)-mI^2);
-        c(2) = a*mI - mwFreq*planck;
-        c(1) = giso*bmagn;
-        % Newton-Raphson
-        % Usually between 2 and 4 steps are necessary, never more than 7
-        n = PerturbOrder+1;
-        c = c(1:n);
-        dc = (n-1:-1:1).*c(1:n-1);
-        Bb = -c(2)/c(1); % first-order as start guess
-        dB = Bb;
+    % Field sweep
+    %-------------------------------------------------------------------
+    if (PerturbOrder==0)
+      logmsg(1,'  Breit-Rabi solver, accuracy %g',Options.Accuracy);
+      maxIterationsDone = -1;
+      
+      % Fixed-point iteration, based on the Breit-Rabi formula
+      % J. A. Weil, J. Magn. Reson. 4, 394-399 (1971)
+      gammae = giso*bmagn;
+      h = planck;
+      for iF = 1:nFSpins
+        if (nn(iF)==0), continue; end
+        I = I_this(iF);
+        mI = -I:I;
+        B_ = 0;
+        RelChangeB = inf;
+        gamman = 0; % to obtain start field, neglect NZI
         for iter = 1:Options.MaxIterations
-          if (abs(dB/Bb)<Options.Accuracy), break; end
-          dB = polyval(c,Bb)/polyval(dc,Bb);
-          Bb = Bb - dB;
+          nu = mwFreq + gamman/h*B_;
+          q = 1 - (aiso./(2*h*nu)).^2;
+          Bnew = aiso./(gammae+gamman)./q.* ...
+            (-mI+sign(aiso)*sqrt(mI.^2+q.*((h*nu/aiso).^2 - (I+1/2)^2)));
+          if (B_~=0), RelChangeB = 1 - Bnew./B_; end
+          B_ = Bnew;
+          gamman = gn(iNucGrp)*nmagn; % re-include NZI
+          if abs(RelChangeB)<Options.Accuracy, break; end
         end
         if (iter>maxIterationsDone), maxIterationsDone = iter; end
         if (iter==Options.MaxIterations)
-          error('Newton-Raphson has convergence problem!');
+          error(sprintf('Breit-Rabi solver didn''t converge after %d iterations!',iter));
         end
-        Positions(end+1) = Bb;
-        Intensities(end+1) = nn(iF)/nLines;
+        Positions = [Positions B_];
+        Intensities = [Intensities nn(iF)/nLines*ones(size(B_))];
       end
+      logmsg(1,'  maximum %d iterations done',maxIterationsDone);
+      
+    else
+      logmsg(1,'  perturbation expansion, order %d, accuracy %g',PerturbOrder,Options.Accuracy);
+      
+      % Based on \Delta E - h nu = 0 with a 5th-order Taylor expansion in aiso of
+      % the Breit-Rabi expression for \Delta E. The resulting polynomial in aiso with terms
+      % (0,aiso,aiso^2,aiso^3,aiso^4,...) is also a polynomial in B with the same terms
+      % (B,0,1/B,1/B^2,1/B^3,...)
+      maxIterationsDone = -1;
+      pre = aiso .* (aiso/(giso*bmagn+gn(iNucGrp)*nmagn)/2).^(1:4);
+      for iF = 1:nFSpins
+        if nn(iF)==0, continue; end
+        I = I_this(iF);
+        for mI = -I:I
+          c(6) = pre(4) * mI * (1+6*(I-1)*I*(I+1)*(I+2)-10*(-3+2*I*(I+1))*mI^2+14*mI^4);
+          c(5) = pre(3) *      (I-2*I^3-I^4+6*(I^2+I-1)*mI^2-5*mI^4);
+          c(4) = pre(2) * mI * (1-2*I*(I+1)+2*mI^2);
+          c(3) = pre(1) *      (I*(I+1)-mI^2);
+          c(2) = aiso*mI - mwFreq*planck;
+          c(1) = giso*bmagn;
+          % Newton-Raphson
+          % Usually between 2 and 4 steps are necessary, never more than 7
+          n = PerturbOrder+1;
+          c = c(1:n);
+          dc = (n-1:-1:1).*c(1:n-1);
+          Bb = -c(2)/c(1); % first-order as start guess
+          dB = Bb;
+          for iter = 1:Options.MaxIterations
+            if (abs(dB/Bb)<Options.Accuracy), break; end
+            dB = polyval(c,Bb)/polyval(dc,Bb);
+            Bb = Bb - dB;
+          end
+          if (iter>maxIterationsDone), maxIterationsDone = iter; end
+          if (iter==Options.MaxIterations)
+            error('Newton-Raphson has convergence problem!');
+          end
+          Positions(end+1) = Bb; % T
+          Intensities(end+1) = nn(iF)/nLines;
+        end
+      end
+      logmsg(1,'  maximum %d iterations done',maxIterationsDone);
+      
     end
-    logmsg(1,'  maximum %d iterations done',maxIterationsDone);
+    Positions = Positions*1e3; % T -> mT
+
+  else
+    
+    % Frequency sweep
+    %-------------------------------------------------------------------
+    if (PerturbOrder==0)
+      logmsg(1,'  Breit-Rabi formula');
+      
+      % Breit-Rabi formula, J. A. Weil, J. Magn. Reson. 4, 394-399 (1971), [1]
+      B_ = Exp.Field*1e-3; % T
+      gebB = giso*bmagn*B_;
+      gnbB = gn(iNucGrp)*nmagn*B_;
+      for iF = 1:nFSpins
+        if (nn(iF)==0), continue; end
+        I = I_this(iF);
+        mI = -I:I;
+        alpha = (gebB+gnbB)/aiso/(I+1/2);
+        E1 = -aiso/4-gnbB*(mI+1/2)+(I+1/2)*aiso/2*sqrt(1+2*(mI+1/2)/(I+1/2)*alpha+alpha^2);
+        E2 = -aiso/4-gnbB*(mI-1/2)-(I+1/2)*aiso/2*sqrt(1+2*(mI-1/2)/(I+1/2)*alpha+alpha^2);
+        nu_ = (E1-E2)/planck; % J -> Hz
+        Positions = [Positions nu_]; % Hz
+        Intensities = [Intensities nn(iF)/nLines*ones(size(nu_))];
+      end
+      
+    else
+      logmsg(1,'  perturbation theory, order %d',PerturbOrder);
+      
+      % Taylor expansion in aiso around 0 of the Breit-Rabi expression for \Delta E.
+      B_ = Exp.Field*1e-3;
+      pre = aiso .* (aiso/(giso*bmagn*B_+gn(iNucGrp)*nmagn*B_)/2).^(1:4);
+      for iF = 1:nFSpins
+        if nn(iF)==0, continue; end
+        I = I_this(iF);
+        for mI = -I:I
+          c(1) = giso*bmagn*B_;
+          c(2) = aiso*mI;
+          c(3) = pre(1) *      (I*(I+1)-mI^2);
+          c(4) = pre(2) * mI * (1-2*I*(I+1)+2*mI^2);
+          c(5) = pre(3) *      (I-2*I^3-I^4+6*(I^2+I-1)*mI^2-5*mI^4);
+          c(6) = pre(4) * mI * (1+6*(I-1)*I*(I+1)*(I+2)-10*(-3+2*I*(I+1))*mI^2+14*mI^4);
+          dE = sum(c(1:PerturbOrder+1));
+          nu_ = dE/planck; % J -> Hz
+          Positions(end+1) = nu_; % Hz
+          Intensities(end+1) = nn(iF)/nLines;
+        end
+      end
+      
+    end
 
   end
-  
-  Shifts{p} = Positions*1e3 - CentralResonance; % in mT
+  Shifts{p} = Positions - CentralResonance; % mT or Hz
   Amp{p} = Intensities;
+  
+  logmsg(1,'  spin group %d: %d F spins, %d lines',iNucGrp,nFSpins,numel(Shifts{p}));
   p = p + 1;
-  logmsg(1,'  spin group %d: %d F spins, %d lines',iNucGrp,nFSpins,numel(Positions));
 end
 
 % Statistics: minimum, maximum, number of lines
 %------------------------------------------------
 nPeaks = 1;
-Bmax = CentralResonance;
-Bmin = CentralResonance;
-for k=1:length(Shifts)
-  nPeaks = nPeaks * numel(Shifts{k});
-  Bmax = Bmax + max(Shifts{k});
-  Bmin = Bmin + min(Shifts{k});
+posmax = CentralResonance;
+posmin = CentralResonance;
+for iShift = 1:length(Shifts)
+  nPeaks = nPeaks * numel(Shifts{iShift});
+  posmax = posmax + max(Shifts{iShift});
+  posmin = posmin + min(Shifts{iShift});
 end
 logmsg(1,'  total %d lines',nPeaks);
-%------------------------------------------------
+
 
 if (FastMotionRegime)
   % Add Lorentzian
@@ -483,57 +579,78 @@ else
   maxLw = max(Sys.lw);
 end
 
-if (FieldAutoRange)
-  Brange = (Bmax-Bmin)*Options.Stretch;
-  Exp.Range = [Bmin,Bmax] + [-1 1]*max(5*maxLw,Brange);
-  Exp.Range(1) = max(Exp.Range(1),0);
-  logmsg(1,'  automatic field range from %g mT to %g mT',Exp.Range(1),Exp.Range(2));
+% Autoranging
+%------------------------------------------------
+if (SweepAutoRange)
+  if FieldSweep
+    posrange = (posmax-posmin)*Options.Stretch;
+    Exp.Range = [posmin,posmax] + [-1 1]*max(5*maxLw,posrange);
+    Exp.Range(1) = max(Exp.Range(1),0);
+    logmsg(1,'  automatic field range from %g mT to %g mT',Exp.Range(1),Exp.Range(2));
+  else
+    posrange = (posmax-posmin)*Options.Stretch; % Hz
+    Exp.Range = [posmin,posmax] + [-1 1]*max(5*maxLw/1e3,posrange);
+    Exp.Range(1) = max(Exp.Range(1),0);
+    Exp.Range = Exp.Range/1e9; % Hz -> GHz
+    logmsg(1,'  automatic frequency range from %g GHz to %g GHz',Exp.Range(1),Exp.Range(2));
+  end
 end
 
-logmsg(1,'  spectral spread %g mT\n  g=%g resonance at %g mT',(Bmax-Bmin),giso,CentralResonance);
+if FieldSweep
+  logmsg(1,'  spectral spread %g mT\n  g=%g resonance at %g mT',(posmax-posmin),giso,CentralResonance);
+else
+  logmsg(1,'  spectral spread %g MHz\n  g=%g resonance at %g GHz',(posmax-posmin)/1e6,giso,CentralResonance/1e9);
+end
 
 %===================================================================
 % Spectrum construction
 %===================================================================
-logmsg(1,'Combining resonance field shifts...');
+logmsg(1,'Combining resonance shifts...');
 if (nPeaks>1)
-  B = sum(allcombinations(Shifts{:}),2) + CentralResonance;
-  A = prod(allcombinations(Amp{:}),2);
+  Positions = sum(allcombinations(Shifts{:}),2) + CentralResonance;
+  Intensity = prod(allcombinations(Amp{:}),2);
 else
-  B = CentralResonance;
-  A = 1;
+  Positions = CentralResonance;
+  Intensity = 1;
+end
+if ~FieldSweep
+  Positions = Positions/1e9; % Hz -> GHz
 end
 
 % Parallel mode: no intensities
 if ParallelMode
-  A = A*0;
+  Intensity = Intensity*0;
 end
 
 % Temperature: include Boltzmann equilibrium polarization
 if isfinite(Exp.Temperature)
-  e = exp(-planck*Exp.mwFreq*1e9/boltzm/Exp.Temperature);
-  Population = [1 e]/(1+e);
-  Polarization = Population(1)-Population(2);
-  A = A*Polarization;
+  if FieldSweep
+    e = exp(-planck*Exp.mwFreq*1e9/boltzm/Exp.Temperature);
+    Population = [1 e]/(1+e);
+    Polarization = Population(1)-Population(2);
+    Intensity = Intensity*Polarization;
+  else
+    error('Boltzmann populations for frequency sweeps not implemented.');
+  end
 end
 
 % Transition amplitudes
 %--------------------------------------------------------------
-% approximate only, but fairly accurate
-% (correct expression would be the average over theta and phi of
-% Eq. (A5) in Lund, Spectrochim Acta A 69 1294-1300 2008)
 g1mean2 = giso^2;
 TransitionRate = (8*pi^2)*g1mean2*(bmagn/planck/1e9/2)^2;
-% 1/g factor (mT/MHz)
-dBdE = planck/(giso*bmagn)*1e9;
-A = A*TransitionRate*dBdE;
+Intensity = Intensity*TransitionRate;
+if FieldSweep
+  % 1/g factor (mT/MHz)
+  dBdE = planck/(giso*bmagn)*1e9;
+  Intensity = Intensity*dBdE;
+end
 %--------------------------------------------------------------
 
 Harmonic2Do = Exp.Harmonic;
 
-FieldRange = Exp.Range;
-x = linspace(FieldRange(1),FieldRange(2),Exp.nPoints);
-Exp.deltaX = x(2)-x(1);
+SweepRange = Exp.Range;
+xAxis = linspace(SweepRange(1),SweepRange(2),Exp.nPoints);
+Exp.deltaX = xAxis(2)-xAxis(1);
 
 % (1) Fast-motion broadening
 %---------------------------------------------------------
@@ -541,22 +658,22 @@ if (FastMotionRegime)
   logmsg(1,'Constructing spectrum with fast-motion Lorentzian linewidths...');
 
   dxx = min(Exp.deltaX,min(LorentzianLw)/5);
-  nnPoints = round((FieldRange(2)-FieldRange(1))/dxx+1);
-  xx = linspace(FieldRange(1),FieldRange(2),nnPoints);
+  nnPoints = round((SweepRange(2)-SweepRange(1))/dxx+1);
+  xx = linspace(SweepRange(1),SweepRange(2),nnPoints);
 
   spec = 0;
-  for iLine = 1:numel(B)
-    spec = spec + A(iLine)*lorentzian(xx,B(iLine),LorentzianLw(iLine),Harmonic2Do);
+  for iLine = 1:numel(Positions)
+    spec = spec + Intensity(iLine)*lorentzian(xx,Positions(iLine),LorentzianLw(iLine),Harmonic2Do);
   end
   Harmonic2Do = 0;
     
 else
   
-  xx = x;
+  xx = xAxis;
   dxx = Exp.deltaX;
   
   logmsg(1,'Constructing stick spectrum...'); 
-  spec = constructspectrum(B,A,FieldRange,Exp.nPoints);
+  spec = constructspectrum(Positions,Intensity,SweepRange,Exp.nPoints);
   
 end
 
@@ -566,15 +683,25 @@ spec = spec/Exp.deltaX;
 %---------------------------------------------------------
 GaussianFWHM = Sys.lw(1);
 if (GaussianFWHM>0)
-  logmsg(1,'Convoluting with Gaussian (FWHM %g mT)...',GaussianFWHM);
-  spec = convspec(spec,dxx,GaussianFWHM,Harmonic2Do,1);
+  if FieldSweep
+    logmsg(1,'Convoluting with Gaussian (FWHM %g mT)...',GaussianFWHM);
+    spec = convspec(spec,dxx,GaussianFWHM,Harmonic2Do,1);
+  else
+    logmsg(1,'Convoluting with Gaussian (FWHM %g MHz)...',GaussianFWHM);
+    spec = convspec(spec,dxx,GaussianFWHM/1e3,Harmonic2Do,1);
+  end
   Harmonic2Do = 0;
 end
 
 LorentzianFWHM = Sys.lw(2);
 if (LorentzianFWHM>0)
-  logmsg(1,'Convoluting with Lorentzian (FWHM %g mT)...',LorentzianFWHM);
-  spec = convspec(spec,dxx,LorentzianFWHM,Harmonic2Do,0,Exp.mwPhase);
+  if FieldSweep
+    logmsg(1,'Convoluting with Lorentzian (FWHM %g mT)...',LorentzianFWHM);
+    spec = convspec(spec,dxx,LorentzianFWHM,Harmonic2Do,0,Exp.mwPhase);
+  else
+    logmsg(1,'Convoluting with Lorentzian (FWHM %g MHz)...',LorentzianFWHM);
+    spec = convspec(spec,dxx,LorentzianFWHM/1e3,Harmonic2Do,0,Exp.mwPhase);
+  end
   %Harmonic2Do = 0;
 else
   if (Exp.mwPhase~=0)
@@ -582,25 +709,28 @@ else
   end
 end
 
-if numel(xx)~=numel(x)
-  spec = interp1(xx,spec,x);
+if numel(xx)~=numel(xAxis)
+  spec = interp1(xx,spec,xAxis);
 end
 
 % (3) Field modulation
 %-----------------------------------------------------------------------
-if (Exp.ModAmp>0)
-  logmsg(1,'  applying field modulation');
-  spec = fieldmod(x,spec,Exp.ModAmp);
+if FieldSweep
+  if (Exp.ModAmp>0)
+    logmsg(1,'  applying field modulation');
+    spec = fieldmod(xAxis,spec,Exp.ModAmp);
+  else
+    % derivatives already included in the convolution
+  end
 else
-  % derivatives already included in the convolution
 end
 
 %===================================================================
 
 switch (nargout)
   case 1, varargout = {spec};
-  case 2, varargout = {x,spec};
-  case 3, varargout = {x,spec,B};
+  case 2, varargout = {xAxis,spec};
+  case 3, varargout = {xAxis,spec,Positions};
 end
 if EasySpinLogLevel>=1
   logmsg(1,'=end=garlic=======%s=================\n',datestr(now));

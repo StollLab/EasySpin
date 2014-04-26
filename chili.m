@@ -102,23 +102,23 @@ if ~isfield(Sys,'singleiso')
     case 0
       cla
       if FrequencySweep
-        if (xAxis(2)<1)
+        if (xAxis(end)<1)
           plot(xAxis*1e3,spec);
           xlabel('frequency (MHz)');
         else
           plot(xAxis,spec);
           xlabel('frequency (GHz)');
         end
-        title(sprintf('%0.8g mT',Exp.Field));
+        title(sprintf('%0.8g mT, %d points',Exp.Field,numel(xAxis)));
       else
-        if (xAxis(2)<10000)
+        if (xAxis(end)<10000)
           plot(xAxis,spec);
           xlabel('magnetic field (mT)');
         else
           plot(xAxis/1e3,spec);
           xlabel('magnetic field (T)');
         end
-        title(sprintf('%0.8g GHz',Exp.mwFreq));
+        title(sprintf('%0.8g GHz, %d points',Exp.mwFreq,numel(xAxis)));
       end
       axis tight
       ylabel('intensity (arb.u.)');
@@ -214,7 +214,7 @@ if (Exp.MOMD) && isempty(Sys.lambda)
   Exp.MOMD = 0;
 end
 
-% Field modulation
+% Field modulation amplitude
 if (Exp.ModAmp>0)
   logmsg(1,'  field modulation, amplitude %g mT',Exp.ModAmp);
   if (Exp.Harmonic<1)
@@ -257,6 +257,7 @@ else
     Exp.CenterSweep = [mean(Exp.Range) diff(Exp.Range)];
   else
     logmsg(1,'  automatic determination of sweep range');
+    Stretch = 1.25;
     I = nucspin(Sys.Nucs).';
     if numel(I)>0
       Amax = max(abs(Sys.A),[],2);
@@ -265,13 +266,13 @@ else
       hf = 0;
     end
     if FieldSweep
-      minB = planck*(Exp.mwFreq*1e9 - hf)/bmagn/max(Sys.g)/1e-3;
-      maxB = planck*(Exp.mwFreq*1e9 + hf)/bmagn/min(Sys.g)/1e-3;
-      Exp.CenterSweep = [(maxB+minB)/2, 1.25*(maxB-minB)];
+      minB = planck*(Exp.mwFreq*1e9 - hf)/bmagn/max(Sys.g(:))/1e-3;
+      maxB = planck*(Exp.mwFreq*1e9 + hf)/bmagn/min(Sys.g(:))/1e-3;
+      Exp.CenterSweep = [(maxB+minB)/2, Stretch*(maxB-minB)];
     else
       minE = bmagn*Exp.Field*1e-3*min(Sys.g)/planck - hf/1e9; % Hz
       maxE = bmagn*Exp.Field*1e-3*max(Sys.g)/planck + hf/1e9; % Hz
-      Exp.CenterSweep = [(maxE+minE)/2, 1.25*(maxE-minE)]/1e9; % GHz
+      Exp.CenterSweep = [(maxE+minE)/2, Stretch*(maxE-minE)]/1e9; % GHz
     end
   end
 end
@@ -715,7 +716,7 @@ switch (nargout)
 case 0,
   cla
   if FieldSweep
-    if (xAxis(2)<10000)
+    if (xAxis(end)<10000)
       plot(xAxis,outspec);
       xlabel('magnetic field (mT)');
     else
@@ -724,9 +725,9 @@ case 0,
     end
     axis tight
     ylabel('intensity (arb.u.)');
-    title(sprintf('%0.8g GHz',Exp.mwFreq));
+    title(sprintf('%0.8g GHz, %d points',Exp.mwFreq,numel(xAxis)));
   else
-    if (xAxis(2)<1)
+    if (xAxis(end)<1)
       plot(xAxis*1e3,spec);
       xlabel('frequency (MHz)');
     else
@@ -735,7 +736,7 @@ case 0,
     end
     axis tight
     ylabel('intensity (arb.u.)');
-    title(sprintf('%0.8g GHz',Exp.mwFreq));
+    title(sprintf('%0.8g mT, %d points',Exp.Field,numel(xAxis)));
   end
 case 1,
   varargout = {outspec};
