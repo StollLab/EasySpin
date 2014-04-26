@@ -23,6 +23,7 @@ int nRows, nElements;
 
 int Lemax, Lomax, Kmax, Mmax;
 int jKmin, pSmin, pImax, deltaL, deltaK;
+int MeirovitchSymm;
 
 struct SystemStruct {
   double I, NZI0, HFI0, *ReHFI2, *ImHFI2;
@@ -142,7 +143,7 @@ for (L1=0;L1<=Lemax;L1+=deltaL) {
           qS1max = 1 - abs(pS1);
           for (qS1=-qS1max;qS1<=qS1max;qS1+=2) {
             for (pI1 = -pImax;pI1<=pImax;pI1++) {
-              if ((psi==0) && ((pI1+pS1-M1)!=1)) continue;  /* Eq. (A47) */
+              if ((MeirovitchSymm) && (psi==0) && ((pI1+pS1-M1)!=1)) continue;  /* Eq. (A47) */
               qI1max = ((int)(2*I)) - abs(pI1);
               for (qI1=-qI1max;qI1<=qI1max;qI1+=2) {
                 iCol = iRow;
@@ -266,7 +267,7 @@ for (L1=0;L1<=Lemax;L1+=deltaL) {
                             
                             pI2min = (diagRC) ? pI1 : -pImax;
                             for (pI2=pI2min;pI2<=pImax;pI2++) {
-                              if ((psi==0) && ((pI2+pS2-M2)!=1)) continue;  /* Eq. (A47) */
+                              if ((MeirovitchSymm) && (psi==0) && ((pI2+pS2-M2)!=1)) continue;  /* Eq. (A47) */
                               pId = pI1 - pI2;
                               qI2max = ((int)(2*I)) - abs(pI2);
                               qI2min = (diagRC) ? qI1 : -qI2max;
@@ -481,7 +482,7 @@ for (L1=0;L1<=Lemax;L1+=deltaL) {
           qS1max = 1 - abs(pS1);
           for (qS1=-qS1max;qS1<=qS1max;qS1+=2) {
             for (pI1 = -pImax;pI1<=pImax;pI1++) {
-              if ((Sys.psi==0)&&((pI1+pS1-1)!=M1)) continue;
+              if ((MeirovitchSymm) && (Sys.psi==0)&&((pI1+pS1-1)!=M1)) continue;
               qI1max = (int)(2*I) - abs(pI1);
               for (qI1=-qI1max;qI1<=qI1max;qI1+=2) {
                 /*mexPrintf("%3d %3d %3d %3d    %2d %2d %2d %2d\n",L1,jK1,K1,M1,pS1,qS1,pI1,qI1);*/
@@ -557,7 +558,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   pSmin = (int)basisopts[5];
   deltaL = (int)basisopts[6];
   deltaK = (int)basisopts[7];
-  pImax = (int)basisopts[8];
+  MeirovitchSymm = (int)basisopts[8];
+  pImax = (int)basisopts[9];
 
   /*
   mexPrintf("(%d %d %d %d) jKmin %d, pSmin %d, pImax %d, deltaL %d, deltaK %d\n",

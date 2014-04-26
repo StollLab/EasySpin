@@ -16,10 +16,11 @@ Kmax = Basis.Kmax;
 Mmax = Basis.Mmax;
 deltaL = Basis.deltaL;
 deltaK = Basis.deltaK;
-jkmn = Basis.jKmin;
+jKmin = Basis.jKmin;
 pSmin = Basis.pSmin;
 
 DirTilt = (Sys.psi~=0);
+MeirovitchSymm = Basis.MeirovitchSymm;
 
 Potential = any(Diffusion.lambda);
 if (Potential)
@@ -45,8 +46,8 @@ idx = 0;
 iseven = @(x)mod(x,2)==0;
 isodd = @(x)mod(x,2)~=0;
 for L = 0:deltaL:evenLmax
-  if isodd(L) && (L>oddLmax), continue; end    
-  for jK = jkmn:2:1
+  if isodd(L) && (L>oddLmax), continue; end
+  for jK = jKmin:2:1
     Kmx = min(L,Kmax);
     for K = 0:deltaK:Kmx
       if (K==0) && (parity(L)~=jK), continue; end
@@ -78,27 +79,24 @@ for L = 0:deltaL:evenLmax
         for pS = pSmin:1
           qSmx = 1 - abs(pS);
           for qS = -qSmx:2:qSmx
-              if ((~DirTilt)&&((0+pS-1)~=M)), continue; end % Meirovich Eq.(A47)
-              
-              %==============================================
-              NonZeroElement = (jK==1) && (M==0) && (pS~=0);
-              %==============================================
-                              
-                nRow = nRow + 1;
-                
-                %==============================================
-                if NonZeroElement && ...
-                    (((~DirTilt) && (pS==1)) || ...
-                    (( DirTilt) && (abs(pS)==1)))
-                  if (thisValue~=0)
-                    idx = idx + 1;
-                    Value(idx) = thisValue;
-                    Trans(idx) = 0; % gives mI of transition
-                    Row(idx) = nRow;
-                  end
-                end
-                %==============================================
-
+            if ((MeirovitchSymm)&&(~DirTilt)&&((0+pS-1)~=M)), continue; end % Meirovich Eq.(A47)
+            
+            nRow = nRow + 1;
+            
+            %==============================================
+            NonZeroElement = (jK==1) && (M==0) && (pS~=0);
+            if NonZeroElement && ...
+                (((~DirTilt) && (pS==1)) || ...
+                (( DirTilt) && (abs(pS)==1)))
+              if (thisValue~=0)
+                idx = idx + 1;
+                Value(idx) = thisValue;
+                Trans(idx) = 0; % gives mI of transition
+                Row(idx) = nRow;
+              end
+            end
+            %==============================================
+            
           end
         end
       end

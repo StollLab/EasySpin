@@ -21,6 +21,8 @@ pSmin = Basis.pSmin;
 pI1max = Basis.pI1max;
 pI2max = Basis.pI2max;
 
+MeirovitchSymm = Basis.MeirovitchSymm;
+
 I = Sys.I;
 nNuclei = numel(I);
 if numel(I)~=2
@@ -90,7 +92,7 @@ for L = 0:deltaL:evenLmax
           qSmx = 1 - abs(pS);
           for qS = -qSmx:2:qSmx
             for pI1 = -pI1max:pI1max
-              %if ((~DirTilt)&&((pI1+pS-1)~=M)), continue; end % Meirovich Eq.(A47)
+              %if ((MeirovitchSymm) && (~DirTilt)&&((pI1+pS-1)~=M)), continue; end % Meirovich Eq.(A47)
               
               qI1max = 2*I1 - abs(pI1);
               for qI1 = -qI1max:2:qI1max
@@ -102,7 +104,7 @@ for L = 0:deltaL:evenLmax
                     (pS~=0) && (pI1==0) && (pI2==0);
                   %==============================================
                   for qI2 = -qI2max:2:qI2max
-                    if ((~DirTilt)&&((pI1+pI2+pS-1)~=M)), continue; end % Meirovich Eq.(A47)
+                    if ((MeirovitchSymm) && (~DirTilt)&&((pI1+pI2+pS-1)~=M)), continue; end % Meirovich Eq.(A47)
                     
                     nRow = nRow + 1;
                     

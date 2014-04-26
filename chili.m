@@ -292,6 +292,10 @@ if ~isfield(Opt,'LLKM')
   Opt.LLKM = [14 7 6 2];
 end
 Basis.LLKM = Opt.LLKM;
+if ~isfield(Opt,'jKmin')
+  Opt.jKmin = [];
+end
+Basis.jKmin = Opt.jKmin;
 if ~isfield(Opt,'pSmin')
   Opt.pSmin = 0;
 end
@@ -300,6 +304,10 @@ if ~isfield(Opt,'pImax')
   Opt.pImax = [];
 end
 Basis.pImax = Opt.pImax;
+if ~isfield(Opt,'MeirovitchSymm')
+  Opt.MeirovitchSymm = true;
+end
+Basis.MeirovitchSymm = Opt.MeirovitchSymm;
 
 switch Opt.Solver
   case 'L'
@@ -770,10 +778,12 @@ end
 % Set jKmin = +1 if tensorial coefficients are all real. This is the
 % case when g and A are collinear and the orientation of the diffusion
 % tensor is described by the angles (0,beta,0)
-if all(isreal(Sys.EZ2)) && all(isreal(Sys.HF2))
-  Basis.jKmin = +1;
-else
-  Basis.jKmin = -1;
+if isempty(Basis.jKmin)
+  if all(isreal(Sys.EZ2)) && all(isreal(Sys.HF2))
+    Basis.jKmin = +1;
+  else
+    Basis.jKmin = -1;
+  end
 end
 
 if (Sys.nNuclei==0)
@@ -795,7 +805,7 @@ else
 end
 
 % pSmin
-if ~isfield(Basis,'pSmin')
+if ~isfield(Basis,'pSmin') || isempty(Basis.pSmin)
   Basis.pSmin = 0;
 end
 
@@ -823,8 +833,11 @@ else
 end
 
 
-Basis.v = [Basis.evenLmax Basis.oddLmax Basis.Kmax Basis.Mmax, ...
-    Basis.jKmin Basis.pSmin Basis.deltaL Basis.deltaK Basis.pImax];
+Basis.v = [...
+  Basis.evenLmax Basis.oddLmax Basis.Kmax Basis.Mmax, ...
+  Basis.jKmin Basis.pSmin Basis.deltaL Basis.deltaK ...
+  Basis.MeirovitchSymm ...
+  Basis.pImax];
 
 return
 % 
