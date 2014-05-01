@@ -120,18 +120,11 @@ else
 end
 
 % Euler angles
-if ~Sys.fullg
-  if ~isfield(Sys,'gpa') || isempty(Sys.gpa)
-    Sys.gpa = zeros(nElectrons,3);
-  end
-  err = sizecheck(Sys,'gpa',[nElectrons 3]);
-  if ~isempty(err); return; end
-else
-  if isfield(Sys,'gpa')
-    err = 'Full matrices are specified in g, so gpa is not allowed.';
-    return
-  end
+if ~isfield(Sys,'gpa') || isempty(Sys.gpa)
+  Sys.gpa = zeros(nElectrons,3);
 end
+err = sizecheck(Sys,'gpa',[nElectrons 3]);
+if ~isempty(err); return; end
 
 %---------- zero-field splitting ------------------------------------------
 
@@ -158,19 +151,11 @@ else
 end
 
 % Supplement missing Dpa
-if ~Sys.fullD
-  if ~isfield(Sys,'Dpa') || isempty(Sys.Dpa)
-    Sys.Dpa = zeros(nElectrons,3);
-  end
-  % Size checks
-  err = sizecheck(Sys,'Dpa',[nElectrons 3]);
-  if ~isempty(err); return; end
-else
-  if isfield(Sys,'Dpa')
-    err = 'Full matrices are specified in D, so Dpa is not allowed.';
-    return
-  end
+if ~isfield(Sys,'Dpa') || isempty(Sys.Dpa)
+  Sys.Dpa = zeros(nElectrons,3);
 end
+err = sizecheck(Sys,'Dpa',[nElectrons 3]);
+if ~isempty(err); return; end
 
 %---------- high-order terms ------------------------------------------
 
@@ -402,18 +387,12 @@ if (nNuclei>0)
     Sys.Ascale = ones(1,nNuclei);
   end
 
-  if ~Sys.fullA
-    if ~isfield(Sys,'Apa') || isempty(Sys.Apa)
-      Sys.Apa = zeros(nNuclei,3*nElectrons);
-    end
-    err = sizecheck(Sys,'Apa',[nNuclei,3*nElectrons]);
-    if ~isempty(err), return; end
-  else
-    if isfield(Sys,'Apa')
-      err = sprintf('Full hyperfine matrices are specified in A, so Apa is not allowed!');
-      if ~isempty(err), return; end
-    end
+  % Euler angles
+  if ~isfield(Sys,'Apa') || isempty(Sys.Apa)
+    Sys.Apa = zeros(nNuclei,3*nElectrons);
   end
+  err = sizecheck(Sys,'Apa',[nNuclei,3*nElectrons]);
+  if ~isempty(err), return; end
 
 end
 
@@ -464,14 +443,8 @@ if (nNuclei>0)
   end
 
   %--------------------
-
-  if ~Sys.fullQ
-    if ~isfield(Sys,'Qpa') || isempty(Sys.Qpa)
-      Sys.Qpa = zeros(nNuclei,3);
-    end
-    err = sizecheck(Sys,'Qpa',[nNuclei 3]);
-    if ~isempty(err), return; end
-  else
+  
+  if Sys.fullQ
     for iNuc=1:nNuclei
       Q_ = Sys.Q(3*(iNuc-1)+(1:3),:);
       if norm(Q_-Q_.')/norm(Q_)>1e-5
@@ -480,6 +453,13 @@ if (nNuclei>0)
       end
     end
   end
+
+  % Euler angles
+  if ~isfield(Sys,'Qpa') || isempty(Sys.Qpa)
+    Sys.Qpa = zeros(nNuclei,3);
+  end
+  err = sizecheck(Sys,'Qpa',[nNuclei 3]);
+  if ~isempty(err), return; end
 
 end
 

@@ -38,7 +38,7 @@ singleOutput = nargout<2;
 if singleOutput
   if (nargin<1) || (nargin>4), error('Wrong number of input arguments!'); end
   if nargin<2
-    error('Field vector (second input) is missing.')
+    error('Field vector (second input, in mT) is missing.')
   else
     Field = varargin{1};
   end
@@ -89,10 +89,11 @@ for idx = 1:numel(Spins)
     if Sys.fullg
       g = elFactor((iSpin-1)*3+(1:3),:);
     else
-      % Rotate interaction matrix
-      Rp = erot(Sys.gpa(iSpin,:));
-      g = Rp*diag(elFactor(iSpin,:))*Rp.';
-    end  
+      g = diag(elFactor(iSpin,:));
+    end
+    % Rotate interaction matrix
+    Rp = erot(Sys.gpa(iSpin,:));
+    g = Rp*g*Rp.';
     % Build EZI Hamiltonian in MHz/mT
     for k = 1:3
       Sk = sop(SpinVec,iSpin,k,'sparse');

@@ -49,13 +49,11 @@ for e = 1:length(Electrons)
   if Sys.fullD
     D = Sys.D(3*(idx-1)+(1:3),:);
   else
-    Ddiag = Sys.D(idx,:);
-    if any(Ddiag)
-      Rp = erot(Sys.Dpa(idx,:));
-      D = Rp*diag(Ddiag)*Rp.';
-    else
-      D = 0;
-    end
+    D = diag(Sys.D(idx,:));
+  end
+  if any(D(:))
+    Rp = erot(Sys.Dpa(idx,:));
+    D = Rp*D*Rp.';
   end
   if any(D(:))
     % Construct spin operator matrices

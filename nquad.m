@@ -47,11 +47,11 @@ for iNuc = 1:length(Nuclei)
   if any(Sys.Q(idx,:))
     if ~Sys.fullQ
       % Construct Q matrix.
-      Rp = erot(Sys.Qpa(idx,:));
-      Q = Rp*diag(Sys.Q(idx,:))*Rp.';
     else
       Q = Sys.Q(3*(idx-1)+(1:3),:);
     end
+    Rp = erot(Sys.Qpa(idx,:));
+    Q = Rp*diag(Sys.Q(idx,:))*Rp.';
     Q = Q*Sys.Qscale(idx);
     % Construct NQI term.
     for k = 1:3

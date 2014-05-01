@@ -73,9 +73,9 @@ for edx = 1:length(ElSpins)
       A = Sys.A((nSp-nElectrons-1)*3+(1:3),idx);
     else
       A = diag(Sys.A(nSp-nElectrons,idx));
-      Rp = erot(Sys.Apa(nSp-nElectrons,idx));
-      A = Rp*A*Rp.';
     end
+    Rp = erot(Sys.Apa(nSp-nElectrons,idx));
+    A = Rp*A*Rp.';
     A = A * Sys.Ascale(ndx);
     % Construct hyperfine Hamiltonian.
     for k = 1:3
