@@ -22,7 +22,8 @@
 %       nPoints       number of points
 %       Temperature   temperature of the sample, by default off (NaN)
 %       Harmonic      detection harmonic: 0, 1 (default), 2
-%       Mode          resonator mode: 'parallel', 'perpendicular' (default)
+%       Mode          resonator mode: 'perpendicular' (default), 'parallel', [k_tilt alpah_pol]
+%       Polarization  'linear' (default), 'circular+', 'circular-', 'unpolarized'
 %       Orientations  orientations for single-crystal simulations
 %       Ordering      coefficient for non-isotropic orientational distribution
 %   - Opt: computational options
@@ -88,7 +89,9 @@ EasySpinLogLevel = Opt.Verbosity;
 %==================================================================
 % Loop over species and isotopologues
 %==================================================================
-FieldAutoRange = (~isfield(Exp,'Range') || isempty(Exp.Range)) && ...
+FrequencySweep = ~isfield(Exp,'mwFreq') & isfield(Exp,'Field');
+
+SweepAutoRange = (~isfield(Exp,'Range') || isempty(Exp.Range)) && ...
   (~isfield(Exp,'CenterSweep') || isempty(Exp.CenterSweep));
 if ~isfield(Opt,'IsoCutoff'), Opt.IsoCutoff = 1e-4; end
 
@@ -96,13 +99,13 @@ if ~isfield(Sys,'singleiso') || (Sys.singleiso==0)
 
   [SysList,weight] = expandcomponents(Sys,Opt.IsoCutoff);
   
-  if (numel(SysList)>1) && FieldAutoRange
+  if (numel(SysList)>1) && SweepAutoRange
     error('Multiple components: Please specify magnetic field range manually using Exp.Range or Exp.CenterSweep.');
   end
   
   spec = 0;
   for iComponent = 1:numel(SysList)
-    [fieldAxis,spec_,Bres] = pepper(SysList{iComponent},Exp,Opt);
+    [xAxis,spec_,Bres] = pepper(SysList{iComponent},Exp,Opt);
     spec = spec + spec_*weight(iComponent);
   end
     
@@ -110,19 +113,30 @@ if ~isfield(Sys,'singleiso') || (Sys.singleiso==0)
   switch nargout
     case 0
       cla
-      if (fieldAxis(2)<10000)
-        plot(fieldAxis,spec);
-        xlabel('magnetic field (mT)');
+      if FrequencySweep
+        if (xAxis(end)<1)
+          plot(xAxis*1e3,spec);
+          xlabel('frequency (MHz)');
+        else
+          plot(xAxis,spec);
+          xlabel('frequency (GHz)');
+        end
+        title(sprintf('%0.8g mT',Exp.Field));
       else
-        plot(fieldAxis/1e3,spec);
-        xlabel('magnetic field (T)');
+        if (xAxis(end)<10000)
+          plot(xAxis,spec);
+          xlabel('magnetic field (mT)');
+        else
+          plot(xAxis/1e3,spec);
+          xlabel('magnetic field (T)');
+        end
+        title(sprintf('%0.8g GHz',Exp.mwFreq));
       end
       axis tight
       ylabel('intensity (arb.u.)');
-      title(sprintf('%0.8g GHz',Exp.mwFreq));
     case 1, varargout = {spec};
-    case 2, varargout = {fieldAxis,spec};
-    case 3, varargout = {fieldAxis,spec,Bres};
+    case 2, varargout = {xAxis,spec};
+    case 3, varargout = {xAxis,spec,Bres};
   end
   return
 end
@@ -164,12 +178,13 @@ if StrainWidths, logmsg(1,'  widths for Gaussian strains given'); end
 
 
 % Documented fields and their defaults (mandatory parameters are set to NaN)
-DefaultExp.mwFreq = NaN;
+%DefaultExp.mwFreq = NaN; % for field sweeps
+%DefaultExp.Field = NaN; % for frequencys sweeps
 DefaultExp.CenterSweep = NaN;
 DefaultExp.Range = NaN;
 DefaultExp.nPoints = 1024;
 DefaultExp.Temperature = NaN;
-DefaultExp.Harmonic = 1;
+DefaultExp.Harmonic = NaN;
 DefaultExp.Mode = '';
 DefaultExp.Orientations = [];
 DefaultExp.Ordering = [];
@@ -180,48 +195,69 @@ DefaultExp.mwPhase = 0;
 Exp = adddefaults(Exp,DefaultExp);
 
 % Check microwave frequency
-if ~isfield(Exp,'mwFreq') || any(isnan(Exp.mwFreq))
-  error('Please supply the microwave frequency in Exp.mwFreq.');
+if ~isfield(Exp,'mwFreq') || isempty(Exp.mwFreq)
+  if ~isfield(Exp,'Field')
+    error('Please supply either the microwave frequency in Exp.mwFreq (for field sweeps) or the magnetic field in Exp.Field (for frequency sweeps).');
+  end
+  FieldSweep = false;
+else
+  if isfield(Exp,'Field')
+    if ~isempty(Exp.Field)
+      error('Give either Exp.mwFreq (for a field sweep) or Exp.Frequency (for a frequency sweep), but not both.');
+    end
+  end
+  FieldSweep = true;
 end
-if (numel(Exp.mwFreq)~=1) || any(Exp.mwFreq<=0) || ~isreal(Exp.mwFreq)
-  error('Unintelligible microwave frequency in Exp.mwFreq.');
+if FieldSweep
+  if (numel(Exp.mwFreq)~=1) || any(Exp.mwFreq<=0) || ~isreal(Exp.mwFreq)
+    error('Uninterpretable microwave frequency in Exp.mwFreq.');
+  end
+  logmsg(1,'  field sweep, mw frequency %0.8g GHz',Exp.mwFreq);
+else
+  if (numel(Exp.Field)~=1) || any(Exp.Field<0) || ~isreal(Exp.Field)
+    error('Uninterpretable magnetic field in Exp.Field.');
+  end
+  logmsg(1,'  frequency sweep, magnetic field %0.8g mT',Exp.Field);
 end
 
 % Automatic field range determination
-if all(isnan(Exp.CenterSweep)) && all(isnan(Exp.Range))
-  if (Sys.S==1/2)
-    logmsg(1,'  automatic determination of magnetic field range');
-    I = nucspin(Sys.Nucs).';
-    if ~isempty(I)
-      if Sys.fullA
-        Amax = max(abs(Sys.A),[],2);
-        Amax = max(reshape(Amax,3,[])).';
+if FieldSweep
+  if all(isnan(Exp.CenterSweep)) && all(isnan(Exp.Range))
+    if (Sys.S==1/2)
+      logmsg(1,'  automatic determination of sweep range');
+      I = nucspin(Sys.Nucs).';
+      if ~isempty(I)
+        if Sys.fullA
+          Amax = max(abs(Sys.A),[],2);
+          Amax = max(reshape(Amax,3,[])).';
+        else
+          Amax = max(abs(Sys.A),[],2);
+        end
       else
-        Amax = max(abs(Sys.A),[],2);
+        Amax = 0;
       end
-    else
-      Amax = 0;
-    end
-    hf = sum(I.*Amax)*1e6; % MHz -> Hz
-    if Sys.fullg
-      for k = 1:Sys.nElectrons
-        g(:,k) = eig(Sys.g((1:3)+(k-1)*3,:));
+      hf = sum(I.*Amax)*1e6; % MHz -> Hz
+      if Sys.fullg
+        for k = 1:Sys.nElectrons
+          g(:,k) = eig(Sys.g((1:3)+(k-1)*3,:));
+        end
+        g = g(:);
+      else
+        g = Sys.g(:);
       end
-      g = g(:);
+      gmax = max(g);
+      gmin = min(g);
+      minB = planck*(Exp.mwFreq*1e9 - hf)/bmagn/gmax/1e-3; % mT
+      maxB = planck*(Exp.mwFreq*1e9 + hf)/bmagn/gmin/1e-3; % mT
+      Center = (maxB+minB)/2; % mT
+      Sweep = maxB-minB; % mT
+      if Sweep==0, Sweep = 5*max(Sys.lw); end
+      if Sweep==0, Sweep = 10; end
+      Stretch = 1.25;
+      Exp.CenterSweep = [Center, Stretch*Sweep];
     else
-      g = Sys.g(:);
+      error(sprintf('Cannot automatically determine field range.\nPlease given either Exp.CenterSweep or Exp.Range.'));
     end
-    gmax = max(g);
-    gmin = min(g);
-    minB = planck*(Exp.mwFreq*1e9 - hf)/bmagn/gmax/1e-3;
-    maxB = planck*(Exp.mwFreq*1e9 + hf)/bmagn/gmin/1e-3;
-    Sweep = maxB-minB;
-    Center = (maxB+minB)/2;
-    if Sweep==0, Sweep = 5*max(Sys.lw); end
-    if Sweep==0, Sweep = 10; end
-    Exp.CenterSweep = [Center, 1.25*Sweep];
-  else
-    error(sprintf('Cannot automatically determine field range.\nPlease given either Exp.CenterSweep or Exp.Range.'));
   end
 end
 
@@ -231,11 +267,11 @@ if ~isnan(Exp.CenterSweep)
   Exp.Range = max(Exp.Range,0);
 end
 
-if (diff(Exp.Range)<=0) || any(~isfinite(Exp.Range)) || ...
-    any(~isreal(Exp.Range)) || any(Exp.Range<0)
-  %Exp.Range
-  %Sys
-  error('Exp.Range is not valid!');
+if isfield(Exp,'Range') && all(~isnan(Exp.Range))
+  if (diff(Exp.Range)<=0) || any(~isfinite(Exp.Range)) || ...
+      any(~isreal(Exp.Range)) || any(Exp.Range<0)
+    error('Exp.Range is not valid!');
+  end
 end
 
 % Number of points
@@ -243,11 +279,27 @@ if any(~isreal(Exp.nPoints)) || numel(Exp.nPoints)>1 || (Exp.nPoints<2)
   error('Problem with Exp.nPoints. Needs to be a number not smaller than 2.')
 end
 
-logmsg(1,'  mw %g GHz, range [%g %g] mT, %d points',...
-  Exp.mwFreq,Exp.Range(1),Exp.Range(2),Exp.nPoints);
-
+if FieldSweep
+  logmsg(1,'  frequency %g GHz, field range [%g %g] mT, %d points',...
+    Exp.mwFreq,Exp.Range(1),Exp.Range(2),Exp.nPoints);
+else
+  if ~SweepAutoRange
+    logmsg(1,'  field %g mT, frequency range [%g %g] GHz, %d points',...
+      Exp.Field,Exp.Range(1),Exp.Range(2),Exp.nPoints);
+  else
+    logmsg(1,'  field %g mT, automatic frequency range, %d points',...
+      Exp.Field,Exp.nPoints);
+  end
+end
 
 % Detection harmonic
+if ~isfield(Exp,'Harmonic') || isempty(Exp.Harmonic) || isnan(Exp.Harmonic)
+  if FieldSweep
+    Exp.Harmonic = 1;
+  else
+    Exp.Harmonic = 0;
+  end
+end
 if ~any(Exp.Harmonic==[-1,0,1,2])
   error('Exp.Harmonic must be 0, 1 or 2.');
 end
@@ -269,17 +321,18 @@ logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.Mode);
 
 
 % Modulation amplitude
-if any(Exp.ModAmp<0) || any(isnan(Exp.ModAmp)) || numel(Exp.ModAmp)~=1
-  error('Exp.ModAmp must be either a single positive number or zero.');
-end
-if (Exp.ModAmp>0)
-  logmsg(1,'  field modulation, amplitude %g mT',Exp.ModAmp);
-  if (Exp.Harmonic<1)
-    error('With field modulation (Exp.ModAmp), Exp.Harmonic=0 does not work.');
+if FieldSweep
+  if any(Exp.ModAmp<0) || any(isnan(Exp.ModAmp)) || numel(Exp.ModAmp)~=1
+    error('Exp.ModAmp must be either a single positive number or zero.');
   end
-  Exp.Harmonic = Exp.Harmonic - 1;
+  if (Exp.ModAmp>0)
+    logmsg(1,'  field modulation, amplitude %g mT',Exp.ModAmp);
+    if (Exp.Harmonic<1)
+      error('With field modulation (Exp.ModAmp), Exp.Harmonic=0 does not work.');
+    end
+    Exp.Harmonic = Exp.Harmonic - 1;
+  end
 end
-
 
 if isfield(Exp,'Orientation')
   disp('Exp.Orientation given, did you mean Exp.Orientations?');
@@ -387,11 +440,17 @@ nKnotsPerturb = [19 4];
 
 Opt = adddefaults(Opt,DefaultOpt);
 
-[Method,err] = parseoption(Opt,'Method',{'eig','matrix','perturb','perturb1','perturb2','hybrid'});
-error(err);
+if FieldSweep
+  [Method,err] = parseoption(Opt,'Method',{'eig','matrix','perturb','perturb1','perturb2','hybrid'});
+  error(err);
+else
+  [Method,err] = parseoption(Opt,'Method',{'matrix','perturb','perturb1','perturb2'});
+  error(err);
+  Method = Method + 10;
+end
 
 UseEigenFields = (Method==1);
-UsePerturbationTheory = (Method==3) || (Method==4) || (Method==5);
+UsePerturbationTheory = any(Method==[3 4 5 12 13 14 ]);
 if (Opt.DirectAccumulation && ~UsePerturbationTheory)
   error('Opt.DirectAccumulation works only with perturbation theory.');
 end
@@ -420,26 +479,12 @@ end
 error(err);
 SummedOutput = (Opt.Output==1);
 
-if isfield(Opt,'LineShape')
-  disp('Options.LineShape is obsolete. Use System.lw or System.lwpp instead.');
-  disp('- to specify a Gaussian broadening: System.lw = x.');
-  disp('- to specify a Lorentzian broadening:   System.lw = [0 x].');
-  disp('- to specify a Voigtian (Gaussian plus Lorentzian) broadening: System.lw = [x y].');
-  error('Options.LineShape is obsolete. Use System.lw or System.lwpp instead.');
-end
-
 AnisotropicIntensities = parseoption(Opt,'Intensity',{'off','on'}) - 1;
 Opt.Intensity = AnisotropicIntensities;
 
 if strcmp(Opt.Symmetry,'auto'),
   Opt.Symmetry = [];
 end
-
-% Unclear which of the following versions is implemented in cw EPR spectrometers.
-%Exp.deltaX = diff(Exp.Range)/Exp.nPoints; % excludes last value
-Exp.deltaX = diff(Exp.Range)/(Exp.nPoints-1); % includes last value
-xAxis = Exp.Range(1) + Exp.deltaX*(0:Exp.nPoints-1);
-
 
 p_symandgrid;
 
@@ -451,48 +496,98 @@ p_symandgrid;
 %=======================================================================
 
 logmsg(1,'-resonances--------------------------------------------');
-MethodMsg{1} = 'eigenfields (Liouville space)';
-MethodMsg{2} = 'adaptive segmentation (state space)';
-MethodMsg{3} = 'second-order perturbation theory';
-MethodMsg{4} = 'first-order perturbation theory';
-MethodMsg{5} = 'second-order perturbation theory';
-MethodMsg{6} = 'hybrid (matrix diagonalization for electron spin, perturbation for nuclei)';
+MethodMsg{1} = 'field sweep, eigenfields (Liouville space)';
+MethodMsg{2} = 'field sweep, adaptive segmentation (state space)';
+MethodMsg{3} = 'field sweep, second-order perturbation theory';
+MethodMsg{4} = 'field sweep, first-order perturbation theory';
+MethodMsg{5} = 'field sweep, second-order perturbation theory';
+MethodMsg{6} = 'field sweep, hybrid (matrix diagonalization for electron spin, perturbation for nuclei)';
+MethodMsg{11} = 'frequency sweep, matrix diagonalization';
+MethodMsg{12} = 'frequency sweep, second-order perturbation theory';
+MethodMsg{13} = 'frequency sweep, first-order perturbation theory';
+MethodMsg{14} = 'frequency sweep, second-order perturbation theory';
 logmsg(1,'  method: %s',MethodMsg{Method});
 
-if (Method==1)
-  
-  % Eigenfield equation
-  %------------------------------------------------------------------------
-  AnisotropicWidths = 0;
-  if StrainWidths
-    logmsg(-inf,'WARNING: Options.Method: eigenfields method -> strains are ignored!');
-    StrainWidths = 0;
-  end
-
-  Transitions = NaN;
-  Exp1 = Exp;
-  Exp1.Range = [0 1e8];
-  Exp1.Orientations = [phi;theta;chi];
-  
-  logmsg(2,'  -entering eigfields----------------------------------');
-  [Pdat,Idat] = eigfields(Sys,Exp1,Opt);
-  logmsg(2,'  -exiting eigfields-----------------------------------');
-  Wdat = [];
-  Gdat = [];
-  Transitions = [];
-  
-  if (nOrientations==1)
-    Pdat = {Pdat};
-    Idat = {Idat};
-  end
-  nReson = 0;
-  for k = 1:nOrientations,
-    nReson = nReson + numel(Pdat{k});
-  end
-  logmsg(1,'  %d resonance in total (%g per orientation)',nReson,nReson/nOrientations);
+if FieldSweep
+  % Field sweeps
+  %---------------------------------------------------------------------------
+  if (Method==1)
     
+    % Eigenfield equation
+    %------------------------------------------------------------------------
+    AnisotropicWidths = 0;
+    if StrainWidths
+      logmsg(-inf,'WARNING: Options.Method: eigenfields method -> strains are ignored!');
+      StrainWidths = 0;
+    end
+    
+    Transitions = NaN;
+    Exp1 = Exp;
+    Exp1.Range = [0 1e8];
+    Exp1.Orientations = [phi;theta;chi];
+    
+    logmsg(2,'  -entering eigfields----------------------------------');
+    [Pdat,Idat] = eigfields(Sys,Exp1,Opt);
+    logmsg(2,'  -exiting eigfields-----------------------------------');
+    Wdat = [];
+    Gdat = [];
+    Transitions = [];
+    
+    if (nOrientations==1)
+      Pdat = {Pdat};
+      Idat = {Idat};
+    end
+    nReson = 0;
+    for k = 1:nOrientations,
+      nReson = nReson + numel(Pdat{k});
+    end
+    logmsg(1,'  %d resonance in total (%g per orientation)',nReson,nReson/nOrientations);
+    
+  else
+    
+    % Matrix diagonalization and perturbation methods
+    %------------------------------------------------------------------------
+    
+    if (~PowderSimulation)
+      %if ~isfield(Opt,'Perturb'), Opt.Perturb = 0; end
+    end
+    
+    % Set search range larger than requested field range
+    Exp1 = Exp;
+    Exp1.SearchRange = Exp1.Range + 0.2*diff(Exp.Range)*[-1 1];
+    Exp1.SearchRange(Exp1.SearchRange<0) = 0;
+    
+    Exp1.Orientations = [phi;theta;chi];
+    Exp1.AccumWeights = Weights;
+    
+    Opt.peppercall = 1;
+    
+    logmsg(2,'  -entering resfields*----------------------------------');
+    switch Method
+      case {2,6}
+        [Pdat,Idat,Wdat,Transitions,Gdat] = resfields(Sys,Exp1,Opt);
+      case {3,5}
+        Opt.PerturbOrder = 2;
+        [Pdat,Idat,Wdat,Transitions,spec] = resfields_perturb(Sys,Exp1,Opt);
+      case 4
+        Opt.PerturbOrder = 1;
+        [Pdat,Idat,Wdat,Transitions,spec] = resfields_perturb(Sys,Exp1,Opt);
+    end
+    logmsg(2,'  -exiting resfields*-----------------------------------');
+    
+    nTransitions = size(Transitions,1);
+    
+    if isempty(Wdat)
+      AnisotropicWidths = 0;
+    else
+      AnisotropicWidths = (max(Wdat(:))>0);
+    end
+    
+  end
 else
   
+  % Frequency sweeps
+  %--------------------------------------------------------------------------------
   % Matrix diagonalization and perturbation methods
   %------------------------------------------------------------------------
   
@@ -500,29 +595,27 @@ else
     %if ~isfield(Opt,'Perturb'), Opt.Perturb = 0; end
   end
   
-  % Set search range larger than requested field range
-  Exp1 = Exp;
-  Exp1.SearchRange = Exp1.Range + 0.2*diff(Exp.Range)*[-1 1];
-  Exp1.SearchRange(Exp1.SearchRange<0) = 0;
- 
+  Exp1 = Exp;  
   Exp1.Orientations = [phi;theta;chi];
   Exp1.AccumWeights = Weights;
-
+  
   Opt.peppercall = 1;
   
-  logmsg(2,'  -entering resfields*----------------------------------');
+  logmsg(2,'  -entering resfreqs*----------------------------------');
   switch Method
-    case {2,6}
-      [Pdat,Idat,Wdat,Transitions,Gdat] = resfields(Sys,Exp1,Opt);
-    case {3,5}
+    case {11} % matrix diagonalization
+      [Pdat,Idat,Wdat,Transitions] = resfreqs_matrix(Sys,Exp1,Opt);
+    case {12,14} % 2nd-order perturbation theory
       Opt.PerturbOrder = 2;
-      [Pdat,Idat,Wdat,Transitions,spec] = resfields_perturb(Sys,Exp1,Opt);
-    case 4
+      [Pdat,Idat,Wdat,Transitions,spec] = resfreqs_perturb(Sys,Exp1,Opt);
+    case 13 % 1st-order perturbation theory
       Opt.PerturbOrder = 1;
-      [Pdat,Idat,Wdat,Transitions,spec] = resfields_perturb(Sys,Exp1,Opt);
+      [Pdat,Idat,Wdat,Transitions,spec] = resfreqs_perturb(Sys,Exp1,Opt);
   end
-  logmsg(2,'  -exiting resfields*-----------------------------------');
-  
+  logmsg(2,'  -exiting resfreqs*-----------------------------------');
+  Pdat = Pdat/1e3; % MHz -> GHz
+  Wdat = Wdat/1e3; % MHz -> GHz
+    
   nTransitions = size(Transitions,1);
   
   if isempty(Wdat)
@@ -545,6 +638,24 @@ else
   nSites = 1;
 end
 
+% Automatic range detemination for frequency sweeps
+if ~FieldSweep && SweepAutoRange
+  % everything in GHz
+  minFreq = min(Pdat(:));
+  maxFreq = max(Pdat(:));
+  padding = (maxFreq-minFreq)/5;
+  if (padding==0), padding = 0.1; end
+  if AnisotropicWidths
+    padding = max(padding,5*max(Wdat(:)));
+  end
+  padding = max(padding,5*sum(Sys.lw)/1e3);
+  minRange = max(0,minFreq-padding);
+  maxRange = maxFreq + padding;
+  Exp.Range = [minRange maxRange]; % GHz
+  logmsg(1,'  automatic frequency range [%g %g] GHz',...
+    Exp.Range(1),Exp.Range(2));
+end
+
 %=======================================================================
 %=======================================================================
 
@@ -559,7 +670,7 @@ else
   NaN_in_Pdat = 0;
 end
 
-if (Method~=6)
+if FieldSweep && (Method~=6)
   LoopingTransitionsPresent = size(unique(Transitions,'rows'),1)<size(Transitions,1);
   if LoopingTransitionsPresent && PowderSimulation
     logmsg(0,'** Looping transitions found. Artifacts at coalescence points possible.');
@@ -568,6 +679,13 @@ else
   % hybrid method: Transitions contains replicas of core sys transitions
   LoopingTransitionsPresent = 0;
 end
+
+
+
+% Unclear which of the following versions is implemented in cw EPR spectrometers.
+%Exp.deltaX = diff(Exp.Range)/Exp.nPoints; % excludes last value
+Exp.deltaX = diff(Exp.Range)/(Exp.nPoints-1); % includes last value
+xAxis = Exp.Range(1) + Exp.deltaX*(0:Exp.nPoints-1);
 
 %=======================================================================
 %=======================================================================
@@ -922,7 +1040,7 @@ logmsg(1,'-final-------------------------------------------------');
 
 % Combine branches of looping transitions if separate output
 %-----------------------------------------------------------------------
-if (PowderSimulation)
+if (FieldSweep) && (PowderSimulation)
   if (~SummedOutput) && LoopingTransitionsPresent
     [Transitions,unused,idx] = unique(Transitions,'rows');
     nTransitions = size(Transitions,1);
@@ -967,17 +1085,29 @@ if (ConvWidth)
 
   % Gaussian broadening
   if (lwG>0)
-    logmsg(1,'  convoluting with Gaussian, FWHM %g mT, derivative %d',lwG,Harmonic2Do);
-    if min(size(spec))==1, fwhm = [lwG 0]; else fwhm = [0 lwG]; end
-    spec = convspec(spec,Exp.deltaX,fwhm,Harmonic2Do,1);
+    if FieldSweep
+      logmsg(1,'  convoluting with Gaussian, FWHM %g mT, derivative %d',lwG,Harmonic2Do);
+      if min(size(spec))==1, fwhm = [lwG 0]; else fwhm = [0 lwG]; end
+      spec = convspec(spec,Exp.deltaX,fwhm,Harmonic2Do,1);
+    else
+      logmsg(1,'  convoluting with Gaussian, FWHM %g MHz, derivative %d',lwG,Harmonic2Do);
+      if min(size(spec))==1, fwhm = [lwG 0]; else fwhm = [0 lwG]; end
+      spec = convspec(spec,Exp.deltaX,fwhm/1e3,Harmonic2Do,1);
+    end
     Harmonic2Do = 0;
   end
 
   % Lorentzian broadening
   if (lwL>0)
-    logmsg(1,'  convoluting with Lorentzian, FWHM %g mT, derivative %d',lwL,Harmonic2Do);
-    if min(size(spec))==1, fwhm = [lwL 0]; else fwhm = [0 lwL]; end
-    spec = convspec(spec,Exp.deltaX,fwhm,Harmonic2Do,0,Exp.mwPhase);
+    if FieldSweep
+      logmsg(1,'  convoluting with Lorentzian, FWHM %g mT, derivative %d',lwL,Harmonic2Do);
+      if min(size(spec))==1, fwhm = [lwL 0]; else fwhm = [0 lwL]; end
+      spec = convspec(spec,Exp.deltaX,fwhm,Harmonic2Do,0,Exp.mwPhase);
+    else
+      logmsg(1,'  convoluting with Lorentzian, FWHM %g MHz, derivative %d',lwL,Harmonic2Do);
+      if min(size(spec))==1, fwhm = [lwL 0]; else fwhm = [0 lwL]; end
+      spec = convspec(spec,Exp.deltaX,fwhm/1e3,Harmonic2Do,0,Exp.mwPhase);
+    end
     Harmonic2Do = 0;
   else
     if (Exp.mwPhase~=0)
@@ -1007,11 +1137,13 @@ end
 
 % Field modulation
 %-----------------------------------------------------------------------
-if (Exp.ModAmp>0)
-  logmsg(1,'  applying field modulation');
-  spec = fieldmod(xAxis,spec,Exp.ModAmp);
-else
-  % derivatives already included in convolutions etc.
+if (FieldSweep)
+  if (Exp.ModAmp>0)
+    logmsg(1,'  applying field modulation');
+    spec = fieldmod(xAxis,spec,Exp.ModAmp);
+  else
+    % derivatives already included in convolutions etc.
+  end
 end
 
 % Assign output.
