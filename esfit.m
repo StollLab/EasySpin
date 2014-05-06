@@ -665,9 +665,9 @@ BestSpec = 0;
 % Simulate best-fit spectrum
 for iSys=1:numel(FitData.Sys0)
   if isfield(FinalSys{iSys},'fcn')
-    [x,b_] = feval(FitData.SimFcnName,FinalSys{iSys}.fcn(FinalSys{iSys}),Exp,SimOpt);
+    b_ = feval(FitData.SimFcnName,FinalSys{iSys}.fcn(FinalSys{iSys}),Exp,SimOpt);
   else
-    [x,b_] = feval(FitData.SimFcnName,FinalSys{iSys},FitData.Exp,FitData.SimOpt);
+    b_ = feval(FitData.SimFcnName,FinalSys{iSys},FitData.Exp,FitData.SimOpt);
   end
   %(Sys.weight is taken into account by the simulation function)
   BestSpec = BestSpec + b_;
