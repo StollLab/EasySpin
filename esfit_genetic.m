@@ -1,6 +1,6 @@
-% fit_genetic   Genetic algorithm for least-squares fitting
+% esfit_genetic   Genetic algorithm for least-squares fitting
 %
-%    x = fit_genetic(funfcn,nParams,FitOpt,varargin)
+%    x = esfit_genetic(funfcn,nParams,FitOpt,varargin)
 %
 %    funfcn ... scalar function to minimize
 %    nParams ... number of parameters
@@ -12,7 +12,7 @@
 %       PrintLevel          1, if progress information should be printed
 %       TolFun           error threshold below which fitting stops
 
-function bestx = fit_genetic(funfcn,nParams,FitOpt,varargin)
+function bestx = esfit_genetic(funfcn,nParams,FitOpt,varargin)
 
 if (nargin==0), help(mfilename); return; end
 

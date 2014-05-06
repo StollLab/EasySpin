@@ -1,9 +1,9 @@
-%fit_levmar  Levenberg-Marquardt nonlinear least squares fitting
+%esfit_levmar  Levenberg-Marquardt nonlinear least squares fitting
 %
-%   xfit = fit_levmar(funfcn,x0)
-%   [xfit,Info] = fit_levmar(funfcn,x0)
-%   ... = fit_levmar(funfcn,x0,Opt)
-%   ... = fit_levmar(funfcn,x0,Opt,p1,p2,...)
+%   xfit = esfit_levmar(funfcn,x0)
+%   [xfit,Info] = esfit_levmar(funfcn,x0)
+%   ... = esfit_levmar(funfcn,x0,Opt)
+%   ... = esfit_levmar(funfcn,x0,Opt,p1,p2,...)
 %
 %   Find  xm = argmin{F(x)} , where  x = [x_1, ..., x_n]  and
 %   F(x) = sum(f_i(x)^2)/2. The functions  f_i(x) (i=1,...,m)
@@ -46,7 +46,7 @@
 % successive updating of Jacobian approximation. Search range
 % bounded to -1...+1.
 
-function  [x,info] = fit_levmar(funfcn, x0, Opt, varargin)
+function  [x,info] = esfit_levmar(funfcn, x0, Opt, varargin)
 
 if (nargin==0), help(mfilename); return; end
 if (nargin<2), error('Need at least 2 arguments!'); end

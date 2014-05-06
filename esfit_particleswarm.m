@@ -1,4 +1,4 @@
-function [gX,info] = fit_particleswarm(funfcn,nParameters,FitOpt,varargin)
+function [gX,info] = esfit_particleswarm(funfcn,nParameters,FitOpt,varargin)
 
 if ~isfield(FitOpt,'maxTime'), FitOpt.maxTime = inf; end
 if ~isfield(FitOpt,'PrintLevel'); FitOpt.PrintLevel = 1; end

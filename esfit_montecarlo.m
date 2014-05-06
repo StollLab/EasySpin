@@ -1,4 +1,4 @@
-function [bestx,info] = fit_montecarlo(funfcn,nParameters,FitOpt,varargin)
+function [bestx,info] = esfit_montecarlo(funfcn,nParameters,FitOpt,varargin)
 
 if ~isfield(FitOpt,'nTrials'); FitOpt.nTrials = 20000; end
 if ~isfield(FitOpt,'PrintLevel'); FitOpt.PrintLevel = 1; end

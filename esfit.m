@@ -596,18 +596,18 @@ bestx = startx;
 if (nParameters_>0)
   switch FitOpts.MethodID
     case 1 % Nelder/Mead simplex
-      bestx0_ = fit_simplex(@assess,x0_,FitOpts,FitData.ExpSpecScaled,FitData.Sys0,FitData.Vary,FitData.Exp,FitData.SimOpt,FitOpts);
+      bestx0_ = esfit_simplex(@assess,x0_,FitOpts,FitData.ExpSpecScaled,FitData.Sys0,FitData.Vary,FitData.Exp,FitData.SimOpt,FitOpts);
     case 2 % Levenberg/Marquardt
       FitOpts.Gradient = FitOpts.TolFun;
-      bestx0_ = fit_levmar(@residuals_,x0_,FitOpts,FitData.ExpSpecScaled,FitData.Sys0,FitData.Vary,FitData.Exp,FitData.SimOpt,FitOpts);
+      bestx0_ = esfit_levmar(@residuals_,x0_,FitOpts,FitData.ExpSpecScaled,FitData.Sys0,FitData.Vary,FitData.Exp,FitData.SimOpt,FitOpts);
     case 3 % Monte Carlo
-      bestx0_ = fit_montecarlo(@assess,nParameters_,FitOpts,FitData.ExpSpecScaled,FitData.Sys0,FitData.Vary,FitData.Exp,FitData.SimOpt,FitOpts);
+      bestx0_ = esfit_montecarlo(@assess,nParameters_,FitOpts,FitData.ExpSpecScaled,FitData.Sys0,FitData.Vary,FitData.Exp,FitData.SimOpt,FitOpts);
     case 4 % Genetic
-      bestx0_ = fit_genetic(@assess,nParameters_,FitOpts,FitData.ExpSpecScaled,FitData.Sys0,FitData.Vary,FitData.Exp,FitData.SimOpt,FitOpts);
+      bestx0_ = esfit_genetic(@assess,nParameters_,FitOpts,FitData.ExpSpecScaled,FitData.Sys0,FitData.Vary,FitData.Exp,FitData.SimOpt,FitOpts);
     case 5 % Grid search
-      bestx0_ = fit_grid(@assess,nParameters_,FitOpts,FitData.ExpSpecScaled,FitData.Sys0,FitData.Vary,FitData.Exp,FitData.SimOpt,FitOpts);
+      bestx0_ = esfit_grid(@assess,nParameters_,FitOpts,FitData.ExpSpecScaled,FitData.Sys0,FitData.Vary,FitData.Exp,FitData.SimOpt,FitOpts);
     case 6 % Particle swarm
-      bestx0_ = fit_particleswarm(@assess,nParameters_,FitOpts,FitData.ExpSpecScaled,FitData.Sys0,FitData.Vary,FitData.Exp,FitData.SimOpt,FitOpts);
+      bestx0_ = esfit_particleswarm(@assess,nParameters_,FitOpts,FitData.ExpSpecScaled,FitData.Sys0,FitData.Vary,FitData.Exp,FitData.SimOpt,FitOpts);
   end
   bestx(~FitData.inactiveParams) = bestx0_;
 end

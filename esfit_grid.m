@@ -1,4 +1,4 @@
-function [bestx,info] = fit_grid(funfcn,nParameters,FitOpt,varargin)
+function [bestx,info] = esfit_grid(funfcn,nParameters,FitOpt,varargin)
 
 global UserCommand
 
