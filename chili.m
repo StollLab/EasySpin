@@ -109,7 +109,7 @@ if ~isfield(Sys,'singleiso')
           plot(xAxis,spec);
           xlabel('frequency (GHz)');
         end
-        title(sprintf('%0.8g mT, %d points',Exp.Field,numel(xAxis)));
+        title(sprintf('%0.8g mT',Exp.Field));
       else
         if (xAxis(end)<10000)
           plot(xAxis,spec);
@@ -118,7 +118,7 @@ if ~isfield(Sys,'singleiso')
           plot(xAxis/1e3,spec);
           xlabel('magnetic field (T)');
         end
-        title(sprintf('%0.8g GHz, %d points',Exp.mwFreq,numel(xAxis)));
+        title(sprintf('%0.8g GHz',Exp.mwFreq));
       end
       axis tight
       ylabel('intensity (arb.u.)');
@@ -177,7 +177,7 @@ if isfield(Sys,'Exchange'), Dynamics.Exchange = Sys.Exchange; end
 % Experimental settings
 %-------------------------------------------------------------------
 if ~isfield(Exp,'nPoints'), Exp.nPoints = 1024; end
-if ~isfield(Exp,'Harmonic'), Exp.Harmonic = 1; end
+if ~isfield(Exp,'Harmonic'), Exp.Harmonic = []; end
 if ~isfield(Exp,'mwPhase'), Exp.mwPhase = 0; end
 if ~isfield(Exp,'MOMD'), Exp.MOMD = 0; end
 if ~isfield(Exp,'psi'), Exp.psi = 0; end
@@ -192,15 +192,6 @@ if any(~isreal(Exp.nPoints)) || numel(Exp.nPoints)>1 || (Exp.nPoints<2)
 end
 
 
-% Resonator mode
-switch Exp.Mode
-  case 'perpendicular', ParallelMode = 0;
-  case 'parallel', ParallelMode = 1;
-  otherwise, error('Exp.Mode must be either ''perpendicular'' or ''parallel''.');
-end
-logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.Mode);
-
-
 % Temperature
 if ~isnan(Exp.Temperature)
   if (numel(Exp.Temperature)~=1) || isinf(Exp.Temperature) || (Exp.Temperature<0)
@@ -213,15 +204,6 @@ if (Exp.MOMD) && isempty(Sys.lambda)
   logmsg(0,'  No ordering potential given, skipping MOMD.');
   Exp.MOMD = 0;
 end
-
-% Field modulation amplitude
-if (Exp.ModAmp>0)
-  logmsg(1,'  field modulation, amplitude %g mT',Exp.ModAmp);
-  if (Exp.Harmonic<1)
-    error('With field modulation (Exp.ModAmp), Exp.Harmonic=0 does not work.');
-  end
-end
-
 
 % Microwave frequency
 if ~isfield(Exp,'mwFreq')
@@ -265,13 +247,15 @@ else
     else
       hf = 0;
     end
+    gmax = max(Sys.g(:));
+    gmin = min(Sys.g(:));
     if FieldSweep
-      minB = planck*(Exp.mwFreq*1e9 - hf)/bmagn/max(Sys.g(:))/1e-3;
-      maxB = planck*(Exp.mwFreq*1e9 + hf)/bmagn/min(Sys.g(:))/1e-3;
+      minB = planck*(Exp.mwFreq*1e9 - hf)/bmagn/gmax/1e-3;
+      maxB = planck*(Exp.mwFreq*1e9 + hf)/bmagn/gmin/1e-3;
       Exp.CenterSweep = [(maxB+minB)/2, Stretch*(maxB-minB)];
     else
-      minE = bmagn*Exp.Field*1e-3*min(Sys.g)/planck - hf/1e9; % Hz
-      maxE = bmagn*Exp.Field*1e-3*max(Sys.g)/planck + hf/1e9; % Hz
+      minE = bmagn*Exp.Field*1e-3*gmin/planck - hf/1e9; % GHz
+      maxE = bmagn*Exp.Field*1e-3*gmax/planck + hf/1e9; % GHz
       Exp.CenterSweep = [(maxE+minE)/2, Stretch*(maxE-minE)]/1e9; % GHz
     end
   end
@@ -298,6 +282,42 @@ if FieldSweep
 else
   logmsg(1,'  frequency range (GHz): min %g, max %g, center %g, width %g',...
     Exp.Range(1),Exp.Range(2),CenterFreq,Sweep);
+end
+
+% Detection harmonic
+if ~isfield(Exp,'Harmonic') || isempty(Exp.Harmonic) || isnan(Exp.Harmonic)
+  if FieldSweep
+    Exp.Harmonic = 1;
+  else
+    Exp.Harmonic = 0;
+  end
+end
+if ~any(Exp.Harmonic==[-1,0,1,2])
+  error('Exp.Harmonic must be 0, 1 or 2.');
+end
+
+% Resonator mode
+switch Exp.Mode
+  case 'perpendicular', ParallelMode = 0;
+  case 'parallel', ParallelMode = 1;
+  otherwise, error('Exp.Mode must be either ''perpendicular'' or ''parallel''.');
+end
+logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.Mode);
+
+% Modulation amplitude
+if any(Exp.ModAmp<0) || any(isnan(Exp.ModAmp)) || numel(Exp.ModAmp)~=1
+  error('Exp.ModAmp must be either a single positive number or zero.');
+end
+if (Exp.ModAmp>0)
+  if FieldSweep
+    logmsg(1,'  field modulation, amplitude %g mT',Exp.ModAmp);
+    if (Exp.Harmonic<1)
+      error('With field modulation (Exp.ModAmp), Exp.Harmonic=0 does not work.');
+    end
+    Exp.Harmonic = Exp.Harmonic - 1;
+  else
+    error('Exp.ModAmp cannot be used with frequency sweeps.');
+  end
 end
 
 % Complain if fields only valid in pepper() are given
@@ -702,6 +722,7 @@ if FieldSweep
     if (Exp.Harmonic>1), outspec = deriv(xAxis,outspec.').'; end
   end
 else
+  % frequency sweeps: not available
 end
 %==============================================================
 

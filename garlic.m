@@ -122,7 +122,7 @@ if ~isfield(Sys,'singleiso') || (Sys.singleiso==0)
           plot(xAxis,spec);
           xlabel('frequency (GHz)');
         end
-        title(sprintf('%0.8g mT, %d points',Exp.Field,numel(xAxis)));
+        title(sprintf('%0.8g mT',Exp.Field));
       else
         if (xAxis(end)<10000)
           plot(xAxis,spec);
@@ -131,7 +131,7 @@ if ~isfield(Sys,'singleiso') || (Sys.singleiso==0)
           plot(xAxis/1e3,spec);
           xlabel('magnetic field (T)');
         end
-        title(sprintf('%0.8g GHz, %d points',Exp.mwFreq,numel(xAxis)));
+        title(sprintf('%0.8g GHz',Exp.mwFreq));
       end
       axis tight
       ylabel('intensity (arb.u.)');    
@@ -195,7 +195,7 @@ ConvolutionBroadening = any(Sys.lw>0);
 %-------------------------------------------------------------------------
 % Checking experiment structure
 %-------------------------------------------------------------------------
-DefaultExp.Harmonic = 1;
+DefaultExp.Harmonic = [];
 DefaultExp.nPoints = 1024;
 DefaultExp.ModAmp = 0;
 DefaultExp.Mode = 'perpendicular';
@@ -258,6 +258,13 @@ end
 
 
 % Detection harmonic
+if ~isfield(Exp,'Harmonic') || isempty(Exp.Harmonic) || isnan(Exp.Harmonic)
+  if FieldSweep
+    Exp.Harmonic = 1;
+  else
+    Exp.Harmonic = 0;
+  end
+end
 if ~any(Exp.Harmonic==[-1,0,1,2])
   error('Exp.Harmonic must be 0, 1 or 2.');
 end
@@ -284,16 +291,20 @@ if ~isnan(Exp.Temperature)
   end
 end
 
-% Field modulation amplitude
+% Modulation amplitude
 if any(Exp.ModAmp<0) || any(isnan(Exp.ModAmp)) || numel(Exp.ModAmp)~=1
   error('Exp.ModAmp must be either a single positive number or zero.');
 end
 if (Exp.ModAmp>0)
-  logmsg(1,'  field modulation, amplitude %g mT',Exp.ModAmp);
-  if (Exp.Harmonic<1)
-    error('With field modulation (Exp.ModAmp), Exp.Harmonic=0 does not work.');
+  if FieldSweep
+    logmsg(1,'  field modulation, amplitude %g mT',Exp.ModAmp);
+    if (Exp.Harmonic<1)
+      error('With field modulation (Exp.ModAmp), Exp.Harmonic=0 does not work.');
+    end
+    Exp.Harmonic = Exp.Harmonic - 1;
+  else
+    error('Exp.ModAmp cannot be used with frequency sweeps.');
   end
-  Exp.Harmonic = Exp.Harmonic - 1;
 end
 
 
@@ -731,6 +742,7 @@ if FieldSweep
     % derivatives already included in the convolution
   end
 else
+  % frequency sweeps: modulation not available
 end
 
 %===================================================================

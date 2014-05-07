@@ -321,16 +321,18 @@ logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.Mode);
 
 
 % Modulation amplitude
-if FieldSweep
-  if any(Exp.ModAmp<0) || any(isnan(Exp.ModAmp)) || numel(Exp.ModAmp)~=1
-    error('Exp.ModAmp must be either a single positive number or zero.');
-  end
-  if (Exp.ModAmp>0)
+if any(Exp.ModAmp<0) || any(isnan(Exp.ModAmp)) || numel(Exp.ModAmp)~=1
+  error('Exp.ModAmp must be either a single positive number or zero.');
+end
+if (Exp.ModAmp>0)
+  if FieldSweep
     logmsg(1,'  field modulation, amplitude %g mT',Exp.ModAmp);
     if (Exp.Harmonic<1)
       error('With field modulation (Exp.ModAmp), Exp.Harmonic=0 does not work.');
     end
     Exp.Harmonic = Exp.Harmonic - 1;
+  else
+    error('Exp.ModAmp cannot be used with frequency sweeps.');
   end
 end
 
@@ -1149,6 +1151,8 @@ if (FieldSweep)
   else
     % derivatives already included in convolutions etc.
   end
+else
+  % frequency sweeps: not available
 end
 
 % Assign output.
