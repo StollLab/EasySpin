@@ -14,7 +14,8 @@
 %             mwFreq:   in GHz
 %             Range:    [Bmin Bmax] in mT
 %             Temperature: in K, by default off (NaN)
-%             Mode: 'perpendicular','parallel'
+%             Mode          resonator mode: 'perpendicular' (default), 'parallel', [k_tilt alpah_pol]
+%             Polarization:  'linear' (default), 'circular+', 'circular-', 'unpolarized'
 %             Orientations:  orientations of the spin system in the spectrometer
 %                   2xn or 3xn array containing [phi;theta{;chi}] in
 %                   radians
@@ -281,8 +282,9 @@ if (Opt.Freq2Field~=1)&&(Opt.Freq2Field~=0)
 end
 ComputeFreq2Field = Opt.Freq2Field;
 
-ComputeStrains = (nargout>2) & ...
-  any([System.HStrain(:); System.DStrain(:); System.gStrain(:); System.AStrain(:)]);
+StrainsPresent = any([System.HStrain(:); System.DStrain(:); System.gStrain(:); System.AStrain(:)]);
+ComputeStrains = StrainsPresent && (nargout>2);
+
 ComputeGradient = (ComputeStrains | (nargout>4)) & GradientSwitch;
 ComputeIntensities = ((nargout>1) & IntensitySwitch) | ComputeGradient;
 ComputeEigenPairs = ComputeIntensities | ComputeGradient | ComputeStrains;
@@ -523,7 +525,7 @@ else % Automatic pre-selection
     % Pre-compute trigonometric functions.
     stp = sin([theta;phi].');
     ctp = cos([theta;phi].');
-    centreB = mean(Exp.Range); % take field at centre of scan range
+    centerB = mean(Exp.Range); % take field at centre of scan range
     % Pre-allocate the transition rate matrix.
     TransitionRates = zeros(nCore);
     % Detector operator for transition selection.
@@ -534,7 +536,7 @@ else % Automatic pre-selection
       kGpM = ctp(iOri,2)*kGxM + stp(iOri,2)*kGyM;
       EpM = ctp(iOri,2)*ExM + stp(iOri,2)*EyM;
       % Solve eigenproblem.
-      [Vs,E] = eig(kF + centreB*(stp(iOri,1)*kGpM + ctp(iOri,1)*kGzM));
+      [Vs,E] = eig(kF + centerB*(stp(iOri,1)*kGpM + ctp(iOri,1)*kGzM));
       % Sum up transition rates. Or take the maximum.
       if (ParallelMode)
         %TransitionRates = TransitionRates + TRWeights(iOri) * abs(Vs'*(stp(iOri,1)*EpM + ctp(iOri,1)*EzM)*Vs).^2;
@@ -585,9 +587,6 @@ if any(Transitions(:)>nCore)
   error('Level index in Options.Transitions is out of range.');
 end
 
-% Diagnostic display.
-logmsg(1,'  %d transitions pre-selected',nTransitions);
-
 % Compute indices and variables used later in the algorithm
 u = Transitions(:,1);
 v = Transitions(:,2); % u < v
@@ -595,6 +594,9 @@ nTransitions = length(u);
 upTRidx = u + (v-1)*nCore; % Indices into UPPER triangle.
 %loTRidx = v + (u-1)*nCore; % Indices into LOWER triangle.
 Trans = upTRidx; % One-number transition indices.
+
+% Diagnostic display.
+logmsg(1,'  %d transitions pre-selected',nTransitions);
 
 % Now, if the transitions were selected automatically, they are in
 % descending order according to their average intensity. If user-
@@ -667,8 +669,7 @@ if (ComputeStrains)
         F_  = (2*SzD2_-SxD2_-SyD2_)/3;
         G_  = (SxD2_-SyD2_);
       end
-      % Compute Hamiltonian derivatives, pre-multiply with
-      % strain FWHMs.
+      % Compute Hamiltonian derivatives, pre-multiply with strain FWHMs.
       dHdD{iEl} = DeltaF * F_;
       dHdE{iEl} = DeltaG * G_;
 
@@ -693,9 +694,9 @@ if (ComputeStrains)
       Rp = erot(CoreSys.Apa(1,:));
       AStrainMatrix = Rp*AStrainMatrix*Rp.';
     end
-    % Diagonalize Hamiltonian at centre field.
-    centreB = mean(Exp.Range);
-    [Vs,E] = eig(kF + centreB*kGzM);
+    % Diagonalize Hamiltonian at center field.
+    centerB = mean(Exp.Range);
+    [Vs,E] = eig(kF + centerB*kGzM);
     [E,idx] = sort(real(diag(E)));
     Vs = Vs(:,idx);
     % Calculate effective mI of nucleus 1 for all eigenstates.
@@ -1094,7 +1095,7 @@ for iOri = 1:nOrientations
         
         % Calculate width if requested.
         %--------------------------------------------------
-        if ComputeStrains
+        if (ComputeStrains)
           % H strain
           LineWidth2 = LineWidthSquared;
           % g and A strain
@@ -1111,8 +1112,7 @@ for iOri = 1:nOrientations
             end
           end
           % Convert to field value and save
-          % (dBdE proportionality not valid near looping field
-          % coalescences!)
+          % (dBdE proportionality not valid near looping field coalescences!)
           Wdat(iiTrans,iOri) = dBdE * sqrt(LineWidth2);
         end
         %--------------------------------------------------
@@ -1250,16 +1250,15 @@ if (nTransitions==0)
   return
 end
 
-% Assert positive widths!
-if any(Wdat(:)<0),
-  logmsg(-inf,'*********** Negative width encountered in resfields!! Please report! **************');
-end
-
 % Assert positive intensities, but only for thermal equilibrium populations
 if (~ComputeNonEquiPops)
   if any(Idat(:)<0),
     logmsg(-inf,'*********** Negative intensity encountered in resfields!! Please report! **********');
   end
+end
+% Assert positive widths
+if any(Wdat(:)<0),
+  logmsg(-inf,'*********** Negative width encountered in resfields!! Please report! **************');
 end
 
 if (nMaxKnotsReached>0)

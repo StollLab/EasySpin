@@ -6,14 +6,12 @@
 %    Computes the convolution of a Gaussian and a
 %    Lorentzian line shape function.
 %
-%    x     abscissa vector
-%    x0    line shape centre
-%    fwhm  [fwhm_Gauss fwhm_Lorentz]
-%    deriv 0 (absorption), 1 (first), 2 (second
-%          derivative)
+%    x      abscissa vector
+%    x0     line shape centre
+%    fwhm   [fwhm_Gauss fwhm_Lorentz]
+%    deriv  0 (absorption), 1 (first), 2 (second derivative)
 %
-%    y     Voigtian line shape, normalized to
-%          integral 1
+%    y     Voigtian line shape, normalized to integral 1
 
 function y = voigtian(x,x0,fwhm,deriv)
 
@@ -27,12 +25,12 @@ end
 
 if nargin==3, deriv=0; end
 
-derivG = 0;
-derivL = 0;
 if fwhm(1)>fwhm(2)
+  derivL = 0;
   derivG = deriv;
 else
   derivL = deriv;
+  derivG = 0;
 end
 
 % Compute Gaussian and Lorentzian

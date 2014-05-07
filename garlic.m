@@ -187,6 +187,8 @@ if FastMotionRegime
     end
   end
 end
+
+ConvolutionBroadening = any(Sys.lw>0);
 %-------------------------------------------------------------------------
 
 
@@ -293,6 +295,7 @@ if (Exp.ModAmp>0)
   end
   Exp.Harmonic = Exp.Harmonic - 1;
 end
+
 
 % Complain if fields only valid in pepper() are given
 if isfield(Exp,'Orientations')
@@ -681,36 +684,41 @@ spec = spec/Exp.deltaX;
 
 % (2) Convolutional broadening
 %---------------------------------------------------------
-GaussianFWHM = Sys.lw(1);
-if (GaussianFWHM>0)
-  if FieldSweep
-    logmsg(1,'Convoluting with Gaussian (FWHM %g mT)...',GaussianFWHM);
-    spec = convspec(spec,dxx,GaussianFWHM,Harmonic2Do,1);
+if (ConvolutionBroadening)
+  
+  fwhmL = Sys.lw(2);
+  fwhmG = Sys.lw(1);
+  if (fwhmL>0)
+    HarmonicL = Harmonic2Do;
+    mwPhaseL = Exp.mwPhase;
+    HarmonicG = 0;
+    mwPhaseG = 0;
   else
-    logmsg(1,'Convoluting with Gaussian (FWHM %g MHz)...',GaussianFWHM);
-    spec = convspec(spec,dxx,GaussianFWHM/1e3,Harmonic2Do,1);
+    HarmonicL = 0;
+    mwPhaseL = 0;
+    HarmonicG = Harmonic2Do;
+    mwPhaseG = Exp.mwPhase;
   end
-  Harmonic2Do = 0;
-end
-
-LorentzianFWHM = Sys.lw(2);
-if (LorentzianFWHM>0)
+  
   if FieldSweep
-    logmsg(1,'Convoluting with Lorentzian (FWHM %g mT)...',LorentzianFWHM);
-    spec = convspec(spec,dxx,LorentzianFWHM,Harmonic2Do,0,Exp.mwPhase);
+    unitstr = 'mT';
   else
-    logmsg(1,'Convoluting with Lorentzian (FWHM %g MHz)...',LorentzianFWHM);
-    spec = convspec(spec,dxx,LorentzianFWHM/1e3,Harmonic2Do,0,Exp.mwPhase);
+    unitstr = 'MHz';
+    fwhmL = fwhmL/1e3; % MHz -> GHz
+    fwhmG = fwhmG/1e3; % MHz -> GHz
   end
-  %Harmonic2Do = 0;
-else
-  if (Exp.mwPhase~=0)
-    error('For Exp.mwPhase different from zero, please specify a Lorentzian broadening in Sys.lwpp or Sys.lw.');
+  
+  % Convolution with Lorentzian
+  if (fwhmL>0)
+    logmsg(1,'Convoluting with Lorentzian (FWHM %g %s, derivative %d)...',fwhmL,unitstr,HarmonicL);
+    spec = convspec(spec,dxx,fwhmL,HarmonicL,0,mwPhaseL);
   end
-end
-
-if numel(xx)~=numel(xAxis)
-  spec = interp1(xx,spec,xAxis);
+  % Convolution with Gaussian
+  if (fwhmG>0)
+    logmsg(1,'Convoluting with Gaussian (FWHM %g %s, derivative %d)...',fwhmG,unitstr,HarmonicG);
+    spec = convspec(spec,dxx,fwhmG,HarmonicG,1,mwPhaseG);
+  end
+  
 end
 
 % (3) Field modulation

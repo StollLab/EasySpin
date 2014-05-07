@@ -667,25 +667,24 @@ end
 %==============================================================
 % Convolutional broadening
 %---------------------------------------------------------
-%
-GaussianFWHM = Sys.lw(1);
-if FieldSweep
-  dx = xAxis(2) - xAxis(1);
-  if (GaussianFWHM>0)
-    logmsg(1,'Convoluting with Gaussian (FWHM %g mT)...',GaussianFWHM);
-    spec = convspec(spec,dx,GaussianFWHM,0,1);
+% Convolution with Gaussian only. Lorentzian broadening is already
+% included in the slow-motion simulation via T2.
+ConvolutionBroadening = any(Sys.lw(1)>0);
+if ConvolutionBroadening
+  fwhmG = Sys.lw(1);
+  if FieldSweep
+    unitstr = 'mT';
+  else
+    unitstr = 'MHz';
+    fwhmG = fwhmG/1e3; % MHz -> GHz
   end
-else
-  dx = xAxis(2) - xAxis(1); % GHz
-  dx = dx*1e3; % MHz
-  if (GaussianFWHM>0)
-    logmsg(1,'Convoluting with Gaussian (FWHM %g MHz)...',GaussianFWHM);
-    spec = convspec(spec,dx,GaussianFWHM,0,1);
+  dx = xAxis(2) - xAxis(1);
+  if (fwhmG>0)
+    logmsg(1,'Convoluting with Gaussian (FWHM %g %s)...',fwhmG,unitstr);
+    spec = convspec(spec,dx,fwhmG,0,1);
   end
 end
 
-% Lorentzian broadening is already included in the slow-motion
-% simulation.
 
 outspec = spec;
 %==============================================================

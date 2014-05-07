@@ -1,5 +1,17 @@
 % Determine excitation mode
 %-----------------------------------------------------------------
+% Exp.Polarization:
+%   'linear' (default)
+%   'circular' ( = 'circular+')
+%   'circular+'
+%   'circular-'
+%   'unpolarized'
+% Exp.Mode:
+%   'perpendicular'
+%   'parallel'
+%   [k_tilt]
+%   [k_tilt alpha_pol]
+
 % B0 defines z(Lab) axis, B0 and k define z(Lab)y(Lab) plane
 % k_tilt: angle between B0 and k (wave  vector)
 % alpha_pol: polarization angle: angle of B1 off the x(Lab) axis,
@@ -71,7 +83,7 @@ logmsg(1,'  mode angles: k tilt %g deg, polarization angle %g deg',k_tilt*180/pi
 
 % Set up vectors for transition intensity calculations
 nB0 = [0; 0; 1]; % unit vector along B0, in lab frame z(Lab)
-[~,nB1,nk] = erot(-pi/2,-k_tilt,alpha_pol);
+[dummy,nB1,nk] = erot(-pi/2,-k_tilt,alpha_pol);
 nB1 = nB1.'; % unit vector along B1, in lab frame
 nk = nk.'; % unit vector along wave vector k, in lab frame
 xi1 = nB1.'*nB0;

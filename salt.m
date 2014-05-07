@@ -130,7 +130,7 @@ end
 [Sys,err] = validatespinsys(Sys);
 error(err);
 
-ConvWidth = any(Sys.lwEndor>0);
+ConvolutionBroadening = any(Sys.lwEndor>0);
 
 logmsg(1,'  system with %d electron spin(s), %d nuclear spin(s), total %d states',...
   Sys.nElectrons,Sys.nNuclei,Sys.nStates);
@@ -842,53 +842,63 @@ logmsg(1,'-final-------------------------------------------------');
 % Convolution with line shape.
 %-----------------------------------------------------------------------
 logmsg(1,'  harmonic %d',Exp.Harmonic);
-if (ConvWidth)
-  lwG = Sys.lwEndor(1);
-  lwL = Sys.lwEndor(2);
+if (ConvolutionBroadening)
+  fwhmG = Sys.lwEndor(1);
+  fwhmL = Sys.lwEndor(2);
+  if (fwhmL>0)
+    HarmonicL = Exp.Harmonic;
+    HarmonicG = 0;
+  else
+    HarmonicL = 0;
+    HarmonicG = Exp.Harmonic;
+  end
 
   % Add padding to left and right of spectral range
   % to reduce convolution artifacts
-  nPad = 0;
-  exceedsLowerLimit = any(spec(:,1)~=0);
-  exceedsHigherLimit = any(spec(:,end)~=0);
-  if exceedsLowerLimit
-    if exceedsHigherLimit
-      logmsg(0,'** Spectrum exceeds frequency range. Artifacts at lower and upper frequency limits possible.');
+  RangePadding = true;
+  if RangePadding
+    exceedsLowerLimit = any(spec(:,1)~=0);
+    exceedsHigherLimit = any(spec(:,end)~=0);
+    if exceedsLowerLimit
+      if exceedsHigherLimit
+        logmsg(0,'** Spectrum exceeds frequency range. Artifacts at lower and upper frequency limits possible.');
+      else
+        logmsg(0,'** Spectrum exceeds frequency range. Artifacts at lower frequency limit possible.');
+      end
     else
-      logmsg(0,'** Spectrum exceeds frequency range. Artifacts at lower frequency limit possible.');
+      if exceedsHigherLimit
+        logmsg(0,'** Spectrum exceeds frequency range. Artifacts at upper frequency limit possible.');
+      end
     end
-  else
-    if exceedsHigherLimit
-      logmsg(0,'** Spectrum exceeds frequency range. Artifacts at upper frequency limit possible.');
+    if  exceedsLowerLimit || exceedsHigherLimit
+      nPad = round(max([fwhmG fwhmL])/Exp.deltaX*Opt.PaddingMultiplier);
+      spec = [repmat(spec(:,1),1,nPad) spec]; % left padding
+      spec = [spec repmat(spec(:,end),1,nPad)]; % right padding
+    else
+      nPad = 0;
     end
-  end
-  if  exceedsLowerLimit || exceedsHigherLimit
-    nPad = round(max([lwG lwL])/Exp.deltaX*Opt.PaddingMultiplier);
-    spec = [repmat(spec(:,1),1,nPad) spec]; % left padding
-    spec = [spec repmat(spec(:,end),1,nPad)]; % right padding
-  end
-
-  % Gaussian broadening
-  Harmonic2Do = Exp.Harmonic;
-  if (lwG>0)
-    logmsg(1,'  convoluting with Gaussian, FWHM %g MHz, derivative %d',lwG,Harmonic2Do);
-    if min(size(spec))==1, fwhm = [lwG 0]; else fwhm = [0 lwG]; end
-    spec = convspec(spec,Exp.deltaX,fwhm,Harmonic2Do,1);
-    Harmonic2Do = 0;
   end
 
   % Lorentzian broadening
-  if (lwL>0)
-    logmsg(1,'  convoluting with Lorentzian, FWHM %g MHz, derivative %d',lwL,Harmonic2Do);
-    if min(size(spec))==1, fwhm = [lwL 0]; else fwhm = [0 lwL]; end
-    spec = convspec(spec,Exp.deltaX,fwhm,Harmonic2Do,0);
-    %Harmonic2Do = 0;
+  if (fwhmL>0)
+    logmsg(1,'  convoluting with Lorentzian, FWHM %g MHz, derivative %d',fwhmL,HarmonicL);
+    if min(size(spec))==1, fwhm = [fwhmL 0]; else fwhm = [0 fwhmL]; end
+    spec = convspec(spec,Exp.deltaX,fwhm,HarmonicL,0);
+  end
+  
+  % Gaussian broadening
+  if (fwhmG>0)
+    logmsg(1,'  convoluting with Gaussian, FWHM %g MHz, derivative %d',fwhmG,HarmonicG);
+    if min(size(spec))==1, fwhm = [fwhmG 0]; else fwhm = [0 fwhmG]; end
+    spec = convspec(spec,Exp.deltaX,fwhm,HarmonicG,1);
   end
 
   % Remove padding
-  if (nPad>0)
-    spec(:,1:nPad) = [];
-    spec(:,Exp.nPoints+1:end) = [];
+  if RangePadding
+    if (nPad>0)
+      spec(:,1:nPad) = [];
+      spec(:,Exp.nPoints+1:end) = [];
+    end
   end
 
 else

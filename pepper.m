@@ -164,7 +164,7 @@ if any(Sys.n>1)
 end
 
 StrainWidths = any([Sys.HStrain(:); Sys.DStrain(:); Sys.gStrain(:); Sys.AStrain(:)]>0);
-ConvWidth = any(Sys.lw>0);
+ConvolutionBroadening = any(Sys.lw>0);
 
 logmsg(1,'  system with %d spin(s) and %d states',numel(spinvec(Sys)),hsdim(Sys));
 if StrainWidths, logmsg(1,'  widths for Gaussian strains given'); end
@@ -303,7 +303,7 @@ end
 if ~any(Exp.Harmonic==[-1,0,1,2])
   error('Exp.Harmonic must be 0, 1 or 2.');
 end
-noBroadening = (~StrainWidths) && (~ConvWidth);
+noBroadening = (~StrainWidths) && (~ConvolutionBroadening);
 if (Exp.Harmonic>0) && noBroadening
   error(['No or zero linewidth/broadening given. Cannot compute spectrum with Exp.Harmonic=%d.\n'...
     'Please specify a line broadening (lwpp, lw, gStrain, AStrain, DStrain).'],Exp.Harmonic);
@@ -334,6 +334,7 @@ if FieldSweep
   end
 end
 
+% Crystals vs. powder
 if isfield(Exp,'Orientation')
   disp('Exp.Orientation given, did you mean Exp.Orientations?');
 end
@@ -1055,70 +1056,74 @@ end
 
 % Convolution with line shape.
 %-----------------------------------------------------------------------
-if (ConvWidth)
+if (ConvolutionBroadening)
   logmsg(1,'  harmonic %d: using convolution',Exp.Harmonic);
-  lwG = Sys.lw(1);
-  lwL = Sys.lw(2);
-  Harmonic2Do = Exp.Harmonic;
-
-  % Add padding to left and right of spectral range
-  % to reduce convolution artifacts
-  nPad = 0;
-  exceedsLowerLimit = any(spec(:,1)~=0);
-  exceedsHigherLimit = any(spec(:,end)~=0);
-  if exceedsLowerLimit
-    if exceedsHigherLimit
-      logmsg(0,'** Spectrum exceeds field range. Artifacts at lower and upper field limits possible.');
-    else
-      logmsg(0,'** Spectrum exceeds field range. Artifacts at lower field limit possible.');
-    end
+  fwhmG = Sys.lw(1);
+  fwhmL = Sys.lw(2);
+  if (fwhmL>0)
+    HarmonicL = Exp.Harmonic;
+    mwPhaseL = Exp.mwPhase;
+    HarmonicG = 0;
+    mwPhaseG = 0;
   else
-    if exceedsHigherLimit
-      logmsg(0,'** Spectrum exceeds field range. Artifacts at upper field limit possible.');
-    end
+    HarmonicL = 0;
+    mwPhaseL = 0;
+    HarmonicG = Exp.Harmonic;
+    mwPhaseG = Exp.mwPhase;
   end
-  if  exceedsLowerLimit || exceedsHigherLimit
-    nPad = round(max([lwG lwL])/Exp.deltaX*Opt.PaddingMultiplier);
-    spec = [repmat(spec(:,1),1,nPad) spec]; % left padding
-    spec = [spec repmat(spec(:,end),1,nPad)]; % right padding
-  end
-
-  % Gaussian broadening
-  if (lwG>0)
-    if FieldSweep
-      logmsg(1,'  convoluting with Gaussian, FWHM %g mT, derivative %d',lwG,Harmonic2Do);
-      if min(size(spec))==1, fwhm = [lwG 0]; else fwhm = [0 lwG]; end
-      spec = convspec(spec,Exp.deltaX,fwhm,Harmonic2Do,1);
-    else
-      logmsg(1,'  convoluting with Gaussian, FWHM %g MHz, derivative %d',lwG,Harmonic2Do);
-      if min(size(spec))==1, fwhm = [lwG 0]; else fwhm = [0 lwG]; end
-      spec = convspec(spec,Exp.deltaX,fwhm/1e3,Harmonic2Do,1);
-    end
-    Harmonic2Do = 0;
-  end
-
-  % Lorentzian broadening
-  if (lwL>0)
-    if FieldSweep
-      logmsg(1,'  convoluting with Lorentzian, FWHM %g mT, derivative %d',lwL,Harmonic2Do);
-      if min(size(spec))==1, fwhm = [lwL 0]; else fwhm = [0 lwL]; end
-      spec = convspec(spec,Exp.deltaX,fwhm,Harmonic2Do,0,Exp.mwPhase);
-    else
-      logmsg(1,'  convoluting with Lorentzian, FWHM %g MHz, derivative %d',lwL,Harmonic2Do);
-      if min(size(spec))==1, fwhm = [lwL 0]; else fwhm = [0 lwL]; end
-      spec = convspec(spec,Exp.deltaX,fwhm/1e3,Harmonic2Do,0,Exp.mwPhase);
-    end
-    Harmonic2Do = 0;
+  if FieldSweep
+    unitstr = 'mT';
   else
-    if (Exp.mwPhase~=0)
-      error('For Exp.mwPhase different from zero, please specify a Lorentzian broadening in Sys.lwpp or Sys.lw.');
+    unitstr = 'MHz';
+    fwhmG = fwhmG/1e3; % MHz -> GHz
+    fwhmL = fwhmL/1e3; % MHz -> GHz
+  end
+  
+  % Add padding to left and right of spectral range to reduce convolution artifacts
+  RangePadding = true;
+  if RangePadding
+    exceedsLowerLimit = any(spec(:,1)~=0);
+    exceedsHigherLimit = any(spec(:,end)~=0);
+    if exceedsLowerLimit
+      if exceedsHigherLimit
+        logmsg(0,'** Spectrum exceeds field range. Artifacts at lower and upper field limits possible.');
+      else
+        logmsg(0,'** Spectrum exceeds field range. Artifacts at lower field limit possible.');
+      end
+    else
+      if exceedsHigherLimit
+        logmsg(0,'** Spectrum exceeds field range. Artifacts at upper field limit possible.');
+      end
     end
+    if  exceedsLowerLimit || exceedsHigherLimit
+      nPad = round(max([fwhmG fwhmL])/Exp.deltaX*Opt.PaddingMultiplier);
+      spec = [repmat(spec(:,1),1,nPad) spec]; % left padding
+      spec = [spec repmat(spec(:,end),1,nPad)]; % right padding
+    else
+      nPad = 0;
+    end
+  end
+
+  % Convolution with Lorentzian
+  if (fwhmL>0)
+    logmsg(1,'  convoluting with Lorentzian, FWHM %g %s, derivative %d',fwhmL,unitstr,HarmonicL);
+    if min(size(spec))==1, fwhm = [fwhmL 0]; else fwhm = [0 fwhmL]; end
+    spec = convspec(spec,Exp.deltaX,fwhm,HarmonicL,0,mwPhaseL);
+  end
+  
+  % Convolution with Gaussian
+  if (fwhmG>0)
+    logmsg(1,'  convoluting with Gaussian, FWHM %g %s, derivative %d',fwhmG,unitstr,HarmonicG);
+    if min(size(spec))==1, fwhm = [fwhmG 0]; else fwhm = [0 fwhmG]; end
+    spec = convspec(spec,Exp.deltaX,fwhm,HarmonicG,1,mwPhaseG);
   end
 
   % Remove padding
-  if (nPad>0)
-    spec(:,1:nPad) = [];
-    spec(:,Exp.nPoints+1:end) = [];
+  if RangePadding
+    if (nPad>0)
+      spec(:,1:nPad) = [];
+      spec(:,Exp.nPoints+1:end) = [];
+    end
   end
 
 else
