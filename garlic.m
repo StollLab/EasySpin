@@ -677,8 +677,9 @@ if (FastMotionRegime)
 
   spec = 0;
   for iLine = 1:numel(Positions)
-    spec = spec + Intensity(iLine)*lorentzian(xx,Positions(iLine),LorentzianLw(iLine),Harmonic2Do);
+    spec = spec + Intensity(iLine)*lorentzian(xx,Positions(iLine),LorentzianLw(iLine),Harmonic2Do,Exp.mwPhase);
   end
+  Exp.mwPhase = 0;
   Harmonic2Do = 0;
     
 else

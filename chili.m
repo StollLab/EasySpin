@@ -606,7 +606,7 @@ spec = totalspec;
 %==============================================================
 % Phasing
 %==============================================================
-spec = cos(Exp.mwPhase)*real(spec)-sin(Exp.mwPhase)*imag(spec);
+spec = cos(Exp.mwPhase)*real(spec)+sin(Exp.mwPhase)*imag(spec);
 %spec = real(exp(1i*Exp.mwPhase)*spec);
 %==============================================================
 
