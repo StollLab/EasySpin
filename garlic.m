@@ -732,6 +732,11 @@ if (ConvolutionBroadening)
   
 end
 
+if numel(xx)~=numel(xAxis)
+  logmsg(1,'Re-interpolation (%d -> %d points)...',numel(xx),numel(xAxis));
+  spec = interp1(xx,spec,xAxis);
+end
+
 % (3) Field modulation
 %-----------------------------------------------------------------------
 if FieldSweep
