@@ -151,9 +151,7 @@ return
 %   x1, x2, etc. A has as many dimensions as
 %   there are input vectors. E.g. three inputs;
 %
-%   A(i,j,k) = x1(i)*x(j)*x(k)
-
-% Stefan Stoll, 27-jul-2002
+%   A(i,j,k) = x1(i)*x2(j)*x3(k)
 
 function out = xouter(varargin)
 
@@ -170,7 +168,7 @@ end
 
 out = ones(n);
 
-for i = 1:nDims,
+for i = 1:nDims
   x = varargin{i}(:); % Extract and reshape as a vector.
   lengths = n;
   lengths(i) = []; % Remove i-th dimension

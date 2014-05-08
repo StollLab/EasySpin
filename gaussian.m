@@ -3,9 +3,9 @@
 %   ya = gaussian(x,x0,fwhm)
 %   ya = gaussian(x,x0,fwhm,diff)
 %   ya = gaussian(x,x0,fwhm,diff,phase)
-%   [ya,yd] = ...
+%   [ya,yd] = gaussian(...)
 %
-%   Returns area-normalized Gaussian absorption and dispersion
+%   Computes area-normalized Gaussian absorption and dispersion
 %   line shapes or their derivatives.
 %
 %   Input:
