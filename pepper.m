@@ -796,28 +796,30 @@ elseif (~BruteForceSum)
     % Single-crystal spectra
     %=======================================================================
     
-    if (~AnisotropicIntensities), thisInt = ones(nTransitions,1); end
-    if (~AnisotropicWidths), thisWid = zeros(nTransitions,1); end
-    
-    idx = 1;
-    for iOri = 1:nOrientations
-      for iSite = 1:nSites
-        %logmsg(3,'  orientation %d of %d, site %d of %d',iOri,nOrientations,iSite,nSites);
-        thisPos = Pdat(:,idx);
-        if (AnisotropicIntensities), thisInt = Idat(:,idx); end
-        if (AnisotropicWidths), thisWid = Wdat(:,idx); end
-        
-        thisspec = lisum1i(Template,xT,wT,thisPos,thisInt,thisWid,xAxis);
-        thisspec = (2*pi)*thisspec; % for consistency with powder spectra (factor from integral over chi)
-        thisspec = Weights(iOri)*thisspec; % integral over (phi,theta)
-        
-        if (SummedOutput)
-          spec = spec + thisspec;
-        else
-          spec(iOri,:) = spec(iOri,:) + thisspec;
+    if (nTransitions>0)
+      if (~AnisotropicIntensities), thisInt = ones(nTransitions,1); end
+      if (~AnisotropicWidths), thisWid = zeros(nTransitions,1); end
+      
+      idx = 1;
+      for iOri = 1:nOrientations
+        for iSite = 1:nSites
+          %logmsg(3,'  orientation %d of %d, site %d of %d',iOri,nOrientations,iSite,nSites);
+          thisPos = Pdat(:,idx);
+          if (AnisotropicIntensities), thisInt = Idat(:,idx); end
+          if (AnisotropicWidths), thisWid = Wdat(:,idx); end
+          
+          thisspec = lisum1i(Template,xT,wT,thisPos,thisInt,thisWid,xAxis);
+          thisspec = (2*pi)*thisspec; % for consistency with powder spectra (factor from integral over chi)
+          thisspec = Weights(iOri)*thisspec; % integral over (phi,theta)
+          
+          if (SummedOutput)
+            spec = spec + thisspec;
+          else
+            spec(iOri,:) = spec(iOri,:) + thisspec;
+          end
+          
+          idx = idx + 1;
         end
-        
-        idx = idx + 1;
       end
     end
         
