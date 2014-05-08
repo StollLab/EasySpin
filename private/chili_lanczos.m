@@ -69,6 +69,11 @@ for k = 1:nDim
     end
   end
 
+  if (beta(k)==0)
+    specerr(k) = 0;
+    break
+  end
+  
 end
 
 alpha = alpha(1:k);
