@@ -698,42 +698,45 @@ for iOri = 1:nOrientations
   %-------------------------------------------------------
   if (nPerturbNuclei>0)
     for iTrans = 1 :nTransitions
-      Vi=Vs(:,u(iTrans));
-      Vf=Vs(:,v(iTrans));
-      % claculate <S> for initial and final state
+      U = Vs(:,u(iTrans));
+      V = Vs(:,v(iTrans));
+      % Calculate <S> for both states involved in the transition
       for iEl = System.nElectrons:-1:1
-        Si(:,iEl) = [Vi'*S(iEl).x*Vi; Vi'*S(iEl).y*Vi; Vi'*S(iEl).z*Vi];
-        Sf(:,iEl) = [Vf'*S(iEl).x*Vf; Vf'*S(iEl).y*Vf; Vf'*S(iEl).z*Vf];
+        Su(:,iEl) = [U'*S(iEl).x*U; U'*S(iEl).y*U; U'*S(iEl).z*U];
+        Sv(:,iEl) = [V'*S(iEl).x*V; V'*S(iEl).y*V; V'*S(iEl).z*V];
       end
+      % Build and diagonalize nuclear sub-Hamiltonians
       for iiNuc = 1:nPerturbNuclei
-        Hi = 0;
-        Hf = 0;
+        Hu = 0;
+        Hv = 0;
         % Hyperfine (dependent on S)
         for iEl = 1:System.nElectrons
-          Hi = Hi + Si(1,iEl)*Hhfi(iEl,iiNuc).x + Si(2,iEl)*Hhfi(iEl,iiNuc).y + Si(3,iEl)*Hhfi(iEl,iiNuc).z;
-          Hf = Hf + Sf(1,iEl)*Hhfi(iEl,iiNuc).x + Sf(2,iEl)*Hhfi(iEl,iiNuc).y + Sf(3,iEl)*Hhfi(iEl,iiNuc).z;
+          Hu = Hu + Su(1,iEl)*Hhfi(iEl,iiNuc).x + Su(2,iEl)*Hhfi(iEl,iiNuc).y + Su(3,iEl)*Hhfi(iEl,iiNuc).z;
+          Hv = Hv + Sv(1,iEl)*Hhfi(iEl,iiNuc).x + Sv(2,iEl)*Hhfi(iEl,iiNuc).y + Sv(3,iEl)*Hhfi(iEl,iiNuc).z;
         end
         % Nuclear Zeeman and quadrupole (independent of S)
         if ~Opt.HybridOnlyHFI
-          Hc = Hquad{iiNuc} +Exp.Field*...
+          Hc = Hquad{iiNuc} + Exp.Field*...
             (zLab(1)*Hzeem(iiNuc).x + zLab(2)*Hzeem(iiNuc).y + zLab(3)*Hzeem(iiNuc).z);
-          Hi = Hi + Hc;
-          Hf = Hf + Hc;
+          Hu = Hu + Hc;
+          Hv = Hv + Hc;
         end
-        % symmetrize (important, otherwise eig returns unsorted values)
-        Hi = (Hi+Hi')/2;
-        Hf = (Hf+Hf')/2;
-        [Vii,dEi] = eig(Hi); dEi = diag(dEi);
-        [Vfi,dEf] = eig(Hf); dEf = diag(dEf);
+        % hermitianize (important, otherwise eig returns unsorted values)
+        Hu = (Hu+Hu')/2;
+        Hv = (Hv+Hv')/2;
+        [Vii,dEi] = eig(Hu); dEi = diag(dEi);
+        [Vfi,dEf] = eig(Hv); dEf = diag(dEf);
         NucTransitionRates = abs(Vfi'*Vii).^2; % the famous Mims matrix M
         % Compute and store all resonance field shifts and amplitude factors.
         % Intensity thresholds are applied later.
         [vidx,uidx] = find(ones(size(NucTransitionRates)));
-        pPdatN{iiNuc}(iTrans,iOri,:) = (dEf(vidx(:)) - dEi(uidx(:)));
+        pPdatN{iiNuc}(iTrans,iOri,:) = dEf(vidx(:)) - dEi(uidx(:));
         pIdatN{iiNuc}(iTrans,iOri,:) = NucTransitionRates(:);
       end
     end
   end
+  %-------------------------------------------------------
+
 end
 
 

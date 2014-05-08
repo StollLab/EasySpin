@@ -1142,7 +1142,7 @@ for iOri = 1:nOrientations
               Hu = Hu + Hc;
               Hv = Hv + Hc;
             end
-            % symmetrize (important, otherwise eig returns unsorted values)
+            % hermitianize (important, otherwise eig returns unsorted values)
             Hu = (Hu+Hu')/2; 
             Hv = (Hv+Hv')/2;
             [Vu,dEu] = eig(Hu); dEu = diag(dEu);

@@ -447,7 +447,7 @@ if FieldSweep
   [Method,err] = parseoption(Opt,'Method',{'eig','matrix','perturb','perturb1','perturb2','hybrid'});
   error(err);
 else
-  [Method,err] = parseoption(Opt,'Method',{'matrix','perturb','perturb1','perturb2'});
+  [Method,err] = parseoption(Opt,'Method',{'matrix','perturb','perturb1','perturb2','hybrid'});
   error(err);
   Method = Method + 10;
 end
@@ -509,6 +509,7 @@ MethodMsg{11} = 'frequency sweep, matrix diagonalization';
 MethodMsg{12} = 'frequency sweep, second-order perturbation theory';
 MethodMsg{13} = 'frequency sweep, first-order perturbation theory';
 MethodMsg{14} = 'frequency sweep, second-order perturbation theory';
+MethodMsg{15} = 'frequency sweep, hybrid (matrix diagonalization for electron spin, perturbation for nuclei)';
 logmsg(1,'  method: %s',MethodMsg{Method});
 
 if FieldSweep
@@ -567,12 +568,12 @@ if FieldSweep
     
     logmsg(2,'  -entering resfields*----------------------------------');
     switch Method
-      case {2,6}
+      case {2,6} % matrix diagonalization, hybrid
         [Pdat,Idat,Wdat,Transitions,Gdat] = resfields(Sys,Exp1,Opt);
-      case {3,5}
+      case {3,5} % 2nd-order perturbation theory
         Opt.PerturbOrder = 2;
         [Pdat,Idat,Wdat,Transitions,spec] = resfields_perturb(Sys,Exp1,Opt);
-      case 4
+      case 4 % 1st-order perturbation theory
         Opt.PerturbOrder = 1;
         [Pdat,Idat,Wdat,Transitions,spec] = resfields_perturb(Sys,Exp1,Opt);
     end
@@ -606,7 +607,7 @@ else
   
   logmsg(2,'  -entering resfreqs*----------------------------------');
   switch Method
-    case {11} % matrix diagonalization
+    case {11,15} % matrix diagonalization, hybrid
       [Pdat,Idat,Wdat,Transitions] = resfreqs_matrix(Sys,Exp1,Opt);
     case {12,14} % 2nd-order perturbation theory
       Opt.PerturbOrder = 2;
