@@ -387,6 +387,8 @@ switch Opt.Solver
     SolverString = 'biconjugate gradients, stabilized';
   case '\'
     SolverString = 'backslash linear';
+  case 'D'
+    SolverString = 'direct method (eigenbasis, Binsch)';
   otherwise
     error('Unknown method in Options.Solver. Must be ''L'', ''R'', ''C'', or ''\''.');
 end
@@ -575,7 +577,20 @@ for iOri = 1:nOrientations
       end
       thisspec = real(thisspec);
       
-    case 'D' %"direct" method by Binsch, to be implemented
+    case 'D' %"direct" method by Binsch (eigenbasis)
+      L = full(L);
+      [U,Lambda] = eig(L);
+      Lambda = diag(Lambda);
+      thisspec = zeros(nVectors,numel(omega));      
+      for iVec = 1:nVectors
+        rho0 = StartingVector(:,iVec);
+        Amplitude = (rho0'*U).'.*(U\rho0);
+        thisspec_ = 0;
+        for iPeak = 1:numel(Amplitude)
+          thisspec_ = thisspec_ + Amplitude(iPeak)./(Lambda(iPeak)+omega);
+        end
+        thisspec(iVec,:) = thisspec_;
+      end
 
   end
 
