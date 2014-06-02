@@ -646,7 +646,7 @@ if (~PowderSimulation)
   end
 end
 
-% Pick nuclei to be included in the ESEEM computation
+% Pick nuclei to be included in the computation
 shfNuclei = 1:Sys.nNuclei;
 if all(idealPulse) && isfield(Exp,'ExciteWidth')
   idxStrongNuclei = max(abs(Sys.A),[],2)>Exp.ExciteWidth;
@@ -656,8 +656,8 @@ end
 TwoElectronManifolds = (Sys.nElectrons==1) && (Sys.S==1/2) && ...
   (numel(shfNuclei)==Sys.nNuclei);
 
-OriSelect = isfield(Exp,'mwFreq');
-if (OriSelect)
+OrientationSelection = isfield(Exp,'mwFreq');
+if (OrientationSelection)
   logmsg(1,'Microwave frequency given: orientation selection is on.');
   if ~isfield(Exp,'ExciteWidth')
     error('Orientation selection: Exp.ExciteWidth (in MHz) missing. It should be about the inverse of the first pulse length (100MHz for 10ns). If you don''t want orientation selection, set it to a very large number (1e6) or remove the microwave frequency.');
@@ -883,11 +883,10 @@ end
 %=====================================================================
 
 
-
 %=====================================================================
-% Compute nuclear Hamiltonians
+% Compute nuclear spin Hamiltonians
 %=====================================================================
-logmsg(1,'computing nuclear sub-Hamiltonians...');
+logmsg(1,'computing nuclear spin sub-Hamiltonians...');
 
 SeparateSpaces = Opt.ProductRule;
 if SeparateSpaces
@@ -927,15 +926,17 @@ if SeparateSpaces
   end
     
 else
-  logmsg(1,'  complete nuclear product space');
+  logmsg(1,'  complete nuclear state space');
   
   Space.Hnq = 0;
   Space.Hhf1 = 0; Space.Hhf2 = 0; Space.Hhf3 = 0;
   Space.Hnz1 = 0; Space.Hnz2 = 0; Space.Hnz3 = 0;
-  for iNuc = shfNuclei
-    Ix = sop(Sys.I,iNuc,1);
-    Iy = sop(Sys.I,iNuc,2);
-    Iz = sop(Sys.I,iNuc,3);
+  I = Sys.I(shfNuclei);
+  for ishfNuc = 1:numel(shfNuclei)
+    Ix = sop(I,ishfNuc,1);
+    Iy = sop(I,ishfNuc,2);
+    Iz = sop(I,ishfNuc,3);
+    iNuc = shfNuclei(ishfNuc);
     
     % Nuclear Zeeman -------------------------------------------------
     gamm = -Sys.gn(iNuc)*nmagn/1e3/planck/1e6;
@@ -985,25 +986,22 @@ logmsg(1,'  %d nuclei, %d subspaces',numel(shfNuclei),nSubSpaces);
 %=====================================================================
 % Orientation pre-selection factors
 %=====================================================================
-logmsg(1,'orientation pre-selection...');
-if (OriSelect)
-  if (TwoElectronManifolds)
-    logmsg(1,'  S=1/2: using simple g tensor/HStrain model');
-    logmsg(1,'  excitation width (MHz): %g',Exp.ExciteWidth);
-    logmsg(1,'  HStrain (MHz): %g %g %g',Sys.HStrain(1),Sys.HStrain(2),Sys.HStrain(3));
-    % g values for all orientations
-    zLab = ang2vec(Orientations(1,:),Orientations(2,:));
-    geff = diag(Sys.g)*zLab;
-    geff = sqrt(sum(geff.^2,1));
-    % resonance frequencies for all orientations
-    nu = geff*bmagn*Exp.Field/1e3/planck/1e6; % MHz
-    % line widths for all orientations
-    lw = diag(Sys.HStrain)*zLab;
-    lw2 = (sum(lw.^2,1)) + Exp.ExciteWidth^2;
-    gOriSelWeight = exp(-(nu-1000*Exp.mwFreq).^2./lw2);
-  else
-    %
-  end
+OrientationPreSelection = OrientationSelection && TwoElectronManifolds;
+if OrientationPreSelection
+  logmsg(1,'pre-computing orientation selecton from g tensor alone...');
+  logmsg(1,'  S=1/2: using simple g tensor/HStrain model');
+  logmsg(1,'  excitation width (MHz): %g',Exp.ExciteWidth);
+  logmsg(1,'  HStrain (MHz): %g %g %g',Sys.HStrain(1),Sys.HStrain(2),Sys.HStrain(3));
+  % g values for all orientations
+  zLab = ang2vec(Orientations(1,:),Orientations(2,:));
+  geff = diag(Sys.g)*zLab;
+  geff = sqrt(sum(geff.^2,1));
+  % resonance frequencies for all orientations
+  nu = geff*bmagn*Exp.Field/1e3/planck/1e6; % MHz
+  % line widths for all orientations
+  lw = diag(Sys.HStrain)*zLab;
+  lw2 = (sum(lw.^2,1)) + Exp.ExciteWidth^2;
+  gOriSelWeight = exp(-(nu-1000*Exp.mwFreq).^2./lw2);
 end
 
 %=====================================================================
@@ -1093,12 +1091,14 @@ if (TwoElectronManifolds)
 end
 
 nSkippedOrientations = 0;
+zLab_all = ang2vec(Orientations(1,:),Orientations(2,:));
 for iOri = 1:nOrientations
   
   
   % Get magnetic field orientation
   %------------------------------------------------------------------
-  zLab = ang2vec(Orientations(1,iOri),Orientations(2,iOri));
+  %zLab = ang2vec(Orientations(1,iOri),Orientations(2,iOri));
+  zLab = zLab_all(:,iOri);
   yLab = [-zLab(2) zLab(1) 0];
   if norm(yLab)<eps, yLab = [0 1 0]; else yLab = yLab/norm(yLab); end
   %xLab = cross(yLab,zLab);
@@ -1107,18 +1107,18 @@ for iOri = 1:nOrientations
   %------------------------------------------------------------------
   if (TwoElectronManifolds)    
     
-    if (OriSelect)
+    if (OrientationSelection)
       OriSelWeight = gOriSelWeight(iOri);
-      if (OriSelWeight<Opt.OriThreshold)
-        nSkippedOrientations = nSkippedOrientations + 1;
-        continue
-      end
     else
-      OriSelWeight = ones(1,nOrientations);
+      OriSelWeight = 1;
+    end
+    if (OriSelWeight<Opt.OriThreshold)
+      nSkippedOrientations = nSkippedOrientations + 1;
+      continue
     end
     
-    quantizationAxis = zLab.'*g;
-    quantizationAxis = quantizationAxis.'/norm(quantizationAxis);
+    quantizationAxis = g.'*zLab;
+    quantizationAxis = quantizationAxis/norm(quantizationAxis);
     Manifold(1).S = -0.5*quantizationAxis;
     Manifold(2).S = +0.5*quantizationAxis;
 
@@ -1130,32 +1130,35 @@ for iOri = 1:nOrientations
 
     % automatic transition selection
     %------------------------------------------------------------
-    H = F + Exp.Field*(zLab(1)*Gx + zLab(2)*Gy + zLab(3)*Gz);
-    [eV,eE] = eig(H);
-    SyLab = yLab(1)*Sx + yLab(2)*Sy + yLab(3)*Sz;
-    SyLab = abs(eV'*SyLab*eV);
-    maxSyy = max(SyLab(:));
-    
-    if (OriSelect)
-      eE = real(diag(eE));
-      dE = eE(:,ones(1,length(eE)));
-      dE = (dE-dE') - Exp.mwFreq*1e3;
-      excitationWindow = tril(exp(-(dE/Exp.ExciteWidth).^2),-1);
-      SyLab = SyLab.*excitationWindow;
-    end
-    
-    Threshold = 0.001;
-    SyLab(SyLab<Threshold*maxSyy) = 0;
-    [v,u,OriSelWeight] = find(SyLab);
-    if ~isempty(Opt.Transitions)
+    if isempty(Opt.Transitions)
+      H = F + Exp.Field*(zLab(1)*Gx + zLab(2)*Gy + zLab(3)*Gz);
+      [eV,eE] = eig(H);
+      SyLab = yLab(1)*Sx + yLab(2)*Sy + yLab(3)*Sz;
+      SyLab = abs(eV'*SyLab*eV);
+      maxSyy = max(SyLab(:));
+      
+      if (OrientationSelection)
+        eE = real(diag(eE));
+        dE = eE(:,ones(1,length(eE)));
+        dE = (dE-dE') - Exp.mwFreq*1e3; % MHz
+        excitationAmplitude = exp(-(dE/Exp.ExciteWidth).^2);
+        SyLab = SyLab.*excitationAmplitude;
+      end
+      
+      SyLab(SyLab<Opt.OriThreshold*maxSyy) = 0;
+      [v,u,OriSelWeight] = find(tril(SyLab,-1));
+    else
       u = Opt.Transitions(:,1);
       v = Opt.Transitions(:,2);
-      OriSelWeight = length(u);
+      OriSelWeight = ones(1,length(u));
     end
     Transitions = [u,v];
     nTransitions = size(Transitions,1);
 
-    if (nTransitions==0), continue; end
+    if (nTransitions==0)
+      nSkippedOrientations = nSkippedOrientations + 1;
+      continue
+    end
 
     % computation of <S> for all manifolds involved
     %------------------------------------------------------------
@@ -1169,7 +1172,7 @@ for iOri = 1:nOrientations
     end
   end
     
-  %logmsg(1,'orientation %d of %d: %d transitions',iOri,nOrientations,nTransitions);
+  logmsg(2,'orientation %d of %d: %d transitions',iOri,nOrientations,nTransitions);
   
   % Compute and diagonalize nuclear Hamiltonians
   %----------------------------------------------------------------------
@@ -1187,7 +1190,7 @@ for iOri = 1:nOrientations
   end
   
   
-  % Loop over all excited electronic transitions
+  % Loop over all excited EPR transitions
   %----------------------------------------------------------------------
   for iT = 1:nTransitions
     b = Transitions(iT,1); % lower manifold
