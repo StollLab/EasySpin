@@ -755,7 +755,7 @@ if (ComputeIntensities)
   end
   msg = [msg ', intensities'];
 else
-  Idat = ones(nTransitions,nOrientations);
+  Idat = [];
 end
 
 if (ComputeStrains)
@@ -1212,13 +1212,17 @@ if numel(idxRmv)>0
   logmsg(2,'  ## removing %2d resonances (below threshold, out of range)',numel(idxRmv));
   idxTr(idxRmv) = [];
   Pdat(idxRmv,:) = [];
-  Idat(idxRmv,:) = [];
+  if (ComputeIntensities), Idat(idxRmv,:) = []; end
   if (ComputeStrains), Wdat(idxRmv,:) = []; end
   if (ComputeGradient), Gdat(idxRmv,:) = []; end
   if (nPerturbNuclei>0)
     for iiNuc = 1:nPerturbNuclei
       pPdatN{iiNuc}(idxRmv,:,:) = [];
-      pIdatN{iiNuc}(idxRmv,:,:) = [];
+    end
+    if (ComputeIntensities)
+      for iiNuc = 1:nPerturbNuclei
+        pIdatN{iiNuc}(idxRmv,:,:) = [];
+      end
     end
   end
 end
