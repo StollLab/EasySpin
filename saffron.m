@@ -133,13 +133,14 @@ if ~isfield(Sys,'singleiso') || (Sys.singleiso==0)
         % Time domain
         subplot(2,1,1);
         PredefinedExperiment = isfield(Exp,'Sequence');
-        ExpNames = {'2pESEEM','3pESEEM','HYSCORE','MimsENDOR'};
+        ExpNames = {'2pESEEM','3pESEEM','4pESEEM','HYSCORE','MimsENDOR'};
         QuadratureSignal = ~PredefinedExperiment;
         if QuadratureSignal
           h = plot(x1,real(out.td),'b',x1,imag(out.td),'r');
           set(h(1),'Color',[0 0 1]);
           set(h(2),'Color',[0.8 0.6 1]);
           legend('Re','Im');
+          legend boxoff
         else
           plot(x1,real(out.td));
         end
@@ -151,7 +152,7 @@ if ~isfield(Sys,'singleiso') || (Sys.singleiso==0)
         
         if PredefinedExperiment
           ExperimentID = strmatch(Exp.Sequence,ExpNames);
-          xlb = {'\tau (\mus)','\tau+T (\mus)','\tau+t_2 (\mus)','frequency (MHz)','T (\mus)'};
+          xlb = {'\tau (\mus)','\tau+T (\mus)','T (\mus)','...','frequency (MHz)'};
           xlabel(xlb{ExperimentID});
           ylabel('echo amplitude');
           title([ExpNames{ExperimentID},', TD signal']);
@@ -169,12 +170,15 @@ if ~isfield(Sys,'singleiso') || (Sys.singleiso==0)
         if QuadratureSignal
           h = plot(xf,abs(out.fd(idx)),'g',xf,real(out.fd(idx)),'b',xf,imag(out.fd(idx)),'r');
           legend('abs','Re','Im');
+          legend boxoff
           set(h(2),'Color',[0   0   1]);
           set(h(3),'Color',[0.8 0.6 1]);
           set(h(1),'Color',[0   0.8    0]);
         else
-          h = plot(xf,real(out.fd(idx)),'b',xf,abs(out.fd(idx)),'g');
-          legend('Re','abs');
+          h = plot(xf,abs(out.fd(idx)),'b',xf,real(out.fd(idx)),'g');
+          set(h(2),'Color',[0 0.8 0]);
+          legend('abs','Re');
+          legend boxoff
         end
         axis tight
         xlim([0 max(out.f)]);
@@ -304,7 +308,7 @@ if PredefinedExperiment
     error('Exp.Filter can only be used with custom sequences.');
   end
 
-  ExpNames = {'2pESEEM','3pESEEM','HYSCORE','MimsENDOR'};
+  ExpNames = {'2pESEEM','3pESEEM','4pESEEM','HYSCORE','MimsENDOR'};
   ExperimentID = strmatch(Exp.Sequence,ExpNames);
   if isempty(ExperimentID)
     error('Exp.Sequence ''%s'' not recognized.',Exp.Sequence);
@@ -317,13 +321,22 @@ if PredefinedExperiment
       error('You cannot use predefined sequences (Exp.Sequence) with real pulses (Exp.tp).');
     end
   end
+    
+  isENDOR = false;
+  switch ExperimentID
+    case 1 % 2pESEEM
+      nIntervals = 2; nDimensions = 1; IncSchemeID = 2; nPathways = 1; pulseprefactor = +1/2;
+    case 2 % 3pESEEM
+      nIntervals = 3; nDimensions = 1; IncSchemeID = 1; nPathways = 2; pulseprefactor = +1/8;
+    case 3 % 4pESEEM
+      nIntervals = 4; nDimensions = 1; IncSchemeID = 2; nPathways = 2; pulseprefactor = -1/8;
+    case 4 % HYSCORE
+      nIntervals = 4; nDimensions = 2; IncSchemeID = 11; nPathways = 2; pulseprefactor = -1/8;
+    case 5 % Mims ENDOR
+      isENDOR = true;
+      nIntervals = 3; nDimensions = 1; IncSchemeID = 0; nPathways = 2; pulseprefactor = +1/8;
+  end
   
-  nIntervals = [2 3 4 3]; nIntervals = nIntervals(ExperimentID);
-  nDimensions = [1 1 2 1]; nDimensions = nDimensions(ExperimentID);
-  nPathways = [1 2 2 2]; nPathways = nPathways(ExperimentID);
-  pulseprefactor = [+1/2, +1/8, -1/8, +1/8]; pulseprefactor = pulseprefactor(ExperimentID);
-  isENDOR = [0 0 0 1]; isENDOR = isENDOR(ExperimentID);
-  IncSchemeID = [2 1 11 0]; IncSchemeID = IncSchemeID(ExperimentID);
   if ~isfield(Exp,'tau')
     if ExperimentID==1
       Exp.tau = 0;
@@ -609,21 +622,25 @@ if ~isfield(Exp,'T2'), Exp.T2 = 0; end
 
 
 if PredefinedExperiment
-  % Three-pulse ESEEM and MimsENDOR: T
-  if ~isfield(Exp,'T'), Exp.T = 0; end
-  % HYSCORE: t1 and t2
-  if (ExperimentID==3)
-    if ~isfield(Exp,'t1'), Exp.t1 = 0; end
-    if ~isfield(Exp,'t2'), Exp.t2 = 0; end
-    if numel(Exp.t1)>1
-      error('Exp.t1 must a single positive number, in units of us.');
-    end
-    if numel(Exp.t2)>1
-      error('Exp.t2 must a single positive number, in units of us.');
-    end
-    if (Exp.t1~=Exp.t2)
-      fprintf('Exp.t1 and Exp.t2 are not identical, so the resulting spectrum might be asymmetric.\n');
-    end
+  switch ExperimentID
+    case 2 % 3pESEEM
+      if ~isfield(Exp,'T'), Exp.T = 0; end
+    case 5 % Mims ENDOR
+      if ~isfield(Exp,'T'), Exp.T = 0; end
+    case 3 % 4pESEEM
+      if ~isfield(Exp,'T'), Exp.T = 0; end
+    case 4 % HYSCORE
+      if ~isfield(Exp,'t1'), Exp.t1 = 0; end
+      if ~isfield(Exp,'t2'), Exp.t2 = 0; end
+      if numel(Exp.t1)>1
+        error('Exp.t1 must a single positive number, in units of us.');
+      end
+      if numel(Exp.t2)>1
+        error('Exp.t2 must a single positive number, in units of us.');
+      end
+      if (Exp.t1~=Exp.t2)
+        fprintf('Exp.t1 and Exp.t2 are not identical, so the resulting spectrum might be asymmetric.\n');
+      end
   end
 end
 
@@ -732,6 +749,7 @@ if (any(realPulse) && Opt.ProductRule)
 end
 
 if isfield(Opt,'Output'), logmsg(0,'saffron does not support Opt.Output.'); end
+SeparateTransitions = false;
 
 if ~isfield(Opt,'OriThreshold'), Opt.OriThreshold = 0.005; end
 
@@ -1313,7 +1331,7 @@ for iOri = 1:nOrientations
             % Acumulate peaks / generated time domain
             if Opt.TimeDomain
               if Opt.ProductRule
-                error('Product rule for user-define experiments not implemented.');
+                error('Product rule for user-defined experiments not implemented.');
               else
                 totaltd = totaltd + ...
                   sf_evolve(IncSchemeID,Exp.nPoints,Exp.dt,...
@@ -1322,7 +1340,7 @@ for iOri = 1:nOrientations
               end
             else
               if Opt.ProductRule
-                error('Product rule for user-define experiments not implemented.');
+                error('Product rule for user-defined experiments not implemented.');
               else
                 sf_peaks(IncSchemeID,buff,Exp.dt,...
                   idxIncL(iPathway,:),idxIncR(iPathway,:),...
@@ -1337,7 +1355,7 @@ for iOri = 1:nOrientations
           switch (ExperimentID)
 
             % Mims ENDOR ------------------------------------------------
-            case 4
+            case 5
 
               Q = exp(-2i*pi*Ea*Exp.tau)*exp(-2i*pi*Eb*Exp.tau)';
               PG = prefactor*Q.*M; PD = conj(Q).*M;
@@ -1367,31 +1385,36 @@ for iOri = 1:nOrientations
                   %endorspc(idx) = endorspc(idx) + ampl;
                   %endorspc = endorspc + ...
                   %  lisum1i(Template.y,Template.x0,Template.lw,freq,ampl,Sys.lwEndor*[1 1],rf);
-                  endorspc = endorspc + ampl(1)*exp(-((rf-freq(1))/Sys.lwEndor).^2);
-                  endorspc = endorspc + ampl(2)*exp(-((rf-freq(2))/Sys.lwEndor).^2);
+                  if SeparateTransitions
+                    endorspc(iT,:) = ampl(1)*exp(-((rf-freq(1))/Sys.lwEndor).^2);
+                    endorspc(iT,:) = ampl(2)*exp(-((rf-freq(2))/Sys.lwEndor).^2);
+                  else
+                    endorspc = endorspc + ampl(1)*exp(-((rf-freq(1))/Sys.lwEndor).^2);
+                    endorspc = endorspc + ampl(2)*exp(-((rf-freq(2))/Sys.lwEndor).^2);
+                  end
                   endoroffset = endoroffset + off1 + off2;
                 end
               end
 
             % HYSCORE ---------------------------------------------------
-            case 3
+            case 4
 
-              if all(idealPulse)
-                Q = exp(-2i*pi*Ea*Exp.tau)*exp(-2i*pi*Eb*Exp.tau)';
-                PG = prefactor*Q.*M;
-                PD = conj(Q).*M;
-                G1 = PG*Mt; G2 = Mt*PG;
-                D1 = Mt*PD; D2 = PD*Mt;
-                if (Exp.t1~=0)
-                  q = exp(-2i*pi*Exp.t1*Ea); G1 = (q*q').*G1;
-                  q = exp(-2i*pi*Exp.t1*Eb); G2 = (q*q').*G2;
-                end
-                if (Exp.t2~=0)
-                  q = exp(+2i*pi*Exp.t2*Eb); D1 = (q*q').*D1;
-                  q = exp(+2i*pi*Exp.t2*Ea); D2 = (q*q').*D2;
-                end
-              else
+              if ~all(idealPulse)
                 error('Pre-defined HYSCORE with real pulses not supported.');
+              end
+              
+              Q = exp(-2i*pi*Ea*Exp.tau)*exp(-2i*pi*Eb*Exp.tau)';
+              PG = prefactor*Q.*M;
+              PD = conj(Q).*M;
+              G1 = PG*Mt; G2 = Mt*PG;
+              D1 = Mt*PD; D2 = PD*Mt;
+              if (Exp.t1~=0)
+                q = exp(-2i*pi*Exp.t1*Ea); G1 = (q*q').*G1;
+                q = exp(-2i*pi*Exp.t1*Eb); G2 = (q*q').*G2;
+              end
+              if (Exp.t2~=0)
+                q = exp(+2i*pi*Exp.t2*Eb); D1 = (q*q').*D1;
+                q = exp(+2i*pi*Exp.t2*Ea); D2 = (q*q').*D2;
               end
 
               if Opt.TimeDomain
@@ -1412,19 +1435,56 @@ for iOri = 1:nOrientations
                 end
               end
 
-              % three-pulse ESEEM ------------------------------------------
-            case 2
+            % 4pESEEM ---------------------------------------------------
+            case 3
 
-              if all(idealPulse)
-                Q = exp(-2i*pi*Ea*Exp.tau)*exp(-2i*pi*Eb*Exp.tau)';
-                PG = prefactor*Q.*M; PD = conj(Q).*M;
-                G1 = PG*Mt; D1 = PD*Mt; G2 = Mt*PG; D2 = Mt*PD;
-                if (Exp.T~=0)
-                  q = exp(-2i*pi*Exp.T*Ea); G1 = (q*q').*G1;
-                  q = exp(-2i*pi*Exp.T*Eb); G2 = (q*q').*G2;
+              if ~all(idealPulse)
+                error('Pre-defined 4p-ESEEM with real pulses not supported.');
+              end
+              
+              Q = exp(-2i*pi*Ea*Exp.tau)*exp(-2i*pi*Eb*Exp.tau)';
+              PG = prefactor*Q.*M;
+              PD = conj(Q).*M;
+              G1 = PG*Mt; G2 = Mt*PG;
+              D1 = Mt*PD; D2 = PD*Mt;
+              if (Exp.T~=0)
+                q = exp(-2i*pi*Exp.T*Ea); G1 = (q*q').*G1;
+                q = exp(-2i*pi*Exp.T*Eb); G2 = (q*q').*G2;
+                q = exp(+2i*pi*Exp.T*Eb); D1 = (q*q').*D1;
+                q = exp(+2i*pi*Exp.T*Ea); D2 = (q*q').*D2;
+              end
+
+              if Opt.TimeDomain
+                if Opt.ProductRule
+                  pathwaytd{1,iSpace} = sf_evolve(IncSchemeID,Exp.nPoints,Exp.dt,[1 2],[1 2],Ea,Eb,G1,D1,Mt,M);
+                  pathwaytd{2,iSpace} = sf_evolve(IncSchemeID,Exp.nPoints,Exp.dt,[2 1],[2 1],Ea,Eb,G2,D2,Mt,M);
+                else
+                  totaltd = totaltd + sf_evolve(IncSchemeID,Exp.nPoints,Exp.dt,[1 2],[1 2],Ea,Eb,G1,D1,Mt,M);
+                  totaltd = totaltd + sf_evolve(IncSchemeID,Exp.nPoints,Exp.dt,[2 1],[2 1],Ea,Eb,G2,D2,Mt,M);
                 end
               else
+                if Opt.ProductRule
+                  sf_peaks(IncSchemeID,pathwaybuff{1,iSpace},Exp.dt,[1 2],[1 2],Ea,Eb,G1,D1,Mt,M);
+                  sf_peaks(IncSchemeID,pathwaybuff{2,iSpace},Exp.dt,[2 1],[2 1],Ea,Eb,G2,D2,M,Mt);
+                else
+                  sf_peaks(IncSchemeID,buff,Exp.dt,[1 2],[1 2],Ea,Eb,G1,D1,Mt,M);
+                  sf_peaks(IncSchemeID,buff,Exp.dt,[2 1],[2 1],Ea,Eb,G2,D2,M,Mt);
+                end
+              end
+
+            % 3pESEEM ------------------------------------------------------------
+            case 2
+
+              if ~all(idealPulse)
                 error('Pre-defined 3pESEEM not supported for real pulses.');
+              end
+              
+              Q = exp(-2i*pi*Ea*Exp.tau)*exp(-2i*pi*Eb*Exp.tau)';
+              PG = prefactor*Q.*M; PD = conj(Q).*M;
+              G1 = PG*Mt; D1 = PD*Mt; G2 = Mt*PG; D2 = Mt*PD;
+              if (Exp.T~=0)
+                q = exp(-2i*pi*Exp.T*Ea); G1 = (q*q').*G1;
+                q = exp(-2i*pi*Exp.T*Eb); G2 = (q*q').*G2;
               end
 
               if Opt.TimeDomain
@@ -1445,21 +1505,20 @@ for iOri = 1:nOrientations
                 end
               end
 
-            % two-pulse ESEEM --------------------------------------------
+            % 2pESEEM ---------------------------------------------------------
             case 1
 
-              if all(idealPulse)
-                G = prefactor*M;
-                D = M;
-                T1left = Mt;
-                T1right = Mt;
-                if (Exp.tau>0)
-                  Qab = exp(-2i*pi*Exp.tau*Ea)*exp(-2i*pi*Exp.tau*Eb)';
-                  G = Qab.*G;
-                  D = conj(Qab).*D;
-                end
-              else
+              if ~all(idealPulse)
                 error('Pre-defined 2pESEEM not supported for real pulses.');
+              end
+              G = prefactor*M;
+              D = M;
+              T1left = Mt;
+              T1right = Mt;
+              if (Exp.tau>0)
+                Qab = exp(-2i*pi*Exp.tau*Ea)*exp(-2i*pi*Exp.tau*Eb)';
+                G = Qab.*G;
+                D = conj(Qab).*D;
               end
               
               if Opt.TimeDomain
@@ -1589,15 +1648,17 @@ if ~isENDOR
           t1 = (0:Exp.nPoints(1)-1)*Exp.dt(1);
           t2 = (0:Exp.nPoints(2)-1)*Exp.dt(2);          
       end
-    case 1
+    case 1 % 2p-ESEEM
       t1 = (0:Exp.nPoints-1)*Exp.dt + Exp.tau(1);
-    case 2
+    case 2 % 3p-ESEEM
       t1 = (0:Exp.nPoints-1)*Exp.dt + Exp.tau(1) + Exp.T;
-    case 3,
+    case 3 % 4p-ESEEM
+      t1 = (0:Exp.nPoints-1)*Exp.dt + Exp.T;
+    case 4 % HYSCORE
       t1 = (0:Exp.nPoints(1)-1)*Exp.dt(1) + Exp.t1;
       t2 = (0:Exp.nPoints(2)-1)*Exp.dt(2) + Exp.t2;
       t = {t1,t2};
-    case 5
+    case 5 % Mims ENDOR
       t1 = (0:Exp.nPoints-1)*Exp.dt;
   end
 
