@@ -11,12 +11,13 @@
 %     'maxabs'  scales to maximum abs 1, no shift
 %
 %   mode2:
-%     'minmax'  shifts&scales so that minimum and maximum fit yref
-%     'maxabs'  scales so that maximum abs fits yref
-%     'lsq'     least-squares fit of a*y
-%     'lsq0'    least-squares fit of a*y+b
-%     'lsq1'    least-squares fit of a*y+b+c*x
-%     'lsq2'    least-squares fit of a*y+b+c*x+d*x^2
+%     'minmax'  shifts&scales so that minimum and maximum of y
+%               fit the minimum and maximum of yref
+%     'maxabs'  scales y so that maximum absolute values of y fits yref
+%     'lsq'     least-squares fit of a*y to yref
+%     'lsq0'    least-squares fit of a*y+b to yref
+%     'lsq1'    least-squares fit of a*y+b+c*x to yref
+%     'lsq2'    least-squares fit of a*y+b+c*x+d*x^2 to yref
 
 function varargout = rescale(varargin)
 
