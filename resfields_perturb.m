@@ -405,12 +405,14 @@ else
   % Widths
   %-------------------------------------------------------------------
   if any(Sys.HStrain)
-    
     lw2 = sum(Sys.HStrain.^2*vecs.^2,1);
     lw = sqrt(lw2)*1e6*planck./geff/bmagn*1e3;
     Wid = repmat(lw,nNucTrans*2*S,1);
-    
-  elseif any(Sys.gStrain) || any(Sys.AStrain)
+  else
+    Wid = 0;
+  end
+  
+  if any(Sys.gStrain) || any(Sys.AStrain)
     
     if any(Sys.gStrain)
       gStrainMatrix = diag(Sys.gStrain./Sys.g)*Exp.mwFreq*1e3; % -> MHz
@@ -436,19 +438,20 @@ else
           lw2(idx,iOri) = vecs(:,iOri).'*StrainMatrix.^2*vecs(:,iOri);
         end
       end
-      Wid = sqrt(lw2)*planck*1e6./repmat(geff,numel(mI1),1)/bmagn*1e3; % MHz -> mT
+      Wid_gA = sqrt(lw2)*planck*1e6./repmat(geff,numel(mI1),1)/bmagn*1e3; % MHz -> mT
       idx = repmat(1:numel(mI1),2*S*nNucTrans/numel(mI1),1);
-      Wid = Wid(idx(:),:);
+      Wid = sqrt(Wid_gA(idx(:),:).^2 + Wid.^2);
     else
       StrainMatrix = gStrainMatrix;
       for iOri = 1:nOrientations
         lw2(1,iOri) = vecs(:,iOri).'*StrainMatrix.^2*vecs(:,iOri);
       end
-      Wid = sqrt(lw2)*planck*1e6./geff/bmagn*1e3; % MHz -> mT
-      Wid = repmat(Wid,2*S*nNucTrans,1);
+      Wid_gA = sqrt(lw2)*planck*1e6./geff/bmagn*1e3; % MHz -> mT
+      Wid = sqrt(repmat(Wid_gA.^2,2*S*nNucTrans,1)+Wid.^2);
     end
 
   elseif any(Sys.DStrain)
+    
     x = vecs(1,:);
     y = vecs(2,:);
     z = vecs(3,:);
@@ -463,7 +466,8 @@ else
       lwE(k,:) = (dBdE_(k+1,:)-dBdE_(k,:))*Sys.DStrain(2);
     end
     lw = sqrt(lwD.^2+lwE.^2);
-    Wid = repmat(lw,nNucTrans,1);
+    Wid_D = repmat(lw,nNucTrans,1);
+    Wid = Sqrt(Wid_D.^2 + Wid.^2);
   else
     Wid = [];
   end
