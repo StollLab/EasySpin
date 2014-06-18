@@ -238,7 +238,7 @@ end
 DefaultOptions.Transitions = [];
 DefaultOptions.Threshold = 1e-4;
 DefaultOptions.Hybrid = 0;
-DefaultOptions.HybridNuclei = [];
+DefaultOptions.HybridCoreNuclei = [];
 
 % undocumented fields
 DefaultOptions.nTRKnots = 3;
@@ -321,16 +321,15 @@ if (CoreSys.nNuclei>=1) && Opt.Hybrid
   
   Nucs = nucstringparse(CoreSys.Nucs);
   
-  if any(Opt.HybridNuclei>CoreSys.nNuclei)
-    error('Opt.HybridNuclei is incorrect!');
+  if any(Opt.HybridCoreNuclei>CoreSys.nNuclei)
+    error('Opt.HybridCoreNuclei is incorrect!');
   end
   perturbNuclei = ones(1,CoreSys.nNuclei);
-  perturbNuclei(Opt.HybridNuclei) = 0;
+  perturbNuclei(Opt.HybridCoreNuclei) = 0;
   
   idx = find(perturbNuclei);
   %idx = idx & (HFIStrength<Opt.HybridHFIThreshold);
   % :TODO: Allow 1st-order PT only if (2nd-order) error smaller than field increment.  
-  idx = find(idx);
   nPerturbNuclei = numel(idx);
   str1 = sprintf('%d ',idx);
   if isempty(str1), str1 = 'none'; end
@@ -1192,7 +1191,7 @@ if ComputeIntensities
   if ~isempty(idxWeakResonances)
     logmsg(2,'  ## %2d resonances below relative intensity threshold %f',numel(idxWeakResonances),PostSelectionThreshold);
   else
-    logmsg(2,'  ## all resonances above relative intensity threshold %f',numel(idxWeakResonances),PostSelectionThreshold);
+    logmsg(2,'  ## all resonances above relative intensity threshold %f',PostSelectionThreshold);
   end
 else
     logmsg(2,'  ## no intensities computed, no intensity post-selection');
@@ -1315,7 +1314,7 @@ end
 % Combine resonance data with perturbation nuclei
 %---------------------------------------------------------------------
 if (nPerturbNuclei>0)
-  nSubTransitions = size(pPdat,3); % transitions per electronic level pair
+  nSubTransitions = size(pPdat,3); % transitions per core system level pair
   nTotalTrans = nTransitions*nSubTransitions;
   Pdat = reshape(permute(repmat(Pdat,[1,1,nSubTransitions]) +pPdat,[1 3 2]),nTotalTrans,nOrientations);
   Idat = reshape(permute(repmat(Idat,[1,1,nSubTransitions]).*pIdat,[1 3 2]),nTotalTrans,nOrientations);
@@ -1331,7 +1330,7 @@ end
 
 % Performance analysis
 %---------------------------------------------------------------------
-nResonances = sum(sum(~isnan(Pdat)));
+nResonances = nnz(~isnan(Pdat));
 OldWarningState = warning;
 warning off;
 logmsg(2,'  ## diags %d  resonances %d  oris %d',nDiagonalizations,nResonances,nOrientations);
