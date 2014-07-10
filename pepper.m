@@ -352,6 +352,9 @@ if ~PowderSimulation
   if (nAngles<2) || (nAngles>3)
     error('Exp.Orientations array has %d rows instead of 2 or 3.',nAngles);
   end
+else
+  logmsg(1,'  powder simulation: ignoring space group in Exp.CrystalSymmetry.');
+  Exp.CrystalSymmetry = [];
 end
 Exp.PowderSimulation = PowderSimulation;
 
