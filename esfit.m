@@ -663,11 +663,20 @@ BestSpec = 0;
 [FinalSys,bestvalues] = getSystems(FitData.Sys0,FitData.Vary,bestx);
 
 % Simulate best-fit spectrum
+nArguments = nargout(FitData.SimFcnName);
 for iSys=1:numel(FitData.Sys0)
   if isfield(FinalSys{iSys},'fcn')
-    b_ = feval(FitData.SimFcnName,FinalSys{iSys}.fcn(FinalSys{iSys}),Exp,SimOpt);
+    if (nArguments==1)
+      b_ = feval(FitData.SimFcnName,FinalSys{iSys}.fcn(FinalSys{iSys}),Exp,SimOpt);
+    else
+      [dummy,b_] = feval(FitData.SimFcnName,FinalSys{iSys}.fcn(FinalSys{iSys}),Exp,SimOpt);
+    end
   else
-    b_ = feval(FitData.SimFcnName,FinalSys{iSys},FitData.Exp,FitData.SimOpt);
+    if (nArguments==1)
+      b_ = feval(FitData.SimFcnName,FinalSys{iSys},FitData.Exp,FitData.SimOpt);
+    else
+      [dummy,b_] = feval(FitData.SimFcnName,FinalSys{iSys},FitData.Exp,FitData.SimOpt);
+    end
   end
   %(Sys.weight is taken into account by the simulation function)
   BestSpec = BestSpec + b_;
@@ -733,12 +742,21 @@ inactive = FitData.inactiveParams;
 x_all = FitData.startx;
 x_all(~inactive) = x;
 [SimSystems,simvalues] = getSystems(Sys0,Vary,x_all);
+nArguments = nargout(FitData.SimFcnName);
 for s = 1:numel(Sys0)
   % (SimSystems{s}.weight is taken into account in the simulation function)
   if isfield(SimSystems{s},'fcn')
-    newsim_ = feval(FitData.SimFcnName,SimSystems{s}.fcn(SimSystems{s}),Exp,SimOpt);
+    if (nArguments==1)
+      newsim_ = feval(FitData.SimFcnName,SimSystems{s}.fcn(SimSystems{s}),Exp,SimOpt);
+    else
+      [dummy,newsim_] = feval(FitData.SimFcnName,SimSystems{s}.fcn(SimSystems{s}),Exp,SimOpt);
+    end
   else
-    newsim_ = feval(FitData.SimFcnName,SimSystems{s},Exp,SimOpt);
+    if (nArguments==1)
+      newsim_ = feval(FitData.SimFcnName,SimSystems{s},Exp,SimOpt);
+    else
+      [dummy,newsim_] = feval(FitData.SimFcnName,SimSystems{s},Exp,SimOpt);
+    end
   end
   simspec = simspec + newsim_;
 end
