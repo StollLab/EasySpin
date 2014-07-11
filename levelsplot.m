@@ -70,13 +70,17 @@ if ~isfield(Para,'ColorThreshold')
 end
 
 if ischar(Ori)
-  idx = find(Ori=='xyz');
-  if numel(idx)~=1
-    error('Orientation must be a 2-element vector [phi theta] or either ''x'', ''y'' or ''z''');
+  switch Ori
+    case 'x', Ori = [0, pi/2];
+    case 'y', Ori = [pi/2, pi/2];
+    case 'z', Ori = [0, 0];
+    case 'xy', Ori = [pi/4 pi/2];
+    case 'xz', Ori = [0 pi/4];
+    case 'yz', Ori = [pi/2 pi/4];
+    case 'xyz', Ori = [pi/4 acos(1/sqrt(3))];
+    otherwise
+      error('Unknown value ''%s'' for orientation (2nd input argument).',Ori);
   end
-  philist = [0 pi/2 0];
-  thetalist = [pi/2 pi/2 0];
-  Ori = [philist(idx); thetalist(idx)];
 end
 
 if (numel(Ori)==2) || (numel(Ori)==3)
@@ -98,7 +102,13 @@ end
 
 E = levels(Sys,[phi;theta],Bvec);
 
-plot(Bvec,E/1e3,'b');
+if max(Bvec)>=2000
+  Bscale = 1e-3;
+else
+  Bscale = 1;
+end
+
+plot(Bvec*Bscale,E/1e3,'b');
 
 AllowedColor = [1 0 0];
 ForbiddenColor = [1 1 1]*0.8;
@@ -146,7 +156,7 @@ if isfinite(mwFreq)
       if tp(iF)<Para.PlotThreshold, continue; end
       H = F + G*resonFields(iF);
       E = sort(eig(H))/1e3;
-      h = line(resonFields(iF)*[1 1],E(Transitions(iF,:)));
+      h = line(resonFields(iF)*[1 1]*Bscale,E(Transitions(iF,:)));
       Color = tp(iF)*AllowedColor + (1-tp(iF))*ForbiddenColor;
       set(h,'Color',Color);
       if tp(iF)>Para.ColorThreshold, set(h,'Marker','.'); end

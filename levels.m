@@ -34,15 +34,16 @@ case 3
   OriList = 1;
   [SpinSystem,Ori,MagnField] = deal(varargin{:});
   if ischar(Ori)
-    if numel(Ori)~=1
-      error('Only ''x'', ''y'', or ''z'' are allowed.')
-    end
     switch Ori
-      case 'x', Ori = [0 pi/2];
-      case 'y', Ori = [pi/2 pi/2];
-      case 'z', Ori = [0 0];
+      case 'x', Ori = [0, pi/2];
+      case 'y', Ori = [pi/2, pi/2];
+      case 'z', Ori = [0, 0];
+      case 'xy', Ori = [pi/4 pi/2];
+      case 'xz', Ori = [0 pi/4];
+      case 'yz', Ori = [pi/2 pi/4];
+      case 'xyz', Ori = [pi/4 acos(1/sqrt(3))];
       otherwise
-        error('Only ''x'', ''y'', or ''z'' are allowed.')
+        error('Unknown value ''%s'' for orientation (2nd input argument).',Ori);
     end
   end
 case 4
