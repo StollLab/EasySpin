@@ -615,6 +615,7 @@ if (~PowderSimulation)
 
       thisspec = lisum1i(Template.y,Template.x,Template.lw,thisPos,thisInt,thisWid,xAxis);
       thisspec = (2*pi)*thisspec; % for consistency with powder spectra (integral of chi)
+      thisspec = thispec/nSites;
       thisspec = Weights(iOri)*thisspec; % for consistency with powder spectra (integral over phi,theta)
 
       if (SummedOutput)

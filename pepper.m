@@ -813,6 +813,7 @@ elseif (~BruteForceSum)
           if (AnisotropicWidths), thisWid = Wdat(:,idx); end
           
           thisspec = lisum1i(Template,xT,wT,thisPos,thisInt,thisWid,xAxis);
+          thisspec = thisspec/nSites;
           thisspec = (2*pi)*thisspec; % for consistency with powder spectra (factor from integral over chi)
           thisspec = Weights(iOri)*thisspec; % integral over (phi,theta)
           
