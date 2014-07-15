@@ -838,6 +838,7 @@ if (PowderSimulation)
   logmsg(1,'  %d orientations (%d knots)',nOrientations,Opt.nKnots(1));
   
   % Weights = Weights/sum(Weights);
+  Weights = Weights/(4*pi);
 
   Orientations = [phi;theta];
 else
