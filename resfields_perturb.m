@@ -396,8 +396,8 @@ else
   % Widths
   %-------------------------------------------------------------------
   if any(Sys.HStrain)
-    lw2 = sum(Sys.HStrain.^2*vecs.^2,1);
-    lw = sqrt(lw2)*1e6*planck./geff/bmagn*1e3;
+    lw2 = sum(Sys.HStrain.^2*vecs.^2,1); % MHz^2
+    lw = sqrt(lw2)*1e6*planck./geff/bmagn*1e3; % mT
     Wid = repmat(lw,nNucTrans*2*S,1);
   else
     Wid = 0;
@@ -459,8 +459,6 @@ else
     lw = sqrt(lwD.^2+lwE.^2);
     Wid_D = repmat(lw,nNucTrans,1);
     Wid = Sqrt(Wid_D.^2 + Wid.^2);
-  else
-    Wid = [];
   end
   
   % Transitions
