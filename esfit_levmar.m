@@ -46,25 +46,29 @@
 % successive updating of Jacobian approximation. Search range
 % bounded to -1...+1.
 
-function  [x,info] = esfit_levmar(funfcn, x0, Opt, varargin)
+function  [x,info] = esfit_levmar(funfcn, x0, FitOpt, varargin)
 
 if (nargin==0), help(mfilename); return; end
 if (nargin<2), error('Need at least 2 arguments!'); end
-if (nargin<3),  Opt = []; end
+if (nargin<3),  FitOpt = []; end
 
 % lambda = starting value of Marquardt parameter
-if ~isfield(Opt,'lambda'), Opt.lambda = 1e-3; end
+if ~isfield(FitOpt,'lambda'), FitOpt.lambda = 1e-3; end
 % termation tolerance for gradient (small gradient stops)
-if ~isfield(Opt,'Gradient'), Opt.Gradient = 1e-4; end
+if ~isfield(FitOpt,'Gradient'), FitOpt.Gradient = 1e-4; end
 % termation tolerance for parameter step (small step stops)
-if ~isfield(Opt,'TolStep'), Opt.TolStep = 1e-4; end
+if ~isfield(FitOpt,'TolStep'), FitOpt.TolStep = 1e-4; end
 
 % delta = relative step for difference approximation
-if ~isfield(Opt,'delta'), Opt.delta = 1e-7; end
-delta = Opt.delta;
+if ~isfield(FitOpt,'delta'), FitOpt.delta = 1e-7; end
+delta = FitOpt.delta;
 
-if ~isfield(Opt,'PrintLevel'), Opt.PrintLevel = 1; end
-if ~isfield(Opt,'maxTime'), Opt.maxTime = inf; end
+if ~isfield(FitOpt,'PrintLevel'), FitOpt.PrintLevel = 1; end
+if ~isfield(FitOpt,'maxTime'), FitOpt.maxTime = inf; end
+if ~isfield(FitOpt,'IterationPrintFunction') || ...
+  isempty(FitOpt.IterationPrintFunction)
+  FitOpt.IterationPrintFunction = @(str)str;
+end
 
 startTime = cputime;
 
@@ -114,7 +118,7 @@ if (stop)
 end
 
 %  Finish initialization
-mu = Opt.lambda * max(diag(A)); % initial damping parameter
+mu = FitOpt.lambda * max(diag(A)); % initial damping parameter
 nu = 2;
 
 norm_h = 0;
@@ -127,19 +131,19 @@ while (~stop)
   
   iIteration = iIteration + 1;
   
-  if  (norm_g<=Opt.Gradient), stop = 1; break; end
+  if  (norm_g<=FitOpt.Gradient), stop = 1; break; end
   
   % Levenberg-Marquardt: Compute step and new damping factor
   [h,mu] = ComputeLMStep(A,g,mu);
   norm_h = norm(h);
 
-  if Opt.PrintLevel
+  if FitOpt.PrintLevel
     str = sprintf(' %4d:   %5d  %0.5e    %0.5e    %0.5e',iIteration,nEvals,sqrt(F*2),norm_g,norm_h);
-    Opt.IterationPrintFunction(str);
+    FitOpt.IterationPrintFunction(str);
   end
   
   %if norm_h<=Opt.TolStep, stop = 2; break; end
-  if norm_h<=Opt.TolStep*(Opt.TolStep + norm(x)), stop = 2; break; end
+  if norm_h<=FitOpt.TolStep*(FitOpt.TolStep + norm(x)), stop = 2; break; end
 
   xnew = x + h;
   xnew = min(max(xnew,-1),+1); % apply bounds
@@ -189,24 +193,24 @@ while (~stop)
   if  isinf(norm_g) || isinf(norm(A(:),inf)), stop = -5; break; end
   if (UserCommand==1 || UserCommand==4 || UserCommand==99), stop = 4; break; end
   elapsedTime =  (cputime-startTime)/60;
-  if (elapsedTime>Opt.maxTime), stop = 3; break; end
+  if (elapsedTime>FitOpt.maxTime), stop = 3; break; end
 
 end
 
 if (stop<0)
-  Opt.lambda = NaN;
+  FitOpt.lambda = NaN;
 else
-  Opt.lambda = mu/max(diag(A));
+  FitOpt.lambda = mu/max(diag(A));
 end
 
 switch (stop)
-  case 1, msg = sprintf('Gradient below threshold of %g',Opt.Gradient);
-  case 2, msg = sprintf('Parameter step below threshold of %g',Opt.TolStep);
-  case 3, msg = sprintf('Time limit of %f minutes reached',Opt.maxTime);
+  case 1, msg = sprintf('Gradient below threshold of %g',FitOpt.Gradient);
+  case 2, msg = sprintf('Parameter step below threshold of %g',FitOpt.TolStep);
+  case 3, msg = sprintf('Time limit of %f minutes reached',FitOpt.maxTime);
   case 4, msg = sprintf('Stopped by user');
 end
 
-if Opt.PrintLevel>1
+if FitOpt.PrintLevel>1
   fprintf('Terminated: %s\n',msg);
 end
 
@@ -214,7 +218,7 @@ end
 info.F = F;
 info.norm_g = norm_g;
 info.norm_h = norm_h;
-info.lambda = Opt.lambda;
+info.lambda = FitOpt.lambda;
 info.nIter = iIteration-1;
 info.stop = stop;
 info.nEvals = nEvals;

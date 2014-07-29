@@ -653,13 +653,17 @@ else
   NaN_in_Pdat = 0;
 end
 
-if FieldSweep && (Method~=6)
-  LoopingTransitionsPresent = size(unique(Transitions,'rows'),1)<size(Transitions,1);
-  if LoopingTransitionsPresent && PowderSimulation
-    logmsg(0,'** Looping transitions found. Artifacts at coalescence points possible.');
+if FieldSweep
+  if (Method~=6)
+    LoopingTransitionsPresent = size(unique(Transitions,'rows'),1)<size(Transitions,1);
+    if LoopingTransitionsPresent && PowderSimulation
+      logmsg(0,'** Looping transitions found. Artifacts at coalescence points possible.');
+    end
+  else
+    % hybrid method: Transitions contains replicas of core sys transitions
+    LoopingTransitionsPresent = 0;
   end
 else
-  % hybrid method: Transitions contains replicas of core sys transitions
   LoopingTransitionsPresent = 0;
 end
 

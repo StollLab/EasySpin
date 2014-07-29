@@ -132,6 +132,7 @@ end
 % Determine excitation mode
 p_excitationgeometry;
 
+% Temperature, non-equilibrium populations
 if isfield(Exp,'Temperature')
   if numel(Exp.Temperature)~=1
     err = 'Exp.Temperature must be a single number.';

@@ -47,7 +47,9 @@ if ~isfield(FitOpt,'TolFun'), FitOpt.TolFun = 1e-4; end
 if ~isfield(FitOpt,'PrintLevel'), FitOpt.PrintLevel = 1; end
 
 if ~isfield(FitOpt,'IterationPrintFunction') || ...
-  isempty(FitOpt.IterationPrintFunction), FitOpt.IterationPrintFunction = @(str)str; end
+  isempty(FitOpt.IterationPrintFunction)
+  FitOpt.IterationPrintFunction = @(str)str;
+end
 
 %constrain = @(x)sin(x*pi/2); unconstrain = @(x)acos(x)*2/pi;
 constrain = @(x)max(min(x,+1),-1); unconstrain = @(x)x;

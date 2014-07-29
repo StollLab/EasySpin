@@ -185,11 +185,13 @@ if ~isfield(Sys,'singleiso') || (Sys.singleiso==0)
         xlabel('\nu (MHz)');
         ylabel('intensity (arb.u.)');
         title('Spectrum');
-        nuI = larmorfrq(Sys.Nucs,Exp.Field);
-        for k=1:numel(nuI)
-          line([1 1]*abs(nuI(k)),ylim,'Color',[1 1 1]*0.8);
+        if isfield(Sys,'Nucs')
+          nuI = larmorfrq(Sys.Nucs,Exp.Field);
+          for k=1:numel(nuI)
+            line([1 1]*abs(nuI(k)),ylim,'Color',[1 1 1]*0.8);
+          end
+          h = get(gca,'Children');
         end
-        h = get(gca,'Children');
         set(gca,'Children',h(end:-1:1));
         
       else

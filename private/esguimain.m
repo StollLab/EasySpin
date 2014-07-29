@@ -180,6 +180,8 @@ else
 end    
 
 function gui_hFigure = local_openfig(name, singleton)
+gui_OldDefaultWindowStyle = get(0,'DefaultFigureWindowStyle');
+set(0,'DefaultFigureWindowStyle','normal');
 try
     gui_hFigure = openfig(name, singleton, 'auto');
 catch
@@ -191,3 +193,4 @@ catch
     gui_hFigure = openfig(name, singleton);
     set(0,'defaultFigureVisible',gui_OldDefaultVisible);
 end
+set(0,'DefaultFigureWindowStyle',gui_OldDefaultWindowStyle);
