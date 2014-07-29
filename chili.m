@@ -254,8 +254,8 @@ else
       maxB = planck*(Exp.mwFreq*1e9 + hf)/bmagn/gmin/1e-3;
       Exp.CenterSweep = [(maxB+minB)/2, Stretch*max(maxB-minB,5)];
     else
-      minE = bmagn*Exp.Field*1e-3*gmin/planck - hf/1e9; % GHz
-      maxE = bmagn*Exp.Field*1e-3*gmax/planck + hf/1e9; % GHz
+      minE = bmagn*Exp.Field*1e-3*gmin/planck - hf; % Hz
+      maxE = bmagn*Exp.Field*1e-3*gmax/planck + hf; % Hz
       Exp.CenterSweep = [(maxE+minE)/2, Stretch*max(maxE-minE,10e6)]/1e9; % GHz
     end
   end
