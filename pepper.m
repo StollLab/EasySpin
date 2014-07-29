@@ -22,9 +22,8 @@
 %       nPoints       number of points
 %       Temperature   temperature of the sample, by default off (NaN)
 %       Harmonic      detection harmonic: 0, 1 (default), 2
-%       Mode          resonator mode: 'perpendicular' (default), 'parallel', [k_tilt alpah_pol]
+%       Mode          resonator mode: 'perpendicular' (default), 'parallel', [k_tilt alpha_pol]
 %       Polarization  'linear' (default), 'circular+', 'circular-', 'unpolarized'
-%       Orientations  orientations for single-crystal simulations
 %       Ordering      coefficient for non-isotropic orientational distribution
 %   - Opt: computational options
 %       Method        'matrix', 'perturb1', 'perturb2'='perturb'
@@ -176,7 +175,6 @@ if StrainWidths, logmsg(1,'  widths for Gaussian strains given'); end
 % Experiment structure, contains experimental settings
 %=======================================================================
 
-
 % Documented fields and their defaults (mandatory parameters are set to NaN)
 %DefaultExp.mwFreq = NaN; % for field sweeps
 %DefaultExp.Field = NaN; % for frequencys sweeps
@@ -186,11 +184,13 @@ DefaultExp.nPoints = 1024;
 DefaultExp.Temperature = NaN;
 DefaultExp.Harmonic = NaN;
 DefaultExp.Mode = '';
-DefaultExp.Orientations = [];
 DefaultExp.Ordering = [];
-DefaultExp.CrystalSymmetry = '';
 DefaultExp.ModAmp = 0;
 DefaultExp.mwPhase = 0;
+
+DefaultExp.CrystalOrientation = [];
+DefaultExp.CrystalSymmetry = '';
+DefaultExp.MolFrame = [];
 
 Exp = adddefaults(Exp,DefaultExp);
 
@@ -336,30 +336,18 @@ if (Exp.ModAmp>0)
   end
 end
 
-% Crystals vs. powder
-if isfield(Exp,'Orientation')
-  disp('Exp.Orientation given, did you mean Exp.Orientations?');
+% Powder vs. crystal simulation
+if isfield(Exp,'Orientation') || isfield(Exp,'Orientations')
+  error('Exp.Orientation and Exp.Orientations are obsolete (as of EasySpin 5), use Exp.CrystalOrientation instead.');
 end
-PowderSimulation = isempty(Exp.Orientations);
-if ~PowderSimulation
-  % Make sure Exp.Orientations is ok
-  [n1,n2] = size(Exp.Orientations);
-  % Transpose array if nx2 or nx3 array is given with n==1 or n>3
-  if ((n2==2)||(n2==3)) && (n1~=2) && (n1~=3)
-    Exp.Orientations = Exp.Orientations.';
-  end
-  [nAngles,nOrientations] = size(Exp.Orientations);
-  if (nAngles<2) || (nAngles>3)
-    error('Exp.Orientations array has %d rows instead of 2 or 3.',nAngles);
-  end
-else
-  logmsg(1,'  powder simulation: ignoring space group in Exp.CrystalSymmetry.');
-  Exp.CrystalSymmetry = [];
-end
-Exp.PowderSimulation = PowderSimulation;
+PowderSimulation = isempty(Exp.CrystalOrientation);
+Exp.PowderSimulation = PowderSimulation; % for communication with resf*
 
 % Partial ordering
 if ~isempty(Exp.Ordering)
+  if ~PowderSimulation
+    error('Partial ordering (Exp.Ordering) can only be used in a powder simulation.');
+  end
   if isnumeric(Exp.Ordering) && (numel(Exp.Ordering)==1) && isreal(Exp.Ordering)
     UserSuppliedOrderingFcn = 0;
     logmsg(1,'  partial order (built-in function, lambda = %g)',Exp.Ordering);
@@ -371,9 +359,6 @@ if ~isempty(Exp.Ordering)
   end
   if any(Sys.gStrain) || any(Sys.AStrain) || any(Sys.DStrain) || any(Sys.HStrain)
     error('Exp.Ordering and g/A/D/H strains cannot be used simultaneously.');
-  end
-  if ~Exp.PowderSimulation
-    error('Exp.Ordering can only be used in a powder simulation.');
   end
 end
 
@@ -528,10 +513,9 @@ if FieldSweep
       StrainWidths = 0;
     end
     
-    Transitions = NaN;
     Exp1 = Exp;
     Exp1.Range = [0 1e8];
-    Exp1.Orientations = [phi;theta;chi];
+    Opt.peppercall = true;
     
     logmsg(2,'  -entering eigfields----------------------------------');
     [Pdat,Idat] = eigfields(Sys,Exp1,Opt);
@@ -564,10 +548,8 @@ if FieldSweep
     Exp1.SearchRange = Exp1.Range + 0.2*diff(Exp.Range)*[-1 1];
     Exp1.SearchRange(Exp1.SearchRange<0) = 0;
     
-    Exp1.Orientations = [phi;theta;chi];
     Exp1.AccumWeights = Weights;
-    
-    Opt.peppercall = 1;
+    Opt.peppercall = true;
     
     logmsg(2,'  -entering resfields*----------------------------------');
     switch Method
@@ -581,9 +563,7 @@ if FieldSweep
         [Pdat,Idat,Wdat,Transitions,spec] = resfields_perturb(Sys,Exp1,Opt);
     end
     logmsg(2,'  -exiting resfields*-----------------------------------');
-    
-    nTransitions = size(Transitions,1);
-    
+        
     if isempty(Wdat)
       AnisotropicWidths = 0;
     else
@@ -603,10 +583,8 @@ else
   end
   
   Exp1 = Exp;  
-  Exp1.Orientations = [phi;theta;chi];
   Exp1.AccumWeights = Weights;
-  
-  Opt.peppercall = 1;
+  Opt.peppercall = true;
   
   logmsg(2,'  -entering resfreqs*----------------------------------');
   switch Method
@@ -623,8 +601,6 @@ else
   Pdat = Pdat/1e3; % MHz -> GHz
   Wdat = Wdat/1e3; % MHz -> GHz
     
-  nTransitions = size(Transitions,1);
-  
   if isempty(Wdat)
     AnisotropicWidths = 0;
   else
@@ -638,9 +614,9 @@ if (~AnisotropicIntensities)
   if ~UseEigenFields, Idat = mean(Idat(:))*ones(size(Idat)); end
 end
 
+nTransitions = size(Transitions,1);
 if (~PowderSimulation) && ~isempty(Exp.CrystalSymmetry)
-  nNewOrientations = size(Pdat,2);
-  nSites = nNewOrientations/nOrientations;
+  nSites = numel(Pdat)/nTransitions/nOrientations;
 else
   nSites = 1;
 end
@@ -686,7 +662,6 @@ else
   % hybrid method: Transitions contains replicas of core sys transitions
   LoopingTransitionsPresent = 0;
 end
-
 
 
 % Unclear which of the following versions is implemented in cw EPR spectrometers.

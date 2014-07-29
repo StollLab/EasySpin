@@ -173,7 +173,7 @@ switch LaueClass
     R{1} = E;
     R{2} = C2z;
     R{3} = C4zp;
-    R{6} = C4zm;
+    R{4} = C4zm;
     R{5} = C2x;
     R{6} = C2y;
     R{7} = C2d1;

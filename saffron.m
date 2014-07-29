@@ -274,16 +274,39 @@ end
 %===================================================================
 % Experiment structure
 %===================================================================
+DefaultExp.Temperature = [];
+DefaultExp.Ordering = [];
+
+DefaultExp.CrystalOrientation = [];
+DefaultExp.CrystalSymmetry = '';
+DefaultExp.MolFrame = [];
+
+Exp = adddefaults(Exp,DefaultExp);
 
 % Field
 if ~isfield(Exp,'Field')
   error('Exp.Field is missing. Give a magnetic field in mT.');
 end
 
-% Temperature is not supported
-if ~isfield(Exp,'Temperature'), Exp.Temperature = []; end
+% Temperature
 if ~isempty(Exp.Temperature)
   error('Exp.Temperature is not supported for pulse EPR simulations.');
+end
+
+% Powder vs. crystal simulation
+if isfield(Exp,'Orientation') || isfield(Exp,'Orientations')
+  error('Exp.Orientation and Exp.Orientations are obsolete (as of EasySpin 5), use Exp.CrystalOrientation instead.');
+end
+PowderSimulation = isempty(Exp.CrystalOrientation);
+Exp.PowderSimulation = PowderSimulation;
+
+% Partial ordering
+if ~isempty(Exp.Ordering)
+  if ~PowderSimulation
+    error('Partial ordering (Exp.Ordering) can only be used in a powder simulation.');
+  else
+    error('Partial ordering (Exp.Ordering) is not implemented in saffron.');
+  end
 end
 
 % T1, T2
@@ -644,24 +667,6 @@ if PredefinedExperiment
   end
 end
 
-% Orientations: crystal if given and not empty, powder if absent/empty
-if ~isfield(Exp,'Orientations'), Exp.Orientations = []; end
-if isfield(Exp,'Orientation')
-  disp('Exp.Orientation given, did you mean Exp.Orientations?');
-end
-PowderSimulation = isempty(Exp.Orientations);
-if (~PowderSimulation)
-  % Make sure Exp.Orientations is ok
-  [n1,n2] = size(Exp.Orientations);
-  % Transpose array if nx2 or nx3 array is given with n==1 or n>3
-  if ((n2==2)||(n2==3)) && (n1~=2) && (n1~=3)
-    Exp.Orientations = Exp.Orientations.';
-  end
-  [nAngles,nOrientations] = size(Exp.Orientations);
-  if (nAngles<2) || (nAngles>3)
-    error('Exp.Orientations array has %d rows instead of 2 or 3.',nAngles);
-  end
-end
 
 % Pick nuclei to be included in the computation
 shfNuclei = 1:Sys.nNuclei;
@@ -773,111 +778,9 @@ if ~isfield(Opt,'TimeDomain'), Opt.TimeDomain = 0; end
 %==========================================================================
 % Symmetry determination and orientational grid.
 %==========================================================================
-logmsg(1,'-orientations------------------------------------------');
+p_symandgrid;
 
-if (PowderSimulation)
-  
-  logmsg(1,'  powder sample (randomly oriented centers)');
-  
-  if isempty(Opt.Symmetry)
-    
-    msg = 'automatic determination of symmetry group and frame';
-    [Opt.Symmetry,Opt.SymmFrame] = symm(Sys);
-    if isfield(Opt,'ThetaRange')
-      if ~isempty(Opt.ThetaRange)
-        Opt.Symmetry = 'Ci';
-        Opt.SymmFrame = eye(3);
-      end
-    end
-
-  else
-
-    msg = 'user-specified symmetry group';
-    if isempty(Opt.SymmFrame)
-      Opt.SymmFrame = eye(3);
-      msg = [msg ', fixed symmetry frame'];
-    else
-      msg = [msg ' and symmetry frame'];
-    end
-  end
-  logmsg(1,'  %s',msg);
-
-  TiltedFrame = (sum(diag(Opt.SymmFrame))~=3);
-  
-  
-  % Convert symmetry to octant number.
-  [maxPhi,openPhi,nOctants] = symparam(Opt.Symmetry);
-  openPhi = 0;
-  %InterpParams = [Opt.nKnots(1),openPhi,nOctants];
-  
-  
-  % Display symmetry group and frame.
-  if (TiltedFrame), msgg = 'tilted'; else msgg = 'non-tilted'; end
-  logmsg(1,'  %s, %s frame',Opt.Symmetry,msgg);
-  if (TiltedFrame)
-    str = '  symmetry frame orientation in reference frame (Euler angles, deg):\n    [%s]';
-    logmsg(1,str,sprintf('%0.3f ',eulang(Opt.SymmFrame,1)*180/pi));
-  end
-  
-  % Get orientations for the knots, molecular frame.
-  [Vecs,Weights] = sphgrid(Opt.Symmetry,Opt.nKnots(1),'cf');
-  
-  % Transform vector to g frame representation and convert to polar angles.
-  [phi,theta] = vec2ang(Opt.SymmFrame*Vecs);
-  clear Vecs;
-  chi = [];
-  nOrientations = numel(phi);
-  
-  % Display information on orientational grid
-  switch (nOctants)
-    case -1, str = '  region: north pole (single point)';
-    case 0,  str = '  region: a quarter of a meridian';
-    otherwise, str = sprintf('  region: %d octant(s) of the upper hemisphere',nOctants);
-  end
-  logmsg(1,str);
-  logmsg(1,'  %d orientations (%d knots)',nOrientations,Opt.nKnots(1));
-  
-  % Weights = Weights/sum(Weights);
-  Weights = Weights/(4*pi);
-
-  Orientations = [phi;theta];
-else
-  Orientations = Exp.Orientations;
-  nOrientations = size(Exp.Orientations,2);
-  Weights = ones(1,nOrientations)/nOrientations;
-end
-
-nAngles = size(Orientations,1);
-switch nAngles
- case 2,
-  Orientations(3,end) = 0; % Entire chi column is set to 0.
- case 3,
- otherwise
-  error(sprintf('Orientations array has %d rows instead of 2 or 3.',nAngles));
-end
-
-if ~isfield(Exp,'CrystalSymmetry'), Exp.CrystalSymmetry = ''; end
-
-% Add symmetry-related sites if space group symmetry is given
-if ~isempty(Exp.CrystalSymmetry)
-  R = sitetransforms(Exp.CrystalSymmetry);
-  nSites  = numel(R);
-  allOrientations = zeros(nOrientations*nSites,3);
-  idx = 1;
-  for iOri = 1:nOrientations
-    xyz0 = erot(Orientations(:,iOri)).'; % xL, yL, zL along columns
-    for iSite = 1:nSites
-      xyz = R{iSite}*xyz0; % active rotation
-      allOrientations(idx,:) = eulang(xyz.',1);
-      idx = idx + 1;
-    end
-  end
-  Orientations = allOrientations.';
-  [nAngles,nOrientations] = size(Orientations);
-else
-  nSites = 1;
-end
-
+p_crystalorientations;
 
 logmsg(1,'-Hamiltonians------------------------------------------');
 
@@ -1012,7 +915,7 @@ if OrientationPreSelection
   logmsg(1,'  excitation width (MHz): %g',Exp.ExciteWidth);
   logmsg(1,'  HStrain (MHz): %g %g %g',Sys.HStrain(1),Sys.HStrain(2),Sys.HStrain(3));
   % g values for all orientations
-  zLab = ang2vec(Orientations(1,:),Orientations(2,:));
+  zLab = ang2vec(Orientations(:,1),Orientations(:,2));
   geff = diag(Sys.g)*zLab;
   geff = sqrt(sum(geff.^2,1));
   % resonance frequencies for all orientations
@@ -1110,17 +1013,13 @@ if (TwoElectronManifolds)
 end
 
 nSkippedOrientations = 0;
-zLab_all = ang2vec(Orientations(1,:),Orientations(2,:));
 for iOri = 1:nOrientations
   
   
   % Get magnetic field orientation
   %------------------------------------------------------------------
-  %zLab = ang2vec(Orientations(1,iOri),Orientations(2,iOri));
-  zLab = zLab_all(:,iOri);
-  yLab = [-zLab(2) zLab(1) 0];
-  if norm(yLab)<eps, yLab = [0 1 0]; else yLab = yLab/norm(yLab); end
-  %xLab = cross(yLab,zLab);
+  [xLab_M,yLab_M,zLab_M] = erot(Orientations(iOri,:));
+  % xLab_M, yLab_M, zLab_M represented in the molecular frame
 
   % Compute electronic Hamiltonian, energies and <S>
   %------------------------------------------------------------------
@@ -1136,7 +1035,7 @@ for iOri = 1:nOrientations
       continue
     end
     
-    quantizationAxis = g.'*zLab;
+    quantizationAxis = g.'*zLab_M(:);
     quantizationAxis = quantizationAxis/norm(quantizationAxis);
     Manifold(1).S = -0.5*quantizationAxis;
     Manifold(2).S = +0.5*quantizationAxis;
@@ -1150,9 +1049,9 @@ for iOri = 1:nOrientations
     % automatic transition selection
     %------------------------------------------------------------
     if isempty(Opt.Transitions)
-      H = F + Exp.Field*(zLab(1)*Gx + zLab(2)*Gy + zLab(3)*Gz);
+      H = F + Exp.Field*(zLab_M(1)*Gx + zLab_M(2)*Gy + zLab_M(3)*Gz);
       [eV,eE] = eig(H);
-      SyLab = yLab(1)*Sx + yLab(2)*Sy + yLab(3)*Sz;
+      SyLab = yLab_M(1)*Sx + yLab_M(2)*Sy + yLab_M(3)*Sz;
       SyLab = abs(eV'*SyLab*eV);
       maxSyy = max(SyLab(:));
       
@@ -1196,7 +1095,7 @@ for iOri = 1:nOrientations
   % Compute and diagonalize nuclear Hamiltonians
   %----------------------------------------------------------------------
   for iSpace = 1:nSubSpaces
-    Hnuc = Exp.Field*(zLab(1)*Space(iSpace).Hnz1 + zLab(2)*Space(iSpace).Hnz2 + zLab(3)*Space(iSpace).Hnz3) + Space(iSpace).Hnq;
+    Hnuc = Exp.Field*(zLab_M(1)*Space(iSpace).Hnz1 + zLab_M(2)*Space(iSpace).Hnz2 + zLab_M(3)*Space(iSpace).Hnz3) + Space(iSpace).Hnq;
     for iM = ManifoldsInvolved
       S = Manifold(iM).S;
       H = Hnuc + S(1)*Space(iSpace).Hhf1 + ...

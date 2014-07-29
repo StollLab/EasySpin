@@ -1,21 +1,18 @@
 % endorfrq  Compute ENDOR frequencies and intensities 
 %
-%    Pos = endorfrq(Sys,Par)
-%    Pos = endorfrq(Sys,Par,Opt)
+%    Pos = endorfrq(Sys,Exp)
+%    Pos = endorfrq(Sys,Exp,Opt)
 %    [Pos,Int] = endorfrq(...)
 %    [Pos,Int,Tra] = endorfrq(...)
 %
 %    Sys:  spin system structure
 %
-%    Par: parameter structure
+%    Exp: experimental parameter structure
 %      mwFreq: spectrometer frequency [GHz]
 %      Field:  magnetic field [mT]
 %      Temperature: in K (optional, by default off (NaN))
 %      ExciteWidth: FWHM of excitation [MHz] (optional, default inf)
 %      Range: frequency range [MHz] (optional, default [])
-%      Ori: 2xn or 3xn array of Euler angles
-%        [phi;theta] or [phi;theta;chi]. If chi
-%        is omitted, intensity is integrated over chi.
 %
 %    Opt: computational options structure
 %      Verbosity: log level (0, 1 or 2)
@@ -27,7 +24,7 @@
 %
 %    See the manual for a detailed description of the arguments.
 
-function varargout = endorfrq(Sys,Par,Opt)
+function varargout = endorfrq(Sys,Exp,Opt)
 
 if (nargin==0), help(mfilename); return; end
 
@@ -39,7 +36,7 @@ if (nargout>4), error('Too many output arguments.'); end
 if (nargin<3), Opt = struct('unused',NaN); end
 if isempty(Opt), Opt = struct('unused',NaN); end
 
-if ~(isstruct(Sys) && isstruct(Par) && isstruct(Opt))
+if ~(isstruct(Sys) && isstruct(Exp) && isstruct(Opt))
   error('Sys, Par and Opt must be structures!');
 end
 
@@ -67,21 +64,24 @@ Sys = adddefaults(Sys,DefaultSys);
 
 % Process parameters
 %---------------------------------------------------------------------
-DefaultPar.mwFreq = NaN;
-DefaultPar.Temperature = NaN;
-DefaultPar.ExciteWidth = inf;
-DefaultPar.Field = NaN;
-DefaultPar.CrystalSymmetry = '';
+DefaultExp.mwFreq = NaN;
+DefaultExp.Temperature = NaN;
+DefaultExp.ExciteWidth = inf;
+DefaultExp.Field = NaN;
 
-DefaultPar.Range = []; % for compatibility, internal
+DefaultExp.CrystalOrientation = [];
+DefaultExp.CrystalSymmetry = '';
+DefaultExp.MolFrame = [];
 
-if ~isfield(Par,'Field'), error('Par.Field is missing.'); end
+DefaultExp.Range = []; % for compatibility, internal
 
-Par = adddefaults(Par,DefaultPar);
+if ~isfield(Exp,'Field'), error('Exp.Field is missing.'); end
 
-mwFreq = Par.mwFreq*1e3; % GHz -> MHz
+Exp = adddefaults(Exp,DefaultExp);
 
-nPop = numel(Par.Temperature);
+mwFreq = Exp.mwFreq*1e3; % GHz -> MHz
+
+nPop = numel(Exp.Temperature);
 if (nPop>1)
   %error('Non-equilibrium populations not supported.');
   ComputeBoltzmann = 0;
@@ -91,65 +91,21 @@ if (nPop>1)
     error('Params.Temperature must either be a scalar or a %d-vector',nElectronStates);
   end
 else
-  if isinf(Par.Temperature)
+  if isinf(Exp.Temperature)
     error('If given, Params.Temperature must be a finite value.');
   end
   ComputeNonEquiPops = 0;
-  ComputeBoltzmann = ~isnan(Par.Temperature);
+  ComputeBoltzmann = ~isnan(Exp.Temperature);
 end
 
-if isfield(Par,'ExciteWidth')
-  if ~isfield(Par,'mwFreq'), error('Par.mwFreq is missing.'); end
-end
-if isfield(Par,'Orientation')
-  disp('Par.Orientation given, did you mean Par.Orientations?');
+if isfield(Exp,'ExciteWidth')
+  if ~isfield(Exp,'mwFreq'), error('Par.mwFreq is missing.'); end
 end
 
-if ~isfield(Par,'Orientations')
-  logmsg(0,'Par.Orientations is missing, assuming [0;0]');
-  Par.Orientations = [0;0];
-end
-Orientations = Par.Orientations;
 
-% Process orientations.
-%-----------------------------------------------------------------------
-% 2xn or 3xn array of angles (in radian units) [phi;theta;chi].
-% If chi is missing, intensities are integrated over chi (plane perpendicular
-% to B0) if in perpendicular mode.
-[n1,n2] = size(Orientations);
-if ((n2==2)||(n2==3)) && (n1~=2) && (n1~=3)
-  Orientations = Orientations.';
-end
-[nAngles,nOrientations] = size(Orientations);
-switch nAngles,
-  case 2,
-    AverageOverChi = true;
-    Orientations(3,end) = 0; % Entire chi row is set to zero.
-  case 3,
-    AverageOverChi = false;
-  otherwise
-    error('Par.Orientations array has %d rows. It should have 2 or 3.',nAngles);
-end
-
-% Add symmetry-related sites if space group symmetry is given
-if ~isempty(Par.CrystalSymmetry)
-  R = sitetransforms(Par.CrystalSymmetry);
-  nSites  = numel(R);
-  allOrientations = zeros(nOrientations*nSites,3);
-  idx = 1;
-  for iOri = 1:nOrientations
-    xyz0 = erot(Orientations(:,iOri)).'; % xL, yL, zL along columns
-    for iSite = 1:nSites
-      xyz = R{iSite}*xyz0; % active rotation
-      allOrientations(idx,:) = eulang(xyz.',1);
-      idx = idx + 1;
-    end
-  end
-  Orientations = allOrientations.';
-  [nAngles,nOrientations] = size(Orientations);
-else
-  nSites = 1;
-end
+% Process crystal orientations, crystal symmetry, and frame transforms
+% This sets Orientations, nOrientations, nSites and AverageOverChi
+p_crystalorientations;
 
 %-----------------------------------------------------------------------
 
@@ -215,7 +171,7 @@ end
 
 % Population vector
 if (ComputeNonEquiPops)
-  ZeroFieldPops = Par.Temperature(:);
+  ZeroFieldPops = Exp.Temperature(:);
   ZeroFieldPops = ZeroFieldPops/sum(ZeroFieldPops);
   ZeroFieldPops = kron(ZeroFieldPops,ones(prod(Sys.I*2+1),1));
 end
@@ -254,10 +210,10 @@ ComputeIntensities = (nargout>1) & (IntensitySwitch);
 % need eigenvectors.
 ComputeVectors = ComputeIntensities;
 
-OrientationSelection = isfinite(Par.ExciteWidth) & (Par.ExciteWidth>0);
+OrientationSelection = isfinite(Exp.ExciteWidth) & (Exp.ExciteWidth>0);
 
 if OrientationSelection
-  logmsg(2,'  including excitation width %g MHz',Par.ExciteWidth);
+  logmsg(2,'  including excitation width %g MHz',Exp.ExciteWidth);
 end
 
 nStates = Sys.nStates; % state space dimension
@@ -296,7 +252,7 @@ if isempty(Opt.Transitions)
   for iOri = 1:length(theta)
     
     % solve eigenproblem
-    [Vs,E] = eig(F + Par.Field*...
+    [Vs,E] = eig(F + Exp.Field*...
       (st(iOri)*(cp(iOri)*GxM + sp(iOri)*GyM) + ct(iOri)*GzM));
     E = diag(E);
     
@@ -318,8 +274,8 @@ if isempty(Opt.Transitions)
   clear Vs E EE sGpM sGxM sGyM sGzM st ct sp cp TRWeights idx;
   
   % Remove transitions completely out of range.
-  if ~isempty(Par.Range) & ~isnan(Par.Range),
-    TransitionRates((maxE<Par.Range(1))|(minE>Par.Range(2))) = 0;
+  if ~isempty(Exp.Range) & ~isnan(Exp.Range),
+    TransitionRates((maxE<Exp.Range(1))|(minE>Exp.Range(2))) = 0;
   end
   clear maxE minE;
   
@@ -415,12 +371,12 @@ if (ComputeIntensities)
     % rate computation
     [ExM,EyM,EzM] = zeeman(Sys,1);
     % pre-square line width
-    lwExcite2 = Par.ExciteWidth^2;
+    lwExcite2 = Exp.ExciteWidth^2;
   end
   
   % Prefactor used for computing the Boltzmann population distribution.
   if (ComputeBoltzmann)
-    BoltzmannPreFactor = -1e6*planck/boltzm/Par.Temperature;
+    BoltzmannPreFactor = -1e6*planck/boltzm/Exp.Temperature;
   end
 end
 
@@ -467,7 +423,7 @@ for iOri = 1:nOrientations
   end
   
   % Lab frame axes in molecular frame representation.
-  [xLab,yLab,zLab] = erot(Orientations(:,iOri));
+  [xLab,yLab,zLab] = erot(Orientations(iOri,:));
   
   %-----------------------------------------------------------------------
   % Orientation pre-selection
@@ -485,7 +441,7 @@ for iOri = 1:nOrientations
   
   
   % Compute eigenstate energies and vectors.
-  H = F + Par.Field*(zLab(1)*GxM + zLab(2)*GyM + zLab(3)*GzM);
+  H = F + Exp.Field*(zLab(1)*GxM + zLab(2)*GyM + zLab(3)*GzM);
   if (ComputeVectors)
     [Vs,E0] = eig(H);
     E0 = sort(diag(E0));
@@ -518,10 +474,10 @@ for iOri = 1:nOrientations
     end
     
     % Pulse ENDOR: include rf flip angle
-    if ~isfield(Par,'rf'), Par.rf = 0; end
-    pulseENDOR = Par.rf>0;
+    if ~isfield(Exp,'rf'), Exp.rf = 0; end
+    pulseENDOR = Exp.rf>0;
     if pulseENDOR
-      EndorIntensity = (1 - cos(sqrt(EndorIntensity)*Par.rf))/2;
+      EndorIntensity = (1 - cos(sqrt(EndorIntensity)*Exp.rf))/2;
     end
     
     % Compute excitation factor
@@ -601,7 +557,7 @@ end
 Info.Selectivity = Selectivity;
 
 % Reshape arrays in the case of crystals with site splitting
-if (nSites>1) && ~isfield(Opt,'saltcall');
+if (nSites>1) && ~isfield(Opt,'saltcall')
   siz = [nTransitions*nSites, numel(Pdat)/nTransitions/nSites];
   Pdat = reshape(Pdat,siz);
   if ~isempty(Idat), Idat = reshape(Idat,siz); end

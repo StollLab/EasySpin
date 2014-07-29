@@ -54,10 +54,10 @@ if (PowderSimulation)
   % Get orientations for the knots, molecular frame.
   [Vecs,Weights] = sphgrid(Opt.Symmetry,Opt.nKnots(1),'cf');
   
-  % Transform vector to g frame representation and convert to polar angles.
+  % Transform vector to reference frame representation and convert to polar angles.
   [phi,theta] = vec2ang(Opt.SymmFrame*Vecs);
   clear Vecs;
-  chi = [];
+  Exp.CrystalOrientation = [phi;theta].';
   nOrientations = numel(phi);
   
   % Display information on orientational grid
@@ -71,23 +71,17 @@ if (PowderSimulation)
   
 else % no powder simulation
   
-  phi = Exp.Orientations(1,:);
-  theta = Exp.Orientations(2,:);
-  if (size(Exp.Orientations,1)==3)
-    chi = Exp.Orientations(3,:);
-  else
-    chi = [];
-  end
+  nOrientations = size(Exp.CrystalOrientation,1);
 
   openPhi = 1;
-  nOrientations = numel(phi);
   nOctants = -2;
+  
   Weights = ones(1,nOrientations)*4*pi; % for consistency with powder sims (factor from integral over phi and theta)
   
   if (nOrientations==1)
-    logmsg(1,'  single-crystal sample');
+    logmsg(1,'  crystal sample');
   else
-    logmsg(1,'  single-crystal sample with %d user-specified orientations',nOrientations);
+    logmsg(1,'  crystal sample with %d user-specified orientations',nOrientations);
   end
   
 end

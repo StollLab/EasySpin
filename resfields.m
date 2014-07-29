@@ -1,7 +1,7 @@
 % resfields  Compute resonance fields for cw EPR 
 %
-%   Pos = resfields(Sys,Par)
-%   Pos = resfields(Sys,Par,Opt)
+%   Pos = resfields(Sys,Exp)
+%   Pos = resfields(Sys,Exp,Opt)
 %   [Pos,Int] = resfields(...)
 %   [Pos,Int,Wid] = resfields(...)
 %   [Pos,Int,Wid,Trans] = resfields(...)
@@ -10,15 +10,12 @@
 %
 %   Input:
 %   - Sys:    spin system structure
-%   - Par:    experimental parameter settings
+%   - Exp:    experimental parameter settings
 %             mwFreq:   in GHz
 %             Range:    [Bmin Bmax] in mT
 %             Temperature: in K, by default off (NaN)
-%             Mode          resonator mode: 'perpendicular' (default), 'parallel', [k_tilt alpah_pol]
+%             Mode          resonator mode: 'perpendicular' (default), 'parallel', [k_tilt alpha_pol]
 %             Polarization:  'linear' (default), 'circular+', 'circular-', 'unpolarized'
-%             Orientations:  orientations of the spin system in the spectrometer
-%                   2xn or 3xn array containing [phi;theta{;chi}] in
-%                   radians
 %   - Opt:    additonal computational options
 %             Transitions, Threshold, etc
 %
@@ -108,23 +105,20 @@ if any(System.DStrain(:)) && any(System.Dpa(:))
   error('D strain cannot be used with tilted D tensors.');
 end
 
-% Process Parameters.
+% Process experimental parameters
 %---------------------------------------------------------------------
 DefaultExp.mwFreq = NaN;
 DefaultExp.Range = NaN;
-DefaultExp.Orientations = NaN;
 DefaultExp.CenterSweep = NaN;
 DefaultExp.Temperature = NaN;
 DefaultExp.Mode = '';
 DefaultExp.Polarization = '';
+
+DefaultExp.CrystalOrientation = [];
 DefaultExp.CrystalSymmetry = '';
+DefaultExp.MolFrame = [];
 
 Exp = adddefaults(Exp,DefaultExp);
-
-if isnan(Exp.Orientations)
-  Exp.Orientations = [0;0];
-  logmsg(0,'Exp.Orientations is missing, assuming [0;0].');
-end
 
 if isnan(Exp.mwFreq), error('Experiment.mwFreq is missing!'); end
 mwFreq = Exp.mwFreq*1e3; % GHz -> MHz
@@ -164,51 +158,9 @@ else
   ComputeBoltzmannPopulations = ~isnan(Exp.Temperature);
 end
 
-
-% Orientations
-%-----------------------------------------------------------------------
-% Contains a 2xn or 3xn array of angles (in radian units). These specify
-% the relative orientation between molecular and laboratory frame
-% [phi;theta;chi]. If the third angle is missing, an integration of
-% the signal over the third angle is done (plane average: same B0
-% direction, but B1 integrated over the plane if in perpendicular
-% mode). This only affects intensity computations in perpendicular
-% mode.
-Orientations = Exp.Orientations;
-[nrows,n2] = size(Orientations);
-if ((n2==2)||(n2==3)) && (nrows~=2) && (nrows~=3)
-  Orientations = Orientations.';
-end
-[nAngles,nOrientations] = size(Orientations);
-switch nAngles
-  case 2
-    AverageOverChi = true;
-    Orientations(3,end) = 0; % Entire chi row is set to 0.
-  case 3
-    AverageOverChi = false;
-  otherwise
-    error('Orientations array has %d rows instead of 2 or 3.',nAngles);
-end
-
-% Add symmetry-related sites if space group symmetry is given
-if ~isempty(Exp.CrystalSymmetry)
-  R = sitetransforms(Exp.CrystalSymmetry);
-  nSites  = numel(R);
-  allOrientations = zeros(nOrientations*nSites,3);
-  idx = 1;
-  for iOri = 1:nOrientations
-    xyz0 = erot(Orientations(:,iOri)).'; % xL, yL, zL along columns
-    for iSite = 1:nSites
-      xyz = R{iSite}*xyz0; % active rotation
-      allOrientations(idx,:) = eulang(xyz.',1);
-      idx = idx + 1;
-    end
-  end
-  Orientations = allOrientations.';
-  [nAngles,nOrientations] = size(Orientations);
-else
-  nSites = 1;
-end
+% Process crystal orientations, crystal symmetry, and frame transforms
+% This sets Orientations, nOrientations, nSites and AverageOverChi
+p_crystalorientations;
 
 % Options parsing and setting.
 %---------------------------------------------------------------------
@@ -229,7 +181,7 @@ changedFields = {'Intensity','Gradient'};
 for iFld = 1:numel(changedFields)
   if isfield(Opt,changedFields{iFld}),
     if ischar(Opt.(changedFields{iFld}))
-      error(sprintf('Options.%s is obsolete. Please remove from code!',changedFields{iFld}));
+      error('Options.%s is obsolete. Please remove from code!',changedFields{iFld});
     end
   end
 end
@@ -517,8 +469,8 @@ else % Automatic pre-selection
       logmsg(2,'  ## (selection threshold %g, %d knots)',Opt.Threshold(1),Opt.nTRKnots);
       [phi,theta,TRWeights] = sphgrid('D2h',Opt.nTRKnots);
     else % single orientation
-      phi = Exp.Orientations(1);
-      theta = Exp.Orientations(2);
+      phi = Orientations(1);
+      theta = Orientations(2);
       TRWeights = 1;
     end
     % Pre-compute trigonometric functions.
@@ -817,18 +769,19 @@ for iOri = 1:nOrientations
   
   % Set up Hamiltonians for 3 lab principle orientations
   %-----------------------------------------------------
-  [xLab,yLab,zLab] = erot(Orientations(:,iOri));
+  [xLab_M,yLab_M,zLab_M] = erot(Orientations(iOri,:));
+  % xLab_M, yLab_M, zLab_M represented in the molecular frame
   
   % z laboratoy axis: external static field
-  kGzL = zLab(1)*kGxM + zLab(2)*kGyM + zLab(3)*kGzM;
+  kGzL = zLab_M(1)*kGxM + zLab_M(2)*kGyM + zLab_M(3)*kGzM;
   % x laboratory axis: mw excitation field
-  kGxL = xLab(1)*kGxM + xLab(2)*kGyM + xLab(3)*kGzM;
+  kGxL = xLab_M(1)*kGxM + xLab_M(2)*kGyM + xLab_M(3)*kGzM;
   % y laboratory axis: needed for gradient calculation
   % and the integration over all mw field orientations.
-  kGyL = yLab(1)*kGxM + yLab(2)*kGyM + yLab(3)*kGzM;
+  kGyL = yLab_M(1)*kGxM + yLab_M(2)*kGyM + yLab_M(3)*kGzM;
 
   if ComputeStrains
-    LineWidthSquared = zLab.^2*HStrain2.';
+    LineWidthSquared = zLab_M.^2*HStrain2.';
   end
   
   %===========================================================
@@ -1046,6 +999,7 @@ for iOri = 1:nOrientations
               TransitionRate = (norm(mu)^2-muk^2)/2;
             end
           elseif (circpolarizedMode)
+            imumu = cross(1i*mu,conj(mu));
             if (AverageOverChi)
               mu0 = abs(nB0.'*mu);
               imumu = 1i*cross(mu,conj(mu));
@@ -1099,7 +1053,7 @@ for iOri = 1:nOrientations
           LineWidth2 = LineWidthSquared;
           % g and A strain
           if usegAStrain
-            LineWidth2 = LineWidth2 + zLab*gAslw2(:,:,iTrans)*zLab.';
+            LineWidth2 = LineWidth2 + zLab_M*gAslw2(:,:,iTrans)*zLab_M.';
           end
           % D strain
           if useDStrain
@@ -1137,7 +1091,7 @@ for iOri = 1:nOrientations
             % Nuclear Zeeman and quadrupole (independent of S)
             if ~Opt.HybridOnlyHFI
               Hc = Hquad{iiNuc} + ResonanceFields(iReson)*...
-                (zLab(1)*Hzeem(iiNuc).x + zLab(2)*Hzeem(iiNuc).y + zLab(3)*Hzeem(iiNuc).z);
+                (zLab_M(1)*Hzeem(iiNuc).x + zLab_M(2)*Hzeem(iiNuc).y + zLab_M(3)*Hzeem(iiNuc).z);
               Hu = Hu + Hc;
               Hv = Hv + Hc;
             end
@@ -1353,6 +1307,8 @@ end
 
 % Reshape arrays in the case of crystals with site splitting
 if (nSites>1) && ~isfield(Opt,'peppercall')
+  % Pdat, Idat, Wdat have size [nTransitions, nOrientations*nSites]
+  % Resize to [nTransitions*nSites, nOrientations]
   siz = [nTransitions*nSites, numel(Pdat)/nTransitions/nSites];
   Pdat = reshape(Pdat,siz);
   if ~isempty(Idat), Idat = reshape(Idat,siz); end

@@ -17,9 +17,6 @@
 %             Temperature: in K, by default off (NaN)
 %             Mode:         resonator mode: 'perpendicular' (default), 'parallel', [k_tilt alpah_pol]
 %             Polarization: 'linear' (default), 'circular+', 'circular-', 'unpolarized'
-%             Orientations:  orientations of the spin system in the spectrometer
-%                   2xn or 3xn array containing [phi;theta{;chi}] in
-%                   radians
 %   - Opt:    additonal computational options
 %             Transitions, Threshold, etc
 %
@@ -113,19 +110,16 @@ end
 %---------------------------------------------------------------------
 DefaultExp.Range = NaN;
 DefaultExp.Field = NaN;
-DefaultExp.Orientations = NaN;
 DefaultExp.CenterSweep = NaN;
 DefaultExp.Temperature = NaN;
 DefaultExp.Mode = 'perpendicular';
 DefaultExp.Polarization = '';
+
+DefaultExp.CrystalOrientation = [];
 DefaultExp.CrystalSymmetry = '';
+DefaultExp.MolFrame = [];
 
 Exp = adddefaults(Exp,DefaultExp);
-
-if isnan(Exp.Orientations)
-  Exp.Orientations = [0;0];
-  logmsg(1,'Exp.Orientations is missing, assuming [0;0].');
-end
 
 if isnan(Exp.Field)
   Exp.Field = 0.0;
@@ -162,50 +156,10 @@ else
 end
 
 
-% Orientations
-%-----------------------------------------------------------------------
-% Contains a 2xn or 3xn array of angles (in radian units). These specify
-% the relative orientation between molecular and laboratory frame
-% [phi;theta;chi]. If the third angle is missing, an integration of
-% the signal over the third angle is done (plane average: same B0
-% direction, but B1 integrated over the plane if in perpendicular
-% mode). This only affects intensity computations in perpendicular
-% mode.
-Orientations = Exp.Orientations;
-[n1,n2] = size(Orientations);
-if ((n2==2)||(n2==3)) && (n1~=2) && (n1~=3)
-  Orientations = Orientations.';
-end
-[nAngles,nOrientations] = size(Orientations);
-switch nAngles
-  case 2
-    AverageOverChi = 1;
-    Orientations(3,end) = 0; % Entire chi row is set to 0.
-  case 3
-    AverageOverChi = 0;
-  otherwise
-    error('Orientations array has %d rows instead of 2 or 3.',nAngles);
-end
+% Process crystal orientations, crystal symmetry, and frame transforms
+% This sets Orientations, nOrientations, nSites and AverageOverChi
+p_crystalorientations;
 
-% Add symmetry-related sites if space group symmetry is given
-if ~isempty(Exp.CrystalSymmetry)
-  R = sitetransforms(Exp.CrystalSymmetry);
-  nSites  = numel(R);
-  allOrientations = zeros(nOrientations*nSites,3);
-  idx = 1;
-  for iOri = 1:nOrientations
-    xyz0 = erot(Orientations(:,iOri)).'; % xL, yL, zL along columns
-    for iSite = 1:nSites
-      xyz = R{iSite}*xyz0; % active rotation
-      allOrientations(idx,:) = eulang(xyz.',1);
-      idx = idx + 1;
-    end
-  end
-  Orientations = allOrientations.';
-  [nAngles,nOrientations] = size(Orientations);
-else
-  nSites = 1;
-end
 
 % Options parsing and setting.
 %---------------------------------------------------------------------
@@ -572,7 +526,7 @@ for iOri = 1:nOrientations
   
   % Set up Hamiltonians for 3 lab principal directions
   %-----------------------------------------------------
-  [xLab,yLab,zLab] = erot(Orientations(:,iOri));
+  [xLab,yLab,zLab] = erot(Orientations(iOri,:));
   
   % z laboratoy axis: external static field
   kGzL = zLab(1)*kGxM + zLab(2)*kGyM + zLab(3)*kGzM;

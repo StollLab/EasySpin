@@ -17,7 +17,6 @@
 %       nPoints       number of points
 %       Temperature   temperature of the sample, by default off (NaN)
 %       ExciteWidth   ENDOR excitation width, FWHM, in MHz
-%       Orientations  orientations for single-crystal simulations
 %       Ordering      coefficient for non-isotropic orientational distribution
 %   - Opt: simulation options
 %       Transitions, Threshold, Symmetry
@@ -163,9 +162,11 @@ DefaultExp.CenterSweep = NaN;
 DefaultExp.nPoints = 1024;
 DefaultExp.Temperature = NaN;
 DefaultExp.ExciteWidth = inf;
-DefaultExp.Orientations = [];
 DefaultExp.Ordering = [];
+
+DefaultExp.CrystalOrientation = [];
 DefaultExp.CrystalSymmetry = '';
+DefaultExp.MolFrame = [];
 
 % Undocumented and unused fields
 DefaultExp.Harmonic = 0;
@@ -217,30 +218,23 @@ if (Exp.mwFreq==0) && (all(diff(Sys.g)==0))
   Exp.mwFreq = mean(Sys.g)*bmagn*Exp.Field*1e-3/planck/1e9;
 end
 
-% Exp.Orientations gives orientations for single-crystal computations
-if isfield(Exp,'Orientation')
-  disp('Exp.Orientation given, did you mean Exp.Orientations?');
+% Powder vs. crystal simulation
+if isfield(Exp,'Orientation') || isfield(Exp,'Orientations')
+  error('Exp.Orientation and Exp.Orientations are obsolete (as of EasySpin 5), use Exp.CrystalOrientation instead.');
 end
-PowderSimulation = isempty(Exp.Orientations);
-if (~PowderSimulation)
-  % Make sure Exp.Orientations is ok
-  [n1,n2] = size(Exp.Orientations);
-  % Transpose array if nx2 or nx3 array is given with n==1 or n>3
-  if ((n2==2)||(n2==3)) && (n1~=2) && (n1~=3)
-    Exp.Orientations = Exp.Orientations.';
-  end
-  [nAngles,nOrientations] = size(Exp.Orientations);
-  if (nAngles<2) || (nAngles>3)
-    error('Exp.Orientations array has %d rows instead of 2 or 3.',nAngles);
-  end
-end
+PowderSimulation = isempty(Exp.CrystalOrientation);
+Exp.PowderSimulation = PowderSimulation;
 
+% Partial ordering
 if ~isempty(Exp.Ordering)
+  if ~PowderSimulation
+    error('Partial ordering (Exp.Ordering) can only be used in a powder simulation.');
+  end
   if isnumeric(Exp.Ordering) && (numel(Exp.Ordering)==1) && isreal(Exp.Ordering)
-    OrderingFcn = 0;
+    UserSuppliedOrderingFcn = 0;
     logmsg(1,'  partial order (built-in function, lambda = %g)',Exp.Ordering);
   elseif isa(Exp.Ordering,'function_handle')
-    OrderingFcn = 1;
+    UserSuppliedOrderingFcn = 1;
     logmsg(1,'  partial order (user-supplied function)');
   else
     error('Exp.Ordering must be a single number or a function handle.');
@@ -433,8 +427,7 @@ logmsg(1,'-resonances--------------------------------------------');
 MethodName = {'  method: matrix diagonalization','  method: perturbation theory'};
 logmsg(1,MethodName{Method});
 logmsg(2,'  -endorfrq start-----------------------------------');
-Opt.saltcall = 1;
-Exp.Orientations = [phi;theta;chi];
+Opt.saltcall = true;
 switch Method
   case 1, [Pdat,Idat,Transitions,Info] = endorfrq(Sys,Exp,Opt);
   case 2, [Pdat,Idat,Transitions,Info] = endorfrq_perturb(Sys,Exp,Opt);
@@ -615,7 +608,7 @@ if (~PowderSimulation)
 
       thisspec = lisum1i(Template.y,Template.x,Template.lw,thisPos,thisInt,thisWid,xAxis);
       thisspec = (2*pi)*thisspec; % for consistency with powder spectra (integral of chi)
-      thisspec = thispec/nSites;
+      thisspec = thisspec/nSites;
       thisspec = Weights(iOri)*thisspec; % for consistency with powder spectra (integral over phi,theta)
 
       if (SummedOutput)
@@ -671,7 +664,7 @@ else
     fSegWeights = -diff(cos(fthe))*4*pi; % sum is 4*pi
     if ~isempty(Exp.Ordering)
       centreTheta = (fthe(1:end-1)+fthe(2:end))/2;
-      if (OrderingFcn)
+      if (UserSuppliedOrderingFcn)
         OrderingWeights = feval(Exp.Ordering,zeros(1,numel(centreTheta)),centreTheta);
         %OrderingWeights = Exp.Ordering(zeros(1,numel(centreTheta)),centreTheta);
         if any(OrderingWeights)<0, error('User-supplied orientation distribution gives negative values!'); end
@@ -698,7 +691,7 @@ else
     [idxTri,Areas] = triangles(nOctants,nfKnots,ang2vec(fphi,fthe));
     if ~isempty(Exp.Ordering)
       centreTheta = mean(fthe(idxTri));
-      if (OrderingFcn)
+      if (UserSuppliedOrderingFcn)
         centrePhi = mean(fphi(idxTri));
         OrderingWeights = feval(Exp.Ordering,centrePhi,centreTheta);
         %OrderingWeights = Exp.Ordering(centrePhi,centreTheta);

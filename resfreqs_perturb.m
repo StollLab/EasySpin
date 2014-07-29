@@ -101,22 +101,19 @@ end
 %------------------------------------------------------
 DefaultExp.Range = NaN;
 DefaultExp.Field = NaN;
-DefaultExp.Orientations = NaN;
 DefaultExp.CenterSweep = NaN;
 DefaultExp.Temperature = NaN;
 DefaultExp.Mode = 'perpendicular';
 DefaultExp.Polarization = '';
+
+DefaultExp.CrystalOrientation = [];
 DefaultExp.CrystalSymmetry = '';
+DefaultExp.MolFrame = [];
 
 Exp = adddefaults(Exp,DefaultExp);
 
 err = '';
 if ~isfield(Exp,'Field'), err = 'Exp.Field is missing.'; end
-
-if isnan(Exp.Orientations)
-  Exp.Orientations = [0;0];
-  logmsg(1,'Exp.Orientations is missing, assuming [0;0].');
-end
 
 p_excitationgeometry;
 
@@ -132,43 +129,9 @@ else
 end
 error(err);
 
-% Orientations
-%------------------------------------------------------
-Orientations = Exp.Orientations;
-[n1,n2] = size(Orientations);
-if ((n2==2)||(n2==3)) && (n1~=2) && (n1~=3)
-  Orientations = Orientations.';
-end
-[nAngles,nOrientations] = size(Orientations);
-switch nAngles
-  case 2
-    AverageOverChi = true;
-    Orientations(3,end) = 0; % Entire chi column is set to 0.
-  case 3
-    AverageOverChi = false;
-  otherwise
-    error('Orientations array has %d rows instead of 2 or 3.',nAngles);
-end
-
-% Add symmetry-related sites if space group symmetry is given
-if ~isempty(Exp.CrystalSymmetry)
-  R = sitetransforms(Exp.CrystalSymmetry);
-  nSites  = numel(R);
-  allOrientations = zeros(nOrientations*nSites,3);
-  idx = 1;
-  for iOri = 1:nOrientations
-    xyz0 = erot(Orientations(:,iOri)).'; % xL, yL, zL along columns
-    for iSite = 1:nSites
-      xyz = R{iSite}*xyz0; % active rotation
-      allOrientations(idx,:) = eulang(xyz.',1);
-      idx = idx + 1;
-    end
-  end
-  Orientations = allOrientations.';
-  [nAngles,nOrientations] = size(Orientations);
-else
-  nSites = 1;
-end
+% Process crystal orientations, crystal symmetry, and frame transforms
+% This sets Orientations, nOrientations, nSites and AverageOverChi
+p_crystalorientations;
 
 
 % Options
@@ -240,7 +203,7 @@ c2 = c.^2;
 
 % Loop over all orientations
 for iOri = nOrientations:-1:1
-  R = erot(Orientations(:,iOri));
+  R = erot(Orientations(iOri,:));
   n0 = R.'*nB0;  % transform to molecular frame representation
   vecs(:,iOri) = n0;
   

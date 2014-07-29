@@ -17,10 +17,6 @@
 %          direction of mirowave field relative to static field
 %        Range - [Bmin Bmax] If set, compute only eigenfields
 %           between Bmin and Bmax. [mT]
-%         Ori: 2xn or 3xn array of orientation angles [radians]
-%            columns contain [phi;theta] or [phi;theta;chi].
-%            If chi is omitted, transition probabilities are
-%            integrated over chi.
 %   - Opt: options structure with fields
 %        Threshold - if set, return only transitions with
 %          relative intensity above Threshold. Works only if
@@ -30,7 +26,7 @@
 %   - B:   cell array of all resonance fields [mT]
 %   - Int: transition intensities [MHz^2/mT^2]
 
-function varargout = eigfields(SpinSystem, Parameters, Options)
+function varargout = eigfields(SpinSystem, Exp, Opt)
 
 if (nargin==0), help(mfilename); return; end
 
@@ -47,23 +43,23 @@ error(chkmlver);
 % Add empty Options structure if not specified.
 switch nargin
 case 3,
-case 2, Options = [];
+case 2, Opt = [];
 otherwise, error('Incorrect number of inputs!');
 end
 
-if isempty(Options)
-  Options = struct('unused',NaN);
+if isempty(Opt)
+  Opt = struct('unused',NaN);
 end
 
-if ~(isstruct(SpinSystem) && isstruct(Parameters) && isstruct(Options))
+if ~(isstruct(SpinSystem) && isstruct(Exp) && isstruct(Opt))
   error('SpinSystem, Parameters and Options must be structures!');
 end
 
 % A global variable sets the level of log display. The global variable
 % is used in logmsg(), which does the log display.
-if ~isfield(Options,'Verbosity'), Options.Verbosity = 0; end
+if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 0; end
 global EasySpinLogLevel;
-EasySpinLogLevel = Options.Verbosity;
+EasySpinLogLevel = Opt.Verbosity;
 
 % Determine whether the caller wants intensities.
 msg = 'positions';
@@ -88,7 +84,7 @@ error(err);
 
 % Process Parameter structure.
 %===================================================================
-if isfield(Parameters,'Detection')
+if isfield(Exp,'Detection')
   error('Exp.Detection is obsolete. Use Exp.Mode instead.');
 end
 
@@ -96,41 +92,34 @@ DefaultParameters.mwFreq = NaN;
 DefaultParameters.Range = [0 realmax];
 DefaultParameters.Mode = 'perpendicular';
 DefaultParameters.Temperature = NaN; % not implemented!!
-DefaultParameters.Orientations = NaN;
 
-Parameters = adddefaults(Parameters,DefaultParameters);
+DefaultParameters.CrystalSymmetry = '';
+DefaultParameters.CrystalOrientation = [];
+DefaultParameters.MolFrame = [];
 
-if isnan(Parameters.mwFreq), error('Parameters.mwFreq missing!'); end
-if isnan(Parameters.Orientations), error('Parameters.Orientations missing.'); end
+Exp = adddefaults(Exp,DefaultParameters);
 
-if (diff(Parameters.Range)<=0) || any(~isfinite(Parameters.Range)) || ...
-   any(~isreal(Parameters.Range)) || any(Parameters.Range<0) || (numel(Parameters.Range)~=2)
+if isnan(Exp.mwFreq), error('Parameters.mwFreq missing!'); end
+
+if (diff(Exp.Range)<=0) || any(~isfinite(Exp.Range)) || ...
+   any(~isreal(Exp.Range)) || any(Exp.Range<0) || (numel(Exp.Range)~=2)
   error('Parameters.Range is not valid!');
 end
 
-if isempty(Parameters.Mode), Parameters.Mode = 'perpendicular'; end
+if isempty(Exp.Mode), Exp.Mode = 'perpendicular'; end
 
-ParallelMode = (2==parseoption(Parameters,'Mode',{'perpendicular','parallel'}));
+ParallelMode = (2==parseoption(Exp,'Mode',{'perpendicular','parallel'}));
 
-  if ~isnan(Parameters.Temperature)
+if ~isnan(Exp.Temperature)
   warning('Thermal equilibrium populations not implemented. Parameters.Temperature is ignored!');
 end
 
-mwFreq = Parameters.mwFreq*1e3;
-Orientation = Parameters.Orientations;
+mwFreq = Exp.mwFreq*1e3;
 
-% Process orientation array.
-%===================================================================
-[nAngles,nOrientations] = size(Orientation);
-switch nAngles
-case 2,
-  Orientation(3,end) = 0;
-  AverageOverChi = true;
-case 3,
-  AverageOverChi = false;
-otherwise
-  error('Orientations array has %d rows instead of 2 or 3.',nAngles);
-end
+% Process crystal orientations, crystal symmetry, and frame transforms
+% This sets Orientations, nOrientations, nSites and AverageOverChi
+p_crystalorientations;
+
 
 % Process options structure.
 %===================================================================
@@ -138,13 +127,13 @@ DefaultOptions.Freq2Field = 1;
 DefaultOptions.Threshold = 0;
 DefaultOptions.RejectionRatio = 1e-8; % UNDOCUMENTED!
 
-Options = adddefaults(Options,DefaultOptions);
+Opt = adddefaults(Opt,DefaultOptions);
 
-if (Options.Freq2Field~=1)&&(Options.Freq2Field~=0)
+if (Opt.Freq2Field~=1)&&(Opt.Freq2Field~=0)
   error('Options.Freq2Field incorrect!');
 end
 
-ComputeFreq2Field = (1==Options.Freq2Field);
+ComputeFreq2Field = (1==Opt.Freq2Field);
 
 % Build Hamiltonian components.
 %===================================================================
@@ -185,7 +174,7 @@ Intensities = cell(1,nOrientations);
 for iOri = 1:nOrientations
   logmsg(3,'  orientation %d of %d',iOri,nOrientations);
   
-  Mol2LabRotation = erot(Orientation(:,iOri));
+  Mol2LabRotation = erot(Orientations(iOri,:));
   % z laboratoy axis: external static field.
   zLab = Mol2LabRotation(3,:);
   GzL = zLab(1)*Gx + zLab(2)*Gy + zLab(3)*Gz;
@@ -208,9 +197,9 @@ for iOri = 1:nOrientations
 
     % Remove negative, nonfinite and complex eigenfields
     % and those above user limit Options.MaxField
-    idx = (abs(imag(Fields))<Options.RejectionRatio*abs(real(Fields))) & ...
+    idx = (abs(imag(Fields))<Opt.RejectionRatio*abs(real(Fields))) & ...
       (Fields>0) & isfinite(Fields) & ...
-      (Fields>Parameters.Range(1)) & (Fields<Parameters.Range(2));
+      (Fields>Exp.Range(1)) & (Fields<Exp.Range(2));
     if ~any(idx)
       EigenFields{iOri} = [];
       Intensities{iOri} = [];
@@ -265,7 +254,7 @@ for iOri = 1:nOrientations
       Polarization = Polarization/prod(2*SpinSystem.I+1);
       
       Intensities{iOri} = Polarization*real(TransitionRate.*dBdE).';      
-      idx = Intensities{iOri}>=Options.Threshold(1)*max(Intensities{iOri});
+      idx = Intensities{iOri}>=Opt.Threshold(1)*max(Intensities{iOri});
       EigenFields{iOri} = EigenFields{iOri}(idx);
       Intensities{iOri} = Intensities{iOri}(idx);
     end
@@ -279,9 +268,9 @@ for iOri = 1:nOrientations
       Fields = sort(Fields);
     end
 
-    inRange = (abs(imag(Fields))<Options.RejectionRatio*abs(real(Fields))) & ...
+    inRange = (abs(imag(Fields))<Opt.RejectionRatio*abs(real(Fields))) & ...
       (Fields>0) & isfinite(Fields) & ...
-      (Fields>Parameters.Range(1)) & (Fields<Parameters.Range(2));
+      (Fields>Exp.Range(1)) & (Fields<Exp.Range(2));
     EigenFields{iOri} = real(Fields(inRange));
     Intensities = {[]};
     

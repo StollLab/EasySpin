@@ -91,6 +91,14 @@ end
 
 % Experiment
 %------------------------------------------------------
+DefaultExp.CrystalOrientation = [];
+DefaultExp.CrystalSymmetry = '';
+DefaultExp.MolFrame = [];
+
+if ~isfield(Exp,'Field'), error('Exp.Field is missing.'); end
+
+Exp = adddefaults(Exp,DefaultExp);
+
 err = '';
 %if ~isfield(Exp,'mwFreq'), err = 'Exp.mwFreq is missing.'; end
 if isfield(Exp,'Detection')
@@ -113,11 +121,10 @@ if ~isfield(Exp,'ExciteWidth'), Exp.ExciteWidth = inf; end
 OrientationSelection = ~isinf(Exp.ExciteWidth);
 lwExcite2 = Exp.ExciteWidth^2;
 
-if ~isfield(Exp,'Orientations')
-  logmsg(0,'Exp.Orientations is missing, assuming [0;0]');
-  Exp.Orientations = [0;0];
-end
-Orientations = Exp.Orientations;
+% Process crystal orientations, crystal symmetry, and frame transforms
+% This sets Orientations, nOrientations, nSites and AverageOverChi
+p_crystalorientations;
+
 
 % Options
 %----------------------------------------------------------------
@@ -151,44 +158,6 @@ if any(Opt.Nuclei<1) || any(Opt.Nuclei>nNuclei)
 end
 
 
-% Orientations
-%-----------------------------------------------------------------
-[n1,n2] = size(Orientations);
-if ((n2==2)||(n2==3)) && (n1~=2) && (n1~=3)
-  Orientations = Orientations.';
-end
-[nAngles,nOrientations] = size(Orientations);
-switch nAngles
-  case 2,
-    AverageOverChi = true;
-    Orientations(3,end) = 0; % Entire chi column is set to 0.
-  case 3,
-    AverageOverChi = false;
-  otherwise
-    error('Orientations array has %d rows instead of 2 or 3.',nAngles);
-end
-
-
-% Add symmetry-related sites
-if ~isfield(Exp,'CrystalSymmetry'), Exp.CrystalSymmetry = ''; end
-if ~isempty(Exp.CrystalSymmetry)
-  R = sitetransforms(Exp.CrystalSymmetry);
-  nSites  = numel(R);
-  allOrientations = zeros(nOrientations*nSites,3);
-  idx = 1;
-  for iOri = 1:nOrientations
-    xyz0 = erot(Orientations(:,iOri)).'; % xL, yL, zL along columns
-    for iSite = 1:nSites
-      xyz = R{iSite}*xyz0; % active rotation
-      allOrientations(idx,:) = eulang(xyz.',1);
-      idx = idx + 1;
-    end
-  end
-  Orientations = allOrientations.';
-  [nAngles,nOrientations] = size(Orientations);
-else
-  %nSites = 1;
-end
 
 
 %----------------------------------------------------------
@@ -218,7 +187,7 @@ end
 
 % Loop over all orientations
 for iOri = nOrientations:-1:1
-  [h1x,h1y,h] = erot(Orientations(:,iOri));
+  [h1x,h1y,h] = erot(Orientations(iOri,:));
   h = h.';
   
   % zero-order energy: electron Zeeman term only
