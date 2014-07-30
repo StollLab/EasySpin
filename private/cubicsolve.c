@@ -7,7 +7,7 @@ cubicsolvec.c      solve cubic equation in interval [0 1]
   cubic polynomial with real coefficients in the
   4-element vector C. Polynomial:
 
-     y = C(1)*t^3 + C(2)*t^2 + c(3)*t + C(4)
+     y = C(1)*t^3 + C(2)*t^2 + C(3)*t + C(4)
 
   If MultipleRoots is set to false, at most one root
   will be returned.
@@ -16,8 +16,7 @@ cubicsolvec.c      solve cubic equation in interval [0 1]
   first and second derivative at t=r.
 
 This is an EasySpin function.
-Author: Stefan Stoll, ETH Zurich
-Last modification: 06-Oct-2003
+Author: Stefan Stoll
  */
 
 #include <math.h>
@@ -30,7 +29,7 @@ const int maxNewtonSteps = 11;
 int exactSolver(const double C1, const double C2, const double C3,
                 const double C4, double *Roots)
 /* Computes all real roots r with 0<=r<=1 of the cubic polynomial
- y = C1*t^3 + C2*t^2 + C1*t + C0 using exact formulas. It assumes
+ y = C1*t^3 + C2*t^2 + C3*t + C4 using exact formulas. It assumes
  that at least one coefficient is non-zero. */
 {
   double a, b, c, Q, R, A, B, Q2, QQQ, theta;
@@ -107,47 +106,54 @@ int exactSolver(const double C1, const double C2, const double C3,
 
 int cubicsolve(const double a, const double b, const double c,
                const double d, bool SingleRoot, double *Solution)
-/* SingleRoot = true: either 1 or 0 roots
- SingleRoot = false: 0-3 roots
+/* SingleRoot = true: returns either 1 or 0 roots Solution
+   SingleRoot = false: returns 0-3 roots in Solution
 */
 {
-  bool Monotonic = false, SameSign;
+  bool isMonotonic = false, SameSign;
   double yex;
-  int Step;
+  int iStep;
   double delta, t;
   int i, nSolutions = 0;
 
   /* For some cases it's easy to detect monotonicity */
   /* ------------------------------------------------------- */
   if (SingleRoot && c*(3.0*a+2.0*b+c)>0) {
-    if (c*a<0) Monotonic = true;
+    if (c*a<0)
+      isMonotonic = true;
     /*
     else {
        The following test cost too much...
       p = (a!=0) ? p = -b/a/3.0 : -100;
       Discriminant = b*b-3.0*a*c;
-      Monotonic = (p<=0) || (p>=1) || (Discriminant<=0);
+      isMonotonic = (p<=0) || (p>=1) || (Discriminant<=0);
     }*/
   }
 
-  /* Test for some cases with no root between 0 and 1
-  --------------------------------------------------------
-  */
+  /* Test for some cases with no root between 0 and 1 */
+  /* -------------------------------------------------------- */
   SameSign = (a+b+c+d)*d > 0;
-  if (Monotonic) {
+  if (isMonotonic) {
     if (SameSign) return 0;
   } else {
     yex = d + c*(2*a+b)/(3*a+2*b);
     if (SameSign && yex*d>0) return 0;
   }
 
-  /* Try Newton-Raphson for a monotonic spline
-  ---------------------------------------------------------
-  */
-  if (Monotonic) {
+  /* Test if root is at 0 */
+  /* -------------------------------------------------------- */
+  if (d==0) {
+    nSolutions = 1;
+    Solution[0] = 0;
+    return nSolutions;
+  }
+  
+  /* Try Newton-Raphson for a monotonic spline */
+  /* --------------------------------------------------------- */
+  if (isMonotonic) {
     t = -d/(a+b+c); /* starting guess: assume straight line  */
 
-    for (Step=0; Step<maxNewtonSteps; Step++) {
+    for (iStep=0; iStep<maxNewtonSteps; iStep++) {
       delta = (((a*t+b)*t+c)*t+d)/((3*a*t+2*b)*t+c);
       t -= delta;
       if (t<0 || t>1)
@@ -158,7 +164,7 @@ int cubicsolve(const double a, const double b, const double c,
         break;
       }
     } /* for (Step...)    */
-  } /* if (Monotonic)   */
+  } /* if (isMonotonic)   */
 
   /* Use full cubic solver, if Newton-Raphson failed or was not tried  */
   /*------------------------------------------------------------------*/

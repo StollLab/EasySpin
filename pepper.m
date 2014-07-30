@@ -3,10 +3,10 @@
 %   pepper(Sys,Exp)
 %   pepper(Sys,Exp,Opt)
 %   spec = pepper(...)
-%   [B,spec] = pepper(...)
-%   [B,spec,Trans] = pepper(...)
+%   [x,spec] = pepper(...)
+%   [x,spec,Trans] = pepper(...)
 %
-%   Calculates a field-swept cw EPR spectrum.
+%   Calculates field-swept and frequency-swept cw EPR spectra.
 %
 %   Input:
 %   - Sys: parameters of the paramagnetic system
@@ -16,15 +16,16 @@
 %       HStrain, gStrain, AStrain, DStrain
 %       B2, B4, B6 etc.
 %   - Exp: experimental parameters
-%       mwFreq        spectrometer frequency, in GHz
-%       CenterSweep   magnetic field range [center,sweep], in mT
-%       Range         magnetic field range [low,high], in mT
-%       nPoints       number of points
-%       Temperature   temperature of the sample, by default off (NaN)
-%       Harmonic      detection harmonic: 0, 1 (default), 2
-%       Mode          resonator mode: 'perpendicular' (default), 'parallel', [k_tilt alpha_pol]
-%       Polarization  'linear' (default), 'circular+', 'circular-', 'unpolarized'
-%       Ordering      coefficient for non-isotropic orientational distribution
+%       mwFreq             spectrometer frequency, in GHz
+%       CenterSweep        sweep range [center,sweepwidth], in mT or GHz
+%       Range              sweep range [low,high], in mT or GHz
+%       nPoints            number of points
+%       Temperature        temperature of the sample, by default off (NaN)
+%       Harmonic           detection harmonic: 0, 1 (default), 2
+%       CrystalOrientation nx3 array of Euler angles for crystal orientation, 1 row per crystal
+%       Mode               resonator mode: 'perpendicular' (default), 'parallel', [k_tilt alpha_pol]
+%       Polarization       'linear' (default), 'circular+', 'circular-', 'unpolarized'
+%       Ordering           coefficient for non-isotropic orientational distribution
 %   - Opt: computational options
 %       Method        'matrix', 'perturb1', 'perturb2'='perturb'
 %       Verbosity, Output,
@@ -33,7 +34,7 @@
 %       Transitions, nTransitions, Threshold
 %
 %   Output:
-%   - B:      the field axis, in mT
+%   - x:      the field axis (in mT) or frequency axis (in GHz)
 %   - spec:   the spectrum
 %   - Trans:  transitions included in the calculation
 %

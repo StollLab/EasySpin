@@ -1002,12 +1002,10 @@ for iOri = 1:nOrientations
             imumu = cross(1i*mu,conj(mu));
             if (AverageOverChi)
               mu0 = abs(nB0.'*mu);
-              imumu = 1i*cross(mu,conj(mu));
-              TransitionRate = ((1+xik^2)*norm(mu)^2+(1-3*xik^2)*mu0^2+circpolarizedMode*2*nB0.'*imumu)/4;
+              TransitionRate = ((1+xik^2)*norm(mu)^2+(1-3*xik^2)*mu0^2)/4 + circpolarizedMode*(nB0.'*imumu)/2;
             else
               muk = abs(nk.'*mu);
-              imumu = 1i*cross(mu,conj(mu));
-              TransitionRate = (norm(mu)^2-muk^2+circpolarizedMode*nk.'*imumu)/2;
+              TransitionRate = (norm(mu)^2-muk^2)/2 + circpolarizedMode*(nk.'*imumu)/2;
             end
           end
           if abs(TransitionRate)<1e-10, TransitionRate = 0; end

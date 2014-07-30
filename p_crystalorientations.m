@@ -35,6 +35,8 @@ if (~PowderSimulation)
   logmsg(1,sprintf('  crystal symmetry: %d magnetically distinct sites in unit cell',nSites));
 
   % Crystal-to-molecular frame transformation, R_CM
+  % - R_CM col 1,2,3: crystal axis xC,yC,zC represented in molecular frame
+  % - R_CM row 1,2,3: molecular axis xM,yM,zM represented in crystal frame
   if ~isempty(Exp.MolFrame)
     logmsg(1,'  molecular frame given');
     if all(size(Exp.MolFrame)==[3 3])
