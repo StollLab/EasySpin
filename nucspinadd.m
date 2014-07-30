@@ -1,18 +1,18 @@
 % nucspinadd  Adds a nuclear spin to a spin system
 %
 %    NewSys = nucspinadd(Sys,Nuc,A)
-%    NewSys = nucspinadd(Sys,Nuc,A,Apa)
-%    NewSys = nucspinadd(Sys,Nuc,A,Apa,Q)
-%    NewSys = nucspinadd(Sys,Nuc,A,Apa,Q,Qpa)
+%    NewSys = nucspinadd(Sys,Nuc,A,AFrame)
+%    NewSys = nucspinadd(Sys,Nuc,A,AFrame,Q)
+%    NewSys = nucspinadd(Sys,Nuc,A,AFrame,Q,QFrame)
 %
 %    NewSys = nucspinadd(Sys,Nuc,Afull)
 %    NewSys = nucspinadd(Sys,Nuc,Afull,Qfull)
 %
 %    Add the nuclear isotope Nuc (e.g. '14N') to
 %    the spin system structure, with the hyperfine
-%    values A, the hyperfine tilt angles Apa, the
+%    values A, the hyperfine tilt angles AFrame, the
 %    quadrupole values Q and the quadrupole tilt angles
-%    Qpa. Any missing parameter is assumed to be [0 0 0].
+%    QFrame. Any missing parameter is assumed to be [0 0 0].
 %
 %    Alternatively, full 3x3 hyperfine and quadrupole
 %    matrices can be specified in Afull and Qfull.
@@ -22,7 +22,7 @@
 %     Sys = nucspinadd(Sys,'Cu',[50 50 520]);
 %     Sys = nucspinadd(Sys,'14N',[20 0 0; 0 30 0; 0 0 50]);
 
-function NewSys = nucspinadd(Sys,Nuc,A,Apa,Q,Qpa)
+function NewSys = nucspinadd(Sys,Nuc,A,AFrame,Q,QFrame)
 
 if (nargin==0), help(mfilename); return; end
 
@@ -47,16 +47,16 @@ end
 fullA = numel(A)==9;
 
 if fullA
-  if (nargin<4), Q = zeros(3,3); else, Q = Apa; end
+  if (nargin<4), Q = zeros(3,3); else, Q = AFrame; end
   if (nargin>4)
     error('If you give a full hyperfine matrix (3rd argument), give Q as fourth argument, and no more.');
   end
 else
-  if (nargin<4), Apa = []; end
+  if (nargin<4), AFrame = []; end
   if (nargin<5), Q =   []; end
-  if (nargin<6), Qpa = []; end
-  if isempty(Apa), Apa = [0 0 0]; end
-  if isempty(Qpa), Qpa = [0 0 0]; end
+  if (nargin<6), QFrame = []; end
+  if isempty(AFrame), AFrame = [0 0 0]; end
+  if isempty(QFrame), QFrame = [0 0 0]; end
   if isempty(Q), Q = [0 0 0]; end
 end
 
@@ -92,9 +92,9 @@ if fullA
   end
 else
   NewSys.A(newNuc,:) = tensorexpand(A);
-  NewSys.Apa(newNuc,:) = Apa;
+  NewSys.AFrame(newNuc,:) = AFrame;
   NewSys.Q(newNuc,:) = Q;
-  NewSys.Qpa(newNuc,:) = Qpa;
+  NewSys.QFrame(newNuc,:) = QFrame;
 end
 
 return
@@ -109,8 +109,8 @@ end
 function SysFull = fullifyA(Sys,nNuclei)
 % fullify hyperfine tensors
 SysFull = Sys;
-if isfield(SysFull,'Apa')
-  SysFull = rmfield(SysFull,'Apa');
+if isfield(SysFull,'AFrame')
+  SysFull = rmfield(SysFull,'AFrame');
 end
 if ~isfield(SysFull,'A')
   SysFull.A = zeros(nNuclei*3,3);
@@ -128,10 +128,10 @@ for iNuc=1:nNuclei
     A_ = Sys.A(iNuc,:);
   end
   A_ = diag(A_);
-  if isfield(Sys,'Apa')
-    if ~isempty(Sys.Apa)
-      R_ = erot(Sys.Apa(iNuc,:));
-      A_ = R_*A_*R_';
+  if isfield(Sys,'AFrame')
+    if ~isempty(Sys.AFrame)
+      R_A2M = erot(Sys.AFrame(iNuc,:)).'; % A frame -> molecular frame
+      A_ = R_A2M*A_*R_A2M.';
     end
   end
   fullA_ = [fullA_; A_];
@@ -144,8 +144,8 @@ function SysFull = fullifyQ(Sys,nNuclei)
 % fullify quadrupole tensors
 SysFull = Sys;
 
-if isfield(SysFull,'Qpa')
-  SysFull = rmfield(SysFull,'Qpa');
+if isfield(SysFull,'QFrame')
+  SysFull = rmfield(SysFull,'QFrame');
 end
 
 if ~isfield(SysFull,'Q')
@@ -163,9 +163,9 @@ fullQ_ = [];
 for iNuc = 1:nNuclei
   Q_ = Sys.Q(iNuc,:);
   Q_ = diag(Q_);
-  if isfield(Sys,'Qpa')
-    R_ = erot(Sys.Qpa(iNuc,:));
-    Q_ = R_*Q_*R_';
+  if isfield(Sys,'QFrame')
+    R_Q2M = erot(Sys.QFrame(iNuc,:)).'; % Q frame -> molecular frame
+    Q_ = R_Q2M*Q_*R_Q2M.';
   end
   fullQ_ = [fullQ_; Q_];
 end

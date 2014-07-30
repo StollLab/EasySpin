@@ -101,7 +101,7 @@ if any(System.gStrain) || any(System.AStrain)
   end
 end
 
-if any(System.DStrain(:)) && any(System.Dpa(:))
+if any(System.DStrain(:)) && any(System.DFrame(:))
   error('D stain cannot be used with tilted D tensors.');
 end
 
@@ -256,9 +256,12 @@ if (CoreSys.nNuclei>=1) && Opt.Hybrid
       if System.fullA
         A = System.A(3*(iNuc-1)+(1:3),idxE);
       else
-        A = System.A(iNuc,idxE); R = eye(3);
-        if isfield(System,'Apa'), R = erot(System.Apa(iNuc,idxE)); end
-        A = R*diag(A)*R';
+        A = System.A(iNuc,idxE);
+        R = eye(3);
+        if isfield(System,'AFrame')
+          R = erot(System.AFrame(iNuc,idxE)).'; % A frame -> molecular frame
+        end
+        A = R*diag(A)*R.';
       end
       Hhfi(iElectron,iiNuc).x = A(1,1)*sop(I,1,1) + A(1,2)*sop(I,1,2) + A(1,3)*sop(I,1,3);
       Hhfi(iElectron,iiNuc).y = A(2,1)*sop(I,1,1) + A(2,2)*sop(I,1,2) + A(2,3)*sop(I,1,3);
@@ -274,10 +277,13 @@ if (CoreSys.nNuclei>=1) && Opt.Hybrid
       % Nuclear quadrupole interaction
       Hquad{iiNuc} = 0;
       if (I>=1)
-        Q = [0 0 0]; R = eye(3);
+        Q = [0 0 0];
+        R = eye(3);
         if isfield(System,'Q'), Q = System.Q(iNuc,:); end
-        if isfield(System,'Qpa'), R = erot(System.Qpa(iNuc,:)); end
-        Q = R*diag(Q)*R';
+        if isfield(System,'QFrame')
+          R = erot(System.QFrame(iNuc,:)).'; % Q frame -> molecular frame
+        end
+        Q = R*diag(Q)*R.';
         for c1=1:3
           for c2=1:3
             Hquad{iiNuc} = Hquad{iiNuc} + Q(c1,c2)*sop(I,1,c1)*sop(I,1,c2);
@@ -385,10 +391,10 @@ if (ComputeStrains)
       % we have to compute R^T S = (SxD SyD SzD)^T to stay in the
       % eigenframe of D for the D and E strain.
       R = eye(3);
-      if any(CoreSys.Dpa(iEl,:))
-        R = erot(CoreSys.Dpa(iEl,:));
+      if any(CoreSys.DFrame(iEl,:))
+        R = erot(CoreSys.DFrame(iEl,:)).'; % D frame -> molecular frame
       end
-      R = R.';
+      R = R.'; % molecular frame -> D frame
       
       % Construct Zeeman basis operators
       Sx_ = sop(CoreSys,iEl,1);
@@ -437,19 +443,19 @@ if (ComputeStrains)
   % g strain tensor is taken to be along the g tensor itself.
   UsegStrain = any(CoreSys.gStrain(:));
   if UsegStrain
-    if isfield(CoreSys,'gpa')
-      R = erot(CoreSys.gpa(1,:));
+    if isfield(CoreSys,'gFrame')
+      R = erot(CoreSys.gFrame(1,:)).'; % g frame -> molecular frame
     else
       R = eye(3);
-    end;
+    end
     gStrainMatrix = diag(CoreSys.gStrain./CoreSys.g(1,:));
     gStrainMatrix = R*gStrainMatrix*R.';
-  end;
+  end
   
   UseAStrain = (CoreSys.nNuclei>0) && any(CoreSys.AStrain);
   if UseAStrain
-    if isfield(CoreSys,'Apa')
-      R = erot(CoreSys.Apa(1,:));
+    if isfield(CoreSys,'AFrame')
+      R = erot(CoreSys.AFrame(1,:)).'; % A frame -> molecular frame
     else
       R = eye(3);
     end

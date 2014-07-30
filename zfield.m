@@ -52,8 +52,8 @@ for e = 1:length(Electrons)
     D = diag(Sys.D(idx,:));
   end
   if any(D(:))
-    Rp = erot(Sys.Dpa(idx,:));
-    D = Rp*D*Rp.';
+    R_D2M = erot(Sys.DFrame(idx,:)).'; % D frame -> molecular frame
+    D = R_D2M*D*R_D2M.';
   end
   if any(D(:))
     % Construct spin operator matrices
@@ -83,9 +83,9 @@ for e = 1:length(Electrons)
     end
     % not available if D frame is tilted (would necessitate rotation
     % of the a and F terms which is not implemented).
-    if isfield(Sys,'Dpa')
-      if ~isempty(Sys.Dpa) && any(Sys.Dpa)
-        error('It''s not possible to use Sys.aF with a tilted D frame (Sys.Dpa).');
+    if isfield(Sys,'DFrame')
+      if ~isempty(Sys.DFrame) && any(Sys.DFrame)
+        error('It''s not possible to use Sys.aF with a tilted D frame (Sys.DFrame).');
       end
     end
     S = spvc(1);

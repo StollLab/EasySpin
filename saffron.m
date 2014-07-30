@@ -829,8 +829,10 @@ if SeparateSpaces
       A = Sys.A((iNuc-1)*3+(1:3),:);
     else
       Ra = eye(3);
-      if isfield(Sys,'Apa'), Ra = erot(Sys.Apa(iNuc,:)); end
-      A = Ra*diag(Sys.A(iNuc,:))*Ra';
+      if isfield(Sys,'AFrame')
+        Ra = erot(Sys.AFrame(iNuc,:)).'; % A frame -> molecular frame
+      end
+      A = Ra*diag(Sys.A(iNuc,:))*Ra.';
     end
     Space(iNuc).Hhf1 = A(1,1)*Ix + A(1,2)*Iy + A(1,3)*Iz;
     Space(iNuc).Hhf2 = A(2,1)*Ix + A(2,2)*Iy + A(2,3)*Iz;
@@ -838,8 +840,9 @@ if SeparateSpaces
     
     % Nuclear quadrupole ---------------------------------------------
     if (Sys.I(iNuc)>=1)
-      Rq = erot(Sys.Qpa(iNuc,:));
-      Q = Rq*diag(Sys.Q(iNuc,:))*Rq'; Q = (Q + Q.')/2;
+      Rq = erot(Sys.QFrame(iNuc,:)).'; % Q frame -> molecular frame
+      Q = Rq*diag(Sys.Q(iNuc,:))*Rq.';
+      Q = (Q + Q.')/2;
       Space(iNuc).Hnq = ...
         Ix*(Q(1,1)*Ix + Q(1,2)*Iy + Q(1,3)*Iz) + ...
         Iy*(Q(2,1)*Ix + Q(2,2)*Iy + Q(2,3)*Iz) + ...
@@ -873,8 +876,10 @@ else
       A = Sys.A((iNuc-1)*3+(1:3),:);
     else
       Ra = eye(3);
-      if isfield(Sys,'Apa'), Ra = erot(Sys.Apa(iNuc,:)); end
-      A = Ra*diag(Sys.A(iNuc,:))*Ra';
+      if isfield(Sys,'AFrame')
+        Ra = erot(Sys.AFrame(iNuc,:)).'; % A frame -> molecular frame
+      end
+      A = Ra*diag(Sys.A(iNuc,:))*Ra.';
     end
     Space.Hhf1 = Space.Hhf1 + A(1,1)*Ix + A(1,2)*Iy + A(1,3)*Iz;
     Space.Hhf2 = Space.Hhf2 + A(2,1)*Ix + A(2,2)*Iy + A(2,3)*Iz;
@@ -886,8 +891,10 @@ else
         Q = Sys.Q((iNuc-1)*3+(1:3),:);
       else
         Rq = eye(3);
-        if isfield(Sys,'Qpa'), Rq = erot(Sys.Qpa(iNuc,:)); end
-        Q = Rq*diag(Sys.Q(iNuc,:))*Rq';
+        if isfield(Sys,'QFrame')
+          Rq = erot(Sys.QFrame(iNuc,:)).'; % Q frame -> molecular frame
+        end
+        Q = Rq*diag(Sys.Q(iNuc,:))*Rq.';
         Q = (Q + Q.')/2;
       end
       Hnq_ = ...
@@ -1009,8 +1016,8 @@ end
 if (TwoElectronManifolds)
   g = Sys.g;
   if ~Sys.fullg
-    R = erot(Sys.gpa);
-    g = R*diag(g)*R';
+    Rg = erot(Sys.gFrame).'; % g frame -> molecular frame
+    g = Rg*diag(g)*Rg.';
   end
 end
 

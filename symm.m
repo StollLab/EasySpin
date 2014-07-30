@@ -106,27 +106,27 @@ function [Group,RMatrix] = symm_full(Sys,DebugMode)
 % Collect all frame orientations described
 % by Euler angle set from the spin system.
 %--------------------------------------------------
-% As defined for the spin system, Apa and the
+% As defined for the spin system, AFrame and the
 % like specify the Euler angles for the passive
-% rotation R = erot(Sys.Apa) which transforms
-% a quantity (vector, tensor) from the A frame
-% to the standard g frame. So if v is vector in
-% the A frame representation, R*v is the same
-% vector in the g frame representation.
+% rotation R = erot(Sys.AFrame) which transforms
+% a quantity (vector, tensor) from the molecular frame
+% to the A frame. So if v is vector in
+% the A frame representation, R.'*v is the same
+% vector in the molecular frame representation.
 
 % Add successively g frame, ee frame, D frame, A and Q frame
 % Euler angles.
 pa = [0 0 0]; % the (first) g frame itself
-if isfield(Sys,'gpa'), pa = [pa; Sys.gpa]; end
-if isfield(Sys,'eepa'), pa = [pa; Sys.eepa]; end
-if isfield(Sys,'Dpa'), pa = [pa; Sys.Dpa]; end
-if isfield(Sys,'Apa'),
+if isfield(Sys,'gFrame'), pa = [pa; Sys.gFrame]; end
+if isfield(Sys,'eeFrame'), pa = [pa; Sys.eeFrame]; end
+if isfield(Sys,'DFrame'), pa = [pa; Sys.DFrame]; end
+if isfield(Sys,'AFrame'),
   % make sure it works for more than 1 electron spin
-  for k = 0:3:size(Sys.Apa,2)-1
-    pa = [pa; Sys.Apa(:,k+(1:3))];
+  for k = 0:3:size(Sys.AFrame,2)-1
+    pa = [pa; Sys.AFrame(:,k+(1:3))];
   end
 end
-if isfield(Sys,'Qpa'), pa = [pa; Sys.Qpa]; end
+if isfield(Sys,'QFrame'), pa = [pa; Sys.QFrame]; end
 
 % Remove duplicates. Avoid sorting
 [dummy,ii] = unique(pa,'rows');
@@ -157,7 +157,7 @@ if (~LockedFrame)
   % Rotation matrices.
   Rots = zeros(3,9*size(pa,1));
   for k = 1:size(pa,1)
-    R = erot(pa(k,:));
+    R = erot(pa(k,:)).';
     Rots(:,k*9+(-8:0)) = [R*Rz, R*Rx, R*Ry];
   end
   Rots = reshape(Rots,3,3,nFrames);
@@ -308,14 +308,14 @@ for iFrame = 1:nFrames % loop over all potential frames
   end
   
   if DebugMode
-    disp('Columns of R: tensor axis vectors in reference frame.');
+    disp('Columns of R: tensor axis vectors in molecular reference frame.');
     disp(R)
     if isfield(Sys,'A')
       for kk=1:size(Sys.A,1)
-        if ~isfield(Sys,'Apa')
+        if ~isfield(Sys,'AFrame')
           A = R.'*diag(Sys.A(kk,:))*R;
         else
-          A = R.'*erot(Sys.Apa(kk,:))*diag(Sys.A(kk,:))*erot(Sys.Apa(kk,:)).'*R;
+          A = R.'*erot(Sys.AFrame(kk,:)).'*diag(Sys.A(kk,:))*erot(Sys.AFrame(kk,:))*R;
         end
         fprintf('diag(A(%d,:)) in this frame [%3.4f %3.4f %3.4f]\n',kk,A(1), ...
           A(5),A(9));
@@ -343,7 +343,7 @@ if DebugMode
   fprintf('===========================================================\n');
   fprintf('Symmetry = %s\n',Group);
   %disp('A in this frame');
-  %A = RMatrix.'*erot(Sys.Apa)*diag(Sys.A)*erot(Sys.Apa).'*RMatrix;
+  %A = RMatrix.'*erot(Sys.AFrame).'*diag(Sys.A)*erot(Sys.AFrame)*RMatrix;
   %disp(A)
 end
 
@@ -378,16 +378,16 @@ Name = {};
 
 for iE = 1:nElectrons
   % Electron Zeeman interaction
-  [Sym(end+1),Ax{end+1}] = tensorsymmetry(Sys.g(iE,:),Sys.gpa(iE,:));
+  [Sym(end+1),Ax{end+1}] = tensorsymmetry(Sys.g(iE,:),Sys.gFrame(iE,:));
   Name{end+1} = sprintf('g%d',iE);
   % Zero Field interaction
   if Sys.S(iE)>1/2
-    [Sym(end+1),Ax{end+1}] = tensorsymmetry(Sys.D(iE,:),Sys.Dpa(iE,:));
+    [Sym(end+1),Ax{end+1}] = tensorsymmetry(Sys.D(iE,:),Sys.DFrame(iE,:));
     Name{end+1} = sprintf('D%d',iE);
   end
   % Electron-Electron Interaction
   for iC = 1:nCouplings
-    [Sym(end+1),Ax{end+1}] = tensorsymmetry(Sys.ee(iC,:),Sys.eepa(iC,:));
+    [Sym(end+1),Ax{end+1}] = tensorsymmetry(Sys.ee(iC,:),Sys.eeFrame(iC,:));
     Name{end+1} = sprintf('ee%d',iC);
   end
 end
@@ -396,13 +396,13 @@ for iN = 1:nNuclei
   % Hyperfine Interaction
   eidx = 1:3;
   for iE = 1:nElectrons
-    [Sym(end+1),Ax{end+1}] = tensorsymmetry(Sys.A(iN,eidx),Sys.Apa(iN,eidx));
+    [Sym(end+1),Ax{end+1}] = tensorsymmetry(Sys.A(iN,eidx),Sys.AFrame(iN,eidx));
     Name{end+1} = sprintf('A%d%d',iE,iN);
     eidx = eidx + 3;
   end
   % Nuclear Quadrupole Interaction
   if Sys.I(iN)>1/2
-    [Sym(end+1),Ax{end+1}] = tensorsymmetry(Sys.Q(iN,:),Sys.Qpa(iN,:));
+    [Sym(end+1),Ax{end+1}] = tensorsymmetry(Sys.Q(iN,:),Sys.QFrame(iN,:));
     Name{end+1} = sprintf('Q%d',iN);
   end
 end
@@ -464,7 +464,7 @@ case 1,
 end
 
 idx = [2 3 1 2 3];
-SymFrame = erot(EulerAngles);
+SymFrame = erot(EulerAngles).';
 % Columns: tensor frame axes in reference frame representation.
 SymFrame = SymFrame(:,idx(zAxis+(0:2)));
 

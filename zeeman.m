@@ -91,9 +91,9 @@ for idx = 1:numel(Spins)
     else
       g = diag(elFactor(iSpin,:));
     end
-    % Rotate interaction matrix
-    Rp = erot(Sys.gpa(iSpin,:));
-    g = Rp*g*Rp.';
+    % Transform g matrix to molecular frame
+    R_g2M = erot(Sys.gFrame(iSpin,:)).'; % g frame -> mol frame
+    g = R_g2M*g*R_g2M.';
     % Build EZI Hamiltonian in MHz/mT
     for k = 1:3
       Sk = sop(SpinVec,iSpin,k,'sparse');

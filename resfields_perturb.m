@@ -37,7 +37,7 @@ end
 if highSpin && any(Sys.DStrain) && any(mod(Sys.S,1))
   err = ('D strain not supported for half-integer spins with perturbation theory. Use matrix diagonalization or remove Sys.DStrain.');
 end
-if any(Sys.DStrain(:)) && any(Sys.Dpa(:))
+if any(Sys.DStrain(:)) && any(Sys.DFrame(:))
   err = 'D stain cannot be used with tilted D tensors.';
 end
 error(err);
@@ -51,14 +51,14 @@ end
 if Sys.fullg
   g = Sys.g;
 else
-  Rg = erot(Sys.gpa);
-  g = Rg*diag(Sys.g)*Rg.';
+  R_g2M = erot(Sys.gFrame).'; % g frame -> molecular frame
+  g = R_g2M*diag(Sys.g)*R_g2M.';
 end
 
 if highSpin
   if ~Sys.fullD
-    RD = erot(Sys.Dpa);
-    D = RD*diag(Sys.D)*RD.';
+    R_D2M = erot(Sys.DFrame).'; % D frame -> molecular frame
+    D = R_D2M*diag(Sys.D)*R_D2M.';
   end
   % make D traceless (required for Iwasaki expressions)
   D = D - eye(3)*trace(D)/3;
@@ -88,9 +88,9 @@ for iNuc = 1:nNuclei
   if Sys.fullA
     A{iNuc} = Sys.A((iNuc-1)*3+(1:3),:);
   else
-    RA = erot(Sys.Apa(iNuc,:));
+    R_A2M = erot(Sys.AFrame(iNuc,:)).'; % A frame -> molecular frame
     A_ = diag(Sys.A(iNuc,:))*Sys.Ascale(iNuc);
-    A{iNuc} = RA*A_*RA';
+    A{iNuc} = R_A2M*A_*R_A2M.';
   end
   mI{iNuc} = -I(iNuc):I(iNuc);
   idxn{iNuc} = 1:nNucStates(iNuc);
@@ -407,8 +407,8 @@ else
     
     if any(Sys.gStrain)
       gStrainMatrix = diag(Sys.gStrain./Sys.g)*Exp.mwFreq*1e3; % -> MHz
-      if isfield(Sys,'gpa') && any(Sys.gpa(1,:))
-        Rp = erot(Sys.gpa(1,:));
+      if isfield(Sys,'gFrame') && any(Sys.gFrame(1,:))
+        Rp = erot(Sys.gFrame(1,:)).'; % g frame -> molecular frame
         gStrainMatrix = Rp*gStrainMatrix*Rp.';
       end
     else
@@ -417,8 +417,8 @@ else
     
     if any(Sys.AStrain) && (Sys.nNuclei>0)
       AStrainMatrix = diag(Sys.AStrain);
-      if isfield(Sys,'Apa')
-        Rp = erot(Sys.Apa(1,:));
+      if isfield(Sys,'AFrame')
+        Rp = erot(Sys.AFrame(1,:)).'; % A frame -> molecular frame
         AStrainMatrix = Rp*AStrainMatrix*Rp.';
       end
       corr = Sys.gAStrainCorr;

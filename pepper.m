@@ -11,7 +11,7 @@
 %   Input:
 %   - Sys: parameters of the paramagnetic system
 %       S, g, Nucs, A, Q, D, ee,
-%       gpa, Apa, Qpa, Dpa, eepa
+%       gFrame, AFrame, QFrame, DFrame, eeFrame
 %       lw, lwpp
 %       HStrain, gStrain, AStrain, DStrain
 %       B2, B4, B6 etc.

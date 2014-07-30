@@ -18,7 +18,7 @@
 %         All fields can have 1 (isotropic), 2 (axial) or 3 (rhombic) elements.
 %         Precedence: logtcorr > tcorr > logDiff > Diff.
 %
-%     Sys.Diffpa          Euler angles of the diffusion tensor (default [0 0 0])
+%     Sys.DiffFrame       Euler angles of the diffusion tensor (default [0 0 0])
 %     Sys.lw              vector with FWHM residual broadenings [mT]
 %                         1 element:  GaussianFWHM
 %                         2 elements: [GaussianFWHM LorentzianFWHM]
@@ -162,7 +162,7 @@ mT2MHz = mt2mhz(1,mean(Sys.g));
 %-------------------------------------------------------------------
 if ~isfield(Sys,'lambda'), Sys.lambda = 0; end
 if ~isfield(Sys,'Exchange'), Sys.Exchange = 0; end
-if ~isfield(Sys,'Diffpa'), Sys.Diffpa = [0 0 0]; end
+if ~isfield(Sys,'DiffFrame'), Sys.DiffFrame = [0 0 0]; end
 
 if isfield(Sys,'logtcorr'), Dynamics.logtcorr = Sys.logtcorr; end
 if isfield(Sys,'tcorr'), Dynamics.tcorr = Sys.tcorr; end
@@ -798,15 +798,16 @@ Sys.I = nucspin(Sys.Nucs);
 Sys.gn = nucgval(Sys.Nucs);
 nNucs = numel(Sys.I);
 
-% Transformation form A/g tensor frame to diffusion frame
-RDiff = wignerd(2,Sys.Diffpa);
+% Transformation from molecular frame to diffusion frame
+% (DiffFrame contains Euler angles for M->Diff transformation)
+R_M2Diff = wignerd(2,Sys.DiffFrame);
 
 % g tensor
 %------------------------------------
 %Compute spherical tensor component coefficients in eigenframe
 [T0,T2] = cart2spher_transforms;
-Rg = wignerd(2,Sys.gpa);
-T2 = RDiff*Rg*T2;
+R_g2M = wignerd(2,Sys.gFrame)'; % g tensor frame -> molecular frame transformation
+T2 = R_M2Diff*R_g2M*T2;
 Sys.g2 = T2*Sys.g(:);
 Sys.g0 = T0*Sys.g(:);
 
@@ -815,14 +816,14 @@ Sys.g_axial = Sys.g(1)==Sys.g(2);
 % Hyperfine tensor and nuclear Zeeman
 %------------------------------------
 if nNucs>0
-  if ~isfield(Sys,'Apa'), Sys.Apa = zeros(nNucs,3); end
+  if ~isfield(Sys,'AFrame'), Sys.AFrame = zeros(nNucs,3); end
 end
 for iNuc = 1:nNucs
   [Sys.A0(iNuc), Sys.A2(:,iNuc)] = isto(Sys.A(iNuc,:));
   Sys.A_axial(iNuc) = Sys.A2(1,iNuc)==0;
   Sys.gn0(iNuc) = -sqrt(1/3)*(3*Sys.gn(iNuc));
-  RA = wignerd(2,Sys.Apa(iNuc,:));
-  Sys.A2(:,iNuc) = RDiff*RA*Sys.A2(:,iNuc);
+  R_A2M = wignerd(2,Sys.AFrame(iNuc,:))'; % A tensor frame -> molecular frame transformation
+  Sys.A2(:,iNuc) = R_M2Diff*R_A2M*Sys.A2(:,iNuc);
 end
 
 % Convert all tensorial coefficients to units of Hz

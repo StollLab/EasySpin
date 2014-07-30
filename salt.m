@@ -8,7 +8,7 @@
 %
 %   Input:
 %   - Sys: spin system structure specification
-%       S, g, Nucs, A, Apa, Q, Qpa etc.
+%       S, g, gFrame, Nucs, A, AFrame, Q, QFrame etc.
 %       lwEndor     FWHM Endor line width [Gaussian,Lorentzian]
 %   - Exp: experiment specification
 %       mwFreq        spectrometer frequency, in GHz

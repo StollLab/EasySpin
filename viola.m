@@ -47,9 +47,9 @@ A = Sys.A/2.8; % Hyperfine tensor principal values in G
 Pars.A.x = A(1);
 Pars.A.y = A(2);
 Pars.A.z = A(3);
-if ~isfield(Sys,'Apa'), pa = [0 0 0]; else pa = Sys.Apa; end
-if ~isfield(Sys,'gpa'), pg = [0 0 0]; else pg = Sys.gpa; end
-pag = eulang(erot(pa)*erot(pg)');
+if ~isfield(Sys,'AFrame'), pa = [0 0 0]; else pa = Sys.AFrame; end
+if ~isfield(Sys,'gFrame'), pg = [0 0 0]; else pg = Sys.gFrame; end
+pag = eulang(erot(pa).'*erot(pg));
 pag = pag*180/pi;
 Pars.m.alpha = pag(1);
 Pars.m.beta = pag(2);
@@ -65,11 +65,11 @@ Pars.R.x = logDiff(1);
 Pars.R.y = logDiff(2);
 Pars.R.z = logDiff(3);
 
-if ~isfield(Sys,'Diffpa'), Sys.Diffpa = [0 0 0]; end
-%Diffpa = Sys.Diffpa*180/pi;
-Pars.d.alpha = Sys.Diffpa(1);
-Pars.d.beta = Sys.Diffpa(2);
-Pars.d.gamma = Sys.Diffpa(3);
+if ~isfield(Sys,'DiffFrame'), Sys.DiffFrame = [0 0 0]; end
+%DiffFrame = Sys.DiffFrame*180/pi;
+Pars.d.alpha = Sys.DiffFrame(1);
+Pars.d.beta = Sys.DiffFrame(2);
+Pars.d.gamma = Sys.DiffFrame(3);
 
 % Orienting potential coefficients
 %--------------------------------------------------------------------------

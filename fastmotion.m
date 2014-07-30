@@ -14,10 +14,10 @@
 %
 %   System    spin system structure
 %      g      principal values of g matrix
-%      gpa    g Euler angles (optional) [radians]
+%      gFrame g Euler angles (optional) [radians]
 %      Nucs   nuclear isotope(s), e.g. '14N' or '63Cu'
 %      A      principal values of A matrix [MHz]
-%      Apa    A Euler angles (optional) [radians]
+%      AFrame A Euler angles (optional) [radians]
 %      Q      principal values of Q tensor [MHz]
 %   Field     center magnetic field [mT]
 %   tcorr     isotropic rotational correlation time [seconds]
@@ -69,20 +69,24 @@ fullg = numel(System.g)==9;
 if fullg
   g = System.g;
 else
-  if isfield(System,'gpa'), R = erot(System.gpa); else R = eye(3); end
-  g = R*diag(System.g)*R.';
+  if isfield(System,'gFrame')
+    R_g2M = erot(System.gFrame).';
+  else
+    R_g2M = eye(3);
+  end
+  g = R_g2M*diag(System.g)*R_g2M.';
 end
 
 g0 = trace(g)/3;
 g1 = reshape(g - eye(3)*g0,9,1);
 
-if ~isfield(System,'Apa'); System.Apa = zeros(nNucs,3); end
+if ~isfield(System,'AFrame'); System.AFrame = zeros(nNucs,3); end
 if ~isfield(System,'Q'); System.Q = zeros(nNucs,3); end
-if ~isfield(System,'Qpa'); System.Qpa = zeros(nNucs,3); end
+if ~isfield(System,'QFrame'); System.QFrame = zeros(nNucs,3); end
 
 for iNuc = 1:nNucs
-  R = erot(System.Apa(iNuc,:));
-  A = R*diag(System.A(iNuc,:))*R.';
+  R_A2M = erot(System.AFrame(iNuc,:)).'; % A frame -> molecular frame
+  A = R_A2M*diag(System.A(iNuc,:))*R_A2M.';
   A0(iNuc) = trace(A)/3;
   A1(:,iNuc) = reshape(A - eye(3)*A0(iNuc),9,1);
 end

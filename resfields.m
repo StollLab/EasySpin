@@ -101,7 +101,7 @@ if any(System.gStrain) || any(System.AStrain)
   end
 end
 
-if any(System.DStrain(:)) && any(System.Dpa(:))
+if any(System.DStrain(:)) && any(System.DFrame(:))
   error('D strain cannot be used with tilted D tensors.');
 end
 
@@ -306,9 +306,12 @@ if (CoreSys.nNuclei>=1) && Opt.Hybrid
       if System.fullA
         A = System.A(3*(iNuc-1)+(1:3),idxE);
       else
-        A = System.A(iNuc,idxE); R = eye(3);
-        if isfield(System,'Apa'), R = erot(System.Apa(iNuc,idxE)); end
-        A = R*diag(A)*R';
+        A = System.A(iNuc,idxE);
+        R_A2M = eye(3);
+        if isfield(System,'AFrame')
+          R_A2M = erot(System.AFrame(iNuc,idxE)).'; % A frame -> molecular frame
+        end
+        A = R_A2M*diag(A)*R_A2M.';
       end
       Hhfi(iElectron,iiNuc).x = A(1,1)*sop(I,1,1) + A(1,2)*sop(I,1,2) + A(1,3)*sop(I,1,3);
       Hhfi(iElectron,iiNuc).y = A(2,1)*sop(I,1,1) + A(2,2)*sop(I,1,2) + A(2,3)*sop(I,1,3);
@@ -324,10 +327,13 @@ if (CoreSys.nNuclei>=1) && Opt.Hybrid
       % Nuclear quadrupole interaction
       Hquad{iiNuc} = 0;
       if (I>=1)
-        Q = [0 0 0]; R = eye(3);
+        Q = [0 0 0];
+        R = eye(3);
         if isfield(System,'Q'), Q = System.Q(iNuc,:); end
-        if isfield(System,'Qpa'), R = erot(System.Qpa(iNuc,:)); end
-        Q = R*diag(Q)*R';
+        if isfield(System,'QFrame')
+          R_Q2M = erot(System.QFrame(iNuc,:)).'; % Q frame -> molecular frame
+        end
+        Q = R_Q2M*diag(Q)*R_Q2M.';
         for c1=1:3
           for c2=1:3
             Hquad{iiNuc} = Hquad{iiNuc} + Q(c1,c2)*sop(I,1,c1)*sop(I,1,c2);
@@ -581,10 +587,10 @@ if (ComputeStrains)
       % we have to compute R^T S = (SxD SyD SzD)^T to stay in the
       % eigenframe of D for the D and E strain.
       R = eye(3);
-      if any(CoreSys.Dpa(iEl,:))
-        R = erot(CoreSys.Dpa(iEl,:));
+      if any(CoreSys.DFrame(iEl,:))
+        R = erot(CoreSys.DFrame(iEl,:)).'; % D frame -> molecular frame
       end
-      R = R';
+      R = R'; % molecular frame -> D frame
       
       % Construct Zeeman basis operators
       Sx_ = sop(CoreSys,iEl,1);
@@ -634,16 +640,16 @@ if (ComputeStrains)
   % A strain tensor is taken to be aligned with the A tensor
   % g/A strain is limited to the first electron and nuclear spin
   gStrainMatrix = diag(CoreSys.gStrain./CoreSys.g(1,:))*mwFreq;
-  if isfield(CoreSys,'gpa')
-    Rp = erot(CoreSys.gpa(1,:));
-    gStrainMatrix = Rp*gStrainMatrix*Rp.';
+  if isfield(CoreSys,'gFrame')
+    R_g2M = erot(CoreSys.gFrame(1,:)).'; % g frame -> molecular frame
+    gStrainMatrix = R_g2M*gStrainMatrix*R_g2M.';
   end
   if (CoreSys.nNuclei>0) && any(CoreSys.AStrain)
     % Transform A strain matrix to molecular frame.
     AStrainMatrix = diag(CoreSys.AStrain);
-    if isfield(CoreSys,'Apa')
-      Rp = erot(CoreSys.Apa(1,:));
-      AStrainMatrix = Rp*AStrainMatrix*Rp.';
+    if isfield(CoreSys,'AFrame')
+      R_A2M = erot(CoreSys.AFrame(1,:)).'; % A frame -> molecular frame
+      AStrainMatrix = R_A2M*AStrainMatrix*R_A2M.';
     end
     % Diagonalize Hamiltonian at center field.
     centerB = mean(Exp.Range);

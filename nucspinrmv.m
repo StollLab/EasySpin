@@ -58,7 +58,7 @@ else
 end
 
 if ~fullA
-  F = {'A','Apa'};
+  F = {'A','AFrame'};
   for k=1:2
     Field = F{k};
     if isfield(NewSys,Field)
@@ -85,7 +85,7 @@ else
 end
 
 % nuclear quadrupole ----------------------------------
-F = {'Q','Qpa'};
+F = {'Q','QFrame'};
 for k=1:2
   Field = F{k};
   if isfield(NewSys,Field)

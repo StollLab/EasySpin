@@ -9,7 +9,7 @@
 %
 %   Input:
 %   - SpinSystem: Spin system structure. EEI
-%       parameters are in the ee, eepa, and ee2 fields.
+%       parameters are in the ee, eeFrame, and ee2 fields.
 %   - eSpins: If given, specifies electron spins
 %       for which the EEI should be computed. If
 %       absent, all electrons are included.
@@ -75,7 +75,7 @@ allPairsIdx = e1 + (e2-1)*System.nElectrons;
 
 ee = System.ee;
 if ~System.fullee
-  eepa = System.eepa;
+  eeFrame = System.eeFrame;
 end
 
 % Isotropic biquadratic exchange
@@ -89,8 +89,8 @@ for iPair = 1:nPairs
   if System.fullee
     J = ee(3*(iCoupling-1)+(1:3),:);
   else
-    Rp = erot(eepa(iCoupling,:));
-    J = Rp*diag(ee(iCoupling,:))*Rp.';
+    R_ee2M = erot(eeFrame(iCoupling,:)).';  % ee frame -> mol frame
+    J = R_ee2M*diag(ee(iCoupling,:))*R_ee2M.';
   end
   
   % Sum up Hamiltonian terms

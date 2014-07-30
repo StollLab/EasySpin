@@ -50,15 +50,15 @@ mS2 = mS.^2;
 if Sys.fullg
   g = Sys.g;
 else
-  Rg = erot(Sys.gpa);
-  g = Rg*diag(Sys.g)*Rg';
+  R_g2M = erot(Sys.gFrame).'; % g frame -> molecular frame
+  g = R_g2M*diag(Sys.g)*R_g2M.';
 end
 
 if highSpin
   if isfield(Sys,'D')
-    RD = erot(Sys.Dpa);
+    R_D2M = erot(Sys.DFrame).'; % D frame -> molecular frame
     D = diag(Sys.D);
-    D = RD*D*RD';
+    D = R_D2M*D*R_D2M.';
   end
 end
 
@@ -73,17 +73,17 @@ for iNuc = nNuclei:-1:1
   if Sys.fullA
     A{iNuc} = Sys.A((iNuc-1)*3+(1:3),:)*Sys.Ascale(iNuc);
   else
-    RA = erot(Sys.Apa(iNuc,:));
+    R_A2M = erot(Sys.AFrame(iNuc,:)).'; % A frame -> molecular frame
     A_ = diag(Sys.A(iNuc,:)*Sys.Ascale(iNuc));
-    A{iNuc} = RA*A_*RA.';
+    A{iNuc} = R_A2M*A_*R_A2M.';
   end
 
   if Sys.fullQ
     P{iNuc} = Sys.Q((iNuc-1)*3+(1:3),:)*Sys.Qscale(iNuc);
   else
-    RP = erot(Sys.Qpa(iNuc,:));
+    R_Q2M = erot(Sys.QFrame(iNuc,:)).'; % Q frame -> molecular frame
     Q_ = diag(Sys.Q(iNuc,:)*Sys.Qscale(iNuc));
-    P{iNuc} = RP*Q_*RP.';
+    P{iNuc} = R_Q2M*Q_*R_Q2M.';
   end
   P{iNuc} = P{iNuc} - eye(3)*trace(P{iNuc})/3; % make traceless (for Iwasaki equations)
 
