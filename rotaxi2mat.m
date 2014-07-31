@@ -1,10 +1,10 @@
 % rotaxi2mat   Compute rotation matrix from axis and angle
 %
-%    R = rotaxi2mat(n,phi)
+%    R = rotaxi2mat(n,rho)
 %
 %    Generates the matrix representing the rotation
 %    around the axis given by the 3-element vector n
-%    by the angle phi (in radians).
+%    by the angle rho (in radians).
 %
 %    There are three shortcuts for x, y, and z axis:
 %      n=1 implies n=[1;0;0]
@@ -16,11 +16,11 @@
 %      % permutes the x, y and z axes.
 %      R = rotaxi2mat([1;1;1],2*pi/3)
 
-function R = rotaxi2mat(n,phi)
+function R = rotaxi2mat(n,rho)
 
 if nargin==0, help(mfilename); return; end
 
-if ~isreal(phi) | numel(phi)~=1
+if ~isreal(rho) | numel(rho)~=1
   error('phi must be a real number!');
 end
 
@@ -50,7 +50,7 @@ N = zeros(3,3);
 N([8 3 4]) = n;
 N = N - N.';
 
-R = eye(3) + N*sin(phi) + N^2*(1-cos(phi));
+R = eye(3) + N*sin(rho) + N^2*(1-cos(rho));
 
 % Alternative:
 %R = expm(phi*N);

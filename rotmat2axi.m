@@ -1,18 +1,18 @@
 % rotmat2axi   Rotation axis and angle form rotation matrix
 %
-%    [n,phi] = rotmat2axi(R)
+%    [n,rho] = rotmat2axi(R)
 %
 %    Determines the axis n (a 3-element vector) and the angle
-%    phi (in  radians) of the rotation described by the 3x3
+%    rho (in  radians) of the rotation described by the 3x3
 %    rotation matrix R.
 %
 %    Example:
 %      % A rotation matrix describing a rotation around y
 %      R = erot(0,pi/3,0);
 %      % rotmax2axi yields axis y and angle pi/3
-%      [n,phi] = rotmat2axi(R)
+%      [n,rho] = rotmat2axi(R)
 
-function [n,phi] = rotmat2axi(R)
+function [n,rho] = rotmat2axi(R)
 
 if (nargin==0), help(mfilename); return; end
 
@@ -24,10 +24,10 @@ end
 
 if trace(R)==3
   % no rotation, phi==0
-  phi = 0;
+  rho = 0;
   n = [0;0;1];
 else
-  phi = real(acos((trace(R)-1)/2));
+  rho = real(acos((trace(R)-1)/2));
   n = [R(2,3)-R(3,2); R(3,1)-R(1,3); R(1,2)-R(2,1)];
   n = n/norm(n);
 end

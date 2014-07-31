@@ -80,7 +80,7 @@ if (~PowderSimulation)
   end
   if ~iscell(R_CL), R_CL = {R_CL}; end
   nOrientations = numel(R_CL);
-    
+  
   % Generate list of lab frame orientations, represented in the
   % various site molecular frames
   % (M = molecular frame of reference site)
