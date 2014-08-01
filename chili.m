@@ -38,9 +38,9 @@
 %
 %     Exp.nPoints         number of points (default 1024)
 %     Exp.Harmonic        detection harmonic: 0, 1, 2 (default 1)
-%     Exp.MOMD            0: single orientation, 1: powder (MOMD)
 %
 %     Opt.LLKM            basis size: [evenLmax oddLmax Kmax Mmax]
+%     Opt.MOMD            0: single orientation, 1: powder (MOMD)
 %     Opt.Verbosity       0: no display, 1: show info
 %     Opt.nKnots          number of knots for powder simulation (MOMD)
 %
@@ -180,7 +180,6 @@ if ~isfield(Sys,'psi'), Sys.psi = 0; end
 if ~isfield(Exp,'nPoints'), Exp.nPoints = 1024; end
 if ~isfield(Exp,'Harmonic'), Exp.Harmonic = []; end
 if ~isfield(Exp,'mwPhase'), Exp.mwPhase = 0; end
-if ~isfield(Exp,'MOMD'), Exp.MOMD = 0; end
 if ~isfield(Exp,'Temperature'), Exp.Temperature = NaN; end
 if ~isfield(Exp,'ModAmp'), Exp.ModAmp = 0; end
 if ~isfield(Exp,'Mode'), Exp.Mode = 'perpendicular'; end
@@ -197,12 +196,6 @@ if ~isnan(Exp.Temperature)
   if (numel(Exp.Temperature)~=1) || isinf(Exp.Temperature) || (Exp.Temperature<0)
     error('If given, Exp.Temperature must be a positive value.')
   end
-end
-
-% Powder
-if (Exp.MOMD) && isempty(Sys.lambda)
-  logmsg(0,'  No ordering potential given, skipping MOMD.');
-  Exp.MOMD = 0;
 end
 
 % Microwave frequency
@@ -335,6 +328,7 @@ end
 % Options
 %-------------------------------------------------------------------
 if isempty(Opt), Opt = struct('unused',NaN); end
+if ~isfield(Opt,'MOMD'), Opt.MOMD = 0; end
 if ~isfield(Opt,'Rescale'), Opt.Rescale = 1; end % rescale A before Lanczos
 if ~isfield(Opt,'Threshold'), Opt.Threshold = 1e-6; end
 if ~isfield(Opt,'Diagnostic'), Opt.Diagnostic = 0; end
@@ -346,6 +340,12 @@ switch Opt.Output
   case 'summed', Opt.SeparateTransitions = 0;
   case 'separate', Opt.SeparateTransitions = 1;
   otherwise, error('Wrong setting in Options.Output.');
+end
+
+% Powder
+if (Opt.MOMD) && isempty(Sys.lambda)
+  logmsg(0,'  No ordering potential given, skipping MOMD.');
+  Opt.MOMD = 0;
 end
 
 if ~isfield(Opt,'nKnots'), Opt.nKnots = [5 0]; end
@@ -442,7 +442,7 @@ logmsg(1,'    jKmin %+d, pSmin %+d, symm %d',...
 
 % Set up list of orientations
 %=====================================================================
-if (Exp.MOMD)
+if (Opt.MOMD)
   if Opt.nKnots(1)==1
     psi = 0;
     GeomWeights = 4*pi;
