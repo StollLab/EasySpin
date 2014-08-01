@@ -26,6 +26,7 @@
 %     Sys.lambda          ordering potential coefficients
 %                         [lambda20 lambda22 lambda40 lambda42 lambda44]
 %     Sys.Exchange        Heisenberg exchange frequency (in MHz)
+%     Sys.psi             "director tilt" orientation
 %
 %     Exp.mwFreq          spectrometer frequency, in GHz
 %     Exp.CenterSweep     [centerField sweepWidth], in mT
@@ -38,7 +39,6 @@
 %     Exp.nPoints         number of points (default 1024)
 %     Exp.Harmonic        detection harmonic: 0, 1, 2 (default 1)
 %     Exp.MOMD            0: single orientation, 1: powder (MOMD)
-%     Exp.psi             "director tilt" orientation
 %
 %     Opt.LLKM            basis size: [evenLmax oddLmax Kmax Mmax]
 %     Opt.Verbosity       0: no display, 1: show info
@@ -172,6 +172,7 @@ if isfield(Sys,'lwpp'), Dynamics.lwpp = Sys.lwpp; end
 if isfield(Sys,'lw'), Dynamics.lw = Sys.lw; end
 if isfield(Sys,'lambda'), Dynamics.lambda = Sys.lambda; end
 if isfield(Sys,'Exchange'), Dynamics.Exchange = Sys.Exchange; end
+if ~isfield(Sys,'psi'), Sys.psi = 0; end
 
 
 % Experimental settings
@@ -180,7 +181,6 @@ if ~isfield(Exp,'nPoints'), Exp.nPoints = 1024; end
 if ~isfield(Exp,'Harmonic'), Exp.Harmonic = []; end
 if ~isfield(Exp,'mwPhase'), Exp.mwPhase = 0; end
 if ~isfield(Exp,'MOMD'), Exp.MOMD = 0; end
-if ~isfield(Exp,'psi'), Exp.psi = 0; end
 if ~isfield(Exp,'Temperature'), Exp.Temperature = NaN; end
 if ~isfield(Exp,'ModAmp'), Exp.ModAmp = 0; end
 if ~isfield(Exp,'Mode'), Exp.Mode = 'perpendicular'; end
@@ -432,7 +432,7 @@ end
 % Set up quantum numbers for basis
 %-------------------------------------------------------
 logmsg(1,'Setting up basis...');
-[Basis.Size,Indices] = chili_basiscount(Sys,Basis,Exp.psi~=0);
+[Basis.Size,Indices] = chili_basiscount(Sys,Basis);
 logmsg(1,'  basis size: %d',Basis.Size);
 logmsg(1,'    Leven max %d, Lodd max %d, Kmax %d, Mmax %d',...
   Basis.LLKM(1),Basis.LLKM(2),Basis.LLKM(3),Basis.LLKM(4));
@@ -451,7 +451,7 @@ if (Exp.MOMD)
   end
   logmsg(1,'  MOMD simulation with %d orientations',numel(psi));
 else
-  psi = Exp.psi;
+  psi = Sys.psi;
   GeomWeights = 4*pi;
   logmsg(2,'  Single orientation simulation');
 end

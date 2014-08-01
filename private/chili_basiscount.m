@@ -1,4 +1,6 @@
-function [nRows,Indices] = chili_basiscount(Sys,Basis,DirTilt)
+function [nRows,Indices] = chili_basiscount(Sys,Basis)
+
+DirTilt = Sys.psi~=0;
 
 evenLmax = Basis.evenLmax;
 oddLmax = Basis.oddLmax;
