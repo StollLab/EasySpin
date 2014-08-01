@@ -686,7 +686,12 @@ end
 % Temperature: include Boltzmann equilibrium polarization
 %---------------------------------------------------------------
 if isfinite(Exp.Temperature)
-  e = exp(-planck*Exp.mwFreq*1e9/boltzm/Exp.Temperature);
+  if FieldSweep
+     DeltaE = planck*Exp.mwFreq*1e9; % Joule
+  else
+     DeltaE = bmagn*mean(Sys.g)*Exp.Field*1e-3; % Joule
+  end
+  e = exp(-DeltaE/boltzm/Exp.Temperature);
   Population = [1 e];
   Population = Population/sum(Population);
   Polarization = Population(1) - Population(2);
