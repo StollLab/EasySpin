@@ -48,8 +48,13 @@ if (nargin==0)
   tau20 = 1e-10; % s
 end
 
-I = nucspin(System.Nucs);
-nNucs = numel(I);
+if isfield(System,'Nucs')
+  I = nucspin(System.Nucs);
+  nNucs = numel(I);
+else
+  I = [];
+  nNucs = 0;
+end
 
 if numel(System.g)~=3
   error('Three values in System.g needed!');

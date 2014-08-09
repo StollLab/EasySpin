@@ -167,7 +167,7 @@ end
 if isfield(Sys,'logtcorr'), Sys.tcorr = 10.^Sys.logtcorr; end
 if ~isfield(Sys,'tcorr'), Sys.tcorr = 0; end
 
-FastMotionRegime = (Sys.tcorr~=0);
+FastMotionRegime = ~isempty(Sys.tcorr) && (Sys.tcorr~=0);
 if FastMotionRegime
   if (~isreal(Sys.tcorr))
     error('Problem with System.tcorr: must be a number!');
@@ -671,28 +671,31 @@ Exp.deltaX = xAxis(2)-xAxis(1);
 if (FastMotionRegime)
   logmsg(1,'Constructing spectrum with fast-motion Lorentzian linewidths...');
 
-  dxx = min(Exp.deltaX,min(LorentzianLw)/5);
-  nnPoints = round((SweepRange(2)-SweepRange(1))/dxx+1);
-  xx = linspace(SweepRange(1),SweepRange(2),nnPoints);
+  dxFine = min(Exp.deltaX,min(LorentzianLw)/5);
+  nPointsFine = round((SweepRange(2)-SweepRange(1))/dxFine+1);
+  xAxisFine = linspace(SweepRange(1),SweepRange(2),nPointsFine);
+  dxFine = xAxisFine(2) - xAxisFine(1);
 
   spec = 0;
   for iLine = 1:numel(Positions)
-    spec = spec + Intensity(iLine)*lorentzian(xx,Positions(iLine),LorentzianLw(iLine),Harmonic2Do,Exp.mwPhase);
+    spec = spec + Intensity(iLine)*lorentzian(xAxisFine,Positions(iLine),LorentzianLw(iLine),Harmonic2Do,Exp.mwPhase);
   end
   Exp.mwPhase = 0;
   Harmonic2Do = 0;
     
 else
-  
-  xx = xAxis;
-  dxx = Exp.deltaX;
+
+  expandFactor = 1;
+  nPointsFine = (Exp.nPoints-1)*expandFactor + 1;
+  xAxisFine = linspace(SweepRange(1),SweepRange(2),nPointsFine);
+  dxFine = xAxisFine(2) - xAxisFine(1);
   
   logmsg(1,'Constructing stick spectrum...'); 
-  spec = constructspectrum(Positions,Intensity,SweepRange,Exp.nPoints);
+  spec = constructstickspectrum(Positions,Intensity,SweepRange,nPointsFine);
+  spec = spec/dxFine;
   
 end
 
-spec = spec/Exp.deltaX;
 
 % (2) Convolutional broadening
 %---------------------------------------------------------
@@ -723,19 +726,19 @@ if (ConvolutionBroadening)
   % Convolution with Lorentzian
   if (fwhmL>0)
     logmsg(1,'Convoluting with Lorentzian (FWHM %g %s, derivative %d)...',fwhmL,unitstr,HarmonicL);
-    spec = convspec(spec,dxx,fwhmL,HarmonicL,0,mwPhaseL);
+    spec = convspec(spec,dxFine,fwhmL,HarmonicL,0,mwPhaseL);
   end
   % Convolution with Gaussian
   if (fwhmG>0)
     logmsg(1,'Convoluting with Gaussian (FWHM %g %s, derivative %d)...',fwhmG,unitstr,HarmonicG);
-    spec = convspec(spec,dxx,fwhmG,HarmonicG,1,mwPhaseG);
+    spec = convspec(spec,dxFine,fwhmG,HarmonicG,1,mwPhaseG);
   end
   
 end
 
-if numel(xx)~=numel(xAxis)
-  logmsg(1,'Re-interpolation (%d -> %d points)...',numel(xx),numel(xAxis));
-  spec = interp1(xx,spec,xAxis);
+if numel(xAxisFine)~=numel(xAxis)
+  logmsg(1,'Re-interpolation (%d -> %d points)...',numel(xAxisFine),numel(xAxis));
+  spec = interp1(xAxisFine,spec,xAxis);
 end
 
 % (3) Field modulation
@@ -787,7 +790,7 @@ end
 return
 
 %=========================================================
-function Spectrum = constructspectrum(Positions,Amplitudes,Range,nPoints)
+function Spectrum = constructstickspectrum(Positions,Amplitudes,Range,nPoints)
 
 % Convert Positions to indices into spectral vector
 idxPositions = (Positions-Range(1))/diff(Range) * (nPoints-1);
