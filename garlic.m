@@ -188,7 +188,6 @@ if FastMotionRegime
   end
 end
 
-ConvolutionBroadening = any(Sys.lw>0);
 %-------------------------------------------------------------------------
 
 
@@ -572,7 +571,7 @@ for iNucGrp = 1:Sys.nNuclei
 end
 
 % Statistics: minimum, maximum, number of lines
-%------------------------------------------------
+%--------------------------------------------------------------
 nPeaks = 1;
 posmax = CentralResonance;
 posmin = CentralResonance;
@@ -594,7 +593,7 @@ else
 end
 
 % Autoranging
-%------------------------------------------------
+%--------------------------------------------------------------
 if (SweepAutoRange)
   if FieldSweep
     posrange = (posmax-posmin)*Options.Stretch;
@@ -616,9 +615,8 @@ else
   logmsg(1,'  spectral spread %g MHz\n  g=%g resonance at %g GHz',(posmax-posmin)/1e6,giso,CentralResonance/1e9);
 end
 
-%===================================================================
-% Spectrum construction
-%===================================================================
+% Combining shifts and intensities
+%--------------------------------------------------------------
 logmsg(1,'Combining resonance shifts...');
 if (nPeaks>1)
   Positions = sum(allcombinations(Shifts{:}),2) + CentralResonance;
@@ -631,47 +629,57 @@ if ~FieldSweep
   Positions = Positions/1e9; % Hz -> GHz
 end
 
-% Parallel mode: no intensities
+% Line intensities
+%--------------------------------------------------------------
+logmsg(1,'Computing overall line intensities...');
 if ParallelMode
-  Intensity = Intensity*0;
-end
+  % Parallel mode: no intensities
+  Intensity = zeros(size(Intensity));
+else
 
-% Temperature: include Boltzmann equilibrium polarization
-if isfinite(Exp.Temperature)
-  if FieldSweep
-    e = exp(-planck*Exp.mwFreq*1e9/boltzm/Exp.Temperature);
-    Population = [1 e]/(1+e);
-    Polarization = Population(1)-Population(2);
-    Intensity = Intensity*Polarization;
-  else
-    error('Boltzmann populations for frequency sweeps not implemented.');
-  end
-end
-
-% Transition amplitudes
-%--------------------------------------------------------------
-g1mean2 = giso^2;
-TransitionRate = (8*pi^2)*g1mean2*(bmagn/planck/1e9/2)^2;
-Intensity = Intensity*TransitionRate;
-if FieldSweep
+  % Transition rate
+  g1mean2 = giso^2;
+  TransitionRate = (8*pi^2)*g1mean2*(bmagn/planck/1e9/2)^2;
+  Intensity = Intensity*TransitionRate;
+  
   % 1/g factor (mT/MHz)
-  dBdE = planck/(giso*bmagn)*1e9;
-  Intensity = Intensity*dBdE;
+  if FieldSweep
+    dBdE = planck/(giso*bmagn)*1e9;
+    Intensity = Intensity*dBdE;
+  end
+  
+  % Temperature: thermal equilibrium polarization
+  if isfinite(Exp.Temperature)
+    if FieldSweep
+      DeltaE = planck*Exp.mwFreq*1e9;
+    else
+      DeltaE = bmagn*giso*Exp.Field*1e-3;
+    end
+    e = exp(-DeltaE/boltzm/Exp.Temperature);
+    Population = [1 e]/(1+e);
+    Polarization = Population(1) - Population(2);
+    Intensity = Intensity*Polarization;
+  end
+  
 end
-%--------------------------------------------------------------
 
+
+%===================================================================
+% Spectrum construction
+%===================================================================
+
+% (1) Initial spectrum construction
+%-------------------------------------------------------------------
 Harmonic2Do = Exp.Harmonic;
-
 SweepRange = Exp.Range;
 xAxis = linspace(SweepRange(1),SweepRange(2),Exp.nPoints);
-Exp.deltaX = xAxis(2)-xAxis(1);
+AccumulateLorentzians = FastMotionRegime;
 
-% (1) Fast-motion broadening
-%---------------------------------------------------------
-if (FastMotionRegime)
-  logmsg(1,'Constructing spectrum with fast-motion Lorentzian linewidths...');
+if (AccumulateLorentzians)
+  
+  logmsg(1,'Constructing spectrum with explicit Lorentzian lineshapes...');
 
-  dxFine = min(Exp.deltaX,min(LorentzianLw)/5);
+  dxFine = min(xAxis(2)-xAxis(1),min(LorentzianLw)/5);
   nPointsFine = round((SweepRange(2)-SweepRange(1))/dxFine+1);
   xAxisFine = linspace(SweepRange(1),SweepRange(2),nPointsFine);
   dxFine = xAxisFine(2) - xAxisFine(1);
@@ -682,23 +690,24 @@ if (FastMotionRegime)
   end
   Exp.mwPhase = 0;
   Harmonic2Do = 0;
-    
+  
 else
 
+  logmsg(1,'Constructing stick spectrum...'); 
+  
   expandFactor = 1;
   nPointsFine = (Exp.nPoints-1)*expandFactor + 1;
   xAxisFine = linspace(SweepRange(1),SweepRange(2),nPointsFine);
   dxFine = xAxisFine(2) - xAxisFine(1);
   
-  logmsg(1,'Constructing stick spectrum...'); 
   spec = constructstickspectrum(Positions,Intensity,SweepRange,nPointsFine);
   spec = spec/dxFine;
   
 end
 
-
 % (2) Convolutional broadening
-%---------------------------------------------------------
+%-------------------------------------------------------------------
+ConvolutionBroadening = any(Sys.lw>0);
 if (ConvolutionBroadening)
   
   fwhmL = Sys.lw(2);
@@ -742,10 +751,10 @@ if numel(xAxisFine)~=numel(xAxis)
 end
 
 % (3) Field modulation
-%-----------------------------------------------------------------------
+%-------------------------------------------------------------------
 if FieldSweep
   if (Exp.ModAmp>0)
-    logmsg(1,'  applying field modulation');
+    logmsg(1,'Applying field modulation (%g mT amplitude)...',Exp.ModAmp);
     spec = fieldmod(xAxis,spec,Exp.ModAmp);
   else
     % derivatives already included in the convolution
