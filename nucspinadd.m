@@ -63,7 +63,7 @@ end
 NewSys = Sys;
 
 if isfield(NewSys,'Nucs')
-  Nucs = nucstringparse(NewSys.Nucs);
+  Nucs = nucstring2list(NewSys.Nucs);
   nNuclei = numel(Nucs);
 else
   nNuclei = 0;

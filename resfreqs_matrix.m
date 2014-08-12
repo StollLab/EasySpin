@@ -229,7 +229,7 @@ CoreSys = System;
 % Perturbational treatment of SHF nuclei
 if (CoreSys.nNuclei>=1) && Opt.Hybrid
   
-  Nucs = nucstringparse(CoreSys.Nucs);
+  Nucs = nucstring2list(CoreSys.Nucs);
   
   if any(Opt.HybridNuclei>CoreSys.nNuclei)
     error('Opt.HybridNuclei is incorrect!');

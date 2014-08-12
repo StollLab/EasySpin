@@ -77,7 +77,7 @@ if ~ischar(Isotopes) && ~iscell(Isotopes)
 end
 
 if ~iscell(Isotopes)
-  Nucs = nucstringparse(Isotopes);
+  Nucs = nucstring2list(Isotopes);
 else
   Nucs = Isotopes;
 end

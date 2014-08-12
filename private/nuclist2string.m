@@ -1,12 +1,12 @@
-% nucstringmake  Generate isotope list string
+% nuclist2string  Generate isotope list string
 %
-%   str = nucstringmake(Nucs)
+%   str = nuclist2string(Nucs)
 %
 %   Generates a string containing a commma-
 %   separated list of isotope symbols given
 %   in the cell array Nucs.
 
-function NucString = nucstringmake(Nucs)
+function NucString = nuclist2string(Nucs)
 
 % Generate list of nuclei from a cell array of strings,
 % e.g. {'63Cu','14N','14N','1H'} -> '63Cu,14N,14N,1H'

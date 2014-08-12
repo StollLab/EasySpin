@@ -636,7 +636,7 @@ if (numel(Sys.I)>2)
   if isfield(Sys,'n')
     shfSys.n = Sys.n(2:end);
   end
-  shfSys.Nucs = nucstringmake(Sys.Nucs(2:end));
+  shfSys.Nucs = nuclist2string(Sys.Nucs(2:end));
   shfExp.Range = Exp.Range;
   shfExp.mwFreq = mt2mhz(mean(Exp.Range),shfSys.g)/1e3; % GHz
   dx = diff(Exp.Range)/(Exp.nPoints-1);

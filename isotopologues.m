@@ -55,7 +55,7 @@ if isempty(IsotopeList)
 end
 
 if Debug, fprintf('Input string:  %s\n', NucList); end
-NucList = nucstringparse(NucList,'m');
+NucList = nucstring2list(NucList,'m');
 if Debug, disp('Initial parsing:'); NucList, end
 
 if ~isempty(Abundances)

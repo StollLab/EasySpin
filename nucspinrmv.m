@@ -21,7 +21,7 @@ NewSys = Sys;
 if (nargin<2), return; end
 if isempty(idx), return; end
 
-Nucs = nucstringparse(NewSys.Nucs);
+Nucs = nucstring2list(NewSys.Nucs);
 nNuclei = numel(Nucs);
 
 if any(idx>nNuclei) || any(idx<=0)
@@ -31,7 +31,7 @@ end
 
 Nucs(idx) = [];
 
-Nucs = nucstringmake(Nucs);
+Nucs = nuclist2string(Nucs);
 
 if isempty(Nucs)
   NewSys = rmfield(NewSys,'Nucs');

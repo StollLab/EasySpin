@@ -296,7 +296,7 @@ if isempty(Sys.Nucs)
 end
 
 if ~isempty(Sys.Nucs)
-  Sys.Nucs = nucstringparse(Sys.Nucs);
+  Sys.Nucs = nucstring2list(Sys.Nucs);
 end
 
 [I,gn] = nucdata(Sys.Nucs);

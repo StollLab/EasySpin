@@ -278,7 +278,7 @@ if (CoreSys.nNuclei>=1) && Opt.Hybrid
 
   %if iscell(CoreSys.Nucs), CoreSys.Nucs = CoreSys.Nucs{1}; end
   
-  Nucs = nucstringparse(CoreSys.Nucs);
+  Nucs = nucstring2list(CoreSys.Nucs);
   
   if any(Opt.HybridCoreNuclei>CoreSys.nNuclei)
     error('Opt.HybridCoreNuclei is incorrect!');

@@ -37,7 +37,7 @@ if isempty(Nucs) | isempty(Fields)
 end
 
 if iscell(Nucs)
-  Nucs = nucstringmake(Nucs);
+  Nucs = nuclist2string(Nucs);
 end
 
 gn = abs(nucgval(Nucs));
