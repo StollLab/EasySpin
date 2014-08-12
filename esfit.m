@@ -6,14 +6,13 @@
 %   bestsys = esfit(...)
 %   [bestsys,bestspc] = esfit(...)
 %
-%     simfunc   simulation function name:
-%                 'pepper', 'garlic', 'salt', 'chili', etc.
-%     expspc    experimental spectrum, a vector of data points
-%     Sys0      starting values for spin system parameters
-%     Vary      allowed variation of parameters
-%     Exp       experimental parameter, for simulation function
-%     SimOpt    options for the simulation algorithms
-%
+%     simfunc     simulation function name:
+%                   'pepper', 'garlic', 'salt', 'chili', etc.
+%     expspc      experimental spectrum, a vector of data points
+%     Sys0        starting values for spin system parameters
+%     Vary        allowed variation of parameters
+%     Exp         experimental parameter, for simulation function
+%     SimOpt      options for the simulation algorithms
 %     FitOpt      options for the fitting algorithms
 %        Method   string containing kewords for
 %          -algorithm: 'simplex','levmar','montecarlo','genetic','grid'
@@ -33,6 +32,11 @@ Link = 'epr@eth'; eschecker; error(LicErr); clear Link LicErr
 if (nargin<5), error('Not enough inputs.'); end
 if (nargin<6), SimOpt = struct('unused',NaN); end
 if (nargin<7), FitOpt = struct('unused',NaN); end
+
+if isempty(FitOpt), FitOpt = struct('unused',NaN); end
+if ~isstruct(FitOpt)
+  error('FitOpt (7th input argument of esfit) must be a structure.');
+end
 
 global FitData FitOpts
 FitData = []; FitOpts = [];
@@ -477,18 +481,18 @@ end
 % Run fitting routine
 %------------------------------------------------------------
 if (~FitData.GUI)
-  [FinalSys,BestSpec,Residuals] = runFitting;
+  [BestSys,BestSpec,Residuals] = runFitting;
 end
 
 % Arrange outputs
 %------------------------------------------------------------
 if (~FitData.GUI)
-  if (nSystems==1), FinalSys = FinalSys{1}; end
+  if (nSystems==1), BestSys = BestSys{1}; end
   switch (nargout)
-    case 0, varargout = {FinalSys};
-    case 1, varargout = {FinalSys};
-    case 2, varargout = {FinalSys,BestSpec};
-    case 3, varargout = {FinalSys,BestSpec,Residuals};
+    case 0, varargout = {BestSys};
+    case 1, varargout = {BestSys};
+    case 2, varargout = {BestSys,BestSpec};
+    case 3, varargout = {BestSys,BestSpec,Residuals};
   end
 else
   varargout = cell(1,nargout);
@@ -685,7 +689,7 @@ BestSpecScaled = rescale(BestSpec,FitData.ExpSpecScaled,FitOpts.Scaling);
 BestSpec = rescale(BestSpec,FitData.ExpSpec,FitOpts.Scaling);
 
 Residuals = getResiduals(BestSpecScaled(:),FitData.ExpSpecScaled(:),FitOpts.TargetID);
-Residuals = Residuals.';
+Residuals = Residuals.'; % col -> row
 rmsd = sqrt(mean(Residuals.^2));
 
 % Output
@@ -1011,6 +1015,7 @@ idxNaN = isnan(A) | isnan(B);
 residuals(idxNaN) = 0; % ignore NaNs in either A or B
 switch mode
   case 1 % fcn
+    % nothing to do
   case 2 % int
     residuals = cumsum(residuals);
   case 3 % iint

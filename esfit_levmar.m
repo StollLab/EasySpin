@@ -95,7 +95,7 @@ if (~stop)
   nEvals = nEvals + 1;
   if (~stop)
     % Jacobian
-    [stop,Je] = JacobianEstimate(funfcn,x,delta,f,varargin{:});
+    [stop,Je] = JacobianEstimate(funfcn,x,f,delta,varargin{:});
     nEvals = nEvals + n;
     % Check gradient and J'*J
     if (~stop)
@@ -230,21 +230,21 @@ return
 
 
 %======================================================================
-function  [err, J] = JacobianEstimate(funfcn,x,d,f,varargin)
-% Approximate Jacobian by finite differences
+function  [err, J] = JacobianEstimate(funfcn,x0,f0,delta,varargin)
+% Compute approximate Jacobian using finite differences
 % Jacobian:
 %    dy1/dx1    dy1/dx2   ...
 %    dy2/dx1    dy2/dx2   ...
 %    ...
 
-nx = numel(x);
-J = zeros(numel(f),nx);
+nVariables = numel(x0);
+J = zeros(numel(f0),nVariables);
 
-for j = 1:nx
-  x1 = x;
-  x1(j) = x(j)+d;
-  fp = feval(funfcn,x1,varargin{:});
-  J(:,j) = (fp-f)/d;
+for ix = 1:nVariables
+  x1 = x0;
+  x1(ix) = x0(ix) + delta;
+  f1 = funfcn(x1,varargin{:});
+  J(:,ix) = (f1-f0)/delta;
 end
 
 % Check J
