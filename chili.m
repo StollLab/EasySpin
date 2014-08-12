@@ -40,9 +40,8 @@
 %     Exp.Harmonic        detection harmonic: 0, 1, 2 (default 1)
 %
 %     Opt.LLKM            basis size: [evenLmax oddLmax Kmax Mmax]
-%     Opt.MOMD            0: single orientation, 1: powder (MOMD)
 %     Opt.Verbosity       0: no display, 1: show info
-%     Opt.nKnots          number of knots for powder simulation (MOMD)
+%     Opt.nKnots          number of knots for powder simulation
 %
 %   Output:
 %     B      magnetic field axis vector, in mT
@@ -328,7 +327,6 @@ end
 % Options
 %-------------------------------------------------------------------
 if isempty(Opt), Opt = struct('unused',NaN); end
-if ~isfield(Opt,'MOMD'), Opt.MOMD = 0; end
 if ~isfield(Opt,'Rescale'), Opt.Rescale = 1; end % rescale A before Lanczos
 if ~isfield(Opt,'Threshold'), Opt.Threshold = 1e-6; end
 if ~isfield(Opt,'Diagnostic'), Opt.Diagnostic = 0; end
@@ -342,10 +340,16 @@ switch Opt.Output
   otherwise, error('Wrong setting in Options.Output.');
 end
 
-% Powder
-if (Opt.MOMD) && isempty(Sys.lambda)
-  logmsg(0,'  No ordering potential given, skipping MOMD.');
-  Opt.MOMD = 0;
+% Powder simulation
+if isempty(Sys.lambda)
+  logmsg(1,'  No ordering potential given, skipping powder simulation.');
+  PowderSimulation = false;
+elseif all(Sys.lambda==0)
+  logmsg(1,'  Zero ordering potential given, skipping powder simulation.');
+  PowderSimulation = false;
+else
+  logmsg(1,'  Non-zero ordering potential given, doing powder simulation.');
+  PowderSimulation = true;
 end
 
 if ~isfield(Opt,'nKnots'), Opt.nKnots = [5 0]; end
@@ -442,18 +446,18 @@ logmsg(1,'    jKmin %+d, pSmin %+d, symm %d',...
 
 % Set up list of orientations
 %=====================================================================
-if (Opt.MOMD)
+if (PowderSimulation)
   if Opt.nKnots(1)==1
     psi = 0;
     GeomWeights = 4*pi;
   else
     [dummy,psi,GeomWeights] = sphgrid('Dinfh',Opt.nKnots(1));
   end
-  logmsg(1,'  MOMD simulation with %d orientations',numel(psi));
+  logmsg(1,'  powder simulation with %d orientations',numel(psi));
 else
   psi = Sys.psi;
   GeomWeights = 4*pi;
-  logmsg(2,'  Single orientation simulation');
+  logmsg(2,'  single-orientation simulation');
 end
 nOrientations = numel(psi);
 
