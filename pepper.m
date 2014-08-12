@@ -9,34 +9,41 @@
 %   Calculates field-swept and frequency-swept cw EPR spectra.
 %
 %   Input:
-%   - Sys: parameters of the paramagnetic system
-%       S, g, Nucs, A, Q, D, ee,
-%       gFrame, AFrame, QFrame, DFrame, eeFrame
-%       lw, lwpp
-%       HStrain, gStrain, AStrain, DStrain
-%       B2, B4, B6 etc.
-%   - Exp: experimental parameters
-%       mwFreq             spectrometer frequency, in GHz
-%       CenterSweep        sweep range [center,sweepwidth], in mT or GHz
-%       Range              sweep range [low,high], in mT or GHz
-%       nPoints            number of points
-%       Temperature        temperature of the sample, by default off (NaN)
-%       Harmonic           detection harmonic: 0, 1 (default), 2
-%       CrystalOrientation nx3 array of Euler angles for crystal orientation, 1 row per crystal
-%       Mode               resonator mode: 'perpendicular' (default), 'parallel', [k_tilt alpha_pol]
-%       Polarization       'linear' (default), 'circular+', 'circular-', 'unpolarized'
-%       Ordering           coefficient for non-isotropic orientational distribution
-%   - Opt: computational options
-%       Method        'matrix', 'perturb1', 'perturb2'='perturb'
-%       Verbosity, Output,
-%       Symmetry, SymmFrame,
-%       nKnots, Intensity
-%       Transitions, nTransitions, Threshold
+%    Sys: parameters of the paramagnetic system
+%      S, g, Nucs, A, Q, D, ee,
+%      gFrame, AFrame, QFrame, DFrame, eeFrame
+%      lw, lwpp
+%      HStrain, gStrain, AStrain, DStrain
+%      B2, B4, B6 etc.
+%    Exp: experimental parameter settings
+%      mwFreq              microwave frequency, in GHz (for field sweeps)
+%      Field              static field, in mT (for frequency sweeps)
+%      Range               sweep range, [sweepmin sweepmax], in mT or GHz
+%      CenterField         sweep range, [center sweep], in mT or GHz
+%      nPoints             number of points
+%      Harmonic            detection harmonic: 0, 1 (default), 2
+%      ModAmp              peak-to-peak modulation amplitude, in mT (field sweeps only)
+%      mwPhase             detection phase (0 = absorption, pi/2 = dispersion)
+%      Temperature         temperature, in K
+%      CrystalOrientation  nx3 array of Euler angles (in radians) for crystal orientations
+%      CrystalSymmetry     crystal symmetry (space group etc.)
+%      MolFrame            Euler angles (in radians) for molecular frame orientation
+%      Polarization        'linear', 'circular+', 'circular-', 'unpolarized'
+%      Mode                excitation mode: 'perpendicular', 'parallel', k_tilt, [k_tilt alpha_pol]
+%      Ordering            coefficient for non-isotropic orientational distribution
+%    Opt: computational options
+%      Method              'matrix', 'perturb1', 'perturb2'='perturb'
+%      Output              'summed', 'separate'
+%      Verbosity           0, 1, 2
+%      nKnots              N1, [N1 Ninterp]
+%      Transitions, Threshold
+%      Symmetry, SymmFrame,
+%      Intensity, Freq2Field
 %
 %   Output:
-%   - x:      the field axis (in mT) or frequency axis (in GHz)
-%   - spec:   the spectrum
-%   - Trans:  transitions included in the calculation
+%    x       field axis (in mT) or frequency axis (in GHz)
+%    spec    spectrum
+%    Trans   transitions included in the calculation
 %
 %   If no output argument is given, the simulated spectrum is plotted.
 
@@ -178,7 +185,7 @@ if StrainWidths, logmsg(1,'  widths for Gaussian strains given'); end
 
 % Documented fields and their defaults (mandatory parameters are set to NaN)
 %DefaultExp.mwFreq = NaN; % for field sweeps
-%DefaultExp.Field = NaN; % for frequencys sweeps
+%DefaultExp.Field = NaN; % for frequency sweeps
 DefaultExp.CenterSweep = NaN;
 DefaultExp.Range = NaN;
 DefaultExp.nPoints = 1024;
