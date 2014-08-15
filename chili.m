@@ -183,6 +183,9 @@ if ~isfield(Exp,'Temperature'), Exp.Temperature = NaN; end
 if ~isfield(Exp,'ModAmp'), Exp.ModAmp = 0; end
 if ~isfield(Exp,'Mode'), Exp.Mode = 'perpendicular'; end
 
+if isfield(Exp,'MOMD')
+  error('Exp.MOMD is obsolete. Remove it from your code. See the documentation for details.');
+end
 
 % Number of points
 if any(~isreal(Exp.nPoints)) || numel(Exp.nPoints)>1 || (Exp.nPoints<2)
@@ -338,6 +341,10 @@ switch Opt.Output
   case 'summed', Opt.SeparateTransitions = 0;
   case 'separate', Opt.SeparateTransitions = 1;
   otherwise, error('Wrong setting in Options.Output.');
+end
+
+if isfield(Opt,'MOMD')
+  error('Opt.MOMD is obsolete. Remove it from your code. See the documentation for details.');
 end
 
 % Powder simulation
