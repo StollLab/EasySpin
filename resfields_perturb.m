@@ -274,34 +274,28 @@ for iOri = nOrientations:-1:1
   %----------------------------------------------------------------
 
   % Compute quantum-mechanical transition rate
-  if (linearpolarizedMode)
-    if (AverageOverChi)
+  if (AverageOverChi)
+    if (linearpolarizedMode)
       TransitionRate(:,iOri) = c2/2*(1-xi1^2)*(trgg-norm(g*u)^2);
-    else
-      nB1_ = R.'*nB1; % transform to molecular frame representation
-      TransitionRate(:,iOri) = c2*(norm(nB1_.'*g)^2-(u.'*g.'*nB1_)^2);
-    end
-  elseif (unpolarizedMode)
-    if (AverageOverChi)
+    elseif (unpolarizedMode)
       TransitionRate(:,iOri) = c2/4*(1+xik^2)*(trgg-norm(g*u)^2);
-    else
+    elseif (circpolarizedMode)
+      TransitionRate(:,iOri) = c2/2*(1+xik^2)*(trgg-norm(g*u)^2) + ...
+        circSense*2*c2*xik^2*det(g)/norm(g.'*n0);
+    end
+  else
+    if (linearpolarizedMode)
+      nB1_ = R.'*nB1; % transform to molecular frame representation
+      TransitionRate(:,iOri) = c2*norm(cross(g.'*nB1_,u))^2;
+    elseif (unpolarizedMode)
       nk_ = R.'*nk; % transform to molecular frame representation
       TransitionRate(:,iOri) = c2/2*(trgg-norm(g*u)^2-norm(cross(g.'*nk_,u))^2);
-    end
-  elseif (circpolarizedMode)
-    %j = [u(2);-u(1);0]; j = j/norm(j);
-    %i = cross(j,u);
-    %gixgj = cross(g*i,g*j);
-    if (AverageOverChi)
-      %TransitionRate(:,iOri) = c2/4*((1+xik^2)*(trgg-norm(g*u)^2)-circpolarizedMode*4*xik^2*n0.'*gixgj);
-      TransitionRate(:,iOri) = c2/4*((1+xik^2)*(trgg-norm(g*u)^2)-circpolarizedMode*4*xik^2*det(g)/norm(g.'*n0));
-    else
+    elseif (circpolarizedMode)
       nk_ = R.'*nk; % transform to molecular frame representation
-      %TransitionRate(:,iOri) = c2/2*(trgg-norm(g*u)^2-norm(cross(g.'*nk_,u))^2-circpolarizedMode*2*nk_.'*gixgj);
-      TransitionRate(:,iOri) = c2/2*(trgg-norm(g*u)^2-norm(cross(g.'*nk_,u))^2-circpolarizedMode*2*det(g)*xik/norm(g.'*n0));
+      TransitionRate(:,iOri) = c2*(trgg-norm(g*u)^2-norm(cross(g.'*nk_,u))^2) + ...
+        circSense*2*c2*det(g)*xik/norm(g.'*n0);
     end
   end
-  if abs(TransitionRate)<1e-10, TransitionRate = 0; end
 
   % Compute Aasa-Vänngård 1/g factor (frequency-to-field conversion factor)
   dBdE = (planck/bmagn*1e9)/geff(iOri);

@@ -555,43 +555,37 @@ for iOri = 1:nOrientations
   % Calculate intensities if requested
   if (ComputeIntensities)  
         
+    % Compute quantum-mechanical transition rate
     for iTrans = nTransitions:-1:1
-      Vu = Vs(:,Transitions(iTrans,1)); % lower state (u)
-      Vv = Vs(:,Transitions(iTrans,2)); % upper state (Ev>Eu)
-      
-      % Compute quantum-mechanical transition rate
-      mu = [Vv'*kGxL*Vu; Vv'*kGyL*Vu; Vv'*kGzL*Vu];
-      if (linearpolarizedMode)
-        if (AverageOverChi)
-          mu0 = abs(nB0.'*mu);
-          TransitionRates(iTrans) = xi1^2*mu0^2 + (1-xi1^2)*(norm(mu)^2-mu0^2)/2;
-        else
-          TransitionRates(iTrans) = abs(nB1.'*mu)^2;
+      U = Vs(:,u(iTrans)); % lower-energy state (u)
+      V = Vs(:,v(iTrans)); % higher-energy state (v, Ev>Eu)
+      mu = [V'*kGxL*U; V'*kGyL*U; V'*kGzL*U]; % magnetic transition dipole moment
+      if (AverageOverChi)
+        if (linearpolarizedMode)
+          TransitionRate = ((1-xi1^2)*norm(mu)^2+(3*xi1^2-1)*abs(nB0.'*mu)^2)/2;
+        elseif (unpolarizedMode)
+          TransitionRate = ((1+xik^2)*norm(mu)^2+(1-3*xik^2)*abs(nB0.'*mu)^2)/4;
+        elseif (circpolarizedMode)
+          TransitionRate = ((1+xik^2)*norm(mu)^2+(1-3*xik^2)*abs(nB0.'*mu)^2)/2 - ...
+            circSense*xik*(nB0.'*cross(1i*mu,conj(mu)));
         end
-      elseif (unpolarizedMode)
-        if (AverageOverChi)
-          mu0 = abs(nB0.'*mu);
-          TransitionRates(iTrans) = ((1+xik^2)*norm(mu)^2+(1-3*xik^2)*mu0^2)/4;
-        else
-          muk = abs(nk.'*mu);
-          TransitionRates(iTrans) = (norm(mu)^2-muk^2)/2;
-        end
-      elseif (circpolarizedMode)
-        if (AverageOverChi)
-          mu0 = abs(nB0.'*mu);
-          imumu = 1i*cross(mu,conj(mu));
-          TransitionRates(iTrans) = ((1+xik^2)*norm(mu)^2+(1-3*xik^2)*mu0^2+circpolarizedMode*2*nB0.'*imumu)/4;
-        else
-          muk = abs(nk.'*mu);
-          imumu = 1i*cross(mu,conj(mu));
-          TransitionRates(iTrans) = (norm(mu)^2-muk^2+circpolarizedMode*nk.'*imumu)/2;
+      else
+        if (linearpolarizedMode)
+          TransitionRate = abs(nB1.'*mu)^2;
+        elseif (unpolarizedMode)
+          TransitionRate = (norm(mu)^2-abs(nk.'*mu)^2)/2;
+        elseif (circpolarizedMode)
+          TransitionRate = (norm(mu)^2-abs(nk.'*mu)^2) - ...
+            circSense*(nk.'*cross(1i*mu,conj(mu)));
         end
       end
-      
+      if abs(TransitionRate)<1e-10, TransitionRate = 0; end
+      TransitionRates(iTrans) = TransitionRate;
+
     end
     
     if any(TransitionRates<0)
-      logmsg(-inf,'*********** Negative transition rate encountered in resfreqs!! Please report! **********');
+      logmsg(-inf,'*********** Negative transition rate encountered in resfreqs_matrix!! Please report! **********');
     end
     TransitionRates = abs(TransitionRates);
     
@@ -615,15 +609,15 @@ for iOri = 1:nOrientations
       if (nPerturbNuclei>0)
         Polarization = Polarization/prod(2*System.I+1);
       end
-      Idat(:,iOri) = TransitionRates(:).*Polarization;
       
     else
       % no temperature given
       % same polarization for each electron transition
       %Polarization = Polarization/prod(2*System.S+1); % needed to make consistent with high-temp limit
       Polarization = 1/prod(2*System.I+1);
-      Idat(:,iOri) = TransitionRates*Polarization;
     end
+    Idat(:,iOri) = TransitionRates(:).*Polarization;
+    
   end
   
   % Calculate width if requested.

@@ -976,8 +976,8 @@ for iOri = 1:nOrientations
           end
 
           % Compute dB/dE
-          % dBdE is the famous 1/g factor, in general
-          % (d(Ev-Eu)/dB)^(-1) = 1/(<v|dH/dB|v>-<u|dH/dB\u>)
+          % dBdE is the general form of the famous 1/g factor
+          % dBdE = (d(Ev-Eu)/dB)^(-1) = 1/(<v|dH/dB|v>-<u|dH/dB\u>)
           if (ComputeFreq2Field)
             dBdE = 1/abs(real((V-U)'*kGzL*(V+U)));
             % It might be quicker to take it from the first derivative
@@ -995,30 +995,24 @@ for iOri = 1:nOrientations
         if (ComputeIntensities)
           
           % Compute quantum-mechanical transition rate
-          mu = [V'*kGxL*U; V'*kGyL*U; V'*kGzL*U];
-          if (linearpolarizedMode)
-            if (AverageOverChi)
-              mu0 = abs(nB0.'*mu);
-              TransitionRate = xi1^2*mu0^2 + (1-xi1^2)*(norm(mu)^2-mu0^2)/2;
-            else
+          mu = [V'*kGxL*U; V'*kGyL*U; V'*kGzL*U]; % magnetic transition dipole moment
+          if (AverageOverChi)
+            if (linearpolarizedMode)
+              TransitionRate = ((1-xi1^2)*norm(mu)^2+(3*xi1^2-1)*abs(nB0.'*mu)^2)/2;
+            elseif (unpolarizedMode)
+              TransitionRate = ((1+xik^2)*norm(mu)^2+(1-3*xik^2)*abs(nB0.'*mu)^2)/4;
+            elseif (circpolarizedMode)
+              TransitionRate = ((1+xik^2)*norm(mu)^2+(1-3*xik^2)*abs(nB0.'*mu)^2)/2 - ...
+                circSense*xik*(nB0.'*cross(1i*mu,conj(mu)));
+            end
+          else
+            if (linearpolarizedMode)
               TransitionRate = abs(nB1.'*mu)^2;
-            end
-          elseif (unpolarizedMode)
-            if (AverageOverChi)
-              mu0 = abs(nB0.'*mu);
-              TransitionRate = ((1+xik^2)*norm(mu)^2+(1-3*xik^2)*mu0^2)/4;
-            else
-              muk = abs(nk.'*mu);
-              TransitionRate = (norm(mu)^2-muk^2)/2;
-            end
-          elseif (circpolarizedMode)
-            imumu = cross(1i*mu,conj(mu));
-            if (AverageOverChi)
-              mu0 = abs(nB0.'*mu);
-              TransitionRate = ((1+xik^2)*norm(mu)^2+(1-3*xik^2)*mu0^2)/4 + circpolarizedMode*(nB0.'*imumu)/2;
-            else
-              muk = abs(nk.'*mu);
-              TransitionRate = (norm(mu)^2-muk^2)/2 + circpolarizedMode*(nk.'*imumu)/2;
+            elseif (unpolarizedMode)
+              TransitionRate = (norm(mu)^2-abs(nk.'*mu)^2)/2;
+            elseif (circpolarizedMode)
+              TransitionRate = (norm(mu)^2-abs(nk.'*mu)^2) - ...
+                circSense*(nk.'*cross(1i*mu,conj(mu)));
             end
           end
           if abs(TransitionRate)<1e-10, TransitionRate = 0; end
@@ -1046,7 +1040,7 @@ for iOri = 1:nOrientations
           
           % Update intensity results array
           Idat(iiTrans,iOri) = dBdE * TransitionRate * Polarization;
-          % dBdE proportionality not valid near looping field coalescences
+          % dBdE proportionality not valid near looping field coalescences!
         end
         
         % Calculate gradient of resonance frequency.
