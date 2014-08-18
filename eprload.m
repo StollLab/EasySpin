@@ -116,8 +116,6 @@ if ~isempty(Scaling)
   end
 end
 
-% Determination of input file type
-ParseParameters = false;
 
 switch Extension
 
@@ -130,7 +128,6 @@ case {'.DTA','.DSC','.dsc','.dta'}
   % used on Bruker ELEXSYS and EMX machines
   % Code based on BES3T version 1.2 (Xepr 2.1)
   %--------------------------------------------------------
-  ParseParameters = true;
 
   if ismember(Extension,{'.DSC','.DTA'})
     ParExtension = '.DSC';
@@ -346,7 +343,8 @@ case {'.DTA','.DSC','.dsc','.dta'}
     end
 
   end
-
+  
+  Parameters = parseparams(Parameters);
 
 case {'.PAR','.SPC','.par','.spc'}
   %--------------------------------------------------
@@ -355,7 +353,6 @@ case {'.PAR','.SPC','.par','.spc'}
   %   Bruker ESP machines
   %   Bruker WinEPR, Simfonia
   %--------------------------------------------------
-  ParseParameters = true;
   
   % Read parameter file (contains key-value pairs)
   ParExtension = '.par';
@@ -619,6 +616,8 @@ case {'.PAR','.SPC','.par','.spc'}
 
   end
   
+  Parameters = parseparams(Parameters);
+
 case {'.ECO','.eco'}
   %--------------------------------------------------
   % ECO file processing
@@ -656,6 +655,8 @@ case {'.ECO','.eco'}
   if ~isempty(Scaling)
     error('Scaling does not work for this file type.');
   end
+  
+  Parameters = [];
 
 case {'.PLT','.plt'}
   %--------------------------------------------------
@@ -688,6 +689,8 @@ case {'.PLT','.plt'}
   if ~isempty(Scaling)
     error('Scaling does not work for this file type.');
   end
+  
+  Parameters = [];
 
 case {'.SPK','.spk','.ref','.REF'}
   %--------------------------------------------------
@@ -711,6 +714,8 @@ case {'.SPK','.spk','.ref','.REF'}
   if ~isempty(Scaling)
     error('Scaling does not work for this file type.');
   end
+  
+  Parameters = [];
   
 case {'.D00','.d00'}
   %----------------------------------------------
@@ -744,7 +749,9 @@ case {'.D00','.d00'}
   if ~isempty(Scaling)
     error('Scaling does not work for this file type.');
   end
-
+  
+  Parameters = [];
+  
 case {'.d01','.D01'}
   %----------------------------------------------
   % d01 file processing
@@ -795,6 +802,8 @@ case {'.d01','.D01'}
   if ~isempty(Scaling)
     error('Scaling does not work for this file type.');
   end
+  
+  Parameters = [];
 
 otherwise
   
@@ -802,12 +811,6 @@ otherwise
   
 end
 
-
-if ParseParameters
-  Parameters = parseparams(Parameters);
-else
-  Parameters = [];
-end
 
 switch (nargout)
   case 1

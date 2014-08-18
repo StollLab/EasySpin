@@ -67,7 +67,7 @@ DefaultOptions.nKnots = 46; % same as in salt and nucfrq2d
 DefaultOptions.Symmetry = '';
 DefaultOptions.Display = (nargout==0);
 
-DefaultOptions.IntegratedIntensity = true;
+DefaultOptions.AveragedIntensity = true;
 
 Options = adddefaults(Options,DefaultOptions);
 
@@ -138,8 +138,8 @@ if isfinite(Params.ExciteWidth)
     [E,idx] = sort(E); % because of a bug in eig() in Matlab 7.0.0 (fixed in 7.0.1)
     V = V(idx,:);
     
-    if (Options.IntegratedIntensity)
-      TransitionRate = pi * (abs(V'*GxL*V).^2 + abs(V'*GyL*V).^2);
+    if (Options.AveragedIntensity)
+      TransitionRate = (abs(V'*GxL*V).^2 + abs(V'*GyL*V).^2)/2;
     else
       TransitionRate = abs(V'*kGxL*V).^2;
     end
