@@ -149,19 +149,17 @@ end
 p_excitationgeometry;
 
 % Temperature, non-equilibrium populations
-nPop = numel(Exp.Temperature);
-if (nPop>1)
-  ComputeBoltzmannPopulations = 0;
-  ComputeNonEquiPops = 1;
+ComputeNonEquiPops = numel(Exp.Temperature);
+if (ComputeNonEquiPops)
+  ComputeBoltzmannPopulations = false;
   nElectronStates = prod(2*System.S+1);
-  if (nPop~=nElectronStates)
+  if (numel(Exp.Temperature)~=nElectronStates)
     error('Exp.Temperature must either be a scalar or a %d-vector',nElectronStates);
   end
 else
   if isinf(Exp.Temperature)
     error('If given, Exp.Temperature must be a finite value.');
   end
-  ComputeNonEquiPops = 0;
   ComputeBoltzmannPopulations = ~isnan(Exp.Temperature);
 end
 
@@ -368,14 +366,6 @@ nCore = length(kF);
 nFull = hsdim(System);
 nSHFNucStates = nFull/nCore;
 
-% Population vector for the core system
-if (ComputeNonEquiPops)
-  ZeroFieldPops = Exp.Temperature(:);
-  ZeroFieldPops = ZeroFieldPops/sum(ZeroFieldPops);
-  nElStates = prod(2*System.S+1);
-  ZeroFieldPops = kron(ZeroFieldPops,ones(nCore/nElStates,1));
-end
-
 if (nPerturbNuclei>0)
   logmsg(1,'  core system with %d spins and %d states',numel(spinvec(CoreSys)),nCore);
   logmsg(1,'  first-order perturbational nuclei with %d states',nSHFNucStates');
@@ -385,8 +375,16 @@ else
   end
 end
 
-% For polarized systems, pre-compute ZF eigenstates.
+% Spin-polarized systems: precompute zero-field energies, states, populations
 if (ComputeNonEquiPops)
+  
+  % Vector of zero-field populations for the core system
+  ZFPopulations = Exp.Temperature(:);
+  ZFPopulations = ZFPopulations/sum(ZFPopulations);
+  nElStates = prod(2*System.S+1);
+  ZFPopulations = kron(ZFPopulations,ones(nCore/nElStates,1));
+  
+  % Pre-compute zero-field energies and eigenstates
   [ZFStates,ZFEnergies] = eig(kF);
   [ZFEnergies,idx] = sort(real(diag(ZFEnergies)));
   ZFStates = ZFStates(:,idx);
@@ -1028,8 +1026,8 @@ for iOri = 1:nOrientations
               Polarization = Polarization/prod(2*System.I+1);            
             end
           elseif (ComputeNonEquiPops)
-            PopulationU = (abs(ZFStates'*U).^2).'*ZeroFieldPops; % lower level
-            PopulationV = (abs(ZFStates'*V).^2).'*ZeroFieldPops; % upper level
+            PopulationU = (abs(ZFStates'*U).^2).'*ZFPopulations; % lower level
+            PopulationV = (abs(ZFStates'*V).^2).'*ZFPopulations; % upper level
             Polarization = PopulationU - PopulationV;
           else
             % no temperature given
