@@ -153,9 +153,14 @@ Exp.Range = Exp.Range*1e3; % GHz -> MHz, for comparison with Pdat
 % Determine excitation mode
 p_excitationgeometry;
 
-% Temperature
-if ~numel(Exp.Temperature)
-  error('Specify a single number in Exp.Temperature');
+% Temperature, non-equilibrium populations
+ComputeNonEquiPops = numel(Exp.Temperature)>1;
+if (ComputeNonEquiPops)
+  nElectronStates = prod(2*System.S+1);
+  if (numel(Exp.Temperature)~=nElectronStates)
+    error('Exp.Temperature must either be a scalar or a %d-vector',nElectronStates);
+  end
+  ComputeBoltzmannPopulations = false;
 else
   if isinf(Exp.Temperature)
     error('If given, Exp.Temperature must be a finite value.');
@@ -326,6 +331,40 @@ else
   if (CoreSys.nNuclei>0)
     logmsg(1,'  full treatment of all nuclei');
   end
+end
+
+
+% Spin-polarized systems: precompute zero-field energies, states, populations
+if (ComputeNonEquiPops)
+  
+  % Vector of zero-field populations for the core system
+  ZFPopulations = Exp.Temperature(:);
+  ZFPopulations = ZFPopulations/sum(ZFPopulations);
+  nElStates = prod(2*System.S+1);
+  ZFPopulations = kron(ZFPopulations,ones(nCore/nElStates,1));
+  
+  % Pre-compute zero-field energies and eigenstates
+  [ZFStates,ZFEnergies] = eig(kF);
+  [ZFEnergies,idx] = sort(real(diag(ZFEnergies)));
+  ZFStates = ZFStates(:,idx);
+  % Correct zero-field states for S=1 and axial D
+  if (CoreSys.S==1)
+    if (ZFEnergies(2)==ZFEnergies(3))
+      logmsg(1,'  >>>> manual zero-field states (D>0)');
+      v1 = ZFStates(:,2);
+      v2 = ZFStates(:,3);
+      ZFStates(:,2) = (v1-v2)/sqrt(2);
+      ZFStates(:,3) = (v1+v2)/sqrt(2);
+    elseif (ZFEnergies(2)==ZFEnergies(1))
+      logmsg(1,'  >>>> manual zero-field states (D<0)');
+      v1 = ZFStates(:,1);
+      v2 = ZFStates(:,2);
+      ZFStates(:,2) = (v1-v2)/sqrt(2);
+      ZFStates(:,1) = (v1+v2)/sqrt(2);
+    end
+  end
+else
+  %ZFEnergies = sort(real(eig(kF)));
 end
 
 
@@ -610,13 +649,24 @@ for iOri = 1:nOrientations
         Polarization = Polarization/prod(2*System.I+1);
       end
       
+    elseif (ComputeNonEquiPops)
+      
+      % Compute level populations by projection from zero-field populations and states
+      for iState = 1:nCore
+        Populations(iState) = (abs(ZFStates'*Vs(:,iState)).^2).'*ZFPopulations;
+      end
+      Polarization = Populations(u) - Populations(v);
+      if (nPerturbNuclei>0)
+        Polarization = Polarization/prod(2*System.I+1);
+      end
+      
     else
       % no temperature given
       % same polarization for each electron transition
       %Polarization = Polarization/prod(2*System.S+1); % needed to make consistent with high-temp limit
       Polarization = 1/prod(2*System.I+1);
     end
-    Idat(:,iOri) = TransitionRates(:).*Polarization;
+    Idat(:,iOri) = TransitionRates(:).*Polarization(:);
     
   end
   
