@@ -39,6 +39,7 @@
 %     Varian:          .spk, .ref
 %     ESE:             .d00, .exp
 %     SpecMan:         .d01, .exp
+%     Magnettech:      .spe
 %
 %     For reading general ASCII formats, use textread(...)
 %
@@ -68,7 +69,7 @@ if (LocationType==7), % a directory
   CurrDir = pwd;
   cd(FileName);
   [uiFile,uiPath] = uigetfile({'*.DTA;*.dta;*.spc','Bruker (*.dta,*.spc)';'*.spk;*.ref','Varian (*.spk,*.ref)';'*.eco','qese/tryscore (*.eco)';...
-  '*.d00','ETH/WIS (*.d00)';'*.d01','SpecMan (*.d01)';'*.plt','Magres (*.plt)'},'Load EPR data file...');
+  '*.d00','ETH/WIS (*.d00)';'*.d01','SpecMan (*.d01)';'*.plt','Magres (*.plt)','Magnettech (*.spe)'},'Load EPR data file...');
   cd(CurrDir);
   if (uiFile==0),
     varargout = cell(1,nargout);
@@ -805,6 +806,50 @@ case {'.d01','.D01'}
   
   Parameters = [];
 
+case {'.spe','.SPE'}
+  %----------------------------------------------
+  % .spe file processing
+  %   Binary file format of old Magnettech spectrometers (MS400)
+  %----------------------------------------------
+  
+  hMagnettechFile = fopen(FileName,'r','ieee-le');
+  if (hMagnettechFile<0)
+    error('Could not open Magnettech spectrometer file %s.',FileName);
+  end
+  
+  nPoints = 4096; % all files have the same number of points
+  [Data,count] = fread(hMagnettechFile,nPoints,'int16');
+  if (count<nPoints)
+    error('Could not read %d of 4096 data points from %s.',count,FileName);
+  end
+  [paramdata,count] = fread(hMagnettechFile,16*2,'int16');
+  if (count<16*2)
+    error('Could not read %d of 16 parameters from %s.',count/2,FileName);
+  end
+  fclose(hMagnettechFile);
+
+  paramdata = reshape(paramdata,[2 16]).';
+  paramdata = paramdata(:,1) + paramdata(:,2)/100;
+  
+  Parameters.B0_Field = paramdata(1)/10;
+  Parameters.B0_Scan = paramdata(2)/10;
+  Parameters.Modulation = paramdata(3)/10000;
+  Parameters.MW_Attenuation = paramdata(4);
+  Parameters.ScanTime = paramdata(5);
+  Parameters.GainMantissa = paramdata(6);
+  Parameters.GainExponent = paramdata(7);
+  Parameters.Gain = Parameters.GainMantissa*10^Parameters.GainExponent;
+  Parameters.Number = paramdata(8);
+  Parameters.Time_const = paramdata(10);
+  Parameters.Samples = paramdata(13);
+  
+  Abscissa = Parameters.B0_Field + linspace(-1/2,1/2,numel(Data))*Parameters.B0_Scan;
+  Abscissa = Abscissa(:);
+  
+  if ~isempty(Scaling)
+    error('Scaling does not work for Magnettech files.');
+  end
+  
 otherwise
   
   error('Files with extension %s not supported.',Extension);
