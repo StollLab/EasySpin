@@ -149,13 +149,13 @@ end
 p_excitationgeometry;
 
 % Temperature, non-equilibrium populations
-ComputeNonEquiPops = numel(Exp.Temperature);
+ComputeNonEquiPops = numel(Exp.Temperature)>1;
 if (ComputeNonEquiPops)
-  ComputeBoltzmannPopulations = false;
   nElectronStates = prod(2*System.S+1);
   if (numel(Exp.Temperature)~=nElectronStates)
     error('Exp.Temperature must either be a scalar or a %d-vector',nElectronStates);
   end
+  ComputeBoltzmannPopulations = false;
 else
   if isinf(Exp.Temperature)
     error('If given, Exp.Temperature must be a finite value.');
