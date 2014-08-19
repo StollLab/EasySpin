@@ -193,13 +193,24 @@ if ~isempty(err); return; end
 if isfield(Sys,'aF')
   err = sizecheck(Sys,'aF',[1 2]);
   if ~isempty(err), return; end
+else
+  Sys.aF = [0 0];
 end
 
 % B1, B2, B3, B4, B5, B6, etc.
+D_present = any(Sys.D(:));
+aF_present = any(Sys.aF(:));
 for k=1:12
   fieldname = sprintf('B%d',k);
   if ~isfield(Sys,fieldname), continue; end
   Bk = Sys.(fieldname);
+  
+  if (k==2) && any(Bk(:)) && D_present
+    error('Cannot use Sys.D and Sys.B2 simultaneously. Remove one of them.');
+  end
+  if (k==4) && any(Bk(:)) && aF_present
+    error('Cannot use Sys.aF and Sys.B4 simultaneously. Remove one of them.');
+  end
   
   if (size(Bk,1)~=nElectrons)
     error('Field Sys.%s has to have %d rows, since there are %d electron spins.',fieldname,nElectrons,nElectrons);

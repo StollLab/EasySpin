@@ -84,7 +84,7 @@ for e = 1:length(Electrons)
     % not available if D frame is tilted (would necessitate rotation
     % of the a and F terms which is not implemented).
     if isfield(Sys,'DFrame')
-      if ~isempty(Sys.DFrame) && any(Sys.DFrame)
+      if ~isempty(Sys.DFrame) && any(Sys.DFrame(:))
         error('It''s not possible to use Sys.aF with a tilted D frame (Sys.DFrame).');
       end
     end
