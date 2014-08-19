@@ -34,11 +34,10 @@ HighOrderTerms = {...
   'aF',...
   'B0','B1','B2','B3','B4','B5','B6',...
   'B7','B8','B9','B10','B11','B12'};
-HighOrderTermsPresent = 0;
-SysFields = fieldnames(Sys);
+HighOrderTermsPresent = false;
 for iTerm = 1:numel(HighOrderTerms)
-  if any(strcmp(SysFields,HighOrderTerms{iTerm}))
-    HighOrderTermsPresent = 1;
+  if isfield(Sys,HighOrderTerms{iTerm}) && any(Sys.(HighOrderTerms{iTerm})(:))
+    HighOrderTermsPresent = true;
     break;
   end
 end

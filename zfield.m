@@ -76,7 +76,7 @@ for e = 1:length(Electrons)
   % Scullane, JMR 47, 383 (1982)
   % Jain/Lehmann, phys.stat.sol.(b) 159, 495 (1990)
 
-  if isfield(Sys,'aF')
+  if isfield(Sys,'aF') && any(Sys.aF(:))
     % work only for first electron spin
     if (idx~=1)
       continue;
@@ -121,7 +121,7 @@ for e = 1:length(Electrons)
   
   % If D and aF are used, skip corresponding Stevens operator terms
   D_present = any(Sys.D(idx,:));
-  aF_present = isfield(Sys,'aF');
+  aF_present = any(Sys.aF(:));
 
   % Issue error when obsolete pre-4.5.2 syntax is used
   for k = 2:2:6
