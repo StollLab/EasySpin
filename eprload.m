@@ -32,14 +32,16 @@
 %   Supported formats are identified via the extension
 %   in 'FileName'. Extensions:
 %
-%     MAGRES:          .PLT
-%     BES3T:           .DTA, .DSC
-%     ESP, WinEPR:     .spc, .par
-%     qese, tryscore:  .eco
-%     Varian:          .spk, .ref
-%     ESE:             .d00, .exp
-%     SpecMan:         .d01, .exp
-%     Magnettech:      .spe
+%     Bruker BES3T:        .DTA, .DSC
+%     Bruker ESP, WinEPR:  .spc, .par
+%     SpecMan:             .d01, .exp
+%     Magnettech (binary): .spe
+%     Magnettech (xml):    .xml
+%
+%     MAGRES:              .PLT
+%     qese, tryscore:      .eco
+%     Varian:              .spk, .ref
+%     ESE:                 .d00, .exp
 %
 %     For reading general ASCII formats, use textread(...)
 %
@@ -850,6 +852,67 @@ case {'.spe','.SPE'}
     error('Scaling does not work for Magnettech files.');
   end
   
+case {'.xml','.XML'}
+  
+  Document = xmlread(FileName);
+  MainNode = Document.getFirstChild;
+  if isempty(MainNode)
+    str = '';
+  else
+    str = MainNode.getNodeName;
+  end
+  if ~strcmp(str,'ESRXmlFile')
+    error('File %s is not a Magnettech xml file.',FileName);
+  end
+  
+  XmlVersion = MainNode.getAttribute('Version');
+  
+  Node = Document.getElementsByTagName('ESRXmlFile');
+  
+  % Read in all the data
+  curves = MainNode.getElementsByTagName('Curve');
+  nCurves = curves.getLength;
+  base64 = org.apache.commons.codec.binary.Base64; % use java method for base64 decoding
+  for iCurve = 0:nCurves-1
+    Mode = char(curves.item(iCurve).getAttribute('Mode'));
+    if ~strcmp(Mode,'Pre'), continue; end
+    Name = char(curves.item(iCurve).getAttribute('YType'));
+    x = char(curves.item(iCurve).getTextContent);
+    if isempty(x)
+      data = [];
+    else
+      x = typecast(int8(x),'uint8'); % typecast without changing the underlying data
+      bytestream_ = base64.decode(x); % decode
+      bytestream_(9:9:end) = []; % remove termination zeros
+      data = typecast(bytestream_,'double'); % typecast without changing the underlying data
+    end
+    Parameters.(Name) = data;
+  end
+  
+  % Add attributes from Measurement node to Paramater structure
+  MeasurementNode = MainNode.getElementsByTagName('Measurement');
+  AttribList = MeasurementNode.item(0).getAttributes;
+  for k=0:AttribList.getLength-1
+    PName = AttribList.item(k).getName;
+    PVal = AttribList.item(k).getTextContent;
+    PName = ['Measurement_' char(PName)];
+    Parameters.(char(PName)) = char(PVal);
+  end
+  
+  % Add all children Param nodes from Parameters node to Parameter structure
+  ParameterList = MainNode.getElementsByTagName('Param');
+  for k=0:ParameterList.getLength-1
+    PName = ParameterList.item(k).getAttribute('Name');
+    P_ = ParameterList.item(k).getTextContent;
+    Parameters.(char(PName)) = char(P_);
+  end
+  
+  Abscissa = Parameters.BField;
+  %yS = Parameters.MW_AbsorptionSinus;
+  %yC = Parameters.MW_AbsorptionCosinus;
+  %y = Parameters.MW_Absorption;
+  Data = Parameters.MW_AbsorptionSinus;
+    
 otherwise
   
   error('Files with extension %s not supported.',Extension);
