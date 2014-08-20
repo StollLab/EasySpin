@@ -35,8 +35,7 @@
 %     Bruker BES3T:        .DTA, .DSC
 %     Bruker ESP, WinEPR:  .spc, .par
 %     SpecMan:             .d01, .exp
-%     Magnettech (binary): .spe
-%     Magnettech (xml):    .xml
+%     Magnettech:          .spe (binary), .xml (xml)
 %
 %     MAGRES:              .PLT
 %     qese, tryscore:      .eco
@@ -70,8 +69,15 @@ LocationType = exist(FileName,'file');
 if (LocationType==7), % a directory
   CurrDir = pwd;
   cd(FileName);
-  [uiFile,uiPath] = uigetfile({'*.DTA;*.dta;*.spc','Bruker (*.dta,*.spc)';'*.spk;*.ref','Varian (*.spk,*.ref)';'*.eco','qese/tryscore (*.eco)';...
-  '*.d00','ETH/WIS (*.d00)';'*.d01','SpecMan (*.d01)';'*.plt','Magres (*.plt)','Magnettech (*.spe)'},'Load EPR data file...');
+  [uiFile,uiPath] = uigetfile({...
+    '*.DTA;*.dta;*.spc','Bruker (*.dta,*.spc)';...
+    '*.d01','SpecMan (*.d01)';...
+    '*.spe;*.xml','Magnettech (*.spe,*.xml)';...
+    '*.spk;*.ref','Varian (*.spk,*.ref)';...
+    '*.eco','qese/tryscore (*.eco)';...
+    '*.d00','ETH/WIS (*.d00)';...
+    '*.plt','Magres (*.plt)'},...
+    'Load EPR data file...');
   cd(CurrDir);
   if (uiFile==0),
     varargout = cell(1,nargout);
@@ -95,16 +101,16 @@ Abscissa = [];
 %-----------------------------------------------------------
 
 % Decompose file name, supply default extension .DTA
-[p,Name,Extension] = fileparts(FileName);
+[p,Name,FileExtension] = fileparts(FileName);
 FullBaseName = fullfile(p,Name);
 
-if isempty(Extension)
-  if exist([FullBaseName '.dta'],'file'), Extension = '.dta'; end
-  if exist([FullBaseName '.DTA'],'file'), Extension = '.DTA'; end
-  if exist([FullBaseName '.spc'],'file'), Extension = '.spc'; end
+if isempty(FileExtension)
+  if exist([FullBaseName '.dta'],'file'), FileExtension = '.dta'; end
+  if exist([FullBaseName '.DTA'],'file'), FileExtension = '.DTA'; end
+  if exist([FullBaseName '.spc'],'file'), FileExtension = '.spc'; end
 end
 
-FileName = [FullBaseName Extension];
+FileName = [FullBaseName FileExtension];
 LocationType = exist(FileName,'file');
 if any(LocationType==[0 1 5 8]), % not a file/directory
   error('The file or directory %s does not exist!',FileName);
@@ -120,7 +126,7 @@ if ~isempty(Scaling)
 end
 
 
-switch Extension
+switch FileExtension
 
 case {'.DTA','.DSC','.dsc','.dta'}
   %--------------------------------------------------------
@@ -132,7 +138,7 @@ case {'.DTA','.DSC','.dsc','.dta'}
   % Code based on BES3T version 1.2 (Xepr 2.1)
   %--------------------------------------------------------
 
-  if ismember(Extension,{'.DSC','.DTA'})
+  if ismember(FileExtension,{'.DSC','.DTA'})
     ParExtension = '.DSC';
     SpcExtension = '.DTA';
   else
@@ -360,7 +366,7 @@ case {'.PAR','.SPC','.par','.spc'}
   % Read parameter file (contains key-value pairs)
   ParExtension = '.par';
   SpcExtension = '.spc';
-  if ismember(Extension,{'.PAR','.SPC'})
+  if ismember(FileExtension,{'.PAR','.SPC'})
     ParExtension = upper(ParExtension);
     SpcExtension = upper(SpcExtension);
   end
@@ -809,10 +815,9 @@ case {'.d01','.D01'}
   Parameters = [];
 
 case {'.spe','.SPE'}
-  %----------------------------------------------
-  % .spe file processing
-  %   Binary file format of old Magnettech spectrometers (MS400)
-  %----------------------------------------------
+  %--------------------------------------------------------------------------
+  %   Binary file format of older Magnettech spectrometers (MS400 and prior)
+  %--------------------------------------------------------------------------
   
   hMagnettechFile = fopen(FileName,'r','ieee-le');
   if (hMagnettechFile<0)
@@ -853,7 +858,9 @@ case {'.spe','.SPE'}
   end
   
 case {'.xml','.XML'}
-  
+  %------------------------------------------------------------------
+  %   XML file format of newer Magnettech spectrometers (MS5000)
+  %------------------------------------------------------------------
   Document = xmlread(FileName);
   MainNode = Document.getFirstChild;
   if isempty(MainNode)
@@ -861,23 +868,24 @@ case {'.xml','.XML'}
   else
     str = MainNode.getNodeName;
   end
-  if ~strcmp(str,'ESRXmlFile')
+  if ~strcmpi(str,'ESRXmlFile')
     error('File %s is not a Magnettech xml file.',FileName);
   end
   
-  XmlVersion = MainNode.getAttribute('Version');
-  
-  Node = Document.getElementsByTagName('ESRXmlFile');
-  
   % Read in all the data
-  curves = MainNode.getElementsByTagName('Curve');
-  nCurves = curves.getLength;
+  curveList = MainNode.getElementsByTagName('Curve');
+  nCurves = curveList.getLength;
   base64 = org.apache.commons.codec.binary.Base64; % use java method for base64 decoding
   for iCurve = 0:nCurves-1
-    Mode = char(curves.item(iCurve).getAttribute('Mode'));
+    curve_ = curveList.item(iCurve);
+    Mode = char(curve_.getAttribute('Mode'));
     if ~strcmp(Mode,'Pre'), continue; end
-    Name = char(curves.item(iCurve).getAttribute('YType'));
-    x = char(curves.item(iCurve).getTextContent);
+    Name = char(curve_.getAttribute('YType'));
+    XOffset = char(curve_.getAttribute('XOffset'));
+    XOffset = sscanf(XOffset,'%f');
+    XSlope = char(curve_.getAttribute('XSlope'));
+    XSlope = sscanf(XSlope,'%f');
+    x = char(curve_.getTextContent);
     if isempty(x)
       data = [];
     else
@@ -886,7 +894,8 @@ case {'.xml','.XML'}
       bytestream_(9:9:end) = []; % remove termination zeros
       data = typecast(bytestream_,'double'); % typecast without changing the underlying data
     end
-    Parameters.(Name) = data;
+    Curves.(Name).data = data;
+    Curves.(Name).t = XOffset + (0:numel(data)-1)*XSlope;
   end
   
   % Add attributes from Measurement node to Paramater structure
@@ -907,15 +916,14 @@ case {'.xml','.XML'}
     Parameters.(char(PName)) = char(P_);
   end
   
-  Abscissa = Parameters.BField;
-  %yS = Parameters.MW_AbsorptionSinus;
-  %yC = Parameters.MW_AbsorptionCosinus;
-  %y = Parameters.MW_Absorption;
-  Data = Parameters.MW_AbsorptionSinus;
-    
+  Abscissa = interp1(Curves.BField.t,Curves.BField.data,Curves.MW_Absorption.t);
+  Abscissa = Abscissa(:);
+  Data = Curves.MW_Absorption.data(:);
+  Parameters = parseparams(Parameters);
+  
 otherwise
   
-  error('Files with extension %s not supported.',Extension);
+  error('Files with extension %s not supported.',FileExtension);
   
 end
 
@@ -1130,21 +1138,21 @@ end
 return
 
 %-----------------------------------------------------------------
-function P = parseparams(ParamsIn)
+function Pout = parseparams(ParamsIn)
 
-P = ParamsIn;
+Pout = ParamsIn;
 
-Fields = fieldnames(P);
+Fields = fieldnames(Pout);
 for iField = 1:numel(Fields)
-  v = P.(Fields{iField});
+  v = Pout.(Fields{iField});
   if isempty(v), continue; end
   if strcmpi(v,'true')
-    v_num = 1;
+    v_num = true;
   elseif strcmpi(v,'false')
-    v_num = 0;
+    v_num = false;
   elseif isletter(v(1))
     v_num = '';
-    continue;
+    continue
   else
     [v_num,cnt,errormsg,nxt] = sscanf(v,'%e');
     % Converts '3345 G' to [3345] plus an error message...
@@ -1155,7 +1163,9 @@ for iField = 1:numel(Fields)
     end
   end
   if ~isempty(v_num)
-    P.(Fields{iField}) = v_num(:).';
+    % As of R2014a, there's a bug for logical here:
+    % The assignment implicitely typecasts from logical to double.
+    Pout.(Fields{iField}) = v_num(:).';
   end
 end
 
