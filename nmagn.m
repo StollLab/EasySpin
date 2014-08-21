@@ -3,9 +3,9 @@
 %   mu = nmagn
 %   [mu,sigma] = nmagn
 %
-%   Returns the nuclear magneton
-%   in Joule/Tesla. sigma is the
-%   standard uncertainty (2010 CODATA).
+%   Returns the nuclear magneton in SI units,
+%   joule per tesla. sigma is the standard
+%   uncertainty (2010 CODATA).
 
 function [mu_n,sigma] = nmagn
 

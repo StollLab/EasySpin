@@ -3,7 +3,7 @@
 %   value = hbar
 %   [value,sigma] = hbar
 %
-%   Returns the Planck constant over 2 pi, h/(2*pi), in Joule*second.
+%   Returns the Planck constant over 2 pi, h/(2*pi), in joule times second.
 %   sigma is the standard uncertainty (2010 CODATA).
 
 function [value,sigma] = hbar

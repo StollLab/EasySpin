@@ -607,7 +607,7 @@ case {'.PAR','.SPC','.par','.spc'}
       if ~isfield(Parameters,'TE')
         error('Cannot scale by temperature, since TE is absent in parameter file.');
       end
-      Temperature = sscanf(Parameters.TE,'%f'); % in Kelvin
+      Temperature = sscanf(Parameters.TE,'%f'); % in kelvin
       if (Temperature==0)
         error('Cannot scale by temperature, since TE is zero in parameter file.');
       end

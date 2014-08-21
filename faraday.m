@@ -3,8 +3,8 @@
 %   F = faraday
 %   [F,sigma] = faraday
 %
-%   Returns the Faraday constant in
-%   C mol^-1. sigma is the standard
+%   Returns the Faraday constant in SI units,
+%   coulomb per mole. sigma is the standard
 %   uncertainty (2010 CODATA).
 
 function [F,sigma] = faraday

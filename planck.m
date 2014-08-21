@@ -3,7 +3,7 @@
 %   h = planck
 %   [h,sigma] = planck
 %
-%   Returns the Planck constant in Joule*second.
+%   Returns the Planck constant in SI units, joule times second.
 %   sigma is the standard uncertainty (2010 CODATA).
 
 function [h,sigma] = planck

@@ -19,7 +19,7 @@
 %    If no output is requested, spinladder prints some
 %    information about the coupled manifolds.
 %
-%    If a temperature (in Kelvin) is given, populations for
+%    If a temperature (in kelvin) is given, populations for
 %    each manifold are computed and returned in the fields
 %    CSys{}.weight.
 

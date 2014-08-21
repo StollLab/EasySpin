@@ -3,7 +3,7 @@
 %   mu = bmagn
 %   [mu,sigma] = bmagn
 %
-%   Returns the Bohr magneton in Joule/Tesla.
+%   Returns the Bohr magneton in joule per tesla.
 %   sigma is the standard uncertainty (2010
 %   CODATA).
 

@@ -3,7 +3,7 @@
 %   c = clight
 %
 %   Returns the vacuum speed of light in
-%   meters per second.
+%   SI units, meters per second.
 
 function [c,sigma] = clight
 

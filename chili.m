@@ -698,9 +698,9 @@ end
 %---------------------------------------------------------------
 if isfinite(Exp.Temperature)
   if FieldSweep
-     DeltaE = planck*Exp.mwFreq*1e9; % Joule
+     DeltaE = planck*Exp.mwFreq*1e9; % joule
   else
-     DeltaE = bmagn*mean(Sys.g)*Exp.Field*1e-3; % Joule
+     DeltaE = bmagn*mean(Sys.g)*Exp.Field*1e-3; % joule
   end
   e = exp(-DeltaE/boltzm/Exp.Temperature);
   Population = [1 e];

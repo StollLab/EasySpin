@@ -4,7 +4,7 @@
 %   [E,sigma] = hartree
 %
 %   Returns the Hartree energy, the atomic unit of energy
-%   in J. sigma is the standard uncertainty (2010 CODATA).
+%   in joule. sigma is the standard uncertainty (2010 CODATA).
 
 function [E,sigma] = hartree
 

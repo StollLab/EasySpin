@@ -3,7 +3,7 @@
 %   k = boltzm
 %   [k,sigma] = boltzm
 %
-%   Returns the Boltzmann constant in Joule/Kelvin.
+%   Returns the Boltzmann constant in SI units, joule per kelvin.
 %   sigma is the standard uncertainty (2010 CODATA).
 
 function [k_b,sigma] = boltzm
