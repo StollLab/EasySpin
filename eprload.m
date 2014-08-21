@@ -1163,9 +1163,7 @@ for iField = 1:numel(Fields)
     end
   end
   if ~isempty(v_num)
-    % As of R2014a, there's a bug for logical here:
-    % The assignment implicitely typecasts from logical to double.
-    Pout.(Fields{iField}) = v_num(:).';
+    Pout.(Fields{iField}) = v_num(:)'; % don't use .' due to bug up to R2014a
   end
 end
 
