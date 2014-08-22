@@ -423,7 +423,7 @@ for iOri = 1:nOrientations
   end
   
   % Lab frame axes in molecular frame representation.
-  [xLab,yLab,zLab] = erot(Orientations(iOri,:));
+  [xLab,yLab,zLab] = erot(Orientations(iOri,:),'rows');
   
   %-----------------------------------------------------------------------
   % Orientation pre-selection
@@ -482,7 +482,7 @@ for iOri = 1:nOrientations
     
     % Compute excitation factor
     if (OrientationSelection)
-      lw2 = sum((Sys.HStrain.*zLab).^2) + lwExcite2;
+      lw2 = sum((Sys.HStrain(:).*zLab).^2) + lwExcite2;
       
       % weighting with EPR line width and excitation band width
       dE = E0(:,ones(1,nStates));

@@ -579,7 +579,7 @@ for iOri = 1:nOrientations
   
   % Set up Hamiltonians for 3 lab principal directions
   %-----------------------------------------------------
-  [xLab,yLab,zLab] = erot(Orientations(iOri,:));
+  [xLab,yLab,zLab] = erot(Orientations(iOri,:),'rows');
   
   % z laboratoy axis: external static field
   kGzL = zLab(1)*kGxM + zLab(2)*kGyM + zLab(3)*kGzM;
@@ -678,7 +678,7 @@ for iOri = 1:nOrientations
             
       % H strain: Frequency domain residual width tensor.
       %-----------------------------------------------  
-      LineWidth2 = (CoreSys.HStrain*zLab.')^2;
+      LineWidth2 = (CoreSys.HStrain*zLab)^2;
 
       % D strain
       if UseDStrain
@@ -699,7 +699,7 @@ for iOri = 1:nOrientations
       
       % g strain
       if UsegStrain
-        dg2 = (m(kGzL)*zLab*gStrainMatrix*zLab.'*Exp.Field)^2;
+        dg2 = (m(kGzL)*zLab.'*gStrainMatrix*zLab*Exp.Field)^2;
         LineWidth2 = LineWidth2 + abs(dg2);
       end
       Wdat(iTrans,iOri) = sqrt(LineWidth2);

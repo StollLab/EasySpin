@@ -187,8 +187,7 @@ end
 
 % Loop over all orientations
 for iOri = nOrientations:-1:1
-  [h1x,h1y,h] = erot(Orientations(iOri,:));
-  h = h.';
+  [h1x,h1y,h] = erot(Orientations(iOri,:),'rows');
   
   % zero-order energy: electron Zeeman term only
   geff = norm(g*h);

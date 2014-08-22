@@ -780,7 +780,7 @@ for iOri = 1:nOrientations
   
   % Set up Hamiltonians for 3 lab principle orientations
   %-----------------------------------------------------
-  [xLab_M,yLab_M,zLab_M] = erot(Orientations(iOri,:));
+  [xLab_M,yLab_M,zLab_M] = erot(Orientations(iOri,:),'rows');
   % xLab_M, yLab_M, zLab_M represented in the molecular frame
   
   % z laboratoy axis: external static field
@@ -792,7 +792,7 @@ for iOri = 1:nOrientations
   kGyL = yLab_M(1)*kGxM + yLab_M(2)*kGyM + yLab_M(3)*kGzM;
 
   if ComputeStrains
-    LineWidthSquared = zLab_M.^2*HStrain2.';
+    LineWidthSquared = HStrain2*zLab_M.^2;
   end
   
   %===========================================================
@@ -1056,7 +1056,7 @@ for iOri = 1:nOrientations
           LineWidth2 = LineWidthSquared;
           % g and A strain
           if usegAStrain
-            LineWidth2 = LineWidth2 + zLab_M*gAslw2(:,:,iTrans)*zLab_M.';
+            LineWidth2 = LineWidth2 + zLab_M.'*gAslw2(:,:,iTrans)*zLab_M;
           end
           % D strain
           if useDStrain

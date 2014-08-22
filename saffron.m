@@ -1027,7 +1027,7 @@ for iOri = 1:nOrientations
   
   % Get magnetic field orientation
   %------------------------------------------------------------------
-  [xLab_M,yLab_M,zLab_M] = erot(Orientations(iOri,:));
+  [xLab_M,yLab_M,zLab_M] = erot(Orientations(iOri,:),'rows');
   % xLab_M, yLab_M, zLab_M represented in the molecular frame
 
   % Compute electronic Hamiltonian, energies and <S>
@@ -1044,7 +1044,7 @@ for iOri = 1:nOrientations
       continue
     end
     
-    quantizationAxis = g.'*zLab_M(:);
+    quantizationAxis = g.'*zLab_M;
     quantizationAxis = quantizationAxis/norm(quantizationAxis);
     Manifold(1).S = -0.5*quantizationAxis;
     Manifold(2).S = +0.5*quantizationAxis;

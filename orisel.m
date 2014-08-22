@@ -128,7 +128,7 @@ if isfinite(Params.ExciteWidth)
   
   % Calculate weights for all orientations and all transitions
   for iOri = 1:nOrientations
-    [xLab,yLab,zLab] = erot(phi(iOri),theta(iOri),0);
+    [xLab,yLab,zLab] = erot(phi(iOri),theta(iOri),0,'rows');
     GxL = xLab(1)*GxM + xLab(2)*GyM + xLab(3)*GzM;
     GyL = yLab(1)*GxM + yLab(2)*GyM + yLab(3)*GzM;
     GzL = zLab(1)*GxM + zLab(2)*GyM + zLab(3)*GzM;
