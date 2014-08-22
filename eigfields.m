@@ -148,11 +148,9 @@ A = eyekron(F) - kroneye(conj(F)) + mwFreq*eye(length(F)^2);
 
 % Check if is positive-definite. If yes, a simple eigenvalue
 % problem has to be solved, not the general one.
-[V,E] = eig(A);
-E = diag(E);
+E = diag(eig(A));
 SimpleEigenproblem = all(E>0);
 if SimpleEigenproblem,
-  %invA = V*diag(1./E)*V';
   msg = 'reduced to simple eigenproblem';
 else
   msg = 'general eigenproblem';
@@ -209,7 +207,7 @@ for iOri = 1:nOrientations
       Norms = sqrt(sum(abs(Vecs).^2));
       Vecs = Vecs./Norms(ones(size(Vecs,1),1),:);
       
-      % Compute Zeeman operators along x and y
+      % Compute quantum-mechanical transition rate
       idx = ones(1,length(EigenFields{iOri}));
       if (ParallelMode)
         vGzL = zLab(1)*vGx + zLab(2)*vGy + zLab(3)*vGz;
@@ -229,6 +227,10 @@ for iOri = 1:nOrientations
         end
       end
       
+      % Compute polarization
+      Polarization = 1;
+      Polarization = Polarization/prod(2*SpinSystem.I+1);
+      
       % Compute frequency-to-field domain conversion factor
       if ComputeFreq2Field
         % 1/(<v|G|v>-<u|G|u>) = 1/(trace(G|v><v|) - trace(G|u><u|)) =
@@ -245,11 +247,9 @@ for iOri = 1:nOrientations
         dBdE = ones(size(TransitionRate));
       end
       
-      % Compute polarization
-      Polarization = 1;
-      Polarization = Polarization/prod(2*SpinSystem.I+1);
+      % Combine factors
+      Intensities{iOri} = Polarization*real(TransitionRate.*dBdE).';
       
-      Intensities{iOri} = Polarization*real(TransitionRate.*dBdE).';      
       idx = Intensities{iOri}>=Opt.Threshold(1)*max(Intensities{iOri});
       EigenFields{iOri} = EigenFields{iOri}(idx);
       Intensities{iOri} = Intensities{iOri}(idx);
