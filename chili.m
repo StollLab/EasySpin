@@ -156,6 +156,9 @@ end
 
 mT2MHz = mt2mhz(1,mean(Sys.g));
 
+if any(Sys.HStrain) || any(Sys.gStrain) || any(Sys.AStrain) || any(Sys.DStrain)
+  error('chili does not support strains (HStrain, gStrain, AStrain, DStrain). Please remove from spin system.');
+end
 
 % Dynamics
 %-------------------------------------------------------------------
