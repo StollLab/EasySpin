@@ -174,9 +174,7 @@ Intensities = cell(1,nOrientations);
 for iOri = 1:nOrientations
   logmsg(3,'  orientation %d of %d',iOri,nOrientations);
   
-  Mol2LabRotation = erot(Orientations(iOri,:));
-  % z laboratoy axis: external static field.
-  zLab = Mol2LabRotation(3,:);
+  [xLab,yLab,zLab] = erot(Orientations(iOri,:),'rows');
   GzL = zLab(1)*Gx + zLab(2)*Gy + zLab(3)*Gz;
 
   B = kroneye(conj(GzL)) - eyekron(GzL);
@@ -221,10 +219,8 @@ for iOri = 1:nOrientations
           TransitionRate = abs(sum(vGzL(:,idx).*Vecs)).^2;
         end
       else
-        xLab = Mol2LabRotation(1,:);
         vGxL = xLab(1)*vGx + xLab(2)*vGy + xLab(3)*vGz;
         if (AverageOverChi)
-          yLab = Mol2LabRotation(2,:);
           vGyL = yLab(1)*vGx + yLab(2)*vGy + yLab(3)*vGz;
           % Calculate transition rate using <v|A|u> = trace(A|u><v|)
           TransitionRate = (abs(sum(vGxL(:,idx).*Vecs)).^2 + abs(sum(vGyL(:,idx).*Vecs)).^2)/2;
