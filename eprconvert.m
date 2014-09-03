@@ -20,7 +20,7 @@ gui_State = struct('gui_Name',       mfilename, ...
                    'gui_OutputFcn',  @eprconvert_OutputFcn, ...
                    'gui_LayoutFcn',  [] , ...
                    'gui_Callback',   []);
-if nargin & ischar(varargin{1})
+if nargin && ischar(varargin{1})
     gui_State.gui_Callback = str2func(varargin{1});
 end
 
@@ -156,7 +156,7 @@ function FieldList_Callback(hObject, eventdata, handles)
 function FreqList_CreateFcn(hObject, eventdata, handles)
 function FreqList_Callback(hObject, eventdata, handles)
 
-function [Unit,prefactor] = GetFreqUnit(handles);
+function [Unit,prefactor] = GetFreqUnit(handles)
 UnitStr = get(handles.FreqUnits,'String');
 iUnit = get(handles.FreqUnits,'Value');
 Unit = UnitStr{iUnit};
@@ -168,7 +168,7 @@ switch Unit
 end
 return
 
-function [Unit,prefactor] = GetFieldUnit(handles);
+function [Unit,prefactor] = GetFieldUnit(handles)
 UnitStr = get(handles.FieldUnits,'String');
 iUnit = get(handles.FieldUnits,'Value');
 Unit = UnitStr{iUnit};
@@ -196,12 +196,12 @@ function g = GetgValue(handles)
 g = str2num(get(handles.gEdit,'String'));
 return
 
-function SetgVal(g,handles);
+function SetgVal(g,handles)
 set(handles.gEdit,'String',sprintf('%g',g));
 return
 
 %---------------------------------------------------------------
-function UpdateDisplay(handles);
+function UpdateDisplay(handles)
 
 FreqSI = handles.FreqSI;
 [Unit,prefactor] = GetFreqUnit(handles);
@@ -250,7 +250,7 @@ function WbandButton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-handles.FreqSI = 95e9;
+handles.FreqSI = 94e9;
 UpdateDisplay(handles);
 guidata(handles.eprconvert,handles);
 
@@ -260,7 +260,7 @@ function QbandButton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-handles.FreqSI = 35e9;
+handles.FreqSI = 34e9;
 UpdateDisplay(handles);
 guidata(handles.eprconvert,handles);
 
