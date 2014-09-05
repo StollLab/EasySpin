@@ -1,7 +1,6 @@
 % sham  Spin Hamiltonian 
 %
 %   [F,Gx,Gy,Gz] = sham(sys)
-%   [F,G] = sham(sys, B)
 %   H = sham(sys, B)
 %   ... = sham(sys, B,'sparse')
 %
@@ -10,11 +9,12 @@
 %   Input:
 %   - 'sys': spin system specification structure
 %   - 'B': 1x3 vector specifying the magnetic field [mT]
+%   - 'sparse': if present, sparse instead of full matrices are returned
 %
 %   Output:
 %   - 'H': complete spin Hamiltonian [MHz]
-%   - 'F','G',Gx','Gy','Gz' ([MHz] and [MHz/mT])
-%      H = F + B(1)*Gx + B(2)*Gy + B(3)*Gz = F + |B|*G
+%   - 'F',Gx','Gy','Gz' ([MHz] and [MHz/mT])
+%      H = F + B(1)*Gx + B(2)*Gy + B(3)*Gz
 
 function varargout = sham(SpinSystem,B0,opt)
 
@@ -50,7 +50,7 @@ if isempty(B0)
   elseif nargout==1
     varargout{1} = {F,GxM,GyM,GzM};
   else
-    error('4 output arguments expected!');
+    error('1 or 4 output arguments expected!');
   end
   
 else
