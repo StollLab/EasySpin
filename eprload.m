@@ -36,6 +36,7 @@
 %     Bruker ESP, WinEPR:  .spc, .par
 %     SpecMan:             .d01, .exp
 %     Magnettech:          .spe (binary), .xml (xml)
+%     Active Spectrum:     .ESR
 %
 %     MAGRES:              .PLT
 %     qese, tryscore:      .eco
@@ -44,7 +45,7 @@
 %
 %     For reading general ASCII formats, use textread(...)
 %
-%   'Scaling' tells eprload to scale the data
+%   'Scaling' tells eprload to scale the data (works only for Bruker files):
 %
 %      'n':   divide by number of scans
 %      'P':   divide by square root of microwave power in mW
@@ -73,6 +74,7 @@ if (LocationType==7), % a directory
     '*.DTA;*.dta;*.spc','Bruker (*.dta,*.spc)';...
     '*.d01','SpecMan (*.d01)';...
     '*.spe;*.xml','Magnettech (*.spe,*.xml)';...
+    '*.esr','Active Spectrum (*.esr)';...
     '*.spk;*.ref','Varian (*.spk,*.ref)';...
     '*.eco','qese/tryscore (*.eco)';...
     '*.d00','ETH/WIS (*.d00)';...
@@ -87,7 +89,7 @@ if (LocationType==7), % a directory
 end
 
 % Initialize output arguments
-Data = [];
+Data = [];  
 Parameters = [];
 Abscissa = [];
 
@@ -920,6 +922,32 @@ case {'.xml','.XML'}
   Abscissa = Abscissa(:);
   Data = Curves.MW_Absorption.data(:);
   Parameters = parseparams(Parameters);
+  
+case {'.esr','.ESR'}
+  %------------------------------------------------------------------
+  %   ESR file format of Active Spectrum spectrometers
+  %------------------------------------------------------------------
+  allLines = textread(FileName,'%s','whitespace','','delimiter','\n');
+  nLines = numel(allLines);
+  
+  % Find start of data
+  for idx = 1:nLines
+    found = strncmp(allLines{idx},'FIELD (G)',9);
+    if found; break; end
+  end
+  if (~found)
+    error('Could not find start of data in file %s',FileName);
+  end
+  
+  dataLines = allLines(idx+1:end);
+  nPoints = numel(dataLines);
+  
+  for idx = 1:nPoints
+    data(idx,:) = sscanf(dataLines{idx},'%f',2);
+  end
+  Abscissa = data(:,1);
+  Data = data(:,2);
+  Parameters = [];
   
 otherwise
   
