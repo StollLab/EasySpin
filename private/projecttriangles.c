@@ -49,6 +49,8 @@ void triproject(double spec[], INT32 tri[], double wei[],
     middle = fun[idx2];
     right = fun[idx3];
     
+    Area = wei[iTri];
+    
     /* skip triangles with NaN positions */
     if (mxIsNaN(left) || mxIsNaN(middle) || mxIsNaN(right)) continue;
     
@@ -60,6 +62,10 @@ void triproject(double spec[], INT32 tri[], double wei[],
     left   = (left  -x[0])/delta;
     middle = (middle-x[0])/delta;
     right  = (right -x[0])/delta;
+    
+    Breadth = right-left;
+    Breadth1 = middle-left;
+    Breadth2 = right-middle;
 
     /* compute mean amplitude if necessary */
     if (!isoInt) Amplitude = (amp[idx1]+amp[idx2]+amp[idx3])/3;
@@ -73,11 +79,7 @@ void triproject(double spec[], INT32 tri[], double wei[],
     first2 = last1;
     last2 = (INT32)right;
 
-    Area = wei[iTri];
-    Breadth = right-left;
-
     /* if left triangle lies within and exists */
-    Breadth1 = middle-left;
     if ((first1<nPoints)&&(last1>=0)&&(Breadth1>0)) {
       /* compute prefactor (Height = 2*Amplitude*Area/Breadth) */
       f0 = (2*Amplitude*Area/Breadth)*(delta/Breadth1);
@@ -102,7 +104,6 @@ void triproject(double spec[], INT32 tri[], double wei[],
     }
 
     /* if right triangle lies within and exists */
-    Breadth2 = right-middle;
     if ((first2<nPoints)&&(last2>=0)&&(Breadth2>0)) {
       /* compute prefactor (Height = 2*Amplitude*Area/Breadth) */
       f0 = (2*Amplitude*Area/Breadth)*(delta/Breadth2);
@@ -124,6 +125,11 @@ void triproject(double spec[], INT32 tri[], double wei[],
         right -= 0.5;
         for (idx=first2+1; idx<last2; idx++) spec[idx] += f0*(right-idx);
       }
+    }
+    
+    /* Both left and right triangles fall within one bin: zero-width "triangle" */
+    if ((Breadth1==0)&&(Breadth2==0)) {
+      spec[first1] += Amplitude*Area/delta;
     }
     
   } /* for iTri */
