@@ -96,7 +96,7 @@ nB0 = [0; 0; 1]; % unit vector along B0, in lab coordinates
 
 % Transformation from (nx,ny,nB0) lab frame to (nB1,*,nk) frame
 R = erot(-pi/2,-k_tilt,alpha_pol);
-nB1 = R(1,:).'; % unit vector along B1, in lab coordinated
+nB1 = R(1,:).'; % unit vector along B1, in lab coordinates
 nk = R(3,:).'; % unit vector along wave vector k, in lab coordinates
 
 xi1 = nB1.'*nB0;

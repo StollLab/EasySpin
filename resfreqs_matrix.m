@@ -592,10 +592,11 @@ for iOri = 1:nOrientations
   Pdat(:,iOri) = E(v) - E(u);
   
   % Calculate intensities if requested
-  if (ComputeIntensities)  
+  if (ComputeIntensities)
         
     % Compute quantum-mechanical transition rate
     for iTrans = nTransitions:-1:1
+      
       U = Vs(:,u(iTrans)); % lower-energy state (u)
       V = Vs(:,v(iTrans)); % higher-energy state (v, Ev>Eu)
       mu = [V'*kGxL*U; V'*kGyL*U; V'*kGzL*U]; % magnetic transition dipole moment
@@ -603,9 +604,9 @@ for iOri = 1:nOrientations
         if (linearpolarizedMode)
           TransitionRate = ((1-xi1^2)*norm(mu)^2+(3*xi1^2-1)*abs(nB0.'*mu)^2)/2;
         elseif (unpolarizedMode)
-          TransitionRate = ((1+xik^2)*norm(mu)^2+(1-3*xik^2)*abs(nB0.'*mu)^2)/4;
+          TransitionRate = ((1+xik^2)*norm(mu)^2-(3*xik^2-1)*abs(nB0.'*mu)^2)/4;
         elseif (circpolarizedMode)
-          TransitionRate = ((1+xik^2)*norm(mu)^2+(1-3*xik^2)*abs(nB0.'*mu)^2)/2 - ...
+          TransitionRate = ((1+xik^2)*norm(mu)^2-(3*xik^2-1)*abs(nB0.'*mu)^2)/2 - ...
             circSense*xik*(nB0.'*cross(1i*mu,conj(mu)));
         end
       else
@@ -618,13 +619,13 @@ for iOri = 1:nOrientations
             circSense*(nk.'*cross(1i*mu,conj(mu)));
         end
       end
-      if abs(TransitionRate)<1e-10, TransitionRate = 0; end
+      if abs(TransitionRate)<1e-12, TransitionRate = 0; end
       TransitionRates(iTrans) = TransitionRate;
 
     end
     
     if any(TransitionRates<0)
-      logmsg(-inf,'*********** Negative transition rate encountered in resfreqs_matrix!! Please report! **********');
+      logmsg(-inf,'*********** Negative transition rate (%d) encountered in resfreqs_matrix!! Please report! **********',TransitionRate);
     end
     TransitionRates = abs(TransitionRates);
     

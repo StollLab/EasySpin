@@ -38,7 +38,7 @@ switch (nargin)
   case {1,2}
     angles = varargin{1};
     if numel(angles)~=3
-      error('Three angles expected.');
+      error('  Three angles (either separately or in a 3-element array) expected.\n  You gave an %dx%d array with %d elements.',size(angles,1),size(angles,2),numel(angles));
     end
     gamma = angles(3);
     beta = angles(2);

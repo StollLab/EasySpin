@@ -127,7 +127,7 @@ end
 if isfinite(mwFreq)
   Opt = struct('Threshold',0,'Freq2Field',0);
   Exp = struct('mwFreq',mwFreq,'Range',B([1 end]));
-  Exp.Orientations = [phi;theta;0];
+  Exp.CrystalOrientation = [phi;theta;0];
   [resonFields,tp,w,Transitions] = resfields(Sys,Exp,Opt);
   if ~isempty(resonFields)
     if (nElectrons==1)
