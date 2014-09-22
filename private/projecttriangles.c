@@ -4,7 +4,7 @@ Spectrum = projecttriangles(Tri,Areas,Fun,Amplitude,x)
 ========================================================================
 
   Given data Fun with a triangulation Tri and triangle
-  areas Aras, projecttriangles computes the function value
+  areas Areas, projecttriangles computes the function value
   distribution over the range given in x, including additional
   weights from Amplitude for each data point.
 
@@ -25,6 +25,7 @@ typedef int INT32;
 #endif
 
 #include <mex.h>
+#include "math.h"
 
 void triproject(double spec[], INT32 tri[], double wei[],
          double fun[], double amp[],
@@ -32,7 +33,7 @@ void triproject(double spec[], INT32 tri[], double wei[],
          INT32 nTri, INT32 nLines, INT32 isoInt)
 {
   double Amplitude, left, middle, right, delta, dum;
-  double Area, Breadth1, Breadth2, Breadth, f0;
+  double Area, Width1, Width2, Width, f0;
   INT32 iTri, idx1, idx2, idx3, first1, last1, first2, last2, idx;
 
   Amplitude = amp[0];
@@ -63,83 +64,76 @@ void triproject(double spec[], INT32 tri[], double wei[],
     middle = (middle-x[0])/delta;
     right  = (right -x[0])/delta;
     
-    Breadth = right-left;
-    Breadth1 = middle-left;
-    Breadth2 = right-middle;
+    Width = right-left;
+    Width1 = middle-left;
+    Width2 = right-middle;
 
     /* compute mean amplitude if necessary */
     if (!isoInt) Amplitude = (amp[idx1]+amp[idx2]+amp[idx3])/3;
 
-    /* convert positions to array indices */
-    /*if ((left<0)||(right>=nPoints)) { */
-    /*  mexPrintf("tri %d: %d,%d,%d:   %f, %f, %f\n",iTri,idx1,idx2,idx3,left,middle,right); */
-    /*} */
     first1 = (INT32)left;
     last1 = (INT32)middle;
     first2 = last1;
     last2 = (INT32)right;
 
-    /* if left triangle lies within and exists */
-    if ((first1<nPoints)&&(last1>=0)&&(Breadth1>0)) {
-      /* compute prefactor (Height = 2*Amplitude*Area/Breadth) */
-      f0 = (2*Amplitude*Area/Breadth)*(delta/Breadth1);
-      f0 = f0/delta/delta; /* inserted 14apr01 as a correction */
-      /* Integral over spectrum (mind x axis!) should be equal */
-      /* to sum of weights. */
-      if (first1==last1)
-        spec[first1] += f0*Breadth1*Breadth1/2;
-      else {
-        /* update or chop first bin */
-        if (first1>=0)
-          spec[first1] += f0*(first1+1-left)/2*(first1+1-left);
-        else first1 = -1;
-        /* update or chop last bin */
-        if (last1<nPoints)
-          spec[last1] += f0*((last1+middle)/2-left)*(middle-last1);
-        else last1 = nPoints;
-        /* update intermediate bins */
-        left -= 0.5;
-        for (idx=first1+1; idx<last1; idx++) spec[idx] += f0*(idx-left);
+    /* if left triangle has non-zero width*/
+    if (Width1>0)
+      /* if left triangle lies at least partially within range */
+      if ((first1<nPoints)&&(last1>=0)) {
+        /* compute prefactor (Height = 2*Amplitude*Area/Width) */
+        f0 = (2*Amplitude*Area/Width)/Width1/delta;
+        /* Integral over spectrum (mind x axis!) should be equal to sum of weights. */
+        if (first1==last1)
+          spec[first1] += f0*Width1*Width1/2;
+        else {
+          /* update or chop first bin */
+          if (first1>=0)
+            spec[first1] += f0*(first1+1-left)/2*(first1+1-left);
+          else first1 = -1;
+          /* update or chop last bin */
+          if (last1<nPoints)
+            spec[last1] += f0*((last1+middle)/2-left)*(middle-last1);
+          else last1 = nPoints;
+          /* update intermediate bins */
+          left -= 0.5;
+          for (idx=first1+1; idx<last1; idx++)
+            spec[idx] += f0*(idx-left);
+        }
       }
-    }
 
-    /* if right triangle lies within and exists */
-    if ((first2<nPoints)&&(last2>=0)&&(Breadth2>0)) {
-      /* compute prefactor (Height = 2*Amplitude*Area/Breadth) */
-      f0 = (2*Amplitude*Area/Breadth)*(delta/Breadth2);
-      f0 = f0/delta/delta; /* inserted 14apr01 as a correction */
-      /* Integral over spectrum (mind x axis!) should be equal */
-      /* to sum of weights. */
-      if (first2==last2)
-        spec[first2] += f0*Breadth2*Breadth2/2;
-      else {
-        /* update or chop first bin */
-        if (first2>=0)
-          spec[first2] += f0*(first2+1-middle)*(right-(middle+first2+1)/2);
-        else first2 = -1;
-        /* update or chop last bin */
-        if (last2<nPoints)
-          spec[last2] += f0*(right-last2)*(right-last2)/2;
-        else last2 = nPoints;
-        /* update intermediate bins */
-        right -= 0.5;
-        for (idx=first2+1; idx<last2; idx++) spec[idx] += f0*(right-idx);
+    /* if right triangle has non-zero width */
+    if (Width2>0)
+      /* if right triangle lies at least partially within range */
+      if ((first2<nPoints)&&(last2>=0)) {
+        /* compute prefactor (Height = 2*Amplitude*Area/Width) */
+        f0 = (2*Amplitude*Area/Width)/Width2/delta;
+        /* Integral over spectrum (mind x axis!) should be equal to sum of weights. */
+        if (first2==last2)
+          spec[first2] += f0*Width2*Width2/2;
+        else {
+          /* update or chop first bin */
+          if (first2>=0)
+            spec[first2] += f0*(first2+1-middle)*(right-(middle+first2+1)/2);
+          else first2 = -1;
+          /* update or chop last bin */
+          if (last2<nPoints)
+            spec[last2] += f0*(right-last2)*(right-last2)/2;
+          else last2 = nPoints;
+          /* update intermediate bins */
+          right -= 0.5;
+          for (idx=first2+1; idx<last2; idx++)
+            spec[idx] += f0*(right-idx);
+        }
       }
-    }
     
-    /* Both left and right triangles fall within one bin: zero-width "triangle" */
-    if ((Breadth1==0)&&(Breadth2==0)) {
-      spec[first1] += Amplitude*Area/delta;
+    /* Both left and right are zero-width "triangles" */
+    if ((Width1==0)&&(Width2==0)) {
+      first1 = (INT32)left;
+      if ((first1>=0)&&(first1<nPoints))
+        spec[first1] += Amplitude*Area/delta;
     }
     
   } /* for iTri */
-}
-
-void testsizes()
-{
-  int j;
-  long k;
-  mexPrintf("%d %d\n",sizeof(j)*8,sizeof(k)*8);
 }
 
 
@@ -188,7 +182,5 @@ void mexFunction(int nlhs, mxArray *plhs[],
   /* call computing function */
   triproject(Spectrum,Triangulation,TriAreas,Function,Amplitudes,
              x,nPoints,nTri,nLines,isoIntensity);
-
-  /*testsizes();*/
   
 }
