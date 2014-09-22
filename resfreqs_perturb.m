@@ -186,7 +186,7 @@ else
   logmsg(1,'1st order perturbation theory');
 end
 
-if ~isfield(Opt,'DirectAccumulation'), Opt.DirectAccumulation = 0; end
+if ~isfield(Opt,'ImmediateBinning'), Opt.ImmediateBinning = 0; end
 %---------------------------------------------------------------------
 
 
@@ -204,9 +204,9 @@ if highSpin
 end
 II1 = I.*(I+1);
 
-directAccumulation = Opt.DirectAccumulation;
+immediateBinning = Opt.ImmediateBinning;
 
-if directAccumulation
+if immediateBinning
 else
   if (nNuclei>0)
     idxn = allcombinations(idxn{:});
@@ -216,7 +216,7 @@ else
   nNucTrans = size(idxn,1);
 end
 
-if directAccumulation
+if immediateBinning
   dE1A = zeros(max(nNucStates),nNuclei);
   nuaxis = linspace(Exp.Range(1),Exp.Range(2),Exp.nPoints);
   dnu = nuaxis(2)-nuaxis(1);
@@ -306,7 +306,7 @@ for iOri = nOrientations:-1:1
         nK = norm(K);
         k(:,iNuc) = K/nK;
         dE1A_ = mI{iNuc}*nK;
-        if directAccumulation
+        if immediateBinning
           dE1A(1:nNucStates(iNuc),iNuc) = dE1A_(:);
         else
           dE1A(:,iNuc) = dE1A_(idxn(:,iNuc)).';
@@ -337,7 +337,7 @@ for iOri = nOrientations:-1:1
           A3 = trAA(n) - norm(A{n}*u)^2 - kAAk + kAu^2;
           x = A1sq*mI{n}.^2 - A2*(1-2*mS)*mI{n} + A3/2*(II1(n)-mI{n}.^2);
           dE2A_ = +x./(2*E0);
-          if directAccumulation
+          if immediateBinning
             dE2A(1:nNucStates(n),n) = dE2A_(:);
           else
             dE2A(:,n) = dE2A_(idxn(:,n)).';
@@ -346,7 +346,7 @@ for iOri = nOrientations:-1:1
             DA = Du.'*Ak - uDu*kAu;
             y = DA*(3-6*mS)*mI{n};
             dE2DA_ = -y./E0;
-            if directAccumulation
+            if immediateBinning
               dE2DA(1:nNucStates(n),n) = dE2DA_;
             else
               dE2DA(:,n) = dE2DA_(idxn(:,n)).';
@@ -364,7 +364,7 @@ for iOri = nOrientations:-1:1
       dE2DA = 0;
     end
     
-    if directAccumulation
+    if immediateBinning
       dE = dE0 + dE1D + dE2D + dE1A + dE2A + dE2DA;
       % directly accumulate into spectrum
       spec = spec + Intensity(imS,iOri)*Exp.AccumWeights(iOri)*...
@@ -381,7 +381,7 @@ for iOri = nOrientations:-1:1
   
 end
 
-if directAccumulation
+if immediateBinning
   nu = [];
   Int = [];
   Wid = [];

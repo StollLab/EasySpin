@@ -203,7 +203,7 @@ else
   logmsg(1,'1st order perturbation theory');
 end
 
-if ~isfield(Opt,'DirectAccumulation'), Opt.DirectAccumulation = 0; end
+if ~isfield(Opt,'ImmediateBinning'), Opt.ImmediateBinning = 0; end
 %---------------------------------------------------------------------
 
 
@@ -221,9 +221,9 @@ if highSpin
 end
 II1 = I.*(I+1);
 
-directAccumulation = Opt.DirectAccumulation;
+immediateBinning = Opt.ImmediateBinning;
 
-if directAccumulation
+if immediateBinning
 else
   if (nNuclei>0)
     idxn = allcombinations(idxn{:});
@@ -233,7 +233,7 @@ else
   nNucTrans = size(idxn,1);
 end
 
-if directAccumulation
+if immediateBinning
   E1A = zeros(max(nNucStates),nNuclei);
   Baxis = linspace(Exp.Range(1),Exp.Range(2),Exp.nPoints);
   dB = Baxis(2)-Baxis(1);
@@ -327,7 +327,7 @@ for iOri = nOrientations:-1:1
         nK = norm(K);
         k(:,iNuc) = K/nK;
         E1A_ = mI{iNuc}*nK;
-        if directAccumulation
+        if immediateBinning
           E1A(1:nNucStates(iNuc),iNuc) = E1A_(:);
         else
           E1A(:,iNuc) = E1A_(idxn(:,iNuc)).';
@@ -358,7 +358,7 @@ for iOri = nOrientations:-1:1
           A3 = trAA(n) - norm(A{n}*u)^2 - kAAk + kAu^2;
           x = A1sq*mI{n}.^2 - A2*(1-2*mS)*mI{n} + A3/2*(II1(n)-mI{n}.^2);
           E2A_ = +x./(2*E0);
-          if directAccumulation
+          if immediateBinning
             E2A(1:nNucStates(n),n) = E2A_(:);
           else
             E2A(:,n) = E2A_(idxn(:,n)).';
@@ -367,7 +367,7 @@ for iOri = nOrientations:-1:1
             DA = Du.'*Ak - uDu*kAu;
             y = DA*(3-6*mS)*mI{n};
             E2DA_ = -y./E0;
-            if directAccumulation
+            if immediateBinning
               E2DA(1:nNucStates(n),n) = E2DA_;
             else
               E2DA(:,n) = E2DA_(idxn(:,n)).';
@@ -385,7 +385,7 @@ for iOri = nOrientations:-1:1
       E2DA = 0;
     end
     
-    if directAccumulation
+    if immediateBinning
       B0 = (E0-E1D-E2D)*preOri*1e3; % mT
       % compute B shifts
       Bshifts = (-(E1A+E2A+E2DA))*preOri*1e3; % mT
@@ -404,7 +404,7 @@ for iOri = nOrientations:-1:1
   
 end
 
-if directAccumulation
+if immediateBinning
   B = [];
   Int = [];
   Wid = [];

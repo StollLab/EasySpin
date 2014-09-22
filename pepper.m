@@ -430,7 +430,7 @@ DefaultOpt.nKnotsMinimum = 10;
 DefaultOpt.Debug = 0;
 DefaultOpt.Intensity = 'on';
 DefaultOpt.BruteForce = 0;
-DefaultOpt.DirectAccumulation = 0;
+DefaultOpt.ImmediateBinning = 0;
 DefaultOpt.PaddingMultiplier = 3; % for padding before convolution
 DefaultOpt.ThetaRange = [];
 
@@ -450,8 +450,8 @@ end
 
 UseEigenFields = (Method==1);
 UsePerturbationTheory = any(Method==[3 4 5 12 13 14 ]);
-if (Opt.DirectAccumulation && ~UsePerturbationTheory)
-  error('Opt.DirectAccumulation works only with perturbation theory.');
+if (Opt.ImmediateBinning && ~UsePerturbationTheory)
+  error('Opt.ImmediateBinning works only with perturbation theory.');
 end
 
 if ~isfield(Opt,'nKnots')
@@ -696,9 +696,9 @@ logmsg(1,'-absorption spectrum construction----------------------');
 
 BruteForceSum = UseEigenFields | Opt.BruteForce;
 
-if Opt.DirectAccumulation
+if Opt.ImmediateBinning
 
-  % bypass interpolation
+  % lines have already been binned into the spectral vector on the fly during calculation
   
 elseif (~BruteForceSum)
   
@@ -993,7 +993,7 @@ elseif (~BruteForceSum)
   end
   %=======================================================================
   
-else % if Opt.DirectAccumulation elseif (~BruteForceSum) ...
+else % if Opt.ImmediateBinning elseif (~BruteForceSum) ...
   
   logmsg(1,'  no interpolation',nOrientations);
   logmsg(1,'  constructing stick spectrum');
