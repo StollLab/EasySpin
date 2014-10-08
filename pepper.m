@@ -1003,19 +1003,19 @@ else % if Opt.ImmediateBinning elseif (~BruteForceSum) ...
   for iOri = 1:nOrientations
     if iscell(Pdat)
       thisP = Pdat{iOri};
-      i = Idat{iOri};
+      Amplitudes = Idat{iOri};
     else
       thisP = Pdat(:,iOri);
-      i = Idat(:,iOri);
+      Amplitudes = Idat(:,iOri);
     end
-    p = round(1+prefactor*(thisP-Exp.Range(1)));
-    OutOfRange = (p<1) | (p>Exp.nPoints);
-    p(OutOfRange) = [];
-    i(OutOfRange) = [];
+    idxPos = round(1+prefactor*(thisP-Exp.Range(1)));
+    outOfRange = (idxPos<1) | (idxPos>Exp.nPoints);
+    idxPos(outOfRange) = [];
+    Amplitudes(outOfRange) = [];
     if (AnisotropicIntensities)
-      spec = spec + full(sparse(1,p,Weights(iOri)*i,1,Exp.nPoints));
+      spec = spec + full(sparse(1,idxPos,Weights(iOri)*Amplitudes,1,Exp.nPoints));
     else
-      spec = spec + full(sparse(1,p,Weights(iOri),1,Exp.nPoints));
+      spec = spec + full(sparse(1,idxPos,Weights(iOri),1,Exp.nPoints));
     end
   end
   

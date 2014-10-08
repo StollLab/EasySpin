@@ -8,8 +8,7 @@
   shape template, because it is differentiated
   during the binning!
 
-    T: line shape integral template defined over
-       x = 1:length(T)
+    T: line shape integral template defined over x = 1:length(T)
     PosT: line center in the template
     WidT: line width in the template
     Pos: line positions in spectrum
@@ -23,9 +22,6 @@
   they are accessed as Pos(:) etc.
   y will be a row vector the same length as x.
 
-This is an EasySpin function.
-Author: Stefan Stoll, ETH Zurich
-Last modification: 17-Nov-2003
  */
 
 #include <math.h>

@@ -38,7 +38,7 @@ if numel(fwhm)>1
 end
 
 if any(diff<-1) || any(diff>2)
-  error('Cannot compute lineshape for diff=%d.',diff);
+  error('Cannot compute Lorentzian lineshape derivative %d.',diff);
 end
 
 DoPhase = 0;
