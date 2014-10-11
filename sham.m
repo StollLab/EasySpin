@@ -34,7 +34,7 @@ error(err);
 % Zeeman interaction: EZI, NZI
 if sparseResult
   F = zfield(Sys,[],'sparse') + nquad(Sys,[],'sparse') + ...
-    hfine(Sys,[],'sparse') + eeint(Sys,'sparse');
+    hfine(Sys,[],'sparse') + eeint(Sys,[],'sparse');
   [GxM,GyM,GzM] = zeeman(Sys,[],'sparse');
 else
   F = zfield(Sys) + nquad(Sys) + hfine(Sys) + eeint(Sys);
