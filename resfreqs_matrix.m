@@ -190,6 +190,7 @@ DefaultOptions.MaxKnots = 2000;
 DefaultOptions.RediagLimit = 0.95;
 
 DefaultOptions.Intensity = 1;
+DefaultOptions.Sparse = false;
 
 % Threshold for selecting nuclei for perturbational treatment
 DefaultOptions.HybridHFIThreshold = 0.02;
@@ -223,6 +224,13 @@ ComputeIntensities = ((nargout>1) & Opt.Intensity);
 %-----------------------------------------------------------------------
 logmsg(1,'- Preparations');
 
+if Opt.Sparse
+  warning('off','MATLAB:eigs:TooManyRequestedEigsForRealSym');
+  logmsg(1,'  using sparse matrices');
+else
+  logmsg(1,'  using full matrices');
+end
+
 % :KLUDGE: Add some fuzz to the hyperfine couplings to avoid degeneracies
 % if several (equivalent) nuclei are specified.
 if (System.nNuclei>1)
@@ -233,6 +241,9 @@ CoreSys = System;
 
 % Perturbational treatment of SHF nuclei
 if (CoreSys.nNuclei>=1) && Opt.Hybrid
+  if Opt.Sparse
+    error('Cannot use sparse matrices in hybrid mode.');
+  end
   
   Nucs = nucstring2list(CoreSys.Nucs);
   
@@ -319,7 +330,13 @@ else
 end
 
 % Hamiltonian components for the core system.
-[kF,kGxM,kGyM,kGzM] = sham(CoreSys);
+if (Opt.Sparse)
+  [kF,kGxM,kGyM,kGzM] = sham(CoreSys,[],'sparse');
+  nLevels = length(kF);
+else
+  [kF,kGxM,kGyM,kGzM] = sham(CoreSys);
+  nLevels = length(kF);
+end
 nCore = length(kF);
 nFull = hsdim(System);
 nSHFNucStates = nFull/nCore;
@@ -588,7 +605,11 @@ for iOri = 1:nOrientations
   % y laboratory vector: needed for integration over all B1 field orientations.
   kGyL = yLab(1)*kGxM + yLab(2)*kGyM + yLab(3)*kGzM;
   
-  [Vs,E] = gethamdata(Exp.Field, kF, kGzL);
+  if issparse(kF)
+    [Vs,E] = gethamdata(Exp.Field, kF, kGzL, [], nLevels);
+  else
+    [Vs,E] = gethamdata(Exp.Field, kF, kGzL, [], nLevels);
+  end
   Pdat(:,iOri) = E(v) - E(u);
   
   % Calculate intensities if requested
@@ -926,46 +947,5 @@ end
 % Arrange the output.
 Output = {Pdat,Idat,Wdat,Transitions};
 varargout = Output(1:max(nargout,1));
-
-return
-%@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-%@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-%@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
-
-function [V,E,D1,dE] = gethamdata(B,F,G,idx)
-
-% Compute eigenvalues and eigenvectors of Hamiltonian
-[V,E] = eig(F+B*G);
-E = diag(E).';
-
-% Compute correct eigenvectors for zero-field degeneracies
-if (B==0)
-  dE = abs(diff(E)).';
-  tol = 1e3*eps*max(dE);
-  groupIdx = cumsum([1; dE>tol]);
-  GG = V'*G*V;
-  GG = (GG+GG')/2; % important: symmetrize
-  VV_ = [];
-  for iGroup = 1:max(groupIdx)
-    ix = find(groupIdx==iGroup);
-    [v,e] = eig(GG(ix,ix));
-    VV_ = blkdiag(VV_,v);
-  end
-  V = V*VV_;
-end
-
-if (nargout>2)
-  % Compute first derivative dE/dB
-  D1 = real(diag(V'*G*V)).';
-end
-
-if (nargout>3)
-  % Compute transition frequencies Ev-Eu
-  M = E(:);
-  M = M(:,ones(1,length(E)));
-  dE = M.' - M;
-  dE = dE(idx);
-end
 
 return

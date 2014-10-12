@@ -201,9 +201,11 @@ DefaultOptions.HybridCoreNuclei = [];
 DefaultOptions.nTRKnots = 3;
 DefaultOptions.FuzzLevel = 1e-7;
 DefaultOptions.Freq2Field = 1;
-DefaultOptions.MaxKnots = 2000;
+DefaultOptions.maxSegments = 2000;
 DefaultOptions.ModellingAccuracy = 2e-6;
 DefaultOptions.RediagLimit = 0.95;
+DefaultOptions.Sparse = 0;
+DefaultOptions.nLevels = [];
 
 DefaultOptions.Gradient = 1;
 DefaultOptions.Intensity = 1;
@@ -245,10 +247,17 @@ ComputeStrains = StrainsPresent && (nargout>2);
 ComputeGradient = (ComputeStrains | (nargout>4)) & GradientSwitch;
 ComputeIntensities = ((nargout>1) & IntensitySwitch) | ComputeGradient;
 ComputeEigenPairs = ComputeIntensities | ComputeGradient | ComputeStrains;
-
+  
 % Preparing kernel and perturbing system Hamiltonians.
 %-----------------------------------------------------------------------
 logmsg(1,'- Preparations');
+
+if Opt.Sparse
+  warning('off','MATLAB:eigs:TooManyRequestedEigsForRealSym');
+  logmsg(1,'  using sparse matrices');
+else
+  logmsg(1,'  using full matrices');
+end
 
 % :KLUDGE: Add some fuzz to the hyperfine couplings to avoid degeneracies
 % if several (equivalent) nuclei are specified.
@@ -361,7 +370,13 @@ else
 end
 
 % Hamiltonian components for the core system.
-[kF,kGxM,kGyM,kGzM] = sham(CoreSys);
+if Opt.Sparse
+  [kF,kGxM,kGyM,kGzM] = sham(CoreSys,[],'sparse');
+  nLevels = length(kF);
+else
+  [kF,kGxM,kGyM,kGzM] = sham(CoreSys);
+  nLevels = length(kF);
+end
 nCore = length(kF);
 nFull = hsdim(System);
 nSHFNucStates = nFull/nCore;
@@ -446,9 +461,13 @@ if UserTransitions
 
   if ischar(Opt.Transitions)
     if strcmp(Opt.Transitions,'all');
-      nSStates = prod(2*CoreSys.S+1);
-      logmsg(1,'  using all %d transitions',nSStates*(nSStates-1)/2);
-      [u,v] = find(triu(ones(nSStates),1));
+      if isempty(Opt.nLevels)
+        nStates_ = prod(2*CoreSys.S+1);
+      else
+        nStates_ = Opt.nLevels;
+      end
+      logmsg(1,'  using all %d transitions',nStates_*(nStates_-1)/2);
+      [u,v] = find(triu(ones(nStates_),1));
       Transitions = sortrows([u,v]);
     else
       error('Options.Transitions must be ''all'' or a nx2 array of enery level indices.');
@@ -461,12 +480,13 @@ if UserTransitions
       error('Options.Transitions must be a nx2 array of energy level indices.');
     end
     Transitions = sort(Opt.Transitions,2);
+    rmv = any(Transitions>nLevels,2);
+    Transitions(rmv,:) = [];
   end
-  nTransitions = size(Transitions,1);
 
 else % Automatic pre-selection
   
-  nSStates = prod(2*CoreSys.S+1);
+  nElStates_ = prod(2*CoreSys.S+1);
   if (Opt.Threshold(1)==0)
     logmsg(1,'  selection threshold is zero -> using all transitions');
     TransitionRates = ones(nCore);
@@ -498,7 +518,13 @@ else % Automatic pre-selection
       kGpM = ctp(iOri,2)*kGxM + stp(iOri,2)*kGyM;
       EpM = ctp(iOri,2)*ExM + stp(iOri,2)*EyM;
       % Solve eigenproblem.
-      [Vs,E] = eig(kF + centerB*(stp(iOri,1)*kGpM + ctp(iOri,1)*kGzM));
+      if Opt.Sparse
+        [Vs,E] = eigs(kF + centerB*(stp(iOri,1)*kGpM + ctp(iOri,1)*kGzM),length(kF));
+        [E,idx_] = sort(diag(E));
+        Vs = Vs(:,idx_);
+      else
+        [Vs,E] = eig(kF + centerB*(stp(iOri,1)*kGpM + ctp(iOri,1)*kGzM));
+      end
       % Sum up transition rates. Or take the maximum.
       if (ParallelMode)
         %TransitionRates = TransitionRates + TRWeights(iOri) * abs(Vs'*(stp(iOri,1)*EpM + ctp(iOri,1)*EzM)*Vs).^2;
@@ -519,7 +545,7 @@ else % Automatic pre-selection
   idxLowerTriangle = logical(tril(ones(nCore)));
   % Remove nuclear transitions
   if (max(HFIStrength)<0.5) && (Opt.Threshold(1)>0)
-    idxNuclearTransitions = logical(kron(eye(nSStates),ones(nCore/nSStates)));
+    idxNuclearTransitions = logical(kron(eye(nElStates_),ones(nCore/nElStates_)));
     keepidx = ~(idxLowerTriangle | idxNuclearTransitions);
   else
     keepidx = ~(idxLowerTriangle);
@@ -744,11 +770,16 @@ Accuracy = mwFreq*Opt.ModellingAccuracy;
 
 M = [2 -2 1 1; -3 3 -2 -1; 0 0 1 0; 1 0 0 0];
 ZeroRow = NaN*ones(1,nOrientations);
-maxSlope = max(max([eig(kGxM) eig(kGyM) eig(kGzM)]));
+if Opt.Sparse
+  maxSlope = max(max([eigs(kGxM,1) eigs(kGyM,1) eigs(kGzM,1)]));
+  maxSlope = abs(maxSlope);
+else
+  maxSlope = max(max([eig(kGxM) eig(kGyM) eig(kGzM)]));
+end
 nDiagonalizations = 0; % or 4? (1 for F and 3 for maxSlope)
 nRediags = 0;
 minStateStability = 2;
-nMaxKnotsReached = 0;
+nMaxSegmentsReached = 0;
 
 logmsg(2,'  ## modelling accuracy %0.3f MHz, max slope %g MHz/mT',Accuracy,maxSlope);
 
@@ -798,82 +829,78 @@ for iOri = 1:nOrientations
   %===========================================================
   % Iterative bisection
   %-----------------------------------------------------------  
-
-  % V: eigenvectors, E: energies, D1: dE/dB
-  % dE: transition energies for transitions in list Trans
-  clear VV E D1 dE;
-  Knots = Exp.Range;
-  [VV{2},E{2},D1{2},dE{2}] = gethamdata(Knots(2),kF,kGzL,Trans);
-  [VV{1},E{1},D1{1},dE{1}] = gethamdata(Knots(1),kF,kGzL,Trans);
-  nDiagonalizations = nDiagonalizations+2;
-  UnFinished = 1;
-
-  % Loop until maximum allowed number of knots is reached.
-  while any(UnFinished) && (numel(Knots)<Opt.MaxKnots)
-    
-    s = find(UnFinished); s = s(1); % Find unfinished segment
-    dB = Knots(s+1)-Knots(s);
   
+  % Vectors: eigenvectors, E: energies, dEdB: dE/dB
+  % deltaE: transition energies for transitions in list Trans
+  clear Vectors E dEdB deltaE;
+  
+  Bknots = Exp.Range; % initial segment spans full field range
+  nSegments = 1;
+  [Vectors{2},E{2},dEdB{2},deltaE{2}] = gethamdata(Bknots(2),kF,kGzL,Trans,nLevels);
+  [Vectors{1},E{1},dEdB{1},deltaE{1}] = gethamdata(Bknots(1),kF,kGzL,Trans,nLevels);
+  nDiagonalizations = nDiagonalizations + 2;
+  unfinished = true;
+  
+  % Iterative bisection until energy level diagram is accurately modeled.
+  while any(unfinished) && (nSegments<Opt.maxSegments)
+    
+    s = find(unfinished,1); % find first unfinished segment
+    dB = Bknots(s+1) - Bknots(s);
     if (E{s+1}(end)-E{s+1}(1) > mwFreq)
       if (LoopFields)
-        ResonancePossible = abs((dE{s}+dE{s+1})/2-mwFreq) <= maxSlope*dB;
+        ResonancePossible = abs((deltaE{s}+deltaE{s+1})/2-mwFreq) <= maxSlope*dB;
       else
-        ResonancePossible = (dE{s}-mwFreq).*(dE{s+1}-mwFreq) <= 0;
+        ResonancePossible = (deltaE{s}-mwFreq).*(deltaE{s+1}-mwFreq) <= 0;
       end
     else
-      ResonancePossible = 0;
+      ResonancePossible = false;
     end
     
     if any(ResonancePossible)
-      % compute error
-      newB = (Knots(s)+Knots(s+1))/2;
-      [Ve,En,Di1,dEn] = gethamdata(newB,kF,kGzL,Trans);
+      % diagonalize at center and compute error
+      newB = (Bknots(s)+Bknots(s+1))/2;
+      [Ve,En,Di1,dEn] = gethamdata(newB,kF,kGzL,Trans,nLevels);
       nDiagonalizations = nDiagonalizations+1;
-      Error = 2*(1/2*(E{s}+E{s+1}) + dB/8*(D1{s}-D1{s+1}) - En);
-      Incl = zeros(1,nCore);
-      Incl([u(ResonancePossible) v(ResonancePossible)]) = 1;
-      Error = abs(Error(logical(Incl)));
+      Error = 2*(1/2*(E{s}+E{s+1}) + dB/8*(dEdB{s}-dEdB{s+1}) - En);
+      Incl = false(1,nCore); % levels to include in accuracy check
+      Incl([u(ResonancePossible) v(ResonancePossible)]) = true;
+      Error = abs(Error(Incl));
       % bisect
-      Knots = [Knots(1:s) newB Knots(s+1:end)];
+      Bknots = [Bknots(1:s) newB Bknots(s+1:end)];
       E = [E(1:s) {En} E(s+1:end)];
-      VV = [VV(1:s) {Ve} VV(s+1:end)];
-      D1 = [D1(1:s) {Di1} D1(s+1:end)];
-      dE = [dE(1:s) {dEn} dE(s+1:end)];
+      Vectors = [Vectors(1:s) {Ve} Vectors(s+1:end)];
+      dEdB = [dEdB(1:s) {Di1} dEdB(s+1:end)];
+      deltaE = [deltaE(1:s) {dEn} deltaE(s+1:end)];
+      nSegments = nSegments + 1;
       % mark unfinished or finished depending on error
-      UnFinished = [UnFinished(1:s-1) (max(Error)>Accuracy)*[1 1] UnFinished(s+1:end)];
+      done = max(Error) <= Accuracy;
+      unfinished = [unfinished(1:s-1) ~done ~done unfinished(s+1:end)];
     else
-      UnFinished(s) = 0; % mark segment as finished
+      unfinished(s) = false; % mark segment as finished
     end
     
   end
   
-  %------------------------------------------------------------
-  
-  if numel(Knots)>=Opt.MaxKnots
-    nMaxKnotsReached = nMaxKnotsReached + 1;
+  if (nSegments>=Opt.maxSegments)
+    nMaxSegmentsReached = nMaxSegmentsReached + 1;
   end
   
-  nKnots = numel(Knots);
-  nSegs = nKnots-1;
-  dB = diff(Knots);
-
-  logmsg(2,'   segmentation finished, %d knots, %d segments',nKnots,nSegs);
+  logmsg(2,'   segmentation finished, %d segments',nSegments);
   
   % Compute eigenvector cross products to determine how strongly eigenvectors
   % change over a segment.
-  for s = nSegs:-1:1
+  for s = nSegments:-1:1
     %StateStability(:,s) = abs(diag(VV{s+1}'*VV{s}));
-    StateStability(:,s) = abs(sum(conj(VV{s+1}).*VV{s})).';
+    StateStability(:,s) = abs(sum(conj(Vectors{s+1}).*Vectors{s})).';
   end
 
-  % Cubic polynomial coefficients of the entire spline model of the
-  % energy level diagram.
-  Coeffs = cell(1,nSegs);
-  for s = 1:nSegs
-    Coeffs{s} = M*[E{s}; E{s+1}; dB(s)*D1{s}; dB(s)*D1{s+1}];
+  % Cubic polynomial coefficients of the entire spline model of the energy level diagram.
+  dB = diff(Bknots);
+  SplineModelCoeffs = cell(1,nSegments);
+  for s = 1:nSegments
+    SplineModelCoeffs{s} = M*[E{s}; E{s+1}; dB(s)*dEdB{s}; dB(s)*dEdB{s+1}];
   end
   
-  %fprintf('Orientation %d/%d: %d segments\n',iOri,nOrientations,nSegs);
   iiTrans = 1;
   for iTrans = 1:nTransitions % run over all level pairs
 
@@ -882,10 +909,10 @@ for iOri = 1:nOrientations
 
     % Loop over all field segments and compute resonance fields
     %-----------------------------------------------------------
-    for s = 1:nSegs
+    for s = 1:nSegments
 
       % Construct cubic polynomial coeffs of resonance function Ev-Eu-freq
-      Co = Coeffs{s};
+      Co = SplineModelCoeffs{s};
       C = Co(:,v(iTrans)) - Co(:,u(iTrans));
       C(4) = C(4) - mwFreq;
 
@@ -898,7 +925,7 @@ for iOri = 1:nOrientations
       Zeros = cubicsolve(C,LoopFields);
       if isempty(Zeros), continue, end
 
-      ResonanceFields = Knots(s) + dB(s)*Zeros;
+      ResonanceFields = Bknots(s) + dB(s)*Zeros;
 
       for iReson=1:numel(ResonanceFields) % loop over all resonances for transition iTrans in the current segment
 
@@ -944,9 +971,9 @@ for iOri = 1:nOrientations
           % rediagonalize the Hamiltonian at the resonance field.
           if any(StateStability(uv,s)<Opt.RediagLimit)
             nRediags = nRediags + 1;
-            [Vectors,Energies] = eig(kF+ResonanceFields(iReson)*kGzL);
-            U = Vectors(:,uv(1));
-            V = Vectors(:,uv(2));
+            [Vectors_,Energies] = eig(kF+ResonanceFields(iReson)*kGzL);
+            U = Vectors_(:,uv(1));
+            V = Vectors_(:,uv(2));
             Energies = diag(Energies);
             %V'*kGxL*U
             logmsg(3,sprintf('   %d-%d: stabilities %f and %f ===> rediagonalization',uv,StateStability(uv,s)));
@@ -954,13 +981,13 @@ for iOri = 1:nOrientations
 
             z = Zeros(iReson);
 
-            Ua = VV{s}(:,uv(1)); Ub = VV{s+1}(:,uv(1));
+            Ua = Vectors{s}(:,uv(1)); Ub = Vectors{s+1}(:,uv(1));
             [val,idx] = max(abs(Ua));
             phase = Ua(idx)/Ub(idx);
             U = Ua*(1-z) + z*phase/abs(phase)*Ub;
             U = U/norm(U);
 
-            Va = VV{s}(:,uv(2)); Vb = VV{s+1}(:,uv(2));
+            Va = Vectors{s}(:,uv(2)); Vb = Vectors{s+1}(:,uv(2));
             [val,idx] = max(abs(Va));
             phase = Va(idx)/Vb(idx);
             V = Va*(1-z) + z*phase/abs(phase)*Vb;
@@ -969,7 +996,7 @@ for iOri = 1:nOrientations
             t = Zeros(iReson);
             if ComputeBoltzmannPopulations
               t = [t^3 t^2 t 1];
-              Energies = t*Coeffs{s};
+              Energies = t*SplineModelCoeffs{s};
             end
           end
 
@@ -1221,8 +1248,8 @@ if any(Wdat(:)<0),
   logmsg(-inf,'*********** Negative width encountered in resfields!! Please report! **************');
 end
 
-if (nMaxKnotsReached>0)
-  logmsg(1,'  *** Maximum number of knots (%d) reached for %d orientations!',Opt.MaxKnots,nMaxKnotsReached);
+if (nMaxSegmentsReached>0)
+  logmsg(1,'  *** Maximum number of segments (%d) reached for %d orientations!',Opt.maxSegments,nMaxSegmentsReached);
 end
 
 % Transition post-selection for perturbational nuclei
@@ -1322,42 +1349,5 @@ end
 % Arrange the output.
 Output = {Pdat,Idat,Wdat,Transitions,Gdat};
 varargout = Output(1:max(nargout,1));
-
-return
-%@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-%@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-%@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
-
-function [V,E,D1,dE] = gethamdata(B,F,G,idx)
-
-% Compute eigenpairs of Hamiltonian
-[V,E] = eig(F+B*G);
-E = diag(E).';
-
-% Compute correct eigenvectors for zero-field degeneracies
-if (B==0)
-  dE = abs(diff(E)).';
-  tol = 1e3*eps*max(dE);
-  blk = cumsum([1; dE>tol]);
-  GG = V'*G*V;
-  GG = (GG+GG')/2; % important: symmetrise
-  VV_ = [];
-  for k=1:max(blk)
-    ix = find(blk==k);
-    [v,e] = eig(GG(ix,ix));
-    VV_ = blkdiag(VV_,v);
-  end
-  V = V*VV_;
-end
-
-% Compute first derivative dE/dB
-D1 = real(diag(V'*G*V)).';
-
-% Compute transition frequencies Ev-Eu
-M = E(:);
-M = M(:,ones(1,length(E)));
-dE = M.' - M;
-dE = dE(idx);
 
 return
