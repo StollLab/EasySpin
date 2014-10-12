@@ -373,6 +373,7 @@ end
 if Opt.Sparse
   [kF,kGxM,kGyM,kGzM] = sham(CoreSys,[],'sparse');
   nLevels = length(kF);
+  nLevels = 200;
 else
   [kF,kGxM,kGyM,kGzM] = sham(CoreSys);
   nLevels = length(kF);
@@ -420,7 +421,12 @@ if (ComputeNonEquiPops)
     end
   end
 else
-  ZFEnergies = sort(real(eig(kF)));
+  if issparse(kF)
+    ZFEnergies(1) = eigs(kF,1,'sa');
+    ZFEnergies(2) = eigs(kF,1,'la');
+  else
+    ZFEnergies = sort(real(eig(kF)));
+  end
 end
 
 % Check whether looping transitions are possible.
@@ -971,7 +977,11 @@ for iOri = 1:nOrientations
           % rediagonalize the Hamiltonian at the resonance field.
           if any(StateStability(uv,s)<Opt.RediagLimit)
             nRediags = nRediags + 1;
-            [Vectors_,Energies] = eig(kF+ResonanceFields(iReson)*kGzL);
+            if issparse(kF)
+              [Vectors_,Energies] = eigs(kF+ResonanceFields(iReson)*kGzL,nLevels);
+            else
+              [Vectors_,Energies] = eig(kF+ResonanceFields(iReson)*kGzL);
+            end
             U = Vectors_(:,uv(1));
             V = Vectors_(:,uv(2));
             Energies = diag(Energies);
