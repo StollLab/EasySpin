@@ -19,13 +19,14 @@
 %         Precedence: logtcorr > tcorr > logDiff > Diff.
 %
 %     Sys.DiffFrame       Euler angles of the diffusion tensor (default [0 0 0])
-%     Sys.lw              vector with FWHM residual broadenings [mT]
+%     Sys.lw              vector with FWHM residual broadenings
 %                         1 element:  GaussianFWHM
 %                         2 elements: [GaussianFWHM LorentzianFWHM]
-%     Sys.lwpp            peak-to-peak line widths [mT], same format as Sys.lw
+%                         field sweep: mT, frequency sweep: MHz
+%     Sys.lwpp            peak-to-peak line widths, same format as Sys.lw
 %     Sys.lambda          ordering potential coefficients
 %                         [lambda20 lambda22 lambda40 lambda42 lambda44]
-%     Sys.Exchange        Heisenberg exchange frequency (in MHz)
+%     Sys.Exchange        Heisenberg exchange frequency (MHz)
 %     Sys.psi             "director tilt" orientation
 %
 %     Exp.mwFreq          spectrometer frequency, in GHz
@@ -141,17 +142,12 @@ end
 [Sys,err] = validatespinsys(Sys);
 error(err);
 
-if (Sys.nElectrons~=1)
-  error('chili does not support systems with more than one electron spin.');
-end
-if (Sys.S~=1/2)
-  error('chili does not support systems with S > 1/2.');
-end
-if (Sys.nNuclei>2)
-  warning('chili does not fully treat systems with more than two nuclear spins. Starting from the third, post-convolution is used.');
+JerSpin = false;
+if (Sys.nElectrons~=1) || any(Sys.S~=1/2) || (Sys.nNuclei>2)
+  JerSpin = true;
 end
 if Sys.fullg
-  error('chili does not support 3x3 g matrices in Sys.g.');
+  JerSpin = true;
 end
 
 mT2MHz = mt2mhz(1,mean(Sys.g));
@@ -199,7 +195,7 @@ end
 % Temperature
 if ~isnan(Exp.Temperature)
   if (numel(Exp.Temperature)~=1) || isinf(Exp.Temperature) || (Exp.Temperature<0)
-    error('If given, Exp.Temperature must be a positive value.')
+    error('Problem with Exp.Temperature. If given, Exp.Temperature must be a positive value.')
   end
 end
 
@@ -236,25 +232,29 @@ else
   if isfield(Exp,'Range')
     Exp.CenterSweep = [mean(Exp.Range) diff(Exp.Range)];
   else
-    logmsg(1,'  automatic determination of sweep range');
-    Stretch = 1.25;
-    I = nucspin(Sys.Nucs).';
-    if numel(I)>0
-      Amax = max(abs(Sys.A),[],2);
-      hf = sum(I.*Amax)*1e6; % MHz -> Hz
+    if (Sys.nElectrons==1) && (Sys.S==1/2)
+      logmsg(1,'  automatic determination of sweep range');
+      Stretch = 1.25;
+      I = nucspin(Sys.Nucs).';
+      if numel(I)>0
+        Amax = max(abs(Sys.A),[],2);
+        hf = sum(I.*Amax)*1e6; % MHz -> Hz
+      else
+        hf = 0;
+      end
+      gmax = max(Sys.g(:));
+      gmin = min(Sys.g(:));
+      if FieldSweep
+        minB = planck*(Exp.mwFreq*1e9 - hf)/bmagn/gmax/1e-3;
+        maxB = planck*(Exp.mwFreq*1e9 + hf)/bmagn/gmin/1e-3;
+        Exp.CenterSweep = [(maxB+minB)/2, Stretch*max(maxB-minB,5)];
+      else
+        minE = bmagn*Exp.Field*1e-3*gmin/planck - hf; % Hz
+        maxE = bmagn*Exp.Field*1e-3*gmax/planck + hf; % Hz
+        Exp.CenterSweep = [(maxE+minE)/2, Stretch*max(maxE-minE,10e6)]/1e9; % GHz
+      end
     else
-      hf = 0;
-    end
-    gmax = max(Sys.g(:));
-    gmin = min(Sys.g(:));
-    if FieldSweep
-      minB = planck*(Exp.mwFreq*1e9 - hf)/bmagn/gmax/1e-3;
-      maxB = planck*(Exp.mwFreq*1e9 + hf)/bmagn/gmin/1e-3;
-      Exp.CenterSweep = [(maxB+minB)/2, Stretch*max(maxB-minB,5)];
-    else
-      minE = bmagn*Exp.Field*1e-3*gmin/planck - hf; % Hz
-      maxE = bmagn*Exp.Field*1e-3*gmax/planck + hf; % Hz
-      Exp.CenterSweep = [(maxE+minE)/2, Stretch*max(maxE-minE,10e6)]/1e9; % GHz
+      error('Cannot automatically determine sweep range for this spin system.');
     end
   end
 end
@@ -296,8 +296,8 @@ end
 
 % Resonator mode
 switch Exp.Mode
-  case 'perpendicular', ParallelMode = 0;
-  case 'parallel', ParallelMode = 1;
+  case 'perpendicular', ParallelMode = false;
+  case 'parallel', ParallelMode = true;
   otherwise, error('Exp.Mode must be either ''perpendicular'' or ''parallel''.');
 end
 logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.Mode);
@@ -329,7 +329,7 @@ if isfield(Exp,'CrystalSymmetry')
   warning('Exp.CrystalSymmetry is not used by chili.');
 end
 
-  
+
 % Options
 %-------------------------------------------------------------------
 if isempty(Opt), Opt = struct('unused',NaN); end
@@ -346,6 +346,8 @@ switch Opt.Output
   otherwise, error('Wrong setting in Options.Output.');
 end
 
+% Obsolete options
+% Opt.MOMD was used prior to 5.0 for powder simulations (in the presence of ordering potential)
 if isfield(Opt,'MOMD')
   error('Opt.MOMD is obsolete. Remove it from your code. See the documentation for details.');
 end
@@ -360,6 +362,9 @@ elseif all(Sys.lambda==0)
 else
   logmsg(1,'  Non-zero ordering potential given, doing powder simulation.');
   PowderSimulation = true;
+  if JerSpin
+    error('Ordering potential not supported for this spin system.');
+  end
 end
 
 if ~isfield(Opt,'nKnots'), Opt.nKnots = [5 0]; end
@@ -367,26 +372,28 @@ if numel(Opt.nKnots)<1, Opt.nKnots(1) = 5; end
 if numel(Opt.nKnots)<2, Opt.nKnots(2) = 0; end
 
 % Basis settings
-if ~isfield(Opt,'LLKM')
-  Opt.LLKM = [14 7 6 2];
+if ~JerSpin
+  if ~isfield(Opt,'LLKM')
+    Opt.LLKM = [14 7 6 2];
+  end
+  Basis.LLKM = Opt.LLKM;
+  if ~isfield(Opt,'jKmin')
+    Opt.jKmin = [];
+  end
+  Basis.jKmin = Opt.jKmin;
+  if ~isfield(Opt,'pSmin')
+    Opt.pSmin = 0;
+  end
+  Basis.pSmin = Opt.pSmin;
+  if ~isfield(Opt,'pImax')
+    Opt.pImax = [];
+  end
+  Basis.pImax = Opt.pImax;
+  if ~isfield(Opt,'MeirovitchSymm')
+    Opt.MeirovitchSymm = true;
+  end
+  Basis.MeirovitchSymm = Opt.MeirovitchSymm;
 end
-Basis.LLKM = Opt.LLKM;
-if ~isfield(Opt,'jKmin')
-  Opt.jKmin = [];
-end
-Basis.jKmin = Opt.jKmin;
-if ~isfield(Opt,'pSmin')
-  Opt.pSmin = 0;
-end
-Basis.pSmin = Opt.pSmin;
-if ~isfield(Opt,'pImax')
-  Opt.pImax = [];
-end
-Basis.pImax = Opt.pImax;
-if ~isfield(Opt,'MeirovitchSymm')
-  Opt.MeirovitchSymm = true;
-end
-Basis.MeirovitchSymm = Opt.MeirovitchSymm;
 
 switch Opt.Solver
   case 'L'
@@ -422,16 +429,20 @@ logmsg(2,'  allocation: %d max elements, %d max rows',Opt.Allocation(1),Opt.Allo
 
 % Process
 %-------------------------------------------------------
-Sys = processspinsys(Sys,CenterField);
-if ~Opt.IncludeNZI, Sys.NZ0 = 0; Sys.NZ0b = 0; end
-[Dynamics,err] = processdynamics(Dynamics,FieldSweep);
-error(err);
+if ~JerSpin
+  Sys = processspinsys(Sys,CenterField);
+  if ~Opt.IncludeNZI, Sys.NZ0 = 0; Sys.NZ0b = 0; end
+  [Dynamics,err] = processdynamics(Dynamics,FieldSweep);
+  error(err);
+  
+  Dynamics.xlk = chili_xlk(Dynamics);
+  Dynamics.maxL = size(Dynamics.xlk,1)-1;
+  
+  Basis = processbasis(Sys,Basis,Dynamics);
+else
+end
 
-Dynamics.xlk = chili_xlk(Dynamics);
-Dynamics.maxL = size(Dynamics.xlk,1)-1;
-
-Basis = processbasis(Sys,Basis,Dynamics);
-
+% Set up horizontal sweep axis
 if FieldSweep
   maxOffset = Sweep/2*mT2MHz*1e6; % Hz
   nu = linspace(-1,1,Exp.nPoints)*maxOffset;  % Hz
@@ -446,13 +457,15 @@ end
 % Set up quantum numbers for basis
 %-------------------------------------------------------
 logmsg(1,'Setting up basis...');
-[Basis.Size,Indices] = chili_basiscount(Sys,Basis);
-logmsg(1,'  basis size: %d',Basis.Size);
-logmsg(1,'    Leven max %d, Lodd max %d, Kmax %d, Mmax %d',...
-  Basis.LLKM(1),Basis.LLKM(2),Basis.LLKM(3),Basis.LLKM(4));
-logmsg(1,'    deltaL %d, deltaK %d',Basis.deltaL,Basis.deltaK);
-logmsg(1,'    jKmin %+d, pSmin %+d, symm %d',...
-  Basis.jKmin,Basis.pSmin,Basis.MeirovitchSymm);
+if ~JerSpin
+  [Basis.Size,Indices] = chili_basiscount(Sys,Basis);
+  logmsg(1,'  basis size: %d',Basis.Size);
+  logmsg(1,'    Leven max %d, Lodd max %d, Kmax %d, Mmax %d',...
+    Basis.LLKM(1),Basis.LLKM(2),Basis.LLKM(3),Basis.LLKM(4));
+  logmsg(1,'    deltaL %d, deltaK %d',Basis.deltaL,Basis.deltaK);
+  logmsg(1,'    jKmin %+d, pSmin %+d, symm %d',...
+    Basis.jKmin,Basis.pSmin,Basis.MeirovitchSymm);
+end
 
 % Set up list of orientations
 %=====================================================================
@@ -471,21 +484,27 @@ else
 end
 nOrientations = numel(psi);
 
-% Pick functions for the calculation of Liouvillian and starting vector
+% Preparations
 %-----------------------------------------------------------------------
-switch Sys.nNuclei
-  case 0
-    chili_lm = @chili_lm0;
-    chili_sv = @chili_sv0;
-  case 1
-    chili_lm = @chili_lm1;
-    chili_sv = @chili_sv1;
-  case 2
-    chili_lm = @chili_lm2;
-    chili_sv = @chili_sv2;
-  otherwise
-    error('chili cannot handle %d nuclei.',Sys.nNuclei);
+if ~JerSpin
+  % Pick functions for the calculation of Liouvillian and starting vector
+  switch Sys.nNuclei
+    case 0
+      chili_lm = @chili_lm0;
+      chili_sv = @chili_sv0;
+    case 1
+      chili_lm = @chili_lm1;
+      chili_sv = @chili_sv1;
+    case 2
+      chili_lm = @chili_lm2;
+      chili_sv = @chili_sv2;
+    otherwise
+      error('The chosen method cannot handle %d nuclei.',Sys.nNuclei);
+  end
+else
+  jerspin_preparation;
 end
+
 
 % Loop over all orientations
 %=====================================================================
@@ -501,7 +520,12 @@ for iOri = 1:nOrientations
   % Starting vector
   %-------------------------------------------------------
   logmsg(1,'Computing starting vector(s)...');
-  StartingVector = chili_sv(Sys,Basis,Dynamics,Opt);
+  if JerSpin
+    jerspin_startingvector;
+  else
+    StartingVector = chili_sv(Sys,Basis,Dynamics,Opt);
+  end
+  
   BasisSize = size(StartingVector,1);
   nVectors = size(StartingVector,2);
   logmsg(1,'  vector size: %dx1, number of vectors: %d',BasisSize,nVectors);
@@ -512,36 +536,39 @@ for iOri = 1:nOrientations
   % Liouville matrix
   %-------------------------------------------------------
   logmsg(1,'Computing Liouville matrix...');
-  [r,c,Vals,nDim,nElm] = chili_lm(Sys,Basis.v,Dynamics,Opt.Allocation);
-  idx = 1:nElm;
-  r = r(idx);
-  c = c(idx);
-  Vals = Vals(idx);
-  logmsg(1,'  size: %dx%d',nDim,nDim);
-  if (nDim~=BasisSize)
-    error('Matrix size (%d) inconsistent with basis size (%d). Please report.',nDim,BasisSize);
+  if JerSpin
+    jerspin_liouvillematrix;
+  else
+    [r,c,Vals,nDim,nElm] = chili_lm(Sys,Basis.v,Dynamics,Opt.Allocation);
+    idx = 1:nElm;
+    r = r(idx);
+    c = c(idx);
+    Vals = Vals(idx); % Hz
+    logmsg(1,'  size: %dx%d',nDim,nDim);
+    if (nDim~=BasisSize)
+      error('Matrix size (%d) inconsistent with basis size (%d). Please report.',nDim,BasisSize);
+    end
+    if any(isnan(Vals))
+      error('Liouville matrix contains %d NaN entries!',sum(isnan(Vals)));
+    end
+    
+    omega = omega0; % rad/s
+    if (Opt.Rescale)
+      % rescale my maximum in Hamiltonian superoperator
+      scale = -min(imag(Vals));
+      Vals = Vals/scale;
+      omega = omega/scale;
+    end
+    
+    L = sparse(r+1,c+1,Vals,nDim,nDim);
   end
-  if any(isnan(Vals))
-    error('Liouville matrix contains %d NaN entries!',sum(isnan(Vals)));
-  end
-
-  omega = omega0;
-  if (Opt.Rescale)
-    % rescale my maximum in Hamiltonian superoperator
-    scale = -min(imag(Vals));
-    Vals = Vals/scale;
-    omega = omega/scale;
-  end
-  
-  L = sparse(r+1,c+1,Vals,nDim,nDim);
-
   maxDvalLim = 2e3;
   maxDval = max(abs(real(Vals)));
   logmsg(1,'  maxabs: %g',maxDval);
   if maxDval>maxDvalLim
     error(sprintf('Numerical instability, values in diffusion matrix are too large (%g)!',maxDval));
   end
-
+  
   logmsg(1,'  non-zero elements: %d/%d (%0.2f%%)',nnz(L),length(L).^2,100*nnz(L)/length(L)^2);
 
   
