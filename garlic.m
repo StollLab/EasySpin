@@ -348,7 +348,7 @@ end
 
 % Method for computation of the resonance fields
 if isfield(Options,'PerturbOrder')
-  error('Options.PerturbOrder is obsolete. Use Opt.Method = ''perturb2'' etc instead.');
+  error('Options.PerturbOrder is obsolete. Use Options.Method = ''perturb2'' etc instead.');
 end
 if ~isfield(Options,'Method'), Options.Method = 'exact'; end
 switch Options.Method
@@ -361,6 +361,13 @@ switch Options.Method
   case 'perturb5', PerturbOrder = 5;
   otherwise
     error('Unknown method ''%s''.',Options.Method);
+end
+
+% Method for spectrum construction
+if ~isfield(Options,'AccumMethod')
+  AutoAccumMethod = true;
+else
+  AutoAccumMethod = false;
 end
 
 %-------------------------------------------------------------------------
@@ -589,6 +596,7 @@ if (FastMotionRegime)
   Sys.lw(2) = 0;
   maxLw = max(max(FastMotionLw),Sys.lw(1));
 else
+  LorentzianLw = Sys.lw(2);
   maxLw = max(Sys.lw);
 end
 
@@ -673,36 +681,83 @@ end
 Harmonic2Do = Exp.Harmonic;
 SweepRange = Exp.Range;
 xAxis = linspace(SweepRange(1),SweepRange(2),Exp.nPoints);
-AccumulateLorentzians = FastMotionRegime;
 
-if (AccumulateLorentzians)
-  
-  logmsg(1,'Constructing spectrum with explicit Lorentzian lineshapes...');
-
-  dxFine = min(xAxis(2)-xAxis(1),min(LorentzianLw)/5);
-  nPointsFine = round((SweepRange(2)-SweepRange(1))/dxFine+1);
-  xAxisFine = linspace(SweepRange(1),SweepRange(2),nPointsFine);
-  dxFine = xAxisFine(2) - xAxisFine(1);
-
-  spec = 0;
-  for iLine = 1:numel(Positions)
-    spec = spec + Intensity(iLine)*lorentzian(xAxisFine,Positions(iLine),LorentzianLw(iLine),Harmonic2Do,Exp.mwPhase);
+if AutoAccumMethod
+  if FastMotionRegime
+    Options.AccumMethod = 'explicit';
+  else
+    Options.AccumMethod = 'binning';
   end
-  Exp.mwPhase = 0;
-  Harmonic2Do = 0;
-  
-else
+end
 
-  logmsg(1,'Constructing stick spectrum...'); 
+switch Options.AccumMethod
+  case 'template'
+    % Accumulate spectrum by interpolating from a pre-computed template lineshape
+    
+    logmsg(1,'Constructing spectrum using Lorentzian lineshape template...');
   
-  expandFactor = 1;
-  nPointsFine = (Exp.nPoints-1)*expandFactor + 1;
-  xAxisFine = linspace(SweepRange(1),SweepRange(2),nPointsFine);
-  dxFine = xAxisFine(2) - xAxisFine(1);
-  
-  spec = constructstickspectrum(Positions,Intensity,SweepRange,nPointsFine);
-  spec = spec/dxFine;
-  
+    if (maxLw==0)
+      error('Cannot use templated linshape accumulation with zero linewidth.');
+    end
+    if (Exp.mwPhase~=0)
+      error('Cannot use templated linshape accumulation with non-zero Exp.mwPhase.');
+    end
+    
+    dxFine = min(xAxis(2)-xAxis(1),min(LorentzianLw)/5);
+    nPointsFine = round((SweepRange(2)-SweepRange(1))/dxFine+1);
+    xAxisFine = linspace(SweepRange(1),SweepRange(2),nPointsFine);
+    dxFine = xAxisFine(2) - xAxisFine(1);
+    
+    xT = 1e5;
+    wT = xT/10; % 0.0025 at borders for Harmonic = -1
+    Template = lorentzian(0:2*xT-1,xT,wT,-1);
+    if numel(LorentzianLw)==1
+      LorentzianLw = LorentzianLw*ones(size(Positions));
+    end
+    spec = lisum1i(Template,xT,wT,Positions,Intensity,LorentzianLw,xAxisFine);
+
+  case 'explicit'
+    % Accumulate spectrum by explicit evaluation of lineshape function
+    
+    logmsg(1,'Constructing spectrum with explicit Lorentzian lineshapes...');
+        
+    dxFine = min(xAxis(2)-xAxis(1),min(LorentzianLw)/5);
+    nPointsFine = round((SweepRange(2)-SweepRange(1))/dxFine+1);
+    xAxisFine = linspace(SweepRange(1),SweepRange(2),nPointsFine);
+    dxFine = xAxisFine(2) - xAxisFine(1);
+    
+    spec = 0;
+    if numel(LorentzianLw)==1
+      for iLine = 1:numel(Positions)
+        spec = spec + Intensity(iLine)*lorentzian(xAxisFine,Positions(iLine),LorentzianLw,Harmonic2Do,Exp.mwPhase);
+      end
+    else
+      for iLine = 1:numel(Positions)
+        spec = spec + Intensity(iLine)*lorentzian(xAxisFine,Positions(iLine),LorentzianLw(iLine),Harmonic2Do,Exp.mwPhase);
+      end
+    end
+    Exp.mwPhase = 0;
+    Harmonic2Do = 0;
+    
+  case 'binning'
+    % Accumulate spectrum by binning of deltas
+    
+    logmsg(1,'Constructing stick spectrum using binning...');
+    
+    if FastMotionRegime
+      error('Cannot use delta binning (Options.AccumMethod=''binning'' in the fast-motion regime.');
+    end
+    
+    expandFactor = 1;
+    nPointsFine = (Exp.nPoints-1)*expandFactor + 1;
+    xAxisFine = linspace(SweepRange(1),SweepRange(2),nPointsFine);
+    dxFine = xAxisFine(2) - xAxisFine(1);
+    
+    spec = constructstickspectrum(Positions,Intensity,SweepRange,nPointsFine);
+    spec = spec/dxFine;
+    
+  otherwise
+    error('Unknown method ''%s'' in Opttions.AccumMethod.',Options.AccumMethod);
 end
 
 % (2) Convolutional broadening
