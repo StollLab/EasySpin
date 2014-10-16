@@ -65,7 +65,7 @@ if (nargin<3), Opt = struct('unused',NaN); end
 if ~isfield(Opt,'Verbosity')
   Opt.Verbosity = 0; % Log level
 end
-'Hello World!'
+
 % --------License ------------------------------------------------
 LicErr = 'Could not determine license.';
 Link = 'epr@eth'; eschecker; error(LicErr); clear Link LicErr
@@ -432,14 +432,16 @@ logmsg(2,'  allocation: %d max elements, %d max rows',Opt.Allocation(1),Opt.Allo
 if ~JerSpin
   Sys = processspinsys(Sys,CenterField);
   if ~Opt.IncludeNZI, Sys.NZ0 = 0; Sys.NZ0b = 0; end
-  [Dynamics,err] = processdynamics(Dynamics,FieldSweep);
-  error(err);
+end
+
+[Dynamics,err] = processdynamics(Dynamics,FieldSweep);
+error(err);
+
+Dynamics.xlk = chili_xlk(Dynamics);
+Dynamics.maxL = size(Dynamics.xlk,1)-1;
   
-  Dynamics.xlk = chili_xlk(Dynamics);
-  Dynamics.maxL = size(Dynamics.xlk,1)-1;
-  
+if ~JerSpin
   Basis = processbasis(Sys,Basis,Dynamics);
-else
 end
 
 % Set up horizontal sweep axis
@@ -456,8 +458,8 @@ end
 
 % Set up quantum numbers for basis
 %-------------------------------------------------------
-logmsg(1,'Setting up basis...');
 if ~JerSpin
+  logmsg(1,'Setting up basis...');
   [Basis.Size,Indices] = chili_basiscount(Sys,Basis);
   logmsg(1,'  basis size: %d',Basis.Size);
   logmsg(1,'    Leven max %d, Lodd max %d, Kmax %d, Mmax %d',...
@@ -502,7 +504,9 @@ if ~JerSpin
       error('The chosen method cannot handle %d nuclei.',Sys.nNuclei);
   end
 else
-  jerspin_preparation;
+  Lmax = 2;
+  [jjj0,jjj2] = jjjsymbol(Lmax);
+  [T0,T1,T2,F0,F1,F2] = jsmagint(Sys,Exp);
 end
 
 
@@ -517,13 +521,19 @@ for iOri = 1:nOrientations
   logmsg(2,'orientation %d of %d: psi = %g° (weight %g)',...
     iOri,nOrientations,psi(iOri)*180/pi,GeomWeights(iOri));
 
+  if JerSpin
+    D1 = wignerd(1,[0,Sys.psi,0]);
+    D2 = Sys.d2psi;
+    [Q0,Q1,Q2] = jsrbos(D1,D2,T0,T1,T2,F0,F1,F2);
+  end
+  
   % Starting vector
   %-------------------------------------------------------
   logmsg(1,'Computing starting vector(s)...');
-  if JerSpin
-    jerspin_startingvector;
-  else
+  if ~JerSpin
     StartingVector = chili_sv(Sys,Basis,Dynamics,Opt);
+  else
+    jerspin_startingvector;
   end
   
   BasisSize = size(StartingVector,1);
@@ -537,7 +547,16 @@ for iOri = 1:nOrientations
   %-------------------------------------------------------
   logmsg(1,'Computing Liouville matrix...');
   if JerSpin
-    jerspin_liouvillematrix;
+    [H0,H2] = ksymham(Lmax,Q0,Q2,jjj0,jjj2);
+    SpinHam = H0 + H2;
+    L = 2*pi*SpinHam;
+    omega = omega0; % rad/s
+    if (Opt.Rescale)
+      % rescale my maximum in Hamiltonian superoperator
+      scale = -min(imag(L(:)));
+      L = L/scale;
+      omega = omega/scale;
+    end
   else
     [r,c,Vals,nDim,nElm] = chili_lm(Sys,Basis.v,Dynamics,Opt.Allocation);
     idx = 1:nElm;
