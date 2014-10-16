@@ -884,7 +884,7 @@ if nNucs>0
   if ~isfield(Sys,'AFrame'), Sys.AFrame = zeros(nNucs,3); end
 end
 for iNuc = 1:nNucs
-  [Sys.A0(iNuc), Sys.A2(:,iNuc)] = isto(Sys.A(iNuc,:));
+  [Sys.A0(iNuc), notused, Sys.A2(:,iNuc)] = istocoeff(Sys.A(iNuc,:));
   Sys.A_axial(iNuc) = Sys.A2(1,iNuc)==0;
   Sys.gn0(iNuc) = -sqrt(1/3)*(3*Sys.gn(iNuc));
   R_A2M = wignerd(2,Sys.AFrame(iNuc,:))'; % A tensor frame -> molecular frame transformation
@@ -924,19 +924,52 @@ end
 return
 
 %--------------------------------------------------------------------
-% isto   Computes spherical tensor components of g or A matrix,
-%        given its three principal values x = [gx gy gz] or x = [Ax Ay Az].
-%        F0 is the zero-rank component (one number(, F2 is a 5-vector
-%        with the second-rank components.
-function [F0,F2] = isto(x)
-[T0,T2] = cart2spher_transforms;
-F0 = T0*x(:);
-F2 = T2*x(:);
+% istocoeff   Computes spherical tensor components of an interaction matrix
+%  x:   three principal values, e.g. [gx gy gz] or [Ax Ay Az]
+%       or full 3x3 matrix
+%  F0:  rank-zero component (one number)
+%  F1:  rank-one component (three numbers)
+%  F2:  rank-two component (five numbers)
+function [F0,F1,F2] = istocoeff(x)
+
+if numel(x)==3
+  % List of principal values given
+  
+  [M0,M2] = cart2spher_transforms;
+  F0 = M0*x(:);
+  F1 = zeros(3,1);
+  F2 = M2*x(:);
+
+elseif numel(x)==9
+  
+  % Full 3x3 interaction matrix given
+  x = 1; y = 2; z = 3;
+  
+  % rank 0 (L = 0)
+  F0 = -(1/sqrt(3))*(A(x,x)+A(y,y)+A(z,z)); % M = 0
+  
+  % rank 1 (L = 1)
+  F1 = zeros(3,1);
+  F1(1) = -0.5*(A(z,x) - A(x,z) + 1i*(A(z,y) - A(y,z)));  % M = +1
+  F1(3) = -0.5*(A(z,x) - A(x,z) - 1i*(A(z,y) - A(y,z)));  % M = -1
+  F1(2) = -(1i/sqrt(2))*(A(x,y) - A(y,x));                % M =  0
+  
+  % rank 2 (L = 2)
+  F2 = zeros(5,1);
+  F2(1) =  0.5*((A(x,x) - A(y,y)) + 1i*(A(x,y) + A(y,x)));  % M = +2
+  F2(5) =  0.5*((A(x,x) - A(y,y)) - 1i*(A(x,y) + A(y,x)));  % M = -2
+  F2(2) = -0.5*((A(x,z) + A(z,x)) + 1i*(A(y,z) + A(z,y)));  % M = +1
+  F2(4) = +0.5*((A(x,z) + A(z,x)) - 1i*(A(y,z) + A(z,y)));  % M = -1
+  F2(3) = sqrt(2/3) * (A(z,z)-0.5*(A(x,x) + A(y,y)));       % M =  0
+  
+else
+  error('Provide either the 3 principal values or the full 3x3 matrix as input.');
+end
 return
 
-function [T0,T2] = cart2spher_transforms
-T0 = -sqrt(1/3)*[1 1 1];
-T2 = [1/2 -1/2 0; 0 0 0; sqrt(2/3)*[-1/2 -1/2 1]; 0 0 0; 1/2 -1/2 0];
+function [M0,M2] = cart2spher_transforms
+M0 = -sqrt(1/3)*[1 1 1];
+M2 = [1/2 -1/2 0; 0 0 0; sqrt(2/3)*[-1/2 -1/2 1]; 0 0 0; 1/2 -1/2 0];
 return
 
 %--------------------------------------------------------------------
