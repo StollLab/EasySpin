@@ -65,7 +65,7 @@ if (nargin<3), Opt = struct('unused',NaN); end
 if ~isfield(Opt,'Verbosity')
   Opt.Verbosity = 0; % Log level
 end
-
+'Hello World!'
 % --------License ------------------------------------------------
 LicErr = 'Could not determine license.';
 Link = 'epr@eth'; eschecker; error(LicErr); clear Link LicErr
