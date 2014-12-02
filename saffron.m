@@ -925,7 +925,11 @@ if OrientationPreSelection
   logmsg(1,'  HStrain (MHz): %g %g %g',Sys.HStrain(1),Sys.HStrain(2),Sys.HStrain(3));
   % g values for all orientations
   zLab = ang2vec(Orientations(:,1),Orientations(:,2));
-  geff = diag(Sys.g)*zLab;
+  if Sys.fullg
+    geff = Sys.g*zLab;
+  else
+    geff = diag(Sys.g)*zLab;
+  end
   geff = sqrt(sum(geff.^2,1));
   % resonance frequencies for all orientations
   nu = geff*bmagn*Exp.Field/1e3/planck/1e6; % MHz
