@@ -13,7 +13,7 @@
 %   [k_tilt alpha_pol]
 
 % B0 defines z(Lab) axis, B0 and k define z(Lab)y(Lab) plane, y(Lab) is such
-%  that k points towards positive y(Lab)
+%  that k points into the half-plane with y(Lab)>0
 % k_tilt: angle between B0 and k (wave vector), between 0 and pi
 % alpha_pol: polarization angle: angle of B1 off the x(Lab) axis,
 %   in the plane perpendicular to k; for alpha_pol = 0, B1 is along
@@ -94,10 +94,20 @@ end
 % all vectors are in lab frame coordinates
 nB0 = [0; 0; 1]; % unit vector along B0, in lab coordinates
 
+%{
 % Transformation from (nx,ny,nB0) lab frame to (nB1,*,nk) frame
 R = erot(-pi/2,-k_tilt,alpha_pol);
 nB1 = R(1,:).'; % unit vector along B1, in lab coordinates
 nk = R(3,:).'; % unit vector along wave vector k, in lab coordinates
+%}
 
+sk = sin(k_tilt);
+ck = cos(k_tilt);
+nk = [0; sk; ck]; % unit vector along B1, in lab coordinates
+
+ca = cos(alpha_pol);
+nB1 = [sin(alpha_pol); -ca*ck; ca*sk]; % unit vector along wave vector k, in lab coordinates
+
+% projections of k and B1 unit vectors onto B0 direction
 xi1 = nB1.'*nB0;
 xik = nk.'*nB0;
