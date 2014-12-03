@@ -1,13 +1,9 @@
-function [T0,T1,T2,F0,F1,F2] = magint(System,Experiment)
+function [T0,T1,T2,F0,F1,F2] = magint(System,CenterField)
 
 Sys = System;
-Exp = Experiment;
-
 
 % count the number of interaction terms in the spin Hamiltonian
 % -------------------------------------------------------------------------
-
-
 nElSpins = Sys.nElectrons;
 Sys.I = nucspin(Sys.Nucs);
 nNucSpins = Sys.nNuclei;
@@ -41,7 +37,7 @@ iInteraction = 1;
 if (Sys.fullg == 0)
   g = diag(Sys.g);
 end
-B = {0 0 Exp.Field/1e3}; % mT -> T
+B = {0 0 CenterField/1e3}; % mT -> T
 Spins = [Sys.S Sys.I];
 SpinOps = spinop(Spins);
 
