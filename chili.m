@@ -143,13 +143,16 @@ end
 [Sys,err] = validatespinsys(Sys);
 error(err);
 
-JerSpin = Opt.JerSpin;
-
-if (Sys.nElectrons~=1) || any(Sys.S~=1/2) || (Sys.nNuclei>2)
-  JerSpin = true;
-end
-if Sys.fullg
+if ~isfield(Opt,'JerSpin')
   JerSpin = false;
+  if (Sys.nElectrons~=1) || any(Sys.S~=1/2) || (Sys.nNuclei>2)
+    JerSpin = true;
+  end
+  if Sys.fullg
+    JerSpin = false;
+  end
+else
+  JerSpin = Opt.JerSpin;
 end
 
 mT2MHz = mt2mhz(1,mean(Sys.g));
@@ -433,9 +436,9 @@ logmsg(2,'  allocation: %d max elements, %d max rows',Opt.Allocation(1),Opt.Allo
 % Process
 %-------------------------------------------------------
 if JerSpin
-  'JerSpin'
+  logmsg(1,'  using general Liouvillian code');
 else
-  'EasySpin'
+  logmsg(1,'  using S=1/2 Liouvillian code');
 end
 %if ~JerSpin
   Sys = processspinsys(Sys,CenterField);
@@ -547,7 +550,7 @@ for iOri = 1:nOrientations
   if ~JerSpin
     StartingVector = chili_sv(Sys,Basis,Dynamics,Opt);
   else
-    SpinOps = js_spinop(Sys.S);
+    SpinOps = spinop(Sys.S);
     if numel(Sys.Spins) > 1
       SxOps_ = SpinOps(1:Sys.nElectrons,1);
       SxOps_ = SxOps_{1};
@@ -564,7 +567,7 @@ for iOri = 1:nOrientations
   logmsg(1,'  vector size: %dx1, number of vectors: %d',BasisSize,nVectors);
   logmsg(1,'  non-zero elements: %d/%d (%0.2f%%)',...
     nnz(StartingVector),numel(StartingVector),100*nnz(StartingVector)/BasisSize);
-  logmsg(1,'  maxabs %g, norm %g',max(abs(StartingVector)),norm(StartingVector));
+  logmsg(1,'  maxabs %g, norm %g',full(max(abs(StartingVector))),norm(StartingVector));
 
   % Liouville matrix
   %-------------------------------------------------------
@@ -616,7 +619,7 @@ for iOri = 1:nOrientations
   else
     maxDval = max(abs(imag(Vals)));
   end
-  logmsg(1,'  maxabs: %g',maxDval);
+  logmsg(1,'  maxabs: %g',full(maxDval));
   if maxDval>maxDvalLim
     error(sprintf('Numerical instability, values in diffusion matrix are too large (%g)!',maxDval));
   end
