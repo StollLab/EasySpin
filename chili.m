@@ -53,6 +53,7 @@
 
 function varargout = chili(Sys,Exp,Opt)
 
+
 if (nargin==0), help(mfilename); return; end
 
 error(chkmlver);
@@ -142,12 +143,13 @@ end
 [Sys,err] = validatespinsys(Sys);
 error(err);
 
-JerSpin = false;
+JerSpin = Opt.JerSpin;
+
 if (Sys.nElectrons~=1) || any(Sys.S~=1/2) || (Sys.nNuclei>2)
   JerSpin = true;
 end
 if Sys.fullg
-  JerSpin = true;
+  JerSpin = false;
 end
 
 mT2MHz = mt2mhz(1,mean(Sys.g));
@@ -372,11 +374,12 @@ if numel(Opt.nKnots)<1, Opt.nKnots(1) = 5; end
 if numel(Opt.nKnots)<2, Opt.nKnots(2) = 0; end
 
 % Basis settings
+if ~isfield(Opt,'LLKM')
+  Opt.LLKM = [14 7 6 2];
+end
+Basis.LLKM = Opt.LLKM;
+Basis.LLMK = Opt.LLKM;
 if ~JerSpin
-  if ~isfield(Opt,'LLKM')
-    Opt.LLKM = [14 7 6 2];
-  end
-  Basis.LLKM = Opt.LLKM;
   if ~isfield(Opt,'jKmin')
     Opt.jKmin = [];
   end
@@ -429,10 +432,15 @@ logmsg(2,'  allocation: %d max elements, %d max rows',Opt.Allocation(1),Opt.Allo
 
 % Process
 %-------------------------------------------------------
-if ~JerSpin
+if JerSpin
+  'JerSpin'
+else
+  'EasySpin'
+end
+%if ~JerSpin
   Sys = processspinsys(Sys,CenterField);
   if ~Opt.IncludeNZI, Sys.NZ0 = 0; Sys.NZ0b = 0; end
-end
+%end
 
 [Dynamics,err] = processdynamics(Dynamics,FieldSweep);
 error(err);
@@ -504,9 +512,15 @@ if ~JerSpin
       error('The chosen method cannot handle %d nuclei.',Sys.nNuclei);
   end
 else
-  Lmax = 2;
-  [jjj0,jjj2] = jjjsymbol(Lmax);
-  [T0,T1,T2,F0,F1,F2] = jsmagint(Sys,Exp);
+  Basis.LLMK = Opt.LLKM;
+  %Basis.LLMK = [4 3 4 4];
+  Basis.nSpinStates = Sys.nStates^2;
+  Basis.idx = generatebasis(Basis.LLMK,Basis.nSpinStates);
+
+  [jjj0,jjj1,jjj2] = jjjsymbol(Basis.LLMK);
+  [T0,T1,T2,F0,F1,F2] = magint(Sys,Exp);
+  R_js = eye(3)./(6*Sys.tcorr);
+  Gamma = rdogamma(Basis.idx,R_js,Sys.nStates^2);
 end
 
 
@@ -524,7 +538,7 @@ for iOri = 1:nOrientations
   if JerSpin
     D1 = wignerd(1,[0,Sys.psi,0]);
     D2 = Sys.d2psi;
-    [Q0,Q1,Q2] = jsrbos(D1,D2,T0,T1,T2,F0,F1,F2);
+    [Q0,Q1,Q2] = rbos(D1,D2,T0,T1,T2,F0,F1,F2);
   end
   
   % Starting vector
@@ -533,7 +547,16 @@ for iOri = 1:nOrientations
   if ~JerSpin
     StartingVector = chili_sv(Sys,Basis,Dynamics,Opt);
   else
-    jerspin_startingvector;
+    SpinOps = js_spinop(Sys.S);
+    if numel(Sys.Spins) > 1
+      SxOps_ = SpinOps(1:Sys.nElectrons,1);
+      SxOps_ = SxOps_{1};
+      position = 1;
+      SxOps = expandsops(Sys,SxOps_,position);
+    else
+      SxOps = SpinOps{1};
+    end
+    StartingVector = startvec(Basis.LLMK,SxOps);
   end
   
   BasisSize = size(StartingVector,1);
@@ -546,11 +569,17 @@ for iOri = 1:nOrientations
   % Liouville matrix
   %-------------------------------------------------------
   logmsg(1,'Computing Liouville matrix...');
+
   if JerSpin
-    [H0,H2] = ksymham(Lmax,Q0,Q2,jjj0,jjj2);
+    
+    %[H0,H1,H2] = ksymham(Basis.idx,Q0,Q1,Q2,jjj0,jjj1,jjj2);
+    %[H0,H2] = ksymham02(Basis.idx,Q0,Q2,jjj0,jjj2);
+    [H0,H2] = hamtest(Basis.idx,Q0,Q2,jjj0,jjj2);
+    %SpinHam = H0 + H1 + H2;
     SpinHam = H0 + H2;
-    L = 2*pi*SpinHam;
-    omega = omega0; % rad/s
+    L = -2i*pi*SpinHam + Gamma;
+    omega = 2i*pi*nu;%omega0*1e9; % rad/s
+    nDim = length(L);
     if (Opt.Rescale)
       % rescale my maximum in Hamiltonian superoperator
       scale = -min(imag(L(:)));
@@ -582,7 +611,11 @@ for iOri = 1:nOrientations
     L = sparse(r+1,c+1,Vals,nDim,nDim);
   end
   maxDvalLim = 2e3;
-  maxDval = max(abs(real(Vals)));
+  if JerSpin
+    maxDval = max(abs(imag(L(:))));
+  else
+    maxDval = max(abs(imag(Vals)));
+  end
   logmsg(1,'  maxabs: %g',maxDval);
   if maxDval>maxDvalLim
     error(sprintf('Numerical instability, values in diffusion matrix are too large (%g)!',maxDval));
@@ -884,7 +917,7 @@ if nNucs>0
   if ~isfield(Sys,'AFrame'), Sys.AFrame = zeros(nNucs,3); end
 end
 for iNuc = 1:nNucs
-  [Sys.A0(iNuc), notused, Sys.A2(:,iNuc)] = istocoeff(Sys.A(iNuc,:));
+  [Sys.A0(iNuc), Sys.A2(:,iNuc)] = isto(Sys.A(iNuc,:));
   Sys.A_axial(iNuc) = Sys.A2(1,iNuc)==0;
   Sys.gn0(iNuc) = -sqrt(1/3)*(3*Sys.gn(iNuc));
   R_A2M = wignerd(2,Sys.AFrame(iNuc,:))'; % A tensor frame -> molecular frame transformation
@@ -924,52 +957,19 @@ end
 return
 
 %--------------------------------------------------------------------
-% istocoeff   Computes spherical tensor components of an interaction matrix
-%  x:   three principal values, e.g. [gx gy gz] or [Ax Ay Az]
-%       or full 3x3 matrix
-%  F0:  rank-zero component (one number)
-%  F1:  rank-one component (three numbers)
-%  F2:  rank-two component (five numbers)
-function [F0,F1,F2] = istocoeff(x)
-
-if numel(x)==3
-  % List of principal values given
-  
-  [M0,M2] = cart2spher_transforms;
-  F0 = M0*x(:);
-  F1 = zeros(3,1);
-  F2 = M2*x(:);
-
-elseif numel(x)==9
-  
-  % Full 3x3 interaction matrix given
-  x = 1; y = 2; z = 3;
-  
-  % rank 0 (L = 0)
-  F0 = -(1/sqrt(3))*(A(x,x)+A(y,y)+A(z,z)); % M = 0
-  
-  % rank 1 (L = 1)
-  F1 = zeros(3,1);
-  F1(1) = -0.5*(A(z,x) - A(x,z) + 1i*(A(z,y) - A(y,z)));  % M = +1
-  F1(3) = -0.5*(A(z,x) - A(x,z) - 1i*(A(z,y) - A(y,z)));  % M = -1
-  F1(2) = -(1i/sqrt(2))*(A(x,y) - A(y,x));                % M =  0
-  
-  % rank 2 (L = 2)
-  F2 = zeros(5,1);
-  F2(1) =  0.5*((A(x,x) - A(y,y)) + 1i*(A(x,y) + A(y,x)));  % M = +2
-  F2(5) =  0.5*((A(x,x) - A(y,y)) - 1i*(A(x,y) + A(y,x)));  % M = -2
-  F2(2) = -0.5*((A(x,z) + A(z,x)) + 1i*(A(y,z) + A(z,y)));  % M = +1
-  F2(4) = +0.5*((A(x,z) + A(z,x)) - 1i*(A(y,z) + A(z,y)));  % M = -1
-  F2(3) = sqrt(2/3) * (A(z,z)-0.5*(A(x,x) + A(y,y)));       % M =  0
-  
-else
-  error('Provide either the 3 principal values or the full 3x3 matrix as input.');
-end
+% isto   Computes spherical tensor components of g or A matrix,
+%        given its three principal values x = [gx gy gz] or x = [Ax Ay Az].
+%        F0 is the zero-rank component (one number(, F2 is a 5-vector
+%        with the second-rank components.
+function [F0,F2] = isto(x)
+[T0,T2] = cart2spher_transforms;
+F0 = T0*x(:);
+F2 = T2*x(:);
 return
 
-function [M0,M2] = cart2spher_transforms
-M0 = -sqrt(1/3)*[1 1 1];
-M2 = [1/2 -1/2 0; 0 0 0; sqrt(2/3)*[-1/2 -1/2 1]; 0 0 0; 1/2 -1/2 0];
+function [T0,T2] = cart2spher_transforms
+T0 = -sqrt(1/3)*[1 1 1];
+T2 = [1/2 -1/2 0; 0 0 0; sqrt(2/3)*[-1/2 -1/2 1]; 0 0 0; 1/2 -1/2 0];
 return
 
 %--------------------------------------------------------------------
