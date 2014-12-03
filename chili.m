@@ -577,7 +577,7 @@ for iOri = 1:nOrientations
     
     %[H0,H1,H2] = ksymham(Basis.idx,Q0,Q1,Q2,jjj0,jjj1,jjj2);
     %[H0,H2] = ksymham02(Basis.idx,Q0,Q2,jjj0,jjj2);
-    [H0,H2] = hamtest(Basis.idx,Q0,Q2,jjj0,jjj2);
+    [H0,H2] = liouvhamiltonian(Basis.idx,Q0,Q2,jjj0,jjj2);
     %SpinHam = H0 + H1 + H2;
     SpinHam = H0 + H2;
     L = -2i*pi*SpinHam + Gamma;
