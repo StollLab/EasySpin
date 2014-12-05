@@ -456,16 +456,16 @@ if ~JerSpin
 end
 
 % Set up horizontal sweep axis
+% (nu is used internally, xAxis is used for user output)
 if FieldSweep
-  maxOffset = Sweep/2*mT2MHz*1e6; % Hz
-  nu = linspace(-1,1,Exp.nPoints)*maxOffset;  % Hz
-  omega0 = complex(1/(Dynamics.T2),2*pi*(-nu+Exp.mwFreq*1e9)); % Hz
-  xAxis = nu/1e6/mT2MHz + CenterField;
+  FreqSweep = Sweep*mT2MHz*1e6; % Hz
+  nu = Exp.mwFreq*1e9 - linspace(-1,1,Exp.nPoints)*FreqSweep/2;  % Hz
+  xAxis = linspace(Exp.Range(1),Exp.Range(2),Exp.nPoints);  % field axis, mT
 else
   nu = linspace(Exp.Range(1),Exp.Range(2),Exp.nPoints)*1e9;  % Hz
-  xAxis = nu/1e9; % GHz
-  omega0 = complex(1/(Dynamics.T2),2*pi*nu); % Hz
+  xAxis = nu/1e9; % frequency axis, GHz
 end
+omega0 = complex(1/(Dynamics.T2),2*pi*nu); % Hz
 
 % Set up quantum numbers for basis
 %-------------------------------------------------------
