@@ -1144,10 +1144,11 @@ Parameters = [];
 err = [];
 
 if exist(DSCFileName,'file')
-  allLines = textread(DSCFileName,'%s','whitespace','','delimiter','\n','bufsize',20000);
+  bufferSize = 200000; % needs to be large because of AWGPrg line
+  allLines = textread(DSCFileName,'%s','whitespace','','delimiter','\n','bufsize',bufferSize);
 else
   err = sprintf('Cannot find the file %s.',DSCFileName);
-  return;
+  return
 end
 
 for k=1:numel(allLines)
