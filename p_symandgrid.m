@@ -71,6 +71,15 @@ if (PowderSimulation)
   
 else % no powder simulation
   
+  if numel(Exp.CrystalOrientation)==3
+    if size(Exp.CrystalOrientation,1)==3
+      Exp.CrystalOrientation = Exp.CrystalOrientation.';
+    end
+  elseif numel(Exp.CrystalOrientation)==2
+    if size(Exp.CrystalOrientation,1)==2
+      Exp.CrystalOrientation = Exp.CrystalOrientation.';
+    end
+  end
   nOrientations = size(Exp.CrystalOrientation,1);
 
   openPhi = 1;

@@ -75,6 +75,7 @@ if (~PowderSimulation)
     else
       error('Exp.CrystalOrientation has wrong size.');
     end
+    Exp.CrystalOrientation = COri;
   else
     R_CL = 1;
   end
