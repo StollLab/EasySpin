@@ -86,24 +86,26 @@ yMod = yMod(1:n); % pick out the correct subarray
 
 % Adjust phase.
 yMod = (1i)^Harmonic * yMod;
-yMod = real(yMod);
 
 if isRowVector
   yMod = yMod.';
 end
+
+yModInPhase = real(yMod);
+%yModOutOfPhase = imag(yMod);
 
 if (Display)
   subplot(3,1,1);
   plot(x,y);
   title('Original spectrum');
   subplot(3,1,[2 3]);
-  plot(x,yMod);
+  plot(x,yModInPhase);
   xlabel('magnetic field [mT]');
   title(sprintf('Modulated spectrum, harmonic %d, modulation amplitude %g mT',Harmonic,ModAmpl));
 end
 
 if (nargout==1)
-  varargout = {yMod};
+  varargout = {yModInPhase};
 end
 
 return
