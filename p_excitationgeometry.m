@@ -9,7 +9,6 @@
 % Exp.Mode:
 %   'perpendicular'
 %   'parallel'
-%   [k_tilt]
 %   [k_tilt alpha_pol]
 
 % B0 defines z(Lab) axis, B0 and k define z(Lab)y(Lab) plane, y(Lab) is such
@@ -74,8 +73,6 @@ if ischar(Exp.Mode)
 else
   switch numel(Exp.Mode)
     case 0
-    case 1
-      k_tilt = Exp.Mode(1);
     case 2
       k_tilt = Exp.Mode(1);
       alpha_pol = Exp.Mode(2);
