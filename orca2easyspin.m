@@ -3,7 +3,7 @@
 %  Sys = orca2easyspin(OrcaFileName)
 %  Sys = orca2easyspin(OrcaFileName,HyperfineCutoff)
 %
-%  Loads the magnetic properties from the ORCA output property
+%  Loads the magnetic properties from the binary ORCA property output
 %  file given in OrcaFileName and returns them as an EasySpin spin
 %  system structure Sys.
 %
@@ -18,9 +18,9 @@
 %  is set to zero, and all nuclei with non-zero hyperfine
 %  coupling are included.
 %
-%  Example:
+%  Examples:
 %    Sys = orca2easyspin('nitroxide.prop')
-%    Sys = orca2easyspin('nitroxide.prop',0.4)
+%    Sys = orca2easyspin('nitroxide.prop',0.5)  % 0.5 MHz hf cutoff
 
 function Sys = orca2easyspin(propfilename,HyperfineCutoff)
 
@@ -51,7 +51,7 @@ firstPropertyID = fread(f,1,PropertyIDtype);
 fclose(f);
 
 % quit if property file is empty (4 bytes, all FF)
-if firstPropertyID==terminateID
+if (firstPropertyID==terminateID)
   return
 end
 
@@ -61,6 +61,10 @@ if (firstPropertyID>100)
   % guess was wrong. Try the other one.
   MachineFormat = 'b'; % big-endian
 end
+
+% Whether or not to use least-squares fitting for
+% rotation matrix -> Euler angle conversion using eulang()
+skipFitting = true;
 
 % Read in all EPR-relevant properties
 %--------------------------------------------------------------
@@ -111,7 +115,7 @@ while ~feof(f)
       gpv = data(1:3).';
       R = reshape(data(4:12),3,3);
       %g = R*diag(gpv)*R.';
-      gFrame = eulang(R.');
+      gFrame = eulang(R.',skipFitting);
       
     % D tensor -----------------------------------------
     case {4, 13, 22, 29, 36}
@@ -120,7 +124,7 @@ while ~feof(f)
       Dpv = data(3:5);
       R = reshape(data(6:14),3,3);
       %D = R*diag(Dpv)*R.';
-      DFrame = eulang(R.');
+      DFrame = eulang(R.',skipFitting);
     
     % A matrices ---------------------------------------
     case {6, 15, 24, 31, 38}
@@ -129,9 +133,9 @@ while ~feof(f)
       for iNuc=1:numel(AnucIdx)
         idx = AnucIdx(iNuc);
         Apv(idx,1:3) = data(3:5,iNuc).';
-        R = reshape(data(6:14),3,3).';
+        R = reshape(data(6:14),3,3);
         %A = R*diag(Apv)*R.';
-        AFrame(idx,1:3) = eulang(R).';
+        AFrame(idx,1:3) = eulang(R.',skipFitting).';
       end
     
     % Q tensors ----------------------------------------
@@ -142,12 +146,12 @@ while ~feof(f)
         Qpv(idx,1:3) = data(2:4,iNuc).';
         R = reshape(data(5:13,iNuc),3,3).';
         %Q = R*diag(Qpv)*R.';
-        QFrame(idx,1:3) = eulang(R.');
+        QFrame(idx,1:3) = eulang(R.',skipFitting);
       end
     
     % Spin densities at nuclei -------------------------
     case 9
-      nucIdx = data(1,:);
+      nucIdx = data(1,:) + 1; % ORCA is 0-based, MATLAB is 1-based
       rho0(nucIdx) = data(2,:); % atomic units (a0^-3)
       rho0(nucIdx) = rho0(nucIdx)*(bohrrad/1e-10)^3; % conversion to Angstrom^-3
       
