@@ -52,7 +52,8 @@ for iNuc = 1:length(Nuclei)
     Q = diag(Sys.Q(idx,:));
   end
   if any(Sys.QFrame(idx,:))
-    R_Q2M = erot(Sys.QFrame(idx,:)).'; % Q frame -> mol frame
+    R_M2Q = erot(Sys.QFrame(idx,:)); % mol frame -> Q frame
+    R_Q2M = R_M2Q.'; % Q frame -> mol frame
     Q = R_Q2M*Q*R_Q2M.';
   end
   

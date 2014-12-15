@@ -89,7 +89,8 @@ for iPair = 1:nPairs
   if System.fullee
     J = ee(3*(iCoupling-1)+(1:3),:);
   else
-    R_ee2M = erot(eeFrame(iCoupling,:)).';  % ee frame -> mol frame
+    R_M2ee = erot(eeFrame(iCoupling,:)); % mol frame -> ee frame
+    R_ee2M = R_M2ee.';  % ee frame -> mol frame
     J = R_ee2M*diag(ee(iCoupling,:))*R_ee2M.';
   end
   

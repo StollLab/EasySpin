@@ -52,7 +52,8 @@ for e = 1:length(Electrons)
     D = diag(Sys.D(idx,:));
   end
   if any(D(:))
-    R_D2M = erot(Sys.DFrame(idx,:)).'; % D frame -> molecular frame
+    R_M2D = erot(Sys.DFrame(idx,:)); % mol frame -> D frame
+    R_D2M = R_M2D.'; % D frame -> mol frame
     D = R_D2M*D*R_D2M.';
   end
   if any(D(:))

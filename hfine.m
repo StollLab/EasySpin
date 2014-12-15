@@ -74,7 +74,8 @@ for edx = 1:length(ElSpins)
     else
       A = diag(Sys.A(nSp-nElectrons,idx));
     end
-    R_A2M = erot(Sys.AFrame(nSp-nElectrons,idx)).'; % A frame -> mol frame
+    R_M2A = erot(Sys.AFrame(nSp-nElectrons,idx)); % mol frame -> A frame
+    R_A2M = R_A2M.'; % A frame -> mol frame
     A = R_A2M*A*R_A2M.';
     A = A * Sys.Ascale(ndx);
     % Construct hyperfine Hamiltonian.

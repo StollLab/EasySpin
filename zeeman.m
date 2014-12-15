@@ -92,7 +92,8 @@ for idx = 1:numel(Spins)
       g = diag(elFactor(iSpin,:));
     end
     % Transform g matrix to molecular frame
-    R_g2M = erot(Sys.gFrame(iSpin,:)).'; % g frame -> mol frame
+    R_M2g = erot(Sys.gFrame(iSpin,:)); % mol frame -> g frame
+    R_g2M = R_M2g.'; % g frame -> mol frame
     g = R_g2M*g*R_g2M.';
     % Build EZI Hamiltonian in MHz/mT
     for k = 1:3
