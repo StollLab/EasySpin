@@ -90,9 +90,9 @@ if (LocationType==7), % a directory
 end
 
 % Initialize output arguments
+Abscissa = [];
 Data = [];  
 Parameters = [];
-Abscissa = [];
 
 % General remarks
 %-----------------------------------------------------------
@@ -128,10 +128,26 @@ if ~isempty(Scaling)
   end
 end
 
-
+% Determine file format from file extension
 switch FileExtension
+  case {'.DTA','.DSC','.dsc','.dta'}, FileFormat = 'BrukerBES3T';
+  case {'.PAR','.SPC','.par','.spc'}, FileFormat = 'BrukerESP';
+  case {'.d01','.D01'}, FileFormat = 'SpecMan';
+  case {'.spe','.SPE'}, FileFormat = 'MagnettechBinary';
+  case {'.xml','.XML'}, FileFormat = 'MagnettechXML';
+  case {'.esr','.ESR'}, FileFormat = 'ActiveSpectrum';
+  case {'.dat','.DAT'}, FileFormat = 'Adani';
+  case {'.ECO','.eco'}, FileFormat = 'qese/tryscore';
+  case {'.PLT','.plt'}, FileFormat = 'MAGRES';
+  case {'.SPK','.spk','.ref','.REF'}, FileFormat = 'VarianETH';
+  case {'.D00','.d00'}, FileFormat = 'WeizmannETH';
+  otherwise
+    error('Unsupported file extension %s',FileExtension);
+end
 
-case {'.DTA','.DSC','.dsc','.dta'}
+switch FileFormat
+
+case 'BrukerBES3T'
   %--------------------------------------------------------
   % BES3T file processing
   % (Bruker EPR Standard for Spectrum Storage and Transfer)
@@ -358,7 +374,7 @@ case {'.DTA','.DSC','.dsc','.dta'}
   
   Parameters = parseparams(Parameters);
 
-case {'.PAR','.SPC','.par','.spc'}
+case 'BrukerESP'
   %--------------------------------------------------
   % ESP data file processing
   %   Bruker ECS machines
@@ -630,141 +646,7 @@ case {'.PAR','.SPC','.par','.spc'}
   
   Parameters = parseparams(Parameters);
 
-case {'.ECO','.eco'}
-  %--------------------------------------------------
-  % ECO file processing
-  %   qese     old ETH acquisition software
-  %   tryscore Weizmann HYSCORE simulation program
-  %--------------------------------------------------
-
-  % open file
-  fid = fopen(FileName,'r');
-  if fid<0, error(['Could not open ' FileName]); end
-  
-  % read first line: nx ny Complex
-  Data = sscanf(fgetl(fid),'%i%i%i',3)';
-  
-  % set dimensions and complex flag
-  switch length(Data)
-  case 3, Dims = Data([1 2]); isComplex = Data(3);
-  case 2, Dims = Data; isComplex = 0;
-  case 1, Dims = [Data 1]; isComplex = 0;
-  end
-  
-  % read data
-  Data = fscanf(fid,'%f',prod(Dims)*(isComplex+1));
-  
-  % combine to complex and reshape
-  if isComplex
-    Data = complex(Data(1:2:end),Data(2:2:end));
-  end
-  Data = reshape(Data,Dims);
-  
-  % close file
-  St = fclose(fid);
-  if St<0, error('Unable to close ECO file.'); end
-  
-  if ~isempty(Scaling)
-    error('Scaling does not work for this file type.');
-  end
-  
-  Parameters = [];
-
-case {'.PLT','.plt'}
-  %--------------------------------------------------
-  % PLT file processing
-  %   MAGRES  Nijmegen EPR/ENDOR simulation program
-  %--------------------------------------------------
-  
-  [Line,found] = findtagsMAGRES(FileName,{'DATA'});
-  if found(1), nx = str2double(Line{1}); else nx=0; end
-  if ~nx,
-    error('Unable to determine number of x points in PLT file.');
-  end
-  
-  fid = fopen(FileName,'r');
-  if (fid<0), error(['Could not open ' FileName]); end
-  
-  for k=1:3, fgetl(fid); end
-  
-  % read data
-  ny = 1;
-  [Data,N] = fscanf(fid,'%f',[nx,ny]);
-  if (N<nx*ny),
-    warning('Could not read entire data set from PLT file.');
-  end
-  
-  % close file
-  St = fclose(fid);
-  if St<0, error('Unable to close PLT file.'); end
-  
-  if ~isempty(Scaling)
-    error('Scaling does not work for this file type.');
-  end
-  
-  Parameters = [];
-
-case {'.SPK','.spk','.ref','.REF'}
-  %--------------------------------------------------
-  % SPK, REF file processing
-  %   Varian E9 file format (ETH specific, home-built
-  %   computer acquisition system written in 1991)
-  %--------------------------------------------------
-  fid = fopen(FileName,'r','ieee-le');
-  if fid<0, error('Could not open %s.',FileName); end
-  [RawData,N] = fread(fid,inf,'single');
-  if fclose(fid)<0, error('Unable to close %s.',FileName); end
-  
-  K = [500 1e3 2e3 5e3 1e4];
-  idx = find(N>K);
-  if isempty(idx), error('File too small.'); end
-  
-  Data = RawData(N-K(idx(end))+1:end).';
-  % No idea what the first part of such a file contains...
-  % There is no documentation available...
-  
-  if ~isempty(Scaling)
-    error('Scaling does not work for this file type.');
-  end
-  
-  Parameters = [];
-  
-case {'.D00','.d00'}
-  %----------------------------------------------
-  % d00 file processing
-  %   ESE  Weizmann and ETH acquisition software
-  %----------------------------------------------
-  
-  % Read parameter file
-  % -> not implemented
-  
-  % open the .d00 file and error if unsuccessful
-  h = fopen(FileName);
-  if h<0, error(['Could not open ' FileName]); end
-  
-  % read in first three 16bit integers
-  Dims = fread(h,3,'int16').';
-  %nDims = sum(Dims>1);
-  
-  % read in data, complex
-  Data = fread(h,[2,inf],'double');
-  Data = complex(Data(1,:) ,Data(2,:));
-  
-  % and shape into correct array size
-  Data = reshape(Data,Dims);
-  
-  % close data file
-  St = fclose(h);
-  if St<0, error('Unable to close D00 file.'); end
-  %----------------------------------------------
-
-  if ~isempty(Scaling)
-    error('Scaling does not work for this file type.');
-  end
-  
-  Parameters = [];
-  
-case {'.d01','.D01'}
+case 'SpecMan'
   %----------------------------------------------
   % d01 file processing
   %   SpecMan
@@ -817,7 +699,7 @@ case {'.d01','.D01'}
   
   Parameters = [];
 
-case {'.spe','.SPE'}
+case 'MagnettechBinary'
   %--------------------------------------------------------------------------
   %   Binary file format of older Magnettech spectrometers (MS400 and prior)
   %--------------------------------------------------------------------------
@@ -860,7 +742,7 @@ case {'.spe','.SPE'}
     error('Scaling does not work for Magnettech files.');
   end
   
-case {'.xml','.XML'}
+case 'MagnettechXML'
   %------------------------------------------------------------------
   %   XML file format of newer Magnettech spectrometers (MS5000)
   %------------------------------------------------------------------
@@ -924,7 +806,7 @@ case {'.xml','.XML'}
   Data = Curves.MW_Absorption.data(:);
   Parameters = parseparams(Parameters);
   
-case {'.esr','.ESR'}
+case 'ActiveSpectrum'
   %------------------------------------------------------------------
   %   ESR file format of Active Spectrum spectrometers
   %------------------------------------------------------------------
@@ -950,7 +832,7 @@ case {'.esr','.ESR'}
   Data = data(:,2);
   Parameters = [];
   
-case {'.dat','.DAT'}
+case 'Adani'
   %------------------------------------------------------------------
   %   Text-based file format of Adani spectrometers
   %------------------------------------------------------------------
@@ -979,9 +861,143 @@ case {'.dat','.DAT'}
   Abscissa = data(:,2);
   Data = data(:,3);
 
+case 'qese/tryscore'
+  %--------------------------------------------------
+  % ECO file processing
+  %   qese     old ETH acquisition software
+  %   tryscore Weizmann HYSCORE simulation program
+  %--------------------------------------------------
+
+  % open file
+  fid = fopen(FileName,'r');
+  if fid<0, error(['Could not open ' FileName]); end
+  
+  % read first line: nx ny Complex
+  Data = sscanf(fgetl(fid),'%i%i%i',3)';
+  
+  % set dimensions and complex flag
+  switch length(Data)
+  case 3, Dims = Data([1 2]); isComplex = Data(3);
+  case 2, Dims = Data; isComplex = 0;
+  case 1, Dims = [Data 1]; isComplex = 0;
+  end
+  
+  % read data
+  Data = fscanf(fid,'%f',prod(Dims)*(isComplex+1));
+  
+  % combine to complex and reshape
+  if isComplex
+    Data = complex(Data(1:2:end),Data(2:2:end));
+  end
+  Data = reshape(Data,Dims);
+  
+  % close file
+  St = fclose(fid);
+  if St<0, error('Unable to close ECO file.'); end
+  
+  if ~isempty(Scaling)
+    error('Scaling does not work for this file type.');
+  end
+  
+  Parameters = [];
+
+case 'MAGRES'
+  %--------------------------------------------------
+  % PLT file processing
+  %   MAGRES  Nijmegen EPR/ENDOR simulation program
+  %--------------------------------------------------
+  
+  [Line,found] = findtagsMAGRES(FileName,{'DATA'});
+  if found(1), nx = str2double(Line{1}); else nx=0; end
+  if ~nx,
+    error('Unable to determine number of x points in PLT file.');
+  end
+  
+  fid = fopen(FileName,'r');
+  if (fid<0), error(['Could not open ' FileName]); end
+  
+  for k=1:3, fgetl(fid); end
+  
+  % read data
+  ny = 1;
+  [Data,N] = fscanf(fid,'%f',[nx,ny]);
+  if (N<nx*ny),
+    warning('Could not read entire data set from PLT file.');
+  end
+  
+  % close file
+  St = fclose(fid);
+  if St<0, error('Unable to close PLT file.'); end
+  
+  if ~isempty(Scaling)
+    error('Scaling does not work for this file type.');
+  end
+  
+  Parameters = [];
+
+case 'VarianETH'
+  %--------------------------------------------------
+  % SPK, REF file processing
+  %   Varian E9 file format (ETH specific, home-built
+  %   computer acquisition system written in 1991)
+  %--------------------------------------------------
+  fid = fopen(FileName,'r','ieee-le');
+  if fid<0, error('Could not open %s.',FileName); end
+  [RawData,N] = fread(fid,inf,'single');
+  if fclose(fid)<0, error('Unable to close %s.',FileName); end
+  
+  K = [500 1e3 2e3 5e3 1e4];
+  idx = find(N>K);
+  if isempty(idx), error('File too small.'); end
+  
+  Data = RawData(N-K(idx(end))+1:end).';
+  % No idea what the first part of such a file contains...
+  % There is no documentation available...
+  
+  if ~isempty(Scaling)
+    error('Scaling does not work for this file type.');
+  end
+  
+  Parameters = [];
+  
+case 'WeizmannETH'
+  %----------------------------------------------
+  % d00 file processing
+  %   ESE  Weizmann and ETH acquisition software
+  %----------------------------------------------
+  
+  % Read parameter file
+  % -> not implemented
+  
+  % open the .d00 file and error if unsuccessful
+  h = fopen(FileName);
+  if h<0, error(['Could not open ' FileName]); end
+  
+  % read in first three 16bit integers
+  Dims = fread(h,3,'int16').';
+  %nDims = sum(Dims>1);
+  
+  % read in data, complex
+  Data = fread(h,[2,inf],'double');
+  Data = complex(Data(1,:) ,Data(2,:));
+  
+  % and shape into correct array size
+  Data = reshape(Data,Dims);
+  
+  % close data file
+  St = fclose(h);
+  if St<0, error('Unable to close D00 file.'); end
+  %----------------------------------------------
+
+  if ~isempty(Scaling)
+    error('Scaling does not work for this file type.');
+  end
+  
+  Parameters = [];
+  
 otherwise
   
-  error('Files with extension %s not supported.',FileExtension);
+  error('File format ''%s'' not implemented.',FileFormat);
   
 end
 
