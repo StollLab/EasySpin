@@ -45,7 +45,6 @@ switch model
     % and random phases
     nPoints = numel(y);
     freq = 0:floor(nPoints/2);
-    if size(y,1)>size(y,2), freq = freq(:); end
     Amplitudes = freq.^(-alpha/2);
     Amplitudes(1) = 1;
     Phases = exp(2i*pi*rand(size(Amplitudes)));
@@ -56,6 +55,8 @@ switch model
       d = [FreqDomain conj(FreqDomain(end-1:-1:2))];
     end
     noise = real(ifft(d));
+    isColVec = size(y,1)>size(y,2);
+    if isColVec, noise = noise(:); end
 
   otherwise
     error('Wrong noise model. Use ''n'', ''u'', or ''f''.');
