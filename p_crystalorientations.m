@@ -1,18 +1,23 @@
-% Script that takes care of crystal frame setups for single-crystal simulation
-% and a few related things. Used in resfields*, resfreqs*, endorfrq*.
+% Script that takes care of crystal frame setups for single-crystal
+% simulation and a few related things.
+% Used in resfields*, resfreqs*, endorfrq*, curry
 
 %{
-in:
-  Exp.PowderSimulation:   true/false if coming from pepper/salt/saffron, not defined otherwise
+inputs:
+  Exp.PowderSimulation:   true/false if coming from pepper/salt/saffron/curry, not defined otherwise
   Exp.CrystalOrientation: set by pepper/salt/saffron for powders, by user for cystals
   Exp.CrystalSymmetry
   Exp.MolFrame
 
-out:
-  Orientations
-  nSites
-  AverageOverChi
+outputs:
+  Orientations:    list of orientations Euler angles, one per row
+  nSites:          number of symmetry-related sites
+  AverageOverChi:  whether to compute average over third angle
 %}
+
+if isfield(Exp,'Orientations')
+  error('Exp.Orientations is obsolete. Use Exp.CrystalOrientation instead.');
+end
 
 % Exp.PowderSimulation is set only if this is an internal call via
 % pepper, salt or saffron.
@@ -101,11 +106,14 @@ if (~PowderSimulation)
   end
   nOrientations = nOrientations*nSites;
   
+  AverageOverChi = true;
+
 else
   
   if isfield(Exp,'CrystalOrientation')
-    % Powder simulation: Orientations supplied by pepper in Exp.CrystalOrientations.
-    % CrystalSymmetry and MolFrame are disregarded, since they have no effect on the powder spectrum.
+    % Powder simulation: Orientations supplied by pepper in
+    % Exp.CrystalOrientations, Exp.CrystalSymmetry and Exp.MolFrame
+    % are disregarded, since they have no effect on the powder spectrum.
     nSites = 1;
     Orientations = Exp.CrystalOrientation;
     
@@ -132,10 +140,6 @@ else
     error('Internal error. Please report.');
   end
   
-end
-
-AverageOverChi = PowderSimulation;
-
-if isfield(Exp,'Orientations')
-  error('Exp.Orientations is obsolete. Use Exp.CrystalOrientation instead.');
+  AverageOverChi = true;
+  
 end
