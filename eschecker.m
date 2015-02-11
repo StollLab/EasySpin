@@ -51,32 +51,31 @@ HorizonDate = 999999;
 try
   List = dir(tempdir); % List(1).name should be '.'
   if numel(List(1).name)==1
-    TmpDirDate = datenum(List(1).date);
+    TmpDirDate = fix(List(1).datenum);
   else
-    TmpDirDate = [];
+    TmpDirDate = 0;
   end
 catch
   lasterr('');
-  TmpDirDate = [];
+  TmpDirDate = 0;
 end
-if (TmpDirDate==0), TmpDirDate = []; end
-if (TmpDirDate>=HorizonDate), TmpDirDate = []; end
+if (TmpDirDate>=HorizonDate), TmpDirDate = 0; end
 
 
 % Determine system time
 %--------------------------------------------------------------------
-NowDate = datenum(builtin('clock'));
+NowDate = fix(datenum(builtin('clock')));
 
 
 % Expired or not?
 %--------------------------------------------------------------------
-Expired = (NowDate>ExpiryDate);
-if ~isempty(TmpDirDate)
-  Expired = Expired | any(TmpDirDate>ExpiryDate);
-end
+isExpired1 = NowDate>ExpiryDate;
+isExpired2 = TmpDirDate>ExpiryDate;
 
-if (Expired)
-  err = 'Your EasySpin version has expired. Please visit easyspin.org and update to the latest version.';
+if (isExpired1)
+  err = sprintf('Your EasySpin version has expired (1;%d,%d).\nPlease visit easyspin.org and update to the latest version.',NowDate,ExpiryDate);
+elseif (isExpired2)
+  err = sprintf('Your EasySpin version has expired (2;%d,%d).\nPlease visit easyspin.org and update to the latest version.',TmpDirDate,ExpiryDate);
 else
   DaysToExpiry = fix(ExpiryDate - NowDate);
   if (DaysToExpiry<30)
