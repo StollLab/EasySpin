@@ -645,9 +645,6 @@ for iOri = 1:nOrientations
 
     end
     
-    if any(TransitionRates<0)
-      logmsg(-inf,'*********** Negative transition rate (%d) encountered in resfreqs_matrix!! Please report! **********',TransitionRate);
-    end
     TransitionRates = abs(TransitionRates);
     
     
@@ -857,9 +854,11 @@ if (nTransitions==0)
   return
 end
 
-% Assert positive intensities and widths
-if any(Idat(:)<0),
-  logmsg(-inf,'*********** Negative intensity encountered in resfields!! Please report! **********');
+% Assert positive intensities, but only for thermal equilibrium populations
+if (~ComputeNonEquiPops)
+  if any(TransitionRates<0),
+    logmsg(-inf,'*********** Negative intensity encountered in resfields!! Please report! **********');
+  end
 end
 if any(Wdat(:)<0),
   logmsg(-inf,'*********** Negative width encountered in resfields!! Please report! **************');
