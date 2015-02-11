@@ -673,6 +673,27 @@ end
 %  err = sprintf('Sys.gStrain and Sys.HStrain affect the spectrum in the same way. Use only one of the two.');
 %end
 
+% Diffusion tensor
+%=========================================================================================
+% Euler angles for diffusion tensor
+if isfield(Sys,'Diffpa')
+  err = sizecheck(Sys,'Diffpa',[1 3]);
+  disp('***********************************************************************');
+  disp('**   Sys.Diffpa is obsolete. Please use Sys.DiffFrame instead.       **');
+  disp('**   Here is how to convert:                                         **');
+  disp('**   If you had                                                      **');
+  disp('**      Sys.Diffpa = [10 -20 56]*pi/180                              **');
+  disp('**   then use                                                        **');
+  disp('**      Sys.DiffFrame = [-56 20 -10]*pi/180                          **');
+  disp('**   Change the signs of all three angles, and reverse the order.    **');
+  disp('**   For more help, check the documentation on coordinate frames.    **');
+  disp('***********************************************************************');
+  if ~isempty(err); return; end
+  Sys.DiffFrame = -Sys.Diffpa(:,[3 2 1]);
+end
+
+
+
 %--------------------------------------------------------------------------
 Sys.Spins = [Sys.S(:); Sys.I(:)].';
 Sys.nStates = hsdim(Sys.Spins);
