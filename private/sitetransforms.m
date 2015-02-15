@@ -11,6 +11,8 @@ function out = sitetransforms(ID,vec)
 %         such that vrot = R{k}*vec is the actively rotated vector vec
 %         or an array with vrot for each R{k}, if vec is given
 
+if (nargin==0), help(mfilename); return; end
+
 persistent SpaceGroupNames
 if isempty(SpaceGroupNames)
   EasySpinPath = fileparts(which(mfilename));
@@ -200,10 +202,13 @@ end
 if (nargin==1)
   % Return set of rotation matrices
   out = R;
-else
-  % Apply site transformations to input vector
-  nRotationMatrices = size(R,1);
-  for iR = 1:nRotationMatrices
+elseif (nargin==2)
+  if numel(vec)~=3
+    error('Vector (2nd argument) must have 3 elements.');
+  end
+  % Apply site transformations to input vector and
+  % return an array of transformed vectors
+  for iR = 1:numel(R)
     vecrot(:,iR) = R{iR}*vec(:);
   end
   out = vecrot;
