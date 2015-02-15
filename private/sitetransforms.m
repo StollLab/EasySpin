@@ -2,7 +2,7 @@ function out = sitetransforms(ID,vec)
 % Provides sets of rotation matrices of the rotation point group belonging
 % to the space group given in ID. The rotation matrices are used to transform
 % tensors between different equivalent sites.
-
+%
 % Input:
 %   ID    space group symbol or number, or point group symbol
 %   vec   vector to transform (optional)
@@ -91,22 +91,25 @@ end
 % then the result vrot is the vector rotated around the specified axis by the
 % specified angle.
 
+% EasySpin's crystal frame axes system: xC, yC, zC
+
 % Pre-define the most common rotation matrices
 E = [+1 0 0; 0 +1 0; 0 0 +1]; % identity operation
-C2x = [+1 0 0; 0 -1 0; 0 0 -1]; % C2 around (1,0,0) = x
-C2y = [-1 0 0; 0 +1 0; 0 0 -1]; % C2 around (0,1,0) = y
-C2z = [-1 0 0; 0 -1 0; 0 0 +1]; % C2 around (0,0,1) = z
-C4zp = [0 -1 0; +1 0 0; 0 0 +1]; % C4+ around z
-C4zm = [0 +1 0; -1 0 0; 0 0 +1]; % C4- around z
+C2x = [+1 0 0; 0 -1 0; 0 0 -1]; % C2 around (1,0,0) = xC
+C2y = [-1 0 0; 0 +1 0; 0 0 -1]; % C2 around (0,1,0) = yC
+C2z = [-1 0 0; 0 -1 0; 0 0 +1]; % C2 around (0,0,1) = zC
+C4zp = [0 -1 0; +1 0 0; 0 0 +1]; % C4+ around zC
+C4zm = [0 +1 0; -1 0 0; 0 0 +1]; % C4- around zC
 C2d1 = [0 +1 0; +1 0 0; 0 0 -1]; % C2 around (1,+1,0)
 C2d2 = [0 -1 0; -1 0 0; 0 0 -1]; % C2 around (1,-1,0)
-C3zp = [-1/2 -sqrt(3)/2 0; +sqrt(3)/2 -1/2 0; 0 0 +1]; % C3+ around z
-C3zm = [-1/2 +sqrt(3)/2 0; -sqrt(3)/2 -1/2 0; 0 0 +1]; % C3- around z
+C3zp = [-1/2 -sqrt(3)/2 0; +sqrt(3)/2 -1/2 0; 0 0 +1]; % C3+ around zC
+C3zm = [-1/2 +sqrt(3)/2 0; -sqrt(3)/2 -1/2 0; 0 0 +1]; % C3- around zC
 
 switch LaueClass
   case 1, % C1 (C1, Ci=S2)
     R{1} = E;
   case 2, % C2 (C2, Cs=C1h, C2h)
+    % convention: two-fold axis along zC
     R{1} = E;
     R{2} = C2z;
   case 3, % D2 (D2, C2v, D2h)
@@ -115,11 +118,13 @@ switch LaueClass
     R{3} = C2x;
     R{4} = C2y;
   case 4, % C4 (C4, S4, C4h)
+    % convention: four-fold axis along zC
     R{1} = E;
     R{2} = C2z;
     R{3} = C4zp;
     R{4} = C4zm;
   case 5, % D4 (D4, C4v, D2d, D4h)
+    % convention: four-fold axis along zC
     R{1} = E;
     R{2} = C2z;
     R{3} = C4zp;
@@ -129,10 +134,12 @@ switch LaueClass
     R{7} = C2d1;
     R{8} = C2d2;
   case 6, % C3 (C3, C3i=S6)
+    % convention: three-fold axis along zC
     R{1} = E;
     R{2} = C3zp;
     R{3} = C3zm;
   case 7, % D3 (D3, C3v, D3d)
+    % convention: three-fold axis along zC
     R{1} = E;
     R{2} = C3zp;
     R{3} = C3zm;
@@ -140,6 +147,7 @@ switch LaueClass
     R{5} = [-1/2 +sqrt(3)/2 0; +sqrt(3)/2 +1/2 0; 0 0 -1];  % C2 (1,+sqrt(3),0)
     R{6} = [-1/2 -sqrt(3)/2 0; -sqrt(3)/2 +1/2 0; 0 0 -1];  % C2 (1,-sqrt(3),0)
   case 8, % C6 (C6, C3h, C6h)
+    % convention: six-fold axis along zC
     R{1} = E;
     R{2} = C2z;
     R{3} = C3zp;
@@ -147,6 +155,7 @@ switch LaueClass
     R{5} = [+1/2 -sqrt(3)/2 0; +sqrt(3)/2 +1/2 0; 0 0 +1];  % C6+ z
     R{6} = [+1/2 +sqrt(3)/2 0; -sqrt(3)/2 +1/2 0; 0 0 +1];  % C6- z
   case 9, % D6 (D6, C6v, D3h, D6h)
+    % convention: six-fold axis along zC
     R{1} = E;
     R{2} = C2z;
     R{3} = C3zp;
@@ -160,6 +169,7 @@ switch LaueClass
     R{11}= [+1/2 +sqrt(3)/2 0; +sqrt(3)/2 -1/2 0; 0 0 -1];  % C2 (sqrt(3),+1,0)
     R{12}= [+1/2 -sqrt(3)/2 0; -sqrt(3)/2 -1/2 0; 0 0 -1];  % C2 (sqrt(3),-1,0)
   case 10, % T (T, Th)
+    % convention: two-fold axes along xC, yC and zC
     R{1} = E;
     R{2} = C2z;
     R{3} = C2x;
@@ -173,6 +183,7 @@ switch LaueClass
     R{11}= [0 0 -1; +1 0 0; 0 -1 0];  % C3+ (-1,-1,+1)
     R{12}= [0 +1 0; 0 0 -1; -1 0 0];  % C3- (-1,-1,+1)
   case 11, % O (O, Td, Oh)
+    % convention: four-fold axes along xC, yC and zC
     R{1} = E;
     R{2} = C2z;
     R{3} = C4zp;
@@ -189,10 +200,10 @@ switch LaueClass
     R{14}= [0 -1 0; 0 0 -1; +1 0 0];  % C3- (-1,+1,-1)
     R{15}= [0 0 -1; +1 0 0; 0 -1 0];  % C3+ (-1,-1,+1)
     R{16}= [0 +1 0; 0 0 -1; -1 0 0];  % C3- (-1,-1,+1)
-    R{17}= [+1 0 0; 0 0 -1; 0 +1 0];  % C4+ x
-    R{18}= [+1 0 0; 0 0 +1; 0 -1 0];  % C4- x
-    R{19}= [0 0 +1; 0 +1 0; -1 0 0];  % C4+ y
-    R{20}= [0 0 -1; 0 +1 0; +1 0 0];  % C4- y
+    R{17}= [+1 0 0; 0 0 -1; 0 +1 0];  % C4+ xC
+    R{18}= [+1 0 0; 0 0 +1; 0 -1 0];  % C4- xC
+    R{19}= [0 0 +1; 0 +1 0; -1 0 0];  % C4+ yC
+    R{20}= [0 0 -1; 0 +1 0; +1 0 0];  % C4- yC
     R{21}= [0 0 +1; 0 -1 0; +1 0 0];  % C2 (1,0,+1)
     R{22}= [0 0 -1; 0 -1 0; -1 0 0];  % C2 (1,0,-1)
     R{23}= [-1 0 0; 0 0 +1; 0 +1 0];  % C2 (0,1,+1)
@@ -200,7 +211,7 @@ switch LaueClass
 end
 
 if (nargin==1)
-  % Return set of rotation matrices
+  % Return the set of rotation matrices
   out = R;
 elseif (nargin==2)
   if numel(vec)~=3
