@@ -15,7 +15,8 @@ persistent SpaceGroupNames
 if isempty(SpaceGroupNames)
   EasySpinPath = fileparts(which(mfilename));
   SpaceGroupDataFile = [EasySpinPath filesep 'spacegroups.txt'];
-  SpaceGroupNames = textread(SpaceGroupDataFile,'%s');
+  [SpaceGroupNo,SpaceGroupNames] = ...
+    textread(SpaceGroupDataFile,'%d %s','commentstyle','matlab');
 end
 PointGroupsSchoenflies = {'C1','Ci','C2','Cs','C2h','D2','C2v','D2h',...
   'C4','S4','C4h','D4','C4v','D2d','D4h','C3','C3i','D3','C3v','D3d',...

@@ -1,230 +1,233 @@
-P1
-P-1
-P2
-P21
-C2
-Pm
-Pc
-Cm
-Cc
-P2/m
-P21/m
-C2/m
-P2/c
-P21/c
-C2/c
-P222
-P2221
-P21212
-P212121
-C2221
-C222
-F222
-I222
-I212121
-Pmm2
-Pmc21
-Pcc2
-Pma2
-Pca21
-Pnc2
-Pmn21
-Pba2
-Pna21
-Pnn2
-Cmm2
-Cmc21
-Ccc2
-Amm2
-Aem2
-Ama2
-Aea2
-Fmm2
-Fdd2
-Imm2
-Iba2
-Ima2
-Pmmm
-Pnnn
-Pccm
-Pban
-Pmma
-Pnna
-Pmna
-Pcca
-Pbam
-Pccn
-Pbcm
-Pnnm
-Pmmn
-Pbcn
-Pbca
-Pnma
-Cmcm
-Cmce
-Cmmm
-Cccm
-Cmme
-Ccce
-Fmmm
-Fddd
-Immm
-Ibam
-Ibca
-Imma
-P4
-P41
-P42
-P43
-I4
-I41
-P-4
-I-4
-P4/m
-P42/m
-P4/n
-P42/n
-I4/m
-I41/a
-P422
-P4212
-P4122
-P41212
-P4222
-P42212
-P4322
-P43212
-I422
-I4122
-P4mm
-P4bm
-P42cm
-P42nm
-P4cc
-P4nc
-P42mc
-P42bc
-I4mm
-I4cm
-I41md
-I41cd
-P-42m
-P-42c
-P-421m
-P-421c
-P-4m2
-P-4c2
-P-4b2
-P-4n2
-I-4m2
-I-4c2
-I-42m
-I-42d
-P4/mmm
-P4/mcc
-P4/nbm
-P4/nnc
-P4/mbm
-P4/mnc
-P4/nmm
-P4/ncc
-P42/mmc
-P42/mcm
-P42/nbc
-P42/nnm
-P42/mbc
-P42/mnm
-P42/nmc
-P42/ncm
-I4/mmm
-I4/mcm
-I41/amd
-I41/acd
-P3
-P31
-P32
-R3
-P-3
-R-3
-P312
-P321
-P3112
-P3121
-P3212
-P3221
-R32
-P3m1
-P31m
-P3c1
-P31c
-R3m
-R3c
-P-31m
-P-31c
-P-3m1
-P-3c1
-R-3m
-R-3c
-P6
-P61
-P65
-P62
-P64
-P63
-P-6
-P6/m
-P63/m
-P622
-P6122
-P6522
-P6222
-P6422
-P6322
-P6mm
-P6cc
-P63cm
-P63mc
-P-6m2
-P-6c2
-P-62m
-P-62c
-P6/mmm
-P6/mcc
-P63/mcm
-P63/mmc
-P23
-F23
-I23
-P213
-I213
-Pm-3
-Pn-3
-Fm-3
-Fd-3
-Im-3
-Pa-3
-Ia-3
-P432
-P4232
-F432
-F4132
-I432
-P4332
-P4132
-I4132
-P-43m
-F-43m
-I-43m
-P-43n
-F-43c
-I-43d
-Pm-3m
-Pn-3n
-Pm-3n
-Pn-3m
-Fm-3m
-Fm-3c
-Fd-3m
-Fd-3c
-Im-3m
-Ia-3d
+% List of 230 space groups
+%   1st column: number
+%   2nd column: short Hermann-Maugain symbol (standard setting)
+1 P1
+2 P-1
+3 P2
+4 P21
+5 C2
+6 Pm
+7 Pc
+8 Cm
+9 Cc
+10 P2/m
+11 P21/m
+12 C2/m
+13 P2/c
+14 P21/c
+15 C2/c
+16 P222
+17 P2221
+18 P21212
+19 P212121
+20 C2221
+21 C222
+22 F222
+23 I222
+24 I212121
+25 Pmm2
+26 Pmc21
+27 Pcc2
+28 Pma2
+29 Pca21
+30 Pnc2
+31 Pmn21
+32 Pba2
+33 Pna21
+34 Pnn2
+35 Cmm2
+36 Cmc21
+37 Ccc2
+38 Amm2
+39 Aem2
+40 Ama2
+41 Aea2
+42 Fmm2
+43 Fdd2
+44 Imm2
+45 Iba2
+46 Ima2
+47 Pmmm
+48 Pnnn
+49 Pccm
+50 Pban
+51 Pmma
+52 Pnna
+53 Pmna
+54 Pcca
+55 Pbam
+56 Pccn
+57 Pbcm
+58 Pnnm
+59 Pmmn
+60 Pbcn
+61 Pbca
+62 Pnma
+63 Cmcm
+64 Cmce
+65 Cmmm
+66 Cccm
+67 Cmme
+68 Ccce
+69 Fmmm
+70 Fddd
+71 Immm
+72 Ibam
+73 Ibca
+74 Imma
+75 P4
+76 P41
+77 P42
+78 P43
+79 I4
+80 I41
+81 P-4
+82 I-4
+83 P4/m
+84 P42/m
+85 P4/n
+86 P42/n
+87 I4/m
+88 I41/a
+89 P422
+90 P4212
+91 P4122
+92 P41212
+93 P4222
+94 P42212
+95 P4322
+96 P43212
+97 I422
+98 I4122
+99 P4mm
+100 P4bm
+101 P42cm
+102 P42nm
+103 P4cc
+104 P4nc
+105 P42mc
+106 P42bc
+107 I4mm
+108 I4cm
+109 I41md
+110 I41cd
+111 P-42m
+112 P-42c
+113 P-421m
+114 P-421c
+115 P-4m2
+116 P-4c2
+117 P-4b2
+118 P-4n2
+119 I-4m2
+120 I-4c2
+121 I-42m
+122 I-42d
+123 P4/mmm
+124 P4/mcc
+125 P4/nbm
+126 P4/nnc
+127 P4/mbm
+128 P4/mnc
+129 P4/nmm
+130 P4/ncc
+131 P42/mmc
+132 P42/mcm
+133 P42/nbc
+134 P42/nnm
+135 P42/mbc
+136 P42/mnm
+137 P42/nmc
+138 P42/ncm
+139 I4/mmm
+140 I4/mcm
+141 I41/amd
+142 I41/acd
+143 P3
+144 P31
+145 P32
+146 R3
+147 P-3
+148 R-3
+149 P312
+150 P321
+151 P3112
+152 P3121
+153 P3212
+154 P3221
+155 R32
+156 P3m1
+157 P31m
+158 P3c1
+159 P31c
+160 R3m
+161 R3c
+162 P-31m
+163 P-31c
+164 P-3m1
+165 P-3c1
+166 R-3m
+167 R-3c
+168 P6
+169 P61
+170 P65
+171 P62
+172 P64
+173 P63
+174 P-6
+175 P6/m
+176 P63/m
+177 P622
+178 P6122
+179 P6522
+180 P6222
+181 P6422
+182 P6322
+183 P6mm
+184 P6cc
+185 P63cm
+186 P63mc
+187 P-6m2
+188 P-6c2
+189 P-62m
+190 P-62c
+191 P6/mmm
+192 P6/mcc
+193 P63/mcm
+194 P63/mmc
+195 P23
+196 F23
+197 I23
+198 P213
+199 I213
+200 Pm-3
+201 Pn-3
+202 Fm-3
+203 Fd-3
+204 Im-3
+205 Pa-3
+206 Ia-3
+207 P432
+208 P4232
+209 F432
+210 F4132
+211 I432
+212 P4332
+213 P4132
+214 I4132
+215 P-43m
+216 F-43m
+217 I-43m
+218 P-43n
+219 F-43c
+220 I-43d
+221 Pm-3m
+222 Pn-3n
+223 Pm-3n
+224 Pn-3m
+225 Fm-3m
+226 Fm-3c
+227 Fd-3m
+228 Fd-3c
+229 Im-3m
+230 Ia-3d
