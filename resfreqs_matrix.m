@@ -855,7 +855,7 @@ if (nTransitions==0)
 end
 
 % Assert positive intensities, but only for thermal equilibrium populations
-if (~ComputeNonEquiPops)
+if ComputeIntensities && (~ComputeNonEquiPops)
   if any(TransitionRates<0),
     logmsg(-inf,'*********** Negative intensity encountered in resfields!! Please report! **********');
   end
