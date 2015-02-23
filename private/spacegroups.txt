@@ -1,233 +1,637 @@
-% List of 230 space groups
-%   1st column: number
-%   2nd column: short Hermann-Maugain symbol (standard setting)
-1 P1
-2 P-1
-3 P2
-4 P21
-5 C2
-6 Pm
-7 Pc
-8 Cm
-9 Cc
-10 P2/m
-11 P21/m
-12 C2/m
-13 P2/c
-14 P21/c
-15 C2/c
-16 P222
-17 P2221
-18 P21212
-19 P212121
-20 C2221
-21 C222
-22 F222
-23 I222
-24 I212121
-25 Pmm2
-26 Pmc21
-27 Pcc2
-28 Pma2
-29 Pca21
-30 Pnc2
-31 Pmn21
-32 Pba2
-33 Pna21
-34 Pnn2
-35 Cmm2
-36 Cmc21
-37 Ccc2
-38 Amm2
-39 Aem2
-40 Ama2
-41 Aea2
-42 Fmm2
-43 Fdd2
-44 Imm2
-45 Iba2
-46 Ima2
-47 Pmmm
-48 Pnnn
-49 Pccm
-50 Pban
-51 Pmma
-52 Pnna
-53 Pmna
-54 Pcca
-55 Pbam
-56 Pccn
-57 Pbcm
-58 Pnnm
-59 Pmmn
-60 Pbcn
-61 Pbca
-62 Pnma
-63 Cmcm
-64 Cmce
-65 Cmmm
-66 Cccm
-67 Cmme
-68 Ccce
-69 Fmmm
-70 Fddd
-71 Immm
-72 Ibam
-73 Ibca
-74 Imma
-75 P4
-76 P41
-77 P42
-78 P43
-79 I4
-80 I41
-81 P-4
-82 I-4
-83 P4/m
-84 P42/m
-85 P4/n
-86 P42/n
-87 I4/m
-88 I41/a
-89 P422
-90 P4212
-91 P4122
-92 P41212
-93 P4222
-94 P42212
-95 P4322
-96 P43212
-97 I422
-98 I4122
-99 P4mm
-100 P4bm
-101 P42cm
-102 P42nm
-103 P4cc
-104 P4nc
-105 P42mc
-106 P42bc
-107 I4mm
-108 I4cm
-109 I41md
-110 I41cd
-111 P-42m
-112 P-42c
-113 P-421m
-114 P-421c
-115 P-4m2
-116 P-4c2
-117 P-4b2
-118 P-4n2
-119 I-4m2
-120 I-4c2
-121 I-42m
-122 I-42d
-123 P4/mmm
-124 P4/mcc
-125 P4/nbm
-126 P4/nnc
-127 P4/mbm
-128 P4/mnc
-129 P4/nmm
-130 P4/ncc
-131 P42/mmc
-132 P42/mcm
-133 P42/nbc
-134 P42/nnm
-135 P42/mbc
-136 P42/mnm
-137 P42/nmc
-138 P42/ncm
-139 I4/mmm
-140 I4/mcm
-141 I41/amd
-142 I41/acd
-143 P3
-144 P31
-145 P32
-146 R3
-147 P-3
-148 R-3
-149 P312
-150 P321
-151 P3112
-152 P3121
-153 P3212
-154 P3221
-155 R32
-156 P3m1
-157 P31m
-158 P3c1
-159 P31c
-160 R3m
-161 R3c
-162 P-31m
-163 P-31c
-164 P-3m1
-165 P-3c1
-166 R-3m
-167 R-3c
-168 P6
-169 P61
-170 P65
-171 P62
-172 P64
-173 P63
-174 P-6
-175 P6/m
-176 P63/m
-177 P622
-178 P6122
-179 P6522
-180 P6222
-181 P6422
-182 P6322
-183 P6mm
-184 P6cc
-185 P63cm
-186 P63mc
-187 P-6m2
-188 P-6c2
-189 P-62m
-190 P-62c
-191 P6/mmm
-192 P6/mcc
-193 P63/mcm
-194 P63/mmc
-195 P23
-196 F23
-197 I23
-198 P213
-199 I213
-200 Pm-3
-201 Pn-3
-202 Fm-3
-203 Fd-3
-204 Im-3
-205 Pa-3
-206 Ia-3
-207 P432
-208 P4232
-209 F432
-210 F4132
-211 I432
-212 P4332
-213 P4132
-214 I4132
-215 P-43m
-216 F-43m
-217 I-43m
-218 P-43n
-219 F-43c
-220 I-43d
-221 Pm-3m
-222 Pn-3n
-223 Pm-3n
-224 Pn-3m
-225 Fm-3m
-226 Fm-3c
-227 Fd-3m
-228 Fd-3c
-229 Im-3m
-230 Ia-3d
+% List of space groups
+% List of space groups
+%============================================================
+%   column 1: space group number
+%   column 2: Hermann-Mauguin (H-M) symbol
+%   column 3: unique axis (for monoclinic groups)
+%             cell setting (for orthorhombic groups)
+%             - (for all others)
+%
+% Information on space groups is from
+%   Th. Hahn (ed.)
+%   International Tables for Crystallography, Vol.A: Space Group Symmetry
+%   5th edition 2002, corrected reprint 2005, Springer
+%
+% Compared to this reference, this list includes the following additions and omissions:
+% - For monoclinic groups, short-form H-M symbols are given for all cell choices, not just one for cell choice 1.
+% - For orthorhombic groups, for each H-M symbol only one setting is listed, even if here are more.
+% - For tetragonal groups , only standard cells P and I are supported, not multiple cell C or F.
+% - For trigonal groups, only standard cells P and R are supported, not triple cell H.
+% - For hexagonal groups, only standard cell P is supported, not tripe cell H.
+
+
+%============================================================
+% Triclinic system 
+%============================================================
+% Point group 1 (C1), Laue class -1 (Ci)
+%------------------------------------------------------------
+  1 P1         -
+% Point group -1 (Ci), Laue class -1 (Ci)
+%------------------------------------------------------------
+  2 P-1        -
+
+
+
+%============================================================
+% Monoclinic system
+%============================================================
+% Point group 2 (C2), Laue class 2/m (C2h)
+%------------------------------------------------------------
+  3 P2         b
+  3 P121       b
+  3 P112       c
+  3 P211       a
+  4 P21        b
+  4 P1211      b
+  4 P1121      c
+  4 P2111      a
+  5 C2         b
+  5 A2         b
+  5 I2         b
+  5 C121       b
+  5 A121       b
+  5 I121       b
+  5 A112       c
+  5 B112       c
+  5 I112       c
+  5 B211       a
+  5 C211       a
+  5 I211       a
+% Point group m (Cs), Laue class 2/m (C2h)
+%------------------------------------------------------------
+  6 Pm         b
+  6 P1m1       b
+  6 P11m       c
+  6 Pm11       a
+  7 Pc         b
+  7 Pn         b
+  7 Pa         b
+  7 P1c1       b
+  7 P1n1       b
+  7 P1a1       b
+  7 P11a       c
+  7 P11n       c
+  7 P11b       c
+  7 Pb11       a
+  7 Pn11       a
+  7 Pc11       a
+  8 Cm         b
+  8 Am         b
+  8 Im         b
+  8 C1m1       b
+  8 A1m1       b
+  8 I1m1       b
+  8 A11m       c
+  8 B11m       c
+  8 I11m       c
+  8 Bm11       a
+  8 Cm11       a
+  8 Im11       a
+  9 Cc         b
+  9 An         b
+  9 Ia         b
+  9 C1c1       b
+  9 A1n1       b
+  9 I1a1       b
+  9 A1a1       -b
+  9 C1n1       -b
+  9 I1c1       -b
+  9 A11a       c
+  9 B11n       c
+  9 I11b       c
+  9 B11b       -c
+  9 A11n       -c
+  9 I11a       -c
+  9 Bb11       a
+  9 Cn11       a
+  9 Ic11       a
+  9 Cc11       -a
+  9 Bn11       -a
+  9 Ib11       -a
+% Point group 2/m (C2h), Laue class 2/m (C2h)
+%------------------------------------------------------------
+ 10 P2/m       b
+ 10 P12/m1     b
+ 10 P112/m     c
+ 10 P2/m11     a
+ 11 P21/m      b
+ 11 P121/m1    b
+ 11 P1121/m    c
+ 11 P21/m11    a
+ 12 C2/m       b
+ 12 A2/m       b
+ 12 I2/m       b
+ 12 C12/m1     b
+ 12 A12/m1     b
+ 12 I12/m1     b
+ 12 A112/m     c
+ 12 B112/m     c
+ 12 I112/m     c
+ 12 B2/m11     a
+ 12 C2/m11     a
+ 12 I2/m11     a
+ 13 P2/c       b
+ 13 P2/n       b
+ 13 P2/a       b
+ 13 P12/c1     b
+ 13 P12/n1     b
+ 13 P12/a1     b
+ 13 P112/a     c
+ 13 P112/n     c
+ 13 P112/b     c
+ 13 P2/b11     a
+ 13 P2/n11     a
+ 13 P2/c11     a
+ 14 P21/c      b
+ 14 P21/n      b
+ 14 P21/a      b
+ 14 P121/c1    b
+ 14 P121/n1    b
+ 14 P121/a1    b
+ 14 P1121/a    c
+ 14 P1121/n    c
+ 14 P1121/b    c
+ 14 P21/b11    a
+ 14 P21/n11    a
+ 14 P21/c11    a
+ 15 C2/c       b
+ 15 A2/n       b
+ 15 I2/a       b
+ 15 C12/c1     b
+ 15 A12/n1     b
+ 15 I12/a1     b
+ 15 A12/a1     -b
+ 15 C12/n1     -b
+ 15 I12/c1     -b
+ 15 A112/a     c
+ 15 B112/n     c
+ 15 I112/b     c
+ 15 B112/b     -c
+ 15 A112/n     -c
+ 15 I112/a     -c
+ 15 B2/b11     a
+ 15 C2/n11     a
+ 15 I2/c11     a
+ 15 C2/c11     -a
+ 15 B2/n11     -a
+ 15 I2/b11     -a
+
+
+
+%============================================================
+% Orthorhombic system
+%============================================================
+% Point group 222 (D2), Laue class mmm (D2h)
+%------------------------------------------------------------
+ 16 P222       abc
+ 17 P2221      abc
+ 17 P2122      cab
+ 17 P2212      bca
+ 18 P21212     abc
+ 18 P22121     cab
+ 18 P21221     bca
+ 19 P212121    abc
+ 20 C2221      abc
+ 20 A2122      cab
+ 20 B2212      bca
+ 21 C222       abc
+ 21 A222       cab
+ 21 B222       bca
+ 22 F222       abc
+ 23 I222       abc
+ 24 I212121    abc
+% Point group mm2 (C2v), Laue class mmm (D2h)
+%------------------------------------------------------------
+ 25 Pmm2       abc
+ 25 P2mm       cab
+ 25 Pm2m       bca
+ 26 Pmc21      abc
+ 26 Pcm21      ba-c
+ 26 P21ma      cab
+ 26 P21am      -cba
+ 26 Pb21m      bca
+ 26 Pm21b      a-cb
+ 27 Pcc2       abc
+ 27 P2aa       cab
+ 27 Pb2b       bca
+ 28 Pma2       abc
+ 28 Pbm2       ba-c
+ 28 P2mb       cab
+ 28 P2cm       -cba
+ 28 Pc2m       bca
+ 28 Pm2a       a-cb
+ 29 Pca21      abc
+ 29 Pbc21      ba-c
+ 29 P21ab      cab
+ 29 P21ca      -cba
+ 29 Pc21b      bca
+ 29 Pb21a      a-cb
+ 30 Pnc2       abc
+ 30 Pcn2       ba-c
+ 30 P2na      cab
+ 30 P2an      -cba
+ 30 Pb2n      bca
+ 30 Pn2b      a-cb
+ 31 Pmn21     abc
+ 31 Pnm21     ba-c
+ 31 P21mn     cab
+ 31 P21nm     -cba
+ 31 Pn21m     bca
+ 31 Pm21n     a-cb
+ 32 Pba2      abc
+ 32 P2cb      cab
+ 32 Pc2a      bca
+ 33 Pna21     abc
+ 33 Pbn21     ba-c
+ 33 P21nb     cab
+ 33 P21cn     -cba
+ 33 Pc21n     bca
+ 33 Pn21a     a-cb
+ 34 Pnn2      abc
+ 34 P2nn      cab
+ 34 Pn2n      bca
+ 35 Cmm2      abc
+ 35 A2mm      cab
+ 35 Bm2m      bca
+ 36 Cmc21     abc
+ 36 Ccm21     ba-c
+ 36 A21ma     cab
+ 36 A21am     -cba
+ 36 Bb21m     bca
+ 36 Bm21b     a-cb
+ 37 Ccc2      abc
+ 37 A2aa      cab
+ 37 Bb2b      bca
+ 38 Amm2      abc
+ 38 Bmm2      ba-c
+ 38 B2mm      cab
+ 38 C2mm      -cba
+ 38 Cm2m      bca
+ 38 Am2m      a-cb
+ 39 Aem2      abc
+ 39 Bme2      ba-c
+ 39 B2em      cab
+ 39 C2me      -cba
+ 39 Cm2e      bca
+ 39 Ae2m      a-cb
+ 40 Ama2      abc
+ 40 Bbm2      ba-c
+ 40 B2mb      cab
+ 40 C2cm      -cba
+ 40 Cc2m      bca
+ 40 Am2a      a-cb
+ 41 Aea2      abc
+ 41 Bbe2      ba-c
+ 41 B2eb      cab
+ 41 C2ce      cba
+ 41 Cc2e      -cba
+ 41 Ae2a      a-cb
+ 42 Fmm2      abc
+ 42 F2mm      cab
+ 42 Fm2m      bca
+ 43 Fdd2      abc
+ 43 F2dd      cab
+ 43 Fd2d      bca
+ 44 Imm2      abc
+ 44 I2mm      cab
+ 44 Im2m      bca
+ 45 Iba2      abc
+ 45 I2cb      cab
+ 45 Ic2a      bca
+ 46 Ima2      abc
+ 46 Ibm2      ba-c
+ 46 I2mb      cab
+ 46 I2cm      -cba
+ 46 Ic2m      bca
+ 46 Im2a      a-cb
+% Point group mmm (D2h), Laue class mmm (D2h)
+%------------------------------------------------------------
+ 47 Pmmm      abc
+ 48 Pnnn      abc
+ 49 Pccm      abc
+ 49 Pmaa      cab
+ 49 Pbmb      bca
+ 50 Pban      abc
+ 50 Pncb      cab
+ 50 Pcna      bca
+ 51 Pmma      abc
+ 51 Pmmb      ba-c
+ 51 Pbmm      cab
+ 51 Pcmm      -cba
+ 51 Pmcm      bca
+ 51 Pmam      a-cb
+ 52 Pnna      abc
+ 52 Pnnb      ba-c
+ 52 Pbnn      cab
+ 52 Pcnn      -cba
+ 52 Pncn      bca
+ 52 Pnan      a-cb
+ 53 Pmna      abc
+ 53 Pnmb      ba-c
+ 53 Pbmn      cab
+ 53 Pcnm      -cba
+ 53 Pncm      bca
+ 53 Pman      a-cb
+ 54 Pcca      abc
+ 54 Pccb      ba-c
+ 54 Pbaa      cab
+ 54 Pcaa      -cba
+ 54 Pbcb      bca
+ 54 Pbab      a-cb
+ 55 Pbam      abc
+ 55 Pmcb      cab
+ 55 Pcma      bca
+ 56 Pccn      abc
+ 56 Pnaa      cab
+ 56 Pbnb      bca
+ 57 Pbcm      abc
+ 57 Pcam      ba-c
+ 57 Pmca      cab
+ 57 Pmab      -cba
+ 57 Pbma      bca
+ 57 Pcmb      a-cb
+ 58 Pnnm      abc
+ 58 Pmnn      cab
+ 58 Pnmn      bca
+ 59 Pmmn      abc
+ 59 Pnmm      cab
+ 59 Pmnm      bca
+ 60 Pbcn      abc
+ 60 Pcan      ba-c
+ 60 Pnca      cab
+ 60 Pnab      -cba
+ 60 Pbna      bca
+ 60 Pcnb      a-cb
+ 61 Pbca      abc
+ 61 Pcab      ba-c
+ 62 Pnma      abc
+ 62 Pmnb      ba-c
+ 62 Pbnm      cab
+ 62 Pcmn      -cba
+ 62 Pmcn      bca
+ 62 Pnam      a-cb
+ 63 Cmcm      abc
+ 63 Ccmm      ba-c
+ 63 Amma      cab
+ 63 Amam      -cba
+ 63 Bbmm      bca
+ 63 Bmmb      a-cb
+ 64 Cmce      abc
+ 64 Ccme      ba-c
+ 64 Aema      cab
+ 64 Aeam      -cba
+ 64 Bbem      bca
+ 64 Bmeb      a-cb
+ 65 Cmmm      abc
+ 65 Ammm      cab
+ 65 Bmmm      bca
+ 66 Cccm      abc
+ 66 Amaa      cab
+ 66 Bbmb      bca
+ 67 Cmme      abc
+ 67 Aemm      cab
+ 67 Bmem      bca
+ 68 Ccce      abc
+ 68 Aeaa      cab
+ 68 Bbeb      bca
+ 69 Fmmm      abc
+ 70 Fddd      abc
+ 71 Immm      abc
+ 72 Ibam      abc
+ 72 Imcb      cab
+ 72 Icma      bca
+ 73 Ibca      abc
+ 73 Icab      ba-c
+ 74 Imma      abc
+ 74 Immb      ba-c
+ 74 Ibmm      cab
+ 74 Icmm      -cba
+ 74 Imcm      bca
+ 74 Imam      a-cb
+
+
+%============================================================
+% Tetragonal groups
+%============================================================
+% Point group 4 (C4), Laue class 4/m (C4h)
+%------------------------------------------------------------
+ 75 P4        -
+ 76 P41       -
+ 77 P42       -
+ 78 P43       -
+ 79 I4        -
+ 80 I41       -
+% Point group -4 (S4), Laue class 4/m (C4h)
+%------------------------------------------------------------
+ 81 P-4       -
+ 82 I-4       -
+% Point group 4/m (C4h), Laue class 4/m (C4h)
+%------------------------------------------------------------
+ 83 P4/m      -
+ 84 P42/m     -
+ 85 P4/n      -
+ 86 P42/n     -
+ 87 I4/m      -
+ 88 I41/a     -
+% Point group 422 (D4), Laue class 4/mmm (D4h)
+%------------------------------------------------------------
+ 89 P422      -
+ 90 P4212     -
+ 91 P4122     -
+ 92 P41212    -
+ 93 P4222     -
+ 94 P42212    -
+ 95 P4322     -
+ 96 P43212    -
+ 97 I422      -
+ 98 I4122     -
+% Point group 4mm (C4v), Laue class 4/mmm (D4h)
+%------------------------------------------------------------
+ 99 P4mm      -
+100 P4bm      -
+101 P42cm     -
+102 P42nm     -
+103 P4cc      -
+104 P4nc      -
+105 P42mc     -
+106 P42bc     -
+107 I4mm      -
+108 I4cm      -
+109 I41md     -
+110 I41cd     -
+% Point group -42m (D2d), Laue class 4/mmm (D4h)
+%------------------------------------------------------------
+111 P-42m     -
+112 P-42c     -
+113 P-421m    -
+114 P-421c    -
+115 P-4m2     -
+116 P-4c2     -
+117 P-4b2     -
+118 P-4n2     -
+119 I-4m2     -
+120 I-4c2     -
+121 I-42m     -
+122 I-42d     -
+% Point group 4/mmm (D4h), Laue class 4/mmm (D4h)
+%------------------------------------------------------------
+123 P4/mmm    -
+124 P4/mcc    -
+125 P4/nbm    -
+126 P4/nnc    -
+127 P4/mbm    -
+128 P4/mnc    -
+129 P4/nmm    -
+130 P4/ncc    -
+131 P42/mmc   -
+132 P42/mcm   -
+133 P42/nbc   -
+134 P42/nnm   -
+135 P42/mbc   -
+136 P42/mnm   -
+137 P42/nmc   -
+138 P42/ncm   -
+139 I4/mmm    -
+140 I4/mcm    -
+141 I41/amd   -
+142 I41/acd   -
+
+
+
+%============================================================
+% Trigonal system
+%============================================================
+% Point group 3 (C3), Laue class -3 (C3i)
+%------------------------------------------------------------
+143 P3        -
+144 P31       -
+145 P32       -
+146 R3        -
+% Point group -3 (C3), Laue class -3 (C3i)
+%------------------------------------------------------------
+147 P-3       -
+148 R-3       -
+% Point group 32 (D3), Laue class -3m (D3d)
+%------------------------------------------------------------
+149 P312      -
+150 P321      -
+151 P3112     -
+152 P3121     -
+153 P3212     -
+154 P3221     -
+155 R32       -
+% Point group 3m (C3v), Laue class -3m (D3d)
+%------------------------------------------------------------
+156 P3m1      -
+157 P31m      -
+158 P3c1      -
+159 P31c      -
+160 R3m       -
+161 R3c       -
+% Point group -3m (D3d), Laue class -3m (D3d)
+%------------------------------------------------------------
+162 P-31m     -
+163 P-31c     -
+164 P-3m1     -
+165 P-3c1     -
+166 R-3m      -
+167 R-3c      -
+
+
+
+%============================================================
+% Hexagonal system
+%============================================================
+% Point group 6 (C6), Laue class 6/m (C6h)
+%------------------------------------------------------------
+168 P6        -
+169 P61       -
+170 P65       -
+171 P62       -
+172 P64       -
+173 P63       -
+% Point group -6 (C3h), Laue class 6/m (C6h)
+%------------------------------------------------------------
+174 P-6       -
+% Point group 6/m (C6h), Laue class 6/m (C6h)
+%------------------------------------------------------------
+175 P6/m      -
+176 P63/m     -
+% Point group 622 (D6), Laue class 6/mmm (D6h)
+%------------------------------------------------------------
+177 P622      -
+178 P6122     -
+179 P6522     -
+180 P6222     -
+181 P6422     -
+182 P6322     -
+% Point group 6mm (C6v), Laue class 6/mmm (D6h)
+%------------------------------------------------------------
+183 P6mm      -
+184 P6cc      -
+185 P63cm     -
+186 P63mc     -
+% Point group -62m (D3h), Laue class 6/mmm (D6h)
+%------------------------------------------------------------
+187 P-6m2     -
+188 P-6c2     -
+189 P-62m     -
+190 P-62c     -
+% Point group 6/mmm (D6h), Laue class 6/mmm (D6h)
+%------------------------------------------------------------
+191 P6/mmm    -
+192 P6/mcc    -
+193 P63/mcm   -
+194 P63/mmc   -
+
+
+
+%============================================================
+% Cubic system
+%============================================================
+% Point group 23 (T), Laue class m-3 (Th)
+%------------------------------------------------------------
+195 P23       -
+196 F23       -
+197 I23       -
+198 P213      -
+199 I213      -
+% Point group m-3 (Th), Laue class m-3 (Th)
+%------------------------------------------------------------
+200 Pm-3      -
+201 Pn-3      -
+202 Fm-3      -
+203 Fd-3      -
+204 Im-3      -
+205 Pa-3      -
+206 Ia-3      -
+% Point group 432 (O), Laue class m-3m (Oh)
+%------------------------------------------------------------
+207 P432      -
+208 P4232     -
+209 F432      -
+210 F4132     -
+211 I432      -
+212 P4332     -
+213 P4132     -
+214 I4132     -
+% Point group -43m (Td), Laue class m-3m (Oh)
+%------------------------------------------------------------
+215 P-43m     -
+216 F-43m     -
+217 I-43m     -
+218 P-43n     -
+219 F-43c     -
+220 I-43d     -
+% Point group m-3m (Oh), Laue class m-3m (Oh)
+%------------------------------------------------------------
+221 Pm-3m     -
+222 Pn-3n     -
+223 Pm-3n     -
+224 Pn-3m     -
+225 Fm-3m     -
+226 Fm-3c     -
+227 Fd-3m     -
+228 Fd-3c     -
+229 Im-3m     -
+230 Ia-3d     -
