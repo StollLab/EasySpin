@@ -106,7 +106,7 @@ if (~PowderSimulation)
   end
   nOrientations = nOrientations*nSites;
   
-  AverageOverChi = true;
+  AverageOverChi = false;
 
 else
   
