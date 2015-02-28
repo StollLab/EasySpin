@@ -142,7 +142,17 @@ switch upper(FileExtension)
   case {'.SPK','.REF'}, FileFormat = 'VarianETH';
   case '.D00', FileFormat = 'WeizmannETH';
   otherwise
-    error('Unsupported file extension %s',FileExtension);
+    % Test for JEOL file
+    h = fopen(FileName,'r');
+    if (h<0), error(['Could not open ' FileName]); end
+    processType = fread(h,16,'*char');  % first 16 characters
+    fclose(h);
+    ok = regexp(processType.','^spin|^cAcqu|^endor|^pAcqu|^cidep|^sod|^iso|^ani','once');
+    if ~isempty(ok)
+      FileFormat = 'JEOL';
+    else
+      error('Unsupported file extension %s',FileExtension);
+    end
 end
 
 switch FileFormat
@@ -861,6 +871,265 @@ case 'Adani'
   Abscissa = data(:,2);
   Data = data(:,3);
 
+  
+case 'JEOL'
+  ss = @(s)s(1:find(s==char(0),1)-1);
+  h = fopen(FileName,'r','ieee-le');
+  if (h<0), error('Could not open %s.',FileName); end
+  % Read in HEADER block
+  jeol_header.processType = readcstring(h,16);
+  jeol_endor = strcmp(jeol_header.processType,'endor');
+  jeol_header.filename = readcstring(h,64);
+  fread(h,1,'int32'); % reserved
+  jeol_header.auxNum = fread(h,1,'int32');
+  jeol_header.dataSet = fread(h,1,'int32');
+  jeol_header.dataLength = fread(h,1,'int32');
+  jeol_header.dataKind = readcstring(h,15);
+  jeol_header.dispPart = fread(h,1,'*char');
+  jeol_header.xOffset = fread(h,1,'single');
+  jeol_header.xRange = fread(h,1,'single');
+  jeol_header.xUnit = readcstring(h,16);
+  jeol_header.yMin = fread(h,1,'single');
+  jeol_header.yMax = fread(h,1,'single');
+  jeol_header.yUnit = readcstring(h,16);
+  jeol_header.zPoint = fread(h,1,'single');
+  jeol_header.zUnit = readcstring(h,16);
+  jeol_header.xStart = fread(h,1,'single');
+  jeol_header.xStop = fread(h,1,'single');
+  jeol_header.yStart = fread(h,1,'single');
+  jeol_header.yStop = fread(h,1,'single');
+  jeol_header.zStart = fread(h,1,'single');
+  jeol_header.zStop = fread(h,1,'single');
+  fread(h,88,'*char'); % reserved
+  jeol_header.waveIndex = fread(h,1,'int32');
+  fread(h,28,'*char'); % reserved
+  
+  % Read in GENERAL block
+  fseek(h,hex2dec('1144'),'bof');
+  fread(h,16,'*char'); % reserved
+  jeol_general.system = readcstring(h,32);
+  jeol_general.version = readcstring(h,16);
+  jeol_general.date = readcstring(h,32);
+  jeol_general.title = readcstring(h,128);
+  jeol_general.sample = readcstring(h,128);
+  jeol_general.comment = readcstring(h,128);
+  fread(h,224,'*char'); % reserved
+  jeol_general.previousINFO_filename = readcstring(h,64);
+  jeol_general.previousINFO_dir = readcstring(h,512);
+  fread(h,1,'int32');
+  jeol_general.previousINFO_processType = readcstring(h,16);
+  jeol_general.originalINFO_filename = readcstring(h,64);
+  jeol_general.originalINFO_dir = readcstring(h,512);
+  fread(h,1,'int32');
+  jeol_general.originalINFO_processType = readcstring(h,16);
+  % skip Previous INFO and Original INFO
+  
+  % Read SPECTROMETER block
+  fseek(h,hex2dec('18AC'),'bof');
+  jeol_spectrometer.sType = readcstring(h,12);
+  jeol_spectrometer.SpectrometerFlag = fread(h,1,'int32');
+  jeol_spectrometer.magnet = readcstring(h,16);
+  jeol_spectrometer.water = readcstring(h,16);
+  jeol_spectrometer.magPower = readcstring(h,16);
+  jeol_spectrometer.magCurrent = readcstring(h,16);
+  jeol_spectrometer.centerField = readcstring(h,16);
+  jeol_spectrometer.sweepWidFin = readcstring(h,16);
+  jeol_spectrometer.sweepWidCor = readcstring(h,16);
+  jeol_spectrometer.sweepPulse = readcstring(h,16);
+  jeol_spectrometer.pulseNumber = readcstring(h,16);
+  jeol_spectrometer.sweepFTime = readcstring(h,16);
+  jeol_spectrometer.sweepBTime = readcstring(h,16);
+  jeol_spectrometer.scanTime = readcstring(h,16);
+  jeol_spectrometer.swCont = readcstring(h,16);
+  jeol_spectrometer.sPosition = readcstring(h,16);
+  jeol_spectrometer.ePosition = readcstring(h,16);
+  jeol_spectrometer.pPosition = readcstring(h,16);
+  jeol_spectrometer.cPosition = readcstring(h,16);
+  jeol_spectrometer.lfsBlock = readcstring(h,16);
+  jeol_spectrometer.xPosition = readcstring(h,16);
+  fread(h,112,'*char'); % reserved
+  jeol_spectrometer.modFreq = readcstring(h,16);
+  jeol_spectrometer.modWidFin = readcstring(h,16);
+  jeol_spectrometer.modWinCor = readcstring(h,16);
+  jeol_spectrometer.phase = readcstring(h,16);
+  jeol_spectrometer.Amp1_rcvMode = readcstring(h,16);
+  jeol_spectrometer.Amp1_phasePlus = readcstring(h,16);
+  jeol_spectrometer.Amp1_amplitudeFin = readcstring(h,16);
+  jeol_spectrometer.Amp1_amplitudeCor = readcstring(h,16);
+  jeol_spectrometer.Amp1_timeConstant = readcstring(h,16);
+  jeol_spectrometer.Amp1_zero = readcstring(h,16);
+  jeol_spectrometer.Amp2_rcvMode = readcstring(h,16);
+  jeol_spectrometer.Amp2_phasePlus = readcstring(h,16);
+  jeol_spectrometer.Amp2_amplitudeFin = readcstring(h,16);
+  jeol_spectrometer.Amp2_amplitudeCor = readcstring(h,16);
+  jeol_spectrometer.Amp2_timeConstant = readcstring(h,16);
+  jeol_spectrometer.Amp2_zero = readcstring(h,16);
+  jeol_spectrometer.amplock = readcstring(h,16);
+  jeol_spectrometer.sourceCH2 = readcstring(h,8);
+  fread(h,120,'*char');
+  jeol_spectrometer.uType = readcstring(h,8);
+  jeol_spectrometer.uFreq = readcstring(h,16);
+  jeol_spectrometer.uFreqUnit = readcstring(h,8);
+  jeol_spectrometer.uPower = readcstring(h,16);
+  jeol_spectrometer.uPowerUnit = readcstring(h,8);
+  jeol_spectrometer.uPhase = readcstring(h,16);
+  jeol_spectrometer.uCoupling = readcstring(h,16);
+  jeol_spectrometer.slavePower = readcstring(h,16);
+  jeol_spectrometer.slavePhase = readcstring(h,16);
+  jeol_spectrometer.uRef = readcstring(h,16);
+  jeol_spectrometer.autoTuneMode = readcstring(h,16);
+  jeol_spectrometer.autoTune = readcstring(h,16);
+  jeol_spectrometer.afc = readcstring(h,8);
+  jeol_spectrometer.afcclk = readcstring(h,16);
+  jeol_spectrometer.mod = readcstring(h,8);
+  jeol_spectrometer.gunPower = readcstring(h,8);
+  jeol_spectrometer.ref = readcstring(h,8);
+  jeol_spectrometer.att_30dB = readcstring(h,8);
+  jeol_spectrometer.afcbalance = readcstring(h,8);
+  jeol_spectrometer.uDetM = readcstring(h,8);
+  jeol_spectrometer.uBalM = readcstring(h,8);
+  jeol_spectrometer.afcphase = readcstring(h,8);
+  jeol_spectrometer.uStab = readcstring(h,8);
+  jeol_spectrometer.shflock = readcstring(h,16);
+  jeol_spectrometer.uFreqCal = readcstring(h,16);
+  jeol_spectrometer.uFreqCalUnits = readcstring(h,8);
+  jeol_spectrometer.RotationStepAngle = readcstring(h,10);
+  jeol_spectrometer.RotationAngle = readcstring(h,10);
+  jeol_spectrometer.RotationZero = readcstring(h,10);
+  jeol_spectrometer.motorLow = readcstring(h,40);
+  jeol_spectrometer.motorUp = readcstring(h,40);
+  fread(h,18,'*char');
+  jeol_spectrometer.acqPoint = readcstring(h,8);
+  jeol_spectrometer.dataLength = readcstring(h,8);
+  jeol_spectrometer.acqPulsMode = readcstring(h,8);
+  
+  % ENDOR
+  jeol_spectrometer.enType = readcstring(h,16);
+  jeol_spectrometer.ch1_eLeftFreq = readcstring(h,16);
+  jeol_spectrometer.ch1_eRightFreq = readcstring(h,16);
+  jeol_spectrometer.ch1_eCurrentFreq = readcstring(h,16);
+  jeol_spectrometer.ch1_eFunit = readcstring(h,8);
+  jeol_spectrometer.ch1_ePower = readcstring(h,16);
+  jeol_spectrometer.ch1_eDB = readcstring(h,12);
+  jeol_spectrometer.ch1_ePunit = readcstring(h,8);
+  jeol_spectrometer.ch1_eSweepTime = readcstring(h,12);
+  jeol_spectrometer.ch1_eModWidth = readcstring(h,8);
+  jeol_spectrometer.ch2_eLeftFreq = readcstring(h,16);
+  jeol_spectrometer.ch2_eRightFreq = readcstring(h,16);
+  jeol_spectrometer.ch2_eCurrentFreq = readcstring(h,16);
+  jeol_spectrometer.ch2_eFunit = readcstring(h,8);
+  jeol_spectrometer.ch2_ePower = readcstring(h,16);
+  jeol_spectrometer.ch2_eDB = readcstring(h,12);
+  jeol_spectrometer.ch2_ePunit = readcstring(h,8);
+  jeol_spectrometer.ch2_eSweepTime = readcstring(h,12);
+  jeol_spectrometer.ch2_eModWidth = readcstring(h,8);
+  fread(h,8,'*char');
+  
+  % Temperature controller
+  jeol_spectrometer.vtType = readcstring(h,16);
+  jeol_spectrometer.temperature = readcstring(h,16);
+  jeol_spectrometer.tempStart = readcstring(h,16);
+  jeol_spectrometer.tempEnd = readcstring(h,16);
+  jeol_spectrometer.tempStep = readcstring(h,16);
+  jeol_spectrometer.tempUnit = readcstring(h,8);
+  jeol_spectrometer.tempStatus = readcstring(h,8);
+  jeol_spectrometer.tempError = readcstring(h,16);
+  jeol_spectrometer.readyTime = readcstring(h,16);
+  jeol_spectrometer.okTempRange = readcstring(h,16);
+  jeol_spectrometer.tempControl = readcstring(h,8);
+  jeol_spectrometer.tempLock = readcstring(h,16);
+  jeol_spectrometer.endorLock = readcstring(h,16);
+  jeol_spectrometer.selfCheck = readcstring(h,8);
+  jeol_spectrometer.eCenterFreq = readcstring(h,16);
+  jeol_spectrometer.eSweepFreq = readcstring(h,16);
+  fread(h,48,'*char');
+  
+  jeol_spectrometer.MarkerPos1 = readcstring(h,16);
+  jeol_spectrometer.MarkerPos2 = readcstring(h,16);
+  jeol_spectrometer.controlFA = readcstring(h,16);
+  fread(h,112,'*char');
+
+ % etc.
+  
+  % Read GENERATOR block
+  
+  fseek(h,hex2dec('0205C'),'bof');
+
+  % Read PROCESS PARA block
+  if jeol_endor
+    fseek(h,hex2dec('02510'),'bof'); % ENDOR
+  else
+    fseek(h,hex2dec('021D8'),'bof'); % CW EPR
+  end
+  
+  % Read CALCULATOR block
+  jeol_calc = struct;
+  switch jeol_header.processType
+    case 'yZero' % F1
+      fread(h,160,'*char');
+    case 'xZero' % F2
+      jeol_calc.xzero = fread(h,1,'single');
+    case 'yGain' % F3
+      jeol_calc.gain = fread(h,1,'single');
+    case 'xShift' % F4
+      jeol_calc.shiftvalue = fread(h,1,'single');
+    case 'reverse' % F5
+      jeol_calc.reversevalue = fread(h,1,'single');
+    case 'fill' % F6
+      jeol_calc.fillingValue = fread(h,1,'single');
+      jeol_calc.oriEnd = fread(h,1,'int32');
+      jeol_calc.length = fread(h,1,'int32');
+    case 'window' % F7
+      jeol_calc.parcent = fread(h,4,'single');
+      jeol_calc.xPoint = fread(h,4,'single');
+      jeol_calc.xValue = fread(h,4,'single');
+      jeol_calc.function = readcstring(h,32);
+    case {'exp','log','power'} % F8
+      % no data
+    case {'fft','ifft'} % F9
+      % no data
+    case {'diff','inte'} % F10
+      jeol_calc.inteFlag = fread(h,1,'int32');
+      jeol_calc.order = fread(h,1,'int32');
+      jeol_calc.points = fread(h,1,'single');
+      jeol_calc.pLeft = fread(h,1,'single');
+      jeol_calc.pRight = fread(h,1,'single');
+      jeol_calc.xLeft = fread(h,1,'single');
+      jeol_calc.xRight = fread(h,1,'single');
+      jeol_calc.baseline = fread(h,1,'single');
+    case 'smooth' % F11
+      jeol_calc.ummy = readcstring(h,16);
+    case 'spin' % F12
+      % no data
+    case 'fit' % F13
+      fread(h,90120,'*char');
+    case {'fRtime','tRtime'} % F14
+      fread(h,4264,'*char');
+    case {'add','sub','mul','div'} % F15
+      % no data
+    case 'phase' % F16
+      jeol_calc.theta = fread(h,1,'single');
+      jeol_calc.radian = fread(h,1,'single');
+      jeol_calc.comment = readcstring(h,256);
+      fread(h,544,'*char');
+    case 'mT2MHz' % F17
+      fread(h,4,'*char');
+    case 'hw' % F18
+      fread(h,40,'*char');
+    case 'mem' % F19
+      fread(h,2708,'*char');
+    case 'combine' % F20
+      % missing in JEOL specification
+  end
+  
+  % Read DATA block
+  
+  fclose(h);
+  
+  %jeol_header
+  %jeol_general
+  %jeol_spectrometer
+  
 case 'qese/tryscore'
   %--------------------------------------------------
   % ECO file processing
@@ -1244,3 +1513,11 @@ for iField = 1:numel(Fields)
 end
 
 return
+
+
+%-----------------------------------------------------------------
+function ch = readcstring(ID,numchars)
+% Read C string characters from file ID and convert to Matlab string
+ch = fread(ID,numchars,'*char').';
+ch = ch(1:find(ch==char(0))-1);
+if isempty(ch), ch = ''; end
