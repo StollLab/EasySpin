@@ -873,12 +873,13 @@ case 'Adani'
 
   
 case 'JEOL'
-  ss = @(s)s(1:find(s==char(0),1)-1);
   h = fopen(FileName,'r','ieee-le');
   if (h<0), error('Could not open %s.',FileName); end
-  % Read in HEADER block
+  
+  % [A] Read in HEADER block
   jeol_header.processType = readcstring(h,16);
   jeol_endor = strcmp(jeol_header.processType,'endor');
+  jeol_cw = strcmp(jeol_header.processType,'cAcqu');
   jeol_header.filename = readcstring(h,64);
   fread(h,1,'int32'); % reserved
   jeol_header.auxNum = fread(h,1,'int32');
@@ -903,8 +904,8 @@ case 'JEOL'
   fread(h,88,'*char'); % reserved
   jeol_header.waveIndex = fread(h,1,'int32');
   fread(h,28,'*char'); % reserved
-  
-  % Read in GENERAL block
+  jeol_header
+  % [B] Read in GENERAL block
   fseek(h,hex2dec('1144'),'bof');
   fread(h,16,'*char'); % reserved
   jeol_general.system = readcstring(h,32);
@@ -924,7 +925,7 @@ case 'JEOL'
   jeol_general.originalINFO_processType = readcstring(h,16);
   % skip Previous INFO and Original INFO
   
-  % Read SPECTROMETER block
+  % [C] Read SPECTROMETER block
   fseek(h,hex2dec('18AC'),'bof');
   jeol_spectrometer.sType = readcstring(h,12);
   jeol_spectrometer.SpectrometerFlag = fread(h,1,'int32');
@@ -1051,18 +1052,67 @@ case 'JEOL'
 
  % etc.
   
-  % Read GENERATOR block
-  
+  % [D] Read GENERATOR block
+  jeol_generator = struct;
   fseek(h,hex2dec('0205C'),'bof');
-
-  % Read PROCESS PARA block
-  if jeol_endor
-    fseek(h,hex2dec('02510'),'bof'); % ENDOR
-  else
-    fseek(h,hex2dec('021D8'),'bof'); % CW EPR
+  if ~jeol_endor
+    jeol_generator.date = readcstring(h,32);
+    jeol_generator.accumulation = fread(h,1,'int32');
+    jeol_generator.preAccumulation = fread(h,1,'int32');
+    jeol_generator.delayTime = fread(h,1,'int32');
+    jeol_generator.intervalTime = fread(h,1,'int32');
+    jeol_generator.index = fread(h,1,'int32');
+    jeol_generator.repetition = fread(h,1,'int32');
+    fread(h,4,'int32');
+    jeol_generator.sampleTime = fread(h,1,'int32');
+    fread(h,4,'int32');
+    jeol_generator.accumWave = readcstring(h,8);
+    jeol_generator.baselineMode = readcstring(h,8);
+    jeol_generator.sampleMode = readcstring(h,8);
+    jeol_generator.sigTrig = readcstring(h,8);
+    jeol_generator.refFile = readcstring(h,64);
+    jeol_generator.paraFile = readcstring(h,64);
+    jeol_generator.chMode = readcstring(h,16);
+    fread(h,112,'*char');
+  elseif jeol_endor
+    jeol_generator.date = readcstring(h,32);
+    jeol_generator.accumulation = fread(h,1,'int32');
+    jeol_generator.accumWave = readcstring(h,8);
+    jeol_generator.baselineMode = readcstring(h,8);
+    jeol_generator.chMode = readcstring(h,16);
+    jeol_generator.MagnetPosition = readcstring(h,16);
+    jeol_generator.ch1_eLeftFreq = readcstring(h,16);
+    jeol_generator.ch1_eRightFreq = readcstring(h,16);
+    jeol_generator.ch1_eCurrentFreq = readcstring(h,16);
+    jeol_generator.ch1_eFunit = readcstring(h,8);
+    jeol_generator.ch1_ePower = readcstring(h,16);
+    jeol_generator.ch1_eDB = readcstring(h,12);
+    jeol_generator.ch1_ePunit = readcstring(h,8);
+    jeol_generator.ch1_eSweepTime = readcstring(h,12);
+    jeol_generator.ch1_eModWidth = readcstring(h,16);
+    fread(h,248,'*char');
+    jeol_generator.ch2_eLeftFreq = readcstring(h,16);
+    jeol_generator.ch2_eRightFreq = readcstring(h,16);
+    jeol_generator.ch2_eCurrentFreq = readcstring(h,16);
+    jeol_generator.ch2_eFunit = readcstring(h,8);
+    jeol_generator.ch2_ePower = readcstring(h,16);
+    jeol_generator.ch2_eDB = readcstring(h,12);
+    jeol_generator.ch2_ePunit = readcstring(h,8);
+    jeol_generator.ch2_eSweepTime = readcstring(h,12);
+    jeol_generator.ch2_eModWidth = readcstring(h,16);
+    fread(h,248,'*char');
+    jeol_generator.eCenterFreq = readcstring(h,16);
+    jeol_generator.eSweepFreq =  readcstring(h,16);
+    fread(h,352,'*char');
   end
+  jeol_generator
   
-  % Read CALCULATOR block
+  % [E] Read PROCESS PARA block
+  jeol_processpara = struct;
+  % Skip entire block
+  fseek(h,hex2dec('0344'),'cof');
+  
+  % [F] Read CALCULATOR block
   jeol_calc = struct;
   switch jeol_header.processType
     case 'yZero' % F1
@@ -1121,14 +1171,66 @@ case 'JEOL'
     case 'combine' % F20
       % missing in JEOL specification
   end
+  jeol_calc
   
-  % Read DATA block
+  % [G] Read DATA block
+  if (jeol_header.dataSet==1) && strcmp(jeol_header.dataKind,'real')
+    jeol_data.SEQ_VALUE = fread(h,1,'single');
+    jeol_data.SEQ_ITEM = fread(h,8,'*char');
+    jeol_data.CH1_DATA = fread(h,jeol_header.dataLength,'single');
+    Abscissa = jeol_header.xOffset+linspace(0,jeol_header.xRange,jeol_header.dataLength);
+  elseif (jeol_header.dataSet==1) && strcmp(jeol_header.dataKind,'complex')
+    jeol_data.SEQ_VALUE = fread(h,1,'single');
+    jeol_data.SEQ_ITEM = fread(h,8,'*char');
+    jeol_data.CH1_DATA = fread(h,jeol_header.dataLength,'single');
+    jeol_data.CH2_DATA = fread(h,jeol_header.dataLength,'single');
+    Abscissa = jeol_header.xOffset+linspace(0,jeol_header.xRange,jeol_header.dataLength);
+    plot(Abscissa,jeol_data.CH1_DATA)
+  elseif (jeol_header.auxNum==12) && (jeol_header.dataSet==1) && strcmp(jeol_header.dataKind,'complex')
+    jeol_data.SEQ_VALUE = fread(h,12,'single');
+    jeol_data.SEQ_ITEM = fread(h,96,'*char');
+    jeol_data.CH1_DATA = fread(h,jeol_header.dataLength,'single');
+    jeol_data.CH2_DATA = fread(h,jeol_header.dataLength,'single');
+    Abscissa = jeol_header.xOffset+linspace(0,jeol_header.xRange,jeol_header.dataLength);
+  elseif (jeol_header.auxNum==1) && strcmp(jeol_header.dataKind,'complex')
+    for k=1:jeol_header.dataSet
+      jeol_data.SEQ_VALUE(k,:) = fread(h,1,'single');
+      jeol_data.SEQ_ITEM(k,:) = fread(h,8,'*char').';
+      jeol_data.CH1_DATA(k,:) = fread(h,jeol_header.dataLength,'single');
+      jeol_data.CH2_DATA(k,:) = fread(h,jeol_header.dataLength,'single');
+    end
+  elseif (jeol_header.auxNum==12) && strcmp(jeol_header.dataKind,'complex')
+    for k=1:jeol_header.dataSet
+      jeol_data.SEQ_VALUE(k,:) = fread(h,12,'single');
+      jeol_data.SEQ_ITEM(k,:) = fread(h,96,'*char').';
+      jeol_data.CH1_DATA(k,:) = fread(h,jeol_header.dataLength,'single');
+      jeol_data.CH2_DATA(k,:) = fread(h,jeol_header.dataLength,'single');
+    end
+  end
+  if strcmp(jeol_header.dataKind,'real')
+    Data = jeol_data.CH1_DATA;
+  elseif strcmp(jeol_header.dataKind,'complex')
+    Data = complex(jeol_data.CH1_DATA,jeol_data.CH2_DATA);
+  end
+  jeol_data
   
+  Params.Header = jeol_header;
+  Params.General = jeol_general;
+  Params.Spectrometer = jeol_spectrometer;
+  Params.Generator = jeol_generator;
+  Params.ProcessPara = jeol_processpara;
+  Params.Calculator = jeol_calc;
+  Params.Data = jeol_data;
+    
   fclose(h);
   
   %jeol_header
   %jeol_general
   %jeol_spectrometer
+  %jeol_data
+  %jeol_generator
+  %jeol_data
+  %plot(jeol_data.CH1_DATA.')
   
 case 'qese/tryscore'
   %--------------------------------------------------
