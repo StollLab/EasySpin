@@ -129,18 +129,18 @@ if ~isempty(Scaling)
 end
 
 % Determine file format from file extension
-switch FileExtension
-  case {'.DTA','.DSC','.dsc','.dta'}, FileFormat = 'BrukerBES3T';
-  case {'.PAR','.SPC','.par','.spc'}, FileFormat = 'BrukerESP';
-  case {'.d01','.D01'}, FileFormat = 'SpecMan';
-  case {'.spe','.SPE'}, FileFormat = 'MagnettechBinary';
-  case {'.xml','.XML'}, FileFormat = 'MagnettechXML';
-  case {'.esr','.ESR'}, FileFormat = 'ActiveSpectrum';
-  case {'.dat','.DAT'}, FileFormat = 'Adani';
-  case {'.ECO','.eco'}, FileFormat = 'qese/tryscore';
-  case {'.PLT','.plt'}, FileFormat = 'MAGRES';
-  case {'.SPK','.spk','.ref','.REF'}, FileFormat = 'VarianETH';
-  case {'.D00','.d00'}, FileFormat = 'WeizmannETH';
+switch upper(FileExtension)
+  case {'.DTA','.DSC'}, FileFormat = 'BrukerBES3T';
+  case {'.PAR','.SPC'}, FileFormat = 'BrukerESP';
+  case '.D01', FileFormat = 'SpecMan';
+  case '.SPE', FileFormat = 'MagnettechBinary';
+  case '.XML', FileFormat = 'MagnettechXML';
+  case '.ESR', FileFormat = 'ActiveSpectrum';
+  case '.DAT', FileFormat = 'Adani';
+  case '.ECO', FileFormat = 'qese/tryscore';
+  case '.PLT', FileFormat = 'MAGRES';
+  case {'.SPK','.REF'}, FileFormat = 'VarianETH';
+  case '.D00', FileFormat = 'WeizmannETH';
   otherwise
     error('Unsupported file extension %s',FileExtension);
 end
@@ -1012,6 +1012,7 @@ switch (nargout)
   case 4
     varargout = {Abscissa, Data, Parameters, FileName};
   case 0
+    if isempty(Data), return; end
     if ~iscell(Data), Data = {Data}; end
     nDataSets = numel(Data);
     for k = 1:nDataSets
