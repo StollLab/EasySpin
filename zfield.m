@@ -36,30 +36,28 @@ end
 H = sparse(Sys.nStates,Sys.nStates);
 spvc = Sys.Spins;
 
-for e = 1:length(Electrons)
+for iSpin = Electrons
   
-  idx = Electrons(e);
-
   % S or I < 1 -> no internal interactions possible -> go to next spin
-  if spvc(idx)<1, continue; end
+  if spvc(iSpin)<1, continue; end
   
   % Quadratic term S*D*S
   %----------------------------------------------------------
   % Prepare full D matrix
   if Sys.fullD
-    D = Sys.D(3*(idx-1)+(1:3),:);
+    D = Sys.D(3*(iSpin-1)+(1:3),:);
   else
-    D = diag(Sys.D(idx,:));
+    D = diag(Sys.D(iSpin,:));
   end
   if any(D(:))
-    R_M2D = erot(Sys.DFrame(idx,:)); % mol frame -> D frame
+    R_M2D = erot(Sys.DFrame(iSpin,:)); % mol frame -> D frame
     R_D2M = R_M2D.'; % D frame -> mol frame
     D = R_D2M*D*R_D2M.';
   end
   if any(D(:))
     % Construct spin operator matrices
     for c = 3:-1:1
-      so{c} = sop(spvc,idx,c,'sparse');
+      so{c} = sop(spvc,iSpin,c,'sparse');
     end
     % Construct SDS term
     for c1 = 1:3
@@ -79,7 +77,7 @@ for e = 1:length(Electrons)
 
   if isfield(Sys,'aF') && any(Sys.aF(:))
     % work only for first electron spin
-    if (idx~=1)
+    if (iSpin~=1)
       continue;
     end
     % not available if D frame is tilted (would necessitate rotation
@@ -121,7 +119,7 @@ for e = 1:length(Electrons)
   % B1, B2, B3, ... (k = 1...12)
   
   % If D and aF are used, skip corresponding Stevens operator terms
-  D_present = any(Sys.D(idx,:));
+  D_present = any(Sys.D(iSpin,:));
   aF_present = any(Sys.aF(:));
 
   % Issue error when obsolete pre-4.5.2 syntax is used
@@ -134,8 +132,8 @@ for e = 1:length(Electrons)
     end
   end
   
-  % Run over all Bk (B1, B2, B3, B4, ...)
-  for k = 0:12
+  % Run over all ranks k (Bk = B1, B2, B3, B4, ...)
+  for k = 1:12
     fieldname = sprintf('B%d',k);
     
     if ~isfield(Sys,fieldname), continue; end
@@ -144,14 +142,19 @@ for e = 1:length(Electrons)
     if aF_present && (k==4), continue; end
     
     Bk = Sys.(fieldname);
+    if isempty(Bk), continue; end
+    
+    if numel(Bk)~=Sys.nElectrons && numel(Bk)~=(2*k+1)*Sys.nElectrons
+      error('Sys.%s has wrong size. It should contain 1 or %d elements',fieldname,2*k+1);
+    end
     if all(Bk==0), continue; end
     
-    for q = k:-1:-k
-      if Bk(e,k+1-q)==0, continue; end
-      H = H + Bk(e,k+1-q)*stev(spvc,k,q,idx);
+    q = k:-1:-k;
+    for iq = find(Bk(iSpin,:)~=0)
+      H = H + Bk(iSpin,iq)*stev(spvc,k,q(iq),iSpin);
     end
     
-  end
+  end % for all tensor ranks
 
 end % for all spins specified
 
