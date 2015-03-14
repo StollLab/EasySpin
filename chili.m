@@ -27,7 +27,6 @@
 %     Sys.lambda          ordering potential coefficients
 %                         [lambda20 lambda22 lambda40 lambda42 lambda44]
 %     Sys.Exchange        Heisenberg exchange frequency (MHz)
-%     Sys.psi             "director tilt" orientation
 %
 %     Exp.mwFreq          spectrometer frequency, in GHz
 %     Exp.CenterSweep     [centerField sweepWidth], in mT
@@ -39,10 +38,12 @@
 %
 %     Exp.nPoints         number of points (default 1024)
 %     Exp.Harmonic        detection harmonic: 0, 1, 2 (default 1)
+%     Exp.CrystalOrientation crystal orientation in lab, for a single-crystal simulation
 %
 %     Opt.LLKM            basis size: [evenLmax oddLmax Kmax Mmax]
 %     Opt.Verbosity       0: no display, 1: show info
 %     Opt.nKnots          number of knots for powder simulation
+%     Opt.Symmetry        symmetry to use for powder simulation
 %
 %   Output:
 %     B      magnetic field axis vector, in mT
@@ -175,7 +176,10 @@ if isfield(Sys,'lwpp'), Dynamics.lwpp = Sys.lwpp; end
 if isfield(Sys,'lw'), Dynamics.lw = Sys.lw; end
 if isfield(Sys,'lambda'), Dynamics.lambda = Sys.lambda; end
 if isfield(Sys,'Exchange'), Dynamics.Exchange = Sys.Exchange; end
-if ~isfield(Sys,'psi'), Sys.psi = 0; end
+
+if isfield(Sys,'psi')
+  error('Sys.psi is obsolete. Remove it from your code. See the documentation for details.');
+end
 
 
 % Experimental settings
@@ -328,7 +332,7 @@ if isfield(Exp,'Orientations')
   warning('Exp.Orientations is not used by chili.');
 end
 if isfield(Exp,'Ordering')
-  warning('Exp.Ordering is not used by chili. Use Sys.lambda instead.');
+  warning('Exp.Ordering is not used by chili.');
 end
 if isfield(Exp,'CrystalSymmetry')
   warning('Exp.CrystalSymmetry is not used by chili.');
@@ -344,7 +348,9 @@ if ~isfield(Opt,'Diagnostic'), Opt.Diagnostic = 0; end
 if ~isfield(Opt,'Solver'), Opt.Solver = 'L'; end
 if ~isfield(Opt,'Lentz'), Opt.Lentz = 1; end
 if ~isfield(Opt,'IncludeNZI'), Opt.IncludeNZI = 1; end
+if ~isfield(Opt,'Symmetry'), Opt.Symmetry = 'Dinfh'; end
 if ~isfield(Opt,'Output'), Opt.Output = 'summed'; end
+if ~isfield(Opt,'SymmFrame'), Opt.SymmFrame = []; end
 switch Opt.Output
   case 'summed', Opt.SeparateTransitions = 0;
   case 'separate', Opt.SeparateTransitions = 1;
@@ -354,7 +360,7 @@ end
 % Obsolete options
 % Opt.MOMD was used prior to 5.0 for powder simulations (in the presence of ordering potential)
 if isfield(Opt,'MOMD')
-  error('Opt.MOMD is obsolete. Remove it from your code. See the documentation for details.');
+  error('Opt.MOMD is obsolete. Remove it from your code. Now, a powder simulation is automatically performed whenever an ordering potential is given.');
 end
 
 % Powder simulation
@@ -467,6 +473,37 @@ else
 end
 omega0 = complex(1/(Dynamics.T2),2*pi*nu); % Hz
 
+% Set up list of orientations
+%=====================================================================
+if (PowderSimulation)
+  if Opt.nKnots(1)==1
+    phi = 0;
+    theta = 0;
+    GeomWeights = 4*pi;
+  else
+    [Vecs,GeomWeights] = sphgrid(Opt.Symmetry,Opt.nKnots(1),'cf');
+    % Transform vector to reference frame representation and convert to polar angles.
+    if isempty(Opt.SymmFrame)
+      [phi,theta] = vec2ang(Vecs);
+    else
+      [phi,theta] = vec2ang(Opt.SymmFrame*Vecs);
+    end
+  end
+  logmsg(1,'  powder simulation with %d orientations',numel(phi));
+else
+  if isfield(Exp,'CrystalOrientation')
+    phi = Exp.CrystalOrientation(1);
+    theta = Exp.CrsytalOrientation(2);
+  else
+    phi = 0;
+    theta = 0;
+  end
+  GeomWeights = 4*pi;
+  logmsg(2,'  single-orientation simulation');
+end
+nOrientations = numel(phi);
+Sys.DirTilt = any(theta~=0);
+
 % Set up quantum numbers for basis
 %-------------------------------------------------------
 if ~JerSpin
@@ -479,23 +516,6 @@ if ~JerSpin
   logmsg(1,'    jKmin %+d, pSmin %+d, symm %d',...
     Basis.jKmin,Basis.pSmin,Basis.MeirovitchSymm);
 end
-
-% Set up list of orientations
-%=====================================================================
-if (PowderSimulation)
-  if Opt.nKnots(1)==1
-    psi = 0;
-    GeomWeights = 4*pi;
-  else
-    [dummy,psi,GeomWeights] = sphgrid('Dinfh',Opt.nKnots(1));
-  end
-  logmsg(1,'  powder simulation with %d orientations',numel(psi));
-else
-  psi = Sys.psi;
-  GeomWeights = 4*pi;
-  logmsg(2,'  single-orientation simulation');
-end
-nOrientations = numel(psi);
 
 % Preparations
 %-----------------------------------------------------------------------
@@ -533,13 +553,13 @@ for iOri = 1:nOrientations
   
   % Director tilt
   %-------------------------------------------------------
-  Sys.psi = psi(iOri);
-  Sys.d2psi = wignerd(2,[0 Sys.psi 0]);
-  logmsg(2,'orientation %d of %d: psi = %g° (weight %g)',...
-    iOri,nOrientations,psi(iOri)*180/pi,GeomWeights(iOri));
+  %Sys.psi = psi(iOri);
+  Sys.d2psi = wignerd(2,[phi(iOri) theta(iOri) 0]);
+  logmsg(2,'orientation %d of %d: phi = %g°, theta = %g° (weight %g)',...
+    iOri,nOrientations,phi(iOri)*180/pi,theta(iOri)*180/pi,GeomWeights(iOri));
 
   if JerSpin
-    D1 = wignerd(1,[0,Sys.psi,0]);
+    D1 = wignerd(1,[phi,theta,0]);
     D2 = Sys.d2psi;
     [Q0,Q1,Q2] = rbos(D1,D2,T0,T1,T2,F0,F1,F2);
   end

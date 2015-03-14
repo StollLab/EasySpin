@@ -1,4 +1,4 @@
-function v = chili_startingvector1(Sys,Basis,Diffusion,Options)
+function v = chili_sv1(Sys,Basis,Diffusion,Options)
 
 if nargin<4, Options = struct('ununsed',NaN); end
 
@@ -25,7 +25,7 @@ MeirovitchSymm = Basis.MeirovitchSymm;
 I = Sys.I;
 nNuclei = numel(I);
 
-DirTilt = (Sys.psi~=0);
+DirTilt = Sys.DirTilt;
 
 Potential = any(Diffusion.lambda);
 if (Potential)

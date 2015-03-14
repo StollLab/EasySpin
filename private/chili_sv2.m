@@ -1,4 +1,4 @@
-function v = chili_startingvector2(Sys,Basis,Diffusion,Options)
+function v = chili_sv2(Sys,Basis,Diffusion,Options)
 
 if nargin<4, Options = struct('ununsed',NaN); end
 
@@ -31,7 +31,7 @@ end
 I1 = I(1);
 I2 = I(2);
 
-DirTilt = (Sys.psi~=0);
+DirTilt = Sys.DirTilt;
 
 Potential = any(Diffusion.lambda);
 if (Potential)

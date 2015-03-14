@@ -28,7 +28,7 @@ int MeirovitchSymm;
 struct SystemStruct {
   double EZI0, *ReEZI2, *ImEZI2;
   double *d2psi;
-  double psi;
+  double DirTilt;
 };
 
 struct DiffusionStruct {
@@ -54,7 +54,7 @@ const double *ImEZI2 = Sys.ImEZI2;
 
 /* Diffusion parameters */
 /*--------------------------------------------- */
-const double psi = Sys.psi;
+const double DirTilt = Sys.DirTilt;
 const double *d2psi = Sys.d2psi;
 const double Rxx = Diff.Rxx;
 const double Ryy = Diff.Ryy;
@@ -136,7 +136,7 @@ for (L1=0;L1<=Lemax;L1+=deltaL) {
         for (pS1=pSmin;pS1<=1;pS1++) {
           qS1max = 1 - abs(pS1);
           for (qS1=-qS1max;qS1<=qS1max;qS1+=2) {
-              if ((MeirovitchSymm) && (psi==0) && ((0+pS1-1)!=M1)) continue; /* Eq. (A47) */
+              if ((MeirovitchSymm) && (DirTilt==0) && ((0+pS1-1)!=M1)) continue; /* Eq. (A47) */
                 /*mexPrintf("%3d %3d %3d %3d    %2d %2d %2d %2d\n",L1,jK1,K1,M1,pS1,qS1,pI1,qI1); */
                 iCol = iRow;
                 diagRC = true;
@@ -249,7 +249,7 @@ for (L1=0;L1<=Lemax;L1+=deltaL) {
                           for (qS2=qS2min;qS2<=qS2max;qS2+=2) {
                             bool diagS = (pS1==pS2) && (qS1==qS2);
                             int qSd = qS1 - qS2;
-                              if ((MeirovitchSymm) && (psi==0) && ((0+pS2-1)!=M2)) continue;  /* Eq. (A47) */
+                              if ((MeirovitchSymm) && (DirTilt==0) && ((0+pS2-1)!=M2)) continue;  /* Eq. (A47) */
 
                                 /*-------------------------------------- */
                                 /* Matrix element of Liouville operator */
@@ -267,7 +267,7 @@ for (L1=0;L1<=Lemax;L1+=deltaL) {
                                 LiouvilleElement = 0;
                                 
                                 if (Ld2 && (abs(pSd)<=1) && 
-                                   /*((psi!=0) || (pSd==Md)) &&*/
+                                   /*((DirTilt!=0) || (pSd==Md)) &&*/
                                    (abs(Md)<=2) && (abs(pSd)==abs(qSd))) {
                                   
                                   d2jjj = d2psi[(pSd+2)+(Md+2)*5]*Liou3j;
@@ -404,7 +404,7 @@ for (L1=0;L1<=Lemax;L1+=deltaL) {
         for (pS1=pSmin;pS1<=1;pS1++) {
           qS1max = 1 - abs(pS1);
           for (qS1=-qS1max;qS1<=qS1max;qS1+=2) {
-              if ((MeirovitchSymm) && (Sys.psi==0)&&((pS1-1)!=M1)) continue;
+              if ((MeirovitchSymm) && (Sys.DirTilt==0)&&((pS1-1)!=M1)) continue;
               /*mexPrintf("%3d %3d %3d %3d    %2d %2d\n",L1,jK1,K1,M1,pS1,qS1);*/
               iRow++;
           } /* qS1 */
@@ -441,7 +441,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   /*mexPrintf("Parsing system...\n"); */
   idxS = 0;
   Sys.EZI0 = mxGetScalar(mxGetField(prhs[idxS],0,"EZ0"));
-  Sys.psi = mxGetScalar(mxGetField(prhs[idxS],0,"psi"));
+  Sys.DirTilt = mxGetScalar(mxGetField(prhs[idxS],0,"DirTilt"));
   Sys.d2psi = mxGetPr(mxGetField(prhs[idxS],0,"d2psi"));
 
   T = mxGetField(prhs[idxS],0,"EZ2");

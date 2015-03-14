@@ -30,7 +30,7 @@ struct SystemStruct {
   double Ib, NZI0b, HFI0b, *ReHFI2b, *ImHFI2b;
   double EZI0, *ReEZI2, *ImEZI2;
   double *d2psi;
-  double psi;
+  double DirTilt;
 };
 
 struct DiffusionStruct {
@@ -68,7 +68,7 @@ const double *ImHFI2b = Sys.ImHFI2b;
 
 /* Diffusion parameters */
 /*--------------------------------------------- */
-const double psi = Sys.psi;
+const double DirTilt = Sys.DirTilt;
 const double *d2psi = Sys.d2psi;
 const double Rxx = Diff.Rxx;
 const double Ryy = Diff.Ryy;
@@ -162,7 +162,7 @@ for (L1=0;L1<=Lemax;L1+=deltaL) {
               qI1max = ((int)(2*I)) - abs(pI1);
               for (qI1=-qI1max;qI1<=qI1max;qI1+=2) {
                 for (pI1b = -pIbmax;pI1b<=pIbmax;pI1b++) {
-                  if ((MeirovitchSymm) && (psi==0) && ((pI1+pI1b+pS1-M1)!=1)) continue;  /* Eq. (A47), see Misra (A13) */
+                  if ((MeirovitchSymm) && (DirTilt==0) && ((pI1+pI1b+pS1-M1)!=1)) continue;  /* Eq. (A47), see Misra (A13) */
                   qI1bmax = ((int)(2*Ib)) - abs(pI1b);
                   for (qI1b=-qI1bmax;qI1b<=qI1bmax;qI1b+=2) {
                     
@@ -300,7 +300,7 @@ for (L1=0;L1<=Lemax;L1+=deltaL) {
                                     
                                     pI2bmin = (diagRC) ? pI1b : -pIbmax;
                                     for (pI2b=pI2bmin;pI2b<=pIbmax;pI2b++) {
-                                      if ((MeirovitchSymm) && (psi==0) && ((pI2+pI2b+pS2-1)!=M2)) continue; /* Eq. (A47), see Misra (A13) */
+                                      if ((MeirovitchSymm) && (DirTilt==0) && ((pI2+pI2b+pS2-1)!=M2)) continue; /* Eq. (A47), see Misra (A13) */
                                       pIbd = pI1b - pI2b;
                                       qI2bmax = ((int)(2*Ib)) - abs(pI2b);
                                       qI2bmin = (diagRC) ? qI1b : -qI2bmax;
@@ -327,12 +327,12 @@ for (L1=0;L1<=Lemax;L1+=deltaL) {
 									
                                         if (Ld2 && /* if |L1-L2| is not 2 or less, all 3j symbols in (A41) are zero */
                                            (abs(Md)<=2) && /* otherwise first 3j symbol in (A41) is zero */
-                                           ((psi!=0) || (pd==Md)) && /* no director tilt -> d2 is diagonal, i.e. d2(psi)(pd,Md) zero unless pd==Md */
+                                           ((DirTilt!=0) || (pd==Md)) && /* no director tilt -> d2 is diagonal, i.e. d2(DirTilt)(pd,Md) zero unless pd==Md */
                                            (abs(pSd)<=1) && (abs(pId)<=1) && (abs(pIbd)<=1) && /* otherwise Clebsch-Gordans in (B7) and (B8) are zero */
                                            (abs(pSd)==abs(qSd)) && (abs(pId)==abs(qId)) && (abs(pIbd)==abs(qIbd))) {
                                           
                                           includeRank0 = diagLKM &&  /* l=0 in (A41) means L1=L2, M2-M1=0 and K2-K1=0 (3j symbols)*/
-                                            (pd==0); /* ? (A41): for psi=0, d2 is diagonal, and M2-M1=0 means that pd=0 */
+                                            (pd==0); /* ? (A41): for DirTilt=0, d2 is diagonal, and M2-M1=0 means that pd=0 */
 
                                           d2jjj = d2psi[(pd+2)+(Md+2)*5]*Liou3j; /* for l=2, see (A41) */
                                           
@@ -578,7 +578,7 @@ for (L1=0;L1<=Lemax;L1+=deltaL) {
               for (qI1=-qI1max;qI1<=qI1max;qI1+=2) {
                 
                 for (pI1b = -pIbmax;pI1b<=pIbmax;pI1b++) {
-                  if ((MeirovitchSymm) && (Sys.psi==0)&&((pI1+pI1b+pS1-1)!=M1)) continue;
+                  if ((MeirovitchSymm) && (Sys.DirTilt==0)&&((pI1+pI1b+pS1-1)!=M1)) continue;
                   qI1bmax = (int)(2*Ib) - abs(pI1b);
                   for (qI1b=-qI1bmax;qI1b<=qI1bmax;qI1b+=2) {
                 
@@ -629,7 +629,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   Sys.HFI0 = mxGetScalar(mxGetField(prhs[idxS],0,"HF0"));
   Sys.NZI0b = mxGetScalar(mxGetField(prhs[idxS],0,"NZ0b"));
   Sys.HFI0b = mxGetScalar(mxGetField(prhs[idxS],0,"HF0b"));
-  Sys.psi = mxGetScalar(mxGetField(prhs[idxS],0,"psi"));
+  Sys.DirTilt = mxGetScalar(mxGetField(prhs[idxS],0,"DirTilt"));
   Sys.d2psi = mxGetPr(mxGetField(prhs[idxS],0,"d2psi"));
   
   T = mxGetField(prhs[idxS],0,"EZ2");

@@ -19,7 +19,7 @@ deltaK = Basis.deltaK;
 jKmin = Basis.jKmin;
 pSmin = Basis.pSmin;
 
-DirTilt = (Sys.psi~=0);
+DirTilt = Sys.DirTilt;
 MeirovitchSymm = Basis.MeirovitchSymm;
 
 Potential = any(Diffusion.lambda);

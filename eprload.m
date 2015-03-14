@@ -38,6 +38,7 @@
 %     Magnettech:          .spe (binary), .xml (xml)
 %     Active Spectrum:     .ESR
 %     Adani:               .dat
+%     JEOL:                (variable)
 %
 %     MAGRES:              .PLT
 %     qese, tryscore:      .eco
