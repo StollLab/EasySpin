@@ -788,7 +788,7 @@ if (FitData.GUI) && (UserCommand~=99)
   % update graph
   set(findobj('Tag','expdata'),'XData',1:numel(ExpSpec),'YData',ExpSpec);
   set(findobj('Tag','bestsimdata'),'XData',1:numel(ExpSpec),'YData',real(FitData.bestspec));
-  set(findobj('Tag','currsimdata'),'XData',1:numel(ExpSpec),'YData',simspec);
+  set(findobj('Tag','currsimdata'),'XData',1:numel(ExpSpec),'YData',real(simspec));
   drawnow
   
   % update numbers parameter table
