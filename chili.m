@@ -156,8 +156,11 @@ else
   JerSpin = Opt.JerSpin;
 end
 
-mT2MHz = mt2mhz(1,mean(Sys.g));
-
+if Sys.fullg
+  mT2MHz = mt2mhz(1,mean(eig(Sys.g)));
+else
+  mT2MHz = mt2mhz(1,mean(Sys.g));
+end
 if any(Sys.HStrain) || any(Sys.gStrain) || any(Sys.AStrain) || any(Sys.DStrain)
   error('chili does not support strains (HStrain, gStrain, AStrain, DStrain). Please remove from spin system.');
 end
@@ -973,7 +976,11 @@ Sys.EZ2 = bmagn*B0/1e3*g2/planck*2*pi; % -> angular frequency
 
 % Hyperfine
 for iNuc = 1:Sys.nNuclei
-  [A0,dummy,A2] = istocoeff(Sys.A(iNuc,:));
+  if Sys.fullA
+    [A0,dummy,A2] = istocoeff(Sys.A(3*(iNuc-1)+(1:3),:));
+  else
+    [A0,dummy,A2] = istocoeff(Sys.A(iNuc,:));
+  end
   if isfield(Sys,'AFrame')
     R_A2M = wignerd(2,Sys.AFrame(iNuc,:))'; % A frame -> molecular frame
   else
