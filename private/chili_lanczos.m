@@ -3,7 +3,7 @@ function [alpha,beta,specerr] = chili_lanczos(A,Vector,z,Options)
 nDim = length(Vector);
 alpha = zeros(1,nDim);
 beta = zeros(1,nDim);
-specerr = ones(1,nDim)*NaN;
+specerr = NaN(1,nDim);
 
 oldspec = inf;
 zTest = linspace(z(1),z(end),201);

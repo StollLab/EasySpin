@@ -181,7 +181,6 @@ if isfield(Sys,'psi')
   error('Sys.psi is obsolete. Remove it from your code. See the documentation for details.');
 end
 
-
 % Experimental settings
 %-------------------------------------------------------------------
 if ~isfield(Exp,'nPoints'), Exp.nPoints = 1024; end
@@ -190,6 +189,7 @@ if ~isfield(Exp,'mwPhase'), Exp.mwPhase = 0; end
 if ~isfield(Exp,'Temperature'), Exp.Temperature = NaN; end
 if ~isfield(Exp,'ModAmp'), Exp.ModAmp = 0; end
 if ~isfield(Exp,'Mode'), Exp.Mode = 'perpendicular'; end
+if ~isfield(Exp,'Ordering'), Exp.Ordering = []; end
 
 if isfield(Exp,'MOMD')
   error('Exp.MOMD is obsolete. Remove it from your code. See the documentation for details.');
@@ -329,15 +329,44 @@ end
 
 % Complain if fields only valid in pepper() are given
 if isfield(Exp,'Orientations')
-  warning('Exp.Orientations is not used by chili.');
-end
-if isfield(Exp,'Ordering')
-  warning('Exp.Ordering is not used by chili.');
+  warning('Exp.Orientations is obsolete. Use Exp.CrystalOrientations instead.');
 end
 if isfield(Exp,'CrystalSymmetry')
   warning('Exp.CrystalSymmetry is not used by chili.');
 end
 
+% Partial ordering
+if ~isempty(Exp.Ordering)
+  %if ~PowderSimulation
+  %  error('Partial ordering (Exp.Ordering) can only be used in a powder simulation.');
+  %end
+  if isnumeric(Exp.Ordering) && (numel(Exp.Ordering)==1) && isreal(Exp.Ordering)
+    UserSuppliedOrderingFcn = false;
+    logmsg(1,'  partial order (built-in function, lambda = %g)',Exp.Ordering);
+  elseif isa(Exp.Ordering,'function_handle')
+    UserSuppliedOrderingFcn = true;
+    logmsg(1,'  partial order (user-supplied function)');
+  else
+    error('Exp.Ordering must be a single number or a function handle.');
+  end
+end
+
+% Determine whether to do a powder simulation
+if isempty(Sys.lambda) || all(Sys.lambda==0)
+  if isempty(Exp.Ordering) || all(Exp.Ordering==0)
+    logmsg(1,'  No ordering potential given, skipping powder simulation.');
+    PowderSimulation = false;
+  else
+  logmsg(1,'  Non-zero ordering potential given, doing powder simulation.');
+    PowderSimulation = true;
+  end    
+else
+  logmsg(1,'  Non-zero ordering potential given, doing powder simulation.');
+  PowderSimulation = true;
+  if JerSpin
+    error('Ordering potential not supported for this spin system.');
+  end
+end
 
 % Options
 %-------------------------------------------------------------------
@@ -347,7 +376,7 @@ if ~isfield(Opt,'Threshold'), Opt.Threshold = 1e-6; end
 if ~isfield(Opt,'Diagnostic'), Opt.Diagnostic = 0; end
 if ~isfield(Opt,'Solver'), Opt.Solver = 'L'; end
 if ~isfield(Opt,'Lentz'), Opt.Lentz = 1; end
-if ~isfield(Opt,'IncludeNZI'), Opt.IncludeNZI = 1; end
+if ~isfield(Opt,'IncludeNZI'), Opt.IncludeNZI = true; end
 if ~isfield(Opt,'Symmetry'), Opt.Symmetry = 'Dinfh'; end
 if ~isfield(Opt,'Output'), Opt.Output = 'summed'; end
 if ~isfield(Opt,'SymmFrame'), Opt.SymmFrame = []; end
@@ -363,20 +392,6 @@ if isfield(Opt,'MOMD')
   error('Opt.MOMD is obsolete. Remove it from your code. Now, a powder simulation is automatically performed whenever an ordering potential is given.');
 end
 
-% Powder simulation
-if isempty(Sys.lambda)
-  logmsg(1,'  No ordering potential given, skipping powder simulation.');
-  PowderSimulation = false;
-elseif all(Sys.lambda==0)
-  logmsg(1,'  Zero ordering potential given, skipping powder simulation.');
-  PowderSimulation = false;
-else
-  logmsg(1,'  Non-zero ordering potential given, doing powder simulation.');
-  PowderSimulation = true;
-  if JerSpin
-    error('Ordering potential not supported for this spin system.');
-  end
-end
 
 if ~isfield(Opt,'nKnots'), Opt.nKnots = [5 0]; end
 if numel(Opt.nKnots)<1, Opt.nKnots(1) = 5; end
@@ -446,10 +461,7 @@ if JerSpin
 else
   logmsg(1,'  using S=1/2 Liouvillian code');
 end
-%if ~JerSpin
-  Sys = processspinsys(Sys,CenterField);
-  if ~Opt.IncludeNZI, Sys.NZ0 = 0; Sys.NZ0b = 0; end
-%end
+Sys = istospinsys(Sys,CenterField,Opt.IncludeNZI);
 
 [Dynamics,err] = processdynamics(Dynamics,FieldSweep);
 error(err);
@@ -479,9 +491,9 @@ if (PowderSimulation)
   if Opt.nKnots(1)==1
     phi = 0;
     theta = 0;
-    GeomWeights = 4*pi;
+    GridWeights = 4*pi;
   else
-    [Vecs,GeomWeights] = sphgrid(Opt.Symmetry,Opt.nKnots(1),'cf');
+    [Vecs,GridWeights] = sphgrid(Opt.Symmetry,Opt.nKnots(1),'cf');
     % Transform vector to reference frame representation and convert to polar angles.
     if isempty(Opt.SymmFrame)
       [phi,theta] = vec2ang(Vecs);
@@ -498,11 +510,29 @@ else
     phi = 0;
     theta = 0;
   end
-  GeomWeights = 4*pi;
+  GridWeights = 4*pi;
   logmsg(2,'  single-orientation simulation');
 end
 nOrientations = numel(phi);
 Sys.DirTilt = any(theta~=0);
+
+% Ordering potential for protein/macromolecule
+if ~isempty(Exp.Ordering)
+  if (UserSuppliedOrderingFcn)
+    OrderingWeights = feval(Exp.Ordering,phi,theta);
+    if any(OrderingWeights)<0, error('User-supplied orientation distribution gives negative values!'); end
+    if max(OrderingWeights)==0, error('User-supplied orientation distribution is all-zero.'); end
+    logmsg(2,'  user-supplied ordering potential');
+  else
+    logmsg(2,'  standard ordering potential');
+    OrderingWeights = exp(Exp.Ordering*plegendre(2,0,cos(theta)));
+  end
+else
+  OrderingWeights = ones(1,nOrientations);
+end
+
+Weights = GridWeights.*OrderingWeights;
+Weights = 4*pi*Weights/sum(Weights);
 
 % Set up quantum numbers for basis
 %-------------------------------------------------------
@@ -553,10 +583,9 @@ for iOri = 1:nOrientations
   
   % Director tilt
   %-------------------------------------------------------
-  %Sys.psi = psi(iOri);
   Sys.d2psi = wignerd(2,[phi(iOri) theta(iOri) 0]);
   logmsg(2,'orientation %d of %d: phi = %g°, theta = %g° (weight %g)',...
-    iOri,nOrientations,phi(iOri)*180/pi,theta(iOri)*180/pi,GeomWeights(iOri));
+    iOri,nOrientations,phi(iOri)*180/pi,theta(iOri)*180/pi,Weights(iOri));
 
   if JerSpin
     D1 = wignerd(1,[phi,theta,0]);
@@ -727,7 +756,8 @@ logmsg(1,'Spectra accumulation (%d spectra)',nOrientations);
 totalspec = zeros(nVectors,Exp.nPoints);
 for iTrans = 1:nVectors
   for iOri = 1:nOrientations
-    totalspec(iTrans,:) = totalspec(iTrans,:) + spec{iTrans}(iOri,:)*GeomWeights(iOri);
+    totalspec(iTrans,:) = totalspec(iTrans,:) + ...
+      spec{iTrans}(iOri,:)*Weights(iOri);
   end
 end
 spec = totalspec;
@@ -912,65 +942,61 @@ return
 %====================================================================
 
 %--------------------------------------------------------------------
-function Sys = processspinsys(Sy,Field)
+% Calculates all spin Hamiltonian ISTO coefficients for electron Zeeman,
+% hyperfine and nuclear Zeeman terms, for 1 eletron spin-1/2 and up
+% to two nuclei.
+function Sys = istospinsys(Sys_in,B0,IncludeNZI)
 
-Sys = Sy;
-Sys.I = nucspin(Sys.Nucs);
-Sys.gn = nucgval(Sys.Nucs);
-nNucs = numel(Sys.I);
+Sys = Sys_in;
 
 % Transformation from molecular frame to diffusion frame
 % (DiffFrame contains Euler angles for M->Diff transformation)
 R_M2Diff = wignerd(2,Sys.DiffFrame);
 
-% g tensor
-%------------------------------------
-%Compute spherical tensor component coefficients in eigenframe
-[T0,T2] = cart2spher_transforms;
-R_g2M = wignerd(2,Sys.gFrame)'; % g tensor frame -> molecular frame transformation
-T2 = R_M2Diff*R_g2M*T2;
-Sys.g2 = T2*Sys.g(:);
-Sys.g0 = T0*Sys.g(:);
-
-Sys.g_axial = Sys.g(1)==Sys.g(2);
-
-% Hyperfine tensor and nuclear Zeeman
-%------------------------------------
-if nNucs>0
-  if ~isfield(Sys,'AFrame'), Sys.AFrame = zeros(nNucs,3); end
+% Compute spherical tensor component coefficients
+%--------------------------------------------------------------------
+% Electron Zeeman
+if Sys.fullg
+  [g0,dummy,g2] = istocoeff(Sys.g);
+else
+  [g0,dummy,g2] = istocoeff(Sys.g(:));
 end
-for iNuc = 1:nNucs
-  [Sys.A0(iNuc), Sys.A2(:,iNuc)] = isto(Sys.A(iNuc,:));
-  Sys.A_axial(iNuc) = Sys.A2(1,iNuc)==0;
-  Sys.gn0(iNuc) = -sqrt(1/3)*(3*Sys.gn(iNuc));
-  R_A2M = wignerd(2,Sys.AFrame(iNuc,:))'; % A tensor frame -> molecular frame transformation
-  Sys.A2(:,iNuc) = R_M2Diff*R_A2M*Sys.A2(:,iNuc);
+if isfield(Sys,'gFrame')
+  R_g2M = wignerd(2,Sys.gFrame)'; % g tensor frame -> molecular frame
+else
+  R_g2M = 1;
 end
+g2 = R_M2Diff*R_g2M*g2; % g frame -> diffusion frame
+Sys.g_axial = g2(1)==0;
+Sys.EZ0 = bmagn*B0/1e3*g0/planck*2*pi; % -> angular frequency
+Sys.EZ2 = bmagn*B0/1e3*g2/planck*2*pi; % -> angular frequency
 
-% Convert all tensorial coefficients to units of Hz
-% - Electron Zeeman (rank 0 and 2)
-Sys.EZ0 = bmagn*Field/1e3*Sys.g0/planck;
-Sys.EZ2 = bmagn*Field/1e3*Sys.g2/planck;
-
-% Nuclear Zeeman (rank 0) and hyperfine (rank 0 and 2)
-Sys.NZ0 = 0;
-Sys.HF0 = 0;
-Sys.HF2 = 0;
-if (nNucs>0)
-  Sys.NZ0 = nmagn*Field/1e3*Sys.gn0/planck;
-  Sys.HF0 = Sys.A0*1e6;
-  Sys.HF2 = Sys.A2*1e6;
+% Hyperfine
+for iNuc = 1:Sys.nNuclei
+  [A0,dummy,A2] = istocoeff(Sys.A(iNuc,:));
+  if isfield(Sys,'AFrame')
+    R_A2M = wignerd(2,Sys.AFrame(iNuc,:))'; % A frame -> molecular frame
+  else
+    R_A2M = 1;
+  end
+  A2 = R_M2Diff*R_A2M*A2; % A frame -> diffusion frame
+  Sys.A_axial(iNuc) = A2(1)==0;
+  Sys.HF0(iNuc) = A0*1e6*2*pi; % MHz -> angular frequency
+  Sys.HF2(:,iNuc) = A2*1e6*2*pi; % MHz -> angular frequency
 end
 
-% Frequency (Hz) -> angular frequency
-Sys.EZ0 = 2*pi*Sys.EZ0;
-Sys.EZ2 = 2*pi*Sys.EZ2;
-Sys.HF0 = 2*pi*Sys.HF0;
-Sys.HF2 = 2*pi*Sys.HF2;
-Sys.NZ0 = 2*pi*Sys.NZ0;
+% Nuclear Zeeman
+for iNuc = 1:Sys.nNuclei
+  gn0(iNuc) = -sqrt(1/3)*(3*Sys.gn(iNuc));
+  Sys.NZ0(iNuc) = nmagn*B0/1e3*gn0(iNuc)/planck*2*pi; % -> angular freq.
+end
+if ~IncludeNZI
+  Sys.NZ0 = 0;
+  Sys.NZ0b = 0;
+end
 
 % Adaption for two nuclei, to feed to chili_liouvmatrix2
-if (nNucs>=2)
+if (Sys.nNuclei>=2)
   Sys.Ib = Sys.I(2);
   Sys.NZ0b = Sys.NZ0(2);
   Sys.HF0b = Sys.HF0(2);
@@ -979,21 +1005,6 @@ end
 
 return
 
-%--------------------------------------------------------------------
-% isto   Computes spherical tensor components of g or A matrix,
-%        given its three principal values x = [gx gy gz] or x = [Ax Ay Az].
-%        F0 is the zero-rank component (one number(, F2 is a 5-vector
-%        with the second-rank components.
-function [F0,F2] = isto(x)
-[T0,T2] = cart2spher_transforms;
-F0 = T0*x(:);
-F2 = T2*x(:);
-return
-
-function [T0,T2] = cart2spher_transforms
-T0 = -sqrt(1/3)*[1 1 1];
-T2 = [1/2 -1/2 0; 0 0 0; sqrt(2/3)*[-1/2 -1/2 1]; 0 0 0; 1/2 -1/2 0];
-return
 
 %--------------------------------------------------------------------
 function Basis = processbasis(Sys,Bas,Dyn)
@@ -1013,8 +1024,10 @@ end
 % case when g and A are collinear and the orientation of the diffusion
 % tensor is described by the angles (0,beta,0)
 if isempty(Basis.jKmin)
-  if all(isreal(Sys.EZ2)) && all(isreal(Sys.HF2))
-    Basis.jKmin = +1;
+  if all(isreal(Sys.EZ2))
+    if (Sys.nNuclei==0) || (Sys.nNuclei>0) && all(isreal(Sys.HF2))
+      Basis.jKmin = +1;
+    end
   else
     Basis.jKmin = -1;
   end
@@ -1058,7 +1071,10 @@ end
 % Use only even L values (deltaL=2) and no K values (Kmx=0)
 % in case of axial magnetic tensors, axial potential, 
 % and no magnetic/diffusion tilt
-axialSystem = Sys.g_axial && ((Sys.nNuclei==0) || all(Sys.A_axial));
+axialSystem = Sys.g_axial;
+if (Sys.nNuclei>0)
+  axialSystem = axialSystem && all(Sys.A_axial);
+end
 if axialSystem && (Basis.deltaK==2) && (max(Dyn.KK)==0)
   Basis.deltaL = 2;
   Basis.Kmax = 0;
