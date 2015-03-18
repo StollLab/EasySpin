@@ -1,10 +1,12 @@
 % chili_xlk    Computes the coefficients of the orienting
 %              potential terms in the diffusion operator.
 %
-%     X = chili_xlk(R,lambda)
+%     X = chili_xlk(Dyn)
 %
-%          R           3 principal values of diffusion tensor
-%          lambda      coefficients of potential expansion
+%          Dyn.Diff            3 principal values of diffusion tensor
+%          Dyn.lambda          coefficients of potential expansion
+%          Dyn.PotentialL      L numbers of potential coefficients
+%          Dyn.PotentialK      K numbers of potential coefficients
 
 function X = chili_xlk(Dyn)
 
@@ -30,8 +32,8 @@ logmsg(1,'Ordering potential: computing X(l,k) coefficients.');
 
 lambdalist = Dyn.lambda;
 R = Dyn.Diff;
-LL = Dyn.LL;
-KK = Dyn.KK;
+PotentialL = Dyn.PotentialL;
+PotentialK = Dyn.PotentialK;
 
 % Get principal values of diffusion tensor
 %---------------------------------------------------------------
@@ -43,7 +45,7 @@ Rd = (R(1)-R(2))/4;
 % Process lambda list
 %---------------------------------------------------------------
 
-maxL = max(LL)*2;
+maxL = max(PotentialL)*2;
 
 if any(~isreal(lambdalist))
   error('Only real potential coefficients are allowed.');
@@ -80,9 +82,9 @@ end
 %  etc.
 lambda = zeros(maxL+1,2*maxL+1);
 for q = 1:numel(lambdalist)
-  idxL = LL(q)+1;
-  lambda(idxL,+KK(q)+idxL) = lambdalist(q);
-  lambda(idxL,-KK(q)+idxL) = lambdalist(q);
+  idxL = PotentialL(q)+1;
+  lambda(idxL,+PotentialK(q)+idxL) = lambdalist(q);
+  lambda(idxL,-PotentialK(q)+idxL) = lambdalist(q);
 end
 
 % Compute X matrix

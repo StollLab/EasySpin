@@ -5,7 +5,15 @@
 
 function [F0,F1,F2] = istocoeff(A)
 
-if numel(A)==3
+if numel(A)==1
+  
+  % Just isotropic value given
+  
+  F0 = -sqrt(1/3)*A;
+  F1 = zeros(3,1);
+  F2 = zeros(5,1);
+  
+elseif numel(A)==3
   
   % Only 3 principal values given
   
