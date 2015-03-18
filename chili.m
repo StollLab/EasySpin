@@ -519,7 +519,7 @@ end
 nOrientations = numel(phi);
 Sys.DirTilt = any(theta~=0);
 
-% Ordering potential for protein/macromolecule
+% Partial ordering for protein/macromolecule
 if ~isempty(Exp.Ordering)
   if (UserSuppliedOrderingFcn)
     OrderingWeights = feval(Exp.Ordering,phi,theta);
@@ -528,7 +528,8 @@ if ~isempty(Exp.Ordering)
     logmsg(2,'  user-supplied ordering potential');
   else
     logmsg(2,'  standard ordering potential');
-    OrderingWeights = exp(Exp.Ordering*plegendre(2,0,cos(theta)));
+    U = -Exp.Ordering*plegendre(2,0,cos(theta)); % ordering potential
+    OrderingWeights = exp(-U);
   end
 else
   OrderingWeights = ones(1,nOrientations);

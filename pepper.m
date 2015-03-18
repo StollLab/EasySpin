@@ -864,7 +864,8 @@ elseif (~BruteForceSum)
           if any(OrderingWeights)<0, error('User-supplied orientation distribution gives negative values!'); end
           if max(OrderingWeights)==0, error('User-supplied orientation distribution is all-zero.'); end
         else
-          OrderingWeights = exp(Exp.Ordering*plegendre(2,0,cos(centreTheta)));
+          U = -Exp.Ordering*plegendre(2,0,cos(centreTheta));
+          OrderingWeights = exp(-U);
         end
         fSegWeights = fSegWeights(:).*OrderingWeights(:);
         fSegWeights = 4*pi/sum(fSegWeights)*fSegWeights;
@@ -892,7 +893,8 @@ elseif (~BruteForceSum)
           if any(OrderingWeights)<0, error('User-supplied orientation distribution gives negative values!'); end
           if max(OrderingWeights)==0, error('User-supplied orientation distribution is all-zero.'); end
         else
-          OrderingWeights = exp(Exp.Ordering*plegendre(2,0,cos(centreTheta)));
+          U = -Exp.Ordering*plegendre(2,0,cos(centreTheta));
+          OrderingWeights = exp(-U);
         end
         Areas = Areas(:).*OrderingWeights(:);
         Areas = 4*pi/sum(Areas)*Areas;
