@@ -479,14 +479,14 @@ end
 % Set up horizontal sweep axis
 % (nu is used internally, xAxis is used for user output)
 if FieldSweep
-  FreqSweep = Sweep*mT2MHz*1e6; % mT -> Hz
+  FreqSweep = Sweep*mT2MHz*1e6; % Hz
   nu = Exp.mwFreq*1e9 - linspace(-1,1,Exp.nPoints)*FreqSweep/2;  % Hz
   xAxis = linspace(Exp.Range(1),Exp.Range(2),Exp.nPoints);  % field axis, mT
 else
   nu = linspace(Exp.Range(1),Exp.Range(2),Exp.nPoints)*1e9;  % Hz
   xAxis = nu/1e9; % frequency axis, GHz
 end
-omega0 = complex(1/(Dynamics.T2),2*pi*nu); % angular frequency
+omega0 = complex(1/(Dynamics.T2),2*pi*nu); % Hz
 
 % Set up list of orientations
 %=====================================================================
@@ -655,7 +655,7 @@ for iOri = 1:nOrientations
       error('Liouville matrix contains %d NaN entries!',sum(isnan(Vals)));
     end
     
-    omega = omega0; % angular frequency
+    omega = omega0; % rad/s
     if (Opt.Rescale)
       % rescale my maximum in Hamiltonian superoperator
       scale = -min(imag(Vals));
@@ -1082,7 +1082,7 @@ axialSystem = Sys.g_axial;
 if (Sys.nNuclei>0)
   axialSystem = axialSystem && all(Sys.A_axial);
 end
-if axialSystem && (Basis.deltaK==2) && (max(Dyn.PotentialK)==0)
+if axialSystem && (Basis.deltaK==2) && (max(Dyn.KK)==0)
   Basis.deltaL = 2;
   Basis.Kmax = 0;
 else
@@ -1157,22 +1157,25 @@ if isfield(Dyn,'lw')
   end
 end
 
-% Heisenberg exchange
-%------------------------------------------------------------------
-if ~isfield(Dyn,'Exchange'), Dyn.Exchange=0; end
-Dyn.Exchange = Dyn.Exchange*2*pi*1e6; % MHz -> angular frequency
-
-% Ordering potential
+% Restricting potential
 %------------------------------------------------------------------
 if ~isfield(Dyn,'lambda'), Dyn.lambda = [0 0 0 0 0]; end
 if numel(Dyn.lambda)<5, Dyn.lambda(5) = 0; end
 if numel(Dyn.lambda)>5, err = 'Too many potential coefficients!'; return; end
 
 % Process lambda list
-Dyn.PotentialL = [2 2 4 4 4];
-Dyn.PotentialK = [0 2 0 2 4];
-idx = Dyn.lambda~=0;
-Dyn.maxL = max(Dyn.PotentialL(idx));
-Dyn.maxK = max(Dyn.PotentialK(idx));
+Dyn.LL = [2 2 4 4 4];
+Dyn.KK = [0 2 0 2 4];
+LL = Dyn.LL;
+KK = Dyn.KK;
+LL(Dyn.lambda==0) = [];
+KK(Dyn.lambda==0) = [];
+Dyn.maxL = max(LL);
+Dyn.maxK = max(KK);
+
+% Heisenberg exchange
+%------------------------------------------------------------------
+if ~isfield(Dyn,'Exchange'), Dyn.Exchange=0; end
+Dyn.Exchange = Dyn.Exchange*2*pi*1e6;
 
 return
