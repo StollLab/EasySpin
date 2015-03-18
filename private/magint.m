@@ -1,25 +1,25 @@
 function [T0,T1,T2,F0,F1,F2] = magint(System,CenterField)
 
-Sys = System;
-
-% count the number of interaction terms in the spin Hamiltonian
+% Count the number of interaction terms in the spin Hamiltonian
 % -------------------------------------------------------------------------
-nElSpins = Sys.nElectrons;
-Sys.I = nucspin(Sys.Nucs);
-nNucSpins = Sys.nNuclei;
+nElSpins = System.nElectrons;
+System.I = nucspin(System.Nucs);
+nNucSpins = System.nNuclei;
 
-nZeeman = nElSpins;
+nElZeeman = nElSpins;
 nHyperfine = nElSpins*nNucSpins;
-nZFS = 0;
-if (numel(Sys.D) > 1 && any(Sys.D)) || (numel(Sys.fullD) > 1 && any(Sys.fullD)) 
-  for iElectron = 1:nElSpins
-    if (Sys.S(iElectron) > 1/2)
-      nZFS = nZFS + 1;
-    end
-  end
+nZFS = sum(System.S>1/2);
+nInteractions = nElZeeman + nHyperfine + nZFS;
+
+IncludeNuclearZeeman = false;
+if IncludeNuclearZeeman
+  nInteractions = nInteractions + nNucSpins;
 end
-    
-nInteractions = nZeeman + nHyperfine + nZFS;
+
+IncludeNuclearQuadrupole = false;
+if IncludeNuclearQuadrupole
+  nInteractions = nInteractions + nNucSpins;
+end
 
 T0 = cell(nInteractions,1);
 T1 = cell(nInteractions,3);
@@ -28,109 +28,87 @@ F0 = zeros(nInteractions,1);
 F1 = zeros(nInteractions,3);
 F2 = zeros(nInteractions,5);
 
-iInteraction = 1;
+iInt = 1;
 
-
-% make input compatible with JerSpin istotensor and istocoef
-% -------------------------------------------------------------------------
-
-if (Sys.fullg == 0)
-  g = diag(Sys.g);
-end
-B = {0 0 CenterField/1e3}; % mT -> T
-Spins = [Sys.S Sys.I];
+Spins = [System.S System.I];
 SpinOps = spinop(Spins);
+B0 = {0 0 CenterField/1e3}; % mT -> T
 
-A = cell(nNucSpins,1);
-idx = 1;
-for iNucSpin = 1:nNucSpins
-  if (Sys.fullA ~= 0)
-    A{iNucSpin} = Sys.A(idx:idx+2,1:3)*1e6; % MHz -> Hz
-    idx = idx + 3;
-  else
-    A{iNucSpin} = diag(Sys.A(idx,1:3))*1e6; % MHz -> Hz
-    idx = idx + 1;
-  end
-end
-
-if (any(Sys.fullD)) || (any(Sys.D))
-  if Sys.fullD == 0
-    zfs = diag(Sys.D)*1e6; % MHz -> Hz
-  else
-    zfs = Sys.fullD*1e6;   % MHz -> Hz
-  end
+% Electron Zeeman interaction terms
+%--------------------------------------------------------------------------
+if ~System.fullg
+  g = diag(System.g);
 else
-  zfs = 0;
+  g = System.g;
 end
-
-
-%--------------------------------------------------------------------------
-% electron Zeeman interaction terms
-%--------------------------------------------------------------------------
-
 for iSpin = 1:nElSpins
   S_ = SpinOps(iSpin,:);
-  
-  [T0_,T1_,T2_] = istotensor(B,S_);
-  T0{iInteraction}   = T0_;
-  T1(iInteraction,:) = T1_;
-  T2(iInteraction,:) = T2_;
-  [F0_,F1_,F2_] = istocoeff(g*bmagn/planck);
-  F0(iInteraction)   = F0_;
-  F1(iInteraction,:) = F1_;
-  F2(iInteraction,:) = F2_;
-  
-  iInteraction = iInteraction + 1;
+  [T0{iInt},T1(iInt,:),T2(iInt,:)] = istotensor(B0,S_);
+  [F0(iInt),F1(iInt,:),F2(iInt,:)] = istocoeff(g*bmagn/planck);
+  iInt = iInt + 1;
 end
 
+% Hyperfine interaction terms
 %--------------------------------------------------------------------------
-% hyperfine interaction terms
-%--------------------------------------------------------------------------
-
-nNuc = 1;
-for iSpin1 = 1:nElSpins
-  S_ = SpinOps(iSpin1,:);
-  for iSpin2 = nElSpins+1:numel(Spins)
-    I_ = SpinOps(iSpin2,:);
-    
-    [T0_,T1_,T2_] = istotensor(S_,I_);
-    T0{iInteraction}   = T0_;
-    T1(iInteraction,:) = T1_;
-    T2(iInteraction,:) = T2_;
-    
-    [F0_,F1_,F2_] = istocoeff(A{nNuc});
-    F0(iInteraction) =   F0_;
-    F1(iInteraction,:) = F1_;
-    F2(iInteraction,:) = F2_;
-    
-    nNuc = nNuc + 1;
-    iInteraction = iInteraction + 1;
-  end
-  nNuc = 1;
-end
-
-%--------------------------------------------------------------------------
-% zero field splitting
-%--------------------------------------------------------------------------
-
-if nZFS > 0
-  for iSpin = 1:nElSpins
-    if Spins(iSpin) > 1/2
-      S_ = SpinOps(iSpin,:);
-      
-      [T0_,T1_,T2_] = istotensor(S_,S_);
-      T0{iInteraction}   = T0_;
-      T1(iInteraction,:) = T1_;
-      T2(iInteraction,:) = T2_;
-      [F0_,F1_,F2_] = istocoeff(zfs);
-      F0(iInteraction)   = F0_;
-      F1(iInteraction,:) = F1_;
-      F2(iInteraction,:) = F2_;
-      
-      iInteraction = iInteraction + 1;
+for iElSpin = 1:nElSpins
+  eidx = 3*(iElSpin-1)+(1:3);
+  S_ = SpinOps(iElSpin,:);
+  for iNucSpin = 1:nNucSpins
+    if System.fullA
+      A_ = System.A(3*(iNucSpin-1)+(1:3),eidx)*1e6; % MHz -> Hz
+    else
+      A_ = diag(System.A(iNucSpin,eidx))*1e6; % MHz -> Hz
     end
+    I_ = SpinOps(nElSpins+iNucSpin,:);
+    [T0{iInt},T1(iInt,:),T2(iInt,:)] = istotensor(S_,I_);
+    [F0(iInt),F1(iInt,:),F2(iInt,:)] = istocoeff(A_);
+    iInt = iInt + 1;
   end
 end
 
+% Zero field splitting terms
+%--------------------------------------------------------------------------
+if any(System.D)
+  if System.fullD
+    D = diag(System.D)*1e6; % MHz -> Hz
+  else
+    D = System.D*1e6;   % MHz -> Hz
+  end
+else
+  D = 0;
+end
+if (nZFS>0)
+  for iSpin = 1:nElSpins
+    if Spins(iSpin)<1, continue; end
+    S_ = SpinOps(iSpin,:);
+    [T0{iInt},T1(iInt,:),T2(iInt,:)] = istotensor(S_,S_);
+    [F0(iInt),F1(iInt,:),F2(iInt,:)] = istocoeff(D);
+    iInt = iInt + 1;
+  end
+end
+
+% Nuclear Zeeman interaction terms
+%--------------------------------------------------------------------------
+if IncludeNuclearZeeman
+  for iNucSpin = 1:nNucSpins
+    I_ = SpinOps(nElSpins+iNucSpin,:);
+    gn_ = System.gn(iNucSpin);
+    [T0{iInt},T1(iInt,:),T2(iInt,:)] = istotensor(B0,I_);
+    [F0(iInt),F1(iInt,:),F2(iInt,:)] = istocoeff(gn_*nmagn/planck);
+    iInt = iInt + 1;
+  end
+end
+
+% Nuclear electric quadrupole interaction terms
+%--------------------------------------------------------------------------
+if IncludeNuclearQuadrupole
+  for iNucSpin = 1:nNucSpins
+    I_ = SpinOps(nElSpins+iNucSpin,:);
+    Q_ = System.Q(iNucSpin,:)*1e6; % MHz -> Hz
+    [T0{iInt},T1(iInt,:),T2(iInt,:)] = istotensor(I_,I_);
+    [F0(iInt),F1(iInt,:),F2(iInt,:)] = istocoeff(Q_);
+    iInt = iInt + 1;
+  end
+end
 
 return
