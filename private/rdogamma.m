@@ -62,6 +62,6 @@ for iBasis = 1:nNonZero
 end
 
 Gamma = sparse(bra,ket,el,nBasis,nBasis);
-Gamma = Gamma - (Gamma - diag(diag(Gamma))).';
+Gamma = Gamma + triu(Gamma,1).';
 
 return
