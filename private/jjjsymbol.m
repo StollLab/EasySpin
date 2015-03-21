@@ -2,7 +2,7 @@
 % gives as output two 2-D arrays, one storing the 3-j symbols for RBO rank
 % l=0 and one for l=2.
 
-function [jjj0,jjj1,jjj2] = jjjsymbol(LLMK)
+function [jjj0,jjj1,jjj2] = jjjsymbol(LLKM)
 
 % construct array containing indexing all combinations of L and M (or K)
 %   [L M]
@@ -10,7 +10,7 @@ function [jjj0,jjj1,jjj2] = jjjsymbol(LLMK)
 % Basis ordering (first to last): increasing L, and for each
 % L, decreasing M.
 
-Lmax = max(LLMK(1),LLMK(2));
+Lmax = max(LLKM(1),LLKM(2));
 nBasis = (Lmax+1)^2;
 
 % calculate the 3j-symbols

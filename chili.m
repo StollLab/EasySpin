@@ -405,7 +405,6 @@ if ~isfield(Opt,'LLKM')
   Opt.LLKM = [14 7 6 2];
 end
 Basis.LLKM = Opt.LLKM;
-Basis.LLMK = Opt.LLKM;
 if ~JerSpin
   if ~isfield(Opt,'jKmin')
     Opt.jKmin = [];
@@ -569,12 +568,11 @@ if ~JerSpin
       error('The chosen method cannot handle %d nuclei.',Sys.nNuclei);
   end
 else
-  Basis.LLMK = Opt.LLKM;
-  %Basis.LLMK = [4 3 4 4];
+  Basis.LLKM = Opt.LLKM;
   Basis.nSpinStates = Sys.nStates^2;
-  Basis.idx = generatebasis(Basis.LLMK,Basis.nSpinStates);
+  Basis.idx = generatebasis(Basis.LLKM,Basis.nSpinStates);
 
-  [jjj0,jjj1,jjj2] = jjjsymbol(Basis.LLMK);
+  [jjj0,jjj1,jjj2] = jjjsymbol(Basis.LLKM);
   [T0,T1,T2,F0,F1,F2] = magint(Sys,CenterField);
   Gamma = rdogamma(Basis.idx,Dynamics.Diff,Sys.nStates^2);
 end
@@ -611,7 +609,7 @@ for iOri = 1:nOrientations
     else
       SxOps = SpinOps{1};
     end
-    StartingVector = startvec(Basis.LLMK,SxOps);
+    StartingVector = startvec(Basis.LLKM,SxOps);
   end
   
   BasisSize = size(StartingVector,1);

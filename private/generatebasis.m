@@ -1,6 +1,6 @@
 
 
-function basis = generatebasis(LLMK,nSpin)
+function basis = generatebasis(LLKM,nSpin)
 
 
 %%-------------------------------------------------------------------------
@@ -15,20 +15,20 @@ function basis = generatebasis(LLMK,nSpin)
 %%-------------------------------------------------------------------------
 
 
-if mod(LLMK(1),2) ~= 0
-  LLMK(1) = LLMK(1) + 1;
+if mod(LLKM(1),2) ~= 0
+  LLKM(1) = LLKM(1) + 1;
 end
-if mod(LLMK(2),2) == 0
-  LLMK(2) = LLMK(2) + 1;
+if mod(LLKM(2),2) == 0
+  LLKM(2) = LLKM(2) + 1;
 end
 
-Lmax  = max(LLMK(1),LLMK(2));
-Leven = 0:2:LLMK(1);
-Lodd  = 1:2:LLMK(2);
+Lmax  = max(LLKM(1),LLKM(2));
+Leven = 0:2:LLKM(1);
+Lodd  = 1:2:LLKM(2);
 L = sort([Leven Lodd]);
 
-Mmax = LLMK(3);
-Kmax = LLMK(4);
+Kmax = LLKM(3);
+Mmax = LLKM(4);
 
 iBasis = 1;
 for L_ = L
