@@ -25,7 +25,6 @@ for iBasis = 1:length(L)
   for jBasis = iBasis:length(L)
     L2 = L(jBasis);
     if (L1~=L2), break; end
-    L_ = L1;
     M2 = M(jBasis);
     if (M1~=M2), continue; end
     jK2 = jK(jBasis);
@@ -39,9 +38,9 @@ for iBasis = 1:length(L)
     if (K2==K1)
       val = Rperp*(L1*(L1+1)-K1^2) + Rz*K1^2;
     elseif (K2==K1+2)
-      val = Rd*sqrt((1+deltaK1)*(1+deltaK2)*(L_+K2-1)*(L_+K2)*(L_-K2+1)*(L_-K2+2));
+      val = Rd*sqrt((1+deltaK1)*(1+deltaK2)*(L1+K2-1)*(L1+K2)*(L1-K2+1)*(L1-K2+2));
     elseif (K2==K1-2)
-      val = Rd*sqrt((1+deltaK1)*(1+deltaK2)*(L_-K2-1)*(L_-K2)*(L_+K2+1)*(L_+K2+2));
+      val = Rd*sqrt((1+deltaK1)*(1+deltaK2)*(L1-K2-1)*(L1-K2)*(L1+K2+1)*(L1+K2+2));
     else
       continue
     end

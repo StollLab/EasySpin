@@ -405,24 +405,22 @@ if ~isfield(Opt,'LLKM')
   Opt.LLKM = [14 7 6 2];
 end
 Basis.LLKM = Opt.LLKM;
-if ~JerSpin
-  if ~isfield(Opt,'jKmin')
-    Opt.jKmin = [];
-  end
-  Basis.jKmin = Opt.jKmin;
-  if ~isfield(Opt,'pSmin')
-    Opt.pSmin = 0;
-  end
-  Basis.pSmin = Opt.pSmin;
-  if ~isfield(Opt,'pImax')
-    Opt.pImax = [];
-  end
-  Basis.pImax = Opt.pImax;
-  if ~isfield(Opt,'MeirovitchSymm')
-    Opt.MeirovitchSymm = true;
-  end
-  Basis.MeirovitchSymm = Opt.MeirovitchSymm;
+if ~isfield(Opt,'jKmin')
+  Opt.jKmin = [];
 end
+Basis.jKmin = Opt.jKmin;
+if ~isfield(Opt,'pSmin')
+  Opt.pSmin = 0;
+end
+Basis.pSmin = Opt.pSmin;
+if ~isfield(Opt,'pImax')
+  Opt.pImax = [];
+end
+Basis.pImax = Opt.pImax;
+if ~isfield(Opt,'MeirovitchSymm')
+  Opt.MeirovitchSymm = true;
+end
+Basis.MeirovitchSymm = Opt.MeirovitchSymm;
 
 switch Opt.Solver
   case 'L'
@@ -470,10 +468,8 @@ error(err);
 
 Dynamics.xlk = chili_xlk(Dynamics);
 Dynamics.maxL = size(Dynamics.xlk,1)-1;
-  
-if ~JerSpin
-  Basis = processbasis(Sys,Basis,Dynamics);
-end
+
+Basis = processbasis(Sys,Basis,Dynamics);
 
 % Set up horizontal sweep axis
 % (nu is used internally, xAxis is used for user output)
@@ -539,23 +535,24 @@ Weights = 4*pi*Weights/sum(Weights);
 
 % Set up quantum numbers for basis
 %-------------------------------------------------------
-if ~JerSpin
-  logmsg(1,'Setting up basis...');
-  [Basis.Size,Indices] = chili_basiscount(Sys,Basis);
+logmsg(1,'Setting up orientational basis set...');
+logmsg(1,'  Leven max %d, Lodd max %d, Kmax %d, Mmax %d',...
+  Basis.LLKM(1),Basis.LLKM(2),Basis.LLKM(3),Basis.LLKM(4));
+logmsg(1,'  deltaK %d',Basis.deltaK);
+logmsg(1,'  jKmin %+d, pSmin %+d, symm %d',...
+  Basis.jKmin,Basis.pSmin,Basis.MeirovitchSymm);
+if JerSpin
+  Basis.List = generatebasis(Basis,Sys.nStates^2);
+  %size(Basis.List), Basis.List
+else
+  [Basis.Size,Indices] = chili_basiscount(Basis,Sys);
+  %size(Indices), Indices
   logmsg(1,'  basis size: %d',Basis.Size);
-  logmsg(1,'    Leven max %d, Lodd max %d, Kmax %d, Mmax %d',...
-    Basis.LLKM(1),Basis.LLKM(2),Basis.LLKM(3),Basis.LLKM(4));
-  logmsg(1,'    deltaL %d, deltaK %d',Basis.deltaL,Basis.deltaK);
-  logmsg(1,'    jKmin %+d, pSmin %+d, symm %d',...
-    Basis.jKmin,Basis.pSmin,Basis.MeirovitchSymm);
 end
 
 % Preparations
 %-----------------------------------------------------------------------
 if JerSpin
-  Basis.LLKM = Opt.LLKM;
-  Basis.nSpinStates = Sys.nStates^2;
-  Basis.List = generatebasis(Basis.LLKM,Basis.nSpinStates);
 
   [jjj0,jjj1,jjj2] = jjjsymbol(Basis.LLKM);
   [T0,T1,T2,F0,F1,F2] = magint(Sys,CenterField);
@@ -1056,7 +1053,7 @@ else
   Basis.deltaK = 1;
 end
 
-% Use only even L values (deltaL=2) and no K values (Kmx=0)
+% Use only even L values (oddLmax=0) and no K values (Kmx=0)
 % in case of axial magnetic tensors, axial potential, 
 % and no magnetic/diffusion tilt
 axialSystem = Sys.g_axial;
@@ -1064,16 +1061,14 @@ if (Sys.nNuclei>0)
   axialSystem = axialSystem && all(Sys.A_axial);
 end
 if axialSystem && (Basis.deltaK==2) && (max(Dyn.PotentialK)==0)
-  Basis.deltaL = 2;
+  Basis.oddLmax = 0;
   Basis.Kmax = 0;
-else
-  Basis.deltaL = 1;
 end
 
 
 Basis.v = [...
   Basis.evenLmax Basis.oddLmax Basis.Kmax Basis.Mmax, ...
-  Basis.jKmin Basis.pSmin Basis.deltaL Basis.deltaK ...
+  Basis.jKmin Basis.pSmin Basis.deltaK ...
   Basis.MeirovitchSymm ...
   Basis.pImax];
 

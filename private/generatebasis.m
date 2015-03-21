@@ -1,7 +1,4 @@
-
-
-function basis = generatebasis(LLKM,nSpin)
-
+function basisList = generatebasis(Basis,nSpin)
 
 %%-------------------------------------------------------------------------
 % Generate array of basis functions and their indices in full Liouvillian
@@ -14,42 +11,31 @@ function basis = generatebasis(LLKM,nSpin)
 %     L  M  K  jK  index
 %%-------------------------------------------------------------------------
 
+Leven = 0:2:Basis.evenLmax;
+Lodd  = 1:2:Basis.oddLmax;
+Llist = sort([Leven Lodd]);
 
-if mod(LLKM(1),2) ~= 0
-  LLKM(1) = LLKM(1) + 1;
-end
-if mod(LLKM(2),2) == 0
-  LLKM(2) = LLKM(2) + 1;
-end
-
-Lmax  = max(LLKM(1),LLKM(2));
-Leven = 0:2:LLKM(1);
-Lodd  = 1:2:LLKM(2);
-L = sort([Leven Lodd]);
-
-Kmax = LLKM(3);
-Mmax = LLKM(4);
+Kmax = Basis.Kmax;
+Mmax = Basis.Mmax;
 
 iBasis = 1;
-for L_ = L
-  idxL = sum((2*(0:L_-1)+1).^2) * nSpin;
-  for M_ = min(L_,Mmax):-1:max(-L_,-Mmax)
-    idxM = (L_-M_)*(2*L_+1) * nSpin;
-    for K_ = min(L_,Kmax):-1:0
-      idxK = 2*(L_-K_) * nSpin;
+for L = Llist
+  idxL = sum((2*(0:L-1)+1).^2)*nSpin;
+  for M = min(L,Mmax):-1:max(-L,-Mmax)
+    idxM = (L-M)*(2*L+1)*nSpin;
+    for K = min(L,Kmax):-1:0
+      idxK = 2*(L-K)*nSpin;
       idx = idxL + idxM + idxK + 1;
-      if K_ ~= 0
-        basis(iBasis,:)   = [L_ M_ K_  1 idx];
-        basis(iBasis+1,:) = [L_ M_ K_ -1 idx+nSpin];
+      if (K~=0)
+        basisList(iBasis,:)   = [L M K  1 idx];
+        basisList(iBasis+1,:) = [L M K -1 idx+nSpin];
         iBasis = iBasis + 2;
       else
-        jK_ = (-1)^L_;
-        basis(iBasis,:) = [L_ M_ K_ jK_ idx];
+        basisList(iBasis,:) = [L M K (-1)^L idx];
         iBasis = iBasis + 1;
       end
     end
   end
 end
-
 
 return

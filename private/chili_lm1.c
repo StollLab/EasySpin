@@ -22,7 +22,7 @@ double *MatrixRe, *MatrixIm;
 int nRows, nElements;
 
 int Lemax, Lomax, Kmax, Mmax;
-int jKmin, pSmin, pImax, deltaL, deltaK;
+int jKmin, pSmin, pImax, deltaK;
 int MeirovitchSymm;
 
 struct SystemStruct {
@@ -106,14 +106,14 @@ const bool RhombicDiff = (Rxx!=Ryy);
 
 if (Display) {
   mexPrintf("   Potential: %d   Exchange: %d\n",Potential, ExchangePresent);
-mexPrintf("   Lemax Lomax deltaL:   %d  %d  %d\n",Lemax,Lomax,deltaL);
+mexPrintf("   Lemax Lomax:   %d  %d  %d\n",Lemax,Lomax);
 mexPrintf("   jKmin Kmax Mmax:   %d  %d  %d\n",jKmin,Kmax,Mmax);
 mexPrintf("   pSmin  pImax:   %d  %d\n",pSmin, pImax);
 }
 
 /* All equation numbers refer to Meirovich et al, J.Chem.Phys. 77 (1982) */
 
-for (L1=0;L1<=Lemax;L1+=deltaL) {
+for (L1=0;L1<=Lemax;L1++) {
   if (isodd(L1) && (L1>Lomax)) continue;
   for (jK1=jKmin;jK1<=1;jK1+=2) {
     K1max = mini(Kmax,L1);
@@ -149,7 +149,7 @@ for (L1=0;L1<=Lemax;L1+=deltaL) {
                 iCol = iRow;
                 diagRC = true;
                 L2max = mini(Lemax,L1+Lband);
-                for (L2=L1;L2<=L2max;L2+=deltaL) {
+                for (L2=L1;L2<=L2max;L2++) {
                   if (isodd(L2)&&(L2>Lomax)) continue;
                   Ld = L1 - L2; Ls = L1 + L2;
                   Ld2 = abs(Ld)<=2;
@@ -470,7 +470,7 @@ int K1max, M1max, qS1max, qI1max;
 int iRow = 0;
 double I = Sys.I;
 
-for (L1=0;L1<=Lemax;L1+=deltaL) {
+for (L1=0;L1<=Lemax;L1++) {
   if (isodd(L1) && (L1>Lomax)) continue;
   for (jK1=jKmin;jK1<=1;jK1+=2) {
     K1max = mini(Kmax,L1);
@@ -545,7 +545,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   jKmin = (int)mxGetScalar(mxGetField(prhs[idxB],0,"jKmin"));
   pSmin = (int)mxGetScalar(mxGetField(prhs[idxB],0,"pSmin"));
   pImax = (int)mxGetScalar(mxGetField(prhs[idxB],0,"pImax"));
-  deltaL = (int)mxGetScalar(mxGetField(prhs[idxB],0,"deltaL"));
   deltaK = (int)mxGetScalar(mxGetField(prhs[idxB],0,"deltaK"));
   */
   basisopts = mxGetPr(prhs[1]);
@@ -556,14 +555,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   Mmax = (int)basisopts[3];
   jKmin = (int)basisopts[4];
   pSmin = (int)basisopts[5];
-  deltaL = (int)basisopts[6];
-  deltaK = (int)basisopts[7];
-  MeirovitchSymm = (int)basisopts[8];
-  pImax = (int)basisopts[9];
+  deltaK = (int)basisopts[6];
+  MeirovitchSymm = (int)basisopts[7];
+  pImax = (int)basisopts[8];
 
   /*
-  mexPrintf("(%d %d %d %d) jKmin %d, pSmin %d, pImax %d, deltaL %d, deltaK %d\n",
-    Lemax,Lomax,Kmax,Mmax,jKmin,pSmin,pImax,deltaL,deltaK);
+  mexPrintf("(%d %d %d %d) jKmin %d, pSmin %d, pImax %d, deltaK %d\n",
+    Lemax,Lomax,Kmax,Mmax,jKmin,pSmin,pImax,deltaK);
   */
   
   /*mexPrintf("Parsing diffusion structure...\n"); */

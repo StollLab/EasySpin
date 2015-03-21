@@ -14,7 +14,6 @@ evenLmax = Basis.evenLmax;
 oddLmax = Basis.oddLmax;
 Kmax = Basis.Kmax;
 Mmax = Basis.Mmax;
-deltaL = Basis.deltaL;
 deltaK = Basis.deltaK;
 jkmn = Basis.jKmin;
 pSmin = Basis.pSmin;
@@ -50,7 +49,7 @@ idx = 0;
 
 iseven = @(x)mod(x,2)==0;
 isodd = @(x)mod(x,2)~=0;
-for L = 0:deltaL:evenLmax
+for L = 0:evenLmax
   if isodd(L) && (L>oddLmax), continue; end    
   for jK = jkmn:2:1
     Kmx = min(L,Kmax);

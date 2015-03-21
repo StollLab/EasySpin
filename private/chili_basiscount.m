@@ -1,10 +1,9 @@
-function [nRows,Indices] = chili_basiscount(Sys,Basis)
+function [nRows,Indices] = chili_basiscount(Basis,Sys)
 
 DirTilt = Sys.DirTilt;
 
 evenLmax = Basis.evenLmax;
 oddLmax = Basis.oddLmax;
-deltaL = Basis.deltaL;
 
 jKmin = Basis.jKmin;
 Kmax = Basis.Kmax;
@@ -32,13 +31,12 @@ if MakeIndices
   Indices = zeros(nRowBlock,4+2+2*nNuclei);
 end
 
-for L = 0:deltaL:evenLmax
+for L = 0:evenLmax
   Lparity = parity(L);
   evenL = (Lparity==1);
   if (~evenL) && (L>oddLmax), continue; end    
   for jK = jKmin:2:1
-    Kmx = min(L,Kmax);
-    for K = 0:deltaK:Kmx
+    for K = 0:deltaK:min(L,Kmax)
       if ((K==0) && (Lparity~=jK)), continue; end
       Mmx = min(L,Mmax);
       for M = -Mmx:Mmx
