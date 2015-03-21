@@ -1,5 +1,6 @@
-function Gamma = rdogamma(basis,R,nSpin)
+% Compute diffusion superoperator
 
+function Gamma = rdogamma(basis,DiffTensorValues,nSpin)
 
 Lmax = max(basis(:,1));
 L   = basis(:,1);
@@ -11,84 +12,56 @@ nSpace = sum((2*(0:Lmax)+1).^2);
 nBasis = nSpace*nSpin;
 nNonZero = length(basis);
 
-
-%Gamma = sparse(zeros(nbasis,nbasis));
-
-
-Rx = R(1,1);
-Ry = R(2,2);
-Rz = R(3,3);
+Rx = DiffTensorValues(1);
+Ry = DiffTensorValues(2);
+Rz = DiffTensorValues(3);
 Rd = 0.25*(Rx-Ry);
 Rperp = 0.5*(Rx+Ry);
 
-i = 1;
+idx0 = 0;
 for iBasis = 1:nNonZero
-  L1_  =  L(iBasis);
-  M1_  =  M(iBasis);
-  jK1_ = jK(iBasis);
-  K1_  =  K(iBasis);
-  if K1_ == 0
-    deltaK1 = 1;
-  else
-    deltaK1 = 0;
-  end
-  idx1 = index(iBasis) - 1;
+  L1 = L(iBasis);
+  M1 = M(iBasis);
+  jK1 = jK(iBasis);
+  K1 = K(iBasis);
+  deltaK1 = (K1==0);
+  idxr = index(iBasis) - 1;
   
   for jBasis = iBasis:nNonZero
-    L2_  =  L(jBasis);
-    if (L1_ ~= L2_), break; end;
-    L_ = L1_;
-    M2_  =  M(jBasis);
-    if (M1_ ~= M2_), continue; end;
-    jK2_ = jK(jBasis);
-    if (jK1_ ~= jK2_), continue; end;
-    K2_  =  K(jBasis);
-    if (abs(K1_-K2_) > 2), continue; end;
-    if K2_ == 0
-      deltaK2 = 1;
-    else
-      deltaK2 = 0;
-    end
-    idx2 = index(jBasis) - 1;
+    L2 = L(jBasis);
+    if (L1~=L2), break; end
+    L_ = L1;
+    M2 = M(jBasis);
+    if (M1~=M2), continue; end
+    jK2 = jK(jBasis);
+    if (jK1~=jK2), continue; end
+    K2 = K(jBasis);
+    if (abs(K1-K2) > 2), continue; end
     
-    if K1_ == K2_
-      K_ = K1_;
-      val_ = Rperp*(L1_*(L1_+1)-K_^2) + Rz*K_^2;
-    else     
-      if K2_ == K1_+2
-        deltaUp = 1;
-      else
-        deltaUp = 0;
-      end
-      if K2_ == K1_-2
-        deltaDown = 1;
-      else
-        deltaDown = 0;
-      end
-      
-      Nup   = sqrt((L_-K2_-1)*(L_-K2_)*(L_+K2_+1)*(L_+K2_+2));
-      Ndown = sqrt((L_+K2_-1)*(L_+K2_)*(L_-K2_+1)*(L_-K2_+2));
-      NK = sqrt((1+deltaK1)*(1+deltaK2));
-      val_ = Rd*NK*(Nup*deltaDown + Ndown*deltaUp); 
+    deltaK2 = (K2==0);
+    idxc = index(jBasis) - 1;
+    
+    if (K2==K1)
+      val = Rperp*(L1*(L1+1)-K1^2) + Rz*K1^2;
+    elseif (K2==K1+2)
+      val = Rd*sqrt((1+deltaK1)*(1+deltaK2)*(L_+K2-1)*(L_+K2)*(L_-K2+1)*(L_-K2+2));
+    elseif (K2==K1-2)
+      val = Rd*sqrt((1+deltaK1)*(1+deltaK2)*(L_-K2-1)*(L_-K2)*(L_+K2+1)*(L_+K2+2));
+    else
+      continue
     end
-      
-      spinblock = eye(nSpin)*val_;
-      [row,col,val] = find(spinblock);
-      row = row + idx1;
-      col = col + idx2;
-      indices = i:i+numel(row)-1;
-      
-      bra(indices) = row;
-      ket(indices) = col;
-      el(indices)  = val;
-      
-      i = i + numel(row);
-      
+    
+    idx_ = idx0 + (1:nSpin);
+    bra(idx_) = idxr + (1:nSpin);
+    ket(idx_) = idxc + (1:nSpin);
+    el(idx_)  = val;
+    
+    idx0 = idx0 + nSpin;
+    
   end
 end
-    
+
 Gamma = sparse(bra,ket,el,nBasis,nBasis);
 Gamma = Gamma - (Gamma - diag(diag(Gamma))).';
-
 
 return

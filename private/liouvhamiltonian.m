@@ -4,7 +4,7 @@
 % The Wigner 3j-symbols have been precomupted and stored by jjjsymbol.
 
 
-function [H0,H2] = hamtest(basis,Q0,Q2,jjj0,jjj2)
+function [H0,H2] = liouvhamiltonian(basis,Q0,Q2,jjj0,jjj2)
 
 
 Lmax = max(basis(:,1));

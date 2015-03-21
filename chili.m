@@ -576,8 +576,7 @@ else
 
   [jjj0,jjj1,jjj2] = jjjsymbol(Basis.LLMK);
   [T0,T1,T2,F0,F1,F2] = magint(Sys,CenterField);
-  R_js = eye(3)./(6*Sys.tcorr);
-  Gamma = rdogamma(Basis.idx,R_js,Sys.nStates^2);
+  Gamma = rdogamma(Basis.idx,Dynamics.Diff,Sys.nStates^2);
 end
 
 
