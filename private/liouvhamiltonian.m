@@ -33,30 +33,23 @@ nNonZero = length(basis);
 %--------------------------------------------------------------------------
 % Rank 0
 %--------------------------------------------------------------------------
-'hamtest';
-i = 1;
+[row,col,val] = find(Q0);
+indices = 1:numel(val);
 for iBasis = 1:nNonZero
   L_  =  L(iBasis);
   M_  =  M(iBasis);
   K_  =  K(iBasis);
-  idx = index(iBasis) - 1;
+  idx0 = index(iBasis) - 1;
   
   NL = (2*L_+1);
   jjjM = jjj0(L_^2+L_-M_+1,L_^2+L_+M_+1);
   jjjK = jjj0(L_^2+L_-K_+1,L_^2+L_+K_+1);
+    
+  braH0(indices) = idx0 + row;
+  ketH0(indices) = idx0 + col;
+  elH0(indices)  = val * (-1)^(K_-M_) * NL * jjjM * jjjK;
   
-  spinblock = (-1)^(K_-M_) * NL * jjjM * jjjK * Q0;
-  
-  [row,col,val] = find(spinblock);
-  row = row + idx;
-  col = col + idx;
-  
-  for j = 1:numel(row)
-    braH0(i)  = row(j);
-    ketH0(i)  = col(j); %#ok<*AGROW>
-    elH0(i)   = val(j);
-    i = i + 1;
-  end
+  indices = indices + numel(val);
 end
 
 
@@ -81,11 +74,11 @@ for iBasis = 1:nNonZero
   
   for jBasis = iBasis:nNonZero
     L2_  =  L(jBasis);
-    if (abs(L1_-L2_) > 2), break; end;
+    if (abs(L1_-L2_) > 2), break; end
     M2_  =  M(jBasis);
-    if (abs(M1_-M2_) > 2), continue; end;
+    if (abs(M1_-M2_) > 2), continue; end
     K2_  =  K(jBasis);
-    if (abs(K1_-K2_) > 2), continue; end;
+    if (abs(K1_-K2_) > 2), continue; end
     jK2_ = jK(jBasis);
     
     idx2 = index(jBasis) - 1;
@@ -128,15 +121,13 @@ for iBasis = 1:nNonZero
     end
     
     [row,col,val] = find(spinblock);
-    row = row + idx1;
-    col = col + idx2;
-    indices = i:i+numel(row)-1;
+    indices = i:i+numel(val)-1;
     
-    braH2(indices) = row;
-    ketH2(indices) = col;
+    braH2(indices) = row + idx1;
+    ketH2(indices) = col + idx2;
     elH2(indices)  = val;
     
-    i = i + numel(row);
+    i = i + numel(val);
     
   end
 end
@@ -144,7 +135,7 @@ end
 
 H0 = sparse(braH0,ketH0,elH0,nBasis,nBasis);
 H2 = sparse(braH2,ketH2,elH2,nBasis,nBasis);
-H2 = H2 + (H2 - diag(diag(H2))).';
+H2 = H2 + triu(H2,1).';
 
 return
 
