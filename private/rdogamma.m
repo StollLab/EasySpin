@@ -6,8 +6,6 @@ L   = basis(:,1);
 M   = basis(:,2);
 K   = basis(:,3);
 jK  = basis(:,4);
-index = basis(:,5);
-Lmax = max(L);
 
 Rx = DiffTensorValues(1);
 Ry = DiffTensorValues(2);
@@ -22,7 +20,7 @@ for iBasis = 1:length(L)
   jK1 = jK(iBasis);
   K1 = K(iBasis);
   deltaK1 = (K1==0);
-  idxr = index(iBasis) - 1;
+  idxr = (iBasis-1)*nSpin;
   
   for jBasis = iBasis:length(L)
     L2 = L(jBasis);
@@ -36,7 +34,7 @@ for iBasis = 1:length(L)
     if (abs(K1-K2) > 2), continue; end
     
     deltaK2 = (K2==0);
-    idxc = index(jBasis) - 1;
+    idxc = (iBasis-1)*nSpin;
     
     if (K2==K1)
       val = Rperp*(L1*(L1+1)-K1^2) + Rz*K1^2;
@@ -58,9 +56,7 @@ for iBasis = 1:length(L)
   end
 end
 
-nSpace = sum((2*(0:Lmax)+1).^2);
-nBasis = nSpace*nSpin;
-Gamma = sparse(bra,ket,el,nBasis,nBasis);
+Gamma = sparse(bra,ket,el,length(L)*nSpin,length(L)*nSpin);
 Gamma = Gamma + triu(Gamma,1).';
 
 return

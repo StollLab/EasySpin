@@ -607,7 +607,7 @@ for iOri = 1:nOrientations
   %-------------------------------------------------------
   logmsg(1,'Computing starting vector(s)...');
   if JerSpin
-    StartingVector = startvec(Basis.LLKM,SxOps);
+    StartingVector = startvec(Basis.List,SxOps);
   else
     StartingVector = chili_sv(Sys,Basis,Dynamics,Opt);
   end
@@ -659,7 +659,6 @@ for iOri = 1:nOrientations
   end
   
   logmsg(1,'  non-zero elements: %d/%d (%0.2f%%)',nnz(L),length(L).^2,100*nnz(L)/length(L)^2);
-
   
   %==============================================================
   % Computation of the spectral function

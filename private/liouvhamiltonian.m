@@ -5,15 +5,11 @@
 
 function H = liouvhamiltonian(basis,Q0,Q1,Q2,jjj0,jjj1,jjj2)
 
-Lmax = max(basis(:,1));
 L   = basis(:,1);
 M   = basis(:,2);
 K   = basis(:,3);
 jK  = basis(:,4);
-index = basis(:,5);
-nSpace = sum((2*(0:Lmax)+1).^2);
 nSpin = length(Q0);
-nBasis = nSpace*nSpin;
 nSpatialBasis = length(basis);
 
 %--------------------------------------------------------------------------
@@ -25,7 +21,7 @@ for iBasis = 1:nSpatialBasis
   L_  =  L(iBasis);
   M_  =  M(iBasis);
   K_  =  K(iBasis);
-  idx0 = index(iBasis) - 1;
+  idx0 = (iBasis-1)*nSpin;
   
   jjjM = jjj0(L_^2+L_-M_+1,L_^2+L_+M_+1);
   jjjK = jjj0(L_^2+L_-K_+1,L_^2+L_+K_+1);
@@ -38,7 +34,7 @@ for iBasis = 1:nSpatialBasis
 end
 
 % Assemble sparse matrix
-H0 = sparse(braH0,ketH0,elH0,nBasis,nBasis);
+H0 = sparse(braH0,ketH0,elH0,length(basis)*nSpin,length(basis)*nSpin);
 
 
 %--------------------------------------------------------------------------
@@ -50,7 +46,7 @@ for iBasis = 1:nSpatialBasis
   M1 = M(iBasis);
   K1 = K(iBasis);
   jK1 = jK(iBasis);
-  idx1 = index(iBasis) - 1;
+  idx1 = (iBasis-1)*nSpin;
   
   deltaK1 = (K1==0);
   
@@ -63,7 +59,7 @@ for iBasis = 1:nSpatialBasis
     if (abs(K1-K2) > 1), continue; end
     jK2 = jK(jBasis);
     
-    idx2 = index(jBasis) - 1;
+    idx2 = (jBasis-1)*nSpin;
     NL = sqrt((2*L1+1)*(2*L2+1));
     jjjM = jjj1(L1^2+L1-M1+1,L2^2+L2-M2+1);
     jjjKa = jjj1(L1^2+L1-K1+1,L2^2+L2-K2+1);
@@ -102,7 +98,7 @@ for iBasis = 1:nSpatialBasis
   end
 end
 % Assemble sparse matrix
-H1 = sparse(braH1,ketH1,elH1,nBasis,nBasis);
+H1 = sparse(braH1,ketH1,elH1,length(basis)*nSpin,length(basis)*nSpin);
 
 % Fill in lower triangular part
 H1 = H1 + triu(H1,1).';
@@ -118,7 +114,7 @@ for iBasis = 1:nSpatialBasis
   M1 = M(iBasis);
   K1 = K(iBasis);
   jK1 = jK(iBasis);
-  idx1 = index(iBasis) - 1;
+  idx1 = (iBasis-1)*nSpin;
   
   deltaK1 = (K1==0);
   
@@ -131,7 +127,7 @@ for iBasis = 1:nSpatialBasis
     if (abs(K1-K2)>2), continue; end
     jK2 = jK(jBasis);
     
-    idx2 = index(jBasis) - 1;
+    idx2 = (jBasis-1)*nSpin;
     NL = sqrt((2*L1+1)*(2*L2+1));
     jjjM = jjj2(L1^2+L1-M1+1,L2^2+L2-M2+1);
     jjjKa = jjj2(L1^2+L1-K1+1,L2^2+L2-K2+1);
@@ -173,7 +169,7 @@ for iBasis = 1:nSpatialBasis
 end
 
 % Assemble sparse matrix
-H2 = sparse(braH2,ketH2,elH2,nBasis,nBasis);
+H2 = sparse(braH2,ketH2,elH2,length(basis)*nSpin,length(basis)*nSpin);
 
 % Fill in lower triangular part
 H2 = H2 + triu(H2,1).';
