@@ -16,7 +16,7 @@ index = basis(:,5);
 nSpace = sum((2*(0:Lmax)+1).^2);
 nSpin = length(Q0);
 nBasis = nSpace*nSpin;
-nNonZero = length(basis);
+nSpatialBasis = length(basis);
 
 
 %--------------------------------------------------------------------------
@@ -35,108 +35,93 @@ nNonZero = length(basis);
 %--------------------------------------------------------------------------
 [row,col,val] = find(Q0);
 indices = 1:numel(val);
-for iBasis = 1:nNonZero
+for iBasis = 1:nSpatialBasis
   L_  =  L(iBasis);
   M_  =  M(iBasis);
   K_  =  K(iBasis);
   idx0 = index(iBasis) - 1;
   
-  NL = (2*L_+1);
   jjjM = jjj0(L_^2+L_-M_+1,L_^2+L_+M_+1);
   jjjK = jjj0(L_^2+L_-K_+1,L_^2+L_+K_+1);
-    
+  
+  elH0(indices)  = (-1)^(K_-M_) * (2*L_+1) * jjjM * jjjK * val;
   braH0(indices) = idx0 + row;
   ketH0(indices) = idx0 + col;
-  elH0(indices)  = val * (-1)^(K_-M_) * NL * jjjM * jjjK;
   
   indices = indices + numel(val);
 end
 
+% Assemble sparse matrix
+H0 = sparse(braH0,ketH0,elH0,nBasis,nBasis);
 
 %--------------------------------------------------------------------------
 % Rank 2
 %--------------------------------------------------------------------------
 
-
 i = 1;
-for iBasis = 1:nNonZero
-  L1_  =  L(iBasis);
-  M1_  =  M(iBasis);
-  K1_  =  K(iBasis);
-  jK1_ = jK(iBasis);
+for iBasis = 1:nSpatialBasis
+  L1 = L(iBasis);
+  M1 = M(iBasis);
+  K1 = K(iBasis);
+  jK1 = jK(iBasis);
   idx1 = index(iBasis) - 1;
   
-  if K1_ == 0
-    deltaK1 = 1;
-  else
-    deltaK1 = 0;
-  end
+  deltaK1 = (K1==0);
   
-  for jBasis = iBasis:nNonZero
-    L2_  =  L(jBasis);
-    if (abs(L1_-L2_) > 2), break; end
-    M2_  =  M(jBasis);
-    if (abs(M1_-M2_) > 2), continue; end
-    K2_  =  K(jBasis);
-    if (abs(K1_-K2_) > 2), continue; end
-    jK2_ = jK(jBasis);
+  for jBasis = iBasis:nSpatialBasis
+    L2 = L(jBasis);
+    if (abs(L1-L2)>2), break; end
+    M2 = M(jBasis);
+    if (abs(M1-M2)>2), continue; end
+    K2 = K(jBasis);
+    if (abs(K1-K2)>2), continue; end
+    jK2 = jK(jBasis);
     
     idx2 = index(jBasis) - 1;
-    NL = sqrt((2*L1_+1)*(2*L2_+1));
-    jjjM = jjj2(L1_^2+L1_-M1_+1,L2_^2+L2_-M2_+1);
-    jjjKa = jjj2(L1_^2+L1_-K1_+1,L2_^2+L2_-K2_+1);
+    NL = sqrt((2*L1+1)*(2*L2+1));
+    jjjM = jjj2(L1^2+L1-M1+1,L2^2+L2-M2+1);
+    jjjKa = jjj2(L1^2+L1-K1+1,L2^2+L2-K2+1);
     
-    if K2_ == 0
-      deltaK2 = 1;
-    else
-      deltaK2 = 0;
-    end
+    deltaK2 = (K2==0);
     
-    idxM  = 3-( M1_-M2_);
-    idxKa = 3-( K1_-K2_);
-    idxKb = 3-(-K1_+K2_);
+    idxM  = 3-( M1-M2);
+    idxKa = 3-( K1-K2);
+    idxKb = 3-(-K1+K2);
     
     % first term
     
     prefactor = (1/(2*sqrt((1+deltaK1)*(1+deltaK2))))...
-      * sqrt(jK1_)'*sqrt(jK2_) * NL * jjjM;
-    sign1 = (-1)^(K1_-M1_);
-    sign2 = (-1)^(K2_-M1_);
+      * sqrt(jK1)'*sqrt(jK2) * NL * jjjM;
     
-    spinblock = prefactor * jjjKa * (sign1*Q2{idxM,idxKa}...
-      + jK1_*jK2_*sign2*Q2{idxM,idxKb});
+    spinblock = prefactor * jjjKa * ...
+      ((-1)^(K1-M1)*Q2{idxM,idxKa} + jK1*jK2*(-1)^(K2-M1)*Q2{idxM,idxKb});
     
     % second term
     
-    if K1_+K2_ <= 2
-      jjjKb = jjj2(L1_^2+L1_-K1_+1,L2_^2+L2_+K2_+1);
-      idxKc = 3-(-K1_-K2_);
-      idxKd = 3-(K1_+K2_);
-      sign3 = (-1)^(L2_-M1_);
-      sign4 = (-1)^(L2_+K1_+K2_-M1_);
+    if (K1+K2<=2)
+      jjjKb = jjj2(L1^2+L1-K1+1,L2^2+L2+K2+1);
+      idxKc = 3-(-K1-K2);
+      idxKd = 3-(K1+K2);
       
       spinblock = spinblock + ...
-        prefactor * jjjKb * (jK1_*sign3*Q2{idxM,idxKc}...
-        + jK2_*sign4*Q2{idxM,idxKd});
+        prefactor * jjjKb * (jK1*(-1)^(L2-M1)*Q2{idxM,idxKc}...
+        + jK2*(-1)^(L2+K1+K2-M1)*Q2{idxM,idxKd});
     end
     
     [row,col,val] = find(spinblock);
     indices = i:i+numel(val)-1;
-    
     braH2(indices) = row + idx1;
     ketH2(indices) = col + idx2;
     elH2(indices)  = val;
-    
     i = i + numel(val);
     
   end
 end
 
-
-H0 = sparse(braH0,ketH0,elH0,nBasis,nBasis);
+% Assemble sparse matrix
 H2 = sparse(braH2,ketH2,elH2,nBasis,nBasis);
+
+% Fill in lower triangular part
 H2 = H2 + triu(H2,1).';
 
 return
-
-
