@@ -3,9 +3,7 @@
 % spin/space Hamiltonian in Liouville space.
 % The Wigner 3j-symbols have been precomupted and stored by jjjsymbol.
 
-
-function [H0,H2] = liouvhamiltonian(basis,Q0,Q2,jjj0,jjj2)
-
+function H = liouvhamiltonian(basis,Q0,Q1,Q2,jjj0,jjj1,jjj2)
 
 Lmax = max(basis(:,1));
 L   = basis(:,1);
@@ -17,18 +15,6 @@ nSpace = sum((2*(0:Lmax)+1).^2);
 nSpin = length(Q0);
 nBasis = nSpace*nSpin;
 nSpatialBasis = length(basis);
-
-
-%--------------------------------------------------------------------------
-% compute the non-zero elements in the K-symmetrized Zeeman basis
-%--------------------------------------------------------------------------
-
-
-%j3idx = @(L,MK) L^2 + L - MK + 1;
-%jjj0val = @(L1,MK1,L2,MK2) jjj0(j3idx(L1,MK1),j3idx(L2,MK2));
-%jjj1val = @(L1,MK1,L2,MK2) jjj1(j3idx(L1,MK1),j3idx(L2,MK2));
-%jjj2val = @(L1,MK1,L2,MK2) jjj2(j3idx(L1,MK1),j3idx(L2,MK2));
-
 
 %--------------------------------------------------------------------------
 % Rank 0
@@ -53,6 +39,74 @@ end
 
 % Assemble sparse matrix
 H0 = sparse(braH0,ketH0,elH0,nBasis,nBasis);
+
+
+%--------------------------------------------------------------------------
+% Rank 1
+%--------------------------------------------------------------------------
+i = 1;
+for iBasis = 1:nSpatialBasis
+  L1 = L(iBasis);
+  M1 = M(iBasis);
+  K1 = K(iBasis);
+  jK1 = jK(iBasis);
+  idx1 = index(iBasis) - 1;
+  
+  deltaK1 = (K1==0);
+  
+  for jBasis = 1:nSpatialBasis
+    L2 = L(jBasis);
+    if (abs(L1-L2) > 1), continue; end
+    M2 = M(jBasis);
+    if (abs(M1-M2) > 1), continue; end
+    K2 = K(jBasis);
+    if (abs(K1-K2) > 1), continue; end
+    jK2 = jK(jBasis);
+    
+    idx2 = index(jBasis) - 1;
+    NL = sqrt((2*L1+1)*(2*L2+1));
+    jjjM = jjj1(L1^2+L1-M1+1,L2^2+L2-M2+1);
+    jjjKa = jjj1(L1^2+L1-K1+1,L2^2+L2-K2+1);
+    
+    deltaK2 = (K2==0);
+    
+    idxM  = 2-( M1-M2);
+    idxKa = 2-( K1-K2);
+    idxKb = 2-(-K1+K2);
+    
+    % first term
+    prefactor = (1/(2*sqrt((1+deltaK1)*(1+deltaK2))))...
+      * sqrt(jK1)'*sqrt(jK2) * NL * jjjM;
+    
+    spinblock = prefactor * jjjKa * ...
+      ((-1)^(K1-M1)*Q1{idxM,idxKa} + jK1*jK2*(-1)^(K2-M1)*Q1{idxM,idxKb});
+    
+    % second term
+    if (K1+K2<=1)
+      jjjKb = jjj1(L1^2+L1-K1+1,L2^2+L2+K2+1);
+      idxKc = 2-(-K1-K2);
+      idxKd = 2-(K1+K2);
+      
+      spinblock = spinblock + ...
+        prefactor * jjjKb * (jK1*(-1)^(L2-M1)*Q1{idxM,idxKc}...
+        + jK2*(-1)^(L2+K1+K2-M1)*Q1{idxM,idxKd});
+    end
+      
+    [row,col,val] = find(spinblock);
+    indices = i:i+numel(row)-1;
+    braH1(indices) = row + idx1;
+    ketH1(indices) = col + idx2;
+    elH1(indices)  = val;
+    i = i + numel(row);
+    
+  end
+end
+% Assemble sparse matrix
+H1 = sparse(braH1,ketH1,elH1,nBasis,nBasis);
+
+% Fill in lower triangular part
+H1 = H1 + triu(H1,1).';
+
 
 %--------------------------------------------------------------------------
 % Rank 2
@@ -123,5 +177,8 @@ H2 = sparse(braH2,ketH2,elH2,nBasis,nBasis);
 
 % Fill in lower triangular part
 H2 = H2 + triu(H2,1).';
+
+% Combine rank-0 and rank-2 parts of Hamiltonian
+H = H0 + H1 + H2;
 
 return

@@ -2,15 +2,13 @@
 
 function Gamma = rdogamma(basis,DiffTensorValues,nSpin)
 
-Lmax = max(basis(:,1));
 L   = basis(:,1);
 M   = basis(:,2);
 K   = basis(:,3);
 jK  = basis(:,4);
 index = basis(:,5);
-nSpace = sum((2*(0:Lmax)+1).^2);
-nBasis = nSpace*nSpin;
-nNonZero = length(basis);
+Lmax = max(L);
+nSpatialBasis = length(L);
 
 Rx = DiffTensorValues(1);
 Ry = DiffTensorValues(2);
@@ -19,7 +17,7 @@ Rd = 0.25*(Rx-Ry);
 Rperp = 0.5*(Rx+Ry);
 
 idx0 = 0;
-for iBasis = 1:nNonZero
+for iBasis = 1:nSpatialBasis
   L1 = L(iBasis);
   M1 = M(iBasis);
   jK1 = jK(iBasis);
@@ -27,7 +25,7 @@ for iBasis = 1:nNonZero
   deltaK1 = (K1==0);
   idxr = index(iBasis) - 1;
   
-  for jBasis = iBasis:nNonZero
+  for jBasis = iBasis:nSpatialBasis
     L2 = L(jBasis);
     if (L1~=L2), break; end
     L_ = L1;
@@ -61,6 +59,8 @@ for iBasis = 1:nNonZero
   end
 end
 
+nSpace = sum((2*(0:Lmax)+1).^2);
+nBasis = nSpace*nSpin;
 Gamma = sparse(bra,ket,el,nBasis,nBasis);
 Gamma = Gamma + triu(Gamma,1).';
 

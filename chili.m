@@ -552,7 +552,23 @@ end
 
 % Preparations
 %-----------------------------------------------------------------------
-if ~JerSpin
+if JerSpin
+  Basis.LLKM = Opt.LLKM;
+  Basis.nSpinStates = Sys.nStates^2;
+  Basis.idx = generatebasis(Basis.LLKM,Basis.nSpinStates);
+
+  [jjj0,jjj1,jjj2] = jjjsymbol(Basis.LLKM);
+  [T0,T1,T2,F0,F1,F2] = magint(Sys,CenterField);
+  Gamma = rdogamma(Basis.idx,Dynamics.Diff,Sys.nStates^2);
+
+  SpinOps = spinop(Sys.S);
+  if numel(Sys.Spins)>1
+    SxOps_ = SpinOps(1:Sys.nElectrons,1);
+    SxOps = expandsops(Sys,SxOps_{1},1);
+  else
+    SxOps = SpinOps{1};
+  end
+else
   % Pick functions for the calculation of Liouvillian and starting vector
   switch Sys.nNuclei
     case 0
@@ -567,14 +583,6 @@ if ~JerSpin
     otherwise
       error('The chosen method cannot handle %d nuclei.',Sys.nNuclei);
   end
-else
-  Basis.LLKM = Opt.LLKM;
-  Basis.nSpinStates = Sys.nStates^2;
-  Basis.idx = generatebasis(Basis.LLKM,Basis.nSpinStates);
-
-  [jjj0,jjj1,jjj2] = jjjsymbol(Basis.LLKM);
-  [T0,T1,T2,F0,F1,F2] = magint(Sys,CenterField);
-  Gamma = rdogamma(Basis.idx,Dynamics.Diff,Sys.nStates^2);
 end
 
 
@@ -582,34 +590,26 @@ end
 %=====================================================================
 for iOri = 1:nOrientations
   
-  % Director tilt
+  % Set up orientation
   %-------------------------------------------------------
-  Sys.d2psi = wignerd(2,[phi(iOri) theta(iOri) 0]);
   logmsg(2,'orientation %d of %d: phi = %g°, theta = %g° (weight %g)',...
     iOri,nOrientations,phi(iOri)*180/pi,theta(iOri)*180/pi,Weights(iOri));
 
   if JerSpin
     D1 = wignerd(1,[phi,theta,0]);
-    D2 = Sys.d2psi;
+    D2 = wignerd(2,[phi(iOri) theta(iOri) 0]);
     [Q0,Q1,Q2] = rbos(D1,D2,T0,T1,T2,F0,F1,F2);
+  else
+    Sys.d2psi = wignerd(2,[phi(iOri) theta(iOri) 0]);
   end
   
   % Starting vector
   %-------------------------------------------------------
   logmsg(1,'Computing starting vector(s)...');
-  if ~JerSpin
-    StartingVector = chili_sv(Sys,Basis,Dynamics,Opt);
-  else
-    SpinOps = spinop(Sys.S);
-    if numel(Sys.Spins) > 1
-      SxOps_ = SpinOps(1:Sys.nElectrons,1);
-      SxOps_ = SxOps_{1};
-      position = 1;
-      SxOps = expandsops(Sys,SxOps_,position);
-    else
-      SxOps = SpinOps{1};
-    end
+  if JerSpin
     StartingVector = startvec(Basis.LLKM,SxOps);
+  else
+    StartingVector = chili_sv(Sys,Basis,Dynamics,Opt);
   end
   
   BasisSize = size(StartingVector,1);
@@ -624,21 +624,8 @@ for iOri = 1:nOrientations
   logmsg(1,'Computing Liouville matrix...');
 
   if JerSpin
-    
-    %[H0,H1,H2] = ksymham(Basis.idx,Q0,Q1,Q2,jjj0,jjj1,jjj2);
-    %[H0,H2] = ksymham02(Basis.idx,Q0,Q2,jjj0,jjj2);
-    [H0,H2] = liouvhamiltonian(Basis.idx,Q0,Q2,jjj0,jjj2);
-    %SpinHam = H0 + H1 + H2;
-    SpinHam = H0 + H2;
-    L = -2i*pi*SpinHam + Gamma;
-    omega = 2i*pi*nu;%omega0*1e9; % rad/s
-    nDim = length(L);
-    if (Opt.Rescale)
-      % rescale my maximum in Hamiltonian superoperator
-      scale = -min(imag(L(:)));
-      L = L/scale;
-      omega = omega/scale;
-    end
+    H = liouvhamiltonian(Basis.idx,Q0,Q1,Q2,jjj0,jjj1,jjj2);
+    L = -2i*pi*H + Gamma;
   else
     [r,c,Vals,nDim,nElm] = chili_lm(Sys,Basis.v,Dynamics,Opt.Allocation);
     idx = 1:nElm;
@@ -652,23 +639,20 @@ for iOri = 1:nOrientations
     if any(isnan(Vals))
       error('Liouville matrix contains %d NaN entries!',sum(isnan(Vals)));
     end
-    
-    omega = omega0; % angular frequency
-    if (Opt.Rescale)
-      % rescale my maximum in Hamiltonian superoperator
-      scale = -min(imag(Vals));
-      Vals = Vals/scale;
-      omega = omega/scale;
-    end
-    
-    L = sparse(r+1,c+1,Vals,nDim,nDim);
+    L = sparse(r+1,c+1,Vals,BasisSize,BasisSize);
   end
-  maxDvalLim = 2e3;
-  if JerSpin
-    maxDval = max(abs(imag(L(:))));
+  
+  % Rescale by maximum of Hamiltonian superoperator
+  if (Opt.Rescale)
+    scale = -min(imag(L(:)));
+    L = L/scale;
+    omega = omega0/scale;
   else
-    maxDval = max(abs(imag(Vals)));
+    omega = omega0; % angular frequency
   end
+  
+  maxDvalLim = 2e3;
+  maxDval = max(abs(imag(L(:))));
   logmsg(1,'  maxabs: %g',full(maxDval));
   if maxDval>maxDvalLim
     error(sprintf('Numerical instability, values in diffusion matrix are too large (%g)!',maxDval));
@@ -690,11 +674,11 @@ for iOri = 1:nOrientations
         if (minerr<Opt.Threshold)
           thisspec(iVec,:) = chili_contfracspec(omega,alpha,beta);
           logmsg(1,'  vector %d: converged to within %g at iteration %d/%d',...
-            iVec,Opt.Threshold,numel(alpha),nDim);
+            iVec,Opt.Threshold,numel(alpha),BasisSize);
         else
           thisspec = ones(size(omega));
           logmsg(0,'  Tridiagonalization did not converge to within %g after %d steps!\n  Increase Options.LLKM (current settings [%d,%d,%d,%d])',...
-            Opt.Threshold,nDim,Opt.LLKM');
+            Opt.Threshold,BasisSize,Opt.LLKM');
         end
       end
 
@@ -703,7 +687,7 @@ for iOri = 1:nOrientations
       [xx,alpha,beta,err,StepsDone] = chili_conjgrad(L,StartingVector,CGshift);
 
       logmsg(1,'  step %d/%d: CG converged to within %g',...
-        StepsDone,nDim,err);
+        StepsDone,BasisSize,err);
 
       thisspec = chili_contfracspec(omega,alpha,beta);
 
