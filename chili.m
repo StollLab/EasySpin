@@ -555,11 +555,11 @@ end
 if JerSpin
   Basis.LLKM = Opt.LLKM;
   Basis.nSpinStates = Sys.nStates^2;
-  Basis.idx = generatebasis(Basis.LLKM,Basis.nSpinStates);
+  Basis.List = generatebasis(Basis.LLKM,Basis.nSpinStates);
 
   [jjj0,jjj1,jjj2] = jjjsymbol(Basis.LLKM);
   [T0,T1,T2,F0,F1,F2] = magint(Sys,CenterField);
-  Gamma = rdogamma(Basis.idx,Dynamics.Diff,Sys.nStates^2);
+  Gamma = rdogamma(Basis.List,Dynamics.Diff,Sys.nStates^2);
 
   SpinOps = spinop(Sys.S);
   if numel(Sys.Spins)>1
@@ -624,7 +624,7 @@ for iOri = 1:nOrientations
   logmsg(1,'Computing Liouville matrix...');
 
   if JerSpin
-    H = liouvhamiltonian(Basis.idx,Q0,Q1,Q2,jjj0,jjj1,jjj2);
+    H = liouvhamiltonian(Basis.List,Q0,Q1,Q2,jjj0,jjj1,jjj2);
     L = -2i*pi*H + Gamma;
   else
     [r,c,Vals,nDim,nElm] = chili_lm(Sys,Basis.v,Dynamics,Opt.Allocation);

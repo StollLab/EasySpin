@@ -8,7 +8,6 @@ K   = basis(:,3);
 jK  = basis(:,4);
 index = basis(:,5);
 Lmax = max(L);
-nSpatialBasis = length(L);
 
 Rx = DiffTensorValues(1);
 Ry = DiffTensorValues(2);
@@ -17,7 +16,7 @@ Rd = 0.25*(Rx-Ry);
 Rperp = 0.5*(Rx+Ry);
 
 idx0 = 0;
-for iBasis = 1:nSpatialBasis
+for iBasis = 1:length(L)
   L1 = L(iBasis);
   M1 = M(iBasis);
   jK1 = jK(iBasis);
@@ -25,7 +24,7 @@ for iBasis = 1:nSpatialBasis
   deltaK1 = (K1==0);
   idxr = index(iBasis) - 1;
   
-  for jBasis = iBasis:nSpatialBasis
+  for jBasis = iBasis:length(L)
     L2 = L(jBasis);
     if (L1~=L2), break; end
     L_ = L1;
