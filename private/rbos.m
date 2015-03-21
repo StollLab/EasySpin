@@ -51,21 +51,18 @@ end
 
 % express the RBOs in Liouville space
 %---------------------------------------------------------------------
-LiouvilleSpace = true;
-if LiouvilleSpace
-  I = speye(size(Q0));
-  kronkron = @(A) sparse(kron(I,A)-kron(A.',I));
-  %kronkron = @(A) kron(A,I)-kron(I,A.');
-  Q0 = kronkron(Q0);
-  for im1 = 1:3
-    for im2 = 1:3
-      Q1{im1,im2} = kronkron(Q1{im1,im2});
-    end
+I = speye(size(Q0));
+kronkron = @(A) sparse(kron(I,A)-kron(A.',I));
+%kronkron = @(A) kron(A,I)-kron(I,A.');
+Q0 = kronkron(Q0);
+for im1 = 1:3
+  for im2 = 1:3
+    Q1{im1,im2} = kronkron(Q1{im1,im2});
   end
-  for im1 = 1:5
-    for im2 = 1:5
-      Q2{im1,im2} = kronkron(Q2{im1,im2});
-    end
+end
+for im1 = 1:5
+  for im2 = 1:5
+    Q2{im1,im2} = kronkron(Q2{im1,im2});
   end
 end
 

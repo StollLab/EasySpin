@@ -1,7 +1,8 @@
 % fullham takes as input the orientational basis size, the isotropic and
 % anisotropic RBOs, and the spin basis, and gives as output the full
 % spin/space Hamiltonian in Liouville space.
-% The Wigner 3j-symbols have been precomupted and stored by jjjsymbol.
+% The Wigner 3j-symbols have been precomupted by jjjsymbol and stored in
+% jjj0, jjj2, and jjj4.
 
 function H = liouvhamiltonian(basis,Q0,Q1,Q2,jjj0,jjj1,jjj2)
 
@@ -48,7 +49,7 @@ for iBasis = 1:nSpatialBasis
   jK1 = jK(iBasis);
   idx1 = (iBasis-1)*nSpin;
   
-  deltaK1 = (K1==0);
+  K1zero = (K1==0);
   
   for jBasis = 1:nSpatialBasis
     L2 = L(jBasis);
@@ -64,14 +65,14 @@ for iBasis = 1:nSpatialBasis
     jjjM = jjj1(L1^2+L1-M1+1,L2^2+L2-M2+1);
     jjjKa = jjj1(L1^2+L1-K1+1,L2^2+L2-K2+1);
     
-    deltaK2 = (K2==0);
+    K2zero = (K2==0);
     
     idxM  = 2-( M1-M2);
     idxKa = 2-( K1-K2);
     idxKb = 2-(-K1+K2);
     
     % first term
-    prefactor = (1/(2*sqrt((1+deltaK1)*(1+deltaK2))))...
+    prefactor = (1/(2*sqrt((1+K1zero)*(1+K2zero))))...
       * sqrt(jK1)'*sqrt(jK2) * NL * jjjM;
     
     spinblock = prefactor * jjjKa * ...
@@ -116,10 +117,10 @@ for iBasis = 1:nSpatialBasis
   jK1 = jK(iBasis);
   idx1 = (iBasis-1)*nSpin;
   
-  deltaK1 = (K1==0);
+  K1zero = (K1==0);
   
   for jBasis = iBasis:nSpatialBasis
-    L2 = L(jBasis);
+    L2 = L(jBasis); % L2 >= L1 if basis set is L-ordered
     if (abs(L1-L2)>2), break; end
     M2 = M(jBasis);
     if (abs(M1-M2)>2), continue; end
@@ -128,11 +129,12 @@ for iBasis = 1:nSpatialBasis
     jK2 = jK(jBasis);
     
     idx2 = (jBasis-1)*nSpin;
+    
     NL = sqrt((2*L1+1)*(2*L2+1));
     jjjM = jjj2(L1^2+L1-M1+1,L2^2+L2-M2+1);
     jjjKa = jjj2(L1^2+L1-K1+1,L2^2+L2-K2+1);
     
-    deltaK2 = (K2==0);
+    K2zero = (K2==0);
     
     idxM  = 3-( M1-M2);
     idxKa = 3-( K1-K2);
@@ -140,7 +142,7 @@ for iBasis = 1:nSpatialBasis
     
     % first term
     
-    prefactor = (1/(2*sqrt((1+deltaK1)*(1+deltaK2))))...
+    prefactor = (1/(2*sqrt((1+K1zero)*(1+K2zero))))...
       * sqrt(jK1)'*sqrt(jK2) * NL * jjjM;
     
     spinblock = prefactor * jjjKa * ...

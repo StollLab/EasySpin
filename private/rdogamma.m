@@ -19,7 +19,7 @@ for iBasis = 1:length(L)
   M1 = M(iBasis);
   jK1 = jK(iBasis);
   K1 = K(iBasis);
-  deltaK1 = (K1==0);
+  K1zero = (K1==0);
   idxr = (iBasis-1)*nSpin;
   
   for jBasis = iBasis:length(L)
@@ -32,15 +32,15 @@ for iBasis = 1:length(L)
     K2 = K(jBasis);
     if (abs(K1-K2) > 2), continue; end
     
-    deltaK2 = (K2==0);
+    K2zero = (K2==0);
     idxc = (iBasis-1)*nSpin;
     
     if (K2==K1)
       val = Rperp*(L1*(L1+1)-K1^2) + Rz*K1^2;
     elseif (K2==K1+2)
-      val = Rd*sqrt((1+deltaK1)*(1+deltaK2)*(L1+K2-1)*(L1+K2)*(L1-K2+1)*(L1-K2+2));
+      val = Rd*sqrt((1+K1zero)*(1+K2zero)*(L1+K2-1)*(L1+K2)*(L1-K2+1)*(L1-K2+2));
     elseif (K2==K1-2)
-      val = Rd*sqrt((1+deltaK1)*(1+deltaK2)*(L1-K2-1)*(L1-K2)*(L1+K2+1)*(L1+K2+2));
+      val = Rd*sqrt((1+K1zero)*(1+K2zero)*(L1-K2-1)*(L1-K2)*(L1+K2+1)*(L1+K2+2));
     else
       continue
     end
