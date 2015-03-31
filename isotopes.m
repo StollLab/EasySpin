@@ -266,7 +266,7 @@ if ~exist(DataFile,'file')
 end
 
 fh = fopen(DataFile);
-C = textscan(fh,'%d %d %s %s %s %f %f %f %f','commentstyle','%');
+C = textscan(fh,'%f %f %s %s %s %f %f %f %f','commentstyle','%');
 [Data.Protons,Data.Nucleons,Data.Radioactive,...
  Data.Element,Data.Name,Data.Spin,Data.gn,Data.Abundance,Data.qm] = C{:};
 

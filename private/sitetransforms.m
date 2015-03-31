@@ -24,7 +24,7 @@ if isempty(SpaceGroupNames)
   % Read in file with space group numbers, symbols and notes.
   % Notes contain information on unique axis and settings.
   fh = fopen(SpaceGroupDataFile);
-  C = textscan(fh,'%d %s %s','commentstyle','%');
+  C = textscan(fh,'%f %s %s','commentstyle','%');
   fclose(fh);
   [SpaceGroupNo,SpaceGroupNames,SpaceGroupNotes] = C{:};
 end

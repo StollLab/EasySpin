@@ -42,7 +42,7 @@ if isempty(IsotopeList)
   
   % Load data file
   fh = fopen(DataFile);
-  C =  textscan(fh,'%d%d%s%s%s%f%f%f%f','commentstyle','%');
+  C = textscan(fh,'%f %f %s %s %s %f %f %f %f','commentstyle','%');
   fclose(fh);
 
   [IsotopeList.Protons,IsotopeList.Nucleons,IsotopeList.Radioactive,...
