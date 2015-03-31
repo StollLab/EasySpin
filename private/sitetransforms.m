@@ -23,8 +23,10 @@ if isempty(SpaceGroupNames)
   
   % Read in file with space group numbers, symbols and notes.
   % Notes contain information on unique axis and settings.
-  [SpaceGroupNo,SpaceGroupNames,SpaceGroupNotes] = ...
-    textread(SpaceGroupDataFile,'%d %s %s','commentstyle','matlab');
+  fh = fopen(SpaceGroupDataFile);
+  C = textscan(fh,'%d %s %s','commentstyle','%');
+  fclose(fh);
+  [SpaceGroupNo,SpaceGroupNames,SpaceGroupNotes] = C{:};
 end
 
 % Determine Laue class from input ID

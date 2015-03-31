@@ -265,10 +265,11 @@ if ~exist(DataFile,'file')
   error(sprintf('Could not open nuclear data file %s',DataFile));
 end
 
+fh = fopen(DataFile);
+C = textscan(fh,'%d %d %s %s %s %f %f %f %f','commentstyle','%');
 [Data.Protons,Data.Nucleons,Data.Radioactive,...
- Data.Element,Data.Name,Data.Spin,Data.gn,Data.Abundance,Data.qm] = ...
-  textread(DataFile,'%d%d%s%s%s%f%f%f%f','commentstyle','matlab');
-        
+ Data.Element,Data.Name,Data.Spin,Data.gn,Data.Abundance,Data.qm] = C{:};
+
 % idx = Data.Spin<=0;
 % Data.Protons(idx) = [];
 % Data.Nucleons(idx) = [];

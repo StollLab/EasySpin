@@ -41,9 +41,13 @@ if isempty(IsotopeList)
   end
   
   % Load data file
+  fh = fopen(DataFile);
+  C =  textscan(fh,'%d%d%s%s%s%f%f%f%f','commentstyle','%');
+  fclose(fh);
+
   [IsotopeList.Protons,IsotopeList.Nucleons,IsotopeList.Radioactive,...
-   IsotopeList.Element,IsotopeList.Name,IsotopeList.Spins,IsotopeList.gns,IsotopeList.Abundances,IsotopeList.qms] = ...
-   textread(DataFile,'%d%d%s%s%s%f%f%f%f','commentstyle','matlab');
+   IsotopeList.Element,IsotopeList.Name,IsotopeList.Spins,...
+   IsotopeList.gns,IsotopeList.Abundances,IsotopeList.qms] = C{:};
   for k = 1:numel(IsotopeList.Spins)
     IsotopeList.Symbols{k} = sprintf('%d%s',IsotopeList.Nucleons(k),IsotopeList.Element{k});
   end
