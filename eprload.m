@@ -45,7 +45,7 @@
 %     Varian:              .spk, .ref
 %     ESE:                 .d00, .exp
 %
-%     For reading general ASCII formats, use textread(...)
+%     For reading general ASCII formats, use textscan(...)
 %
 %   'Scaling' tells eprload to scale the data (works only for Bruker files):
 %
@@ -778,7 +778,10 @@ case 'ActiveSpectrum'
   %------------------------------------------------------------------
   %   ESR file format of Active Spectrum spectrometers
   %------------------------------------------------------------------
-  allLines = textread(FileName,'%s','whitespace','','delimiter','\n');
+  fh = fopen(FileName);
+  allLines = textscan(fh,'%s','whitespace','','delimiter','\n');
+  allLines = allLines{1};
+  fclose(fh);
   nLines = numel(allLines);
   
   % Find start of data
@@ -804,7 +807,10 @@ case 'Adani'
   %------------------------------------------------------------------
   %   Text-based file format of Adani spectrometers
   %------------------------------------------------------------------
-  allLines = textread(FileName,'%s','whitespace','','delimiter','\n');
+  fh = fopen(FileName);
+  allLines = textscan(fh,'%s','whitespace','','delimiter','\n');
+  allLines = allLines{1};
+  fclose(fh);
   nLines = numel(allLines);
 
   Line1 = '======================== Parameters: ========================';
@@ -1102,7 +1108,10 @@ Parameters = [];
 err = [];
 
 if exist(PARFileName,'file')
-  allLines = textread(PARFileName,'%s','whitespace','','delimiter','\n');
+  fh = fopen(PARFileName);
+  allLines = textscan(fh,'%s','whitespace','','delimiter','\n');
+  allLines = allLines{1};
+  fclose(fh);
 else
   err = sprintf('Cannot find the file %s.',PARFileName);
   return
@@ -1140,8 +1149,10 @@ Parameters = [];
 err = [];
 
 if exist(DSCFileName,'file')
-  bufferSize = 200000; % needs to be large because of AWGPrg line
-  allLines = textread(DSCFileName,'%s','whitespace','','delimiter','\n','bufsize',bufferSize);
+  fh = fopen(DSCFileName);
+  allLines = textscan(fh,'%s','whitespace','','delimiter','\n');
+  allLines = allLines{1};
+  fclose(fh);
 else
   err = sprintf('Cannot find the file %s.',DSCFileName);
   return
