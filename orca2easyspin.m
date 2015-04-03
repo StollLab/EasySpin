@@ -203,6 +203,6 @@ if ~isempty(Apv)
   Sys.AFrame = AFrame(hfkeep,:);
 end
 if ~isempty(Qpv)
-  Sys.Qpv  = Qpv(hfkeep,:);
+  Sys.Q  = Qpv(hfkeep,:);
   Sys.QFrame = QFrame(hfkeep,:);
 end
