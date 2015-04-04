@@ -24,6 +24,7 @@
 %    Opt: additional computational options
 %      Verbosity           level of detail of printing; 0, 1, 2
 %      PerturbOrder        perturbation order; 1 or 2
+%      Sites               list of crystal sites to include (default []: all)
 %
 %   Output:
 %    Pos     line positions (in mT)
@@ -160,6 +161,11 @@ else
   Exp.Temperature = NaN;
 end
 error(err);
+
+if ~isfield(Opt,'Sites')
+  Opt.Sites = [];
+end
+
 
 % Process crystal orientations, crystal symmetry, and frame transforms
 % This sets Orientations, nOrientations, nSites and AverageOverChi

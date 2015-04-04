@@ -21,7 +21,7 @@
 %   - Opt: simulation options
 %       Transitions, Threshold, Symmetry
 %       nKnots, Intensity, Enhancement, Output
-%       ThetaRange
+%       ThetaRange, Sites
 %
 %   Output:
 %   - rf:     the radiofrequency axis, in MHz
@@ -291,7 +291,7 @@ end
 %DefaultOpt.Nuclei = []; % endorfrq
 %DefaultOpt.Intensity = 'on'; % endorfrq
 %DefaultOpt.Enhancement = 'off'; % endorfrq
-
+%DefaultOpt.Sites = []; % endorfrq
 % Documented fields, salt
 if (Method==2)
   DefaultOpt.nKnots = [61 0];

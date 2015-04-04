@@ -24,6 +24,7 @@
 %    Opt: additional computational options
 %      Verbosity           level of detail of printing; 0, 1, 2
 %      PerturbOrder        perturbation order; 1 or 2
+%      Sites               list of crystal sites to include (default []: all)
 %
 %   Output:
 %    Pos     line positions (in mT)
@@ -185,6 +186,8 @@ p_crystalorientations;
 
 % Options
 %---------------------------------------------------------------------
+if ~isfield(Opt,'Sites'), Opt.Sites = []; end
+
 if ~isfield(Opt,'PerturbOrder'), Opt.PerturbOrder = 2; end
 
 if (numel(Opt.PerturbOrder)~=1) || ~isreal(Opt.PerturbOrder)

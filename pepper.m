@@ -38,7 +38,7 @@
 %      nKnots              N1, [N1 Ninterp]
 %      Transitions, Threshold
 %      Symmetry, SymmFrame,
-%      Intensity, Freq2Field
+%      Intensity, Freq2Field, Sites
 %
 %   Output:
 %    x       field axis (in mT) or frequency axis (in GHz)

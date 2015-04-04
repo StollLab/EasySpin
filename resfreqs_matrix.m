@@ -27,6 +27,7 @@
 %      Threshold           cut-off for transition intensity, between 0 and 1
 %      Hybrid              0 or 1, switches hybrid mode off or on
 %      HybridCoreNuclei    for hybrid mode, nuclei to include in exact core
+%      Sites               list of crystal sites to include (default []: all)
 %
 %   Output:
 %    Pos     line positions (in mT)
@@ -168,6 +169,7 @@ else
   ComputeBoltzmannPopulations = ~isnan(Exp.Temperature);
 end
 
+if ~isfield(Opt,'Sites'), Opt.Sites = []; end
 
 % Process crystal orientations, crystal symmetry, and frame transforms
 % This sets Orientations, nOrientations, nSites and AverageOverChi

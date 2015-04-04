@@ -121,6 +121,10 @@ if ~isfield(Exp,'ExciteWidth'), Exp.ExciteWidth = inf; end
 OrientationSelection = ~isinf(Exp.ExciteWidth);
 lwExcite2 = Exp.ExciteWidth^2;
 
+if ~isfield(Opt,'Sites')
+  Opt.Sites = [];
+end
+
 % Process crystal orientations, crystal symmetry, and frame transforms
 % This sets Orientations, nOrientations, nSites and AverageOverChi
 p_crystalorientations;

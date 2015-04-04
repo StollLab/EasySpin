@@ -8,6 +8,7 @@ inputs:
   Exp.CrystalOrientation: set by pepper/salt/saffron for powders, by user for cystals
   Exp.CrystalSymmetry
   Exp.MolFrame
+  Opt.Sites
 
 outputs:
   Orientations:    list of orientations Euler angles, one per row
@@ -38,6 +39,15 @@ if (~PowderSimulation)
   Rsite_C = sitetransforms(Exp.CrystalSymmetry);
   nSites  = numel(Rsite_C);
   logmsg(1,sprintf('  crystal symmetry: %d magnetically distinct sites in unit cell',nSites));
+  
+  % Select sites if user wants it
+  if isfield(Opt,'Sites') && ~isempty(Opt.Sites)
+    if any(Opt.Sites<1) || any(Opt.Sites>nSites)
+      error('For the given crystal symmetry, Opt.Sites must contain numbers between 1 and %d.',nSites);
+    end
+    Rsite_C = Rsite_C(Opt.Sites);
+    nSites = numel(Rsite_C);
+  end
 
   % Crystal-to-molecular frame transformation, R_CM
   % - R_CM col 1,2,3: crystal axis xC,yC,zC represented in molecular frame
