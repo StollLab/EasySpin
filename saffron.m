@@ -706,9 +706,8 @@ end
 %
 if ~isfield(Opt,'Symmetry'), Opt.Symmetry = []; end
 if ~isfield(Opt,'SymmFrame'), Opt.SymmFrame = []; end
-if ~isfield(Opt,'Transitions')
-  Opt.Transitions = [];
-end
+if ~isfield(Opt,'Transitions'), Opt.Transitions = []; end
+if ~isfield(Opt,'Sites'), Opt.Sites = []; end
 
 % Nuclei: which nuclei to include in the simulation
 if isfield(Opt,'Nuclei')
