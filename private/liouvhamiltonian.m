@@ -27,8 +27,8 @@ for iBasis = 1:nOriBasis
   K_  =  K(iBasis);
   idx0 = (iBasis-1)*nSpinBasis;
   
-  jjjM = jjj0(L_^2+L_-M_+1,L_^2+L_+M_+1);
-  jjjK = jjj0(L_^2+L_-K_+1,L_^2+L_+K_+1);
+  jjjM = jjj0(L_^2+L_+M_+1,L_^2+L_-M_+1);
+  jjjK = jjj0(L_^2+L_+K_+1,L_^2+L_-K_+1);
   
   elH0(indices)  = (-1)^(K_-M_) * (2*L_+1) * jjjM * jjjK * val;
   braH0(indices) = idx0 + row;
@@ -134,8 +134,8 @@ for iBasis = 1:nOriBasis
     idx2 = (jBasis-1)*nSpinBasis;
     
     NL = sqrt((2*L1+1)*(2*L2+1));
-    jjjM = jjj2(L1^2+L1-M1+1,L2^2+L2-M2+1);
-    jjjKa = jjj2(L1^2+L1-K1+1,L2^2+L2-K2+1);
+    jjjM = jjj2(L1^2+L1-M1+1,L2^2+L2+M2+1);
+    jjjKa = jjj2(L1^2+L1-K1+1,L2^2+L2+K2+1);
     
     K2zero = (K2==0);
     
