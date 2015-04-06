@@ -18,6 +18,7 @@ Llist = sort([Leven Lodd]);
 Kmax = Basis.Kmax;
 Mmax = Basis.Mmax;
 
+%{
 iBasis = 1;
 for L = Llist
   Mmx = min(L,Mmax);
@@ -34,11 +35,11 @@ for L = Llist
     end
   end
 end
+%}
 
-%{
 % basis set ordering from S=1/2 code
-jKmin = -1;
-deltaK = 1;
+jKmin = Basis.jKmin;
+deltaK = Basis.deltaK;
 iBasis = 1;
 for L = Llist
   if (mod(L,2)==0), Lparity = +1; else Lparity = -1; end

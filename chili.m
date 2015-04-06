@@ -410,7 +410,7 @@ if ~isfield(Opt,'jKmin')
 end
 Basis.jKmin = Opt.jKmin;
 if ~isfield(Opt,'deltaK')
-  Opt.deltaK = 1;
+  Opt.deltaK = [];
 end
 Basis.deltaK = Opt.deltaK;
 if ~isfield(Opt,'pSmin')
