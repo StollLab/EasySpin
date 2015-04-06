@@ -21,13 +21,13 @@ Q1 = cell(3,3);
 for mp = 1:3
   for mq = 1:3
     
-    val = 0;
+    Qmpmq = 0;
     for m = 1:3
       for iTerm = 1:nTerms
-        val = val + D1(m,mp)*(-1)*conj(F1(iTerm,mq))*T1{iTerm,m};
+        Qmpmq = Qmpmq + D1(m,mp)*(-1)*conj(F1(iTerm,mq))*T1{iTerm,m};
       end
     end
-    Q1{mp,mq} = val;
+    Q1{mp,mq} = Qmpmq;
     
   end
 end
@@ -38,13 +38,13 @@ Q2 = cell(5,5);
 for mp = 1:5
   for mq = 1:5
     
-    val = 0;
+    Qmpmq = 0;
     for m = 1:5
       for iTerm = 1:nTerms
-        val = val + D2(m,mp)*conj(F2(iTerm,mq))*T2{iTerm,m};
+        Qmpmq = Qmpmq + D2(m,mp)*conj(F2(iTerm,mq))*T2{iTerm,m};
       end
     end
-    Q2{mp,mq} = val;
+    Q2{mp,mq} = Qmpmq;
     
   end
 end

@@ -1,4 +1,6 @@
-% Compute diffusion superoperator
+% This function computes the diffusion superoperator.
+%
+% This function does not require a particular order of spatial basis functions.
 
 function Gamma = rdogamma(basis,DiffTensorValues,nSpin)
 

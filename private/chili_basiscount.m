@@ -1,4 +1,4 @@
-function [nRows,Indices] = chili_basiscount(Basis,Sys)
+function [nBasisFunctions,nSpatialBasisFunctions,Indices] = chili_basiscount(Basis,Sys)
 
 DirTilt = Sys.DirTilt;
 
@@ -23,6 +23,7 @@ if nNuclei>=1, I1 = I(1); end
 if nNuclei>=2, I2 = I(2); end
 
 iRow = 0;
+iSpatial = 0;
 
 MakeIndices = 1;
 
@@ -40,6 +41,7 @@ for L = 0:evenLmax
       if ((K==0) && (Lparity~=jK)), continue; end
       Mmx = min(L,Mmax);
       for M = -Mmx:Mmx
+        iSpatial = iSpatial + 1;
 
 
         for pS = pSmin:1
@@ -101,9 +103,10 @@ for L = 0:evenLmax
     end % K
   end % jK
 end % L
+Indices  = Indices(1:iRow,:);
 
-nRows = iRow;
-Indices  = Indices(1:nRows,:);
+nBasisFunctions = iRow;
+nSpatialBasisFunctions = iSpatial;
 
 return
 %==================================================================

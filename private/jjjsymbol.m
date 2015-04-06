@@ -1,5 +1,5 @@
 % jjjsymbol takes the maximum rank of the orientational basis as input and
-% gives as output three 2-D arrays, storing the 3-j symbols for rank 0, 1 and 2.
+% gives as output three 2-D arrays, storing the the following 3-j symbols:
 %
 %  rank 0: (L1 0 L2;  M1, -M1-M2, M2)
 %  rank 1: (L1 1 L2;  M1, -M1-M2, M2)

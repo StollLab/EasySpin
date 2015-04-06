@@ -409,6 +409,10 @@ if ~isfield(Opt,'jKmin')
   Opt.jKmin = [];
 end
 Basis.jKmin = Opt.jKmin;
+if ~isfield(Opt,'deltaK')
+  Opt.deltaK = 1;
+end
+Basis.deltaK = Opt.deltaK;
 if ~isfield(Opt,'pSmin')
   Opt.pSmin = 0;
 end
@@ -538,16 +542,15 @@ Weights = 4*pi*Weights/sum(Weights);
 logmsg(1,'Setting up orientational basis set...');
 logmsg(1,'  Leven max %d, Lodd max %d, Kmax %d, Mmax %d',...
   Basis.LLKM(1),Basis.LLKM(2),Basis.LLKM(3),Basis.LLKM(4));
-logmsg(1,'  deltaK %d',Basis.deltaK);
-logmsg(1,'  jKmin %+d, pSmin %+d, symm %d',...
-  Basis.jKmin,Basis.pSmin,Basis.MeirovitchSymm);
+logmsg(1,'  deltaK %d, jKmin %+d, pSmin %+d, symm %d',...
+  Basis.deltaK,Basis.jKmin,Basis.pSmin,Basis.MeirovitchSymm);
 if JerSpin
-  Basis.List = generatebasis(Basis,Sys.nStates^2);
-  %size(Basis.List), Basis.List
+  Basis.List = generatebasis(Basis);
+  logmsg(1,'  basis size: %d (%d spatial, %d spin)',size(Basis.List,1)*Sys.nStates^2,size(Basis.List,1),Sys.nStates^2);
 else
-  [Basis.Size,Indices] = chili_basiscount(Basis,Sys);
+  [Basis.Size,Basis.SpatialSize,Indices] = chili_basiscount(Basis,Sys);
   %size(Indices), Indices
-  logmsg(1,'  basis size: %d',Basis.Size);
+  logmsg(1,'  basis size: %d (%d spatial, %d spin)',Basis.Size,Basis.SpatialSize,Basis.Size/Basis.SpatialSize);
 end
 
 % Preparations
@@ -626,8 +629,8 @@ for iOri = 1:nOrientations
   else
     [r,c,Vals,nDim,nElm] = chili_lm(Sys,Basis.v,Dynamics,Opt.Allocation);
     idx = 1:nElm;
-    r = r(idx);
-    c = c(idx);
+    r = r(idx) + 1;
+    c = c(idx) + 1;
     Vals = Vals(idx); % Hz
     logmsg(1,'  size: %dx%d',nDim,nDim);
     if (nDim~=BasisSize)
@@ -636,7 +639,7 @@ for iOri = 1:nOrientations
     if any(isnan(Vals))
       error('Liouville matrix contains %d NaN entries!',sum(isnan(Vals)));
     end
-    L = sparse(r+1,c+1,Vals,BasisSize,BasisSize);
+    L = sparse(r,c,Vals,BasisSize,BasisSize);
   end
   
   % Rescale by maximum of Hamiltonian superoperator
@@ -1042,15 +1045,17 @@ if ~isfield(Basis,'pSmin') || isempty(Basis.pSmin)
 end
 
 % Use only even K if there is no magnetic or diffusion tilt.
-if (Sys.nNuclei>0)
-  noHFtilt = all(Sys.HF2([2 4])==0);
-else
-  noHFtilt = true;
-end
-if all(Sys.EZ2([2 4])==0) && noHFtilt
-  Basis.deltaK = 2;
-else
-  Basis.deltaK = 1;
+if isempty(Basis.deltaK)
+  if (Sys.nNuclei>0)
+    noHFtilt = all(Sys.HF2([2 4])==0);
+  else
+    noHFtilt = true;
+  end
+  if all(Sys.EZ2([2 4])==0) && noHFtilt
+    Basis.deltaK = 2;
+  else
+    Basis.deltaK = 1;
+  end
 end
 
 % Use only even L values (oddLmax=0) and no K values (Kmx=0)

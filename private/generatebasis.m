@@ -1,4 +1,4 @@
-function basisList = generatebasis(Basis,nSpin)
+function basisList = generatebasis(Basis)
 
 %%-------------------------------------------------------------------------
 % Generate array of basis functions and their indices in full Liouvillian
@@ -20,7 +20,8 @@ Mmax = Basis.Mmax;
 
 iBasis = 1;
 for L = Llist
-  for M = min(L,Mmax):-1:max(-L,-Mmax)
+  Mmx = min(L,Mmax);
+  for M = Mmx:-1:-Mmx
     for K = min(L,Kmax):-1:0
       if (K~=0)
         basisList(iBasis,:)   = [L M K  1];
@@ -33,5 +34,25 @@ for L = Llist
     end
   end
 end
+
+%{
+% basis set ordering from S=1/2 code
+jKmin = -1;
+deltaK = 1;
+iBasis = 1;
+for L = Llist
+  if (mod(L,2)==0), Lparity = +1; else Lparity = -1; end
+  for jK = jKmin:2:1
+    for K = 0:deltaK:min(L,Kmax)
+      if ((K==0) && (Lparity~=jK)), continue; end
+      Mmx = min(L,Mmax);
+      for M = -Mmx:1:Mmx
+        basisList(iBasis,:) = [L M K jK];
+        iBasis = iBasis + 1;
+      end % M
+    end % K
+  end % jK
+end % L
+%}
 
 return
