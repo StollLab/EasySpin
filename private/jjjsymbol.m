@@ -7,7 +7,7 @@
 %
 % L,M ordering (first to last): increasing L, and for each L, decreasing M.
 
-function [jjj0,jjj1,jjj2] = jjjsymbol(LLKM)
+function [jjj0,jjj1,jjj2] = jjjsymbol(LLKM,computeRank1)
 
 L = [0:2:LLKM(1) 1:2:LLKM(2)];
 nBasis = (max(L)+1)^2;
@@ -33,22 +33,26 @@ end
 
 % Rank-1 3j-symbols
 %------------------------------------------------------------------
-jjj1 = zeros(nBasis,nBasis);
-for L1 = L
-  for MK1 = L1:-1:-L1
-    idx1 = L1^2 + (L1-MK1) + 1;
-    for L2 = L
-      for MK2 = L2:-1:-L2
-        idx2 = L2^2 + (L2-MK2) + 1;
-        
-        if abs(-MK1-MK2) > 1, continue; end
-        if abs(L1-L2) > 1, continue; end
-        
-        jjj1(idx1,idx2) = wigner3j(L1,1,L2,MK1,-MK2-MK1,MK2);
-        
+if computeRank1
+  jjj1 = zeros(nBasis,nBasis);
+  for L1 = L
+    for MK1 = L1:-1:-L1
+      idx1 = L1^2 + (L1-MK1) + 1;
+      for L2 = L
+        for MK2 = L2:-1:-L2
+          idx2 = L2^2 + (L2-MK2) + 1;
+          
+          if abs(-MK1-MK2) > 1, continue; end
+          if abs(L1-L2) > 1, continue; end
+          
+          jjj1(idx1,idx2) = wigner3j(L1,1,L2,MK1,-MK2-MK1,MK2);
+          
+        end
       end
     end
   end
+else
+  jjj1 = [];
 end
 
 % Rank-2 3j-symbols

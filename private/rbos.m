@@ -17,19 +17,23 @@ end
 
 % construct the 9 rank-1 asymmetric RBOs
 %---------------------------------------------------------------------
-Q1 = cell(3,3);
-for mp = 1:3
-  for mq = 1:3
-    
-    Qmpmq = 0;
-    for m = 1:3
-      for iTerm = 1:nTerms
-        Qmpmq = Qmpmq + D1(m,mp)*(-1)*conj(F1(iTerm,mq))*T1{iTerm,m};
+if any(F1(:))
+  Q1 = cell(3,3);
+  for mp = 1:3
+    for mq = 1:3
+      
+      Qmpmq = 0;
+      for m = 1:3
+        for iTerm = 1:nTerms
+          Qmpmq = Qmpmq + D1(m,mp)*(-1)*conj(F1(iTerm,mq))*T1{iTerm,m};
+        end
       end
+      Q1{mp,mq} = Qmpmq;
+      
     end
-    Q1{mp,mq} = Qmpmq;
-    
   end
+else
+  Q1 = {};
 end
 
 % construct the 25 rank-2 anisotropic RBOs
@@ -55,9 +59,11 @@ I = speye(size(Q0));
 kronkron = @(A) sparse(kron(I,A)-kron(A.',I));
 %kronkron = @(A) kron(A,I)-kron(I,A.');
 Q0 = kronkron(Q0);
-for im1 = 1:3
-  for im2 = 1:3
-    Q1{im1,im2} = kronkron(Q1{im1,im2});
+if ~isempty(Q1)
+  for im1 = 1:3
+    for im2 = 1:3
+      Q1{im1,im2} = kronkron(Q1{im1,im2});
+    end
   end
 end
 for im1 = 1:5

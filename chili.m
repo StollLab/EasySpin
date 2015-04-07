@@ -557,9 +557,9 @@ end
 %-----------------------------------------------------------------------
 if JerSpin
 
-  [jjj0,jjj1,jjj2] = jjjsymbol(Basis.LLKM);
   [T0,T1,T2,F0,F1,F2] = magint(Sys,CenterField);
   Gamma = rdogamma(Basis.List,Dynamics.Diff,Sys.nStates^2);
+  [jjj0,jjj1,jjj2] = jjjsymbol(Basis.LLKM,any(F1(:)));
 
   SpinOps = spinop(Sys.S);
   if numel(Sys.Spins)>1
