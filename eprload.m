@@ -1150,7 +1150,7 @@ err = [];
 
 if exist(DSCFileName,'file')
   fh = fopen(DSCFileName);
-  allLines = textscan(fh,'%s','whitespace','','delimiter','\n');
+  allLines = textscan(fh,'%s','whitespace','','delimiter','\n','bufsize',500000);
   allLines = allLines{1};
   fclose(fh);
 else
