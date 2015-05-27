@@ -41,10 +41,11 @@ else
 end
 
 Value = zeros(maxVals,1);
-Trans = zeros(maxVals,nNuclei);
 Row   = zeros(maxVals,1);
+Col   = zeros(maxVals,1);
 
-nRow = 0; % number of rows of the column vector v
+nRows = 0; % number of rows of the column vector v
+nCols = 2*I+1;
 idx = 0;
 
 iseven = @(x)mod(x,2)==0;
@@ -96,17 +97,18 @@ for L = 0:evenLmax
               qImax = 2*I - abs(pI);
               for qI = -qImax:2:qImax
                 
-                nRow = nRow + 1;
+                nRows = nRows + 1;
                 
                 %==============================================
                 if NonZeroElement && ...
                     (((~DirTilt) && (pS==1)) || ...
                     (( DirTilt) && (abs(pS)==1)))
                   if (thisValue~=0)
+                    mI = qI/2; % qI/2 gives mI of transition, since pI==0
                     idx = idx + 1;
                     Value(idx) = thisValue;
-                    Trans(idx) = qI/2; % gives mI of transition
-                    Row(idx) = nRow;
+                    Row(idx) = nRows;
+                    Col(idx) = mI + I + 1;
                   end
                 end
                 %==============================================
@@ -124,27 +126,16 @@ for L = 0:evenLmax
 end
 
 Value = Value(1:idx);
-Trans = Trans(1:idx);
 Row = Row(1:idx);
+Col = Col(1:idx);
 
-if (Options.SeparateTransitions)
-  nColumns = prod(2*I+1);
-  if Sys.nNuclei>1
-    for k=1:Sys.nNuclei
-      TransIdx{k} = Trans(:,k) + I(k) + 1;
-    end
-    colIdx = sub2ind(2*I+1,TransIdx{:});
-  else
-    colIdx = Trans + I + 1;
-  end
-else
-  nColumns = 1;
-  colIdx = 1;
+v = full(sparse(Row,Col,Value,nRows,nCols));
+if ~Options.SeparateTransitions
+  v = sum(v,2);
 end
-v = full(sparse(Row,colIdx,Value,nRow,nColumns));
 
 for iCol = 1:size(v,2)
-  v(:,iCol) = v(:,iCol)/norm(v(:,iCol));
+  v(:,iCol) = v(:,iCol)/norm(v(:,iCol))/size(v,2);
 end
 
 return

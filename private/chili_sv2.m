@@ -50,7 +50,8 @@ Value = zeros(maxVals,1);
 Trans = zeros(maxVals,nNuclei);
 Row   = zeros(maxVals,1);
 
-nRow = 0; % number of rows of the column vector v
+nRows = 0; % number of rows of the column vector v
+nCols = prod(2*I+1);
 idx = 0;
 
 iseven = @(x)mod(x,2)==0;
@@ -105,17 +106,18 @@ for L = 0:evenLmax
                   for qI2 = -qI2max:2:qI2max
                     if ((MeirovitchSymm) && (~DirTilt)&&((pI1+pI2+pS-1)~=M)), continue; end % Meirovich Eq.(A47)
                     
-                    nRow = nRow + 1;
+                    nRows = nRows + 1;
                     
                     %==============================================
                     if NonZeroElement && ...
                         (((~DirTilt) && (pS==1)) || ...
                         (( DirTilt) && (abs(pS)==1)))
                       if (thisValue~=0)
+                        mI = [qI1 qI2]/2; % gives [mI1 mI2] of transition
                         idx = idx + 1;
                         Value(idx) = thisValue;
-                        Trans(idx,:) = [qI1 qI2]/2; % gives mI1 mI2 of transition
-                        Row(idx) = nRow;
+                        Col(idx,:) = sum(mI+I+1);
+                        Row(idx) = nRows;
                       end
                     end
                     %==============================================
@@ -133,25 +135,14 @@ for L = 0:evenLmax
 end
 
 Value = Value(1:idx);
-Trans = Trans(1:idx,:);
+Col = Col(1:idx,:);
 Row = Row(1:idx);
 
-if (Options.SeparateTransitions)
-  nColumns = prod(2*I+1);
-  if Sys.nNuclei>1
-    for k=1:Sys.nNuclei
-      TransIdx{k} = Trans(:,k) + I(k) + 1;
-    end
-    colIdx = sub2ind(2*I+1,TransIdx{:});
-  else
-    colIdx = Trans + I + 1;
-  end
-else
-  nColumns = 1;
-  colIdx = 1;
-end
-v = full(sparse(Row,colIdx,Value,nRow,nColumns));
 
+v = full(sparse(Row,Col,Value,nRows,nCols));
+if ~Options.SeparateTransitions
+  v = sum(v,2);
+end
 for iCol = 1:size(v,2)
   v(:,iCol) = v(:,iCol)/norm(v(:,iCol));
 end

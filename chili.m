@@ -389,6 +389,10 @@ switch Opt.Output
   otherwise, error('Wrong setting in Options.Output.');
 end
 
+if Opt.SeparateTransitions
+  error('Opt.Output=''separate'' is not supported by chili.');
+end
+
 % Obsolete options
 % Opt.MOMD was used prior to 5.0 for powder simulations (in the presence of ordering potential)
 if isfield(Opt,'MOMD')

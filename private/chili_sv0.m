@@ -36,10 +36,11 @@ else
 end
 
 Value = zeros(maxVals,1);
-Trans = zeros(maxVals,1);
+Col   = zeros(maxVals,1);
 Row   = zeros(maxVals,1);
 
-nRow = 0; % number of rows of the column vector v
+nRows = 0; % number of rows of the column vector v
+nCols = 1;
 idx = 0;
 
 iseven = @(x)mod(x,2)==0;
@@ -80,7 +81,7 @@ for L = 0:evenLmax
           for qS = -qSmx:2:qSmx
             if ((MeirovitchSymm)&&(~DirTilt)&&((0+pS-1)~=M)), continue; end % Meirovich Eq.(A47)
             
-            nRow = nRow + 1;
+            nRows = nRows + 1;
             
             %==============================================
             NonZeroElement = (jK==1) && (M==0) && (pS~=0);
@@ -90,8 +91,8 @@ for L = 0:evenLmax
               if (thisValue~=0)
                 idx = idx + 1;
                 Value(idx) = thisValue;
-                Trans(idx) = 0; % gives mI of transition
-                Row(idx) = nRow;
+                Col(idx) = 1;
+                Row(idx) = nRows;
               end
             end
             %==============================================
@@ -104,14 +105,12 @@ for L = 0:evenLmax
 end
 
 Value = Value(1:idx);
-Trans = Trans(1:idx);
+Col = Col(1:idx);
 Row = Row(1:idx);
 
-if (Options.SeparateTransitions)
-  I = 0;
-  v = sparse(Row,Trans+I+1,Value,nRow,2*I+1);
-else
-  v = sparse(Row,1,Value,nRow,1);
+v = full(sparse(Row,Col,Value,nRows,nCols));
+if ~(Options.SeparateTransitions)
+  v = sum(v,2);
 end
 
 for iCol = 1:size(v,2)
