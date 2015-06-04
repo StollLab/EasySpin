@@ -89,6 +89,10 @@ if isfield(ax, 'y')
     end
 end
 
+if (numel(Abscissa)==1)
+  Abscissa = Abscissa{1}(:);
+end
+
 return
 
 function par = SpecMandsc(filename)
