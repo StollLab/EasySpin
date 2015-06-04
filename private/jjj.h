@@ -107,6 +107,7 @@ double w3j;
 
 
 int k;
+int parity(int);
 const int prty = parity(j1+j2+j3);
 int phase = 1;
 
