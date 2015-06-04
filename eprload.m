@@ -1159,7 +1159,7 @@ err = [];
 
 if exist(PARFileName,'file')
   fh = fopen(PARFileName);
-  warning('off','MATLAB:textscan:BufSizeDeprecation')
+  warning('off','MATLAB:textscan:BufSizeDeprecation');
   allLines = textscan(fh,'%s','whitespace','','delimiter','\n','bufsize',500000); %#ok<BUFSIZE>
   allLines = allLines{1};
   fclose(fh);
@@ -1201,7 +1201,8 @@ err = [];
 
 if exist(DSCFileName,'file')
   fh = fopen(DSCFileName);
-  allLines = textscan(fh,'%s','whitespace','','delimiter','\n');
+  warning('off','MATLAB:textscan:BufSizeDeprecation');
+  allLines = textscan(fh,'%s','whitespace','','delimiter','\n','bufsize',500000); %#ok<BUFSIZE>
   allLines = allLines{1};
   fclose(fh);
 else
