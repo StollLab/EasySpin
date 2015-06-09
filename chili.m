@@ -405,6 +405,9 @@ if numel(Opt.nKnots)<1, Opt.nKnots(1) = 5; end
 if numel(Opt.nKnots)<2, Opt.nKnots(2) = 0; end
 
 % Basis settings
+if isfield(Opt,'LLMK')
+  error('Opt.LLMK is not a valid field. Use Opt.LLKM.');
+end
 if ~isfield(Opt,'LLKM')
   Opt.LLKM = [14 7 6 2];
 end
