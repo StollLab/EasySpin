@@ -8,9 +8,9 @@
 %  system structure Sys.
 %
 %  Besides the text-formatted output file, ORCA also generates a
-%  binary .prop file that contains calculated properties such a g
-%  and A matrices, Q tensors, etc. orca2easyspin reads in this
-%  file, and not the main text-formatted output file.
+%  binary .prop file that contains atomic coordinates and calculated
+%  properties such as g  and A matrices, Q tensors, etc. orca2easyspin
+%  reads in this file, and not the text-formatted output file.
 %
 %  If HyperfineCutoff (a single value, in MHz) is given, all
 %  nuclei with hyperfine coupling equal or smaller than that
@@ -50,7 +50,7 @@ end
 firstPropertyID = fread(f,1,PropertyIDtype);
 fclose(f);
 
-% quit if property file is empty (4 bytes, all FF)
+% quit if property file is empty (4 bytes, all 0xFF)
 if (firstPropertyID==terminateID)
   return
 end
@@ -160,15 +160,22 @@ while ~feof(f)
   end
 end
 
+nAtoms = numel(Atoms);
+if size(Apv,1)<nAtoms, Apv(nAtoms,:) = 0; end
+if size(AFrame,1)<nAtoms, AFrame(nAtoms,:) = 0; end
+if size(Qpv,1)<nAtoms, Qpv(nAtoms,:) = 0; end
+if size(QFrame,1)<nAtoms, QFrame(nAtoms,:) = 0; end
+
 fclose(f);
 
 % Compile spin system
 %---------------------------------------------------------------
-if ~isempty(S)
-  Sys.S = S; % spin is not provided by the prop file
-else
+if isempty(S)
+  % spin is not provided by the prop file
   Sys.S = 1/2;
-  fprintf('Spin not provided in the ORCA %s.prop file. Assuming S = 1/2.\n',pf_name);
+  %fprintf('Spin not provided in the ORCA %s.prop file. Assuming S = 1/2.\n',pf_name);
+else
+  Sys.S = S;
 end
 Sys.xyz = xyz;
 if ~isempty(Charge)
@@ -189,7 +196,7 @@ hfkeep = Amax>HyperfineCutoff;
 
 % List of isotopes
 NucStr = [];
-for iAtom = 1:numel(Atoms)
+for iAtom = 1:nAtoms
   if ~hfkeep(iAtom), continue; end
   NucStr = [NucStr ',' elementno2symbol(Atoms(iAtom))];
 end
