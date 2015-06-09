@@ -651,7 +651,7 @@ for iOri = 1:nOrientations
   
   % Rescale by maximum of Hamiltonian superoperator
   if (Opt.Rescale)
-    scale = -min(imag(L(:)));
+    scale = -min(min(imag(L)));
     L = L/scale;
     omega = omega0/scale;
   else
@@ -659,7 +659,7 @@ for iOri = 1:nOrientations
   end
   
   maxDvalLim = 2e3;
-  maxDval = max(abs(imag(L(:))));
+  maxDval = max(max(abs(imag(L))));
   logmsg(1,'  maxabs: %g',full(maxDval));
   if maxDval>maxDvalLim
     error(sprintf('Numerical instability, values in diffusion matrix are too large (%g)!',maxDval));
