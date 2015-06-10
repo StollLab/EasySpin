@@ -219,7 +219,7 @@ if ~isfield(Exp,'mwFreq')
   FieldSweep = false;
 else
   if isfield(Exp,'Field')
-    error('Give either Exp.mwFreq (for a field sweep) or Exp.Frequency (for a frequency sweep), but not both.');
+    error('Give either Exp.mwFreq (for a field sweep) or Exp.Field (for a frequency sweep), but not both.');
   end
   FieldSweep = true;
 end

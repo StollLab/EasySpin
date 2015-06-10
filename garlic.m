@@ -26,7 +26,7 @@
 %     Exp.CenterSweep  [centerField sweepRange] in mT
 %     Exp.Range        [minField maxField] in mT
 %          Exp.Range is only used if Exp.CenterSweep is not given.
-%          If both Exp.CenterField and Exp.Range are omitted, the
+%          If both Exp.CenterSweep and Exp.Range are omitted, the
 %          magnetic field range is determined automatically.
 %
 %     Exp.Harmonic     detection harmonic (0, 1, or 2), default 1
