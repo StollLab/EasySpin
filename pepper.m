@@ -300,6 +300,7 @@ else
   end
 end
 
+
 % Detection harmonic
 if ~isfield(Exp,'Harmonic') || isempty(Exp.Harmonic) || isnan(Exp.Harmonic)
   if FieldSweep
@@ -317,17 +318,6 @@ if (Exp.Harmonic>0) && noBroadening
     'Please specify a line broadening (lwpp, lw, gStrain, AStrain, DStrain).'],Exp.Harmonic);
 end
 
-% Resonator mode
-if ischar(Exp.Mode) && ~isempty(Exp.Mode)
-  if strcmp(Exp.Mode,'perpendicular')
-  elseif strcmp(Exp.Mode,'parallel')
-  else
-    error('Exp.Mode must be either ''perpendicular'' or ''parallel''.');
-  end
-end
-logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.Mode);
-
-
 % Modulation amplitude
 if any(Exp.ModAmp<0) || any(isnan(Exp.ModAmp)) || numel(Exp.ModAmp)~=1
   error('Exp.ModAmp must be either a single positive number or zero.');
@@ -338,11 +328,32 @@ if (Exp.ModAmp>0)
     if (Exp.Harmonic<1)
       error('With field modulation (Exp.ModAmp), Exp.Harmonic=0 does not work.');
     end
-    Exp.Harmonic = Exp.Harmonic - 1;
+    Exp.ModHarmonic = Exp.Harmonic;
+    Exp.ConvHarmonic = 0;
+    Exp.DerivHarmonic = 0;
   else
     error('Exp.ModAmp cannot be used with frequency sweeps.');
   end
+else
+  Exp.ModHarmonic = 0;
+  if ConvolutionBroadening
+    Exp.ConvHarmonic = Exp.Harmonic;
+    Exp.DerivHarmonic = 0;
+  else
+    Exp.ConvHarmonic = 0;
+    Exp.DerivHarmonic = Exp.Harmonic;
+  end
 end
+
+% Resonator mode
+if ischar(Exp.Mode) && ~isempty(Exp.Mode)
+  if strcmp(Exp.Mode,'perpendicular')
+  elseif strcmp(Exp.Mode,'parallel')
+  else
+    error('Exp.Mode must be either ''perpendicular'' or ''parallel''.');
+  end
+end
+logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.Mode);
 
 % Powder vs. crystal simulation
 if isfield(Exp,'Orientation') || isfield(Exp,'Orientations')
@@ -1055,18 +1066,18 @@ end
 % Convolution with line shape.
 %-----------------------------------------------------------------------
 if (ConvolutionBroadening)
-  logmsg(1,'  harmonic %d: using convolution',Exp.Harmonic);
+  logmsg(1,'  harmonic %d: using convolution',Exp.ConvHarmonic);
   fwhmG = Sys.lw(1);
   fwhmL = Sys.lw(2);
   if (fwhmL>0)
-    HarmonicL = Exp.Harmonic;
+    HarmonicL = Exp.ConvHarmonic;
     mwPhaseL = Exp.mwPhase;
     HarmonicG = 0;
     mwPhaseG = 0;
   else
     HarmonicL = 0;
     mwPhaseL = 0;
-    HarmonicG = Exp.Harmonic;
+    HarmonicG = Exp.ConvHarmonic;
     mwPhaseG = Exp.mwPhase;
   end
   if FieldSweep
@@ -1126,9 +1137,9 @@ if (ConvolutionBroadening)
 
 else
   
-  if (Exp.Harmonic>0)
-    logmsg(1,'  harmonic %d: using differentiation',Exp.Harmonic);
-    for h = 1:Exp.Harmonic
+  if (Exp.DerivHarmonic>0)
+    logmsg(1,'  harmonic %d: using differentiation',Exp.DerivHarmonic);
+    for h = 1:Exp.DerivHarmonic
       dspec = diff(spec,[],2)/Exp.deltaX;
       spec = (dspec(:,[1 1:end]) + dspec(:,[1:end end]))/2;
     end
@@ -1143,7 +1154,7 @@ end
 if (FieldSweep)
   if (Exp.ModAmp>0)
     logmsg(1,'  applying field modulation');
-    spec = fieldmod(xAxis,spec,Exp.ModAmp);
+    spec = fieldmod(xAxis,spec,Exp.ModAmp,Exp.ModHarmonic);
   else
     % derivatives already included in convolutions etc.
   end

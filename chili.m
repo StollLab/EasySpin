@@ -165,6 +165,10 @@ if any(Sys.HStrain) || any(Sys.gStrain) || any(Sys.AStrain) || any(Sys.DStrain)
   error('chili does not support strains (HStrain, gStrain, AStrain, DStrain). Please remove from spin system.');
 end
 
+% Convolution with Gaussian only. Lorentzian broadening is 
+% included in the slow-motion simulation via T2.
+ConvolutionBroadening = any(Sys.lw(1)>0);
+
 % Dynamics
 %-------------------------------------------------------------------
 if ~isfield(Sys,'lambda'), Sys.lambda = 0; end
@@ -306,14 +310,6 @@ if ~any(Exp.Harmonic==[-1,0,1,2])
   error('Exp.Harmonic must be 0, 1 or 2.');
 end
 
-% Resonator mode
-switch Exp.Mode
-  case 'perpendicular', ParallelMode = false;
-  case 'parallel', ParallelMode = true;
-  otherwise, error('Exp.Mode must be either ''perpendicular'' or ''parallel''.');
-end
-logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.Mode);
-
 % Modulation amplitude
 if any(Exp.ModAmp<0) || any(isnan(Exp.ModAmp)) || numel(Exp.ModAmp)~=1
   error('Exp.ModAmp must be either a single positive number or zero.');
@@ -324,11 +320,30 @@ if (Exp.ModAmp>0)
     if (Exp.Harmonic<1)
       error('With field modulation (Exp.ModAmp), Exp.Harmonic=0 does not work.');
     end
-    Exp.Harmonic = Exp.Harmonic - 1;
+    Exp.ModHarmonic = Exp.Harmonic;
+    Exp.ConvHarmonic = 0;
+    Exp.DerivHarmonic = 0;
   else
     error('Exp.ModAmp cannot be used with frequency sweeps.');
   end
+else
+  Exp.ModHarmonic = 0;
+  if ConvolutionBroadening
+    Exp.ConvHarmonic = Exp.Harmonic;
+    Exp.DerivHarmonic = 0;
+  else
+    Exp.ConvHarmonic = 0;
+    Exp.DerivHarmonic = Exp.Harmonic;
+  end
 end
+
+% Resonator mode
+switch Exp.Mode
+  case 'perpendicular', ParallelMode = false;
+  case 'parallel', ParallelMode = true;
+  otherwise, error('Exp.Mode must be either ''perpendicular'' or ''parallel''.');
+end
+logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.Mode);
 
 % Complain if fields only valid in pepper() are given
 if isfield(Exp,'Orientations')
@@ -846,7 +861,6 @@ end
 %---------------------------------------------------------
 % Convolution with Gaussian only. Lorentzian broadening is already
 % included in the slow-motion simulation via T2.
-ConvolutionBroadening = any(Sys.lw(1)>0);
 if ConvolutionBroadening
   fwhmG = Sys.lw(1);
   if FieldSweep
@@ -858,7 +872,8 @@ if ConvolutionBroadening
   dx = xAxis(2) - xAxis(1);
   if (fwhmG>0)
     logmsg(1,'Convoluting with Gaussian (FWHM %g %s)...',fwhmG,unitstr);
-    spec = convspec(spec,dx,fwhmG,0,1);
+    spec = convspec(spec,dx,fwhmG,Exp.ConvHarmonic,1);
+    Exp.ConvHarmonic = 0;
   end
 end
 
@@ -873,10 +888,16 @@ outspec = spec;
 if FieldSweep
   if (Exp.ModAmp>0)
     logmsg(1,'  applying field modulation');
-    outspec = fieldmod(xAxis,outspec,Exp.ModAmp,Exp.Harmonic);
+    outspec = fieldmod(xAxis,outspec,Exp.ModAmp,Exp.ModHarmonic);
   else
-    if (Exp.Harmonic>0), outspec = deriv(xAxis,outspec.').'; end
-    if (Exp.Harmonic>1), outspec = deriv(xAxis,outspec.').'; end
+    if (Exp.DerivHarmonic>0)
+      logmsg(1,'  harmonic %d: using differentiation',Exp.DerivHarmonic);
+      dx = xAxis(2)-xAxis(1);
+      for h = 1:Exp.DerivHarmonic
+        dspec = diff(outspec,[],2)/dx;
+        outspec = (dspec(:,[1 1:end]) + dspec(:,[1:end end]))/2;
+      end
+    end
   end
 else
   % frequency sweeps: not available

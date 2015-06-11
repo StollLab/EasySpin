@@ -154,7 +154,6 @@ end
 [Sys,err] = validatespinsys(Sys);
 error(err);
 
-
 if (Sys.nElectrons~=1)
   error('Only systems with one electron spin S=1/2 are supported.');
 elseif (Sys.S~=1/2)
@@ -187,6 +186,8 @@ if FastMotionRegime
     end
   end
 end
+
+ConvolutionBroadening = any(Sys.lw>0) || FastMotionRegime;
 
 %-------------------------------------------------------------------------
 
@@ -300,9 +301,20 @@ if (Exp.ModAmp>0)
     if (Exp.Harmonic<1)
       error('With field modulation (Exp.ModAmp), Exp.Harmonic=0 does not work.');
     end
-    Exp.Harmonic = Exp.Harmonic - 1;
+    Exp.ModHarmonic = Exp.Harmonic;
+    Exp.ConvHarmonic = 0;
+    Exp.DerivHarmonic = 0;
   else
     error('Exp.ModAmp cannot be used with frequency sweeps.');
+  end
+else
+  Exp.ModHarmonic = 0;
+  if ConvolutionBroadening
+    Exp.ConvHarmonic = Exp.Harmonic;
+    Exp.DerivHarmonic = 0;
+  else
+    Exp.ConvHarmonic = 0;
+    Exp.DerivHarmonic = Exp.Harmonic;
   end
 end
 
@@ -678,7 +690,6 @@ end
 
 % (1) Initial spectrum construction
 %-------------------------------------------------------------------
-Harmonic2Do = Exp.Harmonic;
 SweepRange = Exp.Range;
 xAxis = linspace(SweepRange(1),SweepRange(2),Exp.nPoints);
 
@@ -729,15 +740,15 @@ switch Options.AccumMethod
     spec = 0;
     if numel(LorentzianLw)==1
       for iLine = 1:numel(Positions)
-        spec = spec + Intensity(iLine)*lorentzian(xAxisFine,Positions(iLine),LorentzianLw,Harmonic2Do,Exp.mwPhase);
+        spec = spec + Intensity(iLine)*lorentzian(xAxisFine,Positions(iLine),LorentzianLw,Exp.ConvHarmonic,Exp.mwPhase);
       end
     else
       for iLine = 1:numel(Positions)
-        spec = spec + Intensity(iLine)*lorentzian(xAxisFine,Positions(iLine),LorentzianLw(iLine),Harmonic2Do,Exp.mwPhase);
+        spec = spec + Intensity(iLine)*lorentzian(xAxisFine,Positions(iLine),LorentzianLw(iLine),Exp.ConvHarmonic,Exp.mwPhase);
       end
     end
     Exp.mwPhase = 0;
-    Harmonic2Do = 0;
+    Exp.ConvHarmonic = 0;
     
   case 'binning'
     % Accumulate spectrum by binning of deltas
@@ -762,20 +773,19 @@ end
 
 % (2) Convolutional broadening
 %-------------------------------------------------------------------
-ConvolutionBroadening = any(Sys.lw>0);
 if (ConvolutionBroadening)
   
   fwhmL = Sys.lw(2);
   fwhmG = Sys.lw(1);
   if (fwhmL>0)
-    HarmonicL = Harmonic2Do;
+    HarmonicL = Exp.ConvHarmonic;
     mwPhaseL = Exp.mwPhase;
     HarmonicG = 0;
     mwPhaseG = 0;
   else
     HarmonicL = 0;
     mwPhaseL = 0;
-    HarmonicG = Harmonic2Do;
+    HarmonicG = Exp.ConvHarmonic;
     mwPhaseG = Exp.mwPhase;
   end
   
@@ -810,7 +820,7 @@ end
 if FieldSweep
   if (Exp.ModAmp>0)
     logmsg(1,'Applying field modulation (%g mT amplitude)...',Exp.ModAmp);
-    spec = fieldmod(xAxis,spec,Exp.ModAmp);
+    spec = fieldmod(xAxis,spec,Exp.ModAmp,Exp.ModHarmonic);
   else
     % derivatives already included in the convolution
   end
