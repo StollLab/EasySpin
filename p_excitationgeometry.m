@@ -1,6 +1,6 @@
 % Determine excitation mode
 %-----------------------------------------------------------------
-% Exp.Polarization:
+% Exp.mwPolarization:
 %   'linear' (default)
 %   'circular' ( = 'circular+')
 %   'circular+'
@@ -18,32 +18,32 @@
 %   in the plane perpendicular to k; for alpha_pol = 0, B1 is along
 %   x(Lab) axis.
 
-% Polarization mode
+% Microwave polarization mode
 %--------------------------------------------------------------------
-if ~isfield(Exp,'Polarization'), Exp.Polarization = ''; end
+if ~isfield(Exp,'mwPolarization'), Exp.mwPolarization = ''; end
 
 unpolarizedMode = false;
 circpolarizedMode = false;
 linearpolarizedMode = false;
 circSense = NaN;
-if ~isempty(Exp.Polarization)
-  if ~ischar(Exp.Polarization)
-    error('Exp.Polarization must be a string.');
+if ~isempty(Exp.mwPolarization)
+  if ~ischar(Exp.mwPolarization)
+    error('Exp.mwPolarization must be a string.');
   end
-  switch Exp.Polarization
+  switch Exp.mwPolarization
     case 'linear', linearpolarizedMode = true; logstr = 'linear';
     case 'circular', circpolarizedMode = true; circSense = +1; logstr = 'circular+';
     case 'circular+', circpolarizedMode = true; circSense = +1; logstr = 'circular+';
     case 'circular-', circpolarizedMode = true; circSense = -1; logstr = 'circular-';
     case 'unpolarized', unpolarizedMode = true; logstr = 'unpolarized';
     otherwise
-      error('Unrecognized Exp.Polarization: ''%s''.',Exp.Polarization);
+      error('Unrecognized Exp.mwPolarization: ''%s''.',Exp.mwPolarization);
   end
 else
   linearpolarizedMode = true;
   logstr = 'linear';
 end
-logmsg(1,'  polarization mode: %s',logstr);
+logmsg(1,'  microwave polarization mode: %s',logstr);
 
 % Excitation mode
 %--------------------------------------------------------------------

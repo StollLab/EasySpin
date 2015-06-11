@@ -28,7 +28,7 @@
 %      CrystalOrientation  nx3 array of Euler angles (in radians) for crystal orientations
 %      CrystalSymmetry     crystal symmetry (space group etc.)
 %      MolFrame            Euler angles (in radians) for molecular frame orientation
-%      Polarization        'linear', 'circular+', 'circular-', 'unpolarized'
+%      mwPolarization      'linear', 'circular+', 'circular-', 'unpolarized'
 %      Mode                excitation mode: 'perpendicular', 'parallel', k_tilt, [k_tilt alpha_pol]
 %      Ordering            coefficient for non-isotropic orientational distribution
 %    Opt: computational options
