@@ -7,8 +7,7 @@
 %   Computes the slow-motion cw EPR spectrum of systems with
 %   one electron and one nuclear spin.
 %
-%   Input:
-%     Sys                 spin system structure
+%   Sys: spin system structure
 %
 %     Sys.tcorr           rotational correlation time (in seconds)
 %     Sys.logtcorr        log10 of rotational correlation time (in seconds)
@@ -28,17 +27,16 @@
 %                         [lambda20 lambda22 lambda40 lambda42 lambda44]
 %     Sys.Exchange        Heisenberg exchange frequency (MHz)
 %
-%     Exp.mwFreq          spectrometer frequency, in GHz
-%     Exp.CenterSweep     [centerField sweepWidth], in mT
-%     Exp.Range           [minField maxField], in mT
-%
-%          Exp.Range is only used if Exp.CenterSweep is not given.
-%          If both Exp.CenterSweep and Exp.Range are omitted, the
-%          magnetic field range is determined automatically.
-%
-%     Exp.nPoints         number of points (default 1024)
-%     Exp.Harmonic        detection harmonic: 0, 1, 2 (default 1)
-%     Exp.CrystalOrientation crystal orientation in lab, for a single-crystal simulation
+%    Exp: experimental parameter settings
+%      mwFreq              microwave frequency, in GHz (for field sweeps)
+%      Field               static field, in mT (for frequency sweeps)
+%      Range               sweep range, [sweepmin sweepmax], in mT or GHz
+%      CenterSweep         sweep range, [center sweep], in mT or GHz
+%      nPoints             number of points
+%      Harmonic            detection harmonic: 0, 1 (default), 2
+%      ModAmp              peak-to-peak modulation amplitude, in mT (field sweeps only)
+%      mwPhase             detection phase (0 = absorption, pi/2 = dispersion)
+%      Temperature         temperature, in K
 %
 %     Opt.LLKM            basis size: [evenLmax oddLmax Kmax Mmax]
 %     Opt.Verbosity       0: no display, 1: show info

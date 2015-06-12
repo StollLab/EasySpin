@@ -7,30 +7,31 @@
 %   Computes the solution cw EPR spectrum of systems with
 %   an unpaired electron and arbitrary numbers of nuclear spins.
 %
-%   Input:
-%     Sys.g            isotropic g factor or 3 principal values of g
-%     Sys.Nucs         string with comma-separated list of isotopes
-%     Sys.n            vector of number of equivalent nuclei (default all 1)
-%     Sys.A            vector of hyperfine couplings [MHz]
-%     Sys.lw           vector with FWHM line widths [mT]
-%                       1 element:  GaussianFWHM
-%                       2 elements: [GaussianFWHM LorentzianFWHM]
-%     Sys.lwpp         peak-to-peak line widths [mT], same format as Sys.lw
+%   Sys: spin system structure
+%     g            isotropic g factor or 3 principal values of g
+%     Nucs         string with comma-separated list of isotopes
+%     n            vector of number of equivalent nuclei (default all 1)
+%     A            vector of hyperfine couplings [MHz]
+%     lw           vector with FWHM line widths [mT]
+%                   1 element:  GaussianFWHM
+%                   2 elements: [GaussianFWHM LorentzianFWHM]
+%     lwpp         peak-to-peak line widths [mT], same format as Sys.lw
 %
-%     Sys.tcorr        correlation time for fast-motion linewidths [s]
-%                      If omitted or zero, the isotropic spectrum is computed.
-%     Sys.logtcorr     log10 of the correlation time for fast-motion linewidths [s]
-%                      If logtcorr is given, tcorr is ignored.
+%     tcorr        correlation time for fast-motion linewidths [s]
+%                  If omitted or zero, the isotropic spectrum is computed.
+%     logtcorr     log10 of the correlation time for fast-motion linewidths [s]
+%                  If logtcorr is given, tcorr is ignored.
 %
-%     Exp.mwFreq       spectrometer frequency [GHz]
-%     Exp.CenterSweep  [centerField sweepRange] in mT
-%     Exp.Range        [minField maxField] in mT
-%          Exp.Range is only used if Exp.CenterSweep is not given.
-%          If both Exp.CenterSweep and Exp.Range are omitted, the
-%          magnetic field range is determined automatically.
-%
-%     Exp.Harmonic     detection harmonic (0, 1, or 2), default 1
-%     Exp.nPoints      number of points (default 1024)
+%   Exp:  experimental parameter settings
+%      mwFreq              microwave frequency, in GHz (for field sweeps)
+%      Field               static field, in mT (for frequency sweeps)
+%      Range               sweep range, [sweepmin sweepmax], in mT or GHz
+%      CenterSweep         sweep range, [center sweep], in mT or GHz
+%      nPoints             number of points
+%      Harmonic            detection harmonic: 0, 1 (default), 2
+%      ModAmp              peak-to-peak modulation amplitude, in mT (field sweeps only)
+%      mwPhase             detection phase (0 = absorption, pi/2 = dispersion)
+%      Temperature         temperature, in K
 %
 %   Output
 %     B                magnetic field axis [mT]
