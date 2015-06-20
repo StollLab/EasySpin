@@ -48,6 +48,9 @@ if ~ischar(SimFunctionName)
   error('First parameter must be simulation function name.');
 end
 FitData.SimFcnName = SimFunctionName;
+if ~any(exist(FitData.SimFcnName)==[2 3 5 6])
+  error('First input parameter must be a valid function name.');
+end
 FitData.lastSetID = 0;
 
 % System structure
@@ -141,6 +144,16 @@ FitData.Exp = Exp;
 
 % Fitting options
 %======================================================================
+if ~isfield(FitOpt,'OutArg')
+  FitData.nOutArguments = abs(nargout(FitData.SimFcnName));
+  FitData.OutArgument = FitData.nOutArguments;
+else
+  if numel(FitOpt.OutArg)~=2
+    error('FitOpt.OutArg must contain two values [nOut iOut]');
+  end
+  FitData.nOutArguments = FitOpt.OutArg(1);
+  FitData.OutArgument = FitOpt.OutArg(2);
+end
 
 if ~isfield(FitOpt,'Scaling'), FitOpt.Scaling = 'lsq0'; end
 
@@ -667,23 +680,15 @@ BestSpec = 0;
 [FinalSys,bestvalues] = getSystems(FitData.Sys0,FitData.Vary,bestx);
 
 % Simulate best-fit spectrum
-nArguments = nargout(FitData.SimFcnName);
 for iSys=1:numel(FitData.Sys0)
   if isfield(FinalSys{iSys},'fcn')
-    if (nArguments==1)
-      b_ = feval(FitData.SimFcnName,FinalSys{iSys}.fcn(FinalSys{iSys}),Exp,SimOpt);
-    else
-      [dummy,b_] = feval(FitData.SimFcnName,FinalSys{iSys}.fcn(FinalSys{iSys}),Exp,SimOpt);
-    end
+    [out{1:FitData.nOutArguments}] = feval(FitData.SimFcnName,FinalSys{iSys}.fcn(FinalSys{iSys}),Exp,SimOpt);
   else
-    if (nArguments==1)
-      b_ = feval(FitData.SimFcnName,FinalSys{iSys},FitData.Exp,FitData.SimOpt);
-    else
-      [dummy,b_] = feval(FitData.SimFcnName,FinalSys{iSys},FitData.Exp,FitData.SimOpt);
-    end
+    [out{1:FitData.nOutArguments}] = feval(FitData.SimFcnName,FinalSys{iSys},FitData.Exp,FitData.SimOpt);
   end
+  newsim_ = out{FitData.OutArgument}; % pick last output argument
   %(Sys.weight is taken into account by the simulation function)
-  BestSpec = BestSpec + b_;
+  BestSpec = BestSpec + newsim_;
 end
 BestSpecScaled = rescale(BestSpec,FitData.ExpSpecScaled,FitOpts.Scaling);
 BestSpec = rescale(BestSpec,FitData.ExpSpec,FitOpts.Scaling);
@@ -746,22 +751,14 @@ inactive = FitData.inactiveParams;
 x_all = FitData.startx;
 x_all(~inactive) = x;
 [SimSystems,simvalues] = getSystems(Sys0,Vary,x_all);
-nArguments = nargout(FitData.SimFcnName);
 for s = 1:numel(Sys0)
   % (SimSystems{s}.weight is taken into account in the simulation function)
   if isfield(SimSystems{s},'fcn')
-    if (nArguments==1)
-      newsim_ = feval(FitData.SimFcnName,SimSystems{s}.fcn(SimSystems{s}),Exp,SimOpt);
-    else
-      [dummy,newsim_] = feval(FitData.SimFcnName,SimSystems{s}.fcn(SimSystems{s}),Exp,SimOpt);
-    end
+    [out{1:FitData.nOutArguments}] = feval(FitData.SimFcnName,SimSystems{s}.fcn(SimSystems{s}),Exp,SimOpt);
   else
-    if (nArguments==1)
-      newsim_ = feval(FitData.SimFcnName,SimSystems{s},Exp,SimOpt);
-    else
-      [dummy,newsim_] = feval(FitData.SimFcnName,SimSystems{s},Exp,SimOpt);
-    end
+    [out{1:FitData.nOutArguments}] = feval(FitData.SimFcnName,SimSystems{s},Exp,SimOpt);
   end
+  newsim_ = out{FitData.OutArgument};
   simspec = simspec + newsim_;
 end
 
