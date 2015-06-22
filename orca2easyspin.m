@@ -78,6 +78,7 @@ gpv = [];
 Apv = [];
 Qpv = [];
 rho0 = [];
+Atoms = [];
 
 while ~feof(f)
   
@@ -103,6 +104,7 @@ while ~feof(f)
   
     % Coordinates --------------------------------------
     case {17,42} % 17 up to ORCA 3.0.2, then 42
+      % only included if HF are calculated
       xyz = reshape(data,3,[]).'; % in Bohr radii
       xyz = xyz*bohrrad/1e-10;    % conversion to Angstrom
     
@@ -161,10 +163,12 @@ while ~feof(f)
 end
 
 nAtoms = numel(Atoms);
-if size(Apv,1)<nAtoms, Apv(nAtoms,:) = 0; end
-if size(AFrame,1)<nAtoms, AFrame(nAtoms,:) = 0; end
-if size(Qpv,1)<nAtoms, Qpv(nAtoms,:) = 0; end
-if size(QFrame,1)<nAtoms, QFrame(nAtoms,:) = 0; end
+if nAtoms>0
+  if size(Apv,1)<nAtoms, Apv(nAtoms,:) = 0; end
+  if size(AFrame,1)<nAtoms, AFrame(nAtoms,:) = 0; end
+  if size(Qpv,1)<nAtoms, Qpv(nAtoms,:) = 0; end
+  if size(QFrame,1)<nAtoms, QFrame(nAtoms,:) = 0; end
+end
 
 fclose(f);
 
@@ -177,7 +181,9 @@ if isempty(S)
 else
   Sys.S = S;
 end
-Sys.xyz = xyz;
+if ~isempty(xyz)
+  Sys.xyz = xyz;
+end
 if ~isempty(Charge)
   Sys.Charge = Charge;
 end
@@ -190,26 +196,28 @@ if ~isempty(Dpv)
   Sys.DFrame = DFrame;
 end
 
-% Hyperfine cutoff
-Amax = max(abs(Apv),[],2);
-hfkeep = Amax>HyperfineCutoff;
-
-% List of isotopes
-NucStr = [];
-for iAtom = 1:nAtoms
-  if ~hfkeep(iAtom), continue; end
-  NucStr = [NucStr ',' elementno2symbol(Atoms(iAtom))];
-end
-if ~isempty(NucStr)
-  NucStr(1) = [];
-end
-Sys.Nucs = NucStr;
-
-if ~isempty(Apv)
-  Sys.A  = Apv(hfkeep,:);
-  Sys.AFrame = AFrame(hfkeep,:);
-end
-if ~isempty(Qpv)
-  Sys.Q  = Qpv(hfkeep,:);
-  Sys.QFrame = QFrame(hfkeep,:);
+if nAtoms>0
+  % Hyperfine cutoff
+  Amax = max(abs(Apv),[],2);
+  hfkeep = Amax>HyperfineCutoff;
+  
+  % List of isotopes
+  NucStr = [];
+  for iAtom = 1:nAtoms
+    if ~hfkeep(iAtom), continue; end
+    NucStr = [NucStr ',' elementno2symbol(Atoms(iAtom))];
+  end
+  if ~isempty(NucStr)
+    NucStr(1) = [];
+  end
+  Sys.Nucs = NucStr;
+  
+  if ~isempty(Apv)
+    Sys.A  = Apv(hfkeep,:);
+    Sys.AFrame = AFrame(hfkeep,:);
+  end
+  if ~isempty(Qpv)
+    Sys.Q  = Qpv(hfkeep,:);
+    Sys.QFrame = QFrame(hfkeep,:);
+  end
 end
