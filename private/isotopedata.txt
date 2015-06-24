@@ -1,8 +1,8 @@
 %==============================================================
 % EasySpin nuclear isotope database
-% Version 20-Jun-2014
+% Version 22-Jun-2015
 %==============================================================
-% Contains all naturally occuring nuclei plus selected
+% Contains all naturally occurring nuclei plus selected
 % radioactive ones, which are marked by * in column 3.
 % Line syntax:
 %  Column 1: #protons
