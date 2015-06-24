@@ -121,7 +121,7 @@ if any(LocationType==[0 1 5 8]), % not a file/directory
 end
 
 % Determine file format from file extension
-switch upper(FileExtension)
+switch upper(strtrim(FileExtension))
   case {'.DTA','.DSC'}, FileFormat = 'BrukerBES3T';
   case {'.PAR','.SPC'}, FileFormat = 'BrukerESP';
   case '.D01', FileFormat = 'SpecMan';
