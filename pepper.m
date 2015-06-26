@@ -17,9 +17,11 @@
 %      B2, B4, B6 etc.
 %    Exp: experimental parameter settings
 %      mwFreq              microwave frequency, in GHz (for field sweeps)
+%      Range               sweep range, [sweepmin sweepmax], in mT (for field sweep)
+%      CenterSweep         sweep range, [center sweep], in mT (for field sweeps
 %      Field               static field, in mT (for frequency sweeps)
-%      Range               sweep range, [sweepmin sweepmax], in mT or GHz
-%      CenterSweep         sweep range, [center sweep], in mT or GHz
+%      mwRange             sweep range, [sweepmin sweepmax], in GHz (for freq. sweeps)
+%      mwCenterSweep       sweep range, [center sweep], in GHz (for freq. sweeps)
 %      nPoints             number of points
 %      Harmonic            detection harmonic: 0, 1 (default), 2
 %      ModAmp              peak-to-peak modulation amplitude, in mT (field sweeps only)
@@ -98,8 +100,14 @@ EasySpinLogLevel = Opt.Verbosity;
 %==================================================================
 FrequencySweep = ~isfield(Exp,'mwFreq') & isfield(Exp,'Field');
 
-SweepAutoRange = (~isfield(Exp,'Range') || isempty(Exp.Range)) && ...
-  (~isfield(Exp,'CenterSweep') || isempty(Exp.CenterSweep));
+if FrequencySweep
+  SweepAutoRange = (~isfield(Exp,'mwRange') || isempty(Exp.mwRange)) && ...
+    (~isfield(Exp,'mwCenterSweep') || isempty(Exp.mwCenterSweep));
+else
+  SweepAutoRange = (~isfield(Exp,'Range') || isempty(Exp.Range)) && ...
+    (~isfield(Exp,'CenterSweep') || isempty(Exp.CenterSweep));
+end
+
 if ~isfield(Opt,'IsoCutoff'), Opt.IsoCutoff = 1e-3; end
 
 if ~isfield(Sys,'singleiso') || (Sys.singleiso==0)
@@ -107,12 +115,16 @@ if ~isfield(Sys,'singleiso') || (Sys.singleiso==0)
   [SysList,weight] = expandcomponents(Sys,Opt.IsoCutoff);
   
   if (numel(SysList)>1) && SweepAutoRange
-    error('Multiple components: Please specify magnetic field range manually using Exp.Range or Exp.CenterSweep.');
+    if FrequencySweep
+      error('Multiple components: Please specify sweep range manually using Exp.mwRange or Exp.mwCenterSweep.');
+    else
+      error('Multiple components: Please specify sweep range manually using Exp.Range or Exp.CenterSweep.');
+    end
   end
   
   spec = 0;
   for iComponent = 1:numel(SysList)
-    [xAxis,spec_,Bres] = pepper(SysList{iComponent},Exp,Opt);
+    [xAxis,spec_,Transitions] = pepper(SysList{iComponent},Exp,Opt);
     spec = spec + spec_*weight(iComponent);
   end
     
@@ -143,7 +155,7 @@ if ~isfield(Sys,'singleiso') || (Sys.singleiso==0)
       ylabel('intensity (arb.u.)');
     case 1, varargout = {spec};
     case 2, varargout = {xAxis,spec};
-    case 3, varargout = {xAxis,spec,Bres};
+    case 3, varargout = {xAxis,spec,Transitions};
   end
   return
 end
@@ -188,6 +200,8 @@ if StrainWidths, logmsg(1,'  widths for Gaussian strains given'); end
 %DefaultExp.Field = NaN; % for frequency sweeps
 DefaultExp.CenterSweep = NaN;
 DefaultExp.Range = NaN;
+DefaultExp.mwCenterSweep = NaN;
+DefaultExp.mwRange = NaN;
 DefaultExp.nPoints = 1024;
 DefaultExp.Temperature = NaN;
 DefaultExp.Harmonic = NaN;
@@ -202,20 +216,19 @@ DefaultExp.MolFrame = [];
 
 Exp = adddefaults(Exp,DefaultExp);
 
-% Check microwave frequency
+% Check microwave frequency and static field
 if ~isfield(Exp,'mwFreq') || isempty(Exp.mwFreq)
   if ~isfield(Exp,'Field')
     error('Please supply either the microwave frequency in Exp.mwFreq (for field sweeps) or the magnetic field in Exp.Field (for frequency sweeps).');
   end
   FieldSweep = false;
 else
-  if isfield(Exp,'Field')
-    if ~isempty(Exp.Field)
-      error('Give either Exp.mwFreq (for a field sweep) or Exp.Field (for a frequency sweep), but not both.');
-    end
+  if isfield(Exp,'Field') && ~isempty(Exp.Field)
+    error('Give either Exp.mwFreq (for a field sweep) or Exp.Field (for a frequency sweep), but not both.');
   end
   FieldSweep = true;
 end
+
 if FieldSweep
   if (numel(Exp.mwFreq)~=1) || any(Exp.mwFreq<=0) || ~isreal(Exp.mwFreq)
     error('Uninterpretable microwave frequency in Exp.mwFreq.');
@@ -267,20 +280,35 @@ if FieldSweep
       error(sprintf('Cannot automatically determine field range.\nPlease given either Exp.CenterSweep or Exp.Range.'));
     end
   end
+else
+  % Automatic range for frequency sweep is done later.
 end
 
 % Check both CenterSweep and Range, prefer CenterSweep
-if ~isnan(Exp.CenterSweep)
-  Exp.Range = Exp.CenterSweep(1) + [-1 1]*Exp.CenterSweep(2)/2;
-  Exp.Range = max(Exp.Range,0);
-end
-
-if isfield(Exp,'Range') && all(~isnan(Exp.Range))
-  if (diff(Exp.Range)<=0) || any(~isfinite(Exp.Range)) || ...
-      any(~isreal(Exp.Range)) || any(Exp.Range<0)
-    error('Exp.Range is not valid!');
+if FieldSweep
+  if ~isnan(Exp.CenterSweep)
+    Exp.Range = Exp.CenterSweep(1) + [-1 1]*Exp.CenterSweep(2)/2;
+    Exp.Range = max(Exp.Range,0);
+  end
+  if isfield(Exp,'Range') && all(~isnan(Exp.Range))
+    if (diff(Exp.Range)<=0) || any(~isfinite(Exp.Range)) || ...
+        any(~isreal(Exp.Range)) || any(Exp.Range<0)
+      error('Exp.Range is not valid!');
+    end
+  end
+else
+  if ~isnan(Exp.mwCenterSweep)
+    Exp.mwRange = Exp.mwCenterSweep(1) + [-1 1]*Exp.mwCenterSweep(2)/2;
+    Exp.mwRange = max(Exp.mwRange,0);
+  end
+  if isfield(Exp,'mwRange') && all(~isnan(Exp.mwRange))
+    if (diff(Exp.mwRange)<=0) || any(~isfinite(Exp.mwRange)) || ...
+        any(~isreal(Exp.mwRange)) || any(Exp.mwRange<0)
+      error('Exp.mwRange is not valid!');
+    end
   end
 end
+
 
 % Number of points
 if any(~isreal(Exp.nPoints)) || numel(Exp.nPoints)>1 || (Exp.nPoints<2)
@@ -293,7 +321,7 @@ if FieldSweep
 else
   if ~SweepAutoRange
     logmsg(1,'  field %g mT, frequency range [%g %g] GHz, %d points',...
-      Exp.Field,Exp.Range(1),Exp.Range(2),Exp.nPoints);
+      Exp.Field,Exp.mwRange(1),Exp.mwRange(2),Exp.nPoints);
   else
     logmsg(1,'  field %g mT, automatic frequency range, %d points',...
       Exp.Field,Exp.nPoints);
@@ -653,9 +681,9 @@ if ~FieldSweep && SweepAutoRange
   padding = max(padding,5*sum(Sys.lw)/1e3);
   minRange = max(0,minFreq-padding);
   maxRange = maxFreq + padding;
-  Exp.Range = [minRange maxRange]; % GHz
+  Exp.mwRange = [minRange maxRange]; % GHz
   logmsg(1,'  automatic frequency range [%g %g] GHz',...
-    Exp.Range(1),Exp.Range(2));
+    Exp.mwRange(1),Exp.mwRange(2));
 end
 
 %=======================================================================
@@ -686,11 +714,13 @@ else
   LoopingTransitionsPresent = 0;
 end
 
-
-% Unclear which of the following versions is implemented in cw EPR spectrometers.
-%Exp.deltaX = diff(Exp.Range)/Exp.nPoints; % excludes last value
-Exp.deltaX = diff(Exp.Range)/(Exp.nPoints-1); % includes last value
-xAxis = Exp.Range(1) + Exp.deltaX*(0:Exp.nPoints-1);
+if FieldSweep
+  SweepRange = Exp.Range;
+else
+  SweepRange = Exp.mwRange;
+end
+xAxis = linspace(SweepRange(1),SweepRange(2),Exp.nPoints);
+Exp.deltaX = xAxis(2)-xAxis(1);
 
 %=======================================================================
 %=======================================================================
@@ -1012,7 +1042,7 @@ else % if Opt.ImmediateBinning elseif (~BruteForceSum) ...
   logmsg(1,'  constructing stick spectrum');
   logmsg(1,'  summation over %d orientations',nOrientations);
   spec = zeros(1,Exp.nPoints);
-  prefactor = (Exp.nPoints-1)/(Exp.Range(2)-Exp.Range(1));
+  prefactor = (Exp.nPoints-1)/(SweepRange(2)-SweepRange(1));
   for iOri = 1:nOrientations
     if iscell(Pdat)
       thisP = Pdat{iOri};
@@ -1021,7 +1051,7 @@ else % if Opt.ImmediateBinning elseif (~BruteForceSum) ...
       thisP = Pdat(:,iOri);
       Amplitudes = Idat(:,iOri);
     end
-    idxPos = round(1+prefactor*(thisP-Exp.Range(1)));
+    idxPos = round(1+prefactor*(thisP-SweepRange(1)));
     outOfRange = (idxPos<1) | (idxPos>Exp.nPoints);
     idxPos(outOfRange) = [];
     Amplitudes(outOfRange) = [];
@@ -1095,13 +1125,13 @@ if (ConvolutionBroadening)
     exceedsHigherLimit = any(spec(:,end)~=0);
     if exceedsLowerLimit
       if exceedsHigherLimit
-        logmsg(0,'** Spectrum exceeds field range. Artifacts at lower and upper field limits possible.');
+        logmsg(0,'** Spectrum exceeds sweep range. Artifacts at lower and upper limits possible.');
       else
-        logmsg(0,'** Spectrum exceeds field range. Artifacts at lower field limit possible.');
+        logmsg(0,'** Spectrum exceeds sweep range. Artifacts at lower limit possible.');
       end
     else
       if exceedsHigherLimit
-        logmsg(0,'** Spectrum exceeds field range. Artifacts at upper field limit possible.');
+        logmsg(0,'** Spectrum exceeds sweep range. Artifacts at upper limit possible.');
       end
     end
     if  exceedsLowerLimit || exceedsHigherLimit

@@ -24,9 +24,11 @@
 %
 %   Exp:  experimental parameter settings
 %      mwFreq              microwave frequency, in GHz (for field sweeps)
+%      Range               sweep range, [sweepmin sweepmax], in mT (for field sweep)
+%      CenterSweep         sweep range, [center sweep], in mT (for field sweeps
 %      Field               static field, in mT (for frequency sweeps)
-%      Range               sweep range, [sweepmin sweepmax], in mT or GHz
-%      CenterSweep         sweep range, [center sweep], in mT or GHz
+%      mwRange             sweep range, [sweepmin sweepmax], in GHz (for freq. sweeps)
+%      mwCenterSweep       sweep range, [center sweep], in GHz (for freq. sweeps)
 %      nPoints             number of points
 %      Harmonic            detection harmonic: 0, 1 (default), 2
 %      ModAmp              peak-to-peak modulation amplitude, in mT (field sweeps only)
@@ -39,21 +41,6 @@
 %
 %     If no output parameter is specified, the simulated spectrum
 %     is plotted.
-%
-%   Example isotropic spectrum
-%
-%     Sys = struct('g',2,'Nucs','1H,14N','A',[30,40],'n',[3,4]);
-%     Sys.lwpp = [0,0.1];
-%     Exp = struct('mwFreq',9.7,'nPoints',10000);
-%     garlic(Sys,Exp);
-%
-%   Example fast-motion spectrum
-%
-%     A = [16, 16, 86];
-%     Sys = struct('g',[2.0088 2.0061 2.0027],'Nucs','14N','A',A);
-%     Sys.tcorr = 1e-9;
-%     Exp = struct('mwFreq',9.5);
-%     garlic(Sys,Exp);
 
 function varargout = garlic(Sys,Exp,Options)
 
@@ -93,8 +80,14 @@ Link = 'epr@eth'; eschecker; error(LicErr); clear Link LicErr
 %==================================================================
 FrequencySweep = ~isfield(Exp,'mwFreq') & isfield(Exp,'Field');
 
-SweepAutoRange = (~isfield(Exp,'Range') || isempty(Exp.Range)) && ...
-                 (~isfield(Exp,'CenterSweep') || isempty(Exp.CenterSweep));
+if FrequencySweep
+  SweepAutoRange = (~isfield(Exp,'mwRange') || isempty(Exp.mwRange)) && ...
+    (~isfield(Exp,'mwCenterSweep') || isempty(Exp.mwCenterSweep));
+else
+  SweepAutoRange = (~isfield(Exp,'Range') || isempty(Exp.Range)) && ...
+    (~isfield(Exp,'CenterSweep') || isempty(Exp.CenterSweep));
+end
+
 if ~isfield(Options,'IsoCutoff'), Options.IsoCutoff = 1e-6; end
 
 if ~isfield(Sys,'singleiso') || (Sys.singleiso==0)
@@ -102,12 +95,16 @@ if ~isfield(Sys,'singleiso') || (Sys.singleiso==0)
   [SysList,weight] = expandcomponents(Sys,Options.IsoCutoff);
     
   if (numel(SysList)>1) && SweepAutoRange
-    error('Multiple components: Please specify magnetic field range manually using Exp.Range or Exp.CenterSweep.');
+    if FrequencySweep
+      error('Multiple components: Please specify frequency range manually using Exp.mwRange or Exp.mwCenterSweep.');
+    else
+      error('Multiple components: Please specify field range manually using Exp.Range or Exp.CenterSweep.');
+    end
   end
   
   spec = 0;
   for iComponent = 1:numel(SysList)
-    [xAxis,spec_,Bres] = garlic(SysList{iComponent},Exp,Options);
+    [xAxis,spec_,Transitions] = garlic(SysList{iComponent},Exp,Options);
     spec = spec + spec_*weight(iComponent);
   end
   
@@ -138,7 +135,7 @@ if ~isfield(Sys,'singleiso') || (Sys.singleiso==0)
       ylabel('intensity (arb.u.)');    
     case 1, varargout = {spec};
     case 2, varargout = {xAxis,spec};
-    case 3, varargout = {xAxis,spec,Bres};
+    case 3, varargout = {xAxis,spec,Transitions};
   end
   return
 end
@@ -219,6 +216,7 @@ else
   end
   FieldSweep = true;
 end
+
 if FieldSweep
   if (numel(Exp.mwFreq)~=1) || any(Exp.mwFreq<=0) || ~isreal(Exp.mwFreq)
     error('Uninterpretable microwave frequency in Exp.mwFreq.');
@@ -233,23 +231,44 @@ end
 
 % Sweep range (magnetic field or frequency)
 SweepAutoRange = false;
-if isfield(Exp,'CenterSweep')
-  if isfield(Exp,'Range')
-    logmsg(0,'Using Exp.CenterSweep and ignoring Exp.Range.');
+if FieldSweep
+  if isfield(Exp,'CenterSweep')
+    if isfield(Exp,'Range')
+      logmsg(0,'Using Exp.CenterSweep and ignoring Exp.Range.');
+    end
+  else
+    if isfield(Exp,'Range')
+      if (Exp.Range(1)>=Exp.Range(2)) || any(Exp.Range<0)
+        error('Invalid sweep range!');
+      end
+      Exp.CenterSweep = [mean(Exp.Range) diff(Exp.Range)];
+    else
+      logmsg(1,'  automatic determination of sweep range');
+      SweepAutoRange = true;
+    end
+  end
+  if ~SweepAutoRange
+    Exp.Range = Exp.CenterSweep(1) + [-1 1]/2*Exp.CenterSweep(2);
   end
 else
-  if isfield(Exp,'Range')
-    if (Exp.Range(1)>=Exp.Range(2)) || any(Exp.Range<0)
-      error('Invalid sweep range!');
+  if isfield(Exp,'mwCenterSweep')
+    if isfield(Exp,'mwRange')
+      logmsg(0,'Using Exp.mwCenterSweep and ignoring Exp.mwRange.');
     end
-    Exp.CenterSweep = [mean(Exp.Range) diff(Exp.Range)];
   else
-    logmsg(1,'  automatic determination of sweep range');
-    SweepAutoRange = true;
+    if isfield(Exp,'mwRange')
+      if (Exp.mwRange(1)>=Exp.mwRange(2)) || any(Exp.mwRange<0)
+        error('Invalid sweep range!');
+      end
+      Exp.mwCenterSweep = [mean(Exp.mwRange) diff(Exp.mwRange)];
+    else
+      logmsg(1,'  automatic determination of sweep range');
+      SweepAutoRange = true;
+    end
   end
-end
-if ~SweepAutoRange
-  Exp.Range = Exp.CenterSweep(1) + [-1 1]/2*Exp.CenterSweep(2);
+  if ~SweepAutoRange
+    Exp.mwRange = Exp.mwCenterSweep(1) + [-1 1]/2*Exp.mwCenterSweep(2);
+  end
 end
 
 % Number of points
@@ -290,6 +309,9 @@ if ~isnan(Exp.Temperature)
   if isinf(Exp.Temperature)
     error('If given, Exp.Temperature must be a finite value.')
   end
+  if numel(Exp.Temperature)~=1
+    error('garlic does not support spin polarization in Exp.Temperature.');
+  end
 end
 
 % Modulation amplitude
@@ -329,6 +351,9 @@ if isfield(Exp,'Ordering')
 end
 if isfield(Exp,'CrystalSymmetry')
   warning('Exp.CrystalSymmetry is not used by garlic.');
+end
+if isfield(Exp,'CrystalOrientation')
+  warning('Exp.CrystalOrientation is not used by garlic.');
 end
 
 
@@ -623,10 +648,10 @@ if (SweepAutoRange)
     logmsg(1,'  automatic field range from %g mT to %g mT',Exp.Range(1),Exp.Range(2));
   else
     posrange = (posmax-posmin)*Options.Stretch; % Hz
-    Exp.Range = [posmin,posmax] + [-1 1]*max(5*maxLw/1e3,posrange);
-    Exp.Range(1) = max(Exp.Range(1),0);
-    Exp.Range = Exp.Range/1e9; % Hz -> GHz
-    logmsg(1,'  automatic frequency range from %g GHz to %g GHz',Exp.Range(1),Exp.Range(2));
+    Exp.mwRange = [posmin,posmax] + [-1 1]*max(5*maxLw/1e3,posrange);
+    Exp.mwRange(1) = max(Exp.mwRange(1),0);
+    Exp.mwRange = Exp.mwRange/1e9; % Hz -> GHz
+    logmsg(1,'  automatic frequency range from %g GHz to %g GHz',Exp.mwRange(1),Exp.mwRange(2));
   end
 end
 
@@ -691,7 +716,11 @@ end
 
 % (1) Initial spectrum construction
 %-------------------------------------------------------------------
-SweepRange = Exp.Range;
+if FieldSweep
+  SweepRange = Exp.Range;
+else
+  SweepRange = Exp.mwRange;
+end
 xAxis = linspace(SweepRange(1),SweepRange(2),Exp.nPoints);
 
 if AutoAccumMethod

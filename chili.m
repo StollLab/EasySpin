@@ -29,9 +29,11 @@
 %
 %    Exp: experimental parameter settings
 %      mwFreq              microwave frequency, in GHz (for field sweeps)
+%      Range               sweep range, [sweepmin sweepmax], in mT (for field sweep)
+%      CenterSweep         sweep range, [center sweep], in mT (for field sweeps
 %      Field               static field, in mT (for frequency sweeps)
-%      Range               sweep range, [sweepmin sweepmax], in mT or GHz
-%      CenterSweep         sweep range, [center sweep], in mT or GHz
+%      mwRange             sweep range, [sweepmin sweepmax], in GHz (for freq. sweeps)
+%      mwCenterSweep       sweep range, [center sweep], in GHz (for freq. sweeps)
 %      nPoints             number of points
 %      Harmonic            detection harmonic: 0, 1 (default), 2
 %      ModAmp              peak-to-peak modulation amplitude, in mT (field sweeps only)
@@ -79,8 +81,13 @@ EasySpinLogLevel = Opt.Verbosity;
 %==================================================================
 FrequencySweep = ~isfield(Exp,'mwFreq') & isfield(Exp,'Field');
 
-SweepAutoRange = (~isfield(Exp,'Range') || isempty(Exp.Range)) && ...
-                 (~isfield(Exp,'CenterSweep') || isempty(Exp.CenterSweep));
+if FrequencySweep
+  SweepAutoRange = (~isfield(Exp,'mwRange') || isempty(Exp.mwRange)) && ...
+    (~isfield(Exp,'mwCenterSweep') || isempty(Exp.mwCenterSweep));
+else
+  SweepAutoRange = (~isfield(Exp,'Range') || isempty(Exp.Range)) && ...
+    (~isfield(Exp,'CenterSweep') || isempty(Exp.CenterSweep));
+end
 if ~isfield(Opt,'IsoCutoff'), Opt.IsoCutoff = 1e-4; end
 
 if ~isfield(Sys,'singleiso')
@@ -88,7 +95,11 @@ if ~isfield(Sys,'singleiso')
   [SysList,weight] = expandcomponents(Sys,Opt.IsoCutoff);
   
   if (numel(SysList)>1) && SweepAutoRange
-    error('Multiple components: Please specify magnetic field range manually using Exp.Range or Exp.CenterSweep.');
+    if FrequencySweep
+      error('Multiple components: Please specify frequency range manually using Exp.mwRange or Exp.mwCenterSweep.');
+    else
+      error('Multiple components: Please specify field range manually using Exp.Range or Exp.CenterSweep.');
+    end
   end
   
   spec = 0;
@@ -238,37 +249,51 @@ else
 end
 
 % Sweep range (magnetic field, or frequency)
-if isfield(Exp,'CenterSweep')
-  if isfield(Exp,'Range')
-    logmsg(0,'Using Exp.CenterSweep and ignoring Exp.Range.');
+if FieldSweep
+  if isfield(Exp,'CenterSweep')
+    if isfield(Exp,'Range')
+      logmsg(0,'Using Exp.CenterSweep and ignoring Exp.Range.');
+    end
+  else
+    if isfield(Exp,'Range')
+      Exp.CenterSweep = [mean(Exp.Range) diff(Exp.Range)];
+    else
+      if (Sys.nElectrons==1) && (Sys.S==1/2)
+        logmsg(1,'  automatic determination of sweep range');
+        Stretch = 1.25;
+        I = nucspin(Sys.Nucs).';
+        if numel(I)>0
+          Amax = max(abs(Sys.A),[],2);
+          hf = sum(I.*Amax)*1e6; % MHz -> Hz
+        else
+          hf = 0;
+        end
+        gmax = max(Sys.g(:));
+        gmin = min(Sys.g(:));
+        if FieldSweep
+          minB = planck*(Exp.mwFreq*1e9 - hf)/bmagn/gmax/1e-3;
+          maxB = planck*(Exp.mwFreq*1e9 + hf)/bmagn/gmin/1e-3;
+          Exp.CenterSweep = [(maxB+minB)/2, Stretch*max(maxB-minB,5)];
+        else
+          minE = bmagn*Exp.Field*1e-3*gmin/planck - hf; % Hz
+          maxE = bmagn*Exp.Field*1e-3*gmax/planck + hf; % Hz
+          Exp.CenterSweep = [(maxE+minE)/2, Stretch*max(maxE-minE,10e6)]/1e9; % GHz
+        end
+      else
+        error('Cannot automatically determine sweep range for this spin system.');
+      end
+    end
   end
 else
-  if isfield(Exp,'Range')
-    Exp.CenterSweep = [mean(Exp.Range) diff(Exp.Range)];
+  if isfield(Exp,'mwCenterSweep')
+    if isfield(Exp,'mwRange')
+      logmsg(0,'Using Exp.mwCenterSweep and ignoring Exp.mwRange.');
+    end
   else
-    if (Sys.nElectrons==1) && (Sys.S==1/2)
-      logmsg(1,'  automatic determination of sweep range');
-      Stretch = 1.25;
-      I = nucspin(Sys.Nucs).';
-      if numel(I)>0
-        Amax = max(abs(Sys.A),[],2);
-        hf = sum(I.*Amax)*1e6; % MHz -> Hz
-      else
-        hf = 0;
-      end
-      gmax = max(Sys.g(:));
-      gmin = min(Sys.g(:));
-      if FieldSweep
-        minB = planck*(Exp.mwFreq*1e9 - hf)/bmagn/gmax/1e-3;
-        maxB = planck*(Exp.mwFreq*1e9 + hf)/bmagn/gmin/1e-3;
-        Exp.CenterSweep = [(maxB+minB)/2, Stretch*max(maxB-minB,5)];
-      else
-        minE = bmagn*Exp.Field*1e-3*gmin/planck - hf; % Hz
-        maxE = bmagn*Exp.Field*1e-3*gmax/planck + hf; % Hz
-        Exp.CenterSweep = [(maxE+minE)/2, Stretch*max(maxE-minE,10e6)]/1e9; % GHz
-      end
+    if isfield(Exp,'mwRange')
+      Exp.mwCenterSweep = [mean(Exp.mwRange) diff(Exp.mwRange)];
     else
-      error('Cannot automatically determine sweep range for this spin system.');
+      error('Either Exp.mwRange or Exp.mwCenterSweep need to be given.');
     end
   end
 end
@@ -277,15 +302,17 @@ if FieldSweep
   CenterField = Exp.CenterSweep(1);
   Sweep = Exp.CenterSweep(2);
   Exp.Range = Exp.CenterSweep(1) + [-1 1]/2*Sweep;
+  if any(Exp.Range<0) || diff(Exp.Range)<=0
+    error('Invalid sweep range! Check Exp.CenterSweep or Exp.Range.');
+  end
 else
-  CenterFreq = Exp.CenterSweep(1);
-  Sweep = Exp.CenterSweep(2);
-  Exp.Range = Exp.CenterSweep(1) + [-1 1]/2*Sweep;
+  CenterFreq = Exp.mwCenterSweep(1);
+  Sweep = Exp.mwCenterSweep(2);
+  Exp.mwRange = Exp.mwCenterSweep(1) + [-1 1]/2*Sweep;
   CenterField = Exp.Field;
-end
-
-if any(Exp.Range<0) || diff(Exp.Range)<=0
-  error('Invalid sweep range! Check Exp.CenterSweep or Exp.Range.');
+  if any(Exp.mwRange<0) || diff(Exp.mwRange)<=0
+    error('Invalid sweep range! Check Exp.mwCenterSweep or Exp.mwRange.');
+  end
 end
 
 if FieldSweep
@@ -293,7 +320,7 @@ if FieldSweep
     Exp.Range(1),Exp.Range(2),CenterField,Sweep);
 else
   logmsg(1,'  frequency range (GHz): min %g, max %g, center %g, width %g',...
-    Exp.Range(1),Exp.Range(2),CenterFreq,Sweep);
+    Exp.mwRange(1),Exp.mwRange(2),CenterFreq,Sweep);
 end
 
 % Detection harmonic
@@ -502,7 +529,7 @@ if FieldSweep
   nu = Exp.mwFreq*1e9 - linspace(-1,1,Exp.nPoints)*FreqSweep/2;  % Hz
   xAxis = linspace(Exp.Range(1),Exp.Range(2),Exp.nPoints);  % field axis, mT
 else
-  nu = linspace(Exp.Range(1),Exp.Range(2),Exp.nPoints)*1e9;  % Hz
+  nu = linspace(Exp.mwRange(1),Exp.mwRange(2),Exp.nPoints)*1e9;  % Hz
   xAxis = nu/1e9; % frequency axis, GHz
 end
 omega0 = complex(1/(Dynamics.T2),2*pi*nu); % angular frequency
@@ -779,7 +806,7 @@ spec = cos(Exp.mwPhase)*real(spec)+sin(Exp.mwPhase)*imag(spec);
 %==============================================================
 % Postconvolution
 %==============================================================
-if (numel(Sys.I)>2)
+if (numel(Sys.I)>2) && ~JerSpin
   logmsg(1,'Postconvolution...');
   shfSys.g = mean(Sys.g);
   shfSys.A = mean(Sys.A(2:end,:),2);
@@ -787,10 +814,17 @@ if (numel(Sys.I)>2)
     shfSys.n = Sys.n(2:end);
   end
   shfSys.Nucs = nuclist2string(Sys.Nucs(2:end));
-  shfExp.Range = Exp.Range;
-  shfExp.mwFreq = mt2mhz(mean(Exp.Range),shfSys.g)/1e3; % GHz
-  dx = diff(Exp.Range)/(Exp.nPoints-1);
-  shfSys.lw = dx/12;
+  if FieldSweep
+    shfExp.Range = Exp.Range;
+    shfExp.mwFreq = mt2mhz(mean(Exp.Range),shfSys.g)/1e3; % GHz
+    dx = diff(Exp.Range)/(Exp.nPoints-1);
+    shfSys.lw = dx/12;
+  else
+    shfExp.mwRange = Exp.mwRange;
+    shfExp.Field = Exp.Field;
+    dx = diff(Exp.mwRange*1e3)/(Exp.nPoints-1); % MHz
+    shfSys.lw = dx/12;
+  end
   shfExp.Harmonic = 0;
   shfExp.nPoints = Exp.nPoints;
   spec_shf = garlic(shfSys,shfExp);
