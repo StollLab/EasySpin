@@ -3,32 +3,34 @@
 %
 %   curry(Sys,Exp)
 %   curry(Sys,Exp,Opt)
-%   mu = curry(...)
-%   [mu,chi] = curry(...)
-%   [mu,chi,chiT] = curry(...)
+%   muz = curry(...)
+%   [muz,chizz] = curry(...)
+%   [muz,chizz,chizzT] = curry(...)
 %
-%    Calculates the molar magnetic moment and the molar
-%    magnetic susceptibility for given fields and temperatures.
+%    Calculates the magnetic moment and the molar static magnetic
+%    susceptibility of a powder sample for given values of
+%    applied magnetic field and temperature.
 %
-%  Input:
-%    Sys    spin system
-%    Exp    experimental parameter
-%      Field:  list of field values (mT)
-%      Temperature:  list of temperatures (K)
-%      CrystalOrientation: crystal orientation; if absent, a powder
-%         average is calculated
-%      CrystalSymmetry: space group of crystal (for crystal calculations)
-%    Opt    calculation options
-%      nKnots       number of knots for powder average
+%    Input:
+%      Sys    spin system
+%      Exp    experimental parameter
+%        Field        list of field values (mT)
+%        Temperature  list of temperatures (K)
+%      Opt    calculation options
+%        nKnots       number of knots for powder average
 %
-%  Output:
-%    mu     magnetic moment, in units of Bohr magnetons
-%    chi    molar susceptibility, in cgs units (cm^3 mol^-1)
-%    chiT   chi*T (cm^3 mol^-1 K)
+%    Output:
+%      muz      magnetic moment along zL axis
+%               in units of Bohr magnetons
+%      chizz    molar susceptibility, zLzL component
+%               in cgs units (cm^3 mol^-1)
+%      chizzT   chizz*T (cm^3 mol^-1 K)
 %    
-%    The size of mu, chi, chiI is nB x nT, where nB is the number of
-%    field values in Exp.Field and nT is the number of temperatures in
-%    Exp.Temperature.
+%    zL is the direction of the applied static magnetic field
+%
+%    The size of muz, chizz, chizzT is nB x nT, where nB is the number of
+%    field values in Exp.Field and nT is the number of temperature values
+%    in Exp.Temperature.
 %
 %   If no output argument is given, the computed data are plotted.
 
@@ -39,64 +41,85 @@ if (nargin==0), help(mfilename); return; end
 if (nargin<2), Exp = struct; end
 if (nargin<3), Opt = struct; end
 
+if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 0; end
+global EasySpinLogLevel
+EasySpinLogLevel = Opt.Verbosity;
+
 calculateChi = (nargout==0) || (nargout>1);
 doPlot = (nargout==0);
 
+% Spin system
+%-------------------------------------------------
+logmsg(1,'Spin system');
+if iscell(Sys)
+  error('curry does not support calculations with multiple components.');
+end
+
 % Experimental parameters
 %-------------------------------------------------
+logmsg(1,'Experimental parameters');
+% Field
 if ~isfield(Exp,'Field')
   Exp.Field = 0;
   disp('Exp.Field is missing, assuming zero field.');
 end
 B = Exp.Field/1e3; % magnetic field, T
 nFields = numel(B);
+logmsg(1,'  number of field values: %d',nFields);
 
+% Temperature
 if ~isfield(Exp,'Temperature')
   error('Exp.Temperature is missing.');
 end
 T = Exp.Temperature; % temperature, K
 nTemperatures = numel(T);
+logmsg(1,'  number of temperature values: %d',nTemperatures);
 
 if any(T<0)
   error('Negative temperatures are not possible.')
 end
 zeroTemp = T==0;
 
+% Other fields
 if ~isfield(Exp,'CrystalOrientation')
   Exp.CrystalOrientation = [];
 end
-
 if ~isfield(Exp,'CrystalSymmetry')
   Exp.CrystalSymmetry = '';
 end
-
 if ~isfield(Exp,'MolFrame')
   Exp.MolFrame = [];
 end
 
 PowderSimulation = isempty(Exp.CrystalOrientation);
-Exp.PowderSimulation = PowderSimulation; % for communication with resf*
+
+if PowderSimulation
+  logmsg(1,'powder simulation');
+else
+  logmsg(1,'crystal simulation');
+end
 
 % Options
 %-------------------------------------------------
+logmsg(1,'Options');
 if ~isfield(Opt,'nKnots')
   Opt.nKnots = 20;
 end
+logmsg(1,'  number of knots: %d',Opt.nKnots);
 if ~isfield(Opt,'Symmetry')
-  Opt.Symmetry = [];
+  Opt.Symmetry = []; % needed for p_symandgrid
 end
 
-% Set up Hamiltonian
+% Set up Hamiltonian and magnetic dipole moment
 %-------------------------------------------------
-% zero-field Hamiltonian, and magnetic dipole moment operators
-% F: MHz;  GxM,GyM,GzM: MHz/mT
-useSparse = false;
-if useSparse
-  [H0,GxM,GyM,GzM] = sham(Sys,[],'sparse');
-else
-  [H0,GxM,GyM,GzM] = sham(Sys);
-end
+% zero-field Hamiltonian F (MHz)
+% magnetic dipole moment operators muOpxM,muOpyM,muOpzM (MHz/mT)
+% all are in the molecular frame
+[H0,GxM,GyM,GzM] = sham(Sys);
+
+% zero-field spin Hamiltonian
 H0 = H0*1e6*planck; % MHz -> J
+
 % magnetic dipole operators, in molecular frame
 muOpxM = -GxM*1e6*1e3*planck; % MHz/mT -> J/T
 muOpyM = -GyM*1e6*1e3*planck; % MHz/mT -> J/T
@@ -104,69 +127,62 @@ muOpzM = -GzM*1e6*1e3*planck; % MHz/mT -> J/T
 
 % Set up sample orientations
 %-------------------------------------------------
+Exp.PowderSimulation = PowderSimulation; % for communication with p_*
 p_symandgrid;
 p_crystalorientations;
 Weights = Weights/4/pi;
 
-%{
-doPowderAverage = ~isfield(Exp,'CrystalOrientation') || isempty(Exp.CrystalOrientation);
-if doPowderAverage
-  [zL,weights] = sphgrid('Ci',Opt.nKnots,'c');
-  weights = weights/(4*pi);
-else
-  R_C2L = erot(Exp.CrystalOrientation);
-  zL = R_C2L(3,:).'; % field is along z axis of lab frame
-  weights = 1/nSites;
-end
-nOrientations = numel(weights);
-%}
 beta = 1./T/boltzm; 
-mu = zeros(nFields,nTemperatures);
+
+% Initialize output arrays
+muz = zeros(nFields,nTemperatures);
 if calculateChi
-  chi = zeros(nFields,nTemperatures);
-  chiT = zeros(nFields,nTemperatures);
+  chizz = zeros(nFields,nTemperatures);
+  chizzT = zeros(nFields,nTemperatures);
 end
 
 % Calculation loop
 %-------------------------------------------------
+% all calculations are done in the molecular frame
+
 for iOri = 1:nOrientations
   [xLab_M,yLab_M,zLab_M] = erot(Orientations(iOri,:),'rows');
-  % projection of magnetic moment operator onto field direction
-  % (field direction along z axis of lab frame)
-  muOpn = zLab_M(1)*muOpxM + zLab_M(2)*muOpyM + zLab_M(3)*muOpzM; % J/T
+  % projection of magnetic moment operator onto lab axes
+  % (field direction along z axis of lab frame, zLab)
+  muOpzL = zLab_M(1)*muOpxM + zLab_M(2)*muOpyM + zLab_M(3)*muOpzM; % J/T
   
   for iB = 1:numel(Exp.Field)
-    if useSparse
-      [V,E] = eigs(H0 - B(iB)*muOpn);
-    else
-      [V,E] = eig(H0 - B(iB)*muOpn);
-    end
-    E = diag(E); % J
-    E = E - E(1);
-    mun_ = real(diag(V'*muOpn*V));
+    
+    [V,E] = eig(H0 - B(iB)*muOpzL);
+    E = diag(E) - E(1); % J
     populations = exp(-E*beta);
     if zeroTemp, populations(1) = 1; end
-    mun1 = (mun_.'*populations)./sum(populations,1);
     
-    mu(iB,:) = mu(iB,:) + Weights(iOri)*mun1;
-
+    % expectation values for each spin state
+    muz_expect = real(diag(V'*muOpzL*V));
+    
+    % population-weighted average
+    muz_avg = (muz_expect.'*populations)./sum(populations,1);
+    
+    % accumulation for powder average
+    muz(iB,:) = muz(iB,:) + Weights(iOri)*muz_avg;
+    
     if calculateChi
       h = eps^(1/3)*max(B(iB),1); % optimal step size for numerical derivative
       B1 = B(iB) + h; h = B1 - B(iB); % prevent round-off errors
-      if useSparse
-        [V,E] = eigs(H0 - (B(iB)+h)*muOpn);
-      else
-        [V,E] = eig(H0 - (B(iB)+h)*muOpn);
-      end
-      E = diag(E); % J
-      E = E - E(1);
-      mun_ = real(diag(V'*muOpn*V));
+      
+      [V,E] = eig(H0 - (B(iB)+h)*muOpzL);
+      E = diag(E) - E(1); % J
       populations = exp(-E*beta);
       if zeroTemp, populations(1) = 1; end
-      mun2 = (mun_.'*populations)./sum(populations,1);
-      chi_ = (mun2-mun1)/h;
-      chi(iB,:) = chi(iB,:) + Weights(iOri)*chi_;
-      chiT(iB,:) = chi(iB,:).*T;
+      
+      % population-weighted average
+      muz_expect = real(diag(V'*muOpzL*V));
+      muz_avg2 = (muz_expect.'*populations)./sum(populations,1);
+      
+      chi_ = (muz_avg2-muz_avg)/h;
+      chizz(iB,:) = chizz(iB,:) + Weights(iOri)*chi_;
+      chizzT(iB,:) = chizz(iB,:).*T;
     end
     
   end
@@ -180,48 +196,48 @@ if doPlot
     clf
   elseif (nFields==1)
     subplot(2,2,1)
-    plot(T,mu/bmagn);
+    plot(T,muz/bmagn);
     axis tight
     xlabel('T (K)');
-    ylabel('\mu (\mu_B), \mu_{mol} (N_A\mu_B)')
+    ylabel('\mu_z (\mu_B), \mu_{z,mol} (N_A\mu_B)')
     
     subplot(2,2,2)
-    plot(T,mu*avogadro);
+    plot(T,muz*avogadro);
     axis tight
     xlabel('T (K)');
-    ylabel('\mu_{mol} (J T^{-1} mol^{-1})')
+    ylabel('\mu_{z,mol} (J T^{-1} mol^{-1})')
     
     subplot(2,2,3)
-    plot(T,chi*avogadro/10);
+    plot(T,chizz*avogadro/10);
     xlabel('T (K)');
     ylabel('\chi_{mol} (cm^3 mol^{-1})');
     
     subplot(2,2,4)
-    plot(T,chiT*avogadro/10);
+    plot(T,chizzT*avogadro/10);
     xlabel('T (K)');
     ylabel('\chi_{mol}T (cm^3 mol^{-1} K)');
     
   elseif (nTemperatures==1)
     cla
     subplot(2,2,1)
-    plot(B,mu/bmagn);
+    plot(B,muz/bmagn);
     axis tight
     xlabel('magnetic field (T)');
     ylabel('\mu (\mu_B), \mu_{mol} (N_A\mu_B)')
     
     subplot(2,2,2)
-    plot(B,mu*avogadro);
+    plot(B,muz*avogadro);
     axis tight
     xlabel('magnetic field (T)');
     ylabel('\mu_{mol} (J T^{-1}mol^{-1})')
     
     subplot(2,2,3)
-    plot(B,chi*avogadro/10);
+    plot(B,chizz*avogadro/10);
     xlabel('magnetic field (T)');
     ylabel('\chi_{mol} (cm^3 mol^{-1})');
     
     subplot(2,2,4)
-    plot(B,chiT*avogadro/10);
+    plot(B,chizzT*avogadro/10);
     xlabel('magnetic field (T)');
     ylabel('\chi_{mol}T (cm^3 mol^{-1} K)');
     for i=1:4
@@ -234,22 +250,22 @@ if doPlot
     Plot2D = (nTemperatures>10);
     if Plot2D
       subplot(2,2,1);
-      surf(T,B,mu/bmagn);
+      surf(T,B,muz/bmagn);
       xlabel('T (K)'); 
       ylabel('B (T)');
       zlabel(' \mu (\mu_B), \mu_{mol} (N_A\mu_B)')
       subplot(2,2,2);
-      surf(T,B,mu*avogadro);
+      surf(T,B,muz*avogadro);
       xlabel('T (K)');
       ylabel('B (T)');
       zlabel(' \mu_{mol} (J T^{-1} mol^{-1})')
       subplot(2,2,3);
-      surf(T,B,chi*avogadro/10);
+      surf(T,B,chizz*avogadro/10);
       xlabel('T (K)');
       ylabel('B (T)')
       zlabel('\chi_{mol} (cm^3 mol^{-1})');
       subplot(2,2,4);
-      surf(T,B,chiT*avogadro/10);
+      surf(T,B,chizzT*avogadro/10);
       xlabel('T (K)');
       ylabel('B (T)')
       zlabel('\chi_{mol}T (cm^3 mol^{-1} K)');
@@ -260,24 +276,24 @@ if doPlot
       end
     else
       subplot(2,2,1)
-      plot(B,mu/bmagn);
+      plot(B,muz/bmagn);
       axis tight
       xlabel('magnetic field (T)');
       ylabel('\mu (\mu_B), \mu_{mol} (N_A\mu_B)')
       
       subplot(2,2,2)
-      plot(B,mu*avogadro);
+      plot(B,muz*avogadro);
       axis tight
       xlabel('magnetic field (T)');
       ylabel('\mu_{mol} (J T^{-1}mol^{-1})')
       
       subplot(2,2,3)
-      plot(B,chi*avogadro/10);
+      plot(B,chizz*avogadro/10);
       xlabel('magnetic field (T)');
       ylabel('\chi_{mol} (cm^3 mol^{-1})');
       
       subplot(2,2,4)
-      plot(B,chiT*avogadro/10);
+      plot(B,chizzT*avogadro/10);
       xlabel('magnetic field (T)');
       ylabel('\chi_{mol}T (cm^3 mol^{-1} K)');
       for i=1:4
@@ -293,12 +309,12 @@ end
 switch (nargout)
   case 0
   case 1
-    varargout = {mu/bmagn};
+    varargout = {muz/bmagn};
   case 2
-    varargout = {mu/bmagn,chi*avogadro/10};
+    varargout = {muz/bmagn,chizz*avogadro/10};
   case 3
-    varargout = {mu/bmagn,chi*avogadro/10,chiT*avogadro/10};
+    varargout = {muz/bmagn,chizz*avogadro/10,chizzT*avogadro/10};
   otherwise
     varargout = cell(1,nargout);
-    varargout(1:3) = {mu/bmagn,chi*avogadro/10,chiT*avogadro/10};
+    varargout(1:3) = {muz/bmagn,chizz*avogadro/10,chizzT*avogadro/10};
 end
