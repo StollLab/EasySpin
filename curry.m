@@ -45,6 +45,8 @@ if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 0; end
 global EasySpinLogLevel
 EasySpinLogLevel = Opt.Verbosity;
 
+logmsg(1,['=begin=curry======' datestr(now) '=================']);
+
 calculateChi = (nargout==0) || (nargout>1);
 doPlot = (nargout==0);
 
@@ -94,16 +96,16 @@ end
 PowderSimulation = isempty(Exp.CrystalOrientation);
 
 if PowderSimulation
-  logmsg(1,'powder simulation');
+  logmsg(1,'Powder calculation');
 else
-  logmsg(1,'crystal simulation');
+  logmsg(1,'Crystal calculation');
 end
 
 % Options
 %-------------------------------------------------
 logmsg(1,'Options');
 if ~isfield(Opt,'nKnots')
-  Opt.nKnots = 20;
+  Opt.nKnots = 10;
 end
 logmsg(1,'  number of knots: %d',Opt.nKnots);
 if ~isfield(Opt,'Symmetry')
@@ -318,3 +320,5 @@ switch (nargout)
     varargout = cell(1,nargout);
     varargout(1:3) = {muz/bmagn,chizz*avogadro/10,chizzT*avogadro/10};
 end
+
+logmsg(1,'=end=curry========%s=================\n',datestr(now));

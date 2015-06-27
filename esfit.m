@@ -19,6 +19,9 @@
 %          -target function: 'fcn', 'int', 'dint', 'diff', 'fft'
 %        Scaling  string with scaling method keyword
 %          'maxabs' (default), 'minmax', 'lsq', 'lsq0','lsq1','lsq2'
+%        OutArg   two numbers [nOut iOut], where nOut is the number of
+%                 outputs of the simulation function and iOut is the index
+%                 of the output argument to use for fitting
 
 function varargout = esfit(SimFunctionName,ExpSpec,Sys0,Vary,Exp,SimOpt,FitOpt)
 
@@ -151,8 +154,12 @@ else
   if numel(FitOpt.OutArg)~=2
     error('FitOpt.OutArg must contain two values [nOut iOut]');
   end
+  if FitOpt.OutArg(2)>FitOpt.OutArg(1)
+    error('FitOpt.OutArg: second number cannot be larger than first one.');
+  end
   FitData.nOutArguments = FitOpt.OutArg(1);
   FitData.OutArgument = FitOpt.OutArg(2);
+  
 end
 
 if ~isfield(FitOpt,'Scaling'), FitOpt.Scaling = 'lsq0'; end

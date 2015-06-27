@@ -67,7 +67,11 @@ if (PowderSimulation)
     otherwise, str = sprintf('  region: %d octant(s) of the upper hemisphere',nOctants);
   end
   logmsg(1,str);
-  logmsg(1,'  %d orientations (%d knots)',nOrientations,Opt.nKnots(1));
+  if nOctants==-1
+    logmsg(1,'  1 orientation (1 knot)');
+  else
+    logmsg(1,'  %d orientations (%d knots)',nOrientations,Opt.nKnots(1));
+  end
   
 else % no powder simulation
   
