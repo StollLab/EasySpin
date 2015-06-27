@@ -3,20 +3,13 @@
 %   Rinf = rydberg
 %   [Rinf,sigma] = rydberg
 %
-%   Returns the Rydberg constant
-%   in m^-1. sigma is the standard
-%   uncertainty (2010 CODATA).
+%   Returns the Rydberg constant, in m^-1.
+%   sigma is the standard uncertainty.
 
 function [Rinf,sigma] = rydberg
 
-% 2010 CODATA value
+% 2014 CODATA value
+% Concise form 	 10 973 731.568 508(65) m-1 
 
-% Value 	 10 973 731.568 539 m-1
-% Standard uncertainty 	          0.000 055 m-1
-%  Relative standard uncertainty 	  5.0 x 10-12
-% Concise form 	 10 973 731.568 539(55) m-1 
-
-Rinf = 10973731.568539;
-sigma =       0.000055;
-
-return
+Rinf = 10973731.568508;
+sigma =       0.000065;

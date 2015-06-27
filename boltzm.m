@@ -4,19 +4,14 @@
 %   [k,sigma] = boltzm
 %
 %   Returns the Boltzmann constant in SI units, joule per kelvin.
-%   sigma is the standard uncertainty (2010 CODATA).
+%   sigma is the standard uncertainty.
 
-function [k_b,sigma] = boltzm
+function [k_B,sigma] = boltzm
 
-% 2010 CODATA value
+% 2014 CODATA value
 %
 % Boltzmann constant
-%Value 	 1.380 6488 x 10-23 J K-1
-%Standard uncertainty 	 0.000 0013 x 10-23 J K-1
-%  Relative standard uncertainty 	  9.1 x 10-7
-% Concise form 	 1.380 6488(13) x 10-23 J K-1
+% Concise form 	 1.380 648 52(79) x 10-23 J K-1
 
-k_b =   1.3806488e-23;
-sigma = 0.0000013e-23;
-
-return
+k_B =   1.38064852e-23;
+sigma = 0.00000079e-23;

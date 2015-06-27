@@ -13,5 +13,3 @@ function [e,sigma] = eps0
 
 e = 1/mu0/clight^2;
 sigma = 0;
-
-return

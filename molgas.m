@@ -4,17 +4,12 @@
 %   [R,sigma] = molgas
 %
 %   Returns the molar gas constant in SI units, joule per mole per kelvin.
-%   sigma is the standard uncertainty (2010 CODATA).
+%   sigma is the standard uncertainty.
 
 function [R,sigma] = molgas
 
-% 2010 CODATA value
+% 2014 CODATA value
+% Concise form 	 8.314 4598(48) J mol-1 K-1 
 
-%8.314 4621 J mol-1 K-1
-% Standard uncertainty 	 0.000 0075 J mol-1 K-1
-%  Relative standard uncertainty 	  9.1 x 10-7
-% Concise form 	 8.314 4621(75) J mol-1 K-1 
-R =     8.3144621;
-sigma = 0.0000075;
-
-return
+R =     8.3144598;
+sigma = 0.0000048;
