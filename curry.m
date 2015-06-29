@@ -193,63 +193,52 @@ end
 % Graphical plotting
 %-----------------------------------------------------
 if doPlot
-  if (nFields==1) && (nTemperatures==1)
+  DataDimensionality = (nFields~=1) + (nTemperatures~=1);
+  if DataDimensionality==0
     % do nothing
     clf
-  elseif (nFields==1)
-    subplot(2,2,1)
-    plot(T,muz/bmagn);
-    axis tight
-    xlabel('T (K)');
-    ylabel('\mu_z (\mu_B), \mu_{z,mol} (N_A\mu_B)')
     
-    subplot(2,2,2)
-    plot(T,muz*avogadro);
-    axis tight
-    xlabel('T (K)');
-    ylabel('\mu_{z,mol} (J T^{-1} mol^{-1})')
+  elseif DataDimensionality==1
+    if (nFields==1)
+      x = T;
+      xLab = 'temperature (K)';
+    else
+      x = B;
+      xLab = 'magnetic field (T)';
+    end
     
-    subplot(2,2,3)
-    plot(T,chizz*avogadro/10);
-    xlabel('T (K)');
-    ylabel('\chi_{mol} (cm^3 mol^{-1})');
-    
-    subplot(2,2,4)
-    plot(T,chizzT*avogadro/10);
-    xlabel('T (K)');
-    ylabel('\chi_{mol}T (cm^3 mol^{-1} K)');
-    
-  elseif (nTemperatures==1)
     cla
     subplot(2,2,1)
-    plot(B,muz/bmagn);
+    plot(x,muz/bmagn);
     axis tight
-    xlabel('magnetic field (T)');
-    ylabel('\mu (\mu_B), \mu_{mol} (N_A\mu_B)')
+    ylabel('\mu_z (\mu_B), \mu_{z,mol} (N_A\mu_B)')
+    title('magnetic moment, natural units');
     
     subplot(2,2,2)
-    plot(B,muz*avogadro);
+    plot(x,muz*avogadro);
     axis tight
-    xlabel('magnetic field (T)');
-    ylabel('\mu_{mol} (J T^{-1}mol^{-1})')
+    ylabel('\mu_{z,mol} (J T^{-1} mol^{-1})')
+    title('magnetic moment, SI units');
     
     subplot(2,2,3)
-    plot(B,chizz*avogadro/10);
-    xlabel('magnetic field (T)');
+    plot(x,chizz*avogadro/10);
     ylabel('\chi_{mol} (cm^3 mol^{-1})');
+    title('magnetic susceptibility, CGS units');
     
     subplot(2,2,4)
-    plot(B,chizzT*avogadro/10);
-    xlabel('magnetic field (T)');
+    plot(x,chizzT*avogadro/10);
     ylabel('\chi_{mol}T (cm^3 mol^{-1} K)');
+    title('magnetic susceptibility, SI units');
+    
     for i=1:4
       subplot(2,2,i);
-      xlim([min(B) max(B)]);
+      xlabel(xLab);
+      xlim([min(x) max(x)]);
     end
     
   else
     cla
-    Plot2D = (nTemperatures>10);
+    Plot2D = (nFields>10);
     if Plot2D
       subplot(2,2,1);
       surf(T,B,muz/bmagn);
@@ -278,30 +267,33 @@ if doPlot
       end
     else
       subplot(2,2,1)
-      plot(B,muz/bmagn);
+      plot(T,muz/bmagn);
       axis tight
-      xlabel('magnetic field (T)');
       ylabel('\mu (\mu_B), \mu_{mol} (N_A\mu_B)')
+      title('magnetic moment, natural units');
       
       subplot(2,2,2)
-      plot(B,muz*avogadro);
+      plot(T,muz*avogadro);
       axis tight
-      xlabel('magnetic field (T)');
       ylabel('\mu_{mol} (J T^{-1}mol^{-1})')
+      title('magnetic moment, SI units');
       
       subplot(2,2,3)
-      plot(B,chizz*avogadro/10);
-      xlabel('magnetic field (T)');
+      plot(T,chizz*avogadro/10);
       ylabel('\chi_{mol} (cm^3 mol^{-1})');
+      title('magnetic susceptibility, CGS units');
       
       subplot(2,2,4)
-      plot(B,chizzT*avogadro/10);
-      xlabel('magnetic field (T)');
+      plot(T,chizzT*avogadro/10);
       ylabel('\chi_{mol}T (cm^3 mol^{-1} K)');
+      title('magnetic susceptibility, SI units');
+      
       for i=1:4
         subplot(2,2,i);
-        xlim([min(B) max(B)]);
+        xlabel('temperature (K)');
+        xlim([min(T) max(T)]);
       end
+      
     end
   end
 end
@@ -322,3 +314,5 @@ switch (nargout)
 end
 
 logmsg(1,'=end=curry========%s=================\n',datestr(now));
+
+clear global EasySpinLogLevel
