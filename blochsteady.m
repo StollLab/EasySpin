@@ -26,7 +26,7 @@
 
 function varargout = blochsteady(g,T1,T2,deltaB0,B1,ModAmp,ModFreq,Options)
 
-if (nargout==0), help(mfilename); return; end
+if (nargin==0), help(mfilename); return; end
 
 if (nargin<8), Options = struct; end
 if isempty(Options), Options = struct; end
@@ -264,7 +264,7 @@ if addLastPoint
   end
 end
 
-t = t/1e-6;
+t = t/1e-6;    % seconds -> microseconds, for output and plotting
 
 % Graphical rendering
 %-----------------------------------------------------------
