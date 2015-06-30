@@ -312,15 +312,18 @@ if ~isempty(Exp.Ordering)
 end
 
 % T1, T2
-if ~isfield(Exp,'T1T2')
-  Exp.T1T2 = [0 0];
+if ~isfield(Sys,'T1T2')
+  if isfield(Exp,'T1T2')
+    error('T1 and T2 should be provided in Sys.T1T2 and not in Exp.T1T2.');
+  end
+  Sys.T1T2 = [0 0];
 end
-Exp.T1T2(Exp.T1T2==0) = inf;
-if numel(Exp.T1T2)~=2
-  error('Exp.T1T2 must contain two numbers, T1 and T2 in microseconds.');
+Sys.T1T2(Sys.T1T2==0) = inf;
+if numel(Sys.T1T2)~=2
+  error('Sys.T1T2 must contain two numbers, T1 and T2 in microseconds.');
 end
-if any(Exp.T1T2<=0) || any(~isreal(Exp.T1T2))
-  error('T1 and T2 in Exp.T1T2 must be positive, in microseconds.');
+if any(Sys.T1T2<=0) || any(~isreal(Sys.T1T2))
+  error('T1 and T2 in Sys.T1T2 must be positive, in microseconds.');
 end
 
 % Pulse sequence
@@ -380,7 +383,7 @@ else
   ExperimentID = -1;
   isENDOR = 0;
   
-  if any(~isinf(Exp.T1T2))
+  if any(~isinf(Sys.T1T2))
     error('Sorry, T1 and T2 for custom sequences not supported.');
   end
   
@@ -1575,10 +1578,10 @@ if ~isENDOR
   end
 
   DecayAdded = 0;
-  if any(~isinf(Exp.T1T2))
+  if any(~isinf(Sys.T1T2))
     logmsg(1,'Adding relaxation decays...');
-    T1 = Exp.T1T2(1);
-    T2 = Exp.T1T2(2);
+    T1 = Sys.T1T2(1);
+    T2 = Sys.T1T2(2);
     tdecay = [];
     switch ExperimentID
       case 1 % two-pulse ESEEM
