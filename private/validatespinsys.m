@@ -47,6 +47,28 @@ if (exist(fileName,'file')~=3)
   end
 end
 
+%-------- spellcheck fields (lower/upper case) ------------------
+correctFields = {'S','Nucs','Abund','n',...
+  'g','g_','D','ee','ee2','A','A_','Q',...
+  'gFrame','DFrame','eeFrame','AFrame','QFrame',...
+  'gStrain','HStrain','AStrain','DStrain',...
+  'aF','B0','B2','B4','B6','B8','B10','B12',...
+  'lw','lwpp','lwEndor','tcorr','logtcorr','Diff','logDiff'};
+givenFields = fieldnames(Sys);
+for f = 1:numel(givenFields)
+  givField = givenFields{f};
+  idx = find(strcmpi(givField,correctFields));
+  % check if there is a case-insensitive match
+  if idx
+    corrField = correctFields{idx};
+    if ~strcmp(givField,corrField)
+      % Wrong capitalization
+      error('\n  Fix capitalization: Sys.%s should be Sys.%s\n',givField,corrField);
+    else
+      % Correct capitalization
+    end
+  end
+end
 
 % -- electron spins field: System.S -------------------------------------
 % If S is missing, set it to 1/2
