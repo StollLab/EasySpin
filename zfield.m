@@ -99,17 +99,17 @@ for iSpin = Electrons
     if (a~=0)
       Sp = sop(spvc,1,4,'sparse');
       Sm = sop(spvc,1,5,'sparse');
-      if ~isfield(Sys,'aFrame'), Sys.aFrame = 4; end
-      if (Sys.aFrame==3)
+      if ~isfield(Sys,'aFFrame'), Sys.aFFrame = 4; end
+      if (Sys.aFFrame==3)
         % along threefold axis (see Abragam/Bleaney p.142, p.437)
         O43 = (Sz*(Sp^3+Sm^3)+(Sp^3+Sm^3)*Sz)/2;
         H = H - 2/3*(a/120)*(O40 + 10*sqrt(2)*O43);
-      elseif (Sys.aFrame==4)
+      elseif (Sys.aFFrame==4)
         % along fourfold (tetragonal) axis (used by some)
         O44 = (Sp^4+Sm^4)/2;
         H = H + (a/120)*(O40 + 5*O44);
       else
-        error('Unknown Sys.aFrame value. Use 3 for trigonal and 4 for tetragonal (collinear with D).');
+        error('Unknown Sys.aFFrame value. Use 3 for trigonal and 4 for tetragonal (collinear with D).');
       end
     end
   end
