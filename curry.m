@@ -190,6 +190,13 @@ for iOri = 1:nOrientations
   end
 end
 
+% Unit conversions
+chizz_SI = chizz*avogadro;   % single molecule SI -> molar SI
+chizzT_SI = chizzT*avogadro; % single molecule SI -> molar SI
+
+chizz_cgs = chizz_SI/(4*pi*1e-6);   % SI -> CGS-emu unit conversion
+chizzT_cgs = chizzT_SI/(4*pi*1e-6); % SI -> CGS-emu unit conversion
+
 % Graphical plotting
 %-----------------------------------------------------
 if doPlot
@@ -211,24 +218,24 @@ if doPlot
     subplot(2,2,1)
     plot(x,muz/bmagn);
     axis tight
-    ylabel('\mu_z (\mu_B), \mu_{z,mol} (N_A\mu_B)')
+    ylabel('\mu_z (\mu_B), \mu_{mol,z} (N_A\mu_B)')
     title('magnetic moment, natural units');
     
     subplot(2,2,2)
     plot(x,muz*avogadro);
     axis tight
-    ylabel('\mu_{z,mol} (J T^{-1} mol^{-1})')
+    ylabel('\mu_{mol,z} (J T^{-1} mol^{-1})')
     title('magnetic moment, SI units');
     
     subplot(2,2,3)
-    plot(x,chizz*avogadro/10);
+    plot(x,chizz_cgs);
     ylabel('\chi_{mol} (cm^3 mol^{-1})');
     title('magnetic susceptibility, CGS units');
     
     subplot(2,2,4)
-    plot(x,chizzT*avogadro/10);
+    plot(x,chizzT_cgs);
     ylabel('\chi_{mol}T (cm^3 mol^{-1} K)');
-    title('magnetic susceptibility, SI units');
+    title('magnetic susceptibility * temp, CGS units');
     
     for i=1:4
       subplot(2,2,i);
@@ -244,22 +251,22 @@ if doPlot
       surf(T,B,muz/bmagn);
       xlabel('T (K)'); 
       ylabel('B (T)');
-      zlabel(' \mu (\mu_B), \mu_{mol} (N_A\mu_B)')
+      zlabel(' \mu_z (\mu_B), \mu_{mol,z} (N_A\mu_B)')
       subplot(2,2,2);
       surf(T,B,muz*avogadro);
       xlabel('T (K)');
       ylabel('B (T)');
-      zlabel(' \mu_{mol} (J T^{-1} mol^{-1})')
+      zlabel(' \mu_{mol,z} (J T^{-1} mol^{-1})')
       subplot(2,2,3);
-      surf(T,B,chizz*avogadro/10);
+      surf(T,B,chizz_cgs);
       xlabel('T (K)');
       ylabel('B (T)')
-      zlabel('\chi_{mol} (cm^3 mol^{-1})');
+      zlabel('\chi_{mol,zz} (cm^3 mol^{-1})');
       subplot(2,2,4);
-      surf(T,B,chizzT*avogadro/10);
+      surf(T,B,chizzT_cgs);
       xlabel('T (K)');
       ylabel('B (T)')
-      zlabel('\chi_{mol}T (cm^3 mol^{-1} K)');
+      zlabel('\chi_{mol,zz}T (cm^3 mol^{-1} K)');
       for i=1:4
         subplot(2,2,i);
         xlim([min(T) max(T)]);
@@ -269,24 +276,24 @@ if doPlot
       subplot(2,2,1)
       plot(T,muz/bmagn);
       axis tight
-      ylabel('\mu (\mu_B), \mu_{mol} (N_A\mu_B)')
+      ylabel('\mu_z (\mu_B), \mu_{mol,z} (N_A\mu_B)')
       title('magnetic moment, natural units');
       
       subplot(2,2,2)
       plot(T,muz*avogadro);
       axis tight
-      ylabel('\mu_{mol} (J T^{-1}mol^{-1})')
+      ylabel('\mu_{mol,z} (J T^{-1}mol^{-1})')
       title('magnetic moment, SI units');
       
       subplot(2,2,3)
-      plot(T,chizz*avogadro/10);
-      ylabel('\chi_{mol} (cm^3 mol^{-1})');
+      plot(T,chizz_cgs);
+      ylabel('\chi_{mol,zz} (cm^3 mol^{-1})');
       title('magnetic susceptibility, CGS units');
       
       subplot(2,2,4)
-      plot(T,chizzT*avogadro/10);
-      ylabel('\chi_{mol}T (cm^3 mol^{-1} K)');
-      title('magnetic susceptibility, SI units');
+      plot(T,chizzT_cgs);
+      ylabel('\chi_{mol,zz}T (m^3 mol^{-1} K)');
+      title('magnetic susceptibility * temp, CGS units');
       
       for i=1:4
         subplot(2,2,i);
@@ -305,12 +312,12 @@ switch (nargout)
   case 1
     varargout = {muz/bmagn};
   case 2
-    varargout = {muz/bmagn,chizz*avogadro/10};
+    varargout = {muz/bmagn,chizz_cgs};
   case 3
-    varargout = {muz/bmagn,chizz*avogadro/10,chizzT*avogadro/10};
+    varargout = {muz/bmagn,chizz_cgs,chizzT_cgs};
   otherwise
     varargout = cell(1,nargout);
-    varargout(1:3) = {muz/bmagn,chizz*avogadro/10,chizzT*avogadro/10};
+    varargout(1:3) = {muz/bmagn,chizz_cgs,chizzT_cgs};
 end
 
 logmsg(1,'=end=curry========%s=================\n',datestr(now));
