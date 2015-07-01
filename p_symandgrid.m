@@ -74,16 +74,23 @@ if (PowderSimulation)
   end
   
 else % no powder simulation
-  
-  if numel(Exp.CrystalOrientation)==3
-    if size(Exp.CrystalOrientation,1)==3
-      Exp.CrystalOrientation = Exp.CrystalOrientation.';
-    end
-  elseif numel(Exp.CrystalOrientation)==2
-    if size(Exp.CrystalOrientation,1)==2
-      Exp.CrystalOrientation = Exp.CrystalOrientation.';
+
+  % Transpose Exp.CrystalOrientation if necessary to have
+  % one row per orientation
+  transpose = false;
+  nC1 = size(Exp.CrystalOrientation,1);
+  nC2 = size(Exp.CrystalOrientation,2);
+  if (nC2==2) || (nC2==3)
+    % all fine
+  else
+    if (nC1==2) || (nC1==3)
+      transpose = true;
+    else
+    error('Exp.CrystalOrientation must be a Nx3 or Nx2 array, yours is %dx%d.',...
+      nC1,nC2);
     end
   end
+  if transpose, Exp.CrystalOrientation = Exp.CrystalOrientation.'; end
   nOrientations = size(Exp.CrystalOrientation,1);
 
   openPhi = 1;

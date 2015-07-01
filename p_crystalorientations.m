@@ -69,7 +69,25 @@ if (~PowderSimulation)
   % - R_CL col 1,2,3: crystal axis 1,2,3 represented in lab frame
   % - R_CL row 1,2,3: lab axis 1,2,3 represented in crystal frame
   if ~isempty(Exp.CrystalOrientation)
-    logmsg(1,'  crystal orientation given');
+    logmsg(1,'  crystal orientation(s) given');
+
+    % Transpose Exp.CrystalOrientation if necessary to have
+    % one row per orientation
+    transpose = false;
+    nC1 = size(Exp.CrystalOrientation,1);
+    nC2 = size(Exp.CrystalOrientation,2);
+    if (nC2==2) || (nC2==3)
+      % all fine
+    else
+      if (nC1==2) || (nC1==3)
+        transpose = true;
+      else
+        error('Exp.CrystalOrientation must be a Nx3 or Nx2 array, yours is %dx%d.',...
+          nC1,nC2);
+      end
+    end
+    if transpose, Exp.CrystalOrientation = Exp.CrystalOrientation.'; end
+        
     COri = Exp.CrystalOrientation;
     if all(size(COri)==[3 3])
       R_CL = COri;
