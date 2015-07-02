@@ -70,6 +70,8 @@ end
 
 dscname=strrep(FileName, 'd01', 'exp');
 
+
+Absicca = [];
 Parameters = SpecMandsc(dscname);
 ax = SpecManpar(Parameters);
 
@@ -109,8 +111,10 @@ section = '';
 text = 1; prg = 1;
 while feof(h)<1
     s = strtrim(fgetl(h));
+    s(s=='-')='';
     if isempty(s), continue; end;
     sect = find(s=='[' | s==']');
+    
     %   this is a section header
     if size(sect, 2)==2 && sect(1)==1
         section = s(sect(1)+1:sect(2)-1);
