@@ -152,7 +152,7 @@ while isfield(par, fullfield)
     [ax.t, str] = strtok(getfield(par, fullfield), ',');
     ax.t = strtrim(ax.t);
     [ax.size, str] = strtok(str(2:end), ',');
-    if ax.t=='S' || ax.t=='I' || ax.t=='A' || ax.t=='R', ax.size = 1; else ax.size = str2num(ax.size); end
+    if ax.t=='S' | ax.t=='I' | ax.t=='A' | ax.t=='R', ax.size = 1; else ax.size = str2num(ax.size); end
     [ax.reps, str] = strtok(str(2:end), ',');
     ax.reps = str2num(ax.reps);
     ax.var = {};
