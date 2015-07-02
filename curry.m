@@ -5,7 +5,6 @@
 %   curry(Sys,Exp,Opt)
 %   muz = curry(...)
 %   [muz,chizz] = curry(...)
-%   [muz,chizz,chizzT] = curry(...)
 %
 %    Calculates the magnetic moment and the molar static magnetic
 %    susceptibility of a powder sample for given values of
@@ -23,12 +22,11 @@
 %      muz      magnetic moment along zL axis
 %               in units of Bohr magnetons
 %      chizz    molar susceptibility, zLzL component
-%               in cgs units (cm^3 mol^-1)
-%      chizzT   chizz*T (cm^3 mol^-1 K)
+%               in SI units (m^3 mol^-1)
 %    
 %    zL is the direction of the applied static magnetic field
 %
-%    The size of muz, chizz, chizzT is nB x nT, where nB is the number of
+%    The size of muz and chizz is nB x nT, where nB is the number of
 %    field values in Exp.Field and nT is the number of temperature values
 %    in Exp.Temperature.
 %
@@ -140,7 +138,6 @@ beta = 1./T/boltzm;
 muz = zeros(nFields,nTemperatures);
 if calculateChi
   chizz = zeros(nFields,nTemperatures);
-  chizzT = zeros(nFields,nTemperatures);
 end
 
 % Calculation loop
@@ -170,10 +167,10 @@ for iOri = 1:nOrientations
     muz(iB,:) = muz(iB,:) + Weights(iOri)*muz_avg;
     
     if calculateChi
-      h = eps^(1/3)*max(B(iB),1); % optimal step size for numerical derivative
-      B1 = B(iB) + h; h = B1 - B(iB); % prevent round-off errors
+      dB = eps^(1/3)*max(B(iB),1); % optimal step size for numerical derivative
+      B1 = B(iB) + dB; dB = B1 - B(iB); % prevent round-off errors
       
-      [V,E] = eig(H0 - (B(iB)+h)*muOpzL);
+      [V,E] = eig(H0 - (B(iB)+dB)*muOpzL);
       E = diag(E) - E(1); % J
       populations = exp(-E*beta);
       if zeroTemp, populations(1) = 1; end
@@ -182,20 +179,19 @@ for iOri = 1:nOrientations
       muz_expect = real(diag(V'*muOpzL*V));
       muz_avg2 = (muz_expect.'*populations)./sum(populations,1);
       
-      chi_ = (muz_avg2-muz_avg)/h;
-      chizz(iB,:) = chizz(iB,:) + Weights(iOri)*chi_;
-      chizzT(iB,:) = chizz(iB,:).*T;
+      chizz_ = (muz_avg2-muz_avg)/dB;
+      chizz(iB,:) = chizz(iB,:) + Weights(iOri)*chizz_;
     end
     
   end
 end
 
 % Unit conversions
-chizz_SI = chizz*avogadro;   % single molecule SI -> molar SI
-chizzT_SI = chizzT*avogadro; % single molecule SI -> molar SI
+if  calculateChi
+  chizz_SI = chizz*mu0*avogadro;   % single molecule SI -> molar SI
+end
 
-chizz_cgs = chizz_SI/(4*pi*1e-6);   % SI -> CGS-emu unit conversion
-chizzT_cgs = chizzT_SI/(4*pi*1e-6); % SI -> CGS-emu unit conversion
+%chizz_cgs = chizz_SI/(4*pi*1e-6);   % SI -> CGS-emu unit conversion
 
 % Graphical plotting
 %-----------------------------------------------------
@@ -219,23 +215,19 @@ if doPlot
     plot(x,muz/bmagn);
     axis tight
     ylabel('\mu_z (\mu_B), \mu_{mol,z} (N_A\mu_B)')
-    title('magnetic moment, natural units');
     
     subplot(2,2,2)
     plot(x,muz*avogadro);
     axis tight
     ylabel('\mu_{mol,z} (J T^{-1} mol^{-1})')
-    title('magnetic moment, SI units');
     
     subplot(2,2,3)
-    plot(x,chizz_cgs);
-    ylabel('\chi_{mol} (cm^3 mol^{-1})');
-    title('magnetic susceptibility, CGS units');
+    plot(x,chizz_SI);
+    ylabel('\chi_{mol,zz} (m^3 mol^{-1})');
     
     subplot(2,2,4)
-    plot(x,chizzT_cgs);
-    ylabel('\chi_{mol}T (cm^3 mol^{-1} K)');
-    title('magnetic susceptibility * temp, CGS units');
+    plot(x,chizz_SI.*T);
+    ylabel('\chi_{mol,zz}T (K m^3 mol^{-1})');
     
     for i=1:4
       subplot(2,2,i);
@@ -246,29 +238,28 @@ if doPlot
   else
     cla
     Plot2D = (nFields>10);
+    chizzT_SI = chizz_SI.*repmat(T(:).',nFields,1);
     if Plot2D
       subplot(2,2,1);
       surf(T,B,muz/bmagn);
-      xlabel('T (K)'); 
-      ylabel('B (T)');
+      shading flat
       zlabel(' \mu_z (\mu_B), \mu_{mol,z} (N_A\mu_B)')
       subplot(2,2,2);
       surf(T,B,muz*avogadro);
-      xlabel('T (K)');
-      ylabel('B (T)');
+      shading flat
       zlabel(' \mu_{mol,z} (J T^{-1} mol^{-1})')
       subplot(2,2,3);
-      surf(T,B,chizz_cgs);
-      xlabel('T (K)');
-      ylabel('B (T)')
-      zlabel('\chi_{mol,zz} (cm^3 mol^{-1})');
+      surf(T,B,chizz_SI);
+      shading flat
+      zlabel('\chi_{mol,zz} (m^3 mol^{-1})');
       subplot(2,2,4);
-      surf(T,B,chizzT_cgs);
-      xlabel('T (K)');
-      ylabel('B (T)')
-      zlabel('\chi_{mol,zz}T (cm^3 mol^{-1} K)');
+      surf(T,B,chizzT_SI);
+      shading flat
+      zlabel('\chi_{mol,zz}T (K m^3 mol^{-1})');
       for i=1:4
         subplot(2,2,i);
+        xlabel('T (K)');
+        ylabel('B (T)')
         xlim([min(T) max(T)]);
         ylim([min(B) max(B)]);
       end
@@ -277,23 +268,19 @@ if doPlot
       plot(T,muz/bmagn);
       axis tight
       ylabel('\mu_z (\mu_B), \mu_{mol,z} (N_A\mu_B)')
-      title('magnetic moment, natural units');
       
       subplot(2,2,2)
       plot(T,muz*avogadro);
       axis tight
       ylabel('\mu_{mol,z} (J T^{-1}mol^{-1})')
-      title('magnetic moment, SI units');
       
       subplot(2,2,3)
-      plot(T,chizz_cgs);
-      ylabel('\chi_{mol,zz} (cm^3 mol^{-1})');
-      title('magnetic susceptibility, CGS units');
+      plot(T,chizz_SI);
+      ylabel('\chi_{mol,zz} (m^3 mol^{-1})');
       
       subplot(2,2,4)
-      plot(T,chizzT_cgs);
-      ylabel('\chi_{mol,zz}T (m^3 mol^{-1} K)');
-      title('magnetic susceptibility * temp, CGS units');
+      plot(T,chizzT_SI);
+      ylabel('\chi_{mol,zz}T (K m^3 mol^{-1})');
       
       for i=1:4
         subplot(2,2,i);
@@ -312,12 +299,12 @@ switch (nargout)
   case 1
     varargout = {muz/bmagn};
   case 2
-    varargout = {muz/bmagn,chizz_cgs};
+    varargout = {muz/bmagn,chizz_SI};
   case 3
-    varargout = {muz/bmagn,chizz_cgs,chizzT_cgs};
+    varargout = {muz/bmagn,chizz_SI,chizzT_SI};
   otherwise
     varargout = cell(1,nargout);
-    varargout(1:3) = {muz/bmagn,chizz_cgs,chizzT_cgs};
+    varargout(1:3) = {muz/bmagn,chizz_SI,chizzT_SI};
 end
 
 logmsg(1,'=end=curry========%s=================\n',datestr(now));
