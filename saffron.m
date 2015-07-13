@@ -200,7 +200,7 @@ if ~isfield(Sys,'singleiso') || (Sys.singleiso==0)
         
         pcolor(x1,x2,real(out.td.')); shading flat; axis equal tight;
         set(gca,'Layer','top');
-        title('Time domain (real part), baseline corrected');
+        title('Time domain (real part)');
         xlabel('t_1 (\mus)');
         ylabel('t_2 (\mus)');
         
