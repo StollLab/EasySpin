@@ -1594,7 +1594,7 @@ if ~isENDOR
           tdecay = exp(-2*Exp.tau/T2)*exp(-t1/T1);
           td = td.*tdecay;
         end
-      case 3 % HYSCORE
+      case 4 % HYSCORE
         if ~isinf(T1)
           tdecay = exp(-t1/T1)'*exp(-t2/T1);
           tdecay = exp(-2*Exp.tau/T2)*tdecay;
