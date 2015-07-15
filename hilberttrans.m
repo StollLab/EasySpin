@@ -30,15 +30,19 @@ end
 if ~isreal(y)
   error('Input must be real.');
 end
-if min(size(y))>1
+
+dim = size(y);
+
+if min(dim)>1
   error('Input must be a row or column vector.');
 end
-if numel(size(y))>2
+if numel(dim)>2
   error('Input must be a row or column vector.');
 end
 
+
 % Build Hilbert kernel
-n = numel(y);
+n = max(dim);
 if mod(n,2)==0
   idx = n/2;
   h(1) = 1;
@@ -53,7 +57,10 @@ else
 end
 
 % Apply via Fourier Transform
-y_h = ifft(fft(y).*h);
+y_h = ifft(fft(y(:)).*h(:));
+
+% shift back to original dimensions
+y_h = reshape(y_h,dim);
 
 return
 
