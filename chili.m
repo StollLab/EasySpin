@@ -206,6 +206,7 @@ if ~isfield(Exp,'Temperature'), Exp.Temperature = NaN; end
 if ~isfield(Exp,'ModAmp'), Exp.ModAmp = 0; end
 if ~isfield(Exp,'Mode'), Exp.Mode = 'perpendicular'; end
 if ~isfield(Exp,'Ordering'), Exp.Ordering = []; end
+if ~isfield(Exp,'CrystalOrientation'), Exp.CrystalOrientation = []; end
 
 if isfield(Exp,'MOMD')
   error('Exp.MOMD is obsolete. Remove it from your code. See the documentation for details.');
@@ -404,8 +405,13 @@ if isempty(Sys.lambda) || all(Sys.lambda==0)
     PowderSimulation = true;
   end    
 else
-  logmsg(1,'  Non-zero ordering potential given, doing powder simulation.');
-  PowderSimulation = true;
+  if ~isempty(Exp.CrystalOrientation)
+    logmsg(1,'  Non-zero ordering potential given, doing single-crystal simulation.');
+    PowderSimulation = false;
+  else
+    logmsg(1,'  Non-zero ordering potential given, doing powder simulation.');
+    PowderSimulation = true;
+  end
   if JerSpin
     error('Ordering potential not supported for this spin system.');
   end
@@ -473,26 +479,6 @@ if ~isfield(Opt,'MeirovitchSymm')
 end
 Basis.MeirovitchSymm = Opt.MeirovitchSymm;
 
-switch Opt.Solver
-  case 'L'
-    if (Opt.Lentz==1) % Lentz method
-      SolverString = 'Lanczos tridiagonalization, left-to-right continued fraction evaluation';
-    else
-      SolverString = 'Lanczos tridiagonalization, right-to-left continued fraction evaluation';
-    end
-  case 'C'
-    SolverString = 'conjugate gradients tridiagonalization, right-to-left continued fraction evaluation';
-  case 'R'
-    SolverString = 'biconjugate gradients, stabilized';
-  case '\'
-    SolverString = 'backslash linear';
-  case 'D'
-    SolverString = 'direct method (eigenbasis, Binsch)';
-  otherwise
-    error('Unknown method in Options.Solver. Must be ''L'', ''R'', ''C'', or ''\''.');
-end
-logmsg(1,'  solver: %s',SolverString);
-
 maxElements = 5e6; % used in chili_lm
 maxRows = 2e5; % used in chili_lm
 if ~isfield(Opt,'Allocation')
@@ -552,9 +538,9 @@ if (PowderSimulation)
   end
   logmsg(1,'  powder simulation with %d orientations',numel(phi));
 else
-  if isfield(Exp,'CrystalOrientation')
+  if ~isempty(Exp.CrystalOrientation)
     phi = Exp.CrystalOrientation(1);
-    theta = Exp.CrsytalOrientation(2);
+    theta = Exp.CrystalOrientation(2);
   else
     phi = 0;
     theta = 0;
@@ -661,7 +647,7 @@ for iOri = 1:nOrientations
   
   BasisSize = size(StartingVector,1);
   nVectors = size(StartingVector,2);
-  logmsg(1,'  vector size: %dx1, number of vectors: %d',BasisSize,nVectors);
+  logmsg(1,'  vector(s) size: %dx%d',BasisSize,nVectors);
   logmsg(1,'  non-zero elements: %d/%d (%0.2f%%)',...
     nnz(StartingVector),numel(StartingVector),100*nnz(StartingVector)/BasisSize);
   logmsg(1,'  maxabs %g, norm %g',full(max(abs(StartingVector))),norm(StartingVector));
@@ -679,7 +665,6 @@ for iOri = 1:nOrientations
     r = r(idx) + 1;
     c = c(idx) + 1;
     Vals = Vals(idx); % Hz
-    logmsg(1,'  size: %dx%d',nDim,nDim);
     if (nDim~=BasisSize)
       error('Matrix size (%d) inconsistent with basis size (%d). Please report.',nDim,BasisSize);
     end
@@ -700,7 +685,7 @@ for iOri = 1:nOrientations
   
   maxDvalLim = 2e3;
   maxDval = max(max(abs(imag(L))));
-  logmsg(1,'  maxabs: %g',full(maxDval));
+  logmsg(1,'  size: %dx%d, maxabs: %g',length(L),length(L),full(maxDval));
   if maxDval>maxDvalLim
     error(sprintf('Numerical instability, values in diffusion matrix are too large (%g)!',maxDval));
   end
@@ -711,7 +696,25 @@ for iOri = 1:nOrientations
   % Computation of the spectral function
   %==============================================================
   logmsg(1,'Computing spectrum...');
-
+  switch Opt.Solver
+    case 'L'
+      if (Opt.Lentz==1) % Lentz method
+        SolverString = 'Lanczos tridiagonalization, left-to-right continued fraction evaluation';
+      else
+        SolverString = 'Lanczos tridiagonalization, right-to-left continued fraction evaluation';
+      end
+    case 'C'
+      SolverString = 'conjugate gradients tridiagonalization, right-to-left continued fraction evaluation';
+    case 'R'
+      SolverString = 'biconjugate gradients, stabilized';
+    case '\'
+      SolverString = 'backslash linear';
+    case 'D'
+      SolverString = 'direct method (eigenbasis, Binsch)';
+    otherwise
+      error('Unknown method in Options.Solver. Must be ''L'', ''R'', ''C'', or ''\''.');
+  end
+  logmsg(1,'  solver: %s',SolverString);
   switch Opt.Solver
     case 'L' % Lanczos method by Jack Freed
       for iVec = 1:nVectors
