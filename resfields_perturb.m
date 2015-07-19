@@ -442,13 +442,13 @@ else
     Wid = 0;
   end
   
-  if any(Sys.gStrain) || any(Sys.AStrain)
+  if any(Sys.gStrain(:)) || any(Sys.AStrain(:))
     
-    if any(Sys.gStrain)
-      gStrainMatrix = diag(Sys.gStrain./Sys.g)*Exp.mwFreq*1e3; % -> MHz
-      if isfield(Sys,'gFrame') && any(Sys.gFrame(1,:))
-        Rp = erot(Sys.gFrame(1,:)).'; % g frame -> molecular frame
-        gStrainMatrix = Rp*gStrainMatrix*Rp.';
+    if any(Sys.gStrain(:))
+      gStrainMatrix = diag(Sys.gStrain(1,:)./Sys.g(1,:))*Exp.mwFreq*1e3; % -> MHz
+      if any(Sys.gFrame(:))
+        R_g2M = erot(Sys.gFrame(1,:)).'; % g frame -> molecular frame
+        gStrainMatrix = R_g2M*gStrainMatrix*R_g2M.';
       end
     else
       gStrainMatrix = zeros(3);

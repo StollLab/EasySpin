@@ -95,12 +95,12 @@ end
 System.gAStrainCorr = sign(System.gAStrainCorr);
 
 if (System.nElectrons>1)
-  if any(System.gStrain) || any(System.AStrain)
+  if any(System.gStrain(:)) || any(System.AStrain(:))
     error('Cannot use D or g/A strain in spin system with more than one electron spin.');
   end
 end
 
-if any(System.gStrain) || any(System.AStrain)
+if any(System.gStrain(:)) || any(System.AStrain(:))
   gFull = size(System.g,1)==3*numel(System.S);
   if gFull
     error('gStrain and AStrain are not allowed when full g matrices are given!');
@@ -509,16 +509,16 @@ if (ComputeStrains)
   % g strain tensor is taken to be along the g tensor itself.
   UsegStrain = any(CoreSys.gStrain(:));
   if UsegStrain
-    if isfield(CoreSys,'gFrame')
-      R = erot(CoreSys.gFrame(1,:)).'; % g frame -> molecular frame
-    else
-      R = eye(3);
+    gStrainMatrix = diag(CoreSys.gStrain(1,:)./CoreSys.g(1,:));
+    if any(CoreSys.gFrame(:))
+      R_g2M = erot(CoreSys.gFrame(1,:)).'; % g frame -> molecular frame
+      gStrainMatrix = R_g2M*gStrainMatrix*R_g2M.';
     end
-    gStrainMatrix = diag(CoreSys.gStrain./CoreSys.g(1,:));
-    gStrainMatrix = R*gStrainMatrix*R.';
+  else
+    gStrainMatrix = zeros(3);
   end
   
-  UseAStrain = (CoreSys.nNuclei>0) && any(CoreSys.AStrain);
+  UseAStrain = (CoreSys.nNuclei>0) && any(CoreSys.AStrain(:));
   if UseAStrain
     if isfield(CoreSys,'AFrame')
       R = erot(CoreSys.AFrame(1,:)).'; % A frame -> molecular frame
