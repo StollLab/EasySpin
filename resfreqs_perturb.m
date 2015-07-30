@@ -420,11 +420,11 @@ else
     lw = sqrt(lw2);
     Wid = repmat(lw,nNucTrans*2*S,1);
     
-  elseif any(Sys.gStrain) || any(Sys.AStrain)
+  elseif any(Sys.gStrain(:)) || any(Sys.AStrain(:))
     
-    if any(Sys.gStrain)
-      gStrainMatrix = diag(Sys.gStrain./Sys.g)*E0*1e3; % -> MHz
-      if isfield(Sys,'gFrame') && any(Sys.gFrame(1,:))
+    if any(Sys.gStrain(:))
+      gStrainMatrix = diag(Sys.gStrain(1,:)./Sys.g(1,:))*E0*1e3; % -> MHz
+      if any(Sys.gFrame(:))
         R_g2M = erot(Sys.gFrame(1,:)).'; % g frame -> molecular frame
         gStrainMatrix = R_g2M*gStrainMatrix*R_g2M.';
       end
@@ -432,7 +432,7 @@ else
       gStrainMatrix = zeros(3);
     end
     
-    if any(Sys.AStrain) && (Sys.nNuclei>0)
+    if any(Sys.AStrain(:)) && (Sys.nNuclei>0)
       AStrainMatrix = diag(Sys.AStrain);
       if isfield(Sys,'AFrame')
         R_A2M = erot(Sys.AFrame(1,:)).'; % A frame -> molecular frame

@@ -93,14 +93,14 @@ System.gAStrainCorr = sign(System.gAStrainCorr);
 
 if (System.nElectrons>1)
   if any(System.gStrain(:))
-    error('gStrain is not supported in spin systems with more than one electron spin.');
+    %error('gStrain is not supported in spin systems with more than one electron spin.');
   end
   if any(System.AStrain(:))
     error('AStrain is not supported in spin systems with more than one electron spin.');
   end
 end
 
-if any(System.gStrain) || any(System.AStrain)
+if any(System.gStrain(:)) || any(System.AStrain(:))
   gFull = size(System.g,1)==3*numel(System.S);
   %aFull = size(System.A,1)==3*(1+sum(System.Nucs==','));
   if gFull
@@ -679,12 +679,17 @@ if (ComputeStrains)
   %-------------------------------------------------
   % g strain tensor is taken to be aligned with the g tensor
   % A strain tensor is taken to be aligned with the A tensor
-  % g/A strain is limited to the first electron and nuclear spin
-  gStrainMatrix = diag(CoreSys.gStrain./CoreSys.g(1,:))*mwFreq;
-  if isfield(CoreSys,'gFrame')
-    R_g2M = erot(CoreSys.gFrame(1,:)).'; % g frame -> molecular frame
-    gStrainMatrix = R_g2M*gStrainMatrix*R_g2M.';
+  % g/A strain is limited to the first electron and first nuclear spin
+  if any(CoreSys.gStrain(:))
+    gStrainMatrix = diag(CoreSys.gStrain(1,:)./CoreSys.g(1,:))*mwFreq; % MHz
+    if any(CoreSys.gFrame(:))
+      R_g2M = erot(CoreSys.gFrame(1,:)).'; % g frame -> molecular frame
+      gStrainMatrix = R_g2M*gStrainMatrix*R_g2M.';
+    end
+  else
+    gStrainMatrix = zeros(3);
   end
+  
   if (CoreSys.nNuclei>0) && any(CoreSys.AStrain)
     % Transform A strain matrix to molecular frame.
     AStrainMatrix = diag(CoreSys.AStrain);

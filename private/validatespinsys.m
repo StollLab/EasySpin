@@ -634,6 +634,32 @@ if any(Sys.lwpp)
   Sys.lw = Sys.lwpp .* [sqrt(2*log(2)), sqrt(3)];
 end
 
+% g strain
+%------------------------------------------------------------------
+if ~isfield(Sys,'gStrain') || isempty(Sys.gStrain)
+  Sys.gStrain = zeros(nElectrons,3);
+end
+
+[n1,n2] = size(Sys.gStrain);
+
+if (n1~=nElectrons)
+  err = sprintf('Sys.gStrain must have %d rows, one per electron spin!',nElectrons);
+  return
+end
+
+switch n2
+  case 1, Sys.gStrain = Sys.gStrain(:,[1 1 1]);
+  case 2, Sys.gStrain = Sys.gStrain(:,[1 1 2]);
+  case 3, % ok
+  otherwise
+  err = sprintf('Sys.gStrain must have 1, 2, or 3 columns!');
+end
+
+if any(Sys.gStrain(:,1)<0) || any(Sys.gStrain(:,2)<0)
+  err = 'Sys.gStrain must contain nonnegative values!';
+  return
+end
+
 % D and E strain
 %------------------------------------------------------------------
 if ~isfield(Sys,'DStrain') || isempty(Sys.DStrain)
@@ -667,8 +693,8 @@ end
 
 
 % Check width parameters for correct size, assure that they are not negative
-BroadeningType = {'HStrain','gStrain','AStrain'};
-Elements = [3,3,3,2];
+BroadeningType = {'HStrain','AStrain'};
+Elements = [3,3,2];
 for k = 1:numel(BroadeningType)
   fld = BroadeningType{k};
   if ~isfield(Sys,fld) || isempty(Sys.(fld))
