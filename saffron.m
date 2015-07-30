@@ -1066,6 +1066,7 @@ for iOri = 1:nOrientations
     if isempty(Opt.Transitions)
       H = F + Exp.Field*(zLab_M(1)*Gx + zLab_M(2)*Gy + zLab_M(3)*Gz);
       [eV,eE] = eig(H);
+      % boltzman - temperature aware
       SyLab = yLab_M(1)*Sx + yLab_M(2)*Sy + yLab_M(3)*Sz;
       SyLab = abs(eV'*SyLab*eV);
       maxSyy = max(SyLab(:));
@@ -1277,8 +1278,8 @@ for iOri = 1:nOrientations
               G1 = PG*Mt; D1 = PD*Mt; G2 = Mt*PG; D2 = Mt*PD;
 
               if (Exp.T~=0)
-                S1 = (exp(-2i*pi*Ea*Exp.T)*exp(-2i*pi*Ea*Exp.T)').*S1;
-                S2 = (exp(-2i*pi*Eb*Exp.T)*exp(-2i*pi*Eb*Exp.T)').*S2;
+                G1 = (exp(-2i*pi*Ea*Exp.T)*exp(-2i*pi*Ea*Exp.T)').*G1;
+                G2 = (exp(-2i*pi*Eb*Exp.T)*exp(-2i*pi*Eb*Exp.T)').*G2;
               end
 
               % echo signals in absence of RF pulse (off resonant)
