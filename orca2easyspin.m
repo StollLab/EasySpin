@@ -74,9 +74,13 @@ S = [];
 xyz = [];
 Charge = [];
 Dpv = [];
+DFrame = [];
 gpv = [];
+gFrame = [];
 Apv = [];
+AFrame = [];
 Qpv = [];
+QFrame = [];
 rho0 = [];
 Atoms = [];
 
@@ -161,23 +165,15 @@ while ~feof(f)
       % skip other properties (dipole moment, polarizability, etc)
   end
 end
+fclose(f);
 
 nAtoms = numel(Atoms);
-if nAtoms>0
-  if size(Apv,1)<nAtoms, Apv(nAtoms,:) = 0; end
-  if size(AFrame,1)<nAtoms, AFrame(nAtoms,:) = 0; end
-  if size(Qpv,1)<nAtoms, Qpv(nAtoms,:) = 0; end
-  if size(QFrame,1)<nAtoms, QFrame(nAtoms,:) = 0; end
-end
-
-fclose(f);
 
 % Compile spin system
 %---------------------------------------------------------------
 if isempty(S)
   % spin is not provided by the prop file
   Sys.S = 1/2;
-  %fprintf('Spin not provided in the ORCA %s.prop file. Assuming S = 1/2.\n',pf_name);
 else
   Sys.S = S;
 end
@@ -213,10 +209,14 @@ if nAtoms>0
   Sys.Nucs = NucStr;
   
   if ~isempty(Apv)
+    if size(Apv,1)<nAtoms, Apv(nAtoms,:) = 0; end
+    if size(AFrame,1)<nAtoms, AFrame(nAtoms,:) = 0; end
     Sys.A  = Apv(hfkeep,:);
     Sys.AFrame = AFrame(hfkeep,:);
   end
   if ~isempty(Qpv)
+    if size(Qpv,1)<nAtoms, Qpv(nAtoms,:) = 0; end
+    if size(QFrame,1)<nAtoms, QFrame(nAtoms,:) = 0; end
     Sys.Q  = Qpv(hfkeep,:);
     Sys.QFrame = QFrame(hfkeep,:);
   end
