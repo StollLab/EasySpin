@@ -193,8 +193,12 @@ end
 
 if nAtoms>0
   % Hyperfine cutoff
-  Amax = max(abs(Apv),[],2);
-  hfkeep = Amax>HyperfineCutoff;
+  if ~isempty(Apv)
+    Amax = max(abs(Apv),[],2);
+    hfkeep = Amax>HyperfineCutoff;
+  else
+    hfkeep = false(1,nAtoms);
+  end
   
   % List of isotopes
   NucStr = [];
