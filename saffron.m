@@ -330,7 +330,7 @@ end
 PredefinedExperiment = isfield(Exp,'Sequence');
 if PredefinedExperiment
   
-  QuadratureSignal = 0;
+  QuadratureSignal = false;
   
   if isfield(Exp,'Filter')
     error('Exp.Filter can only be used with custom sequences.');
@@ -381,16 +381,16 @@ else
   % User-specified pulse sequence -----------------------------------------
   logmsg(1,'User-specified pulse experiment.');
   ExperimentID = -1;
-  isENDOR = 0;
+  isENDOR = false;
   
   if any(~isinf(Sys.T1T2))
-    error('Sorry, T1 and T2 for custom sequences not supported.');
+    error('Relaxation times T1 and T2 for custom sequences not supported.');
   end
   
   if isfield(Exp,'Phase')
-    QuadratureSignal = 1;
+    QuadratureSignal = true;
   else
-    QuadratureSignal = 0;
+    QuadratureSignal = false;
   end
   
   if ~isfield(Exp,'Flip')
@@ -821,10 +821,10 @@ if SeparateSpaces
     [Ix,Iy,Iz] = sop(Sys.I(iNuc),'x','y','z');
     
     % Nuclear Zeeman -------------------------------------------------
-    gamm = -Sys.gn(iNuc)*nmagn/1e3/planck/1e6;
-    Space(iNuc).Hnz1 = gamm*Ix;
-    Space(iNuc).Hnz2 = gamm*Iy;
-    Space(iNuc).Hnz3 = gamm*Iz;
+    pre = -Sys.gn(iNuc)*nmagn/1e3/planck/1e6;
+    NucSpace(iNuc).Hnzx = pre*Ix;
+    NucSpace(iNuc).Hnzy = pre*Iy;
+    NucSpace(iNuc).Hnzz = pre*Iz;
     
     % Hyperfine ------------------------------------------------------
     if Sys.fullA
@@ -836,42 +836,48 @@ if SeparateSpaces
       end
       A = Ra*diag(Sys.A(iNuc,:))*Ra.';
     end
-    Space(iNuc).Hhf1 = A(1,1)*Ix + A(1,2)*Iy + A(1,3)*Iz;
-    Space(iNuc).Hhf2 = A(2,1)*Ix + A(2,2)*Iy + A(2,3)*Iz;
-    Space(iNuc).Hhf3 = A(3,1)*Ix + A(3,2)*Iy + A(3,3)*Iz;
+    NucSpace(iNuc).Hhf1 = A(1,1)*Ix + A(1,2)*Iy + A(1,3)*Iz;
+    NucSpace(iNuc).Hhf2 = A(2,1)*Ix + A(2,2)*Iy + A(2,3)*Iz;
+    NucSpace(iNuc).Hhf3 = A(3,1)*Ix + A(3,2)*Iy + A(3,3)*Iz;
     
     % Nuclear quadrupole ---------------------------------------------
     if (Sys.I(iNuc)>=1)
       Rq = erot(Sys.QFrame(iNuc,:)).'; % Q frame -> molecular frame
       Q = Rq*diag(Sys.Q(iNuc,:))*Rq.';
       Q = (Q + Q.')/2;
-      Space(iNuc).Hnq = ...
+      NucSpace(iNuc).Hnq = ...
         Ix*(Q(1,1)*Ix + Q(1,2)*Iy + Q(1,3)*Iz) + ...
         Iy*(Q(2,1)*Ix + Q(2,2)*Iy + Q(2,3)*Iz) + ...
         Iz*(Q(3,1)*Ix + Q(3,2)*Iy + Q(3,3)*Iz);
     else
-      Space(iNuc).Hnq = 0;
+      NucSpace(iNuc).Hnq = 0;
     end
   end
     
 else
   logmsg(1,'  complete nuclear state space');
   
-  Space.Hnq = 0;
-  Space.Hhf1 = 0; Space.Hhf2 = 0; Space.Hhf3 = 0;
-  Space.Hnz1 = 0; Space.Hnz2 = 0; Space.Hnz3 = 0;
+  NucSpace.Hnq = 0;
+  NucSpace.Hhf1 = 0; NucSpace.Hhf2 = 0; NucSpace.Hhf3 = 0;
+  NucSpace.Hnzx = 0; NucSpace.Hnzy = 0; NucSpace.Hnzz = 0;
   I = Sys.I(shfNuclei);
+  Fx = 0; % sum of Ix operators
+  Fy = 0; % sum of Iy operators
+  Fz = 0; % sum of Iz operators
   for ishfNuc = 1:numel(shfNuclei)
     Ix = sop(I,ishfNuc,1);
     Iy = sop(I,ishfNuc,2);
     Iz = sop(I,ishfNuc,3);
     iNuc = shfNuclei(ishfNuc);
+    Fx = Fx + Ix;
+    Fy = Fy + Iy;
+    Fz = Fz + Iz;
     
     % Nuclear Zeeman -------------------------------------------------
-    gamm = -Sys.gn(iNuc)*nmagn/1e3/planck/1e6;
-    Space.Hnz1 = Space.Hnz1 + gamm*Ix;
-    Space.Hnz2 = Space.Hnz2 + gamm*Iy;
-    Space.Hnz3 = Space.Hnz3 + gamm*Iz;
+    pre = -Sys.gn(iNuc)*nmagn/1e3/planck/1e6;
+    NucSpace.Hnzx = NucSpace.Hnzx + pre*Ix;
+    NucSpace.Hnzy = NucSpace.Hnzy + pre*Iy;
+    NucSpace.Hnzz = NucSpace.Hnzz + pre*Iz;
     
     % Hyperfine ------------------------------------------------------
     if Sys.fullA
@@ -883,9 +889,9 @@ else
       end
       A = Ra*diag(Sys.A(iNuc,:))*Ra.';
     end
-    Space.Hhf1 = Space.Hhf1 + A(1,1)*Ix + A(1,2)*Iy + A(1,3)*Iz;
-    Space.Hhf2 = Space.Hhf2 + A(2,1)*Ix + A(2,2)*Iy + A(2,3)*Iz;
-    Space.Hhf3 = Space.Hhf3 + A(3,1)*Ix + A(3,2)*Iy + A(3,3)*Iz;
+    NucSpace.Hhf1 = NucSpace.Hhf1 + A(1,1)*Ix + A(1,2)*Iy + A(1,3)*Iz;
+    NucSpace.Hhf2 = NucSpace.Hhf2 + A(2,1)*Ix + A(2,2)*Iy + A(2,3)*Iz;
+    NucSpace.Hhf3 = NucSpace.Hhf3 + A(3,1)*Ix + A(3,2)*Iy + A(3,3)*Iz;
     
     % Nuclear quadrupole ---------------------------------------------
     if (Sys.I(iNuc)>=1)
@@ -906,11 +912,11 @@ else
     else
       Hnq_ = 0;
     end
-    Space.Hnq = Space.Hnq + Hnq_;
+    NucSpace.Hnq = NucSpace.Hnq + Hnq_;
   end
   
 end
-nSubSpaces = numel(Space);
+nSubSpaces = numel(NucSpace);
 logmsg(1,'  %d nuclei, %d subspaces',numel(shfNuclei),nSubSpaces);
 %=====================================================================
 
@@ -948,12 +954,15 @@ logmsg(1,'Preparation...');
 
 if isENDOR
   
+  logmsg(1,'  ENDOR simulation');
+  
   rf = linspace(Exp.Range(1),Exp.Range(2),Exp.nPoints);
+  %{
   Template.x0 = 5e4;
   Template.lw = Template.x0/2.5; %<1e-8 at borders for Harmonic = -1
   Template.y = gaussian(0:2*Template.x0-1,Template.x0,Template.lw,-1);
   Template.y = Template.y*(rf(2)-rf(1))/Sys.lwEndor;
-  %plot(Template.y);
+  %}
   
   endorspc = zeros(1,Exp.nPoints);
   endoroffset = 0;
@@ -1050,10 +1059,10 @@ for iOri = 1:nOrientations
       continue
     end
     
-    quantizationAxis = g.'*zLab_M;
-    quantizationAxis = quantizationAxis/norm(quantizationAxis);
-    Manifold(1).S = -0.5*quantizationAxis;
-    Manifold(2).S = +0.5*quantizationAxis;
+    quantizationAxis_ = g.'*zLab_M;
+    quantizationAxis_ = quantizationAxis_/norm(quantizationAxis_);
+    Manifold(1).S = -0.5*quantizationAxis_;
+    Manifold(2).S = +0.5*quantizationAxis_;
 
     Transitions = [1 2];
     nTransitions = 1;
@@ -1066,7 +1075,7 @@ for iOri = 1:nOrientations
     if isempty(Opt.Transitions)
       H = F + Exp.Field*(zLab_M(1)*Gx + zLab_M(2)*Gy + zLab_M(3)*Gz);
       [eV,eE] = eig(H);
-      % boltzman - temperature aware
+      % Boltzmann - temperature aware
       SyLab = yLab_M(1)*Sx + yLab_M(2)*Sy + yLab_M(3)*Sz;
       SyLab = abs(eV'*SyLab*eV);
       maxSyy = max(SyLab(:));
@@ -1111,12 +1120,13 @@ for iOri = 1:nOrientations
   % Compute and diagonalize nuclear Hamiltonians
   %----------------------------------------------------------------------
   for iSpace = 1:nSubSpaces
-    Hnuc = Exp.Field*(zLab_M(1)*Space(iSpace).Hnz1 + zLab_M(2)*Space(iSpace).Hnz2 + zLab_M(3)*Space(iSpace).Hnz3) + Space(iSpace).Hnq;
+    Hnuc = Exp.Field*(zLab_M(1)*NucSpace(iSpace).Hnzx + zLab_M(2)*NucSpace(iSpace).Hnzy + zLab_M(3)*NucSpace(iSpace).Hnzz);
+    Hnuc = Hnuc + NucSpace(iSpace).Hnq;
     for iM = ManifoldsInvolved
-      S = Manifold(iM).S;
-      H = Hnuc + S(1)*Space(iSpace).Hhf1 + ...
-                 S(2)*Space(iSpace).Hhf2 + ...
-                 S(3)*Space(iSpace).Hhf3;
+      S = Manifold(iM).S; % expectation value of spin vector, <S>
+      H = Hnuc + S(1)*NucSpace(iSpace).Hhf1 + ...
+                 S(2)*NucSpace(iSpace).Hhf2 + ...
+                 S(3)*NucSpace(iSpace).Hhf3;
       [VV,EE] = eig((H+H')/2);
       Manifold(iM).V{iSpace} = VV;
       Manifold(iM).E{iSpace} = real(diag(EE));
@@ -1138,11 +1148,11 @@ for iOri = 1:nOrientations
       Mb = Manifold(b).V{iSpace};
       M = Ma'*Mb;       % <a|b> overlap matrix
       Mt = M';
-      nStates = length(Ea);
-      eyeN = eye(nStates);
+      nNucStates = length(Ea);
+      eyeN = eye(nNucStates);
       if any(realPulse)
-        idxa = 1:nStates;
-        idxb = idxa + nStates;
+        idxa = 1:nNucStates;
+        idxb = idxa + nNucStates;
       end
       
       for iOffset = 1:Opt.nOffsets
@@ -1153,11 +1163,11 @@ for iOri = 1:nOrientations
             nu1 = (pi/2*Exp.Flip(iInt))/Exp.tp(iInt)/2/pi;
             Hpulse = [diag(Ea+offsets(iOffset)/2), +M*nu1/2i; ...
               -Mt*nu1/2i diag(Eb-offsets(iOffset)/2)];
-            FullPuls = expm(-2i*pi*Exp.tp(iInt)*Hpulse);
-            P{iInt,1} = FullPuls(idxa,idxa);
-            P{iInt,2} = FullPuls(idxb,idxb);
-            P{iInt,3} = FullPuls(idxa,idxb);
-            P{iInt,4} = FullPuls(idxb,idxa);
+            FullPulsePropagator = expm(-2i*pi*Exp.tp(iInt)*Hpulse);
+            PulseSubPropagator{iInt,1} = FullPulsePropagator(idxa,idxa);
+            PulseSubPropagator{iInt,2} = FullPulsePropagator(idxb,idxb);
+            PulseSubPropagator{iInt,3} = FullPulsePropagator(idxa,idxb);
+            PulseSubPropagator{iInt,4} = FullPulsePropagator(idxb,idxa);
           end
         end
 
@@ -1203,8 +1213,8 @@ for iOri = 1:nOrientations
                   case 4, Right = Right*M;
                 end
               else
-                Left = P{iInt,idxPulseL(iPathway,iInt)}*Left;
-                Right = Right*P{iInt,idxPulseR(iPathway,iInt)}';
+                Left = PulseSubPropagator{iInt,idxPulseL(iPathway,iInt)}*Left;
+                Right = Right*PulseSubPropagator{iInt,idxPulseR(iPathway,iInt)}';
               end
               
               % Free evolution propagator
@@ -1242,26 +1252,25 @@ for iOri = 1:nOrientations
               
             end % iInt
 
-            if increments(end)~=0, D = M; else D = Right*M*Left; end
-
-            % Acumulate peaks / generated time domain
-            if Opt.TimeDomain
-              if Opt.ProductRule
-                error('Product rule for user-defined experiments not implemented.');
-              else
-                totaltd = totaltd + ...
-                  sf_evolve(IncSchemeID,Exp.nPoints,Exp.dt,...
-                  idxIncL(iPathway,:),idxIncR(iPathway,:),...
-                  Ea,Eb,G,D,BlockL{:},BlockR{:});
-              end
+            if increments(end)~=0
+              D = M;
             else
-              if Opt.ProductRule
-                error('Product rule for user-defined experiments not implemented.');
-              else
-                sf_peaks(IncSchemeID,buff,Exp.dt,...
-                  idxIncL(iPathway,:),idxIncR(iPathway,:),...
-                  Ea,Eb,G,D,BlockL{:},BlockR{:});
-              end
+              D = Right*M*Left;
+            end
+
+            % Accumulate peaks / generate time domain
+            if Opt.ProductRule
+              error('Product rule for user-defined experiments not implemented.');
+            end
+            if Opt.TimeDomain
+              totaltd = totaltd + ...
+                sf_evolve(IncSchemeID,Exp.nPoints,Exp.dt,...
+                idxIncL(iPathway,:),idxIncR(iPathway,:),...
+                Ea,Eb,G,D,BlockL{:},BlockR{:});
+            else
+              sf_peaks(IncSchemeID,buff,Exp.dt,...
+                idxIncL(iPathway,:),idxIncR(iPathway,:),...
+                Ea,Eb,G,D,BlockL{:},BlockR{:});
             end
 
           end % iPathway loop
@@ -1272,27 +1281,36 @@ for iOri = 1:nOrientations
 
             % Mims ENDOR ------------------------------------------------
             case 5
+              % coherence transfer pathway 1: +,alpha,-
+              % coherence transfer pathway 2: +,beta,-
 
+              if ~all(idealPulse)
+                error('Pre-defined Mims ENDOR with real pulses not supported.');
+              end
+              
               Q = exp(-2i*pi*Ea*Exp.tau)*exp(-2i*pi*Eb*Exp.tau)';
-              PG = prefactor*Q.*M; PD = conj(Q).*M;
-              G1 = PG*Mt; D1 = PD*Mt; G2 = Mt*PG; D2 = Mt*PD;
+              PG = prefactor*Q.*M;
+              PD = conj(Q).*M;
+              G1 = PG*Mt; D1 = PD*Mt;
+              G2 = Mt*PG; D2 = Mt*PD;
 
               if (Exp.T~=0)
-                G1 = (exp(-2i*pi*Ea*Exp.T)*exp(-2i*pi*Ea*Exp.T)').*G1;
-                G2 = (exp(-2i*pi*Eb*Exp.T)*exp(-2i*pi*Eb*Exp.T)').*G2;
+                q_ = exp(-2i*pi*Ea*Exp.T); G1 = (q_*q_').*G1;
+                q_ = exp(-2i*pi*Eb*Exp.T); G2 = (q_*q_').*G2;
               end
-
-              % echo signals in absence of RF pulse (off resonant)
+              
+              % echo signals in absence of RF pulse (off resonance)
               off1 = trace(G1*D1);
               off2 = trace(G2*D2);
+              
               % loop only over nuclear sublevel pairs with Delta mI = 1
-              for j=1:nStates-1
+              for j=1:nNucStates-1
                 for i=j+1
-                  % > RF pulse approximation: apply pi pulse two two-level subsystem
+                  % RF pulse approximation: apply pi pulse two two-level subsystem
                   % R = [0 -1; 1 0];
                   %S1_ = S1; S1_([j i],[j i]) = R*S1_([j i],[j i])*R';
                   %S2_ = S2; S2_([j i],[j i]) = R*S2_([j i],[j i])*R';
-                  % > RF pulse approximation: only swap diagonal elements ii and jj
+                  % RF pulse approximation: only swap diagonal elements ii and jj
                   G1_ = G1; q = G1_(i,i); G1_(i,i) = G1_(j,j); G1_(j,j) = q;
                   G2_ = G2; q = G2_(i,i); G2_(i,i) = G2_(j,j); G2_(j,j) = q;
                   ampl = [off1-trace(G1_*D1), off2-trace(G2_*D2)];
@@ -1311,9 +1329,11 @@ for iOri = 1:nOrientations
                   endoroffset = endoroffset + off1 + off2;
                 end
               end
-
+              
             % HYSCORE ---------------------------------------------------
             case 4
+              % coherence transfer pathway 1: +,alpha,beta,-
+              % coherence transfer pathway 2: +,beta,alpha,-
 
               if ~all(idealPulse)
                 error('Pre-defined HYSCORE with real pulses not supported.');
@@ -1324,13 +1344,14 @@ for iOri = 1:nOrientations
               PD = conj(Q).*M;
               G1 = PG*Mt; G2 = Mt*PG;
               D1 = Mt*PD; D2 = PD*Mt;
+              
               if (Exp.t1~=0)
-                q = exp(-2i*pi*Exp.t1*Ea); G1 = (q*q').*G1;
-                q = exp(-2i*pi*Exp.t1*Eb); G2 = (q*q').*G2;
+                q_ = exp(-2i*pi*Exp.t1*Ea); G1 = (q_*q_').*G1;
+                q_ = exp(-2i*pi*Exp.t1*Eb); G2 = (q_*q_').*G2;
               end
               if (Exp.t2~=0)
-                q = exp(+2i*pi*Exp.t2*Eb); D1 = (q*q').*D1;
-                q = exp(+2i*pi*Exp.t2*Ea); D2 = (q*q').*D2;
+                q_ = exp(+2i*pi*Exp.t2*Eb); D1 = (q_*q_').*D1;
+                q_ = exp(+2i*pi*Exp.t2*Ea); D2 = (q_*q_').*D2;
               end
 
               if Opt.TimeDomain
@@ -1353,6 +1374,8 @@ for iOri = 1:nOrientations
 
             % 4pESEEM ---------------------------------------------------
             case 3
+              % coherence transfer pathway 1: +,alpha,beta,- 
+              % coherence transfer pathway 2: +,beta,alpha,-
 
               if ~all(idealPulse)
                 error('Pre-defined 4p-ESEEM with real pulses not supported.');
@@ -1361,8 +1384,9 @@ for iOri = 1:nOrientations
               Q = exp(-2i*pi*Ea*Exp.tau)*exp(-2i*pi*Eb*Exp.tau)';
               PG = prefactor*Q.*M;
               PD = conj(Q).*M;
-              G1 = PG*Mt; G2 = Mt*PG;
-              D1 = Mt*PD; D2 = PD*Mt;
+              G1 = PG*Mt; D1 = Mt*PD; 
+              G2 = Mt*PG; D2 = PD*Mt;
+              
               if (Exp.T~=0)
                 q = exp(-2i*pi*Exp.T*Ea); G1 = (q*q').*G1;
                 q = exp(-2i*pi*Exp.T*Eb); G2 = (q*q').*G2;
@@ -1390,17 +1414,22 @@ for iOri = 1:nOrientations
 
             % 3pESEEM ------------------------------------------------------------
             case 2
+              % coherence transfer pathway 1: +,alpha,- 
+              % coherence transfer pathway 2: +,beta,-
 
               if ~all(idealPulse)
                 error('Pre-defined 3pESEEM not supported for real pulses.');
               end
               
               Q = exp(-2i*pi*Ea*Exp.tau)*exp(-2i*pi*Eb*Exp.tau)';
-              PG = prefactor*Q.*M; PD = conj(Q).*M;
-              G1 = PG*Mt; D1 = PD*Mt; G2 = Mt*PG; D2 = Mt*PD;
+              PG = prefactor*Q.*M;
+              PD = conj(Q).*M;
+              G1 = PG*Mt; D1 = PD*Mt;
+              G2 = Mt*PG; D2 = Mt*PD;
+              
               if (Exp.T~=0)
-                q = exp(-2i*pi*Exp.T*Ea); G1 = (q*q').*G1;
-                q = exp(-2i*pi*Exp.T*Eb); G2 = (q*q').*G2;
+                q_ = exp(-2i*pi*Exp.T*Ea); G1 = (q_*q_').*G1;
+                q_ = exp(-2i*pi*Exp.T*Eb); G2 = (q_*q_').*G2;
               end
 
               if Opt.TimeDomain
@@ -1423,6 +1452,7 @@ for iOri = 1:nOrientations
 
             % 2pESEEM ---------------------------------------------------------
             case 1
+              % coherence transfer pathway: +-
 
               if ~all(idealPulse)
                 error('Pre-defined 2pESEEM not supported for real pulses.');
