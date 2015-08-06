@@ -1,15 +1,15 @@
-% orca2easyspin   Import magnetic parameters from ORCA calculation
+% orca2easyspin   Import magnetic spin Hamiltonian parameters from ORCA
 %
 %  Sys = orca2easyspin(OrcaFileName)
 %  Sys = orca2easyspin(OrcaFileName,HyperfineCutoff)
 %
-%  Loads the magnetic properties from the binary ORCA property output
-%  file given in OrcaFileName and returns them as an EasySpin spin
-%  system structure Sys.
+%  Loads the spin Hamiltonian parameters from the binary ORCA property
+%  output file given in OrcaFileName and returns them as an EasySpin
+%  spin system structure Sys.
 %
-%  Besides the text-formatted output file, ORCA also generates a
+%  Besides the main text-formatted output file, ORCA also generates a
 %  binary .prop file that contains atomic coordinates and calculated
-%  properties such as g  and A matrices, Q tensors, etc. orca2easyspin
+%  properties such as g and A matrices, Q tensors, etc. orca2easyspin
 %  reads in this file, and not the text-formatted output file.
 %
 %  If HyperfineCutoff (a single value, in MHz) is given, all
