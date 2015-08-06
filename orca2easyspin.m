@@ -173,7 +173,6 @@ nAtoms = numel(Atoms);
 %---------------------------------------------------------------
 if isempty(S)
   % spin is not provided by the prop file
-  Sys.S = 1/2;
 else
   Sys.S = S;
 end
