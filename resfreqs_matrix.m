@@ -699,7 +699,7 @@ for iOri = 1:nOrientations
             
       % H strain: Frequency domain residual width tensor.
       %-----------------------------------------------  
-      LineWidth2 = (CoreSys.HStrain*zLab)^2;
+      LineWidth2 = CoreSys.HStrain.^2*zLab.^2;
 
       % D strain
       if UseDStrain
