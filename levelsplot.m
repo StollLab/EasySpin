@@ -167,7 +167,6 @@ if isfinite(mwFreq)
     xl = xlim; yl = ylim;
     h = text(xl(1),yl(1),' no resonances in range!');
     set(h,'Color','r','VerticalAl','bottom');
-    set(h,'tooltipString','asdf');
   end
 end
 
