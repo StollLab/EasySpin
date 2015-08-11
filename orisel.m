@@ -175,9 +175,9 @@ if (Options.Display)
       shading flat
       axis equal
       colorbar;
-      xlabel('x');
-      ylabel('y');
-      zlabel('z');
+      xlabel('x_{M}');
+      ylabel('y_{M}');
+      zlabel('z_{M}');
     end
   else
     disp('Cannot plot orientation selection for a user-supplied set of orientations.');
