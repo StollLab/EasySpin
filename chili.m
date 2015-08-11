@@ -153,18 +153,6 @@ end
 [Sys,err] = validatespinsys(Sys);
 error(err);
 
-if ~isfield(Opt,'JerSpin')
-  JerSpin = false;
-  if (Sys.nElectrons~=1) || any(Sys.S~=1/2) || (Sys.nNuclei>2)
-    JerSpin = true;
-  end
-  if Sys.fullg
-    JerSpin = false;
-  end
-else
-  JerSpin = Opt.JerSpin;
-end
-
 if Sys.fullg
   mT2MHz = mt2mhz(1,mean(eig(Sys.g)));
 else
@@ -412,9 +400,6 @@ else
     logmsg(1,'  Non-zero ordering potential given, doing powder simulation.');
     PowderSimulation = true;
   end
-  if JerSpin
-    error('Ordering potential not supported for this spin system.');
-  end
 end
 
 % Options
@@ -445,6 +430,24 @@ if isfield(Opt,'MOMD')
   error('Opt.MOMD is obsolete. Remove it from your code. Now, a powder simulation is automatically performed whenever an ordering potential is given.');
 end
 
+% Set default method for constructing Liouvillian
+if ~isfield(Opt,'LiouvMethod') || isempty(Opt.LiouvMethod)
+  if (Sys.nElectrons==1) && (Sys.S==1/2) && (Sys.nNuclei<=2)
+    Opt.LiouvMethod = 'Freed';
+  else
+    Opt.LiouvMethod = 'general';
+  end
+end
+
+[LiouvMethod,err] = parseoption(Opt,'LiouvMethod',{'Freed','general'});
+error(err);
+generalLiouvillian = (LiouvMethod==2);
+
+if generalLiouvillian
+  if ~isempty(Sys.lambda) && any(Sys.lambda~=0)
+    error('Ordering potential not supported for this spin system.');
+  end
+end
 
 if ~isfield(Opt,'nKnots'), Opt.nKnots = [5 0]; end
 if numel(Opt.nKnots)<1, Opt.nKnots(1) = 5; end
@@ -493,7 +496,7 @@ logmsg(2,'  allocation: %d max elements, %d max rows',Opt.Allocation(1),Opt.Allo
 
 % Process
 %-------------------------------------------------------
-if JerSpin
+if generalLiouvillian
   logmsg(1,'  using general Liouvillian code');
 else
   logmsg(1,'  using S=1/2 Liouvillian code');
@@ -577,7 +580,7 @@ logmsg(1,'  Leven max %d, Lodd max %d, Kmax %d, Mmax %d',...
   Basis.LLKM(1),Basis.LLKM(2),Basis.LLKM(3),Basis.LLKM(4));
 logmsg(1,'  deltaK %d, jKmin %+d, pSmin %+d, symm %d',...
   Basis.deltaK,Basis.jKmin,Basis.pSmin,Basis.MeirovitchSymm);
-if JerSpin
+if generalLiouvillian
   Basis.List = generatebasis(Basis);
   logmsg(1,'  basis size: %d (%d spatial, %d spin)',size(Basis.List,1)*Sys.nStates^2,size(Basis.List,1),Sys.nStates^2);
 else
@@ -588,7 +591,7 @@ end
 
 % Preparations
 %-----------------------------------------------------------------------
-if JerSpin
+if generalLiouvillian
 
   [T0,T1,T2,F0,F1,F2] = magint(Sys,CenterField);
   Gamma = rdogamma(Basis.List,Dynamics.Diff,Sys.nStates^2);
@@ -628,7 +631,7 @@ for iOri = 1:nOrientations
   logmsg(2,'orientation %d of %d: phi = %g°, theta = %g° (weight %g)',...
     iOri,nOrientations,phi(iOri)*180/pi,theta(iOri)*180/pi,Weights(iOri));
 
-  if JerSpin
+  if generalLiouvillian
     D1 = wignerd(1,[phi,theta,0]);
     D2 = wignerd(2,[phi(iOri) theta(iOri) 0]);
     [Q0,Q1,Q2] = rbos(D1,D2,T0,T1,T2,F0,F1,F2);
@@ -639,7 +642,7 @@ for iOri = 1:nOrientations
   % Starting vector
   %-------------------------------------------------------
   logmsg(1,'Computing starting vector(s)...');
-  if JerSpin
+  if generalLiouvillian
     StartingVector = startvec(Basis.List,SxOps);
   else
     StartingVector = chili_sv(Sys,Basis,Dynamics,Opt);
@@ -656,7 +659,7 @@ for iOri = 1:nOrientations
   %-------------------------------------------------------
   logmsg(1,'Computing Liouville matrix...');
 
-  if JerSpin
+  if generalLiouvillian
     H = liouvhamiltonian(Basis.List,Q0,Q1,Q2,jjj0,jjj1,jjj2);
     L = -2i*pi*H + Gamma;
   else
@@ -809,7 +812,7 @@ spec = cos(Exp.mwPhase)*real(spec)+sin(Exp.mwPhase)*imag(spec);
 %==============================================================
 % Postconvolution
 %==============================================================
-if (numel(Sys.I)>2) && ~JerSpin
+if (numel(Sys.I)>2) && ~generalLiouvillian
   logmsg(1,'Postconvolution...');
   shfSys.g = mean(Sys.g);
   shfSys.A = mean(Sys.A(2:end,:),2);

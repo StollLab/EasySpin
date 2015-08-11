@@ -88,7 +88,7 @@ Exp.Range = [9.28 9.42];
 %Exp.nPoints = 2048;
 %Exp.CenterSweep = [Exp.Field*bmagn/(planck/(2*pi)), 20];
 
-Opt.JerSpin = true;
+Opt.LiouvMethod = 'general';
 Opt.LLKM = [24 7 6 6];
 %[Sys,Exp] = js2es(Sys,Exp);
 
