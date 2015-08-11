@@ -437,11 +437,19 @@ if ~isfield(Opt,'LiouvMethod') || isempty(Opt.LiouvMethod)
   else
     Opt.LiouvMethod = 'general';
   end
+else
 end
 
 [LiouvMethod,err] = parseoption(Opt,'LiouvMethod',{'Freed','general'});
 error(err);
 generalLiouvillian = (LiouvMethod==2);
+
+if ~generalLiouvillian
+  if (Sys.nElectrons==1) && (Sys.S==1/2) && (Sys.nNuclei<=2)
+  else
+    error('Opt.LiouvMethod=''Freed'' does not work with this spin system.');
+  end
+end
 
 if generalLiouvillian
   if ~isempty(Sys.lambda) && any(Sys.lambda~=0)
