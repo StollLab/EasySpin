@@ -132,7 +132,7 @@ if ~isfield(Sys,'singleiso') || (Sys.singleiso==0)
         
         % Time domain
         subplot(2,1,1);
-        PredefinedExperiment = isfield(Exp,'Sequence');
+        PredefinedExperiment = isfield(Exp,'Sequence') && ~isempty(Exp.Sequence);
         ExpNames = {'2pESEEM','3pESEEM','4pESEEM','HYSCORE','MimsENDOR'};
         QuadratureSignal = ~PredefinedExperiment;
         if QuadratureSignal
@@ -226,6 +226,7 @@ if ~isfield(Sys,'singleiso') || (Sys.singleiso==0)
         line([0 0],[-1 1]*fm,'Color','w');
         line([-1 1]*fm,[-1 1]*fm,'Color','w','LineStyle',':');
         line([1 -1]*fm,[-1 1]*fm,'Color','w','LineStyle',':');
+        ylim([0 1]*fm);
       end
       
     end
@@ -327,7 +328,7 @@ if any(Sys.T1T2<=0) || any(~isreal(Sys.T1T2))
 end
 
 % Pulse sequence
-PredefinedExperiment = isfield(Exp,'Sequence');
+PredefinedExperiment = isfield(Exp,'Sequence') && ~isempty(Exp.Sequence);
 if PredefinedExperiment
   
   QuadratureSignal = false;
