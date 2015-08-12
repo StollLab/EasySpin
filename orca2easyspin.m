@@ -127,11 +127,12 @@ while ~feof(f)
     case {4, 13, 22, 29, 36}
       %Dval = data(1);
       %EoverD = data(2);
-      Dpv = data(3:5);
+      Dpv = data(3:5).';       % cm^-1
+      Dpv = Dpv*1e-4*clight;   % cm^-1 -> MHz
       R = reshape(data(6:14),3,3);
       %D = R*diag(Dpv)*R.';
       DFrame = eulang(R.',skipFitting);
-    
+      
     % A matrices ---------------------------------------
     case {6, 15, 24, 31, 38}
       AnucIdx = data(1,:)+1;
