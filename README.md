@@ -1,29 +1,10 @@
-# README #
+### Basic style rules ###
 
-This README would normally document whatever steps are necessary to get your application up and running.
+* Indentation: 2 spaces (not tabs, not 4 spaces)
+* Choose meaningful variable names
+* Use camelCase (PulseLength) and not snake_case (pulse_length) for variable names
 
-### What is this repository for? ###
+### Commits ###
 
-* Quick summary
-* Version
-* [Learn Markdown](https://bitbucket.org/tutorials/markdowndemo)
-
-### How do I get set up? ###
-
-* Summary of set up
-* Configuration
-* Dependencies
-* Database configuration
-* How to run tests
-* Deployment instructions
-
-### Contribution guidelines ###
-
-* Writing tests
-* Code review
-* Other guidelines
-
-### Who do I talk to? ###
-
-* Repo owner or admin
-* Other community or team contact
+* Make sure to run the entire test suite before every commit.
+* Use short but intelligble commit comments. Include the name of the major file affected.
