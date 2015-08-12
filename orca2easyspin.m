@@ -191,16 +191,27 @@ if ~isempty(Dpv)
   Sys.DFrame = DFrame;
 end
 
-if nAtoms>0
-  % Hyperfine cutoff
-  if ~isempty(Apv)
+anyHyperfine = ~isempty(Apv);
+anyQuadrupole = ~isempty(Qpv);
+if anyHyperfine
+  if size(Apv,1)<nAtoms, Apv(nAtoms,:) = 0; end
+  if size(AFrame,1)<nAtoms, AFrame(nAtoms,:) = 0; end
+end
+if anyQuadrupole
+  if size(Qpv,1)<nAtoms, Qpv(nAtoms,:) = 0; end
+  if size(QFrame,1)<nAtoms, QFrame(nAtoms,:) = 0; end
+end
+
+if (nAtoms>0)
+  
+  % Determine which nuclei are above hyperfine cutoff
+  hfkeep = false(1,nAtoms);
+  if anyHyperfine
     Amax = max(abs(Apv),[],2);
     hfkeep = Amax>HyperfineCutoff;
-  else
-    hfkeep = false(1,nAtoms);
   end
   
-  % List of isotopes
+  % Build Sys.Nucs
   NucStr = [];
   for iAtom = 1:nAtoms
     if ~hfkeep(iAtom), continue; end
@@ -211,16 +222,16 @@ if nAtoms>0
   end
   Sys.Nucs = NucStr;
   
-  if ~isempty(Apv)
-    if size(Apv,1)<nAtoms, Apv(nAtoms,:) = 0; end
-    if size(AFrame,1)<nAtoms, AFrame(nAtoms,:) = 0; end
+  % Build Sys.A and Sys.AFrame
+  if anyHyperfine
     Sys.A  = Apv(hfkeep,:);
     Sys.AFrame = AFrame(hfkeep,:);
   end
-  if ~isempty(Qpv)
-    if size(Qpv,1)<nAtoms, Qpv(nAtoms,:) = 0; end
-    if size(QFrame,1)<nAtoms, QFrame(nAtoms,:) = 0; end
+  
+  % Build Sys.Q and Sys.QFrame
+  if anyQuadrupole
     Sys.Q  = Qpv(hfkeep,:);
     Sys.QFrame = QFrame(hfkeep,:);
   end
+  
 end
