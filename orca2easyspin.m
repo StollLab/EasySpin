@@ -35,6 +35,9 @@ rowcoltype = 'int32';
 datatype = 'float64';
 terminateID = -1; % property ID value that indicates end of file
 
+% Property IDs have to be between 0 and 53 (as of ORCA 3.0.2)
+maxPropertyID = 53;
+
 % Get base name of filename and compose .prop filename
 %----------------------------------------------------------------
 [pf_path,pf_name,pf_ext] = fileparts(propfilename);
@@ -55,10 +58,9 @@ if (firstPropertyID==terminateID)
   return
 end
 
-if (firstPropertyID>100)
-  % Property IDs have to be between 0 and 53 (as of ORCA 3.0.2)
-  % Clearly, if the first one is larger, the original MachineFormat
-  % guess was wrong. Try the other one.
+if (firstPropertyID>maxPropertyID)
+  % Clearly, if the read ID is outside the valid range, the original
+  % MachineFormat guess was wrong. Try the other one.
   MachineFormat = 'b'; % big-endian
 end
 
@@ -87,7 +89,12 @@ Atoms = [];
 while ~feof(f)
   
   PropertyID = fread(f,1,PropertyIDtype);
+  
   if (PropertyID==terminateID), break; end
+  
+  if (PropertyID<0) || (PropertyID>maxPropertyID)
+    error('Unknown property encountered (PropertyID = %d)',PropertyID);
+  end
   
   nRows = fread(f,1,rowcoltype);
   nColumns = fread(f,1,rowcoltype);
