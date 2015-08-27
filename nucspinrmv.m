@@ -82,6 +82,9 @@ else
   else
     NewSys = setfield(NewSys,'A',v);
   end
+  if isfield(NewSys,'AFrame')
+    NewSys = rmfield(NewSys,'AFrame');
+  end
 end
 
 % nuclear quadrupole ----------------------------------
