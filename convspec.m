@@ -104,8 +104,8 @@ alpha = expandfull(alpha,nDims);
 phase = expandfull(phase,nDims);
 
 NN = 2*n + 1;
-mid = round(NN/2)+1;
-fwhm = fwhm./steps;
+mid = round(NN/2)+1; % range midpoint, for line center
+fwhm = fwhm./steps;  % line width in terms of x-axis increments
 
 % Determine ifft of line shape for each dimension
 for i = 1:nDims

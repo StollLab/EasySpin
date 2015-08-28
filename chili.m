@@ -907,8 +907,8 @@ end
 %---------------------------------------------------------
 % Convolution with Gaussian only. Lorentzian broadening is already
 % included in the slow-motion simulation via T2.
-if ConvolutionBroadening
-  fwhmG = Sys.lw(1);
+fwhmG = Sys.lw(1);
+if (fwhmG>0) && ConvolutionBroadening
   if FieldSweep
     unitstr = 'mT';
   else
@@ -916,13 +916,16 @@ if ConvolutionBroadening
     fwhmG = fwhmG/1e3; % MHz -> GHz
   end
   dx = xAxis(2) - xAxis(1);
-  if (fwhmG>0)
+  if (fwhmG/dx>2)
     logmsg(1,'Convoluting with Gaussian (FWHM %g %s)...',fwhmG,unitstr);
     spec = convspec(spec,dx,fwhmG,Exp.ConvHarmonic,1);
     Exp.ConvHarmonic = 0;
+  else
+    % Skip convolution, since it has no noticeable effect if the linewidth is
+    % smaller than about 2*dx.
+    Exp.ConvHarmonic = 0;
   end
 end
-
 
 outspec = spec;
 %==============================================================

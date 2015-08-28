@@ -876,17 +876,21 @@ if (ConvolutionBroadening)
   end
 
   % Lorentzian broadening
-  if (fwhmL>0)
+  if (fwhmL>2*Exp.deltaX)
     logmsg(1,'  convoluting with Lorentzian, FWHM %g MHz, derivative %d',fwhmL,HarmonicL);
     if min(size(spec))==1, fwhm = [fwhmL 0]; else fwhm = [0 fwhmL]; end
     spec = convspec(spec,Exp.deltaX,fwhm,HarmonicL,0);
+  else
+    % Skip convolution, since it has no effect with such a narrow delta-like Lorentzian.
   end
   
   % Gaussian broadening
-  if (fwhmG>0)
+  if (fwhmG>2*Exp.deltaX)
     logmsg(1,'  convoluting with Gaussian, FWHM %g MHz, derivative %d',fwhmG,HarmonicG);
     if min(size(spec))==1, fwhm = [fwhmG 0]; else fwhm = [0 fwhmG]; end
     spec = convspec(spec,Exp.deltaX,fwhm,HarmonicG,1);
+  else
+    % Skip convolution, since it has no effect with such a narrow delta-like Gaussian.
   end
 
   % Remove padding
