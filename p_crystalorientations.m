@@ -71,48 +71,44 @@ if (~PowderSimulation)
   if ~isempty(Exp.CrystalOrientation)
     logmsg(1,'  crystal orientation(s) given');
 
-    % Transpose Exp.CrystalOrientation if necessary to have
-    % one row per orientation
+    % Check Exp.CrystalOrientation, transpose if necessary to have
+    % one row per orientation, supplement third angle if necessary.
+    COri = Exp.CrystalOrientation;
+    nC1 = size(COri,1);
+    nC2 = size(COri,2);
     transpose = false;
-    nC1 = size(Exp.CrystalOrientation,1);
-    nC2 = size(Exp.CrystalOrientation,2);
-    if (nC2==2) || (nC2==3)
-      % all fine
-    else
-      if (nC1==2) || (nC1==3)
+    supplement_chi = false;
+    if (nC2~=3)
+      if (nC1==3)
         transpose = true;
       else
-        error('Exp.CrystalOrientation must be a Nx3 or Nx2 array, yours is %dx%d.',...
-          nC1,nC2);
+        if (nC2==2)
+          supplement_chi = true;
+        elseif (nC1==2)
+          transpose = true;
+          supplement_chi = true;
+        else
+          error('Exp.CrystalOrientation must be a Nx3 array, yours is %dx%d.',...
+            nC1,nC2);
+        end
       end
     end
-    if transpose, Exp.CrystalOrientation = Exp.CrystalOrientation.'; end
-        
-    COri = Exp.CrystalOrientation;
-    if all(size(COri)==[3 3])
-      R_CL = COri;
-    elseif numel(COri)==2
-      R_CL = erot([COri(1) COri(2) 0]);
-    elseif numel(COri)==3
-      R_CL = erot(COri);
-    elseif any(size(COri)==3)
-      if size(COri,1)==3, COri = COri.'; end
-      for iOri = 1:size(COri,1)
-        R_CL{iOri} = erot(COri(iOri,:));
-      end
-    elseif any(size(COri)==2)
-      if size(COri,1)==2, COri = COri.'; end
-      for iOri = 1:size(COri,1)
-        R_CL{iOri} = erot([COri(iOri,:) 0]);
-      end
-    else
-      error('Exp.CrystalOrientation has wrong size.');
+    if transpose
+      COri = COri.';
+    end
+    if supplement_chi
+      COri(:,3) = 0;
     end
     Exp.CrystalOrientation = COri;
+    
+    % Construct rotation matrices (crystal frame to lab frame)
+    for iOri = size(COri,1):-1:1
+      R_CL{iOri} = erot(COri(iOri,:));
+    end
+    
   else
-    R_CL = 1;
+    R_CL = {eye(3)};
   end
-  if ~iscell(R_CL), R_CL = {R_CL}; end
   nOrientations = numel(R_CL);
   
   % Generate list of lab frame orientations, represented in the
