@@ -1159,8 +1159,13 @@ err = [];
 
 if exist(PARFileName,'file')
   fh = fopen(PARFileName);
-  warning('off','MATLAB:textscan:BufSizeDeprecation');
-  allLines = textscan(fh,'%s','whitespace','','delimiter','\n','bufsize',500000); %#ok<BUFSIZE>
+  MatlabVersion = sscanf(version,'%f',1);
+  if MatlabVersion<8.6 % prior to R2015b
+    warning('off','MATLAB:textscan:BufSizeDeprecation');
+    allLines = textscan(fh,'%s','whitespace','','delimiter','\n','bufsize',500000); %#ok<BUFSIZE>
+  else
+    allLines = textscan(fh,'%s','whitespace','','delimiter','\n');
+  end
   allLines = allLines{1};
   fclose(fh);
 else
@@ -1201,8 +1206,13 @@ err = [];
 
 if exist(DSCFileName,'file')
   fh = fopen(DSCFileName);
-  warning('off','MATLAB:textscan:BufSizeDeprecation');
-  allLines = textscan(fh,'%s','whitespace','','delimiter','\n','bufsize',500000); %#ok<BUFSIZE>
+  MatlabVersion = sscanf(version,'%f',1);
+  if MatlabVersion<8.6  % prior to R2015b
+    warning('off','MATLAB:textscan:BufSizeDeprecation');
+    allLines = textscan(fh,'%s','whitespace','','delimiter','\n','bufsize',500000); %#ok<BUFSIZE>
+  else
+    allLines = textscan(fh,'%s','whitespace','','delimiter','\n');
+  end
   allLines = allLines{1};
   fclose(fh);
 else
