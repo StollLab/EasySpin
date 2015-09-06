@@ -16,14 +16,34 @@ AllFiles = what(esPath);
 
 % Get release information.
 %--------------------------------------------------------------
-esVersion = '$ReleaseID$';
-esDate = '$ReleaseDate$';
-esExpiryDate = '$ExpiryDate$';
+esVersion = '$ReleaseID$';  % is replaced with actual version by build script
+esDate = '$ReleaseDate$'; % is replaced with actual date by build script
+esExpiryDate = '$ExpiryDate$'; % is replaced with actual date by build script
 
-if esVersion(1)=='$'
-  esVersion = 'development';
-  esDate = 'current';
-  esExpiryDate = 'none';
+developmentVersion = (esVersion(1)=='$');
+
+% Check online for update
+%----------------------------------------------------------
+if ~developmentVersion
+  htmlfile = '';
+  try
+    htmlfile = urlread('http://easyspin.org/version.html');
+  catch
+    disp('Could not reach EasySpin server to check for update.');
+  end
+  if ~isempty(htmlfile)
+    latestESversion = regexp(htmlfile,'\d+\.\d+\.\d+','match','once');
+    if isempty(latestESversion)
+      disp('Could not determine current version on EasySpin server.');
+    else
+      versionid2num = @(id)sum(sscanf(id,'%d.%d.%d').*100.^[2;1;0]);
+      versionHere = versionid2num(esVersion);
+      versionOnline = versionid2num(latestESversion);
+      if (versionOnline>versionHere)
+        fprintf('\n  A new EasySpin version (%s) is available at http://easyspin.org.\n  Please update.\n\n',latestESversion);
+      end
+    end
+  end
 end
 
 % Determine operating system
@@ -67,12 +87,18 @@ clear functions
 %--------------------------------------------------------------
 if Display
   fprintf('==================================================================\n');
-  fprintf('  Release:          %s (%s)\n',esVersion,esDate);
+  if ~developmentVersion
+    fprintf('  Release:          %s (%s)\n',esVersion,esDate);
+  else
+    fprintf('  Release:          development\n');
+  end
 end
 
-Diagnostics = 1;
+Diagnostics = true;
 if Diagnostics && Display
-  fprintf('  Expiry date:      %s\n',esExpiryDate);
+  if ~developmentVersion
+    fprintf('  Expiry date:      %s\n',esExpiryDate);
+  end
   fprintf('  Folder:           %s\n',esPath);
   fprintf('  MATLAB version:   %s\n',builtin('version'));
   fprintf('  Platform:         %s\n',platform);
