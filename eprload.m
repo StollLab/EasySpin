@@ -1190,7 +1190,9 @@ for k = 1:numel(allLines)
       Value([1 end]) = [];
     end
   end
-  
+  if ~isvarname(Key)
+    Key = genvarname(Key);
+  end
   % set field in output structure
   Parameters.(Key) = Value;
   
@@ -1257,7 +1259,9 @@ for k=1:numel(allLines)
       Value([1 end]) = [];
     end
   end
-  
+  if ~isvarname(Key)
+    Key = genvarname(Key);
+  end
   % Set field in output structure.
   Parameters.(Key) = Value;
   
