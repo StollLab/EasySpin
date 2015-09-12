@@ -179,8 +179,8 @@ end
 % Assemble sparse matrix
 H2 = sparse(braH2,ketH2,elH2,nTotalBasis,nTotalBasis);
 
-% Fill in lower triangular part
-H2 = H2 + triu(H2,1).';
+% Symmetrize Liouvillian
+H2 = H2 + H2.' - diag(diag(H2));
 
 % Combine rank-0, rank-1 and rank-2 parts of Hamiltonian
 H = H0 + H1 + H2;
