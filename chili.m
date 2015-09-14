@@ -916,7 +916,8 @@ if (fwhmG>0) && ConvolutionBroadening
     fwhmG = fwhmG/1e3; % MHz -> GHz
   end
   dx = xAxis(2) - xAxis(1);
-  if (fwhmG/dx>2)
+  AlwaysConvolve = true;
+  if AlwaysConvolve%(fwhmG/dx>2)
     logmsg(1,'Convoluting with Gaussian (FWHM %g %s)...',fwhmG,unitstr);
     spec = convspec(spec,dx,fwhmG,Exp.ConvHarmonic,1);
     Exp.ConvHarmonic = 0;
