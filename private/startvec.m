@@ -7,7 +7,7 @@ function SxL = startvec(basisList,SxH)
 Lmax = max(basisList(:,1));
 SpaceSize = sum((2*(0:Lmax)+1).^2);
 
-P_Spatial = zeros(length(basisList),1);
+P_Spatial = zeros(size(basisList,1),1); % length takes longest dim!!!!
 %P_Spatial(1) = sqrt(1/(8*pi^2))
 P_Spatial(1) = 1; % assumes L=M=K=0 is the first basis function!
 

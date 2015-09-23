@@ -13,7 +13,7 @@ M   = basis(:,2);
 K   = basis(:,3);
 jK  = basis(:,4);
 nSpinBasis = length(Q0);
-nOriBasis = length(basis);
+nOriBasis = size(basis,1); % length takes longest dimension!!!!!!
 nTotalBasis = nOriBasis*nSpinBasis;
 
 %--------------------------------------------------------------------------
