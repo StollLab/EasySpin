@@ -58,6 +58,9 @@ for iBasis = 1:length(L)
 end
 
 Gamma = sparse(bra,ket,el,length(L)*nSpin,length(L)*nSpin);
+Gamma = triu(Gamma);
+
+% Fill in lower triangular part
 Gamma = Gamma + triu(Gamma,1).';
 
 return
