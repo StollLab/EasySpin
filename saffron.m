@@ -676,9 +676,11 @@ end
 
 % Pick nuclei to be included in the computation
 shfNuclei = 1:Sys.nNuclei;
-if all(idealPulse) && isfield(Exp,'ExciteWidth')
-  idxStrongNuclei = max(abs(Sys.A),[],2)>Exp.ExciteWidth;
-  shfNuclei(idxStrongNuclei) = [];
+if ~isempty(shfNuclei)
+  if all(idealPulse) && isfield(Exp,'ExciteWidth')
+    idxStrongNuclei = max(abs(Sys.A),[],2)>Exp.ExciteWidth;
+    shfNuclei(idxStrongNuclei) = [];
+  end
 end
 
 TwoElectronManifolds = (Sys.nElectrons==1) && (Sys.S==1/2) && ...
@@ -725,9 +727,11 @@ if isfield(Opt,'Nuclei')
 else
   % Pick nuclei to be included in the ESEEM/ENDOR computation
   shfNuclei = 1:Sys.nNuclei;
-  if all(idealPulse) && isfield(Exp,'ExciteWidth')
-    idxStrongNuclei = max(abs(Sys.A),[],2)>Exp.ExciteWidth;
-    shfNuclei(idxStrongNuclei) = [];
+  if ~isempty(shfNuclei)
+    if all(idealPulse) && isfield(Exp,'ExciteWidth')
+      idxStrongNuclei = max(abs(Sys.A),[],2)>Exp.ExciteWidth;
+      shfNuclei(idxStrongNuclei) = [];
+    end
   end
 end
 
@@ -816,7 +820,7 @@ end
 logmsg(1,'computing nuclear spin sub-Hamiltonians...');
 
 SeparateSpaces = Opt.ProductRule;
-if SeparateSpaces
+if SeparateSpaces && ~isempty(shfNuclei)
   logmsg(1,'  separate subspace for each nucleus');
   for iiNuc = 1:numel(shfNuclei) % only shf nuclei
     iNuc = shfNuclei(iiNuc);
@@ -999,7 +1003,11 @@ else
     end
   end
   
-  totaltd = 0;
+  if TwoDim
+    totaltd = zeros(Exp.nPoints);
+  else
+    totaltd = zeros(1,Exp.nPoints);
+  end
 
 end
 %=====================================================================
