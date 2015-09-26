@@ -818,14 +818,15 @@ logmsg(1,'computing nuclear spin sub-Hamiltonians...');
 SeparateSpaces = Opt.ProductRule;
 if SeparateSpaces
   logmsg(1,'  separate subspace for each nucleus');
-  for iNuc = shfNuclei % only those explicitly included
+  for iiNuc = 1:numel(shfNuclei) % only shf nuclei
+    iNuc = shfNuclei(iiNuc);
     [Ix,Iy,Iz] = sop(Sys.I(iNuc),'x','y','z');
     
     % Nuclear Zeeman -------------------------------------------------
-    pre = -Sys.gn(iNuc)*nmagn/1e3/planck/1e6;
-    NucSpace(iNuc).Hnzx = pre*Ix;
-    NucSpace(iNuc).Hnzy = pre*Iy;
-    NucSpace(iNuc).Hnzz = pre*Iz;
+    pre = -Sys.gn(iNuc)*nmagn/1e3/planck/1e6; % MHz/mT
+    NucSpace(iiNuc).Hnzx = pre*Ix;
+    NucSpace(iiNuc).Hnzy = pre*Iy;
+    NucSpace(iiNuc).Hnzz = pre*Iz;
     
     % Hyperfine ------------------------------------------------------
     if Sys.fullA
@@ -837,21 +838,21 @@ if SeparateSpaces
       end
       A = Ra*diag(Sys.A(iNuc,:))*Ra.';
     end
-    NucSpace(iNuc).Hhf1 = A(1,1)*Ix + A(1,2)*Iy + A(1,3)*Iz;
-    NucSpace(iNuc).Hhf2 = A(2,1)*Ix + A(2,2)*Iy + A(2,3)*Iz;
-    NucSpace(iNuc).Hhf3 = A(3,1)*Ix + A(3,2)*Iy + A(3,3)*Iz;
+    NucSpace(iiNuc).Hhf1 = A(1,1)*Ix + A(1,2)*Iy + A(1,3)*Iz;
+    NucSpace(iiNuc).Hhf2 = A(2,1)*Ix + A(2,2)*Iy + A(2,3)*Iz;
+    NucSpace(iiNuc).Hhf3 = A(3,1)*Ix + A(3,2)*Iy + A(3,3)*Iz;
     
     % Nuclear quadrupole ---------------------------------------------
     if (Sys.I(iNuc)>=1)
       Rq = erot(Sys.QFrame(iNuc,:)).'; % Q frame -> molecular frame
       Q = Rq*diag(Sys.Q(iNuc,:))*Rq.';
       Q = (Q + Q.')/2;
-      NucSpace(iNuc).Hnq = ...
+      NucSpace(iiNuc).Hnq = ...
         Ix*(Q(1,1)*Ix + Q(1,2)*Iy + Q(1,3)*Iz) + ...
         Iy*(Q(2,1)*Ix + Q(2,2)*Iy + Q(2,3)*Iz) + ...
         Iz*(Q(3,1)*Ix + Q(3,2)*Iy + Q(3,3)*Iz);
     else
-      NucSpace(iNuc).Hnq = 0;
+      NucSpace(iiNuc).Hnq = 0;
     end
   end
     
