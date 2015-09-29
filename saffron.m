@@ -499,21 +499,17 @@ end
 
 if ~PredefinedExperiment
 
-  % Validate pulse sequence
-  Valid = 1;
+  % Validate incrementation scheme: assert all delays are nonnegative
   for iInterval = 1:nIntervals
-    t_start = Exp.t(iInterval);
-    Valid = (t_start>=0);
     iDim = abs(Exp.Inc(iInterval));
-    if (iDim>0)
-      t_end = t_start + ...
-        sign(Exp.Inc(iInterval))*(Exp.nPoints(iDim)-1)*Exp.dt(iDim);
-      if (t_end<0), Valid = 0; end
+    if (iDim==0)  % delay is kept constant
+      t_range = Exp.t(iInterval)*[1 1];
+    else % delay is incremented/decremented
+      t_range = Exp.t(iInterval) + sign(Exp.Inc(iInterval))*(Exp.nPoints(iDim)-1)*Exp.dt(iDim);
     end
-    if ~Valid, break; end
-  end
-  if (~Valid)
-    error('Pulse sequence gives negative length after pulse %d.',iInterval);
+    if any(t_range<0)
+      error('Negative delay after pulse %d.',iInterval);
+    end
   end
 
   % Determine pathways contributing to the echo
