@@ -401,34 +401,24 @@ else
   
   % Incrementation scheme
   if ~isfield(Exp,'Inc')
-    error('Exp.Inc with the incrementation scheme is missing.');
+    error('The incrementation scheme (Exp.Inc) is missing.');
   end
   if numel(Exp.Inc)~=nIntervals
     error('Exp.Inc must contain the same number of elements as Exp.Flip.');
   end  
   IncScheme = Exp.Inc(Exp.Inc~=0);
-  IncSchemeID = 0;
-  switch numel(IncScheme)
-    case 1
-      if (IncScheme==1), IncSchemeID = 1; end
-    case 2
-      if all(IncScheme==[1 1]), IncSchemeID = 2;
-      elseif all(IncScheme==[1 -1]), IncSchemeID = 3;
-      elseif all(IncScheme==[1 2]), IncSchemeID = 11;
-      end
-    case 3
-      if all(IncScheme==[1 2 1]), IncSchemeID = 12;
-      elseif all(IncScheme==[1 2 2]), IncSchemeID = 13;
-      elseif all(IncScheme==[1 1 2]), IncSchemeID = 14;
-      end
-    case 4
-      if all(IncScheme==[1 2 2 1]), IncSchemeID = 15;
-      elseif all(IncScheme==[1 2 -2 1]), IncSchemeID = 16;
-      elseif all(IncScheme==[1 1 2 2]), IncSchemeID = 17;
-      end
-  end
-  if (IncSchemeID==0)
-    error('Unrecognized incrementation scheme.');
+  if isequal(IncScheme,1), IncSchemeID = 1;
+  elseif isequal(IncScheme,[1 1]), IncSchemeID = 2;
+  elseif isequal(IncScheme,[1 -1]), IncSchemeID = 3;
+  elseif isequal(IncScheme,[1 2]), IncSchemeID = 11;
+  elseif isequal(IncScheme,[1 2 1]), IncSchemeID = 12;
+  elseif isequal(IncScheme,[1 2 2]), IncSchemeID = 13;
+  elseif isequal(IncScheme,[1 1 2]), IncSchemeID = 14;
+  elseif isequal(IncScheme,[1 2 2 1]), IncSchemeID = 15;
+  elseif isequal(IncScheme,[1 2 -2 1]), IncSchemeID = 16;
+  elseif isequal(IncScheme,[1 1 2 2]), IncSchemeID = 17;
+  else
+    error('Unsupported incrementation scheme in Exp.Inc.');
   end
   nDimensions = max(abs(Exp.Inc));
   
