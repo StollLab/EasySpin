@@ -1284,11 +1284,11 @@ for iOri = 1:nOrientations
                 error('Pre-defined Mims ENDOR with real pulses not supported.');
               end
               
-              Q = exp(-2i*pi*Ea*Exp.tau)*exp(-2i*pi*Eb*Exp.tau)';
-              PG = prefactor*Q.*M;
-              PD = conj(Q).*M;
-              G1 = PG*Mt; D1 = PD*Mt;
-              G2 = Mt*PG; D2 = Mt*PD;
+              Q_ = exp(-2i*pi*Ea*Exp.tau)*exp(-2i*pi*Eb*Exp.tau)';
+              G_ = prefactor*Q_.*M;
+              D_ = conj(Q_).*M;
+              G1 = G_*Mt; D1 = D_*Mt;
+              G2 = Mt*G_; D2 = Mt*D_;
 
               if (Exp.T~=0)
                 q_ = exp(-2i*pi*Ea*Exp.T); G1 = (q_*q_').*G1;
@@ -1335,11 +1335,13 @@ for iOri = 1:nOrientations
                 error('Pre-defined HYSCORE with real pulses not supported.');
               end
               
-              Q = exp(-2i*pi*Ea*Exp.tau)*exp(-2i*pi*Eb*Exp.tau)';
-              PG = prefactor*Q.*M;
-              PD = conj(Q).*M;
-              G1 = PG*Mt; G2 = Mt*PG;
-              D1 = Mt*PD; D2 = PD*Mt;
+              Q_ = exp(-2i*pi*Ea*Exp.tau)*exp(-2i*pi*Eb*Exp.tau)';
+              G_ = prefactor*Q_.*M;
+              D_ = conj(Q_).*M;
+              G1 = G_*Mt; G2 = Mt*G_;
+              D1 = Mt*D_; D2 = D_*Mt;
+              Tl1 = Mt; Tr1 = M;
+              Tl2 = M; Tr2 = Mt;
               
               if (Exp.t1~=0)
                 q_ = exp(-2i*pi*Exp.t1*Ea); G1 = (q_*q_').*G1;
@@ -1352,19 +1354,19 @@ for iOri = 1:nOrientations
 
               if Opt.TimeDomain
                 if Opt.ProductRule
-                  pathwaytd{1,iSpace} = sf_evolve(IncSchemeID,Exp.nPoints,Exp.dt,[1 2],[1 2],Ea,Eb,G1,D1,Mt,M);
-                  pathwaytd{2,iSpace} = sf_evolve(IncSchemeID,Exp.nPoints,Exp.dt,[2 1],[2 1],Ea,Eb,G2,D2,M,Mt);
+                  pathwaytd{1,iSpace} = sf_evolve(IncSchemeID,Exp.nPoints,Exp.dt,[1 2],[1 2],Ea,Eb,G1,D1,Tl1,Tr1);
+                  pathwaytd{2,iSpace} = sf_evolve(IncSchemeID,Exp.nPoints,Exp.dt,[2 1],[2 1],Ea,Eb,G2,D2,Tl2,Tr2);
                 else
-                  totaltd = totaltd + sf_evolve(IncSchemeID,Exp.nPoints,Exp.dt,[1 2],[1 2],Ea,Eb,G1,D1,Mt,M);
-                  totaltd = totaltd + sf_evolve(IncSchemeID,Exp.nPoints,Exp.dt,[2 1],[2 1],Ea,Eb,G2,D2,M,Mt);
+                  totaltd = totaltd + sf_evolve(IncSchemeID,Exp.nPoints,Exp.dt,[1 2],[1 2],Ea,Eb,G1,D1,Tl1,Tr1);
+                  totaltd = totaltd + sf_evolve(IncSchemeID,Exp.nPoints,Exp.dt,[2 1],[2 1],Ea,Eb,G2,D2,Tl2,Tr2);
                 end
               else
                 if Opt.ProductRule
-                  sf_peaks(IncSchemeID,pathwaybuff{1,iSpace},Exp.dt,[1 2],[1 2],Ea,Eb,G1,D1,Mt,M);
-                  sf_peaks(IncSchemeID,pathwaybuff{2,iSpace},Exp.dt,[2 1],[2 1],Ea,Eb,G2,D2,M,Mt);
+                  sf_peaks(IncSchemeID,pathwaybuff{1,iSpace},Exp.dt,[1 2],[1 2],Ea,Eb,G1,D1,Tl1,Tr1);
+                  sf_peaks(IncSchemeID,pathwaybuff{2,iSpace},Exp.dt,[2 1],[2 1],Ea,Eb,G2,D2,Tl2,Tr2);
                 else
-                  sf_peaks(IncSchemeID,buff,Exp.dt,[1 2],[1 2],Ea,Eb,G1,D1,Mt,M);
-                  sf_peaks(IncSchemeID,buff,Exp.dt,[2 1],[2 1],Ea,Eb,G2,D2,M,Mt);
+                  sf_peaks(IncSchemeID,buff,Exp.dt,[1 2],[1 2],Ea,Eb,G1,D1,Tl1,Tr1);
+                  sf_peaks(IncSchemeID,buff,Exp.dt,[2 1],[2 1],Ea,Eb,G2,D2,Tl2,Tr2);
                 end
               end
 
@@ -1377,34 +1379,36 @@ for iOri = 1:nOrientations
                 error('Pre-defined 4p-ESEEM with real pulses not supported.');
               end
               
-              Q = exp(-2i*pi*Ea*Exp.tau)*exp(-2i*pi*Eb*Exp.tau)';
-              PG = prefactor*Q.*M;
-              PD = conj(Q).*M;
-              G1 = PG*Mt; D1 = Mt*PD; 
-              G2 = Mt*PG; D2 = PD*Mt;
+              Q_ = exp(-2i*pi*Ea*Exp.tau)*exp(-2i*pi*Eb*Exp.tau)';
+              G_ = prefactor*Q_.*M;
+              D_ = conj(Q_).*M;
+              G1 = G_*Mt; D1 = Mt*D_; 
+              G2 = Mt*G_; D2 = D_*Mt;
+              Tl1 = Mt; Tr1 = M;
+              Tl2 = M; Tr2 = Mt;
               
               if (Exp.T~=0)
-                q = exp(-2i*pi*Exp.T*Ea); G1 = (q*q').*G1;
-                q = exp(-2i*pi*Exp.T*Eb); G2 = (q*q').*G2;
-                q = exp(+2i*pi*Exp.T*Eb); D1 = (q*q').*D1;
-                q = exp(+2i*pi*Exp.T*Ea); D2 = (q*q').*D2;
+                q_ = exp(-2i*pi*Exp.T*Ea); G1 = (q_*q_').*G1;
+                q_ = exp(-2i*pi*Exp.T*Eb); G2 = (q_*q_').*G2;
+                q_ = exp(+2i*pi*Exp.T*Eb); D1 = (q_*q_').*D1;
+                q_ = exp(+2i*pi*Exp.T*Ea); D2 = (q_*q_').*D2;
               end
 
               if Opt.TimeDomain
                 if Opt.ProductRule
-                  pathwaytd{1,iSpace} = sf_evolve(IncSchemeID,Exp.nPoints,Exp.dt,[1 2],[1 2],Ea,Eb,G1,D1,Mt,M);
-                  pathwaytd{2,iSpace} = sf_evolve(IncSchemeID,Exp.nPoints,Exp.dt,[2 1],[2 1],Ea,Eb,G2,D2,Mt,M);
+                  pathwaytd{1,iSpace} = sf_evolve(IncSchemeID,Exp.nPoints,Exp.dt,[1 2],[1 2],Ea,Eb,G1,D1,Tl1,Tr1);
+                  pathwaytd{2,iSpace} = sf_evolve(IncSchemeID,Exp.nPoints,Exp.dt,[2 1],[2 1],Ea,Eb,G2,D2,Tl2,Tr2);
                 else
-                  totaltd = totaltd + sf_evolve(IncSchemeID,Exp.nPoints,Exp.dt,[1 2],[1 2],Ea,Eb,G1,D1,Mt,M);
-                  totaltd = totaltd + sf_evolve(IncSchemeID,Exp.nPoints,Exp.dt,[2 1],[2 1],Ea,Eb,G2,D2,Mt,M);
+                  totaltd = totaltd + sf_evolve(IncSchemeID,Exp.nPoints,Exp.dt,[1 2],[1 2],Ea,Eb,G1,D1,Tl1,Tr1);
+                  totaltd = totaltd + sf_evolve(IncSchemeID,Exp.nPoints,Exp.dt,[2 1],[2 1],Ea,Eb,G2,D2,Tl2,Tr2);
                 end
               else
                 if Opt.ProductRule
-                  sf_peaks(IncSchemeID,pathwaybuff{1,iSpace},Exp.dt,[1 2],[1 2],Ea,Eb,G1,D1,Mt,M);
-                  sf_peaks(IncSchemeID,pathwaybuff{2,iSpace},Exp.dt,[2 1],[2 1],Ea,Eb,G2,D2,M,Mt);
+                  sf_peaks(IncSchemeID,pathwaybuff{1,iSpace},Exp.dt,[1 2],[1 2],Ea,Eb,G1,D1,Tl1,Tr1);
+                  sf_peaks(IncSchemeID,pathwaybuff{2,iSpace},Exp.dt,[2 1],[2 1],Ea,Eb,G2,D2,Tl2,Tr2);
                 else
-                  sf_peaks(IncSchemeID,buff,Exp.dt,[1 2],[1 2],Ea,Eb,G1,D1,Mt,M);
-                  sf_peaks(IncSchemeID,buff,Exp.dt,[2 1],[2 1],Ea,Eb,G2,D2,M,Mt);
+                  sf_peaks(IncSchemeID,buff,Exp.dt,[1 2],[1 2],Ea,Eb,G1,D1,Tl1,Tr1);
+                  sf_peaks(IncSchemeID,buff,Exp.dt,[2 1],[2 1],Ea,Eb,G2,D2,Tl2,Tr2);
                 end
               end
 
@@ -1417,11 +1421,11 @@ for iOri = 1:nOrientations
                 error('Pre-defined 3pESEEM not supported for real pulses.');
               end
               
-              Q = exp(-2i*pi*Ea*Exp.tau)*exp(-2i*pi*Eb*Exp.tau)';
-              PG = prefactor*Q.*M;
-              PD = conj(Q).*M;
-              G1 = PG*Mt; D1 = PD*Mt;
-              G2 = Mt*PG; D2 = Mt*PD;
+              Q_ = exp(-2i*pi*Ea*Exp.tau)*exp(-2i*pi*Eb*Exp.tau)';
+              G_ = prefactor*Q_.*M;
+              D_ = conj(Q_).*M;
+              G1 = G_*Mt; D1 = D_*Mt;
+              G2 = Mt*G_; D2 = Mt*D_;
               
               if (Exp.T~=0)
                 q_ = exp(-2i*pi*Exp.T*Ea); G1 = (q_*q_').*G1;
@@ -1458,9 +1462,9 @@ for iOri = 1:nOrientations
               T1left = Mt;
               T1right = Mt;
               if (Exp.tau>0)
-                Qab = exp(-2i*pi*Exp.tau*Ea)*exp(-2i*pi*Exp.tau*Eb)';
-                G = Qab.*G;
-                D = conj(Qab).*D;
+                Q_ = exp(-2i*pi*Exp.tau*Ea)*exp(-2i*pi*Exp.tau*Eb)';
+                G = Q_.*G;
+                D = conj(Q_).*D;
               end
               
               if Opt.TimeDomain
