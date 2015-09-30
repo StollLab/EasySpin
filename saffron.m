@@ -1353,10 +1353,10 @@ for iOri = 1:nOrientations
               if Opt.TimeDomain
                 if Opt.ProductRule
                   pathwaytd{1,iSpace} = sf_evolve(IncSchemeID,Exp.nPoints,Exp.dt,[1 2],[1 2],Ea,Eb,G1,D1,Mt,M);
-                  pathwaytd{2,iSpace} = sf_evolve(IncSchemeID,Exp.nPoints,Exp.dt,[2 1],[2 1],Ea,Eb,G2,D2,Mt,M);
+                  pathwaytd{2,iSpace} = sf_evolve(IncSchemeID,Exp.nPoints,Exp.dt,[2 1],[2 1],Ea,Eb,G2,D2,M,Mt);
                 else
                   totaltd = totaltd + sf_evolve(IncSchemeID,Exp.nPoints,Exp.dt,[1 2],[1 2],Ea,Eb,G1,D1,Mt,M);
-                  totaltd = totaltd + sf_evolve(IncSchemeID,Exp.nPoints,Exp.dt,[2 1],[2 1],Ea,Eb,G2,D2,Mt,M);
+                  totaltd = totaltd + sf_evolve(IncSchemeID,Exp.nPoints,Exp.dt,[2 1],[2 1],Ea,Eb,G2,D2,M,Mt);
                 end
               else
                 if Opt.ProductRule
