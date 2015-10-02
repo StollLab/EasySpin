@@ -33,9 +33,9 @@ function varargout = sop(SpinSystem,varargin)
 %  OLD: sop([1/2 1],2,1) equivalent to
 %  NEW: sop([1/2 1],'xe')
 %
-%   OLD SYNTAX  sop(sys,spins,coords)
+%   OLD SYNTAX  sop(sys,spins,comps)
 %     spins: list of indices into sys
-%     coords: 1=x, 2=y, 3=z, 4=+, 5=-, all others=e
+%     comps: 1=x, 2=y, 3=z, 4=+, 5=-, all others=e
 %
 %   DO NOT REMOVE THE HANDLING OF THE OLD SYNTAX!!!!
 %   MANY FUNCTIONS RELY ON IT, e.g. zeeman, internal, stev, hfine, resfields
@@ -63,32 +63,35 @@ if isstruct(SpinSystem)
 else
   SpinVec = SpinSystem;
 end
+nSpins = numel(SpinVec);
 
-SparseOut = strcmpi(varargin{end},'sparse');
+SparseOutput = strcmpi(varargin{end},'sparse');
 
-if SparseOut
+if SparseOutput
   Coords = varargin(1:end-1);
 else
   Coords = varargin(1:end);
 end
 
-if numel(Coords)==0, error('Not enough input arguments!'); end
+if numel(Coords)==0
+  error('Not enough input arguments!');
+end
 
 OldSyntax = ~ischar(varargin{1});
 
 if OldSyntax,
-  %warning(sprintf(['You are using the old syntax of sop (version 1.1 and earlier)!\n'...
-  %'It is not guaranteed to work any more! Change to the new syntax!!']));
   
   Spins = varargin{1};
   Coords = varargin{2};
+
 else
+  
   if numel(Coords)>1
     if nargout~=numel(Coords)
       error('Number of input arguments after the first and total number of output arguments do not match.');
     end
     for k=1:numel(Coords)
-      if SparseOut
+      if SparseOutput
         varargout{k} = sop(SpinVec,Coords{k},'sparse');
       else
         varargout{k} = sop(SpinVec,Coords{k});
@@ -96,33 +99,48 @@ else
     end
     return
   else
-    Coords = double(lower(varargin{1}));
-    Coords(Coords=='e')=0;
-    Coords(Coords=='x')=1;
-    Coords(Coords=='y')=2;
-    Coords(Coords=='z')=3;
-    Coords(Coords=='+')=4;
-    Coords(Coords=='-')=5;
-    Coords(Coords=='p')=4;
-    Coords(Coords=='m')=5;
-    Coords(Coords=='a')=6;
-    Coords(Coords=='b')=7;
-    if any(Coords>7)
-      error('Unrecognized component specification! Must be e, x, y, z, +, or -.');
+    Coords = lower(varargin{1});
+    
+    % Check syntax of component string
+    syntax1 = sprintf('^[exyz+\\-pmab]{%d}$',nSpins);
+    isSyntax1 = ~isempty(regexp(Coords,syntax1,'match'));
+    if ~isSyntax1
+      syntax2 = sprintf('^([exyz+\\-pmab]\\d+){1,%d}$',nSpins);
+      isSyntax2 = ~isempty(regexp(Coords,syntax2,'match'));
+      if ~isSyntax2
+        error('Could not determine what ''%s'' is for the given spin system.',Coords);
+      end
     end
-    if length(Coords)~=length(SpinVec),
-      error('Number of spins and number of components do not match!');
+   
+    if isSyntax1
+      Coords = double(Coords);
+      Spins = 1:nSpins;
+    elseif isSyntax2
+      % Get tokens from pattern
+      pattern = '([exyz+\-pmab]\d+)+?';
+      tokens = char(regexp(Coords,pattern,'match'));
+      % Get list of spin indices
+      Spins = str2num(tokens(:,2:end)).'; %#ok<ST2NM>
+      if any(Spins>nSpins)
+        error('sop: The spin system only contains %d spins, but you requested ''%s''.',nSpins,Coords);
+      end
+      if numel(unique(Spins))<numel(Spins)
+        error('sop: Repeated spin in %s',Coords');
+      end
+      % Get list of requested components
+      Coords = double(tokens(:,1).');
     end
-    if (any(SpinVec(Coords==6)~=1/2)) || ...
-       (any(SpinVec(Coords==7)~=1/2))
+
+    if (any(SpinVec(Coords=='a')~=1/2)) || ...
+       (any(SpinVec(Coords=='b')~=1/2))
       error('''a'' and ''b'' work only for spin-1/2.');
     end
-    Spins = 1:length(Coords);
+        
   end
 end
 
 % identity operator for each spin
-Comps = zeros(size(SpinVec));
+Comps = repmat('e',1,nSpins);
 % and specified components for specified spins
 Comps(Spins) = Coords;
 
@@ -133,7 +151,7 @@ sa = 1; % value
 na = 1; % dimension
 
 % Run over all spins
-for iSpin = 1:length(SpinVec)
+for iSpin = 1:nSpins
   I = SpinVec(iSpin);
   if (I<=0), continue; end
 
@@ -142,46 +160,48 @@ for iSpin = 1:length(SpinVec)
   % Component switchyard
   %----------------------------------------
   switch Comps(iSpin)
-   case 1 % x component
-    m = (1:n-1).';
-    Dia = 1/2*sqrt(m.*m(end:-1:1));
-    ib = [m; m+1];
-    jb = [m+1; m];
-    sb = [Dia; Dia];
-   case 2 % y component
-    m = (1:n-1).';
-    Dia = -0.5i*sqrt(m.*m(end:-1:1));
-    ib = [m; m+1];
-    jb = [m+1; m];
-    sb = [Dia; -Dia];
-   case 3 % z component
-    m = (1:n).';
-    ib = m;
-    jb = m;
-    sb = I+1-m;
-   case 4 % up shift
-    m = (1:n-1).';
-    ib = m;
-    jb = m+1;
-    sb = sqrt(m.*m(end:-1:1));
-   case 5 % down shift
-    m = (1:n-1).';
-    ib = m+1;
-    jb = m;
-    sb = sqrt(m.*m(end:-1:1));
-   case 6 % alpha, for spin-1/2 only
-    ib = 1;
-    jb = 1;
-    sb = 1;
-   case 7 % beta, for spin-1/2 only
-    ib = 2;
-    jb = 2;
-    sb = 1;
-   otherwise % officially 0, identity
-    m = (1:n).';
-    ib = m;
-    jb = m;
-    sb = ones(n,1);
+    case {'x',1} % x component
+      m = (1:n-1).';
+      Dia = 1/2*sqrt(m.*m(end:-1:1));
+      ib = [m; m+1];
+      jb = [m+1; m];
+      sb = [Dia; Dia];
+    case {'y',2} % y component
+      m = (1:n-1).';
+      Dia = -0.5i*sqrt(m.*m(end:-1:1));
+      ib = [m; m+1];
+      jb = [m+1; m];
+      sb = [Dia; -Dia];
+    case {'z',3} % z component
+      m = (1:n).';
+      ib = m;
+      jb = m;
+      sb = I+1-m;
+    case {'+','p',4} % up shift
+      m = (1:n-1).';
+      ib = m;
+      jb = m+1;
+      sb = sqrt(m.*m(end:-1:1));
+    case {'-','m',5} % down shift
+      m = (1:n-1).';
+      ib = m+1;
+      jb = m;
+      sb = sqrt(m.*m(end:-1:1));
+    case 'a' % alpha, for spin-1/2 only
+      ib = 1;
+      jb = 1;
+      sb = 1;
+    case 'b' % beta, for spin-1/2 only
+      ib = 2;
+      jb = 2;
+      sb = 1;
+    case {'e',0} % identity
+      m = (1:n).';
+      ib = m;
+      jb = m;
+      sb = ones(n,1);
+    otherwise
+      error('Unknown operator specification.');
   end
   
   % Kronecker product in sparse form
@@ -210,11 +230,13 @@ for iSpin = 1:length(SpinVec)
 end
 
 % construct sparse matrix
-SpinOp = sparse(ia,ja,sa,na,na);
+SpinOpertors = sparse(ia,ja,sa,na,na);
 
 % possibly convert sparse to full matrix, output
-if ~SparseOut, SpinOp = full(SpinOp); end
+if ~SparseOutput
+  SpinOpertors = full(SpinOpertors);
+end
 
-varargout = {SpinOp};
+varargout = {SpinOpertors};
 
 return
