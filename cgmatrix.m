@@ -35,7 +35,8 @@ function U2C = cgmatrix(S1,S2)
 
 switch nargin
   case 0,
-    help(mfilename); return;
+    help(mfilename);
+    return;
   case 2,
   otherwise
     error('Wrong number of input parameters. cgmatrix needs two inputs: S1 and S2.');
@@ -49,6 +50,11 @@ if mod(S1*2,1) || mod(S2*2,1) || (S1<0.5) || (S2<0.5)
   error('S1 and S2 must be spin quantum numbers 1/2, 1, 3/2, etc.')
 end
 
+% preallocate transformation matrix
+nStates = (2*S1+1)*(2*S2+1);
+U2C = zeros(nStates);
+
+% populate transformation matrix with Clebsch-Gordan coefficients
 iu = 1; % index of uncoupled basis function
 for mS1 = S1:-1:-S1
   for mS2 = S2:-1:-S2
@@ -64,4 +70,3 @@ for mS1 = S1:-1:-S1
 end
 
 return
-
