@@ -133,9 +133,9 @@ if ~isfield(Sys,'singleiso') || (Sys.singleiso==0)
         % Time domain
         subplot(2,1,1);
         PredefinedExperiment = isfield(Exp,'Sequence') && ~isempty(Exp.Sequence);
-        ExpNames = {'2pESEEM','3pESEEM','4pESEEM','HYSCORE','MimsENDOR'};
-        QuadratureSignal = ~PredefinedExperiment;
-        if QuadratureSignal
+        ExperimentNames = {'2pESEEM','3pESEEM','4pESEEM','HYSCORE','MimsENDOR'};
+        plotQuadratureSignal = ~PredefinedExperiment && iscomplex(out.td);
+        if plotQuadratureSignal
           h = plot(x1,real(out.td),'b',x1,imag(out.td),'r');
           set(h(1),'Color',[0 0 1]);
           set(h(2),'Color',[0.8 0.6 1]);
@@ -151,11 +151,11 @@ if ~isfield(Sys,'singleiso') || (Sys.singleiso==0)
         ylim(yl+[-1 1]*diff(yl)*0.1);
         
         if PredefinedExperiment
-          ExperimentID = strmatch(Exp.Sequence,ExpNames);
+          ExperimentID = strmatch(Exp.Sequence,ExperimentNames);
           xlb = {'\tau (\mus)','\tau+T (\mus)','T (\mus)','...','frequency (MHz)'};
           xlabel(xlb{ExperimentID});
           ylabel('echo amplitude');
-          title([ExpNames{ExperimentID},', TD signal']);
+          title([ExperimentNames{ExperimentID},', TD signal']);
         else
           xlabel('t (\mus)');
           ylabel('echo amplitude (arb.u.)');
@@ -167,7 +167,7 @@ if ~isfield(Sys,'singleiso') || (Sys.singleiso==0)
         subplot(2,1,2);
         idx = find(out.f==0):length(out.f);
         xf = out.f(idx);
-        if QuadratureSignal
+        if plotQuadratureSignal
           h = plot(xf,abs(out.fd(idx)),'g',xf,real(out.fd(idx)),'b',xf,imag(out.fd(idx)),'r');
           legend('abs','Re','Im');
           legend boxoff
@@ -331,19 +331,17 @@ end
 PredefinedExperiment = isfield(Exp,'Sequence') && ~isempty(Exp.Sequence);
 if PredefinedExperiment
   
-  QuadratureSignal = false;
-  
   if isfield(Exp,'Filter')
     error('Exp.Filter can only be used with custom sequences.');
   end
 
-  ExpNames = {'2pESEEM','3pESEEM','4pESEEM','HYSCORE','MimsENDOR'};
-  ExperimentID = strmatch(Exp.Sequence,ExpNames);
+  ExperimentNames = {'2pESEEM','3pESEEM','4pESEEM','HYSCORE','MimsENDOR'};
+  ExperimentID = strmatch(Exp.Sequence,ExperimentNames);
   if isempty(ExperimentID)
     error('Exp.Sequence ''%s'' not recognized.',Exp.Sequence);
   end
   if numel(ExperimentID)>1, error('Ambiguous sequence name.'); end
-  logmsg(1,'Sequence: %s',ExpNames{ExperimentID});
+  logmsg(1,'Sequence: %s',ExperimentNames{ExperimentID});
   
   if isfield(Exp,'tp')
     if any(Exp.tp~=0)
@@ -354,16 +352,16 @@ if PredefinedExperiment
   isENDOR = false;
   switch ExperimentID
     case 1 % 2pESEEM
-      nIntervals = 2; nDimensions = 1; IncSchemeID = 2; nPathways = 1; pulseprefactor = +1/2;
+      nIntervals = 2; nDimensions = 1; IncSchemeID = 2; nPathways = 1; pathwayprefactor = +1/2;
     case 2 % 3pESEEM
-      nIntervals = 3; nDimensions = 1; IncSchemeID = 1; nPathways = 2; pulseprefactor = +1/8;
+      nIntervals = 3; nDimensions = 1; IncSchemeID = 1; nPathways = 2; pathwayprefactor = +1/8*[1 1];
     case 3 % 4pESEEM
-      nIntervals = 4; nDimensions = 1; IncSchemeID = 2; nPathways = 2; pulseprefactor = -1/8;
+      nIntervals = 4; nDimensions = 1; IncSchemeID = 2; nPathways = 2; pathwayprefactor = -1/8*[1 1];
     case 4 % HYSCORE
-      nIntervals = 4; nDimensions = 2; IncSchemeID = 11; nPathways = 2; pulseprefactor = -1/8;
+      nIntervals = 4; nDimensions = 2; IncSchemeID = 11; nPathways = 2; pathwayprefactor = -1/8*[1 1];
     case 5 % Mims ENDOR
       isENDOR = true;
-      nIntervals = 3; nDimensions = 1; IncSchemeID = 0; nPathways = 2; pulseprefactor = +1/8;
+      nIntervals = 3; nDimensions = 1; IncSchemeID = 0; nPathways = 2; pathwayprefactor = +1/8*[1 1];
   end
   
   if ~isfield(Exp,'tau')
@@ -386,12 +384,6 @@ else
   
   if any(~isinf(Sys.T1T2))
     error('Relaxation times T1 and T2 for custom sequences not supported.');
-  end
-  
-  if isfield(Exp,'Phase')
-    QuadratureSignal = true;
-  else
-    QuadratureSignal = false;
   end
   
   if ~isfield(Exp,'Flip')
@@ -512,8 +504,7 @@ if ~PredefinedExperiment
     end
   else
     pathwayList = sf_pathways(Exp);
-  end
-  
+  end  
   nPathways = size(pathwayList,1);
   if (nPathways==0)
     error('Sorry, no focused echo with this sequence and timings.');
@@ -555,14 +546,14 @@ if ~PredefinedExperiment
   end
 
   [idxFreeL,idxFreeR,idxPulseL,idxPulseR] = pathwayparser(pathwayList);
-
-  % Phase is in multiples of pi/2
+  
+  % Exp.Phase contains the pulse phases in multiples of pi/2
   if ~isfield(Exp,'Phase')
-    Exp.Phase = ones(1,nIntervals);
+    Exp.Phase = ones(1,nIntervals);  % y phase by default
   end
-
-  % compute all ideal pulse transfer factors
-  pulseprefactor = ones(1,nPathways);
+  
+  % Compute all ideal pulse transfer prefactors
+  pathwayprefactor = ones(1,nPathways);
   for iPulse = 1:numel(Exp.t)
     if idealPulse(iPulse)
       theta = Exp.Flip(iPulse)*pi/2;
@@ -572,32 +563,28 @@ if ~PredefinedExperiment
         switch idxPulseL(iPathway,iPulse)
           case 1, pL = c;
           case 2, pL = c;
-          %case 3, pL = -1i*s*exp(-1i*Exp.Phase(iPulse));
-          %case 4, pL = -1i*s*exp(+1i*Exp.Phase(iPulse));
           case 3, pL = -1i*s*(-1i)^Exp.Phase(iPulse);
           case 4, pL = -1i*s*(+1i)^Exp.Phase(iPulse);
         end
         switch idxPulseR(iPathway,iPulse)
           case 1, pR = c;
           case 2, pR = c;
-          %case 3, pR = +1i*s*exp(+1i*Exp.Phase(iPulse));
-          %case 4, pR = +1i*s*exp(-1i*Exp.Phase(iPulse));
           case 3, pR = +1i*s*(+1i)^Exp.Phase(iPulse);
           case 4, pR = +1i*s*(-1i)^Exp.Phase(iPulse);
         end
-        pulseprefactor(iPathway) = pL*pulseprefactor(iPathway)*pR;
+        pathwayprefactor(iPathway) = pL*pathwayprefactor(iPathway)*pR;
       end
     end
   end
-     
-  % Remove pathways with pulseprefactor zero
-  rmv = abs(pulseprefactor)<1e-6;
+  
+  % Remove pathways with zero amplitude
+  rmv = abs(pathwayprefactor)<1e-6;
   pathwayList(rmv,:) = [];
   idxFreeL(rmv,:) = [];
   idxFreeR(rmv,:) = [];
   idxPulseL(rmv,:) = [];
   idxPulseR(rmv,:) = [];
-  pulseprefactor(rmv) = [];
+  pathwayprefactor(rmv) = [];
 
   nPathways = size(pathwayList,1);
 
@@ -605,10 +592,11 @@ if ~PredefinedExperiment
   idxIncR = idxFreeR(:,Exp.Inc~=0);
 
   if (EasySpinLogLevel>0)
-    logmsg(1,'  Pathways and prefactors');
+    logmsg(1,'  Pathways and prefactors:');
     Str = 'ab+-';
     for iPathway = 1:nPathways
-      logmsg(1,'  %s  (%+4.3f, %+4.3f)',Str(pathwayList(iPathway,:)),real(pulseprefactor(iPathway)),imag(pulseprefactor(iPathway)));
+      logmsg(1,'    %d. (%s)   %+4.3f%+4.3fi',iPathway,...
+        Str(pathwayList(iPathway,:)),real(pathwayprefactor(iPathway)),imag(pathwayprefactor(iPathway)));
     end
   end
 
@@ -1195,7 +1183,7 @@ for iOri = 1:nOrientations
           BlockR = cell(0);
           for iPathway = 1:nPathways
             iBlock = 0;
-            Left = prefactor*pulseprefactor(iPathway);
+            Left = prefactor*pathwayprefactor(iPathway);
             Right = 1;
             for iInt = 1:nIntervals
               % Pulse propagator
@@ -1393,7 +1381,7 @@ for iOri = 1:nOrientations
                 q_ = exp(+2i*pi*Exp.T*Eb); D1 = (q_*q_').*D1;
                 q_ = exp(+2i*pi*Exp.T*Ea); D2 = (q_*q_').*D2;
               end
-
+              
               if Opt.TimeDomain
                 if Opt.ProductRule
                   pathwaytd{1,iSpace} = sf_evolve(IncSchemeID,Exp.nPoints,Exp.dt,[1 2],[1 2],Ea,Eb,G1,D1,Tl1,Tr1);
@@ -1411,7 +1399,7 @@ for iOri = 1:nOrientations
                   sf_peaks(IncSchemeID,buff,Exp.dt,[2 1],[2 1],Ea,Eb,G2,D2,Tl2,Tr2);
                 end
               end
-
+              
             % 3pESEEM ------------------------------------------------------------
             case 2
               % coherence transfer pathway 1: +,alpha,- 
@@ -1544,7 +1532,8 @@ if isENDOR
   % No need to normalize out the experiment prefactors (due to
   % pulse transfer amplitudes), since they were not included above.
   EqDensityTrace = prod(2*Sys.I+1);
-  endorspc = endorspc/(nPathways*EqDensityTrace);
+  endorspc = endorspc/EqDensityTrace;
+  endorspc = endorspc/nPathways;
   
   %endorspc = convspec(endorspc,rf(2)-rf(1),Sys.lwEndor);
 
@@ -1570,12 +1559,11 @@ else
   % No need to normalize out the experiment prefactors (due to
   % pulse transfer amplitudes), since they were not included above.
   EqDensityTrace = prod(2*Sys.I+1);
-  td = td/(nPathways*EqDensityTrace);
+  td = td/EqDensityTrace;
+  td = td/nPathways;
   
   if ~PredefinedExperiment
-    if nPathways>0
-      td = td/max(abs(pulseprefactor));
-    end
+    td = td/max(abs(pathwayprefactor));
   end
 
 end

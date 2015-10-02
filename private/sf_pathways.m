@@ -1,4 +1,4 @@
-function SelectedCTP = sf_pathways(Exp)
+function SelectedPathways = sf_pathways(Exp)
 
 Display = 0;
 
@@ -22,68 +22,71 @@ if (nargin==0)
     Exp.tp =  [16 16 16 16]*1e-3;
   case 3
     tau1 = 30; tau2 = 100; T0 = 20;
-    Exp.Channels = [ 1 0 1 0 1  0 1 0 1 0];
     Exp.Inc =  [ 0 0 +1 0 0];
     Exp.t =  [tau1 tau1 T0 tau2 tau2]*1e-3;
     Exp.tp = [16 32 16 16 32]*1e-3;
   end
 end
 
-nPoints = 256; dt = 0.08;
+nPoints = 256;
+dt = 0.08;
 
 nIntervals = numel(Exp.t);
 
-% Compute all CTPs which are detectable
+% Generate list of all coherence transfer pathways that are detectable
+% (i.e. end in electron coherence order -1).
 N = nIntervals-1;
 [idx{1:N}] = ndgrid(1:4);
-CTP = fliplr(reshape(cat(ndims(idx{1}),idx{:}),[],N)) ;
-CTP(:,nIntervals) = 4;
-nCTP = 4^N;
-neCTP = 4^N - 3^N;
+Pathways = fliplr(reshape(cat(ndims(idx{1}),idx{:}),[],N)) ;
+Pathways(:,nIntervals) = 4;
+nPathways = 4^N;
+nEchoPathways = 4^N - 3^N;
 
-co = [0 0 +1 -1];
+CoherenceOrder = [0 0 +1 -1];
+ElectronCoherenceOrder = CoherenceOrder(Pathways);
+
 IncDims = Exp.Inc;
 IntervalTimes = Exp.t;
-ElCoh = co(CTP);
 
-% Identify all terms that never refocus
-% -> echo if total time in - equals total time in +
-for c = 1:nCTP
+% Identify all pathways that lead to echoes that either are at the
+% detection point in time or cross it.
+% (Echo is refocused if total time in -1 equals total time in +1)
+for p = 1:nPathways
 
   % Determine number of order changes |delta p|=2
-  cc = ElCoh(c,:);
-  cc(cc==0) = [];
-  Echoes(c) = sum(abs(diff(cc))==2);
+  co = ElectronCoherenceOrder(p,:);
+  co(co==0) = [];
+  Flips(p) = sum(abs(diff(co))==2);
 
   % Determine echo phase contribution for constant intervals
-  t0(c) = ElCoh(c,:)*IntervalTimes.';
+  t0(p) = ElectronCoherenceOrder(p,:)*IntervalTimes.';
 
   % Determine echo phase contribution for sweep intervals
   for d = 1:max(abs(IncDims))
-    incdec(c,d) = sum(ElCoh(c,abs(IncDims)==d));
+    incdec(p,d) = sum(ElectronCoherenceOrder(p,abs(IncDims)==d));
   end
 
-  Refocus(c) = (Echoes(c)>0) && (t0(c)==0) && all(incdec(c,:)==0);
+  Refocus(p) = (Flips(p)>0) && (t0(p)==0) && all(incdec(p,:)==0);
 
-  Crosses(c) = (Echoes(c)>0) && any((t0(c)+nPoints*dt*incdec(c,:))*t0(c)<=0);
+  Crosses(p) = (Flips(p)>0) && any((t0(p)+nPoints*dt*incdec(p,:))*t0(p)<=0);
 
 end
 
-SelectedCTP = CTP(Refocus,:);
+SelectedPathways = Pathways(Refocus,:);
 
 
 if (Display)
   % Summary
   fprintf('%d pulses\n%d eCTPs\n%d eCTPs give at least one echo\n',...
-    nIntervals,nCTP,neCTP);
+    nIntervals,nPathways,nEchoPathways);
   fprintf('%d eCTPs lead to an echo always in the detection window\n',sum(Refocus));
   fprintf('%d crossing echoes\n',sum(Crosses)-sum(Refocus));
   % Symbolic representation of CTPs with +, -, a and b
   Str = 'ab+-';
   fprintf('CTP   #echos  time    walk dirs\n');
-  for iCTP = 1:nCTP
-    if Echoes(iCTP)>0 && Crosses(iCTP)
-      fprintf('%s    %d    %+5.5g     ',Str(CTP(iCTP,:)),Echoes(iCTP),t0(iCTP));
+  for iCTP = 1:nPathways
+    if Flips(iCTP)>0 && Crosses(iCTP)
+      fprintf('%s    %d    %+5.5g     ',Str(Pathways(iCTP,:)),Flips(iCTP),t0(iCTP));
       for iDim=1:max(abs(Exp.Inc))
         fprintf('   %+g',incdec(iCTP,iDim));
       end
@@ -96,8 +99,3 @@ if (Display)
     end
   end
 end
-
-% Some phase cyclig stuff
-
-%ElCoh = co(CTP);
-%deltap = diff(ElCoh,2);
