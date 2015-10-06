@@ -49,6 +49,7 @@ end
 Value = zeros(maxVals,1);
 Trans = zeros(maxVals,nNuclei);
 Row   = zeros(maxVals,1);
+Col   = zeros(maxVals,1);
 
 nRows = 0; % number of rows of the column vector v
 nCols = prod(2*I+1);
@@ -116,7 +117,7 @@ for L = 0:evenLmax
                         mI = [qI1 qI2]/2; % gives [mI1 mI2] of transition
                         idx = idx + 1;
                         Value(idx) = thisValue;
-                        Col(idx,:) = sum(mI+I+1);
+                        Col(idx) = sum(mI+I+1);
                         Row(idx) = nRows;
                       end
                     end
@@ -135,7 +136,7 @@ for L = 0:evenLmax
 end
 
 Value = Value(1:idx);
-Col = Col(1:idx,:);
+Col = Col(1:idx);
 Row = Row(1:idx);
 
 

@@ -518,6 +518,9 @@ Dynamics.xlk = chili_xlk(Dynamics);
 Dynamics.maxL = size(Dynamics.xlk,1)-1;
 
 Basis = processbasis(Sys,Basis,Dynamics);
+if isempty(Basis.jKmin)
+  error('Basis.jKmin is empty. Please report.');
+end
 
 % Set up horizontal sweep axis
 % (nu is used internally, xAxis is used for user output)
@@ -1090,12 +1093,11 @@ end
 % case when g and A are collinear and the orientation of the diffusion
 % tensor is described by the angles (0,beta,0)
 if isempty(Basis.jKmin)
+  Basis.jKmin = -1;
   if all(isreal(Sys.EZ2))
     if (Sys.nNuclei==0) || (Sys.nNuclei>0) && all(isreal(Sys.HF2))
       Basis.jKmin = +1;
     end
-  else
-    Basis.jKmin = -1;
   end
 end
 
