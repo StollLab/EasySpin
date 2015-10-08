@@ -9,7 +9,7 @@ if numel(A)==1
   
   % Just isotropic value given
   
-  F0 = -sqrt(1/3)*A;
+  F0 = -sqrt(1/3)*(3*A);
   F1 = zeros(3,1);
   F2 = zeros(5,1);
   
