@@ -604,7 +604,7 @@ end
 %-----------------------------------------------------------------------
 if generalLiouvillian
 
-  [T0,T1,T2,F0,F1,F2] = magint(Sys,CenterField);
+  [T0,T1,T2,F0,F1,F2] = magint(Sys,CenterField,Opt.IncludeNZI);
   Gamma = rdogamma(Basis.List,Dynamics.Diff,Sys.nStates^2);
   [jjj0,jjj1,jjj2] = jjjsymbol(Basis.LLKM,any(F1(:)));
 

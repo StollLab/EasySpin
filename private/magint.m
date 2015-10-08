@@ -1,4 +1,4 @@
-function [T0,T1,T2,F0,F1,F2] = magint(System,CenterField)
+function [T0,T1,T2,F0,F1,F2] = magint(System,CenterField,IncludeNuclearZeeman)
 
 % Count the number of interaction terms in the spin Hamiltonian
 % -------------------------------------------------------------------------
@@ -11,7 +11,6 @@ nHyperfine = nElSpins*nNucSpins;
 nZFS = sum(System.S>1/2);
 nInteractions = nElZeeman + nHyperfine + nZFS;
 
-IncludeNuclearZeeman = false;
 if IncludeNuclearZeeman
   nInteractions = nInteractions + nNucSpins;
 end
