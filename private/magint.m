@@ -117,7 +117,7 @@ if IncludeNuclearQuadrupole
     if any(System.QFrame(iNucSpin,:))
       R_M2Q = erot(System.QFrame(iNucSpin,:)); % mol frame -> Q frame
       R_Q2M = R_M2Q.'; % Q frame -> mol frame
-      Q_ = R_Q2M*Q_*R_Q2M.';
+      Q_ = R_Q2M*diag(Q_)*R_Q2M.';
     end
     [T0{iInt},T1(iInt,:),T2(iInt,:)] = istotensor(I_,I_);
     [F0(iInt),F1(iInt,:),F2(iInt,:)] = istocoeff(Q_);
