@@ -58,6 +58,11 @@ for iElSpin = 1:nElSpins
     else
       A_ = diag(System.A(iNucSpin,eidx))*1e6; % MHz -> Hz
     end
+    if any(System.AFrame(iNucSpin,eidx))
+      R_M2A = erot(System.AFrame(iNucSpin,eidx)); % mol frame -> A frame
+      R_A2M = R_M2A.'; % A frame -> mol frame
+      A_ = R_A2M*A_*R_A2M.';
+    end
     I_ = SpinOps(nElSpins+iNucSpin,:);
     [T0{iInt},T1(iInt,:),T2(iInt,:)] = istotensor(S_,I_);
     [F0(iInt),F1(iInt,:),F2(iInt,:)] = istocoeff(A_);
@@ -104,6 +109,11 @@ if IncludeNuclearQuadrupole
   for iNucSpin = 1:nNucSpins
     I_ = SpinOps(nElSpins+iNucSpin,:);
     Q_ = System.Q(iNucSpin,:)*1e6; % MHz -> Hz
+    if any(System.QFrame(iNucSpin,:))
+      R_M2Q = erot(System.QFrame(iNucSpin,:)); % mol frame -> Q frame
+      R_Q2M = R_M2Q.'; % Q frame -> mol frame
+      Q_ = R_Q2M*Q_*R_Q2M.';
+    end
     [T0{iInt},T1(iInt,:),T2(iInt,:)] = istotensor(I_,I_);
     [F0(iInt),F1(iInt,:),F2(iInt,:)] = istocoeff(Q_);
     iInt = iInt + 1;

@@ -1060,8 +1060,7 @@ for iNuc = 1:Sys.nNuclei
   Sys.NZ0(iNuc) = nmagn*B0/1e3*gn0(iNuc)/planck*2*pi; % -> angular freq.
 end
 if ~IncludeNZI
-  Sys.NZ0 = 0;
-  Sys.NZ0b = 0;
+  Sys.NZ0 = Sys.NZ0*0;
 end
 
 % Adaption for two nuclei, to feed to chili_liouvmatrix2

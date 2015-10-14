@@ -47,7 +47,7 @@ for k = 1:nDim
   % Continued fraction: next convergent
   if LentzMethod
     %=====================================
-    a = z + alpha(k);
+    a = z + alpha(k); 
     if (k==1), b = 1; else b = -beta(k-1)^2; end
     C = a + b./Cold;
     D = 1./(a + b.*Dold);
