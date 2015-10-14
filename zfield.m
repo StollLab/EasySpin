@@ -13,56 +13,59 @@
 %
 %   If 'sparse' is given, the matrix is returned in sparse format.
 
-function H = zfield(SpinSystem,Electrons,opt)
+function H = zfield(SpinSystem,idxElectrons,opt)
 
 if (nargin==0), help(mfilename); return; end
 
 [Sys,err] = validatespinsys(SpinSystem);
 error(err);
 
-if (nargin<2), Electrons = []; end
+if (nargin<2), idxElectrons = []; end
 if (nargin<3), opt = ''; end
 if ~ischar(opt)
   error('Third input must be a string, ''sparse''.');
 end
 sparseResult = strcmp(opt,'sparse');
 
-if isempty(Electrons), Electrons = 1:Sys.nElectrons; end
+if isempty(idxElectrons)
+  idxElectrons = 1:Sys.nElectrons;
+end
 
-if any(Electrons>Sys.nElectrons) || any(Electrons<1),
+if any(idxElectrons>Sys.nElectrons) || any(idxElectrons<1),
   error('Electron spin index/indices (2nd argument) out of range!');
 end
 
 H = sparse(Sys.nStates,Sys.nStates);
-spvc = Sys.Spins;
+Spins = Sys.Spins;
 
-for iSpin = Electrons
+for iSpin = idxElectrons
   
-  % S or I < 1 -> no internal interactions possible -> go to next spin
-  if spvc(iSpin)<1, continue; end
+  % S < 1: no zero-field interaction possible
+  if Spins(iSpin)<1, continue; end
   
   % Quadratic term S*D*S
   %----------------------------------------------------------
-  % Prepare full D matrix
+  % Prepare full 3x3 D matrix
   if Sys.fullD
     D = Sys.D(3*(iSpin-1)+(1:3),:);
   else
     D = diag(Sys.D(iSpin,:));
   end
   if any(D(:))
-    R_M2D = erot(Sys.DFrame(iSpin,:)); % mol frame -> D frame
-    R_D2M = R_M2D.'; % D frame -> mol frame
-    D = R_D2M*D*R_D2M.';
-  end
-  if any(D(:))
+    % Apply rotation if DFrame is given
+    if any(Sys.DFrame(iSpin,:))
+      R_M2D = erot(Sys.DFrame(iSpin,:)); % mol frame -> D frame
+      R_D2M = R_M2D.';                   % D frame -> mol frame
+      D = R_D2M*D*R_D2M.';
+    end
     % Construct spin operator matrices
     for c = 3:-1:1
-      so{c} = sop(spvc,iSpin,c,'sparse');
+      Sxyz{c} = sop(Spins,iSpin,c,'sparse');
     end
     % Construct SDS term
     for c1 = 1:3
       for c2 = 1:3
-        H = H + D(c1,c2)*(so{c1}*so{c2});
+        H = H + D(c1,c2)*(Sxyz{c1}*Sxyz{c2});
       end
     end
   end
@@ -87,9 +90,9 @@ for iSpin = Electrons
         error('It''s not possible to use Sys.aF with a tilted D frame (Sys.DFrame).');
       end
     end
-    S = spvc(1);
+    S = Spins(1);
     n = S*(S+1);
-    Sz = sop(spvc,1,3,'sparse');
+    Sz = sop(Spins,1,3,'sparse');
     O40 = (35*Sz^4-30*n*Sz^2+25*Sz^2-(6*n-3*n^2)*speye(length(Sz)));
     F = Sys.aF(2);
     if (F~=0)
@@ -97,8 +100,8 @@ for iSpin = Electrons
     end
     a = Sys.aF(1);
     if (a~=0)
-      Sp = sop(spvc,1,4,'sparse');
-      Sm = sop(spvc,1,5,'sparse');
+      Sp = sop(Spins,1,4,'sparse');
+      Sm = sop(Spins,1,5,'sparse');
       if ~isfield(Sys,'aFFrame'), Sys.aFFrame = 4; end
       if (Sys.aFFrame==3)
         % along threefold axis (see Abragam/Bleaney p.142, p.437)
@@ -151,12 +154,12 @@ for iSpin = Electrons
     
     q = k:-1:-k;
     for iq = find(Bk(iSpin,:)~=0)
-      H = H + Bk(iSpin,iq)*stev(spvc,k,q(iq),iSpin);
+      H = H + Bk(iSpin,iq)*stev(Spins,k,q(iq),iSpin);
     end
     
   end % for all tensor ranks
 
-end % for all spins specified
+end % for all electron spins specified
 
 H = (H+H')/2; % Hermitianise
 if ~sparseResult

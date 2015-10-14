@@ -70,23 +70,28 @@ for iElSpin = 1:nElSpins
   end
 end
 
-% Zero field splitting terms
+% Zero field interaction terms (S*D*S)
 %--------------------------------------------------------------------------
-if any(System.D)
-  if System.fullD
-    D = diag(System.D)*1e6; % MHz -> Hz
-  else
-    D = System.D*1e6;   % MHz -> Hz
-  end
-else
-  D = 0;
-end
 if (nZFS>0)
   for iSpin = 1:nElSpins
     if Spins(iSpin)<1, continue; end
+    % Get full 3x3 D matrix from spin system
+    if System.fullD
+      D_ = System.D(3*(iSpin-1)+(1:3),:);
+    else
+      D_ = diag(System.D(iSpin,:));
+    end
+    D_ = D_*1e6; % MHz -> Hz
+    % Apply rotation if DFrame is given
+    if any(System.DFrame(iSpin,:))
+      R_M2D = erot(System.DFrame(iSpin,:)); % mol frame -> D frame
+      R_D2M = R_M2D.'; % D frame -> mol frame
+      D_ = R_D2M*D_*R_D2M.';
+    end
+    % Compute ISTO components
     S_ = SpinOps(iSpin,:);
     [T0{iInt},T1(iInt,:),T2(iInt,:)] = istotensor(S_,S_);
-    [F0(iInt),F1(iInt,:),F2(iInt,:)] = istocoeff(D);
+    [F0(iInt),F1(iInt,:),F2(iInt,:)] = istocoeff(D_);
     iInt = iInt + 1;
   end
 end
