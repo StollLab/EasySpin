@@ -1015,48 +1015,63 @@ function Sys = istospinsys(Sys_in,B0,IncludeNZI)
 Sys = Sys_in;
 
 % Transformation from molecular frame to diffusion frame
-% (DiffFrame contains Euler angles for M->Diff transformation)
-R_M2Diff = wignerd(2,Sys.DiffFrame);
+% (DiffFrame contains Euler angles for mol->Diff transformation)
+R_M2Diff = erot(Sys.DiffFrame);
 
-% Compute spherical tensor component coefficients
-%--------------------------------------------------------------------
 % Electron Zeeman
+%--------------------------------------------------------------------
 if Sys.fullg
-  [g0,dummy,g2] = istocoeff(Sys.g);
+  g = Sys.g;
 else
-  [g0,dummy,g2] = istocoeff(Sys.g(:));
+  g = diag(Sys.g);
 end
 if isfield(Sys,'gFrame')
-  R_g2M = wignerd(2,Sys.gFrame)'; % g tensor frame -> molecular frame
-else
-  R_g2M = 1;
+  R_g2M = erot(Sys.gFrame);
+  g = R_g2M*g*R_g2M.';  % g frame -> diffusion frame
 end
-g2 = R_M2Diff*R_g2M*g2; % g frame -> diffusion frame
+g = R_M2Diff*g*R_M2Diff.';  % molecular frame -> diffusion frame
+
+% Get ISTO components
+[g0,g1,g2] = istocoeff(g);
+if any(abs(g1)>1e-6)
+  error('g tensor must be symmetric for this method.');
+end
+
+% Set parameters for chili_liouvmatrix*
 Sys.g_axial = g2(1)==0;
 Sys.EZ0 = bmagn*B0/1e3*g0/planck*2*pi; % -> angular frequency
 Sys.EZ2 = bmagn*B0/1e3*g2/planck*2*pi; % -> angular frequency
 
 % Hyperfine
+%--------------------------------------------------------------------
 for iNuc = 1:Sys.nNuclei
   if Sys.fullA
-    [A0,dummy,A2] = istocoeff(Sys.A(3*(iNuc-1)+(1:3),:));
+    A = Sys.A(3*(iNuc-1)+(1:3),:);
   else
-    [A0,dummy,A2] = istocoeff(Sys.A(iNuc,:));
+    A = diag(Sys.A(iNuc,:));
   end
   if isfield(Sys,'AFrame')
-    R_A2M = wignerd(2,Sys.AFrame(iNuc,:))'; % A frame -> molecular frame
-  else
-    R_A2M = 1;
+    R_A2M = erot(Sys.AFrame(iNuc,:));
+    A = R_A2M*A*R_A2M.';  % A frame -> molecular frame
   end
-  A2 = R_M2Diff*R_A2M*A2; % A frame -> diffusion frame
+  A = R_M2Diff*A*R_M2Diff.';  % molecular frame -> diffusion frame
+  
+  % Get ISTO components
+  [A0,A1,A2] = istocoeff(A);
+  if (any(abs(A1)>1e-6))
+    error('Hyperfine tensors must be symmetric for this method.');
+  end
+  
+  % Set parameters for chili_liouvmatrix*
   Sys.A_axial(iNuc) = A2(1)==0;
   Sys.HF0(iNuc) = A0*1e6*2*pi; % MHz -> angular frequency
   Sys.HF2(:,iNuc) = A2*1e6*2*pi; % MHz -> angular frequency
 end
 
 % Nuclear Zeeman
+%--------------------------------------------------------------------
 for iNuc = 1:Sys.nNuclei
-  gn0(iNuc) = -sqrt(1/3)*(3*Sys.gn(iNuc));
+  gn0(iNuc) = istocoeff(Sys.gn(iNuc));
   Sys.NZ0(iNuc) = nmagn*B0/1e3*gn0(iNuc)/planck*2*pi; % -> angular freq.
 end
 if ~IncludeNZI
