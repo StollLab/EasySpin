@@ -1,4 +1,4 @@
-function [T0,T1,T2,F0,F1,F2] = magint(System,CenterField,IncludeNuclearZeeman)
+function [T0,T1,T2,F0,F1,F2] = magint(System,SpinOps,CenterField,IncludeNuclearZeeman)
 
 % Count the number of interaction terms in the spin Hamiltonian
 % -------------------------------------------------------------------------
@@ -29,8 +29,6 @@ F2 = zeros(nInteractions,5);
 
 iInt = 1;
 
-Spins = [System.S System.I];
-SpinOps = spinop(Spins);
 B0 = {0 0 CenterField/1e3}; % mT -> T
 
 % Electron Zeeman interaction terms
@@ -74,7 +72,7 @@ end
 %--------------------------------------------------------------------------
 if (nZFS>0)
   for iSpin = 1:nElSpins
-    if Spins(iSpin)<1, continue; end
+    if System.S(iSpin)<1, continue; end
     % Get full 3x3 D matrix from spin system
     if System.fullD
       D_ = System.D(3*(iSpin-1)+(1:3),:);

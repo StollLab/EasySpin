@@ -604,18 +604,25 @@ end
 %-----------------------------------------------------------------------
 if generalLiouvillian
 
-  [T0,T1,T2,F0,F1,F2] = magint(Sys,CenterField,Opt.IncludeNZI);
+  % Generate all cartesian spin operators
+  for iSpin = 1:numel(Sys.Spins)
+    SpinOps{iSpin,1} = sop(Sys.Spins,iSpin,1);
+    SpinOps{iSpin,2} = sop(Sys.Spins,iSpin,2);
+    SpinOps{iSpin,3} = sop(Sys.Spins,iSpin,3);
+  end
+  
+  [T0,T1,T2,F0,F1,F2] = magint(Sys,SpinOps,CenterField,Opt.IncludeNZI);
   Gamma = rdogamma(Basis.List,Dynamics.Diff,Sys.nStates^2);
   [jjj0,jjj1,jjj2] = jjjsymbol(Basis.LLKM,any(F1(:)));
 
-  SpinOps = spinop(Sys.S);
-  if numel(Sys.Spins)>1
-    SxOps_ = SpinOps(1:Sys.nElectrons,1);
-    SxOps = expandsops(Sys,SxOps_{1},1);
-  else
-    SxOps = SpinOps{1};
+  % Detection operator
+  SxOps = SpinOps{1,1};
+  for e = 2:Sys.nElectrons
+    SxOps = SxOps + SpinOps{e,1};
   end
+  
 else
+  
   % Pick functions for the calculation of Liouvillian and starting vector
   switch Sys.nNuclei
     case 0
@@ -630,6 +637,7 @@ else
     otherwise
       error('The chosen method cannot handle %d nuclei.',Sys.nNuclei);
   end
+  
 end
 
 
