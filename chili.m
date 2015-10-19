@@ -1034,8 +1034,8 @@ else
   g = diag(Sys.g);
 end
 if isfield(Sys,'gFrame')
-  R_g2M = erot(Sys.gFrame);
-  g = R_g2M*g*R_g2M.';  % g frame -> diffusion frame
+  R_g2M = erot(Sys.gFrame).';
+  g = R_g2M*g*R_g2M.';  % g frame -> molecular frame
 end
 g = R_M2Diff*g*R_M2Diff.';  % molecular frame -> diffusion frame
 
@@ -1047,8 +1047,8 @@ end
 
 % Set parameters for chili_liouvmatrix*
 Sys.g_axial = g2(1)==0;
-Sys.EZ0 = bmagn*B0/1e3*g0/planck*2*pi; % -> angular frequency
-Sys.EZ2 = bmagn*B0/1e3*g2/planck*2*pi; % -> angular frequency
+Sys.EZ0 = bmagn*(B0/1e3)*g0/planck*2*pi; % -> angular frequency
+Sys.EZ2 = bmagn*(B0/1e3)*g2/planck*2*pi; % -> angular frequency
 
 % Hyperfine
 %--------------------------------------------------------------------
@@ -1059,7 +1059,8 @@ for iNuc = 1:Sys.nNuclei
     A = diag(Sys.A(iNuc,:));
   end
   if isfield(Sys,'AFrame')
-    R_A2M = erot(Sys.AFrame(iNuc,:));
+    R_M2A = erot(Sys.AFrame(iNuc,:));
+    R_A2M = R_M2A.';
     A = R_A2M*A*R_A2M.';  % A frame -> molecular frame
   end
   A = R_M2Diff*A*R_M2Diff.';  % molecular frame -> diffusion frame
@@ -1078,12 +1079,13 @@ end
 
 % Nuclear Zeeman
 %--------------------------------------------------------------------
-for iNuc = 1:Sys.nNuclei
-  gn0(iNuc) = istocoeff(Sys.gn(iNuc));
-  Sys.NZ0(iNuc) = nmagn*B0/1e3*gn0(iNuc)/planck*2*pi; % -> angular freq.
-end
-if ~IncludeNZI
-  Sys.NZ0 = Sys.NZ0*0;
+if IncludeNZI
+  for iNuc = 1:Sys.nNuclei
+    gn0(iNuc) = istocoeff(Sys.gn(iNuc));
+    Sys.NZ0(iNuc) = nmagn*(B0/1e3)*gn0(iNuc)/planck*2*pi; % -> angular freq.
+  end
+else
+  Sys.NZ0 = zeros(1,Sys.nNuclei);
 end
 
 % Adaption for two nuclei, to feed to chili_liouvmatrix2
