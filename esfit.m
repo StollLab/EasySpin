@@ -802,7 +802,7 @@ simspec = rescale(simspec,ExpSpec,FitOpt.Scaling);
 
 % Compute residuals ------------------------------
 residuals = getResiduals(simspec(:),ExpSpec(:),FitOpt.TargetID);
-rmsd = sqrt(mean(residuals.^2));
+rmsd = real(sqrt(mean(residuals.^2)));
 
 errorlist = [errorlist rmsd];
 isNewBest = rmsd<smallestError;
