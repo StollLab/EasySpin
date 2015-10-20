@@ -94,7 +94,7 @@ freq = imag(s)/(2*pi*dt);
 damp = damp(I);
 
 % generate the signals
-y = exp(time*(-damp' + 1i*2*pi*freq'));
+y = exp(time(:)*(-damp' + 1i*2*pi*freq'));
 
 % Calculate their phase and amplitude
 a = (y'*y)\(y'*data);
