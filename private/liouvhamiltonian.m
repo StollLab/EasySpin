@@ -157,7 +157,7 @@ for iBasis = 1:nOriBasis
     % second term
     
     if (K1+K2<=2)
-      jjjKb = jjj2(L1^2+L1-K1+1,L2^2+L2+K2+1);
+      jjjKb = jjj2(L1^2+L1-K1+1,L2^2+L2-K2+1);
       idxKc = 3-(-K1-K2);
       idxKd = 3-(K1+K2);
       
