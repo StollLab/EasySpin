@@ -84,20 +84,28 @@ switch method
     s = eig(Zp);
     
 end
-
+if isempty(s), error('No prediction coefficients calculated, algorithm failed to converge.');end
 % pull out the dampings and frequencies
 s = -log(s);
 dt = time(2) - time(1);
 damp = real(s)/dt;
 freq = imag(s)/(2*pi*dt);
+
+% reject negative damping
+I = damp>0;
+damp = damp(I);
+freq = freq(I);
+
+% sort the frequencies
 [freq,I] = sort(freq);
 damp = damp(I);
+
 
 % generate the signals
 y = exp(time(:)*(-damp' + 1i*2*pi*freq'));
 
 % Calculate their phase and amplitude
-a = (y'*y)\(y'*data);
+a = (y'*y)\(y'*data(:));
 y = y*a;
 amp = abs(a);
 phase = imag(log(a./amp));
