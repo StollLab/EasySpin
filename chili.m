@@ -411,6 +411,7 @@ if ~isfield(Opt,'Diagnostic'), Opt.Diagnostic = 0; end
 if ~isfield(Opt,'Solver'), Opt.Solver = 'L'; end
 if ~isfield(Opt,'Lentz'), Opt.Lentz = 1; end
 if ~isfield(Opt,'IncludeNZI'), Opt.IncludeNZI = true; end
+if ~isfield(Opt,'pqOrder'), Opt.pqOrder = false; end
 if ~isfield(Opt,'Symmetry'), Opt.Symmetry = 'Dinfh'; end
 if ~isfield(Opt,'Output'), Opt.Output = 'summed'; end
 if ~isfield(Opt,'SymmFrame'), Opt.SymmFrame = []; end
@@ -640,6 +641,9 @@ else
   
 end
 
+if Opt.pqOrder
+  idxpq = pqorder(Sys.Spins);
+end
 
 % Loop over all orientations
 %=====================================================================
@@ -654,6 +658,15 @@ for iOri = 1:nOrientations
     D1 = wignerd(1,[phi,theta,0]);
     D2 = wignerd(2,[phi(iOri) theta(iOri) 0]);
     [Q0,Q1,Q2] = rbos(D1,D2,T0,T1,T2,F0,F1,F2);
+    if Opt.pqOrder
+      Q0 = Q0(idxpq,idxpq);
+      for k=1:numel(Q1)
+        Q1{k} = Q2{k}(idxpq,idxpq);
+      end
+      for k=1:numel(Q2)
+        Q2{k} = Q2{k}(idxpq,idxpq);
+      end
+    end
   else
     Sys.d2psi = wignerd(2,[phi(iOri) theta(iOri) 0]);
   end
@@ -662,7 +675,11 @@ for iOri = 1:nOrientations
   %-------------------------------------------------------
   logmsg(1,'Computing starting vector(s)...');
   if generalLiouvillian
-    StartingVector = startvec(Basis.List,SxOps);
+    Det = SxOps(:);
+    if Opt.pqOrder
+      Det = Det(idxpq);
+    end
+    StartingVector = startvec(Basis.List,Det);
   else
     StartingVector = chili_sv(Sys,Basis,Dynamics,Opt);
   end
