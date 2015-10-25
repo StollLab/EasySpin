@@ -665,8 +665,8 @@ end
 %--------------------------------------------------------------
 logmsg(1,'Combining resonance shifts...');
 if (nPeaks>1)
-  Positions = sum(allcombinations(Shifts{:}),2) + CentralResonance;
-  Intensity = prod(allcombinations(Amp{:}),2);
+  Positions = allcombinations(Shifts,'+') + CentralResonance;
+  Intensity = allcombinations(Amp,'*');
 else
   Positions = CentralResonance;
   Intensity = 1;
@@ -880,21 +880,26 @@ return
 %===================================================================
 %===================================================================
 %===================================================================
-function Combs = allcombinations(varargin)
+function Result = allcombinations(Elements,combineFcn)
 
-if (nargin==0), Combs = []; return; end
+nGroups = numel(Elements);
+nElements = cellfun(@(g)numel(g),Elements);
 
-Combs = varargin{1}(:);
-nCombs = numel(Combs);
-
-for iArg = 2:nargin
-  New = varargin{iArg}(:);
-  nNew = numel(New);
-  [idxNew,idxCombs] = find(ones(nNew,nCombs));
-  Combs = [Combs(idxCombs(:),:), New(idxNew(:))];
-  nCombs = nCombs*nNew;
+n1 = prod(nElements);
+n2 = 1;
+if combineFcn=='+'
+  fcn = @plus;
+  Result = 0;
+elseif combineFcn=='*'
+  fcn = @times;
+  Result = 1;
 end
-
+for g = 1:nGroups
+  n1 = n1/nElements(g);
+  R_ = repmat(Elements{g},n1,n2);
+  Result = fcn(Result,R_(:));
+  n2 = n2*nElements(g);
+end
 return
 
 %=========================================================
