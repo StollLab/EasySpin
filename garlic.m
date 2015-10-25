@@ -1,8 +1,9 @@
 % garlic    Simulates isotropic and fast-motion cw EPR spectra 
 %
 %   garlic(Sys,Exp)
-%   spec = garlic(Sys,Exp)
-%   [B,spec] = garlic(Sys,Exp)
+%   garlic(Sys,Exp,Opt)
+%   spec = ...
+%   [B,spec] = ...
 %
 %   Computes the solution cw EPR spectrum of systems with
 %   an unpaired electron and arbitrary numbers of nuclear spins.
@@ -34,6 +35,18 @@
 %      ModAmp              peak-to-peak modulation amplitude, in mT (field sweeps only)
 %      mwPhase             detection phase (0 = absorption, pi/2 = dispersion)
 %      Temperature         temperature, in K
+%
+%  Opt:  simulation parameters
+%      Verbosity    log level (0 none, 1 normal, 2 very verbose)
+%      Method       method used to calculate line positions:
+%                     'exact' - Breit-Rabi solver
+%                     'perturb1','perturb2','perturb3','perturb4','perturb5'
+%      AccumMethod  method used to construct spectrum
+%                     'binning' - stick spectrum with line shape convolution
+%                     'template' - interpolative construction using line shape template
+%                     'explicit' - explicit evaluation of line shape for each line
+%      IsoCutoff    relative isotopologue abundance cutoff threshold
+%                     between 0 and 1, default 1e-6
 %
 %   Output
 %     B                magnetic field axis [mT]
@@ -88,7 +101,13 @@ else
     (~isfield(Exp,'CenterSweep') || isempty(Exp.CenterSweep));
 end
 
-if ~isfield(Options,'IsoCutoff'), Options.IsoCutoff = 1e-6; end
+if ~isfield(Options,'IsoCutoff')
+  Options.IsoCutoff = 1e-6;
+else
+  if Options.IsoCutoff<0 || Options.IsoCutoff>1
+    error('Options.IsoCutoff must be between 0 and 1.');
+  end
+end
 
 if ~isfield(Sys,'singleiso') || (Sys.singleiso==0)
   
@@ -402,10 +421,12 @@ switch Options.Method
 end
 
 % Method for spectrum construction
-if ~isfield(Options,'AccumMethod')
-  AutoAccumMethod = true;
-else
-  AutoAccumMethod = false;
+if ~isfield(Options,'AccumMethod') || isempty(Options.AccumMethod)
+  if FastMotionRegime
+    Options.AccumMethod = 'explicit';
+  else
+    Options.AccumMethod = 'binning';
+  end
 end
 
 %-------------------------------------------------------------------------
@@ -460,20 +481,27 @@ if (Sys.nNuclei>0)
   if any(a_all==0)
     error('Nuclei with coupling 0 present.');
   end
+  a_all = a_all*planck;   % Hz -> Joule
 end
 
 logmsg(1,'Computing resonance shifts...');
-p = 1;
-Shifts = {};
-Amp = {};
+
+Shifts = cell(1,Sys.nNuclei);
+Amplitudes = cell(1,Sys.nNuclei);
 
 for iNucGrp = 1:Sys.nNuclei
-  if (n_all(iNucGrp)==0), continue; end
+  
+  if (n_all(iNucGrp)==0)
+    Shifts{iNucGrp} = 0;
+    Amplitudes{iNucGrp} = 1;
+    continue
+  end
 
   [I_this,nn] = equivcouple(I_all(iNucGrp),n_all(iNucGrp));
   nLines = (2*I_all(iNucGrp)+1)^n_all(iNucGrp);
-  nFSpins = length(nn);
-  aiso = a_all(iNucGrp)*planck; % J
+  nFSpins = numel(nn);
+  aiso = a_all(iNucGrp); % Joule
+  
   Positions = [];
   Intensities = [];
 
@@ -592,14 +620,14 @@ for iNucGrp = 1:Sys.nNuclei
         if nn(iF)==0, continue; end
         I = I_this(iF);
         for mI = -I:I
-          c(1) = giso*bmagn*B_;
+          c(1) = giso*bmagn*B_; % all c(:) in Joule
           c(2) = aiso*mI;
           c(3) = pre(1) *      (I*(I+1)-mI^2);
           c(4) = pre(2) * mI * (1-2*I*(I+1)+2*mI^2);
           c(5) = pre(3) *      (I-2*I^3-I^4+6*(I^2+I-1)*mI^2-5*mI^4);
           c(6) = pre(4) * mI * (1+6*(I-1)*I*(I+1)*(I+2)-10*(-3+2*I*(I+1))*mI^2+14*mI^4);
           dE = sum(c(1:PerturbOrder+1));
-          nu_ = dE/planck; % J -> Hz
+          nu_ = dE/planck; % Joule -> Hz
           Positions(end+1) = nu_; % Hz
           Intensities(end+1) = nn(iF)/nLines;
         end
@@ -608,11 +636,10 @@ for iNucGrp = 1:Sys.nNuclei
     end
 
   end
-  Shifts{p} = Positions - CentralResonance; % mT or Hz
-  Amp{p} = Intensities;
+  Shifts{iNucGrp} = Positions - CentralResonance; % field sweep: mT; freq sweep: Hz
+  Amplitudes{iNucGrp} = Intensities;
   
-  logmsg(1,'  spin group %d: %d F spins, %d lines',iNucGrp,nFSpins,numel(Shifts{p}));
-  p = p + 1;
+  logmsg(1,'  spin group %d: %d F spins, %d lines',iNucGrp,nFSpins,numel(Shifts{iNucGrp}));
 end
 
 % Statistics: minimum, maximum, number of lines
@@ -620,7 +647,7 @@ end
 nPeaks = 1;
 posmax = CentralResonance;
 posmin = CentralResonance;
-for iShift = 1:length(Shifts)
+for iShift = 1:numel(Shifts)
   nPeaks = nPeaks * numel(Shifts{iShift});
   posmax = posmax + max(Shifts{iShift});
   posmin = posmin + min(Shifts{iShift});
@@ -663,13 +690,13 @@ end
 
 % Combining shifts and intensities
 %--------------------------------------------------------------
-logmsg(1,'Combining resonance shifts...');
+logmsg(1,'Combining line shifts and line multiplicities...');
 if (nPeaks>1)
   Positions = allcombinations(Shifts,'+') + CentralResonance;
-  Intensity = allcombinations(Amp,'*');
+  Intensities = allcombinations(Amplitudes,'*');
 else
   Positions = CentralResonance;
-  Intensity = 1;
+  Intensities = 1;
 end
 if ~FieldSweep
   Positions = Positions/1e9; % Hz -> GHz
@@ -680,31 +707,31 @@ end
 logmsg(1,'Computing overall line intensities...');
 if ParallelMode
   % Parallel mode: no intensities
-  Intensity = zeros(size(Intensity));
+  Intensities = zeros(size(Intensities));
 else
 
   % Transition rate
   g1mean2 = giso^2;
   TransitionRate = (8*pi^2)*g1mean2*(bmagn/planck/1e9/2)^2;
-  Intensity = Intensity*TransitionRate;
+  Intensities = Intensities*TransitionRate;
   
   % 1/g factor (mT/MHz)
   if FieldSweep
     dBdE = planck/(giso*bmagn)*1e9;
-    Intensity = Intensity*dBdE;
+    Intensities = Intensities*dBdE;
   end
   
   % Temperature: thermal equilibrium polarization
   if isfinite(Exp.Temperature)
     if FieldSweep
-      DeltaE = planck*Exp.mwFreq*1e9;
+      DeltaE = planck*Exp.mwFreq*1e9;  % Joule
     else
-      DeltaE = bmagn*giso*Exp.Field*1e-3;
+      DeltaE = bmagn*giso*Exp.Field*1e-3;  % Joule
     end
     e = exp(-DeltaE/boltzm/Exp.Temperature);
     Population = [1 e]/(1+e);
     Polarization = Population(1) - Population(2);
-    Intensity = Intensity*Polarization;
+    Intensities = Intensities*Polarization;
   end
   
 end
@@ -722,14 +749,6 @@ else
   SweepRange = Exp.mwRange;
 end
 xAxis = linspace(SweepRange(1),SweepRange(2),Exp.nPoints);
-
-if AutoAccumMethod
-  if FastMotionRegime
-    Options.AccumMethod = 'explicit';
-  else
-    Options.AccumMethod = 'binning';
-  end
-end
 
 switch Options.AccumMethod
   case 'template'
@@ -755,7 +774,7 @@ switch Options.AccumMethod
     if numel(LorentzianLw)==1
       LorentzianLw = LorentzianLw*ones(size(Positions));
     end
-    spec = lisum1i(Template,xT,wT,Positions,Intensity,LorentzianLw,xAxisFine);
+    spec = lisum1i(Template,xT,wT,Positions,Intensities,LorentzianLw,xAxisFine);
 
   case 'explicit'
     % Accumulate spectrum by explicit evaluation of lineshape function
@@ -770,18 +789,18 @@ switch Options.AccumMethod
     spec = 0;
     if numel(LorentzianLw)==1
       for iLine = 1:numel(Positions)
-        spec = spec + Intensity(iLine)*lorentzian(xAxisFine,Positions(iLine),LorentzianLw,Exp.ConvHarmonic,Exp.mwPhase);
+        spec = spec + Intensities(iLine)*lorentzian(xAxisFine,Positions(iLine),LorentzianLw,Exp.ConvHarmonic,Exp.mwPhase);
       end
     else
       for iLine = 1:numel(Positions)
-        spec = spec + Intensity(iLine)*lorentzian(xAxisFine,Positions(iLine),LorentzianLw(iLine),Exp.ConvHarmonic,Exp.mwPhase);
+        spec = spec + Intensities(iLine)*lorentzian(xAxisFine,Positions(iLine),LorentzianLw(iLine),Exp.ConvHarmonic,Exp.mwPhase);
       end
     end
     Exp.mwPhase = 0;
     Exp.ConvHarmonic = 0;
     
   case 'binning'
-    % Accumulate spectrum by binning of deltas
+    % Accumulate spectrum by binning of delta peaks
     
     logmsg(1,'Constructing stick spectrum using binning...');
     
@@ -794,11 +813,12 @@ switch Options.AccumMethod
     xAxisFine = linspace(SweepRange(1),SweepRange(2),nPointsFine);
     dxFine = xAxisFine(2) - xAxisFine(1);
     
-    spec = constructstickspectrum(Positions,Intensity,SweepRange,nPointsFine);
+    spec = constructstickspectrum(Positions,Intensities,SweepRange,nPointsFine);
     spec = spec/dxFine;
     
   otherwise
-    error('Unknown method ''%s'' in Opttions.AccumMethod.',Options.AccumMethod);
+    error('\n  Unknown method ''%s'' in Options.AccumMethod.\n',Options.AccumMethod);
+
 end
 
 % (2) Convolutional broadening
@@ -894,27 +914,25 @@ elseif combineFcn=='*'
   fcn = @times;
   Result = 1;
 end
+
 for g = 1:nGroups
   n1 = n1/nElements(g);
   R_ = repmat(Elements{g},n1,n2);
   Result = fcn(Result,R_(:));
   n2 = n2*nElements(g);
 end
+
 return
 
 %=========================================================
 function Spectrum = constructstickspectrum(Positions,Amplitudes,Range,nPoints)
 
-% Convert Positions to indices into spectral vector
+% Convert positions to indices into spectral vector (1...nPoints)
 idxPositions = (Positions-Range(1))/diff(Range) * (nPoints-1);
 idxPositions = 1 + round(idxPositions);
 
-% Remove out-of-range points
-OutOfRange = (idxPositions<1) | (idxPositions>nPoints);
-idxPositions(OutOfRange) = [];
-Amplitudes(OutOfRange) = [];
-
-% Bin all remaining lines into spectrum
-Spectrum = full(sparse(1,idxPositions,Amplitudes,1,nPoints));
+% Identify in-range lines and bin them into spectrum
+inRange = (idxPositions>=1) | (idxPositions<=nPoints);
+Spectrum = full(sparse(1,idxPositions(inRange),Amplitudes(inRange),1,nPoints));
 
 return
