@@ -328,22 +328,25 @@ else
   end
 end
 
-
 % Detection harmonic
-if ~isfield(Exp,'Harmonic') || isempty(Exp.Harmonic) || isnan(Exp.Harmonic)
-  if FieldSweep
-    Exp.Harmonic = 1;
+autoHarmonic = ~isfield(Exp,'Harmonic') || isempty(Exp.Harmonic) || isnan(Exp.Harmonic);
+noBroadening = (~StrainWidths) && (~ConvolutionBroadening);
+if autoHarmonic
+  if FieldSweep && ~noBroadening
+    if noBroadening
+      Exp.Harmonic = 0;
+    else
+      Exp.Harmonic = 1;
+    end
   else
     Exp.Harmonic = 0;
   end
 end
 if ~any(Exp.Harmonic==[-1,0,1,2])
-  error('Exp.Harmonic must be 0, 1 or 2.');
+  error('Exp.Harmonic must be either 0, 1 or 2.');
 end
-noBroadening = (~StrainWidths) && (~ConvolutionBroadening);
-if (Exp.Harmonic>0) && noBroadening
-  error(['No or zero linewidth/broadening given. Cannot compute spectrum with Exp.Harmonic=%d.\n'...
-    'Please specify a line broadening (lwpp, lw, gStrain, AStrain, DStrain).'],Exp.Harmonic);
+if noBroadening && (Exp.Harmonic~=0)
+  error('\n  No broadening given. Cannot compute spectrum with Exp.Harmonic=%d.\n',Exp.Harmonic);
 end
 
 % Modulation amplitude

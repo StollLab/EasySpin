@@ -295,22 +295,25 @@ if any(~isreal(Exp.nPoints)) || numel(Exp.nPoints)>1 || (Exp.nPoints<2)
   error('Problem with Exp.nPoints. Needs to be a number not smaller than 2.')
 end
 
-
 % Detection harmonic
-if ~isfield(Exp,'Harmonic') || isempty(Exp.Harmonic) || isnan(Exp.Harmonic)
-  if FieldSweep
-    Exp.Harmonic = 1;
+autoHarmonic = ~isfield(Exp,'Harmonic') || isempty(Exp.Harmonic) || isnan(Exp.Harmonic);
+noBroadening = ~FastMotionRegime && all(Sys.lw==0) && all(Sys.lwpp==0);
+if autoHarmonic
+  if FieldSweep && ~noBroadening
+    if noBroadening
+      Exp.Harmonic = 0;
+    else
+      Exp.Harmonic = 1;
+    end
   else
     Exp.Harmonic = 0;
   end
 end
 if ~any(Exp.Harmonic==[-1,0,1,2])
-  error('Exp.Harmonic must be 0, 1 or 2.');
+  error('Exp.Harmonic must be either 0, 1 or 2.');
 end
-noBroadening = all(Sys.lw==0) && all(Sys.lwpp==0);
-if (Exp.Harmonic>0) && ~FastMotionRegime && noBroadening
-  error(['No linewidth/broadening given. Cannot compute spectrum with Exp.Harmonic=%d.\n'...
-    'Please specify a line broadening).'],Exp.Harmonic);
+if noBroadening && (Exp.Harmonic~=0)
+  error('\n  No broadening given. Cannot compute spectrum with Exp.Harmonic=%d.\n',Exp.Harmonic);
 end
 
 % Resonator mode
