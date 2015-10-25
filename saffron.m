@@ -793,108 +793,95 @@ end
 %=====================================================================
 logmsg(1,'computing nuclear spin sub-Hamiltonians...');
 
-SeparateSpaces = Opt.ProductRule;
-if SeparateSpaces && ~isempty(shfNuclei)
-  logmsg(1,'  separate subspace for each nucleus');
+NucSpace = [];
+if ~isempty(shfNuclei)
+  SeparateSpaces = Opt.ProductRule;
+  if SeparateSpaces
+    logmsg(1,'  separate subspace for each of the %d superhyperfine nuclei',numel(shfNuclei));
+  else
+    logmsg(1,'  complete nuclear state space of all %d superhyperfine nuclei',numel(shfNuclei));
+    NucSpace.Hnzx = 0;
+    NucSpace.Hnzy = 0;
+    NucSpace.Hnzz = 0;
+    NucSpace.Hhfx = 0;
+    NucSpace.Hhfy = 0;
+    NucSpace.Hhfz = 0;
+    NucSpace.Hnq = 0;
+  end
+  I = Sys.I(shfNuclei);
   for iiNuc = 1:numel(shfNuclei) % only shf nuclei
+    % Spin operators -------------------------------------------------
+    if SeparateSpaces
+      Ix = sop(I(iiNuc),1,1);
+      Iy = sop(I(iiNuc),1,2);
+      Iz = sop(I(iiNuc),1,3);
+    else
+      Ix = sop(I,iiNuc,1);
+      Iy = sop(I,iiNuc,2);
+      Iz = sop(I,iiNuc,3);
+    end
     iNuc = shfNuclei(iiNuc);
-    [Ix,Iy,Iz] = sop(Sys.I(iNuc),'x','y','z');
     
     % Nuclear Zeeman -------------------------------------------------
     pre = -Sys.gn(iNuc)*nmagn/1e3/planck/1e6; % MHz/mT
-    NucSpace(iiNuc).Hnzx = pre*Ix;
-    NucSpace(iiNuc).Hnzy = pre*Iy;
-    NucSpace(iiNuc).Hnzz = pre*Iz;
+    if SeparateSpaces
+      NucSpace(iiNuc).Hnzx = pre*Ix;
+      NucSpace(iiNuc).Hnzy = pre*Iy;
+      NucSpace(iiNuc).Hnzz = pre*Iz;
+    else
+      NucSpace.Hnzx = NucSpace.Hnzx + pre*Ix;
+      NucSpace.Hnzy = NucSpace.Hnzy + pre*Iy;
+      NucSpace.Hnzz = NucSpace.Hnzz + pre*Iz;
+    end
     
     % Hyperfine ------------------------------------------------------
     if Sys.fullA
       A = Sys.A((iNuc-1)*3+(1:3),:);
     else
-      Ra = eye(3);
       if isfield(Sys,'AFrame')
-        Ra = erot(Sys.AFrame(iNuc,:)).'; % A frame -> molecular frame
+        R_A2M = erot(Sys.AFrame(iNuc,:)).'; % A frame -> molecular frame
+      else
+        R_A2M = eye(3);
       end
-      A = Ra*diag(Sys.A(iNuc,:))*Ra.';
+      A = R_A2M*diag(Sys.A(iNuc,:))*R_A2M.';
+      A = (A + A.')/2;
     end
-    NucSpace(iiNuc).Hhf1 = A(1,1)*Ix + A(1,2)*Iy + A(1,3)*Iz;
-    NucSpace(iiNuc).Hhf2 = A(2,1)*Ix + A(2,2)*Iy + A(2,3)*Iz;
-    NucSpace(iiNuc).Hhf3 = A(3,1)*Ix + A(3,2)*Iy + A(3,3)*Iz;
+    if SeparateSpaces
+      NucSpace(iiNuc).Hhfx = A(1,1)*Ix + A(1,2)*Iy + A(1,3)*Iz;
+      NucSpace(iiNuc).Hhfy = A(2,1)*Ix + A(2,2)*Iy + A(2,3)*Iz;
+      NucSpace(iiNuc).Hhfz = A(3,1)*Ix + A(3,2)*Iy + A(3,3)*Iz;
+    else
+      NucSpace.Hhfx = NucSpace.Hhfx + A(1,1)*Ix + A(1,2)*Iy + A(1,3)*Iz;
+      NucSpace.Hhfy = NucSpace.Hhfy + A(2,1)*Ix + A(2,2)*Iy + A(2,3)*Iz;
+      NucSpace.Hhfz = NucSpace.Hhfz + A(3,1)*Ix + A(3,2)*Iy + A(3,3)*Iz;
+    end
     
     % Nuclear quadrupole ---------------------------------------------
-    if (Sys.I(iNuc)>=1)
-      Rq = erot(Sys.QFrame(iNuc,:)).'; % Q frame -> molecular frame
-      Q = Rq*diag(Sys.Q(iNuc,:))*Rq.';
-      Q = (Q + Q.')/2;
-      NucSpace(iiNuc).Hnq = ...
-        Ix*(Q(1,1)*Ix + Q(1,2)*Iy + Q(1,3)*Iz) + ...
-        Iy*(Q(2,1)*Ix + Q(2,2)*Iy + Q(2,3)*Iz) + ...
-        Iz*(Q(3,1)*Ix + Q(3,2)*Iy + Q(3,3)*Iz);
-    else
-      NucSpace(iiNuc).Hnq = 0;
-    end
-  end
-    
-else
-  logmsg(1,'  complete nuclear state space');
-  
-  NucSpace.Hnq = 0;
-  NucSpace.Hhf1 = 0; NucSpace.Hhf2 = 0; NucSpace.Hhf3 = 0;
-  NucSpace.Hnzx = 0; NucSpace.Hnzy = 0; NucSpace.Hnzz = 0;
-  I = Sys.I(shfNuclei);
-  Fx = 0; % sum of Ix operators
-  Fy = 0; % sum of Iy operators
-  Fz = 0; % sum of Iz operators
-  for ishfNuc = 1:numel(shfNuclei)
-    Ix = sop(I,ishfNuc,1);
-    Iy = sop(I,ishfNuc,2);
-    Iz = sop(I,ishfNuc,3);
-    iNuc = shfNuclei(ishfNuc);
-    Fx = Fx + Ix;
-    Fy = Fy + Iy;
-    Fz = Fz + Iz;
-    
-    % Nuclear Zeeman -------------------------------------------------
-    pre = -Sys.gn(iNuc)*nmagn/1e3/planck/1e6;
-    NucSpace.Hnzx = NucSpace.Hnzx + pre*Ix;
-    NucSpace.Hnzy = NucSpace.Hnzy + pre*Iy;
-    NucSpace.Hnzz = NucSpace.Hnzz + pre*Iz;
-    
-    % Hyperfine ------------------------------------------------------
-    if Sys.fullA
-      A = Sys.A((iNuc-1)*3+(1:3),:);
-    else
-      Ra = eye(3);
-      if isfield(Sys,'AFrame')
-        Ra = erot(Sys.AFrame(iNuc,:)).'; % A frame -> molecular frame
-      end
-      A = Ra*diag(Sys.A(iNuc,:))*Ra.';
-    end
-    NucSpace.Hhf1 = NucSpace.Hhf1 + A(1,1)*Ix + A(1,2)*Iy + A(1,3)*Iz;
-    NucSpace.Hhf2 = NucSpace.Hhf2 + A(2,1)*Ix + A(2,2)*Iy + A(2,3)*Iz;
-    NucSpace.Hhf3 = NucSpace.Hhf3 + A(3,1)*Ix + A(3,2)*Iy + A(3,3)*Iz;
-    
-    % Nuclear quadrupole ---------------------------------------------
+    Hnq_ = 0;
     if (Sys.I(iNuc)>=1)
       if Sys.fullQ
         Q = Sys.Q((iNuc-1)*3+(1:3),:);
       else
-        Rq = eye(3);
         if isfield(Sys,'QFrame')
-          Rq = erot(Sys.QFrame(iNuc,:)).'; % Q frame -> molecular frame
+          R_Q2M = erot(Sys.QFrame(iNuc,:)).'; % Q frame -> molecular frame
+        else
+          R_Q2M = eye(3);
         end
-        Q = Rq*diag(Sys.Q(iNuc,:))*Rq.';
+        Q = R_Q2M*diag(Sys.Q(iNuc,:))*R_Q2M.';
         Q = (Q + Q.')/2;
       end
       Hnq_ = ...
         Ix*(Q(1,1)*Ix + Q(1,2)*Iy + Q(1,3)*Iz) + ...
         Iy*(Q(2,1)*Ix + Q(2,2)*Iy + Q(2,3)*Iz) + ...
         Iz*(Q(3,1)*Ix + Q(3,2)*Iy + Q(3,3)*Iz);
-    else
-      Hnq_ = 0;
     end
-    NucSpace.Hnq = NucSpace.Hnq + Hnq_;
+    if SeparateSpaces
+      NucSpace(iiNuc).Hnq = Hnq_;
+    else
+      NucSpace.Hnq = NucSpace.Hnq + Hnq_;
+    end
+    
   end
-  
 end
 nSubSpaces = numel(NucSpace);
 logmsg(1,'  %d nuclei, %d subspaces',numel(shfNuclei),nSubSpaces);
@@ -1108,9 +1095,9 @@ for iOri = 1:nOrientations
     Hnuc = Hnuc + NucSpace(iSpace).Hnq;
     for iM = ManifoldsInvolved
       S = Manifold(iM).S; % expectation value of spin vector, <S>
-      H = Hnuc + S(1)*NucSpace(iSpace).Hhf1 + ...
-                 S(2)*NucSpace(iSpace).Hhf2 + ...
-                 S(3)*NucSpace(iSpace).Hhf3;
+      H = Hnuc + S(1)*NucSpace(iSpace).Hhfx + ...
+                 S(2)*NucSpace(iSpace).Hhfy + ...
+                 S(3)*NucSpace(iSpace).Hhfz;
       [VV,EE] = eig((H+H')/2);
       Manifold(iM).V{iSpace} = VV;
       Manifold(iM).E{iSpace} = real(diag(EE));
