@@ -40,10 +40,12 @@
 %      mwPhase             detection phase (0 = absorption, pi/2 = dispersion)
 %      Temperature         temperature, in K
 %
-%     Opt.LLKM            basis size: [evenLmax oddLmax Kmax Mmax]
-%     Opt.Verbosity       0: no display, 1: show info
-%     Opt.nKnots          number of knots for powder simulation
-%     Opt.Symmetry        symmetry to use for powder simulation
+%   Opt: simulation options
+%      LLKM            basis size: [evenLmax oddLmax Kmax Mmax]
+%      PostConvNucs    nuclei to include perturbationally via post-convolution
+%      Verbosity       0: no display, 1: show info
+%      nKnots          number of knots for powder simulation
+%      Symmetry        symmetry to use for powder simulation
 %
 %   Output:
 %     B      magnetic field axis vector, in mT
@@ -415,6 +417,7 @@ if ~isfield(Opt,'pqOrder'), Opt.pqOrder = false; end
 if ~isfield(Opt,'Symmetry'), Opt.Symmetry = 'Dinfh'; end
 if ~isfield(Opt,'Output'), Opt.Output = 'summed'; end
 if ~isfield(Opt,'SymmFrame'), Opt.SymmFrame = []; end
+if ~isfield(Opt,'PostConvNucs'), Opt.PostConvNucs = ''; end
 switch Opt.Output
   case 'summed', Opt.SeparateTransitions = 0;
   case 'separate', Opt.SeparateTransitions = 1;
@@ -446,8 +449,7 @@ error(err);
 generalLiouvillian = (LiouvMethod==2);
 
 if ~generalLiouvillian
-  if (Sys.nElectrons==1) && (Sys.S==1/2) && (Sys.nNuclei<=2)
-  else
+  if (Sys.nElectrons>1) || (Sys.S~=1/2)
     error('Opt.LiouvMethod=''Freed'' does not work with this spin system.');
   end
 end
@@ -456,6 +458,33 @@ if generalLiouvillian
   if ~isempty(Sys.lambda) && any(Sys.lambda~=0)
     error('Ordering potential not supported for this spin system.');
   end
+end
+
+% Post-convolution nuclei
+doPostConvolution = ~isempty(Opt.PostConvNucs);
+if doPostConvolution
+  Opt.PostConvNucs = sort(unique(Opt.PostConvNucs));
+  if any(Opt.PostConvNucs<1) || any(Opt.PostConvNucs>Sys.nNuclei)
+    error('Opt.PostConvNucs must contain indices of nuclei (1 to %d).',Sys.nNuclei);
+  end
+  nPostConvNucs = numel(Opt.PostConvNucs);
+  if (Sys.nNuclei-nPostConvNucs>2) && ~generalLiouvillian
+    error('Cannot have more than two nuclei for the Stochastic Liouville equation with this Opt.Method.');
+  end
+  fullSys = Sys;
+  Sys = nucspinrmv(Sys,Opt.PostConvNucs);
+  Sys.processed = 0;
+  Sys = validatespinsys(Sys);
+end
+
+if ~generalLiouvillian
+  if (Sys.nNuclei>2)
+    error('Cannot have more than two nuclei for the Stochastic Liouville equation with this Opt.Method.');
+  end
+end
+
+if any(Sys.n~=1)
+  error('Cannot solve the Stochastic Liouville equation for systems with any Sys.n > 1.');
 end
 
 if ~isfield(Opt,'nKnots'), Opt.nKnots = [5 0]; end
@@ -587,7 +616,7 @@ Weights = 4*pi*Weights/sum(Weights);
 
 % Set up quantum numbers for basis
 %-------------------------------------------------------
-logmsg(1,'Setting up orientational basis set...');
+logmsg(1,'Setting up spatial basis set...');
 logmsg(1,'  Leven max %d, Lodd max %d, Kmax %d, Mmax %d',...
   Basis.LLKM(1),Basis.LLKM(2),Basis.LLKM(3),Basis.LLKM(4));
 logmsg(1,'  deltaK %d, jKmin %+d, pSmin %+d, symm %d',...
@@ -622,6 +651,11 @@ if generalLiouvillian
     SxOps = SxOps + SpinOps{e,1};
   end
   
+  % Index vector for reordering basis states from m1-m2 order (standard) to p-q order (Freed)
+  if Opt.pqOrder
+    idxpq = pqorder(Sys.Spins);
+  end
+  
 else
   
   % Pick functions for the calculation of Liouvillian and starting vector
@@ -638,11 +672,7 @@ else
     otherwise
       error('The chosen method cannot handle %d nuclei.',Sys.nNuclei);
   end
-  
-end
-
-if Opt.pqOrder
-  idxpq = pqorder(Sys.Spins);
+    
 end
 
 % Loop over all orientations
@@ -698,19 +728,17 @@ for iOri = 1:nOrientations
   if generalLiouvillian
     H = liouvhamiltonian(Basis.List,Q0,Q1,Q2,jjj0,jjj1,jjj2);
     L = -2i*pi*H + Gamma;
+    nDim = size(L,1);
   else
     [r,c,Vals,nDim,nElm] = chili_lm(Sys,Basis.v,Dynamics,Opt.Allocation);
     idx = 1:nElm;
-    r = r(idx) + 1;
-    c = c(idx) + 1;
-    Vals = Vals(idx); % Hz
-    if (nDim~=BasisSize)
-      error('Matrix size (%d) inconsistent with basis size (%d). Please report.',nDim,BasisSize);
-    end
-    if any(isnan(Vals))
-      error('Liouville matrix contains %d NaN entries!',sum(isnan(Vals)));
-    end
-    L = sparse(r,c,Vals,BasisSize,BasisSize);
+    L = sparse(r(idx)+1,c(idx)+1,Vals(idx),BasisSize,BasisSize);
+  end
+  if (nDim~=BasisSize)
+    error('Matrix size (%d) inconsistent with basis size (%d). Please report.',nDim,BasisSize);
+  end
+  if any(isnan(L))
+    error('Liouville matrix contains NaN entries!');
   end
   
   % Rescale by maximum of Hamiltonian superoperator
@@ -846,33 +874,44 @@ spec = cos(Exp.mwPhase)*real(spec)+sin(Exp.mwPhase)*imag(spec);
 
 
 %==============================================================
-% Postconvolution
+% Post-convolution
 %==============================================================
-if (numel(Sys.I)>2) && ~generalLiouvillian
+if doPostConvolution
   logmsg(1,'Postconvolution...');
-  shfSys.g = mean(Sys.g);
-  shfSys.A = mean(Sys.A(2:end,:),2);
-  if isfield(Sys,'n')
-    shfSys.n = Sys.n(2:end);
+  
+  % Spin system with shf nuclei only
+  pcidx = Opt.PostConvNucs;
+  pcSys.g = mean(fullSys.g);
+  pcSys.A = mean(fullSys.A(pcidx,:),2);
+  if isfield(fullSys,'n')
+    pcSys.n = fullSys.n(pcidx);
   end
-  shfSys.Nucs = nuclist2string(Sys.Nucs(2:end));
+  pcSys.Nucs = nuclist2string(fullSys.Nucs(pcidx));
+  
+  % Experimental parameters for isotropic shf spectrum
   if FieldSweep
-    shfExp.Range = Exp.Range;
-    shfExp.mwFreq = mt2mhz(mean(Exp.Range),shfSys.g)/1e3; % GHz
-    dx = diff(Exp.Range)/(Exp.nPoints-1);
-    shfSys.lw = dx/12;
+    pcExp.Range = Exp.Range;
+    pcExp.mwFreq = mt2mhz(mean(Exp.Range),pcSys.g)/1e3; % GHz
+    Range = Exp.Range;
   else
-    shfExp.mwRange = Exp.mwRange;
-    shfExp.Field = Exp.Field;
-    dx = diff(Exp.mwRange*1e3)/(Exp.nPoints-1); % MHz
-    shfSys.lw = dx/12;
+    pcExp.mwRange = Exp.mwRange;
+    pcExp.Field = Exp.Field;
+    Range = Exp.mwRange*1e3;
   end
-  shfExp.Harmonic = 0;
-  shfExp.nPoints = Exp.nPoints;
-  spec_shf = garlic(shfSys,shfExp);
-  spec_shf = spec_shf/sum(spec_shf);
-  spec = conv(spec,spec_shf);
-  spec = spec(fix(numel(spec_shf)/2)+(1:Exp.nPoints));
+  pcExp.Harmonic = 0;
+  pcExp.nPoints = Exp.nPoints;
+  
+  % Linewidth for shf spectrum
+  dx = diff(Range)/(Exp.nPoints-1); % field sweep: mT; freq sweep: MHz
+  pcSys.lw = dx/12;
+  
+  % Simulate isotropic spectrum of shf nuclei
+  spec_pc = garlic(pcSys,pcExp);
+  spec_pc = spec_pc/sum(spec_pc);
+  
+  % Convolute SLE spectrum with isotropic spectrum
+  spec = conv(spec,spec_pc);
+  spec = spec(fix(numel(spec_pc)/2)+(1:Exp.nPoints));
 end
 %==============================================================
 
