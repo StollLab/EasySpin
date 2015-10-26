@@ -25,8 +25,7 @@ Nucs = nucstring2list(NewSys.Nucs);
 nNuclei = numel(Nucs);
 
 if any(idx>nNuclei) || any(idx<=0)
-  error(sprintf(...
-    'There are only %d nuclei in the spin system. Index out of range.',nNuclei));
+  error('There are only %d nuclei in the spin system. Index out of range.',nNuclei);
 end
 
 Nucs(idx) = [];
@@ -39,6 +38,7 @@ else
   NewSys.Nucs = Nucs;
 end
 
+% multiplicities ---------------------------------------
 if isfield(NewSys,'n')
   n = NewSys.n;
   n(idx) = [];
@@ -62,12 +62,12 @@ if ~fullA
   for k=1:2
     Field = F{k};
     if isfield(NewSys,Field)
-      v = getfield(NewSys,Field);
+      v = NewSys.(Field);
       v(idx,:) = [];
       if isempty(v)
         NewSys = rmfield(NewSys,Field);
       else
-        NewSys = setfield(NewSys,Field,v);
+        NewSys.(Field) = v;
       end
     end
   end
@@ -80,7 +80,7 @@ else
   if isempty(v)
     NewSys = rmfield(NewSys,'A');
   else
-    NewSys = setfield(NewSys,'A',v);
+    NewSys.A = v;
   end
   if isfield(NewSys,'AFrame')
     NewSys = rmfield(NewSys,'AFrame');
@@ -92,12 +92,12 @@ F = {'Q','QFrame'};
 for k=1:2
   Field = F{k};
   if isfield(NewSys,Field)
-    v = getfield(NewSys,Field);
+    v = NewSys.(Field);
     v(idx,:) = [];
     if isempty(v)
       NewSys = rmfield(NewSys,Field);
     else
-      NewSys = setfield(NewSys,Field,v);
+      NewSys.(Field) = v;
     end
   end
 end
