@@ -43,12 +43,16 @@ if (nargout>4), error('Too many output arguments.'); end
 if (nargin<3), Opt = struct('unused',NaN); end
 if isempty(Opt), Opt = struct('unused',NaN); end
 
+
 if ~isstruct(Exp)
   error('Second input argument (Exp) must be a structure!');
 end
 if ~isstruct(Opt)
   error('Third input argument (Opt) must be a structure!');
 end
+
+% User defined primary output for time dependent simulations   
+if ~isfield(Opt,'Output'), Opt.Output = 'Time'; end 
 
 % A global variable sets the level of log display. The global variable
 % is used in logmsg(), which does the log display.
@@ -67,8 +71,13 @@ if ~isfield(Opt,'IsoCutoff'), Opt.IsoCutoff = 1e-4; end
 
 if ~isfield(Sys,'singleiso') || (Sys.singleiso==0)
   
+  % parse output option
+  [Opt.Output,err] = parseoption(Opt,'Output',{'Time','Frequency'});
+  error(err);
+  if isENDOR, Opt.Output = 1;end
+  
   [SysList,weight] = expandcomponents(Sys,Opt.IsoCutoff);
-    
+  
   ysum = 0; % direct domain (TD for ESEEM, FD for ENDOR)
   zsum = 0; % inverse domain (FD for ESEEM)
   for iComponent = 1:numel(SysList)
@@ -82,30 +91,52 @@ if ~isfield(Sys,'singleiso') || (Sys.singleiso==0)
       zsum = zsum + out.fd*weight(iComponent);
     end
   end
- 
+  
   if ~isENDOR
     out.fd = zsum;
     out.td = ysum;
   else
     out.fd = ysum;
   end
-
-  switch nargout
-    case 0, % plotting, done below
-    case 1, varargout = {ysum};
-    case 2, varargout = {x1,ysum};
-    case 3,
-      if TwoDim
-        varargout = {x1,x2,ysum};
-      else
-        varargout = {x1,ysum,out};
-      end
-    case 4,
-      if TwoDim
-        varargout = {x1,x2,ysum,out};
-      end
+  switch Opt.Output
+    case 1
+    switch nargout
+      case 0, % plotting, done below
+      case 1, varargout = {ysum};
+      case 2, varargout = {x1,ysum};
+      case 3,
+        if TwoDim
+          varargout = {x1,x2,ysum};
+        else
+          varargout = {x1,ysum,out};
+        end
+      case 4,
+        if TwoDim
+          varargout = {x1,x2,ysum,out};
+        end
+    end
+    case 2
+    switch nargout
+      case 0, % plotting, done below
+      case 1, varargout = {zsum};
+      case 2,         
+        if TwoDim
+          varargout = {out.f1,zsum};
+        else
+          varargout = {out.f,zsum};
+        end
+      case 3,
+        if TwoDim
+          varargout = {out.f1,out.f2,zsum};
+        else
+          varargout = {out.f,zsum,out};
+        end
+      case 4,
+        if TwoDim
+          varargout = {out.f1,out.f2,zsum,out};
+        end
+    end
   end
-
   %===============================================================
   % Plotting
   %===============================================================
@@ -231,9 +262,9 @@ if ~isfield(Sys,'singleiso') || (Sys.singleiso==0)
       
     end
   end
-    
+  
   return
-
+  
 end
 %==================================================================
 
@@ -736,7 +767,6 @@ if (any(realPulse) && Opt.ProductRule)
   error('saffron: Cannot apply product rule and real pulses at the same time.');
 end
 
-if isfield(Opt,'Output'), logmsg(0,'saffron does not support Opt.Output.'); end
 SeparateTransitions = false;
 
 if ~isfield(Opt,'OriThreshold'), Opt.OriThreshold = 0.005; end
