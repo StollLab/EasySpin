@@ -54,6 +54,8 @@ end
 % User defined primary output for time dependent simulations   
 if ~isfield(Opt,'Output'), Opt.Output = 'Time'; end 
 
+if ~isfield(Opt,'Ordinate') Opt.Ordinate = 'Complex'; end
+
 % A global variable sets the level of log display. The global variable
 % is used in logmsg(), which does the log display.
 if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 0; end
@@ -71,10 +73,14 @@ if ~isfield(Opt,'IsoCutoff'), Opt.IsoCutoff = 1e-4; end
 
 if ~isfield(Sys,'singleiso') || (Sys.singleiso==0)
   
-  % parse output option
+  % parse options
   [Opt.Output,err] = parseoption(Opt,'Output',{'Time','Frequency'});
   error(err);
-  if isENDOR, Opt.Output = 1;end
+  if isENDOR, Opt.Output = 1; end
+  
+  [Opt.Ordinate,err] = parseoption(Opt,'Ordinate',{'Complex','Real','Absolute'});
+  error(err);
+  
   
   [SysList,weight] = expandcomponents(Sys,Opt.IsoCutoff);
   
@@ -93,11 +99,18 @@ if ~isfield(Sys,'singleiso') || (Sys.singleiso==0)
   end
   
   if ~isENDOR
-    out.fd = zsum;
     out.td = ysum;
+    switch Opt.Ordinate
+      case 1, % complex output 
+      case 2, zsum = real(zsum); 
+      case 3, zsum = abs(zsum);  
+    end
+    out.fd = zsum;
   else
     out.fd = ysum;
   end
+  
+  
   switch Opt.Output
     case 1
     switch nargout
@@ -1688,7 +1701,7 @@ if ~isENDOR
         w1 = apowin(Opt.Window,Exp.nPoints(1));
         w2 = apowin(Opt.Window,Exp.nPoints(2));
 
-        fd = abs(fftshift(fftn(tdx.*(w1*w2.'),Opt.ZeroFillFactor*Exp.nPoints)));
+        fd = fftshift(fftn(tdx.*(w1*w2.'),Opt.ZeroFillFactor*Exp.nPoints));
         f1 = fdaxis(Exp.dt(1),size(fd,1));
         f2 = fdaxis(Exp.dt(2),size(fd,2));
       end
