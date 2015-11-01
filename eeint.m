@@ -78,13 +78,11 @@ if ~System.fullee
   eeFrame = System.eeFrame;
 end
 
-% Isotropic biquadratic exchange
-ee2 = System.ee2;
-
-% Compute Hamiltonian matrix
+% Bilinear coupling term S1*ee*S2
+%----------------------------------------------------------------
 for iPair = 1:nPairs
   iCoupling = find(Coupl(iPair)==allPairsIdx);
-
+  
   % Construct matrix representing coupling tensor
   if System.fullee
     J = ee(3*(iCoupling-1)+(1:3),:);
@@ -99,24 +97,23 @@ for iPair = 1:nPairs
     so1 = sop(sys,Pairs(iPair,1),c1,'sparse');
     for c2 = 1:3
       so2 = sop(sys,Pairs(iPair,2),c2,'sparse');
-      
-      % Bilinear coupling S1*ee*S2
       F = F + so1*J(c1,c2)*so2;
-
-      % Isotropic biquadratic exchange coupling +ee2*(S1.S2)^2
-      if (c1==c2)
-        if ee2(iPair)~=0
-          F = F + ee2(iPair)*(so1*so2)^2;
-        end
-      end
-
     end
   end
   
+end
+
+% Isotropic biquadratic exchange coupling term +ee2*(S1.S2)^2
+%-----------------------------------------------------------------
+for iPair = find(System.ee2)
+  F2 = 0;
+  for c = 1:3
+    F2 = F2 + sop(sys,Pairs(iPair,:),c,'sparse');
+  end
+  F = F + System.ee2(iPair)*F2;
 end
 
 F = (F+F')/2; % Hermitianise
 if ~sparseResult
   F = full(F); % sparse -> full
 end
-
