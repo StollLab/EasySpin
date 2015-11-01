@@ -52,7 +52,7 @@ for k = 0:M-1;
   mdl(k+1) = N*((M-k)*log((sum(S(k+1:M))/(M-k))) - sum(log(S(k+1:M)))) ...
     + k*(2*M-k)*log(N)/2;
 end
-[~, m] = min(mdl);
+[dummy, m] = min(mdl);
 m = m - 1;
 
 % truncate the singular values and eigenvectors to the model order
