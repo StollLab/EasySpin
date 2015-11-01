@@ -655,6 +655,27 @@ if generalLiouvillian
   if Opt.pqOrder
     idxpq = pqorder(Sys.Spins);
   end
+
+  nOriBasis = size(Basis.List,1);
+  nSpinBasis = Sys.nStates^2;
+  [idxpq,mm,pq] = pqorder(Sys.Spins);
+  if Opt.MeirovitchSymm
+    M = Basis.List(:,2);
+    psum = sum(pq(:,1:2:end),2);
+    keep = bsxfun(@minus,psum,M.')==1; % keep only basis states with pS+pI-M == 1
+    keep = keep(:);
+  else
+    keep = true(nOriBasis*nSpinBasis,1);
+  end
+  
+  rmvpS = pq(:,1)<Basis.pSmin;
+  keep(repmat(rmvpS,nOriBasis,1)) = false;
+  
+  rmvpI = false;
+  for in = 1:Sys.nNuclei
+    rmvpI = any(abs(pq(:,2*in+1))>Basis.pImax(in),2);
+  end
+  keep(repmat(rmvpI,nOriBasis,1)) = false;
   
 else
   
@@ -710,6 +731,7 @@ for iOri = 1:nOrientations
       Det = Det(idxpq);
     end
     StartingVector = startvec(Basis.List,Det);
+    StartingVector = StartingVector(keep);
   else
     StartingVector = chili_sv(Sys,Basis,Dynamics,Opt);
   end
@@ -728,12 +750,14 @@ for iOri = 1:nOrientations
   if generalLiouvillian
     H = liouvhamiltonian(Basis.List,Q0,Q1,Q2,jjj0,jjj1,jjj2);
     L = -2i*pi*H + Gamma;
+    L = L(keep,keep);
     nDim = size(L,1);
   else
     [r,c,Vals,nDim,nElm] = chili_lm(Sys,Basis.v,Dynamics,Opt.Allocation);
     idx = 1:nElm;
     L = sparse(r(idx)+1,c(idx)+1,Vals(idx),BasisSize,BasisSize);
   end
+  
   if (nDim~=BasisSize)
     error('Matrix size (%d) inconsistent with basis size (%d). Please report.',nDim,BasisSize);
   end

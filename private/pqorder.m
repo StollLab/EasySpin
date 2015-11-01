@@ -10,7 +10,7 @@
 %
 % pqorder is used by chili and its subfunctions
 
-function idx = pqorder(Spins)
+function [idx,mm,pq] = pqorder(Spins)
 
 nSpins = numel(Spins);
 nStates = 2*Spins+1;
