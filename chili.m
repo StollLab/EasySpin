@@ -719,7 +719,7 @@ for iOri = 1:nOrientations
     if Opt.pqOrder
       Q0 = Q0(idxpq,idxpq);
       for k=1:numel(Q1)
-        Q1{k} = Q2{k}(idxpq,idxpq);
+        Q1{k} = Q1{k}(idxpq,idxpq);
       end
       for k=1:numel(Q2)
         Q2{k} = Q2{k}(idxpq,idxpq);
