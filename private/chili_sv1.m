@@ -19,7 +19,7 @@ jkmn = Basis.jKmin;
 pSmin = Basis.pSmin;
 pImax = Basis.pImax;
 
-MeirovitchSymm = Basis.MeirovitchSymm;
+MpSymm = Basis.MpSymm;
 
 I = Sys.I;
 nNuclei = numel(I);
@@ -88,7 +88,7 @@ for L = 0:evenLmax
           for qS = -qSmx:2:qSmx
             
             for pI = -pImax:pImax
-              if (MeirovitchSymm && (~DirTilt)&&((pI+pS-1)~=M)), continue; end % Meirovich Eq.(A47)
+              if (MpSymm && (~DirTilt)&&((pI+pS-1)~=M)), continue; end % Meirovich Eq.(A47)
               
               %==============================================
               NonZeroElement = (jK==1) & (M==0) & (pS~=0) & (pI==0);

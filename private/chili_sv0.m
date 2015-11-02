@@ -19,7 +19,7 @@ jKmin = Basis.jKmin;
 pSmin = Basis.pSmin;
 
 DirTilt = Sys.DirTilt;
-MeirovitchSymm = Basis.MeirovitchSymm;
+MpSymm = Basis.MpSymm;
 
 Potential = any(Diffusion.lambda);
 if (Potential)
@@ -79,7 +79,7 @@ for L = 0:evenLmax
         for pS = pSmin:1
           qSmx = 1 - abs(pS);
           for qS = -qSmx:2:qSmx
-            if ((MeirovitchSymm)&&(~DirTilt)&&((0+pS-1)~=M)), continue; end % Meirovich Eq.(A47)
+            if ((MpSymm)&&(~DirTilt)&&((0+pS-1)~=M)), continue; end % Meirovich Eq.(A47)
             
             nRows = nRows + 1;
             

@@ -515,10 +515,10 @@ if ~isfield(Opt,'pImax')
   Opt.pImax = [];
 end
 Basis.pImax = Opt.pImax;
-if ~isfield(Opt,'MeirovitchSymm')
-  Opt.MeirovitchSymm = true;
+if ~isfield(Opt,'MpSymm')
+  Opt.MpSymm = false;
 end
-Basis.MeirovitchSymm = Opt.MeirovitchSymm;
+Basis.MpSymm = Opt.MpSymm;
 
 maxElements = 5e6; % used in chili_lm
 maxRows = 2e5; % used in chili_lm
@@ -633,6 +633,12 @@ end
 % Preparations
 %-----------------------------------------------------------------------
 if generalLiouvillian
+  
+  % Set up basis
+  Basis.List = generatebasis(Basis);
+  nOriBasis = size(Basis.List,1);
+  nSpinBasis = Sys.nStates^2;
+  logmsg(1,'  complete product basis size: %d (%d spatial, %d spin)',nOriBasis*nSpinBasis,nOriBasis,nSpinBasis);
 
   % Generate all cartesian spin operators
   for iSpin = 1:numel(Sys.Spins)
@@ -680,6 +686,7 @@ if generalLiouvillian
 else
   
   % Pick functions for the calculation of Liouvillian and starting vector
+  Basis.MeirovitchSymm = Opt.MpSymm; % needed for chili_lm*
   switch Sys.nNuclei
     case 0
       chili_lm = @chili_lm0;
@@ -1258,7 +1265,7 @@ end
 Basis.v = [...
   Basis.evenLmax Basis.oddLmax Basis.Kmax Basis.Mmax, ...
   Basis.jKmin Basis.pSmin Basis.deltaK ...
-  Basis.MeirovitchSymm ...
+  Basis.MpSymm ...
   Basis.pImax];
 
 return
