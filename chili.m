@@ -616,19 +616,11 @@ Weights = 4*pi*Weights/sum(Weights);
 
 % Set up quantum numbers for basis
 %-------------------------------------------------------
-logmsg(1,'Setting up spatial basis set...');
-logmsg(1,'  Leven max %d, Lodd max %d, Kmax %d, Mmax %d',...
-  Basis.LLKM(1),Basis.LLKM(2),Basis.LLKM(3),Basis.LLKM(4));
-logmsg(1,'  deltaK %d, jKmin %+d, pSmin %+d, symm %d',...
-  Basis.deltaK,Basis.jKmin,Basis.pSmin,Basis.MeirovitchSymm);
-if generalLiouvillian
-  Basis.List = generatebasis(Basis);
-  logmsg(1,'  basis size: %d (%d spatial, %d spin)',size(Basis.List,1)*Sys.nStates^2,size(Basis.List,1),Sys.nStates^2);
-else
-  [Basis.Size,Basis.SpatialSize,Indices] = chili_basiscount(Basis,Sys);
-  %size(Indices), Indices
-  logmsg(1,'  basis size: %d (%d spatial, %d spin)',Basis.Size,Basis.SpatialSize,Basis.Size/Basis.SpatialSize);
-end
+logmsg(1,'Setting up basis set...');
+logmsg(1,'  spatial basis: Leven max %d, Lodd max %d, Kmax %d, Mmax %d, deltaK %d, jKmin %+d',...
+  Basis.LLKM(1),Basis.LLKM(2),Basis.LLKM(3),Basis.LLKM(4),Basis.deltaK,Basis.jKmin);
+logmsg(1,'  spin basis: pSmin %+d, pImax %d',Basis.pSmin,Basis.pImax);
+logmsg(1,'  M-p symmetry: %d',Basis.MpSymm);
 
 % Preparations
 %-----------------------------------------------------------------------
@@ -647,6 +639,7 @@ if generalLiouvillian
     SpinOps{iSpin,3} = sop(Sys.Spins,iSpin,3);
   end
   
+  % Generate ISTOs, relaxation superoperator, and precalculate 3j symbols
   [T0,T1,T2,F0,F1,F2] = magint(Sys,SpinOps,CenterField,Opt.IncludeNZI);
   Gamma = rdogamma(Basis.List,Dynamics.Diff,Sys.nStates^2);
   [jjj0,jjj1,jjj2] = jjjsymbol(Basis.LLKM,any(F1(:)));
@@ -658,33 +651,36 @@ if generalLiouvillian
   end
   
   % Index vector for reordering basis states from m1-m2 order (standard) to p-q order (Freed)
-  if Opt.pqOrder
-    idxpq = pqorder(Sys.Spins);
-  end
-
-  nOriBasis = size(Basis.List,1);
-  nSpinBasis = Sys.nStates^2;
   [idxpq,mm,pq] = pqorder(Sys.Spins);
-  if Opt.MeirovitchSymm
+  
+  % Removing unwanted spin functions
+  % (1) remove any transitions with pS<pSmin
+  rmv = pq(:,1)<Basis.pSmin;
+  % (2) remove any transitions with |pI|>pImax, for each nucleus
+  for in = 1:Sys.nNuclei
+    rmv = rmv | any(abs(pq(:,2*in+1))>Basis.pImax(in),2);
+  end
+  keep = true(nOriBasis*nSpinBasis,1);
+  keep(repmat(rmv,nOriBasis,1)) = false;
+  logmsg(1,'  pruning spin basis: keeping %d of %d functions',sum(~rmv),nSpinBasis);
+  
+  % Apply M=dp-1 symmetry (Meirovitch Eq. (A47)
+  if Opt.MpSymm
     M = Basis.List(:,2);
     psum = sum(pq(:,1:2:end),2);
-    keep = bsxfun(@minus,psum,M.')==1; % keep only basis states with pS+pI-M == 1
-    keep = keep(:);
-  else
-    keep = true(nOriBasis*nSpinBasis,1);
+    keep_Mp = bsxfun(@minus,psum,M.')==1; % keep only basis states with pS+pI-M == 1
+    keep = keep & keep_Mp(:);
+    logmsg(1,'  applying M-p symmetry: keeping %d of %d functions',sum(keep),numel(keep));
   end
   
-  rmvpS = pq(:,1)<Basis.pSmin;
-  keep(repmat(rmvpS,nOriBasis,1)) = false;
-  
-  rmvpI = false;
-  for in = 1:Sys.nNuclei
-    rmvpI = any(abs(pq(:,2*in+1))>Basis.pImax(in),2);
-  end
-  keep(repmat(rmvpI,nOriBasis,1)) = false;
-  
+  logmsg(1,'  final basis size: %d (%f%% of %d)',sum(keep),100*sum(keep)/nOriBasis/nSpinBasis,nOriBasis*nSpinBasis);
+    
 else
   
+  [Basis.Size,Basis.SpatialSize,Indices] = chili_basiscount(Basis,Sys);
+  %size(Indices), Indices
+  logmsg(1,'  basis size: %d (%d spatial, %d spin)',Basis.Size,Basis.SpatialSize,Basis.Size/Basis.SpatialSize);
+
   % Pick functions for the calculation of Liouvillian and starting vector
   Basis.MeirovitchSymm = Opt.MpSymm; % needed for chili_lm*
   switch Sys.nNuclei
