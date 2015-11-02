@@ -110,7 +110,7 @@ for iPair = find(System.ee2)
   for c = 1:3
     F2 = F2 + sop(sys,Pairs(iPair,:),c,'sparse');
   end
-  F = F + System.ee2(iPair)*F2;
+  F = F + System.ee2(iPair)*F2^2;
 end
 
 F = (F+F')/2; % Hermitianise
