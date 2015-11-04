@@ -507,30 +507,39 @@ if ~isfield(Opt,'deltaK')
   Opt.deltaK = [];
 end
 Basis.deltaK = Opt.deltaK;
+
 if ~isfield(Opt,'pSmin')
   Opt.pSmin = 0;
 end
 Basis.pSmin = Opt.pSmin;
+
+% Maximum nuclear coherence order
 if ~isfield(Opt,'pImax')
   Opt.pImax = [];
 end
+if Opt.pImax<0
+  error('Opt.pImax must be 0 or larger.');
+end
 Basis.pImax = Opt.pImax;
+
 if ~isfield(Opt,'MpSymm')
   Opt.MpSymm = false;
 end
 Basis.MpSymm = Opt.MpSymm;
 
-maxElements = 5e6; % used in chili_lm
-maxRows = 2e5; % used in chili_lm
-if ~isfield(Opt,'Allocation')
-  Opt.Allocation = [maxElements maxRows];
-elseif numel(Opt.Allocation)<2
-  Opt.Allocation(2) = maxRows;
+if ~generalLiouvillian
+  maxElements = 5e6; % used in chili_lm
+  maxRows = 2e5; % used in chili_lm
+  if ~isfield(Opt,'Allocation')
+    Opt.Allocation = [maxElements maxRows];
+  elseif numel(Opt.Allocation)<2
+    Opt.Allocation(2) = maxRows;
+  end
+  if Opt.Allocation(1)<1e3
+    error('Opt.Allocation(1) (maximum number elements) is too small.');
+  end
+  logmsg(2,'  allocation: %d max elements, %d max rows',Opt.Allocation(1),Opt.Allocation(2));
 end
-if Opt.Allocation(1)<1e3
-  error('Opt.Allocation(1) (maximum number elements) is too small.');
-end
-logmsg(2,'  allocation: %d max elements, %d max rows',Opt.Allocation(1),Opt.Allocation(2));
 
 % Process
 %-------------------------------------------------------
@@ -631,7 +640,7 @@ if generalLiouvillian
   nOriBasis = size(Basis.List,1);
   nSpinBasis = Sys.nStates^2;
   logmsg(1,'  complete product basis size: %d (%d spatial, %d spin)',nOriBasis*nSpinBasis,nOriBasis,nSpinBasis);
-
+  
   % Generate all cartesian spin operators
   for iSpin = 1:numel(Sys.Spins)
     SpinOps{iSpin,1} = sop(Sys.Spins,iSpin,1);
@@ -643,8 +652,8 @@ if generalLiouvillian
   [T0,T1,T2,F0,F1,F2] = magint(Sys,SpinOps,CenterField,Opt.IncludeNZI);
   Gamma = rdogamma(Basis.List,Dynamics.Diff,Sys.nStates^2);
   [jjj0,jjj1,jjj2] = jjjsymbol(Basis.LLKM,any(F1(:)));
-
-  % Detection operator
+  
+  % Set up detection operator
   SxOps = SpinOps{1,1};
   for e = 2:Sys.nElectrons
     SxOps = SxOps + SpinOps{e,1};
@@ -654,17 +663,19 @@ if generalLiouvillian
   [idxpq,mm,pq] = pqorder(Sys.Spins);
   
   % Removing unwanted spin functions
+  rmv = false;
   % (1) remove any transitions with pS<pSmin
-  rmv = pq(:,1)<Basis.pSmin;
+  for ie = 1:Sys.nElectrons
+    rmv = rmv | pq(:,2*ie-1)<Basis.pSmin;
+  end
   % (2) remove any transitions with |pI|>pImax, for each nucleus
   for in = 1:Sys.nNuclei
-    rmv = rmv | any(abs(pq(:,2*in+1))>Basis.pImax(in),2);
+    rmv = rmv | any(abs(pq(:,2*Sys.nElectrons+2*in-1))>Basis.pImax(in),2);
   end
-  keep = true(nOriBasis*nSpinBasis,1);
-  keep(repmat(rmv,nOriBasis,1)) = false;
+  keep = repmat(~rmv,nOriBasis,1);
   logmsg(1,'  pruning spin basis: keeping %d of %d functions',sum(~rmv),nSpinBasis);
   
-  % Apply M=dp-1 symmetry (Meirovitch Eq. (A47)
+  % Apply M=p-1 symmetry (Meirovitch Eq. (A47))
   if Opt.MpSymm
     M = Basis.List(:,2);
     psum = sum(pq(:,1:2:end),2);
@@ -678,7 +689,6 @@ if generalLiouvillian
 else
   
   [Basis.Size,Basis.SpatialSize,Indices] = chili_basiscount(Basis,Sys);
-  %size(Indices), Indices
   logmsg(1,'  basis size: %d (%d spatial, %d spin)',Basis.Size,Basis.SpatialSize,Basis.Size/Basis.SpatialSize);
 
   % Pick functions for the calculation of Liouvillian and starting vector
