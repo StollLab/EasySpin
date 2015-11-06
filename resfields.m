@@ -377,7 +377,6 @@ end
 if Opt.Sparse
   [kF,kGxM,kGyM,kGzM] = sham(CoreSys,[],'sparse');
   nLevels = length(kF);
-  nLevels = 200;
 else
   [kF,kGxM,kGyM,kGzM] = sham(CoreSys);
   nLevels = length(kF);
