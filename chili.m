@@ -650,7 +650,7 @@ if generalLiouvillian
   
   % Generate ISTOs, relaxation superoperator, and precalculate 3j symbols
   [T0,T1,T2,F0,F1,F2] = magint(Sys,SpinOps,CenterField,Opt.IncludeNZI);
-  Gamma = rdogamma(Basis.List,Dynamics.Diff,Sys.nStates^2);
+  Gamma = diffsuperop(Basis.List,Dynamics.Diff,Sys.nStates^2);
   [jjj0,jjj1,jjj2] = jjjsymbol(Basis.LLKM,any(F1(:)));
   
   % Set up detection operator
