@@ -10,7 +10,7 @@ nTerms = numel(F0);
 
 % construct the rank-0 isotropic RBO
 %---------------------------------------------------------------------
-Q0 = 0;
+Q0 = sparse(0);
 for iTerm = 1:nTerms
   Q0 = Q0 + conj(F0(iTerm))*T0{iTerm};
 end
@@ -22,7 +22,7 @@ if any(F1(:))
   for mp = 1:3
     for mq = 1:3
       
-      Qmpmq = 0;
+      Qmpmq = sparse(0);
       for m = 1:3
         for iTerm = 1:nTerms
           Qmpmq = Qmpmq + D1(m,mp)*(-1)*conj(F1(iTerm,mq))*T1{iTerm,m};
@@ -42,7 +42,7 @@ Q2 = cell(5,5);
 for mp = 1:5
   for mq = 1:5
     
-    Qmpmq = 0;
+    Qmpmq = sparse(0);
     for m = 1:5
       for iTerm = 1:nTerms
         Qmpmq = Qmpmq + D2(m,mp)*conj(F2(iTerm,mq))*T2{iTerm,m};
@@ -55,9 +55,8 @@ end
 
 % express the RBOs in Liouville space
 %---------------------------------------------------------------------
-I = speye(size(Q0));
-kronkron = @(A) sparse(kron(I,A)-kron(A.',I));
-%kronkron = @(A) kron(A,I)-kron(I,A.');
+nI = length(Q0);
+kronkron = @(A) speyekron(nI,A)-spkroneye(A.',nI);
 Q0 = kronkron(Q0);
 if ~isempty(Q1)
   for im1 = 1:3
