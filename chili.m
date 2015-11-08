@@ -648,9 +648,8 @@ if generalLiouvillian
     SpinOps{iSpin,3} = sop(Sys.Spins,iSpin,3);
   end
   
-  % Generate ISTOs, relaxation superoperator, and precalculate 3j symbols
+  % Generate ISTOs and precalculate 3j symbols
   [T0,T1,T2,F0,F1,F2] = magint(Sys,SpinOps,CenterField,Opt.IncludeNZI);
-  Gamma = diffsuperop(Basis.List,Dynamics.Diff,Sys.nStates^2);
   [jjj0,jjj1,jjj2] = jjjsymbol(Basis.LLKM,any(F1(:)));
   
   % Set up detection operator
@@ -683,14 +682,14 @@ if generalLiouvillian
     keep = keep & keep_Mp(:);
     logmsg(1,'  applying M-p symmetry: keeping %d of %d functions',sum(keep),numel(keep));
   end
-  
+    
   logmsg(1,'  final basis size: %d (%f%% of %d)',sum(keep),100*sum(keep)/nOriBasis/nSpinBasis,nOriBasis*nSpinBasis);
     
 else
   
   [Basis.Size,Basis.SpatialSize,Indices] = chili_basiscount(Basis,Sys);
   logmsg(1,'  basis size: %d (%d spatial, %d spin)',Basis.Size,Basis.SpatialSize,Basis.Size/Basis.SpatialSize);
-
+  
   % Pick functions for the calculation of Liouvillian and starting vector
   Basis.MeirovitchSymm = Opt.MpSymm; % needed for chili_lm*
   switch Sys.nNuclei
@@ -706,7 +705,16 @@ else
     otherwise
       error('The chosen method cannot handle %d nuclei.',Sys.nNuclei);
   end
-    
+  
+end
+
+if generalLiouvillian
+  logmsg(1,'Calculating diffusion superoperator matrix');
+  % Calculate relaxation superoperator in spatial basis, expand to full product
+  % basis, and remove unwanted basis functions.
+  Gamma = diffsuperop(Dynamics.Diff,Basis.List);
+  Gamma = spkroneye(Gamma,Sys.nStates^2);
+  Gamma = Gamma(keep,keep);
 end
 
 % Loop over all orientations
@@ -759,11 +767,10 @@ for iOri = 1:nOrientations
   % Liouville matrix
   %-------------------------------------------------------
   logmsg(1,'Computing Liouville matrix...');
-
+  
   if generalLiouvillian
     H = liouvhamiltonian(Basis.List,Q0,Q1,Q2,jjj0,jjj1,jjj2);
-    L = -2i*pi*H + Gamma;
-    L = L(keep,keep);
+    L = -2i*pi*H(keep,keep) + Gamma;
     nDim = size(L,1);
   else
     [r,c,Vals,nDim,nElm] = chili_lm(Sys,Basis.v,Dynamics,Opt.Allocation);

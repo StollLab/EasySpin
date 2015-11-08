@@ -1,9 +1,12 @@
 % This function computes the diffusion superoperator matrix in the LMKjK basis,
 % for a diagonal diffusion tensor. It does not support ordering potentials.
-%
 % This function does not require a particular order of spatial basis functions.
+%
+%   Diff     principal values of diffusion tensor (s^-1)
+%   basis    list of L,M,K,jK quantum numbers for spatial basis, one set per row
+%   Gamma    diffusion superoperator in the given basis
 
-function Gamma = diffsuperop(basis,DiffTensorValues,nSpin)
+function Gamma = diffsuperop(Diff,basis)
 
 nBasis = size(basis,1);
 
@@ -12,9 +15,9 @@ M   = basis(:,2);
 K   = basis(:,3);
 jK  = basis(:,4);
 
-Rx = DiffTensorValues(1);
-Ry = DiffTensorValues(2);
-Rz = DiffTensorValues(3);
+Rx = Diff(1);
+Ry = Diff(2);
+Rz = Diff(3);
 Rd = 0.25*(Rx-Ry);
 Rperp = 0.5*(Rx+Ry);
 
@@ -62,9 +65,6 @@ Gamma = sparse(bra,ket,val,nBasis,nBasis);
 
 % Fill in lower triangular part
 Gamma = Gamma + triu(Gamma,1).';
-
-% Expand to spatial-spin product space
-Gamma = spkroneye(Gamma,nSpin);
 
 return
 
