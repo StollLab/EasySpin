@@ -1,6 +1,6 @@
 function [nBasisFunctions,nSpatialBasisFunctions,Indices] = chili_basiscount(Basis,Sys)
 
-DirTilt = Sys.DirTilt;
+DirTilt = Basis.DirTilt;
 
 evenLmax = Basis.evenLmax;
 oddLmax = Basis.oddLmax;

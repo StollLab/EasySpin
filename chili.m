@@ -168,27 +168,33 @@ end
 % included in the slow-motion simulation via T2.
 ConvolutionBroadening = any(Sys.lw(1)>0);
 
-% Dynamics
+% Dynamics and ordering potential
 %-------------------------------------------------------------------
-if ~isfield(Sys,'lambda'), Sys.lambda = 0; end
-if ~isfield(Sys,'Exchange'), Sys.Exchange = 0; end
-if ~isfield(Sys,'DiffFrame'), Sys.DiffFrame = [0 0 0]; end
-
-if isfield(Sys,'logtcorr'), Dynamics.logtcorr = Sys.logtcorr; end
-if isfield(Sys,'tcorr'), Dynamics.tcorr = Sys.tcorr; end
-if isfield(Sys,'logDiff'), Dynamics.logDiff = Sys.logDiff; end
-if isfield(Sys,'Diff'), Dynamics.Diff = Sys.Diff; end
-if isfield(Sys,'lwpp'), Dynamics.lwpp = Sys.lwpp; end
-if isfield(Sys,'lw'), Dynamics.lw = Sys.lw; end
-if isfield(Sys,'lambda'), Dynamics.lambda = Sys.lambda; end
-if isfield(Sys,'Exchange'), Dynamics.Exchange = Sys.Exchange; end
-
 if isfield(Sys,'psi')
   error('Sys.psi is obsolete. Remove it from your code. See the documentation for details.');
 end
 
+if ~isfield(Sys,'DiffFrame'), Sys.DiffFrame = [0 0 0]; end
+if ~isfield(Sys,'Exchange'), Sys.Exchange = 0; end
+if ~isfield(Sys,'lambda'), Sys.lambda = []; end
+
+if isfield(Sys,'tcorr'), Dynamics.tcorr = Sys.tcorr; end
+if isfield(Sys,'Diff'), Dynamics.Diff = Sys.Diff; end
+if isfield(Sys,'logtcorr'), Dynamics.logtcorr = Sys.logtcorr; end
+if isfield(Sys,'logDiff'), Dynamics.logDiff = Sys.logDiff; end
+if isfield(Sys,'lwpp'), Dynamics.lwpp = Sys.lwpp; end
+if isfield(Sys,'lw'), Dynamics.lw = Sys.lw; end
+
+Dynamics.Exchange = Sys.Exchange;
+Potential.lambda = Sys.lambda;
+usePotential = ~isempty(Potential.lambda) && ~all(Potential.lambda==0);
+
 % Experimental settings
 %-------------------------------------------------------------------
+if isfield(Exp,'MOMD')
+  error('Exp.MOMD is obsolete. Remove it from your code. See the documentation for details.');
+end
+
 if ~isfield(Exp,'nPoints'), Exp.nPoints = 1024; end
 if ~isfield(Exp,'Harmonic'), Exp.Harmonic = []; end
 if ~isfield(Exp,'mwPhase'), Exp.mwPhase = 0; end
@@ -198,15 +204,10 @@ if ~isfield(Exp,'Mode'), Exp.Mode = 'perpendicular'; end
 if ~isfield(Exp,'Ordering'), Exp.Ordering = []; end
 if ~isfield(Exp,'CrystalOrientation'), Exp.CrystalOrientation = []; end
 
-if isfield(Exp,'MOMD')
-  error('Exp.MOMD is obsolete. Remove it from your code. See the documentation for details.');
-end
-
 % Number of points
 if any(~isreal(Exp.nPoints)) || numel(Exp.nPoints)>1 || (Exp.nPoints<2)
   error('Problem with Exp.nPoints. Needs to be a number >= 2.')
 end
-
 
 % Temperature
 if ~isnan(Exp.Temperature)
@@ -376,7 +377,7 @@ if ~isempty(Exp.Ordering)
   %end
   if isnumeric(Exp.Ordering) && (numel(Exp.Ordering)==1) && isreal(Exp.Ordering)
     UserSuppliedOrderingFcn = false;
-    logmsg(1,'  partial order (built-in function, lambda = %g)',Exp.Ordering);
+    logmsg(1,'  partial order (built-in function, coefficient = %g)',Exp.Ordering);
   elseif isa(Exp.Ordering,'function_handle')
     UserSuppliedOrderingFcn = true;
     logmsg(1,'  partial order (user-supplied function)');
@@ -386,20 +387,20 @@ if ~isempty(Exp.Ordering)
 end
 
 % Determine whether to do a powder simulation
-if isempty(Sys.lambda) || all(Sys.lambda==0)
+if ~usePotential
   if isempty(Exp.Ordering) || all(Exp.Ordering==0)
     logmsg(1,'  No ordering potential given, skipping powder simulation.');
     PowderSimulation = false;
   else
-  logmsg(1,'  Non-zero ordering potential given, doing powder simulation.');
+  logmsg(1,'  Ordering potential given, doing powder simulation.');
     PowderSimulation = true;
   end    
 else
   if ~isempty(Exp.CrystalOrientation)
-    logmsg(1,'  Non-zero ordering potential given, doing single-crystal simulation.');
+    logmsg(1,'  Ordering potential given, doing single-crystal simulation.');
     PowderSimulation = false;
   else
-    logmsg(1,'  Non-zero ordering potential given, doing powder simulation.');
+    logmsg(1,'  Ordering potential given, doing powder simulation.');
     PowderSimulation = true;
   end
 end
@@ -445,8 +446,8 @@ if ~generalLiouvillian
 end
 
 if generalLiouvillian
-  if ~isempty(Sys.lambda) && any(Sys.lambda~=0)
-    error('Ordering potential not supported for this spin system.');
+  if usePotential
+    error('Ordering potential not supported for Opt.LiouvMethod=''general''.');
   end
 end
 
@@ -543,10 +544,21 @@ Sys = istospinsys(Sys,CenterField,Opt.IncludeNZI);
 [Dynamics,err] = processdynamics(Dynamics,FieldSweep);
 error(err);
 
-Dynamics.xlk = chili_xlk(Dynamics);
-Dynamics.maxL = size(Dynamics.xlk,1)-1;
+% Ordering potential
+%------------------------------------------------------------------
+if ~isfield(Potential,'lambda'), Potential.lambda = [0 0 0 0 0]; end
+if numel(Potential.lambda)<5, Potential.lambda(5) = 0; end
+if numel(Potential.lambda)>5, error('Too many potential coefficients!'); end
 
-Basis = processbasis(Sys,Basis,Dynamics);
+Potential.L = [2 2 4 4 4];
+Potential.K = [0 2 0 2 4];
+
+% Calculate list of potential coefficients
+Potential.xlk = chili_xlk(Potential,Dynamics.Diff);
+
+% Basis
+%------------------------------------------------------------------
+Basis = processbasis(Sys,Basis,max(Potential.K));
 if isempty(Basis.jKmin)
   error('Basis.jKmin is empty. Please report.');
 end
@@ -592,7 +604,7 @@ else
   logmsg(2,'  single-orientation simulation');
 end
 nOrientations = numel(phi);
-Sys.DirTilt = any(theta~=0);
+Basis.DirTilt = any(theta~=0);
 
 % Partial ordering for protein/macromolecule
 if ~isempty(Exp.Ordering)
@@ -683,15 +695,9 @@ else
   % Pick functions for the calculation of Liouvillian and starting vector
   Basis.MeirovitchSymm = Opt.MpSymm; % needed for chili_lm*
   switch Sys.nNuclei
-    case 0
-      chili_lm = @chili_lm0;
-      chili_sv = @chili_sv0;
-    case 1
-      chili_lm = @chili_lm1;
-      chili_sv = @chili_sv1;
-    case 2
-      chili_lm = @chili_lm2;
-      chili_sv = @chili_sv2;
+    case 0, chili_lm = @chili_lm0;
+    case 1, chili_lm = @chili_lm1;
+    case 2, chili_lm = @chili_lm2;
     otherwise
       error('The chosen method cannot handle %d nuclei.',Sys.nNuclei);
   end
@@ -705,6 +711,12 @@ if generalLiouvillian
   Gamma = diffsuperop(Dynamics.Diff,Basis.List);
   Gamma = spkroneye(Gamma,Sys.nStates^2);
   Gamma = Gamma(keep,keep);
+  
+  logmsg(1,'Calculating detection operator');
+  Det = SxOps(:);
+  if Opt.pqOrder
+    Det = Det(idxpq);
+  end
 end
 
 % Loop over all orientations
@@ -735,33 +747,32 @@ for iOri = 1:nOrientations
   
   % Starting vector
   %-------------------------------------------------------
-  logmsg(1,'Computing starting vector(s)...');
+  logmsg(1,'Computing starting vector...');
   if generalLiouvillian
-    Det = SxOps(:);
-    if Opt.pqOrder
-      Det = Det(idxpq);
-    end
+    % set up in full product basis, then prune
     StartingVector = startvec(Basis.List,Det);
     StartingVector = StartingVector(keep);
   else
-    StartingVector = chili_sv(Sys,Basis,Dynamics,Opt);
+    StartingVector = chili_startingvector(Basis,Potential,Sys.I);
   end
-  
   BasisSize = size(StartingVector,1);
-  logmsg(1,'  vector(s) size: %dx1',BasisSize);
+  logmsg(1,'  vector size: %dx1',BasisSize);
   logmsg(1,'  non-zero elements: %d/%d (%0.2f%%)',...
-    nnz(StartingVector),numel(StartingVector),100*nnz(StartingVector)/BasisSize);
+    nnz(StartingVector),BasisSize,100*nnz(StartingVector)/BasisSize);
   logmsg(1,'  maxabs %g, norm %g',full(max(abs(StartingVector))),norm(StartingVector));
-
-  % Liouville matrix
+  
+  % Liouvillian matrix
   %-------------------------------------------------------
-  logmsg(1,'Computing Liouville matrix...');
+  logmsg(1,'Computing Liouvillian matrix...');
   
   if generalLiouvillian
     H = liouvhamiltonian(Basis.List,Q0,Q1,Q2,jjj0,jjj1,jjj2);
     L = -2i*pi*H(keep,keep) + Gamma;
     nDim = size(L,1);
   else
+    Sys.DirTilt = Basis.DirTilt; % used in chili_lm
+    Dynamics.xlk = Potential.xlk; % used in chili_lm
+    Dynamics.maxL = size(Potential.xlk,1)-1; % used in chili_lm
     [r,c,Vals,nDim,nElm] = chili_lm(Sys,Basis.v,Dynamics,Opt.Allocation);
     idx = 1:nElm;
     L = sparse(r(idx)+1,c(idx)+1,Vals(idx),BasisSize,BasisSize);
@@ -771,7 +782,7 @@ for iOri = 1:nOrientations
     error('Matrix size (%d) inconsistent with basis size (%d). Please report.',nDim,BasisSize);
   end
   if any(isnan(L))
-    error('Liouville matrix contains NaN entries!');
+    error('Liouvillian matrix contains NaN entries! Please report.');
   end
   
   % Rescale by maximum of Hamiltonian superoperator
@@ -854,13 +865,13 @@ for iOri = 1:nOrientations
       
     case 'D' %"direct" method by Binsch (eigenbasis)
       L = full(L);
-      [U,Lambda] = eig(L);
-      Lambda = diag(Lambda);
+      [U,Lam] = eig(L);
+      Lam = diag(Lam);
       rho0 = StartingVector;
       Amplitude = (rho0'*U).'.*(U\rho0);
       thisspec_ = 0;
       for iPeak = 1:numel(Amplitude)
-        thisspec_ = thisspec_ + Amplitude(iPeak)./(Lambda(iPeak)+omega);
+        thisspec_ = thisspec_ + Amplitude(iPeak)./(Lam(iPeak)+omega);
       end
       thisspec = thisspec_;
 
@@ -1177,7 +1188,7 @@ return
 
 
 %--------------------------------------------------------------------
-function Basis = processbasis(Sys,Bas,Dyn)
+function Basis = processbasis(Sys,Bas,maxPotentialK)
 
 Basis = Bas;
 
@@ -1246,7 +1257,7 @@ axialSystem = Sys.g_axial;
 if (Sys.nNuclei>0)
   axialSystem = axialSystem && all(Sys.A_axial);
 end
-if axialSystem && (Basis.deltaK==2) && (max(Dyn.PotentialK)==0)
+if axialSystem && (Basis.deltaK==2) && (maxPotentialK==0)
   Basis.oddLmax = 0;
   Basis.Kmax = 0;
 end
@@ -1321,20 +1332,7 @@ end
 
 % Heisenberg exchange
 %------------------------------------------------------------------
-if ~isfield(Dyn,'Exchange'), Dyn.Exchange=0; end
+if ~isfield(Dyn,'Exchange'), Dyn.Exchange = 0; end
 Dyn.Exchange = Dyn.Exchange*2*pi*1e6; % MHz -> angular frequency
-
-% Ordering potential
-%------------------------------------------------------------------
-if ~isfield(Dyn,'lambda'), Dyn.lambda = [0 0 0 0 0]; end
-if numel(Dyn.lambda)<5, Dyn.lambda(5) = 0; end
-if numel(Dyn.lambda)>5, err = 'Too many potential coefficients!'; return; end
-
-% Process lambda list
-Dyn.PotentialL = [2 2 4 4 4];
-Dyn.PotentialK = [0 2 0 2 4];
-idx = Dyn.lambda~=0;
-Dyn.maxL = max(Dyn.PotentialL(idx));
-Dyn.maxK = max(Dyn.PotentialK(idx));
 
 return

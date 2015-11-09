@@ -67,5 +67,3 @@ Gamma = sparse(bra,ket,val,nBasis,nBasis);
 Gamma = Gamma + triu(Gamma,1).';
 
 return
-
-

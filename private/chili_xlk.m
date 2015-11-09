@@ -1,14 +1,14 @@
 % chili_xlk    Computes the coefficients of the orienting
 %              potential terms in the diffusion operator.
 %
-%     X = chili_xlk(Dyn)
+%     X = chili_xlk(Potential,R)
 %
-%          Dyn.Diff            3 principal values of diffusion tensor
-%          Dyn.lambda          coefficients of potential expansion
-%          Dyn.PotentialL      L numbers of potential coefficients
-%          Dyn.PotentialK      K numbers of potential coefficients
+%          Potential.lambda   coefficients of potential expansion
+%          Potential.L        L numbers of potential coefficients
+%          Potential.K        K numbers of potential coefficients
+%          R                  3 principal values of diffusion tensor
 
-function X = chili_xlk(Dyn)
+function X = chili_xlk(Potential,R)
 
 % Implements Eq.(B6) from Lee et al. 1994
 %   (here, we are using lambda instead of epsilon)
@@ -23,17 +23,13 @@ function X = chili_xlk(Dyn)
 
 % Shortcut if all lambda are zero
 %---------------------------------------------------------------
-if all(Dyn.lambda==0) || isempty(Dyn.lambda)
+if all(Potential.lambda==0) || isempty(Potential.lambda)
   logmsg(1,'Ordering potential: absent');
   X = zeros(0,0);
   return
 end
 logmsg(1,'Ordering potential: computing X(l,k) coefficients.');
 
-lambdalist = Dyn.lambda;
-R = Dyn.Diff;
-PotentialL = Dyn.PotentialL;
-PotentialK = Dyn.PotentialK;
 
 % Get principal values of diffusion tensor
 %---------------------------------------------------------------
@@ -45,9 +41,9 @@ Rd = (R(1)-R(2))/4;
 % Process lambda list
 %---------------------------------------------------------------
 
-maxL = max(PotentialL)*2;
+maxL = max(Potential.L)*2;
 
-if any(~isreal(lambdalist))
+if any(~isreal(Potential.lambda))
   error('Only real potential coefficients are allowed.');
 end
 
@@ -81,10 +77,10 @@ end
 %  [-2, -1,  0, +1, +2], L = 2
 %  etc.
 lambda = zeros(maxL+1,2*maxL+1);
-for q = 1:numel(lambdalist)
-  idxL = PotentialL(q)+1;
-  lambda(idxL,+PotentialK(q)+idxL) = lambdalist(q);
-  lambda(idxL,-PotentialK(q)+idxL) = lambdalist(q);
+for q = 1:numel(Potential.lambda)
+  idxL = Potential.L(q)+1;
+  lambda(idxL,+Potential.K(q)+idxL) = Potential.lambda(q);
+  lambda(idxL,-Potential.K(q)+idxL) = Potential.lambda(q);
 end
 
 % Compute X matrix
