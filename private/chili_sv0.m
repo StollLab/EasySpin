@@ -1,13 +1,9 @@
-function v = chili_startingvector(Sys,Basis,Diffusion,Options)
+function v = chili_sv0(Sys,Basis,Diffusion,Options)
 
 if nargin<4, Options = struct('ununsed',NaN); end
 
 if ~isfield(Options,'Tolerance')
   Options.Tolerance = 1e-10; % for numerical integration
-end
-
-if ~isfield(Options,'SeparateTransitions')
-  Options.SeparateTransitions = 0;
 end
 
 evenLmax = Basis.evenLmax;
@@ -109,13 +105,8 @@ Col = Col(1:idx);
 Row = Row(1:idx);
 
 v = full(sparse(Row,Col,Value,nRows,nCols));
-if ~(Options.SeparateTransitions)
-  v = sum(v,2);
-end
-
-for iCol = 1:size(v,2)
-  v(:,iCol) = v(:,iCol)/norm(v(:,iCol));
-end
+v = sum(v,2);
+v = v/norm(v);
 
 return
 %==================================================================

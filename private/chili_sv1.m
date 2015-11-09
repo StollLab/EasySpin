@@ -6,10 +6,6 @@ if ~isfield(Options,'Tolerance')
   Options.Tolerance = 1e-10; % for numerical integration
 end
 
-if ~isfield(Options,'SeparateTransitions')
-  Options.SeparateTransitions = 0;
-end
-
 evenLmax = Basis.evenLmax;
 oddLmax = Basis.oddLmax;
 Kmax = Basis.Kmax;
@@ -130,13 +126,8 @@ Row = Row(1:idx);
 Col = Col(1:idx);
 
 v = full(sparse(Row,Col,Value,nRows,nCols));
-if ~Options.SeparateTransitions
-  v = sum(v,2);
-end
-
-for iCol = 1:size(v,2)
-  v(:,iCol) = v(:,iCol)/norm(v(:,iCol))/size(v,2);
-end
+v = sum(v,2);
+v = v/norm(v);
 
 return
 %==================================================================

@@ -415,18 +415,8 @@ if ~isfield(Opt,'Lentz'), Opt.Lentz = 1; end
 if ~isfield(Opt,'IncludeNZI'), Opt.IncludeNZI = true; end
 if ~isfield(Opt,'pqOrder'), Opt.pqOrder = false; end
 if ~isfield(Opt,'Symmetry'), Opt.Symmetry = 'Dinfh'; end
-if ~isfield(Opt,'Output'), Opt.Output = 'summed'; end
 if ~isfield(Opt,'SymmFrame'), Opt.SymmFrame = []; end
 if ~isfield(Opt,'PostConvNucs'), Opt.PostConvNucs = ''; end
-switch Opt.Output
-  case 'summed', Opt.SeparateTransitions = 0;
-  case 'separate', Opt.SeparateTransitions = 1;
-  otherwise, error('Wrong setting in Options.Output.');
-end
-
-if Opt.SeparateTransitions
-  error('Opt.Output=''separate'' is not supported by chili.');
-end
 
 % Obsolete options
 % Opt.MOMD was used prior to 5.0 for powder simulations (in the presence of ordering potential)
@@ -758,8 +748,7 @@ for iOri = 1:nOrientations
   end
   
   BasisSize = size(StartingVector,1);
-  nVectors = size(StartingVector,2);
-  logmsg(1,'  vector(s) size: %dx%d',BasisSize,nVectors);
+  logmsg(1,'  vector(s) size: %dx1',BasisSize);
   logmsg(1,'  non-zero elements: %d/%d (%0.2f%%)',...
     nnz(StartingVector),numel(StartingVector),100*nnz(StartingVector)/BasisSize);
   logmsg(1,'  maxabs %g, norm %g',full(max(abs(StartingVector))),norm(StartingVector));
@@ -828,18 +817,16 @@ for iOri = 1:nOrientations
   logmsg(1,'  solver: %s',SolverString);
   switch Opt.Solver
     case 'L' % Lanczos method by Jack Freed
-      for iVec = 1:nVectors
-        [alpha,beta,minerr] = chili_lanczos(L,StartingVector(:,iVec),omega,Opt);
-        minerr = minerr(end);
-        if (minerr<Opt.Threshold)
-          thisspec(iVec,:) = chili_contfracspec(omega,alpha,beta);
-          logmsg(1,'  vector %d: converged to within %g at iteration %d/%d',...
-            iVec,Opt.Threshold,numel(alpha),BasisSize);
-        else
-          thisspec = ones(size(omega));
-          logmsg(0,'  Tridiagonalization did not converge to within %g after %d steps!\n  Increase Options.LLKM (current settings [%d,%d,%d,%d])',...
-            Opt.Threshold,BasisSize,Opt.LLKM');
-        end
+      [alpha,beta,minerr] = chili_lanczos(L,StartingVector,omega,Opt);
+      minerr = minerr(end);
+      if (minerr<Opt.Threshold)
+        thisspec = chili_contfracspec(omega,alpha,beta);
+        logmsg(1,'  converged to within %g at iteration %d/%d',...
+          Opt.Threshold,numel(alpha),BasisSize);
+      else
+        thisspec = ones(size(omega));
+        logmsg(0,'  Tridiagonalization did not converge to within %g after %d steps!\n  Increase Options.LLKM (current settings [%d,%d,%d,%d])',...
+          Opt.Threshold,BasisSize,Opt.LLKM');
       end
 
     case 'C' % conjugated gradients
@@ -859,11 +846,9 @@ for iOri = 1:nOrientations
       
     case '\' % MATLAB backslash solver for linear system
       I = speye(size(L));
-      for iVec = 1:nVectors
-        rho0 = StartingVector(:,iVec);
-        for iomega = 1:numel(omega)
-          thisspec(iVec,iomega) = rho0'*((L+omega(iomega)*I)\rho0);
-        end
+      rho0 = StartingVector;
+      for iomega = 1:numel(omega)
+        thisspec(iomega) = rho0'*((L+omega(iomega)*I)\rho0);
       end
       thisspec = real(thisspec);
       
@@ -871,22 +856,17 @@ for iOri = 1:nOrientations
       L = full(L);
       [U,Lambda] = eig(L);
       Lambda = diag(Lambda);
-      thisspec = zeros(nVectors,numel(omega));      
-      for iVec = 1:nVectors
-        rho0 = StartingVector(:,iVec);
-        Amplitude = (rho0'*U).'.*(U\rho0);
-        thisspec_ = 0;
-        for iPeak = 1:numel(Amplitude)
-          thisspec_ = thisspec_ + Amplitude(iPeak)./(Lambda(iPeak)+omega);
-        end
-        thisspec(iVec,:) = thisspec_;
+      rho0 = StartingVector;
+      Amplitude = (rho0'*U).'.*(U\rho0);
+      thisspec_ = 0;
+      for iPeak = 1:numel(Amplitude)
+        thisspec_ = thisspec_ + Amplitude(iPeak)./(Lambda(iPeak)+omega);
       end
+      thisspec = thisspec_;
 
   end
 
-  for iTrans = 1:nVectors
-    spec{iTrans}(iOri,:) = thisspec(iTrans,:);
-  end
+  spec(iOri,:) = thisspec;
 
 end % orientation loop
 %==============================================================
@@ -898,12 +878,9 @@ end % orientation loop
 %==============================================================
 % Accumulation
 logmsg(1,'Spectra accumulation (%d spectra)',nOrientations);
-totalspec = zeros(nVectors,Exp.nPoints);
-for iTrans = 1:nVectors
-  for iOri = 1:nOrientations
-    totalspec(iTrans,:) = totalspec(iTrans,:) + ...
-      spec{iTrans}(iOri,:)*Weights(iOri);
-  end
+totalspec = 0;
+for iOri = 1:nOrientations
+  totalspec = totalspec + spec(iOri,:)*Weights(iOri);
 end
 spec = totalspec;
 %==============================================================
