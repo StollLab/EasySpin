@@ -518,6 +518,25 @@ if ~isfield(Opt,'MpSymm')
 end
 Basis.MpSymm = Opt.MpSymm;
 
+switch Opt.Solver
+  case 'L'
+    if (Opt.Lentz==1) % Lentz method
+      SolverString = 'Lanczos tridiagonalization, left-to-right continued fraction evaluation';
+    else
+      SolverString = 'Lanczos tridiagonalization, right-to-left continued fraction evaluation';
+    end
+  case 'C'
+    SolverString = 'conjugate gradients tridiagonalization, right-to-left continued fraction evaluation';
+  case 'R'
+    SolverString = 'biconjugate gradients, stabilized';
+  case '\'
+    SolverString = 'backslash linear';
+  case 'D'
+    SolverString = 'direct method (eigenbasis, Binsch)';
+  otherwise
+    error('Unknown method in Options.Solver. Must be ''L'', ''R'', ''C'', or ''\''.');
+end
+
 if ~generalLiouvillian
   maxElements = 5e6; % used in chili_lm
   maxRows = 2e5; % used in chili_lm
@@ -690,10 +709,9 @@ if generalLiouvillian
 else
   
   [Basis.Size,Basis.SpatialSize,Indices] = chili_basiscount(Basis,Sys);
-  logmsg(1,'  basis size: %d (%d spatial, %d spin)',Basis.Size,Basis.SpatialSize,Basis.Size/Basis.SpatialSize);
+  logmsg(1,'  basis size: %d',Basis.Size);
   
-  % Pick functions for the calculation of Liouvillian and starting vector
-  Basis.MeirovitchSymm = Opt.MpSymm; % needed for chili_lm*
+  % Pick functions for the calculation of the Liouvillian
   switch Sys.nNuclei
     case 0, chili_lm = @chili_lm0;
     case 1, chili_lm = @chili_lm1;
@@ -712,7 +730,7 @@ if generalLiouvillian
   Gamma = spkroneye(Gamma,Sys.nStates^2);
   Gamma = Gamma(keep,keep);
   
-  logmsg(1,'Calculating detection operator');
+  logmsg(1,'Calculating detection operator matrix');
   Det = SxOps(:);
   if Opt.pqOrder
     Det = Det(idxpq);
@@ -721,6 +739,7 @@ end
 
 % Loop over all orientations
 %=====================================================================
+spec = 0;
 for iOri = 1:nOrientations
   
   % Set up orientation
@@ -729,7 +748,7 @@ for iOri = 1:nOrientations
     iOri,nOrientations,phi(iOri)*180/pi,theta(iOri)*180/pi,Weights(iOri));
 
   if generalLiouvillian
-    D1 = wignerd(1,[phi,theta,0]);
+    D1 = wignerd(1,[phi(iOri),theta(iOri),0]);
     D2 = wignerd(2,[phi(iOri) theta(iOri) 0]);
     [Q0,Q1,Q2] = rbos(D1,D2,T0,T1,T2,F0,F1,F2);
     if Opt.pqOrder
@@ -807,27 +826,10 @@ for iOri = 1:nOrientations
   % Computation of the spectral function
   %==============================================================
   logmsg(1,'Computing spectrum...');
-  switch Opt.Solver
-    case 'L'
-      if (Opt.Lentz==1) % Lentz method
-        SolverString = 'Lanczos tridiagonalization, left-to-right continued fraction evaluation';
-      else
-        SolverString = 'Lanczos tridiagonalization, right-to-left continued fraction evaluation';
-      end
-    case 'C'
-      SolverString = 'conjugate gradients tridiagonalization, right-to-left continued fraction evaluation';
-    case 'R'
-      SolverString = 'biconjugate gradients, stabilized';
-    case '\'
-      SolverString = 'backslash linear';
-    case 'D'
-      SolverString = 'direct method (eigenbasis, Binsch)';
-    otherwise
-      error('Unknown method in Options.Solver. Must be ''L'', ''R'', ''C'', or ''\''.');
-  end
   logmsg(1,'  solver: %s',SolverString);
   switch Opt.Solver
-    case 'L' % Lanczos method by Jack Freed
+    
+    case 'L' % Lanczos method
       [alpha,beta,minerr] = chili_lanczos(L,StartingVector,omega,Opt);
       minerr = minerr(end);
       if (minerr<Opt.Threshold)
@@ -863,38 +865,24 @@ for iOri = 1:nOrientations
       end
       thisspec = real(thisspec);
       
-    case 'D' %"direct" method by Binsch (eigenbasis)
+    case 'D' % "direct" method by Binsch (eigenbasis)
       L = full(L);
       [U,Lam] = eig(L);
       Lam = diag(Lam);
       rho0 = StartingVector;
       Amplitude = (rho0'*U).'.*(U\rho0);
-      thisspec_ = 0;
+      thisspec = 0;
       for iPeak = 1:numel(Amplitude)
-        thisspec_ = thisspec_ + Amplitude(iPeak)./(Lam(iPeak)+omega);
+        thisspec = thisspec + Amplitude(iPeak)./(Lam(iPeak)+omega);
       end
-      thisspec = thisspec_;
 
   end
 
-  spec(iOri,:) = thisspec;
-
+  spec = spec + thisspec*Weights(iOri);
+  
 end % orientation loop
 %==============================================================
 
-
-
-%==============================================================
-% Accumulation of spectra
-%==============================================================
-% Accumulation
-logmsg(1,'Spectra accumulation (%d spectra)',nOrientations);
-totalspec = 0;
-for iOri = 1:nOrientations
-  totalspec = totalspec + spec(iOri,:)*Weights(iOri);
-end
-spec = totalspec;
-%==============================================================
 
 
 %==============================================================

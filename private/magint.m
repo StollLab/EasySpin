@@ -31,7 +31,7 @@ iInt = 1;
 
 B0 = {0 0 CenterField/1e3}; % mT -> T
 
-% Electron Zeeman interaction terms
+% Electron Zeeman interaction terms (muB*B*g*S/h)
 %--------------------------------------------------------------------------
 if ~System.fullg
   g = diag(System.g);
@@ -45,7 +45,7 @@ for iSpin = 1:nElSpins
   iInt = iInt + 1;
 end
 
-% Hyperfine interaction terms
+% Hyperfine interaction terms (S*A*I)
 %--------------------------------------------------------------------------
 for iElSpin = 1:nElSpins
   eidx = 3*(iElSpin-1)+(1:3);
@@ -94,7 +94,7 @@ if (nZFS>0)
   end
 end
 
-% Nuclear Zeeman interaction terms
+% Nuclear Zeeman interaction terms (-muN*B*gn*I/h)
 %--------------------------------------------------------------------------
 if IncludeNuclearZeeman
   for iNucSpin = 1:nNucSpins

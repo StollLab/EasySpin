@@ -8,7 +8,7 @@
 %   If H is a Liouville operator matrix with basis functions in descending mm order,
 %   then H(idx,idx) is the same operator with basis functions in ascending pq order.
 %
-% pqorder is used by chili and its subfunctions
+% pqorder is used by chili.
 
 function [idx,mm,pq] = pqorder(Spins)
 
