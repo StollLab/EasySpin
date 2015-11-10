@@ -101,7 +101,7 @@ if IncludeNuclearZeeman
     I_ = SpinOps(nElSpins+iNucSpin,:);
     gn_ = System.gn(iNucSpin);
     [T0{iInt},T1(iInt,:),T2(iInt,:)] = istotensor(B0,I_);
-    [F0(iInt),F1(iInt,:),F2(iInt,:)] = istocoeff(gn_*nmagn/planck);
+    [F0(iInt),F1(iInt,:),F2(iInt,:)] = istocoeff(-gn_*nmagn/planck);
     iInt = iInt + 1;
   end
 end
