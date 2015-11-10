@@ -469,8 +469,13 @@ if doPostConvolution
 end
 
 if ~generalLiouvillian
-  if (Sys.nNuclei>2)
-    error('Cannot have more than two nuclei for the Stochastic Liouville equation with this Opt.Method.');
+  % Pick functions for the calculation of the Liouvillian
+  switch Sys.nNuclei
+    case 0, chili_lm = @chili_lm0;
+    case 1, chili_lm = @chili_lm1;
+    case 2, chili_lm = @chili_lm2;
+    otherwise
+      error('Cannot have more than two nuclei for the Stochastic Liouville equation with this Opt.Method.');
   end
 end
 
@@ -536,6 +541,7 @@ switch Opt.Solver
   otherwise
     error('Unknown method in Options.Solver. Must be ''L'', ''R'', ''C'', or ''\''.');
 end
+logmsg(1,'Solver: %s',SolverString);
 
 if ~generalLiouvillian
   maxElements = 5e6; % used in chili_lm
@@ -644,16 +650,15 @@ end
 Weights = GridWeights.*OrderingWeights;
 Weights = 4*pi*Weights/sum(Weights);
 
-% Set up quantum numbers for basis
-%-------------------------------------------------------
+
+% Basis set preparations
+%-----------------------------------------------------------------------
 logmsg(1,'Setting up basis set...');
 logmsg(1,'  spatial basis: Leven max %d, Lodd max %d, Kmax %d, Mmax %d, deltaK %d, jKmin %+d',...
   Basis.LLKM(1),Basis.LLKM(2),Basis.LLKM(3),Basis.LLKM(4),Basis.deltaK,Basis.jKmin);
 logmsg(1,'  spin basis: pSmin %+d, pImax %d',Basis.pSmin,Basis.pImax);
 logmsg(1,'  M-p symmetry: %d',Basis.MpSymm);
 
-% Preparations
-%-----------------------------------------------------------------------
 if generalLiouvillian
   
   % Set up basis
@@ -661,23 +666,6 @@ if generalLiouvillian
   nOriBasis = size(Basis.List,1);
   nSpinBasis = Sys.nStates^2;
   logmsg(1,'  complete product basis size: %d (%d spatial, %d spin)',nOriBasis*nSpinBasis,nOriBasis,nSpinBasis);
-  
-  % Generate all cartesian spin operators
-  for iSpin = 1:numel(Sys.Spins)
-    SpinOps{iSpin,1} = sop(Sys.Spins,iSpin,1,'sparse');
-    SpinOps{iSpin,2} = sop(Sys.Spins,iSpin,2,'sparse');
-    SpinOps{iSpin,3} = sop(Sys.Spins,iSpin,3,'sparse');
-  end
-  
-  % Generate ISTOs and precalculate 3j symbols
-  [T0,T1,T2,F0,F1,F2] = magint(Sys,SpinOps,CenterField,Opt.IncludeNZI);
-  [jjj0,jjj1,jjj2] = jjjsymbol(Basis.LLKM,any(F1(:)));
-  
-  % Set up detection operator
-  SxOps = SpinOps{1,1};
-  for e = 2:Sys.nElectrons
-    SxOps = SxOps + SpinOps{e,1};
-  end
   
   % Index vector for reordering basis states from m1-m2 order (standard) to p-q order (Freed)
   [idxpq,mm,pq] = pqorder(Sys.Spins);
@@ -703,38 +691,48 @@ if generalLiouvillian
     keep = keep & keep_Mp(:);
     logmsg(1,'  applying M-p symmetry: keeping %d of %d functions',sum(keep),numel(keep));
   end
-    
+  
   logmsg(1,'  final basis size: %d (%f%% of %d)',sum(keep),100*sum(keep)/nOriBasis/nSpinBasis,nOriBasis*nSpinBasis);
     
 else
   
   [Basis.Size,Basis.SpatialSize,Indices] = chili_basiscount(Basis,Sys);
   logmsg(1,'  basis size: %d',Basis.Size);
-  
-  % Pick functions for the calculation of the Liouvillian
-  switch Sys.nNuclei
-    case 0, chili_lm = @chili_lm0;
-    case 1, chili_lm = @chili_lm1;
-    case 2, chili_lm = @chili_lm2;
-    otherwise
-      error('The chosen method cannot handle %d nuclei.',Sys.nNuclei);
-  end
-  
+    
 end
 
+% Precalculating operator matrices
+%-----------------------------------------------------------------------
 if generalLiouvillian
-  logmsg(1,'Calculating diffusion superoperator matrix');
+  
+  logmsg(1,'Generating all cartesian spin operators');
+  for iSpin = 1:numel(Sys.Spins)
+    SpinOps{iSpin,1} = sop(Sys.Spins,iSpin,1,'sparse');
+    SpinOps{iSpin,2} = sop(Sys.Spins,iSpin,2,'sparse');
+    SpinOps{iSpin,3} = sop(Sys.Spins,iSpin,3,'sparse');
+  end
+  
+  logmsg(1,'Generating ISTOs and precalculating 3j symbols');
+  [T0,T1,T2,F0,F1,F2] = magint(Sys,SpinOps,CenterField,Opt.IncludeNZI);
+  [jjj0,jjj1,jjj2] = jjjsymbol(Basis.LLKM,any(F1(:)));
+  
+  logmsg(1,'Setting up the detection operator');
+  SxOp = SpinOps{1,1};
+  for e = 2:Sys.nElectrons
+    SxOp = SxOp + SpinOps{e,1};
+  end
+  SxOp = SxOp(:);
+  if Opt.pqOrder
+    SxOp = SxOp(idxpq);
+  end
+  
+  logmsg(1,'Calculating the relaxation superoperator matrix');
   % Calculate relaxation superoperator in spatial basis, expand to full product
   % basis, and remove unwanted basis functions.
   Gamma = diffsuperop(Dynamics.Diff,Basis.List);
   Gamma = spkroneye(Gamma,Sys.nStates^2);
   Gamma = Gamma(keep,keep);
   
-  logmsg(1,'Calculating detection operator matrix');
-  Det = SxOps(:);
-  if Opt.pqOrder
-    Det = Det(idxpq);
-  end
 end
 
 % Loop over all orientations
@@ -753,10 +751,10 @@ for iOri = 1:nOrientations
     [Q0,Q1,Q2] = rbos(D1,D2,T0,T1,T2,F0,F1,F2);
     if Opt.pqOrder
       Q0 = Q0(idxpq,idxpq);
-      for k=1:numel(Q1)
+      for k = 1:numel(Q1)
         Q1{k} = Q1{k}(idxpq,idxpq);
       end
-      for k=1:numel(Q2)
+      for k = 1:numel(Q2)
         Q2{k} = Q2{k}(idxpq,idxpq);
       end
     end
@@ -769,7 +767,7 @@ for iOri = 1:nOrientations
   logmsg(1,'Computing starting vector...');
   if generalLiouvillian
     % set up in full product basis, then prune
-    StartingVector = startvec(Basis.List,Det);
+    StartingVector = startvec(Basis.List,SxOp);
     StartingVector = StartingVector(keep);
   else
     StartingVector = chili_startingvector(Basis,Potential,Sys.I);
@@ -826,7 +824,6 @@ for iOri = 1:nOrientations
   % Computation of the spectral function
   %==============================================================
   logmsg(1,'Computing spectrum...');
-  logmsg(1,'  solver: %s',SolverString);
   switch Opt.Solver
     
     case 'L' % Lanczos method
@@ -941,7 +938,7 @@ end
 %==============================================================
 % Basis set analysis
 %==============================================================
-Opt.BasisAnalysis = 0;
+Opt.BasisAnalysis = false;
 if (Opt.BasisAnalysis)
   logmsg(1,'-------------------------------------------------------------------');
   logmsg(1,'Basis set analysis');
