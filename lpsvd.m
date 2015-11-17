@@ -25,7 +25,7 @@ function [y,parameters] = lpsvd(data,time,method)
 % Model Order estimated as per:
 % Wax, M.; Kailath, T.; IEEE Trans. Acoust. Speech Signal ASSP-39 387 (1985)
 
-
+data = data(:);
 if length(data)~=length(time)
   error('Time vector must be the same length as data')
 end
