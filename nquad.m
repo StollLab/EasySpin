@@ -1,4 +1,4 @@
-% nquad  Nuclear quadrupole interaction Hamiltonian 
+% nquad  Nuclear quadrupole interaction Hamiltonian
 %
 %   Hnq = nquad(SpinSystem)
 %   Hnq = nquad(SpinSystem,Nuclei)
@@ -21,14 +21,17 @@ if (nargin<3), Options = ''; end
 if ~ischar(Options)
   error('Third input must be a string, ''sparse''.');
 end
-sparseResult = strcmp(Options,'sparse');
+
+sparseOutput = strcmp(Options,'sparse');
 
 [Sys,err] = validatespinsys(SpinSystem);
 error(err);
 
 nNuclei = Sys.nNuclei;
 
-if isempty(Nuclei), Nuclei = 1:nNuclei; end
+if isempty(Nuclei)
+  Nuclei = 1:nNuclei;
+end
 
 if any(Nuclei>nNuclei) || any(Nuclei<1)
   error('Nuclear spin index/indices (2nd argument) out of range!');
@@ -40,40 +43,42 @@ nElectrons = Sys.nElectrons;
 
 % Nuclear quadrupole interaction
 %---------------------------------------------------------
-for iNuc = 1:length(Nuclei)
-  
-  idx = Nuclei(iNuc);
-  if ~any(Sys.Q(idx,:)), continue; end
+for iNuc = Nuclei
   
   % Construct Q matrix.
   if Sys.fullQ
-    Q = Sys.Q(3*(idx-1)+(1:3),:);
+    Q = Sys.Q(3*(iNuc-1)+(1:3),:);
   else
-    Q = diag(Sys.Q(idx,:));
+    Q = diag(Sys.Q(iNuc,:));
   end
-  if any(Sys.QFrame(idx,:))
-    R_M2Q = erot(Sys.QFrame(idx,:)); % mol frame -> Q frame
+  Q = Q*Sys.Qscale(iNuc);
+  
+  if ~any(Q(:))
+    continue
+  end
+  
+  % Apply tensor frame transformation if given.
+  if any(Sys.QFrame(iNuc,:))
+    R_M2Q = erot(Sys.QFrame(iNuc,:)); % mol frame -> Q frame
     R_Q2M = R_M2Q.'; % Q frame -> mol frame
     Q = R_Q2M*Q*R_Q2M.';
   end
   
-  Q = Q*Sys.Qscale(idx);
-  
   % Construct NQI term of spin hamiltonian.
   for k = 1:3
-    Iop{k} = sop(spvc,nElectrons+idx,k,'sparse');
+    I{k} = sop(spvc,nElectrons+iNuc,k,'sparse');
   end
   for k = 1:3
     for q = 1:3
-      Hnq = Hnq + Iop{k}*Q(k,q)*Iop{q};
+      Hnq = Hnq + I{k}*Q(k,q)*I{q};
     end
   end
-    
+  
 end % for all nuclear spins specified
 
 Hnq = (Hnq+Hnq')/2; % Hermitianize
 
-if ~sparseResult
+if ~sparseOutput
   Hnq = full(Hnq);
 end
 
