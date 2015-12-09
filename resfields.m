@@ -987,6 +987,14 @@ for iOri = 1:nOrientations
             nRediags = nRediags + 1;
             if issparse(kF)
               [Vectors_,Energies] = eigs(kF+ResonanceFields(iReson)*kGzL,nLevels);
+              % A sort of workaround for diagonalization using eigs, the
+              % energies are not ordered which results in a miscalculation
+              % of mu
+              [Energies,ind] = sort(diag(Energies));
+              Energies = diag(Energies);
+              Vectors_ = Vectors_(:,ind);
+              
+              %[Vectors_,Energies] = eig(full(kF+ResonanceFields(iReson)*kGzL));
             else
               [Vectors_,Energies] = eig(kF+ResonanceFields(iReson)*kGzL);
             end
