@@ -1083,32 +1083,41 @@ for iOri = 1:nOrientations
     ManifoldsInvolved = [1 2];
 
   else
-
-    % automatic transition selection
+    
+    % transition selection
     %------------------------------------------------------------
-    if isempty(Opt.Transitions)
-      H = F + Exp.Field*(zLab_M(1)*Gx + zLab_M(2)*Gy + zLab_M(3)*Gz);
-      [eV,eE] = eig(H);
-      % Boltzmann - temperature aware
-      SyLab = yLab_M(1)*Sx + yLab_M(2)*Sy + yLab_M(3)*Sz;
-      SyLab = abs(eV'*SyLab*eV);
-      maxSyy = max(SyLab(:));
-      
-      if (OrientationSelection)
-        eE = real(diag(eE));
-        dE = eE(:,ones(1,length(eE)));
-        dE = (dE-dE') - Exp.mwFreq*1e3; % MHz
-        excitationAmplitude = exp(-(dE/Exp.ExciteWidth).^2);
-        SyLab = SyLab.*excitationAmplitude;
-      end
-      
-      SyLab(SyLab<Opt.OriThreshold*maxSyy) = 0;
-      [v,u,OriSelWeight] = find(tril(SyLab,-1));
-    else
-      u = Opt.Transitions(:,1);
-      v = Opt.Transitions(:,2);
-      OriSelWeight = ones(1,length(u));
+    H = F + Exp.Field*(zLab_M(1)*Gx + zLab_M(2)*Gy + zLab_M(3)*Gz);
+    [eV,eE] = eig(H);
+    eE = real(diag(eE));
+    SyLab = yLab_M(1)*Sx + yLab_M(2)*Sy + yLab_M(3)*Sz;
+    SyLab = abs(eV'*SyLab*eV);
+    maxSyy = max(SyLab(:));
+    
+    if (OrientationSelection)
+      dE = bsxfun(@minus,eE,eE.') - Exp.mwFreq*1e3; % MHz
+      excitationAmplitude = exp(-(dE/Exp.ExciteWidth).^2);
+      SyLab = SyLab.*excitationAmplitude;
     end
+    
+    if ~isempty(Exp.Temperature)
+      % make temperature aware, include Boltzmann populations
+    end
+    
+    % Remove transitions that are not excited
+    SyLab(SyLab<Opt.OriThreshold*maxSyy) = 0;
+    
+    % Remove transitions that are not wanted by the user
+    if ~isempty(Opt.Transitions)
+      rmvTransition = ones(size(H));
+      for t = 1:size(Opt.Transitions,1)
+        tr = Opt.Transitions(t,:);
+        rmvTransition(tr(1),tr(2)) = 0;
+        rmvTransition(tr(2),tr(1)) = 0;
+      end
+      SyLab(rmvTransition~=0) = 0;
+    end
+    
+    [v,u,OriSelWeight] = find(tril(SyLab,-1));
     Transitions = [u,v];
     nTransitions = size(Transitions,1);
 
@@ -1119,7 +1128,7 @@ for iOri = 1:nOrientations
 
     % computation of <S> for all manifolds involved
     %------------------------------------------------------------
-    ManifoldsInvolved = zeros(1,length(H));
+    ManifoldsInvolved = zeros(1,length(Sx));
     ManifoldsInvolved(u) = 1;
     ManifoldsInvolved(v) = 1;
     ManifoldsInvolved = find(ManifoldsInvolved);
