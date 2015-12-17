@@ -1,4 +1,3 @@
-function [y,parameters] = lpsvd(data,time,method,order)
 % Linear Prediction Singular Value Decomposition
 %
 %  predictedSpectrum = lpsvd(Spectrum, Time, Method, Order)
@@ -26,8 +25,10 @@ function [y,parameters] = lpsvd(data,time,method,order)
 % Model Order estimated as per:
 % Wax, M.; Kailath, T.; IEEE Trans. Acoust. Speech Signal ASSP-39 387 (1985)
 
-% Check inputs
 
+function [y,parameters] = lpsvd(data,time,method,order)
+
+% Check inputs
 dim = size(data);
 
 if min(dim)>1
