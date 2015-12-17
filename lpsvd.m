@@ -1,7 +1,7 @@
-function [y,parameters] = lpsvd(data,time,method)
+function [y,parameters] = lpsvd(data,time,method,order)
 % Linear Prediction Singular Value Decomposition
 %
-%  predictedSpectrum = lpsvd(Spectrum, Time, method)
+%  predictedSpectrum = lpsvd(Spectrum, Time, Method, Order)
 % [predictedSpectrum, PredictionParameters] = lpsvd(...)
 %
 % Performs Linear Prediction SVD using a damped exponential model:
@@ -11,7 +11,7 @@ function [y,parameters] = lpsvd(data,time,method)
 % Time - The corresponding time vector for the spectrum, necessary to
 %        predict the proper phase of the signal.
 %
-% method - the method string input determines the LPSVD algorithm used,
+% Method - the method string input determines the LPSVD algorithm used,
 %          if not provided it will default to 'ss'
 %
 % methods:
@@ -21,17 +21,31 @@ function [y,parameters] = lpsvd(data,time,method)
 % Kung, S.Y.; Arun, K.S.; Bhaskar Rao, D.V.; J. Opt. Soc. Am. 73, 1799 (1983)
 % Barkhuijsen, H.; De Beer, R.; Van Ormondt, D.; J. Mag. Reson. 73, 553 (1987)
 %
-%
+% Order - The number of sinusoides to attempt to fit to the data if no order 
+%         is provided it will be automatically estimated.           
 % Model Order estimated as per:
 % Wax, M.; Kailath, T.; IEEE Trans. Acoust. Speech Signal ASSP-39 387 (1985)
 
+% Check inputs
+
+dim = size(data);
+
+if min(dim)>1
+  error('Data must be a row or column vector.');
+end
+if numel(dim)>2
+  error('Data must be a row or column vector.');
+end
+
 data = data(:);
+
 if length(data)~=length(time)
   error('Time vector must be the same length as data')
 end
-if nargin<3
+if nargin<3 || isempty(method)
   method = 'ss';
 end
+
 
 dat = data/max(real(data));
 N = length(data);
@@ -46,15 +60,18 @@ A = hankel(conj(dat(2:N-L+1)), conj(dat((N-L+1):N)));
 S = diag(S);
 
 % determine the model order
-M = length(S);
-mdl = zeros(1,M);
-for k = 0:M-1;
-  mdl(k+1) = N*((M-k)*log((sum(S(k+1:M))/(M-k))) - sum(log(S(k+1:M)))) ...
-    + k*(2*M-k)*log(N)/2;
+if nargin<4
+  M = length(S);
+  mdl = zeros(1,M);
+  for k = 0:M-1;
+    mdl(k+1) = N*((M-k)*log((sum(S(k+1:M))/(M-k))) - sum(log(S(k+1:M)))) ...
+      + k*(2*M-k)*log(N)/2;
+  end
+  [dummy, m] = min(mdl);
+  m = m - 1;
+else
+  m = order;
 end
-[dummy, m] = min(mdl);
-m = m - 1;
-
 % truncate the singular values and eigenvectors to the model order
 Um = U(:,1:m);
 Sm = S(1:m);
@@ -122,7 +139,7 @@ parameters.amplitude = amp;
 parameters.phase = phase;
 parameters.model = @(time) exp(time(:)*(-damp' + 1i*2*pi*freq')) * (amp .*exp(1i*phase));
 
-
+y= reshape(y,dim);
 return
 
 
