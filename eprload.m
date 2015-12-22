@@ -697,6 +697,9 @@ nz = 1;
 Dimensions = [nx ny nz];
 Data = getmatrix([FullBaseName,SpcExtension],Dimensions,NumberFormat,Endian,isComplex);
 
+% convert to a row vector in the case of 1D dataset
+if (ny==1), Data = Data(:).'; end
+  
 % Scale spectrum/spectra
 if ~isempty(Scaling)
   
