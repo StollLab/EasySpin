@@ -41,7 +41,7 @@ end
 %-------- mex compilation check --------------------------------
 fileName = 'cubicsolve';
 if (exist(fileName,'file')~=3)
-  easyspincompile;
+ easyspincompile;
   if (exist(fileName,'file')~=3)
     error('EasySpin: Generation of mex files failed.');
   end
@@ -54,6 +54,17 @@ correctFields = {'S','Nucs','Abund','n',...
   'gStrain','HStrain','AStrain','DStrain',...
   'aF','B0','B2','B4','B6','B8','B10','B12',...
   'lw','lwpp','lwEndor','tcorr','logtcorr','Diff','logDiff'};
+% build cell of allowed higher order arguments (lb+ls) must be even
+t = 54; % number of allowed combinations
+for lB = 0:8 %conversion coefficients for spherical Harmonics known to 8th order
+  lS = 1:8; %Stevens operators up to 12th order supported, but conversion factors to 8th order
+  for m=find(mod(lB+lS,2)-1)
+      zbcell{t} = sprintf('ZB%d%d',lB,lS(m)); 
+      t = t-1;
+  end
+end
+correctFields = [correctFields, zbcell];
+
 givenFields = fieldnames(Sys);
 for f = 1:numel(givenFields)
   givField = givenFields{f};
