@@ -935,7 +935,7 @@ idxPositions = (Positions-Range(1))/diff(Range) * (nPoints-1);
 idxPositions = 1 + round(idxPositions);
 
 % Identify in-range lines and bin them into spectrum
-inRange = (idxPositions>=1) | (idxPositions<=nPoints);
+inRange = (idxPositions>=1) & (idxPositions<=nPoints);
 Spectrum = full(sparse(1,idxPositions(inRange),Amplitudes(inRange),1,nPoints));
 
 return
