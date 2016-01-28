@@ -934,8 +934,16 @@ function Spectrum = constructstickspectrum(Positions,Amplitudes,Range,nPoints)
 idxPositions = (Positions-Range(1))/diff(Range) * (nPoints-1);
 idxPositions = 1 + round(idxPositions);
 
-% Identify in-range lines and bin them into spectrum
+% Identify in-range lines
 inRange = (idxPositions>=1) & (idxPositions<=nPoints);
+if any(idxPositions<1)  
+  logmsg(0,'** Spectrum exceeds sweep range. Artifacts at lower limit possible.');
+end
+if any(idxPositions>nPoints)
+  logmsg(0,'** Spectrum exceeds sweep range. Artifacts at upper limit possible.');
+end
+
+% Bin in-range lines into spectrum
 Spectrum = full(sparse(1,idxPositions(inRange),Amplitudes(inRange),1,nPoints));
 
 return
