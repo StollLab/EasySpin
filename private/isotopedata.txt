@@ -22,7 +22,7 @@
 %   International Atomic Energy Agency, INDC(NDS)-0658, February 2014
 %     (https://www-nds.iaea.org/publications/indc/indc-nds-0658.pdf)
 %  (Typo for Rh-103: Moment is factor of 10 too large)
-% 237Np data from
+% 237Np, 239Pu, 243Am data from
 %   N.E.Holden
 %   Table of the Isotopes
 %   CRC Handbook of Physics and Chemistry, section 11-2
@@ -390,8 +390,8 @@
 92 235 * U   uranium        3.5 -0.109       0.7200   +4.936
 92 238 * U   uranium        0.0  0.0        99.2745    0
 93 237 * Np  neptunium      2.5 +1.256       0.0      +3.87
-94   0 * Pu  plutonium     -1.0  0.0         0.0       0
-95   0 * Am  americium     -1.0  0.0         0.0       0
+94 239 * Pu  plutonium      0.5 +0.406       0.0       0
+95 243 * Am  americium      2.5 +0.6         0.0      +2.86
 96   0 * Cm  curium        -1.0  0.0         0.0       0
 97   0 * Bk  berkelium     -1.0  0.0         0.0       0
 98   0 * Cf  californium   -1.0  0.0         0.0       0
