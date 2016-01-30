@@ -692,18 +692,6 @@ if PredefinedExperiment
 end
 
 
-% Pick nuclei to be included in the computation
-shfNuclei = 1:Sys.nNuclei;
-if ~isempty(shfNuclei)
-  if all(idealPulse) && isfield(Exp,'ExciteWidth')
-    idxStrongNuclei = max(abs(Sys.A),[],2)>Exp.ExciteWidth;
-    shfNuclei(idxStrongNuclei) = [];
-  end
-end
-
-TwoElectronManifolds = (Sys.nElectrons==1) && (Sys.S==1/2) && ...
-  (numel(shfNuclei)==Sys.nNuclei);
-
 OrientationSelection = isfield(Exp,'mwFreq');
 if (OrientationSelection)
   logmsg(1,'Microwave frequency given: orientation selection is on.');
@@ -747,11 +735,21 @@ else
   shfNuclei = 1:Sys.nNuclei;
   if ~isempty(shfNuclei)
     if all(idealPulse) && isfield(Exp,'ExciteWidth')
-      idxStrongNuclei = max(abs(Sys.A),[],2)>Exp.ExciteWidth;
+      if Sys.fullA
+        for iNuc = 1:shfNuclei
+          Amatrix = Sys.A((iNuc-1)*3+(1:3),:);
+          idxStrongNuclei(iNuc) = max(max(abs(Amatrix)))>Exp.ExciteWidth;
+        end
+      else
+        idxStrongNuclei = max(abs(Sys.A),[],2)>Exp.ExciteWidth;
+      end
       shfNuclei(idxStrongNuclei) = [];
     end
   end
 end
+
+TwoElectronManifolds = (Sys.nElectrons==1) && (Sys.S==1/2) && ...
+  (numel(shfNuclei)==Sys.nNuclei);
 
 % Expansion factor: determines size of spectral buffer
 if ~isfield(Opt,'Expand')
