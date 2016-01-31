@@ -1,9 +1,10 @@
+function [Exp,Opt] = p_symandgrid(Sys,Exp,Opt)
 %==========================================================================
 % Symmetry determination and orientational grid.
 %==========================================================================
 logmsg(1,'-orientations------------------------------------------');
 
-if (PowderSimulation)
+if (Exp.PowderSimulation)
   
   logmsg(1,'  powder sample (randomly oriented centers)');
   
@@ -38,9 +39,9 @@ if (PowderSimulation)
   
   
   % Convert symmetry to octant number.
-  [maxPhi,openPhi,nOctants] = symparam(Opt.Symmetry);
-  openPhi = 0;
-  InterpParams = [Opt.nKnots(1),openPhi,nOctants];
+  [maxPhi,Opt.openPhi,Opt.nOctants] = symparam(Opt.Symmetry);
+  Opt.openPhi = 0;
+  Opt.InterpParams = [Opt.nKnots(1),Opt.openPhi,Opt.nOctants];
   
   
   % Display symmetry group and frame.
@@ -52,22 +53,22 @@ if (PowderSimulation)
   end
   
   % Get orientations for the knots, molecular frame.
-  [Vecs,Weights] = sphgrid(Opt.Symmetry,Opt.nKnots(1),'cf');
+  [Vecs,Exp.OriWeights] = sphgrid(Opt.Symmetry,Opt.nKnots(1),'cf');
   
   % Transform vector to reference frame representation and convert to polar angles.
-  [phi,theta] = vec2ang(Opt.SymmFrame*Vecs);
+  [Exp.phi,Exp.theta] = vec2ang(Opt.SymmFrame*Vecs);
   clear Vecs;
-  Exp.CrystalOrientation = [phi;theta].';
-  nOrientations = numel(phi);
+  Exp.CrystalOrientation = [Exp.phi;Exp.theta].';
+  nOrientations = numel(Exp.phi);
   
   % Display information on orientational grid
-  switch (nOctants)
+  switch (Opt.nOctants)
     case -1, str = '  region: north pole (single point)';
     case 0,  str = '  region: a quarter of a meridian';
-    otherwise, str = sprintf('  region: %d octant(s) of the upper hemisphere',nOctants);
+    otherwise, str = sprintf('  region: %d octant(s) of the upper hemisphere',Opt.nOctants);
   end
   logmsg(1,str);
-  if nOctants==-1
+  if Opt.nOctants==-1
     logmsg(1,'  1 orientation (1 knot)');
   else
     logmsg(1,'  %d orientations (%d knots)',nOrientations,Opt.nKnots(1));
@@ -93,10 +94,10 @@ else % no powder simulation
   if transpose, Exp.CrystalOrientation = Exp.CrystalOrientation.'; end
   nOrientations = size(Exp.CrystalOrientation,1);
 
-  openPhi = 1;
-  nOctants = -2;
+  Opt.openPhi = 1;
+  Opt.nOctants = -2;
   
-  Weights = ones(1,nOrientations)*4*pi; % for consistency with powder sims (factor from integral over phi and theta)
+  Exp.OriWeights = ones(1,nOrientations)*4*pi; % for consistency with powder sims (factor from integral over phi and theta)
   
   if (nOrientations==1)
     logmsg(1,'  crystal sample');
@@ -105,4 +106,3 @@ else % no powder simulation
   end
   
 end
-%==========================================================================

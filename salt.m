@@ -387,7 +387,9 @@ if (Sys.nNuclei==0)
 end
 %====================================================================
 
-p_symandgrid;
+[Exp,Opt] = p_symandgrid(Sys,Exp,Opt);
+nOrientations = size(Exp.CrystalOrientation,1);
+nOctants = Opt.nOctants;
 
 
 %==========================================================================
@@ -406,12 +408,12 @@ if (Opt.DoPreSelection)
   logmsg(1,'  computing orientations which fall into excitation window');
   OriSys = anisosubsys(Sys);
   OriExp = Exp;
-  OriExp.Orientations = [phi;theta];
+  OriExp.Orientations = [Exp.phi;Exp.theta];
   Opt.OriWeights = orisel(OriSys,OriExp);
   Opt.OriWeights = Opt.OriWeights/max(Opt.OriWeights);
   str = '  %g percent of all orientations above relative threshold %g';
   logmsg(1,sprintf(str,100*sum(Opt.OriWeights>Opt.OriThreshold)/nOrientations,Opt.OriThreshold));
-  %plot(theta*180/pi,Opt.OriWeights)
+  %plot(Exp.theta*180/pi,Opt.OriWeights)
 end
 %==========================================================================
 
@@ -609,7 +611,7 @@ if (~PowderSimulation)
       thisspec = lisum1i(Template.y,Template.x,Template.lw,thisPos,thisInt,thisWid,xAxis);
       thisspec = (2*pi)*thisspec; % for consistency with powder spectra (integral of chi)
       thisspec = thisspec/nSites;
-      thisspec = Weights(iOri)*thisspec; % for consistency with powder spectra (integral over phi,theta)
+      thisspec = Exp.OriWeights(iOri)*thisspec; % for consistency with powder spectra (integral over phi,theta)
 
       if (SummedOutput)
         spec = spec + thisspec;
@@ -639,7 +641,7 @@ elseif (nOctants==-1)
     
     thisspec = lisum1i(Template.y,Template.x,Template.lw,thisPos,thisInt,thisWid,xAxis);
     thisspec = thisspec*(2*pi); % powder integral (chi)
-    thisspec = Weights*thisspec; % powder integral (phi,theta)
+    thisspec = Exp.OriWeights*thisspec; % powder integral (phi,theta)
     
     if (SummedOutput)
       spec = spec + thisspec;
@@ -659,7 +661,7 @@ else
     if (DoInterpolation)
       [fphi,fthe] = sphgrid(Opt.Symmetry,nfKnots,'f');
     else
-      fthe = theta;
+      fthe = Exp.theta;
     end
     fSegWeights = -diff(cos(fthe))*4*pi; % sum is 4*pi
     if ~isempty(Exp.Ordering)
@@ -686,8 +688,8 @@ else
     if (DoInterpolation)
       [fphi,fthe] = sphgrid(Opt.Symmetry,nfKnots,'f');
     else
-      fthe = theta;
-      fphi = phi;
+      fthe = Exp.theta;
+      fphi = Exp.phi;
     end
     [idxTri,Areas] = triangles(nOctants,nfKnots,ang2vec(fphi,fthe));
     if ~isempty(Exp.Ordering)
@@ -724,12 +726,12 @@ else
     % Interpolation
     %------------------------------------------------------
     if (DoInterpolation)
-      fPos = esintpol(Pdat(iTrans,:),InterpParams,Opt.nKnots(2),InterpMode{1},fphi,fthe);
+      fPos = esintpol(Pdat(iTrans,:),Opt.InterpParams,Opt.nKnots(2),InterpMode{1},fphi,fthe);
       if (AnisotropicIntensities)
-        fInt = esintpol(Idat(iTrans,:),InterpParams,Opt.nKnots(2),InterpMode{2},fphi,fthe);
+        fInt = esintpol(Idat(iTrans,:),Opt.InterpParams,Opt.nKnots(2),InterpMode{2},fphi,fthe);
       end
       if (AnisotropicWidths)
-        fWid = esintpol(Wdat(iTrans,:),InterpParams,Opt.nKnots(2),InterpMode{3},fphi,fthe);
+        fWid = esintpol(Wdat(iTrans,:),Opt.InterpParams,Opt.nKnots(2),InterpMode{3},fphi,fthe);
       end
     else
       fPos = Pdat(iTrans,:);
@@ -816,9 +818,9 @@ else % if ~BruteForceSum else ...
     p(OutOfRange) = [];
     Idat{k}(OutOfRange) = [];
     if (AnisotropicIntensities)
-      spec = spec + full(sparse(1,p,Weights(k)*Idat{k},1,Exp.nPoints));
+      spec = spec + full(sparse(1,p,Exp.OriWeights(k)*Idat{k},1,Exp.nPoints));
     else
-      spec = spec + full(sparse(1,p,Weights(k),1,Exp.nPoints));
+      spec = spec + full(sparse(1,p,Exp.OriWeights(k),1,Exp.nPoints));
     end
   end
   spec = spec/Exp.deltaX;

@@ -802,7 +802,8 @@ if ~isfield(Opt,'TimeDomain'), Opt.TimeDomain = 0; end
 %==========================================================================
 % Symmetry determination and orientational grid.
 %==========================================================================
-p_symandgrid;
+[Exp,Opt] = p_symandgrid(Sys,Exp,Opt);
+nOrientations = size(Exp.CrystalOrientation,1);
 
 p_crystalorientations;
 
@@ -1193,10 +1194,10 @@ for iOri = 1:nOrientations
         end
 
         if isENDOR
-          prefactor = Weights(iOri)*OriSelWeight(iT);
+          prefactor = Exp.OriWeights(iOri)*OriSelWeight(iT);
         else
           if ~Opt.ProductRule
-            prefactor = Weights(iOri)*OriSelWeight(iT);
+            prefactor = Exp.OriWeights(iOri)*OriSelWeight(iT);
           else
             prefactor = 1;
           end
@@ -1534,7 +1535,7 @@ for iOri = 1:nOrientations
             end
             td_ = td_.*thistd;
           end
-          totaltd = totaltd + Weights(iOri)*OriSelWeight(iT)*td_;
+          totaltd = totaltd + Exp.OriWeights(iOri)*OriSelWeight(iT)*td_;
         end
 
       else

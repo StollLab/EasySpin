@@ -128,9 +128,10 @@ muOpzM = -GzM*1e6*1e3*planck; % MHz/mT -> J/T
 % Set up sample orientations
 %-------------------------------------------------
 Exp.PowderSimulation = PowderSimulation; % for communication with p_*
-p_symandgrid;
+[Exp,Opt] = p_symandgrid(Sys,Exp,Opt);
+nOrientations = size(Exp.CrystalOrientation,1);
 p_crystalorientations;
-Weights = Weights/4/pi;
+Exp.OriWeights = Exp.OriWeights/4/pi;
 
 beta = 1./T/boltzm; 
 
@@ -164,7 +165,7 @@ for iOri = 1:nOrientations
     muz_avg = (muz_expect.'*populations)./sum(populations,1);
     
     % accumulation for powder average
-    muz(iB,:) = muz(iB,:) + Weights(iOri)*muz_avg;
+    muz(iB,:) = muz(iB,:) + Exp.OriWeights(iOri)*muz_avg;
     
     if calculateChi
       dB = eps^(1/3)*max(B(iB),1); % optimal step size for numerical derivative
@@ -180,7 +181,7 @@ for iOri = 1:nOrientations
       muz_avg2 = (muz_expect.'*populations)./sum(populations,1);
       
       chizz_ = (muz_avg2-muz_avg)/dB;
-      chizz(iB,:) = chizz(iB,:) + Weights(iOri)*chizz_;
+      chizz(iB,:) = chizz(iB,:) + Exp.OriWeights(iOri)*chizz_;
     end
     
   end
