@@ -834,26 +834,23 @@ end
 % Compute nuclear spin Hamiltonians
 %=====================================================================
 logmsg(1,'computing nuclear spin sub-Hamiltonians...');
-
-NucSpace = [];
 if ~isempty(shfNuclei)
-  SeparateSpaces = Opt.ProductRule;
-  if SeparateSpaces
+  if Opt.ProductRule
     logmsg(1,'  separate subspace for each of the %d superhyperfine nuclei',numel(shfNuclei));
   else
     logmsg(1,'  complete nuclear state space of all %d superhyperfine nuclei',numel(shfNuclei));
-    NucSpace.Hnzx = 0;
-    NucSpace.Hnzy = 0;
-    NucSpace.Hnzz = 0;
-    NucSpace.Hhfx = 0;
-    NucSpace.Hhfy = 0;
-    NucSpace.Hhfz = 0;
-    NucSpace.Hnq = 0;
+    NucHams.Hnzx = 0;
+    NucHams.Hnzy = 0;
+    NucHams.Hnzz = 0;
+    NucHams.Hhfx = 0;
+    NucHams.Hhfy = 0;
+    NucHams.Hhfz = 0;
+    NucHams.Hnq = 0;
   end
   I = Sys.I(shfNuclei);
   for iiNuc = 1:numel(shfNuclei) % only shf nuclei
     % Spin operators -------------------------------------------------
-    if SeparateSpaces
+    if Opt.ProductRule
       Ix = sop(I(iiNuc),1,1);
       Iy = sop(I(iiNuc),1,2);
       Iz = sop(I(iiNuc),1,3);
@@ -866,14 +863,14 @@ if ~isempty(shfNuclei)
     
     % Nuclear Zeeman -------------------------------------------------
     pre = -Sys.gn(iNuc)*nmagn/1e3/planck/1e6; % MHz/mT
-    if SeparateSpaces
-      NucSpace(iiNuc).Hnzx = pre*Ix;
-      NucSpace(iiNuc).Hnzy = pre*Iy;
-      NucSpace(iiNuc).Hnzz = pre*Iz;
+    if Opt.ProductRule
+      NucHams(iiNuc).Hnzx = pre*Ix;
+      NucHams(iiNuc).Hnzy = pre*Iy;
+      NucHams(iiNuc).Hnzz = pre*Iz;
     else
-      NucSpace.Hnzx = NucSpace.Hnzx + pre*Ix;
-      NucSpace.Hnzy = NucSpace.Hnzy + pre*Iy;
-      NucSpace.Hnzz = NucSpace.Hnzz + pre*Iz;
+      NucHams.Hnzx = NucHams.Hnzx + pre*Ix;
+      NucHams.Hnzy = NucHams.Hnzy + pre*Iy;
+      NucHams.Hnzz = NucHams.Hnzz + pre*Iz;
     end
     
     % Hyperfine ------------------------------------------------------
@@ -888,14 +885,14 @@ if ~isempty(shfNuclei)
       A = R_A2M*diag(Sys.A(iNuc,:))*R_A2M.';
       A = (A + A.')/2;
     end
-    if SeparateSpaces
-      NucSpace(iiNuc).Hhfx = A(1,1)*Ix + A(1,2)*Iy + A(1,3)*Iz;
-      NucSpace(iiNuc).Hhfy = A(2,1)*Ix + A(2,2)*Iy + A(2,3)*Iz;
-      NucSpace(iiNuc).Hhfz = A(3,1)*Ix + A(3,2)*Iy + A(3,3)*Iz;
+    if Opt.ProductRule
+      NucHams(iiNuc).Hhfx = A(1,1)*Ix + A(1,2)*Iy + A(1,3)*Iz;
+      NucHams(iiNuc).Hhfy = A(2,1)*Ix + A(2,2)*Iy + A(2,3)*Iz;
+      NucHams(iiNuc).Hhfz = A(3,1)*Ix + A(3,2)*Iy + A(3,3)*Iz;
     else
-      NucSpace.Hhfx = NucSpace.Hhfx + A(1,1)*Ix + A(1,2)*Iy + A(1,3)*Iz;
-      NucSpace.Hhfy = NucSpace.Hhfy + A(2,1)*Ix + A(2,2)*Iy + A(2,3)*Iz;
-      NucSpace.Hhfz = NucSpace.Hhfz + A(3,1)*Ix + A(3,2)*Iy + A(3,3)*Iz;
+      NucHams.Hhfx = NucHams.Hhfx + A(1,1)*Ix + A(1,2)*Iy + A(1,3)*Iz;
+      NucHams.Hhfy = NucHams.Hhfy + A(2,1)*Ix + A(2,2)*Iy + A(2,3)*Iz;
+      NucHams.Hhfz = NucHams.Hhfz + A(3,1)*Ix + A(3,2)*Iy + A(3,3)*Iz;
     end
     
     % Nuclear quadrupole ---------------------------------------------
@@ -917,16 +914,19 @@ if ~isempty(shfNuclei)
         Iy*(Q(2,1)*Ix + Q(2,2)*Iy + Q(2,3)*Iz) + ...
         Iz*(Q(3,1)*Ix + Q(3,2)*Iy + Q(3,3)*Iz);
     end
-    if SeparateSpaces
-      NucSpace(iiNuc).Hnq = Hnq_;
+    if Opt.ProductRule
+      NucHams(iiNuc).Hnq = Hnq_;
     else
-      NucSpace.Hnq = NucSpace.Hnq + Hnq_;
+      NucHams.Hnq = NucHams.Hnq + Hnq_;
     end
     
   end
+  nSubSpaces = numel(NucHams);
+  logmsg(1,'  %d nuclei, %d subspaces',numel(shfNuclei),nSubSpaces);
+else
+  logmsg(1,'  no subspace factorization');
+  nSubSpaces = 0;
 end
-nSubSpaces = numel(NucSpace);
-logmsg(1,'  %d nuclei, %d subspaces',numel(shfNuclei),nSubSpaces);
 %=====================================================================
 
 
@@ -1142,13 +1142,13 @@ for iOri = 1:nOrientations
   % Compute and diagonalize nuclear Hamiltonians
   %----------------------------------------------------------------------
   for iSpace = 1:nSubSpaces
-    Hnuc = Exp.Field*(zLab_M(1)*NucSpace(iSpace).Hnzx + zLab_M(2)*NucSpace(iSpace).Hnzy + zLab_M(3)*NucSpace(iSpace).Hnzz);
-    Hnuc = Hnuc + NucSpace(iSpace).Hnq;
+    Hnuc = Exp.Field*(zLab_M(1)*NucHams(iSpace).Hnzx + zLab_M(2)*NucHams(iSpace).Hnzy + zLab_M(3)*NucHams(iSpace).Hnzz);
+    Hnuc = Hnuc + NucHams(iSpace).Hnq;
     for iM = ManifoldsInvolved
       S = Manifold(iM).S; % expectation value of spin vector, <S>
-      H = Hnuc + S(1)*NucSpace(iSpace).Hhfx + ...
-                 S(2)*NucSpace(iSpace).Hhfy + ...
-                 S(3)*NucSpace(iSpace).Hhfz;
+      H = Hnuc + S(1)*NucHams(iSpace).Hhfx + ...
+                 S(2)*NucHams(iSpace).Hhfy + ...
+                 S(3)*NucHams(iSpace).Hhfz;
       [VV,EE] = eig((H+H')/2);
       Manifold(iM).V{iSpace} = VV;
       Manifold(iM).E{iSpace} = real(diag(EE));
@@ -1516,9 +1516,9 @@ for iOri = 1:nOrientations
        
     % Apply product rule
     %--------------------------------------------------------------
-    if ~isENDOR
-      if Opt.ProductRule
-
+    if Opt.ProductRule
+      if ~isENDOR
+        
         for iPathway = 1:nPathways
           td_ = 1;
           for iSpace = 1:nSubSpaces
@@ -1537,16 +1537,15 @@ for iOri = 1:nOrientations
           end
           totaltd = totaltd + Exp.OriWeights(iOri)*OriSelWeight(iT)*td_;
         end
-
+        
       else
-
-        % TD: nothing
-        % FD: IFFT is done after orientation loop
-
-      end % if Opt.ProductRule
-    else
-      % ENDOR: no action
-    end % if ~isENDOR
+        % ENDOR w. product rule: no action here
+      end % if ~isENDOR
+      
+    else % no product rule
+      % TD: nothing
+      % FD: IFFT is done after orientation loop
+    end % if Opt.ProductRule
     
   end % electronic transition loop
 
