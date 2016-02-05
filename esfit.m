@@ -18,7 +18,7 @@
 %          -algorithm: 'simplex','levmar','montecarlo','genetic','grid'
 %          -target function: 'fcn', 'int', 'dint', 'diff', 'fft'
 %        Scaling  string with scaling method keyword
-%          'maxabs' (default), 'minmax', 'lsq', 'lsq0','lsq1','lsq2'
+%          'maxabs' (default), 'minmax', 'lsq', 'lsq0','lsq1','lsq2','none'
 %        OutArg   two numbers [nOut iOut], where nOut is the number of
 %                 outputs of the simulation function and iOut is the index
 %                 of the output argument to use for fitting
@@ -217,6 +217,7 @@ ScalingNames{3} = 'scale only (lsq)';
 ScalingNames{4} = 'scale & shift (lsq0)';
 ScalingNames{5} = 'scale & linear baseline (lsq1)';
 ScalingNames{6} = 'scale & quad. baseline (lsq2)';
+ScalingNames{7} = 'no scaling';
 FitData.ScalingNames = ScalingNames;
 
 ScalingString{1} = 'minmax';
@@ -225,6 +226,7 @@ ScalingString{3} = 'lsq';
 ScalingString{4} = 'lsq0';
 ScalingString{5} = 'lsq1';
 ScalingString{6} = 'lsq2';
+ScalingString{7} = 'none';
 FitData.ScalingString = ScalingString;
 
 StartpointNames{1} = 'center of range';
@@ -317,6 +319,7 @@ if (FitData.GUI)
   set(h(3),'Tag','currsimdata');
   set(hAx,'XLim',[1 numel(dispData)]);
   set(hAx,'YLim',YLimits);
+  set(hAx,'Tag', 'dataaxes');
   set(hAx,'XTick',[],'YTick',[]);
   box on
   
@@ -645,21 +648,27 @@ x0_(FitData.inactiveParams) = [];
 nParameters_ = numel(x0_);
 
 bestx = startx;
+if strcmp(FitOpts.Scaling, 'none')
+  fitspc = FitData.ExpSpec;
+else
+  fitspc = FitData.ExpSpecScaled;
+end
+
 if (nParameters_>0)
   switch FitOpts.MethodID
     case 1 % Nelder/Mead simplex
-      bestx0_ = esfit_simplex(@assess,x0_,FitOpts,FitData.ExpSpecScaled,FitData.Sys0,FitData.Vary,FitData.Exp,FitData.SimOpt,FitOpts);
+      bestx0_ = esfit_simplex(@assess,x0_,FitOpts,fitspc,FitData.Sys0,FitData.Vary,FitData.Exp,FitData.SimOpt,FitOpts);
     case 2 % Levenberg/Marquardt
       FitOpts.Gradient = FitOpts.TolFun;
-      bestx0_ = esfit_levmar(@residuals_,x0_,FitOpts,FitData.ExpSpecScaled,FitData.Sys0,FitData.Vary,FitData.Exp,FitData.SimOpt,FitOpts);
+      bestx0_ = esfit_levmar(@residuals_,x0_,FitOpts,fitspc,FitData.Sys0,FitData.Vary,FitData.Exp,FitData.SimOpt,FitOpts);
     case 3 % Monte Carlo
-      bestx0_ = esfit_montecarlo(@assess,nParameters_,FitOpts,FitData.ExpSpecScaled,FitData.Sys0,FitData.Vary,FitData.Exp,FitData.SimOpt,FitOpts);
+      bestx0_ = esfit_montecarlo(@assess,nParameters_,FitOpts,fitspc,FitData.Sys0,FitData.Vary,FitData.Exp,FitData.SimOpt,FitOpts);
     case 4 % Genetic
-      bestx0_ = esfit_genetic(@assess,nParameters_,FitOpts,FitData.ExpSpecScaled,FitData.Sys0,FitData.Vary,FitData.Exp,FitData.SimOpt,FitOpts);
+      bestx0_ = esfit_genetic(@assess,nParameters_,FitOpts,fitspc,FitData.Sys0,FitData.Vary,FitData.Exp,FitData.SimOpt,FitOpts);
     case 5 % Grid search
-      bestx0_ = esfit_grid(@assess,nParameters_,FitOpts,FitData.ExpSpecScaled,FitData.Sys0,FitData.Vary,FitData.Exp,FitData.SimOpt,FitOpts);
+      bestx0_ = esfit_grid(@assess,nParameters_,FitOpts,fitspc,FitData.Sys0,FitData.Vary,FitData.Exp,FitData.SimOpt,FitOpts);
     case 6 % Particle swarm
-      bestx0_ = esfit_particleswarm(@assess,nParameters_,FitOpts,FitData.ExpSpecScaled,FitData.Sys0,FitData.Vary,FitData.Exp,FitData.SimOpt,FitOpts);
+      bestx0_ = esfit_particleswarm(@assess,nParameters_,FitOpts,fitspc,FitData.Sys0,FitData.Vary,FitData.Exp,FitData.SimOpt,FitOpts);
   end
   bestx(~FitData.inactiveParams) = bestx0_;
 end
@@ -750,8 +759,13 @@ if FitData.GUI
   
   % Safe current set to set list
   newFitSet.rmsd = rmsd;
-  newFitSet.fitSpec = BestSpecScaled;
-  newFitSet.expSpec = FitData.ExpSpecScaled;
+  if strcmp(FitOpts.Scaling, 'none')
+    newFitSet.fitSpec = BestSpec;
+    newFitSet.expSpec = FitData.ExpSpec;
+  else
+    newFitSet.fitSpec = BestSpecScaled;
+    newFitSet.expSpec = FitData.ExpSpecScaled;
+  end
   newFitSet.residuals = Residuals;
   newFitSet.bestx = bestx;
   newFitSet.bestvalues = bestvalues;
@@ -777,7 +791,7 @@ function resi = residuals_(x,ExpSpec,Sys0,Vary,Exp,SimOpt,FitOpt)
 %==========================================================================
 function varargout = assess(x,ExpSpec,Sys0,Vary,Exp,SimOpt,FitOpt)
 
-global UserCommand FitData smallestError errorlist
+global UserCommand FitData smallestError errorlist FitOpts
 persistent BestSys;
 
 % Simulate spectra ------------------------------------------
@@ -821,6 +835,12 @@ if (FitData.GUI) && (UserCommand~=99)
   set(findobj('Tag','expdata'),'XData',1:numel(ExpSpec),'YData',ExpSpec);
   set(findobj('Tag','bestsimdata'),'XData',1:numel(ExpSpec),'YData',real(FitData.bestspec));
   set(findobj('Tag','currsimdata'),'XData',1:numel(ExpSpec),'YData',real(simspec));
+  if strcmp(FitOpts.Scaling, 'none')
+    dispData = [FitData.ExpSpec;real(FitData.bestspec).';real(simspec).'];
+    maxy = max(dispData); miny = min(dispData);
+    YLimits = [miny maxy] + [-1 1]*FitOpt.PlotStretchFactor*(maxy-miny);
+    set(findobj('Tag','dataaxes'),'YLim',YLimits);
+  end
   drawnow
   
   % update numbers parameter table
