@@ -53,7 +53,7 @@ if isempty(Exp.Mode)
   if linearpolarizedMode
     Exp.Mode = [pi/2 pi/2]; % perpendicular
   else
-    Exp.Mode = [0 0];
+    Exp.Mode = 0;
   end
 end
 
@@ -73,7 +73,15 @@ if ischar(Exp.Mode)
 else
   switch numel(Exp.Mode)
     case 0
+    case 1
+      if linearpolarizedMode
+        error('For linear mw polarization, Exp.Mode must contain 2 angles (k tilt angle, polarization angle.');
+      end
+      k_tilt = Exp.Mode(1);
     case 2
+      if circpolarizedMode || unpolarizedMode
+        error('For circular polarized or unpolarized mw, Exp.Mode must contain only 1 angle (k tilt angle).');
+      end
       k_tilt = Exp.Mode(1);
       alpha_pol = Exp.Mode(2);
     otherwise
