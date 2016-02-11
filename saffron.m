@@ -1328,11 +1328,11 @@ for iOri = 1:nOrientations
               % loop only over nuclear sublevel pairs with Delta mI = 1
               for j=1:nNucStates-1
                 for i=j+1
-                  % RF pulse approximation: apply pi pulse two two-level subsystem
+                  % (a) RF pulse approximation: apply pi pulse two two-level subsystem
                   % R = [0 -1; 1 0];
                   %S1_ = S1; S1_([j i],[j i]) = R*S1_([j i],[j i])*R';
                   %S2_ = S2; S2_([j i],[j i]) = R*S2_([j i],[j i])*R';
-                  % RF pulse approximation: only swap diagonal elements ii and jj
+                  % (b) RF pulse approximation: only swap diagonal elements ii and jj
                   G1_ = G1; q = G1_(i,i); G1_(i,i) = G1_(j,j); G1_(j,j) = q;
                   G2_ = G2; q = G2_(i,i); G2_(i,i) = G2_(j,j); G2_(j,j) = q;
                   ampl = [off1-trace(G1_*D1), off2-trace(G2_*D2)];
