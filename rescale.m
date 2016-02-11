@@ -9,6 +9,7 @@
 %   mode1:
 %     'minmax'  shifts&scales to minimum 0 and maximum 1
 %     'maxabs'  scales to maximum abs 1, no shift
+%     'none'    no scaling
 %
 %   mode2:
 %     'minmax'  shifts&scales so that minimum and maximum of y
@@ -18,6 +19,7 @@
 %     'lsq0'    least-squares fit of a*y+b to yref
 %     'lsq1'    least-squares fit of a*y+b+c*x to yref
 %     'lsq2'    least-squares fit of a*y+b+c*x+d*x^2 to yref
+%     'none'    no scaling
 
 function varargout = rescale(varargin)
 
@@ -55,7 +57,7 @@ if isempty(yref)
   % Rescaling without reference
   %----------------------------------------------------
 
-  ModeID = find(strcmp(Mode,{'minmax','maxabs'}));
+  ModeID = find(strcmp(Mode,{'minmax','maxabs','none'}));
   if isempty(ModeID)
     error('Unknown scaling mode ''%s''',Mode);
   end
@@ -68,14 +70,16 @@ if isempty(yref)
       ynew = mi + (ma-mi)/(max(y)-min(y))*(y-min(y));
     case 2 % maxabs
       ynew = y/max(abs(y));
+    case 3 % no scaling
+      ynew = y;
   end
   
 else
   
   % Rescaling with reference
   %----------------------------------------------------
-  ModeID = find(strcmp(Mode,{'maxabs','minmax','shift','lsq','lsq0','lsq1','lsq2'}));
-  IdenticalLengthNeeded = [0 0 0 1 1 1 1];
+  ModeID = find(strcmp(Mode,{'maxabs','minmax','shift','lsq','lsq0','lsq1','lsq2','none'}));
+  IdenticalLengthNeeded = [0 0 0 1 1 1 1 0];
   if isempty(ModeID)
     error('Unknown scaling mode ''%s''',Mode);
   end
@@ -117,6 +121,8 @@ else
       D = [y ones(N,1) x x.^2];
       params = D(notnan,:)\yref(notnan);
       ynew = D*params;
+    case 8 % no scaling
+      ynew = y;
   end
   
 end
