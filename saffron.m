@@ -253,12 +253,13 @@ if ~isfield(Sys,'singleiso') || (Sys.singleiso==0)
         fx1 = fdaxis(Exp.dt(1),size(out.fd,1));
         if numel(Exp.dt)<2, Exp.dt(2) = Exp.dt(1); end
         fx2 = fdaxis(Exp.dt(2),size(out.fd,2));
+        fd = abs(out.fd);
         if isfield(Opt,'logplot') && Opt.logplot
-          fd = log(out.fd);
+          fd = log(fd);
           maxfd = max(max(fd));
           fd(fd<maxfd-6) = maxfd-6;
         end
-        pcolor(fx1,fx2,out.fd.'); shading flat; axis equal tight
+        pcolor(fx1,fx2,fd.'); shading flat; axis equal tight
         set(gca,'Layer','top');
         title('Frequency domain');
         xlabel('\nu_1 (MHz)');
