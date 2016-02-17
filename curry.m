@@ -71,7 +71,7 @@ logmsg(1,'  number of field values: %d',nFields);
 if ~isfield(Exp,'Temperature')
   error('Exp.Temperature is missing.');
 end
-T = Exp.Temperature; % temperature, K
+T = Exp.Temperature(:).'; % temperature, K
 nTemperatures = numel(T);
 logmsg(1,'  number of temperature values: %d',nTemperatures);
 
