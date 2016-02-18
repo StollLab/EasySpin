@@ -253,12 +253,13 @@ if ~isfield(Sys,'singleiso') || (Sys.singleiso==0)
         fx1 = fdaxis(Exp.dt(1),size(out.fd,1));
         if numel(Exp.dt)<2, Exp.dt(2) = Exp.dt(1); end
         fx2 = fdaxis(Exp.dt(2),size(out.fd,2));
+        fd = abs(out.fd);
         if isfield(Opt,'logplot') && Opt.logplot
-          fd = log(out.fd);
+          fd = log(fd);
           maxfd = max(max(fd));
           fd(fd<maxfd-6) = maxfd-6;
         end
-        pcolor(fx1,fx2,out.fd.'); shading flat; axis equal tight
+        pcolor(fx1,fx2,fd.'); shading flat; axis equal tight
         set(gca,'Layer','top');
         title('Frequency domain');
         xlabel('\nu_1 (MHz)');
@@ -1329,11 +1330,11 @@ for iOri = 1:nOrientations
               % loop only over nuclear sublevel pairs with Delta mI = 1
               for j=1:nNucStates-1
                 for i=j+1
-                  % RF pulse approximation: apply pi pulse two two-level subsystem
+                  % (a) RF pulse approximation: apply pi pulse two two-level subsystem
                   % R = [0 -1; 1 0];
                   %S1_ = S1; S1_([j i],[j i]) = R*S1_([j i],[j i])*R';
                   %S2_ = S2; S2_([j i],[j i]) = R*S2_([j i],[j i])*R';
-                  % RF pulse approximation: only swap diagonal elements ii and jj
+                  % (b) RF pulse approximation: only swap diagonal elements ii and jj
                   G1_ = G1; q = G1_(i,i); G1_(i,i) = G1_(j,j); G1_(j,j) = q;
                   G2_ = G2; q = G2_(i,i); G2_(i,i) = G2_(j,j); G2_(j,j) = q;
                   ampl = [off1-trace(G1_*D1), off2-trace(G2_*D2)];
