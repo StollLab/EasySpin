@@ -129,8 +129,9 @@ muOpzM = -GzM*1e6*1e3*planck; % MHz/mT -> J/T
 %-------------------------------------------------
 Exp.PowderSimulation = PowderSimulation; % for communication with p_*
 [Exp,Opt] = p_symandgrid(Sys,Exp,Opt);
-nOrientations = size(Exp.CrystalOrientation,1);
-p_crystalorientations;
+% Process crystal orientations, crystal symmetry, and frame transforms
+% This sets Orientations, nOrientations, nSites and AverageOverChi
+[Orientations,nOrientations,nSites,AverageOverChi] = p_crystalorientations(Exp,Opt);
 Exp.OriWeights = Exp.OriWeights/4/pi;
 
 beta = 1./T/boltzm; 

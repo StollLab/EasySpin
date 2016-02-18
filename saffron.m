@@ -803,9 +803,10 @@ if ~isfield(Opt,'TimeDomain'), Opt.TimeDomain = 0; end
 % Symmetry determination and orientational grid.
 %==========================================================================
 [Exp,Opt] = p_symandgrid(Sys,Exp,Opt);
-nOrientations = size(Exp.CrystalOrientation,1);
 
-p_crystalorientations;
+% Process crystal orientations, crystal symmetry, and frame transforms
+% This sets Orientations, nOrientations, nSites and AverageOverChi
+[Orientations,nOrientations,nSites,AverageOverChi] = p_crystalorientations(Exp,Opt);
 
 logmsg(1,'-Hamiltonians------------------------------------------');
 
