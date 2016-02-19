@@ -17,6 +17,7 @@
 %     [1]          simple FID, 3p-ESEEM, echo transient, DEFENCE
 %     [1 1]        2p-ESEEM, CP
 %     [1 -1]       PEANUT
+%     [1 1 2]
 %     [1 2 1]      2D 3p-ESEEM
 %     [1 2]        HYSCORE, DONUT-HYSCORE
 %     [1 2 2 1]    2D CP
@@ -179,6 +180,21 @@ elseif isequal(IncScheme,[1 2]) % IncScheme [1 2]
       FinalDensity = UUtY.*FinalDensity;
     end
     Density = UUtX.*Density;
+  end
+  
+elseif isequal(IncScheme,[1 1 2]) % IncScheme [1 1 2]
+  UUX = diagUX*diagUX.';
+  UUtY = diagUY*diagUY';
+  Mix1 = Mix{1};
+  Mix2 = Mix{2};
+  for ix = 1:n(1)
+    M = Mix2*Mix1;
+    FinalDensity = M*Density*M';
+    for iy = 1:n(2)
+      Signal(ix,iy) = Detector*FinalDensity(:);
+      FinalDensity = UUtY.*FinalDensity;
+    end
+    Mix1 = UUX.*Mix1; % equivalent to U*Mix1*U
   end
   
 elseif isequal(IncScheme,[1 2 1]) % IncScheme [1 2 1]
