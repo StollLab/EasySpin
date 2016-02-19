@@ -14,22 +14,23 @@
 %   and can be one of the following (up to four
 %   sweep periods, up to two dimensions)
 %
-%     [1]         simple FID, 3p-ESEEM, DEFENCE
-%     [1 1]       2p-ESEEM, CP
-%     [1 -1]      PEANUT
-%     [1 2 1]     2D 3p-ESEEM
-%     [1 2]       HYSCORE, DONUT-HYSCORE
-%     [1 2 2 1]   2D CP
-%     [1 2 -2 1]  2D PEANUT
+%     [1]          simple FID, 3p-ESEEM, echo transient, DEFENCE
+%     [1 1]        2p-ESEEM, CP
+%     [1 -1]       PEANUT
+%     [1 2 1]      2D 3p-ESEEM
+%     [1 2]        HYSCORE, DONUT-HYSCORE
+%     [1 2 2 1]    2D CP
+%     [1 2 -2 1]   2D PEANUT
+%     [1 -1 1 -1]
 %
 %   [1] is the default. For an explanation of
 %   the format, see the documentation.
 %
 %   Mix is a cell array containing the propagators
-%   of the mixing sequence(s), for experiments with more than
-%   1 sweep period.
+%   of the mixing sequence(s), for experiments with more
+%   than 1 sweep period.
 %
-%   td is a vector/matrix with t1 along dim
+%   td is a vector/matrix of the signal with t1 along dim
 %   1 and t2 along dim 2.
 
 function Signal = evolve(Sig,Det,Ham,n,dt,IncScheme,Mix)
@@ -41,6 +42,7 @@ if (nargout>1), error('Too many output arguments.'); end
 if (nargin<5) || (nargin>7), error('Wrong number of input arguments!'); end
 
 if (nargin<6), IncScheme = 1; end
+if (nargin<7), Mix = {}; end
 
 if numel(n)~=1 || mod(n,1)~=0 || n<=0
   error('n, the number of points (4th argument), must be a positive integer.');
@@ -48,46 +50,25 @@ end
 
 % IncScheme check
 %------------------------------------------------------------
-% Build list of supported incrementation schemes
-IncSchemes{1} = [1];
-IncSchemes{2} = [1 1];
-IncSchemes{3} = [1 -1];
-IncSchemes{4} = [1 2];
-IncSchemes{5} = [1 2 1];
-IncSchemes{6} = [1 2 2 1];
-IncSchemes{7} = [1 2 -2 1];
-
-% Determine which incrementation scheme is requested
-IncSchemeID = NaN;
-for k = 1:numel(IncSchemes)
-  if isequal(IncScheme,IncSchemes{k})
-    IncSchemeID = k;
-    break
-  end
-end
-if isnan(IncSchemeID)
-  error('Unsuppported incrementation scheme!');
-end
-
 if (length(IncScheme)>1) && (nargin<7),
   error('The requested IncScheme requires mixing propagators, but none are provided!');
 end
+if any((abs(IncScheme)~=1) & (abs(IncScheme)~=2))
+  error('IncScheme can contain only 1, -1, 2, and -2.');
+end
 
-nDims = max(abs(IncScheme));
 nEvolutionPeriods = numel(IncScheme);
+nDims = max(abs(IncScheme));
 
 % Parameter parsing
 %------------------------------------------------------------
-if (nargin<7)
-  Mix = {};
-end
 if ~iscell(Mix)
   Mix = {Mix};
 end
 nMix = numel(Mix);
 
 if (nMix~=nEvolutionPeriods-1),
-  error('Number of mixing propagators not correct!');
+  error('Number of mixing propagators not correct! %d are needed.',nEvolutionPeriods-1);
 end
 N = size(Sig,1);
 
@@ -152,9 +133,7 @@ end
 % pre-reshape for trace calculation
 Detector = reshape(Detector.',1,N^2);
 
-switch IncSchemeID
-
-case 1 % IncScheme [1]
+if isequal(IncScheme,[1]) % IncScheme [1]
   FinalDensity = Density(:);
   UUt = diagU*diagU';
   UUt = UUt(:);
@@ -163,7 +142,7 @@ case 1 % IncScheme [1]
     FinalDensity = UUt.*FinalDensity;
   end
   
-case 2 % IncScheme [1 1]
+elseif isequal(IncScheme,[1 1]) % IncScheme [1 1]
   % The propagator is diagonal, so we can rewrite
   % U*Mix*U = (diagU*diagU.').*Mix.
   UU = diagU*diagU.';
@@ -179,7 +158,7 @@ case 2 % IncScheme [1 1]
     Mix1 = UU.*Mix1; % equivalent to U*Mix1*U
   end
   
-case 3  % IncScheme [1 -1]
+elseif isequal(IncScheme,[1 -1]) % IncScheme [1 -1]
   MixX = diag(diagU.^n)*Mix{1}; % pre-propagate to end of second period
   UtU = conj(diagU)*diagU.';
   for ix = 1:n
@@ -188,7 +167,7 @@ case 3  % IncScheme [1 -1]
     MixX = UtU.*MixX;
   end
   
-case 4 % IncScheme [1 2]
+elseif isequal(IncScheme,[1 2]) % IncScheme [1 2]
   UUtX = diagUX*diagUX';
   UUtY = diagUY*diagUY';
   UUtY = reshape(UUtY,N^2,1);
@@ -202,7 +181,7 @@ case 4 % IncScheme [1 2]
     Density = UUtX.*Density;
   end
   
-case 5 % IncScheme [1 2 1]
+elseif isequal(IncScheme,[1 2 1]) % IncScheme [1 2 1]
   Mix1 = Mix{1};
   Mix2 = Mix{2};
   UUX = diagUX*diagUX.';
@@ -218,7 +197,7 @@ case 5 % IncScheme [1 2 1]
     Mix1 = UY*Mix1;
   end
   
-case 6 % IncScheme [1 2 2 1]
+elseif isequal(IncScheme,[1 2 2 1]) % IncScheme [1 2 2 1]
   Mix1 = Mix{1};
   Mix2 = Mix{2};
   Mix3 = Mix{3};
@@ -235,9 +214,9 @@ case 6 % IncScheme [1 2 2 1]
     Mix2 = UUY.*Mix2;
   end
   
-case 7 % IncScheme [1 2 -2 1]
+elseif isequal(IncScheme,[1 2 -2 1]) % IncScheme [1 2 -2 1]
   Mix1 = Mix{1};
-  Mix2 = diag(diagUY.^n(2))*Mix{2};
+  Mix2 = diag(diagUY.^n(2))*Mix{2}; % pre-propagate to endpoint of third delay
   Mix3 = Mix{3};
   UUX = diagUX*diagUX.';
   UtUY = conj(diagUY)*diagUY.';
@@ -251,6 +230,22 @@ case 7 % IncScheme [1 2 -2 1]
     end
     Mix2 = UtUY.*Mix2;
   end
+  
+elseif isequal(IncScheme,[1 -1 1 -1]) % IncScheme [1 -1 1 -1]
+  Mix1X = diag(diagU.^n)*Mix{1}; % pre-propagate to endpoint of second delay
+  Mix2 = Mix{2};
+  Mix3X = diag(diagU.^n)*Mix{3}; % pre-propagate to endpoint of fourth delay
+  UtU = conj(diagU)*diagU.'; % propagator for Mix1 and Mix3 (add before, remove after)
+  for ix = 1:n
+    MixX = Mix3X*Mix2*Mix1X;
+    FinalDensity = MixX*Density*MixX';
+    Signal(ix) = Detector*FinalDensity(:);
+    Mix1X = UtU.*Mix1X;
+    Mix3X = UtU.*Mix3X;
+  end
+
+else
+  error('Unsupported incrementation scheme!');
 end
 
 return
