@@ -171,10 +171,9 @@ case 2 % IncScheme [1 1]
   % necessary to evolve the initial density matrix.
   % Only the mixing propagator needs to be changed!
   Mix1 = Mix{1};
-  Mix1t = Mix1';
   for ix = 1:n
     % compute density right before detection
-    FinalDensity = Mix1*Density*Mix1t;
+    FinalDensity = Mix1*Density*Mix1';
     % compute trace(Detector*FinalDensity)
     Signal(ix) = Detector*FinalDensity(:);
     Mix1 = UU.*Mix1; % equivalent to U*Mix1*U
@@ -182,10 +181,9 @@ case 2 % IncScheme [1 1]
   
 case 3  % IncScheme [1 -1]
   MixX = diag(diagU.^n)*Mix{1}; % pre-propagate to end of second period
-  MixXt = MixX';
   UtU = conj(diagU)*diagU.';
   for ix = 1:n
-    FinalDensity = MixX*Density*MixXt;
+    FinalDensity = MixX*Density*MixX';
     Signal(ix) = Detector*FinalDensity(:);
     MixX = UtU.*MixX;
   end
