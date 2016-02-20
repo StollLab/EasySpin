@@ -63,6 +63,11 @@ nDimensions = max(abs(IncScheme));
 
 % Parameter parsing
 %------------------------------------------------------------
+if ~iscell(Det)
+  Det = {Det};
+end
+nDetectors = numel(Det);
+
 if ~iscell(Mix)
   Mix = {Mix};
 end
@@ -74,12 +79,19 @@ end
 N = size(Sig,1);
 
 if (nDimensions==1)
-  Signal = zeros(n,1);
+  for iDet = 1:nDetectors
+    Signal{iDet} = zeros(n,1);
+  end
   if iscell(Ham), Ham = Ham{1}; end
 else
   if numel(dt)==1, dt = [dt dt]; end
   if numel(n)==1, n = [n n]; end
-  Signal = zeros(n);
+  for iDet = 1:nDetectors
+    Signal{iDet} = zeros(n);
+  end
+end
+if nDetectors==1
+  Signal = Signal{1};
 end
 
 % Transform all operators in propagator eigenbasis(eigenbases)
@@ -100,7 +112,9 @@ if ~iscell(Ham)
   for iMix = 1:nMixingBlocks
     Mix{iMix} = Vecs'*Mix{iMix}*Vecs;
   end
-  Detector = Vecs'*Det*Vecs;
+  for iDet = 1:nDetectors
+    Detector{iDet} = Vecs'*Det{iDet}*Vecs;
+  end
 else
   % diagonalize propagators
   [Vecs{1},Ex] = eig(Ham{1});
@@ -114,7 +128,9 @@ else
   for iMix = 1:nMixingBlocks
     Mix{iMix} = Vecs{d(iMix+1)}'*Mix{iMix}*Vecs{d(iMix)};
   end
-  Detector = Vecs{d(end)}'*Det*Vecs{d(end)};
+  for iDet = 1:nDetectors
+    Detector{iDet} = Vecs{d(end)}'*Det{iDet}*Vecs{d(end)};
+  end
 end
 
 % Time-domain evolution, IncScheme switchyard
@@ -129,14 +145,25 @@ end
 %   U*Propagator*(U^-1) = U*Propagator*U' = (diagU*diagU').*Propagator
 
 % pre-reshape for trace calculation
-Detector = reshape(Detector.',1,N^2);
+for iDet = 1:nDetectors
+  Detector{iDet} = reshape(Detector{iDet}.',1,N^2);
+end
+if nDetectors==1
+  Detector = Detector{1};
+end
 
 if isequal(IncScheme,1) % IncScheme [1]
   FinalDensity = Density(:);
   U_ = diagU*diagU';
   U_ = U_(:);
   for ix = 1:n
-    Signal(ix) = Detector*FinalDensity;
+    if nDetectors==1
+      Signal(ix) = Detector*FinalDensity;
+    else
+      for iDet = 1:nDetectors
+        Signal{iDet}(ix) = Detector{iDet}*FinalDensity;
+      end
+    end
     FinalDensity = U_.*FinalDensity; % equivalent to U*FinalDensity*U'
   end
   
@@ -149,7 +176,13 @@ elseif isequal(IncScheme,[1 1]) % IncScheme [1 1]
     % compute density right before detection
     FinalDensity = Mix1*Density*Mix1';
     % compute trace(Detector*FinalDensity)
-    Signal(ix) = Detector*FinalDensity(:);
+    if nDetectors==1
+      Signal(ix) = Detector*FinalDensity(:);
+    else
+      for iDet = 1:nDetectors
+        Signal{iDet}(ix) = Detector{iDet}*FinalDensity(:);
+      end
+    end
     Mix1 = UU_.*Mix1; % equivalent to U*Mix1*U
   end
   
@@ -158,7 +191,13 @@ elseif isequal(IncScheme,[1 -1]) % IncScheme [1 -1]
   UtU_ = conj(diagU)*diagU.';
   for ix = 1:n
     FinalDensity = MixX*Density*MixX';
-    Signal(ix) = Detector*FinalDensity(:);
+    if nDetectors==1
+      Signal(ix) = Detector*FinalDensity(:);
+    else
+      for iDet = 1:nDetectors
+        Signal{iDet}(ix) = Detector{iDet}*FinalDensity(:);
+      end
+    end
     MixX = UtU_.*MixX; % equivalent to U^-1*MixX*U
   end
   
@@ -170,7 +209,13 @@ elseif isequal(IncScheme,[1 2]) % IncScheme [1 2]
   for ix = 1:n(1)
     FinalDensity = reshape(Mix1*Density*Mix1',N^2,1);
     for iy = 1:n(2)
-      Signal(ix,iy) = Detector*FinalDensity;
+      if nDetectors==1
+        Signal(ix,iy) = Detector*FinalDensity;
+      else
+        for iDet = 1:nDetectors
+          Signal{iDet}(ix,iy) = Detector{iDet}*FinalDensity;
+        end
+      end
       FinalDensity = UY_.*FinalDensity; % equivalent to UY*Densty*UY';
     end
     Density = UX_.*Density; % equivalent to UX*Densty*UX';
@@ -185,7 +230,13 @@ elseif isequal(IncScheme,[1 1 2]) % IncScheme [1 1 2]
     M = Mix2*Mix1;
     FinalDensity = M*Density*M';
     for iy = 1:n(2)
-      Signal(ix,iy) = Detector*FinalDensity(:);
+      if nDetectors==1
+        Signal(ix,iy) = Detector*FinalDensity(:);
+      else
+        for iDet = 1:nDetectors
+          Signal{iDet}(ix,iy) = Detector{iDet}*FinalDensity(:);
+        end
+      end
       FinalDensity = UY_.*FinalDensity; % equivalent to UY*FinalDensity*UY'
     end
     Mix1 = UUX_.*Mix1; % equivalent to UX*Mix1*UX
@@ -201,7 +252,13 @@ elseif isequal(IncScheme,[1 2 1]) % IncScheme [1 2 1]
     MixYadj = MixY';
     for ix = 1:n(1)
       FinalDensity = MixY*Density*MixYadj;
-      Signal(ix,iy) = Detector*FinalDensity(:);
+      if nDetectors==1
+        Signal(ix,iy) = Detector*FinalDensity(:);
+      else
+        for iDet = 1:nDetectors
+          Signal{iDet}(ix,iy) = Detector{iDet}*FinalDensity(:);
+        end
+      end
       MixY = UUX_.*MixY; % equivalent to UX*MixY*UX
     end
     Mix1 = UY*Mix1;
@@ -218,7 +275,13 @@ elseif isequal(IncScheme,[1 2 2 1]) % IncScheme [1 2 2 1]
     MixYadj = MixY';
     for ix = 1:n(1)
       FinalDensity = MixY*Density*MixYadj;
-      Signal(ix,iy) = Detector*FinalDensity(:);
+      if nDetectors==1
+        Signal(ix,iy) = Detector*FinalDensity(:);
+      else
+        for iDet = 1:nDetectors
+          Signal{iDet}(ix,iy) = Detector{iDet}*FinalDensity(:);
+        end
+      end
       MixY = UUX_.*MixY; % equivalent to UX*MixY*UX
     end
     Mix2 = UUY_.*Mix2; % equivalent to UY*Mix2*UY
@@ -235,7 +298,13 @@ elseif isequal(IncScheme,[1 2 -2 1]) % IncScheme [1 2 -2 1]
     MixYadj = MixY';
     for ix = 1:n(1)
       FinalDensity = MixY*Density*MixYadj;
-      Signal(ix,iy) = Detector*FinalDensity(:);
+      if nDetectors==1
+        Signal(ix,iy) = Detector*FinalDensity(:);
+      else
+        for iDet = 1:nDetectors
+          Signal{iDet}(ix,iy) = Detector{iDet}*FinalDensity(:);
+        end
+      end
       MixY = UUX_.*MixY; % equivalent to UX*MixY*UX
     end
     Mix2 = UtUY_.*Mix2; % equivalent to UY'*Mix2*UY
@@ -249,7 +318,13 @@ elseif isequal(IncScheme,[1 -1 1 -1]) % IncScheme [1 -1 1 -1]
   for ix = 1:n
     MixX = Mix3X*Mix2*Mix1X;
     FinalDensity = MixX*Density*MixX';
-    Signal(ix) = Detector*FinalDensity(:);
+    if nDetectors==1
+        Signal(ix) = Detector*FinalDensity(:);
+    else
+      for iDet = 1:nDetectors
+        Signal{iDet}(ix) = Detector{iDet}*FinalDensity(:);
+      end
+    end
     Mix1X = UtU_.*Mix1X; % equivalent to U'*Mix1X*U
     Mix3X = UtU_.*Mix3X; % equivalent to U'*Mix3X*U
   end
