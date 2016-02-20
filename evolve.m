@@ -16,10 +16,10 @@
 %
 %     [1]          simple FID, 3p-ESEEM, echo transient, DEFENCE
 %     [1 1]        2p-ESEEM, CP
-%     [1 -1]       PEANUT
-%     [1 1 2]
+%     [1 -1]       4p-DEER, PEANUT
+%     [1 2]        3p-ESEEM echo transient, HYSCORE, DONUT-HYSCORE
+%     [1 1 2]      2p-ESEEM with echo transient
 %     [1 2 1]      2D 3p-ESEEM
-%     [1 2]        HYSCORE, DONUT-HYSCORE
 %     [1 2 2 1]    2D CP
 %     [1 2 -2 1]   2D PEANUT
 %     [1 -1 1 -1]
@@ -28,7 +28,7 @@
 %   the format, see the documentation.
 %
 %   Mix is a cell array containing the propagators
-%   of the mixing sequence(s), for experiments with more
+%   of the mixing block(s), for experiments with more
 %   than 1 sweep period.
 %
 %   td is a vector/matrix of the signal with t1 along dim
@@ -59,21 +59,21 @@ if any((abs(IncScheme)~=1) & (abs(IncScheme)~=2))
 end
 
 nEvolutionPeriods = numel(IncScheme);
-nDims = max(abs(IncScheme));
+nDimensions = max(abs(IncScheme));
 
 % Parameter parsing
 %------------------------------------------------------------
 if ~iscell(Mix)
   Mix = {Mix};
 end
-nMix = numel(Mix);
+nMixingBlocks = numel(Mix);
 
-if (nMix~=nEvolutionPeriods-1),
+if (nMixingBlocks~=nEvolutionPeriods-1),
   error('Number of mixing propagators not correct! %d are needed.',nEvolutionPeriods-1);
 end
 N = size(Sig,1);
 
-if (nDims==1)
+if (nDimensions==1)
   Signal = zeros(n,1);
   if iscell(Ham), Ham = Ham{1}; end
 else
@@ -84,107 +84,101 @@ end
 
 % Transform all operators in propagator eigenbasis(eigenbases)
 %------------------------------------------------------------
-if (nDims==1), % 1D case
+if ~iscell(Ham)
   % diagonalize propagator
   [Vecs,E] = eig(Ham); % MHz, E doesn't have to be sorted
   E = real(diag(E));
-  diagU = exp(-2i*pi*dt*E);
+  if (nDimensions==1)
+    diagU = exp(-2i*pi*dt*E);
+  else
+    diagUX = exp(-2i*pi*dt(1)*E);
+    diagUY = exp(-2i*pi*dt(2)*E);
+  end
   
   % transform all other matrices to propagator eigenbasis
   Density = Vecs'*Sig*Vecs;
-  for iMix = 1:nMix
+  for iMix = 1:nMixingBlocks
     Mix{iMix} = Vecs'*Mix{iMix}*Vecs;
   end
   Detector = Vecs'*Det*Vecs;
-
-else % 2D case
-  if ~iscell(Ham)
-    % Diagonalize propagator
-    [Vecs,E] = eig(Ham); % E doesn't have to be sorted
-    E = real(diag(E));
-    diagUX = exp(-2i*pi*dt(1)*E);
-    diagUY = exp(-2i*pi*dt(2)*E);
-    
-    % Transform all other matrices to propagator eigenbasis
-    Density = Vecs'*Sig*Vecs;
-    for iMix = 1:nMix
-      Mix{iMix} = Vecs'*Mix{iMix}*Vecs;
-    end
-    Detector = Vecs'*Det*Vecs;
-  else
-    % Diagonalize propagators
-    [V,Ex] = eig(Ham{1}); Vecs{1} = V;
-    [V,Ey] = eig(Ham{2}); Vecs{2} = V;
-    diagUX = exp((-2i*pi*dt(1))*real(diag(Ex)));
-    diagUY = exp((-2i*pi*dt(2))*real(diag(Ey)));
-
-    % Transform all other matrices
-    d = abs(IncScheme);
-    Density = Vecs{d(1)}'*Sig*Vecs{d(1)};
-    for iMix = 1:nMix
-      Mix{iMix} = Vecs{d(iMix+1)}'*Mix{iMix}*Vecs{d(iMix)};
-    end
-    Detector = Vecs{d(end)}'*Det*Vecs{d(end)};
+else
+  % diagonalize propagators
+  [Vecs{1},Ex] = eig(Ham{1});
+  [Vecs{2},Ey] = eig(Ham{2});
+  diagUX = exp((-2i*pi*dt(1))*real(diag(Ex)));
+  diagUY = exp((-2i*pi*dt(2))*real(diag(Ey)));
+  
+  % transform all other matrices to propagator eigenbasis
+  d = abs(IncScheme);
+  Density = Vecs{d(1)}'*Sig*Vecs{d(1)};
+  for iMix = 1:nMixingBlocks
+    Mix{iMix} = Vecs{d(iMix+1)}'*Mix{iMix}*Vecs{d(iMix)};
   end
+  Detector = Vecs{d(end)}'*Det*Vecs{d(end)};
 end
-
 
 % Time-domain evolution, IncScheme switchyard
 %------------------------------------------------------------
+% The following implementations in the propagator eigenframes
+% (giving diagonal propagatos) make use if the following simplifications
+% of the matrix multipications associated with the propagations:
+%
+%   U*Density*U' = (diagU*diagU').*Density
+%   U*Propagator*U = (diagU*diagU.').*Propagator
+%   (U^-1)*Propagator*U = U'*Propagator*U = (conj(diagU)*diagU.').*Propagator
+%   U*Propagator*(U^-1) = U*Propagator*U' = (diagU*diagU').*Propagator
+
 % pre-reshape for trace calculation
 Detector = reshape(Detector.',1,N^2);
 
-if isequal(IncScheme,[1]) % IncScheme [1]
+if isequal(IncScheme,1) % IncScheme [1]
   FinalDensity = Density(:);
-  UUt = diagU*diagU';
-  UUt = UUt(:);
+  U_ = diagU*diagU';
+  U_ = U_(:);
   for ix = 1:n
     Signal(ix) = Detector*FinalDensity;
-    FinalDensity = UUt.*FinalDensity;
+    FinalDensity = U_.*FinalDensity; % equivalent to U*FinalDensity*U'
   end
   
 elseif isequal(IncScheme,[1 1]) % IncScheme [1 1]
-  % The propagator is diagonal, so we can rewrite
-  % U*Mix*U = (diagU*diagU.').*Mix.
-  UU = diagU*diagU.';
-  % Now we are evolving one dimension. It is not
-  % necessary to evolve the initial density matrix.
-  % Only the mixing propagator needs to be changed!
+  UU_ = diagU*diagU.';
+  % It is not necessary to evolve the initial density matrix.
+  % Only the mixing propagator needs to be evolved.
   Mix1 = Mix{1};
   for ix = 1:n
     % compute density right before detection
     FinalDensity = Mix1*Density*Mix1';
     % compute trace(Detector*FinalDensity)
     Signal(ix) = Detector*FinalDensity(:);
-    Mix1 = UU.*Mix1; % equivalent to U*Mix1*U
+    Mix1 = UU_.*Mix1; % equivalent to U*Mix1*U
   end
   
 elseif isequal(IncScheme,[1 -1]) % IncScheme [1 -1]
   MixX = diag(diagU.^n)*Mix{1}; % pre-propagate to end of second period
-  UtU = conj(diagU)*diagU.';
+  UtU_ = conj(diagU)*diagU.';
   for ix = 1:n
     FinalDensity = MixX*Density*MixX';
     Signal(ix) = Detector*FinalDensity(:);
-    MixX = UtU.*MixX;
+    MixX = UtU_.*MixX; % equivalent to U^-1*MixX*U
   end
   
 elseif isequal(IncScheme,[1 2]) % IncScheme [1 2]
-  UUtX = diagUX*diagUX';
-  UUtY = diagUY*diagUY';
-  UUtY = reshape(UUtY,N^2,1);
+  UX_ = diagUX*diagUX';
+  UY_ = diagUY*diagUY';
+  UY_ = reshape(UY_,N^2,1);
   Mix1 = Mix{1};
   for ix = 1:n(1)
     FinalDensity = reshape(Mix1*Density*Mix1',N^2,1);
     for iy = 1:n(2)
       Signal(ix,iy) = Detector*FinalDensity;
-      FinalDensity = UUtY.*FinalDensity;
+      FinalDensity = UY_.*FinalDensity; % equivalent to UY*Densty*UY';
     end
-    Density = UUtX.*Density;
+    Density = UX_.*Density; % equivalent to UX*Densty*UX';
   end
   
 elseif isequal(IncScheme,[1 1 2]) % IncScheme [1 1 2]
-  UUX = diagUX*diagUX.';
-  UUtY = diagUY*diagUY';
+  UUX_ = diagUX*diagUX.';
+  UY_ = diagUY*diagUY';
   Mix1 = Mix{1};
   Mix2 = Mix{2};
   for ix = 1:n(1)
@@ -192,23 +186,23 @@ elseif isequal(IncScheme,[1 1 2]) % IncScheme [1 1 2]
     FinalDensity = M*Density*M';
     for iy = 1:n(2)
       Signal(ix,iy) = Detector*FinalDensity(:);
-      FinalDensity = UUtY.*FinalDensity;
+      FinalDensity = UY_.*FinalDensity; % equivalent to UY*FinalDensity*UY'
     end
-    Mix1 = UUX.*Mix1; % equivalent to U*Mix1*U
+    Mix1 = UUX_.*Mix1; % equivalent to UX*Mix1*UX
   end
   
 elseif isequal(IncScheme,[1 2 1]) % IncScheme [1 2 1]
   Mix1 = Mix{1};
   Mix2 = Mix{2};
-  UUX = diagUX*diagUX.';
+  UUX_ = diagUX*diagUX.';
   UY = diag(diagUY);
   for iy = 1:n(2)
     MixY = Mix2*Mix1;
-    MixYt = MixY';
+    MixYadj = MixY';
     for ix = 1:n(1)
-      FinalDensity = MixY*Density*MixYt;
+      FinalDensity = MixY*Density*MixYadj;
       Signal(ix,iy) = Detector*FinalDensity(:);
-      MixY = UUX.*MixY;
+      MixY = UUX_.*MixY; % equivalent to UX*MixY*UX
     end
     Mix1 = UY*Mix1;
   end
@@ -217,47 +211,47 @@ elseif isequal(IncScheme,[1 2 2 1]) % IncScheme [1 2 2 1]
   Mix1 = Mix{1};
   Mix2 = Mix{2};
   Mix3 = Mix{3};
-  UUX = diagUX*diagUX.';
-  UUY = diagUY*diagUY.';
+  UUX_ = diagUX*diagUX.';
+  UUY_ = diagUY*diagUY.';
   for iy = 1:n(2)
     MixY = Mix3*Mix2*Mix1;
-    MixYt = MixY';
+    MixYadj = MixY';
     for ix = 1:n(1)
-      FinalDensity = MixY*Density*MixYt;
+      FinalDensity = MixY*Density*MixYadj;
       Signal(ix,iy) = Detector*FinalDensity(:);
-      MixY = UUX.*MixY;
+      MixY = UUX_.*MixY; % equivalent to UX*MixY*UX
     end
-    Mix2 = UUY.*Mix2;
+    Mix2 = UUY_.*Mix2; % equivalent to UY*Mix2*UY
   end
   
 elseif isequal(IncScheme,[1 2 -2 1]) % IncScheme [1 2 -2 1]
   Mix1 = Mix{1};
   Mix2 = diag(diagUY.^n(2))*Mix{2}; % pre-propagate to endpoint of third delay
   Mix3 = Mix{3};
-  UUX = diagUX*diagUX.';
-  UtUY = conj(diagUY)*diagUY.';
+  UUX_ = diagUX*diagUX.';
+  UtUY_ = conj(diagUY)*diagUY.';
   for iy = 1:n(2)
     MixY = Mix3*Mix2*Mix1;
-    MixYt = MixY';
+    MixYadj = MixY';
     for ix = 1:n(1)
-      FinalDensity = MixY*Density*MixYt;
+      FinalDensity = MixY*Density*MixYadj;
       Signal(ix,iy) = Detector*FinalDensity(:);
-      MixY = UUX.*MixY;
+      MixY = UUX_.*MixY; % equivalent to UX*MixY*UX
     end
-    Mix2 = UtUY.*Mix2;
+    Mix2 = UtUY_.*Mix2; % equivalent to UY'*Mix2*UY
   end
   
 elseif isequal(IncScheme,[1 -1 1 -1]) % IncScheme [1 -1 1 -1]
   Mix1X = diag(diagU.^n)*Mix{1}; % pre-propagate to endpoint of second delay
   Mix2 = Mix{2};
   Mix3X = diag(diagU.^n)*Mix{3}; % pre-propagate to endpoint of fourth delay
-  UtU = conj(diagU)*diagU.'; % propagator for Mix1 and Mix3 (add before, remove after)
+  UtU_ = conj(diagU)*diagU.'; % propagator for Mix1 and Mix3 (add before, remove after)
   for ix = 1:n
     MixX = Mix3X*Mix2*Mix1X;
     FinalDensity = MixX*Density*MixX';
     Signal(ix) = Detector*FinalDensity(:);
-    Mix1X = UtU.*Mix1X;
-    Mix3X = UtU.*Mix3X;
+    Mix1X = UtU_.*Mix1X; % equivalent to U'*Mix1X*U
+    Mix3X = UtU_.*Mix3X; % equivalent to U'*Mix3X*U
   end
 
 else
