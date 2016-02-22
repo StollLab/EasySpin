@@ -26,6 +26,7 @@ if ~ischar(opt)
   error('Third argument must be a string, ''sparse''.');
 end
 sparseResult = strcmp(opt,'sparse');
+higherOrder = any(strncmp(fieldnames(SpinSystem),'ZB',2));
 
 [Sys,err] = validatespinsys(SpinSystem);
 error(err);
@@ -42,36 +43,103 @@ else
 end
 
 
-% arrange the output
-if isempty(B0)
-
-  if (nargout==4)
-    varargout = {F,GxM,GyM,GzM};
-  elseif nargout==1
-    varargout{1} = {F,GxM,GyM,GzM};
-  else
-    error('1 or 4 output arguments expected!');
+if higherOrder
+  %get highest order in B0
+   for n = 0:3
+    if any(strncmp(fieldnames(Sys),['ZB',num2str(n,'%i')],3));
+      highest = n;
+    end
   end
-  
+  if isempty(B0)
+    %full tensors up to the highest used orer will be provided
+    zHo = zeemanho(Sys,[],opt);
+    switch highest
+      case 0
+        if (nargout==4)
+          varargout = {F+zHo,GxM,GyM,GzM};
+        elseif nargout==1
+          varargout{1} = {F+zHo,GxM,GyM,GzM};
+        else
+          error('1 or 4 output arguments expected!');
+        end
+      case 1
+        if (nargout==4)
+          varargout = {F+zHo{1},GxM+zHo{2}{1},GyM+zHo{2}{2},GzM+zHo{2}{3}};
+        elseif nargout==1
+          varargout{1} = {F+zHo{1},GxM+zHo{2}{1},GyM+zHo{2}{2},GzM+zHo{2}{3}};
+        else
+          error('1 or 4 output arguments expected!');
+        end
+      otherwise
+        zHo{1} = zHo{1}+F;
+        Gn = {GxM,GyM,GzM};
+        for k = 3:-1:1
+          zHo{2}{k} = zHo{2}{k}+Gn{k};
+        end
+        if(nargout==highest+1)
+          varargout =zHo;
+        elseif nargout==1
+          varargout{1}=zHo;
+        else
+          error('Wrong number of output arguments!');
+        end
+    end
+  else
+    if numel(B0)~=3
+      error('Magnetic field must be 3-element vector!');
+    end
+    if norm(B0)>0
+      nB0 = B0/norm(B0);
+    else
+      nB0 = [0 0 0];
+    end
+    GzL = nB0(1)*GxM + nB0(2)*GyM + nB0(3)*GzM;    
+    if (nargout==1) || (nargout==0)
+      varargout = {F + norm(B0)*GzL + zeemanho(Sys,B0,[],opt)};
+    elseif nargout==2 && highest<2
+      zHo = zeemanho(Sys,[],opt);
+      if highest == 1 
+        GzL = GzL + nB0(1)*zHo{2}{1} + nB0(2)*zHo{2}{2} + nB0(3)*zHo{2}{3};
+        F = F + zHo{1};
+      else
+        F = F +zHo;
+      end
+      varargout = {F,GzL};
+    else
+      error('Wrong number of output arguments!');
+    end
+  end
 else
-  
-  if numel(B0)~=3
-    error('Magnetic field must be 3-element vector!');
-  end
-  if norm(B0)>0
-    nB0 = B0/norm(B0);
+  % arrange the output
+  if isempty(B0)
+    
+    if (nargout==4)
+      varargout = {F,GxM,GyM,GzM};
+    elseif nargout==1
+      varargout{1} = {F,GxM,GyM,GzM};
+    else
+      error('1 or 4 output arguments expected!');
+    end
+    
   else
-    nB0 = [0 0 0];
+    
+    if numel(B0)~=3
+      error('Magnetic field must be 3-element vector!');
+    end
+    if norm(B0)>0
+      nB0 = B0/norm(B0);
+    else
+      nB0 = [0 0 0];
+    end
+    GzL = nB0(1)*GxM + nB0(2)*GyM + nB0(3)*GzM;
+    if (nargout==1) || (nargout==0)
+      varargout = {F + norm(B0)*GzL};
+    elseif nargout==2
+      varargout = {F,GzL};
+    else
+      error('Wrong number of output arguments!');
+    end
+    
   end
-  GzL = nB0(1)*GxM + nB0(2)*GyM + nB0(3)*GzM;
-  if (nargout==1) || (nargout==0)
-    varargout = {F + norm(B0)*GzL};
-  elseif nargout==2
-    varargout = {F,GzL};
-  else
-    error('Wrong number of output arguments!');
-  end
-  
 end
-
 return

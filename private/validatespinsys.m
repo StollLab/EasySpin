@@ -18,7 +18,7 @@
 %   ee, if more than one electron present
 %   A, if nuclei present
 % Optional fields (initialized to zero if missing):
-%   all others
+%   all others 
 %-------------------------------------------------------
 
 function [FullSys,err] = validatespinsys(Sys)
@@ -80,6 +80,8 @@ for f = 1:numel(givenFields)
     end
   end
 end
+
+
 
 % -- electron spins field: System.S -------------------------------------
 % If S is missing, set it to 1/2
@@ -148,7 +150,11 @@ elseif isfield(Sys,'g_')
   end
 else
   %error('Sys.g is missing.');
-  Sys.g = gfree*ones(nElectrons,3);
+  if any(strncmp(fieldnames(Sys),'ZB',2))
+    Sys.g = 0;
+  else
+    Sys.g = gfree*ones(nElectrons,3);
+  end
   Sys.fullg = 0;
 end
 
