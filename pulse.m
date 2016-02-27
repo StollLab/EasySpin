@@ -62,7 +62,9 @@ function varargout = pulse(varargin)
 %                                 calculation on/off
 %          Opt.offsets          = axis of frequency offsets in MHz for which
 %                                 to compute the excitation profile
-%                                 (default ±500 MHz, 201 pts)
+%                                 (default ±200 MHz, 201 pts or ±1.5*BW in
+%                                 1 MHz steps if a bandwidth is defined for
+%                                 one of the pulses)
 %          Opt.nBCH             = number of steps combined in the excitation
 %                                 profile computation using the Baker-
 %                                 Campbell-Hausdorff series (*2)
@@ -160,6 +162,11 @@ end
 if ~isfield(Exp,'tp')
   error('Pulse length not defined in Exp.tp.')
 end
+if ~isfield(Exp,'Pulse')
+  for i = 1:numel(Exp.tp)
+    Exp.Pulse(i).Shape = 'rectangular';
+  end
+end
 if ~isfield(Exp,'Amplitude') && ~isfield(Exp,'Flip')
   Exp.Amplitude(1:numel(Exp.tp)) = 1; % normalized amplitude
 elseif isfield(Exp,'Amplitude') && numel(Exp.Amplitude)~=numel(Exp.tp)
@@ -203,9 +210,19 @@ if ~isfield(Opt,'nBCH')
   Opt.nBCH = 3;
 end
 if ~isfield(Opt,'offsets')
-  limit = 500; % MHz, default
-  npoints = 201;
-  Opt.offsets = linspace(-limit,limit,npoints);
+  if isfield(Exp.Pulse,'BW') % set range of offsets to ±1.5*BW in 1 MHz steps
+    BW(1:numel(Exp.tp)) = 0;
+    for i = 1:numel(Exp.tp)
+      if ~isempty(Exp.Pulse(i).BW)
+        BW(i) = Exp.Pulse(i).BW;
+      end
+    end
+    Opt.offsets = -1.5*max(BW):1:1.5*max(BW);
+  else
+    limit = 200; % MHz, default
+    npoints = 201;
+    Opt.offsets = linspace(-limit,limit,npoints);
+  end
 end
 
 % ----------------------------------------------------------------------- %
