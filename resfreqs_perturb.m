@@ -71,9 +71,14 @@ if highSpin && any(Sys.DStrain) && any(mod(Sys.S,1))
   err = ('D strain not supported for half-integer spins with perturbation theory. Use matrix diagonalization or remove Sys.DStrain.');
 end
 if any(Sys.DStrain(:)) && any(Sys.DFrame(:))
-  err = 'D stain cannot be used with tilted D tensors.';
+  err = 'D strain cannot be used with tilted D tensors.';
+end
+if any(strncmp(fieldnames(Sys),'ZB',2))
+  err = 'Perturbation theory not available for higher order terms';
 end
 error(err);
+
+
 
 if ~isfield(Sys,'gAStrainCorr')
   Sys.gAStrainCorr = +1;

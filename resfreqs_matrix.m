@@ -114,6 +114,11 @@ if any(System.DStrain(:)) && any(System.DFrame(:))
   error('D stain cannot be used with tilted D tensors.');
 end
 
+if any( strncmp(fieldnames(System),'ZB',2))
+  higherOrder = 1;
+else
+  higherOrder = 0;
+end
 
 % Process Parameters.
 %---------------------------------------------------------------------
@@ -134,6 +139,8 @@ if isnan(Exp.Field)
   Exp.Field = 0.0;
   logmsg(1,'Exp.Field is missing, assuming 0.0 mT');
 end
+
+
 
 
 if ~isnan(Exp.CenterSweep)
@@ -332,16 +339,23 @@ else
 end
 
 % Hamiltonian components for the core system.
-if (Opt.Sparse)
-  [kF,kGxM,kGyM,kGzM] = sham(CoreSys,[],'sparse');
-  nLevels = length(kF);
+if higherOrder
+  nCore = hsdim(CoreSys);
+  nLevels = nCore;
+  nFull = hsdim(System);
+  nSHFNucStates = nFull/nCore;
 else
-  [kF,kGxM,kGyM,kGzM] = sham(CoreSys);
-  nLevels = length(kF);
+  if (Opt.Sparse)
+    [kF,kGxM,kGyM,kGzM] = sham(CoreSys,[],'sparse');
+    nLevels = length(kF);
+  else
+    [kF,kGxM,kGyM,kGzM] = sham(CoreSys);
+    nLevels = length(kF);
+  end
+  nCore = length(kF);
+  nFull = hsdim(System);
+  nSHFNucStates = nFull/nCore;
 end
-nCore = length(kF);
-nFull = hsdim(System);
-nSHFNucStates = nFull/nCore;
 
 if (nPerturbNuclei>0)
   logmsg(1,'  core system with %d spins and %d states',numel(spinvec(CoreSys)),nCore);
@@ -363,9 +377,13 @@ if (ComputeNonEquiPops)
   ZFPopulations = kron(ZFPopulations,ones(nCore/nElStates,1));
   
   % Pre-compute zero-field energies and eigenstates
-  [ZFStates,ZFEnergies] = eig(kF);
-  [ZFEnergies,idx] = sort(real(diag(ZFEnergies)));
-  ZFStates = ZFStates(:,idx);
+  if higherOrder
+    [ZFStates,ZFEnergies] = eig(sham(CoreSys, zeros(1,3)));
+  else
+    [ZFStates,ZFEnergies] = eig(kF);
+  end
+    [ZFEnergies,idx] = sort(real(diag(ZFEnergies)));
+    ZFStates = ZFStates(:,idx);
   % Correct zero-field states for S=1 and axial D
   if (CoreSys.S==1)
     if (ZFEnergies(2)==ZFEnergies(3))
@@ -596,23 +614,49 @@ for iOri = 1:nOrientations
     end
   end
   
-  % Set up Hamiltonians for 3 lab principal directions
-  %-----------------------------------------------------
-  [xLab,yLab,zLab] = erot(Orientations(iOri,:),'rows');
+ 
   
-  % z laboratoy axis: external static field
-  kGzL = zLab(1)*kGxM + zLab(2)*kGyM + zLab(3)*kGzM;
-  % x laboratory axis: B1 excitation field
-  kGxL = xLab(1)*kGxM + xLab(2)*kGyM + xLab(3)*kGzM;
-  % y laboratory vector: needed for integration over all B1 field orientations.
-  kGyL = yLab(1)*kGxM + yLab(2)*kGyM + yLab(3)*kGzM;
+    
   
-  if issparse(kF)
-    [Vs,E] = gethamdata(Exp.Field, kF, kGzL, [], nLevels);
-  else
-    [Vs,E] = gethamdata(Exp.Field, kF, kGzL, [], nLevels);
-  end
-  Pdat(:,iOri) = E(v) - E(u);
+    % Set up Hamiltonians for 3 lab principal directions
+    %-----------------------------------------------------
+    [xLab,yLab,zLab] = erot(Orientations(iOri,:),'rows');
+   if higherOrder  
+     [Vs,E] = gethamdata_hO(Exp.Field*zLab, CoreSys,Opt.Sparse, [], nLevels);
+     if Opt.Sparse
+       g1 = zeemanho(CoreSys,[],'sparse',1);
+       [go{1},g0{2},go{3}] = zeeman(CoreSys,[],'sparse');
+     else
+       g1 = zeemanho(CoreSys,[],[],'',1);
+       [g0{1},g0{2},g0{3}] = zeeman(CoreSys,[],'');
+     end
+     for n =3:-1:1
+       kGM{n} = g1{1}{n}+g0{n};
+     end
+     % z laboratoy axis: external static field    
+     kGzL = zLab(1)*kGM{1} + zLab(2)*kGM{2} + zLab(3)*kGM{3};
+     % x laboratory axis: B1 excitation field
+     kGxL = xLab(1)*kGM{1} + xLab(2)*kGM{2} + xLab(3)*kGM{3};
+     % y laboratory vector: needed for integration over all B1 field orientations.
+     kGyL = yLab(1)*kGM{1} + yLab(2)*kGM{2} + yLab(3)*kGM{3};
+ 
+      
+   else
+    % z laboratoy axis: external static field
+    kGzL = zLab(1)*kGxM + zLab(2)*kGyM + zLab(3)*kGzM;
+    % x laboratory axis: B1 excitation field
+    kGxL = xLab(1)*kGxM + xLab(2)*kGyM + xLab(3)*kGzM;
+    % y laboratory vector: needed for integration over all B1 field orientations.
+    kGyL = yLab(1)*kGxM + yLab(2)*kGyM + yLab(3)*kGzM;
+    
+    if issparse(kF)
+      [Vs,E] = gethamdata(Exp.Field, kF, kGzL, [], nLevels);
+    else
+      [Vs,E] = gethamdata(Exp.Field, kF, kGzL, [], nLevels);
+    end
+   end
+    Pdat(:,iOri) = E(v) - E(u);
+  
   
   % Calculate intensities if requested
   if (ComputeIntensities)

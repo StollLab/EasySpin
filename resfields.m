@@ -115,6 +115,12 @@ if any(System.DStrain(:)) && any(System.DFrame(:))
   error('D strain cannot be used with tilted D tensors.');
 end
 
+if any( strncmp(fieldnames(System),'ZB',2))
+  higherOrder = 1;
+else
+  higherOrder = 0;
+end
+
 % Process experimental parameters
 %---------------------------------------------------------------------
 DefaultExp.mwFreq = NaN;
@@ -145,6 +151,7 @@ if isnan(Exp.Range), error('Experiment.Range/Exp.CenterSweep is missing!'); end
 if (diff(Exp.Range)<=0) | ~isfinite(Exp.Range) | ~isreal(Exp.Range) | any(Exp.Range<0)
   error('Exp.Range is not valid!');
 end
+
 
 % Determine excitation mode
 p_excitationgeometry;
@@ -374,16 +381,22 @@ else
 end
 
 % Hamiltonian components for the core system.
-if Opt.Sparse
-  [kF,kGxM,kGyM,kGzM] = sham(CoreSys,[],'sparse');
-  nLevels = length(kF);
+if higherOrder
+  nCore = hsdim(CoreSys);
+  nLevels = hsdim(CoreSys);
 else
-  [kF,kGxM,kGyM,kGzM] = sham(CoreSys);
-  nLevels = length(kF);
+  if Opt.Sparse
+    [kF,kGxM,kGyM,kGzM] = sham(CoreSys,[],'sparse');
+    nLevels = length(kF);
+  else
+    [kF,kGxM,kGyM,kGzM] = sham(CoreSys);
+    nLevels = length(kF);
+  end
+  nCore = length(kF);
 end
-nCore = length(kF);
 nFull = hsdim(System);
 nSHFNucStates = nFull/nCore;
+
 
 if (nPerturbNuclei>0)
   logmsg(1,'  core system with %d spins and %d states',numel(spinvec(CoreSys)),nCore);
@@ -404,7 +417,11 @@ if (ComputeNonEquiPops)
   ZFPopulations = kron(ZFPopulations,ones(nCore/nElStates,1));
   
   % Pre-compute zero-field energies and eigenstates
-  [ZFStates,ZFEnergies] = eig(kF);
+  if higherOrder
+    [ZFStates,ZFEnergies] =  eig(sham(CoreSys, zeros(1,3)));
+  else
+    [ZFStates,ZFEnergies] = eig(kF);
+  end
   [ZFEnergies,idx] = sort(real(diag(ZFEnergies)));
   ZFStates = ZFStates(:,idx);
   % Correct zero-field states for S=1 and axial D
@@ -424,11 +441,15 @@ if (ComputeNonEquiPops)
     end
   end
 else
-  if issparse(kF)
-    ZFEnergies(1) = eigs(kF,1,'sa');
-    ZFEnergies(2) = eigs(kF,1,'la');
+  if higherOrder
+    ZFEnergies =  sort(real(eig(sham(CoreSys, zeros(1,3)))));
   else
-    ZFEnergies = sort(real(eig(kF)));
+    if issparse(kF)
+      ZFEnergies(1) = eigs(kF,1,'sa');
+      ZFEnergies(2) = eigs(kF,1,'la');
+    else
+      ZFEnergies = sort(real(eig(kF)));
+    end
   end
 end
 
@@ -520,19 +541,40 @@ else % Automatic pre-selection
     % Pre-allocate the transition rate matrix.
     TransitionRates = zeros(nCore);
     % Detector operator for transition selection.
-    ExM = kGxM; EyM = kGyM; EzM = kGzM;
+    if higherOrder
+      if Opt.Sparse
+       g1 = zeemanho(CoreSys,[],'sparse',1);
+       [go{1},g0{2},go{3}] = zeeman(CoreSys,[],'sparse');
+      else
+       g1 = zeemanho(CoreSys,[],[],'',1);
+       [g0{1},g0{2},g0{3}] = zeeman(CoreSys,[],'');
+      end
+      ExM = g1{1}{1}+g0{1};
+      EyM = g1{1}{2}+g0{2};
+      EzM = g1{1}{3}+g0{3};
+    else
+      ExM = kGxM; EyM = kGyM; EzM = kGzM;
+    end
     % Calculate transition rates over all orientations (fixed field!).
     for iOri = 1:numel(theta)
       % Determine orientation dependent operators.
-      kGpM = ctp(iOri,2)*kGxM + stp(iOri,2)*kGyM;
       EpM = ctp(iOri,2)*ExM + stp(iOri,2)*EyM;
-      % Solve eigenproblem.
-      if Opt.Sparse
-        [Vs,E] = eigs(kF + centerB*(stp(iOri,1)*kGpM + ctp(iOri,1)*kGzM),length(kF));
-        [E,idx_] = sort(diag(E));
-        Vs = Vs(:,idx_);
+      if higherOrder
+        [Vs,E] = gethamdata_hO(centerB*[stp(iOri,1)/sqrt(2)*[1,1],ctp(iOri,1)],CoreSys,Opt.Sparse,[],nLevels);
+        if Opt.Sparse
+          [E,idx_] = sort(diag(E));
+          Vs = Vs(:,idx_);
+        end
       else
-        [Vs,E] = eig(kF + centerB*(stp(iOri,1)*kGpM + ctp(iOri,1)*kGzM));
+        kGpM = ctp(iOri,2)*kGxM + stp(iOri,2)*kGyM;
+        % Solve eigenproblem.
+        if Opt.Sparse
+          [Vs,E] = eigs(kF + centerB*(stp(iOri,1)*kGpM + ctp(iOri,1)*kGzM),length(kF));
+          [E,idx_] = sort(diag(E));
+          Vs = Vs(:,idx_);
+        else
+          [Vs,E] = eig(kF + centerB*(stp(iOri,1)*kGpM + ctp(iOri,1)*kGzM));
+        end
       end
       % Sum up transition rates. Or take the maximum.
       if (ParallelMode)
@@ -784,11 +826,20 @@ Accuracy = mwFreq*Opt.ModellingAccuracy;
 
 M = [2 -2 1 1; -3 3 -2 -1; 0 0 1 0; 1 0 0 0];
 ZeroRow = NaN*ones(1,nOrientations);
-if Opt.Sparse
-  maxSlope = max(max([eigs(kGxM,1) eigs(kGyM,1) eigs(kGzM,1)]));
-  maxSlope = abs(maxSlope);
+if higherOrder
+  maxSlope = 0;
+  for iOri = 1:nOrientations
+    [~,~,zLab_M] = erot(Orientations(iOri,:),'rows');
+    [~,~,der]= gethamdata_hO(Exp.Range(2)*zLab_M,CoreSys,Opt.Sparse,[],nLevels);
+    maxSlope = max([maxSlope,max(der)]);
+  end
 else
-  maxSlope = max(max([eig(kGxM) eig(kGyM) eig(kGzM)]));
+  if Opt.Sparse
+    maxSlope = max(max([eigs(kGxM,1) eigs(kGyM,1) eigs(kGzM,1)]));
+    maxSlope = abs(maxSlope);
+  else
+    maxSlope = max(max([eig(kGxM) eig(kGyM) eig(kGzM)]));
+  end
 end
 nDiagonalizations = 0; % or 4? (1 for F and 3 for maxSlope)
 nRediags = 0;
@@ -828,14 +879,15 @@ for iOri = 1:nOrientations
   [xLab_M,yLab_M,zLab_M] = erot(Orientations(iOri,:),'rows');
   % xLab_M, yLab_M, zLab_M represented in the molecular frame
   
-  % z laboratoy axis: external static field
-  kGzL = zLab_M(1)*kGxM + zLab_M(2)*kGyM + zLab_M(3)*kGzM;
-  % x laboratory axis: mw excitation field
-  kGxL = xLab_M(1)*kGxM + xLab_M(2)*kGyM + xLab_M(3)*kGzM;
-  % y laboratory axis: needed for gradient calculation
-  % and the integration over all mw field orientations.
-  kGyL = yLab_M(1)*kGxM + yLab_M(2)*kGyM + yLab_M(3)*kGzM;
-
+  if ~higherOrder
+    % z laboratoy axis: external static field
+    kGzL = zLab_M(1)*kGxM + zLab_M(2)*kGyM + zLab_M(3)*kGzM;
+    % x laboratory axis: mw excitation field
+    kGxL = xLab_M(1)*kGxM + xLab_M(2)*kGyM + xLab_M(3)*kGzM;
+    % y laboratory axis: needed for gradient calculation
+    % and the integration over all mw field orientations.
+    kGyL = yLab_M(1)*kGxM + yLab_M(2)*kGyM + yLab_M(3)*kGzM;
+  end
   if ComputeStrains
     LineWidthSquared = HStrain2*zLab_M.^2;
   end
@@ -850,8 +902,13 @@ for iOri = 1:nOrientations
   
   Bknots = Exp.Range; % initial segment spans full field range
   nSegments = 1;
-  [Vectors{2},E{2},dEdB{2},deltaE{2}] = gethamdata(Bknots(2),kF,kGzL,Trans,nLevels);
-  [Vectors{1},E{1},dEdB{1},deltaE{1}] = gethamdata(Bknots(1),kF,kGzL,Trans,nLevels);
+  if higherOrder
+    [Vectors{2},E{2},dEdB{2},deltaE{2}] = gethamdata_hO(Bknots(2)*zLab_M,CoreSys,Opt.Sparse,Trans,nLevels);
+    [Vectors{1},E{1},dEdB{1},deltaE{1}] = gethamdata_hO(Bknots(1)*zLab_M,CoreSys,Opt.Sparse,Trans,nLevels);
+  else
+    [Vectors{2},E{2},dEdB{2},deltaE{2}] = gethamdata(Bknots(2),kF,kGzL,Trans,nLevels);
+    [Vectors{1},E{1},dEdB{1},deltaE{1}] = gethamdata(Bknots(1),kF,kGzL,Trans,nLevels);
+  end
   nDiagonalizations = nDiagonalizations + 2;
   unfinished = true;
   
@@ -873,7 +930,11 @@ for iOri = 1:nOrientations
     if any(ResonancePossible)
       % diagonalize at center and compute error
       newB = (Bknots(s)+Bknots(s+1))/2;
-      [Ve,En,Di1,dEn] = gethamdata(newB,kF,kGzL,Trans,nLevels);
+      if higherOrder
+        [Ve,En,Di1,dEn] = gethamdata_hO(newB*zLab_M,CoreSys,Opt.Sparse,Trans,nLevels);
+      else
+        [Ve,En,Di1,dEn] = gethamdata(newB,kF,kGzL,Trans,nLevels);
+      end
       nDiagonalizations = nDiagonalizations+1;
       Error = 2*(1/2*(E{s}+E{s+1}) + dB/8*(dEdB{s}-dEdB{s+1}) - En);
       Incl = false(1,nCore); % levels to include in accuracy check
@@ -985,18 +1046,27 @@ for iOri = 1:nOrientations
           % rediagonalize the Hamiltonian at the resonance field.
           if any(StateStability(uv,s)<Opt.RediagLimit)
             nRediags = nRediags + 1;
-            if issparse(kF)
-              [Vectors_,Energies] = eigs(kF+ResonanceFields(iReson)*kGzL,nLevels);
-              % A sort of workaround for diagonalization using eigs, the
-              % energies are not ordered which results in a miscalculation
-              % of mu
-              [Energies,ind] = sort(diag(Energies));
-              Energies = diag(Energies);
-              Vectors_ = Vectors_(:,ind);
-              
-              %[Vectors_,Energies] = eig(full(kF+ResonanceFields(iReson)*kGzL));
+            if higherOrder
+              [Vectors_,Energies] = gethamdata_hO(ResonanceFields(iReson)*zLab_M,CoreSys,Opt.Sparse);
+              if Opt.Sparse
+                [Energies,ind] = sort(diag(Energies));
+                Energies = diag(Energies);
+                Vectors_ = Vectors_(:,ind);
+              end
             else
-              [Vectors_,Energies] = eig(kF+ResonanceFields(iReson)*kGzL);
+              if issparse(kF)
+                [Vectors_,Energies] = eigs(kF+ResonanceFields(iReson)*kGzL,nLevels);
+                % A sort of workaround for diagonalization using eigs, the
+                % energies are not ordered which results in a miscalculation
+                % of mu
+                [Energies,ind] = sort(diag(Energies));
+                Energies = diag(Energies);
+                Vectors_ = Vectors_(:,ind);
+                
+                %[Vectors_,Energies] = eig(full(kF+ResonanceFields(iReson)*kGzL));
+              else
+                [Vectors_,Energies] = eig(kF+ResonanceFields(iReson)*kGzL);
+              end
             end
             U = Vectors_(:,uv(1));
             V = Vectors_(:,uv(2));
@@ -1026,6 +1096,25 @@ for iOri = 1:nOrientations
             end
           end
 
+          if higherOrder
+            if Opt.Sparse
+              g1 = zeemanho(CoreSys,[],'sparse',1);
+              [go{1},g0{2},go{3}] = zeeman(CoreSys,[],'sparse');
+            else
+              g1 = zeemanho(CoreSys,[],[],'',1);
+              [g0{1},g0{2},g0{3}] = zeeman(CoreSys,[],'');
+            end
+            for n =3:-1:1
+              kGM{n} = g1{1}{n}+g0{n};
+            end
+            % z laboratoy axis: external static field
+            kGzL = zLab_M(1)*kGM{1} + zLab_M(2)*kGM{2} + zLab_M(3)*kGM{3};
+            % x laboratory axis: B1 excitation field
+            kGxL = xLab_M(1)*kGM{1} + xLab_M(2)*kGM{2} + xLab_M(3)*kGM{3};
+            % y laboratory vector: needed for integration over all B1 field orientations.
+            kGyL = yLab_M(1)*kGM{1} + yLab_M(2)*kGM{2} + yLab_M(3)*kGM{3};
+          end
+          
           % Compute dB/dE
           % dBdE is the general form of the famous 1/g factor
           % dBdE = (d(Ev-Eu)/dB)^(-1) = 1/(<v|dH/dB|v>-<u|dH/dB\u>)

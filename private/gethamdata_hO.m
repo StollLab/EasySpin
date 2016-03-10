@@ -15,20 +15,39 @@
 % dEdB  derivatives of energy with respect to B
 % dE    energy differences for the transitions listed in idxT
 
-function [V,E,dEdB,dE] = gethamdata(B,F,G,idxT,nLevels)
-
+function [V,E,dEdB,dE] = gethamdata_hO(B,Sys,sparse,idxT,nLevels)
 % Compute eigenvalues and eigenvectors of Hamiltonian
-if issparse(F)
-  [V,E] = eigs(F+B*G,nLevels);
+if sparse
+  H = sham(Sys,B,'sparse');
+  [V,E] = eigs(H,nLevels);
   E = diag(E).';
   [E,idx_] = sort(E);
   V = V(:,idx_);
+  if nargout >2
+    %calculate energies for numerical derivative
+    nB = B./abs(B);
+    dB = 0.01;
+    H = sham(Sys,B+dB*nB,'sparse');
+    E2 = eigs(H,nLevels);
+    E2 = sort(E2);
+  end
 else
-  [V,E] = eig(F+B*G);
+  H = sham(Sys,B);
+  [V,E] = eig(H);
   E = diag(E).';
   if (nLevels<numel(E))
     E = E(1:nLevels);
     V = V(:,1:nLevels);
+  end
+  if nargout >2
+    %calculate energies for numerical derivative
+    nB = B./norm(B);
+    dB = 0.01;
+    H = sham(Sys,B+dB*nB);
+    E2 = eig(H);
+    if (nLevels<numel(E2))
+      E2 = E(1:nLevels);
+    end
   end
 end
 
@@ -50,7 +69,7 @@ end
 
 if (nargout>2)
   % Compute first derivative of energies with respect to field, dE/dB
-  dEdB = real(diag(V'*G*V)).';
+  dEdB = (E2.'-E)/dB;
 end
 
 if (nargout>3)
@@ -60,5 +79,4 @@ if (nargout>3)
   dE = M.' - M;
   dE = dE(idxT);
 end
-
 return

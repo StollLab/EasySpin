@@ -1,3 +1,4 @@
+
 % zeeman  Zeeman interaction Hamiltonian 
 %
 %   H = zeeman(SpinSystem, B)
