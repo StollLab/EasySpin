@@ -1,14 +1,14 @@
 % Hamiltonian diagonalization (sparse and full)
 % used by resfreqs_matrix and resfields
 
-% B       static field magnitude
-% F       field-independent part of Hamiltonian
-% G       field-dependent part of Hamiltonian
+% B       static field vector
+% Sys       Spin System
+% sparse       1 for sparse matrix calculation
 % idxT    transition index (single number per transition)
 % nLevels number of lowest levels to return
 
 
-% The Hamiltonian is H = F + B*G
+% 
 
 % V     eigenvectors of Hamiltonian
 % E     eigenvalues of Hamiltonian (energies)

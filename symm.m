@@ -30,17 +30,28 @@ end
 [Sys,err] = validatespinsys(Sys);
 error(err);
 
-HighOrderTerms = {...
-  'aF',...
-  'B0','B1','B2','B3','B4','B5','B6',...
-  'B7','B8','B9','B10','B11','B12'};
+
 HighOrderTermsPresent = false;
-for iTerm = 1:numel(HighOrderTerms)
-  if isfield(Sys,HighOrderTerms{iTerm}) && any(Sys.(HighOrderTerms{iTerm})(:))
-    HighOrderTermsPresent = true;
-    break;
+HigherZeemanPresent = false;
+sysfields = fieldnames(Sys);
+stevens = strncmp(sysfields,'B',1).';
+if any(stevens)
+  for n=find(stevens)
+    if any(Sys.(sysfields{n})), HighOrderTermsPresent = true; end
   end
 end
+higherzeeman = strncmp(sysfields,'ZB',2).';
+if any(higherzeeman) 
+  for n=find(higherzeeman)
+    if any(Sys.(sysfields{n}).vals)
+      HighOrderTermsPresent = true;
+      HigherZeemanPresent = true;
+    end
+  end
+end
+if isfield(Sys,'aF') && any(Sys.aF), HighOrderTermsPresent = true; end
+  
+
 
 if DebugMode
   if HighOrderTermsPresent
@@ -91,7 +102,7 @@ if DebugMode
 end
 
 if DoQMAnalysis
-  [Group, RMatrix] = symm_full(Sys,DebugMode);
+  [Group, RMatrix] = symm_full(Sys,HigherZeemanPresent,DebugMode);
 else
   [Group, RMatrix] = symm_geom(Sys,DebugMode);
 end
@@ -99,7 +110,7 @@ end
 return
 %@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-function [Group,RMatrix] = symm_full(Sys,DebugMode)
+function [Group,RMatrix] = symm_full(Sys,HigherZeemanPresent, DebugMode)
 
 %--------------------------------------------------
 % Collect all frame orientations described
@@ -182,7 +193,7 @@ end
 % Precalculation of Hamiltonian and symmetry ops.
 %--------------------------------------------------
 % Orientation-independent spin Hamiltonian components.
-[F,Gx,Gy,Gz] = sham(Sys);
+if ~HigherZeemanPresent, [F,Gx,Gy,Gz] = sham(Sys); end
 
 % Set of field vectors for the test operations.
 q = 7; % small theta aliquod
@@ -224,27 +235,35 @@ for iFrame = 1:nFrames % loop over all potential frames
   B = R*FieldVecs;
   
   pg = 0;
+  if HigherZeemanPresent
+    eA = eig(sham(Sys,B(:,1)));
+    eB = eig(sham(Sys,B(:,2)));
+    eC = eig(sham(Sys,B(:,3)));
+  else
+    eA = eig(F + B(1,1)*Gx + B(2,1)*Gy + B(3,1)*Gz);
+    eB = eig(F + B(1,2)*Gx + B(2,2)*Gy + B(3,2)*Gz);
+    eC = eig(F + B(1,3)*Gx + B(2,3)*Gy + B(3,3)*Gz);
 
-  eA = eig(F + B(1,1)*Gx + B(2,1)*Gy + B(3,1)*Gz);
-  eB = eig(F + B(1,2)*Gx + B(2,2)*Gy + B(3,2)*Gz);
+  end
   C3 = eqeig(eB,eA); % is there a C3 along z?
-  eB = eig(F + B(1,3)*Gx + B(2,3)*Gy + B(3,3)*Gz);
-  C4 = eqeig(eB,eA); % is there a C4 along z?
+  C4 = eqeig(eC,eA); % is there a C4 along z?
   
   if DebugMode
     fprintf('%d C4 axes and %d C3 axes along z\n',C4,C3);
   end
 
   switch C4*2+C3
-    
   case 0 % none: Ci, C2h, D2h
-    
-    C2z = eqeig(eA,eig(F+B(1,12)*Gx+B(2,12)*Gy+B(3,12)*Gz));
+    if HigherZeemanPresent, C2z = eqeig(eA,eig(sham(Sys,B(:,12))));
+    else C2z = eqeig(eA,eig(F+B(1,12)*Gx+B(2,12)*Gy+B(3,12)*Gz));
+    end
     if ~C2z,
       pg = 1; % Ci
     else % D2h, C2h
-      sigmaxz = eqeig(eA,eig(F+B(1,11)*Gx+B(2,11)*Gy+B(3,11)*Gz));
-      if sigmaxz,
+      if HigherZeemanPresent, sigmaxz = eqeig(eA,eig(sham(Sys,B(:,11))));
+      else sigmaxz = eqeig(eA,eig(F+B(1,11)*Gx+B(2,11)*Gy+B(3,11)*Gz));
+      end
+      if sigmaxz
         pg = 3; % D2h
       else
         pg = 2; % C2h
@@ -252,38 +271,55 @@ for iFrame = 1:nFrames % loop over all potential frames
     end
     
   case 1 % C3 axis: S6,D3d,Th,C6h,D6h
-    
-    sigmaxy = eqeig(eA,eig(F+B(1,7)*Gx+B(2,7)*Gy+B(3,7)*Gz));
+    if HigherZeemanPresent, sigmaxy = eqeig(eA,eig(sham(Sys,B(:,7))));
+    else sigmaxy = eqeig(eA,eig(F+B(1,7)*Gx+B(2,7)*Gy+B(3,7)*Gz));
+    end
     if sigmaxy % Th, C6h, D6h
-      C2z = eqeig(eB,eig(F+B(1,6)*Gx+B(2,6)*Gy+B(3,6)*Gz));
+      if HigherZeemanPresent,C2z = eqeig(eC,eig(sham(Sys,B(:,6))));
+      else C2z = eqeig(eC,eig(F+B(1,6)*Gx+B(2,6)*Gy+B(3,6)*Gz));
+      end
       if C2z % C6h, D6h
-        C2x = eqeig(eB,eig(F+B(1,8)*Gx+B(2,8)*Gy+B(3,8)*Gz));
+        if HigherZeemanPresent,C2x = eqeig(eC,eig(sham(Sys,B(:,8)))); 
+        else C2x = eqeig(eC,eig(F+B(1,8)*Gx+B(2,8)*Gy+B(3,8)*Gz));  
+        end
         if C2x, pg = 9; else pg = 8; end
       else
         pg = 10;
       end
     else % S6, D3d
-      C2x = eqeig(eB,eig(F+B(1,8)*Gx+B(2,8)*Gy+B(3,8)*Gz));
+      if HigherZeemanPresent,C2x = eqeig(eC,eig(sham(Sys,B(:,8))));
+      else C2x = eqeig(eC,eig(F+B(1,8)*Gx+B(2,8)*Gy+B(3,8)*Gz));
+      end
       if ~C2x
-        C2y = eqeig(eA,eig(F+B(1,9)*Gx+B(2,9)*Gy+B(3,9)*Gz));
+        if HigherZeemanPresent, C2y = eqeig(eA,eig(sham(Sys,B(:,9))));
+        else C2y = eqeig(eA,eig(F+B(1,9)*Gx+B(2,9)*Gy+B(3,9)*Gz));
+        end
       end
       if C2x||C2y; pg = 7; else pg = 6; end
     end
     
   case 2 % C4 axis: C4h,D4h,Oh
     
-    C2x = eqeig(eB,eig(F+B(1,8)*Gx+B(2,8)*Gy+B(3,8)*Gz));
+    if HigherZeemanPresent, C2x = eqeig(eC,eig(sham(Sys,B(:,8))));
+    else C2x = eqeig(eC,eig(F+B(1,8)*Gx+B(2,8)*Gy+B(3,8)*Gz));
+    end
     if C2x % D4h, Oh
-      C3d = eqeig(eig(F+B(2,10)*Gx+B(3,10)*Gy+B(1,10)*Gz),...
+      if HigherZeemanPresent
+        Bs  = [B(2,10),B(3,10),B(1,10)];
+        C3d = eqeig(eig(sham(Sys,B(:,10))),eig(sham(Sys,Bs)));
+      else
+        C3d = eqeig(eig(F+B(2,10)*Gx+B(3,10)*Gy+B(1,10)*Gz),...
                   eig(F+B(1,10)*Gx+B(2,10)*Gy+B(3,10)*Gz));
+      end
       if C3d, pg = 11; else pg = 5; end
     else
       pg = 4;
     end
     
   case 3 % C3 and C4 axes: Dinfh,O3
-    
-    Cinfx = eqeig(eB,eig(F+B(1,4)*Gx+B(2,4)*Gy+B(3,4)*Gz));
+    if HigherZeemanPresent, Cinfx = eqeig(eC,eig(sham(Sys,B(:,4))));
+    else Cinfx = eqeig(eC,eig(F+B(1,4)*Gx+B(2,4)*Gy+B(3,4)*Gz));
+    end
     if Cinfx, pg=13; else pg=12; end
     
   end  % switch
@@ -656,15 +692,15 @@ iso = 0;
 
 % (1) Not isotropic if Q, D or any high-order term is present
 
-if isfield(Sys,'Q') || isfield(Sys,'D')
-  return;
-end
-fn = fieldnames(Sys);
-HighOrderTerm = strncmp(fn,'B',1);
-for k = 1:numel(fn)
-  HighOrderTerm(k) = HighOrderTerm(k) & (3==numel(fn(k)));
-end
-if any(HighOrderTerm), return; end
+if isfield(Sys,'Q') && any(Sys.Q), return; end
+if isfield(Sys,'D') && any(Sys.D), return; end
+
+% fn = fieldnames(Sys);
+% HighOrderTerm = strncmp(fn,'B',1);
+% for k = 1:numel(fn)
+%   HighOrderTerm(k) = HighOrderTerm(k) & (3==numel(fn(k)));
+% end
+% if any(HighOrderTerm), return; end
 
 % (2) Not isotropic if any A, g or ee tensor is anisotropic
 if isfield(Sys,'A')
