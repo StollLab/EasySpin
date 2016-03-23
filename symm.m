@@ -692,8 +692,8 @@ iso = 0;
 
 % (1) Not isotropic if Q, D or any high-order term is present
 
-if isfield(Sys,'Q') && any(Sys.Q), return; end
-if isfield(Sys,'D') && any(Sys.D), return; end
+if isfield(Sys,'Q') && any(any(Sys.Q)), return; end
+if isfield(Sys,'D') && any(any(Sys.D)), return; end
 
 % fn = fieldnames(Sys);
 % HighOrderTerm = strncmp(fn,'B',1);
