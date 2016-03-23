@@ -273,6 +273,8 @@ else  %full Hamiltonian is provided
           mB = lB:-1:-lB;
           amB =abs(mB);
           LlBmB = legendre(lB,ctheta);
+          %heaviside = @(m)sign(m)~=-1;  % 0 for m==0
+          heaviside = @(m)(sign(m)+1)/2; % 1/2 for m==0
           pre = sqrt(factorial(lB-amB)./factorial(lB+amB)).*...
             ((-1).^(heaviside(-mB).*mB)); % 1 for q<=0 (-1)^q for q>0
           TlBmB = alphapm1(lB+1)*pre.*LlBmB(amB+1).'.*exp(1i*mB*phiB);
