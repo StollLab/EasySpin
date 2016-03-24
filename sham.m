@@ -26,10 +26,37 @@ if ~ischar(opt)
   error('Third argument must be a string, ''sparse''.');
 end
 sparseResult = strcmp(opt,'sparse');
-higherOrder = any(strncmp(fieldnames(SpinSystem),'ZB',2));
 
 [Sys,err] = validatespinsys(SpinSystem);
 error(err);
+
+
+sysfields = fieldnames(Sys);
+highest = 0;
+higherOrder = false;
+higherzeeman = strncmp(sysfields,'ZB',2).';
+if any(higherzeeman) 
+  for n=find(higherzeeman)
+    if isfield(Sys.(sysfields{n}), 'vals') 
+      if ~iscell(Sys.(sysfields{n}).vals) && any(Sys.(sysfields{n}).vals(:))
+        higherOrder = true;
+        order = str2num(sysfields{n}(3));
+        if order > highest && order < 4, highest = order;end
+      else
+        t = 0;
+        for m= length(Sys.(sysfields{n}).vals)
+          t = t + any(Sys.(sysfields{n}).vals{m}(:));
+        end
+        if t
+          higherOrder = true;
+          order = str2num(sysfields{n}(3));
+          if order > highest && order < 4, highest = order;end
+        end
+      end
+    end
+  end
+end
+
 
 % Field-independent interactions: ZFI, NQI, HFI, EEI
 % Zeeman interaction: EZI, NZI
@@ -44,12 +71,6 @@ end
 
 
 if higherOrder
-  %get highest order in B0
-   for n = 0:3
-    if any(strncmp(fieldnames(Sys),['ZB',num2str(n,'%i')],3));
-      highest = n;
-    end
-  end
   if isempty(B0)
     %full tensors up to the highest used orer will be provided
     zHo = zeemanho(Sys,[],opt);
