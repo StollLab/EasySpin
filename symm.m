@@ -37,19 +37,30 @@ sysfields = fieldnames(Sys);
 stevens = strncmp(sysfields,'B',1).';
 if any(stevens)
   for n=find(stevens)
-    if any(Sys.(sysfields{n})), HighOrderTermsPresent = true; end
+    if any(Sys.(sysfields{n})(:)), HighOrderTermsPresent = true; end
   end
 end
 higherzeeman = strncmp(sysfields,'ZB',2).';
 if any(higherzeeman) 
   for n=find(higherzeeman)
-    if any(Sys.(sysfields{n}).vals)
-      HighOrderTermsPresent = true;
-      HigherZeemanPresent = true;
+    if isfield(Sys.(sysfields{n}), 'vals') 
+      if ~iscell(Sys.(sysfields{n}).vals) && any(Sys.(sysfields{n}).vals(:))
+        HighOrderTermsPresent = true;
+        HigherZeemanPresent = true;
+      else
+        t = 0;
+        for m= length(Sys.(sysfields{n}).vals)
+          t = t + any(Sys.(sysfields{n}).vals{m}(:));
+        end
+        if t
+          HighOrderTermsPresent = true;
+          HigherZeemanPresent = true;
+        end
+      end
     end
   end
 end
-if isfield(Sys,'aF') && any(Sys.aF), HighOrderTermsPresent = true; end
+if isfield(Sys,'aF') && any(Sys.aF(:)), HighOrderTermsPresent = true; end
   
 
 
@@ -692,8 +703,8 @@ iso = 0;
 
 % (1) Not isotropic if Q, D or any high-order term is present
 
-if isfield(Sys,'Q') && any(any(Sys.Q)), return; end
-if isfield(Sys,'D') && any(any(Sys.D)), return; end
+if isfield(Sys,'Q') && any(Sys.Q(:)), return; end
+if isfield(Sys,'D') && any(Sys.D(:)), return; end
 
 % fn = fieldnames(Sys);
 % HighOrderTerm = strncmp(fn,'B',1);
