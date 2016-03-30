@@ -76,27 +76,17 @@ if (~PowderSimulation)
   if ~isempty(Exp.CrystalOrientation)
     logmsg(1,'  crystal orientation(s) given in Exp.CrystalOrientation');
 
-    % Check Exp.CrystalOrientation, transpose if necessary to have
-    % one row per orientation, supplement third angle if necessary.
+    % Check Exp.CrystalOrientation, supplement third angle if necessary.
     Ori_ = Exp.CrystalOrientation;
     nC1 = size(Ori_,1);
     nC2 = size(Ori_,2);
-    if (nC2~=3)
-      if (nC1==3)
-        Ori_ = Ori_.';
-      else
-        if (nC2==2)
-          Ori_(:,3) = 0;
-        elseif (nC1==2)
-          Ori_ = Ori_.';
-          Ori_(:,3) = 0;
-        else
-          error('Exp.CrystalOrientation must be a Nx3 array, yours is %dx%d.',...
-            nC1,nC2);
-        end
-      end
+    if (nC2==3)
+      % Nx3: ok, do nothing
+    elseif (nC2==2)
+      % Nx2: supplement third angle chi
+      Ori_(:,3) = 0;
     else
-      % Nx3 size; ok
+      error('Exp.CrystalOrientation must be a Nx2 or Nx3 array, yours is %dx%d.',nC1,nC2);
     end
     Exp.CrystalOrientation = Ori_;
     
