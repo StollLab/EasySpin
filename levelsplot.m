@@ -35,6 +35,9 @@ Para = struct;
 switch (nargin)
 case 5
   [Ori,B,mwFreq,Para] = deal(varargin{:});
+  if ~isstruct(Para)
+    error('Fifth input (parameters) must be a structure.');
+  end
 case 4
   [Ori,B,mwFreq] = deal(varargin{:});
 case 3
