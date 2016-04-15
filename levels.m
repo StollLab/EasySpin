@@ -31,7 +31,7 @@ case 0
 case 2
   error('Third input argument (magnetic field range) is missing.');
 case 3
-  OriList = 1;
+  OriList = true;
   [SpinSystem,Ori,MagnField] = deal(varargin{:});
   if ischar(Ori)
     switch Ori
@@ -47,7 +47,7 @@ case 3
     end
   end
 case 4
-  OriList = 0;
+  OriList = false;
   [SpinSystem,phi,theta,MagnField] = deal(varargin{:});
 otherwise
   error('Wrong number of input arguments!')
@@ -80,18 +80,14 @@ error(err);
 if OriList
 
   % Examine Ori array.
-  sOri = size(Ori);
-  if sOri(1)==2
-    if sOri(2)==2
-      warning('Orientations array ambiguous, taking orientations along columns.');
-    end
-    nOri = sOri(2);
-  elseif sOri(2)==2
-    nOri = sOri(1);
-    Ori = Ori.';
+  if size(Ori,2)==2
+    Ori(:,3) = 0;
+  elseif size(Ori,2)==3
+    % ok
   else
-    error('Orientation array must be 2xn or nx2.');
+    error('Orientation array must be nx2 or nx3.');
   end
+  nOri = size(Ori,1);
   
   % Pre-allocate results array
   Energies = zeros(nOri,numel(MagnField),length(F));
@@ -100,7 +96,7 @@ if OriList
   end
   
   % Loop over all parameter combinations
-  v = ang2vec(Ori(1,:),Ori(2,:));
+  v = ang2vec(Ori(:,1),Ori(:,2));
   for iOri = 1:nOri
     G = v(1,iOri)*Gx + v(2,iOri)*Gy + v(3,iOri)*Gz;
     for iField = 1:length(MagnField)

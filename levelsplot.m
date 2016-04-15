@@ -83,11 +83,16 @@ if ischar(Ori)
   end
 end
 
-if (numel(Ori)==2) || (numel(Ori)==3)
+if (numel(Ori)==2)
   phi = Ori(1);
   theta = Ori(2);
+  chi = 0;
+elseif (numel(Ori)==3)
+  phi = Ori(1);
+  theta = Ori(2);
+  chi = Ori(3);
 else
-  error('Ori must be a two-element array [phi theta].');
+  error('Ori must be a two-element or three-element array [phi theta] or [phi theta chi].');
 end
 
 switch numel(B)
@@ -100,7 +105,7 @@ switch numel(B)
     Bvec = B;
 end
 
-E = levels(Sys,[phi;theta],Bvec);
+E = levels(Sys,[phi theta chi],Bvec);
 
 if max(Bvec)>=2000
   Bscale = 1e-3;
@@ -127,7 +132,7 @@ end
 if isfinite(mwFreq)
   Opt = struct('Threshold',0,'Freq2Field',0);
   Exp = struct('mwFreq',mwFreq,'Range',B([1 end]));
-  Exp.CrystalOrientation = [phi;theta;0];
+  Exp.CrystalOrientation = [phi theta chi];
   [resonFields,tp,w,Transitions] = resfields(Sys,Exp,Opt);
   if ~isempty(resonFields)
     if (nElectrons==1)
