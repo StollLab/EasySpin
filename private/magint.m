@@ -9,7 +9,8 @@ nNucSpins = System.nNuclei;
 nElZeeman = nElSpins;
 nHyperfine = nElSpins*nNucSpins;
 nZFS = sum(System.S>1/2);
-nInteractions = nElZeeman + nHyperfine + nZFS;
+nElPairs = nElSpins*(nElSpins-1)/2;
+nInteractions = nElZeeman + nHyperfine + nZFS + nElPairs;
 
 if IncludeNuclearZeeman
   nInteractions = nInteractions + nNucSpins;
@@ -33,15 +34,14 @@ B0 = {0 0 CenterField/1e3}; % mT -> T
 
 % Electron Zeeman interaction terms (muB*B*g*S/h)
 %--------------------------------------------------------------------------
-if ~System.fullg
-  g = diag(System.g);
-else
-  g = System.g;
-end
-for iSpin = 1:nElSpins
-  S_ = SpinOps(iSpin,:);
-  [T0{iInt},T1(iInt,:),T2(iInt,:)] = istotensor(B0,S_);
-  [F0(iInt),F1(iInt,:),F2(iInt,:)] = istocoeff(g*bmagn/planck);
+for iElSpin = 1:nElSpins
+  if ~System.fullg
+    g = diag(System.g(iElSpin,:));
+  else
+    g = System.g((iElSpin-1)*3+(1:3),:);
+  end
+  [T0{iInt},T1(iInt,:),T2(iInt,:)] = istotensor(B0,SpinOps(iElSpin,:));
+  [F0(iInt),F1(iInt,:),F2(iInt,:)] = istocoeff(g*bmagn/planck); % Hz
   iInt = iInt + 1;
 end
 
@@ -91,6 +91,31 @@ if (nZFS>0)
     [T0{iInt},T1(iInt,:),T2(iInt,:)] = istotensor(S_,S_);
     [F0(iInt),F1(iInt,:),F2(iInt,:)] = istocoeff(D_);
     iInt = iInt + 1;
+  end
+end
+
+% Electron-electron interaction terms (S1*J*S2)
+%--------------------------------------------------------------------------
+if nElSpins>1
+  iCoupling = 1;
+  for iEl1 = 1:nElSpins
+    for iEl2 = iEl1+1:nElSpins
+      % Construct matrix representing coupling tensor
+      if System.fullee
+        J_ = System.ee(3*(iCoupling-1)+(1:3),:); % MHz
+      else
+        J_ = diag(System.ee(iCoupling,:)); % MHz
+      end
+      if any(System.eeFrame(iCoupling,:))
+        R_M2ee = erot(System.eeFrame(iCoupling,:)); % mol frame -> ee frame
+        R_ee2M = R_M2ee.';  % ee frame -> mol frame
+        J_ = R_ee2M*diag(System.ee(iCoupling,:))*R_ee2M.';
+      end
+      [T0{iInt},T1(iInt,:),T2(iInt,:)] = istotensor(SpinOps(iEl1,:),SpinOps(iEl2,:));
+      [F0(iInt),F1(iInt,:),F2(iInt,:)] = istocoeff(J_*1e6); % MHz -> Hz
+      iInt = iInt + 1;
+      iCoupling = iCoupling + 1;
+    end
   end
 end
 

@@ -160,7 +160,8 @@ if Sys.fullg
 else
   mT2MHz = mt2mhz(1,mean(Sys.g));
 end
-if any(Sys.HStrain) || any(Sys.gStrain) || any(Sys.AStrain) || any(Sys.DStrain)
+mT2MHz = mean(mT2MHz);
+if any(Sys.HStrain(:)) || any(Sys.gStrain(:)) || any(Sys.AStrain(:)) || any(Sys.DStrain(:))
   error('chili does not support strains (HStrain, gStrain, AStrain, DStrain). Please remove from spin system.');
 end
 
@@ -1101,53 +1102,57 @@ R_M2Diff = erot(Sys.DiffFrame);
 
 % Electron Zeeman
 %--------------------------------------------------------------------
-if Sys.fullg
-  g = Sys.g;
-else
-  g = diag(Sys.g);
-end
-if isfield(Sys,'gFrame')
-  R_g2M = erot(Sys.gFrame).';
-  g = R_g2M*g*R_g2M.';  % g frame -> molecular frame
-end
-g = R_M2Diff*g*R_M2Diff.';  % molecular frame -> diffusion frame
-
-% Get ISTO components
-[g0,g1,g2] = istocoeff(g);
-if any(abs(g1)>1e-6)
-  error('g tensor must be symmetric for this method.');
-end
-
-% Set parameters for chili_liouvmatrix*
-Sys.g_axial = g2(1)==0;
-Sys.EZ0 = bmagn*(B0/1e3)*g0/planck*2*pi; % -> angular frequency
-Sys.EZ2 = bmagn*(B0/1e3)*g2/planck*2*pi; % -> angular frequency
-
-% Hyperfine
-%--------------------------------------------------------------------
-for iNuc = 1:Sys.nNuclei
-  if Sys.fullA
-    A = Sys.A(3*(iNuc-1)+(1:3),:);
+for iEl = 1:Sys.nElectrons
+  if Sys.fullg
+    g = Sys.g(3*(iEl-1)+(1:3),:);
   else
-    A = diag(Sys.A(iNuc,:));
+    g = diag(Sys.g(iEl,:));
   end
-  if isfield(Sys,'AFrame')
-    R_M2A = erot(Sys.AFrame(iNuc,:));
-    R_A2M = R_M2A.';
-    A = R_A2M*A*R_A2M.';  % A frame -> molecular frame
+  if isfield(Sys,'gFrame')
+    R_g2M = erot(Sys.gFrame(iEl,:)).';
+    g = R_g2M*g*R_g2M.';  % g frame -> molecular frame
   end
-  A = R_M2Diff*A*R_M2Diff.';  % molecular frame -> diffusion frame
+  g = R_M2Diff*g*R_M2Diff.';  % molecular frame -> diffusion frame
   
   % Get ISTO components
-  [A0,A1,A2] = istocoeff(A);
-  if (any(abs(A1)>1e-6))
-    error('Hyperfine tensors must be symmetric for this method.');
+  [g0,g1,g2] = istocoeff(g);
+  if any(abs(g1)>1e-6)
+    error('g tensor must be symmetric for this method.');
   end
   
   % Set parameters for chili_liouvmatrix*
-  Sys.A_axial(iNuc) = A2(1)==0;
-  Sys.HF0(iNuc) = A0*1e6*2*pi; % MHz -> angular frequency
-  Sys.HF2(:,iNuc) = A2*1e6*2*pi; % MHz -> angular frequency
+  Sys.g_axial(iEl) = g2(1)==0;
+  Sys.EZ0(iEl) = bmagn*(B0/1e3)*g0/planck*2*pi; % -> angular frequency
+  Sys.EZ2(:,iEl) = bmagn*(B0/1e3)*g2/planck*2*pi; % -> angular frequency
+end
+
+% Hyperfine
+%--------------------------------------------------------------------
+for iEl = 1:Sys.nElectrons
+  for iNuc = 1:Sys.nNuclei
+    if Sys.fullA
+      A = Sys.A(3*(iNuc-1)+(1:3),3*(iEl-1)+(1:3));
+    else
+      A = diag(Sys.A(iNuc,3*(iEl-1)+(1:3)));
+    end
+    if isfield(Sys,'AFrame')
+      R_M2A = erot(Sys.AFrame(iNuc,3*(iEl-1)+(1:3)));
+      R_A2M = R_M2A.';
+      A = R_A2M*A*R_A2M.';  % A frame -> molecular frame
+    end
+    A = R_M2Diff*A*R_M2Diff.';  % molecular frame -> diffusion frame
+    
+    % Get ISTO components
+    [A0,A1,A2] = istocoeff(A);
+    if (any(abs(A1)>1e-6))
+      error('Hyperfine tensors must be symmetric for this method.');
+    end
+    
+    % Set parameters for chili_liouvmatrix*
+    Sys.A_axial(iNuc,iEl) = A2(1)==0;
+    Sys.HF0(iNuc,iEl) = A0*1e6*2*pi; % MHz -> angular frequency
+    Sys.HF2(:,iNuc,iEl) = A2*1e6*2*pi; % MHz -> angular frequency
+  end
 end
 
 % Nuclear Zeeman
@@ -1238,9 +1243,9 @@ end
 % Use only even L values (oddLmax=0) and no K values (Kmx=0)
 % in case of axial magnetic tensors, axial potential, 
 % and no magnetic/diffusion tilt
-axialSystem = Sys.g_axial;
+axialSystem = all(Sys.g_axial);
 if (Sys.nNuclei>0)
-  axialSystem = axialSystem && all(Sys.A_axial);
+  axialSystem = axialSystem && all(Sys.A_axial(:));
 end
 if axialSystem && (Basis.deltaK==2) && (maxPotentialK==0)
   Basis.oddLmax = 0;
