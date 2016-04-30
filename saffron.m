@@ -660,6 +660,10 @@ if isENDOR
   if ~isfield(Exp,'Range')
     error('Frequency range (Exp.Range) must be given for an ENDOR experiment.');
   end
+  
+  if ~isfield(Exp,'tprf')
+    Exp.tprf = 20; % rf pulse length, us
+  end
 
 end
 
@@ -722,6 +726,13 @@ if ~isfield(Opt,'SymmFrame'), Opt.SymmFrame = []; end
 if ~isfield(Opt,'Transitions'), Opt.Transitions = []; end
 if ~isfield(Opt,'Sites'), Opt.Sites = []; end
 
+if ~isfield(Opt,'EndorMethod')
+  % 0 = sum-over-transitions, adjacent level population swap (wrong for >1 nucleus)
+  % 1 = sum-over-transitions, bandwidth-filtered Iy pi pulse on all nuclei
+  % 2 = frequency sweep, bandwidth-filtered Iy pi pulse on all nuclei
+  Opt.EndorMethod = 1;
+end
+
 % Nuclei: which nuclei to include in the simulation
 if isfield(Opt,'Nuclei')
   if isempty(Opt.Nuclei)
@@ -778,8 +789,6 @@ if (Sys.nNuclei==1), Opt.ProductRule = 0; end
 if (any(realPulse) && Opt.ProductRule)
   error('saffron: Cannot apply product rule and real pulses at the same time.');
 end
-
-SeparateTransitions = false;
 
 if ~isfield(Opt,'OriThreshold'), Opt.OriThreshold = 0.005; end
 
@@ -848,6 +857,11 @@ if ~isempty(shfNuclei)
     NucHams.Hhfz = 0;
     NucHams.Hnq = 0;
   end
+  if isENDOR
+    NucHams.Ix = 0;
+    NucHams.Iy = 0;
+    NucHams.Iz = 0;
+  end
   I = Sys.I(shfNuclei);
   for iiNuc = 1:numel(shfNuclei) % only shf nuclei
     % Spin operators -------------------------------------------------
@@ -861,6 +875,18 @@ if ~isempty(shfNuclei)
       Iz = sop(I,iiNuc,3);
     end
     iNuc = shfNuclei(iiNuc);
+    % Store operators for building RF pulse
+    if isENDOR
+      if Opt.ProductRule
+        NucHams(iiNuc).Ix = Ix;
+        NucHams(iiNuc).Iy = Iy;
+        NucHams(iiNuc).Iz = Iz;
+      else
+        NucHams.Ix = NucHams.Ix + Ix;
+        NucHams.Iy = NucHams.Iy + Iy;
+        NucHams.Iz = NucHams.Iz + Iz;
+      end
+    end
     
     % Nuclear Zeeman -------------------------------------------------
     pre = -Sys.gn(iNuc)*nmagn/1e3/planck/1e6; % MHz/mT
@@ -966,16 +992,8 @@ if isENDOR
   
   logmsg(1,'  ENDOR simulation');
   
-  rf = linspace(Exp.Range(1),Exp.Range(2),Exp.nPoints);
-  %{
-  Template.x0 = 5e4;
-  Template.lw = Template.x0/2.5; %<1e-8 at borders for Harmonic = -1
-  Template.y = gaussian(0:2*Template.x0-1,Template.x0,Template.lw,-1);
-  Template.y = Template.y*(rf(2)-rf(1))/Sys.lwEndor;
-  %}
-  
+  rf = linspace(Exp.Range(1),Exp.Range(2),Exp.nPoints);  
   endorspc = zeros(1,Exp.nPoints);
-  endoroffset = 0;
 
 else
 
@@ -1155,7 +1173,7 @@ for iOri = 1:nOrientations
       Manifold(iM).E{iSpace} = real(diag(EE));
     end
   end
-  
+    
   
   % Loop over all excited EPR transitions
   %----------------------------------------------------------------------
@@ -1176,6 +1194,12 @@ for iOri = 1:nOrientations
       if any(realPulse)
         idxa = 1:nNucStates;
         idxb = idxa + nNucStates;
+      end
+      % Set up RF operator for ENDOR
+      if isENDOR
+        IyLab = yLab_M(1)*NucHams(iSpace).Ix + ...
+                yLab_M(2)*NucHams(iSpace).Iy + ...
+                yLab_M(3)*NucHams(iSpace).Iz;
       end
       
       for iOffset = 1:Opt.nOffsets
@@ -1306,7 +1330,7 @@ for iOri = 1:nOrientations
             case 5
               % coherence transfer pathway 1: +,alpha,-
               % coherence transfer pathway 2: +,beta,-
-
+              
               if ~all(idealPulse)
                 error('Pre-defined Mims ENDOR with real pulses not supported.');
               end
@@ -1316,43 +1340,114 @@ for iOri = 1:nOrientations
               D_ = conj(Q_).*M;
               G1 = G_*Mt; D1 = D_*Mt;
               G2 = Mt*G_; D2 = Mt*D_;
-
+              
+              % Evolve density matrices after second pi/2 pulse
               if (Exp.T~=0)
                 q_ = exp(-2i*pi*Ea*Exp.T); G1 = (q_*q_').*G1;
                 q_ = exp(-2i*pi*Eb*Exp.T); G2 = (q_*q_').*G2;
               end
               
-              % echo signals in absence of RF pulse (off resonance)
-              off1 = trace(G1*D1);
-              off2 = trace(G2*D2);
+              % Remove nuclear coherences
+              G1 = diag(diag(G1));
+              G2 = diag(diag(G2));
               
-              % loop only over nuclear sublevel pairs with Delta mI = 1
-              for j=1:nNucStates-1
-                for i=j+1
-                  % (a) RF pulse approximation: apply pi pulse two two-level subsystem
-                  % R = [0 -1; 1 0];
-                  %S1_ = S1; S1_([j i],[j i]) = R*S1_([j i],[j i])*R';
-                  %S2_ = S2; S2_([j i],[j i]) = R*S2_([j i],[j i])*R';
-                  % (b) RF pulse approximation: only swap diagonal elements ii and jj
-                  G1_ = G1; q = G1_(i,i); G1_(i,i) = G1_(j,j); G1_(j,j) = q;
-                  G2_ = G2; q = G2_(i,i); G2_(i,i) = G2_(j,j); G2_(j,j) = q;
-                  ampl = [off1-trace(G1_*D1), off2-trace(G2_*D2)];
-                  freq = [Ea(i)-Ea(j), Eb(i)-Eb(j)];
-                  %idx = fix(Exp.nPoints*(freq-rf(1))/(rf(end)-rf(1)))+1;
-                  %endorspc(idx) = endorspc(idx) + ampl;
-                  %endorspc = endorspc + ...
-                  %  lisum1i(Template.y,Template.x0,Template.lw,freq,ampl,Sys.lwEndor*[1 1],rf);
-                  if SeparateTransitions
-                    endorspc(iT,:) = ampl(1)*exp(-((rf-freq(1))/Sys.lwEndor).^2);
-                    endorspc(iT,:) = ampl(2)*exp(-((rf-freq(2))/Sys.lwEndor).^2);
-                  else
-                    endorspc = endorspc + ampl(1)*exp(-((rf-freq(1))/Sys.lwEndor).^2);
-                    endorspc = endorspc + ampl(2)*exp(-((rf-freq(2))/Sys.lwEndor).^2);
+              % Echo amplitude for off-resonant RF pulse (gives baseline)
+              traceG1D1 = trace(G1*D1);
+              traceG2D2 = trace(G2*D2);
+              
+              % Matrices of nuclear transition frequencies for both manifolds
+              % (lower triangle is positive, upper is negative, diagonal zero)
+              nu1 = abs(bsxfun(@minus,Ea,Ea.'));
+              nu2 = abs(bsxfun(@minus,Eb,Eb.'));
+              
+              % Transform RF pulse Hamiltonians from Zeeman to eigenbasis
+              Iy1 = Ma'*IyLab*Ma;
+              Iy2 = Mb'*IyLab*Mb;
+              
+              fwhm = 1/Exp.tprf; % excitation bandwidth, MHz
+              Gamma = fwhm/(2*sqrt(log(2)));
+              theta = pi; % rf pulse flip angle
+              
+              switch Opt.EndorMethod
+                case 2
+                  % Sweep method
+                  %---------------------------------------------------------
+                  % Sweep rf, apply bandwidth-limited rf pulse at each
+                  % rf frequency that is within bandwidth of a nuclear
+                  % transition frequency.
+                  BWthreshold = 0.01;
+                  for irf = 1:numel(rf) % do full rf sweep
+                    % calculate bandpass filter matrices (Gaussian profile)
+                    BW1 = exp(-((nu1-rf(irf))/Gamma).^2);
+                    BW2 = exp(-((nu2-rf(irf))/Gamma).^2);
+                    if any(BW1(:)>BWthreshold)
+                      Prfa = expm(-1i*theta*(Iy1.*BW1));
+                      G1_ = Prfa*G1*Prfa'; % apply rf pulse
+                      G1_ = diag(diag(G1_)); % remove nuclear coherences
+                      endorspc(irf) = endorspc(irf) + traceG1D1 - trace(G1_*D1);
+                    end
+                    if any(BW2(:)>BWthreshold)
+                      Prfb = expm(-1i*theta*(Iy2.*BW2));
+                      G2_ = Prfb*G2*Prfb'; % apply rf pulse
+                      G2_ = diag(diag(G2_)); % remove nuclear coherences
+                      endorspc(irf) = endorspc(irf) + traceG2D2 - trace(G2_*D2);
+                    end
                   end
-                  endoroffset = endoroffset + off1 + off2;
-                end
+                  
+                case -1
+                  % Sum-over-transitions method, adjacent level population swap
+                  %---------------------------------------------------------
+                  % Loop over all pairs of adjacent nuclear levels and swap
+                  % populations. This is correct only for a single nucleus at a
+                  % time. (only available method prior to 5.0.21)
+                  
+                  % loop only over adjacent nuclear sublevel pairs 
+                  for j=1:nNucStates-1
+                    for i=j+1
+                      % RF pulse approximation: only swap diagonal elements ii and jj
+                      G1_ = G1; q = G1_(i,i); G1_(i,i) = G1_(j,j); G1_(j,j) = q;
+                      G2_ = G2; q = G2_(i,i); G2_(i,i) = G2_(j,j); G2_(j,j) = q;
+                      ampl = [traceG1D1-trace(G1_*D1), traceG2D2-trace(G2_*D2)];
+                      freq = [Ea(i)-Ea(j), Eb(i)-Eb(j)];
+                      %idx = fix(Exp.nPoints*(freq-rf(1))/(rf(end)-rf(1)))+1;
+                      %endorspc(idx) = endorspc(idx) + ampl;
+                      %endorspc = endorspc + ...
+                      %  lisum1i(Template.y,Template.x0,Template.lw,freq,ampl,Sys.lwEndor*[1 1],rf);
+                      endorspc = endorspc + ampl(1)*exp(-((rf-freq(1))/Sys.lwEndor).^2);
+                      endorspc = endorspc + ampl(2)*exp(-((rf-freq(2))/Sys.lwEndor).^2);
+                    end
+                  end
+                  
+                case 1
+                  % Sum-over-transitions method, Iy pulse
+                  %---------------------------------------------------------
+                  % Loop over all nuclear transition and apply
+                  % bandwidth-limited rf pulse operator.
+                  for j = 1:nNucStates-1
+                    for i = j+1:nNucStates
+                      % set RF to nuclear frequencies
+                      freq1 = nu1(i,j);
+                      freq2 = nu2(i,j);
+                      BW1 = exp(-((nu1-freq1)/Gamma).^2);
+                      BW2 = exp(-((nu2-freq2)/Gamma).^2);
+                      Prfa = expm(-1i*theta*(Iy1.*BW1));
+                      Prfb = expm(-1i*theta*(Iy2.*BW2));
+                      G1_ = diag(diag(Prfa*G1*Prfa'));
+                      G2_ = diag(diag(Prfb*G2*Prfb'));
+                      sig1 = traceG1D1 - trace(G1_*D1);
+                      sig2 = traceG2D2 - trace(G2_*D2);
+                      %idx1 = fix(Exp.nPoints*(freq1-rf(1))/(rf(end)-rf(1)))+1;
+                      %idx2 = fix(Exp.nPoints*(freq2-rf(1))/(rf(end)-rf(1)))+1;
+                      %endorspc(idx1) = endorspc(idx1) + sig1;
+                      %endorspc(idx2) = endorspc(idx2) + sig2;
+                      %endorspc = endorspc + ...
+                      %  lisum1i(Template.y,Template.x0,Template.lw,freq,ampl,Sys.lwEndor*[1 1],rf);
+                      endorspc = endorspc + sig1*exp(-((rf-freq1)/Sys.lwEndor).^2);
+                      endorspc = endorspc + sig2*exp(-((rf-freq2)/Sys.lwEndor).^2);
+                    end
+                  end
               end
-              
+                  
             % HYSCORE ---------------------------------------------------
             case 4
               % coherence transfer pathway 1: +,alpha,beta,-
@@ -1557,13 +1652,11 @@ logmsg(1,'%d of %d orientations skipped',nSkippedOrientations,nOrientations);
 %=================================================================
 
 
-
 %=================================================================
 % Postprocessing
 %=================================================================
 if isENDOR
   
-  %endorspc = real(endoroffset - endorspc);
   endorspc = real(endorspc);
 
   % Normalize modulation signal
@@ -1573,8 +1666,11 @@ if isENDOR
   endorspc = endorspc/EqDensityTrace;
   endorspc = endorspc/nPathways;
   
-  %endorspc = convspec(endorspc,rf(2)-rf(1),Sys.lwEndor);
-
+  if Opt.EndorMethod==2
+    % convolve only for sweep method (not needed for sum-over-transitions)
+    endorspc = convspec(endorspc,rf(2)-rf(1),Sys.lwEndor);
+  end
+  
 else
   
   if Opt.ProductRule
