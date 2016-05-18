@@ -110,30 +110,29 @@ forbidden = '~!@#$%^&*()./\';
 section = '';
 text = 1; prg = 1;
 while feof(h)<1
-    s = strtrim(fgetl(h));
-    s(s=='-')='';
-    if isempty(s), continue; end;
-    sect = find(s=='[' | s==']');
-    
-    %   this is a section header
-    if size(sect, 2)==2 && sect(1)==1
-        section = s(sect(1)+1:sect(2)-1);
-        %     par = setfield(par, section, 'section');
-    else
-        switch section
-            case 'text'
-                par = setfield(par, ['text', num2str(text)], s);
-                text = text + 1;
-            case 'program'
-                par = setfield(par, ['prg', num2str(prg)], s);
-                prg = prg + 1;
-            otherwise
-                [a,s]=strtok(s, '=');
-                a = strtrim(a);
-                a(a=='/' | a=='\' | a==' ')='_';
-                par = setfield(par, [section,'_',a], s(2:end));
-        end
+  s = strtrim(fgetl(h));
+  if isempty(s), continue; end;
+  sect = find(s=='[' | s==']');
+  
+  %   this is a section header
+  if size(sect, 2)==2 && sect(1)==1
+    section = s(sect(1)+1:sect(2)-1);
+    section(section=='-')='';
+  else
+    switch section
+      case 'text'
+        par.(['text', num2str(text)]) = s;
+        text = text + 1;
+      case 'program'
+        par.(['prg', num2str(prg)]) = s;
+        prg = prg + 1;
+      otherwise
+        [a,s]=strtok(s, '=');
+        a = strtrim(a);
+        a(a=='/' | a=='\' | a==' ')='_';
+        par.([section,'_',a]) = s(2:end);
     end
+  end
 end
 fclose(h);
 return
@@ -166,7 +165,7 @@ end
 sweepax{1}.size=sweepax{1}.size*triggers;
 res.sweepax = sweepax;
 
-axislabel = ['xyz'];
+axislabel = 'xyz';
 counter = 1;
 for k = 1:size(sweepax, 1)
     arr = [];
@@ -186,29 +185,30 @@ for k = 1:size(sweepax, 1)
                 tempparam(strfind(tempparam, ' ')) = '_';
         end
         % check if this is a parameter
-        if isfield(par, ['params_', tempparam])
-            str = getfield(par, ['params_', tempparam]);
-            if ~isempty(strfind(str,'step'))
+        parfield = ['params_', tempparam];
+        if isfield(par,parfield)
+            str = par.(parfield);
+            if regexp(str,'\Wstep\W')
                 [tk1, str1] = gettoken(str, 'step');
                 % string of the type 10ns step 6 ns
                 tk2 = strtrim(gettoken(str1, ';'));
                 [minval, unit] = kvgetvalue(tk1);
                 step = kvgetvalue(tk2);
-                arr = [0:asize-1]*step+minval;
-            elseif ~isempty(strfind(str,'logto'))
+                arr = (0:asize-1)*step+minval;
+            elseif regexp(str,'\Wlogto\W')
                 [tk1, str1] = gettoken(str, 'logto');
                 % string of the type 10ns logto 60 ns
                 tk2 = strtrim(gettoken(str1, ';'));
                 [minval, unit] = kvgetvalue(tk1);
                 maxval = kvgetvalue(tk2);
                 arr = logspace(log10(minval), log10(maxval),asize);
-            elseif ~isempty(strfind(str,'to'))
+            elseif regexp(str,'\Wto\W')
                 [tk1, str1] = gettoken(str, 'to');
                 % string of the type 10ns to 60 ns
                 tk2 = strtrim(gettoken(str1, ';'));
                 [minval, unit] = kvgetvalue(tk1);
                 maxval = kvgetvalue(tk2);
-                arr = [0:1/(asize-1):1]*(maxval-minval)+minval;
+                arr = (0:1/(asize-1):1)*(maxval-minval)+minval;
             else
                 % string of the type 10ns, 20ns, 30ns;
                 [str1] = gettoken(str, ';');
@@ -222,8 +222,8 @@ for k = 1:size(sweepax, 1)
                 end
             end
         else
-            str = getfield(par, ['aquisition_', tempparam]);
-            arr = [0:asize-1]';
+            str = par.(['aquisition_', tempparam]);
+            arr = (0:asize-1)';
             unit = 's';
         end
         
@@ -244,9 +244,8 @@ for k = 1:size(sweepax, 1)
                 end
         end
         
-        res = setfield(res, axislabel(counter), arr');
-        res = setfield(res, [axislabel(counter), 'label'], ...
-            [sweepax{k}.var{1}, ', ',unit]);
+        res.(axislabel(counter)) = arr';
+        res.([axislabel(counter), 'label']) = [sweepax{k}.var{1}, ', ',unit];
         counter = counter + 1;
     end
 end
@@ -274,7 +273,7 @@ function res = safeget(strct, fld, deflt)
 % (not in char case)
 
 if isfield(strct, fld)
-    res = getfield(strct, fld);
+    res = strct.(fld);
     sd = size(deflt, 2);
     sr = size(res, 2);
     if sr < sd
@@ -295,26 +294,25 @@ function [val, unit, pref, pref_val] = kvgetvalue(str)
 
 % [val, str_unit, str_koefficient] = kvgetvalue(str)
 
+prefix = ['p', 'n', 'u', 'm', 'k', 'M', 'G', 'T'];
+koeff  = [1e-12, 1e-9, 1e-6, 1e-3, 1e3, 1e6, 1e9, 1e12];
 
-prefix = ['p','n', 'u', 'm', 'k', 'M', 'G', 'T'];
-koeff  = [1E-12, 1E-9, 1E-6, 1E-3, 1E3, 1E6, 1E9, 1E12];
-idx = (str >= '0' & str <='9') | str == '.' | ...
-    upper(str) == 'E' | str == '+' | str == '-';
+% find substring that is a floating-point literal and convert to number
+[validx1,validx2] = regexp(str,'[\-\+]?[0-9]*(\.[0-9]+)?');
+val = str2double(str(validx1:validx2));
+
+% extract substring that contains the unit
+unit = strtrim(str(validx2+1:end));
+
 pref = '';
 pref_val = 1;
-val = str2num(str(idx));
-unit = str(~idx);
-unit = unit(unit~=' ');
-if length(unit) > 1
-    if ~isempty(unit)
-        %         kk = findstr(prefix, unit(1));
-        kk = strfind(prefix, unit(1));
-        if ~isempty(kk)
-            val = val * koeff(kk);
-            unit = unit(2:end);
-            pref = prefix(kk);
-            pref_val = koeff(kk);
-        end
-    end
+if length(unit) > 1 && ~isempty(unit)
+  kk = strfind(prefix, unit(1));
+  if ~isempty(kk)
+    val = val * koeff(kk);
+    unit = unit(2:end);
+    pref = prefix(kk);
+    pref_val = koeff(kk);
+  end
 end
 return
