@@ -622,10 +622,10 @@ for iOri = 1:nOrientations
     %-----------------------------------------------------
     [xLab,yLab,zLab] = erot(Orientations(iOri,:),'rows');
    if higherOrder  
-     [Vs,E] = gethamdata_hO(Exp.Field*zLab, CoreSys,Opt.Sparse, [], nLevels);
+     [Vs,E] = gethamdata_hO(Exp.Field,zLab, CoreSys,Opt.Sparse, [], nLevels);
      if Opt.Sparse
-       g1 = zeemanho(CoreSys,[],'sparse',1);
-       [go{1},g0{2},go{3}] = zeeman(CoreSys,[],'sparse');
+       g1 = zeemanho(CoreSys,[],[],'sparse',1);
+       [g0{1},g0{2},g0{3}] = zeeman(CoreSys,[],'sparse');
      else
        g1 = zeemanho(CoreSys,[],[],'',1);
        [g0{1},g0{2},g0{3}] = zeeman(CoreSys,[],'');

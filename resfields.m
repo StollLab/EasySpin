@@ -560,11 +560,11 @@ else % Automatic pre-selection
       % Determine orientation dependent operators.
       EpM = ctp(iOri,2)*ExM + stp(iOri,2)*EyM;
       if higherOrder
-        [Vs,E] = gethamdata_hO(centerB*[stp(iOri,1)/sqrt(2)*[1,1],ctp(iOri,1)],CoreSys,Opt.Sparse,[],nLevels);
-        if Opt.Sparse
-          [E,idx_] = sort(diag(E));
-          Vs = Vs(:,idx_);
-        end
+        [Vs,E] = gethamdata_hO(centerB,[stp(iOri,1)/sqrt(2)*[1,1],ctp(iOri,1)],CoreSys,Opt.Sparse,[],nLevels);
+%         if Opt.Sparse
+%           [E,idx_] = sort(diag(E));
+%           Vs = Vs(:,idx_);
+%         end
       else
         kGpM = ctp(iOri,2)*kGxM + stp(iOri,2)*kGyM;
         % Solve eigenproblem.
@@ -830,7 +830,7 @@ if higherOrder
   maxSlope = 0;
   for iOri = 1:nOrientations
     [~,~,zLab_M] = erot(Orientations(iOri,:),'rows');
-    [~,~,der]= gethamdata_hO(Exp.Range(2)*zLab_M,CoreSys,Opt.Sparse,[],nLevels);
+    [~,~,der]= gethamdata_hO(Exp.Range(2),zLab_M,CoreSys,Opt.Sparse,[],nLevels);
     maxSlope = max([maxSlope,max(der)]);
   end
 else
@@ -903,8 +903,8 @@ for iOri = 1:nOrientations
   Bknots = Exp.Range; % initial segment spans full field range
   nSegments = 1;
   if higherOrder
-    [Vectors{2},E{2},dEdB{2},deltaE{2}] = gethamdata_hO(Bknots(2)*zLab_M,CoreSys,Opt.Sparse,Trans,nLevels);
-    [Vectors{1},E{1},dEdB{1},deltaE{1}] = gethamdata_hO(Bknots(1)*zLab_M,CoreSys,Opt.Sparse,Trans,nLevels);
+    [Vectors{2},E{2},dEdB{2},deltaE{2}] = gethamdata_hO(Bknots(2),zLab_M,CoreSys,Opt.Sparse,Trans,nLevels);
+    [Vectors{1},E{1},dEdB{1},deltaE{1}] = gethamdata_hO(Bknots(1),zLab_M,CoreSys,Opt.Sparse,Trans,nLevels);
   else
     [Vectors{2},E{2},dEdB{2},deltaE{2}] = gethamdata(Bknots(2),kF,kGzL,Trans,nLevels);
     [Vectors{1},E{1},dEdB{1},deltaE{1}] = gethamdata(Bknots(1),kF,kGzL,Trans,nLevels);
@@ -931,7 +931,7 @@ for iOri = 1:nOrientations
       % diagonalize at center and compute error
       newB = (Bknots(s)+Bknots(s+1))/2;
       if higherOrder
-        [Ve,En,Di1,dEn] = gethamdata_hO(newB*zLab_M,CoreSys,Opt.Sparse,Trans,nLevels);
+        [Ve,En,Di1,dEn] = gethamdata_hO(newB,zLab_M,CoreSys,Opt.Sparse,Trans,nLevels);
       else
         [Ve,En,Di1,dEn] = gethamdata(newB,kF,kGzL,Trans,nLevels);
       end
@@ -1047,7 +1047,7 @@ for iOri = 1:nOrientations
           if any(StateStability(uv,s)<Opt.RediagLimit)
             nRediags = nRediags + 1;
             if higherOrder
-              [Vectors_,Energies] = gethamdata_hO(ResonanceFields(iReson)*zLab_M,CoreSys,Opt.Sparse);
+              [Vectors_,Energies] = gethamdata_hO(ResonanceFields(iReson),zLab_M,CoreSys,Opt.Sparse,Trans,nLevels);
               if Opt.Sparse
                 [Energies,ind] = sort(diag(Energies));
                 Energies = diag(Energies);
@@ -1067,10 +1067,11 @@ for iOri = 1:nOrientations
               else
                 [Vectors_,Energies] = eig(kF+ResonanceFields(iReson)*kGzL);
               end
+              Energies = diag(Energies);
             end
             U = Vectors_(:,uv(1));
             V = Vectors_(:,uv(2));
-            Energies = diag(Energies);
+            %Energies = diag(Energies);
             %V'*kGxL*U
             logmsg(3,sprintf('   %d-%d: stabilities %f and %f ===> rediagonalization',uv,StateStability(uv,s)));
           else
@@ -1098,8 +1099,8 @@ for iOri = 1:nOrientations
 
           if higherOrder
             if Opt.Sparse
-              g1 = zeemanho(CoreSys,[],'sparse',1);
-              [go{1},g0{2},go{3}] = zeeman(CoreSys,[],'sparse');
+              g1 = zeemanho(CoreSys,[],[],'sparse',1);
+              [g0{1},g0{2},g0{3}]= zeeman(CoreSys,[],'sparse');
             else
               g1 = zeemanho(CoreSys,[],[],'',1);
               [g0{1},g0{2},g0{3}] = zeeman(CoreSys,[],'');

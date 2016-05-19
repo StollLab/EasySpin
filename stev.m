@@ -56,7 +56,7 @@
 %   St. Stoll, PhD thesis, ETH Zurich, 2003
 %   C.Rudowicz, Magn.Reson.Rev. 13, 1-87 (1987)
 
-function Op = stev(Spins,k,q,iSpin)
+function Op = stev(Spins,k,q,iSpin,Sparse)
 
 if (nargin==0), help(mfilename); return; end
 
@@ -69,6 +69,18 @@ end
 if isstruct(Spins)
   Spins = spinvec(Spins);
 end
+
+if (nargin<5)
+  Sparse = 0;
+else
+ if ischar(Sparse)
+   Sparse = strcmp(Sparse,'sparse');
+ else
+   if isempty(Sparse), Sparse = 0; end
+   if ~islogical(Sparse), error('Option Sparse must be either a logical or a string!'); end
+ end
+end
+
 
 % Initialization of prefactors
 %-------------------------------------------------
@@ -151,6 +163,6 @@ if (q>=0)
 else
   Op = c/2i*(T - T'); % sine tesseral operator
 end
-Op = full(Op); % sparse to full conversion
+if ~Sparse, Op = full(Op); end% sparse to full conversion 
 
 return

@@ -1,7 +1,8 @@
 % Hamiltonian diagonalization (sparse and full)
 % used by resfreqs_matrix and resfields
 
-% B       static field vector
+% B       static field
+% n0 direction of magnetic field
 % Sys       Spin System
 % sparse       1 for sparse matrix calculation
 % idxT    transition index (single number per transition)
@@ -15,44 +16,59 @@
 % dEdB  derivatives of energy with respect to B
 % dE    energy differences for the transitions listed in idxT
 
-function [V,E,dEdB,dE] = gethamdata_hO(B,Sys,sparse,idxT,nLevels)
+function [V,E,dEdB,dE] = gethamdata_hO(B,n0, Sys,sparse,idxT,nLevels)
 % Compute eigenvalues and eigenvectors of Hamiltonian
+dB = 0.01;
 if sparse
-  H = sham(Sys,B,'sparse');
+  H = sham(Sys,B*n0,'sparse');
   [V,E] = eigs(H,nLevels);
   E = diag(E).';
+  if sum(abs(imag(E)))>1e-6, error('Imaginary energies obtained! Please report!'); end
+  E = real(E);
   [E,idx_] = sort(E);
   V = V(:,idx_);
   if nargout >2
     %calculate energies for numerical derivative
-    nB = B./abs(B);
     dB = 0.01;
-    H = sham(Sys,B+dB*nB,'sparse');
-    E2 = eigs(H,nLevels);
-    E2 = sort(E2);
+    H2 = sham(Sys,(B+dB)*n0,'sparse');
+    E2 = eigs(H2,nLevels);
+    if sum(abs(imag(E2)))>1e-6, error('Imaginary energies obtained! Please report!'); end
+    E2 = sort(real(E2));
   end
 else
-  H = sham(Sys,B);
+  H = sham(Sys,B*n0);
   [V,E] = eig(H);
   E = diag(E).';
+  if sum(abs(imag(E)))>1e-6, error('Imaginary energies obtained! Please report!'); end
+  [E,idx_] = sort(real(E));
+  V = V(:,idx_);
   if (nLevels<numel(E))
     E = E(1:nLevels);
     V = V(:,1:nLevels);
   end
   if nargout >2
-    %calculate energies for numerical derivative
-    nB = B./norm(B);
-    dB = 0.01;
-    H = sham(Sys,B+dB*nB);
-    E2 = eig(H);
+    %calculate energies for numerical derivative   
+    H2= sham(Sys,(B+dB)*n0);
+    E2 = eig(H2);
+    if sum(abs(imag(E2)))>1e-6, error('Imaginary energies obtained! Please report!'); end
+    E2 = sort(real(E2));
     if (nLevels<numel(E2))
-      E2 = E(1:nLevels);
+      E2 = E2(1:nLevels);
     end
   end
 end
 
-% Compute correct eigenvectors for zero-field degeneracies
+% Compute more correct eigenvectors for zero-field degeneracies
+% uses linear approximation for field dependence, give only reasonable
+% results for 0th and 1th order terms in field much larger than higher
+% orders
 if (B==0)
+  if nargout > 2
+    G = H2-H; 
+  else
+    H2= sham(Sys,(B+dB)*n0);
+    G = H2-H;
+  end
   dE = abs(diff(E)).';
   tol = 1e3*eps*max(dE);
   blk = cumsum([1; dE>tol]);
