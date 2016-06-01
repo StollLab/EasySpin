@@ -30,11 +30,11 @@ if (nargin==0), help(mfilename); return; end
 if (nargin<2) || (nargin>2), error('Wrong number of input arguments!'); end
 
 if (n<1) || mod(n,1)
-  error('n must be an integer greater than 0.');
+  error('The second input argument, n, must be an integer greater than 0.');
 end
 
-if (numel(I)~=1) || ~isreal(I) || mod(I,0.5) || (I<=0)
-  error('I must be a positive multiple of 1/2.');
+if (numel(I)~=1) || ~isreal(I) || mod(I,0.5) || (I<0)
+  error('The spin quantum number I (first input argument) must be a positive multiple of 1/2.');
 end
 
 % Construct amplitude pattern
