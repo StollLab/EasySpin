@@ -9,13 +9,16 @@
 %   Input:
 %   - SpinSystem: spin system specification structure
 %   - phi,theta: vectors of orientation angles of
-%     magnetic field [radians]
-%   - Ori: 2xn or nx2 array of orientations (phi,theta).
-%       or 'x', 'y', 'z'.
-%   - B: vector of magnetic field magnitudes [mT]
+%     magnetic field (in radians)
+%   - Ori: orientations of the field in the molecular frame
+%       a) nx2 array of Euler angles (phi,theta), or
+%       b) nx3 array of Euler angles (phi,theta,chi), or
+%       c) 'x', 'y', 'z', 'xy', 'xz', 'yz', 'xyz' for
+%          special directions
+%   - B: vector of magnetic field magnitudes (mT)
 %
 %   Output:
-%   - En: array containing all energy eigenvalues [MHz], sorted,
+%   - En: array containing all energy eigenvalues (in MHz), sorted,
 %     for all possible (phi,theta,B) or (Ori,B) combinations. Depending
 %     on the dimensions of Ori, phi,theta and B, out can be up
 %     to 4-dimensional. The dimensions are in the order phi,
@@ -53,21 +56,22 @@ otherwise
   error('Wrong number of input arguments!')
 end
 
-N = 200;
+nFieldPoints = 200;
 switch numel(MagnField)
   case 1
     MagnField = [0 MagnField];
-    MagnField = linspace(MagnField(1),MagnField(2),N);
+    MagnField = linspace(MagnField(1),MagnField(2),nFieldPoints);
   case 2
-    MagnField = linspace(MagnField(1),MagnField(2),N);
+    MagnField = linspace(MagnField(1),MagnField(2),nFieldPoints);
   otherwise
+    % vector of magnetic field values given
 end
 
 
 switch nargout
-case 0, ComputeVectors = 0;
-case 1, ComputeVectors = 0;
-case 2, ComputeVectors = 1;
+case 0, computeVectors = false;
+case 1, computeVectors = false;
+case 2, computeVectors = true;
 otherwise, error('Wrong number of output arguments');
 end
 
@@ -91,7 +95,7 @@ if OriList
   
   % Pre-allocate results array
   Energies = zeros(nOri,numel(MagnField),length(F));
-  if ComputeVectors
+  if computeVectors
     Vectors = zeros(nOri,numel(MagnField),length(F),length(F));
   end
   
@@ -101,9 +105,11 @@ if OriList
     G = v(1,iOri)*Gx + v(2,iOri)*Gy + v(3,iOri)*Gz;
     for iField = 1:length(MagnField)
       H = F + MagnField(iField)*G;
-      if ComputeVectors
-        [Vectors(iOri,iField,:,:),E] = eig(H);
+      if computeVectors
+        [V_,E] = eig(H);
         E = diag(E);
+        [E,idx] = sort(E);
+        Vectors(iOri,iField,:,:) = V_(:,idx);
       else
         E = eig(H);
         E = sort(E);
@@ -122,7 +128,7 @@ else
   
   % Pre-allocate results array
   Energies = zeros(numel(phi),numel(theta),numel(MagnField),length(F));
-  if ComputeVectors
+  if computeVectors
     Vectors = zeros(numel(phi),numel(theta),numel(MagnField),length(F),length(F));
   end
   
@@ -132,7 +138,7 @@ else
     for itheta = 1:length(theta)
       G = sintheta(itheta)*Gplane + costheta(itheta)*Gz;
       for iField = 1:length(MagnField)
-        if ComputeVectors
+        if computeVectors
           [Vectors(iphi,itheta,iField,:,:),E] = eig(F + MagnField(iField)*G);
           E = diag(E);
         else
@@ -142,10 +148,13 @@ else
       end
     end
   end
+  
 end
 
 % Remove singleton dimensions.
 Energies = squeeze(Energies);
-if ComputeVectors, Vectors = squeeze(Vectors); end
+if computeVectors
+  Vectors = squeeze(Vectors);
+end
 
 return
