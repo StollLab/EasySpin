@@ -271,61 +271,117 @@ end
 
 
 %---------- electron-electron ------------------------------------------
-Sys.fullee = 0;
+Sys.fullee = false;
 if (nElectrons>1)
   
-  if ~isfield(Sys,'ee')
-    err = 'Sys.ee field is missing in spin system structure!';
-    if ~isempty(err), return; end
+  eeMatrix = isfield(Sys,'ee');
+  JdD = isfield(Sys,'J') || isfield(Sys,'dvec') || isfield(Sys,'eeD');
+  
+  if ~eeMatrix && ~JdD
+    err = 'Spin system contains 2 or more electron spins, but coupling terms are missing (ee; or J, dvec, eeD)!';
+    return
   end
-
+  
+  if eeMatrix && JdD
+    err = 'Both Sys.ee and (Sys.J,Sys.dvec,Sys.eeD) are given - use only one or the other!';
+    return
+  end
+  
   nPairs = nElectrons*(nElectrons-1)/2;
-
-  % Expand isotropic couplings into 3 equal principal values
-  if numel(Sys.ee)==nPairs
-    Sys.ee = Sys.ee(:)*[1 1 1];
-  end
   
-  fullee = issize(Sys.ee,[3*nPairs,3]);
-  Sys.fullee = fullee;
-  if ~fullee
-    err = sizecheck(Sys,'ee',[nPairs 3]);
-    if ~isempty(err), return; end
-  end
-  
-  if isfield(Sys,'eepa')
-    err = sizecheck(Sys,'eepa',[nPairs 3]);
-    disp('*********************************************************************');
-    disp('**   Sys.eepa is obsolete. Please use Sys.eeFrame instead.         **');
-    disp('**   Here is how to convert:                                       **');
-    disp('**   If you had                                                    **');
-    disp('**      Sys.eepa = [10 -20 56]*pi/180                              **');
-    disp('**   then use                                                      **');
-    disp('**      Sys.eeFrame = [-56 20 -10]*pi/180                          **');
-    disp('**   Change the signs of all three angles, and reverse the order.  **');
-    disp('**   For more help, check the documentation on coordinate frames.  **');
-    disp('*********************************************************************');
-    if ~isempty(err); return; end
-    Sys.eeFrame = -Sys.eepa(:,[3 2 1]);
-  end
-  if fullee
-    if isfield(Sys,'eeFrame')
-      err = sprintf('Full matrices are specified in ee, so eeFrame is not allowed.');
+  if eeMatrix
+    % Bilinear coupling defined via Sys.ee
+    %----------------------------------------------------------------------
+    
+    % Expand isotropic couplings into 3 equal principal values
+    if numel(Sys.ee)==nPairs
+      Sys.ee = Sys.ee(:)*[1 1 1];
+    end
+    
+    fullee = issize(Sys.ee,[3*nPairs,3]);
+    Sys.fullee = fullee;
+    if ~fullee
+      err = sizecheck(Sys,'ee',[nPairs 3]);
       if ~isempty(err), return; end
     end
+    
+    if isfield(Sys,'eepa')
+      err = sizecheck(Sys,'eepa',[nPairs 3]);
+      disp('*********************************************************************');
+      disp('**   Sys.eepa is obsolete. Please use Sys.eeFrame instead.         **');
+      disp('**   Here is how to convert:                                       **');
+      disp('**   If you had                                                    **');
+      disp('**      Sys.eepa = [10 -20 56]*pi/180                              **');
+      disp('**   then use                                                      **');
+      disp('**      Sys.eeFrame = [-56 20 -10]*pi/180                          **');
+      disp('**   Change the signs of all three angles, and reverse the order.  **');
+      disp('**   For more help, check the documentation on coordinate frames.  **');
+      disp('*********************************************************************');
+      if ~isempty(err); return; end
+      Sys.eeFrame = -Sys.eepa(:,[3 2 1]);
+    end
+    if fullee
+      if isfield(Sys,'eeFrame')
+        err = sprintf('Full matrices are specified in ee, so eeFrame is not allowed.');
+        if ~isempty(err), return; end
+      end
+    else
+      if ~isfield(Sys,'eeFrame'), Sys.eeFrame = zeros(nPairs,3); end
+      err = sizecheck(Sys,'eeFrame',[nPairs 3]);
+      if ~isempty(err), return; end
+    end
+    
   else
-    if ~isfield(Sys,'eeFrame'), Sys.eeFrame = zeros(nPairs,3); end
-    err = sizecheck(Sys,'eeFrame',[nPairs 3]);
+    % Bilinear coupling defined via J, dvec and eeD
+    %----------------------------------------------------------------------
+    % J:    isotropic exchange +J*S1*S2
+    % dvec: antisymmetric exchange dvec.(S1xS2)
+    % eeD:  dipolar coupling S1.diag(eeD).S2 or S1.eeD.S2
+    
+    % Size check on list of isotropic exchange coupling constants
+    if ~isfield(Sys,'J'), Sys.J = zeros(1,nPairs); end
+    err = sizecheck(Sys,'J',[1 nPairs]);
     if ~isempty(err), return; end
+    
+    % Size check on list of antisymmetric exchange vectors
+    if ~isfield(Sys,'dvec'), Sys.dvec = zeros(nPairs,3); end
+    err = sizecheck(Sys,'dvec',[nPairs,3]);
+    if ~isempty(err), return; end
+    
+    % Size check on dipolar tensor diagonals
+    if ~isfield(Sys,'eeD'), Sys.eeD = zeros(nPairs,3); end
+    err = sizecheck(Sys,'eeD',[nPairs,3]);
+    if ~isempty(err), return; end
+    
+    % Assert zero traces of dipolar tensors
+    if any(sum(Sys.eeD,2))
+      err = 'Sys.eeD contains dipolar tensors with non-zero trace. Use Sys.J for this.';
+    end
+    if ~isempty(err), return; end
+    
+    % Combine (Sys.J,Sys.dvec,Sys.eeD) into full interaction matrix in Sys.ee
+    Sys.fullee = true;
+    idx = 1:3;
+    for iPair = 1:nPairs
+      J = Sys.J(iPair);
+      d = Sys.dvec(iPair,:);
+      ee = J*eye(3) + ...
+         [0 d(3) -d(2); -d(3) 0 d(1); d(2) -d(1) 0] + ...
+         diag(Sys.eeD(iPair,:));
+      Sys.ee(idx,:) = ee;
+      idx = idx + 3;
+    end
   end
-
+  
+  % Isotropic biquadratic exchange term
+  %------------------------------------------------------------------------
   if isfield(Sys,'ee2')
     err = sizecheck(Sys,'ee2',[1 nPairs]);
     if ~isempty(err), return; end
   else
     Sys.ee2 = zeros(1,nPairs);
   end
-
+  
 end
 
 % Nuclear spins
