@@ -898,7 +898,7 @@ for iOri = 1:nOrientations
   
   % Vectors: eigenvectors, E: energies, dEdB: dE/dB
   % deltaE: transition energies for transitions in list Trans
-  clear Vectors E dEdB deltaE;
+  Vectors = cell(1,2); E = cell(1,2); dEdB = cell(1,2); deltaE = cell(1,2);
   
   Bknots = Exp.Range; % initial segment spans full field range
   nSegments = 1;

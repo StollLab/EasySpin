@@ -55,8 +55,7 @@ end
 
 if (nargout>3)
   % Compute transition frequencies Ev-Eu
-  M = E(:);
-  M = M(:,ones(1,length(E)));
+  M = repmat(E(:),1,numel(E));
   dE = M.' - M;
   dE = dE(idxT);
 end
