@@ -353,8 +353,10 @@ if (CoreSys.nNuclei>=1) && Opt.Hybrid
       Hquad{iiNuc} = 0;
       if (I>=1)
         Q = [0 0 0];
-        R = eye(3);
-        if isfield(System,'Q'), Q = System.Q(iNuc,:); end
+        R_Q2M = eye(3);
+        if isfield(System,'Q')
+          Q = System.Q(iNuc,:);
+        end
         if isfield(System,'QFrame')
           R_Q2M = erot(System.QFrame(iNuc,:)).'; % Q frame -> molecular frame
         end
@@ -656,64 +658,68 @@ if (ComputeStrains)
   
   % D strain
   %-----------------------------------------------
-  % Diagonal of D tensor: [-D/3+E, -D/3-E, 2D/3] in MHz.
-  % H = D*(Sz^2-S(S+1)/3) + E*(Sx^2-Sy^2)
-  %   = D*(2*Sz^2-Sx^2-Sy^2)/3 + E*(Sx^2-Sy^2)
-  % D strain: independent distributions in D and E parameters.
-  % System.DStrain: [FWHM_D FWHM_E] in MHz.
+  % D strain: potentially correlated distributions in D and E parameters
+  % System.DStrain: [FWHM_D FWHM_E rDE] with correlation coefficient rDE
   useDStrain = any(CoreSys.DStrain(:));
   if useDStrain
     for iEl = 1:CoreSys.nElectrons
       
-      % Since S^T D S = S^T (R D_diag R^T) S = (S^T R) D_diag (R^T S),
-      % we have to compute R^T S = (SxD SyD SzD)^T to stay in the
-      % eigenframe of D for the D and E strain.
-      R = eye(3);
+      % Skip if no D strain is given for this electron spin
+      if ~any(CoreSys.DStrain(iEl,1:2))
+        dHdD{iEl} = 0;
+        dHdE{iEl} = 0;
+        continue
+      end
+      
+      % Construct Zeeman operators in molecular frame
+      SxM_ = sop(CoreSys,iEl,1);
+      SyM_ = sop(CoreSys,iEl,2);
+      SzM_ = sop(CoreSys,iEl,3);
+      
+      % Construct Zeeman operators in D frame, and square
       if any(CoreSys.DFrame(iEl,:))
-        R = erot(CoreSys.DFrame(iEl,:)).'; % D frame -> molecular frame
+        R_M2D = erot(CoreSys.DFrame(iEl,:)); % molecular frame -> D frame
+        SxD2_ = (R_M2D(1,1)*SxM_ + R_M2D(1,2)*SyM_ + R_M2D(1,3)*SzM_)^2;
+        SyD2_ = (R_M2D(2,1)*SxM_ + R_M2D(2,2)*SyM_ + R_M2D(2,3)*SzM_)^2;
+        SzD2_ = (R_M2D(3,1)*SxM_ + R_M2D(3,2)*SyM_ + R_M2D(3,3)*SzM_)^2;
+      else
+        % D frame aligns with molecular frame
+        SxD2_ = SxM_^2;
+        SyD2_ = SyM_^2;
+        SzD2_ = SzM_^2;
       end
-      R = R'; % molecular frame -> D frame
       
-      % Construct Zeeman basis operators
-      Sx_ = sop(CoreSys,iEl,1);
-      Sy_ = sop(CoreSys,iEl,2);
-      Sz_ = sop(CoreSys,iEl,3);
-
-      % Compute squared cartesian spin operators in D eigenframe
-      SxD2_ = (R(1,1)*Sx_ + R(1,2)*Sy_ + R(1,3)*Sz_)^2;
-      SyD2_ = (R(2,1)*Sx_ + R(2,2)*Sy_ + R(2,3)*Sz_)^2;
-      SzD2_ = (R(3,1)*Sx_ + R(3,2)*Sy_ + R(3,3)*Sz_)^2;
+      % Calculate derivatives of Hamiltonian w.r.t. D and E
+      %   Spin Hamiltonian terms (in D tensor frame xD, yD, zD)
+      %   H = D*(SzD^2-S(S+1)/3) + E*(SxD^2-SyD^2)
+      %     = D*(2*SzD^2-SxD^2-SyD^2)/3 + E*(SxD^2-SyD^2)
+      dHdD_ = (2*SzD2_-SxD2_-SyD2_)/3;
+      dHdE_ = SxD2_-SyD2_;
       
-      % Tranform correlated D-E strain to uncorrelated coordinates F and G
-      r = 0; % correlation coefficient between D and E
-      if size(CoreSys.DStrain,2)==3
-        r = CoreSys.DStrain(iEl,3);
-      end
+      % Compute Hamiltonian derivatives, pre-multiply with strain FWHMs.
       DeltaD = CoreSys.DStrain(iEl,1);
       DeltaE = CoreSys.DStrain(iEl,2);
-      if (r~=0)
-        logmsg(1,'  correlated D strain for electron spin %d',iEl);
-        R11 = DeltaD^2;
-        R22 = DeltaE^2;
-        R12 = r*DeltaD*DeltaE;
-        R = [R11 R12; R12 R22]; % covariance matrix
-        [V,L] = eig(R); L = sqrt(diag(L));
-        DeltaF = L(1);
-        DeltaG = L(2);
-        F_  = V(1,1)*(2*SzD2_-SxD2_-SyD2_)/3  + V(1,2)*(SxD2_-SyD2_);
-        G_  = V(2,1)*(2*SzD2_-SxD2_-SyD2_)/3  + V(2,2)*(SxD2_-SyD2_);
-      else
-        DeltaF = DeltaD;
-        DeltaG = DeltaE;
-        F_  = (2*SzD2_-SxD2_-SyD2_)/3;
-        G_  = (SxD2_-SyD2_);
+      rDE = 0; % correlation coefficient between D and E
+      if size(CoreSys.DStrain,2)==3
+        rDE = CoreSys.DStrain(iEl,3);
       end
-      % Compute Hamiltonian derivatives, pre-multiply with strain FWHMs.
-      dHdD{iEl} = DeltaF * F_;
-      dHdE{iEl} = DeltaG * G_;
-
+      if (rDE~=0)
+        % Transform correlated D-E strain to uncorrelated coordinates
+        logmsg(1,'  correlated D strain for electron spin %d (r = %f)',iEl,rDE);
+        % Construct and diagonalize covariance matrix
+        R12 = rDE*DeltaD*DeltaE;
+        CovMatrix = [DeltaD^2 R12; R12 DeltaE^2];
+        [V,L] = eig(CovMatrix);
+        L = sqrt(diag(L));
+        dHdD{iEl} = L(1)*(V(1,1)*dHdD_ + V(1,2)*dHdE_);
+        dHdE{iEl} = L(2)*(V(2,1)*dHdD_ + V(2,2)*dHdE_);
+      else
+        dHdD{iEl} = DeltaD*dHdD_;
+        dHdE{iEl} = DeltaE*dHdE_;
+      end
+      
     end
-    clear Sx_ Sy_ Sz_ SxD2_ SyD2_ SzD2_ F_ G_;
+    clear SxM_ SyM_ SzM_ SxD2_ SyD2_ SzD2_ dHdD_ dHdE_
   end
   
   % g-A strain
@@ -1195,6 +1201,9 @@ for iOri = 1:nOrientations
         % Calculate width if requested.
         %--------------------------------------------------
         if (ComputeStrains)
+          %m = @(Op) real(V'*Op*V) - real(U'*Op*U);
+          m = @(Op) real((V'-U')*Op*(V+U));
+
           % H strain
           LineWidth2 = LineWidthSquared;
           % g and A strain
@@ -1204,10 +1213,8 @@ for iOri = 1:nOrientations
           % D strain
           if useDStrain
             for iEl = 1:CoreSys.nElectrons
-              % add D contribution
-              LineWidth2 = LineWidth2 + abs(real((V'-U')*dHdD{iEl}*(V+U)))^2;
-              % add E contribution
-              LineWidth2 = LineWidth2 + abs(real((V'-U')*dHdE{iEl}*(V+U)))^2;
+              LineWidth2 = LineWidth2 + abs(m(dHdD{iEl}))^2;
+              LineWidth2 = LineWidth2 + abs(m(dHdE{iEl}))^2;
             end
           end
           % Convert to field value and save

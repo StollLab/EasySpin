@@ -748,9 +748,7 @@ for iOri = 1:nOrientations
       % D strain
       if UseDStrain
         for iEl = 1:CoreSys.nElectrons
-          % add D contribution
           LineWidth2 = LineWidth2 + abs(m(dHdD{iEl}))^2;
-          % add E contribution
           LineWidth2 = LineWidth2 + abs(m(dHdE{iEl}))^2;
         end
       end
