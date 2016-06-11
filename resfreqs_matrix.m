@@ -462,65 +462,7 @@ if (ComputeStrains)
   
   % D strain
   %-----------------------------------------------
-  % Diagonal of D tensor: [-D/3+E, -D/3-E, 2D/3] in MHz.
-  % H = D*(Sz^2-S(S+1)/3) + E*(Sx^2-Sy^2)
-  %   = D*(2*Sz^2-Sx^2-Sy^2)/3 + E*(Sx^2-Sy^2)
-  % D strain: independent distributions in D and E parameters.
-  % System.DStrain: [FWHM_D FWHM_E] in MHz.
-  UseDStrain = any(CoreSys.DStrain(:));
-  if UseDStrain
-    for iEl = 1:CoreSys.nElectrons
-      
-      % Since S^T D S = S^T (R D_diag R^T) S = (S^T R) D_diag (R^T S),
-      % we have to compute R^T S = (SxD SyD SzD)^T to stay in the
-      % eigenframe of D for the D and E strain.
-      R = eye(3);
-      if any(CoreSys.DFrame(iEl,:))
-        R = erot(CoreSys.DFrame(iEl,:)).'; % D frame -> molecular frame
-      end
-      R = R.'; % molecular frame -> D frame
-      
-      % Construct Zeeman basis operators
-      Sx_ = sop(CoreSys,iEl,1);
-      Sy_ = sop(CoreSys,iEl,2);
-      Sz_ = sop(CoreSys,iEl,3);
-      
-      % Compute squared cartesian spin operators in D eigenframe
-      SxD2_ = (R(1,1)*Sx_ + R(1,2)*Sy_ + R(1,3)*Sz_)^2;
-      SyD2_ = (R(2,1)*Sx_ + R(2,2)*Sy_ + R(2,3)*Sz_)^2;
-      SzD2_ = (R(3,1)*Sx_ + R(3,2)*Sy_ + R(3,3)*Sz_)^2;
-      
-      % Tranform correlated D-E strain to uncorrelated coordinates F and G
-      r = 0; % correlation coefficient between D and E
-      if size(CoreSys.DStrain,2)==3
-        r = CoreSys.DStrain(iEl,3);
-      end
-      DeltaD = CoreSys.DStrain(iEl,1);
-      DeltaE = CoreSys.DStrain(iEl,2);
-      if (r~=0)
-        logmsg(1,'  correlated D strain for electron spin %d',iEl);
-        R11 = DeltaD^2;
-        R22 = DeltaE^2;
-        R12 = r*DeltaD*DeltaE;
-        R = [R11 R12; R12 R22]; % covariance matrix
-        [V,L] = eig(R); L = sqrt(diag(L));
-        DeltaF = L(1);
-        DeltaG = L(2);
-        F_  = V(1,1)*(2*SzD2_-SxD2_-SyD2_)/3  + V(1,2)*(SxD2_-SyD2_);
-        G_  = V(2,1)*(2*SzD2_-SxD2_-SyD2_)/3  + V(2,2)*(SxD2_-SyD2_);
-      else
-        DeltaF = DeltaD;
-        DeltaG = DeltaE;
-        F_  = (2*SzD2_-SxD2_-SyD2_)/3;
-        G_  = (SxD2_-SyD2_);
-      end
-      % Compute Hamiltonian derivatives, pre-multiply with strain FWHMs.
-      dHdD{iEl} = DeltaF * F_;
-      dHdE{iEl} = DeltaG * G_;
-      
-    end
-    clear Sx_ Sy_ Sz_ SxD2_ SyD2_ SzD2_ F_ G_;
-  end
+  [UseDStrain,dHdD,dHdE] = getdstrainops(CoreSys);
   
   % g-A strain
   %-------------------------------------------------

@@ -495,9 +495,8 @@ else
       lwD(k,:) = (dBdD_(k+1,:)-dBdD_(k,:))*Sys.DStrain(1);
       lwE(k,:) = (dBdE_(k+1,:)-dBdE_(k,:))*Sys.DStrain(2);
     end
-    lw = sqrt(lwD.^2+lwE.^2);
-    Wid_D = repmat(lw,nNucTrans,1);
-    Wid = Sqrt(Wid_D.^2 + Wid.^2);
+    Wid2_DE = repmat(lwD.^2+lwE.^2,nNucTrans,1);
+    Wid = sqrt(Wid2_DE + Wid.^2);
   end
   
   % Transitions
