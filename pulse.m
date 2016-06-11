@@ -8,11 +8,12 @@ function varargout = pulse(varargin)
 %
 % [t,y] = pulse(Exp)
 % [t,y] = pulse(Exp,npulse)
-% [t,y,mod] = pulse(Exp,npulse)
+% [t,y] = pulse(Exp,Opt)
+% [t,y,modulation] = pulse(Exp,npulse)
 % [t,y] = pulse(Exp,npulse,Opt)
 %
 % [t,y,p] = pulse(Exp,npulse,Opt) if Opt.ExciteProfile = 1
-% [t,y,mod,p] = pulse(Exp,npulse,Opt) if Opt.ExciteProfile = 1
+% [t,y,modulation,p] = pulse(Exp,npulse,Opt) if Opt.ExciteProfile = 1
 %
 % Input: Exp    = structure containing the following fields:
 %          Exp.tp          = pulse length in us
@@ -60,6 +61,9 @@ function varargout = pulse(varargin)
 %                                 on/off
 %          Opt.ExciteProfile    = true/false, turn excitation profile
 %                                 calculation on/off
+%          Opt.Detect           = 'Sz' (default), 'Sy', 'Sx', 'all', define
+%                                 detection operator for excitation profile
+%                                 calculation
 %          Opt.offsets          = axis of frequency offsets in MHz for which
 %                                 to compute the excitation profile
 %                                 (default ±200 MHz, 201 pts or ±1.5*BW in
@@ -67,8 +71,8 @@ function varargout = pulse(varargin)
 %                                 one of the pulses)
 %          Opt.nBCH             = number of steps combined in the excitation
 %                                 profile computation using the Baker-
-%                                 Campbell-Hausdorff series (*2)
-%                                 (default = 3)
+%                                 Campbell-Hausdorff series (*2, approximation)
+%                                 (default = 1, exact solution)
 %
 % Available pulse modulation functions:
 %   - Amplitude modulation: rectangular, gaussian, sinc, quartersin, sech,
@@ -84,7 +88,7 @@ function varargout = pulse(varargin)
 %                       Alternatively:
 %                       - trunc     = truncation parameter (0 to 1)
 % 'sinc'                - zerocross = width between the first zero-
-%                                     crossing points in ns
+%                                     crossing points in us
 % 'sech'                - beta      = dimensionless truncation parameter
 % 'WURST'               - n         = WURST n parameter (determining the
 %                                     steepness of the amplitude function)
@@ -115,14 +119,14 @@ function varargout = pulse(varargin)
 %                       pulses, see Garwood, M., DelaBarre, L., J. Magn.
 %                       Reson. 153, 155-177 (2001).
 %
-% Output:   t         = time axis for defined waveform in us
-%           y         = real and imaginary part of the pulse function
-%           mod       = structure with amplitude (mod.A in MHz), frequency
-%                       (mod.nu in MHz) and phase (mod.phi in rad)
-%                       modulation functions
+% Output:   t          = time axis for defined waveform in us
+%           y          = real and imaginary part of the pulse function
+%           modulation = structure with amplitude (modulation.A in MHz),
+%                       frequency (modulation.nu in MHz) and phase 
+%                       (modulation.phi in rad) modulation functions
 %           Additionally, if Opt.ExciteProfile = 1:
-%           p.dnu     = frequency offset axis for excitation profile in MHz
-%           p.Mz      = excitation profile
+%           p.dnu      = frequency offset axis for excitation profile in MHz
+%           p.Mz/p.My/p.Mx = excitation profile (Mi/M0)
 %
 % (*1) The conversion from flip angles to amplitudes is performed using the
 %      approximations described in:
@@ -162,8 +166,18 @@ end
 if ~isfield(Exp,'tp')
   error('Pulse length not defined in Exp.tp.')
 end
+% If no pulse is selected, the functions returns outputs for each of the
+% pulses defined in the input structure
+if ~exist('npulse','var')
+  npulse = 1:numel(Exp.tp);
+end
 if ~isfield(Exp,'Pulse')
   for i = 1:numel(Exp.tp)
+    Exp.Pulse(i).Shape = 'rectangular';
+  end
+end
+if numel(Exp.Pulse)<numel(Exp.tp)
+  for i = numel(Exp.Pulse)+1:numel(Exp.tp)
     Exp.Pulse(i).Shape = 'rectangular';
   end
 end
@@ -187,11 +201,6 @@ end
 if isfield(Exp,'timestep') && numel(Exp.timestep)~=numel(Exp.tp)
   Exp.timestep(end:numel(npulse)) = Exp.timestep(end);
 end
-% If no pulse is selected, the functions returns outputs for each of the
-% pulses defined in the input structure
-if ~exist('npulse','var')
-  npulse = 1:numel(Exp.tp);
-end
 if ~exist('Opt','var')
   Opt.ExciteProfile = 0;
   Opt.nBCH = 3;
@@ -206,13 +215,16 @@ end
 if ~isfield(Opt,'ExciteProfile')
   Opt.ExciteProfile = 0;
 end
+if ~isfield(Opt,'Detect')
+  Opt.Detect = 'Sz';
+end
 if ~isfield(Opt,'nBCH')
   Opt.nBCH = 3;
 end
 if ~isfield(Opt,'offsets')
   if isfield(Exp.Pulse,'BW') % set range of offsets to ±1.5*BW in 1 MHz steps
     BW(1:numel(Exp.tp)) = 0;
-    for i = 1:numel(Exp.tp)
+    for i = 1:numel(Exp.Pulse)
       if ~isempty(Exp.Pulse(i).BW)
         BW(i) = Exp.Pulse(i).BW;
       end
@@ -230,7 +242,7 @@ end
 % ----------------------------------------------------------------------- %
 t = cell(1,numel(npulse));
 y = cell(1,numel(npulse));
-mod(1:numel(npulse)) = struct('A',[]);
+modulation(1:numel(npulse)) = struct('A',[]);
 if Opt.ExciteProfile==1
   p(npulse) = struct('offsets',Opt.offsets);
 end
@@ -261,9 +273,9 @@ for np = 1:numel(npulse)
     y{n} = Exp.Pulse(n).I + 1i*Exp.Pulse(n).Q;
     
     Exp.timestep(n) = t{n}(2)-t{n}(1);
-    mod(n).A = [];
-    mod(n).dnu = [];
-    mod(n).phi = [];
+    modulation(n).A = [];
+    modulation(n).dnu = [];
+    modulation(n).phi = [];
     
   else
     
@@ -445,6 +457,9 @@ for np = 1:numel(npulse)
         maxFreq = max(abs([equivmaxFreq Exp.FreqOffset]));
         Exp.timestep(n) = 1/(2*Opt.OverSampleFactor*maxFreq);
       end
+      if Exp.timestep(n)>Exp.tp(n)
+        Exp.timestep(n) = Exp.tp(n);
+      end
       Exp.timestep(n) = Exp.tp(n)/round(Exp.tp(n)/Exp.timestep(n)); % last time point = tp
     end
     t{n} = 0:Exp.timestep(n):Exp.tp(n);
@@ -453,7 +468,7 @@ for np = 1:numel(npulse)
     % ------------------------------------------------------------------- %
     % Amplitude modulation function
     % ------------------------------------------------------------------- %
-    mod(n).A = ones(1,numel(t{n}));
+    modulation(n).A = ones(1,numel(t{n}));
     A = zeros(numel(AmplitudeModulation),numel(t{n}));
     for na = 1:numel(AmplitudeModulation)
       switch AmplitudeModulation{na}
@@ -497,24 +512,24 @@ for np = 1:numel(npulse)
           
       end
       
-      mod(n).A = mod(n).A.*A(na,:);
+      modulation(n).A = modulation(n).A.*A(na,:);
     end
     
     % ------------------------------------------------------------------- %
-    % Frequency (mod.nu) and phase (mod.phi) modulation functions
+    % Frequency (modulation.nu) and phase (modulation.phi) modulation functions
     % ------------------------------------------------------------------- %
     switch FrequencyModulation
       
       case 'none'
         
-        mod(n).nu(1:numel(t{n})) = 0;
-        mod(n).phi(1:numel(t{n})) = 0;
+        modulation(n).nu(1:numel(t{n})) = 0;
+        modulation(n).phi(1:numel(t{n})) = 0;
         
       case 'linear'
         
         k = Exp.Pulse(n).BW/Exp.tp(n); % rate of change
-        mod(n).nu = -Exp.Pulse(n).BW/2+k*t{n};
-        mod(n).phi = 2*pi*(-Exp.Pulse(n).BW/2*t{n}+(k/2)*t{n}.^2);
+        modulation(n).nu = -Exp.Pulse(n).BW/2+k*t{n};
+        modulation(n).phi = 2*pi*(-Exp.Pulse(n).BW/2*t{n}+(k/2)*t{n}.^2);
         
       case 'BW-compensated'
         
@@ -537,8 +552,8 @@ for np = 1:numel(npulse)
         t_f = cumtrapz((1/const)*(1./v1_range.^2));
         nu_adapted = interp1(t_f,nu_linear,t{n},'pchip');
         
-        mod(n).nu = nu_adapted;
-        mod(n).phi = 2*pi*cumtrapz(t{n},mod(n).nu);
+        modulation(n).nu = nu_adapted;
+        modulation(n).phi = 2*pi*cumtrapz(t{n},modulation(n).nu);
         
       case 'tanh'
         
@@ -546,21 +561,21 @@ for np = 1:numel(npulse)
         % (the frequency is swept from -BW/2 to +BW/2)
         Exp.Pulse(n).BWinf = Exp.Pulse(n).BW/tanh(Exp.Pulse(n).beta/2);
         
-        mod(n).nu = (Exp.Pulse(n).BWinf/2)*tanh((Exp.Pulse(n).beta/Exp.tp(n))*ti);
-        mod(n).phi = (Exp.Pulse(n).BWinf/2)*(Exp.tp(n)/Exp.Pulse(n).beta)*...
+        modulation(n).nu = (Exp.Pulse(n).BWinf/2)*tanh((Exp.Pulse(n).beta/Exp.tp(n))*ti);
+        modulation(n).phi = (Exp.Pulse(n).BWinf/2)*(Exp.tp(n)/Exp.Pulse(n).beta)*...
           log(cosh((Exp.Pulse(n).beta/Exp.tp(n))*ti));
-        mod(n).phi = 2*pi*Exp.Pulse(n).SweepDirection*mod(n).phi;
+        modulation(n).phi = 2*pi*Exp.Pulse(n).SweepDirection*modulation(n).phi;
         
       case 'uniform adiabaticity'
         % The frequency modulation is calculated as the integral of the
-        % squared amplitude modulaton function (for nth order sech/tanh or
+        % squared amplitude modulation function (for nth order sech/tanh or
         % in general to obtain offset-independent adiabaticity pulses, see
         % Garwood, M., DelaBarre, L., J. Magn. Reson. 153, 155-177 (2001).
         
-        mod(n).nu = cumtrapz(ti,mod(n).A.^2)/trapz(ti,mod(n).A.^2); % F2
-        mod(n).nu = Exp.Pulse(n).BW*(mod(n).nu-1/2);
-        mod(n).phi = 2*pi*cumtrapz(ti,mod(n).nu);
-        mod(n).phi = mod(n).phi+abs(min(mod(n).phi)); % zero phase offset at pulse center
+        modulation(n).nu = cumtrapz(ti,modulation(n).A.^2)/trapz(ti,modulation(n).A.^2); % F2
+        modulation(n).nu = Exp.Pulse(n).BW*(modulation(n).nu-1/2);
+        modulation(n).phi = 2*pi*cumtrapz(ti,modulation(n).nu);
+        modulation(n).phi = modulation(n).phi+abs(min(modulation(n).phi)); % zero phase offset at pulse center
         
     end
     
@@ -573,7 +588,7 @@ for np = 1:numel(npulse)
         
         case 'none' % amplitude modulated pulses: beta = integral
           
-          Exp.Amplitude(n) = Exp.Flip(n)/(2*pi*trapz(t{n},mod(n).A));
+          Exp.Amplitude(n) = Exp.Flip(n)/(2*pi*trapz(t{n},modulation(n).A));
           
         case {'linear','BW compensated','tanh','uniform adiabaticity'}
           % see Jeschke et al. (2015) J. Phys. Chem. B, 119, 13570–13582.
@@ -603,9 +618,9 @@ for np = 1:numel(npulse)
     % ------------------------------------------------------------------- %
     % Pulse function
     % ------------------------------------------------------------------- %
-    mod(n).A = Exp.Amplitude(n)*mod(n).A;
-    y{n} = mod(n).A.*cos(mod(n).phi + 2*pi*Exp.FreqOffset(n)*t{n} + Exp.Phase(n))...
-      +1i*mod(n).A.*cos(mod(n).phi + 2*pi*Exp.FreqOffset(n)*t{n} + Exp.Phase(n) - (pi/2));
+    modulation(n).A = Exp.Amplitude(n)*modulation(n).A;
+    y{n} = modulation(n).A.*cos(modulation(n).phi + 2*pi*Exp.FreqOffset(n)*t{n} + Exp.Phase(n))...
+      +1i*modulation(n).A.*cos(modulation(n).phi + 2*pi*Exp.FreqOffset(n)*t{n} + Exp.Phase(n) - (pi/2));
     
   end
   
@@ -619,9 +634,25 @@ for np = 1:numel(npulse)
     Sy = sop(1/2,'y');
     Sz = sop(1/2,'z');
     
+    % Equilibrium density matrix
     p0 = -Sz;
     
-    p(n).Mz = zeros(1,numel(Opt.offsets));
+    % Detection operator
+    switch Opt.Detect
+      case 'Sz', Det = Sz; varname = 'Mz';
+      case 'Sy', Det = Sy; varname = 'My';
+      case 'Sx', Det = Sx; varname = 'Mx';
+      case 'all', Det{1} = Sx; Det{2} = Sy; Det{3} = Sz;
+    end
+    
+    if ~iscell(Det)
+      p(n).(varname) = zeros(1,numel(Opt.offsets));
+    else
+      p(n).Mx = zeros(1,numel(Opt.offsets));
+      p(n).My = zeros(1,numel(Opt.offsets));
+      p(n).Mz = zeros(1,numel(Opt.offsets));
+    end
+    
     for k = 1:length(Opt.offsets)
       
       Ham0 = Opt.offsets(k)*Sz;
@@ -668,7 +699,14 @@ for np = 1:numel(npulse)
         end
       end
       
-      p(n).Mz(k) = -sum(sum(Sz.*p1.'));
+      if ~iscell(Det)
+        p(n).(varname)(k) = -2*sum(sum(Det.*p1.'));
+      else
+        p(n).Mx(k) = -2*sum(sum(Det{1}.*p1.'));
+        p(n).My(k) = -2*sum(sum(Det{2}.*p1.'));
+        p(n).Mz(k) = -2*sum(sum(Det{3}.*p1.'));
+      end
+      
     end
     
     if isfield(Opt,'plot') && Opt.plot==1
@@ -682,11 +720,26 @@ for np = 1:numel(npulse)
       axis tight
       subplot(2,1,2)
       hold on; box on;
-      plot(Opt.offsets,real(p(n).Mz),'b');
+      switch Opt.Detect
+        case 'Sz'
+          plot(Opt.offsets,real(p(n).Mz),'b');
+          ylabel('M_z/M_0')
+        case 'Sy'
+          plot(Opt.offsets,real(p(n).My),'b');
+          ylabel('M_y/M_0')
+        case 'Sx'
+          plot(Opt.offsets,real(p(n).Mx),'b');
+          ylabel('M_x/M_0')
+        case 'all'
+          plot(Opt.offsets,real(p(n).Mx),...
+               Opt.offsets,real(p(n).My),...
+               Opt.offsets,real(p(n).Mz));
+          ylabel('M_i/M_0')        
+          legend('x','y','z')
+      end
       xlabel('Frequency offset [MHz]')
-      ylabel('M_z')
       axis tight
-      ylim([-0.5 0.5])
+      ylim([-1 1])
     end
     
   else
@@ -711,27 +764,27 @@ end
 if numel(npulse)==1
   t = t{npulse};
   y = y{npulse};
-  mod = mod(npulse);
+  modulation = modulation(npulse);
 end
 if nargout==1
   error('The function pulse needs to be called with at least two output arguments.')
 elseif nargout==2 % [t,y] = pulse(...)
   varargout{1} = t;
   varargout{2} = y;
-elseif nargout==3 % [t,y,mod] = pulse(...) or [t,y,p] = pulse(...)
+elseif nargout==3 % [t,y,modulation] = pulse(...) or [t,y,p] = pulse(...)
   varargout{1} = t;
   varargout{2} = y;
   if Opt.ExciteProfile==1;
     varargout{3} = p;
   else
-    varargout{3} = mod;
+    varargout{3} = modulation;
   end
-elseif nargout==4 % [t,y,mod,p] = pulse(...)
+elseif nargout==4 % [t,y,modulation,p] = pulse(...)
   if Opt.ExciteProfile==0;
     error('The function pulse returns only up to three output arguments for the selected options.')
   end
   varargout{1} = t;
   varargout{2} = y;
-  varargout{3} = mod;
+  varargout{3} = modulation;
   varargout{4} = p;
 end

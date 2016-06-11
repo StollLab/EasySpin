@@ -3,16 +3,12 @@
 %     [x,S] = saffron(Sys,Exp,Opt)
 %     [x,S,out] = saffron(Sys,Exp,Opt)
 %
-%     [x1,x2,S] = saffron(Sys,Exp,Opt)
-%     [x1,x2,S,out] = saffron(Sys,Exp,Opt)
-%
 %     Sys   ... spin system with electron spin and ESEEM nuclei
 %     Exp   ... experimental parameters (time unit us)
 %     Opt   ... simulation options
 %
 %     out:
-%       x       ... time or frequency axis (1D experiments)
-%       x1, x2  ... time or frequency axis (2D experiments)
+%       x       ... time or frequency axis (x{1} to x{n} for nD experiments)
 %       S       ... simulated signal (ESEEM) or spectrum (ENDOR)
 %       out     ... structure with FFT of ESEEM signal
 
@@ -43,7 +39,6 @@ if (nargout>4), error('Too many output arguments.'); end
 if (nargin<3), Opt = struct('unused',NaN); end
 if isempty(Opt), Opt = struct('unused',NaN); end
 
-
 if ~isstruct(Exp)
   error('Second input argument (Exp) must be a structure!');
 end
@@ -54,7 +49,7 @@ end
 % User defined primary output for time dependent simulations   
 if ~isfield(Opt,'Output'), Opt.Output = 'Time'; end 
 
-if ~isfield(Opt,'Ordinate') Opt.Ordinate = 'Complex'; end
+if ~isfield(Opt,'Ordinate'), Opt.Ordinate = 'Complex'; end
 
 % A global variable sets the level of log display. The global variable
 % is used in logmsg(), which does the log display.
@@ -62,13 +57,13 @@ if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 0; end
 global EasySpinLogLevel
 EasySpinLogLevel = Opt.Verbosity;
 
+% ? Add loop for field sweep ? If Exp.CenterSweep? or if Exp.Field is a
+% vector
 %
 % Loop over species and isotopologues
 %==================================================================
-TwoDim = (isfield(Exp,'Sequence') && ...
-  strcmp(Exp.Sequence,'HYSCORE')) || ...
-  (isfield(Exp,'Inc') && (max(abs(Exp.Inc))>1));
-isENDOR = isfield(Exp,'Sequence') && strcmp(Exp.Sequence,'MimsENDOR');
+isENDOR = isfield(Exp,'Sequence') && strcmp(Exp.Sequence,'MimsENDOR'); % ? Davies, user-defined ENDOR
+
 if ~isfield(Opt,'IsoCutoff'), Opt.IsoCutoff = 1e-4; end
 
 if ~isfield(Sys,'singleiso') || (Sys.singleiso==0)
@@ -79,19 +74,14 @@ if ~isfield(Sys,'singleiso') || (Sys.singleiso==0)
   if isENDOR, Opt.Output = 1; end
   
   [Opt.Ordinate,err] = parseoption(Opt,'Ordinate',{'Complex','Real','Absolute'});
-  error(err);
-  
+  error(err);  
   
   [SysList,weight] = expandcomponents(Sys,Opt.IsoCutoff);
   
   ysum = 0; % direct domain (TD for ESEEM, FD for ENDOR)
   zsum = 0; % inverse domain (FD for ESEEM)
   for iComponent = 1:numel(SysList)
-    if TwoDim
-      [x1,x2,y_,out] = saffron(SysList{iComponent},Exp,Opt);
-    else
-      [x1,y_,out] = saffron(SysList{iComponent},Exp,Opt);
-    end
+    [x,y_,out] = saffron2(SysList{iComponent},Exp,Opt);
     ysum = ysum + y_*weight(iComponent);
     if ~isENDOR
       zsum = zsum + out.fd*weight(iComponent);
@@ -116,38 +106,15 @@ if ~isfield(Sys,'singleiso') || (Sys.singleiso==0)
     switch nargout
       case 0, % plotting, done below
       case 1, varargout = {ysum};
-      case 2, varargout = {x1,ysum};
-      case 3,
-        if TwoDim
-          varargout = {x1,x2,ysum};
-        else
-          varargout = {x1,ysum,out};
-        end
-      case 4,
-        if TwoDim
-          varargout = {x1,x2,ysum,out};
-        end
+      case 2, varargout = {x,ysum};
+      case 3, varargout = {x,ysum,out};
     end
     case 2
     switch nargout
       case 0, % plotting, done below
       case 1, varargout = {zsum};
-      case 2,         
-        if TwoDim
-          varargout = {out.f1,zsum};
-        else
-          varargout = {out.f,zsum};
-        end
-      case 3,
-        if TwoDim
-          varargout = {out.f1,out.f2,zsum};
-        else
-          varargout = {out.f,zsum,out};
-        end
-      case 4,
-        if TwoDim
-          varargout = {out.f1,out.f2,zsum,out};
-        end
+      case 2, varargout = {out.f,zsum};
+      case 3, varargout = {out.f,zsum,out};
     end
   end
   %===============================================================
@@ -160,7 +127,7 @@ if ~isfield(Sys,'singleiso') || (Sys.singleiso==0)
     
     if isENDOR
       
-      plot(x1,out.fd);
+      plot(x,out.fd);
       xlabel('frequency (MHz)');
       ylabel('intensity (arb.units)');
       if isfield(Exp,'tau') && (Exp.tau<1)
@@ -172,21 +139,21 @@ if ~isfield(Sys,'singleiso') || (Sys.singleiso==0)
       
     else
       
-      if ~TwoDim
+      if ~iscell(x)
         
         % Time domain
         subplot(2,1,1);
         PredefinedExperiment = isfield(Exp,'Sequence') && ~isempty(Exp.Sequence);
         ExperimentNames = {'2pESEEM','3pESEEM','4pESEEM','HYSCORE','MimsENDOR'};
-        plotQuadratureSignal = ~PredefinedExperiment && iscomplex(out.td);
+        plotQuadratureSignal = ~PredefinedExperiment && ~isreal(out.td);
         if plotQuadratureSignal
-          h = plot(x1,real(out.td),'b',x1,imag(out.td),'r');
+          h = plot(x,real(out.td),'b',x,imag(out.td),'r');
           set(h(1),'Color',[0 0 1]);
           set(h(2),'Color',[0.8 0.6 1]);
           legend('Re','Im');
           legend boxoff
         else
-          plot(x1,real(out.td));
+          plot(x,real(out.td));
         end
         axis tight
         xl = xlim;
@@ -238,11 +205,11 @@ if ~isfield(Sys,'singleiso') || (Sys.singleiso==0)
         end
         set(gca,'Children',h(end:-1:1));
         
-      else
+      elseif (iscell(x) && numel(x)==2)
         
         subplot(1,2,1);
         
-        pcolor(x1,x2,real(out.td.')); shading flat; axis equal tight;
+        pcolor(x{1},x{2},real(out.td.')); shading flat; axis equal tight;
         set(gca,'Layer','top');
         title('Time domain (real part)');
         xlabel('t_1 (\mus)');
@@ -253,12 +220,13 @@ if ~isfield(Sys,'singleiso') || (Sys.singleiso==0)
         fx1 = fdaxis(Exp.dt(1),size(out.fd,1));
         if numel(Exp.dt)<2, Exp.dt(2) = Exp.dt(1); end
         fx2 = fdaxis(Exp.dt(2),size(out.fd,2));
+        fd = abs(out.fd);
         if isfield(Opt,'logplot') && Opt.logplot
-          fd = log(out.fd);
+          fd = log(fd);
           maxfd = max(max(fd));
           fd(fd<maxfd-6) = maxfd-6;
         end
-        pcolor(fx1,fx2,out.fd.'); shading flat; axis equal tight
+        pcolor(fx1,fx2,fd.'); shading flat; axis equal tight
         set(gca,'Layer','top');
         title('Frequency domain');
         xlabel('\nu_1 (MHz)');
@@ -298,17 +266,18 @@ if outi.nIso>1
   error('saffron does not support isotope mixtures. Please specify pure isotopes in Sys.Nucs.');
 end
 
+if (isENDOR && Sys.nNuclei==0)
+  error('saffron: There are no nuclear spins in the spin system.');
+end
 
 [Sys,err] = validatespinsys(Sys);
 error(err);
 logmsg(1,'spins: %d electrons, %d nuclei',Sys.nElectrons,Sys.nNuclei);
-if (Sys.nNuclei==0)
-  %error('saffron: There are no nuclear spins in the spin system.');
-end
 
-if (Sys.nElectrons>1)
-  error('saffron does not support systems with more than one electron spin.');
-end
+% if (Sys.nElectrons>1) ? -> Change
+%   error('saffron does not support systems with more than one electron spin.');
+% end
+
 maxNuclei = 40;
 if (Sys.nNuclei>maxNuclei)
   error('saffron does not support systems with more than %d nuclei.',maxNuclei);
@@ -320,6 +289,9 @@ end
 
 %===================================================================
 % Experiment structure
+%===================================================================
+
+% Default settings
 %===================================================================
 DefaultExp.Temperature = [];
 DefaultExp.Ordering = [];
@@ -371,10 +343,13 @@ if any(Sys.T1T2<=0) || any(~isreal(Sys.T1T2))
   error('T1 and T2 in Sys.T1T2 must be positive, in microseconds.');
 end
 
+
 % Pulse sequence
+%===================================================================
 PredefinedExperiment = isfield(Exp,'Sequence') && ~isempty(Exp.Sequence);
 if PredefinedExperiment
-  
+
+  % Predefined pulse sequence -----------------------------------------
   if isfield(Exp,'Filter')
     error('Exp.Filter can only be used with custom sequences.');
   end
@@ -387,7 +362,7 @@ if PredefinedExperiment
   if numel(ExperimentID)>1, error('Ambiguous sequence name.'); end
   logmsg(1,'Sequence: %s',ExperimentNames{ExperimentID});
   
-  if isfield(Exp,'tp')
+  if isfield(Exp,'tp') % ? change
     if any(Exp.tp~=0)
       error('You cannot use predefined sequences (Exp.Sequence) with real pulses (Exp.tp).');
     end
@@ -418,6 +393,15 @@ if PredefinedExperiment
   if (ExperimentID>1) && all(Exp.tau==0)
     error('Exp.tau must be larger than 0.');
   end
+  
+  % Detection
+  if ((isfield(Exp,'DetectionIntegrate') && Exp.DetectionIntegrate==1) || ...
+      isfield(Exp,'DetectionWindow') || isfield(Exp,'DetectionPoints') || ...
+      (isfield(Exp,'DetectionFullTransient') && Exp.DetectionFullTransient==1))
+    error('Echo integration or detection is not available for predefined sequences.');
+  end
+  Exp.Detection = 'singlepoint'; % ? implement other types of detection for predefined sequences?
+  Exp.DetectionIntegrate = 0;
     
 else
   
@@ -430,50 +414,117 @@ else
     error('Relaxation times T1 and T2 for custom sequences not supported.');
   end
   
-  if ~isfield(Exp,'Flip')
-    error('For a pulse experiment, give either Exp.Sequence or Exp.Flip/Exp.Inc.');
+  % Pulse parameters
+  if ~isfield(Exp,'Flip') && ~isfield(Exp,'Amplitude')
+    error('For a pulse experiment, give either Exp.Sequence or define the pulse sequence explicitly.'); % ?
   end
-  nIntervals = numel(Exp.Flip);
+  if isfield(Exp,'Flip')
+    nIntervals = numel(Exp.Flip);
+  elseif isfield(Exp,'Amplitude')
+    nIntervals = numel(Exp.Amplitude);
+  else
+    error('Exp.Flip or Exp.Amplitude needs to be defined for a custom pulse sequence.');
+  end
+  if (~any(mod(Exp.Flip,1)) && max(Exp.Flip)<=4 && any(Exp.Flip))
+    warning('The input to Exp.Flip is now in radians. Multiply the old Exp.Flip input by pi/2.')
+  end
+  
+  if ~isfield(Exp,'Phase')
+    Exp.Phase = ones(1,nIntervals)*pi/2;  % y phase by default
+  end
+  if (~any(mod(Exp.Phase,1)) && max(Exp.Phase)<=4 && any(Exp.Phase))
+    warning('The input to Exp.Phase is now in radians. Multiply the old Exp.Phase input by pi/2.')
+  end
   
   % Incrementation scheme
   if ~isfield(Exp,'Inc')
-    error('The incrementation scheme (Exp.Inc) is missing.');
+    Exp.Inc(1:nIntervals) = 0; % echo detection if no incrementation scheme is given
   end
   if numel(Exp.Inc)~=nIntervals
-    error('Exp.Inc must contain the same number of elements as Exp.Flip.');
+    error('Exp.Inc must contain the same number of elements as Exp.Flip/Exp.Amplitude.');
   end  
-  IncScheme = Exp.Inc(Exp.Inc~=0);
-  if isequal(IncScheme,1), IncSchemeID = 1;
+  IncScheme = Exp.Inc(Exp.Inc~=0); % ? include IncFreq/Inctp (field sweep separate)
+  if isempty(IncScheme), IncSchemeID = 0; % FID/echo detection for any type of pulse sequence
+  elseif isequal(IncScheme,1), IncSchemeID = 1;
   elseif isequal(IncScheme,[1 1]), IncSchemeID = 2;
-  elseif isequal(IncScheme,[1 -1]), IncSchemeID = 3;
+  elseif isequal(IncScheme,[1 -1]), IncSchemeID = 3; % ? Inc now without sign ?
   elseif isequal(IncScheme,[1 2]), IncSchemeID = 11;
   elseif isequal(IncScheme,[1 2 1]), IncSchemeID = 12;
   elseif isequal(IncScheme,[1 2 2]), IncSchemeID = 13;
   elseif isequal(IncScheme,[1 1 2]), IncSchemeID = 14;
   elseif isequal(IncScheme,[1 2 2 1]), IncSchemeID = 15;
-  elseif isequal(IncScheme,[1 2 -2 1]), IncSchemeID = 16;
+  elseif isequal(IncScheme,[1 2 -2 1]), IncSchemeID = 16; % ? Inc now without sign
   elseif isequal(IncScheme,[1 1 2 2]), IncSchemeID = 17;
   else
     error('Unsupported incrementation scheme in Exp.Inc.');
   end
-  nDimensions = max(abs(Exp.Inc));
+  nDimensions = max(abs(Exp.Inc)); % ? check other Inc parameters
   
+  % Pulse delays
   if ~isfield(Exp,'t')
     Exp.t = zeros(1,nIntervals);
   end
   if numel(Exp.t)~=nIntervals
     error('Exp.t must contain the same number of elements as Exp.Flip');
   end
-  if all(Exp.t==0) && (numel(IncScheme)<nIntervals)
+  if all(Exp.t==0) && (numel(IncScheme)<nIntervals) % ? change, see above
     logmsg(0,'Some delays are zero, but are not incremented!');
   end
-
+  
+  % Detection
+  if ~isfield(Exp,'DetectionIntegrate')
+    Exp.DetectionIntegrate = 0;
+  end
+  % Integration/detection window
+  if ~isfield(Exp,'DetectionStep')
+    Exp.DetectionStep = 0.001; % us
+  end
+  if isfield(Exp,'DetectionWindow')
+    Exp.DetectionPoints = Exp.DetectionWindow/Exp.DetectionStep;
+  end
+  if isfield(Exp,'DetectionPoints')
+    Exp.DetectionWindow = Exp.DetectionPoints*Exp.DetectionStep;
+  end
+  if (Exp.DetectionIntegrate==1 && ~isfield(Exp,'DetectionWindow'))
+    error('Echo integration is requested, but the integration window is not defined.')
+  end  
+  if (isfield(Exp,'DetectionWindow') && Exp.t(end)<Exp.DetectionWindow/2)
+    error('Detection window overlaps with the last pulse. Adjust window length or select the full transient option.');
+  end
+  % Options for detection
+  if (Exp.DetectionIntegrate==0 && ~isfield(Exp,'DetectionWindow'))
+    Exp.Detection = 'singlepoint';
+    logmsg(1,'Single point detection.');
+  elseif (Exp.DetectionIntegrate==1 && isfield(Exp,'DetectionWindow'))
+    Exp.Detection = 'echodetection';
+    logmsg(1,'Echo integration over a %d ns window in %d ns steps.',Exp.DetectionWindow*10^3,Exp.DetectionStep*10^3);
+  elseif (Exp.DetectionIntegrate==0 && isfield(Exp,'DetectionWindow'))
+    Exp.Detection = 'echodetection';
+    logmsg(1,'Echo transient acquisition in a %d ns window with %d ns time steps.',Exp.DetectionWindow*10^3,Exp.DetectionStep*10^3);
+  end
+  if ~isfield(Exp,'DetectionFullTransient')
+    Exp.DetectionFullTransient = 0;
+  end
+  if Exp.DetectionFullTransient==1 % ? not implemented yet
+    Exp.Detection = 'fulltransient';
+    logmsg(1,'Transient detection of the full pulse sequence.');
+  end
+ 
+  if (IncSchemeID==0 && ...
+      ~(strcmp(Exp.Detection,'echodetection') || strcmp(Exp.Detection,'fulltransient')))
+    error('No incrementation scheme is given. For transient simulations specify an integration window.')
+  end
+  
 end
 
 % dt
-if ~isENDOR
-  if ~isfield(Exp,'dt')
-    error('Exp.dt is missing.');
+if ~isENDOR % ? add check for hyperfine experiments where nuclear subHamiltonians are used?
+  if ~isfield(Exp,'dt') % !!!!! only echo detection, dt not needed
+    if IncSchemeID ==0
+      Exp.dt = [];
+    else
+      error('Exp.dt is missing.');
+    end
   end
   if numel(Exp.dt)==1
     Exp.dt = Exp.dt*ones(1,nDimensions);
@@ -482,7 +533,7 @@ if ~isENDOR
   end
 end
 
-% nPoints
+% nPoints % ? check for pulse crossings
 if ~isfield(Exp,'nPoints')
   if isENDOR
     Exp.nPoints = 1001;
@@ -511,11 +562,9 @@ else
 end
 idealPulse = (Exp.tp==0);
 realPulse = ~idealPulse;
-
-% excitation width
 if any(realPulse)
-  if isfield(Exp,'ExciteWidth')
-    %error('Cannot Exp.ExciteWidth and real pulses (Exp.tp) at the same time.')
+  for p = find((1:numel(Exp.tp)).*realPulse)
+    [Exp.tpulse{p},Exp.pulse{p}] = pulse(Exp,p);
   end
 end
 
@@ -591,30 +640,25 @@ if ~PredefinedExperiment
 
   [idxFreeL,idxFreeR,idxPulseL,idxPulseR] = pathwayparser(pathwayList);
   
-  % Exp.Phase contains the pulse phases in multiples of pi/2
-  if ~isfield(Exp,'Phase')
-    Exp.Phase = ones(1,nIntervals);  % y phase by default
-  end
-  
   % Compute all ideal pulse transfer prefactors
   pathwayprefactor = ones(1,nPathways);
   for iPulse = 1:numel(Exp.t)
     if idealPulse(iPulse)
-      theta = Exp.Flip(iPulse)*pi/2;
+      theta = Exp.Flip(iPulse);
       c = cos(theta/2);
       s = sin(theta/2);
       for iPathway = 1:nPathways
         switch idxPulseL(iPathway,iPulse)
           case 1, pL = c;
           case 2, pL = c;
-          case 3, pL = -1i*s*(-1i)^Exp.Phase(iPulse);
-          case 4, pL = -1i*s*(+1i)^Exp.Phase(iPulse);
+          case 3, pL = -1i*s*(-1i)^(Exp.Phase(iPulse)/(pi/2));
+          case 4, pL = -1i*s*(+1i)^(Exp.Phase(iPulse)/(pi/2));
         end
         switch idxPulseR(iPathway,iPulse)
           case 1, pR = c;
           case 2, pR = c;
-          case 3, pR = +1i*s*(+1i)^Exp.Phase(iPulse);
-          case 4, pR = +1i*s*(-1i)^Exp.Phase(iPulse);
+          case 3, pR = +1i*s*(+1i)^(Exp.Phase(iPulse)/(pi/2));
+          case 4, pR = +1i*s*(-1i)^(Exp.Phase(iPulse)/(pi/2));
         end
         pathwayprefactor(iPathway) = pL*pathwayprefactor(iPathway)*pR;
       end
@@ -631,9 +675,17 @@ if ~PredefinedExperiment
   pathwayprefactor(rmv) = [];
 
   nPathways = size(pathwayList,1);
+  if nPathways==0
+    error('No pathway with nonzero amplitude exists for this pulse sequence.');
+  end
 
   idxIncL = idxFreeL(:,Exp.Inc~=0);
   idxIncR = idxFreeR(:,Exp.Inc~=0);
+  
+  if strcmp(Exp.Detection,'echodetection')
+    idxIncL = [idxIncL idxFreeL(:,end)]; % same as for last interval
+    idxIncR = [idxIncR idxFreeR(:,end)];
+  end
 
   if (EasySpinLogLevel>0)
     logmsg(1,'  Pathways and prefactors:');
@@ -647,8 +699,6 @@ if ~PredefinedExperiment
 end
 
 
-
-
 if isENDOR
   
   if all(Sys.lwEndor==0)
@@ -658,6 +708,10 @@ if isENDOR
 
   if ~isfield(Exp,'Range')
     error('Frequency range (Exp.Range) must be given for an ENDOR experiment.');
+  end
+  
+  if ~isfield(Exp,'tprf')
+    Exp.tprf = 20; % rf pulse length, us
   end
 
 end
@@ -692,14 +746,20 @@ if PredefinedExperiment
 end
 
 
-OrientationSelection = isfield(Exp,'mwFreq');
+% OrientationSelection = isfield(Exp,'mwFreq');
+% if (OrientationSelection)
+%   logmsg(1,'Microwave frequency given: orientation selection is on.');
+%   if ~isfield(Exp,'ExciteWidth') % ? necessary?
+%     error('Orientation selection: Exp.ExciteWidth (in MHz) missing. It should be about the inverse of the first pulse length (100MHz for 10ns). If you don''t want orientation selection, set it to a very large number (1e6) or remove the microwave frequency.');
+%   end
+% else
+%   logmsg(1,'no orientation selection (infinite bandwidth).');
+% end
+OrientationSelection = (isfield(Exp,'mwFreq') && isfield(Exp,'ExciteWidth')); % ? !!!!!!!!!!
 if (OrientationSelection)
-  logmsg(1,'Microwave frequency given: orientation selection is on.');
-  if ~isfield(Exp,'ExciteWidth')
-    error('Orientation selection: Exp.ExciteWidth (in MHz) missing. It should be about the inverse of the first pulse length (100MHz for 10ns). If you don''t want orientation selection, set it to a very large number (1e6) or remove the microwave frequency.');
-  end
+  logmsg(1,'Orientation selection is on.');
 else
-  logmsg(1,'no orientation selection (infinite bandwidth).');
+  logmsg(1,'No orientation selection (infinite bandwidth).');
 end
 
 if isfield(Exp,'ExciteWidth')
@@ -707,6 +767,7 @@ if isfield(Exp,'ExciteWidth')
     error('Exp.ExciteWidth is given, but Exp.mwFreq is missing. Please give Exp.mwFreq.');
   end
 end
+% !!!!!!! Exp.mwFreq required for rotating frame calculation?
 
 if isfield(Exp,'HStrain')
   error('You gave Exp.HStrain, but it should be Sys.HStrain (in the system, not the experiment structure).');
@@ -721,7 +782,15 @@ if ~isfield(Opt,'SymmFrame'), Opt.SymmFrame = []; end
 if ~isfield(Opt,'Transitions'), Opt.Transitions = []; end
 if ~isfield(Opt,'Sites'), Opt.Sites = []; end
 
-% Nuclei: which nuclei to include in the simulation
+if ~isfield(Opt,'EndorMethod')
+  % 0 = sum-over-transitions, adjacent level population swap (wrong for >1 nucleus)
+  % 1 = sum-over-transitions, bandwidth-filtered Iy pi pulse on all nuclei
+  % 2 = frequency sweep, bandwidth-filtered Iy pi pulse on all nuclei
+  Opt.EndorMethod = 1;
+end
+
+% Nuclei: which nuclei to include in the simulation % ? change for electron
+% experiments, program should give correct output if no nuclei are defined
 if isfield(Opt,'Nuclei')
   if isempty(Opt.Nuclei)
     error('Opt.Nuclei must contain the indices of nuclei to include in the simulation.');
@@ -731,10 +800,11 @@ if isfield(Opt,'Nuclei')
   end
   shfNuclei = Opt.Nuclei;
 else
-  % Pick nuclei to be included in the ESEEM/ENDOR computation
+  % Pick nuclei to be included in the ESEEM/ENDOR computation % ? exclude
+  % these nuclei for e.g. DEER?
   shfNuclei = 1:Sys.nNuclei;
   if ~isempty(shfNuclei)
-    if all(idealPulse) && isfield(Exp,'ExciteWidth')
+    if all(idealPulse) && isfield(Exp,'ExciteWidth') % ? alternative to ExciteWidth needed if it is not required as input
       if Sys.fullA
         for iNuc = 1:shfNuclei
           Amatrix = Sys.A((iNuc-1)*3+(1:3),:);
@@ -759,6 +829,9 @@ maxExpand = 8;
 if (numel(Opt.Expand)~=1) || (Opt.Expand<0) || (Opt.Expand>maxExpand) || rem(Opt.Expand,1)
   error('Opt.Expand must be an integer between 0 and %d.',maxExpand);
 end
+if ~isfield(Opt,'DetectionExpand')
+  Opt.DetectionExpand = 8;
+end
 
 % Number of knots: determines number of orientations
 if ~isfield(Opt,'nKnots'), Opt.nKnots = 30+1; end
@@ -777,8 +850,6 @@ if (Sys.nNuclei==1), Opt.ProductRule = 0; end
 if (any(realPulse) && Opt.ProductRule)
   error('saffron: Cannot apply product rule and real pulses at the same time.');
 end
-
-SeparateTransitions = false;
 
 if ~isfield(Opt,'OriThreshold'), Opt.OriThreshold = 0.005; end
 
@@ -803,9 +874,10 @@ if ~isfield(Opt,'TimeDomain'), Opt.TimeDomain = 0; end
 % Symmetry determination and orientational grid.
 %==========================================================================
 [Exp,Opt] = p_symandgrid(Sys,Exp,Opt);
-nOrientations = size(Exp.CrystalOrientation,1);
 
-p_crystalorientations;
+% Process crystal orientations, crystal symmetry, and frame transforms
+% This sets Orientations, nOrientations, nSites and AverageOverChi
+[Orientations,nOrientations,nSites,AverageOverChi] = p_crystalorientations(Exp,Opt);
 
 logmsg(1,'-Hamiltonians------------------------------------------');
 
@@ -823,7 +895,7 @@ else
   % Operators for constructing Hamiltonian
   [F,Gx,Gy,Gz] = sham(coreSys);
   % Operators for computing <i|S|i>
-  Sx = sop(coreSys,1,1); % works only for one electron spin
+  Sx = sop(coreSys,1,1); % works only for one electron spin % ? change to work for multiple electron spins
   Sy = sop(coreSys,1,2);
   Sz = sop(coreSys,1,3);
 end
@@ -847,6 +919,11 @@ if ~isempty(shfNuclei)
     NucHams.Hhfz = 0;
     NucHams.Hnq = 0;
   end
+  if isENDOR
+    NucHams.Ix = 0;
+    NucHams.Iy = 0;
+    NucHams.Iz = 0;
+  end
   I = Sys.I(shfNuclei);
   for iiNuc = 1:numel(shfNuclei) % only shf nuclei
     % Spin operators -------------------------------------------------
@@ -860,6 +937,18 @@ if ~isempty(shfNuclei)
       Iz = sop(I,iiNuc,3);
     end
     iNuc = shfNuclei(iiNuc);
+    % Store operators for building RF pulse
+    if isENDOR
+      if Opt.ProductRule
+        NucHams(iiNuc).Ix = Ix;
+        NucHams(iiNuc).Iy = Iy;
+        NucHams(iiNuc).Iz = Iz;
+      else
+        NucHams.Ix = NucHams.Ix + Ix;
+        NucHams.Iy = NucHams.Iy + Iy;
+        NucHams.Iz = NucHams.Iz + Iz;
+      end
+    end
     
     % Nuclear Zeeman -------------------------------------------------
     pre = -Sys.gn(iNuc)*nmagn/1e3/planck/1e6; % MHz/mT
@@ -966,31 +1055,76 @@ if isENDOR
   logmsg(1,'  ENDOR simulation');
   
   rf = linspace(Exp.Range(1),Exp.Range(2),Exp.nPoints);
-  %{
-  Template.x0 = 5e4;
-  Template.lw = Template.x0/2.5; %<1e-8 at borders for Harmonic = -1
-  Template.y = gaussian(0:2*Template.x0-1,Template.x0,Template.lw,-1);
-  Template.y = Template.y*(rf(2)-rf(1))/Sys.lwEndor;
-  %}
   
   endorspc = zeros(1,Exp.nPoints);
-  endoroffset = 0;
 
 else
+
+  % Update settings if echo detection is used
+  if strcmp(Exp.Detection,'echodetection')
+    nPoints = [Exp.nPoints Exp.DetectionPoints];
+    dt = [Exp.dt Exp.DetectionStep];
+    nDimensions = nDimensions+1; % Additional dimension for echo detection
+    % Update incrementation scheme by adding additional final dimension
+    if isempty(IncScheme)
+      IncScheme = 1;
+    else
+      IncScheme = [IncScheme max(IncScheme)+1];
+    end
+    
+    if isempty(IncScheme), IncSchemeID = 0; % ? FID/echo detection for any type of pulse sequence
+    elseif isequal(IncScheme,1), IncSchemeID = 1;
+    elseif isequal(IncScheme,[1 1]), IncSchemeID = 2;
+    elseif isequal(IncScheme,[1 -1]), IncSchemeID = 3; % ? Inc now without sign ?
+    elseif isequal(IncScheme,[1 2]), IncSchemeID = 11;
+    elseif isequal(IncScheme,[1 2 1]), IncSchemeID = 12;
+    elseif isequal(IncScheme,[1 2 2]), IncSchemeID = 13;
+    elseif isequal(IncScheme,[1 1 2]), IncSchemeID = 14;
+    elseif isequal(IncScheme,[1 2 2 1]), IncSchemeID = 15;
+    elseif isequal(IncScheme,[1 2 -2 1]), IncSchemeID = 16; % ? Inc now without sign
+    elseif isequal(IncScheme,[1 1 2 2]), IncSchemeID = 17; % ? include 3D experiments
+    else
+      error('Echo detection/integration not supported for the current incrementation scheme.');
+    end
+
+  else
+    nPoints = Exp.nPoints;
+    dt = Exp.dt;
+  end
 
   if Opt.TimeDomain
     logmsg(1,'  time domain simulation');
   else
     logmsg(1,'  frequency domain simulation');
     % Prepare for binning method
-    ExpansionFactor = 2.^Opt.Expand;
-    nPointsF = ExpansionFactor*Exp.nPoints;
-    if numel(nPointsF)==2
-      logmsg(1,'  %dx%d points, expand x%d -> %dx%d points',...
-        Exp.nPoints(1),Exp.nPoints(2),ExpansionFactor,nPointsF(1),nPointsF(2));
-    else
-      logmsg(1,'  %d points, expand x%d -> %d points',Exp.nPoints,ExpansionFactor,nPointsF);
+    if ~strcmp(Exp.Detection,'echodetection')
+      ExpansionFactor = 2.^Opt.Expand;
+      nPointsF = ExpansionFactor*nPoints;
+      if numel(nPointsF)==1
+        logmsg(1,'  %d points, expand x%d -> %d points',nPoints,ExpansionFactor,nPointsF);
+      elseif numel(nPointsF)==2
+        logmsg(1,'  %dx%d points, expand x%d -> %dx%d points',...
+          nPoints(1),nPoints(2),ExpansionFactor,nPointsF(1),nPointsF(2));
+      elseif numel(nPointsF)==3
+        logmsg(1,'  %dx%dx%d points, expand x%d -> %dx%dx%d points',...
+          nPoints(1),nPoints(2),nPoints(3),ExpansionFactor,nPointsF(1),nPointsF(2),nPointsF(3));
+      end
+    else % echo detection (increased expansion factor required for accurate echo simulation, at least 8)
+      ExpansionFactor = 2.^Opt.Expand;
+      nPointsF = ExpansionFactor*nPoints(1:numel(nPoints)-1);
+      ExpansionFactorDet = (2.^Opt.DetectionExpand);
+      nPointsF(numel(nPoints)) = ExpansionFactorDet*nPoints(end);
+      if numel(nPointsF)==1
+        logmsg(1,'  %d points, expand x%d -> %d points',nPoints,ExpansionFactorDet,nPointsF);
+      elseif numel(nPointsF)==2
+        logmsg(1,'  %dx%d points, expand x%d/x%d -> %dx%d points',...
+          nPoints(1),nPoints(2),ExpansionFactor,ExpansionFactorDet,nPointsF(1),nPointsF(2));
+      elseif numel(nPointsF)==3
+        logmsg(1,'  %dx%dx%d points, expand x%d/x%d/x%d -> %dx%dx%d points',...
+          nPoints(1),nPoints(2),nPoints(3),ExpansionFactor,ExpansionFactor,ExpansionFactorDet,nPointsF(1),nPointsF(2),nPointsF(3));
+      end
     end
+    
     % allocate array(s)
     if (nDimensions==1), siz = [1, nPointsF]; else siz = nPointsF; end
     if Opt.ProductRule
@@ -1006,10 +1140,10 @@ else
     end
   end
   
-  if TwoDim
-    totaltd = zeros(Exp.nPoints);
+  if nDimensions==1
+    totaltd = zeros(1,nPoints);
   else
-    totaltd = zeros(1,Exp.nPoints);
+    totaltd = zeros(nPoints);
   end
 
 end
@@ -1024,7 +1158,7 @@ end
 %=====================================================================
 logmsg(1,'Looping over %d orientations...',nOrientations);
 
-% Prepare offsets
+% Prepare offsets % ? change
 if any(realPulse)
   if ~isfield(Opt,'nOffsets');
     Opt.nOffsets = 291;
@@ -1047,11 +1181,19 @@ if (TwoElectronManifolds)
     Rg = erot(Sys.gFrame).'; % g frame -> molecular frame
     g = Rg*diag(g)*Rg.';
   end
+  Gx = zeros(2,2);
+  Gy = zeros(2,2);
+  Gz = zeros(2,2);
+  for k = 1:3
+    Sk = sop(1/2,1,k);
+    Gx = Gx + (bmagn/(planck*1e9))*g(1,k)*Sk;
+    Gy = Gy + (bmagn/(planck*1e9))*g(2,k)*Sk;
+    Gz = Gz + (bmagn/(planck*1e9))*g(3,k)*Sk;
+  end    
 end
 
 nSkippedOrientations = 0;
 for iOri = 1:nOrientations
-  
   
   % Get magnetic field orientation
   %------------------------------------------------------------------
@@ -1071,11 +1213,19 @@ for iOri = 1:nOrientations
       nSkippedOrientations = nSkippedOrientations + 1;
       continue
     end
-    
+
+    H = Exp.Field*(zLab_M(1)*Gx + zLab_M(2)*Gy + zLab_M(3)*Gz);
+    % Rotating frame % ?
+%     Hrot = H - Exp.mwFreq*1e3*sop(1/2,'z'); % ?
+    [~,eE] = eig(H);
+    eE = real(diag(eE)); % ? order of eigenvalues
+
     quantizationAxis_ = g.'*zLab_M;
     quantizationAxis_ = quantizationAxis_/norm(quantizationAxis_);
     Manifold(1).S = -0.5*quantizationAxis_;
     Manifold(2).S = +0.5*quantizationAxis_;
+    Manifold(1).eE = eE(1); % ? order
+    Manifold(2).eE = eE(2); % ?
 
     Transitions = [1 2];
     nTransitions = 1;
@@ -1086,6 +1236,8 @@ for iOri = 1:nOrientations
     % transition selection
     %------------------------------------------------------------
     H = F + Exp.Field*(zLab_M(1)*Gx + zLab_M(2)*Gy + zLab_M(3)*Gz);
+    % Rotating frame % ?
+%     Hrot = H - Exp.mwFreq*1e3*Sz; % ?
     [eV,eE] = eig(H);
     eE = real(diag(eE));
     SyLab = yLab_M(1)*Sx + yLab_M(2)*Sy + yLab_M(3)*Sz;
@@ -1094,7 +1246,7 @@ for iOri = 1:nOrientations
     
     if (OrientationSelection)
       dE = bsxfun(@minus,eE,eE.') - Exp.mwFreq*1e3; % MHz
-      excitationAmplitude = exp(-(dE/Exp.ExciteWidth).^2);
+      excitationAmplitude = exp(-(dE/Exp.ExciteWidth).^2); % ? change
       SyLab = SyLab.*excitationAmplitude;
     end
     
@@ -1134,6 +1286,7 @@ for iOri = 1:nOrientations
     for iM = ManifoldsInvolved
       vec = eV(:,iM);
       Manifold(iM).S = real([vec'*Sx*vec; vec'*Sy*vec; vec'*Sz*vec]);
+      Manifold(iM).eE = eE(iM); % ?
     end
   end
     
@@ -1162,30 +1315,65 @@ for iOri = 1:nOrientations
     b = Transitions(iT,1); % lower manifold
     a = Transitions(iT,2); % upper manifold
 
-    % Loop over all subspaces
+    % Loop over all subspaces % ? option for nSubSpaces = 0;
+    if nSubSpaces==0; nSubSpaces = 1; end
     for iSpace = 1:nSubSpaces
-      Ea = Manifold(a).E{iSpace};
-      Eb = Manifold(b).E{iSpace};
-      Ma = Manifold(a).V{iSpace};
-      Mb = Manifold(b).V{iSpace};
-      M = Ma'*Mb;       % <a|b> overlap matrix
-      Mt = M';
-      nNucStates = length(Ea);
-      eyeN = eye(nNucStates);
-      if any(realPulse)
-        idxa = 1:nNucStates;
-        idxb = idxa + nNucStates;
+      
+      if ~isempty(shfNuclei)
+        
+        Ea = Manifold(a).E{iSpace};
+        Eb = Manifold(b).E{iSpace};
+        %       Ea = Manifold(a).E{iSpace} + Manifold(a).eE; % ? !!!!!!!!!!!!!!!
+        %       Eb = Manifold(b).E{iSpace} + Manifold(b).eE; % ?
+        Ma = Manifold(a).V{iSpace};
+        Mb = Manifold(b).V{iSpace};
+        M = Ma'*Mb;       % <a|b> overlap matrix
+        Mt = M';
+        nNucStates = length(Ea);
+        eyeN = eye(nNucStates);
+        zeromatrixN = zeros(size(eyeN));
+        if any(realPulse)
+          idxa = 1:nNucStates;
+          idxb = idxa + nNucStates;
+        end
+        % Set up RF operator for ENDOR
+        if isENDOR
+          IyLab = yLab_M(1)*NucHams(iSpace).Ix + ...
+            yLab_M(2)*NucHams(iSpace).Iy + ...
+            yLab_M(3)*NucHams(iSpace).Iz;
+        end
+        
+      else % no superhyperfine nuclei
+        
+        nSubSpaces = 0;
+        
+        Ea = 1;% Manifold(a).eE; % ? !!!!!!!!!!!!!!!
+        Eb = 1;% Manifold(b).E{iSpace} + Manifold(b).eE; % ?
+        M = 1; Mt = 1;
+        eyeN = 1;
+        zeromatrixN = zeros(size(eyeN));
+        if any(realPulse)
+          idxa = 1;
+          idxb = idxa + 1;
+        end
+        
       end
       
+      Ea0 = Ea;
+      Eb0 = Eb;
       for iOffset = 1:Opt.nOffsets
+        
+        Ea = Ea0+offsets(iOffset)/2;
+        Eb = Eb0-offsets(iOffset)/2;
 
         % Pulse propagators
         for iInt = 1:nIntervals
           if realPulse(iInt)
-            nu1 = (pi/2*Exp.Flip(iInt))/Exp.tp(iInt)/2/pi;
-            Hpulse = [diag(Ea+offsets(iOffset)/2), +M*nu1/2i; ...
-              -Mt*nu1/2i diag(Eb-offsets(iOffset)/2)];
-            FullPulsePropagator = expm(-2i*pi*Exp.tp(iInt)*Hpulse);
+            H0 = [diag(Ea), zeromatrixN; ...
+                  zeromatrixN diag(Eb)];
+            Sx = [zeromatrixN, +M/2; +Mt/2 zeromatrixN];
+            Sy = [zeromatrixN, +M/2i; -Mt/2i zeromatrixN];
+            FullPulsePropagator = sf_propagator(Exp.tpulse{iInt},Exp.pulse{iInt},H0,Sx,Sy);
             PulseSubPropagator{iInt,1} = FullPulsePropagator(idxa,idxa);
             PulseSubPropagator{iInt,2} = FullPulsePropagator(idxb,idxb);
             PulseSubPropagator{iInt,3} = FullPulsePropagator(idxa,idxb);
@@ -1211,7 +1399,7 @@ for iOri = 1:nOrientations
           end
         end
         prefactor = prefactor*offsetWeight(iOffset);
-
+        
         % Compute peaks and amplitudes
         if ~PredefinedExperiment
 
@@ -1240,7 +1428,12 @@ for iOri = 1:nOrientations
               end
               
               % Free evolution propagator
-              t = Exp.t(iInt);
+              if iInt==nIntervals && strcmp(Exp.Detection,'echodetection')
+                t = Exp.t(iInt) - Exp.DetectionWindow/2;
+              else
+                t = Exp.t(iInt);
+              end
+              
               if (t>0)
                 if (idxFreeL(iPathway,iInt)==1), E = Ea; else E = Eb; end
                 Left = diag(exp(-2i*pi*E*t)) * Left;
@@ -1273,6 +1466,29 @@ for iOri = 1:nOrientations
               end
               
             end % iInt
+            
+            % Additional interval for echo detection
+            if strcmp(Exp.Detection,'echodetection')
+              if (iBlock==0)
+                G = Left*Right;
+                if numel(G)==1
+                  G = G*eyeN;
+                end
+              else
+                if numel(Left)==1
+                  BlockL{iBlock} = eyeN;
+                else
+                  BlockL{iBlock} = Left;
+                end
+                if numel(Right)==1
+                  BlockR{iBlock} = eyeN;
+                else
+                  BlockR{iBlock} = Right;
+                end
+              end
+              Left = 1;
+              Right = 1;
+            end
 
             if increments(end)~=0
               D = M;
@@ -1286,11 +1502,11 @@ for iOri = 1:nOrientations
             end
             if Opt.TimeDomain
               totaltd = totaltd + ...
-                sf_evolve(IncSchemeID,Exp.nPoints,Exp.dt,...
+                sf_evolve(IncSchemeID,nPoints,dt,...
                 idxIncL(iPathway,:),idxIncR(iPathway,:),...
                 Ea,Eb,G,D,BlockL{:},BlockR{:});
             else
-              sf_peaks(IncSchemeID,buff,Exp.dt,...
+              sf_peaks(IncSchemeID,buff,dt,...
                 idxIncL(iPathway,:),idxIncR(iPathway,:),...
                 Ea,Eb,G,D,BlockL{:},BlockR{:});
             end
@@ -1305,7 +1521,7 @@ for iOri = 1:nOrientations
             case 5
               % coherence transfer pathway 1: +,alpha,-
               % coherence transfer pathway 2: +,beta,-
-
+              
               if ~all(idealPulse)
                 error('Pre-defined Mims ENDOR with real pulses not supported.');
               end
@@ -1315,43 +1531,114 @@ for iOri = 1:nOrientations
               D_ = conj(Q_).*M;
               G1 = G_*Mt; D1 = D_*Mt;
               G2 = Mt*G_; D2 = Mt*D_;
-
+              
+              % Evolve density matrices after second pi/2 pulse
               if (Exp.T~=0)
                 q_ = exp(-2i*pi*Ea*Exp.T); G1 = (q_*q_').*G1;
                 q_ = exp(-2i*pi*Eb*Exp.T); G2 = (q_*q_').*G2;
               end
               
-              % echo signals in absence of RF pulse (off resonance)
-              off1 = trace(G1*D1);
-              off2 = trace(G2*D2);
+              % Remove nuclear coherences
+              G1 = diag(diag(G1));
+              G2 = diag(diag(G2));
               
-              % loop only over nuclear sublevel pairs with Delta mI = 1
-              for j=1:nNucStates-1
-                for i=j+1
-                  % RF pulse approximation: apply pi pulse two two-level subsystem
-                  % R = [0 -1; 1 0];
-                  %S1_ = S1; S1_([j i],[j i]) = R*S1_([j i],[j i])*R';
-                  %S2_ = S2; S2_([j i],[j i]) = R*S2_([j i],[j i])*R';
-                  % RF pulse approximation: only swap diagonal elements ii and jj
-                  G1_ = G1; q = G1_(i,i); G1_(i,i) = G1_(j,j); G1_(j,j) = q;
-                  G2_ = G2; q = G2_(i,i); G2_(i,i) = G2_(j,j); G2_(j,j) = q;
-                  ampl = [off1-trace(G1_*D1), off2-trace(G2_*D2)];
-                  freq = [Ea(i)-Ea(j), Eb(i)-Eb(j)];
-                  %idx = fix(Exp.nPoints*(freq-rf(1))/(rf(end)-rf(1)))+1;
-                  %endorspc(idx) = endorspc(idx) + ampl;
-                  %endorspc = endorspc + ...
-                  %  lisum1i(Template.y,Template.x0,Template.lw,freq,ampl,Sys.lwEndor*[1 1],rf);
-                  if SeparateTransitions
-                    endorspc(iT,:) = ampl(1)*exp(-((rf-freq(1))/Sys.lwEndor).^2);
-                    endorspc(iT,:) = ampl(2)*exp(-((rf-freq(2))/Sys.lwEndor).^2);
-                  else
-                    endorspc = endorspc + ampl(1)*exp(-((rf-freq(1))/Sys.lwEndor).^2);
-                    endorspc = endorspc + ampl(2)*exp(-((rf-freq(2))/Sys.lwEndor).^2);
+              % Echo amplitude for off-resonant RF pulse (gives baseline)
+              traceG1D1 = trace(G1*D1);
+              traceG2D2 = trace(G2*D2);
+              
+              % Matrices of nuclear transition frequencies for both manifolds
+              % (lower triangle is positive, upper is negative, diagonal zero)
+              nu1 = abs(bsxfun(@minus,Ea,Ea.'));
+              nu2 = abs(bsxfun(@minus,Eb,Eb.'));
+              
+              % Transform RF pulse Hamiltonians from Zeeman to eigenbasis
+              Iy1 = Ma'*IyLab*Ma;
+              Iy2 = Mb'*IyLab*Mb;
+              
+              fwhm = 1/Exp.tprf; % excitation bandwidth, MHz
+              Gamma = fwhm/(2*sqrt(log(2)));
+              theta = pi; % rf pulse flip angle
+              
+              switch Opt.EndorMethod
+                case 2
+                  % Sweep method
+                  %---------------------------------------------------------
+                  % Sweep rf, apply bandwidth-limited rf pulse at each
+                  % rf frequency that is within bandwidth of a nuclear
+                  % transition frequency.
+                  BWthreshold = 0.01;
+                  for irf = 1:numel(rf) % do full rf sweep
+                    % calculate bandpass filter matrices (Gaussian profile)
+                    BW1 = exp(-((nu1-rf(irf))/Gamma).^2);
+                    BW2 = exp(-((nu2-rf(irf))/Gamma).^2);
+                    if any(BW1(:)>BWthreshold)
+                      Prfa = expm(-1i*theta*(Iy1.*BW1));
+                      G1_ = Prfa*G1*Prfa'; % apply rf pulse
+                      G1_ = diag(diag(G1_)); % remove nuclear coherences
+                      endorspc(irf) = endorspc(irf) + traceG1D1 - trace(G1_*D1);
+                    end
+                    if any(BW2(:)>BWthreshold)
+                      Prfb = expm(-1i*theta*(Iy2.*BW2));
+                      G2_ = Prfb*G2*Prfb'; % apply rf pulse
+                      G2_ = diag(diag(G2_)); % remove nuclear coherences
+                      endorspc(irf) = endorspc(irf) + traceG2D2 - trace(G2_*D2);
+                    end
                   end
-                  endoroffset = endoroffset + off1 + off2;
-                end
+                  
+                case -1
+                  % Sum-over-transitions method, adjacent level population swap
+                  %---------------------------------------------------------
+                  % Loop over all pairs of adjacent nuclear levels and swap
+                  % populations. This is correct only for a single nucleus at a
+                  % time. (only available method prior to 5.0.21)
+                  
+                  % loop only over adjacent nuclear sublevel pairs 
+                  for j=1:nNucStates-1
+                    for i=j+1
+                      % RF pulse approximation: only swap diagonal elements ii and jj
+                      G1_ = G1; q = G1_(i,i); G1_(i,i) = G1_(j,j); G1_(j,j) = q;
+                      G2_ = G2; q = G2_(i,i); G2_(i,i) = G2_(j,j); G2_(j,j) = q;
+                      ampl = [traceG1D1-trace(G1_*D1), traceG2D2-trace(G2_*D2)];
+                      freq = [Ea(i)-Ea(j), Eb(i)-Eb(j)];
+                      %idx = fix(Exp.nPoints*(freq-rf(1))/(rf(end)-rf(1)))+1;
+                      %endorspc(idx) = endorspc(idx) + ampl;
+                      %endorspc = endorspc + ...
+                      %  lisum1i(Template.y,Template.x0,Template.lw,freq,ampl,Sys.lwEndor*[1 1],rf);
+                      endorspc = endorspc + ampl(1)*exp(-((rf-freq(1))/Sys.lwEndor).^2);
+                      endorspc = endorspc + ampl(2)*exp(-((rf-freq(2))/Sys.lwEndor).^2);
+                    end
+                  end
+                  
+                case 1
+                  % Sum-over-transitions method, Iy pulse
+                  %---------------------------------------------------------
+                  % Loop over all nuclear transition and apply
+                  % bandwidth-limited rf pulse operator.
+                  for j = 1:nNucStates-1
+                    for i = j+1:nNucStates
+                      % set RF to nuclear frequencies
+                      freq1 = nu1(i,j);
+                      freq2 = nu2(i,j);
+                      BW1 = exp(-((nu1-freq1)/Gamma).^2);
+                      BW2 = exp(-((nu2-freq2)/Gamma).^2);
+                      Prfa = expm(-1i*theta*(Iy1.*BW1));
+                      Prfb = expm(-1i*theta*(Iy2.*BW2));
+                      G1_ = diag(diag(Prfa*G1*Prfa'));
+                      G2_ = diag(diag(Prfb*G2*Prfb'));
+                      sig1 = traceG1D1 - trace(G1_*D1);
+                      sig2 = traceG2D2 - trace(G2_*D2);
+                      %idx1 = fix(Exp.nPoints*(freq1-rf(1))/(rf(end)-rf(1)))+1;
+                      %idx2 = fix(Exp.nPoints*(freq2-rf(1))/(rf(end)-rf(1)))+1;
+                      %endorspc(idx1) = endorspc(idx1) + sig1;
+                      %endorspc(idx2) = endorspc(idx2) + sig2;
+                      %endorspc = endorspc + ...
+                      %  lisum1i(Template.y,Template.x0,Template.lw,freq,ampl,Sys.lwEndor*[1 1],rf);
+                      endorspc = endorspc + sig1*exp(-((rf-freq1)/Sys.lwEndor).^2);
+                      endorspc = endorspc + sig2*exp(-((rf-freq2)/Sys.lwEndor).^2);
+                    end
+                  end
               end
-              
+                  
             % HYSCORE ---------------------------------------------------
             case 4
               % coherence transfer pathway 1: +,alpha,beta,-
@@ -1562,7 +1849,6 @@ logmsg(1,'%d of %d orientations skipped',nSkippedOrientations,nOrientations);
 %=================================================================
 if isENDOR
   
-  %endorspc = real(endoroffset - endorspc);
   endorspc = real(endorspc);
 
   % Normalize modulation signal
@@ -1572,8 +1858,11 @@ if isENDOR
   endorspc = endorspc/EqDensityTrace;
   endorspc = endorspc/nPathways;
   
-  %endorspc = convspec(endorspc,rf(2)-rf(1),Sys.lwEndor);
-
+  if Opt.EndorMethod==2
+    % convolve only for sweep method (not needed for sum-over-transitions)
+    endorspc = convspec(endorspc,rf(2)-rf(1),Sys.lwEndor);
+  end
+  
 else
   
   if Opt.ProductRule
@@ -1585,9 +1874,9 @@ else
       logmsg(1,'Postprocessing...');
       if (nDimensions==1)
         td = ifft(buff)*numel(buff);
-        td = td(1:Exp.nPoints);
-      else
-        td = ifft2dpartial(buff,Exp.nPoints,Opt.PartialIFFT)*numel(buff);
+        td = td(1:nPoints);
+      elseif (nDimensions==2)
+        td = ifft2dpartial(buff,nPoints,Opt.PartialIFFT)*numel(buff);
       end
     end
   end
@@ -1605,6 +1894,17 @@ else
 
 end
 
+% Echo integration
+if Exp.DetectionIntegrate==1
+  if nDimensions==1
+    td = sum(td);
+  else
+    td = sum(td,nDimensions);
+  end
+    dt = dt(1:end-1);
+    nPoints = nPoints(1:end-1);
+    nDimensions = nDimensions-1;
+end
 
 %=================================================================
 % Time axes, relaxation
@@ -1613,24 +1913,31 @@ if ~isENDOR
   switch ExperimentID
     case -1
       switch (nDimensions)
+        case 0 % e.g. echo-detected field sweep (B in external loop)
+          t = [];
         case 1
-          t1 = (0:Exp.nPoints-1)*Exp.dt;
+          t = (0:nPoints-1)*dt;
         case 2,
-          t1 = (0:Exp.nPoints(1)-1)*Exp.dt(1);
-          t2 = (0:Exp.nPoints(2)-1)*Exp.dt(2);          
+          clear t
+          t{1} = (0:nPoints(1)-1)*dt(1);
+          t{2} = (0:nPoints(2)-1)*dt(2);   
+        case 3,
+          clear t
+          t{1} = (0:nPoints(1)-1)*dt(1);
+          t{2} = (0:nPoints(2)-1)*dt(2);   
+          t{3} = (0:nPoints(3)-1)*dt(3);
       end
     case 1 % 2p-ESEEM
-      t1 = (0:Exp.nPoints-1)*Exp.dt + Exp.tau(1);
+      t = (0:Exp.nPoints-1)*Exp.dt + Exp.tau(1);
     case 2 % 3p-ESEEM
-      t1 = (0:Exp.nPoints-1)*Exp.dt + Exp.tau(1) + Exp.T;
+      t = (0:Exp.nPoints-1)*Exp.dt + Exp.tau(1) + Exp.T;
     case 3 % 4p-ESEEM
-      t1 = (0:Exp.nPoints-1)*Exp.dt + Exp.T;
+      t = (0:Exp.nPoints-1)*Exp.dt + Exp.T;
     case 4 % HYSCORE
-      t1 = (0:Exp.nPoints(1)-1)*Exp.dt(1) + Exp.t1;
-      t2 = (0:Exp.nPoints(2)-1)*Exp.dt(2) + Exp.t2;
-      t = {t1,t2};
+      t{1} = (0:Exp.nPoints(1)-1)*Exp.dt(1) + Exp.t1;
+      t{2} = (0:Exp.nPoints(2)-1)*Exp.dt(2) + Exp.t2;
     case 5 % Mims ENDOR
-      t1 = (0:Exp.nPoints-1)*Exp.dt;
+      t = (0:Exp.nPoints-1)*Exp.dt;
   end
 
   DecayAdded = 0;
@@ -1642,17 +1949,17 @@ if ~isENDOR
     switch ExperimentID
       case 1 % two-pulse ESEEM
         if ~isinf(T2)
-          tdecay = exp(-2*t1/T2);
+          tdecay = exp(-2*t/T2);
           td = td.*tdecay;
         end
       case 2 % three-pulse ESEEM
         if ~isinf(T1)
-          tdecay = exp(-2*Exp.tau/T2)*exp(-t1/T1);
+          tdecay = exp(-2*Exp.tau/T2)*exp(-t/T1);
           td = td.*tdecay;
         end
       case 4 % HYSCORE
         if ~isinf(T1)
-          tdecay = exp(-t1/T1)'*exp(-t2/T1);
+          tdecay = exp(-t{1}/T1)'*exp(-t{2}/T1);
           tdecay = exp(-2*Exp.tau/T2)*tdecay;
           td = td.*tdecay;
         end
@@ -1670,12 +1977,15 @@ logmsg(1,'-final-------------------------------------------------');
 logmsg(1,'Data processing...');
 if ~isENDOR
   switch nDimensions
+    case 0
+      fd = [];
+      f = [];
     case 1
       if DataProcessing
 
         % Decay correction
         if (DecayAdded)
-          [kk,cc,tdfit] = exponfit(t1,td,1);
+          [kk,cc,tdfit] = exponfit(t,td,1);
           tdx = td - tdfit;
         else
           tdx = td;
@@ -1683,7 +1993,7 @@ if ~isENDOR
         
         % Baseline correction
         tdx = tdx - mean(tdx);
-        %plot(t1,tdx); pause;
+        %plot(t,tdx); pause;
         %tdx(1) = tdx(1)/2;
 
         % Apodization
@@ -1693,7 +2003,7 @@ if ~isENDOR
         % Fourier transformation
         fd = fft(tdx,Opt.ZeroFillFactor*numel(tdx));
         fd = fftshift(fd);
-        f1 = fdaxis(Exp.dt,length(fd));
+        f = fdaxis(dt,length(fd));
       end
 
 
@@ -1705,12 +2015,12 @@ if ~isENDOR
           tdx = basecorr(td,[1 2],[0 0]);
         end
 
-        w1 = apowin(Opt.Window,Exp.nPoints(1));
-        w2 = apowin(Opt.Window,Exp.nPoints(2));
+        w1 = apowin(Opt.Window,nPoints(1));
+        w2 = apowin(Opt.Window,nPoints(2));
 
-        fd = fftshift(fftn(tdx.*(w1*w2.'),Opt.ZeroFillFactor*Exp.nPoints));
-        f1 = fdaxis(Exp.dt(1),size(fd,1));
-        f2 = fdaxis(Exp.dt(2),size(fd,2));
+        fd = fftshift(fftn(tdx.*(w1*w2.'),Opt.ZeroFillFactor*nPoints));
+        f{1} = fdaxis(dt(1),size(fd,1));
+        f{2} = fdaxis(dt(2),size(fd,2));
       end
 
   end
@@ -1721,7 +2031,7 @@ if ~isENDOR
 
   % Collect output structure
   if DataProcessing
-    if (nDimensions==2), out.f1 = f1; out.f2 = f2; else out.f = f1; end
+    out.f = f;
     out.fd = fd;
   else
     out = [];
@@ -1729,7 +2039,7 @@ if ~isENDOR
   
 else
   % Collect output structure
-  f1 = rf;
+  f = rf;
   fd = endorspc;
   if max(abs(fd))<1e-300;
     fd = fd*0;
@@ -1744,15 +2054,14 @@ end
 if isENDOR
   switch nargout
     case 1, varargout = {fd};
-    case 2, varargout = {f1,fd};
-    case 3, varargout = {f1,fd,out};
+    case 2, varargout = {f,fd};
+    case 3, varargout = {f,fd,out};
   end
 else
   switch nargout
     case 1, varargout = {td};
-    case 2, varargout = {t1,td};
-    case 3, if (nDimensions==2), varargout = {t1,t2,td}; else varargout = {t1,td,out}; end
-    case 4, if (nDimensions==2), varargout = {t1,t2,td,out}; end
+    case 2, varargout = {t,td};
+    case 3, varargout = {t,td,out};
   end
 end
 
