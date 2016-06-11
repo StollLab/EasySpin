@@ -456,9 +456,9 @@ logmsg(1,'  %d transitions pre-selected',nTransitions);
 %=======================================================================
 % Line width preparations
 %=======================================================================
-logmsg(1,'- Broadenings',nTransitions);
+logmsg(1,'- Broadenings');
 if (ComputeStrains)
-  logmsg(1,'  using strains',nTransitions);
+  logmsg(1,'  using strains');
   
   % D strain
   %-----------------------------------------------
@@ -468,14 +468,30 @@ if (ComputeStrains)
   %-------------------------------------------------
   % g strain tensor is taken to be along the g tensor itself.
   UsegStrain = any(CoreSys.gStrain(:));
+  simplegStrain = CoreSys.nElectrons==1;
   if UsegStrain
-    gStrainMatrix = diag(CoreSys.gStrain(1,:)./CoreSys.g(1,:));
-    if any(CoreSys.gFrame(:))
-      R_g2M = erot(CoreSys.gFrame(1,:)).'; % g frame -> molecular frame
-      gStrainMatrix = R_g2M*gStrainMatrix*R_g2M.';
+    logmsg(1,'  g strain present');
+    usegAStrain = true;
+    for iEl = 1:CoreSys.nElectrons
+      gStrainMatrix{iEl} = diag(CoreSys.gStrain(iEl,:)./CoreSys.g(iEl,:));
+      if any(CoreSys.gFrame(iEl,:))
+        R_g2M = erot(CoreSys.gFrame(iEl,:)).'; % g frame -> molecular frame
+        gStrainMatrix{iEl} = R_g2M*gStrainMatrix{iEl}*R_g2M.';
+      end
+    end
+    if ~simplegStrain
+      logmsg(1,'  multiple g strains present');
+      for iEl = 1:CoreSys.nElectrons
+        kSxM{iEl} = sop(CoreSys,iEl,1);
+        kSyM{iEl} = sop(CoreSys,iEl,2);
+        kSzM{iEl} = sop(CoreSys,iEl,3);
+      end
     end
   else
-    gStrainMatrix = zeros(3);
+    usegAstrain = false;
+    for iEl = 1:CoreSys.nElectrons
+      gStrainMatrix{iEl} = 0;
+    end
   end
   
   UseAStrain = (CoreSys.nNuclei>0) && any(CoreSys.AStrain(:));
@@ -556,34 +572,28 @@ for iOri = 1:nOrientations
     end
   end
   
- 
-  
-    
-  
-    % Set up Hamiltonians for 3 lab principal directions
-    %-----------------------------------------------------
-    [xLab,yLab,zLab] = erot(Orientations(iOri,:),'rows');
-   if higherOrder  
-     [Vs,E] = gethamdata_hO(Exp.Field,zLab, CoreSys,Opt.Sparse, [], nLevels);
-     if Opt.Sparse
-       g1 = zeemanho(CoreSys,[],[],'sparse',1);
-       [g0{1},g0{2},g0{3}] = zeeman(CoreSys,[],'sparse');
-     else
-       g1 = zeemanho(CoreSys,[],[],'',1);
-       [g0{1},g0{2},g0{3}] = zeeman(CoreSys,[],'');
-     end
-     for n =3:-1:1
-       kGM{n} = g1{1}{n}+g0{n};
-     end
-     % z laboratoy axis: external static field    
-     kGzL = zLab(1)*kGM{1} + zLab(2)*kGM{2} + zLab(3)*kGM{3};
-     % x laboratory axis: B1 excitation field
-     kGxL = xLab(1)*kGM{1} + xLab(2)*kGM{2} + xLab(3)*kGM{3};
-     % y laboratory vector: needed for integration over all B1 field orientations.
-     kGyL = yLab(1)*kGM{1} + yLab(2)*kGM{2} + yLab(3)*kGM{3};
- 
-      
-   else
+  % Set up Hamiltonians for 3 lab principal directions
+  %-----------------------------------------------------
+  [xLab,yLab,zLab] = erot(Orientations(iOri,:),'rows');
+  if higherOrder
+    [Vs,E] = gethamdata_hO(Exp.Field,zLab, CoreSys,Opt.Sparse, [], nLevels);
+    if Opt.Sparse
+      g1 = zeemanho(CoreSys,[],[],'sparse',1);
+      [g0{1},g0{2},g0{3}] = zeeman(CoreSys,[],'sparse');
+    else
+      g1 = zeemanho(CoreSys,[],[],'',1);
+      [g0{1},g0{2},g0{3}] = zeeman(CoreSys,[],'');
+    end
+    for n =3:-1:1
+      kGM{n} = g1{1}{n}+g0{n};
+    end
+    % z laboratoy axis: external static field
+    kGzL = zLab(1)*kGM{1} + zLab(2)*kGM{2} + zLab(3)*kGM{3};
+    % x laboratory axis: B1 excitation field
+    kGxL = xLab(1)*kGM{1} + xLab(2)*kGM{2} + xLab(3)*kGM{3};
+    % y laboratory vector: needed for integration over all B1 field orientations.
+    kGyL = yLab(1)*kGM{1} + yLab(2)*kGM{2} + yLab(3)*kGM{3};
+  else
     % z laboratoy axis: external static field
     kGzL = zLab(1)*kGxM + zLab(2)*kGyM + zLab(3)*kGzM;
     % x laboratory axis: B1 excitation field
@@ -596,9 +606,8 @@ for iOri = 1:nOrientations
     else
       [Vs,E] = gethamdata(Exp.Field, kF, kGzL, [], nLevels);
     end
-   end
-    Pdat(:,iOri) = E(v) - E(u);
-  
+  end
+  Pdat(:,iOri) = E(v) - E(u);
   
   % Calculate intensities if requested
   if (ComputeIntensities)
@@ -680,13 +689,13 @@ for iOri = 1:nOrientations
   % Calculate width if requested.
   %--------------------------------------------------
   if (ComputeStrains)
+    LineWidthSquared = CoreSys.HStrain.^2*zLab.^2;
     for iTrans = 1:nTransitions
       m = @(Op)Vs(:,v(iTrans))'*Op*Vs(:,v(iTrans)) - Vs(:,u(iTrans))'*Op*Vs(:,u(iTrans));
             
-      % H strain: Frequency domain residual width tensor.
-      %-----------------------------------------------  
-      LineWidth2 = CoreSys.HStrain.^2*zLab.^2;
-
+      % H strain: Frequency-domain residual width tensor
+      LineWidth2 = LineWidthSquared;
+      
       % D strain
       if UseDStrain
         for iEl = 1:CoreSys.nElectrons
@@ -704,7 +713,7 @@ for iOri = 1:nOrientations
       
       % g strain
       if UsegStrain
-        dg2 = (m(kGzL)*zLab.'*gStrainMatrix*zLab*Exp.Field)^2;
+        dg2 = (m(kGzL)*Exp.Field*zLab.'*gStrainMatrix{1}*zLab)^2;
         LineWidth2 = LineWidth2 + abs(dg2);
       end
       Wdat(iTrans,iOri) = sqrt(LineWidth2);

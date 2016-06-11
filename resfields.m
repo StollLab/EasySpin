@@ -92,9 +92,6 @@ end
 System.gAStrainCorr = sign(System.gAStrainCorr);
 
 if (System.nElectrons>1)
-  if any(System.gStrain(:))
-    %error('gStrain is not supported in spin systems with more than one electron spin.');
-  end
   if any(System.AStrain(:))
     error('AStrain is not supported in spin systems with more than one electron spin.');
   end
@@ -648,11 +645,14 @@ logmsg(1,'  %d transitions pre-selected',nTransitions);
 %=======================================================================
 % Line width preparations
 %=======================================================================
-logmsg(1,'- Broadenings',nTransitions);
+logmsg(1,'- Broadenings');
+simplegStrain = true;
+UsegStrain = false;
+UseAStrain = false;
 if (ComputeStrains)
-  logmsg(1,'  using strains',nTransitions);
+  logmsg(1,'  using strains');
   
-  % Frequency domain residual width tensor.
+  % Frequency-domain residual width tensor
   %-----------------------------------------------
   HStrain2 = CoreSys.HStrain.^2;
   
@@ -664,18 +664,35 @@ if (ComputeStrains)
   %-------------------------------------------------
   % g strain tensor is taken to be aligned with the g tensor
   % A strain tensor is taken to be aligned with the A tensor
-  % g/A strain is limited to the first electron and first nuclear spin
-  if any(CoreSys.gStrain(:))
-    gStrainMatrix = diag(CoreSys.gStrain(1,:)./CoreSys.g(1,:))*mwFreq; % MHz
-    if any(CoreSys.gFrame(:))
-      R_g2M = erot(CoreSys.gFrame(1,:)).'; % g frame -> molecular frame
-      gStrainMatrix = R_g2M*gStrainMatrix*R_g2M.';
+  % g strain can be specified for each electron spin
+  % A strain is limited to the first electron and first nuclear spin
+  UsegStrain = any(CoreSys.gStrain(:));
+  if UsegStrain
+    logmsg(1,'  g strain present');
+    simplegStrain = CoreSys.nElectrons==1;
+    for iEl = 1:CoreSys.nElectrons
+      gStrainMatrix{iEl} = diag(CoreSys.gStrain(iEl,:)./CoreSys.g(iEl,:))*mwFreq; % MHz
+      if any(CoreSys.gFrame(iEl,:))
+        R_g2M = erot(CoreSys.gFrame(iEl,:)).'; % g frame -> molecular frame
+        gStrainMatrix{iEl} = R_g2M*gStrainMatrix{iEl}*R_g2M.';
+      end
+    end
+    if ~simplegStrain
+      logmsg(1,'  multiple g strains present');
+      for iEl = 1:CoreSys.nElectrons
+        kSxM{iEl} = sop(CoreSys,iEl,1);
+        kSyM{iEl} = sop(CoreSys,iEl,2);
+        kSzM{iEl} = sop(CoreSys,iEl,3);
+      end
     end
   else
-    gStrainMatrix = zeros(3);
+    for e = 1:CoreSys.nElectrons
+      gStrainMatrix{e} = 0;
+    end
   end
   
-  if (CoreSys.nNuclei>0) && any(CoreSys.AStrain)
+  UseAStrain = (CoreSys.nNuclei>0) && any(CoreSys.AStrain);
+  if UseAStrain
     % Transform A strain matrix to molecular frame.
     AStrainMatrix = diag(CoreSys.AStrain);
     if isfield(CoreSys,'AFrame')
@@ -694,18 +711,21 @@ if (ComputeStrains)
     AStrainMatrix = reshape(mITr(:,ones(1,9)).',[3,3,nTransitions]).*...
       repmat(AStrainMatrix,[1,1,nTransitions]);
     corr = System.gAStrainCorr;
-    gAslw2 = (repmat(gStrainMatrix,[1,1,nTransitions])+corr*AStrainMatrix).^2;
+    for e = 1:System.nElectrons
+      gAslw2{e} = (repmat(gStrainMatrix{e},[1,1,nTransitions])+corr*AStrainMatrix).^2;
+    end
     clear AStrainMatrix Vs E idx mI mITr
   else
-    gAslw2 = repmat(gStrainMatrix.^2,[1,1,nTransitions]);
+    for e = 1:System.nElectrons
+      gAslw2{e} = repmat(gStrainMatrix{e}.^2,[1,1,nTransitions]);
+    end
   end
   clear gslw
-  % gAslw2 = now an 3D array with 3x3 strain line-width matrices
+  % gAslw2 = a (cell array of) 3D array with 3x3 strain line-width matrices
   % for each transition piled up along the third dimension.
-  usegAStrain = any(gAslw2(:)); % Switch to indicate g/A strain.
   
   if any(HStrain2), logmsg(2,'  ## using H strain'); end
-  if usegAStrain, logmsg(2,'  ## using g/A strain'); end
+  if UsegStrain || UseAStrain, logmsg(2,'  ## using g/A strain'); end
   if useDStrain, logmsg(2,'  ## using D strain'); end
   
 else
@@ -831,6 +851,11 @@ for iOri = 1:nOrientations
     % y laboratory axis: needed for gradient calculation
     % and the integration over all mw field orientations.
     kGyL = yLab_M(1)*kGxM + yLab_M(2)*kGyM + yLab_M(3)*kGzM;
+    if UsegStrain && ~simplegStrain
+      for e = 1:System.nElectrons
+        kSzL{e} = zLab_M(1)*kSxM{e} + zLab_M(2)*kSyM{e} + zLab_M(3)*kSzM{e};
+      end
+    end
   end
   if ComputeStrains
     LineWidthSquared = HStrain2*zLab_M.^2;
@@ -1062,7 +1087,7 @@ for iOri = 1:nOrientations
           
           % Compute dB/dE
           % dBdE is the general form of the famous 1/g factor
-          % dBdE = (d(Ev-Eu)/dB)^(-1) = 1/(<v|dH/dB|v>-<u|dH/dB\u>)
+          % dBdE = (d(Ev-Eu)/dB)^(-1) = 1/(<v|dH/dB|v>-<u|dH/dB|u>)
           if (ComputeFreq2Field)
             dBdE = 1/abs(real((V-U)'*kGzL*(V+U)));
             % It might be quicker to take it from the first derivative
@@ -1144,10 +1169,7 @@ for iOri = 1:nOrientations
 
           % H strain
           LineWidth2 = LineWidthSquared;
-          % g and A strain
-          if usegAStrain
-            LineWidth2 = LineWidth2 + zLab_M.'*gAslw2(:,:,iTrans)*zLab_M;
-          end
+          
           % D strain
           if useDStrain
             for iEl = 1:CoreSys.nElectrons
@@ -1155,6 +1177,20 @@ for iOri = 1:nOrientations
               LineWidth2 = LineWidth2 + abs(m(dHdE{iEl}))^2;
             end
           end
+          
+          % g and A strain
+          if UsegStrain || UseAStrain
+            if simplegStrain
+              gA2 = gAslw2{1}(:,:,iTrans);
+            else
+              gA2 = 0;
+              for iEl = 1:System.nElectrons
+                gA2 = gA2 + abs(m(kSzL{iEl}))*gAslw2{iEl}(:,:,iTrans);
+              end
+            end
+            LineWidth2 = LineWidth2 + zLab_M.'*gA2*zLab_M;
+          end
+          
           % Convert to field value and save
           % (dBdE proportionality not valid near looping field coalescences!)
           Wdat(iiTrans,iOri) = dBdE * sqrt(LineWidth2);
