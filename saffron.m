@@ -1420,32 +1420,33 @@ for iOri = 1:nOrientations
                   end
                   
                 case 1
-                  % Sum-over-transitions method, Iy pulse
+                  % Sum-over-transitions method, bandwidth-limited Iy pulse
                   %---------------------------------------------------------
                   % Loop over all nuclear transition and apply
-                  % bandwidth-limited rf pulse operator.
-                  for j = 1:nNucStates-1
-                    for i = j+1:nNucStates
-                      % set RF to nuclear frequencies
-                      freq1 = nu1(i,j);
-                      freq2 = nu2(i,j);
-                      BW1 = exp(-((nu1-freq1)/Gamma).^2);
-                      BW2 = exp(-((nu2-freq2)/Gamma).^2);
-                      Prfa = expm(-1i*theta*(Iy1.*BW1));
-                      Prfb = expm(-1i*theta*(Iy2.*BW2));
-                      G1_ = diag(diag(Prfa*G1*Prfa'));
-                      G2_ = diag(diag(Prfb*G2*Prfb'));
-                      sig1 = traceG1D1 - trace(G1_*D1);
-                      sig2 = traceG2D2 - trace(G2_*D2);
-                      %idx1 = fix(Exp.nPoints*(freq1-rf(1))/(rf(end)-rf(1)))+1;
-                      %idx2 = fix(Exp.nPoints*(freq2-rf(1))/(rf(end)-rf(1)))+1;
-                      %endorspc(idx1) = endorspc(idx1) + sig1;
-                      %endorspc(idx2) = endorspc(idx2) + sig2;
-                      %endorspc = endorspc + ...
-                      %  lisum1i(Template.y,Template.x0,Template.lw,freq,ampl,Sys.lwEndor*[1 1],rf);
-                      endorspc = endorspc + sig1*exp(-((rf-freq1)/Sys.lwEndor).^2);
-                      endorspc = endorspc + sig2*exp(-((rf-freq2)/Sys.lwEndor).^2);
-                    end
+                  % bandwidth-limited rf pulse operator. The excitation
+                  % bandwidth is Gaussian.
+                  [i,j] = find(triu(ones(nNucStates),1));
+                  for iNucTrans = 1:numel(i)
+                    % Calculate propagators for narrow-band Gaussian
+                    % pulses at the nuclear transition frequency i->j
+                    % for both manifolds
+                    freq1 = nu1(i(iNucTrans),j(iNucTrans));
+                    freq2 = nu2(i(iNucTrans),j(iNucTrans));
+                    BW1 = exp(-((nu1-freq1)/Gamma).^2);
+                    BW2 = exp(-((nu2-freq2)/Gamma).^2);
+                    Prfa = expm(-1i*theta*(Iy1.*BW1));
+                    Prfb = expm(-1i*theta*(Iy2.*BW2));
+                    % Propagate densities and remove all coherences
+                    G1_ = diag(diag(Prfa*G1*Prfa'));
+                    G2_ = diag(diag(Prfb*G2*Prfb'));
+                    % Calculate ENDOR peak amplitudes
+                    sig1 = traceG1D1 - trace(G1_*D1);
+                    sig2 = traceG2D2 - trace(G2_*D2);
+                    %endorspc = endorspc + ...
+                    %  lisum1i(Template.y,Template.x0,Template.lw,freq,ampl,Sys.lwEndor*[1 1],rf);
+                    % Add peaks to spectrum
+                    endorspc = endorspc + sig1*exp(-((rf-freq1)/Sys.lwEndor).^2);
+                    endorspc = endorspc + sig2*exp(-((rf-freq2)/Sys.lwEndor).^2);
                   end
               end
                   
