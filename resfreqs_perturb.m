@@ -67,7 +67,7 @@ end
 if any(Sys.AStrain)
 %  err = ('A strain (Sys.AStrain) not supported with perturbation theory. Use matrix diagonalization or remove Sys.AStrain.');
 end
-if highSpin && any(Sys.DStrain) && any(mod(Sys.S,1))
+if highSpin && any(Sys.DStrain(:)) && any(mod(Sys.S,1))
   err = ('D strain not supported for half-integer spins with perturbation theory. Use matrix diagonalization or remove Sys.DStrain.');
 end
 if any(Sys.DStrain(:)) && any(Sys.DFrame(:))
@@ -464,23 +464,44 @@ else
       Wid_gA = sqrt(lw2); % MHz
       Wid = repmat(Wid_gA,2*S*nNucTrans,1);
     end
-
-  elseif any(Sys.DStrain)
+  
+  elseif any(Sys.DStrain(:))
+    if any(Sys.DFrame(:))
+      error('Cannot use D/E strain with tilted D tensor.');
+    end
     x = vecs(1,:);
     y = vecs(2,:);
     z = vecs(3,:);
-    mS = S:-1:-S;
+    mS = (S:-1:-S).';
     mSS = mS.^2-S*(S+1)/3;
-    for k = 1:numel(mS)
-      ddEdD_(k,:) = (3*z.^2-1)/2*mSS(k);
-      ddEdE_(k,:) = 3*(x.^2-y.^2)/2*mSS(k);
+    % Calculate derivatives of energy w.r.t. D and E
+    dHdD_ = mSS*((3*z.^2-1)/2);
+    dHdE_ = mSS*(3/2*(x.^2-y.^2));
+    
+    % Compute energy derivatives, pre-multiply with strain FWHMs.
+    DeltaD = Sys.DStrain(1);
+    DeltaE = Sys.DStrain(2);
+    rDE = Sys.DStrainCorr; % correlation coefficient between D and E
+    if rDE~=0
+      % Transform correlated D-E strain to uncorrelated coordinates
+      % Construct and diagonalize D-E covariance matrix
+      R12 = rDE*DeltaD*DeltaE;
+      CovMatrix = [DeltaD^2 R12; R12 DeltaE^2];
+      [V,L] = eig(CovMatrix);
+      L = sqrt(diag(L));
+      dHdD_ = L(1)*(V(1,1)*dHdD_ + V(1,2)*dHdE_);
+      dHdE_ = L(2)*(V(2,1)*dHdD_ + V(2,2)*dHdE_);
+    else
+      dHdD_ = dHdD_*DeltaD;
+      dHdE_ = dHdE_*DeltaE;
     end
-    for k = 1:numel(mS)-1
-      lwD(k,:) = (ddEdD_(k+1,:)-ddEdD_(k,:))*Sys.DStrain(1);
-      lwE(k,:) = (ddEdE_(k+1,:)-ddEdE_(k,:))*Sys.DStrain(2);
-    end
+    
+    % Calculate freq-domain linedwidths
+    lwD = diff(dHdD_,1,1);
+    lwE = diff(dHdE_,1,1);
     Wid2_DE = repmat(lwD.^2+lwE.^2,nNucTrans,1);
     Wid = sqrt(Wid2_DE + Wid.^2);
+    
   else
     Wid = [];
   end
