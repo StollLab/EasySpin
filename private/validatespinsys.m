@@ -738,6 +738,9 @@ end
 if ~isfield(Sys,'DStrain') || isempty(Sys.DStrain)
   Sys.DStrain = zeros(nElectrons,3);
 end
+if ~isfield(Sys,'DStrainCorr')
+  Sys.DStrainCorr = zeros(1,nElectrons);
+end
 
 [n1,n2] = size(Sys.DStrain);
 
@@ -754,13 +757,18 @@ switch n2
   err = sprintf('Sys.DStrain must have 1, 2, or 3 columns!');
 end
 
+if numel(Sys.DStrainCorr)~=nElectrons
+  err = sprintf('Sys.DStrainCorr must contain %d elements, since you have %d electron spins',...
+    nElectrons,nElectrons);
+end
+
 if any(Sys.DStrain(:,1)<0) || any(Sys.DStrain(:,2)<0)
   err = 'Sys.DStrain must contain nonnegative values!';
   return
 end
 
-if any(Sys.DStrain(:,3)<-1) || any(Sys.DStrain(:,3)>1)
-  err = 'D strain correlation coefficient must be between -1 and +1.';
+if any(Sys.DStrainCorr<-1) || any(Sys.DStrainCorr>1)
+  err = 'D-E strain correlation coefficient in Sys.DStrainCorr must be between -1 and +1.';
   return
 end
 

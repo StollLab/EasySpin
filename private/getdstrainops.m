@@ -53,10 +53,7 @@ for iEl = 1:Sys.nElectrons
   % Compute Hamiltonian derivatives, pre-multiply with strain FWHMs.
   DeltaD = Sys.DStrain(iEl,1);
   DeltaE = Sys.DStrain(iEl,2);
-  rDE = 0; % correlation coefficient between D and E
-  if size(Sys.DStrain,2)==3
-    rDE = Sys.DStrain(iEl,3);
-  end
+  rDE = Sys.DStrainCorr(iEl); % correlation coefficient between D and E
   if (rDE~=0)
     % Transform correlated D-E strain to uncorrelated coordinates
     logmsg(1,'  correlated D strain for electron spin %d (r = %f)',iEl,rDE);
