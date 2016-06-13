@@ -62,13 +62,23 @@ for p = 1:nPathways
   t0(p) = ElectronCoherenceOrder(p,:)*IntervalTimes.';
 
   % Determine echo phase contribution for sweep intervals
-  for d = 1:max(abs(IncDims))
-    incdec(p,d) = sum(ElectronCoherenceOrder(p,abs(IncDims)==d));
+  if max(abs(IncDims))>0
+    
+    for d = 1:max(abs(IncDims))
+      incdec(p,d) = sum(ElectronCoherenceOrder(p,abs(IncDims)==d));
+    end
+
+    Refocus(p) = (Flips(p)>0) && (t0(p)==0) && all(incdec(p,:)==0);
+
+    Crosses(p) = (Flips(p)>0) && any((t0(p)+nPoints*dt*incdec(p,:))*t0(p)<=0);
+    
+  else % pulse sequences with echo detection only
+    
+    Refocus(p) = (Flips(p)>0) && (t0(p)==0);
+    
+    Crosses(p) = (Flips(p)>0) && (t0(p)==0);
+    
   end
-
-  Refocus(p) = (Flips(p)>0) && (t0(p)==0) && all(incdec(p,:)==0);
-
-  Crosses(p) = (Flips(p)>0) && any((t0(p)+nPoints*dt*incdec(p,:))*t0(p)<=0);
 
 end
 
@@ -83,7 +93,7 @@ if (Display)
   fprintf('%d crossing echoes\n',sum(Crosses)-sum(Refocus));
   % Symbolic representation of CTPs with +, -, a and b
   Str = 'ab+-';
-  fprintf('CTP   #echos  time    walk dirs\n');
+  fprintf('CTP   #echoes  time    walk dirs\n');
   for iCTP = 1:nPathways
     if Flips(iCTP)>0 && Crosses(iCTP)
       fprintf('%s    %d    %+5.5g     ',Str(Pathways(iCTP,:)),Flips(iCTP),t0(iCTP));

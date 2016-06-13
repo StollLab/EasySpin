@@ -178,7 +178,7 @@ if ~isfield(Sys,'singleiso') || (Sys.singleiso==0)
         subplot(2,1,1);
         PredefinedExperiment = isfield(Exp,'Sequence') && ~isempty(Exp.Sequence);
         ExperimentNames = {'2pESEEM','3pESEEM','4pESEEM','HYSCORE','MimsENDOR'};
-        plotQuadratureSignal = ~PredefinedExperiment && iscomplex(out.td);
+        plotQuadratureSignal = ~PredefinedExperiment && ~isreal(out.td);
         if plotQuadratureSignal
           h = plot(x1,real(out.td),'b',x1,imag(out.td),'r');
           set(h(1),'Color',[0 0 1]);
