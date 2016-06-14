@@ -1012,6 +1012,7 @@ elseif (~BruteForceSum)
         end
         Lambda = fWidM./fSpread;
         gam = 1./sqrt(c1*Lambda.^2 + c2*Lambda.^4);
+        gam(isinf(gam)) = 0;
         fWidC = fWidM.*(1 + Opt.Smoothing*gam);
         
         thisspec = lisum1i(Template,xT,wT,fPosC,fIntC,fWidC,xAxis);

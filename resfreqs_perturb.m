@@ -67,9 +67,6 @@ end
 if any(Sys.AStrain)
 %  err = ('A strain (Sys.AStrain) not supported with perturbation theory. Use matrix diagonalization or remove Sys.AStrain.');
 end
-if highSpin && any(Sys.DStrain(:)) && any(mod(Sys.S,1))
-  err = ('D strain not supported for half-integer spins with perturbation theory. Use matrix diagonalization or remove Sys.DStrain.');
-end
 if any(Sys.DStrain(:)) && any(Sys.DFrame(:))
   err = 'D strain cannot be used with tilted D tensors.';
 end
