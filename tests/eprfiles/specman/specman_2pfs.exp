@@ -1,0 +1,143 @@
+[general]
+version = 1.1
+demon = 2.1.5408
+name = 2p_FS_noPhase
+dconfig = dband_ver1.cfg
+pconfig = dband_ver1.cfp
+normalized = false
+starttime = Mon Jun 22 21:25:04 2015
+finishtime = Mon Jun 22 22:05:07 2015
+totaltime = 0h 40min 3s
+tformat = 1
+stream_axis = 256
+no_auto_save = 0
+
+[text]
+
+[sweep]
+transient = T,1,40,a,b,c
+sweep0 = X,500,1,Field_swp
+sweep1 = P,1,1,RepTime,t90,t180,tau,Rate_swp,d0
+
+[aquisition]
+a = ;a;Voltage_1@DAQ
+b = ;a;Voltage_0@DAQ
+c = ;a;FieldValue@FLD
+
+[params]
+Field_swp = -56 mT to 56 mT;p;Field_swp@FLD
+RepTime = 5 ms;p;PPL variable
+t90 = 22.5 ns;p;PPL variable
+t180 = 45 ns;p;PPL variable
+tau = 200 ns;p;PPL variable
+Rate_swp = 200 mA/s;p;Rate_swp@FLD
+d0 = 0 s;p;PPL variable
+
+[decision]
+
+[streams]
+names = Re, Im, o3
+units = V, V, T
+dwelltime = 1 s, 1 s, 1 s
+triggers = 1
+scans = 1, 1, 1
+
+[program]
+time t90, t180, tau, d0
+signal a, b, c
+
+mwpulse t90,0
+wait tau
+mwpulse t180,0
+wait tau
+wait d0
+detect 'a','b','c'
+
+[presetup]
+
+[postsetup]
+
+[eachpoint]
+
+[scope]
+dfScopeIntWindowPos = 0
+dfScopeIntWindowWidth = 100
+dfScopeBaselinePos1 = -1
+dfScopeBaselineWidth1 = 1112100935
+dfScopeBaselinePos2 = -1
+dfScopeBaselineWidth2 = 4202560
+dfScopeBaselineOpt = -1
+
+[pack]
+PackAxis = 0
+MaxSeqPerShot = 0
+
+
+[warmup]
+WarmUp = 0
+WarmUpScans = 0
+WarmUpTime = 0 s
+
+
+[System]
+Shots = 0
+XReps = 0
+YReps = 0
+ZReps = 0
+Sum1Reps = 0
+Sum2Reps = 0
+i = 0
+j = 0
+k = 0
+ArmDelay = 10 ms
+MTDelay = 10 ms
+Wait = 10 ms
+Time = 10 ms
+
+[PB]
+Trigger = Internal
+Cycles = As specified
+
+[SR830_lock-in]
+Sensitivity = 2 nV/fA
+Time constant = 10 us
+Phase = 0
+SineOutput = 4 mV
+SineFreq = 0 Hz
+
+[DAQ]
+TrigMode = Normal
+AOsettlingTime = 0 s
+AIfrequency = 1 kHz
+
+[ITC503]
+Temperature = 0 K
+
+[DAQCW]
+TrigMode = Normal
+AOsettlingTime = 0 s
+AIfrequency = 1 kHz
+
+[FLD]
+Field_swp = 56 mT
+Rate_swp = 200 mA/s
+Field_mn = 0 T
+Rate_mn = 0
+
+[Herley]
+Frequency = 7.347 GHz
+
+[DAQCW_Q]
+TrigMode = Normal
+AOsettlingTime = 0 s
+AIfrequency = 1 kHz
+
+[aliases]
+FieldSweep = 56 mT
+
+[sample_info]
+sample_info = **T**
+sample_info_0 = *****
+
+[exp_info]
+template = 

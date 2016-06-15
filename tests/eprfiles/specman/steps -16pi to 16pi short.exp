@@ -1,0 +1,205 @@
+[general]
+version = 1.1
+demon = 2.1.6018
+name = AWG 2chirp echo
+dconfig = UCSB AWG v2.1.cfg
+pconfig = UCSB AWG v2.1.cfp
+normalized = false
+starttime = Tue May 10 21:50:19 2016
+finishtime = Tue May 10 21:50:39 2016
+totaltime = 0h 0min 20s
+tformat = 1
+stream_axis = 256
+no_auto_save = 0
+
+[text]
+
+[sweep]
+transient = T,5000,1000,a,b
+sweep0 = S,1,1,ph
+sweep1 = X,8,1,stepsphase1
+sweep2 = P,1,1,RepTime,Attenuator,ENDamp,Frequency,Scale,stepsamplitude1,chirpamplitude1
+
+[aquisition]
+a = ;a;A@AQ
+b = ;a;B@AQ
+
+[params]
+ph = 1, 2;p;PPL variable
+stepsphase1 = -2.88 kdeg to 2.88 kdeg;p;1@phase@AWG@steps
+RepTime = 1 ms;p;PPL variable
+Attenuator = 0 V;p;Attenuator@EPRMAIN
+ENDamp = 0;p;ENDamp@AWG
+Frequency = 197.549 GHz;p;Frequency@ELDOR
+Scale = 2;p;Scale@AQ
+stepsamplitude1 = 1 V;p;1@amplitude@AWG@steps
+chirpamplitude1 = 0 V;p;1@amplitude@awg@chirp
+
+[decision]
+
+[streams]
+names = Re, Im
+units = bit, bit
+dwelltime = 4 ns, 4 ns
+triggers = 1
+scans = 1, 1
+
+[program]
+signal a, b
+
+
+int ph
+
+phase1 = [0, 1]
+phase2 = [0, 0]
+det_a = ['a','-a']
+det_b = ['b','-b']
+
+awgtrig 100ns
+
+steps 12.8us
+
+%%chirp 1us
+
+wait -13.8us
+
+detect 'det_a(ph)', 'det_b(ph)'
+
+[presetup]
+
+[postsetup]
+
+[eachpoint]
+
+[scope]
+dfScopeIntWindowPos = 323
+dfScopeIntWindowWidth = 140
+dfScopeBaselinePos1 = 50
+dfScopeBaselineWidth1 = 50
+dfScopeBaselinePos2 = 150
+dfScopeBaselineWidth2 = 50
+dfScopeBaselineOpt = 0
+
+[pack]
+PackAxis = 0
+MaxSeqPerShot = 0
+
+
+[warmup]
+WarmUp = 0
+WarmUpScans = 0
+WarmUpTime = 0 s
+
+
+[System]
+Shots = 0
+XReps = 0
+YReps = 0
+ZReps = 0
+Sum1Reps = 0
+Sum2Reps = 0
+i = 0
+j = 0
+k = 0
+ArmDelay = 10 ms
+MTDelay = 10 ms
+Wait = 10 ms
+Time = 10 ms
+
+[PB]
+Trigger = Internal
+Cycles = As specified
+
+[AQ]
+Scale = 1 V
+Offset = 0 V
+Coupling = DC, 50Ohm
+Bandwidth = Full
+Sampling = 4 ns
+TraceLength = 100 us
+Delay = 0 s
+Trigger = External
+T_Coupling = DC
+T_Slope = Positive
+T_Level = 10 %
+T_Level2 = 10 %
+
+[EPRMAIN]
+Frequency = 12.3 GHz
+Attenuator = 0 V
+SetTime = 10 ms
+
+[LOCK]
+Sensitivity = 100 mV/nA
+Time constant = 30 ms
+Phase = 0 deg
+SineOutput = 5 V
+SineFreq = 20 Hz
+NotchFilter = Out
+InputCoupling = AC
+Auto = Phase
+
+[LOCKSLAVE]
+Sensitivity = 100 nV
+Time constant = 100 us
+Phase = 0 deg
+SineOutput = 4 mV
+SineFreq = 0 Hz
+NotchFilter = Out
+InputCoupling = AC
+Auto = Phase
+
+[DummyAQ]
+Delay = 10 ms
+DwellTime = 0 s
+StartDelay = 0 s
+No Responce = Never
+Crash = Never
+Failure = Never
+
+[AO]
+TrigMode = Normal
+AOsettlingTime = 0 s
+AIfrequency = 1 kHz
+VoltageOut_0 = 0 V
+VoltageOut_1 = 4.1 V
+
+[EIP]
+Band = Band 3
+Bandwidth = Auto
+Resolution = 1 kHz
+Source = 1 GHz
+
+[EPRRECIEVE]
+Frequency = 1 GHz
+Attenuator = 0 V
+SetTime = 0 s
+
+[ELDOR]
+Mode = Frequency
+Frequency = 197.549 GHz
+StartFrequency = 1 GHz
+StopFrequency = 1 GHz
+Period = 0 s
+ModMode = None
+ModFrequency = 0 Hz
+ModDepth = 0 Hz
+Attenuator = 0 V
+
+[AI]
+TrigMode = Normal
+AOsettlingTime = 0 s
+AIfrequency = 1 kHz
+
+[AWG]
+DwellTime = 1 ns
+ENDdelay = 100 ns
+ENDamp = 0
+ENDphase = 0 deg
+
+[sample_info]
+sample_info = **T**
+sample_info_0 = *****
+
+[exp_info]
+template = 

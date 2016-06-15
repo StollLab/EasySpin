@@ -1,0 +1,32 @@
+*
+* Parameter set converted from BEST file "/tmp/xepr.8560.6.DSC"
+*
+GST 3.375000e+03
+GSI 5.000000e+01
+JUN G
+JSS 32
+* XNAM Field
+* IRNAM Intensity
+JON    raba
+JDA 11-JUN-1998
+JTM 09:21:01
+JNS 1
+RNSC 1
+XPSE 1
+JSD 1
+RMA 1.000000e+00
+RMF 1.000000e+02
+MF 9.586670e+00
+MP 2.001950e+01
+RRG 4.700000e+01
+RTC 1.024000e+01
+RPH 0.000000e+00
+RHA 1
+ROF 0
+* CMNT    
+* SAMP    
+* SFOR    
+* STAG C
+* SPTP 4.096000e-02 s
+* IRNAM 
+JCO cw.spc

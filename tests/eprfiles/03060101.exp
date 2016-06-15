@@ -1,0 +1,73 @@
+[general]
+description=Davies ENDOR W-band
+sample=
+detector=boxcar
+template=false
+files=O:\_JP\data\03060101.d00
+
+[sweep]
+shots=10
+cycles=1
+scans=2
+size=201 1 1
+
+[pulse]
+program=c:\weizmann\sequence\w-band\daviesw.ppl
+reprate=100 ms
+resolution=4
+protect delay=220 ns
+t=40 us
+tau=400 ns
+t90=100 ns
+t1180=200 ns
+t2180=200 ns
+trf=15 us
+
+[rf]
+rf 1=140 MHz
+rf 2=10 MHz
+calibration file=
+calibrate=false
+mixmode=false false
+
+[field]
+center=3.48 kGauss
+sweep=50 Gauss
+address=2048
+remote=false
+
+[mw]
+mw 1=9.2 GHz
+varactor 1=5 V
+manual 1=true
+lock 1=false
+mw 2=9.2 GHz
+varactor 2=5 V
+manual 2=true
+lock 2=false
+delta=0.0 Hz
+
+[temp]
+cryostat temperature=293.15
+sample temperature=293.15
+target=4.5
+heater current=0
+control temperature=false
+secure heater=true
+power setting=0
+helium level=0
+omega present=false
+
+[boxcar]
+sensitivity=500 mV
+offset=0.0 s
+linear=true
+
+[x]
+rf 1=120 MHz to 140 MHz
+
+[y]
+t=40 us step 200 ns
+
+[z]
+trf=15 us step 200 ns
