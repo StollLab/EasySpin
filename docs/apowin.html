@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>apowin</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">apowin</div>
+
+<p>
+Provides a variety of apodization windows.
+</p>
+
+<!-- ====================================================== -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+w = apowin(Type,nPoints)
+w = apowin(Type,nPoints,alpha)
+</pre>
+
+<!-- ====================================================== -->
+<div class="subtitle">Description</div>
+
+<p>
+<code>apowin</code> returns an apodization window with <code>nPoints</code>
+point in the column vector <code>w</code>.
+<code>WindowType</code> is a string specifying the window type.
+The available types are listed in the following table.
+</p>
+
+<table class="brieflist">
+<tr><td>Type</td><td>Name</td><td>Function over <img src="eqn/apowin1.png" alt="[eqn]"><!--MATH $-1\le x \le 1$ --></td></tr>
+<tr><td><code>bar</code></td><td>Bartlett</td><td><img src="eqn/apowin2.png" alt="[eqn]"><!--MATH $1-|x|$ --></td></tr>
+<tr><td><code>wel</code></td><td>Welch</td><td><img src="eqn/apowin3.png" alt="[eqn]"><!--MATH $1-x^2$ --></td></tr>
+<tr><td><code>con</code></td><td>Connes</td><td><img src="eqn/apowin4.png" alt="[eqn]"><!--MATH $(1-x^2)^2$--></td></tr>
+<tr><td><code>cos</code></td><td>Cosine</td><td><img src="eqn/apowin5.png" alt="[eqn]"><!--MATH $\cos(\uppi x)$ --></td></tr>
+<tr><td><code>han</code></td><td>Hann</td><td><img src="eqn/apowin6.png" alt="[eqn]"><!--MATH $0.5 + 0.5 \cos(\uppi x)$ --></td></tr>
+<tr><td><code>ham</code></td><td>Hamming</td><td><img src="eqn/apowin7.png" alt="[eqn]"><!--MATH $0.54 + 0.46\cos(\uppi x)$ --></td></tr>
+<tr><td><code>bla</code></td><td>Blackman</td><td><img src="eqn/apowin8.png" alt="[eqn]"><!--MATH $0.42 + 0.5\cos(\uppi x) + 0.08 \cos(2\uppi x)$ --></td></tr>
+<tr><td><code>exp</code></td><td>Exponential</td><td><img src="eqn/apowin9.png" alt="[eqn]"><!--MATH $\exp(-\alpha x)$ --></td></tr>
+<tr><td><code>gau</code></td><td>Gaussian</td><td><img src="eqn/apowin10.png" alt="[eqn]"><!--MATH $\exp(-2x^2/\alpha^2)$ --></td></tr>
+<tr><td><code>kai</code></td><td>Kaiser</td><td><img src="eqn/apowin11.png" alt="[eqn]"><!--MATH $I_0(\alpha \sqrt{1-x^2})/I_0(\alpha)$ --></td></tr>
+</table>
+
+<p>
+The returned window is symmetric. If a <code>'+'</code> is appended
+to the three-letter type string, only the right part of the
+symmetric window function (<img src="eqn/apowin12.png" alt="[eqn]"><!--MATH $0 \le x \le 1$ -->) is returned.
+If a <code>'-'</code> is appended, the left part (<img src="eqn/apowin13.png" alt="[eqn]"><!--MATH $-1 \le x \le 0$-->) is
+returned. E.g., <code>'exp+'</code> thus specifies an exponential decay.
+</p>
+
+<p>
+<code>alpha</code> is a parameter which is required for the Kaiser,
+Gaussian and exponential windows. Reasonable ranges for <code>alpha</code>
+are listed below.
+</p>
+
+<table class="brieflist">
+<tr><td>Type</td><td><code>alpha</code> range</td></tr>
+<tr><td><code>'exp'</code></td><td><img src="eqn/apowin14.png" alt="[eqn]"><!--MATH  $2 \le \alpha \le 6$ --></td></tr>
+<tr><td><code>'gau'</code></td><td><img src="eqn/apowin15.png" alt="[eqn]"><!--MATH  $0.6 \le \alpha \le 1.2$ --></td></tr>
+<tr><td><code>'kai'</code></td><td><img src="eqn/apowin16.png" alt="[eqn]"><!--MATH $3 \le \alpha \le 9$ --></td></tr>
+</table>
+
+<!-- ====================================================== -->
+<div class="subtitle">Examples</div>
+
+<p>
+The following code plots the Kaiser windows for a range of <code>alpha</code> values.
+</p>
+
+<pre class="matlab">
+y = []; n = 100;
+for alpha = 3:9, y(:,end+1) = apowin('kai',n,alpha); end
+plot(y);
+</pre>
+
+<p>
+The comparison between the Blackman, Cosine and Hann windows
+</p>
+
+<pre class="matlab">
+n = 100; x = linspace(0,1,n);
+wBla = apowin('bla+',n); wCos = apowin('cos+',n);
+wHan = apowin('han+',n);
+plot(x,wBla,x,wCos,x,wHan);
+legend({'Blackman','Cosine','Hann'})
+</pre>
+
+<p>
+illustrates the difference in their behaviour at the right border.
+</p>
+
+<!-- ====================================================== -->
+<div class="subtitle">See also</div>
+
+<p>
+<a class="esf" href="basecorr.html">basecorr</a>,
+<a class="esf" href="datasmooth.html">datasmooth</a>
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+
+</html>

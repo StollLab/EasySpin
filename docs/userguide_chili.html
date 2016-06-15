@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>User guide: chili</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">Simulating slow-motion cw EPR spectra</div>
+
+<p>
+This user guide explains how to simulate slow-motion cw EPR spectra of using EasySpin's function <a class="esf" href="chili.html">chili</a>. It is assumed that you are familiar with the basics of MATLAB, esp. with structures.
+</p>
+
+This user guide contains the following topics:
+
+<ul>
+<li><a href = "#calling">Running the simulation</a></li>
+<li><a href = "#spinsys">Specifying the static parameters</a></li>
+<li><a href = "#dynamics">Dynamic parameters</a></li>
+<li><a href = "#potential">The orienting potential</a></li>
+<li><a href = "#expparams">Basic experimental settings</a></li>
+<li><a href = "#moreexpparams">More experimental settings</a></li>
+<li><a href = "#momd">Powder vs single orientation</a></li>
+<li><a href = "#algorithm">Simulation parameters</a></li>
+</ul>
+
+There are the following advanced topics:
+
+<ul>
+<li><a href = "#multinuc">Systems with more than one nucleus</a></li>
+<li><a href = "#freqsweep">Frequency-swept spectra</a></li>
+</ul>
+
+<!-- ============================================================= -->
+<div class="subtitle"><a name="calling">Running the simulation</a></div>
+
+<p>
+Slow-motion cw EPR spectra of S=1/2 systems are computed
+by the EasySpin function <a class="esf" href="chili.html">chili</a>.
+</p>
+
+<pre class="matlab">
+chili(Sys,Exp)
+</pre>
+
+<p>
+It is called with two arguments. The first argument <code>Sys</code> tells <code>chili</code>
+all about the static and dynamic parameters of the spin system.
+The second argument <code>Exp</code> gives the experimental parameters.
+</p>
+
+<p>
+If no output argument is given, <code>chili</code>
+plots the computed spectrum. But it can also return one or two outputs.
+(Don't forget the semicolon at the end of the line to suppress
+output to the command window.)
+</p>
+
+<pre class="matlab">
+Spec = chili(Sys,Exp);
+[Field,Spec] = chili(Sys,Exp);
+</pre>
+
+<p>
+The outputs <code>Field</code> and <code>Spec</code> are
+vectors containing the magnetic field axis and the spectrum, respectively.
+If these are requested, <code>chili</code> does not plot the spectrum.
+</p>
+
+<p>
+Doing a simulation only requires a few lines of code. A simple example is
+</p>
+
+<pre class="matlab">
+Sys = struct('g',[2.008,2.006,2.003],'Nucs','14N','A',[20,20,85]);
+Sys.tcorr = 4e-8;
+Exp = struct('mwFreq',9.5);
+chili(Sys,Exp);
+</pre>
+
+<p>
+The first line defines the spin system, a nitroxide radical with anisotropic
+g and A tensors. The second line gives the rotational correlation time of the
+radical. The third line
+specifies experimental parameters, here only the microwave frequency (The
+magnetic field range is chosen automatically).
+The fourth line calls the simulation function, which plots the result.
+Copy and paste the code above to your MATLAB command window to see the graph.
+</p>
+
+<p>
+Of course, the names of the input and output variables don't have
+to be <code>Sys</code>, </code><code>Exp</code>, <code>Field</code> and <code>Spec</code>.
+You can give them any name you like, as long as it is a valid MATLAB
+variable name, e.g., <code>FremySaltSolution</code> or <code>QbandExperiment</code>.
+For convenience, thoughout this tutorial, we will use short names like <code>Sys</code> and <code>Exp</code>.
+</p>
+
+<!-- ============================================================= -->
+<div class="subtitle"><a name="spinsys">Specifying the static parameters</a></div>
+
+<p>
+The first input argument specifies the static parameters of the paramagnetic molecule.
+It is a MATLAB structure with various fields giving values for the spin system parameters.
+</p>
+
+<pre class="matlab">
+Sys.g = [2.008,2.006,2.003];
+Sys.Nucs = '14N';
+Sys.A = [20,20,80];  % MHz
+</pre>
+
+<p>
+The first line defines the g tensor of the spin system via its three principal values. <code>chili</code> always assumes a single unpaired electron spin S=1/2.
+</p>
+
+<p>
+The field <code>Sys.Nucs</code> contains a string giving all the magnetic nuclei in the spin system, a nitrogen-14 in the above example.
+Use a comma-separated list of isotope labels to give more than one nucleus. E.g., <code>Sys.Nucs = '14N,1H,1H'</code> specifies one nitrogen and two different protons. See the <a href="#multinuc">section on multinuclear systems</a> about details of the slow-motion simulation in that case.
+</p>
+
+<p>
+<code>Sys.A</code> gives the hyperfine couplings in MHz (Megahertz),
+with three principal values on a row for each of the nuclei listed in <code>Sys.Nucs</code>.
+The following defines a hydrogen atom with a 10 MHz coupling to the unpaired electron and
+a <sup>13</sup>C atom with a 12 MHz coupling.
+
+<pre class="matlab">
+Sys.Nucs = '1H,13C';
+Sys.A = [10 12]; % MHz
+</pre>
+
+<p>
+Remember that <code>chili</code> (and other EasySpin functions, too),
+take the hyperfine coupling values to be in <b>MHz</b>.
+Often, values for hyperfine couplings are given in G (Gauss) or mT
+(Milltesla), so you have to convert these values.
+For g = 2.00232, 1 G corresponds to 2.8025 MHz, and 1 mT corresponds to 28.025 MHz.
+The simplest way to convert coupling constants from magnetic field units to MHz is to use the EasySpin
+function <a class="esf" href="mt2mhz.html">mt2mhz</a>:
+</p>
+
+<pre class="matlab">
+A_MHz = mt2mhz(A_mT);    % mT -> MHz conversion
+A_MHz = mt2mhz(A_G/10);  %  G -> MHz conversion (1 G = 0.1 mT)
+</pre>
+
+<p>
+The orientations of the tensors relative to the molecular frame are defined
+in terms of Euler angles in 3-element array (see the function
+<a class="esf" href="erot.html">erot</a>).
+</p>
+
+<pre class="matlab">
+Sys.gFrame = [0 0 0];    % Euler angles for g tensor
+Sys.AFrame = [0 pi/4 0]; % Euler angles for A tensor
+</pre>
+
+<p>
+For more details on these static parameters, see the documentation on <a href="spinsystem.html">spin systems</a>.
+</p>
+
+<!-- ============================================================= -->
+<div class="subtitle"><a name="dynamics">Dynamic parameters</a></div>
+
+<p>
+The spin system structure also collects parameters relating to the dynamics of the paramagnetic molecules.
+</p>
+
+<p>
+There are several alternative ways to specify the rate of isotropic rotational diffusion:
+either by specifying <code>tcorr</code>, the rotational correlation time in seconds
+</p>
+
+<pre class="matlab">
+Sys.tcorr = 1e-7;   % 10^-7 s = 100 ns
+</pre>
+
+<p>
+or by givings its base-10 logarithm
+</p>
+
+<pre class="matlab">
+Sys.logtcorr = -7;   % 10^-7 s = 100 ns
+</pre>
+
+<p>
+or by specifying the principal value of the rotational diffusion tensor (in s<sup>-1</sup>)
+</p>
+
+<pre class="matlab">
+Sys.Diff = 1e9;  % 1e9 s^-1 = 1 ns^-1
+</pre>
+
+<p>
+or by givings its base-10 logarithm
+</p>
+
+<pre class="matlab">
+Sys.logDiff = 9;   % 1e9 s^-1 = 1 ns^-1
+</pre>
+
+<code>Diff</code> and <code>tcorr</code> are related by
+
+<pre class="matlab">
+Diff = 1/6/tcorr;
+</pre>
+
+The input field <code>Diff</code> can be used to specify an axial rotational diffusion
+tensor, by giving a 2-element vector with first the perpendicular and the the parallel
+principal value:
+
+<pre class="matlab">
+Sys.Diff = [1 2]*1e8;  % in hertz
+</pre>
+
+<p>
+The <code>lw</code> field has the same meaning 
+As for the other simulation functions
+<a class="esf" href="garlic.html">garlic</a> and
+<a class="esf" href="pepper.html">pepper</a>,
+the field <code>Sys.lw</code> can be used to specify
+a Gaussian and a Lorentzian broadening (FWHM, in mT)
+</p>
+
+<pre class="matlab">
+Sys.lw = [0.05 0.01];   % [GaussianFWHM, LorentzianFWHM] in mT
+</pre>
+
+<p>
+For the reliability of the simulation algorithm we recommend to always use a small residual Lorentzian line width in <code>Sys.lw</code>
+</p>
+
+<code>chili</code> is also capable of simulating spectra including Heisenberg spin exchange. The effective exchange frequency (in MHz) is specified in <code>Sys.Exchange</code>, e.g.
+
+<pre class="matlab">
+Sys.Exchange = 100;     % 100 MHz
+</pre>
+
+<p>
+A short example of a nitroxide radical EPR spectrum with exchange narrowing is
+</p>
+
+<pre class="matlab">
+Nx = struct('g',[2.0088, 2.0061, 2.0027],'Nucs','14N','A',[16 16 86]);
+Nx.tcorr = 1e-7; Nx.lw = [0 0.1]; Nx.Exchange = 100;
+Exp = struct('mwFreq',9.5,'CenterSweep',[338, 10]);
+chili(Nx,Exp);
+</pre>
+
+
+<!-- ============================================================= -->
+<div class="subtitle"><a name="potential">The orienting potential</a></div>
+
+<p>
+<code>chili</code> can also include an orienting potential in the simulation.
+It is specified in the field <code>lambda</code> in the spin system structure.
+Up to five coefficients can be given, &lambda;<sub>2,0</sub>, &lambda;<sub>2,2</sub>,  &lambda;<sub>4,0</sub>,
+   &lambda;<sub>4,2</sub>, and  &lambda;<sub>4,4</sub>, in that order.  For example,
+</p>
+
+<pre class="matlab">
+Nx.lambda = [0.3, -0.2];
+</pre>
+
+<p>
+indicates &lambda;<sub>2,0</sub> = 0.3 and  &lambda;<sub>2,2</sub> = -0.2.
+
+<!-- ============================================================= -->
+<div class="subtitle"><a name="expparams">Basic experimental settings</a></div>
+
+<p>
+The second input argument, <code>Exp</code>, collects all experimental settings. Just as the spin system, <code>Exp</code> is a structure containing several fields.
+</p>
+
+<p>
+<span class="param">Microwave frequency</span>. To simulate an EPR spectrum, EasySpin needs at a minimum the spectrometer frequency. Put it into <code>Exp.mwFreq</code>, in units of GHz. 
+</p>
+
+<pre class="matlab">
+Exp.mwFreq = 9.385;  % X-band
+Exp.mwFreq = 34.9;   % Q-band
+</pre>
+
+<p>
+<span class="param">Field range</span>. There are two ways to enter the magnetic field sweep range. Either give the center field and the sweep width (in mT) in <code>Exp.CenterSweep</code>, or specify the lower and upper limit of the sweep range (again in mT) in <code>Exp.Range</code>.
+</p>
+
+<pre class="matlab">
+Exp.CenterSweep = [340 80]; % in mT
+Exp.Range = [300 380];      % in mT
+</pre>
+
+<p>
+On many cw EPR spectrometers, the field range is specified using center field and sweep width, so <code>Exp.CenterSweep</code> is often the more natural choice.
+</p>
+
+<p>
+<code>Exp.CenterSweep</code> and <code>Exp.Range</code> are only optional. If both are omitted, EasySpin tries to determine a field range large enough to accomodate the full spectrum. This automatic ranging works for most common systems, but fails in some complicated situations. EasySpin will issue an error when it fails.
+</p>
+
+<p>
+<span class="param">Points</span>. By default, <code>pepper</code> computes a 1024-point spectrum. However, you can change the number of points to a different value using
+</p>
+
+<pre class="matlab">
+Exp.nPoints = 5001;
+</pre>
+
+<p>
+You can set any value, unlike some EPR spectrometers, where often only powers of 2 are available (1024, 2048, 4096, 8192).
+</p>
+
+
+<p>
+<span class="param">Harmonic</span>. By default, EasySpin computes the first-harmonic absorption spectrum, i.e. the first derivative of the absorption spectrum. By changing <code>Exp.Harmonic</code>, you can request the absorption spectrum directly or the second-harmonic (second derivative) of it.
+</p>
+
+<pre class="matlab">
+Exp.Harmonic = 0; % absorption spectrum, direct detection
+Exp.Harmonic = 1; % first harmonic (default)
+Exp.Harmonic = 2; % second harmonic
+</pre>
+
+<p>
+<span class="param">Modulation amplitude</span>. If you want to include effects of field modulation like overmodulation, use <code>Exp.ModAmp</code>
+</p>
+
+<pre class="matlab">
+Exp.ModAmp = 0.2; % 0.2 mT (2 G) modulation amplitude, peak-to-peak
+</pre>
+
+<p>
+<span class="param">Time constant</span>. To include the effect of the time constant, apply the
+function <a href="rcfilt.html">rcfilt</a> to the simulated spectrum.
+</p>
+
+<!-- ============================================================= -->
+<div class="subtitle"><a name="moreexpparams">More experimental settings</a></div>
+
+<p>
+For more advanced spectral simulations, EasySpin offers more possibilities in the experimental parameter structure <code>Exp</code>.
+</p>
+
+<p>
+<span class="param">Mode</span>. Most cw EPR resonators operate in <em>perpendicular</em> mode, i.e., the oscillating magnetic field component of the microwave in the resonator is perpendicular to the static field. Some resonators can operate in <em>parallel</em> mode, where the microwave field is parallel to the static one. EasySpin can simulate both types of spectra:
+</p>
+
+<pre class="matlab">
+Exp.Mode = 'perpendicular'; % perpendicular mode (default)
+Exp.Mode = 'parallel';      % parallel mode
+</pre>
+
+<p>
+<span class="param">Temperature</span>. The polarizing effects of low sample temperatures can also be included in the
+simulation by specifying the temperature:
+</p>
+
+<pre class="matlab">
+Exp.Temperature = 4.2; % temperature in kelvin
+</pre>
+
+<p>
+With this setting, EasySpin will include the relevant polarization factors resulting from a thermal equilibrium population of the energy levels. For S=1/2 systems, it is not necessary to include the temperature. However, it is important in high-spin systems with large zero-field splittings, and in coupled spin systems with exchange couplings.
+</p>
+
+<p>
+<span class="param">Microwave phase</span>. Occasionally, the EPR absorption signal has a small admixture of the dispersion signal. This happens for example when the microwave phase in the reference arm is not absolutely correctly adjusted. EasySpin can mix dispersion with absorption if a Lorentzian broadening is given:
+
+<pre class="matlab">
+Sys.lwpp = [0.2 0.01];           % Lorentzian broadening (2nd number) required
+
+Exp.mwPhase = 0;                 % pure absorption
+Exp.mwPhase = pi/2;              % pure dispersion
+Exp.mwPhase = 3*pi/180;          % 3 degrees dispersion admixed to absorption
+</pre>
+
+<!-- ============================================================= -->
+<div class="subtitle"><a name="momd">Powder vs single orientation</a></div>
+
+<p>
+In a frozen solution of spin-labelled protein, the protein  molecules assume all possible orientations. For slow-motion spectra, this orientational distribution has to be taken into account if a orienting potential is present. If not, it is sufficient to compute only one orientation, as the spectra from all orientations are identical.
+
+<p>
+The summation of slow-motion spectra over all possible orientations of an immobile protein ("director") is historically called the <em>MOMD</em> (microscopic order macroscopic disorder) model. This is equivalent to a powder spectrum. In <code>chili</code>, the powder spectrum is simulated whenever you specify an ordering potential. To get a single-crystal spectra, i.e. the slow-motion spectrum for the nitroxide attached to a rigid protein with a single orientation, give the crystal orientation in <code>Exp.CrystalOrientation</code>. <code>Exp.CrystalOrientaiton</code> contains the Euler tilt angle (in radians), betwen the lab frame (which is lab-fixed) and the frame of the orienting potential (which is fixed to the protein).
+
+<p>
+When <code>chili</code> performs a powder simulation, it takes the number of orientations to include from <code>Opt.nKnots</code>. Often, <code>Opt.nKnots</code> does not have to be changed from its default setting, but if the spectrum does not appear to be smooth, <code>Opt.nKnots</code> can be increased. Of course, this also increases the simulation time. For quick simulations, <code>Opt.nKnots</code> should be minimized.
+
+<!-- ============================================================= -->
+<div class="subtitle"><a name="algorithm">Simulation parameters</a></div>
+
+<p>
+The third input structure, <code>Opt</code>, collects parameters related to the simulation algorithm.
+</p>
+
+<p>
+The field <code>Verbosity</code> specifies whether <code>chili</code> should print information about its computation into the MATLAB command window.
+By default, its value is set to 0, so that <code>chili</code> is silent. It can be switched on by giving
+</p>
+
+<pre class="matlab">
+Opt.Verbosity = 1;     % log information
+</pre>
+
+<p>
+Another important option is <code>LLKM</code>. It specifies the number of orientational basis functions used in the simulation. For spectra in the fast and intermediate motion regime, the preset values don't have to be changed. However, close to the rigid limit, the default settings of <code>LLKM</code> might be too small. In that case, <code>LLKM</code> has to be increased, e.g.
+</p>
+
+<pre class="matlab">
+Opt.LLKM  = [24 20 10 10];
+</pre>
+
+<p>
+To see the values of <code>LLKM</code> that <code>chili</code> is using, set <code>Opt.Verbosity=1</code>, as described above.
+</p>
+
+<!-- ============================================================= -->
+<div class="subtitle"><a name="multinuc">Systems with more than one nucleus</a></div>
+
+<p>
+<code>chili</code> is not capable of simulating a slow-motional cw EPR spectrum of systems with more than one nucleus by solving the Stochastic Liouville equation. 
+</p>
+
+<p>
+However, if the hyperfine coupling of one nucleus is significantly larger than those of the other nuclei, <code>chili</code> uses an approximate procedure: The slow-motional spectrum simulated using only the electron spin and the nucleus with the dominant hyperfine coupling is convoluted with the isotropic splitting pattern due to all other nuclei. This post-convolution technique gives resonable results.
+</p>
+
+<p>
+A simple example is
+</p>
+
+<pre class="matlab">
+CuPc = struct('g',[2.0525 2.0525 2.1994],'Nucs','63Cu,14N','n',[1 4]);
+CuPc.A = [-54 -54 -608; 52.4 41.2 41.8];
+CuPc.logtcorr = -7.35;
+Exp = struct('mwFreq',9.878,'CenterSweep',[330 120],'nPoints',5e3);
+Opt.LLKM = [36 30 8 8];
+chili(CuPc,Exp,Opt);
+</pre>
+
+<!-- ============================================================= -->
+<div class="subtitle"><a name="freqsweep">Frequency sweeps</a></div>
+
+<p>
+<code>chili</code>, like the other cw EPR simulation functions <code>pepper</code>
+and <code>garlic</code>, does field sweeps by default. However, you can use it to
+simulate frequency-swept spectra as well.
+</p>
+
+<p>
+For this, all you need to do is the following
+</p>
+<ul>
+<li>Give a static magnetic field (in mT) in <code>Exp.Field</code>. Make sure you do not set <code>Exp.mwFreq</code>,
+otherwise EasySpin does not know what to do.
+<li>Give a frequency range (in GHz) in <code>Exp.Range</code> or <code>Exp.CenterSweep</code>. You can also omit these, in which case <code>pepper</code> will determine an adequate range automatically.
+<li>If you use <code>Sys.lw</code> or <code>Sys.lwpp</code>, make sure they are in MHz units. For a frequency sweep, these convolutional linewidth parameters are understood to be in MHz (and not in mT, as they are for field sweeps).
+</ul>
+
+<p>
+Here is an example of a frequency-swept slow-motion spectrum of a nitroxide radical:
+</p>
+
+<pre class="matlab">
+clear
+Nx.g = [2.008 2.006 2.002];
+Nx.Nucs = '14N';
+Nx.A = [20 20 100];
+Nx.tcorr = 3e-9;
+Exp.Field = 340;         % static field, in mT
+Exp.Range = [9.3 9.7];   % frequency range, in GHz
+chili(Nx,Exp);
+</pre>
+
+<p>
+By default, <code>chili</code> returns the absorption spectrum (<code>Exp.Harmonic=0</code>) when you simulate a frequency-swept spectrum. To get the first or second derivative, change <code>Exp.Harmonic</code> to 1 or 2. Note however that <code>Exp.ModAmp</code> is not supported for frequency sweeps.
+</p>
+
+<p>
+All other capabilities of <code>chili</code> apply equally to frequency sweep and to field sweeps. For example, you can simulate multi-component spectra, you can use an ordering potential, you can run powder spectra, and you can adjust the basis size.
+</p>
+
+<hr>
+
+</section>
+
+<footer></footer>
+
+</body>
+</html>

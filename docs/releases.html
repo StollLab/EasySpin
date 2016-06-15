@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>Release notes</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<h1>Changes from release to release</h1>
+
+<div class="subtitle">
+$ReleaseID$
+</div>
+
+<p>Major new features</p>
+<ul>
+<li>New function <a class="esf" href="resonatordip.html">resonatordip</a> that calculates tune pictures.
+<li>New fields <code>Sys.J</code>, <code>Sys.dvec</code>, <code>Sys.eeD</code> to specify isotropic, antisymmetric and symmetric part of the electron-electron coupling.
+</ul>
+
+<p>Major bug fixes</p>
+<ul>
+<li><a class="esf" href="orca2easyspin.html">saffron</a>: Several bug fixes, including multi-nuclear Mims ENDOR.
+<li><a class="esf" href="orca2easyspin.html">orca2easyspin</a>: Several bug fixes.
+<li><a class="esf" href="eprload.html">eprload</a>: Fixed problems with Specman import.
+<li><a class="esf" href="curry.html">curry</a>: Susceptibility is now correctly in SI units.
+<li>Compatibility with Matlab R2015b.
+<li><a class="esf" href="chili.html">chili</a>: Critical bugfix for systems with more than two nuclei or with S>1/2.
+<li><a class="esf" href="chili.html">chili</a>: Several other bugfixes.
+<li><a class="esf" href="chili.html">chili</a>: Support for multiple electron spins fixed.
+<li>Fix bug in biquadratic exchange term (<code>Sys.ee2</code>).
+<li>Several bugfixes in <a class="esf" href="orca2easyspin.html">orca2easyspin</a>
+</ul>
+
+<div class="subtitle">
+5.0.0
+</div>
+
+<p>Major new features</p>
+<ul>
+
+<li><a class="esf" href="blochsteady">blochsteady</a> is a new function that calculated steady-state solutions of the Bloch equations, useful for rapid scan EPR.
+<li>The function <code>smooth</code> has been renamed to <a class="esf" href="datasmooth.html">datasmooth</a>.
+<li><a class="esf" href="esfit.html">esfit</a> can now handle user-defined simulation functions with arbitrary output arguments, through <code>FitOpt.OutArg</code>.
+<li>All <a href="constants.html">fundamental constants</a> are updated to 2014 CODATA recommended values.
+<li>The new function <a class="esf" href="cgmatrix.html">cgmatrix<a> calculates matrices for the tranformation between uncoupled and coupled representations in two-spin systems.
+<li>The new function <a class="esf" href="curry.html">curry</a> can calculate SQUID magnetometer data (magnetic moment and magnetic susceptibility) for arbitrary spin systems.
+<li>EasySpin can now import results from ORCA property calculations using <a class="esf" href="orca2easyspin.html">orca2easysin</a>.
+<li><a class="esf" href="pepper.html">pepper</a> and <a class="esf" href="garlic.html">garlic</a> now support arbitrary angles between static and microwave magnetic field.
+<li>For cw EPR, microwave radiation can now not only be linearly polarized, but also circularly polarized (left or right) or unpolarized.
+<li>EasySpin can now simulate frequency-swept EPR spectra. All cw-EPR simulation functions (<a class="esf" href="pepper.html">pepper</a>, <a class="esf" href="garlic.html">garlic</a>, <a class="esf" href="chili.html">chili</a>) support both field-swept or frequency-swept spectra.
+<li><a class="esf" href="eprload.html">eprload</a> can now import data not only from Bruker, but also from SpecMan, Magnettech, ActiveSpectrum, Adani and JEOL spectrometers.
+<li>New pre-defined fundamental constants: <a class="esf" href="hbar.html">hbar</a> (reduced Planck constant, &hbar;=h/2&pi;), <a class="esf" href="mu0.html">mu0</a> (magnetic constant, vacuum permeability), <a class="esf" href="eps0.html">eps0</a> (electric constant, vacuum permittivity), <a class="esf" href="evolt.html">evolt</a> (electron volt).
+<li>Improved lineshape functions: <a class="esf" href="gaussian.html">gaussian</a> can calculate arbitrary high-order derivatives. <a class="esf" href="gaussian.html">gaussian</a> and <a class="esf" href="lorentzian.html">lorentzian</a> can calculate absorption and dispersion line shapes and phase-combine them.
+<li>The new function <a class="esf" href="hilberttrans.html">hilberttrans</a> calculates the Hilbert transform.
+<li>Four-pulse ESEEM is now a predefined experiment in <a class="esf" href="saffron.html">saffron</a>.
+</ul>
+
+<p>Incompatible changes</p>
+<ul>
+<li>The intensities of simulated crystal spectra are scaled up by a factor of 8&pi;<sup>2</sup> compared to earlier versions. This is to make their intensities consistent with powder spectra.
+<li> In all simulation functions, <code>Exp.Orientations</code> has been replaced by <code>Exp.CrystalOrientation</code>.
+<li> A new frame interface has been implemented. <code>Sys.gpa</code>, <code>Sys.Apa</code>, <code>Sys.Qpa</code>, <code>Sys.Dpa</code>, <code>Sys.eepa</code>, <code>Sys.Diffpa</code> have been replaced by <code>Sys.gFrame</code>, <code>Sys.AFrame</code>, <code>Sys.QFrame</code>, <code>Sys.DFrame</code>, <code>Sys.eeFrame</code>, <code>Sys.DiffFrame</code>. See the documentation on <a href="spinsystem.html">spin systems</a> and on <a href="frames.html">frames</a>.
+<li> In <a class="esf" href="chili.html">chili</a>, <code>Exp.psi</code> is moved to <code>Sys.psi</code>, and <code>Exp.MOMD</code> is abolished.
+<li> In <a class="esf" href="saffron.html">saffron</a>, <code>Exp.T1T2</code> is moved to <code>Sys.T1T2</code>.
+<li><code>Sys.aFrame</code> (frame direction for <code>aF</code> high-order term) renamed to <code>Sys.aFFrame</code>.
+</ul>
+
+<p>Major bug fixes</p>
+<ul>
+<li><a class="esf" href="chili.html">chili</a>: Crash with large ordering parameters.
+<li><a class="esf" href="chili.html">chili</a>: Crash with very large basis sets.
+<li>Improvements in spectral intensity consistency between powders and crystals.
+<li>Improvements in spectral intensity consistency between matrix diagonalization and perturbation theory.
+</ul>
+
+<div class="subtitle">
+4.5.5
+</div>
+
+<p>New features</p>
+<ul>
+<li><a class="esf" href="eprload.html">eprload</a> can now read vector-valued datasets from Bruker BES<sup>3</sup>T files.
+</ul>
+
+<p>Bug fixes</p>
+<ul>
+<li><a class="esf" href="salt.html">salt</a>: Crash with multiple components.
+<li><a class="esf" href="orisel.html">orisel</a>: Crash with symmetry lower than D2h.
+</ul>
+
+<div class="subtitle">
+4.5.4
+</div>
+
+<p>New features</p>
+<ul>
+<li>All Hamiltonian funtions now support sparse matrix output (<a class="esf" href="sham.html">sham</a>, <a class="esf" href="eeint.html">eeint</a>, <a class="esf" href="hfine.html">hfine</a>, <a class="esf" href="nquad.html">nquad</a>, <a class="esf" href="zfield.html">zfield</a>, <a class="esf" href="zeeman.html">zeeman</a>).
+</ul>
+
+<p>Bug fixes</p>
+<ul>
+<li><a class="esf" href="esfit.html">esfit</a>: Crash with MATLAB R2007b.
+</ul>
+
+<div class="subtitle">
+4.5.3
+</div>
+
+<p>Bug fixes</p>
+<ul>
+<li>High-order parameter <code>Sys.B2</code>, <code>Sys.B4</code>, <code>Sys.B6</code>: Problems with systems containing multiple S-spins.
+<li><code>esfit</code>: Crash when using multi-component fits.
+</ul>
+
+<div class="subtitle">
+4.5.2
+</div>
+
+<p>Major new features</p>
+<ul>
+<li>High-order spin operators are now supported for spin systems with an arbitrary number of electron spins.
+</ul>
+
+<p>Incompatible changes</p>
+<ul>
+<li>High-order parameter <code>Sys.B40</code>, <code>Sys.B41</code>, <code>Sys.B43</code> etc have been replaced by <code>Sys.B2</code>, <code>Sys.B4</code>, etc.
+</ul>
+
+<div class="subtitle">
+4.5.1
+</div>
+
+<p>Bug fixes
+<ul>
+<li><a class="esf" href="saffron.html">saffron</a>: did not work correctly with full Q tensor.
+<li><a class="esf" href="wigner3j.html">wigner3j</a>: fixed crash for large parameters.
+<li><a class="esf" href="esfit.html">esfit</a>: fixed scrambled parameter list.
+</ul>
+
+
+<div class="subtitle">
+4.5.0
+</div>
+
+<p>Major new features</p>
+<ul>
+<li>Massively extended interactive least-squares fitting with <a class="esf" href="esfit.html">esfit</a>.
+<li>The new function <a class="esf" href="rescale.html">rescale</a> allows you to fit one spectrum to another by scaling and shifting.
+<li>The new function <a class="esf" href="wignerd.html">wignerd</a> computes Wigner D-matrices.
+<li>The new function <a class="esf" href="ewrls.html">ewrls</a> computes adaptively filtered averages.
+<li><a class="esf" href="saffron.html">saffron</a> supports multi-component simulations and space groups .
+<li><a class="esf" href="pepper.html">pepper</a> supports space groups with perturbation theory.
+<li><a class="esf" href="saffron.html">saffron</a> supports space groups.
+<li><a class="esf" href="eprsave.html">eprsave</a> can also save the microwave frequency in BES3T format.
+<li><a class="esf" href="addnoise.html">addnoise</a> now includes a simple 1/f noise model.
+</ul>
+
+<p>Changes
+<ul>
+<li>Fundamental constants are updated from the CODATA 2006 to the CODATA 2010 recommended values.
+<li>Support for MATLAB releases prior to R2007b has been dropped.
+</ul>
+
+<p>Bug fixes
+<ul>
+<li>Compatibility adjustement for newest Matlab release R2012a.
+<li><a class="esf" href="wigner3j.html">wigner3j</a> and <a class="esf" href="clebschgordan.html">clebschgordan</a> work now for large angular momenta.
+<li><a class="esf" href="esfit.html">esfit</a> now stays within the specified search range.
+<li>Many small bug fixes.
+</ul>
+
+<p>
+The following changes are incompatible with older versions and might require adaption of existing code. 
+<ul>
+<li>The default axis for <code>Sys.aF</code> was changed from the 3-fold axis to the 4-fold axis. Use
+<code>Sys.aFrame</code> to change (see <a href="spinsystem.html">reference</a>).
+<li>The overall intensity of spectra returned by <a class="esf" href="garlic.html">garlic</a> has been adjusted
+to match the intensity of spectra returned by <a class="esf" href="pepper.html">pepper</a>.
+<li>Support for MATLAB releases prior to R2007b has been dropped.
+</ul>
+
+<div class="subtitle">
+4.0.0
+</div>
+
+<p>Major new features</p>
+<ul>
+<li>All simulation functions can now simulate multi-component spectra in one go.
+<li>Least-squares fitting of multi-component spectra is supported by <a class="esf" href="esfit.html">esfit</a>.
+<li>The new function <a class="esf" href="eprsave.html">eprsave</a> can store datasets in Bruker's EPR format BES3T.
+<li><a class="esf" href="eprload.html">eprload</a> can explicitly scale data by number of scans, microwave power, receiver gain, temperature, and conversion/sampling time.
+<li>Full D matrices and Q matrices are now supported.
+<li>In systems with several electron spins, D strain can be specified for each spin.
+<li>An isotropic biquadratic exchange interaction term can be added via <code>ee2</code> in a spin system structure.
+<li>The new function <a class="esf" href="spinladder.html">spinladder</a> computes manifold parametes for exchange-coupled spin systems in the strong-exchange limit.
+<li><a class="esf" href="pepper.html">pepper</a> can now simulate oligometallic clusters with nuclear spins using a new fast hybrid method (<code>Opt.Method='hybrid'</code>).
+<li><a class="esf" href="garlic.html">garlic</a> supports different levels of theory: <code>Opt.Method = 'exact'</code>, <code>'perturb1</code>, <code>'perturb2'</code>.
+</ul>
+
+<p>Major bugfixes</p>
+<ul>
+<li><a class="esf" href="voigtian.html">voigtian</a> gave wrong line positions.
+<li>Compilation problems on 64-bit Mac computers.
+<li><a class="esf" href="resfields.html">resfields</a> wasted a lot of memory for large spin systems.
+<li><a class="esf" href="zfield.html">zfield</a> returned an all-zero Hamiltonian matrix for E/D = 0.
+</ul>
+
+<p>Changes</p>
+<ul>
+<li>Matlab versions prior to 7.0 are not supported anymore.
+<li><code>Opt.Perturb</code> has been discontinued, use <code>Opt.Method = 'hybrid'</code> instead.
+<li><code>Exp.Detection</code> has been renamed to <code>Exp.Mode</code>.
+<li><a class="esf" href="chili.html">chili</a>: Exchange units changed from Hz to MHz.
+</ul>
+
+<div class="subtitle">
+3.1.7
+</div>
+
+<p>Major new features</p>
+<ul>
+<li><a class="esf" href="pepper.html">pepper</a> and <a class="esf" href="garlic.html">garlic</a>
+now support absorption/dispersion admixture in the simulation via <code>Exp.mwPhase</code>.
+</ul>
+
+<p>Major bugfixes</p>
+<ul>
+<li><a class="esf" href="salt.html">salt</a> spectra gave wrong ENDOR intensities in some cases when using perturbation theory and orientation selection.
+</ul>
+
+<div class="subtitle">
+3.1.6
+</div>
+
+<p>Major new features</p>
+<ul>
+<li><a class="esf" href="pepper.html">pepper</a> and <a class="esf" href="garlic.html">garlic</a>
+can now include field modulation in the simulation via <code>Exp.ModAmp</code>.
+</ul>
+
+<p>Major bugfixes</p>
+<ul>
+<li><a class="esf" href="pepper.html">pepper</a> gave incorrect first-order perturbation intensities for large anisotropic g tensors.
+<li><a class="esf" href="garlic.html">garlic</a> spectra gave double integrals that depended on the number of lines.
+</ul>
+
+<p>
+The following changes are incompatible and might require adaption of existing code.
+</p>
+
+<ul>
+<li>The absolute intensity of some spectra computed by <a class="esf" href="garlic.html">garlic</a> has changed.
+<li>The absolute intensity of the spectra computed by <a class="esf" href="pepper.html">pepper</a> with <code>Opt.Method='perturb'</code>
+has changed. The intensity now match that of the spectra computed with <code>Opt.Method='matrix'</code>.
+<li>The order of Gaussian and Lorentzian FWHM in the <code>fwhm</code> parameter to the
+function <a class="esf" href="lshape.html">lshape</a> is reversed.
+</ul>
+
+<div class="subtitle">
+3.1.4, 3.1.5
+</div>
+
+<p>
+Several bug fixes in <a class="esf" href="saffron.html">saffron</a>, <a class="esf" href="salt.html">salt</a> and <a class="esf" href="garlic.html">garlic</a>.
+</p>
+
+
+<div class="subtitle">
+3.1.3
+</div>
+
+<p>Major bugfixes</p>
+<ul>
+<li><a class="esf" href="eprload.html">eprload</a> could not read data acquired on very recent Bruker spectrometers.
+<li><a class="esf" href="garlic.html">garlic</a> gave wrong relative intensities in some isotope mixtures.
+<li><a class="esf" href="chili.html">chili</a> used incomplete rotational basis in the case of a tilt between g and A tensors.
+<li><a class="esf" href="pepper.html">pepper</a> missed a transition in the case of very large hyperfine couplings.
+<li><a class="esf" href="saffron.html">saffron</a> gave incorrect peak positions in HYSCORE of systems with anisotropic g.
+</ul>
+
+<p>Major new features</p>
+<ul>
+<li><a class="esf" href="saffron.html">saffron</a> can now simulate spectra for isotope mixtures.
+</ul>
+
+<div class="subtitle">
+3.1.1, 3.1.2
+</div>
+
+<p>
+Many small bug fixes.
+</p>
+
+<div class="subtitle">
+3.1.0
+</div>
+
+<p>Major new features</p>
+<ul>
+<li><a class="esf" href="saffron.html">saffron</a> is not restricted to HYSCORE, two-pulse and three-pulse ESEEM. It can now simulate user-defined pulse sequences.
+<li><a class="esf" href="saffron.html">saffron</a> now supports the product rule, resulting in great speed-ups.
+<li><a class="esf" href="saffron.html">saffron</a> now supports spin systems with high electron spin S>1/2.
+<li><a class="esf" href="saffron.html">salt</a> can now simulate ENDOR spectra using either matrix diagonalization, first-order or second-order perturbation theory.
+</ul>
+
+<p>Major changes and bugfixes</p>
+<ul>
+<li><a class="esf" href="pepper.html">pepper</a> normalizes spectra in a way that the double integral
+is independent of the number of nuclei included.
+</ul>
+
+<p>
+The following changes are incompatible with older versions and might require adaption of existing code.
+</p>
+
+<ul>
+<li>The input syntax for <a class="esf" href="endorfrq.html">endorfrq</a> has
+changed from <code>(Sys,Exp,Ori,Opt)</code> to <code>(Sys,Exp,Opt)</code>. The orientations are now given in <code>Exp.Orientations</code>.
+</ul>
+
+<div class="subtitle">
+3.0.0
+</div>
+
+<p>Major new features</p>
+<ul>
+<li><a class="esf" href="chili.html">chili</a> now supports the MOMD model for slow-motion simulations.
+<li><a class="esf" href="pepper.html">pepper</a> now automatically simulates isotope mixtures.
+<li><a class="esf" href="pepper.html">salt</a> now can use first-order perturbation theory for the simulation, resulting
+in speedups of several orders of magnitude for spin systems with several nuclei compared to matrix diagonalization.
+<li><a class="esf" href="pepper.html">pepper</a> now can use second-order perturbation theory for the simulation, resulting
+in speedups of several orders of magnitude for spin systems with several nuclei compared to matrix diagonalization.
+<li>A genetic algorithm and hybrid global/local methods are now available for least-squares fitting with <a class="esf" href="esfit.html">esfit</a>.
+<li>The new function <a class="esf" href="saffron.html">saffron</a> simulates pulse EPR spectra.
+<li>Site splitting in crystal spectra is now included in simulations with <a class="esf" href="pepper.html">pepper</a>
+and <a class="esf" href="salt.html">salt</a>. Only the space group of the crystal has to be provided.
+<li><a class="esf" href="rotplane.html">rotplane</a> computes sets of orientations for crystal rotations.
+<li><a class="esf" href="stackplot.html">stackplot</a> is a new function that plots several spectra stacked on top of each other.
+<li>To add noise to a simulated spectrum, use <a class="esf" href="addnoise.html">addnoise</a>.
+</ul>
+
+<p>Major changes</p>
+<ul>
+<li>Fundamental constants are updated from the CODATA 2002 to the CODATA 2006 recommended set.
+<li>The order of outputs of <a class="esf" href="eprload.html">eprload</a> has changed.
+<li><code>Opt.nSpline</code> is merged with <code>Opt.nKnots</code>. E.g. instead of setting <code>Opt.nKnots=19</code>
+and <code>Opt.nSpline=4</code>, one now sets <code>Opt.nKnots=[19 4]</code>.
+</ul>
+
+<p>
+The following changes are incompatible with older versions and might require adaption of existing code.
+</p>
+
+<p>
+<ul>
+<li>The order of outputs of <a class="esf" href="eprload.html">eprload</a> has changed from <code>[spc,Params,B]</code> to <code>[B,spc,Params]</code>.
+<li>The input syntax for <a class="esf" href="resfields.html">resfields</a> and <a class="esf" href="eigfields.html">eigfields</a> has
+changed from <code>(Sys,Exp,Ori,Opt)</code> to <code>(Sys,Exp,Opt)</code>. The orientations are now given in <code>Exp.Orientations</code>.
+<li>The new function <a class="esf" href="fieldmod.html">fieldmod</a> replaces the old function <code>pseumod</code>.
+</ul>
+</p>
+
+<div class="subtitle">
+2.7.1
+</div>
+
+<p>
+Only minor bug fixes.
+</p>
+
+<div class="subtitle">
+2.7.0
+</div>
+
+<p>Major new features</p>
+
+<ul>
+<li>Least-squares fitting for all types of cw EPR simulations (see <a class="esf" href="esfit.html">esfit</a>).
+<li>
+Ordering potentials and orthorhombic diffusion tensors available in slow-motion simulations with <a class="esf" href="chili.html">chili</a>.
+<li>
+Simplified input for axial g and A tensors: only two principal values instead of three are necessary.
+<li>
+New function <a class="esf" href="zfsframes.html">zfsframes</a> to determine the conventional eigenframe orientation plus D and E from a given <a href="hamiltonian.html#zfi">zero-field splitting</a> tensor.
+<li>
+New function <a class="esf" href="degree.html">degree</a> to convert between radians and degrees.
+<li>
+<a class="esf" href="rcfilt.html">rcfilt</a> can now handle both and upwards and downwards field sweeps.
+</ul>
+
+<p>Major changes and bugfixes</p>
+
+<ul>
+<li>
+Substantial speedup of simulations on several platforms.
+<li>
+Updated free g value in <a class="esf" href="gfree.html">gfree</a> to 2006 value.
+<li>
+The function <code>internal</code> has been removed. Use <a class="esf" href="nquad.html">nquad</a>
+and <a class="esf" href="zfield.html">zfield</a> instead.
+<li> <a class="esf" href="fieldmod.html">pseumod</a> now can plot its results.
+<li> Bug in <a class="esf" href="wigner3j.html">wigner3j</a> fixed that gave wrong values for very
+large angular momenta.
+</ul>
+
+<div class="subtitle">
+2.6.1
+</div>
+
+<p>Major changes and bugfixes</p>
+
+<ul>
+<li>
+Fixed a bug in <a class="esf" href="wigner6j.html">wigner6j</a>.
+<li>
+Updated nuclear electric quadrupole constants, see <a class="esf" href="nucqmom.html">nucqmom</a>
+and the <a href="isotopetable.html">nuclear isotope table</a>.
+</ul>
+
+<p>
+The following changes are incompatible and might require adaption of existing code.
+</p>
+
+<ul>
+<li>
+<a href="chili.html" class="esf">chili</a>: The calling syntax for <code>chili</code> has changed: Instead of <code>chili(Sys,Dyn,Exp)</code>, use
+<code>chili(Sys,Exp)</code>. All field from the structure <code>Dyn</code> shoud now be set in <code>Sys</code>.
+<li> The function <code>internal</code> has been removed. Use <a class="esf" href="nquad.html">nquad</a>
+and <a class="esf" href="zfield.html">zfield</a> instead.
+</ul>
+
+<div class="subtitle">
+2.6.0
+</div>
+
+<p>Major new features</p>
+
+<ul>
+<li>
+<a class="esf" href="pepper.html">pepper</a> now supports antisymmetric exchange
+coupling between electron spins.
+<li>
+Simplified input for isotropic g and A tensors and for zero-field splittings.
+<li>
+Support for high-order parameters a and F added.
+<li>
+Simulation function now accept either FWHM line widths (<code>lw</code>) or
+peak-to-peak line widths (<code>lwpp</code>).
+<li>
+Extended support for partially ordered systems in <a class="esf" href="pepper.html">pepper</a>
+and <a class="esf" href="salt.html">salt</a> with the new field <code>Exp.Ordering</code>.
+A simple orienting potential is built-in, a custom arbitrary orienting potential can be specified.
+<li>
+Nuclear quadrupole line width contribution for fast-motion simulations with 
+<a class="esf" href="garlic.html">garlic</a>.
+</ul>
+
+<p>Major changes and bugfixes</p>
+<ul>
+<li>
+<i>EasySpin</i> now runs on 64-bit platforms, too.
+<li>
+Support for MATLAB 6.1 (R12.1) is discontinued.
+<li>Fixed some crashes of the slow-motion simulation function
+<a class="esf" href="chili.html">chili</a>.
+</ul>
+
+<div class="subtitle">
+2.5.1
+</div>
+
+<p>Major changes and bugfixes</p>
+<ul>
+<li>Speedup for <a class="esf" href="chili.html">chili</a>.
+<li>Bug fixes in <a class="esf" href="chili.html">chili</a>
+and <a class="esf" href="garlic.html">garlic</a>: scaling of correlation time.
+<li>Bug fixes in <a class="esf" href="eprload.html">eprload</a>: sometimes wrong abscissa vectors.
+</ul>
+
+
+<p>
+The following changes are incompatible and might require adaption of existing code.
+</p>
+
+<ul>
+<li><a href="garlic.html" class="esf">garlic</a>: The meaning of the two numbers in <code>Sys.lw</code> are exchanged. Instead of <code>[LorentzianLw GaussianLw]</code>, they now are understood as <code>[GaussianLw LorentzianLw]</code>. This way, the field is identically defined in all simulation functions.
+<li><a href="pepper.html" class="esf">pepper</a>: The field <code>Opt.LineShape</code> is abolished. The information on Gaussian and Lorentzian lineshapes is now included in <code>Sys.lw</code>. This has the advantages that both Gaussian and Lorentzian
+broadenings can be specified simultaneously.
+<li><a href="pepper.html" class="esf">pepper</a>: The field <code>Exp.Nematic</code> is abolished. Instead, a much wider
+range of possibilities for non-isotropic orientational distributions is available with the field <code>Exp.Ordering</code>.
+</ul>
+
+<div class="subtitle">
+2.5.0
+</div>
+
+<p>Major new features</p>
+
+<ul>
+<li>
+Simulation of cw EPR spectra in the <b>slow-motional regime</b> with
+<a class="esf" href="chili.html">chili</a>.
+<li>
+Simulation of cw EPR spectra in the <b>fast-motional regime</b> with
+<a class="esf" href="garlic.html">garlic</a>.
+<li>
+Two new functions: <a class="esf" href="plegendre.html">plegendre</a>
+for Legendre polynomials and associated Legendre polynomials, and
+<a class="esf" href="spherharm.html">spherharm</a> for spherical and
+tesseral harmonics.
+</li>
+<li>
+Two new functions to convert between rotation axis/angle and rotation matrix:
+<a class="esf" href="rotaxi2mat.html">rotaxi2mat</a> and
+<a class="esf" href="rotmat2axi.html">rotmat2axi</a>.
+</li>
+<li>
+Two new functions to convert between mT and MHz:
+<a class="esf" href="mt2mhz.html">mt2mhz</a> and
+<a class="esf" href="mhz2mt.html">mhz2mt</a>.
+</li>
+</ul>
+
+<p>Major changes and bugfixes</p>
+
+<ul>
+<li>
+Magnetic field ranges can be specified either by the center field
+and the sweep range (in the field <code>CenterSweep</code>) or by
+the minimum and the maximum (in the field <code>Range</code>).
+</li>
+<li>
+All EPR simulation functions can automatically determine the magnetic field range.
+</li>
+<li>
+All simulation functions plot the simulated spectrum, if no output arguments are requested.
+</li>
+<li>Bug fixes: Non-equilibrium populations in <a class="esf" href="pepper.html">pepper</a>
+and <a class="esf" href="resfields.html">resfields</a>.
+</li>
+</ul>
+
+<div class="subtitle">
+2.2.0
+</div>
+
+<p>Major new features</p>
+<ul>
+<li>
+<a class="esf" href="pepper.html">pepper</a> can now treat nuclei with small
+hyperfine couplings perturbationally, resulting in much better performance for
+systems with many nuclei.
+</li>
+<li>
+<a class="esf" href="pepper.html">pepper</a> and
+<a class="esf" href="salt.html">salt</a>
+can now simulate spectra of paramagnetic species oriented in
+the nematic phase of liquid crystals.
+</li>
+<li>Exponential fitting with <a class="esf" href="exponfit.html">exponfit</a>.
+</li>
+<li>
+<a class="esf" href="makespec.html">makespec</a> constructs a stick
+spectrum from a list of peak positions and amplitudes.
+</li>
+<li>Functions to add/remove spins from a spin sytem:
+<a class="esf" href="nucspinadd.html">nucspinadd</a> and
+<a class="esf" href="nucspinrmv.html">nucspinrmv</a>.
+</li>
+<li>
+Nuclear quadrupole moments and abundance data now availabe in
+<a class="esf" href="isotopes.html">isotopes</a>, accessible via
+<a class="esf" href="nucqmom.html">nucqmom</a> and
+<a class="esf" href="nucabund.html">nucabund</a>.
+<a class="esf" href="barn.html">barn</a> gives the unit of quadrupole moments.
+</li>
+<li>Support for angular momentum algebra:
+<a class="esf" href="clebschgordan.html">clebschgordan</a>,
+<a class="esf" href="wigner3j.html">wigner3j</a> and
+<a class="esf" href="wigner6j.html">wigner6j</a>.
+</li>
+</ul>
+
+<p>Major changes</p>
+
+<ul>
+<li>The solution EPR simulation function <a class="esf" href="garlic.html">garlic</a> now computes resonance fields
+using analytical equations rather than perturbation theory formulas.
+</li>
+<li>
+<a class="esf" href="sop.html">sop</a> can now compute multiple spin matrices
+with a single call.
+</li>
+<li>
+New input syntax for <a class="esf" href="orisel.html">orisel</a>.
+</li>
+<li>
+<a class="esf" href="stev.html">stev</a> can now
+compute extended Stevens operators for arbitrary k and q.
+</li>
+<li>
+<a class="esf" href="erot.html">erot</a> and
+<a class="esf" href="eulang.html">eulang</a> now accept/return Euler angles
+optionally as three separate arguments.
+</li>
+<li>
+<a class="esf" href="eulang.html">eulang</a> now computes Euler angles from a
+rotation matrix by least-squares fitting, not via analytical expressions.
+</li>
+<!--<li>
+<a class="esf" href="symm.html">symm</a> works now much faster for large spin
+systems, since it analyses the spin system geometrically instead of quantum mechanically.
+</li>-->
+</ul>
+
+<div class="subtitle">
+2.1.1
+</div>
+
+<ul>
+<li>Fixed errors in nuclear isotope database.</li>
+<li>Fixed negative intensity problem in pepper.</li>
+<li>Fixed salt bug resulting in large screen output.</li>
+</ul>
+
+<div class="subtitle">
+2.1.0
+</div>
+
+<ul>
+<li><a href="spinsystem.html">Spin system structure</a> fields
+<code>I</code> and <code>gn</code> replaced by
+new field <code>Nucs</code></li>
+
+<li>New simulation function:
+<a class="esf" href="garlic.html">garlic</a>
+</li>
+
+<li>New graphical utilities:
+<a class="esf" href="eprconvert.html">eprconvert</a>,
+<a class="esf" href="isotopes.html">isotopes</a>
+</li>
+
+<li>Other new functions:
+<a class="esf" href="deriv.html">deriv</a>,
+<a class="esf" href="equivcouple.html">equivcouple</a>,
+<a class="esf" href="equivsplit.html">equivsplit</a>,
+<a class="esf" href="larmorfrq.html">larmorfrq</a>
+</li>
+
+<li>Enhanced functions:
+<a class="esf" href="nucfrq2d.html">nucfrq2d</a>,
+<a class="esf" href="datasmooth.html">datasmooth</a>
+</li>
+
+<li><em>HTML documentation</em> available for online browsing.</li>
+
+<li>Many bug fixes.</li>
+
+</ul>
+
+
+<div class="subtitle">
+2.0
+</div>
+
+<ul>
+<li>Many examples available on EasySpin web site.
+<li>Support for spin systems with an arbitrary number of electron spins.
+<li><code>resfields</code> and <code>pepper</code> use a new and very
+robust algorithm for cw resonance field computation.
+<li><code>pepper</code> and </code>salt</code> support isotropic and
+single-crystal spectra computation.
+<li>More physical constants, with values <em>and</em> uncertainties.
+<li><code>eprload</code> reads in the parameter file in addition to the data file.
+<li>New functions: <code>easyspin</code>, <code>levelsplot</code>, <code>apowin</code>, <code>voigtian</code>, <code>basecorr</code>.
+<li>More flexible <code>ctafft</code>.
+<li>Many bug fixes.
+</ul>
+
+
+<div class="subtitle">
+1.3.1
+</div>
+
+<ul>
+<li>Improved, clarified and corrected documentation, supplemented with many formulas.
+<li>Strict input checking for many functions.
+<li>Many bug fixes.
+</ul>
+
+
+<div class="subtitle">
+1.3
+</div>
+
+<ul>
+<li>New functions: <code>propint</code>, <code>convspec</code>.
+<li>MATLAB version requirements downgraded from 6.1 to 6.0
+<li>If any function with required arguments is called without arguments,
+the help for this function is displayed.
+</ul>
+
+
+<div class="subtitle">
+1.2
+</div>
+
+<ul>
+<li><code>resbef</code> renamed to <code>eigfields</code> and
+substantially extended in functionality.
+<li>
+<code>eulang</code> restrictions relaxed, it now works for
+matrices with determinant slightly different from 1.
+<li><code>sop</code> obtains a new and simplified syntax!
+<li>Many bugs fixed.
+</ul>
+
+
+<div class="subtitle">
+1.1
+</div>
+
+<ul>
+<li>Nuclear spin database added. New functions <code>nucdata</code>, <code>nucgval</code>
+and <code>nucspin</code>.
+<li>Parameter order of <code>evolve</code> has changed.
+<li>For the functions <code>pepper</code> and <code>salt</code> the option parameters
+<code>Width</code> and <code>Convolution</code> have been eliminated.
+<li>In the spin system specification, <code>flw</code> has been renamed to <code>HStrain</code>.
+<li><code>resfields</code> and <code>pepper</code> now explicitly exclude NMR transitions.
+<li><code>salt</code> errors if orientation selection is too strong or the number
+of knots is not sufficient for reliable results.
+<li>A few EasySpin examples have been added to the package.
+<li>Many bug fixes.
+</ul>
+
+<div class="subtitle">
+1.0
+</div>
+
+<p>
+First public release.
+
+
+</section>
+
+<footer></footer>
+
+</body>
+</html>

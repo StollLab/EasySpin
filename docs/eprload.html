@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>eprload</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">eprload</div>
+
+<p>
+Load spectral data from files in common EPR data formats.
+</p>
+
+<!-- ================================================================ -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+eprload(FileName)
+y = eprload(FileName)
+[x,y] = eprload(FileName)
+[x,y,Params] = eprload(FileName)
+[x,y,Params,FileN] = eprload(FileName)
+eprload
+... = eprload
+... = eprload(FileName,Scaling)
+</pre>
+
+<!-- ================================================================ -->
+<div class="subtitle">Description</div>
+
+<p>
+This function loads real or complex spectral data from files in common data formats of EPR spectrometers.
+</p>
+
+<p>
+<code>FileName</code> is the filename to be loaded. If <code>FileName</code> is just a file name without a directory (<code>'mydata.DSC'</code>), <code>eprload</code> looks for it in Matlab's current directory. <code>FileName</code> can also include the full path to the file (<code>C:\mydata\sample5\mydata.DSC'</code>). If <code>FileName</code> is a directory, a file selection dialog box is displayed. If no <code>FileName</code> is given, the current directory is used as default.
+</p>
+
+<p>
+<code>x</code> contains the x axis data (the magnetic field, time, frequency axis), <code>y</code> contains the spectral data, <code>Params</code> is a structure containing the entries from the associated parameter file (if it exists), and <code>FileN</code> is the name of the loaded file including the full path. If no output parameter is given, the loaded data are plotted.
+</p>
+
+<p>
+If the spectrum is two-dimensional, then <code>x</code> contains both axes. <code>x{1}</code> is the first axis, and <code>x{2}</code> is the second axis.
+</p>
+
+<p>
+All string fields in <code>Params</code> containing numbers are converted to numbers. E.g., <code>Params.XPTS='1024'</code> is converted to <code>Params.XPTS=1024</code>. In addition, <code>'True'</code> is converted to 1, and <code>'False'</code> is converted to 0.
+</p>
+
+<p>
+Formats are identified by the extension of the file name specified in <code>FileName</code>, which can be either the data file or the
+parameter file extension. If no extension is given, <code>eprload</code> tried several extensions. The following commercial formats are supported:
+</p>
+
+<table>
+<tr><td>Format</td><td>Data file extension</td><td>Parameter file extension</td></tr>
+<tr><td>Bruker BES<sup>3</sup>T</td><td><code>DTA</code></td><td><code>DSC</code></td></tr>
+<tr><td>Bruker ESP, WinEPR</td><td><code>spc</code></td><td><code>par</code></td></tr>
+<tr><td>SpecMan</td><td><code>d01</code></td><td><code>exp</code></td></tr>
+<tr><td>Magnettech (binary)</td><td><code>spe</code></td><td>-</td></tr>
+<tr><td>Magnettech (xml)</td><td><code>xml</code></td><td>-</td></tr>
+<tr><td>Active Spectrum</td><td><code>ESR</code></td><td>-</td></tr>
+<tr><td>Adani</td><td><code>dat</code></td><td>-</td></tr>
+<tr><td>JEOL</td><td>(variable)</td><td><code>-</code></td></tr>
+</table>
+
+<p>
+In addition, several older academic file formats are supported:
+</p>
+
+<table>
+<tr><td>Varian</td><td><code>spk,res</code></td><td>-</td></tr>
+<tr><td>qese, tryscore</td><td><code>ECO</code></td><td>-</td></tr>
+<tr><td>MAGRES</td><td><code>PLT</code></td><td>-</td></tr>
+<tr><td>ESE WIS/ETH</td><td><code>d00</code></td><td><code>exp</code></td></tr>
+</table>
+
+
+<p>
+Depending on the nature of the data, a real or complex 1D, 2D or 3D array is returned in <code>y</code>.
+</p>
+
+<p>
+Note that BES<sup>3</sup>T files stored in ASCII format cannot be read by <code>eprload</code>. In this case and for any other plain ASCII formats use MATLAB's <code>textread</code> function.
+</p>
+
+<p>
+<code>Scaling</code> is a string of one-letter codes that instructs <code>eprload</code> to scale the spectral data. The codes are:
+
+<ul>
+<li><code>'n'</code>: divide by the number of scans
+<li><code>'G'</code>: divide by the receiver gain
+<li><code>'P'</code>: divide by the square root of the microwave power (in milliwatts)
+<li><code>'T'</code>: multiply by the temperature (in kelvin)
+<li><code>'c'</code>: divide by the conversion/sampling time (in milliseconds)
+</ul>
+
+<p>
+For example, <code>'nGP'</code> would scale the spectrum by the number of scans, the receiver gain, and the square root of the microwave power.
+
+<p>
+If <code>Scaling</code> is omitted, no scaling is performed. Currently, <code>Scaling</code> is only supported for Bruker par/spc files.
+</p>
+
+<!-- ================================================================ -->
+<div class="subtitle">Examples</div>
+
+<p>
+To load and display a one-dimensional CW EPR spectrum stored in BES<sup>3</sup>T format in the files
+<code>myspec.DTA</code> and <code>myspec.DSC</code>, type
+</p>
+
+<pre class="matlab">
+[B,spec,pars] = eprload('myspec.DTA');
+plot(B,spec);
+</pre>
+
+<p>
+To load and display a two-dimensional data set stored in BES<sup>3</sup>T format in the files
+<code>myspec2d.DTA</code> and <code>myspec2d.DSC</code>, use
+
+<pre class="matlab">
+[x,data] = eprload('myspec2d.DTA');
+axis1 = x{1};     % first axis, e.g. magnetic field
+axis2 = x{2};     % second axis, e.g. time or temperature
+plot(axis1,data);
+</pre>
+
+<p>
+If you want to display the data only without retrieving the data, use
+</p>
+
+<pre class="matlab">
+eprload('myspec.DTA');
+</pre>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+
+</html>

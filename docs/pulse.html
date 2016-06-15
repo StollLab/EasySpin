@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>pulse</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">pulse</div>
+
+<p>
+Calculates pulse shapes and pulse excitation profiles.
+</p>
+
+
+<!-- ============================================================= -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+pulse(Exp)
+pulse(Exp,iPulse)
+pulse(Exp,Opt)
+pulse(Exp,iPulse,Opt)
+[t,y] = pulse(...)
+[t,y,mod] = pulse(...)
+[t,y,mod,p] = pulse(...)
+</pre>
+
+<!-- ============================================================= -->
+<div class="subtitle">Description</div>
+
+<p>
+This function calculates pulse shapes and pulse excitation profiles.
+</p>
+
+<p>
+The output contains the time axis data in <code>t</code> (time in microseconds). <code>y</code> contains the pulse shape data with the in-phase data in the real component and the quadrature data in the imaginary component.
+</p>
+
+<p>
+The structure <code>mod</code> contains the calculated modulation functions for the pulse:
+<ul>
+<li><code>mod.A</code>: amplitude modulation function (in MHz)
+<li><code>mod.nu</code>: frequency modulation function (in MHz)
+<li><code>mod.phi</code> phase modulation function (in radians)
+</ul>
+</p>
+
+<p>
+If calculation of the pulse excitation profile is requested (<code>Opt.ExciteProfile = 1</code>), the axis of frequency offsets and the components of the magnetization vector after the pulse are returned in <code>p.dnu</code> and <code>p.Mi</code> (i = x, y or z, depending on the selected option).
+</p>
+
+<p>
+If you don't request any output, <code>pulse</code> plots the calculated data.
+</p>
+
+<p>
+The possible input arguments to the function are
+<ul>
+<li><code>Exp</code>: structure containing pulse parameter definitions
+<li><code>iPulse</code>: index/indices for the pulse shape(s) in case of multiple pulses defined in <code>Exp.Pulse</code>
+<li><code>Opt</code>: structure containing options for the calculation
+</ul>
+
+<p>
+<code>Exp</code> is a structure containing all pulse shape parameters and experimental parameters. The available fields are listed below.
+
+<div class="optionfield"><code>tp</code></div>
+<div class="optiondescr">
+Pulse length or array of pulse lengths, in microseconds.
+</div>
+
+<div class="optionfield"><code>timestep</code></div>
+<div class="optiondescr">
+Time step for the definition of the waveform, in microseconds. If this parameter is not defined, it is automatically determined based on the Nyquist sampling criterion and the input pulse parameters.
+</div>
+
+<div class="optionfield"><code>Amplitude</code></div>
+<div class="optiondescr">
+Pulse amplitude, in MHz. If absent, the pulse amplitude is calculated from the flip angle given in <code>Flip</code>. If both fields are absent, the amplitude defaults to 1 MHz.
+</div>
+
+<div class="optionfield"><code>Flip</code></div>
+<div class="optiondescr">
+Pulse flip angle, in radians. This is used to calculate the pulse amplitude, if not defined in <code>Exp.Amplitude</code>. If <code>Exp.Amplitude</code> is defined, this field is ignored.
+
+<p>
+The pulse amplitude is calculated from the flip angle as described in Jeschke, G., Pribitzer, S., Doll, A. Coherence Transfer by Passage Pulses in Electron Paramagnetic Resonance Spectroscopy. J. Phys. Chem. B 119, 13570–13582 (2015) DOI: <a href="http://dx.doi.org/10.1021/acs.jpcb.5b02964">10.1021/acs.jpcb.5b02964</a>.
+</div>
+
+<div class="optionfield"><code>CenterFreq</code></div>
+<div class="optiondescr">
+Pulse center frequency, in MHz (default = 0).
+</div>
+
+<div class="optionfield"><code>Phase</code></div>
+<div class="optiondescr">
+Pulse phase, in radians, e.g. <code>0</code> for +x, <code>pi/2</code> for +y, etc. If not given, it defaults to 0.
+</div>
+
+<div class="optionfield"><code>PulseShape</code></div>
+<div class="optiondescr">
+Structure containing the pulse shape parameters. The available fields are:
+
+<p>
+<code>PulseShape.Type</code><br>
+Pulse shape name in a string structured as 'AM/FM' (or just 'AM'), where AM refers to the amplitude modulation function and FM to the frequency modulation function.
+
+<p>
+The available amplitude modulation functions are <code>'rectangular'</code>, <code>'gaussian'</code>, <code>'sinc'</code>, <code>'quartersin'</code>, <code>'sech'</code>, <code>'WURST'</code>. Different AM functions can be multiplied by concatenating the keywords as <code>'AM1*AM2/FM'</code>. The default is <code>'rectangular'</code>.
+
+<p>
+The available options for frequency modulation are <code>'none'</code>, <code>'linear'</code>, <code>'tanh'</code>, <code>'BW compensated'</code>, <code>'uniformQ'</code>. If only an AM keyword is given, the FM function is set to <code>'none'</code>.
+</p>
+
+<p>
+Depending on the AM function, additional fields need to be specified:
+<ul>
+<li><code>'rectangular'</code>: no additional fields are required
+<li><code>'gaussian'</code>:
+<ul style="list-style-type:none;">
+<li><code>PulseShape.tFWHM</code> - FWHM, in microseconds
+<li><code>PulseShape.trunc</code> - truncation parameter (0 to 1) (alternative to <code>tFWHM</code>)
+</ul>
+<li><code>'sinc'</code>:
+<ul style="list-style-type:none;">
+<li><code>PulseShape.zerocross</code> - width between the first zero-crossing points in microseconds
+</ul>
+<li><code>'sech'</code>
+<ul style="list-style-type:none;">
+<li><code>PulseShape.beta</code> - dimensionless truncation parameter (used as beta/tp)
+<li><code>PulseShape.n</code> - exponent of the secant function argument (default = 1)
+</ul>
+<li><code>'WURST'</code>
+<ul style="list-style-type:none;">
+<li><code>PulseShape.n</code> - parameter determining the steepness of the amplitude function
+</ul>
+<li><code>'quartersin'</code></li>
+<ul style="list-style-type:none;">
+<li><code>PulseShape.trise</code> - rise time in microseconds for quarter sine weighting at the pulse edges
+</ul>
+</ul>
+</p>
+
+<p>
+Also, depending on the FM function, additional fields are required:
+<ul>
+<li><code>'none'</code>: no additional fields are required
+<li><code>'linear'</code>
+<ul style="list-style-type:none;">
+<li><code>PulseShape.BW</code> - frequency sweep width in MHz (the frequency is swept over ±BW/2)
+<li><code>PulseShape.SweepDirection</code> - +1 or -1 (+1 default)
+</ul>
+<li><code>'tanh'</code>
+<ul style="list-style-type:none;">
+<li><code>PulseShape.BW</code> - frequency sweep width in MHz (the frequency is swept over ±BW/2)
+<li><code>PulseShape.beta</code> - dimensionless truncation parameter
+<li><code>PulseShape.SweepDirection</code> - +1 or -1 (+1 default)
+</ul>
+<li><code>'BW compensated'</code>
+<p>The rate of frequency modulation is adapted to compensate for the resonator bandwidth. The compensation is implemented as described in Doll, A., Pribitzer, S., Tschaggelar, R., Jeschke, G., Adiabatic and fast passage ultra-wideband inversion in pulsed EPR, J. Magn. Reson. 230, 27-39 (2013).
+<ul style="list-style-type:none;">
+<li><code>PulseShape.BW</code> - frequency sweep width in MHz (the frequency is swept over ±BW/2)
+<li><code>PulseShape.SweepDirection</code> - +1 or -1 (+1 default)
+<li><code>PulseShape.freqaxis</code> - frequency axis. Also <code>Exp.mwFreq</code> needs to be defined.
+<li><code>PulseShape.v1</code> - magnitude response function (ideal or experimental)
+</ul>
+<li><code>'uniformQ'</code>
+<p>
+The frequency modulation is calculated as the integral of the squared amplitude modulation function (for nth order sech/tanh pulses or in general to obtain offset-independent adiabaticity pulses, see Garwood, M., DelaBarre, L., J. Magn. Reson. 153, 155-177 (2001).
+
+<ul style="list-style-type:none;">
+<li><code>PulseShape.BW</code> - frequency sweep width in MHz (the frequency is swept over ±BW/2)
+<li><code>PulseShape.SweepDirection</code> - +1 or -1 (+1 default)
+</ul>
+</ul>
+
+<code>PulseShape.I</code>, <code>PulseShape.Q</code>
+<br>
+I and Q data describing an arbitrary pulse. The time axis is reconstructed based on <code>Exp.tp</code> and the length of the I and Q vectors, all other input parameters (<code>Exp.Amplitude</code>, <code>Exp.Flip</code>, <code>Exp.FreqOffset</code>, <code>Exp.Phase</code>, etc.) are ignored.
+</div>
+
+<p>
+<code>iPulse</code> is a scalar or array containing the index/indices for the pulses in the Exp input structure for which to return the pulse data.
+</p>
+
+<p>
+The parameters in the <code>Opt</code> structure define different settings for the calculation. The available fields are given below.
+
+<div class="optionfield"><code>OverSampleFactor</code></div>
+<div class="optiondescr">
+Oversampling factor for the automatic determination of the time step (default = 10). 
+</div>
+
+<div class="optionfield"><code>Detect</code></div>
+<div class="optiondescr">
+Detection operator for the excitation profile calculation: 'Sz' (default), 'Sy', 'Sx', 'all'.
+</div>
+
+<div class="optionfield"><code>offsets</code></div>
+<div class="optiondescr">
+Axis of frequency offsets (in MHz) for which to compute the excitation profile (default is ±200 MHz, 201 pts or ±1.5*BW in 1 MHz steps if a bandwidth is defined for one of the pulses).
+</div>
+
+<!-- ============================================================= -->
+<div class="subtitle">Pulse definitions</div>
+
+
+
+<!-- ============================================================= -->
+<div class="subtitle">See also</div>
+
+<p>
+<a class="esf" href="evolve.html">evolve</a>,
+<a class="esf" href="saffron.html">saffron</a>
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+
+</html>

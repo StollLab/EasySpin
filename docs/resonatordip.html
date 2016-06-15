@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>resonatordip</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">resonatordip</div>
+
+<p>
+Resonator voltage reflection coefficient ("Resonator dip")
+</p>
+
+<!-- ====================================================== -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+Gamma = resonatordip(nu,nu0,Qu,beta)
+resonatordip(...)
+</pre>
+
+<!-- ====================================================== -->
+<div class="subtitle">Description</div>
+
+<p>
+This function computes the resonator voltage reflection coefficient. <code>nu</code> is the frequency range vector, in GHz, over which it is computed. If it is empty, an appropriate range is chose automatically. <code>nu0</code> is the resonator resonance frequency in GHz. <code>Qu</code> is the unloaded Q-factor of the resonator. <code>beta</code> is the coupling coefficient: 1 for critical coupling (matched), less than 1 for undercoupling, and greater than 1 for overcoupling.
+</p>
+
+<p>
+<code>Gamma</code> is the voltage reflection coefficient. This is the ratio of the E-fields of the reflected wave and the incoming wave. The power reflection coefficient is <code>abs(Gamma).^2</code>.
+</p>
+
+<p>
+If no output is requested, <code>resonatordip</code> plots the results.
+</p>
+
+<!-- ====================================================== -->
+<div class="subtitle">Examples</div>
+
+<p>
+Here is a simple example
+</p>
+
+<pre class="matlab">
+nu = linspace(9.2,9.8,1001);   % GHz
+nu0 = 9.5;                     % GHz
+Qu = 1000;
+beta = 1;
+resonatordip(nu,nu0,Qu,beta);
+</pre>
+
+<p>
+To plot the power reflection coefficient on a logarithmic dB scale, use
+</p>
+
+<pre class="matlab">
+G = resonatordip(nu,nu0,Qu,beta);
+P_refl = abs(G).^2;
+plot(nu,10*log10(P_refl));
+xlabel('frequency (GHz)');
+ylabel('reflected power (dB)');
+</pre>
+
+<!-- ====================================================== -->
+<div class="subtitle">See also</div>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+</html>

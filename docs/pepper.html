@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>pepper</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">pepper</div>
+
+<p>
+Calculation of field-swept and frequency-swept solid-state cw EPR spectra for powders and crystals.
+</p>
+
+<!-- ============================================================= -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+pepper(Sys,Exp);
+pepper(Sys,Exp,Opt);
+spec = pepper(...);
+[B,spec] = pepper(...);
+[B,spec,Trans] = pepper(...);
+</pre>
+
+<p>
+See also the <a href="userguide_pepper.html">user guide</a> on how to use <code>pepper</code>.
+</p>
+
+<!-- ============================================================= -->
+<div class="subtitle">Description</div>
+
+<p>
+<code>pepper</code> calculates cw EPR spectra for powders, frozen solutions and single crystals. It
+can calculate both field-swept and frequency-swept spectra.
+</p>
+
+<div class="subtitle2">Outputs</div>
+
+<p>
+There are up to three possible output arguments.
+
+<ul>
+<li>
+If  no output argument is requested, <code>pepper</code> plots the simulated spectrum.
+<li>
+<code>spec</code> contains the calculated spectrum or spectra.
+<li>
+For field-swept spectra, <code>x</code> is a vector of magnetic field values over which the spectrum was calculated, in units of mT.
+For frequency-swept spectra, <code>x</code> is a vector of microwave frequency values over which the spectrum was calculated, in units of GHz.
+<li>
+<code>Trans</code> is a list of level number pairs indicating the transitions which where included in the spectrum calculations. Level numbers refer to the energy levels of the Hamiltonian in ascending order, so level 1 is that which lowest energy and so on. If <code>spec</code> is a matrix, <code>spec(k,:)</code> is the spectrum of the transition <code>Trans(k,:)</code>.
+</ul>
+
+<div class="subtitle2">Input: Spin system</div>
+
+<p>
+There are three inputs to the function, the last one optional. They are similar to those of <a class="esf" href="resfields.html">resfields</a>.
+</p>
+
+<p>
+<code>Sys</code> is a <a href="spinsystem.html">spin system structure</a> containing the spin Hamiltonian parameters and the <a href="broadenings.html">line broadening parameters</a>.
+</p>
+
+<p>
+For simulating a multi-component mixture, <code>Sys</code> should be a cell array of spin systems, e.g. <code>{Sys1,Sys2}</code> for a two-component mixture. Each of the component spin systems should have a field <code>weight</code> that specifies the amount of the corresponding component in the final spectrum. <code>weight</code> is an absolute, not a relative, weight. It is proportional to the number of spins. If <code>weight</code> is missing, it is set to 1.
+</p>
+
+<div class="subtitle2">Input: Experimental parameters</div>
+<p>
+<code>Exp</code> contains standard experimental parameters such as the microwave frequency, the magnetic field range and temperature. See <a href="cwepr_exp.html">here</a> for a full list. Beyond these standard fields, <code>pepper</code> supports the following additional fields.
+</p>
+
+<div class="optionfield"><code>Temperature</code></div>
+<div class="optiondescr">
+This field specifies populations for the states of the spin system, either directly or via a temperature.
+<p>
+<em>Thermal equilibrium:</em><br>
+<code>Temperature</code> is the temperature of the spin system in the EPR experiment, in kelvin. E.g., <code>Exp.Temperature = 298</code> corresponds to room temperature. If given, populations are computed for all energy levels assuming thermal (Boltzmann) equilibrium, and the population differences between two levels are included in the line intensities of the corresponding EPR transition. If not given (or set to <code>NaN</code>), the populations are not calculated, and all transitions are assumed to have equal population difference of 1.
+<p>
+<em>Non-equilibrium populations:</em><br>
+<code>Temperature</code> can also be used to specify non-equilibrium populations. For a spin system with <code>N</code> electron states (e.g. 4 for a biradical, 3 for a triplet state), it must be a vector with <code>N</code> elements giving the populations of the zero-field electron states, from lowest to highest in energy.
+<br>
+E.g., if <code>Exp.Temperature = [0.85 0.95 1.2]</code> for an S=1 system, the population of the lowest-energy zero-field state has a population of 0.85, the middle one has 0.95, and the highest-energy zero-field state has a population of 1.2. If there are coupled nuclei, the populations of all nuclear sublevels within each electron spin manifold are assumed to be equal.
+</div>
+
+
+<div class="optionfield"><code>mwPolarization</code></div>
+<div class="optiondescr">
+Gives the polarization of the incident radiation. The following values are possible: <code>'linear'</code> (default), <code>'circular+'</code>, <code>'circular-'</code>, <code>'unpolarized'</code>. <code>'circular+'</code> (<code>'circular-</code>) means that the magnetic field component of the radiation is rotating in the positive (negative) sense around the propagation direction.
+</div>
+
+<div class="optionfield"><code>Mode</code></div>
+<div class="optiondescr">Determines the excitation mode. Possible values: <code>'perpendicular'</code> (default), <code>'parallel'</code>, <code>[k_tilt alpha_pol]</code>, <code>k_tilt</code>.
+
+<p>
+<em>Resonator experiments:</em><br>
+For conventional experiments involving linear polarized microwave in a standard resonator, use <code>'perpendicular'</code> (default) or <code>'parallel'</code>. In the perpendicular mode, the microwave field B<sub>1</sub> is along the laboratory x axis (xL), in the parallel mode it is along the z axis (zL), parallel to the external static field B<sub>0</sub>. The perpendicular detection mode is by far the most common.
+
+<p>
+<em>Beam experiments:</em><br>
+For beam experiments, specify the angle between the propagation vector k and the static magnetic field B<sub>0</sub> in <code>k_tilt</code>, in radians. <code>k_tilt = 0</code> corresponds to Faraday geometry, where B<sub>0</sub> and k are parallel. <code>k_tilt = pi/2</code> corresponds to Voigt mode, where B<sub>0</sub> and k are perpendicular. B<sub>0</sub> is along the laboratory z axis (zL), <code>[0; 0; 1]</code> in the lab frame. Together, B0 and k define the zL-yL plane, where yL is the laboratory y axis.
+
+<p>
+For linearly polarized mw irradiation, you need to also give <code>alpha_pol</code>, the polarization angle of the radiation. <code>alpha_pol</code> is the angle between B1 and the intersection of the zL-yL plane and the plane perpendicular to the propagation vector k. <code>alpha_pol</code> is only allowed for linearly polarized excitation (<code>Param.mwPolarization = 'linear'</code>).
+
+<p>
+In the lab frame, the direction of propagation is
+<pre class="matlab">
+nk  = [0; sin(k_tilt); cos(k_tilt)]
+</pre>
+and the direction of the linearly polarized B1 field is
+<pre class="matlab">
+nB1 = [sin(alpha_pol); -cos(alpha_pol)*cos(k_tilt); cos(alpha_pol)*sin(k_tilt)]
+</pre>
+</ul>
+
+</div>
+
+
+<div class="optionfield"><code>CrystalOrientation</code></div>
+<div class="optiondescr">
+An Nx3 or Nx2 array that specifies single-crystal orientations for which the EPR spectrum should be computed. Each row of <code>CrystalOrientation</code> contains the three Euler rotation angles that transform the <a href="frames.html">crystal frame (C) to the lab frame (L)</a>. If only two Euler angles are given, the third is set to zero. If <code>CrystalOrientation</code> is empty or not specified, the full powder spectrum is computed.
+<pre class="matlab">
+Exp.CrystalOrientation = [0 0 0];              % single crystal, crystal z axis aligned with B0
+Exp.CrystalOrientation = [0 pi/2 0];           % single crystal, crystal z axis perpendicular to B0
+Exp.CrystalOrientation = [0 0 0; 0 pi/2 0];    % two crystals
+Exp.CrystalOrientation = [];                   % powder
+</pre>
+</div>
+
+<div class="optionfield"><code>CrystalSymmetry</code></div>
+<div class="optiondescr">
+Specifies the symmetry of the crystal. You can give either the number of the space group (between 1 and 230), the symbol of the space group (such as <code>'P212121'</code> or <code>'Ia-3d'</code>), or the symbol for the point subgroup of the space group (in either Sch&ouml;nflies or Hermann-Mauguin notation, such as <code>'D2h'</code> or <code>'mmm'</code>).
+
+<pre class="matlab">
+Exp.CrystalSymmetry = 11;       % space group number (between 1 and 230)
+Exp.CrystalSymmetry = 'P21/c';  % space group symbol
+Exp.CrystalSymmetry = 'C2h';    % point group, Sch&ouml;nflies notation
+Exp.CrystalSymmetry = '2/m';    % point group, Hermann-Mauguin notation
+</pre>
+
+<p>
+When <code>CrystalSymmetry</code> is given, all symmetry-related sites in the crystal are generated and included in the calculation. If <code>CrystalSymmetry</code> is not given, space group 1 (P1, point group C1, one site per unit cell) is assumed.
+</p>
+
+</div>
+
+<div class="optionfield"><code>MolFrame</code></div>
+<div class="optiondescr">
+The three <a href="eulerangles.html">Euler angles</a>, in radians, for the transformation of the <a href="frames.html">crystal frame</a> to the <a href="frames.html">molecular frame</a>. Use this field when specifying a crystal containing spin systems that are tilted with respect to the crystal frame. E.g. <code>Param.MolFrame=[0,pi/4,0]</code> tilts the x and z axis of the spin system's molecular frame (xM, zM), relative to the crystal frame (xC,yC,zC).
+</p>
+</div>
+
+<div class="optionfield"><code>Ordering</code>
+<em>scalar</em> (default: zero) or <em>function handle</em></div>
+<div class="optiondescr">
+<p>
+If a number is given in this field, it specifies the orientational distribution of the paramagnetic molecules in the sample. If not given or set to zero, the distribution is isotropic, i.e. all orientations occur with the same probability.
+
+<p>
+If it is given, the orientational distribution is non-isotropic and computed according to the formula P(&theta;) = exp(-U(&theta;)) with U(&theta;) = -&lambda;(3 cos<sup>2</sup>&theta; - 1)/2), where &theta; is the angle between the molecular z axis and the static magnetic field, and &lambda; is the number specified in <code>Exp.Ordering</code>.
+
+<p>
+Typical values for &lambda; are between about -10 and +10. For negative values, the orientational distribution function P(&theta;) is maximum at &theta; = 90&deg; (preferential orientation in the molecular xy plane), for positive values at &theta; = 0&deg; and &theta; = 180&deg; (preferential alignment along the molecular z axis). The larger the magnitude of &lambda;, the sharper the distributions.
+
+<p>
+To plot a distribution depending on &lambda;, use
+
+<pre class="matlab">
+lambda = 5;
+theta = linspace(0,pi,1001);
+U = -lambda*plegendre(2,0,cos(theta));
+P = exp(-lambda*U);
+plot(theta*180/pi,P);
+</pre>
+
+<p>
+If <code>Exp.Ordering</code> is a function handle, <code>pepper</code> will use the user-supplied function to obtain the orientational distribution. It calls the function with two vector arguments, <code>phi</code> and <code>theta</code> (in radians). The function must return a vector <code>P</code> containing probabilities for each orientation, that is <code>P(k)</code> is the probability of finding the paramagnetic molecules with orientation specified by <code>phi(k)</code> and <code>theta(k)</code>. Here is an example with an anonymous function:
+</p>
+
+<pre class="matlab">
+Exp.Ordering = @(phi,theta) gaussian(theta,0,15/180*pi);
+</pre>
+
+<p>
+Of course, the function can also be written and stored in a separate file, e.g. <code>myori.m</code>. Then use <code>Exp.Ordering = @myori</code>.
+</p>
+
+<p>
+When using a custom orientational distribution, make sure that the symmetry used in the simulation corresponds to the symmetry of the distribution. If the distribution is very narrow, increase the number of knots in the options structure.
+</p>
+
+</div>
+
+<p>
+<code>mwFreq</code> (for field sweeps) and <code>Field</code> (for frequency sweeps) have to be provided by the user. All other fields are optional and have default values. Often, EasySpin can determine the sweep ranges automatically from the given spin system and fixed mw frequency or static field.
+</p>
+
+<div class="subtitle2">Input: Simulation options</div>
+
+<p>
+The structure <code>Opt</code> collects computational parameters. <code>Opt</code> need not be specified, in which case default values for all fields are used. The field names and their possible values are listed below.
+</p>
+
+<div class="optionfield"><code>Method</code>
+<code>'matrix'</code> (default), <code>'perturb'</code>, <code>'perturb1'</code>, <code>'perturb2'</code>, <code>'hybrid'</code></div>
+<div class="optiondescr">
+<p>
+Determines the level of theory <code>pepper</code> uses to compute the resonance fields (for field sweeps) or frequencies (for frequency sweeps).
+<ul>
+<li>
+<code>'matrix'</code> indicates matrix diagonalization. This method is very reliable and accurate and works for spin systems with any number of spins. All interactions, including quadrupole, are included in the computation.
+<li>
+<code>'perturb1'</code> indicates first-order perturbation theory, and  <code>'perturb'</code> or <code>'perturb2'</code> indicates second-order perturbation theory. These methods ares limited to spin systems with one electron spin 1/2 (and possibly some nuclei). In addition, nuclear Zeeman and nuclear quadrupole terms are neglected, and only allowed transitions are computed. For multi-nuclear spin system, cross-nuclear effects are neglected as well.  The resulting spectrum is reasonably correct only for small hyperfine couplings (e.g. organic radicals).
+<li>
+<code>'hybrid'</code> indicates matrix diagonalization for all the electron spins, and perturbation treatment for all nuclei, using effective nuclear sub-Hamiltonians for each electron spin manifold. This method is advantageous for high-spin systems with significant zero-field splitting, but only small hyperfine couplings. If some nuclei have large hyperfine couplings that need to be treated exactly, they can be specified in the field <code>HybridCoreNuclei</code>.
+</ul>
+
+<p><code>'matrix'</code> is the method of choice for systems with only a few low-spin nuclei (and any number of electron spins). For spin systems with many nuclei and small hyperfine couplings, simulations using perturbation theory are orders of magnitude faster. <code>'hybrid'</code> is the method of choice for systems with several large electron spins coupled to several nuclei such as in oligometallic clusters.
+</div>
+
+<div class="optionfield"><code>HybridCoreNuclei</code>
+array of nucleus indices</div>
+<div class="optiondescr">
+List of nuclei to include in the matrix diagonalization when using <code>Opt.Method='hybrid'</code>. If not given, it is set to <code>[]</code>, and all nuclei are treated perturbationally.
+<p>
+Here is an example:
+<pre class="matlab">
+Sys.Nucs = '63Cu,14N,1H';
+
+Opt.Method = 'hybrid';
+Opt.HybridCoreNuclei = [1];   % 63Cu is treated exactly, 14N and 1H perturbationally
+Opt.HybridCoreNuclei = [1 2]; % 63Cu and 14N are treated exactly, 1H perturbationally
+Opt.HybridCoreNuclei = [];    % all nuclei are treated perturbationally
+</pre>
+</div>
+
+<div class="optionfield"><code>Output</code>
+<code>'summed'</code> (default) or <code>'separate'</code></div>
+<div class="optiondescr">
+Determines in what form the spectrum is returned. If set to <code>'separate'</code>, <code>pepper</code> returns one spectrum for each transition in a matrix <code>spec</code>. The transition spectra are along the rows, so <code>spec(k,:)</code> is the spectrum of transition k. If <code>'summed'</code> is specified, the total spectrum is returned in <code>spec</code> as a vector.
+<p>
+For crystal simulations, <code>'separate'</code> means something different: If given, <code>pepper</code> returns each crystal orientation (and not each transition) separately.
+</div>
+
+<div class="optionfield"><code>Verbosity</code></div>
+<div class="optiondescr">
+Determines how much information <code>pepper</code> prints to the command window. If <code>Opt.Verbosity=0</code>, <code>pepper</code> is silent. 1 logs relevant information, 2 gives more details.
+</div>
+
+<div class="optionfield"><code>nKnots</code>, <code>[N1]</code> or <code>[N1 N2]</code></div>
+<div class="optiondescr">Determines the number of orientations (knots) in a powder simulation for which spectra are calculated.
+<ul>
+<li>
+<code>N1</code> gives the number of orientations between &theta;=0&deg; and &theta;=90&deg; for which spectra are explicitly calculated using the physical theory. Common values for <code>N1</code> are between 10 (10&deg; increments) and 91 (1&deg; increments). The larger the anisotropy of the spectrum and the narrower the linewidth relative to the anisotropy, the higher <code>N1</code> must be to yield smooth powder spectra.
+
+<li><code>N2</code> is the refinement factor for the interpolation of the orientational grid. E.g. if <code>N2=4</code>, then between each pair of computed orientations three additional orientations are calculated by spline interpolation. Values higher than 10 are rarely necessary. If <code>N2</code> is not given, a default value is used.
+</ul>
+
+<pre class="matlab">
+Opt.nKnots = 91;       % 1&deg; increments, no interpolation
+Opt.nKnots = [46 0];   % 2&deg; increments, no interpolation
+Opt.nKnots = [31 6];   % 3&deg; increments, 6-fold interpolation (giving 0.5&deg; increments)
+</pre>
+</div>
+
+<div class="optionfield"><code>Transitions</code>, <em>mx2 vector of integers</em>, or <code>'all'</code></div>
+<div class="optiondescr">
+Determines manually the level pairs which are used in the spectrum calculation. If given, <code>pepper</code> uses them and skips its automatic transition selection scheme. Level pairs are specified in <code>Transitions(k,:)</code> by the level numbers which start with 1 for the lowest-energy level. If <code>'all'</code> is given, then all transitions are included.
+<pre class="matlab">
+Opt.Transitions = [1 6; 2 5];       % include only transitions 1->6 and 2->5
+</pre>
+</div>
+
+<div class="optionfield"><code>Sites</code></div>
+<div class="optiondescr">
+In crystal simulations, this gives a list of crystal sites to include in the simulation.
+
+If <code>Opt.Sites</code> is empty or not given, all sites are included. If given, it must be a list of site numbers. The number of sites depends on the space group given in <code>Exp.CrystalSymmetry</code>. E.g. the following set limits the simulation to sites 1 and 3 of the 4 magnetically distinct sites in crystal of space group no. 47.
+
+<pre class="matlab">
+Exp.CrystalSymmetry = 47;  % space group Pmmm
+Opt.Sites = [1 3];
+</pre>
+
+In powder simulations, <code>Opt.Sites</code> is ignored.
+</div>
+
+<div class="optionfield"><code>Threshold</code></div>
+<div class="optiondescr">
+Specifies the threshold for <code>pepper</code>'s transition pre-selection. Any transition with an estimated relative average amplitude less than this number is not included in the calculation. The relative average amplitude of the strongest transition is 1, the default is <code>1e-4</code>. The pre-selection is an approximate procedure, and it might miss transitions for complicated spin systems. In these cases, setting it to zero will include all transitions in the computation.
+</div>
+
+<div class="optionfield"><code>Symmetry</code>, <code>'auto'</code> (default), <code>'Dinfh'</code>, <code>'D2h'</code>, <code>'C2h'</code> or <code>'Ci'</code>
+</div>
+<div class="optiondescr">
+Determines the symmetry used for the powder simulation. Based on this the set of orientations for which spectra are computed is chosen. <code>'Dinfh'</code> corresponds to a line from &theta;=0&deg; to &theta=90&deg; (with &phi;=0&deg;), <code>'D2h'</code> to one octant, <code>'C2h'</code> to two octants, and <code>'Ci'</code> to one hemisphere (four octants). <code>auto</code> is the default, meaning that <code>pepper</code> determines the correct symmetry automatically from the given spin system. With any other setting, <code>pepper</code> is forced to use the specified symmetry, even if it is not optimal or incorrect for the spin system. See also <a class="esf" href="symm.html">symm</a>.
+</div>
+
+<div class="optionfield"><code>Intensity</code>, 
+<code>'on'</code> (default) or <code>'off'</code>
+</div>
+<div class="optiondescr">
+With <code>'on'</code>, transition rates, i.e. line intensities, are computed correctly. Allowed transitions will be more intense then quasi-forbidden ones. <code>'off'</code> simply sets all transition rates of all transitions to 1. Allowed and forbidden transitions will have the same intensity. Be very careful when switching this option to <code>'off'</code>! The resulting spectra are not correct.
+</div>
+
+<div class="optionfield"><code>Freq2Field</code>, <code>1</code> (default) or <code>0</code>
+</div>
+<div class="optiondescr">
+Determines whether the frequency-to-field conversion factor is included in the line intensities of field-swept spectra. <code>1</code> indicates yes, <code>0</code> indicates no. The factor is the generalized 1/g Aasa-Vänngård factor. <code>Freq2Field</code> should never be changed from its default 1. This setting is ignored for frequency-swept spectra.
+</div>
+
+<div class="optionfield"><code>IsoCutoff</code></div>
+<div class="optiondescr">
+For isotope mixtures, determines which isotopologues to include in the simulation. Any isotopologue with relative abundance smaller than <code>IsoCutoff</code> is excluded. The default value is 1e-4.
+</div>
+
+<!-- ============================================================= -->
+<div class="subtitle">Algorithm</div>
+
+<p>
+Spectra are calculated over a triangular orientational grid using <a class="esf" href="resfields.html">resfields</a>, <a class="esf" href="resfields.html">resfields_perturb</a>, <a class="esf" href="resfields.html">resfreqs_matrix</a>, <a class="esf" href="resfields.html">resfreqs_perturb</a> to obtain the resonance line positions and line amplitudes. For each orientation, line positions, and possibly widths and intensities, are evaluated.
+</p>
+
+<p>
+This gridded data is then interpolated with cubic splines in a combined 1D/2D approach. Resampling of the spline surface gives much quicker many more position/intensity/width data than quantum-mechanical calculation.
+</p>
+
+<p>
+Finally, the refined data are projected onto the magnetic field axis using a Delaunay triangulation of the resampled spline surfaces. Linear interpolative projection of these triangles yields a smooth spectrum with very low powder simulation noise. In the case of full anisotropic width treatment, a simple sum-up of Gaussian line shapes is used instead of the projection.
+</p>
+
+<p>
+Apart from the main steps above, there is an automatic transition selection, which works along the same line as the overall algorithm, except that its results are only used for determining which level pairs possibly contribute to the spectrum.
+</p>
+
+<p>
+For line width calculations, Gaussian distributions are assumed both in the magnetic field and the frequency dimension. The overall line width for a given orientation is
+</p>
+
+<div class="eqn">
+<img src="eqn/pepper1.png" alt="[eqn]"><!--MATH
+$$
+\varGamma^2
+=
+\varGamma^2_\mr{res} +
+\varGamma^2_{gA} +
+\varGamma^2_{DE}
+$$
+-->
+</div>
+ 
+<p>
+where <img src="eqn/pepper2.png" alt="[eqn]"><!--MATH$\varGamma_\mr{res}$--> is the residual line width
+specified in <code>Sys.HStrain</code>, <img src="eqn/pepper3.png" alt="[eqn]"><!--MATH$\varGamma_{gA}$--> is
+the line width due to correlated g-A strain (<code>Sys.gStrain</code> and <code>Sys.AStrain</code>),
+and <img src="eqn/pepper4.png" alt="[eqn]"><!--MATH$\varGamma_{DE}$--> the width arising from D-E strain
+(<code>Sys.DStrain</code>).
+</p>
+
+<p>
+Although quite robust and general, <code>pepper</code> still has some limitations.
+</p>
+
+<ul>
+<li>
+In the case of looping resonance fields, interpolation is not possible. If the spectrum is coarse, increase <code>Opt.nKnots</code>.
+</li>
+<li>
+In the case of looping resonance fields, there might appear bumps around the coalescence points in the spectrum. To get rid of them, increase the line widths or <code>Opt.nKnots</code>.
+</li>
+</ul>
+
+<!-- ============================================================= -->
+<div class="subtitle">Examples</div>
+
+<p>
+As an illustration, we explore the influence of various <code>pepper</code> options on the zeroth-harmonic (DC) spectrum of a simple orthorhombic system. First the spin system, the experiment at X-band and some options are defined. An anisotropic line width is included in the spin system.
+</p>
+
+<pre class="matlab">
+Sys = struct('S',1/2,'g',[1.9 2 2.3]);
+Exp = struct('CenterSweep',[325 80],'mwFreq',9.5,'Harmonic',0);
+Opt = struct('Verbosity',1);
+</pre>
+
+<p>
+Next we compute spectra for some combinations of broadening parameters.
+</p>
+
+<pre class="matlab">
+[x,y1] = pepper(Sys,Exp,Opt);
+Sys.lw = 2;
+y2 = pepper(Sys,Exp,Opt);
+Sys.lw = 0;
+Sys.HStrain = [170 40 50];
+y3 = pepper(Sys,Exp,Opt);
+</pre>
+
+<p>
+The final plot reveals the differences between the spectra.
+</p>
+
+<pre class="matlab">
+plot(x,y1/sum(y1),x,y2/sum(y2),x,y3/sum(y3));
+legend('no broadening','convolution broadening','H strain');
+</pre>
+
+<!-- ============================================================= -->
+<div class="subtitle">References</div>
+
+<p>
+References which contain concepts, formulas and algorithms directly used in the function are listed below.
+</p>
+
+<ul>
+<li>St. Stoll, PhD thesis, ETH Zurich, 2003
+<li>St. Stoll, A. Schweiger, Chem. Phys. Lett. 380(3-4), 464-470 (2003)
+<li>G. van Veen, J. Magn. Reson. 30, 91-109 (1978)
+<li>H. Ebert, J. Abart, J. Voitl&auml;nder, J. Chem. Phys. 79(10), 4719-4723 (1983)
+<li>D. Wang, G.R. Hanson, J. Magn. Reson. A 117, 1-8 (1995)
+</ul>
+
+<!-- ============================================================= -->
+<div class="subtitle">See also</div>
+
+<p>
+<a class="esf" href="eigfields.html">eigfields</a>,
+<a class="esf" href="esfit.html">esfit</a>,
+<a class="esf" href="garlic.html">garlic</a>,
+<a class="esf" href="resfields.html">resfields</a>,
+<a class="esf" href="resfields.html">resfields_perturb</a>,
+<a class="esf" href="resfields.html">resfreqs_matrix</a>,
+<a class="esf" href="resfields.html">resfreqs_perturb</a>,
+<a class="esf" href="salt.html">salt</a>,
+<a class="esf" href="sham.html">sham</a>
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+
+</html>

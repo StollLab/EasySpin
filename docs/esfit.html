@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>esfit</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">esfit</div>
+
+<p>
+Least-squares fitting of EPR spectra, single and multiple components.
+</p>
+
+<!-- ============================================================= -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+esfit(SimFnc,expSpc,Sys0,Vary,Exp);
+esfit(SimFnc,expSpc,Sys0,Vary,Exp,SimOpt);
+esfit(SimFnc,expSpc,Sys0,Vary,Exp,SimOpt,FitOpt);
+BestSys = esfit(...)
+[BestSys,BestSpc] = esfit(...)
+</pre>
+
+<p>
+See also the <a href="userguide_fitting.html">user guide</a> on fitting.
+
+<!-- ============================================================= -->
+<div class="subtitle">Description</div>
+
+<p>
+<code>esfit</code> fits EPR spectra simulated with
+<a class="esf" href="garlic.html">garlic</a>,
+<a class="esf" href="pepper.html">pepper</a>, 
+<a class="esf" href="chili.html">chili</a> etc. to experimental spectral data
+using least-squares fitting algorithms.
+</p>
+
+
+<p>
+If no output is requested, <code>esfit</code> start an <span style="font-weight:bold;">interactive user interface</span> that allows extensive
+control over the fitting process and also allows the export of the fitting results to the workspace. In the UI, the fitting algorithm can be changed,
+parameters can be excluded from the fit, and multiple fit set can be stored.
+</p>
+
+<p>
+If the user interface is not desired, then <code>esfit</code> should be called with one or two output arguments:
+<ul>
+<li>
+<code>BestSys</code> contains the spin system parameters of the best fit.
+<li>
+<code>BestSpc</code> contains the simulated spectrum that gives the best fit.
+</ul>
+
+
+<p>
+The input parameters are the following:
+
+<ul>
+<li>
+<code>SimFnc</code> is the name of the simulation function: <code>'garlic'</code>, <code>'pepper'</code>,
+<code>'chili'</code>, <code>'saffron'</code> or <code>'salt'</code>.
+<li>
+<code>expSpc</code> is a 1D array containing the experimental spectral data.
+<li>
+<code>Sys0</code> is a <a href="spinsystem.html">spin system structure</a> containing all the parameters of the spin system.
+For parameters that are to varied during the fitting process, the values in the structure represent the centers of the search ranges.
+<br>For multi-component systems, <code>Sys0</code> is a list of spin system structures, e.g. <code>{Sys1,Sys2}</code> for a two-component system. The weights for the different components are included in each component structure, e.g. <code>Sys1.weight = 0.7</code> and <code>Sys2.weight = 0.3</code>. The weights are relative (0.7 and 0.3 is the same as 14 and 6) and can be included in the fit. If weight is omitted, it is assumed to be 1. There is no limit on the number of components.
+<li>
+<code>Vary</code> contains the approximate maximum variations for the spin system parameters allowed in the fitting. If a spin system parameter should be included
+in the fitting, give it a non-zero value in this structure. If it should not be included, set its value in this structure to zero, or don't include it at all.
+<pre class="matlab">
+Sys0.lwpp = 5;
+Vary.lwpp = 2;    % the linewidth is searched over a range of about 3 to 7
+Vary.lwpp = 0;    % the linewidth kept constant at the value given in Sys0
+</pre>
+For multiple components, <code>Vary</code> should contain one structure per component, e.g. <code>{Vary1,Vary2}</code> for two components. If none of the parameters of a component are varied in the fit, <code>[]</code> can be specified, e.g. <code>{Vary1,[]}</code> for a two-component fit where only parameters of the first component are varied.
+<li>
+<code>Exp</code> contains the experimental parameters needed for the simulation. Make sure to specify the field or frequency range you used for the experimental data in <code>Exp.Range</code> or <code>Exp.mwRange</code>. If you let the simulation function automatically pick a range, it will likely be different from the experimental one, and <code>esfit</code> cannot do its work. For example, if <code>x</code> is the experimental field range, use <code>Exp.Range = [min(x) max(x)]<code>.
+<li>
+<code>SimOpt</code> contains simulation options that are forwarded directly to the simulation function. Refer to the documentation of
+<a class=esf" href="chili.html">chili</a>, 
+<a class=esf" href="garlic.html">garlic</a>, 
+<a class=esf" href="pepper.html">pepper</a>, and
+<a class=esf" href="salt.html">salt</a> for details.
+<li>
+<code>FitOpt</code> is a structure containing settings for the optimization algorithms used in <code>esfit</code>. The possible settings are discussed
+further down on this page.
+</ul>
+
+
+<p>
+The structure <code>FitOpt</code> contains fitting options. The most important ones select the fitting algorithm and the function to use for computing the residuals:
+</p>
+
+<div class="optionfield"><code>Method</code></div>
+<div class="optiondescr">
+A string indicating the least-squares fitting method to be used, consisting of up to two keywords.
+One keyword specifies the algorithm, and another one selects the way residuals are computed. Some examples:
+
+<pre class="matlab">
+FitOpt.Method = 'simplex fcn';
+FitOpt.Method = 'genetic int';
+</pre>
+
+<p>
+The keywords for choosing one of the available algorithm are
+
+<ul>
+<li><code>'simplex'</code>: Nelder-Mead simplex algorithm (unconstrained)
+<li><code>'levmar'</code>: Levenberg/Marquardt (unconstrained)
+<li><code>'montecarlo'</code>: Monte Carlo random search (constrained)
+<li><code>'genetic'</code>: Genetic algorithm (constrained)
+<li><code>'grid'</code>: Systematic grid search (constrained)
+<li><code>'swarm'</code>: Particle swarm algorithm (constrained)
+</ul>
+If you don't specify anything, the default <code>'simplex'</code> is used.
+
+<p>
+The second keyword specifies what the residuals and consequently the root-mean-square deviation (rmsd) should be computed from.
+Usually the residuals are computed by taking the difference of the experimental and the simulated spectrum. However,
+the spectra can be transformed before computing the residuals.
+<ul>
+<li><code>'fcn'</code> means take the experimental and simulated spectral data directly.
+<li><code>'int'</code>: integrate the two spectra.
+<li><code>'dint'</code>: use the double integrals of the two spectra.
+<li><code>'diff'</code>: compute the derivatives of the two spectra.
+<li><code>'fft'</code>: FFT both spectra before computing the residuals.
+</ul>
+The default value is <code>'fcn'</code>. If there are many resolved lines, <code>'int'</code> gives better convergence.
+</div>
+
+<div class="optionfield"><code>Scaling</code></div>
+<div class="optiondescr">
+This string specifies the scaling method. There are different ways a simulated spectrum can be scaled and shifted
+to overlap as much as possible with the experimental one. The possible values are
+
+<ul>
+<li><code>'maxabs'</code>: make the maximum absolute of simulated and experimental spectrum equal
+<li><code>'minmax'</code>: rescales and shifts so that minimum and maximum of the two spectra are identical
+<li><code>'lsq'</code>: obtains the scaling factor by least-squares fitting, without shifting
+<li><code>'lsq0'</code>: same as <code>'lsq'</code>, but includes a constant baseline correction
+<li><code>'lsq1'</code>: same as <code>'lsq'</code>, but includes a linear baseline correction
+<li><code>'lsq2'</code>: same as <code>'lsq'</code>, but includes a quadratic baseline correction
+<li><code>'none'</code>: no scaling at all
+</ul>
+
+<p>
+If the baseline of the experimental spectra has been corrected beforehand, the best choice is <code>'maxabs'</code>.
+This is also the default value.
+If the noise level is high, <code>'lsq'</code> is a better choice:
+
+<pre class="matlab">
+FitOpt.Scaling = 'lsq';
+</pre>
+
+To include corrections for a baseline in the expermental spectrum, use <code>'lsq0</code>, <code>'lsq1</code>, or <code>'lsq2</code>.
+
+</div>
+
+<p>
+There are some more options which are recognized by all fitting algorithms:
+
+<div class="optionfield"><code>OutArg</code></div>
+<div class="optiondescr">
+This is an array with two numbers <code>[nArgOut useArg]</code> that tells <code>esfit</code> how to use the output arguments of the simulation function. <code>nArgOut</code> is the number of outputs provided by the function. <code>esfit</code> will call the function asking for this number of outputs. The second number, <code>useArg</code>, tells <code>esfit</code>  which of the output arguments actually contains the simulated data.
+<p>
+E.g. <code>OutArg = [3 2]</code> indicates to call the function asking for three outputs and then to use output number 2 for the fitting.
+
+<p>
+For the common EasySpin simulation function, <code>OutArg</code> is chosen automatically. For custom simulation functions that deviate in their output behavior, <code>OutArg</code> might be useful.
+</div>
+
+<div class="optionfield"><code>maxTime</code></div>
+<div class="optiondescr">
+Time, in minutes, after which <code>esfit</code> will terminate even if the fitting has not yet converged.
+</div>
+
+<div class="optionfield"><code>PrintLevel</code></div>
+<div class="optiondescr">
+A number, 0 or 1. If set to 0, the fitting functions don't write anything to the command window. If set to 1 (default),
+they print information about the progress of the fitting.
+</div>
+
+<p>
+Each of the available fitting algorithms can be fine-tuned using a set of parameters.
+</p>
+
+<p>
+Parameters for Nelder/Mead downhill simplex:
+</p>
+
+<div class="optionfield"><code>RandomStart</code></div>
+<div class="optionfdescr">
+If set to 1, the starting point in the parameter space is chosen randomly, within the given limits. If set to 0,
+the center of the parameter space is used as starting point. By default, <code>RandomStart</code> is 0.
+</div>
+
+<div class="optionfield"><code>TolEdgeLength</code></div>
+<div class="optiondescr">
+Termination tolerance for the length of the parameter step. This number refers to the rescaled fitting parameters, as described above.
+</div>
+
+<div class="optionfield"><code>TolFun</code></div>
+<div class="optiondescr">
+Termination tolerance for function value change.
+</div>
+
+<div class="optionfield"><code>SimplexPars</code></div>
+<div class="optiondescr">
+An array of four elements <code>[rho chi psi sigma]</code>, where <code>rho</code> is the reflection coefficient, <code>chi</code> is the expansion coefficient, <code>psi</code> is the contraction coefficient, and <code>sigma</code> is the shrink coefficient. The default values are <code>[1,2,0.5,0.5]</code>.
+</div>
+
+<div class="optionfield"><code>delta</code></div>
+<div class="optiondescr">
+Size parameter of the initial simplex. The default value is 0.1.
+</div>
+
+<p>
+Parameters for Levenberg-Marquardt:
+
+<div class="optionfield"><code>RandomStart</code></div>
+<div class="optiondescr">
+If set to 1, the starting point in the parameter space is chosen randomly, within the given limits. If set to 0,
+the center of the parameter space is used as starting point. By default, <code>RandomStart</code> is 0.
+</div>
+
+<div class="optionfield"><code>TolStep</code></div>
+<div class="optiondescr">
+Termination tolerance for the length of the parameter step. This number refers to the rescaled fitting parameters, as described above.
+</div>
+
+<div class="optionfield"><code>TolFun</code></div>
+<div class="optiondescr">
+Termination tolerance for function value change.
+</div>
+
+<div class="optionfield"><code>lambda</code></div>
+<div class="optiondescr">
+Starting value of Marquardt parameter &lambda;, default value is 0.001.
+</div>
+
+<div class="optionfield"><code>delta</code></div>
+<div class="optiondescr">
+Step size for computing the finite-difference approximation of the Jacobian. Default is 1e-7.
+</div>
+
+<p>
+Parameters for Monte Carlo:
+
+<div class="optionfield"><code>nTrials</code></div>
+<div class="optiondescr">
+Number of random trial simulations.
+</div>
+
+<div class="optionfield"><code>TolFun</code></div>
+<div class="optiondescr">
+Termination tolerance for error function value change.
+</div>
+
+<p>
+Parameters for the genetic algorithm:
+
+<div class="optionfield"><code>PopulationSize</code></div>
+<div class="optiondescr">
+A number giving the size of the population, that is the number of parameter sets and simulations
+in one generation. The default value is 20, but for fittings with many parameters, this value
+should be increased.
+</div>
+
+<div class="optionfield"><code>maxGenerations</code></div>
+<div class="optiondescr">
+A number specifying the maximum number of generations the algorithm should run. After this number
+has been reached, the algorithm terminates, no matter how good or bad the best fit so far is. The
+default value is 40, but has to increased for fittings with many parameters. If only very few parameters
+are fitted, <code>maxGenerations</code> can be decreased.
+</div>
+
+<p>
+Parameters for the grid search:
+
+<div class="optionfield"><code>GridSize</code></div>
+<div class="optiondescr">
+A number or an array that specifies how many grid points there should be for each parameter. If one number is given, it is valid for all parameters. For example, let's
+assume that one g value and the linewidth are being fitted:
+
+<pre class="matlab">
+Vary.g = [0 0.001 0]; Vary.lw = 0.2;
+</pre>
+
+Then <code>GridSize</code> can contain 1 or 2 numbers:
+
+<pre class="matlab">
+FitOpt.GridSize = 10;   % 10 points for each parameter, making 100 grid points total
+FitOpt.GridSize = [20 3]; % 10 points along g and 3 along lw, giving a total of 60
+</pre>
+
+</div>
+
+<p>
+Parameters for the particle swarm algorithm:
+
+<div class="optionfield"><code>nParticles</code></div>
+<div class="optiondescr">
+Number of particles in the particle swarm.
+</div>
+
+<div class="optionfield"><code>TolFun</code></div>
+<div class="optiondescr">
+Termination tolerance for function value change.
+</div>
+
+<div class="optionfield"><code>SwarmParams</code></div>
+<div class="optiondescr">
+A vector of four parameters for the algorithm, <code>[k w c1 c2]</code>. <code>k</code> is the velocity limit
+and determines how far a particle can move in an iteration (default 0.2). <code>w</code> is the inertial
+coefficient (default 0.5) and describes the propensity of the particle of moving in the same direction as
+in the iteration before. <code>c1</code> is the cognitive coefficient (default 2) and determines to what
+degree a particle moves towards the currently optimal point. <code>c2</code> is the social coeffient (default 1)
+and describes how much the particle is following the other particles. Together, <code>k</code>, <code>c1</code>
+and <code>c2</code> determine in which direction a particle will move in a given iteration.
+</div>
+
+<!-- ============================================================= -->
+<div class="subtitle">Algorithms</div>
+
+<p>
+Internally, <code>esfit</code> rescales the parameters to be fitted. E.g. if the linewidth should be fitted and is expected to be around 5 mT, plus minus about 1.5 mT, <code>Sys.lw = 3;</code> and <code>Vary.lw = 1.5</code>. After rescaling, <code>esfit</code> treats 5 mT as <code>x = 0</code>, 3.5 mT as <code>-1</code> and 6.5 mT as <code>+1</code>.
+</p>
+
+<p>
+For details about the algorithms implemented in <code>esfit</code>, see e.g.
+</p>
+
+<ul>
+<li>
+Press et al, Numerical Recipes: The Art of Scientific Computing, 3rd edition, Cambridge University Press, 2007, Chapters 10 and 15.
+<li>
+Spalek et al, J.Chem.Inf.Model 2005, 45, 18-29.
+</ul>
+
+
+<!-- ============================================================= -->
+<div class="subtitle">Examples</div>
+
+<p>
+Here is a very simple example. Let's assume the experimental data are stored in <code>expspec</code>.
+Then the following code performs a least-squares fitting using the simplex algorithm.
+</p>
+
+<pre class="matlab">
+Exp.mwFreq = 9.5;
+Sys0.g = [2.1 2.2]
+Sys0.lwpp = 0.1;
+Vary.g = [0.05 0.02];
+esfit('pepper',expspc,Sys0,Vary,Exp);
+</pre>
+
+<p>
+See the <a href="examplesmain.html">example section</a> for a full example. Also, read the <a href="userguide_fitting.html">user guide</a> about fitting.
+
+<!-- ============================================================= -->
+<div class="subtitle">See also</div>
+
+<p>
+<a class="esf" href="chili.html">chili</a>,
+<a class="esf" href="garlic.html">garlic</a>,
+<a class="esf" href="pepper.html">pepper</a>
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+
+</html>
