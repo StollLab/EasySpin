@@ -40,23 +40,12 @@ if any(stevens)
     if any(Sys.(sysfields{n})(:)), HighOrderTermsPresent = true; end
   end
 end
-higherzeeman = strncmp(sysfields,'ZB',2).';
+higherzeeman = strncmp(sysfields,'Ham',3).';
 if any(higherzeeman) 
   for n=find(higherzeeman)
-    if isfield(Sys.(sysfields{n}), 'vals') 
-      if ~iscell(Sys.(sysfields{n}).vals) && any(Sys.(sysfields{n}).vals(:))
+    if any(Sys.(sysfields{n})(:))
         HighOrderTermsPresent = true;
         HigherZeemanPresent = true;
-      else
-        t = 0;
-        for m= length(Sys.(sysfields{n}).vals)
-          t = t + any(Sys.(sysfields{n}).vals{m}(:));
-        end
-        if t
-          HighOrderTermsPresent = true;
-          HigherZeemanPresent = true;
-        end
-      end
     end
   end
 end

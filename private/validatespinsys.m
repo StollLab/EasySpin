@@ -54,16 +54,7 @@ correctFields = {'S','Nucs','Abund','n',...
   'gStrain','HStrain','AStrain','DStrain',...
   'aF','B0','B2','B4','B6','B8','B10','B12',...
   'lw','lwpp','lwEndor','tcorr','logtcorr','Diff','logDiff'};
-% build cell of allowed higher order arguments (lb+ls) must be even
-t = 54; % number of allowed combinations
-for lB = 0:8 %conversion coefficients for spherical Harmonics known to 8th order
-  lS = 1:8; %Stevens operators up to 12th order supported, but conversion factors to 8th order
-  for m=find(mod(lB+lS,2)-1)
-      zbcell{t} = sprintf('ZB%d%d',lB,lS(m)); 
-      t = t-1;
-  end
-end
-correctFields = [correctFields, zbcell];
+
 
 givenFields = fieldnames(Sys);
 for f = 1:numel(givenFields)
@@ -81,7 +72,23 @@ for f = 1:numel(givenFields)
   end
 end
 
-
+for ind = find((strncmpi(givenFields,'Ham',3)))
+  if isempty(ind), break; end;
+  field = givenFields{ind};
+  if length(field)~= 6 
+    if str2num(field(4))+str2num(field(5))<10  
+      error('Wrong length of Sys.%s entry, should be Hamxyz (with x,y,z integer numbers)',field);
+    else
+      if length(field)~= 7
+        error('Wrong length of Sys.%s entry, should be Hamxyz (with x,y,z integer numbers)',field);
+      end
+    end
+  end
+  if ~strncmp(field,'Ham',3)
+      % Wrong capitalization
+      error('Fix capitalization: Sys.%s should be Sys.%s',field,['Ham', field(4:end)]);
+  end
+end
 
 % -- electron spins field: System.S -------------------------------------
 % If S is missing, set it to 1/2
@@ -150,7 +157,7 @@ elseif isfield(Sys,'g_')
   end
 else
   %error('Sys.g is missing.');
-  if any(strncmp(fieldnames(Sys),'ZB',2))
+  if any(strncmp(fieldnames(Sys),'Ham',3))
     Sys.g = 0;
   else
     Sys.g = gfree*ones(nElectrons,3);
@@ -820,6 +827,46 @@ if isfield(Sys,'Diffpa')
   if ~isempty(err); return; end
   Sys.DiffFrame = -Sys.Diffpa(:,[3 2 1]);
 end
+
+% Multiple Order Hamiltonian
+for lB = 0:8
+  for lS = 0:8
+    for l=abs(lB-lS):(lB+lS)
+      str = ['Ham',num2str([lB,lS,l],'%i%i%i')];
+      if isfield(Sys,str)
+        if lB == 0
+          % check for D, aF, and Bk
+          if lS == 2 && D_present
+            error('Cannot use Sys.D and Sys.Ham022 simultaneously. Remove one of them.');
+          end
+          if lS == 4 && aF_present
+            error('Cannot use Sys.aF and Sys.Ham044 simultaneously. Remove one of them.');
+          end          
+          Bstr = ['B',num2str(lS)];
+          if isfield(Sys,Bstr)
+             error('Cannot use Sys.%s and Sys.%s simultaneously. Remove one of them.',Bstr,str);
+          end
+        end
+        if lB == 1 && any(Sys.g(:))
+             error('Cannot use Sys.g and Sys.%s simultaneously. Remove one of them.',str);
+        end  
+        if issize(Sys.(str),[nElectrons,1])
+          Sys.(str) = [zeros(nElectrons,l), Sys.(str),zeros(nElectrons,l)];
+        else
+          if ~issize(Sys.(str),[nElectrons,2*l+1])
+            if ~issize(Sys.(str),[2*l+1,1])
+              error('Sys.%s has wrong size!',str);
+            else
+              Sys.(str) = Sys.(str).';
+            end
+          end
+        end
+      end
+    end
+  end
+end
+
+  
 
 
 

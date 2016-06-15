@@ -112,7 +112,7 @@ if any(System.DStrain(:)) && any(System.DFrame(:))
   error('D strain cannot be used with tilted D tensors.');
 end
 
-if any( strncmp(fieldnames(System),'ZB',2))
+if any( strncmp(fieldnames(System),'Ham',3))
   higherOrder = 1;
 else
   higherOrder = 0;
