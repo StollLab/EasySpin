@@ -1,5 +1,4 @@
-
-% zeemanho  higher order Zeeman interaction Hamiltonian 
+% zeemanho  Multiple Order Zeeman interaction Hamiltonian 
 %
 %
 %   H = zeemanho(SpinSystem, B)
@@ -8,7 +7,7 @@
 %   H = zeemanho(SpinSystem, B, Spins, 'sparse', lB)
 %   H = zeemanho(SpinSystem, B, [], '', lB)
 %
-
+%
 %   [G0,G1] = zeemanho(SpinSystem)
 %   [G0,G1,G2] = zeemanho(SpinSystem)
 %   [G0,G1,G2,G3] = zeemanho(SpinSystem)
@@ -18,32 +17,32 @@
 %   cG = zeemanho(SpinSystem, [], Spins, 'sparse',lB)
 %   (for cell output and spin selection, empty field for B required)
 %
-%   Returns the higher order Zeeman interaction Hamiltonian for
-%   the spins 'Spins' of the spin system 'SpinSystem'.
+%   Returns the multiple order Zeeman interaction Hamiltonian for
+%   the electron spins 'Spins' of the spin system 'SpinSystem'.
 %
 %   Input:
 %   - SpinSystem: Spin system structure.
-%   - B: Magnetic field vector, in millitesla. If B is ommited zero field
+%   - B: Magnetic field vector, in milliTesla. If B is ommited zero field
 %   is used (for single output).
-%   - Spins: Vector of spin numbers. For one electron spin: 1
-%     is the electron, >=2 are the nuclei. For two electron
-%     spins: 1 and 2 electrons, >=3 nuclei, etc. If Spins is
-%     omitted, all spins are included.
+%   - Spins: Vector of spin numbers.  If Spins is omitted,
+%     all electron spins are included.
 %   - 'sparse': If given, results returned in sparse format.
 %   - lB: If given only terms of order lB in the magnetic field are
 %   returned
 %
 %   Output:
 %   - H: the Hamiltonian of the Zeeman interaction.
-%   -[G0,G1,G2,G3]: components of the higher order Zeeman interaction Hamiltonian
+%   -[G0,G1,G2,G3]: components of the multiple order Zeeman interaction Hamiltonian
 %     for the selected spins, defined by the 0th, 1th, 2nd, and 3rd derivative of
 %     of the parts of the Hamiltonian which contains the magnetic up to
-%     this order.  Gn contain (d^n/dB^3) H, a tensor of rank n.
-%     So  G3{1,2,3} contain d^3 /(dB_x dB_y dB_z) H. 
+%     this order.  Gn contain (d^n/dB^^n) H, a tensor of rank n. 
+%     Units are MHz/(mT)^n.
+%     So  G3{1,2,3} contain d^3 /(dB_x dB_y dB_z) H and is in units of 
+%     MHz/(mT)^3 = 10^15 Hz/T^3. 
 %   -cG cell containing the G
 %
 %   Uses the Hamiltonian as given in
-%   MgGavin, Tennant and Weil, Jour. Mag. Res. 87,92-109 (1990)
+%   McGavin, Tennant and Weil, 	J. Magn. Reson. 87,92-109 (1990)
 %
 %   it is complete in the sense that it contain all usual terms (in
 %   principal also the nuclear and hyperfine for a single nuclei, but this
@@ -101,7 +100,7 @@ if TensorOutput
    %get highest order in B0
    fields = fieldnames(SpinSystem);
    for n = 0:3
-    if any(strncmp(fields,['ZB',num2str(n,'%i')],3));
+    if any(strncmp(fields,['Ham',num2str(n,'%i')],4));
       highest = n;
     end
    end
@@ -217,18 +216,20 @@ else  %full Hamiltonian is provided
   % Vector of spin quantum numbers
   SpinVec = Sys.Spins;
   
-  % No 'Spins' specified -> use all
-  if isempty(Spins), Spins = 1:numel(SpinVec); end
-  
-  % Validate second argument (Spins)
-  if any(Spins<1) || any(Spins>length(SpinVec))
-    error('Spin indices (2nd input argument) invalid!');
-  end
-
   % Get number of electrons, nuclei and states
   nElectrons = Sys.nElectrons;
   nStates = Sys.nStates;
   error(err);
+  
+  % No 'Spins' specified -> use all
+  if isempty(Spins), Spins = 1:nElectrons; end
+  
+  % Validate second argument (Spins)
+  if any(Spins<1) || any(Spins>nElectrons)
+    error('Spin indices (2nd input argument) invalid!');
+  end
+
+
   
   %convert B form cartesian to spherical
   [phiB, t, rB]= cart2sph(Field(1),Field(2),Field(3));
@@ -249,60 +250,49 @@ else  %full Hamiltonian is provided
   Alm(3,1:4) = [sqrt(10), 2*sqrt(5/3), sqrt(2/3),2];
   Alm(2,1:3) = [sqrt(6), 1/sqrt(2), sqrt(2)];
   Alm(1,1:2) = [1,1];
-  
-  %constant G in MHz/mT
-  Gconst =gfree*bmagn/(planck*1e9);
-  
+
   hZ = sparse(nStates,nStates);
   for idx = 1:numel(Spins)
     iSpin = Spins(idx);
-    if (iSpin<=nElectrons),  % If it's an electron...
-      % Run over all ranks lb in B (ZB^lb,ls = ZB1l, ZB2l, ZB3l, ZB4l, ...)
-      for k = 1:length(lBlist)
-        lB =lBlist(k);
-        lStemp = 1:min((2*SpinVec(iSpin)),8); %Stevens operators up to 12th order supported, conversion factors up to 8th order
+    
+    % Run over all ranks lb in B (ZB^lb,ls = ZB1l, ZB2l, ZB3l, ZB4l, ...)
+    for k = 1:length(lBlist)
+      lB =lBlist(k);
+      strlB = ['Ham', num2str(lB)];
+      sysnames = fieldnames(Sys);
+      paramtext = sysnames(strncmp(sysnames,strlB,4));
+      if ~isempty(paramtext)
+        for n= length(paramtext):-1:1
+          lStemp(n) = str2num(paramtext{n}(5));
+        end
+        lStemp = unique(lStemp);
         
         % run over all allowed ranks ls in S
         for n=find(mod(lB+lStemp,2)-1) %lb+ls has to be even, time-inversion sym of Hamiltonian
-          fieldname = sprintf('ZB%d%d',lB,lStemp(n));
           lS = lStemp(n);
-          if ~isfield(Sys,fieldname), continue; end
-          ZBlBlS = Sys.(fieldname);
-          if isempty(ZBlBlS), continue; end
-          
+          strlBlS = ['Ham', num2str([lB,lS],'%i%i')];          
           mB = lB:-1:-lB;
           amB =abs(mB);
           LlBmB = legendre(lB,ctheta);
-          %heaviside = @(m)sign(m)~=-1;  % 0 for m==0
           heaviside = @(m)(sign(m)+1)/2; % 1/2 for m==0
           pre = sqrt(factorial(lB-amB)./factorial(lB+amB)).*...
             ((-1).^(heaviside(-mB).*mB)); % 1 for q<=0 (-1)^q for q>0
           TlBmB = alphapm1(lB+1)*pre.*LlBmB(amB+1).'.*exp(1i*mB*phiB);
           
-          Glb = (Gconst*rB)^lB/sqrt(2);
+          Glb = rB^lB/sqrt(2);
           minl = abs(lB-lS);
           maxl = lB+lS;
-          
-          if ~(isfield(ZBlBlS,'l') && isfield(ZBlBlS,'vals'))
-            error('%s is not properly defined. Fields l and vals are required!',fieldname);
+          paramtext = sysnames(strncmp(sysnames,strlBlS,5));
+          clear l_
+          len = length(paramtext);
+          if len == 0, l_ =[]; end
+          for n = len:-1:1
+            l_(n) = str2num(paramtext{n}(6:end));
           end
-          
-          len = length(ZBlBlS.l);
-          
-          for indl = find(minl<=ZBlBlS.l & ZBlBlS.l <=maxl & ~mod(ZBlBlS.l,2))
-            l = ZBlBlS.l(indl);
-            if iscell(ZBlBlS.vals)
-              ZBlBlSlm = ZBlBlS.vals{indl};
-            elseif len>1
-              error('vals in %s has to be cell array when more then one l is given', fieldname);
-            else
-              ZBlBlSlm = ZBlBlS.vals;
-            end
-            
-            if length(ZBlBlSlm)~= (2*l+1)
-              error('%s is not properly defined. Cell vals{%d} must have %d entries!'...
-                ,fieldname,l, 2*l+1);
-            end
+         
+          for l = l_(minl<=l_ & l_ <=maxl & ~mod(l_,2))
+            strlBlSl =['Ham', num2str([lB,lS,l],'%i%i%i')];
+            ZBlBlSlm = Sys.(strlBlSl)(iSpin,:);
             if ~any(ZBlBlSlm), continue; end
             %construc a^lB lS_l m from ZB^lS lM
             for m = l:-1:1
@@ -337,9 +327,9 @@ else  %full Hamiltonian is provided
             end % loop over iq
             clear alBlSlm
           end % loop over allowed l values
-        end % loop over ls values
-      end % loop over lb
-    end % electron condition
+        end % loop over lS values
+      end % if lS parameters provided
+    end % loop over lB
   end %loop over spin centers
   
   if ~sparseResult

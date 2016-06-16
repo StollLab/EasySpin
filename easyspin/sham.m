@@ -34,28 +34,17 @@ error(err);
 sysfields = fieldnames(Sys);
 highest = 0;
 higherOrder = false;
-higherzeeman = strncmp(sysfields,'ZB',2).';
+higherzeeman = strncmp(sysfields,'Ham',3).';
 if any(higherzeeman) 
   for n=find(higherzeeman)
-    if isfield(Sys.(sysfields{n}), 'vals') 
-      if ~iscell(Sys.(sysfields{n}).vals) && any(Sys.(sysfields{n}).vals(:))
-        higherOrder = true;
-        order = str2num(sysfields{n}(3));
-        if order > highest && order < 4, highest = order;end
-      else
-        t = 0;
-        for m= length(Sys.(sysfields{n}).vals)
-          t = t + any(Sys.(sysfields{n}).vals{m}(:));
-        end
-        if t
-          higherOrder = true;
-          order = str2num(sysfields{n}(3));
-          if order > highest && order < 4, highest = order;end
-        end
-      end
+    if any(Sys.(sysfields{n}))
+      higherOrder = true;
+      order = str2num(sysfields{n}(4));
+      if order > highest && order < 4, highest = order;end
     end
   end
 end
+
 
 
 % Field-independent interactions: ZFI, NQI, HFI, EEI
