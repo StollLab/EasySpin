@@ -22,32 +22,25 @@ for n=8:-1:1
 end
 
 Sys.S = randi(10)/2+4;
-% l = lB+lS = lS-lB, m =l, ..., -l
-Sys.ZB02.l = 2;
-Sys.ZB02.vals = rand(1,5);
+Sys2.S = Sys.S ;
 
-Sys.ZB04.l=4;
-Sys.ZB04.vals = rand(1,9);
+lB = 0;
+for lS=2:2:8
+  Hamstr = ['Ham',num2str([lB, lS,lS],'%i%i%i')];
+  Bstr = ['B',num2str(lS,'%i')];
+  len = 2*lS+1;
+  Sys.(Hamstr) = rand(1,len);
+  Sys2.(Bstr) = Sys.(Hamstr)./Alms(lS,1:len);
+end
 
-Sys.ZB06.l=6;
-Sys.ZB06.vals = rand(1,13);
-
-Sys.ZB08.l=8;
-Sys.ZB08.vals = rand(1,17);
-
-%conversion to Stevens opertor parameters
-Sys.B2 = Sys.ZB02.vals./Alms(2,1:5);
-Sys.B4 = Sys.ZB04.vals./Alms(4,1:9);
-Sys.B6 = Sys.ZB06.vals./Alms(6,1:13);
-Sys.B8 = Sys.ZB08.vals./Alms(8,1:17);
 
 %obtain Hamiltonian matrices
 Hz = zeemanho(Sys,[0,0,0]);
-H = zfield(Sys);
+H = zfield(Sys2);
 
 % test
 threshold = 1e-6;
-err = ~areequal(H,Hz{1},threshold);
+err = ~areequal(H,Hz,threshold);
 data =[];
 
 

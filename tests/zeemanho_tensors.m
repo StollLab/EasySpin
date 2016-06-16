@@ -7,30 +7,23 @@ function [err,data] = test(opt,olddata)
 
 Sys.S = randi(10)/2+4;
 
-Sys.ZB02.l =2;
-Sys.ZB04.l =4;
-Sys.ZB06.l =6;
-Sys.ZB08.l =8;
-
-Sys.ZB11.l= [0,2];
-
-Sys.ZB22.l = 0:2:4;
-Sys.ZB24.l = 2:2:6;
-Sys.ZB26.l = 4:2:8;
-Sys.ZB28.l = 6:2:10;
-
-Sys.ZB31.l= 2:2:4;
-Sys.ZB33.l= 0:2:6;
-Sys.ZB35.l= 2:2:8;
-Sys.ZB37.l= 4:2:10;
+for lB = 0:3
+  for lS =1:8
+    if mod((lB+lS),2) == 0
+      for l = abs(lB-lS): (lB+lS)
+        str = ['Ham',num2str([lB,lS,l],'%i%i%i')];
+        Sys.(str) = [];
+      end
+    end
+  end
+end
 
 %fill list of coefficients with random numbers
 strlist =fieldnames(Sys);
 for n = length(strlist):-1:1
-  if ~ strncmp(strlist{n}, 'ZB',2), continue; end;
-  for m = length(Sys.(strlist{n}).l):-1:1  
-    Sys.(strlist{n}).vals{m} = rand(2*Sys.(strlist{n}).l(m)+1,1);
-  end
+  if ~ strncmp(strlist{n}, 'Ham',3), continue; end;
+  l = str2num(strlist{n}(6:end));
+  Sys.(strlist{n}) = rand(1,2*l+1); 
 end
 
 %obtain tensors

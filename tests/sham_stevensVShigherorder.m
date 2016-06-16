@@ -22,25 +22,17 @@ for n=8:-1:1
 end
 
 Sys1.S = randi(10)/2+4;
-% l = lB+lS = lS-lB, m =l, ..., -l
-Sys1.ZB02.l = 2;
-Sys1.ZB02.vals = rand(1,5);
-
-Sys1.ZB04.l=4;
-Sys1.ZB04.vals = rand(1,9);
-
-Sys1.ZB06.l=6;
-Sys1.ZB06.vals = rand(1,13);
-
-Sys1.ZB08.l=8;
-Sys1.ZB08.vals = rand(1,17);
-
 Sys2.S = Sys1.S;
-%conversion to Stevens opertor parameters
-Sys2.B2 = Sys1.ZB02.vals./Alms(2,1:5);
-Sys2.B4 = Sys1.ZB04.vals./Alms(4,1:9);
-Sys2.B6 = Sys1.ZB06.vals./Alms(6,1:13);
-Sys2.B8 = Sys1.ZB08.vals./Alms(8,1:17);
+
+lB = 0;
+% l = lB+lS = lS-lB, m =l, ..., -l
+for lS=2:2:8
+  Hamstr = ['Ham',num2str([lB, lS,lS],'%i%i%i')];
+  Bstr = ['B',num2str(lS,'%i')];
+  len = 2*lS+1;
+  Sys1.(Hamstr) = rand(1,len);
+  Sys2.(Bstr) = Sys1.(Hamstr)./Alms(lS,1:len);
+end
 
 %obtain Hamiltonian matrices
 Hz = sham(Sys1,[0,0,0]);
