@@ -79,7 +79,7 @@ function varargout = pulse(varargin)
 % 'sech'                - beta      = dimensionless truncation parameter
 %                       - n         = order of the secant function argument
 %                                     (default = 1)
-% 'WURST'               - n         = WURST n parameter (determining the
+% 'WURST'               - nwurst    = WURST n parameter (determining the
 %                                     steepness of the amplitude function)
 % 'quartersin'          - trise     = rise time in us for quarter sine
 %                                     weighting at the pulse edges
@@ -218,11 +218,6 @@ if ~isfield(Opt,'plot')
   Opt.plot = 0;
 end
 
-% Undocumented fields
-if ~isfield(Opt,'nBCH')
-  Opt.nBCH = 1;
-end
-
 % ----------------------------------------------------------------------- %
 % Loop over pulses defined in input structure and calculate pulse function
 % ----------------------------------------------------------------------- %
@@ -330,9 +325,9 @@ for np = 1:numel(iPulse)
           
         case 'WURST'
           
-          if ~isfield(Exp.PulseShape(n),'n') || isempty(Exp.PulseShape(n).n)
+          if ~isfield(Exp.PulseShape(n),'nwurst') || isempty(Exp.PulseShape(n).nwurst)
             error(['Pulse AM function of pulse ',num2str(n),' not sufficiently defined. ',...
-              'Specify n parameter for the WURST envelope.']);
+              'Specify nwurst parameter for the WURST envelope.']);
           end
           
         otherwise
@@ -425,7 +420,7 @@ for np = 1:numel(iPulse)
             equivmaxFreq(na) = 1/(4*thalf);
           elseif strcmp(AmplitudeModulation,'WURST')
             % from rise time to 1/2 of maximum value
-            thalf = Exp.tp(n)*(1/2 - (1/pi)*asin(2^(-1/Exp.PulseShape(n).n)));
+            thalf = Exp.tp(n)*(1/2 - (1/pi)*asin(2^(-1/Exp.PulseShape(n).nwurst)));
             equivmaxFreq(na) = 1/(4*thalf);
           elseif strcmp(AmplitudeModulation,'quartersin')
             equivmaxFreq(na) = 1/(4*Exp.PulseShape(n).trise);
@@ -485,7 +480,7 @@ for np = 1:numel(iPulse)
           
         case 'WURST'
           
-          A(na,:) = (1-(abs(sin(pi*ti/Exp.tp(n)))).^Exp.PulseShape(n).n);
+          A(na,:) = (1-(abs(sin(pi*ti/Exp.tp(n)))).^Exp.PulseShape(n).nwurst);
           
       end
       
@@ -577,16 +572,20 @@ for np = 1:numel(iPulse)
             error('Pulse amplitude calculation from flip angle not applicable for angles larger than pi.')
           end
           Q_crit = (2/pi)*(log(2/(1+cos(Exp.Flip(n)))));
-          if Q_crit>8 % set Q_crit to finite value if it is infinite or very large
-            Q_crit = 8;
+          if Q_crit>5 % set Q_crit to finite value if it is infinite or very large
+            Q_crit = 5;
           end
           
           if strcmp(FrequencyModulation,'linear') || strcmp(FrequencyModulation,'BWcompensated')
             sweeprate = Exp.PulseShape(n).BW/Exp.tp(n);
           elseif strcmp(FrequencyModulation,'tanh')
-            sweeprate = Exp.PulseShape(n).beta*Exp.PulseShape(n).BWinf;
+            sweeprate = Exp.PulseShape(n).beta*Exp.PulseShape(n).BWinf/(2*Exp.tp(n));
           elseif strcmp(FrequencyModulation,'uniformQ')
-            sweeprate = Exp.PulseShape(n).beta*Exp.PulseShape(n).BW;
+            % Q = w1max^2*A(t)^2/(BW*dnu/dt) see eq. 17 in Garwood, M., DelaBarre, L.,
+            % J. Magn. Reson. 153, 155-177 (2001)
+            [~,ind] = min(abs(ti));
+            dnu = diff(2*pi*modulation(n).nu/(t{n}(2)-t{n}(1)));
+            sweeprate = dnu(ind)/(2*pi*(modulation(n).A(ind))^2);
           end
           
           Exp.Amplitude(n) = sqrt(2*pi*Q_crit*sweeprate)/(2*pi);
@@ -671,51 +670,47 @@ for np = 1:numel(iPulse)
       p1 = p0;
       
       if min(y{n})==max(y{n}) % used for rectangular pulses
+        
         Ham = real(y{n}(1))*Sx+imag(y{n}(1))*Sy+Ham0;
-        U = expm(-2i*pi*Ham*Exp.TimeStep(n));
+
+        % U = expm(-2i*pi*Ham*Exp.TimeStep(n));
+        % Matrix exponential for a traceless, antihermitian 2x2 matrix
+        M = -2i*pi*Ham*Exp.TimeStep(n); % M = [a b; -b' -a]
+        q = sqrt(M(1,1)^2-abs(M(1,2))^2);
+        U = cosh(q)*eye(2) + (sinh(q)/q)*M;
+        if isnan(U)
+          U = eye(2);
+        end
+        
         for j = 1:numel(t{n})-1
           p1 = U*p1*U';
         end
+        
       else
-        if Opt.nBCH==1 % exact solution
           for j = 1:numel(t{n})-1
             
             Ham = real(y{n}(j))*Sx+imag(y{n}(j))*Sy+Ham0;
-            U = expm(-2i*pi*Ham*Exp.TimeStep(n));
-            p1 = U*p1*U';
-          end
-        else % average Hamiltonian approximation (Baker-Campbell-Hausdorff series)
-          % see Ernst, Bodenhausen, Wokaun, Principles of NMR in One and Two
-          % Dimensions, Clarendon Press (1990), Chapter 3, p. 72-75.
-          ll = 0;
-          for j = 1:(numel(t{n})-1)/Opt.nBCH
             
-            Ham_BCH = zeros(size(Ham0));
-            
-            for l1 = 1:Opt.nBCH
-              Ham_BCH = Ham_BCH -2i*pi*Exp.TimeStep(n)*(real(y{n}(ll+l1))*Sx+imag(y{n}(ll+l1))*Sy+Ham0);
-              for l2 = l1+1:Opt.nBCH
-                Ham_BCH = Ham_BCH -...
-                  2*(pi*Exp.TimeStep(n))^2*(...
-                  (real(y{n}(ll+l2))*Sx+imag(y{n}(ll+l2))*Sy+Ham0)*(real(y{n}(ll+l1))*Sx+imag(y{n}(ll+l1))*Sy+Ham0)-...
-                  (real(y{n}(ll+l1))*Sx+imag(y{n}(ll+l1))*Sy+Ham0)*(real(y{n}(ll+l2))*Sx+imag(y{n}(ll+l2))*Sy+Ham0));
-              end
+            %  U = expm(-2i*pi*Ham*Exp.TimeStep(n));
+            % Matrix exponential for a traceless, antihermitian 2x2 matrix
+            M = -2i*pi*Ham*Exp.TimeStep(n); % M = [a b; -b' -a]
+            q = sqrt(M(1,1)^2-abs(M(1,2))^2);
+            U = cosh(q)*eye(2) + (sinh(q)/q)*M;
+            if isnan(U)
+              U = eye(2);
             end
             
-            ll = ll+Opt.nBCH;
-            U = expm(Ham_BCH);
             p1 = U*p1*U';
           end
           
-        end
       end
       
       if ~iscell(Det)
-        p(n).(varname)(k) = -2*sum(sum(Det.*p1.'));
+        p(n).(varname)(k) = -2*real(sum(sum(Det.*p1.')));
       else
-        p(n).Mx(k) = -2*sum(sum(Det{1}.*p1.'));
-        p(n).My(k) = -2*sum(sum(Det{2}.*p1.'));
-        p(n).Mz(k) = -2*sum(sum(Det{3}.*p1.'));
+        p(n).Mx(k) = -2*real(sum(sum(Det{1}.*p1.')));
+        p(n).My(k) = -2*real(sum(sum(Det{2}.*p1.')));
+        p(n).Mz(k) = -2*real(sum(sum(Det{3}.*p1.')));
       end
       
     end

@@ -15,9 +15,9 @@ Exp.CenterFreq = 60; % MHz
 
 t0 = 0:Exp.TimeStep:Exp.tp;
 % Calculate pulse amplitude from flip angle
-Qcrit = 8;
+Qcrit = 5;
 BW = Exp.PulseShape.BW/tanh(Exp.PulseShape.beta/2);
-Amplitude = sqrt((Exp.PulseShape.beta*BW*Qcrit)/(2*pi));
+Amplitude = sqrt((Exp.PulseShape.beta*BW*Qcrit)/(2*pi*2*Exp.tp));
 % Amplitude modulation: sech
 A = sech((Exp.PulseShape.beta/Exp.tp)*(t0-Exp.tp/2));
 % Frequency modulation: tanh

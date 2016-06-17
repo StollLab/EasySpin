@@ -7,7 +7,7 @@ function [err,data] = test(opt,olddata)
 Exp.tp = 0.500; % us
 Exp.PulseShape.Type = 'WURST/linear';
 Exp.PulseShape.BW = 500; % MHz
-Exp.PulseShape.n = 15;
+Exp.PulseShape.nwurst = 15;
 Exp.Amplitude = 15; % MHz
 Exp.CenterFreq = 100; % MHz
 
@@ -15,7 +15,7 @@ Opt.ExciteProfile = 0;
 [t,y,~,m] = pulse(Exp,Opt);
 
 % Amplitude modulation: WURST
-A = 1-abs((sin((pi*(t-Exp.tp/2))/Exp.tp)).^Exp.PulseShape.n);
+A = 1-abs((sin((pi*(t-Exp.tp/2))/Exp.tp)).^Exp.PulseShape.nwurst);
 % Frequency modulation
 f = -(Exp.PulseShape.BW/2)+(Exp.PulseShape.BW/Exp.tp)*t;
 % Phase modulation

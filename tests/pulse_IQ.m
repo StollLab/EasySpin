@@ -16,7 +16,7 @@ I(3*tp/dt+1:3*tp/dt+3*tp/dt+1) = +1;
 
 Exp.PulseShape.I = v1*I;
 
-Opt.Offsets = -200:1:200;
+Opt.Offsets = -200:1:200; % MHz
 [~,y,p] = pulse(Exp,Opt);
 
 % Calculate inversion profile
@@ -29,11 +29,14 @@ rho0 = -Sz;
 for i = 1:numel(p.offsets)
   
   H1 = p.offsets(i)*Sz + v1*Sx;
-  U1 = expm(-2i*pi*H1*tp);
+  q1 = sqrt((-2i*pi*tp*H1(1,1))^2-abs((-2i*pi*tp*H1(1,2)))^2);
+  U1 = cosh(q1)*eye(2) + (sinh(q1)/q1)*(-2i*pi*tp*H1);
   H2 = p.offsets(i)*Sz - v1*Sx;
-  U2 = expm(-2i*pi*H2*2*tp);
+  q2 = sqrt((-2i*pi*2*tp*H2(1,1))^2-abs((-2i*pi*2*tp*H2(1,2)))^2);
+  U2 = cosh(q2)*eye(2) + (sinh(q2)/q2)*(-2i*pi*2*tp*H2);
   H3 = p.offsets(i)*Sz + v1*Sx;
-  U3 = expm(-2i*pi*H3*3*tp);
+  q3 = sqrt((-2i*pi*3*tp*H3(1,1))^2-abs((-2i*pi*3*tp*H3(1,2)))^2);
+  U3 = cosh(q3)*eye(2) + (sinh(q3)/q3)*(-2i*pi*3*tp*H3);
   U = U3*U2*U1;
   rho = U*rho0*U';
   
