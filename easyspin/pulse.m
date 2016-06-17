@@ -695,9 +695,10 @@ for np = 1:numel(iPulse)
             % Matrix exponential for a traceless, antihermitian 2x2 matrix
             M = -2i*pi*Ham*Exp.TimeStep(n); % M = [a b; -b' -a]
             q = sqrt(M(1,1)^2-abs(M(1,2))^2);
-            U = cosh(q)*eye(2) + (sinh(q)/q)*M;
-            if isnan(U)
-              U = eye(2);
+            if abs(q)<1e-10
+              U = eye(2) + M;
+            else
+              U = cosh(q)*eye(2) + (sinh(q)/q)*M;
             end
             
             p1 = U*p1*U';
