@@ -656,6 +656,8 @@ for np = 1:numel(iPulse)
       case 'Sy', Det = Sy; varname = 'My';
       case 'Sx', Det = Sx; varname = 'Mx';
       case 'all', Det{1} = Sx; Det{2} = Sy; Det{3} = Sz;
+      otherwise
+        error('Opt.Detect has unknown value. Use ''Sx'', ''Sy'', ''Sz'', or ''all''.');
     end
     
     if ~iscell(Det)
@@ -670,8 +672,7 @@ for np = 1:numel(iPulse)
       
       Ham0 = p(n).offsets(k)*Sz;
       
-      p1 = p0;
-      
+      % Compute pulse propagator
       if min(y{n})==max(y{n}) % used for rectangular pulses
         
         Ham = real(y{n}(1))*Sx+imag(y{n}(1))*Sy+Ham0;
@@ -682,32 +683,36 @@ for np = 1:numel(iPulse)
         M = -2i*pi*Ham*tp; % M = [a b; -b' -a]
         q = sqrt(M(1,1)^2-abs(M(1,2))^2);
         if abs(q)<1e-10
-          U = eye(2) + M;
+          UPulse = eye(2) + M;
         else
-          U = cosh(q)*eye(2) + (sinh(q)/q)*M;
+          UPulse = cosh(q)*eye(2) + (sinh(q)/q)*M;
         end
-        p1 = U*p1*U';
         
       else
+        
+        UPulse = eye(2);
         for j = 1:numel(t{n})-1
           
           Ham = real(y{n}(j))*Sx+imag(y{n}(j))*Sy+Ham0;
           
           %  U = expm(-2i*pi*Ham*Exp.TimeStep(n));
           % Matrix exponential for a traceless, antihermitian 2x2 matrix
-          M = -2i*pi*Ham*Exp.TimeStep(n); % M = [a b; -b' -a]
+          M = -2i*pi*Exp.TimeStep(n)*Ham; % M = [a b; -b' -a]
           q = sqrt(M(1,1)^2-abs(M(1,2))^2);
           if abs(q)<1e-10
-            U = eye(2) + M;
+            dU = eye(2) + M;
           else
-            U = cosh(q)*eye(2) + (sinh(q)/q)*M;
+            dU = cosh(q)*eye(2) + (sinh(q)/q)*M;
           end
-          
-          p1 = U*p1*U';
+          UPulse = dU*UPulse;
         end
         
       end
       
+      % Propagate density matrix
+      p1 = UPulse*p0*UPulse';
+      
+      % Calculate observables
       if ~iscell(Det)
         p(n).(varname)(k) = -2*real(sum(sum(Det.*p1.')));
       else
@@ -730,7 +735,7 @@ for np = 1:numel(iPulse)
       plot(t{n},imag(y{n}),':','Color',cc(l,:))
       xlabel('t (\mus)')
       ylabel('\nu_1 (MHz)')
-      legend('real','imaginary')
+      legend('I','Q')
       axis tight
       subplot(2,1,2)
       hold on; box on;
