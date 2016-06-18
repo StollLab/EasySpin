@@ -152,11 +152,11 @@ switch nargin
     error('The function pulse is not supported for more than 3 input arguments.')
 end
 if nargout==0
-  Opt.plot = 1;
-  Opt.ExciteProfile = 1;
+  Opt.plot = true;
+  Opt.ExciteProfile = true;
 end
 if (nargout==3 || nargout==4) && ~(exist('Opt','var') && isfield(Opt,'ExciteProfile'))
-  Opt.ExciteProfile = 1;
+  Opt.ExciteProfile = true;
 end
 
 % Set experiment and option parameters to defaults
@@ -202,8 +202,8 @@ if numel(Exp.PulseShape)<numel(Exp.tp)
   end
 end
 if ~exist('Opt','var')
-  Opt.ExciteProfile = 0;
-  Opt.plot = 0;
+  Opt.ExciteProfile = false;
+  Opt.plot = false;
 end
 if ~isfield(Opt,'OverSampleFactor')
   Opt.OverSampleFactor = 10;
@@ -212,10 +212,13 @@ if ~isfield(Opt,'Detect')
   Opt.Detect = 'Sz';
 end
 if ~isfield(Opt,'ExciteProfile')
-  Opt.ExciteProfile = 0;
+  Opt.ExciteProfile = false;
 end  
 if ~isfield(Opt,'plot')
-  Opt.plot = 0;
+  Opt.plot = false;
+end
+if ~isfield(Opt,'nOffsets')
+  Opt.nOffsets = 201;
 end
 
 % ----------------------------------------------------------------------- %
@@ -257,7 +260,7 @@ for np = 1:numel(iPulse)
     modulation(n).dnu = [];
     modulation(n).phi = [];
     
-    if Opt.ExciteProfile==1 && ~isfield(Opt,'Offsets')
+    if Opt.ExciteProfile && ~isfield(Opt,'Offsets')
       error('The excitation profile of a user-defined pulse can only be calculated if the desired range of frequency offsets is specified in Opt.Offsets.');
     end
     
@@ -606,7 +609,7 @@ for np = 1:numel(iPulse)
   % Excitation profile calculation
   % --------------------------------------------------------------------- %
   
-  if Opt.ExciteProfile==1
+  if Opt.ExciteProfile
     
     % Set up offset axis for excitation profile calculation
     if ~isfield(Opt,'Offsets')
@@ -633,7 +636,7 @@ for np = 1:numel(iPulse)
         BW = 2*(f(indmax+indbw)-f(indmax));
         
       end
-      p(n).offsets = linspace(-0.75*BW,0.75*BW,201)+Exp.CenterFreq(n);
+      p(n).offsets = linspace(-0.75*BW,0.75*BW,Opt.nOffsets) + Exp.CenterFreq(n);
       
     else
       p(n).offsets = Opt.Offsets;
@@ -672,14 +675,15 @@ for np = 1:numel(iPulse)
       if min(y{n})==max(y{n}) % used for rectangular pulses
         
         Ham = real(y{n}(1))*Sx+imag(y{n}(1))*Sy+Ham0;
-
+        
         % U = expm(-2i*pi*Ham*Exp.TimeStep(n));
         % Matrix exponential for a traceless, antihermitian 2x2 matrix
         M = -2i*pi*Ham*Exp.TimeStep(n); % M = [a b; -b' -a]
         q = sqrt(M(1,1)^2-abs(M(1,2))^2);
-        U = cosh(q)*eye(2) + (sinh(q)/q)*M;
-        if isnan(U)
-          U = eye(2);
+        if abs(q)<1e-10
+          U = eye(2) + M;
+        else
+          U = cosh(q)*eye(2) + (sinh(q)/q)*M;
         end
         
         for j = 1:numel(t{n})-1
@@ -687,23 +691,23 @@ for np = 1:numel(iPulse)
         end
         
       else
-          for j = 1:numel(t{n})-1
-            
-            Ham = real(y{n}(j))*Sx+imag(y{n}(j))*Sy+Ham0;
-            
-            %  U = expm(-2i*pi*Ham*Exp.TimeStep(n));
-            % Matrix exponential for a traceless, antihermitian 2x2 matrix
-            M = -2i*pi*Ham*Exp.TimeStep(n); % M = [a b; -b' -a]
-            q = sqrt(M(1,1)^2-abs(M(1,2))^2);
-            if abs(q)<1e-10
-              U = eye(2) + M;
-            else
-              U = cosh(q)*eye(2) + (sinh(q)/q)*M;
-            end
-            
-            p1 = U*p1*U';
+        for j = 1:numel(t{n})-1
+          
+          Ham = real(y{n}(j))*Sx+imag(y{n}(j))*Sy+Ham0;
+          
+          %  U = expm(-2i*pi*Ham*Exp.TimeStep(n));
+          % Matrix exponential for a traceless, antihermitian 2x2 matrix
+          M = -2i*pi*Ham*Exp.TimeStep(n); % M = [a b; -b' -a]
+          q = sqrt(M(1,1)^2-abs(M(1,2))^2);
+          if abs(q)<1e-10
+            U = eye(2) + M;
+          else
+            U = cosh(q)*eye(2) + (sinh(q)/q)*M;
           end
           
+          p1 = U*p1*U';
+        end
+        
       end
       
       if ~iscell(Det)
@@ -716,7 +720,7 @@ for np = 1:numel(iPulse)
       
     end
     
-    if isfield(Opt,'plot') && Opt.plot==1
+    if Opt.plot
       if n==iPulse(1)
         clf
         cc = winter(numel(iPulse));
@@ -726,8 +730,8 @@ for np = 1:numel(iPulse)
       hold on; box on;
       plot(t{n},real(y{n}),'Color',cc(l,:))
       plot(t{n},imag(y{n}),':','Color',cc(l,:))
-      xlabel('t [\mu s]')
-      ylabel('\nu_1 [MHz]')
+      xlabel('t (\mus)')
+      ylabel('\nu_1 (MHz)')
       legend('real','imaginary')
       axis tight
       subplot(2,1,2)
@@ -752,7 +756,7 @@ for np = 1:numel(iPulse)
       lgd(l) = strcat(num2str(n),{' '},Exp.PulseShape(n).Type);
       l = l+1;
       legend(lgd,'Location','Best');
-      xlabel('Frequency offset [MHz]')
+      xlabel('frequency offset (MHz)')
       axis tight
       ylim([-1 1])
     end
