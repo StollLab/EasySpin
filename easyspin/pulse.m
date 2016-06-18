@@ -675,20 +675,18 @@ for np = 1:numel(iPulse)
       if min(y{n})==max(y{n}) % used for rectangular pulses
         
         Ham = real(y{n}(1))*Sx+imag(y{n}(1))*Sy+Ham0;
+        tp = Exp.TimeStep(n)*(numel(t{n})-1);
         
         % U = expm(-2i*pi*Ham*Exp.TimeStep(n));
         % Matrix exponential for a traceless, antihermitian 2x2 matrix
-        M = -2i*pi*Ham*Exp.TimeStep(n); % M = [a b; -b' -a]
+        M = -2i*pi*Ham*tp; % M = [a b; -b' -a]
         q = sqrt(M(1,1)^2-abs(M(1,2))^2);
         if abs(q)<1e-10
           U = eye(2) + M;
         else
           U = cosh(q)*eye(2) + (sinh(q)/q)*M;
         end
-        
-        for j = 1:numel(t{n})-1
-          p1 = U*p1*U';
-        end
+        p1 = U*p1*U';
         
       else
         for j = 1:numel(t{n})-1
