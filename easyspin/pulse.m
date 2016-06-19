@@ -134,16 +134,16 @@ function varargout = pulse(varargin)
 % ----------------------------------------------------------------------- %
 % Input argument parsing
 % ----------------------------------------------------------------------- %
+Opt = struct;
+iPulse = [];
 switch nargin
   case 1 % [t,y] = pulse(Exp)
     Exp = varargin{1};
-    Opt = struct;
   case 2 % [t,y] = pulse(Exp,iPulse) or [t,y] = pulse(Exp,Opt)
     Exp = varargin{1};
     if isstruct(varargin{2})
       Opt = varargin{2};
     else
-      Opt = struct;
       iPulse = varargin{2};
     end
   case 3 % [t,y] = pulse(Exp,iPulse,Opt)
@@ -166,13 +166,14 @@ if ~isfield(Opt,'ExciteProfile')
   Opt.ExciteProfile = false;
 end
 
-% Set experiment and option parameters to defaults
+% Set parameters to defaults
+%----------------------------------------------------------------------
 if ~isfield(Exp,'tp')
   error('Pulse length not defined in Exp.tp.')
 end
 % If no pulse is selected, the functions returns outputs for each of the
 % pulses defined in the input structure
-if ~exist('iPulse','var')
+if isempty(iPulse)
   iPulse = 1:numel(Exp.tp);
 end
 if ~isfield(Exp,'Amplitude') && ~isfield(Exp,'Flip')
@@ -333,6 +334,9 @@ for n = iPulse
             error(['Pulse AM function of pulse ',num2str(n),' not sufficiently defined. ',...
               'Specify nwurst parameter for the WURST envelope.']);
           end
+          if numel(thisPulse.nwurst)~=1 || mod(thisPulse.nwurst,1) || thisPulse.nwurst<1
+            error('Pulseshape.nwurst must be a nonnegative integer (1,2,...).')
+          end
           
         otherwise
           
@@ -422,7 +426,7 @@ for n = iPulse
             %thalf = (Exp.tp(n)/2)*(1-(2*asech(0.5)/thisPulse.beta)^(1/thisPulse.n));
             %AM_BW = AM_BW + 1/(4*thalf);
           case 'WURST'
-            % from rise time to 1/2 of maximum value
+            % rise time from zero to 1/2 of maximum value
             thalf = Exp.tp(n)*(1/2 - (1/pi)*asin(2^(-1/thisPulse.nwurst)));
             AM_BW = AM_BW + 1/(4*thalf);
           case 'quartersin'
@@ -491,7 +495,7 @@ for n = iPulse
           
         case 'WURST'
           
-          A = (1-(abs(sin(pi*ti/Exp.tp(n)))).^thisPulse.nwurst);
+          A = 1 - abs(sin(pi*ti/Exp.tp(n))).^thisPulse.nwurst;
           
       end
       modulation(n).A = modulation(n).A.*A;
@@ -504,8 +508,8 @@ for n = iPulse
       
       case 'none'
         
-        modulation(n).nu(1:nPoints) = 0;
-        modulation(n).phi(1:nPoints) = 0;
+        modulation(n).nu = zeros(1,nPoints);
+        modulation(n).phi = zeros(1,nPoints);
         
       case 'linear'
         
@@ -523,7 +527,7 @@ for n = iPulse
         % http://dx.doi.org/10.1016/j.jmr.2013.01.002
         
         % Constant rate chirp
-        k = thisPulse.BW/Exp.tp(n); % rate of change
+        k = thisPulse.BW/Exp.tp(n); % frequency sweep rate
         nu_linear = k*ti;
         
         v1_range = interp1(thisPulse.freqaxis,thisPulse.v1,...
@@ -578,6 +582,7 @@ for n = iPulse
           
         case {'linear','BWcompensated','tanh','uniformQ'}
           % see Jeschke et al. (2015) J. Phys. Chem. B, 119, 13570–13582.
+          %    http://dx.doi.org/10.1021/acs.jpcb.5b02964
           % Q_crit = (2*pi*v1max)^2/k = minimum adiabaticity on resonance
           
           if Exp.Flip(n)>pi
@@ -679,6 +684,8 @@ for n = iPulse
       p(n).Mz = zeros(1,nOffsets);
     end
     
+    Isignal = real(y{n});
+    Qsignal = imag(y{n});
     for iOffset = 1:nOffsets
       
       Ham0 = p(n).offsets(iOffset)*Sz;
@@ -686,15 +693,20 @@ for n = iPulse
       % Compute pulse propagator
       if min(y{n})==max(y{n}) % rectangular pulses
         
-        Ham = real(y{n}(1))*Sx+imag(y{n}(1))*Sy+Ham0;
+        Ham = Isignal(1)*Sx + Qsignal(1)*Sy + Ham0;
         tp = Exp.TimeStep(n)*(nPoints-1);
-        UPulse = expm(-2i*pi*Ham*tp);
+        %UPulse = expm(-2i*pi*Ham*tp);
+        M = -2i*pi*tp*Ham; % M = [a b; -b' -a]
+        q = sqrt(M(1,1)^2-abs(M(1,2))^2);
+        if abs(q)<1e-10
+          UPulse = eye(2) + M;
+        else
+          UPulse = cosh(q)*eye(2) + (sinh(q)/q)*M;
+        end
         
       else % general pulses
         
         UPulse = eye(2);
-        Isignal = real(y{n});
-        Qsignal = imag(y{n});
         for it = 1:nPoints-1
           
           Ham = Isignal(it)*Sx + Qsignal(it)*Sy + Ham0;
@@ -727,51 +739,65 @@ for n = iPulse
       end
       
     end
-    
-    if plotResults
-      if n==iPulse(1)
-        clf
-        cc = winter(numel(iPulse));
-        l = 1;
-      end
-      subplot(2,1,1)
-      hold on; box on;
-      plot(t{n},real(y{n}),'Color',cc(l,:))
-      plot(t{n},imag(y{n}),':','Color',cc(l,:))
-      xlabel('t (\mus)')
-      ylabel('\nu_1 (MHz)')
-      legend('I','Q')
-      axis tight
-      subplot(2,1,2)
-      hold on; box on;
-      switch Opt.Detect
-        case 'Sz'
-          plot(p(n).offsets,real(p(n).Mz),'Color',cc(l,:));
-          ylabel('M_z/M_0')
-        case 'Sy'
-          plot(p(n).offsets,real(p(n).My),'Color',cc(l,:));
-          ylabel('M_y/M_0')
-        case 'Sx'
-          plot(p(n).offsets,real(p(n).Mx),'Color',cc(l,:));
-          ylabel('M_x/M_0')
-        case 'all'
-          plot(p(n).offsets,real(p(n).Mx),...
-               p(n).offsets,real(p(n).My),...
-               p(n).offsets,real(p(n).Mz));
-          ylabel('M_i/M_0')
-          legend('x','y','z')
-      end
-      lgd(l) = strcat(num2str(n),{' '},thisPulse.Type);
-      l = l+1;
-      legend(lgd,'Location','Best');
-      xlabel('frequency offset (MHz)')
-      axis tight
-      ylim([-1 1])
-    end
-    
+        
   end
-  
+      
 end % loop over pulses
+
+
+% ----------------------------------------------------------------------- %
+% Plotting
+% ----------------------------------------------------------------------- %
+if plotResults
+  clf
+  cc = winter(numel(iPulse));
+  l = 1;
+  subplot(2,1,1)
+  hold on; box on;
+  for n = iPulse
+    h = plot(t{n},modulation(n).A,t{n},-modulation(n).A);
+    hI = plot(t{n},real(y{n}),'Color',cc(l,:));
+    hQ = plot(t{n},imag(y{n}),':','Color',cc(l,:));
+    set(h,'Color',[1 1 1]*0.9);
+    Amax = max(modulation(n).A);
+    ylim([-1 1]*Amax*1.1);
+    l = l+1;
+  end
+  xlabel('t (\mus)')
+  ylabel('\nu_1 (MHz)')
+  legend([hI hQ],'I','Q')
+  axis tight
+
+  l = 1;
+  for n = iPulse
+    subplot(2,1,2)
+    hold on; box on;
+    switch Opt.Detect
+      case 'Sz'
+        plot(p(n).offsets,p(n).Mz,'Color',cc(l,:));
+        ylabel('{\itM}_z/{\itM}_0')
+      case 'Sy'
+        plot(p(n).offsets,p(n).My,'Color',cc(l,:));
+        ylabel('{\itM}_y/{\itM}_0')
+      case 'Sx'
+        plot(p(n).offsets,p(n).Mx,'Color',cc(l,:));
+        ylabel('{\itM}_x/{\itM}_0')
+      case 'all'
+        plot(p(n).offsets,p(n).Mx,...
+             p(n).offsets,p(n).My,...
+             p(n).offsets,p(n).Mz);
+        ylabel('{\itM}_i/{\itM}_0')
+        legend('x','y','z')
+    end
+    lgd{l} = sprintf('%d %s',n,thisPulse.Type);
+    l = l+1;
+  end
+  legend(lgd,'Location','Best');
+  xlabel('frequency (MHz)')
+  axis tight
+  ylim([-1 1])
+end
+
 
 % ----------------------------------------------------------------------- %
 % Output
