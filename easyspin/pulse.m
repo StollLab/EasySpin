@@ -137,11 +137,13 @@ function varargout = pulse(varargin)
 switch nargin
   case 1 % [t,y] = pulse(Exp)
     Exp = varargin{1};
+    Opt = struct;
   case 2 % [t,y] = pulse(Exp,iPulse) or [t,y] = pulse(Exp,Opt)
     Exp = varargin{1};
     if isstruct(varargin{2})
       Opt = varargin{2};
     else
+      Opt = struct;
       iPulse = varargin{2};
     end
   case 3 % [t,y] = pulse(Exp,iPulse,Opt)
@@ -151,12 +153,17 @@ switch nargin
   otherwise
     error('The function pulse is not supported for more than 3 input arguments.')
 end
+
+plotResults = (nargout==0);
+
 if nargout==0
-  Opt.plot = true;
   Opt.ExciteProfile = true;
 end
-if (nargout==3 || nargout==4) && ~(exist('Opt','var') && isfield(Opt,'ExciteProfile'))
+if (nargout==3 || nargout==4) && ~isfield(Opt,'ExciteProfile')
   Opt.ExciteProfile = true;
+end
+if ~isfield(Opt,'ExciteProfile')
+  Opt.ExciteProfile = false;
 end
 
 % Set experiment and option parameters to defaults
@@ -172,7 +179,8 @@ if ~isfield(Exp,'Amplitude') && ~isfield(Exp,'Flip')
   Exp.Amplitude(1:numel(Exp.tp)) = 1; % normalized amplitude
 elseif isfield(Exp,'Amplitude') && numel(Exp.Amplitude)~=numel(Exp.tp)
   Exp.Amplitude(end:numel(Exp.tp)) = Exp.Amplitude(1);
-elseif isfield(Exp,'Flip') && numel(Exp.Flip)~=numel(Exp.tp)
+end
+if isfield(Exp,'Flip') && numel(Exp.Flip)~=numel(Exp.tp)
   Exp.Flip(end:numel(Exp.tp)) = Exp.Flip(end);
 end
 if isfield(Exp,'Flip') && numel(Exp.tp)~=numel(Exp.Flip)
@@ -201,21 +209,14 @@ if numel(Exp.PulseShape)<numel(Exp.tp)
     Exp.PulseShape(i).Type = 'rectangular';
   end
 end
-if ~exist('Opt','var')
-  Opt.ExciteProfile = false;
-  Opt.plot = false;
-end
+
+% Options
+% ----------------------------------------------------------------------- %
 if ~isfield(Opt,'OverSampleFactor')
   Opt.OverSampleFactor = 10;
 end
 if ~isfield(Opt,'Detect')
   Opt.Detect = 'Sz';
-end
-if ~isfield(Opt,'ExciteProfile')
-  Opt.ExciteProfile = false;
-end  
-if ~isfield(Opt,'plot')
-  Opt.plot = false;
 end
 if ~isfield(Opt,'nOffsets')
   Opt.nOffsets = 201;
@@ -229,31 +230,31 @@ y = cell(1,numel(iPulse));
 modulation(1:numel(iPulse)) = struct('A',[]);
 p(1:numel(iPulse)) = struct('offsets',[]);
 
-for np = 1:numel(iPulse)
-  
-  n = iPulse(np);
+for n = iPulse
+  thisPulse = Exp.PulseShape(n);
   
   % Check if pulse I and Q data is given
-  if (isfield(Exp.PulseShape(n),'I') && ~isempty(Exp.PulseShape(n).I)) || ...
-      (isfield(Exp.PulseShape(n),'Q') && ~isempty(Exp.PulseShape(n).Q))
+  if (isfield(thisPulse,'I') && ~isempty(thisPulse.I)) || ...
+     (isfield(thisPulse,'Q') && ~isempty(thisPulse.Q))
     
-    if ~isfield(Exp.PulseShape(n),'Type') || isempty(Exp.PulseShape(n).Type)
-      Exp.PulseShape(n).Type = 'user-defined';
+    if ~isfield(thisPulse,'Type') || isempty(thisPulse.Type)
+      thisPulse.Type = 'user-IQ';
     end
     
-    if ~isfield(Exp.PulseShape(n),'I')
-      Exp.PulseShape(n).I = zeros(size(Exp.PulseShape(n).Q));
-    elseif ~isfield(Exp.PulseShape(n),'Q')
-      Exp.PulseShape(n).Q = zeros(size(Exp.PulseShape(n).I));
-    elseif size(Exp.PulseShape(n).I)~=size(Exp.PulseShape(n).Q);
+    if ~isfield(thisPulse,'I')
+      thisPulse.I = zeros(size(thisPulse.Q));
+    elseif ~isfield(thisPulse,'Q')
+      thisPulse.Q = zeros(size(thisPulse.I));
+    elseif size(thisPulse.I)~=size(thisPulse.Q);
       error(['I and Q input data for pulse ',num2str(n),' have different lengths.'])
     end
-    if ~isvector(Exp.PulseShape(n).I) || ~isvector(Exp.PulseShape(n).Q)
+    if ~isvector(thisPulse.I) || ~isvector(thisPulse.Q)
       error(['I and Q input data for pulse ',num2str(n),' should be vectors.'])
     end
     
-    t{n} = linspace(0,Exp.tp(n),numel(Exp.PulseShape(n).I));
-    y{n} = Exp.PulseShape(n).I + 1i*Exp.PulseShape(n).Q;
+    t{n} = linspace(0,Exp.tp(n),numel(thisPulse.I));
+    nPoints = numel(t{n});
+    y{n} = thisPulse.I + 1i*thisPulse.Q;
     
     Exp.TimeStep(n) = t{n}(2)-t{n}(1);
     modulation(n).A = [];
@@ -267,12 +268,12 @@ for np = 1:numel(iPulse)
   else
     
     % Set pulse shape to rectangular if it is not specified
-    if ~isfield(Exp.PulseShape(n),'Type') || isempty(Exp.PulseShape(n).Type) || strcmp(Exp.PulseShape(n).Type,'')
-      Exp.PulseShape(n).Type = 'rectangular';
+    if ~isfield(thisPulse,'Type') || isempty(thisPulse.Type) || strcmp(thisPulse.Type,'')
+      thisPulse.Type = 'rectangular';
     end
     
     % Determine pulse shape from input string
-    shape = regexp(Exp.PulseShape(n).Type,'/','split');
+    shape = regexp(thisPulse.Type,'/','split');
     if numel(shape)==1
       AmplitudeModulation = shape;
       FrequencyModulation = 'none';
@@ -289,46 +290,46 @@ for np = 1:numel(iPulse)
           
         case 'gaussian'
           
-          if (~isfield(Exp.PulseShape(n),'tFWHM') || isempty(Exp.PulseShape(n).tFWHM)) && ...
-              (~isfield(Exp.PulseShape(n),'trunc') || isempty(Exp.PulseShape(n).trunc))
+          if (~isfield(thisPulse,'tFWHM') || isempty(thisPulse.tFWHM)) && ...
+             (~isfield(thisPulse,'trunc') || isempty(thisPulse.trunc))
             error(['Pulse AM function of pulse ',num2str(n),' not sufficiently defined. ',...
               'Specify tFWHM or trunc parameter for the Gaussian envelope.']);
-          elseif ~isfield(Exp.PulseShape(n),'tFWHM') && isfield(Exp.PulseShape(n),'trunc') && ...
-              ~isempty(Exp.PulseShape(n).trunc)
+          elseif ~isfield(thisPulse,'tFWHM') && isfield(thisPulse,'trunc') && ...
+              ~isempty(thisPulse.trunc)
             % Convert truncation parameter to tFWHM
-            Exp.PulseShape(n).tFWHM = sqrt(-(Exp.tp(n)^2)/log2(Exp.PulseShape(n).trunc));
-            if Exp.PulseShape(n).tFWHM==0
-              Exp.PulseShape(n).tFWHM = Exp.TimeStep(n)/2;
+            thisPulse.tFWHM = sqrt(-(Exp.tp(n)^2)/log2(thisPulse.trunc));
+            if thisPulse.tFWHM==0
+              thisPulse.tFWHM = Exp.TimeStep(n)/2;
             end
           end
           
         case 'sinc'
           
-          if ~isfield(Exp.PulseShape(n),'zerocross') || isempty(Exp.PulseShape(n).zerocross)
+          if ~isfield(thisPulse,'zerocross') || isempty(thisPulse.zerocross)
             error(['Pulse AM function of pulse ',num2str(n),' not sufficiently defined. ',...
               'Specify zero-crossing parameter in us for the sinc envelope.']);
           end
           
         case 'quartersin'
           
-          if ~isfield(Exp.PulseShape(n),'trise') || isempty(Exp.PulseShape(n).trise)
+          if ~isfield(thisPulse,'trise') || isempty(thisPulse.trise)
             error(['Pulse AM function of pulse ',num2str(n),' not sufficiently defined. ',...
               'Specify trise parameter in us for the quartersine envelope.']);
           end
           
         case 'sech'
           
-          if ~isfield(Exp.PulseShape(n),'beta') || isempty(Exp.PulseShape(n).beta)
+          if ~isfield(thisPulse,'beta') || isempty(thisPulse.beta)
             error(['Pulse AM function of pulse ',num2str(n),' not sufficiently defined. ',...
               'Specify beta parameter in 1/us for the sech envelope.']);
           end
-          if ~isfield(Exp.PulseShape(n),'n') || isempty(Exp.PulseShape(n).n)
-            Exp.PulseShape(n).n = 1;
+          if ~isfield(thisPulse,'n') || isempty(thisPulse.n)
+            thisPulse.n = 1;
           end
           
         case 'WURST'
           
-          if ~isfield(Exp.PulseShape(n),'nwurst') || isempty(Exp.PulseShape(n).nwurst)
+          if ~isfield(thisPulse,'nwurst') || isempty(thisPulse.nwurst)
             error(['Pulse AM function of pulse ',num2str(n),' not sufficiently defined. ',...
               'Specify nwurst parameter for the WURST envelope.']);
           end
@@ -346,26 +347,26 @@ for np = 1:numel(iPulse)
         
       case 'linear'
         
-        if ~isfield(Exp.PulseShape(n),'BW') || isempty(Exp.PulseShape(n).BW)
+        if ~isfield(thisPulse,'BW') || isempty(thisPulse.BW)
           error(['Pulse FM function of pulse ',num2str(n),' not sufficiently defined. ',...
             'Specify BW parameter in MHz for the linear chirp.']);
         end
         
       case 'tanh'
         
-        if ~isfield(Exp.PulseShape(n),'BW') || isempty(Exp.PulseShape(n).BW)
+        if ~isfield(thisPulse,'BW') || isempty(thisPulse.BW)
           error(['Pulse FM function of pulse ',num2str(n),' not sufficiently defined. ',...
             'Specify BW parameter in MHz for tanh.']);
         end
-        if ~isfield(Exp.PulseShape(n),'beta') || isempty(Exp.PulseShape(n).beta)
+        if ~isfield(thisPulse,'beta') || isempty(thisPulse.beta)
           error(['Pulse FM function of pulse ',num2str(n),' not sufficiently defined. ',...
             'Specify dimensionless beta parameter for tanh.']);
         end
         
       case 'BWcompensated'
         
-        if (~isfield(Exp.PulseShape(n),'freqaxis') || isempty(Exp.PulseShape(n).freqaxis)) || ...
-            (~isfield(Exp.PulseShape(n),'v1') || isempty(Exp.PulseShape(n).v1))
+        if (~isfield(thisPulse,'freqaxis') || isempty(thisPulse.freqaxis)) || ...
+            (~isfield(thisPulse,'v1') || isempty(thisPulse.v1))
           error(['Pulse FM function of pulse ',num2str(n),' not sufficiently defined. ',...
             'Specify the resonator magnitude response function.']);
         end
@@ -376,7 +377,7 @@ for np = 1:numel(iPulse)
         
       case 'uniformQ'
         
-        if ~isfield(Exp.PulseShape(n),'BW') || isempty(Exp.PulseShape(n).BW)
+        if ~isfield(thisPulse,'BW') || isempty(thisPulse.BW)
           error(['Pulse FM function of pulse ',num2str(n),' not sufficiently defined. ',...
             'Specify BW parameter in MHz.']);
         end
@@ -386,51 +387,58 @@ for np = 1:numel(iPulse)
         error(['The frequency modulation function selected for pulse ',num2str(n),' is not defined.']);
         
     end
-    if ~isfield(Exp.PulseShape(n),'SweepDirection') || isempty(Exp.PulseShape(n).SweepDirection)
-      Exp.PulseShape(n).SweepDirection = +1;
+    if ~isfield(thisPulse,'SweepDirection') || isempty(thisPulse.SweepDirection)
+      thisPulse.SweepDirection = +1;
     end
     
     % Set up time axis
     if ~isfield(Exp,'TimeStep') || (isfield(Exp,'TimeStep') && numel(Exp.TimeStep)<n)
-      if ~strcmp(FrequencyModulation,'none')
-        % Compute time step for frequency modulated pulses based on the
-        % Nyquist sampling theorem considering the maximum frequency
-        % of the pulse and the frequency offset
-        maxFreq = max(abs([Exp.CenterFreq(n)-Exp.PulseShape(n).BW/2 ...
-          Exp.CenterFreq(n)+Exp.PulseShape(n).BW/2]));
-        Exp.TimeStep(n) = 1/(2*Opt.OverSampleFactor*maxFreq);
-      elseif numel(AmplitudeModulation)==1 && strcmp(AmplitudeModulation,'rectangular')
-        maxFreq = Exp.CenterFreq(n);
-        if maxFreq~=0
-          Exp.TimeStep(n) = 1/(2*Opt.OverSampleFactor*maxFreq);
-        else
-          Exp.TimeStep(n) = 0.002; % ns, default time step
-        end
-      else
-        % Determine "equivalent maximum frequencies" for AM functions
-        equivmaxFreq = zeros(1,numel(AmplitudeModulation));
-        for na = 1:numel(AmplitudeModulation)
-          if strcmp(AmplitudeModulation,'gaussian')
-            equivmaxFreq(na) = 1/(2*Exp.PulseShape(n).tFWHM);
-          elseif strcmp(AmplitudeModulation,'sinc')
-            equivmaxFreq(na) = 1/Exp.PulseShape(n).zerocross;
-          elseif strcmp(AmplitudeModulation,'sech')
+      
+      % Automatically determine appropriate time step
+      %------------------------------------------------------------------ %
+      % Determine bandwidth of frequency modulation
+      switch FrequencyModulation
+        case 'none'
+          FM_BW = 0;
+        otherwise
+          FM_BW = thisPulse.BW;
+      end
+      
+      % Determine bandwidth of amplitude modulation
+      AM_BW = 0;
+      for na = 1:numel(AmplitudeModulation)
+        switch AmplitudeModulation{na}
+          case 'rectangular'
+            AM_BW = AM_BW + 4/Exp.tp(n);
+          case 'gaussian'
+            AM_BW = AM_BW + 1/(2*thisPulse.tFWHM);
+          case 'sinc'
+            AM_BW = AM_BW + 1/thisPulse.zerocross;
+          case 'sech'
             % from approximate FWHM of sech function
-            equivmaxFreq(na) = Exp.PulseShape(n).beta/(4*Exp.tp(n)*asech(0.5));
-          elseif strcmp(AmplitudeModulation,'nth order sech')
+            AM_BW = AM_BW + thisPulse.beta/(4*Exp.tp(n)*asech(0.5));
+            %case 'nth order sech'
             % from rise time to 1/2 of maximum value
-            thalf = (Exp.tp(n)/2)*(1-(2*asech(0.5)/Exp.PulseShape(n).beta)^(1/Exp.PulseShape(n).n));
-            equivmaxFreq(na) = 1/(4*thalf);
-          elseif strcmp(AmplitudeModulation,'WURST')
+            %thalf = (Exp.tp(n)/2)*(1-(2*asech(0.5)/thisPulse.beta)^(1/thisPulse.n));
+            %AM_BW = AM_BW + 1/(4*thalf);
+          case 'WURST'
             % from rise time to 1/2 of maximum value
-            thalf = Exp.tp(n)*(1/2 - (1/pi)*asin(2^(-1/Exp.PulseShape(n).nwurst)));
-            equivmaxFreq(na) = 1/(4*thalf);
-          elseif strcmp(AmplitudeModulation,'quartersin')
-            equivmaxFreq(na) = 1/(4*Exp.PulseShape(n).trise);
-          end
+            thalf = Exp.tp(n)*(1/2 - (1/pi)*asin(2^(-1/thisPulse.nwurst)));
+            AM_BW = AM_BW + 1/(4*thalf);
+          case 'quartersin'
+            AM_BW = AM_BW + 1/(4*thisPulse.trise);
         end
-        maxFreq = max(abs([equivmaxFreq Exp.CenterFreq]));
-        Exp.TimeStep(n) = 1/(2*Opt.OverSampleFactor*maxFreq);
+      end
+      
+      % Calculate maximum frequency offset
+      BW = max([FM_BW AM_BW]);
+      maxFreq = max(abs(Exp.CenterFreq(n)+[-1 1]*BW/2));
+      % Use Nyquist theorem to calculate time step, incl. oversampling
+      if maxFreq~=0
+        Nyquist_dt = 1/(2*maxFreq);
+        Exp.TimeStep(n) = Nyquist_dt/Opt.OverSampleFactor;
+      else
+        Exp.TimeStep(n) = 0.002; % us
       end
       if Exp.TimeStep(n)>Exp.tp(n)
         Exp.TimeStep(n) = Exp.tp(n);
@@ -439,55 +447,54 @@ for np = 1:numel(iPulse)
     end
     t{n} = 0:Exp.TimeStep(n):Exp.tp(n);
     ti = t{n} - Exp.tp(n)/2;
+    nPoints = numel(t{n});
     
     % ------------------------------------------------------------------- %
-    % Amplitude modulation function
+    % Amplitude modulation function (modulation.A)
     % ------------------------------------------------------------------- %
-    modulation(n).A = ones(1,numel(t{n}));
-    A = zeros(numel(AmplitudeModulation),numel(t{n}));
+    modulation(n).A = ones(1,nPoints);
     for na = 1:numel(AmplitudeModulation)
       switch AmplitudeModulation{na}
         
         case 'rectangular'
           
-          A(na,1:numel(t{n})) = 1;
+          A = ones(1,nPoints);
           
         case 'gaussian'
           
-          A(na,:) = exp(-(4*log(2)*ti.^2)/Exp.PulseShape(n).tFWHM^2);
+          A = exp(-(4*log(2)*ti.^2)/thisPulse.tFWHM^2);
           
         case 'sinc'
           
-          A(na,:) = sin((2*pi*ti)/Exp.PulseShape(n).zerocross)./((2*pi*ti)/Exp.PulseShape(n).zerocross);
-          A(na,round(Exp.tp(n)/(2*Exp.TimeStep(n)))+1) = 1;
-          A(na,:) = A(na,:)/max(A(na,:));
+          A = sin((2*pi*ti)/thisPulse.zerocross)./((2*pi*ti)/thisPulse.zerocross);
+          A(round(Exp.tp(n)/(2*Exp.TimeStep(n)))+1) = 1;
+          A = A/max(A);
           
         case 'quartersin'
           
           % Pulse edges weighted with a quarter period of a sine wave
-          A(na,1:numel(t{n})) = 1;
-          if Exp.PulseShape(n).trise~=0 && 2*Exp.PulseShape(n).trise<Exp.tp(n)
-            tpartial = 0:Exp.TimeStep(n):Exp.PulseShape(n).trise;
+          A = ones(1,nPoints);
+          if thisPulse.trise~=0 && 2*thisPulse.trise<Exp.tp(n)
+            tpartial = 0:Exp.TimeStep(n):thisPulse.trise;
             npts = numel(tpartial);
-            A(na,1:npts) = sin(tpartial*(pi/(2*Exp.PulseShape(n).trise)));
-            A(na,end-npts+1:end) = fliplr(A(na,1:npts));
+            A(1:npts) = sin(tpartial*(pi/(2*thisPulse.trise)));
+            A(end-npts+1:end) = fliplr(A(na,1:npts));
           end
           
         case 'sech'
           
-          if Exp.PulseShape(n).n==1 % reduces numerical errors
-            A(na,:) = sech((Exp.PulseShape(n).beta/Exp.tp(n))*ti);
+          if thisPulse.n==1 % reduces numerical errors
+            A = sech((thisPulse.beta/Exp.tp(n))*ti);
           else
-            A(na,:) = sech(Exp.PulseShape(n).beta*2^(Exp.PulseShape(n).n-1)*(ti/Exp.tp(n)).^Exp.PulseShape(n).n);
+            A = sech(thisPulse.beta*2^(thisPulse.n-1)*(ti/Exp.tp(n)).^thisPulse.n);
           end
           
         case 'WURST'
           
-          A(na,:) = (1-(abs(sin(pi*ti/Exp.tp(n)))).^Exp.PulseShape(n).nwurst);
+          A = (1-(abs(sin(pi*ti/Exp.tp(n)))).^thisPulse.nwurst);
           
       end
-      
-      modulation(n).A = modulation(n).A.*A(na,:);
+      modulation(n).A = modulation(n).A.*A;
     end
     
     % ------------------------------------------------------------------- %
@@ -497,28 +504,29 @@ for np = 1:numel(iPulse)
       
       case 'none'
         
-        modulation(n).nu(1:numel(t{n})) = 0;
-        modulation(n).phi(1:numel(t{n})) = 0;
+        modulation(n).nu(1:nPoints) = 0;
+        modulation(n).phi(1:nPoints) = 0;
         
       case 'linear'
         
-        k = Exp.PulseShape(n).BW/Exp.tp(n); % rate of change
+        k = thisPulse.BW/Exp.tp(n); % frequency sweep (chirp) rate
         modulation(n).nu = k*ti;
-        modulation(n).phi = 2*pi*Exp.PulseShape(n).SweepDirection*((k/2)*ti.^2);
+        modulation(n).phi = 2*pi*thisPulse.SweepDirection*((k/2)*ti.^2);
         
       case 'BWcompensated'
         
         % Variable-rate chirps with resonator bandwidth
-        % compensation as described in:
+        % compensation, as described in:
         % Doll, A., Pribitzer, S., Tschaggelar, R., Jeschke, G.,
         % Adiabatic and fast passage ultra-wideband inversion in
         % pulsed EPR. J. Magn. Reson. 230, 27–39 (2013).
+        % http://dx.doi.org/10.1016/j.jmr.2013.01.002
         
         % Constant rate chirp
-        k = Exp.PulseShape(n).BW/Exp.tp(n); % rate of change
+        k = thisPulse.BW/Exp.tp(n); % rate of change
         nu_linear = k*ti;
         
-        v1_range = interp1(Exp.PulseShape(n).freqaxis,Exp.PulseShape(n).v1,...
+        v1_range = interp1(thisPulse.freqaxis,thisPulse.v1,...
           nu_linear+Exp.CenterFreq(n)+Exp.mwFreq*10^3);
         
         % Frequency dependence of t and time to frequency mapping
@@ -528,31 +536,32 @@ for np = 1:numel(iPulse)
         nu_adapted = interp1(t_f,nu_linear,t{n},'pchip');
         
         modulation(n).nu = nu_adapted;
-        modulation(n).phi = 2*pi*Exp.PulseShape(n).SweepDirection*cumtrapz(t{n},modulation(n).nu);
+        modulation(n).phi = 2*pi*thisPulse.SweepDirection*cumtrapz(t{n},modulation(n).nu);
         modulation(n).phi = modulation(n).phi+abs(min(modulation(n).phi));
         
       case 'tanh'
         
         % Determine BWinf parameter from BW and beta parameters
         % (the frequency is swept from -BW/2 to +BW/2)
-        Exp.PulseShape(n).BWinf = Exp.PulseShape(n).BW/tanh(Exp.PulseShape(n).beta/2);
+        thisPulse.BWinf = thisPulse.BW/tanh(thisPulse.beta/2);
         
-        modulation(n).nu = (Exp.PulseShape(n).BWinf/2)*tanh((Exp.PulseShape(n).beta/Exp.tp(n))*ti);
-        modulation(n).phi = (Exp.PulseShape(n).BWinf/2)*(Exp.tp(n)/Exp.PulseShape(n).beta)*...
-          log(cosh((Exp.PulseShape(n).beta/Exp.tp(n))*ti));
-        modulation(n).phi = 2*pi*Exp.PulseShape(n).SweepDirection*modulation(n).phi;
+        modulation(n).nu = (thisPulse.BWinf/2)*tanh((thisPulse.beta/Exp.tp(n))*ti);
+        modulation(n).phi = (thisPulse.BWinf/2)*(Exp.tp(n)/thisPulse.beta)*...
+          log(cosh((thisPulse.beta/Exp.tp(n))*ti));
+        modulation(n).phi = 2*pi*thisPulse.SweepDirection*modulation(n).phi;
         
       case 'uniformQ'
         % The frequency modulation is calculated as the integral of the
         % squared amplitude modulation function (for nth order sech/tanh or
         % in general to obtain offset-independent adiabaticity pulses, see
-        % Garwood, M., DelaBarre, L., J. Magn. Reson. 153, 155-177 (2001).
+        % Garwood, M., DelaBarre, L., J. Magn. Reson. 153, 155-177 (2001)
+        % http://dx.doi.org/10.1006/jmre.2001.2340
         
         modulation(n).nu = cumtrapz(ti,modulation(n).A.^2)/trapz(ti,modulation(n).A.^2); % F2
-        modulation(n).nu = Exp.PulseShape(n).BW*(modulation(n).nu-1/2);
+        modulation(n).nu = thisPulse.BW*(modulation(n).nu-1/2);
         modulation(n).phi = 2*pi*cumtrapz(ti,modulation(n).nu);
         modulation(n).phi = modulation(n).phi+abs(min(modulation(n).phi)); % zero phase offset at pulse center
-        modulation(n).phi = Exp.PulseShape(n).SweepDirection*modulation(n).phi;
+        modulation(n).phi = thisPulse.SweepDirection*modulation(n).phi;
         
     end
     
@@ -560,7 +569,7 @@ for np = 1:numel(iPulse)
     % Determine pulse amplitude from flip angle (if only Exp.Flip is given)
     % ------------------------------------------------------------------- %
     if (isfield(Exp,'Flip') && ~isempty(Exp.Flip(n))) && ...
-        (~isfield(Exp,'Amplitude') || (isfield(Exp,'Amplitude') && numel(Exp.Amplitude)<n))
+       (~isfield(Exp,'Amplitude') || (isfield(Exp,'Amplitude') && numel(Exp.Amplitude)<n))
       switch FrequencyModulation
         
         case 'none' % amplitude modulated pulses: beta = integral
@@ -574,15 +583,15 @@ for np = 1:numel(iPulse)
           if Exp.Flip(n)>pi
             error('Pulse amplitude calculation from flip angle not applicable for angles larger than pi.')
           end
-          Q_crit = (2/pi)*(log(2/(1+cos(Exp.Flip(n)))));
+          Q_crit = (2/pi)*log(2/(1+cos(Exp.Flip(n))));
           if Q_crit>5 % set Q_crit to finite value if it is infinite or very large
             Q_crit = 5;
           end
           
           if strcmp(FrequencyModulation,'linear') || strcmp(FrequencyModulation,'BWcompensated')
-            sweeprate = Exp.PulseShape(n).BW/Exp.tp(n);
+            sweeprate = thisPulse.BW/Exp.tp(n);
           elseif strcmp(FrequencyModulation,'tanh')
-            sweeprate = Exp.PulseShape(n).beta*Exp.PulseShape(n).BWinf/(2*Exp.tp(n));
+            sweeprate = thisPulse.beta*thisPulse.BWinf/(2*Exp.tp(n));
           elseif strcmp(FrequencyModulation,'uniformQ')
             % Q = w1max^2*A(t)^2/(BW*dnu/dt) see eq. 17 in Garwood, M., DelaBarre, L.,
             % J. Magn. Reson. 153, 155-177 (2001)
@@ -597,11 +606,11 @@ for np = 1:numel(iPulse)
     end
     
     % ------------------------------------------------------------------- %
-    % Pulse function
+    % Calculate pulse IQ function
     % ------------------------------------------------------------------- %
     modulation(n).A = Exp.Amplitude(n)*modulation(n).A;
-    y{n} = modulation(n).A.*cos(modulation(n).phi + 2*pi*Exp.CenterFreq(n)*t{n} + Exp.Phase(n))...
-      +1i*modulation(n).A.*cos(modulation(n).phi + 2*pi*Exp.CenterFreq(n)*t{n} + Exp.Phase(n) - (pi/2));
+    totalphase = modulation(n).phi + 2*pi*Exp.CenterFreq(n)*t{n} + Exp.Phase(n);
+    y{n} = modulation(n).A.*exp(1i*totalphase);
     
   end
   
@@ -617,7 +626,7 @@ for np = 1:numel(iPulse)
       % Estimate bandwidth of the pulse
       if ~strcmp(FrequencyModulation,'none')
         
-        BW = Exp.PulseShape(n).BW;
+        BW = thisPulse.BW;
       
       else
         
@@ -641,6 +650,7 @@ for np = 1:numel(iPulse)
     else
       p(n).offsets = Opt.Offsets;
     end
+    nOffsets = numel(p(n).offsets);
     
     % Spin operators
     Sx = sop(1/2,'x');
@@ -648,55 +658,49 @@ for np = 1:numel(iPulse)
     Sz = sop(1/2,'z');
     
     % Equilibrium density matrix
-    p0 = -Sz;
+    Density0 = -Sz;
     
     % Detection operator
     switch Opt.Detect
-      case 'Sz', Det = Sz; varname = 'Mz';
-      case 'Sy', Det = Sy; varname = 'My';
-      case 'Sx', Det = Sx; varname = 'Mx';
-      case 'all', Det{1} = Sx; Det{2} = Sy; Det{3} = Sz;
+      case 'Sz', Det = -Sz; varname = 'Mz';
+      case 'Sy', Det = -Sy; varname = 'My';
+      case 'Sx', Det = -Sx; varname = 'Mx';
+      case 'all', Det{1} = -Sx; Det{2} = -Sy; Det{3} = -Sz;
       otherwise
         error('Opt.Detect has unknown value. Use ''Sx'', ''Sy'', ''Sz'', or ''all''.');
     end
     
+    % Pre-allocate result array
     if ~iscell(Det)
-      p(n).(varname) = zeros(1,numel(p(n).offsets));
+      p(n).(varname) = zeros(1,nOffsets);
     else
-      p(n).Mx = zeros(1,numel(p(n).offsets));
-      p(n).My = zeros(1,numel(p(n).offsets));
-      p(n).Mz = zeros(1,numel(p(n).offsets));
+      p(n).Mx = zeros(1,nOffsets);
+      p(n).My = zeros(1,nOffsets);
+      p(n).Mz = zeros(1,nOffsets);
     end
     
-    for k = 1:length(p(n).offsets)
+    for iOffset = 1:nOffsets
       
-      Ham0 = p(n).offsets(k)*Sz;
+      Ham0 = p(n).offsets(iOffset)*Sz;
       
       % Compute pulse propagator
-      if min(y{n})==max(y{n}) % used for rectangular pulses
+      if min(y{n})==max(y{n}) % rectangular pulses
         
         Ham = real(y{n}(1))*Sx+imag(y{n}(1))*Sy+Ham0;
-        tp = Exp.TimeStep(n)*(numel(t{n})-1);
+        tp = Exp.TimeStep(n)*(nPoints-1);
+        UPulse = expm(-2i*pi*Ham*tp);
         
-        % U = expm(-2i*pi*Ham*Exp.TimeStep(n));
-        % Matrix exponential for a traceless, antihermitian 2x2 matrix
-        M = -2i*pi*Ham*tp; % M = [a b; -b' -a]
-        q = sqrt(M(1,1)^2-abs(M(1,2))^2);
-        if abs(q)<1e-10
-          UPulse = eye(2) + M;
-        else
-          UPulse = cosh(q)*eye(2) + (sinh(q)/q)*M;
-        end
-        
-      else
+      else % general pulses
         
         UPulse = eye(2);
-        for j = 1:numel(t{n})-1
+        Isignal = real(y{n});
+        Qsignal = imag(y{n});
+        for it = 1:nPoints-1
           
-          Ham = real(y{n}(j))*Sx+imag(y{n}(j))*Sy+Ham0;
+          Ham = Isignal(it)*Sx + Qsignal(it)*Sy + Ham0;
           
-          %  U = expm(-2i*pi*Ham*Exp.TimeStep(n));
-          % Matrix exponential for a traceless, antihermitian 2x2 matrix
+          % dU = expm(-2i*pi*Ham*Exp.TimeStep(n));
+          % Fast matrix exponential for a traceless, antihermitian 2x2 matrix
           M = -2i*pi*Exp.TimeStep(n)*Ham; % M = [a b; -b' -a]
           q = sqrt(M(1,1)^2-abs(M(1,2))^2);
           if abs(q)<1e-10
@@ -710,20 +714,21 @@ for np = 1:numel(iPulse)
       end
       
       % Propagate density matrix
-      p1 = UPulse*p0*UPulse';
+      Density = UPulse*Density0*UPulse';
       
       % Calculate observables
+      % (using trace(A*B) = sum(sum(A.*B.')))
       if ~iscell(Det)
-        p(n).(varname)(k) = -2*real(sum(sum(Det.*p1.')));
+        p(n).(varname)(iOffset) = 2*real(sum(sum(Det.*Density.')));
       else
-        p(n).Mx(k) = -2*real(sum(sum(Det{1}.*p1.')));
-        p(n).My(k) = -2*real(sum(sum(Det{2}.*p1.')));
-        p(n).Mz(k) = -2*real(sum(sum(Det{3}.*p1.')));
+        p(n).Mx(iOffset) = 2*real(sum(sum(Det{1}.*Density.')));
+        p(n).My(iOffset) = 2*real(sum(sum(Det{2}.*Density.')));
+        p(n).Mz(iOffset) = 2*real(sum(sum(Det{3}.*Density.')));
       end
       
     end
     
-    if Opt.plot
+    if plotResults
       if n==iPulse(1)
         clf
         cc = winter(numel(iPulse));
@@ -751,12 +756,12 @@ for np = 1:numel(iPulse)
           ylabel('M_x/M_0')
         case 'all'
           plot(p(n).offsets,real(p(n).Mx),...
-            p(n).offsets,real(p(n).My),...
-            p(n).offsets,real(p(n).Mz));
+               p(n).offsets,real(p(n).My),...
+               p(n).offsets,real(p(n).Mz));
           ylabel('M_i/M_0')
           legend('x','y','z')
       end
-      lgd(l) = strcat(num2str(n),{' '},Exp.PulseShape(n).Type);
+      lgd(l) = strcat(num2str(n),{' '},thisPulse.Type);
       l = l+1;
       legend(lgd,'Location','Best');
       xlabel('frequency offset (MHz)')
@@ -766,7 +771,7 @@ for np = 1:numel(iPulse)
     
   end
   
-end
+end % loop over pulses
 
 % ----------------------------------------------------------------------- %
 % Output
@@ -776,18 +781,15 @@ if numel(iPulse)==1
   y = y{iPulse};
   modulation = modulation(iPulse);
 end
-if nargout==1
-  error('The function pulse needs to be called with at least two output arguments.')
-elseif nargout==2 % [t,y] = pulse(...)
-  varargout{1} = t;
-  varargout{2} = y;
-elseif nargout==3 % [t,y,p] = pulse(...)
-  varargout{1} = t;
-  varargout{2} = y;
-  varargout{3} = p;
-elseif nargout==4 % [t,y,p,modulation] = pulse(...)
-  varargout{1} = t;
-  varargout{2} = y;
-  varargout{3} = p;
-  varargout{4} = modulation;
+
+switch nargout
+  case 0 % plotting
+  case 2 % [t,y] = pulse(...)
+    varargout = {t,y};
+  case 3 % [t,y,p] = pulse(...)
+    varargout = {t,y,p};
+  case 4 % [t,y,p,modulation] = pulse(...)
+    varargout = {t,y,p,modulation};
+  otherwise
+    error('The function pulse() needs 2, 3, or 4 output arguments.')
 end

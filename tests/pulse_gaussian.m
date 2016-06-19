@@ -9,6 +9,7 @@ Exp.PulseShape.Type = 'gaussian';
 Exp.PulseShape.tFWHM = 0.064; % us
 Exp.Amplitude = (pi/Exp.PulseShape.tFWHM)/(2*pi);
 Exp.CenterFreq = 100; % MHz
+Exp.TimeStep = 0.0001;
 
 t0 = 0:0.0001:Exp.tp;
 A = gaussian(t0,Exp.tp/2,Exp.PulseShape.tFWHM);

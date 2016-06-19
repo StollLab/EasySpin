@@ -74,13 +74,15 @@ for i = 1:numel(p.offsets)
   
   rho = rho0;
   
+  UPulse = eye(2);
   for j = 1:numel(t)
     H = p.offsets(i)*Sz + real(y(j))*Sx + imag(y(j))*Sy;
     M = -2i*pi*H*(t(2)-t(1));
     q = sqrt(M(1,1)^2 - abs(M(1,2))^2);
-    U = cosh(q)*eye(2) + (sinh(q)/q)*M;
-    rho = U*rho*U';
+    dU = cosh(q)*eye(2) + (sinh(q)/q)*M;
+    UPulse = dU*UPulse;
   end
+  rho = UPulse*rho*UPulse';
   
   Mz(i) = -2*trace(Sz*rho);
   
@@ -126,13 +128,15 @@ for i = 1:numel(p.offsets)
   H0 = p.offsets(i)*Sz;
   rho = rho0;
   
+  UPulse = eye(2);
   for j = 1:numel(t0)
     H = H0 + real(y0(j))*Sx + imag(y0(j))*Sy;   
     M = -2i*pi*H*Exp.TimeStep;
     q = sqrt(M(1,1)^2-abs(M(1,2))^2);
-    U = cosh(q)*eye(2) + (sinh(q)/q)*M;
-    rho = U*rho*U';
+    dU = cosh(q)*eye(2) + (sinh(q)/q)*M;
+    UPulse = dU*UPulse;
   end 
+  rho = UPulse*rho*UPulse';
   
   Mz(i) = -2*trace(Sz*rho);
   
