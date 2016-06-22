@@ -4,28 +4,28 @@ function [err,data] = test(opt,olddata)
 %--------------------------------------------------------------------------
 
 % HS8
-Exp.tp = 0.500; % us
-Exp.PulseShape.Type = 'WURST/linear';
-Exp.PulseShape.BW = 500; % MHz
-Exp.PulseShape.nwurst = 15;
-Exp.Amplitude = 15; % MHz
-Exp.CenterFreq = 100; % MHz
+Params.tp = 0.500; % us
+Params.Type = 'WURST/linear';
+Params.BW = 500; % MHz
+Params.nwurst = 15;
+Params.Amplitude = 15; % MHz
+Params.CenterFreq = 100; % MHz
 
 Opt.ExciteProfile = 0;
-[t,y,~,m] = pulse(Exp,Opt);
+[t,y,~,m] = pulse(Params,Opt);
 
 % Amplitude modulation: WURST
-A = 1-abs((sin((pi*(t-Exp.tp/2))/Exp.tp)).^Exp.PulseShape.nwurst);
+A = 1-abs((sin((pi*(t-Params.tp/2))/Params.tp)).^Params.nwurst);
 % Frequency modulation
-f = -(Exp.PulseShape.BW/2)+(Exp.PulseShape.BW/Exp.tp)*t;
+f = -(Params.BW/2)+(Params.BW/Params.tp)*t;
 % Phase modulation
-phi = cumtrapz(t-Exp.tp/2,f);
+phi = cumtrapz(t-Params.tp/2,f);
 phi = phi+abs(min(phi));
 % Pulse
-y0 = Exp.Amplitude*A.*exp(2i*pi*(phi+Exp.CenterFreq*t));
+y0 = Params.Amplitude*A.*exp(2i*pi*(phi+Params.CenterFreq*t));
 
 suberr(1) = ~areequal(y0,y,1e-11);
-suberr(2) = ~areequal(Exp.Amplitude*A,m.A,1e-12);
+suberr(2) = ~areequal(Params.Amplitude*A,m.A,1e-12);
 suberr(3) = ~areequal(f,m.nu,1e-12);
 suberr(4) = ~areequal(2*pi*phi,m.phi,1e-12);
 

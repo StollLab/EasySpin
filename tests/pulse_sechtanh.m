@@ -4,32 +4,32 @@ function [err,data] = test(opt,olddata)
 %--------------------------------------------------------------------------
 
 % 1st order sech/tanh with frequency offset
-Exp.tp = 0.200; % us
-Exp.PulseShape.Type = 'sech/tanh';
-Exp.PulseShape.BW = 120; % MHz
-Exp.PulseShape.beta = 10.6;
-Exp.PulseShape.SweepDirection = -1;
-Exp.Flip = pi;
-Exp.TimeStep = 0.0005; % us
-Exp.CenterFreq = 60; % MHz
+Params.tp = 0.200; % us
+Params.Type = 'sech/tanh';
+Params.BW = 120; % MHz
+Params.beta = 10.6;
+Params.SweepDirection = -1;
+Params.Flip = pi;
+Params.TimeStep = 0.0005; % us
+Params.CenterFreq = 60; % MHz
 
-t0 = 0:Exp.TimeStep:Exp.tp;
+t0 = 0:Params.TimeStep:Params.tp;
 % Calculate pulse amplitude from flip angle
 Qcrit = 5;
-BW = Exp.PulseShape.BW/tanh(Exp.PulseShape.beta/2);
-Amplitude = sqrt((Exp.PulseShape.beta*BW*Qcrit)/(2*pi*2*Exp.tp));
+BW = Params.BW/tanh(Params.beta/2);
+Amplitude = sqrt((Params.beta*BW*Qcrit)/(2*pi*2*Params.tp));
 % Amplitude modulation: sech
-A = sech((Exp.PulseShape.beta/Exp.tp)*(t0-Exp.tp/2));
+A = sech((Params.beta/Params.tp)*(t0-Params.tp/2));
 % Frequency modulation: tanh
-f = (Exp.PulseShape.BW/(2*tanh(Exp.PulseShape.beta/2)))*tanh((Exp.PulseShape.beta/Exp.tp)*(t0-Exp.tp/2));
+f = (Params.BW/(2*tanh(Params.beta/2)))*tanh((Params.beta/Params.tp)*(t0-Params.tp/2));
 % Phase modulation
-phi = (Exp.PulseShape.BW/(2*tanh(Exp.PulseShape.beta/2)))*(Exp.tp/Exp.PulseShape.beta)*log(cosh((Exp.PulseShape.beta/Exp.tp)*(t0-Exp.tp/2)));
-phi = 2*pi*Exp.PulseShape.SweepDirection*phi;
+phi = (Params.BW/(2*tanh(Params.beta/2)))*(Params.tp/Params.beta)*log(cosh((Params.beta/Params.tp)*(t0-Params.tp/2)));
+phi = 2*pi*Params.SweepDirection*phi;
 % Pulse
-y0 = Amplitude*A.*exp(1i*(phi+2*pi*Exp.CenterFreq*t0));
+y0 = Amplitude*A.*exp(1i*(phi+2*pi*Params.CenterFreq*t0));
 
 Opt.ExciteProfile = 0;
-[~,y,~,m] = pulse(Exp,Opt);
+[~,y,~,m] = pulse(Params,Opt);
 
 suberr(1) = ~areequal(y0,y,1e-12);
 suberr(2) = ~areequal(Amplitude*A,m.A,1e-12);

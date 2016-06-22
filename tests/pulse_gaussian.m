@@ -4,20 +4,20 @@ function [err,data] = test(opt,olddata)
 %--------------------------------------------------------------------------
 
 % Gaussian pulse with frequency offset
-Exp.tp = 0.200; % us
-Exp.PulseShape.Type = 'gaussian';
-Exp.PulseShape.tFWHM = 0.064; % us
-Exp.Amplitude = (pi/Exp.PulseShape.tFWHM)/(2*pi);
-Exp.CenterFreq = 100; % MHz
-Exp.TimeStep = 0.0001;
+Params.tp = 0.200; % us
+Params.Type = 'gaussian';
+Params.tFWHM = 0.064; % us
+Params.Amplitude = (pi/Params.tFWHM)/(2*pi);
+Params.CenterFreq = 100; % MHz
+Params.TimeStep = 0.0001;
 
-t0 = 0:0.0001:Exp.tp;
-A = gaussian(t0,Exp.tp/2,Exp.PulseShape.tFWHM);
-A = Exp.Amplitude*(A/max(A));
-f = cos(2*pi*Exp.CenterFreq*t0)+1i*sin(2*pi*Exp.CenterFreq*t0);
+t0 = 0:0.0001:Params.tp;
+A = gaussian(t0,Params.tp/2,Params.tFWHM);
+A = Params.Amplitude*(A/max(A));
+f = cos(2*pi*Params.CenterFreq*t0)+1i*sin(2*pi*Params.CenterFreq*t0);
 y0 = A.*f;
 
-[t,y] = pulse(Exp);
+[t,y] = pulse(Params);
 
 y0 = interp1(t0,y0,t,'spline');
 
@@ -33,12 +33,13 @@ ind = find(round(abs(A-0.5)*1e5)/1e5==0);
 t0 = t0(ind(1):ind(2))-t0(ind(1));
 y0 = A(ind(1):ind(2));
 
-Exp.tp = t0(end); % us
-Exp.PulseShape.Type = 'gaussian';
-Exp.PulseShape.trunc = 0.5;
-Exp.TimeStep = dt;
+Params.tp = t0(end); % us
+Params.Type = 'gaussian';
+Params.trunc = 0.5;
+Params.TimeStep = dt;
+Params.Amplitude = 1;
 
-[~,y] = pulse(Exp);
+[~,y] = pulse(Params);
 
 err(2) = ~areequal(y0,y,1e-12);
 

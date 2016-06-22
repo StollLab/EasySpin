@@ -7,17 +7,17 @@ function [err,data] = test(opt,olddata)
 dt = 0.001; % us
 tp = 0.008; % us
 
-Exp.tp = 6*tp;
+Params.tp = 6*tp;
 v1 = ((pi/2)/tp)/(2*pi); % MHz
 
 I(1:tp/dt) = +1;
 I(tp/dt+1:tp/dt+2*tp/dt) = -1;
 I(3*tp/dt+1:3*tp/dt+3*tp/dt+1) = +1;
 
-Exp.PulseShape.I = v1*I;
+Params.I = v1*I;
 
 Opt.Offsets = -200:1:200; % MHz
-[~,y,p] = pulse(Exp,Opt);
+[~,y,p] = pulse(Params,Opt);
 
 % Calculate inversion profile
 Sx = sop(1/2,'x');

@@ -4,22 +4,22 @@ function [err,data] = test(opt,olddata)
 %--------------------------------------------------------------------------
 
 % HS8
-Exp.tp = 0.600; % us
-Exp.PulseShape.Type = 'sech/uniformQ';
-Exp.PulseShape.BW = 200; % MHz
-Exp.PulseShape.beta = 10.6;
-Exp.PulseShape.n = 8;
-Exp.Amplitude = 20;
-Exp.TimeStep = 0.0005; % us
+Params.tp = 0.600; % us
+Params.Type = 'sech/uniformQ';
+Params.BW = 200; % MHz
+Params.beta = 10.6;
+Params.n = 8;
+Params.Amplitude = 20;
+Params.TimeStep = 0.0005; % us
 
-t0 = 0:Exp.TimeStep:Exp.tp;
+t0 = 0:Params.TimeStep:Params.tp;
 % Amplitude modulation: sech
-ti = t0-Exp.tp/2;
-A = sech((Exp.PulseShape.beta)*(2^(Exp.PulseShape.n-1))*(ti/Exp.tp).^Exp.PulseShape.n);
-A = A*Exp.Amplitude;
+ti = t0-Params.tp/2;
+A = sech((Params.beta)*(2^(Params.n-1))*(ti/Params.tp).^Params.n);
+A = A*Params.Amplitude;
 % Frequency modulation
 f = cumtrapz(ti,A.^2/trapz(ti,A.^2));
-f = Exp.PulseShape.BW*f-Exp.PulseShape.BW/2;
+f = Params.BW*f-Params.BW/2;
 % Phase modulation
 phi = cumtrapz(ti,f);
 phi = phi+abs(min(phi));
@@ -27,7 +27,7 @@ phi = phi+abs(min(phi));
 y0 = A.*exp(2i*pi*phi);
 
 Opt.ExciteProfile = 0;
-[~,y,~,m] = pulse(Exp,Opt);
+[~,y,~,m] = pulse(Params,Opt);
 
 suberr(1) = ~areequal(y0,y,1e-11);
 suberr(2) = ~areequal(A,m.A,1e-12);
