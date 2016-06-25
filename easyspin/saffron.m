@@ -1369,6 +1369,9 @@ for iOri = 1:nOrientations
               Gamma = fwhm/(2*sqrt(log(2)));
               theta = pi; % rf pulse flip angle
               
+              Gam = Sys.lwEndor/sqrt(2*log(2));  % line broadening
+              pre = sqrt(2/pi)/Gam;
+              
               switch Opt.EndorMethod
                 case 2
                   % Sweep method
@@ -1414,8 +1417,8 @@ for iOri = 1:nOrientations
                       %endorspc(idx) = endorspc(idx) + ampl;
                       %endorspc = endorspc + ...
                       %  lisum1i(Template.y,Template.x0,Template.lw,freq,ampl,Sys.lwEndor*[1 1],rf);
-                      endorspc = endorspc + ampl(1)*exp(-((rf-freq(1))/Sys.lwEndor).^2);
-                      endorspc = endorspc + ampl(2)*exp(-((rf-freq(2))/Sys.lwEndor).^2);
+                      endorspc = endorspc + ampl(1)*pre*exp(-2*((rf-freq(1))/Gam).^2);
+                      endorspc = endorspc + ampl(2)*pre*exp(-2*((rf-freq(2))/Gam).^2);
                     end
                   end
                   
@@ -1445,8 +1448,8 @@ for iOri = 1:nOrientations
                     %endorspc = endorspc + ...
                     %  lisum1i(Template.y,Template.x0,Template.lw,freq,ampl,Sys.lwEndor*[1 1],rf);
                     % Add peaks to spectrum
-                    endorspc = endorspc + sig1*exp(-((rf-freq1)/Sys.lwEndor).^2);
-                    endorspc = endorspc + sig2*exp(-((rf-freq2)/Sys.lwEndor).^2);
+                    endorspc = endorspc + sig1*pre*exp(-((rf-freq1)/Gam).^2);
+                    endorspc = endorspc + sig2*pre*exp(-((rf-freq2)/Gam).^2);
                   end
               end
                   
