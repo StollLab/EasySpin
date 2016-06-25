@@ -793,8 +793,8 @@ ZeroRow = NaN*ones(1,nOrientations);
 if higherOrder
   maxSlope = 0;
   for iOri = 1:nOrientations
-    [~,~,zLab_M] = erot(Orientations(iOri,:),'rows');
-    [~,~,der]= gethamdata_hO(Exp.Range(2),zLab_M,CoreSys,Opt.Sparse,[],nLevels);
+    [xLab_M,yLab_M,zLab_M] = erot(Orientations(iOri,:),'rows');
+    [dummy,dummy,der]= gethamdata_hO(Exp.Range(2),zLab_M,CoreSys,Opt.Sparse,[],nLevels);
     maxSlope = max([maxSlope,max(der)]);
   end
 else

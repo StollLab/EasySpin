@@ -1217,7 +1217,7 @@ for iOri = 1:nOrientations
     H = Exp.Field*(zLab_M(1)*Gx + zLab_M(2)*Gy + zLab_M(3)*Gz);
     % Rotating frame % ?
 %     Hrot = H - Exp.mwFreq*1e3*sop(1/2,'z'); % ?
-    [~,eE] = eig(H);
+    [eV,eE] = eig(H);
     eE = real(diag(eE)); % ? order of eigenvalues
 
     quantizationAxis_ = g.'*zLab_M;

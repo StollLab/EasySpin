@@ -570,7 +570,7 @@ else
           case 'uniformQ'
             % Q = w1max^2*A(t)^2/(BW*dnu/dt) see eq. 17 in Garwood, M., DelaBarre, L.,
             % J. Magn. Reson. 153, 155-177 (2001)
-            [~,ind] = min(abs(ti));
+            [dummy,ind] = min(abs(ti));
             dnu = diff(2*pi*modulation.nu/(t(2)-t(1)));
             sweeprate = dnu(ind)/(2*pi*(modulation.A(ind))^2);
         end
@@ -615,7 +615,7 @@ if Opt.ExciteProfile
       yft = abs(fftshift(fft(y,zf)));
       f = fdaxis(Par.TimeStep,zf);
       intg = cumtrapz(yft);
-      [~,indmax] = min(abs(intg-0.5*max(intg)));
+      [dummy,indmax] = min(abs(intg-0.5*max(intg)));
       indbw = find(yft(indmax:end)<0.1*max(yft),1);
       BW = 2*(f(indmax+indbw)-f(indmax));
       
