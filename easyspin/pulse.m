@@ -6,7 +6,7 @@
 % [t,y,exprof] = pulse(Par,Opt)
 % [t,y,exprof,modulation] = pulse(Par,Opt)
 %
-% Input: 
+% Input:
 %   Par = structure containing the following fields:
 %     Par.tp          = pulse length, in us
 %     Par.TimeStep    = time step for waveform definition, in us
@@ -16,41 +16,39 @@
 %     Par.Amplitude   = pulse amplitude, in MHz; ignored if Par.Flip given
 %     Par.CenterFreq  = pulse center frequency (default: 0)
 %     Par.Phase       = phase for the pulse in radians (default: 0 = +x)
-%     Par.Type        = pulse shape name in a string with structure
-%                       'AM/FM' (or just 'AM'), where AM refers to the
-%                       amplitude modulation function and FM to the
-%                       frequency modulation function. The available
-%                       options are listed below
-%                       If only a single keyword is given, the FM
-%                       function is set to 'none'. For a pulse with
-%                       constant amplitude, the AM needs to be specified
-%                       as 'rectangular'.
+%     Par.Type        = pulse shape name in a string with structure 'AM/FM'
+%                       (or just 'AM'), where AM refers to the amplitude
+%                       modulation function and FM to the frequency
+%                       modulation function. The available options are
+%                       listed below.
+%                       If only a single keyword is given, the FM function
+%                       is set to 'none'. For a pulse with constant
+%                       amplitude, the AM needs to be specified as
+%                       'rectangular'.
 %                       Different AM functions can be multiplied by
 %                       concatenating the keywords as 'AM1*AM2/FM'.
 %                       (default: 'rectangular')
-%       Par.*         = value for the pulse parameters defining
-%                       the specified pulse shape. The pulse
-%                       parameters required for each of the available
-%                       modulation functions are listed below.
-%       Par.I, Par.Q  = I and Q data describing an arbitrary pulse.
+%     Par.*           = value for the pulse parameters defining the
+%                       specified pulse shape. The pulse parameters
+%                       required for each of the available modulation
+%                       functions are listed below.
+%     Par.I, Par.Q    = I and Q data describing an arbitrary pulse.
 %                       The time axis is reconstructed based on Par.tp
-%                       and the length of the I and Q vectors, all
-%                       other input parameters (Amplitude, Flip,
-%                       CenterFreq, Phase, etc.) are ignored.
+%                       and the length of the I and Q vectors, all other
+%                       input parameters (Amplitude, Flip, CenterFreq,
+%                       Phase, etc.) are ignored.
 %
 % Opt = optional structure with the following fields
 %       Opt.OverSampleFactor = oversampling factor for the determination
 %                              of the time step (default: 10)
-%       Opt.Detect           = 'Sz' (default), 'Sy', 'Sx', 'all', define
-%                              detection operator for excitation profile
-%                              plotting
 %       Opt.Offsets          = axis of frequency offsets in MHz for which
 %                              to compute the excitation profile
-%                              (default approximately ±1.5*BW centered at
+%                              (default approximately ±2*BW centered at
 %                              Par.CenterFreq, 201 points)
 %
 % Available pulse modulation functions:
-%   - Amplitude modulation: rectangular, gaussian, sinc, quartersin, sech, WURST
+%   - Amplitude modulation: rectangular, gaussian, sinc, quartersin, sech, 
+%                           WURST
 %   - Frequency modulation: none, linear, tanh, BWcompensated, uniformQ
 %
 % The parameters required for the different modulation functions are:
@@ -96,7 +94,7 @@
 %           y          = real and imaginary part of the pulse function
 %           If three or four output arguments are requested, the excitation
 %           profile is calculated. Additional output fields are:
-%           exprof     = structure with frequency offset axis (p.offsets) 
+%           exprof     = structure with frequency offset axis (p.offsets)
 %                        for excitation profile in MHz and excitation
 %                        profile (Mi/M0, i = x,y,z, p.Mx, p.My, p.Mz)
 %           modulation = structure with amplitude (modulation.A, in MHz),
@@ -170,19 +168,13 @@ end
 if ~isfield(Par,'Phase')
   Par.Phase = 0; % rad
 end
-if ~isfield(Par,'Type')
-  Par.Type = 'rectangular';
-end
 
 % Options
 % ----------------------------------------------------------------------- %
 if ~isfield(Opt,'OverSampleFactor')
   Opt.OverSampleFactor = 10;
 end
-if ~isfield(Opt,'Detect')
-  Opt.Detect = 'Sz';
-end
-if ~isfield(Opt,'nOffsets')
+if ~isfield(Opt,'nOffsets') % undocumented
   Opt.nOffsets = 201;
 end
 
@@ -194,7 +186,7 @@ p = struct;
 
 % Check if pulse I and Q data is given
 if (isfield(Par,'I') && ~isempty(Par.I)) || ...
-   (isfield(Par,'Q') && ~isempty(Par.Q))
+    (isfield(Par,'Q') && ~isempty(Par.Q))
   
   if ~isfield(Par,'Type') || isempty(Par.Type)
     Par.Type = 'user-IQ';
@@ -253,10 +245,10 @@ else
     switch AmplitudeModulation{na}
       case 'rectangular'
         % no additional parameters needed
-
+        
       case 'gaussian'
         if (~isfield(Par,'tFWHM') || isempty(Par.tFWHM)) && ...
-           (~isfield(Par,'trunc') || isempty(Par.trunc))
+            (~isfield(Par,'trunc') || isempty(Par.trunc))
           error(['Pulse AM function not sufficiently defined. ',...
             'Specify Par.tFWHM or Par.trunc for the Gaussian envelope.']);
         elseif ~isfield(Par,'tFWHM') && isfield(Par,'trunc') && ...
@@ -362,12 +354,15 @@ else
       error('Par.SweepDirection must be +1 or -1.');
     end
   end
+  if any(ismember(AmplitudeModulation,'sech')) && strcmp(FrequencyModulation,'tanh') && ...
+      (isfield(Par,'n') && ~isempty(Par.n) && Par.n~=1)
+    warning('For uniform adiabaticity pulses with nth order sech amplitude modulation use Par.Type = ''sech/uniformQ''.');
+  end
   
-  % Set up time axis
-  if ~isfield(Par,'TimeStep') || isempty(Par.TimeStep)
+  % Estimate pulse bandwidth (for timestep and offset range determination)
+  % --------------------------------------------------------------------- %
+  if ~isfield(Par,'TimeStep') || ~isfield(Opt,'Offsets')
     
-    % Automatically determine appropriate time step
-    %------------------------------------------------------------------ %
     % Determine bandwidth of frequency modulation
     switch FrequencyModulation
       case 'none'
@@ -376,34 +371,62 @@ else
         FM_BW = Par.BW;
     end
     
-    % Determine bandwidth of amplitude modulation
-    AM_BW = 0;
-    for na = 1:numel(AmplitudeModulation)
+    % Determine bandwidth of amplitude modulation (from Fourier transform)
+    dt = 0.1e-3; % test time step
+    t0 = 0:dt:Par.tp;
+    ti0 = t0-0.5*Par.tp;
+    A0 = ones(1,numel(t0));
+    for na = 1:numel(AmplitudeModulation) % preliminary calculation of AM function
       switch AmplitudeModulation{na}
         case 'rectangular'
-          AM_BW = AM_BW + 4/Par.tp;
+          A0 = A0.*ones(1,numel(t0));
         case 'gaussian'
-          AM_BW = AM_BW + 1/(2*Par.tFWHM);
+          A0 = A0.*exp(-(4*log(2)*ti0.^2)/Par.tFWHM^2);
         case 'sinc'
-          AM_BW = AM_BW + 1/Par.zerocross;
-        case 'sech'
-          % from approximate FWHM of sech function
-          AM_BW = AM_BW + Par.beta/(4*Par.tp*asech(0.5));
-          %case 'nth order sech'
-          % from rise time to 1/2 of maximum value
-          %thalf = (Par.tp(n)/2)*(1-(2*asech(0.5)/thisPulse.beta)^(1/thisPulse.n));
-          %AM_BW = AM_BW + 1/(4*thalf);
-        case 'WURST'
-          % rise time from zero to 1/2 of maximum value
-          thalf = Par.tp*(1/2 - (1/pi)*asin(2^(-1/Par.nwurst)));
-          AM_BW = AM_BW + 1/(4*thalf);
+          A1 = sin((2*pi*ti0)/Par.zerocross)./((2*pi*ti0)/Par.zerocross);
+          A1(round(Par.tp/(2*dt))+1) = 1;
+          A0 = A0.*(A1/max(A1));
         case 'quartersin'
-          AM_BW = AM_BW + 1/(4*Par.trise);
+          % Pulse edges weighted with a quarter period of a sine wave
+          A1 = ones(1,numel(t0));
+          if Par.trise~=0 && 2*Par.trise<Par.tp
+            tpartial = 0:dt:Par.trise;
+            npts = numel(tpartial);
+            A1(1:npts) = sin(tpartial*(pi/(2*Par.trise)));
+            A1(end-npts+1:end) = A1(npts:-1:1);
+          end
+          A0 = A0.*A1;
+        case 'sech'
+          A0 = A0.*sech(Par.beta*2^(Par.n-1)*(ti0/Par.tp).^Par.n);
+        case 'WURST'
+          A0 = A0.*(1 - abs(sin(pi*ti0/Par.tp)).^Par.nwurst);
       end
     end
+    % Fourier transform
+    if nextpow2(numel(t0))<10
+      zf = 2^10;
+    else
+      zf = 4*2^nextpow2(numel(t0));
+    end
+    A0ft = abs(fftshift(fft(A0,zf)));
+    f = fdaxis(dt,zf);
+    intg = cumtrapz(A0ft);
+    [dummy,indmax] = min(abs(intg-0.5*max(intg)));
+    indbw = find(A0ft(indmax:end)>0.1*max(A0ft));
+    indbw50 = find(A0ft(indmax:end)>0.5*max(A0ft));
+    AM_BW = 2*(f(indmax+indbw(end))-f(indmax));
+    AM_BW50 = 2*(f(indmax+indbw50(end))-f(indmax));
     
-    % Calculate maximum frequency offset
     BW = max([FM_BW AM_BW]);
+    
+  end
+  
+  % Set up time axis
+  if ~isfield(Par,'TimeStep') || isempty(Par.TimeStep)
+    
+    % Automatically determine appropriate time step
+    % ------------------------------------------------------------------- %
+    % Calculate maximum frequency offset
     maxFreq = max(abs(Par.CenterFreq+[-1 1]*BW/2));
     % Use Nyquist theorem to calculate time step, incl. oversampling
     if maxFreq~=0
@@ -416,6 +439,7 @@ else
       Par.TimeStep = Par.tp;
     end
     Par.TimeStep = Par.tp/round(Par.tp/Par.TimeStep); % last time point = tp
+    
   end
   t = 0:Par.TimeStep:Par.tp;
   ti = t - Par.tp/2;
@@ -450,7 +474,7 @@ else
           tpartial = 0:Par.TimeStep:Par.trise;
           npts = numel(tpartial);
           A(1:npts) = sin(tpartial*(pi/(2*Par.trise)));
-          A(end-npts+1:end) = A(na,npts:-1:1);
+          A(end-npts+1:end) = A(npts:-1:1);
         end
         
       case 'sech'
@@ -526,7 +550,7 @@ else
       % The frequency modulation is calculated as the integral of the
       % squared amplitude modulation function (for nth order sech/tanh or
       % in general to obtain offset-independent adiabaticity pulses, see
-      %   Garwood, M., DelaBarre, L., J. Magn. Reson. 153, 155-177 (2001)
+      %   Garwood, M., DelaBarre, L., J. Magn. Reson. 153, 155-177 (2001).
       %   http://dx.doi.org/10.1006/jmre.2001.2340
       
       modulation.nu = cumtrapz(ti,modulation.A.^2)/trapz(ti,modulation.A.^2); % F2
@@ -541,7 +565,7 @@ else
   % Determine pulse amplitude from flip angle (if only Par.Flip is given)
   % ------------------------------------------------------------------- %
   if (isfield(Par,'Flip') && ~isempty(Par.Flip)) && ...
-     (~isfield(Par,'Amplitude') || isempty(Par.Amplitude))
+      (~isfield(Par,'Amplitude') || isempty(Par.Amplitude))
     switch FrequencyModulation
       
       case 'none' % amplitude modulated pulses: beta = integral
@@ -549,16 +573,16 @@ else
         Par.Amplitude = Par.Flip/(2*pi*trapz(t,modulation.A));
         
       case {'linear','BWcompensated','tanh','uniformQ'}
+        % Q_crit = (2*pi*v1max)^2/k = minimum adiabaticity on resonance
         % see
         %    Jeschke et al. (2015) J. Phys. Chem. B, 119, 13570–13582.
         %    http://dx.doi.org/10.1021/acs.jpcb.5b02964
-        % Q_crit = (2*pi*v1max)^2/k = minimum adiabaticity on resonance
         
         if Par.Flip>pi
           error('Pulse amplitude calculation from flip angle not applicable for angles larger than pi.')
         end
         Q_crit = (2/pi)*log(2/(1+cos(Par.Flip)));
-        if Q_crit>5 % set Q_crit to finite value if it is infinite or very large
+        if Q_crit>5 % set Q_crit to finite value if it is infinite or large
           Q_crit = 5;
         end
         
@@ -568,8 +592,10 @@ else
           case 'tanh'
             sweeprate = Par.beta*Par.BWinf/(2*Par.tp);
           case 'uniformQ'
-            % Q = w1max^2*A(t)^2/(BW*dnu/dt) see eq. 17 in Garwood, M., DelaBarre, L.,
-            % J. Magn. Reson. 153, 155-177 (2001)
+            % Q = w1max^2*A(t)^2/(BW*dnu/dt) see eq. 17 in
+            %   Garwood, M., DelaBarre, L., J. Magn. Reson. 153, 155-177
+            %   (2001).
+            %   http://dx.doi.org/10.1006/jmre.2001.2340
             [dummy,ind] = min(abs(ti));
             dnu = diff(2*pi*modulation.nu/(t(2)-t(1)));
             sweeprate = dnu(ind)/(2*pi*(modulation.A(ind))^2);
@@ -597,31 +623,8 @@ if Opt.ExciteProfile
   
   % Set up offset axis for excitation profile calculation
   if ~isfield(Opt,'Offsets')
-    
-    % Estimate bandwidth of the pulse
-    if ~strcmp(FrequencyModulation,'none')
-      
-      BW = Par.BW;
-      
-    else
-      
-      % Estimate bandwidth from Fourier transform of amplitude modulation
-      % function
-      if nextpow2(numel(y))<10
-        zf = 2^10;
-      else
-        zf = 4*2^nextpow2(numel(y));
-      end
-      yft = abs(fftshift(fft(y,zf)));
-      f = fdaxis(Par.TimeStep,zf);
-      intg = cumtrapz(yft);
-      [dummy,indmax] = min(abs(intg-0.5*max(intg)));
-      indbw = find(yft(indmax:end)<0.1*max(yft),1);
-      BW = 2*(f(indmax+indbw)-f(indmax));
-      
-    end
-    p.offsets = linspace(-0.75*BW,0.75*BW,Opt.nOffsets) + Par.CenterFreq;
-    
+    BW = max([FM_BW AM_BW50]);
+    p.offsets = linspace(-BW,BW,Opt.nOffsets) + Par.CenterFreq;
   else
     p.offsets = Opt.Offsets;
   end
@@ -634,16 +637,6 @@ if Opt.ExciteProfile
   
   % Equilibrium density matrix
   Density0 = -Sz;
-  
-  % Detection operator
-  switch Opt.Detect
-    case 'Sz', varname = 'Mz';
-    case 'Sy', varname = 'My';
-    case 'Sx', varname = 'Mx';
-    case 'all', 
-    otherwise
-      error('Opt.Detect has unknown value. Use ''Sx'', ''Sy'', ''Sz'', or ''all''.');
-  end
   
   % Pre-allocate result array
   p.Mx = zeros(1,nOffsets);
@@ -661,7 +654,9 @@ if Opt.ExciteProfile
       
       Ham = Isignal(1)*Sx + Qsignal(1)*Sy + Ham0;
       tp = Par.TimeStep*(nPoints-1);
+      
       %UPulse = expm(-2i*pi*Ham*tp);
+      % Fast matrix exponential for a traceless, antihermitian 2x2 matrix
       M = -2i*pi*tp*Ham; % M = [a b; -b' -a]
       q = sqrt(M(1,1)^2-abs(M(1,2))^2);
       if abs(q)<1e-10
@@ -709,55 +704,114 @@ end
 % Plotting
 % ----------------------------------------------------------------------- %
 if plotResults
+  
   clf
+  S.f = gcf;
+  set(S.f,'WindowStyle','normal','Name','pulse output',...
+    'numbertitle','off','Units','Normalized',...
+    'Position',[0.1,0.3,0.8,0.40],'Color',[1 1 1]*0.8,...
+    'Toolbar','figure');
+  
   colI = [0 0 1];
   colQ = [1 0 0];
-  subplot(2,1,1)
-  hold on; box on;
-  h = plot(t,modulation.A,t,-modulation.A);
-  hI = plot(t,real(y),'Color',colI);
-  hQ = plot(t,imag(y),'Color',colQ);
-  set(h,'Color',[1 1 1]*0.9);
-  Amax = max(modulation.A);
-  ylim([-1 1]*Amax*1.1);
-  xlabel('t (\mus)')
-  ylabel('\nu_1 (MHz)')
-  legend([hI hQ],'I','Q')
-  axis tight
-  title(['Type = ' Par.Type]);
-
-  subplot(2,1,2)
-  hold on; box on;
   colBW = [1 1 1]*0.8;
+
+  width = 0.25;
+  height = 0.55;
+  sep = (1-3*width)/4;
+  btm = 0.20;
+  boxpos = 0.77;
+  
+  S.htext = uicontrol('Style','edit','String',['Type = ' Par.Type],...
+    'FontSize',10,'FontWeight','bold',...
+    'Enable','Inactive','Units','Normalized',...
+    'Position',[0.25*sep,0.9,1-0.5*sep,0.075]);
+  
+  S.label(1) = uicontrol('Style','text','String','Pulse amplitude:',...
+    'FontSize',10,'FontWeight','bold',...
+    'HorizontalAlignment','left',...
+    'Background',[1 1 1]*0.8,'Units','Normalized',...
+    'Position',[sep,0.75,width,0.1]);
+  S.tick(1) = uicontrol('Style','checkbox',...
+    'String','I','Value',1,'Background',[1 1 1]*0.8,...
+    'Units','Normalized','Position',[3*sep boxpos 0.1 0.1]);
+  S.tick(2) = uicontrol('Style','checkbox',...
+    'String','Q','Value',1,'Background',[1 1 1]*0.8,...
+    'Units','Normalized','Position',[3.75*sep boxpos 0.1 0.1]);
+  S.tick(3) = uicontrol('Style','checkbox',...
+    'String','AM','Value',0,'Background',[1 1 1]*0.8,...
+    'Units','Normalized','Position',[4.5*sep boxpos 0.1 0.1]);
+  S.ha(1) = axes('Units','Normalized','Position',[sep,btm,width,height]);
+  hold on; box on;
+  S.hA = plot(t,modulation.A,'Visible','off');
+  set(S.hA,'Color',[1 1 1]*0.9);
+  S.hI = plot(t,real(y),'Color',colI);
+  S.hQ = plot(t,imag(y),'Color',colQ);
+  Amax = max(modulation.A);
+  axis([t(1) t(end) -1*Amax*1.1 1*Amax*1.1]);
+  xlabel('{\itt} (\mus)')
+  ylabel('\nu_1 (MHz)')
+  legend([S.hI S.hQ],'I','Q','Location','SouthEast')
+  
+  S.label(2) = uicontrol('Style','text','String','Frequency and phase:',...
+    'FontSize',10,'FontWeight','bold',...
+    'HorizontalAlignment','left',...
+    'Background',[1 1 1]*0.8,'Units','Normalized',...
+    'Position',[2*sep+width,0.75,width,0.1]);
+  S.tick(4) = uicontrol('Style','checkbox',...
+    'String','FM','Value',1,'Background',[1 1 1]*0.8,...
+    'Units','Normalized','Position',[2.1*sep+1.6*width boxpos 0.1 0.1]);
+  S.tick(5) = uicontrol('Style','checkbox',...
+    'String','PM','Value',1,'Background',[1 1 1]*0.8,...
+    'Units','Normalized','Position',[3*sep+1.6*width boxpos 0.1 0.1]);
+  S.ha(2) = axes('Units','Normalized','Position',[2*sep+width,btm,width,height]);
+  hold on; box on;
+  line([min(t) max(t)],[0 0],'Color',colBW);
+  [S.ax,S.hnu,S.hphi] = plotyy(t,modulation.nu,t,modulation.phi);
+  set(get(S.ax(1),'Xlabel'),'String','{\itt} (\mus)')
+  set(S.ax(1),'xlim',[t(1) t(end)]);
+  set(S.ax(2),'XTick',[]);
+  set(S.ax(2),'xlim',[t(1) t(end)]);
+  set(get(S.ax(1),'Ylabel'),'String','\nu (MHz)');
+  set(get(S.ax(2),'Ylabel'),'String','\phi (rad)');
+  title('Frequency and phase modulation');
+  
+  S.label(3) = uicontrol('Style','text','String','Excitation profiles:',...
+    'FontSize',10,'FontWeight','bold',...
+    'HorizontalAlignment','left',...
+    'Background',[1 1 1]*0.8,'Units','Normalized',...
+    'Position',[3.5*sep+2*width,0.75,width,0.1]);
+  S.tick(6) = uicontrol('Style','checkbox',...
+    'String','x','Value',0,'Background',[1 1 1]*0.8,...
+    'Units','Normalized','Position',[3.5*sep+2.5*width boxpos 0.1 0.1]);
+  S.tick(7) = uicontrol('Style','checkbox',...
+    'String','y','Value',0,'Background',[1 1 1]*0.8,...
+    'Units','Normalized','Position',[4.25*sep+2.5*width boxpos 0.1 0.1]);
+  S.tick(8) = uicontrol('Style','checkbox',...
+    'String','z','Value',1,'Background',[1 1 1]*0.8,...
+    'Units','Normalized','Position',[5*sep+2.5*width boxpos 0.1 0.1]);
+  S.ha(3) = axes('Units','Normalized','Position',[3.5*sep+2*width,btm,width,height]);
+  hold on; box on;
   line([1 1]*Par.CenterFreq,[-1 1],'Color',colBW);
   line([min(p.offsets) max(p.offsets)],[0 0],'Color',colBW);
   if isfield(Par,'BW') && ~isempty(Par.BW) && ~strcmp(FrequencyModulation,'none')
     line([1 1]*(Par.CenterFreq-Par.BW/2),[-1 1],'Color',colBW);
     line([1 1]*(Par.CenterFreq+Par.BW/2),[-1 1],'Color',colBW);
   end
-  cc = [0 0 1];
-  switch Opt.Detect
-    case 'Sz'
-      plot(p.offsets,p.Mz,'Color',cc);
-      ylabel('{\itM}_z/{\itM}_0')
-    case 'Sy'
-      plot(p.offsets,p.My,'Color',cc);
-      ylabel('{\itM}_y/{\itM}_0')
-    case 'Sx'
-      plot(p.offsets,p.Mx,'Color',cc);
-      ylabel('{\itM}_x/{\itM}_0')
-    case 'all'
-      plot(p.offsets,p.Mx,...
-        p.offsets,p.My,...
-        p.offsets,p.Mz);
-      ylabel('{\itM}_i/{\itM}_0')
-      legend('x','y','z')
-  end
+  S.h = plot(p.offsets,p.Mx,p.offsets,p.My,p.offsets,p.Mz);
+  set(S.h(1),'Visible','off')
+  set(S.h(2),'Visible','off')
+  ylabel('{\itM}_i/{\itM}_0')
+  legend(S.h,'x','y','z','Location','SouthEast')
   xlabel('frequency (MHz)')
   axis tight
   ylim([-1 1])
+  title('Excitation profiles')
+  
+  S.handles = [S.hI S.hQ S.hA S.hnu S.hphi S.h(1) S.h(2) S.h(3)];
+  set(S.tick,'Callback',{@showhide,S});
+  
 end
-
 
 % ----------------------------------------------------------------------- %
 % Output
@@ -773,4 +827,22 @@ switch nargout
     varargout = {t,y,p,modulation};
   otherwise
     error('The function pulse() needs 2, 3, or 4 output arguments.')
+end
+
+end
+
+% Callback for tick boxes
+function showhide(varargin)
+
+S = varargin{3}; % get calling handle structure
+
+for i = 1:numel(S.tick)
+  val = get(S.tick(i),'Value');
+  if val==1;
+    set(S.handles(i),'Visible','on')
+  else
+    set(S.handles(i),'Visible','off');
+  end
+end
+
 end
