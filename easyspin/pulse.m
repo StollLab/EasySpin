@@ -47,7 +47,7 @@
 %                              Par.CenterFreq, 201 points)
 %
 % Available pulse modulation functions:
-%   - Amplitude modulation: rectangular, gaussian, sinc, quartersin, sech, 
+%   - Amplitude modulation: rectangular, gaussian, sinc, quartersin, sech,
 %                           WURST
 %   - Frequency modulation: none, linear, tanh, BWcompensated, uniformQ
 %
@@ -209,11 +209,25 @@ if (isfield(Par,'I') && ~isempty(Par.I)) || ...
   
   Par.TimeStep = t(2)-t(1);
   modulation.A = [];
-  modulation.dnu = [];
+  modulation.nu = [];
   modulation.phi = [];
   
-  if Opt.ExciteProfile && ~isfield(Opt,'Offsets')
-    error('For the excitation profile of a user-defined pulse, specify the desired range of frequency offsets Opt.Offsets.');
+  % Estimate pulse bandwidth (for offset range determination)
+  % --------------------------------------------------------------------- %
+  if ~isfield(Opt,'Offsets') && Opt.ExciteProfile
+    
+    % Fourier transform
+    if nextpow2(numel(t))<10
+      zf = 2^10;
+    else
+      zf = 4*2^nextpow2(numel(t));
+    end
+    yft = abs(fftshift(fft(y,zf)));
+    f = fdaxis(Par.TimeStep,zf);
+    indbw = find(yft>0.5*max(yft));
+    BW = f(indbw(end))-f(indbw(1));
+    Par.CenterFreq = f(indbw(round(numel(indbw)/2)));
+    
   end
   
 else
@@ -361,7 +375,7 @@ else
   
   % Estimate pulse bandwidth (for timestep and offset range determination)
   % --------------------------------------------------------------------- %
-  if ~isfield(Par,'TimeStep') || ~isfield(Opt,'Offsets')
+  if ~isfield(Par,'TimeStep') || (~isfield(Opt,'Offsets') && Opt.ExciteProfile)
     
     % Determine bandwidth of frequency modulation
     switch FrequencyModulation
@@ -623,7 +637,9 @@ if Opt.ExciteProfile
   
   % Set up offset axis for excitation profile calculation
   if ~isfield(Opt,'Offsets')
-    BW = max([FM_BW AM_BW50]);
+    if ~strcmp(Par.Type,'user-IQ')
+      BW = max([FM_BW AM_BW50]);
+    end
     p.offsets = linspace(-BW,BW,Opt.nOffsets) + Par.CenterFreq;
   else
     p.offsets = Opt.Offsets;
@@ -715,7 +731,7 @@ if plotResults
   colI = [0 0 1];
   colQ = [1 0 0];
   colBW = [1 1 1]*0.8;
-
+  
   width = 0.25;
   height = 0.55;
   sep = (1-3*width)/4;
@@ -738,16 +754,20 @@ if plotResults
   S.tick(2) = uicontrol('Style','checkbox',...
     'String','Q','Value',1,'Background',[1 1 1]*0.8,...
     'Units','Normalized','Position',[3.75*sep boxpos 0.1 0.1]);
-  S.tick(3) = uicontrol('Style','checkbox',...
-    'String','AM','Value',0,'Background',[1 1 1]*0.8,...
-    'Units','Normalized','Position',[4.5*sep boxpos 0.1 0.1]);
   S.ha(1) = axes('Units','Normalized','Position',[sep,btm,width,height]);
   hold on; box on;
-  S.hA = plot(t,modulation.A,'Visible','off');
-  set(S.hA,'Color',[1 1 1]*0.9);
+  line([min(t) max(t)],[0 0],'Color',colBW);
+  if ~isempty(modulation.A)
+    if strcmp(FrequencyModulation,'none') && Par.CenterFreq==0
+      S.hA = plot(t,modulation.A);
+    else
+      S.hA = plot(t,modulation.A,t,-modulation.A);
+    end
+    set(S.hA,'Color',[1 1 1]*0.9);
+  end
   S.hI = plot(t,real(y),'Color',colI);
   S.hQ = plot(t,imag(y),'Color',colQ);
-  Amax = max(modulation.A);
+  Amax = max(abs(y));
   axis([t(1) t(end) -1*Amax*1.1 1*Amax*1.1]);
   xlabel('{\itt} (\mus)')
   ylabel('\nu_1 (MHz)')
@@ -758,22 +778,18 @@ if plotResults
     'HorizontalAlignment','left',...
     'Background',[1 1 1]*0.8,'Units','Normalized',...
     'Position',[2*sep+width,0.75,width,0.1]);
-  S.tick(4) = uicontrol('Style','checkbox',...
-    'String','FM','Value',1,'Background',[1 1 1]*0.8,...
-    'Units','Normalized','Position',[2.1*sep+1.6*width boxpos 0.1 0.1]);
-  S.tick(5) = uicontrol('Style','checkbox',...
-    'String','PM','Value',1,'Background',[1 1 1]*0.8,...
-    'Units','Normalized','Position',[3*sep+1.6*width boxpos 0.1 0.1]);
   S.ha(2) = axes('Units','Normalized','Position',[2*sep+width,btm,width,height]);
   hold on; box on;
   line([min(t) max(t)],[0 0],'Color',colBW);
-  [S.ax,S.hnu,S.hphi] = plotyy(t,modulation.nu,t,modulation.phi);
-  set(get(S.ax(1),'Xlabel'),'String','{\itt} (\mus)')
-  set(S.ax(1),'xlim',[t(1) t(end)]);
-  set(S.ax(2),'XTick',[]);
-  set(S.ax(2),'xlim',[t(1) t(end)]);
-  set(get(S.ax(1),'Ylabel'),'String','\nu (MHz)');
-  set(get(S.ax(2),'Ylabel'),'String','\phi (rad)');
+  if ~isempty(modulation.nu) && ~isempty(modulation.phi)
+    [S.ax,S.hnu,S.hphi] = plotyy(t,modulation.nu,t,modulation.phi);
+    set(get(S.ax(1),'Xlabel'),'String','{\itt} (\mus)')
+    set(S.ax(1),'xlim',[t(1) t(end)]);
+    set(S.ax(2),'XTick',[]);
+    set(S.ax(2),'xlim',[t(1) t(end)]);
+    set(get(S.ax(1),'Ylabel'),'String','\nu (MHz)');
+    set(get(S.ax(2),'Ylabel'),'String','\phi (rad)');
+  end
   title('Frequency and phase modulation');
   
   S.label(3) = uicontrol('Style','text','String','Excitation profiles:',...
@@ -781,13 +797,13 @@ if plotResults
     'HorizontalAlignment','left',...
     'Background',[1 1 1]*0.8,'Units','Normalized',...
     'Position',[3.5*sep+2*width,0.75,width,0.1]);
-  S.tick(6) = uicontrol('Style','checkbox',...
+  S.tick(3) = uicontrol('Style','checkbox',...
     'String','x','Value',0,'Background',[1 1 1]*0.8,...
     'Units','Normalized','Position',[3.5*sep+2.5*width boxpos 0.1 0.1]);
-  S.tick(7) = uicontrol('Style','checkbox',...
+  S.tick(4) = uicontrol('Style','checkbox',...
     'String','y','Value',0,'Background',[1 1 1]*0.8,...
     'Units','Normalized','Position',[4.25*sep+2.5*width boxpos 0.1 0.1]);
-  S.tick(8) = uicontrol('Style','checkbox',...
+  S.tick(5) = uicontrol('Style','checkbox',...
     'String','z','Value',1,'Background',[1 1 1]*0.8,...
     'Units','Normalized','Position',[5*sep+2.5*width boxpos 0.1 0.1]);
   S.ha(3) = axes('Units','Normalized','Position',[3.5*sep+2*width,btm,width,height]);
@@ -808,7 +824,7 @@ if plotResults
   ylim([-1 1])
   title('Excitation profiles')
   
-  S.handles = [S.hI S.hQ S.hA S.hnu S.hphi S.h(1) S.h(2) S.h(3)];
+  S.handles = [S.hI S.hQ S.h(1) S.h(2) S.h(3)];
   set(S.tick,'Callback',{@showhide,S});
   
 end

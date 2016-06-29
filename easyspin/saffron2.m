@@ -415,25 +415,18 @@ else
   end
   
   % Pulse parameters
-  if ~isfield(Exp,'Flip') && ~isfield(Exp,'Amplitude')
-    error('For a pulse experiment, give either Exp.Sequence or define the pulse sequence explicitly.'); % ?
+  if ~isfield(Exp,'Flip') && ~isfield(Exp,'Pulse')
+    error('For a pulse experiment, give either Exp.Sequence or define the pulse sequence explicitly.');
   end
   if isfield(Exp,'Flip')
     nIntervals = numel(Exp.Flip);
-  elseif isfield(Exp,'Amplitude')
-    nIntervals = numel(Exp.Amplitude);
+    if (~any(mod(Exp.Flip,1)) && max(Exp.Flip)<=4 && any(Exp.Flip))
+      warning('The input to Exp.Flip is now in radians. Multiply the old Exp.Flip input by pi/2.')
+    end
+  elseif isfield(Exp,'Pulse')
+    nIntervals = numel(Exp.Pulse);
   else
-    error('Exp.Flip or Exp.Amplitude needs to be defined for a custom pulse sequence.');
-  end
-  if (~any(mod(Exp.Flip,1)) && max(Exp.Flip)<=4 && any(Exp.Flip))
-    warning('The input to Exp.Flip is now in radians. Multiply the old Exp.Flip input by pi/2.')
-  end
-  
-  if ~isfield(Exp,'Phase')
-    Exp.Phase = ones(1,nIntervals)*pi/2;  % y phase by default
-  end
-  if (~any(mod(Exp.Phase,1)) && max(Exp.Phase)<=4 && any(Exp.Phase))
-    warning('The input to Exp.Phase is now in radians. Multiply the old Exp.Phase input by pi/2.')
+    error('Exp.Flip or the Exp.Pulse structure needs to be defined for a custom pulse sequence.');
   end
   
   % Incrementation scheme
@@ -551,20 +544,70 @@ elseif numel(Exp.nPoints)~=nDimensions
   error('Exp.nPoints needs either 1 or %d elements, one per dimension. You gave %d.',nDimensions,numel(Exp.nPoints));
 end
 
-% tp
-% Determine whether to use ideal pulse theory
-if ~isfield(Exp,'tp')
-  Exp.tp = zeros(1,nIntervals);
-else
+% Pulse definitions
+if isfield(Exp,'Phase') && (~any(mod(Exp.Phase,1)) && max(Exp.Phase)<=4 && any(Exp.Phase))
+  warning('The input to Exp.Phase is now in radians. Multiply the old Exp.Phase input by pi/2.')
+end
+% Pulse lengths
+if isfield(Exp,'tp') % Exp.tp input given, convert to Exp.Pulse
+  
   if numel(Exp.tp)~=nIntervals
     error('Exp.tp contains a wrong number of elements.');
   end
+  if ~isfield(Exp,'Pulse')
+    Exp.Pulse = repmat(struct,nIntervals,1);
+  end  
+  for p = 1:nIntervals
+    if ~isfield(Exp.Pulse(p),'tp') || isempty(Exp.Pulse(p).tp)
+      Exp.Pulse(p).tp = Exp.tp(p);
+    elseif Exp.Pulse(p).tp~=Exp.tp(p)
+      error('Pulse lengths in Exp.tp and Exp.Pulse(%i).tp do not agree.',p)
+    end
+  end
+
+elseif ~isfield(Exp,'tp') && isfield(Exp,'Pulse') % pulse sequence only defined in Exp.Pulse
+    
+  if numel(Exp.Pulse)~=nIntervals
+    error('Exp.Pulse contains a wrong number of elements.');
+  end
+  for p = 1:nIntervals
+      Exp.tp(p) = Exp.Pulse(p).tp;
+  end
+  
+else % ideal pulses
+  
+  Exp.tp = zeros(1,nIntervals);
+  
 end
+
+% Determine whether to use ideal pulse theory
 idealPulse = (Exp.tp==0);
 realPulse = ~idealPulse;
 if any(realPulse)
   for p = find((1:numel(Exp.tp)).*realPulse)
-    [Exp.tpulse{p},Exp.pulse{p}] = pulse(Exp,p);
+    
+    if isfield(Exp,'Flip')
+      if ~isfield(Exp.Pulse(p),'Flip') || isempty(Exp.Pulse(p).Flip)
+        Exp.Pulse(p).Flip = Exp.Flip(p);
+      elseif Exp.Pulse(p).Flip~=Exp.Flip(p)
+        error('Flip angles in Exp.Flip and Exp.Pulse(%i).Flip do not agree.',p)
+      end
+    end
+    
+    if isfield(Exp,'Phase')
+      if ~isfield(Exp.Pulse(p),'Phase') || isempty(Exp.Pulse(p).Phase)
+        Exp.Pulse(p).Phase = Exp.Phase(p);
+      elseif Exp.Pulse(p).Phase~=Exp.Phase(p)
+        error('Phase in Exp.Phase and Exp.Pulse(%i).Phase do not agree.',p)
+      end
+    else
+      if ~isfield(Exp.Pulse(p),'Phase') || isempty(Exp.Pulse(p).Phase)
+        Exp.Pulse(p).Phase = pi/2; % y phase by default
+      end
+    end    
+    
+    [Exp.tpulse{p},Exp.ypulse{p}] = pulse(Exp.Pulse(p));
+    
   end
 end
 
@@ -1199,6 +1242,8 @@ for iOri = 1:nOrientations
   %------------------------------------------------------------------
   [xLab_M,yLab_M,zLab_M] = erot(Orientations(iOri,:),'rows');
   % xLab_M, yLab_M, zLab_M represented in the molecular frame
+  SzL = zLab_M(1)*sop(1/2,'x') + zLab_M(2)*sop(1/2,'y') + zLab_M(3)*sop(1/2,'z');
+  % Sz in the lab frame
 
   % Compute electronic Hamiltonian, energies and <S>
   %------------------------------------------------------------------
@@ -1215,9 +1260,9 @@ for iOri = 1:nOrientations
     end
 
     H = Exp.Field*(zLab_M(1)*Gx + zLab_M(2)*Gy + zLab_M(3)*Gz);
-    % Rotating frame % ?
-%     Hrot = H - Exp.mwFreq*1e3*sop(1/2,'z'); % ?
-    [eV,eE] = eig(H);
+    % Rotating frame
+    Hrot = H - Exp.mwFreq*1e3*SzL; % ?
+    [eV,eE] = eig(Hrot);
     eE = real(diag(eE)); % ? order of eigenvalues
 
     quantizationAxis_ = g.'*zLab_M;
@@ -1236,9 +1281,9 @@ for iOri = 1:nOrientations
     % transition selection
     %------------------------------------------------------------
     H = F + Exp.Field*(zLab_M(1)*Gx + zLab_M(2)*Gy + zLab_M(3)*Gz);
-    % Rotating frame % ?
-%     Hrot = H - Exp.mwFreq*1e3*Sz; % ?
-    [eV,eE] = eig(H);
+    % Rotating frame
+    Hrot = H - Exp.mwFreq*1e3*SzL; % ?
+    [eV,eE] = eig(Hrot);
     eE = real(diag(eE));
     SyLab = yLab_M(1)*Sx + yLab_M(2)*Sy + yLab_M(3)*Sz;
     SyLab = abs(eV'*SyLab*eV);
@@ -1321,10 +1366,10 @@ for iOri = 1:nOrientations
       
       if ~isempty(shfNuclei)
         
-        Ea = Manifold(a).E{iSpace};
-        Eb = Manifold(b).E{iSpace};
-        %       Ea = Manifold(a).E{iSpace} + Manifold(a).eE; % ? !!!!!!!!!!!!!!!
-        %       Eb = Manifold(b).E{iSpace} + Manifold(b).eE; % ?
+%         Ea = Manifold(a).E{iSpace};
+%         Eb = Manifold(b).E{iSpace};
+        Ea = Manifold(a).E{iSpace} + Manifold(a).eE; % ? !!!!!!!!!!!!!!!
+        Eb = Manifold(b).E{iSpace} + Manifold(b).eE; % ?
         Ma = Manifold(a).V{iSpace};
         Mb = Manifold(b).V{iSpace};
         M = Ma'*Mb;       % <a|b> overlap matrix
@@ -1347,8 +1392,8 @@ for iOri = 1:nOrientations
         
         nSubSpaces = 0;
         
-        Ea = 1;% Manifold(a).eE; % ? !!!!!!!!!!!!!!!
-        Eb = 1;% Manifold(b).E{iSpace} + Manifold(b).eE; % ?
+        Ea = Manifold(a).eE; % ? !!!!!!!!!!!!!!!
+        Eb = Manifold(b).eE; % ?
         M = 1; Mt = 1;
         eyeN = 1;
         zeromatrixN = zeros(size(eyeN));
@@ -1365,7 +1410,7 @@ for iOri = 1:nOrientations
         
         Ea = Ea0+offsets(iOffset)/2;
         Eb = Eb0-offsets(iOffset)/2;
-
+        
         % Pulse propagators
         for iInt = 1:nIntervals
           if realPulse(iInt)
@@ -1373,7 +1418,7 @@ for iOri = 1:nOrientations
                   zeromatrixN diag(Eb)];
             Sx = [zeromatrixN, +M/2; +Mt/2 zeromatrixN];
             Sy = [zeromatrixN, +M/2i; -Mt/2i zeromatrixN];
-            FullPulsePropagator = sf_propagator(Exp.tpulse{iInt},Exp.pulse{iInt},H0,Sx,Sy);
+            FullPulsePropagator = sf_propagator(Exp.tpulse{iInt},Exp.ypulse{iInt},H0,Sx,Sy);
             PulseSubPropagator{iInt,1} = FullPulsePropagator(idxa,idxa);
             PulseSubPropagator{iInt,2} = FullPulsePropagator(idxb,idxb);
             PulseSubPropagator{iInt,3} = FullPulsePropagator(idxa,idxb);
@@ -1399,7 +1444,7 @@ for iOri = 1:nOrientations
           end
         end
         prefactor = prefactor*offsetWeight(iOffset);
-        
+
         % Compute peaks and amplitudes
         if ~PredefinedExperiment
 
@@ -1559,6 +1604,9 @@ for iOri = 1:nOrientations
               Gamma = fwhm/(2*sqrt(log(2)));
               theta = pi; % rf pulse flip angle
               
+              Gam = Sys.lwEndor/sqrt(2*log(2));  % line broadening
+              pre = sqrt(2/pi)/Gam;
+              
               switch Opt.EndorMethod
                 case 2
                   % Sweep method
@@ -1604,41 +1652,42 @@ for iOri = 1:nOrientations
                       %endorspc(idx) = endorspc(idx) + ampl;
                       %endorspc = endorspc + ...
                       %  lisum1i(Template.y,Template.x0,Template.lw,freq,ampl,Sys.lwEndor*[1 1],rf);
-                      endorspc = endorspc + ampl(1)*exp(-((rf-freq(1))/Sys.lwEndor).^2);
-                      endorspc = endorspc + ampl(2)*exp(-((rf-freq(2))/Sys.lwEndor).^2);
+                      endorspc = endorspc + ampl(1)*pre*exp(-2*((rf-freq(1))/Gam).^2);
+                      endorspc = endorspc + ampl(2)*pre*exp(-2*((rf-freq(2))/Gam).^2);
                     end
                   end
                   
                 case 1
-                  % Sum-over-transitions method, Iy pulse
+                  % Sum-over-transitions method, bandwidth-limited Iy pulse
                   %---------------------------------------------------------
                   % Loop over all nuclear transition and apply
-                  % bandwidth-limited rf pulse operator.
-                  for j = 1:nNucStates-1
-                    for i = j+1:nNucStates
-                      % set RF to nuclear frequencies
-                      freq1 = nu1(i,j);
-                      freq2 = nu2(i,j);
-                      BW1 = exp(-((nu1-freq1)/Gamma).^2);
-                      BW2 = exp(-((nu2-freq2)/Gamma).^2);
-                      Prfa = expm(-1i*theta*(Iy1.*BW1));
-                      Prfb = expm(-1i*theta*(Iy2.*BW2));
-                      G1_ = diag(diag(Prfa*G1*Prfa'));
-                      G2_ = diag(diag(Prfb*G2*Prfb'));
-                      sig1 = traceG1D1 - trace(G1_*D1);
-                      sig2 = traceG2D2 - trace(G2_*D2);
-                      %idx1 = fix(Exp.nPoints*(freq1-rf(1))/(rf(end)-rf(1)))+1;
-                      %idx2 = fix(Exp.nPoints*(freq2-rf(1))/(rf(end)-rf(1)))+1;
-                      %endorspc(idx1) = endorspc(idx1) + sig1;
-                      %endorspc(idx2) = endorspc(idx2) + sig2;
-                      %endorspc = endorspc + ...
-                      %  lisum1i(Template.y,Template.x0,Template.lw,freq,ampl,Sys.lwEndor*[1 1],rf);
-                      endorspc = endorspc + sig1*exp(-((rf-freq1)/Sys.lwEndor).^2);
-                      endorspc = endorspc + sig2*exp(-((rf-freq2)/Sys.lwEndor).^2);
-                    end
+                  % bandwidth-limited rf pulse operator. The excitation
+                  % bandwidth is Gaussian.
+                  [i,j] = find(triu(ones(nNucStates),1));
+                  for iNucTrans = 1:numel(i)
+                    % Calculate propagators for narrow-band Gaussian
+                    % pulses at the nuclear transition frequency i->j
+                    % for both manifolds
+                    freq1 = nu1(i(iNucTrans),j(iNucTrans));
+                    freq2 = nu2(i(iNucTrans),j(iNucTrans));
+                    BW1 = exp(-((nu1-freq1)/Gamma).^2);
+                    BW2 = exp(-((nu2-freq2)/Gamma).^2);
+                    Prfa = expm(-1i*theta*(Iy1.*BW1));
+                    Prfb = expm(-1i*theta*(Iy2.*BW2));
+                    % Propagate densities and remove all coherences
+                    G1_ = diag(diag(Prfa*G1*Prfa'));
+                    G2_ = diag(diag(Prfb*G2*Prfb'));
+                    % Calculate ENDOR peak amplitudes
+                    sig1 = traceG1D1 - trace(G1_*D1);
+                    sig2 = traceG2D2 - trace(G2_*D2);
+                    %endorspc = endorspc + ...
+                    %  lisum1i(Template.y,Template.x0,Template.lw,freq,ampl,Sys.lwEndor*[1 1],rf);
+                    % Add peaks to spectrum
+                    endorspc = endorspc + sig1*pre*exp(-((rf-freq1)/Gam).^2);
+                    endorspc = endorspc + sig2*pre*exp(-((rf-freq2)/Gam).^2);
                   end
               end
-                  
+                                    
             % HYSCORE ---------------------------------------------------
             case 4
               % coherence transfer pathway 1: +,alpha,beta,-
