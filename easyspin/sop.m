@@ -86,10 +86,11 @@ if OldSyntax,
 
 else
   
+  if nargout~=numel(Coords)
+    error('Number of output arguments (%d) and number of requested operator matrices (%d) do not match.',nargout,numel(Coords));
+  end
+  
   if numel(Coords)>1
-    if nargout~=numel(Coords)
-      error('Number of input arguments after the first and total number of output arguments do not match.');
-    end
     for k=1:numel(Coords)
       if SparseOutput
         varargout{k} = sop(SpinVec,Coords{k},'sparse');
@@ -230,13 +231,13 @@ for iSpin = 1:nSpins
 end
 
 % construct sparse matrix
-SpinOpertors = sparse(ia,ja,sa,na,na);
+OperatorMatrix = sparse(ia,ja,sa,na,na);
 
 % possibly convert sparse to full matrix, output
 if ~SparseOutput
-  SpinOpertors = full(SpinOpertors);
+  OperatorMatrix = full(OperatorMatrix);
 end
 
-varargout = {SpinOpertors};
+varargout = {OperatorMatrix};
 
 return
