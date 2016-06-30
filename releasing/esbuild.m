@@ -3,8 +3,8 @@ function esbuild
 %                 EasySpin build script
 %===========================================================
 
-ReleaseID = '5.0.22'; % major.minor.patch
-betaVersion = false;
+ReleaseID = '5.1.0'; % major.minor.patch
+betaVersion = true;
 packDevtree = false;
 ExpiryDate = '30-Jun-2017';
 HorizonDate = '31-Dec-2021';
@@ -41,7 +41,7 @@ fprintf('Building EasySpin %s.\n',BuildID);
 
 disp('Checking for source directories.');
 
-Dirs = {'documentation','easyspin','examples'};
+Dirs = {'docs','easyspin','examples'};
 for k = 1:numel(Dirs)
   if ~exist([SourceDir filesep Dirs{k}],'dir')
     error('Could not find EasySpin source subdirectories.');
@@ -103,6 +103,7 @@ mkdir(BuildDir,'easyspin');
 disp('  Copying toolbox files');
 copyfile(TbxSrcDir,TbxDir);
 
+%{
 % Remove Mercurial repository and files
 disp('  Removing source control files.');
 if exist([TbxDir filesep '.hg'],'dir')
@@ -114,6 +115,7 @@ end
 if exist([TbxDir filesep '.hgtags'],'file')
   delete([TbxDir filesep '.hgtags']);
 end
+%}
 
 % Release tag and expiry date
 disp('  Setting release information and expiry date.');
@@ -170,8 +172,9 @@ disp('Documentation');
 disp('  generating documentation folder');
 mkdir(BuildDir,'documentation');
 
+DocSrcDir = [SourceDir filesep 'docs'];
 disp('  copying files');
-copyfile([SourceDir filesep 'documentation'],DocDir);
+copyfile(DocSrcDir,DocDir);
 
 % Replace all $ReleaseID$ in html files with actual release ID
 disp('  inserting release ID into documentation');
@@ -180,6 +183,7 @@ for iFile = 1:numel(docFiles)
   replacestr([DocDir filesep docFiles(iFile).name],'$ReleaseID$',ReleaseID);
 end
 
+%{
 % Remove Mercurial repository and files
 disp('  removing source control files');
 if exist([DocDir filesep '.hg'],'dir')
@@ -191,7 +195,7 @@ end
 if exist([DocDir filesep '.hgtags'],'file')
   delete([DocDir filesep '.hgtags']);
 end
-
+%}
 
 %------------------------------------------------------------
 % Packaging

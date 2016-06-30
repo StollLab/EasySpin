@@ -4,11 +4,11 @@ EasySpin release packaging and publishing procedure
 
 Things that should have been done before release packaging
 -------------------------------------------------------------------
-- make sure as many of the known bugs as possible are fixed (see develdoc/todo.txt)
-- update release notes in documentation/releases.html
+- make sure as many of the known bugs as possible are fixed (see issue list on bitbucket)
+- update release notes in docs/releases.html
 - update release notes in develdoc/changelog.txt
-- update incompatibility notes in documentation/releases.html
-- update installation instructions in documentation/installation.html
+- update incompatibility notes in docs/releases.html
+- update installation instructions in docs/installation.html
 
 Compilation
 ------------------------------------------------------------------
@@ -26,8 +26,8 @@ Functions list
 %- remove from funclist.txt the nonpublic functions
 %  (exclude Contents, endorfrq_perturb, eschecker, fig_*, viola,
 %   isotopologues, p_symandgrid, rescale, resfields_pert, runprivate)
-- add new functions to documentation/funcsalphabet.html
-- add new functions to documentation/funcscategory.html
+- add new functions to docs/funcsalphabet.html
+- add new functions to docs/funcscategory.html
 
 Release tagging
 ------------------------------------------------------------------
