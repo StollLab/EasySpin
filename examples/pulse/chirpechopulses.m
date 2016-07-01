@@ -13,7 +13,7 @@ clear, clf
 %-------------------------------------------------------------
 Par{1}.Type = 'WURST/linear'; % pulse shape, linear chirp with WURST amplitude modulation
 Par{1}.tp = 0.200; % pulse length, µs
-Par{1}.BW = 200; % pulse bandwidth, MHz
+Par{1}.Frequency = [-100 100]; % pulse bandwidth, MHz
 Par{1}.nwurst = 8; % truncation parameter, used as (beta/tp)
 Par{1}.Flip = pi/2; % pulse flip angle
 

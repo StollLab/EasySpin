@@ -8,13 +8,13 @@ Params.tp = 0.200; % us
 Params.Type = 'gaussian';
 Params.tFWHM = 0.064; % us
 Params.Amplitude = (pi/Params.tFWHM)/(2*pi);
-Params.CenterFreq = 100; % MHz
+Params.Frequency = 100; % MHz
 Params.TimeStep = 0.0001;
 
 t0 = 0:0.0001:Params.tp;
 A = gaussian(t0,Params.tp/2,Params.tFWHM);
 A = Params.Amplitude*(A/max(A));
-f = cos(2*pi*Params.CenterFreq*t0)+1i*sin(2*pi*Params.CenterFreq*t0);
+f = cos(2*pi*Params.Frequency*t0)+1i*sin(2*pi*Params.Frequency*t0);
 IQ0 = A.*f;
 
 [t,IQ] = pulse(Params);

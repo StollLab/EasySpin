@@ -51,14 +51,14 @@ This function calculates pulse shapes and pulse excitation profiles.
 </p>
 
 <p>
-The output contains the time axis data in <code>t</code> (time in microseconds). <code>IQ</code> contains the pulse shape data with the in-phase data in the real component and the quadrature data in the imaginary component.
+The output contains the time axis data in <code>t</code> (time in microseconds). <code>IQ</code> contains the pulse shape data with the in-phase data in the real component and the quadrature data in the imaginary component. For real-valued pulses only the in-phase data is returned.
 </p>
 
 <p>
 If a third output argument is specified, the pulse excitation profile calculated and returned in the structure <code>exprofile</code>:
 <ul>
 <li><code>exprofile.offsets</code>: axis of frequency offsets (in MHz)
-<li><code>exprofile.Mx</code>, <code>exprofile.My</code>, <code>exprofile.Mz</code>: components of the magnetization vector after the pulse, calculate using two-level density matrix dynamics.
+<li><code>exprofile.Mx</code>, <code>exprofile.My</code>, <code>exprofile.Mz</code>: components of the magnetization vector after the pulse, calculated using two-level density matrix dynamics.
 </ul>
 </p>
 
@@ -66,13 +66,13 @@ If a third output argument is specified, the pulse excitation profile calculated
 The fourth output argument contains the structure <code>modulation</code> with the calculated modulation functions for the pulse:
 <ul>
 <li><code>modulation.A</code>: amplitude modulation function (in MHz)
-<li><code>modulation.nu</code>: frequency modulation function (in MHz)
-<li><code>modulation.phi</code> phase modulation function (in radians)
+<li><code>modulation.freq</code>: frequency modulation function (in MHz)
+<li><code>modulation.phase</code>: phase modulation function (in radians)
 </ul>
 </p>
 
 <p>
-If you don't request any output, <code>pulse</code> plots the calculated pulse shape and excitation profile.
+If you don't request any output, <code>pulse</code> plots the calculated pulse shape, modulation functions and excitation profiles.
 </p>
 
 <p>
@@ -100,7 +100,7 @@ Time step for the definition of the waveform, in microseconds. If this parameter
 Pulse flip angle, in radians. This is used to calculate the pulse amplitude. If absent, <code>Par.Flip=pi</code> is used as default.
 
 <p>
-The pulse amplitude is calculated from the flip angle as described in Jeschke, G., Pribitzer, S., Doll, A. Coherence Transfer by Passage Pulses in Electron Paramagnetic Resonance Spectroscopy. J. Phys. Chem. B 119, 13570–13582 (2015), DOI: <a href="http://dx.doi.org/10.1021/acs.jpcb.5b02964">10.1021/acs.jpcb.5b02964</a>.
+The pulse amplitude is calculated from the flip angle and pulse parameters using the integral for amplitude-modulated pulses and using the procedure described in Jeschke, G., Pribitzer, S., Doll, A. Coherence Transfer by Passage Pulses in Electron Paramagnetic Resonance Spectroscopy. <i>J. Phys. Chem. B</i> 119, 13570–13582 (<b>2015</b>) (DOI: <a href="http://dx.doi.org/10.1021/acs.jpcb.5b02964">10.1021/acs.jpcb.5b02964</a>) for frequency-modulated pulses.
 </div>
 
 <div class="optionfield"><code>Amplitude</code></div>
@@ -108,20 +108,27 @@ The pulse amplitude is calculated from the flip angle as described in Jeschke, G
 Pulse amplitude, in MHz. If <code>Par.Flip</code> is given, <code>Par.Amplitude</code> is ignored.
 </div>
 
-<div class="optionfield"><code>CenterFreq</code></div>
+<div class="optionfield"><code>Frequency</code></div>
 <div class="optiondescr">
-Pulse center frequency, in MHz (default = 0).
+Pulse frequency, in MHz (default = 0). For frequency-swept pulses the start and end frequencies are required.
 </div>
 
 <div class="optionfield"><code>Phase</code></div>
 <div class="optiondescr">
-Pulse phase, in radians, e.g. <code>0</code> for +x, <code>pi/2</code> for +y, etc. If not given, it defaults to 0.
+Pulse phase, in radians, <i>e.g.</i> <code>0</code> for +x, <code>pi/2</code> for +y, etc. If not given, it defaults to 0.
 </div>
 
 
 <div class="optionfield"><code>Type</code></div>
 <div class="optiondescr">
-Pulse shape name in a string structured as 'AM/FM' (or just 'AM'), where AM refers to the amplitude modulation function and FM to the frequency modulation function.
+Pulse shape name in a string structured as 'AM/FM' (or just 'AM'), where AM refers to the amplitude modulation function and FM to the frequency modulation function. The different options are listed below.
+</div>
+
+<div class="optionfield"><code>I</code>, <code>Q</code>
+</div>
+<div class="optiondescr">
+I and Q data describing arbitrary pulse shapes not included in the predefined options listed below. If only the in-phase component is defined, the quadrature component is set to zero. The time axis is reconstructed based on <code>Par.tp</code> and the length of the I and Q vectors, all other input parameters (<code>Par.Amplitude</code>, <code>Par.Flip</code>, <code>Par.Frequency</code>, <code>Par.Phase</code>, etc.) are ignored.
+</div>
 
 <p>
 The available amplitude modulation functions are <code>'rectangular'</code>, <code>'gaussian'</code>, <code>'sinc'</code>, <code>'quartersin'</code>, <code>'sech'</code>, <code>'WURST'</code>. Different AM functions can be multiplied by concatenating the keywords as <code>'AM1*AM2/FM'</code>. The default is <code>'rectangular'</code>.
@@ -149,7 +156,7 @@ Depending on the AM function, additional fields need to be specified:
 </ul>
 <li><code>'sech'</code>
 <ul style="list-style-type:none;padding:5px;">
-<li><code>beta</code> - dimensionless truncation parameter (used as beta/tp)
+<li><code>beta</code> - dimensionless truncation parameter (used as <code>beta/tp</code>)
 <li><code>n</code> - exponent of the secant function argument (default = 1)
 </ul>
 <li><code>'WURST'</code>
@@ -164,7 +171,7 @@ Depending on the AM function, additional fields need to be specified:
 </p>
 
 <p>
-Also, depending on the FM function, additional fields are required:
+Also, depending on the FM function, the following additional fields are required:
 <ul>
 <li><code>'none'</code>
 <ul style="list-style-type:none;padding:5px;">
@@ -172,40 +179,35 @@ Also, depending on the FM function, additional fields are required:
 </ul>
 <li><code>'linear'</code>
 <ul style="list-style-type:none;padding:5px;">
-<li><code>BW</code> - frequency sweep width in MHz (the frequency is swept over ±BW/2)
-<li><code>SweepDirection</code> - +1 or -1 (+1 default)
+<li>no additional fields are required
 </ul>
 <li><code>'tanh'</code>
 <ul style="list-style-type:none;padding:5px;">
-<li><code>BW</code> - frequency sweep width in MHz (the frequency is swept over ±BW/2)
-<li><code>beta</code> - dimensionless truncation parameter
-<li><code>SweepDirection</code> - +1 or -1 (+1 default)
+<li><code>beta</code> - dimensionless truncation parameter (see <code>'sech'</code>)
 </ul>
 <li><code>'BWcompensated'</code>
-<p>The rate of frequency modulation is adapted to compensate for the resonator bandwidth. The compensation is implemented as described in Doll, A., Pribitzer, S., Tschaggelar, R., Jeschke, G., Adiabatic and fast passage ultra-wideband inversion in pulsed EPR, J. Magn. Reson. 230, 27-39 (2013), DOI: <a href="http://dx.doi.org/10.1016/j.jmr.2013.01.002">10.1016/j.jmr.2013.01.002</a>.
+<p>The rate of frequency modulation is adapted to compensate for the resonator bandwidth. The compensation is implemented as described in Doll, A., Pribitzer, S., Tschaggelar, R., Jeschke, G., Adiabatic and fast passage ultra-wideband inversion in pulsed EPR, <i>J. Magn. Reson.</i> 230, 27-39 (<b>2013</b>) (DOI: <a href="http://dx.doi.org/10.1016/j.jmr.2013.01.002">10.1016/j.jmr.2013.01.002</a>).
 <ul style="list-style-type:none;padding:5px;">
-<li><code>BW</code> - frequency sweep width in MHz (the frequency is swept over ±BW/2)
-<li><code>SweepDirection</code> - +1 or -1 (+1 default)
-<li><code>freqaxis</code> - frequency axis in MHz. Also <code>Par.mwFreq</code> needs to be defined.
 <li><code>v1</code> - magnitude response function (ideal or experimental)
+<li><code>freqaxis</code> - corresponding frequency axis in MHz. 
+<li> <code>Par.mwFreq</code> - microwave frequency in GHz.
 </ul>
 <li><code>'uniformQ'</code>
 <p>
-The frequency modulation is calculated as the integral of the squared amplitude modulation function (for nth order sech/tanh pulses or in general to obtain offset-independent adiabaticity pulses, see Garwood, M., DelaBarre, L., J. Magn. Reson. 153, 155-177 (2001), DOI: <a href="http://dx.doi.org/10.1006/jmre.2001.2340">10.1006/jmre.2001.2340</a>.
-
-<ul style="list-style-type:none;padding:5px;">
-<li><code>BW</code> - frequency sweep width in MHz (the frequency is swept over ±BW/2)
-<li><code>SweepDirection</code> - +1 or -1 (+1 default)
-</ul>
+The frequency modulation is calculated as the integral of the squared amplitude modulation function (for <i>n</i>th order sech/tanh pulses or in general to obtain offset-independent adiabaticity pulses, see Garwood, M., DelaBarre, L., <i>J. Magn. Reson.</i> 153, 155-177 (<b>2001</b>) (DOI: <a href="http://dx.doi.org/10.1006/jmre.2001.2340">10.1006/jmre.2001.2340</a>).
 </ul>
 
-<code>I</code>, <code>Q</code>
-<br>
-I and Q data describing an arbitrary pulse. The time axis is reconstructed based on <code>Par.tp</code> and the length of the I and Q vectors, all other input parameters (<code>Par.Amplitude</code>, <code>Par.Flip</code>, <code>Par.FreqOffset</code>, <code>Par.Phase</code>, etc.) are ignored.
-</div>
+<p>
+For all frequency-modulated pulses, the frequency sweep range needs to be defined in <code>Par.Frequency</code> with start and end frequencies.
+</p>
 
 <p>
 The parameters in the <code>Opt</code> structure define different settings for the calculation. The available fields are given below.
+
+<div class="optionfield"><code>IQ</code></div>
+<div class="optiondescr">
+Complex-valued, <i>i.e.</i> with in-phase and quadrature components, (<code>=1</code>) or real-valued (<code>=0</code>) pulses. The default is <code>Opt.IQ = 1</code>.
+</div>
 
 <div class="optionfield"><code>OverSampleFactor</code></div>
 <div class="optiondescr">
@@ -214,7 +216,7 @@ Oversampling factor for the automatic determination of the time step (default = 
 
 <div class="optionfield"><code>Offsets</code></div>
 <div class="optiondescr">
-Axis of frequency offsets (in MHz) for which to compute the excitation profile (by default the frequency axis is defined over the range of approximatley ±2*BW with 201 points).
+Axis of frequency offsets (in MHz) for which to compute the excitation profile (by default the frequency axis is defined over the range of approximately twice the pulse bandwidth around the center frequency with 201 points).
 </div>
 
 <!-- ============================================================= -->
@@ -314,7 +316,7 @@ Frequency and phase modulation functions:
 
 <li><code>'BWcompensated'</code>:
 <p>
-The frequency modulation function is calculated as for the linear chirp and then adjusted to compensate for the resonator profile (see Doll, A., Pribitzer, S., Tschaggelar, R., Jeschke, G., Adiabatic and fast passage ultra-wideband inversion in pulsed EPR, J. Magn. Reson. 230, 27-39 (2013), DOI: <a href="http://dx.doi.org/10.1016/j.jmr.2013.01.002">10.1016/j.jmr.2013.01.002</a>). The phase modulation function is obtained by integration and the phase is set to zero at the center of the pulse.
+The frequency modulation function is calculated as for the linear chirp and then adjusted to compensate for the resonator profile (see Doll, A., Pribitzer, S., Tschaggelar, R., Jeschke, G., Adiabatic and fast passage ultra-wideband inversion in pulsed EPR, <i>J. Magn. Reson.</i> 230, 27-39 (<b>2013</b>), DOI: <a href="http://dx.doi.org/10.1016/j.jmr.2013.01.002">10.1016/j.jmr.2013.01.002</a>). The phase modulation function is obtained by integration and the phase is set to zero at the center of the pulse.
 <p/>
 
 <li><code>'tanh'</code>:
@@ -327,7 +329,7 @@ The frequency modulation function is calculated as for the linear chirp and then
 
 <li><code>'uniformQ'</code>:
 <p>
-The frequency modulation function is calculated as the integral of the squared amplitude modulation function and multiplied by the specified bandwidth (centered at zero). This can be used for nth order sech pulses or in general to obtain offset-independent adiabaticity pulses given a certain amplitude function (see Garwood, M., DelaBarre, L., J. Magn. Reson. 153, 155-177 (2001), DOI: <a href="http://dx.doi.org/10.1006/jmre.2001.2340">10.1006/jmre.2001.2340</a>). The phase modulation function is obtained by integration and the phase is set to zero at the center of the pulse.
+The frequency modulation function is calculated as the integral of the squared amplitude modulation function and multiplied by the specified bandwidth (centered at zero). This can be used for <i>n</i>th order sech pulses or in general to obtain offset-independent adiabaticity pulses given a certain amplitude function (see Garwood, M., DelaBarre, L., <i>J. Magn. Reson.</i> 153, 155-177 (<b>2001</b>), DOI: <a href="http://dx.doi.org/10.1006/jmre.2001.2340">10.1006/jmre.2001.2340</a>). The phase modulation function is obtained by integration and the phase is set to zero at the center of the pulse.
 <p/>
 
 </ul>
@@ -347,7 +349,7 @@ P = A \exp\left[i \left(\phi + 2 \pi \nu_\text{center} + \Delta\phi\right) \righ
 -->
 </div>
 <p>
-where the different terms are the amplitude modulation, the phase modulation, the center frequency defined in <code>Par.CenterFreq</code> and the phase offset defined in <code>Par.Phase</code>.
+where the different terms are the amplitude modulation, the phase modulation, the center frequency and the phase offset defined in <code>Par.Phase</code>.
 </p>
 
 

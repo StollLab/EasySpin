@@ -8,7 +8,7 @@ Params1.tp = 0.128; % us
 Params1.TimeStep = 0.00001; % us
 Params1.Type = 'quartersin/linear';
 Params1.trise = 0.030; % us
-Params1.BW = 500; % MHz
+Params1.Frequency = [-250 250]; % MHz
 Params1.mwFreq = 9.5; % GHz
 Params1.Amplitude = 1; % MHz
 
@@ -35,7 +35,8 @@ t_part = 0:Params1.TimeStep:Params1.trise;
 A(1:numel(t_part)) = sin((t_part)*(pi/(2*Params1.trise)));
 A(numel(t0)-numel(t_part)+1:end) = fliplr(A(1:numel(t_part)));
 % Frequency modulation for a linear chirp
-f = -(Params1.BW/2)+(Params1.BW/Params1.tp)*t0;
+BW = Params1.Frequency(2)-Params1.Frequency(1);
+f = -(BW/2)+(BW/Params1.tp)*t0;
 % Phase modulation
 phi = 2*pi*cumtrapz(t0,f);
 phi = phi+abs(min(phi));

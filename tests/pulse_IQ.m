@@ -16,8 +16,8 @@ I(3*tp/dt+1:3*tp/dt+3*tp/dt+1) = +1;
 
 Params.I = v1*I;
 
-Opt.Offsets = -200:1:200; % MHz
-[t,IQ,exprofile] = pulse(Params,Opt);
+% Opt.Offsets = -200:1:200; % MHz
+[t,IQ,exprofile] = pulse(Params);
 
 % Calculate inversion profile
 Sx = sop(1/2,'x');

@@ -18,7 +18,7 @@ for n = 1:nmax
   % with uniform adiabaticity (n = 1 corresponds
   % to the sech/tanh pulse)
   Par.tp = 0.200; % pulse length, µs
-  Par.BW = 120; % pulse bandwidth, MHz
+  Par.Frequency = [-60 60]; % pulse bandwidth, MHz
   Par.beta = 6; % truncation parameter, used as (beta/tp)
   Par.n = n;
   Par.Flip = pi; % pulse flip angle
@@ -39,7 +39,7 @@ for n = 1:nmax
   subplot(3,1,2)
   hold on; box on;
   title('Frequency modulation')
-  plot(t{n},modulation{n}.nu,'Color',cc(n,:));
+  plot(t{n},modulation{n}.freq,'Color',cc(n,:));
   xlabel('t (\mus)')
   ylabel('\nu (MHz)')
   axis tight
@@ -51,8 +51,8 @@ for n = 1:nmax
     line([0 0],[-1 1],'Color',[1 1 1]*0.8);
     line([min(exprofile{n}.offsets) max(exprofile{n}.offsets)],...
          [0 0],'Color',[1 1 1]*0.8);
-    line([1 1]*(-Par.BW/2),[-1 1],'Color',[1 1 1]*0.8);
-    line([1 1]*(+Par.BW/2),[-1 1],'Color',[1 1 1]*0.8);
+    line([1 1]*Par.Frequency(1),[-1 1],'Color',[1 1 1]*0.8);
+    line([1 1]*Par.Frequency(2),[-1 1],'Color',[1 1 1]*0.8);
   end
   plot(exprofile{n}.offsets,exprofile{n}.Mz,'Color',cc(n,:));
   xlabel('t (\mus)')

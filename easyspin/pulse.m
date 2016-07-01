@@ -14,7 +14,9 @@
 %                         pulse parameters)
 %     Par.Flip        = pulse flip angle, in radians (*1) (default: pi)
 %     Par.Amplitude   = pulse amplitude, in MHz; ignored if Par.Flip given
-%     Par.CenterFreq  = pulse center frequency (default: 0)
+%     Par.Frequency   = pulse frequency; center frequency for amplitude
+%                       modulated pulses, start and end frequency for
+%                       frequency swept pulses; (default: 0)
 %     Par.Phase       = phase for the pulse in radians (default: 0 = +x)
 %     Par.Type        = pulse shape name in a string with structure 'AM/FM'
 %                       (or just 'AM'), where AM refers to the amplitude
@@ -35,16 +37,18 @@
 %     Par.I, Par.Q    = I and Q data describing an arbitrary pulse.
 %                       The time axis is reconstructed based on Par.tp
 %                       and the length of the I and Q vectors, all other
-%                       input parameters (Amplitude, Flip, CenterFreq,
+%                       input parameters (Amplitude, Flip, Frequency,
 %                       Phase, etc.) are ignored.
 %
 % Opt = optional structure with the following fields
+%       Opt.IQ               = on/off; complex-valued pulse (on) or
+%                              real-valued pulse (off)
 %       Opt.OverSampleFactor = oversampling factor for the determination
 %                              of the time step (default: 10)
 %       Opt.Offsets          = axis of frequency offsets in MHz for which
 %                              to compute the excitation profile
 %                              (default approximately ±2*BW centered at
-%                              Par.CenterFreq, 201 points)
+%                              the pulse center frequency, 201 points)
 %
 % Available pulse modulation functions:
 %   - Amplitude modulation: rectangular, gaussian, sinc, quartersin, sech,
@@ -68,23 +72,17 @@
 %                                     weighting at the pulse edges
 %
 % Frequency modulation:
-% 'linear'              - BW        = frequency sweep width in MHz
-%                                     (the frequency is swept over ±BW/2)
-%                       - SweepDirection = +1 or -1 (+1 default)
-% 'tanh'                - BW        = frequency sweep width in MHz
-%                       - beta      = dimensionless truncation parameter
-%                       - SweepDirection = +1 or -1 (+1 default)
-% 'BWcompensated'(*2)   - BW        = frequency sweep width in MHz
-%                                     (the frequency is swept over ±BW/2)
-%                       - SweepDirection = +1 or -1 (+1 default)
-%                       Parameters required for resonator bandwidth
+% For all frequency-modulated pulses, the frequency sweep range needs to be
+% defined in Par.Frequency (e.g. Par.Frequency = [-50 50])
+% 'linear'              no additional parameters
+% 'tanh'                - beta      = dimensionless truncation parameter
+% 'BWcompensated'(*2)   Parameters required for resonator bandwidth
 %                       compensation:
 %                       - freqaxis  = frequency axis
 %                       - v1        = magnitude response function (ideal or
 %                                     experimental)
 %                       - Par.mwFreq needs to be defined
-% 'uniformQ'            - BW        = frequency sweep width in MHz
-%                       The frequency modulation is calculated as the
+% 'uniformQ'            The frequency modulation is calculated as the
 %                       integral of the squared amplitude modulation
 %                       function (for nth order sech/tanh pulses or in
 %                       general to obtain offset-independent adiabaticity
@@ -98,8 +96,8 @@
 %                        for excitation profile in MHz and excitation
 %                        profile (Mi/M0, i = x,y,z, exprof.Mx, exprof.My, exprof.Mz)
 %           modulation = structure with amplitude (modulation.A, in MHz),
-%                        frequency (modulation.nu, in MHz) and phase
-%                        (modulation.phi, in rad) modulation functions
+%                        frequency (modulation.freq, in MHz) and phase
+%                        (modulation.phase, in rad) modulation functions
 %
 % (*1) The conversion from flip angles to amplitudes is performed using the
 %      approximations described in:
@@ -162,8 +160,8 @@ else
   Par.Amplitude = [];
 end
 
-if ~isfield(Par,'CenterFreq')
-  Par.CenterFreq = 0; % MHz
+if ~isfield(Par,'Frequency')
+  Par.Frequency = 0; % MHz
 end
 if ~isfield(Par,'Phase')
   Par.Phase = 0; % rad
@@ -173,6 +171,9 @@ end
 % ----------------------------------------------------------------------- %
 if ~isfield(Opt,'OverSampleFactor')
   Opt.OverSampleFactor = 10;
+end
+if ~isfield(Opt,'IQ')
+  Opt.IQ = 1;
 end
 if ~isfield(Opt,'nOffsets') % undocumented
   Opt.nOffsets = 201;
@@ -209,8 +210,8 @@ if (isfield(Par,'I') && ~isempty(Par.I)) || ...
   
   Par.TimeStep = t(2)-t(1);
   modulation.A = [];
-  modulation.nu = [];
-  modulation.phi = [];
+  modulation.freq = [];
+  modulation.phase = [];
   
   % Estimate pulse bandwidth (for offset range determination)
   % --------------------------------------------------------------------- %
@@ -225,8 +226,8 @@ if (isfield(Par,'I') && ~isempty(Par.I)) || ...
     IQft = abs(fftshift(fft(IQ,zf)));
     f = fdaxis(Par.TimeStep,zf);
     indbw = find(IQft>0.5*max(IQft));
-    BW = f(indbw(end))-f(indbw(1));
-    Par.CenterFreq = f(indbw(round(numel(indbw)/2)));
+    BW = abs(f(indbw(end))-f(indbw(1)));
+    Par.Frequency = [f(indbw(1)) f(indbw(end))];
     
   end
   
@@ -319,18 +320,23 @@ else
     
     case 'none'
       
+      if numel(Par.Frequency)~=1
+        error(['Frequency modulation is set to ''none'', but a frequency range is ',...
+          'given in Par.Frequency. Please define a single pulse frequency.']);
+      end
+      
     case 'linear'
       
-      if ~isfield(Par,'BW') || isempty(Par.BW)
+      if numel(Par.Frequency)==1
         error(['Pulse FM function not sufficiently defined. ',...
-          'Specify Par.BW parameter (in MHz) for the linear chirp.']);
+          'Specify frequency range for the linear chirp in Par.Frequency (in MHz).']);
       end
       
     case 'tanh'
       
-      if ~isfield(Par,'BW') || isempty(Par.BW)
+      if numel(Par.Frequency)==1
         error(['Pulse FM function not sufficiently defined. ',...
-          'Specify Par.BW parameter (in MHz) for tanh.']);
+          'Specify frequency range for tanh in Par.Frequency (in MHz).']);
       end
       if ~isfield(Par,'beta') || isempty(Par.beta)
         error(['Pulse FM function not sufficiently defined. ',...
@@ -339,6 +345,11 @@ else
       
     case 'BWcompensated'
       
+      if numel(Par.Frequency)==1
+        error(['Pulse FM function not sufficiently defined. ',...
+          'Specify frequency range for the BWcompensated chirp in Par.Frequency (in MHz).']);
+      end
+
       if (~isfield(Par,'freqaxis') || isempty(Par.freqaxis)) || ...
           (~isfield(Par,'v1') || isempty(Par.v1))
         error(['Pulse FM function not sufficiently defined. ',...
@@ -351,22 +362,15 @@ else
       
     case 'uniformQ'
       
-      if ~isfield(Par,'BW') || isempty(Par.BW)
+      if numel(Par.Frequency)==1
         error(['Pulse FM function not sufficiently defined. ',...
-          'Specify Par.BW parameter (in MHz).']);
+          'Specify frequency range in Par.Frequency (in MHz).']);
       end
       
     otherwise
       
       error('The frequency modulation function ''%s'' is not defined.',FrequencyModulation);
       
-  end
-  if ~isfield(Par,'SweepDirection') || isempty(Par.SweepDirection)
-    Par.SweepDirection = +1;
-  else
-    if numel(Par.SweepDirection)~=1 || (Par.SweepDirection~=1 && Par.SweepDirection~=-1)
-      error('Par.SweepDirection must be +1 or -1.');
-    end
   end
   if any(ismember(AmplitudeModulation,'sech')) && strcmp(FrequencyModulation,'tanh') && ...
       (isfield(Par,'n') && ~isempty(Par.n) && Par.n~=1)
@@ -382,7 +386,7 @@ else
       case 'none'
         FM_BW = 0;
       otherwise
-        FM_BW = Par.BW;
+        FM_BW = abs(Par.Frequency(2) - Par.Frequency(1));
     end
     
     % Determine bandwidth of amplitude modulation (from Fourier transform)
@@ -441,7 +445,7 @@ else
     % Automatically determine appropriate time step
     % ------------------------------------------------------------------- %
     % Calculate maximum frequency offset
-    maxFreq = max(abs(Par.CenterFreq+[-1 1]*BW/2));
+    maxFreq = max(abs(mean(Par.Frequency)+[-1 1]*BW/2));
     % Use Nyquist theorem to calculate time step, incl. oversampling
     if maxFreq~=0
       Nyquist_dt = 1/(2*maxFreq);
@@ -508,20 +512,20 @@ else
   end
   
   % ------------------------------------------------------------------- %
-  % Frequency (modulation.nu) and phase (modulation.phi) modulation functions
+  % Frequency (modulation.freq) and phase (modulation.phase) modulation functions
   % ------------------------------------------------------------------- %
   switch FrequencyModulation
     
     case 'none'
       
-      modulation.nu = zeros(1,nPoints);
-      modulation.phi = zeros(1,nPoints);
+      modulation.freq = zeros(1,nPoints);
+      modulation.phase = zeros(1,nPoints);
       
     case 'linear'
       
-      k = Par.BW/Par.tp; % frequency sweep (chirp) rate
-      modulation.nu = k*ti;
-      modulation.phi = 2*pi*Par.SweepDirection*((k/2)*ti.^2);
+      k = (Par.Frequency(2)-Par.Frequency(1))/Par.tp; % frequency sweep (chirp) rate
+      modulation.freq = k*ti;
+      modulation.phase = 2*pi*((k/2)*ti.^2);
       
     case 'BWcompensated'
       
@@ -533,11 +537,11 @@ else
       %   http://dx.doi.org/10.1016/j.jmr.2013.01.002
       
       % Constant-rate chirp
-      k = Par.BW/Par.tp; % frequency sweep rate
+      k = (Par.Frequency(2)-Par.Frequency(1))/Par.tp; % frequency sweep rate
       nu_linear = k*ti;
       
       v1_range = interp1(Par.freqaxis,Par.v1,...
-        nu_linear+Par.CenterFreq+Par.mwFreq*1e3);
+        nu_linear+mean(Par.Frequency)+Par.mwFreq*1e3);
       
       % Frequency dependence of t and time-to-frequency mapping
       c_ = trapz(1./v1_range.^2)/t(end); % const = 2*pi/Qref
@@ -545,20 +549,20 @@ else
       t_f = cumtrapz((1/c_)*v1_range.^-2);
       nu_adapted = interp1(t_f,nu_linear,t,'pchip');
       
-      modulation.nu = nu_adapted;
-      modulation.phi = 2*pi*Par.SweepDirection*cumtrapz(t,modulation.nu);
-      modulation.phi = modulation.phi + abs(min(modulation.phi));  % zero phase offset at pulse center
+      modulation.freq = nu_adapted;
+      modulation.phase = 2*pi*cumtrapz(t,modulation.freq);
+      modulation.phase = modulation.phase + abs(min(modulation.phase));  % zero phase offset at pulse center
       
     case 'tanh'
       
       % Determine BWinf parameter from BW and beta parameters
       % (the frequency is swept from -BW/2 to +BW/2)
-      Par.BWinf = Par.BW/tanh(Par.beta/2);
+      Par.BWinf = (Par.Frequency(2)-Par.Frequency(1))/tanh(Par.beta/2);
       
-      modulation.nu = (Par.BWinf/2)*tanh((Par.beta/Par.tp)*ti);
-      modulation.phi = (Par.BWinf/2)*(Par.tp/Par.beta)*...
+      modulation.freq = (Par.BWinf/2)*tanh((Par.beta/Par.tp)*ti);
+      modulation.phase = (Par.BWinf/2)*(Par.tp/Par.beta)*...
         log(cosh((Par.beta/Par.tp)*ti));
-      modulation.phi = 2*pi*Par.SweepDirection*modulation.phi;
+      modulation.phase = 2*pi*modulation.phase;
       
     case 'uniformQ'
       % The frequency modulation is calculated as the integral of the
@@ -567,11 +571,10 @@ else
       %   Garwood, M., DelaBarre, L., J. Magn. Reson. 153, 155-177 (2001).
       %   http://dx.doi.org/10.1006/jmre.2001.2340
       
-      modulation.nu = cumtrapz(ti,modulation.A.^2)/trapz(ti,modulation.A.^2); % F2
-      modulation.nu = Par.BW*(modulation.nu-1/2);
-      modulation.phi = 2*pi*cumtrapz(ti,modulation.nu);
-      modulation.phi = modulation.phi + abs(min(modulation.phi)); % zero phase offset at pulse center
-      modulation.phi = Par.SweepDirection*modulation.phi;
+      modulation.freq = cumtrapz(ti,modulation.A.^2)/trapz(ti,modulation.A.^2); % F2
+      modulation.freq = (Par.Frequency(2)-Par.Frequency(1))*(modulation.freq-1/2);
+      modulation.phase = 2*pi*cumtrapz(ti,modulation.freq);
+      modulation.phase = modulation.phase + abs(min(modulation.phase)); % zero phase offset at pulse center
       
   end
   
@@ -602,16 +605,16 @@ else
         
         switch FrequencyModulation
           case {'linear','BWcompensated'}
-            sweeprate = Par.BW/Par.tp;
+            sweeprate = abs(Par.Frequency(2)-Par.Frequency(1))/Par.tp;
           case 'tanh'
-            sweeprate = Par.beta*Par.BWinf/(2*Par.tp);
+            sweeprate = Par.beta*abs(Par.BWinf)/(2*Par.tp);
           case 'uniformQ'
             % Q = w1max^2*A(t)^2/(BW*dnu/dt) see eq. 17 in
             %   Garwood, M., DelaBarre, L., J. Magn. Reson. 153, 155-177
             %   (2001).
             %   http://dx.doi.org/10.1006/jmre.2001.2340
             [dummy,ind] = min(abs(ti));
-            dnu = diff(2*pi*modulation.nu/(t(2)-t(1)));
+            dnu = abs(diff(2*pi*modulation.freq/(t(2)-t(1))));
             sweeprate = dnu(ind)/(2*pi*(modulation.A(ind))^2);
         end
         
@@ -624,8 +627,13 @@ else
   % Calculate pulse IQ function
   % ------------------------------------------------------------------- %
   modulation.A = Par.Amplitude*modulation.A;
-  totalphase = modulation.phi + 2*pi*Par.CenterFreq*t + Par.Phase;
+  totalphase = modulation.phase + 2*pi*mean(Par.Frequency)*t + Par.Phase;
   IQ = modulation.A.*exp(1i*totalphase);
+  
+  % Real-valued pulse
+  if Opt.IQ==0
+    IQ = real(IQ);
+  end
   
 end
 
@@ -640,7 +648,11 @@ if Opt.ExciteProfile
     if ~strcmp(Par.Type,'user-IQ')
       BW = max([FM_BW AM_BW50]);
     end
-    exprof.offsets = linspace(-BW,BW,Opt.nOffsets) + Par.CenterFreq;
+    if Opt.IQ==1
+      exprof.offsets = linspace(-BW,BW,Opt.nOffsets) + mean(Par.Frequency);
+    else
+      exprof.offsets = linspace(-BW-mean(Par.Frequency),BW+mean(Par.Frequency),Opt.nOffsets);      
+    end
   else
     exprof.offsets = Opt.Offsets;
   end
@@ -728,10 +740,17 @@ if plotResults
     'Position',[0.1,0.3,0.8,0.40],'Color',[1 1 1]*0.8,...
     'Toolbar','figure');
   
+  % Set colors
   colI = [0 0 1];
   colQ = [1 0 0];
   colBW = [1 1 1]*0.8;
+  colnu = [0 0 1];
+  colphi = [0 0.5 0];
+  colx = [0 0.5 0];
+  coly = [1 0 0];
+  colz = [0 0 1];
   
+  % Set positions
   width = 0.25;
   height = 0.55;
   sep = (1-3*width)/4;
@@ -743,6 +762,7 @@ if plotResults
     'Enable','Inactive','Units','Normalized',...
     'Position',[0.25*sep,0.9,1-0.5*sep,0.075]);
   
+  % IQ plot
   S.label(1) = uicontrol('Style','text','String','Pulse amplitude:',...
     'FontSize',10,'FontWeight','bold',...
     'HorizontalAlignment','left',...
@@ -758,7 +778,7 @@ if plotResults
   hold on; box on;
   line([min(t) max(t)],[0 0],'Color',colBW);
   if ~isempty(modulation.A)
-    if strcmp(FrequencyModulation,'none') && Par.CenterFreq==0
+    if strcmp(FrequencyModulation,'none') && Par.Frequency==0
       S.hA = plot(t,modulation.A);
     else
       S.hA = plot(t,modulation.A,t,-modulation.A);
@@ -770,9 +790,16 @@ if plotResults
   Amax = max(abs(IQ));
   axis([t(1) t(end) -1*Amax*1.1 1*Amax*1.1]);
   xlabel('{\itt} (\mus)')
-  ylabel('\nu_1 (MHz)')
+  ylabel('amplitude (MHz)')
+  set(gca,'Layer','top')
   legend([S.hI S.hQ],'I','Q','Location','SouthEast')
+  if Opt.IQ==0
+    set(S.hQ,'Visible','off')
+    legend(S.hI,'I','Location','SouthEast')
+    set(S.tick(2),'Value',0,'Enable','off')
+  end
   
+  % Frequency and phase modulation plot
   S.label(2) = uicontrol('Style','text','String','Frequency and phase:',...
     'FontSize',10,'FontWeight','bold',...
     'HorizontalAlignment','left',...
@@ -780,18 +807,47 @@ if plotResults
     'Position',[2*sep+width,0.75,width,0.1]);
   S.ha(2) = axes('Units','Normalized','Position',[2*sep+width,btm,width,height]);
   hold on; box on;
-  line([min(t) max(t)],[0 0],'Color',colBW);
-  if ~isempty(modulation.nu) && ~isempty(modulation.phi)
-    [S.ax,S.hnu,S.hphi] = plotyy(t,modulation.nu+Par.CenterFreq,t,modulation.phi);
+  if ~isempty(modulation.freq) && ~isempty(modulation.phase)
+    line([min(t) max(t)],[0 0]+mean(Par.Frequency),'Color',colBW);
+    if numel(Par.Frequency)==2
+      line([min(t) max(t)],[0 0]+Par.Frequency(1),'Color',colBW);
+      line([min(t) max(t)],[0 0]+Par.Frequency(2),'Color',colBW);
+    end
+    [S.ax,S.hnu,S.hphi] = plotyy(t,modulation.freq+mean(Par.Frequency),t,modulation.phase);
     set(get(S.ax(1),'Xlabel'),'String','{\itt} (\mus)')
     set(S.ax(1),'xlim',[t(1) t(end)]);
-    set(S.ax(2),'XTick',[]);
     set(S.ax(2),'xlim',[t(1) t(end)]);
-    set(get(S.ax(1),'Ylabel'),'String','\nu (MHz)');
-    set(get(S.ax(2),'Ylabel'),'String','\phi (rad)');
+    set(S.ax(2),'XAxisLocation','top','XTickLabel',[]);
+    freqmax = [min(modulation.freq+mean(Par.Frequency)) max(modulation.freq+mean(Par.Frequency))];
+    if freqmax(1)==freqmax(2)
+      if freqmax(1)==0; sc = 1; else sc = 0.1*freqmax(1); end
+      freqmax = [freqmax(1) freqmax(2)]+sc*[-1 1];
+      shift = 0;
+    else
+      shift = [-1 1]*0.1*(freqmax(2)-freqmax(1));
+    end
+    set(S.ax(1),'ylim',freqmax+shift);
+    set(S.ax(1),'YTick',linspace(freqmax(1),freqmax(2),5))
+    set(S.ax(1),'box','off')
+    set(S.ax(1),'Layer','top')
+    phasemax = [min(modulation.phase) max(modulation.phase)];
+    if phasemax(1)==phasemax(2)
+      if phasemax(1)==0; sc = 1; else sc = 0.1*phasemax(1); end
+      phasemax = [phasemax(1) phasemax(2)]+sc*[-1 1];
+      shift = 0;
+    else
+      shift = [-1 1]*0.1*(phasemax(2)-phasemax(1));
+    end
+    set(S.ax(2),'ylim',phasemax+shift);
+    set(get(S.ax(1),'Ylabel'),'String','frequency (MHz)');
+    set(get(S.ax(2),'Ylabel'),'String','phase (rad)');
+    set(S.ax,{'Ycolor'},{colnu;colphi})
+    set(S.hnu,'Color',colnu);
+    set(S.hphi,'Color',colphi);
   end
   title('Frequency and phase modulation');
   
+  % Excitation profile plot
   S.label(3) = uicontrol('Style','text','String','Excitation profiles:',...
     'FontSize',10,'FontWeight','bold',...
     'HorizontalAlignment','left',...
@@ -808,20 +864,30 @@ if plotResults
     'Units','Normalized','Position',[5*sep+2.5*width boxpos 0.1 0.1]);
   S.ha(3) = axes('Units','Normalized','Position',[3.5*sep+2*width,btm,width,height]);
   hold on; box on;
-  line([1 1]*Par.CenterFreq,[-1 1],'Color',colBW);
   line([min(exprof.offsets) max(exprof.offsets)],[0 0],'Color',colBW);
-  if isfield(Par,'BW') && ~isempty(Par.BW) && ~strcmp(FrequencyModulation,'none')
-    line([1 1]*(Par.CenterFreq-Par.BW/2),[-1 1],'Color',colBW);
-    line([1 1]*(Par.CenterFreq+Par.BW/2),[-1 1],'Color',colBW);
+  line([1 1]*mean(Par.Frequency),[-1 1],'Color',colBW);
+  if numel(Par.Frequency)==2
+    line([1 1]*Par.Frequency(1),[-1 1],'Color',colBW);
+    line([1 1]*Par.Frequency(2),[-1 1],'Color',colBW);
   end
-  S.h = plot(exprof.offsets,exprof.Mx,exprof.offsets,exprof.My,exprof.offsets,exprof.Mz);
+  if Opt.IQ==0
+    line([0 0],[-1 1],'Color','k');
+    line(-[1 1]*mean(Par.Frequency),[-1 1],'Color',colBW);
+    if numel(Par.Frequency)==2
+      line(-[1 1]*Par.Frequency(1),[-1 1],'Color',colBW);
+      line(-[1 1]*Par.Frequency(2),[-1 1],'Color',colBW);
+    end
+  end
+  S.h(1) = plot(exprof.offsets,exprof.Mx,'Color',colx);
+  S.h(2) = plot(exprof.offsets,exprof.My,'Color',coly);
+  S.h(3) = plot(exprof.offsets,exprof.Mz,'Color',colz);
   set(S.h(1),'Visible','off')
   set(S.h(2),'Visible','off')
   ylabel('{\itM}_i/{\itM}_0')
   legend(S.h,'x','y','z','Location','SouthEast')
   xlabel('frequency (MHz)')
-  axis tight
-  ylim([-1 1])
+  axis([exprof.offsets(1) exprof.offsets(end) -1 1])
+  set(gca,'Layer','top')
   title('Excitation profiles')
   
   S.handles = [S.hI S.hQ S.h(1) S.h(2) S.h(3)];
@@ -840,7 +906,7 @@ switch nargout
   case 3 % [t,IQ,exprof] = pulse(...)
     varargout = {t,IQ,exprof};
   case 4 % [t,IQ,exprof,modulation] = pulse(...)
-    modulation.nu = modulation.nu+Par.CenterFreq;
+    modulation.freq = modulation.freq+mean(Par.Frequency);
     varargout = {t,IQ,exprof,modulation};
   otherwise
     error('The function pulse() needs 2, 3, or 4 output arguments.')

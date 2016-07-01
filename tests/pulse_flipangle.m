@@ -51,30 +51,30 @@ clearvars -except err
 Params(1).Type = 'quartersin/linear';
 Params(1).tp = 0.200; % us
 Params(1).trise = 0.050; % us
-Params(1).BW = 500; % MHz
+Params(1).Frequency = [-250 250]; % MHz
 Params(2).Type = 'WURST/linear';
 Params(2).tp = 0.200; % us
 Params(2).nwurst = 30; % us
-Params(2).BW = 300; % MHz
+Params(2).Frequency = [150 -150]; % MHz
 Params(3).Type = 'sech/tanh';
 Params(3).tp = 0.400; % us
 Params(3).beta = 10;
-Params(3).BW = 70; % MHz
+Params(3).Frequency = [-35 35]; % MHz
 Params(4).Type = 'sech*WURST/tanh';
 Params(4).tp = 0.500; % us
 Params(4).beta = 4;
 Params(4).nwurst = 8;
-Params(4).BW = 120; % MHz
+Params(4).Frequency = [60 -60]; % MHz
 Params(5).Type = 'sech/uniformQ';
 Params(5).tp = 0.300; % us
 Params(5).beta = 10;
 Params(5).n = 4;
-Params(5).BW = 200; % MHz
+Params(5).Frequency = [-100 100]; % MHz
 Params(6).Type = 'sech/uniformQ';
 Params(6).tp = 0.400; % us
 Params(6).beta = 7;
 Params(6).n = 12;
-Params(6).BW = 250; % MHz
+Params(6).Frequency = [-125 125]; % MHz
 
 Opt.Offsets = 0;
 

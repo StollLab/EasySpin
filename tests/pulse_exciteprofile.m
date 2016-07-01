@@ -98,25 +98,23 @@ err(2) = ~areequal(Mz,exprofile.Mz,0.5e-1);
 clearvars -except err
 Params.tp = 0.200; % us
 Params.Type = 'sech/tanh';
-Params.BW = 100; % MHz
+Params.Frequency = [50 -50] + 60; % MHz
 Params.beta = 15;
-Params.SweepDirection = -1;
 Params.Flip = pi;
 Params.TimeStep = 0.0005; % us
-Params.CenterFreq = 60; % MHz
 
 t0 = 0:Params.TimeStep:Params.tp;
 % Calculate pulse amplitude from flip angle
 Qcrit = 5;
-BW = Params.BW/tanh(Params.beta/2);
+BW = (Params.Frequency(2)-Params.Frequency(1))/tanh(Params.beta/2);
 Amplitude = sqrt((Params.beta*BW*Qcrit)/(2*pi*2*Params.tp));
 % Amplitude modulation: sech
 A = sech((Params.beta/Params.tp)*(t0-Params.tp/2));
 % Phase modulation
-phi = (Params.BW/(2*tanh(Params.beta/2)))*(Params.tp/Params.beta)*log(cosh((Params.beta/Params.tp)*(t0-Params.tp/2)));
-phi = 2*pi*Params.SweepDirection*phi;
+phi = ((Params.Frequency(2)-Params.Frequency(1))/(2*tanh(Params.beta/2)))*(Params.tp/Params.beta)*log(cosh((Params.beta/Params.tp)*(t0-Params.tp/2)));
+phi = 2*pi*phi;
 % Pulse
-IQ0 = Amplitude*A.*exp(1i*(phi+2*pi*Params.CenterFreq*t0));
+IQ0 = Amplitude*A.*exp(1i*(phi+2*pi*mean(Params.Frequency)*t0));
 
 [t,IQ,exprofile] = pulse(Params);
 

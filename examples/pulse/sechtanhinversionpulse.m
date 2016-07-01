@@ -11,7 +11,7 @@ clear, clf
 %-------------------------------------------------------------
 Par{1}.Type = 'sech/tanh'; % pulse shape
 Par{1}.tp = 0.200; % pulse length, µs
-Par{1}.BW = 180; % pulse bandwidth, MHz
+Par{1}.Frequency = [-100 100]; % pulse frequency sweep range, MHz
 Par{1}.beta = 8; % truncation parameter, used as (beta/tp)
 Par{1}.Flip = pi; % pulse flip angle
 

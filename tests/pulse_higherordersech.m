@@ -6,7 +6,7 @@ function [err,data] = test(opt,olddata)
 % HS8
 Params.tp = 0.600; % us
 Params.Type = 'sech/uniformQ';
-Params.BW = 200; % MHz
+Params.Frequency = [-100 100]; % MHz
 Params.beta = 10.6;
 Params.n = 8;
 Params.Amplitude = 20;
@@ -19,7 +19,8 @@ A = sech((Params.beta)*(2^(Params.n-1))*(ti/Params.tp).^Params.n);
 A = A*Params.Amplitude;
 % Frequency modulation
 f = cumtrapz(ti,A.^2/trapz(ti,A.^2));
-f = Params.BW*f-Params.BW/2;
+BW = Params.Frequency(2)-Params.Frequency(1);
+f = BW*f-BW/2;
 % Phase modulation
 phi = cumtrapz(ti,f);
 phi = phi+abs(min(phi));
@@ -31,8 +32,8 @@ Opt.ExciteProfile = 0;
 
 suberr(1) = ~areequal(IQ0,IQ,1e-11);
 suberr(2) = ~areequal(A,modulation.A,1e-12);
-suberr(3) = ~areequal(f,modulation.nu,1e-12);
-suberr(4) = ~areequal(2*pi*phi,modulation.phi,1e-12);
+suberr(3) = ~areequal(f,modulation.freq,1e-12);
+suberr(4) = ~areequal(2*pi*phi,modulation.phase,1e-12);
 
 err = any(suberr);
 
