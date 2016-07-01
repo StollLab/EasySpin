@@ -34,9 +34,9 @@ tol = 1e-12;
 suberr = zeros(1,numel(Params));
 for i = 1:numel(Params)
   Params(i).Flip = pi/2;
-  [~,~,p90] = pulse(Params(i),Opt);
+  [t,IQ,p90] = pulse(Params(i),Opt);
   Params(i).Flip = pi;
-  [~,~,p180] = pulse(Params(i),Opt);
+  [t,IQ,p180] = pulse(Params(i),Opt);
   if p90.Mz<tol && (p180.Mz>(-1-tol) && p180.Mz<(-1+tol))  
     suberr(i) = 0;
   else
@@ -82,9 +82,9 @@ tol = 1e-2;
 suberr = zeros(1,numel(Params));
 for i = 1:numel(Params)
   Params(i).Flip = pi/2;
-  [~,~,p90] = pulse(Params(i),Opt);  
+  [t,IQ,p90] = pulse(Params(i),Opt);  
   Params(i).Flip = pi;
-  [~,~,p180] = pulse(Params(i),Opt);
+  [t,IQ,p180] = pulse(Params(i),Opt);
   if p90.Mz<tol && (p180.Mz>(-1-tol) && p180.Mz<(-1+tol))  
     suberr(i) = 0;
   else

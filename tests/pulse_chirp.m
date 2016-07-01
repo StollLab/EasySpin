@@ -20,11 +20,11 @@ f = -(Params.BW/2)+(Params.BW/Params.tp)*t0;
 phi = cumtrapz(t0,f);
 phi = phi+abs(min(phi));
 % Pulse
-y0 = Amplitude*exp(2i*pi*(phi+Params.CenterFreq*t0));
+IQ0 = Amplitude*exp(2i*pi*(phi+Params.CenterFreq*t0));
 
-[~,y] = pulse(Params);
+[t,IQ] = pulse(Params);
 
-err(1) = ~areequal(y0,y,1e-12);
+err(1) = ~areequal(IQ0,IQ,1e-12);
 
 % Quartersin weighted chirp
 clearvars -except err
@@ -49,14 +49,14 @@ f = -(Params.BW/2)+(Params.BW/Params.tp)*t0;
 phi = cumtrapz(t0,f);
 phi = phi+abs(min(phi));
 % Pulse
-y0 = Params.Amplitude*A.*exp(2i*pi*phi);
+IQ0 = Params.Amplitude*A.*exp(2i*pi*phi);
 
 Opt.ExciteProfile = 0;
-[~,y,~,m] = pulse(Params,Opt);
+[t,IQ,exprofile,modulation] = pulse(Params,Opt);
 
-suberr(1) = ~areequal(y0,y,1e-12);
-suberr(2) = ~areequal(Params.Amplitude*A,m.A,1e-12);
-suberr(3) = ~areequal(f,m.nu,1e-12);
+suberr(1) = ~areequal(IQ0,IQ,1e-12);
+suberr(2) = ~areequal(Params.Amplitude*A,modulation.A,1e-12);
+suberr(3) = ~areequal(f,modulation.nu,1e-12);
 
 err(2) = any(suberr);
 

@@ -26,15 +26,15 @@ f = (Params.BW/(2*tanh(Params.beta/2)))*tanh((Params.beta/Params.tp)*(t0-Params.
 phi = (Params.BW/(2*tanh(Params.beta/2)))*(Params.tp/Params.beta)*log(cosh((Params.beta/Params.tp)*(t0-Params.tp/2)));
 phi = 2*pi*Params.SweepDirection*phi;
 % Pulse
-y0 = Amplitude*A.*exp(1i*(phi+2*pi*Params.CenterFreq*t0));
+IQ0 = Amplitude*A.*exp(1i*(phi+2*pi*Params.CenterFreq*t0));
 
 Opt.ExciteProfile = 0;
-[~,y,~,m] = pulse(Params,Opt);
+[t,IQ,exprofile,modulation] = pulse(Params,Opt);
 
-suberr(1) = ~areequal(y0,y,1e-12);
-suberr(2) = ~areequal(Amplitude*A,m.A,1e-12);
-suberr(3) = ~areequal(f,m.nu,1e-12);
-suberr(4) = ~areequal(phi,m.phi,1e-12);
+suberr(1) = ~areequal(IQ0,IQ,1e-12);
+suberr(2) = ~areequal(Amplitude*A,modulation.A,1e-12);
+suberr(3) = ~areequal(f+Params.CenterFreq,modulation.nu,1e-12);
+suberr(4) = ~areequal(phi,modulation.phi,1e-12);
 
 err = any(suberr);
 

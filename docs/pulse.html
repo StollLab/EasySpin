@@ -38,9 +38,9 @@ Calculates pulse shapes and pulse excitation profiles.
 <pre class="matlab">
 pulse(Par)
 pulse(Par,Opt)
-[t,y] = pulse(...)
-[t,y,p] = pulse(...)
-[t,y,p,modulation] = pulse(...)
+[t,IQ] = pulse(...)
+[t,IQ,exprofile] = pulse(...)
+[t,IQ,exprofile,modulation] = pulse(...)
 </pre>
 
 <!-- ============================================================= -->
@@ -51,14 +51,14 @@ This function calculates pulse shapes and pulse excitation profiles.
 </p>
 
 <p>
-The output contains the time axis data in <code>t</code> (time in microseconds). <code>y</code> contains the pulse shape data with the in-phase data in the real component and the quadrature data in the imaginary component.
+The output contains the time axis data in <code>t</code> (time in microseconds). <code>IQ</code> contains the pulse shape data with the in-phase data in the real component and the quadrature data in the imaginary component.
 </p>
 
 <p>
-If a third output argument is specified, the pulse excitation profile calculated and returned in the structure <code>p</code>:
+If a third output argument is specified, the pulse excitation profile calculated and returned in the structure <code>exprofile</code>:
 <ul>
-<li><code>p.offsets</code>: axis of frequency offsets (in MHz)
-<li><code>p.Mx</code>, <code>p.My</code>, <code>p.Mz</code>: components of the magnetization vector after the pulse, calculate using two-level density matrix dynamics.
+<li><code>exprofile.offsets</code>: axis of frequency offsets (in MHz)
+<li><code>exprofile.Mx</code>, <code>exprofile.My</code>, <code>exprofile.Mz</code>: components of the magnetization vector after the pulse, calculate using two-level density matrix dynamics.
 </ul>
 </p>
 

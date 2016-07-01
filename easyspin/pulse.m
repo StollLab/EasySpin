@@ -1,10 +1,10 @@
 % pulse      Pulse definition and excitation profile calculation
 %
-% [t,y] = pulse(Par)
-% [t,y] = pulse(Par,Opt)
+% [t,IQ] = pulse(Par)
+% [t,IQ] = pulse(Par,Opt)
 %
-% [t,y,exprof] = pulse(Par,Opt)
-% [t,y,exprof,modulation] = pulse(Par,Opt)
+% [t,IQ,exprof] = pulse(Par,Opt)
+% [t,IQ,exprof,modulation] = pulse(Par,Opt)
 %
 % Input:
 %   Par = structure containing the following fields:
@@ -91,12 +91,12 @@
 %                       pulses, see J. Magn. Reson. 153, 155 (2001).
 %
 % Output:   t          = time axis for defined waveform in us
-%           y          = real and imaginary part of the pulse function
+%           IQ          = real and imaginary part of the pulse function
 %           If three or four output arguments are requested, the excitation
 %           profile is calculated. Additional output fields are:
-%           exprof     = structure with frequency offset axis (p.offsets)
+%           exprof     = structure with frequency offset axis (exprof.offsets)
 %                        for excitation profile in MHz and excitation
-%                        profile (Mi/M0, i = x,y,z, p.Mx, p.My, p.Mz)
+%                        profile (Mi/M0, i = x,y,z, exprof.Mx, exprof.My, exprof.Mz)
 %           modulation = structure with amplitude (modulation.A, in MHz),
 %                        frequency (modulation.nu, in MHz) and phase
 %                        (modulation.phi, in rad) modulation functions
@@ -121,10 +121,10 @@ switch nargin
   case 0
     help(mfilename);
     return
-  case 1 % [t,y] = pulse(Par)
+  case 1 % [t,IQ] = pulse(Par)
     Par = varargin{1};
     Opt = struct;
-  case 2 % [t,y] = pulse(Par,Opt)
+  case 2 % [t,IQ] = pulse(Par,Opt)
     Par = varargin{1};
     Opt = varargin{2};
   otherwise
@@ -182,7 +182,7 @@ end
 % Calculate pulse function
 % ----------------------------------------------------------------------- %
 modulation = struct;
-p = struct;
+exprof = struct;
 
 % Check if pulse I and Q data is given
 if (isfield(Par,'I') && ~isempty(Par.I)) || ...
@@ -205,7 +205,7 @@ if (isfield(Par,'I') && ~isempty(Par.I)) || ...
   
   t = linspace(0,Par.tp,numel(Par.I));
   nPoints = numel(t);
-  y = complex(Par.I,Par.Q);
+  IQ = complex(Par.I,Par.Q);
   
   Par.TimeStep = t(2)-t(1);
   modulation.A = [];
@@ -222,9 +222,9 @@ if (isfield(Par,'I') && ~isempty(Par.I)) || ...
     else
       zf = 4*2^nextpow2(numel(t));
     end
-    yft = abs(fftshift(fft(y,zf)));
+    IQft = abs(fftshift(fft(IQ,zf)));
     f = fdaxis(Par.TimeStep,zf);
-    indbw = find(yft>0.5*max(yft));
+    indbw = find(IQft>0.5*max(IQft));
     BW = f(indbw(end))-f(indbw(1));
     Par.CenterFreq = f(indbw(round(numel(indbw)/2)));
     
@@ -625,7 +625,7 @@ else
   % ------------------------------------------------------------------- %
   modulation.A = Par.Amplitude*modulation.A;
   totalphase = modulation.phi + 2*pi*Par.CenterFreq*t + Par.Phase;
-  y = modulation.A.*exp(1i*totalphase);
+  IQ = modulation.A.*exp(1i*totalphase);
   
 end
 
@@ -640,11 +640,11 @@ if Opt.ExciteProfile
     if ~strcmp(Par.Type,'user-IQ')
       BW = max([FM_BW AM_BW50]);
     end
-    p.offsets = linspace(-BW,BW,Opt.nOffsets) + Par.CenterFreq;
+    exprof.offsets = linspace(-BW,BW,Opt.nOffsets) + Par.CenterFreq;
   else
-    p.offsets = Opt.Offsets;
+    exprof.offsets = Opt.Offsets;
   end
-  nOffsets = numel(p.offsets);
+  nOffsets = numel(exprof.offsets);
   
   % Spin operators
   Sx = sop(1/2,'x');
@@ -655,18 +655,18 @@ if Opt.ExciteProfile
   Density0 = -Sz;
   
   % Pre-allocate result array
-  p.Mx = zeros(1,nOffsets);
-  p.My = zeros(1,nOffsets);
-  p.Mz = zeros(1,nOffsets);
+  exprof.Mx = zeros(1,nOffsets);
+  exprof.My = zeros(1,nOffsets);
+  exprof.Mz = zeros(1,nOffsets);
   
-  Isignal = real(y);
-  Qsignal = imag(y);
+  Isignal = real(IQ);
+  Qsignal = imag(IQ);
   for iOffset = 1:nOffsets
     
-    Ham0 = p.offsets(iOffset)*Sz;
+    Ham0 = exprof.offsets(iOffset)*Sz;
     
     % Compute pulse propagator
-    if min(y)==max(y) % rectangular pulses
+    if min(IQ)==max(IQ) % rectangular pulses
       
       Ham = Isignal(1)*Sx + Qsignal(1)*Sy + Ham0;
       tp = Par.TimeStep*(nPoints-1);
@@ -708,9 +708,9 @@ if Opt.ExciteProfile
     
     % Calculate observables
     % (using trace(A*B) = sum(sum(A.*B.')))
-    p.Mx(iOffset) = -2*real(sum(sum(Sx.*Density.')));
-    p.My(iOffset) = -2*real(sum(sum(Sy.*Density.')));
-    p.Mz(iOffset) = -2*real(sum(sum(Sz.*Density.')));
+    exprof.Mx(iOffset) = -2*real(sum(sum(Sx.*Density.')));
+    exprof.My(iOffset) = -2*real(sum(sum(Sy.*Density.')));
+    exprof.Mz(iOffset) = -2*real(sum(sum(Sz.*Density.')));
     
   end
   
@@ -765,9 +765,9 @@ if plotResults
     end
     set(S.hA,'Color',[1 1 1]*0.9);
   end
-  S.hI = plot(t,real(y),'Color',colI);
-  S.hQ = plot(t,imag(y),'Color',colQ);
-  Amax = max(abs(y));
+  S.hI = plot(t,real(IQ),'Color',colI);
+  S.hQ = plot(t,imag(IQ),'Color',colQ);
+  Amax = max(abs(IQ));
   axis([t(1) t(end) -1*Amax*1.1 1*Amax*1.1]);
   xlabel('{\itt} (\mus)')
   ylabel('\nu_1 (MHz)')
@@ -782,7 +782,7 @@ if plotResults
   hold on; box on;
   line([min(t) max(t)],[0 0],'Color',colBW);
   if ~isempty(modulation.nu) && ~isempty(modulation.phi)
-    [S.ax,S.hnu,S.hphi] = plotyy(t,modulation.nu,t,modulation.phi);
+    [S.ax,S.hnu,S.hphi] = plotyy(t,modulation.nu+Par.CenterFreq,t,modulation.phi);
     set(get(S.ax(1),'Xlabel'),'String','{\itt} (\mus)')
     set(S.ax(1),'xlim',[t(1) t(end)]);
     set(S.ax(2),'XTick',[]);
@@ -809,12 +809,12 @@ if plotResults
   S.ha(3) = axes('Units','Normalized','Position',[3.5*sep+2*width,btm,width,height]);
   hold on; box on;
   line([1 1]*Par.CenterFreq,[-1 1],'Color',colBW);
-  line([min(p.offsets) max(p.offsets)],[0 0],'Color',colBW);
+  line([min(exprof.offsets) max(exprof.offsets)],[0 0],'Color',colBW);
   if isfield(Par,'BW') && ~isempty(Par.BW) && ~strcmp(FrequencyModulation,'none')
     line([1 1]*(Par.CenterFreq-Par.BW/2),[-1 1],'Color',colBW);
     line([1 1]*(Par.CenterFreq+Par.BW/2),[-1 1],'Color',colBW);
   end
-  S.h = plot(p.offsets,p.Mx,p.offsets,p.My,p.offsets,p.Mz);
+  S.h = plot(exprof.offsets,exprof.Mx,exprof.offsets,exprof.My,exprof.offsets,exprof.Mz);
   set(S.h(1),'Visible','off')
   set(S.h(2),'Visible','off')
   ylabel('{\itM}_i/{\itM}_0')
@@ -835,12 +835,13 @@ end
 switch nargout
   case 0
     % plotting
-  case 2 % [t,y] = pulse(...)
-    varargout = {t,y};
-  case 3 % [t,y,p] = pulse(...)
-    varargout = {t,y,p};
-  case 4 % [t,y,p,modulation] = pulse(...)
-    varargout = {t,y,p,modulation};
+  case 2 % [t,IQ] = pulse(...)
+    varargout = {t,IQ};
+  case 3 % [t,IQ,exprof] = pulse(...)
+    varargout = {t,IQ,exprof};
+  case 4 % [t,IQ,exprof,modulation] = pulse(...)
+    modulation.nu = modulation.nu+Par.CenterFreq;
+    varargout = {t,IQ,exprof,modulation};
   otherwise
     error('The function pulse() needs 2, 3, or 4 output arguments.')
 end

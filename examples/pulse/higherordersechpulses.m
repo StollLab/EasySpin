@@ -23,7 +23,7 @@ for n = 1:nmax
   Par.n = n;
   Par.Flip = pi; % pulse flip angle
   
-  [t{n},y{n},p{n},m{n}] = pulse(Par);
+  [t{n},IQ{n},exprofile{n},modulation{n}] = pulse(Par);
   
   % Plot
   %-------------------------------------------------------------  
@@ -31,7 +31,7 @@ for n = 1:nmax
   subplot(3,1,1)
   hold on; box on;
   title('Amplitude modulation')
-  plot(t{n},m{n}.A,'Color',cc(n,:));
+  plot(t{n},modulation{n}.A,'Color',cc(n,:));
   xlabel('t (\mus)')
   ylabel('\nu_1 (MHz)')
   axis tight
@@ -39,7 +39,7 @@ for n = 1:nmax
   subplot(3,1,2)
   hold on; box on;
   title('Frequency modulation')
-  plot(t{n},m{n}.nu,'Color',cc(n,:));
+  plot(t{n},modulation{n}.nu,'Color',cc(n,:));
   xlabel('t (\mus)')
   ylabel('\nu (MHz)')
   axis tight
@@ -49,11 +49,12 @@ for n = 1:nmax
   title('Excitation profile')
   if n==1
     line([0 0],[-1 1],'Color',[1 1 1]*0.8);
-    line([min(p{n}.offsets) max(p{n}.offsets)],[0 0],'Color',[1 1 1]*0.8);
+    line([min(exprofile{n}.offsets) max(exprofile{n}.offsets)],...
+         [0 0],'Color',[1 1 1]*0.8);
     line([1 1]*(-Par.BW/2),[-1 1],'Color',[1 1 1]*0.8);
     line([1 1]*(+Par.BW/2),[-1 1],'Color',[1 1 1]*0.8);
   end
-  plot(p{n}.offsets,p{n}.Mz,'Color',cc(n,:));
+  plot(exprofile{n}.offsets,exprofile{n}.Mz,'Color',cc(n,:));
   xlabel('t (\mus)')
   ylabel('M_z/M_0')
   axis tight

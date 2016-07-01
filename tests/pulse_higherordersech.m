@@ -24,15 +24,15 @@ f = Params.BW*f-Params.BW/2;
 phi = cumtrapz(ti,f);
 phi = phi+abs(min(phi));
 % Pulse
-y0 = A.*exp(2i*pi*phi);
+IQ0 = A.*exp(2i*pi*phi);
 
 Opt.ExciteProfile = 0;
-[~,y,~,m] = pulse(Params,Opt);
+[t,IQ,exprofile,modulation] = pulse(Params,Opt);
 
-suberr(1) = ~areequal(y0,y,1e-11);
-suberr(2) = ~areequal(A,m.A,1e-12);
-suberr(3) = ~areequal(f,m.nu,1e-12);
-suberr(4) = ~areequal(2*pi*phi,m.phi,1e-12);
+suberr(1) = ~areequal(IQ0,IQ,1e-11);
+suberr(2) = ~areequal(A,modulation.A,1e-12);
+suberr(3) = ~areequal(f,modulation.nu,1e-12);
+suberr(4) = ~areequal(2*pi*phi,modulation.phi,1e-12);
 
 err = any(suberr);
 

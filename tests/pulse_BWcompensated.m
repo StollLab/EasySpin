@@ -23,9 +23,8 @@ v1 = abs(1./(1+1i*QL*(f0/Params1.mwFreq-Params1.mwFreq./f0)));
 Params2.v1 = v1;
 Params2.freqaxis = f0*10^3;
 
-Opt.ExciteProfile = 0;
-[t,y1,~,m1] = pulse(Params1,Opt);
-[t,y2,~,m2] = pulse(Params2,Opt);
+[t,IQ1] = pulse(Params1);
+[t,IQ2] = pulse(Params2);
 
 % Calculation
 t0 = 0:Params1.TimeStep:Params1.tp;
@@ -52,11 +51,11 @@ f_adapted = f_adapted-Params1.mwFreq*10^3;
 phi_adapted = 2*pi*cumtrapz(t0,f_adapted); % Phase modulation
 phi_adapted = phi_adapted+abs(min(phi_adapted));
 
-y0 = A.*exp(1i*phi);
-y0_adapted = A.*exp(1i*phi_adapted);
+IQ0 = A.*exp(1i*phi);
+IQ0_adapted = A.*exp(1i*phi_adapted);
 
-err(1) = ~areequal(y0,y1,1e-12);
-err(2) = ~areequal(y0_adapted,y2,1e-12);
+err(1) = ~areequal(IQ0,IQ1,1e-12);
+err(2) = ~areequal(IQ0_adapted,IQ2,1e-12);
 
 err = any(err);
 

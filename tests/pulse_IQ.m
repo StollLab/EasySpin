@@ -17,24 +17,24 @@ I(3*tp/dt+1:3*tp/dt+3*tp/dt+1) = +1;
 Params.I = v1*I;
 
 Opt.Offsets = -200:1:200; % MHz
-[~,y,p] = pulse(Params,Opt);
+[t,IQ,exprofile] = pulse(Params,Opt);
 
 % Calculate inversion profile
 Sx = sop(1/2,'x');
 Sz = sop(1/2,'z');
 
-Mz(1:numel(p.offsets)) = 0;
+Mz(1:numel(exprofile.offsets)) = 0;
 rho0 = -Sz;
 
-for i = 1:numel(p.offsets)
+for i = 1:numel(exprofile.offsets)
   
-  H1 = p.offsets(i)*Sz + v1*Sx;
+  H1 = exprofile.offsets(i)*Sz + v1*Sx;
   q1 = sqrt((-2i*pi*tp*H1(1,1))^2-abs((-2i*pi*tp*H1(1,2)))^2);
   U1 = cosh(q1)*eye(2) + (sinh(q1)/q1)*(-2i*pi*tp*H1);
-  H2 = p.offsets(i)*Sz - v1*Sx;
+  H2 = exprofile.offsets(i)*Sz - v1*Sx;
   q2 = sqrt((-2i*pi*2*tp*H2(1,1))^2-abs((-2i*pi*2*tp*H2(1,2)))^2);
   U2 = cosh(q2)*eye(2) + (sinh(q2)/q2)*(-2i*pi*2*tp*H2);
-  H3 = p.offsets(i)*Sz + v1*Sx;
+  H3 = exprofile.offsets(i)*Sz + v1*Sx;
   q3 = sqrt((-2i*pi*3*tp*H3(1,1))^2-abs((-2i*pi*3*tp*H3(1,2)))^2);
   U3 = cosh(q3)*eye(2) + (sinh(q3)/q3)*(-2i*pi*3*tp*H3);
   U = U3*U2*U1;
@@ -44,8 +44,8 @@ for i = 1:numel(p.offsets)
   
 end
 
-err(1) = ~areequal(v1*I,real(y),1e-12);
-err(2) = ~areequal(Mz,p.Mz,1e-12);
+err(1) = ~areequal(v1*I,real(IQ),1e-12);
+err(2) = ~areequal(Mz,exprofile.Mz,1e-12);
 
 err = any(err);
 

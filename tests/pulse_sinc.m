@@ -13,10 +13,10 @@ Params.Amplitude = 1;
 t0 = 0:Params.TimeStep:Params.tp;
 A = sin((2*pi*(t0-Params.tp/2))/Params.zerocross)./((2*pi*(t0-Params.tp/2))/Params.zerocross);
 A(t0==Params.tp/2) = 1;
-y0 = A;
+IQ0 = A;
 
-[~,y] = pulse(Params);
+[t,IQ] = pulse(Params);
 
-err = ~areequal(y0,y,1e-12);
+err = ~areequal(IQ0,IQ,1e-12);
 
 data = [];

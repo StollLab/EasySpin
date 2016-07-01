@@ -472,6 +472,9 @@ else
   if ~isfield(Exp,'DetectionStep')
     Exp.DetectionStep = 0.001; % us
   end
+  if ~isfield(Exp,'DetectionDelay')
+    Exp.DetectionDelay = 0; % us
+  end
   if isfield(Exp,'DetectionWindow')
     Exp.DetectionPoints = Exp.DetectionWindow/Exp.DetectionStep;
   end
@@ -481,7 +484,7 @@ else
   if (Exp.DetectionIntegrate==1 && ~isfield(Exp,'DetectionWindow'))
     error('Echo integration is requested, but the integration window is not defined.')
   end  
-  if (isfield(Exp,'DetectionWindow') && Exp.t(end)<Exp.DetectionWindow/2)
+  if (isfield(Exp,'DetectionWindow') && (Exp.t(end)+Exp.DetectionDelay)<Exp.DetectionWindow/2)
     error('Detection window overlaps with the last pulse. Adjust window length or select the full transient option.');
   end
   % Options for detection
@@ -512,8 +515,8 @@ end
 
 % dt
 if ~isENDOR % ? add check for hyperfine experiments where nuclear subHamiltonians are used?
-  if ~isfield(Exp,'dt') % !!!!! only echo detection, dt not needed
-    if IncSchemeID ==0
+  if ~isfield(Exp,'dt')
+    if IncSchemeID==0 % echo detection
       Exp.dt = [];
     else
       error('Exp.dt is missing.');
@@ -577,7 +580,9 @@ elseif ~isfield(Exp,'tp') && isfield(Exp,'Pulse') % pulse sequence only defined 
 else % ideal pulses
   
   Exp.tp = zeros(1,nIntervals);
-  
+  if ~isfield(Exp,'Phase')
+    Exp.Phase = (pi/2)*ones(1,nIntervals);  % y phase by default
+  end
 end
 
 % Determine whether to use ideal pulse theory
@@ -604,9 +609,18 @@ if any(realPulse)
       if ~isfield(Exp.Pulse(p),'Phase') || isempty(Exp.Pulse(p).Phase)
         Exp.Pulse(p).Phase = pi/2; % y phase by default
       end
-    end    
+    end     
     
-    [Exp.tpulse{p},Exp.ypulse{p}] = pulse(Exp.Pulse(p));
+    % Time step for pulse propagation
+    if isfield(Exp,'Pulsedt') && ~isempty(Exp.Pulsedt)
+      if numel(Exp.Pulsedt)==nIntervals
+        Exp.Pulse(p).TimeStep = Exp.Pulsedt(p);
+      else
+        Exp.Pulse(p).TimeStep = Exp.Pulsedt;
+      end
+    end
+    
+    [Exp.tpulse{p},Exp.IQpulse{p}] = pulse(Exp.Pulse(p));
     
   end
 end
@@ -798,7 +812,7 @@ end
 % else
 %   logmsg(1,'no orientation selection (infinite bandwidth).');
 % end
-OrientationSelection = (isfield(Exp,'mwFreq') && isfield(Exp,'ExciteWidth')); % ? !!!!!!!!!!
+OrientationSelection = (isfield(Exp,'mwFreq') && isfield(Exp,'ExciteWidth')); % ?
 if (OrientationSelection)
   logmsg(1,'Orientation selection is on.');
 else
@@ -810,7 +824,11 @@ if isfield(Exp,'ExciteWidth')
     error('Exp.ExciteWidth is given, but Exp.mwFreq is missing. Please give Exp.mwFreq.');
   end
 end
-% !!!!!!! Exp.mwFreq required for rotating frame calculation?
+if any(realPulse)
+  if ~isfield(Exp,'mwFreq') % ?
+    error('Exp.mwFreq is required for simulations with real pulses. Please give Exp.mwFreq.');
+  end
+end
 
 if isfield(Exp,'HStrain')
   error('You gave Exp.HStrain, but it should be Sys.HStrain (in the system, not the experiment structure).');
@@ -832,8 +850,7 @@ if ~isfield(Opt,'EndorMethod')
   Opt.EndorMethod = 1;
 end
 
-% Nuclei: which nuclei to include in the simulation % ? change for electron
-% experiments, program should give correct output if no nuclei are defined
+% Nuclei: which nuclei to include in the simulation
 if isfield(Opt,'Nuclei')
   if isempty(Opt.Nuclei)
     error('Opt.Nuclei must contain the indices of nuclei to include in the simulation.');
@@ -1102,6 +1119,11 @@ if isENDOR
   endorspc = zeros(1,Exp.nPoints);
 
 else
+  
+  % Add detection delay to the last delay
+  if isfield(Exp,'t')
+    Exp.t(end) = Exp.t(end)+Exp.DetectionDelay;
+  end
 
   % Update settings if echo detection is used
   if strcmp(Exp.Detection,'echodetection')
@@ -1115,10 +1137,10 @@ else
       IncScheme = [IncScheme max(IncScheme)+1];
     end
     
-    if isempty(IncScheme), IncSchemeID = 0; % ? FID/echo detection for any type of pulse sequence
+    if isempty(IncScheme), IncSchemeID = 0; % FID/echo detection for any type of pulse sequence
     elseif isequal(IncScheme,1), IncSchemeID = 1;
     elseif isequal(IncScheme,[1 1]), IncSchemeID = 2;
-    elseif isequal(IncScheme,[1 -1]), IncSchemeID = 3; % ? Inc now without sign ?
+    elseif isequal(IncScheme,[1 -1]), IncSchemeID = 3; % ? Inc now without sign
     elseif isequal(IncScheme,[1 2]), IncSchemeID = 11;
     elseif isequal(IncScheme,[1 2 1]), IncSchemeID = 12;
     elseif isequal(IncScheme,[1 2 2]), IncSchemeID = 13;
@@ -1209,7 +1231,14 @@ if any(realPulse)
   if ~isfield(Opt,'lwOffset')
     Opt.lwOffset = 100;
   end
-  offsets = linspace(-1,1,Opt.nOffsets)*Opt.lwOffset*2;
+  if Opt.nOffsets==0
+    Opt.nOffsets = 1;
+  end
+  if Opt.nOffsets==1
+    offsets = 0;
+  else
+    offsets = linspace(-1,1,Opt.nOffsets)*Opt.lwOffset*2;
+  end
   offsetWeight = exp(-(offsets/Opt.lwOffset).^2);
   offsetWeight = offsetWeight/sum(offsetWeight);
 else
@@ -1242,8 +1271,6 @@ for iOri = 1:nOrientations
   %------------------------------------------------------------------
   [xLab_M,yLab_M,zLab_M] = erot(Orientations(iOri,:),'rows');
   % xLab_M, yLab_M, zLab_M represented in the molecular frame
-  SzL = zLab_M(1)*sop(1/2,'x') + zLab_M(2)*sop(1/2,'y') + zLab_M(3)*sop(1/2,'z');
-  % Sz in the lab frame
 
   % Compute electronic Hamiltonian, energies and <S>
   %------------------------------------------------------------------
@@ -1260,17 +1287,15 @@ for iOri = 1:nOrientations
     end
 
     H = Exp.Field*(zLab_M(1)*Gx + zLab_M(2)*Gy + zLab_M(3)*Gz);
-    % Rotating frame
-    Hrot = H - Exp.mwFreq*1e3*SzL; % ?
-    [eV,eE] = eig(Hrot);
-    eE = real(diag(eE)); % ? order of eigenvalues
-
+    [eV,eE] = eig((H+H')/2);
+    eE = real(diag(eE));
+    
     quantizationAxis_ = g.'*zLab_M;
     quantizationAxis_ = quantizationAxis_/norm(quantizationAxis_);
     Manifold(1).S = -0.5*quantizationAxis_;
     Manifold(2).S = +0.5*quantizationAxis_;
-    Manifold(1).eE = eE(1); % ? order
-    Manifold(2).eE = eE(2); % ?
+    Manifold(1).eE = eE(1);
+    Manifold(2).eE = eE(2);
 
     Transitions = [1 2];
     nTransitions = 1;
@@ -1281,9 +1306,7 @@ for iOri = 1:nOrientations
     % transition selection
     %------------------------------------------------------------
     H = F + Exp.Field*(zLab_M(1)*Gx + zLab_M(2)*Gy + zLab_M(3)*Gz);
-    % Rotating frame
-    Hrot = H - Exp.mwFreq*1e3*SzL; % ?
-    [eV,eE] = eig(Hrot);
+    [eV,eE] = eig((H+H')/2);
     eE = real(diag(eE));
     SyLab = yLab_M(1)*Sx + yLab_M(2)*Sy + yLab_M(3)*Sz;
     SyLab = abs(eV'*SyLab*eV);
@@ -1331,7 +1354,7 @@ for iOri = 1:nOrientations
     for iM = ManifoldsInvolved
       vec = eV(:,iM);
       Manifold(iM).S = real([vec'*Sx*vec; vec'*Sy*vec; vec'*Sz*vec]);
-      Manifold(iM).eE = eE(iM); % ?
+      Manifold(iM).eE = eE(iM);
     end
   end
     
@@ -1360,16 +1383,19 @@ for iOri = 1:nOrientations
     b = Transitions(iT,1); % lower manifold
     a = Transitions(iT,2); % upper manifold
 
-    % Loop over all subspaces % ? option for nSubSpaces = 0;
-    if nSubSpaces==0; nSubSpaces = 1; end
+    % Loop over all subspaces
+    if nSubSpaces==0; nSubSpaces = 1; end % to avoid skipping the calculation
     for iSpace = 1:nSubSpaces
       
       if ~isempty(shfNuclei)
         
-%         Ea = Manifold(a).E{iSpace};
-%         Eb = Manifold(b).E{iSpace};
-        Ea = Manifold(a).E{iSpace} + Manifold(a).eE; % ? !!!!!!!!!!!!!!!
-        Eb = Manifold(b).E{iSpace} + Manifold(b).eE; % ?
+        if any(realPulse)
+          Ea = Manifold(a).E{iSpace} + Manifold(a).eE - 0.5*Exp.mwFreq*1e3; % ?
+          Eb = Manifold(b).E{iSpace} + Manifold(b).eE + 0.5*Exp.mwFreq*1e3; % ?
+        else
+          Ea = Manifold(a).E{iSpace};
+          Eb = Manifold(b).E{iSpace};          
+        end
         Ma = Manifold(a).V{iSpace};
         Mb = Manifold(b).V{iSpace};
         M = Ma'*Mb;       % <a|b> overlap matrix
@@ -1392,8 +1418,13 @@ for iOri = 1:nOrientations
         
         nSubSpaces = 0;
         
-        Ea = Manifold(a).eE; % ? !!!!!!!!!!!!!!!
-        Eb = Manifold(b).eE; % ?
+        if any(realPulse)
+          Ea = Manifold(a).eE - 0.5*Exp.mwFreq*1e3; % ?
+          Eb = Manifold(b).eE + 0.5*Exp.mwFreq*1e3; % ?
+        else
+          Ea = 1;
+          Eb = 1;          
+        end
         M = 1; Mt = 1;
         eyeN = 1;
         zeromatrixN = zeros(size(eyeN));
@@ -1416,9 +1447,9 @@ for iOri = 1:nOrientations
           if realPulse(iInt)
             H0 = [diag(Ea), zeromatrixN; ...
                   zeromatrixN diag(Eb)];
-            Sx = [zeromatrixN, +M/2; +Mt/2 zeromatrixN];
-            Sy = [zeromatrixN, +M/2i; -Mt/2i zeromatrixN];
-            FullPulsePropagator = sf_propagator(Exp.tpulse{iInt},Exp.ypulse{iInt},H0,Sx,Sy);
+            SxN = [zeromatrixN, +M/2; +Mt/2 zeromatrixN];
+            SyN = [zeromatrixN, +M/2i; -Mt/2i zeromatrixN];
+            FullPulsePropagator = sf_propagator(Exp.tpulse{iInt},Exp.IQpulse{iInt},H0,SxN,SyN);
             PulseSubPropagator{iInt,1} = FullPulsePropagator(idxa,idxa);
             PulseSubPropagator{iInt,2} = FullPulsePropagator(idxb,idxb);
             PulseSubPropagator{iInt,3} = FullPulsePropagator(idxa,idxb);
@@ -2047,6 +2078,9 @@ if ~isENDOR
 
         % Apodization
         win = apowin(Opt.Window,numel(tdx)).';
+        if size(tdx)~=size(win)
+          win = win.';
+        end
         tdx = tdx.*win;
 
         % Fourier transformation

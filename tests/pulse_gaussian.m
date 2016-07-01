@@ -15,13 +15,13 @@ t0 = 0:0.0001:Params.tp;
 A = gaussian(t0,Params.tp/2,Params.tFWHM);
 A = Params.Amplitude*(A/max(A));
 f = cos(2*pi*Params.CenterFreq*t0)+1i*sin(2*pi*Params.CenterFreq*t0);
-y0 = A.*f;
+IQ0 = A.*f;
 
-[t,y] = pulse(Params);
+[t,IQ] = pulse(Params);
 
-y0 = interp1(t0,y0,t,'spline');
+IQ0 = interp1(t0,IQ0,t,'spline');
 
-err(1) = ~areequal(y0,y,1e-12);
+err(1) = ~areequal(IQ0,IQ,1e-12);
 
 % Gaussian pulse with truncation
 clearvars -except err
@@ -31,7 +31,7 @@ A = gaussian(t0,0,0.100);
 A = A/max(A);
 ind = find(round(abs(A-0.5)*1e5)/1e5==0);
 t0 = t0(ind(1):ind(2))-t0(ind(1));
-y0 = A(ind(1):ind(2));
+IQ0 = A(ind(1):ind(2));
 
 Params.tp = t0(end); % us
 Params.Type = 'gaussian';
@@ -39,9 +39,9 @@ Params.trunc = 0.5;
 Params.TimeStep = dt;
 Params.Amplitude = 1;
 
-[~,y] = pulse(Params);
+[t,IQ] = pulse(Params);
 
-err(2) = ~areequal(y0,y,1e-12);
+err(2) = ~areequal(IQ0,IQ,1e-12);
 
 err = any(err);
 
