@@ -534,7 +534,9 @@ if ~isfield(Exp,'nPoints')
   if isENDOR
     Exp.nPoints = 1001;
   else
-    if (nDimensions==1)
+    if (nDimensions==0)
+      Exp.nPoints = [];
+    elseif (nDimensions==1)
       Exp.nPoints = 512;
     else
       Exp.nPoints = [1 1]*256;
@@ -1236,11 +1238,12 @@ if any(realPulse)
   end
   if Opt.nOffsets==1
     offsets = 0;
+    offsetWeight = 1;
   else
     offsets = linspace(-1,1,Opt.nOffsets)*Opt.lwOffset*2;
+    offsetWeight = exp(-(offsets/Opt.lwOffset).^2);
+    offsetWeight = offsetWeight/sum(offsetWeight);
   end
-  offsetWeight = exp(-(offsets/Opt.lwOffset).^2);
-  offsetWeight = offsetWeight/sum(offsetWeight);
 else
   offsets = 0;
   offsetWeight = 1;
@@ -1253,6 +1256,7 @@ if (TwoElectronManifolds)
     Rg = erot(Sys.gFrame).'; % g frame -> molecular frame
     g = Rg*diag(g)*Rg.';
   end
+  Sz = sop(1/2,'z');
   Gx = zeros(2,2);
   Gy = zeros(2,2);
   Gz = zeros(2,2);
@@ -1390,8 +1394,8 @@ for iOri = 1:nOrientations
       if ~isempty(shfNuclei)
         
         if any(realPulse)
-          Ea = Manifold(a).E{iSpace} + Manifold(a).eE - 0.5*Exp.mwFreq*1e3; % ?
-          Eb = Manifold(b).E{iSpace} + Manifold(b).eE + 0.5*Exp.mwFreq*1e3; % ?
+          Ea = Manifold(a).E{iSpace} + Manifold(a).eE + Sz(a,a)*Exp.mwFreq*1e3; % ?
+          Eb = Manifold(b).E{iSpace} + Manifold(b).eE + Sz(b,b)*Exp.mwFreq*1e3; % ?
         else
           Ea = Manifold(a).E{iSpace};
           Eb = Manifold(b).E{iSpace};          
@@ -1419,8 +1423,8 @@ for iOri = 1:nOrientations
         nSubSpaces = 0;
         
         if any(realPulse)
-          Ea = Manifold(a).eE - 0.5*Exp.mwFreq*1e3; % ?
-          Eb = Manifold(b).eE + 0.5*Exp.mwFreq*1e3; % ?
+          Ea = Manifold(a).eE + Sz(a,a)*Exp.mwFreq*1e3; % ?
+          Eb = Manifold(b).eE + Sz(b,b)*Exp.mwFreq*1e3; % ?
         else
           Ea = 1;
           Eb = 1;          

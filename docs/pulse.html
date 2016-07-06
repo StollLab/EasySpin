@@ -118,7 +118,6 @@ Pulse frequency, in MHz (default = 0). For frequency-swept pulses the start and 
 Pulse phase, in radians, <i>e.g.</i> <code>0</code> for +x, <code>pi/2</code> for +y, etc. If not given, it defaults to 0.
 </div>
 
-
 <div class="optionfield"><code>Type</code></div>
 <div class="optiondescr">
 Pulse shape name in a string structured as 'AM/FM' (or just 'AM'), where AM refers to the amplitude modulation function and FM to the frequency modulation function. The different options are listed below.
@@ -134,7 +133,7 @@ I and Q data describing arbitrary pulse shapes not included in the predefined op
 The available amplitude modulation functions are <code>'rectangular'</code>, <code>'gaussian'</code>, <code>'sinc'</code>, <code>'quartersin'</code>, <code>'sech'</code>, <code>'WURST'</code>. Different AM functions can be multiplied by concatenating the keywords as <code>'AM1*AM2/FM'</code>. The default is <code>'rectangular'</code>.
 
 <p>
-The available options for frequency modulation are <code>'none'</code>, <code>'linear'</code>, <code>'tanh'</code>, <code>'BWcompensated'</code>, <code>'uniformQ'</code>. If only an AM keyword is given, the FM function is set to <code>'none'</code>.
+The available options for frequency modulation are <code>'none'</code>, <code>'linear'</code>, <code>'tanh'</code>, <code>'uniformQ'</code>. If only an AM keyword is given, the FM function is set to <code>'none'</code>.
 </p>
 </div>
 
@@ -157,7 +156,7 @@ Depending on the AM function, additional fields need to be specified:
 <li><code>'sech'</code>
 <ul style="list-style-type:none;padding:5px;">
 <li><code>beta</code> - dimensionless truncation parameter (used as <code>beta/tp</code>)
-<li><code>n</code> - exponent of the secant function argument (default = 1)
+<li><code>n</code> - exponent of the secant function argument (default = 1); asymmetric sech pulses can be obtained by specifying two values for <code>n</code>
 </ul>
 <li><code>'WURST'</code>
 <ul style="list-style-type:none;padding:5px;">
@@ -185,13 +184,6 @@ Also, depending on the FM function, the following additional fields are required
 <ul style="list-style-type:none;padding:5px;">
 <li><code>beta</code> - dimensionless truncation parameter (see <code>'sech'</code>)
 </ul>
-<li><code>'BWcompensated'</code>
-<p>The rate of frequency modulation is adapted to compensate for the resonator bandwidth. The compensation is implemented as described in Doll, A., Pribitzer, S., Tschaggelar, R., Jeschke, G., Adiabatic and fast passage ultra-wideband inversion in pulsed EPR, <i>J. Magn. Reson.</i> 230, 27-39 (<b>2013</b>) (DOI: <a href="http://dx.doi.org/10.1016/j.jmr.2013.01.002">10.1016/j.jmr.2013.01.002</a>).
-<ul style="list-style-type:none;padding:5px;">
-<li><code>v1</code> - magnitude response function (ideal or experimental)
-<li><code>freqaxis</code> - corresponding frequency axis in MHz. 
-<li> <code>Par.mwFreq</code> - microwave frequency in GHz.
-</ul>
 <li><code>'uniformQ'</code>
 <p>
 The frequency modulation is calculated as the integral of the squared amplitude modulation function (for <i>n</i>th order sech/tanh pulses or in general to obtain offset-independent adiabaticity pulses, see Garwood, M., DelaBarre, L., <i>J. Magn. Reson.</i> 153, 155-177 (<b>2001</b>) (DOI: <a href="http://dx.doi.org/10.1006/jmre.2001.2340">10.1006/jmre.2001.2340</a>).
@@ -200,6 +192,29 @@ The frequency modulation is calculated as the integral of the squared amplitude 
 <p>
 For all frequency-modulated pulses, the frequency sweep range needs to be defined in <code>Par.Frequency</code> with start and end frequencies.
 </p>
+
+<p>
+Compensation for resonator bandwidth is implemented for the following types of pulses: <code>'rectangular/linear'</code>, <code>'quartersin/linear'</code>, <code>'sech/tanh'</code> and <code>'sech/uniformQ'</code>. 
+The rate of frequency modulation is adapted to compensate for the resonator profile. The compensation is implemented as described in Doll, A., Pribitzer, S., Tschaggelar, R., Jeschke, G., Adiabatic and fast passage ultra-wideband inversion in pulsed EPR, <i>J. Magn. Reson.</i> 230, 27-39 (<b>2013</b>) (DOI: <a href="http://dx.doi.org/10.1016/j.jmr.2013.01.002">10.1016/j.jmr.2013.01.002</a>) and Pribitzer, S., Doll, A., Jeschke, G., SPIDYAN, a MATLAB library for simulating pulse EPR experiments with arbitrary waveform excitation. <i>J. Magn. Reson.</i> 263, 45-54 (<b>2016</b>) (DOI: <a href="http://dx.doi.org/10.1016/j.jmr.2015.12.014">10.1016/j.jmr.2015.12.014</a>).
+</p>
+
+<p>
+The following additional parameters have to be included in the <code>Par</code> structure:
+
+<div class="optionfield"><code>v1</code></div>
+<div class="optiondescr">
+Resonator magnitude response function (ideal or experimental).
+</div>
+
+<div class="optionfield"><code>freqaxis</code></div>
+<div class="optiondescr">
+Corresponding frequency axis. in MHz.
+</div>
+
+<div class="optionfield"><code>mwFreq</code></div>
+<div class="optiondescr">
+Microwave frequency (LO), in GHz.
+</div>
 
 <p>
 The parameters in the <code>Opt</code> structure define different settings for the calculation. The available fields are given below.
@@ -314,11 +329,6 @@ Frequency and phase modulation functions:
 -->
 </div>
 
-<li><code>'BWcompensated'</code>:
-<p>
-The frequency modulation function is calculated as for the linear chirp and then adjusted to compensate for the resonator profile (see Doll, A., Pribitzer, S., Tschaggelar, R., Jeschke, G., Adiabatic and fast passage ultra-wideband inversion in pulsed EPR, <i>J. Magn. Reson.</i> 230, 27-39 (<b>2013</b>), DOI: <a href="http://dx.doi.org/10.1016/j.jmr.2013.01.002">10.1016/j.jmr.2013.01.002</a>). The phase modulation function is obtained by integration and the phase is set to zero at the center of the pulse.
-<p/>
-
 <li><code>'tanh'</code>:
 <div class="eqn">
 <img src="eqn/pulse9.png" alt="[eqn]"><!--MATH
@@ -352,7 +362,9 @@ P = A \exp\left[i \left(\phi + 2 \pi \nu_\text{center} + \Delta\phi\right) \righ
 where the different terms are the amplitude modulation, the phase modulation, the center frequency and the phase offset defined in <code>Par.Phase</code>.
 </p>
 
-
+<p>
+If bandwidth compensation is requested, the frequency and amplitude modulation functions defined above are adjusted to compensate for the resonator profile (see Doll, A., Pribitzer, S., Tschaggelar, R., Jeschke, G., Adiabatic and fast passage ultra-wideband inversion in pulsed EPR, <i>J. Magn. Reson.</i> 230, 27-39 (<b>2013</b>), DOI: <a href="http://dx.doi.org/10.1016/j.jmr.2013.01.002">10.1016/j.jmr.2013.01.002</a> and Pribitzer, S., Doll, A., Jeschke, G., SPIDYAN, a MATLAB library for simulating pulse EPR experiments with arbitrary waveform excitation. <i>J. Magn. Reson.</i> 263, 45-54 (<b>2016</b>) (DOI: <a href="http://dx.doi.org/10.1016/j.jmr.2015.12.014">10.1016/j.jmr.2015.12.014</a>). The phase modulation function is obtained by integration and the phase is set to zero at the center of the pulse.
+<p/>
 
 
 

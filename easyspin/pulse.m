@@ -39,10 +39,21 @@
 %                       and the length of the I and Q vectors, all other
 %                       input parameters (Amplitude, Flip, Frequency,
 %                       Phase, etc.) are ignored.
+%  If compensation for the resonator bandwidth is requested with
+%  Opt.BWcomp, the following parameters also need to be defined:
+%     Par.v1          = magnitude response function (ideal or experimental)
+%     Par.freqaxis    = corresponding frequency axis in MHz
+%     Par.mwFreq      = microwave frequency for the experiment in GHz
 %
 % Opt = optional structure with the following fields
 %       Opt.IQ               = on/off; complex-valued pulse (on) or
 %                              real-valued pulse (off)
+%       Opt.BWcomp           = on/off; compensate for the resonator
+%                              profile (*2), available for linear chirp and
+%                              sech pulses (default = off).
+%                              This option requires definition of the
+%                              parameters Par.freqaxis, Par.v1 and
+%                              Par.mwFreq.
 %       Opt.OverSampleFactor = oversampling factor for the determination
 %                              of the time step (default: 10)
 %       Opt.Offsets          = axis of frequency offsets in MHz for which
@@ -53,7 +64,7 @@
 % Available pulse modulation functions:
 %   - Amplitude modulation: rectangular, gaussian, sinc, quartersin, sech,
 %                           WURST
-%   - Frequency modulation: none, linear, tanh, BWcompensated, uniformQ
+%   - Frequency modulation: none, linear, tanh, uniformQ
 %
 % The parameters required for the different modulation functions are:
 % Amplitude modulation:
@@ -65,7 +76,10 @@
 %                                     crossing points in us
 % 'sech'                - beta      = dimensionless truncation parameter
 %                       - n         = order of the secant function argument
-%                                     (default = 1)
+%                                     (default = 1);
+%                                     asymmetric sech pulses can be
+%                                     obtained by specifying two values,
+%                                     e.g. [6 1]
 % 'WURST'               - nwurst    = WURST n parameter (determining the
 %                                     steepness of the amplitude function)
 % 'quartersin'          - trise     = rise time in us for quarter sine
@@ -76,12 +90,6 @@
 % defined in Par.Frequency (e.g. Par.Frequency = [-50 50])
 % 'linear'              no additional parameters
 % 'tanh'                - beta      = dimensionless truncation parameter
-% 'BWcompensated'(*2)   Parameters required for resonator bandwidth
-%                       compensation:
-%                       - freqaxis  = frequency axis
-%                       - v1        = magnitude response function (ideal or
-%                                     experimental)
-%                       - Par.mwFreq needs to be defined
 % 'uniformQ'            The frequency modulation is calculated as the
 %                       integral of the squared amplitude modulation
 %                       function (for nth order sech/tanh pulses or in
@@ -169,11 +177,14 @@ end
 
 % Options
 % ----------------------------------------------------------------------- %
-if ~isfield(Opt,'OverSampleFactor')
-  Opt.OverSampleFactor = 10;
-end
 if ~isfield(Opt,'IQ')
   Opt.IQ = 1;
+end
+if ~isfield(Opt,'BWcomp')
+  Opt.BWcomp = 0;
+end
+if ~isfield(Opt,'OverSampleFactor')
+  Opt.OverSampleFactor = 10;
 end
 if ~isfield(Opt,'nOffsets') % undocumented
   Opt.nOffsets = 201;
@@ -342,24 +353,7 @@ else
         error(['Pulse FM function not sufficiently defined. ',...
           'Specify dimensionless Par.beta parameter for tanh.']);
       end
-      
-    case 'BWcompensated'
-      
-      if numel(Par.Frequency)==1
-        error(['Pulse FM function not sufficiently defined. ',...
-          'Specify frequency range for the BWcompensated chirp in Par.Frequency (in MHz).']);
-      end
-
-      if (~isfield(Par,'freqaxis') || isempty(Par.freqaxis)) || ...
-          (~isfield(Par,'v1') || isempty(Par.v1))
-        error(['Pulse FM function not sufficiently defined. ',...
-          'Specify the resonator magnitude response function (Par.freqaxis, Par.v1).']);
-      end
-      if ~isfield(Par,'mwFreq') || isempty(Par.mwFreq)
-        error(['Pulse FM function not sufficiently defined. ',...
-          'Par.mwFreq is required to compute resonator bandwidth compensation.']);
-      end
-      
+           
     case 'uniformQ'
       
       if numel(Par.Frequency)==1
@@ -372,11 +366,36 @@ else
       error('The frequency modulation function ''%s'' is not defined.',FrequencyModulation);
       
   end
+  
   if any(ismember(AmplitudeModulation,'sech')) && strcmp(FrequencyModulation,'tanh') && ...
-      (isfield(Par,'n') && ~isempty(Par.n) && Par.n~=1)
+      (isfield(Par,'n') && ~isempty(Par.n) && any(Par.n~=1))
     warning('For uniform adiabaticity pulses with nth order sech amplitude modulation use Par.Type = ''sech/uniformQ''.');
   end
   
+  if Opt.BWcomp==1
+    
+    % Bandwidth compensation is implemented for these pulses
+    if (strcmp(FrequencyModulation,'linear') && (strcmp(AmplitudeModulation,'rectangular') || strcmp(AmplitudeModulation,'quartersin'))) || ...
+        (strcmp(FrequencyModulation,'tanh') && strcmp(AmplitudeModulation,'sech')) || ...
+        (strcmp(FrequencyModulation,'uniformQ') && strcmp(AmplitudeModulation,'sech'))
+      
+      if (~isfield(Par,'freqaxis') || isempty(Par.freqaxis)) || ...
+          (~isfield(Par,'v1') || isempty(Par.v1))
+        error(['Pulse FM function not sufficiently defined. ',...
+          'Specify the resonator magnitude response function (Par.freqaxis, Par.v1).']);
+      end
+      if ~isfield(Par,'mwFreq') || isempty(Par.mwFreq)
+        error(['Pulse FM function not sufficiently defined. ',...
+          'Par.mwFreq is required to compute resonator bandwidth compensation.']);
+      end
+      
+    else
+      error(['Bandwidth compensation is not implemented for the selected pulse. ',...
+        'See documentation for more details.']);
+    end
+    
+  end
+   
   % Estimate pulse bandwidth (for timestep and offset range determination)
   % --------------------------------------------------------------------- %
   if ~isfield(Par,'TimeStep') || (~isfield(Opt,'Offsets') && Opt.ExciteProfile)
@@ -415,7 +434,8 @@ else
           end
           A0 = A0.*A1;
         case 'sech'
-          A0 = A0.*sech(Par.beta*2^(Par.n-1)*(ti0/Par.tp).^Par.n);
+          n = min(Par.n); % Par.n contains two fields for asymmetric pulses
+          A0 = A0.*sech(Par.beta*2^(n-1)*(ti0/Par.tp).^n);
         case 'WURST'
           A0 = A0.*(1 - abs(sin(pi*ti0/Par.tp)).^Par.nwurst);
       end
@@ -497,10 +517,15 @@ else
         
       case 'sech'
         
-        if Par.n==1 % reduces numerical errors
-          A = sech((Par.beta/Par.tp)*ti);
-        else
-          A = sech(Par.beta*2^(Par.n-1)*(ti/Par.tp).^Par.n);
+        if numel(Par.n)==1 % symmetric pulse
+          if Par.n==1 % reduces numerical errors
+            A = sech((Par.beta/Par.tp)*ti);
+          else
+            A = sech(Par.beta*2^(Par.n-1)*(ti/Par.tp).^Par.n);
+          end
+        else % asymmetric pulse
+          A(1:round(nPoints/2)) = sech(Par.beta*2^(Par.n(1)-1)*(ti(1:round(nPoints/2))/Par.tp).^Par.n(1));
+          A(round(nPoints/2)+1:nPoints) = sech(Par.beta*2^(Par.n(2)-1)*(ti(round(nPoints/2)+1:nPoints)/Par.tp).^Par.n(2));
         end
         
       case 'WURST'
@@ -527,32 +552,6 @@ else
       modulation.freq = k*ti;
       modulation.phase = 2*pi*((k/2)*ti.^2);
       
-    case 'BWcompensated'
-      
-      % Variable-rate chirps with resonator bandwidth compensation, as
-      % described in:
-      %   Doll, A., Pribitzer, S., Tschaggelar, R., Jeschke, G.,
-      %   Adiabatic and fast passage ultra-wideband inversion in
-      %   pulsed EPR. J. Magn. Reson. 230, 27–39 (2013).
-      %   http://dx.doi.org/10.1016/j.jmr.2013.01.002
-      
-      % Constant-rate chirp
-      k = (Par.Frequency(2)-Par.Frequency(1))/Par.tp; % frequency sweep rate
-      nu_linear = k*ti;
-      
-      v1_range = interp1(Par.freqaxis,Par.v1,...
-        nu_linear+mean(Par.Frequency)+Par.mwFreq*1e3);
-      
-      % Frequency dependence of t and time-to-frequency mapping
-      c_ = trapz(1./v1_range.^2)/t(end); % const = 2*pi/Qref
-      % Qref = reference adiabaticity
-      t_f = cumtrapz((1/c_)*v1_range.^-2);
-      nu_adapted = interp1(t_f,nu_linear,t,'pchip');
-      
-      modulation.freq = nu_adapted;
-      modulation.phase = 2*pi*cumtrapz(t,modulation.freq);
-      modulation.phase = modulation.phase + abs(min(modulation.phase));  % zero phase offset at pulse center
-      
     case 'tanh'
       
       % Determine BWinf parameter from BW and beta parameters
@@ -578,6 +577,50 @@ else
       
   end
   
+  if Opt.BWcomp
+      
+      % Variable-rate chirps with resonator bandwidth compensation, as
+      % described in:
+      %   Doll, A., Pribitzer, S., Tschaggelar, R., Jeschke, G.,
+      %   Adiabatic and fast passage ultra-wideband inversion in
+      %   pulsed EPR. J. Magn. Reson. 230, 27–39 (2013).
+      %   http://dx.doi.org/10.1016/j.jmr.2013.01.002
+      % and
+      %   Doll, A., Frequency-swept microwave pulses for electron spin
+      %   resonance, PhD Dissertation (2016), ETH Zürich, (for sech pulses
+      %   see chapter 8, section 8.3.2, p. 133).
+      % Implemented as in SPIDYAN, see:
+      %   Pribitzer, S., Doll, A. & Jeschke, G. SPIDYAN, a MATLAB library 
+      %   for simulating pulse EPR experiments with arbitrary waveform 
+      %   excitation. J. Magn. Reson. 263, 45–54 (2016).
+      %   http://dx.doi.org/10.1016/j.jmr.2015.12.014
+      
+      % Original amplitude and frequency modulation functions
+      nu0 = modulation.freq;
+      A0 = modulation.A;
+         
+      % Resonator profile in the frequency range of the pulse
+      profile = interp1(Par.freqaxis,Par.v1,...
+        nu0+mean(Par.Frequency)+Par.mwFreq*1e3);
+      if strcmp(AmplitudeModulation,'sech')
+        profile = A0.*profile;
+      end
+      
+      % Frequency dependence of t and time-to-frequency mapping
+      c_ = trapz(nu0,1./profile.^2)/t(end); % const = 2*pi/Qref
+      % Qref = reference adiabaticity
+      t_f = cumtrapz(nu0,(1/c_)*profile.^-2);
+      nu_adapted = interp1(t_f,nu0,t,'pchip');
+      
+      % New frequency, phase and amplitude modulation functions
+      modulation.freq = nu_adapted;
+      modulation.phase = 2*pi*cumtrapz(t,modulation.freq);
+      modulation.phase = modulation.phase + abs(min(modulation.phase));  % zero phase offset at pulse center
+      
+      modulation.A = interp1(nu0,modulation.A,nu_adapted,'pchip');
+      
+  end
+  
   % ------------------------------------------------------------------- %
   % Determine pulse amplitude from flip angle (if only Par.Flip is given)
   % ------------------------------------------------------------------- %
@@ -589,7 +632,7 @@ else
         
         Par.Amplitude = Par.Flip/(2*pi*trapz(t,modulation.A));
         
-      case {'linear','BWcompensated','tanh','uniformQ'}
+      case {'linear','tanh','uniformQ'}
         % Q_crit = (2*pi*v1max)^2/k = minimum adiabaticity on resonance
         % see
         %    Jeschke et al. (2015) J. Phys. Chem. B, 119, 13570–13582.
@@ -603,19 +646,27 @@ else
           Q_crit = 5;
         end
         
-        switch FrequencyModulation
-          case {'linear','BWcompensated'}
-            sweeprate = abs(Par.Frequency(2)-Par.Frequency(1))/Par.tp;
-          case 'tanh'
-            sweeprate = Par.beta*abs(Par.BWinf)/(2*Par.tp);
-          case 'uniformQ'
-            % Q = w1max^2*A(t)^2/(BW*dnu/dt) see eq. 17 in
-            %   Garwood, M., DelaBarre, L., J. Magn. Reson. 153, 155-177
-            %   (2001).
-            %   http://dx.doi.org/10.1006/jmre.2001.2340
-            [dummy,ind] = min(abs(ti));
-            dnu = abs(diff(2*pi*modulation.freq/(t(2)-t(1))));
-            sweeprate = dnu(ind)/(2*pi*(modulation.A(ind))^2);
+        if Opt.BWcomp==0
+          switch FrequencyModulation
+            case 'linear'
+              sweeprate = abs(Par.Frequency(2)-Par.Frequency(1))/Par.tp;
+            case 'tanh'
+              sweeprate = Par.beta*abs(Par.BWinf)/(2*Par.tp);
+            case 'uniformQ'
+              % Q = w1max^2*A(t)^2/(BW*dnu/dt) see eq. 17 in
+              %   Garwood, M., DelaBarre, L., J. Magn. Reson. 153, 155-177
+              %   (2001).
+              %   http://dx.doi.org/10.1006/jmre.2001.2340
+              [dummy,ind] = min(abs(ti));
+              dnu = abs(diff(2*pi*modulation.freq/(t(2)-t(1))));
+              sweeprate = dnu(ind)/(2*pi*(modulation.A(ind))^2);
+          end
+        else
+          % Numerical computation
+          % Q = w1max^2*A(t)^2/(BW*dnu/dt)
+          [dummy,ind] = min(abs(ti));
+          dnu = abs(diff(2*pi*modulation.freq/(t(2)-t(1))));
+          sweeprate = dnu(ind)/(2*pi*(modulation.A(ind))^2);
         end
         
         Par.Amplitude = sqrt(2*pi*Q_crit*sweeprate)/(2*pi);
