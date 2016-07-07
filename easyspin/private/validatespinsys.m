@@ -684,34 +684,38 @@ end
 % Broadenings (Strains and convolution line widths)
 %==========================================================================
 
-% Check convolution line width fields
+% Check Sys.lw
 if ~isfield(Sys,'lw'), Sys.lw = [0 0]; end
 if numel(Sys.lw)==1, Sys.lw(2) = 0; end
 if numel(Sys.lw)~=2, err = ('System.lw has wrong size.'); end
 if ~isempty(err), return; end
-if any(Sys.lw)<0, err = ('Linewidths cannot be negative.'); end
+if any(Sys.lw)<0, err = ('System.lw cannot be negative.'); end
 if ~isempty(err), return; end
 
+% Check Sys.lwEndor
 if ~isfield(Sys,'lwEndor'), Sys.lwEndor = [0 0]; end
 if numel(Sys.lwEndor)==1, Sys.lwEndor(2) = 0; end
 if numel(Sys.lwEndor)~=2, err = ('System.lwEndor has wrong size.'); end
 if ~isempty(err), return; end
-if any(Sys.lw)<0, err = ('Linewidths cannot be negative.'); end
+if any(Sys.lwEndor)<0, err = ('System.lwEndor cannot be negative.'); end
 if ~isempty(err), return; end
 
+% Check Sys.lwpp
 if ~isfield(Sys,'lwpp'), Sys.lwpp = [0 0]; end
+if numel(Sys.lwpp)==1, Sys.lwpp(2) = 0; end
+if numel(Sys.lwpp)~=2, err = ('System.lwpp has wrong size.'); end
+if ~isempty(err), return; end
+if any(Sys.lwpp)<0, err = ('Linewidths cannot be negative.'); end
+if ~isempty(err), return; end
 
+% Convert Sys.lwpp to Sys.lw (the latter is used internally)
 if any(Sys.lwpp)
   if any(Sys.lw)
-    err = ('Sys.lw and Sys.lwpp cannot be used simultaneously.');
+    err = ('System.lw and Sys.lwpp cannot be used simultaneously.');
     if ~isempty(err), return; end
   end
-  if numel(Sys.lwpp)==1, Sys.lwpp(2) = 0; end
-  if numel(Sys.lwpp)~=2, err = ('System.lwpp has wrong size.'); end
-  if ~isempty(err), return; end
-  if any(Sys.lwpp)<0, err = ('Linewidths cannot be negative.'); end
-  if ~isempty(err), return; end
   Sys.lw = Sys.lwpp .* [sqrt(2*log(2)), sqrt(3)];
+  Sys.lwpp = [0 0];
 end
 
 % g strain
