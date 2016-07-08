@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>rfmixer</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">rfmixer</div>
+
+<p>
+Digital up- or downconversion.
+</p>
+
+
+<!-- ============================================================= -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+rfmixer(tIn,signalIn,LOFreq)
+rfmixer(tIn,signalIn,LOFreq,Opt)
+rfmixer(tIn,signalIn,LOFreq,sideband)
+
+rfmixer(tIn,IIn,QIn,LOFreq)
+rfmixer(tIn,IIn,QIn,LOFreq,Opt)
+rfmixer(tIn,IIn,QIn,LOFreq,sideband,Opt)
+
+[tOut,signalOut] = rfmixer(...)
+[tOut,IOut,QOut] = rfmixer(...)
+</pre>
+
+<!-- ============================================================= -->
+<div class="subtitle">Description</div>
+
+<p>
+This function mixes the input signal with the LO frequency. Depending on the number of input and output arguments (see description below), the function acts as a double-sideband, single-sideband or IQ mixer or performs IQ modulation or demodulation. Resampling of the input singal before up/downconversion can be performed if the new sampling time step is given.
+</p>
+
+<p>
+The output contains the time axis data in <code>tOut</code> (in the same units as the input time axis). 
+For up- or downconversion with a digital double-sideband (DSB), single-sideband (SSB) or IQ mixer the output is returned in <code>signalOut</code>. 
+For IQ modulation or demodulation, <code>IOut</code> and <code>QOut</code> contain the in-phase and quadrature part of the up- or downconverted signal.
+</p>
+
+<p>
+If you don't request any output, <code>rfmixer</code> plots the up/downconverted signal.
+</p>
+
+<p>
+The possible input arguments to the function are
+<ul>
+<li><code>tIn</code>: time axis for the input signal, in nanoseconds or microseconds.
+<li><code>signalIn</code> or <code>IIn</code> and <code>QIn</code>: input signal.
+<p>
+For up/downconversion (IF or RF) for DSB or SSB mixer or IQ demodulation a single vector <code>signalIn</code> is required as input.
+For IQ mixing or IQ modulation two vectors containing the in-phase and quadrature part of the input signal, <code>IIn</code> and <code>QIn</code>, are required as input.
+</p>
+<li><code>LOFreq</code>: LO frequency, in GHz if the time axis is in nanoseconds, or MHz if it is in microseconds.
+</ul>
+</p>
+
+<p>
+Additional optional input arguments are
+<ul>
+<li><code>sideband</code>: selection of upper or lower sideband. If this input is absent or set to <code>'+-'</code>, both sidebands are returned. If <code>sideband</code> is set to <code>'+'</code>, the upper sideband is returned and if it is set to <code>'-'</code>, the lower sideband is returned. Single-sideband selection (<code>'+'</code> or <code>'-'</code>) is only possible for a real input signal.
+<li><code>Opt</code>: calculation options
+</ul>
+</p>
+
+<p>
+<code>Opt</code> is a structure containing different options for the digital up/downconversion. The available fields are listed below.
+
+<div class="optionfield"><code>dt</code></div>
+<div class="optiondescr">
+Time step for the output signal, in nanoseconds or microseconds (same as the input time axis).
+If no time step for resampling is given and the input time axis is too large, a new time step is computed as <code>1/(2*Opt.OverSampleFactor*maxfreq)</code>.
+</div>
+
+<div class="optionfield"><code>OverSampleFactor</code></div>
+<div class="optiondescr">
+Factor for the determination of the new time step in signal resampling (default = 1.25).
+</div>
+
+<div class="optionfield"><code>InterpolationMethod</code></div>
+<div class="optiondescr">
+Interpolation method for signal resampling (default = <code>'spline'</code>).
+</div>
+
+<div class="optionfield"><code>BandwidthThreshold</code></div>
+<div class="optiondescr">
+Threshold for input bandwidth determination (the fraction of signal used as cutoff in determining the bandwidth of the input signal from its Fourier transform). The default is 0.1.
+</div>
+
+<div class="optionfield"><code>NoiseCutoffThreshold</code></div>
+<div class="optiondescr">
+Threshold for selection of part of the input signal used to compute amplitude and cos(phase) FT overlap (the evaluation of the validity of the Hilbert transform is affected by the noise level in the signal and baseline). The default is 0.1.
+</div>
+
+<div class="optionfield"><code>HilbertThreshold</code></div>
+<div class="optiondescr">
+Threshold for amplitude and phase FT overlap. The Hilbert transform corresponds to the quadrature signal only if amplitude and phase FT do not overlap (Bedrosian's product theorem, see Boashash, Proc. IEEE 80, 1992, 520, DOI: <a href="http://dx.doi.org/10.1109/5.135376">10.1109/5.135376</a>). If the maximum of the product of the normalized amplitude and phase FT (extracted from the real input signal by Hilbert transform) is larger than the specified threshold, recovery of the I and Q data from the real input signal is not possible. The default is 0.01.
+</div>
+
+<!-- ====================================================== -->
+<div class="subtitle">Examples</div>
+
+<p>
+The <code>rfmixer</code> function can be used for double- or single-sideband up/downconversion and IQ modulation/demodulation. The input syntax for the different options is listed below.
+</p>
+
+<ul>
+<li>Double-sideband (DSB) mixer:
+<pre class="matlab">
+[tOut,signalOut] = rfmixer(tIn,signalIn,LOFreq)
+</pre>
+<li>Single-sideband (SSB) mixer:
+<pre class="matlab">
+[tOut,signalOut] = rfmixer(tIn,signalIn,LOFreq,'+')
+</pre>
+or
+<pre class="matlab">
+[tOut,signalOut] = rfmixer(tIn,signalIn,LOFreq,'-')
+</pre>
+where the first line selects the upper sideband and the second the lower sideband.
+<li> IQ mixer:
+<pre class="matlab">
+[tOut,signalOut] = rfmixer(tIn,IIn,QIn,LOFreq)
+</pre>
+<li> IQ modulation:
+<pre class="matlab">
+[tOut,IOut,QOut] = rfmixer(tIn,IIn,QIn,LOFreq)
+</pre>
+or
+<pre class="matlab">
+[tOut,IOut,QOut] = rfmixer(tIn,IIn,QIn,LOFreq,'+')
+</pre>
+<li> IQ demodulation
+<pre class="matlab">
+[tOut,IOut,QOut] = rfmixer(tIn,in,LOFreq,'-')
+</pre>
+
+
+
+<!-- ============================================================= -->
+<div class="subtitle">Algorithm</div>
+
+<p>
+The digital up/downconversion is performed as
+</p>
+<div class="eqn">
+<img src="eqn/rfmixer1.png" alt="[eqn]"><!--MATH
+\begin{equation*}
+S_\text{out} = S_\text{in} \exp\left[\pm 2i\pi \nu_\text{LO} t \right]
+\end{equation*}
+-->
+</div>
+
+<p>
+For single-sideband up/downconversion, the quadrature signal is constructed from the real input signal by Hilbert transform. The Hilbert transform corresponds to the quadrature signal only if the Fourier transforms of the amplitude and phase contributions to the input signal do not overlap (Bedrosian's product theorem, see Boashash, Proc. IEEE 80, 1992, 520, DOI: <a href="http://dx.doi.org/10.1109/5.135376">10.1109/5.135376</a>). <code>rfmixer</code> checks for validity of this assumption and returns an error if it is not satisfied. In some cases, noise contributions to the signal lead to increased overlap, the calculation can still be performed by increasing the <code>Opt.HilbertThreshold</code> parameter.
+</p>
+
+
+<!-- ============================================================= -->
+<div class="subtitle">See also</div>
+
+<p>
+<a class="esf" href="hilberttrans.html">hilberttrans</a>,
+<a class="esf" href="pulse.html">pulse</a>
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+
+</html>
