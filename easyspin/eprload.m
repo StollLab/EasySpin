@@ -1093,7 +1093,7 @@ nDataValuesPerPoint = numel(isComplex);
 nRealsPerPoint = sum(isComplex+1);
 N = nRealsPerPoint*prod(Dims);
 
-[x,effN] = fread(FileID,N,NumberFormat);
+[datalist,effN] = fread(FileID,N,NumberFormat);
 if (effN~=N)
   error('Unable to read all expected data.');
 end
@@ -1103,18 +1103,17 @@ CloseStatus = fclose(FileID);
 if (CloseStatus<0), error('Unable to close data file %s',FileName); end
 
 % Reshape data and combine real and imaginary data to complex.
-x = reshape(x,nRealsPerPoint,[]);
+datalist = reshape(datalist,nRealsPerPoint,prod(Dims));
 for k = 1:nDataValuesPerPoint
   if isComplex(k)
-    data{k} = complex(x(k,:),x(k+1,:)).';
-    x(k+1,:) = [];
+    data{k} = complex(datalist(k,:),datalist(k+1,:)).';
+    datalist(k+1,:) = [];
   else
-    data{k} = x(k,:);
+    data{k} = datalist(k,:);
   end
 end
 
 % Reshape to matrix and permute dimensions if wanted.
-DimOrder = 1:3;
 for k = 1:nDataValuesPerPoint
   out{k} = reshape(data{k},Dims);
 end

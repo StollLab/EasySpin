@@ -44,8 +44,12 @@ eprsave(FileName,x,data,TitleString,mwFreq)
 <div class="subtitle">Description</div>
 
 <p>
-This function saves the one-dimensional spectrum given by <code>x</code> (abscissa values) and <code>data</code> (spectra intensity values) in a set of .DTA and .DSC files than can be read by Bruker software (XEpr, Xenon). The .DTA data file contains the data in binary format, and the .DSC description file contains information about the dataset in a readable text format.
+This function saves one- or two-dimensional data given by <code>x</code> (abscissa values) and <code>data</code> (data values) in a set of .DTA and .DSC files than can be read by Bruker software (Xepr, Xenon). The .DTA data file contains the data in binary format, and the .DSC description file contains information about the dataset in a readable text format.
 <code>FileName</code> is the base filename without the extension, e.g. <code>FileName = 'peter'</code> would result in files <code>peter.DTA</code> and <code>peter.DSC</code>.
+</p>
+
+<p>
+<code>data</code> can be real or complex, and can be one-dimensional (a vector) or two-dimensional (a matrix). If <code>data</code> is two-dimensional, then <code>x</code> is expected to be a 2-element cell array containing the x and the y axis: <code>{x,y}</code>.
 </p>
 
 <p>
@@ -53,7 +57,7 @@ Any text in the optional <code>TitleString</code> will be stored along the data 
 </p>
 
 <p>
-The microwwave frequency (in GHz) can be supplied via the optional <code>mwFreq</code> and will be saved in the .DSC file.
+The microwave frequency (in GHz) can be supplied via the optional <code>mwFreq</code> and will be saved in the .DSC file.
 </p>
 
 
@@ -84,6 +88,26 @@ Exp.Range = [330 350];
 eprsave('mysim',B,spc,'simple simulation',Exp.mwFreq);
 </pre>
 
+<p>
+Storing a two-dimensional dataset works like this
+</p>
+
+<pre class="matlab">
+n1 = 40;
+n2 = 100;
+dt = 0.002;
+t1 = (0:n1)*dt;
+t2 = (0:n2)*dt;
+data = rand(n1,n2);
+eprsave('mysim',{t1,t2},data);
+</pre>
+
+<!-- ============================================================= -->
+<div class="subtitle">See also</div>
+
+<p>
+<a class="esf" href="eprload.html">eprload</a>
+</p>
 
 <hr>
 </section>

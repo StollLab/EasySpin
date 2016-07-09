@@ -1,17 +1,25 @@
 % eprsave  Save data in Bruker BES3T format
 %
-%   eprsave(FileName,x,y)
-%   eprsave(FileName,x,y,TitleString)
-%   eprsave(FileName,x,y,TitleString,mwFreq)
+%   eprsave(FileName,x,data)
+%   eprsave(FileName,x,data,TitleString)
+%   eprsave(FileName,x,data,TitleString,mwFreq)
 %
-%   Saves the dataset in x and y in the Bruker BES3T
+%   Saves the dataset in x and data in the Bruker BES3T
 %   format in a .DTA and a .DSC file with the file
-%   name given in FileName. x is the x axis data, and y
-%   is the intensity data. TitleString is the name of the
-%   dataset that will be displayed in the Bruker software.
-%   mwFreq is the microwave frequency, in GHz.
+%   name given in FileName. x is the x axis data, and data
+%   is the intensity data (real or complex). TitleString is
+%   the name of the dataset that will be displayed in the
+%   Bruker software. mwFreq is the microwave frequency, in GHz.
+%
+%   Two-dimensional data can be saved by giving a matrix in data,
+%   and by supplying both axes in x as a cell array.
+%
+%   Examples:
+%     eprsave(myFilename,B,spc);       % save 1D data spc, x axis = B 
+%     eprsave(myFilename,{t1,t2},V);   % save 2D data matrix V,
+%                                      %   x axis = t1, y axis = t2
 
-function eprsave(filename,x,y,TitleString,mwFreq)
+function eprsave(filename,x,data,TitleString,mwFreq)
 
 if (nargin==0); help(mfilename); return; end
 
@@ -32,15 +40,25 @@ if (nargin==0)
 end
 %}
 
-if ndims(y)==2
-  if min(size(y))>1
-    error('Cannot save two-dimensional data.')
-  end
+if ndims(data)==2
+  TwoDimData = min(size(data))>1;
 else
   error('Cannot save data with more than 2 dimensions.')
 end
 
-complexData = ~isreal(y);
+if TwoDimData
+  if ~iscell(x) || numel(x)~=2
+    error('For two-dimensional data, x must be a cell array containing the two axes.');
+  end
+  y = x{2};
+  x = x{1};
+else
+  if iscell(x)
+    x = x{1};
+  end
+end
+
+complexData = ~isreal(data);
 
 BES3TVersion = 1.2;
 
@@ -60,18 +78,22 @@ ByteOrder = 'ieee-be'; % big-endian is default for XEPR (Linux)
 
 % Save data in DTA file
 %-----------------------------------------------------------
-fDTA = fopen([filename '.DTA'],'w',ByteOrder);
+DTAfilename = [filename '.DTA'];
+fDTA = fopen(DTAfilename,'w',ByteOrder);
+if (fDTA<1), error('Unable to open data file %s',DTAfilename); end
+datalist = data(:);
 if complexData
-  yy = [real(y(:)) imag(y(:))].';
-else
-  yy = y;
+  datalist = [real(datalist) imag(datalist)].';
 end
-fwrite(fDTA,yy(:),NumberFormat,0,ByteOrder);
-fclose(fDTA);
+fwrite(fDTA,datalist(:),NumberFormat,0,ByteOrder);
+CloseStatus = fclose(fDTA);
+if (CloseStatus<0), error('Unable to close data file %s',DTAfilename); end
 
 % Save parameters in DSC file
 %-----------------------------------------------------------
-fDSC = fopen([filename '.DSC'],'w',ByteOrder);
+DSCfilename = [filename '.DSC'];
+fDSC = fopen(DSCfilename,'w',ByteOrder);
+if (fDSC<1), error('Unable to open description file %s',DSCfilename); end
 writedsckeyval = @(key,val)fprintf(fDSC,[key '\t' val '\n']);
 writedsc = @(val)fprintf(fDSC,[val '\n']);
 
@@ -118,14 +140,23 @@ else
   GaugeFileExt = {'.GF1','.GF2','.GF3'};
 end
 
-% X axis: Determine if axis is linear
+% Determine if X axis is linear
 DeviationFromLinear = abs(x(:) - linspace(x(1),x(end),numel(x)).');
 isLinearX = max(DeviationFromLinear)/abs(x(end)-x(1))<0.001;
 if ~isLinearX, XType = 'IGD'; else XType = 'IDX'; end
-YType = 'NODATA';
+
+% Determine if Y axis is linear
+if TwoDimData
+  DeviationFromLinear = abs(y(:) - linspace(y(1),y(end),numel(y)).');
+  isLinearY = max(DeviationFromLinear)/abs(y(end)-y(1))<0.001;
+  if ~isLinearY, YType = 'IGD'; else YType = 'IDX'; end
+else
+  YType = 'NODATA';
+end
+
 ZType = 'NODATA';
 
-% Write companion file
+% Write companion file for X axis if necessary
 if ~isLinearX
   fGF = fopen([filename GaugeFileExt{1}],'w',ByteOrder);
   fwrite(fGF,x(:),'float64',0,ByteOrder);
@@ -137,28 +168,51 @@ if ~isLinearX
   end
 end
 
-% Write axis types
+% Write companion file for Y axis if necessary
+if TwoDimData && ~isLinearY
+  fGF = fopen([filename GaugeFileExt{1}],'w',ByteOrder);
+  fwrite(fGF,y(:),'float64',0,ByteOrder);
+  fclose(fGF);
+  if BES3TVersion<2.0
+    writedsckeyval('YFMT','D');
+  else
+    writedsckeyval('AX2FMT','D');
+  end
+end
+
+% Write X/Y/Z axis types
 if (BES3TVersion<2.0)
   writedsckeyval('XTYP',XType);
   writedsckeyval('YTYP',YType);
   writedsckeyval('ZTYP',ZType);
 else
   writedsckeyval('AX1TYP',XType);
-  %writedsc('AX2TYP',YType);
-  %writedsc('AX3TYP',ZType);
+  %writedsckeyval('AX2TYP',YType);
+  %writedsckeyval('AX3TYP',ZType);
 end
 
-% Write linear axis characteristics
+% Write X/Y/Z axis characteristics
 if BES3TVersion<2.0
   writedsckeyval('XPTS',sprintf('%d',numel(x)));
   writedsckeyval('XMIN',sprintf('%g',x(1)));
   writedsckeyval('XWID',sprintf('%g',x(end)-x(1)));
+  if TwoDimData
+    writedsckeyval('YPTS',sprintf('%d',numel(y)));
+    writedsckeyval('YMIN',sprintf('%g',y(1)));
+    writedsckeyval('YWID',sprintf('%g',y(end)-y(1)));
+  end
 else
   writedsckeyval('AX1PTS',sprintf('%d',numel(x)));
   writedsckeyval('AX1MIN',sprintf('%g',x(1)));
   writedsckeyval('AX1WID',sprintf('%g',x(end)-x(1)));
+  if TwoDimData
+    writedsckeyval('AX1PTS',sprintf('%d',numel(y)));
+    writedsckeyval('AX1MIN',sprintf('%g',y(1)));
+    writedsckeyval('AX1WID',sprintf('%g',y(end)-y(1)));
+  end
 end
 
+% Write title
 if ~isempty(TitleString)
   writedsckeyval('TITL',['''' TitleString '''']);
 end
@@ -179,4 +233,6 @@ if ~isnan(mwFreq)
   mwFreqString = sprintf('%0.9g',mwFreq*1e9); % BES3T requires Hz
   writedsckeyval('MWFQ',mwFreqString);
 end
-fclose(fDSC);
+
+CloseStatus = fclose(fDSC);
+if (CloseStatus<0), error('Unable to close data file %s',DSCfilename); end
