@@ -804,32 +804,30 @@ if PredefinedExperiment
   end
 end
 
-
-% OrientationSelection = isfield(Exp,'mwFreq');
-% if (OrientationSelection)
-%   logmsg(1,'Microwave frequency given: orientation selection is on.');
-%   if ~isfield(Exp,'ExciteWidth') % ? necessary?
-%     error('Orientation selection: Exp.ExciteWidth (in MHz) missing. It should be about the inverse of the first pulse length (100MHz for 10ns). If you don''t want orientation selection, set it to a very large number (1e6) or remove the microwave frequency.');
-%   end
-% else
-%   logmsg(1,'no orientation selection (infinite bandwidth).');
-% end
-OrientationSelection = (isfield(Exp,'mwFreq') && isfield(Exp,'ExciteWidth')); % ?
-if (OrientationSelection)
-  logmsg(1,'Orientation selection is on.');
-else
-  logmsg(1,'No orientation selection (infinite bandwidth).');
+% Orientation selection
+% Options: - orientation selection through simulation with real pulses
+%          - ideal pulses, no orientation selection
+%          - ideal pulses, orientation selection with ExciteWidth
+if any(realPulse)
+  if ~isfield(Exp,'mwFreq')
+    error('Exp.mwFreq is required for simulations with real pulses. Please give Exp.mwFreq.');
+  end
+  if isfield(Exp,'ExciteWidth')
+    error('Exp.ExciteWidth is obsolete for simulations with real pulses. See documentation.')
+  end
 end
-
 if isfield(Exp,'ExciteWidth')
   if ~isfield(Exp,'mwFreq')
     error('Exp.ExciteWidth is given, but Exp.mwFreq is missing. Please give Exp.mwFreq.');
   end
 end
-if any(realPulse)
-  if ~isfield(Exp,'mwFreq') % ?
-    error('Exp.mwFreq is required for simulations with real pulses. Please give Exp.mwFreq.');
-  end
+OrientationSelection = (isfield(Exp,'mwFreq') && isfield(Exp,'ExciteWidth') && ~any(realPulse)); % ?
+if (OrientationSelection)
+  logmsg(1,'Orientation selection approximated using Exp.ExciteWidth.');
+elseif any(realPulse)
+  logmsg(1,'Orientation selection with real pulses.');
+else
+  logmsg(1,'No orientation selection (infinite bandwidth).');
 end
 
 if isfield(Exp,'HStrain')
@@ -866,7 +864,7 @@ else
   % these nuclei for e.g. DEER?
   shfNuclei = 1:Sys.nNuclei;
   if ~isempty(shfNuclei)
-    if all(idealPulse) && isfield(Exp,'ExciteWidth') % ? alternative to ExciteWidth needed if it is not required as input
+    if all(idealPulse) && isfield(Exp,'ExciteWidth') % :TODO: alternative to ExciteWidth needed for real pulses?
       if Sys.fullA
         for iNuc = 1:shfNuclei
           Amatrix = Sys.A((iNuc-1)*3+(1:3),:);
@@ -923,7 +921,6 @@ if ~isfield(Opt,'ZeroFillFactor');
   Opt.ZeroFillFactor = 2;
 end
 
-%DataProcessing = ShowPlots;
 DataProcessing = 1;
 
 % undocumented options
@@ -1087,7 +1084,7 @@ end
 %=====================================================================
 OrientationPreSelection = OrientationSelection && TwoElectronManifolds;
 if OrientationPreSelection
-  logmsg(1,'pre-computing orientation selecton from g tensor alone...');
+  logmsg(1,'pre-computing orientation selection from g tensor alone...');
   logmsg(1,'  S=1/2: using simple g tensor/HStrain model');
   logmsg(1,'  excitation width (MHz): %g',Exp.ExciteWidth);
   logmsg(1,'  HStrain (MHz): %g %g %g',Sys.HStrain(1),Sys.HStrain(2),Sys.HStrain(3));
@@ -1126,7 +1123,6 @@ else
   if isfield(Exp,'t')
     Exp.t(end) = Exp.t(end)+Exp.DetectionDelay;
   end
-
   % Update settings if echo detection is used
   if strcmp(Exp.Detection,'echodetection')
     nPoints = [Exp.nPoints Exp.DetectionPoints];
@@ -1225,29 +1221,38 @@ end
 %=====================================================================
 logmsg(1,'Looping over %d orientations...',nOrientations);
 
-% Prepare offsets % ? change
+% Line broadening and offset integration
 if any(realPulse)
   if ~isfield(Opt,'nOffsets');
-    Opt.nOffsets = 291;
+    Opt.nOffsets = 21; % ? optimization loop
   end
-  if ~isfield(Opt,'lwOffset')
-    Opt.lwOffset = 100;
+  if isfield(Opt,'lwOffset')
+    error('Opt.lwOffset is obsolete, the offset linewidth is derived from the HStrain parameter.');
   end
-  if Opt.nOffsets==0
+  if Opt.nOffsets==0 || Opt.nOffsets==1
     Opt.nOffsets = 1;
-  end
-  if Opt.nOffsets==1
-    offsets = 0;
-    offsetWeight = 1;
+    offsets = zeros(nOrientations,1);
+    offsetWeight= ones(nOrientations,1);
   else
-    offsets = linspace(-1,1,Opt.nOffsets)*Opt.lwOffset*2;
-    offsetWeight = exp(-(offsets/Opt.lwOffset).^2);
-    offsetWeight = offsetWeight/sum(offsetWeight);
+    % Linewidths defined through HStrain for all orientations
+    if isfield(Sys,'HStrain') && any(Sys.HStrain~=0)
+      Sys.HStrain(Sys.HStrain==0) = 0.1;
+      zLab = ang2vec(Orientations(:,1),Orientations(:,2));
+      lwOffset = sum(diag(Sys.HStrain)*zLab,1);
+      offsets = bsxfun(@times,repmat(linspace(-1,1,Opt.nOffsets),nOrientations,1),2*lwOffset.');
+      offsetWeight = exp(-4*log(2)*(bsxfun(@rdivide,offsets,lwOffset.')).^2);
+      offsetWeight = bsxfun(@rdivide,offsetWeight,sum(offsetWeight,2));
+    else
+      lw = 0.1; % MHz, default (????)
+      offsets = repmat(linspace(-1,1,Opt.nOffsets)*lw*2,nOrientations,1);
+      offsetWeight = exp(-4*log(2)*(offsets/lw).^2);
+      offsetWeight = bsxfun(@rdivide,offsetWeight,sum(offsetWeight,2));
+    end
   end
 else
-  offsets = 0;
-  offsetWeight = 1;
   Opt.nOffsets = 1;
+  offsets = zeros(nOrientations,1);
+  offsetWeight= ones(nOrientations,1);
 end
 
 if (TwoElectronManifolds)
@@ -1318,7 +1323,7 @@ for iOri = 1:nOrientations
     
     if (OrientationSelection)
       dE = bsxfun(@minus,eE,eE.') - Exp.mwFreq*1e3; % MHz
-      excitationAmplitude = exp(-(dE/Exp.ExciteWidth).^2); % ? change
+      excitationAmplitude = exp(-(dE/Exp.ExciteWidth).^2);
       SyLab = SyLab.*excitationAmplitude;
     end
     
@@ -1443,8 +1448,8 @@ for iOri = 1:nOrientations
       Eb0 = Eb;
       for iOffset = 1:Opt.nOffsets
         
-        Ea = Ea0+offsets(iOffset)/2;
-        Eb = Eb0-offsets(iOffset)/2;
+        Ea = Ea0+offsets(iOri,iOffset)/2;
+        Eb = Eb0-offsets(iOri,iOffset)/2;
         
         % Pulse propagators
         for iInt = 1:nIntervals
@@ -1478,7 +1483,7 @@ for iOri = 1:nOrientations
             end
           end
         end
-        prefactor = prefactor*offsetWeight(iOffset);
+        prefactor = prefactor*offsetWeight(iOri,iOffset);
 
         % Compute peaks and amplitudes
         if ~PredefinedExperiment

@@ -600,8 +600,14 @@ else
       A0 = modulation.A;
          
       % Resonator profile in the frequency range of the pulse
+      newaxis = nu0+mean(Par.Frequency)+Par.mwFreq*1e3;
+      if min(newaxis)<min(Par.freqaxis) || max(newaxis)>max(Par.freqaxis)
+        error(['The frequency sweep width of the pulse extends further than ',...
+               'the given resonator profile. Please provide the resonator ',...
+               'profile for the complete pulse frequency sweep width.'])
+      end
       profile = interp1(Par.freqaxis,Par.v1,...
-        nu0+mean(Par.Frequency)+Par.mwFreq*1e3);
+        newaxis);
       if strcmp(AmplitudeModulation,'sech')
         profile = A0.*profile;
       end
