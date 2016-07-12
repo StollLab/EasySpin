@@ -22,12 +22,12 @@ LOfreq = 0.500; % GHz
 
 % SSB (upper)
 opt.dt = t(2)-t(1);
-[tOut,signal_usb1] = rfmixer(t,signalIn,LOfreq,'SSBup',opt);
+[tOut,signal_usb1] = rfmixer(t,signalIn,LOfreq,'USB',opt);
 
 signal_usb2 = cos(2*pi*(f+LOfreq)*tOut);
 
 % SSB (lower)
-[tOut,signal_lsb1] = rfmixer(t,signalIn,LOfreq,'SSBdown',opt);
+[tOut,signal_lsb1] = rfmixer(t,signalIn,LOfreq,'LSB',opt);
 
 signal_lsb2 = cos(2*pi*(f-LOfreq)*tOut);
 

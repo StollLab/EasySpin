@@ -21,8 +21,8 @@
 %                   has to be included)
 %   - type :        mode of operation, the options are:
 %                   'DSB' = double sideband mixer
-%                   'SSBup' = single sideband mixer, upper sideband selected
-%                   'SSBdown' = single sideband mixer, lower sideband selected
+%                   'USB' = single sideband mixer, upper sideband selected
+%                   'LSB' = single sideband mixer, lower sideband selected
 %                   'IQmod' = IQ modulation
 %                   'IQdemod' = IQ demodulation
 %                   'IQshift' = IQ frequency shift (up- or downconversion)
@@ -51,7 +51,7 @@
 %                                 by Hilbert transform) is larger than the
 %                                 specified threshold, recovery of the I and
 %                                 Q data from the real input signal is not
-%                                 possible (default = 0.01).
+%                                 possible (default = 0.05).
 %
 %   Output:
 %   - tOut:          time axis for output signal
@@ -69,59 +69,36 @@ end
 
 % Argument parsing
 %-----------------------------------------------------------
-if nargin<3
-    error('rfmixer() requires at least three input arguments.');
-end  
-t = varargin{1};
-signal = varargin{2};
-LOFreq = varargin{3};
-
 switch nargin
-  case 3 % [tOut,signalOut] = rfmixer(tIn,signalIn,LOFreq)
-    
-    if isreal(signal)
-      type = 'DSB';
-    else
-      type = 'IQmod';
-    end
+  case {1,2,3}
+    error('rfmixer() requires at least four input arguments.');
+  case 4
+    t = varargin{1};
+    signal = varargin{2};
+    LOFreq = varargin{3};
+    type = varargin{4};
     Opt = struct;
-    
-  case 4 % [tOut,signalOut] = rfmixer(tIn,signalIn,LOFreq,type) 
-    
-    if isstruct(varargin{4})
-      Opt = varargin{4};
-      if isreal(signal)
-        type = 'DSB';
-      else
-        type = 'IQmod';
-      end
-    else
-      type = varargin{4};
-      Opt = struct;
-    end
-    
-  case 5 % [tOut,signalOut] = rfmixer(tIn,signalIn,LOFreq,type,Opt) 
-    
+  case 5
+    t = varargin{1};
+    signal = varargin{2};
+    LOFreq = varargin{3};
     type = varargin{4};
     Opt = varargin{5};
-    
   otherwise
-    
     error('rfmixer() cannot take %d input arguments.',nargin);
-    
 end
 
 % Input checks
 %-----------------------------------------------------------
 
 % Check input signal is consistent with mode
-if any(strcmpi(type,{'DSB','SSBup','SSBdown','IQdemod'}));
+if any(strcmpi(type,{'DSB','USB','LSB','IQdemod'}));
   if ~isreal(signal)
     error('A real input signal is required for the selected mixer type.')
   end
 elseif any(strcmpi(type,{'IQmod','IQshift'}));
   if isreal(signal)
-    error(['Both input and quadrature components of the input signal are',...
+    error(['Both input and quadrature components of the input signal are ',...
            'required for the selected mixer type.'])
   end
 else
@@ -193,7 +170,7 @@ signal_rs = interp1(tIn,signal,tOut,Opt.InterpolationMethod);
 % Define I and Q data for real input signals
 %-----------------------------------------------------------
 if realInput
-  if any(strcmpi(type,{'SSBup','SSBdown','IQdemod'}))
+  if any(strcmpi(type,{'USB','LSB','IQdemod'}))
     
     % Use Hilbert transform to construct quadrature signal
     signal_rs = signal_rs + 1i*imag(hilberttrans(signal_rs));
@@ -210,8 +187,10 @@ if realInput
     cosphase_FT = cosphase_FT/max(cosphase_FT);
     
     if max(abs(amplitude_FT.*cosphase_FT))>Opt.HilbertThreshold
-      error(['SSB conversion needs the quadrature signal of the real input signal, which is calculated internally using the Hilbert transform.\n'...
-        'In this case, it cannot be recovered. (Use the quadrature signal as input or increase Opt.HilbertThreshold to still perform the calculation.)']);
+      error(['SSB conversion and digital downconversion require the quadrature signal',...
+             ' of the real input signal, which is calculated internally using the Hilbert',...
+             ' transform. In this case, it cannot be recovered. (Use the quadrature signal', ...
+             ' as input or increase Opt.HilbertThreshold to still perform the calculation.)']);
     end
     
   end
@@ -219,9 +198,9 @@ end
 
 % Up/downconversion
 %-----------------------------------------------------------
-if strcmpi(type,'SSBup') || strcmpi(type,'IQshift') % sign included in LOFreq for IQshift
+if strcmpi(type,'USB') || strcmpi(type,'IQshift') % sign included in LOFreq for IQshift
   LOsign = +1;
-elseif (strcmpi(type,'SSBdown') && LOFreq>0)
+elseif (strcmpi(type,'LSB') && LOFreq>0)
   LOsign = -1;
 else
   if LOFreq<0 || LOFreq > maxFreqIn % sign already included or upconversion
@@ -232,7 +211,7 @@ else
 end
 signalOut = signal_rs.*exp(LOsign*2i*pi*LOFreq*tOut);
 
-if any(strcmpi(type,{'DSB','SSBup','SSBdown','IQmod'}))
+if any(strcmpi(type,{'DSB','USB','LSB','IQmod'}))
   signalOut = real(signalOut);
 end
 

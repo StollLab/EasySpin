@@ -17,8 +17,8 @@ LOfreq = 200; % LO frequency for upconversion, MHz
 
 Opt.dtOut = 0.01e-3;
 [tOut,Outboth] = rfmixer(tIn,signalIn,LOfreq,'DSB',Opt); % DSB
-[tOut,Outupper] = rfmixer(tIn,signalIn,LOfreq,'SSBup',Opt); % SSB, upper sideband
-[tOut,Outlower] = rfmixer(tIn,signalIn,LOfreq,'SSBdown',Opt); % SSB, lower sideband
+[tOut,Outupper] = rfmixer(tIn,signalIn,LOfreq,'USB',Opt); % SSB, upper sideband
+[tOut,Outlower] = rfmixer(tIn,signalIn,LOfreq,'LSB',Opt); % SSB, lower sideband
 
 % Plot
 %--------------------------------------------------------------------
