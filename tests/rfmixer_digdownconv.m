@@ -13,8 +13,8 @@ modulation = cos(2*pi*IFfreq*t);
 
 echo = amplitude.*modulation;
 
-[tOut,signal_re,signal_im] = rfmixer(t,echo,IFfreq,'-');
+[tOut,signalOut] = rfmixer(t,echo,IFfreq,'IQdemod');
 
-err = ~areequal(amplitude,signal_re);
+err = ~areequal(amplitude,real(signalOut));
 
 data = [];

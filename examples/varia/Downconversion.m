@@ -17,4 +17,4 @@ echo = gaussian(t,x0,w).*cos(2*pi*IFfreq*t);
 
 % Digital downconversion and quadrature detection with rfmixer()
 %--------------------------------------------------------------------
-rfmixer(t,echo,IFfreq,'-');
+rfmixer(t,echo,IFfreq,'IQdemod');

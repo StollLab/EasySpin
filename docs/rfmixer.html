@@ -36,29 +36,24 @@ Digital up- or downconversion.
 <div class="subtitle">Syntax</div>
 
 <pre class="matlab">
-rfmixer(tIn,signalIn,LOFreq)
-rfmixer(tIn,signalIn,LOFreq,Opt)
-rfmixer(tIn,signalIn,LOFreq,sideband)
+[tOut,signalOut] = rfmixer(tIn,signalIn,LOFreq,type)
 
-rfmixer(tIn,IIn,QIn,LOFreq)
-rfmixer(tIn,IIn,QIn,LOFreq,Opt)
-rfmixer(tIn,IIn,QIn,LOFreq,sideband,Opt)
-
-[tOut,signalOut] = rfmixer(...)
-[tOut,IOut,QOut] = rfmixer(...)
+[tOut,signalOut] = rfmixer(tIn,signalIn,LOFreq)
+[tOut,signalOut] = rfmixer(tIn,signalIn,LOFreq,Opt)
+[tOut,signalOut] = rfmixer(tIn,signalIn,LOFreq,type,Opt)
 </pre>
 
 <!-- ============================================================= -->
 <div class="subtitle">Description</div>
 
 <p>
-This function mixes the input signal (<code>signalIn</code>, or <code>IIn</code> and <code>QIn</code>, as a function of the time axis in <code>tIn</code>) with the LO frequency (<code>LOFreq</code>). Depending on the number of input and output arguments (see description below), the function acts as a double-sideband, single-sideband or IQ mixer or performs IQ modulation or demodulation. Resampling of the input signal before up/downconversion can be performed if the new sampling time step is given.
+This function mixes the input signal (<code>signalIn</code> as a function of the time axis in <code>tIn</code>) with the LO frequency (<code>LOFreq</code>). Depending on the selected mixer type, the function acts as a double-sideband mixer, single-sideband mixer or performs IQ modulation, demodulation or frequency shifting. Resampling of the input signal before up/downconversion can be performed if the new sampling time step is given.
 </p>
 
 <p>
-The output contains the time axis data in <code>tOut</code> (in the same units as the input time axis). 
-For up- or downconversion with a digital double-sideband (DSB), single-sideband (SSB) or IQ mixer, the output is returned in <code>signalOut</code>. 
-For IQ modulation or demodulation, <code>IOut</code> and <code>QOut</code> contain the in-phase and quadrature part of the up- or downconverted signal.
+The output contains the time axis data in <code>tOut</code> (in the same units as the input time axis) and the output signal in <code>signalOut</code>. 
+For up- or downconversion with a digital double-sideband (DSB) mixer, single-sideband (SSB) mixer or IQ modulation, only the in-phase component of the output is returned. 
+For IQ demodulation or frequency shift, the in-phase and quadrature parts of the up- or downconverted signal are contained in the real and imaginary part of <code>signalOut</code>. 
 </p>
 
 <p>
@@ -75,23 +70,26 @@ Time axis vector for the input signal, in nanoseconds or microseconds
 
 <div class="optionfield"><code>signalIn</code></div>
 <div class="optiondescr">
-Input signal. Use this for up/downconversion (IF or RF) for DSB or SSB mixer or IQ demodulation.
+Input signal. In-phase (real) signal for up/downconversion (IF or RF) for DSB or SSB mixer or IQ demodulation, in-phase and quadrature components in the real and imaginary part of <code>signalIn</code> for IQ modulation or IQ frequency shift.
 </div>
-
-<div class="optionfield"><code>IIn</code> and <code>QIn</code></div>
-<div class="optiondescr">
-Two input signals, in-phase and quadrature signals. Use these for IQ mixing or IQ modulation.
-</div>
-
 
 <div class="optionfield"><code>LOFreq</code></div>
 <div class="optiondescr">
-LO frequency, in GHz if the time axis is in nanoseconds, or MHz if it is in microseconds.
+LO frequency, in GHz if the time axis is in nanoseconds, or MHz if it is in microseconds. For the <code>'IQshift'</code> option, the sign indicating the direction of frequency shift needs to be included.
 </div>
 
-<div class="optionfield"><code>sideband</code> (optional)</div>
+<div class="optionfield"><code>type</code></div>
 <div class="optiondescr">
-Selection of upper or lower sideband. If this input is absent or set to <code>'+-'</code>, both sidebands are returned. If <code>sideband</code> is set to <code>'+'</code>, the upper sideband is returned and if it is set to <code>'-'</code>, the lower sideband is returned. Single-sideband selection (<code>'+'</code> or <code>'-'</code>) is only possible for a real input signal.
+String specifying the type of mixer. The available options for this field are:
+<ul>
+<li><code>'DSB'</code>: double sideband mixer
+<li><code>'SSBup'</code>: single sideband mixer, upper sideband selected
+<li><code>'SSBdown'</code>: single sideband mixer, lower sideband selected
+<li><code>'IQmod'</code>: IQ modulation, IQ mixer operation with I and Q inputs and real signal output
+<li><code>'IQdemod'</code>: IQ demodulation, IQ mixer operation with real signal input and I and Q outputs
+<li><code>'IQshift'</code>: IQ frequency shift, the center frequency of the IQ input signal is shifted (signal output of an IQ mixer before the power combiner)
+</ul>
+The default for a real input signal is <code>'DSB'</code> and the default for an IQ input signal is <code>'IQmod'</code>.
 </div>
 
 <div class="optionfield"><code>Opt</code> (optional)</div>
@@ -132,45 +130,6 @@ Threshold for selection of part of the input signal used to compute amplitude an
 <div class="optiondescr">
 Threshold for amplitude and phase FT overlap. The Hilbert transform corresponds to the quadrature signal only if amplitude and phase FT do not overlap (Bedrosian's product theorem, see Boashash, Proc. IEEE 80, 1992, 520, DOI: <a href="http://dx.doi.org/10.1109/5.135376">10.1109/5.135376</a>). If the maximum of the product of the normalized amplitude and phase FT (extracted from the real input signal by Hilbert transform) is larger than the specified threshold, recovery of the I and Q data from the real input signal is not possible. The default is 0.01.
 </div>
-
-<!-- ====================================================== -->
-<div class="subtitle">Examples</div>
-
-<p>
-The <code>rfmixer</code> function can be used for double- or single-sideband up/downconversion and IQ modulation/demodulation. The input syntax for the different options is listed below.
-</p>
-
-<ul>
-<li>Double-sideband (DSB) mixer:
-<pre class="matlab">
-[tOut,signalOut] = rfmixer(tIn,signalIn,LOFreq)
-</pre>
-<li>Single-sideband (SSB) mixer, upper sideband
-<pre class="matlab">
-[tOut,signalOut] = rfmixer(tIn,signalIn,LOFreq,'+')
-</pre>
-<li>Single-sideband (SSB) mixer, lower sideband
-<pre class="matlab">
-[tOut,signalOut] = rfmixer(tIn,signalIn,LOFreq,'-')
-</pre>
-<li> IQ mixer:
-<pre class="matlab">
-[tOut,signalOut] = rfmixer(tIn,IIn,QIn,LOFreq)
-</pre>
-<li> IQ modulation:
-<pre class="matlab">
-[tOut,IOut,QOut] = rfmixer(tIn,IIn,QIn,LOFreq)
-</pre>
-or
-<pre class="matlab">
-[tOut,IOut,QOut] = rfmixer(tIn,IIn,QIn,LOFreq,'+')
-</pre>
-<li> IQ demodulation
-<pre class="matlab">
-[tOut,IOut,QOut] = rfmixer(tIn,in,LOFreq,'-')
-</pre>
-
-</ul>
 
 <!-- ============================================================= -->
 <div class="subtitle">Algorithm</div>

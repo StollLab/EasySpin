@@ -10,10 +10,10 @@ clear, clf
 Par.tp = 0.200; % µs
 Par.Type = 'sech/tanh'; % sech/tanh pulse
 Par.beta = 10.6; % truncation parameter
-Par.BW = 200; % MHz
+Par.Frequency = [-100 100]; % MHz 
 [t,y] = pulse(Par);
 
 % Upconversion to an intermediate frequency
 %--------------------------------------------------------------------
 IFfreq = 100; % MHz
-rfmixer(t,y,IFfreq);
+rfmixer(t,y,IFfreq,'IQshift');

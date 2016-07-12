@@ -1,19 +1,7 @@
 % rfmixer  Digital up- or downconversion
 %
-%   [tOut,out] = rfmixer(t,in,LOFreq)     % double-sideband (DSB) mixer
-%   [tOut,out] = rfmixer(t,in,LOFreq,'+') % single-sideband (SSB) mixer,
-%                                         % upper sideband
-%   [tOut,out] = rfmixer(t,in,LOFreq,'-') % single-sideband (SSB) mixer,
-%                                         % lower sideband
-%
-%   [tOut,out] = rfmixer(t,Iin,Qin,LOFreq)            % IQ mixer
-%
-%   [tOut,Iout,Qout] = rfmixer(t,Iin,Qin,LOFreq)      % IQ modulation
-%   [tOut,Iout,Qout] = rfmixer(t,Iin,Qin,LOFreq,'+')
-%   [tOut,Iout,Qout] = rfmixer(t,in,LOFreq,'-')       % IQ demodulation
-%
-%   rfmixer(...)
-%   ... = rfmixer(...,Opt)
+%   [tOut,signalOut] = rfmixer(tIn,signalIn,LOFreq,type) 
+%   [tOut,signalOut] = rfmixer(tIn,signalIn,LOFreq,type,Opt) 
 %
 %   Mixes the input signal with the LO frequency. Depending on the number
 %   of input and output arguments, the function acts as a double-sideband,
@@ -24,18 +12,20 @@
 %   If no outputs are requested, the results are plotted.
 %
 %   Input:
-%   - t:             time axis, in ns or us
-%   - input signal:  In        = vector of input signal for up/downconversion
-%                                (IF or RF) for DSB or SSB mixer or IQ demodulation
-%                    OR
-%                    Iin,Qin = real and imaginary part of the input signal
-%                                for IQ mixer or IQ modulation
-%   - LOFreq:        LO frequency, in GHz if t is in ns, or MHz if t is in us
-%   - sideband:      absent or '+-' = return both sidebands
-%                    '+' = return upper sideband
-%                    '-' = return lower sideband
-%                    Single-sideband selection ('+' or '-') is only possible
-%                    for a real input signal.
+%   - tIn:          time axis, in ns or us
+%   - signalIn:     input signal vector, in-phase part only for DSB,
+%                   SSB or IQ demodulation mode, in-phase and quadrature
+%                   part for IQ mixer and IQ frequency shift operation
+%   - LOFreq:       LO frequency, in GHz if t is in ns, or MHz if t is in us
+%                   (for IQ frequency shifts, the direction of the shift
+%                   has to be included)
+%   - type :        mode of operation, the options are:
+%                   'DSB' = double sideband mixer
+%                   'SSBup' = single sideband mixer, upper sideband selected
+%                   'SSBdown' = single sideband mixer, lower sideband selected
+%                   'IQmod' = IQ modulation
+%                   'IQdemod' = IQ demodulation
+%                   'IQshift' = IQ frequency shift (up- or downconversion)
 %   - options:
 %      Opt.dt =    time step for output signal, in ns or us (same as t)
 %                  If no time step for resampling is given and the input
@@ -65,19 +55,10 @@
 %
 %   Output:
 %   - tOut:          time axis for output signal
-%   - output signal: out         = up/downconverted signal for DSB, SSB or
-%                                  IQ mixer
-%                    OR
-%                    Iout,Qout = real and imaginary part of the
-%                                  up/downconverted signal for IQ modulation
-%                                  or demodulation
+%   - signalOut:     output signal vector, in-phase component only for DSB,
+%                    SSB or IQmod, in-phase and quadrature component for
+%                    IQdemod and IQshift
 %
-%   Example:
-%      t = 0:0.1:200; % ns
-%      f = 0.100; % GHz
-%      signal_in = cos(2*pi*f*t);
-%      LOfreq = 0.5; % GHz
-%      rfmixer(t,signal_in,LOfreq,'+');
 
 function varargout = rfmixer(varargin)
 
@@ -88,82 +69,65 @@ end
 
 % Argument parsing
 %-----------------------------------------------------------
+if nargin<3
+    error('rfmixer() requires at least three input arguments.');
+end  
 t = varargin{1};
-signal = [];
+signal = varargin{2};
+LOFreq = varargin{3};
 
 switch nargin
-  case 3    % rfmixer(t,in,LOFreq) % DSB mixer
-    signal = varargin{2};
-    LOFreq = varargin{3};
-    Opt.sideband = '+-';
+  case 3 % [tOut,signalOut] = rfmixer(tIn,signalIn,LOFreq)
     
-  case 4
-    if ischar(varargin{4}) % rfmixer(t,in,LOFreq,sideband) % SSB
-      signal = varargin{2};
-      LOFreq = varargin{3};
-      Opt.sideband = varargin{4};
-    elseif isstruct(varargin{4}) % rfmixer(t,in,LOFreq,Opt) % DSB
-      signal = varargin{2};
-      LOFreq = varargin{3};
+    if isreal(signal)
+      type = 'DSB';
+    else
+      type = 'IQmod';
+    end
+    Opt = struct;
+    
+  case 4 % [tOut,signalOut] = rfmixer(tIn,signalIn,LOFreq,type) 
+    
+    if isstruct(varargin{4})
       Opt = varargin{4};
-      Opt.sideband = '+-';
-    else % [t,out] = rfmixer(t,Iin,Qin,LOFreq) % IQ mixer, IQ modulation
-      signalI = varargin{2};
-      signalQ = varargin{3};
-      LOFreq = varargin{4};
+      if isreal(signal)
+        type = 'DSB';
+      else
+        type = 'IQmod';
+      end
+    else
+      type = varargin{4};
       Opt = struct;
     end
     
-  case 5
-    if ischar(varargin{4}) % rfmixer(t,in,LOFreq,sideband,Opt) % SSB
-      signal = varargin{2};
-      LOFreq = varargin{3};
-      Opt = varargin{5};
-      Opt.sideband = varargin{4};
-    elseif isscalar(varargin{4}) && isstruct(varargin{5}) % rfmixer(t,Iin,Qin,LOFreq,Opt) % IQ
-      signalI = varargin{2};
-      signalQ = varargin{3};
-      LOFreq = varargin{4};
-      Opt = varargin{5};
-    elseif ischar(varargin{5}) % rfmixer(t,Iin,Qin,LOfreq,sideband) % IQ
-      signalI = varargin{2};
-      signalQ = varargin{3};
-      LOFreq = varargin{4};
-      Opt.sideband = varargin{5};
-    end
+  case 5 % [tOut,signalOut] = rfmixer(tIn,signalIn,LOFreq,type,Opt) 
     
-  case 6
-    if ischar(varargin{5}) && isstruct(varargin{6}) % rfmixer(t,Iin,Qin,LOFreq,sideband,Opt) % IQ
-      signalI = varargin{2};
-      signalQ = varargin{3};
-      LOFreq = varargin{4};
-      Opt = varargin{6};
-      Opt.sideband = varargin{5};
-    end
+    type = varargin{4};
+    Opt = varargin{5};
     
   otherwise
+    
     error('rfmixer() cannot take %d input arguments.',nargin);
     
 end
 
-% Combine I and Q signal if they are given 
-if isempty(signal)
-  if ~isequal(size(signalI),size(signalQ))
-    error('The in-phase and quadrature signal vectors must have the same size.')
-  end
-  signal = complex(signalI,signalQ);
-end
-singleInput = isreal(signal);
-
 % Input checks
 %-----------------------------------------------------------
-if ~isfield(Opt,'sideband')
-  Opt.sideband = '+-';
+
+% Check input signal is consistent with mode
+if any(strcmpi(type,{'DSB','SSBup','SSBdown','IQdemod'}));
+  if ~isreal(signal)
+    error('A real input signal is required for the selected mixer type.')
+  end
+elseif any(strcmpi(type,{'IQmod','IQshift'}));
+  if isreal(signal)
+    error(['Both input and quadrature components of the input signal are',...
+           'required for the selected mixer type.'])
+  end
+else
+  error('The selected mixer type is not available.')
 end
-if ~any(strcmp(Opt.sideband,{'+','-','+-'}))
-  error('The sideband specification must be either ''+'', ''-'' or ''+-''.');
-end
-isSSB = any(strcmp(Opt.sideband,{'+','-'}));
+realInput = isreal(signal);
 
 dim = size(signal);
 if min(dim)>1 || numel(dim)>2
@@ -203,10 +167,10 @@ signalFT = fftshift(fft(signal));
 inputband = f(signalFT>Opt.BandwidthThreshold*max(abs(signalFT)));
 maxFreqIn = max(inputband);
 
-if LOFreq > maxFreqIn % for upconversion
-  maxFreqOut = LOFreq + maxFreqIn;
+if abs(LOFreq) > maxFreqIn % for upconversion
+  maxFreqOut = abs(LOFreq) + maxFreqIn;
 else % for downconversion
-  maxFreqOut = max([LOFreq maxFreqIn]);
+  maxFreqOut = max([abs(LOFreq) maxFreqIn]);
 end
 nyqdt = 1/(2*maxFreqOut); % ns or us, dt for Nyquist criterion
 
@@ -228,8 +192,8 @@ signal_rs = interp1(tIn,signal,tOut,Opt.InterpolationMethod);
 
 % Define I and Q data for real input signals
 %-----------------------------------------------------------
-if singleInput
-  if isSSB
+if realInput
+  if any(strcmpi(type,{'SSBup','SSBdown','IQdemod'}))
     
     % Use Hilbert transform to construct quadrature signal
     signal_rs = signal_rs + 1i*imag(hilberttrans(signal_rs));
@@ -246,8 +210,8 @@ if singleInput
     cosphase_FT = cosphase_FT/max(cosphase_FT);
     
     if max(abs(amplitude_FT.*cosphase_FT))>Opt.HilbertThreshold
-      error(sprintf(['SSB conversion needs the quadrature signal of the real input signal, which is calculated internally using the Hilbert transform.\n'...
-        'In this case, it cannot be recovered. (Use the quadrature signal as input or increase Opt.HilbertThreshold to still perform the calculation.)']));
+      error(['SSB conversion needs the quadrature signal of the real input signal, which is calculated internally using the Hilbert transform.\n'...
+        'In this case, it cannot be recovered. (Use the quadrature signal as input or increase Opt.HilbertThreshold to still perform the calculation.)']);
     end
     
   end
@@ -255,21 +219,21 @@ end
 
 % Up/downconversion
 %-----------------------------------------------------------
-if strcmp(Opt.sideband,'+')
+if strcmpi(type,'SSBup') || strcmpi(type,'IQshift') % sign included in LOFreq for IQshift
   LOsign = +1;
-elseif strcmp(Opt.sideband,'-')
+elseif (strcmpi(type,'SSBdown') && LOFreq>0)
   LOsign = -1;
 else
-  if LOFreq > maxFreqIn % upconversion
+  if LOFreq<0 || LOFreq > maxFreqIn % sign already included or upconversion
     LOsign = +1;
   else % downconversion
     LOsign = -1;
   end
 end
-signal_out = signal_rs.*exp(LOsign*2i*pi*LOFreq*tOut);
+signalOut = signal_rs.*exp(LOsign*2i*pi*LOFreq*tOut);
 
-if singleInput && ~isSSB
-  signal_out = real(signal_out);
+if any(strcmpi(type,{'DSB','SSBup','SSBdown','IQmod'}))
+  signalOut = real(signalOut);
 end
 
 % Output, plotting
@@ -277,7 +241,7 @@ end
 switch nargout
   case 0
     subplot(2,1,1);
-    if ~singleInput
+    if ~realInput
       plot(tOut,real(signal_rs),tOut,imag(signal_rs));
       legend('I','Q');
       legend boxoff
@@ -288,28 +252,23 @@ switch nargout
     xlabel('{\itt}');
     ylim([-1.1 1.1]*max(abs(signal_rs)))
     subplot(2,1,2);
-    if ~isreal(signal_out)
-      plot(tOut,real(signal_out),tOut,imag(signal_out));
+    if ~isreal(signalOut)
+      plot(tOut,real(signalOut),tOut,imag(signalOut));
       legend('I','Q');
       legend boxoff
     else
-      plot(tOut,real(signal_out));
+      plot(tOut,real(signalOut));
     end
     title('Output signal');
     xlabel('{\itt}');
-    ylim(1.1*[-1 1]*max(abs(signal_out)));
+    ylim(1.1*[-1 1]*max(abs(signalOut)));
     
   case 1
     error('rfmixer() needs to be called with at least two output arguments.\n')
     
   case 2
     varargout{1} = tOut;
-    varargout{2} = real(signal_out);
-    
-  case 3
-    varargout{1} = tOut;
-    varargout{2} = real(signal_out);
-    varargout{3} = imag(signal_out);
+    varargout{2} = signalOut;
    
   otherwise
     error('rfmixer() cannot return %d output arguments.',nargout);

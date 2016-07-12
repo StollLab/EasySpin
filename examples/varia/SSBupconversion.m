@@ -16,9 +16,9 @@ signalIn = cos(2*pi*freq*tIn); % input cosine function
 LOfreq = 200; % LO frequency for upconversion, MHz
 
 Opt.dtOut = 0.01e-3;
-[tOut,Outboth] = rfmixer(tIn,signalIn,LOfreq,'+-',Opt); % DSB
-[tOut,Outupper] = rfmixer(tIn,signalIn,LOfreq,'+',Opt); % SSB, upper sideband
-[tOut,Outlower] = rfmixer(tIn,signalIn,LOfreq,'-',Opt); % SSB, lower sideband
+[tOut,Outboth] = rfmixer(tIn,signalIn,LOfreq,'DSB',Opt); % DSB
+[tOut,Outupper] = rfmixer(tIn,signalIn,LOfreq,'SSBup',Opt); % SSB, upper sideband
+[tOut,Outlower] = rfmixer(tIn,signalIn,LOfreq,'SSBdown',Opt); % SSB, lower sideband
 
 % Plot
 %--------------------------------------------------------------------
