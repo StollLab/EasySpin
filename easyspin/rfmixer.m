@@ -6,11 +6,11 @@
 %   [tOut,out] = rfmixer(t,in,LOFreq,'-') % single-sideband (SSB) mixer,
 %                                         % lower sideband
 %
-%   [tOut,out] = rfmixer(t,Iin,Qin,LOFreq)               % IQ mixer
+%   [tOut,out] = rfmixer(t,Iin,Qin,LOFreq)            % IQ mixer
 %
-%   [tOut,Iout,Qout] = rfmixer(t,Iin,Qin,LOFreq)         % IQ modulation
+%   [tOut,Iout,Qout] = rfmixer(t,Iin,Qin,LOFreq)      % IQ modulation
 %   [tOut,Iout,Qout] = rfmixer(t,Iin,Qin,LOFreq,'+')
-%   [tOut,Iout,Qout] = rfmixer(t,in,LOFreq,'-')          % IQ demodulation
+%   [tOut,Iout,Qout] = rfmixer(t,in,LOFreq,'-')       % IQ demodulation
 %
 %   rfmixer(...)
 %   ... = rfmixer(...,Opt)
@@ -89,6 +89,8 @@ end
 % Argument parsing
 %-----------------------------------------------------------
 t = varargin{1};
+signal = [];
+
 switch nargin
   case 3    % rfmixer(t,in,LOFreq) % DSB mixer
     signal = varargin{2};
@@ -106,11 +108,10 @@ switch nargin
       Opt = varargin{4};
       Opt.sideband = '+-';
     else % [t,out] = rfmixer(t,Iin,Qin,LOFreq) % IQ mixer, IQ modulation
-      if ~isequal(size(varargin{2}),size(varargin{3}))
-        error('The real and imaginary part of the signal vector must have the same size.')
-      end
-      signal = varargin{2} + 1i*varargin{3};
+      signalI = varargin{2};
+      signalQ = varargin{3};
       LOFreq = varargin{4};
+      Opt = struct;
     end
     
   case 5
@@ -120,27 +121,21 @@ switch nargin
       Opt = varargin{5};
       Opt.sideband = varargin{4};
     elseif isscalar(varargin{4}) && isstruct(varargin{5}) % rfmixer(t,Iin,Qin,LOFreq,Opt) % IQ
-      if ~isequal(size(varargin{2}),size(varargin{3}))
-        error('The real and imaginary part of the signal vector must have the same size.')
-      end
-      signal = varargin{2} + 1i*varargin{3};
+      signalI = varargin{2};
+      signalQ = varargin{3};
       LOFreq = varargin{4};
       Opt = varargin{5};
     elseif ischar(varargin{5}) % rfmixer(t,Iin,Qin,LOfreq,sideband) % IQ
-      if ~isequal(size(varargin{2}),size(varargin{3}))
-        error('The real and imaginary part of the signal vector must have the same size.')
-      end
-      signal = varargin{2} + 1i*varargin{3};
+      signalI = varargin{2};
+      signalQ = varargin{3};
       LOFreq = varargin{4};
       Opt.sideband = varargin{5};
     end
     
   case 6
     if ischar(varargin{5}) && isstruct(varargin{6}) % rfmixer(t,Iin,Qin,LOFreq,sideband,Opt) % IQ
-      if ~isequal(size(varargin{2}),size(varargin{3}))
-        error('The real and imaginary part of the signal vector must have the same size.')
-      end
-      signal = varargin{2} + 1i*varargin{3};
+      signalI = varargin{2};
+      signalQ = varargin{3};
       LOFreq = varargin{4};
       Opt = varargin{6};
       Opt.sideband = varargin{5};
@@ -150,6 +145,15 @@ switch nargin
     error('rfmixer() cannot take %d input arguments.',nargin);
     
 end
+
+% Combine I and Q signal if they are given 
+if isempty(signal)
+  if ~isequal(size(signalI),size(signalQ))
+    error('The in-phase and quadrature signal vectors must have the same size.')
+  end
+  signal = complex(signalI,signalQ);
+end
+singleInput = isreal(signal);
 
 % Input checks
 %-----------------------------------------------------------
@@ -166,7 +170,7 @@ if min(dim)>1 || numel(dim)>2
   error('Input must be a row or column vector.');
 end
 if numel(t)~=numel(signal)
-  error('The signal and its time axis have different lengths.');
+  error('The signal and its time axis must have equal lengths.');
 end
 if size(t)~=size(signal)
   t = reshape(t,size(signal));
@@ -224,7 +228,6 @@ signal_rs = interp1(tIn,signal,tOut,Opt.InterpolationMethod);
 
 % Define I and Q data for real input signals
 %-----------------------------------------------------------
-singleInput = isreal(signal_rs);
 if singleInput
   if isSSB
     
@@ -274,27 +277,27 @@ end
 switch nargout
   case 0
     subplot(2,1,1);
-    if ~isreal(signal)
+    if ~singleInput
       plot(tOut,real(signal_rs),tOut,imag(signal_rs));
-      legend('real','imag');
+      legend('I','Q');
       legend boxoff
     else
       plot(tOut,real(signal_rs));
     end
     title('Input signal');
-    xlabel('{\itt}')
+    xlabel('{\itt}');
     ylim([-1.1 1.1]*max(abs(signal_rs)))
     subplot(2,1,2);
     if ~isreal(signal_out)
       plot(tOut,real(signal_out),tOut,imag(signal_out));
-      legend('real','imag');
+      legend('I','Q');
       legend boxoff
     else
       plot(tOut,real(signal_out));
     end
     title('Output signal');
-    xlabel('{\itt}')
-    ylim([-1.1 1.1]*max(abs(signal_out)))
+    xlabel('{\itt}');
+    ylim(1.1*[-1 1]*max(abs(signal_out)));
     
   case 1
     error('rfmixer() needs to be called with at least two output arguments.\n')
