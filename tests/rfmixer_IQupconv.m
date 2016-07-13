@@ -3,18 +3,18 @@ function [err,data] = test(opt,olddata)
 % Check rfmixer() upconversion for IQ data
 %--------------------------------------------------------------------------
 
-tp = 400; % ns
-t = 0:0.1:tp; % ns
-fsweep = 0.200; % GHz
-fcenter = 0; % GHz
+tp = 0.400; % µs
+t = 0:0.0001:tp; % µs
+fsweep = 200; % MHz
+fcenter = 0; % MHz
 k = fsweep/tp;
 phi = 2*pi*((fcenter-fsweep/2)*t+(k/2)*t.^2);
 signal_bb = exp(1i*phi);
 
-LOfreq = 0.1; % GHz
-[tOut,signal_out] = rfmixer(t,signal_bb,LOfreq,'IQshift');
+mwFreq = 0.1; % GHz
+[tOut,signal_out] = rfmixer(t,signal_bb,mwFreq,'IQshift');
 
-fcenter = LOfreq;
+fcenter = mwFreq*1e3;
 phi_lo = 2*pi*((fcenter-fsweep/2)*tOut+(k/2)*tOut.^2);
 signal_lo = exp(1i*phi_lo);
 

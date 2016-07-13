@@ -17,7 +17,7 @@ Par{1}.Frequency = [-100 100]; % pulse bandwidth, MHz
 Par{1}.nwurst = 8; % truncation parameter, used as (beta/tp)
 Par{1}.Flip = pi/2; % pulse flip angle
 
-[t{1},IQ{1},exprofile{1}] = pulse(Par{1});
+[t{1},IQ{1},exciteprofile{1}] = pulse(Par{1});
 
 % pi pulse
 %-------------------------------------------------------------
@@ -25,7 +25,7 @@ Par{2} = Par{1}; % same pulse shape parameters as the pi/2 pulse
 Par{2}.tp = Par{1}.tp/2; % pulse length, µs
 Par{2}.Flip = pi; % pulse flip angle
 
-[t{2},IQ{2},exprofile{2}] = pulse(Par{2});
+[t{2},IQ{2},exciteprofile{2}] = pulse(Par{2});
 
 % Plot
 %--------------------------------------------------------------------
@@ -54,9 +54,9 @@ axis([t{1}(1) t{1}(end) -1.1*mA 1.1*mA]);
 subplot(2,2,3)
 hold on; box on;
 title('Inversion profiles');
-plot(exprofile{1}.offsets,exprofile{1}.Mx,...
-     exprofile{1}.offsets,exprofile{1}.My,...
-     exprofile{1}.offsets,exprofile{1}.Mz)
+plot(exciteprofile{1}.offsets,exciteprofile{1}.Mx,...
+     exciteprofile{1}.offsets,exciteprofile{1}.My,...
+     exciteprofile{1}.offsets,exciteprofile{1}.Mz)
 xlabel('\Delta\nu (MHz)')
 ylabel('M_i/M_0')
 legend('x','y','z')
@@ -65,9 +65,9 @@ axis tight
 subplot(2,2,4)
 hold on; box on;
 title('Inversion profiles');
-plot(exprofile{2}.offsets,exprofile{2}.Mx,...
-     exprofile{2}.offsets,exprofile{2}.My,...
-     exprofile{2}.offsets,exprofile{2}.Mz)
+plot(exciteprofile{2}.offsets,exciteprofile{2}.Mx,...
+     exciteprofile{2}.offsets,exciteprofile{2}.My,...
+     exciteprofile{2}.offsets,exciteprofile{2}.Mz)
 xlabel('\Delta\nu (MHz)')
 ylabel('M_i/M_0')
 legend('x','y','z')

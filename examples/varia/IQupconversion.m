@@ -15,5 +15,5 @@ Par.Frequency = [-100 100]; % MHz
 
 % Upconversion to an intermediate frequency
 %--------------------------------------------------------------------
-IFfreq = 100; % MHz
-rfmixer(t,y,IFfreq,'IQshift');
+mwFreq = 0.100; % GHz
+rfmixer(t,y,mwFreq,'IQshift');

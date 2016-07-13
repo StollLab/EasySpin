@@ -1,63 +1,71 @@
 % rfmixer  Digital up- or downconversion
 %
-%   [tOut,signalOut] = rfmixer(tIn,signalIn,LOFreq,type) 
-%   [tOut,signalOut] = rfmixer(tIn,signalIn,LOFreq,type,Opt) 
+%   [tOut,signalOut] = rfmixer(tIn,signalIn,mwFreq,type) 
+%   [tOut,signalOut] = rfmixer(tIn,signalIn,mwFreq,type,Opt) 
 %
-%   Mixes the input signal with the LO frequency. Depending on the number
-%   of input and output arguments, the function acts as a double-sideband,
-%   single-sideband or IQ mixer or performs IQ modulation or demodulation.
+%   Mixes the input signal with the LO frequency mwFreq. Depending on the 
+%   selected mixer type, the function acts as a double-sideband (DSB) mixer,
+%   single-sideband (SSB) mixer or performs IQ modulation, demodulation or 
+%   frequency shifting.
+%
 %   Resampling of the input signal before up/downconversion can be
-%   performed if the new sampling time step is given.
+%   performed if the new sampling time step is given in Opt.dt.
 %
 %   If no outputs are requested, the results are plotted.
 %
 %   Input:
-%   - tIn:          time axis, in ns or us
-%   - signalIn:     input signal vector, in-phase part only for DSB,
-%                   SSB or IQ demodulation mode, in-phase and quadrature
-%                   part for IQ mixer and IQ frequency shift operation
-%   - LOFreq:       LO frequency, in GHz if t is in ns, or MHz if t is in us
-%                   (for IQ frequency shifts, the direction of the shift
-%                   has to be included)
-%   - type :        mode of operation, the options are:
-%                   'DSB' = double sideband mixer
-%                   'USB' = single sideband mixer, upper sideband selected
-%                   'LSB' = single sideband mixer, lower sideband selected
-%                   'IQmod' = IQ modulation
-%                   'IQdemod' = IQ demodulation
-%                   'IQshift' = IQ frequency shift (up- or downconversion)
-%   - options:
-%      Opt.dt =    time step for output signal, in ns or us (same as t)
+%   - tIn:        time axis, in 탎
+%   - signalIn:   input signal vector, in-phase part only for DSB,
+%                 SSB or IQ demodulation mode, in-phase and quadrature
+%                 part for IQ mixer and IQ frequency shift operation
+%   - mwFreq:     LO frequency, in GHz
+%                 (for IQ frequency shifts, the direction of the shift
+%                 has to be included)
+%   - type :      mode of operation, the options are:
+%                 'DSB' = double sideband mixer
+%                 'USB' = single sideband mixer, upper sideband selected
+%                 'LSB' = single sideband mixer, lower sideband selected
+%                 'IQmod' = IQ modulator
+%                 'IQdemod' = IQ demodulator
+%                 'IQshift' = IQ frequency shifter (up- or downconversion)
+%   - Options:
+%     Opt.dt =     time step for the output signal, in 탎.
 %                  If no time step for resampling is given and the input
 %                  time axis is too large, a new time step is computed as
 %                  1/(2*Opt.OverSampleFactor*maxfreq).
-%      Opt.OverSampleFactor     = factor for determining new time step in
-%                                 signal resampling (default = 1.25).
-%      Opt.InterpolationMethod  = interpolation method for signal resampling
-%                                 (default = 'spline').
-%      Opt.BandwidthThreshold   = threshold for input bandwidth determination
-%                                 (default = 0.1).
-%      Opt.NoiseCutoffThreshold = threshold for selection of part of the input
-%                                 signal used to compute amplitude and cos(phase)
-%                                 FT overlap (the evaluation of the validity
-%                                 of the Hilbert transform is affected by
-%                                 the noise level in the signal and baseline).
-%      Opt.HilbertThreshold     = threshold for amplitude and phase FT overlap,
-%                                 the Hilbert transform corresponds to the
-%                                 quadrature signal only if amplitude and phase
-%                                 FT do not overlap. If the maximum of the
-%                                 product of the normalized amplitude and
-%                                 phase FT (extracted from real input signal
-%                                 by Hilbert transform) is larger than the
-%                                 specified threshold, recovery of the I and
-%                                 Q data from the real input signal is not
-%                                 possible (default = 0.05).
+%     Opt.OverSampleFactor     = factor for determining new time step in
+%                                signal resampling (default = 1.25).
+%     Opt.InterpolationMethod  = interpolation method for signal resampling
+%                                (default = 'spline').
+%     Opt.BandwidthThreshold   = threshold for input bandwidth determination
+%                                (default = 0.1).
+%     Opt.HilbertThreshold     = threshold for amplitude and phase FT overlap,
+%                                the Hilbert transform corresponds to the
+%                                quadrature signal only if amplitude and phase
+%                                FT do not overlap (Ref. 1). If the maximum of
+%                                the product of the normalized amplitude and
+%                                phase FT (extracted from real input signal
+%                                by Hilbert transform) is larger than the
+%                                specified threshold, recovery of the I and
+%                                Q data from the real input signal is not
+%                                possible (default = 0.05).
+%     Opt.NoiseCutoffThreshold = threshold for selection of part of the input
+%                                signal used to compute amplitude and cos(phase)
+%                                FT overlap (the evaluation of the validity
+%                                of the Hilbert transform is affected by
+%                                the noise level in the signal and baseline).
 %
 %   Output:
-%   - tOut:          time axis for output signal
+%   - tOut:          time axis for the output signal, in 탎.
 %   - signalOut:     output signal vector, in-phase component only for DSB,
 %                    SSB or IQmod, in-phase and quadrature component for
 %                    IQdemod and IQshift
+%
+% References:
+% 1. Bedrosian's product theorem is explained in:
+%    Boashash, B., Estimating and interpreting the instantaneous frequency 
+%    of a signal. I. Fundamentals
+%    Proc. IEEE 80, 520 (1992). (DOI: 10.1109/5.135376)
 %
 
 function varargout = rfmixer(varargin)
@@ -75,13 +83,13 @@ switch nargin
   case 4
     t = varargin{1};
     signal = varargin{2};
-    LOFreq = varargin{3};
+    mwFreq = varargin{3};
     type = varargin{4};
     Opt = struct;
   case 5
     t = varargin{1};
     signal = varargin{2};
-    LOFreq = varargin{3};
+    mwFreq = varargin{3};
     type = varargin{4};
     Opt = varargin{5};
   otherwise
@@ -144,22 +152,22 @@ signalFT = fftshift(fft(signal));
 inputband = f(signalFT>Opt.BandwidthThreshold*max(abs(signalFT)));
 maxFreqIn = max(inputband);
 
-if abs(LOFreq) > maxFreqIn % for upconversion
-  maxFreqOut = abs(LOFreq) + maxFreqIn;
+if abs(mwFreq*1e3) > maxFreqIn % for upconversion
+  maxFreqOut = abs(mwFreq*1e3) + maxFreqIn;
 else % for downconversion
-  maxFreqOut = max([abs(LOFreq) maxFreqIn]);
+  maxFreqOut = max([abs(mwFreq*1e3) maxFreqIn]);
 end
-nyqdt = 1/(2*maxFreqOut); % ns or us, dt for Nyquist criterion
+nyqdt = 1/(2*maxFreqOut); % 탎, dt for Nyquist criterion
 
 tIn = t;
-dtIn = tIn(2) - tIn(1); % input signal time step, in ns or us
+dtIn = tIn(2) - tIn(1); % input signal time step, in 탎
 if isfield(Opt,'dt')
   if Opt.dt>nyqdt
     fprintf('Warning: Maximum frequency exceeds Nyquist frequency for specified resampling time step.\n')
   end
 else
   if dtIn > nyqdt
-    Opt.dt = 1/(2*Opt.OverSampleFactor*maxFreqOut); % default resampling time step, in ns or us
+    Opt.dt = 1/(2*Opt.OverSampleFactor*maxFreqOut); % default resampling time step, in 탎
   else
     Opt.dt = dtIn;
   end
@@ -198,18 +206,18 @@ end
 
 % Up/downconversion
 %-----------------------------------------------------------
-if strcmpi(type,'USB') || strcmpi(type,'IQshift') % sign included in LOFreq for IQshift
+if strcmpi(type,'USB') || strcmpi(type,'IQshift') % sign included in mwFreq for IQshift
   LOsign = +1;
-elseif (strcmpi(type,'LSB') && LOFreq>0)
+elseif (strcmpi(type,'LSB') && mwFreq>0)
   LOsign = -1;
 else
-  if LOFreq<0 || LOFreq > maxFreqIn % sign already included or upconversion
+  if mwFreq<0 || mwFreq*1e3 > maxFreqIn % sign already included or upconversion
     LOsign = +1;
   else % downconversion
     LOsign = -1;
   end
 end
-signalOut = signal_rs.*exp(LOsign*2i*pi*LOFreq*tOut);
+signalOut = signal_rs.*exp(LOsign*2i*pi*mwFreq*1e3*tOut);
 
 if any(strcmpi(type,{'DSB','USB','LSB','IQmod'}))
   signalOut = real(signalOut);
@@ -228,7 +236,7 @@ switch nargout
       plot(tOut,real(signal_rs));
     end
     title('Input signal');
-    xlabel('{\itt}');
+    xlabel('{\itt} (\mus)');
     ylim([-1.1 1.1]*max(abs(signal_rs)))
     subplot(2,1,2);
     if ~isreal(signalOut)
@@ -239,7 +247,7 @@ switch nargout
       plot(tOut,real(signalOut));
     end
     title('Output signal');
-    xlabel('{\itt}');
+    xlabel('{\itt} (\mus)');
     ylim(1.1*[-1 1]*max(abs(signalOut)));
     
   case 1

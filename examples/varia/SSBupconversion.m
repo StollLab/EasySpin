@@ -13,12 +13,12 @@ tIn = 0:0.0001:0.200; % time axis, µs
 freq = 20; % input signal frequency, MHz
 signalIn = cos(2*pi*freq*tIn); % input cosine function
 
-LOfreq = 200; % LO frequency for upconversion, MHz
+mwFreq = 0.200; % LO frequency for upconversion, GHz
 
 Opt.dtOut = 0.01e-3;
-[tOut,Outboth] = rfmixer(tIn,signalIn,LOfreq,'DSB',Opt); % DSB
-[tOut,Outupper] = rfmixer(tIn,signalIn,LOfreq,'USB',Opt); % SSB, upper sideband
-[tOut,Outlower] = rfmixer(tIn,signalIn,LOfreq,'LSB',Opt); % SSB, lower sideband
+[tOut,Outboth] = rfmixer(tIn,signalIn,mwFreq,'DSB',Opt); % DSB
+[tOut,Outupper] = rfmixer(tIn,signalIn,mwFreq,'USB',Opt); % SSB, upper sideband
+[tOut,Outlower] = rfmixer(tIn,signalIn,mwFreq,'LSB',Opt); % SSB, lower sideband
 
 % Plot
 %--------------------------------------------------------------------

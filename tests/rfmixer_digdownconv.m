@@ -3,18 +3,18 @@ function [err,data] = test(opt,olddata)
 % Check rfmixer() digital downconversion
 %--------------------------------------------------------------------------
 
-dt = 0.2; % ns
-t = 0:dt:500; % ns
+dt = 0.0002; % µs
+t = 0:dt:0.500; % µs
 x0 = t(end)/2;
-w = 100; % ns
-IFfreq = 0.5; % GHz
+w = 0.100; % µs
+mwFreq = 0.5; % GHz
 amplitude = gaussian(t,x0,w);
-modulation = cos(2*pi*IFfreq*t);
+modulation = cos(2*pi*mwFreq*1e3*t);
 
 echo = amplitude.*modulation;
 
-[tOut,signalOut] = rfmixer(t,echo,IFfreq,'IQdemod');
+[tOut,signalOut] = rfmixer(t,echo,mwFreq,'IQdemod');
 
-err = ~areequal(amplitude,real(signalOut));
+err = ~areequal(amplitude,real(signalOut),1e-7);
 
 data = [];

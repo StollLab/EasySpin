@@ -39,8 +39,8 @@ Calculates pulse shapes and pulse excitation profiles.
 pulse(Par)
 pulse(Par,Opt)
 [t,IQ] = pulse(...)
-[t,IQ,exprofile] = pulse(...)
-[t,IQ,exprofile,modulation] = pulse(...)
+[t,IQ,exciteprofile] = pulse(...)
+[t,IQ,exciteprofile,modulation] = pulse(...)
 </pre>
 
 <!-- ============================================================= -->
@@ -51,14 +51,14 @@ This function calculates pulse shapes and pulse excitation profiles.
 </p>
 
 <p>
-The output contains the time axis data in <code>t</code> (time in microseconds). <code>IQ</code> contains the pulse shape data with the in-phase data in the real component and the quadrature data in the imaginary component. For real-valued pulses only the in-phase data is returned.
+The output contains the time axis data in <code>t</code> (time in microseconds). <code>IQ</code> contains the pulse shape data with the in-phase component in the real part and the quadrature component in the imaginary part. For real-valued pulses, only the in-phase data is returned.
 </p>
 
 <p>
-If a third output argument is specified, the pulse excitation profile calculated and returned in the structure <code>exprofile</code>:
+If a third output argument is specified, the pulse excitation profile is calculated and returned in the structure <code>exciteprofile</code>:
 <ul>
-<li><code>exprofile.offsets</code>: axis of frequency offsets (in MHz)
-<li><code>exprofile.Mx</code>, <code>exprofile.My</code>, <code>exprofile.Mz</code>: components of the magnetization vector after the pulse, calculated using two-level density matrix dynamics.
+<li><code>exciteprofile.offsets</code>: axis of frequency offsets (in MHz)
+<li><code>exciteprofile.Mx</code>, <code>exciteprofile.My</code>, <code>exciteprofile.Mz</code>: components of the magnetization vector after the pulse, calculated using two-level density matrix dynamics.
 </ul>
 </p>
 
@@ -76,7 +76,7 @@ If you don't request any output, <code>pulse</code> plots the calculated pulse s
 </p>
 
 <p>
-The possible input arguments to the function are
+The possible input arguments to the function are:
 <ul>
 <li><code>Par</code>: structure containing pulse parameter definitions
 <li><code>Opt</code>: structure containing options for the calculation
@@ -97,7 +97,7 @@ Time step for the definition of the waveform, in microseconds. If this parameter
 
 <div class="optionfield"><code>Flip</code></div>
 <div class="optiondescr">
-Pulse flip angle, in radians. This is used to calculate the pulse amplitude. If absent, <code>Par.Flip=pi</code> is used as default.
+Pulse flip angle, in radians. This is used to calculate the pulse amplitude. If absent, <code>Par.Flip = pi</code> is used as default.
 
 <p>
 The pulse amplitude is calculated from the flip angle and pulse parameters using the integral for amplitude-modulated pulses and using the procedure described in Jeschke, G., Pribitzer, S., Doll, A. Coherence Transfer by Passage Pulses in Electron Paramagnetic Resonance Spectroscopy. <i>J. Phys. Chem. B</i> 119, 13570–13582 (<b>2015</b>) (DOI: <a href="http://dx.doi.org/10.1021/acs.jpcb.5b02964">10.1021/acs.jpcb.5b02964</a>) for frequency-modulated pulses.
@@ -120,13 +120,13 @@ Pulse phase, in radians, <i>e.g.</i> <code>0</code> for +x, <code>pi/2</code> fo
 
 <div class="optionfield"><code>Type</code></div>
 <div class="optiondescr">
-Pulse shape name in a string structured as 'AM/FM' (or just 'AM'), where AM refers to the amplitude modulation function and FM to the frequency modulation function. The different options are listed below.
+Pulse shape name in a string structured as <code>'AM/FM'</code> (or just <code>'AM'</code>), where AM refers to the amplitude modulation function and FM to the frequency modulation function. The different options are listed below.
 </div>
 
 <div class="optionfield"><code>I</code>, <code>Q</code>
 </div>
 <div class="optiondescr">
-I and Q data describing arbitrary pulse shapes not included in the predefined options listed below. If only the in-phase component is defined, the quadrature component is set to zero. The time axis is reconstructed based on <code>Par.tp</code> and the length of the I and Q vectors, all other input parameters (<code>Par.Amplitude</code>, <code>Par.Flip</code>, <code>Par.Frequency</code>, <code>Par.Phase</code>, etc.) are ignored.
+I and Q data describing arbitrary pulse shapes not included in the predefined options listed below. If only the in-phase component is defined, the quadrature component is set to zero. The time axis is reconstructed based on <code>Par.tp</code> and the length of the I and Q vectors. All other input parameters (<code>Par.Amplitude</code>, <code>Par.Flip</code>, <code>Par.Frequency</code>, <code>Par.Phase</code>, etc.) are ignored.
 </div>
 
 <p>
@@ -156,7 +156,10 @@ Depending on the AM function, additional fields need to be specified:
 <li><code>'sech'</code>
 <ul style="list-style-type:none;padding:5px;">
 <li><code>beta</code> - dimensionless truncation parameter (used as <code>beta/tp</code>)
-<li><code>n</code> - exponent of the secant function argument (default = 1); asymmetric sech pulses can be obtained by specifying two values for <code>n</code>
+<li><code>n</code> - exponent of the secant function argument (default = 1)
+<p>
+asymmetric sech pulses can be obtained by specifying two values for <code>n</code>
+</p>
 </ul>
 <li><code>'WURST'</code>
 <ul style="list-style-type:none;padding:5px;">
@@ -170,6 +173,7 @@ Depending on the AM function, additional fields need to be specified:
 </p>
 
 <p>
+For the definition of the FM functions, in all cases the frequency sweep range needs to be defined in <code>Par.Frequency</code> with start and end frequencies.
 Also, depending on the FM function, the following additional fields are required:
 <ul>
 <li><code>'none'</code>
@@ -190,25 +194,21 @@ The frequency modulation is calculated as the integral of the squared amplitude 
 </ul>
 
 <p>
-For all frequency-modulated pulses, the frequency sweep range needs to be defined in <code>Par.Frequency</code> with start and end frequencies.
-</p>
-
-<p>
-Compensation for resonator bandwidth is implemented for the following types of pulses: <code>'rectangular/linear'</code>, <code>'quartersin/linear'</code>, <code>'sech/tanh'</code> and <code>'sech/uniformQ'</code>. 
+Compensation for the resonator bandwidth is available for the following types of pulses: <code>'rectangular/linear'</code>, <code>'quartersin/linear'</code>, <code>'sech/tanh'</code> and <code>'sech/uniformQ'</code>. This option can be selected by setting <code>Opt.BWCompensation = 1</code>.
 The rate of frequency modulation is adapted to compensate for the resonator profile. The compensation is implemented as described in Doll, A., Pribitzer, S., Tschaggelar, R., Jeschke, G., Adiabatic and fast passage ultra-wideband inversion in pulsed EPR, <i>J. Magn. Reson.</i> 230, 27-39 (<b>2013</b>) (DOI: <a href="http://dx.doi.org/10.1016/j.jmr.2013.01.002">10.1016/j.jmr.2013.01.002</a>) and Pribitzer, S., Doll, A., Jeschke, G., SPIDYAN, a MATLAB library for simulating pulse EPR experiments with arbitrary waveform excitation. <i>J. Magn. Reson.</i> 263, 45-54 (<b>2016</b>) (DOI: <a href="http://dx.doi.org/10.1016/j.jmr.2015.12.014">10.1016/j.jmr.2015.12.014</a>).
 </p>
 
 <p>
-The following additional parameters have to be included in the <code>Par</code> structure:
+If the bandwidth compensation option is selected, the following additional parameters have to be included in the <code>Par</code> structure:
 
-<div class="optionfield"><code>v1</code></div>
+<div class="optionfield"><code>MagnitudeResponse</code></div>
 <div class="optiondescr">
 Resonator magnitude response function (ideal or experimental).
 </div>
 
-<div class="optionfield"><code>freqaxis</code></div>
+<div class="optionfield"><code>faxis</code></div>
 <div class="optiondescr">
-Corresponding frequency axis. in MHz.
+Corresponding frequency axis, in MHz.
 </div>
 
 <div class="optionfield"><code>mwFreq</code></div>
@@ -221,7 +221,12 @@ The parameters in the <code>Opt</code> structure define different settings for t
 
 <div class="optionfield"><code>IQ</code></div>
 <div class="optiondescr">
-Complex-valued, <i>i.e.</i> with in-phase and quadrature components, (<code>=1</code>) or real-valued (<code>=0</code>) pulses. The default is <code>Opt.IQ = 1</code>.
+Complex-valued, <i>i.e.</i> with in-phase and quadrature components, (<code>= 1</code>) or real-valued (<code>= 0</code>) pulses. The default is <code>Opt.IQ = 1</code>.
+</div>
+
+<div class="optionfield"><code>BWCompensation</code></div>
+<div class="optiondescr">
+Turn resonator bandwidth compensation on/off. Available for <code>'rectangular/linear'</code>, <code>'quartersin/linear'</code>, <code>'sech/tanh'</code> and <code>'sech/uniformQ'</code> pulses. If this option is selected, the parameters defining the resonator magnitude response function need to be defined (<code>Par.mwFreq</code>, <code>Par.MagnitudeResponse</code> and <code>Par.faxis</code>, see above).  Bandwidth compensation is turned off by default.
 </div>
 
 <div class="optionfield"><code>OverSampleFactor</code></div>
@@ -231,7 +236,7 @@ Oversampling factor for the automatic determination of the time step (default = 
 
 <div class="optionfield"><code>Offsets</code></div>
 <div class="optiondescr">
-Axis of frequency offsets (in MHz) for which to compute the excitation profile (by default the frequency axis is defined over the range of approximately twice the pulse bandwidth around the center frequency with 201 points).
+Axis of frequency offsets (in MHz) for which to compute the excitation profile (by default the frequency axis is defined over a range of approximately twice the pulse bandwidth around the center frequency with 201 points).
 </div>
 
 <!-- ============================================================= -->

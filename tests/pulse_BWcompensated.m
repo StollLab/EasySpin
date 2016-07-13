@@ -18,11 +18,11 @@ QL = 200; % Q-factor
 f0 = 9:0.010:10; % GHz
 v1 = abs(1./(1+1i*QL*(f0/Params.mwFreq-Params.mwFreq./f0)));
 
-Params.v1 = v1;
-Params.freqaxis = f0*10^3;
+Params.MagnitudeResponse = v1;
+Params.faxis = f0*10^3;
 
 [t,IQ1] = pulse(Params);
-Opt.BWcomp = 1;
+Opt.BWCompensation = 1;
 [t,IQ2] = pulse(Params,Opt);
 
 % Calculation
@@ -74,11 +74,11 @@ dipfreq = 9.35;
 v1 = abs(1./(1+1i*QL*(f0/dipfreq-dipfreq./f0)));
 
 Params.mwFreq = 9.34; % GHz
-Params.v1 = v1;
-Params.freqaxis = f0*10^3;
+Params.MagnitudeResponse = v1;
+Params.faxis = f0*10^3;
 
 [t,IQ1] = pulse(Params);
-Opt.BWcomp = 1;
+Opt.BWCompensation = 1;
 [t,IQ2] = pulse(Params,Opt);
 
 % Calculation

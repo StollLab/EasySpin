@@ -23,7 +23,7 @@ for n = 1:nmax
   Par.n = n;
   Par.Flip = pi; % pulse flip angle
   
-  [t{n},IQ{n},exprofile{n},modulation{n}] = pulse(Par);
+  [t{n},IQ{n},exciteprofile{n},modulation{n}] = pulse(Par);
   
   % Plot
   %-------------------------------------------------------------  
@@ -49,12 +49,12 @@ for n = 1:nmax
   title('Excitation profile')
   if n==1
     line([0 0],[-1 1],'Color',[1 1 1]*0.8);
-    line([min(exprofile{n}.offsets) max(exprofile{n}.offsets)],...
+    line([min(exciteprofile{n}.offsets) max(exciteprofile{n}.offsets)],...
          [0 0],'Color',[1 1 1]*0.8);
     line([1 1]*Par.Frequency(1),[-1 1],'Color',[1 1 1]*0.8);
     line([1 1]*Par.Frequency(2),[-1 1],'Color',[1 1 1]*0.8);
   end
-  plot(exprofile{n}.offsets,exprofile{n}.Mz,'Color',cc(n,:));
+  plot(exciteprofile{n}.offsets,exciteprofile{n}.Mz,'Color',cc(n,:));
   xlabel('t (\mus)')
   ylabel('M_z/M_0')
   axis tight

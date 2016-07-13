@@ -4,32 +4,28 @@ function [err,data] = test(opt,olddata)
 %--------------------------------------------------------------------------
 
 % With resampling
-t = 0:1:600; % ns
-f = 0.010; % GHz
+t = 0:0.1e-3:0.600; % µs
+f = 10; % MHz
 signalIn = cos(2*pi*f*t);
-LOfreq = 0.500; % GHz
+mwFreq = 0.200000; % GHz
 
 % DSB
-[tOut,signal_dsb1] = rfmixer(t,signalIn,LOfreq,'DSB');
+[tOut,signal_dsb1] = rfmixer(t,signalIn,mwFreq,'DSB');
 
-signal_dsb2 = 0.5*(cos(2*pi*(f+LOfreq)*tOut)+cos(2*pi*(f-LOfreq)*tOut));
+signal_dsb2 = 0.5*(cos(2*pi*(f+mwFreq*1e3)*tOut)+cos(2*pi*(f-mwFreq*1e3)*tOut));
 
 % Without resampling
-t = 0:0.1:600; % ns
-f = 0.010; % GHz
-signalIn = cos(2*pi*f*t);
-LOfreq = 0.500; % GHz
 
 % SSB (upper)
-opt.dt = t(2)-t(1);
-[tOut,signal_usb1] = rfmixer(t,signalIn,LOfreq,'USB',opt);
+Opt.dt = t(2)-t(1);
+[tOut,signal_usb1] = rfmixer(t,signalIn,mwFreq,'USB',Opt);
 
-signal_usb2 = cos(2*pi*(f+LOfreq)*tOut);
+signal_usb2 = cos(2*pi*(f+mwFreq*1e3)*tOut);
 
 % SSB (lower)
-[tOut,signal_lsb1] = rfmixer(t,signalIn,LOfreq,'LSB',opt);
+[tOut,signal_lsb1] = rfmixer(t,signalIn,mwFreq,'LSB',Opt);
 
-signal_lsb2 = cos(2*pi*(f-LOfreq)*tOut);
+signal_lsb2 = cos(2*pi*(f-mwFreq*1e3)*tOut);
 
 err(1) = ~areequal(signal_dsb1,signal_dsb2,1e-6);
 err(2) = ~areequal(signal_usb1,signal_usb2,1e-2);

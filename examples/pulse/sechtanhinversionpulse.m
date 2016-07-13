@@ -17,7 +17,7 @@ Par{1}.Flip = pi; % pulse flip angle
 
 Opt.Offsets = -200:1:200;
 
-[t{1},IQ{1},exprofile{1},modulation{1}] = pulse(Par{1},Opt);
+[t{1},IQ{1},exciteprofile{1},modulation{1}] = pulse(Par{1},Opt);
 
 % Rectangular pulse
 %-------------------------------------------------------------
@@ -28,7 +28,7 @@ Par{2}.Amplitude = max(modulation{1}.A); % pulse amplitude, MHz
 tp = pi/(2*pi*Par{2}.Amplitude); % pulse length = flip angle/amplitude, µs
 Par{2}.tp = round(tp*1e3)/1e3;
 
-[t{2},IQ{2},exprofile{2}] = pulse(Par{2},Opt);
+[t{2},IQ{2},exciteprofile{2}] = pulse(Par{2},Opt);
 
 % Plot
 %--------------------------------------------------------------------
@@ -57,8 +57,8 @@ axis([t{1}(1) t{1}(end) -1.1*mA 1.1*mA]);
 subplot(3,1,3)
 hold on; box on;
 title('Inversion profiles');
-plot(exprofile{2}.offsets,exprofile{2}.Mz,...
-     exprofile{1}.offsets,exprofile{1}.Mz)
+plot(exciteprofile{2}.offsets,exciteprofile{2}.Mz,...
+     exciteprofile{1}.offsets,exciteprofile{1}.Mz)
 xlabel('\Delta\nu (MHz)')
 ylabel('M_z/M_0')
 legend('rectangular','sech/tanh')
