@@ -44,12 +44,8 @@ Digital up- or downconversion.
 <div class="subtitle">Description</div>
 
 <p>
-This function mixes the input signal (<code>signalIn</code> as a function of the time axis <code>tIn</code>) with the microwave frequency (LO) specified in the field <code>mwFreq</code>. Depending on the selected mixer type, the function acts as a double-sideband (DSB) mixer, single-sideband (SSB) mixer or performs IQ modulation, demodulation or frequency shifting.
+This function mixes the input signal (<code>signalIn</code> as a function of the time axis <code>tIn</code>) with the LO frequency specified in the field <code>mwFreq</code>. Depending on the selected mixer type, the function acts as a double-sideband (DSB) mixer, single-sideband (SSB) mixer or performs IQ modulation, demodulation or frequency shifting.
 </p>
-
-<div align="center">
-<img src="img/rfmixer.png" width="930">
-</div>
 
 <p>
 The output contains the time axis data in <code>tOut</code> (in microseconds) and the output signal in <code>signalOut</code>. 
@@ -80,7 +76,7 @@ Input signal. In-phase (real) signal for up/downconversion (IF or RF) for DSB or
 
 <div class="optionfield"><code>mwFreq</code></div>
 <div class="optiondescr">
-Microwave frequency (LO), in GHz. For the <code>'IQshift'</code> option, the sign indicating the direction of the frequency shift needs to be included.
+LO frequency, in GHz. For the <code>'IQshift'</code> option, the sign indicating the direction of the frequency shift needs to be included.
 </div>
 
 <div class="optionfield"><code>type</code></div>
@@ -150,8 +146,63 @@ S_\text{out} = S_\text{in} \exp\left[\pm 2i\pi \nu_\text{LO} t \right]
 </div>
 
 <p>
-For single-sideband up/downconversion, the quadrature signal is constructed from the real input signal by Hilbert transform. The Hilbert transform corresponds to the quadrature signal only if the Fourier transforms of the amplitude and phase contributions to the input signal do not overlap (Bedrosian's product theorem, see Boashash, B., Estimating and interpreting the instantaneous frequency of a signal. I. Fundamentals. <i>Proc. IEEE</i> 80, 520 (<b>1992</b>), DOI: <a href="http://dx.doi.org/10.1109/5.135376">10.1109/5.135376</a>). <code>rfmixer</code> checks for validity of this assumption and returns an error if it is not satisfied. In some cases, noise contributions to the signal lead to increased overlap. The calculation can still be performed by increasing the <code>Opt.HilbertThreshold</code> parameter.
+For single-sideband up/downconversion and IQ demodulation, the quadrature signal is constructed from the real input signal by Hilbert transform. The Hilbert transform corresponds to the quadrature signal only if the Fourier transforms of the amplitude and phase contributions to the input signal do not overlap (Bedrosian's product theorem, see Boashash, B., Estimating and interpreting the instantaneous frequency of a signal. I. Fundamentals. <i>Proc. IEEE</i> 80, 520 (<b>1992</b>), DOI: <a href="http://dx.doi.org/10.1109/5.135376">10.1109/5.135376</a>). <code>rfmixer</code> checks for validity of this assumption and returns an error if it is not satisfied. In some cases, noise contributions to the signal lead to increased overlap. The calculation can still be performed if the <code>Opt.HilbertThreshold</code> parameter is increased.
 </p>
+
+<p> The different options available in <code>rfmixer</code> are listed below with schematic block diagrams of the corresponding types of mixers and a simple example of operation.
+<ul>
+<li>Double sideband mixer (<code>'DSB'</code>)
+
+<p>
+<div>
+<img src="img/rfmixer_DSB.png" width="330">
+</div>
+</p>
+
+<li>Single sideband mixer with selection of the lower sideband (<code>'LSB'</code>)
+
+<p>
+<div>
+<img src="img/rfmixer_LSB.png" width="330">
+</div>
+</p>
+
+<li>Single sideband mixer with selection of the upper sideband (<code>'USB'</code>)
+
+<p>
+<div>
+<img src="img/rfmixer_USB.png" width="330">
+</div>
+</p>
+
+<li>IQ modulator (<code>'IQmod'</code>)
+
+<p>
+<div>
+<img src="img/rfmixer_IQmod.png" width="330">
+</div>
+</p>
+
+<li>IQ demodulator (<code>'IQdemod'</code>)
+
+<p>
+<div>
+<img src="img/rfmixer_IQdemod.png" width="330">
+</div>
+</p>
+
+<li>IQ frequency shifter (<code>'IQshift'</code>)
+
+<p>
+<div>
+<img src="img/rfmixer_IQshift.png" width="330">
+</div>
+</p>
+
+</ul>
+
+
+
 
 
 <!-- ============================================================= -->

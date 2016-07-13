@@ -149,7 +149,7 @@ if ~isfield(Opt,'HilbertThreshold'), Opt.HilbertThreshold = 0.05; end
 % Determine max frequency of input and output signals
 f = fdaxis(t); % GHz or MHz
 signalFT = fftshift(fft(signal));
-inputband = f(signalFT>Opt.BandwidthThreshold*max(abs(signalFT)));
+inputband = f(abs(signalFT)>Opt.BandwidthThreshold*max(abs(signalFT)));
 maxFreqIn = max(inputband);
 
 if abs(mwFreq*1e3) > maxFreqIn % for upconversion
@@ -206,18 +206,14 @@ end
 
 % Up/downconversion
 %-----------------------------------------------------------
-if strcmpi(type,'USB') || strcmpi(type,'IQshift') % sign included in mwFreq for IQshift
-  LOsign = +1;
-elseif (strcmpi(type,'LSB') && mwFreq>0)
-  LOsign = -1;
+if strcmpi(type,'USB')
+  LO = abs(mwFreq);
+elseif strcmpi(type,'LSB') || strcmpi(type,'IQdemod')
+  LO = -abs(mwFreq);
 else
-  if mwFreq<0 || mwFreq*1e3 > maxFreqIn % sign already included or upconversion
-    LOsign = +1;
-  else % downconversion
-    LOsign = -1;
-  end
+  LO = mwFreq;
 end
-signalOut = signal_rs.*exp(LOsign*2i*pi*mwFreq*1e3*tOut);
+signalOut = signal_rs.*exp(2i*pi*LO*1e3*tOut);
 
 if any(strcmpi(type,{'DSB','USB','LSB','IQmod'}))
   signalOut = real(signalOut);
