@@ -772,18 +772,20 @@ switch Options.AccumMethod
     dxFine = xAxisFine(2) - xAxisFine(1);
     
     xT = 1e5;
-    wT = xT/10; % 0.0025 at borders for Harmonic = -1
-    Template = lorentzian(0:2*xT-1,xT,wT,-1);
+    wT = xT/20; % 0.0025 at borders for Harmonic = -1
+    Template = lorentzian(0:2*xT-1,xT,wT,Exp.Harmonic-1);
     if numel(LorentzianLw)==1
       LorentzianLw = LorentzianLw*ones(size(Positions));
     end
     spec = lisum1i(Template,xT,wT,Positions,Intensities,LorentzianLw,xAxisFine);
+    Exp.ConvHarmonic = 0;
+    LorentzianLw = 0;
 
   case 'explicit'
     % Accumulate spectrum by explicit evaluation of lineshape function
     
     logmsg(1,'Constructing spectrum with explicit Lorentzian lineshapes...');
-        
+    
     dxFine = min(xAxis(2)-xAxis(1),min(LorentzianLw)/5);
     nPointsFine = round((SweepRange(2)-SweepRange(1))/dxFine+1);
     xAxisFine = linspace(SweepRange(1),SweepRange(2),nPointsFine);
@@ -801,6 +803,7 @@ switch Options.AccumMethod
     end
     Exp.mwPhase = 0;
     Exp.ConvHarmonic = 0;
+    LorentzianLw = 0;
     
   case 'binning'
     % Accumulate spectrum by binning of delta peaks
@@ -828,7 +831,7 @@ end
 %-------------------------------------------------------------------
 if (ConvolutionBroadening)
   
-  fwhmL = Sys.lw(2);
+  fwhmL = LorentzianLw;
   fwhmG = Sys.lw(1);
   if (fwhmL>0)
     HarmonicL = Exp.ConvHarmonic;
