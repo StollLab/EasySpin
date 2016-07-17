@@ -54,7 +54,7 @@ suberr(6) = ~areequal(Mz(2,:),exprofile(2).Mz,1e-12);
 err(1) = any(suberr);
 
 % Sinc pulse
-clear Params
+clear Params Mx My Mz
 Params.tp = 0.200; % us
 Params.Flip = pi;
 Params.Type = 'sinc';
@@ -95,7 +95,7 @@ end
 err(2) = ~areequal(Mz,exprofile.Mz,0.5e-1);
 
 % 1st order sech/tanh with frequency offset
-clearvars -except err
+clear Params Mx My Mz
 Params.tp = 0.200; % us
 Params.Type = 'sech/tanh';
 Params.Frequency = [50 -50] + 60; % MHz

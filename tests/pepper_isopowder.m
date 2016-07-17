@@ -10,7 +10,7 @@ Sys.lw = 30;
 Exp.Field = 350;
 Exp.Harmonic = 0;
 Exp.mwRange = [9.2 11];
-Exp.nPoints = 10000;
+Exp.nPoints = 50000;
 
 % (1) Powder averaging (zone projection)
 Opt.Symmetry = 'Dinfh';
@@ -30,6 +30,6 @@ if opt.Display
   legend boxoff
 end
 
-thresh = 1e-4*max(y0);
+thresh = 1e-2*max(y0);
 err = ~areequal(y0,y1,thresh) || ~areequal(y0,y2,thresh);
 data = [];
