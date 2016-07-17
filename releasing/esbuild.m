@@ -4,9 +4,9 @@ function esbuild
 %===========================================================
 
 ReleaseID = '5.1.0'; % major.minor.patch
-betaVersion = true;
+betaVersion = false;
 packDevtree = false;
-ExpiryDate = '30-Jun-2017';
+ExpiryDate = '31-Dec-2017';
 HorizonDate = '31-Dec-2021';
 
 baseDir = 'C:\Users\abc\Documents\work';

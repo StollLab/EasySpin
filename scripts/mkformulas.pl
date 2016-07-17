@@ -2,7 +2,7 @@
 
 $noparams = ($#ARGV+1==0);
 
-$HTMLdir = '../documentation';
+$HTMLdir = '../docs';
 $pngdir = $HTMLdir.'/eqn';
 
 $templatefile = "template.tex";
