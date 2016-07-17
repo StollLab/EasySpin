@@ -15,8 +15,8 @@
 %                       (default: pi)
 %     Par.Amplitude   = pulse amplitude, in MHz; ignored if Par.Flip given
 %     Par.Frequency   = pulse frequency; center frequency for amplitude
-%                       modulated pulses, start and end frequency for
-%                       frequency swept pulses; (default: 0)
+%                       modulated pulses, [start-frequency end-frequency]
+%                       for frequency swept pulses; (default: 0)
 %     Par.Phase       = phase for the pulse in radians (default: 0 = +x)
 %     Par.Type        = pulse shape name in a string with structure 'AM/FM'
 %                       (or just 'AM'), where AM refers to the amplitude
@@ -100,9 +100,10 @@
 %           IQ          = real and imaginary part of the pulse function
 %           If three or four output arguments are requested, the excitation
 %           profile is calculated. Additional output fields are:
-%           exprof     = structure with frequency offset axis (exprof.offsets)
-%                        for excitation profile in MHz and excitation
-%                        profile (Mi/M0, i = x,y,z, exprof.Mx, exprof.My, exprof.Mz)
+%           exciteprofile  = structure with frequency offset axis
+%                        (exciteprofile.offsets) for excitation profile in
+%                        MHz and excitation profile (Mi/M0, i = x,y,z,
+%                        exciteprofile.Mx, exciteprofile.My, exciteprofile.Mz)
 %           modulation = structure with amplitude (modulation.A, in MHz),
 %                        frequency (modulation.freq, in MHz) and phase
 %                        (modulation.phase, in rad) modulation functions
@@ -158,9 +159,11 @@ end
 plotResults = (nargout==0);
 
 if plotResults
-  Opt.ExciteProfile = true;
+  calculateExciteProfile = true;
 elseif ~isfield(Opt,'ExciteProfile')
-  Opt.ExciteProfile = (nargout==3) || (nargout==4);
+  calculateExciteProfile = (nargout==3) || (nargout==4);
+else
+  calculateExciteProfile = Opt.ExciteProfile;
 end
 
 % Set parameters to defaults
@@ -189,7 +192,7 @@ end
 % Options
 % ----------------------------------------------------------------------- %
 if ~isfield(Opt,'IQ')
-  Opt.IQ = 1;
+  Opt.IQ = true;
 end
 if ~isfield(Opt,'BWCompensation')
   Opt.BWCompensation = 0;
@@ -209,7 +212,7 @@ exprof = struct;
 
 % Check if pulse I and Q data is given
 if (isfield(Par,'I') && ~isempty(Par.I)) || ...
-    (isfield(Par,'Q') && ~isempty(Par.Q))
+   (isfield(Par,'Q') && ~isempty(Par.Q))
   
   if ~isfield(Par,'Type') || isempty(Par.Type)
     Par.Type = 'user-IQ';
@@ -237,7 +240,7 @@ if (isfield(Par,'I') && ~isempty(Par.I)) || ...
   
   % Estimate pulse bandwidth (for offset range determination)
   % --------------------------------------------------------------------- %
-  if ~isfield(Opt,'Offsets') && Opt.ExciteProfile
+  if ~isfield(Opt,'Offsets') && calculateExciteProfile
     
     % Fourier transform
     if nextpow2(numel(t))<10
@@ -383,7 +386,7 @@ else
     warning('For uniform adiabaticity pulses with nth order sech amplitude modulation use Par.Type = ''sech/uniformQ''.');
   end
   
-  if Opt.BWCompensation==1
+  if Opt.BWCompensation
     
     % Bandwidth compensation is implemented for these pulses
     if (strcmp(FrequencyModulation,'linear') && (strcmp(AmplitudeModulation,'rectangular') || strcmp(AmplitudeModulation,'quartersin'))) || ...
@@ -409,7 +412,7 @@ else
    
   % Estimate pulse bandwidth (for timestep and offset range determination)
   % --------------------------------------------------------------------- %
-  if ~isfield(Par,'TimeStep') || (~isfield(Opt,'Offsets') && Opt.ExciteProfile)
+  if ~isfield(Par,'TimeStep') || (~isfield(Opt,'Offsets') && calculateExciteProfile)
     
     % Determine bandwidth of frequency modulation
     switch FrequencyModulation
@@ -431,8 +434,9 @@ else
         case 'gaussian'
           A0 = A0.*exp(-(4*log(2)*ti0.^2)/Par.tFWHM^2);
         case 'sinc'
-          A1 = sin((2*pi*ti0)/Par.zerocross)./((2*pi*ti0)/Par.zerocross);
-          A1(round(Par.tp/(2*dt))+1) = 1;
+          x_ = (2*pi*ti0)/Par.zerocross;
+          A1 = sin(x_)./x_;
+          A1(isnan(A1)) = 1;
           A0 = A0.*(A1/max(A1));
         case 'quartersin'
           % Pulse edges weighted with a quarter period of a sine wave
@@ -510,9 +514,10 @@ else
         A = exp(-(4*log(2)*ti.^2)/Par.tFWHM^2);
         
       case 'sinc'
-        
-        A = sin((2*pi*ti)/Par.zerocross)./((2*pi*ti)/Par.zerocross);
-        A(round(Par.tp/(2*Par.TimeStep))+1) = 1;
+
+        x_ = 2*pi*ti/Par.zerocross;
+        A = sin(x_)./x_;
+        A(isnan(A)) = 1;
         A = A/max(A);
         
       case 'quartersin'
@@ -588,106 +593,106 @@ else
       
   end
   
+  % ------------------------------------------------------------------- %
+  % Calculate bandwidth compensation
+  % ------------------------------------------------------------------- %
   if Opt.BWCompensation
-      
-      % Variable-rate chirps with resonator bandwidth compensation, as
-      % described in:
-      %   Doll, A., Pribitzer, S., Tschaggelar, R., Jeschke, G.,
-      %   Adiabatic and fast passage ultra-wideband inversion in
-      %   pulsed EPR. J. Magn. Reson. 230, 27–39 (2013).
-      %   http://dx.doi.org/10.1016/j.jmr.2013.01.002
-      % and
-      %   Doll, A., Frequency-swept microwave pulses for electron spin
-      %   resonance, PhD Dissertation (2016), ETH Zürich, (for sech pulses
-      %   see chapter 8, section 8.3.2, p. 133).
-      % Implemented as in SPIDYAN, see:
-      %   Pribitzer, S., Doll, A. & Jeschke, G. SPIDYAN, a MATLAB library 
-      %   for simulating pulse EPR experiments with arbitrary waveform 
-      %   excitation. J. Magn. Reson. 263, 45–54 (2016).
-      %   http://dx.doi.org/10.1016/j.jmr.2015.12.014
-      
-      % Original amplitude and frequency modulation functions
-      nu0 = modulation.freq;
-      A0 = modulation.A;
-         
-      % Resonator profile in the frequency range of the pulse
-      newaxis = nu0+mean(Par.Frequency)+Par.mwFreq*1e3;
-      if min(newaxis)<min(Par.faxis) || max(newaxis)>max(Par.faxis)
-        error(['The frequency sweep width of the pulse extends further than ',...
-               'the given resonator profile. Please provide the resonator ',...
-               'profile for the complete pulse frequency sweep width.'])
-      end
-      profile = interp1(Par.faxis,Par.MagnitudeResponse,...
-        newaxis);
-      if strcmp(AmplitudeModulation,'sech')
-        profile = A0.*profile;
-      end
-      
-      % Frequency dependence of t and time-to-frequency mapping
-      c_ = trapz(nu0,1./profile.^2)/t(end); % const = 2*pi/Qref
-      % Qref = reference adiabaticity
-      t_f = cumtrapz(nu0,(1/c_)*profile.^-2);
-      nu_adapted = interp1(t_f,nu0,t,'pchip');
-      
-      % New frequency, phase and amplitude modulation functions
-      modulation.freq = nu_adapted;
-      modulation.phase = 2*pi*cumtrapz(t,modulation.freq);
-      modulation.phase = modulation.phase + abs(min(modulation.phase));  % zero phase offset at pulse center
-      
-      modulation.A = interp1(nu0,modulation.A,nu_adapted,'pchip');
-      
+    
+    % Variable-rate chirps with resonator bandwidth compensation, as
+    % described in:
+    %   Doll, A., Pribitzer, S., Tschaggelar, R., Jeschke, G.,
+    %   Adiabatic and fast passage ultra-wideband inversion in
+    %   pulsed EPR. J. Magn. Reson. 230, 27–39 (2013).
+    %   http://dx.doi.org/10.1016/j.jmr.2013.01.002
+    % and
+    %   Doll, A., Frequency-swept microwave pulses for electron spin
+    %   resonance, PhD Dissertation (2016), ETH Zürich, (for sech pulses
+    %   see chapter 8, section 8.3.2, p. 133).
+    % Implemented as in SPIDYAN, see:
+    %   Pribitzer, S., Doll, A. & Jeschke, G. SPIDYAN, a MATLAB library
+    %   for simulating pulse EPR experiments with arbitrary waveform
+    %   excitation. J. Magn. Reson. 263, 45–54 (2016).
+    %   http://dx.doi.org/10.1016/j.jmr.2015.12.014
+    
+    % Original amplitude and frequency modulation functions
+    nu0 = modulation.freq;
+    A0 = modulation.A;
+    
+    % Resonator profile in the frequency range of the pulse
+    newaxis = nu0 + mean(Par.Frequency) + Par.mwFreq*1e3; % MHz
+    if min(newaxis)<min(Par.faxis) || max(newaxis)>max(Par.faxis)
+      error(['The frequency sweep width of the pulse extends further than ',...
+        'the given resonator profile. Please provide the resonator ',...
+        'profile for the complete pulse frequency sweep width.'])
+    end
+    profile = interp1(Par.faxis,Par.MagnitudeResponse,newaxis);
+    if strcmp(AmplitudeModulation,'sech')
+      profile = A0.*profile;
+    end
+    
+    % Frequency dependence of t and time-to-frequency mapping
+    c_ = trapz(nu0,1./profile.^2)/t(end); % const = 2*pi/Qref
+    % Qref = reference adiabaticity
+    t_f = cumtrapz(nu0,(1/c_)*profile.^-2);
+    nu_adapted = interp1(t_f,nu0,t,'pchip');
+    
+    % New frequency, phase and amplitude modulation functions
+    modulation.freq = nu_adapted;
+    modulation.phase = 2*pi*cumtrapz(t,modulation.freq);
+    modulation.phase = modulation.phase + abs(min(modulation.phase));  % zero phase offset at pulse center
+    
+    modulation.A = interp1(nu0,modulation.A,nu_adapted,'pchip');
+    
   end
   
   % ------------------------------------------------------------------- %
   % Determine pulse amplitude from flip angle (if only Par.Flip is given)
   % ------------------------------------------------------------------- %
   if (isfield(Par,'Flip') && ~isempty(Par.Flip)) && ...
-      (~isfield(Par,'Amplitude') || isempty(Par.Amplitude))
-    switch FrequencyModulation
+     (~isfield(Par,'Amplitude') || isempty(Par.Amplitude))
+    if strcmp(FrequencyModulation,'none')
+      % Amplitude-modulated pulses: flip angle = integral
       
-      case 'none' % amplitude modulated pulses: beta = integral
-        
-        Par.Amplitude = Par.Flip/(2*pi*trapz(t,modulation.A));
-        
-      case {'linear','tanh','uniformQ'}
-        % Q_crit = (2*pi*v1max)^2/k = minimum adiabaticity on resonance
-        % see
-        %    Jeschke et al. (2015) J. Phys. Chem. B, 119, 13570–13582.
-        %    http://dx.doi.org/10.1021/acs.jpcb.5b02964
-        
-        if Par.Flip>pi
-          error('Pulse amplitude calculation from flip angle not applicable for angles larger than pi.')
+      Par.Amplitude = Par.Flip/(2*pi*trapz(t,modulation.A));
+      
+    else
+      % Frequency-modulated pulses
+      
+      % Q_crit = (2*pi*v1max)^2/k = minimum adiabaticity on resonance
+      %   see Jeschke et al. (2015) J. Phys. Chem. B, 119, 13570–13582.
+      %   http://dx.doi.org/10.1021/acs.jpcb.5b02964
+      
+      if Par.Flip>pi
+        error('Pulse amplitude calculation from flip angle not applicable for angles larger than pi.');
+      end
+      Q_crit = (2/pi)*log(2/(1+cos(Par.Flip)));
+      Q_crit = min(Q_crit,5); % set Q_crit to finite value if it is infinite or large
+      
+      if Opt.BWCompensation==0
+        switch FrequencyModulation
+          case 'linear'
+            sweeprate = abs(Par.Frequency(2)-Par.Frequency(1))/Par.tp;
+          case 'tanh'
+            sweeprate = Par.beta*abs(Par.BWinf)/(2*Par.tp);
+          case 'uniformQ'
+            % Q = w1max^2*A(t)^2/(BW*dnu/dt) see eq. 17 in
+            %   Garwood, M., DelaBarre, L., J. Magn. Reson. 153, 155-177
+            %   (2001).
+            %   http://dx.doi.org/10.1006/jmre.2001.2340
+            [dummy,ind] = min(abs(ti));
+            dnu = abs(diff(2*pi*modulation.freq/(t(2)-t(1))));
+            sweeprate = dnu(ind)/(2*pi*(modulation.A(ind))^2);
         end
-        Q_crit = (2/pi)*log(2/(1+cos(Par.Flip)));
-        if Q_crit>5 % set Q_crit to finite value if it is infinite or large
-          Q_crit = 5;
-        end
-        
-        if Opt.BWCompensation==0
-          switch FrequencyModulation
-            case 'linear'
-              sweeprate = abs(Par.Frequency(2)-Par.Frequency(1))/Par.tp;
-            case 'tanh'
-              sweeprate = Par.beta*abs(Par.BWinf)/(2*Par.tp);
-            case 'uniformQ'
-              % Q = w1max^2*A(t)^2/(BW*dnu/dt) see eq. 17 in
-              %   Garwood, M., DelaBarre, L., J. Magn. Reson. 153, 155-177
-              %   (2001).
-              %   http://dx.doi.org/10.1006/jmre.2001.2340
-              [dummy,ind] = min(abs(ti));
-              dnu = abs(diff(2*pi*modulation.freq/(t(2)-t(1))));
-              sweeprate = dnu(ind)/(2*pi*(modulation.A(ind))^2);
-          end
-        else
-          % Numerical computation
-          % Q = w1max^2*A(t)^2/(BW*dnu/dt)
-          [dummy,ind] = min(abs(ti));
-          dnu = abs(diff(2*pi*modulation.freq/(t(2)-t(1))));
-          sweeprate = dnu(ind)/(2*pi*(modulation.A(ind))^2);
-        end
-        
-        Par.Amplitude = sqrt(2*pi*Q_crit*sweeprate)/(2*pi);
-        
+      else
+        % Numerical computation
+        % Q = w1max^2*A(t)^2/(BW*dnu/dt)
+        [dummy,ind] = min(abs(ti));
+        dnu = abs(diff(2*pi*modulation.freq/(t(2)-t(1))));
+        sweeprate = dnu(ind)/(2*pi*(modulation.A(ind))^2);
+      end
+      
+      Par.Amplitude = sqrt(2*pi*Q_crit*sweeprate)/(2*pi);
+      
     end
   end
   
@@ -699,7 +704,7 @@ else
   IQ = modulation.A.*exp(1i*totalphase);
   
   % Real-valued pulse
-  if Opt.IQ==0
+  if ~Opt.IQ
     IQ = real(IQ);
   end
   
@@ -709,14 +714,14 @@ end
 % Excitation profile calculation
 % --------------------------------------------------------------------- %
 
-if Opt.ExciteProfile
+if calculateExciteProfile
   
   % Set up offset axis for excitation profile calculation
   if ~isfield(Opt,'Offsets')
     if ~strcmp(Par.Type,'user-IQ')
       BW = max([FM_BW AM_BW50]);
     end
-    if Opt.IQ==1
+    if Opt.IQ
       exprof.offsets = linspace(-BW,BW,Opt.nOffsets) + mean(Par.Frequency);
     else
       exprof.offsets = linspace(-BW-mean(Par.Frequency),BW+mean(Par.Frequency),Opt.nOffsets);      
@@ -861,7 +866,7 @@ if plotResults
   ylabel('amplitude (MHz)')
   set(gca,'Layer','top')
   legend([S.hI S.hQ],'I','Q','Location','SouthEast')
-  if Opt.IQ==0
+  if ~Opt.IQ
     set(S.hQ,'Visible','off')
     legend(S.hI,'I','Location','SouthEast')
     set(S.tick(2),'Value',0,'Enable','off')
@@ -938,7 +943,7 @@ if plotResults
     line([1 1]*Par.Frequency(1),[-1 1],'Color',colBW);
     line([1 1]*Par.Frequency(2),[-1 1],'Color',colBW);
   end
-  if Opt.IQ==0
+  if ~Opt.IQ
     line([0 0],[-1 1],'Color','k');
     line(-[1 1]*mean(Par.Frequency),[-1 1],'Color',colBW);
     if numel(Par.Frequency)==2

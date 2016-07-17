@@ -27,7 +27,7 @@ phi = phi+abs(min(phi));
 % Pulse
 IQ0 = A.*exp(2i*pi*phi);
 
-Opt.ExciteProfile = 0;
+Opt.ExciteProfile = false;
 [t,IQ,exprofile,modulation] = pulse(Params,Opt);
 
 suberr(1) = ~areequal(IQ0,IQ,1e-11);

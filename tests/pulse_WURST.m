@@ -10,7 +10,7 @@ Params.Frequency = [-250 250]+100; % MHz
 Params.nwurst = 15;
 Params.Amplitude = 15; % MHz
 
-Opt.ExciteProfile = 0;
+Opt.ExciteProfile = false;
 [t,IQ,exprofile,modulation] = pulse(Params,Opt);
 
 % Amplitude modulation: WURST
