@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>erot</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">erot</div>
+
+<p>
+Rotation matrix from Euler angles.
+</p>
+
+<!-- ============================================================= -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+Rp = erot(Angles)
+Rp = erot(alpha,beta,gamma)
+
+[xc,yc,zc] = erot(...,'cols')
+[xr,yr,zr] = erot(...,'rows')
+</pre>
+
+<!-- ============================================================= -->
+<div class="subtitle">Description</div>
+
+<p>
+<code>erot</code> returns an 3x3 rotation matrix in <code>Rp</code>. The 3-element vector <code>Angles=[alpha beta gamma]</code> defines the three <a href="eulerangles.html">Euler angles</a> for the rotation in radians. They can be also specified as three separate arguments <code>alpha</code>, <code>beta</code> and <code>gamma</code>.
+</p>
+
+<p>
+For a detailed description of the associated rotation, the convention used, and mathematical formulas see the page on <a href="eulerangles.html">relative orientations</a>.
+</p>
+
+<p>
+Basically, <code>erot</code> provides a transformation matrix for vectors and matrices. If the Euler angles describe the transformation of the coordinate frame 1 to the coordinate frame 2, then you can use <code>Rp</code> to transform a vector <code>v</code> or tensor <code>A</code> from coordinates 1 to coordinates 2.
+<pre class="matlab">
+  v2 = Rp*v1;
+  A2 = Rp*A1*Rp.';
+</pre>
+This does not rotate the vector or matrix, but transforms them from one coordinate system representation to the other. So after the transformation, the vector/matrix is still the same, only its representation has changed. Often, such a coordinate transformation is called a passive rotation.
+</p>
+
+<p>
+<code>Ra = Rp.'</code> is the corresponding active transformation. The active rotation is also a composition of three rotations: first by <code>-gamma</code> around z, then by <code>-beta</code> around y, and last by <code>-alpha</code> around z. In this case it is the vector or matrix rather than the coordinate system which changes orientation.
+</p>
+
+<p>
+If the argument <code>'cols'</code> is given, <code>erot</code> returns the three columns of the rotation matrix separately. The three vectors and the rotation matrix are related by <code>Rp = [xc yc zc]</code>. Similarly, if the argument <code>'rows'</code> is given, <code>erot</code> returns the three rows of the rotation matrix separately. However, they are returned not as rows but as column vectors. These three vectors and the rotation matrix are related by <code>Rp = [xr.'; yr.'; zr.']</code>. 
+
+<!-- ============================================================= -->
+<div class="subtitle">Examples</div>
+
+<p>
+To rotate the basis of the matrix <code>A</code> so that the final Z axis is along -z,
+and (X,Y) = (-y,-x), type
+</p>
+
+<pre class="matlab">
+A = [1 2 3; 4 5 6; 7 8 9];
+Rp = erot(pi/2,pi,0);
+A1= Rp*A*Rp.'
+</pre>
+<pre class="mloutput">
+A1 =
+    5.0000    4.0000    6.0000
+    2.0000    1.0000    3.0000
+    8.0000    7.0000    9.0000
+</pre>
+
+<p>
+To rotate a magnetic field vector from the z direction to a direction
+in the first quadrant specified by the polar angles <code>theta</code> (down
+from z axis, elevation complement) and <code>phi</code> (counterclockwise
+around z from x, azimuth), use an active rotation.
+</p>
+
+<pre class="matlab">
+B = [0;0;9.5]; theta = 20; phi = 75;
+Rp = erot([phi theta 0]*pi/180);
+Ra = Rp.'; B1 = Ra*B
+</pre>
+<pre class="mloutput">
+B1 =
+    0.8410
+    3.1385
+    8.9271
+</pre>
+
+<p>
+To get the three colums separately, use
+</p>
+<pre class="matlab">
+[xc,yc,zc] = erot([10 20 40]*pi/180,'cols')
+</pre>
+<pre class="mloutput">
+xc =
+    0.5973
+   -0.7279
+    0.3368
+yc =
+    0.7580
+    0.6495
+    0.0594
+zc =
+   -0.2620
+    0.2198
+    0.9397
+</pre>
+
+<p>
+You can see that these are the three columns of the rotation matrix
+</p>
+<pre class="matlab">
+R = erot([10 20 40]*pi/180)
+</pre>
+<pre class="mloutput">
+R =
+    0.5973    0.7580   -0.2620
+   -0.7279    0.6495    0.2198
+    0.3368    0.0594    0.9397
+</pre>
+
+<!-- ============================================================= -->
+<div class="subtitle">Algorithm</div>
+
+<p>
+See <a href="eulerangles.html">relative orientations</a> for details.
+</p>
+
+<!-- ============================================================= -->
+<div class="subtitle">See also</div>
+
+<p>
+<a class="esf" href="ang2vec.html">ang2vec</a>,
+<a class="esf" href="eulang.html">eulang</a>,
+<a class="esf" href="vec2ang.html">vec2ang</a>
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+</html>

@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>High-order operators</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<h1>High-order operators</h1>
+
+<p>
+In systems with electron spin S&gt;1/2, higher-order terms have to be included in the spin Hamiltonian in order to properly describe EPR spectra.
+The most common parameters are the second-order <a href="hamiltonian.html#zfi">zero-field splitting</a> parameters D and E and the fourth-order parameters a and F.
+
+<p>
+In addition to the terms of D, E, a and F,
+a commonly used complete set of high-order operators are the extended Stevens operators (ESO)
+<img src="eqn/stevensoperators1.png" alt="[eqn]"><!--MATH$\Op{O}_k^q$-->
+for
+<img src="eqn/stevensoperators2.png" alt="[eqn]"><!--MATH$k=2,4,6$-->
+and <img src="eqn/stevensoperators3.png" alt="[eqn]"><!--MATH$q=+k,...,-k$-->.
+</p>
+
+<p>
+The high-order part of the spin Hamiltonian for one electron spin written in terms of ESOs is
+</p>
+
+<div class="eqn">
+<img src="eqn/stevensoperators4.png" alt="[eqn]"><!--MATH
+$$
+\Op{H}_\mr{ESO}
+=
+\sum_{k=2,4,6}
+\sum_{q=-k}^{k}
+B_k^q
+\Op{O}_k^q(\vc{S})
+$$
+-->
+</div>
+
+<p>
+where each of the operators <img src="eqn/stevensoperators5.png" alt="[eqn]"><!--MATH$\Op{O}_k^q$--> is hermitian, and the associated coefficients
+<img src="eqn/stevensoperators6.png" alt="[eqn]"><!--MATH$B_k^q$--> are always real. 
+</p>
+
+<p>
+In contrast to spherical tensor operators (analogous to p<sub>+</sub>, p<sub>0</sub>, and p<sub>-</sub> orbitals),
+these operators are tesseral (analogous to p<sub>x</sub>, p<sub>y</sub> and p<sub>z</sub>). Positive k corresponds to cosine
+tesseral components, and negative k corresponds to sine tesseral components.
+</p>
+
+<p>
+Care should
+be exercised when using literature values for the coefficients, since conventions for the normalization
+and the phase of these operators vary. Also, many papers contain substantial amounts of typos.
+</p>
+
+<p>
+In <i>EasySpin</i>, matrix representations of the extended Stevens operators are provided by the function
+<a class="esf" href="stev.html">stev</a> and can be used in all simulation functions.
+</p>
+
+<div class="subtitle">Relation to conventional parameters</div>
+
+<p>
+The commonly used second-order <a href="hamiltonian.html#zfi">zero-field splitting</a> parameters D and  E are related to the <img src="eqn/stevensoperators7.png" alt="[eqn]"><!--MATH$B_2^q$--> coefficients by
+</p>
+
+<div class="eqn">
+<img src="eqn/stevensoperators8.png" alt="[eqn]"><!--MATH
+$$
+D = 3 B_2^0
+\qquad
+E = B_2^2
+$$
+-->
+</div>
+
+<p>
+The associated second-order Hamiltonian terms have the forms
+</p>
+
+<div class="eqn">
+<img src="eqn/stevensoperators9.png" alt="[eqn]"><!--MATH
+$$
+\frac{D}{3}O_2^0 = 
+D\left[S_z^2-\frac{1}{3}S(S+1)\right]
+\qquad
+E O_2^2 =
+E (S_x^2 - S_y^2)
+$$
+-->
+</div>
+
+<p>
+The traditional cubic and axial fourth-order parameters a and F are related to the <img src="eqn/stevensoperators10.png" alt="[eqn]"><!--MATH$B_4^q$--> coefficients.
+</p>
+
+<div class="eqn">
+<img src="eqn/stevensoperators11.png" alt="[eqn]"><!--MATH
+$$
+F = 180B_4^0 - 36B_4^4
+\qquad
+a = 24 B_4^4
+\qquad
+B_4^4 = \frac{a}{24}
+\qquad
+B_4^0 = \frac{a}{120} + \frac{F}{180}
+$$
+-->
+</div>
+
+<p>
+The associated fourth-order Hamiltonian terms have the forms
+
+<div class="eqn">
+<img src="eqn/stevensoperators12.png" alt="[eqn]"><!--MATH
+$$
+\frac{a}{120}(O_4^0 + 5 O_4^4) = 
+\frac{a}{6}\left[S_x^4+S_y^4+S_z^4-\frac{1}{5}S(S+1)(3S^2+3S-1)\right]
+$$
+-->
+</div>
+
+<div class="eqn">
+<img src="eqn/stevensoperators13.png" alt="[eqn]"><!--MATH
+$$
+\frac{F}{180} O_4^0 = 
+\frac{F}{180}\left[35 S_z^4-30S(S+1)S_z^2 + 25 S_z^2
+                   - 6S(S+1) + 3S^2(S+1)^2\right]
+$$
+-->
+</div>
+
+<p>
+(see Abragam/Bleaney, p. 142, 437; Pilbrow, p. 125, 129). The axes x, y, and z are the fourfold symmetry axes of the cubic part of the crystal field.
+</p>
+
+<div class="subtitle">Polynomial expressions</div>
+
+<p>
+The following table lists the most common Stevens operators
+in terms of polynomials in S<sub>+</sub>, S<sub>-</sub> and S<sub>z</sub>.
+A more general list of extended Stevens operators (including odd k)
+can be found in Altshuler/Kozyrev. Abragram/Bleaney contains
+only a partial, but compatible list. Ryabov (1999) has devised a formula
+for computing Stevens operator polynomials for arbitrary 0&lt;=k and
+-k&lt;=q&lt;=k.
+</p>
+
+<pre class="eqn">
+<img src="eqn/stevensoperators14.png" alt="[eqn]"><!--MATH
+\begin{table}
+\newcommand{\Jz}{S_\mr{z}}
+\newcommand{\Jp}{S_+}
+\newcommand{\Jm}{S_-}
+\renewcommand{\arraystretch}{1.3}
+\setlength{\tabcolsep}{2mm}
+\newcommand{\anc}[1]{\big[#1\big]_+}
+\newcommand{\idmatrix}{\mathbb{I}}
+\caption{Extended Stevens operators $\Op{O}_k^q$. }
+\label{tab:stevensops}
+\centering
+\begin{tabular}{crl}
+\hline\hline
+$k$ & $q$ & $O_k^q$\\
+\hline
+2 & 0 & $3\Jz^2 - s\idmatrix$\\
+  & $\pm1$ & ${c_\pm}\anc{\Jz, \Jp\pm\Jm}$\\
+  & $\pm2$ & ${c_\pm}(\Jp^2\pm\Jm^2)$\\
+\hline
+4 & 0 & $35\Jz^4-(30 s- 25)\Jz^2+ (3 s^2-6s)\idmatrix$\\
+  & $\pm1$ & ${c_\pm}\anc{7\Jz^3-(3s+1)\Jz,\Jp\pm\Jm}$\\
+  & $\pm2$ & ${c_\pm}\anc{(7\Jz^2-(s+5)\idmatrix,\Jp^2\pm\Jm^2}$\\
+  & $\pm3$ & ${c_\pm}\anc{\Jz,\Jp^3\pm\Jm^3}$\\
+  & $\pm4$ & ${c_\pm}(\Jp^4\pm\Jm^4)$\\
+\hline
+6 & 0 & $231\Jz^6-(315 s - 735)\Jz^4 + (105 s^2 - 525 s + 294)\Jz^2 - (5s^3 - 40 s^2 + 60 s)\idmatrix$\\
+  & $\pm1$ & ${c_\pm}\anc{33\Jz^5-(30s-15)\Jz^3+(5s^2-10s+12)\Jz,\Jp\pm\Jm}$\\
+  & $\pm2$ & ${c_\pm}\anc{33\Jz^4-(18s+123)\Jz^2+(s^2+10s+102)\idmatrix,\Jp^2\pm\Jm^2}$\\
+  & $\pm3$ & ${c_\pm}\anc{11\Jz^3-(3s+59)\Jz,\Jp^3\pm\Jm^3}$\\
+  & $\pm4$ & ${c_\pm}\anc{11\Jz^2-(s+38)\idmatrix,\Jp^4\pm\Jm^4}$\\
+  & $\pm5$ & ${c_\pm}\anc{\Jz,\Jp^5\pm\Jm^5}$\\
+  & $\pm6$ & ${c_\pm}(\Jp^6\pm\Jm^6)$\\
+\hline\hline
+\multicolumn{3}{r}{\footnotesize $[A,B]_+$ indicates the symmetrized product $(AB+BA)/2$, and $s = S(S+1)$, $c_+=1/2$, $c_-= 1/2\mr{i}$.}
+\end{tabular}
+\end{table}
+-->
+</pre>
+
+
+<div class="subtitle">References</div>
+
+<p>
+Here are the most important references for extended Stevens operators
+</p>
+
+<ul>
+<li>
+S. A. Altshuler, B. M. Kozyrev, Electron Paramagnetic Resonance in Compounds
+of Transition Elements, 2nd edn., Wiley (1974), Appendix V, p.512.
+<li>
+A. Abragam, B. Bleaney, Electron Paramagnetic Resonance of Transition Ions,
+Dover (1986), Appendix B, Table 16, p. 863.
+<li>I. D. Ryabov, J. Magn. Reson. 140, 141-145 (1999)</li>
+<li>C. Rudowicz, C. Y. Chung, J. Phys.: Condens. Matter 16, 1-23 (2004)</li>
+</ul>
+
+<p>
+Note that there are typos and mistakes both in Altshuler/Kozyrev and in Abragam/Bleaney,
+as discussed by Rudowicz (2004).
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+
+</html>

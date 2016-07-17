@@ -1,0 +1,248 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>Examples</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<!-- ============================================================= -->
+<div class="subtitle" style="margin-top:0ex;">Examples</div>
+
+<p>
+Here is a collection of examples for the use of EasySpin, divided into
+several categories. They are an excellent starting point for writing
+your own code.
+</p>
+
+<b>Data analysis</b><table width=100%>
+<tr bgcolor="eeeeee"><td width=150><a href="../examples/analysis/adaptiveaverage.m">adaptiveaverage.m</a></td><td>Signal averaging using the EWRLS adaptive filter method
+</td></tr>
+<tr bgcolor=""><td width=150><a href="../examples/analysis/deadtime.m">deadtime.m</a></td><td>ESEEM dead time correction with ctafft()
+</td></tr>
+<tr bgcolor="eeeeee"><td width=150><a href="../examples/analysis/denoise.m">denoise.m</a></td><td>Various methods for de-noising spectral data
+</td></tr>
+</table><p></p>
+<b>ENDOR simulations</b><table width=100%>
+<tr bgcolor="eeeeee"><td width=150><a href="../examples/endor/endorperturb.m">endorperturb.m</a></td><td>ENDOR simulations: matrix diagonalization vs perturbation theory
+</td></tr>
+<tr bgcolor=""><td width=150><a href="../examples/endor/endorseparate.m">endorseparate.m</a></td><td>1H ENDOR, summed and separate output
+</td></tr>
+<tr bgcolor="eeeeee"><td width=150><a href="../examples/endor/endorsimple.m">endorsimple.m</a></td><td>1H ENDOR of a powder
+</td></tr>
+<tr bgcolor=""><td width=150><a href="../examples/endor/excitew.m">excitew.m</a></td><td>ENDOR excitation widths and orientation selectivity
+</td></tr>
+<tr bgcolor="eeeeee"><td width=150><a href="../examples/endor/manynuclei.m">manynuclei.m</a></td><td>Orientation-selective ENDOR of many protons
+</td></tr>
+<tr bgcolor=""><td width=150><a href="../examples/endor/mn_cluster_ps2.m">mn_cluster_ps2.m</a></td><td>ENDOR of the tetranuclear Mn cluster in photosystem II (S2 state)
+</td></tr>
+<tr bgcolor="eeeeee"><td width=150><a href="../examples/endor/oripreselect.m">oripreselect.m</a></td><td>Speed-up of ENDOR simulations using orientation pre-selection
+</td></tr>
+<tr bgcolor=""><td width=150><a href="../examples/endor/oripreselect2.m">oripreselect2.m</a></td><td>Speed-up of ENDOR simulations using orientation pre-selection
+</td></tr>
+<tr bgcolor="eeeeee"><td width=150><a href="../examples/endor/oriselection.m">oriselection.m</a></td><td>ENDOR orientation selection in a powder
+</td></tr>
+<tr bgcolor=""><td width=150><a href="../examples/endor/userpreselect.m">userpreselect.m</a></td><td>User-supplied orientation pre-selection
+</td></tr>
+</table><p></p>
+<b>exchange</b><table width=100%>
+<tr bgcolor="eeeeee"><td width=150><a href="../examples/exchange/chemicalexchange_norris.m">chemicalexchange_norris.m</a></td><td>Multi-site chemical exchange
+</td></tr>
+</table><p></p>
+<b>Fast-motion cw EPR simulations</b><table width=100%>
+<tr bgcolor="eeeeee"><td width=150><a href="../examples/fastmotion/fast_fnb.m">fast_fnb.m</a></td><td>Parafluoronitrobenzene (multinuclear system), fast-motional regime
+</td></tr>
+<tr bgcolor=""><td width=150><a href="../examples/fastmotion/fremysalt.m">fremysalt.m</a></td><td>Fremy's salt (PADS), motional narrowing
+</td></tr>
+<tr bgcolor="eeeeee"><td width=150><a href="../examples/fastmotion/nitroxide_ftcorr.m">nitroxide_ftcorr.m</a></td><td>Nitroxide radical, various correlation times
+</td></tr>
+</table><p></p>
+<b>Least-squares fitting</b><table width=100%>
+<tr bgcolor="eeeeee"><td width=150><a href="../examples/fitting/basicfit.m">basicfit.m</a></td><td>Basic example of spectral fitting using EasySpin
+</td></tr>
+<tr bgcolor=""><td width=150><a href="../examples/fitting/fitscaling.m">fitscaling.m</a></td><td>Impact of different scaling methods on fitted parameters
+</td></tr>
+<tr bgcolor="eeeeee"><td width=150><a href="../examples/fitting/fittarget.m">fittarget.m</a></td><td>Fitting the spectrum vs fitting its integral
+</td></tr>
+<tr bgcolor=""><td width=150><a href="../examples/fitting/globallocal.m">globallocal.m</a></td><td>Genetic algorithm combined with local simplex search
+</td></tr>
+<tr bgcolor="eeeeee"><td width=150><a href="../examples/fitting/multicomponents.m">multicomponents.m</a></td><td>Fitting a multi-component spectrum
+</td></tr>
+<tr bgcolor=""><td width=150><a href="../examples/fitting/pentacenefit.m">pentacenefit.m</a></td><td>Fitting the spectrum of pentacene anion radical
+</td></tr>
+<tr bgcolor="eeeeee"><td width=150><a href="../examples/fitting/twocompfit.m">twocompfit.m</a></td><td>Fitting a two-component spectrum
+</td></tr>
+</table><p></p>
+<b>Isotropic cw EPR simulations</b><table width=100%>
+<tr bgcolor="eeeeee"><td width=150><a href="../examples/isotropic/biarylradical.m">biarylradical.m</a></td><td>Bridged biaryl cation radical (1000s of lines)
+</td></tr>
+<tr bgcolor=""><td width=150><a href="../examples/isotropic/biphenyl.m">biphenyl.m</a></td><td>Biphenyl radical anion
+</td></tr>
+<tr bgcolor="eeeeee"><td width=150><a href="../examples/isotropic/cobalttrimer.m">cobalttrimer.m</a></td><td>Cobalt trimer
+</td></tr>
+<tr bgcolor=""><td width=150><a href="../examples/isotropic/isotopemix.m">isotopemix.m</a></td><td>Simple isotope mixture
+</td></tr>
+<tr bgcolor="eeeeee"><td width=150><a href="../examples/isotropic/naphthalene.m">naphthalene.m</a></td><td>Naphthalene radical anion and cation
+</td></tr>
+<tr bgcolor=""><td width=150><a href="../examples/isotropic/pentacene.m">pentacene.m</a></td><td>Pentacene radical anion and cation
+</td></tr>
+<tr bgcolor="eeeeee"><td width=150><a href="../examples/isotropic/phenalenyl.m">phenalenyl.m</a></td><td>Phenalenyl radical anion, including 13C satellite lines
+</td></tr>
+<tr bgcolor=""><td width=150><a href="../examples/isotropic/phenalenyl_manual.m">phenalenyl_manual.m</a></td><td>Phenalenyl radical anion, including 13C satellite lines
+</td></tr>
+</table><p></p>
+<b>magnetometry</b><table width=100%>
+<tr bgcolor="eeeeee"><td width=150><a href="../examples/magnetometry/cobaltdimer_magnetization.m">cobaltdimer_magnetization.m</a></td><td>Magnetization curve of a cobald dimer complex (crystal)
+</td></tr>
+<tr bgcolor=""><td width=150><a href="../examples/magnetometry/curry_curie_law.m">curry_curie_law.m</a></td><td>Susceptibility for S=1/2 using curry and explicit Curie law
+</td></tr>
+<tr bgcolor="eeeeee"><td width=150><a href="../examples/magnetometry/magnetization_tempdep.m">magnetization_tempdep.m</a></td><td>Temperature-dependence of magnetization
+</td></tr>
+<tr bgcolor=""><td width=150><a href="../examples/magnetometry/squid_basic.m">squid_basic.m</a></td><td>Temperature dependence of magnetic moment and susceptibility
+</td></tr>
+<tr bgcolor="eeeeee"><td width=150><a href="../examples/magnetometry/squid_twospins.m">squid_twospins.m</a></td><td>Temperature dependence of magnetic moment and susceptibility
+</td></tr>
+<tr bgcolor=""><td width=150><a href="../examples/magnetometry/susceptibility.m">susceptibility.m</a></td><td>Temperature dependence of magnetic susceptibility
+</td></tr>
+</table><p></p>
+<b>Pulse EPR simulations</b><table width=100%>
+<tr bgcolor="eeeeee"><td width=150><a href="../examples/pulse/custom_3p.m">custom_3p.m</a></td><td>Three-pulse ESEEM sequence with user-defined sequence
+</td></tr>
+<tr bgcolor=""><td width=150><a href="../examples/pulse/custom_hyscore.m">custom_hyscore.m</a></td><td>HYSCORE with non-ideal pulses
+</td></tr>
+<tr bgcolor="eeeeee"><td width=150><a href="../examples/pulse/deer_simple.m">deer_simple.m</a></td><td>DEER from a simple system with two spins-1/2 (powder)
+</td></tr>
+<tr bgcolor=""><td width=150><a href="../examples/pulse/hh_threepulse.m">hh_threepulse.m</a></td><td>Three-pulse ESEEM of two 1H nuclei (saffron)
+</td></tr>
+<tr bgcolor="eeeeee"><td width=150><a href="../examples/pulse/hyscoresimple.m">hyscoresimple.m</a></td><td>HYSCORE of a 14N nucleus (saffron)
+</td></tr>
+<tr bgcolor=""><td width=150><a href="../examples/pulse/n14_twopulse.m">n14_twopulse.m</a></td><td>Two-pulse ESEEM of a 14N nucleus (saffron)
+</td></tr>
+<tr bgcolor="eeeeee"><td width=150><a href="../examples/pulse/orisel2p.m">orisel2p.m</a></td><td>Orientation-selective three-pulse ESEEM (saffron)
+</td></tr>
+<tr bgcolor=""><td width=150><a href="../examples/pulse/pulsprof.m">pulsprof.m</a></td><td>Excitation profile of a mw pulse
+</td></tr>
+<tr bgcolor="eeeeee"><td width=150><a href="../examples/pulse/threepeseem.m">threepeseem.m</a></td><td>Manual simulation of three-pulse ESEEM (density matrix)
+</td></tr>
+<tr bgcolor=""><td width=150><a href="../examples/pulse/twopecho.m">twopecho.m</a></td><td>Simulation of a two-pulse echo using the density matrix
+</td></tr>
+<tr bgcolor="eeeeee"><td width=150><a href="../examples/pulse/twopeseem.m">twopeseem.m</a></td><td>Manual two-pulse ESEEM simulation (density matrix)
+</td></tr>
+</table><p></p>
+<b>Slow-motion cw EPR simulations</b><table width=100%>
+<tr bgcolor="eeeeee"><td width=150><a href="../examples/slowmotion/cupc.m">cupc.m</a></td><td>Slow-motion spectrum of copper phthalocyanine in sulfuric acid
+</td></tr>
+<tr bgcolor=""><td width=150><a href="../examples/slowmotion/nitroxide_basic.m">nitroxide_basic.m</a></td><td>Simple slow-motional cw EPR spectrum simulation of a nitroxide radical
+</td></tr>
+<tr bgcolor="eeeeee"><td width=150><a href="../examples/slowmotion/nitroxide_frq.m">nitroxide_frq.m</a></td><td>Frequency dependence of nitroxide slow-motional spectra
+</td></tr>
+<tr bgcolor=""><td width=150><a href="../examples/slowmotion/nitroxide_tcorr.m">nitroxide_tcorr.m</a></td><td>Correlation time dependence of a nitroxide spectrum
+</td></tr>
+<tr bgcolor="eeeeee"><td width=150><a href="../examples/slowmotion/orderparameter.m">orderparameter.m</a></td><td>Calculate order parameter S(2,0)
+</td></tr>
+<tr bgcolor=""><td width=150><a href="../examples/slowmotion/slow_fast.m">slow_fast.m</a></td><td>Comparison between fast- and slow-motion simulation algorithms
+</td></tr>
+<tr bgcolor="eeeeee"><td width=150><a href="../examples/slowmotion/tempone.m">tempone.m</a></td><td>Slow-motional EPR spectrum of TEMPONE
+</td></tr>
+<tr bgcolor=""><td width=150><a href="../examples/slowmotion/tumbling.m">tumbling.m</a></td><td>Effect of tumbling on an axial g tensor
+</td></tr>
+<tr bgcolor="eeeeee"><td width=150><a href="../examples/slowmotion/xchange.m">xchange.m</a></td><td>Effect of Heisenberg exchange in a nitroxide sample
+</td></tr>
+</table><p></p>
+<b>Solid-state cw EPR simulations</b><table width=100%>
+<tr bgcolor="eeeeee"><td width=150><a href="../examples/solidstate/broaden.m">broaden.m</a></td><td>Line broadening models for cw EPR spectra
+</td></tr>
+<tr bgcolor=""><td width=150><a href="../examples/solidstate/copper_nitrogens.m">copper_nitrogens.m</a></td><td>Cu2+ with four imidazole nitrogens
+</td></tr>
+<tr bgcolor="eeeeee"><td width=150><a href="../examples/solidstate/copper_sxq.m">copper_sxq.m</a></td><td>A Cu(II) complex at S, X and Q band
+</td></tr>
+<tr bgcolor=""><td width=150><a href="../examples/solidstate/criii.m">criii.m</a></td><td>Cr(III) at Q band
+</td></tr>
+<tr bgcolor="eeeeee"><td width=150><a href="../examples/solidstate/crystalroadmap.m">crystalroadmap.m</a></td><td>Resonance roadmap from single crystal rotation
+</td></tr>
+<tr bgcolor=""><td width=150><a href="../examples/solidstate/crystalrotation.m">crystalrotation.m</a></td><td>Spectra from single crystal rotation
+</td></tr>
+<tr bgcolor="eeeeee"><td width=150><a href="../examples/solidstate/cuedta.m">cuedta.m</a></td><td>Mixture of two copper-EDTA complexes
+</td></tr>
+<tr bgcolor=""><td width=150><a href="../examples/solidstate/cumnt2.m">cumnt2.m</a></td><td>[Cu(mnt)2] at 1.4 GHz, single-crystal
+</td></tr>
+<tr bgcolor="eeeeee"><td width=150><a href="../examples/solidstate/dstrain_corr.m">dstrain_corr.m</a></td><td>Demonstration of correlated D-E strain
+</td></tr>
+<tr bgcolor=""><td width=150><a href="../examples/solidstate/eespins.m">eespins.m</a></td><td>Two coupled electrons
+</td></tr>
+<tr bgcolor="eeeeee"><td width=150><a href="../examples/solidstate/freq_vs_field_sweeps.m">freq_vs_field_sweeps.m</a></td><td>Comparison of field sweep and frequency sweep cw EPR
+</td></tr>
+<tr bgcolor=""><td width=150><a href="../examples/solidstate/freqsweep.m">freqsweep.m</a></td><td>Basic frequency-swept EPR spectrum
+</td></tr>
+<tr bgcolor="eeeeee"><td width=150><a href="../examples/solidstate/gstrain.m">gstrain.m</a></td><td>Effect of g strain at various mw frequencies
+</td></tr>
+<tr bgcolor=""><td width=150><a href="../examples/solidstate/inhomogeneous.m">inhomogeneous.m</a></td><td>How to use custom inhomogeneous distributions
+</td></tr>
+<tr bgcolor="eeeeee"><td width=150><a href="../examples/solidstate/matrixperturb.m">matrixperturb.m</a></td><td>Matrix diagonalization vs perturbation theory
+</td></tr>
+<tr bgcolor=""><td width=150><a href="../examples/solidstate/mn_strain.m">mn_strain.m</a></td><td>Mn(II) at X band with D strain
+</td></tr>
+<tr bgcolor="eeeeee"><td width=150><a href="../examples/solidstate/nonequipop1.m">nonequipop1.m</a></td><td>Triplet powder spectrum, with non-equilibrium populations (simple)
+</td></tr>
+<tr bgcolor=""><td width=150><a href="../examples/solidstate/nonequipop2.m">nonequipop2.m</a></td><td>Single-crystal spectra of triplet with non-equilibrium populations
+</td></tr>
+<tr bgcolor="eeeeee"><td width=150><a href="../examples/solidstate/partial_order.m">partial_order.m</a></td><td>An partially oriented Cu(II) complex
+</td></tr>
+<tr bgcolor=""><td width=150><a href="../examples/solidstate/photosystem2_oec.m">photosystem2_oec.m</a></td><td>EPR spectrum of the S2 state of the oxygen evolving complex
+</td></tr>
+<tr bgcolor="eeeeee"><td width=150><a href="../examples/solidstate/temp.m">temp.m</a></td><td>Temperature effects for cw EPR
+</td></tr>
+<tr bgcolor=""><td width=150><a href="../examples/solidstate/trifluormethyl.m">trifluormethyl.m</a></td><td>CF3 radical in gas matrix at low temperature
+</td></tr>
+<tr bgcolor="eeeeee"><td width=150><a href="../examples/solidstate/triplet_C60fullerene.m">triplet_C60fullerene.m</a></td><td>Exited triplet state EPR of C60 fullerene
+</td></tr>
+<tr bgcolor=""><td width=150><a href="../examples/solidstate/triplet_naphthalene.m">triplet_naphthalene.m</a></td><td>Photo-excited triplet state of naphthalene
+</td></tr>
+<tr bgcolor="eeeeee"><td width=150><a href="../examples/solidstate/triplet_triphenylbenzene.m">triplet_triphenylbenzene.m</a></td><td>Ground-state triplet of triphenylbenzene di-anion
+</td></tr>
+</table><p></p>
+<b>Other examples</b><table width=100%>
+<tr bgcolor="eeeeee"><td width=150><a href="../examples/varia/cwmultiphoton.m">cwmultiphoton.m</a></td><td>Cw EPR as a multiphoton experiment
+</td></tr>
+<tr bgcolor=""><td width=150><a href="../examples/varia/overmodulation.m">overmodulation.m</a></td><td>Effect of modulation amplitude on the line shape in cw EPR
+</td></tr>
+<tr bgcolor="eeeeee"><td width=150><a href="../examples/varia/resonatorcoupling.m">resonatorcoupling.m</a></td><td>Tuning picture of a cw EPR spectrometer
+</td></tr>
+<tr bgcolor=""><td width=150><a href="../examples/varia/rotplane.m">rotplane.m</a></td><td>Compute a set orientations in a plane
+</td></tr>
+<tr bgcolor="eeeeee"><td width=150><a href="../examples/varia/spinopxyz.m">spinopxyz.m</a></td><td>Quick way to compute spin matrices by hand
+</td></tr>
+<tr bgcolor=""><td width=150><a href="../examples/varia/symmdemo.m">symmdemo.m</a></td><td>Hamiltonian symmetry using symm()
+</td></tr>
+<tr bgcolor="eeeeee"><td width=150><a href="../examples/varia/terbium.m">terbium.m</a></td><td>Resonances of a Tb4+ system, animated
+</td></tr>
+</table><p></p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+</html>
+

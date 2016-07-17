@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>curry</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">curry</div>
+
+<p>
+Calculates magnetometry data: magnetic moment, static magnetic susceptibility.
+</p>
+
+<!-- ============================================================= -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+curry(Sys,Exp);
+curry(Sys,Exp,Opt);
+muz = curry(...);
+[muz,chizz] = curry(...);
+</pre>
+
+<p>
+See also the <a href="userguide_curry.html">user guide</a> on how to use <code>curry</code>.
+</p>
+
+<!-- ============================================================= -->
+<div class="subtitle">Description</div>
+
+<p>
+<code>curry</code> calculates the magnetic moment and the molar static magnetic susceptibility for given fields and temperatures.
+</p>
+
+<div class="subtitle2">Outputs</div>
+
+<p>
+There are up to three possible output arguments. If  no output argument is requested, <code>curry</code> plots the calculated curves. 
+
+<div class="optionfield"><code>muz</code></div>
+<div class="optiondescr">
+<code>muz</code> contains the values of the longitudinal magnetic moment, i.e. along the direction of the applied magnetic field (zL), for the fields and temperatures requested.
+<p>
+The units are either Bohr magnetons &mu;<sub>B</sub> if the value is understood as single-molecule magnetic moment &mu;<sub>z</sub>, or N<sub>A</sub>&mu;<sub>B</sub> if the value is understood as molar magnetic moment &mu;<sub>m,z</sub>. N<sub>A</sub> is the Avogadro constant. For example, <code>muz = 0.53</code> means the single-molecule magnetic moment &mu;<sub>z</sub> is 0.53 &mu;<sub>B</sub> and the molar magnetic moment &mu;<sub>m,z</sub> is 0.53 N<sub>A</sub>&mu;<sub>B</sub>.
+To convert the molar magnetic moment to SI units (J T<sup>-1</sup> mol<sup>-1</sup>), use
+
+<pre class="matlab">
+muz_SI = muz*avogadro*bmagn;   % unit conversion from NA*muB to J T^-1 mol^-1
+</pre>
+</div>
+
+<div class="optionfield"><code>chizz</code></div>
+<div class="optiondescr">
+<code>chizz</code> contains the molar static magnetic susceptibility. This is not the full 3x3 susceptibility tensor &chi;<sub>m</sub>, but its component along the applied magnetic field direction zL &chi;<sub>m,zz</sub>. The values are in SI units (m<sup>3</sup> mol<sup>-1</sup>). To convert <code>chizz</code> from SI units to CGS units (cm<sup>3</sup> mol<sup>-1</sup>), use
+<pre class="matlab">
+chizz_cgs = chizz_SI/(4*pi*1e-6);   % unit conversion from SI to CGS units
+</pre>
+</div>
+
+<div class="subtitle2">Input: Spin system</div>
+
+<p>
+There are three inputs to the function, the last one is optional.
+</p>
+
+<p>
+<code>Sys</code> is a <a href="spinsystem.html">spin system structure</a> containing the spin quantum numbers of and the spin Hamiltonian parameters.
+</p>
+
+<div class="subtitle2">Input: Experimental parameters</div>
+<p>
+<code>Exp</code> contains experimental parameters such as the magnetic field range and temperature. Compared to EasySpin's EPR simulation functions, <code>curry</code> needs only very few parameters.
+</p>
+
+<div class="optionfield"><code>Temperature</code></div>
+<div class="optiondescr">
+This gives the temperature, or list of temperatures, for which magnetization data should be calculated, in kelvin. For example, <code>Exp.Temperature = 298</code> corresponds to room temperature, and <code>Exp.Temperature = 4:300</code> specifies a temperature range. If an array of values is given, data are calculated for each temperature in the array.
+
+<p>
+Populations are computed for all energy levels assuming thermal (Boltzmann) equilibrium and are included in the calculation of the magnetic moment and the magnetic susceptibility.
+<p>
+<code>Temperature</code> has to be provided. 
+</div>
+
+<div class="optionfield"><code>Field</code></div>
+<div class="optiondescr">
+<code>Field</code> gives the magnetic field strength, in mT, for which magnetization data should be calculated. If an array of values is given, data are calculated for each field value in the array.
+<p>
+If <code>Field</code> is missing, EasySpin assumes that no field is applied.
+</div>
+
+<p>
+<code>curry</code> not only supports powder samples, but also single crystals. The following fields are needed for single-crystal calculations:
+
+<div class="optionfield"><code>CrystalOrientation</code></div>
+<div class="optiondescr">
+An Nx3 or Nx2 array that specifies single-crystal orientations for which the magnetic moment and the susceptibility should be computed. Each row of <code>CrystalOrientation</code> contains the three Euler rotation angles that transform the <a href="frames.html">crystal frame (C) to the lab frame (L)</a>. If only two Euler angles are given, the third is set to zero. If <code>CrystalOrientation</code> is empty or not specified, the full powder is computed.
+<pre class="matlab">
+Exp.CrystalOrientation = [0 0 0];              % single crystal, crystal z axis aligned with B0
+Exp.CrystalOrientation = [0 pi/2 0];           % single crystal, crystal z axis perpendicular to B0
+Exp.CrystalOrientation = [0 0 0; 0 pi/2 0];    % two crystals
+Exp.CrystalOrientation = [];                   % powder
+</pre>
+</div>
+
+<div class="optionfield"><code>CrystalSymmetry</code></div>
+<div class="optiondescr">
+Specifies the symmetry of the crystal. You can give either the number of the space group (between 1 and 230), the symbol of the space group (such as <code>'P212121'</code> or <code>'Ia-3d'</code>), or the symbol for the point subgroup of the space group (in either Sch&ouml;nflies or Hermann-Mauguin notation, such as <code>'D2h'</code> or <code>'mmm'</code>).
+
+<pre class="matlab">
+Exp.CrystalSymmetry = 11;       % space group number (between 1 and 230)
+Exp.CrystalSymmetry = 'P21/c';  % space group symbol
+Exp.CrystalSymmetry = 'C2h';    % point group, Sch&ouml;nflies notation
+Exp.CrystalSymmetry = '2/m';    % point group, Hermann-Mauguin notation
+</pre>
+
+<p>
+When <code>CrystalSymmetry</code> is given, all symmetry-related sites in the crystal are generated and included in the calculation. If <code>CrystalSymmetry</code> is not given, space group 1 (P1, point group C1, one site per unit cell) is assumed.
+</p>
+
+</div>
+
+<div class="optionfield"><code>MolFrame</code></div>
+<div class="optiondescr">
+The three <a href="eulerangles.html">Euler angles</a>, in radians, for the transformation of the <a href="frames.html">crystal frame</a> to the <a href="frames.html">molecular frame</a>. Use this field when specifying a crystal containing spin systems that are tilted with respect to the crystal frame. E.g. <code>Param.MolFrame=[0,pi/4,0]</code> tilts the x and z axis of the spin system's molecular frame (xM, zM), relative to the crystal frame (xC,yC,zC).
+</p>
+</div>
+
+
+<div class="subtitle2">Input: Calculation options</div>
+
+<p>
+The structure <code>Opt</code> collects computational parameters. <code>Opt</code> need not be specified, in which case default values for all fields are used. The field names and their possible values are as follows.
+</p>
+
+<div class="optionfield"><code>Verbosity</code></div>
+<div class="optiondescr">
+Determines how much information is printed to the command window. If <code>Opt.Verbosity=0</code>, <code>curry</code> is silent. 1 logs relevant information, 2 gives more details.
+</div>
+
+<div class="optionfield"><code>nKnots</code></div>
+<div class="optiondescr">
+Determines the number of orientations (knots) in a powder for which moment and susceptibility are calculated.
+
+<code>nKnots</code> gives the number of orientations between &theta;=0&deg; and &theta;=90&deg; for which data are calculated. Common values for <code>N1</code> are between 10 (10&deg; increments) and 91 (1&deg; increments). The larger the anisotropy of the spin Hamiltonian, the higher <code>N1</code> must be to yield accurate values.
+
+<pre class="matlab">
+Opt.nKnots = 91;       % 1&deg; increments
+Opt.nKnots = 31;       % 3&deg; increments
+</pre>
+</div>
+
+<!-- ============================================================= -->
+<div class="subtitle">Algorithm</div>
+
+<p>
+<code>curry</code> calculates the magnetic moment as follows: For each of the given values of the applied magnetic field, the spin Hamiltonian matrix is set up and diagonalized to obtain all eigenvalues and eigenstate vectors. Then, the operator matrix for the projection of the magnetic dipole moment onto the field axis (zL, z axis in the laboratory frame) is set up. Next, its expectation value for each eigenstate is calculated. Lastly, these expectation values are summed using thermal Boltzmann population factors corresponding to the given temperature as weights.
+
+<p>
+To obtain the zz-component of the magnetic susceptibility tensor, the numerical derivative of the zL-component of the magnetic moment with respect to the applied magnetic field along zL is calculated.
+
+<!-- ============================================================= -->
+<div class="subtitle">References</div>
+
+<ul>
+<li>T. Quickenden, R. C. Marshall, <em>J. Chem. Edu</em>, <b>1972</b>, 49(2), 114-116.
+<li>S. Hatscher, H. Schilder, H. Lueken, W. Urland, <em>Pure Appl. Chem.</em>, <b>2005</b>, 77(2), 497-511.
+<li>R. Bo&ccaron;a, Theoretical Foundations of Molecular Magnetism, Elsevier, <b>1999</b>.
+<li>N. F. Chilton, R. P. Anderson, L. D. Turner, A. Soncini, K. S. Murray, <em>J. Comp. Chem.</em> <b>2013</b>, 34, 1164-1175.
+</ul>
+
+<!-- ============================================================= -->
+<div class="subtitle">See also</div>
+
+<p>
+<a class="esf" href="sham.html">sham</a>
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+
+</html>

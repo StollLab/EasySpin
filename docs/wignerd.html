@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>wignerd</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<p>
+Wigner D-matrix.
+</p>
+
+<div class="functitle">wignerd</div>
+
+<!-- ============================================================= -->
+<div class="subtitle">Syntax</div>
+
+
+<pre class="matlab">
+D = wignerd(J,angles)
+D = wignerd(J,angles,'-')
+D = wignerd(J,angles,'+')
+
+d = wignerd(J,beta)
+d = wignerd(J,beta,'-')
+d = wignerd(J,beta,'+')
+</pre>
+
+<!-- ============================================================= -->
+<div class="subtitle">Description</div>
+
+<p>
+<code>wignerd</code> computes the (2J+1)x(2J+1) Wigner rotation matrix D<sup>J</sup>(&alpha;,&beta;,&gamma;)
+with matrix elements D<sup>J</sup><sub>m1,m2</sub>(&alpha;,&beta;,&gamma;) where m<sub>1</sub> and m<sub>2</sub> run from J to -J.
+
+<p>
+<code>J</code> is a positive multiple of 1/2 (0, 1/2, 1, 3/2, 2, etc). <code>angles</code> is an
+array of values of the three Euler angles, <code>[alpha beta gamma]</code>. Alternatively, only
+<code>beta</code> can be given, which is equivalent to <code>[0 beta 0]</code>.
+
+<p>
+The third argument,
+<code>'-'</code> or <code>'+'</code>, specifies the sign convention to use.
+If omitted, <code>'-'</code> is the default. The matrix elements are defined by
+</p>
+<div class="eqn">
+<img src="eqn/wignerd1.png" alt="[eqn]"><!--MATH
+\begin{equation*}
+D^J_{m_1,m_2}(\alpha,\beta,\gamma) = 
+<J,m_1|\mr{e}^{\pm\ii\alpha J_z} \mr{e}^{\pm\ii\beta J_y} \mr{e}^{\pm\ii\gamma J_z}|J,m_2>
+\end{equation*}
+-->
+</div>
+<p>
+The <code>'-'</code> convention uses the minus signs in the exponents and is used in the books
+by Brink and Satchler, Zare, Sakurai, Varshalovich, and others (see below for references).
+The <code>'+'</code> convention uses the plus signs in the exponents and is used in the book
+by Edmonds, among others.
+
+<p>
+If only one angle is given (<code>beta</code>, equivalent to <code>[0 beta 0]</code>), the
+Wigner small-d matrix is computed.
+<div class="eqn">
+<img src="eqn/wignerd2.png" alt="[eqn]"><!--MATH
+\begin{equation*}
+d^J_{m_1,m_2} = 
+<J,m_1|\mr{e}^{\pm\ii\alpha J_y}|J,m_2>
+\end{equation*}
+-->
+</div>
+
+<p>
+In all cases, the resulting (2J+1)x(2J+1) matrix is arranged such that the indices m<sub>1</sub> and m<sub>2</sub>
+run from +J to -J from top to bottom and from left to right, respectively.
+
+<!-- ============================================================= -->
+<div class="subtitle">Examples</div>
+
+<pre class="matlab">
+wignerd(1/2,[pi/3 pi/3 pi/4])
+</pre>
+<pre class="mloutput">
+ans =
+   0.5272 - 0.6871i  -0.4957 + 0.0653i
+   0.4957 + 0.0653i   0.5272 + 0.6871i
+</pre>
+<pre class="matlab">
+wignerd(1/2,[pi/3 pi/3 pi/4])
+</pre>
+<pre class="mloutput">
+ ans =
+   0.5272 - 0.6871i  -0.4957 + 0.0653i
+   0.4957 + 0.0653i   0.5272 + 0.6871i
+</pre>
+<pre class="matlab">
+wignerd(2,pi/2)
+</pre>
+<pre class="mloutput">
+ans =
+    0.2500   -0.5000    0.6124   -0.5000    0.2500
+    0.5000   -0.5000   -0.0000    0.5000   -0.5000
+    0.6124    0.0000   -0.5000   -0.0000    0.6124
+    0.5000    0.5000    0.0000   -0.5000   -0.5000
+    0.2500    0.5000    0.6124    0.5000    0.2500
+</pre>
+
+<!-- ============================================================= -->
+<div class="subtitle">Algorithm</div>
+
+<p>
+<code>wignerd</code> does not use the explicit scalar expressions given in
+many books on angular momentum. Instead, it numerically computes the matrix
+exponentials using matrix representations for J<sub>z</sub> and J<sub>y</sub>
+and obtains the full D matrix for a given J in one go.
+</p>
+
+<p>
+Here are a few references that contain substantial theory about the Wigner D-functions.
+<ul>
+<li>
+A.R. Edmonds, Angular Momentum in Quantum Mechanics, Princeton University Press, 1996.
+<li>
+M.E. Rose, Elementary Theory of Angular Momentum, Wiley, 1967.
+<li>
+D.M. Brink and G.R. Satchler, Angular Momentum, 3rd ed., Oxford University Press, 1994
+<li>
+D.A. Varshalovich, A.N. Moskalev, V.K. Khersonskii, Quantum Theory of Angular Momentum, World Scientific, 1988.
+<li>
+R.N. Zare, Angular Momentum: Understanding Spatial Aspects in Chemistry and Physics, Wiley, 1988.
+<li>
+J.J. Sakurai, J. Napolitano, Modern Quantum Mechanics, 2nd ed., Addison-Wesley, 2011.
+</ul>
+
+<!-- ============================================================= -->
+<div class="subtitle">See also</div>
+
+<p>
+<a class="esf" href="clebschgordan.html">clebschgordan</a>,
+<a class="esf" href="spherharm.html">spherharm</a>, 
+<a class="esf" href="wigner3j.html">wigner3j</a>, 
+<a class="esf" href="wigner6j.html">wigner6j</a>
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+</html>

@@ -1,0 +1,25 @@
+function [err,data] = test(opt,olddata)
+
+%======================================================
+% expansion of isotropic hfc
+% system with 2 electrons and 3 nuclei
+%======================================================
+aiso = [100 121; 34 56; 2 3];
+
+Sys1.S = [1/2 1/2];
+Sys1.ee = 1;
+Sys1.Nucs = '1H,1H,1H';
+Sys1.A = aiso;
+
+Sys2.S = Sys1.S;
+Sys2.ee = Sys1.ee;
+Sys2.Nucs = Sys1.Nucs;
+Sys2.A = kron(aiso,[1 1 1]);
+
+H1 = hfine(Sys1);
+H2 = hfine(Sys2);
+
+ok = areequal(H1,H2);
+err = ~ok;
+
+data = [];

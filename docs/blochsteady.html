@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>blochsteady</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">blochsteady</div>
+
+<p>
+Calculates the steady-state solutions of the Bloch equations with field modulation.
+</p>
+
+<!-- ============================================================= -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+blochsteady(g,T1,T2,deltaB0,B1,ModAmp,ModFreq);
+blochsteady(g,T1,T2,deltaB0,B1,ModAmp,ModFreq,Opt);
+[t,My] = blochsteady(...);
+[t,Mx,My,Mz] = blochsteady(...);
+</pre>
+
+<p>
+See also the <a href="userguide_blochsteady.html">user guide</a> on how to use <code>blochsteady</code>.
+</p>
+
+<!-- ============================================================= -->
+<div class="subtitle">Description</div>
+
+<p>
+<code>blochsteady</code> calculates the steady-state solution of the Bloch equations for a spin-1/2 in the presence of field modulation. This is a general solver. It correctly treats all passage and saturation regimes.
+</p>
+
+<div class="subtitle2">Outputs</div>
+
+<p>
+The function returns the three time-dependent components of the magnetization.
+<ul>
+<li> <code>Mx</code> is the dispersion (transverse magnetization component in-phase with the microwave)
+<li> <code>My</code> is the the absorption (transverse magnetization in quadrature with the microwave)
+<li> <code>Mz</code> is the longitudinal magnetization <code>Mz</code>.
+</ul>
+<p>
+The time <code>t</code> spans one modulation period. For example, for a 100 kHz modulation frequency, the period is 10 &mu;s.
+<p>
+If no outputs are requested, <code>blochsteady</code> plots the result.
+
+<p>
+There are several inputs. Unlike other EasySpin functions, these are not grouped in spin system and experimental structure (although this will likely change in a future release).
+
+<div class="subtitle2">Inputs: Spin system parameters</div>
+
+<p>
+The first few input parameters contain information from the spin system necessary for the calculation.
+</p>
+
+<div class="optionfield"><code>g</code></div>
+<div class="optiondescr">
+<code>g</code> is the g value of the S=1/2 electron spin.
+</div>
+
+<div class="optionfield"><code>T1</code></div>
+<div class="optiondescr">
+<code>T1</code> is the longitudinal relaxation time of the spin, in microseconds.
+</div>
+
+<div class="optionfield"><code>T2</code></div>
+<div class="optiondescr">
+<code>T2</code> is the transverse relaxation time of the spin, in microseconds.
+</div>
+
+<div class="subtitle2">Inputs: Experimental parameters</div>
+
+<p>
+The next few input parameters provide experimental settings.
+
+<div class="optionfield"><code>deltaB0</code></div>
+<div class="optiondescr">
+<code>deltaB0</code> is the static field offset, in mT. This is the difference between the applied magnetic field and the resonance field of the spin.
+</div>
+
+<div class="optionfield"><code>B1</code></div>
+<div class="optiondescr">
+<code>B1</code> is the amplitude of the oscillating microwave magnetic field, in mT.
+</div>
+
+<div class="optionfield"><code>ModAmp</code></div>
+<div class="optiondescr">
+<code>ModAmp</code> is the peak-to-peak amplitude of the modulation field, in mT.
+</div>
+
+<div class="optionfield"><code>ModFreq</code></div>
+<div class="optiondescr">
+<code>ModFreq</code> is the field modulation frequency, in kHz.
+</div>
+
+
+<div class="subtitle2">Input: Calculation options</div>
+
+<p>
+The structure <code>Opt</code> collects calculation settings. <code>Opt</code> need not be specified, in which case default values for all fields are used. The field names and their possible values are as follows.
+</p>
+
+<div class="optionfield"><code>nPoints</code></div>
+<div class="optiondescr">
+Number of points in the output.
+</div>
+
+<div class="optionfield"><code>kmax</code></div>
+<div class="optiondescr">
+Maximum Fourier order. If this is not given, <code>blochsteady</code> automatically sets it high enough such that the output is accurate.
+</div>
+
+<div class="optionfield"><code>Method</code></div>
+<div class="optiondescr">
+Method for constructing the time-domain signal. <code>Opt.Method = 'td'</code> indicates time-domain evolution, which is straightforward, but slow. <code>Opt.Method = 'fft'</code> indicates Fourier transform, which is faster and therefore the default.
+</div>
+
+<div class="optionfield"><code>Verbosity</code></div>
+<div class="optiondescr">
+Determines how much information <code>blochsteady</code> prints to the command window. If <code>Opt.Verbosity=0</code>, <code>pepper</code> is silent. 1 logs relevant information, 2 gives more details.
+</div>
+
+<!-- ============================================================= -->
+<div class="subtitle">Example</div>
+
+<p>
+Here is a simple example.
+
+<pre class="matlab">
+g = 2;    % g factor
+T1 = 10;  % longitudinal relaxation time, us
+T2 = 2;   % transverse relaxation time, us
+
+deltaB0 = -0.05;    % field offset, mT
+B1 = 0.002;         % microwave field amplitude, mT
+ModAmp = 0.3;       % peak-to-peak field modulation amplitude, mT
+ModFreq = 50;       % field modulation frequency, kHz
+
+[t,My] = blochsteady(g,T1,T2,deltaB0,B1,ModAmp,ModFreq);
+
+plot(t,My);
+</pre>
+
+<!-- ============================================================= -->
+<div class="subtitle">Algorithm</div>
+
+<p>
+<code>blochsteady</code> sets up a linear system of equations in the Fourier coefficients of the magnetization components. <code>blochsteady</code> automatically determines the maximum Fourier coefficient necessary to provide a converged solution.
+
+<!-- ============================================================= -->
+<div class="subtitle">References</div>
+
+<ul>
+<li>B. H. Robinson, C. Mailer, A. W. Reese, J. Magn. Reson. <b>1999</b>, 138, 199-209.
+<li>R. D. Nielsen, E. J. Hustedt, A. H. Beth, B. H. Robinson, J. Magn. Reson. <b>2004</b>, 170, 345-371.
+<li>M. Tseytlin, G. R. Eaton, S. S. Eaton, Appl. Magn. Reson. <b>2015</b>, 44, 1373-1379.
+</ul>
+
+<!-- ============================================================= -->
+<div class="subtitle">See also</div>
+
+<p>
+<a class="esf" href="pepper.html">pepper</a>
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+
+</html>

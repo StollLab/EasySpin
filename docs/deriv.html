@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>deriv</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">deriv</div>
+
+<p>
+Numerical differentiation.
+</p>
+
+<!-- =========================================================== -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+dydx = deriv(y)
+dydx = deriv(x,y)
+</pre>
+
+<!-- =========================================================== -->
+<div class="subtitle">Description</div>
+
+<p>
+This function computes the first derivative of the vector or
+matrix <code>y</code> and returns it in <code>dydx</code>, which has the
+same size as <code>y</code>. If <code>y</code>
+is a matrix, differentiation occurs along columns. If the abscissa <code>x</code>
+is not supplied, it is assumed to be <code>1:length(y)</code> for vectors and
+<code>1:size(y,1)</code> for matrices.
+</p>
+
+<p>
+There is a caveat about using <code>deriv</code>. A numerical derivative is computed
+by taking differences of adjacent elements in <code>y</code>. So it is save to use
+<code>deriv</code> for smooth signals, but it gives very noisy derivative for noisy
+signals. In such a case, it is much better to apply a simultaneous smoothing/differentiation
+usign the function <a class="esf" href="datasmooth.html">datasmooth</a>.
+</p>
+
+<!-- =========================================================== -->
+<div class="subtitle">Examples</div>
+
+<p>
+To compute the first derivative of a sin function
+</p>
+
+<pre class="matlab">
+x = linspace(0,5*pi,1001);
+y = sin(x);
+dydx = deriv(x,y);
+plot(x,y,'k',x,dydx,'g');
+legend('original function','derivative');
+</pre>
+
+<!-- =========================================================== -->
+<div class="subtitle">See also</div>
+
+<p>
+<a class="esf" href="datasmooth.html">datasmooth</a>
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+</html>

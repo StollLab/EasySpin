@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>larmorfrq</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">larmorfrq</div>
+
+<p>
+Larmor (ENDOR) frequency of nuclear spins.
+</p>
+
+<!-- ========================================================== -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+freq = larmorfrq(Nucs,Fields)
+</pre>
+
+<!-- ========================================================== -->
+<div class="subtitle">Description</div>
+
+<p>
+<code>larmorfrq</code> computes the Larmor frequencies (in MHz)
+for the nuclear spins given in <code>Nucs</code> at magnetic fields
+(in mT) given in <code>Fields</code>.
+</p>
+
+<p>
+<code>Nucs</code> is either a cell array of nuclear isotope symbols
+or a string with a comma-separated list of nuclear isotope symbols,
+e.g., <code>'14N'</code> or <code>{'14N','1H'}</code>
+or <code>'63Cu,65Cu'</code>.
+</p>
+
+<p>
+<code>Fields</code> is a vector of magnetic field values in mT,
+e.g. <code>350</code> or <code>[350 365 380]</code> or
+<code>1200:10:1300</code>.
+</p>
+
+<p>
+<code>freq</code> contains the Larmor (ENDOR, NMR) frequencies in MHz.
+Each column contains the frequencies of one nucleus.
+</p>
+
+<!-- ========================================================== -->
+<div class="subtitle">Examples</div>
+
+<p>
+The ENDOR frequencies of the two naturally occurring
+nitrogen isotopes at a typical X-band magnetic field value are
+</p>
+
+<pre class="matlab">
+larmorfrq('14N,15N',350)
+</pre>
+<pre class="mloutput">
+ans =
+    1.0772    1.5110
+</pre>
+
+<p>
+The same result can be obtained by using a cell array instead of the
+comma separated list of isotopes
+</p>
+
+<pre class="matlab">
+larmorfrq({'14N','15N'},350)
+</pre>
+<pre class="mloutput">
+ans =
+    1.0772    1.5110
+</pre>
+
+<p>
+The ENDOR frequency of protons for a series of magnetic field values
+can be obtained with
+</p>
+
+<pre class="matlab">
+larmorfrq('1H',350:10:400)
+</pre>
+<pre class="mloutput">
+ans =
+   14.9021
+   15.3279
+   15.7537
+   16.1794
+   16.6052
+   17.0310
+</pre>
+
+<!-- ========================================================== -->
+<div class="subtitle">See also</div>
+
+<p>
+<a class="esf" href="nucabund.html">nucabund</a>,
+<a class="esf" href="nucdata.html">nucdata</a>,
+<a class="esf" href="nucgval.html">nucgval</a>,
+<a class="esf" href="nucqmom.html">nucqmom</a>,
+<a class="esf" href="nucspin.html">nucspin</a>
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+
+</html>

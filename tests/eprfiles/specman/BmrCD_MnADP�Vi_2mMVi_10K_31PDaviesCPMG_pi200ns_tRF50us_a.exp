@@ -1,0 +1,170 @@
+[general]
+version = 1.1
+demon = 1.1.7.24
+name = Davies ENDOR
+dconfig = Wband T2 march 13.cfg
+pconfig = Weizmann_CPMG_April2012.cfp
+normalized = false
+starttime = Fri Jun 26 15:43:00 2015
+finishtime = Fri Jun 26 20:53:57 2015
+totaltime = 5h 10min 57s
+tformat = 1
+stream_axis = 0
+stream_type = 4
+
+[text]
+
+[sweep]
+transient = T,16000,1,a
+sweep0 = Xr,321,1,RF1
+sweep1 = Srf,8,1,ph
+sweep2 = P,1,7300,t180_1,t90,t180,tau,t,RepTime,trf,n_loops,t_comp
+
+[aquisition]
+a = ;a;A@Aquiris
+
+[params]
+RF1 = 50.7 MHz to 66.7 MHz;p;Freq0@PTS310
+ph = 1 to 8;p;PPL variable
+t180_1 = 200 ns;p;PPL variable
+t90 = 100 ns;p;PPL variable
+t180 = 200 ns;p;PPL variable
+tau = 1 us;p;PPL variable
+t = 60 us;p;PPL variable
+RepTime = 1 ms;p;PPL variable
+trf = 50 us;p;PPL variable
+n_loops = 12;p;PPL variable
+t_comp = 100 ns;p;PPL variable
+
+[decision]
+
+[streams]
+names = Re
+units = bit
+dwelltime = 4 ns
+triggers = 1
+scans = 6443
+
+[program]
+time tau, t90, t180, t, trf, t180_1, t_comp
+int ph, n_loops
+
+%% using second microwave channel
+
+%% best parameters to see pulses:
+%% DwellTime 30ns, Start Delay 32us
+
+phase1 = [0,0,0,0,2,2,2,2]
+phase2 = [0,0,2,2,0,0,2,2]
+phase3a = [0,2,0,2,0,2,0,2]
+phase3b = [2,0,2,0,2,0,2,0]
+det = ['a','a','-a','-a','a','a','-a','-a']
+
+mwpulse t180_1, phase1(ph)
+parallel
+ wait 2 us
+ rfpulse trf
+end
+wait t
+mwpulse t90, phase2(ph)
+wait tau
+mwpulse t180, phase3a(ph)
+wait tau
+detect det(ph)
+repeat n_loops
+ wait tau
+ wait t_comp
+ mwpulse t180, phase3b(ph)
+ wait tau
+ wait tau
+ wait t_comp
+ mwpulse t180, phase3a(ph)
+ wait tau
+end
+
+[presetup]
+
+[postsetup]
+
+[eachpoint]
+
+[scope]
+dfScopeIntWindowPos = 300
+dfScopeIntWindowWidth = 120
+dfScopeBaselinePos1 = 14500
+dfScopeBaselineWidth1 = 500
+dfScopeBaselinePos2 = 15500
+dfScopeBaselineWidth2 = 500
+dfScopeBaselineOpt = 0
+
+[pack]
+PackAxis = 0
+MaxSeqPerShot = 0
+
+
+[warmup]
+WarmUp = 0
+WarmUpScans = 0
+WarmUpTime = 0 s
+
+
+[System]
+Shots = 0
+XReps = 0
+YReps = 0
+ZReps = 0
+Sum1Reps = 0
+Sum2Reps = 0
+i = 0
+j = 0
+k = 0
+MTDelay = 10 ms
+Wait = 10 ms
+
+[PB400]
+Trigger = Internal
+Cycles = As specified
+
+[SOURCE]
+Frequency = 94.9 GHz
+
+[SOURCE2]
+Frequency = 93.6 GHz
+
+[SOURCE3]
+Frequency = 93.6 GHz
+
+[PTS310]
+Freq0 = 62.1 MHz
+Freq1 = 100 kHz
+
+[Aquiris]
+Scale = 500 mV
+Offset = -135.5 mV
+Coupling = DC, 50Ohm
+Bandwidth = Full
+Sampling = 4 ns
+Delay = 29.5 us
+Trigger = External
+T_Coupling = DC
+T_Slope = Positive
+T_Level = 60 %
+T_Level2 = 10 %
+Skip traces = 0
+
+[Field]
+Control = Remote
+AutoControl = Run only
+Field = 2.6834 A
+FieldOffset = 0 A
+FieldAUX = 71.38 mT
+SweepRate = 5 mA/s
+SetDelay = 1 s
+Sweep = Sweep
+SetMode = Fast
+Monitoring = Never
+
+[sample_info]
+sample_info = 
+
+[exp_info]

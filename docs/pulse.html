@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>pulse</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">pulse</div>
+
+<p>
+Calculates pulse shapes and pulse excitation profiles.
+</p>
+
+
+<!-- ============================================================= -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+pulse(Par)
+pulse(Par,Opt)
+[t,IQ] = pulse(...)
+[t,IQ,exciteprofile] = pulse(...)
+[t,IQ,exciteprofile,modulation] = pulse(...)
+</pre>
+
+<!-- ============================================================= -->
+<div class="subtitle">Description</div>
+
+<p>
+This function calculates pulse shapes and pulse excitation profiles.
+</p>
+
+<p>
+The output contains the time axis data in <code>t</code> (time in microseconds). <code>IQ</code> contains the pulse shape data with the in-phase component in the real part and the quadrature component in the imaginary part.
+</p>
+
+<p>
+If a third output argument is specified, the pulse excitation profile is calculated and returned in the structure <code>exciteprofile</code> with the following fields:
+<ul>
+<li><code>exciteprofile.offsets</code>: axis of frequency offsets (in MHz) relative to the center frequency
+<li><code>exciteprofile.Mx</code>, <code>exciteprofile.My</code>, <code>exciteprofile.Mz</code>: components of the magnetization vector after the pulse, calculated using two-level density matrix dynamics starting from thermal equilibrium (Mx = 0, My = 0, Mz = 1).
+</ul>
+</p>
+
+<p>
+The fourth output argument contains the structure <code>modulation</code> with the calculated modulation functions for the pulse:
+<ul>
+<li><code>modulation.A</code>: amplitude modulation function (in MHz)
+<li><code>modulation.freq</code>: frequency modulation function (in MHz)
+<li><code>modulation.phase</code>: phase modulation function (in radians)
+</ul>
+</p>
+
+<p>
+If you don't request any output, <code>pulse</code> plots the calculated pulse shape, modulation functions and excitation profiles.
+</p>
+
+<p>
+The input arguments to <code>pulse</code> are <code>Par</code>, a structure containing pulse parameter definitions, and <code>Opt</code>, an optional structure containing options for the calculation.
+</ul>
+
+<p>
+<code>Par</code> is a structure containing all parameters necessary to specify the pulse shape. The available fields are listed below.
+
+<div class="optionfield"><code>tp</code></div>
+<div class="optiondescr">
+Pulse length, in microseconds.
+</div>
+
+<div class="optionfield"><code>TimeStep</code></div>
+<div class="optiondescr">
+Time step for the definition of the waveform, in microseconds. If not given, it is automatically determined based on the Nyquist sampling criterion and the input pulse parameters.
+</div>
+
+<div class="optionfield"><code>Flip</code></div>
+<div class="optiondescr">
+Pulse flip angle, in radians. If absent, <code>Par.Flip = pi</code> is used as default.
+
+<p>
+<code>Flip</code> is used to calculate the pulse amplitude. For amplitude-modulated pulses, it is calculated via the integral of the amplitude modulation function. For frequency-modulated pulses, the procedure described in Jeschke, G., Pribitzer, S., Doll, A. Coherence Transfer by Passage Pulses in Electron Paramagnetic Resonance Spectroscopy. <i>J. Phys. Chem. B</i> 119, 13570–13582 (<b>2015</b>) (DOI: <a href="http://dx.doi.org/10.1021/acs.jpcb.5b02964">10.1021/acs.jpcb.5b02964</a>) is used.
+</div>
+
+<div class="optionfield"><code>Amplitude</code></div>
+<div class="optiondescr">
+Pulse amplitude, in MHz. If <code>Par.Flip</code> is given, <code>Par.Amplitude</code> is ignored.
+</div>
+
+<div class="optionfield"><code>Frequency</code></div>
+<div class="optiondescr">
+Pulse frequency, in MHz (default = 0). For frequency-swept pulses the start and end frequencies are required.
+<pre class="matlab">
+Par.Frequency = -10;  % constant frequency offset
+Par.Frequency = [-50 50];  % up-sweep
+Par.Frequency = [50 20];  % down-sweep
+</pre>
+</div>
+
+<div class="optionfield"><code>Phase</code></div>
+<div class="optiondescr">
+Overall pulse phase, in radians, <i>e.g.</i> <code>0</code> for +x, <code>pi/2</code> for +y, etc. If not given, it defaults to 0.
+</div>
+
+<div class="optionfield"><code>Type</code></div>
+<div class="optiondescr">
+Pulse shape name in a string structured as <code>'AM/FM'</code> (or just <code>'AM'</code>), where AM refers to the amplitude modulation function and FM to the frequency modulation function.
+<p>
+The available amplitude modulation functions are <code>'rectangular'</code>, <code>'gaussian'</code>, <code>'sinc'</code>, <code>'quartersin'</code>, <code>'sech'</code>, <code>'WURST'</code>. Different AM functions can be multiplied by concatenating the keywords as <code>'AM1*AM2/FM'</code>. The default is <code>'rectangular'</code>.
+
+<p>
+The available options for frequency modulation are <code>'none'</code>, <code>'linear'</code>, <code>'tanh'</code>, <code>'uniformQ'</code>. If only an AM keyword is given, the FM function is set to <code>'none'</code>.
+</p>
+
+<p>
+Additional parameters are required to fully specify the various AM and FM functions, see below.
+</div>
+
+<div class="optionfield"><code>I</code>, <code>Q</code>
+</div>
+<div class="optiondescr">
+I and Q data describing an arbitrary pulse shape not included in the predefined options listed below. If only the in-phase component is defined, the quadrature component is set to zero. The time axis is reconstructed based on <code>Par.tp</code> and the length of the I and Q vectors. All other input parameters (<code>Par.Amplitude</code>, <code>Par.Flip</code>, <code>Par.Frequency</code>, <code>Par.Phase</code>, etc.) are ignored. <code>I</code> and <code>Q</code>.
+</div>
+
+</div>
+
+<p>
+Depending on the AM function, additional fields need to be specified:
+<ul>
+<li><code>'rectangular'</code>
+<ul style="list-style-type:none;padding:5px;">
+<li>no additional fields are required
+</ul>
+<li><code>'gaussian'</code>:
+<ul style="list-style-type:none;padding:5px;">
+<li><code>tFWHM</code> - FWHM, in microseconds
+<li><code>trunc</code> - truncation parameter (0 to 1) (alternative to <code>tFWHM</code>)
+</ul>
+<li><code>'sinc'</code>:
+<ul style="list-style-type:none;padding:5px;">
+<li><code>zerocross</code> - width between the first zero-crossing points in microseconds
+</ul>
+<li><code>'sech'</code>
+<ul style="list-style-type:none;padding:5px;">
+<li><code>beta</code> - dimensionless truncation parameter (used as <code>beta/tp</code>)
+<li><code>n</code> - exponent of the secant function argument (default = 1)
+<p>
+asymmetric sech pulses can be obtained by specifying two values for <code>n</code>
+</p>
+</ul>
+<li><code>'WURST'</code>
+<ul style="list-style-type:none;padding:5px;">
+<li><code>nwurst</code> - parameter determining the steepness of the amplitude function
+</ul>
+<li><code>'quartersin'</code></li>
+<ul style="list-style-type:none;padding:5px;">
+<li><code>trise</code> - rise time in microseconds for quarter sine weighting at the pulse edges
+</ul>
+</ul>
+</p>
+
+<p>
+For the definition of the FM functions, in all cases the frequency sweep range needs to be defined in <code>Par.Frequency</code> with start and end frequencies.
+Also, depending on the FM function, the following additional fields are required:
+<ul>
+<li><code>'none'</code>
+<ul style="list-style-type:none;padding:5px;">
+<li>no additional fields are required
+</ul>
+<li><code>'linear'</code>
+<ul style="list-style-type:none;padding:5px;">
+<li>no additional fields are required
+</ul>
+<li><code>'tanh'</code>
+<ul style="list-style-type:none;padding:5px;">
+<li><code>beta</code> - dimensionless truncation parameter (see <code>'sech'</code>)
+</ul>
+<li><code>'uniformQ'</code>
+<ul style="list-style-type:none;padding:5px;">
+<li>no additional fields are required
+</ul>
+</ul>
+
+<p>
+Compensation for the resonator bandwidth is available can be selected by setting <code>Opt.BWCompensation = 1</code> (see below). In this case, the following additional parameters have to be included in the <code>Par</code> structure:
+
+<div class="optionfield"><code>MagnitudeResponse</code></div>
+<div class="optiondescr">
+Resonator magnitude response function (ideal or experimental).
+</div>
+
+<div class="optionfield"><code>faxis</code></div>
+<div class="optiondescr">
+Corresponding frequency axis, in MHz.
+</div>
+
+<div class="optionfield"><code>mwFreq</code></div>
+<div class="optiondescr">
+Microwave frequency (LO), in GHz.
+</div>
+
+<p>
+The parameters in the <code>Opt</code> structure define different settings for the calculation. The available fields are given below.
+
+<div class="optionfield"><code>IQ</code></div>
+<div class="optiondescr">
+If set to <code>Opt.IQ = 1</code> (which is the default), then the output <code>IQ</code> is complex-valued, containing both in-phase (real) and quadrature (imaginary) components. For <code>Opt.IQ = 0</code>, only the in-phase component is returned, and the output <code>IQ</code> is real.
+</div>
+
+<div class="optionfield"><code>BWCompensation</code></div>
+<div class="optiondescr">
+With <code>Opt.BWCompensation = 1</code>, the calculated pulse shape includes a compensation for the resonator bandwidth profile. This is available for <code>'rectangular/linear'</code>, <code>'quartersin/linear'</code>, <code>'sech/tanh'</code> and <code>'sech/uniformQ'</code> pulses. If selected, the parameters defining the resonator magnitude response function need to be defined (<code>Par.mwFreq</code>, <code>Par.MagnitudeResponse</code> and <code>Par.faxis</code>, see above).  Bandwidth compensation is turned off by default (<code>Opt.BWCompensation = 0</code>).
+</div>
+
+<div class="optionfield"><code>OverSampleFactor</code></div>
+<div class="optiondescr">
+Oversampling factor for the automatic determination of the time step (default = 10). 
+</div>
+
+<div class="optionfield"><code>Offsets</code></div>
+<div class="optiondescr">
+Axis of frequency offsets (in MHz) for which to compute the excitation profile (by default the frequency axis is defined over a range of approximately twice the pulse bandwidth around the center frequency with 201 points).
+</div>
+
+<!-- ============================================================= -->
+<div class="subtitle">Theoretical background</div>
+
+<p>
+The pulse amplitude, frequency and phase modulation functions are calculated using the following equations. The origin of the time variable <i>t</i> is at the center of the pulse and runs from -<i>t</i><sub>p</sub>/2 to +<i>t</i><sub>p</sub>/2.
+</p>
+
+<p>
+Amplitude modulation functions:
+</p>
+
+<ul>
+
+<li><code>'rectangular'</code>:
+<div class="eqn">
+<img src="eqn/pulse1.png" alt="[eqn]"><!--MATH
+\begin{equation*}
+A = 1
+\end{equation*}
+-->
+</div>
+
+<li><code>'gaussian'</code>:
+<div class="eqn">
+<img src="eqn/pulse2.png" alt="[eqn]"><!--MATH
+\begin{equation*}
+A = \exp{\left(-\frac{4(\ln{2})t^2}{FWHM^2}\right)}
+\end{equation*}
+-->
+</div>
+
+<li><code>'sinc'</code>:
+<div class="eqn">
+<img src="eqn/pulse3.png" alt="[eqn]"><!--MATH
+\begin{equation*}
+A = \frac{\sin{x}}{x} \qquad \text{with} \qquad x = \frac{2\pi t}{zerocross}
+\end{equation*}
+-->
+</div>
+
+<li><code>'sech'</code>:
+<div class="eqn">
+<img src="eqn/pulse4.png" alt="[eqn]"><!--MATH
+\begin{equation*}
+A = \text{sech}\left(\beta\,2^{n-1} \left(\frac{t}{t_\mathrm{p}}\right)^n\right)
+\end{equation*}
+-->
+</div>
+
+<li><code>'WURST'</code>:
+<div class="eqn">
+<img src="eqn/pulse5.png" alt="[eqn]"><!--MATH
+\begin{equation*}
+A = 1 - \left|\sin{\frac{\pi t}{t_\mathrm{p}}} \right|^{nwurst}
+\end{equation*}
+-->
+</div>
+
+<li><code>'quartersin'</code>:
+<div class="eqn">
+<img src="eqn/pulse6.png" alt="[eqn]"><!--MATH
+\begin{eqnarray*}
+A = 1 \qquad &\text{for}& \qquad -\frac{t_\mathrm{p}}{2} + t_\text{rise} < t < \frac{t_\mathrm{p}}{2} - t_\text{rise} \\
+A = \sin\frac{\pi \left(t + t_\mathrm{p}/2\right)}{2 t_\text{rise}} \qquad &\text{for}& \qquad -\frac{t_\mathrm{p}}{2} < t < -\frac{t_\mathrm{p}}{2} + t_\text{rise} \\
+A = \sin\frac{\pi \left(t - t_\mathrm{p}/2 + t_\text{rise}\right)}{2 t_\text{rise}} \qquad &\text{for}& \qquad \frac{t_\mathrm{p}}{2} - t_\text{rise} < t < \frac{t_\mathrm{p}}{2} \\
+\end{eqnarray*}
+-->
+</div>
+
+</ul>
+
+<p>
+Frequency and phase modulation functions (<i>BW</i> is the difference between end and start frequencies):
+</p>
+
+<ul>
+
+<li><code>'none'</code>:
+<div class="eqn">
+<img src="eqn/pulse7.png" alt="[eqn]"><!--MATH
+\begin{equation*}
+\nu = 0 \qquad \qquad \phi = 0
+\end{equation*}
+-->
+</div>
+
+<li><code>'linear'</code>:
+<div class="eqn">
+<img src="eqn/pulse8.png" alt="[eqn]"><!--MATH
+\begin{equation*}
+\nu = \frac{BW}{t_\mathrm{p}} t \qquad \qquad \phi = 2 \pi \left( -\frac{BW}{2}\left(t - \frac{t_\mathrm{p}}{2}\right) + \frac{1}{2} \frac{BW}{t_\mathrm{p}} \left(t - \frac{t_\mathrm{p}}{2}\right)^2\right)
+\end{equation*}
+-->
+</div>
+
+<li><code>'tanh'</code>:
+<div class="eqn">
+<img src="eqn/pulse9.png" alt="[eqn]"><!--MATH
+\begin{equation*}
+\nu = \frac{BW}{2 \tanh(\beta/2)} \tanh{\frac{\beta t}{t_\mathrm{p}}}
+\qquad\qquad
+\phi = 2 \pi \frac{BW}{2 \tanh(\beta/2) \frac{t_\mathrm{p}}{\beta} \log\left[\cosh{\frac{\beta t}{t_\mathrm{p}}}\right]
+\end{equation*}-->
+</div>
+
+<li><code>'uniformQ'</code>:
+<p>
+The frequency modulation function is calculated as the integral of the squared amplitude modulation function and multiplied by the specified bandwidth (centered at zero). This can be used for <i>n</i>th order sech pulses or in general to obtain offset-independent adiabaticity pulses given a certain amplitude function (see Garwood, M., DelaBarre, L., <i>J. Magn. Reson.</i> 153, 155-177 (<b>2001</b>), DOI: <a href="http://dx.doi.org/10.1006/jmre.2001.2340">10.1006/jmre.2001.2340</a>). The phase modulation function is obtained by integration and the phase is set to zero at the center of the pulse.
+<p/>
+
+</ul>
+
+<p>
+The time axis for the calculation of the modulation functions is centered at zero. The normalized amplitude modulation functions given above are multiplied by <code>Par.Amplitude</code>.
+</p>
+
+<p>
+The final pulse shape is calculated as:
+</p>
+<div class="eqn">
+<img src="eqn/pulse10.png" alt="[eqn]"><!--MATH
+\begin{equation*}
+P = A \exp\left[i \left(\phi + 2 \pi \nu_\text{center} + \Delta\phi\right) \right]
+\end{equation*}
+-->
+</div>
+<p>
+where the different terms are the amplitude modulation, the phase modulation, the center frequency and the phase offset defined in <code>Par.Phase</code>.
+</p>
+
+<p>
+If bandwidth compensation is requested, the frequency and amplitude modulation functions defined above are adjusted to compensate for the resonator profile as described in Doll, A., Pribitzer, S., Tschaggelar, R., Jeschke, G., Adiabatic and fast passage ultra-wideband inversion in pulsed EPR, <i>J. Magn. Reson.</i> 230, 27-39 (<b>2013</b>), DOI: <a href="http://dx.doi.org/10.1016/j.jmr.2013.01.002">10.1016/j.jmr.2013.01.002</a> and Pribitzer, S., Doll, A., Jeschke, G., SPIDYAN, a MATLAB library for simulating pulse EPR experiments with arbitrary waveform excitation. <i>J. Magn. Reson.</i> 263, 45-54 (<b>2016</b>) (DOI: <a href="http://dx.doi.org/10.1016/j.jmr.2015.12.014">10.1016/j.jmr.2015.12.014</a>). The phase modulation function is obtained by integration and the phase is set to zero at the center of the pulse.
+<p/>
+
+<!-- ============================================================= -->
+<div class="subtitle">See also</div>
+
+<p>
+<a class="esf" href="evolve.html">evolve</a>,
+<a class="esf" href="rfmixer.html">rfmixer</a>,
+<a class="esf" href="saffron.html">saffron</a>
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+
+</html>

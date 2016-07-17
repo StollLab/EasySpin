@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>rescale</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">rescale</div>
+
+<p>
+Rescale data, including least-squares baseline fits.
+</p>
+
+<!-- ====================================================== -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+y_ = rescale(y,y2,mode)
+y_ = rescale(y,mode)
+</pre>
+
+<!-- ====================================================== -->
+<div class="subtitle">Description</div>
+
+<p>
+This function rescales the data in <code>y</code> and returns it. The type of rescaling
+depends on the values in <code>mode</code> and on the presence of a reference data set in
+<code>yref</code>.
+
+<p>
+If a second data set is given in <code>yref</code>, the data in <code>y</code>
+are rescaled and shifted in a way depending on the value of <code>mode</code>:
+
+<ul>
+<li><code>'minmax'</code>: shifts and scales <code>y</code> such that its minimum and maximum will match those of <code>yref</code>
+<li><code>'maxabs'</code>: scales <code>y</code> such that its maximum absolute will match that of <code>yref</code> (no shift)
+<li><code>'lsq'</code>: least-squares fits <code>y</code> to <code>yref</code> using <code>a*y</code> (scale only)
+<li><code>'lsq0'</code>: least-squares fits <code>y</code> to <code>yref</code> using <code>a*y+b</code> (scale and shift)
+<li><code>'lsq1'</code>: least-squares fits <code>y</code> to <code>yref</code> using <code>a*y+b+c*x</code> (scale plus linear baseline)
+<li><code>'lsq2'</code>: least-squares fits <code>y</code> to <code>yref</code> using <code>a*y+b+c*x+ d*x^2</code> (scale plus quadratic baseline)
+</ul>
+
+<p>
+If no second data set is given, the rescale options (given in <code>mode</code>) are more limited:
+
+<ul>
+<li><code>'minmax'</code>: shifts and scales <code>y</code> such that its minimum is 0 and its maximum is 1
+<li><code>'maxabs'</code>: scales <code>y</code> such that its maximum absolute is 1 (no shift)
+</ul>
+
+
+<!-- ====================================================== -->
+<div class="subtitle">Examples</div>
+
+<p>
+Take a Gaussian signal and a noisy version of it with a baseline drift
+</p>
+
+<pre class="matlab">
+n = 200; x = linspace(-1,1,n);
+yn = gaussian(x,0,0.5);
+y1 = yn + randn(1,n) + x;
+plot(x,yn,x,y1)
+</pre>
+
+<p>
+The noisy signal can be rescaled in various ways to fit the noise-free one:
+</p>
+
+<pre class="matlab">
+y2 = rescale(yn,y1,'minmax');
+y3 = rescale(yn,y1,'lsq0');
+y4 = rescale(yn,y1,'lsq1');
+plot(x,yn,x,y1,x,y2,x,y3,x,y4);
+legend('original','reference','minmax','lsq0','lsq1');
+</pre>
+
+<!-- ====================================================== -->
+<div class="subtitle">See also</div>
+
+<p>
+<a class="esf" href="deriv.html">deriv</a>,
+<a class="esf" href="rcfilt.html">rcfilt</a>,
+<a class="esf" href="datasmooth.html">datasmooth</a>
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+</html>

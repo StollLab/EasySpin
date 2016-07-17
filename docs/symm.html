@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>symm</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">symm</div>
+
+<p>
+Determines point group symmetry of a spin system.
+</p>
+
+<!-- ====================================================== -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+PointGroup = symm(SpinSystem)
+[PointGroup,RMatrix] = symm(SpinSystem)
+</pre>
+
+<!-- ====================================================== -->
+<div class="subtitle">Description</div>
+
+<p>
+This function determines the point group symmetry of the spin system
+given in <code>Spinsystem</code> (more correctly, of its Hamiltonian's eigenvalues)
+and returns its Sch&ouml;nfliess symbol in
+<code>PointGroup</code> and the orientation of the principal axes system in
+<code>RMatrix</code>.
+</p>
+
+<p>
+The point group symmetry of a spin system is depending on the
+behaviour of its energy eigenvalues when the orientation of the
+system with respect to an external magnetic field is changed.
+</p>
+
+<p>
+Since the spin Hamiltonian used in EasySpin is always
+time-invariant, its eigenvalues do not change when the magnetic field
+is inverted. Consequently, only the 13 centrosymmetric point groups C<sub>i</sub>,
+C<sub>2h</sub>, D<sub>2h</sub>, C<sub>4h</sub>, D<sub>4h</sub>, S<sub>6</sub>,
+D<sub>3d</sub>, C<sub>6h</sub>,
+D<sub>6h</sub>, T<sub>h</sub>, O<sub>h</sub>, D<sub>infh</sub>
+and O<sub>3</sub> are possible.
+</p>
+
+<p>
+The most common symmetry groups of these are O<sub>3</sub> (isotropic),
+D<sub>infh</sub> (axial), D<sub>2h</sub> (orthorhombic), C<sub>2h</sub>
+and C<sub>i</sub>.
+</p>
+
+<p>
+<code>RMatrix</code> describes the orientation of the symmetry frame axses in the
+molecular frame of the spin system.
+<code>RMatrix(:,1)</code> is the x axis of the symmetry frame,
+<code>RMatrix(:,2)</code> the y axis, and
+<code>RMatrix(:,3)</code> the z axis,
+which is by definition the axis with the highest rotational symmetry.
+</p>
+
+<div class="subtitle">Examples</div>
+
+<p>
+A simple system with aligned rhombic interaction matrices has
+D<sub>2h</sub> symmetry
+</p>
+
+<pre class="matlab">
+Sy = struct('S',1/2,'Nucs','1H','g',[2.3 2.1 2]);
+Sy.A = [100 150 200];
+[Gr,R] = symm(Sy); Gr
+</pre>
+
+<pre class="mloutput">
+Gr =
+  D2h
+</pre>
+
+<p>
+If the rhombic A matrix is tilted with respect to the g matrix,
+the symmetry reduces to C<sub>i</sub>.
+</p>
+
+<pre class="matlab">
+Sy.AFrame = [10 20 30]*pi/180;
+[Gr,R] = symm(Sy); Gr
+</pre>
+
+<pre class="mloutput">
+Gr =
+  Ci
+</pre>
+
+<div class="subtitle">Algorithm</div>
+
+<p>
+If no high-order terms are present in the spin system,
+<code>symm</code> determines the symmetry of all tensors and
+interaction matrices and uses simple geometrical
+comparisons to determine the total symmetry.
+</p>
+
+<p>
+Otherwise, the symmetry of the spin Hamiltonian is determined by diagonalizing
+it for a few selected orientations and by comparing the resulting sets of eigenvalues.
+</p>
+
+<div class="subtitle">See also</div>
+
+<p>
+<a class="esf" href="sham.html">sham</a>,
+<a class="esf" href="sphgrid.html">sphgrid</a>
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+
+</html>

@@ -1,0 +1,170 @@
+[general]
+version = 1.1
+demon = 2.1.5449
+name = T1
+dconfig = Ka-Band.cfg
+pconfig = Ka-Band.cfp
+normalized = false
+starttime = Wed Jun  3 14:55:30 2015
+finishtime = Wed Jun  3 15:06:19 2015
+totaltime = 0h 10min 49s
+tformat = 1
+stream_axis = 256
+no_auto_save = 0
+
+[text]
+
+[sweep]
+transient = I,1024,2,a,b
+sweep0 = S,16,1,ph
+sweep1 = X,200,1,delay
+sweep2 = P,1,1,RepTime,t90,t180,tau,n,t2,tsat,Field
+
+[aquisition]
+a = ;a;A@ACQ
+b = ;a;B@ACQ
+
+[params]
+ph = 1 to 16;p;PPL variable
+delay = 100 ns logto 90 ms;p;PPL variable
+RepTime = 100 ms;p;PPL variable
+t90 = 20 ns;p;PPL variable
+t180 = 40 ns;p;PPL variable
+tau = 300 ns step 0 s;p;PPL variable
+n = 20;p;PPL variable
+t2 = 2 us;p;PPL variable
+tsat = 24 ns;p;PPL variable
+Field = 12.146 kG;p;Field@FLD
+
+[decision]
+
+[streams]
+names = Re, Im
+units = V, V
+dwelltime = 2 ns, 2 ns
+triggers = 1
+scans = 1, 1
+
+[program]
+%% 2 pulse echo
+time delay, t90, t180, tsat, tau, t2 
+int ph, n
+signal a,b
+
+phase1 = [2,0,3,1,2,0,3,1,2,0,3,1,2,0,3,1]
+phase2 = [2,0,3,1,3,1,0,2,0,2,1,3,1,3,2,0]
+phasesat = 0
+det1 = ['a','-a','b','-b','-a','a','-b','b','a','-a','b','-b','-a','a','-b','b']
+det2 = ['b','-b','-a','a','-b','b','a','-a','b','-b','-a','a','-b','b','a','-a']
+
+
+repeat n
+mwpulse tsat,phasesat
+wait t2
+end
+wait delay
+mwpulse t90, phase1(ph)
+wait tau
+mwpulse t180, phase2(ph)
+wait tau
+detect det1(ph), det2(ph)
+
+[presetup]
+
+[postsetup]
+
+[eachpoint]
+
+[scope]
+dfScopeIntWindowPos = 35
+dfScopeIntWindowWidth = 63
+dfScopeBaselinePos1 = 260
+dfScopeBaselineWidth1 = 200
+dfScopeBaselinePos2 = 560
+dfScopeBaselineWidth2 = 200
+dfScopeBaselineOpt = -1
+
+[pack]
+PackAxis = 0
+MaxSeqPerShot = 0
+
+
+[warmup]
+WarmUp = 0
+WarmUpScans = 0
+WarmUpTime = 0 s
+
+
+[System]
+Shots = 0
+XReps = 0
+YReps = 0
+ZReps = 0
+Sum1Reps = 0
+Sum2Reps = 0
+i = 0
+j = 0
+k = 0
+ArmDelay = 10 ms
+MTDelay = 10 ms
+Wait = 10 ms
+Time = 10 ms
+
+[PB]
+Trigger = Internal
+Cycles = As specified
+
+[ACQ]
+A Scale = 1 V
+A Offset = 0 V
+A Coupling = AC, 50Ohm
+A Bandwidth = Full
+B Scale = 1 V
+B Offset = 0 V
+B Coupling = AC, 50Ohm
+B Bandwidth = Full
+Sampling = 2 ns
+TraceLength = 100 us
+Delay = 0 s
+Trigger = External
+T_Coupling = DC
+T_Slope = Positive
+T_Level = 20 %
+T_Level2 = 10 %
+
+[FLD]
+Control = Manual
+AutoControl = Manual
+Field = 12.146 kG
+FieldOffset = 50 G
+FieldAUX = 0 T
+SweepRate = 0 T/s
+SetDelay = 1 s
+CenterField = 12.146 kG
+SweepRange = 500 mG
+Time = 0 s
+Algorithm = Central Field
+
+[PTS160]
+Frequency = 100 kHz
+
+[SRC1]
+Frequency = 33.678 GHz
+
+[SRC2]
+Frequency = 33.86 GHz
+
+[QBRIDGE]
+Mode = PULSE
+
+[VIDEO]
+Gain = 20 dB
+Coupling = DC
+Bandwidth = 200 MHz
+
+[sample_info]
+sample_info = **T**
+sample_info_0 = *****
+
+[exp_info]
+template = 

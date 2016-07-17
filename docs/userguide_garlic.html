@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>User guide: garlic</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">Simulating isotropic and fast-motion cw EPR spectra</div>
+
+<p>
+This user guide explains how to simulate isotropic and fast-motion cw EPR spectra using EasySpin's
+function <a class="esf" href="garlic.html">garlic</a>. It is assumed that you are familiar with the basics of MATLAB, esp. with structures.
+</p>
+
+It contains the following topics:
+
+<ul>
+<li><a href = "#calling">Running the simulation</a></li>
+<li><a href = "#spinsys">The spin system</a></li>
+<li><a href = "#expparams">Basic experimental settings</a></li>
+<li><a href = "#moreexpparams">More experimental settings</a></li>
+<li><a href = "#broadenings">Line broadenings</a></li>
+</ul>
+
+There are the following advanced topics:
+
+<ul>
+<li><a href = "#multicomponent">Multiple components</a></li>
+<li><a href = "#fastmotion">Simulating spectra in the fast-motional regime</a></li>
+<li><a href = "#freqsweep">Frequency-swept spectra</a></li>
+</ul>
+
+<!-- ============================================================= -->
+<div class="subtitle"><a name="calling">Running the simulation</a></div>
+
+<p>
+Solution cw EPR spectra of radicals are computed
+by the EasySpin function <a class="esf" href="garlic.html">garlic</a>.
+</p>
+
+<pre class="matlab">
+garlic(Sys,Exp)
+</pre>
+
+<p>
+It is called with two arguments. The first argument <code>Sys</code> tells <code>garlic</code> all about the
+spin system, and the second argument <code>Exp</code> gives the experimental
+parameters.
+</p>
+<p>
+If no output argument is given, <code>garlic</code>
+plots the computed spectrum. But it can also return one or two outputs. (Don't forget the semicolon at the end of the line to suppress
+output to the command window.)
+</p>
+
+<pre class="matlab">
+Spec = garlic(Sys,Exp);
+[Field,Spec] = garlic(Sys,Exp);
+</pre>
+
+<p>
+The outputs <code>Field</code> and <code>Spec</code> are
+arrays that contain the values of th magnetic field axis and the spectrum, respectively.
+If these are requested, <code>garlic</code> does not plot the spectrum.
+</p>
+
+<p>
+Doing a simulation only requires a few lines of code. A simple example is
+</p>
+
+<pre class="matlab">
+Sys = struct('g',2,'Nucs','1H','n',2,'A',15,'lwpp',[0 0.05]);
+Exp = struct('mwFreq',9.5);
+garlic(Sys,Exp);
+</pre>
+
+<p>
+The first two lines define the spin system (a radical with an unpaired electron spin
+and two equivalent <sup>1</sup>H) and the experimental parameters (X band spectrometer frequency). The details will be explained below.
+The third line calls the simulation function, which plots the result.
+Copy and paste the code above to your MATLAB command window to see the graph.
+</p>
+
+<p>
+Of course, the names of the input and output variables don't have
+to be <code>Sys</code>, <code>Exp</code>, <code>Field</code> and <code>Spec</code>.
+You can give them any name you like, as long as it is a valid MATLAB
+variable name, e.g., <code>FremySaltSolution</code> or <code>QbandExperiment</code>.
+For convenience, thoughout this tutorial, we will use the short names <code>Sys</code>
+and <code>Exp</code>.
+</p>
+
+<!-- ============================================================= -->
+<div class="subtitle"><a name="spinsys">The  spin system</a></div>
+
+<p>
+The first input argument specifies the spin system. It is a MATLAB structure with various fields giving values for the spin system parameters.
+</p>
+
+<pre class="matlab">
+Sys.g = 2.006;
+Sys.Nucs = '1H';
+Sys.A = 15;  % MHz
+Sys.n = 2;
+Sys.lwpp = 0.05;  % mT
+</pre>
+
+<p>
+The first line defines the isotropic g value of the spin system, in this
+case 2.006. <code>garlic</code> always assumes a single unpaired electron spin S=1/2.
+</p>
+
+<p>
+The field <code>Sys.Nucs</code> contains a string giving all the
+magnetic nuclei in the spin system, a proton in the above example.
+Use a comma-separated list of isotope labels to give more than one
+nucleus. E.g., <code>Sys.Nucs = '1H,1H,14N'</code> specifies two
+different protons and one nitrogen.
+</p>
+
+<p>
+<code>Sys.A</code> gives the hyperfine coupling in MHz (Megahertz),
+for each of the nuclei listed in <code>Sys.Nucs</code>. The following
+defines a hydrogen atom with a 10 MHz coupling to the unpaired electron and
+a <sup>13</sup>C atom with a 12 MHz coupling.
+
+<pre class="matlab">
+Sys.Nucs = '1H,13C';
+Sys.A = [10 12]; % MHz
+</pre>
+
+<p>
+Remember that <code>garlic</code> (and other EasySpin functions, too),
+take the hyperfine coupling values to be in <b>MHz</b>.
+Often, values for hyperfine couplings are given in G (Gauss) or mT
+(Milltesla), so you have to convert these values.
+For g = 2.00232, 1 G corresponds to 2.8025 MHz, and 1 mT corresponds to 28.025 MHz.
+The simplest way to convert coupling constants from magnetic field units to MHz is to use the EasySpin
+function <a class="esf" href="mt2mhz.html">mt2mhz</a>:
+</p>
+
+<pre class="matlab">
+A_MHz = mt2mhz(A_mT);    % mT -> MHz conversion
+A_MHz = mt2mhz(A_G/10);  %  G -> MHz conversion (1 G = 0.1 mT)
+</pre>
+
+
+<p>
+<code>Sys.n</code> gives the number of equivalent nuclei. So
+<pre class="matlab">
+Sys.Nucs = '1H';
+Sys.n = 1;
+Sys.A = 5.3;
+</pre>
+
+<p>
+indicates a single proton, whereas
+</p>
+
+<pre class="matlab">
+Sys.Nucs = '1H';
+Sys.n = 2;
+Sys.A = 5.3;
+</pre>
+
+<p>
+specifies two equivalent protons, i.e. protons with identical hyperfine coupling
+constants. The statements
+</p>
+
+<pre class="matlab">
+Sys.Nucs = '1H,1H';
+Sys.n = [4 4];
+Sys.A = [-14 -5];
+</pre>
+
+<p>
+specify two groups of protons with 4 equivalent nuclei in each
+(as in a naphthalene radical anion or cation).
+</p>
+
+<p>
+<code>Sys.lwpp</code> gives the peak-to-peak line widths. It is described in detail <a href="#broadenings">below</a> in the
+section about line broadenings.
+</p>
+
+<!-- ============================================================= -->
+<div class="subtitle"><a name="expparams">Basic experimental settings</a></div>
+
+<p>
+The second input argument, <code>Exp</code>, collects all experimental settings. Just as the spin system, <code>Exp</code> is a structure containing several fields.
+</p>
+
+<p>
+<span class="param">Microwave frequency</span>. To simulate an EPR spectrum, Easyspin needs at a minimum the spectrometer frequency. Put it into <code>Exp.mwFreq</code>, in units of GHz. 
+</p>
+
+<pre class="matlab">
+Exp.mwFreq = 9.385;  % X-band
+Exp.mwFreq = 34.9;   % Q-band
+</pre>
+
+<p>
+<span class="param">Field range</span>. There are two ways to enter the magnetic field sweep range. Either give the center field and the sweep width (in mT) in <code>Exp.CenterSweep</code>, or specify the lower and upper limit of the sweep range (again in mT) in <code>Exp.Range</code>.
+</p>
+
+<pre class="matlab">
+Exp.CenterSweep = [340 80]; % in mT
+Exp.Range = [300 380];      % in mT
+</pre>
+
+<p>
+On many cw EPR spectrometers, the field range is specified using center field and sweep width, so <code>Exp.CenterSweep</code> is often the more natural choice.
+</p>
+
+<p>
+<code>Exp.CenterSweep</code> and <code>Exp.Range</code> are only optional. If both are omitted, EasySpin tries to determine a field range large enough to accomodate the full spectrum. This automatic ranging works for most common systems, but fails in some complicated situations. EasySpin will issue an error when it fails.
+</p>
+
+<p>
+<span class="param">Points</span>. By default, <code>pepper</code> computes a 1024-point spectrum. However, you can change the number of points to a different value using
+</p>
+
+<pre class="matlab">
+Exp.nPoints = 5001;
+</pre>
+
+<p>
+You can set any value, unlike some EPR spectrometers, where often only powers of 2 are available (1024, 2048, 4096, 8192).
+</p>
+
+
+<p>
+<span class="param">Harmonic</span>. By default, EasySpin computes the first-harmonic absorption spectrum, i.e. the first derivative of the absorption spectrum. By changing <code>Exp.Harmonic</code>, you can request the absorption spectrum directly or the second-harmonic (second derivative) of it.
+</p>
+
+<pre class="matlab">
+Exp.Harmonic = 0; % absorption spectrum, direct detection
+Exp.Harmonic = 1; % first harmonic (default)
+Exp.Harmonic = 2; % second harmonic
+</pre>
+
+<p>
+<span class="param">Modulation amplitude</span>. If you want to include effects of field modulation like overmodulation, use <code>Exp.ModAmp</code>
+</p>
+
+<pre class="matlab">
+Exp.ModAmp = 0.2; % 0.2 mT (2 G) modulation amplitude, peak-to-peak
+</pre>
+
+<p>
+<span class="param">Time constant</span>. To include the effect of the time constant, apply the
+function <a href="rcfilt.html">rcfilt</a> to the simulated spectrum.
+</p>
+
+<!-- ============================================================= -->
+<div class="subtitle"><a name="moreexpparams">More experimental settings</a></div>
+
+<p>
+For more advanced spectral simulations, EasySpin offers more possibilities in the experimental parameter structure <code>Exp</code>.
+</p>
+
+<p>
+<span class="param">Mode</span>. Most cw EPR resonators operate in <em>perpendicular</em> mode, i.e., the oscillating magnetic field component of the microwave in the resonator is perpendicular to the static field. Some resonators can operate in <em>parallel</em> mode, where the microwave field is parallel to the static one. EasySpin can simulate both types of spectra:
+</p>
+
+<pre class="matlab">
+Exp.Mode = 'perpendicular'; % perpendicular mode (default)
+Exp.Mode = 'parallel';      % parallel mode
+</pre>
+
+<p>
+<span class="param">Temperature</span>. The polarizing effects of low sample temperatures can also be included in the
+simulation by specifying the temperature:
+</p>
+
+<pre class="matlab">
+Exp.Temperature = 4.2; % temperature in kelvin
+</pre>
+
+<p>
+With this setting, EasySpin will include the relevant polarization factors resulting from a thermal equilibrium population of the energy levels. For S=1/2 systems, it is not necessary to include the temperature. However, it is important in high-spin systems with large zero-field splittings, and in coupled spin systems with exchange couplings.
+</p>
+
+<p>
+<span class="param">Microwave phase</span>. Occasionally, the EPR absorption signal has a small admixture of the dispersion signal. This happens for example when the microwave phase in the reference arm is not absolutely correctly adjusted. EasySpin can mix dispersion with absorption if a Lorentzian broadening is given:
+
+<pre class="matlab">
+Sys.lwpp = [0.2 0.01];           % Lorentzian broadening (2nd number) required
+
+Exp.mwPhase = 0;                 % pure absorption
+Exp.mwPhase = pi/2;              % pure dispersion
+Exp.mwPhase = 3*pi/180;          % 3 degrees dispersion admixed to absorption
+</pre>
+
+
+<!-- ============================================================= -->
+<div class="subtitle"><a name="broadenings">Line broadenings</a></div>
+
+<p>
+Lines in an isotropic cw EPR spectrum are not infinitely narrow,
+the have a certain linewidth. This linewidth
+can be supplied to <code>garlic</code> in the <code>lwpp</code>
+or the <code>lw</code> field of the spin system structure, in mT.
+</p>
+
+<pre class="matlab">
+Sys.lw = [0 0.05]; % Gaussian and Lorentzian FWHM (full width at half height), mT
+</pre>
+
+This defines the FWHM of the absorption <a href="lineshapes.html">Gaussian</a> (first number)
+and <a href="lineshapes.html">Lorentzian</a> (second number) broadening
+of the lines in the spectrum. Note that these are NOT the peak-to-peak line widths in
+first-harmonic spectra. To specify the peak-to-peak width, use the field <code>Sys.lwpp</code>.
+
+<pre class="matlab">
+Sys.lwpp = [0 0.03]; % Gaussian and Lorentzian peak-to-peak line width, mT
+</pre>
+
+<p>
+If you give both a Gaussian and a Lorentzian broadening, both will be used, yielding
+a so-called Voigtian line shape, e.g.
+</p>
+
+<pre class="matlab">
+Sys.lw = [0.05 0.01]; % mT
+</pre>
+
+<p>
+For ways to model line widths when the anisotropies of the magnetic
+interactions don't average out completely, see below.
+</p>
+
+<!-- ============================================================= -->
+<div class="subtitle"><a name="multicomponent">Multiple components</a></div>
+
+<p>
+Often, an EPR spectrum shows a mixture of spin species.
+To simulate these spectra, each of the component spectra has to be simulated and added with
+the appropriate weight (depending on spin concentration) to the total spectrum.
+
+<p>
+This can be done all in one go with <code>garlic</code>. Just provide the component spin systems
+with their weights as a cell list (in curly braces) to <code>garlic</code>. For example, here
+is the simulation of a very simple two-component mixture with 2:1 ratio of spin concentrations.
+
+<pre class="matlab">
+Sys1.g = 2;
+Sys1.lwpp = 1;
+Sys1.weight = 2;
+Sys2.g = 2.1;
+Sys2.lwpp = 0.8;
+Sys2.weight = 1;
+
+Exp.mwFreq = 9.5;
+Exp.Range = [300 360];
+
+garlic({Sys1,Sys2},Exp);
+</pre>
+
+<p>
+You don't have to specify <code>Sys.weight</code> - if it's absent it is assumed to be 1. These
+weights are absolute, i.e. a simulation with <code>Sys.weight=20</code> yields a spectrum that
+is 10 times more intense than the one obtained with <code>Sys.weight=2</code>. There is no limit
+to the number of components in a simulation.
+</p>
+
+<!-- ============================================================= -->
+<div class="subtitle"><a name="fastmotion">Simulating spectra in the fast-motional regime</a></div>
+
+<p>
+If the tumbling of paramagnetic molecules in solution is fast compared to the EPR time scale, but not orders of magnitude faster, dynamic effects appear in the spectrum: Different lines will have different line widths, all of them broader than in the isotropic spectrum. This is the so-called fast-motional regime.
+</p>
+
+<p>
+If the tumbling is assumed isotropic and governed by Brownian movement, the only parameter necessary to characterize the speed of tumbling is the rotational correlation time. It can be given in the spin system structure, directly in units of seconds
+</p>
+
+<pre class="matlab">
+Sys.tcorr = 1e-10;   % rotational correlation time, in seconds.
+</pre>
+
+<p>
+or alternatively as the base-10 logarithm of the same value
+</p>
+
+<pre class="matlab">
+Sys.logtcorr = -10;   % corresponds to 1e-10 seconds
+</pre>
+
+<p>
+The origin of the line broadenings lies in the anisotropy of the magnetic interactions, so
+<code>garlic</code> has to be supplied with full g and A tensor information. This includes the principal values and the orientation of the tensors.
+</p>
+
+<pre class="matlab">
+Sys.g = [2.005 2.003 2.007];
+Sys.Nucs = '14N';
+Sys.A = [17 17 84];
+</pre>
+
+<p>
+<code>Sys.g</code> contains the three principal values of the g tensor. <code>Sys.A</code> contains the three principal values of the hyperfine tensor. If more than one nucleus is present, one 3-element row per nucleus has to be given. E.g.
+</p>
+
+<pre class="matlab">
+Sys.Nucs = '14N,1H';        % two nuclei
+Sys.A = [17 17 84; 5 5 2];  % 2x3 array
+</pre>
+
+<p>
+The orientations of the tensors relative to the molecular frame are defined
+in terms of Euler angles in 3-element array (see the function
+<a class="esf" href="erot.html">erot</a>).
+</p>
+
+<pre class="matlab">
+Sys.gFrame = [0 0 0];    % Euler angles for g tensor
+Sys.AFrame = [0 pi/4 0]; % Euler angles for A tensor
+</pre>
+
+<p>
+All-zero values can of course be omitted.
+</p>
+
+<p>
+Remember that for fast-motion simulations of systems with more than one nucleus, <code>Sys.n</code> cannot be used. Equivalent nuclei have to be specified one at a time.
+</p>
+
+<p>
+<a class="esf" href="garlic.html">garlic</a> doesn't compute the fast-motion linewidths: It calls <a class="esf" href="fastmotion.html">fastmotion</a>. After the spectrum with the fast-motion linewidths is constucted, <code>garlic</code> convolutes it using the Lorentzian (and possibly Gaussian) FWHM from <code>Sys.lw</code>. This way, residual broadenings are easily included.
+</p>
+
+<p>
+In conclusion, an illustrative example of a nitroxide radical in the fast-motion regime
+</p>
+
+<pre class="matlab">
+A = mt2mhz([5.8 5.8 30.8]/10);
+Sys = struct('g',[2.0088 2.0061 2.0027],'Nucs','14N','A',A);
+Sys.logtcorr = -9; % corresponds to 1e-9 s = 1 ns
+Exp = struct('mwFreq',9.5);
+garlic(Sys,Exp);
+</pre>
+
+
+<!-- ============================================================= -->
+<div class="subtitle"><a name="freqsweep">Frequency-swept spectra</a></div>
+
+<p>
+<code>garlic</code>, like the other cw EPR simulation functions <code>pepper</code>
+and <code>chili</code>, does field sweeps by default. However, you can use it to
+simulate frequency-swept spectra as well.
+</p>
+
+<p>
+For this, all you need to do is the following
+</p>
+<ul>
+<li>Give a static magnetic field (in mT) in <code>Exp.Field</code>. Make sure you do not set <code>Exp.mwFreq</code>,
+otherwise EasySpin does not know what to do.
+<li>Give a frequency range (in GHz) in <code>Exp.Range</code> or <code>Exp.CenterSweep</code>. You can also omit these, in which case <code>pepper</code> will determine an adequate range automatically.
+<li>If you use <code>Sys.lw</code> or <code>Sys.lwpp</code>, make sure they are in MHz units. For a frequency sweep, these convolutional linewidth parameters are understood to be in MHz (and not in mT, as they are for field sweeps).
+</ul>
+
+<p>
+Here is an example of a frequency-swept spectrum of an organic radical, with automatic frequency range determination:
+</p>
+
+<pre class="matlab">
+clear
+Sys.g = 2.005;
+Sys.Nucs = '1H,1H,1H,14N';
+Sys.A = [6 5 2 1.7];
+Sys.n = [2 2 2 1];
+Sys.lwpp = 0.1;                   % peak-to-peak linewidth, in MHz
+Exp.Field = 340;                  % static field, in mT
+garlic(Sys,Exp);
+</pre>
+
+<p>
+By default, <code>garlic</code> returns the absorption spectrum (<code>Exp.Harmonic=0</code>) when you simulate a frequency-swept spectrum. To get the first or second derivative, change <code>Exp.Harmonic</code> to 1 or 2. Note however that <code>Exp.ModAmp</code> is not supported for frequency sweeps.
+</p>
+
+<p>
+All other capabilities of <code>garlic</code> apply equally to frequency sweep and to field sweeps. For example, you can simulate multi-component spectra, and you can simulate spectra in the fast-motion regime.
+</p>
+
+<hr>
+
+</section>
+
+<footer></footer>
+
+</body>
+</html>

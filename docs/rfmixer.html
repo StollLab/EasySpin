@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>rfmixer</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">rfmixer</div>
+
+<p>
+Digital up- or downconversion.
+</p>
+
+
+<!-- ============================================================= -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+[tOut,signalOut] = rfmixer(tIn,signalIn,mwFreq,type)
+[tOut,signalOut] = rfmixer(tIn,signalIn,mwFreq,type,Opt)
+</pre>
+
+<!-- ============================================================= -->
+<div class="subtitle">Description</div>
+
+<p>
+This function mixes the input signal (<code>signalIn</code> as a function of the time axis <code>tIn</code> in microseconds) with the LO frequency specified in the field <code>mwFreq</code>. Depending on the mixer type is specified in <code>type</code>, the function acts as a double-sideband (DSB) mixer, single-sideband (SSB) mixer or performs IQ modulation, demodulation or frequency shifting.
+</p>
+
+<p>
+The output contains the time axis data in <code>tOut</code> (in microseconds) and the output signal in <code>signalOut</code>. 
+For up- or downconversion with a digital double-sideband (DSB) mixer, single-sideband (SSB) mixer or IQ modulation, only the in-phase component of the output is returned.
+For IQ demodulation or frequency shift, the in-phase and quadrature parts of the up- or downconverted signal are contained in the real and imaginary part of <code>signalOut</code>.
+</p>
+
+<p>
+Resampling of the input signal before up/downconversion can be performed by specifying a new sampling time step in <code>Opt.dt</code>. If no time step is given, the time step for the output signal is computed based on the maximum frequency of the signal.
+</p>
+
+<p>
+If you don't request any output, <code>rfmixer</code> plots the up/downconverted signal.
+</p>
+
+<p>
+The possible input arguments to the function are:
+
+<div class="optionfield"><code>tIn</code></div>
+<div class="optiondescr">
+Time axis vector for the input signal, in microseconds.
+</div>
+
+<div class="optionfield"><code>signalIn</code></div>
+<div class="optiondescr">
+Input signal. In-phase (real) signal for up/downconversion (IF or RF) for DSB or SSB mixer or IQ demodulation; in-phase and quadrature components in the real and imaginary part of <code>signalIn</code> for IQ modulation or IQ frequency shift.
+</div>
+
+<div class="optionfield"><code>mwFreq</code></div>
+<div class="optiondescr">
+LO frequency, in GHz. For the <code>'IQshift'</code> option, the sign indicating the direction of the frequency shift needs to be included.
+</div>
+
+<div class="optionfield"><code>type</code></div>
+<div class="optiondescr">
+String specifying the type of mixer. The available options for this field are:
+<ul>
+<li><code>'DSB'</code>: double-sideband mixer
+<li><code>'USB'</code>: single-sideband mixer, upper sideband selected
+<li><code>'LSB'</code>: single-sideband mixer, lower sideband selected
+<li><code>'IQmod'</code>: IQ modulator, IQ mixer operation with I and Q inputs and real signal output
+<li><code>'IQdemod'</code>: IQ demodulator, IQ mixer operation with real signal input and I and Q outputs
+<li><code>'IQshift'</code>: IQ frequency shifter, the center frequency of the IQ input signal is shifted (signal output of an IQ mixer before the power combiner)
+</ul>
+</div>
+
+<div class="optionfield"><code>Opt</code> (optional)</div>
+<div class="optiondescr">
+Calculation options, see below.
+</div>
+
+<p>
+<code>Opt</code> is a structure containing different options for the digital up/downconversion. The available fields are listed below.
+
+<div class="optionfield"><code>dt</code></div>
+<div class="optiondescr">
+Time step for the output signal, in microseconds.
+If no time step for resampling is given and the input time step is too large, a new time step is computed as <code>1/(2*Opt.OverSampleFactor*maxfreq)</code>.
+</div>
+
+<div class="optionfield"><code>OverSampleFactor</code></div>
+<div class="optiondescr">
+Factor for the determination of the new time step in signal resampling (default = 1.25), relative to Nyquist-required time step to avoid aliasing of the highest frequency in the signal.
+</div>
+
+<div class="optionfield"><code>InterpolationMethod</code></div>
+<div class="optiondescr">
+Interpolation method for signal resampling with Matlab's built-in function <code>interp1</code> (default = <code>'spline'</code>).
+</div>
+
+<div class="optionfield"><code>BandwidthThreshold</code></div>
+<div class="optiondescr">
+Threshold for input bandwidth determination (the relative signal amplitude used as cutoff in determining the bandwidth of the input signal from its Fourier transform). The default is 0.1.
+</div>
+
+<div class="optionfield"><code>HilbertThreshold</code></div>
+<div class="optiondescr">
+Threshold for amplitude and phase FT overlap for the recovery of the Q signal from the I signal using Hilbert transformation. The default is 0.05.
+</div>
+
+<div class="optionfield"><code>NoiseCutoffThreshold</code></div>
+<div class="optiondescr">
+Threshold for selection of part of the input signal used to compute amplitude and cos(phase) FT overlap (the evaluation of the validity of the Hilbert transform is affected by the noise level in the signal and baseline). The default is 0.1.
+</div>
+
+<!-- ============================================================= -->
+<div class="subtitle">Algorithm</div>
+
+<p>
+The digital up/downconversion is performed as
+</p>
+<div class="eqn">
+<img src="eqn/rfmixer1.png" alt="[eqn]"><!--MATH
+\begin{equation*}
+S_\text{out} = S_\text{in} \exp\left[\pm 2i\pi \nu_\text{LO} t \right]
+\end{equation*}
+-->
+</div>
+
+<p>
+For single-sideband up/downconversion and IQ demodulation, the quadrature signal Q is determined from the real input signal I by Hilbert transformation. The Hilbert transform of I corresponds to Q only if the Fourier transforms of the amplitude and phase contributions to I do not overlap (Bedrosian's product theorem, see Boashash, B., Estimating and interpreting the instantaneous frequency of a signal. I. Fundamentals. <i>Proc. IEEE</i> 80, 520 (<b>1992</b>), DOI: <a href="http://dx.doi.org/10.1109/5.135376">10.1109/5.135376</a>). <code>rfmixer</code> checks for validity of this assumption and returns an error if it is not satisfied. In some cases, noise contributions to the signal lead to increased overlap. The calculation can still be performed if <code>Opt.HilbertThreshold</code> is increased.
+</p>
+
+<p> The different options available in <code>rfmixer</code> are listed below with schematic block diagrams of the corresponding types of mixers and a simple example of operation.
+<ul>
+<li>Double sideband mixer (<code>'DSB'</code>)
+
+<p>
+<div>
+<img src="img/rfmixer_DSB.png" width="330">
+</div>
+</p>
+
+<li>Single sideband mixer with selection of the lower sideband (<code>'LSB'</code>)
+
+<p>
+<div>
+<img src="img/rfmixer_LSB.png" width="330">
+</div>
+</p>
+
+<li>Single sideband mixer with selection of the upper sideband (<code>'USB'</code>)
+
+<p>
+<div>
+<img src="img/rfmixer_USB.png" width="330">
+</div>
+</p>
+
+<li>IQ modulator (<code>'IQmod'</code>)
+
+<p>
+<div>
+<img src="img/rfmixer_IQmod.png" width="330">
+</div>
+</p>
+
+<li>IQ demodulator (<code>'IQdemod'</code>)
+
+<p>
+<div>
+<img src="img/rfmixer_IQdemod.png" width="330">
+</div>
+</p>
+
+<li>IQ frequency shifter (<code>'IQshift'</code>)
+
+<p>
+<div>
+<img src="img/rfmixer_IQshift.png" width="330">
+</div>
+</p>
+
+</ul>
+
+
+
+
+
+<!-- ============================================================= -->
+<div class="subtitle">See also</div>
+
+<p>
+<a class="esf" href="hilberttrans.html">hilberttrans</a>,
+<a class="esf" href="pulse.html">pulse</a>
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+
+</html>

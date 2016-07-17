@@ -1,0 +1,87 @@
+[general]
+name = 2pwig2
+[text]
+
+[sweep]
+transient = I,160,32,a
+sweep0 = X,90,1,RF1Amp
+sweep1 = Y,162,1,B0
+sweep2 = P,1,1,t90,t180,trf,RepTime,RF1,RF1Phase,tau,dt
+
+[params]
+RF1Amp = 1 mV to 179 mV;SineAmplitude1@LW420
+B0 = 280 mT to 360 mT;CenterField@ER032
+t90 = 16 ns;PPL variable
+t180 = 32 ns;PPL variable
+trf = 20 us;PPL variable
+RepTime = 1 ms;Repetition time
+RF1 = 0.5 MHz;SineFrequency1@LW420
+RF1Phase = 0 deg;SinePhase1@LW420
+tau = 950 ns;PPL variable
+dt = 7.0505 us;PPL variable
+
+[aquisition]
+a = A@AP240
+
+[program]
+time tau, t90, t180, trf, dt
+signal a
+
+parallel
+wait dt
+mwpulse t90
+wait tau
+mwpulse t180
+wait tau
+detect 'a'
+end
+rfpulse trf
+
+[presetup]
+
+[aftersetup]
+
+[eachpoint]
+[scope]
+IFirstPoint = 14
+IWidth = 21
+[RS690]
+Resolution=0 s
+FrontPanel=0
+[AP240]
+A Scale=3
+A Offset=0 V
+A Coupling=1
+A Bandwidth=0
+B Scale=3
+B Offset=0 V
+B Coupling=1
+B Bandwidth=0
+Sampling=8 ns
+Delay=0 s
+Trigger=0
+Trig coupling=0
+Trig slope=0
+Trig level 1=20 %
+Trig level 2=20 %
+[LW420]
+Trigger=3
+T Delay=0 s
+T Level=1.5 V
+T Polarity=0
+T BurstCount=1
+SineAmplitude1=0 V
+SineFrequency1=0 Hz
+SineOffset1=0 V
+SinePhase1=0 deg
+SineSweepLinear1=0
+SineSweepStart1=0 Hz
+SineSweepState1=0
+SineSweepStop1=0 Hz
+SineSweepTime1=0 s
+[ER032]
+Field=345.5 mT
+CenterField=280.99379 mT
+Sweep=50 mT
+Time=0 s
+Algorithm=1

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>eprsave</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">eprsave</div>
+
+<p>
+Save 1D spectral data in Bruker BES<sup>3</sup>T format.
+</p>
+
+<!-- ================================================================ -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+eprsave(FileName,x,data)
+eprsave(FileName,x,data,TitleString)
+eprsave(FileName,x,data,TitleString,mwFreq)
+</pre>
+
+<!-- ================================================================ -->
+<div class="subtitle">Description</div>
+
+<p>
+This function saves one- or two-dimensional data given by <code>x</code> (abscissa values) and <code>data</code> (data values) in a set of .DTA and .DSC files than can be read by Bruker software (Xepr, Xenon). The .DTA data file contains the data in binary format, and the .DSC description file contains information about the dataset in a readable text format.
+<code>FileName</code> is the base filename without the extension, e.g. <code>FileName = 'peter'</code> would result in files <code>peter.DTA</code> and <code>peter.DSC</code>.
+</p>
+
+<p>
+<code>data</code> can be real or complex, and can be one-dimensional (a vector) or two-dimensional (a matrix). If <code>data</code> is two-dimensional, then <code>x</code> is expected to be a 2-element cell array containing the x and the y axis: <code>{x,y}</code>.
+</p>
+
+<p>
+Any text in the optional <code>TitleString</code> will be stored along the data and read by the Bruker software as the <em>display title</em> of the dataset.
+</p>
+
+<p>
+The microwave frequency (in GHz) can be supplied via the optional <code>mwFreq</code> and will be saved in the .DSC file.
+</p>
+
+
+<!-- ================================================================ -->
+<div class="subtitle">Examples</div>
+
+<p>
+To generate a simple Gaussian line and save it in Bruker BES<sup>3</sup>T format
+</p>
+
+<pre class="matlab">
+B = linspace(300,400,1001);
+spc = gaussian(x,340,20,1);
+eprsave('mygauss',B,spc);
+</pre>
+
+<p>
+To store a simulated spectrum including a title and the microwave frequency
+</p>
+
+<pre class="matlab">
+Sys.g = 2;
+Sys.lwpp = 0.6;
+Exp.mwFreq = 9.56;
+Exp.Range = [330 350];
+[B,spc] = pepper(Sys,Exp);
+
+eprsave('mysim',B,spc,'simple simulation',Exp.mwFreq);
+</pre>
+
+<p>
+Storing a two-dimensional dataset works like this
+</p>
+
+<pre class="matlab">
+n1 = 40;
+n2 = 100;
+dt = 0.002;
+t1 = (0:n1)*dt;
+t2 = (0:n2)*dt;
+data = rand(n1,n2);
+eprsave('mysim',{t1,t2},data);
+</pre>
+
+<!-- ============================================================= -->
+<div class="subtitle">See also</div>
+
+<p>
+<a class="esf" href="eprload.html">eprload</a>
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+
+</html>

@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>Frames</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<h1>Coordinate frames in EasySpin</h1>
+
+<p>
+To simulate EPR spectra, EasySpin needs to know about the relative orientations of the various tensors within a paramagnetic molecule or center, of the molecule within a crystal, and of the crystal within the spectrometer in the lab.
+For this purpose, EasySpin defines a set of standard cartesian coordinate frames. As a user, you specify the relative orientation between these frames in order to describe the geometry of your sample and your experiment.
+
+<!-- ======================================================================================= -->
+
+<div class="subtitle"><a <a name="labframe">Four types of frames</a></div>
+
+<p>
+The figure below summarizes EasySpin's frames. There are four frame types: the lab frame, the crystal frame, the molecular frame, and a set of tensor frames (one for each tensor). The orientation of the crystal in the lab frame is given in <code>Exp.CrystalOrientation</code>, the orientation of the molecule in the crystal frame is given in <code>Exp.MolFrame</code>, and the orientations of the various tensors in the molecular frame are given in <code>Sys.gFrame</code>, <code>Sys.AFrame</code>, <code>Sys.DFrame</code>, <code>Sys.QFrame</code>, <code>Sys.eeFrame</code>, and <code>Sys.DiffFrame</code>.
+
+<div align="center">
+<img src="img/frames.png" width="600">
+</div>
+
+<p>
+In the following, we explain at how these frames are defined in EasySpin and show how you can specify the relative orientations between them. All frames are right-handed cartesian with orthonormal axes.
+
+<ul>
+<li><a href="#labframe">Lab frame</a>
+<li><a href="#crystalframe">Crystal frame</a>
+<li><a href="#molframe">Molecular frame</a>
+<li><a href="#tensorframes">Tensor frames</a>
+<li><a href="#TM">Tensor orientations within the molecule</a>
+<li><a href="#MC">Molecule orientation within the crystal</a>
+<li><a href="#CL">Crystal orientation within the spectrometer</a>
+</ul>
+
+<!-- ======================================================================================= -->
+
+<div class="subtitle"><a <a name="labframe">Lab frame</a></div>
+
+<p>
+
+The <em>lab frame</em> L is fixed in the laboratory. Its three unit vectors are denoted xL, yL, zL. By universal convention, zL is along the static magnetic field. The directions of xL and yL depend on the microwave excitation mode:
+<ul>
+<li>For a standard perpendicular-mode EPR resonator setup, xL is along the linearly oscillating microwave magnetic field. yL is perpendicular to both zL and xL.
+<li>In the special case of a parallel-mode EPR resonator setup, you are free to choose how yL and xL are related to your spectrometer - as long as they are perpendicular to zL.
+<li>In the unusual case of a resonator-free beam transmission setup, yL is in the plane of the microwave propagation vector k and perpendicular to zL. xL is perpendicular to both yL and zL.
+</ul>
+
+<div class="subtitle"><a <a name="crystalframe">Crystal frame</a></div>
+
+<p>
+The <em>crystal frame</em> C is a crystal-fixed frame with orthonormal unit vectors xC, yC, zC. For the crystal frame, EasySpin follows the conventions prevalent in X-ray crystallography where the axis convention depends on the space group of the crystal:
+<ul>
+<li>1-2 (triclinic; point groups C1, Ci=S2): xC, yC and zC are arbitrary.
+<li>3-15 (monoclinic; point groups C2, Cs=C1h, C2h): For short Hermann-Mauguin symbols (like P2, Cm, P21/m, etc), yC is along the unique axis. For full Hermann-Mauguin symbols (like P211, P121, P112, etc), the space group symbol defines the unique axis (P211: xC, P121: yC, P112: zC, etc). In all cases, the other two axes are arbitrary.
+<li>16-74 (orthorhombic; point groups D2, C2v, D2h): xC, yC and zC are along the three two-fold axes. The assignment is arbitrary.
+<li>75-88 (tetragonal; point groups C4, S4, C4h): zC is along the four-fold axis. xC and yC are arbitrary.
+<li>89-142 (tetragonal; point groups D4, C4v, D2d, D4h): zC is along the four-fold axis. xC is along one of the two-fold axes.
+<li>143-148 (tetragonal; point groups C3, C3i=S6): zC is along the three-fold axis. xC and yC are arbitrary.
+<li>149-167 (trigonal; point groups D3, C3v, D3d): zC is along the three-fold axis. xC is along one of the two-fold axes.
+<li>168-176 (hexagonal; point groups C6, C3h, C6h): zC is along the six-fold axis. xC and yC are arbitrary.
+<li>177-194 (hexagonal; point groups D6, C6v, D3h, D6h): zC is along the six-fold axis, and xC is along one of the two-fold axes.
+<li>195-206 (cubic; point groups T, Th): xC, yC and zC are along the three two-fold axes. The assignment is arbitrary.
+<li>207-230 (cubic; point groups O, Td, Oh): xC, yC and zC are along the three four-fold axes. The assignment is arbitrary.
+</ul>
+It is important to be aware of to these conventions, as EasySpin relies on them to correctly compute the orientations of all sites in the unit cell of a crystal given the orientation of a site in the asymmetric unit.
+
+
+<div class="subtitle"><a <a name="molframe">Molecular frame</a></div>
+
+<p>
+The <em>molecular frame</em> M is a reference frame that is fixed in the molecule or paramagnetic center. Its three unit axes are denoted xM, yM, and zM. You are free to choose the orientation of the molecular frame, but it's best to align it with the local symmetry of the molecule or paramagnetic center. For example, put the zM axis along the plane normal of an aromatic radical or a planar transition metal complex. If you import data from quantum chemistry programs like ORCA, then you can take the frame from those calculations as the molecular frame. All imported atom coordinates and calculated tensors will be defined in this frame. EasySpin can <a href="orca.html">import ORCA calculation results</a>.
+
+<div class="subtitle"><a <a name="tensorframes">Tensor frames</a></div>
+
+<p>
+Last, there are the <em>tensor frames</em> T, with unit vectors xT, yT, zT. There is one frame for each tensor in the spin Hamiltonian, such as g, A, D, Q and tensors, as well as the rotational diffusion tensor. The tensor frame for a given tensor is its eigenframe. Its axes are aligned with the principal axes of the tensor. The particular order of principal values, and therefore their assignment to xT, yT, and zT, is arbitrary and up to you.
+
+<p>
+Next, let's look at how you can tell EasySpin about the relative orientations between these frames.
+
+<!-- ======================================================================================= -->
+<div class="subtitle"><a name="TM">Tensor orientations within the molecule</a></div>
+
+<p>
+In paramagnetic centers, there often exists some local symmetry. An aromatic molecule has a unique plane normal axis, and square-planar transition metal complex has a four-fold symmetry axis perpendicular to the plane. For such a center, atomic coordinates and tensor orientations are best expressed in a coordinate reference frame that aligns with these local symmetry elements. However, any molecule-fixed frame can be chosen as a reference frame. This coordinate frame is the <em>molecular reference frame</em>, or <em>molecular frame</em> for short. The corresponding axes are labeled xM, yM, and zM.
+
+<p>
+The orientation of every tensor you specify in EasySpin is related to the molecular reference frame. If the tensor is fully aligned with the molecular frame, then it is enough to simply give the three principal values of the tensor
+
+<pre class="matlab">
+Sys.g = [2.0 2.1 2.2];
+</pre>
+
+<p>
+For EasySpin, this means that the tensor axes - let's call them xT, yT, and zT - align with the molecular frame. The first g principal axis xT, with the principal value 2.0, is along xM, the second (2.1, yT) is along yM, and the third (2.2, zT) is along zM.
+
+<p>
+If the tensor is tilted with respect to the molecular frame, you can specify the tilt in terms of three <a href="eulerangles.html">Euler angles</a> that describe the transformation from the <em>molecular frame to the tensor frame</em> (M&rarr;T). For a g tensor, specify this in the field <code>Sys.gFrame</code>. Here is an example:
+
+<pre class="matlab">
+Sys.g = [2.0 2.1 2.2];
+Sys.gFrame = [30 27 81]*pi/180;  % Euler angles, molecular frame -> g frame
+</pre>
+
+<p>
+This means that to transform the molecular frame (M) to the g tensor frame (T), you first rotate the molecular frame by 30 degrees around zM, then by 27 degrees around the resulting y axis, and then by 81 degrees around the resulting z axis. It's important to realize that you rotate the <em>frame</em>, and not the tensor. The tensor stays untouched.
+
+<p>
+To convert this M&rarr;T transformation to the associated T&rarr;M transformation (as used in old EasySpin versions prior to 5.0 by the obsolete <code>Sys.gpa</code>), just invert the order and the sign of the three <a href="eulerangles.html">Euler angles</a>.
+
+<pre class="matlab">
+a_M2T = [30 27 81]*pi/180;       % Euler angles for M->T transformation
+a_T2M = [-81 -27 -30]*pi/180;    % Euler angles for corresponding T->M transformation
+
+Sys.gFrame = a_M2T;              % EasySpin 5
+% Sys.gpa = a_T2M;               % Obsolete! (valid prior to EasySpin 5)
+</pre>
+
+<p>
+This works similarly for the other tensors. For hyperfine tensors, use <code>Sys.AFrame</code>, for zero-field tensors <code>Sys.DFrame</code>,  for quadrupole tensors <code>Sys.QFrame</code>, and for electron-electron interaction tensors <code>Sys.eeFrame</code>.
+
+<p>
+If you want to get the coordinates of the tensor principal axes in molecular frame coordinates, use the following:
+  
+<pre class="matlab">
+Sys.gFrame = [30 27 81]*pi/180;   % Euler angles for M->T transformation
+R_M2T = erot(Sys.gFrame)          % corresponding M->T transformation matrix
+</pre>
+<pre class="mloutput">
+R_M2T =
+   -0.3731    0.9251   -0.0710
+   -0.8404   -0.3045    0.4484
+    0.3932    0.2270    0.8910
+</pre>
+
+<p>
+The first <em>row</em> is xT, the second one is yT, and the third one is zT, all expressed in molecular frame coordinates:
+</p>
+<pre class="matlab">
+% tensor axes in molecular coordinates
+xT_M = R_M2T(1,:).';
+yT_M = R_M2T(2,:).';
+zT_M = R_M2T(3,:).';
+</pre>
+
+<p>
+Vice versa, the first <em>column</em> is xM, the second column is yM, and the third column is zM, all expressed in tensor frame coordinates.
+<pre class="matlab">
+% molecular axes in tensor coordinates
+xM_T = R_M2T(:,1);
+yM_T = R_M2T(:,2);
+zM_T = R_M2T(:,3);
+</pre>
+
+<p>
+Prior to version 5, EasySpin used <code>Sys.gpa</code>, <code>Sys.Apa</code> etc. instead of <code>Sys.gFrame</code>, <code>Sys.AFrame</code> etc. To update old scripts, invert the signs of all the angles, and reverse the order. So the old <code>Sys.gpa = [10 -20 34]*pi/180;</code> is now
+<code>Sys.gFrame = [-34 20 -10]*pi/180;</code>.
+
+<!-- ======================================================================================= -->
+<div class="subtitle"><a name="MC">Molecule orientation within the crystal</a></div>
+
+<p>
+In crystals, the paramagnetic centers rarely align with the crystal axes. Therefore, it is often necessary to specify a tilt between the crystal frame (C) and the molecular frame (M). In EasySpin, you can do this with <code>Exp.MolFrame</code>. This field takes a set of three values that specify the <a href="eulerangles.html">Euler angles</a> (in radians) for the transformation of the <em>crystal frame to the molecular frame</em> (C&rarr;M).
+
+<pre class="matlab">
+Exp.MolFrame = [33 12 -76]*pi/180;  % Euler angles for C->M transformation
+</pre>
+
+<p>
+This means that to transform the crystal frame (C) to the molecular frame (M), you first rotate by 33 degrees around zC, then by 12 degrees around the resulting y axis, and then by -76 degrees around the resulting z axis. Again, this transforms the <em>frames</em>, but leaves the physical objects (crystal and molecule) untouched.
+
+<p>
+To get the vectors xM, yM, zM in crystal coordinates (we'll denote these as xM_C, yM_C, zM_C), use <a href="erot.html">erot</a> to calculate the corresponding transformation matrix:
+
+<pre class="matlab">
+a_C2M = [33 12 -76]*pi/180;  % Euler angles for C->M transformation
+R_C2M = erot(a_C2M)          % corresponding transformation matrix
+</pre>
+<pre class="mloutput">
+R_C2M =
+    0.7269   -0.6849   -0.0503
+    0.6642    0.7198   -0.2017
+    0.1744    0.1132    0.9781
+</pre>
+
+<p>
+The three <em>columns</em> give the crystal axes as vectors expressed in molecular frame coordinates.
+</p>
+<pre class="matlab">
+% crystal axes in molecular coordinates
+xC_M = R_C2M(:,1);
+yC_M = R_C2M(:,2);
+zC_M = R_C2M(:,3);
+</pre>
+<p>
+The three <em>rows</em> give the molecular axes vectors expressed in crystal frame coordinates.
+<pre class="matlab">
+% molecular axes in crystal coordinates
+xM_C = R_C2M(1,:).';
+yM_C = R_C2M(2,:).';
+zM_C = R_C2M(3,:).';
+</pre>
+
+<!-- ======================================================================================= -->
+
+<div class="subtitle"><a name="CL">Crystal orientation in the spectrometer</a></div>
+
+<p>
+To describe the alignment of a crystal in the spectrometer, you need to give the relative orientation between the crystal frame (C) and the lab frame (L). In EasySpin, you can do this using the field <code>Exp.CrystalOrientation</code>. This field takes a set of three values that specify the <a href="eulerangles.html">Euler angles</a> (in radians) for the transformation of the <em>crystal frame to the lab frame</em> (C&rarr;L).
+
+Here is a simple example.
+
+<pre class="matlab">
+Exp.CrystalOrientation = [30 45 10]*pi/180; % Euler angles for C->L transformation
+</pre>
+
+<p>
+This indicates that the crystal frame (xC,yC,zC) has to be rotated by 30 degrees around its zC axis, followed by a rotation by 45 degrees around the resulting new y axis, followed by a 10 degree rotation around the resulting z axis, to bring it into overlap with the lab frame (xL,yL,zL).
+</p>
+
+<p>
+<code>Exp.CrystalOrientation</code> describes the crystal-to-lab frame transformation (C&rarr;L). In order to find the transformation that works in reverse, from the crystal to the lab frame (L&rarr;C), use the following: First, determine the <a href="eulerangles.html">Euler angles</a> for the C&rarr;L transformation. Then, to get the corresponding L&rarr;C transformation, invert the order and the signs of the angles. Here is an example:
+
+<pre class="matlab">
+a_C2L = [72 15 -108]*pi/180;      % angles for lab -> crystal transformation
+a_L2C = [+108 -15 -72]*pi/180;    % angles for corresponding crystal -> lab transformation
+Exp.CrystalOrientation = a_C2L;   % EasySpin expects a lab -> crystal transformation
+</pre>
+
+<p>
+In order to find out how the crystal axes lie in the spectrometer, or how the lab axes lie relative to the crystal frame, use EasySpin's <a class="esf" href="erot.html">erot</a> to get the associated transformation matrix. Here is an example:
+</p>
+
+<pre class="matlab">
+a_C2L = [10 45 0]*pi/180;                % Euler angles for C->L transformation
+Exp.CrystalOrientation = a_C2L;
+R_C2L = erot(Exp.CrystalOrientation)       % corresponding transformation matrix
+</pre>
+<pre class="mloutput">
+R_C2L =
+    0.6964    0.1228   -0.7071
+   -0.1736    0.9848         0
+    0.6964    0.1228    0.7071
+</pre>
+
+In this matrix, the three columns are the three crystal axis vectors xC, yC, zC, represented in lab coordinates. Conversely, the three rows are the lab axis vectors xL, yL, zL, represented in crystal coordinates.
+
+<pre class="matlab">
+% crystal axes in lab coordinates
+xC = R_C2L(:,1);
+yC = R_C2L(:,2);
+zC = R_C2L(:,3);
+% lab axes in crystal coordinates
+xL = R_C2L(1,:).';
+yL = R_C2L(2,:).';
+zL = R_C2L(3,:).';
+</pre>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+</html>

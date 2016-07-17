@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>User guide: salt</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">Simulating ENDOR spectra</div>
+
+<p>
+This user guide explains how to simulate solid-state ENDOR spectra of powders, frozen solutions 
+or single crystals using EasySpin's ENDOR simulation function <a class="esf" href="salt.html">salt</a>.
+You should be familiar with the simulation solid-state cw EPR spectra using <a class="esf" href="pepper.html">pepper</a>
+(see the corresponding <a href="userguide_pepper.html">user guide</a>).
+</p>
+
+<p>
+This user guide contains the following sections:
+
+<ul>
+<li><a href = "#calling">Invoking the simulation function <code>salt</code></a></li>
+<li><a href = "#spinsys">Spin system</a></li>
+<li><a href = "#broadenings">Broadenings</a></li>
+<li><a href = "#expparams">Experimental settings</a></li>
+<li><a href = "#moreexpparams">Orientation selection</a></li>
+<li><a href = "#crystals">Powders and crystals</a></li>
+<li><a href = "#options">Simulation options</a></li>
+<li><a href = "#options">Matrix diagonalization and perturbation theory</a></li>
+</ul>
+
+<!-- ============================================================= -->
+<div class="subtitle"><a name="calling">Invoking the simulation function salt</a></div>
+
+<p>
+Solid-state ENDOR spectra are computed
+by the EasySpin function <a class="esf" href="salt.html">salt</a>.
+It can be called with two or three parameters. For example,
+</p>
+
+<pre class="matlab">
+salt(Sys,Exp);                       % plots the spectrum
+[frq,spec] = salt(Sys,Exp);          % returns the frequency axis and the spectrum
+[frq,spec] = salt(Sys,Exp,Opt);      % provide additional simulation options in Opt
+</pre>
+
+<p>
+The first argument <code>Sys</code> tells <code>salt</code> all about the
+<a href="spinsystem.html">spin system</a>, and the second argument <code>Exp</code>
+gives the experimental parameters. The third, optional, argument <code>Opt</code> 
+contains settings for the simulation algorithm.
+</p>
+
+<p>
+The outputs <code>frq</code> and <code>spec</code> are arrays containing the frequency values (in MHz)
+and the spectrum, respectively. If no output is requested, <code>salt</code> plots the spectrum.
+</p>
+
+<p>
+Setting up a simulation and running it takes only a few lines of code. A simple example is
+</p>
+
+<pre class="matlab">
+Sys.g = 2;
+Sys.Nucs = '1H';
+Sys.A = [-1 2]*3+1;
+Sys.lwEndor = 0.1;
+Exp.Field = 350.1;
+Exp.Range = [0 30];
+salt(Sys,Exp);
+</pre>
+
+<p>
+This simulates and plots the powder <sup>1</sup>H ENDOR spectrum of a system with an unpaired electron and a proton.
+Copy and paste the code above to your MATLAB command window to see the graph.
+</p>
+
+<!-- ============================================================= -->
+<div class="subtitle"><a name="spinsys">The spin system</a></div>
+
+<p>
+The first input argument to <code>salt</code> is a structure specifying
+the <a href="spinsystem.html">spin system</a>.
+It contains fields for the electron spin(s), the nuclear spins,
+and the various interaction matrices like g and hyperfine tensors.
+</p>
+
+<p>
+The fields in this structure are the same as used for cw EPR simulations with
+<code>pepper</code>. See the <a href="userguide_pepper.html">tutorial</a>
+for <code>pepper</code> for an introduction. Details about all the spin Hamiltonian
+parameters can be found on the <a href="hamiltonian.html">spin Hamiltonian reference page</a>.
+It is also possible to include several electron spins. Refer to the
+page about <a href="spinsystem.html">spin system structures</a> for details.
+</p>
+
+<!-- ============================================================= -->
+<div class="subtitle"><a name="broadenings">Broadenings</a></div>
+
+<p>
+The <a href="broadenings.html">broadening</a> for the ENDOR spectrum should be given in <code>Sys.lwEndor</code>. It contains
+the convolutional Gaussian and Lorentzian broadenings (FWHM, full width at half maximum) for the ENDOR spectrum. 
+
+<pre class="matlab">
+Sys.lwEndor = 0.1;        % Gaussian broadening with FWHM of 0.1 MHz
+Sys.lwEndor = [0 0.2];    % Lorentzian broadening with FWHM of 0.2 MHz
+Sys.lwEndor = [0.1 0.2];  % both broadenings simultaneously
+</pre>
+
+<p>
+EasySpin supports are series of different <a href="broadenings.html">EPR line broadening models</a>.
+The only one supported in an ENDOR simulation is <code>HStrain</code>: it co-determines
+the effective excitation width, together with <code>Exp.ExciteWidth</code>.
+Strain broadenings (<code>gStrain</code>, <code>AStrain</code> and <code>DStrain</code>) as well as
+convolutional broadenings of the EPR spectrum (<code>lw</code> and <code>lwpp</code>) are ignored.
+</p>
+
+<!-- ============================================================= -->
+<div class="subtitle"><a name="expparams">Basic experimental settings</a></div>
+
+<p>
+All experimental settings are given in the second input argument <code>Exp</code>,
+a structure with several fields very similar to those for <code>pepper</code>.
+</p>
+
+<p>
+The most important parameter for an ENDOR simulation is the magnetic field. It is
+given in <code>Exp.Field</code>, in the usual units of mT (millitesla):
+
+<pre class="matlab">
+Exp.Field = 350;    % ENDOR at a field of 350 mT
+</pre>
+
+<p>
+The spectrometer frequency is given in the field <code>mwFreq</code> in units of GHz (gigahertz). It
+is only necessary to supply it when the excitation bandwidth is limited, that is, when
+<code>Exp.ExciteWidth</code> is set.
+</p>
+
+<pre class="matlab">
+Exp.mwFreq = 9.612;     % in GHz
+</pre>
+
+<p>
+The radiofrequency range, in MHz, is taken from either <code>Range</code> or
+<code>CenterSweep</code> (which are used by <code>pepper</code> for the <em>magnetic field</em> range).
+Of course, only one of the two can be used in a given simulation. If you omit both of them,
+EasySpin automatically determines a suitable frequency range.
+
+<pre class="matlab">
+Exp.Range = [40 60];          % rf sweep range [start end], in MHz
+Exp.CenterSweep = [50 10];    % the same range, given as [center sweep], in MHz
+</pre>
+
+<p>
+By default, <code>salt</code> computes a 1024-point spectrum. However, the number of
+points can be changed manually to a different value, e.g.,
+</p>
+
+<pre class="matlab">
+Exp.nPoints = 5001;
+</pre>
+
+<p>
+If not told otherwise, <code>salt</code> computes the absorption spectrum. By changing <code>Exp.Harmonic</code>, the first-harmonic
+(first-derivative) or the second-harmonic (second derivative) of it can be requested.
+</p>
+
+<pre class="matlab">
+Exp.Harmonic = 0; % absorption spectrum (default)
+Exp.Harmonic = 1; % first harmonic
+Exp.Harmonic = 2; % second harmonic
+</pre>
+
+
+<p>
+The polarizing effects of low sample temperatures can also be included in the
+simulation by specifying the temperature:
+</p>
+
+<pre class="matlab">
+Exp.Temperature = 4.2; % temperature in kelvin
+</pre>
+
+<p>
+With this setting, <code>salt</code> will include the relevant polarization
+factors resulting from a thermal equilibrium population of the energy levels.
+However, there are only very few situations where temperature effects are
+visible in ENDOR spectra.
+</p>
+
+<p>
+There is one more experimental parameter for an ENDOR simulation: the excitation
+width, given in <code>Exp.ExciteWidth</code>. It determines the orientational
+selectivity of the ENDOR experiment. It is so important that we dedicate the
+next section to it.
+
+<!-- ============================================================= -->
+<div class="subtitle"><a name="oriselect">Orientation selection</a></div>
+
+<p>
+In an ENDOR experiment of a disordered system, not all paramagnetic centers are excited.
+Only those that resonate at the given magnetic field <em>and</em> microwave frequency
+can give an ENDOR signal. Spins that are slightly off-resonant contribute less, and spins
+far off-resonant cannot give an ENDOR signal at all. If the EPR resonance frequency is orientation
+dependent, this means that only electron spins with certain orientations are excited - hence the
+term "orientation selection". The range of frequencies over which electron spins are excited is
+called the "excitation window". It is centered around the microwave frequency.
+
+<p>
+The bandwidth of excitation, i.e. the width of the excitation window, is determined by the
+Q factor of the resonator (cw ENDOR) or the length of the first pulse (pulse ENDOR). The window
+is assumed to be Gaussian and its width (FWHM) is given in <code>Exp.ExciteWidth</code>, in units
+of MHz.
+Values between 50 and 250 MHz are common. The smaller this value, the stronger the orientation
+selection, and the sharper the resulting ENDOR spectrum. For pulse ENDOR, the excitation
+bandwidth can be estimated from the length of the first pulse, t<sub>p</sub>, by 2/t<sub>p</sub>.
+
+<pre class="matlab">
+Exp.ExciteWidth = 100;   % MHz
+</pre>
+
+<p>
+If <code>Exp.ExciteWidth</code> is not given, it is assumed infinite, that is, all the spins are excited.
+This is rather unrealistic, but often useful when exploring ENDOR spectra resulting from different
+sets of hyperfine and quadrupole parameters. In this case, no micrwave frequency needs to be given.
+
+<p>
+To compute the total effective excitation width for the ENDOR experiment, EasySpin combines the
+width given in <code>Exp.ExciteWidth</code> with the width given in <code>Sys.HStrain</code>,
+which represents the EPR broadening. The larger <code>HStrain</code>, the larger the
+total excitation bandwidth.
+
+<pre class="matlab">
+Sys.HStrain = [1 1 1]*200;
+Exp.ExciteWidth = 50;    % total excitation width in MHz: sqrt(200^2+50^2) = 206
+Exp.ExciteWidth = 100;   % total excitation width in MHz: sqrt(200^2+100^2) = 224
+</pre>
+
+<p>
+As you can see, the total excitation width is rather insensitive to <code>ExciteWidth</code>,
+if <code>ExciteWidth</code> is much smaller than <code>HStrain</code>.
+
+</pre>
+
+<!-- ============================================================= -->
+<div class="subtitle"><a name="crystals">Powders and crystals</a></div>
+
+<p>
+If not specified otherwise, <code>salt</code> computes a powder spectrum. But it is as well straightforward to simulate spectra for a single crystal. The orientation (or orientations if more than one) of the single crystal can be provided in the experiment structure field <code>Exp.CrystalOrientation</code>. This field should contain the <a href="eulerangles.html">tilt angles</a> between <a href="frames.html">crystal and laboratory frame</a> (right-handed coordinate system with z along the static field and x along the microwave magnetic field), one set of three angles per row.
+</p>
+
+<p>
+For a crystal with its molecular frame aligned with the laboratory frame, the setting is 
+</p>
+
+<pre class="matlab">
+Exp.CrystalOrientation = [0 0 0];
+</pre>
+
+<p>
+If you need more than one crystal at the same time, then just specify more than one orientation.
+</p>
+
+<pre class="matlab">
+Exp.CrystalOrientation = [0 0 0; 0 pi/4 0];
+</pre>
+
+<p>
+In many crystals, there are several symmetry-related sites with identical paramagnetic centers differing only in their orientation in the crystal. You can tell <code>salt</code>  about this by providing the crystal symmetry in the field <code>Exp.CrystalSymmetry</code>, e.g.
+</p>
+
+<pre class="matlab">
+Exp.CrystalSymmetry = 'P21/m'; % space group symbol
+Exp.CrystalSymmetry = 11;      % space group number (between 1 and 230)
+Exp.CrystalSymmetry = 'C2h';   % point group, Sch&ouml;nflies notation
+Exp.CrystalSymmetry = '2/m';   % point group, Hermann-Mauguin notation
+</pre>
+
+<p>
+With the crystal symmetry given, <code>salt</code> not only computes the spectrum for the orientation given in <code>Exp.CrystalOrientation</code>, but also for all symmetry-related sites.
+</p>
+
+<!-- ============================================================= -->
+<div class="subtitle"><a name="options">Simulation options</a></div>
+
+<p>
+The third input argument to <code>salt</code> contains simulation options.
+All of them have reasonable default values, but occasionally it might be necessary
+to change one of them.
+</p>
+
+<p>
+If you want <code>salt</code> to print information about the simulation to
+the command window during the computation, use
+</p>
+
+<pre class="matlab">
+Options.Verbosity = 1;
+</pre>
+
+<p>
+<code>'Verbosity'</code> specifies the amount of information displayed. 0 (the default)
+suppresses all output, 1 is normal, and 2 prints very detailed information.
+</p>
+
+<p>
+Another useful option is <code>nKnots</code>, which determines how many
+orientations <code>salt</code> will include in the simulation of a powder
+spectrum. If this value is too low, the spectral line shape contains artifacts
+in the form of ripples.
+<code>nKnots</code> is the number of orientations between the z axis and
+the x axis (between &theta; = 0 and &theta; = 90 degrees). It determines the
+resolution of the orientational grid used in the simulation.
+</p>
+
+<pre class="matlab">
+Options.nKnots = 31; % corresponds to 3-degree increments
+</pre>
+
+<p>
+The higher <code>nKnots</code>, the finer the orientational grid.
+The default value of 19 (5-degree increments) is appropriate for most systems.
+A value larger than 181 (0.5-degree increments) is rarely needed.
+</p>
+
+<p>
+After having computed the spectrum for a number of orientations specified
+by <code>nKnots</code>, the simulation function interpolates these spectra for
+additional orientations before summing up all spectra. This interpolative
+refinement can be configured with a second number in <code>nKnots</code>.
+<code>nKnots = [19 4]</code> means that <code>pepper</code> interpolates
+additional 4 spectra between two adjacent orientations evaluated.
+</p>
+
+<pre class="matlab">
+Options.nKnots = [19 10];  % massive interpolation
+Options.nKnots = [19 0];   % no interpolation
+</pre>
+
+<p>
+The option <code>Output</code> can be used to determine the form in which
+<code>salt</code> returns the spectral data.
+</p>
+
+<pre class="matlab">
+% single crystal: orientations separately
+% powders: transitions separately
+Options.Output = 'separate';
+
+% sum over all orientations and transitions
+Options.Output = 'summed';
+</pre>
+
+<p>
+There are more option fields available. For details, see the 
+<a class="esf" href="salt.html">reference page on salt</a>.
+</p>
+
+<!-- ============================================================= -->
+<div class="subtitle"><a name="speedups">Matrix diagonalization and perturbation theory</a></div>
+
+<p>
+By default, EasySpin uses matrix diagonalization for computing ENDOR spectra.
+Even though this is by far the most accurate way, it is also the slowest. This
+can be felt painfully when simulating ENDOR spectra of spin systems with a lot
+of nuclei. EasySpin offers several speed-up options to trade a little accuracy for a lot
+in performance gain.
+
+<p>
+One way to speed up an ENDOR simulation is to switch to first- or second-order perturbation theory.
+
+<pre class="matlab">
+Options.Method = 'perturb1';   % first-order perturbation theory
+Options.Method = 'perturb2';   % second-order perturbation theory
+Options.Method = 'matrix';     % matrix diagonalization
+</pre>
+
+<p>
+If you have a couple of protons in an 1H ENDOR spectrum, first-order perturbation theory is orders of
+magnitude faster than matrix diagonalization. Under most circumstances, the errors
+introduced are minimal. Second-order perturbation theory should be used if the hyperfine couplings
+are larger than about 2% of the microwave frequency (about 200 MHz for a microwave frequency of 10 GHz).
+Perturbation theory does not work for all spin systems: it is limited to S=1/2.
+
+<p>
+If you want to stick with matrix diagonalization, there is another way to speed up simulations that 
+is useful when there is strong orientation selection, and only nuclei with small hyperfine couplings
+are observed in the ENDOR spectrum. <code>salt</code> can be told to pre-compute the orientation selection
+instead of computing it on the fly, using
+
+<pre class="matlab">
+Options.OriPreSelect = 1; % use orientation pre-selection
+</pre>
+
+<p>
+This tells EasySpin to classify nuclei into whether they contribute to orientation selection (N1)
+or not (N2), then pre-compute orientation selection data only for those in group N1. Any orientation
+that is not noticeably excited is then skipped in the subsequent ENDOR simulation. This pre-selection
+is only available with matrix diagonalization and advantageous only if there are several nuclei that
+do <code>not</code> contribute to orientational selectivity. Use it only if perturbation theory is
+really not an option.
+
+</section>
+
+<footer></footer>
+
+</body>
+
+</html>
