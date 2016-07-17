@@ -24,7 +24,7 @@ IQ0 = interp1(t0,IQ0,t,'spline');
 err(1) = ~areequal(IQ0,IQ,1e-12);
 
 % Gaussian pulse with truncation
-clearvars -except err
+clear Params
 dt = 0.001; % us
 t0 = -0.300:dt:0.300; % us
 A = gaussian(t0,0,0.100);

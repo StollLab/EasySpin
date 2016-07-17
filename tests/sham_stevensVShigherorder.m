@@ -21,7 +21,7 @@ for n=8:-1:1
     Alms(n,1:2*n+1)=[fliplr(Alm(n,2:n+1)), Alm(n,1:n+1)];
 end
 
-Sys1.S = randi(10)/2+4;
+Sys1.S = ceil(rand*10)/2+4;
 Sys2.S = Sys1.S;
 
 lB = 0;

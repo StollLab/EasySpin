@@ -4,7 +4,7 @@ function [err,data] = test(opt,olddata)
 % Zeeman Hamiltonian
 %==================================================================
 
-Sys1.S =randi(10)/2;
+Sys1.S = ceil(rand*10)/2;
 
 B = rand(1,3);
 

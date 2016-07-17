@@ -54,7 +54,7 @@ suberr(6) = ~areequal(Mz(2,:),exprofile(2).Mz,1e-12);
 err(1) = any(suberr);
 
 % Sinc pulse
-clearvars -except err
+clear Params
 Params.tp = 0.200; % us
 Params.Flip = pi;
 Params.Type = 'sinc';

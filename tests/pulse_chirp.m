@@ -27,7 +27,7 @@ IQ0 = Amplitude*exp(2i*pi*(phi+mean(Params.Frequency)*t0));
 err(1) = ~areequal(IQ0,IQ,1e-12);
 
 % Quartersin weighted chirp
-clearvars -except err
+clear Params
 Params.tp = 0.128; % us
 Params.Type = 'quartersin/linear';
 Params.trise = 0.010; % us

@@ -59,7 +59,7 @@ err(1) = ~areequal(IQ0,IQ1,1e-12);
 err(2) = ~areequal(IQ0_adapted,IQ2,1e-12);
 
 % Sech/tanh and bandwidth-compensated sech/tanh
-clearvars -except err
+clear Params
 Params.tp = 0.200; % us
 Params.TimeStep = 0.00001; % us
 Params.Type = 'sech/tanh';

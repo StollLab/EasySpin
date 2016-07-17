@@ -47,7 +47,7 @@ end
 err(1) = any(suberr);
 
 % Amplitude and frequency modulated pulses
-clearvars -except err
+clear Params
 Params(1).Type = 'quartersin/linear';
 Params(1).tp = 0.200; % us
 Params(1).trise = 0.050; % us

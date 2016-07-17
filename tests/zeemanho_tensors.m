@@ -5,7 +5,7 @@ function [err,data] = test(opt,olddata)
 %==================================================================
 
 
-Sys.S = randi(10)/2+4;
+Sys.S = ceil(rand*10)/2+4;
 
 for lB = 0:3
   for lS =1:8
