@@ -7,8 +7,8 @@ nu0 = 9.6;
 Qu = 2000;
 beta = 2;
 
-G = resonatordip(nu,nu0,Qu,beta);
-G = resonatordip([],nu0,Qu,beta);
+G = resonator(nu,nu0,Qu,beta);
+G = resonator([],nu0,Qu,beta);
 
 err = false;
 data = [];

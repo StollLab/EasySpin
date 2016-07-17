@@ -1,6 +1,6 @@
-% resonatordip  Resonator reflection coefficient
+% resonator  Resonator reflection coefficient
 %
-%  Gamma = resonatordip(nu,nu0,Qu,beta)
+%  Gamma = resonator(nu,nu0,Qu,beta)
 %
 %  Calculates the reflection coefficient for a reflection resonator,
 %  i.e. the fraction of voltage from an incoming wave that is
@@ -29,9 +29,9 @@
 %    nu0 = 9.5;
 %    Qu = 1000;
 %    beta = 1;
-%    resonatordip(nu,nu0,Qu,beta);
+%    resonator(nu,nu0,Qu,beta);
 
-function varargout = resonatordip(nu,nu0,Qu,beta)
+function varargout = resonator(nu,nu0,Qu,beta)
 
 if (nargin==0)
   help(mfilename);
