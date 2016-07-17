@@ -24,12 +24,13 @@ developmentVersion = (esVersion(1)=='$');
 
 % Check online for update
 %----------------------------------------------------------
+%{
 if ~developmentVersion
   htmlfile = '';
   try
     htmlfile = urlread('http://easyspin.org/version.html');
   catch
-    disp('Could not reach EasySpin server to check for update.');
+    disp('Could not reach EasySpin server to check for available update.');
   end
   if ~isempty(htmlfile)
     latestESversion = regexp(htmlfile,'\d+\.\d+\.\d+','match','once');
@@ -45,6 +46,7 @@ if ~developmentVersion
     end
   end
 end
+%}
 
 % Determine operating system
 %--------------------------------------------------------------
