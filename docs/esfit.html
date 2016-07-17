@@ -96,7 +96,7 @@ Vary.lwpp = 0;    % the linewidth kept constant at the value given in Sys0
 </pre>
 For multiple components, <code>Vary</code> should contain one structure per component, e.g. <code>{Vary1,Vary2}</code> for two components. If none of the parameters of a component are varied in the fit, <code>[]</code> can be specified, e.g. <code>{Vary1,[]}</code> for a two-component fit where only parameters of the first component are varied.
 <li>
-<code>Exp</code> contains the experimental parameters needed for the simulation. Make sure to specify the field or frequency range you used for the experimental data in <code>Exp.Range</code> or <code>Exp.mwRange</code>. If you let the simulation function automatically pick a range, it will likely be different from the experimental one, and <code>esfit</code> cannot do its work. For example, if <code>x</code> is the experimental field range, use <code>Exp.Range = [min(x) max(x)]<code>.
+<code>Exp</code> contains the experimental parameters needed for the simulation. Make sure to specify the field or frequency range you used for the experimental data in <code>Exp.Range</code> or <code>Exp.mwRange</code>. If you let the simulation function automatically pick a range, it will likely be different from the experimental one, and <code>esfit</code> cannot do its work. For example, if <code>x</code> is the experimental field range, use <code>Exp.Range = [min(x) max(x)]</code>.
 <li>
 <code>SimOpt</code> contains simulation options that are forwarded directly to the simulation function. Refer to the documentation of
 <a class=esf" href="chili.html">chili</a>, 
