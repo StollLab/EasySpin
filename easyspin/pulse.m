@@ -62,8 +62,8 @@
 %                            the pulse center frequency, 201 points)
 %
 % Available pulse modulation functions:
-%   - Amplitude modulation: rectangular, gaussian, sinc, quartersin, sech,
-%                           WURST
+%   - Amplitude modulation: rectangular, gaussian, sinc, halfsin, quartersin,
+%                           sech, WURST
 %   - Frequency modulation: none, linear, tanh, uniformQ
 %
 % The parameters required for the different modulation functions are:
@@ -82,6 +82,7 @@
 %                                     e.g. [6 1]
 % 'WURST'               - nwurst    = WURST n parameter (determining the
 %                                     steepness of the amplitude function)
+% 'halfsin'             - none
 % 'quartersin'          - trise     = rise time in µs for quarter sine
 %                                     weighting at the pulse edges
 %
@@ -307,6 +308,9 @@ else
             'Specify Par.zerocross for the sinc envelope.']);
         end
         
+      case 'halfsin'
+        % no additional parameters needed
+
       case 'quartersin'
         
         if ~isfield(Par,'trise') || isempty(Par.trise)
@@ -438,6 +442,9 @@ else
           A1 = sin(x_)./x_;
           A1(isnan(A1)) = 1;
           A0 = A0.*(A1/max(A1));
+        case 'halfsin'
+          A1 = sin(pi*(ti0/Par.tp+0.5));
+          A0 = A0.*A1;
         case 'quartersin'
           % Pulse edges weighted with a quarter period of a sine wave
           A1 = ones(1,numel(t0));
@@ -519,6 +526,11 @@ else
         A = sin(x_)./x_;
         A(isnan(A)) = 1;
         A = A/max(A);
+        
+      case 'halfsin'
+        
+        % Half sine
+        A = sin(pi*(ti/Par.tp+0.5));
         
       case 'quartersin'
         

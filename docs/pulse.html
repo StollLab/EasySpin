@@ -124,7 +124,7 @@ Overall pulse phase, in radians, <i>e.g.</i> <code>0</code> for +x, <code>pi/2</
 <div class="optiondescr">
 Pulse shape name in a string structured as <code>'AM/FM'</code> (or just <code>'AM'</code>), where AM refers to the amplitude modulation function and FM to the frequency modulation function.
 <p>
-The available amplitude modulation functions are <code>'rectangular'</code>, <code>'gaussian'</code>, <code>'sinc'</code>, <code>'quartersin'</code>, <code>'sech'</code>, <code>'WURST'</code>. Different AM functions can be multiplied by concatenating the keywords as <code>'AM1*AM2/FM'</code>. The default is <code>'rectangular'</code>.
+The available amplitude modulation functions are <code>'rectangular'</code>, <code>'gaussian'</code>, <code>'sinc'</code>, <code>'halfsin'</code>, <code>'quartersin'</code>, <code>'sech'</code>, <code>'WURST'</code>. Different AM functions can be multiplied by concatenating the keywords as <code>'AM1*AM2/FM'</code>. The default is <code>'rectangular'</code>.
 
 <p>
 The available options for frequency modulation are <code>'none'</code>, <code>'linear'</code>, <code>'tanh'</code>, <code>'uniformQ'</code>. If only an AM keyword is given, the FM function is set to <code>'none'</code>.
@@ -169,6 +169,10 @@ asymmetric sech pulses can be obtained by specifying two values for <code>n</cod
 <li><code>'WURST'</code>
 <ul style="list-style-type:none;padding:5px;">
 <li><code>nwurst</code> - parameter determining the steepness of the amplitude function
+</ul>
+<li><code>'halfsin'</code>
+<ul style="list-style-type:none;padding:5px;">
+<li>no additional fields are required
 </ul>
 <li><code>'quartersin'</code></li>
 <ul style="list-style-type:none;padding:5px;">
@@ -298,9 +302,18 @@ A = 1 - \left|\sin{\frac{\pi t}{t_\mathrm{p}}} \right|^{nwurst}
 -->
 </div>
 
-<li><code>'quartersin'</code>:
+<li><code>'halfsin'</code>:
 <div class="eqn">
 <img src="eqn/pulse6.png" alt="[eqn]"><!--MATH
+\begin{equation*}
+A = sin{\left(\frac{\pi t}{t_\mathrm{p}}+\frac{\pi}{2}\right)}
+\end{equation*}
+-->
+</div>
+
+<li><code>'quartersin'</code>:
+<div class="eqn">
+<img src="eqn/pulse7.png" alt="[eqn]"><!--MATH
 \begin{eqnarray*}
 A = 1 \qquad &\text{for}& \qquad -\frac{t_\mathrm{p}}{2} + t_\text{rise} < t < \frac{t_\mathrm{p}}{2} - t_\text{rise} \\
 A = \sin\frac{\pi \left(t + t_\mathrm{p}/2\right)}{2 t_\text{rise}} \qquad &\text{for}& \qquad -\frac{t_\mathrm{p}}{2} < t < -\frac{t_\mathrm{p}}{2} + t_\text{rise} \\
@@ -319,7 +332,7 @@ Frequency and phase modulation functions (<i>BW</i> is the difference between en
 
 <li><code>'none'</code>:
 <div class="eqn">
-<img src="eqn/pulse7.png" alt="[eqn]"><!--MATH
+<img src="eqn/pulse8.png" alt="[eqn]"><!--MATH
 \begin{equation*}
 \nu = 0 \qquad \qquad \phi = 0
 \end{equation*}
@@ -328,7 +341,7 @@ Frequency and phase modulation functions (<i>BW</i> is the difference between en
 
 <li><code>'linear'</code>:
 <div class="eqn">
-<img src="eqn/pulse8.png" alt="[eqn]"><!--MATH
+<img src="eqn/pulse9.png" alt="[eqn]"><!--MATH
 \begin{equation*}
 \nu = \frac{BW}{t_\mathrm{p}} t \qquad \qquad \phi = 2 \pi \left( -\frac{BW}{2}\left(t - \frac{t_\mathrm{p}}{2}\right) + \frac{1}{2} \frac{BW}{t_\mathrm{p}} \left(t - \frac{t_\mathrm{p}}{2}\right)^2\right)
 \end{equation*}
@@ -337,7 +350,7 @@ Frequency and phase modulation functions (<i>BW</i> is the difference between en
 
 <li><code>'tanh'</code>:
 <div class="eqn">
-<img src="eqn/pulse9.png" alt="[eqn]"><!--MATH
+<img src="eqn/pulse10.png" alt="[eqn]"><!--MATH
 \begin{equation*}
 \nu = \frac{BW}{2 \tanh(\beta/2)} \tanh{\frac{\beta t}{t_\mathrm{p}}}
 \qquad\qquad
@@ -360,7 +373,7 @@ The time axis for the calculation of the modulation functions is centered at zer
 The final pulse shape is calculated as:
 </p>
 <div class="eqn">
-<img src="eqn/pulse10.png" alt="[eqn]"><!--MATH
+<img src="eqn/pulse11.png" alt="[eqn]"><!--MATH
 \begin{equation*}
 P = A \exp\left[i \left(\phi + 2 \pi \nu_\text{center} + \Delta\phi\right) \right]
 \end{equation*}
