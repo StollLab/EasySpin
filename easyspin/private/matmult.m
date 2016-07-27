@@ -26,7 +26,7 @@ if not(or(Ashape(1) == 2, Ashape(1) == 3))
 end
 
 if or(ndims(A) ~= 4, ndims(B) ~= 4)
-    error('Input arrays each must have 4 dimensions.')
+  %error('Input arrays each must have 4 dimensions.')
 end
 
 % Initialize the matrix multiplication output

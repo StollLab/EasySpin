@@ -10,6 +10,7 @@
 
 function mat = quat2rotmat(q)
 qshape = size(q);
+if numel(qshape)==2, qshape(3) = 1; end
     
 if qshape(1) ~= 4
     error('Size of first dimension must equal 4.')
