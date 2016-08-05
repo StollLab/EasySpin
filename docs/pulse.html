@@ -28,7 +28,7 @@
 <div class="functitle">pulse</div>
 
 <p>
-Calculates pulse shapes and pulse excitation profiles.
+Calculates pulse shape and amplitude, frequency and phase modulation functions for a series pulse types.
 </p>
 
 
@@ -39,15 +39,14 @@ Calculates pulse shapes and pulse excitation profiles.
 pulse(Par)
 pulse(Par,Opt)
 [t,IQ] = pulse(...)
-[t,IQ,exciteprofile] = pulse(...)
-[t,IQ,exciteprofile,modulation] = pulse(...)
+[t,IQ,modulation] = pulse(...)
 </pre>
 
 <!-- ============================================================= -->
 <div class="subtitle">Description</div>
 
 <p>
-This function calculates pulse shapes and pulse excitation profiles.
+This function calculates pulse shapes for predefined types of shaped pulses. The corresponding excitation profile can be computed with the function <a class="esf" href="exciteprofile.html">exciteprofile</a>.
 </p>
 
 <p>
@@ -55,15 +54,7 @@ The output contains the time axis data in <code>t</code> (time in microseconds).
 </p>
 
 <p>
-If a third output argument is specified, the pulse excitation profile is calculated and returned in the structure <code>exciteprofile</code> with the following fields:
-<ul>
-<li><code>exciteprofile.offsets</code>: axis of frequency offsets (in MHz) relative to the center frequency
-<li><code>exciteprofile.Mx</code>, <code>exciteprofile.My</code>, <code>exciteprofile.Mz</code>: components of the magnetization vector after the pulse, calculated using two-level density matrix dynamics starting from thermal equilibrium (Mx = 0, My = 0, Mz = 1).
-</ul>
-</p>
-
-<p>
-The fourth output argument contains the structure <code>modulation</code> with the calculated modulation functions for the pulse:
+The third (optional) output argument contains the structure <code>modulation</code> with the calculated modulation functions for the pulse:
 <ul>
 <li><code>modulation.A</code>: amplitude modulation function (in MHz)
 <li><code>modulation.freq</code>: frequency modulation function (in MHz)
@@ -170,7 +161,7 @@ asymmetric sech pulses can be obtained by specifying two values for <code>n</cod
 <ul style="list-style-type:none;padding:5px;">
 <li><code>nwurst</code> - parameter determining the steepness of the amplitude function
 </ul>
-<li><code>'halfsin'</code>
+<li><code>'halfsin'</code></li>
 <ul style="list-style-type:none;padding:5px;">
 <li>no additional fields are required
 </ul>
@@ -239,11 +230,6 @@ With <code>Opt.BWCompensation = 1</code>, the calculated pulse shape includes a 
 Oversampling factor for the automatic determination of the time step (default = 10). 
 </div>
 
-<div class="optionfield"><code>Offsets</code></div>
-<div class="optiondescr">
-Axis of frequency offsets (in MHz) for which to compute the excitation profile (by default the frequency axis is defined over a range of approximately twice the pulse bandwidth around the center frequency with 201 points).
-</div>
-
 <!-- ============================================================= -->
 <div class="subtitle">Theoretical background</div>
 
@@ -306,7 +292,7 @@ A = 1 - \left|\sin{\frac{\pi t}{t_\mathrm{p}}} \right|^{nwurst}
 <div class="eqn">
 <img src="eqn/pulse6.png" alt="[eqn]"><!--MATH
 \begin{equation*}
-A = sin{\left(\frac{\pi t}{t_\mathrm{p}}+\frac{\pi}{2}\right)}
+A = \cos\left(\frac{\pi t}{t_\mathrm{p}}\right)
 \end{equation*}
 -->
 </div>
@@ -391,6 +377,7 @@ If bandwidth compensation is requested, the frequency and amplitude modulation f
 <div class="subtitle">See also</div>
 
 <p>
+<a class="esf" href="exciteprofile.html">exciteprofile</a>,
 <a class="esf" href="evolve.html">evolve</a>,
 <a class="esf" href="rfmixer.html">rfmixer</a>,
 <a class="esf" href="saffron.html">saffron</a>

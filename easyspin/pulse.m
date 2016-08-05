@@ -1,10 +1,9 @@
-% pulse      Pulse definition and excitation profile calculation
+% pulse      Pulse definition
 %
 % [t,IQ] = pulse(Par)
 % [t,IQ] = pulse(Par,Opt)
 %
-% [t,IQ,exciteprofile] = pulse(Par,Opt)
-% [t,IQ,exciteprofile,modulation] = pulse(Par,Opt)
+% [t,IQ,modulation] = pulse(Par,Opt)
 %
 % Input:
 %   Par = structure containing the following fields:
@@ -56,10 +55,6 @@
 %                            Par.mwFreq.
 %     Opt.OverSampleFactor = oversampling factor for the determination
 %                            of the time step (default: 10)
-%     Opt.Offsets          = axis of frequency offsets in MHz for which
-%                            to compute the excitation profile
-%                            (default: approximately ±2*BW centered at
-%                            the pulse center frequency, 201 points)
 %
 % Available pulse modulation functions:
 %   - Amplitude modulation: rectangular, gaussian, sinc, halfsin, quartersin,
@@ -98,13 +93,7 @@
 %                       pulses, see Ref. 3.
 %
 % Output:   t          = time axis for defined waveform in µs
-%           IQ          = real and imaginary part of the pulse function
-%           If three or four output arguments are requested, the excitation
-%           profile is calculated. Additional output fields are:
-%           exciteprofile  = structure with frequency offset axis
-%                        (exciteprofile.offsets) for excitation profile in
-%                        MHz and excitation profile (Mi/M0, i = x,y,z,
-%                        exciteprofile.Mx, exciteprofile.My, exciteprofile.Mz)
+%           IQ         = real and imaginary part of the pulse function
 %           modulation = structure with amplitude (modulation.A, in MHz),
 %                        frequency (modulation.freq, in MHz) and phase
 %                        (modulation.phase, in rad) modulation functions
@@ -161,10 +150,8 @@ plotResults = (nargout==0);
 
 if plotResults
   calculateExciteProfile = true;
-elseif ~isfield(Opt,'ExciteProfile')
-  calculateExciteProfile = (nargout==3) || (nargout==4);
 else
-  calculateExciteProfile = Opt.ExciteProfile;
+  calculateExciteProfile = false;
 end
 
 % Set parameters to defaults
@@ -172,7 +159,7 @@ end
 if ~isfield(Par,'tp')
   error('Pulse length not defined in Par.tp.')
 end
-if ~isfield(Par,'Flip')
+if ~isfield(Par,'Flip') || isempty(Par.Flip)
   if ~isfield(Par,'Amplitude')
     Par.Flip = pi;
     Par.Amplitude = [];
@@ -183,7 +170,7 @@ else
   Par.Amplitude = [];
 end
 
-if ~isfield(Par,'Frequency')
+if ~isfield(Par,'Frequency') || isempty(Par.Frequency)
   Par.Frequency = 0; % MHz
 end
 if ~isfield(Par,'Phase')
@@ -201,15 +188,11 @@ end
 if ~isfield(Opt,'OverSampleFactor')
   Opt.OverSampleFactor = 10;
 end
-if ~isfield(Opt,'nOffsets') % undocumented
-  Opt.nOffsets = 201;
-end
 
 % ----------------------------------------------------------------------- %
 % Calculate pulse function
 % ----------------------------------------------------------------------- %
 modulation = struct;
-exprof = struct;
 
 % Check if pulse I and Q data is given
 if (isfield(Par,'I') && ~isempty(Par.I)) || ...
@@ -238,25 +221,7 @@ if (isfield(Par,'I') && ~isempty(Par.I)) || ...
   modulation.A = [];
   modulation.freq = [];
   modulation.phase = [];
-  
-  % Estimate pulse bandwidth (for offset range determination)
-  % --------------------------------------------------------------------- %
-  if ~isfield(Opt,'Offsets') && calculateExciteProfile
-    
-    % Fourier transform
-    if nextpow2(numel(t))<10
-      zf = 2^10;
-    else
-      zf = 4*2^nextpow2(numel(t));
-    end
-    IQft = abs(fftshift(fft(IQ,zf)));
-    f = fdaxis(Par.TimeStep,zf);
-    indbw = find(IQft>0.5*max(IQft));
-    BW = abs(f(indbw(end))-f(indbw(1)));
-    Par.Frequency = [f(indbw(1)) f(indbw(end))];
-    
-  end
-  
+   
 else
   
   % Set pulse shape to rectangular if it is not specified
@@ -349,21 +314,21 @@ else
     
     case 'none'
       
-      if numel(Par.Frequency)~=1
+      if numel(Par.Frequency)>1
         error(['Frequency modulation is set to ''none'', but a frequency range is ',...
           'given in Par.Frequency. Please define a single pulse frequency.']);
       end
       
     case 'linear'
       
-      if numel(Par.Frequency)==1
+      if numel(Par.Frequency)~=2
         error(['Pulse FM function not sufficiently defined. ',...
           'Specify frequency range for the linear chirp in Par.Frequency (in MHz).']);
       end
       
     case 'tanh'
       
-      if numel(Par.Frequency)==1
+      if numel(Par.Frequency)~=2
         error(['Pulse FM function not sufficiently defined. ',...
           'Specify frequency range for tanh in Par.Frequency (in MHz).']);
       end
@@ -374,7 +339,7 @@ else
            
     case 'uniformQ'
       
-      if numel(Par.Frequency)==1
+      if numel(Par.Frequency)~=2
         error(['Pulse FM function not sufficiently defined. ',...
           'Specify frequency range in Par.Frequency (in MHz).']);
       end
@@ -414,9 +379,9 @@ else
     
   end
    
-  % Estimate pulse bandwidth (for timestep and offset range determination)
+  % Estimate pulse bandwidth (for timestep determination)
   % --------------------------------------------------------------------- %
-  if ~isfield(Par,'TimeStep') || (~isfield(Opt,'Offsets') && calculateExciteProfile)
+  if ~isfield(Par,'TimeStep')
     
     % Determine bandwidth of frequency modulation
     switch FrequencyModulation
@@ -443,7 +408,7 @@ else
           A1(isnan(A1)) = 1;
           A0 = A0.*(A1/max(A1));
         case 'halfsin'
-          A1 = sin(pi*(ti0/Par.tp+0.5));
+          A1 = cos(pi*ti0/Par.tp);
           A0 = A0.*A1;
         case 'quartersin'
           % Pulse edges weighted with a quarter period of a sine wave
@@ -530,7 +495,7 @@ else
       case 'halfsin'
         
         % Half sine
-        A = sin(pi*(ti/Par.tp+0.5));
+        A = cos(pi*ti/Par.tp);
         
       case 'quartersin'
         
@@ -728,88 +693,7 @@ end
 
 if calculateExciteProfile
   
-  % Set up offset axis for excitation profile calculation
-  if ~isfield(Opt,'Offsets')
-    if ~strcmp(Par.Type,'user-IQ')
-      BW = max([FM_BW AM_BW50]);
-    end
-    if Opt.IQ
-      exprof.offsets = linspace(-BW,BW,Opt.nOffsets) + mean(Par.Frequency);
-    else
-      exprof.offsets = linspace(-BW-mean(Par.Frequency),BW+mean(Par.Frequency),Opt.nOffsets);      
-    end
-  else
-    exprof.offsets = Opt.Offsets;
-  end
-  nOffsets = numel(exprof.offsets);
-  
-  % Spin operators
-  Sx = sop(1/2,'x');
-  Sy = sop(1/2,'y');
-  Sz = sop(1/2,'z');
-  
-  % Equilibrium density matrix
-  Density0 = -Sz;
-  
-  % Pre-allocate result array
-  exprof.Mx = zeros(1,nOffsets);
-  exprof.My = zeros(1,nOffsets);
-  exprof.Mz = zeros(1,nOffsets);
-  
-  Isignal = real(IQ);
-  Qsignal = imag(IQ);
-  for iOffset = 1:nOffsets
-    
-    Ham0 = exprof.offsets(iOffset)*Sz;
-    
-    % Compute pulse propagator
-    if min(IQ)==max(IQ) % rectangular pulses
-      
-      Ham = Isignal(1)*Sx + Qsignal(1)*Sy + Ham0;
-      tp = Par.TimeStep*(nPoints-1);
-      
-      %UPulse = expm(-2i*pi*Ham*tp);
-      % Fast matrix exponential for a traceless, antihermitian 2x2 matrix
-      M = -2i*pi*tp*Ham; % M = [a b; -b' -a]
-      q = sqrt(M(1,1)^2-abs(M(1,2))^2);
-      if abs(q)<1e-10
-        UPulse = eye(2) + M;
-      else
-        UPulse = cosh(q)*eye(2) + (sinh(q)/q)*M;
-      end
-      
-    else % general pulses
-      
-      eye2 = eye(2);
-      UPulse = eye2;
-      for it = 1:nPoints-1
-        
-        Ham = Isignal(it)*Sx + Qsignal(it)*Sy + Ham0;
-        
-        % dU = expm(-2i*pi*Ham*Par.TimeStep);
-        % Fast matrix exponential for a traceless, antihermitian 2x2 matrix
-        M = -2i*pi*Par.TimeStep*Ham; % M = [a b; -b' -a]
-        q = sqrt(M(1)^2-abs(M(3))^2);
-        if abs(q)<1e-10
-          dU = eye2 + M;
-        else
-          dU = cosh(q)*eye2 + (sinh(q)/q)*M;
-        end
-        UPulse = dU*UPulse;
-      end
-      
-    end
-    
-    % Propagate density matrix
-    Density = UPulse*Density0*UPulse';
-    
-    % Calculate observables
-    % (using trace(A*B) = sum(sum(A.*B.')))
-    exprof.Mx(iOffset) = -2*real(sum(sum(Sx.*Density.')));
-    exprof.My(iOffset) = -2*real(sum(sum(Sy.*Density.')));
-    exprof.Mz(iOffset) = -2*real(sum(sum(Sz.*Density.')));
-    
-  end
+  [exprof.offsets,exprof.M] = exciteprofile(t,IQ);
   
 end
 
@@ -830,7 +714,6 @@ if plotResults
   colQ = [1 0 0];
   colBW = [1 1 1]*0.8;
   colnu = [0 0 1];
-  colphi = [0 0.5 0];
   colx = [0 0.5 0];
   coly = [1 0 0];
   colz = [0 0 1];
@@ -884,26 +767,22 @@ if plotResults
     set(S.tick(2),'Value',0,'Enable','off')
   end
   
-  % Frequency and phase modulation plot
-  S.label(2) = uicontrol('Style','text','String','Frequency and phase:',...
+  % Frequency modulation plot
+  S.label(2) = uicontrol('Style','text','String','Frequency modulation:',...
     'FontSize',10,'FontWeight','bold',...
     'HorizontalAlignment','left',...
     'Background',[1 1 1]*0.8,'Units','Normalized',...
     'Position',[2*sep+width,0.75,width,0.1]);
   S.ha(2) = axes('Units','Normalized','Position',[2*sep+width,btm,width,height]);
   hold on; box on;
-  if ~isempty(modulation.freq) && ~isempty(modulation.phase)
+  if ~isempty(modulation.freq)
     line([min(t) max(t)],[0 0]+mean(Par.Frequency),'Color',colBW);
     if numel(Par.Frequency)==2
       line([min(t) max(t)],[0 0]+Par.Frequency(1),'Color',colBW);
       line([min(t) max(t)],[0 0]+Par.Frequency(2),'Color',colBW);
     end
-    [S.ax,S.hnu,S.hphi] = plotyy(t,modulation.freq+mean(Par.Frequency),t,modulation.phase);
-    set(get(S.ax(1),'Xlabel'),'String','{\itt} (\mus)')
-    set(S.ax(1),'xlim',[t(1) t(end)]);
-    set(S.ax(2),'xlim',[t(1) t(end)]);
-    set(S.ax(2),'XAxisLocation','top','XTickLabel',[]);
-    freqmax = [min(modulation.freq+mean(Par.Frequency)) max(modulation.freq+mean(Par.Frequency))];
+    S.hnu = plot(t,modulation.freq+mean(Par.Frequency),'Color',colnu);
+    freqmax = [min(modulation.freq) max(modulation.freq)]+mean(Par.Frequency);
     if freqmax(1)==freqmax(2)
       if freqmax(1)==0; sc = 1; else sc = 0.1*freqmax(1); end
       freqmax = [freqmax(1) freqmax(2)]+sc*[-1 1];
@@ -911,26 +790,10 @@ if plotResults
     else
       shift = [-1 1]*0.1*(freqmax(2)-freqmax(1));
     end
-    set(S.ax(1),'ylim',freqmax+shift);
-    set(S.ax(1),'YTick',linspace(freqmax(1),freqmax(2),5))
-    set(S.ax(1),'box','off')
-    set(S.ax(1),'Layer','top')
-    phasemax = [min(modulation.phase) max(modulation.phase)];
-    if phasemax(1)==phasemax(2)
-      if phasemax(1)==0; sc = 1; else sc = 0.1*phasemax(1); end
-      phasemax = [phasemax(1) phasemax(2)]+sc*[-1 1];
-      shift = 0;
-    else
-      shift = [-1 1]*0.1*(phasemax(2)-phasemax(1));
-    end
-    set(S.ax(2),'ylim',phasemax+shift);
-    set(get(S.ax(1),'Ylabel'),'String','frequency (MHz)');
-    set(get(S.ax(2),'Ylabel'),'String','phase (rad)');
-    set(S.ax,{'Ycolor'},{colnu;colphi})
-    set(S.hnu,'Color',colnu);
-    set(S.hphi,'Color',colphi);
+    xlabel('{\itt} (\mus)');
+    ylabel('frequency (MHz)');
+    axis([t(1) t(end) freqmax+shift]);
   end
-  title('Frequency and phase modulation');
   
   % Excitation profile plot
   S.label(3) = uicontrol('Style','text','String','Excitation profiles:',...
@@ -963,9 +826,9 @@ if plotResults
       line(-[1 1]*Par.Frequency(2),[-1 1],'Color',colBW);
     end
   end
-  S.h(1) = plot(exprof.offsets,exprof.Mx,'Color',colx);
-  S.h(2) = plot(exprof.offsets,exprof.My,'Color',coly);
-  S.h(3) = plot(exprof.offsets,exprof.Mz,'Color',colz);
+  S.h(1) = plot(exprof.offsets,exprof.M(1,:),'Color',colx);
+  S.h(2) = plot(exprof.offsets,exprof.M(2,:),'Color',coly);
+  S.h(3) = plot(exprof.offsets,exprof.M(3,:),'Color',colz);
   set(S.h(1),'Visible','off')
   set(S.h(2),'Visible','off')
   ylabel('{\itM}_i/{\itM}_0')
@@ -973,7 +836,6 @@ if plotResults
   xlabel('frequency (MHz)')
   axis([exprof.offsets(1) exprof.offsets(end) -1 1])
   set(gca,'Layer','top')
-  title('Excitation profiles')
   
   S.handles = [S.hI S.hQ S.h(1) S.h(2) S.h(3)];
   set(S.tick,'Callback',{@showhide,S});
@@ -988,13 +850,12 @@ switch nargout
     % plotting
   case 2 % [t,IQ] = pulse(...)
     varargout = {t,IQ};
-  case 3 % [t,IQ,exprof] = pulse(...)
-    varargout = {t,IQ,exprof};
-  case 4 % [t,IQ,exprof,modulation] = pulse(...)
-    modulation.freq = modulation.freq+mean(Par.Frequency);
-    varargout = {t,IQ,exprof,modulation};
+  case 3 % [t,IQ,modulation] = pulse(...)
+    modulation.freq = modulation.freq + mean(Par.Frequency);
+    modulation.phase = modulation.phase + 2*pi*mean(Par.Frequency)*t + Par.Phase;
+    varargout = {t,IQ,modulation};
   otherwise
-    error('The function pulse() needs 2, 3, or 4 output arguments.')
+    error('The function pulse() needs 2 or 3 output arguments.')
 end
 
 end

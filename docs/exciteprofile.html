@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>exciteprofile</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">exciteprofile</div>
+
+<p>
+Calculates pulse excitation profiles.
+</p>
+
+
+<!-- ============================================================= -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+[offsets,M] = exciteprofile(t,IQ)
+[offsets,M] = exciteprofile(t,IQ,offsets)
+</pre>
+
+<!-- ============================================================= -->
+<div class="subtitle">Description</div>
+
+<p>
+This function computes the excitation profiles for the input pulse function using two-level density matrix dynamics starting from thermal equilibrium (Mx = 0, My = 0, Mz = 1).
+</p>
+
+<p>
+The output contains the axis of frequency offsets (in MHz) in <code>offsets</code> and an array with the three components of the magnetization vector after the pulse in <code>M</code> (<code>M = [Mx; My; Mz]</code>).
+</p>
+
+<p>
+If you don't request any output, <code>exciteprofile</code> plots the pulse shape and excitation profiles.
+</p>
+
+<p>
+The input arguments to <code>exciteprofile</code> are <code>t</code>, the time axis (in microseconds) of the pulse, and <code>IQ</code>, the pulse shape data with the in-phase component in the real part and the quadrature component in the imaginary part. The output of the function <a class="esf" href="pulse.html">pulse</a> can be used directly as input for <code>exciteprofile</code>.
+</p>
+
+<p>
+An optional third input argument, <code>offsets</code>, can be used to define the axis of frequency offsets (in MHz) for which to compute the excitation profile. By default the frequency axis is defined over a range of approximately twice the pulse bandwidth around the center frequency with 201 points.
+</p>
+
+<!-- ============================================================= -->
+<div class="subtitle">Example</div>
+
+<p>
+The excitation profile of a sech/tanh inversion pulse can be calculated by calling first the <a class="esf" href="pulse.html">pulse</a> function to compute the pulse shape and then <code>exciteprofile</code> to obtain the excitation profile.
+</p>
+<pre class="matlab">
+% Define pulse parameters
+Par.Type = 'sech/tanh';
+Par.tp = 0.200; % microseconds
+Par.Frequency = [-50 50];  % MHz
+Par.beta = 10;
+Par.Flip = pi;
+ 
+% Calculate pulse shape
+[t,IQ] = pulse(Par);
+ 
+% Calculate excitation profile
+[offsets,M] = exciteprofile(t,IQ);
+ 
+% Plot the inversion profile (Mz/M0)
+plot(offsets,M(3,:))
+xlabel('offsets (MHz)')
+ylabel('M_z/M_0')
+</pre>
+
+
+<!-- ============================================================= -->
+<div class="subtitle">See also</div>
+
+<p>
+<a class="esf" href="pulse.html">pulse</a>,
+<a class="esf" href="evolve.html">evolve</a>,
+<a class="esf" href="saffron.html">saffron</a>
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+
+</html>

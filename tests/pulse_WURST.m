@@ -10,8 +10,7 @@ Params.Frequency = [-250 250]+100; % MHz
 Params.nwurst = 15;
 Params.Amplitude = 15; % MHz
 
-Opt.ExciteProfile = false;
-[t,IQ,exprofile,modulation] = pulse(Params,Opt);
+[t,IQ,modulation] = pulse(Params);
 
 % Amplitude modulation: WURST
 A = 1-abs((sin((pi*(t-Params.tp/2))/Params.tp)).^Params.nwurst);
@@ -20,9 +19,9 @@ BW = Params.Frequency(2)-Params.Frequency(1);
 f = -(BW/2)+(BW/Params.tp)*t;
 % Phase modulation
 phi = cumtrapz(t-Params.tp/2,f);
-phi = phi+abs(min(phi));
+phi = phi+abs(min(phi))+mean(Params.Frequency)*t;
 % Pulse
-IQ0 = Params.Amplitude*A.*exp(2i*pi*(phi+mean(Params.Frequency)*t));
+IQ0 = Params.Amplitude*A.*exp(2i*pi*phi);
 
 suberr(1) = ~areequal(IQ0,IQ,1e-11);
 suberr(2) = ~areequal(Params.Amplitude*A,modulation.A,1e-12);

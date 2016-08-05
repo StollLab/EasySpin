@@ -27,17 +27,18 @@ Params(6).Type = 'WURST';
 Params(6).nwurst = 20;
 Params(6).tp = 0.300; % us
 
-Opt.Offsets = 0;
-
+offsets = 0;
 
 tol = 1e-12;
 suberr = zeros(1,numel(Params));
 for i = 1:numel(Params)
   Params(i).Flip = pi/2;
-  [t,IQ,p90] = pulse(Params(i),Opt);
+  [t,IQ] = pulse(Params(i));
+  [offsets,M90] = exciteprofile(t,IQ,offsets);
   Params(i).Flip = pi;
-  [t,IQ,p180] = pulse(Params(i),Opt);
-  if p90.Mz<tol && (p180.Mz>(-1-tol) && p180.Mz<(-1+tol))  
+  [t,IQ] = pulse(Params(i));
+  [offsets,M180] = exciteprofile(t,IQ,offsets);
+  if M90(3)<tol && (M180(3)>(-1-tol) && M180(3)<(-1+tol))  
     suberr(i) = 0;
   else
     suberr(i) = 1;
@@ -76,16 +77,18 @@ Params(6).beta = 7;
 Params(6).n = 12;
 Params(6).Frequency = [-125 125]; % MHz
 
-Opt.Offsets = 0;
+offsets = 0;
 
 tol = 1e-2;
 suberr = zeros(1,numel(Params));
 for i = 1:numel(Params)
   Params(i).Flip = pi/2;
-  [t,IQ,p90] = pulse(Params(i),Opt);  
+  [t,IQ] = pulse(Params(i));  
+  [offsets,M90] = exciteprofile(t,IQ,offsets);
   Params(i).Flip = pi;
-  [t,IQ,p180] = pulse(Params(i),Opt);
-  if p90.Mz<tol && (p180.Mz>(-1-tol) && p180.Mz<(-1+tol))  
+  [t,IQ] = pulse(Params(i));
+  [offsets,M90] = exciteprofile(t,IQ,offsets);
+  if M90(3)<tol && (M180(3)>(-1-tol) && M180(3)<(-1+tol))  
     suberr(i) = 0;
   else
     suberr(i) = 1;
