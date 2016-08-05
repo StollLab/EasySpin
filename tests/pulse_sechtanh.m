@@ -22,12 +22,11 @@ A = sech((Params.beta/Params.tp)*(t0-Params.tp/2));
 f = ((Params.Frequency(2)-Params.Frequency(1))/(2*tanh(Params.beta/2)))*tanh((Params.beta/Params.tp)*(t0-Params.tp/2));
 % Phase modulation
 phi = ((Params.Frequency(2)-Params.Frequency(1))/(2*tanh(Params.beta/2)))*(Params.tp/Params.beta)*log(cosh((Params.beta/Params.tp)*(t0-Params.tp/2)));
-phi = 2*pi*phi;
+phi = 2*pi*(phi+mean(Params.Frequency)*t0);
 % Pulse
-IQ0 = Amplitude*A.*exp(1i*(phi+2*pi*mean(Params.Frequency)*t0));
+IQ0 = Amplitude*A.*exp(1i*phi);
 
-Opt.ExciteProfile = false;
-[t,IQ,exprofile,modulation] = pulse(Params,Opt);
+[t,IQ,modulation] = pulse(Params);
 
 suberr(1) = ~areequal(IQ0,IQ,1e-12);
 suberr(2) = ~areequal(Amplitude*A,modulation.A,1e-12);

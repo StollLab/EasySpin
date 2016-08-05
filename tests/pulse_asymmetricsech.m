@@ -9,7 +9,7 @@ Params.Type = 'sech/uniformQ';
 Params.Frequency = [-100 100]; % MHz
 Params.beta = 10.4;
 Params.n = [6 1];
-Params.Amplitude = 25; % MHz
+Params.Amplitude = 30; % MHz
 Params.TimeStep = 0.0005; % us
 
 t0 = 0:Params.TimeStep:Params.tp;
@@ -29,8 +29,7 @@ phi = phi+abs(min(phi));
 % Pulse
 IQ0 = A.*exp(2i*pi*phi);
 
-Opt.ExciteProfile = false;
-[t,IQ,exprofile,modulation] = pulse(Params,Opt);
+[t,IQ,modulation] = pulse(Params);
 
 suberr(1) = ~areequal(IQ0,IQ,1e-11);
 suberr(2) = ~areequal(A,modulation.A,1e-12);

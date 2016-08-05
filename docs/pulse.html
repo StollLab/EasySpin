@@ -28,7 +28,7 @@
 <div class="functitle">pulse</div>
 
 <p>
-Calculates pulse shapes and pulse excitation profiles.
+Calculates pulse shape and amplitude, frequency and phase modulation functions for a series pulse types.
 </p>
 
 
@@ -39,15 +39,14 @@ Calculates pulse shapes and pulse excitation profiles.
 pulse(Par)
 pulse(Par,Opt)
 [t,IQ] = pulse(...)
-[t,IQ,exciteprofile] = pulse(...)
-[t,IQ,exciteprofile,modulation] = pulse(...)
+[t,IQ,modulation] = pulse(...)
 </pre>
 
 <!-- ============================================================= -->
 <div class="subtitle">Description</div>
 
 <p>
-This function calculates pulse shapes and pulse excitation profiles.
+This function calculates pulse shapes for predefined types of shaped pulses. The corresponding excitation profile can be computed with the function <a class="esf" href="exciteprofile.html">exciteprofile</a>.
 </p>
 
 <p>
@@ -55,15 +54,7 @@ The output contains the time axis data in <code>t</code> (time in microseconds).
 </p>
 
 <p>
-If a third output argument is specified, the pulse excitation profile is calculated and returned in the structure <code>exciteprofile</code> with the following fields:
-<ul>
-<li><code>exciteprofile.offsets</code>: axis of frequency offsets (in MHz) relative to the center frequency
-<li><code>exciteprofile.Mx</code>, <code>exciteprofile.My</code>, <code>exciteprofile.Mz</code>: components of the magnetization vector after the pulse, calculated using two-level density matrix dynamics starting from thermal equilibrium (Mx = 0, My = 0, Mz = 1).
-</ul>
-</p>
-
-<p>
-The fourth output argument contains the structure <code>modulation</code> with the calculated modulation functions for the pulse:
+The third (optional) output argument contains the structure <code>modulation</code> with the calculated modulation functions for the pulse:
 <ul>
 <li><code>modulation.A</code>: amplitude modulation function (in MHz)
 <li><code>modulation.freq</code>: frequency modulation function (in MHz)
@@ -124,7 +115,7 @@ Overall pulse phase, in radians, <i>e.g.</i> <code>0</code> for +x, <code>pi/2</
 <div class="optiondescr">
 Pulse shape name in a string structured as <code>'AM/FM'</code> (or just <code>'AM'</code>), where AM refers to the amplitude modulation function and FM to the frequency modulation function.
 <p>
-The available amplitude modulation functions are <code>'rectangular'</code>, <code>'gaussian'</code>, <code>'sinc'</code>, <code>'quartersin'</code>, <code>'sech'</code>, <code>'WURST'</code>. Different AM functions can be multiplied by concatenating the keywords as <code>'AM1*AM2/FM'</code>. The default is <code>'rectangular'</code>.
+The available amplitude modulation functions are <code>'rectangular'</code>, <code>'gaussian'</code>, <code>'sinc'</code>, <code>'halfsin'</code>, <code>'quartersin'</code>, <code>'sech'</code>, <code>'WURST'</code>. Different AM functions can be multiplied by concatenating the keywords as <code>'AM1*AM2/FM'</code>. The default is <code>'rectangular'</code>.
 
 <p>
 The available options for frequency modulation are <code>'none'</code>, <code>'linear'</code>, <code>'tanh'</code>, <code>'uniformQ'</code>. If only an AM keyword is given, the FM function is set to <code>'none'</code>.
@@ -169,6 +160,10 @@ asymmetric sech pulses can be obtained by specifying two values for <code>n</cod
 <li><code>'WURST'</code>
 <ul style="list-style-type:none;padding:5px;">
 <li><code>nwurst</code> - parameter determining the steepness of the amplitude function
+</ul>
+<li><code>'halfsin'</code></li>
+<ul style="list-style-type:none;padding:5px;">
+<li>no additional fields are required
 </ul>
 <li><code>'quartersin'</code></li>
 <ul style="list-style-type:none;padding:5px;">
@@ -235,11 +230,6 @@ With <code>Opt.BWCompensation = 1</code>, the calculated pulse shape includes a 
 Oversampling factor for the automatic determination of the time step (default = 10). 
 </div>
 
-<div class="optionfield"><code>Offsets</code></div>
-<div class="optiondescr">
-Axis of frequency offsets (in MHz) for which to compute the excitation profile (by default the frequency axis is defined over a range of approximately twice the pulse bandwidth around the center frequency with 201 points).
-</div>
-
 <!-- ============================================================= -->
 <div class="subtitle">Theoretical background</div>
 
@@ -298,9 +288,18 @@ A = 1 - \left|\sin{\frac{\pi t}{t_\mathrm{p}}} \right|^{nwurst}
 -->
 </div>
 
-<li><code>'quartersin'</code>:
+<li><code>'halfsin'</code>:
 <div class="eqn">
 <img src="eqn/pulse6.png" alt="[eqn]"><!--MATH
+\begin{equation*}
+A = \cos\left(\frac{\pi t}{t_\mathrm{p}}\right)
+\end{equation*}
+-->
+</div>
+
+<li><code>'quartersin'</code>:
+<div class="eqn">
+<img src="eqn/pulse7.png" alt="[eqn]"><!--MATH
 \begin{eqnarray*}
 A = 1 \qquad &\text{for}& \qquad -\frac{t_\mathrm{p}}{2} + t_\text{rise} < t < \frac{t_\mathrm{p}}{2} - t_\text{rise} \\
 A = \sin\frac{\pi \left(t + t_\mathrm{p}/2\right)}{2 t_\text{rise}} \qquad &\text{for}& \qquad -\frac{t_\mathrm{p}}{2} < t < -\frac{t_\mathrm{p}}{2} + t_\text{rise} \\
@@ -319,7 +318,7 @@ Frequency and phase modulation functions (<i>BW</i> is the difference between en
 
 <li><code>'none'</code>:
 <div class="eqn">
-<img src="eqn/pulse7.png" alt="[eqn]"><!--MATH
+<img src="eqn/pulse8.png" alt="[eqn]"><!--MATH
 \begin{equation*}
 \nu = 0 \qquad \qquad \phi = 0
 \end{equation*}
@@ -328,7 +327,7 @@ Frequency and phase modulation functions (<i>BW</i> is the difference between en
 
 <li><code>'linear'</code>:
 <div class="eqn">
-<img src="eqn/pulse8.png" alt="[eqn]"><!--MATH
+<img src="eqn/pulse9.png" alt="[eqn]"><!--MATH
 \begin{equation*}
 \nu = \frac{BW}{t_\mathrm{p}} t \qquad \qquad \phi = 2 \pi \left( -\frac{BW}{2}\left(t - \frac{t_\mathrm{p}}{2}\right) + \frac{1}{2} \frac{BW}{t_\mathrm{p}} \left(t - \frac{t_\mathrm{p}}{2}\right)^2\right)
 \end{equation*}
@@ -337,7 +336,7 @@ Frequency and phase modulation functions (<i>BW</i> is the difference between en
 
 <li><code>'tanh'</code>:
 <div class="eqn">
-<img src="eqn/pulse9.png" alt="[eqn]"><!--MATH
+<img src="eqn/pulse10.png" alt="[eqn]"><!--MATH
 \begin{equation*}
 \nu = \frac{BW}{2 \tanh(\beta/2)} \tanh{\frac{\beta t}{t_\mathrm{p}}}
 \qquad\qquad
@@ -360,7 +359,7 @@ The time axis for the calculation of the modulation functions is centered at zer
 The final pulse shape is calculated as:
 </p>
 <div class="eqn">
-<img src="eqn/pulse10.png" alt="[eqn]"><!--MATH
+<img src="eqn/pulse11.png" alt="[eqn]"><!--MATH
 \begin{equation*}
 P = A \exp\left[i \left(\phi + 2 \pi \nu_\text{center} + \Delta\phi\right) \right]
 \end{equation*}
@@ -378,6 +377,7 @@ If bandwidth compensation is requested, the frequency and amplitude modulation f
 <div class="subtitle">See also</div>
 
 <p>
+<a class="esf" href="exciteprofile.html">exciteprofile</a>,
 <a class="esf" href="evolve.html">evolve</a>,
 <a class="esf" href="rfmixer.html">rfmixer</a>,
 <a class="esf" href="saffron.html">saffron</a>

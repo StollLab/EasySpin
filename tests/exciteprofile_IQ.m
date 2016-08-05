@@ -1,6 +1,6 @@
 function [err,data] = test(opt,olddata)
 
-% Check excitation profiles calculated by pulse()
+% Check excitation profile of a user-defined composite pulse
 %--------------------------------------------------------------------------
 
 % Composite pulse 90_0-180_180-270_0
@@ -17,7 +17,9 @@ I(3*tp/dt+1:3*tp/dt+3*tp/dt+1) = +1;
 Params.I = v1*I;
 
 % Opt.Offsets = -200:1:200; % MHz
-[t,IQ,exprofile] = pulse(Params);
+[t,IQ] = pulse(Params);
+[exprofile.offsets,M] = exciteprofile(t,IQ);
+exprofile.Mz = M(3,:);
 
 % Calculate inversion profile
 Sx = sop(1/2,'x');

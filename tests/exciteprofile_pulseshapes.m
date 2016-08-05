@@ -1,6 +1,6 @@
 function [err,data] = test(opt,olddata)
 
-% Check excitation profiles calculated by pulse()
+% Check excitation profiles calculated by exciteprofile()
 %--------------------------------------------------------------------------
 
 % Rectangular pulses
@@ -11,26 +11,29 @@ Params(2).Flip = pi;
 Params(2).tp = 0.032; % us
 Params(2).Phase = pi/2;
 
-Opt.Detect = 'all';
-[t1,IQ1,exprofile(1)] = pulse(Params(1),Opt);
-[t2,IQ2,exprofile(2)] = pulse(Params(2),Opt);
+[t1,IQ1] = pulse(Params(1));
+[t2,IQ2] = pulse(Params(2));
+
+offsets = -70:0.5:70; % MHz
+[offsets,M1] = exciteprofile(t1,IQ1,offsets);
+[offsets,M2] = exciteprofile(t2,IQ2,offsets);
 
 % Calculate inversion profile
 Sx = sop(1/2,'x');
 Sy = sop(1/2,'y');
 Sz = sop(1/2,'z');
 
-Mx(1:2,1:numel(exprofile.offsets)) = 0;
-My(1:2,1:numel(exprofile.offsets)) = 0;
-Mz(1:2,1:numel(exprofile.offsets)) = 0;
+Mx(1:2,1:numel(offsets)) = 0;
+My(1:2,1:numel(offsets)) = 0;
+Mz(1:2,1:numel(offsets)) = 0;
 for k = 1:2
   
   Amplitude = (Params(k).Flip/Params(k).tp)/(2*pi);
   rho0 = -Sz;
   
-  for i = 1:numel(exprofile.offsets)
+  for i = 1:numel(offsets)
     
-    H = exprofile(k).offsets(i)*Sz + Amplitude*Sy;
+    H = offsets(i)*Sz + Amplitude*Sy;
     M = -2i*pi*H*Params(k).tp;
     q = sqrt(M(1,1)^2-abs(M(1,2))^2);
     U = cosh(q)*eye(2) + (sinh(q)/q)*M;
@@ -44,12 +47,12 @@ for k = 1:2
   
 end
 
-suberr(1) = ~areequal(Mx(1,:),exprofile(1).Mx,1e-12);
-suberr(2) = ~areequal(Mx(2,:),exprofile(2).Mx,1e-12);
-suberr(3) = ~areequal(My(1,:),exprofile(1).My,1e-12);
-suberr(4) = ~areequal(My(2,:),exprofile(2).My,1e-12);
-suberr(5) = ~areequal(Mz(1,:),exprofile(1).Mz,1e-12);
-suberr(6) = ~areequal(Mz(2,:),exprofile(2).Mz,1e-12);
+suberr(1) = ~areequal(Mx(1,:),M1(1,:),1e-12);
+suberr(2) = ~areequal(Mx(2,:),M2(1,:),1e-12);
+suberr(3) = ~areequal(My(1,:),M1(2,:),1e-12);
+suberr(4) = ~areequal(My(2,:),M2(2,:),1e-12);
+suberr(5) = ~areequal(Mz(1,:),M1(3,:),1e-12);
+suberr(6) = ~areequal(Mz(2,:),M2(3,:),1e-12);
 
 err(1) = any(suberr);
 
@@ -61,26 +64,28 @@ Params.Type = 'sinc';
 Params.zerocross = 0.050;
 
 Opt.Detect = 'Sz';
-Opt.Offsets = -100:1:100;
 Opt.nBCH = 3;
-[t,IQ,exprofile] = pulse(Params,Opt);
+[t,IQ] = pulse(Params,Opt);
+
+offsets = -100:1:100;
+[offsets,Mag] = exciteprofile(t,IQ,offsets);
 
 % Calculate inversion profile
 Sx = sop(1/2,'x');
 Sy = sop(1/2,'y');
 Sz = sop(1/2,'z');
 
-Mz(1:numel(exprofile.offsets)) = 0;
+Mz(1:numel(offsets)) = 0;
 
 rho0 = -Sz;
 
-for i = 1:numel(exprofile.offsets)
+for i = 1:numel(offsets)
   
   rho = rho0;
   
   UPulse = eye(2);
   for j = 1:numel(t)
-    H = exprofile.offsets(i)*Sz + real(IQ(j))*Sx + imag(IQ(j))*Sy;
+    H = offsets(i)*Sz + real(IQ(j))*Sx + imag(IQ(j))*Sy;
     M = -2i*pi*H*(t(2)-t(1));
     q = sqrt(M(1,1)^2 - abs(M(1,2))^2);
     dU = cosh(q)*eye(2) + (sinh(q)/q)*M;
@@ -92,7 +97,7 @@ for i = 1:numel(exprofile.offsets)
   
 end
   
-err(2) = ~areequal(Mz,exprofile.Mz,0.5e-1);
+err(2) = ~areequal(Mz,Mag(3,:),0.5e-1);
 
 % 1st order sech/tanh with frequency offset
 clear Params Mx My Mz
@@ -116,7 +121,8 @@ phi = 2*pi*phi;
 % Pulse
 IQ0 = Amplitude*A.*exp(1i*(phi+2*pi*mean(Params.Frequency)*t0));
 
-[t,IQ,exprofile] = pulse(Params);
+[t,IQ] = pulse(Params);
+[offsets,Mag] = exciteprofile(t,IQ);
 
 % Inversion profile
 Sx = sop(1/2,'x');
@@ -124,10 +130,10 @@ Sy = sop(1/2,'y');
 Sz = sop(1/2,'z');
 
 rho0 = -Sz;
-Mz(1:numel(exprofile.offsets)) = 0;
-for i = 1:numel(exprofile.offsets)
+Mz(1:numel(offsets)) = 0;
+for i = 1:numel(offsets)
   
-  H0 = exprofile.offsets(i)*Sz;
+  H0 = offsets(i)*Sz;
   rho = rho0;
   
   UPulse = eye(2);
@@ -144,7 +150,7 @@ for i = 1:numel(exprofile.offsets)
   
 end
 
-err(3) = ~areequal(Mz,exprofile.Mz,1e-3);
+err(3) = ~areequal(Mz,Mag(3,:),1e-3);
 
 err = any(err);
 
