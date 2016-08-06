@@ -3,12 +3,27 @@ function esbuild
 %                 EasySpin build script
 %===========================================================
 
-ReleaseID = '5.1.0'; % major.minor.patch
+% ReleaseID: MAJOR.MINOR.PATCH
+%   MAJOR: Change only when major new functionality is implemented
+%     including incompatible changes.
+%   MINOR: Change when new functionality is added in a backwards-
+%     compatible manner.
+%   PATCH: Increment for every bugfix release.
+% Roughly follow guidelines of seminatic versioning, see
+%   http://semver.org/
+ReleaseID = '5.1.1'; % major.minor.patch
+
+% Set to true if you want an easyspin-x.y.z.zip file without the
+% long timestamp ID.
 betaVersion = false;
-packDevtree = false;
+
+% Expiry date of release, see eschecker.m
 ExpiryDate = '31-Dec-2017';
+
+% Cutoff date for date checking, see eschecker.m
 HorizonDate = '31-Dec-2021';
 
+% Folders
 baseDir = 'C:\Users\abc\Documents\work';
 SourceDir = [baseDir '\easyspin-dev'];
 ZipDestDir = baseDir;
@@ -24,22 +39,14 @@ end
 
 [Y,M,D,H,MI,S] = datevec(now);
 ReleaseDate = sprintf('%04d-%02d-%02d',Y,M,D);
-BuildTime = sprintf('%04d%02d%02d%02d%02d',Y,M,D,H,MI);
+BuildTimeStamp = sprintf('%04d%02d%02d-%02d%02d%02d',Y,M,D,H,MI,round(S));
 % Matlab 6.5 equivalent for
-%BuildID = datestr(now,'yymmddHHMM');
-
-% This file contains the last BuildNumber
-load lastbuildid
-BuildNumber = BuildNumber + 1;
-if betaVersion
-  BuildID = sprintf('%s-beta+%d',ReleaseID,BuildNumber);
-else
-  BuildID = sprintf('%s+%d',ReleaseID,BuildNumber);
-end
+%BuildTimeStamp = datestr(now,'yymmddHHMMSS');
+BuildID = sprintf('%s+%s',ReleaseID,BuildTimeStamp);
 
 fprintf('Building EasySpin %s.\n',BuildID);
 
-disp('Checking for source directories.');
+fprintf('Checking for source folders...');
 
 Dirs = {'docs','easyspin','examples'};
 for k = 1:numel(Dirs)
@@ -48,42 +55,46 @@ for k = 1:numel(Dirs)
   end
 end
 
-disp('Creating build tree.');
+fprintf(' ok\n');
 
-if betaVersion
-  BuildDir = [tempdir 'easyspin-' BuildID];
-else
-  BuildDir = [tempdir 'easyspin-' ReleaseID];
-end
-fprintf('Builddir is %s\n',BuildDir);
-if exist(BuildDir,'dir');
-  try
-    rmdir(BuildDir,'s');
-  catch
-    error('Could not remove old build folder %s.',BuildDir);
+fprintf('Creating build folder...');
+
+BuildFolder = [tempdir 'easyspin-' ReleaseID];
+
+if exist(BuildFolder,'dir');
+  ok = rmdir(BuildFolder);
+  if (~ok)
+    error('Could not remove old build folder %s.',BuildFolder);
   end
 end
-if betaVersion
-  mkdir(tempdir,['easyspin-' BuildID]);
-else
-  mkdir(tempdir,['easyspin-' ReleaseID]);
+if exist(BuildFolder,'file');
+  delete(BuildFolder);
 end
 
-TbxDir = [BuildDir filesep 'easyspin'];
-ExmplDir = [BuildDir filesep 'examples'];
-DocDir = [BuildDir filesep 'documentation'];
+ok = mkdir(BuildFolder);
+if (~ok)
+  error('Could not create build folder %s.',BuildFolder);
+end
 
-TbxPcodeDir = [BuildDir filesep 'easyspinpcode'];
+fprintf(' ok\n');
+fprintf('  Temp folder: %s\n',tempdir);
+fprintf('  Build folder: %s\n',BuildFolder);
+
+TbxFolder = [BuildFolder filesep 'easyspin'];
+ExmplFolder = [BuildFolder filesep 'examples'];
+DocFolder = [BuildFolder filesep 'documentation'];
+
+TbxPcodeDir = [BuildFolder filesep 'easyspinpcode'];
 
 %------------------------------------------------------------
-% Toolbox dir
+% Toolbox folder
 %------------------------------------------------------------
 disp('Toolbox');
 TbxSrcDir = [SourceDir filesep 'easyspin'];
 
 % Asserting that c files do not contain // comments (which are not
 % supported by all C compilers.)
-fprintf('  Checking *.c files for absence of // comments.');
+fprintf('  Checking *.c files for absence of // comments...');
 cfiles = dir([TbxSrcDir filesep 'private' filesep '*.c']);
 for k=1:numel(cfiles)
   Lines = textread([TbxSrcDir filesep 'private' filesep cfiles(k).name],'%s','whitespace','\n');
@@ -95,36 +106,26 @@ for k=1:numel(cfiles)
     error('Found // comment in file %s',cfiles(k).name);
   end
 end
-fprintf('ok\n');
+fprintf(' ok\n');
 
-disp('  Generating toolbox folder.');
-mkdir(BuildDir,'easyspin');
+fprintf('  Generating toolbox folder...');
+mkdir(BuildFolder,'easyspin');
+fprintf(' ok\n');
 
-disp('  Copying toolbox files');
-copyfile(TbxSrcDir,TbxDir);
-
-%{
-% Remove Mercurial repository and files
-disp('  Removing source control files.');
-if exist([TbxDir filesep '.hg'],'dir')
-  rmdir([TbxDir filesep '.hg'],'s');
-end
-if exist([TbxDir filesep '.hgignore'],'file')
-  delete([TbxDir filesep '.hgignore']);
-end
-if exist([TbxDir filesep '.hgtags'],'file')
-  delete([TbxDir filesep '.hgtags']);
-end
-%}
+fprintf('  Copying toolbox files... ');
+copyfile(TbxSrcDir,TbxFolder);
+fprintf(' ok\n');
 
 % Release tag and expiry date
-disp('  Setting release information and expiry date.');
-replacestr([TbxDir filesep 'info.xml'],'$ReleaseID$',ReleaseID);
-replacestr([TbxDir filesep 'easyspininfo.m'],'$ReleaseID$',ReleaseID);
-replacestr([TbxDir filesep 'easyspininfo.m'],'$ReleaseDate$',ReleaseDate);
-replacestr([TbxDir filesep 'easyspininfo.m'],'$ExpiryDate$',ExpiryDate);
-replacestr([TbxDir filesep 'eschecker.m'],'888888',num2str(datenum(ExpiryDate)));
-replacestr([TbxDir filesep 'eschecker.m'],'999999',num2str(datenum(HorizonDate)));
+fprintf('  Setting release information and expiry date... ');
+replacestr([TbxFolder filesep 'info.xml'],'$ReleaseID$',ReleaseID);
+replacestr([TbxFolder filesep 'easyspininfo.m'],'$ReleaseID$',ReleaseID);
+replacestr([TbxFolder filesep 'easyspininfo.m'],'$ReleaseDate$',ReleaseDate);
+replacestr([TbxFolder filesep 'easyspininfo.m'],'$ExpiryDate$',ExpiryDate);
+replacestr([TbxFolder filesep 'eschecker.m'],'888888',num2str(datenum(ExpiryDate)));
+replacestr([TbxFolder filesep 'eschecker.m'],'999999',num2str(datenum(HorizonDate)));
+fprintf(' ok\n');
+
 
 %---------------------------------------------------------------------
 % P-coding
@@ -132,70 +133,67 @@ replacestr([TbxDir filesep 'eschecker.m'],'999999',num2str(datenum(HorizonDate))
 % Copy everything to a third directory for pcoding
 % This makes sure .m files are not newer than .p files
 %  (otherwise Matlab complains about potentially obsolete p-files)
-disp('  Copying to a new folder for p-coding.');
-mkdir(BuildDir,'easyspinpcode');
-copyfile(TbxDir,TbxPcodeDir);
+fprintf('  Copying to a new folder for p-coding...');
+mkdir(BuildFolder,'easyspinpcode');
+copyfile(TbxFolder,TbxPcodeDir);
+fprintf(' ok\n');
 
-disp('  Extracting help from all m-files.');
-extracthelp(TbxDir);
+fprintf('  Extracting help from all m-files...');
+extracthelp(TbxFolder);
+fprintf(' ok\n');
 
-disp('  Deleting m-files in private subdirectory.');
-delete([TbxDir filesep 'private' filesep '*.m']);
+fprintf('  Deleting m-files in private subdirectory...');
+delete([TbxFolder filesep 'private' filesep '*.m']);
+fprintf(' ok\n');
 
+fprintf('  P-coding all m-files...');
 curdir = pwd;
-disp('  P-coding all m-files.');
-cd(TbxDir);
+cd(TbxFolder);
 pcode([TbxPcodeDir filesep '*.m']);
-cd([TbxDir filesep 'private']);
+cd([TbxFolder filesep 'private']);
 pcode([TbxPcodeDir filesep 'private' filesep '*.m']);
 cd(curdir);
+fprintf(' ok\n');
 
 rmdir(TbxPcodeDir,'s');
+
 
 %------------------------------------------------------------
 % Examples
 %------------------------------------------------------------
 disp('Examples');
 
-disp('  generating examples dir and copying files');
-mkdir(BuildDir,'examples');
-copyfile([SourceDir filesep 'examples'],ExmplDir);
+fprintf('  generating examples dir and copying files...');
+mkdir(BuildFolder,'examples');
+copyfile([SourceDir filesep 'examples'],ExmplFolder);
+fprintf(' ok\n');
 
-disp('  generating examples html file');
+fprintf('  generating examples html file...');
 perl('mkexamples.pl');
+fprintf(' ok\n');
 
 
 %------------------------------------------------------------
 % Documentation
 %------------------------------------------------------------
 disp('Documentation');
-disp('  generating documentation folder');
-mkdir(BuildDir,'documentation');
 
+fprintf('  generating documentation folder...');
+mkdir(BuildFolder,'documentation');
+fprintf(' ok\n');
+
+fprintf('  copying files...');
 DocSrcDir = [SourceDir filesep 'docs'];
-disp('  copying files');
-copyfile(DocSrcDir,DocDir);
+copyfile(DocSrcDir,DocFolder);
+fprintf(' ok\n');
 
 % Replace all $ReleaseID$ in html files with actual release ID
-disp('  inserting release ID into documentation');
-docFiles = dir([DocDir filesep '*.html']);
+fprintf('  inserting release ID into documentation...');
+docFiles = dir([DocFolder filesep '*.html']);
 for iFile = 1:numel(docFiles)
-  replacestr([DocDir filesep docFiles(iFile).name],'$ReleaseID$',ReleaseID);
+  replacestr([DocFolder filesep docFiles(iFile).name],'$ReleaseID$',ReleaseID);
 end
-
-%{
-% Remove Mercurial repository and files
-disp('  removing source control files');
-if exist([DocDir filesep '.hg'],'dir')
-  rmdir([DocDir filesep '.hg'],'s');
-end
-if exist([DocDir filesep '.hgignore'],'file')
-  delete([DocDir filesep '.hgignore']);
-end
-if exist([DocDir filesep '.hgtags'],'file')
-  delete([DocDir filesep '.hgtags']);
-end
-%}
+fprintf(' ok\n');
 
 %------------------------------------------------------------
 % Packaging
@@ -206,43 +204,33 @@ if ZipDestDir(end)==filesep, ZipDestDir(end) = []; end
 zipFile = [ZipDestDir filesep 'easyspin-' BuildID '.zip'];
 zipFileShort = [ZipDestDir filesep 'easyspin-' ReleaseID '.zip'];
 
-disp(['  packing zip file ' zipFile '.']);
-if exist(zipFile,'file'),
+fprintf('  packing zip file %s...',zipFile);
+if exist(zipFile,'file')
   try
     delete(zipFile);
   catch
     error('Cannot delete zip file.');
   end
 end
-zip(zipFile,BuildDir);
+zip(zipFile,BuildFolder);
+fprintf(' ok\n');
 
 if ~betaVersion
-  disp(['  copying to ' zipFileShort '.']);
+  fprintf('  copying to %s...',zipFileShort);
   copyfile(zipFile,zipFileShort,'f');
-end
-
-% entire development tree
-if packDevtree
-    zipFile = [ZipDestDir filesep 'easyspin-' BuildID '-devel.zip'];
-    disp(['  packing zip file ' zipFile ' .']);
-    if exist(zipFile,'file'),
-        try
-            delete(zipFile);
-        catch
-            error('Cannot delete zip file.');
-        end
-    end
-    DevelopmentDir = SourceDir;
-    zip(zipFile,DevelopmentDir);
+  fprintf(' ok\n');
 end
 
 %------------------------------------------------------------
 % Clean-up
 %------------------------------------------------------------
-disp('Removing build tree.');
-rmdir(BuildDir,'s');
+fprintf('Removing build tree...');
+rmdir(BuildFolder,'s');
+fprintf(' ok\n');
 
-save lastbuildid BuildNumber
+disp('Done!');
+
+
 
 return
 
