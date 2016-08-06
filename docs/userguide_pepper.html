@@ -639,31 +639,30 @@ the degree of the ordering.
 <p>
 If it is zero, no ordering is used. Positive values mean that the molecules are partially aligned
 so that the magnetic field vector is mostly approximately parallel to the molecular z axis.
-Negative values specify preferential orientation away from the z axis, that is, orientations with
-the magnetic field vector in the xy plane are more probable.
+Negative values specify partial ordering such that molecular orientations with
+the magnetic field vector in the molecular xy plane are more probable.
 </p>
 
 <pre class="matlab">
-Exp.Ordering = 0;  % all orientations equally populated
-Exp.Ordering = -1; % slightly preferential orientation in the xy plane
-Exp.Ordering = 10; % strongly aligned along the z axis
+Exp.Ordering = 0;   % all orientations equally populated
+Exp.Ordering = -1;  % slightly preferential orientation with field in the molecular xy plane
+Exp.Ordering = +10; % strongly aligned such that field is along the molecular z axis
 </pre>
 
 <p>
-The ordering function used is very simple (see the <a href="pepper.html" class="esf">pepper</a>
-documentation for more information), but sufficient for most cases. Here is a simulation of a sample where the molecules are preferentially oriented so that the molecular z axis is close to the magnetic field vector:
+The ordering function used is very simple (see the <a href="pepper.html" class="esf">pepper</a> documentation for more information), but sufficient for many cases. Here is a simulation of a sample where the molecules are preferentially oriented such that the molecular z axis is close to the magnetic field vector:
 </p>
 
 <pre class="matlab">
-Sys.g = [2 2 2.2]; Sys.lwpp = 1;
+Sys.g = [2 2 2.2];
+Sys.lwpp = 1;
 Exp.mwFreq = 9.5;
 Exp.Ordering = +2;
 pepper(Sys,Exp);
 </pre>
 
 <p>
-You can also define your own custom orientational distribution in a separate function and supply to
-<code>pepper</code> as a function handle in <code>Exp.Ordering</code>. See the <a href="pepper.html" class="esf">pepper</a> documentation for details. Written as an anonymous function, the built-in orientational distribution is equivalent to
+You can also define your own custom orientational distribution in a separate function and supply to <code>pepper</code> as a function handle in <code>Exp.Ordering</code>. See the <a href="pepper.html" class="esf">pepper</a> documentation for details. Written as an anonymous function, the built-in orientational distribution is equivalent to
 </p>
 
 <pre class="matlab">
