@@ -415,7 +415,7 @@ else
   end
   
   % Pulse parameters
-  if ~isfield(Exp,'Flip') && ~isfield(Exp,'Pulse')
+  if ~isfield(Exp,'Flip') && ~isfield(Exp,'Amplitude') && ~isfield(Exp,'Pulse')
     error('For a pulse experiment, give either Exp.Sequence or define the pulse sequence explicitly.');
   end
   if isfield(Exp,'Flip')
@@ -425,6 +425,8 @@ else
     end
   elseif isfield(Exp,'Pulse')
     nIntervals = numel(Exp.Pulse);
+  elseif isfield(Exp,'Amplitude')
+    nIntervals = numel(Exp.tp);
   else
     error('Exp.Flip or the Exp.Pulse structure needs to be defined for a custom pulse sequence.');
   end
@@ -477,8 +479,7 @@ else
   end
   if isfield(Exp,'DetectionWindow')
     Exp.DetectionPoints = Exp.DetectionWindow/Exp.DetectionStep;
-  end
-  if isfield(Exp,'DetectionPoints')
+  elseif isfield(Exp,'DetectionPoints')
     Exp.DetectionWindow = Exp.DetectionPoints*Exp.DetectionStep;
   end
   if (Exp.DetectionIntegrate==1 && ~isfield(Exp,'DetectionWindow'))
@@ -562,6 +563,11 @@ if isfield(Exp,'tp') % Exp.tp input given, convert to Exp.Pulse
   if ~isfield(Exp,'Pulse')
     Exp.Pulse = repmat(struct,nIntervals,1);
   end  
+  if numel(Exp.Pulse)<numel(Exp.tp)
+    for i = numel(Exp.Pulse):numel(Exp.tp)
+      Exp.Pulse(i).tp = Exp.tp(i);
+    end
+  end
   for p = 1:nIntervals
     if ~isfield(Exp.Pulse(p),'tp') || isempty(Exp.Pulse(p).tp)
       Exp.Pulse(p).tp = Exp.tp(p);
@@ -598,6 +604,14 @@ if any(realPulse)
         Exp.Pulse(p).Flip = Exp.Flip(p);
       elseif Exp.Pulse(p).Flip~=Exp.Flip(p)
         error('Flip angles in Exp.Flip and Exp.Pulse(%i).Flip do not agree.',p)
+      end
+    end
+    
+    if isfield(Exp,'Amplitude')
+      if numel(Exp.Amplitude)==1
+        Exp.Pulse(p).Amplitude = Exp.Amplitude;
+      else
+        Exp.Pulse(p).Amplitude = Exp.Amplitude(p);
       end
     end
     
@@ -1535,12 +1549,12 @@ for iOri = 1:nOrientations
                   end
                 else
                   if numel(Left)==1
-                    BlockL{iBlock} = eyeN;
+                    BlockL{iBlock} = Left*eyeN;
                   else
                     BlockL{iBlock} = Left;
                   end
                   if numel(Right)==1
-                    BlockR{iBlock} = eyeN;
+                    BlockR{iBlock} = Right*eyeN;
                   else
                     BlockR{iBlock} = Right;
                   end
@@ -1561,12 +1575,12 @@ for iOri = 1:nOrientations
                 end
               else
                 if numel(Left)==1
-                  BlockL{iBlock} = eyeN;
+                  BlockL{iBlock} = Left*eyeN;
                 else
                   BlockL{iBlock} = Left;
                 end
                 if numel(Right)==1
-                  BlockR{iBlock} = eyeN;
+                  BlockR{iBlock} = Right*eyeN;
                 else
                   BlockR{iBlock} = Right;
                 end
