@@ -16,14 +16,19 @@ td = evolve(Sig,D,H,n,dt,[1]);
 td = evolve(Sig,D,H,n,dt,[1 1],M);
 td = evolve(Sig,D,H,n,dt,[1 -1],M);
 td = evolve(Sig,D,H,n,dt,[1 -1 1 -1],{M,M,M});
+td = evolve(Sig,D,H,n,dt,[1 1 -1 -1],{M,M,M});
+td = evolve(Sig,D,H,n,dt,[1 -1 -1 1],{M,M,M});
 
 % 2D experiments
 td = evolve(Sig,D,H,n,dt,[1 2],M);
 td = evolve(Sig,D,H,n,dt,[1 2],{M});
 td = evolve(Sig,D,H,n,dt,[1 1 2],{M,M});
+td = evolve(Sig,D,H,n,dt,[1 -1 2],{M,M});
 td = evolve(Sig,D,H,n,dt,[1 2 1],{M,M});
 td = evolve(Sig,D,H,n,dt,[1 2 2 1],{M,M,M});
 td = evolve(Sig,D,H,n,dt,[1 2 -2 1],{M,M,M});
+td = evolve(Sig,D,H,n,dt,[1 1 -1 -1 2],{M,M,M,M});
+td = evolve(Sig,D,H,n,dt,[1 -1 -1 1 2],{M,M,M,M});
 
 err = 0;
 
