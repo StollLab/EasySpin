@@ -7,8 +7,8 @@ nu0 = 9.6;
 Qu = 2000;
 beta = 2;
 
-G = resonator(nu,nu0,Qu,beta);
-G = resonator([],nu0,Qu,beta);
+G = resonatorfunc(nu,nu0,Qu,beta);
+G = resonatorfunc([],nu0,Qu,beta);
 
 err = false;
 data = [];
