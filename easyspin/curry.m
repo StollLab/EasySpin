@@ -17,7 +17,16 @@
 %        Temperature  list of temperatures (K)
 %      Opt    calculation options
 %        nKnots       number of knots for powder average
-%
+%        Output       list of keywords defining the output and the order of
+%                     it
+%                     the following keywords are allowed:
+%                     'MvsB', 'MvsBCGS', 'MvsBSI', 'Chi',
+%                     'ChiT', '1overChi', 'MuEff','ChiSI'
+%                     'ChiTSI', '1overChiSI', 'MuEffSI',
+%                     'ChiCGS', 'ChiTCGS', '1overChiCGS', 
+%                     'MuEffCGS', 'OneColoumn'
+%  
+%                     
 %    Output:
 %      muz      magnetic moment along zL axis
 %               in units of Bohr magnetons
@@ -110,6 +119,43 @@ if ~isfield(Opt,'Symmetry')
   Opt.Symmetry = []; % needed for p_symandgrid
 end
 
+OneColoumn = false;
+if ~isfield(Opt,'Output')
+  if nargout == 2
+    out = logical([1,zeros(1,14);zeros(1,3),1,zeros(1,11)]);
+    len =2;
+  elseif nargout == 1
+    out = logical([1,zeros(1,14)]);
+    len = 1;
+  end
+else
+  keywords = {'MvsB', 'MvsBCGS', 'MvsBSI' ...
+    'Chi', 'ChiT', '1overChi', 'MuEff', ...
+    'ChiSI', 'ChiTSI', '1overChiSI', 'MuEffSI', ...
+    'ChiCGS', 'ChiTCGS', '1overChiCGS', 'MuEffCGS', ...
+    'OneColoumn'};
+  r = textscan(Opt.Output,'%s ');
+  len = length(r{1});
+  for n = len:-1:1
+      out(n,:) =strcmpi(r{1}{n},keywords);  
+  end
+  if~(all(any(out,2)))
+    error([r{1}{~any(out,2)}, ' is not an allowed keyword for Opt.Output!'])
+  end
+  for k = find(out(:,16))
+    if isempty(k), continue; end;
+    OneColoumn = true;
+    out = out(~(1:len==k),:); % remove OneColumn from Outputlist
+    len = len -1;
+    if isempty(out), error('Specify which output should appear as one Coloumn!'); end
+  end
+  out = out(:,1:15); % remove OneColumn from Outputlist
+  if ~OneColoumn && ~(nargout==len)
+    error('Number of output variables do not match requested outputs!');
+  end
+  if any(any(out(:,4:15))), calculateChi = true; end
+end
+
 % Set up Hamiltonian and magnetic dipole moment
 %-------------------------------------------------
 % zero-field Hamiltonian F (MHz)
@@ -152,7 +198,7 @@ for iOri = 1:nOrientations
   % (field direction along z axis of lab frame, zLab)
   muOpzL = zLab_M(1)*muOpxM + zLab_M(2)*muOpyM + zLab_M(3)*muOpzM; % J/T
   
-  for iB = 1:numel(Exp.Field)
+  for iB = 1:nFields
     
     [V,E] = eig(H0 - B(iB)*muOpzL);
     E = diag(E) - E(1); % J
@@ -296,18 +342,55 @@ end
 
 % Assign output arguments
 %---------------------------------------------------------------
-switch (nargout)
-  case 0
-  case 1
-    varargout = {muz/bmagn};
-  case 2
-    varargout = {muz/bmagn,chizz_SI};
-  case 3
-    varargout = {muz/bmagn,chizz_SI,chizzT_SI};
-  otherwise
-    varargout = cell(1,nargout);
-    varargout(1:3) = {muz/bmagn,chizz_SI,chizzT_SI};
+if OneColoumn
+  outdim =  nFields*nTemperatures;
+  for n =len:-1:1
+    switch find(out(n,:))
+      case {1,2}, temp = muz/bmagn; %MvsB,MvsBCGS
+      case 3, temp = muz *avogadro; %MvsBSi
+      case {4,8}, temp = chizz_SI; %Chi,ChiSI
+      case {5,9}, temp = chizz_SI.*repmat(T(:).',nFields,1); %ChiT,ChiTSi
+      case {6,10}, temp = 1./chizz_SI; %1overChi,1overChiSI
+      case {7,11}, temp = sqrt(chizz_SI.*repmat(T(:).',nFields,1)/8); %MuEff, MuEffSI
+      case 12, temp = chizz_SI/(4*pi*1e-6); %ChiCGS
+      case 13, temp = chizz_SI.*repmat(T(:).',nFields,1)/(4*pi*1e-6); %ChiTCGS
+      case 14, temp = 1./chizz_SI*(4*pi*1e-6); %1overChiCGS
+      case 15, temp = sqrt(chizz_SI.*repmat(T(:).',nFields,1)/8/(4*pi*1e-6)); %MuEffCGS
+    end
+    for m= nTemperatures:-1:1
+      templine((m-1)*nFields+1:m*nFields) = temp(:,m);
+    end
+    varargout{1}((n-1)*outdim+1:n*outdim) = templine;
+  end
+else
+  for n =len:-1:1
+    switch find(out(n,:))
+      case {1,2}, varargout{n} = muz/bmagn; %MvsB,MvsBCGS
+      case 3, varargout{n} = muz *avogadro; %MvsBSi
+      case {4,8}, varargout{n} = chizz_SI; %Chi,ChiSI
+      case {5,9}, varargout{n} = chizz_SI.*repmat(T(:).',nFields,1); %ChiT,ChiTSi
+      case {6,10}, varargout{n} = 1./chizz_SI; %1overChi,1overChiSI
+      case {7,11}, varargout{n} = sqrt(chizz_SI.*repmat(T(:).',nFields,1)*8); %MuEff, MuEffSI
+      case 12, varargout{n} = chizz_SI/(4*pi*1e-6); %ChiCGS
+      case 13, varargout{n} = chizz_SI.*repmat(T(:).',nFields,1)/(4*pi*1e-6); %ChiTCGS
+      case 14, varargout{n} = 1./chizz_SI*(4*pi*1e-6); %1overChiCGS
+      case 15, varargout{n} = sqrt(chizz_SI.*repmat(T(:).',nFields,1)*8/(4*pi*1e-6)); %MuEffCGS
+    end
+  end
 end
+
+% switch (nargout)
+%   case 0
+%   case 1
+%     varargout = {muz/bmagn};
+%   case 2
+%     varargout = {muz/bmagn,chizz_SI};
+%   case 3
+%     varargout = {muz/bmagn,chizz_SI,chizzT_SI};
+%   otherwise
+%     varargout = cell(1,nargout);
+%     varargout(1:3) = {muz/bmagn,chizz_SI,chizzT_SI};
+% end
 
 logmsg(1,'=end=curry========%s=================\n',datestr(now));
 
