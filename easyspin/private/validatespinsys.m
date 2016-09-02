@@ -53,6 +53,7 @@ correctFields = {'S','Nucs','Abund','n',...
   'gFrame','DFrame','eeFrame','AFrame','QFrame',...
   'gStrain','HStrain','AStrain','DStrain',...
   'aF','B0','B2','B4','B6','B8','B10','B12',...
+  'L', 'soc', 'orf', 'CF0','CF2','CF4','CF6','CF8','CF10','CF12',...
   'lw','lwpp','lwEndor','tcorr','logtcorr','Diff','logDiff'};
 
 
@@ -384,7 +385,11 @@ if (nElectrons>1)
   %------------------------------------------------------------------------
   if isfield(Sys,'ee2')
     err = sizecheck(Sys,'ee2',[1 nPairs]);
-    if ~isempty(err), return; end
+    if ~isempty(err)
+      Sys.ee2 = Sys.ee2.';
+      err = sizecheck(Sys,'ee2',[1 nPairs]);
+      if ~isempty(err), return; end
+    end
   else
     Sys.ee2 = zeros(1,nPairs);
   end
@@ -870,12 +875,80 @@ for lB = 0:8
   end
 end
 
+%------------------- Orbital Angular Momentum
+if isfield(Sys,'L') && ~isempty(Sys.L)
+  % Guard against invalid type
+  if any(~isreal(Sys.L)) || any(mod(real(Sys.L),1)) || any(Sys.S<0)
+    err = 'Orbital angular momentum in L must be positive integers.';
+    return
+  end
+  if numel(Sys.L)~=nElectrons
+    err = 'Define orbital angular momentum L for each spin in S!';
+    return
+  end
+  if ~isfield(Sys,'soc')
+    err = 'No spin-orbit coupling defined in soc.';
+    return
+  end
+  if isempty(Sys.soc) || any(~isreal(Sys.soc))
+    err = 'Spin-orbit coupling in soc must be real numbers.';
+    return
+  end
+  if size(Sys.soc,1) ~= nElectrons
+    if size(Sys.soc)== [1,nElectrons]
+      Sys.soc = Sys.soc.';
+    else
+      err = 'Number of spin-orbit couplings must match number of spins!';
+      return
+    end
+  end
+  if ~isfield(Sys,'orf')
+    Sys.orf= ones(nElectrons,1);
+  else
+    if length(Sys.orf) ~= nElectrons
+      err ='Number of orbital reduction factors must match number of orbital angular momenta!';
+      return
+    end
+    if isempty(Sys.orf) || any(~isreal(Sys.orf))
+      err = 'Orbital reduction factors in orf must be real numbers.';
+      return
+    end
+  end
+  for k=1:12
+    fieldname = sprintf('CF%d',k);
+    if ~isfield(Sys,fieldname), continue; end
+    CFk = Sys.(fieldname);
+    
+    
+    if (size(CFk,1)~=nElectrons)
+      sn = num2str(nElectrons);
+      err = ['Field Sys.', fieldname, ' has to have ',sn,...
+        ' rows, since there are ', sn,' orbital angular momenta.'];
+    end
+    
+    if (size(CFk,2)==1)
+      CFk = [zeros(nElectrons,k) CFk(:) zeros(nElectrons,k)];
+    elseif (size(CFk,2)==k+1)
+      CFk = [CFk zeros(nElectrons,k)];
+    elseif (size(CFk,2)==2*k+1)
+      % full form
+    else
+      err = ['Field Sys.', fieldname, ' has ', num2str(size(CFk,2)), ...
+        ' instead of ', num2str(2*k+1),' coloumns.'];
+    end
+    Sys.(fieldname) = CFk; 
+  end  
+else
+  Sys.L = [];
+  Sys.orf = [];
+end
+  
   
 
 
 
 %--------------------------------------------------------------------------
-Sys.Spins = [Sys.S(:); Sys.I(:)].';
+Sys.Spins = [Sys.S(:); Sys.I(:); Sys.L(:)].';
 Sys.nStates = hsdim(Sys.Spins);
 
 FullSys = Sys;

@@ -51,10 +51,12 @@ end
 % Zeeman interaction: EZI, NZI
 if sparseResult
   F = zfield(Sys,[],'sparse') + nquad(Sys,[],'sparse') + ...
-    hfine(Sys,[],'sparse') + eeint(Sys,[],'sparse');
+    hfine(Sys,[],'sparse') + eeint(Sys,[],'sparse') +...
+    soint(Sys,[],'sparse') + crystalfield(Sys, [], 'sparse');
   [GxM,GyM,GzM] = zeeman(Sys,[],'sparse');
 else
-  F = zfield(Sys) + nquad(Sys) + hfine(Sys) + eeint(Sys);
+  F = zfield(Sys) + nquad(Sys) + hfine(Sys) + eeint(Sys) + ...
+    soint(Sys)+ crystalfield(Sys);
   [GxM,GyM,GzM] = zeeman(Sys);
 end
 
