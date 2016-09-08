@@ -21,5 +21,6 @@ chite = curry(Sys,Exp,Opt);
 Opt.Method = 'operator';
 chito = curry(Sys,Exp,Opt);
 
-err = ~(areequal(me,mo,1e-6) && areequal(chite,chito,1e-6));
+err = ~(areequal(me,mo,1e-4) && areequal(chite,chito,1e4));
 data =[];
+

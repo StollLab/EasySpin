@@ -73,6 +73,7 @@ logmsg(1,'Spin system');
 if iscell(Sys)
   error('curry does not support calculations with multiple components.');
 end
+if ~isfield(Sys,'TIP'), Sys.TIP = 0; end
 
 % Experimental parameters
 %-------------------------------------------------
@@ -348,7 +349,7 @@ if(doCalc)
   
   % Unit conversions
   if  calculateChi
-    chizz_SI = chizz*mu0*avogadro;   % single molecule SI -> molar SI
+    chizz_SI = chizz*mu0*avogadro +Sys.TIP;   % single molecule SI -> molar SI
   end
   
   %chizz_cgs = chizz_SI/(4*pi*1e-6);   % SI -> CGS-emu unit conversion
@@ -457,6 +458,7 @@ end
 if OneColoumn
   if diffParam
     nFields = numel(Exp.chiField);
+    T = Exp.chiTemperature;
   else
     outdim =  nFields*nTemperatures;
   end
@@ -491,7 +493,10 @@ if OneColoumn
 else
   for n =len:-1:1
     % different exp. parameter for m and chi, adjust nFields accordingly
-    if diffParam, nFields = numel(Exp.chiField); end
+    if diffParam
+      nFields = numel(Exp.chiField); 
+      T = Exp.chiTemperature;
+    end
     switch find(out(n,:))
       case {1,2}, varargout{n} = muz/bmagn; %MvsB,MvsBCGS
       case 3, varargout{n} = muz *avogadro; %MvsBSi
