@@ -310,9 +310,9 @@ end
 if (Sys.nElectrons>1)
   error('saffron does not support systems with more than one electron spin.');
 end
-maxNuclei = 40;
-if (Sys.nNuclei>maxNuclei)
-  error('saffron does not support systems with more than %d nuclei.',maxNuclei);
+
+if isfield(Sys,'n') && any(Sys.n~=1)
+  error('saffron does not support Sys.n. Specify equivalent nuclei explicitly.')
 end
 
 if isfield(Sys,'ExciteWidth')
