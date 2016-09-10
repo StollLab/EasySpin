@@ -473,16 +473,19 @@ if (Sys.nNuclei>0)
   a_all = a_all.*Sys.Ascale;
   n_all = Sys.n;
   if FieldSweep
-    % Make sure zero field splitting is smaller than mw frequency.
-    if sum(abs(a_all).*I_all)*2>mwFreq
-      disp('Microwave frequency is smaller than largest splitting of levels at zero field. Spectrum might be inaccurate. Consider using the function pepper instead.');
+    % Make sure mw frequency is larger than zero field splitting.
+    zfSplitting = sum(abs(a_all).*(I_all+0.5)); % approximate
+    if mwFreq<zfSplitting
+      fprintf(['Microwave frequency (%f GHz) is smaller than\nlargest splitting ' ...
+        'of levels at zero field (estimate %f GHz).\nSpectrum might be inaccurate.\n' ...
+        'Consider using the function pepper() instead.\n'],mwFreq/1e9,zfSplitting/1e9);
     end
   end
   if any(I_all==0)
-    error('Nuclei with spin 0 present.');
+    error('Nuclei with spin 0 present. Cannot compute spectrum.');
   end
   if any(a_all==0)
-    error('Nuclei with coupling 0 present.');
+    error('Nuclei with hyperfine coupling 0 present. Cannot compute spectrum.');
   end
   a_all = a_all*planck;   % Hz -> Joule
 end
@@ -532,6 +535,9 @@ for iNucGrp = 1:Sys.nNuclei
           q = 1 - (aiso./(2*h*nu)).^2;
           Bnew = aiso./(gammae+gamman)./q.* ...
             (-mI+sign(aiso)*sqrt(mI.^2+q.*((h*nu/aiso).^2 - (I+1/2)^2)));
+          if ~isreal(Bnew)
+            error('Hyperfine coupling too large compared to microwave frequency. Cannot compute resonance field positions. Use pepper() instead.');
+          end
           if (B_~=0), RelChangeB = 1 - Bnew./B_; end
           B_ = Bnew;
           gamman = gn(iNucGrp)*nmagn; % re-include NZI
