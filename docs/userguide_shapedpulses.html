@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>User guide: Pulse shaping</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">Pulse shaping</div>
+
+<p>
+This user guide explains EasySpin's capabilities regarding shaped pulses, i.e. pulses with shapes other than rectangular monochromatic. Although EasySpin does currently not have the capability to simulate pulse EPR spectra obtained with sequences containing shaped pulses, EasySpin can calculate a wide range of pulse shapes, up- and downconvert them, and calculate the associated excitation profiles. The corresponding functionality is provided by the functions <a class="esf" href="pulse.html">pulse</a>, <a class="esf" href="rfmixer.html">rfmixer</a>, and <a class="esf" href="exciteprofile.html">exciteprofile</a>.
+</p>
+ 
+<p>
+In the following, we go over the following topics:
+
+<ul>
+<li><a href = "#shapes">Pulse shapes</a></li>
+<li><a href = "#mixer">Up- and downconversion</a></li>
+<li><a href = "#profile">Excitation profiles</a></li>
+</ul>
+
+<!-- ============================================================= -->
+<div class="subtitle"><a name="shapes">Pulse shapes</a></div>
+
+<p>
+EasySpin provides a range of shaped pulses through the function <a class="esf" href="pulse.html">pulse</a>. The parameters that define the pulse shape are suppied in a structure. Here is the most basic example
+
+<pre class="matlab">
+Par.tp = 0.100;  % us
+Par.Type = 'rectangular/none';
+[t,IQ] = pulse(Par);
+</pre>
+
+<p>
+This will calculate the shape of a simple monochromatic rectangular pulse. <code>Par.tp</code> contains the pulse length, in microseconds. <code>Par.Type</code> is a string specifiying the type of pulse shape, with the amplitude modulation (AM) function given before the slash (<code>/</code>), and the frequency modulation (FM) function after it. Here, <code>'rectangular'</code> for the AM specifies a simple rectangular shape, and <code>'none'</code> for the FM specifies that there is no frequency moduation, i.e. the pulse is monochromatic.
+
+<p>
+<a class="esf" href="pulse.html">pulse</a> returns two things, the time axis and the IQ modulation data. The time axis is in miroseconds and goes from 0 to <Code>Par.tp</code>. The number of points is chosen automatically to accommodate the AM and FM without aliasing, but you can override this and specify the time step in <code>Par.TimeStep</code>. <code>IQ</code> is a complex vector that contains the in-phase (I) and quadrature (Q) signals needed to drive an IQ mixer to generate the final pulse shape at microwave frequencies. I is the real part of <code>IQ</code>, and Q is the imaginary part.
+
+<p>
+The overall pulse amplitude (in MHz) can be given in <code>Par.Amplitude</code>. Alternatively, you can give the nominal flip angle in <code>Par.Flip</code>, in radians. This value is converted to an amplitude as described in the documentation for <a class="esf" href="pulse.html">pulse</a>. If neither an amplitude nor a flip angle is given, the function assumes a flip angle of pi by default.
+
+<p>
+If <a class="esf" href="pulse.html">pulse</a> is called without requesting outputs, then the pulse shape is plotted, including the AM and FM functions and the excitation profile:
+
+<pre class="matlab">
+pulse(Par);    % plots the pulse shape and excitation profile
+</pre>
+
+<p>
+Many different AM and FM functions are implemented and can be combined arbitrarily. For example, a standard hyperbolic secant pulse can be obtained with
+
+<pre class="matlab">
+Par.tp = 0.100;  % us
+Par.Type = 'sech/tanh';
+Par.Frequency = [-50 50];  % MHz
+Par.beta = 5;
+pulse(Par);
+</pre>
+
+<p>
+Here, the AM function is <code>sech</code>, and the FM function is <code>tanh</code>. <code>Par.Frequency</code> contains the start and end frequency of the frequency sweep, -50 and +50 MHz in this case. To fully define the AM and FM functions, the truncation parameter <code>beta</code> is necessary. Different AM and FM functions require different additional parameters, which can be found in the documentation of the <a class="esf" href="pulse.html">pulse</a> function.
+
+<p>
+To generate a chirp pulse with a linear frequency downsweep and a WURST amplitude profile, use the following:
+
+<pre class="matlab">
+Par.tp = 0.200;  % us
+Par.Type = 'WURST/linear';
+Par.Frequency = [80 20]; % MHz
+Par.nwurst = 10;
+[t,IQ] = pulse(Par);
+</pre>
+
+<p>
+In <code>Par.Frequency</code>, the start frequency is higher than the end frequency. Therefore, a down-sweep will be generated. The WURST amplitude envelope also needs an additional parameter, <code>nwurst</code>.
+
+<p>
+It is possible to combine two AM functions. For example,
+
+<pre class="matlab">
+Par.tp = 0.200;  % us
+Par.Type = 'WURST*sech/linear';
+Par.Frequency = [0 60];
+Par.nwurst = 10;
+Par.beta = 5;
+pulse(Par);
+</pre>
+
+<p>
+generates a pulse shape with an AM that is the product of a WURST and a sech amplitude profile.
+
+<p>
+The pulse phase can be set in <code>Par.Phase</code>, in radians.
+
+<p>
+The function can also incorporate bandwidth compensation for resonators. For this, you need to provide the magnitude of the resonator response function in <code>Par.MagnitudeResponse</code> with a frequency axis in <code>Par.faxis</code>, as well as the microwave frequency in <code>Par.mwFreq</code>. Additionally, to activate bandwidth compensation, you need to set <code>Opt.BWCompensation</code> to <code>true</code>. The structure <code>Opt</code> is then supplied as a second input argument:
+<pre class="matlab">
+pulse(Par,Opt);
+</pre>
+
+<!-- ============================================================= -->
+<div class="subtitle"><a name="mixer">Up- and downconversion</a></div>
+
+The pulse shape IQ data generated by <a class="esf" href="pulse.html">pulse</a> do not constitute the pulse shape as it is applied to the spins in a sample. For this purpose, the IQ data have to be used to modulate a microwave source, using IQ modulation. EasySpin provides the function <a class="esf" href="rfmixer.html">rfmixer</a> for this purpose. Say you have IQ data for a shaped pulse
+
+<pre class="matlab">
+Par.tp = 0.200;  % us
+Par.Type = 'WURST/linear';
+Par.Frequency = [-50 50];
+Par.nwurst = 10;
+[tIQ,IQ] = pulse(Par);
+</pre>
+
+<p>
+Now you can feed these IQ data into <a class="esf" href="rfmixer.html">rfmixer</a>, together with a microwave LO (local oscillator) frequency, to get the actual microwave pulse.
+
+<pre class="matlab">
+mwFreq = 3; % GHz
+[t,V] = rfmixer(tIQ,IQ,mwFreq,'IQmod');
+</pre>
+
+<p>
+The last input <code>'IQmod'</code> tells the function to perform IQ modulation, that's what is needed to convert IQ data to a microwave signal. <a class="esf" href="rfmixer.html">rfmixer</a> supports many other modes, including IQ demodulation (<code>'IQdemod'</code>; modelling a quadrature mixure as typically used in a pulse EPR detector), single-sideband up- and down-conversion (<code>'USB'</code>, <code>'LSB'</code>), etc.
+
+<p>
+<a class="esf" href="rfmixer.html">rfmixer</a> can take a series of options in a optional structure. The most important one is the time step, in <code>Opt.dt</code>:
+
+<pre class="matlab">
+Opt.dt = 0.0001; % us
+[t,V] = rfmixer(tIQ,IQ,mwFreq,'IQmod',Opt);
+</pre>
+
+<p>
+If it is not given, a time step appropriate for the microwave frequency and the input data is determined automatically.
+
+<!-- ============================================================= -->
+<div class="subtitle"><a name="profile">Excitation profiles</a></div>
+
+<p>
+You can calculate the excitation profile of a pulse of arbitrary shape using EasySpin's function <a class="esf" href="exciteprofile.html">exciteprofile</a>. At minimum, it requires the time axis <code>t</code> and the IQ data <code>IQ</code> as inputs. Let's take a WURST pulse with a linear frequency sweep:
+
+<pre class="matlab">
+Par.tp = 0.100;  % us
+Par.Type = 'WURST/linear';
+Par.Frequency = [0 100];
+Par.nwurst = 20;
+[t,IQ] = pulse(Par);
+</pre>
+
+<p>
+The output from <a class="esf" href="pulse.html">pulse</a> can be fed directly into <a class="esf" href="exciteprofile.html">exciteprofile</a>:
+
+<pre class="matlab">
+exciteprofile(t,IQ);
+</pre>
+
+<p>
+This will plot the excitation profile, showing the x, y and z components of the magnetic moment after the pulse, as a function of frequency offset. This is the actual excitation profile of the pulse, calculated using quantum dynamics, and not just the Fourier transform of the pulse shape (which is a decent approximation only for small flip angles).
+
+<p>
+To obtain the excitation profile, ask <a class="esf" href="exciteprofile.html">exciteprofile</a> for outputs:
+
+<pre class="matlab">
+[offsets,M] = exciteprofile(t,IQ);
+</pre>
+
+<p>
+<code>M</code> contains the x, y, and z components of the magnetic moments, one per row. <code>offsets</code> is a vector of frequency offsets, in MHz. You can use this to plot the excitation profile:
+
+<pre class="matlab">
+Mz = M(3,:);  % z component
+plot(offsets,Mz);
+</pre>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+</html>
