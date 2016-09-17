@@ -2,7 +2,7 @@ function [err,data] = test(opt,olddata)
 
 Sys.S =randi(6)/2;
 Sys.g = rand(1,3)*4;
-Sys.D = rand(1,2)* cm2MHz(10);
+Sys.D = rand(1,2)* 10*30e3;
 
 Exp.Temperature = rand(randi(50),1)*300;
 Exp.Field = rand(randi(50),1)*1e4;
