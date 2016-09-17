@@ -62,8 +62,8 @@ F = sparse(n,n);
 
 % Compile list of wanted interactions
 Spins = sort(Spins);
-[idx1,idx2] = find(triu(ones(numel(Spins)),1));
-idx = [idx1,idx2];
+[idx1,idx2] = find(tril(ones(numel(Spins)),-1));
+idx = [idx2,idx1];
 
 Pairs = Spins(idx);
 nPairs = size(Pairs,1);
@@ -105,7 +105,8 @@ end
 
 % Isotropic biquadratic exchange coupling term +ee2*(S1.S2)^2
 %-----------------------------------------------------------------
-for iPair = find(System.ee2)
+for iPair = 1:nPairs
+  if System.ee2(iPair)==0, continue; end
   F2 = 0;
   for c = 1:3
     F2 = F2 + sop(sys,Pairs(iPair,:),c,'sparse');

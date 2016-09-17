@@ -156,11 +156,16 @@ end
 error(err);
 
 if Sys.fullg
-  mT2MHz = mt2mhz(1,mean(eig(Sys.g)));
+  idx = 1:3;
+  for iElectron = 1:Sys.nElectrons
+    mean_g(iElectron) = mean(eig(Sys.g(idx,:)));
+    idx = idx + 3;
+  end
+  mT2MHz = mt2mhz(1,mean(mean_g));
 else
-  mT2MHz = mt2mhz(1,mean(Sys.g));
+  mT2MHz = mt2mhz(1,mean(mean(Sys.g)));
 end
-mT2MHz = mean(mT2MHz);
+
 if any(Sys.HStrain(:)) || any(Sys.gStrain(:)) || any(Sys.AStrain(:)) || any(Sys.DStrain(:))
   error('chili does not support strains (HStrain, gStrain, AStrain, DStrain). Please remove from spin system.');
 end

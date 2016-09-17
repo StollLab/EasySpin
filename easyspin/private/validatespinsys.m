@@ -384,12 +384,9 @@ if (nElectrons>1)
   % Isotropic biquadratic exchange term
   %------------------------------------------------------------------------
   if isfield(Sys,'ee2')
-    err = sizecheck(Sys,'ee2',[1 nPairs]);
-    if ~isempty(err)
-      Sys.ee2 = Sys.ee2.';
-      err = sizecheck(Sys,'ee2',[1 nPairs]);
-      if ~isempty(err), return; end
-    end
+    Sys.ee2 = Sys.ee2(:);
+    err = sizecheck(Sys,'ee2',[nPairs 1]);
+    if ~isempty(err), return; end
   else
     Sys.ee2 = zeros(1,nPairs);
   end

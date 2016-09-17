@@ -491,7 +491,7 @@ if UserTransitions
   if ischar(Opt.Transitions)
     if strcmp(Opt.Transitions,'all');
       if isempty(Opt.nLevels)
-        nStates_ = prod(2*CoreSys.S+1);
+        nStates_ = prod(2*CoreSys.S+1)*prod(2*CoreSys.I+1);
       else
         nStates_ = Opt.nLevels;
       end

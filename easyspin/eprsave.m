@@ -170,7 +170,7 @@ end
 
 % Write companion file for Y axis if necessary
 if TwoDimData && ~isLinearY
-  fGF = fopen([filename GaugeFileExt{1}],'w',ByteOrder);
+  fGF = fopen([filename GaugeFileExt{2}],'w',ByteOrder);
   fwrite(fGF,y(:),'float64',0,ByteOrder);
   fclose(fGF);
   if BES3TVersion<2.0
