@@ -312,7 +312,7 @@ if (FitData.GUI)
   end
   x = 1:Exp.nPoints;
   h(1) = line(x,NaNdata,'Color','k','Marker','.');
-  h(2) = line(x,NaNdata,'Color',[0 0.8 0]);
+  h(2) = line(x,NaNdata,'Color',[0 0.6 0]);
   h(3) = line(x,NaNdata,'Color','r');
   set(h(1),'Tag','expdata','XData',1:numel(dispData),'YData',dispData);
   set(h(2),'Tag','bestsimdata');
@@ -329,7 +329,7 @@ if (FitData.GUI)
   hAx = axes('Parent',hFig,'Units','pixels','Position',[x0 y0 100 80],'Layer','top');
   h = plot(hAx,1,NaN,'.');
   set(h,'Tag','errorline','MarkerSize',5,'Color',[0.2 0.2 0.8]);
-  set(gca,'FontSize',7,'YScale','lin','XTickLabel','','YAxisLoc','right','Layer','top');
+  set(gca,'FontSize',7,'YScale','lin','XTick','','YAxisLoc','right','Layer','top');
   title('log10(rmsd)','Color','k','FontSize',7,'FontWeight','normal');
     
   h = uicontrol('Style','text','Position',[x0+125 y0+64 205 16]);
@@ -345,7 +345,7 @@ if (FitData.GUI)
   %-----------------------------------------------------------------
   columnname = {'','Name','best','current','center','vary'};
   columnformat = {'logical','char','char','char','char','char'};
-  colEditable = [true false false false false false];
+  colEditable = [true false false false true true];
   [FitData.parNames,FitData.CenterVals,FitData.VaryVals] = getParamList(Sys0,Vary);
   for p = 1:numel(FitData.parNames)
     data{p,1} = true;
@@ -364,6 +364,7 @@ if (FitData.GUI)
     'ColumnFormat',columnformat,...
     'ColumnName',columnname,...
     'ColumnEditable',colEditable,...
+    'CellEditCallback',@tableEditCallback,...
     'ColumnWidth',{20,62,62,62,62,60},...
     'RowName',[],...
     'Data',data);
@@ -573,7 +574,7 @@ if (FitData.GUI)
   set(findobj('Tag','StartButton'),'Visible','off');
   set(findobj('Tag','SaveButton'),'Enable','off');
   
-  % Disable listboxes and parameter table
+  % Disable listboxes
   set(findobj('Tag','MethodMenu'),'Enable','off');
   set(findobj('Tag','TargetMenu'),'Enable','off');
   set(findobj('Tag','ScalingMenu'),'Enable','off');
@@ -676,10 +677,10 @@ end
 if FitData.GUI
   
   % Remove current values from parameter table
-  h = getParameterTableHandle;
-  Data = get(h,'Data');
+  hTable = getParameterTableHandle;
+  Data = get(hTable,'Data');
   for p = 1:size(Data,1), Data{p,4} = '-'; end
-  set(h,'Data',Data);
+  set(hTable,'Data',Data);
   
   % Hide current sim plot in data axes
   set(findobj('Tag','currsimdata'),'YData',NaN*ones(1,numel(FitData.ExpSpec)));
@@ -699,15 +700,17 @@ if FitData.GUI
     set(findobj('Tag','sortRMSDSetButton'),'Enable','on');
   end
   
+  % Hide stop button, show start button
   set(findobj('Tag','StopButton'),'Visible','off');
   set(findobj('Tag','StartButton'),'Visible','on');
   
+  % Re-enable listboxes
   set(findobj('Tag','MethodMenu'),'Enable','on');
   set(findobj('Tag','TargetMenu'),'Enable','on');
   set(findobj('Tag','ScalingMenu'),'Enable','on');
   set(findobj('Tag','StartpointMenu'),'Enable','on');
   
-  % Re-enable parameter table
+  % Re-enable parameter table and its selection controls
   set(findobj('Tag','selectAllButton'),'Enable','on');
   set(findobj('Tag','selectNoneButton'),'Enable','on');
   set(findobj('Tag','selectInvButton'),'Enable','on');
@@ -984,7 +987,7 @@ for s = 1:nSystems
         parName_ = '';
       end
       parNames{p} = [fieldname parName_];
-      if (nSystems>1), parNames{p} = [char('A')-1+s '.' parNames{p}]; end
+      if (nSystems>1), parNames{p} = [char('A'-1+s) '.' parNames{p}]; end
       p = p + 1;
     end
   end
@@ -1313,4 +1316,49 @@ if ishandle(hFig)
 else
   hTable = [];
 end
+return
+
+%--------------------------------------------------------------------------
+function tableEditCallback(hTable,callbackData)
+global FitData
+
+% Get row and column index of edited table cell
+ridx = callbackData.Indices(1);
+cidx = callbackData.Indices(2);
+
+% Return unless it's the center or the vary column
+if cidx==5
+  struName = 'Sys0';
+elseif cidx==6
+  struName = 'Vary';
+else
+  return
+end
+
+% Get parameter string (e.g. 'g(1)', or 'B.g(2)' for more than 1 system)
+% and determine system index
+parName = hTable.Data{ridx,2};
+if FitData.nSystems>1
+  iSys = parName(1)-64; % 'A' -> 1, 'B' -> 2, etc
+  parName = parName(3:end);
+else
+  iSys = 1;
+end
+
+% Revert edit if user-entered data does not cleanly convert to a scalar,
+% assert non-negativity for vary range
+numval = str2num(callbackData.EditData);
+if numel(numval)~=1 || ((numval<0) && (cidx==6))
+  hTable.Data{ridx,cidx} = callbackData.PreviousData;
+  return
+end
+
+% Modify appropriate field in FitData.Sys0 or FitData.Vary
+stru = sprintf('FitData.%s{%d}.%s',struName,iSys,parName);
+try
+  eval([stru '=' callbackData.EditData ';']);
+catch
+  hTable.Data{ridx,cidx} = callbackData.PreviousData;
+end
+
 return
