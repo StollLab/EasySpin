@@ -4,9 +4,11 @@ function [err,data] = test(opt,olddata)
 n = randi(3);
 Sys.S = randi(3,1,n)/2;
 Sys.L = randi(2,1,n);
-Sys.soc = rand(n,2)*1000;
+Sys.soc = rand(n,2);
 Sys.orf = rand(n,1);
 lenS = length(Sys.S);
+
+
 if n>1, Sys.ee = zeros(nchoosek(lenS,2),1);end
 PureSpin.S = [Sys.S,Sys.L];
 

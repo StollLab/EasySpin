@@ -492,6 +492,9 @@ if UserTransitions
     if strcmp(Opt.Transitions,'all');
       if isempty(Opt.nLevels)
         nStates_ = prod(2*CoreSys.S+1)*prod(2*CoreSys.I+1);
+        if isfield(Sys,'L')
+          nStates_ = nStates_*prod(2*CoreSys.I+1);
+        end
       else
         nStates_ = Opt.nLevels;
       end
@@ -515,11 +518,12 @@ if UserTransitions
 
 else % Automatic pre-selection
   
-  nElStates_ = prod(2*CoreSys.S+1);
+  nElStates_ = prod(2*CoreSys.S+1)*prod(2*CoreSys.L+1);
   if (Opt.Threshold(1)==0)
     logmsg(1,'  selection threshold is zero -> using all transitions');
     TransitionRates = ones(nCore);
-  elseif (CoreSys.nElectrons==1) && (CoreSys.nNuclei==0)
+  elseif (CoreSys.nElectrons==1) && (CoreSys.nNuclei==0) ...
+      && (~isfield(CoreSys,'L')||~any(CoreSys.L))
     logmsg(1,'  one electron spin and no nuclei -> using all transitions');
     TransitionRates = ones(nCore);
   else

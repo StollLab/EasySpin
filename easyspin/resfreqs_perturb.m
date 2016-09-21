@@ -61,7 +61,7 @@ error(err);
 S = Sys.S;
 highSpin = any(S>1/2);
 
-if (Sys.nElectrons~=1)
+if (Sys.nElectrons~=1) || (isfield(Sys,'L') && any(Sys.L(:)))
   err = sprintf('Perturbation theory available only for systems with 1 electron. Yours has %d.',Sys.nElectrons);
 end
 if any(Sys.AStrain)
@@ -70,7 +70,7 @@ end
 if any(Sys.DStrain(:)) && any(Sys.DFrame(:))
   err = 'D strain cannot be used with tilted D tensors.';
 end
-if any(strncmp(fieldnames(Sys),'ZB',2))
+if any(strncmp(fieldnames(Sys),'Ham',3))
   err = 'Perturbation theory not available for higher order terms';
 end
 error(err);

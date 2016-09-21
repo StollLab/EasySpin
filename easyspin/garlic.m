@@ -171,7 +171,7 @@ end
 [Sys,err] = validatespinsys(Sys);
 error(err);
 
-if (Sys.nElectrons~=1)
+if (Sys.nElectrons~=1) || (isfield(Sys,'L') && any(Sys.L))
   error('Only systems with one electron spin S=1/2 are supported.');
 elseif (Sys.S~=1/2)
   error('Only systems with electron spin S=1/2 are supported.');

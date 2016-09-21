@@ -244,7 +244,7 @@ end
 % Automatic field range determination
 if FieldSweep
   if all(isnan(Exp.CenterSweep)) && all(isnan(Exp.Range))
-    if (Sys.S==1/2)
+    if (Sys.S==1/2) && (~isfield(Sys,'L') || ~any(Sys.L(:)))
       logmsg(1,'  automatic determination of sweep range');
       I = nucspin(Sys.Nucs).';
       if ~isempty(I)

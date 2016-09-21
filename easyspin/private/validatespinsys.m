@@ -159,7 +159,7 @@ elseif isfield(Sys,'g_')
 else
   %error('Sys.g is missing.');
   if any(strncmp(fieldnames(Sys),'Ham',3))
-    Sys.g = 0;
+    Sys.g = zeros(nElectrons,3);
   else
     Sys.g = gfree*ones(nElectrons,3);
   end
@@ -860,7 +860,7 @@ for lB = 0:8
           Sys.(str) = [zeros(nElectrons,l), Sys.(str),zeros(nElectrons,l)];
         else
           if ~issize(Sys.(str),[nElectrons,2*l+1])
-            if ~issize(Sys.(str),[2*l+1,1])
+            if ~issize(Sys.(str),[2*l+1,1]) || nElectrons~=1
               error('Sys.%s has wrong size!',str);
             else
               Sys.(str) = Sys.(str).';

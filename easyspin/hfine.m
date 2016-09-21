@@ -31,6 +31,7 @@ nStates = Sys.nStates;
 nElectrons = Sys.nElectrons;
 nNuclei = Sys.nNuclei;
 
+
 F = sparse(nStates,nStates); % sparse zero matrix
 
 if (nNuclei==0)
@@ -42,7 +43,7 @@ end
 
 % Get spin list
 if isempty(Spins) % no 'Spins' specified -> all nuclei and all electrons
-  NucSpins = nElectrons+1:numel(SpinVec);
+  NucSpins = nElectrons+1:(nElectrons+nNuclei);
   ElSpins = 1:nElectrons;
 else
   if any(Spins<1) || any(Spins>numel(SpinVec))
@@ -51,6 +52,7 @@ else
   NucSpins = Spins;
   ElSpins = Spins;
   NucSpins(NucSpins<=nElectrons) = []; % remove electron spins
+  NucSpins(NucSpins>(nElectrons+nNuclei)) = []; % remove orbitla nagular momentum  
   ElSpins(ElSpins>nElectrons) = []; % remove nuclear spins
 end
 

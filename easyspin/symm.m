@@ -29,11 +29,13 @@ end
 
 [Sys,err] = validatespinsys(Sys);
 error(err);
+sysfields = fieldnames(Sys);
+
 
 
 HighOrderTermsPresent = false;
 HigherZeemanPresent = false;
-sysfields = fieldnames(Sys);
+
 stevens = strncmp(sysfields,'B',1).';
 if any(stevens)
   for n=find(stevens)
@@ -50,7 +52,18 @@ if any(higherzeeman)
   end
 end
 if isfield(Sys,'aF') && any(Sys.aF(:)), HighOrderTermsPresent = true; end
-  
+
+cf = strncmp(sysfields,'CF',2).';
+if any(cf)
+  for n=find(cf)
+    if any(Sys.(sysfields{n})(:))
+      CrystalFieldPresent = true;
+      HighOrderTermsPresent = true;
+    else
+      CrystalFieldPresent = false;
+    end
+  end
+end
 
 
 if DebugMode

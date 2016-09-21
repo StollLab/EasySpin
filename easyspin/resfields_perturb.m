@@ -62,13 +62,13 @@ error(err);
 S = Sys.S;
 highSpin = any(S>1/2);
 
-if Sys.nElectrons~=1
+if Sys.nElectrons~=1 || (isfield(Sys,'L') && any(Sys.L(:)))
   err = sprintf('Perturbation theory available only for systems with 1 electron. Yours has %d.',Sys.nElectrons);
 end
 if any(Sys.AStrain)
 %  err = ('A strain (Sys.AStrain) not supported with perturbation theory. Use matrix diagonalization or remove Sys.AStrain.');
 end
-if highSpin && any(Sys.DStrain) && any(mod(Sys.S,1))
+if highSpin && any(Sys.DStrain(:)) && any(mod(Sys.S,1))
   err = ('D strain not supported for half-integer spins with perturbation theory. Use matrix diagonalization or remove Sys.DStrain.');
 end
 if any(Sys.DStrain(:)) && any(Sys.DFrame(:))

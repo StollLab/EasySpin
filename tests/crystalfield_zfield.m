@@ -11,9 +11,9 @@ PureSpin.S = [Sys.S,Sys.L];
 PureSpin.ee = zeros(nchoosek(length([Sys.S,Sys.L]),2),1);
 for k=2:2:8
   fieldname = sprintf('CF%d',k);
-  Sys.(fieldname) = rand(n,2*k+1).*repmat(((2*k)<=Sys.S).',1,2*k+1);
-  PureSpin.(fieldname) = [zeros(n,2*k+1);Sys.(fieldname)];
-  
+  spinfieldname = sprintf('B%d',k);
+  Sys.(fieldname) = rand(n,2*k+1).*repmat(((k/2)<=Sys.L).',1,2*k+1);
+  PureSpin.(spinfieldname) = [zeros(n,2*k+1);Sys.(fieldname)]; 
 end
 
 H1 = zfield(PureSpin);

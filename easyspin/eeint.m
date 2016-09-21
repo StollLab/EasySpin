@@ -101,17 +101,14 @@ for iPair = 1:nPairs
     end
   end
   
-end
-
-% Isotropic biquadratic exchange coupling term +ee2*(S1.S2)^2
-%-----------------------------------------------------------------
-for iPair = 1:nPairs
-  if System.ee2(iPair)==0, continue; end
+  % Isotropic biquadratic exchange coupling term +ee2*(S1.S2)^2
+  %-----------------------------------------------------------------  
+  if System.ee2(iCoupling)==0, continue; end
   F2 = 0;
   for c = 1:3
     F2 = F2 + sop(sys,Pairs(iPair,:),c,'sparse');
   end
-  F = F + System.ee2(iPair)*F2^2;
+  F = F + System.ee2(iCoupling)*F2^2;
 end
 
 F = (F+F')/2; % Hermitianise
