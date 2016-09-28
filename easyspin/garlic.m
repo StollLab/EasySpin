@@ -170,6 +170,8 @@ end
 
 [Sys,err] = validatespinsys(Sys);
 error(err);
+if Sys.MO_present, error('salt does not support general parameters!'); end
+if any(Sys.L(:)), error('salt does not support L!'); end
 
 if (Sys.nElectrons~=1) || (isfield(Sys,'L') && any(Sys.L))
   error('Only systems with one electron spin S=1/2 are supported.');

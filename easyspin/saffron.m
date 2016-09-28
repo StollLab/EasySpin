@@ -302,6 +302,9 @@ end
 
 [Sys,err] = validatespinsys(Sys);
 error(err);
+if Sys.MO_present, error('salt does not support general parameters!'); end
+if any(Sys.L(:)), error('salt does not support L!'); end
+
 logmsg(1,'spins: %d electrons, %d nuclei',Sys.nElectrons,Sys.nNuclei);
 if (Sys.nNuclei==0)
   %error('saffron: There are no nuclear spins in the spin system.');

@@ -204,25 +204,29 @@ if diffParam
   else
     OptS = Opt;
   end
-  if calculateM && all(check(3:4))
-    ExpM = Exp;
-    ExpM.Temperature = Exp.mTemperature;
-    ExpM.Field = Exp.mField;
-    ExpM = rmfield(ExpM,cmpstr);
-    muz = curry(Sys,ExpM,OptS)*bmagn;
-  else
-    error('mTemperature and mField have to be given!');
+  if calculateM
+    if all(check(3:4))
+      ExpM = Exp;
+      ExpM.Temperature = Exp.mTemperature;
+      ExpM.Field = Exp.mField;
+      ExpM = rmfield(ExpM,cmpstr);
+      muz = curry(Sys,ExpM,OptS)*bmagn;
+    else
+      error('mTemperature and mField have to be given!');
+    end
   end
-  if calculateChi && all(check(1:2))
-    ExpChi = Exp;
-    ExpChi.Temperature = Exp.chiTemperature;
-    ExpChi.Field = Exp.chiField;
-    ExpChi = rmfield(ExpChi,cmpstr);
-    [t, chizz_SI] = curry(Sys,ExpChi,OptS);
-    clear t;
-  else
-    error('chiTemperature and chiField have to be given!');
-  end    
+  if calculateChi
+    if all(check(1:2))
+      ExpChi = Exp;
+      ExpChi.Temperature = Exp.chiTemperature;
+      ExpChi.Field = Exp.chiField;
+      ExpChi = rmfield(ExpChi,cmpstr);
+      [t, chizz_SI] = curry(Sys,ExpChi,OptS);
+      clear t;
+    else
+      error('chiTemperature and chiField have to be given!');
+    end
+  end
 else
     doCalc = true;
 end

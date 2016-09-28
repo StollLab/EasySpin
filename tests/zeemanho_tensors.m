@@ -3,7 +3,7 @@ function [err,data] = test(opt,olddata)
 % Test whether the tensor output of zeemanho is identical to the full
 % matrix output
 %==================================================================
-
+rand('twister',5);
 
 Sys.S = ceil(rand*10)/2+4;
 

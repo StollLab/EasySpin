@@ -523,7 +523,7 @@ else % Automatic pre-selection
     logmsg(1,'  selection threshold is zero -> using all transitions');
     TransitionRates = ones(nCore);
   elseif (CoreSys.nElectrons==1) && (CoreSys.nNuclei==0) ...
-      && (~isfield(CoreSys,'L')||~any(CoreSys.L))
+      && (~any(CoreSys.L))
     logmsg(1,'  one electron spin and no nuclei -> using all transitions');
     TransitionRates = ones(nCore);
   else

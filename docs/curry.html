@@ -39,6 +39,7 @@ curry(Sys,Exp);
 curry(Sys,Exp,Opt);
 muz = curry(...);
 [muz,chizz] = curry(...);
+[...] = curry(...);
 </pre>
 
 <p>
@@ -55,7 +56,7 @@ See also the <a href="userguide_curry.html">user guide</a> on how to use <code>c
 <div class="subtitle2">Outputs</div>
 
 <p>
-There are up to three possible output arguments. If  no output argument is requested, <code>curry</code> plots the calculated curves. 
+There are up to two standard output arguments (here standard refer to empty <code>Opt.Output</code>). If  no output argument is requested, <code>curry</code> plots the calculated curves. 
 
 <div class="optionfield"><code>muz</code></div>
 <div class="optiondescr">
@@ -76,6 +77,8 @@ muz_SI = muz*avogadro*bmagn;   % unit conversion from NA*muB to J T^-1 mol^-1
 chizz_cgs = chizz_SI/(4*pi*1e-6);   % unit conversion from SI to CGS units
 </pre>
 </div>
+</p>
+If <code>Opt.Output</code> is given the number of outputs depend on <code>Opt.Output</code> (see <a href = "#Output">Output</a>).
 
 <div class="subtitle2">Input: Spin system</div>
 
@@ -84,7 +87,16 @@ There are three inputs to the function, the last one is optional.
 </p>
 
 <p>
-<code>Sys</code> is a <a href="spinsystem.html">spin system structure</a> containing the spin quantum numbers of and the spin Hamiltonian parameters.
+<code>Sys</code> is a <a href="spinsystem.html">spin system structure</a> containing the spin quantum numbers and the spin Hamiltonian parameters. In addition to the parameters used by all EasySpin functions, <code>TIP</code> can be introduced.
+<div class="optionfield"><code>TIP</code></div>
+<div class="optiondescr">
+Temerature-independent paramagnetism added to the magnetic susceptibility. EasySpin understand <code>TIP</code> to be in SI units.
+<pre class="matlab">
+TIP_cgs = 7e-4;                 % TIP in cm^3 mol^-1
+TIP_SI = (4*pi*1e-6) * TIP_cgs; % TIP in SI units
+Sys.TIP = TIP_SI;
+</pre>
+</div>
 </p>
 
 <div class="subtitle2">Input: Experimental parameters</div>
@@ -107,7 +119,34 @@ Populations are computed for all energy levels assuming thermal (Boltzmann) equi
 <code>Field</code> gives the magnetic field strength, in mT, for which magnetization data should be calculated. If an array of values is given, data are calculated for each field value in the array.
 <p>
 If <code>Field</code> is missing, EasySpin assumes that no field is applied.
+</div></p>
+<p>
+Magnetic moment is often measured as a function of field and for a few temperatures, while molar static magnetic susceptibility is measured as function of temperature for a few fields. This can be done also in simulations:
+<div class="optionfield"><code>chiTemperature</code></div>
+<div class="optiondescr">
+Temperature or list of Temperatures, for which magnetic susceptibility should be calculated, in Kelvin.
 </div>
+<div class="optionfield"><code>chiField</code></div>
+<div class="optiondescr">
+Magnetic field strength, in mT, for which magnetic susceptibility should be calculated. If an array of values is given, data are calculated for each field value in the array.
+</div>
+<div class="optionfield"><code>mTemperature</code></div>
+<div class="optiondescr">
+Temperature or list of Temperatures, for which magnetic moment should be calculated, in Kelvin.
+</div>
+<div class="optionfield"><code>mField</code></div>
+<div class="optiondescr">
+Magnetic field strength, in mT, for which magnetic moment should be calculated. If an array of values is given, data are calculated for each field value in the array.
+</div>  </p>
+<p>
+<code>curry</code> calculates magnetic susceptibility as numeric derivative of the magnetic moment at the given field value. However, the experimental data is often obtained by measuring the magnetization at a given field value and divide it by the field strength. For sufficiently small field strength this correspond to the derivative at zero field. In cases the field strength is not small experimental results might be better reproduced by:
+<pre class="matlab">
+m4chi =  curry(Sys,Exp,Opt);          % magnetic moment at the field used in the experiment
+% divide magnetic moment by magnetic field and unit conversion
+chisim_cgs = m4chi*avogadro*bmagn*1e2./repmat(Exp.Field(:),1,numel(Exp.Temperature));
+chisim_si = (4*pi*1e-6) *chisim_cgs ; % convert to SI units
+</pre>
+</p>
 
 <p>
 <code>curry</code> not only supports powder samples, but also single crystals. The following fields are needed for single-crystal calculations:
@@ -153,6 +192,87 @@ The three <a href="eulerangles.html">Euler angles</a>, in radians, for the trans
 The structure <code>Opt</code> collects computational parameters. <code>Opt</code> need not be specified, in which case default values for all fields are used. The field names and their possible values are as follows.
 </p>
 
+<div class="optionfield"><code>Output</code></div>
+<div class="optiondescr">
+String to specify the output <code>curry</code> should provide in the given order. Keywords should be seperated by blanks. The following keywords are allowed:
+<p>
+<div class="optionfield"><code>MvsB</code></div><div class="optiondescr"> Magnetic moment in CGS units</div>
+<div class="optionfield"><code>MvsBCGS</code></div><div class="optiondescr"> Magnetic moment in CGS units</div>
+<div class="optionfield"><code>MvsBSI</code></div><div class="optiondescr"> Magnetic moment in SI units</div>
+<div class="optionfield"><code>Chi</code></div><div class="optiondescr"> Magnetic susceptibility in SI units</div>
+<div class="optionfield"><code>ChiCGS</code></div><div class="optiondescr"> Magnetic susceptibility in CGS units</div>
+<div class="optionfield"><code>ChiSI</code></div><div class="optiondescr"> Magnetic susceptibility in SI units</div>
+<div class="optionfield"><code>1overChi</code></div><div class="optiondescr"> 1 / magnetic susceptibility in SI units</div>
+<div class="optionfield"><code>1overChiCGS</code></div><div class="optiondescr"> 1 / magnetic susceptibility in CGS units</div>
+<div class="optionfield"><code>1overChiSI</code></div><div class="optiondescr"> 1 / magnetic susceptibility in SI units</div>
+<div class="optionfield"><code>ChiT</code></div><div class="optiondescr"> Product of magnetic susceptibility and Temperature in SI units</div>
+<div class="optionfield"><code>ChiTCGS</code></div><div class="optiondescr"> Product of magnetic susceptibility and Temperature in CGS units</div>
+<div class="optionfield"><code>ChiTSI</code></div><div class="optiondescr"> Product of magnetic susceptibility and Temperature in SI units</div>
+<div class="optionfield"><code>mueff</code></div><div class="optiondescr"> Effective magnetic moment in SI units</div>
+<div class="optionfield"><code>mueffCGS</code></div><div class="optiondescr"> Effective magnetic moment in CGS units</div>
+<div class="optionfield"><code>mueffSI</code></div><div class="optiondescr"> Effective magnetic moment in SI units</div>
+</p>
+<p>
+Examples:
+<pre class="matlab">
+Opt.Output = 'MvsB ChiTCGS 1overChi'; 
+% three outputs, first: magnetic moment in CGS units, 
+% second: product of magnetic susceptibility and Temperature in CGS units,
+% third: 1 / magnetic susceptibility in SI units
+Opt.Output = 'ChiTCGS MvsB 1overChi';  
+% first output will be now product of magnetic susceptibility and Temperature in CGS units,
+% second magnetic moment in CGS units, and third 1 / magnetic susceptibility in SI units
+Opt.Output = 'mueff'; % single output: effective magnetic moment in SI units
+</pre>
+The number of given output arguments have to match the number of keywords in <code>Output</code>.
+<pre class="matlab">
+Opt.Output = 'MvsB ChiTCGS MvsBSI';
+[MvsB, ChiTCGS, MvsBSI] = curry(Sys,Exp,Opt);
+</pre>
+</p>
+<p>
+The order of keywords in <code>Opt.Output</code> determine the order of the outputs!
+<pre class="matlab">
+%two outputs, first magnetic moment in CGS units
+% second: product of magnetic susceptibility and Temperature in CGS units
+Opt.Output = 'MvsB ChiTCGS';
+[MvsB, ChiTCGS]= curry(Sys,Exp,Opt);
+
+%the same two outputs, reversed order
+Opt.Output = 'ChiTCGS MvsB';
+[ChiTCGS, MvsB]= curry(Sys,Exp,Opt);
+</pre>
+</p>
+
+
+<div class="optionfield"><code>OneColoumn</code></div>
+<div class="optiondescr"><code>curry</code> return all calculated data in one coloumn. Example:
+<p>
+<pre class="matlab">
+Sys = struct('S',1,'D',5000); 
+Exp = struct('Temperature', 1:20, 'Field', 100:100:1000);
+Opt.Output = 'MvsB OneColoumn ChiTCGS';
+y = curry(Sys,Exp,Opt);
+</pre>
+<code>y</code> will then contain </p>
+<p><code>[MvsB(B = 100 mT, T = 1 K), MvsB(B = 200 mT, T = 1 K), ..., MvsB(B = 1000 mT, T = 1 K), MvsB(B = 100 mT, T = 2 K), ..., MvsB(B = 1000 mT, T = 20 K), ChiTCGS(B = 100 mT, T = 1 K), ..., ChiTCGS(B = 1000 mT, T = 20 K)]</code>.
+</p><p>The order is given by the order of keywords in <code>Output</code>. Using the same example as above but with reversed order:
+<pre class="matlab">
+Opt.Output = 'ChiTCGS OneColoumn MvsB'; 
+y2 = curry(Sys,Exp,Opt);
+</pre>
+<code>y2</code> will then contain </p>
+<p><code>[ChiTCGS(B = 100 mT, T = 1 K), ChiTCGS(B = 200 mT, T = 1 K), ... ChiTCGS(B = 1000 mT, T = 1 K), ChiTCGS(B = 100 mT, T = 2 K), ..., ChiTCGS (B = 1000 mT, T = 20 K), MvsB(B = 100 mT, T = 1 K), ..., MvsB(B = 1000 mT, T = 20 K)]</code>.
+</p>
+<code>OneColoumn</code> can be at any position in the <code>Output</code> string. So the following will all lead to the same output
+<pre class="matlab">
+Opt.Output = 'ChiTCGS OneColoumn MvsB';
+Opt.Output = 'OneColoumn ChiTCGS MvsB'; 
+Opt.Output = 'ChiTCGS MvsB OneColoumn'; 
+</pre> 
+</div>
+
+</div>
 <div class="optionfield"><code>Verbosity</code></div>
 <div class="optiondescr">
 Determines how much information is printed to the command window. If <code>Opt.Verbosity=0</code>, <code>curry</code> is silent. 1 logs relevant information, 2 gives more details.
@@ -168,6 +288,11 @@ Determines the number of orientations (knots) in a powder for which moment and s
 Opt.nKnots = 91;       % 1&deg; increments
 Opt.nKnots = 31;       % 3&deg; increments
 </pre>
+</div>
+
+<div class="optionfield"><code>Methods</code></div>
+<div class="optiondescr">
+Calculation method used by <code>curry</code>. <code>'operator'</code> is the default and the method described in Algorithm is used. <code>'energies'</code> is slightly faster for large spin systems, but far more approximatively. Magnetization and susceptibility are obtained as first and second numerical derivative of the thermodynamic free energy. The susceptibility can only be calculated for zero field.
 </div>
 
 <!-- ============================================================= -->

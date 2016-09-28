@@ -154,6 +154,8 @@ end
 
 [Sys,err] = validatespinsys(Sys);
 error(err);
+if Sys.MO_present, error('salt does not support general parameters!'); end
+if any(Sys.L(:)), error('salt does not support L!'); end
 
 if Sys.fullg
   idx = 1:3;

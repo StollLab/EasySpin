@@ -62,8 +62,11 @@ error(err);
 S = Sys.S;
 highSpin = any(S>1/2);
 
-if Sys.nElectrons~=1 || (isfield(Sys,'L') && any(Sys.L(:)))
+if Sys.nElectrons~=1 
   err = sprintf('Perturbation theory available only for systems with 1 electron. Yours has %d.',Sys.nElectrons);
+end
+if any(Sys.L(:))
+    err = sprintf('Perturbation theory not available for elctron spin combined with orbital angular momentum!');
 end
 if any(Sys.AStrain)
 %  err = ('A strain (Sys.AStrain) not supported with perturbation theory. Use matrix diagonalization or remove Sys.AStrain.');
