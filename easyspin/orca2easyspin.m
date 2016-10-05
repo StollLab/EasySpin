@@ -81,8 +81,8 @@ gpv = [];
 gFrame = [];
 Apv = [];
 AFrame = [];
-Qpv = [];
-QFrame = [];
+efg = [];
+efgFrame = [];
 rho0 = [];
 Atoms = [];
 
@@ -152,15 +152,15 @@ while ~feof(f)
         AFrame(idx,1:3) = eulang(R.',skipFitting).';
       end
     
-    % Q tensors ----------------------------------------
+    % EFG tensors ----------------------------------------
     case {7, 16, 25, 32, 39}
-      QnucIdx = data(1,:)+1;
-      for iNuc = 1:numel(QnucIdx)
-        idx = QnucIdx(iNuc);
-        Qpv(idx,1:3) = data(2:4,iNuc).';
+      nucIdx = data(1,:)+1;
+      for iNuc = numel(nucIdx):-1:1
+        idx = nucIdx(iNuc);
+        efg_au = data(2:4,iNuc).'; % EFG, atomic unit (Eh/e/a0^2)
+        efg(idx,1:3) = efg_au*(hartree/echarge/bohrrad^2); % -> SI unit (V/m^2)
         R = reshape(data(5:13,iNuc),3,3).';
-        %Q = R*diag(Qpv)*R.';
-        QFrame(idx,1:3) = eulang(R.',skipFitting);
+        efgFrame(idx,1:3) = eulang(R.',skipFitting);
       end
     
     % Spin densities at nuclei -------------------------
@@ -199,18 +199,52 @@ if ~isempty(Dpv)
   Sys.DFrame = DFrame;
 end
 
+% Pad with zeros if necessary
 anyHyperfine = ~isempty(Apv);
-anyQuadrupole = ~isempty(Qpv);
+anyQuadrupole = ~isempty(efg);
 if anyHyperfine
   if size(Apv,1)<nAtoms, Apv(nAtoms,:) = 0; end
   if size(AFrame,1)<nAtoms, AFrame(nAtoms,:) = 0; end
 end
 if anyQuadrupole
-  if size(Qpv,1)<nAtoms, Qpv(nAtoms,:) = 0; end
-  if size(QFrame,1)<nAtoms, QFrame(nAtoms,:) = 0; end
+  if size(efg,1)<nAtoms, efg(nAtoms,:) = 0; end
+  if size(efgFrame,1)<nAtoms, efgFrame(nAtoms,:) = 0; end
+  Qpv = zeros(size(efg));
 end
 
 if (nAtoms>0)
+  
+  % Convert electric field gradient to Q tensor principal values
+  if anyQuadrupole
+    for iAtom = nAtoms:-1:1
+      if ~any(efg(iAtom,:)), continue; end
+      % List of quadrupole reference isotopes for all elements
+      %  (most naturally abundant with I>1/2)
+      qrefMassNo = [...
+        2  0  7  9  11 0  14 17 0  21 ... % 1-10
+        23 25 27 0  0  33 35 0  39 43 ... % 11-20
+        45 47 51 53 55 0  59 61 63 67 ...% 21-30
+        69 73 75 0  79 83 85 87 0  91 ... % 31-40
+        93 95 0  101 0 105 0 0 115 0 ... % 41-50
+        121 0 127 131 133 137 139 0 141 143 ... % 51-60
+        0 147 153 157 159 163 165 167 0 173 ... % 61-70
+        175 177 181 0 187 189 193 0 197 201 ... % 71-80
+        0 0 209 0 0 0 0 0 227 0 ... % 81-90
+        0 235 237 0 243 0 0 0 0 0 ... % 91-100
+        0 0 0 0 0 0 0 0 0 0 ... % 101-110
+        0 0 0 0 0 0 0 0]; % 111-118
+      massNo = qrefMassNo(Atoms(iAtom));
+      if massNo==0
+        Qpv(iAtom,:) = [0 0 0];
+      else
+        qrefIso = sprintf('%d%s',massNo,elementno2symbol(Atoms(iAtom)));
+        eQ = echarge*nucqmom(qrefIso)*barn; % nuclear electric quadrupole moment, SI unit (C m^2)
+        I = nucspin(qrefIso);
+        Qpv_ = eQ/2/I/(2*I-1)*efg(iAtom,:); % quadrupole tensor principal values, SI unit (J)
+        Qpv(iAtom,:) = Qpv_/planck/1e6; % J -> MHz
+      end
+    end
+  end
   
   % Determine which nuclei are above hyperfine cutoff
   hfkeep = false(1,nAtoms);
@@ -232,14 +266,14 @@ if (nAtoms>0)
   
   % Build Sys.A and Sys.AFrame
   if anyHyperfine
-    Sys.A  = Apv(hfkeep,:);
+    Sys.A = Apv(hfkeep,:);
     Sys.AFrame = AFrame(hfkeep,:);
   end
   
   % Build Sys.Q and Sys.QFrame
   if anyQuadrupole
-    Sys.Q  = Qpv(hfkeep,:);
-    Sys.QFrame = QFrame(hfkeep,:);
+    Sys.Q = Qpv(hfkeep,:);
+    Sys.QFrame = efgFrame(hfkeep,:);
   end
   
 end

@@ -1,10 +1,10 @@
 % Generates list of components (specied and isotopologues)
 % Sys: spin system structure, or cell array of spin system structures
-% IsoCutOff: (optional) isotopologue abundance cutoff
+% AbundanceCutoff: (optional) isotopologue abundance cutoff
 
-function [SysList,weight] = expandcomponents(Sys,IsoCutoff)
+function [SysList,weight] = expandcomponents(Sys,AbundanceCutoff)
 
-if (nargin<2), IsoCutoff = 0; end
+if (nargin<2), AbundanceCutoff = 0; end
 
 if isstruct(Sys), Sys = {Sys}; end
 
@@ -19,7 +19,7 @@ for iSpecies = 1:numel(Sys)
   if ~isfield(Sys_,'Nucs'), Sys_.Nucs = ''; end
   if ~isfield(Sys_,'Abund'), Sys_.Abund = []; end
   if ~isfield(Sys_,'n'), Sys_.n = []; end
-  isoList = isotopologues(Sys_.Nucs,Sys_.Abund,Sys_.n,IsoCutoff);
+  isoList = isotopologues(Sys_.Nucs,Sys_.Abund,Sys_.n,AbundanceCutoff);
   
   nIsotopologues = isoList.nIso;
   for iIsotopologue = 1:nIsotopologues

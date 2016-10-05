@@ -173,23 +173,23 @@ if ConsolidateNonmagneticIsotopes
 end
 
 
-% Automatic hyperfine and quadrupole reference isotope
-%-------------------------------------------------------
+% Automatically determine hyperfine and quadrupole reference isotopes
+%--------------------------------------------------------------------
 for iNuc = nNucs:-1:1
 
-  abundance_ = Abund{iNuc};
+  abundances = Abund{iNuc};
   [I,gn,qm] = nucdata(Nucs{iNuc});
   if isempty(I)
     error('Isotope with unknown spin encountered.');
   end
   
-  abundance_(I<1/2) = -1;
-  [mx,idx] = max(abundance_);
+  abundances(I<1/2) = -1;
+  [mx,idx] = max(abundances);
   gnref(iNuc) = gn(idx);
   gnscale_{iNuc} = gn/gnref(iNuc);
   
-  abundance_(I<1) = -1;
-  [mx,idx] = max(abundance_);
+  abundances(I<1) = -1;
+  [mx,idx] = max(abundances);
   if (mx>0)
     Qref(iNuc) = idx;
     qmref(iNuc) = qm(idx);
