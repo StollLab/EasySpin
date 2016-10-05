@@ -28,12 +28,14 @@ end
 
 fid = 1; % standard output
 
-if (nargin==0), TestName = '*'; end
-
-if strfind(TestName,'_')
-  FileMask = [TestName '*.m'];
+if (nargin==0)
+  FileMask = '*_*.m';
 else
-  FileMask = [TestName '*_*.m'];
+  if strfind(TestName,'_')
+    FileMask = [TestName '*.m'];
+  else
+    FileMask = [TestName '*_*.m'];
+  end
 end
 
 FileList = dir(FileMask);
