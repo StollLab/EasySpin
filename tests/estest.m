@@ -29,7 +29,7 @@ end
 fid = 1; % standard output
 
 if (nargin==0)
-  FileMask = '*.m';
+  FileMask = '*_*.m';
 else
   if strfind(TestName,'_')
     FileMask = [TestName '*.m'];
