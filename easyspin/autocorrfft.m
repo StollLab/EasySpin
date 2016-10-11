@@ -8,26 +8,22 @@
 %  Output:
 %     autocorr       array
 
-function AutoCorr = autocorrfft(y);
+function AutoCorr = autocorrfft(y)
 
-if numel(size(y)) ~= 2
-  error('The input array must be 2-dimensional.')
+if numel(size(y))>2
+  error('The input array must have 1 or 2 dimensions.')
 end
 
-if size(y, 1) > 1 & size(y, 2) > 1
-  error('The input array must a vector.')
-end
-
-y = bsxfun(@minus, y , mean(y));
-
-N = length(y);
-
-r = ifft(fft(y, 2*N).*conj(fft(y, 2*N)));
-AutoCorr = real(r(1:N));
+  y = bsxfun(@minus, y , mean(y,2));
+  N = length(y);
+  F = fft(y, 2*N, 2);
+  r = ifft(F.*conj(F),[],2);
+  r = real(r(:,1:N));
+  AutoCorr = sum(r,1).';
 
 n = N*ones(1, N) - [1:N] + 1;
 
-AutoCorr = AutoCorr./n;
+AutoCorr = AutoCorr./n.';
 AutoCorr = AutoCorr./AutoCorr(1);
 
 end

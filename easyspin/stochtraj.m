@@ -1,21 +1,30 @@
 % stochtraj  Generate stochastic rotational trajectories
 %
-%  [t,R] = stochtraj(Par)
-%  [t,R,qtraj] = stochtraj(...)
+%  [t,RTraj] = stochtraj(Par)
+%  [t,RTraj,qTraj] = stochtraj(...)
 %
-%  Par: structure with simulation parameters
+%  Sys: stucture with system's dynamical parameters
 %     .tcorr          correlation time (in seconds, 1 or 3 elements)
 %     .lambda         ordering potential coefficient
+%
+%  Par: structure with simulation parameters
 %     .dt             time step (in seconds)
 %     .nSteps         number of time steps per simulation
 %     .nTraj          number of trajectories
-%     .theta          polar angle of starting orientation (in radians)
-%     .phi            azimuthal angle of starting orientation (in radians)
+%     .alpha            Euler angle phi for starting orientation(s)
+%     .beta          Euler angle theta for starting orientation(s)
+%     .gamma            Euler angle chi for starting orientation(s)
+%     .seed           seed the random number generator for reproducibility
+%     .chkcon         if equal to 1, check for convergence in the angular
+%                     distribution after every nSteps, and extend 
+%                     propagation by an additional nSteps until it has
+%                     converged
+%     .Verbosity      0: no display, 1: show info
 %
 %  Output:
 %     t              time points of the trajectory (in seconds)
-%     R              array of rotation matrices
-%     qtraj          array of normalized quaternions
+%     RTraj              array of rotation matrices
+%     qTraj          array of normalized quaternions
 
 % Implementation based on 
 %   Sezer, et al., J.Chem.Phys. 128, 165106 (2008)
@@ -29,11 +38,18 @@ if (nargin > 1), error('Too many input arguments.'); end
 
 switch nargout
   case 0 % plotting
-  case 2 % t,R
-  case 3 % t,R,qTraj
+  case 2 % t,RTraj
+  case 3 % t,RTraj,qTraj
   otherwise
     error('Incorrect number of output arguments.');
 end
+
+if ~isfield(Par,'Verbosity')
+  Par.Verbosity = 0; % Log level
+end
+
+global EasySpinLogLevel;
+EasySpinLogLevel = Par.Verbosity;
 
 %========================================================================
 % Dynamics and ordering potential
@@ -44,21 +60,18 @@ if ~isfield(Par,'lambda'), Par.lambda = 0; end
 if numel(Par.lambda) > 1
   error('Only one orienting potential coefficient, c20, is currently implemented.')
 end
-lambda = Par.lambda;
-if lambda < 0
-  error('Orienting potential coefficient(s) cannot be negative.');
-end
-orderingPotential = (lambda > 0);
+Sim.lambda = Par.lambda;
 
 % parse the dynamics parameter input using private function
-if isfield(Par,'tcorr'), Dynamics.tcorr = Par.tcorr; end
-if isfield(Par,'Diff'), Dynamics.Diff = Par.Diff; end
-if isfield(Par,'logtcorr'), Dynamics.logtcorr = Par.logtcorr; end
-if isfield(Par,'logDiff'), Dynamics.logDiff = Par.logDiff; end
+if isfield(Par,'tcorr'), Dynamics.tcorr = Par.tcorr;
+elseif isfield(Par,'Diff'), Dynamics.Diff = Par.Diff;
+elseif isfield(Par,'logtcorr'), Dynamics.logtcorr = Par.logtcorr;
+elseif isfield(Par,'logDiff'), Dynamics.logDiff = Par.logDiff;
+else error('A rotational correlation time or diffusion rate is required.'); end
 
 [Dynamics, err] = processdynamics(Dynamics);
 error(err);
-Diff = Dynamics.Diff';
+Sim.Diff = Dynamics.Diff';
 
 %========================================================================
 % Discrete Monte carlo settings
@@ -66,26 +79,30 @@ Diff = Dynamics.Diff';
 if isfield(Par,'t')
   % time axis is given explicitly
   t = Par.t;
-  nSteps = numel(t);
-  dt = t(2) - t(1);
-  if (abs(dt - max(t)/nSteps) > eps), error('t is not linearly spaced.'); end
+  Sim.nSteps = numel(t);
+  Sim.dt = t(2) - t(1);
+  if (abs(Sim.dt - max(t)/Sim.nSteps) > eps), error('t is not linearly spaced.'); end
 
 elseif isfield(Par,'nSteps') && isfield(Par,'dt')
   % number of steps and time step are given
-  dt = Par.dt;
-  nSteps = Par.nSteps;
-  t = linspace(0, nSteps*dt, nSteps);
+  Sim.dt = Par.dt;
+  Sim.nSteps = Par.nSteps;
+  t = linspace(0, Sim.nSteps*Sim.dt, Sim.nSteps);
 
 elseif isfield(Par, 'nSteps') && isfield(Par, 'tmax')
   % number of steps and max time are given
   tmax = Par.tmax;
-  nSteps = Par.nSteps;
-  dt = tmax/nSteps;
-  t = linspace(0, nSteps*dt, nSteps);
+  Sim.nSteps = Par.nSteps;
+  Sim.dt = tmax/Sim.nSteps;
+  t = linspace(0, Sim.nSteps*Sim.dt, Sim.nSteps);
 
 else
   error(['You must specify a time array, or a number of steps and ' ...
         'either a time step or tmax.'])
+end
+
+if isfield(Par,'seed')
+  rng(Par.seed);
 end
 
 %========================================================================
@@ -93,119 +110,145 @@ end
 %========================================================================
 % If number of trajectories is not given, set it to 1
 if ~isfield(Par, 'nTraj'), Par.nTraj = 1; end
-nTraj = Par.nTraj;
+Sim.nTraj = Par.nTraj;
 
 % Get user-supplied starting angles
-theta = [];
-phi = [];
-chi = [];
-if isfield(Par, 'theta'), theta = Par.theta; end
-if isfield(Par, 'phi'), phi = Par.phi; end
-%if isfield(Par, 'chi'), phi = Par.chi; end
+alpha = [];
+beta = [];
+gamma = [];
+if isfield(Par,'alpha'), alpha = Par.alpha; end
+if isfield(Par,'beta'), beta = Par.beta; end
+if isfield(Par,'gamma'), gamma = Par.gamma; end
 
 % Supplement starting angles if necessary
-if isempty(phi)
-  phi = rand(1,nTraj)*2*pi;
+if isempty(alpha)
+  alpha = rand(1,Sim.nTraj)*2*pi;
 end
-if isempty(theta)
-  z = 2*rand(1,nTraj)-1
-  theta = acos(z);
+if isempty(beta)
+  z = 2*rand(1,Sim.nTraj)-1;
+  beta = acos(z);
 end
-if isempty(chi)
-  % Orienting potentials with m'=0 are independent of chi, so we can set chi0=0
-  chi = zeros(1,nTraj);
+if isempty(gamma)
+  % Orienting potentials with m'=0 are independent of gamma, so we can set chi0=0
+  gamma = zeros(1,Sim.nTraj);
 end
 
 % If only one starting angle and multiple trajectories, repeat the angle
-if numel(theta) == 1 && nTraj > 1
-  theta = repmat(theta,1,nTraj);
-elseif numel(theta) ~= nTraj
+if numel(beta) == 1 && Sim.nTraj > 1
+  beta = repmat(beta,1,Sim.nTraj);
+elseif numel(beta) ~= Sim.nTraj
   error('The number of starting angles must be equal to the number of trajectories.');
 end
-if numel(phi) == 1 && nTraj > 1
-  phi = repmat(phi,1,nTraj);
-elseif numel(phi) ~= nTraj
+if numel(alpha) == 1 && Sim.nTraj > 1
+  alpha = repmat(alpha,1,Sim.nTraj);
+elseif numel(alpha) ~= Sim.nTraj
+  error('The number of starting angles must be equal to the number of trajectories.');
+end
+if numel(gamma) == 1 && Sim.nTraj > 1
+  gamma = repmat(gamma,1,Sim.nTraj);
+elseif numel(gamma) ~= Sim.nTraj
   error('The number of starting angles must be equal to the number of trajectories.');
 end
 
-assert(numel(theta) == numel(phi), 'Theta and phi must be the same size.')
-assert(numel(theta) == numel(chi), 'Theta and chi must be the same size.')
+assert(numel(beta) == numel(alpha), 'Beta and alpha must be the same size.')
+assert(numel(beta) == numel(gamma), 'Beta and gamma must be the same size.')
 
-q0 = euler2quat(chi,theta,phi);
+q0 = euler2quat(alpha,beta,gamma);
 
 % Convert initial quaternion to a unitary 2x2 matrix for easier propagation
-Q = zeros(2,2,nSteps,nTraj);
+Q = zeros(2,2,Sim.nSteps,Sim.nTraj);
 Q(1,1,1,:) =  q0(1,:) - 1i*q0(4,:);
 Q(1,2,1,:) = -q0(3,:) - 1i*q0(2,:);
 Q(2,1,1,:) =  q0(3,:) - 1i*q0(2,:);
 Q(2,2,1,:) =  q0(1,:) + 1i*q0(4,:);
 
-% Pre-calculate angular steps due to random torques
-%   (Eq. 61 from reference, without factor of 1/2)
-randAngStep = bsxfun(@times, randn(3,nSteps-1,nTraj), sqrt(2*Diff*dt));
+% if isfield(Par,'chkcon')
+%   chkcon = Par.chkcon;
+% else
+%   chkcon = 0;
+% end
 
-if ~orderingPotential
-  % No ordering potential -> only random torque present
-  %  (Eqs. 48 and 61 in reference)
+% if isfield(Par,'tol')
+%   if ~isfield(Par,'chkcon') || chkcon==0
+%     error('A convergence tolerance was provided, but ''Par.chkcon'' was not equal to 1.')
+%   end
+%   tol = Par.tol;
+% else
+%   tol = 1e-3;
+% end
   
-  % Calculate size and normalized axis of angular step
-  theta = sqrt(sum(randAngStep.^2,1));
-  ux = randAngStep(1,:,:)./theta;
-  uy = randAngStep(2,:,:)./theta;
-  uz = randAngStep(3,:,:)./theta;
-  
-  % Pre-allocate array of propagators
-  U = zeros(2,2,nSteps-1,nTraj);
-  
-  st = sin(theta/2);
-  ct = cos(theta/2);
-  U(1,1,:,:) = ct - 1i*uz.*st;
-  U(1,2,:,:) = -(uy + 1i*ux).*st;
-  U(2,1,:,:) = (uy - 1i*ux).*st;
-  U(2,2,:,:) = ct + 1i*uz.*st;
+
+%========================================================================
+% Begin simulation
+%========================================================================
+
+converged = 0;
+iter = 0;
+
+logmsg(1,'-- Calculating stochastic trajectories -----------------------');
+
+while ~converged
+
+  % Pre-calculate angular steps due to random torques
+  %   (Eq. 61 from reference, without factor of 1/2)
+  Sim.randAngStep = bsxfun(@times, randn(3,Sim.nSteps-1,Sim.nTraj),...
+                                   sqrt(2*Sim.Diff*Sim.dt));
     
-  % Perform propagation
-  for iStep = 2:nSteps
-    Q(:,:,iStep,:) = matmult(Q(:,:,iStep-1,:), U(:,:,iStep-1,:));
-  end
+  if ~isfield(Sim,'lambda')||Sim.lambda==0
+    % No ordering potential -> only random torque present
+    %  (Eqs. 48 and 61 in reference)
+    Q = free_diff(Q, Sim);
 
-else
-  % Ordering potential present -> include systematic torque
-  %  (Eqs. 48 and 61 in reference)
-  for iStep = 2:nSteps
-    torque = anistorque(Q(:, :, iStep-1, :), lambda);
-    AngStep = bsxfun(@times,torque,Diff*dt) + randAngStep(:,iStep-1,:);
-
-    % Calculate size and normalized axis of angular step
-    theta = sqrt(sum(AngStep.^2, 1));
-    ux = AngStep(1,:,:)./theta;
-    uy = AngStep(2,:,:)./theta;
-    uz = AngStep(3,:,:)./theta;
-    
-    % Pre-allocate and calculate propagator array
-    U = zeros(2,2,1,nTraj);
-    st = sin(theta/2);
-    ct = cos(theta/2);
-    U(1,1,:) = ct - 1i*uz.*st;
-    U(1,2,:) = -(uy + 1i*ux).*st;
-    U(2,1,:) = (uy - 1i*ux).*st;
-    U(2,2,:) = ct + 1i*uz.*st;
-
-    % Perform propagation
-    Q(:,:,iStep,:) = matmult(Q(:,:,iStep-1,:), U);
+  else
+    % Ordering potential present -> include systematic torque
+    %  (Eqs. 48 and 61 in reference)
+    Q = aniso_diff(Q, Sim);
+  
   end
   
+  if iter==0
+    % Convert 2x2 matrices to 4x1 quaternions
+    qTraj = zeros(4,Sim.nSteps,Sim.nTraj);
+    qTraj(1,:,:) = squeeze(real(Q(1,1,:,:)));
+    qTraj(2,:,:) = squeeze(-imag(Q(1,2,:,:)));
+    qTraj(3,:,:) = squeeze(real(Q(2,1,:,:)));
+    qTraj(4,:,:) = squeeze(imag(Q(2,2,:,:)));
+
+    % Convert to rotation matrices
+    RTraj = quat2rotmat(qTraj);
+  else
+    % If not converged, then extend simulation along time axis
+    qTemp(1,:,:) = squeeze(real(Q(1,1,:,:)));
+    qTemp(2,:,:) = squeeze(-imag(Q(1,2,:,:)));
+    qTemp(3,:,:) = squeeze(real(Q(2,1,:,:)));
+    qTemp(4,:,:) = squeeze(imag(Q(2,2,:,:)));
+    
+    qTraj = cat(3,qTraj,qTemp);
+
+    RTraj = cat(4,RTraj,quat2rotmat(qTemp));
+  end
+
+chkcon = 0;  
+
+  if chkcon
+    sprintf('Convergence tests not implemented yet!')
+    converged = 1;
+    [converged, ChiSquare] = check_convergence(RTraj, Sim.lambda, tol);
+  else
+    converged = 1;
+  end
+  
+%   iter = iter + 1;
+%   
+%   if iter>10
+%     logmsg(1,'Warning: convergence is very slow. Consider increasing\nlength of trajectories or increasing the tolerance value.')
+%   end
+
 end
 
-% Convert 2x2 matrices to 4x1 quaternions
-qTraj = zeros(4,nSteps,nTraj);
-qTraj(1,:,:) = squeeze(real(Q(1,1,:,:)));
-qTraj(2,:,:) = squeeze(-imag(Q(1,2,:,:)));
-qTraj(3,:,:) = squeeze(real(Q(2,1,:,:)));
-qTraj(4,:,:) = squeeze(imag(Q(2,2,:,:)));
+% RTraj = quat2rotmat(qTraj);
 
-% Convert to rotation matrices
-R = quat2rotmat(qTraj);
+logmsg(1,'Propagation was extended %d times before converging.', iter-1)
 
 %==============================================================
 %  Final processing
@@ -214,15 +257,15 @@ R = quat2rotmat(qTraj);
 switch nargout
   case 0 % Plot results
     maxTraj = 3;
-    if nTraj>maxTraj
+    if Sim.nTraj>maxTraj
       error('Cannot plot more than %d trajectory.',maxTraj);
     end
     clf
     hold on
-    for iTraj = 1:min(maxTraj,nTraj)
-      x = squeeze(R(1,3,:,iTraj));
-      y = squeeze(R(2,3,:,iTraj));
-      z = squeeze(R(3,3,:,iTraj));
+    for iTraj = 1:min(maxTraj,Sim.nTraj)
+      x = squeeze(RTraj(1,3,:,iTraj));
+      y = squeeze(RTraj(2,3,:,iTraj));
+      z = squeeze(RTraj(3,3,:,iTraj));
       plot3(x,y,z);
     end
     axis equal
@@ -239,13 +282,16 @@ switch nargout
     zlabel('z');
   
   case 2  % Output rotation matrices only
-    varargout = {t, R};
+    varargout = {t, RTraj};
     
   case 3  % Output rotation matrices and quaternions
-    varargout = {t, R, qTraj};
+    varargout = {t, RTraj, qTraj};
     
 end
 
+logmsg(1,'--------------------------------------------------------------');
+
+clear global EasySpinLogLevel
 
 return
 
@@ -291,27 +337,145 @@ switch numel(Dyn.Diff)
     return
 end
 
-% if isfield(Dyn,'lw')
-%   if numel(Dyn.lw)>1
-%     if FieldSweep
-%       LorentzFWHM = Dyn.lw(2)*28 * 1e6; % mT -> MHz -> Hz
-%     else
-%       LorentzFWHM = Dyn.lw(2)*1e6; % MHz -> Hz
-%     end
-%   else
-%     LorentzFWHM = 0;
-%   end
-%   if (LorentzFWHM~=0)
-%     % Lorentzian T2 from FWHM in freq domain 1/T2 = pi*FWHM
-%     Dyn.T2 = 1/LorentzFWHM/pi;
-%   else
-%     Dyn.T2 = inf;
-%   end
+end
+
+%========================================================================
+
+function Q = free_diff(Q, Sim)
+% Propagate Q matrix assuming free, Brownian diffusion
+randAngStep = Sim.randAngStep;
+nSteps = Sim.nSteps;
+nTraj = Sim.nTraj;
+
+% Calculate size and normalized axis of angular step
+theta = sqrt(sum(randAngStep.^2,1));
+ux = randAngStep(1,:,:)./theta;
+uy = randAngStep(2,:,:)./theta;
+uz = randAngStep(3,:,:)./theta;
+
+st = sin(theta/2);
+ct = cos(theta/2);
+
+% Pre-allocate array of propagators
+% All propagators can be pre-calculated for Brownian diffusion
+U = zeros(2,2,nSteps-1,nTraj);
+
+U(1,1,:,:) = ct - 1i*uz.*st;
+U(1,2,:,:) = -(uy + 1i*ux).*st;
+U(2,1,:,:) = (uy - 1i*ux).*st;
+U(2,2,:,:) = ct + 1i*uz.*st;
+
+
+% Perform propagation
+for iStep = 2:nSteps
+  Q(:,:,iStep,:) = matmult(Q(:,:,iStep-1,:),U(:,:,iStep-1,:));
+end
+
+end
+
+%========================================================================
+
+function Q = aniso_diff(Q, Sim)
+% Propagate Q matrix assuming Brownian diffusion in an orienting potential
+randAngStep = Sim.randAngStep;
+nSteps = Sim.nSteps;
+nTraj = Sim.nTraj;
+dt = Sim.dt;
+Diff = Sim.Diff;
+lambda = Sim.lambda;
+
+for iStep=2:nSteps
+  
+  torque = anistorque(Q(:,:,iStep-1,:), lambda);
+  if iter==0
+    AngStep = bsxfun(@times,torque,Diff*dt) + randAngStep(:,iStep-1,:);
+  else
+    AngStep = bsxfun(@times,torque,Diff*dt) + randAngStep(:,iStep,:);
+  end
+
+  % Calculate size and normalized axis of angular step
+  theta = sqrt(sum(AngStep.^2, 1));
+  ux = AngStep(1,:,:)./theta;
+  uy = AngStep(2,:,:)./theta;
+  uz = AngStep(3,:,:)./theta;
+  
+  st = sin(theta/2);
+  ct = cos(theta/2);
+
+  % For anisotropic potentials, propagators must be calculated for each
+  % timestep
+  % Need '1' in the third dimension so that size(U) matches size(Q(:,:,iStep-1,:))
+  U(1,1,1,:) = ct - 1i*uz.*st;
+  U(1,2,1,:) = -(uy + 1i*ux).*st;
+  U(2,1,1,:) = (uy - 1i*ux).*st;
+  U(2,2,1,:) = ct + 1i*uz.*st;
+
+  % Perform propagation
+  Q(:,:,iStep,:) = matmult(Q(:,:,iStep-1,:), U);
+end
+
+end
+
+%========================================================================
+
+% function varargout = acorr_convergence(RTraj, tol)
+% % Calculate angular histogram of trajectories and compare with analytic
+% % expression
+% 
+% nBins = 50;  % There might be a better value to choose here
+%   
+% VecTraj = squeeze(RTraj(:, 3, :, :));
+% 
+% totTraj = size(RTraj,4);
+% 
+% AutoCorrFFT = zeros(nSteps, nTraj);
+% 
+% for k = 1:totTraj
+%   AutoCorrFFT(:, k) = autocorrfft(VecTraj(:, :, k).^2);
 % end
 % 
-% % Heisenberg exchange
-% %------------------------------------------------------------------
-% if ~isfield(Dyn,'Exchange'), Dyn.Exchange = 0; end
-% Dyn.Exchange = Dyn.Exchange*2*pi*1e6; % MHz -> angular frequency
+% AutoCorrFFT = sum(AutoCorrFFT, 2)'/totTraj;
+% 
+% converged = ChiSquare < tol;
+% 
+% varargout = {converged, ChiSquare};
+% 
+% end
 
-return
+%========================================================================
+
+% function varargout = hist_convergence(RTraj, lambda, tol)
+% % Calculate angular histogram of trajectories and compare with analytic
+% % expression
+% 
+% nBins = 50;  % There might be a better value to choose here
+%   
+% VecTraj = squeeze(RTraj(:, 3, :, :));
+% 
+% totTraj = size(RTraj,4);
+% 
+% bins = linspace(0, pi, nBins)';
+% ThetaHist = zeros(nBins, totTraj);
+% 
+% for k = 1:totTraj
+%   ThetaHist(:, k) = hist(acos(VecTraj(3, :, k)), bins);
+% end
+% 
+% ThetaHist = sum(ThetaHist, 2);
+% ThetaHist = ThetaHist/sum(ThetaHist);
+% 
+% BoltzDist = exp(lambda*(1.5*cos(bins).^2 - 0.5));
+% BoltzInt = sum(BoltzDist.*sin(bins));
+% BoltzDist = BoltzDist.*sin(bins)./BoltzInt;
+% 
+% ChiSquare = sum(((ThetaHist - BoltzDist).^2)./ThetaHist);
+% 
+% converged = ChiSquare < tol;
+% 
+% varargout = {converged, ChiSquare};
+% 
+% end
+
+%========================================================================
+    
+end
