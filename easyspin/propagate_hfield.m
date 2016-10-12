@@ -1,7 +1,7 @@
 % propagate_hfield  Propagate the density matrix for a spin-1/2 nitroxide
 %                   using the high field approximation.
 %
-%  rho_t = propagate_hfield(Par, RTraj);
+%  rho_t = propagate_hfield(Sys, RTraj);
 %
 %  Sys: structure with simulation parameters
 %     g              1x3 array, principal values of the g-tensor

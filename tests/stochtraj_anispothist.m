@@ -2,10 +2,10 @@ function [err,data] = test(opt,olddata)
 % Check that using stochtraj with anisotropic diffusion generates a
 % proper distribution of orientations
 
-Par.lambda = 2*(2*rand()-1);
-Par.tcorr = 10*rand()*1e-9;
-Par.dt = Par.tcorr/10;
-Par.nSteps = ceil(100*Par.tcorr/Par.dt);
+Sys.lambda = 2*(2*rand()-1);
+Sys.tcorr = 10*rand()*1e-9;
+Par.dt = Sys.tcorr/10;
+Par.nSteps = ceil(100*Sys.tcorr/Par.dt);
 Par.nTraj = 800;
 Par.theta = pi*(2*rand()-1);
 Par.phi = 2*pi*(2*rand()-1);
@@ -13,11 +13,11 @@ Par.chi = 2*pi*(2*rand()-1);
 
 nTraj = Par.nTraj;
 nSteps = Par.nSteps;
-c20 = Par.lambda;
+c20 = Sys.lambda;
 
 nBins = 50;
 
-[t, R] = stochtraj(Par);
+[t, R] = stochtraj(Sys,Par);
 
 
 VecTraj = squeeze(R(:, 3, :, :));

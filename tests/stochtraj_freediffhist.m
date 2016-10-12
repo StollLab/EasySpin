@@ -2,9 +2,9 @@ function [err,data] = test(opt,olddata)
 % Check that using stochtraj with free diffusion generates a proper 
 % distribution of orientations
 
-Par.tcorr = 10*rand()*1e-9;
-Par.dt = Par.tcorr/10;
-Par.nSteps = ceil(100*Par.tcorr/Par.dt);
+Sys.tcorr = 10*rand()*1e-9;
+Par.dt = Sys.tcorr/10;
+Par.nSteps = ceil(100*Sys.tcorr/Par.dt);
 Par.nTraj = 100;
 Par.theta = pi*(2*rand()-1);
 Par.phi = 2*pi*(2*rand()-1);
@@ -16,7 +16,7 @@ c20 = 0.0;
 
 nBins = 70;
 
-[t, R] = stochtraj(Par);
+[t, R] = stochtraj(Sys,Par);
 
 
 VecTraj = squeeze(R(:, 3, :, :));

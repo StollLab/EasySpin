@@ -1,6 +1,6 @@
 % stochtraj  Generate stochastic rotational trajectories
 %
-%  [t,RTraj] = stochtraj(Par)
+%  [t,RTraj] = stochtraj(Sys,Par)
 %  [t,RTraj,qTraj] = stochtraj(...)
 %
 %  Sys: stucture with system's dynamical parameters
@@ -30,11 +30,12 @@
 %   Sezer, et al., J.Chem.Phys. 128, 165106 (2008)
 %     http://dx.doi.org/10.1063/1.2908075
 
-function varargout = stochtraj(Par)
+function varargout = stochtraj(Sys, Par)
 
 if (nargin == 0), help(mfilename); return; end
 
-if (nargin > 1), error('Too many input arguments.'); end
+if (nargin < 2), error('Not enough input arguments.'); end
+if (nargin > 2), error('Too many input arguments.'); end
 
 switch nargout
   case 0 % plotting
@@ -55,18 +56,18 @@ EasySpinLogLevel = Par.Verbosity;
 % Dynamics and ordering potential
 %========================================================================
 % if no ordering potential coefficient is given, set it to 0
-if ~isfield(Par,'lambda'), Par.lambda = 0; end
+if ~isfield(Sys,'lambda'), Sys.lambda = 0; end
 
-if numel(Par.lambda) > 1
+if numel(Sys.lambda) > 1
   error('Only one orienting potential coefficient, c20, is currently implemented.')
 end
-Sim.lambda = Par.lambda;
+Sim.lambda = Sys.lambda;
 
 % parse the dynamics parameter input using private function
-if isfield(Par,'tcorr'), Dynamics.tcorr = Par.tcorr;
-elseif isfield(Par,'Diff'), Dynamics.Diff = Par.Diff;
-elseif isfield(Par,'logtcorr'), Dynamics.logtcorr = Par.logtcorr;
-elseif isfield(Par,'logDiff'), Dynamics.logDiff = Par.logDiff;
+if isfield(Sys,'tcorr'), Dynamics.tcorr = Sys.tcorr;
+elseif isfield(Sys,'Diff'), Dynamics.Diff = Sys.Diff;
+elseif isfield(Sys,'logtcorr'), Dynamics.logtcorr = Sys.logtcorr;
+elseif isfield(Sys,'logDiff'), Dynamics.logDiff = Sys.logDiff;
 else error('A rotational correlation time or diffusion rate is required.'); end
 
 [Dynamics, err] = processdynamics(Dynamics);
@@ -203,9 +204,9 @@ while ~converged
     % Ordering potential present -> include systematic torque
     %  (Eqs. 48 and 61 in reference)
     Q = aniso_diff(Q, Sim);
-  
+
   end
-  
+
   if iter==0
     % Convert 2x2 matrices to 4x1 quaternions
     qTraj = zeros(4,Sim.nSteps,Sim.nTraj);
@@ -387,11 +388,11 @@ lambda = Sim.lambda;
 for iStep=2:nSteps
   
   torque = anistorque(Q(:,:,iStep-1,:), lambda);
-  if iter==0
+%   if iter==0
     AngStep = bsxfun(@times,torque,Diff*dt) + randAngStep(:,iStep-1,:);
-  else
-    AngStep = bsxfun(@times,torque,Diff*dt) + randAngStep(:,iStep,:);
-  end
+%   else
+%     AngStep = bsxfun(@times,torque,Diff*dt) + randAngStep(:,iStep,:);
+%   end
 
   % Calculate size and normalized axis of angular step
   theta = sqrt(sum(AngStep.^2, 1));
