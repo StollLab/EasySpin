@@ -1,5 +1,6 @@
 % stochtraj  Generate stochastic rotational trajectories
 %
+%  [t,RTraj] = stochtraj(Sys)
 %  [t,RTraj] = stochtraj(Sys,Par)
 %  [t,RTraj,qTraj] = stochtraj(...)
 %
@@ -11,20 +12,24 @@
 %     .dt             time step (in seconds)
 %     .nSteps         number of time steps per simulation
 %     .nTraj          number of trajectories
-%     .alpha            Euler angle phi for starting orientation(s)
-%     .beta          Euler angle theta for starting orientation(s)
-%     .gamma            Euler angle chi for starting orientation(s)
+%     .alpha          Euler angle alpha for starting orientation(s)
+%     .beta           Euler angle beta for starting orientation(s)
+%     .gamma          Euler angle gamma for starting orientation(s)
 %     .seed           seed the random number generator for reproducibility
-%     .chkcon         if equal to 1, check for convergence in the angular
-%                     distribution after every nSteps, and extend 
-%                     propagation by an additional nSteps until it has
-%                     converged
+%     .chkcon         if equal to 1, after the first nSteps of the 
+%                     trajectories are calculated, both inter- and intra-
+%                     trajectory convergence is checked using the Gelman-
+%                     Rubin R statistic such that R<1.1, and if this 
+%                     condition is not satisfied, then propagation will be 
+%                     extended by either a length of time equal to the 
+%                     average of tcorr or by 20% more time steps, whichever 
+%                     is larger
 %     .Verbosity      0: no display, 1: show info
 %
 %  Output:
-%     t              time points of the trajectory (in seconds)
-%     RTraj              array of rotation matrices
-%     qTraj          array of normalized quaternions
+%     t              array, time points of the trajectory (in seconds)
+%     RTraj          3x3x... array, rotation matrices
+%     qTraj          4x... array, normalized quaternions
 
 % Implementation based on 
 %   Sezer, et al., J.Chem.Phys. 128, 165106 (2008)
@@ -34,8 +39,10 @@ function varargout = stochtraj(Sys, Par)
 
 if (nargin == 0), help(mfilename); return; end
 
-if (nargin < 2), error('Not enough input arguments.'); end
-if (nargin > 2), error('Too many input arguments.'); end
+% Only Sys needs to be given to run stochtraj properly, so if Par is not 
+% given, initialize it here
+if (nargin == 1), Par.Verbosity = 0;
+elseif (nargin > 2), error('Too many input arguments.'); end
 
 switch nargout
   case 0 % plotting
@@ -88,18 +95,24 @@ elseif isfield(Par,'nSteps') && isfield(Par,'dt')
   % number of steps and time step are given
   Sim.dt = Par.dt;
   Sim.nSteps = Par.nSteps;
-  t = linspace(0, Sim.nSteps*Sim.dt, Sim.nSteps);
 
 elseif isfield(Par, 'nSteps') && isfield(Par, 'tmax')
   % number of steps and max time are given
   tmax = Par.tmax;
   Sim.nSteps = Par.nSteps;
   Sim.dt = tmax/Sim.nSteps;
-  t = linspace(0, Sim.nSteps*Sim.dt, Sim.nSteps);
 
 else
-  error(['You must specify a time array, or a number of steps and ' ...
-        'either a time step or tmax.'])
+%   error(['You must specify a time array, or a number of steps and ' ...
+%         'either a time step or tmax.'])
+  logmsg(1,'-- No time step given. Par.dt set to Par.tcorr/10: %0.5g s.', 1/6/mean(Sim.Diff));
+  Sim.dt = 1/6/mean(Sim.Diff)/10;
+  if ~isfield(Par, 'nSteps')
+    logmsg(1,'-- Number of time steps not given. Par.nSteps set to 200e-9/Par.dt: %d.', ceil(200e-9/Sim.dt));
+    Sim.nSteps = ceil(200e-9/Sim.dt);
+  else
+    Sim.nSteps = Par.nSteps;
+  end
 end
 
 if isfield(Par,'seed')
@@ -154,6 +167,16 @@ end
 assert(numel(beta) == numel(alpha), 'Beta and alpha must be the same size.')
 assert(numel(beta) == numel(gamma), 'Beta and gamma must be the same size.')
 
+if isfield(Par,'chkcon')
+  chkcon = Par.chkcon;
+  if chkcon==1 && Sim.nTraj==1
+    error('Checking convergence of a single trajectory using the R statistic is not supported.\n')
+  end
+else
+  chkcon = 0;
+end
+
+
 q0 = euler2quat(alpha,beta,gamma);
 
 % Convert initial quaternion to a unitary 2x2 matrix for easier propagation
@@ -162,12 +185,6 @@ Q(1,1,1,:) =  q0(1,:) - 1i*q0(4,:);
 Q(1,2,1,:) = -q0(3,:) - 1i*q0(2,:);
 Q(2,1,1,:) =  q0(3,:) - 1i*q0(2,:);
 Q(2,2,1,:) =  q0(1,:) + 1i*q0(4,:);
-
-% if isfield(Par,'chkcon')
-%   chkcon = Par.chkcon;
-% else
-%   chkcon = 0;
-% end
 
 % if isfield(Par,'tol')
 %   if ~isfield(Par,'chkcon') || chkcon==0
@@ -185,27 +202,37 @@ Q(2,2,1,:) =  q0(1,:) + 1i*q0(4,:);
 
 converged = 0;
 iter = 0;
+tcorrAvg = 1/6/mean(Sim.Diff);
 
 logmsg(1,'-- Calculating stochastic trajectories -----------------------');
 
 while ~converged
 
+  if iter>0
+    % Reset nSteps if propagation is being extended
+    % Continue propagation by 20% more steps or by tcorr/dt, whichever is
+    % greater
+    Sim.nSteps = max([ceil(tcorrAvg/Sim.dt), ceil(1.2*Sim.nSteps)]);
+  end
+  
   % Pre-calculate angular steps due to random torques
   %   (Eq. 61 from reference, without factor of 1/2)
-  Sim.randAngStep = bsxfun(@times, randn(3,Sim.nSteps-1,Sim.nTraj),...
+  Sim.randAngStep = bsxfun(@times, randn(3,Sim.nSteps,Sim.nTraj),...
                                    sqrt(2*Sim.Diff*Sim.dt));
-    
-  if ~isfield(Sim,'lambda')||Sim.lambda==0
-    % No ordering potential -> only random torque present
-    %  (Eqs. 48 and 61 in reference)
-    Q = free_diff(Q, Sim);
 
-  else
-    % Ordering potential present -> include systematic torque
-    %  (Eqs. 48 and 61 in reference)
-    Q = aniso_diff(Q, Sim);
+%   if ~isfield(Sim,'lambda')||Sim.lambda==0
+%     % No ordering potential -> only random torque present
+%     %  (Eqs. 48 and 61 in reference)
+%     Q = free_diff(Q, Sim, iter);
+%   else
+%     % Ordering potential present -> include systematic torque
+%     %  (Eqs. 48 and 61 in reference)
+%     Q = aniso_diff(Q, Sim, iter);
+%   end
 
-  end
+  %  Perform stochastic simulations
+  %  (Eqs. 48 and 61 in reference)
+  Q = propagate(Q, Sim, iter);
 
   if iter==0
     % Convert 2x2 matrices to 4x1 quaternions
@@ -215,41 +242,43 @@ while ~converged
     qTraj(3,:,:) = squeeze(real(Q(2,1,:,:)));
     qTraj(4,:,:) = squeeze(imag(Q(2,2,:,:)));
 
-    % Convert to rotation matrices
-    RTraj = quat2rotmat(qTraj);
   else
     % If not converged, then extend simulation along time axis
+    qTemp = zeros(4,Sim.nSteps,Sim.nTraj);
     qTemp(1,:,:) = squeeze(real(Q(1,1,:,:)));
     qTemp(2,:,:) = squeeze(-imag(Q(1,2,:,:)));
     qTemp(3,:,:) = squeeze(real(Q(2,1,:,:)));
     qTemp(4,:,:) = squeeze(imag(Q(2,2,:,:)));
     
-    qTraj = cat(3,qTraj,qTemp);
-
-    RTraj = cat(4,RTraj,quat2rotmat(qTemp));
+    qTraj = cat(2,qTraj,qTemp);
   end
 
-chkcon = 0;  
-
   if chkcon
-    sprintf('Convergence tests not implemented yet!')
-    converged = 1;
-    [converged, ChiSquare] = check_convergence(RTraj, Sim.lambda, tol);
+    gr = grstat(qTraj);
+    converged = all(gr(:)<1.1);
   else
     converged = 1;
   end
+
+  iter = iter + 1;
   
-%   iter = iter + 1;
-%   
-%   if iter>10
-%     logmsg(1,'Warning: convergence is very slow. Consider increasing\nlength of trajectories or increasing the tolerance value.')
-%   end
+  if iter>10
+    logmsg(1,'Warning: convergence is very slow. Consider increasing\nlength or number of trajectories.')
+  end
 
 end
 
-% RTraj = quat2rotmat(qTraj);
+t = linspace(0, size(qTraj,2)*Sim.dt, size(qTraj,2)).';
 
-logmsg(1,'Propagation was extended %d times before converging.', iter-1)
+% Convert to rotation matrices
+RTraj = quat2rotmat(qTraj);
+
+if iter>0
+logmsg(1,'-- Propagation was extended %d times before converging. -------', iter-1)
+end
+
+logmsg(1,'-- Propagation finished --------------------------------------');
+logmsg(1,'--------------------------------------------------------------');
 
 %==============================================================
 %  Final processing
@@ -289,8 +318,6 @@ switch nargout
     varargout = {t, RTraj, qTraj};
     
 end
-
-logmsg(1,'--------------------------------------------------------------');
 
 clear global EasySpinLogLevel
 
@@ -342,42 +369,9 @@ end
 
 %========================================================================
 
-function Q = free_diff(Q, Sim)
-% Propagate Q matrix assuming free, Brownian diffusion
-randAngStep = Sim.randAngStep;
-nSteps = Sim.nSteps;
-nTraj = Sim.nTraj;
+function Q = propagate(Q, Sim, iter)%aniso_diff(Q, Sim, iter)
+% Propagate quaternion matrix Q
 
-% Calculate size and normalized axis of angular step
-theta = sqrt(sum(randAngStep.^2,1));
-ux = randAngStep(1,:,:)./theta;
-uy = randAngStep(2,:,:)./theta;
-uz = randAngStep(3,:,:)./theta;
-
-st = sin(theta/2);
-ct = cos(theta/2);
-
-% Pre-allocate array of propagators
-% All propagators can be pre-calculated for Brownian diffusion
-U = zeros(2,2,nSteps-1,nTraj);
-
-U(1,1,:,:) = ct - 1i*uz.*st;
-U(1,2,:,:) = -(uy + 1i*ux).*st;
-U(2,1,:,:) = (uy - 1i*ux).*st;
-U(2,2,:,:) = ct + 1i*uz.*st;
-
-
-% Perform propagation
-for iStep = 2:nSteps
-  Q(:,:,iStep,:) = matmult(Q(:,:,iStep-1,:),U(:,:,iStep-1,:));
-end
-
-end
-
-%========================================================================
-
-function Q = aniso_diff(Q, Sim)
-% Propagate Q matrix assuming Brownian diffusion in an orienting potential
 randAngStep = Sim.randAngStep;
 nSteps = Sim.nSteps;
 nTraj = Sim.nTraj;
@@ -385,26 +379,57 @@ dt = Sim.dt;
 Diff = Sim.Diff;
 lambda = Sim.lambda;
 
-for iStep=2:nSteps
-  
-  torque = anistorque(Q(:,:,iStep-1,:), lambda);
-%   if iter==0
-    AngStep = bsxfun(@times,torque,Diff*dt) + randAngStep(:,iStep-1,:);
-%   else
-%     AngStep = bsxfun(@times,torque,Diff*dt) + randAngStep(:,iStep,:);
-%   end
+if iter>0
+  % If propagation is being extended, initialize Q matrix from the last set
+  if lambda==0
+    % If there is no orienting potential, then there is no torque to
+    % calculate
+    AngStep = randAngStep(:,1,:);
+  else
+    torque = anistorque(Q(:,:,end,:), lambda);
+    AngStep = bsxfun(@times,torque,Diff*dt) + randAngStep(:,1,:);
+  end
 
   % Calculate size and normalized axis of angular step
   theta = sqrt(sum(AngStep.^2, 1));
   ux = AngStep(1,:,:)./theta;
   uy = AngStep(2,:,:)./theta;
   uz = AngStep(3,:,:)./theta;
-  
+
   st = sin(theta/2);
   ct = cos(theta/2);
 
-  % For anisotropic potentials, propagators must be calculated for each
-  % timestep
+  % Need '1' in the third dimension so that size(U) matches size(Q(:,:,iStep-1,:))
+  U(1,1,1,:) = ct - 1i*uz.*st;
+  U(1,2,1,:) = -(uy + 1i*ux).*st;
+  U(2,1,1,:) = (uy - 1i*ux).*st;
+  U(2,2,1,:) = ct + 1i*uz.*st;
+
+  % Calculate Q matrices for the first time step
+  Qinit = matmult(Q(:,:,end,:),U(:,:,1,:));
+  Q = zeros(2,2,nSteps,nTraj);
+  Q(:,:,1,:) = Qinit;
+end
+  
+for iStep=2:nSteps
+  if lambda==0
+    % If there is no orienting potential, then there is no torque to
+    % calculate
+    AngStep = randAngStep(:,iStep-1,:);
+  else
+    torque = anistorque(Q(:,:,iStep-1,:), lambda);
+    AngStep = bsxfun(@times,torque,Diff*dt) + randAngStep(:,iStep-1,:);
+  end
+
+  % Calculate size and normalized axis of angular step
+  theta = sqrt(sum(AngStep.^2, 1));
+  ux = AngStep(1,:,:)./theta;
+  uy = AngStep(2,:,:)./theta;
+  uz = AngStep(3,:,:)./theta;
+
+  st = sin(theta/2);
+  ct = cos(theta/2);
+
   % Need '1' in the third dimension so that size(U) matches size(Q(:,:,iStep-1,:))
   U(1,1,1,:) = ct - 1i*uz.*st;
   U(1,2,1,:) = -(uy + 1i*ux).*st;
@@ -416,6 +441,50 @@ for iStep=2:nSteps
 end
 
 end
+
+%========================================================================
+
+% function Q = free_diff(Q, Sim, iter)
+% % Propagate Q matrix assuming free, Brownian diffusion
+% 
+% randAngStep = Sim.randAngStep;
+% nSteps = Sim.nSteps;
+% nTraj = Sim.nTraj;
+% 
+% % Calculate size and normalized axis of angular step
+% theta = sqrt(sum(randAngStep.^2,1));
+% ux = randAngStep(1,:,:)./theta;
+% uy = randAngStep(2,:,:)./theta;
+% uz = randAngStep(3,:,:)./theta;
+% 
+% st = sin(theta/2);
+% ct = cos(theta/2);
+% 
+% 
+% % Pre-allocate array of propagators
+% % All propagators can be pre-calculated for Brownian diffusion
+% % Note that U(:,:,1,:) will only get used if propagation is being extended
+% U = zeros(2,2,nSteps,nTraj);
+% 
+% U(1,1,:,:) = ct - 1i*uz.*st;
+% U(1,2,:,:) = -(uy + 1i*ux).*st;
+% U(2,1,:,:) = (uy - 1i*ux).*st;
+% U(2,2,:,:) = ct + 1i*uz.*st;
+% 
+% 
+% % Perform propagation
+% if iter>0
+%   % If propagation is being extended, initialize Q matrix from the last set
+%   Qinit = matmult(Q(:,:,end,:),U(:,:,1,:));
+%   Q = zeros(2,2,Sim.nSteps,Sim.nTraj);
+%   Q(:,:,1,:) = Qinit;
+% end
+% 
+% for iStep = 2:nSteps
+%   Q(:,:,iStep,:) = matmult(Q(:,:,iStep-1,:),U(:,:,iStep,:));
+% end
+% 
+% end
 
 %========================================================================
 

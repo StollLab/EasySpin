@@ -10,6 +10,9 @@ Par.theta = pi*(2*rand()-1);
 Par.phi = 2*pi*(2*rand()-1);
 Par.chi = 2*pi*(2*rand()-1);
 
+Par.chkcon = 1;
+Par.Verbosity = 1;
+
 tcorr = Sys.tcorr;
 nTraj = Par.nTraj;
 nSteps = Par.nSteps;
@@ -25,7 +28,7 @@ for iTraj = 1:nTraj
 %   AutoCorrFFT(:, iTraj) = autocorrfft(q(:, :, iTraj).^2);
 end
 
-AutoCorrFFT = sum(AutoCorrFFT, 2)'/nTraj;
+AutoCorrFFT = sum(AutoCorrFFT, 2)/nTraj;
 
 analytic = exp(-(1/tcorr)*t);
 
@@ -37,6 +40,7 @@ if rmsd > 5e-2
   plot(t, AutoCorrFFT, t, analytic)
 else  
   err = 0;
+    plot(t, AutoCorrFFT, t, analytic)
 end
 
 data = [];

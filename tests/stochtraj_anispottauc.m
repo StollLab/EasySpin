@@ -25,7 +25,7 @@ for iTraj = 1:nTraj
   AutoCorrFFT(:, iTraj) = autocorrfft(VecTraj(:,:,iTraj).^2);
 end
 
-AutoCorrFFT = sum(AutoCorrFFT, 2).'/nTraj;
+AutoCorrFFT = sum(AutoCorrFFT, 2)/nTraj;
 
 analytic = exp(-(1/tcorr)*t);
 

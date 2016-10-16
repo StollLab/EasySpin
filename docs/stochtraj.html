@@ -35,9 +35,10 @@ Simulation of stochastic rotational trajectories.
 <div class="subtitle">Syntax</div>
 
 <pre class="matlab">
-stochtraj(Par)
-[RTraj,t] = stochtraj(...)
-[RTraj,qTraj,t] = stochtraj(...)
+stochtraj(Sys)
+stochtraj(Sys,Par)
+[t,RTraj] = stochtraj(...)
+[t,RTraj,qTraj] = stochtraj(...)
 </pre>
 
 <!-- =================================================================== -->
@@ -48,10 +49,13 @@ stochtraj(Par)
 </p>
 
 <p>
-<code>stochtraj</code> accepts one input argument
+<code>stochtraj</code> accepts up to two input arguments
 
 <ul>
-<li><code>Par</code>: simulation parameters for the stochastic motion
+<li><code>Sys</code>: dynamic properties
+</ul>
+<ul>
+<li><code>Par</code>: (optional) simulation parameters for the stochastic motion
 </ul>
 
 <p>
@@ -70,7 +74,7 @@ Up to three output arguments are returned:
 If no output argument is given, <code>stochtraj</code> plots one of the trajectories.
 </p>
 
-<div class="subtitle2">Input: Spin system</div>
+<div class="subtitle2">Input: System dynamics </div>
 
 <p>
 <code>Sys</code> is a structure containing the dynamic properties for generating the stochastic rotational trajectories. 
@@ -200,12 +204,12 @@ The Euler angle &phi; used to specify starting orientations, in radians.
 The total number of trajectories to simulate.
 </div>
 
-<!--<div class="optionfield"><code>chkcon</code></div>
+<div class="optionfield"><code>chkcon</code></div>
 <div class="optiondescr">
 0 (default), 1<br>
-If equal to 1, after the first <code>nTraj</code> trajectories are calculated, <code>stochtraj</code> will check for convergence in the chi squared of the angular distribution. If convergence is not obtained, an additional <code>nTraj</code> trajectories will be calculated, and this process will repeat until the tolerance is reached.
+If equal to 1, after the first <code>nSteps</code> of the trajectories are calculated, <code>stochtraj</code> will check for both inter- and intra-trajectory convergence using the Gelman-Rubin R statistic (to be specific, requiring that R&lt;1.1, see A. Gelman and D. Rubin, Statistical Science 7, 457 (1992) for details). If convergence is not obtained, then propagation will be extended by either a length of time equal to the average of <code>tcorr</code> or by 20% more time steps, whichever is larger.
 </div>
-
+<!--
 <div class="optionfield"><code>tol</code></div>
 <div class="optiondescr">
 Termination tolerance for chi squared in angular distribution. If <code>Par.chkcon=1</code> and <code>tol</code> is not specified, the default value is <code>1e-3</code>.
