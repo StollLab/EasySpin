@@ -24,7 +24,11 @@ if (nargin==0), help(mfilename); return; end
 ndimsA = ndims(A);
 sizeA = size(A);
 
-assert(ismatrix(A),'Must provide an array for input.')
+assert(isnumeric(A),'Must provide an array for input.')
+
+if ndimsA>3
+  error('Array dimensions greater than 3 are not supported.')
+end
 
 if isrow(A) || (ndimsA==3 && ~sizeA(2)>1)
   error('Markov chain length must be greater than one.')
@@ -32,10 +36,6 @@ end
 
 if iscolumn(A) || (ndimsA==3 && ~sizeA(3)>1)
   error('Must have more than one Markov chain.')
-end
-
-if ndimsA>3
-  error('Array dimensions greater than 3 are not supported.')
 end
   
 if ndimsA==2

@@ -10,9 +10,6 @@ Par.theta = pi*(2*rand()-1);
 Par.phi = 2*pi*(2*rand()-1);
 Par.chi = 2*pi*(2*rand()-1);
 
-Par.chkcon = 1;
-Par.Verbosity = 1;
-
 tcorr = Sys.tcorr;
 nTraj = Par.nTraj;
 nSteps = Par.nSteps;
@@ -40,7 +37,6 @@ if rmsd > 5e-2
   plot(t, AutoCorrFFT, t, analytic)
 else  
   err = 0;
-    plot(t, AutoCorrFFT, t, analytic)
 end
 
 data = [];
