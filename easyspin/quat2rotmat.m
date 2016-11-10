@@ -12,10 +12,12 @@ function mat = quat2rotmat(q)
 qshape = size(q);
     
 if qshape(1) ~= 4
-    error('Size of first dimension must equal 4.')
+  error('Size of first dimension must equal 4.')
 end
-if any(1.0-sum(q.*q, 1) > 1e-5)
-    error('Input is not normalized.')
+
+diff = abs(1.0-squeeze(sum(q.*q, 1)));
+if any(diff(:) > 1e-10)
+  error('Input is not normalized.')
 end
 
 Index = cell(1, ndims(q));

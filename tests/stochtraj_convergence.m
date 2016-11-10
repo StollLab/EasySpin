@@ -2,7 +2,8 @@ function [err,data] = test(opt,olddata)
 % Check that using stochtraj with anisotropic diffusion generates a
 % proper distribution of orientations
 
-Sys.lambda = 2*(2*rand()-1);
+c20 = 2*(2*rand()-1);
+Sys.lambda = struct('c20', c20);
 Sys.tcorr = 10*rand()*1e-9;
 Par.dt = Sys.tcorr/10;
 Par.nSteps = ceil(100*Sys.tcorr/Par.dt);
@@ -14,7 +15,6 @@ Par.chkcon = 1;
 
 nTraj = Par.nTraj;
 nSteps = Par.nSteps;
-c20 = Sys.lambda;
 
 nBins = 50;
 

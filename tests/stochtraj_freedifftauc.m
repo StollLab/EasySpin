@@ -6,9 +6,9 @@ Sys.tcorr = 10*rand()*1e-9;
 Par.dt = Sys.tcorr/10;
 Par.nSteps = ceil(100*Sys.tcorr/Par.dt);
 Par.nTraj = 800;
-Par.theta = pi*(2*rand()-1);
-Par.phi = 2*pi*(2*rand()-1);
-Par.chi = 2*pi*(2*rand()-1);
+Par.beta = pi*(2*rand()-1);
+Par.alpha = 2*pi*(2*rand()-1);
+Par.gamma = 2*pi*(2*rand()-1);
 
 tcorr = Sys.tcorr;
 nTraj = Par.nTraj;
@@ -16,16 +16,16 @@ nSteps = Par.nSteps;
 
 [t, R, q] = stochtraj(Sys,Par);
 
-VecTraj = squeeze(R(:, 3, :, :));
+VecTraj = squeeze(R(:,3,:,:));
 
-AutoCorrFFT = zeros(nSteps, nTraj);
+AutoCorrFFT = zeros(nTraj,nSteps);
 
 for iTraj = 1:nTraj
-  AutoCorrFFT(:, iTraj) = autocorrfft(VecTraj(:, :, iTraj).^2);
+  AutoCorrFFT(iTraj,:) = autocorrfft(squeeze(VecTraj(:,iTraj,:).^2));
 %   AutoCorrFFT(:, iTraj) = autocorrfft(q(:, :, iTraj).^2);
 end
 
-AutoCorrFFT = sum(AutoCorrFFT, 2)/nTraj;
+AutoCorrFFT = sum(AutoCorrFFT, 1)'/nTraj;
 
 analytic = exp(-(1/tcorr)*t);
 
