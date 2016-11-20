@@ -25,10 +25,10 @@ if nNuclei>=2, I2 = I(2); end
 iRow = 0;
 iSpatial = 0;
 
-MakeIndices = 1;
+MakeIndices = true;
 
 if MakeIndices
-  nRowBlock = 20000;
+  nRowBlock = 20000; % size of pre-allocation block
   Indices = zeros(nRowBlock,4+2+2*nNuclei);
 end
 
@@ -42,18 +42,21 @@ for L = 0:evenLmax
       Mmx = min(L,Mmax);
       for M = -Mmx:Mmx
         iSpatial = iSpatial + 1;
-
-
+        
+        
         for pS = pSmin:1
           qSmx = 1 - abs(pS);
           for qS = -qSmx:2:qSmx
-
+            
             % no nuclei ---------------------------------------
             if (nNuclei==0)
               if (MpSymm&&(~DirTilt)&&((pS-1)~=M)), continue; end % Meirovitch Eq.(A47)
               
               iRow = iRow + 1;
               if MakeIndices
+                if mod(iRow,nRowBlock)==0
+                  Indices(iRow+nRowBlock,:) = 0;
+                end
                 Indices(iRow,:) = [L jK K M pS qS];
               end
                 
@@ -67,6 +70,9 @@ for L = 0:evenLmax
                   
                   iRow = iRow + 1;
                   if MakeIndices
+                    if mod(iRow,nRowBlock)==0
+                      Indices(iRow+nRowBlock,:) = 0;
+                    end
                     Indices(iRow,:) = [L jK K M pS qS pI1 qI1];
                   end
                   
@@ -86,6 +92,9 @@ for L = 0:evenLmax
                       
                       iRow = iRow + 1;
                       if MakeIndices
+                        if mod(iRow,nRowBlock)==0
+                          Indices(iRow+nRowBlock,:) = 0;
+                        end
                         Indices(iRow,:) = [L jK K M pS qS pI1 qI1 pI2 qI2];
                       end
                       
