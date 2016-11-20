@@ -801,7 +801,13 @@ for iOri = 1:nOrientations
     Dynamics.maxL = size(Potential.xlk,1)-1; % used in chili_lm
     [r,c,Vals,nDim,nElm] = chili_lm(Sys,Basis.v,Dynamics,Opt.Allocation);
     idx = 1:nElm;
-    L = sparse(r(idx)+1,c(idx)+1,Vals(idx),BasisSize,BasisSize);
+    
+    % Downsize oversized arrays to avoid running out of memory
+    r = r(idx);
+    c = c(idx);
+    Vals = Vals(idx);
+    
+    L = sparse(r+1,c+1,Vals,BasisSize,BasisSize);
   end
   
   if (nDim~=BasisSize)
