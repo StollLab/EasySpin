@@ -478,13 +478,8 @@ if doPostConvolution
 end
 
 if ~generalLiouvillian
-  % Pick functions for the calculation of the Liouvillian
-  switch Sys.nNuclei
-    case 0, chili_lm = @chili_lm0;
-    case 1, chili_lm = @chili_lm1;
-    case 2, chili_lm = @chili_lm2;
-    otherwise
-      error('Cannot have more than two nuclei for the Stochastic Liouville equation with this Opt.Method.');
+  if Sys.nNuclei>2
+    error('Cannot have more than two nuclei for the Stochastic Liouville equation with this Opt.Method.');
   end
 end
 
@@ -553,17 +548,17 @@ end
 logmsg(1,'Solver: %s',SolverString);
 
 if ~generalLiouvillian
-  maxElements = 5e6; % used in chili_lm
-  maxRows = 2e5; % used in chili_lm
-  if ~isfield(Opt,'Allocation')
-    Opt.Allocation = [maxElements maxRows];
-  elseif numel(Opt.Allocation)<2
-    Opt.Allocation(2) = maxRows;
+  % reallocation block size, used in chili_lm
+  blockSize = 1e6;
+  minBlockSize = 1e3;
+  if ~isfield(Opt,'AllocationBlockSize')
+    Opt.AllocationBlockSize = blockSize;
   end
-  if Opt.Allocation(1)<1e3
-    error('Opt.Allocation(1) (maximum number elements) is too small.');
+  Opt.AllocationBlockSize = Opt.AllocationBlockSize(1);
+  if Opt.AllocationBlockSize<minBlockSize
+    error('Opt.AllocationBlockSize = %d is too small. Increase its value to at least %d.',Opt.AllocationBlockSize,minBlockSize);
   end
-  logmsg(2,'  allocation: %d max elements, %d max rows',Opt.Allocation(1),Opt.Allocation(2));
+  logmsg(2,'  allocating memory in blocks of %d non-zero elements',Opt.AllocationBlockSize);
 end
 
 % Process
@@ -794,24 +789,17 @@ for iOri = 1:nOrientations
   if generalLiouvillian
     H = liouvhamiltonian(Basis.List,Q0,Q1,Q2,jjj0,jjj1,jjj2);
     L = -2i*pi*H(keep,keep) + Gamma;
-    nDim = size(L,1);
+    BasisSizeL = size(L,1);
   else
-    Sys.DirTilt = Basis.DirTilt; % used in chili_lm
-    Dynamics.xlk = Potential.xlk; % used in chili_lm
-    Dynamics.maxL = size(Potential.xlk,1)-1; % used in chili_lm
-    [r,c,Vals,nDim,nElm] = chili_lm(Sys,Basis.v,Dynamics,Opt.Allocation);
-    idx = 1:nElm;
-    
-    % Downsize oversized arrays to avoid running out of memory
-    r = r(idx);
-    c = c(idx);
-    Vals = Vals(idx);
-    
-    L = sparse(r+1,c+1,Vals,BasisSize,BasisSize);
+    Sys.DirTilt = Basis.DirTilt;
+    Dynamics.xlk = Potential.xlk;
+    Dynamics.maxL = size(Potential.xlk,1)-1;
+    [r,c,values,BasisSizeL] = chili_lm(Sys,Basis.v,Dynamics,Sys.nNuclei,Opt.AllocationBlockSize);
+    L = sparse(r,c,values,BasisSizeL,BasisSizeL);
   end
   
-  if (nDim~=BasisSize)
-    error('Matrix size (%d) inconsistent with basis size (%d). Please report.',nDim,BasisSize);
+  if (BasisSizeL~=BasisSize)
+    error('Matrix size (%d) inconsistent with basis size (%d). Please report.',BasisSizeL,BasisSize);
   end
   if any(isnan(L))
     error('Liouvillian matrix contains NaN entries! Please report.');
@@ -865,7 +853,7 @@ for iOri = 1:nOrientations
 
     case 'R' % bi-conjugate gradients stabilized
       for iomega = 1:numel(omega)
-        u = bicgstab(L+omega(iomega)*speye(size(L)),StartingVector,Opt.Threshold,nDim);
+        u = bicgstab(L+omega(iomega)*speye(size(L)),StartingVector,Opt.Threshold,BasisSize);
         thisspec(iomega) = real(u'*StartingVector);
       end
       
@@ -1265,7 +1253,6 @@ if axialSystem && (Basis.deltaK==2) && (maxPotentialK==0)
   Basis.oddLmax = 0;
   Basis.Kmax = 0;
 end
-
 
 Basis.v = [...
   Basis.evenLmax Basis.oddLmax Basis.Kmax Basis.Mmax, ...

@@ -1,51 +1,4 @@
-#include <math.h>
-#include <mex.h>
-
-#include "jjj.h"
-
-bool Display = false;
-
-__inline int isodd(int k) { return (k % 2); }
-__inline int parity(int k) { return (isodd(k) ? -1 : +1); }
-__inline int mini(int a,int b) { return ((a<b) ? a : b); }
-
-long maxElements = 1000000;
-int maxRows = 50000;
-
-const double sqrt12 = 0.70710678118655; /* sqrt(1.0/2.0); */
-const double sqrt13 = 0.57735026918963; /* sqrt(1.0/3.0); */
-const double sqrt23 = 0.81649658092773; /* sqrt(2.0/3.0); */
-
-double *ridx, *cidx;
-double *MatrixRe, *MatrixIm;
-
-int nRows, nElements;
-
-int Lemax, Lomax, Kmax, Mmax;
-int jKmin, pSmin, deltaK;
-int MeirovitchSymm;
-
-struct SystemStruct {
-  double EZI0, *ReEZI2, *ImEZI2;
-  double *d2psi;
-  double DirTilt;
-};
-
-struct DiffusionStruct {
-  double* xlk;
-  double Rxx, Ryy, Rzz;
-  double Exchange;
-  int maxL;
-};
-
-struct SystemStruct Sys;
-struct DiffusionStruct Diff;
-
-/*============================================================================ */
-/*============================================================================ */
-/*============================================================================ */
-/*============================================================================ */
-void makematrix()
+void makematrix0()
 {
 
 const double EZI0 = Sys.EZI0;
@@ -81,9 +34,6 @@ int pS2min, qS2min, qS2max;
 
 int iRow = 0, iCol = 0, iElement = 0;
 
-bool Potential = Diff.maxL>=0;
-bool Exchange = (ExchangeFreq!=0);
-
 double IsoDiffKdiag, IsoDiffKm2, IsoDiffKp2, PotDiff;
 bool diagRC, Ld2, diagLK;
 double N_L, N_K, NormFactor;
@@ -97,14 +47,8 @@ double d2jjj;
 
 const bool RhombicDiff = (Rxx!=Ryy);
 
-if (Display) {
-mexPrintf("   Potential: %d\n",Potential);
-mexPrintf("   Exchange:  %d\n",Exchange);
-mexPrintf("   Lemax Lomax:   %d  %d  %d\n",Lemax,Lomax);
-mexPrintf("   jKmin Kmax Mmax:   %d  %d  %d\n",jKmin,Kmax,Mmax);
-mexPrintf("   pSmin:   %d  %d\n",pSmin);
-}
-
+const bool Potential = Diff.maxL>=0;
+const bool ExchangePresent = (ExchangeFreq!=0);
 
 /* All equation numbers refer to Meirovich et al, J.Chem.Phys. 77 (1982) */
 
@@ -349,13 +293,16 @@ for (L1=0;L1<=Lemax;L1++) {
                                     cidx[iElement] = iRow;
                                     iElement++;
                                   }
-                                  if (iElement>=maxElements)
-                                    mexErrMsgTxt("Number of non-zero elements too large. Increase Opt.Allocation(1).");
+                                  if (iElement>=allocatedSize-1) {
+                                    allocatedSize += blockSize;
+                                    MatrixRe = mxRealloc(MatrixRe,allocatedSize*sizeof(double));
+                                    MatrixIm = mxRealloc(MatrixIm,allocatedSize*sizeof(double));
+                                    ridx = mxRealloc(ridx,allocatedSize*sizeof(double));
+                                    cidx = mxRealloc(cidx,allocatedSize*sizeof(double));
+                                  }
                                 }
                                 iCol++;
                                 diagRC = false;
-                                if (iCol>=maxRows)
-                                  mexErrMsgTxt("Dimension too large. Increase Opt.Allocation(2).");
                                 
                           } /* qS2 */
                         } /* pS2 */
@@ -381,7 +328,7 @@ nElements = iElement;
 
 /*======================================================================= */
 /* Determine basis size */
-int BasisSize()
+int BasisSize0()
 /*======================================================================= */
 {
 
@@ -417,100 +364,4 @@ for (L1=0;L1<=Lemax;L1++) {
 
 return iRow; /* number of rows */
 
-}
-
-/*============================================================================ */
-/*============================================================================ */
-/*============================================================================ */
-void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
-{
-
-  mxArray *T, *D;
-  double *R;
-  double *basisopts, *allocationOptions;
-  int N, idxS, idxB, idxD;
-  if (nrhs==1) {
-    double *jm = mxGetPr(prhs[0]);
-    /*mexPrintf("%0.10f\n",jjj(jm[0],jm[1],jm[2],jm[3],jm[4],jm[5])); */
-    return;
-  }
-
-  if (nrhs!=4) mexErrMsgTxt("4 input arguments expected!");
-  if (nlhs!=5) mexErrMsgTxt("3 output arguments expected!");
-
-  /*mexPrintf("Parsing system...\n"); */
-  idxS = 0;
-  Sys.EZI0 = mxGetScalar(mxGetField(prhs[idxS],0,"EZ0"));
-  Sys.DirTilt = mxGetScalar(mxGetField(prhs[idxS],0,"DirTilt"));
-  Sys.d2psi = mxGetPr(mxGetField(prhs[idxS],0,"d2psi"));
-
-  T = mxGetField(prhs[idxS],0,"EZ2");
-  Sys.ReEZI2 = mxGetPr(T);
-  Sys.ImEZI2 = mxGetPi(T);
-  
-  /*mexPrintf("Parsing basis structure...\n"); */
-  idxB = 1;
-  /*Lemax = (int)mxGetScalar(mxGetField(prhs[idxB],0,"evenLmax"));
-  Lomax = (int)mxGetScalar(mxGetField(prhs[idxB],0,"oddLmax"));
-  Kmax = (int)mxGetScalar(mxGetField(prhs[idxB],0,"Kmax"));
-  Mmax = (int)mxGetScalar(mxGetField(prhs[idxB],0,"Mmax"));
-  jKmin = (int)mxGetScalar(mxGetField(prhs[idxB],0,"jKmin"));
-  pSmin = (int)mxGetScalar(mxGetField(prhs[idxB],0,"pSmin"));
-  pImax = (int)mxGetScalar(mxGetField(prhs[idxB],0,"pImax"));
-  deltaK = (int)mxGetScalar(mxGetField(prhs[idxB],0,"deltaK"));
-  */
-  basisopts = mxGetPr(prhs[1]);
-  
-  Lemax = (int)basisopts[0];
-  Lomax = (int)basisopts[1];
-  Kmax = (int)basisopts[2];
-  Mmax = (int)basisopts[3];
-  jKmin = (int)basisopts[4];
-  pSmin = (int)basisopts[5];
-  deltaK = (int)basisopts[6];
-  MeirovitchSymm = (int)basisopts[7];
-
-  /*
-  mexPrintf("(%d %d %d %d) jKmin %d, pSmin %d, deltaK %d\n",
-    Lemax,Lomax,Kmax,Mmax,jKmin,pSmin,deltaK);
-  */
-  
-  /*mexPrintf("Parsing diffusion structure...\n"); */
-  idxD = 2;
-  Diff.Exchange = mxGetScalar(mxGetField(prhs[idxD],0,"Exchange"));
-  Diff.xlk = mxGetPr(mxGetField(prhs[idxD],0,"xlk"));
-  Diff.maxL = mxGetScalar(mxGetField(prhs[idxD],0,"maxL"));
-  
-  R = mxGetPr(mxGetField(prhs[idxD],0,"Diff"));
-  Diff.Rxx = R[0];
-  Diff.Ryy = R[1];
-  Diff.Rzz = R[2];
-
-  allocationOptions = mxGetPr(prhs[3]);
-  maxElements = (long)allocationOptions[0];
-  if (Display) mexPrintf("  max elements: %d\n",maxElements);
-  
-  N = BasisSize();
-  maxRows = N+1;
-
-  if (Display) mexPrintf("  basis function count: %d\n",N);
-  
-  plhs[0] = mxCreateDoubleMatrix(maxElements,1,mxREAL);
-  plhs[1] = mxCreateDoubleMatrix(maxElements,1,mxREAL);
-  plhs[2] = mxCreateDoubleMatrix(maxElements,1,mxCOMPLEX);
-  ridx = mxGetPr(plhs[0]);
-  cidx = mxGetPr(plhs[1]);
-  MatrixRe = mxGetPr(plhs[2]);
-  MatrixIm = mxGetPi(plhs[2]);
-  
-  if (Display) mexPrintf("  starting matrix loops...\n");
-
-  makematrix();
-
-  if (Display) mexPrintf("  finishing matrix loops...\n");
-
-  plhs[3] = mxCreateDoubleScalar(nRows);
-  plhs[4] = mxCreateDoubleScalar(nElements);
-  
-  return;
 }
