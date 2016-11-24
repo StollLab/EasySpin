@@ -1037,7 +1037,18 @@ if FieldSweep
     end
   end
 else
-  % frequency sweeps: not available
+  if (Exp.ModAmp>0)
+    error('Cannot apply field modulation for a frequency-swept spectrum.');
+  else
+    if (Exp.DerivHarmonic>0)
+      logmsg(1,'  harmonic %d: using differentiation',Exp.DerivHarmonic);
+      dx = xAxis(2)-xAxis(1);
+      for h = 1:Exp.DerivHarmonic
+        dspec = diff(outspec,[],2)/dx;
+        outspec = (dspec(:,[1 1:end]) + dspec(:,[1:end end]))/2;
+      end
+    end
+  end
 end
 %==============================================================
 
