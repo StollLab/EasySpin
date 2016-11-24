@@ -148,6 +148,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   cidx = mxCalloc(allocatedSize,sizeof(double));
   MatrixRe = mxCalloc(allocatedSize,sizeof(double));
   MatrixIm = mxCalloc(allocatedSize,sizeof(double));
+  if (!(cidx && ridx && MatrixRe && MatrixIm))
+    mexErrMsgTxt("Could not allocate initial arrays for Liouvillian.");
   
   // calculate matrix elements
   if (Display) mexPrintf("  starting matrix calculation...\n");
@@ -165,6 +167,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   MatrixIm = mxRealloc(MatrixIm,allocatedSize*sizeof(double));
   ridx = mxRealloc(ridx,allocatedSize*sizeof(double));
   cidx = mxRealloc(cidx,allocatedSize*sizeof(double));
+  if (!(cidx && ridx && MatrixRe && MatrixIm))
+    mexErrMsgTxt("Could not reallocate arrays for Liouvillian to final size.");
   
   // adjust indices from 0-based to 1-based
   for (idx=0;idx<nElements;idx++) {

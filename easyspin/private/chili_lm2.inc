@@ -442,6 +442,8 @@ for (L1=0;L1<=Lemax;L1++) {
                                             MatrixIm = mxRealloc(MatrixIm,allocatedSize*sizeof(double));
                                             ridx = mxRealloc(ridx,allocatedSize*sizeof(double));
                                             cidx = mxRealloc(cidx,allocatedSize*sizeof(double));
+                                            if (!(cidx && ridx && MatrixRe && MatrixIm))
+                                              mexErrMsgTxt("Could not reallocate arrays for Liouvillian to larger size.");
                                           }
                                         }
                                         /*------------------------------------------- */
