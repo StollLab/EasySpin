@@ -169,7 +169,7 @@ for (L1=0;L1<=Lemax;L1++) {
                           PotDiff *= NormFactor;
                           
                           if (Display)
-                            if (abs(PotDiff)>1e-10)
+                            if (fabs(PotDiff)>1e-10)
                               mexPrintf(" pot (%d,%d;%d,%d): %e\n",L1,L2,K1,K2,PotDiff);
                         }
                       }
