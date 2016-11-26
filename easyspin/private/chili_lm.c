@@ -65,10 +65,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   }
 
-  if (nrhs!=5) mexErrMsgTxt("5 input arguments expected.");
+  if (nrhs!=4) mexErrMsgTxt("4 input arguments expected.");
   if (nlhs!=4) mexErrMsgTxt("4 output arguments expected.");
 
-  nNuclei = (int)*mxGetPr(prhs[3]);
+  nNuclei = (int)mxGetScalar(mxGetField(prhs[idxS],0,"nNuclei"));
   if (nNuclei>2)
     mexErrMsgTxt("chili_lm0123 works only for 0, 1 or 2 nuclear spins.");
   
@@ -129,7 +129,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   Diff.Rzz = R[2];
 
   // Parse allocation settings
-  allocationOptions = mxGetPr(prhs[4]);
+  allocationOptions = mxGetPr(prhs[3]);
   blockSize = (long)allocationOptions[0];
   if (Display) {
     if (nNuclei==0)

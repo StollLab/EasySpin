@@ -794,7 +794,7 @@ for iOri = 1:nOrientations
     Sys.DirTilt = Basis.DirTilt;
     Dynamics.xlk = Potential.xlk;
     Dynamics.maxL = size(Potential.xlk,1)-1;
-    [r,c,values,BasisSizeL] = chili_lm(Sys,Basis.v,Dynamics,Sys.nNuclei,Opt.AllocationBlockSize);
+    [r,c,values,BasisSizeL] = chili_lm(Sys,Basis.v,Dynamics,Opt.AllocationBlockSize);
     L = sparse(r,c,values,BasisSizeL,BasisSizeL);
   end
   
