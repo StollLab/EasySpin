@@ -56,8 +56,14 @@ else
   nNucs = 0;
 end
 
-if numel(System.g)~=3
-  error('Three values in System.g needed!');
+if isfield(System,'S')
+  if numel(System.S)~=1 || (System.S~=1/2)
+    error('  Fast-motion linewidths can only be calculated for systems with S=1/2.');
+  end
+end
+
+if numel(System.g)~=3 && numel(System.g)~=9
+  error('  Sys.g has wrong size (must contain either 3 principal g values or full 3x3 g matrix.');
 end
 
 if nNucs>0
