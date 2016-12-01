@@ -44,9 +44,9 @@ struct DiffusionStruct {
 struct SystemStruct Sys;
 struct DiffusionStruct Diff;
 
-#include "chili_lm0.inc" // functions for S=1/2 and no nuclear spins
-#include "chili_lm1.inc" // functions for S=1/2 and one nuclear spin
-#include "chili_lm2.inc" // functions for S=1/2 and two nuclear spins
+#include "chili_lm0.inc" /* functions for S=1/2 and no nuclear spins */
+#include "chili_lm1.inc" /* functions for S=1/2 and one nuclear spin */
+#include "chili_lm2.inc" /* functions for S=1/2 and two nuclear spins */
 
 
 /*============================================================================ */
@@ -98,7 +98,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     Sys.ImHFI2b = mxGetPi(T);
   }
   
-  // Parsing basis set input structure
+  /* Parsing basis set input structure */
   if (Display) mexPrintf("Parsing basis structure...\n");
   basisopts = mxGetPr(prhs[1]);
   
@@ -117,7 +117,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexPrintf("  (%d %d %d %d) jKmin %d, pSmin %d, deltaK %d; pImax %d, pIbmax %d\n",
       Lemax,Lomax,Kmax,Mmax,jKmin,pSmin,deltaK,pImax,pIbmax);
   
-  // Parse diffusion input structure
+  /* Parse diffusion input structure */
   if (Display) mexPrintf("Parsing diffusion structure...\n");
   idxD = 2;
   Diff.Exchange = mxGetScalar(mxGetField(prhs[idxD],0,"Exchange"));
@@ -128,7 +128,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   Diff.Ryy = R[1];
   Diff.Rzz = R[2];
 
-  // Parse allocation settings
+  /* Parse allocation settings */
   allocationOptions = mxGetPr(prhs[3]);
   blockSize = (long)allocationOptions[0];
   if (Display) {
@@ -142,7 +142,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexPrintf("  allocation block size: %d\n",blockSize);
   }
   
-  // allocate memory for matrix element indices and values
+  /* allocate memory for matrix element indices and values */
   allocatedSize = blockSize;
   ridx = mxCalloc(allocatedSize,sizeof(double));
   cidx = mxCalloc(allocatedSize,sizeof(double));
@@ -151,7 +151,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   if (!(cidx && ridx && MatrixRe && MatrixIm))
     mexErrMsgTxt("Could not allocate initial arrays for Liouvillian.");
   
-  // calculate matrix elements
+  /* calculate matrix elements */
   if (Display) mexPrintf("  starting matrix calculation...\n");
   if (nNuclei==0)
     makematrix0();
@@ -161,7 +161,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     makematrix2();
   if (Display) mexPrintf("  finishing matrix calculation...\n");
   
-  // reallocate (shrink) arrays to correct size
+  /* reallocate (shrink) arrays to correct size */
   allocatedSize = nElements;
   MatrixRe = mxRealloc(MatrixRe,allocatedSize*sizeof(double));
   MatrixIm = mxRealloc(MatrixIm,allocatedSize*sizeof(double));
@@ -170,13 +170,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   if (!(cidx && ridx && MatrixRe && MatrixIm))
     mexErrMsgTxt("Could not reallocate arrays for Liouvillian to final size.");
   
-  // adjust indices from 0-based to 1-based
+  /* adjust indices from 0-based to 1-based */
   for (idx=0;idx<nElements;idx++) {
     ridx[idx]+=1;
     cidx[idx]+=1;
   }
   
-  // allocate and assign mex function output arrays
+  /* allocate and assign mex function output arrays */
   plhs[0] = mxCreateDoubleMatrix(0,0,mxREAL);
   mxSetPr(plhs[0],ridx);
   mxSetM(plhs[0],allocatedSize);
