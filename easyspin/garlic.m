@@ -435,7 +435,7 @@ end
 %-------------------------------------------------------------------------
 
 if Sys.fullg
-  giso = mean(mean(Sys.g(1:3,:)));
+  giso = mean(eig(Sys.g(1:3,:)));
 else
   giso = mean(Sys.g(1,:));
 end
