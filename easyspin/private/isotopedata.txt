@@ -408,9 +408,9 @@
 110  0 * Ds  darmstadtium  -1.0  0.0         0.0       0
 111  0 * Rg  roentgenium   -1.0  0.0         0.0       0
 112  0 * Cn  copernicium   -1.0  0.0         0.0       0
-113  0 * Uut ununtrium     -1.0  0.0         0.0       0
+113  0 * Nh  nihonium      -1.0  0.0         0.0       0
 114  0 * Fl  flerovium     -1.0  0.0         0.0       0
-115  0 * Uup ununpentium   -1.0  0.0         0.0       0
+115  0 * Uup moscovium     -1.0  0.0         0.0       0
 116  0 * Lv  livermorium   -1.0  0.0         0.0       0
-117  0 * Uus ununseptium   -1.0  0.0         0.0       0
-118  0 * Uuo ununoctium    -1.0  0.0         0.0       0
+117  0 * Ts  tennessine    -1.0  0.0         0.0       0
+118  0 * Og  oganesson     -1.0  0.0         0.0       0
