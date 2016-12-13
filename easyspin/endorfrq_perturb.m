@@ -260,6 +260,7 @@ for iOri = nOrientations:-1:1
              - A2*(SS1-mS_^2)*mI_ ...
              + A3/2*mS_*(II1(iNuc)-mI_.^2);
         E2A_ = E2A_/(2*E0);
+        if strongCouplingCase && (mS_<0), E2A_ = -E2A_; end
         
         % second-order zerofield-hyperfine crossterm
         if highSpin
