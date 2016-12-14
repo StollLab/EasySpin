@@ -835,59 +835,61 @@ if isfield(Sys,'Diffpa')
 end
 
 % Multiple Order Hamiltonian
-for lB = 8:-1:0
-  for lS = 8:-1:0
-    lmin = abs(lB-lS);
-    for l = (lB+lS):-1:lmin
-      Hamstr{lB+1,lS+1,(l-lmin)+1} = ['Ham',num2str([lB,lS,l],'%i%i%i')];
+%=========================================================================================
+Sys.MO_present = false;
+if any(strncmp('Ham',fieldnames(Sys),3))
+  Hamstr = cell(9,9,17);
+  for lB = 8:-1:0
+    for lS = 8:-1:0
+      lmin = abs(lB-lS);
+      for l = (lB+lS):-1:lmin
+        Hamstr{lB+1,lS+1,(l-lmin)+1} = sprintf('Ham%i%i%i',lB,lS,l);
+      end
     end
+    Bstr{lB+1} = ['B',num2str(lB)];
   end
-  Bstr{lB+1} = ['B',num2str(lB)];
-end
-field = isfield(Sys,Hamstr);
-if any(field(:))
-  Sys.MO_present = true;
-  
-  % check for D, aF, and Bk
-  lB0 = field(1,:,:);
-  if any(lB0(:))
-    if D_present && field(1,3,1)
-      error('Cannot use Sys.D and Sys.Ham022 simultaneously. Remove one of them.');
+  field = isfield(Sys,Hamstr);
+  if any(field(:))
+    Sys.MO_present = true;
+    
+    % check for D, aF, and Bk
+    lB0 = field(1,:,:);
+    if any(lB0(:))
+      if D_present && field(1,3,1)
+        error('Cannot use Sys.D and Sys.Ham022 simultaneously. Remove one of them.');
+      end
+      if aF_present && field(1,5,1)
+        error('Cannot use Sys.aF and Sys.Ham044 simultaneously. Remove one of them.');
+      end
+      if any(squeeze(field(1,:,1)).*isfield(Sys,Bstr))
+        error('Cannot use higher order operators and corresponding general parameters simultaneously. Remove one of them.');
+      end
     end
-    if aF_present && field(1,5,1)
-      error('Cannot use Sys.aF and Sys.Ham044 simultaneously. Remove one of them.');
+    %check for g
+    lB1 = field(2,2,:);
+    if any(lB1(:)) && any(Sys.g(:))
+      error('Cannot use Sys.g and and Sys.Ham112 or Sys.Ham110 simultaneously. Remove one of them.');
     end
-    if any(squeeze(field(1,:,1)).*isfield(Sys,Bstr))
-      error('Cannot use higher order operators and corresponding general parameters simultaneously. Remove one of them.');
-    end
-  end
-  %check for g
-  lB1 = field(2,2,:);
-  if any(lB1(:)) && any(Sys.g(:))
-    error('Cannot use Sys.g and and Sys.Ham112 or Sys.Ham110 simultaneously. Remove one of them.');
-  end
-  ls =find(field);
-  % get l
-  [rowsub, colsub, pagsub] = ind2sub([9,9,17], ls);
-  l = pagsub - 1 + abs(rowsub-colsub);
-  for n = 1:length(ls)
-    str = Hamstr{ls(n)};
-    if issize(Sys.(str),[nElectrons,1])
-      Sys.(str) = [zeros(nElectrons,l(n)), Sys.(str),zeros(nElectrons,l(n))];
-    else
-      if ~issize(Sys.(str),[nElectrons,2*l(n)+1])
-        if ~issize(Sys.(str),[2*l(n)+1,1]) || nElectrons~=1
-          error('Sys.%s has wrong size!',str);
-        else
-          Sys.(str) = Sys.(str).';
+    ls =find(field);
+    % get l
+    [rowsub, colsub, pagsub] = ind2sub([9,9,17], ls);
+    l = pagsub - 1 + abs(rowsub-colsub);
+    for n = 1:length(ls)
+      str = Hamstr{ls(n)};
+      if issize(Sys.(str),[nElectrons,1])
+        Sys.(str) = [zeros(nElectrons,l(n)), Sys.(str),zeros(nElectrons,l(n))];
+      else
+        if ~issize(Sys.(str),[nElectrons,2*l(n)+1])
+          if ~issize(Sys.(str),[2*l(n)+1,1]) || nElectrons~=1
+            error('Sys.%s has wrong size!',str);
+          else
+            Sys.(str) = Sys.(str).';
+          end
         end
       end
     end
   end
-else
-  Sys.MO_present = false;
 end
-
 
 
 %------------------- Orbital Angular Momentum
