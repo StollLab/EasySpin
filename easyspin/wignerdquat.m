@@ -1,56 +1,80 @@
 % wignerdquat  Compute Wigner D-matrix element from a given quaternion
 %
-%   D = wignerdquat(J,m1,m2,q);
-%   D = wignerdquat(J,m1,m2,Q);
+%   D = wignerdquat(J,M,K,q);
 %
 %   Input:
-%      j              rank of Wigner matrix
-%      q              quaternion, either in 4-component or Pauli matrix
-%                     form
+%      L              int
+%                     rank of Wigner matrix
+%
+%      M              int
+%
+%      K              int
+%
+%      q              numeric, size = (4,nTraj)
+%                     quaternions
+%
 %
 %   Output:
-%      D              Wigner D-matrix
+%      D              complex
+%                     Wigner D-matrix element
 
-% Implementation based on 
-% - Hanson, A.J., Visualizing Quaternions (2006)
+%   References
+%   ----------
+%   [1] Hanson, A. J., Ch. 27.2.1, Visualizing Quaternions (2006)
 
 
-function D = wignerdquat(j,m1,m2,Q)
+function D = wignerdquat(L, M, K, q)
 % Calculate the D-matrix using a quaternion polynomial, see Eq. 27.9 in
-% reference, where m1=m' and m2=m
+% reference, where M=m' and K=m
 
-if numel(j)~=1 || ~isreal(j) || mod(j,1.0) || (j<0) || ~isnumeric(j)
-  error('Index j must be an integer greater than zero.')
+%% Error check
+
+
+if numel(L)~=1 || ~isreal(L) || mod(L,1.0) || (L<0) || ~isnumeric(L)
+  error('Index L must be an integer greater than zero.')
 end
 
-if numel(m1)~=1 || ~isreal(m1) || mod(m1,1.0) || (abs(m1)>j) || ~isnumeric(m1)
-  error('Index m1 must be in the range -j<=m1<=j.')
+if numel(M)~=1 || ~isreal(M) || mod(M,1.0) || (abs(M)>L) || ~isnumeric(M)
+  error('Index M must be in the range -L<=M<=L.')
 end
 
-if numel(m2)~=1 || ~isreal(m2) || mod(m2,1.0) || (abs(m2)>j) || ~isnumeric(m2)
-  error('Index m2 must be in the range -j<=m2<=j.')
+if numel(K)~=1 || ~isreal(K) || mod(K,1.0) || (abs(K)>L) || ~isnumeric(K)
+  error('Index K must be in the range -L<=K<=L.')
 end
 
-if ~isnumeric(Q) || size(Q,1)~=2 || size(Q,2)~=2
-  error('Q must be a 2x2x... array.')
+if ~isnumeric(q) || size(q,1)~=4
+  error('q must be a 4x... array.')
 end
 
-q = squeeze([Q(1,1,:); Q(1,2,:); Q(2,1,:); Q(2,2,:)]);
+%% Setup
 
-% Pre-compute the factorials
-prefactor = sqrt(factorial(j+m1)*factorial(j-m1)*factorial(j+m2)*factorial(j-m2));
-s = sIndices(j,m1,m2);
-powers = repmat(permute([j+m2-s;m1-m2+s;s;j-m1-s],[1,3,2]),[1,size(Q,3),1]);
-denoms = repmat(permute([factorial(j+m2-s); factorial(m1-m2+s); factorial(s); factorial(j-m1-s)],[1,3,2]),[1,size(Q,3),1]);
+prefactor = sqrt(factorial(L+M)*factorial(L-M)*factorial(L+K)*factorial(L-K));
+s = sIndices(L,M,K);
+powers = repmat(permute([L+K-s; ...
+                         M-K+s; ...
+                             s; ...
+                         L-M-s], ...
+                        [1,3,2]),[1,size(q,2),1]);
+denoms = repmat(permute([  factorial(L+K-s); ...
+                           factorial(M-K+s); ...
+                               factorial(s); ...
+                          factorial(L-M-s)], ...
+                         [1,3,2]),[1,size(q,2),1]);
 
-% Manipulate q using copies so that it can be acted upon by powers and denoms
-q = repmat(q, [1,1,numel(s)]);
+% Manipulate q so that it can be acted upon by powers and denoms
+Q = [    q(1,:) -  1i*q(4,:); ...
+     -1i*q(2,:) -     q(3,:); ...
+     -1i*q(2,:) +     q(3,:); ...
+         q(1,:) +  1i*q(4,:)];
+Q = repmat(Q, [1,1,numel(s)]);
 
-D = prefactor*sum(prod(bsxfun(@rdivide,bsxfun(@power,q,powers),denoms),1),3);
+%% Calculate
+D = prefactor*sum(prod(bsxfun(@rdivide,bsxfun(@power,Q,powers),denoms),1),3);
 
-function s = sIndices(j,m1,m2)
-% Compute the values for m1, m2, and s for a given j
-s = max(0,m2-m1):min(j+m2,j-m1);
+%% Functions
+function s = sIndices(L,M,K)
+% Compute the values for M, K, and s for a given L
+s = max(0,K-M):min(L+K,L-M);
 
 end
 

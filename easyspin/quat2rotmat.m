@@ -11,12 +11,13 @@
 function mat = quat2rotmat(q)
 qshape = size(q);
     
-if qshape(1) ~= 4
-  error('Size of first dimension must equal 4.')
+if qshape(1) ~= 4 || ~isnumeric(q)
+  error('q must be an array of size 4x...')
 end
 
 diff = abs(1.0-squeeze(sum(q.*q, 1)));
-if any(diff(:) > 1e-10)
+if any(diff(:) > 1e-13)
+  plot(diff(1,:))
   error('Input is not normalized.')
 end
 

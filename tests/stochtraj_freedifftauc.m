@@ -4,8 +4,8 @@ function [err,data] = test(opt,olddata)
 
 Sys.tcorr = 10*rand()*1e-9;
 Par.dt = Sys.tcorr/10;
-Par.nSteps = ceil(100*Sys.tcorr/Par.dt);
-Par.nTraj = 800;
+Par.nSteps = ceil(200*Sys.tcorr/Par.dt);
+Par.nTraj = 400;
 Par.beta = pi*(2*rand()-1);
 Par.alpha = 2*pi*(2*rand()-1);
 Par.gamma = 2*pi*(2*rand()-1);
@@ -26,13 +26,15 @@ for iTraj = 1:nTraj
 end
 
 AutoCorrFFT = sum(AutoCorrFFT, 1)'/nTraj;
+AutoCorrFFT = AutoCorrFFT-mean(AutoCorrFFT(end/2:end));
+AutoCorrFFT = AutoCorrFFT/max(AutoCorrFFT);
 
 analytic = exp(-(1/tcorr)*t);
 
 % ChiSquare = sum(((AutoCorrFFT - analytic).^2)./analytic)
 rmsd = sqrt(sum((AutoCorrFFT - analytic).^2)/nSteps);
 
-if rmsd > 5e-2
+if rmsd > 1e-2
   err = 1;
   plot(t, AutoCorrFFT, t, analytic)
 else  

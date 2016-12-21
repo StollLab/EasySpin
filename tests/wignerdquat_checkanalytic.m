@@ -1,23 +1,14 @@
 function [err,data] = test(opt,olddata)
 % Check that wignerdquat agrees with analytical results from tables for
-% j = 1,2
+% L = 1,2
 
-len = 10;
+len = 5;
 
 beta = pi*(2*rand(1,len)-1);
 alpha = 2*pi*(2*rand(1,len)-1);
 gamma = 2*pi*(2*rand(1,len)-1);
 
 q = euler2quat(alpha,beta,gamma);
-Q(1,1,:) =  q(1,:) - 1i*q(4,:);
-Q(1,2,:) = -q(3,:) - 1i*q(2,:);
-Q(2,1,:) =  q(3,:) - 1i*q(2,:);
-Q(2,2,:) =  q(1,:) + 1i*q(4,:);
-
-% A = Q(1,1,:,:);
-% B = Q(1,2,:,:);
-% Bst = -Q(2,1,:,:);
-% Ast = Q(2,2,:,:);
 
 A = q(1,:) - 1i*q(4,:);
 B = -q(3,:) - 1i*q(2,:);
@@ -26,8 +17,8 @@ Bst = -q(3,:) + 1i*q(2,:);
 
 Z = A.*Ast - B.*Bst;
 
-% D matrix for j=1, ordered such that rows (1,2,3)<->m1=(+1,0,-1), and
-% cols (1,2,3)<->m2=(+1,0,-1)
+% D matrix for L=1, ordered such that rows (1,2,3)<->M=(+1,0,-1), and
+% cols (1,2,3)<->K=(+1,0,-1)
 % D1 = [           A.^2,      sqrt(2)*A.*B,            B.^2;
 %       -sqrt(2)*A.*Bst,                Z,   sqrt(2)*Ast.*B;
 %                Bst.^2, -sqrt(2).*Ast.*Bst,         Ast.^2];
@@ -41,45 +32,70 @@ D1(3,1,:) = Bst.^2;
 D1(3,2,:) = -sqrt(2).*Ast.*Bst;
 D1(3,3,:) = Ast.^2;
 
-% D matrix for j=2, ordered such that rows (1,2,3,4,5)<->m1=(2,1,0,-1,-2),
-% and cols (1,2,3)<->m2=(2,1,0)
+% D matrix for L=2, ordered such that rows (1,2,3,4,5)<->M=(2,1,0,-1,-2),
+% and cols (1,2,3)<->K=(2,1,0)
 % D2 = [                A.^4,          2*A.^3.*B,     sqrt(6)*A.^2.*B.^2;
 %               -2*A.^3.*Bst,      A.^2.*(2*Z-1),        sqrt(6)*A.*B.*Z;
 %       sqrt(6)*A.^2.*Bst.^2, -sqrt(6)*A.*Bst.*Z,         1/2*(3*Z.^2-1);
 %               -2*A.*Bst.^3,    Bst.^2.*(2*Z+1),   -sqrt(6)*Ast.*Bst.*Z;
 %                     Bst.^4,     -2*Ast.*Bst.^3, sqrt(6)*Ast.^2.*Bst.^2];
+% D2(1,1,:) = A.^4;
+% D2(1,2,:) = 2*A.^3.*B;
+% D2(1,3,:) = sqrt(6)*A.^2.*B.^2;
+% D2(2,1,:) = -2*A.^3.*Bst;
+% D2(2,2,:) = A.^2.*(2*Z-1);
+% D2(2,3,:) = sqrt(6)*A.*B.*Z;
+% D2(3,1,:) = sqrt(6)*A.^2.*Bst.^2;
+% D2(3,2,:) = -sqrt(6)*A.*Bst.*Z;
+% D2(3,3,:) = 1/2*(3*Z.^2-1);
+% D2(4,1,:) = -2*A.*Bst.^3;
+% D2(4,2,:) = Bst.^2.*(2*Z+1);
+% D2(4,3,:) = -sqrt(6)*Ast.*Bst.*Z;
+% D2(5,1,:) = Bst.^4;
+% D2(5,2,:) = -2*Ast.*Bst.^3;
+% D2(5,3,:) = sqrt(6)*Ast.^2.*Bst.^2;
 D2(1,1,:) = A.^4;
 D2(1,2,:) = 2*A.^3.*B;
 D2(1,3,:) = sqrt(6)*A.^2.*B.^2;
+D2(1,4,:) = 2*A.*B.^3;
+D2(1,5,:) = B.^4;
 D2(2,1,:) = -2*A.^3.*Bst;
 D2(2,2,:) = A.^2.*(2*Z-1);
 D2(2,3,:) = sqrt(6)*A.*B.*Z;
+D2(2,4,:) = B.^2.*(2*Z+1);
+D2(2,5,:) = 2*Ast.*B.^3;
 D2(3,1,:) = sqrt(6)*A.^2.*Bst.^2;
 D2(3,2,:) = -sqrt(6)*A.*Bst.*Z;
 D2(3,3,:) = 1/2*(3*Z.^2-1);
+D2(3,4,:) = sqrt(6)*Ast.*B.*Z;
+D2(3,5,:) = sqrt(6)*Ast.^2.*B.^2;
 D2(4,1,:) = -2*A.*Bst.^3;
 D2(4,2,:) = Bst.^2.*(2*Z+1);
 D2(4,3,:) = -sqrt(6)*Ast.*Bst.*Z;
+D2(4,4,:) = Ast.^2.*(2*Z-1);
+D2(4,5,:) = 2*Ast.^3.*B;
 D2(5,1,:) = Bst.^4;
 D2(5,2,:) = -2*Ast.*Bst.^3;
 D2(5,3,:) = sqrt(6)*Ast.^2.*Bst.^2;
+D2(5,4,:) = -2*Ast.^3.*Bst;
+D2(5,5,:) = Ast.^4;
                 
               
-j = 1;
+L = 1;
 err1 = zeros(3,3,len);
 
-for m1=-j:j
-  for m2=-j:j
-    err1(2-m1,2-m2,:) = abs(wignerdquat(j,m1,m2,Q)-reshape(D1(2-m1,2-m2,:),[1,len]));
+for M=-L:L
+  for K=-L:L
+    err1(2-M,2-K,:) = abs(wignerdquat(L,M,K,q)-reshape(D1(2-M,2-K,:),[1,len]));
   end
 end
 
-j = 2;
-err2 = zeros(5,3,len);
+L = 2;
+err2 = zeros(5,5,len);
 
-for m1=-j:j
-  for m2=0:j
-    err2(3-m1,3-m2,:) = abs(wignerdquat(j,m1,m2,Q)-reshape(D2(3-m1,3-m2,:),[1,len]));
+for M=-L:L
+  for K=-L:L
+    err2(3-M,3-K,:) = abs(wignerdquat(L,M,K,q)-reshape(D2(3-M,3-K,:),[1,len]));
   end
 end
 err = any(err1(:)>1e-15)||any(err2(:)>1e-15);

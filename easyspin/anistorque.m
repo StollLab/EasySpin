@@ -1,124 +1,118 @@
 %  anistorque  Calculate the torque due to an anisotripic orienting potential.
 %
-%   iJdotu = anistorque(Q, coef);
+%   torque = anistorque(LMK, Coefs, q);
 %
 %   Input:
-%      Q              2x2xnxm array representation of a quaternion
-%      coefs          a struct containing the orienting potential
-%                     coefficients, field values should be specified in the
-%                     format 'cjpm', 'cjmm', or 'cj0'
-%                     
+%      LMK            numeric, size = (nCoefs,3)
+%                     integers corresponding to the quantum numbers L, M, 
+%                     and K
+%
+%      Coefs          numeric, size = (nCoefs,2)
+%                     real coefficients cLMK+ and cLMK- for orienting 
+%                     potentials
+%
+%      q              numeric, size = (4,nTraj)
+%                     quaternions
 %
 %   Output:
-%      anistorque     3x1xn vector
+%      anistorque     numeric, size = (3,1,nTraj)
 
-% Implementation based on 
-% - Sezer, et al., J.Chem.Phys. 128, 165106 (2008), doi: 10.1063/1.2908075
+%   References
+%   ----------
+%   [1] Sezer, et al., J.Chem.Phys. 128, 165106 (2008), doi: 10.1063/1.2908075
 
-function torque = anistorque(Q, coefs)
-
-sizeQ = size(Q);
-shapeQ = num2cell(sizeQ);
-Index = cell(1, ndims(Q));
+function torque = anistorque(LMK, Coefs, q)
+%% Preprocessing
+shapeq = num2cell(size(q));
+Index = cell(1, ndims(q));
 Index(:) = {':'};
 
-if ~isnumeric(Q) || sizeQ(1)~=2 || sizeQ(2)~=2
-  error('The first two dimensions of the array must be of shape 2x2.')
+if ~isnumeric(q) || size(q,1)~=4
+  error('q must be an array of size 4x....')
 end
 
-if ~isstruct(coefs)
-  error('Orienting potential coefficients need to be stored in a structured array.')
+if ~ismatrix(LMK) || size(LMK,2)~=3
+  error('LMK must be an array of shape Nx3.')
 end
 
-fields = fieldnames(coefs);
-% Need to check formatting of fields!
-
-% jVals = cellfun(@(x) str2double(x(2)), fields);
-% mVals = cellfun(@(x) str2double(x(3)), fields);
-
-Nfields = numel(fields);
-m1 = 0;
-if ndims(Q)>2
-  iJvecu = zeros(3,shapeQ{3:end},Nfields);
-else
-  iJvecu = zeros(3,Nfields);
+if ~ismatrix(Coefs) || size(Coefs,2)~=2
+  error('Coefs must be an array of shape Nx2.')
 end
 
+nCoefs = size(Coefs,1);
+
+lambda = Coefs(:,1) + 1i*Coefs(:,2);
+
+Lvals = LMK(:,1);
+Mvals = LMK(:,2);
+Kvals = LMK(:,3);
+
+if any(Lvals(:)<1)
+  error('All values of L must be greater than or equal to one.')
+end
+
+if any(Mvals(:)<-Lvals)
+  error('All values of M must be greater than or equal to -L.')
+end
+
+if any(Kvals(:)>Lvals)
+  error('All values of K must be less than or equal to L.')
+end
+
+iJvecu = zeros(3,size(q,2),nCoefs);
+
+%%
 % Not sure if there is a good way to vectorize this
-for ifield=1:Nfields
-  fieldstr = fields{ifield};
-  j = str2double(fieldstr(2));
-  if fieldstr(3)=='p'
-    m2 = str2double(fieldstr(4));
-  elseif fieldstr(3)=='m'
-    m2 = -str2double(fieldstr(4));
-  elseif fieldstr(3)=='0'
-    m2=0;
-  else
-    error('Potential coefficient formatting is not correct.')
-  end
-  coef = coefs.(fieldstr);
-  iJvecu(:,Index{3:end},ifield) = iJu(j,m1,m2,coef,Q);
+for n=1:nCoefs
+  L = Lvals(n);
+  M = Mvals(n);
+  K = Kvals(n);
+  iJvecu(Index{:},n) = real(iJu(L,M,K,lambda(n),q));
+%  Why doesn't this work?! Accumulation of rounding errors?
+%   iJvecu(Index{:},n) =               0.5*(iJu(L,M,K,lambda(n),q) ...
+%                               + (-1)^(M-K)*iJu(L,-M,-K,conj(lambda(n)),q));
 end
 
-if Nfields > 1
-  torque = -sum(iJvecu,ndims(iJvecu));
+if nCoefs > 1
+  torque = -sum(iJvecu,ndims(q)+1);
 else
   torque = -iJvecu;
 end
 
-% torque = -sum(iJvecu,2);
+  assert(all(imag(torque(:))<1e-14), 'Torque is not real.')
 
-% Q11 = Q(1,1,:);
-% Q12 = Q(1,2,:);
-% Q21 = Q(2,1,:);
-% Q22 = Q(2,2,:);
-
-% % Eq. C7 and C8 in reference
-% p_ = Q11.*Q22 + Q12.*Q21;
-% D2_0p1 = sqrt(6)*Q11.*Q21.*p_;
-% D2_0m1 = sqrt(6)*Q22.*Q12.*p_;
-% 
-% iJxu = 1i*sqrt(3/2)*c20*(D2_0p1 + D2_0m1);
-% iJyu =    sqrt(3/2)*c20*(D2_0p1 - D2_0m1);
-% iJzu = zeros(size(iJyu));
-% 
-% torque = -[iJxu; iJyu; iJzu];
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-function  out = iJu(j, m1, m2, cjm, Q)
+%% Helper functions
+function  out = iJu(L, M, K, cLK, q)
 % Calculate the result of i\vo{J}u for a given potential coefficient
-% cjm corresponds to c_{m}^{j} in Eq. 58 in reference
+% cjm corresponds to c_{m}^{j} in Eq. 58 in [1]
 
-if m2==j
-  % m2 cannot be greater than j, so D_{0,m2+1}^j = 0
-  iJxu = 1i/2*cjm*Cpm(j,m2,'-')*wignerdquat(j,m1,m2-1,Q);
-  iJyu = -1/2*cjm*Cpm(j,m2,'-')*wignerdquat(j,m1,m2-1,Q);
-elseif m2==-j
-  % m2 cannot be less than -j, so D_{0,m2-1}^j = 0
-  iJxu = 1i/2*cjm*Cpm(j,m2,'+')*wignerdquat(j,m1,m2+1,Q);
-  iJyu = 1/2*cjm*Cpm(j,m2,'+')*wignerdquat(j,m1,m2+1,Q);
+if K==L
+  % K cannot be greater than L, so D_{0,K+1}^L = 0
+  iJxu = 1i/2*cLK*Cpm(L,K,'-')*wignerdquat(L,M,K-1,q);
+  iJyu = -1/2*cLK*Cpm(L,K,'-')*wignerdquat(L,M,K-1,q);
+elseif K==-L
+  % K cannot be less than -L, so D_{0,K-1}^L = 0
+  iJxu = 1i/2*cLK*Cpm(L,K,'+')*wignerdquat(L,M,K+1,q);
+  iJyu =  1/2*cLK*Cpm(L,K,'+')*wignerdquat(L,M,K+1,q);
 else
-  iJxu = 1i/2*cjm*(Cpm(j,m2,'+')*wignerdquat(j,m1,m2+1,Q) ...
-                  +Cpm(j,m2,'-')*wignerdquat(j,m1,m2-1,Q));
-  iJyu = 1/2*cjm*(Cpm(j,m2,'+')*wignerdquat(j,m1,m2+1,Q) ...
-                 -Cpm(j,m2,'-')*wignerdquat(j,m1,m2-1,Q));
+  iJxu = 1i/2*cLK*(Cpm(L,K,'+')*wignerdquat(L,M,K+1,q) ...
+                  +Cpm(L,K,'-')*wignerdquat(L,M,K-1,q));
+  iJyu =  1/2*cLK*(Cpm(L,K,'+')*wignerdquat(L,M,K+1,q) ...
+                  -Cpm(L,K,'-')*wignerdquat(L,M,K-1,q));
 end
 
-iJzu = 1i*cjm*m2*wignerdquat(j,m1,m2,Q);    
+iJzu = 1i*cLK*K*wignerdquat(L,M,K,q);    
 
 out = [iJxu; iJyu; iJzu];
 
 end
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function C = Cpm(j, m, pm)
-% Eq. 60 in reference
+function C = Cpm(L, K, pm)
+% Eq. 60 in [1]
 
-if pm=='+', C = sqrt(j*(j+1)-m*(m+1));
-elseif pm=='-', C = sqrt(j*(j+1)-m*(m-1)); end
+if     pm=='+', C = sqrt(L*(L+1)-K*(K+1));
+elseif pm=='-', C = sqrt(L*(L+1)-K*(K-1)); end
 
 end
 

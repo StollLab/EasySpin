@@ -2,15 +2,13 @@ function [err,data] = test(opt,olddata)
 % Check that using stochtraj with anisotropic diffusion generates a
 % proper distribution of orientations
 
-c20 = 2*(2*rand()-1);
-Sys.lambda = struct('c20', c20);
-Sys.tcorr = 10*rand()*1e-9;
-Par.dt = Sys.tcorr/10;
-Par.nSteps = ceil(100*Sys.tcorr/Par.dt);
-Par.nTraj = 800;
-Par.theta = pi*(2*rand()-1);
-Par.phi = 2*pi*(2*rand()-1);
-Par.chi = 2*pi*(2*rand()-1);
+Sys.tcorr = 10e-9;
+Par.dt = Sys.tcorr/5;
+Par.nSteps = ceil(50*Sys.tcorr/Par.dt);
+Par.nTraj = 200;
+Par.beta = pi*(2*rand()-1);
+Par.alpha = 2*pi*(2*rand()-1);
+Par.gamma = 2*pi*(2*rand()-1);
 Par.chkcon = 1;
 
 nTraj = Par.nTraj;
@@ -18,6 +16,9 @@ nSteps = Par.nSteps;
 
 nBins = 50;
 
+c20 = 3;
+Sys.Coefs = [c20, c20];
+Sys.LMK = [2, 0, 0];
 [t, R] = stochtraj(Sys,Par);
 
 
@@ -27,7 +28,7 @@ bins = linspace(0, pi, nBins)';
 ThetaHist = zeros(nBins, nTraj);
 
 for iTraj = 1:nTraj
-  ThetaHist(:, iTraj) = hist(acos(VecTraj(3, :, iTraj)), bins);
+  ThetaHist(:, iTraj) = hist(squeeze(acos(VecTraj(3, iTraj, :))), bins);
 end
 
 ThetaHist = sum(ThetaHist, 2);

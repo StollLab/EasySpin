@@ -6,7 +6,6 @@ Sys.tcorr = 10*rand()*1e-9;
 Par.nTraj = 100;
 
 nTraj = Par.nTraj;
-c20 = 0.0;
 
 nBins = 70;
 
@@ -22,16 +21,9 @@ for iTraj = 1:nTraj
   ThetaHist(:, iTraj) = hist(acos(VecTraj(3, :, iTraj)), bins);
 end
 
-% ThetaHistAvg = sum(ThetaHist, 2)/nTraj;
-% HistDiff = bsxfun(@minus,ThetaHist,ThetaHistAvg);
-% rmsd = sqrt(sum(HistDiff.^2,1)/70);
-% mean(rmsd)
-
-% plot(hist(rmsd, 70))
-% plot(rmsd)
 ThetaHist = ThetaHist/sum(ThetaHist);
 
-BoltzDist = exp(c20*(1.5*cos(bins).^2 - 0.5));
+BoltzDist = ones(nBins,1);
 BoltzInt = sum(BoltzDist.*sin(bins));
 BoltzDist = BoltzDist.*sin(bins)./BoltzInt;
 

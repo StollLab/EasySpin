@@ -2,17 +2,16 @@ function [err,data] = test(opt,olddata)
 % Check that using stochtraj with free diffusion generates a proper 
 % distribution of orientations
 
-Sys.tcorr = 10*rand()*1e-9;
+Sys.tcorr = 10*rand()*1e-9;;
 Par.dt = Sys.tcorr/10;
-Par.nSteps = ceil(100*Sys.tcorr/Par.dt);
-Par.nTraj = 100;
+Par.nSteps = ceil(200*Sys.tcorr/Par.dt);
+Par.nTraj = 400;
 Par.beta = pi*(2*rand()-1);
 Par.alpha = 2*pi*(2*rand()-1);
 Par.gamma = 2*pi*(2*rand()-1);
 
 nTraj = Par.nTraj;
 nSteps = Par.nSteps;
-c20 = 0.0;
 
 nBins = 50;
 
@@ -30,7 +29,7 @@ end
 ThetaHist = sum(ThetaHist, 2);
 ThetaHist = ThetaHist/sum(ThetaHist);
 
-BoltzDist = exp(c20*(1.5*cos(bins).^2 - 0.5));
+BoltzDist = ones(nBins,1);
 BoltzInt = sum(BoltzDist.*sin(bins));
 BoltzDist = BoltzDist.*sin(bins)./BoltzInt;
 
