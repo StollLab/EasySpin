@@ -3,20 +3,20 @@
 %   D = wignerdquat(J,M,K,q);
 %
 %   Input:
-%      L              int
-%                     rank of Wigner matrix
+%     L              int
+%                    rank of Wigner matrix
 %
-%      M              int
+%     M              int
 %
-%      K              int
+%     K              int
 %
-%      q              numeric, size = (4,nTraj)
-%                     quaternions
+%     q              numeric, size = (4,nTraj)
+%                    quaternions
 %
 %
 %   Output:
-%      D              complex
-%                     Wigner D-matrix element
+%     D              complex
+%                    Wigner D-matrix element
 
 %   References
 %   ----------

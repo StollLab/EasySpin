@@ -114,11 +114,15 @@ lambda = c2p1 + 1i*c2p1;
 % errc2p1 = abs(anistorque(Q,LMK,[c2p1,c2p1])-[-1i*sqrt(6)/4*c2p1*((X+1i*Y).^2+(3*Z.^2-1));
 %                                     -1*sqrt(6)/4*c2p1*((X+1i*Y).^2-(3*Z.^2-1));
 %                                                 1i*sqrt(3/2)*c2p1*(X+1i*Y).*Z])>tol;
-errc2p1val = abs(anistorque(LMK,[c2p1,c2p1],q)-[-1i/2*(lambda*(2*wigD(L,M,K+1,q)+sqrt(6)*wigD(L,M,K-1,q))...
-                                                   -conj(lambda)*(sqrt(6)*wigD(L,-M,-K+1,q)+2*wigD(L,-M,-K-1,q)));
-                                                -1/2*(lambda*(2*wigD(L,M,K+1,q)-sqrt(6)*wigD(L,M,K-1,q))...
-                                                   -conj(lambda)*(sqrt(6)*wigD(L,-M,-K+1,q)-2*wigD(L,-M,-K-1,q)));
-                                                            -1i*(lambda*wigD(L,M,K,q)+conj(lambda)*wigD(L,-M,-K,q))]/2);
+% errc2p1val = abs(anistorque(LMK,[c2p1,c2p1],q)-[-1i/2*(lambda*(2*wigD(L,M,K+1,q)+sqrt(6)*wigD(L,M,K-1,q))...
+%                                                    -conj(lambda)*(sqrt(6)*wigD(L,-M,-K+1,q)+2*wigD(L,-M,-K-1,q)));
+%                                                 -1/2*(lambda*(2*wigD(L,M,K+1,q)-sqrt(6)*wigD(L,M,K-1,q))...
+%                                                    -conj(lambda)*(sqrt(6)*wigD(L,-M,-K+1,q)-2*wigD(L,-M,-K-1,q)));
+%                                                             -1i*(lambda*wigD(L,M,K,q)+conj(lambda)*wigD(L,-M,-K,q))]/2);
+errc2p1val = abs(anistorque(LMK,[c2p1,c2p1],q)-[ sqrt(3/2)/2*(2*real(lambda)*X.*Y+imag(lambda)*(3*Z.^2+X.^2-Y.^2-1));
+                                                 sqrt(3/2)/2*(2*imag(lambda)*X.*Y+real(lambda)*(3*Z.^2-X.^2+Y.^2-1));
+                                                 -sqrt(3/2)*(imag(lambda)*X+real(lambda)*Y).*Z]);
+
 errc2p1 = errc2p1val>tol;
 
 % Test c2p2 against Eq. C10

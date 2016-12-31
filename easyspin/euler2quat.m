@@ -3,12 +3,18 @@
 %  q = euler2quat(alpha, beta, gamma);
 %
 %  Input:
-%     alpha          double or 1xN array, first Euler angle
-%     beta           double or 1xN array, second Euler angle
-%     gamma          double or 1xN array, third Euler angle
+%     alpha          double or numeric, size = (1,...)
+%                    first Euler angle
+%
+%     beta           double or numeric, size = (1,...)
+%                    second Euler angle
+%
+%     gamma          double or numeric, size = (1,...)
+%                    third Euler angle
 %
 %  Output:
-%     q              4xN array, normalized quaternion
+%     q              numeric, size = (4,...)
+%                    normalized quaternion
 
 function q = euler2quat(varargin)
 
@@ -60,7 +66,7 @@ if numel(alpha) ~= numel(beta) || numel(beta) ~= numel(gamma)
   error('Inputs must have the same number of elements.')
 end
 
-switch option
+switch lower(option)
   case ''
     % EasySpin uses passive transformations by default
     temp = alpha;

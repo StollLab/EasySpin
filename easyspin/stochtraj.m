@@ -204,13 +204,6 @@ q0 = euler2quat(alpha,beta,gamma);
 qTraj = zeros(4,Sim.nTraj,Sim.nSteps);
 qTraj(:,:,1) = q0;
 
-% Convert initial quaternion to a unitary 2x2 matrix for easier propagation
-% Q = zeros(2,2,Sim.nTraj,Sim.nSteps);
-% Q(1,1,:,1) =  q0(1,:) - 1i*q0(4,:);
-% Q(1,2,:,1) = -q0(3,:) - 1i*q0(2,:);
-% Q(2,1,:,1) =  q0(3,:) - 1i*q0(2,:);
-% Q(2,2,:,1) =  q0(1,:) + 1i*q0(4,:);
-
 % if isfield(Par,'tol')
 %   if ~isfield(Par,'chkcon') || chkcon==0
 %     error('A convergence tolerance was provided, but ''Par.chkcon'' was not equal to 1.')
@@ -240,13 +233,6 @@ while ~converged
     %  (Eqs. 48 and 61 in reference)
 %     Q = propagate(Q, Sim, iter);
     qTraj = propagate(qTraj, Sim, iter);
-    
-%     % Convert 2x2 matrices to 4x1 quaternions
-%     qTraj = zeros(4,Sim.nTraj,Sim.nSteps);
-%     qTraj(1,:,:) = squeeze(real(Q(1,1,:,:)));
-%     qTraj(2,:,:) = squeeze(-imag(Q(1,2,:,:)));
-%     qTraj(3,:,:) = squeeze(real(Q(2,1,:,:)));
-%     qTraj(4,:,:) = squeeze(imag(Q(2,2,:,:)));
 
   else
     logmsg(1,'-- Convergence not obtained -------------------------------------');
@@ -257,16 +243,7 @@ while ~converged
     Sim.nSteps = max([ceil(tcorrAvg/Sim.dt), ceil(1.2*Sim.nSteps)]);
     Sim.randAngStep = bsxfun(@times, randn(3,Sim.nTraj,Sim.nSteps),...
                                    sqrt(2*Sim.Diff*Sim.dt));
-%     Q = propagate(Q, Sim, iter);
     qTraj = propagate(qTraj, Sim, iter);
-    
-%     % Extend simulation along time axis
-%     qTemp = zeros(4,Sim.nTraj,Sim.nSteps);
-%     qTemp(1,:,:) = squeeze(real(Q(1,1,:,:)));
-%     qTemp(2,:,:) = squeeze(-imag(Q(1,2,:,:)));
-%     qTemp(3,:,:) = squeeze(real(Q(2,1,:,:)));
-%     qTemp(4,:,:) = squeeze(imag(Q(2,2,:,:)));
-%     qTraj = cat(3,qTraj,qTemp);
                                 
   end
 
@@ -380,7 +357,6 @@ end
 
 end
 
-
 function q = propagate(q, Sim, iter)
 % Propagate quaternions
 
@@ -452,6 +428,8 @@ for iStep=2:nSteps
     torque = anistorque(LMK,Coefs,q(:,:,iStep-1));
 %     c2p2 = Coefs(1);
 %     c20 = Coefs(1);
+%     c2p1_re = Coefs(1);
+%     c2p1_im = Coefs(2);
 %     A = q(1,:,iStep-1) - 1i*q(4,:,iStep-1);
 %     B = -q(3,:,iStep-1) - 1i*q(2,:,iStep-1);
 %     Ast = q(1,:,iStep-1) + 1i*q(4,:,iStep-1);
@@ -462,6 +440,9 @@ for iStep=2:nSteps
 %     torque = [ -3*c20*Y.*Z;
 %                 3*c20*X.*Z;
 %                zeros(size(Z))];
+%     torque = [ sqrt(3/2)/2*(2*c2p1_re*X.*Y+c2p1_im*(3*Z.^2+X.^2-Y.^2-1));
+%                sqrt(3/2)/2*(2*c2p1_im*X.*Y+c2p1_re*(3*Z.^2-X.^2+Y.^2-1));
+%                -sqrt(3/2)*(c2p1_im*X+c2p1_re*Y).*Z];
 %     torque = [-sqrt(6)*c2p2*Y.*Z;
 %               -sqrt(6)*c2p2*X.*Z;
 %               2*sqrt(6)*c2p2*X.*Y];

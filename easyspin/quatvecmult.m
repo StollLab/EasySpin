@@ -3,11 +3,15 @@
 %  r = quatvecmult(q, v);
 %
 %  Input:
-%     q          4x... array, normalized quaternion
-%     v          3x... array, vector
+%     q              numeric, size = (4,...)
+%                    normalized quaternion
+%
+%     v              numeric, size = (3,...)
+%                    3-vector
 %
 %  Output:
-%     r          4x... array, normalized quaternion
+%     r              numeric, size = (3,...)
+%                    3-vector
 
 function r = quatvecmult(q, v)
     

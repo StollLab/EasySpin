@@ -3,19 +3,19 @@
 %   torque = anistorque(LMK, Coefs, q);
 %
 %   Input:
-%      LMK            numeric, size = (nCoefs,3)
-%                     integers corresponding to the quantum numbers L, M, 
-%                     and K
+%     LMK            numeric, size = (nCoefs,3)
+%                    integers corresponding to the quantum numbers L, M, 
+%                    and K
 %
-%      Coefs          numeric, size = (nCoefs,2)
-%                     real coefficients cLMK+ and cLMK- for orienting 
-%                     potentials
+%     Coefs          numeric, size = (nCoefs,2)
+%                    real coefficients cLMK+ and cLMK- for orienting 
+%                    potentials
 %
-%      q              numeric, size = (4,nTraj)
-%                     quaternions
+%     q              numeric, size = (4,nTraj)
+%                    quaternions
 %
 %   Output:
-%      anistorque     numeric, size = (3,1,nTraj)
+%     anistorque     numeric, size = (3,1,nTraj)
 
 %   References
 %   ----------
