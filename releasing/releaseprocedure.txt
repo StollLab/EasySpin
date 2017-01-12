@@ -94,9 +94,10 @@ Update local website folder easyspin/website
 
 - zip website folder (e.g. website-x-y-z.zip) from outside folder
 
-- logon to hostmonster.com control panel login, easyspin.com, open file manager
+- logon to hostmonster.com control panel login, easyspin.com
   http://www.hostmonster.com/web-hosting/cplogin
   https://my.hostmonster.com/cgi/cpanel
+- open file manager and go to public_html folder
 - upload zipped website to web host public_html folder
 - extract zip file
 
