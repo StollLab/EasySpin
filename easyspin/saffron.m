@@ -817,6 +817,9 @@ if ~isfield(Opt,'TimeDomain'), Opt.TimeDomain = 0; end
 % Process crystal orientations, crystal symmetry, and frame transforms
 % This sets Orientations, nOrientations, nSites and AverageOverChi
 [Orientations,nOrientations,nSites,AverageOverChi] = p_crystalorientations(Exp,Opt);
+if numel(Exp.OriWeights)~=nOrientations
+  Exp.OriWeights = repmat(Exp.OriWeights,1,nSites);
+end
 
 logmsg(1,'-Hamiltonians------------------------------------------');
 
