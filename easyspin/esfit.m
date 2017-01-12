@@ -724,16 +724,13 @@ BestSpec = 0;
 [FinalSys,bestvalues] = getSystems(FitData.Sys0,FitData.Vary,bestx);
 
 % Simulate best-fit spectrum
-for iSys=1:numel(FitData.Sys0)
-  if isfield(FinalSys{iSys},'fcn')
-    [out{1:FitData.nOutArguments}] = feval(FitData.SimFcnName,FinalSys{iSys}.fcn(FinalSys{iSys}),Exp,SimOpt);
-  else
-    [out{1:FitData.nOutArguments}] = feval(FitData.SimFcnName,FinalSys{iSys},FitData.Exp,FitData.SimOpt);
-  end
-  newsim_ = out{FitData.OutArgument}; % pick last output argument
-  %(Sys.weight is taken into account by the simulation function)
-  BestSpec = BestSpec + newsim_;
+if numel(FinalSys)==1
+  [out{1:FitData.nOutArguments}] = feval(FitData.SimFcnName,FinalSys{1},FitData.Exp,FitData.SimOpt);
+else
+  [out{1:FitData.nOutArguments}] = feval(FitData.SimFcnName,FinalSys,FitData.Exp,FitData.SimOpt);
 end
+% (SimSystems{s}.weight is taken into account in the simulation function)
+BestSpec = out{FitData.OutArgument}; % pick last output argument
 BestSpecScaled = rescale(BestSpec,FitData.ExpSpecScaled,FitOpts.Scaling);
 BestSpec = rescale(BestSpec,FitData.ExpSpec,FitOpts.Scaling);
 
@@ -800,16 +797,13 @@ inactive = FitData.inactiveParams;
 x_all = FitData.startx;
 x_all(~inactive) = x;
 [SimSystems,simvalues] = getSystems(Sys0,Vary,x_all);
-for s = 1:numel(Sys0)
-  % (SimSystems{s}.weight is taken into account in the simulation function)
-  if isfield(SimSystems{s},'fcn')
-    [out{1:FitData.nOutArguments}] = feval(FitData.SimFcnName,SimSystems{s}.fcn(SimSystems{s}),Exp,SimOpt);
-  else
-    [out{1:FitData.nOutArguments}] = feval(FitData.SimFcnName,SimSystems{s},Exp,SimOpt);
-  end
-  newsim_ = out{FitData.OutArgument};
-  simspec = simspec + newsim_;
+if numel(SimSystems)==1
+  [out{1:FitData.nOutArguments}] = feval(FitData.SimFcnName,SimSystems{1},Exp,SimOpt);
+else
+  [out{1:FitData.nOutArguments}] = feval(FitData.SimFcnName,SimSystems,Exp,SimOpt);
 end
+% (SimSystems{s}.weight is taken into account in the simulation function)
+simspec = out{FitData.OutArgument}; % pick last output argument
 
 % Scale simulated spectrum to experimental spectrum ----------
 simspec = rescale(simspec,ExpSpec,FitOpt.Scaling);
