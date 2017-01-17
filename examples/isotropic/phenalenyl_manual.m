@@ -3,6 +3,7 @@
 % Here, we manually simulate the spectra of each 12C and 13C
 % isotopologue of the phenalenyl radical and sum them to get 
 % the total spectrum corresponding to natural-abundance carbon.
+% (We neglect species with more than one 13C.)
 %
 % EasySpin can do this automatically, see phenalenyl.m
 %
