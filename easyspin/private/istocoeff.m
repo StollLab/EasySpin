@@ -3,7 +3,7 @@
 % corresponding to the anisotropic ISTO components
 % Alternatively, it takes the 3 principal values.
 
-function [F0,F1,F2] = istocoeffnew(A)
+function [F0,F1,F2] = istocoeff(A)
 
 if numel(A)==1
   

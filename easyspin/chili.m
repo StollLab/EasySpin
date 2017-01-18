@@ -459,6 +459,13 @@ if generalLiouvillian
   end
 end
 
+% Field sweep method
+if ~isfield(Opt,'ExplicitFieldSweep')
+  Opt.ExplicitFieldSweep = false;
+end
+
+explicitFieldSweep = Opt.ExplicitFieldSweep;
+
 % Post-convolution nuclei
 doPostConvolution = ~isempty(Opt.PostConvNucs);
 if doPostConvolution
@@ -710,16 +717,6 @@ else
     
 end
 
-if isfield(Opt,'SweepMethod')
-  if strcmp(Opt.SweepMethod,'explicit')
-    ExplicitFieldSweep = true;
-  else
-    ExplicitFieldSweep = false;
-  end
-else
-  ExplicitFieldSweep = false;
-end
-
 % Precalculating operator matrices
 %-----------------------------------------------------------------------
 if generalLiouvillian
@@ -732,7 +729,7 @@ if generalLiouvillian
   end
   
   logmsg(1,'Generating ISTOs and precalculating 3j symbols');
-  [T0,T1,T2,F0,F1,F2,isFieldDep] = magint(Sys,SpinOps,CenterField,Opt.IncludeNZI,ExplicitFieldSweep);
+  [T0,T1,T2,F0,F1,F2,isFieldDep] = magint(Sys,SpinOps,CenterField,Opt.IncludeNZI,explicitFieldSweep);
   [jjj0,jjj1,jjj2] = jjjsymbol(Basis.LLKM,any(F1(:)));
   
   logmsg(1,'Setting up the detection operator');
@@ -768,8 +765,6 @@ for iOri = 1:nOrientations
     D1 = wignerd(1,[phi(iOri),theta(iOri),0]);
     D2 = wignerd(2,[phi(iOri) theta(iOri) 0]);
     [Q0B,Q1B,Q2B,Q0G,Q1G,Q2G] = rbos(D1,D2,T0,T1,T2,F0,F1,F2,isFieldDep);
-    [Q0B,Q1B,Q2B] = hil2liouv(Q0B,Q1B,Q2B);
-    [Q0G,Q1G,Q2G] = hil2liouv(Q0G,Q1G,Q2G);
     
     if Opt.pqOrder
       Q0B = Q0B(idxpq,idxpq);
@@ -807,7 +802,7 @@ for iOri = 1:nOrientations
   %-------------------------------------------------------
   logmsg(1,'Computing Liouvillian matrix...');
   
-  if ExplicitFieldSweep
+  if explicitFieldSweep
     BSweep = linspace(min(Exp.Range),max(Exp.Range),Exp.nPoints)/1e3; % mT -> T
     omega0 = 2*pi*Exp.mwFreq*1e9; % GHz -> Hz
   else
@@ -815,7 +810,7 @@ for iOri = 1:nOrientations
   end
   
   if generalLiouvillian
-    if ExplicitFieldSweep
+    if explicitFieldSweep
       HB = liouvhamiltonian(Basis.List,Q0B,Q1B,Q2B,jjj0,jjj1,jjj2);
       HG = liouvhamiltonian(Basis.List,Q0G,Q1G,Q2G,jjj0,jjj1,jjj2);
     else
@@ -849,7 +844,7 @@ for iOri = 1:nOrientations
       L = sparse(r(idx)+1,c(idx)+1,Vals(idx),BasisSize,BasisSize);
     else
       
-      if ExplicitFieldSweep
+      if explicitFieldSweep
         H = BSweep(iB)*HB + HG;
         L = -2i*pi*H(keep,keep) + Gamma;
       else
@@ -876,7 +871,7 @@ for iOri = 1:nOrientations
         omega = omega0; % angular frequency
       end
       
-      if ExplicitFieldSweep
+      if explicitFieldSweep
         omega = 1i*omega;
       end
       
@@ -893,7 +888,7 @@ for iOri = 1:nOrientations
       % Computation of the spectral function
       %==============================================================
       logmsg(1,'Computing spectrum...');
-      if ExplicitFieldSweep
+      if explicitFieldSweep
         Opt.Solver = '\';
       end
       switch Opt.Solver
