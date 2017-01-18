@@ -1,4 +1,4 @@
-function [T0,T1,T2,F0,F1,F2] = magint(System,SpinOps,CenterField,IncludeNuclearZeeman)
+function [T0,T1,T2,F0,F1,F2,isFieldDep] = magint(System,SpinOps,CenterField,IncludeNuclearZeeman,ExplicitFieldSweep)
 
 % Count the number of interaction terms in the spin Hamiltonian
 % -------------------------------------------------------------------------
@@ -27,10 +27,15 @@ T2 = cell(nInteractions,5);
 F0 = zeros(nInteractions,1);
 F1 = zeros(nInteractions,3);
 F2 = zeros(nInteractions,5);
+isFieldDep = zeros(nInteractions,1);
 
 iInt = 1;
 
-B0 = {0 0 CenterField/1e3}; % mT -> T
+if ExplicitFieldSweep
+  B0 = {0 0 1}; % per Tesla
+else
+  B0 = {0 0 CenterField/1e3}; % mT -> T
+end
 
 % Electron Zeeman interaction terms (muB*B*g*S/h)
 %--------------------------------------------------------------------------
@@ -42,6 +47,7 @@ for iElSpin = 1:nElSpins
   end
   [T0{iInt},T1(iInt,:),T2(iInt,:)] = istotensor(B0,SpinOps(iElSpin,:));
   [F0(iInt),F1(iInt,:),F2(iInt,:)] = istocoeff(g*bmagn/planck); % Hz
+  isFieldDep(iInt) = true;
   iInt = iInt + 1;
 end
 
@@ -64,6 +70,7 @@ for iElSpin = 1:nElSpins
     I_ = SpinOps(nElSpins+iNucSpin,:);
     [T0{iInt},T1(iInt,:),T2(iInt,:)] = istotensor(S_,I_);
     [F0(iInt),F1(iInt,:),F2(iInt,:)] = istocoeff(A_);
+    isFieldDep(iInt) = false;
     iInt = iInt + 1;
   end
 end
@@ -90,6 +97,7 @@ if (nZFS>0)
     S_ = SpinOps(iSpin,:);
     [T0{iInt},T1(iInt,:),T2(iInt,:)] = istotensor(S_,S_);
     [F0(iInt),F1(iInt,:),F2(iInt,:)] = istocoeff(D_);
+    isFieldDep(iInt) = false;
     iInt = iInt + 1;
   end
 end
@@ -113,6 +121,7 @@ if nElSpins>1
       end
       [T0{iInt},T1(iInt,:),T2(iInt,:)] = istotensor(SpinOps(iEl1,:),SpinOps(iEl2,:));
       [F0(iInt),F1(iInt,:),F2(iInt,:)] = istocoeff(J_*1e6); % MHz -> Hz
+      isFieldDep(iInt) = false;
       iInt = iInt + 1;
       iCoupling = iCoupling + 1;
     end
@@ -127,6 +136,7 @@ if IncludeNuclearZeeman
     gn_ = System.gn(iNucSpin);
     [T0{iInt},T1(iInt,:),T2(iInt,:)] = istotensor(B0,I_);
     [F0(iInt),F1(iInt,:),F2(iInt,:)] = istocoeff(-gn_*nmagn/planck);
+    isFieldDep(iInt) = true;
     iInt = iInt + 1;
   end
 end
@@ -144,6 +154,7 @@ if IncludeNuclearQuadrupole
     end
     [T0{iInt},T1(iInt,:),T2(iInt,:)] = istotensor(I_,I_);
     [F0(iInt),F1(iInt,:),F2(iInt,:)] = istocoeff(Q_);
+    isFieldDep(iInt) = false;
     iInt = iInt + 1;
   end
 end

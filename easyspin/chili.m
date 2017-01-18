@@ -478,8 +478,13 @@ if doPostConvolution
 end
 
 if ~generalLiouvillian
-  if Sys.nNuclei>2
-    error('Cannot have more than two nuclei for the Stochastic Liouville equation with this Opt.Method.');
+  % Pick functions for the calculation of the Liouvillian
+  switch Sys.nNuclei
+    case 0, chili_lm = @chili_lm0;
+    case 1, chili_lm = @chili_lm1;
+    case 2, chili_lm = @chili_lm2;
+    otherwise
+      error('Cannot have more than two nuclei for the Stochastic Liouville equation with this Opt.Method.');
   end
 end
 
@@ -548,17 +553,17 @@ end
 logmsg(1,'Solver: %s',SolverString);
 
 if ~generalLiouvillian
-  % reallocation block size, used in chili_lm
-  blockSize = 1e6;
-  minBlockSize = 1e3;
-  if ~isfield(Opt,'AllocationBlockSize')
-    Opt.AllocationBlockSize = blockSize;
+  maxElements = 5e6; % used in chili_lm
+  maxRows = 2e5; % used in chili_lm
+  if ~isfield(Opt,'Allocation')
+    Opt.Allocation = [maxElements maxRows];
+  elseif numel(Opt.Allocation)<2
+    Opt.Allocation(2) = maxRows;
   end
-  Opt.AllocationBlockSize = Opt.AllocationBlockSize(1);
-  if Opt.AllocationBlockSize<minBlockSize
-    error('Opt.AllocationBlockSize = %d is too small. Increase its value to at least %d.',Opt.AllocationBlockSize,minBlockSize);
+  if Opt.Allocation(1)<1e3
+    error('Opt.Allocation(1) (maximum number elements) is too small.');
   end
-  logmsg(2,'  allocating memory in blocks of %d non-zero elements',Opt.AllocationBlockSize);
+  logmsg(2,'  allocation: %d max elements, %d max rows',Opt.Allocation(1),Opt.Allocation(2));
 end
 
 % Process
@@ -705,6 +710,16 @@ else
     
 end
 
+if isfield(Opt,'SweepMethod')
+  if strcmp(Opt.SweepMethod,'explicit')
+    ExplicitFieldSweep = true;
+  else
+    ExplicitFieldSweep = false;
+  end
+else
+  ExplicitFieldSweep = false;
+end
+
 % Precalculating operator matrices
 %-----------------------------------------------------------------------
 if generalLiouvillian
@@ -717,7 +732,7 @@ if generalLiouvillian
   end
   
   logmsg(1,'Generating ISTOs and precalculating 3j symbols');
-  [T0,T1,T2,F0,F1,F2] = magint(Sys,SpinOps,CenterField,Opt.IncludeNZI);
+  [T0,T1,T2,F0,F1,F2,isFieldDep] = magint(Sys,SpinOps,CenterField,Opt.IncludeNZI,ExplicitFieldSweep);
   [jjj0,jjj1,jjj2] = jjjsymbol(Basis.LLKM,any(F1(:)));
   
   logmsg(1,'Setting up the detection operator');
@@ -752,14 +767,20 @@ for iOri = 1:nOrientations
   if generalLiouvillian
     D1 = wignerd(1,[phi(iOri),theta(iOri),0]);
     D2 = wignerd(2,[phi(iOri) theta(iOri) 0]);
-    [Q0,Q1,Q2] = rbos(D1,D2,T0,T1,T2,F0,F1,F2);
+    [Q0B,Q1B,Q2B,Q0G,Q1G,Q2G] = rbos(D1,D2,T0,T1,T2,F0,F1,F2,isFieldDep);
+    [Q0B,Q1B,Q2B] = hil2liouv(Q0B,Q1B,Q2B);
+    [Q0G,Q1G,Q2G] = hil2liouv(Q0G,Q1G,Q2G);
+    
     if Opt.pqOrder
-      Q0 = Q0(idxpq,idxpq);
-      for k = 1:numel(Q1)
-        Q1{k} = Q1{k}(idxpq,idxpq);
+      Q0B = Q0B(idxpq,idxpq);
+      Q0G = Q0G(idxpq,idxpq);
+      for k = 1:numel(Q1B)
+        Q1B{k} = Q1B{k}(idxpq,idxpq);
+        Q1G{k} = Q1G{k}(idxpq,idxpq);
       end
-      for k = 1:numel(Q2)
-        Q2{k} = Q2{k}(idxpq,idxpq);
+      for k = 1:numel(Q2B)
+        Q2B{k} = Q2B{k}(idxpq,idxpq);
+        Q2G{k} = Q2G{k}(idxpq,idxpq);
       end
     end
   else
@@ -786,98 +807,150 @@ for iOri = 1:nOrientations
   %-------------------------------------------------------
   logmsg(1,'Computing Liouvillian matrix...');
   
+  if ExplicitFieldSweep
+    BSweep = linspace(min(Exp.Range),max(Exp.Range),Exp.nPoints)/1e3; % mT -> T
+    omega0 = 2*pi*Exp.mwFreq*1e9; % GHz -> Hz
+  else
+    BSweep = CenterField/1e3; % mT -> T
+  end
+  
   if generalLiouvillian
-    H = liouvhamiltonian(Basis.List,Q0,Q1,Q2,jjj0,jjj1,jjj2);
-    L = -2i*pi*H(keep,keep) + Gamma;
-    BasisSizeL = size(L,1);
-  else
-    Sys.DirTilt = Basis.DirTilt;
-    Dynamics.xlk = Potential.xlk;
-    Dynamics.maxL = size(Potential.xlk,1)-1;
-    [r,c,values,BasisSizeL] = chili_lm(Sys,Basis.v,Dynamics,Opt.AllocationBlockSize);
-    L = sparse(r,c,values,BasisSizeL,BasisSizeL);
-  end
-  
-  if (BasisSizeL~=BasisSize)
-    error('Matrix size (%d) inconsistent with basis size (%d). Please report.',BasisSizeL,BasisSize);
-  end
-  if any(isnan(L))
-    error('Liouvillian matrix contains NaN entries! Please report.');
-  end
-  
-  % Rescale by maximum of Hamiltonian superoperator
-  if (Opt.Rescale)
-    scale = -min(min(imag(L)));
-    L = L/scale;
-    omega = omega0/scale;
-  else
-    omega = omega0; % angular frequency
-  end
-  
-  maxDvalLim = 2e3;
-  maxDval = max(max(abs(imag(L))));
-  logmsg(1,'  size: %dx%d, maxabs: %g',length(L),length(L),full(maxDval));
-  if maxDval>maxDvalLim
-    error(sprintf('Numerical instability, values in diffusion matrix are too large (%g)!',maxDval));
-  end
-  
-  logmsg(1,'  non-zero elements: %d/%d (%0.2f%%)',nnz(L),length(L).^2,100*nnz(L)/length(L)^2);
-  
-  %==============================================================
-  % Computation of the spectral function
-  %==============================================================
-  logmsg(1,'Computing spectrum...');
-  switch Opt.Solver
-    
-    case 'L' % Lanczos method
-      [alpha,beta,minerr] = chili_lanczos(L,StartingVector,omega,Opt);
-      minerr = minerr(end);
-      if (minerr<Opt.Threshold)
-        thisspec = chili_contfracspec(omega,alpha,beta);
-        logmsg(1,'  converged to within %g at iteration %d/%d',...
-          Opt.Threshold,numel(alpha),BasisSize);
+    if ExplicitFieldSweep
+      HB = liouvhamiltonian(Basis.List,Q0B,Q1B,Q2B,jjj0,jjj1,jjj2);
+      HG = liouvhamiltonian(Basis.List,Q0G,Q1G,Q2G,jjj0,jjj1,jjj2);
+    else
+      Q0 = Q0B+Q0G;
+      if any(F1(:))
+        for i = 1:3
+          for j = 1:3
+            Q1{i,j} = Q1B{i,j} + Q1G{i,j};
+          end
+        end
       else
-        thisspec = ones(size(omega));
-        logmsg(0,'  Tridiagonalization did not converge to within %g after %d steps!\n  Increase Options.LLKM (current settings [%d,%d,%d,%d])',...
-          Opt.Threshold,BasisSize,Opt.LLKM');
+        Q1 = {};
       end
-
-    case 'C' % conjugated gradients
-      CGshift = 1e-6 + 1e-6i;
-      [xx,alpha,beta,err,StepsDone] = chili_conjgrad(L,StartingVector,CGshift);
-
-      logmsg(1,'  step %d/%d: CG converged to within %g',...
-        StepsDone,BasisSize,err);
-
-      thisspec = chili_contfracspec(omega,alpha,beta);
-
-    case 'R' % bi-conjugate gradients stabilized
-      for iomega = 1:numel(omega)
-        u = bicgstab(L+omega(iomega)*speye(size(L)),StartingVector,Opt.Threshold,BasisSize);
-        thisspec(iomega) = real(u'*StartingVector);
+      for i = 1:5
+        for j = 1:5
+          Q2{i,j} = Q2B{i,j} + Q2G{i,j};
+        end
       end
-      
-    case '\' % MATLAB backslash solver for linear system
-      I = speye(size(L));
-      rho0 = StartingVector;
-      for iomega = 1:numel(omega)
-        thisspec(iomega) = rho0'*((L+omega(iomega)*I)\rho0);
-      end
-      thisspec = real(thisspec);
-      
-    case 'D' % "direct" method by Binsch (eigenbasis)
-      L = full(L);
-      [U,Lam] = eig(L);
-      Lam = diag(Lam);
-      rho0 = StartingVector;
-      Amplitude = (rho0'*U).'.*(U\rho0);
-      thisspec = 0;
-      for iPeak = 1:numel(Amplitude)
-        thisspec = thisspec + Amplitude(iPeak)./(Lam(iPeak)+omega);
-      end
-
+      H = liouvhamiltonian(Basis.List,Q0,Q1,Q2,jjj0,jjj1,jjj2);
+    end
   end
-
+      
+  iSpec = 1;
+  for iB = 1:numel(BSweep)
+    if ~generalLiouvillian
+      Sys.DirTilt = Basis.DirTilt; % used in chili_lm
+      Dynamics.xlk = Potential.xlk; % used in chili_lm
+      Dynamics.maxL = size(Potential.xlk,1)-1; % used in chili_lm
+      [r,c,Vals,nDim,nElm] = chili_lm(Sys,Basis.v,Dynamics,Opt.Allocation);
+      idx = 1:nElm;
+      L = sparse(r(idx)+1,c(idx)+1,Vals(idx),BasisSize,BasisSize);
+    else
+      
+      if ExplicitFieldSweep
+        H = BSweep(iB)*HB + HG;
+        L = -2i*pi*H(keep,keep) + Gamma;
+      else
+        L = -2i*pi*H(keep,keep) + Gamma;
+      end
+      nDim = size(L,1);
+      
+      if (nDim~=BasisSize)
+        error('Matrix size (%d) inconsistent with basis size (%d). Please report.',nDim,BasisSize);
+      end
+      if any(isnan(L))
+        error('Liouvillian matrix contains NaN entries! Please report.');
+      end
+      
+    end
+      
+      % Rescale by maximum of Hamiltonian superoperator
+      Opt.Rescale = 0;
+      if (Opt.Rescale)
+        scale = -min(min(imag(L)));
+        L = L/scale;
+        omega = omega0/scale;
+      else
+        omega = omega0; % angular frequency
+      end
+      
+      if ExplicitFieldSweep
+        omega = 1i*omega;
+      end
+      
+      maxDvalLim = 2e3;
+      maxDval = max(max(abs(imag(L))));
+      logmsg(1,'  size: %dx%d, maxabs: %g',length(L),length(L),full(maxDval));
+      if maxDval>maxDvalLim
+      %  error(sprintf('Numerical instability, values in diffusion matrix are too large (%g)!',maxDval));
+      end
+      
+      logmsg(1,'  non-zero elements: %d/%d (%0.2f%%)',nnz(L),length(L).^2,100*nnz(L)/length(L)^2);
+      
+      %==============================================================
+      % Computation of the spectral function
+      %==============================================================
+      logmsg(1,'Computing spectrum...');
+      if ExplicitFieldSweep
+        Opt.Solver = '\';
+      end
+      switch Opt.Solver
+        
+        case 'L' % Lanczos method
+          [alpha,beta,minerr] = chili_lanczos(L,StartingVector,omega,Opt);
+          minerr = minerr(end);
+          if (minerr<Opt.Threshold)
+            thisspec = chili_contfracspec(omega,alpha,beta);
+            logmsg(1,'  converged to within %g at iteration %d/%d',...
+              Opt.Threshold,numel(alpha),BasisSize);
+          else
+            thisspec = ones(size(omega));
+            logmsg(0,'  Tridiagonalization did not converge to within %g after %d steps!\n  Increase Options.LLKM (current settings [%d,%d,%d,%d])',...
+              Opt.Threshold,BasisSize,Opt.LLKM');
+          end
+          
+        case 'C' % conjugated gradients
+          CGshift = 1e-6 + 1e-6i;
+          [xx,alpha,beta,err,StepsDone] = chili_conjgrad(L,StartingVector,CGshift);
+          
+          logmsg(1,'  step %d/%d: CG converged to within %g',...
+            StepsDone,BasisSize,err);
+          
+          thisspec = chili_contfracspec(omega,alpha,beta);
+          
+        case 'R' % bi-conjugate gradients stabilized
+          for iomega = 1:numel(omega)
+            u = bicgstab(L+omega(iomega)*speye(size(L)),StartingVector,Opt.Threshold,nDim);
+            thisspec(iomega) = real(u'*StartingVector);
+          end
+          
+        case '\' % MATLAB backslash solver for linear system
+          I = speye(size(L));
+          rho0 = StartingVector;
+          for iomega = 1:numel(omega)
+            thisspec(iSpec) = rho0'*((L+omega(iomega)*I)\rho0);
+            iSpec = iSpec + 1;
+          end
+          %thisspec = real(thisspec);
+          
+        case 'D' % "direct" method by Binsch (eigenbasis)
+          L = full(L);
+          [U,Lam] = eig(L);
+          Lam = diag(Lam);
+          rho0 = StartingVector;
+          Amplitude = (rho0'*U).'.*(U\rho0);
+          thisspec = 0;
+          for iPeak = 1:numel(Amplitude)
+            thisspec = thisspec + Amplitude(iPeak)./(Lam(iPeak)+omega);
+          end
+          
+      end
+      
+  end
+  
+  thisspec = real(thisspec);
   spec = spec + thisspec*Weights(iOri);
   
 end % orientation loop
@@ -1037,18 +1110,7 @@ if FieldSweep
     end
   end
 else
-  if (Exp.ModAmp>0)
-    error('Cannot apply field modulation for a frequency-swept spectrum.');
-  else
-    if (Exp.DerivHarmonic>0)
-      logmsg(1,'  harmonic %d: using differentiation',Exp.DerivHarmonic);
-      dx = xAxis(2)-xAxis(1);
-      for h = 1:Exp.DerivHarmonic
-        dspec = diff(outspec,[],2)/dx;
-        outspec = (dspec(:,[1 1:end]) + dspec(:,[1:end end]))/2;
-      end
-    end
-  end
+  % frequency sweeps: not available
 end
 %==============================================================
 
@@ -1264,6 +1326,7 @@ if axialSystem && (Basis.deltaK==2) && (maxPotentialK==0)
   Basis.oddLmax = 0;
   Basis.Kmax = 0;
 end
+
 
 Basis.v = [...
   Basis.evenLmax Basis.oddLmax Basis.Kmax Basis.Mmax, ...

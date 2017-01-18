@@ -4,7 +4,7 @@
 % cell array. The anisotropic components are arranged as a row of 5
 % matrices in a cell array in decreasing order of component M from 2 to -2.
 
-function [T0,T1,T2] = istotensor(A,B)
+function [T0,T1,T2] = istotensornew(A,B)
 
 
 Ax = A{1}; Ay = A{2}; Az = A{3};
