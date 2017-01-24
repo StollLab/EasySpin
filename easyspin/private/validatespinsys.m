@@ -327,16 +327,6 @@ if (nElectrons>1)
       if ~isempty(err); return; end
       Sys.eeFrame = -Sys.eepa(:,[3 2 1]);
     end
-    if fullee
-      if isfield(Sys,'eeFrame')
-        err = sprintf('Full matrices are specified in ee, so eeFrame is not allowed.');
-        if ~isempty(err), return; end
-      end
-    else
-      if ~isfield(Sys,'eeFrame'), Sys.eeFrame = zeros(nPairs,3); end
-      err = sizecheck(Sys,'eeFrame',[nPairs 3]);
-      if ~isempty(err), return; end
-    end
     
   else
     % Bilinear coupling defined via J, dvec and eeD
@@ -344,6 +334,7 @@ if (nElectrons>1)
     % J:    isotropic exchange +J*S1*S2
     % dvec: antisymmetric exchange dvec.(S1xS2)
     % eeD:  dipolar coupling S1.diag(eeD).S2 or S1.eeD.S2
+    fullee = false;
     
     % Size check on list of isotropic exchange coupling constants
     if ~isfield(Sys,'J'), Sys.J = zeros(1,nPairs); end
@@ -378,7 +369,21 @@ if (nElectrons>1)
       Sys.ee(idx,:) = ee;
       idx = idx + 3;
     end
+    
   end
+  
+  % Check for eeFrame, and supplement or error if necessary
+  if fullee
+    if isfield(Sys,'eeFrame')
+      err = sprintf('Full matrices are specified in ee, so eeFrame is not allowed.');
+      if ~isempty(err), return; end
+    end
+  else
+    if ~isfield(Sys,'eeFrame'), Sys.eeFrame = zeros(nPairs,3); end
+    err = sizecheck(Sys,'eeFrame',[nPairs 3]);
+    if ~isempty(err), return; end
+  end
+
   
   % Isotropic biquadratic exchange term
   %------------------------------------------------------------------------
