@@ -3,28 +3,49 @@
 %
 %  rho_t = propagate_hfield(Sys, RTraj);
 %
-%  Sys: structure with simulation parameters
-%     g              1x3 array, principal values of the g-tensor
-%     A              1x3 array, principal values of the A-tensor
-%     B              douvle, magnetic field
-%     dt             double, time step (in seconds)
-%     RTraj          3x3xnStepsxnSims array, a series of rotation matrices
+%  Sys: stucture with system's dynamical parameters
+%     g              numeric, size = (1,3)
+%                    principal values of the g-tensor
+%
+%     A              numeric, size = (1,3)
+%                    principal values of the A-tensor
+%
+%     B              double
+%                    center magnetic field
+%
+%     tcorr          double or numeric, size = (1,3)
+%                    correlation time (in seconds, 1 or 3 elements)
+%
+%     Coefs          numeric, size = (2,nCoefs)
+%                    array of coefficients
+%
+%     LMK            numeric, size = (3,nCoefs)
+%                    quantum numbers L, M, and K
+%
+%     dt             double
+%                    time step (in seconds)
+%
+%     RTraj          numeric, size = (3,3,nTraj,nSteps)
+%                    a series of rotation matrices
 %
 %  Output:
-%     rho_t          a series of density matrices
+%     rho_t          numeric, size = (3,3,nTraj,nSteps)
+%                    a series of density matrices
 %
 % Implementation based on 
 % - Sezer, Freed, Roux, J.Chem.Phys. 128, 165106 (2008)
 
 function rho_t = propagate_hfield(Sys, RTraj)
+%% Preprocessing
+%========================================================================
 
 % Check shapes of inputs
 if (size(RTraj,1)~=size(RTraj,2)) || size(RTraj,1)~=3
-  error('Size of rotation matrices must be 3x3xnStepsxnTraj.')
+  error('Array of rotation matrices must be of size = (3,3,nTraj,nSteps).')
 end
 
-nSteps = size(RTraj,3);
-nTraj = size(RTraj,4);
+nSteps = size(RTraj,4);
+nTraj = size(RTraj,3);
 
 if ~isfield(Sys,'g'), error('g-tensor not specified.'); end
 if ~isfield(Sys,'A'), error('A-tensor not specified.'); end
@@ -35,39 +56,38 @@ g = Sys.g;
 A = Sys.A;
 
 if ~isequal(size(g),[1,3]) || ~isequal(size(A),[1,3])
-    error('g and A tensor values must be 3-vectors.')
+  error('g and A tensor values must be 3-vectors.')
 end
 
 % Check for orthogonality of rotation matrices
 RTrajInv = permute(RTraj,[2,1,3,4]);
 
 rot_mat_test = matmult(RTraj,RTrajInv) ...
-               - repmat(eye(3),1,1,nSteps,nTraj);
+               - repmat(eye(3),1,1,nTraj,nSteps);
 
 if any(rot_mat_test > 1e-10);
-    error('The rotation matrices are not orthogonal.')
+  error('The rotation matrices are not orthogonal.')
 end
 
 dt = Sys.dt;
 B = Sys.B;
 
-%========================================================================
-% Begin calculation
+%% Simulation
 %========================================================================
 
 Gamma = 1.7608597e11; % rad s^-1 T^-1
 ge = 2.0023193;
 
-rho_t = zeros(3,3,nSteps,nTraj);
-rho_t(:,:,1,:) = repmat(eye(3),1,1,1,nTraj);
+rho_t = zeros(3,3,nTraj,nSteps);
+rho_t(:,:,:,1) = repmat(eye(3),1,1,nTraj,1);
 
 g_tr = sum(g);
 
 % Perform rotations on g- and A-tensors
-Gp_tensor = matmult(RTraj, matmult(repmat(diag(g),1,1,nSteps,nTraj), ...
+Gp_tensor = matmult(RTraj, matmult(repmat(diag(g),1,1,nTraj,nSteps), ...
                                       RTrajInv))/ge - g_tr/3/ge;
 
-A_tensor = matmult(RTraj, matmult(repmat(diag(A),1,1,nSteps,nTraj), ...
+A_tensor = matmult(RTraj, matmult(repmat(diag(A),1,1,nTraj,nSteps), ...
                                      RTrajInv));
 
 Gp_zz = Gp_tensor(3,3,:,:);
@@ -76,12 +96,15 @@ a = sqrt(A_tensor(1,3,:,:).*A_tensor(1,3,:,:) ...
        + A_tensor(2,3,:,:).*A_tensor(2,3,:,:) ...
        + A_tensor(3,3,:,:).*A_tensor(3,3,:,:));
 
-theta = Gamma*dt*0.5*squeeze(a);
+% Note: here and below, we use 2*dt instead of dt for the time step since
+% M_+ = tr(U*rho*U) = tr(U*U*rho) = tr(U^2*rho)
+% This is follows from the fact that the trace of a product of matrices is 
+% invariant under cyclic permutations
+theta = Gamma*(2*dt)*0.5*squeeze(a);
 nx = squeeze(A_tensor(1,3,:,:)./a);
 ny = squeeze(A_tensor(2,3,:,:)./a);
 nz = squeeze(A_tensor(3,3,:,:)./a);
 
-% Use 2*theta to obtain U^2 = exp[-i*(2*theta)*N]
 % Eqs. A1-A2 in reference
 ct = cos(theta) - 1;
 st = -sin(theta);
@@ -105,20 +128,21 @@ exp_array(3,3,:,:) = 1 + ct.*(nz.*nz + 0.5*(nx.*nx + ny.*ny))  ...
                    - 1i*st.*nz;
 
 
-% Since tr(U*rho*U) = tr(U^2*rho), U^2 is calcuated by using
-% 2*theta above and 2*dt below
-% U2 = bsxfun(@times, exp(-1i*2*dt*0.5*Gamma*B*Gp_zz), exp_array);
-
-U = bsxfun(@times, exp(-1i*dt*0.5*Gamma*B*Gp_zz), exp_array);
+% Again, here we use 2*dt instead of dt
+U = bsxfun(@times, exp(-1i*(2*dt)*0.5*Gamma*B*Gp_zz), exp_array);
 
 
 % Eq. 34 in reference
 for iStep=2:nSteps
-%   rho_t(:,:,iStep,:) = U2(:,:,iStep-1,:).*rho_t(:,:,iStep-1,:);
-%   rho_t(:,:,iStep,:) = matmult(U2(:,:,iStep-1,:),rho_t(:,:,iStep-1,:));
-  rho_t(:,:,iStep,:) = matmult(U(:,:,iStep-1,:), ...
-                                  matmult(rho_t(:,:,iStep-1,:), ...
-                                          U(:,:,iStep-1,:)));
+%  Use of permutation property of a trace of a product
+ rho_t(:,:,:,iStep) = matmult(U(:,:,:,iStep-1),rho_t(:,:,:,iStep-1));
+  
+%  Trace of a product of matrices is the sum of entry-wise products
+%  rho_t(:,:,:,iStep) = U(:,:,:,iStep-1).*rho_t(:,:,:,iStep-1);
+%  Full sandwich product
+%  rho_t(:,:,:,iStep) = matmult(U(:,:,:,iStep-1), ...
+%                                   matmult(rho_t(:,:,:,iStep-1), ...
+%                                           U(:,:,:,iStep-1)));
 
 end
 

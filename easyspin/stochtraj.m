@@ -5,27 +5,37 @@
 %  [t,RTraj,qTraj] = stochtraj(...)
 %
 %  Sys: stucture with system's dynamical parameters
-%     tcorr          correlation time (in seconds, 1 or 3 elements)
+%     tcorr          double or numeric, size = (1,3)
+%                    correlation time (in seconds, 1 or 3 elements)
 %
-%     Coefs          array of coefficients
+%     Coefs          numeric, size = (nCoefs,2)
+%                    array of coefficients
 %
-%     LMK            quantum numbers L, M, and K
+%     LMK            numeric, size = (nCoefs,3)
+%                    quantum numbers L, M, and K
 %
 %
 %  Par: structure with simulation parameters
-%     dt             time step (in seconds)
+%     dt             double
+%                    time step (in seconds)
 %
-%     nSteps         number of time steps per simulation
+%     nSteps         double
+%                    number of time steps per simulation
 %
-%     nTraj          number of trajectories
+%     nTraj          double
+%                    number of trajectories
 %
-%     alpha          Euler angle alpha for starting orientation(s)
+%     alpha          double
+%                    Euler angle alpha for starting orientation(s)
 %
-%     beta           Euler angle beta for starting orientation(s)
+%     beta           double
+%                    Euler angle beta for starting orientation(s)
 %
-%     gamma          Euler angle gamma for starting orientation(s)
+%     gamma          double
+%                    Euler angle gamma for starting orientation(s)
 %
-%     seed           seed the random number generator for reproducibility
+%     seed           integer
+%                    seed the random number generator for reproducibility
 %
 %     chkcon         if equal to 1, after the first nSteps of the 
 %                    trajectories are calculated, both inter- and intra-
@@ -38,13 +48,15 @@
 %
 %     Verbosity      0: no display, 1: show info
 %
-%
 %  Output:
-%     t              array, time points of the trajectory (in seconds)
+%     t              numeric, size = (nSteps,1) 
+%                    time points of the trajectory (in seconds)
 %
-%     RTraj          3x3x... array, rotation matrices
+%     RTraj          numeric, size = (3,3,nTraj,nSteps)
+%                    rotation matrices
 %
-%     qTraj          4x... array, normalized quaternions
+%     qTraj          numeric, size = (4,nTraj,nSteps)
+%                    normalized quaternions
 
 % Implementation based on 
 %   Sezer, et al., J.Chem.Phys. 128, 165106 (2008)
@@ -52,6 +64,7 @@
 
 function varargout = stochtraj(Sys, Par)
 %% Preprocessing
+%========================================================================
 
 if (nargin == 0), help(mfilename); return; end
 
@@ -78,17 +91,33 @@ EasySpinLogLevel = Par.Verbosity;
 %% Dynamics and ordering potential
 %========================================================================
 
-% if no ordering potential coefficient is given, set it to 0
-if ~isfield(Sys,'Coefs') && ~isfield(Sys,'LMK')
+if isfield(Sys,'Coefs') && isfield(Sys,'LMK')
+  if ~ismatrix(Sys.LMK) || size(Sys.LMK,2)~=3
+    error('LMK must be an array of shape Nx3.')
+  end
+  if ~ismatrix(Sys.Coefs) || size(Sys.Coefs,2)~=2
+    error('Coefs must be an array of shape Nx2.')
+  end
+  % Enforce indexing convention
+  for j=1:size(Sys.LMK,1)
+    L = Sys.LMK(j,1);
+    M = Sys.LMK(j,2);
+    K = Sys.LMK(j,3);
+    assert(L>0,'For all sets of indices LMK, it is required that L>0.')
+    if K==0
+      assert((0<=M)&&(M<=L),'For all sets of indices LMK, if K=0, then it is required that 0<=M<=L.')
+    else
+      assert((0<K)&&(K<=L)&&abs(M)<=L,'For all sets of indices LMK, if K~=0, then it is required that 0<K<=L and |M|<=L.')
+    end
+  end
+elseif ~isfield(Sys,'Coefs') && ~isfield(Sys,'LMK')
+  % if no ordering potential coefficient is given, initialize empty arrays
   Sys.Coefs = [];
   Sys.LMK = [];
-elseif xor(isfield(Sys,'Coefs'), isfield(Sys,'LMK'))
+else
   error('Both ordering coefficients and LMK are required for an ordering potential.')
 end
 
-% if numel(Sys.lambda) > 1
-%   error('Only one orienting potential coefficient, c20, is currently implemented.')
-% end
 Sim.Coefs = Sys.Coefs;
 Sim.LMK = Sys.LMK;
 
@@ -372,21 +401,6 @@ if iter>0
   % If propagation is being extended, initialize q from the last set
   if ~isempty(Coefs)
     torque = anistorque(LMK,Coefs,q(:,:,end));
-%     c2p2 = Coefs(1);
-%     c20 = Coefs(1);
-%     A = q(1,:,iStep-1) - 1i*q(4,:,iStep-1);
-%     B = -q(3,:,iStep-1) - 1i*q(2,:,iStep-1);
-%     Ast = q(1,:,iStep-1) + 1i*q(4,:,iStep-1);
-%     Bst = -q(3,:,iStep-1) + 1i*q(2,:,iStep-1);
-%     X = A.*Bst + Ast.*B;
-%     Y = -1i*(A.*Bst - Ast.*B);
-%     Z = A.*Ast - B.*Bst;
-%     torque = [ -3*c20*Y.*Z;
-%                 3*c20*X.*Z;
-%                zeros(size(Z))];
-%     torque = [-sqrt(6)*c2p2*Y.*Z;
-%               -sqrt(6)*c2p2*X.*Z;
-%               2*sqrt(6)*c2p2*X.*Y];
     AngStep = bsxfun(@times,torque,Diff*dt) + randAngStep(:,:,1);
   else
     % If there is no orienting potential, then there is no torque to
@@ -426,26 +440,6 @@ end
 for iStep=2:nSteps
   if ~isempty(Coefs)
     torque = anistorque(LMK,Coefs,q(:,:,iStep-1));
-%     c2p2 = Coefs(1);
-%     c20 = Coefs(1);
-%     c2p1_re = Coefs(1);
-%     c2p1_im = Coefs(2);
-%     A = q(1,:,iStep-1) - 1i*q(4,:,iStep-1);
-%     B = -q(3,:,iStep-1) - 1i*q(2,:,iStep-1);
-%     Ast = q(1,:,iStep-1) + 1i*q(4,:,iStep-1);
-%     Bst = -q(3,:,iStep-1) + 1i*q(2,:,iStep-1);
-%     X = A.*Bst + Ast.*B;
-%     Y = -1i*(A.*Bst - Ast.*B);
-%     Z = A.*Ast - B.*Bst;
-%     torque = [ -3*c20*Y.*Z;
-%                 3*c20*X.*Z;
-%                zeros(size(Z))];
-%     torque = [ sqrt(3/2)/2*(2*c2p1_re*X.*Y+c2p1_im*(3*Z.^2+X.^2-Y.^2-1));
-%                sqrt(3/2)/2*(2*c2p1_im*X.*Y+c2p1_re*(3*Z.^2-X.^2+Y.^2-1));
-%                -sqrt(3/2)*(c2p1_im*X+c2p1_re*Y).*Z];
-%     torque = [-sqrt(6)*c2p2*Y.*Z;
-%               -sqrt(6)*c2p2*X.*Z;
-%               2*sqrt(6)*c2p2*X.*Y];
     AngStep = bsxfun(@times,torque,Diff*dt) + randAngStep(:,:,iStep-1);
   else
     % If there is no orienting potential, then there is no torque to
@@ -468,7 +462,7 @@ for iStep=2:nSteps
 %        uy.*st, -uz.*st,      ct,  ux.*st; ...
 %        uz.*st,  uy.*st, -ux.*st,      ct];
 
-  % Perform propagation
+%   Perform propagation
   q(1,:,iStep) =      q(1,:,iStep-1).*ct - q(2,:,iStep-1).*ux.*st ...
                 - q(3,:,iStep-1).*uy.*st - q(4,:,iStep-1).*uz.*st;
   q(2,:,iStep) =      q(2,:,iStep-1).*ct + q(1,:,iStep-1).*ux.*st ...
@@ -477,112 +471,11 @@ for iStep=2:nSteps
                 + q(1,:,iStep-1).*uy.*st - q(2,:,iStep-1).*uz.*st;
   q(4,:,iStep) =      q(4,:,iStep-1).*ct - q(3,:,iStep-1).*ux.*st ...
                 + q(2,:,iStep-1).*uy.*st + q(1,:,iStep-1).*uz.*st;
-end
 
 end
 
-%% Deprecated
+end
 
-% function Q = propagate(Q, Sim, iter)
-% % Propagate quaternion matrix Q
-% 
-% randAngStep = Sim.randAngStep;
-% nSteps = Sim.nSteps;
-% nTraj = Sim.nTraj;
-% dt = Sim.dt;
-% Diff = Sim.Diff;
-% Coefs = Sim.Coefs;
-% LMK = Sim.LMK;
-% 
-% if iter>0
-%   % If propagation is being extended, initialize Q matrix from the last set
-%   if isnumeric(Coefs)
-%     torque = anistorque(Q(:,:,:,end), LMK, Coefs);
-% %     c2p2 = 2*Coefs(1);
-% %     A = Q(1,1,:,iStep-1);
-% %     B = Q(1,2,:,iStep-1);
-% %     Ast = Q(2,2,:,iStep-1);
-% %     Bst = -Q(2,1,:,iStep-1);
-% %     X = A.*Bst + Ast.*B;
-% %     Y = -1i*(A.*Bst - Ast.*B);
-% %     Z = A.*Ast - B.*Bst;
-% %     torque = [-sqrt(6)*c2p2*Y.*Z;
-% %               -sqrt(6)*c2p2*X.*Z;
-% %               2*sqrt(6)*c2p2*X.*Y];
-% %     torque = permute(torque,[1,3,2]);
-%     AngStep = bsxfun(@times,torque,Diff*dt) + randAngStep(:,:,1);
-%   else
-%     % If there is no orienting potential, then there is no torque to
-%     % calculate
-%     AngStep = randAngStep(:,:,1);
-%   end
-% 
-%   % Calculate size and normalized axis of angular step
-%   theta = sqrt(sum(AngStep.^2, 1));
-%   ux = AngStep(1,:,:)./theta;
-%   uy = AngStep(2,:,:)./theta;
-%   uz = AngStep(3,:,:)./theta;
-% 
-%   st = sin(theta/2);
-%   ct = cos(theta/2);
-% 
-%   % Need '1' in the third dimension so that size(U) matches size(Q(:,:,iStep-1,:))
-%   U(1,1,:,1) = ct - 1i*uz.*st;
-%   U(1,2,:,1) = -(uy + 1i*ux).*st;
-%   U(2,1,:,1) = (uy - 1i*ux).*st;
-%   U(2,2,:,1) = ct + 1i*uz.*st;
-% 
-%   % Calculate Q matrices for the first time step
-%   Qinit = matmult(Q(:,:,:,end),U(:,:,:,1));
-%   Q = zeros(2,2,nTraj,nSteps);
-%   Q(:,:,:,1) = Qinit;
-% end
-%   
-% for iStep=2:nSteps
-%   if isnumeric(Coefs)
-%     torque = anistorque(Q(:,:,:,iStep-1), LMK, Coefs);
-% %     c2p2 = 2*Coefs(1);
-% %     A = Q(1,1,:,iStep-1);
-% %     B = Q(1,2,:,iStep-1);
-% %     Ast = Q(2,2,:,iStep-1);
-% %     Bst = -Q(2,1,:,iStep-1);
-% %     X = A.*Bst + Ast.*B;
-% %     Y = -1i*(A.*Bst - Ast.*B);
-% %     Z = A.*Ast - B.*Bst;
-% %     torque = [-sqrt(6)*c2p2*Y.*Z;
-% %               -sqrt(6)*c2p2*X.*Z;
-% %               2*sqrt(6)*c2p2*X.*Y];
-% %     torque = permute(torque,[1,3,2]);
-%     AngStep = bsxfun(@times,torque,Diff*dt) + randAngStep(:,:,iStep-1);
-%   else
-%     % If there is no orienting potential, then there is no torque to
-%     % calculate
-%     AngStep = randAngStep(:,:,iStep-1);
-%   end
-% 
-%   % Calculate size and normalized axis of angular step
-%   theta = sqrt(sum(AngStep.^2, 1));
-%   
-%   ux = AngStep(1,:)./theta;
-%   uy = AngStep(2,:)./theta;
-%   uz = AngStep(3,:)./theta;
-% 
-%   st = sin(theta/2);
-%   ct = cos(theta/2);
-% 
-%   % Need '1' in the third dimension so that size(U) matches size(Q(:,:,iStep-1,:))
-% %   U = zeros(2,2,nTraj);
-%   U(1,1,:) = ct - 1i*uz.*st;                  
-%   U(1,2,:) = -(uy + 1i*ux).*st;
-%   U(2,1,:) = (uy - 1i*ux).*st;
-%   U(2,2,:) = ct + 1i*uz.*st;
-% 
-%   % Perform propagation
-%   Q(:,:,:,iStep) = matmult(Q(:,:,:,iStep-1), U);
-% end
-% 
-% end
-% 
 %========================================================================
 
 % function varargout = acorr_convergence(RTraj, tol)

@@ -1,119 +1,105 @@
 function [err,data] = test(opt,olddata)
-% Check that using stochtraj with anisotropic diffusion generates a
-% proper distribution of orientations
+% Check that using stochtraj with an anisotropic orienting potential 
+% generates a proper distribution of orientations by 
+% (1) calculating a histogram of Euler angles for each trajectory, and
+% (2) averaging over all trajectories and comparing with the corresponding
+%     Boltzmann distribution function, i.e. \exp(-U(\omega)/kT)
 
 Sys.tcorr = 10*rand()*1e-9;
 Par.dt = Sys.tcorr/10;
 Par.nSteps = ceil(200*Sys.tcorr/Par.dt);
 Par.nTraj = 400;
-% Par.beta = 0;%pi*(2*rand()-1);
-% Par.alpha = 0;%2*pi*(2*rand()-1);
-% Par.gamma = 0;%2*pi*(2*rand()-1);
 
 nTraj = Par.nTraj;
 nSteps = Par.nSteps;
 
 nBins = 50;
 
-c20 = 4;
-Sys.Coefs = [c20, c20];
-Sys.LMK = [2, 0, 0];
-[~, ~, q_c20] = stochtraj(Sys,Par);
+% L,M,K indices to test
+LMK = [1,1,0;
+       1,0,1;
+       1,1,1;
+       2,0,0;
+       2,0,1;
+       2,0,2];
+     
+ReLambda = 2*rand(size(LMK,1),1)-1;  % real part of ordering coefficient lambda
+ImLambda = 2*rand(size(LMK,1),1)-1;  % imaginary part
 
-Rec2p1 = 4;
-Imc2p1 = 4;
-Sys.Coefs = [Rec2p1, Imc2p1];
-Sys.LMK = [2, 0, 1];
-[~, ~, q_c2p1] = stochtraj(Sys,Par);
+AlphaBins = linspace(-pi, pi, nBins)';
+BetaBins = linspace(0, pi, nBins)';
+GammaBins = linspace(-pi, pi, nBins)';
 
-Rec2p2 = 4;
-Imc2p2 = 4;
-Sys.Coefs = [Rec2p2, Imc2p2];
-Sys.LMK = [2, 0, 2];
-[~, ~, q_c2p2] = stochtraj(Sys,Par);
+% form grids to be acted upon by Boltzmann distribution function
+% expressions
+[Agrid,Bgrid,Ggrid] = meshgrid(AlphaBins,BetaBins,GammaBins);
 
+% pre-allocate array for 3D histograms
+% note that the output will be of size (nBins,nBins,nBins), rather than the 
+% typical (nBins-1,nBins-1,nBins-1) size output from MATLAB's hist
+% functions
+Hist3D = zeros(nBins, nBins, nBins, nTraj);
+     
+err = 0;
 
-ThetaBins = linspace(0, pi, nBins)';
-PhiBins = linspace(-pi, pi, nBins)';
+for j=1:size(LMK,1)
+  Sys.Coefs = [ReLambda(j), ImLambda(j)];
+  Sys.LMK = LMK(j,:);
+  [~, ~, q] = stochtraj(Sys,Par);  % extract quaternions from trajectories
+  
+  for iTraj=1:nTraj
+    % use a "burn-in method" by taking last half of each trajectory
+    [alpha, beta, gamma] = quat2euler(q(:,iTraj,round(nSteps/2):end));
+    % calculate 3D histogram using function obtained from Mathworks File Exchange
+    [Hist3D(:,:,:,iTraj),~] = histcnd([alpha,beta,gamma],{AlphaBins',BetaBins',GammaBins'});
+  end
 
-Hist2D_c20 = zeros(nBins-1, nBins-1, nTraj);
-
-Hist2D_c2p1 = zeros(nBins-1, nBins-1, nTraj);
-
-Hist2D_c2p2 = zeros(nBins-1, nBins-1, nTraj);
-
-for iTraj = 1:nTraj
-  [phi, theta, ~] = quat2euler(q_c20(:,iTraj,:));
-  [Hist2D_c20(:,:,iTraj),~,~] = histcounts2(theta,phi,ThetaBins,PhiBins);
-
-  [phi, theta, ~] = quat2euler(q_c2p1(:,iTraj,:));
-  [Hist2D_c2p1(:,:,iTraj),~,~] = histcounts2(theta,phi,ThetaBins,PhiBins);
-
-  [phi, theta, ~] = quat2euler(q_c2p2(:,iTraj,:));
-  [Hist2D_c2p2(:,:,iTraj),~,~] = histcounts2(theta,phi,ThetaBins,PhiBins);
+  Hist3D = sum(Hist3D, 4);  % average over all trajectories
+  Hist3D = Hist3D/sum(reshape(Hist3D,1,numel(Hist3D)));  % normalize
+  
+  if calc_rmsd(Sys.Coefs,Sys.LMK,Hist3D,Agrid,Bgrid,Ggrid)>5e-3
+    % numerical result does not match analytical result
+    err = 1;
+    break
+  end
 
 end
 
-% ThetaHist_c20 = sum(ThetaHist_c20,2);
-% PhiHist_c20 = sum(PhiHist_c20,2);
-% ThetaHist_c20 = ThetaHist_c20/sum(ThetaHist_c20);
-% PhiHist_c20 = PhiHist_c20/sum(PhiHist_c20);
-Hist2D_c20 = sum(Hist2D_c20, 3);
-Hist2D_c20 = Hist2D_c20/sum(sum(Hist2D_c20,1),2);
-[X,Y] = meshgrid((ThetaBins(2:end)+ThetaBins(1:end-1))/2, (PhiBins(2:end)+PhiBins(1:end-1))/2);
-BoltzDist_c20 = exp(c20*1/2*(3*cos(X).^2 - 1));
-BoltzInt_c20 = sum(sum(BoltzDist_c20.*sin(X),1),2);
-BoltzDist_c20 = BoltzDist_c20.*sin(X)/BoltzInt_c20;
-rmsd_c20 = sqrt(sum(sum((Hist2D_c20' - BoltzDist_c20).^2,1),2))
 
-% ThetaHist_c2p1 = sum(ThetaHist_c2p1, 2);
-% PhiHist_c2p1 = sum(PhiHist_c2p1, 2);
-% ThetaHist_c2p1 = ThetaHist_c2p1/sum(ThetaHist_c2p1);
-% PhiHist_c2p1 = PhiHist_c2p1/sum(PhiHist_c2p1);
-Hist2D_c2p1 = sum(Hist2D_c2p1, 3);
-Hist2D_c2p1 = Hist2D_c2p1/sum(sum(Hist2D_c2p1,1),2);
-[X,Y] = meshgrid((ThetaBins(2:end)+ThetaBins(1:end-1))/2, (PhiBins(2:end)+PhiBins(1:end-1))/2);
-BoltzDist_c2p1 = exp(sqrt(3/8)*sin(2*X).*(Imc2p1*sin(Y)-Rec2p1*cos(Y)));
-BoltzInt_c2p1 = sum(sum(BoltzDist_c2p1.*sin(X),1),2);
-BoltzDist_c2p1 = BoltzDist_c2p1.*sin(X)/BoltzInt_c2p1;
-rmsd_c2p1 = sqrt(sum(sum((Hist2D_c2p1' - BoltzDist_c2p1).^2,1),2))
-
-% ThetaHist_c2p2 = sum(ThetaHist_c2p2, 2);
-% PhiHist_c2p2 = sum(PhiHist_c2p2, 2);
-% ThetaHist_c2p2 = ThetaHist_c2p2/sum(ThetaHist_c2p2);
-% PhiHist_c2p2 = PhiHist_c2p2/sum(PhiHist_c2p2);
-Hist2D_c2p2 = sum(Hist2D_c2p2, 3);
-Hist2D_c2p2 = Hist2D_c2p2/sum(sum(Hist2D_c2p2,1),2);
-[X,Y] = meshgrid((ThetaBins(2:end)+ThetaBins(1:end-1))/2, (PhiBins(2:end)+PhiBins(1:end-1))/2);
-BoltzDist_c2p2 = exp(sqrt(3/8)*sin(X).^2.*(Rec2p2*cos(2*Y)-Imc2p2*sin(2*Y)));
-BoltzInt_c2p2 = sum(sum(BoltzDist_c2p2.*sin(X),1),2);
-BoltzDist_c2p2 = BoltzDist_c2p2.*sin(X)/BoltzInt_c2p2;
-rmsd_c2p2 = sqrt(sum(sum((Hist2D_c2p2' - BoltzDist_c2p2).^2,1),2))
-
-% ChiSquare = sum(((ThetaHist - BoltzDist).^2)./ThetaHist);
-
-% This seems like a loose condition and should be investigated further
-if rmsd_c20 > 5e-3 ...
-   || rmsd_c2p1 > 5e-3 ...
-   || rmsd_c2p2 > 5e-3
-  err = 1;
-%   plot(ThetaBins, ThetaHist_c20, ThetaBins, BoltzDist_c20)
-%   plot(ThetaBins, ThetaHist_c2p1, ThetaBins, BoltzDist_c2p1)
-%   legend('Numeric','Analytic')
-%   plot(ThetaBins, ThetaHist_c2p2, ThetaBins, BoltzDist_c2p2)
-%   mesh(X, Y, Hist2D_c2p1' - BoltzDist_c2p1)
-%   mesh(X, Y, Hist2D_c2p2' - BoltzDist_c2p2)
-%   figure
-%   subplot(2,1,1)  
-%   mesh(X, Y, Hist2D_c2p2')
-%   subplot(2,1,2)
-%   mesh(X, Y, BoltzDist_c2p2)
-%     bar3(ThetaBins(1:end-1),  Hist2D_c2p1)
-%     bar3(ThetaBins(1:end-1),  Hist2D_c2p2)
-else  
-  err = 0;
-end
 
 data = [];
+
+
+%% Compare numerical result with analytic expression
+
+function rmsd = calc_rmsd(Coefs, LMK, Hist3D, Agrid, Bgrid, Ggrid)
+
+% convert LMK indices to a string
+LMKstr = num2str(LMK(:));
+LMKstr = strcat(LMKstr(1),LMKstr(2),LMKstr(3));
+
+Re = Coefs(2);
+Im = Coefs(2);
+
+switch LMKstr
+  case '110'
+    BoltzDist = exp(1/sqrt(2)*sin(Bgrid).*(Re*cos(Ggrid)-Im*sin(Ggrid)));
+  case '101'
+    BoltzDist = exp(1/sqrt(2)*sin(Bgrid).*(Re*cos(Agrid)-Im*sin(Agrid)));
+  case '111'
+    BoltzDist = exp(-cos(Bgrid/2).^2.*(Re*cos(Agrid+Ggrid)-Im*sin(Agrid+Ggrid)));
+  case '200'
+    BoltzDist = exp(Re*1/2*(3*cos(Bgrid).^2 - 1));
+  case '201'
+    BoltzDist = exp(sqrt(3/8)*sin(2*Bgrid).*(Im*sin(Agrid)-Re*cos(Agrid)));
+  case '202'
+    BoltzDist = exp(sqrt(3/8)*sin(Bgrid).^2.*(Re*cos(2*Agrid)-Im*sin(2*Agrid)));
+end
+
+BoltzInt = sum(reshape(BoltzDist.*sin(Bgrid),1,numel(Bgrid)));
+BoltzDist = BoltzDist.*sin(Bgrid)/BoltzInt;
+rmsd = sqrt(sum(reshape((Hist3D - BoltzDist).^2,1,numel(Hist3D))));
+
+end
 
 end

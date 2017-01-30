@@ -51,12 +51,12 @@ if any(Lvals(:)<1)
   error('All values of L must be greater than or equal to one.')
 end
 
-if any(Mvals(:)<-Lvals)
-  error('All values of M must be greater than or equal to -L.')
+if any(abs(Mvals(:))>Lvals)
+  error('All values of M must be between -L and L.')
 end
 
-if any(Kvals(:)>Lvals)
-  error('All values of K must be less than or equal to L.')
+if any(abs(Kvals(:))>Lvals)
+  error('All values of K must be between -L and L.')
 end
 
 iJvecu = zeros(3,size(q,2),nCoefs);
@@ -79,7 +79,7 @@ else
   torque = -iJvecu;
 end
 
-  assert(all(imag(torque(:))<1e-14), 'Torque is not real.')
+ assert(all(imag(torque(:))<1e-14), 'Torque is not real.')
 
 %% Helper functions
 function  out = iJu(L, M, K, cLK, q)
