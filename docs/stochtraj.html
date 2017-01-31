@@ -45,7 +45,7 @@ stochtraj(Sys,Par)
 <div class="subtitle">Description</div>
 
 <p>
-<code>stochtraj</code> computes stochastic rotational trajectories in the time domain via propagation of quaternions using either free Brownian diffusion or restricted diffusion in an anisotropic orienting potential.
+<code>stochtraj</code> computes trajectories of stochastic rotational diffusion in the time domain via propagation of quaternions. The motion can be isotropic or anisotropic and can include an orienting potential.
 </p>
 
 <p>
@@ -77,7 +77,7 @@ If no output argument is given, <code>stochtraj</code> plots one of the trajecto
 <div class="subtitle2">Input: System dynamics </div>
 
 <p>
-<code>Sys</code> is a structure containing the dynamic properties for generating the stochastic rotational trajectories. 
+<code>Sys</code> is a structure containing the dynamic properties for generating the stochastic rotational trajectories. Many of its fields overlap with those of <code>chili</code>. This allows the user to easily simulate EPR spectra in both frequency and time domains for easy comparison.
 </p>
 For the timescale(s) of motion, one of the fields <code>tcorr</code>, <code>logtcorr</code>, <code>Diff</code> or <code>logDiff</code> should be given. If more than one of these is given, the first in the list <code>logtcorr</code>, <code>tcorr</code>, <code>logDiff</code>, <code>Diff</code> takes precedence over the other(s).
 </p>
@@ -135,13 +135,20 @@ Base-10 logarithm of <code>Diff</code>. If given, <code>Diff</code> is ignored.
 </div>
 
 <p>
-There is an optional dynamics property contained in the field <code>Sys.lambda</code>, which specifies a coefficient for an ordering potential to simulate restricted diffusion. If this field is left blank, free Brownian diffusion will be simulated.
+It is also possible to specify an orienting potential to simulate restricted diffusion. <code>stochtraj</code> accomplishes this by representing the orienting potential function using a series of Wigner D-functions (see reference for details). To take advantage of this feature, the user should specify each term in the orienting potential by specifying (1) the real and imaginary parts of the coefficients using <code>Coefs</code> and (2) the indices corresponding to each term using <code>LMK</code>. If these fields are left blank, unrestricted diffusion will be simulated.
 
-<div class="optionfield"><code>lambda</code></div>
+<div class="optionfield"><code>Coefs</code></div>
 <div class="optiondescr">
-Currently, only a single ordering potential element is supported: <code>lambda20</code>, corresponding to the coefficient &lambda;<sub>2,0</sub>, (the symbols c or &epsilon; are used in the literature as well) for the ordering potential U(&Omega;) = - k<sub>B</sub> T &Sigma;<sub>L,K</sub>&lambda;<sub>L,K</sub>(D<sup>L</sup><sub>0,K</sub>+D<sup>L</sup><sub>0,-K</sub>), where the D<sup>L</sup><sub>M,K</sub> are Wigner functions.
+An array of size (N,2) containing the orienting potential coefficients, where N corresponds to the number of terms in the orienting potential function, and the first and second entries in the second dimension correspond to the real and imaginary parts of &lambda;<sup>L</sup><sub>M,K</sub> (the symbols c and &epsilon; are used in the literature as well). The full form of the ordering potential is expressed as 
+U(&Omega;) = - k<sub>B</sub> T &Sigma;<sub>L,M,K</sub>&lambda;<sup>L</sup><sub>M,K</sub>(D<sup>L</sup><sub>M,K</sub>+(-1)<sup>M-K</sup>D<sup>L</sup><sub>-M,-K</sub>), where D<sup>L</sup><sub>M,K</sub> are the Wigner D-functions.
 <p>
+For example, using a complex number <code>lambda200</code> to represent the coefficient &lambda;<sup>2</sup><sub>0,0</sub> of the commonly used second order Legendre polynomial, set <code>Sys.Coefs = [real(lambda200), imag(lambda200)]</code>.
 For details about this type of ordering potential, see K.A. Earle & D.E. Budil, Calculating Slow-Motion ESR Spectra of Spin-Labeled Polymers, in: S. Schlick: Advanced ESR Methods in Polymer Research, Wiley, 2006.
+</div>
+
+<div class="optionfield"><code>LMK</code></div>
+<div class="optiondescr">
+An array of size (N,3) containing the indices L,M,K for each orienting potential coefficient in <code>Coefs</code>. The resulting orienting potential must be real, so the range of allowed index values are as follows: L&gt;0; if K=0, then 0&lt;M&le;L; and if K&ne;0, then 0&lt;K&le;L and -L&le;M&le;L.
 </div>
 
 <div class="subtitle2">Input: Simulation parameters</div>
@@ -179,24 +186,23 @@ The total time of the simulation, in seconds.
 </div>
 
 <p>
-Lastly, the trajectory settings are used to specify the starting orientation angles, (<code>chi</code>, <code>theta</code>, <code>phi</code>),
-<!--and <code>phi</code>--> 
-which correspond to the Euler angles &chi;, &theta;, and &phi;; and how many trajectories to simulate, <code>nTraj</code>. If only one set of angles is given and <code>nTraj</code> is greater than one, then this starting orientation will be repeated for each trajectory. If <code>nTraj</code> is not provided, only one trajectory will be simulated. If no angles are provided, then a number of starting orientations equal to <code>nTraj</code> will be chosen from a uniform random distribution over the unit sphere, where &chi;<sub>i</sub>, &theta;<sub>i</sub>, and &phi;<sub>i</sub> are sampled from [0,2&pi;), [0,&pi;), and [0,2&pi;), respectively.
+Lastly, the trajectory settings are used to specify the starting orientation angles, (<code>alpha</code>, <code>beta</code>, <code>gamma</code>),
+which correspond to the Euler angles &alpha;, &beta;, and &gamma;; and how many trajectories to simulate, <code>nTraj</code>. If only one set of angles is given and <code>nTraj</code> is greater than one, then this starting orientation will be repeated for each trajectory. If <code>nTraj</code> is not provided, only one trajectory will be simulated. If no angles are provided, then a number of starting orientations equal to <code>nTraj</code> will be chosen from a uniform random distribution over the unit sphere, where &alpha;, &beta;, and &gamma; are sampled from [0,2&pi;), [0,&pi;), and [0,2&pi;), respectively.
 
 
-<div class="optionfield"><code>chi</code></div>
+<div class="optionfield"><code>alpha</code></div>
 <div class="optiondescr">
-The Euler angle &chi; used to specify starting orientations, in radians.
+The Euler angle &alpha; used to specify starting orientations, in radians.
 </div>
 
-<div class="optionfield"><code>theta</code></div>
+<div class="optionfield"><code>beta</code></div>
 <div class="optiondescr">
-The Euler angle &theta; used to specify starting orientations, in radians.
+The Euler angle &beta; used to specify starting orientations, in radians.
 </div>
 
-<div class="optionfield"><code>phi</code></div>
+<div class="optionfield"><code>gamma</code></div>
 <div class="optiondescr">
-The Euler angle &phi; used to specify starting orientations, in radians.
+The Euler angle &gamma; used to specify starting orientations, in radians.
 </div>
 
 <div class="optionfield"><code>nTraj</code></div>
@@ -226,17 +232,35 @@ Determines how much information <code>stochtraj</code> prints to the screen. If 
 <div class="subtitle">Example</div>
 
 <p>
-A 1-&mu;s fast motion Brownian diffusion trajectory starting from the north pole on the unit sphere can be simulated using
+To simulate a 200-ns long, fast motion Brownian diffusion trajectory starting from the north pole on the unit sphere, enter
 </p>
 
 <pre class="matlab">
-Par.tcorr = 5e-9;  % 5 ns rotational correlation time
+Sys.tcorr = 5e-9;  % 5 ns rotational correlation time
+
 Par.dt = 1e-9;  % 1 ns time step
-Par.nSteps = 1e3;
-Par.chi = 0;
-Par.theta = 0;
-Par.phi = 0;
-stochtraj(Par);
+Par.nSteps = 1e3;  % 1000 time steps
+Par.alpha = 0;
+Par.beta = 0;
+Par.gamma = 0;
+
+stochtraj(Sys,Par);
+</pre>
+
+<p>
+To simulate 400 1-&mu;s long, slow motion trajectories in an orienting potential with coefficient &lambda;<sup>2</sup><sub>0,0</sub> = 1, each of which starts at a random point on the unit sphere, enter
+</p>
+
+<pre class="matlab">
+Sys.tcorr = 50e-9;  % 50 ns rotational correlation time
+Sys.Coefs = [1,0];  % purely real orienting potential coefficient
+Sys.LMK = [2,0,0];  % L=2, M=K=0
+
+Par.dt = 1e-9;
+Par.nSteps = 500;
+Par.nTraj = 400;
+
+stochtraj(Sys,Par);
 </pre>
 
 
