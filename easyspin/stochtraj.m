@@ -1,21 +1,32 @@
 % stochtraj  Generate stochastic rotational trajectories
 %
-%  [t,RTraj] = stochtraj(Sys)
-%  [t,RTraj] = stochtraj(Sys,Par)
-%  [t,RTraj,qTraj] = stochtraj(...)
+%   [t,RTraj] = stochtraj(Sys)
+%   [t,RTraj] = stochtraj(Sys,Par)
+%   [t,RTraj,qTraj] = stochtraj(...)
 %
-%  Sys: stucture with system's dynamical parameters
+%   Sys: stucture with system's dynamical parameters
+%
 %     tcorr          double or numeric, size = (1,3)
-%                    correlation time (in seconds, 1 or 3 elements)
+%                    correlation time (in seconds)
+%     logtcorr       double or numeric, size = (1,3)
+%                    log10 of rotational correlation time (in seconds)
+%     Diff           double or numeric, size = (1,3)
+%                    diffusion rate (s^-1)
+%     logDiff        double or numeric, size = (1,3)
+%                    log10 of diffusion rate (s^-1)
+%
+%         All fields can have 1 (isotropic), 2 (axial) or 3 (rhombic) elements.
+%         Precedence: logtcorr > tcorr > logDiff > Diff.
 %
 %     Coefs          numeric, size = (nCoefs,2)
-%                    array of coefficients
-%
+%                    array of orienting potential coefficients, with each row
+%                    consisting of the corresponding real and imaginary parts
 %     LMK            numeric, size = (nCoefs,3)
-%                    quantum numbers L, M, and K
+%                    quantum numbers L, M, and K corresponding to each set of 
+%                    coefficients
 %
 %
-%  Par: structure with simulation parameters
+%   Par: simulation parameters for Monte Carlo integrator
 %     dt             double
 %                    time step (in seconds)
 %
@@ -37,6 +48,8 @@
 %     seed           integer
 %                    seed the random number generator for reproducibility
 %
+%
+%   Opt: simulation options
 %     chkcon         if equal to 1, after the first nSteps of the 
 %                    trajectories are calculated, both inter- and intra-
 %                    trajectory convergence is checked using the Gelman-
@@ -48,7 +61,7 @@
 %
 %     Verbosity      0: no display, 1: show info
 %
-%  Output:
+%   Output:
 %     t              numeric, size = (nSteps,1) 
 %                    time points of the trajectory (in seconds)
 %
@@ -62,16 +75,39 @@
 %   Sezer, et al., J.Chem.Phys. 128, 165106 (2008)
 %     http://dx.doi.org/10.1063/1.2908075
 
-function varargout = stochtraj(Sys, Par)
+function varargout = stochtraj(Sys,Par,Opt)
+% UNDOCUMENTED 4th ARGUMENT: FLAG IF STOCHTRAJ IS BEING CALLED BY CARDAMOM IN
+% ORDER TO SKIP ERROR-CHECKING
 %% Preprocessing
 %========================================================================
 
-if (nargin == 0), help(mfilename); return; end
-
 % Only Sys needs to be given to run stochtraj properly, so if Par is not 
 % given, initialize it here
-if (nargin == 1), Par.Verbosity = 0;
-elseif (nargin > 2), error('Too many input arguments.'); end
+switch nargin
+  case 0
+    help(mfilename); return;
+  case 1
+    % only Sys is given
+    Par = struct('unused',NaN);
+    Opt = struct('unused',NaN);
+%    skipchk = 0;
+  case 2
+    % Opt is not given
+    Opt = struct('unused',NaN);
+%    skipchk = 0;
+  case 3
+    % do nothing
+%    skipchk = 0;
+%   case 4
+%     % 4th argument is used as a flag to skip error checking
+%     if ischar(flag) && strcmp(flag,'skipchk')
+%       skipchk = 1;
+%     else
+%       error('Fourth argument is for internal use only. Please remove it.'); 
+%     end
+  otherwise
+    error('Too many input arguments.')
+end
 
 switch nargout
   case 0 % plotting
@@ -81,57 +117,22 @@ switch nargout
     error('Incorrect number of output arguments.');
 end
 
-if ~isfield(Par,'Verbosity')
-  Par.Verbosity = 0; % Log level
+if ~isfield(Opt,'Verbosity')
+  Opt.Verbosity = 0; % Log level
 end
 
 global EasySpinLogLevel;
-EasySpinLogLevel = Par.Verbosity;
+EasySpinLogLevel = Opt.Verbosity;
 
 %% Dynamics and ordering potential
 %========================================================================
 
-if isfield(Sys,'Coefs') && isfield(Sys,'LMK')
-  if ~ismatrix(Sys.LMK) || size(Sys.LMK,2)~=3
-    error('LMK must be an array of shape Nx3.')
-  end
-  if ~ismatrix(Sys.Coefs) || size(Sys.Coefs,2)~=2
-    error('Coefs must be an array of shape Nx2.')
-  end
-  % Enforce indexing convention
-  for j=1:size(Sys.LMK,1)
-    L = Sys.LMK(j,1);
-    M = Sys.LMK(j,2);
-    K = Sys.LMK(j,3);
-    assert(L>0,'For all sets of indices LMK, it is required that L>0.')
-    if K==0
-      assert((0<=M)&&(M<=L),'For all sets of indices LMK, if K=0, then it is required that 0<=M<=L.')
-    else
-      assert((0<K)&&(K<=L)&&abs(M)<=L,'For all sets of indices LMK, if K~=0, then it is required that 0<K<=L and |M|<=L.')
-    end
-  end
-elseif ~isfield(Sys,'Coefs') && ~isfield(Sys,'LMK')
-  % if no ordering potential coefficient is given, initialize empty arrays
-  Sys.Coefs = [];
-  Sys.LMK = [];
-else
-  error('Both ordering coefficients and LMK are required for an ordering potential.')
-end
+% FieldSweep is not valid for stochtraj, so give empty third arg
+[Dynamics,Sim] = check_dynord('stochtraj',Sys,[]);
 
-Sim.Coefs = Sys.Coefs;
-Sim.LMK = Sys.LMK;
-
-% parse the dynamics parameter input using private function
-if isfield(Sys,'tcorr'), Dynamics.tcorr = Sys.tcorr;
-elseif isfield(Sys,'Diff'), Dynamics.Diff = Sys.Diff;
-elseif isfield(Sys,'logtcorr'), Dynamics.logtcorr = Sys.logtcorr;
-elseif isfield(Sys,'logDiff'), Dynamics.logDiff = Sys.logDiff;
-else, error('A rotational correlation time or diffusion rate is required.'); end
-
-[Dynamics, err] = processdynamics(Dynamics);
-error(err);
 Sim.Diff = Dynamics.Diff';
-tcorrAvg = 1/6/mean(Sim.Diff);
+
+tcorrAvg = 1/6/mean(Dynamics.Diff);
 
 %% Discrete Monte carlo settings
 %========================================================================
@@ -219,8 +220,8 @@ end
 assert(numel(beta) == numel(alpha), 'Beta and alpha must be the same size.')
 assert(numel(beta) == numel(gamma), 'Beta and gamma must be the same size.')
 
-if isfield(Par,'chkcon')
-  chkcon = Par.chkcon;
+if isfield(Opt,'chkcon')
+  chkcon = Opt.chkcon;
   if chkcon==1 && Sim.nTraj==1
     error('Checking convergence of a single trajectory using the R statistic is not supported.\n')
   end
@@ -246,6 +247,9 @@ qTraj(:,:,1) = q0;
 %========================================================================
 
 converged = 0;
+
+% if chkcon=1, then we need to keep track of how many iterations have been 
+% completed (i.e. the number of instances of propagation in time by nSteps)
 iter = 0;
 
 logmsg(1,'-- Calculating stochastic trajectories -----------------------');
@@ -260,7 +264,6 @@ while ~converged
 
     %  Perform stochastic simulations
     %  (Eqs. 48 and 61 in reference)
-%     Q = propagate(Q, Sim, iter);
     qTraj = propagate(qTraj, Sim, iter);
 
   else
@@ -290,6 +293,8 @@ while ~converged
   end
 
 end
+
+% clear wignerdquat
 
 totSteps = size(qTraj,3);
 
@@ -344,47 +349,6 @@ clear global EasySpinLogLevel
 return
 
 %% Helper functions
-function [Dyn,err] = processdynamics(D)%,FieldSweep)
-
-Dyn = D;
-err = '';
-
-% diffusion tensor, correlation time
-%------------------------------------------------------------------------
-% convert everything (tcorr, logcorr, logDiff) to Diff
-if isfield(Dyn,'Diff')
-  % Diff given
-elseif isfield(Dyn,'logDiff')
-  Dyn.Diff = 10.^Dyn.logDiff;
-elseif isfield(Dyn,'tcorr')
-  Dyn.Diff = 1/6./Dyn.tcorr;
-elseif isfield(Dyn,'logtcorr')
-  if Dyn.logtcorr>=0, error('Sys.logtcorr must be negative.'); end
-  Dyn.Diff = 1/6./10.^Dyn.logtcorr;
-else
-  err = sprintf('You must specify a rotational correlation time or a diffusion tensor\n(Sys.tcorr, Sys.logtcorr, Sys.Diff or Sys.logDiff).');
-  return
-end
-
-if any(Dyn.Diff<0)
-  error('Negative diffusion rate or correlation times are not possible.');
-elseif any(Dyn.Diff>1e12)
-  fprintf('Diffusion rate very fast. Simulation might not converge.\n');
-elseif any(Dyn.Diff<1e3)
-  fprintf('Diffusion rate very slow. Simulation might not converge.\n');
-end
-
-% expand to rhombic tensor
-switch numel(Dyn.Diff)
-  case 1, Dyn.Diff = Dyn.Diff([1 1 1]);
-  case 2, Dyn.Diff = Dyn.Diff([1 1 2]);
-  case 3 % Diff already rhombic
-  otherwise
-    err = 'Sys.Diff must have 1, 2 or 3 elements (isotropic, axial, rhombic).';
-    return
-end
-
-end
 
 function q = propagate(q, Sim, iter)
 % Propagate quaternions
@@ -424,13 +388,13 @@ if iter>0
 
   % Calculate q for the first time step
 
-  qinit(1,:) =      q(1,:,end).*ct - q(2,:,end).*ux.*st ...
+  qinit(1,:,1) =      q(1,:,end).*ct - q(2,:,end).*ux.*st ...
                 - q(3,:,end).*uy.*st - q(4,:,end).*uz.*st;
-  qinit(2,:) =      q(2,:,end).*ct + q(1,:,end).*ux.*st ...
+  qinit(2,:,1) =      q(2,:,end).*ct + q(1,:,end).*ux.*st ...
                 - q(4,:,end).*uy.*st + q(3,:,end).*uz.*st;
-  qinit(3,:) =      q(3,:,end).*ct + q(4,:,end).*ux.*st ...
+  qinit(3,:,1) =      q(3,:,end).*ct + q(4,:,end).*ux.*st ...
                 + q(1,:,end).*uy.*st - q(2,:,end).*uz.*st;
-  qinit(4,:) =      q(4,:,end).*ct - q(3,:,end).*ux.*st ...
+  qinit(4,:,1) =      q(4,:,end).*ct - q(3,:,end).*ux.*st ...
                 + q(2,:,end).*uy.*st + q(1,:,end).*uz.*st;
 
   q = zeros(4,nTraj,nSteps);

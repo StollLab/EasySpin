@@ -55,7 +55,10 @@ stochtraj(Sys,Par)
 <li><code>Sys</code>: dynamic properties
 </ul>
 <ul>
-<li><code>Par</code>: (optional) simulation parameters for the stochastic motion
+<li><code>Par</code>: (optional) simulation parameters for monte carlo integrator and trajectories
+</ul>
+<ul>
+<li><code>Opt</code>: (optional) simulation options
 </ul>
 
 <p>
@@ -82,11 +85,6 @@ If no output argument is given, <code>stochtraj</code> plots one of the trajecto
 For the timescale(s) of motion, one of the fields <code>tcorr</code>, <code>logtcorr</code>, <code>Diff</code> or <code>logDiff</code> should be given. If more than one of these is given, the first in the list <code>logtcorr</code>, <code>tcorr</code>, <code>logDiff</code>, <code>Diff</code> takes precedence over the other(s).
 </p>
 
-<!-- 
-<p>
-<code>Par</code> should contain
-</p>
--->
 
 <div class="optionfield"><code>tcorr</code></div>
 <div class="optiondescr">
@@ -209,6 +207,10 @@ The Euler angle &gamma; used to specify starting orientations, in radians.
 <div class="optiondescr">
 The total number of trajectories to simulate.
 </div>
+
+<div class="subtitle2">Input: Simulation options</div>
+
+
 
 <div class="optionfield"><code>chkcon</code></div>
 <div class="optiondescr">

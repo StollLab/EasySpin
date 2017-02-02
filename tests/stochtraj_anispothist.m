@@ -65,12 +65,10 @@ for j=1:size(LMK,1)
 
 end
 
-
-
 data = [];
 
 
-%% Compare numerical result with analytic expression
+%% Helper function to compare numerical result with analytic expression
 
 function rmsd = calc_rmsd(Coefs, LMK, Hist3D, Agrid, Bgrid, Ggrid)
 
