@@ -58,7 +58,13 @@
 %
 % Available pulse modulation functions:
 %   - Amplitude modulation: rectangular, gaussian, sinc, halfsin, quartersin,
-%                           sech, WURST
+%                           sech, WURST, Gaussian pulse cascades (G3, Q3, 
+%                           custom coefficients using 'GaussianCascade', see
+%                           private\GaussianCascadeCoefficients.txt for 
+%                           details), Fourier-series pulses (I-BURP 1/2,
+%                           SNOB i2/i3, custom coefficients using 'FourierSeries',
+%                           see private\FourierSeriesCoefficients.txt for
+%                           details),
 %   - Frequency modulation: none, linear, tanh, uniformQ
 %
 % The parameters required for the different modulation functions are:
@@ -80,6 +86,13 @@
 % 'halfsin'             - none
 % 'quartersin'          - trise     = rise time in µs for quarter sine
 %                                     weighting at the pulse edges
+% 'GaussianCascade'     - A0        = list of relative amplitudes
+%                       - x0        = list of positions (in fractions of
+%                                     tp)
+%                       - tFWHM     = list of FWHM (in fractions of tp)
+% 'FourierSeries'       - A0        = initial amplitude coefficient
+%                       - An        = list of Fourier coefficients for cos
+%                       - Bn        = list of Fourier coefficients for sin
 %
 % Frequency modulation:
 % For all frequency-modulated pulses, the frequency sweep range needs to be
@@ -206,7 +219,7 @@ if (isfield(Par,'I') && ~isempty(Par.I)) || ...
     Par.I = zeros(size(Par.Q));
   elseif ~isfield(Par,'Q')
     Par.Q = zeros(size(Par.I));
-  elseif size(Par.I)~=size(Par.Q);
+  elseif size(Par.I)~=size(Par.Q)
     error('I and Q input data have different lengths.');
   end
   if ~isvector(Par.I) || ~isvector(Par.Q)
@@ -233,12 +246,12 @@ else
   shape = regexp(Par.Type,'/','split');
   switch numel(shape)
     case 1
-      AmplitudeModulation = shape;
+      AmplitudeModulation = lower(shape);
       FrequencyModulation = 'none';
     case 2
-      AmplitudeModulation = regexp(shape{1},'*','split');
+      AmplitudeModulation = lower(regexp(shape{1},'*','split'));
       if ~isempty(shape{2})
-        FrequencyModulation = shape{2};
+        FrequencyModulation = lower(shape{2});
       else
         FrequencyModulation = 'none';
       end
@@ -293,7 +306,7 @@ else
           Par.n = 1;
         end
         
-      case 'WURST'
+      case 'wurst'
         
         if ~isfield(Par,'nwurst') || isempty(Par.nwurst)
           error(['Pulse AM function not sufficiently defined. ',...
@@ -303,6 +316,77 @@ else
           error('Pulseshape.nwurst must be a nonnegative integer (1,2,...).');
         end
         
+      case {'gaussiancascade','g3','q3'}
+        
+        if ~(isfield(Par,'A0') && isfield(Par,'x0') && isfield(Par,'tFWHM'))
+          
+          if strcmp(AmplitudeModulation{na},'gaussiancascade')
+            error('The amplitudes A0, positions x0 and FWHM of the Gaussians are required as input.')
+          else
+            % Load parameters from file
+            fname = 'private\GaussianCascadeCoefficients.txt';
+            fid = fopen(fname);
+            while 1
+              s = fgetl(fid);
+              id = strfind(lower(s),AmplitudeModulation{na});
+              if id
+                for k = 1:6; fgetl(fid); end
+                s = fgetl(fid);
+                Par.x0 = sscanf(s,'%f');
+                s = fgetl(fid);
+                Par.A0 = sscanf(s,'%f');
+                s = fgetl(fid);
+                Par.tFWHM = sscanf(s,'%f');
+              end
+              term = strfind(s,'end');
+              if term
+                break
+              end
+            end
+            fclose(fid);
+            clear fid s fname id
+          end
+          
+        elseif ~(numel(Par.A0)==numel(Par.x0) && numel(Par.A0)==numel(Par.tFWHM))
+          error('The same number of parameters is required for the A0, x0 and tFWHM inputs.')
+        end
+        
+      case {'fourierseries','i-burp 1','i-burp 2','snob i2','snob i3'}
+        
+        if (~(isfield(Par,'A0') && isfield(Par,'An') && isfield(Par,'Bn')) || ...
+            (isempty(Par.A0) && isempty(Par.An) && isempty(Par.Bn)))
+          
+          if strcmp(AmplitudeModulation{na},'fourierseries')
+            error('The Fourier coefficients A0, An and Bn are required as input.')
+          else
+            % Load Fourier coefficients from file
+            fname = 'private\FourierSeriesCoefficients.txt';
+            fid = fopen(fname);
+            while 1
+              s = fgetl(fid);
+              id = strfind(lower(s),AmplitudeModulation{na});
+              if id
+                for k = 1:5; fgetl(fid); end
+                s = fgetl(fid);
+                Par.A0 = sscanf(s,'%f');
+                s = fgetl(fid);
+                Par.An = sscanf(s,'%f');
+                s = fgetl(fid);
+                Par.Bn = sscanf(s,'%f');
+              end
+              term = strfind(s,'end');
+              if term
+                break
+              end
+            end
+            fclose(fid);
+            clear fid s fname id
+          end
+          
+        elseif numel(Par.An)~=numel(Par.Bn)
+          error('The same number of A and B Fourier coefficients is required.')
+        end
+               
       otherwise
         
         error('The amplitude modulation function ''%s'' is not defined.',AmplitudeModulation{na});
@@ -337,7 +421,7 @@ else
           'Specify dimensionless Par.beta parameter for tanh.']);
       end
            
-    case 'uniformQ'
+    case 'uniformq'
       
       if numel(Par.Frequency)~=2
         error(['Pulse FM function not sufficiently defined. ',...
@@ -360,7 +444,7 @@ else
     % Bandwidth compensation is implemented for these pulses
     if (strcmp(FrequencyModulation,'linear') && (strcmp(AmplitudeModulation,'rectangular') || strcmp(AmplitudeModulation,'quartersin'))) || ...
         (strcmp(FrequencyModulation,'tanh') && strcmp(AmplitudeModulation,'sech')) || ...
-        (strcmp(FrequencyModulation,'uniformQ') && strcmp(AmplitudeModulation,'sech'))
+        (strcmp(FrequencyModulation,'uniformq') && strcmp(AmplitudeModulation,'sech'))
       
       if (~isfield(Par,'faxis') || isempty(Par.faxis)) || ...
           (~isfield(Par,'MagnitudeResponse') || isempty(Par.MagnitudeResponse))
@@ -423,8 +507,20 @@ else
         case 'sech'
           n = min(Par.n); % Par.n contains two fields for asymmetric pulses
           A0 = A0.*sech(Par.beta*2^(n-1)*(ti0/Par.tp).^n);
-        case 'WURST'
+        case 'wurst'
           A0 = A0.*(1 - abs(sin(pi*ti0/Par.tp)).^Par.nwurst);
+        case {'gaussiancascade','g3','q3'}
+          A0 = zeros(1,numel(t0));
+          for j = 1:numel(Par.A0)
+            A0 = A0 + Par.A0(j)*exp(-(4*log(2)/(Par.tFWHM(j)*Par.tp)^2)*(t0-Par.x0(j)*Par.tp).^2);
+          end
+          A0 = A0/max(A0);
+        case {'fourierseries','i-burp 1','i-burp 2','snob i2','snob i3'}
+          A0 = zeros(1,numel(t0)) + Par.A0;
+          for j = 1:numel(Par.An)
+            A0 = A0 + Par.An(j)*cos(j*2*pi*t0/Par.tp) + Par.Bn(j)*sin(j*2*pi*t0/Par.tp);
+          end
+          A0 = A0/max(A0);
       end
     end
     % Fourier transform
@@ -438,9 +534,7 @@ else
     intg = cumtrapz(A0ft);
     [dummy,indmax] = min(abs(intg-0.5*max(intg)));
     indbw = find(A0ft(indmax:end)>0.1*max(A0ft));
-    indbw50 = find(A0ft(indmax:end)>0.5*max(A0ft));
     AM_BW = 2*(f(indmax+indbw(end))-f(indmax));
-    AM_BW50 = 2*(f(indmax+indbw50(end))-f(indmax));
     
     BW = max([FM_BW AM_BW]);
     
@@ -521,9 +615,25 @@ else
           A(round(nPoints/2)+1:nPoints) = sech(Par.beta*2^(Par.n(2)-1)*(ti(round(nPoints/2)+1:nPoints)/Par.tp).^Par.n(2));
         end
         
-      case 'WURST'
+      case 'wurst'
         
         A = 1 - abs(sin(pi*ti/Par.tp)).^Par.nwurst;
+        
+      case {'gaussiancascade','g3','q3'}
+        
+        A = zeros(1,numel(t));
+        for j = 1:numel(Par.A0)
+          A = A + Par.A0(j)*exp(-(4*log(2)/(Par.tFWHM(j)*Par.tp)^2)*(t-Par.x0(j)*Par.tp).^2);
+        end
+        A = A/max(A);
+        
+      case {'fourierseries','i-burp 1','i-burp 2','snob i2','snob i3'}
+        
+        A = zeros(1,numel(t)) + Par.A0;
+        for j = 1:numel(Par.An)
+          A = A + Par.An(j)*cos(j*2*pi*t/Par.tp) + Par.Bn(j)*sin(j*2*pi*t/Par.tp);
+        end
+        A = A/max(A);
         
     end
     modulation.A = modulation.A.*A;
@@ -556,7 +666,7 @@ else
         log(cosh((Par.beta/Par.tp)*ti));
       modulation.phase = 2*pi*modulation.phase;
       
-    case 'uniformQ'
+    case 'uniformq'
       % The frequency modulation is calculated as the integral of the
       % squared amplitude modulation function (for nth order sech/tanh or
       % in general to obtain offset-independent adiabaticity pulses, see
@@ -651,7 +761,7 @@ else
             sweeprate = abs(Par.Frequency(2)-Par.Frequency(1))/Par.tp;
           case 'tanh'
             sweeprate = Par.beta*abs(Par.BWinf)/(2*Par.tp);
-          case 'uniformQ'
+          case 'uniformq'
             % Q = w1max^2*A(t)^2/(BW*dnu/dt) see eq. 17 in
             %   Garwood, M., DelaBarre, L., J. Magn. Reson. 153, 155-177
             %   (2001).
@@ -757,7 +867,7 @@ if plotResults
   S.hQ = plot(t,imag(IQ),'Color',colQ);
   Amax = max(abs(IQ));
   axis([t(1) t(end) -1*Amax*1.1 1*Amax*1.1]);
-  xlabel('{\itt} (\mus)')
+  xlabel(['{\itt} (',char(181),'s)'])
   ylabel('amplitude (MHz)')
   set(gca,'Layer','top')
   legend([S.hI S.hQ],'I','Q','Location','SouthEast')
@@ -784,13 +894,13 @@ if plotResults
     S.hnu = plot(t,modulation.freq+mean(Par.Frequency),'Color',colnu);
     freqmax = [min(modulation.freq) max(modulation.freq)]+mean(Par.Frequency);
     if freqmax(1)==freqmax(2)
-      if freqmax(1)==0; sc = 1; else sc = 0.1*freqmax(1); end
+      if freqmax(1)==0; sc = 1; else; sc = 0.1*freqmax(1); end
       freqmax = [freqmax(1) freqmax(2)]+sc*[-1 1];
       shift = 0;
     else
       shift = [-1 1]*0.1*(freqmax(2)-freqmax(1));
     end
-    xlabel('{\itt} (\mus)');
+    xlabel(['{\itt} (',char(181),'s)']);
     ylabel('frequency (MHz)');
     axis([t(1) t(end) freqmax+shift]);
   end
@@ -867,7 +977,7 @@ S = varargin{3}; % get calling handle structure
 
 for i = 1:numel(S.tick)
   val = get(S.tick(i),'Value');
-  if val==1;
+  if val==1
     set(S.handles(i),'Visible','on')
   else
     set(S.handles(i),'Visible','off');

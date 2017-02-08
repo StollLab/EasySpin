@@ -28,7 +28,7 @@
 <div class="functitle">pulse</div>
 
 <p>
-Calculates pulse shape and amplitude, frequency and phase modulation functions for a series pulse types.
+Calculates pulse shape and amplitude, frequency and phase modulation functions for a series of pulse types.
 </p>
 
 
@@ -115,7 +115,7 @@ Overall pulse phase, in radians, <i>e.g.</i> <code>0</code> for +x, <code>pi/2</
 <div class="optiondescr">
 Pulse shape name in a string structured as <code>'AM/FM'</code> (or just <code>'AM'</code>), where AM refers to the amplitude modulation function and FM to the frequency modulation function.
 <p>
-The available amplitude modulation functions are <code>'rectangular'</code>, <code>'gaussian'</code>, <code>'sinc'</code>, <code>'halfsin'</code>, <code>'quartersin'</code>, <code>'sech'</code>, <code>'WURST'</code>. Different AM functions can be multiplied by concatenating the keywords as <code>'AM1*AM2/FM'</code>. The default is <code>'rectangular'</code>.
+The available amplitude modulation functions are <code>'rectangular'</code>, <code>'gaussian'</code>, <code>'sinc'</code>, <code>'halfsin'</code>, <code>'quartersin'</code>, <code>'sech'</code>, <code>'WURST'</code>, <code>'GaussianCascade'</code>, <code>FourierSeries</code>. Different AM functions can be multiplied by concatenating the keywords as <code>'AM1*AM2/FM'</code>. The default is <code>'rectangular'</code>.
 
 <p>
 The available options for frequency modulation are <code>'none'</code>, <code>'linear'</code>, <code>'tanh'</code>, <code>'uniformQ'</code>. If only an AM keyword is given, the FM function is set to <code>'none'</code>.
@@ -140,12 +140,12 @@ Depending on the AM function, additional fields need to be specified:
 <ul style="list-style-type:none;padding:5px;">
 <li>no additional fields are required
 </ul>
-<li><code>'gaussian'</code>:
+<li><code>'gaussian'</code>
 <ul style="list-style-type:none;padding:5px;">
 <li><code>tFWHM</code> - FWHM, in microseconds
 <li><code>trunc</code> - truncation parameter (0 to 1) (alternative to <code>tFWHM</code>)
 </ul>
-<li><code>'sinc'</code>:
+<li><code>'sinc'</code>
 <ul style="list-style-type:none;padding:5px;">
 <li><code>zerocross</code> - width between the first zero-crossing points in microseconds
 </ul>
@@ -168,6 +168,24 @@ asymmetric sech pulses can be obtained by specifying two values for <code>n</cod
 <li><code>'quartersin'</code></li>
 <ul style="list-style-type:none;padding:5px;">
 <li><code>trise</code> - rise time in microseconds for quarter sine weighting at the pulse edges
+</ul>
+<li><code>'GaussianCascade'</code></li>
+<ul style="list-style-type:none;padding:5px;">
+<p>
+If <code>Par.Type</code> is set to <code>'G3'</code> or <code>'Q3'</code>, the Gaussian pulse cascades are computed with the parameters listed in Emsley, L., Bodenhausen, G., Gaussian pulse cascades: New analytical functions for rectangular selective inversion and in-phase excitation in NMR, <i>Chem. Phys. Lett.</i> 165, 469-476 (<b>1990</b>), DOI: <a href="http://dx.doi.org/10.1016/0009-2614(90)87025-M">10.1016/0009-2614(90)87025-M</a> (Table 1 on p. 473, Cycle 3) and Emsley, L., Bodenhausen, G., Optimization of shaped selective pulses for NMR using a quaternion description of their overall propagators, <i>J. Magn. Reson.</i> 97, 135-148 (<b>1992</b>), DOI: <a href="http://dx.doi.org/10.1016/0022-2364(92)90242-Y">10.1016/0022-2364(92)90242-Y</a> (Table 2 on p. 142), respectively. Otherwise the following parameters need to be specified:
+</p>
+<li><code>A0</code> - list of relative amplitudes
+<li><code>x0</code> - list of positions (in fractions of the pulse length)
+<li><code>tFWHM</code> - list of FWHM (in fractions of the pulse length)
+</ul>
+<li><code>'FourierSeries'</code></li>
+<ul style="list-style-type:none;padding:5px;">
+<p>
+If <code>Par.Type</code> is set to <code>'I-BURP 1'</code>, <code>'I-BURP 2'</code>, <code>'SNOB i2'</code> or <code>'SNOB i3'</code>, the finite Fourier series pulses are computed with the coefficients listed in Geen, H., Freeman, R., Band-selective radiofrequency pulses, <i>J. Magn. Reson.</i> 93, 93-141 (<b>1991</b>), DOI: <a href="http://dx.doi.org/10.1016/0022-2364(91)90034-Q">10.1016/0022-2364(91)90034-Q</a> (Table 5 on p. 117 for I-BURP 1 and Table 6 on p. 119 for I-BURP 2, Np = 256) and Kupce, E., Boyd, J., Campbell, I. D., Short Selective Pulses for Biochemical Applications, <i>J. Magn. Reson. B</i> 106, 300-303 (<b>1995</b>), DOI: <a href="http://dx.doi.org/10.1006/jmrb.1995.1049">10.1006/jmrb.1995.1049</a> (Table 1 on p. 300 for SNOB i2 and SNOB i3). Otherwise the following parameters need to be specified:
+</p>
+<li><code>A0</code> - initial amplitude coefficient
+<li><code>An</code> - list of Fourier coefficients for the cosine term
+<li><code>Bn</code> - list of Fourier coefficients for the sine term
 </ul>
 </ul>
 </p>
@@ -195,7 +213,7 @@ Also, depending on the FM function, the following additional fields are required
 </ul>
 
 <p>
-Compensation for the resonator bandwidth is available can be selected by setting <code>Opt.BWCompensation = 1</code> (see below). In this case, the following additional parameters have to be included in the <code>Par</code> structure:
+Compensation for the resonator bandwidth is available for some pulse types and can be selected by setting <code>Opt.BWCompensation = 1</code> (see below). In this case, the following additional parameters have to be included in the <code>Par</code> structure:
 
 <div class="optionfield"><code>MagnitudeResponse</code></div>
 <div class="optiondescr">
@@ -308,6 +326,24 @@ A = \sin\frac{\pi \left(t - t_\mathrm{p}/2 + t_\text{rise}\right)}{2 t_\text{ris
 -->
 </div>
 
+<li><code>'GaussianCascade'</code>:
+<div class="eqn">
+<img src="eqn/pulse8.png" alt="[eqn]"><!--MATH
+\begin{equation*}
+A(t) = \sum_{n = 1}^N A_n \exp\left[-\frac{4 \ln{2}}{\left(FWHM_{n} t_\mathrm{p}\right)^2} \left( t - x_n t_\mathrm{p} \right)^2 \right]
+\end{equation*}
+-->
+</div>
+
+<li><code>'FourierSeries'</code>:
+<div class="eqn">
+<img src="eqn/pulse9.png" alt="[eqn]"><!--MATH
+\begin{equation*}
+A(t) = A_0 + \sum_{n = 1}^N \left[ A_n \cos\left(n \omega t\right) + B_n \sin \left(n \omega t \right) \right]
+\end{equation*}
+-->
+</div>
+
 </ul>
 
 <p>
@@ -318,7 +354,7 @@ Frequency and phase modulation functions (<i>BW</i> is the difference between en
 
 <li><code>'none'</code>:
 <div class="eqn">
-<img src="eqn/pulse8.png" alt="[eqn]"><!--MATH
+<img src="eqn/pulse10.png" alt="[eqn]"><!--MATH
 \begin{equation*}
 \nu = 0 \qquad \qquad \phi = 0
 \end{equation*}
@@ -327,7 +363,7 @@ Frequency and phase modulation functions (<i>BW</i> is the difference between en
 
 <li><code>'linear'</code>:
 <div class="eqn">
-<img src="eqn/pulse9.png" alt="[eqn]"><!--MATH
+<img src="eqn/pulse11.png" alt="[eqn]"><!--MATH
 \begin{equation*}
 \nu = \frac{BW}{t_\mathrm{p}} t \qquad \qquad \phi = 2 \pi \left( -\frac{BW}{2}\left(t - \frac{t_\mathrm{p}}{2}\right) + \frac{1}{2} \frac{BW}{t_\mathrm{p}} \left(t - \frac{t_\mathrm{p}}{2}\right)^2\right)
 \end{equation*}
@@ -336,11 +372,11 @@ Frequency and phase modulation functions (<i>BW</i> is the difference between en
 
 <li><code>'tanh'</code>:
 <div class="eqn">
-<img src="eqn/pulse10.png" alt="[eqn]"><!--MATH
+<img src="eqn/pulse12.png" alt="[eqn]"><!--MATH
 \begin{equation*}
 \nu = \frac{BW}{2 \tanh(\beta/2)} \tanh{\frac{\beta t}{t_\mathrm{p}}}
 \qquad\qquad
-\phi = 2 \pi \frac{BW}{2 \tanh(\beta/2) \frac{t_\mathrm{p}}{\beta} \log\left[\cosh{\frac{\beta t}{t_\mathrm{p}}}\right]
+\phi = 2 \pi \frac{BW}{2 \tanh(\beta/2)} \frac{t_\mathrm{p}}{\beta} \log\left[\cosh{\frac{\beta t}{t_\mathrm{p}}}\right]
 \end{equation*}-->
 </div>
 
@@ -359,7 +395,7 @@ The time axis for the calculation of the modulation functions is centered at zer
 The final pulse shape is calculated as:
 </p>
 <div class="eqn">
-<img src="eqn/pulse11.png" alt="[eqn]"><!--MATH
+<img src="eqn/pulse13.png" alt="[eqn]"><!--MATH
 \begin{equation*}
 P = A \exp\left[i \left(\phi + 2 \pi \nu_\text{center} + \Delta\phi\right) \right]
 \end{equation*}
