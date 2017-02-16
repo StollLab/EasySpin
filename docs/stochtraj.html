@@ -156,7 +156,7 @@ An array of size (N,3) containing the indices L,M,K for each orienting potential
 <code>Par</code> is a structure containing the parameters for generating the stochastic rotational trajectories. The parameters can be categorized into two groups: Monte Carlo settings, and trajectory settings.
 <p>
 <p>
-The Monte Carlo settings specify the parameters used to perform the time integration in the simulation. One can provide an array of time points <code>t</code> along which to integrate, a number of steps <code>nSteps</code> and a time step <code>dt</code>, or a number of steps <code>nSteps</code> and a total time for simulation <code>tmax</code>. For reproducibility of the stochastic motion, one can also seed MATLAB's random number generator by providing a non-negative integer for the field <code>seed</code>.
+The Monte Carlo settings specify the parameters used to perform the time integration in the simulation. One can provide an array of time points <code>t</code> along which to integrate, a number of steps <code>nSteps</code> and a time step <code>dt</code>, or a number of steps <code>nSteps</code> and a total time for simulation <code>tmax</code>.
 
 <div class="optionfield"><code>t</code></div>
 <div class="optiondescr">
@@ -178,10 +178,6 @@ The time step of the integration, in seconds.
 The total time of the simulation, in seconds.
 </div>
 
-<div class="optionfield"><code>seed</code></div>
-<div class="optiondescr">
-(Optional) Seed for the random number generator. Enter <code>help rng</code> into the MATLAB command window for more details.
-</div>
 
 <p>
 Lastly, the trajectory settings are used to specify the starting orientation angles, (<code>alpha</code>, <code>beta</code>, <code>gamma</code>),

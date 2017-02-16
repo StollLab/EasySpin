@@ -27,8 +27,11 @@ function D = wignerdquat(L, M, K, q)
 % Calculate the D-matrix using a quaternion polynomial, see Eq. 27.9 in
 % reference, where M=m' and K=m
 
+% persistent prefactor s powers denoms;
 
-%% Error check
+
+% Error check
+% -------------------------------------------------------------------------
 
 if numel(L)~=1 || ~isreal(L) || mod(L,1.0) || (L<0) || ~isnumeric(L)
   error('Index L must be an integer greater than zero.')
@@ -46,9 +49,9 @@ if ~isnumeric(q) || size(q,1)~=4
   error('q must be a 4x... array.')
 end
 
-%% Setup
 
-% persistent prefactor s powers denoms;
+% Setup
+% -------------------------------------------------------------------------
 
 % if isempty(prefactor)
   prefactor = sqrt(factorial(L+M)*factorial(L-M)*factorial(L+K)*factorial(L-K));
@@ -72,10 +75,12 @@ Q = [    q(1,:) -  1i*q(4,:); ...
          q(1,:) +  1i*q(4,:)];
 Q = repmat(Q, [1,1,numel(s)]);
 
-%% Calculate
+% Calculate
 D = prefactor*sum(prod(bsxfun(@rdivide,bsxfun(@power,Q,powers),denoms),1),3);
 
-%% Functions
+
+% Functions
+% -------------------------------------------------------------------------
 function s = sIndices(L,M,K)
 % Compute the values for M, K, and s for a given L
 s = max(0,K-M):min(L+K,L-M);

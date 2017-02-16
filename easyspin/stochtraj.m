@@ -36,17 +36,8 @@
 %     nTraj          double
 %                    number of trajectories
 %
-%     alpha          double
-%                    Euler angle alpha for starting orientation(s)
-%
-%     beta           double
-%                    Euler angle beta for starting orientation(s)
-%
-%     gamma          double
-%                    Euler angle gamma for starting orientation(s)
-%
-%     seed           integer
-%                    seed the random number generator for reproducibility
+%     Omega          numeric, size = (3,1) or (3,nTraj)
+%                    Euler angles for starting orientation(s)
 %
 %
 %   Opt: simulation options
@@ -76,10 +67,12 @@
 %     http://dx.doi.org/10.1063/1.2908075
 
 function varargout = stochtraj(Sys,Par,Opt)
+
 % UNDOCUMENTED 4th ARGUMENT: FLAG IF STOCHTRAJ IS BEING CALLED BY CARDAMOM IN
 % ORDER TO SKIP ERROR-CHECKING
-%% Preprocessing
-%========================================================================
+
+% Preprocessing
+% -------------------------------------------------------------------------
 
 % Only Sys needs to be given to run stochtraj properly, so if Par is not 
 % given, initialize it here
@@ -124,8 +117,9 @@ end
 global EasySpinLogLevel;
 EasySpinLogLevel = Opt.Verbosity;
 
-%% Dynamics and ordering potential
-%========================================================================
+
+% Dynamics and ordering potential
+% -------------------------------------------------------------------------
 
 % FieldSweep is not valid for stochtraj, so give empty third arg
 [Dynamics,Sim] = check_dynord('stochtraj',Sys,[]);
@@ -134,8 +128,9 @@ Sim.Diff = Dynamics.Diff';
 
 tcorrAvg = 1/6/mean(Dynamics.Diff);
 
-%% Discrete Monte carlo settings
-%========================================================================
+
+% Discrete Monte carlo settings
+% -------------------------------------------------------------------------
 
 if isfield(Par,'t')
   % time axis is given explicitly
@@ -149,7 +144,7 @@ elseif isfield(Par,'nSteps') && isfield(Par,'dt')
   Sim.dt = Par.dt;
   Sim.nSteps = Par.nSteps;
 
-elseif isfield(Par, 'nSteps') && isfield(Par, 'tmax')
+elseif isfield(Par,'nSteps') && isfield(Par,'tmax')
   % number of steps and max time are given
   tmax = Par.tmax;
   Sim.nSteps = Par.nSteps;
@@ -172,53 +167,36 @@ if isfield(Par,'seed')
   rng(Par.seed);
 end
 
-%% Grid and trajectory settings
-%========================================================================
+
+% Grid and trajectory settings
+% -------------------------------------------------------------------------
 
 % If number of trajectories is not given, set it to 1
 if ~isfield(Par, 'nTraj'), Par.nTraj = 1; end
 Sim.nTraj = Par.nTraj;
 
 % Get user-supplied starting angles
-alpha = [];
-beta = [];
-gamma = [];
-if isfield(Par,'alpha'), alpha = Par.alpha; end
-if isfield(Par,'beta'), beta = Par.beta; end
-if isfield(Par,'gamma'), gamma = Par.gamma; end
+Omega = [];
+if isfield(Par,'Omega'), Omega = Par.Omega; end
 
 % Supplement starting angles if necessary
-if isempty(alpha)
-  alpha = rand(1,Sim.nTraj)*2*pi;
-end
-if isempty(beta)
+if isempty(Omega)
   z = 2*rand(1,Sim.nTraj)-1;
-  beta = acos(z);
-end
-if isempty(gamma)
-  % Orienting potentials with m'=0 are independent of gamma, so we can set chi0=0
-  gamma = zeros(1,Sim.nTraj);
+  Omega = [2*pi*rand(1,Sim.nTraj);
+                          acos(z);
+           2*pi*rand(1,Sim.nTraj)];
 end
 
 % If only one starting angle and multiple trajectories, repeat the angle
-if numel(beta) == 1 && Sim.nTraj > 1
-  beta = repmat(beta,1,Sim.nTraj);
-elseif numel(beta) ~= Sim.nTraj
-  error('The number of starting angles must be equal to the number of trajectories.');
+if size(Omega,1)==3 
+  if size(Omega,2)==1 && Sim.nTraj > 1
+    Omega = repmat(Omega,1,Sim.nTraj);
+  elseif size(Omega,2)~=Sim.nTraj
+    error('Number of starting orientations must be equal to 1 or nTraj.')
+  end
+else
+  error('The size of Orients must be (3,1) or (3,nTraj).')
 end
-if numel(alpha) == 1 && Sim.nTraj > 1
-  alpha = repmat(alpha,1,Sim.nTraj);
-elseif numel(alpha) ~= Sim.nTraj
-  error('The number of starting angles must be equal to the number of trajectories.');
-end
-if numel(gamma) == 1 && Sim.nTraj > 1
-  gamma = repmat(gamma,1,Sim.nTraj);
-elseif numel(gamma) ~= Sim.nTraj
-  error('The number of starting angles must be equal to the number of trajectories.');
-end
-
-assert(numel(beta) == numel(alpha), 'Beta and alpha must be the same size.')
-assert(numel(beta) == numel(gamma), 'Beta and gamma must be the same size.')
 
 if isfield(Opt,'chkcon')
   chkcon = Opt.chkcon;
@@ -230,7 +208,7 @@ else
 end
 
 
-q0 = euler2quat(alpha,beta,gamma);
+q0 = euler2quat(Omega);
 qTraj = zeros(4,Sim.nTraj,Sim.nSteps);
 qTraj(:,:,1) = q0;
 
@@ -242,9 +220,10 @@ qTraj(:,:,1) = q0;
 % else
 %   tol = 1e-3;
 % end
-  
-%% Simulation
-%========================================================================
+ 
+
+% Simulation
+% -------------------------------------------------------------------------
 
 converged = 0;
 
@@ -294,7 +273,7 @@ while ~converged
 
 end
 
-% clear wignerdquat
+clear persistent wignerdquat  % FIXME why doesn't this work?
 
 totSteps = size(qTraj,3);
 
@@ -306,8 +285,9 @@ RTraj = quat2rotmat(qTraj);
 logmsg(1,'-- Propagation finished --------------------------------------');
 logmsg(1,'--------------------------------------------------------------');
 
-%% Final processing
-%==============================================================
+
+% Final processing
+% -------------------------------------------------------------------------
 
 switch nargout
   case 0 % Plot results
@@ -348,7 +328,9 @@ clear global EasySpinLogLevel
 
 return
 
-%% Helper functions
+
+% Helper functions
+% -------------------------------------------------------------------------
 
 function q = propagate(q, Sim, iter)
 % Propagate quaternions
@@ -364,7 +346,7 @@ LMK = Sim.LMK;
 if iter>0
   % If propagation is being extended, initialize q from the last set
   if ~isempty(Coefs)
-    torque = anistorque(LMK,Coefs,q(:,:,end));
+    torque = anistorque(LMK, Coefs, q(:,:,end));
     AngStep = bsxfun(@times,torque,Diff*dt) + randAngStep(:,:,1);
   else
     % If there is no orienting potential, then there is no torque to
@@ -403,7 +385,7 @@ end
   
 for iStep=2:nSteps
   if ~isempty(Coefs)
-    torque = anistorque(LMK,Coefs,q(:,:,iStep-1));
+    torque = anistorque(LMK, Coefs, q(:,:,iStep-1));
     AngStep = bsxfun(@times,torque,Diff*dt) + randAngStep(:,:,iStep-1);
   else
     % If there is no orienting potential, then there is no torque to
@@ -440,7 +422,7 @@ end
 
 end
 
-%========================================================================
+% -------------------------------------------------------------------------
 
 % function varargout = acorr_convergence(RTraj, tol)
 % % Calculate angular histogram of trajectories and compare with analytic
@@ -466,7 +448,7 @@ end
 % 
 % end
 
-%========================================================================
+% -------------------------------------------------------------------------
 
 % function varargout = hist_convergence(RTraj, lambda, tol)
 % % Calculate angular histogram of trajectories and compare with analytic
@@ -500,6 +482,6 @@ end
 % 
 % end
 
-%========================================================================
+% -------------------------------------------------------------------------
     
 end

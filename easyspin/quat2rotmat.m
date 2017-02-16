@@ -20,7 +20,7 @@ end
 
 diff = abs(1.0-squeeze(sum(q.*q, 1)));
 if any(diff(:) > 1e-13)
-  plot(diff(1,:))
+%   plot(diff(1,:))
   error('Input is not normalized.')
 end
 

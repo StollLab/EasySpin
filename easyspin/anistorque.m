@@ -14,6 +14,7 @@
 %     q              numeric, size = (4,nTraj)
 %                    quaternions
 %
+%
 %   Output:
 %     anistorque     numeric, size = (3,1,nTraj)
 
@@ -22,7 +23,8 @@
 %   [1] Sezer, et al., J.Chem.Phys. 128, 165106 (2008), doi: 10.1063/1.2908075
 
 function torque = anistorque(LMK, Coefs, q)
-%% Preprocessing
+% Preprocessing
+% -------------------------------------------------------------------------
 shapeq = num2cell(size(q));
 Index = cell(1, ndims(q));
 Index(:) = {':'};
@@ -59,16 +61,15 @@ if any(abs(Kvals(:))>Lvals)
   error('All values of K must be between -L and L.')
 end
 
-iJvecu = zeros(3,size(q,2),nCoefs);
+iJvecu = zeros(3, size(q,2), nCoefs);
 
-%%
 % Not sure if there is a good way to vectorize this
 for n=1:nCoefs
   L = Lvals(n);
   M = Mvals(n);
   K = Kvals(n);
   iJvecu(Index{:},n) = real(iJu(L,M,K,lambda(n),q));
-%  Why doesn't this work?! Accumulation of rounding errors?
+%  FIXME Why doesn't this work?! Accumulation of rounding errors?
 %   iJvecu(Index{:},n) =               0.5*(iJu(L,M,K,lambda(n),q) ...
 %                               + (-1)^(M-K)*iJu(L,-M,-K,conj(lambda(n)),q));
 end
@@ -81,7 +82,11 @@ end
 
  assert(all(imag(torque(:))<1e-14), 'Torque is not real.')
 
-%% Helper functions
+end
+ 
+
+% Helper functions
+% -------------------------------------------------------------------------
 function  out = iJu(L, M, K, cLK, q)
 % Calculate the result of i\vo{J}u for a given potential coefficient
 % cjm corresponds to c_{m}^{j} in Eq. 58 in [1]
@@ -113,7 +118,5 @@ function C = Cpm(L, K, pm)
 
 if     pm=='+', C = sqrt(L*(L+1)-K*(K+1));
 elseif pm=='-', C = sqrt(L*(L+1)-K*(K-1)); end
-
-end
 
 end

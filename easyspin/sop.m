@@ -21,9 +21,9 @@
 %   - SpinOp: operator matrix as requested
 %
 %   Examples:
-%     sop([1/2 1],'xy')    % returns SxIy for a S=1/2, I=1 system.
+%     SxIy = sop([1/2 1],'xy')    % returns SxIy for a S=1/2, I=1 system.
 %
-%     sop([1/2 1/2],'e+')  % returns SeI+ for a S=I=1/2 system.
+%     SeIp = sop([1/2 1/2],'e+')  % returns SeI+ for a S=I=1/2 system.
 %
 %     [Sx,Sy,Sz] = sop(1/2,'x','y','z')  % computes three matrices in one go.
 

@@ -6,10 +6,11 @@ Sys.tcorr = 10e-9;
 Par.dt = Sys.tcorr/5;
 Par.nSteps = ceil(50*Sys.tcorr/Par.dt);
 Par.nTraj = 200;
-Par.beta = pi*(2*rand()-1);
-Par.alpha = 2*pi*(2*rand()-1);
-Par.gamma = 2*pi*(2*rand()-1);
+Par.Omega = [  pi*(2*rand()-1); 
+             2*pi*(2*rand()-1);
+             2*pi*(2*rand()-1) ];
 Opt.chkcon = 1;
+% Opt.Verbosity = 1;
 
 nTraj = Par.nTraj;
 nSteps = Par.nSteps;
@@ -44,7 +45,7 @@ rmsd = sqrt(sum((ThetaHist - BoltzDist).^2)/nBins);
 % This seems like a loose condition and should be investigated further
 if rmsd > 1e-2
   err = 1;
-%   plot(bins, ThetaHist, bins, BoltzDist)
+  plot(bins, ThetaHist, bins, BoltzDist)
 else  
   err = 0;
 end

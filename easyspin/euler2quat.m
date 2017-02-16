@@ -26,7 +26,7 @@ switch (nargin)
     if isvector(angles)
       % 3-vector input
       if numel(angles)~=3
-        error('Input must be 3 separate angles, a 3-vector, or a 3x... shaped array.')
+        error('Input must be 3 separate angles, a 3-vector, or a (3,...) shaped array.')
       end
       alpha = angles(1);
       beta = angles(2);
@@ -39,7 +39,7 @@ switch (nargin)
       beta = angles(2,idx{2:end});
       gamma = angles(3,idx{2:end});
     else
-      error('Input must be 3 separate angles, a 3-vector, or a 3x... shaped array.')
+      error('Input must be 3 separate angles, a 3-vector, or a (3,...) shaped array.')
     end
     if (nargin==2)
       option = varargin{2};
@@ -82,6 +82,8 @@ switch lower(option)
     % Do nothing
   otherwise
     error('Last argument must be a string, either ''passive'' or ''active''.')
+end
+
 end
 
 q0 = cos(beta/2).*cos((gamma+alpha)/2);

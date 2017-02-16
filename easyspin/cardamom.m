@@ -59,9 +59,6 @@
 %     gamma          double or numeric, size = (1,nTraj)
 %                    Euler angle gamma for starting orientation(s)
 %
-%     seed           integer
-%                    seed the random number generator for reproducibility
-%
 %
 %
 % %   Exp: experimental parameter settings
@@ -102,6 +99,12 @@
 %
 %    Verbosity       0: no display, 1: show info
 %
+%    Method           string
+%                     'Sezer': propagate the density matrix using the 
+%                      m_s=-1/2 subspace
+%                     'DeSensi': propagate the density matrix using an 
+%                      eigenvalue method
+%
 %
 %
 %   Output:
@@ -119,8 +122,8 @@
 %     http://dx.doi.org/10.1063/1.2908075
 
 function varargout = cardamom(Sys,Par,Exp,Opt)
-%% Preprocessing
-%========================================================================
+% Preprocessing
+% -------------------------------------------------------------------------
 
 switch nargin
   case 0
@@ -138,6 +141,7 @@ switch nargout
   case 0 % plotting
   case 1 % spc
   case 2 % B,spc
+  case 3 % B,spc,expval
   otherwise
     error('Incorrect number of output arguments.');
 end
@@ -154,68 +158,92 @@ Link = 'epr@eth'; eschecker; error(LicErr); clear Link LicErr
 global EasySpinLogLevel;
 EasySpinLogLevel = Opt.Verbosity;
 
-%% Check Sys
-%========================================================================
+
+% Check Sys
+% -------------------------------------------------------------------------
 
 [Sys,err] = validatespinsys(Sys);
 error(err);
 
 % decide on a simulation model based on user input
-if ~isfield(Sys,'LMK') && ~isfield(Sys,'Coefs')
+% if ~isfield(Sys,'LMK') && ~isfield(Sys,'Coefs')
   % no orienting potential specified, Brownian motion will be simulated
-  model = 'Brownian';
+%   model = 'Brownian';
 % else
-%   % 
+  % 
 %   model = 'MOMD';
-% elseif
-%   %
+% else
+  %
 %   model = 'SRLS';
-else
-  error('Input could not be interpreted based on the available models. Please check documentation.')
-end
+% else
+%   error('Input could not be interpreted based on the available models. Please check documentation.')
+% end
 
-%% Check Par
-%========================================================================
+
+% Check Par
+% -------------------------------------------------------------------------
 
 % If number of trajectories is not given, set it to 100
 if ~isfield(Par, 'nTraj'), Par.nTraj = 100; end
 
-if isfield(Par, 'Seed'), rng(Par.Seed); end
-
 dt = Par.dt;
 
-%% Check Exp
+
+% Check Exp
+% -------------------------------------------------------------------------
+
 
 [Exp, CenterField] = check_exp('cardamom',Sys,Exp);
 
 Sys.B = CenterField/1000;  % TODO replace with omega0 or use fieldsweep
+% Sys.B = mhz2mt(Exp.mwFreq*1e3, sum(Sys.g)/3)/1000
 
-%% Check Opt
-%========================================================================
+
+% Check Opt
+% -------------------------------------------------------------------------
 
 if ~isfield(Opt,'chkcon'), chkcon = 0; end
 
-%% Check dynamics and ordering
+
+% Check dynamics and ordering
+% -------------------------------------------------------------------------
 
 FieldSweep = true;  % TODO fix this
 Dynamics = check_dynord('cardamom',Sys,FieldSweep);
 
 logmsg(1,'-- time domain simulation -----------------------------------------');
 
-%% Pre-allocate cells
-%========================================================================
+
+% Pre-allocate cells
+% -------------------------------------------------------------------------
+
 % we need cells here because the size of the dimension nSteps might differ
 % between orientations due to differing times before convergence
+if ~isfield(Par,'Model')
+  Model='Brownian'; 
+else
+  Model=Par.Model;
+end
 
-switch model
+switch Model
   case 'Brownian'
     logmsg(1,'-- model: Brownian dynamics -----------------------------------------');
     % no ordering present, so trajectory starting points are arbitrary
-    nOrients = Par.nTraj;
-%   case 'MOMD'  TODO implement directors and ordering
-%     logmsg(1,'-- model: MOMD -----------------------------------------');
-%     
-%   case 'SRLS'  TODO implement multiple diffusion frames
+    if ~isfield(Par,'nOrients')
+      nOrients = Par.nTraj;
+    else
+      nOrients = Par.nOrients;
+    end
+  case 'MOMD'  %  TODO implement directors and ordering
+    logmsg(1,'-- model: MOMD -----------------------------------------');
+    if ~isfield(Par,'nOrients')
+      error('nOrients must be specified for the MOMD model.')
+    end
+    nOrients = Par.nOrients;
+    grid_pts = linspace(-1,1,nOrients);
+    grid_phi = sqrt(pi*nOrients)*asin(grid_pts);
+    grid_theta = acos(grid_pts);
+%   case 'SRLS'  %  TODO implement multiple diffusion frames
 %     logmsg(1,'-- model: SRLS -----------------------------------------');  
 %     
 end
@@ -223,22 +251,25 @@ end
 expval = cell(1,nOrients);
 tcell = cell(1,nOrients);
 
-%% Simulation
-%========================================================================
+
+% Simulation
+% -------------------------------------------------------------------------
 
 tic
 for iOrient = 1:nOrients
 
-% Par.theta = nFre_theta(iFre);
-% Par.phi = nFre_phi(iFre);
+% Par.Omega = [grid_phi(iOrient); grid_theta(iOrient)];
 
 [t, RTraj, qTraj] = stochtraj(Sys,Par);
 tcell{1,iOrient} = t;
-% qmult = repmat(euler2quat(0, nFre_theta(iFre), nFre_phi(iFre)),1,nTraj,nSteps);
+if strcmp(Model,'MOMD')
+  qmult = repmat(euler2quat(0, grid_theta(iOrient), grid_phi(iOrient)),1,Par.nTraj,Par.nSteps);
+  RTraj = quat2rotmat(quatmult(qmult,qTraj));
+elseif strcmp(Model,'SRLS')
+  
+end
 
-% RTraj = quat2rotmat(quatmult(qmult,qTraj));
-
-rho_t = propagate_quantum(Sys,Par,RTraj,'Sezer');
+rho_t = propagate_quantum(Sys,Par,Opt,RTraj);
 temp = squeeze(sum(rho_t,3));  % average over trajectories
 expval{1,iOrient} = squeeze(temp(1,1,:)+temp(2,2,:)+temp(3,3,:));  % take traces TODO try to speed this up using equality tr(A*B)=sum(sum(A.*B))
 
@@ -249,7 +280,8 @@ mins_tot = floor(toc/60);
 msg = sprintf('Done!\nTotal simulation time: %d:%2.0f\n',mins_tot,mod(toc,60));
 fprintf(msg);
     
-%% Perform FFT
+
+% Perform FFT
 
 % hamm = 0.54 + 0.46*cos(pi*t/max(t));
 % TL = 110e-9;  TODO implement Lorentzian and Gaussian broadening
@@ -259,6 +291,8 @@ TL = Dynamics.T2;
 tdiff = cellfun(@(x) x.*exp(-x/TL), tcell, 'UniformOutput', false);
 expvalDt = cellfun(@times, expval, tdiff, 'UniformOutput', false);
 
+expval = mean(cell2mat(expval),2);
+
 M = ceil(1e-6/dt);
 spc = cell2mat(cellfun(@(x) fft(x,M), expvalDt, 'UniformOutput', false));
 outspec = imag(fftshift(sum(spc,2)));
@@ -266,8 +300,9 @@ freq = 1/(dt*M)*(-M/2:M/2-1);  % TODO check for consistency between FieldSweep a
 
 xAxis = freq;
 
-%% Final processing
-%==============================================================
+
+% Final processing
+% -------------------------------------------------------------------------
 
 % borrowed from chili
 switch (nargout)
@@ -304,13 +339,16 @@ case 1
   varargout = {outspec};
 case 2
   varargout = {xAxis,outspec};
+case 3
+  varargout = {xAxis,outspec,expval};
 end
 
 clear global EasySpinLogLevel
     
 end
 
-%% Helper functions
+% Helper functions
+% -------------------------------------------------------------------------
 
 function updateuser(iOrient,nOrient)
 % Update user on progress
