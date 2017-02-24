@@ -68,9 +68,6 @@
 
 function varargout = stochtraj(Sys,Par,Opt)
 
-% UNDOCUMENTED 4th ARGUMENT: FLAG IF STOCHTRAJ IS BEING CALLED BY CARDAMOM IN
-% ORDER TO SKIP ERROR-CHECKING
-
 % Preprocessing
 % -------------------------------------------------------------------------
 
@@ -122,7 +119,7 @@ EasySpinLogLevel = Opt.Verbosity;
 % -------------------------------------------------------------------------
 
 % FieldSweep is not valid for stochtraj, so give empty third arg
-[Dynamics,Sim] = check_dynord('stochtraj',Sys,[]);
+[Dynamics,Sim] = validate_dynord('stochtraj',Sys,[]);
 
 Sim.Diff = Dynamics.Diff';
 
@@ -234,7 +231,6 @@ iter = 0;
 logmsg(1,'-- Calculating stochastic trajectories -----------------------');
 
 while ~converged
-
   if iter==0
     %  Pre-calculate angular steps due to random torques
     %  (Eq. 61 from reference, without factor of 1/2)
@@ -273,7 +269,7 @@ while ~converged
 
 end
 
-clear persistent wignerdquat  % FIXME why doesn't this work?
+% clear wignerdquat  % FIXME why doesn't this work?
 
 totSteps = size(qTraj,3);
 

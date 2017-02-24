@@ -46,7 +46,7 @@ if numel(K)~=1 || ~isreal(K) || mod(K,1.0) || (abs(K)>L) || ~isnumeric(K)
 end
 
 if ~isnumeric(q) || size(q,1)~=4
-  error('q must be a 4x... array.')
+  error('q must be an array of size (4,...) array.')
 end
 
 

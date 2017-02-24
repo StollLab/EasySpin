@@ -1,7 +1,10 @@
 % propagate_quantum  Propagate the density matrix of a spin-1/2 14N
 %                    nitroxide using different methods from the literature.
 %
-%   rho_t = propagate_quantum(Sys,Par,RTraj,Method);
+%   rho_t = propagate_quantum(Sys,Par,Opt,omega,RTraj);
+%
+%     omega          double
+%                    microwave frequency for CW field sweep, in Hz
 %
 %     RTraj          numeric, size = (3,3,nTraj,nSteps)
 %                    a series of rotation matrices
@@ -21,10 +24,9 @@
 %                    center magnetic field
 %   Opt: optional settings
 %     Method         string
-%                    'Sezer': propagate the density matrix using the 
-%                     m_s=-1/2 subspace
-%                    'DeSensi': propagate the density matrix using an 
-%                     eigenvalue method
+%                    'Sezer': propagate using the m_s=-1/2 subspace
+%                    'DeSensi': propagate using an eigenvalue method
+%                    'Oganesyan': propagate using correlation functions
 %
 %
 %
@@ -32,18 +34,20 @@
 %     rho_t          numeric, size = (3,3,nTraj,nSteps)
 %                    a series of density matrices
 
-% Implementation based on 
-% [1] Sezer, et al., J.Chem.Phys. 128, 165106 (2008)
+% Implementations based on 
+% [1] Sezer, et al., J. Chem. Phys. 128, 165106 (2008)
 %      http://dx.doi.org/10.1063/1.2908075 
 % [2] DeSensi, et al., Biophys. J. 94, 3798 (2008)
 %      http://dx.doi.org/10.1529/biophysj.107.125419
+% [3] Oganesyan, Phys. Chem. Chem. Phys. 13, 4724 (2011)
+%      http://dx.doi.org/10.1039/c0cp01068e
 
-function rho_t = propagate_quantum(Sys, Par, Opt, RTraj)
+function rho_t = propagate_quantum(Sys, Par, Opt, omega, RTraj)
 
 % Preprocessing
 % -------------------------------------------------------------------------
 
-if nargin~=4
+if nargin~=5
   error('Wrong number of input arguments.')
 end
 
@@ -57,11 +61,9 @@ end
 
 if ~isfield(Sys,'g'), error('g-tensor not specified.'); end
 if ~isfield(Sys,'A'), error('A-tensor not specified.'); end
-if ~isfield(Sys,'B'), error('Magnetic field not specified.'); end
 
 g = Sys.g;
 A = Sys.A;
-B = Sys.B;
 
 if ~isfield(Par,'dt'), error('Time step not specified.'); end
 
@@ -84,10 +86,8 @@ if any(rot_mat_test > 1e-10)
 end
 
 
-Gamma = gfree*bmagn/(planck/2/pi);  % rad s^-1 T^-1
-% Gamma = 1.7608597e11;
-omega0 = mt2mhz(B*1e3)*1e6;
-omegaN = 19.331e6*B;  % gyromagnetic ratio for 14N: 
+% Gamma = gfree*bmagn/(planck/2/pi);  % rad s^-1 T^-1
+% omegaN = 19.331e6*B;  % gyromagnetic ratio for 14N: 
                       % 19.331x10^6 rad s^-1 T^-1
 
 
@@ -107,7 +107,7 @@ switch Method
                                           RTrajInv))/gfree - g_tr/3/gfree;
 
     A_tensor = matmult(RTraj, matmult(repmat(diag(A),1,1,nTraj,nSteps), ...
-                                         RTrajInv));
+                                         RTrajInv))*1e6*2*pi;  % MHz (s^-1) -> Hz (rad s^-1)
 
     Gp_zz = Gp_tensor(3,3,:,:);
 
@@ -115,11 +115,8 @@ switch Method
            + A_tensor(2,3,:,:).*A_tensor(2,3,:,:) ...
            + A_tensor(3,3,:,:).*A_tensor(3,3,:,:));
 
-    % Note: here and below, we use 2*dt instead of dt for the time step 
-    % since M_+ = tr(U*rho*U) = tr(U*U*rho) = tr(U^2*rho)
-    % This is follows from the fact that the trace of a product of matrices 
-    % is invariant under cyclic permutations
-    theta = Gamma*dt*0.5*squeeze(a);
+%     theta = Gamma*dt*0.5*squeeze(a);  % use this if A is given in G
+    theta = dt*0.5*squeeze(a);
     nx = squeeze(A_tensor(1,3,:,:)./a);
     ny = squeeze(A_tensor(2,3,:,:)./a);
     nz = squeeze(A_tensor(3,3,:,:)./a);
@@ -147,18 +144,19 @@ switch Method
                        - 1i*st.*nz;
 
 
-    % Again, here we use 2*dt instead of dt
-    U = bsxfun(@times, exp(-1i*dt*0.5*Gamma*B*Gp_zz), exp_array);
-
+    % Calculate propagator
+%     U = bsxfun(@times, exp(-1i*dt*0.5*Gamma*B*Gp_zz), exp_array);
+      U = bsxfun(@times, exp(-1i*dt*0.5*omega*Gp_zz), exp_array);
+%       U2 = matmult(U,U);
 
     % Eq. 34 in [1]
     
     for iStep=2:nSteps
-    %  Use of permutation property of a trace of a product
-     rho_t(:,:,:,iStep) = matmult(U(:,:,:,iStep-1), matmult(rho_t(:,:,:,iStep-1), U(:,:,:,iStep-1)));
+     rho_t(:,:,:,iStep) = mmult(U(:,:,:,iStep-1),...
+                                mmult(rho_t(:,:,:,iStep-1), U(:,:,:,iStep-1)));
 
     %  Trace of a product of matrices is the sum of entry-wise products
-    %  rho_t(:,:,:,iStep) = U(:,:,:,iStep-1).*rho_t(:,:,:,iStep-1);
+%      rho_t(:,:,:,iStep) = U2(:,:,:,iStep-1).*rho_t(:,:,:,iStep-1);
     %  Full sandwich product
     %  rho_t(:,:,:,iStep) = matmult(U(:,:,:,iStep-1), ...
     %                                   matmult(rho_t(:,:,:,iStep-1), ...
@@ -169,11 +167,11 @@ switch Method
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   case 'DeSensi'  % see Ref [2]
 
-%     rho_t = zeros(6,6,nTraj,nSteps);
-%     rho_t(1:3,4:6,:,1) = repmat(eye(3),1,1,nTraj,1);
-%     rho_t(4:6,1:3,:,1) = repmat(eye(3),1,1,nTraj,1);
-    rho_t = zeros(3,3,nTraj,nSteps);
-    rho_t(:,:,:,1) = repmat(eye(3),1,1,nTraj,1);
+    rho_t = zeros(6,6,nTraj,nSteps);
+    rho_t(1:3,4:6,:,1) = repmat(eye(3),1,1,nTraj,1);
+    rho_t(4:6,1:3,:,1) = repmat(eye(3),1,1,nTraj,1);
+%     rho_t = zeros(3,3,nTraj,nSteps);
+%     rho_t(:,:,:,1) = repmat(eye(3),1,1,nTraj,1);
 
     g_tr = sum(g);
 
@@ -184,7 +182,7 @@ switch Method
                                       RTrajInv))/gfree - g_tr/3/gfree;
 
     A_tensor = matmult(RTraj, matmult(repmat(diag(A),1,1,nTraj,nSteps), ...
-                                      RTrajInv));
+                                      RTrajInv))*1e6*2*pi;  % MHz (s^-1) -> Hz (rad s^-1)
 
     Gp_zz = Gp_tensor(3,3,:,:);
 %     g_zz = g_tensor(3,3,:,:);
@@ -218,11 +216,11 @@ switch Method
     m0 = 0;
     mm = -1;
 
-    ca = Gamma*A_zz; % - 4*ma*omegaN;
-    cb = Gamma*A_zz; % - 4*mb*omegaN;
+    ca = A_zz;% - 4*ma*omegaN;
+    cb = A_zz;% - 4*mb*omegaN;
 
-    ella = sqrt( (Gamma*A_xz).^2 + (Gamma*A_yz).^2 + ca.^2 );
-    ellb = sqrt( (Gamma*A_xz).^2 + (Gamma*A_yz).^2 + cb.^2 );
+    ella = sqrt( (A_xz).^2 + (A_yz).^2 + ca.^2 );
+    ellb = sqrt( (A_xz).^2 + (A_yz).^2 + cb.^2 );
 
     % Eigenvalues
 %     Lambda  = [ 0.5*(geff + ellp);          0;                 0;                  0;           0;                  0;
@@ -231,101 +229,55 @@ switch Method
 %                                 0;          0;                 0; -0.5*(geff + ellp);           0;                  0;
 %                                 0;          0;                 0;                  0; -0.5*(geff);                  0;
 %                                 0;          0;                 0;                  0;           0; -0.5*(geff + ellm) ];
-%     Lambda = zeros(6,6,nTraj,nSteps);
-    Lambda = zeros(3,3,nTraj,nSteps);
-%     dt=2*dt;
-%     Lambda(1,1,:,:) = exp(-1i*dt*ma*(geff + mp*ella));
-%     Lambda(2,2,:,:) = exp(-1i*dt*ma*(geff + m0*ella));
-%     Lambda(3,3,:,:) = exp(-1i*dt*ma*(geff + mm*ella));
-    Lambda(1,1,:,:) = exp(1i*dt*mb*(Gamma*B*geff + mp*ellb));
-    Lambda(2,2,:,:) = exp(1i*dt*mb*(Gamma*B*geff + m0*ellb));
-    Lambda(3,3,:,:) = exp(1i*dt*mb*(Gamma*B*geff + mm*ellb));
+    Lambda = zeros(6,6,nTraj,nSteps);
+    Lambda(1,1,:,:) = exp(1i*dt*ma*(omega*geff + mp*ella));
+    Lambda(2,2,:,:) = exp(1i*dt*ma*(omega*geff + m0*ella));
+    Lambda(3,3,:,:) = exp(1i*dt*ma*(omega*geff + mm*ella));
+%     Lambda = zeros(3,3,nTraj,nSteps);
+    Lambda(4,4,:,:) = exp(1i*dt*mb*(omega*geff + mp*ellb));
+    Lambda(5,5,:,:) = exp(1i*dt*mb*(omega*geff + m0*ellb));
+    Lambda(6,6,:,:) = exp(1i*dt*mb*(omega*geff + mm*ellb));
 
-    b   = Gamma*(A_xz + 1i*A_yz);
-    bst = Gamma*(A_xz - 1i*A_yz);
+    b   = (A_xz + 1i*A_yz);
+    bst = (A_xz - 1i*A_yz);
 
     % Matrix of eigenvectors
-%     V  = [ (ca+ella).^2./b.^2,                     -bst./b,      (ca-ella).^2./b.^2, zeros(1,1,nTraj,nSteps), zeros(1,1,nTraj,nSteps), zeros(1,1,nTraj,nSteps);
-%            sqrt(2)*(ca+ella)./b,             sqrt(2)*ca./b,    sqrt(2)*(ca-ella)./b, zeros(1,1,nTraj,nSteps), zeros(1,1,nTraj,nSteps), zeros(1,1,nTraj,nSteps);
-%            ones(1,1,nTraj,nSteps),  ones(1,1,nTraj,nSteps),  ones(1,1,nTraj,nSteps), zeros(1,1,nTraj,nSteps), zeros(1,1,nTraj,nSteps), zeros(1,1,nTraj,nSteps);
-%           zeros(1,1,nTraj,nSteps), zeros(1,1,nTraj,nSteps), zeros(1,1,nTraj,nSteps),      (cb+ellb).^2./b.^2,                 -bst./b,      (cb-ellb).^2./b.^2;
-%           zeros(1,1,nTraj,nSteps), zeros(1,1,nTraj,nSteps), zeros(1,1,nTraj,nSteps),    sqrt(2)*(cb+ellb)./b,           sqrt(2)*cb./b,    sqrt(2)*(cb-ellb)./b;
-%           zeros(1,1,nTraj,nSteps), zeros(1,1,nTraj,nSteps), zeros(1,1,nTraj,nSteps),  ones(1,1,nTraj,nSteps),  ones(1,1,nTraj,nSteps),   ones(1,1,nTraj,nSteps) ];
-    V  = [    (cb+ellb).^2./b.^2,                 -bst./b,      (cb-ellb).^2./b.^2;
-            sqrt(2)*(cb+ellb)./b,           sqrt(2)*cb./b,    sqrt(2)*(cb-ellb)./b;
-          ones(1,1,nTraj,nSteps),  ones(1,1,nTraj,nSteps),   ones(1,1,nTraj,nSteps) ];
- 
+    V  = [ (ca+ella).^2./b.^2,                     -bst./b,      (ca-ella).^2./b.^2, zeros(1,1,nTraj,nSteps), zeros(1,1,nTraj,nSteps), zeros(1,1,nTraj,nSteps);
+           sqrt(2)*(ca+ella)./b,             sqrt(2)*ca./b,    sqrt(2)*(ca-ella)./b, zeros(1,1,nTraj,nSteps), zeros(1,1,nTraj,nSteps), zeros(1,1,nTraj,nSteps);
+           ones(1,1,nTraj,nSteps),  ones(1,1,nTraj,nSteps),  ones(1,1,nTraj,nSteps), zeros(1,1,nTraj,nSteps), zeros(1,1,nTraj,nSteps), zeros(1,1,nTraj,nSteps);
+          zeros(1,1,nTraj,nSteps), zeros(1,1,nTraj,nSteps), zeros(1,1,nTraj,nSteps),      (cb+ellb).^2./b.^2,                 -bst./b,      (cb-ellb).^2./b.^2;
+          zeros(1,1,nTraj,nSteps), zeros(1,1,nTraj,nSteps), zeros(1,1,nTraj,nSteps),    sqrt(2)*(cb+ellb)./b,           sqrt(2)*cb./b,    sqrt(2)*(cb-ellb)./b;
+          zeros(1,1,nTraj,nSteps), zeros(1,1,nTraj,nSteps), zeros(1,1,nTraj,nSteps),  ones(1,1,nTraj,nSteps),  ones(1,1,nTraj,nSteps),   ones(1,1,nTraj,nSteps) ];
+%     V  = [    (cb+ellb).^2./b.^2,                 -bst./b,      (cb-ellb).^2./b.^2;
+%             sqrt(2)*(cb+ellb)./b,           sqrt(2)*cb./b,    sqrt(2)*(cb-ellb)./b;
+%           ones(1,1,nTraj,nSteps),  ones(1,1,nTraj,nSteps),   ones(1,1,nTraj,nSteps) ];
 
-
-%     % Matrix of eigenvector norms
-%     norm = zeros(6,6,nTraj,nSteps);
-%     norm = [ abs((ca+ella).^2./b.^2 + sqrt(2)*(ca+ella)./b + ones(1,1,nTraj,nSteps)),...
-%                                abs(-bst./b + sqrt(2)*ca./b + ones(1,1,nTraj,nSteps)),...
-%              abs((ca-ella).^2./b.^2 + sqrt(2)*(ca-ella)./b + ones(1,1,nTraj,nSteps)),...
-%              abs((cb+ellb).^2./b.^2 + sqrt(2)*(cb+ellb)./b + ones(1,1,nTraj,nSteps)),...
-%                                abs(-bst./b + sqrt(2)*cb./b + ones(1,1,nTraj,nSteps)),...
-%              abs((cb-ellb).^2./b.^2 + sqrt(2)*(cb-ellb)./b + ones(1,1,nTraj,nSteps)) ];
-        
+    % Normalize eigenvectors
     V = bsxfun(@rdivide,V,sqrt(sum(V.*conj(V),1)));
-%     V = bsxfun(@rdivide,V,norm);
     
-%     [v,D] = eig(H(:,:,1,1));
-%     
-%     (V(:,:,1,1)-v)./V(:,:,1,1)
-%     (Lambda(:,:,1,1)-D)./Lambda(:,:,1,1)
-    
-%     V_test = zeros(6,6);
-%     
-%     for iStep=1:nSteps
-%       for iTraj=1:nTraj
-%         V_test(:,:,iTraj,iStep) = V(:,:,iTraj,iStep)*V(:,:,iTraj,iStep)' - eye(6);
-%       end
-%     end
-% 
-%     if any(V_test(:) > 1e-10)
-%       error('V is not unitary.')
-%     end
-
     % Calculate propagator
-%     Q = zeros(6,6,nTraj,nSteps);
-%     for iStep=1:nSteps
-%       for iTraj=1:nTraj
-%         Q(:,:,iTraj,iStep) = V(:,:,iTraj,iStep)*Lambda(:,:,iTraj,iStep)*V(:,:,iTraj,iStep)';
-%       end
-%     end
+    Q = mmult(V, mmult(Lambda, conj(permute(V,[2,1,3,4]))));
     
-%     Q_test = zeros(6,6,nTraj,nSteps);
-    
-%     for iStep=1:nSteps
-%       for iTraj=1:nTraj
-%         Q_test(:,:,iTraj,iStep) = Q(:,:,iTraj,iStep)*Q(:,:,iTraj,iStep)' - eye(6);
-%       end
-%     end
-                 
-%     if any(Q_test(:) > 1e-10)
-%       error('Q is not unitary.')
-%     end
-
-%     V = V(4:6,4:6,:,:);
-%     Lambda = Lambda(4:6,4:6,:,:);
-    
-    Q = matmult(V, matmult(Lambda, conj(permute(V,[2,1,3,4]))));
     % Eq. 34 in reference
 % FIXME round-off error propagates through the matrix multiplication, need some sort of error control
     for iStep=2:nSteps
 %       for iTraj=1:nTraj
-%         Q = expm(-1i*dt*H(4:6,4:6,iTraj,iStep-1));
-        % Note that that we need Q*rho*Q, not Q*rho*Q', if are working in the decoupled m_beta subspace
-%         rho_t(:,:,:,iStep) = matmult(Q(:,:,:,iStep),rho_t(:,:,:,iStep-1));
-      rho_t(:,:,:,iStep) = matmult(Q(:,:,:,iStep-1),matmult(rho_t(:,:,:,iStep-1),Q(:,:,:,iStep-1)));
-%         rho_t(:,:,iTraj,iStep) = Q*rho_t(:,:,iTraj,iStep-1)*Q;
-%         Q = V(:,:,iTraj,iStep)*Lambda(:,:,iTraj,iStep)*V(:,:,iTraj,iStep)';
-%         rho_t(:,:,iTraj,iStep) = Q*rho_t(:,:,iTraj,iStep-1)*Q';
+      rho_t(:,:,:,iStep) = mmult(Q(:,:,:,iStep-1),...
+                                   mmult(rho_t(:,:,:,iStep-1),...
+                                         conj(permute(Q(:,:,:,iStep-1),[2,1,3,4]))));
+%         Q = V(:,:,iTraj,iStep-1)*Lambda(:,:,iTraj,iStep-1)*V(:,:,iTraj,iStep-1)';
+%         rho_t(:,:,iTraj,iStep) = Q*rho_t(:,:,iTraj,iStep-1)*Q;                    
 %       end
     end
     
-%     rho_t = rho_t(4:6,1:3,:,:);
-    
+    rho_t = rho_t(4:6,1:3,:,:);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  case 'Oganesyan'  % see Ref [3]
+    rho_t = zeros(6,6,nTraj,nSteps);
+    rho_t(1:3,4:6,:,1) = repmat(eye(3),1,1,nTraj,1);
+    rho_t(4:6,1:3,:,1) = repmat(eye(3),1,1,nTraj,1);
+    rho_t = rho_t(:);
 end
 
 end

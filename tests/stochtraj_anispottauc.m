@@ -1,14 +1,14 @@
 function [err,data] = test(opt,olddata)
 % Check that using stochtraj with anisotropic diffusion generates a
-% proper rotational correlation time
+% proper rotational correlation timez
 
-Sys.tcorr = 10*rand()*1e-9;;
+Sys.tcorr = 10*rand()*1e-9;
 Par.dt = Sys.tcorr/10;
 Par.nSteps = ceil(200*Sys.tcorr/Par.dt);
 Par.nTraj = 400;
-Par.beta = pi*(2*rand()-1);
-Par.alpha = 2*pi*(2*rand()-1);
-Par.gamma = 2*pi*(2*rand()-1);
+Par.Omega = [  pi*(2*rand()-1); 
+             2*pi*(2*rand()-1);
+             2*pi*(2*rand()-1) ];
 
 tcorr = Sys.tcorr;
 nTraj = Par.nTraj;

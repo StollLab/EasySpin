@@ -20,7 +20,7 @@ nBins = 50;
 c20 = 3;
 Sys.Coefs = [c20, c20];
 Sys.LMK = [2, 0, 0];
-[~, RTraj] = stochtraj(Sys,Par,Opt);
+[~, RTraj] = stochtraj(Sys,Par);
 
 
 VecTraj = squeeze(RTraj(:, 3, :, :));
@@ -29,7 +29,7 @@ bins = linspace(0, pi, nBins)';
 ThetaHist = zeros(nBins, nTraj);
 
 for iTraj = 1:nTraj
-  ThetaHist(:, iTraj) = hist(squeeze(acos(VecTraj(3, iTraj, :))), bins);
+  ThetaHist(:, iTraj) = hist(squeeze(acos(VecTraj(3,iTraj,round(nSteps/2):end))), bins);
 end
 
 ThetaHist = sum(ThetaHist, 2);

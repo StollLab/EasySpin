@@ -192,11 +192,22 @@ dt = Par.dt;
 % Check Exp
 % -------------------------------------------------------------------------
 
+[Exp, CenterField] = validate_exp('cardamom',Sys,Exp);
 
-[Exp, CenterField] = check_exp('cardamom',Sys,Exp);
+omega = 2*pi*Exp.mwFreq*1e9;  % GHz -> Hz (rad/s);
 
-Sys.B = CenterField/1000;  % TODO replace with omega0 or use fieldsweep
-% Sys.B = mhz2mt(Exp.mwFreq*1e3, sum(Sys.g)/3)/1000
+FieldSweep = true;  % TODO fix this
+
+% Set up horizontal sweep axis
+% (nu is used internally, xAxis is used for user output)
+if FieldSweep
+%   FreqSweep = Sweep*mT2MHz*1e6; % mT -> Hz
+%   nu = Exp.mwFreq*1e9 - linspace(-1,1,Exp.nPoints)*FreqSweep/2;  % Hz
+  xAxis = linspace(Exp.Range(1),Exp.Range(2),Exp.nPoints);  % field axis, mT
+% else
+%   nu = linspace(Exp.mwRange(1),Exp.mwRange(2),Exp.nPoints)*1e9;  % Hz
+%   xAxis = nu/1e9; % frequency axis, GHz
+end
 
 
 % Check Opt
@@ -208,8 +219,8 @@ if ~isfield(Opt,'chkcon'), chkcon = 0; end
 % Check dynamics and ordering
 % -------------------------------------------------------------------------
 
-FieldSweep = true;  % TODO fix this
-Dynamics = check_dynord('cardamom',Sys,FieldSweep);
+
+Dynamics = validate_dynord('cardamom',Sys,FieldSweep);
 
 logmsg(1,'-- time domain simulation -----------------------------------------');
 
@@ -255,6 +266,8 @@ tcell = cell(1,nOrients);
 % Simulation
 % -------------------------------------------------------------------------
 
+% logmsg(1,'-- model: Brownian dynamics -----------------------------------------');
+
 tic
 for iOrient = 1:nOrients
 
@@ -269,9 +282,10 @@ elseif strcmp(Model,'SRLS')
   
 end
 
-rho_t = propagate_quantum(Sys,Par,Opt,RTraj);
+rho_t = propagate_quantum(Sys,Par,Opt,omega,RTraj);
 temp = squeeze(sum(rho_t,3));  % average over trajectories
 expval{1,iOrient} = squeeze(temp(1,1,:)+temp(2,2,:)+temp(3,3,:));  % take traces TODO try to speed this up using equality tr(A*B)=sum(sum(A.*B))
+% expval{1,iOrient} = squeeze(sum(sum(temp,1),2));
 
 updateuser(iOrient,nOrients)
 
@@ -283,9 +297,8 @@ fprintf(msg);
 
 % Perform FFT
 
-% hamm = 0.54 + 0.46*cos(pi*t/max(t));
-% TL = 110e-9;  TODO implement Lorentzian and Gaussian broadening
-TL = Dynamics.T2;
+% hamm = 0.54 + 0.46*cos(pi*t/max(t));  
+TL = Dynamics.T2;  % TODO implement Lorentzian and Gaussian broadening
 
 % Convolve with Lorentzian and multiply by t for differentiation
 tdiff = cellfun(@(x) x.*exp(-x/TL), tcell, 'UniformOutput', false);
@@ -293,48 +306,43 @@ expvalDt = cellfun(@times, expval, tdiff, 'UniformOutput', false);
 
 expval = mean(cell2mat(expval),2);
 
-M = ceil(1e-6/dt);
+M = ceil(2*Par.nSteps);  % TODO make flexible for propagation length extensions
 spc = cell2mat(cellfun(@(x) fft(x,M), expvalDt, 'UniformOutput', false));
-outspec = imag(fftshift(sum(spc,2)));
+spc = imag(fftshift(sum(spc,2)));
 freq = 1/(dt*M)*(-M/2:M/2-1);  % TODO check for consistency between FieldSweep and FFT window/resolution
 
-xAxis = freq;
-
+fftAxis = mhz2mt(freq/1e6+Exp.mwFreq*1e3,mean(Sys.g));  % Note use of g0, not ge
+outspec = interp1(fftAxis,spc,xAxis);
 
 % Final processing
 % -------------------------------------------------------------------------
 
-% borrowed from chili
 switch (nargout)
 case 0
   cla
-%   plot(mhz2mt(xnum)+340, ynum)
-  plot(xAxis,outspec)
-  ylabel('Im(FFT(M_{+}(t)))')
-  xlabel('f (MHz)')
-%   if FieldSweep  TODO fix output plotting
-%     if (xAxis(end)<10000)
-%       plot(xAxis,outspec);
-%       xlabel('magnetic field (mT)');
-%     else
-%       plot(xAxis/1e3,outspec);
-%       xlabel('magnetic field (T)');
-%     end
-%     axis tight
-%     ylabel('intensity (arb.u.)');
-%     title(sprintf('%0.8g GHz, %d points',Exp.mwFreq,numel(xAxis)));
-%   else
-%     if (xAxis(end)<1)
-%       plot(xAxis*1e3,spc);
-%       xlabel('frequency (MHz)');
-%     else
-%       plot(xAxis,spc);
-%       xlabel('frequency (GHz)');
-%     end
-%     axis tight
-%     ylabel('intensity (arb.u.)');
-%     title(sprintf('%0.8g mT, %d points',Exp.Field,numel(xAxis)));
-%   end
+  if FieldSweep  TODO fix output plotting
+    if (xAxis(end)<10000)
+      plot(xAxis,outspec);
+      xlabel('magnetic field (mT)');
+    else
+      plot(xAxis/1e3,outspec);
+      xlabel('magnetic field (T)');
+    end
+    axis tight
+    ylabel('intensity (arb.u.)');
+    title(sprintf('%0.8g GHz, %d points',Exp.mwFreq,numel(xAxis)));
+  else
+    if (xAxis(end)<1)
+      plot(xAxis*1e3,spc);
+      xlabel('frequency (MHz)');
+    else
+      plot(xAxis,spc);
+      xlabel('frequency (GHz)');
+    end
+    axis tight
+    ylabel('intensity (arb.u.)');
+    title(sprintf('%0.8g mT, %d points',Exp.Field,numel(xAxis)));
+  end
 case 1
   varargout = {outspec};
 case 2
