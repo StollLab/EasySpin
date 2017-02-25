@@ -165,26 +165,33 @@ EasySpinLogLevel = Opt.Verbosity;
 [Sys,err] = validatespinsys(Sys);
 error(err);
 
-% decide on a simulation model based on user input
-% if ~isfield(Sys,'LMK') && ~isfield(Sys,'Coefs')
-  % no orienting potential specified, Brownian motion will be simulated
-%   model = 'Brownian';
-% else
-  % 
-%   model = 'MOMD';
-% else
-  %
-%   model = 'SRLS';
-% else
-%   error('Input could not be interpreted based on the available models. Please check documentation.')
-% end
-
 
 % Check Par
 % -------------------------------------------------------------------------
 
 % If number of trajectories is not given, set it to 100
 if ~isfield(Par, 'nTraj'), Par.nTraj = 100; end
+
+% decide on a simulation model based on user input
+if ~isfield(Par,'Model')
+  if isfield(Sys,'LMK') && isfield(Sys,'Coefs')
+    % LMK and ordering coefs given, so simulate MOMD
+    Model = 'MOMD';
+  elseif xor(isfield(Sys,'LMK'),isfield(Sys,'Coefs'))
+    error('Both Sys.LMK and Sys.Coefs need to be declared.')
+  else
+    % user did not specify a model or ordering potential, so simulate
+    % Brownian
+    Model = 'Brownian';
+  end
+else
+  Model=Par.Model;
+end
+  
+%   model = 'SRLS';
+% else
+%   error('Input could not be interpreted based on the available models. Please check documentation.')
+% end
 
 dt = Par.dt;
 
@@ -213,7 +220,7 @@ end
 % Check Opt
 % -------------------------------------------------------------------------
 
-if ~isfield(Opt,'chkcon'), chkcon = 0; end
+% if ~isfield(Opt,'chkcon'), chkcon = 0; end  % TODO implement spectrum convergence tests
 
 
 % Check dynamics and ordering
@@ -228,25 +235,19 @@ logmsg(1,'-- time domain simulation -----------------------------------------');
 % Pre-allocate cells
 % -------------------------------------------------------------------------
 
-% we need cells here because the size of the dimension nSteps might differ
-% between orientations due to differing times before convergence
-if ~isfield(Par,'Model')
-  Model='Brownian'; 
-else
-  Model=Par.Model;
-end
-
 switch Model
   case 'Brownian'
-    logmsg(1,'-- model: Brownian dynamics -----------------------------------------');
+    logmsg(1,'-- Model: Brownian dynamics -----------------------------------------');
     % no ordering present, so trajectory starting points are arbitrary
     if ~isfield(Par,'nOrients')
+      % if Par.nOrients is not given, just use Par.nTraj as number of
+      % orientations
       nOrients = Par.nTraj;
     else
       nOrients = Par.nOrients;
     end
   case 'MOMD'  %  TODO implement directors and ordering
-    logmsg(1,'-- model: MOMD -----------------------------------------');
+    logmsg(1,'-- Model: MOMD -----------------------------------------');
     if ~isfield(Par,'nOrients')
       error('nOrients must be specified for the MOMD model.')
     end
@@ -259,6 +260,8 @@ switch Model
 %     
 end
 
+% due to different possible times before convergence, we need cells here 
+% because the size of the dimension nSteps might differ between iterations
 expval = cell(1,nOrients);
 tcell = cell(1,nOrients);
 
@@ -266,7 +269,7 @@ tcell = cell(1,nOrients);
 % Simulation
 % -------------------------------------------------------------------------
 
-% logmsg(1,'-- model: Brownian dynamics -----------------------------------------');
+clear updateuser
 
 tic
 for iOrient = 1:nOrients
@@ -276,7 +279,8 @@ for iOrient = 1:nOrients
 [t, RTraj, qTraj] = stochtraj(Sys,Par);
 tcell{1,iOrient} = t;
 if strcmp(Model,'MOMD')
-  qmult = repmat(euler2quat(0, grid_theta(iOrient), grid_phi(iOrient)),1,Par.nTraj,Par.nSteps);
+  qmult = repmat(euler2quat(grid_phi(iOrient), grid_theta(iOrient), 0),...
+                 [1,Par.nTraj,Par.nSteps]);
   RTraj = quat2rotmat(quatmult(qmult,qTraj));
 elseif strcmp(Model,'SRLS')
   
@@ -293,7 +297,6 @@ end
 mins_tot = floor(toc/60);
 msg = sprintf('Done!\nTotal simulation time: %d:%2.0f\n',mins_tot,mod(toc,60));
 fprintf(msg);
-    
 
 % Perform FFT
 
@@ -320,7 +323,7 @@ outspec = interp1(fftAxis,spc,xAxis);
 switch (nargout)
 case 0
   cla
-  if FieldSweep  TODO fix output plotting
+  if FieldSweep  % TODO fix output plotting
     if (xAxis(end)<10000)
       plot(xAxis,outspec);
       xlabel('magnetic field (mT)');
@@ -380,9 +383,5 @@ msg = [msg1, msg2, msg3];
 
 fprintf([reverseStr, msg]);
 reverseStr = repmat(sprintf('\b'), 1, length(msg));
-
-if iOrient==nOrient
-  clear reverseStr
-end
 
 end
