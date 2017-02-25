@@ -251,7 +251,7 @@ while ~converged
     Sim.randAngStep = bsxfun(@times, randn(3,Sim.nTraj,Sim.nSteps),...
                                    sqrt(2*Sim.Diff*Sim.dt));
     qTraj = propagate(qTraj, Sim, iter);
-                                
+
   end
 
   if chkcon
@@ -262,14 +262,14 @@ while ~converged
   end
 
   iter = iter + 1;
-  
+
   if iter>10
     logmsg(1,'Warning: convergence is very slow. Consider increasing\nlength or number of trajectories.')
   end
 
 end
 
-% clear wignerdquat  % FIXME why doesn't this work?
+% clear wignerdquat
 
 totSteps = size(qTraj,3);
 
@@ -311,13 +311,13 @@ switch nargout
     xlabel('x');
     ylabel('y');
     zlabel('z');
-  
+
   case 2  % Output rotation matrices only
     varargout = {t, RTraj};
-    
+
   case 3  % Output rotation matrices and quaternions
     varargout = {t, RTraj, qTraj};
-    
+
 end
 
 clear global EasySpinLogLevel

@@ -26,7 +26,7 @@ for iTraj = 1:nTraj
 end
 
 AutoCorrFFT = sum(AutoCorrFFT, 1)'/nTraj;
-AutoCorrFFT = AutoCorrFFT-mean(AutoCorrFFT(end/2:end));
+AutoCorrFFT = AutoCorrFFT-mean(AutoCorrFFT(round(end/2):end));
 AutoCorrFFT = AutoCorrFFT/max(AutoCorrFFT);
 
 analytic = exp(-(1/tcorr)*t);

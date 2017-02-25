@@ -1,4 +1,5 @@
-% wignerdquat  Compute Wigner D-matrix element from a given quaternion
+% wignerdquat  Compute Wigner D-matrix element from a quaternion or set of
+%              quaternions.
 %
 %   D = wignerdquat(J,M,K,q);
 %
@@ -27,7 +28,9 @@ function D = wignerdquat(L, M, K, q)
 % Calculate the D-matrix using a quaternion polynomial, see Eq. 27.9 in
 % reference, where M=m' and K=m
 
-% persistent prefactor s powers denoms;
+if nargin==0, help(mfilename); return; end
+
+persistent cache;
 
 
 % Error check
@@ -53,30 +56,32 @@ end
 % Setup
 % -------------------------------------------------------------------------
 
-% if isempty(prefactor)
-  prefactor = sqrt(factorial(L+M)*factorial(L-M)*factorial(L+K)*factorial(L-K));
-  s = sIndices(L,M,K);
-  powers = repmat(permute([L+K-s; ...
-                           M-K+s; ...
-                               s; ...
-                           L-M-s], ...
+if isempty(cache) || any(cache.LMK~=[L,M,K]) || any(cache.sizeq~=size(q))
+  cache.sizeq = size(q);
+  cache.LMK = [L,M,K];
+  cache.prefactor = sqrt(factorial(L+M)*factorial(L-M)*factorial(L+K)*factorial(L-K));
+  cache.s = sIndices(L,M,K);
+  cache.powers = repmat(permute([L+K-cache.s; ...
+                                 M-K+cache.s; ...
+                                     cache.s; ...
+                                 L-M-cache.s], ...
                           [1,3,2]),[1,size(q,2),1]);
-  denoms = repmat(permute([  factorial(L+K-s); ...
-                             factorial(M-K+s); ...
-                                 factorial(s); ...
-                            factorial(L-M-s)], ...
-                           [1,3,2]),[1,size(q,2),1]);
-% end
+  cache.denoms = repmat(permute([  factorial(L+K-cache.s); ...
+                                   factorial(M-K+cache.s); ...
+                                       factorial(cache.s); ...
+                                   factorial(L-M-cache.s)], ...
+                                  [1,3,2]),[1,size(q,2),1]);
+end
 
 % Manipulate q so that it can be acted upon by powers and denoms
 Q = [    q(1,:) -  1i*q(4,:); ...
      -1i*q(2,:) -     q(3,:); ...
      -1i*q(2,:) +     q(3,:); ...
          q(1,:) +  1i*q(4,:)];
-Q = repmat(Q, [1,1,numel(s)]);
+Q = repmat(Q, [1,1,numel(cache.s)]);
 
 % Calculate
-D = prefactor*sum(prod(bsxfun(@rdivide,bsxfun(@power,Q,powers),denoms),1),3);
+D = cache.prefactor*sum(prod(bsxfun(@rdivide,bsxfun(@power,Q,cache.powers),cache.denoms),1),3);
 
 
 % Functions
