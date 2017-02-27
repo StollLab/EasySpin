@@ -19,7 +19,7 @@ Opt.Verbosity = 1;
 
 % simulation of two single-crystal spectra
 % in one pepper call
-Exp.CrystalOrientation = [0 0 0; pi/2 0 0];
+Exp.CrystalOrientation = [0 0 0; 0 pi/2 0];
 Opt.Output = 'separate';
 [B,spec] = pepper(Sys,Exp,Opt);
 spec1 = spec(1,:);
@@ -27,6 +27,6 @@ spec2 = spec(2,:);
 
 % display
 plot(B,spec1,'r',B,spec2,'b'); axis tight
-legend('90^o','0^o');
+legend('0^o','90^o');
 xlabel('magnetic field [mT]');
 title(sprintf('%g GHz single-crystal spectra of Cu(mnt)2',Exp.mwFreq));
