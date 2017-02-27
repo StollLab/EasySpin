@@ -200,7 +200,7 @@ usePotential = ~isempty(Potential.lambda) && ~all(Potential.lambda==0);
 % Experimental settings
 %-------------------------------------------------------------------
 if isfield(Exp,'MOMD')
-  error('Exp.MOMD is obsolete. Remove it from your code. See the documentation for details.');
+  error('Exp.MOMD is obsolete. Now, a powder/MOMD simulation is automatically performed whenever an ordering potential is given - unless you specify a crystal orientation in Exp.CrystalOrientation.');
 end
 
 if ~isfield(Exp,'nPoints'), Exp.nPoints = 1024; end
@@ -430,7 +430,7 @@ if ~isfield(Opt,'PostConvNucs'), Opt.PostConvNucs = ''; end
 % Obsolete options
 % Opt.MOMD was used prior to 5.0 for powder simulations (in the presence of ordering potential)
 if isfield(Opt,'MOMD')
-  error('Opt.MOMD is obsolete. Remove it from your code. Now, a powder simulation is automatically performed whenever an ordering potential is given.');
+  error('Opt.MOMD is obsolete. Now, a powder/MOMD simulation is automatically performed whenever an ordering potential is given - unless you specify a crystal orientation in Exp.CrystalOrientation.');
 end
 
 % Set default method for constructing Liouvillian
