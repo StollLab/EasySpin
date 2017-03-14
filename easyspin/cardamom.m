@@ -32,6 +32,7 @@
 %                    quantum numbers L, M, and K corresponding to each set of 
 %                    coefficients
 %
+%
 % %     Sys.lw         double or numeric, size = (1,2)
 % %                    vector with FWHM residual broadenings
 % %                         1 element:  GaussianFWHM
@@ -58,6 +59,11 @@
 %
 %     gamma          double or numeric, size = (1,nTraj)
 %                    Euler angle gamma for starting orientation(s)
+%
+%     RTraj          numeric, size = (3,3,nTraj,nSteps)
+%                    rotation matrices, calculated externally, e.g. by
+%                    performing a molecular dynamics simulation
+%                    
 %
 %
 %
@@ -108,14 +114,15 @@
 %
 %
 %   Output:
-%     t              numeric, size = (nSteps,1) 
-%                    time points of the trajectory (in seconds)
+%     B              numeric, size = (2*nSteps,1) 
+%                    magnetic field (mT)
 %
-%     RTraj          numeric, size = (3,3,nTraj,nSteps)
-%                    rotation matrices
+%     spc            numeric, size = (2*nSteps,1)
+%                    derivative EPR spectrum
 %
-%     qTraj          numeric, size = (4,nTraj,nSteps)
-%                    normalized quaternions
+%     expval         numeric, size = (2*nSteps,1)
+%                    expectation value of z-magnetization, 
+%                    \langle S_{z} \rangle
 
 % Implementation based on 
 %   Sezer, et al., J.Chem.Phys. 128, 165106 (2008)
@@ -173,25 +180,55 @@ error(err);
 if ~isfield(Par, 'nTraj'), Par.nTraj = 100; end
 
 % decide on a simulation model based on user input
-if ~isfield(Par,'Model')
-  if isfield(Sys,'LMK') && isfield(Sys,'Coefs')
-    % LMK and ordering coefs given, so simulate MOMD
-    Model = 'MOMD';
-  elseif xor(isfield(Sys,'LMK'),isfield(Sys,'Coefs'))
-    error('Both Sys.LMK and Sys.Coefs need to be declared.')
+
+if isfield(Par,'RTraj')
+  % rotation matrices provided, so no need to perform any stochastic
+  % dynamics simulations
+  
+  RTraj = Par.RTraj;
+  % Check for orthogonality of rotation matrices
+  RTrajInv = permute(RTraj,[2,1,3,4]);
+
+%   rot_mat_test = matmult(RTraj,RTrajInv) ...
+%                  - repmat(eye(3),1,1,nTraj,nSteps);
+%   if any(rot_mat_test > 1e-10)
+  if ~allclose(matmult(RTraj,RTrajInv),repmat(eye(3),1,1,Par.nTraj,Par.nSteps),1e-14)
+    error('The rotation matrices are not orthogonal.')
+  end
+
+  if ~isfield(Par,'Model')
+    % no Model given
+    Model = 'Molecular Dynamics';
   else
-    % user did not specify a model or ordering potential, so simulate
-    % Brownian
-    Model = 'Brownian';
+    error('Mixing stochastic simulations with MD simulation results is not yet implemented.')
   end
 else
-  Model=Par.Model;
+  % no rotation matrices provided, so perform stochastic dynamics
+  % simulations internally to produce them
+  if ~isfield(Par,'Model')
+    % no Model given
+    if isfield(Sys,'LMK') && isfield(Sys,'Coefs')
+      % LMK and ordering coefs given, so simulate MOMD
+      Model = 'MOMD';
+    elseif xor(isfield(Sys,'LMK'),isfield(Sys,'Coefs'))
+      error(['Both Sys.LMK and Sys.Coefs need to be declared for a MOMD '...
+            'simulation.'])
+    else
+      % user did not specify a model or ordering potential, so perform 
+      % Brownian simulation
+      Model = 'Brownian';
+    end
+  else
+    % Model is specified
+    if strcmp(Par.Model,'Brownian') && (isfield(Sys,'LMK')||isfield(Sys,'Coefs'))
+      error(['Conflicting inputs: Par.Model is set to "Brownian", but at least '...
+            'one of Sys.LMK or Sys.Coefs has been declared.'])
+    elseif strcmp(Par.Model,'MOMD') && (~isfield(Sys,'LMK')||~isfield(Sys,'Coefs'))
+      error('Both Sys.LMK and Sys.Coefs need to be declared for a MOMD simulation.')
+    end
+    Model=Par.Model;
+  end
 end
-  
-%   model = 'SRLS';
-% else
-%   error('Input could not be interpreted based on the available models. Please check documentation.')
-% end
 
 dt = Par.dt;
 
@@ -258,6 +295,17 @@ switch Model
 %   case 'SRLS'  %  TODO implement multiple diffusion frames
 %     logmsg(1,'-- model: SRLS -----------------------------------------');  
 %     
+  case 'Molecular Dynamics'
+    logmsg(1,'-- Model: Molecular Dynamics ---------------------------');
+    if ~isfield(Par,'nOrients')
+      error('nOrients must be specified for the Molecular Dynamics model.')
+    end
+    nOrients = Par.nOrients;
+    grid_pts = linspace(-1,1,nOrients);
+    grid_phi = sqrt(pi*nOrients)*asin(grid_pts);
+    grid_theta = acos(grid_pts);
+  otherwise
+    error('Model not recognized. Please check the documentation for acceptable models.')
 end
 
 % due to different possible times before convergence, we need cells here 
@@ -274,24 +322,31 @@ clear updateuser
 tic
 for iOrient = 1:nOrients
 
-% Par.Omega = [grid_phi(iOrient); grid_theta(iOrient)];
+  % Par.Omega = [grid_phi(iOrient); grid_theta(iOrient)];
 
-[t, RTraj, qTraj] = stochtraj(Sys,Par);
-tcell{1,iOrient} = t;
-if strcmp(Model,'MOMD')
-  qmult = repmat(euler2quat(grid_phi(iOrient), grid_theta(iOrient), 0),...
-                 [1,Par.nTraj,Par.nSteps]);
-  RTraj = quat2rotmat(quatmult(qmult,qTraj));
-elseif strcmp(Model,'SRLS')
-  
-end
+  if strcmp(Model,'Molecular Dynamics')
+    % rotation matrices provided by external data, no need to do stochastic
+    % simulation
+    t = linspace(0, Par.nSteps*dt, Par.nSteps).';
+    tcell{1,iOrient} = t;
+  else
+    % no rotation matrices provided, so perform stochastic simulations here
+    [t, RTraj, qTraj] = stochtraj(Sys,Par);
+    tcell{1,iOrient} = t;
+    if strcmp(Model,'MOMD')
+      qmult = repmat(euler2quat(grid_phi(iOrient), grid_theta(iOrient), 0),...
+                     [1,Par.nTraj,Par.nSteps]);
+      RTraj = quat2rotmat(quatmult(qmult,qTraj));
+%     elseif strcmp(Model,'SRLS')
+    end
+  end
 
-rho_t = propagate_quantum(Sys,Par,Opt,omega,RTraj);
-temp = squeeze(sum(rho_t,3));  % average over trajectories
-expval{1,iOrient} = squeeze(temp(1,1,:)+temp(2,2,:)+temp(3,3,:));  % take traces TODO try to speed this up using equality tr(A*B)=sum(sum(A.*B))
-% expval{1,iOrient} = squeeze(sum(sum(temp,1),2));
+  rho_t = propagate_quantum(Sys,Par,Opt,omega,CenterField,RTraj);
+  temp = squeeze(sum(rho_t,3));  % average over trajectories
+  expval{1,iOrient} = squeeze(temp(1,1,:)+temp(2,2,:)+temp(3,3,:));  % take traces TODO try to speed this up using equality tr(A*B)=sum(sum(A.*B))
+  % expval{1,iOrient} = squeeze(sum(sum(temp,1),2));
 
-updateuser(iOrient,nOrients)
+  updateuser(iOrient,nOrients)
 
 end
 mins_tot = floor(toc/60);

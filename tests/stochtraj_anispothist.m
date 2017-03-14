@@ -68,7 +68,8 @@ end
 data = [];
 
 
-%% Helper function to compare numerical result with analytic expression
+% Helper function to compare numerical result with analytic expression
+% -------------------------------------------------------------------------
 
 function rmsd = calc_rmsd(Coefs, LMK, Hist3D, Agrid, Bgrid, Ggrid)
 

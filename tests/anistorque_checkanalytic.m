@@ -35,7 +35,8 @@ Z = A.*Ast - B.*Bst;
 %      1i/2*(A^2-B^2-Ast^2+Bst^2),   1/2*(A^2+B^2+Ast^2+Bst^2), -1i*(A*B-Ast*Bst);
 %                     A*Bst+Ast*B,           -1i*(A*Bst-Ast*B),      A*Ast-B*Bst];
 
-%% Test lambda^1_0,0
+% Test lambda^1_0,0
+% -------------------------------------------------------------------------
 L = 1;
 M = 0;
 K = 0;
@@ -47,7 +48,8 @@ errl100val = abs(anistorque(LMK,[real(lambda),imag(lambda)],q)-[ -real(lambda)*Y
                                                             zeros(1,len)]);
 errl100 = errl100val>tol;
 
-%% Test lambda^1_0,1
+% Test lambda^1_0,1
+% -------------------------------------------------------------------------
 L = 1;
 M = 0;
 K = 1;
@@ -59,7 +61,8 @@ errl10p1val = abs(anistorque(LMK,[real(lambda),imag(lambda)],q)-[               
                                                              -1/sqrt(2)*(real(lambda)*Y+imag(lambda)*X)]);
 errl10p1 = errl10p1val>tol;
 
-%% Test lambda^1_1,0
+% Test lambda^1_1,0
+% -------------------------------------------------------------------------
 L = 1;
 M = 1;
 K = 0;
@@ -73,7 +76,8 @@ errl1p10val = abs(anistorque(LMK,[real(lambda),imag(lambda)],q)-[ 1/sqrt(2)*(   
 
 errl1p10 = errl1p10val>tol;
 
-%% Test lambda^1_1,1
+% Test lambda^1_1,1
+% -------------------------------------------------------------------------
 L = 1;
 M = 1;
 K = 1;
@@ -86,7 +90,8 @@ errl1p1p1val = abs(anistorque(LMK,[real(lambda),imag(lambda)],q)-[  real(lambda)
 
 errl1p1p1 = errl1p1p1val>tol;
 
-%% Test lambda^1_-1,1
+% Test lambda^1_-1,1
+% -------------------------------------------------------------------------
 L = 1;
 M = -1;
 K = 1;
@@ -99,7 +104,8 @@ errl1m1p1val = abs(anistorque(LMK,[real(lambda),imag(lambda)],q)-[  real(lambda)
 
 errl1m1p1 = errl1m1p1val>tol;
 
-%% Test lambda^2_0,0
+% Test lambda^2_0,0
+% -------------------------------------------------------------------------
 L = 2;
 M = 0;
 K = 0;
@@ -111,7 +117,8 @@ errl200val = abs(anistorque(LMK,[real(lambda),imag(lambda)],q)-[6*real(lambda)*(
                                                                                  zeros(1,len)]);
 errl200 = errl200val>tol;
 
-%% Test lambda^2_0,1
+% Test lambda^2_0,1
+% -------------------------------------------------------------------------
 L = 2;
 M = 0;
 K = 1;
@@ -124,7 +131,8 @@ errl20p1val = abs(anistorque(LMK,[real(lambda),imag(lambda)],q)-[ sqrt(3/2)/2*(2
 
 errl20p1 = errl20p1val>tol;
 
-%% Test lambda^2_0,2
+% Test lambda^2_0,2
+% -------------------------------------------------------------------------
 L = 2;
 M = 0;
 K = 2;
@@ -137,7 +145,8 @@ errl20p2val = abs(anistorque(LMK,[real(lambda),imag(lambda)],q)-[           -sqr
 
 errl20p2 = errl20p2val>tol;
 
-%% Check for differences between numerical and analytic results
+% Check for differences between numerical and analytic results
+% -------------------------------------------------------------------------
 
 err = any(errl100(:))||any(errl200(:)) ...
       ||any(errl10p1(:))||any(errl20p1(:))||any(errl20p2(:)) ...

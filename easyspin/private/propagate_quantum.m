@@ -6,6 +6,9 @@
 %     omega          double
 %                    microwave frequency for CW field sweep, in Hz
 %
+%     CenterField    double
+%                    magnetic field, in mT
+%
 %     RTraj          numeric, size = (3,3,nTraj,nSteps)
 %                    a series of rotation matrices
 %
@@ -42,12 +45,12 @@
 % [3] Oganesyan, Phys. Chem. Chem. Phys. 13, 4724 (2011)
 %      http://dx.doi.org/10.1039/c0cp01068e
 
-function rho_t = propagate_quantum(Sys, Par, Opt, omega, RTraj)
+function rho_t = propagate_quantum(Sys, Par, Opt, omega, CenterField, RTraj)
 
 % Preprocessing
 % -------------------------------------------------------------------------
 
-if nargin~=5
+if nargin~=6
   error('Wrong number of input arguments.')
 end
 
@@ -75,16 +78,7 @@ if ~isequal(size(g),[1,3]) || ~isequal(size(A),[1,3])
   error('g and A tensor values must be 3-vectors.')
 end
 
-% Check for orthogonality of rotation matrices
 RTrajInv = permute(RTraj,[2,1,3,4]);
-
-rot_mat_test = matmult(RTraj,RTrajInv) ...
-               - repmat(eye(3),1,1,nTraj,nSteps);
-
-if any(rot_mat_test > 1e-10)
-  error('The rotation matrices are not orthogonal.')
-end
-
 
 % Gamma = gfree*bmagn/(planck/2/pi);  % rad s^-1 T^-1
 % omegaN = 19.331e6*B;  % gyromagnetic ratio for 14N: 
@@ -259,7 +253,7 @@ switch Method
     Q = mmult(V, mmult(Lambda, conj(permute(V,[2,1,3,4]))));
     
     % Eq. 34 in reference
-% FIXME round-off error propagates through the matrix multiplication, need some sort of error control
+% FIXME round-off error might propagate through the matrix multiplication, need some sort of error control
     for iStep=2:nSteps
 %       for iTraj=1:nTraj
       rho_t(:,:,:,iStep) = mmult(Q(:,:,:,iStep-1),...
@@ -278,6 +272,20 @@ switch Method
     rho_t(1:3,4:6,:,1) = repmat(eye(3),1,1,nTraj,1);
     rho_t(4:6,1:3,:,1) = repmat(eye(3),1,1,nTraj,1);
     rho_t = rho_t(:);
-end
+    
+    B0 = {0,0,Centerfield/1e3};  % mT -> T
+    
+    SpinOps{1,1} = sop([1/2,1],'xe');
+    SpinOps{1,2} = sop([1/2,1],'ye');
+    SpinOps{1,3} = sop([1/2,1],'ze');
+    
+    IncludeNuclearZeeman = 0;
+    ExplicitFieldSweep = 0;
+    
+    [T0,T1,T2,F0,F1,F2,isFieldDep] = magint(Sys,SpinOps,CenterField, ...
+                                            IncludeNuclearZeeman, ...
+                                            ExplicitFieldSweep);
+    
+    
 
 end
