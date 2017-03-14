@@ -63,8 +63,12 @@
 %                    normalized quaternions
 
 % Implementation based on 
-%   Sezer, et al., J.Chem.Phys. 128, 165106 (2008)
-%     http://dx.doi.org/10.1063/1.2908075
+%  [1] Sezer, et al., J.Chem.Phys. 128, 165106 (2008)
+%       http://dx.doi.org/10.1063/1.2908075
+%  [2] Leimkuhler, Appl.Math.Res.Express 2013, 34 (2013)
+%       https://doi.org/10.1093/amrx/abs010
+%    newer method for SDE integration that starts with weak convergence of 
+%    order 1, but approaches weak convergence of order 2 exponentially fast
 
 function varargout = stochtraj(Sys,Par,Opt)
 
@@ -160,9 +164,16 @@ else
   end
 end
 
-if isfield(Par,'seed')
-  rng(Par.seed);
+if ~isfield(Par,'Integrator')
+  % default Monte Carlo integrator is Euler-Maruyama
+  Integrator = 'Euler-Maruyama';
+else
+  Integrator = Par.Integrator;
+  if ~strcmp(Integrator,'Euler-Maruyama')&&~strcmp(Integrator,'Leimkuhler-Matthews')
+    error('Input for integrator method not recognized.')
+  end
 end
+
 
 
 % Grid and trajectory settings
@@ -234,12 +245,11 @@ while ~converged
   if iter==0
     %  Pre-calculate angular steps due to random torques
     %  (Eq. 61 from reference, without factor of 1/2)
-    Sim.randAngStep = bsxfun(@times, randn(3,Sim.nTraj,Sim.nSteps),...
-                                   sqrt(2*Sim.Diff*Sim.dt));
+    Sim = genRandsteps(Sim,Integrator);
 
     %  Perform stochastic simulations
     %  (Eqs. 48 and 61 in reference)
-    qTraj = propagate(qTraj, Sim, iter);
+    qTraj = propagate_classical(qTraj, Sim, iter);
 
   else
     logmsg(1,'-- Convergence not obtained -------------------------------------');
@@ -248,9 +258,8 @@ while ~converged
     % Continue propagation by 20% more steps or by tcorr/dt, whichever is
     % greater
     Sim.nSteps = max([ceil(tcorrAvg/Sim.dt), ceil(1.2*Sim.nSteps)]);
-    Sim.randAngStep = bsxfun(@times, randn(3,Sim.nTraj,Sim.nSteps),...
-                                   sqrt(2*Sim.Diff*Sim.dt));
-    qTraj = propagate(qTraj, Sim, iter);
+    Sim = genRandsteps(Sim,Integrator);
+    qTraj = propagate_classical(qTraj, Sim, iter);
 
   end
 
@@ -322,13 +331,30 @@ end
 
 clear global EasySpinLogLevel
 
-return
 
+end
 
 % Helper functions
 % -------------------------------------------------------------------------
 
-function q = propagate(q, Sim, iter)
+function Sim = genRandsteps(Sim,Integrator)
+% generate random angular steps using one of two different MC integrators
+
+% generate Gaussian random deviates
+randns = randn(3,Sim.nTraj,Sim.nSteps);
+
+if strcmp(Integrator,'Euler-Maruyama')
+  % standard method for integrating a first order SDE
+  Sim.randAngStep = bsxfun(@times, randns, sqrt(2*Sim.Diff*Sim.dt));
+elseif strcmp(Integrator,'Leimkuhler-Matthews')
+  % see Ref. [2]
+  Sim.randAngStep = bsxfun(@times, (randns(:,:,1:end-1)+randns(:,:,2:end))/2, ...
+                                   sqrt(2*Sim.Diff*Sim.dt));
+end
+
+end
+
+function q = propagate_classical(q, Sim, iter)
 % Propagate quaternions
 
 randAngStep = Sim.randAngStep;
@@ -477,7 +503,3 @@ end
 % varargout = {converged, ChiSquare};
 % 
 % end
-
-% -------------------------------------------------------------------------
-    
-end
