@@ -599,7 +599,7 @@ Potential.xlk = chili_xlk(Potential,Dynamics.Diff);
 
 % Basis
 %------------------------------------------------------------------
-Basis = processbasis(Sys,Basis,max(Potential.K));
+Basis = processbasis(Sys,Basis,max(Potential.K),Sys.I);
 if isempty(Basis.jKmin)
   error('Basis.jKmin is empty. Please report.');
 end
@@ -1191,7 +1191,6 @@ for iEl = 1:Sys.nElectrons
   end
   
   % Set parameters for chili_liouvmatrix*
-  Sys.g_axial(iEl) = g2(1)==0;
   Sys.EZ0(iEl) = bmagn*(B0/1e3)*g0/planck*2*pi; % -> angular frequency
   Sys.EZ2(:,iEl) = bmagn*(B0/1e3)*g2/planck*2*pi; % -> angular frequency
 end
@@ -1219,7 +1218,6 @@ for iEl = 1:Sys.nElectrons
     end
     
     % Set parameters for chili_liouvmatrix*
-    Sys.A_axial(iNuc,iEl) = A2(1)==0;
     Sys.HF0(iNuc,iEl) = A0*1e6*2*pi; % MHz -> angular frequency
     Sys.HF2(:,iNuc,iEl) = A2*1e6*2*pi; % MHz -> angular frequency
   end
@@ -1248,10 +1246,22 @@ return
 
 
 %--------------------------------------------------------------------
-function Basis = processbasis(Sys,Bas,maxPotentialK)
+function Basis = processbasis(Sys,Bas,maxPotentialK,I)
 
 Basis = Bas;
+nNuclei = numel(I);
 
+% Symmmetry tests
+%--------------------------------------------------------------------
+nobetatilts = all(Sys.EZ2([2 4])==0) && ...
+  ((nNuclei==0) || all(Sys.HF2([2 4])==0));
+tensorsCollinear = all(isreal(Sys.EZ2)) && ...
+  ((nNuclei==0) || all(isreal(Sys.HF2)));
+axialSystem = (Sys.EZ2(1)==0) && ...
+  ((nNuclei==0) || (Sys.HF2(1)==0));
+
+% Spatial basis parameters: evenLmax oddLmax Kmax Mmax jKmin deltaK
+%--------------------------------------------------------------------
 Basis.evenLmax = Basis.LLKM(1);
 Basis.oddLmax = Basis.LLKM(2);
 Basis.Kmax = Basis.LLKM(3);
@@ -1262,48 +1272,18 @@ if (Basis.oddLmax>Basis.evenLmax)
 end
 
 % Set jKmin = +1 if tensorial coefficients are all real. This is the
-% case when g and A are collinear and the orientation of the diffusion
-% tensor is described by the angles (0,beta,0)
+% case when all tensors (g and A) are collinear and tilted relative to
+% the diffusion tensor by the angles (0,beta,0).
 if isempty(Basis.jKmin)
   Basis.jKmin = -1;
-  if all(isreal(Sys.EZ2))
-    if (Sys.nNuclei==0) || (Sys.nNuclei>0) && all(isreal(Sys.HF2))
-      Basis.jKmin = +1;
-    end
+  if tensorsCollinear
+    Basis.jKmin = +1;
   end
-end
-
-if (Sys.nNuclei==0)
-  Basis.pImax = 0;
-elseif (Sys.nNuclei==1)
-  pImax = 2*Sys.I;
-  if ~isfield(Basis,'pImax') || isempty(Basis.pImax)
-    Basis.pImax = pImax;
-  end
-  Basis.pImax = min(Basis.pImax,pImax);
-else
-  pImax = 2*Sys.I;
-  if ~isfield(Basis,'pImax') || isempty(Basis.pImax)
-    Basis.pImax = pImax;
-  end
-  Basis.pImax = min(Basis.pImax,pImax);
-  Basis.pI1max = Basis.pImax(1);
-  Basis.pI2max = Basis.pImax(2);
-end
-
-% pSmin
-if ~isfield(Basis,'pSmin') || isempty(Basis.pSmin)
-  Basis.pSmin = 0;
 end
 
 % Use only even K if there is no magnetic or diffusion tilt.
 if isempty(Basis.deltaK)
-  if (Sys.nNuclei>0)
-    noHFtilt = all(Sys.HF2([2 4])==0);
-  else
-    noHFtilt = true;
-  end
-  if all(Sys.EZ2([2 4])==0) && noHFtilt
+  if nobetatilts
     Basis.deltaK = 2;
   else
     Basis.deltaK = 1;
@@ -1313,16 +1293,43 @@ end
 % Use only even L values (oddLmax=0) and no K values (Kmx=0)
 % in case of axial magnetic tensors, axial potential, 
 % and no magnetic/diffusion tilt
-axialSystem = all(Sys.g_axial);
-if (Sys.nNuclei>0)
-  axialSystem = axialSystem && all(Sys.A_axial(:));
-end
 if axialSystem && (Basis.deltaK==2) && (maxPotentialK==0)
   Basis.oddLmax = 0;
   Basis.Kmax = 0;
 end
 
+% Spin basis parameters: pSmin, pImax
+%--------------------------------------------------------------
 
+% pSmin
+if ~isfield(Basis,'pSmin') || isempty(Basis.pSmin)
+  Basis.pSmin = 0;
+end
+
+% pImax
+if ~isfield(Basis,'pImax')
+  Basis.pImax = [];
+end
+if (nNuclei==0)
+  Basis.pImax = 0;
+elseif (nNuclei==1)
+  pImax = 2*I;
+  if isempty(Basis.pImax)
+    Basis.pImax = pImax;
+  end
+  Basis.pImax = min(Basis.pImax,pImax);
+else
+  pImax = 2*I;
+  if isempty(Basis.pImax)
+    Basis.pImax = pImax;
+  end
+  Basis.pImax = min(Basis.pImax,pImax);
+  Basis.pI1max = Basis.pImax(1);
+  Basis.pI2max = Basis.pImax(2);
+end
+
+% Assemble final output array of basis set parameters
+%--------------------------------------------------------------
 Basis.v = [...
   Basis.evenLmax Basis.oddLmax Basis.Kmax Basis.Mmax, ...
   Basis.jKmin Basis.pSmin Basis.deltaK ...
