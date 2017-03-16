@@ -599,11 +599,15 @@ Potential.xlk = chili_xlk(Potential,Dynamics.Diff);
 
 % Basis
 %------------------------------------------------------------------
-if ~generalLiouvillian
-  EZ2 = Sys.EZ2;
-  HF2 = Sys.HF2;
-end
-Basis = processbasis(Basis,max(Potential.K),Sys.I,EZ2,HF2);
+% Symmmetry tests
+nobetatilts = all(Sys.EZ2([2 4])==0) && ...
+  ((Sys.nNuclei==0) || all(Sys.HF2([2 4])==0));
+tensorsCollinear = all(isreal(Sys.EZ2)) && ...
+  ((Sys.nNuclei==0) || all(isreal(Sys.HF2)));
+axialSystem = (Sys.EZ2(1)==0) && ...
+  ((Sys.nNuclei==0) || (Sys.HF2(1)==0));
+Basis = processbasis(Basis,max(Potential.K),Sys.I,...
+  nobetatilts,tensorsCollinear,axialSystem);
 if isempty(Basis.jKmin)
   error('Basis.jKmin is empty. Please report.');
 end
@@ -1250,19 +1254,10 @@ return
 
 
 %--------------------------------------------------------------------
-function Basis = processbasis(Bas,maxPotentialK,I,EZ2,HF2)
+function Basis = processbasis(Bas,maxPotentialK,I,nobetatilts,tensorsCollinear,axialSystem)
 
 Basis = Bas;
 nNuclei = numel(I);
-
-% Symmmetry tests
-%--------------------------------------------------------------------
-nobetatilts = all(EZ2([2 4])==0) && ...
-  ((nNuclei==0) || all(HF2([2 4])==0));
-tensorsCollinear = all(isreal(EZ2)) && ...
-  ((nNuclei==0) || all(isreal(HF2)));
-axialSystem = (EZ2(1)==0) && ...
-  ((nNuclei==0) || (HF2(1)==0));
 
 % Spatial basis parameters: evenLmax oddLmax Kmax Mmax jKmin deltaK
 %--------------------------------------------------------------------
