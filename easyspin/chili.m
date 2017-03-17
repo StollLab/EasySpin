@@ -592,7 +592,6 @@ else
   [Sys,Symmetry] = magint(generalLiouvillian,Sys,CenterField,...
                           Opt.IncludeNZI,explicitFieldSweep);
 end
-% Sys = istospinsys(Sys,CenterField,Opt.IncludeNZI);
 
 [Dynamics,err] = processdynamics(Dynamics,FieldSweep);
 error(err);
@@ -734,17 +733,6 @@ end
 %-----------------------------------------------------------------------
 if generalLiouvillian
   
-%   logmsg(1,'Generating all cartesian spin operators');
-%   for iSpin = 1:numel(Sys.Spins)
-%     SpinOps{iSpin,1} = sop(Sys.Spins,iSpin,1,'sparse');
-%     SpinOps{iSpin,2} = sop(Sys.Spins,iSpin,2,'sparse');
-%     SpinOps{iSpin,3} = sop(Sys.Spins,iSpin,3,'sparse');
-%   end
-  
-%   logmsg(1,'Generating ISTOs and precalculating 3j symbols');
-%   [T0,T1,T2,F0,F1,F2,isFieldDep] = magint(Sys,SpinOps,CenterField,...
-%                                           Opt.IncludeNZI,explicitFieldSweep,...
-%                                           generalLiouvillian);
   [jjj0,jjj1,jjj2] = jjjsymbol(Basis.LLKM,any(F.F1(:)));
   
   logmsg(1,'Setting up the detection operator');
@@ -773,7 +761,7 @@ for iOri = 1:nOrientations
   
   % Set up orientation
   %-------------------------------------------------------
-  logmsg(2,'orientation %d of %d: phi = %g°, theta = %g° (weight %g)',...
+  logmsg(2,'orientation %d of %d: phi = %gï¿½, theta = %gï¿½ (weight %g)',...
     iOri,nOrientations,phi(iOri)*180/pi,theta(iOri)*180/pi,Weights(iOri));
 
   if generalLiouvillian
