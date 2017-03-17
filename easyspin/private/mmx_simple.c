@@ -9,7 +9,7 @@
 #include <math.h>
 
 // function declarations
-#include "matrix_fun_simple.c"
+#include "matrix_fun.inc"
 
 
 // ================
