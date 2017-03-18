@@ -1,22 +1,12 @@
-function varargout = magint(varargin)
+function [T,F,System,Symmetry,isFieldDep] = magint(System,SpinOps,CenterField,IncludeNuclearZeeman,explicitFieldSweep)
 % generate the irreducible spherical tensor components and, if using the
 % general Liouvillian method, their corresponding operators as well
 
-% Make sure generalLiouvillian is fed into the first argument!
-generalLiouvillian = varargin{1};
-
-if generalLiouvillian
-  System = varargin{2};
-  SpinOps = varargin{3};
-  CenterField = varargin{4};
-  IncludeNuclearZeeman = varargin{5};
-  explicitFieldSweep = varargin{6};
+if isempty(SpinOps)
+  % no need to use spin operators for Freed code
+  generalLiouvillian = 0;
 else
-  % don't need SpinOps
-  System = varargin{2};
-  CenterField = varargin{3};
-  IncludeNuclearZeeman = varargin{4};
-  explicitFieldSweep = varargin{5};
+  generalLiouvillian = 1;
 end
 
 % Transformation from molecular frame to diffusion frame
@@ -94,8 +84,6 @@ for iElSpin = 1:nElSpins
   end
   iInt = iInt + 1;
 end
-
-noEZbetatilt = all(F2(1:iInt-1,[2 4])==0);
 
 % Hyperfine interaction terms (S*A*I)
 %--------------------------------------------------------------------------
@@ -268,11 +256,5 @@ T.T2 = T2;
 F.F0 = F0;
 F.F1 = F1;
 F.F2 = F2;
-
-if generalLiouvillian
-  varargout = {T,F,Symmetry,isFieldDep};
-else
-  varargout = {System,Symmetry};
-end
 
 return

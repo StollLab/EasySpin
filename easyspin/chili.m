@@ -578,20 +578,22 @@ end
 
 if generalLiouvillian
   logmsg(1,'  using general Liouvillian code');
+  % calculate spin operators
   for iSpin = 1:numel(Sys.Spins)
     SpinOps{iSpin,1} = sop(Sys.Spins,iSpin,1,'sparse');
     SpinOps{iSpin,2} = sop(Sys.Spins,iSpin,2,'sparse');
     SpinOps{iSpin,3} = sop(Sys.Spins,iSpin,3,'sparse');
   end
-  [T,F,Symmetry,isFieldDep] = magint(generalLiouvillian,Sys,SpinOps,...
-                                     CenterField,Opt.IncludeNZI,...
-                                     explicitFieldSweep);
 else
-  % no need to calculate spin operators for the Freed code
   logmsg(1,'  using S=1/2 Liouvillian code');
-  [Sys,Symmetry] = magint(generalLiouvillian,Sys,CenterField,...
-                          Opt.IncludeNZI,explicitFieldSweep);
+  % no need to calculate spin operators for the Freed code
+  SpinOps = [];
 end
+
+% calculate ISTOs and symmetry properties
+[T,F,Sys,Symmetry,isFieldDep] = magint(Sys,SpinOps,CenterField,...
+                                       Opt.IncludeNZI,...
+                                       explicitFieldSweep);
 
 [Dynamics,err] = processdynamics(Dynamics,FieldSweep);
 error(err);
