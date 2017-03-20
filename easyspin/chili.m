@@ -575,12 +575,25 @@ end
 
 % Process
 %-------------------------------------------------------
+
 if generalLiouvillian
   logmsg(1,'  using general Liouvillian code');
+  % calculate spin operators
+  for iSpin = 1:numel(Sys.Spins)
+    SpinOps{iSpin,1} = sop(Sys.Spins,iSpin,1,'sparse');
+    SpinOps{iSpin,2} = sop(Sys.Spins,iSpin,2,'sparse');
+    SpinOps{iSpin,3} = sop(Sys.Spins,iSpin,3,'sparse');
+  end
 else
   logmsg(1,'  using S=1/2 Liouvillian code');
+  % no need to calculate spin operators for the Freed code
+  SpinOps = [];
 end
-Sys = istospinsys(Sys,CenterField,Opt.IncludeNZI);
+
+% calculate ISTOs and symmetry properties
+[T,F,Sys,Symmetry,isFieldDep] = magint(Sys,SpinOps,CenterField,...
+                                       Opt.IncludeNZI,...
+                                       explicitFieldSweep);
 
 [Dynamics,err] = processdynamics(Dynamics,FieldSweep);
 error(err);
@@ -599,15 +612,8 @@ Potential.xlk = chili_xlk(Potential,Dynamics.Diff);
 
 % Basis
 %------------------------------------------------------------------
-% Symmmetry tests
-nobetatilts = all(Sys.EZ2([2 4])==0) && ...
-  ((Sys.nNuclei==0) || all(Sys.HF2([2 4])==0));
-tensorsCollinear = all(isreal(Sys.EZ2)) && ...
-  ((Sys.nNuclei==0) || all(isreal(Sys.HF2)));
-axialSystem = (Sys.EZ2(1)==0) && ...
-  ((Sys.nNuclei==0) || (Sys.HF2(1)==0));
-Basis = processbasis(Basis,max(Potential.K),Sys.I,...
-  nobetatilts,tensorsCollinear,axialSystem);
+
+Basis = processbasis(Basis,max(Potential.K),Sys.I,Symmetry);
 if isempty(Basis.jKmin)
   error('Basis.jKmin is empty. Please report.');
 end
@@ -729,16 +735,7 @@ end
 %-----------------------------------------------------------------------
 if generalLiouvillian
   
-  logmsg(1,'Generating all cartesian spin operators');
-  for iSpin = 1:numel(Sys.Spins)
-    SpinOps{iSpin,1} = sop(Sys.Spins,iSpin,1,'sparse');
-    SpinOps{iSpin,2} = sop(Sys.Spins,iSpin,2,'sparse');
-    SpinOps{iSpin,3} = sop(Sys.Spins,iSpin,3,'sparse');
-  end
-  
-  logmsg(1,'Generating ISTOs and precalculating 3j symbols');
-  [T0,T1,T2,F0,F1,F2,isFieldDep] = magint(Sys,SpinOps,CenterField,Opt.IncludeNZI,explicitFieldSweep);
-  [jjj0,jjj1,jjj2] = jjjsymbol(Basis.LLKM,any(F1(:)));
+  [jjj0,jjj1,jjj2] = jjjsymbol(Basis.LLKM,any(F.F1(:)));
   
   logmsg(1,'Setting up the detection operator');
   SxOp = SpinOps{1,1};
@@ -766,13 +763,13 @@ for iOri = 1:nOrientations
   
   % Set up orientation
   %-------------------------------------------------------
-  logmsg(2,'orientation %d of %d: phi = %g°, theta = %g° (weight %g)',...
+  logmsg(2,'orientation %d of %d: phi = %gï¿½, theta = %gï¿½ (weight %g)',...
     iOri,nOrientations,phi(iOri)*180/pi,theta(iOri)*180/pi,Weights(iOri));
 
   if generalLiouvillian
     D1 = wignerd(1,[phi(iOri),theta(iOri),0]);
     D2 = wignerd(2,[phi(iOri) theta(iOri) 0]);
-    [Q0B,Q1B,Q2B,Q0G,Q1G,Q2G] = rbos(D1,D2,T0,T1,T2,F0,F1,F2,isFieldDep);
+    [Q0B,Q1B,Q2B,Q0G,Q1G,Q2G] = rbos(D1,D2,T,F,isFieldDep);
     
     if Opt.pqOrder
       Q0B = Q0B(idxpq,idxpq);
@@ -823,7 +820,7 @@ for iOri = 1:nOrientations
       HG = liouvhamiltonian(Basis.List,Q0G,Q1G,Q2G,jjj0,jjj1,jjj2);
     else
       Q0 = Q0B+Q0G;
-      if any(F1(:))
+      if any(F.F1(:))
         for i = 1:3
           for j = 1:3
             Q1{i,j} = Q1B{i,j} + Q1G{i,j};
@@ -1166,98 +1163,16 @@ return
 %====================================================================
 %====================================================================
 
-%--------------------------------------------------------------------
-% Calculates all spin Hamiltonian ISTO coefficients for electron Zeeman,
-% hyperfine and nuclear Zeeman terms, for 1 eletron spin-1/2 and up
-% to two nuclei.
-function Sys = istospinsys(Sys_in,B0,IncludeNZI)
-
-Sys = Sys_in;
-
-% Transformation from molecular frame to diffusion frame
-% (DiffFrame contains Euler angles for mol->Diff transformation)
-R_M2Diff = erot(Sys.DiffFrame);
-
-% Electron Zeeman
-%--------------------------------------------------------------------
-for iEl = 1:Sys.nElectrons
-  if Sys.fullg
-    g = Sys.g(3*(iEl-1)+(1:3),:);
-  else
-    g = diag(Sys.g(iEl,:));
-  end
-  if isfield(Sys,'gFrame')
-    R_g2M = erot(Sys.gFrame(iEl,:)).';
-    g = R_g2M*g*R_g2M.';  % g frame -> molecular frame
-  end
-  g = R_M2Diff*g*R_M2Diff.';  % molecular frame -> diffusion frame
-  
-  % Get ISTO components
-  [g0,g1,g2] = istocoeff(g);
-  if any(abs(g1)>1e-6)
-    error('g tensor must be symmetric for this method.');
-  end
-  
-  % Set parameters for chili_liouvmatrix*
-  Sys.EZ0(iEl) = bmagn*(B0/1e3)*g0/planck*2*pi; % -> angular frequency
-  Sys.EZ2(:,iEl) = bmagn*(B0/1e3)*g2/planck*2*pi; % -> angular frequency
-end
-
-% Hyperfine
-%--------------------------------------------------------------------
-for iEl = 1:Sys.nElectrons
-  for iNuc = 1:Sys.nNuclei
-    if Sys.fullA
-      A = Sys.A(3*(iNuc-1)+(1:3),3*(iEl-1)+(1:3));
-    else
-      A = diag(Sys.A(iNuc,3*(iEl-1)+(1:3)));
-    end
-    if isfield(Sys,'AFrame')
-      R_M2A = erot(Sys.AFrame(iNuc,3*(iEl-1)+(1:3)));
-      R_A2M = R_M2A.';
-      A = R_A2M*A*R_A2M.';  % A frame -> molecular frame
-    end
-    A = R_M2Diff*A*R_M2Diff.';  % molecular frame -> diffusion frame
-    
-    % Get ISTO components
-    [A0,A1,A2] = istocoeff(A);
-    if (any(abs(A1)>1e-6))
-      error('Hyperfine tensors must be symmetric for this method.');
-    end
-    
-    % Set parameters for chili_liouvmatrix*
-    Sys.HF0(iNuc,iEl) = A0*1e6*2*pi; % MHz -> angular frequency
-    Sys.HF2(:,iNuc,iEl) = A2*1e6*2*pi; % MHz -> angular frequency
-  end
-end
-
-% Nuclear Zeeman
-%--------------------------------------------------------------------
-if IncludeNZI
-  for iNuc = 1:Sys.nNuclei
-    gn0(iNuc) = istocoeff(Sys.gn(iNuc));
-    Sys.NZ0(iNuc) = nmagn*(B0/1e3)*gn0(iNuc)/planck*2*pi; % -> angular freq.
-  end
-else
-  Sys.NZ0 = zeros(1,Sys.nNuclei);
-end
-
-% Adaption for two nuclei, to feed to chili_liouvmatrix2
-if (Sys.nNuclei>=2)
-  Sys.Ib = Sys.I(2);
-  Sys.NZ0b = Sys.NZ0(2);
-  Sys.HF0b = Sys.HF0(2);
-  Sys.HF2b = Sys.HF2(:,2);
-end
-
-return
-
 
 %--------------------------------------------------------------------
-function Basis = processbasis(Bas,maxPotentialK,I,nobetatilts,tensorsCollinear,axialSystem)
+function Basis = processbasis(Bas,maxPotentialK,I,Symmetry)
 
 Basis = Bas;
 nNuclei = numel(I);
+
+nobetatilts = Symmetry.nobetatilts;
+tensorsCollinear = Symmetry.tensorsCollinear;
+axialSystem = Symmetry.axialSystem;
 
 % Spatial basis parameters: evenLmax oddLmax Kmax Mmax jKmin deltaK
 %--------------------------------------------------------------------

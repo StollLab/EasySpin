@@ -4,7 +4,17 @@
 % matrices in a 5-by-5 cell array in which the rows are the M components
 % and the columns are the K components, in decreasing order from 2 to -2
 
-function [Q0G,Q1G,Q2G,Q0F,Q1F,Q2F] = rbos(D1,D2,T0,T1,T2,F0,F1,F2,isFieldDep)
+function [Q0G,Q1G,Q2G,Q0F,Q1F,Q2F] = rbos(D1,D2,T,F,isFieldDep)
+
+% ISTOs
+T0 = T.T0;
+T1 = T.T1;
+T2 = T.T2;
+
+% ISTs
+F0 = F.F0;
+F1 = F.F1;
+F2 = F.F2;
 
 nTerms = numel(F0);
 
