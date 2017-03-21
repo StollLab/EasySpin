@@ -182,17 +182,16 @@ if ~isfield(Par, 'nTraj'), Par.nTraj = 100; end
 % decide on a simulation model based on user input
 
 if isfield(Par,'RTraj')
-  % rotation matrices provided, so no need to perform any stochastic
-  % dynamics simulations
+  % rotation matrices provided externally
   
   RTraj = Par.RTraj;
+  if ~isnumeric(RTraj)||size(RTraj,1)~=3||size(RTraj,2)~=3||ndims(RTraj)<3||ndims(RTraj)>4
+    error('RTraj must be a 3D or 4D array of rotation matrices of size (3,3,...).')
+  end
   % Check for orthogonality of rotation matrices
   RTrajInv = permute(RTraj,[2,1,3,4]);
 
-%   rot_mat_test = matmult(RTraj,RTrajInv) ...
-%                  - repmat(eye(3),1,1,nTraj,nSteps);
-%   if any(rot_mat_test > 1e-10)
-  if ~allclose(matmult(RTraj,RTrajInv),repmat(eye(3),1,1,Par.nTraj,Par.nSteps),1e-14)
+  if ~allclose(matmult(RTraj,RTrajInv),repmat(eye(3),1,1,size(RTraj,3),size(RTraj,4)),1e-14)
     error('The rotation matrices are not orthogonal.')
   end
 
@@ -240,18 +239,10 @@ dt = Par.dt;
 
 omega = 2*pi*Exp.mwFreq*1e9;  % GHz -> Hz (rad/s);
 
-FieldSweep = true;  % TODO fix this
+FieldSweep = true;  % TODO expand usage to include frequency sweep
 
 % Set up horizontal sweep axis
-% (nu is used internally, xAxis is used for user output)
-if FieldSweep
-%   FreqSweep = Sweep*mT2MHz*1e6; % mT -> Hz
-%   nu = Exp.mwFreq*1e9 - linspace(-1,1,Exp.nPoints)*FreqSweep/2;  % Hz
-  xAxis = linspace(Exp.Range(1),Exp.Range(2),Exp.nPoints);  % field axis, mT
-% else
-%   nu = linspace(Exp.mwRange(1),Exp.mwRange(2),Exp.nPoints)*1e9;  % Hz
-%   xAxis = nu/1e9; % frequency axis, GHz
-end
+xAxis = linspace(Exp.Range(1),Exp.Range(2),Exp.nPoints);  % field axis, mT
 
 
 % Check Opt
@@ -269,7 +260,7 @@ Dynamics = validate_dynord('cardamom',Sys,FieldSweep);
 logmsg(1,'-- time domain simulation -----------------------------------------');
 
 
-% Pre-allocate cells
+% Generate grids
 % -------------------------------------------------------------------------
 
 switch Model
@@ -295,7 +286,7 @@ switch Model
 %   case 'SRLS'  %  TODO implement multiple diffusion frames
 %     logmsg(1,'-- model: SRLS -----------------------------------------');  
 %     
-  case 'Molecular Dynamics'
+  case 'Molecular Dynamics' % TODO process RTraj based on size of input
     logmsg(1,'-- Model: Molecular Dynamics ---------------------------');
     if ~isfield(Par,'nOrients')
       error('nOrients must be specified for the Molecular Dynamics model.')
@@ -308,8 +299,7 @@ switch Model
     error('Model not recognized. Please check the documentation for acceptable models.')
 end
 
-% due to different possible times before convergence, we need cells here 
-% because the size of the dimension nSteps might differ between iterations
+% trajectories might differ in length, so we need cells for allocation
 expval = cell(1,nOrients);
 tcell = cell(1,nOrients);
 
@@ -324,34 +314,51 @@ for iOrient = 1:nOrients
 
   % Par.Omega = [grid_phi(iOrient); grid_theta(iOrient)];
 
-  if strcmp(Model,'Molecular Dynamics')
-    % rotation matrices provided by external data, no need to do stochastic
-    % simulation
-    t = linspace(0, Par.nSteps*dt, Par.nSteps).';
-    tcell{1,iOrient} = t;
-  else
-    % no rotation matrices provided, so perform stochastic simulations here
-    [t, RTraj, qTraj] = stochtraj(Sys,Par);
-    tcell{1,iOrient} = t;
-    if strcmp(Model,'MOMD')
+  % generate/process trajectories
+  switch Model 
+    case 'Brownian'
+      [t, RTraj, qTraj] = stochtraj(Sys,Par);
+      if strcmp(Opt.Method,'Oganesyan')
+        % this method needs quaternions, not rotation matrices
+        Par.qTraj = qTraj;
+      else
+        % other methods use rotation matrices
+        Par.RTraj = RTraj;
+      end
+    case 'MOMD'
+      [t, ~, qTraj] = stochtraj(Sys,Par);
       qmult = repmat(euler2quat(grid_phi(iOrient), grid_theta(iOrient), 0),...
                      [1,Par.nTraj,Par.nSteps]);
-      RTraj = quat2rotmat(quatmult(qmult,qTraj));
-%     elseif strcmp(Model,'SRLS')
-    end
-  end
+      if strcmp(Opt.Method,'Oganesyan')
+        % this method needs quaternions, not rotation matrices
+        Par.qTraj = quatmult(qmult,qTraj);
+      else
+        % other methods use rotation matrices
+        Par.RTraj = quat2rotmat(quatmult(qmult,qTraj));
+      end
+%   case 'SRLS'
+    case 'Molecular Dynamics'
+      % rotation matrices provided by external data, no need to do stochastic
+      % simulation
+      t = linspace(0, Par.nSteps*dt, Par.nSteps).';
 
-  rho_t = propagate_quantum(Sys,Par,Opt,omega,CenterField,RTraj);
+  end
+  
+  tcell{1,iOrient} = t;
+
+  rho_t = propagate_quantum(Sys,Par,Opt,omega,CenterField);
   temp = squeeze(sum(rho_t,3));  % average over trajectories
   expval{1,iOrient} = squeeze(temp(1,1,:)+temp(2,2,:)+temp(3,3,:));  % take traces TODO try to speed this up using equality tr(A*B)=sum(sum(A.*B))
   % expval{1,iOrient} = squeeze(sum(sum(temp,1),2));
 
-  updateuser(iOrient,nOrients)
+  if Opt.Verbosity
+    updateuser(iOrient,nOrients)
+  end
 
 end
 mins_tot = floor(toc/60);
 msg = sprintf('Done!\nTotal simulation time: %d:%2.0f\n',mins_tot,mod(toc,60));
-fprintf(msg);
+logmsg(1,msg);
 
 % Perform FFT
 
