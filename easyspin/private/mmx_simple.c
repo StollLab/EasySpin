@@ -114,11 +114,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     N *= Cdims[i];
   }
 
-  // if one of the output dimensions is 0 we're done, goodbye
-  if ( Cdims[0]*Cdims[1]*N == 0 ) {
-    return;
-  }
-
 
   // allocate C
   plhs[0] = mxCreateNumericArray(Cndim, Cdims, mxDOUBLE_CLASS, mxREAL);
