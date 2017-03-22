@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>stochtraj</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">stochtraj</div>
+
+<p>
+Simulation of stochastic rotational trajectories.
+</p>
+
+<!-- =================================================================== -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+stochtraj(Sys)
+stochtraj(Sys,Par)
+[t,RTraj] = stochtraj(...)
+[t,RTraj,qTraj] = stochtraj(...)
+</pre>
+
+<!-- =================================================================== -->
+<div class="subtitle">Description</div>
+
+<p>
+<code>stochtraj</code> computes trajectories of stochastic rotational diffusion in the time domain via propagation of quaternions. The motion can be isotropic or anisotropic and can include an orienting potential.
+</p>
+
+<p>
+<code>stochtraj</code> accepts up to two input arguments
+
+<ul>
+<li><code>Sys</code>: dynamic properties
+</ul>
+<ul>
+<li><code>Par</code>: (optional) simulation parameters for monte carlo integrator and trajectories
+</ul>
+<ul>
+<li><code>Opt</code>: (optional) simulation options
+</ul>
+
+<p>
+If no input argument is given, a short help summary is shown (same as when typing <code>help stochtraj</code>).
+</p>
+
+<p>
+Up to three output arguments are returned:
+<ul>
+<li><code>t</code>: time axis, in seconds
+<li><code>RTraj</code>: rotation matrices
+<li><code>qTraj</code>: quaternions
+</ul>
+
+<p>
+If no output argument is given, <code>stochtraj</code> plots one of the trajectories.
+</p>
+
+<div class="subtitle2">Input: System dynamics </div>
+
+<p>
+<code>Sys</code> is a structure containing the dynamic properties for generating the stochastic rotational trajectories. Many of its fields overlap with those of <code>chili</code>. This allows the user to easily simulate EPR spectra in both frequency and time domains for easy comparison.
+</p>
+For the timescale(s) of motion, one of the fields <code>tcorr</code>, <code>logtcorr</code>, <code>Diff</code> or <code>logDiff</code> should be given. If more than one of these is given, the first in the list <code>logtcorr</code>, <code>tcorr</code>, <code>logDiff</code>, <code>Diff</code> takes precedence over the other(s).
+</p>
+
+
+<div class="optionfield"><code>tcorr</code></div>
+<div class="optiondescr">
+Rotational correlation time, in seconds.
+<ul>
+<li>1 number: isotopic diffusion
+<li>2 numbers <code>[txy tz]</code>: anisotropic diffusion with axial diffusion tensor
+<li>3 numbers <code>[tx ty tz]</code>: anisotropic diffusion with rhombic diffusion tensor
+</ul>
+
+<p>For example,
+<pre class="matlab">
+Sys.tcorr = 1e-9;         % isotropic diffusion, 1ns correlation time
+Sys.tcorr = [5 1]*1e-9;   % axial anisotropic diffusion, 5ns around x and y axes, 1ns around z
+Sys.tcorr = [5 4 1]*1e-9; % rhombic anisotropic diffusion
+</pre>
+  
+<p>
+Instead of <code>tcorr</code>, <code>Diff</code> can be used, see below. If <code>tcorr</code> is given, <code>Diff</code> is ignored. The correlation time <code>tcorr</code> and the diffusion rate <code>Diff</code> are related by <code>tcorr = 1/(6*Diff)</code>.
+<br>
+</div>
+
+<div class="optionfield"><code>logtcorr</code></div>
+<div class="optiondescr">
+Base-10 logarithm of the correlation time, offering an alternative way to input the correlation time. If given, <code>tcorr</code>, <code>logDiff</code> and <code>Diff</code> are ignored.<br>
+Use this instead of <code>tcorr</code> for least-squares fitting with <a class="esf" href="esfit.html">esfit</a>.
+</div>
+
+<div class="optionfield"><code>Diff</code></div>
+<div class="optiondescr">
+Rotational diffusion rates (principal values of the rotational diffusion tensor), in second<sup>-1</sup>.
+  <ul>
+  <li>one number: isotopic diffusion tensor
+  <li>two numbers: input <code>[Dxy Dzz]</code> gives axial tensor <code>[Dxy Dxy Dzz]</code>
+  <li>three numbers: rhombic tensor <code>[Dxy Dxy Dzz]</code>
+  </ul>
+  <code>Diff</code> is ignored if <code>logtcorr</code>, <code>tcorr</code> or <code>logDiff</code> is given.
+</div>
+  
+<div class="optionfield"><code>logDiff</code></div>
+<div class="optiondescr">
+Base-10 logarithm of <code>Diff</code>. If given, <code>Diff</code> is ignored.
+  <br>
+  Use this instead of <code>Diff</code> for least-squares fitting
+  with <a class="esf" href="esfit.html">esfit</a>.
+</div>
+
+<p>
+It is also possible to specify an orienting potential to simulate restricted diffusion. <code>stochtraj</code> accomplishes this by representing the orienting potential function using a series of Wigner D-functions (see reference for details). To take advantage of this feature, the user should specify each term in the orienting potential by specifying (1) the real and imaginary parts of the coefficients using <code>Coefs</code> and (2) the indices corresponding to each term using <code>LMK</code>. If these fields are left blank, unrestricted diffusion will be simulated.
+
+<div class="optionfield"><code>Coefs</code></div>
+<div class="optiondescr">
+An array of size (N,2) containing the orienting potential coefficients, where N corresponds to the number of terms in the orienting potential function, and the first and second entries in the second dimension correspond to the real and imaginary parts of &lambda;<sup>L</sup><sub>M,K</sub> (the symbols c and &epsilon; are used in the literature as well). The full form of the ordering potential is expressed as 
+U(&Omega;) = - k<sub>B</sub> T &Sigma;<sub>L,M,K</sub>&lambda;<sup>L</sup><sub>M,K</sub>(D<sup>L</sup><sub>M,K</sub>+(-1)<sup>M-K</sup>D<sup>L</sup><sub>-M,-K</sub>), where D<sup>L</sup><sub>M,K</sub> are the Wigner D-functions.
+<p>
+For example, using a complex number <code>lambda200</code> to represent the coefficient &lambda;<sup>2</sup><sub>0,0</sub> of the commonly used second order Legendre polynomial, set <code>Sys.Coefs = [real(lambda200), imag(lambda200)]</code>.
+For details about this type of ordering potential, see K.A. Earle & D.E. Budil, Calculating Slow-Motion ESR Spectra of Spin-Labeled Polymers, in: S. Schlick: Advanced ESR Methods in Polymer Research, Wiley, 2006.
+</div>
+
+<div class="optionfield"><code>LMK</code></div>
+<div class="optiondescr">
+An array of size (N,3) containing the indices L,M,K for each orienting potential coefficient in <code>Coefs</code>. The resulting orienting potential must be real, so the range of allowed index values are as follows: L&gt;0; if K=0, then 0&lt;M&le;L; and if K&ne;0, then 0&lt;K&le;L and -L&le;M&le;L.
+</div>
+
+<div class="subtitle2">Input: Simulation parameters</div>
+
+
+<p>
+<code>Par</code> is a structure containing the parameters for generating the stochastic rotational trajectories. The parameters can be categorized into two groups: Monte Carlo settings, and trajectory settings.
+<p>
+<p>
+The Monte Carlo settings specify the parameters used to perform the time integration in the simulation. One can provide an array of time points <code>t</code> along which to integrate, a number of steps <code>nSteps</code> and a time step <code>dt</code>, or a number of steps <code>nSteps</code> and a total time for simulation <code>tmax</code>.
+
+<div class="optionfield"><code>t</code></div>
+<div class="optiondescr">
+An array of time points along which to integrate, in seconds. If this is provided, no other Monte Carlo settings need to be specified.
+</div>
+
+<div class="optionfield"><code>nSteps</code></div>
+<div class="optiondescr">
+The total number of time steps used to perform integration.
+</div>
+
+<div class="optionfield"><code>dt</code></div>
+<div class="optiondescr">
+The time step of the integration, in seconds.
+</div>
+
+<div class="optionfield"><code>tmax</code></div>
+<div class="optiondescr">
+The total time of the simulation, in seconds.
+</div>
+
+
+<p>
+Lastly, the trajectory settings are used to specify the starting orientation angles, (<code>alpha</code>, <code>beta</code>, <code>gamma</code>),
+which correspond to the Euler angles &alpha;, &beta;, and &gamma;; and how many trajectories to simulate, <code>nTraj</code>. If only one set of angles is given and <code>nTraj</code> is greater than one, then this starting orientation will be repeated for each trajectory. If <code>nTraj</code> is not provided, only one trajectory will be simulated. If no angles are provided, then a number of starting orientations equal to <code>nTraj</code> will be chosen from a uniform random distribution over the unit sphere, where &alpha;, &beta;, and &gamma; are sampled from [0,2&pi;), [0,&pi;), and [0,2&pi;), respectively.
+
+
+<div class="optionfield"><code>alpha</code></div>
+<div class="optiondescr">
+The Euler angle &alpha; used to specify starting orientations, in radians.
+</div>
+
+<div class="optionfield"><code>beta</code></div>
+<div class="optiondescr">
+The Euler angle &beta; used to specify starting orientations, in radians.
+</div>
+
+<div class="optionfield"><code>gamma</code></div>
+<div class="optiondescr">
+The Euler angle &gamma; used to specify starting orientations, in radians.
+</div>
+
+<div class="optionfield"><code>nTraj</code></div>
+<div class="optiondescr">
+The total number of trajectories to simulate.
+</div>
+
+<div class="subtitle2">Input: Simulation options</div>
+
+
+
+<div class="optionfield"><code>chkcon</code></div>
+<div class="optiondescr">
+0 (default), 1<br>
+If equal to 1, after the first <code>nSteps</code> of the trajectories are calculated, <code>stochtraj</code> will check for both inter- and intra-trajectory convergence using the Gelman-Rubin R statistic (to be specific, requiring that R&lt;1.1, see A. Gelman and D. Rubin, Statistical Science 7, 457 (1992) for details). If convergence is not obtained, then propagation will be extended by either a length of time equal to the average of <code>tcorr</code> or by 20% more time steps, whichever is larger.
+</div>
+<!--
+<div class="optionfield"><code>tol</code></div>
+<div class="optiondescr">
+Termination tolerance for chi squared in angular distribution. If <code>Par.chkcon=1</code> and <code>tol</code> is not specified, the default value is <code>1e-3</code>.
+</div>
+-->
+
+<div class="optionfield"><code>Verbosity</code></div>
+<div class="optiondescr">
+0 (default), 1<br>
+Determines how much information <code>stochtraj</code> prints to the screen. If <code>Opt.Verbosity=0</code>, is is completely silent. 1 prints details about the progress of the computation.
+</div>
+
+<!-- =================================================================== -->
+<div class="subtitle">Example</div>
+
+<p>
+To simulate a 200-ns long, fast motion Brownian diffusion trajectory starting from the north pole on the unit sphere, enter
+</p>
+
+<pre class="matlab">
+Sys.tcorr = 5e-9;  % 5 ns rotational correlation time
+
+Par.dt = 1e-9;  % 1 ns time step
+Par.nSteps = 1e3;  % 1000 time steps
+Par.alpha = 0;
+Par.beta = 0;
+Par.gamma = 0;
+
+stochtraj(Sys,Par);
+</pre>
+
+<p>
+To simulate 400 1-&mu;s long, slow motion trajectories in an orienting potential with coefficient &lambda;<sup>2</sup><sub>0,0</sub> = 1, each of which starts at a random point on the unit sphere, enter
+</p>
+
+<pre class="matlab">
+Sys.tcorr = 50e-9;  % 50 ns rotational correlation time
+Sys.Coefs = [1,0];  % purely real orienting potential coefficient
+Sys.LMK = [2,0,0];  % L=2, M=K=0
+
+Par.dt = 1e-9;
+Par.nSteps = 500;
+Par.nTraj = 400;
+
+stochtraj(Sys,Par);
+</pre>
+
+
+<!-- =================================================================== -->
+<div class="subtitle">Algorithm</div>
+
+<p>
+<code>stochtraj</code> solves the stochastic rotational Langevin equation by numerically propagating quaternions. The quaternions specify orientations of the body-fixed coordinate frame with respect to the space-fixed frame. Since both isotropic and anisotropic diffusion tensors are diagonal in the body-fixed frame, defining the quaternions in this manner considerably simplifies the problem.
+</p>
+<p>
+For full details of the methods used here, see: 
+</p>
+D. Sezer, J. H. Freed, and B. Roux, J. Chem. Phys. B 128, 165106 (2008).
+
+<!-- =================================================================== -->
+<div class="subtitle">See also</div>
+<p>
+<a class="esf" href="chili.html">chili</a>
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+</html>
