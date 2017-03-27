@@ -66,8 +66,7 @@ if isfield(Par,'RTraj')
       || size(RTraj,4)~=Par.nSteps
     error('Array of rotation matrices must be of size = (3,3,nTraj,nSteps).')
   end
-end
-if isfield(Par,'qTraj')
+elseif isfield(Par,'qTraj')
   qTraj = Par.qTraj;
   
   if size(qTraj,1)~=4 || size(qTraj,2)~=Par.nTraj ...
@@ -259,11 +258,10 @@ switch Method
     rho_t = zeros(6,6,nTraj,nSteps);
     rho_t(1:3,4:6,:,1) = repmat(eye(3),1,1,nTraj,1);
     rho_t(4:6,1:3,:,1) = repmat(eye(3),1,1,nTraj,1);
-%     rho_t = reshape(rho_t,[36,nTraj,nSteps]);
 
     if isempty(cacheTensors)
-      % ISTOs in the lab frame and ISTs in the principal frame are
-      % time-independent, so we only need to calculate them once
+      % ISTOs in the lab frame and IST components in the principal frame 
+      % are time-independent, so we only need to calculate them once
       
       SpinOps = cell(numel(Sys.Spins),3);
       for iSpin = 1:numel(Sys.Spins)
@@ -271,85 +269,68 @@ switch Method
         SpinOps{iSpin,2} = sop(Sys.Spins,iSpin,2);
         SpinOps{iSpin,3} = sop(Sys.Spins,iSpin,3);
       end
-
+      
       if ~isfield(Sys,'DiffFrame'), Sys.DiffFrame = [0 0 0]; end  % TODO include frames in cardamom
-
+      
       [T,F,~,~,~] = magint(Sys,SpinOps,CenterField,0,0);
 
-      % sum over interactions
       F0 = F.F0(2)*2*pi;  % Hz -> rad s^-1, only keep isotropic HF interaction
       F2 = F.F2*2*pi;  % Hz -> rad s^-1
 
       T0 = T.T0{2};  % only keep isotropic HF interaction
       T2 = T.T2;
       
-      cacheTensors.G0 = conj(F0)*T0;
+      % zeroth rank
+      cacheTensors.Q0 = conj(F0)*T0;
       
-      cacheTensors.G2 = zeros(6,6,5,5);
+      cacheTensors.Q2 = cell(5,5);
       
+      % create the 25 second-rank RBOs
       for mp = 1:5
         for m = 1:5
-          cacheTensors.G2(:,:,mp,m) = conj(F2(1,mp)).*T2{1,m} ...
-                                      + conj(F2(2,mp)).*T2{2,m};
+          cacheTensors.Q2{mp,m} = conj(F2(1,m))*T2{1,mp} ...
+                                      + conj(F2(2,m))*T2{2,mp};
         end
       end
       
     end
     
-    % calculate Wigner D-matrices
-    [~,D2] = wigD(qTraj);
+    % calculate Wigner D-matrices from the quaternion trajectories
+    [~, D2] = wigD(qTraj);
     
-% -------------------------------------------------------------------------
+    % calculate propagators
+    U = zeros(6,6,nTraj,nSteps);
     
-%     H = cacheTensors.F0*cacheTensors.T0 ...
-%         + squeeze(sum(cacheTensors.T2.*permute(conj(F2Traj),[4,5,1,2,3]),3));
-    
-%     U = zeros(6,6,nTraj,nSteps);
-    
-    for iStep=1:nSteps-1
+    for iStep=1:nSteps
       for iTraj=1:nTraj
-%         U(:,:,iTraj,iStep) = expm(-1i*dt*H(:,:,iTraj,iStep));
-        H = cacheTensors.G0;
+        % zeroth rank term (HF only)
+        H = cacheTensors.Q0;
+        
+        % rotate second rank terms and add to Hamiltonian
         for mp = 1:5
           for m = 1:5
-            H = H + D2(m,mp,iTraj,iStep).*cacheTensors.G2(:,:,mp,m);
+            H = H + D2(m,mp,iTraj,iStep)*cacheTensors.Q2{m,mp};
           end
         end
-%         U(:,:,iTraj,iStep) = expeig(1i*dt*H);
-        U = expeig(1i*dt*H,1);
-%         U = expm(1i*dt*H);
-        rho_t(:,:,iTraj,iStep+1) = U*rho_t(:,:,iTraj,iStep)*U';
+        
+        % calculate matrix exponential
+        U(:,:,iTraj,iStep) = expeig(1i*dt*H);
       end
+    end
+    
+    Udag = conj(permute(U,[2,1,3,4]));
+        
+    % propagate density matrix
+    for iStep=2:nSteps
+      rho_t(:,:,:,iStep) = mmult(U(:,:,:,iStep-1),...
+                                 mmult(rho_t(:,:,:,iStep-1),...
+                                       Udag(:,:,:,iStep-1),'complex'),...
+                                 'complex');                  
     end
     
     % Only keep the m_S=-1/2 subspace part that contributes to 
     %   tr(S_{+}\rho(t))
     rho_t = rho_t(4:6,1:3,:,:);
-    
-%     Udag = conj(permute(U,[2,1,3,4]));
-%         
-%     for iStep=2:nSteps
-%       rho_t(:,:,:,iStep) = mmult(U(:,:,:,iStep-1),...
-%                                    mmult(rho_t(:,:,:,iStep-1),...
-%                                          Udag(:,:,:,iStep-1),'complex'),...
-%                                  'complex');                  
-%     end
-    
-    % Superoperator code
-%     % promote to Liouville space operator
-%     L = tosuper(H,'c');
-%     
-% %     U = zeros(36,36,nTraj,nSteps);
-%     
-%     for iStep=2:nSteps
-%       for iTraj=1:iTraj
-% %         U = expm(-1i*dt*L(:,:,iTraj,iStep));
-%         rho_t(:,iTraj,iStep) = expm(-1i*dt*L(:,:,iTraj,iStep))...
-%                               *rho_t(:,iTraj,iStep-1);
-%       end
-%     end
-%
-%     rho_t = reshape(rho_t,[6,6,nTraj,nSteps]);
 
   otherwise
     error('Propagation method not recognized.')
@@ -360,14 +341,9 @@ end
 % Helper functions
 % -------------------------------------------------------------------------
 
-function expmA = expeig(A,balancing)
+function expmA = expeig(A)
 
-if balancing==1
-  [V,D] = eig(A);
-elseif balancing==0  
-  [V,D] = eig(A,'nobalance');
-  V = V./sqrt(sum(V.*V,1));
-end
+[V,D] = eig(A);
 
 expmA = V*diag(exp(diag(D)))*V';
 

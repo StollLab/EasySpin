@@ -322,7 +322,6 @@ for iOrient = 1:nOrients
       if strcmp(Opt.Method,'Oganesyan')
         % this method needs quaternions, not rotation matrices
         Par.qTraj = qTraj;
-        Par.RTraj = RTraj;
       else
         % other methods use rotation matrices
         Par.RTraj = RTraj;
@@ -359,10 +358,13 @@ for iOrient = 1:nOrients
 
 end
 mins_tot = floor(toc/60);
-% msg = sprintf('Done!\nTotal simulation time: %d:%2.0f\n',mins_tot,mod(toc,60));
-logmsg(1,'Done!\nTotal simulation time: %d:%2.0f\n',mins_tot,mod(toc,60));
+msg = sprintf('Done!\nTotal simulation time: %d:%2.0f\n',mins_tot,mod(toc,60));
+if Opt.Verbosity
+  fprintf(msg);
+end
 
 % Perform FFT
+% -------------------------------------------------------------------------
 
 % hamm = 0.54 + 0.46*cos(pi*t/max(t));  
 TL = Dynamics.T2;  % TODO implement Lorentzian and Gaussian broadening
@@ -371,14 +373,21 @@ TL = Dynamics.T2;  % TODO implement Lorentzian and Gaussian broadening
 tdiff = cellfun(@(x) x.*exp(-x/TL), tcell, 'UniformOutput', false);
 expvalDt = cellfun(@times, expval, tdiff, 'UniformOutput', false);
 
+% average over trajectories
 expval = mean(cell2mat(expval),2);
 
+% increase number of points produce zero padding for FFT
 M = ceil(2*Par.nSteps);  % TODO make flexible for propagation length extensions
+
+% relaxation and differentiation of spectrum via convolution
 spc = cell2mat(cellfun(@(x) fft(x,M), expvalDt, 'UniformOutput', false));
 spc = imag(fftshift(sum(spc,2)));
 freq = 1/(dt*M)*(-M/2:M/2-1);  % TODO check for consistency between FieldSweep and FFT window/resolution
 
+% center the spectrum around the isotropic g-tensor component
 fftAxis = mhz2mt(freq/1e6+Exp.mwFreq*1e3,mean(Sys.g));  % Note use of g0, not ge
+
+% interpolate over horizontal sweep range
 outspec = interp1(fftAxis,spc,xAxis);
 
 % Final processing
