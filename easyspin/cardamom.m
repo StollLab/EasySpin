@@ -237,7 +237,7 @@ dt = Par.dt;
 
 [Exp, CenterField] = validate_exp('cardamom',Sys,Exp);
 
-omega = 2*pi*Exp.mwFreq*1e9;  % GHz -> Hz (rad/s);
+omega = 2*pi*Exp.mwFreq*1e9;  % GHz -> rad s^-1
 
 FieldSweep = true;  % TODO expand usage to include frequency sweep
 
@@ -308,6 +308,7 @@ tcell = cell(1,nOrients);
 % -------------------------------------------------------------------------
 
 clear updateuser
+clear propagate_quantum
 
 tic
 for iOrient = 1:nOrients
@@ -321,6 +322,7 @@ for iOrient = 1:nOrients
       if strcmp(Opt.Method,'Oganesyan')
         % this method needs quaternions, not rotation matrices
         Par.qTraj = qTraj;
+        Par.RTraj = RTraj;
       else
         % other methods use rotation matrices
         Par.RTraj = RTraj;
@@ -357,8 +359,8 @@ for iOrient = 1:nOrients
 
 end
 mins_tot = floor(toc/60);
-msg = sprintf('Done!\nTotal simulation time: %d:%2.0f\n',mins_tot,mod(toc,60));
-logmsg(1,msg);
+% msg = sprintf('Done!\nTotal simulation time: %d:%2.0f\n',mins_tot,mod(toc,60));
+logmsg(1,'Done!\nTotal simulation time: %d:%2.0f\n',mins_tot,mod(toc,60));
 
 % Perform FFT
 
@@ -425,6 +427,8 @@ end
 
 function updateuser(iOrient,nOrient)
 % Update user on progress
+
+if iOrient==1, clear reverseStr; end
 
 persistent reverseStr
 

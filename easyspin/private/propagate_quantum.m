@@ -66,7 +66,8 @@ if isfield(Par,'RTraj')
       || size(RTraj,4)~=Par.nSteps
     error('Array of rotation matrices must be of size = (3,3,nTraj,nSteps).')
   end
-elseif isfield(Par,'qTraj')
+end
+if isfield(Par,'qTraj')
   qTraj = Par.qTraj;
   
   if size(qTraj,1)~=4 || size(qTraj,2)~=Par.nTraj ...
@@ -159,9 +160,9 @@ switch Method
     % Eq. 34 in [1]
     
     for iStep=2:nSteps
-     rho_t(:,:,:,iStep) = mmult(U(:,:,:,iStep-1),...
-                                mmult(rho_t(:,:,:,iStep-1), U(:,:,:,iStep-1),'complex'),...
-                                'complex');
+      rho_t(:,:,:,iStep) = mmult(U(:,:,:,iStep-1),...
+                                 mmult(rho_t(:,:,:,iStep-1), U(:,:,:,iStep-1),'complex'),...
+                                 'complex');
 
     %  Trace of a product of matrices is the sum of entry-wise products
 %      rho_t(:,:,:,iStep) = U2(:,:,:,iStep-1).*rho_t(:,:,:,iStep-1);
@@ -252,96 +253,87 @@ switch Method
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   case 'Oganesyan'  % see Ref [3]
+    
+    persistent cacheTensors
+    
     rho_t = zeros(6,6,nTraj,nSteps);
     rho_t(1:3,4:6,:,1) = repmat(eye(3),1,1,nTraj,1);
     rho_t(4:6,1:3,:,1) = repmat(eye(3),1,1,nTraj,1);
 %     rho_t = reshape(rho_t,[36,nTraj,nSteps]);
-    
-%     SpinOps = cell(numel(Sys.Spins),3);
-%     for iSpin = 1:numel(Sys.Spins)
-%       SpinOps{iSpin,1} = sop(Sys.Spins,iSpin,1);
-%       SpinOps{iSpin,2} = sop(Sys.Spins,iSpin,2);
-%       SpinOps{iSpin,3} = sop(Sys.Spins,iSpin,3);
-%     end
-    
-    T0 = cell(2,1);
-    T1 = cell(2,3);
-    T2 = cell(2,5);
-    F0 = zeros(2,1);
-    F1 = zeros(2,3);
-    F2 = zeros(2,5);
-    
-    SxIe = sop([1/2,1], 'xe');
-    SyIe = sop([1/2,1], 'ye');
-    SzIe = sop([1/2,1], 'ze');
-    SeIx = sop([1/2,1], 'ex');
-    SeIy = sop([1/2,1], 'ey');
-    SeIz = sop([1/2,1], 'ez');
-    
-    B0 = {0 0 CenterField/1e3}; % mT -> T
-    
-    % electron Zeeman
-%     [T0{1},T1(1,:),T2(1,:)] = istotensor(B0,SpinOps(1,:));
-    [T0{1},T1(1,:),T2(1,:)] = istotensor(B0,{SxIe,SyIe,SzIe});
-    [F0(1),F1(1,:),F2(1,:)] = istocoeff(g*bmagn/planck); % Hz
-    
-    % hyperfine
-%     [T0{2},T1(2,:),T2(2,:)] = istotensor(SpinOps(1,:),SpinOps(2,:));
-    [T0{2},T1(2,:),T2(2,:)] = istotensor({SxIe,SyIe,SzIe},{SeIx,SeIy,SeIz});
-    [F0(2),F1(2,:),F2(2,:)] = istocoeff(A*1e6*2*pi); % MHz (1e6 s^-1) -> rad s^-1
-    
-    % sum over interactions
-%     F0 = sum(F0,1);
-    F0 = F0(2);  % only keep isotropic HF interaction
-    F2 = sum(F2,1);
-    
-%     T0 = cellfun(@plus, T0(1,:), T0(2,:), 'UniformOutput', false);
-    T0 = T0{2};  % only keep isotropic HF interaction
-    T2 = cellfun(@plus, T2(1,:), T2(2,:), 'UniformOutput', false);
-    
-    % convert cells to arrays
-%     T0 = reshape(cell2mat(T0),[6,6]);
-    T2 = reshape(cell2mat(T2),[6,6,5]);
+
+    if isempty(cacheTensors)
+      % ISTOs in the lab frame and ISTs in the principal frame are
+      % time-independent, so we only need to calculate them once
+      
+      SpinOps = cell(numel(Sys.Spins),3);
+      for iSpin = 1:numel(Sys.Spins)
+        SpinOps{iSpin,1} = sop(Sys.Spins,iSpin,1);
+        SpinOps{iSpin,2} = sop(Sys.Spins,iSpin,2);
+        SpinOps{iSpin,3} = sop(Sys.Spins,iSpin,3);
+      end
+
+      if ~isfield(Sys,'DiffFrame'), Sys.DiffFrame = [0 0 0]; end  % TODO include frames in cardamom
+
+      [T,F,~,~,~] = magint(Sys,SpinOps,CenterField,0,0);
+
+      % sum over interactions
+      F0 = F.F0(2)*2*pi;  % Hz -> rad s^-1, only keep isotropic HF interaction
+      F2 = F.F2*2*pi;  % Hz -> rad s^-1
+
+      T0 = T.T0{2};  % only keep isotropic HF interaction
+      T2 = T.T2;
+      
+      cacheTensors.G0 = conj(F0)*T0;
+      
+      cacheTensors.G2 = zeros(6,6,5,5);
+      
+      for mp = 1:5
+        for m = 1:5
+          cacheTensors.G2(:,:,mp,m) = conj(F2(1,mp)).*T2{1,m} ...
+                                      + conj(F2(2,mp)).*T2{2,m};
+        end
+      end
+      
+    end
     
     % calculate Wigner D-matrices
     [~,D2] = wigD(qTraj);
     
-%     nInts = size(F2,1);
+% -------------------------------------------------------------------------
     
-    F2Traj = zeros(5,nTraj,nSteps);
-%     H = zeros(6,6,nTraj,nSteps);
+%     H = cacheTensors.F0*cacheTensors.T0 ...
+%         + squeeze(sum(cacheTensors.T2.*permute(conj(F2Traj),[4,5,1,2,3]),3));
     
-    % rotate the second rank irreducible spherical spatial tensors
-    for iStep=1:nSteps
+%     U = zeros(6,6,nTraj,nSteps);
+    
+    for iStep=1:nSteps-1
       for iTraj=1:nTraj
-%         F2Traj(:,iTraj,iStep) = (F2*D2(:,:,iTraj,iStep)).';
-        F2Traj(:,iTraj,iStep) = D2(:,:,iTraj,iStep)*F2(:);
-      end
-    end
-    
-    % multiply each ISTO component by the corresponding spatial tensor 
-    % component
-    H = F0*T0 + squeeze(sum(T2.*permute(F2Traj,[4,5,1,2,3]),3));
-    
-    U = zeros(6,6,nTraj,nSteps);
-    
-    for iStep=1:nSteps
-      for iTraj=1:iTraj
 %         U(:,:,iTraj,iStep) = expm(-1i*dt*H(:,:,iTraj,iStep));
-        U(:,:,iTraj,iStep) = expeig(-1i*dt*H(:,:,iTraj,iStep));
+        H = cacheTensors.G0;
+        for mp = 1:5
+          for m = 1:5
+            H = H + D2(m,mp,iTraj,iStep).*cacheTensors.G2(:,:,mp,m);
+          end
+        end
+%         U(:,:,iTraj,iStep) = expeig(1i*dt*H);
+        U = expeig(1i*dt*H,1);
+%         U = expm(1i*dt*H);
+        rho_t(:,:,iTraj,iStep+1) = U*rho_t(:,:,iTraj,iStep)*U';
       end
     end
     
-    Udag = conj(permute(U,[2,1,3,4]));
-    
-    for iStep=2:nSteps
-      rho_t(:,:,:,iStep) = mmult(U(:,:,:,iStep-1),...
-                                   mmult(rho_t(:,:,:,iStep-1),...
-                                         Udag(:,:,:,iStep-1),'complex'),...
-                                 'complex');                  
-    end
-    
+    % Only keep the m_S=-1/2 subspace part that contributes to 
+    %   tr(S_{+}\rho(t))
     rho_t = rho_t(4:6,1:3,:,:);
+    
+%     Udag = conj(permute(U,[2,1,3,4]));
+%         
+%     for iStep=2:nSteps
+%       rho_t(:,:,:,iStep) = mmult(U(:,:,:,iStep-1),...
+%                                    mmult(rho_t(:,:,:,iStep-1),...
+%                                          Udag(:,:,:,iStep-1),'complex'),...
+%                                  'complex');                  
+%     end
     
     % Superoperator code
 %     % promote to Liouville space operator
@@ -368,9 +360,14 @@ end
 % Helper functions
 % -------------------------------------------------------------------------
 
-function expmA = expeig(A)
+function expmA = expeig(A,balancing)
 
-[V,D] = eig(A);
+if balancing==1
+  [V,D] = eig(A);
+elseif balancing==0  
+  [V,D] = eig(A,'nobalance');
+  V = V./sqrt(sum(V.*V,1));
+end
 
 expmA = V*diag(exp(diag(D)))*V';
 
