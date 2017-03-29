@@ -43,7 +43,8 @@ q1q2 = q1.*q2;
 q1q3 = q1.*q3;
 q2q3 = q2.*q3;
 
-% mat = zeros(3,3,qshape(2:end));
+% needed if 3rd dimension is singleton and 4th is not
+mat = zeros([3,3,qshape(2:end)]); 
 
 mat(1,1,Index{2:end}) = 1 - 2*sq2 - 2*sq3;
 mat(1,2,Index{2:end}) = 2*q1q2 - 2*q0q3;

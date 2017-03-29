@@ -28,12 +28,16 @@
 %   Exp: experimental parameter settings
 %     B              double  TODO can this be replaced by a fieldsweep and then used to extract omega0?
 %                    center magnetic field
+%
 %   Opt: optional settings
 %     Method         string
 %                    'Sezer': propagate using the m_s=-1/2 subspace
 %                    'DeSensi': propagate using an eigenvalue method
 %                    'Oganesyan': propagate using correlation functions
 %
+%   MD:
+%     RTraj          numeric, size = (3,3,nTraj,nSteps)
+%                    externally provided rotation matrices
 %
 %
 %   Output:
@@ -48,33 +52,24 @@
 % [3] Oganesyan, Phys. Chem. Chem. Phys. 13, 4724 (2011)
 %      http://dx.doi.org/10.1039/c0cp01068e
 
-function rho_t = propagate_quantum(Sys, Par, Opt, omega, CenterField)
+function rho_t = propagate_quantum(Sys, Par, Opt, MD, omega, CenterField)
 
 % Preprocessing
 % -------------------------------------------------------------------------
 
-if nargin~=5
-  error('Wrong number of input arguments.')
-end
-
 Method = Opt.Method;
+Model = Par.Model;
 
 if isfield(Par,'RTraj')
   RTraj = Par.RTraj;
   RTrajInv = permute(RTraj,[2,1,3,4]);
-  if size(RTraj,1)~=3 || size(RTraj,2)~=3 || size(RTraj,3)~=Par.nTraj ...
-      || size(RTraj,4)~=Par.nSteps
-    error('Array of rotation matrices must be of size = (3,3,nTraj,nSteps).')
-  end
 elseif isfield(Par,'qTraj')
   qTraj = Par.qTraj;
-  
-  if size(qTraj,1)~=4 || size(qTraj,2)~=Par.nTraj ...
-      || size(qTraj,3)~=Par.nSteps
-    error('Array of quaternions must be of size = (4,nTraj,nSteps).')
-  end
+elseif isfield(MD,'RTraj')
+  RTraj = MD.RTraj;
+  RTrajInv = permute(RTraj,[2,1,3,4]);
 else
-  error('Either Par.RTraj or Par.qTraj must be provided.')
+  error('Par.RTraj, Par.qTraj, or MD.RTraj must be provided.')
 end
 
 if ~isfield(Sys,'g'), error('g-tensor not specified.'); end
@@ -104,34 +99,77 @@ end
 switch Method
   case 'Sezer'  % see Ref [1]
 
-    rho_t = zeros(3,3,nTraj,nSteps);
-    rho_t(:,:,:,1) = repmat(eye(3),1,1,nTraj,1);
-
     g_tr = sum(g);
 
+    if strcmp(Model,'Molecular Dynamics')
+      % time step of MD simulation, MD.dt, is usually much smaller than
+      % that of the propagation, Par.dt, so we need to average over windows
+      % of size Par.dt/MD.dt
+      
+      if MD.nTraj > 1, error('Using the Sezer Method with multiple trajectories is not supported.'); end
+      
+      % total time of MD trajectory
+      TMD = MD.nSteps*MD.dt;
+      
+      % size of averaging window
+      nWindow = round(Par.dt/MD.dt);
+      
+      % size of MD trajectory after averaging
+      M = round(TMD/Par.dt);
+      
+      rho_t = zeros(3,3,MD.nTraj,M);
+      rho_t(:,:,:,1) = repmat(eye(3),MD.nTraj);
+
+      GptensorAvg = zeros(3,3,1,M);
+      AtensorAvg = zeros(3,3,1,M);
+      
+      % Perform rotations on g- and A-tensors
+      Gptensor = matmult(RTraj, matmult(repmat(diag(g),1,1,MD.nTraj,MD.nSteps), ...
+                                            RTrajInv))/gfree - g_tr/3/gfree;
+
+      Atensor = matmult(RTraj, matmult(repmat(diag(A),1,1,MD.nTraj,MD.nSteps), ...
+                                           RTrajInv))*1e6*2*pi;  % MHz (s^-1) -> Hz (rad s^-1)
+    
+      % average the interaction tensors over time windows
+      for k = 1:M
+        GptensorAvg(:,:,k) = mean(Gptensor(:,:,:,1+(k-1)*nWindow:k*nWindow),4);
+        AtensorAvg(:,:,k) = mean(Atensor(:,:,:,1+(k-1)*nWindow:k*nWindow),4);
+      end
+      
+      % frame of MD coordinate system is lab frame for solution simulations
+      
+      Gptensor = GptensorAvg;
+      Atensor = AtensorAvg;
+      
+    else
+      rho_t = zeros(3,3,nTraj,nSteps);
+      rho_t(:,:,:,1) = repmat(eye(3),nTraj);
     % Perform rotations on g- and A-tensors
-    Gp_tensor = matmult(RTraj, matmult(repmat(diag(g),1,1,nTraj,nSteps), ...
-                                          RTrajInv))/gfree - g_tr/3/gfree;
+      Gptensor = matmult(RTraj, matmult(repmat(diag(g),1,1,nTraj,nSteps), ...
+                                            RTrajInv))/gfree - g_tr/3/gfree;
 
-    A_tensor = matmult(RTraj, matmult(repmat(diag(A),1,1,nTraj,nSteps), ...
-                                         RTrajInv))*1e6*2*pi;  % MHz (s^-1) -> Hz (rad s^-1)
+      Atensor = matmult(RTraj, matmult(repmat(diag(A),1,1,nTraj,nSteps), ...
+                                           RTrajInv))*1e6*2*pi;  % MHz (s^-1) -> Hz (rad s^-1)
+      
+    end
+    
+    Gp_zz = Gptensor(3,3,:,:);
 
-    Gp_zz = Gp_tensor(3,3,:,:);
-
-    a = sqrt(A_tensor(1,3,:,:).*A_tensor(1,3,:,:) ...
-           + A_tensor(2,3,:,:).*A_tensor(2,3,:,:) ...
-           + A_tensor(3,3,:,:).*A_tensor(3,3,:,:));
+    a = sqrt(Atensor(1,3,:,:).*Atensor(1,3,:,:) ...
+           + Atensor(2,3,:,:).*Atensor(2,3,:,:) ...
+           + Atensor(3,3,:,:).*Atensor(3,3,:,:));
 
 %     theta = Gamma*dt*0.5*squeeze(a);  % use this if A is given in G
     theta = dt*0.5*squeeze(a);
-    nx = squeeze(A_tensor(1,3,:,:)./a);
-    ny = squeeze(A_tensor(2,3,:,:)./a);
-    nz = squeeze(A_tensor(3,3,:,:)./a);
+    nx = squeeze(Atensor(1,3,:,:)./a);
+    ny = squeeze(Atensor(2,3,:,:)./a);
+    nz = squeeze(Atensor(3,3,:,:)./a);
 
     % Eqs. A1-A2 in [1]
     ct = cos(theta) - 1;
     st = -sin(theta);
 
+    exp_array = zeros(3,3,size(Gp_zz,3),size(Gp_zz,4));
     exp_array(1,1,:,:) = 1 + ct.*(nz.*nz + 0.5*(nx.*nx + ny.*ny)) ...
                        + 1i*st.*nz;
     exp_array(1,2,:,:) = sqrt(0.5)*(st.*ny + ct.*nz.*nx) ...
@@ -154,17 +192,24 @@ switch Method
     % Calculate propagator
 %     U = bsxfun(@times, exp(-1i*dt*0.5*Gamma*B*Gp_zz), exp_array);
       U = bsxfun(@times, exp(-1i*dt*0.5*omega*Gp_zz), exp_array);
-%       U2 = matmult(U,U);
 
     % Eq. 34 in [1]
     
-    for iStep=2:nSteps
-      rho_t(:,:,:,iStep) = mmult(U(:,:,:,iStep-1),...
-                                 mmult(rho_t(:,:,:,iStep-1), U(:,:,:,iStep-1),'complex'),...
-                                 'complex');
+    if strcmp(Model,'Molecular Dynamics')
+      % only one trajectory, so the "*" operator can be used
+      for iStep=2:M
+        rho_t(:,:,:,iStep) = U(:,:,:,iStep-1)*rho_t(:,:,:,iStep-1)*U(:,:,:,iStep-1);
+      end
+    else
+      % there are multiple trajectories, so we need "mmult"
+      for iStep=2:nSteps
+        rho_t(:,:,:,iStep) = mmult(U(:,:,:,iStep-1),...
+                                   mmult(rho_t(:,:,:,iStep-1), U(:,:,:,iStep-1),'complex'),...
+                                   'complex');
 
-    %  Trace of a product of matrices is the sum of entry-wise products
-%      rho_t(:,:,:,iStep) = U2(:,:,:,iStep-1).*rho_t(:,:,:,iStep-1);
+      %  Trace of a product of matrices is the sum of entry-wise products
+  %      rho_t(:,:,:,iStep) = U2(:,:,:,iStep-1).*rho_t(:,:,:,iStep-1);
+      end
     end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -175,24 +220,24 @@ switch Method
     rho_t(4:6,1:3,:,1) = repmat(eye(3),1,1,nTraj,1);
 
     g_tr = sum(g);
+    
+    B0 = CenterField/1e3;  % mT -> T
 
     % Perform rotations on g- and A-tensors
-    Gp_tensor = matmult(RTraj, matmult(repmat(diag(g),1,1,nTraj,nSteps), ...
-                                      RTrajInv))/gfree - g_tr/3/gfree;
+    gtensor = matmult(RTraj, matmult(repmat(diag(g),1,1,nTraj,nSteps), ...
+                                      RTrajInv));
 
-    A_tensor = matmult(RTraj, matmult(repmat(diag(A),1,1,nTraj,nSteps), ...
+    Atensor = matmult(RTraj, matmult(repmat(diag(A),1,1,nTraj,nSteps), ...
                                       RTrajInv))*1e6*2*pi;  % MHz (s^-1) -> rad s^-1
 
-    Gp_zz = Gp_tensor(3,3,:,:);
-%     g_zz = g_tensor(3,3,:,:);
+    g_zz = gtensor(3,3,:,:);
 
-    A_xz = A_tensor(1,3,:,:);
-    A_yz = A_tensor(2,3,:,:);
-    A_zz = A_tensor(3,3,:,:);
+    A_xz = Atensor(1,3,:,:);
+    A_yz = Atensor(2,3,:,:);
+    A_zz = Atensor(3,3,:,:);
 
-    % Eq. 24-27 in [2]
-%     geff = -bmagn/(planck/2/pi)*B*g_zz + omega0; 
-    geff = Gp_zz;
+    % modified from Eq. 24-27 in [2]
+    omegaeff = -bmagn/(planck/2/pi)*B0*(g_zz - g_tr/3); 
     
     ma = 0.5;
     mb = -0.5;
@@ -215,12 +260,12 @@ switch Method
 %                                 0;          0;                 0;                  0; -0.5*(geff);                  0;
 %                                 0;          0;                 0;                  0;           0; -0.5*(geff + ellm) ];
     Lambda = zeros(6,6,nTraj,nSteps);
-    Lambda(1,1,:,:) = exp(1i*dt*ma*(omega*geff + mp*ella));
-    Lambda(2,2,:,:) = exp(1i*dt*ma*(omega*geff + m0*ella));
-    Lambda(3,3,:,:) = exp(1i*dt*ma*(omega*geff + mm*ella));
-    Lambda(4,4,:,:) = exp(1i*dt*mb*(omega*geff + mp*ellb));
-    Lambda(5,5,:,:) = exp(1i*dt*mb*(omega*geff + m0*ellb));
-    Lambda(6,6,:,:) = exp(1i*dt*mb*(omega*geff + mm*ellb));
+    Lambda(1,1,:,:) = exp(-1i*dt*ma*(omegaeff + mp*ella));
+    Lambda(2,2,:,:) = exp(-1i*dt*ma*(omegaeff + m0*ella));
+    Lambda(3,3,:,:) = exp(-1i*dt*ma*(omegaeff + mm*ella));
+    Lambda(4,4,:,:) = exp(-1i*dt*mb*(omegaeff + mp*ellb));
+    Lambda(5,5,:,:) = exp(-1i*dt*mb*(omegaeff + m0*ellb));
+    Lambda(6,6,:,:) = exp(-1i*dt*mb*(omegaeff + mm*ellb));
 
     b   = (A_xz + 1i*A_yz);
     bst = (A_xz - 1i*A_yz);
@@ -314,7 +359,8 @@ switch Method
         end
         
         % calculate matrix exponential
-        U(:,:,iTraj,iStep) = expeig(1i*dt*H);
+%         U(:,:,iTraj,iStep) = expm(-1i*dt*H);
+        U(:,:,iTraj,iStep) = expeig(-1i*dt*H);
       end
     end
     
@@ -341,11 +387,11 @@ end
 % Helper functions
 % -------------------------------------------------------------------------
 
-function expmA = expeig(A)
+function C = expeig(A)
 
 [V,D] = eig(A);
 
-expmA = V*diag(exp(diag(D)))*V';
+C = V*diag(exp(diag(D)))*V';
 
 end
 
@@ -366,7 +412,8 @@ Z = A.*Ast - B.*Bst;
 
 % D1 = [            A.^2,       sqrt(2)*A.*B,           B.^2;
 %        -sqrt(2)*A.*Bst,                  Z, sqrt(2)*Ast.*B;
-%                 Bst.^2, -sqrt(2).*Ast.*Bst,         Ast.^2 ];      
+%                 Bst.^2, -sqrt(2).*Ast.*Bst,         Ast.^2 ];
+D1 = zeros(3,3,size(q,2),size(q,3));
 D1(1,1,:,:) = A.^2;
 D1(1,2,:,:) = sqrt(2)*A.*B;
 D1(1,3,:,:) = B.^2;
@@ -384,6 +431,7 @@ D1(3,3,:,:) = Ast.^2;
 %        sqrt(6)*A.^2.*Bst.^2, -sqrt(6)*A.*Bst.*Z,         1/2*(3*Z.^2-1), sqrt(6)*Ast.*B.*Z, sqrt(6)*Ast.^2.*B.^2;
 %                -2*A.*Bst.^3,    Bst.^2.*(2*Z+1),   -sqrt(6)*Ast.*Bst.*Z,   Ast.^2.*(2*Z-1),          2*Ast.^3.*B;
 %                      Bst.^4,     -2*Ast.*Bst.^3, sqrt(6)*Ast.^2.*Bst.^2,    -2*Ast.^3.*Bst,               Ast.^4 ];
+D2 = zeros(5,5,size(q,2),size(q,3));
 D2(1,1,:,:) = A.^4;
 D2(1,2,:,:) = 2*A.^3.*B;
 D2(1,3,:,:) = sqrt(6)*A.^2.*B.^2;

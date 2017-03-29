@@ -41,9 +41,23 @@
 % %                    peak-to-peak line widths, same format as Sys.lw
 %
 %
+%   MD: structure with molecular dynamics simulation parameters
+%     RTraj          numeric, size = (3,3,nTraj,nSteps)
+%                    rotation matrices, calculated externally, e.g. by
+%                    performing a molecular dynamics simulation
+%
+%     dt             double
+%                    MD simulation time step (in seconds)
+%
+%     nSteps         int
+%                    number of time steps in MD simulation
+%
+% %     dcd           dcd file output from a molecular dynamics simulation
+%
+%
 %   Par: structure with simulation parameters
 %     dt             double
-%                    time step (in seconds)
+%                    propagation time step (in seconds)
 %
 %     nSteps         int
 %                    number of time steps per simulation
@@ -59,10 +73,6 @@
 %
 %     gamma          double or numeric, size = (1,nTraj)
 %                    Euler angle gamma for starting orientation(s)
-%
-%     RTraj          numeric, size = (3,3,nTraj,nSteps)
-%                    rotation matrices, calculated externally, e.g. by
-%                    performing a molecular dynamics simulation
 %                    
 %
 %
@@ -128,16 +138,19 @@
 %   Sezer, et al., J.Chem.Phys. 128, 165106 (2008)
 %     http://dx.doi.org/10.1063/1.2908075
 
-function varargout = cardamom(Sys,Par,Exp,Opt)
+function varargout = cardamom(Sys,Par,Exp,Opt,MD)
 % Preprocessing
 % -------------------------------------------------------------------------
 
 switch nargin
   case 0
     help(mfilename); return;
-  case 3 % Opt not specified, initialize it
+  case 3 % Opt and MD not specified, initialize them
     Opt = struct;
-  case 4 % Sys, Par, Exp, Opt specified
+    MD = struct;
+  case 4 % MD not specified
+    MD = struct;
+  case 5 % Sys, Par, Exp, Opt, MD specified
   otherwise
     error('Incorrect number of input arguments.')
 end
@@ -172,21 +185,23 @@ EasySpinLogLevel = Opt.Verbosity;
 [Sys,err] = validatespinsys(Sys);
 error(err);
 
-
-% Check Par
+% Check MD
 % -------------------------------------------------------------------------
 
-% If number of trajectories is not given, set it to 100
-if ~isfield(Par, 'nTraj'), Par.nTraj = 100; end
+if ~isempty(fieldnames(MD))
+  useMD = 1;
+else
+  useMD = 0;
+end
 
-% decide on a simulation model based on user input
-
-if isfield(Par,'RTraj')
+if useMD
+  if ~isfield(MD,'RTraj')||~isfield(MD,'dt')
+    error('For Molecular Dynamics, both MD.RTraj and MD.dt need to be specified.')
+  end
   % rotation matrices provided externally
-  
-  RTraj = Par.RTraj;
-  if ~isnumeric(RTraj)||size(RTraj,1)~=3||size(RTraj,2)~=3||ndims(RTraj)<3||ndims(RTraj)>4
-    error('RTraj must be a 3D or 4D array of rotation matrices of size (3,3,...).')
+  RTraj = MD.RTraj;
+  if ~isnumeric(RTraj)||size(RTraj,1)~=3||size(RTraj,2)~=3||ndims(RTraj)~=4
+    error('RTraj must be a 4D array of rotation matrices of size (3,3,MD.nTraj,MD.nSteps).')
   end
   % Check for orthogonality of rotation matrices
   RTrajInv = permute(RTraj,[2,1,3,4]);
@@ -194,12 +209,28 @@ if isfield(Par,'RTraj')
   if ~allclose(matmult(RTraj,RTrajInv),repmat(eye(3),1,1,size(RTraj,3),size(RTraj,4)),1e-14)
     error('The rotation matrices are not orthogonal.')
   end
+  
+  MD.nTraj = size(RTraj,3);
+  MD.nSteps = size(RTraj,4);
+  
+end
 
+% Check Par
+% -------------------------------------------------------------------------
+
+% If number of trajectories is not given, set it to 100
+if ~isfield(Par,'nTraj')&&useMD==0, Par.nTraj = 100; end
+
+% TODO add error checks from stochtraj and create a skipcheck flag for stochtraj
+
+% decide on a simulation model based on user input
+
+if useMD
   if ~isfield(Par,'Model')
     % no Model given
-    Model = 'Molecular Dynamics';
-  else
-    error('Mixing stochastic simulations with MD simulation results is not yet implemented.')
+    Par.Model = 'Molecular Dynamics';
+  elseif ~strcmp(Par.Model,'Molecular Dynamics')
+    error('Mixing stochastic simulations with external rotation matrices is not supported.')
   end
 else
   % no rotation matrices provided, so perform stochastic dynamics
@@ -208,14 +239,14 @@ else
     % no Model given
     if isfield(Sys,'LMK') && isfield(Sys,'Coefs')
       % LMK and ordering coefs given, so simulate MOMD
-      Model = 'MOMD';
+      Par.Model = 'MOMD';
     elseif xor(isfield(Sys,'LMK'),isfield(Sys,'Coefs'))
       error(['Both Sys.LMK and Sys.Coefs need to be declared for a MOMD '...
             'simulation.'])
     else
       % user did not specify a model or ordering potential, so perform 
       % Brownian simulation
-      Model = 'Brownian';
+      Par.Model = 'Brownian';
     end
   else
     % Model is specified
@@ -224,13 +255,13 @@ else
             'one of Sys.LMK or Sys.Coefs has been declared.'])
     elseif strcmp(Par.Model,'MOMD') && (~isfield(Sys,'LMK')||~isfield(Sys,'Coefs'))
       error('Both Sys.LMK and Sys.Coefs need to be declared for a MOMD simulation.')
+    elseif strcmp(Par.Model,'Molecular Dynamics') && (~isfield(MD,'RTraj')||~isfield(MD,'dt'))
+      error('For Molecular Dynamics, both MD.RTraj and MD.dt need to be specified.')
     end
-    Model=Par.Model;
   end
 end
 
-dt = Par.dt;
-
+Model = Par.Model;
 
 % Check Exp
 % -------------------------------------------------------------------------
@@ -250,6 +281,9 @@ xAxis = linspace(Exp.Range(1),Exp.Range(2),Exp.nPoints);  % field axis, mT
 
 % if ~isfield(Opt,'chkcon'), chkcon = 0; end  % TODO implement spectrum convergence tests
 
+if ~isfield(Opt,'Method')
+  Opt.Method = 'Sezer';
+end
 
 % Check dynamics and ordering
 % -------------------------------------------------------------------------
@@ -304,7 +338,7 @@ expval = cell(1,nOrients);
 tcell = cell(1,nOrients);
 
 
-% Simulation
+% Run simulation
 % -------------------------------------------------------------------------
 
 clear updateuser
@@ -327,7 +361,7 @@ for iOrient = 1:nOrients
         Par.RTraj = RTraj;
       end
     case 'MOMD'
-      [t, ~, qTraj] = stochtraj(Sys,Par);
+      [t, RTraj, qTraj] = stochtraj(Sys,Par);
       qmult = repmat(euler2quat(grid_phi(iOrient), grid_theta(iOrient), 0),...
                      [1,Par.nTraj,Par.nSteps]);
       if strcmp(Opt.Method,'Oganesyan')
@@ -341,22 +375,31 @@ for iOrient = 1:nOrients
     case 'Molecular Dynamics'
       % rotation matrices provided by external data, no need to do stochastic
       % simulation
-      t = linspace(0, Par.nSteps*dt, Par.nSteps).';
+      qmult = repmat(euler2quat(grid_phi(iOrient), grid_theta(iOrient), 0),...
+                     [1,MD.nTraj,MD.nSteps]);
+      Rmult = quat2rotmat(qmult);
+      MD.RTraj = matmult(Rmult,RTraj);
+      t = linspace(0, Par.nSteps*Par.dt, round(MD.nSteps*MD.dt/Par.dt)).';
 
   end
   
   tcell{1,iOrient} = t;
 
-  rho_t = propagate_quantum(Sys,Par,Opt,omega,CenterField);
-  temp = squeeze(sum(rho_t,3));  % average over trajectories
-  expval{1,iOrient} = squeeze(temp(1,1,:)+temp(2,2,:)+temp(3,3,:));  % take traces TODO try to speed this up using equality tr(A*B)=sum(sum(A.*B))
-  % expval{1,iOrient} = squeeze(sum(sum(temp,1),2));
+  % propagate the density matrix
+  rho_t = propagate_quantum(Sys,Par,Opt,MD,omega,CenterField);
+  
+  % average over trajectories
+  rho_t = squeeze(sum(rho_t,3));
+  
+  % calculate the expectation value of S_{+}
+  expval{1,iOrient} = squeeze(rho_t(1,1,:)+rho_t(2,2,:)+rho_t(3,3,:));  % take traces TODO try to speed this up using equality tr(A*B)=sum(sum(A.*B))
 
   if Opt.Verbosity
     updateuser(iOrient,nOrients)
   end
 
 end
+
 mins_tot = floor(toc/60);
 msg = sprintf('Done!\nTotal simulation time: %d:%2.0f\n',mins_tot,mod(toc,60));
 if Opt.Verbosity
@@ -382,7 +425,7 @@ M = ceil(2*Par.nSteps);  % TODO make flexible for propagation length extensions
 % relaxation and differentiation of spectrum via convolution
 spc = cell2mat(cellfun(@(x) fft(x,M), expvalDt, 'UniformOutput', false));
 spc = imag(fftshift(sum(spc,2)));
-freq = 1/(dt*M)*(-M/2:M/2-1);  % TODO check for consistency between FieldSweep and FFT window/resolution
+freq = 1/(Par.dt*M)*(-M/2:M/2-1);  % TODO check for consistency between FieldSweep and FFT window/resolution
 
 % center the spectrum around the isotropic g-tensor component
 fftAxis = mhz2mt(freq/1e6+Exp.mwFreq*1e3,mean(Sys.g));  % Note use of g0, not ge
