@@ -100,7 +100,10 @@ switch Method
   case 'Sezer'  % see Ref [1]
 
     g_tr = sum(g);
-
+    
+    % Process MD simulation data
+    % ---------------------------------------------------------------------
+    
     if strcmp(Model,'Molecular Dynamics')
       % time step of MD simulation, MD.dt, is usually much smaller than
       % that of the propagation, Par.dt, so we need to average over windows
@@ -112,13 +115,10 @@ switch Method
       TMD = MD.nSteps*MD.dt;
       
       % size of averaging window
-      nWindow = round(Par.dt/MD.dt);
+      nWindow = ceil(Par.dt/MD.dt);
       
       % size of MD trajectory after averaging
-      M = round(TMD/Par.dt);
-      
-      rho_t = zeros(3,3,MD.nTraj,M);
-      rho_t(:,:,:,1) = repmat(eye(3),MD.nTraj);
+      M = floor(MD.nSteps/nWindow);
 
       GptensorAvg = zeros(3,3,1,M);
       AtensorAvg = zeros(3,3,1,M);
@@ -136,10 +136,28 @@ switch Method
         AtensorAvg(:,:,k) = mean(Atensor(:,:,:,1+(k-1)*nWindow:k*nWindow),4);
       end
       
+      % process single long trajectory into multiple short trajectories
+      lag = 2;
+      nEnd = Par.nSteps;
+      nTraj = floor((M-nEnd)/lag);
+      
+      Gptensor = zeros(3,3,nEnd,nTraj);
+      Atensor = zeros(3,3,nEnd,nTraj);
+      
+      for k = 1:nTraj
+        idx = (1:nEnd) + (k-1)*lag;
+        Gptensor(:,:,:,k) = GptensorAvg(:,:,idx);
+        Atensor(:,:,:,k) = AtensorAvg(:,:,idx);
+      end
+      
+      % change shape afterward rather than at every time step
+      Gptensor = permute(Gptensor,[1,2,4,3]);
+      Atensor = permute(Atensor,[1,2,4,3]);
+      
       % frame of MD coordinate system is lab frame for solution simulations
       
-      Gptensor = GptensorAvg;
-      Atensor = AtensorAvg;
+      rho_t = zeros(3,3,nTraj,M);
+      rho_t(:,:,:,1) = repmat(eye(3),[1,1,nTraj]);
       
     else
       rho_t = zeros(3,3,nTraj,nSteps);
@@ -152,6 +170,9 @@ switch Method
                                            RTrajInv))*1e6*2*pi;  % MHz (s^-1) -> Hz (rad s^-1)
       
     end
+    
+    % Prepare propagators
+    % ---------------------------------------------------------------------
     
     Gp_zz = Gptensor(3,3,:,:);
 
@@ -171,22 +192,22 @@ switch Method
 
     exp_array = zeros(3,3,size(Gp_zz,3),size(Gp_zz,4));
     exp_array(1,1,:,:) = 1 + ct.*(nz.*nz + 0.5*(nx.*nx + ny.*ny)) ...
-                       + 1i*st.*nz;
+                         + 1i*st.*nz;
     exp_array(1,2,:,:) = sqrt(0.5)*(st.*ny + ct.*nz.*nx) ...
-                       + 1i*sqrt(0.5)*(st.*nx - ct.*nz.*ny);
+                         + 1i*sqrt(0.5)*(st.*nx - ct.*nz.*ny);
     exp_array(1,3,:,:) = 0.5*ct.*(nx.*nx - ny.*ny) ... 
-                       - 1i*ct.*nx.*ny;
+                         - 1i*ct.*nx.*ny;
     exp_array(2,1,:,:) = sqrt(0.5)*(-st.*ny + ct.*nz.*nx) ...
-                       + 1i*sqrt(0.5)*(st.*nx + ct.*nz.*ny);
+                         + 1i*sqrt(0.5)*(st.*nx + ct.*nz.*ny);
     exp_array(2,2,:,:) = 1 + ct.*(nx.*nx + ny.*ny);
     exp_array(2,3,:,:) = sqrt(0.5)*(st.*ny - ct.*nz.*nx) ...
-                       + 1i*sqrt(0.5)*(st.*nx + ct.*nz.*ny);
+                         + 1i*sqrt(0.5)*(st.*nx + ct.*nz.*ny);
     exp_array(3,1,:,:) = 0.5*ct.*(nx.*nx - ny.*ny) ...
-                       + 1i*ct.*nx.*ny;
+                         + 1i*ct.*nx.*ny;
     exp_array(3,2,:,:) = sqrt(0.5)*(-st.*ny - ct.*nz.*nx) ...
-                       + 1i*sqrt(0.5)*(st.*nx - ct.*nz.*ny);
+                         + 1i*sqrt(0.5)*(st.*nx - ct.*nz.*ny);
     exp_array(3,3,:,:) = 1 + ct.*(nz.*nz + 0.5*(nx.*nx + ny.*ny))  ...
-                       - 1i*st.*nz;
+                         - 1i*st.*nz;
 
 
     % Calculate propagator
@@ -195,12 +216,15 @@ switch Method
 
     % Eq. 34 in [1]
     
-    if strcmp(Model,'Molecular Dynamics')
-      % only one trajectory, so the "*" operator can be used
-      for iStep=2:M
-        rho_t(:,:,:,iStep) = U(:,:,:,iStep-1)*rho_t(:,:,:,iStep-1)*U(:,:,:,iStep-1);
-      end
-    else
+    % Propagate density matrix
+    % ---------------------------------------------------------------------
+    
+%     if strcmp(Model,'Molecular Dynamics')
+%       % only one trajectory, so the "*" operator can be used
+%       for iStep=2:M
+%         rho_t(:,:,:,iStep) = U(:,:,:,iStep-1)*rho_t(:,:,:,iStep-1)*U(:,:,:,iStep-1);
+%       end
+%     else
       % there are multiple trajectories, so we need "mmult"
       for iStep=2:nSteps
         rho_t(:,:,:,iStep) = mmult(U(:,:,:,iStep-1),...
@@ -210,7 +234,7 @@ switch Method
       %  Trace of a product of matrices is the sum of entry-wise products
   %      rho_t(:,:,:,iStep) = U2(:,:,:,iStep-1).*rho_t(:,:,:,iStep-1);
       end
-    end
+%     end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   case 'DeSensi'  % see Ref [2]
@@ -229,6 +253,9 @@ switch Method
 
     Atensor = matmult(RTraj, matmult(repmat(diag(A),1,1,nTraj,nSteps), ...
                                       RTrajInv))*1e6*2*pi;  % MHz (s^-1) -> rad s^-1
+                                    
+    % Prepare propagators
+    % ---------------------------------------------------------------------
 
     g_zz = gtensor(3,3,:,:);
 
@@ -236,7 +263,7 @@ switch Method
     A_yz = Atensor(2,3,:,:);
     A_zz = Atensor(3,3,:,:);
 
-    % modified from Eq. 24-27 in [2]
+    % notation adapted from Eq. 24-27 in [2]
     omegaeff = -bmagn/(planck/2/pi)*B0*(g_zz - g_tr/3); 
     
     ma = 0.5;
@@ -252,13 +279,7 @@ switch Method
     ella = sqrt( (A_xz).^2 + (A_yz).^2 + ca.^2 );
     ellb = sqrt( (A_xz).^2 + (A_yz).^2 + cb.^2 );
 
-    % Eigenvalues
-%     Lambda  = [ 0.5*(geff + ellp);          0;                 0;                  0;           0;                  0;
-%                                 0; 0.5*(geff);                 0;                  0;           0;                  0;
-%                                 0;          0; 0.5*(geff + ellm);                  0;           0;                  0;
-%                                 0;          0;                 0; -0.5*(geff + ellp);           0;                  0;
-%                                 0;          0;                 0;                  0; -0.5*(geff);                  0;
-%                                 0;          0;                 0;                  0;           0; -0.5*(geff + ellm) ];
+    % Matrix of eigenvalues, adapted from Eqs. 24-27 in Ref. [2]
     Lambda = zeros(6,6,nTraj,nSteps);
     Lambda(1,1,:,:) = exp(-1i*dt*ma*(omegaeff + mp*ella));
     Lambda(2,2,:,:) = exp(-1i*dt*ma*(omegaeff + m0*ella));
@@ -267,10 +288,16 @@ switch Method
     Lambda(5,5,:,:) = exp(-1i*dt*mb*(omegaeff + m0*ellb));
     Lambda(6,6,:,:) = exp(-1i*dt*mb*(omegaeff + mm*ellb));
 
+    % Matrix of eigenvectors, adapted from Eq. 28 in Ref. [2]
+    % NOTE: b (and bst) are not defined in the text, and the expressions in
+    % Eq. 28 are not correct; as was below, the following factors need to
+    % be replaced as follows:
+    %         1/4 --> 1
+    %   1/sqrt(2) --> sqrt(2)
+    
     b   = (A_xz + 1i*A_yz);
     bst = (A_xz - 1i*A_yz);
-
-    % Matrix of eigenvectors
+    
     V  = [ (ca+ella).^2./b.^2,                     -bst./b,      (ca-ella).^2./b.^2, zeros(1,1,nTraj,nSteps), zeros(1,1,nTraj,nSteps), zeros(1,1,nTraj,nSteps);
            sqrt(2)*(ca+ella)./b,             sqrt(2)*ca./b,    sqrt(2)*(ca-ella)./b, zeros(1,1,nTraj,nSteps), zeros(1,1,nTraj,nSteps), zeros(1,1,nTraj,nSteps);
            ones(1,1,nTraj,nSteps),  ones(1,1,nTraj,nSteps),  ones(1,1,nTraj,nSteps), zeros(1,1,nTraj,nSteps), zeros(1,1,nTraj,nSteps), zeros(1,1,nTraj,nSteps);
@@ -284,7 +311,9 @@ switch Method
     % Calculate propagator
     Q = mmult(V, mmult(Lambda, conj(permute(V,[2,1,3,4])), 'complex'), 'complex');
     
-    % Eq. 34 in reference
+    % Propagate density matrix
+    % ---------------------------------------------------------------------
+    
 % FIXME round-off error might propagate through the matrix multiplication, need some sort of error control
     for iStep=2:nSteps
       rho_t(:,:,:,iStep) = mmult(Q(:,:,:,iStep-1),...
@@ -304,6 +333,8 @@ switch Method
     rho_t(1:3,4:6,:,1) = repmat(eye(3),1,1,nTraj,1);
     rho_t(4:6,1:3,:,1) = repmat(eye(3),1,1,nTraj,1);
 
+    % Calculate and store rotational basis operators
+    % ---------------------------------------------------------------------
     if isempty(cacheTensors)
       % ISTOs in the lab frame and IST components in the principal frame 
       % are time-independent, so we only need to calculate them once
@@ -340,6 +371,9 @@ switch Method
       
     end
     
+    % Prepare propagators
+    % ---------------------------------------------------------------------
+    
     % calculate Wigner D-matrices from the quaternion trajectories
     [~, D2] = wigD(qTraj);
     
@@ -366,7 +400,8 @@ switch Method
     
     Udag = conj(permute(U,[2,1,3,4]));
         
-    % propagate density matrix
+    % Propagate density matrix
+    % ---------------------------------------------------------------------
     for iStep=2:nSteps
       rho_t(:,:,:,iStep) = mmult(U(:,:,:,iStep-1),...
                                  mmult(rho_t(:,:,:,iStep-1),...

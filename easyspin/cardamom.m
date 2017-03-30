@@ -115,11 +115,17 @@
 %
 %    Verbosity       0: no display, 1: show info
 %
-%    Method           string
-%                     'Sezer': propagate the density matrix using the 
-%                      m_s=-1/2 subspace
-%                     'DeSensi': propagate the density matrix using an 
-%                      eigenvalue method
+%    Method          string
+%                    'Sezer': propagate the density matrix using an 
+%                    analytical expression for the matrix exponential in 
+%                    the m_s=-1/2
+%                    'DeSensi': propagate the density matrix using an 
+%                    eigenvalue method
+%                    'Oganesyan': propagate the density matrix using
+%                    irreducible spherical tensor operators and correlation 
+%                    functions
+%
+%    FFTWindow       1: use a Hamming window (default), 0: no window
 %
 %
 %
@@ -285,6 +291,12 @@ if ~isfield(Opt,'Method')
   Opt.Method = 'Sezer';
 end
 
+if isfield(Opt,'FFTWindow')
+  fftWindow = Opt.FFTWindow;
+else
+  fftWindow = 1;
+end
+
 % Check dynamics and ordering
 % -------------------------------------------------------------------------
 
@@ -379,7 +391,7 @@ for iOrient = 1:nOrients
                      [1,MD.nTraj,MD.nSteps]);
       Rmult = quat2rotmat(qmult);
       MD.RTraj = matmult(Rmult,RTraj);
-      t = linspace(0, Par.nSteps*Par.dt, round(MD.nSteps*MD.dt/Par.dt)).';
+      t = linspace(0, MD.nSteps*MD.dt, floor(MD.nSteps*MD.dt/Par.dt)).';
 
   end
   
@@ -409,25 +421,36 @@ end
 % Perform FFT
 % -------------------------------------------------------------------------
 
-% hamm = 0.54 + 0.46*cos(pi*t/max(t));  
+if fftWindow
+  hamm = 0.54 + 0.46*cos(pi*t/max(t));
+else
+  hamm = 1;
+end
 TL = Dynamics.T2;  % TODO implement Lorentzian and Gaussian broadening
 
 % Convolve with Lorentzian and multiply by t for differentiation
-tdiff = cellfun(@(x) x.*exp(-x/TL), tcell, 'UniformOutput', false);
+tdiff = cellfun(@(x) hamm.*x.*exp(-x/TL), tcell, 'UniformOutput', false);
 expvalDt = cellfun(@times, expval, tdiff, 'UniformOutput', false);
 
 % average over trajectories
 expval = mean(cell2mat(expval),2);
 
-% increase number of points produce zero padding for FFT
-M = ceil(2*Par.nSteps);  % TODO make flexible for propagation length extensions
+% zero padding for FFT to ensure sufficient B-field resolution 
+% (at most 0.1 mT)
+Bres = 0.1; % mT
+treq = 1/(mt2mhz(Bres)*1e3); % MHz -> s
+if max(t)<treq
+  M = ceil(treq/Par.dt);  % TODO make flexible for propagation length extensions
+else
+  M = length(expval);
+end
 
 % relaxation and differentiation of spectrum via convolution
 spc = cell2mat(cellfun(@(x) fft(x,M), expvalDt, 'UniformOutput', false));
 spc = imag(fftshift(sum(spc,2)));
 freq = 1/(Par.dt*M)*(-M/2:M/2-1);  % TODO check for consistency between FieldSweep and FFT window/resolution
 
-% center the spectrum around the isotropic g-tensor component
+% center the spectrum around the isotropic component of the g-tensor
 fftAxis = mhz2mt(freq/1e6+Exp.mwFreq*1e3,mean(Sys.g));  % Note use of g0, not ge
 
 % interpolate over horizontal sweep range
@@ -470,7 +493,7 @@ case 3
   varargout = {xAxis,outspec,expval};
 end
 
-clear global EasySpinLogLevel
+clear global EasySpinLogLevel updateuser
     
 end
 
@@ -479,8 +502,6 @@ end
 
 function updateuser(iOrient,nOrient)
 % Update user on progress
-
-if iOrient==1, clear reverseStr; end
 
 persistent reverseStr
 
