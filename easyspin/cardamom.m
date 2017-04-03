@@ -42,15 +42,14 @@
 %
 %
 %   MD: structure with molecular dynamics simulation parameters
-%     RTraj          numeric, size = (3,3,nTraj,nSteps)
+%     RTraj          numeric, size = (3,3,N,M)
 %                    rotation matrices, calculated externally, e.g. by
-%                    performing a molecular dynamics simulation
+%                    performing a molecular dynamics simulation, where N is
+%                    the number of trajectories and M is the number of time
+%                    steps
 %
 %     dt             double
 %                    MD simulation time step (in seconds)
-%
-%     nSteps         int
-%                    number of time steps in MD simulation
 %
 % %     dcd           dcd file output from a molecular dynamics simulation
 %
@@ -194,11 +193,7 @@ error(err);
 % Check MD
 % -------------------------------------------------------------------------
 
-if ~isempty(fieldnames(MD))
-  useMD = 1;
-else
-  useMD = 0;
-end
+useMD = ~isempty(fieldnames(MD));
 
 if useMD
   if ~isfield(MD,'RTraj')||~isfield(MD,'dt')
@@ -391,7 +386,8 @@ for iOrient = 1:nOrients
                      [1,MD.nTraj,MD.nSteps]);
       Rmult = quat2rotmat(qmult);
       MD.RTraj = matmult(Rmult,RTraj);
-      t = linspace(0, MD.nSteps*MD.dt, floor(MD.nSteps*MD.dt/Par.dt)).';
+      t = linspace(0, Par.nSteps*Par.dt, floor(MD.nSteps/ceil(Par.dt/MD.dt))).';
+%       t = linspace(0, Par.nSteps*Par.dt, Par.nSteps).';
 
   end
   
@@ -493,7 +489,7 @@ case 3
   varargout = {xAxis,outspec,expval};
 end
 
-clear global EasySpinLogLevel updateuser
+clear global EasySpinLogLevel
     
 end
 

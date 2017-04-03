@@ -57,6 +57,8 @@ function rho_t = propagate_quantum(Sys, Par, Opt, MD, omega, CenterField)
 % Preprocessing
 % -------------------------------------------------------------------------
 
+persistent cacheTensors
+
 Method = Opt.Method;
 Model = Par.Model;
 
@@ -111,9 +113,6 @@ switch Method
       
       if MD.nTraj > 1, error('Using the Sezer Method with multiple trajectories is not supported.'); end
       
-      % total time of MD trajectory
-      TMD = MD.nSteps*MD.dt;
-      
       % size of averaging window
       nWindow = ceil(Par.dt/MD.dt);
       
@@ -125,10 +124,10 @@ switch Method
       
       % Perform rotations on g- and A-tensors
       Gptensor = matmult(RTraj, matmult(repmat(diag(g),1,1,MD.nTraj,MD.nSteps), ...
-                                            RTrajInv))/gfree - g_tr/3/gfree;
+                                        RTrajInv))/gfree - g_tr/3/gfree;
 
       Atensor = matmult(RTraj, matmult(repmat(diag(A),1,1,MD.nTraj,MD.nSteps), ...
-                                           RTrajInv))*1e6*2*pi;  % MHz (s^-1) -> Hz (rad s^-1)
+                                       RTrajInv))*1e6*2*pi;  % MHz (s^-1) -> Hz (rad s^-1)
     
       % average the interaction tensors over time windows
       for k = 1:M
@@ -161,8 +160,8 @@ switch Method
       
     else
       rho_t = zeros(3,3,nTraj,nSteps);
-      rho_t(:,:,:,1) = repmat(eye(3),nTraj);
-    % Perform rotations on g- and A-tensors
+      rho_t(:,:,:,1) = repmat(eye(3),[1,1,nTraj,1]);
+      % Perform rotations on g- and A-tensors
       Gptensor = matmult(RTraj, matmult(repmat(diag(g),1,1,nTraj,nSteps), ...
                                             RTrajInv))/gfree - g_tr/3/gfree;
 
@@ -212,7 +211,7 @@ switch Method
 
     % Calculate propagator
 %     U = bsxfun(@times, exp(-1i*dt*0.5*Gamma*B*Gp_zz), exp_array);
-      U = bsxfun(@times, exp(-1i*dt*0.5*omega*Gp_zz), exp_array);
+    U = bsxfun(@times, exp(-1i*dt*0.5*omega*Gp_zz), exp_array);
 
     % Eq. 34 in [1]
     
@@ -226,14 +225,14 @@ switch Method
 %       end
 %     else
       % there are multiple trajectories, so we need "mmult"
-      for iStep=2:nSteps
-        rho_t(:,:,:,iStep) = mmult(U(:,:,:,iStep-1),...
-                                   mmult(rho_t(:,:,:,iStep-1), U(:,:,:,iStep-1),'complex'),...
-                                   'complex');
+    for iStep=2:nSteps
+      rho_t(:,:,:,iStep) = mmult(U(:,:,:,iStep-1),...
+                                 mmult(rho_t(:,:,:,iStep-1), U(:,:,:,iStep-1),'complex'),...
+                                 'complex');
 
-      %  Trace of a product of matrices is the sum of entry-wise products
-  %      rho_t(:,:,:,iStep) = U2(:,:,:,iStep-1).*rho_t(:,:,:,iStep-1);
-      end
+    %  Trace of a product of matrices is the sum of entry-wise products
+    %      rho_t(:,:,:,iStep) = U2(:,:,:,iStep-1).*rho_t(:,:,:,iStep-1);
+    end
 %     end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -280,13 +279,13 @@ switch Method
     ellb = sqrt( (A_xz).^2 + (A_yz).^2 + cb.^2 );
 
     % Matrix of eigenvalues, adapted from Eqs. 24-27 in Ref. [2]
-    Lambda = zeros(6,6,nTraj,nSteps);
-    Lambda(1,1,:,:) = exp(-1i*dt*ma*(omegaeff + mp*ella));
-    Lambda(2,2,:,:) = exp(-1i*dt*ma*(omegaeff + m0*ella));
-    Lambda(3,3,:,:) = exp(-1i*dt*ma*(omegaeff + mm*ella));
-    Lambda(4,4,:,:) = exp(-1i*dt*mb*(omegaeff + mp*ellb));
-    Lambda(5,5,:,:) = exp(-1i*dt*mb*(omegaeff + m0*ellb));
-    Lambda(6,6,:,:) = exp(-1i*dt*mb*(omegaeff + mm*ellb));
+    expLambda = zeros(6,6,nTraj,nSteps);
+    expLambda(1,1,:,:) = exp(-1i*dt*ma*(omegaeff + mp*ella));
+    expLambda(2,2,:,:) = exp(-1i*dt*ma*(omegaeff + m0*ella));
+    expLambda(3,3,:,:) = exp(-1i*dt*ma*(omegaeff + mm*ella));
+    expLambda(4,4,:,:) = exp(-1i*dt*mb*(omegaeff + mp*ellb));
+    expLambda(5,5,:,:) = exp(-1i*dt*mb*(omegaeff + m0*ellb));
+    expLambda(6,6,:,:) = exp(-1i*dt*mb*(omegaeff + mm*ellb));
 
     % Matrix of eigenvectors, adapted from Eq. 28 in Ref. [2]
     % NOTE: b (and bst) are not defined in the text, and the expressions in
@@ -309,16 +308,18 @@ switch Method
     V = bsxfun(@rdivide,V,sqrt(sum(V.*conj(V),1)));
     
     % Calculate propagator
-    Q = mmult(V, mmult(Lambda, conj(permute(V,[2,1,3,4])), 'complex'), 'complex');
+    U = mmult(V, mmult(expLambda, conj(permute(V,[2,1,3,4])), 'complex'), 'complex');
+    
+    Udag = conj(permute(U,[2,1,3,4]));
     
     % Propagate density matrix
     % ---------------------------------------------------------------------
     
 % FIXME round-off error might propagate through the matrix multiplication, need some sort of error control
     for iStep=2:nSteps
-      rho_t(:,:,:,iStep) = mmult(Q(:,:,:,iStep-1),...
+      rho_t(:,:,:,iStep) = mmult(U(:,:,:,iStep-1),...
                                    mmult(rho_t(:,:,:,iStep-1),...
-                                         conj(permute(Q(:,:,:,iStep-1),[2,1,3,4])),'complex'),...
+                                         Udag(:,:,:,iStep-1),'complex'),...
                                  'complex');                  
     end
     
@@ -327,11 +328,12 @@ switch Method
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   case 'Oganesyan'  % see Ref [3]
     
-    persistent cacheTensors
-    
     rho_t = zeros(6,6,nTraj,nSteps);
     rho_t(1:3,4:6,:,1) = repmat(eye(3),1,1,nTraj,1);
     rho_t(4:6,1:3,:,1) = repmat(eye(3),1,1,nTraj,1);
+%     rho_t = zeros(6,6,1,nSteps);
+%     rho_t(1:3,4:6,1,1) = repmat(eye(3),1,1,1,1);
+%     rho_t(4:6,1:3,1,1) = repmat(eye(3),1,1,1,1);
 
     % Calculate and store rotational basis operators
     % ---------------------------------------------------------------------
@@ -340,11 +342,18 @@ switch Method
       % are time-independent, so we only need to calculate them once
       
       SpinOps = cell(numel(Sys.Spins),3);
-      for iSpin = 1:numel(Sys.Spins)
-        SpinOps{iSpin,1} = sop(Sys.Spins,iSpin,1);
-        SpinOps{iSpin,2} = sop(Sys.Spins,iSpin,2);
-        SpinOps{iSpin,3} = sop(Sys.Spins,iSpin,3);
-      end
+%       for iSpin = 1:numel(Sys.Spins)
+%         SpinOps{iSpin,1} = sop(Sys.Spins,iSpin,1);
+%         SpinOps{iSpin,2} = sop(Sys.Spins,iSpin,2);
+%         SpinOps{iSpin,3} = sop(Sys.Spins,iSpin,3);
+%       end
+      SpinOps{1,1} = zeros(6);
+      SpinOps{1,2} = zeros(6);
+      SpinOps{1,3} = sop(Sys.Spins,1,3);
+      
+      SpinOps{2,1} = sop(Sys.Spins,2,1);
+      SpinOps{2,2} = sop(Sys.Spins,2,2);
+      SpinOps{2,3} = sop(Sys.Spins,2,3);
       
       if ~isfield(Sys,'DiffFrame'), Sys.DiffFrame = [0 0 0]; end  % TODO include frames in cardamom
       
@@ -364,8 +373,8 @@ switch Method
       % create the 25 second-rank RBOs
       for mp = 1:5
         for m = 1:5
-          cacheTensors.Q2{mp,m} = conj(F2(1,m))*T2{1,mp} ...
-                                      + conj(F2(2,m))*T2{2,mp};
+          cacheTensors.Q2{mp,m} = conj(F2(1,mp))*T2{1,m} ...
+                                      + conj(F2(2,mp))*T2{2,m};
         end
       end
       
@@ -377,26 +386,40 @@ switch Method
     % calculate Wigner D-matrices from the quaternion trajectories
     [~, D2] = wigD(qTraj);
     
-    % calculate propagators
-    U = zeros(6,6,nTraj,nSteps);
+
+    H = zeros(6,6,nTraj,nSteps);
     
+    % zeroth rank term (HF only)
+%     H(:,:,:,:) = repmat(cacheTensors.Q0,[1,1,nTraj,nSteps]);
+    
+    % calculate Hamiltonians
     for iStep=1:nSteps
       for iTraj=1:nTraj
         % zeroth rank term (HF only)
-        H = cacheTensors.Q0;
+        H(:,:,iTraj,iStep) = cacheTensors.Q0;
         
         % rotate second rank terms and add to Hamiltonian
         for mp = 1:5
           for m = 1:5
-            H = H + D2(m,mp,iTraj,iStep)*cacheTensors.Q2{m,mp};
+            H(:,:,iTraj,iStep) = H(:,:,iTraj,iStep) + D2(m,mp,iTraj,iStep)*cacheTensors.Q2{mp,m};
           end
         end
-        
-        % calculate matrix exponential
-%         U(:,:,iTraj,iStep) = expm(-1i*dt*H);
-        U(:,:,iTraj,iStep) = expeig(-1i*dt*H);
       end
     end
+%     Hmean = mean(mean(H,4),3);
+%     deltaH = H - Hmean;
+
+    U = zeros(6,6,nTraj,nSteps);
+
+    % calculate propagators
+    for iStep=1:nSteps
+      for iTraj=1:nTraj
+%         U(:,:,iTraj,iStep) = expm(-1i*dt*H);
+        U(:,:,iTraj,iStep) = expeig(1i*dt*H(:,:,iTraj,iStep));
+      end
+    end
+    
+%     U = U - mean(U,4);
     
     Udag = conj(permute(U,[2,1,3,4]));
         
@@ -408,14 +431,20 @@ switch Method
                                        Udag(:,:,:,iStep-1),'complex'),...
                                  'complex');                  
     end
+%     for iStep=2:nSteps
+%       rho_t(:,:,:,iStep) = U(:,:,1,iStep-1)*rho_t(:,:,1,iStep-1)...
+%                                            *U(:,:,1,iStep-1)';                  
+%     end
     
     % Only keep the m_S=-1/2 subspace part that contributes to 
     %   tr(S_{+}\rho(t))
     rho_t = rho_t(4:6,1:3,:,:);
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   otherwise
     error('Propagation method not recognized.')
 end
+
 
 end
 
