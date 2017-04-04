@@ -175,11 +175,14 @@ switch Method
     
     Gp_zz = Gptensor(3,3,:,:);
 
+    % norm of expression in Eq. 24 in [1]
     a = sqrt(Atensor(1,3,:,:).*Atensor(1,3,:,:) ...
            + Atensor(2,3,:,:).*Atensor(2,3,:,:) ...
            + Atensor(3,3,:,:).*Atensor(3,3,:,:));
 
-%     theta = Gamma*dt*0.5*squeeze(a);  % use this if A is given in G
+    % rotation angle and unit vector parallel to axis of rotation
+    % refer to paragraph below Eq. 37 in [1]
+%     theta = Gamma*dt*0.5*squeeze(a);
     theta = dt*0.5*squeeze(a);
     nx = squeeze(Atensor(1,3,:,:)./a);
     ny = squeeze(Atensor(2,3,:,:)./a);
@@ -189,31 +192,31 @@ switch Method
     ct = cos(theta) - 1;
     st = -sin(theta);
 
-    exp_array = zeros(3,3,size(Gp_zz,3),size(Gp_zz,4));
-    exp_array(1,1,:,:) = 1 + ct.*(nz.*nz + 0.5*(nx.*nx + ny.*ny)) ...
+    % matrix exponential of hyperfine part
+    % Eqs. A1-A2 are used to construct Eq. 37 in [1]
+    expadotI = zeros(3,3,size(Gp_zz,3),size(Gp_zz,4));
+    expadotI(1,1,:,:) = 1 + ct.*(nz.*nz + 0.5*(nx.*nx + ny.*ny)) ...
                          + 1i*st.*nz;
-    exp_array(1,2,:,:) = sqrt(0.5)*(st.*ny + ct.*nz.*nx) ...
+    expadotI(1,2,:,:) = sqrt(0.5)*(st.*ny + ct.*nz.*nx) ...
                          + 1i*sqrt(0.5)*(st.*nx - ct.*nz.*ny);
-    exp_array(1,3,:,:) = 0.5*ct.*(nx.*nx - ny.*ny) ... 
+    expadotI(1,3,:,:) = 0.5*ct.*(nx.*nx - ny.*ny) ... 
                          - 1i*ct.*nx.*ny;
-    exp_array(2,1,:,:) = sqrt(0.5)*(-st.*ny + ct.*nz.*nx) ...
+    expadotI(2,1,:,:) = sqrt(0.5)*(-st.*ny + ct.*nz.*nx) ...
                          + 1i*sqrt(0.5)*(st.*nx + ct.*nz.*ny);
-    exp_array(2,2,:,:) = 1 + ct.*(nx.*nx + ny.*ny);
-    exp_array(2,3,:,:) = sqrt(0.5)*(st.*ny - ct.*nz.*nx) ...
+    expadotI(2,2,:,:) = 1 + ct.*(nx.*nx + ny.*ny);
+    expadotI(2,3,:,:) = sqrt(0.5)*(st.*ny - ct.*nz.*nx) ...
                          + 1i*sqrt(0.5)*(st.*nx + ct.*nz.*ny);
-    exp_array(3,1,:,:) = 0.5*ct.*(nx.*nx - ny.*ny) ...
+    expadotI(3,1,:,:) = 0.5*ct.*(nx.*nx - ny.*ny) ...
                          + 1i*ct.*nx.*ny;
-    exp_array(3,2,:,:) = sqrt(0.5)*(-st.*ny - ct.*nz.*nx) ...
+    expadotI(3,2,:,:) = sqrt(0.5)*(-st.*ny - ct.*nz.*nx) ...
                          + 1i*sqrt(0.5)*(st.*nx - ct.*nz.*ny);
-    exp_array(3,3,:,:) = 1 + ct.*(nz.*nz + 0.5*(nx.*nx + ny.*ny))  ...
+    expadotI(3,3,:,:) = 1 + ct.*(nz.*nz + 0.5*(nx.*nx + ny.*ny))  ...
                          - 1i*st.*nz;
 
 
-    % Calculate propagator
-%     U = bsxfun(@times, exp(-1i*dt*0.5*Gamma*B*Gp_zz), exp_array);
-    U = bsxfun(@times, exp(-1i*dt*0.5*omega*Gp_zz), exp_array);
+    % Calculate propagator, Eq. 35 in [1]
+    U = bsxfun(@times, exp(-1i*dt*0.5*omega*Gp_zz), expadotI);
 
-    % Eq. 34 in [1]
     
     % Propagate density matrix
     % ---------------------------------------------------------------------
