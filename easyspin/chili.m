@@ -485,13 +485,8 @@ if doPostConvolution
 end
 
 if ~generalLiouvillian
-  % Pick functions for the calculation of the Liouvillian
-  switch Sys.nNuclei
-    case 0, chili_lm = @chili_lm0;
-    case 1, chili_lm = @chili_lm1;
-    case 2, chili_lm = @chili_lm2;
-    otherwise
-      error('Cannot have more than two nuclei for the Stochastic Liouville equation with this Opt.Method.');
+  if Sys.nNuclei>2
+    error('Cannot have more than two nuclei for the Stochastic Liouville equation with this Opt.Method.');
   end
 end
 
@@ -560,17 +555,17 @@ end
 logmsg(1,'Solver: %s',SolverString);
 
 if ~generalLiouvillian
-  maxElements = 5e6; % used in chili_lm
-  maxRows = 2e5; % used in chili_lm
-  if ~isfield(Opt,'Allocation')
-    Opt.Allocation = [maxElements maxRows];
-  elseif numel(Opt.Allocation)<2
-    Opt.Allocation(2) = maxRows;
+  % reallocation block size, used in chili_lm
+  blockSize = 1e6;
+  minBlockSize = 1e3;
+  if ~isfield(Opt,'AllocationBlockSize')
+    Opt.AllocationBlockSize = blockSize;
   end
-  if Opt.Allocation(1)<1e3
-    error('Opt.Allocation(1) (maximum number elements) is too small.');
+  Opt.AllocationBlockSize = Opt.AllocationBlockSize(1);
+  if Opt.AllocationBlockSize<minBlockSize
+    error('Opt.AllocationBlockSize = %d is too small. Increase its value to at least %d.',Opt.AllocationBlockSize,minBlockSize);
   end
-  logmsg(2,'  allocation: %d max elements, %d max rows',Opt.Allocation(1),Opt.Allocation(2));
+  logmsg(2,'  allocating memory in blocks of %d non-zero elements',Opt.AllocationBlockSize);
 end
 
 % Process
@@ -844,9 +839,8 @@ for iOri = 1:nOrientations
       Sys.DirTilt = Basis.DirTilt; % used in chili_lm
       Dynamics.xlk = Potential.xlk; % used in chili_lm
       Dynamics.maxL = size(Potential.xlk,1)-1; % used in chili_lm
-      [r,c,Vals,nDim,nElm] = chili_lm(Sys,Basis.v,Dynamics,Opt.Allocation);
-      idx = 1:nElm;
-      L = sparse(r(idx)+1,c(idx)+1,Vals(idx),BasisSize,BasisSize);
+      [r,c,Vals,nDim] = chili_lm(Sys,Basis.v,Dynamics,Opt.AllocationBlockSize);
+      L = sparse(r,c,Vals,BasisSize,BasisSize);
     else
       
       if explicitFieldSweep
