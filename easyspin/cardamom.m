@@ -341,7 +341,7 @@ switch Model
 end
 
 % trajectories might differ in length, so we need cells for allocation
-expval = cell(1,nOrients);
+expect = cell(1,nOrients);
 tcell = cell(1,nOrients);
 
 
@@ -386,25 +386,28 @@ for iOrient = 1:nOrients
                      [1,MD.nTraj,MD.nSteps]);
       Rmult = quat2rotmat(qmult);
       MD.RTraj = matmult(Rmult,RTraj);
-      t = linspace(0, Par.nSteps*Par.dt, floor(MD.nSteps/ceil(Par.dt/MD.dt))).';
-%       t = linspace(0, Par.nSteps*Par.dt, Par.nSteps).';
 
   end
-  
-  tcell{1,iOrient} = t;
 
   % propagate the density matrix
   rho_t = propagate_quantum(Sys,Par,Opt,MD,omega,CenterField);
   
   % average over trajectories
-  rho_t = squeeze(sum(rho_t,3));
+  rho_t = squeeze(mean(rho_t,3));
   
   % calculate the expectation value of S_{+}
-  expval{1,iOrient} = squeeze(rho_t(1,1,:)+rho_t(2,2,:)+rho_t(3,3,:));  % take traces TODO try to speed this up using equality tr(A*B)=sum(sum(A.*B))
+  expect{1,iOrient} = squeeze(rho_t(1,1,:)+rho_t(2,2,:)+rho_t(3,3,:));  % take traces TODO try to speed this up using equality tr(A*B)=sum(sum(A.*B))
 
   if Opt.Verbosity
     updateuser(iOrient,nOrients)
   end
+  
+  if strcmp(Model,'Molecular Dynamics')
+    nSteps = size(rho_t,3);
+    t = linspace(0, nSteps*Par.dt, nSteps).';
+  end
+  
+  tcell{1,iOrient} = t;
 
 end
 
@@ -426,10 +429,7 @@ TL = Dynamics.T2;  % TODO implement Lorentzian and Gaussian broadening
 
 % Convolve with Lorentzian and multiply by t for differentiation
 tdiff = cellfun(@(x) hamm.*x.*exp(-x/TL), tcell, 'UniformOutput', false);
-expvalDt = cellfun(@times, expval, tdiff, 'UniformOutput', false);
-
-% average over trajectories
-expval = mean(cell2mat(expval),2);
+expvalDt = cellfun(@times, expect, tdiff, 'UniformOutput', false);
 
 % zero padding for FFT to ensure sufficient B-field resolution 
 % (at most 0.1 mT)
@@ -438,7 +438,7 @@ treq = 1/(mt2mhz(Bres)*1e3); % MHz -> s
 if max(t)<treq
   M = ceil(treq/Par.dt);  % TODO make flexible for propagation length extensions
 else
-  M = length(expval);
+  M = length(expect);
 end
 
 % relaxation and differentiation of spectrum via convolution
@@ -451,6 +451,10 @@ fftAxis = mhz2mt(freq/1e6+Exp.mwFreq*1e3,mean(Sys.g));  % Note use of g0, not ge
 
 % interpolate over horizontal sweep range
 outspec = interp1(fftAxis,spc,xAxis);
+
+% average over trajectories for <S_+(t)> output
+tmat = cell2mat(tcell);
+expect = mean(cell2mat(expect).*exp(-tmat/TL),2);
 
 % Final processing
 % -------------------------------------------------------------------------
@@ -486,7 +490,7 @@ case 1
 case 2
   varargout = {xAxis,outspec};
 case 3
-  varargout = {xAxis,outspec,expval};
+  varargout = {xAxis,outspec,expect};
 end
 
 clear global EasySpinLogLevel

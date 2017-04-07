@@ -119,8 +119,8 @@ switch Method
       % size of MD trajectory after averaging
       M = floor(MD.nSteps/nWindow);
 
-      GptensorAvg = zeros(3,3,1,M);
-      AtensorAvg = zeros(3,3,1,M);
+      GptensorAvg = zeros(3,3,M);
+      AtensorAvg = zeros(3,3,M);
       
       % Perform rotations on g- and A-tensors
       Gptensor = matmult(RTraj, matmult(repmat(diag(g),1,1,MD.nTraj,MD.nSteps), ...
@@ -136,26 +136,28 @@ switch Method
       end
       
       % process single long trajectory into multiple short trajectories
-      lag = 2;
-      nEnd = Par.nSteps;
-      nTraj = floor((M-nEnd)/lag);
+      lag = 1;
+      if Par.nSteps<M
+        nEnd = Par.nSteps;
+        nTraj = floor((M-nEnd)/lag) + 1;
+      else
+        nSteps = M;
+        nEnd = M;
+        nTraj = 1;
+      end
       
-      Gptensor = zeros(3,3,nEnd,nTraj);
-      Atensor = zeros(3,3,nEnd,nTraj);
+      Gptensor = zeros(3,3,nTraj,nEnd);
+      Atensor = zeros(3,3,nTraj,nEnd);
       
       for k = 1:nTraj
         idx = (1:nEnd) + (k-1)*lag;
-        Gptensor(:,:,:,k) = GptensorAvg(:,:,idx);
-        Atensor(:,:,:,k) = AtensorAvg(:,:,idx);
+        Gptensor(:,:,k,:) = GptensorAvg(:,:,idx);
+        Atensor(:,:,k,:) = AtensorAvg(:,:,idx);
       end
-      
-      % change shape afterward rather than at every time step
-      Gptensor = permute(Gptensor,[1,2,4,3]);
-      Atensor = permute(Atensor,[1,2,4,3]);
       
       % frame of MD coordinate system is lab frame for solution simulations
       
-      rho_t = zeros(3,3,nTraj,M);
+      rho_t = zeros(3,3,nTraj,nEnd);
       rho_t(:,:,:,1) = repmat(eye(3),[1,1,nTraj]);
       
     else
@@ -228,13 +230,22 @@ switch Method
 %       end
 %     else
       % there are multiple trajectories, so we need "mmult"
-    for iStep=2:nSteps
-      rho_t(:,:,:,iStep) = mmult(U(:,:,:,iStep-1),...
-                                 mmult(rho_t(:,:,:,iStep-1), U(:,:,:,iStep-1),'complex'),...
-                                 'complex');
+    if nTraj>1
+      for iStep=2:nSteps
+        rho_t(:,:,:,iStep) = mmult(U(:,:,:,iStep-1),...
+                                   mmult(rho_t(:,:,:,iStep-1), U(:,:,:,iStep-1),'complex'),...
+                                   'complex');
 
-    %  Trace of a product of matrices is the sum of entry-wise products
-    %      rho_t(:,:,:,iStep) = U2(:,:,:,iStep-1).*rho_t(:,:,:,iStep-1);
+        %  Trace of a product of matrices is the sum of entry-wise products
+        %      rho_t(:,:,:,iStep) = U2(:,:,:,iStep-1).*rho_t(:,:,:,iStep-1);
+      end
+    else
+      for iStep=2:nSteps
+        rho_t(:,:,1,iStep) = U(:,:,1,iStep-1)*rho_t(:,:,1,iStep-1)*U(:,:,1,iStep-1);
+
+        %  Trace of a product of matrices is the sum of entry-wise products
+        %      rho_t(:,:,:,iStep) = U2(:,:,:,iStep-1).*rho_t(:,:,:,iStep-1);
+      end
     end
 %     end
 
