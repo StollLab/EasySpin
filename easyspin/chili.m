@@ -623,7 +623,7 @@ else
   nu = linspace(Exp.mwRange(1),Exp.mwRange(2),Exp.nPoints)*1e9;  % Hz
   xAxis = nu/1e9; % frequency axis, GHz
 end
-omega0 = complex(1/(Dynamics.T2),2*pi*nu); % angular frequency
+
 
 % Set up list of orientations
 %=====================================================================
@@ -804,9 +804,10 @@ for iOri = 1:nOrientations
   
   if explicitFieldSweep
     BSweep = linspace(min(Exp.Range),max(Exp.Range),Exp.nPoints)/1e3; % mT -> T
-    omega0 = 2*pi*Exp.mwFreq*1e9; % GHz -> Hz
+    omega0 = 1i*2*pi*Exp.mwFreq*1e9; % GHz -> Hz (angular frequency)
   else
     BSweep = CenterField/1e3; % mT -> T
+    omega0 = complex(1/(Dynamics.T2),2*pi*nu); % angular frequency
   end
   
   if generalLiouvillian
@@ -833,9 +834,28 @@ for iOri = 1:nOrientations
     end
   end
       
+  if ~generalLiouvillian && explicitFieldSweep
+    EZ0_ = Sys.EZ0;
+    EZ2_ = Sys.EZ2;
+    if isfield(Sys,'NZ0')
+      for iNuc = 1:numel(Sys.NZ0)
+        NZ0_(iNuc) = Sys.NZ0(iNuc);
+      end
+    end
+  end
+  
   iSpec = 1;
   for iB = 1:numel(BSweep)
     if ~generalLiouvillian
+      if explicitFieldSweep
+        Sys.EZ0 = EZ0_*BSweep(iB);
+        Sys.EZ2 = EZ2_*BSweep(iB);
+        if isfield(Sys,'NZ0')
+          for iNuc = 1:numel(Sys.NZ0)
+            Sys.NZ0(iNuc) = NZ0_(iNuc)*BSweep(iB);
+          end
+        end
+      end
       Sys.DirTilt = Basis.DirTilt; % used in chili_lm
       Dynamics.xlk = Potential.xlk; % used in chili_lm
       Dynamics.maxL = size(Potential.xlk,1)-1; % used in chili_lm
@@ -856,96 +876,96 @@ for iOri = 1:nOrientations
       end
       if any(isnan(L))
         error('Liouvillian matrix contains NaN entries! Please report.');
-      end
-      
+      end 
     end
-      
-      % Rescale by maximum of Hamiltonian superoperator
-      Opt.Rescale = 0;
-      if (Opt.Rescale)
-        scale = -min(min(imag(L)));
-        L = L/scale;
-        omega = omega0/scale;
-      else
-        omega = omega0; % angular frequency
-      end
-      
-      if explicitFieldSweep
-        omega = 1i*omega;
-      end
-      
-      maxDvalLim = 2e3;
-      maxDval = max(max(abs(imag(L))));
-      logmsg(1,'  size: %dx%d, maxabs: %g',length(L),length(L),full(maxDval));
-      if maxDval>maxDvalLim
+    
+    % Rescale by maximum of Hamiltonian superoperator
+    
+    if (Opt.Rescale)
+      scale = -min(min(imag(L)));
+      L = L/scale;
+      omega = omega0/scale;
+    else
+      omega = omega0; % angular frequency
+    end
+    
+    maxDvalLim = 2e3;
+    maxDval = max(max(abs(imag(L))));
+    logmsg(1,'  size: %dx%d, maxabs: %g',length(L),length(L),full(maxDval));
+    if maxDval>maxDvalLim
       %  error(sprintf('Numerical instability, values in diffusion matrix are too large (%g)!',maxDval));
-      end
+    end
+    
+    logmsg(1,'  non-zero elements: %d/%d (%0.2f%%)',nnz(L),length(L).^2,100*nnz(L)/length(L)^2);
+    
+    %==============================================================
+    % Computation of the spectral function
+    %==============================================================
+    logmsg(1,'Computing spectrum...');
+    if explicitFieldSweep
+      Opt.Solver = '\';
+    end
+    switch Opt.Solver
       
-      logmsg(1,'  non-zero elements: %d/%d (%0.2f%%)',nnz(L),length(L).^2,100*nnz(L)/length(L)^2);
-      
-      %==============================================================
-      % Computation of the spectral function
-      %==============================================================
-      logmsg(1,'Computing spectrum...');
-      if explicitFieldSweep
-        Opt.Solver = '\';
-      end
-      switch Opt.Solver
-        
-        case 'L' % Lanczos method
-          [alpha,beta,minerr] = chili_lanczos(L,StartingVector,omega,Opt);
-          minerr = minerr(end);
-          if (minerr<Opt.Threshold)
-            thisspec = chili_contfracspec(omega,alpha,beta);
-            logmsg(1,'  converged to within %g at iteration %d/%d',...
-              Opt.Threshold,numel(alpha),BasisSize);
-          else
-            thisspec = ones(size(omega));
-            logmsg(0,'  Tridiagonalization did not converge to within %g after %d steps!\n  Increase Options.LLKM (current settings [%d,%d,%d,%d])',...
-              Opt.Threshold,BasisSize,Opt.LLKM');
-          end
-          
-        case 'C' % conjugated gradients
-          CGshift = 1e-6 + 1e-6i;
-          [xx,alpha,beta,err,StepsDone] = chili_conjgrad(L,StartingVector,CGshift);
-          
-          logmsg(1,'  step %d/%d: CG converged to within %g',...
-            StepsDone,BasisSize,err);
-          
+      case 'L' % Lanczos method
+        [alpha,beta,minerr] = chili_lanczos(L,StartingVector,omega,Opt);
+        minerr = minerr(end);
+        if (minerr<Opt.Threshold)
           thisspec = chili_contfracspec(omega,alpha,beta);
-          
-        case 'R' % bi-conjugate gradients stabilized
-          for iomega = 1:numel(omega)
-            u = bicgstab(L+omega(iomega)*speye(size(L)),StartingVector,Opt.Threshold,nDim);
-            thisspec(iomega) = real(u'*StartingVector);
+          logmsg(1,'  converged to within %g at iteration %d/%d',...
+            Opt.Threshold,numel(alpha),BasisSize);
+        else
+          thisspec = ones(size(omega));
+          logmsg(0,'  Tridiagonalization did not converge to within %g after %d steps!\n  Increase Options.LLKM (current settings [%d,%d,%d,%d])',...
+            Opt.Threshold,BasisSize,Opt.LLKM');
+        end
+        %thisspec = thisspec/2; % scale to match direct solver intensity
+        
+      case 'C' % conjugated gradients
+        CGshift = 1e-6 + 1e-6i;
+        [xx,alpha,beta,err,StepsDone] = chili_conjgrad(L,StartingVector,CGshift);
+        
+        logmsg(1,'  step %d/%d: CG converged to within %g',...
+          StepsDone,BasisSize,err);
+        
+        thisspec = chili_contfracspec(omega,alpha,beta);
+        
+      case 'R' % bi-conjugate gradients stabilized
+        for iOmega = 1:numel(omega)
+          u = bicgstab(L+omega(iOmega)*speye(size(L)),StartingVector,Opt.Threshold,nDim);
+          thisspec(iOmega) = real(u'*StartingVector);
+        end
+        
+      case '\' % MATLAB backslash solver for linear system
+        I = speye(size(L));
+        rho0 = StartingVector;
+        for iOmega = 1:numel(omega)
+          thisspec(iSpec) = rho0'*((L+omega(iOmega)*I)\rho0);
+          if generalLiouvillian
+            thisspec(iSpec) = thisspec(iSpec)*2; % scale to match Lanczos
           end
-          
-        case '\' % MATLAB backslash solver for linear system
-          I = speye(size(L));
-          rho0 = StartingVector;
-          for iomega = 1:numel(omega)
-            thisspec(iSpec) = rho0'*((L+omega(iomega)*I)\rho0);
-            iSpec = iSpec + 1;
-          end
-          %thisspec = real(thisspec);
-          
-        case 'D' % "direct" method by Binsch (eigenbasis)
-          L = full(L);
-          [U,Lam] = eig(L);
-          Lam = diag(Lam);
-          rho0 = StartingVector;
-          Amplitude = (rho0'*U).'.*(U\rho0);
-          thisspec = 0;
-          for iPeak = 1:numel(Amplitude)
-            thisspec = thisspec + Amplitude(iPeak)./(Lam(iPeak)+omega);
-          end
-          
-      end
-      
+          iSpec = iSpec + 1;
+        end
+        %thisspec = real(thisspec);
+        
+      case 'D' % "direct" method by Binsch (eigenbasis)
+        L = full(L);
+        [U,Lam] = eig(L);
+        Lam = diag(Lam);
+        rho0 = StartingVector;
+        Amplitude = (rho0'*U).'.*(U\rho0);
+        thisspec = 0;
+        for iPeak = 1:numel(Amplitude)
+          thisspec = thisspec + Amplitude(iPeak)./(Lam(iPeak)+omega);
+        end
+        
+    end
+    
   end
   
   thisspec = real(thisspec);
   spec = spec + thisspec*Weights(iOri);
+  %spec = spec/(8*pi); % scale by powder average as in pepper and S-
   
 end % orientation loop
 %==============================================================
@@ -1014,8 +1034,8 @@ if (Opt.BasisAnalysis)
   logmsg(1,'Basis set analysis');
   omega_ = linspace(omega(1),omega(end),12);
   u_sum = 0;
-  for iomega = 1:numel(omega_)
-    u = bicgstab(L+omega_(iomega)*speye(size(L)),StartingVector,1e-7,180);
+  for iOmega = 1:numel(omega_)
+    u = bicgstab(L+omega_(iOmega)*speye(size(L)),StartingVector,1e-7,180);
     u_sum = u_sum + abs(u)/abs(StartingVector'*u);
   end
   u_sum = u_sum/max(u_sum);
