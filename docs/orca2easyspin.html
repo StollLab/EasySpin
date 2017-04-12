@@ -7,7 +7,7 @@
    <link rel="stylesheet" href="highlight/matlab.css">
    <script src="highlight/highlight.pack.js"></script>
    <script>hljs.initHighlightingOnLoad();</script>
-   <title>orc2easyspin</title>
+   <title>orca2easyspin</title>
 </head>
 
 <body>
@@ -62,33 +62,37 @@ This function loads EPR properties calculated by <a href="http://cec.mpg.de/foru
 <div class="subtitle">Examples</div>
 
 <p>
-To load and display a one-dimensional CW EPR spectrum stored in BES<sup>3</sup>T format in the files
-<code>myspec.DTA</code> and <code>myspec.DSC</code>, type
+To load a spin system from an ORCA calculation with results in <code>mymol.oof</code> (ORCA output text file) and <code>mymol.prop</code> (associated binary ORCA property file), type
 </p>
 
 <pre class="matlab">
-[B,spec,pars] = eprload('myspec.DTA');
-plot(B,spec);
+Sys = orca2easyspin('mymol');   % loads spin system from mymol.prop
 </pre>
 
 <p>
-To load and display a two-dimensional data set stored in BES<sup>3</sup>T format in the files
-<code>myspec2d.DTA</code> and <code>myspec2d.DSC</code>, use
+To skip nuclei with hyperfine couplings less than 0.8 MHz, specify a second parameter:
 
 <pre class="matlab">
-[x,data] = eprload('myspec2d.DTA');
-axis1 = x{1};     % first axis, e.g. magnetic field
-axis2 = x{2};     % second axis, e.g. time or temperature
-plot(axis1,data);
+Sys = orca2easyspin('mymol',0.8);   % 0.8 MHz hyperfine cut-off
 </pre>
 
 <p>
-If you want to display the data only without retrieving the data, use
+In order to remove all nuclei except one or two of interest, use the function <a class="esf" href="nucspinkeep.html">nucspinkeep</a>:
+
+<pre class="matlab">
+Sys = orca2easyspin('mymol');   % load entire spin system from ORCA results
+Sys = nucspinkeep(Sys,[1 2]);   % remove all nuclei except the first and the second
+</pre>
+
+<!-- ====================================================== -->
+<div class="subtitle">See also</div>
+
+<p>
+<a href="spinsystem.html">spin system structures</a>,
+<a class="esf" href="nucspinadd.html">nucspinadd</a>,
+<a class="esf" href="nucspinkeep.html">nucspinkeep</a>,
+<a class="esf" href="nucspinrmv.html">nucspinrmv</a>
 </p>
-
-<pre class="matlab">
-eprload('myspec.DTA');
-</pre>
 
 <hr>
 </section>

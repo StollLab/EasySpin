@@ -109,18 +109,18 @@ pepper(Sys,Exp);
 If you look at the <code>Sys</code> structure above, you will see that the <code>Sys.Nucs</code> field contains an element (hydrogen), without specifying a specific isotope (1H or 2H). In this case, EasySpin simulates all the spectra of all isotopologues with significant natural abundance and combines the results.
 
 <p>
-Of course, the hyperfine values are isotope-specific. For example, in the absence of any isotope effects, the hyperfine values of 2H are about 6.5 times smaller than those of 1H. The same holds for nuclear quadrupole couplings: They also depend on the isotope.
+Of course, the hyperfine values are isotope-specific. For example, in the absence of any isotope effects, the hyperfine values of 2H are about 6.5 times smaller than those of 1H. The same holds for nuclear quadrupole coupling constants: They also depend on the isotope.
 
 <p>
-EasySpin has two simple rules to decide which isotope of a given element the hyperfine couplings in <code>Sys.A</code> and the nuclear quadrupole couplings in <code>Sys.Q</code> refer to.
+EasySpin has simple rules to decide which isotope of a given element the values in <code>Sys.A</code> and in <code>Sys.Q</code> refer to:
 
 <ol>
-<li>The hyperfine coupling in <code>Sys.A</code> refers to the most naturally abundant among the isotopes with spin 1/2 or larger.
-<li>The nuclear quadrupole coupling in <code>Sys.Q</code> refers to the most naturally abundant among the isotopes with spin 1 or larger.
+<li><code>Sys.A</code> refers to the most abundant among the isotopes with spin 1/2 or larger.
+<li><code>Sys.Q</code> refers to the most abundant among the isotopes with spin 1 or larger.
 </ol>
 
 <p>
-All conversions from these leading isotopes to the others are handled by EasySpin automatically.
+All conversions from these leading isotopes to the others are automatically performed by EasySpin internally.
 </p>
 
 <hr>
