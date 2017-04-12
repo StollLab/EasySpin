@@ -306,7 +306,6 @@ logmsg(1,'-- time domain simulation -----------------------------------------');
 
 switch Model
   case 'Brownian'
-    logmsg(1,'-- Model: Brownian dynamics -----------------------------------------');
     % no ordering present, so trajectory starting points are arbitrary
     if ~isfield(Par,'nOrients')
       % if Par.nOrients is not given, just use Par.nTraj as number of
@@ -328,7 +327,6 @@ switch Model
 %     logmsg(1,'-- model: SRLS -----------------------------------------');  
 %     
   case 'Molecular Dynamics' % TODO process RTraj based on size of input
-    logmsg(1,'-- Model: Molecular Dynamics ---------------------------');
     if ~isfield(Par,'nOrients')
       error('nOrients must be specified for the Molecular Dynamics model.')
     end
@@ -339,6 +337,10 @@ switch Model
   otherwise
     error('Model not recognized. Please check the documentation for acceptable models.')
 end
+
+logmsg(1, '-- Model: %s -----------------------------------------', Model);
+
+logmsg(1, '-- Method: %s -----------------------------------------', Opt.Method);
 
 % trajectories might differ in length, so we need cells for allocation
 expect = cell(1,nOrients);
@@ -384,8 +386,7 @@ for iOrient = 1:nOrients
       % simulation
       qmult = repmat(euler2quat(grid_phi(iOrient), grid_theta(iOrient), 0),...
                      [1,MD.nTraj,MD.nSteps]);
-      Rmult = quat2rotmat(qmult);
-      MD.RTraj = matmult(Rmult,RTraj);
+      MD.RTraj = matmult(quat2rotmat(qmult),RTraj);
 
   end
 
@@ -417,6 +418,15 @@ if Opt.Verbosity
   fprintf(msg);
 end
 
+if strcmp(Model, 'Molecular Dynamics')
+  % these variables can take up a lot of memory and might prevent the user 
+  % from implementing a fine enough grid for powder averaging 
+  clear RTraj
+  clear RTrajInv
+  clear qmult
+  clear MD.RTraj
+end
+
 % Perform FFT
 % -------------------------------------------------------------------------
 
@@ -429,12 +439,12 @@ TL = Dynamics.T2;  % TODO implement Lorentzian and Gaussian broadening
 
 % Convolve with Lorentzian and multiply by t for differentiation
 tdiff = cellfun(@(x) hamm.*x.*exp(-x/TL), tcell, 'UniformOutput', false);
-expvalDt = cellfun(@times, expect, tdiff, 'UniformOutput', false);
+expectDt = cellfun(@times, expect, tdiff, 'UniformOutput', false);
 
 % zero padding for FFT to ensure sufficient B-field resolution 
 % (at most 0.1 mT)
 Bres = 0.1; % mT
-treq = 1/(mt2mhz(Bres)*1e3); % MHz -> s
+treq = 1/(mt2mhz(Bres)*1e6); % mT -> s
 if max(t)<treq
   M = ceil(treq/Par.dt);  % TODO make flexible for propagation length extensions
 else
@@ -442,8 +452,9 @@ else
 end
 
 % relaxation and differentiation of spectrum via convolution
-spc = cell2mat(cellfun(@(x) fft(x,M), expvalDt, 'UniformOutput', false));
-spc = imag(fftshift(sum(spc,2)));
+spc = reshape(cell2mat(cellfun(@(x) fft(x,M), expectDt, 'UniformOutput', false)),...
+              [M,nOrients]);
+spc = imag(fftshift(mean(spc,2)));
 freq = 1/(Par.dt*M)*(-M/2:M/2-1);  % TODO check for consistency between FieldSweep and FFT window/resolution
 
 % center the spectrum around the isotropic component of the g-tensor

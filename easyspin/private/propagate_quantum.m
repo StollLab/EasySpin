@@ -138,31 +138,26 @@ switch Method
       % process single long trajectory into multiple short trajectories
       lag = 1;
       if Par.nSteps<M
-        nEnd = Par.nSteps;
-        nTraj = floor((M-nEnd)/lag) + 1;
+        nSteps = Par.nSteps;
+        nTraj = floor((M-nSteps)/lag) + 1;
       else
         nSteps = M;
-        nEnd = M;
         nTraj = 1;
       end
       
-      Gptensor = zeros(3,3,nTraj,nEnd);
-      Atensor = zeros(3,3,nTraj,nEnd);
+      Gptensor = zeros(3,3,nTraj,nSteps);
+      Atensor = zeros(3,3,nTraj,nSteps);
       
       for k = 1:nTraj
-        idx = (1:nEnd) + (k-1)*lag;
+        idx = (1:nSteps) + (k-1)*lag;
         Gptensor(:,:,k,:) = GptensorAvg(:,:,idx);
         Atensor(:,:,k,:) = AtensorAvg(:,:,idx);
       end
       
       % frame of MD coordinate system is lab frame for solution simulations
       
-      rho_t = zeros(3,3,nTraj,nEnd);
-      rho_t(:,:,:,1) = repmat(eye(3),[1,1,nTraj]);
-      
     else
-      rho_t = zeros(3,3,nTraj,nSteps);
-      rho_t(:,:,:,1) = repmat(eye(3),[1,1,nTraj,1]);
+
       % Perform rotations on g- and A-tensors
       Gptensor = matmult(RTraj, matmult(repmat(diag(g),1,1,nTraj,nSteps), ...
                                             RTrajInv))/gfree - g_tr/3/gfree;
@@ -171,6 +166,9 @@ switch Method
                                            RTrajInv))*1e6*2*pi;  % MHz (s^-1) -> Hz (rad s^-1)
       
     end
+    
+    rho_t = zeros(3,3,nTraj,nSteps);
+    rho_t(:,:,:,1) = repmat(eye(3),[1,1,nTraj]);
     
     % Prepare propagators
     % ---------------------------------------------------------------------
