@@ -964,16 +964,19 @@ for iOri = 1:nOrientations
   
   thisspec = real(thisspec);
   spec = spec + thisspec*Weights(iOri);
-  spec = spec/(4*pi); % scale by powder average factor of 4pi
-  if (~generalLiouvillian) || (generalLiouvillian && strcmp(Opt.Solver,'L'))
-    spec = spec/2; % scale to match general direct solver intensity (due to Lanczos and S- ?)
-  end
-  %if FrequencySweep
-  %  spec = spec/mt2mhz(1,mean(Sys.g)); % scale by 1/g factor for freq sweep
-  %end
-    
   
 end % orientation loop
+
+% rescaling to match rigid limit chili intensities to pepper intensities
+
+spec = spec/(4*pi); % scale by powder average factor of 4pi
+if (~generalLiouvillian) || (generalLiouvillian && strcmp(Opt.Solver,'L'))
+  spec = spec/2; % scale to match general direct solver intensity (due to Lanczos and S- ?)
+end
+%if FrequencySweep
+%  spec = spec/mt2mhz(1,mean(Sys.g)); % scale by 1/g factor for freq sweep
+%end
+
 %==============================================================
 
 
