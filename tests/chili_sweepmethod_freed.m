@@ -5,13 +5,13 @@ function [err,data] = test(opt,olddata)
 %==============================================================
 
 Sys.g = [2.01 2.003];
-Sys.Nucs = '14N';
-Sys.A = [20 20 100];
+Sys.lw = 0.1;
 Sys.tcorr = 1e-9;
 
 Exp.mwFreq = 9.5;
 Exp.Harmonic = 0;
 Exp.nPoints = 200;
+Exp.Range = [337 339];
 
 Opt.LiouvMethod = 'Freed';
 
