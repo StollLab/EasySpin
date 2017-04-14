@@ -11,6 +11,7 @@ Sys.tcorr = 1e-9;
 
 Exp.mwFreq = 9.5;
 Exp.Harmonic = 0;
+Exp.nPoints = 200;
 
 Opt.LiouvMethod = 'general';
 

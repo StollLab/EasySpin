@@ -919,7 +919,6 @@ for iOri = 1:nOrientations
           logmsg(0,'  Tridiagonalization did not converge to within %g after %d steps!\n  Increase Options.LLKM (current settings [%d,%d,%d,%d])',...
             Opt.Threshold,BasisSize,Opt.LLKM');
         end
-        %thisspec = thisspec/2; % scale to match direct solver intensity
         
       case 'C' % conjugated gradients
         CGshift = 1e-6 + 1e-6i;
@@ -942,7 +941,7 @@ for iOri = 1:nOrientations
         for iOmega = 1:numel(omega)
           thisspec(iSpec) = rho0'*((L+omega(iOmega)*I)\rho0);
           if generalLiouvillian
-            thisspec(iSpec) = thisspec(iSpec)*2; % scale to match Lanczos
+            thisspec(iSpec) = thisspec(iSpec);%*2; % scale to match Lanczos
           end
           iSpec = iSpec + 1;
         end
@@ -965,10 +964,13 @@ for iOri = 1:nOrientations
   
   thisspec = real(thisspec);
   spec = spec + thisspec*Weights(iOri);
-  spec = spec/(8*pi); % scale by powder average as in pepper and S-
-  if FrequencySweep
-    spec = spec/mt2mhz(1,mean(Sys.g)); % scale by 1/g factor for freq sweep
+  spec = spec/(4*pi); % scale by powder average factor of 4pi
+  if (~generalLiouvillian) || (generalLiouvillian && strcmp(Opt.Solver,'L'))
+    spec = spec/2; % scale to match general direct solver intensity (due to Lanczos and S- ?)
   end
+  %if FrequencySweep
+  %  spec = spec/mt2mhz(1,mean(Sys.g)); % scale by 1/g factor for freq sweep
+  %end
     
   
 end % orientation loop
