@@ -965,7 +965,11 @@ for iOri = 1:nOrientations
   
   thisspec = real(thisspec);
   spec = spec + thisspec*Weights(iOri);
-  %spec = spec/(8*pi); % scale by powder average as in pepper and S-
+  spec = spec/(8*pi); % scale by powder average as in pepper and S-
+  if FrequencySweep
+    spec = spec/mt2mhz(1,mean(Sys.g)); % scale by 1/g factor for freq sweep
+  end
+    
   
 end % orientation loop
 %==============================================================

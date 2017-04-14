@@ -19,11 +19,11 @@ Opt.LLKM = [20 0 0 0];
 
 [x,y2] = chili(Sys,Exp,Opt);
 
-if 1
+if opt.Display
   plot(x,y1,x,y2);
   legend('pepper','chili');
 end
 
-%err = ~areequal(y1,y2,9e-1*max(y1));
+err = ~areequal(y1,y2,1e-1*max(y1)); % 10% tolerance limit
 
 data = [];
