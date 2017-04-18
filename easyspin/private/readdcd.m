@@ -1,11 +1,11 @@
 %  readdcd  Read a binary DCD file obtained from a molecular dynamics
 %           simulation.
 %
-%   traj = readdcd(fileName);
-%   traj = readdcd(fileName, idx);
+%   traj = readdcd(FileName);
+%   traj = readdcd(FileName, idx);
 %
 %   Input:
-%     fileName       character array
+%     FileName       character array
 %                    Name of DCD file to be read.
 %
 %     idx            numeric
@@ -22,7 +22,7 @@ function traj = readdcd(varargin)
 
 switch nargin
   case 1
-    fileName = varargin{1};
+    FileName = varargin{1};
     idx = [];
   case 2
     FileName = varargin{1};
