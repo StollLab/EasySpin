@@ -1,19 +1,21 @@
 function [err,data] = test(opt,olddata)
 
-%==========================================================================
-% Frequency-swept slow-motion spectrum of a S=1 with hyperfine
-%   splitting from 2 protons
-%==========================================================================
-Sys.S = 1;
-Sys.D = 100;
-Sys.A = [10 10 10];
-Sys.Nucs = '1H,1H,1H';
+%=======================================================
+% Explicit field-sweep doublet, Freed solver
+%=======================================================
+
+Sys.S = 1/2;
+Sys.g = [2.01 2.005 2.002];
 Sys.tcorr = 10e-9;
 
-Exp.Field = 350;
-Exp.mwRange = [9.5 10];
+Exp.mwFreq = 9.5;
+Exp.Range = [336 341];
+Exp.Harmonic = 0;
 
-Opt.LiouvMethod = 'general';
+Opt.LiouvMethod = 'Freed';
+Opt.ExplicitFieldSweep = true;
+Opt.LLKM = [4 0 2 2];
+
 [x,y] = chili(Sys,Exp,Opt);
 
 data.x = x;

@@ -1,22 +1,18 @@
 function [err,data] = test(opt,olddata)
 
-%==========================================================================
-% Field-swept slow-motion spectrum of a S=1/2 with hyperfine
-%   splitting from 2 protons
-%==========================================================================
+%=======================================================
+% Frequency-sweep triplet, general solver
+%=======================================================
 
-Sys.S = 1/2;
-Sys.g = [2.01 2.007 2.005];
-Sys.A = [25 25];
-Sys.Nucs = '1H,1H';
+Sys.S = 1;
+Sys.g = 2;
+Sys.D = 100;
 Sys.tcorr = 10e-9;
 
-Exp.mwFreq = 9.5;
-%Exp.CenterField = 1e3*planck*Exp.mwFreq*1e9/(bmagn*mean(Sys.g));
-Exp.Range = [320 360];
-Exp.Harmonic = 0;
-
+Exp.Field = 350;
+Exp.mwRange = [9.6 10];
 Opt.LiouvMethod = 'general';
+
 [x,y] = chili(Sys,Exp,Opt);
 
 data.x = x;

@@ -1,15 +1,17 @@
 function [err,data] = test(opt,olddata)
 
 %=======================================================
-% Frequency-swept slow-motion spectrum of a triplet
+% Frequency-sweep doublet, Freed solver
 %=======================================================
 
-Sys.S = 1;
-Sys.D = 50;
+Sys.g = [2.01 2];
+Sys.Nucs = '14N';
+Sys.A = [20 20 100];
 Sys.tcorr = 10e-9;
 
 Exp.Field = 350;
 Exp.mwRange = [9.6 10];
+Opt.LiouvMethod = 'Freed';
 
 [x,y] = chili(Sys,Exp);
 
