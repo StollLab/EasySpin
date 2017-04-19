@@ -67,20 +67,20 @@ TrajFile = fullfile(TrajFilePath, [TrajFileName, TrajFileExt]);
 [TopFilePath, TopFileName, TopFileExt] = fileparts(TopFile);
 TopFile = fullfile(TopFilePath, [TopFileName, TopFileExt]);
 
-switch upper(TrajFileExt)
-  case '.DCD'
-    if ~strcmp(upper(TopFileExt),'.PSF')
-      error('If loading a DCD trajectory file, the topology file must be of type PSF.')
-    end
-    psf = readpsf(TopFile, ResName, AtomNames);
+ExtCombo = [upper(TrajFileExt), ',', upper(TopFileExt)];
+
+switch ExtCombo
+  case '.DCD,.PSF'
+    psf = readpsf(TopFile, ResName, AtomNames);  % TODO perform consistency checks between topology and trajectory files
     MD = readdcd(TrajFile, psf.idx_SpinLabel);
     MD.Oxyz = MD.xyz(:,:,psf.idx_O==psf.idx_SpinLabel);
     MD.Nxyz = MD.xyz(:,:,psf.idx_N==psf.idx_SpinLabel);
     MD.C1xyz = MD.xyz(:,:,psf.idx_C1==psf.idx_SpinLabel);
     MD.C2xyz = MD.xyz(:,:,psf.idx_C2==psf.idx_SpinLabel);
-    rmfield(MD, 'xyz');
+    MD = rmfield(MD, 'xyz');
   otherwise
-    error('TrajFile type is either not supported or not properly entered. Please see documentation.')
+    error('TrajFile type "%s" and TopFile "%s" type combination is either ',...
+          'not supported or not properly entered. Please see documentation.', TrajFileExt, TopFileExt)
 end
 
 end

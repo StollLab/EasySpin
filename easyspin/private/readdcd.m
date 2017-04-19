@@ -36,7 +36,7 @@ if ~ischar(FileName)
   error('Filename must be given as a character array.')
 end
 
-if ~endsWith(FileName,'.dcd')
+if ~endsWith(lower(FileName),'.dcd')
   error('Please give the full filename including the ".dcd" extension.')
 end
 
@@ -58,7 +58,7 @@ fseek(FileID, 0, 'bof');
 % TODO can we just check machineformat and be done?
 [FileName, ~, machineformat] = fopen(FileID);
 
-TIMEFACTOR = 48.88821;  % used to convert internal time units to fs
+TIMEFACTOR = 48.88821;  % used to convert internal time units to fs TODO this should be restricted to NAMD output
 
 % block 1
 % -------------------------------------------------------------------------

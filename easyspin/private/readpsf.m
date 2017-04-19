@@ -51,7 +51,7 @@ if ~ischar(FileName)
   error('FileName must be given as a character array.')
 end
 
-if ~endsWith(FileName,'.psf')
+if ~endsWith(lower(FileName),'.psf')
   error('Please give the full filename including the ".psf" extension.')
 end
 
