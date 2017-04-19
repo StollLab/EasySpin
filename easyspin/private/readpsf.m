@@ -23,6 +23,8 @@
 %                        (C1Name) C   C (C2Name)
 %                                 |   |
 %                                ... ...
+%
+%
 %   Output:
 %     psf            structure array
 %                    NATOM: number of atoms to be included in simulation
@@ -35,7 +37,7 @@
 % For more information on PSF file structure, see:
 %  http://www.ks.uiuc.edu/Training/Tutorials/namd/namd-tutorial-unix-html/node23.html
 
-function psf = readpsf_mine(FileName, ResName, AtomNames)
+function psf = readpsf(FileName, ResName, AtomNames)
 
 % Note:
 % This function assumes the following order of sections in the PSF, which 

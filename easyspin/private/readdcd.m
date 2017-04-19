@@ -11,14 +11,17 @@
 %     idx            numeric
 %                    Index or indices of atoms to be read.
 %
+%
 %   Output:
-%     traj           numeric, size = (nFrames,3)
-%                    x,y,z coordinates of desired atoms in the trajectory
+%     Traj           structure array
+%                    xyz: x,y,z coordinates of desired atoms in the trajectory
+%                    nSteps: total number of time steps in the trajectory
+%                    dt: size of the time step
 
 % current code is based on 'readdcd' in MDToolbox:
 %  https://github.com/ymatsunaga/mdtoolbox
 
-function traj = readdcd(varargin)
+function Traj = readdcd(varargin)
 
 switch nargin
   case 1
@@ -27,7 +30,6 @@ switch nargin
   case 2
     FileName = varargin{1};
     idx = varargin{2};
-    nidx = length(idx);
 end
 
 if ~ischar(FileName)
@@ -55,6 +57,8 @@ fseek(FileID, 0, 'bof');
 % check endianness of binary file
 % TODO can we just check machineformat and be done?
 [FileName, ~, machineformat] = fopen(FileID);
+
+TIMEFACTOR = 48.88821;  % used to convert internal time units to fs
 
 % block 1
 % -------------------------------------------------------------------------
@@ -137,11 +141,11 @@ end
 header.blocksize2 = fread(FileID, 1, 'int32');
 
 % # of title lines
-header.ntitle = fread(FileID, 1, 'int32');
+header.NTITLE = fread(FileID, 1, 'int32');
 
 % title
-header.TITLE = fread(FileID, 80*header.ntitle, 'char');
-header.TITLE = char(reshape(header.title, 80, [])');
+header.TITLE = fread(FileID, 80*header.NTITLE, 'char');
+header.TITLE = char(reshape(header.TITLE, 80, [])');
 
 % check consistency
 blocksize2 = fread(FileID, 1, 'int32');
@@ -177,11 +181,15 @@ coordblocksize = (4*2 + 4*header.NATOM)*3;
 
 nFrames = floor(fileSize - headersize) / (extrablocksize + coordblocksize);
 
+% if nFrames~=header.NSTEP-header.ISTRT  FIXME why doesn't this work?
+%   error('Number of frames is not equal to the number of time steps. Check the integrity of the DCD file.')
+% end
+
 if isempty(idx)
   idx = 1:header.NATOM;
 end
 
-traj = zeros(nFrames, numel(idx)*3);
+Traj.xyz = zeros(nFrames, numel(idx)*3);
 box = zeros(nFrames, 3);
 
 % read next frames
@@ -218,9 +226,13 @@ for iFrame = 1:nFrames
 %   if header.CHARMMextrablock
 %     box(iFrame, :) = dummy([1 3 6])';
 %   end
-  traj(iFrame, 1:3:end) = x(idx)';
-  traj(iFrame, 2:3:end) = y(idx)';
-  traj(iFrame, 3:3:end) = z(idx)';
+  Traj.xyz(iFrame, 1:3:end) = x(idx)';
+  Traj.xyz(iFrame, 2:3:end) = y(idx)';
+  Traj.xyz(iFrame, 3:3:end) = z(idx)';
 end
+
+Traj.dt = TIMEFACTOR*header.DELTA;
+Traj.nSteps = nFrames;
+Traj.xyz = reshape(Traj.xyz, [Traj.nSteps, 3, numel(idx)]);
 
 end
