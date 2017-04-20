@@ -619,9 +619,13 @@ if FieldSweep
   FreqSweep = Sweep*mT2MHz*1e6; % mT -> Hz
   nu = Exp.mwFreq*1e9 - linspace(-1,1,Exp.nPoints)*FreqSweep/2;  % Hz
   xAxis = linspace(Exp.Range(1),Exp.Range(2),Exp.nPoints);  % field axis, mT
+  dB = xAxis(2)-xAxis(1); % field axis increment, mT
+  dnu = mt2mhz(dB,mean(Sys.g))/1e3; % equivalent frequency axis increment, GHz
 else
   nu = linspace(Exp.mwRange(1),Exp.mwRange(2),Exp.nPoints)*1e9;  % Hz
   xAxis = nu/1e9; % frequency axis, GHz
+  dnu = xAxis(2)-xAxis(1); % frequency axis increment, GHz
+  dB = mhz2mt(dnu*1e3,mean(Sys.g)); %equivalent field axis increment, mT
 end
 
 
@@ -973,9 +977,9 @@ spec = spec/(4*pi); % scale by powder average factor of 4pi
 if (~generalLiouvillian) || (generalLiouvillian && strcmp(Opt.Solver,'L'))
   spec = spec/2; % scale to match general direct solver intensity (due to Lanczos and S- ?)
 end
-%if FrequencySweep
-%  spec = spec/mt2mhz(1,mean(Sys.g)); % scale by 1/g factor for freq sweep
-%end
+if FrequencySweep
+  spec = spec*(dB/dnu)*mt2mhz(1,mean(Sys.g)); % scale by g*Beta/h factor for freq sweep
+end
 
 %==============================================================
 
