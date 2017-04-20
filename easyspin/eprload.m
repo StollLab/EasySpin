@@ -69,12 +69,13 @@ end
 
 LocationType = exist(FileName,'file');
 
-if (LocationType==7), % a directory
+if (LocationType==7) % a directory
   CurrDir = pwd;
   cd(FileName);
   [uiFile,uiPath] = uigetfile({...
     '*.DTA;*.dta;*.spc','Bruker (*.dta,*.spc)';...
     '*.d01','SpecMan (*.d01)';...
+    '*','All files, incl. JEOL (*.*)';...
     '*.spe;*.xml','Magnettech (*.spe,*.xml)';...
     '*.esr','Active Spectrum (*.esr)';...
     '*.spk;*.ref','Varian (*.spk,*.ref)';...
@@ -83,7 +84,7 @@ if (LocationType==7), % a directory
     '*.plt','Magres (*.plt)'},...
     'Load EPR data file...');
   cd(CurrDir);
-  if (uiFile==0),
+  if (uiFile==0)
     varargout = cell(1,nargout);
     return;
   end
@@ -116,7 +117,7 @@ end
 
 FileName = [FullBaseName FileExtension];
 LocationType = exist(FileName,'file');
-if any(LocationType==[0 1 5 8]), % not a file/directory
+if any(LocationType==[0 1 5 8]) % not a file/directory
   error('The file or directory %s does not exist!',FileName);
 end
 
@@ -289,7 +290,7 @@ error(err);
 if isfield(Parameters,'IKKF')
   parts = regexp(Parameters.IKKF,',','split');
   nDataValues = numel(parts); % number of data values per parameter point
-  for k = 1:nDataValues
+  for k = nDataValues:-1:1
     switch parts{k}
       case 'CPLX', isComplex(k) = 1;
       case 'REAL', isComplex(k) = 0;
@@ -305,9 +306,9 @@ end
 % XPTS: X Points   YPTS: Y Points   ZPTS: Z Points
 % XPTS, YPTS, ZPTS specify the number of data points in
 %  x, y and z dimension.
-if isfield(Parameters,'XPTS'), nx = sscanf(Parameters.XPTS,'%f'); else error('No XPTS in DSC file.'); end
-if isfield(Parameters,'YPTS'), ny = sscanf(Parameters.YPTS,'%f'); else ny = 1; end
-if isfield(Parameters,'ZPTS'), nz = sscanf(Parameters.ZPTS,'%f'); else nz = 1; end
+if isfield(Parameters,'XPTS'), nx = sscanf(Parameters.XPTS,'%f'); else, error('No XPTS in DSC file.'); end
+if isfield(Parameters,'YPTS'), ny = sscanf(Parameters.YPTS,'%f'); else, ny = 1; end
+if isfield(Parameters,'ZPTS'), nz = sscanf(Parameters.ZPTS,'%f'); else, nz = 1; end
 Dimensions = [nx,ny,nz];
 
 % BSEQ: Byte Sequence
@@ -538,7 +539,7 @@ end
 
 % If present, SSX contains the number of x points.
 if isfield(Parameters,'SSX')
-  if TwoD,
+  if TwoD
     if FileType=='c', FileType='p'; end
     nx = sscanf(Parameters.SSX,'%f');
     if isComplex, nx = nx/2; end
@@ -547,7 +548,7 @@ end
 
 % If present, SSY contains the number of y points.
 if isfield(Parameters,'SSY')
-  if TwoD,
+  if TwoD
     if FileType=='c', FileType='p'; end
     ny = sscanf(Parameters.SSY,'%f');
   end
@@ -556,7 +557,7 @@ end
 % If present, ANZ contains the total number of points.
 if isfield(Parameters,'ANZ')
   nAnz = sscanf(Parameters.ANZ,'%f');
-  if ~TwoD,
+  if ~TwoD
     if FileType=='c', FileType='p'; end
     nx = nAnz;
     if isComplex, nx = nx/2; end
@@ -997,8 +998,8 @@ function [Data, Parameters] = eprload_MAGRES(FileName)
 %--------------------------------------------------
 
 [Line,found] = findtagsMAGRES(FileName,{'DATA'});
-if found(1), nx = str2double(Line{1}); else nx=0; end
-if ~nx,
+if found(1), nx = str2double(Line{1}); else, nx=0; end
+if ~nx
   error('Unable to determine number of x points in PLT file.');
 end
 
@@ -1010,7 +1011,7 @@ for k=1:3, fgetl(fid); end
 % read data
 ny = 1;
 [Data,N] = fscanf(fid,'%f',[nx,ny]);
-if (N<nx*ny),
+if N<nx*ny
   warning('Could not read entire data set from PLT file.');
 end
 
@@ -1135,11 +1136,11 @@ out = cell(1,length(TagList));
 while ~feof(fid)
   Line = fgetl(fid);
   whitespace = find(isspace(Line)); % space or tab
-  if ~isempty(whitespace),
+  if ~isempty(whitespace)
     endTag = whitespace(1)-1;
     if endTag>0
       I = strcmp(Line(1:endTag),TagList);
-      if ~isempty(I),
+      if ~isempty(I)
         out{I} = fliplr(deblank(Line(end:-1:endTag+1)));
         found(I) = 1;
       end
@@ -1188,7 +1189,7 @@ for k = 1:numel(allLines)
   Value = deblank(line(end:-1:idx));
   Value = deblank(Value(end:-1:1));
   if ~isempty(Value)
-    if Value([1 end])=='''', % remove leading and trailing quotes
+    if Value([1 end])=='''' % remove leading and trailing quotes
       Value([1 end]) = [];
     end
   end
@@ -1248,7 +1249,7 @@ for k=1:numel(allLines)
   if isempty(Key); continue; end
   
   % If key is not valid, go to next line.
-  if ~isletter(Key(1)),
+  if ~isletter(Key(1))
     % Stop reading when Manipulation History Layer is reached.
     if strcmpi(Key,'#MHL'); break; end
     continue;
@@ -1257,7 +1258,7 @@ for k=1:numel(allLines)
   Value = deblank(Value(end:-1:1)); Value = deblank(Value(end:-1:1));
   
   if ~isempty(Value)
-    if Value([1 end])=='''',
+    if Value([1 end])==''''
       Value([1 end]) = [];
     end
   end
