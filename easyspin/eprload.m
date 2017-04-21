@@ -37,8 +37,8 @@
 %     SpecMan:             .d01, .exp
 %     Magnettech:          .spe (binary), .xml (xml)
 %     Active Spectrum:     .ESR
-%     Adani:               .dat
-%     JEOL:                (variable)
+%     Adani:               .dat, .json
+%     JEOL:                (no extension)
 %
 %     MAGRES:              .PLT
 %     qese, tryscore:      .eco
@@ -129,7 +129,8 @@ switch upper(strtrim(FileExtension))
   case '.SPE', FileFormat = 'MagnettechBinary';
   case '.XML', FileFormat = 'MagnettechXML';
   case '.ESR', FileFormat = 'ActiveSpectrum';
-  case '.DAT', FileFormat = 'Adani';
+  case '.DAT', FileFormat = 'AdaniDAT';
+  case '.JSON', FileFormat = 'AdaniJSON';
   case '.ECO', FileFormat = 'qese/tryscore';
   case '.PLT', FileFormat = 'MAGRES';
   case {'.SPK','.REF'}, FileFormat = 'VarianETH';
@@ -188,9 +189,17 @@ switch FileFormat
     
     [Data, Abscissa, Parameters] = eprload_ActiveSpectrum(FileName);
     
-  case 'Adani'
+  case 'AdaniDAT'
     
-    [Data, Abscissa] = eprload_Adani(FileName);
+    [Data, Abscissa] = eprload_AdaniDAT(FileName);
+    
+  case 'AdaniJSON'
+    %--------------------------------------------------
+    % Adani JSON format, for SPINSCAN spectrometer with
+    % e-Spinoza software (based on official documentation)
+    %--------------------------------------------------
+    
+    [Data, Abscissa, Parameters] = eprload_AdaniJSON(FileName);
     
   case 'JEOL'
     %--------------------------------------------------
@@ -914,7 +923,7 @@ return
 %--------------------------------------------------
 
 %--------------------------------------------------
-function [Data, Abscissa] = eprload_Adani(FileName)
+function [Data, Abscissa] = eprload_AdaniDAT(FileName)
 %------------------------------------------------------------------
 %   Text-based file format of Adani spectrometers
 %------------------------------------------------------------------
@@ -1301,5 +1310,73 @@ for iField = 1:numel(Fields)
     Pout.(Fields{iField}) = v_num(:)'; % don't use .' due to bug up to R2014a
   end
 end
+
+return
+
+%-------------------------------------------------------------------------------
+function [Data,Abscissa,Parameters] = eprload_AdaniJSON(FileName)
+%--------------------------------------------------------------------------
+%   JSON format of Adani spectrometers SPINSCAN etc. (e-Spinoza software)
+%--------------------------------------------------------------------------
+% Uses Matlab-internal JSON parser  matlab.internal.webservices.fromJSON
+% This does not work prior to R2016b.
+
+% Matlab version check
+if verLessThan('matlab','9.1.0')
+  error('Reading Adani e-Spinoza JSON files requires Matlab R2016b (9.1.0) or later.');
+end
+
+% Read JSON string from file
+fid = fopen(FileName);
+if (fid<0)
+  error('Could not open %s.',FileName);
+end
+jsonstring = textscan(fid,'%s');
+jsonstring = jsonstring{1};
+fclose(fid);
+
+% Parse JSON string
+try
+  data = matlab.internal.webservices.fromJSON(jsonstring);
+  data = data{1};
+catch
+  error('Could not parse JSON-format data from %s.',FileName);
+end
+
+% Get basic information about data
+nSpectra = numel(data.Values);
+nPoints = numel(data.Values(1).Values);
+nPhases = numel(data.Values(1).Values(1).Points);
+
+% Read 1D or 2D data
+phase0 = data.Phase;
+s = sin(2*pi*(0:nPhases-1).'/nPhases + phase0);
+spc = zeros(nPoints,nSpectra);
+for iSpectrum = 1:nSpectra
+  acqdata = data.Values(iSpectrum).Values;
+  for iPoint = 1:nPoints
+    spc(iPoint,iSpectrum) = sum(acqdata(iPoint).Points.*s);
+  end
+end
+
+% Construct field axis
+d_ = data.ExperimentOptions;
+CenterField = d_.CommonOptions.CenterMagneticField;
+SweepWidth = d_.CommonOptions.SweepWidth;
+B = linspace(-1,1,nPoints)*SweepWidth/2 + CenterField;
+
+% Construct second axis
+if nSpectra>1
+  axis2 = linspace(d_.InitialValue2D,d_.FinalValue2D,nSpectra);
+end
+
+% Output
+Data = spc;
+if nSpectra==1
+  Abscissa = B;
+else
+  Abscissa = {B,axis2};
+end
+Parameters = data;
 
 return
