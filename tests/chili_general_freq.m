@@ -20,7 +20,7 @@ data.y = y;
 
 % Check for consistency
 if ~isempty(olddata)
-  ok = areequal(y,olddata.y,1e-1);
+  ok = areequal(y,olddata.y,1e-2*max(y));
   err = ~ok;
 else
   err = [];

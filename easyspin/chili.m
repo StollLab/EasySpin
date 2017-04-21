@@ -625,7 +625,7 @@ else
   nu = linspace(Exp.mwRange(1),Exp.mwRange(2),Exp.nPoints)*1e9;  % Hz
   xAxis = nu/1e9; % frequency axis, GHz
   dnu = xAxis(2)-xAxis(1); % frequency axis increment, GHz
-  dB = mhz2mt(dnu*1e3,mean(Sys.g)); %equivalent field axis increment, mT
+  dB = mhz2mt(dnu*1e3,mean(Sys.g)); % equivalent field axis increment, mT
 end
 
 
@@ -971,7 +971,7 @@ for iOri = 1:nOrientations
   
 end % orientation loop
 
-% rescaling to match rigid limit chili intensities to pepper intensities
+% Rescale to match rigid limit chili intensities to pepper intensities
 
 spec = spec/(4*pi); % scale by powder average factor of 4pi
 if (~generalLiouvillian) || (generalLiouvillian && strcmp(Opt.Solver,'L'))

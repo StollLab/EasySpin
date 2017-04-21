@@ -13,14 +13,14 @@ Exp.Field = 350;
 Exp.mwRange = [9.6 10];
 Opt.LiouvMethod = 'Freed';
 
-[x,y] = chili(Sys,Exp);
+[x,y] = chili(Sys,Exp,Opt);
 
 data.x = x;
 data.y = y;
 
 % Check for consistency
 if ~isempty(olddata)
-  ok = areequal(y,olddata.y,1e-1);
+  ok = areequal(y,olddata.y,1e-2*max(y));
   err = ~ok;
 else
   err = [];
