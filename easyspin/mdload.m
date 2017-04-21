@@ -59,7 +59,7 @@ function Traj = mdload(TrajFile, TopFile, ResName, AtomNames)
 % if ~ischar(TrajFile)||regexp(TrajFile,'\w+\.\w+','once')<1
 %   error('TrajFile must be given as a character array, including the filename extension.')
 % end
-% 
+
 % if numel(regexp(TrajFile,'\.'))>1
 %   error('Only one period (".") can be included in TrajFile as part of the filename extension. Remove the others.')
 % end
@@ -77,8 +77,12 @@ TopFile = fullfile(TopFilePath, [TopFileName, TopFileExt]);
 
 if ischar(TrajFile)
   % single trajectory file
+  
+  % extract file extension and file path
   [TrajFilePath, TrajFileName, TrajFileExt] = fileparts(TrajFile);
+  % add full file path to TrajFile
   TrajFile = fullfile(TrajFilePath, [TrajFileName, TrajFileExt]);
+  
   TrajFile = {TrajFile};
   TrajFileExt = {TrajFileExt};
   nTrajFiles = 1;
@@ -95,6 +99,7 @@ elseif iscell(TrajFile)
     [TrajFilePath{k}, TrajFileName{k}, TrajFileExt{k}] = fileparts(TrajFile{k});
     TrajFile{k} = fullfile(TrajFilePath{k}, [TrajFileName{k}, TrajFileExt{k}]);
   end
+  % make sure that all file extensions are identical
   if ~all(strcmp(TrajFileExt,TrajFileExt{1}))
     error('At least two of the TrajFile file extensions are not identical.')
   end
@@ -112,6 +117,7 @@ for iTrajFile=1:nTrajFiles
   if iTrajFile==1
     Traj = temp;
   else
+    % combine trajectories through array concatenation
     if Traj.dt~=temp.dt
       error('Time steps of trajectory files are not equal.')
     end
@@ -121,21 +127,27 @@ for iTrajFile=1:nTrajFiles
     Traj.C1xyz = cat(1, Traj.C1xyz, temp.C1xyz);
     Traj.C2xyz = cat(1, Traj.C2xyz, temp.C2xyz);
   end
+  % this could take a long time, so notify the user of progress
   updateuser(iTrajFile,nTrajFiles)
 end
 
 end
 
 function Traj = processMD(TrajFile, TopFile, ResName, AtomNames, ExtCombo)
+% 
 
 switch ExtCombo
   case '.DCD,.PSF'
+    % obtain atom indices of nitroxide coordinate atoms
     psf = readpsf(TopFile, ResName, AtomNames);  % TODO perform consistency checks between topology and trajectory files
+    % load spin label trajectory
     Traj = readdcd(TrajFile, psf.idx_SpinLabel);
+    % filter based on atom indices from psf file
     Traj.Oxyz = Traj.xyz(:,:,psf.idx_O==psf.idx_SpinLabel);
     Traj.Nxyz = Traj.xyz(:,:,psf.idx_N==psf.idx_SpinLabel);
     Traj.C1xyz = Traj.xyz(:,:,psf.idx_C1==psf.idx_SpinLabel);
     Traj.C2xyz = Traj.xyz(:,:,psf.idx_C2==psf.idx_SpinLabel);
+    % we might not need the full spin label trajectory
     Traj = rmfield(Traj, 'xyz');
   otherwise
     error('TrajFile type "%s" and TopFile "%s" type combination is either ',...
