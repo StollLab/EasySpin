@@ -1,27 +1,26 @@
 function [err,data] = test(opt,olddata)
 
-%==========================================================================
-% Frequency-swept slow-motion spectrum of a triplet with hyperfine
-%   splitting from one proton
-%==========================================================================
+%=======================================================
+% Frequency-sweep triplet, general solver
+%=======================================================
 
 Sys.S = 1;
+Sys.g = 2;
 Sys.D = 100;
-Sys.A = 10;
-Sys.Nucs = '1H';
 Sys.tcorr = 10e-9;
 
 Exp.Field = 350;
-Exp.mwRange = [9.5 10];
+Exp.mwRange = [9.6 10];
+Opt.LiouvMethod = 'general';
 
-[x,y] = chili(Sys,Exp);
+[x,y] = chili(Sys,Exp,Opt);
 
 data.x = x;
 data.y = y;
 
 % Check for consistency
 if ~isempty(olddata)
-  ok = areequal(y,olddata.y,1e-1);
+  ok = areequal(y,olddata.y,1e-2*max(y));
   err = ~ok;
 else
   err = [];

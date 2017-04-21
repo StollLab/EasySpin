@@ -1,17 +1,23 @@
 function [err,data] = test(opt,olddata)
 
 %=======================================================
-% Frequency-swept slow-motion spectrum of a triplet
+% Explicit field-sweep triplet, general solver
 %=======================================================
 
 Sys.S = 1;
-Sys.D = 50;
+Sys.g = [2.01 2.005 2.002];
+Sys.D = 100;
 Sys.tcorr = 10e-9;
 
-Exp.Field = 350;
-Exp.mwRange = [9.6 10];
+Exp.mwFreq = 9.5;
+Exp.Range = [332 345];
+Exp.Harmonic = 0;
 
-[x,y] = chili(Sys,Exp);
+Opt.LiouvMethod = 'general';
+Opt.ExplicitFieldSweep = true;
+Opt.LLKM = [8 0 2 2];
+
+[x,y] = chili(Sys,Exp,Opt);
 
 data.x = x;
 data.y = y;
