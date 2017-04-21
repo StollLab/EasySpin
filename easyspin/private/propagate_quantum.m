@@ -418,7 +418,7 @@ switch Method
         end
       end
     end
-%     Hmean = mean(mean(H,4),3);
+%     Hmean = mean(H,4);
 %     deltaH = H - Hmean;
 
     U = zeros(6,6,nTraj,nSteps);
@@ -431,7 +431,7 @@ switch Method
       end
     end
     
-%     U = U - mean(U,4);
+%     U = U - mean(mean(U,3),4);
     
     Udag = conj(permute(U,[2,1,3,4]));
         

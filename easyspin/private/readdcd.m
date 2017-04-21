@@ -231,7 +231,7 @@ for iFrame = 1:nFrames
   Traj.xyz(iFrame, 3:3:end) = z(idx)';
 end
 
-Traj.dt = TIMEFACTOR*header.DELTA;
+Traj.dt = header.NSAVC*TIMEFACTOR*header.DELTA;
 Traj.nSteps = nFrames;
 Traj.xyz = reshape(Traj.xyz, [Traj.nSteps, 3, numel(idx)]);
 

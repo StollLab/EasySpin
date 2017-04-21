@@ -21,7 +21,7 @@ Par.Model = 'Brownian';
 Exp.mwFreq = 9.4;
 
 Opt.Verbosity = 0;
-Opt.Method = 'DeSensi';
+Opt.Method = 'Oganesyan';
 
 [Bcard,ycard] = cardamom(Sys,Par,Exp,Opt);
 

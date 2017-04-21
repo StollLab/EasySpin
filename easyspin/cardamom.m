@@ -3,6 +3,7 @@
 %   cardamom(Sys,Par,Exp,Opt)
 %   spc = cardamom(...)
 %   [B,spc] = cardamom(...)
+%   [B,spc,expectval] = cardamom(...)
 %
 %   Computes a CW-EPR spectrum of an 14N nitroxide radical using stochastic 
 %   trajectories.
@@ -42,16 +43,39 @@
 %
 %
 %   MD: structure with molecular dynamics simulation parameters
+%     TrajFile       character array, or cell array containing character
+%                    arrays as elements
+%                    Name of trajectory output file(s), including the file
+%                    extension ".[extension]".
+%
+%     TopFile        character array
+%                    Name of topology input file used for molecular 
+%                    dynamics simulations.
+%
+%     ResName        character array
+%                    Name of residue assigned to spin label side chain,
+%                    e.g. "CYR1" is the default used by CHARMM-GUI.
+%
+%     AtomNames      structure array
+%                    Structure array containing the atom names used in the 
+%                    PSF to refer to the following atoms in the nitroxide 
+%                    spin label molecule:
+%
+%                                   O (OName)
+%                                   |
+%                                   N (NName)
+%                                  / \
+%                        (C1Name) C   C (C2Name)
+%
+%     OR
+%
 %     RTraj          numeric, size = (3,3,N,M)
 %                    rotation matrices, calculated externally, e.g. by
 %                    performing a molecular dynamics simulation, where N is
 %                    the number of trajectories and M is the number of time
 %                    steps
 %
-%     dt             double
-%                    MD simulation time step (in seconds)
 %
-% %     dcd           dcd file output from a molecular dynamics simulation
 %
 %
 %   Par: structure with simulation parameters
@@ -76,10 +100,10 @@
 %
 %
 %
-% %   Exp: experimental parameter settings
-% %     mwFreq         double
-% %                    microwave frequency, in GHz (for field sweeps)
-% %
+%   Exp: experimental parameter settings
+%     mwFreq         double
+%                    microwave frequency, in GHz (for field sweeps)
+%
 % %     Range          numeric, size = (1,2)
 % %                    sweep range, [sweepmin sweepmax], in mT (for field sweep)
 % %
@@ -112,9 +136,9 @@
 %                    average of tcorr or by 20% more time steps, whichever 
 %                    is larger
 %
-%    Verbosity       0: no display, 1: show info
+%     Verbosity      0: no display, 1: show info
 %
-%    Method          string
+%     Method         string
 %                    'Sezer': propagate the density matrix using an 
 %                    analytical expression for the matrix exponential in 
 %                    the m_s=-1/2
@@ -135,13 +159,10 @@
 %     spc            numeric, size = (2*nSteps,1)
 %                    derivative EPR spectrum
 %
-%     expval         numeric, size = (2*nSteps,1)
+%     expectval      numeric, size = (2*nSteps,1)
 %                    expectation value of z-magnetization, 
 %                    \langle S_{z} \rangle
 
-% Implementation based on 
-%   Sezer, et al., J.Chem.Phys. 128, 165106 (2008)
-%     http://dx.doi.org/10.1063/1.2908075
 
 function varargout = cardamom(Sys,Par,Exp,Opt,MD)
 % Preprocessing
@@ -166,7 +187,7 @@ switch nargout
   case 0 % plotting
   case 1 % spc
   case 2 % B,spc
-  case 3 % B,spc,expval
+  case 3 % B,spc,expectval
   otherwise
     error('Incorrect number of output arguments.');
 end
@@ -196,24 +217,55 @@ error(err);
 useMD = ~isempty(fieldnames(MD));
 
 if useMD
-  if ~isfield(MD,'RTraj')||~isfield(MD,'dt')
-    error('For Molecular Dynamics, both MD.RTraj and MD.dt need to be specified.')
-  end
-  % rotation matrices provided externally
-  RTraj = MD.RTraj;
-  if ~isnumeric(RTraj)||size(RTraj,1)~=3||size(RTraj,2)~=3||ndims(RTraj)~=4
-    error('RTraj must be a 4D array of rotation matrices of size (3,3,MD.nTraj,MD.nSteps).')
-  end
-  % Check for orthogonality of rotation matrices
-  RTrajInv = permute(RTraj,[2,1,3,4]);
+  if isfield(MD,'RTraj')&&isfield(MD,'dt')
+    % rotation matrices provided externally
+    
+  elseif isfield(MD,'TrajFile')&&isfield(MD,'TopFile')...
+         &&isfield(MD,'ResName')&&isfield(MD,'AtomNames')
+    % generate rotation matrices from MD simulation data
+    Traj = mdload(TrajFile, TopFile, ResName, AtomNames);
+    
+    % N-O bond vector
+    NO_vec = Traj.Oxyz - Traj.Nxyz;
+    NO_vec = NO_vec./sqrt(sum(NO_vec.*NO_vec,2));
 
-  if ~allclose(matmult(RTraj,RTrajInv),repmat(eye(3),1,1,size(RTraj,3),size(RTraj,4)),1e-14)
+    % N-C1 bond vector
+    NC1_vec = Traj.C1xyz - Traj.Nxyz;
+    NC1_vec = NC1_vec./sqrt(sum(NC1_vec.*NC1_vec,2));
+
+    % N-C2 bond vector
+    NC2_vec = Traj.C2xyz - Traj.Nxyz;
+    NC2_vec = NC2_vec./sqrt(sum(NC2_vec.*NC2_vec,2));
+
+    vec1 = cross(NC1_vec, NO_vec, 2);
+    vec2 = cross(NO_vec, NC2_vec, 2);
+
+    probe_z = (vec1 + vec2)/2;
+    probe_z = probe_z./sqrt(sum(probe_z.*probe_z,2));
+    probe_x = NO_vec;
+    probe_y = cross(probe_z, probe_x, 2);
+
+    nSteps = length(Traj.Oxyz);
+
+    MD.dt = Traj.dt;
+
+    MD.RTraj = zeros(3,3,1,nSteps);
+    MD.RTraj(:,1,1,:) = permute(probe_x, [2, 3, 4, 1]);
+    MD.RTraj(:,2,1,:) = permute(probe_y, [2, 3, 4, 1]);
+    MD.RTraj(:,3,1,:) = permute(probe_z, [2, 3, 4, 1]);
+  else
+    error('For MD input, either RTraj and dt or TrajFile, TopFile, Resname, and AtomNames must be provided.')
+  end
+  
+  % Check for orthogonality of rotation matrices
+  RTrajInv = permute(MD.RTraj,[2,1,3,4]);
+
+  if ~allclose(matmult(MD.RTraj,RTrajInv),repmat(eye(3),1,1,size(MD.RTraj,3),size(MD.RTraj,4)),1e-14)
     error('The rotation matrices are not orthogonal.')
   end
-  
-  MD.nTraj = size(RTraj,3);
-  MD.nSteps = size(RTraj,4);
-  
+
+  MD.nTraj = size(MD.RTraj,3);
+  MD.nSteps = size(MD.RTraj,4);
 end
 
 % Check Par
@@ -343,7 +395,7 @@ logmsg(1, '-- Model: %s -----------------------------------------', Model);
 logmsg(1, '-- Method: %s -----------------------------------------', Opt.Method);
 
 % trajectories might differ in length, so we need cells for allocation
-expect = cell(1,nOrients);
+expectval = cell(1,nOrients);
 tcell = cell(1,nOrients);
 
 
@@ -386,7 +438,7 @@ for iOrient = 1:nOrients
       % simulation
       qmult = repmat(euler2quat(grid_phi(iOrient), grid_theta(iOrient), 0),...
                      [1,MD.nTraj,MD.nSteps]);
-      MD.RTraj = matmult(quat2rotmat(qmult),RTraj);
+      MD.RTraj = matmult(quat2rotmat(qmult),MD.RTraj);
 
   end
 
@@ -397,7 +449,7 @@ for iOrient = 1:nOrients
   rho_t = squeeze(mean(rho_t,3));
   
   % calculate the expectation value of S_{+}
-  expect{1,iOrient} = squeeze(rho_t(1,1,:)+rho_t(2,2,:)+rho_t(3,3,:));  % take traces TODO try to speed this up using equality tr(A*B)=sum(sum(A.*B))
+  expectval{1,iOrient} = squeeze(rho_t(1,1,:)+rho_t(2,2,:)+rho_t(3,3,:));  % take traces TODO try to speed this up using equality tr(A*B)=sum(sum(A.*B))
 
   if Opt.Verbosity
     updateuser(iOrient,nOrients)
@@ -425,6 +477,7 @@ if strcmp(Model, 'Molecular Dynamics')
   clear RTrajInv
   clear qmult
   clear MD.RTraj
+  clear Traj
 end
 
 % Perform FFT
@@ -439,7 +492,7 @@ TL = Dynamics.T2;  % TODO implement Lorentzian and Gaussian broadening
 
 % Convolve with Lorentzian and multiply by t for differentiation
 tdiff = cellfun(@(x) hamm.*x.*exp(-x/TL), tcell, 'UniformOutput', false);
-expectDt = cellfun(@times, expect, tdiff, 'UniformOutput', false);
+expectDt = cellfun(@times, expectval, tdiff, 'UniformOutput', false);
 
 % zero padding for FFT to ensure sufficient B-field resolution 
 % (at most 0.1 mT)
@@ -448,7 +501,7 @@ treq = 1/(mt2mhz(Bres)*1e6); % mT -> s
 if max(t)<treq
   M = ceil(treq/Par.dt);  % TODO make flexible for propagation length extensions
 else
-  M = length(expect);
+  M = length(expectval);
 end
 
 % relaxation and differentiation of spectrum via convolution
@@ -465,7 +518,7 @@ outspec = interp1(fftAxis,spc,xAxis);
 
 % average over trajectories for <S_+(t)> output
 tmat = cell2mat(tcell);
-expect = mean(cell2mat(expect).*exp(-tmat/TL),2);
+expectval = mean(cell2mat(expectval).*exp(-tmat/TL),2);
 
 % Final processing
 % -------------------------------------------------------------------------
@@ -501,7 +554,7 @@ case 1
 case 2
   varargout = {xAxis,outspec};
 case 3
-  varargout = {xAxis,outspec,expect};
+  varargout = {xAxis,outspec,expectval};
 end
 
 clear global EasySpinLogLevel

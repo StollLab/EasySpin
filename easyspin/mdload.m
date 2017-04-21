@@ -17,25 +17,36 @@
 %     AtomNames      structure array
 %                    Structure array containing the atom names used in the 
 %                    PSF to refer to the following atoms in the nitroxide 
-%                    molecule:
+%                    spin label molecule:
 %
 %                                   O (OName)
 %                                   |
 %                                   N (NName)
 %                                  / \
 %                        (C1Name) C   C (C2Name)
-%                                 |   |
-%                                ... ...
 %
 %
 %   Output:
-%     MD             structure array
-%                    Oxyz
-%                    Nxyz
-%                    C1xyz
-%                    C2xyz
-%                    nSteps
-%                    dt
+%     Traj           structure array containing the following fields:
+%
+%                    nSteps   integer
+%                             total number of steps in trajectory
+%
+%                    dt       double
+%                             size of time step (in fs, 10^-15 s)
+%
+%                    Oxyz     numeric, size = (nSteps,3)
+%                             x,y,z coordinate trajectory for oxygen
+%
+%                    Nxyz     numeric, size = (nSteps,3)
+%                             x,y,z coordinate trajectory for nitrogen
+%
+%                    C1xyz    numeric, size = (nSteps,3)
+%                             x,y,z coordinate trajectory for carbon C1
+%
+%                    C2xyz    numeric, size = (nSteps,3)
+%                             x,y,z coordinate trajectory for carbon C2
+%
 %
 %   Supported formats are identified via the extension
 %   in 'TrajFile' and 'TopFile'. Extensions:
@@ -43,15 +54,15 @@
 %     NAMD, CHARMM:        .DCD, .PSF
 %
 
-function MD = mdload(TrajFile, TopFile, ResName, AtomNames)
+function Traj = mdload(TrajFile, TopFile, ResName, AtomNames)
 
-if ~ischar(TrajFile)||regexp(TrajFile,'\w+\.\w+','once')<1
-  error('TrajFile must be given as a character array, including the filename extension.')
-end
-
-if numel(regexp(TrajFile,'\.'))>1
-  error('Only one period (".") can be included in TrajFile as part of the filename extension. Remove the others.')
-end
+% if ~ischar(TrajFile)||regexp(TrajFile,'\w+\.\w+','once')<1
+%   error('TrajFile must be given as a character array, including the filename extension.')
+% end
+% 
+% if numel(regexp(TrajFile,'\.'))>1
+%   error('Only one period (".") can be included in TrajFile as part of the filename extension. Remove the others.')
+% end
 
 if ~ischar(TopFile)||regexp(TopFile,'\w+\.\w+','once')<1
   error('TopFile must be given as a character array, including the filename extension.')
@@ -61,26 +72,99 @@ if numel(regexp(TopFile,'\.'))>1
   error('Only one period (".") can be included in TopFile as part of the filename extension. Remove the others.')
 end
 
-[TrajFilePath, TrajFileName, TrajFileExt] = fileparts(TrajFile);
-TrajFile = fullfile(TrajFilePath, [TrajFileName, TrajFileExt]);
-
 [TopFilePath, TopFileName, TopFileExt] = fileparts(TopFile);
 TopFile = fullfile(TopFilePath, [TopFileName, TopFileExt]);
 
-ExtCombo = [upper(TrajFileExt), ',', upper(TopFileExt)];
+if ischar(TrajFile)
+  % single trajectory file
+  [TrajFilePath, TrajFileName, TrajFileExt] = fileparts(TrajFile);
+  TrajFile = fullfile(TrajFilePath, [TrajFileName, TrajFileExt]);
+  TrajFile = {TrajFile};
+  TrajFileExt = {TrajFileExt};
+  nTrajFiles = 1;
+elseif iscell(TrajFile)
+  % multiple trajectory files
+  if ~all(cellfun('isclass', TrajFile, 'char'))
+    error('If TrajFile is a cell array, each element must be a character array.')
+  end
+  nTrajFiles = numel(TrajFile);
+  TrajFilePath = cell(nTrajFiles,1);
+  TrajFileName = cell(nTrajFiles,1);
+  TrajFileExt = cell(nTrajFiles,1);
+  for k=1:nTrajFiles
+    [TrajFilePath{k}, TrajFileName{k}, TrajFileExt{k}] = fileparts(TrajFile{k});
+    TrajFile{k} = fullfile(TrajFilePath{k}, [TrajFileName{k}, TrajFileExt{k}]);
+  end
+  if ~all(strcmp(TrajFileExt,TrajFileExt{1}))
+    error('At least two of the TrajFile file extensions are not identical.')
+  end
+else
+  error(['Please provide TrajFile as a single character array ',...
+         '(single trajectory file) or a cell array whose elements are ',...
+         'character arrays (multiple trajectory files).'])
+end
+
+ExtCombo = [upper(TrajFileExt{1}), ',', upper(TopFileExt)];
+
+tic
+for iTrajFile=1:nTrajFiles
+  temp = processMD(TrajFile{iTrajFile}, TopFile, ResName, AtomNames, ExtCombo);
+  if iTrajFile==1
+    Traj = temp;
+  else
+    if Traj.dt~=temp.dt
+      error('Time steps of trajectory files are not equal.')
+    end
+    Traj.nSteps = Traj.nSteps + temp.nSteps;
+    Traj.Oxyz = cat(1, Traj.Oxyz, temp.Oxyz);
+    Traj.Nxyz = cat(1, Traj.Nxyz, temp.Nxyz);
+    Traj.C1xyz = cat(1, Traj.C1xyz, temp.C1xyz);
+    Traj.C2xyz = cat(1, Traj.C2xyz, temp.C2xyz);
+  end
+  updateuser(iTrajFile,nTrajFiles)
+end
+
+end
+
+function Traj = processMD(TrajFile, TopFile, ResName, AtomNames, ExtCombo)
 
 switch ExtCombo
   case '.DCD,.PSF'
     psf = readpsf(TopFile, ResName, AtomNames);  % TODO perform consistency checks between topology and trajectory files
-    MD = readdcd(TrajFile, psf.idx_SpinLabel);
-    MD.Oxyz = MD.xyz(:,:,psf.idx_O==psf.idx_SpinLabel);
-    MD.Nxyz = MD.xyz(:,:,psf.idx_N==psf.idx_SpinLabel);
-    MD.C1xyz = MD.xyz(:,:,psf.idx_C1==psf.idx_SpinLabel);
-    MD.C2xyz = MD.xyz(:,:,psf.idx_C2==psf.idx_SpinLabel);
-    MD = rmfield(MD, 'xyz');
+    Traj = readdcd(TrajFile, psf.idx_SpinLabel);
+    Traj.Oxyz = Traj.xyz(:,:,psf.idx_O==psf.idx_SpinLabel);
+    Traj.Nxyz = Traj.xyz(:,:,psf.idx_N==psf.idx_SpinLabel);
+    Traj.C1xyz = Traj.xyz(:,:,psf.idx_C1==psf.idx_SpinLabel);
+    Traj.C2xyz = Traj.xyz(:,:,psf.idx_C2==psf.idx_SpinLabel);
+    Traj = rmfield(Traj, 'xyz');
   otherwise
     error('TrajFile type "%s" and TopFile "%s" type combination is either ',...
           'not supported or not properly entered. Please see documentation.', TrajFileExt, TopFileExt)
 end
+
+end
+
+function updateuser(iter,totN)
+% Update user on progress
+
+persistent reverseStr
+
+if isempty(reverseStr), reverseStr = ''; end
+
+avg_time = toc/iter;
+secs_left = (totN - iter)*avg_time;
+mins_left = floor(secs_left/60);
+
+msg1 = sprintf('Iteration: %d/%d\n', iter, totN);
+if avg_time<1.0
+  msg2 = sprintf('%2.1f it/s\n', 1/avg_time);
+else
+  msg2 = sprintf('%2.1f s/it\n', avg_time);
+end
+msg3 = sprintf('Time left: %d:%2.0f\n', mins_left, mod(secs_left,60));
+msg = [msg1, msg2, msg3];
+
+fprintf([reverseStr, msg]);
+reverseStr = repmat(sprintf('\b'), 1, length(msg));
 
 end
