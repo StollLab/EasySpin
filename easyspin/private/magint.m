@@ -79,8 +79,8 @@ for iElSpin = 1:nElSpins
     end
     % Set parameters for chili_liouvmatrix*
     System.g_axial(iElSpin) = F2(iInt,1)==0;
-    System.EZ0(iElSpin) = F0(iInt)*(CenterField/1e3)*2*pi; % Hz -> angular frequency
-    System.EZ2(:,iElSpin) = F2(iInt,:).'*(CenterField/1e3)*2*pi; % Hz -> angular frequency
+    System.EZ0(iElSpin) = F0(iInt)*B0{3}*2*pi; % Hz -> angular frequency
+    System.EZ2(:,iElSpin) = F2(iInt,:).'*B0{3}*2*pi; % Hz -> angular frequency
   end
   iInt = iInt + 1;
 end
@@ -201,7 +201,7 @@ else
     gn0 = zeros(nNucSpins,1);
     for iNucSpin = 1:nNucSpins
       gn0(iNucSpin) = istocoeff(System.gn(iNucSpin));
-      System.NZ0(iNucSpin) = nmagn*(CenterField/1e3)*gn0(iNucSpin)/planck*2*pi; % -> angular freq.
+      System.NZ0(iNucSpin) = nmagn*B0{3}*gn0(iNucSpin)/planck*2*pi; % -> angular freq.
     end
   else
     System.NZ0 = zeros(1,nNucSpins);

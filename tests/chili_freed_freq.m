@@ -1,20 +1,18 @@
 function [err,data] = test(opt,olddata)
 
-%==========================================================================
-% Frequency-swept slow-motion spectrum of a S=1/2 with hyperfine
-%   splitting from 2 protons
-%==========================================================================
+%=======================================================
+% Frequency-sweep doublet, Freed solver
+%=======================================================
 
-Sys.S = 1/2;
-Sys.g = [2.01 2.007 2.005];
-Sys.A = [25 25];
-Sys.Nucs = '1H,1H';
+Sys.g = [2.01 2];
+Sys.Nucs = '14N';
+Sys.A = [20 20 100];
 Sys.tcorr = 10e-9;
 
 Exp.Field = 350;
-Exp.mwRange = [9.65 10.2];
+Exp.mwRange = [9.6 10];
+Opt.LiouvMethod = 'Freed';
 
-Opt.LiouvMethod = 'general';
 [x,y] = chili(Sys,Exp,Opt);
 
 data.x = x;
@@ -22,7 +20,7 @@ data.y = y;
 
 % Check for consistency
 if ~isempty(olddata)
-  ok = areequal(y,olddata.y,1e-1);
+  ok = areequal(y,olddata.y,1e-2*max(y));
   err = ~ok;
 else
   err = [];
