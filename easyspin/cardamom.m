@@ -489,9 +489,10 @@ else
   hamm = 1;
 end
 TL = Dynamics.T2;  % TODO implement Lorentzian and Gaussian broadening
+TG = 1/(mt2mhz(Sys.lw(1))*1e6);
 
 % Convolve with Lorentzian and multiply by t for differentiation
-tdiff = cellfun(@(x) hamm.*x.*exp(-x/TL), tcell, 'UniformOutput', false);
+tdiff = cellfun(@(x) hamm.*x.*exp(-x/TL).*exp(-x.^2/TG.^2/8), tcell, 'UniformOutput', false);
 expectDt = cellfun(@times, expectval, tdiff, 'UniformOutput', false);
 
 % zero padding for FFT to ensure sufficient B-field resolution 
