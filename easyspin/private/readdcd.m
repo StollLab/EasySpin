@@ -16,7 +16,7 @@
 %     Traj           structure array
 %                    xyz: x,y,z coordinates of desired atoms in the trajectory
 %                    nSteps: total number of time steps in the trajectory
-%                    dt: size of the time step
+%                    dt: size of the time step (in sec)
 
 % current code is based on 'readdcd' in MDToolbox:
 %  https://github.com/ymatsunaga/mdtoolbox
@@ -231,7 +231,7 @@ for iFrame = 1:nFrames
   Traj.xyz(iFrame, 3:3:end) = z(idx)';
 end
 
-Traj.dt = header.NSAVC*TIMEFACTOR*header.DELTA;
+Traj.dt = header.NSAVC*TIMEFACTOR*header.DELTA*1e-15;
 Traj.nSteps = nFrames;
 Traj.xyz = reshape(Traj.xyz, [Traj.nSteps, 3, numel(idx)]);
 

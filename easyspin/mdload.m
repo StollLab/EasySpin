@@ -33,7 +33,7 @@
 %                             total number of steps in trajectory
 %
 %                    dt       double
-%                             size of time step (in fs, 10^-15 s)
+%                             size of time step (in s)
 %
 %                    Oxyz     numeric, size = (nSteps,3)
 %                             x,y,z coordinate trajectory for oxygen
@@ -103,10 +103,20 @@ elseif iscell(TrajFile)
   if ~all(strcmp(TrajFileExt,TrajFileExt{1}))
     error('At least two of the TrajFile file extensions are not identical.')
   end
+  if ~all(strcmp(TrajFilePath,TrajFilePath{1}))
+    error('At least two of the TrajFilePath locations are not identical.')
+  end
 else
   error(['Please provide TrajFile as a single character array ',...
          '(single trajectory file) or a cell array whose elements are ',...
          'character arrays (multiple trajectory files).'])
+end
+
+prevFile = [TrajFilePath{1}, '\', ResName, '.mat'];
+
+if exist(prevFile,'file')>0
+  load(prevFile)
+  return
 end
 
 ExtCombo = [upper(TrajFileExt{1}), ',', upper(TopFileExt)];
@@ -130,6 +140,28 @@ for iTrajFile=1:nTrajFiles
   % this could take a long time, so notify the user of progress
   updateuser(iTrajFile,nTrajFiles)
 end
+
+% N-O bond vector
+NO_vec = Traj.Oxyz - Traj.Nxyz;
+NO_vec = NO_vec./sqrt(sum(NO_vec.*NO_vec,2));
+
+% N-C1 bond vector
+NC1_vec = Traj.C1xyz - Traj.Nxyz;
+NC1_vec = NC1_vec./sqrt(sum(NC1_vec.*NC1_vec,2));
+
+% N-C2 bond vector
+NC2_vec = Traj.C2xyz - Traj.Nxyz;
+NC2_vec = NC2_vec./sqrt(sum(NC2_vec.*NC2_vec,2));
+
+vec1 = cross(NC1_vec, NO_vec, 2);
+vec2 = cross(NO_vec, NC2_vec, 2);
+
+Traj.ProbeZ = (vec1 + vec2)/2;
+Traj.ProbeZ = Traj.ProbeZ./sqrt(sum(Traj.ProbeZ.*Traj.ProbeZ,2));
+Traj.ProbeX = NO_vec;
+Traj.ProbeY = cross(Traj.ProbeZ, Traj.ProbeX, 2);
+
+save(prevFile,'Traj')
 
 end
 
