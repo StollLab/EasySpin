@@ -1,24 +1,22 @@
-% performs a moving average over nWindow time steps of a single, long 
-% trajectory of a scalar or vector quantity
+% given a time step dt and an averaging window tWindow, performs a moving 
+% average of a trajectory of a scalar or vector quantity
 
-function vAvg = trajavg(v,MD,Par)
+function vAvg = trajavg(v,dt,tWindow)
+
+if tWindow<dt
+  error('The averaging window tWindow must be greater than or equal to the time step dt.')
+end
 
 % assumes that size(v,1) is the time dimension and that size(v,2) is the
 % number of components
 
-if ~isfield(MD,'dt')
-  error('MD.dt, the time step for the trajectory, is missing.')
-end
-
-if ~isfield(Par,'dt')
-  error('Par.dt, the time step for the trajectory, is missing.')
-end
-
 % size of averaging window
-nWindow = ceil(Par.dt/MD.dt);
+nWindow = ceil(tWindow/dt);
+
+nSteps = size(v,1);
 
 % size of trajectory after averaging
-M = floor(MD.nSteps/nWindow);
+M = floor(nSteps/nWindow);
 
 nComps = size(v,2);
 

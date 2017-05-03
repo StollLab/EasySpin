@@ -18,18 +18,21 @@ Extensions = {...
 
 Files = strcat(SimpleFile, Extensions);
 
-ResName = 'CYR1';
+AtomInfo.ResName = 'CYR1';
 
-AtomNames.OName = 'ON';
-AtomNames.NName = 'NN';
-AtomNames.C1Name = 'C1';
-AtomNames.C2Name = 'C2';
+AtomInfo.AtomNames.OName = 'ON';
+AtomInfo.AtomNames.NName = 'NN';
+AtomInfo.AtomNames.C1Name = 'C1';
+AtomInfo.AtomNames.C2Name = 'C2';
+
+OutOpt.Frame = 0;
 
 nTests = size(Files, 1);
 
 for iFile = 1:nTests
   readerr(iFile) = false;
-  Traj = mdload(Files{iFile,1}, Files{iFile,2}, ResName, AtomNames);
+  AtomInfo.TopFile = Files{iFile,2};
+  Traj = mdload(Files{iFile,1}, AtomInfo, OutOpt);
   if any(~structfun(@(x) areequal(isnan(x),0), Traj))
     readerr(iFile) = true;
     fprintf('   NaNs were detected in output from mdload with args:\n   "%s" and "%s".\n',...

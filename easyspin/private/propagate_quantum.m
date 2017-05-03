@@ -116,20 +116,19 @@ switch Method
       % size of MD trajectory after averaging
       M = floor(MD.nSteps/nWindow);
 
-      GptensorAvg = zeros(3,3,M);
-      AtensorAvg = zeros(3,3,M);
+      GpTensorAvg = zeros(3,3,M);
+      ATensorAvg = zeros(3,3,M);
       
-      % Perform rotations on g- and A-tensors
-      Gptensor = matmult(RTraj, matmult(repmat(diag(g),1,1,MD.nTraj,MD.nSteps), ...
-                                        RTrajInv))/gfree - g_tr/3/gfree;
+      GpTensor = tensortraj(g,RTraj,RTrajInv)/gfree - g_tr/3/gfree;
 
-      Atensor = matmult(RTraj, matmult(repmat(diag(A),1,1,MD.nTraj,MD.nSteps), ...
-                                       RTrajInv))*1e6*2*pi;  % MHz (s^-1) -> Hz (rad s^-1)
+      ATensor = tensortraj(A,RTraj,RTrajInv)*1e6*2*pi; % MHz (s^-1) -> Hz (rad s^-1) (rad s^-1)
     
       % average the interaction tensors over time windows
+      idx = 1:nWindow;
       for k = 1:M
-        GptensorAvg(:,:,k) = mean(Gptensor(:,:,:,1+(k-1)*nWindow:k*nWindow),4);
-        AtensorAvg(:,:,k) = mean(Atensor(:,:,:,1+(k-1)*nWindow:k*nWindow),4);
+        GpTensorAvg(:,:,k) = mean(GpTensor(:,:,:,idx),4);
+        ATensorAvg(:,:,k) = mean(ATensor(:,:,:,idx),4);
+        idx = idx + nWindow;
       end
       
       % process single long trajectory into multiple short trajectories
@@ -142,13 +141,13 @@ switch Method
         nTraj = 1;
       end
       
-      Gptensor = zeros(3,3,nTraj,nSteps);
-      Atensor = zeros(3,3,nTraj,nSteps);
+      GpTensor = zeros(3,3,nTraj,nSteps);
+      ATensor = zeros(3,3,nTraj,nSteps);
       
       for k = 1:nTraj
         idx = (1:nSteps) + (k-1)*lag;
-        Gptensor(:,:,k,:) = GptensorAvg(:,:,idx);
-        Atensor(:,:,k,:) = AtensorAvg(:,:,idx);
+        GpTensor(:,:,k,:) = GpTensorAvg(:,:,idx);
+        ATensor(:,:,k,:) = ATensorAvg(:,:,idx);
       end
       
       % frame of MD coordinate system is lab frame for solution simulations
@@ -156,34 +155,32 @@ switch Method
     else
 
       % Perform rotations on g- and A-tensors
-      Gptensor = matmult(RTraj, matmult(repmat(diag(g),1,1,nTraj,nSteps), ...
-                                            RTrajInv))/gfree - g_tr/3/gfree;
-
-      Atensor = matmult(RTraj, matmult(repmat(diag(A),1,1,nTraj,nSteps), ...
-                                           RTrajInv))*1e6*2*pi;  % MHz (s^-1) -> Hz (rad s^-1)
+      GpTensor = tensortraj(g,RTraj,RTrajInv)/gfree - g_tr/3/gfree;
+    
+      ATensor = tensortraj(A,RTraj,RTrajInv)*1e6*2*pi; % MHz (s^-1) -> Hz (rad s^-1)
       
     end
-    
+        
     rho_t = zeros(3,3,nTraj,nSteps);
     rho_t(:,:,:,1) = repmat(eye(3),[1,1,nTraj]);
     
     % Prepare propagators
     % ---------------------------------------------------------------------
     
-    Gp_zz = Gptensor(3,3,:,:);
+    Gp_zz = GpTensor(3,3,:,:);
 
     % norm of expression in Eq. 24 in [1]
-    a = sqrt(Atensor(1,3,:,:).*Atensor(1,3,:,:) ...
-           + Atensor(2,3,:,:).*Atensor(2,3,:,:) ...
-           + Atensor(3,3,:,:).*Atensor(3,3,:,:));
+    a = sqrt(ATensor(1,3,:,:).*ATensor(1,3,:,:) ...
+           + ATensor(2,3,:,:).*ATensor(2,3,:,:) ...
+           + ATensor(3,3,:,:).*ATensor(3,3,:,:));
 
     % rotation angle and unit vector parallel to axis of rotation
     % refer to paragraph below Eq. 37 in [1]
 %     theta = Gamma*dt*0.5*squeeze(a);
     theta = dt*0.5*squeeze(a);
-    nx = squeeze(Atensor(1,3,:,:)./a);
-    ny = squeeze(Atensor(2,3,:,:)./a);
-    nz = squeeze(Atensor(3,3,:,:)./a);
+    nx = squeeze(ATensor(1,3,:,:)./a);
+    ny = squeeze(ATensor(2,3,:,:)./a);
+    nz = squeeze(ATensor(3,3,:,:)./a);
 
     % Eqs. A1-A2 in [1]
     ct = cos(theta) - 1;
@@ -218,13 +215,6 @@ switch Method
     % Propagate density matrix
     % ---------------------------------------------------------------------
     
-%     if strcmp(Model,'Molecular Dynamics')
-%       % only one trajectory, so the "*" operator can be used
-%       for iStep=2:M
-%         rho_t(:,:,:,iStep) = U(:,:,:,iStep-1)*rho_t(:,:,:,iStep-1)*U(:,:,:,iStep-1);
-%       end
-%     else
-      % there are multiple trajectories, so we need "mmult"
     if nTraj>1
       for iStep=2:nSteps
         rho_t(:,:,:,iStep) = mmult(U(:,:,:,iStep-1),...

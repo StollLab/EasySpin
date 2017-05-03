@@ -67,14 +67,6 @@
 %                                  / \
 %                        (C1Name) C   C (C2Name)
 %
-%     OR
-%
-%     RTraj          numeric, size = (3,3,N,M)
-%                    rotation matrices, calculated externally, e.g. by
-%                    performing a molecular dynamics simulation, where N is
-%                    the number of trajectories and M is the number of time
-%                    steps
-%
 %
 %
 %
@@ -142,8 +134,6 @@
 %                    'Sezer': propagate the density matrix using an 
 %                    analytical expression for the matrix exponential in 
 %                    the m_s=-1/2
-%                    'DeSensi': propagate the density matrix using an 
-%                    eigenvalue method
 %                    'Oganesyan': propagate the density matrix using
 %                    irreducible spherical tensor operators and correlation 
 %                    functions
@@ -216,46 +206,33 @@ error(err);
 
 useMD = ~isempty(fieldnames(MD));
 
+tscale = 2.5;  % diffusion constants of molecules solvated in TIP3P water 
+               % are known to be too large
+
 if useMD
-  if isfield(MD,'RTraj')&&isfield(MD,'dt')
-    % rotation matrices provided externally
-    
-  elseif isfield(MD,'TrajFile')&&isfield(MD,'TopFile')...
-         &&isfield(MD,'ResName')&&isfield(MD,'AtomNames')
-    % generate rotation matrices from MD simulation data
-    Traj = mdload(TrajFile, TopFile, ResName, AtomNames);
-    
-    % N-O bond vector
-    NO_vec = Traj.Oxyz - Traj.Nxyz;
-    NO_vec = NO_vec./sqrt(sum(NO_vec.*NO_vec,2));
-
-    % N-C1 bond vector
-    NC1_vec = Traj.C1xyz - Traj.Nxyz;
-    NC1_vec = NC1_vec./sqrt(sum(NC1_vec.*NC1_vec,2));
-
-    % N-C2 bond vector
-    NC2_vec = Traj.C2xyz - Traj.Nxyz;
-    NC2_vec = NC2_vec./sqrt(sum(NC2_vec.*NC2_vec,2));
-
-    vec1 = cross(NC1_vec, NO_vec, 2);
-    vec2 = cross(NO_vec, NC2_vec, 2);
-
-    probe_z = (vec1 + vec2)/2;
-    probe_z = probe_z./sqrt(sum(probe_z.*probe_z,2));
-    probe_x = NO_vec;
-    probe_y = cross(probe_z, probe_x, 2);
-
-    nSteps = length(Traj.Oxyz);
-
-    MD.dt = Traj.dt;
-
-    MD.RTraj = zeros(3,3,1,nSteps);
-    MD.RTraj(:,1,1,:) = permute(probe_x, [2, 3, 4, 1]);
-    MD.RTraj(:,2,1,:) = permute(probe_y, [2, 3, 4, 1]);
-    MD.RTraj(:,3,1,:) = permute(probe_z, [2, 3, 4, 1]);
-  else
-    error('For MD input, either RTraj and dt or TrajFile, TopFile, Resname, and AtomNames must be provided.')
+  if ~isfield(MD,'TrajFile')||~isfield(MD,'TopFile')...
+     ||~isfield(MD,'ResName')||~isfield(MD,'AtomNames')
+    error('For MD input, TrajFile, TopFile, Resname, and AtomNames must be provided.')
   end
+  % generate rotation matrices from MD simulation data
+  AtomInfo.TopFile = MD.TopFile;
+  AtomInfo.ResName = MD.ResName;
+  AtomInfo.AtomNames = MD.AtomNames;
+  
+  OutOpt.Verbosity = Opt.Verbosity;
+  OutOpt.Frame = 1;
+  
+  Traj = mdload(MD.TrajFile, AtomInfo, OutOpt);
+
+  MD.dt = tscale*Traj.dt;
+  MD.nSteps = size(Traj.FrameZ, 1);
+  
+  M = size(Traj.FrameX, 1);
+
+  MD.RTraj = zeros(3,3,1,M);
+  MD.RTraj(:,1,1,:) = permute(Traj.FrameX, [2, 3, 4, 1]);
+  MD.RTraj(:,2,1,:) = permute(Traj.FrameY, [2, 3, 4, 1]);
+  MD.RTraj(:,3,1,:) = permute(Traj.FrameZ, [2, 3, 4, 1]);
   
   % Check for orthogonality of rotation matrices
   RTrajInv = permute(MD.RTraj,[2,1,3,4]);
@@ -277,13 +254,12 @@ if ~isfield(Par,'nTraj')&&useMD==0, Par.nTraj = 100; end
 % TODO add error checks from stochtraj and create a skipcheck flag for stochtraj
 
 % decide on a simulation model based on user input
-
 if useMD
   if ~isfield(Par,'Model')
     % no Model given
     Par.Model = 'Molecular Dynamics';
   elseif ~strcmp(Par.Model,'Molecular Dynamics')
-    error('Mixing stochastic simulations with external rotation matrices is not supported.')
+    error('Mixing stochastic simulations with MD simulation input is not supported.')
   end
 else
   % no rotation matrices provided, so perform stochastic dynamics

@@ -6,24 +6,36 @@
 %     TrajFile       character array
 %                    Name of trajectory output file.
 %
-%     TopFile        character array
-%                    Name of topology input file used for molecular 
-%                    dynamics simulations.
+%     AtomInfo       structure array containing the following fields
 %
-%     ResName        character array
-%                    Name of residue assigned to spin label side chain,
-%                    e.g. "CYR1" is the default used by CHARMM-GUI.
+%                    TopFile    character array
+%                               Name of topology input file used for 
+%                               molecular dynamics simulations.
 %
-%     AtomNames      structure array
-%                    Structure array containing the atom names used in the 
-%                    PSF to refer to the following atoms in the nitroxide 
-%                    spin label molecule:
+%                    ResName    character array
+%                               Name of residue assigned to spin label side 
+%                               chain, e.g. "CYR1" is the default used by 
+%                               CHARMM-GUI.
+%
+%                    AtomNames  structure array
+%                               Contains the atom names used in the PSF to 
+%                               refer to the following atoms in the 
+%                               nitroxide spin label molecule:
 %
 %                                   O (OName)
 %                                   |
 %                                   N (NName)
 %                                  / \
 %                        (C1Name) C   C (C2Name)
+%
+%     OutOpt         structure array containing the following fields
+%
+%                    Frame     1: (default) coordinate frame vector 
+%                                 trajectories given as output
+%                              0: coordinate frame atom trajectories given 
+%                                 as output
+%
+%                    Verbosity 0: no display, 1: show info
 %
 %
 %   Output:
@@ -35,17 +47,31 @@
 %                    dt       double
 %                             size of time step (in s)
 %
-%                    Oxyz     numeric, size = (nSteps,3)
-%                             x,y,z coordinate trajectory for oxygen
+%                    if Frame = 0:
+%                      Oxyz     numeric, size = (nSteps,3)
+%                               x,y,z coordinate trajectory for oxygen
+% 
+%                      Nxyz     numeric, size = (nSteps,3)
+%                               x,y,z coordinate trajectory for nitrogen
+%  
+%                      C1xyz    numeric, size = (nSteps,3)
+%                               x,y,z coordinate trajectory for carbon C1
+%  
+%                      C2xyz    numeric, size = (nSteps,3)
+%                               x,y,z coordinate trajectory for carbon C2
 %
-%                    Nxyz     numeric, size = (nSteps,3)
-%                             x,y,z coordinate trajectory for nitrogen
-%
-%                    C1xyz    numeric, size = (nSteps,3)
-%                             x,y,z coordinate trajectory for carbon C1
-%
-%                    C2xyz    numeric, size = (nSteps,3)
-%                             x,y,z coordinate trajectory for carbon C2
+%                    if Frame = 1;
+%                      FrameX   numeric, size = (nSteps,3)
+%                               x,y,z coordinate trajectory for X-axis
+%                               vector
+% 
+%                      FrameY   numeric, size = (nSteps,3)
+%                               x,y,z coordinate trajectory for Y-axis
+%                               vector
+%  
+%                      FrameZ   numeric, size = (nSteps,3)
+%                               x,y,z coordinate trajectory for Z-axis
+%                               vector
 %
 %
 %   Supported formats are identified via the extension
@@ -54,15 +80,28 @@
 %     NAMD, CHARMM:        .DCD, .PSF
 %
 
-function Traj = mdload(TrajFile, TopFile, ResName, AtomNames)
+function Traj = mdload(TrajFile, AtomInfo, OutOpt)
 
-% if ~ischar(TrajFile)||regexp(TrajFile,'\w+\.\w+','once')<1
-%   error('TrajFile must be given as a character array, including the filename extension.')
-% end
+switch nargin
+  case 0
+    help(mfilename); return;
+  case 2 % TrajFile and AtomInfo specified, initialize Opt
+    OutOpt = struct;
+  case 3 % TrajFile, AtomInfo, and Opt provided
+  otherwise
+    error('Incorrect number of input arguments.')
+end
 
-% if numel(regexp(TrajFile,'\.'))>1
-%   error('Only one period (".") can be included in TrajFile as part of the filename extension. Remove the others.')
-% end
+if ~isfield(OutOpt,'Frame'), OutOpt.Frame = 1; end
+if ~isfield(OutOpt,'Verbosity'), OutOpt.Verbosity = 0; end
+
+% supported file types
+supportedTrajFileExts = {'.DCD'};
+supportedTopFileExts = {'.PSF'};
+
+TopFile = AtomInfo.TopFile;
+ResName = AtomInfo.ResName;
+AtomNames = AtomInfo.AtomNames;
 
 if ~ischar(TopFile)||regexp(TopFile,'\w+\.\w+','once')<1
   error('TopFile must be given as a character array, including the filename extension.')
@@ -84,6 +123,7 @@ if ischar(TrajFile)
   TrajFile = fullfile(TrajFilePath, [TrajFileName, TrajFileExt]);
   
   TrajFile = {TrajFile};
+  TrajFilePath = {TrajFilePath};
   TrajFileExt = {TrajFileExt};
   nTrajFiles = 1;
 elseif iscell(TrajFile)
@@ -112,16 +152,22 @@ else
          'character arrays (multiple trajectory files).'])
 end
 
-prevFile = [TrajFilePath{1}, '\', ResName, '.mat'];
+TrajFileExt = upper(TrajFileExt{1});
+TopFileExt = upper(TopFileExt);
 
-if exist(prevFile,'file')>0
-  load(prevFile)
-  return
+% check if file extensions are supported
+
+if ~any(strcmp(TrajFileExt,supportedTrajFileExts))
+  error('The TrajFile extension "%s" is not supported.', TrajFileExt)
 end
 
-ExtCombo = [upper(TrajFileExt{1}), ',', upper(TopFileExt)];
+if ~any(strcmp(TopFileExt,supportedTopFileExts))
+  error('The TopFile extension "%s" is not supported.', TopFileExt)
+end
 
-tic
+ExtCombo = [TrajFileExt, ',', TopFileExt];
+
+if OutOpt.Verbosity==1, tic; end
 for iTrajFile=1:nTrajFiles
   temp = processMD(TrajFile{iTrajFile}, TopFile, ResName, AtomNames, ExtCombo);
   if iTrajFile==1
@@ -138,30 +184,42 @@ for iTrajFile=1:nTrajFiles
     Traj.C2xyz = cat(1, Traj.C2xyz, temp.C2xyz);
   end
   % this could take a long time, so notify the user of progress
-  updateuser(iTrajFile,nTrajFiles)
+  if OutOpt.Verbosity==1
+    updateuser(iTrajFile,nTrajFiles)
+  end
 end
 
-% N-O bond vector
-NO_vec = Traj.Oxyz - Traj.Nxyz;
-NO_vec = NO_vec./sqrt(sum(NO_vec.*NO_vec,2));
+if OutOpt.Frame==1
+  % give the reference frame coordinate axis vector trajectories as output
+  
+  % N-O bond vector
+  NO_vec = Traj.Oxyz - Traj.Nxyz;
 
-% N-C1 bond vector
-NC1_vec = Traj.C1xyz - Traj.Nxyz;
-NC1_vec = NC1_vec./sqrt(sum(NC1_vec.*NC1_vec,2));
+  % N-C1 bond vector
+  NC1_vec = Traj.C1xyz - Traj.Nxyz;
 
-% N-C2 bond vector
-NC2_vec = Traj.C2xyz - Traj.Nxyz;
-NC2_vec = NC2_vec./sqrt(sum(NC2_vec.*NC2_vec,2));
+  % N-C2 bond vector
+  NC2_vec = Traj.C2xyz - Traj.Nxyz;
+  
+  % Normalize vectors
+  NO_vec = NO_vec./sqrt(sum(NO_vec.*NO_vec,2));
+  NC1_vec = NC1_vec./sqrt(sum(NC1_vec.*NC1_vec,2));
+  NC2_vec = NC2_vec./sqrt(sum(NC2_vec.*NC2_vec,2));
 
-vec1 = cross(NC1_vec, NO_vec, 2);
-vec2 = cross(NO_vec, NC2_vec, 2);
+  vec1 = cross(NC1_vec, NO_vec, 2);
+  vec2 = cross(NO_vec, NC2_vec, 2);
 
-Traj.ProbeZ = (vec1 + vec2)/2;
-Traj.ProbeZ = Traj.ProbeZ./sqrt(sum(Traj.ProbeZ.*Traj.ProbeZ,2));
-Traj.ProbeX = NO_vec;
-Traj.ProbeY = cross(Traj.ProbeZ, Traj.ProbeX, 2);
-
-save(prevFile,'Traj')
+  Traj.FrameZ = (vec1 + vec2)/2;
+  Traj.FrameZ = Traj.FrameZ./sqrt(sum(Traj.FrameZ.*Traj.FrameZ,2));
+  Traj.FrameX = NO_vec;
+  Traj.FrameY = cross(Traj.FrameZ, Traj.FrameX, 2);
+  
+  Traj = rmfield(Traj, 'Oxyz');
+  Traj = rmfield(Traj, 'Nxyz');
+  Traj = rmfield(Traj, 'C1xyz');
+  Traj = rmfield(Traj, 'C2xyz');
+  
+end
 
 end
 
