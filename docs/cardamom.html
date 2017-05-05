@@ -7,7 +7,7 @@
    <link rel="stylesheet" href="highlight/matlab.css">
    <script src="highlight/highlight.pack.js"></script>
    <script>hljs.initHighlightingOnLoad();</script>
-   <title>stochtraj</title>
+   <title>cardamom</title>
 </head>
 
 <body>
@@ -25,48 +25,51 @@
 
 <section>
 
-<div class="functitle">stochtraj</div>
+<div class="functitle">cardamom</div>
 
 <p>
-Simulation of stochastic rotational trajectories.
+Simulation of slow motion CW-EPR spectra in the time domain.
 </p>
 
 <!-- =================================================================== -->
 <div class="subtitle">Syntax</div>
 
 <pre class="matlab">
-stochtraj(Sys)
-stochtraj(Sys,Par)
-[t,RTraj] = stochtraj(...)
-[t,RTraj,qTraj] = stochtraj(...)
+cardamom(Sys,Par,Exp)
+cardamom(Sys,Par,Exp,Opt)
+[B,spc] = cardamom(...)
+[B,spc,expectval] = cardamom(...)
 </pre>
 
 <!-- =================================================================== -->
 <div class="subtitle">Description</div>
 
 <p>
-<code>stochtraj</code> computes trajectories of stochastic rotational diffusion in the time domain via propagation of quaternions. The motion can be isotropic or anisotropic and can include an orienting potential.
+<code>cardamom</code> simulates a CW-EPR spectrum using trajectories of orientations, which are obtained from either stochastic dynamics simulations (SDS) or molecular dynamics simulations (MDS). If SDS are to be used, then <code>cardamom</code> internally calls 
+<a class="esf" href="stochtraj.html"><code>stochtraj</code> </a>
+to simulate the required trajectories based on user input. If MDS are to be used, then <code>cardamom</code> internally calls <code>mdload</code> to process MDS output files for obtaining trajectories.
 </p>
 
 <p>
-<code>stochtraj</code> accepts up to three input arguments
+<code>cardamom</code> accepts up to five input arguments
 
 <ul>
 <li><code>Sys</code>: dynamic properties
-<li><code>Par</code>: (optional) simulation parameters for monte carlo integrator and trajectories
-<li><code>Opt</code>: (optional) simulation options
+<li><code>Par</code>: simulation parameters for quantum propagation
+<li><code>Exp</code>: experimental parameters
+<li><code>Opt</code>: simulation options
+<li><code>MD</code>: molecular dynamics parameters
 </ul>
 
 <p>
-If no input argument is given, a short help summary is shown (same as when typing <code>help stochtraj</code>).
+If no input argument is given, a short help summary is shown (same as when typing <code>help cardamom</code>).
 </p>
 
 <p>
 Up to three output arguments are returned:
 <ul>
-<li><code>t</code>: time axis, in seconds
-<li><code>RTraj</code>: rotation matrices
-<li><code>qTraj</code>: quaternions
+<li><code>B</code>: magnetic field axis, in mT
+<li><code>expectval</code>: expectation value of the magnetization in the x-y plane, i.e. the free induction decay signal
 </ul>
 
 <p>
@@ -76,7 +79,7 @@ If no output argument is given, <code>stochtraj</code> plots one of the trajecto
 <div class="subtitle2">Input: System dynamics </div>
 
 <p>
-<code>Sys</code> is a structure containing the dynamic properties for generating the stochastic rotational trajectories. Many of its fields overlap with those of <code>chili</code>. This allows the user to easily simulate EPR spectra in both frequency and time domains for comparison.
+<code>Sys</code> is a structure containing the dynamic properties for generating the stochastic rotational trajectories. Many of its fields overlap with those of <code>chili</code>. This allows the user to easily simulate EPR spectra in both frequency and time domains for easy comparison.
 </p>
 For the timescale(s) of motion, one of the fields <code>tcorr</code>, <code>logtcorr</code>, <code>Diff</code> or <code>logDiff</code> should be given. If more than one of these is given, the first in the list <code>logtcorr</code>, <code>tcorr</code>, <code>logDiff</code>, <code>Diff</code> takes precedence over the other(s).
 </p>
@@ -129,7 +132,7 @@ Base-10 logarithm of <code>Diff</code>. If given, <code>Diff</code> is ignored.
 </div>
 
 <p>
-It is also possible to specify an orienting potential to simulate restricted rotational diffusion. <code>stochtraj</code> accomplishes this by representing the orienting potential function using a series of Wigner D-functions (see reference for details). To take advantage of this feature, the user should specify each term in the orienting potential by specifying (1) the real and imaginary parts of the coefficients using <code>Coefs</code> and (2) the indices corresponding to each term using <code>LMK</code>. If these fields are left blank, unrestricted diffusion will be simulated.
+It is also possible to specify an orienting potential to simulate restricted diffusion. <code>stochtraj</code> accomplishes this by representing the orienting potential function using a series of Wigner D-functions (see reference for details). To take advantage of this feature, the user should specify each term in the orienting potential by specifying (1) the real and imaginary parts of the coefficients using <code>Coefs</code> and (2) the indices corresponding to each term using <code>LMK</code>. If these fields are left blank, unrestricted diffusion will be simulated.
 
 <div class="optionfield"><code>Coefs</code></div>
 <div class="optiondescr">
@@ -176,11 +179,23 @@ The total time of the simulation, in seconds.
 
 
 <p>
-Lastly, the trajectory settings are used to specify the starting orientations, <code>Omega</code>, which correspond to the Euler angles &alpha;, &beta;, and &gamma;; and how many trajectories to simulate, <code>nTraj</code>. If only one set of angles is given and <code>nTraj</code> is greater than one, then this starting orientation will be repeated for each trajectory. If <code>nTraj</code> is not provided, only one trajectory will be simulated. If no angles are provided, then a number of starting orientations equal to <code>nTraj</code> will be chosen from a uniform random distribution over the unit sphere, where &alpha;, &beta;, and &gamma; are sampled from [0,2&pi;), [0,&pi;), and [0,2&pi;), respectively.
+Lastly, the trajectory settings are used to specify the starting orientation angles, (<code>alpha</code>, <code>beta</code>, <code>gamma</code>),
+which correspond to the Euler angles &alpha;, &beta;, and &gamma;; and how many trajectories to simulate, <code>nTraj</code>. If only one set of angles is given and <code>nTraj</code> is greater than one, then this starting orientation will be repeated for each trajectory. If <code>nTraj</code> is not provided, only one trajectory will be simulated. If no angles are provided, then a number of starting orientations equal to <code>nTraj</code> will be chosen from a uniform random distribution over the unit sphere, where &alpha;, &beta;, and &gamma; are sampled from [0,2&pi;), [0,&pi;), and [0,2&pi;), respectively.
 
-<div class="optionfield"><code>Omega</code></div>
+
+<div class="optionfield"><code>alpha</code></div>
 <div class="optiondescr">
-An array of size (3,1) or (3,nTraj) containing triplets of the Euler angles &alpha;, &beta;, &gamma;, which are used to specify starting orientations, in radians.
+The Euler angle &alpha; used to specify starting orientations, in radians.
+</div>
+
+<div class="optionfield"><code>beta</code></div>
+<div class="optiondescr">
+The Euler angle &beta; used to specify starting orientations, in radians.
+</div>
+
+<div class="optionfield"><code>gamma</code></div>
+<div class="optiondescr">
+The Euler angle &gamma; used to specify starting orientations, in radians.
 </div>
 
 <div class="optionfield"><code>nTraj</code></div>
@@ -207,7 +222,7 @@ Termination tolerance for chi squared in angular distribution. If <code>Par.chkc
 <div class="optionfield"><code>Verbosity</code></div>
 <div class="optiondescr">
 0 (default), 1<br>
-Determines how much information <code>stochtraj</code> prints to the screen. If <code>Opt.Verbosity=0</code>, it is completely silent. 1 prints details about the progress of the computation.
+Determines how much information <code>stochtraj</code> prints to the screen. If <code>Opt.Verbosity=0</code>, is is completely silent. 1 prints details about the progress of the computation.
 </div>
 
 <!-- =================================================================== -->
@@ -222,9 +237,11 @@ Sys.tcorr = 5e-9;  % 5 ns rotational correlation time
 
 Par.dt = 1e-9;  % 1 ns time step
 Par.nSteps = 1e3;  % 1000 time steps
-Par.Omega = [0,0,0];
+Par.alpha = 0;
+Par.beta = 0;
+Par.gamma = 0;
 
-[t,RTraj] = stochtraj(Sys,Par);
+stochtraj(Sys,Par);
 </pre>
 
 <p>
@@ -240,7 +257,7 @@ Par.dt = 1e-9;
 Par.nSteps = 500;
 Par.nTraj = 400;
 
-[t,RTraj] = stochtraj(Sys,Par);
+stochtraj(Sys,Par);
 </pre>
 
 
