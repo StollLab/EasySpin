@@ -1,6 +1,8 @@
 % cardamom  Trajectory-based simulation of CW-EPR spectra.
 %
+%   cardamom(Sys,Par,Exp)
 %   cardamom(Sys,Par,Exp,Opt)
+%   cardamom(Sys,Par,Exp,Opt,MD)
 %   spc = cardamom(...)
 %   [B,spc] = cardamom(...)
 %   [B,spc,expectval] = cardamom(...)
@@ -80,17 +82,9 @@
 %     nTraj          int
 %                    number of trajectories
 %
-%     alpha          double or numeric, size = (1,nTraj)
-%                    Euler angle alpha for starting orientation(s)
-%
-%     beta           double or numeric, size = (1,nTraj)
-%                    Euler angle beta for starting orientation(s)
-%
-%     gamma          double or numeric, size = (1,nTraj)
-%                    Euler angle gamma for starting orientation(s)
+%     Omega          numeric, size = (3,1) or (3,nTraj)
+%                    Euler angles for starting orientation(s)
 %                    
-%
-%
 %
 %   Exp: experimental parameter settings
 %     mwFreq         double
@@ -472,9 +466,9 @@ tdiff = cellfun(@(x) hamm.*x.*exp(-x/TL).*exp(-x.^2/TG.^2/8), tcell, 'UniformOut
 expectDt = cellfun(@times, expectval, tdiff, 'UniformOutput', false);
 
 % zero padding for FFT to ensure sufficient B-field resolution 
-% (at most 0.1 mT)
-Bres = 0.1; % mT
-treq = 1/(mt2mhz(Bres)*1e6); % mT -> s
+% (at most 0.1 G)
+Bres = 0.1; % G
+treq = 1/(mt2mhz(Bres/10)*1e6); % mT -> s
 if max(t)<treq
   M = ceil(treq/Par.dt);  % TODO make flexible for propagation length extensions
 else
