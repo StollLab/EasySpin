@@ -39,7 +39,7 @@
 %
 %
 %   Output:
-%     Traj           structure array containing the following fields:
+%     MD             structure array containing the following fields:
 %
 %                    nSteps   integer
 %                             total number of steps in trajectory
@@ -80,7 +80,7 @@
 %     NAMD, CHARMM:        .DCD, .PSF
 %
 
-function Traj = mdload(TrajFile, AtomInfo, OutOpt)
+function MD = mdload(TrajFile, AtomInfo, OutOpt)
 
 switch nargin
   case 0
@@ -171,17 +171,17 @@ if OutOpt.Verbosity==1, tic; end
 for iTrajFile=1:nTrajFiles
   temp = processMD(TrajFile{iTrajFile}, TopFile, ResName, AtomNames, ExtCombo);
   if iTrajFile==1
-    Traj = temp;
+    MD = temp;
   else
     % combine trajectories through array concatenation
-    if Traj.dt~=temp.dt
+    if MD.dt~=temp.dt
       error('Time steps of trajectory files are not equal.')
     end
-    Traj.nSteps = Traj.nSteps + temp.nSteps;
-    Traj.Oxyz = cat(1, Traj.Oxyz, temp.Oxyz);
-    Traj.Nxyz = cat(1, Traj.Nxyz, temp.Nxyz);
-    Traj.C1xyz = cat(1, Traj.C1xyz, temp.C1xyz);
-    Traj.C2xyz = cat(1, Traj.C2xyz, temp.C2xyz);
+    MD.nSteps = MD.nSteps + temp.nSteps;
+    MD.Oxyz = cat(1, MD.Oxyz, temp.Oxyz);
+    MD.Nxyz = cat(1, MD.Nxyz, temp.Nxyz);
+    MD.C1xyz = cat(1, MD.C1xyz, temp.C1xyz);
+    MD.C2xyz = cat(1, MD.C2xyz, temp.C2xyz);
   end
   % this could take a long time, so notify the user of progress
   if OutOpt.Verbosity==1
@@ -193,13 +193,13 @@ if OutOpt.Frame==1
   % give the reference frame coordinate axis vector trajectories as output
   
   % N-O bond vector
-  NO_vec = Traj.Oxyz - Traj.Nxyz;
+  NO_vec = MD.Oxyz - MD.Nxyz;
 
   % N-C1 bond vector
-  NC1_vec = Traj.C1xyz - Traj.Nxyz;
+  NC1_vec = MD.C1xyz - MD.Nxyz;
 
   % N-C2 bond vector
-  NC2_vec = Traj.C2xyz - Traj.Nxyz;
+  NC2_vec = MD.C2xyz - MD.Nxyz;
   
   % Normalize vectors
   NO_vec = NO_vec./sqrt(sum(NO_vec.*NO_vec,2));
@@ -209,15 +209,15 @@ if OutOpt.Frame==1
   vec1 = cross(NC1_vec, NO_vec, 2);
   vec2 = cross(NO_vec, NC2_vec, 2);
 
-  Traj.FrameZ = (vec1 + vec2)/2;
-  Traj.FrameZ = Traj.FrameZ./sqrt(sum(Traj.FrameZ.*Traj.FrameZ,2));
-  Traj.FrameX = NO_vec;
-  Traj.FrameY = cross(Traj.FrameZ, Traj.FrameX, 2);
+  MD.FrameZ = (vec1 + vec2)/2;
+  MD.FrameZ = MD.FrameZ./sqrt(sum(MD.FrameZ.*MD.FrameZ,2));
+  MD.FrameX = NO_vec;
+  MD.FrameY = cross(MD.FrameZ, MD.FrameX, 2);
   
-  Traj = rmfield(Traj, 'Oxyz');
-  Traj = rmfield(Traj, 'Nxyz');
-  Traj = rmfield(Traj, 'C1xyz');
-  Traj = rmfield(Traj, 'C2xyz');
+  MD = rmfield(MD, 'Oxyz');
+  MD = rmfield(MD, 'Nxyz');
+  MD = rmfield(MD, 'C1xyz');
+  MD = rmfield(MD, 'C2xyz');
   
 end
 
