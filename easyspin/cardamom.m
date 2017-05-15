@@ -45,6 +45,14 @@
 %
 %
 %   MD: structure with molecular dynamics simulation parameters
+%
+%     isFrame        integer
+%                    0: raw MD data input
+%                    1: frame trajectory input (MD data has already been 
+%                       processed by mdload)
+%
+%    Raw MD data input:
+%
 %     TrajFile       character array, or cell array containing character
 %                    arrays as elements
 %                    Name of trajectory output file(s), including the file
@@ -69,6 +77,18 @@
 %                                  / \
 %                        (C1Name) C   C (C2Name)
 %
+%   OR
+%
+%    Frame Trajectory input:
+%
+%     FrameX         numeric, size = (nSteps,3)
+%                    x,y,z coordinate trajectory for X-axis vector
+% 
+%     FrameY         numeric, size = (nSteps,3)
+%                    x,y,z coordinate trajectory for Y-axis vector
+%  
+%     FrameZ         numeric, size = (nSteps,3)
+%                    x,y,z coordinate trajectory for Z-axis vector
 %
 %
 %
@@ -204,29 +224,57 @@ tscale = 2.5;  % diffusion constants of molecules solvated in TIP3P water
                % are known to be too large
 
 if useMD
-  if ~isfield(MD,'TrajFile')||~isfield(MD,'TopFile')...
-     ||~isfield(MD,'ResName')||~isfield(MD,'AtomNames')
-    error('For MD input, TrajFile, TopFile, Resname, and AtomNames must be provided.')
+  if ~isfield(MD,'isFrame')
+    % use frame trajectories by default
+    MD.isFrame=1;
   end
-  % generate rotation matrices from MD simulation data
-  AtomInfo.TopFile = MD.TopFile;
-  AtomInfo.ResName = MD.ResName;
-  AtomInfo.AtomNames = MD.AtomNames;
   
-  OutOpt.Verbosity = Opt.Verbosity;
-  OutOpt.Frame = 1;
-  
-  Traj = mdload(MD.TrajFile, AtomInfo, OutOpt);
+  if MD.isFrame==1
+    % use a frame trajectory
+    if ~isfield(MD,'dt')
+      error('The time step dt must be given in MD.')
+    end
+    
+    if ~isfield(MD,'FrameX')||~isfield(MD,'FrameY')||~isfield(MD,'FrameZ')
+      error('If using a frame trajectory, input MD must contain FrameX, FrameY, and FrameZ.')
+    end
+    sizeFrameX = size(MD.FrameX);
 
-  MD.dt = tscale*Traj.dt;
-  MD.nSteps = size(Traj.FrameZ, 1);
-  
-  M = size(Traj.FrameX, 1);
+    if ~isequal(sizeFrameX,size(MD.FrameY))||~isequal(sizeFrameX,size(MD.FrameZ))
+      error('All frame trajectory arrays in MD must have the same size.')
+    end
+
+    if sizeFrameX(2)~=3
+      error('All frame trajectory arrays must be of size (nSteps,3).')
+    end
+    
+    MD.nSteps = sizeFrameX(1);
+  else
+    % use raw MD input
+    if ~isfield(MD,'TrajFile')||~isfield(MD,'TopFile')...
+       ||~isfield(MD,'ResName')||~isfield(MD,'AtomNames')
+      error('For MD input, TrajFile, TopFile, Resname, and AtomNames must be provided.')
+    end
+    % generate rotation matrices from MD simulation data
+    AtomInfo.TopFile = MD.TopFile;
+    AtomInfo.ResName = MD.ResName;
+    AtomInfo.AtomNames = MD.AtomNames;
+
+    OutOpt.Verbosity = Opt.Verbosity;
+    OutOpt.Frame = 1;
+
+    MD = mdload(MD.TrajFile, AtomInfo, OutOpt);
+    
+    MD.dt = tscale*MD.dt;
+    MD.nSteps = size(MD.FrameZ, 1);
+  end
+
+  M = size(MD.FrameX, 1);
 
   MD.RTraj = zeros(3,3,1,M);
-  MD.RTraj(:,1,1,:) = permute(Traj.FrameX, [2, 3, 4, 1]);
-  MD.RTraj(:,2,1,:) = permute(Traj.FrameY, [2, 3, 4, 1]);
-  MD.RTraj(:,3,1,:) = permute(Traj.FrameZ, [2, 3, 4, 1]);
+  MD.RTraj(:,1,1,:) = permute(MD.FrameX, [2, 3, 4, 1]);
+  MD.RTraj(:,2,1,:) = permute(MD.FrameY, [2, 3, 4, 1]);
+  MD.RTraj(:,3,1,:) = permute(MD.FrameZ, [2, 3, 4, 1]);
   
   % Check for orthogonality of rotation matrices
   RTrajInv = permute(MD.RTraj,[2,1,3,4]);
@@ -236,7 +284,6 @@ if useMD
   end
 
   MD.nTraj = size(MD.RTraj,3);
-  MD.nSteps = size(MD.RTraj,4);
 end
 
 % Check Par
