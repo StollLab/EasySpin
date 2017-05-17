@@ -789,32 +789,64 @@ hMagnettechFile = fopen(FileName,'r','ieee-le');
 if (hMagnettechFile<0)
   error('Could not open Magnettech spectrometer file %s.',FileName);
 end
-
-nPoints = 4096; % all files have the same number of points
-[Data,count] = fread(hMagnettechFile,nPoints,'int16');
-if (count<nPoints)
-  error('Could not read %d of 4096 data points from %s.',count,FileName);
+fileinfo = dir(FileName);
+if (fileinfo.bytes~=8256)
+  error('This file does not have the correct file size for a Magnettech SPE file.');
 end
-[paramdata,count] = fread(hMagnettechFile,16*2,'int16');
-if (count<16*2)
-  error('Could not read %d of 16 parameters from %s.',count/2,FileName);
+
+% Read spectral data
+nPoints = 4096; % all files have the same number of points
+Data = fread(hMagnettechFile,nPoints,'int16');
+
+% Determine format version and other flags
+fseek(hMagnettechFile,8252,'bof');
+FileFlags = fread(hMagnettechFile,1,'uint8');
+mwFreqAvailable = bitand(FileFlags,1)~=0;
+oldSpeFormat = bitand(FileFlags,2)==0;
+temperatureAvailable = bitand(FileFlags,4)~=0;
+if oldSpeFormat
+  fourbytesingle = @(x)x(1) + x(2)/100;
+else
+  fourbytesingle = @(x)x(1) + x(2)/1000;
+end
+readfbs = @()fourbytesingle(fread(hMagnettechFile,2,'int16'));
+
+%if oldSpeFormat
+%  Data = Data - 16384;
+%end
+
+% Read parameters
+fseek(hMagnettechFile,8192,'bof');
+Parameters.B0_Field = readfbs()/10; % G -> mT
+Parameters.B0_Scan = readfbs()/10; % G -> mT
+Parameters.Modulation = readfbs()/10000; % mT
+Parameters.MW_Attenuation = readfbs(); % dB
+Parameters.ScanTime = readfbs(); % s
+GainMantissa = readfbs();
+GainExponent = readfbs();
+Parameters.Gain = GainMantissa*10^round(GainExponent);
+Parameters.Number = readfbs();
+reserve = readfbs();
+Parameters.Time_const = readfbs(); % s
+reserve = readfbs();
+reserve = readfbs();
+Parameters.NumberSamples = readfbs();
+if temperatureAvailable
+  Parameters.Temperature = fread(hMagnettechFile,1,'int32'); % degree C
+else
+  reserve = fread(hMagnettechFile,1,'int32');
+  Parameters.Temperature = [];
+end
+reserve = readfbs();
+Parameters.FileFlags = fread(hMagnettechFile,1,'uint8');
+if mwFreqAvailable
+  mwf = fread(hMagnettechFile,3,'uint8');
+  Parameters.mwFreq = mwf(3) + 256*mwf(2) + 256^2*mwf(1);
+  Parameters.mwFreq = Parameters.mwFreq/1e6; % kHz->GHz
+else
+  Parameters.mwFreq = [];
 end
 fclose(hMagnettechFile);
-
-paramdata = reshape(paramdata,[2 16]).';
-paramdata = paramdata(:,1) + paramdata(:,2)/100;
-
-Parameters.B0_Field = paramdata(1)/10;
-Parameters.B0_Scan = paramdata(2)/10;
-Parameters.Modulation = paramdata(3)/10000;
-Parameters.MW_Attenuation = paramdata(4);
-Parameters.ScanTime = paramdata(5);
-Parameters.GainMantissa = paramdata(6);
-Parameters.GainExponent = paramdata(7);
-Parameters.Gain = Parameters.GainMantissa*10^Parameters.GainExponent;
-Parameters.Number = paramdata(8);
-Parameters.Time_const = paramdata(10);
-Parameters.Samples = paramdata(13);
 
 Abscissa = Parameters.B0_Field + linspace(-1/2,1/2,numel(Data))*Parameters.B0_Scan;
 Abscissa = Abscissa(:);
