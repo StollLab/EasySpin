@@ -109,12 +109,19 @@ else
 end
 
 if ~isfield(Opt,'IsoCutoff'), Opt.IsoCutoff = 1e-3; end
+if ~isfield(Opt,'Output'), Opt.Output = 'summed'; end
+
+[Output,err] = parseoption(Opt,'Output',{'summed','separate'});
+error(err);
+summedOutput = Output==1;
 
 if ~isfield(Sys,'singleiso') || (Sys.singleiso==0)
 
   [SysList,weight] = expandcomponents(Sys,Opt.IsoCutoff);
+  nComponents = numel(SysList);
+  logmsg(1,'Simulating %d component spectra...');
   
-  if (numel(SysList)>1) && SweepAutoRange
+  if (nComponents>1) && SweepAutoRange
     if FrequencySweep
       error('Multiple components: Please specify sweep range manually using Exp.mwRange or Exp.mwCenterSweep.');
     else
@@ -122,10 +129,21 @@ if ~isfield(Sys,'singleiso') || (Sys.singleiso==0)
     end
   end
   
-  spec = 0;
-  for iComponent = 1:numel(SysList)
+  separateComponentOutput = (nComponents>1) && ~summedOutput;
+  if separateComponentOutput
+    Opt.Output = 'summed';
+    spec = [];
+  else
+    spec = 0;
+  end
+  
+  for iComponent = 1:nComponents
     [xAxis,spec_,Transitions] = pepper(SysList{iComponent},Exp,Opt);
-    spec = spec + spec_*weight(iComponent);
+    if separateComponentOutput
+      spec(iComponent,:) = spec_*weight(iComponent);
+    else
+      spec = spec + spec_*weight(iComponent);
+    end
   end
     
   % Output and plotting
@@ -516,14 +534,10 @@ if numel(Opt.nKnots)<2
 end
 
 % Parse string options.
-[Opt.Output,err] = parseoption(Opt,'Output',{'summed','separate'});
-error(err);
-SummedOutput = (Opt.Output==1);
-
 AnisotropicIntensities = parseoption(Opt,'Intensity',{'off','on'}) - 1;
 Opt.Intensity = AnisotropicIntensities;
 
-if strcmp(Opt.Symmetry,'auto'),
+if strcmp(Opt.Symmetry,'auto')
   Opt.Symmetry = [];
 end
 
@@ -797,7 +811,7 @@ elseif (~BruteForceSum)
   
   % Pre-allocation of spectral array.
   %-----------------------------------------------------------------------
-  if (SummedOutput)
+  if (summedOutput)
     nRows = 1;
     msg = 'summed';
   else
@@ -849,7 +863,7 @@ elseif (~BruteForceSum)
           thisspec = (2*pi)*thisspec; % for consistency with powder spectra (factor from integral over chi)
           thisspec = Exp.OriWeights(iOri)*thisspec; % integral over (phi,theta)
           
-          if (SummedOutput)
+          if (summedOutput)
             spec = spec + thisspec;
           else
             spec(iOri,:) = spec(iOri,:) + thisspec;
@@ -880,7 +894,7 @@ elseif (~BruteForceSum)
       thisspec = (2*pi)*thisspec; % integral over chi (0..2*pi)
       thisspec = Exp.OriWeights*thisspec; % integral over (phi,theta)
       
-      if (SummedOutput)
+      if (summedOutput)
         spec = spec + thisspec;
       else
         spec(iTrans,:) = thisspec;
@@ -1026,7 +1040,7 @@ elseif (~BruteForceSum)
       
       % Accumulate subspectra
       %----------------------------------------------------------
-      if (SummedOutput)
+      if (summedOutput)
         spec = spec + thisspec;
       else
         spec(iTrans,:) = thisspec;
@@ -1086,7 +1100,7 @@ logmsg(1,'-final-------------------------------------------------');
 % Combine branches of looping transitions if separate output
 %-----------------------------------------------------------------------
 if (FieldSweep) && (PowderSimulation)
-  if (~SummedOutput) && LoopingTransitionsPresent
+  if (~summedOutput) && LoopingTransitionsPresent
     [Transitions,unused,idx] = unique(Transitions,'rows');
     nTransitions = size(Transitions,1);
     newspec = zeros(nTransitions,Exp.nPoints);

@@ -1,11 +1,20 @@
 function [err,data] = test(opt,olddata)
 
 % Read Adani spectrometer files
-%-------------------------------------------------
+%-------------------------------------------------------------------------------
+% JSON format from e-Spinoza software
+
+% Skip test if Matlab version is older than R2016b
+% Before that, the Matlab-internal JSON parser does not work.
+if verLessThan('matlab','9.1')
+  err = false;
+  data = [];
+  return
+end
+
 BaseDir = 'eprfiles/adani/';
-
-Files{1} = 'pyrelen-2mT5mmAugstaak300sek.dat';
-
+Files{1} = '1d.json';
+Files{2} = '2d.json';
 
 for iFile = 1:numel(Files)
   thisFile = Files{iFile};
@@ -26,10 +35,12 @@ for iFile = 1:numel(Files)
       disp([  '   ' Files(iFile).name]);
     end
   end
+  
   if (opt.Display)
     plot(x,data);
     pause
   end
+  
 end
 
 err = readerr;

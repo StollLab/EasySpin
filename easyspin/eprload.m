@@ -37,8 +37,8 @@
 %     SpecMan:             .d01, .exp
 %     Magnettech:          .spe (binary), .xml (xml)
 %     Active Spectrum:     .ESR
-%     Adani:               .dat
-%     JEOL:                (variable)
+%     Adani:               .dat, .json
+%     JEOL:                (no extension)
 %
 %     MAGRES:              .PLT
 %     qese, tryscore:      .eco
@@ -69,12 +69,13 @@ end
 
 LocationType = exist(FileName,'file');
 
-if (LocationType==7), % a directory
+if (LocationType==7) % a directory
   CurrDir = pwd;
   cd(FileName);
   [uiFile,uiPath] = uigetfile({...
     '*.DTA;*.dta;*.spc','Bruker (*.dta,*.spc)';...
     '*.d01','SpecMan (*.d01)';...
+    '*','All files, incl. JEOL (*.*)';...
     '*.spe;*.xml','Magnettech (*.spe,*.xml)';...
     '*.esr','Active Spectrum (*.esr)';...
     '*.spk;*.ref','Varian (*.spk,*.ref)';...
@@ -83,7 +84,7 @@ if (LocationType==7), % a directory
     '*.plt','Magres (*.plt)'},...
     'Load EPR data file...');
   cd(CurrDir);
-  if (uiFile==0),
+  if (uiFile==0)
     varargout = cell(1,nargout);
     return;
   end
@@ -116,7 +117,7 @@ end
 
 FileName = [FullBaseName FileExtension];
 LocationType = exist(FileName,'file');
-if any(LocationType==[0 1 5 8]), % not a file/directory
+if any(LocationType==[0 1 5 8]) % not a file/directory
   error('The file or directory %s does not exist!',FileName);
 end
 
@@ -128,7 +129,8 @@ switch upper(strtrim(FileExtension))
   case '.SPE', FileFormat = 'MagnettechBinary';
   case '.XML', FileFormat = 'MagnettechXML';
   case '.ESR', FileFormat = 'ActiveSpectrum';
-  case '.DAT', FileFormat = 'Adani';
+  case '.DAT', FileFormat = 'AdaniDAT';
+  case '.JSON', FileFormat = 'AdaniJSON';
   case '.ECO', FileFormat = 'qese/tryscore';
   case '.PLT', FileFormat = 'MAGRES';
   case {'.SPK','.REF'}, FileFormat = 'VarianETH';
@@ -187,9 +189,17 @@ switch FileFormat
     
     [Data, Abscissa, Parameters] = eprload_ActiveSpectrum(FileName);
     
-  case 'Adani'
+  case 'AdaniDAT'
     
-    [Data, Abscissa] = eprload_Adani(FileName);
+    [Data, Abscissa] = eprload_AdaniDAT(FileName);
+    
+  case 'AdaniJSON'
+    %--------------------------------------------------
+    % Adani JSON format, for SPINSCAN spectrometer with
+    % e-Spinoza software (based on official documentation)
+    %--------------------------------------------------
+    
+    [Data, Abscissa, Parameters] = eprload_AdaniJSON(FileName);
     
   case 'JEOL'
     %--------------------------------------------------
@@ -289,7 +299,7 @@ error(err);
 if isfield(Parameters,'IKKF')
   parts = regexp(Parameters.IKKF,',','split');
   nDataValues = numel(parts); % number of data values per parameter point
-  for k = 1:nDataValues
+  for k = nDataValues:-1:1
     switch parts{k}
       case 'CPLX', isComplex(k) = 1;
       case 'REAL', isComplex(k) = 0;
@@ -305,9 +315,9 @@ end
 % XPTS: X Points   YPTS: Y Points   ZPTS: Z Points
 % XPTS, YPTS, ZPTS specify the number of data points in
 %  x, y and z dimension.
-if isfield(Parameters,'XPTS'), nx = sscanf(Parameters.XPTS,'%f'); else error('No XPTS in DSC file.'); end
-if isfield(Parameters,'YPTS'), ny = sscanf(Parameters.YPTS,'%f'); else ny = 1; end
-if isfield(Parameters,'ZPTS'), nz = sscanf(Parameters.ZPTS,'%f'); else nz = 1; end
+if isfield(Parameters,'XPTS'), nx = sscanf(Parameters.XPTS,'%f'); else, error('No XPTS in DSC file.'); end
+if isfield(Parameters,'YPTS'), ny = sscanf(Parameters.YPTS,'%f'); else, ny = 1; end
+if isfield(Parameters,'ZPTS'), nz = sscanf(Parameters.ZPTS,'%f'); else, nz = 1; end
 Dimensions = [nx,ny,nz];
 
 % BSEQ: Byte Sequence
@@ -538,7 +548,7 @@ end
 
 % If present, SSX contains the number of x points.
 if isfield(Parameters,'SSX')
-  if TwoD,
+  if TwoD
     if FileType=='c', FileType='p'; end
     nx = sscanf(Parameters.SSX,'%f');
     if isComplex, nx = nx/2; end
@@ -547,7 +557,7 @@ end
 
 % If present, SSY contains the number of y points.
 if isfield(Parameters,'SSY')
-  if TwoD,
+  if TwoD
     if FileType=='c', FileType='p'; end
     ny = sscanf(Parameters.SSY,'%f');
   end
@@ -556,7 +566,7 @@ end
 % If present, ANZ contains the total number of points.
 if isfield(Parameters,'ANZ')
   nAnz = sscanf(Parameters.ANZ,'%f');
-  if ~TwoD,
+  if ~TwoD
     if FileType=='c', FileType='p'; end
     nx = nAnz;
     if isComplex, nx = nx/2; end
@@ -779,32 +789,64 @@ hMagnettechFile = fopen(FileName,'r','ieee-le');
 if (hMagnettechFile<0)
   error('Could not open Magnettech spectrometer file %s.',FileName);
 end
-
-nPoints = 4096; % all files have the same number of points
-[Data,count] = fread(hMagnettechFile,nPoints,'int16');
-if (count<nPoints)
-  error('Could not read %d of 4096 data points from %s.',count,FileName);
+fileinfo = dir(FileName);
+if (fileinfo.bytes~=8256)
+  error('This file does not have the correct file size for a Magnettech SPE file.');
 end
-[paramdata,count] = fread(hMagnettechFile,16*2,'int16');
-if (count<16*2)
-  error('Could not read %d of 16 parameters from %s.',count/2,FileName);
+
+% Read spectral data
+nPoints = 4096; % all files have the same number of points
+Data = fread(hMagnettechFile,nPoints,'int16');
+
+% Determine format version and other flags
+fseek(hMagnettechFile,8252,'bof');
+FileFlags = fread(hMagnettechFile,1,'uint8');
+mwFreqAvailable = bitand(FileFlags,1)~=0;
+oldSpeFormat = bitand(FileFlags,2)==0;
+temperatureAvailable = bitand(FileFlags,4)~=0;
+if oldSpeFormat
+  fourbytesingle = @(x)x(1) + x(2)/100;
+else
+  fourbytesingle = @(x)x(1) + x(2)/1000;
+end
+readfbs = @()fourbytesingle(fread(hMagnettechFile,2,'int16'));
+
+%if oldSpeFormat
+%  Data = Data - 16384;
+%end
+
+% Read parameters
+fseek(hMagnettechFile,8192,'bof');
+Parameters.B0_Field = readfbs()/10; % G -> mT
+Parameters.B0_Scan = readfbs()/10; % G -> mT
+Parameters.Modulation = readfbs()/10000; % mT
+Parameters.MW_Attenuation = readfbs(); % dB
+Parameters.ScanTime = readfbs(); % s
+GainMantissa = readfbs();
+GainExponent = readfbs();
+Parameters.Gain = GainMantissa*10^round(GainExponent);
+Parameters.Number = readfbs();
+reserve = readfbs();
+Parameters.Time_const = readfbs(); % s
+reserve = readfbs();
+reserve = readfbs();
+Parameters.NumberSamples = readfbs();
+if temperatureAvailable
+  Parameters.Temperature = fread(hMagnettechFile,1,'int32'); % degree C
+else
+  reserve = fread(hMagnettechFile,1,'int32');
+  Parameters.Temperature = [];
+end
+reserve = readfbs();
+Parameters.FileFlags = fread(hMagnettechFile,1,'uint8');
+if mwFreqAvailable
+  mwf = fread(hMagnettechFile,3,'uint8');
+  Parameters.mwFreq = mwf(3) + 256*mwf(2) + 256^2*mwf(1);
+  Parameters.mwFreq = Parameters.mwFreq/1e6; % kHz->GHz
+else
+  Parameters.mwFreq = [];
 end
 fclose(hMagnettechFile);
-
-paramdata = reshape(paramdata,[2 16]).';
-paramdata = paramdata(:,1) + paramdata(:,2)/100;
-
-Parameters.B0_Field = paramdata(1)/10;
-Parameters.B0_Scan = paramdata(2)/10;
-Parameters.Modulation = paramdata(3)/10000;
-Parameters.MW_Attenuation = paramdata(4);
-Parameters.ScanTime = paramdata(5);
-Parameters.GainMantissa = paramdata(6);
-Parameters.GainExponent = paramdata(7);
-Parameters.Gain = Parameters.GainMantissa*10^Parameters.GainExponent;
-Parameters.Number = paramdata(8);
-Parameters.Time_const = paramdata(10);
-Parameters.Samples = paramdata(13);
 
 Abscissa = Parameters.B0_Field + linspace(-1/2,1/2,numel(Data))*Parameters.B0_Scan;
 Abscissa = Abscissa(:);
@@ -913,7 +955,7 @@ return
 %--------------------------------------------------
 
 %--------------------------------------------------
-function [Data, Abscissa] = eprload_Adani(FileName)
+function [Data, Abscissa] = eprload_AdaniDAT(FileName)
 %------------------------------------------------------------------
 %   Text-based file format of Adani spectrometers
 %------------------------------------------------------------------
@@ -997,8 +1039,8 @@ function [Data, Parameters] = eprload_MAGRES(FileName)
 %--------------------------------------------------
 
 [Line,found] = findtagsMAGRES(FileName,{'DATA'});
-if found(1), nx = str2double(Line{1}); else nx=0; end
-if ~nx,
+if found(1), nx = str2double(Line{1}); else, nx=0; end
+if ~nx
   error('Unable to determine number of x points in PLT file.');
 end
 
@@ -1010,7 +1052,7 @@ for k=1:3, fgetl(fid); end
 % read data
 ny = 1;
 [Data,N] = fscanf(fid,'%f',[nx,ny]);
-if (N<nx*ny),
+if N<nx*ny
   warning('Could not read entire data set from PLT file.');
 end
 
@@ -1135,11 +1177,11 @@ out = cell(1,length(TagList));
 while ~feof(fid)
   Line = fgetl(fid);
   whitespace = find(isspace(Line)); % space or tab
-  if ~isempty(whitespace),
+  if ~isempty(whitespace)
     endTag = whitespace(1)-1;
     if endTag>0
       I = strcmp(Line(1:endTag),TagList);
-      if ~isempty(I),
+      if ~isempty(I)
         out{I} = fliplr(deblank(Line(end:-1:endTag+1)));
         found(I) = 1;
       end
@@ -1188,7 +1230,7 @@ for k = 1:numel(allLines)
   Value = deblank(line(end:-1:idx));
   Value = deblank(Value(end:-1:1));
   if ~isempty(Value)
-    if Value([1 end])=='''', % remove leading and trailing quotes
+    if Value([1 end])=='''' % remove leading and trailing quotes
       Value([1 end]) = [];
     end
   end
@@ -1248,7 +1290,7 @@ for k=1:numel(allLines)
   if isempty(Key); continue; end
   
   % If key is not valid, go to next line.
-  if ~isletter(Key(1)),
+  if ~isletter(Key(1))
     % Stop reading when Manipulation History Layer is reached.
     if strcmpi(Key,'#MHL'); break; end
     continue;
@@ -1257,7 +1299,7 @@ for k=1:numel(allLines)
   Value = deblank(Value(end:-1:1)); Value = deblank(Value(end:-1:1));
   
   if ~isempty(Value)
-    if Value([1 end])=='''',
+    if Value([1 end])==''''
       Value([1 end]) = [];
     end
   end
@@ -1300,5 +1342,73 @@ for iField = 1:numel(Fields)
     Pout.(Fields{iField}) = v_num(:)'; % don't use .' due to bug up to R2014a
   end
 end
+
+return
+
+%-------------------------------------------------------------------------------
+function [Data,Abscissa,Parameters] = eprload_AdaniJSON(FileName)
+%--------------------------------------------------------------------------
+%   JSON format of Adani spectrometers SPINSCAN etc. (e-Spinoza software)
+%--------------------------------------------------------------------------
+% Uses Matlab-internal JSON parser  matlab.internal.webservices.fromJSON
+% This does not work prior to R2016b.
+
+% Matlab version check
+if verLessThan('matlab','9.1.0')
+  error('Reading Adani e-Spinoza JSON files requires Matlab R2016b (9.1.0) or later.');
+end
+
+% Read JSON string from file
+fid = fopen(FileName);
+if (fid<0)
+  error('Could not open %s.',FileName);
+end
+jsonstring = textscan(fid,'%s');
+jsonstring = jsonstring{1};
+fclose(fid);
+
+% Parse JSON string
+try
+  data = matlab.internal.webservices.fromJSON(jsonstring);
+  data = data{1};
+catch
+  error('Could not parse JSON-format data from %s.',FileName);
+end
+
+% Get basic information about data
+nSpectra = numel(data.Values);
+nPoints = numel(data.Values(1).Values);
+nPhases = numel(data.Values(1).Values(1).Points);
+
+% Read 1D or 2D data
+phase0 = data.Phase;
+s = sin(2*pi*(0:nPhases-1).'/nPhases + phase0);
+spc = zeros(nPoints,nSpectra);
+for iSpectrum = 1:nSpectra
+  acqdata = data.Values(iSpectrum).Values;
+  for iPoint = 1:nPoints
+    spc(iPoint,iSpectrum) = sum(acqdata(iPoint).Points.*s);
+  end
+end
+
+% Construct field axis
+d_ = data.ExperimentOptions;
+CenterField = d_.CommonOptions.CenterMagneticField;
+SweepWidth = d_.CommonOptions.SweepWidth;
+B = linspace(-1,1,nPoints)*SweepWidth/2 + CenterField;
+
+% Construct second axis
+if nSpectra>1
+  axis2 = linspace(d_.InitialValue2D,d_.FinalValue2D,nSpectra);
+end
+
+% Output
+Data = spc;
+if nSpectra==1
+  Abscissa = B;
+else
+  Abscissa = {B,axis2};
+end
+Parameters = data;
 
 return

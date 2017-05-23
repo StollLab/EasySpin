@@ -1,4 +1,4 @@
-% Generates list of components (specied and isotopologues)
+% Generates list of components (species and isotopologues)
 % Sys: spin system structure, or cell array of spin system structures
 % AbundanceCutoff: (optional) isotopologue abundance cutoff
 

@@ -111,7 +111,7 @@ while ~feof(f)
       
     % Spin multiplicity --------------------------------
     case 41
-      S = data(1);
+      S = (data(1)-1)/2;
   
     % Coordinates --------------------------------------
     case {17,42} % 17 up to ORCA 3.0.2, then 42
