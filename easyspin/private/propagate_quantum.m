@@ -121,7 +121,7 @@ switch Method
       
       GpTensor = tensortraj(g,RTraj,RTrajInv)/gfree - g_tr/3/gfree;
 
-      ATensor = tensortraj(A,RTraj,RTrajInv)*1e6*2*pi; % MHz (s^-1) -> Hz (rad s^-1) (rad s^-1)
+      ATensor = tensortraj(A,RTraj,RTrajInv)*1e6*2*pi; % MHz (s^-1) -> Hz (rad s^-1)
     
       % average the interaction tensors over time windows
       idx = 1:nWindow;
@@ -433,94 +433,3 @@ D2(5,5,:,:) = Ast.^4;
 
 
 end
-
-% Deprecated
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%   case 'DeSensi'  % see Ref [2]
-% 
-%     rho_t = zeros(6,6,nTraj,nSteps);
-%     rho_t(1:3,4:6,:,1) = repmat(eye(3),1,1,nTraj,1);
-%     rho_t(4:6,1:3,:,1) = repmat(eye(3),1,1,nTraj,1);
-% 
-%     g_tr = sum(g);
-%     
-%     B0 = CenterField/1e3;  % mT -> T
-% 
-%     % Perform rotations on g- and A-tensors
-%     gtensor = matmult(RTraj, matmult(repmat(diag(g),1,1,nTraj,nSteps), ...
-%                                       RTrajInv));
-% 
-%     Atensor = matmult(RTraj, matmult(repmat(diag(A),1,1,nTraj,nSteps), ...
-%                                       RTrajInv))*1e6*2*pi;  % MHz (s^-1) -> rad s^-1
-%                                     
-%     % Prepare propagators
-%     % ---------------------------------------------------------------------
-% 
-%     g_zz = gtensor(3,3,:,:);
-% 
-%     A_xz = Atensor(1,3,:,:);
-%     A_yz = Atensor(2,3,:,:);
-%     A_zz = Atensor(3,3,:,:);
-% 
-%     % notation adapted from Eq. 24-27 in [2]
-%     omegaeff = -bmagn/(planck/2/pi)*B0*(g_zz - g_tr/3); 
-%     
-%     ma = 0.5;
-%     mb = -0.5;
-%     
-%     mp = 1;
-%     m0 = 0;
-%     mm = -1;
-% 
-%     ca = A_zz;% - 4*ma*omegaN;
-%     cb = A_zz;% - 4*mb*omegaN;
-% 
-%     ella = sqrt( (A_xz).^2 + (A_yz).^2 + ca.^2 );
-%     ellb = sqrt( (A_xz).^2 + (A_yz).^2 + cb.^2 );
-% 
-%     % Matrix of eigenvalues, adapted from Eqs. 24-27 in Ref. [2]
-%     expLambda = zeros(6,6,nTraj,nSteps);
-%     expLambda(1,1,:,:) = exp(-1i*dt*ma*(omegaeff + mp*ella));
-%     expLambda(2,2,:,:) = exp(-1i*dt*ma*(omegaeff + m0*ella));
-%     expLambda(3,3,:,:) = exp(-1i*dt*ma*(omegaeff + mm*ella));
-%     expLambda(4,4,:,:) = exp(-1i*dt*mb*(omegaeff + mp*ellb));
-%     expLambda(5,5,:,:) = exp(-1i*dt*mb*(omegaeff + m0*ellb));
-%     expLambda(6,6,:,:) = exp(-1i*dt*mb*(omegaeff + mm*ellb));
-% 
-%     % Matrix of eigenvectors, adapted from Eq. 28 in Ref. [2]
-%     % NOTE: b (and bst) are not defined in the text, and the expressions in
-%     % Eq. 28 are not correct; as was below, the following factors need to
-%     % be replaced as follows:
-%     %         1/4 --> 1
-%     %   1/sqrt(2) --> sqrt(2)
-%     
-%     b   = (A_xz + 1i*A_yz);
-%     bst = (A_xz - 1i*A_yz);
-%     
-%     V  = [ (ca+ella).^2./b.^2,                     -bst./b,      (ca-ella).^2./b.^2, zeros(1,1,nTraj,nSteps), zeros(1,1,nTraj,nSteps), zeros(1,1,nTraj,nSteps);
-%            sqrt(2)*(ca+ella)./b,             sqrt(2)*ca./b,    sqrt(2)*(ca-ella)./b, zeros(1,1,nTraj,nSteps), zeros(1,1,nTraj,nSteps), zeros(1,1,nTraj,nSteps);
-%            ones(1,1,nTraj,nSteps),  ones(1,1,nTraj,nSteps),  ones(1,1,nTraj,nSteps), zeros(1,1,nTraj,nSteps), zeros(1,1,nTraj,nSteps), zeros(1,1,nTraj,nSteps);
-%           zeros(1,1,nTraj,nSteps), zeros(1,1,nTraj,nSteps), zeros(1,1,nTraj,nSteps),      (cb+ellb).^2./b.^2,                 -bst./b,      (cb-ellb).^2./b.^2;
-%           zeros(1,1,nTraj,nSteps), zeros(1,1,nTraj,nSteps), zeros(1,1,nTraj,nSteps),    sqrt(2)*(cb+ellb)./b,           sqrt(2)*cb./b,    sqrt(2)*(cb-ellb)./b;
-%           zeros(1,1,nTraj,nSteps), zeros(1,1,nTraj,nSteps), zeros(1,1,nTraj,nSteps),  ones(1,1,nTraj,nSteps),  ones(1,1,nTraj,nSteps),   ones(1,1,nTraj,nSteps) ];
-% 
-%     % Normalize eigenvectors
-%     V = bsxfun(@rdivide,V,sqrt(sum(V.*conj(V),1)));
-%     
-%     % Calculate propagator
-%     U = mmult(V, mmult(expLambda, conj(permute(V,[2,1,3,4])), 'complex'), 'complex');
-%     
-%     Udag = conj(permute(U,[2,1,3,4]));
-%     
-%     % Propagate density matrix
-%     % ---------------------------------------------------------------------
-%     
-% % FIXME round-off error might propagate through the matrix multiplication, need some sort of error control
-%     for iStep=2:nSteps
-%       rho_t(:,:,:,iStep) = mmult(U(:,:,:,iStep-1),...
-%                                    mmult(rho_t(:,:,:,iStep-1),...
-%                                          Udag(:,:,:,iStep-1),'complex'),...
-%                                  'complex');                  
-%     end
-%     
-%     rho_t = rho_t(4:6,1:3,:,:);

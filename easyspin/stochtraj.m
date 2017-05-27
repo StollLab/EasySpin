@@ -8,10 +8,13 @@
 %
 %     tcorr          double or numeric, size = (1,3)
 %                    correlation time (in seconds)
+%
 %     logtcorr       double or numeric, size = (1,3)
 %                    log10 of rotational correlation time (in seconds)
+%
 %     Diff           double or numeric, size = (1,3)
 %                    diffusion rate (s^-1)
+%
 %     logDiff        double or numeric, size = (1,3)
 %                    log10 of diffusion rate (s^-1)
 %
@@ -21,9 +24,14 @@
 %     Coefs          numeric, size = (nCoefs,2)
 %                    array of orienting potential coefficients, with each row
 %                    consisting of the corresponding real and imaginary parts
+%
 %     LMK            numeric, size = (nCoefs,3)
 %                    quantum numbers L, M, and K corresponding to each set of 
 %                    coefficients
+%
+%     PseudoPotFun   function handle
+%                    orienting pseudopotential function to be used for
+%                    calculating the torque
 %
 %
 %   Par: simulation parameters for Monte Carlo integrator
@@ -129,8 +137,27 @@ Sim.Diff = Dynamics.Diff';
 
 tcorrAvg = 1/6/mean(Dynamics.Diff);
 
+if isfield(Sys,'PseudoPotFun')
+  if isfield(Sys,'Coefs')||isfield(Sys,'LMK')
+    error('Please choose either PseudoPotFun or Coefs and LMK. Both cannot be used.')
+  end
+%   if ~isa(PseudoPotFun,'function_handle')
+%     error('PseudoPotFun needs to be a function handle.')
+%   end
+  da = 2*pi/size(Sys.PseudoPotFun,1);
+  db = pi/size(Sys.PseudoPotFun,2);
+  dg = 2*pi/size(Sys.PseudoPotFun,3);
+  [px, py, pz] = gradient(Sys.PseudoPotFun, da, db, dg);
+  Sim.agrid = linspace(-pi, pi, size(Sys.PseudoPotFun,1));
+  Sim.bgrid = linspace(-pi/2, pi/2, size(Sys.PseudoPotFun,2));
+  Sim.ggrid = linspace(-pi, pi, size(Sys.PseudoPotFun,3));
+  Sim.GradPot = {px, py, pz};
+else
+  Sim.GradPot = [];
+end
 
-% Discrete Monte carlo settings
+
+% Discrete Monte carlo settings (Par)
 % -------------------------------------------------------------------------
 
 if isfield(Par,'t')
@@ -215,7 +242,7 @@ else
   chkcon = 0;
 end
 
-
+% initialize quaternion trajectories and their starting orientations
 q0 = euler2quat(Omega);
 qTraj = zeros(4,Sim.nTraj,Sim.nSteps);
 qTraj(:,:,1) = q0;
@@ -245,7 +272,7 @@ while ~converged
   if iter==0
     %  Pre-calculate angular steps due to random torques
     %  (Eq. 61 from reference, without factor of 1/2)
-    Sim = genRandsteps(Sim,Integrator);
+    Sim = genRandSteps(Sim,Integrator);
 
     %  Perform stochastic simulations
     %  (Eqs. 48 and 61 in reference)
@@ -258,7 +285,7 @@ while ~converged
     % Continue propagation by 20% more steps or by tcorr/dt, whichever is
     % greater
     Sim.nSteps = max([ceil(tcorrAvg/Sim.dt), ceil(1.2*Sim.nSteps)]);
-    Sim = genRandsteps(Sim,Integrator);
+    Sim = genRandSteps(Sim,Integrator);
     qTraj = propagate_classical(qTraj, Sim, iter);
 
   end
@@ -337,7 +364,7 @@ end
 % Helper functions
 % -------------------------------------------------------------------------
 
-function Sim = genRandsteps(Sim,Integrator)
+function Sim = genRandSteps(Sim,Integrator)
 % generate random angular steps using one of two different MC integrators
 
 % generate Gaussian random deviates
@@ -365,10 +392,27 @@ Diff = Sim.Diff;
 Coefs = Sim.Coefs;
 LMK = Sim.LMK;
 
+if ~isempty(Sim.GradPot)
+  GradPot = Sim.GradPot;
+  agrid = Sim.agrid;
+  bgrid = Sim.bgrid;
+  ggrid = Sim.ggrid;
+end
+
 if iter>0
   % If propagation is being extended, initialize q from the last set
   if ~isempty(Coefs)
+    % use Wigner functions of quaternions to calculate torque
     torque = anistorque(LMK, Coefs, q(:,:,end));
+    AngStep = bsxfun(@times,torque,Diff*dt) + randAngStep(:,:,1);
+  elseif ~isempty(GradPot)
+    % use orienting pseudopotential functions of Euler angles to calculate
+    % torque
+    [alpha, beta, gamma] = quat2euler(q(:,:,end));
+    pxint = interp3(agrid, bgrid, ggrid, GradPot{1}, alpha, beta, gamma);
+    pyint = interp3(agrid, bgrid, ggrid, GradPot{2}, alpha, beta, gamma);
+    pzint = interp3(agrid, bgrid, ggrid, GradPot{3}, alpha, beta, gamma);
+    torque = [pxint; pyint; pzint];
     AngStep = bsxfun(@times,torque,Diff*dt) + randAngStep(:,:,1);
   else
     % If there is no orienting potential, then there is no torque to
@@ -407,7 +451,17 @@ end
   
 for iStep=2:nSteps
   if ~isempty(Coefs)
+    % use Wigner functions of quaternions to calculate torque
     torque = anistorque(LMK, Coefs, q(:,:,iStep-1));
+    AngStep = bsxfun(@times,torque,Diff*dt) + randAngStep(:,:,iStep-1);
+  elseif ~isempty(Sim.GradPot)
+    % use orienting pseudopotential functions of Euler angles to calculate
+    % torque
+    [alpha, beta, gamma] = quat2euler(q(:,:,iStep-1));
+    pxint = interp3(agrid, bgrid, ggrid, GradPot{1}, alpha, beta, gamma);
+    pyint = interp3(agrid, bgrid, ggrid, GradPot{2}, alpha, beta, gamma);
+    pzint = interp3(agrid, bgrid, ggrid, GradPot{3}, alpha, beta, gamma);
+    torque = [pxint; pyint; pzint];
     AngStep = bsxfun(@times,torque,Diff*dt) + randAngStep(:,:,iStep-1);
   else
     % If there is no orienting potential, then there is no torque to

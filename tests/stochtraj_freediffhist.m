@@ -2,7 +2,7 @@ function [err,data] = test(opt,olddata)
 % Check that using stochtraj with free diffusion generates a proper 
 % distribution of orientations
 
-Sys.tcorr = 10*rand()*1e-9;;
+Sys.tcorr = 10*rand()*1e-9;
 Par.dt = Sys.tcorr/10;
 Par.nSteps = ceil(200*Sys.tcorr/Par.dt);
 Par.nTraj = 400;

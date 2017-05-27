@@ -400,7 +400,8 @@ switch Model
       error('nOrients must be specified for the Molecular Dynamics model.')
     end
     nOrients = Par.nOrients;
-    grid_pts = linspace(-1,1,nOrients);
+%     grid_pts = linspace(-1,1,nOrients);
+    grid_pts = linspace(0,1,nOrients);
     grid_phi = sqrt(pi*nOrients)*asin(grid_pts);
     grid_theta = acos(grid_pts);
   otherwise
@@ -425,7 +426,7 @@ clear propagate_quantum
 tic
 for iOrient = 1:nOrients
 
-  % Par.Omega = [grid_phi(iOrient); grid_theta(iOrient)];
+%   Par.Omega = [grid_phi(iOrient); grid_theta(iOrient); 0];
 
   % generate/process trajectories
   switch Model 
