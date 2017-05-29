@@ -54,10 +54,12 @@ for j=1:size(LMK,1)
     [Hist3D(:,:,:,iTraj),~] = histcnd([alpha,beta,gamma],{AlphaBins',BetaBins',GammaBins'});
   end
 
-  Hist3D = sum(Hist3D, 4);  % average over all trajectories
+  Hist3D = mean(Hist3D, 4);  % average over all trajectories
   Hist3D = Hist3D/sum(reshape(Hist3D,1,numel(Hist3D)));  % normalize
   
-  if calc_rmsd(Sys.Coefs,Sys.LMK,Hist3D,Agrid,Bgrid,Ggrid)>5e-3
+  rmsd = calc_rmsd(Sys.Coefs,Sys.LMK,Hist3D,Agrid,Bgrid,Ggrid);
+  
+  if rmsd>5e-3||any(isnan(Hist3D(:)))
     % numerical result does not match analytical result
     err = 1;
     break
@@ -97,7 +99,8 @@ end
 
 BoltzInt = sum(reshape(BoltzDist.*sin(Bgrid),1,numel(Bgrid)));
 BoltzDist = BoltzDist.*sin(Bgrid)/BoltzInt;
-rmsd = sqrt(sum(reshape((Hist3D - BoltzDist).^2,1,numel(Hist3D))));
+residuals = Hist3D - BoltzDist;
+rmsd = sqrt(mean(reshape(residuals.^2,1,numel(Hist3D))));
 
 end
 

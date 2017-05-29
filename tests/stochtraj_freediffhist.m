@@ -26,15 +26,15 @@ for iTraj = 1:nTraj
   ThetaHist(:, iTraj) = hist(squeeze(acos(VecTraj(3, iTraj, :))), bins);
 end
 
-ThetaHist = sum(ThetaHist, 2);
+ThetaHist = mean(ThetaHist, 2);
 ThetaHist = ThetaHist/sum(ThetaHist);
 
 BoltzDist = ones(nBins,1);
 BoltzInt = sum(BoltzDist.*sin(bins));
 BoltzDist = BoltzDist.*sin(bins)./BoltzInt;
 
-%ChiSquare = sum(((ThetaHist - BoltzDist).^2)./ThetaHist)
-rmsd = sqrt(sum((ThetaHist - BoltzDist).^2)/nBins);
+residuals = ThetaHist - BoltzDist;
+rmsd = sqrt(mean(residuals.^2));
 
 if rmsd > 1e-2
   err = 1;

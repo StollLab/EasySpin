@@ -149,7 +149,7 @@ if isfield(Sys,'PseudoPotFun')
   dg = 2*pi/size(Sys.PseudoPotFun,3);
   [px, py, pz] = gradient(Sys.PseudoPotFun, da, db, dg);
   Sim.agrid = linspace(-pi, pi, size(Sys.PseudoPotFun,1));
-  Sim.bgrid = linspace(-pi/2, pi/2, size(Sys.PseudoPotFun,2));
+  Sim.bgrid = linspace(0, pi, size(Sys.PseudoPotFun,2));
   Sim.ggrid = linspace(-pi, pi, size(Sys.PseudoPotFun,3));
   Sim.GradPot = {px, py, pz};
 else
@@ -493,6 +493,11 @@ for iStep=2:nSteps
                 + q(1,:,iStep-1).*uy.*st - q(2,:,iStep-1).*uz.*st;
   q(4,:,iStep) =      q(4,:,iStep-1).*ct - q(3,:,iStep-1).*ux.*st ...
                 + q(2,:,iStep-1).*uy.*st + q(1,:,iStep-1).*uz.*st;
+  
+%   qnorm = sum(q.*q,1);
+%   if any(qnorm(:)-1>1e-13)
+%     error('qs are not normalized on step %d! Max norm: %e \n', iStep, max(qnorm(:)-1))
+%   end
 
 end
 

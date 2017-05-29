@@ -1,11 +1,11 @@
 function [err,data] = test(opt,olddata)
-% Check that supplying a pseudopotential energy function to stochtraj with 
+% Check that supplying a pseudopotential energy function to stochtraj 
 % generates a proper distribution of orientations
 
 % generate Euler angle grids
 N = 100;
 agrid = linspace(-180, 180, N)/180*pi;
-bgrid = linspace(-90, 90, N)/180*pi;
+bgrid = linspace(0, 180, N)/180*pi;
 ggrid = linspace(-180, 180, N)/180*pi;
 % [Agrid, Bgrid, Ggrid] = meshgrid(agrid, bgrid, ggrid);
 
@@ -48,21 +48,22 @@ Hist3D = zeros(nBins, nBins, nBins, nTraj);
      
 err = 0;
 
+[~, ~, qTraj] = stochtraj(Sys,Par);  % extract quaternions from trajectories
 
-[~, ~, q] = stochtraj(Sys,Par);  % extract quaternions from trajectories
+N = round(nSteps/2);
 
 for iTraj=1:nTraj
   % use a "burn-in method" by taking last half of each trajectory
-  [alpha, beta, gamma] = quat2euler(q(:,iTraj,round(nSteps/2):end));
+  [alpha, beta, gamma] = quat2euler(qTraj(:,iTraj,N:end));
   % calculate 3D histogram using function obtained from Mathworks File Exchange
   [Hist3D(:,:,:,iTraj),~] = histcnd([alpha,beta,gamma],{AlphaBins',BetaBins',GammaBins'});
 end
 
-Hist3D = sum(Hist3D, 4);  % average over all trajectories
+Hist3D = mean(Hist3D, 4);  % average over all trajectories
 Hist3D = Hist3D/sum(reshape(Hist3D,1,numel(Hist3D)));  % normalize
 rmsd = calc_rmsd(PotFun,Hist3D,Agrid,Bgrid,Ggrid);
 
-if rmsd>5e-10
+if rmsd>1e-2||any(isnan(Hist3D(:)))
   % numerical result does not match analytical result
   err = 1;
 end
@@ -75,7 +76,8 @@ data = [];
 
 function rmsd = calc_rmsd(PotFun, Hist3D, Agrid, Bgrid, Ggrid)
 
-rmsd = sqrt(sum(reshape((Hist3D - PotFun).^2,[1,numel(Hist3D)])));
+residuals = Hist3D - PotFun;
+rmsd = sqrt(mean(reshape(residuals.^2,[1,numel(Hist3D)])));
 
 end
 

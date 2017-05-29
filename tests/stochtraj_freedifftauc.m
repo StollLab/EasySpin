@@ -25,18 +25,20 @@ for iTraj = 1:nTraj
 %   AutoCorrFFT(:, iTraj) = autocorrfft(q(:, :, iTraj).^2);
 end
 
-AutoCorrFFT = sum(AutoCorrFFT, 1)'/nTraj;
-AutoCorrFFT = AutoCorrFFT-mean(AutoCorrFFT(round(end/2):end));
+N = round(nSteps/2);
+
+AutoCorrFFT = mean(AutoCorrFFT, 1).';
+AutoCorrFFT = AutoCorrFFT-mean(AutoCorrFFT(N:end));
 AutoCorrFFT = AutoCorrFFT/max(AutoCorrFFT);
 
 analytic = exp(-(1/tcorr)*t);
 
-% ChiSquare = sum(((AutoCorrFFT - analytic).^2)./analytic)
-rmsd = sqrt(sum((AutoCorrFFT - analytic).^2)/nSteps);
+residuals = AutoCorrFFT - analytic;
+rmsd = sqrt(mean(residuals(1:N).^2));
 
 if rmsd > 1e-2
   err = 1;
-  plot(t, AutoCorrFFT, t, analytic)
+  plot(t(1:N), AutoCorrFFT(1:N), t(1:N), analytic(1:N))
 else  
   err = 0;
 end

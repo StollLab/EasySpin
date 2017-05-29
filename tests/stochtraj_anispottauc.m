@@ -27,18 +27,21 @@ for iTraj = 1:nTraj
   AutoCorrFFT(iTraj,:) = autocorrfft(squeeze(VecTraj(:,iTraj,:).^2));
 end
 
-AutoCorrFFT = sum(AutoCorrFFT, 1)'/nTraj;
-AutoCorrFFT = AutoCorrFFT-mean(AutoCorrFFT(round(end/2):end));
+N = round(nSteps/2);
+
+AutoCorrFFT = mean(AutoCorrFFT, 1).';
+AutoCorrFFT = AutoCorrFFT-mean(AutoCorrFFT(N:end));
 AutoCorrFFT = AutoCorrFFT/max(AutoCorrFFT);
 
 analytic = exp(-(1/tcorr)*t);
 
 % ChiSquare = sum(((AutoCorrFFT - analytic).^2)./AutoCorrFFT)
-rmsd = sqrt(sum((AutoCorrFFT - analytic).^2)/nSteps);
+residuals = AutoCorrFFT - analytic;
+rmsd = sqrt(mean(residuals(1:N).^2));
 
-if rmsd > 1e-2
+if rmsd > 1e-2 || isnan(rmsd)
   err = 1;
-%   plot(t/1e-6, AutoCorrFFT, t/1e-6, analytic)
+%   plot(t(1:N)/1e-6, AutoCorrFFT(1:N), t(1:N)/1e-6, analytic(1:N))
 %   xlabel('t (\mu s)')
 else
   err = 0;

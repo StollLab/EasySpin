@@ -28,7 +28,8 @@ BoltzInt = sum(BoltzDist.*sin(bins));
 BoltzDist = BoltzDist.*sin(bins)./BoltzInt;
 
 %ChiSquare = sum(((ThetaHist - BoltzDist).^2)./ThetaHist)
-rmsd = sqrt(sum((ThetaHist - BoltzDist).^2)/nBins);
+residuals = ThetaHist - BoltzDist;
+rmsd = sqrt(mean(residuals.^2));
 
 if rmsd > 1e-2
   err = 1;

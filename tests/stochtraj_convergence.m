@@ -20,7 +20,7 @@ nBins = 50;
 c20 = 3;
 Sys.Coefs = [c20, c20];
 Sys.LMK = [2, 0, 0];
-[~, RTraj] = stochtraj(Sys,Par);
+[~, RTraj] = stochtraj(Sys,Par,Opt);
 
 
 VecTraj = squeeze(RTraj(:, 3, :, :));
@@ -28,21 +28,23 @@ VecTraj = squeeze(RTraj(:, 3, :, :));
 bins = linspace(0, pi, nBins)';
 ThetaHist = zeros(nBins, nTraj);
 
+N = round(nSteps/2);
+
 for iTraj = 1:nTraj
-  ThetaHist(:, iTraj) = hist(squeeze(acos(VecTraj(3,iTraj,round(nSteps/2):end))), bins);
+  ThetaHist(:, iTraj) = hist(squeeze(acos(VecTraj(3,iTraj,N:end))), bins);
 end
 
-ThetaHist = sum(ThetaHist, 2);
+ThetaHist = mean(ThetaHist, 2);
 ThetaHist = ThetaHist/sum(ThetaHist);
 
 BoltzDist = exp(c20*(1.5*cos(bins).^2 - 0.5));
 BoltzInt = sum(BoltzDist.*sin(bins));
 BoltzDist = BoltzDist.*sin(bins)./BoltzInt;
 
-% ChiSquare = sum(((ThetaHist - BoltzDist).^2)./ThetaHist);
-rmsd = sqrt(sum((ThetaHist - BoltzDist).^2)/nBins);
+residuals = ThetaHist - BoltzDist;
+rmsd = sqrt(mean(residuals.^2));
 
-% This seems like a loose condition and should be investigated further
+
 if rmsd > 1e-2
   err = 1;
   plot(bins, ThetaHist, bins, BoltzDist)
