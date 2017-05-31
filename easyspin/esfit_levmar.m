@@ -244,11 +244,12 @@ for ix = 1:nVariables
   x1 = x0;
   x1(ix) = x0(ix) + delta;
   f1 = funfcn(x1,varargin{:});
+  f1 = f1(:);
   J(:,ix) = (f1-f0)/delta;
 end
 
 % Check J
-if  ~isreal(J) || any(isnan(J(:))) || any(isinf(J(:)))
+if  ~any(isreal(J(:))) || any(isnan(J(:))) || any(isinf(J(:)))
   err = -6;
 else
   err = 0;
@@ -282,13 +283,21 @@ function  [err,F,f] = funeval(funfcn,x,varargin)
 err = 0;
 
 f = funfcn(x,varargin{:});
+f = f(:);
 
-sf = size(f);
-if  sf(2)~=1 || any(~isreal(f)) || any(isnan(f(:))) || any(isinf(f(:)))
+if any(isnan(f))
+  error('f contains at least one NaN value.')
+end
+
+if any(isinf(f))
+  error('f contains at least one inf value.')
+end
+
+if  any(~isreal(f))
   error('f is not real-valued.');
 end
 
 % Objective function
-F = (f'*f)/2;
-%F = sqrt(mean(f.^2));
+F = f'*f;
+
 if isinf(F), err = -5; end
