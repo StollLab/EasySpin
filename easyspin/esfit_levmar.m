@@ -243,7 +243,7 @@ J = zeros(numel(f0),nVariables);
 for ix = 1:nVariables
   x1 = x0;
   x1(ix) = x0(ix) + delta;
-  f1 = funfcn(x1,varargin{:});
+  [~, f1] = funfcn(x1,varargin{:});
   f1 = f1(:);
   J(:,ix) = (f1-f0)/delta;
 end
@@ -282,7 +282,7 @@ function  [err,F,f] = funeval(funfcn,x,varargin)
 
 err = 0;
 
-f = funfcn(x,varargin{:});
+[~, f] = funfcn(x,varargin{:});
 f = f(:);
 
 if any(isnan(f))

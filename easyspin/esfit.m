@@ -112,7 +112,7 @@ end
 
 % count parameters and save indices into parameter vector for each system
 for iSys=1:nSystems
-  [dummy,dummy,v_] = getParameters(Vary{iSys});
+  [~,~,v_] = getParameters(Vary{iSys});
   VaryVals(iSys) = numel(v_);
 end
 FitData.xidx = cumsum([1 VaryVals]);
@@ -127,7 +127,7 @@ FitData.Vary = Vary;
 % Experimental parameters
 %--------------------------------------------------------------------
 if isfield(Exp,'nPoints')
-  if Exp.nPoints~=numel(ExpSpec);
+  if Exp.nPoints~=numel(ExpSpec)
     error('Exp.nPoints is %d, but the spectral data vector is %d long.',...
       Exp.nPoints,numel(ExpSpec));
   end
@@ -241,7 +241,7 @@ end
 
 %------------------------------------------------------
 if ~isfield(FitOpt,'Plot'), FitOpt.Plot = 1; end
-if (nargout>0), FitData.GUI = 0; else FitData.GUI = 1; end
+if (nargout>0), FitData.GUI = 0; else, FitData.GUI = 1; end
 
 if ~isfield(FitOpt,'PrintLevel'), FitOpt.PrintLevel = 1; end
 
@@ -250,7 +250,7 @@ if ~isfield(FitOpt,'nTrials'), FitOpt.nTrials = 20000; end
 if ~isfield(FitOpt,'TolFun'), FitOpt.TolFun = 1e-4; end
 if ~isfield(FitOpt,'TolStep'), FitOpt.TolStep = 1e-6; end
 if ~isfield(FitOpt,'maxTime'), FitOpt.maxTime = inf; end
-if ~isfield(FitOpt,'RandomStart'), FitOpt.Startpoint = 1; else FitOpt.Startpoint = 0; end
+if ~isfield(FitOpt,'RandomStart'), FitOpt.Startpoint = 1; else, FitOpt.Startpoint = 0; end
 
 if ~isfield(FitOpt,'GridSize'), FitOpt.GridSize = 7; end
 
@@ -658,18 +658,18 @@ end
 if (nParameters_>0)
   switch FitOpts.MethodID
     case 1 % Nelder/Mead simplex
-      bestx0_ = esfit_simplex(@assess,x0_,FitOpts,fitspc,FitData.Sys0,FitData.Vary,FitData.Exp,FitData.SimOpt,FitOpts);
+      bestx0_ = esfit_simplex(@assess,x0_,FitOpts,fitspc,FitData,FitOpts);
     case 2 % Levenberg/Marquardt
       FitOpts.Gradient = FitOpts.TolFun;
-      bestx0_ = esfit_levmar(@residuals_,x0_,FitOpts,fitspc,FitData.Sys0,FitData.Vary,FitData.Exp,FitData.SimOpt,FitOpts);
+      bestx0_ = esfit_levmar(@assess,x0_,FitOpts,fitspc,FitData,FitOpts);
     case 3 % Monte Carlo
-      bestx0_ = esfit_montecarlo(@assess,nParameters_,FitOpts,fitspc,FitData.Sys0,FitData.Vary,FitData.Exp,FitData.SimOpt,FitOpts);
+      bestx0_ = esfit_montecarlo(@assess,nParameters_,FitOpts,fitspc,FitData,FitOpts);
     case 4 % Genetic
-      bestx0_ = esfit_genetic(@assess,nParameters_,FitOpts,fitspc,FitData.Sys0,FitData.Vary,FitData.Exp,FitData.SimOpt,FitOpts);
+      bestx0_ = esfit_genetic(@assess,nParameters_,FitOpts,fitspc,FitData,FitOpts);
     case 5 % Grid search
-      bestx0_ = esfit_grid(@assess,nParameters_,FitOpts,fitspc,FitData.Sys0,FitData.Vary,FitData.Exp,FitData.SimOpt,FitOpts);
+      bestx0_ = esfit_grid(@assess,nParameters_,FitOpts,fitspc,FitData,FitOpts);
     case 6 % Particle swarm
-      bestx0_ = esfit_particleswarm(@assess,nParameters_,FitOpts,fitspc,FitData.Sys0,FitData.Vary,FitData.Exp,FitData.SimOpt,FitOpts);
+      bestx0_ = esfit_particleswarm(@assess,nParameters_,FitOpts,fitspc,FitData,FitOpts);
   end
   bestx(~FitData.inactiveParams) = bestx0_;
 end
@@ -785,14 +785,16 @@ return
 %===================================================================
 %===================================================================
 
-function resi = residuals_(x,ExpSpec,Sys0,Vary,Exp,SimOpt,FitOpt)
-[rms,resi] = assess(x,ExpSpec,Sys0,Vary,Exp,SimOpt,FitOpt);
-
 %==========================================================================
-function varargout = assess(x,ExpSpec,Sys0,Vary,Exp,SimOpt,FitOpt)
+function varargout = assess(x,ExpSpec,FitDat,FitOpt)
 
 global UserCommand FitData smallestError errorlist FitOpts
 persistent BestSys;
+
+Sys0 = FitDat.Sys0;
+Vary = FitDat.Vary;
+Exp = FitDat.Exp;
+SimOpt = FitDat.SimOpt;
 
 % Simulate spectra ------------------------------------------
 simspec = 0;
