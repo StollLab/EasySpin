@@ -6,7 +6,7 @@
 %   basis    list of L,M,K,jK quantum numbers for spatial basis, one set per row
 %   Gamma    diffusion superoperator in the given basis
 
-function Gamma = diffsuperop(Diff,basis)
+function Gamma = diffsuperop(Diff,basis,XLK,usePotential)
 
 nBasis = size(basis,1);
 
@@ -60,10 +60,100 @@ for b1 = 1:nBasis
     
   end
 end
+Gamma_noU = sparse(bra,ket,val,nBasis,nBasis);
 
-Gamma = sparse(bra,ket,val,nBasis,nBasis);
+% Potential-dependent part
+
+if usePotential
+  idx = 1;
+  xLmax = size(XLK,1)-1;
+  for b1 = 1:nBasis
+    L1  = L(b1);
+    M1  = M(b1);
+    K1  = K(b1);
+    jK1 = jK(b1);
+    
+    for b2 = b1:nBasis
+      L2  = L(b2);
+      M2  = M(b2);
+      K2  = K(b2);
+      jK2 = jK(b2);
+      
+      % calculate prefactors
+      if (M1~=M2)
+        prefactorL = 0;
+      else
+        prefactorL = (-1)^(K1-M1)*sqrt((2*L1+1)*(2*L2+1));
+      end
+      
+      if (K1==0 && K2==0)
+        prefactorK = sqrt(jK1)'*sqrt(jK2)/4;
+      elseif (K1~=0 && K2~=0)
+        prefactorK = sqrt(jK1)'*sqrt(jK2)/2;
+      else
+        prefactorK = sqrt(jK1)'*sqrt(jK2)/sqrt(8);
+      end
+      
+      val_ = 0;
+      idx_xL = 1;
+      prefactor = prefactorL*prefactorK;
+      for xL = 0:min(abs(L1-L2),xLmax)
+        
+        % calculate M-dependent 3j-symbol
+        if abs(M1)>L1 || xL>0 || abs(M1)>L2
+          jjjxM = 0;
+        else
+          jjjxM = wigner3j(L1,xL,L2,M1,0,-M1);
+        end
+        
+        % 1st term (K2-K1)
+        if abs(K1-K2)>xL
+          xlk_1 = 0;
+        else
+          idx_xK_1 = (K1-K2)+xL+1;
+          xlk_1 = XLK(idx_xL,idx_xK_1);
+        end
+        if abs(K1)>L1 || abs(K2-K1)>xL || abs(K2)>L2
+          jjjxK_1 = 0;
+        else
+          jjjxK_1 = wigner3j(L1,xL,L2,K1,K2-K1,-K2);
+        end
+        sign1 = (-1)^(K1-M1) + jK1*jK2*(-1)^(xL+K1-M1);
+        
+        % 2nd term (K2-K1)
+        if abs(K1+K2)>xL
+          xlk_2 = 0;
+        else
+          idx_xK_2 = (K1+K2)+xL+1;
+          xlk_2 = XLK(idx_xL,idx_xK_2);
+        end
+        if abs(K1)>L1 || abs(K2+K1)>xL || abs(K2)>L2
+          jjjxK_2 = 0;
+        else
+          jjjxK_2 = wigner3j(L1,xL,L2,K1,-K2-K1,K2);
+        end
+        sign2 = jK1*(-1)^(xL+L2-M1) + jK2*(-1)^(L2+K1+K2-M1);
+        
+        % combine terms
+        val_ = val_ + prefactor * jjjxM * ...
+               (sign1*xlk_1*jjjxK_1 + sign2*xlk_2*jjjxK_2);
+        idx_xL = idx_xL+1;
+      end
+      
+      bra(idx) = b1;
+      ket(idx) = b2;
+      val(idx)  = val_;
+      idx = idx + 1;
+    end
+  end
+  Gamma_U = sparse(bra,ket,val,nBasis,nBasis);
+else
+  Gamma_U = sparse(0);
+end
+
+Gamma = Gamma_noU + Gamma_U;
 
 % Fill in lower triangular part
-Gamma = Gamma + triu(Gamma,1).';
+%Gamma = Gamma + triu(Gamma,1).';
 
 return

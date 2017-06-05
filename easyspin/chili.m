@@ -453,11 +453,11 @@ if ~generalLiouvillian
   end
 end
 
-if generalLiouvillian
-  if usePotential
-    error('Ordering potential not supported for Opt.LiouvMethod=''general''.');
-  end
-end
+%if generalLiouvillian
+%  if usePotential
+%    error('Ordering potential not supported for Opt.LiouvMethod=''general''.');
+%  end
+%end
 
 % Field sweep method
 if ~isfield(Opt,'ExplicitFieldSweep')
@@ -749,7 +749,7 @@ if generalLiouvillian
   logmsg(1,'Calculating the relaxation superoperator matrix');
   % Calculate relaxation superoperator in spatial basis, expand to full product
   % basis, and remove unwanted basis functions.
-  Gamma = diffsuperop(Dynamics.Diff,Basis.List);
+  Gamma = diffsuperop(Dynamics.Diff,Basis.List,Potential.xlk,usePotential);
   Gamma = spkroneye(Gamma,Sys.nStates^2);
   Gamma = Gamma(keep,keep);
   
