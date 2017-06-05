@@ -42,7 +42,6 @@ if ~isstruct(FitOpt)
 end
 
 global FitData FitOpts
-FitData = []; FitOpts = [];
 FitData.currFitSet = [];
 
 % Simulation function name
@@ -112,7 +111,7 @@ end
 
 % count parameters and save indices into parameter vector for each system
 for iSys=1:nSystems
-  [~,~,v_] = getParameters(Vary{iSys});
+  [dummy,dummy,v_] = getParameters(Vary{iSys});
   VaryVals(iSys) = numel(v_);
 end
 FitData.xidx = cumsum([1 VaryVals]);
@@ -558,11 +557,9 @@ clear global UserCommand
 
 function [FinalSys,BestSpec,Residuals] = runFitting(object,src,event)
 
-global FitOpts FitData UserCommand errorlist smallestError
+global FitOpts FitData UserCommand
 
 UserCommand = 0;
-errorlist = [];
-smallestError = inf;
 
 %===================================================================
 % Update UI, pull settings from UI
@@ -788,8 +785,10 @@ return
 %==========================================================================
 function varargout = assess(x,ExpSpec,FitDat,FitOpt)
 
-global UserCommand FitData smallestError errorlist FitOpts
-persistent BestSys;
+global UserCommand FitData FitOpts
+persistent BestSys smallestError errorlist;
+
+if isempty(smallestError), smallestError = inf; end
 
 Sys0 = FitDat.Sys0;
 Vary = FitDat.Vary;
