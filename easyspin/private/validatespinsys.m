@@ -352,7 +352,7 @@ if (nElectrons>1)
     if ~isempty(err), return; end
     
     % Assert zero traces of dipolar tensors
-    if any(sum(Sys.eeD,2))
+    if any(sum(Sys.eeD,2)/max(abs(Sys.eeD(:)))>1e-10)
       err = 'Sys.eeD contains dipolar tensors with non-zero trace. Use Sys.J for this.';
     end
     if ~isempty(err), return; end
