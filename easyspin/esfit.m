@@ -42,6 +42,8 @@ if ~isstruct(FitOpt)
 end
 
 global FitData FitOpts
+FitData = [];
+FitOpts = [];
 FitData.currFitSet = [];
 
 % Simulation function name
@@ -652,21 +654,23 @@ else
   fitspc = FitData.ExpSpecScaled;
 end
 
+funArgs = {fitspc,FitData,FitOpts};  % input args for assess and residuals_
+
 if (nParameters_>0)
   switch FitOpts.MethodID
     case 1 % Nelder/Mead simplex
-      bestx0_ = esfit_simplex(@assess,x0_,FitOpts,fitspc,FitData,FitOpts);
+      bestx0_ = esfit_simplex(@assess,x0_,FitOpts,funArgs{:});
     case 2 % Levenberg/Marquardt
       FitOpts.Gradient = FitOpts.TolFun;
-      bestx0_ = esfit_levmar(@assess,x0_,FitOpts,fitspc,FitData,FitOpts);
+      bestx0_ = esfit_levmar(@residuals_,x0_,FitOpts,funArgs{:});
     case 3 % Monte Carlo
-      bestx0_ = esfit_montecarlo(@assess,nParameters_,FitOpts,fitspc,FitData,FitOpts);
+      bestx0_ = esfit_montecarlo(@assess,nParameters_,funArgs{:});
     case 4 % Genetic
-      bestx0_ = esfit_genetic(@assess,nParameters_,FitOpts,fitspc,FitData,FitOpts);
+      bestx0_ = esfit_genetic(@assess,nParameters_,funArgs{:});
     case 5 % Grid search
-      bestx0_ = esfit_grid(@assess,nParameters_,FitOpts,fitspc,FitData,FitOpts);
+      bestx0_ = esfit_grid(@assess,nParameters_,funArgs{:});
     case 6 % Particle swarm
-      bestx0_ = esfit_particleswarm(@assess,nParameters_,FitOpts,fitspc,FitData,FitOpts);
+      bestx0_ = esfit_particleswarm(@assess,nParameters_,funArgs{:});
   end
   bestx(~FitData.inactiveParams) = bestx0_;
 end
@@ -781,6 +785,9 @@ return
 %===================================================================
 %===================================================================
 %===================================================================
+
+function resi = residuals_(x,ExpSpec,FitDat,FitOpt)
+[rms,resi] = assess(x,ExpSpec,FitDat,FitOpt);
 
 %==========================================================================
 function varargout = assess(x,ExpSpec,FitDat,FitOpt)
