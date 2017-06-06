@@ -19,7 +19,7 @@
 % Reference:
 %  See https://en.wikipedia.org/wiki/Wrapped_normal_distribution
 
-function y = wrappedgaussian(x,x0,fwhm,domain)
+function y = wrappedgaussian(x,domain,x0,fwhm)
 
 if (nargin==0), help(mfilename); return; end
 
@@ -41,10 +41,28 @@ if domain(1)>=domain(2)
   error('domain elements must be given in increasing order.')
 end
 
-N = 5;
+if x0>domain(2)||x0<domain(1)
+  error('x0 must be contained within the given domain values.')
+end
+
 shift = domain(2)-domain(1);
 
-k = (-5:5).';  % column of k's to be used for summation
+% threshold = 1e-5;
+sigma = fwhm/2/sqrt(2*log(2));  % standard deviation
+% threshold = fwhm/2/sqrt(2*log(2));
+
+% determine domain of function in which its values are greater than the
+% threshold
+% dx = fwhm/sqrt(2*log(2))*sqrt(-log(threshold)/2);
+
+% xmin = x0 - dx;
+% xmax = x0 + dx;
+xmin = x0 - 5*sigma;
+xmax = x0 + 5*sigma;
+
+M = 2*ceil((xmax-xmin)/shift/2); % round to next highest even number
+
+k = (-M/2:M/2).';  % column of k's to be used for summation
 xgrid = x - x0 + shift*k;  % grid of argument domains to be evaluated in exponential
 y = sum(gaussian(xgrid, 0, fwhm),1);
 

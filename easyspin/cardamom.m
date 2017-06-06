@@ -35,6 +35,10 @@
 %                    quantum numbers L, M, and K corresponding to each set of 
 %                    coefficients
 %
+%     PseudoPotFun   numeric
+%                    orienting pseudopotential function to be used for
+%                    calculating the torque
+%
 %
 % %     Sys.lw         double or numeric, size = (1,2)
 % %                    vector with FWHM residual broadenings
@@ -226,7 +230,7 @@ tscale = 2.5;  % diffusion constants of molecules solvated in TIP3P water
 if useMD
   if ~isfield(MD,'isFrame')
     % use frame trajectories by default
-    MD.isFrame=1;
+    MD.isFrame=1;  % TODO add check for frame trajectory attribute(s)
   end
   
   if MD.isFrame==1
@@ -268,21 +272,29 @@ if useMD
     MD.dt = tscale*MD.dt;
     MD.nSteps = size(MD.FrameZ, 1);
   end
-
-  M = size(MD.FrameX, 1);
-
+  
+  MD.FrameX = permute(MD.FrameX, [2, 3, 4, 1]);
+  MD.FrameY = permute(MD.FrameY, [2, 3, 4, 1]);
+  MD.FrameZ = permute(MD.FrameZ, [2, 3, 4, 1]);
+  
+  M = size(MD.FrameX, 4);
+  
+  theta = squeeze(acos(MD.FrameZ(3,:,:,:)));
+  phi = squeeze(atan2(MD.FrameY(3,:,:,:), MD.FrameX(3,:,:,:)));
+  psi = squeeze(atan2(-MD.FrameZ(2,:,:,:), MD.FrameZ(1,:,:,:)));
+  
   MD.RTraj = zeros(3,3,1,M);
-  MD.RTraj(:,1,1,:) = permute(MD.FrameX, [2, 3, 4, 1]);
-  MD.RTraj(:,2,1,:) = permute(MD.FrameY, [2, 3, 4, 1]);
-  MD.RTraj(:,3,1,:) = permute(MD.FrameZ, [2, 3, 4, 1]);
+  MD.RTraj(:,1,1,:) = MD.FrameX;
+  MD.RTraj(:,2,1,:) = MD.FrameY;
+  MD.RTraj(:,3,1,:) = MD.FrameZ;
   
   % Check for orthogonality of rotation matrices
   RTrajInv = permute(MD.RTraj,[2,1,3,4]);
-
+  
   if ~allclose(matmult(MD.RTraj,RTrajInv),repmat(eye(3),1,1,size(MD.RTraj,3),size(MD.RTraj,4)),1e-14)
     error('The rotation matrices are not orthogonal.')
   end
-
+  
   MD.nTraj = size(MD.RTraj,3);
 end
 
@@ -307,8 +319,10 @@ else
   % simulations internally to produce them
   if ~isfield(Par,'Model')
     % no Model given
-    if isfield(Sys,'LMK') && isfield(Sys,'Coefs')
-      % LMK and ordering coefs given, so simulate MOMD
+    if isfield(Sys,'LMK') && isfield(Sys,'Coefs') ...
+       || isfield(Sys, 'PseudoPotFun')
+      % LMK and ordering coefs OR user-supplied potential given, so 
+      % simulate MOMD
       Par.Model = 'MOMD';
     elseif xor(isfield(Sys,'LMK'),isfield(Sys,'Coefs'))
       error(['Both Sys.LMK and Sys.Coefs need to be declared for a MOMD '...
@@ -384,7 +398,6 @@ switch Model
       nOrients = Par.nOrients;
     end
   case 'MOMD'  %  TODO implement directors and ordering
-    logmsg(1,'-- Model: MOMD -----------------------------------------');
     if ~isfield(Par,'nOrients')
       error('nOrients must be specified for the MOMD model.')
     end
@@ -400,10 +413,12 @@ switch Model
       error('nOrients must be specified for the Molecular Dynamics model.')
     end
     nOrients = Par.nOrients;
-%     grid_pts = linspace(-1,1,nOrients);
-    grid_pts = linspace(0,1,nOrients);
+    grid_pts = linspace(-1,1,nOrients);
     grid_phi = sqrt(pi*nOrients)*asin(grid_pts);
     grid_theta = acos(grid_pts);
+    Par.Omega = [sqrt(pi*Par.nSteps)*asin(linspace(0,1,Par.nSteps));...
+                 acos(linspace(0,1,Par.nSteps));...
+                 zeros(1,Par.nSteps)];
   otherwise
     error('Model not recognized. Please check the documentation for acceptable models.')
 end
@@ -506,8 +521,8 @@ if fftWindow
 else
   hamm = 1;
 end
-TL = Dynamics.T2;  % TODO implement Lorentzian and Gaussian broadening
-TG = 1/(mt2mhz(Sys.lw(1))*1e6);
+TL = Dynamics.T2;  % Lorentzian broadening
+TG = 1/(mt2mhz(Sys.lw(1))*1e6);  % Gaussian broadening
 
 % Convolve with Lorentzian and multiply by t for differentiation
 tdiff = cellfun(@(x) hamm.*x.*exp(-x/TL).*exp(-x.^2/TG.^2/8), tcell, 'UniformOutput', false);
@@ -588,7 +603,7 @@ function updateuser(iOrient,nOrient)
 
 persistent reverseStr
 
-if isempty(reverseStr), reverseStr = ''; end
+if isempty(reverseStr), reverseStr = []; end
 
 avg_time = toc/iOrient;
 secs_left = (nOrient - iOrient)*avg_time;
