@@ -125,6 +125,7 @@ norm_h = 0;
 j = 0;  % direction of last update
 
 global UserCommand;
+if isempty(UserCommand), UserCommand = NaN; end
 
 iIteration = 0;
 while (~stop)

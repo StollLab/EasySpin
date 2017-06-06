@@ -17,6 +17,7 @@ function bestx = esfit_genetic(funfcn,nParams,FitOpt,varargin)
 if (nargin==0), help(mfilename); return; end
 
 global UserCommand;
+if isempty(UserCommand), UserCommand = NaN; end
 
 if (nargin<3), FitOpt = struct('unused',NaN); end
 

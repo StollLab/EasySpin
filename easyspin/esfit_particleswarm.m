@@ -9,6 +9,7 @@ if ~isfield(FitOpt,'nParticles'); FitOpt.nParticles = 30; end
 if ~isfield(FitOpt,'SwarmParams'), FitOpt.SwarmParams = [0.2 0.5 2 1]; end
 
 global UserCommand
+if isempty(UserCommand), UserCommand = NaN; end
 
 nParticles = FitOpt.nParticles;
 

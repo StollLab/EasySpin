@@ -8,6 +8,7 @@ if ~isfield(FitOpt,'TolFun'), FitOpt.TolFun = 1e-5; end
 logPrint = FitOpt.PrintLevel;
 
 global UserCommand
+if isempty(UserCommand), UserCommand = NaN; end
 
 minerror = inf;
 bestx = zeros(nParameters,1);
