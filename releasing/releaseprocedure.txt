@@ -12,6 +12,7 @@ Things that should have been done before release packaging
 
 Compilation
 ------------------------------------------------------------------
+- for bugfix release: switch to stable branch
 - pull and merge all changes from remote repository
 - compile mex files on all platforms and put *.mex* into the private folder
 
@@ -79,6 +80,11 @@ Release verification
 - unpack and install
 - run full test suite on as many Matlab/OS platforms as possible
 
+Bitbucket update
+=========================================================
+- Commit all changes, including edits to build script and release procedure
+- Tag changeset with new version number
+- Merge stable branch into default
 
 Web site update
 =========================================================
