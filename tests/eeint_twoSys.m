@@ -21,8 +21,8 @@ end
 % have to be identical 
 E1 = eig(eeint(Sys));
 E2 = eig(eeint(Sys2,1:N));
-E1 = unique(round(E1,9));
-E2 = unique(round(E2,9));
+E1 = unique(round(E1*1e9)/1e9);
+E2 = unique(round(E2*1e9)/1e9);
 
 ind2 = (Sys2.ee == 0);
 li = sum(ind2);
@@ -33,8 +33,8 @@ Sys2.ee2(ind2) = rand(li,1);
 % subsystem, therefore unique eigenvalues have to be identical
 E3 = eig(eeint(Sys));
 E4 = eig(eeint(Sys2,1:N));
-E3 = unique(round(E3,9));
-E4 = unique(round(E4,9));
+E3 = unique(round(E3*1e9)/1e9);
+E4 = unique(round(E4*1e9)/1e9);
 
 err = ~all([areequal(E1,E2),areequal(E3,E4)]);
 data = [];
