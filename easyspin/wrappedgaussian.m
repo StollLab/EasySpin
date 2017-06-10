@@ -1,6 +1,6 @@
 % wrappedgaussian  "Wrapped" Gaussian function
 %
-%   y = wrappedgaussian(x,domain,x0,fwhm)
+%   y = wrappedgaussian(x,x0,fwhm,domain)
 %
 %   Computes area-normalized Gaussian function that is "wrapped" to satisfy
 %   periodic boundary conditions
@@ -19,7 +19,7 @@
 % Reference:
 %  See https://en.wikipedia.org/wiki/Wrapped_normal_distribution
 
-function y = wrappedgaussian(x,domain,x0,fwhm)
+function y = wrappedgaussian(x,x0,fwhm,domain)
 
 if (nargin==0), help(mfilename); return; end
 

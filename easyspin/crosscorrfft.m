@@ -1,8 +1,11 @@
-%  autocorrfft  Calculate autocorrelation function using the FFT.
+%  crosscorrfft  Calculate cross-correlation function using the FFT.
 %
-%  AutoCorr = autocorrfft(y);
+%  CrossCorr = crosscorrfft(y);
+%
+%  This function assumes that the second dimension is the "long" axis.
 %
 %  Input:
+%     x              array of data
 %     y              array of data
 %     normalized     1: normalize by the variance (the first data point)
 %                    0: no normalization
@@ -14,41 +17,47 @@
 %                    0: no mean subtraction
 %
 %  Output:
-%     autocorr       array
+%     CrossCorr       array
 
-function AutoCorr = autocorrfft(y, vector, normalized, centered)
+function CrossCorr = autocorrfft(x, y, vector, normalized, centered)
 
-if nargin==2
+if nargin==3
   % normalized and centered output by default
   normalized = 1;
   centered = 1;
 end
 
-if numel(size(y))>2
-  error('The input array must have 1 or 2 dimensions.')
+if ndims(x)~=2||ndims(y)~=2
+  error('The input arrays must have 2 dimensions.')
+end
+
+if isequal(size(x),size(y))
+  error('Input arrays must be the same size.')
 end
 
 if centered
+  x = bsxfun(@minus, x , mean(x,2));
   y = bsxfun(@minus, y , mean(y,2));
 end
 
-N = size(y,2);
-F = fft(y, 2*N, 2);
-r = ifft(F.*conj(F),[],2);
+N = length(y);
+Fx = fft(x, 2*N, 2);
+Fy = fft(y, 2*N, 2);
+r = ifft(Fx.*conj(Fy),[],2);
 r = real(r(:,1:N));
 
 if vector
-  AutoCorr = sum(r,1);
+  CrossCorr = sum(r,1);
 else
-  AutoCorr = r;
+  CrossCorr = r;
 end
 
 n = N*ones(1, N) - [1:N] + 1;
 
-AutoCorr = AutoCorr./n;
+CrossCorr = CrossCorr./n;
 
 if normalized
-  AutoCorr = AutoCorr./AutoCorr(:,1);
+  CrossCorr = CrossCorr./CrossCorr(:,1);
 end
 
 end

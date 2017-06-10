@@ -24,13 +24,14 @@ VecTraj = squeeze(R(:,3,:,:));
 AutoCorrFFT = zeros(nTraj, nSteps);
 
 for iTraj = 1:nTraj
-  AutoCorrFFT(iTraj,:) = autocorrfft(squeeze(VecTraj(:,iTraj,:).^2));
+  AutoCorrFFT(iTraj,:) = autocorrfft(squeeze(VecTraj(:,iTraj,:).^2), 1);
 end
 
 N = round(nSteps/2);
+M = round(N/2);
 
 AutoCorrFFT = mean(AutoCorrFFT, 1).';
-AutoCorrFFT = AutoCorrFFT-mean(AutoCorrFFT(N:end));
+AutoCorrFFT = AutoCorrFFT-mean(AutoCorrFFT(M:N));
 AutoCorrFFT = AutoCorrFFT/max(AutoCorrFFT);
 
 analytic = exp(-(1/tcorr)*t);
@@ -41,10 +42,15 @@ rmsd = sqrt(mean(residuals(1:N).^2));
 
 if rmsd > 1e-2 || isnan(rmsd)
   err = 1;
+%   subplot(2,1,1)
 %   plot(t(1:N)/1e-6, AutoCorrFFT(1:N), t(1:N)/1e-6, analytic(1:N))
 %   xlabel('t (\mu s)')
+%   subplot(2,1,2)
+%   plot(t(1:N)/1e-6, cumtrapz(t(1:N), AutoCorrFFT(1:N)))
+%   xlabel('t (\mu s)')
 else
-  err = 0;
+  err = 0;  
+
 end
 
 data = [];

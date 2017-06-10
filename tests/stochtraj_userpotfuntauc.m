@@ -41,7 +41,7 @@ VecTraj = squeeze(R(:,3,:,:));
 AutoCorrFFT = zeros(nTraj, nSteps);
 
 for iTraj = 1:nTraj
-  AutoCorrFFT(iTraj,:) = autocorrfft(squeeze(VecTraj(:,iTraj,:).^2));
+  AutoCorrFFT(iTraj,:) = autocorrfft(squeeze(VecTraj(:,iTraj,:).^2), 1);
 end
 
 N = round(nSteps/2);
