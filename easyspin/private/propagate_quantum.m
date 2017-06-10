@@ -78,10 +78,14 @@ g = Sys.g;
 A = Sys.A;
 
 if ~isfield(Par,'dt'), error('Time step not specified.'); end
+if ~isfield(Par,'truncated'), Par.truncated = 1; end
+
+truncated = Par.truncated;
 
 dt = Par.dt;
 nTraj = Par.nTraj;
 nSteps = Par.nSteps;
+t = linspace(0, dt*nSteps, nSteps);
 
 if ~isequal(size(g),[1,3]) || ~isequal(size(A),[1,3])
   error('g and A tensor values must be 3-vectors.')
@@ -90,7 +94,6 @@ end
 % Gamma = gfree*bmagn/(planck/2/pi);  % rad s^-1 T^-1
 % omegaN = 19.331e6*B;  % gyromagnetic ratio for 14N: 
                       % 19.331x10^6 rad s^-1 T^-1
-
 
 % Simulation
 % -------------------------------------------------------------------------
@@ -250,16 +253,15 @@ switch Method
       % ISTOs in the lab frame and IST components in the principal frame 
       % are time-independent, so we only need to calculate them once
       
-      SpinOps = cell(numel(Sys.Spins),3);
-%       for iSpin = 1:numel(Sys.Spins)
-%         SpinOps{iSpin,1} = sop(Sys.Spins,iSpin,1);
-%         SpinOps{iSpin,2} = sop(Sys.Spins,iSpin,2);
-%         SpinOps{iSpin,3} = sop(Sys.Spins,iSpin,3);
-%       end
-      SpinOps{1,1} = zeros(6);
+      
+      % set up spin operators in |S,m_S>|I,m_I> product space
+
+      % electron spin operators
+      SpinOps{1,1} = zeros(6);  % S_x and S_y are zero operators in HF limit
       SpinOps{1,2} = zeros(6);
       SpinOps{1,3} = sop(Sys.Spins,1,3);
       
+      % nuclear spin operators
       SpinOps{2,1} = sop(Sys.Spins,2,1);
       SpinOps{2,2} = sop(Sys.Spins,2,2);
       SpinOps{2,3} = sop(Sys.Spins,2,3);
@@ -289,44 +291,48 @@ switch Method
       
     end
     
-    % Prepare propagators
+    % Prepare explicit propagators
     % ---------------------------------------------------------------------
     
     % calculate Wigner D-matrices from the quaternion trajectories
-    [~, D2] = wigD(qTraj);
+    D2 = wigD(qTraj);
     
-
-    H = zeros(6,6,nTraj,nSteps);
+    
+%     % calculate Hamiltonians
+%     H = zeros(6,6,nTraj,nSteps);
     
     % zeroth rank term (HF only)
 %     H(:,:,:,:) = repmat(cacheTensors.Q0,[1,1,nTraj,nSteps]);
+    U = zeros(6,6,nTraj,nSteps);
     
-    % calculate Hamiltonians
     for iStep=1:nSteps
       for iTraj=1:nTraj
         % zeroth rank term (HF only)
-        H(:,:,iTraj,iStep) = cacheTensors.Q0;
+%         H(:,:,iTraj,iStep) = cacheTensors.Q0;
+        H = cacheTensors.Q0;
         
         % rotate second rank terms and add to Hamiltonian
         for mp = 1:5
           for m = 1:5
-            H(:,:,iTraj,iStep) = H(:,:,iTraj,iStep) + D2(m,mp,iTraj,iStep)*cacheTensors.Q2{mp,m};
+%             H(:,:,iTraj,iStep) = H(:,:,iTraj,iStep) + D2(m,mp,iTraj,iStep)*cacheTensors.Q2{mp,m};
+            H = H + D2(m,mp,iTraj,iStep)*cacheTensors.Q2{mp,m};
           end
         end
+        U(:,:,iTraj,iStep) = expeig(1i*dt*H);
       end
     end
 %     Hmean = mean(H,4);
 %     deltaH = H - Hmean;
 
-    U = zeros(6,6,nTraj,nSteps);
+%     U = zeros(6,6,nTraj,nSteps);
 
-    % calculate propagators
-    for iStep=1:nSteps
-      for iTraj=1:nTraj
-%         U(:,:,iTraj,iStep) = expm(-1i*dt*H);
-        U(:,:,iTraj,iStep) = expeig(1i*dt*H(:,:,iTraj,iStep));
-      end
-    end
+%     % calculate propagators
+%     for iStep=1:nSteps
+%       for iTraj=1:nTraj
+% %         U(:,:,iTraj,iStep) = expm(-1i*dt*H);
+%         U(:,:,iTraj,iStep) = expeig(1i*dt*H(:,:,iTraj,iStep));
+%       end
+%     end
     
 %     U = U - mean(mean(U,3),4);
     
@@ -334,12 +340,81 @@ switch Method
         
     % Propagate density matrix
     % ---------------------------------------------------------------------
-    for iStep=2:nSteps
-      rho_t(:,:,:,iStep) = mmult(U(:,:,:,iStep-1),...
-                                 mmult(rho_t(:,:,:,iStep-1),...
-                                       Udag(:,:,:,iStep-1),'complex'),...
-                                 'complex');                  
+    
+    if truncated
+      % Prepare equilibrium propagators
+      % -------------------------------------------------------------------
+      
+      AutoCorrFFT = autocorrfft(squeeze(D2(3,3,:,:)), 0, 1, 1);
+
+      N = round(nSteps/2);
+      M = round(N/2);
+
+      AutoCorrFFT = mean(AutoCorrFFT, 1).';
+
+      % the ACF will not always reach zero for a small number of trajectories,
+      % so subtract the offset, which does not change the correlation time
+      AutoCorrFFT = AutoCorrFFT - mean(AutoCorrFFT(M:3*M));
+
+      % calculate correlation time
+      tauc = trapz(t(1:N), AutoCorrFFT(1:N));
+
+      taucSteps = 10*ceil(tauc/dt);
+      
+      Heq = zeros(6,6,nTraj);
+      
+      for iTraj=1:nTraj
+        % zeroth rank term (HF only)
+        Heq(:,:,iTraj) = cacheTensors.Q0;
+        
+        % rotate second rank terms and add to Hamiltonian
+        for mp = 1:5
+          for m = 1:5
+            Heq(:,:,iTraj) = Heq(:,:,iTraj) + mean(D2(m,mp,iTraj,:),4)*cacheTensors.Q2{mp,m};
+          end
+        end
+      end
+
+%       Ueq = zeros(6,6,nTraj,nSteps-taucSteps);
+      Ueq = zeros(6,6,nTraj);
+
+      % calculate propagators
+%       for iStep=taucSteps+1:nSteps
+        for iTraj=1:nTraj
+%           U(:,:,iTraj,iStep) = expm(-1i*dt*H);
+          Ueq(:,:,iTraj) = expeig(1i*dt*Heq(:,:,iTraj));
+        end
+%       end
+      
+      Ueqdag = conj(permute(Ueq,[2,1,3]));
+      
+      % full propagation until correlation functions have relaxed
+      for iStep=2:taucSteps
+        rho_t(:,:,:,iStep) = mmult(U(:,:,:,iStep-1),...
+                                   mmult(rho_t(:,:,:,iStep-1),...
+                                         Udag(:,:,:,iStep-1),'complex'),...
+                                   'complex');                  
+      end
+      
+      % equilibrium propagation
+      for iStep=taucSteps+1:nSteps
+        rho_t(:,:,:,iStep) = mmult(Ueq(:,:,:),...
+                                   mmult(rho_t(:,:,:,iStep-1),...
+                                         Ueqdag(:,:,:),'complex'),...
+                                   'complex');                  
+      end
+    
+    else
+    % truncated trajectory behavior not being used, so use full propagation
+    % scheme for all time steps
+      for iStep=2:nSteps
+        rho_t(:,:,:,iStep) = mmult(U(:,:,:,iStep-1),...
+                                   mmult(rho_t(:,:,:,iStep-1),...
+                                         Udag(:,:,:,iStep-1),'complex'),...
+                                   'complex');                  
+      end
     end
+
 %     for iStep=2:nSteps
 %       rho_t(:,:,:,iStep) = U(:,:,1,iStep-1)*rho_t(:,:,1,iStep-1)...
 %                                            *U(:,:,1,iStep-1)';                  
@@ -348,6 +423,9 @@ switch Method
     % Only keep the m_S=-1/2 subspace part that contributes to 
     %   tr(S_{+}\rho(t))
     rho_t = rho_t(4:6,1:3,:,:);
+    
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  case 'Steinhoff'  % see Refs [3],[4]
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   otherwise
@@ -368,7 +446,7 @@ C = V*diag(exp(diag(D)))*V';
 
 end
 
-function [D1,D2] = wigD(q)
+function D2 = wigD(q)
 % calculate Wigner D-matrices of specified rank from quaternions for 
 % rotation of ISTOs
 
@@ -386,16 +464,16 @@ Z = A.*Ast - B.*Bst;
 % D1 = [            A.^2,       sqrt(2)*A.*B,           B.^2;
 %        -sqrt(2)*A.*Bst,                  Z, sqrt(2)*Ast.*B;
 %                 Bst.^2, -sqrt(2).*Ast.*Bst,         Ast.^2 ];
-D1 = zeros(3,3,size(q,2),size(q,3));
-D1(1,1,:,:) = A.^2;
-D1(1,2,:,:) = sqrt(2)*A.*B;
-D1(1,3,:,:) = B.^2;
-D1(2,1,:,:) = -sqrt(2)*A.*Bst;
-D1(2,2,:,:) = Z;
-D1(2,3,:,:) = sqrt(2)*Ast.*B;
-D1(3,1,:,:) = Bst.^2;
-D1(3,2,:,:) = -sqrt(2).*Ast.*Bst;
-D1(3,3,:,:) = Ast.^2;
+% D1 = zeros(3,3,size(q,2),size(q,3));
+% D1(1,1,:,:) = A.^2;
+% D1(1,2,:,:) = sqrt(2)*A.*B;
+% D1(1,3,:,:) = B.^2;
+% D1(2,1,:,:) = -sqrt(2)*A.*Bst;
+% D1(2,2,:,:) = Z;
+% D1(2,3,:,:) = sqrt(2)*Ast.*B;
+% D1(3,1,:,:) = Bst.^2;
+% D1(3,2,:,:) = -sqrt(2).*Ast.*Bst;
+% D1(3,3,:,:) = Ast.^2;
 
 % rank 2
 

@@ -210,7 +210,9 @@ Link = 'epr@eth'; eschecker; error(LicErr); clear Link LicErr
 % --------License ------------------------------------------------
 
 global EasySpinLogLevel;
+global reverseStr
 EasySpinLogLevel = Opt.Verbosity;
+reverseStr = [];
 
 
 % Check Sys
@@ -601,9 +603,10 @@ end
 function updateuser(iOrient,nOrient)
 % Update user on progress
 
-persistent reverseStr
+% persistent reverseStr
+global reverseStr
 
-if isempty(reverseStr), reverseStr = []; end
+% if isempty(reverseStr), reverseStr = []; end
 
 avg_time = toc/iOrient;
 secs_left = (nOrient - iOrient)*avg_time;
