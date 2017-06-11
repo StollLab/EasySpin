@@ -326,14 +326,17 @@ else
       % LMK and ordering coefs OR user-supplied potential given, so 
       % simulate MOMD
       Par.Model = 'MOMD';
+    
     elseif xor(isfield(Sys,'LMK'),isfield(Sys,'Coefs'))
       error(['Both Sys.LMK and Sys.Coefs need to be declared for a MOMD '...
             'simulation.'])
+    
     else
       % user did not specify a model or ordering potential, so perform 
       % Brownian simulation
       Par.Model = 'Brownian';
     end
+  
   else
     % Model is specified
     if strcmp(Par.Model,'Brownian') && (isfield(Sys,'LMK')||isfield(Sys,'Coefs'))
@@ -344,6 +347,7 @@ else
     elseif strcmp(Par.Model,'Molecular Dynamics') && (~isfield(MD,'RTraj')||~isfield(MD,'dt'))
       error('For Molecular Dynamics, both MD.RTraj and MD.dt need to be specified.')
     end
+  
   end
 end
 
@@ -399,6 +403,7 @@ switch Model
     else
       nOrients = Par.nOrients;
     end
+    
   case 'MOMD'  %  TODO implement directors and ordering
     if ~isfield(Par,'nOrients')
       error('nOrients must be specified for the MOMD model.')
@@ -407,9 +412,21 @@ switch Model
     grid_pts = linspace(-1,1,nOrients);
     grid_phi = sqrt(pi*nOrients)*asin(grid_pts);
     grid_theta = acos(grid_pts);
-%   case 'SRLS'  %  TODO implement multiple diffusion frames
-%     logmsg(1,'-- model: SRLS -----------------------------------------');  
-%     
+    
+  case 'SRLS'  %  TODO implement multiple diffusion frames
+    DiffLocal = Dynamics.Diff;
+    DiffGlobal = 1e6;
+    if ~isfield(Par,'nOrients')
+      % if Par.nOrients is not given, just use Par.nTraj as number of
+      % orientations
+      nOrients = Par.nTraj;
+    else
+      nOrients = Par.nOrients;
+    end
+    grid_pts = linspace(-1,1,nOrients);
+    grid_phi = sqrt(pi*nOrients)*asin(grid_pts);
+    grid_theta = acos(grid_pts);
+    
   case 'Molecular Dynamics' % TODO process RTraj based on size of input
     if ~isfield(Par,'nOrients')
       error('nOrients must be specified for the Molecular Dynamics model.')
@@ -421,8 +438,10 @@ switch Model
     Par.Omega = [sqrt(pi*Par.nSteps)*asin(linspace(0,1,Par.nSteps));...
                  acos(linspace(0,1,Par.nSteps));...
                  zeros(1,Par.nSteps)];
+               
   otherwise
     error('Model not recognized. Please check the documentation for acceptable models.')
+    
 end
 
 logmsg(1, '-- Model: %s -----------------------------------------', Model);
@@ -456,10 +475,13 @@ for iOrient = 1:nOrients
         % other methods use rotation matrices
         Par.RTraj = RTraj;
       end
+      
     case 'MOMD'
       [t, RTraj, qTraj] = stochtraj(Sys,Par);
+      % generator quaternions for rotating to different grid points
       qmult = repmat(euler2quat(grid_phi(iOrient), grid_theta(iOrient), 0),...
                      [1,Par.nTraj,Par.nSteps]);
+      qTraj = quatmult(qmult,qTraj);
       if strcmp(Opt.Method,'Oganesyan')
         % this method needs quaternions, not rotation matrices
         Par.qTraj = quatmult(qmult,qTraj);
@@ -467,7 +489,21 @@ for iOrient = 1:nOrients
         % other methods use rotation matrices
         Par.RTraj = quat2rotmat(quatmult(qmult,qTraj));
       end
-%   case 'SRLS'
+      
+    case 'SRLS'
+      Sys.Diff = DiffLocal;
+      [t, RTraj, qTrajLocal] = stochtraj(Sys,Par);
+      Sys.Diff = DiffGlobal;
+      [t, RTraj, qTrajGlobal] = stochtraj(Sys,Par);
+      qTraj = quatmult(qTrajGlobal,qTrajLocal);
+      if strcmp(Opt.Method,'Oganesyan')
+        % this method needs quaternions, not rotation matrices
+        Par.qTraj = qTraj;  % ordering?
+      else
+        % other methods use rotation matrices
+        Par.RTraj = quat2rotmat(qTraj);
+      end
+      
     case 'Molecular Dynamics'
       % rotation matrices provided by external data, no need to do stochastic
       % simulation
