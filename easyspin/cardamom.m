@@ -39,61 +39,12 @@
 %                    orienting pseudopotential function to be used for
 %                    calculating the torque
 %
-%
-% %     Sys.lw         double or numeric, size = (1,2)
-% %                    vector with FWHM residual broadenings
-% %                         1 element:  GaussianFWHM
-% %                         2 elements: [GaussianFWHM LorentzianFWHM]
+%     Sys.lw         double or numeric, size = (1,2)
+%                    vector with FWHM residual broadenings
+%                         1 element:  GaussianFWHM
+%                         2 elements: [GaussianFWHM LorentzianFWHM]
 % %     Sys.lwpp       double or numeric, size = (1,2)
 % %                    peak-to-peak line widths, same format as Sys.lw
-%
-%
-%   MD: structure with molecular dynamics simulation parameters
-%
-%     isFrame        integer
-%                    0: raw MD data input
-%                    1: frame trajectory input (MD data has already been 
-%                       processed by mdload)
-%
-%    Raw MD data input:
-%
-%     TrajFile       character array, or cell array containing character
-%                    arrays as elements
-%                    Name of trajectory output file(s), including the file
-%                    extension ".[extension]".
-%
-%     TopFile        character array
-%                    Name of topology input file used for molecular 
-%                    dynamics simulations.
-%
-%     ResName        character array
-%                    Name of residue assigned to spin label side chain,
-%                    e.g. "CYR1" is the default used by CHARMM-GUI.
-%
-%     AtomNames      structure array
-%                    Structure array containing the atom names used in the 
-%                    PSF to refer to the following atoms in the nitroxide 
-%                    spin label molecule:
-%
-%                                   O (OName)
-%                                   |
-%                                   N (NName)
-%                                  / \
-%                        (C1Name) C   C (C2Name)
-%
-%   OR
-%
-%    Frame Trajectory input:
-%
-%     FrameX         numeric, size = (nSteps,3)
-%                    x,y,z coordinate trajectory for X-axis vector
-% 
-%     FrameY         numeric, size = (nSteps,3)
-%                    x,y,z coordinate trajectory for Y-axis vector
-%  
-%     FrameZ         numeric, size = (nSteps,3)
-%                    x,y,z coordinate trajectory for Z-axis vector
-%
 %
 %
 %   Par: structure with simulation parameters
@@ -108,7 +59,13 @@
 %
 %     Omega          numeric, size = (3,1) or (3,nTraj)
 %                    Euler angles for starting orientation(s)
-%                    
+%
+%     Model          string
+%                    Brownian
+%                    MOMD
+%                    SRLS
+%                    Molecular Dynamics
+%
 %
 %   Exp: experimental parameter settings
 %     mwFreq         double
@@ -149,14 +106,68 @@
 %     Verbosity      0: no display, 1: show info
 %
 %     Method         string
-%                    'Sezer': propagate the density matrix using an 
+%                    Sezer: propagate the density matrix using an 
 %                    analytical expression for the matrix exponential in 
 %                    the m_s=-1/2
-%                    'Oganesyan': propagate the density matrix using
+%                    Oganesyan: propagate the density matrix using
 %                    irreducible spherical tensor operators and correlation 
 %                    functions
 %
 %    FFTWindow       1: use a Hamming window (default), 0: no window
+%
+%
+%
+%   MD: structure with molecular dynamics simulation parameters
+%
+%     GlobalDiff     double (optional)
+%                    Diffusion coefficient for isotropic global rotational
+%                    diffusion (s^-1)
+%
+%     isFrame        integer
+%                    0: raw MD data input
+%                    1: frame trajectory input (MD data has already been 
+%                       processed by mdload)
+%
+%    Raw MD data input:
+%
+%     TrajFile       character array, or cell array containing character
+%                    arrays as elements
+%                    Name of trajectory output file(s), including the file
+%                    extension ".[extension]".
+%
+%     AtomInfo
+%
+%         TopFile        character array
+%                        Name of topology input file used for molecular 
+%                        dynamics simulations.
+%
+%         ResName        character array
+%                        Name of residue assigned to spin label side chain,
+%                        e.g. "CYR1" is the default used by CHARMM-GUI.
+%
+%         AtomNames      structure array
+%                        Structure array containing the atom names used in the 
+%                        PSF to refer to the following atoms in the nitroxide 
+%                        spin label molecule:
+%
+%                                   O (OName)
+%                                   |
+%                                   N (NName)
+%                                  / \
+%                        (C1Name) C   C (C2Name)
+%
+%   OR
+%
+%    Frame Trajectory input:
+%
+%     FrameX         numeric, size = (nSteps,3)
+%                    x,y,z coordinate trajectory for X-axis vector
+% 
+%     FrameY         numeric, size = (nSteps,3)
+%                    x,y,z coordinate trajectory for Y-axis vector
+%  
+%     FrameZ         numeric, size = (nSteps,3)
+%                    x,y,z coordinate trajectory for Z-axis vector
 %
 %
 %
@@ -257,19 +268,17 @@ if useMD
     MD.nSteps = sizeFrameX(1);
   else
     % use raw MD input
-    if ~isfield(MD,'TrajFile')||~isfield(MD,'TopFile')...
-       ||~isfield(MD,'ResName')||~isfield(MD,'AtomNames')
-      error('For MD input, TrajFile, TopFile, Resname, and AtomNames must be provided.')
+    if ~isfield(MD,'TrajFile')||~isfield(MD,'AtomInfo')
+%        ||~isfield(MD,'TopFile')...
+%        ||~isfield(MD,'ResName')||~isfield(MD,'AtomNames')
+      error('For MD input, TrajFile and AtomInfo must be provided.')
     end
     % generate rotation matrices from MD simulation data
-    AtomInfo.TopFile = MD.TopFile;
-    AtomInfo.ResName = MD.ResName;
-    AtomInfo.AtomNames = MD.AtomNames;
 
     OutOpt.Verbosity = Opt.Verbosity;
     OutOpt.Frame = 1;
 
-    MD = mdload(MD.TrajFile, AtomInfo, OutOpt);
+    MD = mdload(MD.TrajFile, MD.AtomInfo, OutOpt);
     
     MD.dt = tscale*MD.dt;
     MD.nSteps = size(MD.FrameZ, 1);
@@ -316,6 +325,8 @@ if useMD
   elseif ~strcmp(Par.Model,'Molecular Dynamics')
     error('Mixing stochastic simulations with MD simulation input is not supported.')
   end
+  Par.nTraj = MD.nTraj;
+  
 else
   % no rotation matrices provided, so perform stochastic dynamics
   % simulations internally to produce them
@@ -347,7 +358,6 @@ else
     elseif strcmp(Par.Model,'Molecular Dynamics') && (~isfield(MD,'RTraj')||~isfield(MD,'dt'))
       error('For Molecular Dynamics, both MD.RTraj and MD.dt need to be specified.')
     end
-  
   end
 end
 
@@ -384,7 +394,6 @@ end
 % Check dynamics and ordering
 % -------------------------------------------------------------------------
 
-
 Dynamics = validate_dynord('cardamom',Sys,FieldSweep);
 
 logmsg(1,'-- time domain simulation -----------------------------------------');
@@ -415,7 +424,7 @@ switch Model
     
   case 'SRLS'  %  TODO implement multiple diffusion frames
     DiffLocal = Dynamics.Diff;
-    DiffGlobal = 1e6;
+    DiffGlobal = 6e6;
     if ~isfield(Par,'nOrients')
       % if Par.nOrients is not given, just use Par.nTraj as number of
       % orientations
@@ -435,9 +444,9 @@ switch Model
     grid_pts = linspace(-1,1,nOrients);
     grid_phi = sqrt(pi*nOrients)*asin(grid_pts);
     grid_theta = acos(grid_pts);
-    Par.Omega = [sqrt(pi*Par.nSteps)*asin(linspace(0,1,Par.nSteps));...
-                 acos(linspace(0,1,Par.nSteps));...
-                 zeros(1,Par.nSteps)];
+    Par.Omega = [sqrt(pi*Par.nTraj)*asin(linspace(0,1,Par.nTraj));...
+                 acos(linspace(0,1,Par.nTraj));...
+                 zeros(1,Par.nTraj)];
                
   otherwise
     error('Model not recognized. Please check the documentation for acceptable models.')
@@ -465,7 +474,9 @@ for iOrient = 1:nOrients
 %   Par.Omega = [grid_phi(iOrient); grid_theta(iOrient); 0];
 
   % generate/process trajectories
-  switch Model 
+  switch Model
+%     case 'Stochastic'
+%     case 'Molecular Dynamics'
     case 'Brownian'
       [t, RTraj, qTraj] = stochtraj(Sys,Par);
       if strcmp(Opt.Method,'Oganesyan')
@@ -507,6 +518,8 @@ for iOrient = 1:nOrients
     case 'Molecular Dynamics'
       % rotation matrices provided by external data, no need to do stochastic
       % simulation
+%       Sys.Diff = 1e6;
+%       [t, dummy, qmult] = stochtraj(Sys,Par);
       qmult = repmat(euler2quat(grid_phi(iOrient), grid_theta(iOrient), 0),...
                      [1,MD.nTraj,MD.nSteps]);
       MD.RTraj = matmult(quat2rotmat(qmult),MD.RTraj);

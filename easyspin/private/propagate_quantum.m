@@ -55,6 +55,9 @@ function rho_t = propagate_quantum(Sys, Par, Opt, MD, omega, CenterField)
 % -------------------------------------------------------------------------
 
 persistent cacheTensors
+persistent tauc
+
+if isempty(tauc), tauc = 0; end
 
 Method = Opt.Method;
 Model = Par.Model;
@@ -91,6 +94,42 @@ if ~isequal(size(g),[1,3]) || ~isequal(size(A),[1,3])
   error('g and A tensor values must be 3-vectors.')
 end
 
+% Set up for MD time averaging
+
+if strcmp(Model,'Molecular Dynamics')
+  % time step of MD simulation, MD.dt, is usually much smaller than
+  % that of the propagation, Par.dt, so we need to average over windows
+  % of size Par.dt/MD.dt
+
+  if MD.nTraj > 1, error('Using the Sezer Method with multiple trajectories is not supported.'); end
+
+  % size of averaging window
+  nWindow = ceil(Par.dt/MD.dt);
+
+  % size of MD trajectory after averaging
+  M = floor(MD.nSteps/nWindow);
+  
+  % process single long trajectory into multiple short trajectories
+  lag = 1;
+  if Par.nSteps<M
+    nSteps = Par.nSteps;
+    nTraj = floor((M-nSteps)/lag) + 1;
+  else
+    nSteps = M;
+    nTraj = 1;
+  end
+  
+  if isfield(MD.GlobalDiff)
+    % generate global diffusion
+    Sys.Diff = 6e6;
+    Par.nTraj = nTraj;
+    Par.nSteps = nSteps;
+    [t, RTrajGlobal, qTrajGlobal] = stochtraj(Sys,Par);
+    RTrajGlobalInv = permute(RTrajGlobal,[2,1,3,4]);
+  end
+  
+end
+
 % Gamma = gfree*bmagn/(planck/2/pi);  % rad s^-1 T^-1
 % omegaN = 19.331e6*B;  % gyromagnetic ratio for 14N: 
                       % 19.331x10^6 rad s^-1 T^-1
@@ -106,63 +145,49 @@ switch Method
     % Process MD simulation data
     % ---------------------------------------------------------------------
     
+    % Perform rotations on g- and A-tensors
+    gTensor = tensortraj(g,RTraj,RTrajInv);
+
+    ATensor = tensortraj(A,RTraj,RTrajInv)*1e6*2*pi; % MHz (s^-1) -> Hz (rad s^-1)
+    
     if strcmp(Model,'Molecular Dynamics')
-      % time step of MD simulation, MD.dt, is usually much smaller than
-      % that of the propagation, Par.dt, so we need to average over windows
-      % of size Par.dt/MD.dt
-      
-      if MD.nTraj > 1, error('Using the Sezer Method with multiple trajectories is not supported.'); end
-      
-      % size of averaging window
-      nWindow = ceil(Par.dt/MD.dt);
-      
-      % size of MD trajectory after averaging
-      M = floor(MD.nSteps/nWindow);
 
       GpTensorAvg = zeros(3,3,M);
       ATensorAvg = zeros(3,3,M);
-      
-      GpTensor = tensortraj(g,RTraj,RTrajInv)/gfree - g_tr/3/gfree;
-
-      ATensor = tensortraj(A,RTraj,RTrajInv)*1e6*2*pi; % MHz (s^-1) -> Hz (rad s^-1)
     
       % average the interaction tensors over time windows
       idx = 1:nWindow;
       for k = 1:M
-        GpTensorAvg(:,:,k) = mean(GpTensor(:,:,:,idx),4);
+        GpTensorAvg(:,:,k) = mean(gTensor(:,:,:,idx),4);
         ATensorAvg(:,:,k) = mean(ATensor(:,:,:,idx),4);
         idx = idx + nWindow;
       end
       
-      % process single long trajectory into multiple short trajectories
-      lag = 1;
-      if Par.nSteps<M
-        nSteps = Par.nSteps;
-        nTraj = floor((M-nSteps)/lag) + 1;
-      else
-        nSteps = M;
-        nTraj = 1;
-      end
-      
-      GpTensor = zeros(3,3,nTraj,nSteps);
+      gTensor = zeros(3,3,nTraj,nSteps);
       ATensor = zeros(3,3,nTraj,nSteps);
       
       for k = 1:nTraj
         idx = (1:nSteps) + (k-1)*lag;
-        GpTensor(:,:,k,:) = GpTensorAvg(:,:,idx);
+        gTensor(:,:,k,:) = GpTensorAvg(:,:,idx);
         ATensor(:,:,k,:) = ATensorAvg(:,:,idx);
       end
       
-      % frame of MD coordinate system is lab frame for solution simulations
-      
-    else
-
-      % Perform rotations on g- and A-tensors
-      GpTensor = tensortraj(g,RTraj,RTrajInv)/gfree - g_tr/3/gfree;
-    
-      ATensor = tensortraj(A,RTraj,RTrajInv)*1e6*2*pi; % MHz (s^-1) -> Hz (rad s^-1)
-      
+      if isfield(MD.GlobalDiff)
+        gTensor = matmult(RTrajGlobal, matmult(gTensor, RTrajGlobalInv));
+        ATensor = matmult(RTrajGlobal, matmult(ATensor, RTrajGlobalInv));
+      end
+        
     end
+    
+    GpTensor = gTensor/gfree - g_tr/3/gfree;
+%     else
+% 
+%       % Perform rotations on g- and A-tensors
+%       GpTensor = tensortraj(g,RTraj,RTrajInv)/gfree - g_tr/3/gfree;
+%     
+%       ATensor = tensortraj(A,RTraj,RTrajInv)*1e6*2*pi; % MHz (s^-1) -> Hz (rad s^-1)
+%       
+%     end
         
     rho_t = zeros(3,3,nTraj,nSteps);
     rho_t(:,:,:,1) = repmat(eye(3),[1,1,nTraj]);
@@ -239,13 +264,6 @@ switch Method
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   case 'Oganesyan'  % see Ref [2]
-    
-    rho_t = zeros(6,6,nTraj,nSteps);
-    rho_t(1:3,4:6,:,1) = repmat(eye(3),1,1,nTraj,1);
-    rho_t(4:6,1:3,:,1) = repmat(eye(3),1,1,nTraj,1);
-%     rho_t = zeros(6,6,1,nSteps);
-%     rho_t(1:3,4:6,1,1) = repmat(eye(3),1,1,1,1);
-%     rho_t(4:6,1:3,1,1) = repmat(eye(3),1,1,1,1);
 
     % Calculate and store rotational basis operators
     % ---------------------------------------------------------------------
@@ -295,10 +313,43 @@ switch Method
     % ---------------------------------------------------------------------
     
     % calculate Wigner D-matrices from the quaternion trajectories
+    if strcmp(Model,'Molecular Dynamics')
+      qTraj = rotmat2quat(RTraj);
+    end
+    
     D2 = wigD(qTraj);
     
+    if strcmp(Model,'Molecular Dynamics')
+
+      D2Avg = zeros(5,5,M);
     
-%     % calculate Hamiltonians
+      % average the interaction tensors over time windows
+      idx = 1:nWindow;
+      for k = 1:M
+        D2Avg(:,:,k) = mean(D2(:,:,:,idx),4);
+        idx = idx + nWindow;
+      end
+      
+      D2 = zeros(5,5,nTraj,nSteps);
+      
+      for k = 1:nTraj
+        idx = (1:nSteps) + (k-1)*lag;
+        D2(:,:,k,:) = D2Avg(:,:,idx);
+      end
+      
+      if isfield(MD.GlobalDiff)
+        D2Global = wigD(qTrajGlobal);
+        
+        % combine Wigner D-matrices of global and averaged local motion
+        D2 = mmult(D2Global, D2, 'complex');
+      end
+    end
+    
+    rho_t = zeros(6,6,nTraj,nSteps);
+    rho_t(1:3,4:6,:,1) = repmat(eye(3),1,1,nTraj,1);
+    rho_t(4:6,1:3,:,1) = repmat(eye(3),1,1,nTraj,1);
+    
+    % calculate Hamiltonians and  propagators
 %     H = zeros(6,6,nTraj,nSteps);
     
     % zeroth rank term (HF only)
@@ -357,7 +408,8 @@ switch Method
       AutoCorrFFT = AutoCorrFFT - mean(AutoCorrFFT(M:3*M));
 
       % calculate correlation time
-      tauc = trapz(t(1:N), AutoCorrFFT(1:N));
+      tau = trapz(t(1:N), AutoCorrFFT(1:N));  % FIXME find a robust way to calculate this
+      if tau>tauc, tauc = tau; end
 
       taucSteps = 10*ceil(tauc/dt);
       
@@ -370,7 +422,7 @@ switch Method
         % rotate second rank terms and add to Hamiltonian
         for mp = 1:5
           for m = 1:5
-            Heq(:,:,iTraj) = Heq(:,:,iTraj) + mean(D2(m,mp,iTraj,:),4)*cacheTensors.Q2{mp,m};
+            Heq(:,:,iTraj) = Heq(:,:,iTraj) + mean(D2(m,mp,iTraj,:),4)*cacheTensors.Q2{mp,m};  % TODO add off-diagonal terms
           end
         end
       end
@@ -379,12 +431,10 @@ switch Method
       Ueq = zeros(6,6,nTraj);
 
       % calculate propagators
-%       for iStep=taucSteps+1:nSteps
-        for iTraj=1:nTraj
-%           U(:,:,iTraj,iStep) = expm(-1i*dt*H);
-          Ueq(:,:,iTraj) = expeig(1i*dt*Heq(:,:,iTraj));
-        end
-%       end
+      for iTraj=1:nTraj
+%         U(:,:,iTraj,iStep) = expm(-1i*dt*H);
+        Ueq(:,:,iTraj) = expeig(1i*dt*Heq(:,:,iTraj));
+      end
       
       Ueqdag = conj(permute(Ueq,[2,1,3]));
       
