@@ -96,7 +96,7 @@ end
 
 % Set up for MD time averaging
 
-if strcmp(Model,'Molecular Dynamics')
+if strcmp(Model,'Molecular Dynamics')&&~strcmp(Method,'Steinhoff')
   % time step of MD simulation, MD.dt, is usually much smaller than
   % that of the propagation, Par.dt, so we need to average over windows
   % of size Par.dt/MD.dt
@@ -119,9 +119,9 @@ if strcmp(Model,'Molecular Dynamics')
     nTraj = 1;
   end
   
-  if isfield(MD.GlobalDiff)
+  if isfield(MD,'GlobalDiff')
     % generate global diffusion
-    Sys.Diff = 6e6;
+    Sys.Diff = MD.GlobalDiff;
     Par.nTraj = nTraj;
     Par.nSteps = nSteps;
     [t, RTrajGlobal, qTrajGlobal] = stochtraj(Sys,Par);
@@ -172,7 +172,7 @@ switch Method
         ATensor(:,:,k,:) = ATensorAvg(:,:,idx);
       end
       
-      if isfield(MD.GlobalDiff)
+      if isfield(MD,'GlobalDiff')
         gTensor = matmult(RTrajGlobal, matmult(gTensor, RTrajGlobalInv));
         ATensor = matmult(RTrajGlobal, matmult(ATensor, RTrajGlobalInv));
       end
@@ -180,14 +180,6 @@ switch Method
     end
     
     GpTensor = gTensor/gfree - g_tr/3/gfree;
-%     else
-% 
-%       % Perform rotations on g- and A-tensors
-%       GpTensor = tensortraj(g,RTraj,RTrajInv)/gfree - g_tr/3/gfree;
-%     
-%       ATensor = tensortraj(A,RTraj,RTrajInv)*1e6*2*pi; % MHz (s^-1) -> Hz (rad s^-1)
-%       
-%     end
         
     rho_t = zeros(3,3,nTraj,nSteps);
     rho_t(:,:,:,1) = repmat(eye(3),[1,1,nTraj]);
@@ -260,7 +252,6 @@ switch Method
         %      rho_t(:,:,:,iStep) = U2(:,:,:,iStep-1).*rho_t(:,:,:,iStep-1);
       end
     end
-%     end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   case 'Oganesyan'  % see Ref [2]
@@ -337,7 +328,7 @@ switch Method
         D2(:,:,k,:) = D2Avg(:,:,idx);
       end
       
-      if isfield(MD.GlobalDiff)
+      if isfield(MD,'GlobalDiff')
         D2Global = wigD(qTrajGlobal);
         
         % combine Wigner D-matrices of global and averaged local motion
@@ -474,8 +465,92 @@ switch Method
     %   tr(S_{+}\rho(t))
     rho_t = rho_t(4:6,1:3,:,:);
     
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  case 'Steinhoff'  % see Refs [3],[4]
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  case 'Steinhoff'
+    
+    g_tr = sum(g);
+    
+    % Process MD simulation data
+    % ---------------------------------------------------------------------
+    
+    % Perform rotations on g- and A-tensors
+    gTensor = tensortraj(g,RTraj,RTrajInv);
+
+    ATensor = tensortraj(A,RTraj,RTrajInv)*1e6*2*pi; % MHz (s^-1) -> Hz (rad s^-1)
+    
+    GpTensor = gTensor/gfree - g_tr/3/gfree;
+        
+    rho_t = zeros(3,3,Par.nTraj,nSteps);
+    rho_t(:,:,:,1) = repmat(eye(3),[1,1,Par.nTraj]);
+    
+    % Prepare propagators
+    % ---------------------------------------------------------------------
+    
+    Gp_zz = GpTensor(3,3,:,:);
+
+    % norm of expression in Eq. 24 in [1]
+    a = sqrt(ATensor(1,3,:,:).*ATensor(1,3,:,:) ...
+           + ATensor(2,3,:,:).*ATensor(2,3,:,:) ...
+           + ATensor(3,3,:,:).*ATensor(3,3,:,:));
+
+    % rotation angle and unit vector parallel to axis of rotation
+    % refer to paragraph below Eq. 37 in [1]
+%     theta = Gamma*dt*0.5*squeeze(a);
+    theta = dt*0.5*squeeze(a);
+    nx = squeeze(ATensor(1,3,:,:)./a);
+    ny = squeeze(ATensor(2,3,:,:)./a);
+    nz = squeeze(ATensor(3,3,:,:)./a);
+
+    % Eqs. A1-A2 in [1]
+    ct = cos(theta) - 1;
+    st = -sin(theta);
+
+    % matrix exponential of hyperfine part
+    % Eqs. A1-A2 are used to construct Eq. 37 in [1]
+    expadotI = zeros(3,3,size(Gp_zz,3),size(Gp_zz,4));
+    expadotI(1,1,:,:) = 1 + ct.*(nz.*nz + 0.5*(nx.*nx + ny.*ny)) ...
+                         + 1i*st.*nz;
+    expadotI(1,2,:,:) = sqrt(0.5)*(st.*ny + ct.*nz.*nx) ...
+                         + 1i*sqrt(0.5)*(st.*nx - ct.*nz.*ny);
+    expadotI(1,3,:,:) = 0.5*ct.*(nx.*nx - ny.*ny) ... 
+                         - 1i*ct.*nx.*ny;
+    expadotI(2,1,:,:) = sqrt(0.5)*(-st.*ny + ct.*nz.*nx) ...
+                         + 1i*sqrt(0.5)*(st.*nx + ct.*nz.*ny);
+    expadotI(2,2,:,:) = 1 + ct.*(nx.*nx + ny.*ny);
+    expadotI(2,3,:,:) = sqrt(0.5)*(st.*ny - ct.*nz.*nx) ...
+                         + 1i*sqrt(0.5)*(st.*nx + ct.*nz.*ny);
+    expadotI(3,1,:,:) = 0.5*ct.*(nx.*nx - ny.*ny) ...
+                         + 1i*ct.*nx.*ny;
+    expadotI(3,2,:,:) = sqrt(0.5)*(-st.*ny - ct.*nz.*nx) ...
+                         + 1i*sqrt(0.5)*(st.*nx - ct.*nz.*ny);
+    expadotI(3,3,:,:) = 1 + ct.*(nz.*nz + 0.5*(nx.*nx + ny.*ny))  ...
+                         - 1i*st.*nz;
+
+
+    % Calculate propagator, Eq. 35 in [1]
+    U = bsxfun(@times, exp(-1i*dt*0.5*omega*Gp_zz), expadotI);
+
+    
+    % Propagate density matrix
+    % ---------------------------------------------------------------------
+    
+    if nTraj>1
+      for iStep=2:nSteps
+        rho_t(:,:,:,iStep) = mmult(U(:,:,:,iStep-1),...
+                                   mmult(rho_t(:,:,:,iStep-1), U(:,:,:,iStep-1),'complex'),...
+                                   'complex');
+
+        %  Trace of a product of matrices is the sum of entry-wise products
+        %      rho_t(:,:,:,iStep) = U2(:,:,:,iStep-1).*rho_t(:,:,:,iStep-1);
+      end
+    else
+      for iStep=2:nSteps
+        rho_t(:,:,1,iStep) = U(:,:,1,iStep-1)*rho_t(:,:,1,iStep-1)*U(:,:,1,iStep-1);
+
+        %  Trace of a product of matrices is the sum of entry-wise products
+        %      rho_t(:,:,:,iStep) = U2(:,:,:,iStep-1).*rho_t(:,:,:,iStep-1);
+      end
+    end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   otherwise

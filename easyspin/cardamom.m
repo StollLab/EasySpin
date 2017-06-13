@@ -290,10 +290,6 @@ if useMD
   
   M = size(MD.FrameX, 4);
   
-  theta = squeeze(acos(MD.FrameZ(3,:,:,:)));
-  phi = squeeze(atan2(MD.FrameY(3,:,:,:), MD.FrameX(3,:,:,:)));
-  psi = squeeze(atan2(-MD.FrameZ(2,:,:,:), MD.FrameZ(1,:,:,:)));
-  
   MD.RTraj = zeros(3,3,1,M);
   MD.RTraj(:,1,1,:) = MD.FrameX;
   MD.RTraj(:,2,1,:) = MD.FrameY;
@@ -444,9 +440,41 @@ switch Model
     grid_pts = linspace(-1,1,nOrients);
     grid_phi = sqrt(pi*nOrients)*asin(grid_pts);
     grid_theta = acos(grid_pts);
-    Par.Omega = [sqrt(pi*Par.nTraj)*asin(linspace(0,1,Par.nTraj));...
-                 acos(linspace(0,1,Par.nTraj));...
-                 zeros(1,Par.nTraj)];
+
+    if strcmp(Opt.Method,'Steinhoff')
+      if ~isfield(Par,'Omega')
+        Par.Omega = [sqrt(pi*Par.nTraj)*asin(linspace(0,1,Par.nTraj));...
+                     acos(linspace(0,1,Par.nTraj));...
+                     zeros(1,Par.nTraj)];
+      end
+      
+      % calculate orienting potential energy function
+      theta = squeeze(acos(MD.FrameZ(3,:,:,:)));
+      phi = squeeze(atan2(MD.FrameY(3,:,:,:), MD.FrameX(3,:,:,:)));
+      psi = squeeze(atan2(-MD.FrameZ(2,:,:,:), MD.FrameZ(1,:,:,:)));
+
+      PhiBins = linspace(-pi, pi, 50)';
+      ThetaBins = linspace(0, pi, 50)';
+      PsiBins = linspace(-pi, pi, 50)';
+
+      [Sys.PseudoPotFun, dummy] = histcnd([phi,theta,psi],...
+                                      {PhiBins',ThetaBins',PsiBins'});
+
+      % estimate rotational diffusion time scale
+      AutoCorrFFT = autocorrfft(squeeze(MD.FrameZ.^2), 1);
+
+      N = round(length(MD.FrameZ)/2);
+      M = round(N/2);
+
+%       % the ACF will not always reach zero for a small number of trajectories,
+%       % so subtract the offset, which does not change the correlation time
+%       AutoCorrFFT = AutoCorrFFT - mean(AutoCorrFFT(M:3*M));
+
+      % calculate correlation time
+      time = linspace(0,N*MD.dt,N);
+%       tau = max(cumtrapz(time,AutoCorrFFT(1:N)));  % FIXME find a robust way to calculate this
+      tau = max(cumtrapz(time,datasmooth(AutoCorrFFT(1:N),500,'flat')));  % FIXME find a robust way to calculate this
+    end
                
   otherwise
     error('Model not recognized. Please check the documentation for acceptable models.')
@@ -512,7 +540,7 @@ for iOrient = 1:nOrients
         Par.qTraj = qTraj;  % ordering?
       else
         % other methods use rotation matrices
-        Par.RTraj = quat2rotmat(qTraj);
+        Par.RTraj = RTraj;
       end
       
     case 'Molecular Dynamics'
@@ -523,6 +551,18 @@ for iOrient = 1:nOrients
       qmult = repmat(euler2quat(grid_phi(iOrient), grid_theta(iOrient), 0),...
                      [1,MD.nTraj,MD.nSteps]);
       MD.RTraj = matmult(quat2rotmat(qmult),MD.RTraj);
+      if strcmp(Opt.Method,'Steinhoff')
+        Sys.Diff = 1/6/tau;
+        Par.nTraj = 100;  % FIXME find way to set this in UI
+        [t, RTraj, qTraj] = stochtraj(Sys,Par);
+        if strcmp(Opt.Method,'Oganesyan')
+          % this method needs quaternions, not rotation matrices
+          Par.qTraj = qTraj;  % ordering?
+        else
+          % other methods use rotation matrices
+          Par.RTraj = RTraj;
+        end
+      end
 
   end
 
