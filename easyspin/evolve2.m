@@ -59,11 +59,7 @@ method = 'stepwise';
 
 nEvents = length(Events);
 
-Liouville = 1;
-
 % questions:
-% - how should I make the time axis, the first point should be t =
-% 0 with the initial state matrix, right?
 % - we have to look into the normalization for the Detection operators. +
 % or - Detection operators need to divided by two before normalizations are
 % computed. what should the normalization be for transition selective
@@ -120,7 +116,7 @@ switch method
         DensityMatrices = [];
       end
       
-      if Liouville == 1
+      if currentEvent.Relaxation
         n = size(Sigma,1);
         SigmaVector = reshape(Sigma,n*n,1);
         Gamma = Relaxation.Gamma;
@@ -201,21 +197,15 @@ switch method
           % Propagation Starts Here
           %----------------------------------------------------------------
           
-          if Liouville == 0
+          if ~currentEvent.Relaxation
             
             % Calculation or Loading, if possible, of Propagators
             if currentEvent.ComplexExcitation == 0
               if ~isempty(currentEvent.propagators) && isfield(currentEvent.propagators,'UTable')
                 UTable = currentEvent.propagators.UTable;
               else
-                UTable = cell(1,vertRes);
                 
-                for iRes = 0:vertRes-1
-                  Ham1 = scale*(iRes-vertRes/2)*currentEvent.xOp;
-                  Ham = Ham0+Ham1;
-                  U = expm_fastc(-1i*Ham*dt);
-                  UTable{iRes+1} = U;
-                end
+                UTable = buildPropagators(Ham0,currentEvent.xOp,dt,vertRes,scale);
                 
                 Events{iEvent}.propagators.UTable = UTable;
               end
@@ -233,7 +223,7 @@ switch method
                 else % For active Complex Excitation Propagators need to be recalculated
                   Ham1 = scale*(realBinary(iPhaseCycle,iWavePoint)-vertRes/2)*real(currentEvent.xOp)+scale*(imagBinary(iPhaseCycle,iWavePoint)-vertRes/2)*imag(currentEvent.xOp);
                   Ham =  Ham0+Ham1;
-                  U = expm_fastc(-1i*Ham*dt);
+                  U = Propagator(Ham,dt);
                 end
                 
                 Sigma = U*Sigma*U';
@@ -272,7 +262,7 @@ switch method
               
             end
             
-          else % Propagation in Liouville space
+          elseif currentEvent.Relaxation % Propagation in Liouville space
             
             
             % Calculation or Loading, if possible, of Liouvillians and 
@@ -281,20 +271,8 @@ switch method
               LTable = currentEvent.propagators.LTable;
               SigmassTable = currentEvent.propagators.SigmassTable;
             else
-              SigmassTable = cell(1,vertRes);
-              LTable = cell(1,vertRes);
               
-              for ivertRes = 0:vertRes-1
-                Ham1 = scale*(ivertRes-vertRes/2)*currentEvent.xOp;
-                Ham = Ham0 + Ham1;
-                HamSuOp = kron(eye(n,n),Ham)-kron(Ham.',eye(n,n));
-                L = -1i*HamSuOp-Gamma;
-                SigmaSS = Gamma*equilibriumState; % steady state solutions for the denisty matrices
-                SigmaSS = -L\SigmaSS;
-                SigmassTable{ivertRes+1} = SigmaSS;
-                L = expm_fastc(L*dt); %calculations of the Liouvillians
-                LTable{ivertRes+1} = L;
-              end
+              [LTable, SigmassTable] = buildLiouvillians(Ham0,Gamma,equilibriumState,currentEvent.xOp,dt,vertRes,scale);
               
               Events{iEvent}.propagators.LTable = LTable;
               Events{iEvent}.propagators.SigmassTable = SigmassTable;
@@ -316,11 +294,7 @@ switch method
                   % density matrices are computed for each time step
                   Ham1 = scale*(realBinary(iPhaseCycle,iWavePoint)-vertRes/2)*real(currentEvent.xOp)+scale*(imagBinary(iPhaseCycle,iWavePoint)-vertRes/2)*imag(currentEvent.xOp);
                   Ham = Ham0+Ham1;
-                  HamSuOp = kron(eye(n,n),Ham)-kron(Ham.',eye(n,n));
-                  L = -1i*HamSuOp-Gamma;
-                  SigmaSS = Gamma*equilibriumState;  
-                  SigmaSS = -L\SigmaSS;
-                  L = expm_fastc(L*dt);
+                  [L, SigmaSS] = Liouvillian(Ham,Gamma,equilibriumState,dt);
                 end
                 
                 SigmaVector = SigmaSS+L*(SigmaVector-SigmaSS);
@@ -373,16 +347,15 @@ switch method
           
         case 'free evolution'        
           
-          if Liouville == 0
+          if ~currentEvent.Relaxation
             % If Detection is off during evolution, the entire evolution
             % can be propagated in one step
-            if currentEvent.Detection == 1
-              U = expm_fastc(-1i*Ham0*dt);
-            else
+            if currentEvent.Detection == 0
               dt = currentEvent.t(end);
               tvector = [0 dt];
-              U = expm_fastc(-1i*Ham0*dt);
             end
+            
+            U = Propagator(Ham0,dt);
             
             % Propagation starts here
             for itvector=2:length(tvector)
@@ -403,24 +376,16 @@ switch method
               
             end
             
-          else % Propagate in Liouville space
+          elseif currentEvent.Relaxation % Propagate in Liouville space
             
-            % Computation of Superoperator and Steady State density matrix
-            HamSuOp = kron(eye(n,n),Ham0)-kron(Ham0.',eye(n,n));
-            L = -1i*HamSuOp-Gamma;
-            SigmaSS = Gamma*equilibriumState;
-            SigmaSS = -L\SigmaSS;
             
-            % If Detection is off during evolution, the entire evolution
-            % can be propagated in one step
-            if currentEvent.Detection == 1
-              L = expm_fastc(L*dt);
-            else
+            if currentEvent.Detection == 0
               dt = currentEvent.t(end);
               tvector = [0 dt];
-              
-              L = expm_fastc(L*dt);
             end
+            
+            [L, SigmaSS] = Liouvillian(Ham0,Gamma,equilibriumState,dt);
+
             
             % Propagation
             for itvector = 2:length(tvector)
@@ -921,3 +886,43 @@ switch method
     
     return
 end
+
+
+function UTable = buildPropagators(Ham0,xOp,dt,vertRes,scale)
+
+UTable = cell(1,vertRes);
+
+for iRes = 0:vertRes-1
+  Ham1 = scale*(iRes-vertRes/2)*xOp;
+  Ham = Ham0+Ham1;
+  U = Propagator(Ham,dt);
+  UTable{iRes+1} = U;
+end
+
+function U = Propagator(Ham,dt)
+U = expm_fastc(-1i*Ham*dt);
+
+function [LTable, SigmassTable] = buildLiouvillians(Ham0,Gamma,equilibriumState,xOp,dt,vertRes,scale)
+
+SigmassTable = cell(1,vertRes);
+LTable = cell(1,vertRes);
+
+for ivertRes = 0:vertRes-1
+  Ham1 = scale*(ivertRes-vertRes/2)*xOp;
+  Ham = Ham0 + Ham1;
+  [L, SigmaSS] = Liouvillian(Ham,Gamma,equilibriumState,dt);
+  LTable{ivertRes+1} = L;
+  SigmassTable{ivertRes+1} = SigmaSS;
+end
+
+function [L, SigmaSS] = Liouvillian(Ham,Gamma,equilibriumState,dt)
+
+n = size(Ham,1);
+
+HamSuOp = kron(eye(n,n),Ham)-kron(Ham.',eye(n,n));
+L = -1i*HamSuOp-Gamma;
+SigmaSS = Gamma*equilibriumState; % steady state solutions for the density matrices
+SigmaSS = -L\SigmaSS;
+L = expm_fastc(L*dt); %calculations of the Liouvillians
+
+
