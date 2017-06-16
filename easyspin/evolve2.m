@@ -64,6 +64,8 @@ nEvents = length(Events);
 % or - Detection operators need to divided by two before normalizations are
 % computed. what should the normalization be for transition selective
 % operators or for detecting populations
+% - If no detection is requested, I can combine all propagators to one single
+% one: Utotal = U1*U2*U3.... can this also be done for Liouvillians
 
 switch method
   
@@ -214,34 +216,50 @@ switch method
             
             % Loops over the Phasecycles
             for iPhaseCycle = 1 : nPhaseCycle
-              
-              % Propagation for one waveform
-              for iWavePoint = 1 : length(realBinary)
-                if currentEvent.ComplexExcitation == 0
-                  % Load propagators if Complex Excitation is off
-                  U = UTable{realBinary(iPhaseCycle,iWavePoint)+1};
-                else % For active Complex Excitation Propagators need to be recalculated
-                  Ham1 = scale*(realBinary(iPhaseCycle,iWavePoint)-vertRes/2)*real(currentEvent.xOp)+scale*(imagBinary(iPhaseCycle,iWavePoint)-vertRes/2)*imag(currentEvent.xOp);
-                  Ham =  Ham0+Ham1;
-                  U = Propagator(Ham,dt);
-                end
-                
-                Sigma = U*Sigma*U';
-                
-                % Computes Expectation Values if requested
-                if currentEvent.Detection == 1
-                  for iDet = 1:nDet
-                    Density =  Sigma(:);
-                    currentSignal(iDet,iWavePoint+1) = Det{iDet}*Density/normsDet(iDet);
-                    %                   currentSignal(j,k+1) = sum(sum(Det{j}.*Sigma.'))/normsDet(j);
+              if ~isfield(currentEvent.propagators,'Utotal')
+                % Propagation for one waveform
+                for iWavePoint = 1 : length(realBinary)
+                  if currentEvent.ComplexExcitation == 0
+                    % Load propagators if Complex Excitation is off
+                    U = UTable{realBinary(iPhaseCycle,iWavePoint)+1};
+                  else % For active Complex Excitation Propagators need to be recalculated
+                    Ham1 = scale*(realBinary(iPhaseCycle,iWavePoint)-vertRes/2)*real(currentEvent.xOp)+scale*(imagBinary(iPhaseCycle,iWavePoint)-vertRes/2)*imag(currentEvent.xOp);
+                    Ham =  Ham0+Ham1;
+                    U = Propagator(Ham,dt);
                   end
+                  
+                  if currentEvent.Detection == 1
+                    Sigma = U*Sigma*U';
+                    
+                    % Computes Expectation Values if requested
+                    
+                    for iDet = 1:nDet
+                      Density =  Sigma(:);
+                      currentSignal(iDet,iWavePoint+1) = Det{iDet}*Density/normsDet(iDet);
+                      %                   currentSignal(j,k+1) = sum(sum(Det{j}.*Sigma.'))/normsDet(j);
+                    end
+                    
+                    
+                    % Store Density Matrices if requested
+                    if currentEvent.storeDensityMatrix == 1
+                      DensityMatrices{iWavePoint+1} = Sigma;
+                    end
+                  else
+                    if iWavePoint == 1
+                      Utotal = U;
+                    else
+                      Utotal = U*Utotal;
+                    end
+                  end               
                 end
-                
-                % Store Density Matrices if requested
-                if currentEvent.storeDensityMatrix == 1
-                  DensityMatrices{iWavePoint+1} = Sigma;
-                end
-                
+              else
+                Utotal = currentEvent.propagators.Utotal{iPhaseCycle};
+              end
+              
+              
+              if currentEvent.Detection == 0
+                Sigma = Utotal*Sigma*Utotal';
+                Events{iEvent}.propagators.Utotal{iPhaseCycle} = Utotal;
               end
               
               % Combine Results from current phase cycle with previous ones
@@ -355,7 +373,12 @@ switch method
               tvector = [0 dt];
             end
             
-            U = Propagator(Ham0,dt);
+            if isfield(currentEvent.propagators,'U')
+              U = currentEvent.propagators.U;
+            else
+              U = Propagator(Ham0,dt);
+              Events{iEvent}.propagators.U = U;
+            end
             
             % Propagation starts here
             for itvector=2:length(tvector)
@@ -384,8 +407,15 @@ switch method
               tvector = [0 dt];
             end
             
-            [L, SigmaSS] = Liouvillian(Ham0,Gamma,equilibriumState,dt);
-
+            if isfield(currentEvent.propagators,'L')
+              L = currentEvent.propagators.L;
+              SigmaSS = currentEvent.propagators.SigmaSS;
+            else
+              [L, SigmaSS] = Liouvillian(Ham0,Gamma,equilibriumState,dt);
+              Events{iEvent}.propagators.L = L;
+              Events{iEvent}.propagators.SigmaSS = SigmaSS;
+            end
+            
             
             % Propagation
             for itvector = 2:length(tvector)
@@ -440,6 +470,11 @@ switch method
       % not detected
       ttotal = ttotal + tvector(end);
       
+    end
+    
+    if firstDetection
+      t = [];
+      Signal = [];
     end
     
   case 'incrementation scheme'

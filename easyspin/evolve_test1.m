@@ -27,7 +27,7 @@ Params.trise = 0.015; % us
 for i = 1 : 4
     if mod(i,2)
         Events{i}.type = 'pulse';
-        [t,IQ] = pulse(Params);
+        [t,IQ,modulation] = pulse(Params);
         IQ = IQ;
 %         IQ(2,:) = IQ;
         Events{i}.t = t;
@@ -35,7 +35,7 @@ for i = 1 : 4
         Events{i}.xOp = spops(sqn,'x');
         Events{i}.ComplexExcitation = 0;
         Events{i}.PhaseCycle = [0 1];
-%                                 pi -1];
+%                                 pi 1];
 %         
     else
         Events{i}.type = 'free evolution';
@@ -45,10 +45,11 @@ for i = 1 : 4
     Events{i}.storeDensityMatrix = 1;
     Events{i}.Detection = 1;
     Events{i}.propagators = [];
+    Events{i}.Relaxation = false;
 end
 
-% Events{3}.Detection = 0;
-% Events{4}.Detection = 1;
+Events{2}.Relaxation = true;
+% Events{4}.Relaxation = true;
 
 tic
 [t, signal,state,sigmas,Eventnew]=evolve2(Sigma,Ham, Det, Events, Relaxation);
@@ -57,12 +58,17 @@ disp(state)
 figure(1); clf
 plot(t,real(signal))
 
-Events{3}.ComplexExcitation = 1;
-Events{1}.ComplexExcitation = 1;
+Events{1}.Detection = 0;
+Events{3}.Detection = 0;
+Events{2}.Detection = 0;
+Events{4}.Detection = 0;
         
 tic
+[t, signal,state,sigma,Eventnew]=evolve2(Sigma,Ham, Det, Events, Relaxation);
+toc
 % profile on
-[t, signal,state,sigmas,Eventnew]=evolve2(Sigma,Ham, Det, Events, Relaxation);
+tic
+[t, signal,state,sigmas]=evolve2(Sigma,Ham, Det, Eventnew, Relaxation);
 % profile off
 toc
 % profile report
