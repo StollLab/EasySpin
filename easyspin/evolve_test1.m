@@ -5,8 +5,8 @@ Det = {spops(sqn,'x') spops(sqn,'z') spops(sqn,'p')/2};
 % 
 system.sqn = sqn;
 system.interactions = {1,0,'z','e',1.5};
-system.T1 = 2;
-system.T2 = 10;
+system.T1 = 1;
+system.T2 = 5;
 options.silent = 0;
 options.relaxation = 1;
 [system,state] = setup(system,options);
@@ -29,13 +29,13 @@ for i = 1 : 4
         Events{i}.type = 'pulse';
         [t,IQ,modulation] = pulse(Params);
         IQ = IQ;
+        Events{i}.PhaseCycle = [0 1];
 %         IQ(2,:) = IQ;
+%         Events{i}.PhaseCycle = [0 1; pi -1];
         Events{i}.t = t;
         Events{i}.IQ = IQ;
         Events{i}.xOp = spops(sqn,'x');
         Events{i}.ComplexExcitation = 0;
-        Events{i}.PhaseCycle = [0 1];
-%                                 pi 1];
 %         
     else
         Events{i}.type = 'free evolution';
@@ -44,34 +44,53 @@ for i = 1 : 4
     end
     Events{i}.storeDensityMatrix = 1;
     Events{i}.Detection = 1;
-    Events{i}.propagators = [];
+    Events{i}.Propagation = [];
     Events{i}.Relaxation = false;
 end
 
-Events{2}.Relaxation = true;
-% Events{4}.Relaxation = true;
+Vary.Table = [1, 1; 1, 2; 2 1; 2 2];
+
+% Events{1}.Relaxation = true;
+% Events{3}.Relaxation = true;
+% Events{1}.Detection = 1;
+% Events{4}.Detection = 1;
 
 tic
-[t, signal,state,sigmas,Eventnew]=evolve2(Sigma,Ham, Det, Events, Relaxation);
+[t, signal,state,sigmas,Eventsnew]=evolve2(Sigma, Ham, Det, Events, Relaxation, Vary);
 toc
 disp(state)
 figure(1); clf
 plot(t,real(signal))
-
-Events{1}.Detection = 0;
-Events{3}.Detection = 0;
-Events{2}.Detection = 0;
-Events{4}.Detection = 0;
-        
+% 
+% Events{1}.Detection = 0;
+% Events{3}.Detection = 0;
+% Events{2}.Detection = 0;
+% Events{4}.Detection = 0;
+%         
+% tic
+% [t, signal,state,sigma,Eventnew]=evolve2(Sigma,Ham, Det, Events, Relaxation);
+% toc
+% % profile on
 tic
-[t, signal,state,sigma,Eventnew]=evolve2(Sigma,Ham, Det, Events, Relaxation);
-toc
-% profile on
-tic
-[t, signal,state,sigmas]=evolve2(Sigma,Ham, Det, Eventnew, Relaxation);
+[t, signal,state,sigmas]=evolve2(Sigma,Ham, Det, Eventsnew, Relaxation, Vary);
 % profile off
 toc
 % profile report
 disp(state)
 figure(2); clf
 plot(t,real(signal))
+% 
+% Events{1}.Detection = 0;
+% Events{3}.Detection = 0;
+% Events{2}.Detection = 0;
+% Events{4}.Detection = 0;
+% %         
+% tic
+% [t, signal,state,sigma,Eventnew]=evolve2(Sigma,Ham, Det, Events, Relaxation);
+% toc
+% disp(state)
+% 
+% tic
+% [t, signal,state,sigma,Eventnew]=evolve2(Sigma,Ham, Det, Eventnew, Relaxation);
+% toc
+% disp(state)
