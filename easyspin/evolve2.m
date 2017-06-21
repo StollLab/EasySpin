@@ -39,7 +39,7 @@
 
 
 
-function [t, Signal, Sigma, DensityMatrices, Events] = evolve2(Sigma,Ham0,Det,Events,Relaxation,Vary)
+function [TimeArray, SignalArray, Sigma, DensityMatrices, Events] = evolve2(Sigma,Ham0,Det,Events,Relaxation,Vary)
 
 if (nargin==0), help(mfilename); return; end
 
@@ -73,461 +73,538 @@ switch method
     
     nDet = numel(Det);
     normsDet = zeros(1,nDet);
-    
-    ttotal = 0;
-    firstDetection = 1;
-    startTrace = 2;
-    
     Ham0 = Ham0*2*pi;
     
+    [nAcquisition, nDimensions] = size(Vary.Table);
     
-    for iEvent = 1 : nEvents
-      currentEvent = Events{iEvent};
-      
-      if currentEvent.Relaxation
-        n = size(Sigma,1);
-        SigmaVector = reshape(Sigma,n*n,1);
-        Gamma = Relaxation.Gamma;
-        equilibriumState = reshape(Relaxation.equilibriumState,n*n,1);
-      end
-      
-      switch currentEvent.type
-        case 'pulse'
-          
-          dt = currentEvent.t(2) - currentEvent.t(1);
-          
-          nPhaseCycle = size(currentEvent.PhaseCycle,1);
-          %----------------------------------------------------------------
-          % convert the IQ wave form into a binary form, so that it
-          % is possible to use a propagator look up table
-          %----------------------------------------------------------------
-
-          rMax = max(abs(real(currentEvent.IQ(:)))); % max(abs(real....(:)))
-          iMax = max(abs(imag(currentEvent.IQ(:))));
-          
-          if rMax > iMax
-            MaxWave = rMax;
-          else
-            MaxWave = iMax;
-          end
-          
-          vertRes = 1024;
-          
-          scale = 2*2*2*pi*MaxWave/vertRes; 
-          % one factor 2 is required because of linearly polarized irradiation
-          % the other because of the digitization of the wave
-          
-          tvector(1) = 0;
-          tvector(2:length(currentEvent.t)+1) = currentEvent.t+dt;
-          
-          realArbitrary = real(currentEvent.IQ)/MaxWave;
-          realBinary = floor(vertRes*(realArbitrary+1)/2);
-          realBinary(realBinary == vertRes) = vertRes-1;
-          
-          if currentEvent.ComplexExcitation == 1
-            imagArbitrary = imag(currentEvent.IQ)/MaxWave;
-            imagBinary = floor(vertRes*(imagArbitrary+1)/2);
-            imagBinary(imagBinary==vertRes) = vertRes-1;
-          end
-          
-          if ~currentEvent.Relaxation
-            
-            if ~isfield(currentEvent.Propagation,'Utotal') || isempty(currentEvent.Propagation.Utotal)
-              % Calculation or Loading, if possible, of Propagators
-              if currentEvent.ComplexExcitation == 0
-                if ~isempty(currentEvent.Propagation) && isfield(currentEvent.Propagation,'UTable')
-                  UTable = currentEvent.Propagation.UTable;
-                else
-                  
-                  UTable = buildPropagators(Ham0,currentEvent.xOp,dt,vertRes,scale);
-                  
-                  Events{iEvent}.Propagation.UTable = UTable;
-                end
-                
-              end
-              
-              if currentEvent.Detection == 1
-                Utotal = cell(nPhaseCycle,length(realBinary));
-              end
-              
-              % Loops over the Phasecycles
-              
-              for iPhaseCycle = 1 : nPhaseCycle
-                % Propagation for one waveform
-                for iWavePoint = 1 : length(realBinary)
-                  if currentEvent.ComplexExcitation == 0
-                    % Load propagators if Complex Excitation is off
-                    U = UTable{realBinary(iPhaseCycle,iWavePoint)+1};
-                  else % For active Complex Excitation Propagators need to be recalculated
-                    Ham1 = scale*(realBinary(iPhaseCycle,iWavePoint)-vertRes/2)*real(currentEvent.xOp)+scale*(imagBinary(iPhaseCycle,iWavePoint)-vertRes/2)*imag(currentEvent.xOp);
-                    Ham =  Ham0+Ham1;
-                    U = Propagator(Ham,dt);
-                  end
-                  
-                  if currentEvent.Detection == 1
-                    Utotal{iPhaseCycle,iWavePoint} = U;
-                  else
-                    if iWavePoint == 1
-                      Utotal{iPhaseCycle} = U;
-                    else
-                      Utotal{iPhaseCycle} = U*Utotal{iPhaseCycle};
-                    end
-                  end
-                end
-              end
-              
-              Events{iEvent}.Propagation.Utotal = Utotal;
-            end
-            
-          elseif currentEvent.Relaxation
-                       
-            if ~isfield(currentEvent.Propagation,'Ltotal')
-              % Calculation or Loading, if possible, of Propagators
-              if currentEvent.ComplexExcitation == 0
-                if ~isempty(currentEvent.Propagation) && isfield(currentEvent.Propagation,'LTable')
-                  LTable = currentEvent.Propagation.LTable;
-                  SigmassTable = currentEvent.Propagation.SigmassTable;
-                else
-                  
-                  [LTable, SigmassTable] = buildLiouvillians(Ham0,Gamma,equilibriumState,currentEvent.xOp,dt,vertRes,scale);
-                  
-                  Events{iEvent}.Propagation.LTable = LTable;
-                  Events{iEvent}.Propagation.SigmassTable = SigmassTable;
-                end
-                
-              end
-              
-              if currentEvent.Detection == 1
-                Ltotal = cell(nPhaseCycle,length(realBinary));
-                SigmaSStotal = Ltotal;
-              end
-              
-              % Loops over the Phasecycles
-              
-              for iPhaseCycle = 1 : nPhaseCycle
-                % Propagation for one waveform
-                for iWavePoint = 1 : length(realBinary)
-                  if currentEvent.ComplexExcitation == 0
-                    % Load Liouvillians if Complex Excitation is off
-                    L=LTable{realBinary(iPhaseCycle,iWavePoint)+1};
-                    SigmaSS=SigmassTable{realBinary(iPhaseCycle,iWavePoint)+1};
-                  else              
-                    % if complex excitation is requested, usage of tables
-                    % is not feasible, and Liouvillians and state state
-                    % density matrices are computed for each time step Ham1 = scale*(realBinary(iPhaseCycle,iWavePoint)-vertRes/2)*real(currentEvent.xOp)+scale*(imagBinary(iPhaseCycle,iWavePoint)-vertRes/2)*imag(currentEvent.xOp);
-                    Ham1 = scale*(realBinary(iPhaseCycle,iWavePoint)-vertRes/2)*real(currentEvent.xOp)+scale*(imagBinary(iPhaseCycle,iWavePoint)-vertRes/2)*imag(currentEvent.xOp);
-                    Ham = Ham0+Ham1;
-                    [L, SigmaSS] = Liouvillian(Ham,Gamma,equilibriumState,dt);
-                  end
-                  
-                  if currentEvent.Detection == 1
-                    Ltotal{iPhaseCycle,iWavePoint} = L;
-                    SigmaSStotal{iPhaseCycle,iWavePoint} = SigmaSS;
-                  else
-                    Ltotal{iPhaseCycle,iWavePoint} = L;
-                    SigmaSStotal{iPhaseCycle,iWavePoint} = SigmaSS;
-                    %                   Here the total Liouvillian and SigmaSS need to be
-                    %                   calculated, if possibly
-                  end
-                end
-              end
-              
-              Events{iEvent}.Propagation.Ltotal = Ltotal;
-              Events{iEvent}.Propagation.SigmaSStotal = SigmaSStotal;
+    initialSigma = Sigma;
+    
+    %%%% This checks if all time traces will have the same length and can 
+    % therefore be stored in an array
+    StoreInArray = false;
+    for iDimension = 1 : nDimensions
+      for Event2Check = Vary.Events{iDimension}
+        if Events{Event2Check}.Detection == 1
+          nDataSets = length(Vary.Dimension{iDimension}.ts{Event2Check});
+          sizetocompare = size(Vary.Dimension{iDimension}.ts{Event2Check}{1},2);
+          for i = 2 : nDataSets
+            if sizetocompare ~= size(Vary.Dimension{iDimension}.ts{Event2Check}{i},2)
+              StoreInArray = true;
             end
           end
-        
+        end
       end
-          
     end
-
-    for iEvent = 1 : nEvents
+    
+    if StoreInArray
+      SignalArray = cell(1,nAcquisition);
+      TimeArray = SignalArray;
+    end
+    %----------------------------------------------------------------------
+    
+    for iAcquisition = 1 : nAcquisition
+      tic
       
-      currentEvent = Events{iEvent};
+      Sigma = initialSigma;
       
-      if length(currentEvent.t) == 1
-        dt = currentEvent.t;
-        tvector = [0 currentEvent.t];
-      else
-        dt = currentEvent.t(2) - currentEvent.t(1);
-        tvector = currentEvent.t;
-      end
-
-      if currentEvent.Detection == 1
-        currentSignal = zeros(nDet,length(tvector));
-        n = size(Sigma,1);
+      for iDimension = 1 : nDimensions
+        iPoint = Vary.Table(iAcquisition,iDimension);
         
-        for iDet = 1:length(Det)
+        for iEvent = Vary.Events{iDimension}
+                   
+          switch Events{iEvent}.type
+            case 'pulse'
+              Events{iEvent}.IQ = Vary.Dimension{iDimension}.IQs{iEvent}{iPoint};
+              Events{iEvent}.t = Vary.Dimension{iDimension}.ts{iEvent}{iPoint};
+            case 'free evolution'
+              Events{iEvent}.t = Vary.Dimension{iDimension}.ts{iEvent}{iPoint};
+          end
           
-          Det{iDet} = reshape(Det{iDet}.',1,n^2);
-          normsDet(iDet) = Det{iDet}*Det{iDet}';
-          %           normsDet(kk) = 1;
-          Density = Sigma(:);
-          %           normsDet(kk) = sum(sum(Det{kk}.*Det{kk}));
-          %           currentSignal(kk,1) = sum(sum(Det{kk}.*Sigma.'))/normsDet(kk);
-          currentSignal(iDet,1) = Det{iDet}*Density/normsDet(iDet);
+          Events{iEvent}.Propagation = [];
+          
+          
         end
         
-      else
-        currentSignal=[];
+        
       end
-            
-      if currentEvent.storeDensityMatrix == 1
-        DensityMatrices=cell(1,length(currentEvent.t));
-        DensityMatrices{1}=Sigma;
-      else
-        DensityMatrices = [];
-      end
+      ttotal = 0;
+      firstDetection = 1;
+      startTrace = 2;
       
-     
-      switch currentEvent.type
-        case 'pulse'
+      
+      
+      
+      for iEvent = 1 : nEvents
+        currentEvent = Events{iEvent};
+        
+        if isempty(currentEvent.Propagation) || (~isfield(currentEvent.Propagation,'Utotal') || ~isfield(currentEvent.Propagation,'Ltotal'))
           
-          tvector(1) = 0;
-          tvector(2:length(currentEvent.t)+1) = currentEvent.t+dt;
           
-          nPhaseCycle = size(currentEvent.PhaseCycle,1);
-          
-          if nPhaseCycle>1
-            initialState = Sigma;
-            loopState = zeros(size(Sigma));
-            PCnorm = sum(abs(currentEvent.PhaseCycle(:,2)));
-          end
-          
-          %----------------------------------------------------------------
-          % Propagation Starts Here
-          %----------------------------------------------------------------
-          
-          if ~currentEvent.Relaxation
-            
-         
-            % Loops over the Phasecycles
-            for iPhaseCycle = 1 : nPhaseCycle
-            
-          
-              if currentEvent.Detection == 0
-                Utotal = currentEvent.Propagation.Utotal{iPhaseCycle};
-                Sigma = Utotal*Sigma*Utotal';
+          switch currentEvent.type
+            case 'pulse'
+              
+              dt = currentEvent.t(2) - currentEvent.t(1);
+              
+              nPhaseCycle = size(currentEvent.PhaseCycle,1);
+              %----------------------------------------------------------------
+              % convert the IQ wave form into a binary form, so that it
+              % is possible to use a propagator look up table
+              %----------------------------------------------------------------
+              
+              rMax = max(abs(real(currentEvent.IQ(:)))); % max(abs(real....(:)))
+              iMax = max(abs(imag(currentEvent.IQ(:))));
+              
+              if rMax > iMax
+                MaxWave = rMax;
               else
-                for iWavePoint = 1 : size(currentEvent.Propagation.Utotal,2)
-                  U = currentEvent.Propagation.Utotal{iPhaseCycle,iWavePoint};
-                  Sigma = U*Sigma*U';
+                MaxWave = iMax;
+              end
+              
+              vertRes = 1024;
+              
+              scale = 2*2*2*pi*MaxWave/vertRes;
+              % one factor 2 is required because of linearly polarized irradiation
+              % the other because of the digitization of the wave
+              
+              tvector(1) = 0;
+              tvector(2:length(currentEvent.t)+1) = currentEvent.t+dt;
+              
+              realArbitrary = real(currentEvent.IQ)/MaxWave;
+              realBinary = floor(vertRes*(realArbitrary+1)/2);
+              realBinary(realBinary == vertRes) = vertRes-1;
+              
+              if currentEvent.ComplexExcitation == 1
+                imagArbitrary = imag(currentEvent.IQ)/MaxWave;
+                imagBinary = floor(vertRes*(imagArbitrary+1)/2);
+                imagBinary(imagBinary==vertRes) = vertRes-1;
+              end
+              
+              if ~currentEvent.Relaxation
+                
+                % Calculation or Loading, if possible, of Propagators
+                if currentEvent.ComplexExcitation == 0
+                  if ~isempty(currentEvent.Propagation) && isfield(currentEvent.Propagation,'UTable')
+                    UTable = currentEvent.Propagation.UTable;
+                  else
+                    
+                    UTable = buildPropagators(Ham0,currentEvent.xOp,dt,vertRes,scale);
+                    
+                    Events{iEvent}.Propagation.UTable = UTable;
+                  end
                   
-                  % Computes Expectation Values if requested
-                  if currentEvent.Detection == 1
-                    for iDet = 1:nDet
-                      Density = Sigma(:);
-                      currentSignal(iDet,iWavePoint+1) = Det{iDet}*Density/normsDet(iDet);
-                      %                   currentSignal(j,k+1)=sum(sum(Det{j}.*Sigma.'))/normsDet(j);
+                end
+                
+                if currentEvent.Detection == 1
+                  Utotal = cell(nPhaseCycle,length(realBinary));
+                end
+                
+                % Loops over the Phasecycles
+                
+                for iPhaseCycle = 1 : nPhaseCycle
+                  % Propagation for one waveform
+                  for iWavePoint = 1 : length(realBinary)
+                    if currentEvent.ComplexExcitation == 0
+                      % Load propagators if Complex Excitation is off
+                      U = UTable{realBinary(iPhaseCycle,iWavePoint)+1};
+                    else % For active Complex Excitation Propagators need to be recalculated
+                      Ham1 = scale*(realBinary(iPhaseCycle,iWavePoint)-vertRes/2)*real(currentEvent.xOp)+scale*(imagBinary(iPhaseCycle,iWavePoint)-vertRes/2)*imag(currentEvent.xOp);
+                      Ham =  Ham0+Ham1;
+                      U = Propagator(Ham,dt);
+                    end
+                    
+                    if currentEvent.Detection == 1
+                      Utotal{iPhaseCycle,iWavePoint} = U;
+                    else
+                      if iWavePoint == 1
+                        Utotal{iPhaseCycle} = U;
+                      else
+                        Utotal{iPhaseCycle} = U*Utotal{iPhaseCycle};
+                      end
                     end
                   end
-                
-                % Store Density Matrices if requested
-                if currentEvent.storeDensityMatrix == 1
-                  DensityMatrices{iWavePoint+1}=Sigma;
                 end
-   
+                
+                Events{iEvent}.Propagation.Utotal = Utotal;
+                
+              elseif currentEvent.Relaxation
+                
+                n = size(Sigma,1);
+                Gamma = Relaxation.Gamma;
+                equilibriumState = reshape(Relaxation.equilibriumState,n*n,1);
+                
+                if ~isfield(currentEvent.Propagation,'Ltotal')
+                  % Calculation or Loading, if possible, of Propagators
+                  if currentEvent.ComplexExcitation == 0
+                    if ~isempty(currentEvent.Propagation) && isfield(currentEvent.Propagation,'LTable')
+                      LTable = currentEvent.Propagation.LTable;
+                      SigmassTable = currentEvent.Propagation.SigmassTable;
+                    else
+                      
+                      [LTable, SigmassTable] = buildLiouvillians(Ham0,Gamma,equilibriumState,currentEvent.xOp,dt,vertRes,scale);
+                      
+                      Events{iEvent}.Propagation.LTable = LTable;
+                      Events{iEvent}.Propagation.SigmassTable = SigmassTable;
+                    end
+                    
+                  end
+                  
+                  if currentEvent.Detection == 1
+                    Ltotal = cell(nPhaseCycle,length(realBinary));
+                    SigmaSStotal = Ltotal;
+                  end
+                  
+                  % Loops over the Phasecycles
+                  
+                  for iPhaseCycle = 1 : nPhaseCycle
+                    % Propagation for one waveform
+                    for iWavePoint = 1 : length(realBinary)
+                      if currentEvent.ComplexExcitation == 0
+                        % Load Liouvillians if Complex Excitation is off
+                        L=LTable{realBinary(iPhaseCycle,iWavePoint)+1};
+                        SigmaSS=SigmassTable{realBinary(iPhaseCycle,iWavePoint)+1};
+                      else
+                        % if complex excitation is requested, usage of tables
+                        % is not feasible, and Liouvillians and state state
+                        % density matrices are computed for each time step Ham1 = scale*(realBinary(iPhaseCycle,iWavePoint)-vertRes/2)*real(currentEvent.xOp)+scale*(imagBinary(iPhaseCycle,iWavePoint)-vertRes/2)*imag(currentEvent.xOp);
+                        Ham1 = scale*(realBinary(iPhaseCycle,iWavePoint)-vertRes/2)*real(currentEvent.xOp)+scale*(imagBinary(iPhaseCycle,iWavePoint)-vertRes/2)*imag(currentEvent.xOp);
+                        Ham = Ham0+Ham1;
+                        [L, SigmaSS] = Liouvillian(Ham,Gamma,equilibriumState,dt);
+                      end
+                      
+                      if currentEvent.Detection == 1
+                        Ltotal{iPhaseCycle,iWavePoint} = L;
+                        SigmaSStotal{iPhaseCycle,iWavePoint} = SigmaSS;
+                      else
+                        Ltotal{iPhaseCycle,iWavePoint} = L;
+                        SigmaSStotal{iPhaseCycle,iWavePoint} = SigmaSS;
+                        %                   Here the total Liouvillian and SigmaSS need to be
+                        %                   calculated, if possibly
+                      end
+                    end
+                  end
+                  
+                  Events{iEvent}.Propagation.Ltotal = Ltotal;
+                  Events{iEvent}.Propagation.SigmaSStotal = SigmaSStotal;
                 end
               end
               
-              % Combine Results from current phase cycle with previous ones
-              if nPhaseCycle > 1
-                PCweight = currentEvent.PhaseCycle(iPhaseCycle,2)/PCnorm;
-                loopState = loopState+PCweight*Sigma;
-                if currentEvent.Detection == 1
-                  if iPhaseCycle ~= 1
-                    PCSignal = PCSignal+PCweight*currentSignal;
-                  else
-                    PCSignal = PCweight*currentSignal;
+          end
+          
+        end
+      end
+      
+      for iEvent = 1 : nEvents
+        
+        currentEvent = Events{iEvent};
+        
+        if length(currentEvent.t) == 1
+          dt = currentEvent.t;
+          tvector = [0 currentEvent.t];
+        else
+          dt = currentEvent.t(2) - currentEvent.t(1);
+          tvector = currentEvent.t;
+        end
+        
+        if currentEvent.Detection == 1
+          currentSignal = zeros(nDet,length(tvector));
+          n = size(Sigma,1);
+          
+          for iDet = 1:length(Det)
+            
+            Det{iDet} = reshape(Det{iDet}.',1,n^2);
+            normsDet(iDet) = Det{iDet}*Det{iDet}';
+            %           normsDet(kk) = 1;
+            Density = Sigma(:);
+            %           normsDet(kk) = sum(sum(Det{kk}.*Det{kk}));
+            %           currentSignal(kk,1) = sum(sum(Det{kk}.*Sigma.'))/normsDet(kk);
+            currentSignal(iDet,1) = Det{iDet}*Density/normsDet(iDet);
+          end
+          
+        else
+          currentSignal=[];
+        end
+        
+        if currentEvent.storeDensityMatrix == 1
+          DensityMatrices=cell(1,length(currentEvent.t));
+          DensityMatrices{1}=Sigma;
+        else
+          DensityMatrices = [];
+        end
+        
+        
+        switch currentEvent.type
+          case 'pulse'
+            
+            tvector(1) = 0;
+            tvector(2:length(currentEvent.t)+1) = currentEvent.t+dt;
+            
+            nPhaseCycle = size(currentEvent.PhaseCycle,1);
+            
+            if nPhaseCycle>1
+              StateBeforePC = Sigma;
+              loopState = zeros(size(Sigma));
+              PCnorm = sum(abs(currentEvent.PhaseCycle(:,2)));
+            end
+            
+            %----------------------------------------------------------------
+            % Propagation Starts Here
+            %----------------------------------------------------------------
+            
+            if ~currentEvent.Relaxation
+              
+              
+              % Loops over the Phasecycles
+              for iPhaseCycle = 1 : nPhaseCycle
+                
+                
+                if currentEvent.Detection == 0
+                  U = currentEvent.Propagation.Utotal{iPhaseCycle};
+                  Sigma = U*Sigma*U';
+                else
+                  for iWavePoint = 1 : size(currentEvent.Propagation.Utotal,2)
+                    U = currentEvent.Propagation.Utotal{iPhaseCycle,iWavePoint};
+                    Sigma = U*Sigma*U';
+                    
+                    % Computes Expectation Values if requested
+                    if currentEvent.Detection == 1
+                      for iDet = 1:nDet
+                        Density = Sigma(:);
+                        currentSignal(iDet,iWavePoint+1) = Det{iDet}*Density/normsDet(iDet);
+                        %                   currentSignal(j,k+1)=sum(sum(Det{j}.*Sigma.'))/normsDet(j);
+                      end
+                    end
+                    
+                    % Store Density Matrices if requested
+                    if currentEvent.storeDensityMatrix == 1
+                      DensityMatrices{iWavePoint+1}=Sigma;
+                    end
+                    
                   end
                 end
-                if iPhaseCycle ~= nPhaseCycle
-                  Sigma = initialState;
+                
+                % Combine Results from current phase cycle with previous ones
+                if nPhaseCycle > 1
+                  PCweight = currentEvent.PhaseCycle(iPhaseCycle,2)/PCnorm;
+                  loopState = loopState+PCweight*Sigma;
+                  if currentEvent.Detection == 1
+                    if iPhaseCycle ~= 1
+                      PCSignal = PCSignal+PCweight*currentSignal;
+                    else
+                      PCSignal = PCweight*currentSignal;
+                    end
+                  end
+                  if iPhaseCycle ~= nPhaseCycle
+                    Sigma = StateBeforePC;
+                  end
                 end
+                
+              end
+              
+            elseif currentEvent.Relaxation % Propagation in Liouville space
+              
+              
+              % Loops over the Phasecycles
+              for iPhaseCycle = 1 : nPhaseCycle
+                SigmaVector = reshape(Sigma,n*n,1);
+                
+                if currentEvent.Detection == 3 % if propagation in Liouville Space in one step is possible, this has to go here
+                  Utotal = currentEvent.Propagation.Utotal{iPhaseCycle};
+                  Sigma = Utotal*Sigma*Utotal';
+                else
+                  for iWavePoint = 1 : size(currentEvent.Propagation.Ltotal,2)
+                    L = currentEvent.Propagation.Ltotal{iPhaseCycle,iWavePoint};
+                    SigmaSS = currentEvent.Propagation.SigmaSStotal{iPhaseCycle,iWavePoint};
+                    
+                    SigmaVector = SigmaSS+L*(SigmaVector-SigmaSS);
+                    
+                    
+                    % Computes Expectation Values if requested
+                    if currentEvent.Detection == 1
+                      Sigma = reshape(SigmaVector,n,n);
+                      for iDet = 1:nDet
+                        Density = Sigma(:);
+                        currentSignal(iDet,iWavePoint+1) = Det{iDet}*Density/normsDet(iDet);
+                        %                   currentSignal(j,k+1)=sum(sum(Det{j}.*Sigma.'))/normsDet(j);
+                      end
+                    end
+                    
+                    % Store Density Matrices if requested
+                    if currentEvent.storeDensityMatrix == 1
+                      Sigma = reshape(SigmaVector,n,n);
+                      DensityMatrices{iWavePoint+1}=Sigma;
+                    end
+                    
+                  end
+                end
+                
+                % Combine Results from current phase cycle with previous ones
+                if nPhaseCycle > 1
+                  PCweight = currentEvent.PhaseCycle(iPhaseCycle,2)/PCnorm;
+                  loopState = loopState+PCweight*Sigma;
+                  if currentEvent.Detection == 1
+                    if iPhaseCycle ~= 1
+                      PCSignal = PCSignal+PCweight*currentSignal;
+                    else
+                      PCSignal = PCweight*currentSignal;
+                    end
+                  end
+                  if iPhaseCycle ~= nPhaseCycle
+                    Sigma = StateBeforePC;
+                  end
+                end
+                
               end
               
             end
             
-          elseif currentEvent.Relaxation % Propagation in Liouville space
+            % After Propagation and if PhaseCycling was active, the results
+            % from phase cycling are returned
+            if nPhaseCycle > 1
+              Sigma = loopState;
+              if currentEvent.Detection == 1
+                currentSignal = PCSignal;
+              end
+            end
             
+          case 'free evolution'
             
-            % Loops over the Phasecycles
-            for iPhaseCycle = 1 : nPhaseCycle
+            if ~currentEvent.Relaxation
+              % If Detection is off during evolution, the entire evolution
+              % can be propagated in one step
+              if currentEvent.Detection == 0
+                dt = currentEvent.t(end);
+                tvector = [0 dt];
+              end
+              
+              if isfield(currentEvent.Propagation,'Utotal')
+                U = currentEvent.Propagation.Utotal;
+              else
+                U = Propagator(Ham0,dt);
+                Events{iEvent}.Propagation.Utotal = U;
+              end
+              
+              % Propagation starts here
+              for itvector=2:length(tvector)
+                
+                Sigma=U*Sigma*U';
+                
+                if currentEvent.Detection == 1
+                  for iDet = 1:nDet
+                    Density = Sigma(:);
+                    currentSignal(iDet,itvector) = Det{iDet}*Density/normsDet(iDet);
+                    %               currentSignal(j,k)=sum(sum(Det{j}.*Sigma.'))/normsDet(j);
+                  end
+                end
+                
+                if currentEvent.storeDensityMatrix == 1
+                  DensityMatrices{itvector}=Sigma;
+                end
+                
+              end
+              
+            elseif currentEvent.Relaxation % Propagate in Liouville space
+              
+              n = size(Sigma,1);
+              Gamma = Relaxation.Gamma;
+              equilibriumState = reshape(Relaxation.equilibriumState,n*n,1);
               SigmaVector = reshape(Sigma,n*n,1);
               
-              if currentEvent.Detection == 3 % if propagation in Liouville Space in one step is possible, this has to go here
-                Utotal = currentEvent.Propagation.Utotal{iPhaseCycle};
-                Sigma = Utotal*Sigma*Utotal';
+              if currentEvent.Detection == 0
+                dt = currentEvent.t(end);
+                tvector = [0 dt];
+              end
+              
+              if isfield(currentEvent.Propagation,'Ltotal')
+                L = currentEvent.Propagation.Ltotal;
+                SigmaSS = currentEvent.Propagation.SigmaSStotal;
               else
-                for iWavePoint = 1 : size(currentEvent.Propagation.Ltotal,2)
-                  L = currentEvent.Propagation.Ltotal{iPhaseCycle,iWavePoint};
-                  SigmaSS = currentEvent.Propagation.SigmaSStotal{iPhaseCycle,iWavePoint};
-                  
-                  SigmaVector = SigmaSS+L*(SigmaVector-SigmaSS);
-                  
-                  
-                                    % Computes Expectation Values if requested
-                  if currentEvent.Detection == 1
-                    Sigma = reshape(SigmaVector,n,n);
-                    for iDet = 1:nDet
-                      Density = Sigma(:);
-                      currentSignal(iDet,iWavePoint+1) = Det{iDet}*Density/normsDet(iDet);
-                      %                   currentSignal(j,k+1)=sum(sum(Det{j}.*Sigma.'))/normsDet(j);
-                    end
-                  end
+                [L, SigmaSS] = Liouvillian(Ham0,Gamma,equilibriumState,dt);
+                Events{iEvent}.Propagation.Ltotal = L;
+                Events{iEvent}.Propagation.SigmaSStotal = SigmaSS;
+              end
+              
+              
+              % Propagation
+              for itvector = 2:length(tvector)
+                SigmaVector = SigmaSS+L*(SigmaVector-SigmaSS);
+                Sigma = reshape(SigmaVector,n,n);
                 
-                % Store Density Matrices if requested
-                if currentEvent.storeDensityMatrix == 1
-                  Sigma = reshape(SigmaVector,n,n);
-                  DensityMatrices{iWavePoint+1}=Sigma;
-                end
-   
-                end
-              end
-              
-              % Combine Results from current phase cycle with previous ones
-              if nPhaseCycle > 1
-                PCweight = currentEvent.PhaseCycle(iPhaseCycle,2)/PCnorm;
-                loopState = loopState+PCweight*Sigma;
                 if currentEvent.Detection == 1
-                  if iPhaseCycle ~= 1
-                    PCSignal = PCSignal+PCweight*currentSignal;
-                  else
-                    PCSignal = PCweight*currentSignal;
+                  for iDet = 1:nDet
+                    Density = Sigma(:);
+                    currentSignal(iDet,itvector) = Det{iDet}*Density/normsDet(iDet);
+                    %                 currentSignal(j,k)=sum(sum(Det{j}.*Sigma.'))/normsDet(j);
                   end
                 end
-                if iPhaseCycle ~= nPhaseCycle
-                  Sigma = initialState;
+                
+                if currentEvent.storeDensityMatrix == 1
+                  DensityMatrices{itvector} = Sigma;
                 end
               end
               
+              
             end
-                       
-          end
+            
+        end
+        
+        % This combines the signals and time axes from all detected event
+        if firstDetection && ~isempty(currentSignal)
+          Signal = [];
+          t = [];
+          % store first point of the first signal
+          Signal(:,1) = currentSignal(:,1);
+          t(1,1) = ttotal;
           
-          % After Propagation and if PhaseCycling was active, the results
-          % from phase cycling are returned
-          if nPhaseCycle > 1
-            Sigma = loopState;
-            if currentEvent.Detection == 1
-              currentSignal = PCSignal;
-            end
-          end
+          % now add all the others timepoints
+          nSignal = size(currentSignal,2);
+          endTrace = startTrace+nSignal-2;
+          Signal(:,startTrace:endTrace) = currentSignal(:,2:end);
+          t(1,startTrace:endTrace) = tvector(2:end)+ttotal;
+          startTrace = endTrace+1;
+          firstDetection = 0;
           
-        case 'free evolution'        
-          
-          if ~currentEvent.Relaxation
-            % If Detection is off during evolution, the entire evolution
-            % can be propagated in one step
-            if currentEvent.Detection == 0
-              dt = currentEvent.t(end);
-              tvector = [0 dt];
-            end
-            
-            if isfield(currentEvent.Propagation,'Utotal')
-              U = currentEvent.Propagation.Utotal;
-            else
-              U = Propagator(Ham0,dt);
-              Events{iEvent}.Propagation.Utotal = U;
-            end
-            
-            % Propagation starts here
-            for itvector=2:length(tvector)
-              
-              Sigma=U*Sigma*U';
-              
-              if currentEvent.Detection == 1
-                for iDet = 1:nDet
-                  Density = Sigma(:);
-                  currentSignal(iDet,itvector) = Det{iDet}*Density/normsDet(iDet);
-                  %               currentSignal(j,k)=sum(sum(Det{j}.*Sigma.'))/normsDet(j);
-                end
-              end
-              
-              if currentEvent.storeDensityMatrix == 1
-                DensityMatrices{itvector}=Sigma;
-              end
-              
-            end
-            
-          elseif currentEvent.Relaxation % Propagate in Liouville space
-            SigmaVector = reshape(Sigma,n*n,1);
-            
-            if currentEvent.Detection == 0
-              dt = currentEvent.t(end);
-              tvector = [0 dt];
-            end
-            
-            if isfield(currentEvent.Propagation,'Ltotal')
-              L = currentEvent.Propagation.Ltotal;
-              SigmaSS = currentEvent.Propagation.SigmaSStotal;
-            else
-              [L, SigmaSS] = Liouvillian(Ham0,Gamma,equilibriumState,dt);
-              Events{iEvent}.Propagation.Ltotal = L;
-              Events{iEvent}.Propagation.SigmaSStotal = SigmaSS;
-            end
-            
-            
-            % Propagation
-            for itvector = 2:length(tvector)
-              SigmaVector = SigmaSS+L*(SigmaVector-SigmaSS);
-              Sigma = reshape(SigmaVector,n,n);
-              
-              if currentEvent.Detection == 1
-                for iDet = 1:nDet
-                  Density = Sigma(:);
-                  currentSignal(iDet,itvector) = Det{iDet}*Density/normsDet(iDet);
-                  %                 currentSignal(j,k)=sum(sum(Det{j}.*Sigma.'))/normsDet(j);
-                end
-              end
-              
-              if currentEvent.storeDensityMatrix == 1
-                DensityMatrices{itvector} = Sigma;
-              end
-            end
-            
-            
-          end
-          
+        elseif ~isempty(currentSignal)
+          % adding other signals, this confusing index is necessary in
+          % order to avoid double counting last point of a signal and the
+          % first point of the succiding signal
+          nSignal = size(currentSignal,2);
+          endTrace = startTrace+nSignal-2;
+          Signal(:,startTrace:endTrace) = currentSignal(:,2:end);
+          t(1,startTrace:endTrace) = tvector(2:end)+ttotal;
+          startTrace = endTrace+1;
+        end
+        
+        % Update Total Time, necessary to keep correct timings  if events are
+        % not detected
+        ttotal = ttotal + tvector(end);
+        
       end
       
-      % This combines the signals and time axes from all detected event
-      if firstDetection && ~isempty(currentSignal)
-        
-        % store first point of the first signal
-        Signal(:,1) = currentSignal(:,1);
-        t(1,1) = ttotal;
-        
-        % now add all the others timepoints
-        nSignal = size(currentSignal,2);
-        endTrace = startTrace+nSignal-2;
-        Signal(:,startTrace:endTrace) = currentSignal(:,2:end);
-        t(1,startTrace:endTrace) = tvector(2:end)+ttotal;
-        startTrace = endTrace+1;
-        firstDetection = 0;
-        
-      elseif ~isempty(currentSignal)
-        % adding other signals, this confusing index is necessary in
-        % order to avoid double counting last point of a signal and the
-        % first point of the succiding signal
-        nSignal = size(currentSignal,2);
-        endTrace = startTrace+nSignal-2;
-        Signal(:,startTrace:endTrace) = currentSignal(:,2:end);
-        t(1,startTrace:endTrace) = tvector(2:end)+ttotal;
-        startTrace = endTrace+1;
+      if ~firstDetection
+        % move all the detected signals into large array here!
+        if StoreInArray
+          SignalArray{iAcquisition} = Signal;
+          TimeArray{iAcquisition} = t;
+        else
+          if iAcquisition == 1
+            SignalSize = size(Signal);
+            SignalArray = zeros(SignalSize(1),SignalSize(2),nAcquisition);
+            SignalArray(:,:,iAcquisition) = Signal;
+            TimeArray = t;
+          else
+            SignalArray(:,:,iAcquisition) = Signal;
+          end
+        end
       end
-      
-      % Update Total Time, necessary to keep correct timings  if events are
-      % not detected
-      ttotal = ttotal + tvector(end);
-      
+      toc
     end
     
     if firstDetection
-      t = [];
-      Signal = [];
+      SignalArray = [];
+      TimeArray = [];
     end
     
+
   case 'incrementation scheme'
     
     
