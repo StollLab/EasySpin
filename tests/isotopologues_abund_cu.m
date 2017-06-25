@@ -3,37 +3,48 @@ function [err,data] = test(opt,olddata)
 ab63 = nucabund('63Cu');
 ab65 = nucabund('65Cu');
 
-a = isotopologues('Cu');
-b = [ab63 ab65];
-ok = areequal(a.Abund,b);
+isoList = isotopologues('Cu');
+abund0 = [ab63 ab65];
+abund = extractabundances(isoList);
+ok = areequal(abund,abund0);
 
-a = isotopologues('Cu,Cu');
-b = [ab63^2 ab63*ab65 ab63*ab65 ab65^2];
-ok = ok && areequal(a.Abund,b);
+isoList = isotopologues('Cu,Cu');
+abund = extractabundances(isoList);
+abund0 = [ab63^2 ab63*ab65 ab63*ab65 ab65^2];
+ok = ok && areequal(abund,abund0);
 
-a = isotopologues('Cu,Cu,63Cu');
-b = [ab63^2 ab63*ab65 ab63*ab65 ab65^2];
-ok = ok && areequal(a.Abund,b);
+isoList = isotopologues('Cu,Cu,63Cu');
+abund = extractabundances(isoList);
+abund0 = [ab63^2 ab63*ab65 ab63*ab65 ab65^2];
+ok = ok && areequal(abund,abund0);
 
-a = isotopologues('Cu,63Cu,Cu');
-b = [ab63^2 ab63*ab65 ab63*ab65 ab65^2];
-ok = ok && areequal(a.Abund,b);
+isoList = isotopologues('Cu,63Cu,Cu');
+abund = extractabundances(isoList);
+abund0 = [ab63^2 ab63*ab65 ab63*ab65 ab65^2];
+ok = ok && areequal(abund,abund0);
 
-a = isotopologues('63Cu,Cu,Cu');
-b = [ab63^2 ab63*ab65 ab63*ab65 ab65^2];
-ok = ok && areequal(a.Abund,b);
+isoList = isotopologues('63Cu,Cu,Cu');
+abund = extractabundances(isoList);
+abund0 = [ab63^2 ab63*ab65 ab63*ab65 ab65^2];
+ok = ok && areequal(abund,abund0);
 
-a = isotopologues('(63,65)Cu',[.5 .5]);
-b = [.5 .5];
-ok = ok && areequal(a.Abund,b);
+isoList = isotopologues('(63,65)Cu',1,[0.5 0.5]);
+abund = extractabundances(isoList);
+abund0 = [0.5 0.5];
+ok = ok && areequal(abund,abund0);
 
-a = isotopologues('(63,65)Cu,1H',{[.5 .5],1});
-b = [.5 .5];
-ok = ok && areequal(a.Abund,b);
+isoList = isotopologues('(63,65)Cu,1H',[1 1],{[0.5 0.5],1});
+abund = extractabundances(isoList);
+abund0 = [0.5 0.5];
+ok = ok && areequal(abund,abund0);
 
-a = isotopologues('(63,65)Cu,(1,2)H',{[.5 .5],[.9 .1]});
-b = [.45 .45 .05 .05];
-ok = ok && areequal(a.Abund,b);
+isoList = isotopologues('(63,65)Cu,(1,2)H',[1,1],{[0.5 0.5],[0.9 0.1]});
+abund = extractabundances(isoList);
+abund0 = [0.45 0.05 0.45 0.05];
+ok = ok && areequal(abund,abund0);
 
 err = ~ok;
 data = [];
+
+function a = extractabundances(iso)
+a = [iso.Abund];

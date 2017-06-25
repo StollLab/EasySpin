@@ -294,8 +294,8 @@ logmsg(1,'-general-----------------------------------------------');
 % Spin system
 %===================================================================
 if ~isfield(Sys,'Nucs'), Sys.Nucs = ''; end
-outi = isotopologues(Sys.Nucs);
-if outi.nIso>1
+isoList = isotopologues(Sys.Nucs);
+if numel(isoList)>1
   error('saffron does not support isotope mixtures. Please specify pure isotopes in Sys.Nucs.');
 end
 

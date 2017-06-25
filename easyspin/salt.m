@@ -121,8 +121,8 @@ logmsg(1,'-general-----------------------------------------------');
 % Processing spin system structure
 %==========================================================================
 if ~isfield(Sys,'Nucs'), Sys.Nucs = ''; end
-out = isotopologues(Sys.Nucs);
-if (out.nIso>1)
+isoList = isotopologues(Sys.Nucs);
+if numel(isoList)>1
   error('salt does not support isotope mixtures. Please specify pure isotopes in Sys.Nucs.');
 end
 

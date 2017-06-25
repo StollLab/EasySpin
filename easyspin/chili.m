@@ -147,8 +147,9 @@ logmsg(1,'-- slow motion regime simulation ----------------------------------');
 
 % Spin system
 %-------------------------------------------------------------------
-out = isotopologues(Sys.Nucs);
-if (out.nIso>1)
+if ~isfield(Sys,'Nucs'), Sys.Nucs = ''; end
+isoList = isotopologues(Sys.Nucs);
+if numel(isoList)>1
   error('chili does not support isotope mixtures. Please specify pure isotopes in Sys.Nucs.');
 end
 
