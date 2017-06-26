@@ -51,14 +51,18 @@ end
 
 % hyperfine ---------------------------------------
 if ~isfield(NewSys,'fullA')
-  fullA = size(NewSys.A,1)==3*nNuclei;
+  if isfield(NewSys,'A')
+    fullA = size(NewSys.A,1)==3*nNuclei;
+  else
+    fullA = false; % if only A_ is given
+  end
 else
   fullA = NewSys.fullA;
 end
 
 if ~fullA
-  F = {'A','AFrame'};
-  for k = 1:2
+  F = {'A','AFrame','A_'};
+  for k=1:numel(F)
     Field = F{k};
     if isfield(NewSys,Field)
       v = NewSys.(Field);
@@ -75,6 +79,7 @@ else
   for iNuc = numel(rmvidx):-1:1
     v((rmvidx(iNuc)-1)*3+(1:3),:) = [];
   end
+  v(isnan(v))=[];
   if isempty(v)
     NewSys = rmfield(NewSys,'A');
   else
