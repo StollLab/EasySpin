@@ -15,7 +15,8 @@
 %     SimOpt      options for the simulation algorithms
 %     FitOpt      options for the fitting algorithms
 %        Method   string containing kewords for
-%          -algorithm: 'simplex','levmar','montecarlo','genetic','grid'
+%          -algorithm: 'simplex','levmar','montecarlo','genetic','grid',
+%                      'swarm'
 %          -target function: 'fcn', 'int', 'dint', 'diff', 'fft'
 %        Scaling  string with scaling method keyword
 %          'maxabs' (default), 'minmax', 'lsq', 'lsq0','lsq1','lsq2','none'
@@ -664,13 +665,13 @@ if (nParameters_>0)
       FitOpts.Gradient = FitOpts.TolFun;
       bestx0_ = esfit_levmar(@residuals_,x0_,FitOpts,funArgs{:});
     case 3 % Monte Carlo
-      bestx0_ = esfit_montecarlo(@assess,nParameters_,funArgs{:});
+      bestx0_ = esfit_montecarlo(@assess,nParameters_,FitOpts,funArgs{:});
     case 4 % Genetic
-      bestx0_ = esfit_genetic(@assess,nParameters_,funArgs{:});
+      bestx0_ = esfit_genetic(@assess,nParameters_,FitOpts,funArgs{:});
     case 5 % Grid search
-      bestx0_ = esfit_grid(@assess,nParameters_,funArgs{:});
+      bestx0_ = esfit_grid(@assess,nParameters_,FitOpts,funArgs{:});
     case 6 % Particle swarm
-      bestx0_ = esfit_particleswarm(@assess,nParameters_,funArgs{:});
+      bestx0_ = esfit_particleswarm(@assess,nParameters_,FitOpts,funArgs{:});
   end
   bestx(~FitData.inactiveParams) = bestx0_;
 end

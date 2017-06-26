@@ -1,6 +1,6 @@
 function [err,data] = test(opt,olddata)
 
-% Assure that esfit runs.
+% Assure that esfit runs using multiple systems.
 
 Sys1.g = [2 2.1];
 Sys1.lw = 10;

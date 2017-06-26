@@ -35,7 +35,10 @@ globalbesterror = inf;
 minerror = inf;
 startTime = cputime;
   
-FitOpt.IterationPrintFunction('initial iteration');
+
+if FitOpt.PrintLevel
+  FitOpt.IterationPrintFunction('initial iteration');
+end
 
 iIteration = 1;
 stopCode = 0;

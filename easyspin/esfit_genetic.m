@@ -46,7 +46,9 @@ bestx = Population(1,:)*0;
 
 
 % Score initial population
-FitOpt.IterationPrintFunction('initial population');
+if FitOpt.PrintLevel
+  FitOpt.IterationPrintFunction('initial population');
+end
 Scores = ones(1,FitOpt.PopulationSize)*inf;
 for k = 1:FitOpt.PopulationSize
   Scores(k) = feval(funfcn,Population(k,:),varargin{:});

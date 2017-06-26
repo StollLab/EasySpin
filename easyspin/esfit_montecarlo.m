@@ -4,6 +4,10 @@ if ~isfield(FitOpt,'nTrials'); FitOpt.nTrials = 20000; end
 if ~isfield(FitOpt,'PrintLevel'); FitOpt.PrintLevel = 1; end
 if ~isfield(FitOpt,'maxTime'), FitOpt.maxTime = inf; end
 if ~isfield(FitOpt,'TolFun'), FitOpt.TolFun = 1e-5; end
+if ~isfield(FitOpt,'IterationPrintFunction') || ...
+  isempty(FitOpt.IterationPrintFunction)
+  FitOpt.IterationPrintFunction = @iterationprint;
+end
 
 logPrint = FitOpt.PrintLevel;
 
@@ -44,4 +48,15 @@ if FitOpt.PrintLevel>1
     case 3, msg = sprintf('Terminated: Found a parameter set with error less than %g.',FitOpt.TolFun);
   end
   disp(msg);
+end
+
+end
+
+function iterationprint(str)
+hLogLine = findobj('Tag','logLine');
+if isempty(hLogLine)
+  disp(str);
+else
+  set(hLogLine,'String',str);
+end
 end

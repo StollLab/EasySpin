@@ -6,7 +6,7 @@
 %
 %   generator     character array
 %
-%                 'twister'               Mersenne Twister
+%                 'twister'               Mersenne Twister  (default)
 %                 'simdTwister'           SIMD-oriented Fast Mersenne Twister
 %                 'combRecursive'         Combined Multiple Recursive
 %                 'multFibonacci'         Multiplicative Lagged Fibonacci
@@ -20,7 +20,9 @@ if seed<0||floor(seed)~=seed
   error('seed must be a non-negative integer.')
 end
 
-if ~ischar(generator)
+if exist('generator','var')~=1
+  generator = 'twister';
+elseif ~ischar(generator)
   error('generator must be a character array.')
 end
 
