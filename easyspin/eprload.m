@@ -873,7 +873,19 @@ end
 % Read in all the data
 curveList = MainNode.getElementsByTagName('Curve');
 nCurves = curveList.getLength;
-base64 = org.apache.commons.codec.binary.Base64; % use java method for base64 decoding
+
+% Use Java class for base64 decoding
+% (particular class depends on Matlab version)
+if exist('org.apache.commons.codec.binary.Base64','class')
+  base64 = org.apache.commons.codec.binary.Base64;
+  oldJavaClass = false;
+elseif exist('org.apache.axis.encoding.Base64','class')
+  base64 = org.apache.axis.encoding.Base64; 
+  oldJavaClass = true;
+else
+  error('No Base64 decoder available to read Magnettech XML data.');
+end
+
 for iCurve = 0:nCurves-1
   curve_ = curveList.item(iCurve);
   Mode = char(curve_.getAttribute('Mode'));
@@ -887,9 +899,13 @@ for iCurve = 0:nCurves-1
   if isempty(x)
     data = [];
   else
-    x = typecast(int8(x),'uint8'); % typecast without changing the underlying data
-    bytestream_ = base64.decode(x); % decode
-    bytestream_(9:9:end) = []; % remove termination zeros
+    if ~oldJavaClass
+      x = typecast(int8(x),'uint8'); % typecast without changing the underlying data
+      bytestream_ = base64.decode(x); % decode
+      bytestream_(9:9:end) = []; % remove termination zeros
+    else
+      bytestream_ = base64.decode(x); % decode
+    end
     data = typecast(bytestream_,'double'); % typecast without changing the underlying data
   end
   Curves.(Name).data = data;

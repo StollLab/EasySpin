@@ -837,6 +837,9 @@ else
   coreSys = nucspinrmv(Sys,shfNuclei);
   coreSys.processed = 0;
   coreSys.lw = 0;
+  if isfield(coreSys,'A_')
+    coreSys = rmfield(coreSys,'A');
+  end    
   % Operators for constructing Hamiltonian
   [F,Gx,Gy,Gz] = sham(coreSys);
   % Operators for computing <i|S|i>
