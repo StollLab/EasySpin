@@ -39,31 +39,32 @@ for i = 1 : 4
 %         
     else
         Events{i}.type = 'free evolution';
-        Events{i}.t = 0.2;
+        Events{i}.t = 0:Params.TimeStep:0.2;
 %         Events{i}.t = 0.2;
     end
-    Events{i}.storeDensityMatrix = 1;
-    Events{i}.Detection = 1;
+    Events{i}.storeDensityMatrix = true;
+    Events{i}.Detection = true;
     Events{i}.Propagation = [];
     Events{i}.Relaxation = false;
 %     Events{i}.Relaxation = true;
 end
 % 
-Vary.Table = [1, 1; 1, 2; 2 1; 2 2];
+% Vary.Table = [1, 1; 1, 2; 2 1; 2 2];
 Vary.Events = {[1] 2};
-Vary.Dimension{1}.IQs{1} = {IQ IQ/2};
-Vary.Dimension{1}.IQs{3} = {IQ/4 IQ};
-Vary.Dimension{1}.ts{1} = {t t};
-Vary.Dimension{1}.ts{3} = {t t};
+Vary.IQs{1} = {IQ IQ/2};
+Vary.IQs{3} = {IQ/4 IQ};
+Vary.ts{1} = {t t};
+Vary.ts{3} = {t t};
+Vary.Points = [2 2];
 
-Vary.Dimension{2}.ts{2} = {0:Params.TimeStep:0.2; 0:Params.TimeStep:0.2};
+Vary.ts{2} = {0:Params.TimeStep:0.2; 0:Params.TimeStep:0.4};
 
 
 
-% Events{1}.Relaxation = true;
-% Events{3}.Relaxation = true;
-Events{1}.Detection = 1;
-Events{3}.Detection = 1;
+% Events{1}.Relaxation = false;
+% Events{4}.Relaxation = true;
+% Events{1}.Detection = false;
+% Events{3}.Detection = true;
 
 % tic
 [t, signal,state,sigmas,Eventsnew]=evolve2(Sigma, Ham, Det, Events, Relaxation, Vary);
