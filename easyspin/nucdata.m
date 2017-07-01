@@ -29,7 +29,7 @@ if iscell(Isotopes)
 end
 %--------------------------------------------------------------
 global IsotopeList
-persistent Elements IsotopeMatrix;
+persistent Elements IsotopeMatrix
 % Read isotope data file only once per MATLAB session!
 if isempty(IsotopeList)
   %disp('Loading nuclear isotope database...');
