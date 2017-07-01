@@ -102,7 +102,7 @@ end
 % Assert consistency between System0 and Vary structures
 for s = 1:nSystems
   Fields = fieldnames(Vary{s});
-  for k=1:numel(Fields)
+  for k = 1:numel(Fields)
     if ~isfield(Sys0{s},Fields{k})
       error(sprintf('Field %s is given in Vary, but not in Sys0. Remove from Vary or add to Sys0.',Fields{k}));
     elseif numel(Sys0{s}.(Fields{k})) < numel(Vary{s}.(Fields{k}))
@@ -113,7 +113,7 @@ for s = 1:nSystems
 end
 
 % count parameters and save indices into parameter vector for each system
-for iSys=1:nSystems
+for iSys = 1:nSystems
   [dummy,dummy,v_] = getParameters(Vary{iSys});
   VaryVals(iSys) = numel(v_);
 end
@@ -360,7 +360,7 @@ if (FitData.GUI)
   x0 = 660; y0 = 400; dx = 60;
   % uitable was introduced in R2008a, undocumented in
   % R2007b, where property 'Tag' doesn't work
-  h = uitable('Tag','ParameterTable',...
+  uitable('Tag','ParameterTable',...
     'FontSize',8,...
     'Position',[x0 y0 330 150],...
     'ColumnFormat',columnformat,...
@@ -671,7 +671,7 @@ if (nParameters_>0)
     case 5 % Grid search
       bestx0_ = esfit_grid(@assess,nParameters_,FitOpts,funArgs{:});
     case 6 % Particle swarm
-      bestx0_ = esfit_particleswarm(@assess,nParameters_,FitOpts,funArgs{:});
+      bestx0_ = esfit_swarm(@assess,nParameters_,FitOpts,funArgs{:});
   end
   bestx(~FitData.inactiveParams) = bestx0_;
 end
@@ -724,7 +724,6 @@ end
 % Final stage: finish
 %===================================================================
 
-BestSpec = 0;
 % compile best-fit system structures
 [FinalSys,bestvalues] = getSystems(FitData.Sys0,FitData.Vary,bestx);
 
@@ -745,7 +744,8 @@ rmsd = sqrt(mean(Residuals.^2));
 
 % Output
 %===================================================================
-if (~FitData.GUI)
+if ~FitData.GUI
+  
   if FitOpts.PrintLevel && (UserCommand~=99)
     disp('---------------------------------------------------------');
     disp('Best-fit parameters:');
@@ -754,12 +754,10 @@ if (~FitData.GUI)
     fprintf('Residuals of best fit:\n    rmsd  %g\n',rmsd);
     disp('=========================================================');
   end
-end
 
+else
   
-if FitData.GUI
-  
-  % Safe current set to set list
+  % Save current set to set list
   newFitSet.rmsd = rmsd;
   if strcmp(FitOpts.Scaling, 'none')
     newFitSet.fitSpec = BestSpec;
@@ -804,7 +802,6 @@ Exp = FitDat.Exp;
 SimOpt = FitDat.SimOpt;
 
 % Simulate spectra ------------------------------------------
-simspec = 0;
 inactive = FitData.inactiveParams;
 x_all = FitData.startx;
 x_all(~inactive) = x;
@@ -927,6 +924,9 @@ return
 
 
 %==========================================================================
+% Calculate spin systems with values based on Sys0 (starting points), Vary
+% (parameters to vary, and their vary range), and x (current point in vary
+% range)
 function [Sys,values] = getSystems(Sys0,Vary,x)
 global FitData
 values = [];
@@ -937,10 +937,10 @@ for iSys = 1:numel(Sys0)
   if isempty(VaryVals)
     % no parameters varied in this spin system
     Sys{iSys} = Sys0{iSys};
-    continue;
+    continue
   end
   
-  Sys_ = Sys0{iSys};
+  thisSys = Sys0{iSys};
   
   pidx = FitData.xidx(iSys):FitData.xidx(iSys+1)-1;
   if (nargin<3)
@@ -950,15 +950,15 @@ for iSys = 1:numel(Sys0)
   end
   values_ = [];
   for p = 1:numel(VaryVals)
-    f = Sys_.(Fields{p});
+    f = thisSys.(Fields{p});
     idx = Indices(p,:);
     values_(p) = f(idx(1),idx(2)) + Shifts(p);
     f(idx(1),idx(2)) = values_(p);
-    Sys_.(Fields{p}) = f;
+    thisSys.(Fields{p}) = f;
   end
   
   values = [values values_];
-  Sys{iSys} = Sys_;
+  Sys{iSys} = thisSys;
   
 end
 
@@ -966,21 +966,22 @@ return
 %==========================================================================
 
 
+%==========================================================================
 function [parNames,parCenter,parVary] = getParamList(Sys,Vary)
 nSystems = numel(Sys);
 p = 1;
 for s = 1:nSystems
-  AllFields = fieldnames(Vary{s});
-  for iField = 1:numel(AllFields)
-    fieldname = AllFields{iField};
-    CenterFieldValue = Sys{s}.(fieldname);
-    VaryFieldValue = Vary{s}.(fieldname);
-    [idx1,idx2] = find(VaryFieldValue);
+  allFields = fieldnames(Vary{s});
+  for iField = 1:numel(allFields)
+    fieldname = allFields{iField};
+    CenterValue = Sys{s}.(fieldname);
+    VaryValue = Vary{s}.(fieldname);
+    [idx1,idx2] = find(VaryValue);
     idx = sortrows([idx1(:) idx2(:)]);
-    singletonDims = sum(size(CenterFieldValue)==1);
+    singletonDims = sum(size(CenterValue)==1);
     for iVal = 1:numel(idx1)
-      parCenter(p) = CenterFieldValue(idx(iVal,1),idx(iVal,2));
-      parVary(p) = VaryFieldValue(idx(iVal,1),idx(iVal,2));
+      parCenter(p) = CenterValue(idx(iVal,1),idx(iVal,2));
+      parVary(p) = VaryValue(idx(iVal,1),idx(iVal,2));
       Indices = idx(iVal,:);
       if singletonDims==1
         parName_ = sprintf('(%d)',max(Indices));
@@ -996,6 +997,8 @@ for s = 1:nSystems
   end
 end
 return
+%==========================================================================
+
 
 %==========================================================================
 function [Fields,Indices,Values] = getParameters(Vary)
@@ -1006,13 +1009,13 @@ if isempty(Vary), return; end
 allFields = fieldnames(Vary);
 p = 1;
 for iField = 1:numel(allFields)
-  FieldValue = Vary.(allFields{iField});
-  [idx1,idx2] = find(FieldValue);
+  Value = Vary.(allFields{iField});
+  [idx1,idx2] = find(Value);
   idx = sortrows([idx1(:) idx2(:)]);
   for i = 1:numel(idx1)
     Fields{p} = allFields{iField};
     Indices(p,:) = [idx(i,1) idx(i,2)];
-    Values(p) = FieldValue(idx(i,1),idx(i,2));
+    Values(p) = Value(idx(i,1),idx(i,2));
     p = p + 1;
   end
 end
@@ -1048,7 +1051,7 @@ for s=1:nSystems
 end
 nParameters = p-1;
 
-for p=1:nParameters
+for p = 1:nParameters
   if (nSystems>1) && ((p==1) || Component(p-1)~=Component(p))
     str = [str sprintf('component %s\n',char('A'-1+Component(p)))];
   end
@@ -1086,6 +1089,7 @@ end
 return
 %==========================================================================
 
+%==========================================================================
 function iterationprint(str)
 hLogLine = findobj('Tag','logLine');
 if isempty(hLogLine)
@@ -1093,10 +1097,13 @@ if isempty(hLogLine)
 else
   set(hLogLine,'String',str);
 end
+%==========================================================================
 
+
+%==========================================================================
 function str = striphtml(str)
 html = 0;
-for k=1:numel(str)
+for k = 1:numel(str)
   if ~html
     rmv(k) = false;
     if str(k)=='<', html = 1; rmv(k) = true; end
@@ -1107,7 +1114,10 @@ for k=1:numel(str)
 end
 str(rmv) = [];
 return
+%==========================================================================
 
+
+%==========================================================================
 function plotFittingResult
 if (FitOpt.Plot) && (UserCommand~=99)
   close(hFig); clf
@@ -1138,7 +1148,10 @@ if (FitOpt.Plot) && (UserCommand~=99)
   
 end
 return
+%==========================================================================
 
+
+%==========================================================================
 function deleteSetButtonCallback(object,src,event)
 global FitData
 h = findobj('Tag','SetListBox');
@@ -1166,18 +1179,27 @@ if isempty(str)
   set(findobj('Tag','sortRMSDSetButton'),'Enable','off');
 end
 return
+%==========================================================================
 
+
+%==========================================================================
 function deleteSetListKeyPressFcn(object,event)
 if strcmp(event.Key,'delete')
   deleteSetButtonCallback(object,gco,event);
   displayFitSet
 end
 return
+%==========================================================================
 
+
+%==========================================================================
 function setListCallback(object,src,event)
   displayFitSet
 return
+%==========================================================================
 
+
+%==========================================================================
 function displayFitSet
 global FitData
 h = findobj('Tag','SetListBox');
@@ -1213,7 +1235,10 @@ else
 end
 
 return
+%==========================================================================
 
+
+%==========================================================================
 function exportSetButtonCallback(object,src,event)
 global FitData
 h = findobj('Tag','SetListBox');
@@ -1227,21 +1252,30 @@ assignin('base',varname,fitSet);
 fprintf('Fit set %d assigned to variable ''%s''.\n',ID,varname);
 evalin('base',varname);
 return
+%==========================================================================
 
+
+%==========================================================================
 function selectAllButtonCallback(object,src,event)
 h = getParameterTableHandle;
 d = get(h,'Data');
 d(:,1) = {true};
 set(h,'Data',d);
 return
+%==========================================================================
 
+
+%==========================================================================
 function selectNoneButtonCallback(object,src,event)
 h = getParameterTableHandle;
 d = get(h,'Data');
 d(:,1) = {false};
 set(h,'Data',d);
 return
+%==========================================================================
 
+
+%==========================================================================
 function selectInvButtonCallback(object,src,event)
 h = getParameterTableHandle;
 d = get(h,'Data');
@@ -1250,7 +1284,10 @@ for k=1:size(d,1)
 end
 set(h,'Data',d);
 return
+%==========================================================================
 
+
+%==========================================================================
 function sortIDSetButtonCallback(object,src,event)
 global FitData
 for k=1:numel(FitData.FitSets)
@@ -1260,17 +1297,21 @@ end
 FitData.FitSets = FitData.FitSets(idx);
 refreshFitsetList(0);
 return
+%==========================================================================
 
+
+%==========================================================================
 function sortRMSDSetButtonCallback(object,src,event)
 global FitData
-for k=1:numel(FitData.FitSets)
-  rmsd(k) = FitData.FitSets(k).rmsd;
-end
+rmsd = [FitData.FitSets.rmsd];
 [rmsd,idx] = sort(rmsd);
 FitData.FitSets = FitData.FitSets(idx);
 refreshFitsetList(0);
 return
+%==========================================================================
 
+
+%==========================================================================
 function refreshFitsetList(idx)
 global FitData FitOpts
 h = findobj('Tag','SetListBox');
@@ -1292,7 +1333,10 @@ set(findobj('Tag','sortRMSDSetButton'),'Enable',state);
 
 displayFitSet;
 return
+%==========================================================================
 
+
+%==========================================================================
 function saveFitsetCallback(object,src,event)
 global FitData
 FitData.lastSetID = FitData.lastSetID+1;
@@ -1304,8 +1348,10 @@ else
 end
 refreshFitsetList(-1);
 return
+%==========================================================================
 
 
+%==========================================================================
 function hTable = getParameterTableHandle
 % uitable was introduced in R2008a, undocumented in
 % R2007b, where property 'Tag' doesn't work
@@ -1320,8 +1366,10 @@ else
   hTable = [];
 end
 return
+%==========================================================================
 
-%--------------------------------------------------------------------------
+
+%==========================================================================
 function tableEditCallback(hTable,callbackData)
 global FitData
 

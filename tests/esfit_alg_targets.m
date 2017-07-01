@@ -4,7 +4,10 @@ function [err,data] = test(opt,olddata)
 % successful and yields a good fit.
 
 fitAlg = 'simplex';
-dataMethod = 'fcn';
+
+dataMethod = {'fcn','int','iint','diff','fft'};
+
+nMethods = numel(dataMethod);
 
 Sys.g = [2 2.1];
 Sys.lw = 10;
@@ -19,9 +22,13 @@ spc = pepper(Sys,Exp);
 Vary.g = [0.02 0.02];
 FitOpt.PrintLevel = 0;
 
-FitOpt.Method = [fitAlg ' ' dataMethod];
-[dummy,dummy,resid] = esfit('pepper',spc,Sys,Vary,Exp,[],FitOpt);
-rmsd = sqrt(mean(resid.^2));
+rmsd = zeros(1,nMethods);
+
+for iMethod = 1:nMethods
+  FitOpt.Method = [fitAlg ' ' dataMethod{iMethod}];
+  [dummy,dummy,resid] = esfit('pepper',spc,Sys,Vary,Exp,[],FitOpt);
+  rmsd(iMethod) = sqrt(mean(resid.^2));
+end
 
 err = any(rmsd>1e-10);
 

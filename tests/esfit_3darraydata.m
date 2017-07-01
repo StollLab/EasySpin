@@ -28,7 +28,7 @@ grids = {Agrid, Bgrid, Ggrid};
 nComps = 1;
 
 % generate parameter and fit range values
-for iComp=1:nComps
+for iComp = 1:nComps
   x(iComp,1:2) = [45, 45]/180*pi;  % alpha: alpha0, fwhm
   x(iComp,3:4) = [45, 45]/180*pi;  % beta: beta0, fwhm
   x(iComp,5:6) = [45, 45]/180*pi;  % beta: beta0, fwhm
@@ -72,11 +72,10 @@ xfit = esfit_montecarlo(@getresid, nParameters, FitOpt, data, grids, Vary);  % i
 % transform back for plotting
 xfit = transformVars(xfit, Vary);
 
-rmsd = real(sqrt(mean(mean(mean((data - gaussfunc(grids, xfit)).^2,1),2),3)));
+sd = (data - gaussfunc(grids, xfit)).^2;
+rmsd = real(sqrt(mean(sd(:))));
 
-if rmsd>0.5
-  err = true;
-end
+err = rmsd>0.5;
 
 data = [];
 
