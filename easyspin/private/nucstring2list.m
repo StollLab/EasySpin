@@ -81,4 +81,6 @@ nNuclei = numel(comma)-1;
 Nucs = cell(1,nNuclei);
 for k = 1:nNuclei
   Nucs{k} = str(comma(k)+1:comma(k+1)-1);
+  keep(k) = ~isempty(Nucs{k}); %#ok<AGROW>
 end
+Nucs = Nucs(keep);

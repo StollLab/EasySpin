@@ -127,7 +127,7 @@ for iNuc = 1:nNuclei
     A{iNuc} = Sys.A((iNuc-1)*3+(1:3),:);
   else
     R_A2M = erot(Sys.AFrame(iNuc,:)).'; % A frame -> molecular frame
-    A_ = diag(Sys.A(iNuc,:))*Sys.Ascale(iNuc);
+    A_ = diag(Sys.A(iNuc,:));
     A{iNuc} = R_A2M*A_*R_A2M.';
   end
   mI{iNuc} = -I(iNuc):I(iNuc);

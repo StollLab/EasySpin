@@ -71,7 +71,7 @@ TwoDim = (isfield(Exp,'Sequence') && ...
 isENDOR = isfield(Exp,'Sequence') && strcmp(Exp.Sequence,'MimsENDOR');
 if ~isfield(Opt,'IsoCutoff'), Opt.IsoCutoff = 1e-4; end
 
-if ~isfield(Sys,'singleiso') || (Sys.singleiso==0)
+if ~isfield(Sys,'singleiso') || ~Sys.singleiso
   
   % parse options
   [Opt.Output,err] = parseoption(Opt,'Output',{'Time','Frequency'});
@@ -80,28 +80,41 @@ if ~isfield(Sys,'singleiso') || (Sys.singleiso==0)
   
   [Opt.Ordinate,err] = parseoption(Opt,'Ordinate',{'Complex','Real','Absolute'});
   error(err);
+ 
   
+  if ~iscell(Sys), Sys = {Sys}; end
   
-  [SysList,weight] = expandcomponents(Sys,Opt.IsoCutoff);
+  nComponents = numel(Sys);
+  logmsg(1,'%d spin system(s)...');
+  
+  for c = 1:nComponents
+    SysList{c} = isotopologues(Sys{c},Opt.IsoCutoff);
+    nIsotopologues(c) = numel(SysList{c});
+    logmsg(1,'  component %d: %d isotopologues',c,nIsotopologues(c));
+  end
   
   ysum = 0; % direct domain (TD for ESEEM, FD for ENDOR)
   zsum = 0; % inverse domain (FD for ESEEM)
   for iComponent = 1:numel(SysList)
-    if TwoDim
-      [x1,x2,y_,out] = saffron(SysList{iComponent},Exp,Opt);
-    else
-      [x1,y_,out] = saffron(SysList{iComponent},Exp,Opt);
-    end
-    ysum = ysum + y_*weight(iComponent);
-    if ~isENDOR
-      zsum = zsum + out.fd*weight(iComponent);
+    for iIsotopologue = 1:nIsotopologues(iComponent)
+      Sys_ = SysList{iComponent}(iIsotopologue);
+      Sys_.singleiso = true;
+      if TwoDim
+        [x1,x2,y_,out] = saffron(Sys_,Exp,Opt);
+      else
+        [x1,y_,out] = saffron(Sys_,Exp,Opt);
+      end
+      ysum = ysum + y_*Sys_.weight;
+      if ~isENDOR
+        zsum = zsum + out.fd*Sys_.weight;
+      end
     end
   end
   
   if ~isENDOR
     out.td = ysum;
     switch Opt.Ordinate
-      case 1, % complex output 
+      case 1 % complex output 
       case 2, zsum = real(zsum); 
       case 3, zsum = abs(zsum);  
     end
@@ -294,8 +307,8 @@ logmsg(1,'-general-----------------------------------------------');
 % Spin system
 %===================================================================
 if ~isfield(Sys,'Nucs'), Sys.Nucs = ''; end
-outi = isotopologues(Sys.Nucs);
-if outi.nIso>1
+isoList = isotopologues(Sys.Nucs);
+if numel(isoList)>1
   error('saffron does not support isotope mixtures. Please specify pure isotopes in Sys.Nucs.');
 end
 

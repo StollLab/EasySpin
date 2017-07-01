@@ -17,6 +17,7 @@ function bestx = esfit_genetic(funfcn,nParams,FitOpt,varargin)
 if (nargin==0), help(mfilename); return; end
 
 global UserCommand;
+if isempty(UserCommand), UserCommand = NaN; end
 
 if (nargin<3), FitOpt = struct('unused',NaN); end
 
@@ -45,7 +46,9 @@ bestx = Population(1,:)*0;
 
 
 % Score initial population
-FitOpt.IterationPrintFunction('initial population');
+if FitOpt.PrintLevel
+  FitOpt.IterationPrintFunction('initial population');
+end
 Scores = ones(1,FitOpt.PopulationSize)*inf;
 for k = 1:FitOpt.PopulationSize
   Scores(k) = feval(funfcn,Population(k,:),varargin{:});
