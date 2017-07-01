@@ -6,12 +6,12 @@ n = 60;
 threshold = 0;
 isoList = isotopologues('C',n,[],threshold);
 
-% Check numbe rof equivalent nuclei (this assumes isotopologues are not
+% Check number of equivalent nuclei (this assumes isotopologues are not
 % sorted by abundance)
-n_calc = reshape([isoList(2:n).n],2,[]).';
-n_expected = [n-1:-1:1; 1:n-1]';
+n_calc = [isoList(2:n).n];
+n_expected = 1:n-1;
 ok = all(n_calc(:)==n_expected(:));
-ok = ok && isoList(1).n==n;
+ok = ok && isempty(isoList(1).n);
 ok = ok && isoList(end).n==n;
 
 % Check abundances

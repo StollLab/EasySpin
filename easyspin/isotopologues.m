@@ -101,7 +101,7 @@ if isempty(NucList)
     else
       isotopologue(1).Nucs = '';
       isotopologue(1).weight = 1;
-      isotopologue(1).n = 1;
+      isotopologue(1).n = [];
     end
     varargout = {isotopologue};
   end
@@ -110,7 +110,7 @@ end
 
 global IsotopeList % initialized by nucdata()
 if isempty(IsotopeList)
-  % if not initialized yet, call nucdata
+  % if not initialized yet, call nucdata()
   dummy = nucdata('1H');  %#ok<NASGU>
 end
 
@@ -184,6 +184,9 @@ if SysInput
   end
   if isfield(Sys,'Q')
     Qaxial = numel(Sys.Q)==nNucs;
+    if Qaxial
+      Sys.Q = Sys.Q(:);
+    end
     Qrhombic = all(size(Sys.Q)==[nNucs 2]);
     Qpvalues = all(size(Sys.Q)==[nNucs 3]);
     Qfull = all(size(Sys.Q)==[3*nNucs 3]);
@@ -347,6 +350,18 @@ for iNuc = 1:nNucs
       end
     end
     
+    % AFrame and QFrame
+    if isfield(Sys,'AFrame')
+      if all(size(Sys.AFrame)==[nNucs,nElectrons*3])
+        Groups(iNuc).AFrame = Sys.AFrame(iNuc,:);
+      else
+        error('Sys.AFrame has the wrong size.');
+      end
+    end
+    if isfield(Sys,'QFrame')
+      Groups(iNuc).QFrame = Sys.QFrame(iNuc,:);
+    end
+    
   end % if SysInput
   
 end % for iNuc = 1:nNucs
@@ -450,11 +465,14 @@ for k = 1:nIsotopologues
   A = [];
   A_ = [];
   Q = [];
+  AFrame = [];
+  QFrame = [];
   for iNuc = 1:nNucs
     idx = IsoListIdx(k,iNuc);
     nz = find(nEquivList{iNuc}{idx}~=0);
     gr = Groups(iNuc);
     for iIso = nz
+      if gr.I(iIso)==0, continue; end
       Nucs_ = [Nucs_ Nucs{iNuc}{idx}(iIso)];
       n = [n nEquivList{iNuc}{idx}(iIso)];
       if SysInput
@@ -477,6 +495,12 @@ for k = 1:nIsotopologues
             Q = [Q; gr.Q{iIso}];
           end
         end
+        if isfield(Sys,'AFrame')
+          AFrame = [AFrame; gr.AFrame];
+        end
+        if isfield(Sys,'QFrame')
+          QFrame = [QFrame; gr.QFrame];
+        end
       end
     end
   end
@@ -498,6 +522,21 @@ for k = 1:nIsotopologues
   end
   if ~isempty(Q)
     isotopologue(k).Q = Q;
+  end
+  if ~isempty(AFrame)
+    isotopologue(k).AFrame = AFrame;
+  end
+  if ~isempty(QFrame)
+    isotopologue(k).QFrame = QFrame;
+  end
+  
+  if isempty(isotopologue(k).Nucs)
+    nucFields = {'A','A_','Q','AFrame','QFrame'};
+    for iF = 1:numel(nucFields)
+      if isfield(isotopologue(k),nucFields{iF})
+        isotopologue(k).(nucFields{iF}) = [];
+      end
+    end
   end
   
 end
