@@ -1,6 +1,7 @@
 function [bestx,info] = esfit_grid(funfcn,nParameters,FitOpt,varargin)
 
 global UserCommand
+if isempty(UserCommand), UserCommand = NaN; end
 
 GridSize = FitOpt.GridSize;
 if numel(GridSize)==1
