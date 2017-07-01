@@ -39,7 +39,7 @@
 
 
 
-function [TimeArray, SignalArray, Sigma, DensityMatrices, Events] = evolve2(Sigma,Ham0,Det,Events,Relaxation,Vary)
+function [TimeArray, SignalArray, FinalStates, AllDensityMatrices, Events] = evolve2(Sigma,Ham0,Det,Events,Relaxation,Vary)
 
 if (nargin==0), help(mfilename); return; end
 
@@ -80,6 +80,9 @@ switch method
     idx = ones(1,nDimensions);
     nAcquisitions = prod(Vary.Points);
          
+    n = size(Sigma,2);
+    FinalStates = zeros(nAcquisitions,n,n);
+    AllDensityMatrices = [];
     initialSigma = Sigma;
     
     %----------------------------------------------------------------------
@@ -100,7 +103,7 @@ switch method
         end
       end
     end
-    
+        
     if StoreInArray
       SignalArray = cell(1,nAcquisitions);
       TimeArray = SignalArray;
@@ -113,8 +116,7 @@ switch method
     %----------------------------------------------------------------------
     for iAcquisition = 1 : nAcquisitions
       tic
-      
-      
+         
       Sigma = initialSigma;
       
       %--------------------------------------------------------------------
@@ -223,7 +225,7 @@ switch method
                       % Load propagators if Complex Excitation is off
                       U = UTable{realBinary(iPhaseCycle,iWavePoint)+1};
                     else % For active Complex Excitation Propagators need to be recalculated
-                      Ham1 = scale*(realBinary(iPhaseCycle,iWavePoint)-vertRes/2)*real(currentEvent.xOp)+scale*(imagBinary(iPhaseCycle,iWavePoint)-vertRes/2)*imag(currentEvent.xOp);
+                      Ham1 = scale/2*(realBinary(iPhaseCycle,iWavePoint)-vertRes/2)*real(currentEvent.xOp)+1i*scale/2*(imagBinary(iPhaseCycle,iWavePoint)-vertRes/2)*imag(currentEvent.xOp);
                       Ham =  Ham0+Ham1;
                       U = Propagator(Ham,dt);
                     end
@@ -294,7 +296,7 @@ switch method
                         L=LTable{realBinary(iPhaseCycle,iWavePoint)+1};
                         SigmaSS=SigmassTable{realBinary(iPhaseCycle,iWavePoint)+1};
                       else
-                        Ham1 = scale*(realBinary(iPhaseCycle,iWavePoint)-vertRes/2)*real(currentEvent.xOp)+scale*(imagBinary(iPhaseCycle,iWavePoint)-vertRes/2)*imag(currentEvent.xOp);
+                        Ham1 = scale/2*(realBinary(iPhaseCycle,iWavePoint)-vertRes/2)*real(currentEvent.xOp)+1i*scale/2*(imagBinary(iPhaseCycle,iWavePoint)-vertRes/2)*imag(currentEvent.xOp);
                         Ham = Ham0+Ham1;
                         [L, SigmaSS] = Liouvillian(Ham,Gamma,equilibriumState,dt);
                       end
@@ -320,6 +322,7 @@ switch method
       % Setting up some initial variables
       ttotal = 0;
       firstDetection = true;
+      firstDensityMatrix = true;
       startTrace = 2;
       
       %--------------------------------------------------------------------
@@ -336,9 +339,9 @@ switch method
         if currentEvent.Detection          
           switch currentEvent.type
             case 'pulse'
-               tvector = currentEvent.t;
-              currentSignal = zeros(nDet,size(Events{1}.IQ,2)+1);
-              
+              tvector = currentEvent.t;
+              currentSignal = zeros(nDet,size(currentEvent.IQ,2)+1);
+              dt = currentEvent.t(2)-currentEvent.t(1);
             case 'free evolution'
               if length(currentEvent.t) == 1
                 tvector = [0 currentEvent.t];
@@ -359,6 +362,9 @@ switch method
           
         else
           switch currentEvent.type
+            case 'pulse'
+              tvector = currentEvent.t;
+              dt = currentEvent.t(2)-currentEvent.t(1);
             case 'free evolution'
               dt = currentEvent.t(end);
               tvector = [0 dt];
@@ -367,8 +373,12 @@ switch method
           currentSignal=[];
         end
 
-        if currentEvent.storeDensityMatrix
-          DensityMatrices=cell(1,length(currentEvent.t));
+        if currentEvent.StateTrajectories
+          if currentEvent.Detection
+             DensityMatrices=cell(1,length(currentEvent.t));
+          else
+             DensityMatrices=cell(1,2);
+          end
           DensityMatrices{1}=Sigma;
         else
           DensityMatrices = [];
@@ -434,8 +444,8 @@ switch method
                   currentSignal(:,iWavePoint+1) = Detect(Sigma,Det,normsDet);               
                 end
                                 
-                if currentEvent.storeDensityMatrix
-                  DensityMatrices{iWavePoint+1}=Sigma;
+                if currentEvent.StateTrajectories
+                  DensityMatrices{iWavePoint+1} = Sigma;
                 end
                 %----------------------------------------------------------
               end
@@ -517,13 +527,9 @@ switch method
               %------------------------------------------------------------
               if currentEvent.Detection
                 currentSignal(:,itvector) = Detect(Sigma,Det,normsDet);
-%                 for iDet = 1:nDet
-%                   Density = Sigma(:);
-%                   currentSignal(iDet,itvector) = Det{iDet}*Density/normsDet(iDet);
-%                 end
               end
               
-              if currentEvent.storeDensityMatrix
+              if currentEvent.StateTrajectories
                 DensityMatrices{itvector}=Sigma;
               end
               %------------------------------------------------------------
@@ -561,7 +567,20 @@ switch method
             startTrace = endTrace+1;
           end
         end
-        % Update Total Time, necessary to keep correct timings  if events 
+        
+        if currentEvent.StateTrajectories
+          if firstDensityMatrix
+            AllDensityMatrices{iAcquisition} = DensityMatrices;
+            firstDensityMatrix = false;
+          else
+            iStart = length(AllDensityMatrices{iAcquisition});
+            nElements = length(DensityMatrices);
+            for iDensity = 2 : nElements
+              AllDensityMatrices{iAcquisition}{iStart+iDensity-1} = DensityMatrices{iDensity};
+            end
+          end
+        end
+        % Update Total Time, necessary to keep correct timings  if events
         % are not detected
         ttotal = ttotal + tvector(end);
         %------------------------------------------------------------------
@@ -581,15 +600,19 @@ switch method
         else
           if iAcquisition == 1
             SignalSize = size(Signal);
-            SignalArray = zeros(SignalSize(1),SignalSize(2),nAcquisitions);
-            SignalArray(:,:,iAcquisition) = Signal;
-            TimeArray = t;
+            SignalArray = zeros(nAcquisitions,SignalSize(1),SignalSize(2));
+            SignalArray(iAcquisition,:,:) = Signal;
+            TimeArray = zeros(nAcquisitions,SignalSize(2));
+            TimeArray(1,:) = t;
           else
-            SignalArray(:,:,iAcquisition) = Signal;
+            SignalArray(iAcquisition,:,:) = Signal;
+            TimeArray(iAcquisition,:) = t;
           end
         end
       end
       toc
+      
+      FinalStates(iAcquisition,:,:) = Sigma;
       %--------------------------------------------------------------------
       % Incremeant the index for the Vary structure by 1
       %--------------------------------------------------------------------
@@ -601,6 +624,7 @@ switch method
           idx(d) = 1;
         end
       end
+      
       %--------------------------------------------------------------------
     end
     
@@ -1065,7 +1089,7 @@ function UTable = buildPropagators(Ham0,xOp,dt,vertRes,scale)
 UTable = cell(1,vertRes);
 
 for iRes = 0:vertRes-1
-  Ham1 = scale*(iRes-vertRes/2)*xOp;
+  Ham1 = scale*(iRes-vertRes/2)*real(xOp);
   Ham = Ham0+Ham1;
   U = Propagator(Ham,dt);
   UTable{iRes+1} = U;
@@ -1080,7 +1104,7 @@ SigmassTable = cell(1,vertRes);
 LTable = cell(1,vertRes);
 
 for ivertRes = 0:vertRes-1
-  Ham1 = scale*(ivertRes-vertRes/2)*xOp;
+  Ham1 = scale*(ivertRes-vertRes/2)*real(xOp);
   Ham = Ham0 + Ham1;
   [L, SigmaSS] = Liouvillian(Ham,Gamma,equilibriumState,dt);
   LTable{ivertRes+1} = L;
