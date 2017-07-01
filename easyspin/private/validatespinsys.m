@@ -544,15 +544,6 @@ if (nNuclei>0)
     
   end
   
-  if isfield(Sys,'Ascale')
-    if numel(Sys.Ascale)<nNuclei
-      err = ('Insufficient number of elements in Ascale field of spin system.');
-      if ~isempty(err), return; end
-    end
-  else
-    Sys.Ascale = ones(1,nNuclei);
-  end
-
   % Euler angles for A tensor(s)
   if isfield(Sys,'Apa')
     err = sizecheck(Sys,'Apa',[nNuclei,3*nElectrons]);
@@ -615,15 +606,6 @@ if (nNuclei>0)
     end
   end
 
-  if isfield(Sys,'Qscale')
-    if numel(Sys.Qscale)<nNuclei
-      err = ('Insuffient number of elements in Qscale field of spin system.');
-      if ~isempty(err), return; end
-    end
-  else
-    Sys.Qscale = ones(1,nNuclei);
-  end
-
   %--------------------
   
   if Sys.fullQ
@@ -681,8 +663,6 @@ if any(rmv)
   Sys.gn(rmv) = [];
   Sys.QFrame(rmv,:) = [];
   Sys.nNuclei = numel(Sys.gn);
-  Sys.Ascale(rmv) = [];
-  Sys.Qscale(rmv) = [];
   Sys.gnscale(rmv) = [];
   Sys.n(rmv) = [];
 end

@@ -19,12 +19,13 @@ n1 = n-n2;
 
 % Calculate abundances
 for k = 1:numel(isoList)
-  a0(k) = a1^n1(k)*a2^n2(k);
-  a0(k) = a0(k)*factorial(n1(k)+n2(k))/factorial(n1(k))/factorial(n2(k));
+  w0(k) = a1^n1(k)*a2^n2(k);
+  w0(k) = w0(k)*factorial(n1(k)+n2(k))/factorial(n1(k))/factorial(n2(k));
 end
 
-ok = ok && areequal([isoList.Abund],a0);
+ok = ok && areequal([isoList.weight],w0);
 
+%{
 % Calculate A and Q scaling factor
 gn1 = nucgval('35Cl');
 gn2 = nucgval('37Cl');
@@ -45,6 +46,7 @@ for k = 1:numel(isoList)
   ok = ok && all(isoList(k).Ascale==Ascale{k});
   ok = ok && all(isoList(k).Qscale==Qscale{k});
 end
+%}
 
 err = ~ok;
 data = [];

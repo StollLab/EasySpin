@@ -71,18 +71,18 @@ for iNuc = nNuclei:-1:1
   mI{iNuc} = -I(iNuc):I(iNuc);
 
   if Sys.fullA
-    A{iNuc} = Sys.A((iNuc-1)*3+(1:3),:)*Sys.Ascale(iNuc);
+    A{iNuc} = Sys.A((iNuc-1)*3+(1:3),:);
   else
     R_A2M = erot(Sys.AFrame(iNuc,:)).'; % A frame -> molecular frame
-    A_ = diag(Sys.A(iNuc,:)*Sys.Ascale(iNuc));
+    A_ = diag(Sys.A(iNuc,:));
     A{iNuc} = R_A2M*A_*R_A2M.';
   end
 
   if Sys.fullQ
-    P{iNuc} = Sys.Q((iNuc-1)*3+(1:3),:)*Sys.Qscale(iNuc);
+    P{iNuc} = Sys.Q((iNuc-1)*3+(1:3),:);
   else
     R_Q2M = erot(Sys.QFrame(iNuc,:)).'; % Q frame -> molecular frame
-    Q_ = diag(Sys.Q(iNuc,:)*Sys.Qscale(iNuc));
+    Q_ = diag(Sys.Q(iNuc,:));
     P{iNuc} = R_Q2M*Q_*R_Q2M.';
   end
   P{iNuc} = P{iNuc} - eye(3)*trace(P{iNuc})/3; % make traceless (for Iwasaki equations)

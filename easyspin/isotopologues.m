@@ -4,61 +4,105 @@
 %    isotopologues(NucList,nEquiv)
 %    isotopologues(NucList,nEquiv,Abundances)
 %    isotopologues(NucList,nEquiv,Abundances,relThreshold)
+%    isotopologues(Sys)
+%    isotopologues(Sys,relThreshold)
 %    out = ...
-%    
+%
 %    Computes all possible isotopologues of the given list of nuclei or
 %    elements, including their abundances.
 %
-%    NucList       list of isotopes or elements
-%                     e.g. 'Cu', '63Cu,N,N', 'H,H,C,C'
-%    nEquiv        number of equivalent nuclei (default: 1 for each
-%                     nucleus in NucList)
-%    Abundances    cell array of nuclear abundances
-%    relThreshold  isotopologue abundance threshold, relative to
-%                     abundance of most abundante isotopologue (default 0.001)
+%    Input:
+%      NucList       list of isotopes or elements
+%                       e.g. 'Cu', '63Cu,N,N', 'H,H,C,C'
+%      nEquiv        number of equivalent nuclei (default: 1 for each
+%                       nucleus in NucList)
+%                       e.g. [1 4] for 'Cu,N'
+%      Abundances    cell array of nuclear abundances
+%      relThreshold  isotopologue abundance threshold, relative to
+%                       abundance of most abundant isotopologue
+%                       (default 0.001)
 %
-%    out                 structure array containing the isotopologue data
+%    out                 structure array containing a list of all isotopologues
 %       out(k).Nucs      string with list of isotopes
 %       out(k).Abund     overall absolute abundance
 %       out(k).n         number of equivalent nuclei
-%       out(k).Ascale    scaling factor for hyperfine couplings
-%       out(k).Qscale    scaling factor for quadrupole couplings
 %
 %    If out is not requested, the list of isotopologues is displayed.
 
-function varargout = isotopologues(NucList,nEquiv,Abundances,relAbundanceThreshold)
+function varargout = isotopologues(varargin)
 
 if nargin==0, help(mfilename); return; end
 
-Debug = false;
+SysInput = isstruct(varargin{1});
+
+% Internal settings
+%------------------------------------------------------------------
 %#ok<*AGROW>
-%#ok<*UNRCH> 
- 
+%#ok<*UNRCH>
+defaultAbundanceThreshold = 1e-4;
+consolidateNonmagneticIsotopes = true;
+Debug = false;
+
+
 % Parameters
 %------------------------------------------------------------------
-if nargin<2, nEquiv = []; end
-if nargin<3, Abundances = []; end
-if nargin<4, relAbundanceThreshold = 1e-4; end
-sortByAbundances = true;
-consolidateNonmagneticIsotopes = true;
+if SysInput
+  Sys = varargin{1};
+  relAbundanceThreshold = defaultAbundanceThreshold;
+  if nargin==2
+    relAbundanceThreshold = varargin{2};
+  elseif nargin>2
+    error('At most two inputs possible when a spin system is given.');
+  end
+  
+  NucList = '';
+  if isfield(Sys,'Nucs')
+    NucList = Sys.Nucs;
+  end
+  nEquiv = [];
+  if isfield(Sys,'n')
+    nEquiv = Sys.n;
+  end
+  Abundances = [];
+  if isfield(Sys,'Abund')
+    Abundances = Sys.Abund;
+  end
+  
+else
+  Sys = [];
+  NucList = varargin{1};
+  nEquiv = [];
+  Abundances = [];
+  relAbundanceThreshold = defaultAbundanceThreshold;
+  if nargin>=2, nEquiv = varargin{2}; end
+  if nargin>=3, Abundances = varargin{3}; end
+  if nargin==4, relAbundanceThreshold = varargin{4}; end
+  if nargin>4
+    error('At most four inputs are possible.');
+  end
+  
+end
 
-if iscell(NucList) && numel(NucList)==1
-  NucList = NucList{1};
+if ~ischar(NucList)
+  error('List of nuclei must be a string (e.g. ''Cu,Cl,H,H'').');
 end
 
 
 % Special case: no nuclei
-%------------------------------------------------------------------
+%===============================================================================
 if isempty(NucList)
-  isotopologue(1).Nucs = '';
-  isotopologue(1).Abund = 1;
-  isotopologue(1).n = 1;
-  isotopologue(1).Ascale = 1;
-  isotopologue(1).Qscale = 1;
   if nargout==0
     fprintf('Abs.Abund   Rel.Abund   Composition\n');
-    fprintf('1.000       1.000       ''''\n');
+    fprintf('1.000       1.000       (no nuclei)\n');
   else
+    if SysInput
+      if ~isfield(Sys,'weight'), Sys.weight = 1; end
+      isotopologue(1) = Sys;
+    else
+      isotopologue(1).Nucs = '';
+      isotopologue(1).weight = 1;
+      isotopologue(1).n = 1;
+    end
     varargout = {isotopologue};
   end
   return
@@ -70,11 +114,9 @@ if isempty(IsotopeList)
   dummy = nucdata('1H');  %#ok<NASGU>
 end
 
-if ~ischar(NucList)
-  error('Please give list of nuclei as first argument (e.g. ''Cu,Cl,H,H'').');
-end
 customMixtures = any(NucList=='(');
 NucList = nucstring2list(NucList,'m');
+nNucs = numel(NucList);
 
 if customMixtures
   if isempty(Abundances)
@@ -83,71 +125,103 @@ if customMixtures
 end
 
 if ~iscell(Abundances)
-  if numel(NucList)==1
+  if nNucs==1
     Abundances = {Abundances};
   end
   if isempty(Abundances)
-    Abundances = cell(1,numel(NucList));
+    Abundances = cell(1,nNucs);
   end
 else
-  if numel(Abundances)~=numel(NucList)
+  if numel(Abundances)~=nNucs
     error('Abundances must be a cell array with one entry (array) per nucleus.');
   end
 end
-if numel(Abundances)<numel(NucList)
+if numel(Abundances)<nNucs
   error('%d nuclei, but only %d abundances given. Please specify all abundances!',...
-    numel(NucList),numel(Abundances));
+    nNucs,numel(Abundances));
 end
 
 if isempty(nEquiv)
-  nEquiv = ones(1,numel(NucList));
+  nEquiv = ones(1,nNucs);
 end
-if numel(nEquiv)~=numel(NucList)
-  error('%d nuclei given, but only %d elements in nEqui.',numel(NucList),numel(nEquiv));
+if numel(nEquiv)~=nNucs
+  error('%d nuclei given, but %d elements in nEqui.',nNucs,numel(nEquiv));
 end
 
-nNucs = numel(NucList);
 Nucs = cell(1,nNucs);
 Abund = cell(1,nNucs);
 
 if Debug
   fprintf('Input:\n');
   fprintf('  NucList: ');
-  for iNuc = 1:numel(NucList)-1
+  for iNuc = 1:nNucs-1
     fprintf('%s,',NucList{iNuc});
   end
   fprintf('%s\n',NucList{end});
   fprintf('  nEquiv: %s\n',num2str(nEquiv));
 end
 
+% Determine format of hyperfine and quadrupole fields
+if SysInput
+  if isfield(Sys,'S')
+    nElectrons = numel(Sys.S);
+  else
+    nElectrons = 1;
+  end
+  if isfield(Sys,'A')
+    Aisotropic = numel(Sys.A)==nNucs*nElectrons;
+    if Aisotropic
+      Sys.A = reshape(Sys.A,nNucs,nElectrons);
+    end
+    Aaxial = all(size(Sys.A)==[nNucs 2*nElectrons]);
+    Arhombic = all(size(Sys.A)==[nNucs 3*nElectrons]);
+    Afull = all(size(Sys.A)==[3*nNucs 3*nElectrons]);
+  end
+  if isfield(Sys,'A_')
+    A_isotropic = numel(Sys.A_)==nNucs*nElectrons;
+    A_axial = all(size(Sys.A_)==[nNucs 2*nElectrons]);
+    A_rhombic = all(size(Sys.A_)==[nNucs 3*nElectrons]);
+  end
+  if isfield(Sys,'Q')
+    Qaxial = numel(Sys.Q)==nNucs;
+    Qrhombic = all(size(Sys.Q)==[nNucs 2]);
+    Qpvalues = all(size(Sys.Q)==[nNucs 3]);
+    Qfull = all(size(Sys.Q)==[3*nNucs 3]);
+  end
+end
+
+
 % Process nuclear isotope string list
-%-------------------------------------------------------------------------------
-for iNuc = 1:numel(NucList)
+%===============================================================================
+for iNuc = 1:nNucs
   
-  % Parse nuclear string entry
+  % Parse nuclear list entry
+  %-----------------------------------------------------------------------------
+  % Input: NucList{iNuc}
+  % Output: Element{iNuc}, isoAbundances
   N = NucList{iNuc};
   if isempty(N)
     error('Missing nucleus in list.');
-  end  
+  end
   if N(1)=='('
     % Mass numbers given -> custom-abundance isotope mixture
     
     idx = strfind(N,')');
-    ElementSymbol{iNuc} = N(idx+1:end);
+    Element{iNuc} = N(idx+1:end);
     MassNumbers = sscanf(N(2:idx-1),'%d,');
     isoAbundances = Abundances{iNuc};
-        
+    
   elseif isempty(sscanf(N,'%d'))
     % No mass numbers given -> natural-abundance isotope mixture
     
     % Locate element and compile list of natural isotopes
-    ElementSymbol{iNuc} = N;
-    iidx = find(strcmp(ElementSymbol{iNuc},IsotopeList.Element));
+    Element{iNuc} = N;
+    iidx = find(strcmp(Element{iNuc},IsotopeList.Element));
     if ~isempty(iidx)
       MassNumbers = IsotopeList.Nucleons(iidx);
-      isoAbundances = IsotopeList.Abundances(iidx)/100;
+      isoAbundances = IsotopeList.Abundances(iidx).'/100;
     else
-      error('Could not find element ''%s''',ElementSymbol{iNuc});
+      error('Could not find element ''%s''',Element{iNuc});
     end
     idx = isoAbundances==0;
     MassNumbers(idx) = [];
@@ -160,201 +234,288 @@ for iNuc = 1:numel(NucList)
     % Explicit single isotope
     
     MassNumbers = sscanf(N,'%d');
-    ElementSymbol{iNuc} = N(floor(log10(MassNumbers)+1)+1:end);
+    Element{iNuc} = N(floor(log10(MassNumbers)+1)+1:end);
     isoAbundances = 1;
     
   end
+  Groups(iNuc).Element = Element{iNuc};
+  Groups(iNuc).n = nEquiv(iNuc);
   
   % Get names and nuclear data for all isotopes
-  nIsotopes = numel(MassNumbers);
+  %-----------------------------------------------------------------------------
+  nIsotopes = numel(isoAbundances);
   for iIso = 1:nIsotopes
-    IsoName{iNuc}{iIso} = sprintf('%d%s',MassNumbers(iIso),ElementSymbol{iNuc});
+    Groups(iNuc).Isotopes{iIso} = sprintf('%d%s',MassNumbers(iIso),Element{iNuc});
   end
-  [I{iNuc},gn{iNuc},qm{iNuc}] = nucdata(IsoName{iNuc});
+  [Groups(iNuc).I,gn,qm] = nucdata(Groups(iNuc).Isotopes);
   
   % Combine nonmagnetic isotopes if wanted
+  %-----------------------------------------------------------------------------
   if consolidateNonmagneticIsotopes
-    idx = find(I{iNuc}==0);
+    idx = find(Groups(iNuc).I==0);
     if ~isempty(idx)
       isoAbundances(idx(1)) = sum(isoAbundances(idx));
       rmv = idx(2:end);
       isoAbundances(rmv) = [];
-      MassNumbers(rmv) = [];
-      IsoName{iNuc}(rmv) = [];
-      I{iNuc}(rmv) = [];
-      gn{iNuc}(rmv) = [];
-      qm{iNuc}(rmv) = [];
+      Groups(iNuc).Isotopes(rmv) = [];
+      Groups(iNuc).I(rmv) = [];
+      if SysInput
+        gn(rmv) = [];
+        qm(rmv) = [];
+      end
     end
-    nIsotopes = numel(MassNumbers);
   end
-  IsotopeAbundances{iNuc} = isoAbundances;
+  Groups(iNuc).Abundances = isoAbundances;
   
-  % Determine hyperfine and quadrupole reference isotopes
-  abundances = IsotopeAbundances{iNuc};
+  % Calculate A and Q tensors for all isotopes
+  %-----------------------------------------------------------------------------
+  if SysInput
+    
+    % Determine hyperfine and quadrupole reference isotopes
+    %------------------------------------------------------------
+    abundances_ = Groups(iNuc).Abundances;
+    % (a) find most abundant isotope with I>=1/2 for gn reference
+    abundances_(Groups(iNuc).I<1/2) = -1;
+    [mx,idx] = max(abundances_);
+    if (mx>0)
+      gnref = gn(idx);
+    else
+      gnref = [];
+    end    
+    % (b) find most abundant isotope with I>=1 for Q reference
+    abundances_(Groups(iNuc).I<1) = -1;
+    [mx,idx] = max(abundances_);
+    if (mx>0)
+      qmref = qm(idx);
+    else
+      qmref = [];
+    end
+    
+    % Calculate A and Q tensors
+    %------------------------------------------------------------
+    % A - isotropic; axial; rhombic; full
+    if isempty(gnref) || gnref==0, gnref = 1; end
+    if isfield(Sys,'A')
+      if Aisotropic || Aaxial || Arhombic
+        for k = 1:numel(gn)
+          Groups(iNuc).A{k} = Sys.A(iNuc,:)/gnref*gn(k);
+        end
+      elseif Afull
+        for k = 1:numel(gn)
+          Groups(iNuc).A{k} = Sys.A((iNuc-1)*3+(1:3),:)/gnref*gn(k);
+        end
+      else
+        error('Sys.A size (%dx%d) is inconsistent with number of spins (%d electrons, %d nuclei).',...
+          size(Sys.A,1),size(Sys.A,2),nElectrons,nNucs);
+      end
+    end
+    
+    % A_ - 1, 2, or 3 elements per nuclear spin
+    if isfield(Sys,'A_')
+      if A_isotropic
+        for k = 1:numel(gn)
+          Groups(iNuc).A_{k} = Sys.A_(iNuc)/gnref*gn(k);
+        end
+      elseif A_axial || A_rhombic
+        for k = 1:numel(gn)
+          Groups(iNuc).A_{k} = Sys.A_(iNuc,:)/gnref*gn(k);
+        end
+      else
+        error('Sys.A_ size (%dx%d) is inconsistent with number of spins (%d electrons, %d nuclei).',...
+          size(Sys.A_,1),size(Sys.A_,2),nElectrons,nNucs);
+      end
+    end
+    
+    % Q - Q alone; Q and eta; three principal values; full?
+    if isempty(qmref) || qmref==0, qmref = 1; end
+    if isfield(Sys,'Q')
+      if Qaxial
+        for k = 1:numel(qm)
+          Groups(iNuc).Q{k} = Sys.Q(iNuc)/qmref*qm(k);
+        end
+      elseif Qrhombic || Qpvalues
+        for k = 1:numel(gn)
+          Groups(iNuc).Q{k} = Sys.Q(iNuc,:)/qmref*qm(k);
+        end
+      elseif Qfull
+        for k = 1:numel(qm)
+          Groups(iNuc).Q{k} = Sys.Q((iNuc-1)*3+(1:3),:)/qmref*qm(k);
+        end
+      else
+        error('Sys.Q size (%dx%d) is inconsistent with number of nuclear spins (%d).',...
+          size(Sys.Q,1),size(Sys.Q,2),nNucs);
+      end
+    end
+    
+  end % if SysInput
   
-  % (a) find most-abundant isotope with I>=1/2 and set its gn as reference
-  abundances(I{iNuc}<1/2) = -1;
-  [mx,idx] = max(abundances);
-  if (mx>0)
-    gnref(iNuc) = gn{iNuc}(idx);
-    gnscale_{iNuc} = gn{iNuc}/gnref(iNuc);
-  else
-    gnref(iNuc) = NaN;
-    gnscale_{iNuc} = ones(1,numel(gn{iNuc}));
+end % for iNuc = 1:nNucs
+
+if Debug
+  disp('List of groups:')
+  for k = 1:numel(Groups)
+    fprintf('  Group %d\n',k);
+    disp(Groups(k))
   end
-  
-  % (b) find most-abundant isotope with I>=1 and set its Q as reference
-  abundances(I{iNuc}<1) = -1;
-  [mx,idx] = max(abundances);
-  if (mx>0)
-    qmref(iNuc) = qm{iNuc}(idx);
-    qmscale_{iNuc} = qm{iNuc}/qmref(iNuc);
-  else
-    qmref(iNuc) = NaN;
-    qmscale_{iNuc} = ones(1,numel(qm{iNuc}));
-  end
+end
+
+
+% Generate all isotopologues within equivalent class
+%===============================================================================
+for iNuc = 1:nNucs
+  nIsotopes = numel(Groups(iNuc).Isotopes);
   
   % Generate all isotopologues within equivalent class
   [kvec,multiplicity] = multisetlist(nEquiv(iNuc),nIsotopes);
-  nSets = numel(multiplicity);
   if any(isinf(multiplicity))
     error('Multiplicity overflow. - Cannot handle nEquiv=%d for nucleus #%d.',...
       nEquiv(iNuc),iNuc);
   end
   
-  % Calculate strings, abundances, and #equivent nuclei
-  for im = 1:nSets
-    str_ = '';
+  % Calculate symbol list, abundances, and #equivent nuclei
+  for im = 1:numel(multiplicity)
+    Nucs_ = {};
     abu_ = 1;
     equ_ = [];
     for iIso = 1:nIsotopes
-      if kvec(im,iIso)==0, continue; end
-      abu_ = abu_*isoAbundances(iIso)^kvec(im,iIso);
-      str_ = [str_ ',' IsoName{iNuc}{iIso}];
+      %if kvec(im,iIso)==0, continue; end
+      abu_ = abu_*Groups(iNuc).Abundances(iIso)^kvec(im,iIso);
+      Nucs_ = [Nucs_ Groups(iNuc).Isotopes(iIso)];
       equ_ = [equ_ kvec(im,iIso)];
     end
     if (abu_==0)
       error('Abundance underflow. - Cannot handle nEquiv=%d for nucleus #%d.',...
         nEquiv(iNuc),iNuc);
     end
-    if numel(str_)>1, str_ = str_(2:end); end
-    Nucs{iNuc}{im} = str_;
+    Nucs{iNuc}{im} = Nucs_;
     Abund{iNuc}(im) = abu_*multiplicity(im);
     nEquivList{iNuc}{im} = equ_;
   end
-    kvecc{iNuc} = kvec;
+  if SysInput
+    Groups(iNuc).kvec = kvec;
+  end
 end
+maxAbundance = prod(cellfun(@max,Abund));
+absAbundanceThreshold = relAbundanceThreshold*maxAbundance;
+nIsotopes = cellfun(@numel,Nucs);
 
 
 if Debug
-  
-  fprintf('Parsed list:\n');
+  fprintf('Group isotopologues:\n');
   for iNuc = 1:numel(Nucs)
-    fprintf('  Nucleus group %2d: %s\n',iNuc,ElementSymbol{iNuc});
+    fprintf('  Group %2d: %s\n',iNuc,Groups(iNuc).Element);
     for im = 1:numel(Nucs{iNuc})
       fprintf('    ');
       fprintf('%f  ',Abund{iNuc}(im));
-      fprintf('%-15s  ',Nucs{iNuc}{im});
       fprintf('%3d ',nEquivList{iNuc}{im});
       fprintf('\n');
     end
     fprintf('    sum of abundances: %f\n',sum(Abund{iNuc}));
   end
-  
 end
 
-maxAbundance = prod(cellfun(@max,Abund));
-absAbundanceThreshold = relAbundanceThreshold*maxAbundance;
-nIsotopes = cellfun(@numel,Nucs);
-nTotalIsotopologues = prod(nIsotopes);
 
+% Abundance tree traversal: calculate isotopologue abundances and isotope indices
+%===============================================================================
+[IsoListIdx,IsoListAbund] = abundancetreetraversal(nIsotopes,Abund,absAbundanceThreshold);
+nIsotopologues = numel(IsoListAbund);
 
-% Abundance tree traversal: Compute list of isotopologues with their abundances
-%-------------------------------------------------------------------------------
-iNuc = 1;
-iIso = zeros(1,nNucs);
-abundance = zeros(1,nNucs);
-nIsotopologues = 0;
-isoIdx = zeros(100,nNucs);
-while (iNuc>=1)
-  if (iNuc>nNucs) % if vertex, process and go to previous
-    nIsotopologues = nIsotopologues + 1;
-    if mod(nIsotopologues,100)==1 % allocate new memory every 100
-      isoIdx(nIsotopologues+100,:) = 0;
-    end
-    isoIdx(nIsotopologues,:) = iIso;
-    IsoAbund(nIsotopologues) = abundance(nNucs);
-    iNuc = iNuc - 1;
-  end
-  if iIso(iNuc)<nIsotopes(iNuc) % next isotope
-    iIso(iNuc) = iIso(iNuc) + 1;
-    if iNuc>1, abund_ = abundance(iNuc-1); else, abund_ = 1; end
-    abund_ = abund_*Abund{iNuc}(iIso(iNuc));
-    if abund_>=absAbundanceThreshold % save abundance and go to next nucleus
-      abundance(iNuc) = abund_;
-      iNuc = iNuc + 1;
-    else % reset isotope index and go back to previous nucleus
-      iIso(iNuc) = 0;
-      iNuc = iNuc - 1;
-    end
-  else % reset isotope index and go back to previous nucleus
-    iIso(iNuc) = 0;
-    iNuc = iNuc - 1;
-  end
-end
-isoIdx(nIsotopologues+1:end,:) = [];
 
 if Debug
   fprintf('List of isotopologues (abundances and indices)\n')
   for k = 1:nIsotopologues
-    fprintf('  %f  ',IsoAbund(k));
-    for q = 1:size(isoIdx(k,:),2)
-      fprintf('%2d ',isoIdx(k,q));
+    fprintf('  %f  ',IsoListAbund(k));
+    for q = 1:size(IsoListIdx(k,:),2)
+      fprintf('%2d ',IsoListIdx(k,q));
     end
     fprintf('\n');
   end
   fprintf('  %f   threshold\n',absAbundanceThreshold);
-  fprintf('  sum of abundances: %f\n',sum(IsoAbund));
+  fprintf('  sum of abundances: %f\n',sum(IsoListAbund));
 end
+
 
 % Compile isotopologue list
-%-------------------------------------------------------------------------------
-% make string with comma-separated symbols
-for k = nIsotopologues:-1:1
-  str = [];
-  equiv_ = [];
-  Ascale_ = [];
-  Qscale_ = [];
-  for iNuc = 1:nNucs
-    idx_ = isoIdx(k,iNuc);
-    idx1 = find(kvecc{iNuc}(idx_,:));
-    str = [str ',' Nucs{iNuc}{idx_}];
-    equiv_ = [equiv_ nEquivList{iNuc}{idx_}];
-    Ascale_ = [Ascale_ gnscale_{iNuc}(idx1)];
-    Qscale_ = [Qscale_ qmscale_{iNuc}(idx1)];
+%===============================================================================
+% make Nucs string with comma-separated isotope symbols
+if SysInput
+  for k = nIsotopologues:-1:1
+    isotopologue(k) = Sys;
   end
-  isotopologue(k).Nucs = str(2:end); % exclude the initial comma
-  isotopologue(k).Abund = IsoAbund(k);
-  isotopologue(k).n = equiv_;
-  isotopologue(k).Ascale = Ascale_;
-  isotopologue(k).Qscale = Qscale_;
 end
+
+for k = 1:nIsotopologues
+  Nucs_ = {};
+  n = [];
+  A = [];
+  A_ = [];
+  Q = [];
+  for iNuc = 1:nNucs
+    idx = IsoListIdx(k,iNuc);
+    nz = find(nEquivList{iNuc}{idx}~=0);
+    gr = Groups(iNuc);
+    for iIso = nz
+      Nucs_ = [Nucs_ Nucs{iNuc}{idx}(iIso)];
+      n = [n nEquivList{iNuc}{idx}(iIso)];
+      if SysInput
+        if isfield(Sys,'A')
+          if Aisotropic
+            A = [A; gr.A{iIso}];
+          elseif Aaxial || Arhombic || Afull
+            A = [A; gr.A{iIso}];
+          end
+        end
+        if isfield(Sys,'A_')
+          if A_isotropic
+            A_ = [A_ gr.A_{iIso}];
+          elseif A_axial || A_rhombic
+            A_ = [A_; gr.A_{iIso}];
+          end
+        end
+        if isfield(Sys,'Q')
+          if Qaxial || Qrhombic || Qpvalues || Qfull
+            Q = [Q; gr.Q{iIso}];
+          end
+        end
+      end
+    end
+  end
+  
+  isotopologue(k).Nucs = nuclist2string(Nucs_);
+  isotopologue(k).n = n;
+  
+  if isfield(isotopologue(k),'weight') && ~isempty(isotopologue(k).weight)
+    isotopologue(k).weight = isotopologue(k).weight*IsoListAbund(k);
+  else
+    isotopologue(k).weight = IsoListAbund(k);
+  end
+  
+  if ~isempty(A)
+    isotopologue(k).A = A;
+  end
+  if ~isempty(A_)
+    isotopologue(k).A_ = A_;
+  end
+  if ~isempty(Q)
+    isotopologue(k).Q = Q;
+  end
+  
+end
+
 
 if Debug
+  fprintf('List of isotopologues\n');
+  for k = 1:nIsotopologues
+    fprintf(' isotopologue %d:\n',k);
+    disp(isotopologue(k))
+  end
+  fprintf('\n');
 end
 
-
-
-% Sort isotopologues in descending order of abundance
-%-------------------------------------------------------------------------------
-if sortByAbundances && 0
-  [dummy,idx] = sort([isotopologue.Abund],'descend'); %#ok<ASGLU>
-  isotopologue = isotopologue(idx);
-end
 
 
 % Output
-%-------------------------------------------------------------------------------
+%===============================================================================
 if (nargout==0)
   
   % Determine longest isotope string
@@ -364,78 +525,80 @@ if (nargout==0)
   end
   
   % Print table of isotopologues
-  fprintf('abundance  Sys.Nucs%sSys.n\n',repmat(' ',1,strlen-4));  
+  fprintf('Sys.Abund   Sys.Nucs%sSys.n\n',repmat(' ',1,strlen-4));
   for k = 1:nIsotopologues
     isot = isotopologue(k);
+    N = isot.Nucs;
     fprintf('  %0.6f   %s%s    ',...
-      isot.Abund,isot.Nucs,repmat(' ',1,strlen-length(isot.Nucs)));
+      isot.weight,N,repmat(' ',1,strlen-length(N)));
     fprintf('%2d ',isot.n);
     fprintf('\n');
   end
   
   fprintf('%d of %d isotopologues with abundance above threshold (%0.2e)\n',...
-    nIsotopologues,nTotalIsotopologues,relAbundanceThreshold);
+    nIsotopologues,prod(nIsotopes),relAbundanceThreshold);
 else
   varargout = {isotopologue};
 end
 
 
 %-------------------------------------------------------------------------------
-% multisetlist   Generates list of isotopologue groups for a given number of
-%                of equivalent positions n and number of isotopes k.
-%
-%  [kvec,multiplicity] = multisetlist(n,k)
-%
-%  E.g. nIsotopes = k = 3 and nEquivPos = n = 4 yields kvec with 15 rows, one
-%  row for each group (multiset) of spectrally indistinguishable isotopologue.
-%
-%  kvec =
-%      4     0     0
-%      3     1     0
-%      3     0     1
-%      2     2     0
-%      2     1     1
-%      2     0     2
-%      1     3     0
-%      1     2     1
-%      1     1     2
-%      1     0     3
-%      0     4     0
-%      0     3     1
-%      0     2     2
-%      0     1     3
-%      0     0     4
-%
-% The meaning is the following. E.g., the second row states that this group of
-% isotopologues has the first isotope in 3 positions, the second isotope in 1
-% position, and the third isotope in none.
-%
-% multiplicity a vector containing the multiplicities for each isotologue group,
-% i.e. the number of possible permutations among the positions that give
-% isotopologues that are indistinguishable. This number needs to be included in
-% the overall weight of a spectrum simulation.
-%
-% For the example above,
-%
-% multiplicity =
-%      1
-%      4
-%      4
-%      6
-%     12
-%      6
-%      4
-%     12
-%     12
-%      4
-%      1
-%      4
-%      6
-%      4
-%      1
-%
-% The sum over all multiplicities equals k^n.
+%{
+multisetlist   Generates list of isotopologue groups for a given number of
+               of equivalent positions n and number of isotopes k.
+ [kvec,multiplicity] = multisetlist(n,k)
 
+ E.g. nIsotopes = k = 3 and nEquivPos = n = 4 yields kvec with 15 rows, one
+ row for each group (multiset) of spectrally indistinguishable isotopologues.
+
+ kvec =
+     4     0     0
+     3     1     0
+     3     0     1
+     2     2     0
+     2     1     1
+     2     0     2
+     1     3     0
+     1     2     1
+     1     1     2
+     1     0     3
+     0     4     0
+     0     3     1
+     0     2     2
+     0     1     3
+     0     0     4
+
+The meaning is the following. E.g., the second row states that this group of
+isotopologues has the first isotope in 3 of the equivalent positions, the
+second isotope in 1 position, and the third isotope in none.
+
+multiplicity is a vector containing the multiplicities for each isotologue
+group, i.e. the number of possible permutations among the positions that give
+isotopologues that are indistinguishable. This number needs to be included in
+the overall weight of a spectrum simulation.
+
+For the example above,
+
+multiplicity =
+     1
+     4
+     4
+     6
+    12
+     6
+     4
+    12
+    12
+     4
+     1
+     4
+     6
+     4
+     1
+
+The sum over all multiplicities equals k^n.
+%}
+%-------------------------------------------------------------------------------
 function [kvec,multiplicity] = multisetlist(n,k)
 
 % k = total number of different isotopes
@@ -486,5 +649,56 @@ for iSet = 1:nMultiSets
   end
   multiplicity(iSet) = prod((1:n)./sort(k_));
 end
+
+return
+
+
+%-------------------------------------------------------------------------------
+% Abundance tree traversal: Compute list of isotopologues with their abundances
+%-------------------------------------------------------------------------------
+function [IsoListIdx,IsoListAbund] = abundancetreetraversal(nIsotopes,Abund,absAbundanceThreshold)
+
+if absAbundanceThreshold<0
+  error('Abundance threshold cannot be negative.');
+end
+
+nNucs = numel(Abund);
+iIso = zeros(1,nNucs);
+abundance = zeros(nNucs,1);
+
+IsoListIdx = [];
+IsoListAbund = [];
+
+nIsotopologues = 0;
+iNuc = 1;
+while (iNuc>=1)
+  
+  % if last nucleus done, add to list (if above threshold), and go back to
+  % previous nucleus
+  if (iNuc>nNucs)
+    if abundance(nNucs)>absAbundanceThreshold
+      nIsotopologues = nIsotopologues + 1;
+      IsoListIdx(nIsotopologues,:) = iIso;
+      IsoListAbund(nIsotopologues) = abundance(nNucs);
+    end
+    iNuc = iNuc - 1;
+  else
+    % if not last nucleus, update abundance and proceed to next group
+    if iIso(iNuc)<nIsotopes(iNuc)
+      iIso(iNuc) = iIso(iNuc) + 1;
+      if iNuc>1
+        abund_ = abundance(iNuc-1);
+      else
+        abund_ = 1;
+      end
+      abundance(iNuc) = abund_*Abund{iNuc}(iIso(iNuc));
+      iNuc = iNuc + 1;
+    else % reset isotope index and go back to previous nucleus
+      iIso(iNuc) = 0;
+      iNuc = iNuc - 1;
+    end
+  end
+end
+IsoListAbund = IsoListAbund.';
 
 return
