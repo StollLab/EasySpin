@@ -110,7 +110,9 @@ end
 
 end
 
-%% Helper function
+
+% Helper function
+% -------------------------------------------------------------------------
 function [Dyn,err] = processdynamics(D,FieldSweep)
 
 Dyn = D;

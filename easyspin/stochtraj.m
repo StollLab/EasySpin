@@ -147,11 +147,30 @@ if isfield(Sys,'PseudoPotFun')
   da = 2*pi/size(Sys.PseudoPotFun,1);
   db = pi/size(Sys.PseudoPotFun,2);
   dg = 2*pi/size(Sys.PseudoPotFun,3);
-  [px, py, pz] = gradient(Sys.PseudoPotFun, da, db, dg);
-  Sim.agrid = linspace(-pi, pi, size(Sys.PseudoPotFun,1));
-  Sim.bgrid = linspace(0, pi, size(Sys.PseudoPotFun,2));
-  Sim.ggrid = linspace(-pi, pi, size(Sys.PseudoPotFun,3));
-  Sim.GradPot = {px, py, pz};
+  
+  % Sys.PseudoPotFun may contain zeros, so taking the logarithm directly
+  % will yield infs, but since we want to take the gradient of the log of
+  % this data anyway, it is better to perform logarithmic differentiation
+  % directly and then set infs to zero (which would be due to dividing by 
+  % zero, in which case the torque would be negligible at those points 
+  % anyway)
+  
+  idx = Sys.PseudoPotFun<1e-10;
+  Sys.PseudoPotFun(idx) = 1e-10;
+  
+  logpotfun = smooth3(log(Sys.PseudoPotFun), 'gaussian');
+  
+  [px, py, pz] = gradient(logpotfun, da, db, dg);
+  
+  Sim.Agrid = linspace(-pi, pi, size(Sys.PseudoPotFun,1));
+  Sim.Bgrid = linspace(0, pi, size(Sys.PseudoPotFun,2));
+  Sim.Ggrid = linspace(-pi, pi, size(Sys.PseudoPotFun,3));
+  
+%   [Sim.Agrid, Sim.Bgrid, Sim.Ggrid] = meshgrid(agrid, bgrid, ggrid);
+  
+  Sim.GradPot = {permute(px, [2, 1, 3]), ...
+                 permute(py, [2, 1, 3]), ... 
+                 permute(pz, [2, 1, 3])};
 else
   Sim.GradPot = [];
 end
@@ -216,10 +235,14 @@ if isfield(Par,'Omega'), Omega = Par.Omega; end
 
 % Supplement starting angles if necessary
 if isempty(Omega)
-  z = 2*rand(1,Sim.nTraj)-1;
-  Omega = [2*pi*rand(1,Sim.nTraj);
-                          acos(z);
-           2*pi*rand(1,Sim.nTraj)];
+%   if isfield(Sys.PseudoPotFun)
+%     
+%   else
+    z = 2*rand(1,Sim.nTraj)-1;
+    Omega = [2*pi*rand(1,Sim.nTraj);
+                            acos(z);
+             2*pi*rand(1,Sim.nTraj)];
+%   end
 end
 
 % If only one starting angle and multiple trajectories, repeat the angle
@@ -230,7 +253,7 @@ if size(Omega,1)==3
     error('Number of starting orientations must be equal to 1 or nTraj.')
   end
 else
-  error('The size of Orients must be (3,1) or (3,nTraj).')
+  error('The size of Omega must be (3,1) or (3,nTraj).')
 end
 
 if isfield(Opt,'chkcon')
@@ -394,9 +417,9 @@ LMK = Sim.LMK;
 
 if ~isempty(Sim.GradPot)
   GradPot = Sim.GradPot;
-  agrid = Sim.agrid;
-  bgrid = Sim.bgrid;
-  ggrid = Sim.ggrid;
+  Agrid = Sim.Agrid;
+  Bgrid = Sim.Bgrid;
+  Ggrid = Sim.Ggrid;
 end
 
 if iter>0
@@ -409,9 +432,9 @@ if iter>0
     % use orienting pseudopotential functions of Euler angles to calculate
     % torque
     [alpha, beta, gamma] = quat2euler(q(:,:,end));
-    pxint = interp3(agrid, bgrid, ggrid, GradPot{1}, alpha, beta, gamma);
-    pyint = interp3(agrid, bgrid, ggrid, GradPot{2}, alpha, beta, gamma);
-    pzint = interp3(agrid, bgrid, ggrid, GradPot{3}, alpha, beta, gamma);
+    pxint = interp3(Agrid, Bgrid, Ggrid, GradPot{1}, alpha, beta, gamma);
+    pyint = interp3(Agrid, Bgrid, Ggrid, GradPot{2}, alpha, beta, gamma);
+    pzint = interp3(Agrid, Bgrid, Ggrid, GradPot{3}, alpha, beta, gamma);
     torque = [pxint; pyint; pzint];
     AngStep = bsxfun(@times,torque,Diff*dt) + randAngStep(:,:,1);
   else
@@ -458,9 +481,9 @@ for iStep=2:nSteps
     % use orienting pseudopotential functions of Euler angles to calculate
     % torque
     [alpha, beta, gamma] = quat2euler(q(:,:,iStep-1));
-    pxint = interp3(agrid, bgrid, ggrid, GradPot{1}, alpha, beta, gamma);
-    pyint = interp3(agrid, bgrid, ggrid, GradPot{2}, alpha, beta, gamma);
-    pzint = interp3(agrid, bgrid, ggrid, GradPot{3}, alpha, beta, gamma);
+    pxint = interp3(Agrid, Bgrid, Ggrid, GradPot{1}, alpha, beta, gamma);
+    pyint = interp3(Agrid, Bgrid, Ggrid, GradPot{2}, alpha, beta, gamma);
+    pzint = interp3(Agrid, Bgrid, Ggrid, GradPot{3}, alpha, beta, gamma);
     torque = [pxint; pyint; pzint];
     AngStep = bsxfun(@times,torque,Diff*dt) + randAngStep(:,:,iStep-1);
   else

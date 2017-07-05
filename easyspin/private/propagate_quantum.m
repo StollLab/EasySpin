@@ -96,27 +96,33 @@ end
 
 % Set up for MD time averaging
 
-if strcmp(Model,'Molecular Dynamics')&&~strcmp(Method,'Steinhoff')
+if strcmp(Model,'Molecular Dynamics')
   % time step of MD simulation, MD.dt, is usually much smaller than
   % that of the propagation, Par.dt, so we need to average over windows
   % of size Par.dt/MD.dt
-
-  if MD.nTraj > 1, error('Using the Sezer Method with multiple trajectories is not supported.'); end
-
-  % size of averaging window
-  nWindow = ceil(Par.dt/MD.dt);
-
-  % size of MD trajectory after averaging
-  M = floor(MD.nSteps/nWindow);
+  if MD.nTraj > 1, error('Using multiple MD trajectories is not supported.'); end
   
-  % process single long trajectory into multiple short trajectories
-  lag = 1;
-  if Par.nSteps<M
-    nSteps = Par.nSteps;
-    nTraj = floor((M-nSteps)/lag) + 1;
-  else
-    nSteps = M;
-    nTraj = 1;
+  if any(strcmp(Method,{'Sezer','Oganesyan'}))
+    % size of averaging window
+    nWindow = ceil(Par.dt/MD.dt);
+
+    % size of MD trajectory after averaging
+    M = floor(MD.nSteps/nWindow);
+
+    % process single long trajectory into multiple short trajectories
+    lag = ceil(Par.dt/2e-9);
+    if Par.nSteps<M
+      nSteps = Par.nSteps;
+      nTraj = floor((M-nSteps)/lag) + 1;
+    else
+      nSteps = M;
+      nTraj = 1;
+    end
+
+  elseif strcmp(Method,'Steinhoff')
+    % Steinhoff method does not require tensor averaging, so set nTraj to
+    % user input
+    nTraj = Par.nTraj;
   end
   
   if isfield(MD,'GlobalDiff')

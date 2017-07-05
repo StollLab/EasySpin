@@ -295,6 +295,9 @@ if useMD
   MD.RTraj(:,2,1,:) = MD.FrameY;
   MD.RTraj(:,3,1,:) = MD.FrameZ;
   
+%   q = rotmat2quat(MD.RTraj);
+%   [alpha, beta, gamma] = quat2euler(q);
+  
   % Check for orthogonality of rotation matrices
   RTrajInv = permute(MD.RTraj,[2,1,3,4]);
   
@@ -321,7 +324,6 @@ if useMD
   elseif ~strcmp(Par.Model,'Molecular Dynamics')
     error('Mixing stochastic simulations with MD simulation input is not supported.')
   end
-  Par.nTraj = MD.nTraj;
   
 else
   % no rotation matrices provided, so perform stochastic dynamics
@@ -436,29 +438,37 @@ switch Model
     if ~isfield(Par,'nOrients')
       error('nOrients must be specified for the Molecular Dynamics model.')
     end
+    DiffGlobal = 6e6;
     nOrients = Par.nOrients;
-    grid_pts = linspace(-1,1,nOrients);
+    grid_pts = linspace(0,1,nOrients);
     grid_phi = sqrt(pi*nOrients)*asin(grid_pts);
     grid_theta = acos(grid_pts);
 
     if strcmp(Opt.Method,'Steinhoff')
-      if ~isfield(Par,'Omega')
-        Par.Omega = [sqrt(pi*Par.nTraj)*asin(linspace(0,1,Par.nTraj));...
-                     acos(linspace(0,1,Par.nTraj));...
-                     zeros(1,Par.nTraj)];
-      end
+      
+      % set up grid of starting orientations
+%       if ~isfield(Par,'Omega')
+%         Par.Omega = [sqrt(pi*Par.nTraj)*asin(linspace(0,1,Par.nTraj));...
+%                      acos(linspace(0,1,Par.nTraj));...
+%                      zeros(1,Par.nTraj)];
+%       end
       
       % calculate orienting potential energy function
       theta = squeeze(acos(MD.FrameZ(3,:,:,:)));
       phi = squeeze(atan2(MD.FrameY(3,:,:,:), MD.FrameX(3,:,:,:)));
       psi = squeeze(atan2(-MD.FrameZ(2,:,:,:), MD.FrameZ(1,:,:,:)));
 
-      PhiBins = linspace(-pi, pi, 50)';
-      ThetaBins = linspace(0, pi, 50)';
-      PsiBins = linspace(-pi, pi, 50)';
+      PhiBins = linspace(-pi, pi, 70);
+      ThetaBins = linspace(0, pi, 35);
+      PsiBins = linspace(-pi, pi, 70);
 
-      [Sys.PseudoPotFun, dummy] = histcnd([phi,theta,psi],...
-                                      {PhiBins',ThetaBins',PsiBins'});
+      [PseudoPotFun, dummy] = histcnd([phi,theta,psi],...
+                                      {PhiBins,ThetaBins,PsiBins});
+      
+      % first two dims are incorrectly ordered by histcnd
+%       PseudoPotFun = permute(PseudoPotFun, [2, 1, 3]);
+      
+%       Sys.PseudoPotFun = smooth3(Sys.PseudoPotFun, 'gaussian');
 
       % estimate rotational diffusion time scale
       AutoCorrFFT = autocorrfft(squeeze(MD.FrameZ.^2), 1);
@@ -474,8 +484,9 @@ switch Model
       time = linspace(0,N*MD.dt,N);
 %       tau = max(cumtrapz(time,AutoCorrFFT(1:N)));  % FIXME find a robust way to calculate this
       tau = max(cumtrapz(time,datasmooth(AutoCorrFFT(1:N),500,'flat')));  % FIXME find a robust way to calculate this
+      DiffLocal = 1/6/(1.5*tau);
     end
-               
+
   otherwise
     error('Model not recognized. Please check the documentation for acceptable models.')
     
@@ -495,6 +506,8 @@ tcell = cell(1,nOrients);
 
 clear updateuser
 clear propagate_quantum
+
+HistTot = 0;
 
 tic
 for iOrient = 1:nOrients
@@ -517,21 +530,22 @@ for iOrient = 1:nOrients
       
     case 'MOMD'
       [t, RTraj, qTraj] = stochtraj(Sys,Par);
-      % generator quaternions for rotating to different grid points
+      % generate quaternions for rotating to different grid points
       qmult = repmat(euler2quat(grid_phi(iOrient), grid_theta(iOrient), 0),...
                      [1,Par.nTraj,Par.nSteps]);
       qTraj = quatmult(qmult,qTraj);
       if strcmp(Opt.Method,'Oganesyan')
         % this method needs quaternions, not rotation matrices
-        Par.qTraj = quatmult(qmult,qTraj);
+        Par.qTraj = qTraj;
       else
         % other methods use rotation matrices
-        Par.RTraj = quat2rotmat(quatmult(qmult,qTraj));
+        Par.RTraj = quat2rotmat(qTraj);
       end
       
     case 'SRLS'
       Sys.Diff = DiffLocal;
       [t, RTraj, qTrajLocal] = stochtraj(Sys,Par);
+      
       Sys.Diff = DiffGlobal;
       [t, RTraj, qTrajGlobal] = stochtraj(Sys,Par);
       qTraj = quatmult(qTrajGlobal,qTrajLocal);
@@ -540,31 +554,63 @@ for iOrient = 1:nOrients
         Par.qTraj = qTraj;  % ordering?
       else
         % other methods use rotation matrices
+        RTraj = quat2rotmat(qTraj);
         Par.RTraj = RTraj;
       end
       
     case 'Molecular Dynamics'
       % rotation matrices provided by external data, no need to do stochastic
       % simulation
-%       Sys.Diff = 1e6;
-%       [t, dummy, qmult] = stochtraj(Sys,Par);
       qmult = repmat(euler2quat(grid_phi(iOrient), grid_theta(iOrient), 0),...
                      [1,MD.nTraj,MD.nSteps]);
       MD.RTraj = matmult(quat2rotmat(qmult),MD.RTraj);
+      
       if strcmp(Opt.Method,'Steinhoff')
-        Sys.Diff = 1/6/tau;
-        Par.nTraj = 100;  % FIXME find way to set this in UI
+      
+        if ~isfield(Par,'Omega')
+          % pick trajectory starting points by bootstrapping MD data
+          randints = sort(randi(MD.nSteps, 1, Par.nTraj));
+          Par.Omega = [phi(randints).'; theta(randints).'; psi(randints).'];
+        end
+        
+        Sys.PseudoPotFun = PseudoPotFun;
+        Sys.Diff = DiffLocal;
         [t, RTraj, qTraj] = stochtraj(Sys,Par);
+        
+%         Sys = rmfield(Sys, 'PseudoPotFun');
+%         Sys.Diff = DiffGlobal;
+%         [t, RTraj, qTrajGlobal] = stochtraj(Sys,Par);
+        
+        qmult = repmat(euler2quat(grid_phi(iOrient), grid_theta(iOrient), 0),...
+                       [1,Par.nTraj,Par.nSteps]);
+%         qTraj = quatmult(qTrajGlobal, qTraj);
+        qTraj = quatmult(qmult, qTraj);
+%         [alpha, beta, gamma] = quat2euler(qTraj);
+%         alpha = squeeze(alpha);
+%         beta = squeeze(beta);
+%         gamma = squeeze(gamma);
+% 
+%         for iTraj=1:Par.nTraj
+%           [temp,~] = histcnd([alpha(iTraj,:).',beta(iTraj,:).',gamma(iTraj,:).'],...
+%                                         {PhiBins.',ThetaBins.',PsiBins.'});
+%                                       
+%           Hist3D(:,:,:,iTraj) = permute(temp, [2, 1, 3]);
+%         end
+%         
+%         HistTot = HistTot + mean(Hist3D,4);
+        
         if strcmp(Opt.Method,'Oganesyan')
           % this method needs quaternions, not rotation matrices
           Par.qTraj = qTraj;  % ordering?
         else
           % other methods use rotation matrices
-          Par.RTraj = RTraj;
+          Par.RTraj = quat2rotmat(qTraj);
         end
       end
 
   end
+  
+  
 
   % propagate the density matrix
   rho_t = propagate_quantum(Sys,Par,Opt,MD,omega,CenterField);
