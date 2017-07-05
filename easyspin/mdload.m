@@ -107,20 +107,28 @@ if ~ischar(TopFile)||regexp(TopFile,'\w+\.\w+','once')<1
   error('TopFile must be given as a character array, including the filename extension.')
 end
 
-if numel(regexp(TopFile,'\.'))>1
-  error('Only one period (".") can be included in TopFile as part of the filename extension. Remove the others.')
-end
+% if numel(regexp(TopFile,'\.'))>1
+%   error('Only one period (".") can be included in TopFile as part of the filename extension. Remove the others.')
+% end
 
-[TopFilePath, TopFileName, TopFileExt] = fileparts(TopFile);
-TopFile = fullfile(TopFilePath, [TopFileName, TopFileExt]);
+if exist('TopFile','file')>0
+  [TopFilePath, TopFileName, TopFileExt] = fileparts(TopFile);
+  TopFile = fullfile(TopFilePath, [TopFileName, TopFileExt]);
+else
+  error('TopFile "%s" could not be found.', TopFile)
+end
 
 if ischar(TrajFile)
   % single trajectory file
   
-  % extract file extension and file path
-  [TrajFilePath, TrajFileName, TrajFileExt] = fileparts(TrajFile);
-  % add full file path to TrajFile
-  TrajFile = fullfile(TrajFilePath, [TrajFileName, TrajFileExt]);
+  if exist('TrajFile','file')>0
+    % extract file extension and file path
+    [TrajFilePath, TrajFileName, TrajFileExt] = fileparts(TrajFile);
+    % add full file path to TrajFile
+    TrajFile = fullfile(TrajFilePath, [TrajFileName, TrajFileExt]);
+  else
+    error('TrajFile "%s" could not be found.', TrajFile)
+  end
   
   TrajFile = {TrajFile};
   TrajFilePath = {TrajFilePath};
@@ -136,8 +144,12 @@ elseif iscell(TrajFile)
   TrajFileName = cell(nTrajFiles,1);
   TrajFileExt = cell(nTrajFiles,1);
   for k=1:nTrajFiles
-    [TrajFilePath{k}, TrajFileName{k}, TrajFileExt{k}] = fileparts(TrajFile{k});
-    TrajFile{k} = fullfile(TrajFilePath{k}, [TrajFileName{k}, TrajFileExt{k}]);
+    if exist(TrajFile{k})>0
+      [TrajFilePath{k}, TrajFileName{k}, TrajFileExt{k}] = fileparts(TrajFile{k});
+      TrajFile{k} = fullfile(TrajFilePath{k}, [TrajFileName{k}, TrajFileExt{k}]);
+    else
+      error('TrajFile "%s" could not be found.', TrajFile{k})
+    end
   end
   % make sure that all file extensions are identical
   if ~all(strcmp(TrajFileExt,TrajFileExt{1}))
@@ -270,3 +282,9 @@ fprintf([reverseStr, msg]);
 reverseStr = repmat(sprintf('\b'), 1, length(msg));
 
 end
+
+% function status = FileExist(FileName)
+% 
+% 
+% 
+% end
