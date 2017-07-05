@@ -177,33 +177,39 @@ if isfield(Exp,'nPoints')
   nDims = length(Exp.nPoints);
   Vary.Points = Exp.nPoints;
   
-  if nDims == 1
-    iDim = 1;
-    VariedEvents = zeros(1,size(Exp.Inc,1));
+  for iDim = 1 : nDims
+    
+    if nDims == 1
+      if isfield(Exp,'Inc')
+        field2get = 'Inc';
+      else
+        field2get = 'Inc1';
+      end
+    else
+      field2get = ['Inc' num2str(iDim)];
+    end
+    
+    VariedEvents = zeros(1,size(Exp.(field2get),1));
     iModified = 1;
-    for iLines = 1 : size(Exp.Inc,1)
-      toModify = Exp.Inc{iLines,1};
+    for iLines = 1 : size(Exp.(field2get),1)
+      FullString = Exp.(field2get){iLines,1};
+
+      SplitStrings = regexp(FullString,',','split');
       
-      Commas = strfind(toModify,',');
-      iComma = 1;
-      nVariables = length(Commas) + 1;
-      
-      for iVariables = 1 : nVariables
-        if nVariables ==  1
-          String = toModify;
-        elseif iVariables == nVariables
-          String = toModify(Commas(iComma-1)+1:end);
-        elseif iVariables == 1
-          String = toModify(1:Commas(iComma)-1);
-        else
-          String = toModify(Commas(iComma)+1,Commas(iComma+1)-1);
-        end
-        iComma = iComma + 1;
+      for iModifiedEvent = 1 : length(SplitStrings)
+              
+        Strings = regexp(SplitStrings{iModifiedEvent},'\.','split');
         
-        switch String(1)
+        type = Strings{1}(1);
+        index = str2double(Strings{1}(2:end));
+        
+        
+        switch type
           case 'p'
-            EventNumber = Pulses{str2double(String(2))}.EventIndex;
-            PulseNumber = str2double(String(2));
+            field = Strings{2};
+            
+            EventNumber = Pulses{index}.EventIndex;
+            PulseNumber = index;
             
             VariedEvents(iModified) = EventNumber;
             Pulse = Pulses{PulseNumber};
@@ -212,19 +218,15 @@ if isfield(Exp,'nPoints')
             Vary.IQs{EventNumber}{1} = Events{EventNumber}.IQ;
             Vary.ts{EventNumber}{1} = Events{EventNumber}.t;
             
-            Field2Modify = String(4:end);
-            
-            switch Field2Modify
-              %             case 'Frequency'
-              
+            switch field
               case 't'
-                Field2Modify = 'tp';
+                field = 'tp';
             end
             
-            Start = Pulse.(Field2Modify);
+            Start = Pulse.(field);
             
             for iPoint = 2 : Vary.Points(iDim)
-              Pulse.(Field2Modify) = Start + (iPoint-1)*Exp.Inc{iLines,2};
+              Pulse.(field) = Start + (iPoint-1)*Exp.(field2get){iLines,2};
               for iPCstep = 1 : size(Pulse.PhaseCycle,1)
                 Pulse.Phase = Pulse.Phase+Pulse.PhaseCycle(iPCstep,1);
                 [t,IQ] = pulse(Pulse);
@@ -240,15 +242,14 @@ if isfield(Exp,'nPoints')
             
           case 'd'
             
-            DelayNumber = str2double(String(2));
-            EventNumber = DelayIndeces(DelayNumber);
+            EventNumber = DelayIndeces(index);
             
             VariedEvents(iModified) = EventNumber;
             
             Start = Exp.t(EventNumber);
             Vary.ts{EventNumber}{1} = Events{EventNumber}.t;
             for iPoint = 2 : Vary.Points(iDim)
-              t = Start + (iPoint-1)*Exp.Inc{iLines,2};
+              t = Start + (iPoint-1)*Exp.(field2get){iLines,2};
               
               Vary.ts{EventNumber}{iPoint} = 0:Exp.TimeStep:t;
             end

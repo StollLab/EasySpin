@@ -6,28 +6,34 @@ Opt = [];
 
 Pulse.Type = 'quartersin/linear';
 Pulse.trise = 0.015; % us
+Pulse.ComplexExcitation = 0;
 
-% PC = [0 1; pi -1];
-PC = 0;
+PC = [0 1; pi -1];
+% PC = 0;
 Exp.t = [0.1 0.2 0.1 0.2];
 Exp.Pulses = {Pulse 0 Pulse 0};
+
+
 Opt.Detection = [1 1 1 1];
-Opt.Relaxation = [];
-Opt.StateTrajectories = [1];
+Opt.Relaxation = [0 0 0 0];
+Opt.StateTrajectories = [];
 Opt.Detect = [];
 Opt.ExcitationOperator = [];
 
 Exp.Frequency = [-100 100] +1500;
 Exp.Flip = [pi pi];
-% Exp.PhaseCycle{1} = PC;
+Exp.PhaseCycle{1} = PC;
 
 Exp.TimeStep = 0.0001; % us
 
-Exp.Inc = {'p1.trise,d1' 0.005;
-           'd2' 0.1};
+Exp.Inc1 = {'p1.Frequency' [0 100];
+            'p2.Frequency' [-100 0]};
+Exp.Inc2 = {'d1' 0.2};
 Exp.nPoints = [5];
 
+
 [t, signal, state, sigmas, Eventsnew]=spidyan(Sys,Exp,Opt);
+
 
 % disp(state)
 
