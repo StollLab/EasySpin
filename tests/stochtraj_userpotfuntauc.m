@@ -3,7 +3,7 @@ function [err,data] = test(opt,olddata)
 % generates a proper rotational correlation time
 
 % generate Euler angle grids
-N = 100;
+N = 50;
 agrid = linspace(-180, 180, N)/180*pi;
 bgrid = linspace(0, 180, N)/180*pi;
 ggrid = linspace(-180, 180, N)/180*pi;

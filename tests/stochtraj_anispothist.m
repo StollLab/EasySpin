@@ -7,7 +7,7 @@ function [err,data] = test(opt,olddata)
 
 Sys.tcorr = 10*rand()*1e-9;
 Par.dt = Sys.tcorr/10;
-Par.nSteps = ceil(200*Sys.tcorr/Par.dt);
+Par.nSteps = ceil(400*Sys.tcorr/Par.dt);
 Par.nTraj = 400;
 
 nTraj = Par.nTraj;
@@ -26,9 +26,9 @@ LMK = [1,1,0;
 ReLambda = 2*rand(size(LMK,1),1)-1;  % real part of ordering coefficient lambda
 ImLambda = 2*rand(size(LMK,1),1)-1;  % imaginary part
 
-AlphaBins = linspace(-pi, pi, nBins)';
-BetaBins = linspace(0, pi, nBins)';
-GammaBins = linspace(-pi, pi, nBins)';
+AlphaBins = linspace(-pi, pi, nBins);
+BetaBins = linspace(0, pi, nBins);
+GammaBins = linspace(-pi, pi, nBins);
 
 % form grids to be acted upon by Boltzmann distribution function
 % expressions
@@ -50,12 +50,18 @@ for j=1:size(LMK,1)
   for iTraj=1:nTraj
     % use a "burn-in method" by taking last half of each trajectory
     [alpha, beta, gamma] = quat2euler(q(:,iTraj,round(nSteps/2):end));
+    alpha = squeeze(alpha);
+    beta = squeeze(beta);
+    gamma = squeeze(gamma);
     % calculate 3D histogram using function obtained from Mathworks File Exchange
-    [Hist3D(:,:,:,iTraj),~] = histcnd([alpha,beta,gamma],{AlphaBins',BetaBins',GammaBins'});
+    [Hist3D(:,:,:,iTraj),dummy] = histcnd([alpha,beta,gamma],...
+                                          {AlphaBins,BetaBins,GammaBins});
   end
 
   Hist3D = mean(Hist3D, 4);  % average over all trajectories
-  Hist3D = Hist3D/sum(reshape(Hist3D,1,numel(Hist3D)));  % normalize
+  Hist3D = Hist3D/sum(Hist3D(:));  % normalize
+  Hist3D = permute(Hist3D, [2, 1, 3]);  % first two dims are incorrectly 
+                                        % ordered by histcnd
   
   rmsd = calc_rmsd(Sys.Coefs,Sys.LMK,Hist3D,Agrid,Bgrid,Ggrid);
   
@@ -100,7 +106,7 @@ end
 BoltzInt = sum(reshape(BoltzDist.*sin(Bgrid),1,numel(Bgrid)));
 BoltzDist = BoltzDist.*sin(Bgrid)/BoltzInt;
 residuals = Hist3D - BoltzDist;
-rmsd = sqrt(mean(reshape(residuals.^2,1,numel(Hist3D))));
+rmsd = sqrt(mean(residuals(:).^2));
 
 end
 

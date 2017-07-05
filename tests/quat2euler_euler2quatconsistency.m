@@ -1,11 +1,10 @@
 function [err,data] = test(opt,olddata)
-% Check that rotating vectors by quaternions is equivalent to using
-% rotation matrices
+% Check that quat2euler and euler2quat are consistent
 
 % Generate some uniformly random Euler angles
-alphaIn = 2*pi*rand();
+alphaIn = pi*(2*rand()-1);
 betaIn = pi*rand();
-gammaIn = 2*pi*rand();
+gammaIn = pi*(2*rand()-1);
 
 % Convert to quaternion
 q = euler2quat(alphaIn, betaIn, gammaIn);
@@ -16,7 +15,7 @@ q = euler2quat(alphaIn, betaIn, gammaIn);
 diff = [alphaOut-alphaIn, betaOut-betaIn, gammaOut-gammaIn];
 
 % Check for consistency
-if any(diff(:)>1e-14)
+if any(abs(diff(:))>1e-14)
   err = 1;
 else  
   err = 0;
