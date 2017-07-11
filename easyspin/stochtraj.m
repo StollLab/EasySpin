@@ -162,17 +162,18 @@ if isfield(Sys,'PseudoPotFun')
   
   [px, py, pz] = gradient(logpotfun, da, db, dg);
   
-  Sim.Agrid = linspace(-pi, pi, size(Sys.PseudoPotFun,1));
-  Sim.Bgrid = linspace(0, pi, size(Sys.PseudoPotFun,2));
-  Sim.Ggrid = linspace(-pi, pi, size(Sys.PseudoPotFun,3));
-  
-%   [Sim.Agrid, Sim.Bgrid, Sim.Ggrid] = meshgrid(agrid, bgrid, ggrid);
-  
-  Sim.GradPot = {permute(px, [2, 1, 3]), ...
-                 permute(py, [2, 1, 3]), ... 
-                 permute(pz, [2, 1, 3])};
+  Agrid = linspace(-pi, pi, size(Sys.PseudoPotFun,1));
+  Bgrid = linspace(0, pi, size(Sys.PseudoPotFun,2));
+  Ggrid = linspace(-pi, pi, size(Sys.PseudoPotFun,3));
+
+  extrap = 'none';
+  method = 'linear';
+  Fx = griddedInterpolant({Agrid, Bgrid, Ggrid}, px, method,extrap);
+  Fy = griddedInterpolant({Agrid, Bgrid, Ggrid}, py, method,extrap);
+  Fz = griddedInterpolant({Agrid, Bgrid, Ggrid}, pz, method,extrap);
+  Sim.interpF = {Fx, Fy, Fz};
 else
-  Sim.GradPot = [];
+  Sim.interpF = [];
 end
 
 
@@ -239,9 +240,9 @@ if isempty(Omega)
 %     
 %   else
     z = 2*rand(1,Sim.nTraj)-1;
-    Omega = [2*pi*rand(1,Sim.nTraj);
+    Omega = [pi*(2*rand(1,Sim.nTraj)-1);
                             acos(z);
-             2*pi*rand(1,Sim.nTraj)];
+             pi*(2*rand(1,Sim.nTraj)-1)];
 %   end
 end
 
@@ -415,11 +416,8 @@ Diff = Sim.Diff;
 Coefs = Sim.Coefs;
 LMK = Sim.LMK;
 
-if ~isempty(Sim.GradPot)
-  GradPot = Sim.GradPot;
-  Agrid = Sim.Agrid;
-  Bgrid = Sim.Bgrid;
-  Ggrid = Sim.Ggrid;
+if ~isempty(Sim.interpF)
+  interpF = Sim.interpF;
 end
 
 if iter>0
@@ -428,13 +426,13 @@ if iter>0
     % use Wigner functions of quaternions to calculate torque
     torque = anistorque(LMK, Coefs, q(:,:,end));
     AngStep = bsxfun(@times,torque,Diff*dt) + randAngStep(:,:,1);
-  elseif ~isempty(GradPot)
+  elseif ~isempty(interpF)
     % use orienting pseudopotential functions of Euler angles to calculate
     % torque
     [alpha, beta, gamma] = quat2euler(q(:,:,end));
-    pxint = interp3(Agrid, Bgrid, Ggrid, GradPot{1}, alpha, beta, gamma);
-    pyint = interp3(Agrid, Bgrid, Ggrid, GradPot{2}, alpha, beta, gamma);
-    pzint = interp3(Agrid, Bgrid, Ggrid, GradPot{3}, alpha, beta, gamma);
+    pxint = interp3fast(interpF{1}, alpha, beta, gamma);
+    pyint = interp3fast(interpF{2}, alpha, beta, gamma);
+    pzint = interp3fast(interpF{3}, alpha, beta, gamma);
     torque = [pxint; pyint; pzint];
     AngStep = bsxfun(@times,torque,Diff*dt) + randAngStep(:,:,1);
   else
@@ -477,14 +475,14 @@ for iStep=2:nSteps
     % use Wigner functions of quaternions to calculate torque
     torque = anistorque(LMK, Coefs, q(:,:,iStep-1));
     AngStep = bsxfun(@times,torque,Diff*dt) + randAngStep(:,:,iStep-1);
-  elseif ~isempty(Sim.GradPot)
+  elseif ~isempty(interpF)
     % use orienting pseudopotential functions of Euler angles to calculate
     % torque
     [alpha, beta, gamma] = quat2euler(q(:,:,iStep-1));
-    pxint = interp3(Agrid, Bgrid, Ggrid, GradPot{1}, alpha, beta, gamma);
-    pyint = interp3(Agrid, Bgrid, Ggrid, GradPot{2}, alpha, beta, gamma);
-    pzint = interp3(Agrid, Bgrid, Ggrid, GradPot{3}, alpha, beta, gamma);
-    torque = [pxint; pyint; pzint];
+    pxint = interp3fast(interpF{1}, alpha, beta, gamma);
+    pyint = interp3fast(interpF{2}, alpha, beta, gamma);
+    pzint = interp3fast(interpF{3}, alpha, beta, gamma);
+    torque = [pxint.'; pyint.'; pzint.'];
     AngStep = bsxfun(@times,torque,Diff*dt) + randAngStep(:,:,iStep-1);
   else
     % If there is no orienting potential, then there is no torque to
@@ -523,6 +521,31 @@ for iStep=2:nSteps
 %   end
 
 end
+
+end
+
+function Vq = interp3fast(F, Xq, Yq, Zq)
+% Adapted from MATLAB's interp3 function, and makes the following
+% assumptions regarding input:
+%    Output from griddedInterpolant is fed into F
+%    Monotonic grid vectors X, Y, Z (fed to griddedInterpolant)
+%    V is ndgrid-ordered, not meshgrid-ordered (fed to griddedInterpolant)
+%interp3fast 3-D interpolation (table lookup).
+
+p = [2 1 3];
+
+Xq = permute(Xq,p);
+Yq = permute(Yq,p);
+Zq = permute(Zq,p);
+
+Vq = F(Xq,Yq,Zq);
+
+% we don't want meshgrid-order!
+% if iscompact ||  transposedquery
+%     % Compact grid evaluation produces a NDGRID
+%     % Convert to MESHGRID
+%     Vq = permute(Vq,p);
+% end
 
 end
 
