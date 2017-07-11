@@ -98,8 +98,10 @@ end
 
 if strcmp(Model,'Molecular Dynamics')
   % time step of MD simulation, MD.dt, is usually much smaller than
-  % that of the propagation, Par.dt, so we need to average over windows
-  % of size Par.dt/MD.dt
+  % that of the propagation, Par.dt, so determine the size of the averaging
+  % window here (Par.dt/MD.dt)
+  
+  
   if MD.nTraj > 1, error('Using multiple MD trajectories is not supported.'); end
   
   if any(strcmp(Method,{'Sezer','Oganesyan'}))
@@ -110,7 +112,7 @@ if strcmp(Model,'Molecular Dynamics')
     M = floor(MD.nSteps/nWindow);
 
     % process single long trajectory into multiple short trajectories
-    lag = ceil(Par.dt/2e-9);
+    lag = ceil(Par.dt/2e-9);  % use 2 ns lag between windows
     if Par.nSteps<M
       nSteps = Par.nSteps;
       nTraj = floor((M-nSteps)/lag) + 1;
@@ -126,7 +128,11 @@ if strcmp(Model,'Molecular Dynamics')
   end
   
   if isfield(MD,'GlobalDiff')
-    % generate global diffusion
+    % generate global isotropic diffusion
+    
+    if isfield(Sys,'Coefs'), Sys = rmfield(Sys,'Coefs'); end
+    if isfield(Sys,'PseudoPotFun'), Sys = rmfield(Sys, 'PseudoPotFun'); end
+    
     Sys.Diff = MD.GlobalDiff;
     Par.nTraj = nTraj;
     Par.nSteps = nSteps;
@@ -158,13 +164,13 @@ switch Method
     
     if strcmp(Model,'Molecular Dynamics')
 
-      GpTensorAvg = zeros(3,3,M);
+      gTensorAvg = zeros(3,3,M);
       ATensorAvg = zeros(3,3,M);
     
       % average the interaction tensors over time windows
       idx = 1:nWindow;
       for k = 1:M
-        GpTensorAvg(:,:,k) = mean(gTensor(:,:,:,idx),4);
+        gTensorAvg(:,:,k) = mean(gTensor(:,:,:,idx),4);
         ATensorAvg(:,:,k) = mean(ATensor(:,:,:,idx),4);
         idx = idx + nWindow;
       end
@@ -174,7 +180,7 @@ switch Method
       
       for k = 1:nTraj
         idx = (1:nSteps) + (k-1)*lag;
-        gTensor(:,:,k,:) = GpTensorAvg(:,:,idx);
+        gTensor(:,:,k,:) = gTensorAvg(:,:,idx);
         ATensor(:,:,k,:) = ATensorAvg(:,:,idx);
       end
       
@@ -272,6 +278,8 @@ switch Method
       % set up spin operators in |S,m_S>|I,m_I> product space
 
       % electron spin operators
+%       SpinOps{1,1} = sop(Sys.Spins,1,1);
+%       SpinOps{1,2} = sop(Sys.Spins,1,2);
       SpinOps{1,1} = zeros(6);  % S_x and S_y are zero operators in HF limit
       SpinOps{1,2} = zeros(6);
       SpinOps{1,3} = sop(Sys.Spins,1,3);
@@ -285,13 +293,16 @@ switch Method
       
       [T,F,~,~,~] = magint(Sys,SpinOps,CenterField,0,0);
 
+%       F0 = F.F0*2*pi;
       F0 = F.F0(2)*2*pi;  % Hz -> rad s^-1, only keep isotropic HF interaction
       F2 = F.F2*2*pi;  % Hz -> rad s^-1
 
+%       T0 = T.T0;
       T0 = T.T0{2};  % only keep isotropic HF interaction
       T2 = T.T2;
       
       % zeroth rank
+%       cacheTensors.Q0 = conj(F0(1))*T0{1} + conj(F0(2))*T0{2};
       cacheTensors.Q0 = conj(F0)*T0;
       
       cacheTensors.Q2 = cell(5,5);
@@ -353,46 +364,7 @@ switch Method
 %     H(:,:,:,:) = repmat(cacheTensors.Q0,[1,1,nTraj,nSteps]);
     U = zeros(6,6,nTraj,nSteps);
     
-    for iStep=1:nSteps
-      for iTraj=1:nTraj
-        % zeroth rank term (HF only)
-%         H(:,:,iTraj,iStep) = cacheTensors.Q0;
-        H = cacheTensors.Q0;
-        
-        % rotate second rank terms and add to Hamiltonian
-        for mp = 1:5
-          for m = 1:5
-%             H(:,:,iTraj,iStep) = H(:,:,iTraj,iStep) + D2(m,mp,iTraj,iStep)*cacheTensors.Q2{mp,m};
-            H = H + D2(m,mp,iTraj,iStep)*cacheTensors.Q2{mp,m};
-          end
-        end
-        U(:,:,iTraj,iStep) = expeig(1i*dt*H);
-      end
-    end
-%     Hmean = mean(H,4);
-%     deltaH = H - Hmean;
-
-%     U = zeros(6,6,nTraj,nSteps);
-
-%     % calculate propagators
-%     for iStep=1:nSteps
-%       for iTraj=1:nTraj
-% %         U(:,:,iTraj,iStep) = expm(-1i*dt*H);
-%         U(:,:,iTraj,iStep) = expeig(1i*dt*H(:,:,iTraj,iStep));
-%       end
-%     end
-    
-%     U = U - mean(mean(U,3),4);
-    
-    Udag = conj(permute(U,[2,1,3,4]));
-        
-    % Propagate density matrix
-    % ---------------------------------------------------------------------
-    
     if truncated
-      % Prepare equilibrium propagators
-      % -------------------------------------------------------------------
-      
       AutoCorrFFT = autocorrfft(squeeze(D2(3,3,:,:)), 0, 1, 1);
 
       N = round(nSteps/2);
@@ -408,7 +380,46 @@ switch Method
       tau = trapz(t(1:N), AutoCorrFFT(1:N));  % FIXME find a robust way to calculate this
       if tau>tauc, tauc = tau; end
 
-      taucSteps = 10*ceil(tauc/dt);
+      fullSteps = 10*ceil(tauc/dt);  % build full propagator until 
+                                     % correlation functions have relaxed
+                                     
+      % if correlation time is longer than user input, just use full 
+      % propagation scheme the entire time
+      if fullSteps>nSteps
+        fullSteps = nSteps; 
+        truncated = 0;
+      end
+      
+    else
+      fullSteps = nSteps;  % build full propagator for all time steps
+      
+    end
+    
+    for iStep=1:fullSteps
+      for iTraj=1:nTraj
+        % zeroth rank term (HF only)
+%         H(:,:,iTraj,iStep) = cacheTensors.Q0;
+        H = cacheTensors.Q0;
+        
+        % rotate second rank terms and add to Hamiltonian
+        for mp = 1:5
+          for m = 1:5
+%             H(:,:,iTraj,iStep) = H(:,:,iTraj,iStep) + D2(m,mp,iTraj,iStep)*cacheTensors.Q2{mp,m};
+            H = H + D2(m,mp,iTraj,iStep)*cacheTensors.Q2{mp,m};
+          end
+        end
+        U(:,:,iTraj,iStep) = expeig(1i*dt*H);  % TODO speed this up!
+      end
+    end
+    
+    Udag = conj(permute(U,[2,1,3,4]));
+        
+    % Propagate density matrix
+    % ---------------------------------------------------------------------
+    
+    if truncated
+      % Prepare equilibrium propagators
+      % -------------------------------------------------------------------
       
       Heq = zeros(6,6,nTraj);
       
@@ -436,7 +447,7 @@ switch Method
       Ueqdag = conj(permute(Ueq,[2,1,3]));
       
       % full propagation until correlation functions have relaxed
-      for iStep=2:taucSteps
+      for iStep=2:fullSteps
         rho_t(:,:,:,iStep) = mmult(U(:,:,:,iStep-1),...
                                    mmult(rho_t(:,:,:,iStep-1),...
                                          Udag(:,:,:,iStep-1),'complex'),...
@@ -444,10 +455,10 @@ switch Method
       end
       
       % equilibrium propagation
-      for iStep=taucSteps+1:nSteps
-        rho_t(:,:,:,iStep) = mmult(Ueq(:,:,:),...
+      for iStep=fullSteps+1:nSteps
+        rho_t(:,:,:,iStep) = mmult(Ueq,...
                                    mmult(rho_t(:,:,:,iStep-1),...
-                                         Ueqdag(:,:,:),'complex'),...
+                                         Ueqdag,'complex'),...
                                    'complex');                  
       end
     
