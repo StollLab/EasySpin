@@ -687,7 +687,7 @@ if (ComputeStrains)
     end
   else
     for e = 1:CoreSys.nElectrons
-      gStrainMatrix{e} = 0;
+      gStrainMatrix{e} = zeros(3);
     end
   end
   
