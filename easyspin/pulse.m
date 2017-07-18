@@ -13,6 +13,9 @@
 %     Par.Flip        = pulse flip angle, in radians (see Ref. 1)
 %                       (default: pi)
 %     Par.Amplitude   = pulse amplitude, in MHz; ignored if Par.Flip given
+%     Par.Qcrit       = critical adiabaticity, used to calculate pulse
+%                       amplitude for frequency-swept pulses [1]; if given
+%                       takes precedence over Par.Amplitude and Par.Flip
 %     Par.Frequency   = pulse frequency; center frequency for amplitude
 %                       modulated pulses, [start-frequency end-frequency]
 %                       for frequency swept pulses; (default: 0)
@@ -43,6 +46,13 @@
 %     Par.MagnitudeResponse = magnitude response function (ideal or experimental)
 %     Par.faxis             = corresponding frequency axis in MHz
 %     Par.mwFreq            = microwave frequency for the experiment in GHz
+%   If compensation for transmitter nonlinearity (Opt.ACompensation = 1) or 
+%   simulation of amplitude compression (Opt.ACompression = 1) are requested,
+%   the following parameters also need to be defined:
+%     Par.OutputAmplitude   = output amplitude as a function of input amplitude
+%     Par.InputAmplitude    = range of input amplitudes (normalized to 1)
+%     Par.ScaleFactor       = scale factor for the pulse amplitude with respect 
+%                             to the maximum input amplitude
 %
 %   Opt = optional structure with the following fields
 %     Opt.IQ               = on/off; complex-valued pulse (on) or
@@ -89,7 +99,7 @@
 % 'GaussianCascade'     - A0        = list of relative amplitudes
 %                       - x0        = list of positions (in fractions of
 %                                     tp)
-%                       - tFWHM     = list of FWHM (in fractions of tp)
+%                       - FWHM     = list of FWHM (in fractions of tp)
 % 'FourierSeries'       - A0        = initial amplitude coefficient
 %                       - An        = list of Fourier coefficients for cos
 %                       - Bn        = list of Fourier coefficients for sin
@@ -112,8 +122,8 @@
 %                        (modulation.phase, in rad) modulation functions
 %
 % References:
-% 1. The conversion from flip angles to amplitudes is performed using the
-%    approximations described in:
+% 1. The conversion from flip angles or critical adiabaticities to amplitudes 
+%    is performed using the approximations described in:
 %    Jeschke, G., Pribitzer, S., Doll, A. Coherence Transfer by Passage
 %    Pulses in Electron Paramagnetic Resonance Spectroscopy.
 %    J. Phys. Chem. B 119, 13570–13582 (2015). (DOI: 10.1021/acs.jpcb.5b02964)
@@ -173,7 +183,7 @@ if ~isfield(Par,'tp')
   error('Pulse length not defined in Par.tp.')
 end
 if ~isfield(Par,'Flip') || isempty(Par.Flip)
-  if ~isfield(Par,'Amplitude')
+  if ~isfield(Par,'Amplitude') && ~isfield(Par,'Qcrit')
     Par.Flip = pi;
     Par.Amplitude = [];
   else
@@ -194,6 +204,12 @@ end
 % ----------------------------------------------------------------------- %
 if ~isfield(Opt,'IQ')
   Opt.IQ = true;
+end
+if ~isfield(Opt,'ACompensation')
+  Opt.ACompensation = 0;
+end
+if ~isfield(Opt,'ACompression')
+  Opt.ACompression = 0;
 end
 if ~isfield(Opt,'BWCompensation')
   Opt.BWCompensation = 0;
@@ -227,10 +243,32 @@ if (isfield(Par,'I') && ~isempty(Par.I)) || ...
   end
   
   t = linspace(0,Par.tp,numel(Par.I));
-  nPoints = numel(t);
   IQ = complex(Par.I,Par.Q);
   
-  Par.TimeStep = t(2)-t(1);
+  if isfield(Par,'TimeStep') && ~isempty(Par.TimeStep)
+    t0 = t;
+    t = t0(1):Par.TimeStep:t0(end);
+    IQ = interp1(t0,IQ,t,'spline');
+  else
+    Par.TimeStep = t(2)-t(1);
+  end
+  
+  % ------------------------------------------------------------------- %
+  % Calculate amplitude compression simulation or compensation
+  % ------------------------------------------------------------------- %
+  Par.Amplitude = 1; % output signal intensity will correspond to 
+                     % experimental nu_1 determined by the provided
+                     % nonlinearity characterization
+  if Opt.ACompression==1 && Opt.ACompensation==1
+    error('Both amplitude compression simulation and amplitude compensation are selected.')
+  end
+  if Opt.ACompression
+    IQ = AmplitudeNonlinearity(IQ,Par,'simulation');
+  end
+  if Opt.ACompensation
+    IQ = AmplitudeNonlinearity(IQ,Par,'compensation');
+  end
+  
   modulation.A = [];
   modulation.freq = [];
   modulation.phase = [];
@@ -318,7 +356,7 @@ else
         
       case {'gaussiancascade','g3','q3'}
         
-        if ~(isfield(Par,'A0') && isfield(Par,'x0') && isfield(Par,'tFWHM'))
+        if ~(isfield(Par,'A0') && isfield(Par,'x0') && isfield(Par,'FWHM'))
           
           if strcmp(AmplitudeModulation{na},'gaussiancascade')
             error('The amplitudes A0, positions x0 and FWHM of the Gaussians are required as input.')
@@ -336,7 +374,7 @@ else
                 s = fgetl(fid);
                 Par.A0 = sscanf(s,'%f');
                 s = fgetl(fid);
-                Par.tFWHM = sscanf(s,'%f');
+                Par.FWHM = sscanf(s,'%f');
               end
               term = strfind(s,'end');
               if term
@@ -347,8 +385,8 @@ else
             clear fid s fname id
           end
           
-        elseif ~(numel(Par.A0)==numel(Par.x0) && numel(Par.A0)==numel(Par.tFWHM))
-          error('The same number of parameters is required for the A0, x0 and tFWHM inputs.')
+        elseif ~(numel(Par.A0)==numel(Par.x0) && numel(Par.A0)==numel(Par.FWHM))
+          error('The same number of parameters is required for the A0, x0 and FWHM inputs.')
         end
         
       case {'fourierseries','i-burp 1','i-burp 2','snob i2','snob i3'}
@@ -438,7 +476,20 @@ else
       (isfield(Par,'n') && ~isempty(Par.n) && any(Par.n~=1))
     warning('For uniform adiabaticity pulses with nth order sech amplitude modulation use Par.Type = ''sech/uniformQ''.');
   end
-  
+  % For frequency-swept pulses Qcrit takes precedence over flip angle and amplitude
+  if isfield(Par,'Qcrit') && ~isempty(Par.Qcrit)
+    if strcmp(FrequencyModulation,'none')
+      warning('For a pulse without frequency modulation, the Qcrit input parameter is ignored.');
+      Par.Qcrit = [];
+      if ~isfield(Par,'Amplitude') || isempty(Par.Amplitude)
+        Par.Flip = pi;
+      end
+    else
+      Par.Amplitude = [];
+      Par.Flip = [];
+    end
+  end
+    
   if Opt.BWCompensation
     
     % Bandwidth compensation is implemented for these pulses
@@ -460,6 +511,22 @@ else
       error(['Bandwidth compensation is not implemented for the selected pulse. ',...
         'See documentation for more details.']);
     end
+    
+  end
+  
+  if Opt.ACompensation || Opt.ACompression
+    
+      if (~isfield(Par,'InputAmplitude') || isempty(Par.InputAmplitude)) || ...
+          (~isfield(Par,'OutputAmplitude') || isempty(Par.OutputAmplitude))
+        error(['Insufficient input for the simulation of amplitude compression or '...
+          'amplitude nonlinearity compensation. ',...
+          'Specify the transmitter nonlinearity (Par.InputAmplitude, Par.OutputAmplitude).']);
+      end
+      if ~isfield(Par,'ScaleFactor') || isempty(Par.ScaleFactor)
+        error(['Insufficient input for the simulation of amplitude compression or '...
+          'amplitude nonlinearity compensation. ',...
+          'The pulse amplitude relative to the maximum input amplitude (Par.ScaleFactor) is required.']);
+      end
     
   end
    
@@ -512,7 +579,7 @@ else
         case {'gaussiancascade','g3','q3'}
           A0 = zeros(1,numel(t0));
           for j = 1:numel(Par.A0)
-            A0 = A0 + Par.A0(j)*exp(-(4*log(2)/(Par.tFWHM(j)*Par.tp)^2)*(t0-Par.x0(j)*Par.tp).^2);
+            A0 = A0 + Par.A0(j)*exp(-(4*log(2)/(Par.FWHM(j)*Par.tp)^2)*(t0-Par.x0(j)*Par.tp).^2);
           end
           A0 = A0/max(A0);
         case {'fourierseries','i-burp 1','i-burp 2','snob i2','snob i3'}
@@ -623,7 +690,7 @@ else
         
         A = zeros(1,numel(t));
         for j = 1:numel(Par.A0)
-          A = A + Par.A0(j)*exp(-(4*log(2)/(Par.tFWHM(j)*Par.tp)^2)*(t-Par.x0(j)*Par.tp).^2);
+          A = A + Par.A0(j)*exp(-(4*log(2)/(Par.FWHM(j)*Par.tp)^2)*(t-Par.x0(j)*Par.tp).^2);
         end
         A = A/max(A);
         
@@ -718,8 +785,8 @@ else
     end
     
     % Frequency dependence of t and time-to-frequency mapping
-    c_ = trapz(nu0,1./profile.^2)/t(end); % const = 2*pi/Qref
-    % Qref = reference adiabaticity
+    c_ = trapz(nu0,1./profile.^2)/t(end); % c_ = 2*pi/Qref
+                                          % Qref = reference adiabaticity
     t_f = cumtrapz(nu0,(1/c_)*profile.^-2);
     nu_adapted = interp1(t_f,nu0,t,'pchip');
     
@@ -733,14 +800,32 @@ else
   end
   
   % ------------------------------------------------------------------- %
-  % Determine pulse amplitude from flip angle (if only Par.Flip is given)
+  % Calculate amplitude compression simulation or compensation
   % ------------------------------------------------------------------- %
-  if (isfield(Par,'Flip') && ~isempty(Par.Flip)) && ...
-     (~isfield(Par,'Amplitude') || isempty(Par.Amplitude))
+  if Opt.ACompression==1 && Opt.ACompensation==1
+    error('Both amplitude compression simulation and amplitude compensation are selected.')
+  end
+  if Opt.ACompression
+    modulation.A = modulation.A/max(modulation.A);
+    [modulation.A,Par] = AmplitudeNonlinearity(modulation.A,Par,'simulation');
+  end
+  if Opt.ACompensation
+    modulation.A = modulation.A/max(modulation.A);
+    [modulation.A,Par] = AmplitudeNonlinearity(modulation.A,Par,'compensation');
+  end
+  
+  % ------------------------------------------------------------------- %
+  % Determine pulse amplitude from flip angle (if only Par.Flip is given)
+  % or from the critical adiabaticity
+  % ------------------------------------------------------------------- %
+  if (~isfield(Par,'Amplitude') || isempty(Par.Amplitude))
+    
     if strcmp(FrequencyModulation,'none')
       % Amplitude-modulated pulses: flip angle = integral
       
-      Par.Amplitude = Par.Flip/(2*pi*trapz(t,modulation.A));
+      if (isfield(Par,'Flip') && ~isempty(Par.Flip))
+        Par.Amplitude = Par.Flip/(2*pi*trapz(t,modulation.A));
+      end
       
     else
       % Frequency-modulated pulses
@@ -749,11 +834,14 @@ else
       %   see Jeschke et al. (2015) J. Phys. Chem. B, 119, 13570–13582.
       %   http://dx.doi.org/10.1021/acs.jpcb.5b02964
       
-      if Par.Flip>pi
-        error('Pulse amplitude calculation from flip angle not applicable for angles larger than pi.');
+      if ((~isfield(Par,'Qcrit') || isempty(Par.Qcrit)) && ...
+         (isfield(Par,'Flip') && ~isempty(Par.Flip)))
+        if Par.Flip>pi
+          error('Pulse amplitude calculation from flip angle not applicable for angles larger than pi.');
+        end
+        Par.Qcrit = (2/pi)*log(2/(1+cos(Par.Flip)));
+        Par.Qcrit = min(Par.Qcrit,5); % set Q_crit to finite value if it is infinite or large
       end
-      Q_crit = (2/pi)*log(2/(1+cos(Par.Flip)));
-      Q_crit = min(Q_crit,5); % set Q_crit to finite value if it is infinite or large
       
       if Opt.BWCompensation==0
         switch FrequencyModulation
@@ -778,11 +866,11 @@ else
         sweeprate = dnu(ind)/(2*pi*(modulation.A(ind))^2);
       end
       
-      Par.Amplitude = sqrt(2*pi*Q_crit*sweeprate)/(2*pi);
+      Par.Amplitude = sqrt(2*pi*Par.Qcrit*sweeprate)/(2*pi);
       
     end
   end
-  
+    
   % ------------------------------------------------------------------- %
   % Calculate pulse IQ function
   % ------------------------------------------------------------------- %
@@ -967,6 +1055,110 @@ switch nargout
   otherwise
     error('The function pulse() needs 2 or 3 output arguments.')
 end
+
+end
+
+
+% ------------------------------------------------------------------- %
+% Calculate amplitude compression simulation or compensation
+% ------------------------------------------------------------------- %
+% Compensation for/simulation of transmitter nonlinearity as
+% described in:
+%   Doll, A., Pribitzer, S., Tschaggelar, R., Jeschke, G.,
+%   Adiabatic and fast passage ultra-wideband inversion in
+%   pulsed EPR. J. Magn. Reson. 230, 27–39 (2013).
+%   http://dx.doi.org/10.1016/j.jmr.2013.01.002
+function [signal_out,varargout] = AmplitudeNonlinearity(A,Par,option)
+
+  % Scale output amplitude
+  nu1_max = max(Par.OutputAmplitude);
+  Par.OutputAmplitude = Par.OutputAmplitude/nu1_max;
+  
+  switch option
+    case 'simulation'
+
+      % Polynomial fit of output amplitude against input amplitude
+      N = 4;
+      p = polyfitconstr01(Par.InputAmplitude,Par.OutputAmplitude,N);
+      
+      % Compressed amplitude modulation function (renormalized to A0 = 1)
+      if isreal(A)
+        signal_out = sign(A).*polyval(p,abs(A)*Par.ScaleFactor);
+      else
+        A = A/max(abs(A));
+        signal_out = sign(real(A)).*polyval(p,abs(real(A))*Par.ScaleFactor) + ...
+          1i*sign(imag(A)).*polyval(p,abs(imag(A))*Par.ScaleFactor);
+      end
+      
+      if isfield(Par,'Amplitude') && ~isempty(Par.Amplitude)
+        % Signal amplitude determined by provided transmitter 
+        % nonlinearity characterization (for simulation under the
+        % conditions of actual experiments)
+        signal_out = nu1_max*signal_out;
+        Par.Amplitude = 1;
+      else
+        % Re-normalize (if amplitude is defined through the flip
+        % angle or Qcrit -> for simulation of the effects of
+        % compression on the pulse shape)
+        signal_out = signal_out/polyval(p,Par.ScaleFactor);
+      end
+
+    case 'compensation'
+
+      % Polynomial fit of input amplitude against output amplitude
+      N = 17;
+      p = polyfitconstr01(Par.OutputAmplitude,Par.InputAmplitude,N);
+
+      % Compensated amplitude function
+      if isreal(A)
+        signal_out = sign(A).*polyval(p,abs(A)*Par.ScaleFactor);
+      else
+        A = A/max(abs(A));
+        signal_out = sign(real(A)).*polyval(p,abs(real(A))*Par.ScaleFactor) + ...
+          1i*sign(imag(A)).*polyval(p,abs(imag(A))*Par.ScaleFactor);
+      end
+      
+      Par.Amplitude = 1;
+
+  end
+  
+  if nargout==2
+    varargout{1} = Par;
+  end
+  
+end
+
+% Subfunction for constrained polynomial fit
+function p = polyfitconstr01(x,y,n)
+% Fit polynomial p to data with constraint points x=0, y=0 and x=1, y=1
+% ---------------------------------------------------------------------------------------
+% p = polyfitconstr01(x,y,n)
+%
+% Input:  x = x-axis data
+%         y = y-axis data for fitting
+%         n = order of the polynomial
+%
+% Output: p = polynomial coefficients (can be used as input to polyval)
+
+% Check input
+x = x(:);
+y = y(:);
+if size(x)~=size(y)
+  error('x and y must have the same size.')
+end
+
+% Construct Vandermonde matrix.
+V(:,n+1) = ones(length(x),1);
+for j = n:-1:1
+  V(:,j) = x.*V(:,j+1);
+end
+
+% Find polynomial coefficients
+A = [zeros(1,n) 1; ones(1,n+1)]; % Vandermonde matrix for constrained points
+B = null(A);
+z = V*B\(y-x); % least squares solution
+p = B*z;
+p(end-1) = p(end-1)+1;
 
 end
 

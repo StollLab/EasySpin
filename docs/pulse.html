@@ -96,6 +96,11 @@ Pulse flip angle, in radians. If absent, <code>Par.Flip = pi</code> is used as d
 Pulse amplitude, in MHz. If <code>Par.Flip</code> is given, <code>Par.Amplitude</code> is ignored.
 </div>
 
+<div class="optionfield"><code>Qcrit</code></div>
+<div class="optiondescr">
+Critical adiabaticity for the calculation of pulse amplitudes for frequency-swept pulses as described in Jeschke, G., Pribitzer, S., Doll, A. Coherence Transfer by Passage Pulses in Electron Paramagnetic Resonance Spectroscopy. <i>J. Phys. Chem. B</i> 119, 13570–13582 (<b>2015</b>) (DOI: <a href="http://dx.doi.org/10.1021/acs.jpcb.5b02964">10.1021/acs.jpcb.5b02964</a>). If <code>Par.Qcrit</code> is given, <code>Par.Amplitude</code> and <code>Par.Flip</code> are ignored.
+</div>
+
 <div class="optionfield"><code>Frequency</code></div>
 <div class="optiondescr">
 Pulse frequency, in MHz (default = 0). For frequency-swept pulses the start and end frequencies are required.
@@ -115,7 +120,7 @@ Overall pulse phase, in radians, <i>e.g.</i> <code>0</code> for +x, <code>pi/2</
 <div class="optiondescr">
 Pulse shape name in a string structured as <code>'AM/FM'</code> (or just <code>'AM'</code>), where AM refers to the amplitude modulation function and FM to the frequency modulation function.
 <p>
-The available amplitude modulation functions are <code>'rectangular'</code>, <code>'gaussian'</code>, <code>'sinc'</code>, <code>'halfsin'</code>, <code>'quartersin'</code>, <code>'sech'</code>, <code>'WURST'</code>, <code>'GaussianCascade'</code>, <code>FourierSeries</code>. Different AM functions can be multiplied by concatenating the keywords as <code>'AM1*AM2/FM'</code>. The default is <code>'rectangular'</code>.
+The available amplitude modulation functions are <code>'rectangular'</code>, <code>'gaussian'</code>, <code>'sinc'</code>, <code>'halfsin'</code>, <code>'quartersin'</code>, <code>'sech'</code>, <code>'WURST'</code>, <code>'GaussianCascade'</code>, <code>'FourierSeries'</code>. Different AM functions can be multiplied by concatenating the keywords as <code>'AM1*AM2/FM'</code>. The default is <code>'rectangular'</code>.
 
 <p>
 The available options for frequency modulation are <code>'none'</code>, <code>'linear'</code>, <code>'tanh'</code>, <code>'uniformQ'</code>. If only an AM keyword is given, the FM function is set to <code>'none'</code>.
@@ -176,7 +181,7 @@ If <code>Par.Type</code> is set to <code>'G3'</code> or <code>'Q3'</code>, the G
 </p>
 <li><code>A0</code> - list of relative amplitudes
 <li><code>x0</code> - list of positions (in fractions of the pulse length)
-<li><code>tFWHM</code> - list of FWHM (in fractions of the pulse length)
+<li><code>FWHM</code> - list of FWHM (in fractions of the pulse length)
 </ul>
 <li><code>'FourierSeries'</code></li>
 <ul style="list-style-type:none;padding:5px;">
@@ -228,6 +233,19 @@ Corresponding frequency axis, in MHz.
 <div class="optionfield"><code>mwFreq</code></div>
 <div class="optiondescr">
 Microwave frequency (LO), in GHz.
+</div>
+
+<p>
+Simulation of amplitude compression due to transmitter nonlinearity or calculation of pulse amplitude functions compensated for nonlinearity can be selected by setting <code>Opt.ACompression = 1</code> or <code>Opt.ACompensation = 1</code> (see below). In this case, the following additional parameters have to be included in the <code>Par</code> structure:
+
+<div class="optionfield"><code>InputAmplitude</code> and <code>OutputAmplitude</code> </div>
+<div class="optiondescr">
+Transmitter output amplitude as a function of normalized input amplitude.
+</div>
+
+<div class="optionfield"><code>ScaleFactor</code></div>
+<div class="optiondescr">
+Relative intensity of the pulse compared to the maximum input amplitude.
 </div>
 
 <p>
@@ -407,6 +425,10 @@ where the different terms are the amplitude modulation, the phase modulation, th
 
 <p>
 If bandwidth compensation is requested, the frequency and amplitude modulation functions defined above are adjusted to compensate for the resonator profile as described in Doll, A., Pribitzer, S., Tschaggelar, R., Jeschke, G., Adiabatic and fast passage ultra-wideband inversion in pulsed EPR, <i>J. Magn. Reson.</i> 230, 27-39 (<b>2013</b>), DOI: <a href="http://dx.doi.org/10.1016/j.jmr.2013.01.002">10.1016/j.jmr.2013.01.002</a> and Pribitzer, S., Doll, A., Jeschke, G., SPIDYAN, a MATLAB library for simulating pulse EPR experiments with arbitrary waveform excitation. <i>J. Magn. Reson.</i> 263, 45-54 (<b>2016</b>) (DOI: <a href="http://dx.doi.org/10.1016/j.jmr.2015.12.014">10.1016/j.jmr.2015.12.014</a>). The phase modulation function is obtained by integration and the phase is set to zero at the center of the pulse.
+<p/>
+
+<p>
+If amplitude compression simulation or compensation is requested, the amplitude modulation functions defined above are adjusted based on the provided transmitter nonlinearity as described in Doll, A., Pribitzer, S., Tschaggelar, R., Jeschke, G., Adiabatic and fast passage ultra-wideband inversion in pulsed EPR, <i>J. Magn. Reson.</i> 230, 27-39 (<b>2013</b>), DOI: <a href="http://dx.doi.org/10.1016/j.jmr.2013.01.002">10.1016/j.jmr.2013.01.002</a>. For the simulation of amplitude compression, if the pulse flip angle (or critical adiabaticity) are defined the output amplitude is calculated from these parameters, if only <code>Par.Amplitude</code> is defined, the output amplitude corresponds to the amplitude determined from the relative input intensity defined in <code>Par.ScaleFactor</code> and the provided transmitter nonlinearity function. For amplitude compensation, the output amplitude corresponds to the input amplitude given a certain <code>Par.ScaleFactor</code> and the transmitter nonlinearity function.
 <p/>
 
 <!-- ============================================================= -->
