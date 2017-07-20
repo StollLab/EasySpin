@@ -7,7 +7,7 @@ function [err,data] = test(opt,olddata)
 FitOpt.nTrials = 200;
 
 % number of grid points in each direction
-N = 100;
+N = 50;
 
 rng_(1)
 
@@ -51,7 +51,7 @@ data = gaussfunc(grids, x);
 
 if AddNoise
   noiseamp = 0.1*max(data(:));
-  noise = noiseamp*randn(N,N);
+  noise = noiseamp*randn(N,N,N);
   data = data + noise;
 end
 
@@ -67,7 +67,7 @@ nParameters = numel(x0);
 
 xfit = esfit_montecarlo(@getresid, nParameters, FitOpt, data, grids, Vary);  % info is not set to a value in esfit_montecarlo
 
-[xfit, ~] = esfit_levmar(@getresid, xfit, [], data, grids, Vary);
+[xfit, ignore] = esfit_levmar(@getresid, xfit, [], data, grids, Vary);
 
 % transform back for plotting
 xfit = transformVars(xfit, Vary);

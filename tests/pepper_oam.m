@@ -3,10 +3,10 @@ function [err,data] = test(opt,olddata)
 %Hamiltonians should be identical
 rand('twister',5);
 
-n = 1;%randi(2);
-Sys.S = randi(3,1,n)/2;
+n = 1;%randi_(2);
+Sys.S = randi_(3,1,n)/2;
 Sys.g = rand(3*n,3);
-Sys.L = randi(2,1,n);
+Sys.L = randi_(2,1,n);
 Sys.soc = rand(n,2)*1000;
 Sys.orf = rand(n,1);
 lenS = length(Sys.S);
@@ -50,7 +50,7 @@ fd2 = pepper(PureSpin,FDExp);
 
 
 %build experimet based on FD sim, always a transition in spectral window 
-[~, ind] = max(fd1);
+[ignore, ind] = max(fd1);
 Exp.mwFreq = nu(ind);
 Exp.CenterSweep = FDExp.Field*[1 0.5];
 Exp.Temperature = FDExp.Temperature;
