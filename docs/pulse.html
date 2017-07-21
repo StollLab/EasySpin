@@ -218,16 +218,16 @@ Also, depending on the FM function, the following additional fields are required
 </ul>
 
 <p>
-Compensation for the resonator bandwidth is available for some pulse types and can be selected by setting <code>Opt.BWCompensation = 1</code> (see below). In this case, the following additional parameters have to be included in the <code>Par</code> structure:
+Simulation of the effect of the resonator on the pulse shape is available by setting <code>Opt.Resonator = 'simulation'</code>. Compensation for the resonator bandwidth to achieve offset-independent adiabaticity is available for some pulse types (see below) and can be selected by setting <code>Opt.Resonator = 'BWcompensation'</code>. In both cases, the following additional parameters have to be included in the <code>Par</code> structure:
 
-<div class="optionfield"><code>MagnitudeResponse</code></div>
+<div class="optionfield"><code>MagnitudeResponse</code> and <code>faxis</code></div>
 <div class="optiondescr">
-Resonator magnitude response function (ideal or experimental).
+Resonator magnitude response function (ideal or experimental) and corresponding frequency axis in GHz.
 </div>
 
-<div class="optionfield"><code>faxis</code></div>
+<div class="optionfield">or <code>ResonatorFrequency</code> and <code>QL</code></div>
 <div class="optiondescr">
-Corresponding frequency axis, in MHz.
+The resonator center frequency in GHz and the loaded Q-value. The resonator transfer function will be calculated based on a RLC series circuit model. (If <code>Par.MagnitudeResponse</code> and <code>Par.faxis</code> are given, this input is ignored.)
 </div>
 
 <div class="optionfield"><code>mwFreq</code></div>
@@ -235,17 +235,18 @@ Corresponding frequency axis, in MHz.
 Microwave frequency (LO), in GHz.
 </div>
 
+
 <p>
-Simulation of amplitude compression due to transmitter nonlinearity or calculation of pulse amplitude functions compensated for nonlinearity can be selected by setting <code>Opt.ACompression = 1</code> or <code>Opt.ACompensation = 1</code> (see below). In this case, the following additional parameters have to be included in the <code>Par</code> structure:
+Simulation of amplitude compression due to transmitter nonlinearity or calculation of pulse amplitude functions compensated for nonlinearity can be selected by setting <code>Opt.Transmitter = 'simulation'</code> or <code>Opt.Transmitter = 'compensation'</code> (see below). In this case, the following additional parameters have to be included in the <code>Par</code> structure:
 
 <div class="optionfield"><code>InputAmplitude</code> and <code>OutputAmplitude</code> </div>
 <div class="optiondescr">
 Transmitter output amplitude as a function of normalized input amplitude.
 </div>
 
-<div class="optionfield"><code>ScaleFactor</code></div>
+<div class="optionfield"><code>Amplitude</code></div>
 <div class="optiondescr">
-Relative intensity of the pulse compared to the maximum input amplitude.
+If the <code>Opt.Transmitter</code> option is selected, <code>Par.Amplitude</code> is interpreted as the relative intensity of the pulse compared to the maximum input amplitude.
 </div>
 
 <p>
@@ -256,9 +257,26 @@ The parameters in the <code>Opt</code> structure define different settings for t
 If set to <code>Opt.IQ = 1</code> (which is the default), then the output <code>IQ</code> is complex-valued, containing both in-phase (real) and quadrature (imaginary) components. For <code>Opt.IQ = 0</code>, only the in-phase component is returned, and the output <code>IQ</code> is real.
 </div>
 
-<div class="optionfield"><code>BWCompensation</code></div>
+<div class="optionfield"><code>Resonator</code></div>
 <div class="optiondescr">
-With <code>Opt.BWCompensation = 1</code>, the calculated pulse shape includes a compensation for the resonator bandwidth profile. This is available for <code>'rectangular/linear'</code>, <code>'quartersin/linear'</code>, <code>'sech/tanh'</code> and <code>'sech/uniformQ'</code> pulses. If selected, the parameters defining the resonator magnitude response function need to be defined (<code>Par.mwFreq</code>, <code>Par.MagnitudeResponse</code> and <code>Par.faxis</code>, see above).  Bandwidth compensation is turned off by default (<code>Opt.BWCompensation = 0</code>).
+This option allows simulation of the effect of the resonator on the pulse shape or bandwidth compensation for frequency-swept pulses. Further details on the procedure are given in the Theoretical background section below. The options are:
+<ul>
+<li><code>Opt.Resonator = 'simulation'</code>: The resonator impulse response is derived based on the information on the resonator properties and convoluted with the pulse shape.
+<li><code>Opt.Resonator = 'BWcompensation'</code>: The calculated pulse shape includes adaptation of the chirp rate to the resonator bandwidth profile to maintain offset-independent adiabaticities. This is available for <code>'rectangular/linear'</code>, <code>'quartersin/linear'</code>, <code>'sech/tanh'</code> and <code>'sech/uniformQ'</code> pulses. 
+<li><code>Opt.Resonator = 'off'</code>: default.
+</ul>
+If <code>Opt.Resonator</code> is set to <code>'simulation'</code> or <code>'BWcompensation'</code>, the parameters defining the resonator magnitude response function need to be defined (<code>Par.MagnitudeResponse</code> and <code>Par.faxis</code>, or <code>Par.ResonatorFrequency</code> and <code>Par.QL</code>, and <code>Par.mwFreq</code>, see above).
+</div>
+
+<div class="optionfield"><code>Transmitter</code></div>
+<div class="optiondescr">
+Simulation of amplitude compression due to transmitter nonlinearity or calculation of pulse amplitude functions compensated for nonlinearity can be selected as follows:
+<ul>
+<li><code>Opt.Transmitter = 'simulation'</code>: The amplitude modulation functions defined above are adjusted based on the provided transmitter nonlinearity function. If the pulse flip angle (or critical adiabaticity) are defined, the output amplitude is calculated from these parameters, if only <code>Par.Amplitude</code> is defined, the output amplitude corresponds to the amplitude determined from the relative input intensity defined in <code>Par.Amplitude</code> and the provided transmitter nonlinearity function.
+<li><code>Opt.Transmitter = 'compensation'</code>: The amplitude modulation functsions are modified to compensate for transmitter nonlinearity. The output amplitude corresponds to the input amplitude given the relative input amplitude defined in <code>Par.Amplitude</code> and the transmitter nonlinearity function. 
+<li><code>Opt.Transmitter = 'off'</code>: default.
+</ul>
+If <code>Opt.Transmitter</code> is set to <code>'simulation'</code> or <code>'compensation'</code>, <code>Par.Amplitude</code> is interpreted as amplitude relative to the maximum of <code>Par.InputAmplitude</code> instead of absolute amplitude in MHz.
 </div>
 
 <div class="optionfield"><code>OverSampleFactor</code></div>
@@ -424,11 +442,13 @@ where the different terms are the amplitude modulation, the phase modulation, th
 </p>
 
 <p>
-If bandwidth compensation is requested, the frequency and amplitude modulation functions defined above are adjusted to compensate for the resonator profile as described in Doll, A., Pribitzer, S., Tschaggelar, R., Jeschke, G., Adiabatic and fast passage ultra-wideband inversion in pulsed EPR, <i>J. Magn. Reson.</i> 230, 27-39 (<b>2013</b>), DOI: <a href="http://dx.doi.org/10.1016/j.jmr.2013.01.002">10.1016/j.jmr.2013.01.002</a> and Pribitzer, S., Doll, A., Jeschke, G., SPIDYAN, a MATLAB library for simulating pulse EPR experiments with arbitrary waveform excitation. <i>J. Magn. Reson.</i> 263, 45-54 (<b>2016</b>) (DOI: <a href="http://dx.doi.org/10.1016/j.jmr.2015.12.014">10.1016/j.jmr.2015.12.014</a>). The phase modulation function is obtained by integration and the phase is set to zero at the center of the pulse.
+Simulation of the effect of the resonator or compensation for the resonator bandwidth are implemented as described in Doll, A., Pribitzer, S., Tschaggelar, R., Jeschke, G., Adiabatic and fast passage ultra-wideband inversion in pulsed EPR, <i>J. Magn. Reson.</i> 230, 27-39 (<b>2013</b>), DOI: <a href="http://dx.doi.org/10.1016/j.jmr.2013.01.002">10.1016/j.jmr.2013.01.002</a> and Pribitzer, S., Doll, A., Jeschke, G., SPIDYAN, a MATLAB library for simulating pulse EPR experiments with arbitrary waveform excitation. <i>J. Magn. Reson.</i> 263, 45-54 (<b>2016</b>) (DOI: <a href="http://dx.doi.org/10.1016/j.jmr.2015.12.014">10.1016/j.jmr.2015.12.014</a>).
+If simulation of the effect of the resonator on the pulse shape is selected, the pulse shape is convoluted with the impulse response function derived from the provided information on the resonator. This can lead to a change in the overall pulse length, the new time axis is provided in the <code>t</code> output.
+If bandwidth compensation is requested, the frequency and amplitude modulation functions defined above are adjusted to compensate for the resonator profile. The phase modulation function is obtained by integration and the phase is set to zero at the center of the pulse.
 <p/>
 
 <p>
-If amplitude compression simulation or compensation is requested, the amplitude modulation functions defined above are adjusted based on the provided transmitter nonlinearity as described in Doll, A., Pribitzer, S., Tschaggelar, R., Jeschke, G., Adiabatic and fast passage ultra-wideband inversion in pulsed EPR, <i>J. Magn. Reson.</i> 230, 27-39 (<b>2013</b>), DOI: <a href="http://dx.doi.org/10.1016/j.jmr.2013.01.002">10.1016/j.jmr.2013.01.002</a>. For the simulation of amplitude compression, if the pulse flip angle (or critical adiabaticity) are defined the output amplitude is calculated from these parameters, if only <code>Par.Amplitude</code> is defined, the output amplitude corresponds to the amplitude determined from the relative input intensity defined in <code>Par.ScaleFactor</code> and the provided transmitter nonlinearity function. For amplitude compensation, the output amplitude corresponds to the input amplitude given a certain <code>Par.ScaleFactor</code> and the transmitter nonlinearity function.
+If simulation of amplitude compression in the transmitter or compensation of the pulse shapes for transmitter nonlinearity is requested, the amplitude modulation functions defined above are adjusted based on the provided input versus output amplitude data as described in Doll, A., Pribitzer, S., Tschaggelar, R., Jeschke, G., Adiabatic and fast passage ultra-wideband inversion in pulsed EPR, <i>J. Magn. Reson.</i> 230, 27-39 (<b>2013</b>), DOI: <a href="http://dx.doi.org/10.1016/j.jmr.2013.01.002">10.1016/j.jmr.2013.01.002</a>.
 <p/>
 
 <!-- ============================================================= -->
