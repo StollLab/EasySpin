@@ -8,35 +8,40 @@ Pulse.Type = 'quartersin/linear';
 Pulse.trise = 0.015; % us
 Pulse.ComplexExcitation = 0;
 
-PC = [0 1; pi -1];
-% PC = 0;
-Exp.t = [0.1 0.2 0.1 0.2];
-Exp.Pulses = {Pulse 0 Pulse 0};
+% PC = [0 1; pi -1];
+PC = 0;
+Exp.t = [0.2 1 0.2 0.4 0.2];
+Exp.Pulses = {Pulse 0 Pulse 0 Pulse};
 
 
-Opt.Detection = [1 1 1 1];
+Opt.Detection = [1 1 1 1 1 1];
 Opt.Relaxation = [0 0 0 0];
 Opt.StateTrajectories = [];
-Opt.Detect = [];
+Opt.DetectionOperator = [];
 Opt.ExcitationOperator = [];
 
 Exp.Frequency = [-100 100] +1500;
-Exp.Flip = [pi pi];
+Exp.Flip = [pi pi pi];
 Exp.PhaseCycle{1} = PC;
 
 Exp.TimeStep = 0.0001; % us
 
-Exp.Inc1 = {'p1.Frequency' [0 100];
-            'p2.Frequency' [-100 0]};
-Exp.Inc2 = {'d1' 0.2};
-Exp.nPoints = [5];
+Exp.Inc1 = {'p2.Position' -0.2};
+%             'p2.Frequency' [-100 0]};
+%             'd1' 0.2};
+Exp.nPoints = [4];
 
+% Exp.Inc1 = {'p2.Position' -.2};
+% Exp.nPoints = [7];
 
 [t, signal, state, sigmas, Eventsnew]=spidyan(Sys,Exp,Opt);
 
 
 % disp(state)
-
+% try
+%   figure(1)
+%   plot(t, squeeze(real(signal)))
+% end
 try
 a = squeeze(signal(1,:,:));
 b = squeeze(signal(2,:,:));
@@ -91,3 +96,6 @@ end
 % [t, signal,state,sigma,Eventsnew]=evolve2(Sigma,Ham, Det, Eventsnew, Relaxation,Vary);
 % toc
 % disp(state)
+
+ylabel('<{S_z}>')
+xlabel('t [\mus]')

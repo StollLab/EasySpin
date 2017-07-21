@@ -16,7 +16,21 @@ Events = cell(1,length(Exp.t));
 
 iPulse = 1;
 iDelay = iPulse;
-DelayIndeces = zeros(1,length(Exp.t));
+
+nPulses = 0;
+nDelays = 0;
+
+for idx = 1 : length(Exp.t)
+  if idx > length(Exp.t) || ~isstruct(Exp.Pulses{idx})
+    nDelays = nDelays + 1;
+  else
+    nPulses = nPulses + 1;
+  end
+end
+  
+DelayIndeces = zeros(1,nDelays);
+Pulses = cell(1,nPulses);
+
 for iEvent = 1 : length(Exp.t)
   if length(Exp.Pulses) >= iEvent && isstruct(Exp.Pulses{iEvent})
     % ---------------------------------------------------------------------
@@ -177,6 +191,8 @@ if isfield(Exp,'nPoints')
   nDims = length(Exp.nPoints);
   Vary.Points = Exp.nPoints;
   
+  PossiblePulseCrossing = 0;
+  
   for iDim = 1 : nDims
     
     if nDims == 1
@@ -211,35 +227,69 @@ if isfield(Exp,'nPoints')
             EventNumber = Pulses{index}.EventIndex;
             PulseNumber = index;
             
-            VariedEvents(iModified) = EventNumber;
             Pulse = Pulses{PulseNumber};
             
-            
-            Vary.IQs{EventNumber}{1} = Events{EventNumber}.IQ;
-            Vary.ts{EventNumber}{1} = Events{EventNumber}.t;
+            if strcmp(field,'t')
+              field = 'tp';
+            end
             
             switch field
-              case 't'
-                field = 'tp';
-            end
-            
-            Start = Pulse.(field);
-            
-            for iPoint = 2 : Vary.Points(iDim)
-              Pulse.(field) = Start + (iPoint-1)*Exp.(field2get){iLines,2};
-              for iPCstep = 1 : size(Pulse.PhaseCycle,1)
-                Pulse.Phase = Pulse.Phase+Pulse.PhaseCycle(iPCstep,1);
-                [t,IQ] = pulse(Pulse);
-                if iPCstep == 1
-                  IQs = zeros(size(Pulse.PhaseCycle,1),length(IQ));
-                end
-                IQs(iPCstep,:) = IQ;
-              end
               
-              Vary.IQs{EventNumber}{iPoint} = IQs;
-              Vary.ts{EventNumber}{iPoint} = t;
+              case 'Position'
+                 VariedEvents(iModified:iModified + 1) = [EventNumber-1 EventNumber+1];  
+                 iModified = iModified + 1;
+                 
+                 Start1 = Exp.t(EventNumber-1);
+                 Start2 = Exp.t(EventNumber+1);
+                 
+                 Vary.ts{EventNumber-1}{1} = Events{EventNumber-1}.t;
+                 Vary.ts{EventNumber+1}{1} = Events{EventNumber+1}.t;
+                 
+                 Increment = Exp.(field2get){iLines,2};
+                                  
+                 for iPoint = 2 : Vary.Points(iDim)
+                   t1 = Start1 + (iPoint-1)*Increment;
+                   t2 = Start2 - (iPoint-1)*Increment;
+                   
+                   if t1 < 0
+                     Vary.ts{EventNumber-1}{iPoint} = 0:-Exp.TimeStep:t1;
+                     PossiblePulseCrossing = 1;
+                   else
+                     Vary.ts{EventNumber-1}{iPoint} = 0:Exp.TimeStep:t1;
+                   end
+                   
+                   if t2 < 0
+                     Vary.ts{EventNumber+1}{iPoint} = 0:-Exp.TimeStep:t1;
+                     PossiblePulseCrossing = 1;
+                   else
+                     Vary.ts{EventNumber+1}{iPoint} = 0:Exp.TimeStep:t2;
+                   end
+                 end
+                 
+              otherwise
+                VariedEvents(iModified) = EventNumber;
+                
+                Vary.IQs{EventNumber}{1} = Events{EventNumber}.IQ;
+                Vary.ts{EventNumber}{1} = Events{EventNumber}.t;
+                
+                Start = Pulse.(field);
+                
+                for iPoint = 2 : Vary.Points(iDim)
+                  Pulse.(field) = Start + (iPoint-1)*Exp.(field2get){iLines,2};
+                  for iPCstep = 1 : size(Pulse.PhaseCycle,1)
+                    Pulse.Phase = Pulse.Phase+Pulse.PhaseCycle(iPCstep,1);
+                    [t,IQ] = pulse(Pulse);
+                    if iPCstep == 1
+                      IQs = zeros(size(Pulse.PhaseCycle,1),length(IQ));
+                    end
+                    IQs(iPCstep,:) = IQ;
+                  end
+                  
+                  Vary.IQs{EventNumber}{iPoint} = IQs;
+                  Vary.ts{EventNumber}{iPoint} = t;
+                end
             end
-            
+                       
           case 'd'
             
             EventNumber = DelayIndeces(index);
@@ -262,8 +312,12 @@ if isfield(Exp,'nPoints')
     end
     Vary.Events{iDim} = VariedEvents;
   end
+  
+  if PossiblePulseCrossing
+    % do a check here, and maybe return a warning
+  end
 else
-  %make empty vary table here
+  Vary = [];
 end
 
 

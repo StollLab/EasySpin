@@ -76,7 +76,7 @@ Ham = system.ham*1000/2/pi;
 Relaxation.equilibriumState = system.eq;
 Relaxation.Gamma = system.gamma;
 
-[Events Vary] = sequencer(Exp,Opt);
+[Events, Vary] = sequencer(Exp,Opt);
 
 % %And the vary structure
 % Vary.Events = {[1] 2};

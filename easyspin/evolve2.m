@@ -64,8 +64,6 @@ nEvents = length(Events);
 % or - Detection operators need to divided by two before normalizations are
 % computed. what should the normalization be for transition selective
 % operators or for detecting populations
-% - If no detection is requested, I can combine all propagators to one single
-% one: Utotal = U1*U2*U3.... can this also be done for Liouvillians
 
 switch method
   
@@ -75,29 +73,48 @@ switch method
     normsDet = zeros(1,nDet);
     Ham0 = Ham0*2*pi;
     
-    
-    nDimensions = numel(Vary.Points);
-    idx = ones(1,nDimensions);
-    nAcquisitions = prod(Vary.Points);
+    if ~isempty(Vary)
+      nDimensions = numel(Vary.Points);
+      idx = ones(1,nDimensions);
+      nAcquisitions = prod(Vary.Points);
+    else
+      nDimensions = 0;
+      nAcquisitions = 1;
+    end
          
     n = size(Sigma,2);
     FinalStates = zeros(nAcquisitions,n,n);
     AllDensityMatrices = [];
     initialSigma = Sigma;
     
+    timer = 0;
+    
+    PulsePositions = [];
+    iPulse = 1;
+    for iEvent = 1 : nEvents
+      switch Events{iEvent}.type
+        case 'pulse'
+          PulsePositions(iPulse,:) = [iEvent; timer];
+          iPulse = iPulse + 1;
+      end
+      timer = timer + Events{iEvent}.t(end);
+    end
+    
     %----------------------------------------------------------------------
     % This checks if traces in all dimensions will have the save length, if
     % not, a cell array is used for storage of traces
     %----------------------------------------------------------------------
     StoreInArray = false;
-    for iDimension = 1 : nDimensions
-      for Event2Check = Vary.Events{iDimension}
-        if Events{Event2Check}.Detection == 1
-          nDataSets = length(Vary.ts{Event2Check});
-          sizetocompare = size(Vary.ts{Event2Check}{1},2);
-          for i = 2 : nDataSets
-            if sizetocompare ~= size(Vary.ts{Event2Check}{i},2)
-              StoreInArray = true;
+    if ~isempty(Vary)
+      for iDimension = 1 : nDimensions
+        for Event2Check = Vary.Events{iDimension}
+          if Events{Event2Check}.Detection == 1
+            nDataSets = length(Vary.ts{Event2Check});
+            sizetocompare = size(Vary.ts{Event2Check}{1},2);
+            for i = 2 : nDataSets
+              if sizetocompare ~= size(Vary.ts{Event2Check}{i},2)
+                StoreInArray = true;
+              end
             end
           end
         end
@@ -110,13 +127,27 @@ switch method
     end
     %----------------------------------------------------------------------
     
+    OrigEvents = Events;
+    
+    ModifiedDelays = [];
+    SwappedPulses = [];
     %----------------------------------------------------------------------
     % Loop over number of Acquisitions = Product of the Points in each
     % Dimension
     %----------------------------------------------------------------------
     for iAcquisition = 1 : nAcquisitions
       tic
-         
+      
+      if ~isempty(ModifiedDelays)
+        for iEvent = ModifiedDelays 
+          Events{iEvent} = OrigEvents{iEvent};
+        end
+        
+        PulseSwap = Events{SwappedPulses(1)};
+        Events{SwappedPulses(1)} = Events{SwappedPulses(2)};
+        Events{SwappedPulses(2)} = PulseSwap;
+      end
+
       Sigma = initialSigma;
       
       %--------------------------------------------------------------------
@@ -124,22 +155,25 @@ switch method
       % This needs to be adapted so that only events are overwritten that
       % are actually changed!
       %--------------------------------------------------------------------
-      for iDimension = 1 : nDimensions
-        iPoint = idx(iDimension);
-        
-        for iEvent = Vary.Events{iDimension}
+      
+      if~isempty(Vary)
+        for iDimension = 1 : nDimensions
+          iPoint = idx(iDimension);
           
-          switch Events{iEvent}.type
-            case 'pulse'
-              Events{iEvent}.IQ = Vary.IQs{iEvent}{iPoint};
-              Events{iEvent}.t = Vary.ts{iEvent}{iPoint};
-            case 'free evolution'
-              Events{iEvent}.t = Vary.ts{iEvent}{iPoint};
+          for iEvent = Vary.Events{iDimension}
+            
+            switch Events{iEvent}.type
+              case 'pulse'
+                Events{iEvent}.IQ = Vary.IQs{iEvent}{iPoint};
+                Events{iEvent}.t = Vary.ts{iEvent}{iPoint};
+              case 'free evolution'
+                Events{iEvent}.t = Vary.ts{iEvent}{iPoint};
+            end
+            
+            Events{iEvent}.Propagation = [];
           end
-          
-          Events{iEvent}.Propagation = [];
         end
-      end
+      end     
       %--------------------------------------------------------------------
            
       %--------------------------------------------------------------------
@@ -318,6 +352,88 @@ switch method
         end
       end
       
+      NewPulsePositions = zeros(size(PulsePositions));
+      iPulse = 1;
+      iDelay = 1;
+      timer = 0;
+      
+      for iEvent = 1 : nEvents
+        switch Events{iEvent}.type
+          case 'pulse'
+            NewPulsePositions(iPulse,:) = [iEvent; timer];
+            iPulse = iPulse + 1;
+          case 'free evolution'
+            iDelay = iDelay + 1;
+            DelayIndex(iDelay) = iEvent;
+        end
+        if Events{iEvent}.t(1)<0
+          timer = timer + Events{iEvent}.t(1);
+        else
+          timer = timer + Events{iEvent}.t(end);
+        end
+      end
+      
+      
+%       if ~isequal(NewPulsePositions, PulsePositions)
+%         [Positions, NewOrder] = sort(NewPulsePositions(:,2));
+%         
+%         Positions(2:end) =  Positions(2:end)+(dt*(1:length(Positions)-1))';
+%         %         Positions =  bsxfun(@plus,Positions,dt*(1:length(Positions)));
+%         iPulse = 1;
+%         iDelay = 1;
+%         
+%           if Positions(iPulse) == 0
+%             Sequence(1) = NewOrder(1);
+%             timer = Events{NewOrder(1)}.tp(end) + dt;
+%             iPulse = iPulse + 1;
+%             
+%           else
+%             Sequence(1) = DelayIndex(1);
+%             tDelay = Positions(1);
+%             Events{DelayIndex(1)}.t = 0:dt:tDelay;
+%             iDelay = iDelay + 1;
+%             timer = tDelay;
+%           end
+%             
+%           
+%           for iEvent = 2 : nEvents
+%             if timer == Positions(iPulse)
+%               Sequence(iEvent) = NewOrder(iPulse);
+%               timer = Events{NewOrder(iPulse)}.tp(end) + dt;
+%               iPulse = iPulse + 1;
+%             else
+%               Sequence(iEvent) = DelayIndex(iDelay);
+%               if iPulse
+%               tDelay = Positions(iPulse)-timer;
+%               timer = timer + Delay;
+%               iDelay = 
+%               
+%             end
+%             
+%             
+%           end
+          %
+%       else
+        Sequence = 1:nEvents;
+      
+%       end
+      %       if PulseOverlap
+      %
+%         if ~isempty(Vary)
+%           for d = nDimensions:-1:1
+%             if idx(d)<Vary.Points(d)
+%               idx(d) = idx(d)+1;
+%               break;
+%             else
+%               idx(d) = 1;
+%             end
+%           end
+%         end
+%         
+%         continue
+% 
+%       end
+      
       %--------------------------------------------------------------------
       % Setting up some initial variables
       ttotal = 0;
@@ -327,7 +443,7 @@ switch method
       
       %--------------------------------------------------------------------
       % Loop over event structure
-      for iEvent = 1 : nEvents
+      for iEvent = Sequence
         
         currentEvent = Events{iEvent};   
         
@@ -616,12 +732,15 @@ switch method
       %--------------------------------------------------------------------
       % Incremeant the index for the Vary structure by 1
       %--------------------------------------------------------------------
-      for d = nDimensions:-1:1
-        if idx(d)<Vary.Points(d)
-          idx(d) = idx(d)+1;
-          break;
-        else
-          idx(d) = 1;
+      
+      if ~isempty(Vary)
+        for d = nDimensions:-1:1
+          if idx(d)<Vary.Points(d)
+            idx(d) = idx(d)+1;
+            break;
+          else
+            idx(d) = 1;
+          end
         end
       end
       
