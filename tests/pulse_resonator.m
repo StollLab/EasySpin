@@ -10,7 +10,7 @@ Par.TimeStep = 0.00025;
 
 Par.mwFreq = 9.5;
 
-Opt.Resonator = 'simulation';
+Opt.Resonator = 'simulate';
 Par.ResonatorFrequency = Par.mwFreq;
 Opt.CutoffFactor = 1/1000;
 
@@ -18,7 +18,7 @@ QL = 50:50:400;
 
 for iq = 1:2:2*numel(QL)
   
-  Par.QL = QL(round(iq/2));
+  Par.ResonatorQL = QL(round(iq/2));
   
   [t,IQ] = pulse(Par,Opt);
   
@@ -28,7 +28,7 @@ for iq = 1:2:2*numel(QL)
   tau_fall = 1/k; % tau = Q/(pi*nu_mw)
   Q_fall = tau_fall*pi*Par.ResonatorFrequency*1e3;
   
-  suberr(iq) = (Par.QL-Q_fall)/Par.QL>0.025;
+  suberr(iq) = (Par.ResonatorQL-Q_fall)/Par.ResonatorQL>0.025;
   
   % Rise time
   ind = numel(t)-ind;
@@ -36,7 +36,7 @@ for iq = 1:2:2*numel(QL)
   tau_rise = 1/k;
   Q_rise = tau_rise*pi*Par.ResonatorFrequency*1e3;
   
-  suberr(iq+1) = (Par.QL-Q_rise)/Par.QL>0.025;
+  suberr(iq+1) = (Par.ResonatorQL-Q_rise)/Par.ResonatorQL>0.025;
   
 end
 
@@ -51,7 +51,7 @@ Par.Type = 'rectangular';
 Par.TimeStep = 0.00025;
 
 Par.mwFreq = 9.5;
-Opt.Resonator = 'simulation';
+Opt.Resonator = 'simulate';
 
 QLvalues = 50:50:400;
 

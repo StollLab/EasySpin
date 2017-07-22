@@ -12,16 +12,17 @@ Params.Type = 'sech/none';
 Params.TimeStep = 0.00025; % us
 Params.tp = 0.200; % us
 Params.beta = 10;
-Params.Amplitude = 0.75;
+Params.Amplitude = nu1_max;
 
 [t,IQ] = pulse(Params);
 
-% 'simulation' effect of amplitude compression
+% 'simulate' effect of amplitude compression
+Params.Amplitude = 0.75;
 x =  0:0.001:1;
 Params.InputAmplitude = x;
 Params.OutputAmplitude = nu1_max*(x - 0.30*x.^3); % MHz
 
-Opt.Transmitter = 'simulation';
+Opt.Transmitter = 'simulate';
 
 [t_compressed,IQ_compressed] = pulse(Params,Opt);
 
@@ -56,19 +57,20 @@ Params2.Amplitude = 60; % MHz
 % Amplitude compensation
 %----------------------------------------------
 nu1_max = 85; % MHz
+nu1_out = 50; % MHz
 
 % Pulse 1
-Params1.Amplitude = amplitudes(1)/max(amplitudes); % relative input amplitude
+Params1.Amplitude = nu1_out*amplitudes(1)/max(amplitudes); % output amplitude
 x =  0:0.001:1;
 Params1.InputAmplitude = x;
 Params1.OutputAmplitude = nu1_max*(x - 0.30*x.^3); % MHz
 
-Opt.Transmitter = 'compensation';
+Opt.Transmitter = 'compensate';
 
 [t1_compensated,signal1_compensated] = pulse(Params1,Opt);
 
 % Pulse 2
-Params2.Amplitude = amplitudes(2)/max(amplitudes); % relative input amplitude
+Params2.Amplitude = nu1_out*amplitudes(2)/max(amplitudes); % output amplitude
 Params2.InputAmplitude = Params1.InputAmplitude;
 Params2.OutputAmplitude = Params1.OutputAmplitude; % MHz
 
@@ -80,7 +82,7 @@ total_signal = [signal1 zeros(1,0.200/Params1.TimeStep) signal2];
 ParamsTotal.I = real(total_signal);
 ParamsTotal.Q = imag(total_signal);
 
-ParamsTotal.Amplitude = 1;
+ParamsTotal.Amplitude = nu1_out;
 ParamsTotal.InputAmplitude = Params1.InputAmplitude;
 ParamsTotal.OutputAmplitude = Params1.OutputAmplitude; % MHz
 
@@ -96,11 +98,11 @@ Params1_.tp = 0.200; % us
 Params1_.I = real(signal1_compensated);
 Params1_.Q = imag(signal1_compensated);
 
-Params1_.Amplitude = max(abs(signal1_compensated))/max(abs(signal2_compensated));
+Params1_.Amplitude = max(abs(signal1_compensated));
 Params1_.InputAmplitude = Params1.InputAmplitude;
 Params1_.OutputAmplitude = Params1.OutputAmplitude; % MHz
 
-Opt.Transmitter = 'simulation';
+Opt.Transmitter = 'simulate';
 
 [t1_check,signal1_check] = pulse(Params1_,Opt);
 
@@ -108,7 +110,7 @@ Params2_.tp = 0.100; % us
 Params2_.I = real(signal2_compensated);
 Params2_.Q = imag(signal2_compensated);
 
-Params2_.Amplitude = max(abs(signal2_compensated))/max(abs(signal2_compensated));
+Params2_.Amplitude = max(abs(signal2_compensated));
 Params2_.InputAmplitude = Params2.InputAmplitude;
 Params2_.OutputAmplitude = Params2.OutputAmplitude; % MHz
 
@@ -119,7 +121,7 @@ ParamsTotal_.tp = 0.200+0.200+0.100; % us
 ParamsTotal_.I = real(total_signal_compensated);
 ParamsTotal_.Q = imag(total_signal_compensated);
 
-ParamsTotal_.Amplitude = 1;
+ParamsTotal_.Amplitude = Params2_.Amplitude;
 ParamsTotal_.InputAmplitude = Params2.InputAmplitude;
 ParamsTotal_.OutputAmplitude = Params2.OutputAmplitude; % MHz
 
@@ -130,8 +132,9 @@ total_signal = [signal1_check zeros(1,0.200/Params1.TimeStep) signal2_check];
 suberr(3) = ~areequal(total_signal_check,total_signal,0.07*max(abs(total_signal)));
 
 % Compare compensated and compressed pulse shapes with original pulse shapes
-suberr(4) = ~areequal(signal1_check,signal1,0.07*max(abs(signal2)));
-suberr(5) = ~areequal(signal2_check,signal2,0.07*max(abs(signal2)));
+scalefactor = nu1_out/amplitudes(2);
+suberr(4) = ~areequal(signal1_check,scalefactor*signal1,0.07*max(abs(signal2)));
+suberr(5) = ~areequal(signal2_check,scalefactor*signal2,0.07*max(abs(signal2)));
 
 err = any(suberr);
 

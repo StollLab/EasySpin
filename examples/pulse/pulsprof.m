@@ -44,4 +44,4 @@ set(h(1:2),'LineWidth',2);
 xlabel('frequency offset [MHz]');
 ylabel('z magnetization after pulse');
 title(sprintf('rectangular pulse with length %g ns',tp*1e3));
-legend('pi pulse','pi/2 pulse','sinc',4);
+legend('pi pulse','pi/2 pulse','sinc');

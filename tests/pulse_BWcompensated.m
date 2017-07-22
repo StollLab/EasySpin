@@ -16,7 +16,7 @@ Params.mwFreq = 9.5; % GHz
 
 % Ideal spectrometer magnitude response function
 Params.ResonatorFrequency = Params.mwFreq;
-Params.QL = 50; % Q-factor
+Params.ResonatorQL = 50; % Q-factor
 
 [t,IQ1] = pulse(Params);
 Opt.Resonator = 'BWcompensation';
@@ -30,7 +30,7 @@ IQ2_ft = abs(fftshift(fft(IQ2)));
 IQ2_ft = IQ2_ft/max(IQ2_ft);
 
 f0 = 9:0.00001:10; % GHz
-H = 1./(1+1i*Params.QL*(f0/Params.ResonatorFrequency-Params.ResonatorFrequency./f0));
+H = 1./(1+1i*Params.ResonatorQL*(f0/Params.ResonatorFrequency-Params.ResonatorFrequency./f0));
 v1 = abs(H);
 profile = interp1((f0-Params.mwFreq)*1e3,v1,f);
 profile = profile/max(profile);
