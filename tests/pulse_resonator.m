@@ -58,8 +58,9 @@ QLvalues = 50:50:400;
 for iq = 1:2:2*numel(QLvalues)
   
   QL = QLvalues(round(iq/2));
-  Par.faxis = 9.2:0.010:9.8; % GHz
-  Par.MagnitudeResponse = abs(1./(1+1i*QL*(Par.faxis/Par.mwFreq-Par.mwFreq./Par.faxis)));
+  f = 9.2:0.010:9.8; % GHz
+  H = abs(1./(1+1i*QL*(f/Par.mwFreq-Par.mwFreq./f)));
+  Par.FrequencyResponse = [f; H];
   
   [t,IQ] = pulse(Par,Opt);
   
@@ -82,6 +83,48 @@ for iq = 1:2:2*numel(QLvalues)
 end
 
 err(2) = any(suberr);
+
+% Transfer function given as input
+%--------------------------------------------------------------------------
+clearvars -except err
+
+Par.tp = 0.200; % us
+Par.Type = 'rectangular';
+Par.TimeStep = 0.00025;
+
+Par.mwFreq = 9.5;
+Opt.Resonator = 'simulate';
+
+QLvalues = 50:50:400;
+
+for iq = 1:2:2*numel(QLvalues)
+  
+  QL = QLvalues(round(iq/2));
+  f = 9.2:0.010:9.8; % GHz
+  H = 1./(1+1i*QL*(f/Par.mwFreq-Par.mwFreq./f));
+  Par.FrequencyResponse = [f; H];
+  
+  [t,IQ] = pulse(Par,Opt);
+  
+  % Fall time
+  [~,ind] = min(abs(t-Par.tp));
+  [k,c] = exponfit(t(ind:end),real(IQ(ind:end)),1,'noconst');
+  tau_fall = 1/k; % tau = Q/(pi*nu_mw)
+  Q_fall = tau_fall*pi*Par.mwFreq*1e3;
+  
+  suberr(iq) = (QL-Q_fall)/QL>0.05;
+  
+  % Rise time
+  ind = numel(t)-ind;
+  [k,c] = exponfit(t(1:ind),real(IQ(1:ind)),1);
+  tau_rise = 1/k;
+  Q_rise = tau_rise*pi*Par.mwFreq*1e3;
+  
+  suberr(iq+1) = (QL-Q_rise)/QL>0.05;
+  
+end
+
+err(3) = any(suberr);
 
 err = any(err);
 

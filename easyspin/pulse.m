@@ -15,9 +15,9 @@
 %     Par.Amplitude   = pulse amplitude, in MHz; ignored if Par.Flip given
 %                       (if Opt.Transmitter is used, the amplitude is 
 %                        interpreted as the input amplitude (relative to 
-%                        Par.InputAmplitude, e.g. 0.5 corresponds to a 
-%                        pulse with one half of the maximum digital 
-%                        amplitude of the AWG)
+%                        the axis given in Par.AmplifierResponse, e.g. 0.5 
+%                        corresponds to a  pulse with one half of the 
+%                        maximum digital amplitude of the AWG)
 %     Par.Qcrit       = critical adiabaticity, used to calculate pulse
 %                       amplitude for frequency-swept pulses [1]; if given
 %                       takes precedence over Par.Amplitude and Par.Flip
@@ -49,9 +49,9 @@
 %   If compensation for the resonator bandwidth or simulation of the effect
 %   of the resonator is requested with Opt.Resonator, the following 
 %   parameters also need to be defined:
-%     Par.MagnitudeResponse  = magnitude response function (ideal or 
-%                              experimental)
-%     Par.faxis              = corresponding frequency axis in GHz
+%     Par.FrequencyResponse  = frequency axis in GHz and resonator frequency 
+%                              response (ideal or experimental, real-valued
+%                              input is interpreted as magnitude response)
 %     Par.mwFreq             = microwave frequency for the experiment in GHz
 %   or
 %     Par.ResonatorFrequency = resonator center frequency in GHz
@@ -60,9 +60,10 @@
 %   If compensation for transmitter nonlinearity or simulation of amplitude
 %   compression is requested with Opt.Transmitter, the following parameters
 %   also need to be defined:
-%     Par.OutputAmplitude   = output amplitude as a function of input 
-%                             amplitude
-%     Par.InputAmplitude    = range of input amplitudes (normalized to 1)
+%     Par.AmplifierResponse  = input amplitude (relative scale) and output 
+%                              amplitude (nu_1) for the transmitter (if only
+%                              the output amplitude is given, the input
+%                              amplitude is set in the range from 0 to 1
 %
 %   Opt = optional structure with the following fields
 %    Opt.Output           = 'IQ' - complex-valued pulse (default)
@@ -75,7 +76,7 @@
 %                                              Ref. 2)  (available for linear 
 %                                              chirp and sech pulses).
 %                           This option requires definition of the
-%                           parameters Par.faxis, Par.MagnitudeResponse and
+%                           parameters Par.FrequencyResponse and
 %                           Par.mwFreq.
 %    Opt.Transmitter      = 'off' (default)
 %                           'simulate'   - simulates the effect of the 
@@ -83,9 +84,9 @@
 %                           'compensate' - compensate for the transmitter 
 %                                          nonlinearity
 %                           This option requires definition of the
-%                           parameters Par.InputAmplitude, Par.OutputAmplitude
-%                           and Par.Amplitude (relative amplitude on the
-%                           Par.InputAmplitude scale).
+%                           parameters Par.AmplifierResponse and
+%                           Par.Amplitude (relative amplitude on the
+%                           given input amplitude scale).
 %    Opt.OverSampleFactor = oversampling factor for the determination of the 
 %                           time step (default: 10)
 %    Opt.CutoffFactor     = cutoff factor for truncation of the impulse 
@@ -210,7 +211,9 @@ if ~isfield(Par,'Flip') || isempty(Par.Flip)
     Par.Flip = [];
   end
 else
-  Par.Amplitude = [];
+  if ~isfield(Opt,'Transmitter') || strcmp(Opt.Transmitter,'off')
+    Par.Amplitude = [];
+  end
 end
 
 if ~isfield(Par,'Frequency') || isempty(Par.Frequency)
@@ -248,45 +251,62 @@ end
 % ----------------------------------------------------------------------- %
 if ~strcmp(Opt.Transmitter,'off')
 
-    if (~isfield(Par,'InputAmplitude') || isempty(Par.InputAmplitude)) || ...
-        (~isfield(Par,'OutputAmplitude') || isempty(Par.OutputAmplitude))
+    if (~isfield(Par,'AmplifierResponse') || isempty(Par.AmplifierResponse))
       error(['Insufficient input for the simulation of amplitude compression or '...
         'amplitude nonlinearity compensation. ',...
-        'Specify the transmitter nonlinearity (Par.InputAmplitude, ',...
-        'Par.OutputAmplitude).']);
+        'Specify the transmitter nonlinearity in Par.AmplifierResponse.']);
+    else
+      [n1,n2] = size(Par.AmplifierResponse);
+      if n1==1 || n2==1
+        if n2==1
+          Par.AmplifierResponse = Par.AmplifierResponse.';
+        end
+        Par.AmplifierResponse(2,:) = Par.AmplifierResponse;
+        Par.AmplifierResponse(1,:) = linspace(0,1,numel(Par.AmplifierResponse(2,:)));
+      elseif n2==2
+        Par.AmplifierResponse = Par.AmplifierResponse.';
+      end
     end
     if ~isfield(Par,'Amplitude') || isempty(Par.Amplitude)
       error(['Insufficient input for the simulation of amplitude compression '...
         'or amplitude nonlinearity compensation. The pulse amplitude relative ',...
         'to the maximum input amplitude is required in Par.Amplitude.']);
     end
-    if strcmp(Opt.Transmitter,'simulate') && isfield(Par,'Amplitude') && Par.Amplitude>max(Par.InputAmplitude)
+    if strcmp(Opt.Transmitter,'simulate') && isfield(Par,'Amplitude') && Par.Amplitude>max(Par.AmplifierResponse(1,:))
       error(['The relative input amplitude should be specified in Par.Amplitude ',...
              'if the effect of the transmitter nonlinearity needs to be simulated.'])
     end
-    if strcmp(Opt.Transmitter,'compensate') && isfield(Par,'Amplitude') && Par.Amplitude>max(Par.OutputAmplitude)
+    if strcmp(Opt.Transmitter,'compensate') && isfield(Par,'Amplitude') && Par.Amplitude>max(Par.AmplifierResponse(2,:))
       error(['For amplitude compensation, the desired output amplitude should be ',...
-             'specified in Par.Amplitude and be within the range given by Par.OutputAmplitude.'])
+             'specified in Par.Amplitude and be within the range given by the output in Par.AmplifierResponse.'])
     end
 
 end
 
 if ~strcmp(Opt.Resonator,'off')
   
-  if isfield(Par,'faxis') && ~isempty(Par.faxis)
-    if ~isfield(Par,'MagnitudeResponse') || isempty(Par.MagnitudeResponse)
+  if ~isfield(Par,'FrequencyResponse') && ~isfield(Par,'ResonatorFrequency')
       error(['Use of the resonator option with an experimental transfer ',...
-        'function requires the inputs Par.faxis and Par.MagnitudeResponse.']);
+        'function requires the resonator transfer function in Par.FrequencyResponse ',...
+        'or the Par.ResonatorFrequency and Par.ResonatorQL parameters for calculation ',...
+        'of an ideal transfer function.']);
+  end
+  
+  if isfield(Par,'FrequencyResponse') && ~isempty(Par.FrequencyResponse)
+    [n1,n2] = size(Par.FrequencyResponse);
+    if n2==2
+      Par.FrequencyResponse = Par.FrequencyResponse.';
+    elseif n1~=2 && n2~=2
+      error(['Par.FrequencyResponse should contain both the frequency axis and the ',...
+        'resonator transfer function.']);
     end
-  elseif isfield(Par,'ResonatorFrequency') && ~isempty(Par.ResonatorFrequency)
+  end
+
+  if isfield(Par,'ResonatorFrequency') && ~isempty(Par.ResonatorFrequency)
     if ~isfield(Par,'ResonatorQL') || isempty(Par.ResonatorQL)
       error(['Use of the resonator option with an ideal transfer function ',...
         'requires the inputs Par.ResonatorFrequency and Par.ResonatorQL.']);
     end
-  else
-    error(['Use of the resonator option requires definition of the ',...
-      'resonator magnitude response function (Par.faxis and ',...
-      'Par.MagnitudeResponse or Par.ResonatorFrequency and Par.ResonatorQL).']);
   end
   
   if ~isfield(Par,'mwFreq') || isempty(Par.mwFreq)
@@ -818,10 +838,12 @@ else
     %   http://dx.doi.org/10.1016/j.jmr.2015.12.014
     
     % Bandwidth compensation is implemented for these pulses
-    if (~(strcmp(FrequencyModulation,'linear') && (strcmp(AmplitudeModulation,'rectangular') || ...
-                                                   strcmp(AmplitudeModulation,'quartersin')))) && ...
-        (~(strcmp(FrequencyModulation,'tanh') && strcmp(AmplitudeModulation,'sech'))) && ...
-        (~(strcmp(FrequencyModulation,'uniformq') && strcmp(AmplitudeModulation,'sech')))
+    if (~strcmp(FrequencyModulation,'uniformq') && ...
+        ~(strcmp(FrequencyModulation,'linear') && (strcmp(AmplitudeModulation,'rectangular') || ...
+                                                   strcmp(AmplitudeModulation,'quartersin') || ...
+                                                   strcmp(AmplitudeModulation,'WURST'))) && ...
+        (~(strcmp(FrequencyModulation,'tanh') && strcmp(AmplitudeModulation,'sech'))))
+        
       error(['Resonator bandwidth compensation is not implemented for ',...
         'the selected pulse. See documentation for more details.']);
     end
@@ -832,13 +854,16 @@ else
     
     % Resonator profile in the frequency range of the pulse
     newaxis = nu0 + mean(Par.Frequency) + Par.mwFreq*1e3; % MHz
-    if isfield(Par,'faxis')
-      f = Par.faxis*1e3; % GHz to MHz
-      H = Par.MagnitudeResponse;
+    if isfield(Par,'FrequencyResponse')
+      f = Par.FrequencyResponse(1,:)*1e3; % GHz to MHz
+      H = Par.FrequencyResponse(2,:);
       if min(newaxis)<min(f) || max(newaxis)>max(f)
         error(['The frequency sweep width of the pulse extends further than ',...
           'the given resonator profile. Please provide the resonator ',...
           'profile for the complete pulse frequency sweep width.'])
+      end
+      if ~isreal(H)
+        H = abs(H);
       end
     elseif isfield(Par,'ResonatorFrequency')
       [f,H] = transferfunction('ideal',Par.ResonatorFrequency,Par.ResonatorQL);
@@ -847,7 +872,7 @@ else
     end
     
     profile = interp1(f,H,newaxis);
-    if strcmp(AmplitudeModulation,'sech')
+    if strcmp(AmplitudeModulation,'sech') || strcmp(FrequencyModulation,'uniformQ')
       profile = A0.*profile;
     end
     
@@ -951,8 +976,8 @@ end
 if strcmp(Opt.Resonator,'simulate')
   
   % Calculate transfer function and impulse response
-  if isfield(Par,'faxis')
-    [f,H] = transferfunction('experimental',Par.faxis,Par.MagnitudeResponse);
+  if isfield(Par,'FrequencyResponse')
+    [f,H] = transferfunction('experimental',Par.FrequencyResponse);
   elseif isfield(Par,'ResonatorFrequency')
     [f,H] = transferfunction('ideal',Par.ResonatorFrequency,Par.ResonatorQL);
   end
@@ -1194,31 +1219,38 @@ switch type
     
     % Extrapolation of the experimental transfer function over
     % the full frequency range
-    faxis = varargin{1}; % frequency axis in GHz
-    MagnitudeResponse = varargin{2}; % experimental resonator profile
+    FrequencyAxis = varargin{1}(1,:); % frequency axis in GHz
+    FrequencyResponse = varargin{1}(2,:); % experimental resonator profile
     
     % Frequency axis
-    fmax = 2*ceil(max(faxis)); % Nyquist frequency, GHz
+    fmax = 2*ceil(max(FrequencyAxis)); % Nyquist frequency, GHz
     N = 2^15; % number of frequency points
     df = 2*fmax/N; % GHz
     f = (-fmax:df:fmax-df); % GHz
     
     % Interpolation
-    ind = find((f>faxis(1)) & (f<faxis(end)));
-    MagnitudeResponse_ = interp1(faxis,MagnitudeResponse,f(ind),'spline');
+    ind = find((f>FrequencyAxis(1)) & (f<FrequencyAxis(end)));
+    FrequencyResponse_ = interp1(FrequencyAxis,FrequencyResponse,f(ind),'spline');
+    
+    % Separate real and imaginary contributions, if available
+    if ~isreal(FrequencyResponse_)
+      FrequencyResponse_r = real(FrequencyResponse_);
+      FrequencyResponse_i = imag(FrequencyResponse_);
+      FrequencyResponse_ = abs(FrequencyResponse_);
+    end
     
     % Estimate center frequency and loaded Q
-    [v1max,maxind] = max(MagnitudeResponse_);
+    [v1max,maxind] = max(FrequencyResponse_);
     f0 = f(ind(1)+maxind); % GHz
     
     v1_3dB = (3/4)*v1max;
-    ind_3dB = [find(MagnitudeResponse_>v1_3dB,1,'first') find(MagnitudeResponse_>v1_3dB,1,'last')];
+    ind_3dB = [find(FrequencyResponse_>v1_3dB,1,'first') find(FrequencyResponse_>v1_3dB,1,'last')];
     f_3dB = f(ind(1)-1+ind_3dB);
     BW_3dB = diff(f_3dB);
     QL = f0/BW_3dB;
     
     % Fit f0 and QL for best overlap
-    fitfunc = @(x) sqrt(sum((abs(Hideal(f(ind),x(1),x(2),v1max))-MagnitudeResponse_).^2)/numel(MagnitudeResponse_));
+    fitfunc = @(x) sqrt(sum((abs(Hideal(f(ind),x(1),x(2),v1max))-FrequencyResponse_).^2)/numel(FrequencyResponse_));
     x0 = [f0 QL];
     x = fminsearch(fitfunc,x0);
     f0 = x(1);
@@ -1227,13 +1259,21 @@ switch type
     Hid = Hideal(f,f0,QL,v1max);
     
     % Extrapolate the experimental transfer function by exponentially approaching |H0(f)|
-    H0(1:ind(1)) = (MagnitudeResponse_(1)-abs(Hid(ind(1))))*exp(1/log(2)*(f(1:ind(1))-f(ind(1)))) + abs(Hid(1:ind(1)));
-    H0(ind) = MagnitudeResponse_;
-    H0(ind(end):numel(f)) = (MagnitudeResponse_(end)-abs(Hid(ind(end))))*exp(-1/log(2)*(f(ind(end):end)-f(ind(end)))) + abs(Hid(ind(end):end));
+    H0(1:ind(1)) = (FrequencyResponse_(1)-abs(Hid(ind(1))))*exp(1/log(2)*(f(1:ind(1))-f(ind(1)))) + abs(Hid(1:ind(1)));
+    H0(ind) = FrequencyResponse_;
+    H0(ind(end):numel(f)) = (FrequencyResponse_(end)-abs(Hid(ind(end))))*exp(-1/log(2)*(f(ind(end):end)-f(ind(end)))) + abs(Hid(ind(end):end));
+    % Remove zero at f = 0
+    ind0 = find(f==0);
+    H0(ind0) = H0(ind0+1);
     
-    % Estimate phase response
-    betaid=atan(imag(Hid)./real(Hid));
-    betaexp = -imag(hilberttrans(log(abs(H0))));
+    % Phase response
+    betaid = atan(imag(Hid)./real(Hid));
+    if exist('FrequencyResponse_i','var')
+      betaexp(ind) = atan(FrequencyResponse_i./FrequencyResponse_r);
+    else
+      % Estimate phase response
+      betaexp = -imag(hilberttrans(log(abs(H0))));
+    end
     % Combine phase response of the ideal function and the provided measured data
     fitfunc = @(x) sqrt(sum(((betaexp(ind)-x)-betaid(ind)).^2)/(ind(end)-ind(1)));
     x = fminsearch(fitfunc,0);
@@ -1268,7 +1308,7 @@ function [t,h] = impulseresponse(f,H,mwFreq,Opt)
 %    http://dx.doi.org/10.1016/j.jmr.2015.12.014
 
 % Normalize the transfer function and make it causal
-H = H/max(H);
+H = H/max(real(H));
 H_ = real(H) - 1i*imag(hilbert(real(H)));
 
 % Impulse response function
@@ -1305,20 +1345,20 @@ function [signal_out,varargout] = AmplitudeNonlinearity(A,Par,option)
 %   http://dx.doi.org/10.1016/j.jmr.2013.01.002
 
   % Normalize input amplitude
-  maxInputAmplitude = max(Par.InputAmplitude);
+  maxInputAmplitude = max(Par.AmplifierResponse(1,:));
   if maxInputAmplitude~=1    
-    Par.InputAmplitude = Par.InputAmplitude/maxInputAmplitude;
+    Par.AmplifierResponse(1,:) = Par.AmplifierResponse(1,:)/maxInputAmplitude;
     Par.Amplitude = Par.Amplitude/maxInputAmplitude;
   end
   
   % Scale output amplitude
-  nu1_max = max(Par.OutputAmplitude);
-  Par.OutputAmplitude = Par.OutputAmplitude/nu1_max;
+  nu1_max = max(Par.AmplifierResponse(2,:));
+  Par.AmplifierResponse(2,:) = Par.AmplifierResponse(2,:)/nu1_max;
   
   switch option
     case 'simulate'
 
-      F = griddedInterpolant(Par.InputAmplitude,Par.OutputAmplitude,'spline');
+      F = griddedInterpolant(Par.AmplifierResponse(1,:),Par.AmplifierResponse(2,:),'spline');
       
       % Compressed amplitude modulation function (renormalized to A0 = 1)
       if isreal(A)
@@ -1349,7 +1389,9 @@ function [signal_out,varargout] = AmplitudeNonlinearity(A,Par,option)
       
       Par.Amplitude = Par.Amplitude/nu1_max;
 
-      F = griddedInterpolant(Par.OutputAmplitude,Par.InputAmplitude,'spline');
+      [OutputAmplitude,uniqueind] = unique(Par.AmplifierResponse(2,:));
+      InputAmplitude = Par.AmplifierResponse(1,uniqueind);
+      F = griddedInterpolant(OutputAmplitude,InputAmplitude,'spline');
 
       % Compensated amplitude function
       if isreal(A)

@@ -220,14 +220,9 @@ Also, depending on the FM function, the following additional fields are required
 <p>
 Simulation of the effect of the resonator on the pulse shape is available by setting <code>Opt.Resonator = 'simulate'</code>. Compensation for the resonator bandwidth to achieve offset-independent adiabaticity is available for some pulse types (see below) and can be selected by setting <code>Opt.Resonator = 'BWcompensation'</code>. In both cases, the following additional parameters have to be included in the <code>Par</code> structure:
 
-<div class="optionfield"><code>MagnitudeResponse</code> and <code>faxis</code></div>
+<div class="optionfield"><code>FrequencyResponse</code> or <code>ResonatorFrequency</code> and <code>ResonatorQL</code></div>
 <div class="optiondescr">
-Resonator magnitude response function (ideal or experimental) and corresponding frequency axis in GHz.
-</div>
-
-<div class="optionfield">or <code>ResonatorFrequency</code> and <code>ResonatorQL</code></div>
-<div class="optiondescr">
-The resonator center frequency in GHz and the loaded Q-value. The resonator transfer function will be calculated based on a RLC series circuit model. (If <code>Par.MagnitudeResponse</code> and <code>Par.faxis</code> are given, this input is ignored.)
+Experimental resonator transfer function and corresponding frequency axis in GHz (<code>Par.FrequencyResponse = [Frequency; TransferFunction]</code>) or resonator center frequency in GHz and loaded Q-value for the calculation of an ideal transfer function modelling the resonator as a RLC series circuit. If the transfer function input in <code>Par.FrequencyResponse</code> is real, it is assumed to correspond to the magnitude response and the phase response is estimated.
 </div>
 
 <div class="optionfield"><code>mwFreq</code></div>
@@ -239,14 +234,14 @@ Microwave frequency (LO), in GHz.
 <p>
 Simulation of amplitude compression due to transmitter nonlinearity or calculation of pulse amplitude functions compensated for nonlinearity can be selected by setting <code>Opt.Transmitter = 'simulate'</code> or <code>Opt.Transmitter = 'compensate'</code> (see below). In this case, the following additional parameters have to be included in the <code>Par</code> structure:
 
-<div class="optionfield"><code>InputAmplitude</code> and <code>OutputAmplitude</code> </div>
+<div class="optionfield"><code>AmplifierResponse</code></div>
 <div class="optiondescr">
-Transmitter output amplitude as a function of normalized input amplitude.
+Transmitter output amplitude (in MHz) as a function of input amplitude (in MHz or on a relative scale, in agreement with <code>Par.Amplitude</code>) (<code>Par.AmplifierResponse = [InputAmplitude; OutputAmplitude]</code>). If only the output amplitude is given, the input amplitude is assumed to be in the range from 0 to 1.
 </div>
 
 <div class="optionfield"><code>Amplitude</code></div>
 <div class="optiondescr">
-If the <code>Opt.Transmitter</code> option is selected, <code>Par.Amplitude</code> is interpreted as the relative intensity of the pulse compared to the maximum input amplitude.
+If the <code>Opt.Transmitter</code> option is selected, <code>Par.Amplitude</code> is interpreted as the intensity of the pulse on the input amplitude scale provided in <code>Par.AmplifierResponse</code> or as the relative intensity (between 0 and 1).
 </div>
 
 <p>
@@ -262,10 +257,10 @@ If set to <code>Opt.Output = 'IQ'</code> (which is the default), then the output
 This option allows simulation of the effect of the resonator on the pulse shape or bandwidth compensation for frequency-swept pulses. Further details on the procedure are given in the Theoretical background section below. The options are:
 <ul>
 <li><code>Opt.Resonator = 'simulate'</code>: The resonator impulse response is derived based on the information on the resonator properties and convoluted with the pulse shape.
-<li><code>Opt.Resonator = 'BWcompensation'</code>: The calculated pulse shape includes adaptation of the chirp rate to the resonator bandwidth profile to maintain offset-independent adiabaticities. This is available for <code>'rectangular/linear'</code>, <code>'quartersin/linear'</code>, <code>'sech/tanh'</code> and <code>'sech/uniformQ'</code> pulses. 
+<li><code>Opt.Resonator = 'BWcompensation'</code>: The calculated pulse shape includes adaptation of the chirp rate to the resonator bandwidth profile to maintain offset-independent adiabaticities. This is available for any pulse with a <code>'uniformQ'</code> frequency modulation function and for <code>'rectangular/linear'</code>, <code>'quartersin/linear'</code>,<code>'WURST/linear'</code> and <code>'sech/tanh'</code> pulses. 
 <li><code>Opt.Resonator = 'off'</code>: default.
 </ul>
-If <code>Opt.Resonator</code> is set to <code>'simulate'</code> or <code>'BWcompensation'</code>, the parameters defining the resonator magnitude response function need to be defined (<code>Par.MagnitudeResponse</code> and <code>Par.faxis</code>, or <code>Par.ResonatorFrequency</code> and <code>Par.ResonatorQL</code>, and <code>Par.mwFreq</code>, see above).
+If <code>Opt.Resonator</code> is set to <code>'simulate'</code> or <code>'BWcompensation'</code>, the parameters defining the resonator magnitude response function need to be defined (<code>Par.FrequencyResponse</code> and <code>Par.FrequencyAxis</code>, or <code>Par.ResonatorFrequency</code> and <code>Par.ResonatorQL</code>, and <code>Par.mwFreq</code>, see above).
 </div>
 
 <div class="optionfield"><code>Transmitter</code></div>
@@ -276,7 +271,7 @@ Simulation of amplitude compression due to transmitter nonlinearity or calculati
 <li><code>Opt.Transmitter = 'compensate'</code>: The amplitude modulation functions are modified to compensate for transmitter nonlinearity. The output amplitude corresponds to the input amplitude given the relative input amplitude defined in <code>Par.Amplitude</code> and the transmitter nonlinearity function. 
 <li><code>Opt.Transmitter = 'off'</code>: default.
 </ul>
-If <code>Opt.Transmitter</code> is set to <code>'simulate'</code> or <code>'compensate'</code>, <code>Par.Amplitude</code> is interpreted as amplitude relative to the maximum of <code>Par.InputAmplitude</code> instead of absolute amplitude in MHz.
+If <code>Opt.Transmitter</code> is set to <code>'simulate'</code> or <code>'compensate'</code>, <code>Par.Amplitude</code> is interpreted as amplitude relative to the maximum of the input amplitude given in <code>Par.AmplifierResponse</code> instead of absolute amplitude in MHz.
 </div>
 
 <div class="optionfield"><code>OverSampleFactor</code></div>

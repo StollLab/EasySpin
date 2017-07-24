@@ -41,27 +41,28 @@ Opt.Transmitter = 'simulate';
 
 % Pulse 1
 Params1.Amplitude = PulseAmplitudes(1)/max(PulseAmplitudes);
-x =  0:0.001:1;
-y = (x - 0.30*x.^3);
-maxval = max(y);
-y = y/maxval;
-Params1.InputAmplitude = x;
-Params1.OutputAmplitude = PulseAmplitudes(2)*y; % MHz
+Sin =  0:0.001:1;
+Gain = 85.5; % extrapolated output amplitude for max input amplitude in linear regime
+Input1dBPoint = 0.60;
+Sout = (Gain*Sin - (Gain*(1-10^(-1/20))/Input1dBPoint^2)*Sin.^3);
+[~,ind] = min(abs(diff(Sout)));
+Ssat = Sout(ind);
+Sout(ind:end) = Ssat;
+Params1.AmplifierResponse = [Sin; Sout]; % relative scale, MHz
 
 [t1_compressed,signal1_compressed] = pulse(Params1,Opt);
 [offset1_compressed,M1_compressed] = exciteprofile(t1_compressed,signal1_compressed);
 
 % Pulse 2
 Params2.Amplitude = PulseAmplitudes(2)/max(PulseAmplitudes);
-Params2.InputAmplitude = Params1.InputAmplitude;
-Params2.OutputAmplitude = Params1.OutputAmplitude; % MHz
+Params2.AmplifierResponse = Params1.AmplifierResponse;
 
 [t2_compressed,signal2_compressed] = pulse(Params2,Opt);
 [offset2_compressed,M2_compressed] = exciteprofile(t2_compressed,signal2_compressed);
 
 % Amplitude compensation
 % ---------------------------------------------------------------------------------------
-nu1_out = max(Params1.OutputAmplitude);
+nu1_out = max(Params1.AmplifierResponse(2,:));
 Opt.Transmitter = 'compensate';
 
 % Pulse 1
@@ -82,8 +83,7 @@ Params1_.I = real(signal1_compensated);
 Params1_.Q = imag(signal1_compensated);
 
 Params1_.Amplitude = max(abs(signal1_compensated));
-Params1_.InputAmplitude = Params1.InputAmplitude;
-Params1_.OutputAmplitude = Params1.OutputAmplitude; % MHz
+Params1_.AmplifierResponse = Params1.AmplifierResponse;
 
 [t1_corrected,signal1_corrected] = pulse(Params1_,Opt);
 [offset1_corrected,M1_corrected] = exciteprofile(t1_corrected,signal1_corrected);
@@ -94,8 +94,7 @@ Params2_.I = real(signal2_compensated);
 Params2_.Q = imag(signal2_compensated);
 
 Params2_.Amplitude = max(abs(signal2_compensated));
-Params2_.InputAmplitude = Params2.InputAmplitude;
-Params2_.OutputAmplitude = Params2.OutputAmplitude; % MHz
+Params2_.AmplifierResponse = Params2.AmplifierResponse;
 
 [t2_corrected,signal2_corrected] = pulse(Params2_,Opt);
 [offset2_corrected,M2_corrected] = exciteprofile(t2_corrected,signal2_corrected);
@@ -106,9 +105,13 @@ Params2_.OutputAmplitude = Params2.OutputAmplitude; % MHz
 subplot(2,2,1)
 hold on; box on; grid on;
 title('Transmitter nonlinearity characterization')
-plot(Params1.InputAmplitude,Params1.InputAmplitude*PulseAmplitudes(2)/maxval,'--','Color',[0.7 0.7 0.7])
-plot(Params1.InputAmplitude,Params1.OutputAmplitude,'b')
-line(xlim,[1 1]*max(Params2_.OutputAmplitude),'Color','k')
+plot(Params1.AmplifierResponse(1,:),Params1.AmplifierResponse(1,:)*Gain,'--k')
+plot(Params1.AmplifierResponse(1,:),Params1.AmplifierResponse(2,:),'b')
+line([1 1]*Input1dBPoint,ylim,'LineStyle','--','Color',[0.7 0.7 0.7])
+line(xlim,[1 1]*Gain*Input1dBPoint*10^(-1/20),'LineStyle','--','Color',[0.7 0.7 0.7])
+text(0.02,Gain*Input1dBPoint*10^(-1/20)+5,'1 dB compression','FontSize',7)
+line(xlim,[1 1]*max(Params2_.AmplifierResponse(2,:)),'LineStyle','--','Color','k')
+text(0.02,max(Params2_.AmplifierResponse(2,:))+5,'saturation','FontSize',7)
 xlabel('Input amplitude (norm.)')
 ylabel('Output amplitude (MHz)')
 
@@ -125,7 +128,7 @@ plot(t2_compressed+delta,real(signal2_compressed),'r')
 plot(t2_corrected+delta,real(signal2_corrected),'b')
 axis([0 0.4 -65 65])
 line(xlim,[0 0],'Color','k')
-line(xlim,[1 1]*max(Params2_.OutputAmplitude),'Color','k')
+line(xlim,[1 1]*max(Params2_.AmplifierResponse(2,:)),'Color','k')
 xlabel(['t (',char(181),'s)'])
 ylabel('\nu_1 (MHz)')
 

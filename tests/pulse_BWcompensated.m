@@ -90,8 +90,7 @@ dipfreq = 9.35;
 v1 = abs(1./(1+1i*QL*(f0/dipfreq-dipfreq./f0)));
 
 Params.mwFreq = 9.34; % GHz
-Params.MagnitudeResponse = v1;
-Params.faxis = f0;
+Params.FrequencyResponse = [f0; v1];
 
 [t,IQ1] = pulse(Params);
 Opt.Resonator = 'BWcompensation';
