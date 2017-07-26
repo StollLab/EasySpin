@@ -71,13 +71,13 @@
 %    Opt.Resonator        = 'off' (default)
 %                           'simulate'       - simulates the effect of the 
 %                                              resonator on the pulse shape
+%                           'compensate'     - compensate for the resonator
+%                                              frequency response
 %                           'BWcompensation' - resonator bandwidth compensation
-%                                              for frequency-swept pulses (see 
-%                                              Ref. 2)  (available for linear 
-%                                              chirp and sech pulses).
-%                           This option requires definition of the
-%                           parameters Par.FrequencyResponse and
-%                           Par.mwFreq.
+%                                              for frequency-swept pulses with
+%                                              uniform adiabaticity (see Ref. 2)
+%                           This option requires definition of the parameters
+%                           Par.FrequencyResponse and Par.mwFreq.
 %    Opt.Transmitter      = 'off' (default)
 %                           'simulate'   - simulates the effect of the 
 %                                          transmitter nonlinearity
@@ -223,6 +223,12 @@ if ~isfield(Par,'Phase')
   Par.Phase = 0; % rad
 end
 
+if ~isfield(Par,'TimeStep') || isempty(Par.TimeStep)
+  estimateTimeStep = true;
+else
+  estimateTimeStep = false;
+end
+
 % Options
 % ----------------------------------------------------------------------- %
 if ~isfield(Opt,'Output')
@@ -355,15 +361,7 @@ if (isfield(Par,'IQ') && ~isempty(Par.IQ)) || ...
     Par.TimeStep = t(2)-t(1);
   end
   
-  % ------------------------------------------------------------------- %
-  % Calculate amplitude compression simulation or compensation
-  % ------------------------------------------------------------------- %
-  if strcmp(Opt.Transmitter,'simulate') || ...
-      strcmp(Opt.Transmitter,'compensate')
-    [IQ,Par] = AmplitudeNonlinearity(IQ,Par,Opt.Transmitter);
-  end
-  
-  if ~isempty(Par.Amplitude)
+  if ~isempty(Par.Amplitude) && strcmp(Opt.Resonator,'off')
     IQ = Par.Amplitude*IQ;
   end
   
@@ -600,7 +598,7 @@ else
   
   % Estimate pulse bandwidth (for timestep determination)
   % --------------------------------------------------------------------- %
-  if ~isfield(Par,'TimeStep')
+  if estimateTimeStep
     
     % Determine bandwidth of frequency modulation
     switch FrequencyModulation
@@ -672,11 +670,6 @@ else
     AM_BW = 2*(f(indmax+indbw(end))-f(indmax));
     
     BW = max([FM_BW AM_BW]);
-    
-  end
-  
-  % Set up time axis
-  if ~isfield(Par,'TimeStep') || isempty(Par.TimeStep)
     
     % Automatically determine appropriate time step
     % ------------------------------------------------------------------- %
@@ -837,17 +830,6 @@ else
     %   excitation. J. Magn. Reson. 263, 45–54 (2016).
     %   http://dx.doi.org/10.1016/j.jmr.2015.12.014
     
-    % Bandwidth compensation is implemented for these pulses
-    if (~strcmp(FrequencyModulation,'uniformq') && ...
-        ~(strcmp(FrequencyModulation,'linear') && (strcmp(AmplitudeModulation,'rectangular') || ...
-                                                   strcmp(AmplitudeModulation,'quartersin') || ...
-                                                   strcmp(AmplitudeModulation,'WURST'))) && ...
-        (~(strcmp(FrequencyModulation,'tanh') && strcmp(AmplitudeModulation,'sech'))))
-        
-      error(['Resonator bandwidth compensation is not implemented for ',...
-        'the selected pulse. See documentation for more details.']);
-    end
-    
     % Original amplitude and frequency modulation functions
     nu0 = modulation.freq;
     A0 = modulation.A;
@@ -867,12 +849,13 @@ else
       end
     elseif isfield(Par,'ResonatorFrequency')
       [f,H] = transferfunction('ideal',Par.ResonatorFrequency,Par.ResonatorQL);
-      f = f*1e3;
       H = abs(H);
     end
     
     profile = interp1(f,H,newaxis);
-    if strcmp(AmplitudeModulation,'sech') || strcmp(FrequencyModulation,'uniformQ')
+    if strcmp(FrequencyModulation,'uniformQ') || strcmp(Par.Type,'sech/tanh')
+      % Amplitude modulation function taken into account in nu1 for pulses
+      % with uniform adiabaticity
       profile = A0.*profile;
     end
     
@@ -887,16 +870,10 @@ else
     modulation.phase = 2*pi*cumtrapz(t,modulation.freq);
     modulation.phase = modulation.phase + abs(min(modulation.phase));  % zero phase offset at pulse center
     
-    modulation.A = interp1(nu0,modulation.A,nu_adapted,'pchip');
+    if strcmp(FrequencyModulation,'uniformQ') || strcmp(Par.Type,'sech/tanh')
+      modulation.A = interp1(nu0,A0,nu_adapted,'pchip');
+    end
     
-  end
-  
-  % ------------------------------------------------------------------- %
-  % Calculate amplitude compression simulation or compensation
-  % ------------------------------------------------------------------- %
-  if ~strcmp(Opt.Transmitter,'off')
-    modulation.A = modulation.A/max(modulation.A);
-    [modulation.A,Par] = AmplitudeNonlinearity(modulation.A,Par,Opt.Transmitter);
   end
   
   % ------------------------------------------------------------------- %
@@ -963,17 +940,25 @@ else
   totalphase = modulation.phase + 2*pi*mean(Par.Frequency)*t + Par.Phase;
   IQ = modulation.A.*exp(1i*totalphase);
   
-  % Real-valued pulse
-  if strcmp(Opt.Output,'I')
-    IQ = real(IQ);
-  end
-  
 end
 
-% ------------------------------------------------------------------- %
-% Calculate effect of the resonator on the pulse shape
-% ------------------------------------------------------------------- %
-if strcmp(Opt.Resonator,'simulate')
+% --------------------------------------------------------------------- %
+% Simulation or compensation for transmitter nonlinearity
+% --------------------------------------------------------------------- %
+if ~strcmp(Opt.Transmitter,'off')
+  if ~isempty(modulation.A)
+    modulation.A = modulation.A/max(modulation.A);
+    modulation.A = AmplitudeNonlinearity(modulation.A,Par,Opt.Transmitter);
+    IQ = modulation.A.*exp(1i*totalphase);
+  else
+    IQ = AmplitudeNonlinearity(IQ,Par,Opt.Transmitter);
+  end
+end  
+  
+% --------------------------------------------------------------------- %
+% Simulation or compensation for the resonator
+% --------------------------------------------------------------------- %
+if strcmp(Opt.Resonator,'simulate') || strcmp(Opt.Resonator,'compensate')
   
   % Calculate transfer function and impulse response
   if isfield(Par,'FrequencyResponse')
@@ -981,24 +966,74 @@ if strcmp(Opt.Resonator,'simulate')
   elseif isfield(Par,'ResonatorFrequency')
     [f,H] = transferfunction('ideal',Par.ResonatorFrequency,Par.ResonatorQL);
   end
-  [t,h] = impulseresponse(f,H,Par.mwFreq,Opt);
   
-  % Convert impulse response to pulse time axis
-  t_ = 0:Par.TimeStep:t(end);
-  h_ = interp1(t,h,t_,'spline');
+  % Pulse Fourier transform 
+  dt = 0.00025; % µs
+  IQ_ = interp1(0:Par.TimeStep:Par.tp,IQ,0:dt:Par.tp,'spline');  
+  N = round((numel(f)-numel(IQ_))/2);
+  IQ_ = [zeros(1,N-1) IQ_ zeros(1,N)];
   
-  % Convolution of impulse response function with the pulse shape
-  IQ = conv(IQ,h_)/sum(abs(h_));
+  FT = ifftshift(fft(fftshift(IQ_)));
+  f_ = fdaxis(dt,numel(FT));
   
-  % Redefine time axis
-  tp = (numel(IQ)-1)*Par.TimeStep;
-  t = 0:Par.TimeStep:tp(end);
+  % Interpolation of the transfer function onto the same axis
+  H = H/max(real(H));
+  H_ = real(H) - 1i*imag(hilberttrans(real(H)));
+  H_ = interp1((f-Par.mwFreq*1e3),H_,f_,'spline');
+    
+  if strcmp(Opt.Resonator,'simulate')
+    % Fourier convolution
+    FTc = FT.*H_;
+  elseif strcmp(Opt.Resonator,'compensate')
+    % Fourier deconvolution
+    FTc = FT./H_;
+  end
+  
+  % Windowing and inverse Fourier transform
+  t_ = (-0.5*numel(FTc):1:0.5*numel(FTc)-1)*dt;
+  FTc = FTc.*apowin('gau',numel(FTc),0.6).';
+  IQ_ = fftshift(ifft(ifftshift(FTc)));
+  
+  % Extract pulse
+  ind = find(abs(IQ_)>(Opt.CutoffFactor*max(abs(IQ_))));
+  ind = ind(1):1:ind(end);
+  t_ = t_(ind)-t_(ind(1));
+  IQ_ = IQ_(ind);
+    
+  % Update time step
+  if estimateTimeStep
+    
+    % Get maximum frequency
+    [maxvalue,indmax] = max(abs(FTc));
+    indbw = find(abs(FTc(indmax:end))>0.05*maxvalue);
+    maxFreq = 2*(f_(indmax+indbw(end))-f_(indmax));
+    
+    % Define new time step
+    Nyquist_dt = 1/(2*maxFreq);
+    newTimeStep = Nyquist_dt/Opt.OverSampleFactor;
+    if newTimeStep<Par.TimeStep
+      Par.TimeStep = newTimeStep;
+    end
+    
+  end
+  
+  t = 0:Par.TimeStep:t_(end);
+  IQ = interp1(t_,IQ_,t,'spline');
+  
+  modulation.A = [];
+  modulation.freq = [];
+  modulation.phase = [];
   
 end
 
-% --------------------------------------------------------------------- %
+% Real-valued pulse
+if strcmp(Opt.Output,'I')
+  IQ = real(IQ);
+end
+
+% ----------------------------------------------------------------------- %
 % Excitation profile calculation
-% --------------------------------------------------------------------- %
+% ----------------------------------------------------------------------- %
 
 if calculateExciteProfile
   
@@ -1176,12 +1211,14 @@ end
 end
 
 
-% ------------------------------------------------------------------- %
-% ------------------------------------------------------------------- %
+% ----------------------------------------------------------------------- %
+% ----------------------------------------------------------------------- %
 % Subfunctions
-% ------------------------------------------------------------------- %
-% ------------------------------------------------------------------- %
+% ----------------------------------------------------------------------- %
+% ----------------------------------------------------------------------- %
 
+% Transfer function calculation
+% ----------------------------------------------------------------------- %
 function [f,H] = transferfunction(type,varargin)
 % Calculate resonator transfer function for a given center frequency
 % and loaded Q-value (type = 'ideal') or by extrapolation from an
@@ -1209,11 +1246,12 @@ switch type
     
     % Frequency axis
     fmax = 2*f0;
-    N = 2^15; % number of frequency points
-    df = 2*fmax/N; % GHz
-    f = (-fmax:df:fmax-df); % GHz
+    N = 2^18; % number of frequency points
+    df = fmax/N; % GHz
+    f = (0:1:(N-1))*df; % GHz
     
     H = Hideal(f,f0,QL,1);
+    H(1) = H(2);
     
   case 'experimental'
     
@@ -1224,9 +1262,9 @@ switch type
     
     % Frequency axis
     fmax = 2*ceil(max(FrequencyAxis)); % Nyquist frequency, GHz
-    N = 2^15; % number of frequency points
-    df = 2*fmax/N; % GHz
-    f = (-fmax:df:fmax-df); % GHz
+    N = 2^14; % number of frequency points
+    df = fmax/N; % GHz
+    f = (0:1:(N-1))*df; % GHz
     
     % Interpolation
     ind = find((f>FrequencyAxis(1)) & (f<FrequencyAxis(end)));
@@ -1257,14 +1295,20 @@ switch type
     QL = x(2);
     
     Hid = Hideal(f,f0,QL,v1max);
+    Hid(1) = Hid(2);
     
     % Extrapolate the experimental transfer function by exponentially approaching |H0(f)|
+    while FrequencyResponse_(1)-abs(Hid(ind(1)))<-0.05*v1max
+      FrequencyResponse_ = FrequencyResponse_(2:end);
+      ind = ind(2:end);
+    end
+    while FrequencyResponse_(end)-abs(Hid(ind(end)))<-0.05*v1max
+      FrequencyResponse_ = FrequencyResponse_(1:end-1);
+      ind = ind(1:end-1);
+    end
     H0(1:ind(1)) = (FrequencyResponse_(1)-abs(Hid(ind(1))))*exp(1/log(2)*(f(1:ind(1))-f(ind(1)))) + abs(Hid(1:ind(1)));
     H0(ind) = FrequencyResponse_;
     H0(ind(end):numel(f)) = (FrequencyResponse_(end)-abs(Hid(ind(end))))*exp(-1/log(2)*(f(ind(end):end)-f(ind(end)))) + abs(Hid(ind(end):end));
-    % Remove zero at f = 0
-    ind0 = find(f==0);
-    H0(ind0) = H0(ind0+1);
     
     % Phase response
     betaid = atan(imag(Hid)./real(Hid));
@@ -1283,60 +1327,17 @@ switch type
     
     % Transfer function
     H = abs(H0).*exp(1i*beta);
-    ind0 = find(f==0);
-    H(ind0) = H(ind0+1);
-    
-    % Define negative frequency as symmetric to the positive frequency
-    H(1:numel(H)/2) = fliplr(H(numel(H)/2+1:end));
     
 end
 
-end
-
-function [t,h] = impulseresponse(f,H,mwFreq,Opt)
-% Calculate the impulse response function for the transfer function
-% H (including downconversion by mwFreq)
-%
-% See:
-% 1. Doll, A., Pribitzer, S., Tschaggelar, R., Jeschke, G.,
-%    Adiabatic and fast passage ultra-wideband inversion in
-%    pulsed EPR. J. Magn. Reson. 230, 27–39 (2013).
-%    http://dx.doi.org/10.1016/j.jmr.2013.01.002
-% 2. Pribitzer, S., Doll, A. & Jeschke, G. SPIDYAN, a MATLAB library
-%    for simulating pulse EPR experiments with arbitrary waveform
-%    excitation. J. Magn. Reson. 263, 45–54 (2016). 
-%    http://dx.doi.org/10.1016/j.jmr.2015.12.014
-
-% Normalize the transfer function and make it causal
-H = H/max(real(H));
-H_ = real(H) - 1i*imag(hilbert(real(H)));
-
-% Impulse response function
-df = unique(diff(f)); % GHz
-dt = 1/(df(1)*numel(f)); % ns
-t = -(numel(f)/2)*dt:dt:(numel(f)/2-1)*dt;
-h0 = fftshift(ifft(ifftshift(H_)));
-
-% Transformation to rotating frame
-if mwFreq~=0
-  [t,h_] = rfmixer(t*1e-3,real(h0),mwFreq,'IQdemod'); % time axis in µs
-else
-  h_ = h0;
-end
-
-% Windowing
-h = h_.*chebwin(numel(h_)).';
-h = h(round(numel(h_)/2)+1:end);
-t = t(round(numel(h_)/2)+1:end); 
-
-% Truncation
-ind = find(fliplr(abs(h))>(Opt.CutoffFactor*max(abs(h))),1);
-t = t(1:end-ind+1);
-h = h(1:end-ind+1);
+f = f*1e3; % GHz to MHz
 
 end
 
-function [signal_out,varargout] = AmplitudeNonlinearity(A,Par,option)
+
+% Transmitter nonlinearity simulation and compensation
+% ----------------------------------------------------------------------- %
+function signal_out = AmplitudeNonlinearity(A,Par,option)
 % Compensation for/simulation of transmitter nonlinearity as
 % described in:
 %   Doll, A., Pribitzer, S., Tschaggelar, R., Jeschke, G.,
@@ -1367,23 +1368,12 @@ function [signal_out,varargout] = AmplitudeNonlinearity(A,Par,option)
         A = A/max(abs(A));
         signal_out = sign(real(A)).*F(abs(real(A))*Par.Amplitude) + ...
                   1i*sign(imag(A)).*F(abs(imag(A))*Par.Amplitude);
-        Par.Amplitude = 1;
       end
       
-      if (~isfield(Par,'Flip') || isempty(Par.Flip)) && ...
-          (~isfield(Par,'Qcrit') || isempty(Par.Qcrit))
-        % Signal amplitude determined by provided transmitter 
-        % nonlinearity characterization (for simulation under the
-        % conditions of actual experiments)
-        signal_out = nu1_max*signal_out;
-        Par.Amplitude = 1;
-      else
-        % Re-normalize (if amplitude is defined through the flip
-        % angle or Qcrit -> for simulation of the effects of
-        % compression on the pulse shape)
-        signal_out = signal_out/F(Par.Amplitude);
-        Par.Amplitude = [];
-      end
+      % Signal amplitude determined by provided transmitter nonlinearity 
+      % characterization (for simulation under the conditions of actual 
+      % experiments)
+      signal_out = nu1_max*signal_out;
 
     case 'compensate'
       
@@ -1401,17 +1391,13 @@ function [signal_out,varargout] = AmplitudeNonlinearity(A,Par,option)
         signal_out = sign(real(A)).*F(abs(real(A))*Par.Amplitude) + ...
                   1i*sign(imag(A)).*F(abs(imag(A))*Par.Amplitude);
       end
-      
-      Par.Amplitude = 1;
 
-  end
-  
-  if nargout==2
-    varargout{1} = Par;
   end
   
 end
 
+% Plot update
+% ----------------------------------------------------------------------- %
 function showhide(varargin)
 % Callback for tick boxes
 

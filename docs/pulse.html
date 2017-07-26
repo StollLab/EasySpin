@@ -130,7 +130,7 @@ The available options for frequency modulation are <code>'none'</code>, <code>'l
 Additional parameters are required to fully specify the various AM and FM functions, see below.
 </div>
 
-<div class="optionfield"><code>I</code>, <code>Q</code>, <code>IQ</code>
+<div class="optionfield"><code>I</code>, <code>Q</code> or <code>IQ</code>
 </div>
 <div class="optiondescr">
 I and Q data describing an arbitrary pulse shape not included in the predefined options listed below. If only one component is defined, the other is set to zero. The time axis is reconstructed based on <code>Par.tp</code> and the length of the <code>I</code> and <code>Q</code> or <code>IQ</code> vectors. All other input parameters (<code>Par.Flip</code>, <code>Par.Frequency</code>, <code>Par.Phase</code>, etc.) are ignored.
@@ -218,11 +218,11 @@ Also, depending on the FM function, the following additional fields are required
 </ul>
 
 <p>
-Simulation of the effect of the resonator on the pulse shape is available by setting <code>Opt.Resonator = 'simulate'</code>. Compensation for the resonator bandwidth to achieve offset-independent adiabaticity is available for some pulse types (see below) and can be selected by setting <code>Opt.Resonator = 'BWcompensation'</code>. In both cases, the following additional parameters have to be included in the <code>Par</code> structure:
+Simulation of the effect of the resonator on the pulse shape is available by setting <code>Opt.Resonator = 'simulate'</code>, predistortion of the pulse shape based on the resonator transfer function is available by setting <code>Opt.Resonator = 'compensate'</code>. Additionally, compensation for the resonator bandwidth to achieve offset-independent adiabaticity for frequency-swept pulses and can be selected by setting <code>Opt.Resonator = 'BWcompensation'</code>. If any of these options is selected, the following additional parameters have to be included in the <code>Par</code> structure:
 
 <div class="optionfield"><code>FrequencyResponse</code> or <code>ResonatorFrequency</code> and <code>ResonatorQL</code></div>
 <div class="optiondescr">
-Experimental resonator transfer function and corresponding frequency axis in GHz (<code>Par.FrequencyResponse = [Frequency; TransferFunction]</code>) or resonator center frequency in GHz and loaded Q-value for the calculation of an ideal transfer function modelling the resonator as a RLC series circuit. If the transfer function input in <code>Par.FrequencyResponse</code> is real, it is assumed to correspond to the magnitude response and the phase response is estimated.
+Experimental resonator transfer function and corresponding frequency axis in GHz (<code>Par.FrequencyResponse = [Frequency; TransferFunction]</code>) or resonator center frequency in GHz and loaded Q-value for the calculation of an ideal transfer function modeling the resonator as a RLC series circuit. A complex transfer function input in <code>Par.FrequencyResponse</code> used directly, a real transfer function input is assumed to correspond to the magnitude response and the phase response is estimated (see details below).
 </div>
 
 <div class="optionfield"><code>mwFreq</code></div>
@@ -232,7 +232,7 @@ Microwave frequency (LO), in GHz.
 
 
 <p>
-Simulation of amplitude compression due to transmitter nonlinearity or calculation of pulse amplitude functions compensated for nonlinearity can be selected by setting <code>Opt.Transmitter = 'simulate'</code> or <code>Opt.Transmitter = 'compensate'</code> (see below). In this case, the following additional parameters have to be included in the <code>Par</code> structure:
+Simulation of amplitude compression due to transmitter nonlinearity can be selected by setting <code>Opt.Transmitter = 'simulate'</code>, predistortion of the pulse amplitude functions to compensate for the nonlinearity is available by setting <code>Opt.Transmitter = 'compensate'</code>. If one of these options is selected, the following additional parameters have to be included in the <code>Par</code> structure:
 
 <div class="optionfield"><code>AmplifierResponse</code></div>
 <div class="optiondescr">
@@ -241,7 +241,7 @@ Transmitter output amplitude (in MHz) as a function of input amplitude (in MHz o
 
 <div class="optionfield"><code>Amplitude</code></div>
 <div class="optiondescr">
-If the <code>Opt.Transmitter</code> option is selected, <code>Par.Amplitude</code> is interpreted as the intensity of the pulse on the input amplitude scale provided in <code>Par.AmplifierResponse</code> or as the relative intensity (between 0 and 1).
+If the <code>Opt.Transmitter</code> option is selected, <code>Par.Amplitude</code> is interpreted as the intensity of the pulse on the input amplitude scale provided in <code>Par.AmplifierResponse</code> or as the relative intensity (between 0 and 1). If the <code>Opt.Transmitter</code> option is used, the <code>Par.Flip</code> and <code>Par.Qcrit</code> fields are ignored.
 </div>
 
 <p>
@@ -254,30 +254,37 @@ If set to <code>Opt.Output = 'IQ'</code> (which is the default), then the output
 
 <div class="optionfield"><code>Resonator</code></div>
 <div class="optiondescr">
-This option allows simulation of the effect of the resonator on the pulse shape or bandwidth compensation for frequency-swept pulses. Further details on the procedure are given in the Theoretical background section below. The options are:
+This option allows simulation of the effect of the resonator on the pulse shape, predistortion of the pulse shape using the resonator transfer function or bandwidth compensation for frequency-swept pulses. Further details on the calculation procedures are given in the Theoretical background section. The options are:
 <ul>
-<li><code>Opt.Resonator = 'simulate'</code>: The resonator impulse response is derived based on the information on the resonator properties and convoluted with the pulse shape.
-<li><code>Opt.Resonator = 'BWcompensation'</code>: The calculated pulse shape includes adaptation of the chirp rate to the resonator bandwidth profile to maintain offset-independent adiabaticities. This is available for any pulse with a <code>'uniformQ'</code> frequency modulation function and for <code>'rectangular/linear'</code>, <code>'quartersin/linear'</code>,<code>'WURST/linear'</code> and <code>'sech/tanh'</code> pulses. 
-<li><code>Opt.Resonator = 'off'</code>: default.
+<li><code>'simulate'</code>: The signal distorted by the resonator is simulated by convolution of the pulse shape with the resonator impulse response.
+<li><code>'compensate'</code>: The pulse shape is corrected for the transfer function of the resonator.
+<li><code>'BWcompensation'</code>: The calculated pulse shape includes adaptation of the chirp rate to the resonator bandwidth profile to maintain offset-independent adiabaticities.
+<li><code>'off'</code>: default.
 </ul>
-If <code>Opt.Resonator</code> is set to <code>'simulate'</code> or <code>'BWcompensation'</code>, the parameters defining the resonator magnitude response function need to be defined (<code>Par.FrequencyResponse</code> and <code>Par.FrequencyAxis</code>, or <code>Par.ResonatorFrequency</code> and <code>Par.ResonatorQL</code>, and <code>Par.mwFreq</code>, see above).
+If <code>Opt.Resonator</code> is used, the parameters defining the resonator transfer function need to be defined (<code>Par.FrequencyResponse</code> or <code>Par.ResonatorFrequency</code> and <code>Par.ResonatorQL</code>, and <code>Par.mwFreq</code>, see above).
 </div>
 
 <div class="optionfield"><code>Transmitter</code></div>
 <div class="optiondescr">
 Simulation of amplitude compression due to transmitter nonlinearity or calculation of pulse amplitude functions compensated for nonlinearity can be selected as follows:
 <ul>
-<li><code>Opt.Transmitter = 'simulate'</code>: The amplitude modulation functions defined above are adjusted based on the provided transmitter nonlinearity function. If the pulse flip angle (or critical adiabaticity) are defined, the output amplitude is calculated from these parameters, if only <code>Par.Amplitude</code> is defined, the output amplitude corresponds to the amplitude determined from the relative input intensity defined in <code>Par.Amplitude</code> and the provided transmitter nonlinearity function.
-<li><code>Opt.Transmitter = 'compensate'</code>: The amplitude modulation functions are modified to compensate for transmitter nonlinearity. The output amplitude corresponds to the input amplitude given the relative input amplitude defined in <code>Par.Amplitude</code> and the transmitter nonlinearity function. 
-<li><code>Opt.Transmitter = 'off'</code>: default.
+<li><code>'simulate'</code>: The amplitude modulation functions defined above are adjusted based on the provided transmitter nonlinearity function. The output amplitude corresponds to the amplitude determined from the relative input intensity defined in <code>Par.Amplitude</code> and the provided transmitter nonlinearity function.
+<li><code>'compensate'</code>: The amplitude modulation functions are modified to compensate for transmitter nonlinearity. The output amplitude corresponds to the input amplitude given the relative input amplitude defined in <code>Par.Amplitude</code> and the transmitter nonlinearity function. 
+<li><code>'off'</code>: default.
 </ul>
-If <code>Opt.Transmitter</code> is set to <code>'simulate'</code> or <code>'compensate'</code>, <code>Par.Amplitude</code> is interpreted as amplitude relative to the maximum of the input amplitude given in <code>Par.AmplifierResponse</code> instead of absolute amplitude in MHz.
+If <code>Opt.Transmitter</code> is used, <code>Par.Amplitude</code> is interpreted as amplitude relative to the maximum of the input amplitude given in <code>Par.AmplifierResponse</code> instead of absolute amplitude in MHz and the fields <code>Par.Flip</code> and <code>Par.Qcrit</code> are ignored.
 </div>
 
 <div class="optionfield"><code>OverSampleFactor</code></div>
 <div class="optiondescr">
 Oversampling factor for the automatic determination of the time step (default = 10). 
 </div>
+
+<div class="optionfield"><code>CutoffFactor</code></div>
+<div class="optiondescr">
+Relative cutoff level for pulse shapes modified by the resonator transfer function (default = 1/1000). This determines the length of the returned pulse shape and time axis if <code>Opt.Resonator</code> is used.
+</div>
+
 
 <!-- ============================================================= -->
 <div class="subtitle">Theoretical background</div>
@@ -437,13 +444,24 @@ where the different terms are the amplitude modulation, the phase modulation, th
 </p>
 
 <p>
-Simulation of the effect of the resonator or compensation for the resonator bandwidth are implemented as described in Doll, A., Pribitzer, S., Tschaggelar, R., Jeschke, G., Adiabatic and fast passage ultra-wideband inversion in pulsed EPR, <i>J. Magn. Reson.</i> 230, 27-39 (<b>2013</b>), DOI: <a href="http://dx.doi.org/10.1016/j.jmr.2013.01.002">10.1016/j.jmr.2013.01.002</a> and Pribitzer, S., Doll, A., Jeschke, G., SPIDYAN, a MATLAB library for simulating pulse EPR experiments with arbitrary waveform excitation. <i>J. Magn. Reson.</i> 263, 45-54 (<b>2016</b>) (DOI: <a href="http://dx.doi.org/10.1016/j.jmr.2015.12.014">10.1016/j.jmr.2015.12.014</a>).
-If simulation of the effect of the resonator on the pulse shape is selected, the pulse shape is convoluted with the impulse response function derived from the provided information on the resonator. This can lead to a change in the overall pulse length, the new time axis is provided in the <code>t</code> output.
-If bandwidth compensation is requested, the frequency and amplitude modulation functions defined above are adjusted to compensate for the resonator profile. The phase modulation function is obtained by integration and the phase is set to zero at the center of the pulse.
+If simulation of amplitude compression in the transmitter or compensation of the pulse shapes for transmitter nonlinearity is requested, the amplitude modulation functions defined above are adjusted based on the provided input versus output amplitude data as described in Doll, A., Pribitzer, S., Tschaggelar, R., Jeschke, G., Adiabatic and fast passage ultra-wideband inversion in pulsed EPR, <i>J. Magn. Reson.</i> 230, 27-39 (<b>2013</b>), DOI: <a href="http://dx.doi.org/10.1016/j.jmr.2013.01.002">10.1016/j.jmr.2013.01.002</a>.
 <p/>
 
 <p>
-If simulation of amplitude compression in the transmitter or compensation of the pulse shapes for transmitter nonlinearity is requested, the amplitude modulation functions defined above are adjusted based on the provided input versus output amplitude data as described in Doll, A., Pribitzer, S., Tschaggelar, R., Jeschke, G., Adiabatic and fast passage ultra-wideband inversion in pulsed EPR, <i>J. Magn. Reson.</i> 230, 27-39 (<b>2013</b>), DOI: <a href="http://dx.doi.org/10.1016/j.jmr.2013.01.002">10.1016/j.jmr.2013.01.002</a>.
+Simulation of the effect of the resonator or predistortion of the pulse shape to account for the resonator transfer function is performed by Fourier convolution and deconvolution. If a complex frequency response is provided, the transfer function in the full frequency range is computed by extending the provided function with an ideal transfer function of a RLC series circuit:
+<div class="eqn">
+<img src="eqn/pulse14.png" alt="[eqn]"><!--MATH
+\begin{equation*}
+H_\mathrm{id}(\nu) = \frac{1}{1+\mathrm{i}Q_\mathrm{L}\left(\frac{\nu}{\nu_\mathrm{res}}-\frac{\nu_\mathrm{res}}{\nu}\right)}
+\end{equation*}
+-->
+</div>
+<p>
+where the loaded Q-value and the center frequency of the resonator are estimated by least-squares fitting. If the provided frequency response is real, it is assumed to correspond to the magnitude response and the phase response is derived in the defined frequency range using the procedure described in Doll, A., Pribitzer, S., Tschaggelar, R., Jeschke, G., Adiabatic and fast passage ultra-wideband inversion in pulsed EPR, <i>J. Magn. Reson.</i> 230, 27-39 (<b>2013</b>), DOI: <a href="http://dx.doi.org/10.1016/j.jmr.2013.01.002">10.1016/j.jmr.2013.01.002</a>. The transfer function is then again extended over the full frequency range as in the previous case. The distorted/corrected pulse shapes are obtained by inverse Fourier transform after multiplication/division of the Fourier transform of the pulse shape with the transfer function (see Kaufmann, T., Keller, T.J., Franck, J.M., Barnes, R.P., Glaser, S., Martinis, J.M., Han, S., DAC-board based X-band EPR spectrometer with arbitrary waveform control, <i>J. Magn. Reson.</i> 235, 95-108 (<b>2013</b>), DOI: <a href="http://dx.doi.org/10.1016/j.jmr.2013.07.015">10.1016/j.jmr.2013.07.015</a> for details). If no time step is provided, an optimized time step is computed based on the frequency content of the returned pulse function.
+
+<p>
+Compensation for the resonator bandwidth by adaptation of the chirp rates in frequency-swept pulses is implemented as described in Doll, A., Pribitzer, S., Tschaggelar, R., Jeschke, G., Adiabatic and fast passage ultra-wideband inversion in pulsed EPR, <i>J. Magn. Reson.</i> 230, 27-39 (<b>2013</b>), DOI: <a href="http://dx.doi.org/10.1016/j.jmr.2013.01.002">10.1016/j.jmr.2013.01.002</a> and Pribitzer, S., Doll, A., Jeschke, G., SPIDYAN, a MATLAB library for simulating pulse EPR experiments with arbitrary waveform excitation. <i>J. Magn. Reson.</i> 263, 45-54 (<b>2016</b>) (DOI: <a href="http://dx.doi.org/10.1016/j.jmr.2015.12.014">10.1016/j.jmr.2015.12.014</a>). For pulses with uniform adiabaticity (sech/tanh and any pulse with a frequency modulation function set to <code>'uniformQ'</code>) both the frequency and the amplitude modulation functions defined above are adjusted to compensate for the resonator profile. For all other pulses, the amplitude modulation function is preserved and only the frequency modulation function is adapted to the provided resonator profile. The phase modulation function is obtained by integration and the phase is set to zero at the center of the pulse.
+The simulation/compensation of distortions in the resonator and the bandwidth compensation can lead to a change in the overall pulse length, the new time axis is provided in the <code>t</code> output.
 <p/>
 
 <!-- ============================================================= -->

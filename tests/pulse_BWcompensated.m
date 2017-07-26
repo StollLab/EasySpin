@@ -64,7 +64,7 @@ f_adapted = interp1(t_f,f+Params.mwFreq*10^3,t0,'pchip');
 f_adapted = f_adapted-Params.mwFreq*10^3;
 phi_adapted = 2*pi*cumtrapz(t0,f_adapted); % Phase modulation
 phi_adapted = phi_adapted+abs(min(phi_adapted));
-A_adapted = interp1(f,A,f_adapted,'pchip');
+A_adapted = A;%interp1(f,A,f_adapted,'pchip');
 
 IQ0 = A.*exp(1i*phi);
 IQ0_adapted = A_adapted.*exp(1i*phi_adapted);
