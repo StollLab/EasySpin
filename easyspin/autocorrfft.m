@@ -4,12 +4,12 @@
 %
 %  Input:
 %     y              array of data
-%     normalized     1: normalize by the variance (the first data point)
-%                    0: no normalization
 %     vector         1: treat input data as if the first dimension
 %                       represents different components of a vector and use
 %                       the dot product (sum over components at the end)
 %                    0: treat each component in first dimension separately
+%     normalized     1: normalize by the variance (the first data point)
+%                    0: no normalization
 %     centered       1: subtract the mean before performing FFT
 %                    0: no mean subtraction
 %

@@ -98,6 +98,6 @@ for M=-L:L
     err2(3-M,3-K,:) = abs(wignerdquat(L,M,K,q)-reshape(D2(3-M,3-K,:),[1,len]));
   end
 end
-err = any(err1(:)>1e-15)||any(err2(:)>1e-15);
+err = any(abs(err1(:))>1e-15)||any(abs(err2(:))>1e-15);
 
 data = [];

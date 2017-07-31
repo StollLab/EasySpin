@@ -119,6 +119,12 @@
 %
 %   MD: structure with molecular dynamics simulation parameters
 %
+%     tscale         double (optional
+%                    scale the time step of the simulation based on
+%                    incorrect diffusion coefficients, e.g. molecules 
+%                    solvated in TIP3P water have diffusion coefficients
+%                    that are ~2.5x too large
+%
 %     GlobalDiff     double (optional)
 %                    Diffusion coefficient for isotropic global rotational
 %                    diffusion (s^-1)
@@ -237,8 +243,12 @@ error(err);
 
 useMD = ~isempty(fieldnames(MD));
 
-tscale = 2.5;  % diffusion constants of molecules solvated in TIP3P water 
-               % are known to be too large
+if isfield(MD,'tscale')
+  tscale = MD.tscale;  % diffusion constants of molecules solvated in TIP3P
+                       % water are known to be too large
+else
+  tscale = 1;
+end
 
 if useMD
   if ~isfield(MD,'isFrame')
@@ -352,7 +362,9 @@ else
       error(['Conflicting inputs: Par.Model is set to "Brownian", but at least '...
             'one of Sys.LMK or Sys.Coefs has been declared.'])
     elseif strcmp(Par.Model,'MOMD') && (~isfield(Sys,'LMK')||~isfield(Sys,'Coefs'))
-      error('Both Sys.LMK and Sys.Coefs need to be declared for a MOMD simulation.')
+      if xor(isfield(Sys,'LMK'), isfield(Sys,'Coefs'))
+        error('Both Sys.LMK and Sys.Coefs need to be declared for a MOMD simulation.')
+      end
     elseif strcmp(Par.Model,'Molecular Dynamics') && (~isfield(MD,'RTraj')||~isfield(MD,'dt'))
       error('For Molecular Dynamics, both MD.RTraj and MD.dt need to be specified.')
     end
@@ -440,7 +452,7 @@ switch Model
     end
     DiffGlobal = 6e6;
     nOrients = Par.nOrients;
-    grid_pts = linspace(0,1,nOrients);
+    grid_pts = linspace(-1,1,nOrients);
     grid_phi = sqrt(pi*nOrients)*asin(grid_pts);
     grid_theta = acos(grid_pts);
 
@@ -458,20 +470,73 @@ switch Model
       phi = squeeze(atan2(MD.FrameY(3,:,:,:), MD.FrameX(3,:,:,:)));
       psi = squeeze(atan2(-MD.FrameZ(2,:,:,:), MD.FrameZ(1,:,:,:)));
 
-      PhiBins = linspace(-pi, pi, 70);
-      ThetaBins = linspace(0, pi, 35);
-      PsiBins = linspace(-pi, pi, 70);
+      nBins = 100;
+      PhiBins = linspace(-pi, pi, nBins);
+      ThetaBins = linspace(0, pi, nBins/2);
+      PsiBins = linspace(-pi, pi, nBins);
 
-      [PseudoPotFun, dummy] = histcnd([phi,theta,psi],...
+      [PseudoPotFun, dummy] = histcnd([phi,theta,psi],...  
                                       {PhiBins,ThetaBins,PsiBins});
       
-      % first two dims are incorrectly ordered by histcnd
-%       PseudoPotFun = permute(PseudoPotFun, [2, 1, 3]);
+      PseudoPotFun(end,:,:) = PseudoPotFun(1,:,:);  % FIXME why does it truncate to zero in the phi direction?
       
-%       Sys.PseudoPotFun = smooth3(Sys.PseudoPotFun, 'gaussian');
+      % first two dims are incorrectly ordered by histcnd
+%       PseudoPotFun = permute(PseudoPotFun, [2, 1, 3]);  FIXME figure out correct dimension ordering
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% used for plotting PseudoPotFun on a sphere
+
+% %       pad = (PseudoPotFun(1,:,:) + PseudoPotFun(end,:,:))/2;
+%       PseudoPotFun(end,:,:) = PseudoPotFun(1,:,:);
+%       
+%       PseudoPotFun = smooth3(PseudoPotFun, 'gaussian');
+% 
+%       yy = permute(mean(PseudoPotFun, 3), [2, 1]);
+%       yy = yy/max(yy(:));
+%       yy(:,end) = yy(:,1);
+%       
+%       theta = linspace(0, pi, size(yy,1));                   % polar angle
+%       phi = linspace(0, 2*pi, size(yy,2));                   % azimuth angle
+%       
+%       [Phi, Theta] = meshgrid(phi, theta);
+%       radius = 1.0;
+%       amplitude = 1.0;
+% %       rho = radius + amplitude*yy;
+%       rho = yy;
+%       
+%       r = radius.*sin(Theta);    % convert to Cartesian coordinates
+%       x = r.*cos(Phi);
+%       y = r.*sin(Phi);
+%       z = radius.*cos(Theta);
+% 
+%       surf(x, y, z, rho, ...
+%            'edgecolor', 'none', ...
+%            'facecolor', 'interp');
+%       % title('$\ell=0, m=0$')
+%
+% 
+% %       shading interp
+% 
+%       axis equal off      % set axis equal and remove axis
+%       view(90,30)         % set viewpoint
+%       set(gca,'CameraViewAngle',6);
+%       
+%       left = 0.5;
+%       bottom = 0.5;
+%       width = 4;     % Width in inches
+%       height = 4;    % Height in inches
+% 
+%       set(gcf,'PaperUnits','inches');
+%       set(gcf,'PaperSize', [8 8]);
+%       set(gcf,'PaperPosition',[left bottom width height]);
+%       set(gcf,'PaperPositionMode','Manual');
+%       
+%       print('ProbabilityDist', '-dpng', '-r300');
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       % estimate rotational diffusion time scale
-      AutoCorrFFT = autocorrfft(squeeze(MD.FrameZ.^2), 1);
+      acorr = autocorrfft(squeeze(MD.FrameZ.^2), 1);
 
       N = round(length(MD.FrameZ)/2);
       M = round(N/2);
@@ -482,9 +547,10 @@ switch Model
 
       % calculate correlation time
       time = linspace(0,N*MD.dt,N);
-%       tau = max(cumtrapz(time,AutoCorrFFT(1:N)));  % FIXME find a robust way to calculate this
-      tau = max(cumtrapz(time,datasmooth(AutoCorrFFT(1:N),500,'flat')));  % FIXME find a robust way to calculate this
-      DiffLocal = 1/6/(1.5*tau);
+      tau = max(cumtrapz(time,acorr(1:N)));
+%       tau = max(cumtrapz(time,datasmooth(acorr(1:N),500,'flat')));  % FIXME find a robust way to calculate this
+      DiffLocal = 1/6/(2*tau);
+%       Par.dt = tau/20;
     end
 
   otherwise
@@ -577,9 +643,27 @@ for iOrient = 1:nOrients
         Sys.Diff = DiffLocal;
         [t, RTraj, qTraj] = stochtraj(Sys,Par);
         
-%         Sys = rmfield(Sys, 'PseudoPotFun');
-%         Sys.Diff = DiffGlobal;
-%         [t, RTraj, qTrajGlobal] = stochtraj(Sys,Par);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%         ZVecTraj = squeeze(RTraj(:,3,:,:));
+%         
+%         a = 0.99;
+%         hold on
+%         [X,Y,Z] = sphere(25);
+%         h = surf(a*X, a*Y, a*Z);
+%         set(h, 'edgecolor','none');
+%         colormap(1,[0,0,1]);
+%         alpha 0.1
+%         
+%         plot3(squeeze(ZVecTraj(1, 1, round(end/2):end)),...
+%               squeeze(ZVecTraj(2, 1, round(end/2):end)),...
+%               squeeze(ZVecTraj(3, 1, round(end/2):end)),...
+%               'LineWidth', 2.0,...
+%               'Color', 'red');
+%         daspect([1,1,1]);
+%         view([90,30])
+%         axis off
+%         hold off
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         
         qmult = repmat(euler2quat(grid_phi(iOrient), grid_theta(iOrient), 0),...
                        [1,Par.nTraj,Par.nSteps]);
@@ -589,13 +673,58 @@ for iOrient = 1:nOrients
 %         alpha = squeeze(alpha);
 %         beta = squeeze(beta);
 %         gamma = squeeze(gamma);
+%         
+%         N = 50;
+%         Aedges = linspace(-pi/2, pi/2, N);
+%         Bedges = pi-acos(linspace(-1, 1, N));
 % 
 %         for iTraj=1:Par.nTraj
+%             [temp,~] = histcounts2(alpha(iTraj,:), beta(iTraj,:), Aedges, Bedges);
+%             Hist2D(:,:,iTraj) = temp;
+%             [temp2,~] = histcounts2(alpha(iTraj,:), beta(iTraj,:), Aedges, linspace(0,pi,N));
+%             Hist2D2(:,:,iTraj) = temp2;
 %           [temp,~] = histcnd([alpha(iTraj,:).',beta(iTraj,:).',gamma(iTraj,:).'],...
 %                                         {PhiBins.',ThetaBins.',PsiBins.'});
 %                                       
 %           Hist3D(:,:,:,iTraj) = permute(temp, [2, 1, 3]);
 %         end
+%         
+% % %       pad = (PseudoPotFun(1,:,:) + PseudoPotFun(end,:,:))/2;
+%         HistAvg = mean(Hist3D, 4);
+%         HistAvg(end,:,:) = HistAvg(1,:,:);
+% 
+% %         HistAvg = smooth3(HistAvg, 'gaussian');
+% 
+% %         yy = permute(mean(HistAvg, 3), [2, 1]);
+%         yy = mean(HistAvg, 3);
+%         yy = yy/max(yy(:));
+%         yy(:,end) = yy(:,1);
+% 
+%         theta = linspace(0, pi, size(yy,1));                   % polar angle
+%         phi = linspace(0, 2*pi, size(yy,2));                   % azimuth angle
+% 
+%         [Phi, Theta] = meshgrid(phi, theta);
+%         radius = 1.0;
+%         amplitude = 1.0;
+%   %       rho = radius + amplitude*yy;
+%         rho = yy;
+% 
+%         r = radius.*sin(Theta);    % convert to Cartesian coordinates
+%         x = r.*cos(Phi);
+%         y = r.*sin(Phi);
+%         z = radius.*cos(Theta);
+% 
+%         surf(x, y, z, rho, ...
+%              'edgecolor', 'none', ...
+%              'facecolor', 'interp');
+%         % title('$\ell=0, m=0$')
+% 
+% 
+%   %       shading interp
+% 
+%         axis equal off      % set axis equal and remove axis
+%         view(90,30)         % set viewpoint
+%         set(gca,'CameraViewAngle',6);
 %         
 %         HistTot = HistTot + mean(Hist3D,4);
         
@@ -620,7 +749,8 @@ for iOrient = 1:nOrients
   
   % calculate the expectation value of S_{+}
   expectval{1,iOrient} = squeeze(rho_t(1,1,:)+rho_t(2,2,:)+rho_t(3,3,:));  % take traces TODO try to speed this up using equality tr(A*B)=sum(sum(A.*B))
-
+%   expectval{1,iOrient} = squeeze(rho_t(1,1,:,:)+rho_t(2,2,:,:)+rho_t(3,3,:,:));  % take traces TODO try to speed this up using equality tr(A*B)=sum(sum(A.*B))
+  
   if Opt.Verbosity
     updateuser(iOrient,nOrients)
   end

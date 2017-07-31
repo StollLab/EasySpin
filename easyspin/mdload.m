@@ -111,7 +111,7 @@ end
 %   error('Only one period (".") can be included in TopFile as part of the filename extension. Remove the others.')
 % end
 
-if exist('TopFile','file')>0
+if exist(TopFile,'file')>0
   [TopFilePath, TopFileName, TopFileExt] = fileparts(TopFile);
   TopFile = fullfile(TopFilePath, [TopFileName, TopFileExt]);
 else
@@ -121,7 +121,7 @@ end
 if ischar(TrajFile)
   % single trajectory file
   
-  if exist('TrajFile','file')>0
+  if exist(TrajFile,'file')>0
     % extract file extension and file path
     [TrajFilePath, TrajFileName, TrajFileExt] = fileparts(TrajFile);
     % add full file path to TrajFile

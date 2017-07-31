@@ -155,22 +155,39 @@ if isfield(Sys,'PseudoPotFun')
   % zero, in which case the torque would be negligible at those points 
   % anyway)
   
-  idx = Sys.PseudoPotFun<1e-10;
-  Sys.PseudoPotFun(idx) = 1e-10;
+  idx = Sys.PseudoPotFun<1e-12;
+  Sys.PseudoPotFun(idx) = 1e-12;
   
-  logpotfun = smooth3(log(Sys.PseudoPotFun), 'gaussian');
+  logpotfun = log(Sys.PseudoPotFun);
+%   logpotfun = smooth3(log(Sys.PseudoPotFun), 'gaussian');
+
+   pidx = [2, 1, 3];
   
-  [px, py, pz] = gradient(logpotfun, da, db, dg);
+  [px, py, pz] = gradient(permute(logpotfun, pidx), ...  % TODO replace with gradient function for periodic BCs and ndgrid format
+                          da, db, dg);
   
+  px = permute(px, pidx);
+  py = permute(py, pidx);
+  pz = permute(pz, pidx);
+  
+%   px = smooth3(px, 'gaussian');
+%   py = smooth3(py, 'gaussian');
+%   pz = smooth3(pz, 'gaussian');
+
   Agrid = linspace(-pi, pi, size(Sys.PseudoPotFun,1));
   Bgrid = linspace(0, pi, size(Sys.PseudoPotFun,2));
   Ggrid = linspace(-pi, pi, size(Sys.PseudoPotFun,3));
-
+  
+%   [Agrid, Bgrid, Ggrid] = meshgrid(Agrid, Bgrid, Ggrid);
+%   Agrid = permute(Agrid, pidx);
+%   Bgrid = permute(Bgrid, pidx);
+%   Ggrid = permute(Ggrid, pidx);
+  
   extrap = 'none';
   method = 'linear';
-  Fx = griddedInterpolant({Agrid, Bgrid, Ggrid}, px, method,extrap);
-  Fy = griddedInterpolant({Agrid, Bgrid, Ggrid}, py, method,extrap);
-  Fz = griddedInterpolant({Agrid, Bgrid, Ggrid}, pz, method,extrap);
+  Fx = griddedInterpolant({Agrid, Bgrid, Ggrid}, px);
+  Fy = griddedInterpolant({Agrid, Bgrid, Ggrid}, py);
+  Fz = griddedInterpolant({Agrid, Bgrid, Ggrid}, pz);
   Sim.interpF = {Fx, Fy, Fz};
 else
   Sim.interpF = [];
@@ -415,10 +432,7 @@ dt = Sim.dt;
 Diff = Sim.Diff;
 Coefs = Sim.Coefs;
 LMK = Sim.LMK;
-
-if ~isempty(Sim.interpF)
-  interpF = Sim.interpF;
-end
+interpF = Sim.interpF;
 
 if iter>0
   % If propagation is being extended, initialize q from the last set
@@ -456,15 +470,16 @@ if iter>0
 %        uz.*st,  uy.*st, -ux.*st,      ct];
 
   % Calculate q for the first time step
+  
+  q1 = q(1,:,end);
+  q2 = q(2,:,end);
+  q3 = q(3,:,end);
+  q4 = q(4,:,end);
 
-  qinit(1,:,1) =      q(1,:,end).*ct - q(2,:,end).*ux.*st ...
-                - q(3,:,end).*uy.*st - q(4,:,end).*uz.*st;
-  qinit(2,:,1) =      q(2,:,end).*ct + q(1,:,end).*ux.*st ...
-                - q(4,:,end).*uy.*st + q(3,:,end).*uz.*st;
-  qinit(3,:,1) =      q(3,:,end).*ct + q(4,:,end).*ux.*st ...
-                + q(1,:,end).*uy.*st - q(2,:,end).*uz.*st;
-  qinit(4,:,1) =      q(4,:,end).*ct - q(3,:,end).*ux.*st ...
-                + q(2,:,end).*uy.*st + q(1,:,end).*uz.*st;
+  qinit(1,:,1) = q1.*ct - q2.*ux.*st - q3.*uy.*st - q4.*uz.*st;
+  qinit(2,:,1) = q2.*ct + q1.*ux.*st - q4.*uy.*st + q3.*uz.*st;
+  qinit(3,:,1) = q3.*ct + q4.*ux.*st + q1.*uy.*st - q2.*uz.*st;
+  qinit(4,:,1) = q4.*ct - q3.*ux.*st + q2.*uy.*st + q1.*uz.*st;
 
   q = zeros(4,nTraj,nSteps);
   q(:,:,1) = qinit;
@@ -479,10 +494,11 @@ for iStep=2:nSteps
     % use orienting pseudopotential functions of Euler angles to calculate
     % torque
     [alpha, beta, gamma] = quat2euler(q(:,:,iStep-1));
+    
     pxint = interp3fast(interpF{1}, alpha, beta, gamma);
     pyint = interp3fast(interpF{2}, alpha, beta, gamma);
     pzint = interp3fast(interpF{3}, alpha, beta, gamma);
-    torque = [pxint.'; pyint.'; pzint.'];
+    torque = [pxint; pyint; pzint];
     AngStep = bsxfun(@times,torque,Diff*dt) + randAngStep(:,:,iStep-1);
   else
     % If there is no orienting potential, then there is no torque to
@@ -505,15 +521,17 @@ for iStep=2:nSteps
 %        uy.*st, -uz.*st,      ct,  ux.*st; ...
 %        uz.*st,  uy.*st, -ux.*st,      ct];
 
+  q1 = q(1,:,iStep-1);
+  q2 = q(2,:,iStep-1);
+  q3 = q(3,:,iStep-1);
+  q4 = q(4,:,iStep-1);
+
 %   Perform propagation
-  q(1,:,iStep) =      q(1,:,iStep-1).*ct - q(2,:,iStep-1).*ux.*st ...
-                - q(3,:,iStep-1).*uy.*st - q(4,:,iStep-1).*uz.*st;
-  q(2,:,iStep) =      q(2,:,iStep-1).*ct + q(1,:,iStep-1).*ux.*st ...
-                - q(4,:,iStep-1).*uy.*st + q(3,:,iStep-1).*uz.*st;
-  q(3,:,iStep) =      q(3,:,iStep-1).*ct + q(4,:,iStep-1).*ux.*st ...
-                + q(1,:,iStep-1).*uy.*st - q(2,:,iStep-1).*uz.*st;
-  q(4,:,iStep) =      q(4,:,iStep-1).*ct - q(3,:,iStep-1).*ux.*st ...
-                + q(2,:,iStep-1).*uy.*st + q(1,:,iStep-1).*uz.*st;
+  q(1,:,iStep) = q1.*ct - q2.*ux.*st - q3.*uy.*st - q4.*uz.*st;
+  q(2,:,iStep) = q2.*ct + q1.*ux.*st - q4.*uy.*st + q3.*uz.*st;
+  q(3,:,iStep) = q3.*ct + q4.*ux.*st + q1.*uy.*st - q2.*uz.*st;
+  q(4,:,iStep) = q4.*ct - q3.*ux.*st + q2.*uy.*st + q1.*uz.*st;
+             
   
 %   qnorm = sum(q.*q,1);
 %   if any(qnorm(:)-1>1e-13)
@@ -527,16 +545,16 @@ end
 function Vq = interp3fast(F, Xq, Yq, Zq)
 % Adapted from MATLAB's interp3 function, and makes the following
 % assumptions regarding input:
-%    Output from griddedInterpolant is fed into F
-%    Monotonic grid vectors X, Y, Z (fed to griddedInterpolant)
+%    Monotonic grid vectors X, Y, Z were fed to griddedInterpolant to
+%    obtain F
 %    V is ndgrid-ordered, not meshgrid-ordered (fed to griddedInterpolant)
 %interp3fast 3-D interpolation (table lookup).
 
 p = [2 1 3];
 
-Xq = permute(Xq,p);
-Yq = permute(Yq,p);
-Zq = permute(Zq,p);
+% Xq = permute(Xq,p);
+% Yq = permute(Yq,p);
+% Zq = permute(Zq,p);
 
 Vq = F(Xq,Yq,Zq);
 

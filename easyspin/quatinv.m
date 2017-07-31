@@ -10,7 +10,7 @@
 %     qinv           numeric, size = (4,...)
 %                    inverse of normalized quaternion
 
-function qinv = quatvecmult(q)
+function qinv = quatinv(q)
     
 if size(q, 1) ~= 4 || ~isnumeric(q)
   error('Input must be numeric with size (4,...).')

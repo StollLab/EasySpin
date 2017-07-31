@@ -56,6 +56,8 @@ function rho_t = propagate_quantum(Sys, Par, Opt, MD, omega, CenterField)
 
 persistent cacheTensors
 persistent tauc
+persistent qTraj
+persistent K2
 
 if isempty(tauc), tauc = 0; end
 
@@ -112,11 +114,13 @@ if strcmp(Model,'Molecular Dynamics')
     M = floor(MD.nSteps/nWindow);
 
     % process single long trajectory into multiple short trajectories
-    lag = ceil(Par.dt/2e-9);  % use 2 ns lag between windows
+%     lag = ceil(Par.dt/2e-9);  % use 2 ns lag between windows
+    lag = ceil(Par.dt/1e-9);
     if Par.nSteps<M
       nSteps = Par.nSteps;
       nTraj = floor((M-nSteps)/lag) + 1;
     else
+      
       nSteps = M;
       nTraj = 1;
     end
@@ -321,11 +325,43 @@ switch Method
     % ---------------------------------------------------------------------
     
     % calculate Wigner D-matrices from the quaternion trajectories
-    if strcmp(Model,'Molecular Dynamics')
+    if strcmp(Model,'Molecular Dynamics')&&isempty(qTraj)
       qTraj = rotmat2quat(RTraj);
     end
     
     D2 = wigD(qTraj);
+    
+    if truncated
+%       AutoCorrFFT = autocorrfft(squeeze(MD.FrameZ),1,1,1);
+      acorr = autocorrfft(squeeze(D2(3,3,:,:)).', 0, 1, 1);
+
+      % calculate correlation time
+      tauc = max(cumtrapz(linspace(0, length(acorr)*MD.dt, length(acorr)), acorr));  % FIXME find a robust way to calculate this
+
+      fullSteps = ceil(50*tauc/dt);  % build full propagator until 
+                                     % correlation functions have relaxed
+      if isempty(K2)
+        for mp=1:5
+          for m=1:5
+            K2(mp,m) = max(cumtrapz(linspace(0, length(acorr)*MD.dt, length(acorr)), ...
+                              autocorrfft(squeeze(D2(mp,m,:,:)).',0,0,1)));
+          end
+        end
+      end
+%       K2 = max(cumtrapz(linspace(0, length(acorr)*MD.dt, length(acorr)), ...
+%                         autocorrfft(squeeze(D2(3,3,:,:)).',0,0,1)));
+                                     
+      % if correlation time is longer than user input, just use full 
+      % propagation scheme the entire time
+      if fullSteps>nSteps
+        fullSteps = nSteps; 
+        truncated = 0;
+      end
+      
+    else
+      fullSteps = nSteps;  % build full propagator for all time steps
+      
+    end
     
     if strcmp(Model,'Molecular Dynamics')
 
@@ -364,53 +400,58 @@ switch Method
 %     H(:,:,:,:) = repmat(cacheTensors.Q0,[1,1,nTraj,nSteps]);
     U = zeros(6,6,nTraj,nSteps);
     
-    if truncated
-      AutoCorrFFT = autocorrfft(squeeze(D2(3,3,:,:)), 0, 1, 1);
-
-      N = round(nSteps/2);
-      M = round(N/2);
-
-      AutoCorrFFT = mean(AutoCorrFFT, 1).';
-
-      % the ACF will not always reach zero for a small number of trajectories,
-      % so subtract the offset, which does not change the correlation time
-      AutoCorrFFT = AutoCorrFFT - mean(AutoCorrFFT(M:3*M));
-
-      % calculate correlation time
-      tau = trapz(t(1:N), AutoCorrFFT(1:N));  % FIXME find a robust way to calculate this
-      if tau>tauc, tauc = tau; end
-
-      fullSteps = 10*ceil(tauc/dt);  % build full propagator until 
-                                     % correlation functions have relaxed
-                                     
-      % if correlation time is longer than user input, just use full 
-      % propagation scheme the entire time
-      if fullSteps>nSteps
-        fullSteps = nSteps; 
-        truncated = 0;
-      end
-      
-    else
-      fullSteps = nSteps;  % build full propagator for all time steps
-      
-    end
+%     if truncated
+%       AutoCorrFFT = autocorrfft(squeeze(D2(3,3,:,:)), 0, 1, 1);
+% 
+%       N = round(nSteps/2);
+%       M = round(N/2);
+% 
+%       AutoCorrFFT = mean(AutoCorrFFT, 1).';
+% 
+%       % the ACF will not always reach zero for a small number of trajectories,
+%       % so subtract the offset, which does not change the correlation time
+%       AutoCorrFFT = AutoCorrFFT - mean(AutoCorrFFT(M:3*M));
+%       
+% %       AutoCorrFFTavg = AutoCorrFFTavg + AutoCorrFFT;
+% 
+%       % calculate correlation time
+%       tau = trapz(t(1:N), AutoCorrFFT(1:N));  % FIXME find a robust way to calculate this
+%       if tau>tauc, tauc = tau; end
+% 
+%       fullSteps = 10*ceil(tauc/dt);  % build full propagator until 
+%                                      % correlation functions have relaxed
+%                                      
+%       % if correlation time is longer than user input, just use full 
+%       % propagation scheme the entire time
+%       if fullSteps>nSteps
+%         fullSteps = nSteps; 
+%         truncated = 0;
+%       end
+%       
+%     else
+%       fullSteps = nSteps;  % build full propagator for all time steps
+%       
+%     end
     
     for iStep=1:fullSteps
       for iTraj=1:nTraj
         % zeroth rank term (HF only)
 %         H(:,:,iTraj,iStep) = cacheTensors.Q0;
         H = cacheTensors.Q0;
+%         Hfull(:,:,iTraj,iStep) = H;
         
         % rotate second rank terms and add to Hamiltonian
         for mp = 1:5
           for m = 1:5
-%             H(:,:,iTraj,iStep) = H(:,:,iTraj,iStep) + D2(m,mp,iTraj,iStep)*cacheTensors.Q2{mp,m};
+%             Hfull(:,:,iTraj,iStep) = Hfull(:,:,iTraj,iStep) + D2(m,mp,iTraj,iStep)*cacheTensors.Q2{mp,m};
             H = H + D2(m,mp,iTraj,iStep)*cacheTensors.Q2{mp,m};
           end
         end
         U(:,:,iTraj,iStep) = expeig(1i*dt*H);  % TODO speed this up!
       end
     end
+    
+    
     
     Udag = conj(permute(U,[2,1,3,4]));
         
@@ -430,9 +471,11 @@ switch Method
         % rotate second rank terms and add to Hamiltonian
         for mp = 1:5
           for m = 1:5
-            Heq(:,:,iTraj) = Heq(:,:,iTraj) + mean(D2(m,mp,iTraj,:),4)*cacheTensors.Q2{mp,m};  % TODO add off-diagonal terms
+            Heq(:,:,iTraj) = Heq(:,:,iTraj) + mean(D2(m,mp,iTraj,:),4)*cacheTensors.Q2{mp,m} ...  % TODO add off-diagonal terms
+                             + 1i*cacheTensors.Q2{mp,m}*(cacheTensors.Q2{mp,m})'*K2(mp,m);
           end
         end
+%         Heq(:,:,iTraj) = Heq(:,:,iTraj) + 1i*cacheTensors.Q2{3,3}*(cacheTensors.Q2{3,3})'*K2;
       end
 
 %       Ueq = zeros(6,6,nTraj,nSteps-taucSteps);
@@ -494,6 +537,11 @@ switch Method
     gTensor = tensortraj(g,RTraj,RTrajInv);
 
     ATensor = tensortraj(A,RTraj,RTrajInv)*1e6*2*pi; % MHz (s^-1) -> Hz (rad s^-1)
+    
+    if isfield(MD,'GlobalDiff')
+      gTensor = mmult(RTrajGlobal, mmult(gTensor, RTrajGlobalInv, 'real'), 'real');
+      ATensor = mmult(RTrajGlobal, mmult(ATensor, RTrajGlobalInv, 'real'), 'real');
+    end
     
     GpTensor = gTensor/gfree - g_tr/3/gfree;
         

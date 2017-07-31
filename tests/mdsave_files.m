@@ -52,7 +52,7 @@ for iFile = 1:nTests
   end
 end
 
-err = readerr;
+err = any(readerr);
 
 data = [];
 
