@@ -20,7 +20,8 @@ H = 1./(1+1i*ResonatorQL*(f/ResonatorFrequency-ResonatorFrequency./f));
 
 % Ideal pulses
 % ---------------------------------------------------------------------------------------
-Params1.Type = 'rectangular';
+Params1.Type = 'quartersin';
+Params1.trise = 0.004; % ns
 Params1.Frequency = 0; % MHz
 Params1.tp = 0.100; % us
 Params1.Amplitude = 15; % MHz
@@ -43,75 +44,39 @@ Params3.Amplitude = 15; % MHz
 
 % Effect of the resonator
 % ---------------------------------------------------------------------------------------
-Opt.Resonator = 'simulate';
-
 % Pulse 1
-Params1.ResonatorFrequency = ResonatorFrequency;
-Params1.ResonatorQL = ResonatorQL;
-Params1.mwFreq = mwFreq;
-
-[t1_dist,signal1_dist] = pulse(Params1,Opt);
+[t1_dist,signal1_dist] = resonator(t1_ideal,signal1_ideal,mwFreq,ResonatorFrequency,ResonatorQL,'simulate');
 
 % Pulse 2
-Params2.ResonatorFrequency = ResonatorFrequency;
-Params2.ResonatorQL = ResonatorQL;
-Params2.mwFreq = mwFreq;
-
-[t2_dist,signal2_dist] = pulse(Params2,Opt);
+[t2_dist,signal2_dist] = resonator(t2_ideal,signal2_ideal,mwFreq,ResonatorFrequency,ResonatorQL,'simulate');
 
 % Pulse 3
-Params3.ResonatorFrequency = ResonatorFrequency;
-Params3.ResonatorQL = ResonatorQL;
-Params3.mwFreq = mwFreq;
-
-[t3_dist,signal3_dist] = pulse(Params3,Opt);
+[t3_dist,signal3_dist] = resonator(t3_ideal,signal3_ideal,mwFreq,ResonatorFrequency,ResonatorQL,'simulate');
 
 % Resonator compensation
 % ---------------------------------------------------------------------------------------
 Opt.Resonator = 'compensate';
 
 % Pulse 1
-[t1_compensated,signal1_compensated] = pulse(Params1,Opt);
+[t1_compensated,signal1_compensated] = resonator(t1_ideal,signal1_ideal,mwFreq,ResonatorFrequency,ResonatorQL,'compensate');
 
 % Pulse 2
-[t2_compensated,signal2_compensated] = pulse(Params2,Opt);
+[t2_compensated,signal2_compensated] = resonator(t2_ideal,signal2_ideal,mwFreq,ResonatorFrequency,ResonatorQL,'compensate');
 
 % Pulse 3
-[t3_compensated,signal3_compensated] = pulse(Params3,Opt);
+[t3_compensated,signal3_compensated] = resonator(t3_ideal,signal3_ideal,mwFreq,ResonatorFrequency,ResonatorQL,'compensate');
 
 % Effect of the resonator on compensated pulses
 % ---------------------------------------------------------------------------------------
-Opt.Resonator = 'simulate';
 
 % Pulse 1
-Params1_.tp = t1_compensated(end); % us
-Params1_.IQ = signal1_compensated;
-
-Params1_.ResonatorFrequency = ResonatorFrequency;
-Params1_.ResonatorQL = ResonatorQL;
-Params1_.mwFreq = mwFreq;
-
-[t1_corrected,signal1_corrected] = pulse(Params1_,Opt);
+[t1_corrected,signal1_corrected] = resonator(t1_compensated,signal1_compensated,mwFreq,ResonatorFrequency,ResonatorQL,'simulate');
 
 % Pulse 2
-Params2_.tp = t2_compensated(end); % us
-Params2_.IQ = signal2_compensated;
-
-Params2_.ResonatorFrequency = ResonatorFrequency;
-Params2_.ResonatorQL = ResonatorQL;
-Params2_.mwFreq = mwFreq;
-
-[t2_corrected,signal2_corrected] = pulse(Params2_,Opt);
+[t2_corrected,signal2_corrected] = resonator(t2_compensated,signal2_compensated,mwFreq,ResonatorFrequency,ResonatorQL,'simulate');
 
 % Pulse 3
-Params3_.tp = t3_compensated(end); % us
-Params3_.IQ = signal3_compensated;
-
-Params3_.ResonatorFrequency = ResonatorFrequency;
-Params3_.ResonatorQL = ResonatorQL;
-Params3_.mwFreq = mwFreq;
-
-[t3_corrected,signal3_corrected] = pulse(Params3_,Opt);
+[t3_corrected,signal3_corrected] = resonator(t3_compensated,signal3_compensated,mwFreq,ResonatorFrequency,ResonatorQL,'simulate');
 
 
 % Plot results
@@ -120,14 +85,14 @@ Params3_.mwFreq = mwFreq;
 subplot(3,1,1)
 hold on; box on;
 title('Resonator transfer function')
-patch([Params1.mwFreq+Params3.Frequency(1)*1e-3 Params1.mwFreq+Params3.Frequency(1)*1e-3 ...
-       Params1.mwFreq+Params3.Frequency(2)*1e-3 Params1.mwFreq+Params3.Frequency(2)*1e-3],...
+patch([mwFreq+Params3.Frequency(1)*1e-3 mwFreq+Params3.Frequency(1)*1e-3 ...
+       mwFreq+Params3.Frequency(2)*1e-3 mwFreq+Params3.Frequency(2)*1e-3],...
       [-1 1 1 -1],[1 1 1]*0.85,'EdgeColor','none');
-text(Params1.mwFreq+Params3.Frequency(1)*1e-3-0.065,-0.4,'pulse 3','FontSize',8,'Color',[1 1 1]*0.85)
-line([1 1]*Params1.mwFreq,ylim,'Color','k')
-text(Params1.mwFreq+0.01,-0.75,'mwFreq','FontSize',8)
-line([1 1]*Params1.mwFreq+Params2.Frequency*1e-3,ylim,'Color',[1 1 1]*0.6)
-text(Params1.mwFreq+Params2.Frequency*1e-3-0.065,-0.65,'pulse 2','FontSize',8,'Color',[1 1 1]*0.6)
+text(mwFreq+Params3.Frequency(1)*1e-3-0.065,-0.4,'pulse 3','FontSize',8,'Color',[1 1 1]*0.85)
+line([1 1]*mwFreq,ylim,'Color','k')
+text(mwFreq+0.01,-0.75,'mwFreq','FontSize',8)
+line([1 1]*mwFreq+Params2.Frequency*1e-3,ylim,'Color',[1 1 1]*0.6)
+text(mwFreq+Params2.Frequency*1e-3-0.065,-0.65,'pulse 2','FontSize',8,'Color',[1 1 1]*0.6)
 plot(f,real(H),'b')
 plot(f,imag(H),'r')
 axis tight

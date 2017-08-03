@@ -1,5 +1,8 @@
 function [err,data] = test(opt,olddata)
-% Simulate the effect of the resonator on a rectangular pulse
+% Check the simulation of the effect of the resonator on a rectangular
+% pulse by comparing the Q values estimated from the rise and fall
+% times of the simulated pulse with the Q values used for the resonator
+% definition
 %--------------------------------------------------------------------------
 
 % Resonator defined through Q and resonance frequency
@@ -8,35 +11,30 @@ Par.tp = 0.200; % us
 Par.Type = 'rectangular';
 Par.TimeStep = 0.00025;
 
-Par.mwFreq = 9.5;
+[t,IQ] = pulse(Par);
 
-Opt.Resonator = 'simulate';
-Par.ResonatorFrequency = Par.mwFreq;
-Opt.CutoffFactor = 1/1000;
-
+mwFreq = 9.5;
 QL = 50:50:400;
 
 for iq = 1:2:2*numel(QL)
   
-  Par.ResonatorQL = QL(round(iq/2));
-  
-  [t,IQ] = pulse(Par,Opt);
+  [t_,IQ_] = resonator(t,IQ,mwFreq,mwFreq,QL(round(iq/2)),'simulate');
   
   % Fall time
-  [~,ind] = min(abs(t-Par.tp));
-  [k,c] = exponfit(t(ind:end),real(IQ(ind:end)),1,'noconst');
+  [~,ind] = min(abs(t_-Par.tp));
+  [k,c] = exponfit(t_(ind:end),real(IQ_(ind:end)),1,'noconst');
   tau_fall = 1/k; % tau = Q/(pi*nu_mw)
-  Q_fall = tau_fall*pi*Par.ResonatorFrequency*1e3;
+  Q_fall = tau_fall*pi*mwFreq*1e3;
   
-  suberr(iq) = (Par.ResonatorQL-Q_fall)/Par.ResonatorQL>0.025;
+  suberr(iq) = (QL(round(iq/2))-Q_fall)/QL(round(iq/2))>0.025;
   
   % Rise time
-  ind = numel(t)-ind;
-  [k,c] = exponfit(t(1:ind),real(IQ(1:ind)),1);
+  ind = numel(t_)-ind;
+  [k,c] = exponfit(t_(1:ind),real(IQ_(1:ind)),1);
   tau_rise = 1/k;
-  Q_rise = tau_rise*pi*Par.ResonatorFrequency*1e3;
+  Q_rise = tau_rise*pi*mwFreq*1e3;
   
-  suberr(iq+1) = (Par.ResonatorQL-Q_rise)/Par.ResonatorQL>0.025;
+  suberr(iq+1) = (QL(round(iq/2))-Q_rise)/QL(round(iq/2))>0.025;
   
 end
 
@@ -50,8 +48,9 @@ Par.tp = 0.200; % us
 Par.Type = 'rectangular';
 Par.TimeStep = 0.00025;
 
-Par.mwFreq = 9.5;
-Opt.Resonator = 'simulate';
+[t,IQ] = pulse(Par);
+
+mwFreq = 9.5;
 
 QLvalues = 50:50:400;
 
@@ -59,24 +58,23 @@ for iq = 1:2:2*numel(QLvalues)
   
   QL = QLvalues(round(iq/2));
   f = 9.2:0.010:9.8; % GHz
-  H = abs(1./(1+1i*QL*(f/Par.mwFreq-Par.mwFreq./f)));
-  Par.FrequencyResponse = [f; H];
+  H = abs(1./(1+1i*QL*(f/mwFreq-mwFreq./f)));
   
-  [t,IQ] = pulse(Par,Opt);
+  [t_,IQ_] = resonator(t,IQ,mwFreq,f,H,'simulate');
   
   % Fall time
-  [~,ind] = min(abs(t-Par.tp));
-  [k,c] = exponfit(t(ind:end),real(IQ(ind:end)),1,'noconst');
+  [~,ind] = min(abs(t_-Par.tp));
+  [k,c] = exponfit(t_(ind:end),real(IQ_(ind:end)),1,'noconst');
   tau_fall = 1/k; % tau = Q/(pi*nu_mw)
-  Q_fall = tau_fall*pi*Par.mwFreq*1e3;
+  Q_fall = tau_fall*pi*mwFreq*1e3;
   
   suberr(iq) = (QL-Q_fall)/QL>0.05;
   
   % Rise time
-  ind = numel(t)-ind;
-  [k,c] = exponfit(t(1:ind),real(IQ(1:ind)),1);
+  ind = numel(t_)-ind;
+  [k,c] = exponfit(t_(1:ind),real(IQ_(1:ind)),1);
   tau_rise = 1/k;
-  Q_rise = tau_rise*pi*Par.mwFreq*1e3;
+  Q_rise = tau_rise*pi*mwFreq*1e3;
   
   suberr(iq+1) = (QL-Q_rise)/QL>0.05;
   
@@ -92,8 +90,9 @@ Par.tp = 0.200; % us
 Par.Type = 'rectangular';
 Par.TimeStep = 0.00025;
 
-Par.mwFreq = 9.5;
-Opt.Resonator = 'simulate';
+[t,IQ] = pulse(Par);
+
+mwFreq = 9.5;
 
 QLvalues = 50:50:400;
 
@@ -101,24 +100,23 @@ for iq = 1:2:2*numel(QLvalues)
   
   QL = QLvalues(round(iq/2));
   f = 9.2:0.010:9.8; % GHz
-  H = 1./(1+1i*QL*(f/Par.mwFreq-Par.mwFreq./f));
-  Par.FrequencyResponse = [f; H];
+  H = 1./(1+1i*QL*(f/mwFreq-mwFreq./f));
   
-  [t,IQ] = pulse(Par,Opt);
+  [t_,IQ_] = resonator(t,IQ,mwFreq,f,H,'simulate');
   
   % Fall time
-  [~,ind] = min(abs(t-Par.tp));
-  [k,c] = exponfit(t(ind:end),real(IQ(ind:end)),1,'noconst');
+  [~,ind] = min(abs(t_-Par.tp));
+  [k,c] = exponfit(t_(ind:end),real(IQ_(ind:end)),1,'noconst');
   tau_fall = 1/k; % tau = Q/(pi*nu_mw)
-  Q_fall = tau_fall*pi*Par.mwFreq*1e3;
+  Q_fall = tau_fall*pi*mwFreq*1e3;
   
   suberr(iq) = (QL-Q_fall)/QL>0.05;
   
   % Rise time
-  ind = numel(t)-ind;
-  [k,c] = exponfit(t(1:ind),real(IQ(1:ind)),1);
+  ind = numel(t_)-ind;
+  [k,c] = exponfit(t_(1:ind),real(IQ_(1:ind)),1);
   tau_rise = 1/k;
-  Q_rise = tau_rise*pi*Par.mwFreq*1e3;
+  Q_rise = tau_rise*pi*mwFreq*1e3;
   
   suberr(iq+1) = (QL-Q_rise)/QL>0.05;
   

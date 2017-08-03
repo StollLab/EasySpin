@@ -1,5 +1,6 @@
-function [err,data] = test(opt,olddata)
-% Check pulse() resonator simulation and compensation
+function [err,data] = test(opt,olddaa)
+% Self-consistency check for resonator() 'simulate' and 'compensate'
+% options
 %--------------------------------------------------------------------------
 
 % Rectangular pulse at resonant frequency
@@ -8,23 +9,15 @@ Par.tp = 0.200; % us
 [tpulse,IQ] = pulse(Par);
 
 % Transfer function
-Par.mwFreq = 9.50; % GHz
-Par.ResonatorFrequency = 9.50; % GHz
-Par.ResonatorQL = 500;
+mwFreq = 9.50; % GHz
+ResonatorFrequency = 9.50; % GHz
+ResonatorQL = 500;
 
-Opt.Resonator = 'compensate';
-[tcomp,IQcomp] = pulse(Par,Opt);
+% Resonator compensation
+[tcomp,IQcomp] = resonator(tpulse,IQ,mwFreq,ResonatorFrequency,ResonatorQL,'compensate');
 
-% Test pulse function
-Par_.tp = tcomp(end);
-Par_.IQ = IQcomp;
-
-Opt.Resonator = 'simulate';
-Par_.ResonatorFrequency = Par.ResonatorFrequency;
-Par_.ResonatorQL = Par.ResonatorQL;
-Par_.mwFreq = Par.mwFreq;
-
-[ttest,IQtest] = pulse(Par_,Opt);
+% Simulate effect of resonator on compensated pulse shape
+[ttest,IQtest] = resonator(tcomp,IQcomp,mwFreq,ResonatorFrequency,ResonatorQL,'simulate');
 
 % Reposition
 splineinterp = @(x) interp1(ttest+x,IQtest,tpulse,'spline',0);
@@ -43,24 +36,16 @@ Par.tp = 0.200; % us
 [tpulse,IQ] = pulse(Par);
 
 % Transfer function
-Par.mwFreq = 15.00; % GHz
-Par.ResonatorFrequency = 15.50; % GHz
-Par.ResonatorQL = 500;
+mwFreq = 15.00; % GHz
+ResonatorFrequency = 15.50; % GHz
+ResonatorQL = 500;
 
-Opt.Resonator = 'compensate';
-Par.TimeStep = 0.00025;
-[tcomp,IQcomp] = pulse(Par,Opt);
+% Resonator compensation
+Opt.TimeStep = 0.00025;
+[tcomp,IQcomp] = resonator(tpulse,IQ,mwFreq,ResonatorFrequency,ResonatorQL,'compensate',Opt);
 
-% Test pulse function
-Par_.tp = tcomp(end);
-Par_.IQ = IQcomp;
-
-Opt.Resonator = 'simulate';
-Par_.ResonatorFrequency = Par.ResonatorFrequency;
-Par_.ResonatorQL = Par.ResonatorQL;
-Par_.mwFreq = Par.mwFreq;
-
-[ttest,IQtest] = pulse(Par_,Opt);
+% Simulate effect of resonator on compensated pulse shape
+[ttest,IQtest] = resonator(tcomp,IQcomp,mwFreq,ResonatorFrequency,ResonatorQL,'simulate');
 
 % Reposition
 splineinterp = @(x) interp1(ttest+x,IQtest,tpulse,'spline',0);
@@ -81,23 +66,15 @@ Par.tFWHM = 0.050; % us
 [tpulse,IQ] = pulse(Par);
 
 % Transfer function
-Par.mwFreq = 33.750; % GHz
-Par.ResonatorFrequency = 33.800; % GHz
-Par.ResonatorQL = 800;
+mwFreq = 33.750; % GHz
+ResonatorFrequency = 33.800; % GHz
+ResonatorQL = 800;
 
-Opt.Resonator = 'compensate';
-[tcomp,IQcomp] = pulse(Par,Opt);
+% Resonator compensation
+[tcomp,IQcomp] = resonator(tpulse,IQ,mwFreq,ResonatorFrequency,ResonatorQL,'compensate');
 
-% Test pulse function
-Par_.tp = tcomp(end);
-Par_.IQ = IQcomp;
-
-Opt.Resonator = 'simulate';
-Par_.ResonatorFrequency = Par.ResonatorFrequency;
-Par_.ResonatorQL = Par.ResonatorQL;
-Par_.mwFreq = Par.mwFreq;
-
-[ttest,IQtest] = pulse(Par_,Opt);
+% Simulate effect of resonator on compensated pulse shape
+[ttest,IQtest] = resonator(tcomp,IQcomp,mwFreq,ResonatorFrequency,ResonatorQL,'simulate');
 
 % Reposition
 splineinterp = @(x) interp1(ttest+x,IQtest,tpulse,'spline',0);
@@ -120,24 +97,15 @@ Par.Frequency = [-50 50]; % MHz
 [tpulse,IQ] = pulse(Par);
 
 % Transfer function
-Par.mwFreq = 9.45; % GHz
-Par.ResonatorFrequency = 9.50; % GHz
-Par.ResonatorQL = 500;
+mwFreq = 9.45; % GHz
+ResonatorFrequency = 9.50; % GHz
+ResonatorQL = 500;
 
-Opt.Resonator = 'compensate';
-[tcomp,IQcomp] = pulse(Par,Opt);
+% Resonator compensation
+[tcomp,IQcomp] = resonator(tpulse,IQ,mwFreq,ResonatorFrequency,ResonatorQL,'compensate');
 
-% Test pulse function
-Par_.tp = tcomp(end);
-Par_.IQ = IQcomp;
-Par_.TimeStep = tpulse(2)-tpulse(1);
-
-Opt.Resonator = 'simulate';
-Par_.ResonatorFrequency = Par.ResonatorFrequency;
-Par_.ResonatorQL = Par.ResonatorQL;
-Par_.mwFreq = Par.mwFreq;
-
-[ttest,IQtest] = pulse(Par_,Opt);
+% Simulate effect of resonator on compensated pulse shape
+[ttest,IQtest] = resonator(tcomp,IQcomp,mwFreq,ResonatorFrequency,ResonatorQL,'simulate');
 
 % Reposition
 splineinterp = @(x) interp1(ttest+x,IQtest,tpulse,'spline');

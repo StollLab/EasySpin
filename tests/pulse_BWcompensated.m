@@ -19,7 +19,7 @@ Params.ResonatorFrequency = Params.mwFreq;
 Params.ResonatorQL = 50; % Q-factor
 
 [t,IQ1] = pulse(Params);
-Opt.Resonator = 'BWcompensation';
+Opt.BWCompensation = 1;
 [t,IQ2] = pulse(Params,Opt);
 
 % Consistency check in the frequency domain
@@ -93,7 +93,7 @@ Params.mwFreq = 9.34; % GHz
 Params.FrequencyResponse = [f0; v1];
 
 [t,IQ1] = pulse(Params);
-Opt.Resonator = 'BWcompensation';
+Opt.BWCompensation = 1;
 [t,IQ2] = pulse(Params,Opt);
 
 % Consistency check in the frequency domain
