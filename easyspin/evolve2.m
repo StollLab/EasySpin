@@ -76,28 +76,27 @@ switch method
     if ~isempty(Vary)
       nDimensions = numel(Vary.Points);
       idx = ones(1,nDimensions);
-      nAcquisitions = prod(Vary.Points);
+      nPoints = prod(Vary.Points);
     else
       nDimensions = 0;
-      nAcquisitions = 1;
+      nPoints = 1;
     end
          
     n = size(Sigma,2);
-    FinalStates = zeros(nAcquisitions,n,n);
+    FinalStates = zeros(nPoints,n,n);
     AllDensityMatrices = [];
     initialSigma = Sigma;
     
-    timer = 0;
+%     timer = 0;
     
-    PulsePositions = [];
-    iPulse = 1;
+%     PulsePositions = [];
+%     iPulse = 1;
+    isPulse = zeros(1,nEvents);
     for iEvent = 1 : nEvents
       switch Events{iEvent}.type
         case 'pulse'
-          PulsePositions(iPulse,:) = [iEvent; timer];
-          iPulse = iPulse + 1;
+          isPulse(iEvent) = 1;
       end
-      timer = timer + Events{iEvent}.t(end);
     end
     
     %----------------------------------------------------------------------
@@ -108,6 +107,10 @@ switch method
     if ~isempty(Vary)
       for iDimension = 1 : nDimensions
         for Event2Check = Vary.Events{iDimension}
+          if Event2Check == 0
+            continue
+          end
+          
           if Events{Event2Check}.Detection == 1
             nDataSets = length(Vary.ts{Event2Check});
             sizetocompare = size(Vary.ts{Event2Check}{1},2);
@@ -122,31 +125,33 @@ switch method
     end
         
     if StoreInArray
-      SignalArray = cell(1,nAcquisitions);
+      SignalArray = cell(1,nPoints);
       TimeArray = SignalArray;
     end
     %----------------------------------------------------------------------
     
     OrigEvents = Events;
-    
-    ModifiedDelays = [];
-    SwappedPulses = [];
+%     
+%     ModifiedDelays = [];
+%     SwappedPulses = [];
     %----------------------------------------------------------------------
-    % Loop over number of Acquisitions = Product of the Points in each
+    % Loop over number of Points = Product of the Points in each
     % Dimension
     %----------------------------------------------------------------------
-    for iAcquisition = 1 : nAcquisitions
+    for iPoints = 1 : nPoints
       tic
       
-      if ~isempty(ModifiedDelays)
-        for iEvent = ModifiedDelays 
-          Events{iEvent} = OrigEvents{iEvent};
-        end
-        
-        PulseSwap = Events{SwappedPulses(1)};
-        Events{SwappedPulses(1)} = Events{SwappedPulses(2)};
-        Events{SwappedPulses(2)} = PulseSwap;
-      end
+      Events = OrigEvents;
+      
+%       if ~isempty(ModifiedDelays)
+%         for iEvent = ModifiedDelays 
+%           Events{iEvent} = OrigEvents{iEvent};
+%         end
+%         
+%         PulseSwap = Events{SwappedPulses(1)};
+%         Events{SwappedPulses(1)} = Events{SwappedPulses(2)};
+%         Events{SwappedPulses(2)} = PulseSwap;
+%       end
 
       Sigma = initialSigma;
       
@@ -162,18 +167,59 @@ switch method
           
           for iEvent = Vary.Events{iDimension}
             
-            switch Events{iEvent}.type
-              case 'pulse'
-                Events{iEvent}.IQ = Vary.IQs{iEvent}{iPoint};
-                Events{iEvent}.t = Vary.ts{iEvent}{iPoint};
-              case 'free evolution'
-                Events{iEvent}.t = Vary.ts{iEvent}{iPoint};
+            if iEvent ~= 0
+              switch Events{iEvent}.type
+                case 'pulse'
+                  Events{iEvent}.IQ = Vary.IQs{iEvent}{iPoint};
+                  Events{iEvent}.t = Vary.ts{iEvent}{iPoint};
+                case 'free evolution'
+                  Events{iEvent}.t = Vary.ts{iEvent}{iPoint};
+              end
+              
+              Events{iEvent}.Propagation = [];
+            end
+          end
+          
+          
+        end
+        
+        if isfield(Vary,'Positions')
+          iModified = 1;
+          ModifiedEvents = 0;
+          EventLengths = zeros(1,nEvents);
+          
+          for iDimension = 1 : nDimensions
+            if iDimension<=length(Vary.Positions) && ~isempty(Vary.Positions{iDimension})
+              for iEvent = 1 : nEvents
+                Line2Process = Vary.Positions{iDimension}(iEvent,:);
+                if any(Line2Process~=0)
+                  EventLengths(iEvent) = Events{iEvent}.t(end) + Line2Process(idx(iDimension));
+                  
+                  ModifiedEvents(iModified) = iEvent; %#ok<AGROW>
+                  iModified = iModified + 1;
+                else
+                  EventLengths(iEvent) = Events{iEvent}.t(end);
+                  
+                end
+              end
             end
             
-            Events{iEvent}.Propagation = [];
+            [Sequence, NewEventLengths] = reorder_events(EventLengths,isPulse);
+            
+            for iEvent = ModifiedEvents
+              NewPosition = find(Sequence == iEvent);
+              TimeStep = Events{iEvent}.t(2)-Events{iEvent}.t(1);
+              Events{iEvent}.t = 0:TimeStep:NewEventLengths(NewPosition); %#ok<FNDSB>
+            end
+            
+             Events{iEvent}.Propagation = [];
           end
+          
+        else
+          Sequence = 1 : nEvents;
+          
         end
-      end     
+      end
       %--------------------------------------------------------------------
            
       %--------------------------------------------------------------------
@@ -352,87 +398,6 @@ switch method
         end
       end
       
-      NewPulsePositions = zeros(size(PulsePositions));
-      iPulse = 1;
-      iDelay = 1;
-      timer = 0;
-      
-      for iEvent = 1 : nEvents
-        switch Events{iEvent}.type
-          case 'pulse'
-            NewPulsePositions(iPulse,:) = [iEvent; timer];
-            iPulse = iPulse + 1;
-          case 'free evolution'
-            iDelay = iDelay + 1;
-            DelayIndex(iDelay) = iEvent;
-        end
-        if Events{iEvent}.t(1)<0
-          timer = timer + Events{iEvent}.t(1);
-        else
-          timer = timer + Events{iEvent}.t(end);
-        end
-      end
-      
-      
-%       if ~isequal(NewPulsePositions, PulsePositions)
-%         [Positions, NewOrder] = sort(NewPulsePositions(:,2));
-%         
-%         Positions(2:end) =  Positions(2:end)+(dt*(1:length(Positions)-1))';
-%         %         Positions =  bsxfun(@plus,Positions,dt*(1:length(Positions)));
-%         iPulse = 1;
-%         iDelay = 1;
-%         
-%           if Positions(iPulse) == 0
-%             Sequence(1) = NewOrder(1);
-%             timer = Events{NewOrder(1)}.tp(end) + dt;
-%             iPulse = iPulse + 1;
-%             
-%           else
-%             Sequence(1) = DelayIndex(1);
-%             tDelay = Positions(1);
-%             Events{DelayIndex(1)}.t = 0:dt:tDelay;
-%             iDelay = iDelay + 1;
-%             timer = tDelay;
-%           end
-%             
-%           
-%           for iEvent = 2 : nEvents
-%             if timer == Positions(iPulse)
-%               Sequence(iEvent) = NewOrder(iPulse);
-%               timer = Events{NewOrder(iPulse)}.tp(end) + dt;
-%               iPulse = iPulse + 1;
-%             else
-%               Sequence(iEvent) = DelayIndex(iDelay);
-%               if iPulse
-%               tDelay = Positions(iPulse)-timer;
-%               timer = timer + Delay;
-%               iDelay = 
-%               
-%             end
-%             
-%             
-%           end
-          %
-%       else
-        Sequence = 1:nEvents;
-      
-%       end
-      %       if PulseOverlap
-      %
-%         if ~isempty(Vary)
-%           for d = nDimensions:-1:1
-%             if idx(d)<Vary.Points(d)
-%               idx(d) = idx(d)+1;
-%               break;
-%             else
-%               idx(d) = 1;
-%             end
-%           end
-%         end
-%         
-%         continue
-% 
-%       end
       
       %--------------------------------------------------------------------
       % Setting up some initial variables
@@ -686,13 +651,13 @@ switch method
         
         if currentEvent.StateTrajectories
           if firstDensityMatrix
-            AllDensityMatrices{iAcquisition} = DensityMatrices;
+            AllDensityMatrices{iPoints} = DensityMatrices;
             firstDensityMatrix = false;
           else
-            iStart = length(AllDensityMatrices{iAcquisition});
+            iStart = length(AllDensityMatrices{iPoints});
             nElements = length(DensityMatrices);
             for iDensity = 2 : nElements
-              AllDensityMatrices{iAcquisition}{iStart+iDensity-1} = DensityMatrices{iDensity};
+              AllDensityMatrices{iPoints}{iStart+iDensity-1} = DensityMatrices{iDensity};
             end
           end
         end
@@ -711,24 +676,24 @@ switch method
       if ~firstDetection
         % move all the detected signals into large array here!
         if StoreInArray
-          SignalArray{iAcquisition} = Signal;
-          TimeArray{iAcquisition} = t;
+          SignalArray{iPoints} = Signal;
+          TimeArray{iPoints} = t;
         else
-          if iAcquisition == 1
+          if iPoints == 1
             SignalSize = size(Signal);
-            SignalArray = zeros(nAcquisitions,SignalSize(1),SignalSize(2));
-            SignalArray(iAcquisition,:,:) = Signal;
-            TimeArray = zeros(nAcquisitions,SignalSize(2));
+            SignalArray = zeros(nPoints,SignalSize(1),SignalSize(2));
+            SignalArray(iPoints,:,:) = Signal;
+            TimeArray = zeros(nPoints,SignalSize(2));
             TimeArray(1,:) = t;
           else
-            SignalArray(iAcquisition,:,:) = Signal;
-            TimeArray(iAcquisition,:) = t;
+            SignalArray(iPoints,:,:) = Signal;
+            TimeArray(iPoints,:) = t;
           end
         end
       end
       toc
       
-      FinalStates(iAcquisition,:,:) = Sigma;
+      FinalStates(iPoints,:,:) = Sigma;
       %--------------------------------------------------------------------
       % Incremeant the index for the Vary structure by 1
       %--------------------------------------------------------------------

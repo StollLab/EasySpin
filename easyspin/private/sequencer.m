@@ -20,6 +20,10 @@ iDelay = iPulse;
 nPulses = 0;
 nDelays = 0;
 
+nEvents = length(Exp.t);
+
+isPulse = zeros(1,length(Events));
+
 for idx = 1 : length(Exp.t)
   if idx > length(Exp.t) || ~isstruct(Exp.Pulses{idx})
     nDelays = nDelays + 1;
@@ -28,8 +32,9 @@ for idx = 1 : length(Exp.t)
   end
 end
   
-DelayIndeces = zeros(1,nDelays);
+DelayIndices = zeros(1,nDelays);
 Pulses = cell(1,nPulses);
+PulseIndices = zeros(nPulses);
 
 for iEvent = 1 : length(Exp.t)
   if length(Exp.Pulses) >= iEvent && isstruct(Exp.Pulses{iEvent})
@@ -117,17 +122,20 @@ for iEvent = 1 : length(Exp.t)
     % vary table
     Pulse.EventIndex = iEvent;
     Pulses{iPulse} = Pulse;
+    PulseIndices(iPulse) = iEvent;
     
     % Incremeant the index for Pulse by 1
     iPulse = iPulse + 1;
     
+    isPulse(iEvent) = 1;
+        
   else
     % ---------------------------------------------------------------------
     % Delay/Free Evolution Specific Fields
     % ---------------------------------------------------------------------
     Events{iEvent}.type = 'free evolution';
     Events{iEvent}.t = 0:Exp.TimeStep:Exp.t(iEvent);
-    DelayIndeces(iDelay) = iEvent;
+    DelayIndices(iDelay) = iEvent;
     iDelay = iDelay + 1;
   end
   
@@ -190,9 +198,7 @@ end
 if isfield(Exp,'nPoints')
   nDims = length(Exp.nPoints);
   Vary.Points = Exp.nPoints;
-  
-  PossiblePulseCrossing = 0;
-  
+    
   for iDim = 1 : nDims
     
     if nDims == 1
@@ -207,6 +213,9 @@ if isfield(Exp,'nPoints')
     
     VariedEvents = zeros(1,size(Exp.(field2get),1));
     iModified = 1;
+    
+    Increments = zeros(length(Exp.t),Vary.Points(iDim));
+    
     for iLines = 1 : size(Exp.(field2get),1)
       FullString = Exp.(field2get){iLines,1};
 
@@ -236,36 +245,40 @@ if isfield(Exp,'nPoints')
             switch field
               
               case 'Position'
-                 VariedEvents(iModified:iModified + 1) = [EventNumber-1 EventNumber+1];  
-                 iModified = iModified + 1;
-                 
-                 Start1 = Exp.t(EventNumber-1);
-                 Start2 = Exp.t(EventNumber+1);
-                 
-                 Vary.ts{EventNumber-1}{1} = Events{EventNumber-1}.t;
-                 Vary.ts{EventNumber+1}{1} = Events{EventNumber+1}.t;
-                 
-                 Increment = Exp.(field2get){iLines,2};
-                                  
-                 for iPoint = 2 : Vary.Points(iDim)
-                   t1 = Start1 + (iPoint-1)*Increment;
-                   t2 = Start2 - (iPoint-1)*Increment;
-                   
-                   if t1 < 0
-                     Vary.ts{EventNumber-1}{iPoint} = 0:-Exp.TimeStep:t1;
-                     PossiblePulseCrossing = 1;
-                   else
-                     Vary.ts{EventNumber-1}{iPoint} = 0:Exp.TimeStep:t1;
-                   end
-                   
-                   if t2 < 0
-                     Vary.ts{EventNumber+1}{iPoint} = 0:-Exp.TimeStep:t1;
-                     PossiblePulseCrossing = 1;
-                   else
-                     Vary.ts{EventNumber+1}{iPoint} = 0:Exp.TimeStep:t2;
-                   end
-                 end
-                 
+                SurroundingEvents = [EventNumber-1 EventNumber+1];
+                %                  VariedEvents(iModified:iModified + 1) = ;
+                %                  iModified = iModified + 1;
+                
+                %                  Start1 = Exp.t(EventNumber-1);
+                %                  Start2 = Exp.t(EventNumber+1);
+                
+                dt = Exp.(field2get){iLines,2};
+
+                
+                Increments(SurroundingEvents(1),:) = Increments(SurroundingEvents(1),:) + (0:Vary.Points(iDim)-1)*dt;
+                Increments(SurroundingEvents(2),:) = Increments(SurroundingEvents(2),:) - (0:Vary.Points(iDim)-1)*dt;
+                
+                Vary.Positions{iDim} = Increments;
+                                
+                %                  for iPoint = 2 : Vary.Points(iDim)
+%                    t1 = Start1 + (iPoint-1)*Increment;
+%                    t2 = Start2 - (iPoint-1)*Increment;
+%                    
+%                    if t1 < 0
+%                      Vary.ts{EventNumber-1}{iPoint} = 0:-Exp.TimeStep:t1;
+%                      PossiblePulseCrossing = 1;
+%                    else
+%                      Vary.ts{EventNumber-1}{iPoint} = 0:Exp.TimeStep:t1;
+%                    end
+%                    
+%                    if t2 < 0
+%                      Vary.ts{EventNumber+1}{iPoint} = 0:-Exp.TimeStep:t1;
+%                      PossiblePulseCrossing = 1;
+%                    else
+%                      Vary.ts{EventNumber+1}{iPoint} = 0:Exp.TimeStep:t2;
+%                    end
+%                  end
+
               otherwise
                 VariedEvents(iModified) = EventNumber;
                 
@@ -292,7 +305,7 @@ if isfield(Exp,'nPoints')
                        
           case 'd'
             
-            EventNumber = DelayIndeces(index);
+            EventNumber = DelayIndices(index);
             
             VariedEvents(iModified) = EventNumber;
             
@@ -313,9 +326,68 @@ if isfield(Exp,'nPoints')
     Vary.Events{iDim} = VariedEvents;
   end
   
-  if PossiblePulseCrossing
-    % do a check here, and maybe return a warning
-  end
+  if isfield(Vary,'Positions')
+    nPoints = prod(Vary.Points);
+    nDimensions = numel(Vary.Points);
+    idx = ones(1,nDimensions);
+    
+    
+    
+    for iPoint = 1 : nPoints
+      EventLengths = Exp.t;
+      for iDimension = 1 : nDimensions
+        for iEvent = Vary.Events{iDimension}
+          if iEvent == 0
+            continue
+          else
+            EventLengths(iEvent) = Vary.ts{iEvent}{idx(iDimension)}(end);            
+          end 
+        end
+      end
+        
+      for iDimension = 1 : nDimensions
+        if iDimension<=length(Vary.Positions) && ~isempty(Vary.Positions{iDimension})
+          for iEvent = 1 : nEvents
+            Line2Process = Vary.Positions{iDimension}(iEvent,:);
+            if any(Line2Process~=0)
+              EventLengths(iEvent) = EventLengths(iEvent) + Line2Process(idx(iDimension)); 
+            end
+          end
+        end
+      end  
+      
+      NewSequence = reorder_events(EventLengths,isPulse);
+            
+      for iEvent = 1 : nEvents
+        if Events{NewSequence(iEvent)}.Detection ~= Events{(iEvent)}.Detection
+          MessagePart1 = ['Due to a moving pulse, the events ' num2str(iEvent) ' and ' num2str(NewSequence(iEvent))];
+          MessagePart2 = ' are being interchanged, but they do not have the same setting with respect to detection.';
+          Message = [MessagePart1 MessagePart2];
+          error(Message);
+        end
+        
+        if Events{NewSequence(iEvent)}.Relaxation ~= Events{(iEvent)}.Relaxation
+          MessagePart1 = ['Due to a moving pulse, the events ' num2str(iEvent) ' and ' num2str(NewSequence(iEvent))];
+          MessagePart2 = ' are being interchanged, but they do not have the same setting with respect to relaxation.';
+          Message = [MessagePart1 MessagePart2];
+          error(Message);
+        end
+      end
+      
+      for d = nDimensions:-1:1
+        if idx(d)<Vary.Points(d)
+          idx(d) = idx(d)+1;
+          break;
+        else
+          idx(d) = 1;
+        end
+      end
+      
+    end
+    
+    
+  end 
+  
 else
   Vary = [];
 end
