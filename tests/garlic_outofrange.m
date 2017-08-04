@@ -1,14 +1,13 @@
 function [err,data] = test(opt,olddata)
 
-% Make sure that garlic doesn't crash if there are
-% out-of-range transitions.
+% Make sure that garlic doesn't crash if there are out-of-range transitions.
 % This was a bug in 5.0.16.
 
 Sys.Nucs = '14N,14N,1H,1H,1H';
 Sys.n = [2 2 2 2 6];
 Sys.g = [2.004];
 
-A_N1 = 3.18; % in MHZ
+A_N1 = 3.18; % in MHz
 A_N2 = 10.97;
 A_H1 = 7.60;
 A_H2 = 9.06;
@@ -30,6 +29,5 @@ if opt.Display
   plot(x,y);
 end
 
-
-err = 0;
+err = false;
 data = [];

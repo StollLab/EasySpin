@@ -79,7 +79,7 @@ end
 
 OldSyntax = ~ischar(varargin{1});
 
-if OldSyntax,
+if OldSyntax
   
   Spins = varargin{1};
   Coords = varargin{2};
@@ -91,7 +91,7 @@ else
   end
   
   if numel(Coords)>1
-    for k=1:numel(Coords)
+    for k = 1:numel(Coords)
       if SparseOutput
         varargout{k} = sop(SpinVec,Coords{k},'sparse');
       else
