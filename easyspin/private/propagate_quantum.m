@@ -55,12 +55,15 @@ function rho_t = propagate_quantum(Sys, Par, Opt, MD, omega, CenterField)
 % -------------------------------------------------------------------------
 
 persistent cacheTensors
-persistent tauc
 persistent qTraj
+persistent fullSteps
 persistent K2
 
-if isempty(tauc), tauc = 0; end
+if ~isfield(Opt, 'Liouville')
+  Opt.Liouville = 0;
+end
 
+Liouville = Opt.Liouville;
 Method = Opt.Method;
 Model = Par.Model;
 
@@ -114,8 +117,8 @@ if strcmp(Model,'Molecular Dynamics')
     M = floor(MD.nSteps/nWindow);
 
     % process single long trajectory into multiple short trajectories
-%     lag = ceil(Par.dt/2e-9);  % use 2 ns lag between windows
-    lag = ceil(Par.dt/1e-9);
+    lag = ceil(Par.dt/2e-9);  % use 2 ns lag between windows
+%     lag = ceil(Par.dt/1e-9);
     if Par.nSteps<M
       nSteps = Par.nSteps;
       nTraj = floor((M-nSteps)/lag) + 1;
@@ -307,15 +310,24 @@ switch Method
       
       % zeroth rank
 %       cacheTensors.Q0 = conj(F0(1))*T0{1} + conj(F0(2))*T0{2};
-      cacheTensors.Q0 = conj(F0)*T0;
+      if Liouville
+        cacheTensors.Q0 = tosuper(conj(F0)*T0,'c');
+      else
+        cacheTensors.Q0 = conj(F0)*T0;
+      end
       
       cacheTensors.Q2 = cell(5,5);
       
       % create the 25 second-rank RBOs
       for mp = 1:5
         for m = 1:5
-          cacheTensors.Q2{mp,m} = conj(F2(1,mp))*T2{1,m} ...
-                                      + conj(F2(2,mp))*T2{2,m};
+          if Liouville
+            cacheTensors.Q2{mp,m} = tosuper(conj(F2(1,mp))*T2{1,m} ...
+                                + conj(F2(2,mp))*T2{2,m},'c');
+          else
+            cacheTensors.Q2{mp,m} = conj(F2(1,mp))*T2{1,m} ...
+                                        + conj(F2(2,mp))*T2{2,m};
+          end
         end
       end
       
@@ -324,42 +336,67 @@ switch Method
     % Prepare explicit propagators
     % ---------------------------------------------------------------------
     
-    % calculate Wigner D-matrices from the quaternion trajectories
+    % MD trajectories yield rotation matrices, so convert to quaternions
     if strcmp(Model,'Molecular Dynamics')&&isempty(qTraj)
       qTraj = rotmat2quat(RTraj);
     end
     
+    % calculate Wigner D-matrices from the quaternion trajectories
     D2 = wigD(qTraj);
     
     if truncated
-%       AutoCorrFFT = autocorrfft(squeeze(MD.FrameZ),1,1,1);
-      acorr = autocorrfft(squeeze(D2(3,3,:,:)).', 0, 1, 1);
+      if isempty(fullSteps)&&isempty(K2)
+        % set time step for integration of correlation functions
+        if strcmp(Model,'Molecular Dynamics')
+          % for MD trajectories, use MD timestep
+          dtau = MD.dt;
+        else
+          % for stochastic dynamics, use propagation time step
+          dtau = Par.dt;
+        end
 
-      % calculate correlation time
-      tauc = max(cumtrapz(linspace(0, length(acorr)*MD.dt, length(acorr)), acorr));  % FIXME find a robust way to calculate this
+        % use size(D2,3) since the full MD trajectories need to be
+        % integrated, not the windowed trajectories
+        acorrD200 = zeros(size(D2,3), size(D2,4));
+        for iTraj=1:size(D2,3)
+          % normalized autocorrelation functions are needed here
+          acorrD200(iTraj,:) = autocorrfft(squeeze(D2(3,3,iTraj,:)).', 0, 1, 1);
+        end
 
-      fullSteps = ceil(50*tauc/dt);  % build full propagator until 
-                                     % correlation functions have relaxed
-      if isempty(K2)
+        acorrD200 = mean(acorrD200, 1);
+        time = linspace(0, size(D2,4)*dtau, size(D2,4));
+
+        % calculate correlation time
+        tauc = max(cumtrapz(time, acorrD200));  % FIXME find a robust way to calculate this
+
+        % set the number of time steps to use full propagator before 
+        % correlation functions relax
+        fullSteps = ceil(truncated*tauc/dt);
+
+        % calculate correlation functions for approximate propagator
+        acorr = zeros(size(D2,3), size(D2,4));
+        K2 = zeros(5,5,nTraj);
         for mp=1:5
           for m=1:5
-            K2(mp,m) = max(cumtrapz(linspace(0, length(acorr)*MD.dt, length(acorr)), ...
-                              autocorrfft(squeeze(D2(mp,m,:,:)).',0,0,1)));
+            % non-normalized autocorrelation functions are needed here
+            for iTraj=1:size(D2,3)
+              acorr(iTraj,:) = autocorrfft(squeeze(D2(mp,m,iTraj,:)).',0,0,1);
+            end
+            K2(mp,m) = max(max(cumtrapz(time, mean(acorr,1))));  % TODO implement cross-correlation functions
           end
         end
-      end
-%       K2 = max(cumtrapz(linspace(0, length(acorr)*MD.dt, length(acorr)), ...
-%                         autocorrfft(squeeze(D2(3,3,:,:)).',0,0,1)));
-                                     
-      % if correlation time is longer than user input, just use full 
-      % propagation scheme the entire time
-      if fullSteps>nSteps
-        fullSteps = nSteps; 
-        truncated = 0;
+
+        % if correlation time is longer than user input, just use full 
+        % propagation scheme the entire time
+        if fullSteps>nSteps
+          fullSteps = nSteps; 
+          truncated = 0;
+        end
       end
       
     else
-      fullSteps = nSteps;  % build full propagator for all time steps
+      % no approximation, use full propagator for all time steps
+      fullSteps = nSteps;
       
     end
     
@@ -394,11 +431,12 @@ switch Method
     rho_t(4:6,1:3,:,1) = repmat(eye(3),1,1,nTraj,1);
     
     % calculate Hamiltonians and  propagators
-%     H = zeros(6,6,nTraj,nSteps);
-    
-    % zeroth rank term (HF only)
-%     H(:,:,:,:) = repmat(cacheTensors.Q0,[1,1,nTraj,nSteps]);
-    U = zeros(6,6,nTraj,nSteps);
+    if Liouville
+      rho_t = reshape(rho_t,[36,nTraj,nSteps]);
+      U = zeros(36,36,nTraj,nSteps);
+    else
+      U = zeros(6,6,nTraj,nSteps);
+    end
     
 %     if truncated
 %       AutoCorrFFT = autocorrfft(squeeze(D2(3,3,:,:)), 0, 1, 1);
@@ -447,14 +485,13 @@ switch Method
             H = H + D2(m,mp,iTraj,iStep)*cacheTensors.Q2{mp,m};
           end
         end
-        U(:,:,iTraj,iStep) = expeig(1i*dt*H);  % TODO speed this up!
+%         U(:,:,iTraj,iStep) = expeig(1i*dt*H);  % TODO speed this up!
+        U(:,:,iTraj,iStep) = expm_fast1(1i*dt*H);  % TODO speed this up!
       end
     end
     
-    
-    
     Udag = conj(permute(U,[2,1,3,4]));
-        
+    
     % Propagate density matrix
     % ---------------------------------------------------------------------
     
@@ -462,64 +499,85 @@ switch Method
       % Prepare equilibrium propagators
       % -------------------------------------------------------------------
       
-      Heq = zeros(6,6,nTraj);
+      if Liouville
+        Ueq = zeros(36,36,nTraj);
+      else
+        Ueq = zeros(6,6,nTraj);
+      end
       
       for iTraj=1:nTraj
         % zeroth rank term (HF only)
-        Heq(:,:,iTraj) = cacheTensors.Q0;
+        Heq = cacheTensors.Q0;
         
         % rotate second rank terms and add to Hamiltonian
         for mp = 1:5
           for m = 1:5
-            Heq(:,:,iTraj) = Heq(:,:,iTraj) + mean(D2(m,mp,iTraj,:),4)*cacheTensors.Q2{mp,m} ...  % TODO add off-diagonal terms
-                             + 1i*cacheTensors.Q2{mp,m}*(cacheTensors.Q2{mp,m})'*K2(mp,m);
+            Heq = Heq + cacheTensors.Q2{mp,m}*mean(D2(m,mp,iTraj,:),4) ...
+                      + 1i*cacheTensors.Q2{mp,m}*(cacheTensors.Q2{mp,m})'*K2(mp,m);
+%                             + 1i*cacheTensors.Q2{mp,m}*(cacheTensors.Q2{mp,m})'*K2(mp,m);
           end
         end
-%         Heq(:,:,iTraj) = Heq(:,:,iTraj) + 1i*cacheTensors.Q2{3,3}*(cacheTensors.Q2{3,3})'*K2;
-      end
-
-%       Ueq = zeros(6,6,nTraj,nSteps-taucSteps);
-      Ueq = zeros(6,6,nTraj);
-
-      % calculate propagators
-      for iTraj=1:nTraj
-%         U(:,:,iTraj,iStep) = expm(-1i*dt*H);
-        Ueq(:,:,iTraj) = expeig(1i*dt*Heq(:,:,iTraj));
+%         Ueq(:,:,iTraj) = expeig(1i*dt*Heq);
+        Ueq(:,:,iTraj) = expm_fast1(1i*dt*Heq);
       end
       
       Ueqdag = conj(permute(Ueq,[2,1,3]));
       
       % full propagation until correlation functions have relaxed
-      for iStep=2:fullSteps
-        rho_t(:,:,:,iStep) = mmult(U(:,:,:,iStep-1),...
-                                   mmult(rho_t(:,:,:,iStep-1),...
-                                         Udag(:,:,:,iStep-1),'complex'),...
-                                   'complex');                  
+      if Liouville
+        for iStep=2:fullSteps
+          for iTraj=1:nTraj
+            rho_t(:,iTraj,iStep) = U(:,:,iTraj,iStep-1)*rho_t(:,iTraj,iStep-1);  
+          end
+        end
+
+        % equilibrium propagation
+        for iStep=fullSteps+1:nSteps
+          for iTraj=1:nTraj
+            rho_t(:,iTraj,iStep) = Ueq(:,:,iTraj)*rho_t(:,iTraj,iStep-1);  
+          end                 
+        end
+        
+      else
+        for iStep=2:fullSteps
+          rho_t(:,:,:,iStep) = mmult(U(:,:,:,iStep-1),...
+                                     mmult(rho_t(:,:,:,iStep-1),...
+                                           Udag(:,:,:,iStep-1),'complex'),...
+                                     'complex');                  
+        end
+
+        % equilibrium propagation
+        for iStep=fullSteps+1:nSteps
+          rho_t(:,:,:,iStep) = mmult(Ueq,...
+                                     mmult(rho_t(:,:,:,iStep-1),...
+                                           Ueqdag,'complex'),...
+                                     'complex');                  
+        end
       end
       
-      % equilibrium propagation
-      for iStep=fullSteps+1:nSteps
-        rho_t(:,:,:,iStep) = mmult(Ueq,...
-                                   mmult(rho_t(:,:,:,iStep-1),...
-                                         Ueqdag,'complex'),...
-                                   'complex');                  
-      end
-    
     else
     % truncated trajectory behavior not being used, so use full propagation
     % scheme for all time steps
-      for iStep=2:nSteps
-        rho_t(:,:,:,iStep) = mmult(U(:,:,:,iStep-1),...
-                                   mmult(rho_t(:,:,:,iStep-1),...
-                                         Udag(:,:,:,iStep-1),'complex'),...
-                                   'complex');                  
+      if Liouville
+        for iStep=2:nSteps
+          for iTraj=1:nTraj
+            rho_t(:,iTraj,iStep) = U(:,:,iTraj,iStep-1)*rho_t(:,iTraj,iStep-1);  
+          end
+        end
+        
+      else
+        for iStep=2:nSteps
+          rho_t(:,:,:,iStep) = mmult(U(:,:,:,iStep-1),...
+                                     mmult(rho_t(:,:,:,iStep-1),...
+                                           Udag(:,:,:,iStep-1),'complex'),...
+                                     'complex');                  
+        end
       end
     end
 
-%     for iStep=2:nSteps
-%       rho_t(:,:,:,iStep) = U(:,:,1,iStep-1)*rho_t(:,:,1,iStep-1)...
-%                                            *U(:,:,1,iStep-1)';                  
-%     end
+    if Liouville
+      rho_t = reshape(rho_t,[6,6,nTraj,nSteps]);
+    end
     
     % Only keep the m_S=-1/2 subspace part that contributes to 
     %   tr(S_{+}\rho(t))
@@ -634,6 +692,226 @@ function C = expeig(A)
 
 C = V*diag(exp(diag(D)))*V';
 
+end
+
+function F = expm_fast1(A)
+%EXPM  Matrix exponential.
+%   EXPM(A) is the matrix exponential of A and is computed using
+%   a scaling and squaring algorithm with a Pade approximation.
+%
+%   Although it is not computed this way, if A has a full set
+%   of eigenvectors V with corresponding eigenvalues D then
+%   [V,D] = EIG(A) and EXPM(A) = V*diag(exp(diag(D)))/V.
+%
+%   EXP(A) computes the exponential of A element-by-element.
+%
+%   See also LOGM, SQRTM, FUNM.
+
+%   References:
+%   N. J. Higham, The scaling and squaring method for the matrix
+%      exponential revisited. SIAM J. Matrix Anal. Appl., 26(4), (2005),
+%      pp. 1179-1193.
+%   A. H. Al-Mohy and N. J. Higham, A new scaling and squaring algorithm
+%      for the matrix exponential, SIAM J. Matrix Anal. Appl., 31(3),
+%      (2009), pp. 970-989.
+%
+%   Nicholas J. Higham and Samuel D. Relton
+%   Copyright 1984-2015 The MathWorks, Inc.
+
+T = A;
+
+if isdiag(T) % Check if T is diagonal.
+  d = diag(T);
+  F = diag(exp(full(d)));
+  return;
+end
+
+% Compute exponential
+% Get scaling and Pade parameters.
+[s, m, T2, T4, T6] = expm_params(T);
+
+% Rescale the powers of T appropriately.
+if s ~= 0
+  T = T/(2.^s);
+  T2 = T2/2^(s*2);
+  T4 = T4/2^(s*4);
+  T6 = T6/2^(s*6);
+end
+
+% Evaluate the Pade approximant.
+switch m
+  case 3
+    c = [120, 60, 12, 1];
+  case 5
+    c = [30240, 15120, 3360, 420, 30, 1];
+  case 7
+    c = [17297280, 8648640, 1995840, 277200, 25200, 1512, 56, 1];
+  case 9
+    c = [17643225600, 8821612800, 2075673600, 302702400, 30270240, ...
+      2162160, 110880, 3960, 90, 1];
+  case 13
+    c = [64764752532480000, 32382376266240000, 7771770303897600, ...
+      1187353796428800,  129060195264000,   10559470521600, ...
+      670442572800,      33522128640,       1323241920,...
+      40840800,          960960,            16380,  182,  1];
+end
+I = eye(length(T));
+switch m
+  case {3, 5, 7, 9}
+    Tpowers = {[],T2,[],T4,[],T6};
+    strt = length(Tpowers) + 2;
+    for k = strt:2:m-1
+      Tpowers{k} = Tpowers{k-2}*Tpowers{2};
+    end
+    U = c(2)*I;
+    V = c(1)*I;
+    for j = m:-2:3
+      U = U + c(j+1)*Tpowers{j-1};
+      V = V + c(j)*Tpowers{j-1};
+    end
+    U = T*U;
+  case 13
+    U = T * (T6*(c(14)*T6 + c(12)*T4 + c(10)*T2) + c(8)*T6 + c(6)*T4 + c(4)*T2 + c(2)*I);
+    V = T6*(c(13)*T6 + c(11)*T4 + c(9)*T2) + c(7)*T6 + c(5)*T4 + c(3)*T2 + c(1)*I;
+end
+F = (V-U)\(2*U) + I;  %F = (-U+V)\(U+V);
+
+% Squaring phase.
+for k = 1:s
+  F = F*F;
+end
+end
+
+
+function t = ell(T, coeff, m_val)
+%ell Function needed to compute optimal parameters.
+scaledT = coeff.^(1/(2*m_val+1)) .* abs(T);
+alpha = normAm(scaledT,2*m_val+1)/norm(T,1);
+t = max(ceil(log2(2*alpha/eps(class(alpha)))/(2*m_val)),0);
+end
+
+function [s, m, T2, T4, T6] = expm_params(T)
+%expm_params Obtain scaling parameter and order of the Pade approximant.
+% Coefficients of backwards error function.
+coeff = [1/100800, 1/10059033600, 1/4487938430976000,...
+  1/5914384781877411840000, 1/113250775606021113483283660800000000];
+
+s = 0;
+% m_val is one of [3 5 7 9 13];
+% theta_m for m=1:13.
+theta = [%3.650024139523051e-008
+  %5.317232856892575e-004
+  1.495585217958292e-002  % m_vals = 3
+  %8.536352760102745e-002
+  2.539398330063230e-001  % m_vals = 5
+  %5.414660951208968e-001
+  9.504178996162932e-001  % m_vals = 7
+  %1.473163964234804e+000
+  2.097847961257068e+000  % m_vals = 9
+  %2.811644121620263e+000
+  %3.602330066265032e+000
+  %4.458935413036850e+000
+  5.371920351148152e+000];% m_vals = 13
+
+T2 = T*T;
+T4 = T2*T2;
+T6 = T2*T4;
+d4 = norm(T4,1)^(1/4);
+d6 = norm(T6,1)^(1/6);
+eta1 = max(d4, d6);
+if (eta1 <= theta(1) && ell(T, coeff(1), 3) == 0)
+  m = 3;
+  return;
+end
+if (eta1 <= theta(2) && ell(T, coeff(2), 5) == 0)
+  m = 5;
+  return;
+end
+
+isSmall = size(T,1) < 150; %Compute matrix power explicitly
+if isSmall
+  d8 = norm(T4*T4,1)^(1/8);
+else
+  d8 = normAm(T4, 2)^(1/8);
+end
+eta3 = max(d6, d8);
+if (eta3 <= theta(3) && ell(T, coeff(3), 7) == 0)
+  m = 7;
+  return;
+end
+if (eta3 <= theta(4) && ell(T, coeff(4), 9) == 0)
+  m = 9;
+  return;
+end
+if isSmall
+  d10 = norm(T4*T6,1)^(1/10);
+else
+  d10 = normAm(T2, 5)^(1/10);
+end
+eta4 = max(d8, d10);
+eta5 = min(eta3, eta4);
+s = max(ceil(log2(eta5/theta(5))), 0);
+s = s + ell(T/2^s, coeff(5), 13);
+if isinf(s)
+  % Overflow in ell subfunction. Revert to old estimate.
+  [t, s] = log2(norm(T,1)/theta(end));
+  s = s - (t == 0.5); % adjust s if normA/theta(end) is a power of 2.
+end
+m = 13;
+end
+
+function [c,mv] = normAm(A,m)
+%NORMAM   Estimate of 1-norm of power of matrix.
+%   NORMAM(A,M) estimates norm(A^m,1). If A has nonnegative elements
+%   the estimate is exact.
+%   [C, MV] = NORMAM(A,M) returns the estimate C and the number MV of
+%   matrix-vector products computed involving A or A^*.
+
+%   Reference:
+%   A. H. Al-Mohy and N. J. Higham, A New Scaling and Squaring Algorithm
+%      for the Matrix Exponential, SIAM J. Matrix Anal. Appl. 31(3):
+%      970-989, 2009.
+%
+%   Awad H. Al-Mohy and Nicholas J. Higham
+%   Copyright 2014-2015 The MathWorks, Inc.
+
+n = size(A,1);
+if n < 50 % Compute matrix power explicitly
+  mv = 0;
+  c = norm(matlab.internal.math.mpower.viaMtimes(A,m),1);
+elseif isreal(A) && all(A(:) >= 0)
+  % For positive matrices only.
+  e = ones(n,1,class(A));
+  for j=1:m
+    e = A'*e;
+  end
+  c = norm(e,inf);
+  mv = m;
+else
+  [c,~,~,it] = normest1(@afun_power);
+  mv = it(2)*2*m; % Since t = 2.
+end
+% End of normAm
+
+  function Z = afun_power(flag,X)
+    %afun_power  Function to evaluate matrix products needed by normest1.
+    if isequal(flag,'dim')
+      Z = n;
+    elseif isequal(flag,'real')
+      Z = isreal(A);
+    else
+      if isequal(flag,'notransp')
+        for i = 1:m
+          X = A*X;
+        end
+      elseif isequal(flag,'transp')
+        for i = 1:m
+          X = A'*X;
+        end
+      end
+      Z = X;
+    end
+  end
 end
 
 function D2 = wigD(q)
