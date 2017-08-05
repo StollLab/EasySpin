@@ -444,8 +444,8 @@ else
     ZFEnergies =  sort(real(eig(sham(CoreSys, zeros(1,3)))));
   else
     if issparse(kF)
-      ZFEnergies(1) = eigs(kF,1,'sa');
-      ZFEnergies(2) = eigs(kF,1,'la');
+      ZFEnergies(1) = eigs(kF,1,-2*max(abs(kF(:))));
+      ZFEnergies(2) = eigs(kF,1,+2*max(abs(kF(:))));
     else
       ZFEnergies = sort(real(eig(kF)));
     end
