@@ -1,45 +1,5 @@
-% evolve  Time domain evolution of density matrix
-%
-%   td = evolve(Sigma,Det,Ham,n,dt);
-%   td = evolve(Sigma,Det,Ham,n,dt,IncScheme);
-%   td = evolve(Sigma,Det,Ham,n,dt,IncScheme,Mix);
-%
-%   Evolves the density matrix Sigma under the Hamiltonian Ham with time
-%   step dt n-1 times and detects using Det after each step. Hermitian
-%   input matrices are assumed. td(1) is the value obtained by detecting
-%   Sigma without evolution.
-%
-%   IncScheme determines the incrementation scheme and can be one of the
-%   following (up to four sweep periods, up to two dimensions)
-%
-%     [1]           simple FID, 3p-ESEEM, echo transient, DEFENCE
-%     [1 1]         2p-ESEEM, CP, 3p and 4p RIDME
-%     [1 -1]        3p-DEER, 4p-DEER, PEANUT, 5p RIDME
-%     [1 1 -1 -1]   SIFTER
-%     [1 -1 -1 1]   7p-DEER
-%     [1 -1 1 -1]
-%
-%     [1 2]         3p-ESEEM echo transient, HYSCORE, DONUT-HYSCORE
-%     [1 2 1]       2D 3p-ESEEM
-%     [1 1 2]       2p-ESEEM etc. with echo transient
-%     [1 -1 2]      3p-DEER, 4p-DEER etc. with echo transient
-%     [1 2 2 1]     2D CP
-%     [1 2 -2 1]    2D PEANUT
-%     [1 1 -1 -1 2] SIFTER with echo transient
-%     [1 -1 -1 1 2] 7p-DEER with echo transient
-%
-%   [1] is the default. For an explanation of the format, see the
-%   documentation.
-%
-%   Mix is a cell array containing the propagators of the mixing
-%   block(s), for experiments with more than 1 sweep period.
-%
-%   td is a vector/matrix of the signal with t1 along dimension 1
-%   and t2 along dimension 2.
-
-
-
-function [TimeArray, SignalArray, FinalStates, AllDensityMatrices, Events] = evolve2(Sigma,Ham0,Det,Events,Relaxation,Vary)
+% thyme  Time domain evolution of density matrix
+function [TimeArray, SignalArray, FinalStates, AllDensityMatrices, Events] = thyme(Sigma,Ham0,Det,Events,Relaxation,Vary)
 
 if (nargin==0), help(mfilename); return; end
 
@@ -92,10 +52,13 @@ switch method
 %     PulsePositions = [];
 %     iPulse = 1;
     isPulse = zeros(1,nEvents);
+    iPulse = 1;
     for iEvent = 1 : nEvents
       switch Events{iEvent}.type
         case 'pulse'
           isPulse(iEvent) = 1;
+          PulsePositions(iPulse) = iEvent;
+          iPulse = iPulse + 1;
       end
     end
     
@@ -104,24 +67,75 @@ switch method
     % not, a cell array is used for storage of traces
     %----------------------------------------------------------------------
     StoreInArray = false;
+    
+
+    
     if ~isempty(Vary)
-      for iDimension = 1 : nDimensions
-        for Event2Check = Vary.Events{iDimension}
-          if Event2Check == 0
-            continue
+      
+      InitialEventLengths = zeros(1,nEvents);
+      for iEvent = 1 : nEvents
+        InitialEventLengths(iEvent) = Events{iEvent}.t(end);
+      end
+     for iPoint = 1 : nPoints
+       
+       EventLengths = InitialEventLengths;
+       DetectionTime = 0;
+       
+       for iDimension = 1 : nDimensions
+         
+         if any(any(Vary.IncrementationTable{iDimension}))
+           ModifiedEvents = find(Vary.IncrementationTable{iDimension}(:,idx(iDimension)));
+           for i = 1 : length(ModifiedEvents)
+             EventLengths(ModifiedEvents(i)) = EventLengths(ModifiedEvents(i)) + Vary.IncrementationTable{iDimension}(ModifiedEvents(i),idx(iDimension));
+           end
+         end
+         
+       end
+        
+        nPulses = length(Vary.Pulses);
+        
+        for iPulse = 1 : nPulses
+          if ~isempty(Vary.Pulses{iPulse})
+           iEvent = PulsePositions(iPulse);
+           t = LoadWaveform(Vary.Pulses{iPulse}.ts,idx);
+           EventLengths(iEvent) = t(end);
           end
+            
+        end
           
-          if Events{Event2Check}.Detection == 1
-            nDataSets = length(Vary.ts{Event2Check});
-            sizetocompare = size(Vary.ts{Event2Check}{1},2);
-            for i = 2 : nDataSets
-              if sizetocompare ~= size(Vary.ts{Event2Check}{i},2)
-                StoreInArray = true;
-              end
-            end
+        [Sequence, NewEventLengths] = reorder_events(EventLengths,isPulse);
+        
+        for iSequence = 1 : nEvents
+          if Events{Sequence(iSequence)}.Detection
+            DetectionTime = DetectionTime + NewEventLengths(iSequence);
           end
         end
-      end
+        
+        if iPoint == 1
+          ReferenceDetection = DetectionTime;
+        else
+          if abs(ReferenceDetection-DetectionTime) > 10^-12
+            
+           StoreInArray = true;
+           break
+           
+          end
+        end
+        
+        
+        for d = nDimensions:-1:1
+          if idx(d)<Vary.Points(d)
+            idx(d) = idx(d)+1;
+            break;
+          else
+            idx(d) = 1;
+          end
+        end
+        
+     end
+     
+     idx = ones(1,nDimensions);
+     
     end
         
     if StoreInArray
@@ -130,7 +144,8 @@ switch method
     end
     %----------------------------------------------------------------------
     
-    OrigEvents = Events;
+    
+      
 %     
 %     ModifiedDelays = [];
 %     SwappedPulses = [];
@@ -141,8 +156,8 @@ switch method
     for iPoints = 1 : nPoints
       tic
       
-      Events = OrigEvents;
-      
+      EventLengths = InitialEventLengths;
+            
 %       if ~isempty(ModifiedDelays)
 %         for iEvent = ModifiedDelays 
 %           Events{iEvent} = OrigEvents{iEvent};
@@ -162,64 +177,45 @@ switch method
       %--------------------------------------------------------------------
       
       if~isempty(Vary)
+                
         for iDimension = 1 : nDimensions
-          iPoint = idx(iDimension);
           
-          for iEvent = Vary.Events{iDimension}
-            
-            if iEvent ~= 0
-              switch Events{iEvent}.type
-                case 'pulse'
-                  Events{iEvent}.IQ = Vary.IQs{iEvent}{iPoint};
-                  Events{iEvent}.t = Vary.ts{iEvent}{iPoint};
-                case 'free evolution'
-                  Events{iEvent}.t = Vary.ts{iEvent}{iPoint};
-              end
-              
-              Events{iEvent}.Propagation = [];
+          if any(any(Vary.IncrementationTable{iDimension}))
+            ModifiedEvents = find(Vary.IncrementationTable{iDimension}(:,idx(iDimension)));
+            for i = 1 : length(ModifiedEvents)
+              EventLengths(ModifiedEvents(i)) = EventLengths(ModifiedEvents(i)) + Vary.IncrementationTable{iDimension}(ModifiedEvents(i),idx(iDimension));
             end
           end
-          
           
         end
         
-        if isfield(Vary,'Positions')
-          iModified = 1;
-          ModifiedEvents = 0;
-          EventLengths = zeros(1,nEvents);
-          
-          for iDimension = 1 : nDimensions
-            if iDimension<=length(Vary.Positions) && ~isempty(Vary.Positions{iDimension})
-              for iEvent = 1 : nEvents
-                Line2Process = Vary.Positions{iDimension}(iEvent,:);
-                if any(Line2Process~=0)
-                  EventLengths(iEvent) = Events{iEvent}.t(end) + Line2Process(idx(iDimension));
-                  
-                  ModifiedEvents(iModified) = iEvent; %#ok<AGROW>
-                  iModified = iModified + 1;
-                else
-                  EventLengths(iEvent) = Events{iEvent}.t(end);
-                  
-                end
-              end
-            end
-            
-            [Sequence, NewEventLengths] = reorder_events(EventLengths,isPulse);
-            
-            for iEvent = ModifiedEvents
-              NewPosition = find(Sequence == iEvent);
-              TimeStep = Events{iEvent}.t(2)-Events{iEvent}.t(1);
-              Events{iEvent}.t = 0:TimeStep:NewEventLengths(NewPosition); %#ok<FNDSB>
-            end
-            
-             Events{iEvent}.Propagation = [];
+        nPulses = length(Vary.Pulses);
+        
+        for iPulse = 1 : nPulses
+          if ~isempty(Vary.Pulses{iPulse})
+           iEvent = PulsePositions(iPulse);
+           Events{iEvent}.IQ = LoadWaveform(Vary.Pulses{iPulse}.IQs,idx);
+           Events{iEvent}.t = LoadWaveform(Vary.Pulses{iPulse}.ts,idx);
+           EventLengths(iEvent) = Events{iEvent}.t(end);
+           Events{iEvent}.Propagation = [];
           end
-          
-        else
-          Sequence = 1 : nEvents;
-          
+            
         end
+          
+        [Sequence, NewEventLengths] = reorder_events(EventLengths,isPulse);
+        
+        for iEvent = 1 : nEvents
+          NewPosition = find(Sequence == iEvent);
+          if strcmp(Events{iEvent}.type,'free evolution') && NewEventLengths(NewPosition) ~= Events{iEvent}.t
+            Events{iEvent}.t = NewEventLengths(NewPosition);
+            Events{iEvent}.Propagation = [];
+          end
+        end
+          
+      else
+        Sequence = 1 : nEvents;        
       end
+
       %--------------------------------------------------------------------
            
       %--------------------------------------------------------------------
@@ -229,13 +225,11 @@ switch method
       for iEvent = 1 : nEvents
         currentEvent = Events{iEvent};
         
-        if isempty(currentEvent.Propagation) || (~isfield(currentEvent.Propagation,'Utotal') || ~isfield(currentEvent.Propagation,'Ltotal'))
+        if isempty(currentEvent.Propagation) || ~((isfield(currentEvent.Propagation,'Utotal') || isfield(currentEvent.Propagation,'Ltotal')))
                     
           switch currentEvent.type
             case 'pulse'
-              
-              dt = currentEvent.t(2) - currentEvent.t(1);
-              
+                          
               nPhaseCycle = size(currentEvent.PhaseCycle,1);
               %------------------------------------------------------------
               % convert the IQ wave form into a binary form, so that it
@@ -259,7 +253,7 @@ switch method
               % wave
               
               tvector(1) = 0;
-              tvector(2:length(currentEvent.t)+1) = currentEvent.t+dt;
+              tvector(2:length(currentEvent.t)+1) = currentEvent.t+currentEvent.TimeStep;
               
               realArbitrary = real(currentEvent.IQ)/MaxWave;
               realBinary = floor(vertRes*(realArbitrary+1)/2);
@@ -284,7 +278,7 @@ switch method
                   if ~isempty(currentEvent.Propagation) && isfield(currentEvent.Propagation,'UTable')
                     UTable = currentEvent.Propagation.UTable;
                   else
-                    UTable = buildPropagators(Ham0,currentEvent.xOp,dt,vertRes,scale);
+                    UTable = buildPropagators(Ham0,currentEvent.xOp,currentEvent.TimeStep,vertRes,scale);
                     Events{iEvent}.Propagation.UTable = UTable;
                   end
                 end
@@ -307,7 +301,7 @@ switch method
                     else % For active Complex Excitation Propagators need to be recalculated
                       Ham1 = scale/2*(realBinary(iPhaseCycle,iWavePoint)-vertRes/2)*real(currentEvent.xOp)+1i*scale/2*(imagBinary(iPhaseCycle,iWavePoint)-vertRes/2)*imag(currentEvent.xOp);
                       Ham =  Ham0+Ham1;
-                      U = Propagator(Ham,dt);
+                      U = Propagator(Ham,currentEvent.TimeStep);
                     end
                     
                     %------------------------------------------------------
@@ -349,7 +343,7 @@ switch method
                       SigmassTable = currentEvent.Propagation.SigmassTable;
                     else
                       
-                      [LTable, SigmassTable] = buildLiouvillians(Ham0,Gamma,equilibriumState,currentEvent.xOp,dt,vertRes,scale);
+                      [LTable, SigmassTable] = buildLiouvillians(Ham0,Gamma,equilibriumState,currentEvent.xOp,currentEvent.TimeStep,vertRes,scale);
                       
                       Events{iEvent}.Propagation.LTable = LTable;
                       Events{iEvent}.Propagation.SigmassTable = SigmassTable;
@@ -378,7 +372,7 @@ switch method
                       else
                         Ham1 = scale/2*(realBinary(iPhaseCycle,iWavePoint)-vertRes/2)*real(currentEvent.xOp)+1i*scale/2*(imagBinary(iPhaseCycle,iWavePoint)-vertRes/2)*imag(currentEvent.xOp);
                         Ham = Ham0+Ham1;
-                        [L, SigmaSS] = Liouvillian(Ham,Gamma,equilibriumState,dt);
+                        [L, SigmaSS] = Liouvillian(Ham,Gamma,equilibriumState,currentEvent.TimeStep);
                       end
                       
                       Ltotal{iPhaseCycle,iWavePoint} = L;
@@ -422,15 +416,9 @@ switch method
             case 'pulse'
               tvector = currentEvent.t;
               currentSignal = zeros(nDet,size(currentEvent.IQ,2)+1);
-              dt = currentEvent.t(2)-currentEvent.t(1);
             case 'free evolution'
-              if length(currentEvent.t) == 1
-                tvector = [0 currentEvent.t];
-              else
-                tvector = currentEvent.t;
-              end
-              dt = tvector(2) - tvector(1);
-              currentSignal = zeros(nDet,length(tvector));
+                tvector = 0:currentEvent.TimeStep:currentEvent.t;
+                currentSignal = zeros(nDet,length(tvector));
           end
           
           n = size(Sigma,1);
@@ -445,10 +433,8 @@ switch method
           switch currentEvent.type
             case 'pulse'
               tvector = currentEvent.t;
-              dt = currentEvent.t(2)-currentEvent.t(1);
             case 'free evolution'
-              dt = currentEvent.t(end);
-              tvector = [0 dt];
+              tvector = [0 currentEvent.t];
           end
           
           currentSignal=[];
@@ -475,7 +461,7 @@ switch method
             % irradiation. The pulse therefore starts at t0 + dt;
             %--------------------------------------------------------------
             tvector(1) = 0;
-            tvector(2:length(currentEvent.t)+1) = currentEvent.t+dt;
+            tvector(2:length(currentEvent.t)+1) = currentEvent.t+currentEvent.TimeStep;
             
             nPhaseCycle = size(currentEvent.PhaseCycle,1);
             
@@ -573,7 +559,7 @@ switch method
               if isfield(currentEvent.Propagation,'Utotal')
                 U = currentEvent.Propagation.Utotal;
               else
-                U = Propagator(Ham0,dt);
+                U = Propagator(Ham0,currentEvent.TimeStep);
                 Events{iEvent}.Propagation.Utotal = U;
               end
             elseif currentEvent.Relaxation
@@ -585,7 +571,7 @@ switch method
               else
                 Gamma = Relaxation.Gamma;
                 equilibriumState = reshape(Relaxation.equilibriumState,n*n,1);
-                [L, SigmaSS] = Liouvillian(Ham0,Gamma,equilibriumState,dt);
+                [L, SigmaSS] = Liouvillian(Ham0,Gamma,equilibriumState,currentEvent.TimeStep);
                 Events{iEvent}.Propagation.Ltotal = L;
                 Events{iEvent}.Propagation.SigmaSStotal = SigmaSS;
               end
@@ -1214,3 +1200,21 @@ detectedSignal = zeros(nDet,1);
 for iDet = 1:nDet
   detectedSignal(iDet) = Det{iDet}*Density/normsDet(iDet);
 end
+
+function LoadedElement = LoadWaveform(Array, ArrayIndex)
+  nPerDimension = size(Array);
+  IndexToLoad = ones(1,length(ArrayIndex));
+  if length(ArrayIndex) == 1
+    if ArrayIndex <= nPerDimension(2)
+      IndexToLoad = ArrayIndex;
+    end
+  else
+    for i = 1 : length(nPerDimension)
+      if ArrayIndex(i) <= nPerDimension(i)
+        IndexToLoad(i) = ArrayIndex(i);
+      end
+    end
+  end
+  IndexToLoad = num2cell(IndexToLoad);
+  
+  LoadedElement = Array{IndexToLoad{:}};

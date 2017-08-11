@@ -1,41 +1,51 @@
 function [Events, Vary, Opt] = sequencer(Exp,Opt)
 % This function creates the Event and Vary Structures
 
+% -------------------------------------------------------------------------
+% Pre-Processing
+% -------------------------------------------------------------------------
 Vary = [];
 
 % Check if Timestep is sufficient
 MaxFreq = max(abs(Exp.Frequency(:)));
 Nyquist = 2*MaxFreq;
 
-% Write this warning in a nicer way
 if Exp.TimeStep > 1/Nyquist
-  warning('Your Time Step (Exp.TimeStep) appears to not fullfill the Nyquist criterium for the provided frequencies.')
+  warning('Your Time Step (Exp.TimeStep) appears to not fullfill the Nyquist criterium for the pulses you provided.')
 end
 
+% Create an empty cell array for all the events
 Events = cell(1,length(Exp.t));
-
-iPulse = 1;
-iDelay = iPulse;
-
-nPulses = 0;
-nDelays = 0;
-
 nEvents = length(Exp.t);
 
+% Variables for bookkeeping of pulses and free evolution events
+iPulse = 0;
+iDelay = 0;
+
+% A vector to quickly identify pulses, required for the reordering if
+% pulses cross during the sequence
 isPulse = zeros(1,length(Events));
 
-for idx = 1 : length(Exp.t)
-  if idx > length(Exp.t) || ~isstruct(Exp.Pulses{idx})
-    nDelays = nDelays + 1;
+% Setting up data structures for the pulses and events
+for iEvent = 1 : nEvents
+  if iEvent > length(Exp.Pulses) || ~isstruct(Exp.Pulses{iEvent})
+    iDelay = iDelay + 1;
+    DelayIndices(iDelay) = iEvent;
   else
-    nPulses = nPulses + 1;
+    iPulse = iPulse + 1;
+    PulseIndices(iPulse) = iEvent;
+    isPulse(iEvent) = 1;
   end
 end
-  
-DelayIndices = zeros(1,nDelays);
+ 
+nPulses = length(PulseIndices);
 Pulses = cell(1,nPulses);
-PulseIndices = zeros(nPulses);
+iPulse = 1;
+% -------------------------------------------------------------------------
 
+% -------------------------------------------------------------------------
+% Create the Eventstructure
+% -------------------------------------------------------------------------
 for iEvent = 1 : length(Exp.t)
   if length(Exp.Pulses) >= iEvent && isstruct(Exp.Pulses{iEvent})
     % ---------------------------------------------------------------------
@@ -98,17 +108,21 @@ for iEvent = 1 : length(Exp.t)
     % Store the PhaseCycle in the Event structure
     Events{iEvent}.PhaseCycle = Pulse.PhaseCycle;
     
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Looks for an excitation operator in the pulse definition structure
     % and if none is found, Sx is assumed
+    % Adapt to actual spin system here!!!
+    % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     if ~isfield(Pulse,'xOp')
       if isfield(Pulse,'ComplexExcitation') && Pulse.ComplexExcitation
-        Events{iEvent}.xOp = spops(1/2,'x')+spops(1/2,'y');
+        Events{iEvent}.xOp = sop(1/2,'x')+sop(1/2,'y');
       else
-        Events{iEvent}.xOp = spops(1/2,'x');
+        Events{iEvent}.xOp = sop(1/2,'x');
       end
     else
       Events{iEvent}.xOp = Pulse.xOp;
     end
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
     % Checks if ComplexExcitation is requested for this Pulse, if not
     % specified Complex Excitation is switched off by default
@@ -122,21 +136,13 @@ for iEvent = 1 : length(Exp.t)
     % vary table
     Pulse.EventIndex = iEvent;
     Pulses{iPulse} = Pulse;
-    PulseIndices(iPulse) = iEvent;
-    
-    % Incremeant the index for Pulse by 1
     iPulse = iPulse + 1;
-    
-    isPulse(iEvent) = 1;
-        
   else
     % ---------------------------------------------------------------------
     % Delay/Free Evolution Specific Fields
     % ---------------------------------------------------------------------
     Events{iEvent}.type = 'free evolution';
-    Events{iEvent}.t = 0:Exp.TimeStep:Exp.t(iEvent);
-    DelayIndices(iDelay) = iEvent;
-    iDelay = iDelay + 1;
+    Events{iEvent}.t = Exp.t(iEvent);
   end
   
   % -----------------------------------------------------------------------
@@ -191,205 +197,292 @@ for iEvent = 1 : length(Exp.t)
     end
   end
   
+  % Store an empty propagation structure, will be overwritten by thyme
   Events{iEvent}.Propagation = [];
+  
+  % Store the time step, which will be needed in thyme to calculate time
+  % axis and propagators
+  Events{iEvent}.TimeStep = Exp.TimeStep;
     
 end
 
+% -------------------------------------------------------------------------
+% Creates the Vary structure
+% -------------------------------------------------------------------------
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Switching incrementation scheme to off for now, this will be an option
+% later on, and will decide on how the incremenation tables are stored. For
+% the incrementationscheme only linear increments can be used, and the data
+% structure can therefore be reduced
+IncrementationScheme = 0;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 if isfield(Exp,'nPoints')
-  nDims = length(Exp.nPoints);
+  nDimensions = length(Exp.nPoints);
   Vary.Points = Exp.nPoints;
-    
-  for iDim = 1 : nDims
-    
-    if nDims == 1
-      if isfield(Exp,'Inc')
-        field2get = 'Inc';
-      else
-        field2get = 'Inc1';
-      end
-    else
-      field2get = ['Inc' num2str(iDim)];
-    end
-    
-    VariedEvents = zeros(1,size(Exp.(field2get),1));
-    iModified = 1;
-    
-    Increments = zeros(length(Exp.t),Vary.Points(iDim));
-    
-    for iLines = 1 : size(Exp.(field2get),1)
-      FullString = Exp.(field2get){iLines,1};
-
-      SplitStrings = regexp(FullString,',','split');
-      
-      for iModifiedEvent = 1 : length(SplitStrings)
-              
-        Strings = regexp(SplitStrings{iModifiedEvent},'\.','split');
-        
-        type = Strings{1}(1);
-        index = str2double(Strings{1}(2:end));
-        
-        
-        switch type
-          case 'p'
-            field = Strings{2};
-            
-            EventNumber = Pulses{index}.EventIndex;
-            PulseNumber = index;
-            
-            Pulse = Pulses{PulseNumber};
-            
-            if strcmp(field,'t')
-              field = 'tp';
-            end
-            
-            switch field
-              
-              case 'Position'
-                SurroundingEvents = [EventNumber-1 EventNumber+1];
-                %                  VariedEvents(iModified:iModified + 1) = ;
-                %                  iModified = iModified + 1;
-                
-                %                  Start1 = Exp.t(EventNumber-1);
-                %                  Start2 = Exp.t(EventNumber+1);
-                
-                dt = Exp.(field2get){iLines,2};
-
-                
-                Increments(SurroundingEvents(1),:) = Increments(SurroundingEvents(1),:) + (0:Vary.Points(iDim)-1)*dt;
-                Increments(SurroundingEvents(2),:) = Increments(SurroundingEvents(2),:) - (0:Vary.Points(iDim)-1)*dt;
-                
-                Vary.Positions{iDim} = Increments;
-                                
-                %                  for iPoint = 2 : Vary.Points(iDim)
-%                    t1 = Start1 + (iPoint-1)*Increment;
-%                    t2 = Start2 - (iPoint-1)*Increment;
-%                    
-%                    if t1 < 0
-%                      Vary.ts{EventNumber-1}{iPoint} = 0:-Exp.TimeStep:t1;
-%                      PossiblePulseCrossing = 1;
-%                    else
-%                      Vary.ts{EventNumber-1}{iPoint} = 0:Exp.TimeStep:t1;
-%                    end
-%                    
-%                    if t2 < 0
-%                      Vary.ts{EventNumber+1}{iPoint} = 0:-Exp.TimeStep:t1;
-%                      PossiblePulseCrossing = 1;
-%                    else
-%                      Vary.ts{EventNumber+1}{iPoint} = 0:Exp.TimeStep:t2;
-%                    end
-%                  end
-
-              otherwise
-                VariedEvents(iModified) = EventNumber;
-                
-                Vary.IQs{EventNumber}{1} = Events{EventNumber}.IQ;
-                Vary.ts{EventNumber}{1} = Events{EventNumber}.t;
-                
-                Start = Pulse.(field);
-                
-                for iPoint = 2 : Vary.Points(iDim)
-                  Pulse.(field) = Start + (iPoint-1)*Exp.(field2get){iLines,2};
-                  for iPCstep = 1 : size(Pulse.PhaseCycle,1)
-                    Pulse.Phase = Pulse.Phase+Pulse.PhaseCycle(iPCstep,1);
-                    [t,IQ] = pulse(Pulse);
-                    if iPCstep == 1
-                      IQs = zeros(size(Pulse.PhaseCycle,1),length(IQ));
-                    end
-                    IQs(iPCstep,:) = IQ;
-                  end
-                  
-                  Vary.IQs{EventNumber}{iPoint} = IQs;
-                  Vary.ts{EventNumber}{iPoint} = t;
-                end
-            end
-                       
-          case 'd'
-            
-            EventNumber = DelayIndices(index);
-            
-            VariedEvents(iModified) = EventNumber;
-            
-            Start = Exp.t(EventNumber);
-            Vary.ts{EventNumber}{1} = Events{EventNumber}.t;
-            for iPoint = 2 : Vary.Points(iDim)
-              t = Start + (iPoint-1)*Exp.(field2get){iLines,2};
-              
-              Vary.ts{EventNumber}{iPoint} = 0:Exp.TimeStep:t;
-            end
-            
-        end
-        iModified = iModified + 1;
-      end
-      
-      
-    end
-    Vary.Events{iDim} = VariedEvents;
+  
+  % Layout the Incrementation data structure
+  if IncrementationScheme 
+    Vary.IncrementationTable = zeros(nEvents,nDimensions);
+  else
+    Vary.IncrementationTable = cell(1,nDimensions);
   end
   
-  if isfield(Vary,'Positions')
-    nPoints = prod(Vary.Points);
-    nDimensions = numel(Vary.Points);
-    idx = ones(1,nDimensions);
+  % This cell array will carry all the modifications that are being made to
+  % a pulse in any dimension - each element corresponds to a pulse and will
+  % contain the dimensions, fields and values that are to be changed 
+  PulseModifications = cell(1,nPulses);
+  
+  % -----------------------------------------------------------------------
+  % Loop over all the provided dimensions and process the input - for
+  % changing delays or pulse positions, incrementation tables can be
+  % created for each dimension. If pulse parameters are changed, the
+  % changed pulse parameters are stored in PulseModifications. After all
+  % dimensions have been checked, the values stored in Pulse
+  % -----------------------------------------------------------------------
+  for iDimension = 1 : nDimensions
     
-    
-    
-    for iPoint = 1 : nPoints
-      EventLengths = Exp.t;
-      for iDimension = 1 : nDimensions
-        for iEvent = Vary.Events{iDimension}
-          if iEvent == 0
-            continue
-          else
-            EventLengths(iEvent) = Vary.ts{iEvent}{idx(iDimension)}(end);            
-          end 
-        end
-      end
-        
-      for iDimension = 1 : nDimensions
-        if iDimension<=length(Vary.Positions) && ~isempty(Vary.Positions{iDimension})
-          for iEvent = 1 : nEvents
-            Line2Process = Vary.Positions{iDimension}(iEvent,:);
-            if any(Line2Process~=0)
-              EventLengths(iEvent) = EventLengths(iEvent) + Line2Process(idx(iDimension)); 
-            end
-          end
-        end
-      end  
-      
-      NewSequence = reorder_events(EventLengths,isPulse);
-            
-      for iEvent = 1 : nEvents
-        if Events{NewSequence(iEvent)}.Detection ~= Events{(iEvent)}.Detection
-          MessagePart1 = ['Due to a moving pulse, the events ' num2str(iEvent) ' and ' num2str(NewSequence(iEvent))];
-          MessagePart2 = ' are being interchanged, but they do not have the same setting with respect to detection.';
-          Message = [MessagePart1 MessagePart2];
-          error(Message);
-        end
-        
-        if Events{NewSequence(iEvent)}.Relaxation ~= Events{(iEvent)}.Relaxation
-          MessagePart1 = ['Due to a moving pulse, the events ' num2str(iEvent) ' and ' num2str(NewSequence(iEvent))];
-          MessagePart2 = ' are being interchanged, but they do not have the same setting with respect to relaxation.';
-          Message = [MessagePart1 MessagePart2];
-          error(Message);
-        end
-      end
-      
-      for d = nDimensions:-1:1
-        if idx(d)<Vary.Points(d)
-          idx(d) = idx(d)+1;
-          break;
-        else
-          idx(d) = 1;
-        end
-      end
-      
+    % If it is not possible to use a predefined incrementation scheme,
+    % incrementation tables are created for each individual dimension, that
+    % contain all the changes to event lengths for all events in the
+    % corresponding dimension. This also allows to use non-linear
+    % increments
+    if ~IncrementationScheme
+      IncrementationTable = zeros(nEvents,Vary.Points(iDimension));
     end
     
+    if nDimensions == 1
+      if isfield(Exp,'Dim')
+        Field2Get = 'Dim';
+      else
+        Field2Get = 'Dim1';
+      end
+    else
+      Field2Get = ['Dim' num2str(iDimension)];
+    end
+    
+    % Scans all the lines of the Dim field. Each line can contain multiple
+    % events/fields 
+    for iLine = 1 : size(Exp.(Field2Get),1)
+      % Gets the string, that lists the events/fields that are to be
+      % changed
+      FullString = Exp.(Field2Get){iLine,1};
+      
+      % changed values are seperated with commas
+      SplitStrings = regexp(FullString,',','split');
+      
+      % Loops over all entries in the current line
+      for iModifiedEvent = 1 : length(SplitStrings)
+              
+        % modified pulses are defined through p#.Field and if a '.' is
+        % found, the string is split again. Delays are ignored this way
+        Strings = regexp(SplitStrings{iModifiedEvent},'\.','split');
+        
+        EventType = Strings{1}(1);
+        EventSpecificIndex = str2double(Strings{1}(2:end));
+        
+        % -----------------------------------------------------------------
+        % Different Processing for a pulse 'p' and a free evolution
+        % event/delay 'd'
+        % -----------------------------------------------------------------
+        switch EventType
+          case 'p'         
+            % Convert the index as provided in the Dimension structure to
+            % an eventnumber and pulsenumber
+            EventNumber = Pulses{EventSpecificIndex}.EventIndex;
+            PulseNumber = EventSpecificIndex;
+            
+            % Gets the field that is to be modified
+            Field = Strings{2};
+            
+            % Catch if user defines pulse length as 't' instead of 'tp'
+            if strcmp(Field,'t')
+              Field = 'tp';
+            end
+            
+            switch Field
+              % If the field is 'Position', the surrounding events (which
+              % have to be delays) are changed in length. This is written
+              % to the incrementation table
+              case 'Position'
+                SurroundingEvents = [EventNumber-1 EventNumber+1];
+                
+                % get the Increment
+                dt = Exp.(Field2Get){iLine,2};
+                          
+                if ~IncrementationScheme
+                  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                  % At this point, only a linear increment is processed, in
+                  % the future, the ability to use nonlinear increments has
+                  % to be added here, by providing a vector with values
+                  % instead of a scalar in the Dimension field. This should
+                  % only require a few lines of code
+                  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                  IncrementationTable(SurroundingEvents(1),:) = IncrementationTable(SurroundingEvents(1),:) + (0:Vary.Points(iDimension)-1)*dt;
+                  IncrementationTable(SurroundingEvents(2),:) = IncrementationTable(SurroundingEvents(2),:) - (0:Vary.Points(iDimension)-1)*dt;
+                else
+                  % write the linear matrix for use with incrementation scheme here
+                end
+                
+
+              otherwise
+                % If not the position is changed it is a pulse parameter.
+                % All pulse parameters are first stored in  a seperate
+                % structure, called PulseModifications. Each dimension can
+                % add fields and values to it. Only after all dimensions
+                % have been checked for pulse modifications, the pulses can
+                % be calculated and stored in the Vary structure
+                if isempty(PulseModifications{PulseNumber})
+                  PulseModifications{PulseNumber} = {iDimension Field Exp.(Field2Get){iLine,2}};
+                else
+                  n = size(PulseModifications{PulseNumber},1);
+                  PulseModifications{PulseNumber}{n+1,1} = iDimension;
+                  PulseModifications{PulseNumber}{n+1,2} = Field;
+                  PulseModifications{PulseNumber}{n+1,3} = Exp.(Field2Get){iLine,2};
+                end
+            end
+            
+          case 'd'
+            % If a delay is changed, the incrementation/decrementation is
+            % written to the incrementation table of the corresponding
+            % dimension
+            EventNumber = DelayIndices(EventSpecificIndex);
+            
+            % Increment
+            dt = Exp.(Field2Get){iLine,2};
+            
+            if ~IncrementationScheme
+              IncrementationTable(EventNumber(1),:) = IncrementationTable(EventNumber(1),:) + (0:Vary.Points(iDimension)-1)*dt;
+            else
+              %write the linear matrix here
+            end
+        end
+      end
+    end
+    
+    % Stores the IncrementationTable dimension specific
+    if ~IncrementationScheme && any(any(IncrementationTable))
+      Vary.IncrementationTable{iDimension} = IncrementationTable;
+    else
+      %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      % Store Directly as Vary.IncrementationTable for Incrementation
+      % Schemes
+      %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    end
+  end
+  
+  % -----------------------------------------------------------------------
+  % The following part checks for pulse overlap and precomputes the wave
+  % forms for pulses that are variied
+  % -----------------------------------------------------------------------
+  nDataPoints = prod(Vary.Points);
+  DimensionIndices = ones(1,nDimensions);
+  
+  % For each data point, the originial/starting values for the pulses are
+  % required
+  InitialPulses = Pulses;
+  
+  % Each pulse that is modified will have all its waveforms stored in
+  % Vary.Pulses{iPulse}. Vary.Pulses{iPulse} is a cell array with the
+  % dimensionality of points in the dimension that it is being changed in.
+  % If for example the pulse is changed along the first dimension the size
+  % of Vary.Pulses{iPulse} is [nDim1 1 1 ...], if it is changed along the
+  % second dimension [1 nDim2 1 1 ...] or if along all dimension [nDim1
+  % nDim2 nDim3 nDim4 ...]
+  Vary.Pulses = cell(1,nPulses);
+  
+  % Loop over all DataPoints/Aquisitions and check for pulse overlap and
+  % compute pulse shapes if they are changed
+  for iDataPoint = 1 : nDataPoints
+    % Load starting values for pulses and event lengths
+    Pulses = InitialPulses;
+    EventLengths = Exp.t;
+    
+    % ---------------------------------------------------------------------
+    % First we need to loop over all pulses and check them for 
+    % modifications
+    % ---------------------------------------------------------------------
+    for iPulse = 1 : nPulses
+      % if this pulse is changed, set the values for the pulse parameters
+      % accordingly
+      if ~isempty(PulseModifications{iPulse})
+        % Create and index for storing the pulse shapes in
+        % Vary.Pules{iPulse}
+        Pulses{iPulse}.ArrayIndex = ones(1,length(DimensionIndices));
+        for iModification = 1 : size(PulseModifications{iPulse},1)
+          % Load Modifications
+          Dimension = PulseModifications{iPulse}{iModification,1};
+          Field = PulseModifications{iPulse}{iModification,2};
+          Increment = PulseModifications{iPulse}{iModification,3};
+          % Write modifications to pulse structure
+          Pulses{iPulse}.(Field) = Pulses{iPulse}.(Field) + Increment*(DimensionIndices(Dimension)-1);
+          % Adapt indexing according to dimension
+          Pulses{iPulse}.ArrayIndex(Dimension) = DimensionIndices(Dimension);
+        end
+        
+        % Convert array into cell for indexing
+        ArrayIndex = num2cell(Pulses{iPulse}.ArrayIndex);
+        
+        % Compute Wave form and store it
+        [t,IQ] = pulse(Pulses{iPulse});
+        Vary.Pulses{iPulse}.IQs{ArrayIndex{:}} = IQ;
+        Vary.Pulses{iPulse}.ts{ArrayIndex{:}} = t;
+        
+        % Write pulse length to EventLenghts        
+        EventLengths(Pulses{iPulse}.EventIndex) = t(end);
+      end
+    end
+    
+    % ---------------------------------------------------------------------
+    % Now we loop over all dimensions and load the delays from the
+    % IncrementationTables
+    %----------------------------------------------------------------------
+    for iDimension = 1 : nDimensions
+      % Check if IncrementationTable is not empty
+      if ~IncrementationScheme && ~isempty(Vary.IncrementationTable{iDimension})
+        % Find Events that are modified...
+        ModifiedEvents = find(Vary.IncrementationTable{iDimension}(:,DimensionIndices(iDimension)));
+        % ... and change them in EventLenghts
+        if ~isempty(ModifiedEvents)
+          for i = 1 : length(ModifiedEvents)
+            EventLengths(ModifiedEvents(i)) = EventLengths(ModifiedEvents(i)) + Vary.IncrementationTable{iDimension}(ModifiedEvents(i),DimensionIndices(iDimension));
+          end
+        end
+      end
+    end
+     
+    % Reorder Sequence and check for pulse overlap
+    NewSequence = reorder_events(EventLengths,isPulse);
+    
+    % Assert that if events are being moved in the sequence, the values for
+    % Detection and Relaxation are the same
+    for iEvent = 1 : nEvents
+      if Events{NewSequence(iEvent)}.Detection ~= Events{(iEvent)}.Detection
+        MessagePart1 = ['Due to a moving pulse, the events ' num2str(iEvent) ' and ' num2str(NewSequence(iEvent))];
+        MessagePart2 = ' are being interchanged, but they do not have the same setting with respect to detection.';
+        Message = [MessagePart1 MessagePart2];
+        error(Message);
+      end
+      if Events{NewSequence(iEvent)}.Relaxation ~= Events{(iEvent)}.Relaxation
+        MessagePart1 = ['Due to a moving pulse, the events ' num2str(iEvent) ' and ' num2str(NewSequence(iEvent))];
+        MessagePart2 = ' are being interchanged, but they do not have the same setting with respect to relaxation.';
+        Message = [MessagePart1 MessagePart2];
+        error(Message);
+      end
+    end
+    
+    % Increment Dimension index
+    for d = nDimensions:-1:1
+      if DimensionIndices(d) < Vary.Points(d)
+        DimensionIndices(d) = DimensionIndices(d)+1;
+        break;
+      else
+        DimensionIndices(d) = 1;
+      end
+    end
     
   end 
-  
-else
-  Vary = [];
 end
 
 

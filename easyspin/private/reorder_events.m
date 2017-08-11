@@ -1,8 +1,15 @@
-function [NewSequence, NewEventLenghts] = reorder_events(EventLengths,PulseList)
+function [NewSequence, NewEventLengths] = reorder_events(EventLengths,PulseList)
 
 nEvents = numel(EventLengths);
+
+% Transfers intervals to positions - absolute times when an event is to
+% start
 t = [0 cumsum(EventLengths)];
 
+%--------------------------------------------------------------------------
+% Uncomment the following to get plots of how the time periods are defined
+% before reordering
+%--------------------------------------------------------------------------
 % dy = 1;
 % figure
 % for k = 1:nEvents
@@ -13,20 +20,26 @@ t = [0 cumsum(EventLengths)];
 %     line([1 1]*t(k+1),[k,k+1]*dy,'Color',[1 1 1]*0);
 %   end
 % end
+%--------------------------------------------------------------------------
 
-%%
+% Sort the events according to their starting position
 [TimeIntervals,NewSequence] = sort(t);
 NewSequence = NewSequence(1:end-1);
 
-NewEventLenghts = zeros(size(EventLengths));
+% Recalculate intervals/event durations from the new starting positions
+NewEventLengths = zeros(size(EventLengths));
 for k = 1:nEvents
-NewEventLenghts(k) = TimeIntervals(k+1) - TimeIntervals(k) ;
+  NewEventLengths(k) = TimeIntervals(k+1) - TimeIntervals(k) ;
 end
 
+% Rounding is necessary because MATLAB does loses precision during the
+% previous step, on the order of numeric precision (10^-16)
+num_dig = 10;
+NewEventLengths = round(NewEventLengths*(10^num_dig))/(10^num_dig);
 
-
-%%
-
+% Creates an event matrix that correlates events as they were indixed when
+% input to the sequence, values of two correspond to pulses, one to free
+% evolution events
 EventMatrix = zeros(nEvents,nEvents);
 for iEvent = 1 : nEvents
   t_event = [t(iEvent) t(iEvent)+EventLengths(iEvent)];
@@ -40,41 +53,9 @@ for iEvent = 1 : nEvents
   end
 end
 
-% NewSequence = zeros(size(isPulse));
-% 
-% for iSequence = 1 : size(M,2)
-%   for iOldEvent = 1 : size(M,1)
-%     if M(iOldEvent,iSequence) == 2
-%       NewSequence(iSequence) = iOldEvent;
-%       continue
-%     elseif M(iOldEvent,iSequence) == 1 && NewSequence(iSequence) == 0 && ~any(NewSequence==iOldEvent)
-%       NewSequence(iSequence) = iOldEvent;
-%     end
-%   end
-% end
-
-% if NewSequence(end) == 0
-%   if any(NewSequence == nEvents)
-%     error('Something went wrong.')
-%   else
-%     NewSequence(end) = nEvents;
-%   end
-% end
-% 
-% dy = 1;
-% figure; clf
-% for k = 1:nEvents
-%   if PulseList(k), col = 'r'; else, col = 'k'; end
-%   line([1 1]*TimeIntervals(k),[1 nEvents],'Color',[0 0.5 0]);
-%   h = line([TimeIntervals(k) TimeIntervals(k+1)],NewSequence(k)*dy*[1 1],'Color',col,'LineWidth',3);
-%   if k<nEvents
-%     line([1 1]*TimeIntervals(k+1),[k,k+1]*dy,'Color',[1 1 1]*0);
-%   end
-% end
-
-% Assert absence of pulse overlap
+% Assert absence of pulse overlap, if pulse overlap is detected, an error
+% is returned which tells the user the index of the overlapping events.
 if any(sum(EventMatrix==2,1)>1)
-%    message = 'Pulse Overlap!'
   Overlaps = find(sum(EventMatrix==2,1)>1);
   OverlappingEvents = sum(EventMatrix(:,Overlaps)==2,2);
   OverlappingEvents = find(OverlappingEvents>0);
@@ -88,16 +69,43 @@ if any(sum(EventMatrix==2,1)>1)
   error(ErrorMessage);
 end
 
-% isEvolveInterval = any(M==1) & all(M~=2);
+% When a pulse and an event start at the same (absolute) time, the
+% reordering fails. This loop takes care that in such a case the pulse is
+% exchanged with the next free evolution event. Repeated for all pulses
+% with zero pulse length.
+for iEvent = 1 : nEvents
+  if PulseList(NewSequence(iEvent)) && NewEventLengths(iEvent) == 0
+    ShortenedPulse = NewSequence(iEvent);
+    NewSequence(iEvent) = NewSequence(iEvent+1);
+    NewSequence(iEvent+1) = ShortenedPulse;
+%     for ii = iEvent + 1 : nEvents
+%       if ~PulseList(NewSequence(ii))
+%         NewSequence(iEvent) = NewSequence(ii);
+%         NewSequence(ii) = ShortenedPulse;
+%         break
+%       end
+%     end
+  end
+end
 
-% for iInterval = 1:nEvents
-%   if ~isEvolveInterval, continue; end
-%   % Check for conflicts between free-evolution events for this interval
-%   for iEvent = 1:nEvents
-%     if M(iEvent,iInterval)~=1, continue; end
-%     
+%--------------------------------------------------------------------------
+% Uncomment the following to get plots of how the time periods are defined
+% after reordering
+%--------------------------------------------------------------------------
+% dy = 1;
+% figure
+% for k = 1:nEvents
+%   if PulseList(k), col = 'r'; else, col = 'k'; end
+%   line([1 1]*TimeIntervals(k),[1 nEvents],'Color',[0 0.5 0]);
+%   h = line([TimeIntervals(k) TimeIntervals(k+1)],NewSequence(k)*dy*[1 1],'Color',col,'LineWidth',3);
+%   if k<nEvents
+%     line([1 1]*TimeIntervals(k+1),[k,k+1]*dy,'Color',[1 1 1]*0);
 %   end
 % end
+%--------------------------------------------------------------------------
+
+
+
 
 end
 

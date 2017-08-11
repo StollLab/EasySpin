@@ -87,5 +87,4 @@ Relaxation.Gamma = system.gamma;
 % Vary.Points = [2 2];
 % 
 % Vary.ts{2} = {0:Exp.TimeStep:0.2; 0:Exp.TimeStep:0.4};
-
-[t, signal,state,sigmas,Eventsnew]=evolve2(Sigma, Ham, Det, Events, Relaxation, Vary);
+[t, signal,state,sigmas,Eventsnew]=thyme(Sigma, Ham, Det, Events, Relaxation, Vary);
