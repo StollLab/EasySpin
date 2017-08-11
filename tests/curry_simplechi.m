@@ -4,12 +4,13 @@ function [err,data] = test(opt,olddata)
 
 Sys.S = [1/2 1/2];
 Sys.g = [2 2];
-Sys.ee = -2*-4*30e3;
+Sys.ee = -2*-4*30e3; % MHz
 
-Exp.Temperature = 1:100;
-Exp.Field = 1000;
+Exp.Temperature = 1:100; % K
+Exp.Field = 1000; % mT
 
-[ignore,chi_SI] = curry(Sys,Exp);
+Opt.Output = 'chimol';
+chi_SI = curry(Sys,Exp,Opt);
 
 data.chi_SI = chi_SI;
 
