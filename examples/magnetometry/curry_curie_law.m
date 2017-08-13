@@ -4,7 +4,7 @@
 % with the explicit form of the Curie law (which is accurate only
 % in the high temperature region).
 
-clear
+clear, clf, clc
 
 % Quantities needed
 S = 1/2;
@@ -22,11 +22,12 @@ Exp.Field = B;
 Exp.Temperature = T;
 
 % Calculate magnetic susceptibility using curry
-[muz,chizz] = curry(Sys,Exp);
+Opt.Output = 'chimol';
+chimol = curry(Sys,Exp,Opt);
 
 % Plot the result. You can see that at low temperatures the Curie
-% law is a bad approximation to the correct susceptibility.
-plot(T,chizz,T,chi_Curie);
+% law is an invalid approximation to the correct susceptibility.
+plot(T,chimol,T,chi_Curie);
 legend('exact','Curie law');
 legend boxoff
 xlabel('temperature (K)');
