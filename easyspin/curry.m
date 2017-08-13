@@ -140,6 +140,9 @@ logmsg(1,'  number of knots: %d',Opt.nKnots);
 if ~isfield(Opt,'Symmetry')
   Opt.Symmetry = []; % needed for p_symandgrid
 end
+if ~isfield(Opt,'deltaB')
+  Opt.deltaB = 1e-5; % T
+end
 
 if ~isfield(Opt,'Output')
   switch nargout
@@ -235,6 +238,7 @@ Exp.PowderSimulation = doPowderSimulation; % for communication with p_*
 Exp.OriWeights = Exp.OriWeights/4/pi;
 
 beta = 1./T/boltzm;
+dB = Opt.deltaB;
 
 % Initialize output arrays
 muz = zeros(nFields,nTemperatures);
@@ -243,18 +247,21 @@ if calculateChi
 end
 
 % Calculation loop
-%-------------------------------------------------
+%-------------------------------------------------------------------------------
 % All calculations are done in the molecular frame.
-if useOperatorMethod
-  for iOri = 1:nOrientations
-    [xLab_M,yLab_M,zLab_M] = erot(Orientations(iOri,:),'rows');
+for iOri = 1:nOrientations
+  [xLab_M,yLab_M,zLab_M] = erot(Orientations(iOri,:),'rows');
+  
+  % Projection of magnetic moment operator onto lab-frame axes
+  % (field direction is along z axis of lab frame, zLab)
+  muOpzL = zLab_M(1)*muOpxM + zLab_M(2)*muOpyM + zLab_M(3)*muOpzM; % J/T
+  
+  for iB = 1:nFields
     
-    % Projection of magnetic moment operator onto lab-frame axes
-    % (field direction is along z axis of lab frame, zLab)
-    muOpzL = zLab_M(1)*muOpxM + zLab_M(2)*muOpyM + zLab_M(3)*muOpzM; % J/T
-    
-    for iB = 1:nFields
+    if useOperatorMethod
       
+      % Calculate mu and chi using magnetic-moment operators
+      %-----------------------------------------------------
       [V,E] = eig(H0 - B(iB)*muOpzL);
       E = diag(E); % J
       populations = exp(-(E-E(1))*beta);
@@ -267,17 +274,11 @@ if useOperatorMethod
       muz_expect = real(diag(V'*muOpzL*V));
       
       % Calculate population-weighted average.
-      muz_avg = (muz_expect.'*populations)./sum(populations,1);
-      
-      % Accumulate for powder average
-      muz(iB,:) = muz(iB,:) + Exp.OriWeights(iOri)*muz_avg;
-      
+      muz_ = (muz_expect.'*populations)./sum(populations,1);
+           
       if calculateChi
         
-        % Determine step size for numerical derivative
-        dB = eps^(1/3)*max(B(iB),1); % optimal step size for numerical derivative
-        B1 = B(iB) + dB; dB = B1 - B(iB); % prevent round-off errors
-        
+        % Solve eigenproblem at slightly higher field
         [V,E] = eig(H0 - (B(iB)+dB)*muOpzL);
         E = diag(E); % J
         populations = exp(-(E-E(1))*beta);
@@ -287,72 +288,52 @@ if useOperatorMethod
         
         % Calculate population-weighted average.
         muz_expect = real(diag(V'*muOpzL*V));
-        muz_avg2 = (muz_expect.'*populations)./sum(populations,1);
+        muz2_ = (muz_expect.'*populations)./sum(populations,1);
         
         % Calculate zz component of susceptibility tensor as numerical
-        % derivative of muz. Accumulate for powder average.
-        chizz_ = (muz_avg2-muz_avg)/dB;
-        chizz(iB,:) = chizz(iB,:) + Exp.OriWeights(iOri)*chizz_;
+        % derivative of muz.
+        chizz_ = (muz2_-muz_)/dB;
         
       end
       
-    end % loop over field values
-  end % loop over orientations
-  
-else
-  
-  % Calculate M and chi using logarithm of partition function
-  %----------------------------------------------------------------------
-  
-  % Pre-calculate log(Z) for zero field (used for the calculation of chi
-  % at zero field)
-  if calculateChi
-    E0 = eig(H0);
-    mEchi = E0(1);
-    lE = length(E0);
-    betachi = repmat(beta,lE,1);
-    logZ0 = log(sum(exp(-repmat(E0-mEchi,1,nTemperatures).*betachi)));
-  end
-  
-  for iOri = 1:nOrientations
-    
-    [xLab_M,yLab_M,zLab_M] = erot(Orientations(iOri,:),'rows');
-    
-    % Projection of magnetic moment operator onto lab z axis
-    % (field direction along z axis of lab frame, zLab)
-    muOpzL = zLab_M(1)*muOpxM + zLab_M(2)*muOpyM + zLab_M(3)*muOpzM;
+    else
+      
+      % Calculate mu and chi using logarithm of partition function
+      %-----------------------------------------------------------
+      E1 = eig(H0 - (B(iB)-dB)*muOpzL);
+      E3 = eig(H0 - (B(iB)+dB)*muOpzL);
+      Emin = min([E1;E3]);
+      lnZ = @(E) log(sum(exp(-(E-Emin)*beta),1)); % log of partition function
+      lnZ1 = lnZ(E1);
+      lnZ3 = lnZ(E3);
+      
+      % Calculate mu via symmetric difference quotient of ln(Z), and accumulate.
+      if calculateMu
+        muz_ = (lnZ3-lnZ1)/(2*dB)./beta;
+      end
+      
+      % Calculate chi via symmetric second difference quotient of ln(Z).
+      if calculateChi
+        E2 = eig(H0 - B(iB)*muOpzL);
+        lnZ2 = lnZ(E2);
+        chizz_ = (lnZ3-2*lnZ2+lnZ1)/(2*dB^2)./beta;
+      end
+      
+    end
     
     if calculateMu
-      for iB = nFields:-1:1
-        dB = eps^(1/3)*max(B(iB),1); % optimal step size for numerical derivative
-        B1 = B(iB) + dB; dB = B1 - B(iB); % prevent round-off errors
-        B2 = B(iB) - dB;
-        E1 = eig(H0 - B1*muOpzL);
-        E2 = eig(H0 - B2*muOpzL);
-        Emin = min([E1;E2]);
-        logZ1 = log(sum(exp(-(E1-Emin)*beta)));
-        logZ2 = log(sum(exp(-(E2-Emin)*beta)));
-        dlogZdB = (logZ1-logZ2)/(2*dB);
-        mz(:,iB)= boltzm * Exp.Temperature(:) .* dlogZdB(:);
-      end
-      % Accumulation for powder average
-      muz = muz + Exp.OriWeights(iOri)*mz.';
+      muz(iB,:) = muz(iB,:) + Exp.OriWeights(iOri)*muz_;
     end
-    
     if calculateChi
-      dB = eps^(1/3);
-      E1 = eig(H0 + dB*muOpzL);
-      logZ1 = log(sum(exp(-repmat(E1-mEchi,1,nTemperatures).*betachi)));
-      chizz_ = boltzm *Exp.Temperature.' .* (logZ1-logZ0)*2/dB^2;
-      % Accumulation for powder average
-      chizz = chizz + Exp.OriWeights(iOri)*chizz_;
+      chizz(iB,:) = chizz(iB,:) + Exp.OriWeights(iOri)*chizz_;
     end
     
-  end  % loop over orientations
-  
-end
+  end % loop over field values
+end % loop over orientations
+
 
 % Unit conversions
+%-------------------------------------------------------------------------------
 if calculateMu
   muz_SI = muz; % single-center magnetic moment, SI units
   if useCGSunits
