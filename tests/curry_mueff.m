@@ -19,9 +19,10 @@ mueff_CGS = curry(Sys,Exp,Opt);
 
 mueff_explicit = Sys.g*sqrt(Sys.S*(Sys.S+1)); % valid only for high-T limit
 
-thr = 1e-6;
-ok = areequal(mueff_SI,mueff_explicit,thr) && ...
-     areequal(mueff_CGS,mueff_explicit,thr);
+thr1 = 1e-12;
+thr2 = 1e-7;
+ok = areequal(mueff_SI,mueff_CGS,thr1) && ...
+     areequal(mueff_SI,mueff_explicit,thr2);
 err = ~ok;
 
-data =[];
+data = [];

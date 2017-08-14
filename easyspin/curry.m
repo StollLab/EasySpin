@@ -140,6 +140,9 @@ logmsg(1,'  number of knots: %d',Opt.nKnots);
 if ~isfield(Opt,'Symmetry')
   Opt.Symmetry = []; % needed for p_symandgrid
 end
+if ~isfield(Opt,'SymmFrame')
+  Opt.SymmFrame = eye(3);  % needed for p_symandgrid
+end
 if ~isfield(Opt,'deltaB')
   Opt.deltaB = 1e-5; % T
 end
@@ -161,26 +164,28 @@ logmsg(1,'  output: %s',Opt.Output);
 % Parse output quantity list in Opt.Output
 calculateMu = (nargout==0);
 calculateChi = (nargout==0) || (nargout>1);
-OneColumn = false;
+calculateMuVec = false;
 keywords = strread(Opt.Output,'%s');
-rmv = false(size(keywords));
 for k = 1:numel(keywords)
   switch keywords{k}
     case 'mu', calculateMu = true;
     case 'mumol', calculateMu = true;
     case 'muBM', calculateMu = true;
     case 'mueff', calculateChi = true;
+    case 'muvec', calculateMu = true; calculateMuVec = true;
     case 'chi', calculateChi = true;
     case 'chimol', calculateChi = true;
     case 'chimolT', calculateChi = true;
     case '1/chimol', calculateChi = true;
-    case 'onecolumn', rmv(k) = true; OneColumn = true;
     otherwise
       error('%s keyword in Opt.Output is not known.',keywords{k});
   end
 end
-keywords(rmv) = [];
 logmsg(1,'  number of outputs: %d',numel(keywords));
+
+if calculateMuVec && doPlot
+  error('Cannot plot results when calculating full magentic moment vector.');
+end
 
 % Parse unit system in Opt.Units
 if ~isfield(Opt,'Units')
@@ -205,6 +210,9 @@ switch lower(Opt.Method)
     useOperatorMethod = false;
     if calculateChi && any(B(:))
       error('Energy method can calculate susceptibility only in the absence of magnetic field!');
+    end
+    if calculateMuVec
+      error('Energy method cannot calculate full magnetic moment vector!');
     end
   otherwise
     error('Opt.Method can be ''operator'' or ''energies''!');
@@ -242,19 +250,33 @@ dB = Opt.deltaB;
 
 % Initialize output arrays
 muz = zeros(nFields,nTemperatures);
+if calculateMuVec
+  mux = zeros(nFields,nTemperatures);
+  muy = zeros(nFields,nTemperatures);
+end
 if calculateChi
   chizz = zeros(nFields,nTemperatures);
 end
 
-% Calculation loop
+% Calculation of magnetic moment and susceptibility
 %-------------------------------------------------------------------------------
 % All calculations are done in the molecular frame.
+
+% Define utility functions
+calcmu = @(Vecs,muOp,pop) (real(diag(Vecs'*muOp*Vecs)).'*pop)./sum(pop,1);
+getmuproj = @(nM) nM(1)*muOpxM + nM(2)*muOpyM + nM(3)*muOpzM;
+
+% Orientation loop
 for iOri = 1:nOrientations
-  [xLab_M,yLab_M,zLab_M] = erot(Orientations(iOri,:),'rows');
+  [xL_M,yL_M,zL_M] = erot(Orientations(iOri,:),'rows');
   
   % Projection of magnetic moment operator onto lab-frame axes
-  % (field direction is along z axis of lab frame, zLab)
-  muOpzL = zLab_M(1)*muOpxM + zLab_M(2)*muOpyM + zLab_M(3)*muOpzM; % J/T
+  % (field direction is along z axis of lab frame, zL)
+  muOpzL = getmuproj(zL_M); % J/T
+  if calculateMuVec
+    muOpxL = getmuproj(xL_M); % J/T
+    muOpyL = getmuproj(yL_M); % J/T
+  end
   
   for iB = 1:nFields
     
@@ -270,12 +292,13 @@ for iOri = 1:nOrientations
       end
       
       % Calculate expectation value of zL-component of magnetic moment
-      % for each spin state.
-      muz_expect = real(diag(V'*muOpzL*V));
+      % for each spin state and do population average
+      muz_ = calcmu(V,muOpzL,populations);
+      if calculateMuVec
+        mux_ = calcmu(V,muOpxL,populations);
+        muy_ = calcmu(V,muOpyL,populations);
+      end
       
-      % Calculate population-weighted average.
-      muz_ = (muz_expect.'*populations)./sum(populations,1);
-           
       if calculateChi
         
         % Solve eigenproblem at slightly higher field
@@ -287,8 +310,7 @@ for iOri = 1:nOrientations
         end
         
         % Calculate population-weighted average.
-        muz_expect = real(diag(V'*muOpzL*V));
-        muz2_ = (muz_expect.'*populations)./sum(populations,1);
+        muz2_ = calcmu(V,muOpzL,populations);
         
         % Calculate zz component of susceptibility tensor as numerical
         % derivative of muz.
@@ -324,11 +346,17 @@ for iOri = 1:nOrientations
     if calculateMu
       muz(iB,:) = muz(iB,:) + Exp.OriWeights(iOri)*muz_;
     end
+    if calculateMuVec
+      mux(iB,:) = mux(iB,:) + Exp.OriWeights(iOri)*mux_;
+      muy(iB,:) = muy(iB,:) + Exp.OriWeights(iOri)*muy_;
+    end
+    
     if calculateChi
       chizz(iB,:) = chizz(iB,:) + Exp.OriWeights(iOri)*chizz_;
     end
     
   end % loop over field values
+  
 end % loop over orientations
 
 
@@ -340,10 +368,18 @@ if calculateMu
     muz_CGS = muz_SI/1e-3; % single-center magnetic moment, CGS-emu units
   end
 end
+if calculateMuVec
+  mux_SI = mux; % single-center magnetic moment, SI units
+  muy_SI = muy; % single-center magnetic moment, SI units
+  if useCGSunits
+    mux_CGS = mux_SI/1e-3; % single-center magnetic moment, CGS-emu units
+    muy_CGS = muy_SI/1e-3; % single-center magnetic moment, CGS-emu units
+  end
+end
 if calculateChi
   chizz_SI = chizz*mu0 + Sys.TIP/avogadro;   % single-center SI, add TIP
   if useCGSunits
-    chizz_CGS = chizz_SI/(4*pi*1e-6);   % SI -> CGS unit conversion
+    chizz_CGS = chizz_SI/(4*pi*1e-6);   % SI -> CGS-emu unit conversion
   end
 end
 
@@ -368,7 +404,7 @@ if doPlot
     
     clf
     subplot(2,2,1)
-    plot(x,muz_SI/bmagn); % SI and CGS value are numerically identical
+    plot(x,muz_SI/bmagn); % SI and CGS-emu value are numerically identical
     ylabel('\mu_z/\mu_B,  \mu_{mol,z}/(N_A\mu_B)')
     axis tight
     
@@ -384,19 +420,19 @@ if doPlot
     
     subplot(2,2,3)
     if useCGSunits
-      plot(x,chizz_CGS);
+      plot(x,chizz_CGS*avogadro);
       ylabel('\chi_{mol,zz}  (cm^3 mol^{-1})');
     else
-      plot(x,chizz_SI);
+      plot(x,chizz_SI*avogadro);
       ylabel('\chi_{mol,zz}  (m^3 mol^{-1})');
     end
     
     subplot(2,2,4)
     if useCGSunits
-      plot(x,chizz_CGS.*T);
+      plot(x,chizz_CGS*avogadro.*T);
       ylabel('\chi_{mol,zz}T  (K cm^3 mol^{-1})');
     else
-      plot(x,chizz_SI.*T);
+      plot(x,chizz_SI*avogadro.*T);
       ylabel('\chi_{mol,zz}T  (K m^3 mol^{-1})');
     end
     
@@ -412,7 +448,7 @@ if doPlot
     chizzT_SI = chizz_SI.*repmat(T(:).',nFields,1);
     if Plot2D
       subplot(2,2,1);
-      surf(T,B,muz_SI/bmagn); % SI and CGS values are numerically identical
+      surf(T,B,muz_SI/bmagn); % SI and CGS-emu values are numerically identical
       shading flat
       zlabel(' \mu_z/\mu_B,  \mu_{mol,z}/(N_A\mu_B)')
       
@@ -456,18 +492,19 @@ if doPlot
       
     else
       subplot(2,2,1)
-      plot(T,muz_SI/bmagn); % SI and CGS value are numerically identical
+      plot(T,muz_SI/bmagn); % SI and CGS-emu value are numerically identical
       axis tight
       ylabel('\mu_z (\mu_B), \mu_{mol,z} (N_A\mu_B)')
       
       subplot(2,2,2)
       if useCGSunits
         plot(T,muz_CGS*avogadro);
+        ylabel('\mu_{mol,z} (erg G^{-1} mol^{-1})')
       else
         plot(T,muz_SI*avogadro);
+        ylabel('\mu_{mol,z} (J T^{-1} mol^{-1})')
       end
       axis tight
-      ylabel('\mu_{mol,z} (J T^{-1}mol^{-1})')
       
       subplot(2,2,3)
       if useCGSunits
@@ -481,10 +518,11 @@ if doPlot
       subplot(2,2,4)
       if useCGSunits
         plot(T,chizzT_CGS);
+        ylabel('\chi_{mol,zz}T (K cm^3 mol^{-1})');
       else
         plot(T,chizzT_SI);
+        ylabel('\chi_{mol,zz}T (K m^3 mol^{-1})');
       end
-      ylabel('\chi_{mol,zz}T (K cm^3 mol^{-1})');
       
       for i = 1:4
         subplot(2,2,i);
@@ -503,12 +541,14 @@ end % if doPlot
 % Assign unit-ful values
 if useCGSunits
   if calculateMu, muz = muz_CGS; end
+  if calculateMuVec, mux = mux_CGS; muy = muy_CGS; end
   if calculateChi, chizz = chizz_CGS; end
-  muB = bmagn/1e-3; % Bohr magneton in CGS units
+  muB = bmagn/1e-3; % Bohr magneton in CGS-emu units (erg/G = abA cm^2)
 else
   if calculateMu, muz = muz_SI; end
+  if calculateMuVec, mux = mux_SI; muy = muy_SI; end
   if calculateChi, chizz = chizz_SI; end
-  muB = bmagn; % Bohr magneton in SI units
+  muB = bmagn; % Bohr magneton in SI units (J/T = A m^2)
 end
 
 % Units-independent output assignment
@@ -522,12 +562,16 @@ for n = numel(keywords):-1:1
       outval = muz/muB; % dimensionless; numerically identical in SI and CGS-emu
     case 'mueff'
       if useCGSunits
-        c = 1/0.1250494086;
+        %c = 7.99683909968;
+        c = 3*boltzm/avogadro/bmagn^2*10; % in CGS-emu units
         outval = sqrt(chizz*avogadro.*repmat(T(:).',nFields,1)*c);
       else
-        c = 3*boltzm/avogadro/bmagn^2/mu0;
+        %c = 797.7269181318873;
+        c = 3*boltzm/avogadro/bmagn^2/mu0; % in SI units
         outval = sqrt(chizz*avogadro.*repmat(T(:).',nFields,1)*c);
       end
+    case 'muvec'
+      outval = [mux muy muz].';
     case 'chi'
       outval = chizz;
     case 'chimol'
@@ -540,15 +584,7 @@ for n = numel(keywords):-1:1
       error('Keyword %s in Opt.Output is unknown.',keywords{n});
   end
   
-  if OneColumn
-    outdim = nFields*nTemperatures;
-    for m = nTemperatures:-1:1
-      templine((m-1)*nFields+1:m*nFields) = outval(:,m);
-    end
-    varargout{1}((n-1)*outdim+1:n*outdim) = templine;
-  else
-    varargout{n} = outval;
-  end
+  varargout{n} = outval;
   
 end
 

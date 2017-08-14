@@ -60,7 +60,7 @@ for k = 1:numel(keywords)
     case 'chimol', test = chimol_CGS;
     case 'chimolT', test = chimolT_CGS;
     case '1/chimol', test = 1./chimol_CGS;
-    case 'mueff', c = 1/0.1250494086; test = sqrt(chimolT_CGS*c);
+    case 'mueff', c = 3*boltzm/avogadro/bmagn^2*10; test = sqrt(chimolT_CGS*c);
   end
   err = err + fullerr(out,test);
   
