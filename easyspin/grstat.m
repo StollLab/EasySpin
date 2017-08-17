@@ -12,7 +12,7 @@
 %           or Lx1 array, Gelman-Rubin R statistic for each of the L
 %              instances
 
-% Implementation based on 
+% Implementation based on
 %   Gelman and Rubin, Journal of Computational and Graphical Statistics 7, 
 %   434 (1998)
 %     http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.55.1675
@@ -24,7 +24,9 @@ if (nargin==0), help(mfilename); return; end
 ndimsA = ndims(A);
 sizeA = size(A);
 
-assert(isnumeric(A),'Must provide an array for input.')
+if ~isnumeric(A)
+  error('Must provide a numeric array for input.')
+end
 
 if ndimsA>3
   error('Array dimensions greater than 3 are not supported.')
@@ -37,7 +39,7 @@ end
 if iscolumn(A) || (ndimsA==3 && ~sizeA(3)>1)
   error('Must have more than one Markov chain.')
 end
-  
+
 if ndimsA==2
   % Scalar Markov chains
   stat = find_gr(A);

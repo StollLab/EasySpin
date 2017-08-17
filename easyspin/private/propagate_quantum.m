@@ -109,7 +109,7 @@ if strcmp(Model,'Molecular Dynamics')
   
   if MD.nTraj > 1, error('Using multiple MD trajectories is not supported.'); end
   
-  if any(strcmp(Method,{'Sezer','Oganesyan'}))
+  if any(strcmp(Method,{'Nitroxide','ISTOs'}))
     % size of averaging window
     nWindow = ceil(Par.dt/MD.dt);
 
@@ -117,7 +117,8 @@ if strcmp(Model,'Molecular Dynamics')
     M = floor(MD.nSteps/nWindow);
 
     % process single long trajectory into multiple short trajectories
-    lag = ceil(Par.dt/2e-9);  % use 2 ns lag between windows
+%     lag = ceil(Par.dt/2e-9);  % use 2 ns lag between windows
+      lag = 2;
 %     lag = ceil(Par.dt/1e-9);
     if Par.nSteps<M
       nSteps = Par.nSteps;
@@ -128,7 +129,7 @@ if strcmp(Model,'Molecular Dynamics')
       nTraj = 1;
     end
 
-  elseif strcmp(Method,'Steinhoff')
+  elseif strcmp(Method,'Resampling')
     % Steinhoff method does not require tensor averaging, so set nTraj to
     % user input
     nTraj = Par.nTraj;
@@ -157,7 +158,7 @@ end
 % -------------------------------------------------------------------------
 
 switch Method
-  case 'Sezer'  % see Ref [1]
+  case 'Nitroxide'  % see Ref [1]
 
     g_tr = sum(g);
     
@@ -273,7 +274,7 @@ switch Method
     end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  case 'Oganesyan'  % see Ref [2]
+  case 'ISTOs'  % see Ref [2]
 
     % Calculate and store rotational basis operators
     % ---------------------------------------------------------------------
@@ -310,24 +311,25 @@ switch Method
       
       % zeroth rank
 %       cacheTensors.Q0 = conj(F0(1))*T0{1} + conj(F0(2))*T0{2};
-      if Liouville
-        cacheTensors.Q0 = tosuper(conj(F0)*T0,'c');
-      else
+
+%       if Liouville
+%         cacheTensors.Q0 = tosuper(conj(F0)*T0,'c');
+%       else
         cacheTensors.Q0 = conj(F0)*T0;
-      end
+%       end
       
       cacheTensors.Q2 = cell(5,5);
       
       % create the 25 second-rank RBOs
       for mp = 1:5
         for m = 1:5
-          if Liouville
-            cacheTensors.Q2{mp,m} = tosuper(conj(F2(1,mp))*T2{1,m} ...
-                                + conj(F2(2,mp))*T2{2,m},'c');
-          else
+%           if Liouville
+%             cacheTensors.Q2{mp,m} = tosuper(conj(F2(1,mp))*T2{1,m} ...
+%                                 + conj(F2(2,mp))*T2{2,m},'c');
+%           else
             cacheTensors.Q2{mp,m} = conj(F2(1,mp))*T2{1,m} ...
                                         + conj(F2(2,mp))*T2{2,m};
-          end
+%           end
         end
       end
       
@@ -431,11 +433,15 @@ switch Method
     rho_t(4:6,1:3,:,1) = repmat(eye(3),1,1,nTraj,1);
     
     % calculate Hamiltonians and  propagators
+%     if Liouville
+%       rho_t = reshape(rho_t,[36,nTraj,nSteps]);
+%       U = zeros(36,36,nTraj,nSteps);
+%     else
+      U = zeros(6,6,nTraj,nSteps);
+%     end
+
     if Liouville
       rho_t = reshape(rho_t,[36,nTraj,nSteps]);
-      U = zeros(36,36,nTraj,nSteps);
-    else
-      U = zeros(6,6,nTraj,nSteps);
     end
     
 %     if truncated
@@ -485,12 +491,16 @@ switch Method
             H = H + D2(m,mp,iTraj,iStep)*cacheTensors.Q2{mp,m};
           end
         end
-%         U(:,:,iTraj,iStep) = expeig(1i*dt*H);  % TODO speed this up!
-        U(:,:,iTraj,iStep) = expm_fast1(1i*dt*H);  % TODO speed this up!
+        U(:,:,iTraj,iStep) = expeig(1i*dt*H);  % TODO speed this up!
+%         U(:,:,iTraj,iStep) = expm_fast1(1i*dt*H);  % TODO speed this up!
       end
     end
     
     Udag = conj(permute(U,[2,1,3,4]));
+    
+    if Liouville
+      U = tosuperLR(U, Udag);
+    end
     
     % Propagate density matrix
     % ---------------------------------------------------------------------
@@ -499,11 +509,12 @@ switch Method
       % Prepare equilibrium propagators
       % -------------------------------------------------------------------
       
-      if Liouville
-        Ueq = zeros(36,36,nTraj);
-      else
+%       if Liouville
+%         Ueq = zeros(36,36,nTraj);
+%       else
         Ueq = zeros(6,6,nTraj);
-      end
+%         Ueqdag = zeros(6,6,nTraj);
+%       end
       
       for iTraj=1:nTraj
         % zeroth rank term (HF only)
@@ -514,7 +525,6 @@ switch Method
           for m = 1:5
             Heq = Heq + cacheTensors.Q2{mp,m}*mean(D2(m,mp,iTraj,:),4) ...
                       + 1i*cacheTensors.Q2{mp,m}*(cacheTensors.Q2{mp,m})'*K2(mp,m);
-%                             + 1i*cacheTensors.Q2{mp,m}*(cacheTensors.Q2{mp,m})'*K2(mp,m);
           end
         end
 %         Ueq(:,:,iTraj) = expeig(1i*dt*Heq);
@@ -522,6 +532,10 @@ switch Method
       end
       
       Ueqdag = conj(permute(Ueq,[2,1,3]));
+      
+      if Liouville
+        Ueq = tosuperLR(Ueq,Ueqdag);
+      end
       
       % full propagation until correlation functions have relaxed
       if Liouville
@@ -584,7 +598,7 @@ switch Method
     rho_t = rho_t(4:6,1:3,:,:);
     
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  case 'Steinhoff'
+  case 'Resampling'
     
     g_tr = sum(g);
     
