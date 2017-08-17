@@ -183,8 +183,8 @@ if isfield(Sys,'PseudoPotFun')
 %   Bgrid = permute(Bgrid, pidx);
 %   Ggrid = permute(Ggrid, pidx);
   
-  extrap = 'none';
-  method = 'linear';
+%   extrap = 'none';
+%   method = 'linear';
   Fx = griddedInterpolant({Agrid, Bgrid, Ggrid}, px);
   Fy = griddedInterpolant({Agrid, Bgrid, Ggrid}, py);
   Fz = griddedInterpolant({Agrid, Bgrid, Ggrid}, pz);
@@ -200,33 +200,36 @@ end
 if isfield(Par,'t')
   % time axis is given explicitly
   t = Par.t;
-  Sim.nSteps = numel(t);
-  Sim.dt = t(2) - t(1);
-  if (abs(Sim.dt - max(t)/Sim.nSteps) > eps), error('t is not linearly spaced.'); end
+  nSteps = numel(t);
+  dt = t(2) - t(1);
+  if (abs(dt - max(t)/nSteps) > eps), error('t is not linearly spaced.'); end
 
 elseif isfield(Par,'nSteps') && isfield(Par,'dt')
   % number of steps and time step are given
-  Sim.dt = Par.dt;
-  Sim.nSteps = Par.nSteps;
+  dt = Par.dt;
+  nSteps = Par.nSteps;
 
 elseif isfield(Par,'nSteps') && isfield(Par,'tmax')
   % number of steps and max time are given
   tmax = Par.tmax;
-  Sim.nSteps = Par.nSteps;
-  Sim.dt = tmax/Sim.nSteps;
+  nSteps = Par.nSteps;
+  dt = tmax/Sim.nSteps;
 
 else
 %   error(['You must specify a time array, or a number of steps and ' ...
 %         'either a time step or tmax.'])
   logmsg(1,'-- No time step given. Par.dt set to Par.tcorr/10: %0.5g s.', 1/6/mean(Sim.Diff));
-  Sim.dt = 1/6/mean(Sim.Diff)/10;
+  dt = 1/6/mean(Sim.Diff)/10;
   if ~isfield(Par, 'nSteps')
     logmsg(1,'-- Number of time steps not given. Par.nSteps set to 200e-9/Par.dt: %d.', ceil(200e-9/Sim.dt));
-    Sim.nSteps = ceil(200e-9/Sim.dt);
+    nSteps = ceil(200e-9/Sim.dt);
   else
-    Sim.nSteps = Par.nSteps;
+    nSteps = Par.nSteps;
   end
 end
+
+Sim.nSteps = nSteps;
+Sim.dt = dt;
 
 if ~isfield(Par,'Integrator')
   % default Monte Carlo integrator is Euler-Maruyama
@@ -307,7 +310,7 @@ converged = 0;
 % completed (i.e. the number of instances of propagation in time by nSteps)
 iter = 0;
 
-logmsg(1,'-- Calculating stochastic trajectories -----------------------');
+logmsg(2,'-- Calculating stochastic trajectories -----------------------');
 
 while ~converged
   if iter==0
@@ -320,8 +323,8 @@ while ~converged
     qTraj = propagate_classical(qTraj, Sim, iter);
 
   else
-    logmsg(1,'-- Convergence not obtained -------------------------------------');
-    logmsg(1,'-- Propagation extended to %dth iteration -----------------------', iter);
+    logmsg(3,'-- Convergence not obtained -------------------------------------');
+    logmsg(3,'-- Propagation extended to %dth iteration -----------------------', iter);
     % Propagation is being extended, so reset nSteps
     % Continue propagation by 20% more steps or by tcorr/dt, whichever is
     % greater
@@ -341,7 +344,18 @@ while ~converged
   iter = iter + 1;
 
   if iter>10
-    logmsg(1,'Warning: convergence is very slow. Consider increasing\nlength or number of trajectories.')
+    logmsg(1,['Warning: convergence is very slow. Consider increasing\n',...
+              'length or number of trajectories.'])
+  end
+  
+  if iter>15 && converged==0
+    logmsg(1,'Warning: restarting trajectory set due to lack of convergence.\n')
+    iter = 0;
+    % re-initialize trajectories
+    Sim.nSteps = nSteps;
+    q0 = euler2quat(Omega);
+    qTraj = zeros(4,Sim.nTraj,Sim.nSteps);
+    qTraj(:,:,1) = q0;
   end
 
 end
@@ -355,8 +369,8 @@ t = linspace(0, totSteps*Sim.dt, totSteps).';
 % Convert to rotation matrices
 RTraj = quat2rotmat(qTraj);
 
-logmsg(1,'-- Propagation finished --------------------------------------');
-logmsg(1,'--------------------------------------------------------------');
+logmsg(2,'-- Propagation finished --------------------------------------');
+logmsg(2,'--------------------------------------------------------------');
 
 
 % Final processing
@@ -550,7 +564,7 @@ function Vq = interp3fast(F, Xq, Yq, Zq)
 %    V is ndgrid-ordered, not meshgrid-ordered (fed to griddedInterpolant)
 %interp3fast 3-D interpolation (table lookup).
 
-p = [2 1 3];
+% p = [2 1 3];
 
 % Xq = permute(Xq,p);
 % Yq = permute(Yq,p);
