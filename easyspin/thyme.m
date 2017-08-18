@@ -35,7 +35,7 @@ switch method
     
     if ~isempty(Vary)
       nDimensions = numel(Vary.Points);
-      idx = ones(1,nDimensions);
+      DimensionIndices = ones(1,nDimensions);
       nPoints = prod(Vary.Points);
     else
       nDimensions = 0;
@@ -47,108 +47,111 @@ switch method
     AllDensityMatrices = [];
     initialSigma = Sigma;
     
-%     timer = 0;
     
-%     PulsePositions = [];
-%     iPulse = 1;
+    %----------------------------------------------------------------------
+    % Creates the pulse list, that is needed for reordering events
+    %----------------------------------------------------------------------
     isPulse = zeros(1,nEvents);
-    iPulse = 1;
+    nPulses = 0;
     for iEvent = 1 : nEvents
       switch Events{iEvent}.type
         case 'pulse'
           isPulse(iEvent) = 1;
-          PulsePositions(iPulse) = iEvent;
-          iPulse = iPulse + 1;
+          nPulses = nPulses + 1;
+          PulsePositions(nPulses) = iEvent;
       end
     end
     
     %----------------------------------------------------------------------
-    % This checks if traces in all dimensions will have the save length, if
+    % This checks if traces for all datapoints have the save length, if
     % not, a cell array is used for storage of traces
     %----------------------------------------------------------------------
-    StoreInArray = false;
+    StoreInCellArray = false;
     
+    % Gets initial event lengths
+    InitialEventLengths = zeros(1,nEvents);
+    for iEvent = 1 : nEvents
+      InitialEventLengths(iEvent) = Events{iEvent}.t(end);
+    end
+    
+    if nDimensions > 0
 
-    
-    if ~isempty(Vary)
       
-      InitialEventLengths = zeros(1,nEvents);
-      for iEvent = 1 : nEvents
-        InitialEventLengths(iEvent) = Events{iEvent}.t(end);
-      end
-     for iPoint = 1 : nPoints
-       
-       EventLengths = InitialEventLengths;
-       DetectionTime = 0;
-       
-       for iDimension = 1 : nDimensions
-         
-         if any(any(Vary.IncrementationTable{iDimension}))
-           ModifiedEvents = find(Vary.IncrementationTable{iDimension}(:,idx(iDimension)));
-           for i = 1 : length(ModifiedEvents)
-             EventLengths(ModifiedEvents(i)) = EventLengths(ModifiedEvents(i)) + Vary.IncrementationTable{iDimension}(ModifiedEvents(i),idx(iDimension));
-           end
-         end
-         
-       end
+      % Loop over all data points
+      for iPoint = 1 : nPoints
         
-        nPulses = length(Vary.Pulses);
+        EventLengths = InitialEventLengths;
         
+        % DetectionTime is used to measure the total length of detected
+        % events
+        DetectionTime = 0;
+        
+        % First all delays are set according to the incrementation tables
+        % for each dimension
+        for iDimension = 1 : nDimensions
+          if any(any(Vary.IncrementationTable{iDimension}))
+            ModifiedEvents = find(Vary.IncrementationTable{iDimension}(:,DimensionIndices(iDimension)));
+            for i = 1 : length(ModifiedEvents)
+              EventLengths(ModifiedEvents(i)) = EventLengths(ModifiedEvents(i)) + Vary.IncrementationTable{iDimension}(ModifiedEvents(i),DimensionIndices(iDimension));
+            end
+          end
+        end
+                
+        % Loops over the pulses, and loads the pulse lenght for the current
+        % acquisition point
         for iPulse = 1 : nPulses
           if ~isempty(Vary.Pulses{iPulse})
-           iEvent = PulsePositions(iPulse);
-           t = LoadWaveform(Vary.Pulses{iPulse}.ts,idx);
-           EventLengths(iEvent) = t(end);
+            iEvent = PulsePositions(iPulse);
+            t = LoadWaveform(Vary.Pulses{iPulse}.ts,DimensionIndices);
+            EventLengths(iEvent) = t(end);
           end
-            
         end
-          
+        
+        % Reorder Events and adjust event lengths
         [Sequence, NewEventLengths] = reorder_events(EventLengths,isPulse);
         
+        % Count the time during detected events
         for iSequence = 1 : nEvents
           if Events{Sequence(iSequence)}.Detection
             DetectionTime = DetectionTime + NewEventLengths(iSequence);
           end
         end
         
+        % Get a reference detection time for the first data point
         if iPoint == 1
           ReferenceDetection = DetectionTime;
         else
-          if abs(ReferenceDetection-DetectionTime) > 10^-12
-            
-           StoreInArray = true;
-           break
-           
+          % Or compare the sum of the detected time intervals to the
+          % detection time of the first data point. If they don't match,
+          % signals are stored in a cell array
+          if abs(ReferenceDetection-DetectionTime) > 1e-12
+            StoreInCellArray = true;
+            break 
           end
         end
         
-        
+        % Increment Dimensions in Acquisition Counter
         for d = nDimensions:-1:1
-          if idx(d)<Vary.Points(d)
-            idx(d) = idx(d)+1;
+          if DimensionIndices(d)<Vary.Points(d)
+            DimensionIndices(d) = DimensionIndices(d)+1;
             break;
           else
-            idx(d) = 1;
+            DimensionIndices(d) = 1;
           end
         end
         
-     end
-     
-     idx = ones(1,nDimensions);
-     
+      end
+      
+      % Reset Acquisition counter to first data point
+      DimensionIndices = ones(1,nDimensions);
+      
     end
-        
-    if StoreInArray
+    
+    if StoreInCellArray
       SignalArray = cell(1,nPoints);
       TimeArray = SignalArray;
     end
-    %----------------------------------------------------------------------
-    
-    
-      
-%     
-%     ModifiedDelays = [];
-%     SwappedPulses = [];
+
     %----------------------------------------------------------------------
     % Loop over number of Points = Product of the Points in each
     % Dimension
@@ -157,53 +160,50 @@ switch method
       tic
       
       EventLengths = InitialEventLengths;
-            
-%       if ~isempty(ModifiedDelays)
-%         for iEvent = ModifiedDelays 
-%           Events{iEvent} = OrigEvents{iEvent};
-%         end
-%         
-%         PulseSwap = Events{SwappedPulses(1)};
-%         Events{SwappedPulses(1)} = Events{SwappedPulses(2)};
-%         Events{SwappedPulses(2)} = PulseSwap;
-%       end
-
       Sigma = initialSigma;
       
       %--------------------------------------------------------------------
-      % Overwrites IQ and t axis for all events that are being modified
+      % Overwrites IQ and t axis for all pulses that are being modified.
       % This needs to be adapted so that only events are overwritten that
       % are actually changed!
       %--------------------------------------------------------------------
-      
       if~isempty(Vary)
-                
+        % Replace the inital lengths of the delays with the one that
+        % correspond to the current acquisition
         for iDimension = 1 : nDimensions
-          
           if any(any(Vary.IncrementationTable{iDimension}))
-            ModifiedEvents = find(Vary.IncrementationTable{iDimension}(:,idx(iDimension)));
+            ModifiedEvents = find(Vary.IncrementationTable{iDimension}(:,DimensionIndices(iDimension)));
             for i = 1 : length(ModifiedEvents)
-              EventLengths(ModifiedEvents(i)) = EventLengths(ModifiedEvents(i)) + Vary.IncrementationTable{iDimension}(ModifiedEvents(i),idx(iDimension));
+              EventLengths(ModifiedEvents(i)) = EventLengths(ModifiedEvents(i)) + Vary.IncrementationTable{iDimension}(ModifiedEvents(i),DimensionIndices(iDimension));
             end
           end
-          
         end
         
-        nPulses = length(Vary.Pulses);
-        
+        % Load the pulse shapes corresponding to the current acquisition
+        % point
         for iPulse = 1 : nPulses
           if ~isempty(Vary.Pulses{iPulse})
-           iEvent = PulsePositions(iPulse);
-           Events{iEvent}.IQ = LoadWaveform(Vary.Pulses{iPulse}.IQs,idx);
-           Events{iEvent}.t = LoadWaveform(Vary.Pulses{iPulse}.ts,idx);
-           EventLengths(iEvent) = Events{iEvent}.t(end);
-           Events{iEvent}.Propagation = [];
+            iEvent = PulsePositions(iPulse);
+            IQ = LoadWaveform(Vary.Pulses{iPulse}.IQs,DimensionIndices);
+            t = LoadWaveform(Vary.Pulses{iPulse}.ts,DimensionIndices);
+            % Only replace if the new wave form is different from the
+            % previous one
+            if ~isequal(Events{iEvent}.IQ,IQ)
+              Events{iEvent}.IQ = IQ;
+              Events{iEvent}.t = t;
+              % Clear propagators
+              Events{iEvent}.Propagation = [];
+            end
+            % Write pulse length to EventLengths vector
+            EventLengths(iEvent) = Events{iEvent}.t(end);
           end
-            
         end
-          
+        
+        % Reorder events and get new event lengths
         [Sequence, NewEventLengths] = reorder_events(EventLengths,isPulse);
         
+        % Write new event durations of free evolution events to the event
+        % structure
         for iEvent = 1 : nEvents
           NewPosition = find(Sequence == iEvent);
           if strcmp(Events{iEvent}.type,'free evolution') && NewEventLengths(NewPosition) ~= Events{iEvent}.t
@@ -213,6 +213,7 @@ switch method
         end
           
       else
+        % If no Vary Structure is provided, events are processed linearly
         Sequence = 1 : nEvents;        
       end
 
@@ -426,8 +427,8 @@ switch method
           for iDet = 1:length(Det)
             Det{iDet} = reshape(Det{iDet}.',1,n^2);
             normsDet(iDet) = Det{iDet}*Det{iDet}';
-            currentSignal(:,1) = Detect(Sigma,Det,normsDet);
           end
+          currentSignal(:,1) = Detect(Sigma,Det,normsDet);
           
         else
           switch currentEvent.type
@@ -661,7 +662,7 @@ switch method
       %--------------------------------------------------------------------
       if ~firstDetection
         % move all the detected signals into large array here!
-        if StoreInArray
+        if StoreInCellArray
           SignalArray{iPoints} = Signal;
           TimeArray{iPoints} = t;
         else
@@ -686,11 +687,11 @@ switch method
       
       if ~isempty(Vary)
         for d = nDimensions:-1:1
-          if idx(d)<Vary.Points(d)
-            idx(d) = idx(d)+1;
+          if DimensionIndices(d)<Vary.Points(d)
+            DimensionIndices(d) = DimensionIndices(d)+1;
             break;
           else
-            idx(d) = 1;
+            DimensionIndices(d) = 1;
           end
         end
       end

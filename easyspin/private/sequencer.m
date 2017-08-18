@@ -107,29 +107,14 @@ for iEvent = 1 : length(Exp.t)
     
     % Store the PhaseCycle in the Event structure
     Events{iEvent}.PhaseCycle = Pulse.PhaseCycle;
-    
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % Looks for an excitation operator in the pulse definition structure
-    % and if none is found, Sx is assumed
-    % Adapt to actual spin system here!!!
-    % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    if ~isfield(Pulse,'xOp')
-      if isfield(Pulse,'ComplexExcitation') && Pulse.ComplexExcitation
-        Events{iEvent}.xOp = sop(1/2,'x')+sop(1/2,'y');
-      else
-        Events{iEvent}.xOp = sop(1/2,'x');
-      end
-    else
-      Events{iEvent}.xOp = Pulse.xOp;
-    end
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    
+       
     % Checks if ComplexExcitation is requested for this Pulse, if not
-    % specified Complex Excitation is switched off by default
+    % specified Complex Excitation is switched off by default - the
+    % excitation operator is being built outside of sequencer
     if ~isfield(Pulse,'ComplexExcitation')
       Events{iEvent}.ComplexExcitation = false;
     else
-      Events{iEvent}.ComplexExcitation = Pulse.ComplexExcitation;
+      Events{iEvent}.ComplexExcitation = true;
     end
     
     % Temporarily store pulse paramaters to avoid reassigning them for creating the
@@ -167,19 +152,19 @@ for iEvent = 1 : length(Exp.t)
   
   % Check if detection is provided, if no detection is requested, the last
   % event is detected by default
-  if ~isfield(Opt,'Detection')
+  if ~isfield(Opt,'DetectedEvents')
     if iEvent == length(Exp.t)
       Events{iEvent}.Detection = true;
     else
       Events{iEvent}.Detection = false;
     end
   else
-    if length(Opt.Detection) == 1
-      Events{iEvent}.Detection = Opt.Detection;
-    elseif iEvent > length(Opt.Detection)
+    if length(Opt.DetectedEvents) == 1
+      Events{iEvent}.Detection = Opt.DetectedEvents;
+    elseif iEvent > length(Opt.DetectedEvents)
       error('You did not specify detection after Event %d.',iEvent);
     else 
-      Events{iEvent}.Detection = Opt.Detection(iEvent);
+      Events{iEvent}.Detection = Opt.DetectedEvents(iEvent);
     end   
   end
   
@@ -425,9 +410,13 @@ if isfield(Exp,'nPoints')
         ArrayIndex = num2cell(Pulses{iPulse}.ArrayIndex);
         
         % Compute Wave form and store it
-        [t,IQ] = pulse(Pulses{iPulse});
-        Vary.Pulses{iPulse}.IQs{ArrayIndex{:}} = IQ;
+        for iPCstep = 1 : size(Pulses{iPulse}.PhaseCycle,1)
+          Pulses{iPulse}.Phase = Pulses{iPulse}.Phase+Pulses{iPulse}.PhaseCycle(iPCstep,1);
+          [t,IQ] = pulse(Pulses{iPulse});
+          Vary.Pulses{iPulse}.IQs{ArrayIndex{:}}(iPCstep,:) = IQ;
+        end
         Vary.Pulses{iPulse}.ts{ArrayIndex{:}} = t;
+
         
         % Write pulse length to EventLenghts        
         EventLengths(Pulses{iPulse}.EventIndex) = t(end);
@@ -484,10 +473,3 @@ if isfield(Exp,'nPoints')
     
   end 
 end
-
-
-
-
-
-
-
