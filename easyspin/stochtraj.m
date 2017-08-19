@@ -342,14 +342,10 @@ while ~converged
   end
 
   iter = iter + 1;
-
-  if iter>10
-    logmsg(1,['Warning: convergence is very slow. Consider increasing\n',...
-              'length or number of trajectories.'])
-  end
   
   if iter>15 && converged==0
-    logmsg(1,'Warning: restarting trajectory set due to lack of convergence.\n')
+    logmsg(1,['Warning: restarting trajectory set due to lack of convergence.\n',...
+              'Consider increasing length or number of trajectories.\n'])
     iter = 0;
     % re-initialize trajectories
     Sim.nSteps = nSteps;

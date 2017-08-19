@@ -244,6 +244,16 @@ reverseStr = [];
 [Sys,err] = validatespinsys(Sys);
 error(err);
 
+if isfield(Sys, 'lw')
+  if any(Sys.lw>0)
+    Broadening = 1;
+  else
+    Broadening = 0;
+  end
+else
+  Broadening = 0;
+end
+
 % Check MD
 % -------------------------------------------------------------------------
 
@@ -837,20 +847,17 @@ end
 % Perform FFT
 % -------------------------------------------------------------------------
 
+% windowing
 if fftWindow
-  hamm = 0.54 + 0.46*cos(pi*t/max(t));
-%  hamm = cellfun(@(x) 0.54 + 0.46*cos(pi*x/max(x)), tcell, 'UniformOutput', false);
-else
-  hamm = 1;
+%   hamm = 0.54 + 0.46*cos(pi*t/max(t));
+  hamm = cellfun(@(x) 0.54 + 0.46*cos(pi*x/max(x)), tcell, 'UniformOutput', false);
+  expectval = cellfun(@times, expectval, hamm);
 end
-TL = Dynamics.T2;  % Lorentzian broadening
-TG = 1/(mt2mhz(Sys.lw(1))*1e6);  % Gaussian broadening
-
-% Broadening by convolution and multiply by t for differentiation
-tdiff = cellfun(@(x) hamm.*x.*exp(-x/TL).*exp(-x.^2/TG.^2/8), tcell, 'UniformOutput', false);
-expectDt = cellfun(@times, expectval, tdiff, 'UniformOutput', false);
 
 % zero padding for FFT to ensure sufficient B-field resolution (at most 0.1 G)
+% expectval = cell2mat(cellfun(@(x) zeropad(x, maxlength), expectval, 'UniformOutput', false));
+% tlong = (0:Par.dt:maxlength*Par.dt);
+
 Bres = 0.1; % G
 treq = 1/(mt2mhz(Bres/10)*1e6); % mT -> s
 
@@ -862,21 +869,47 @@ else
 %   M = length(expectval);
   M = ceil(tmax/Par.dt);
 end
+expectval = cell2mat(cellfun(@(x) zeropad(x, M), expectval, 'UniformOutput', false));
+tlong = linspace(0, M*Par.dt, M).';
 
-spc = reshape(cell2mat(cellfun(@(x) fft(x,M), expectDt, 'UniformOutput', false)),...
-              [M,nOrients]);
+% broadening
+if Broadening
+  if Sys.lw(1)>0
+    % Gaussian broadening
+    TG = 1/(mt2mhz(Sys.lw(1))*1e6);
+    expectval = exp(-tlong.^2/TG^2/8).*expectval;
+%     GaussBroad = cellfun(@(x) exp(-x.^2/TG.^2/8), tcell, 'UniformOutput', false);
+%     expectval = cellfun(@times, expectval, GaussBroad, 'UniformOutput', false);
+  end
+  if numel(Sys.lw)==2
+    % Lorentzian broadening
+    TL = Dynamics.T2; 
+    expectval = exp(-tlong/TL).*expectval;
+%     LorentzBroad = cellfun(@(x) exp(-x/TL), tcell, 'UniformOutput', false);
+%     expectval = cellfun(@times, expectval, LorentzBroad, 'UniformOutput', false);
+  end
+end
+
+% Multiply by t for differentiation
+expectDt = expectval.*tlong;
+% expectDt = cellfun(@times, expectval, tcell, 'UniformOutput', false);
+
+% spc = reshape(cell2mat(cellfun(@(x) fft(x,M), expectDt, 'UniformOutput', false)),...
+%               [M,nOrients]);
+spc = fft(expectDt, [], 1);
 spc = imag(fftshift(mean(spc,2)));
 freq = 1/(Par.dt*M)*(-M/2:M/2-1);  % TODO check for consistency between FieldSweep and FFT window/resolution
 
 % center the spectrum around the isotropic component of the g-tensor
-fftAxis = mhz2mt(freq/1e6+Exp.mwFreq*1e3,mean(Sys.g));  % Note use of g0, not ge
+fftAxis = mhz2mt(freq/1e6+Exp.mwFreq*1e3, mean(Sys.g));  % Note use of g0, not ge
 
 % interpolate over horizontal sweep range
-outspec = interp1(fftAxis,spc,xAxis);
+outspec = interp1(fftAxis, spc, xAxis);
 
 % average over trajectories for <S_+(t)> output
-tmat = cell2mat(tcell);
-expectval = mean(cell2mat(expectval).*exp(-tmat/TL).*exp(-tmat.^2/TG^2/8),2);
+% tmat = cell2mat(tcell);
+expectval = mean(expectval, 2);
+expectval = expectval(1:Par.nSteps)
 
 % Final processing
 % -------------------------------------------------------------------------
@@ -934,16 +967,26 @@ avg_time = toc/iOrient;
 secs_left = (nOrient - iOrient)*avg_time;
 mins_left = floor(secs_left/60);
 
+secs_elap = toc;
+mins_elap =  floor(secs_elap/60);
+
 msg1 = sprintf('Iteration: %d/%d\n', iOrient, nOrient);
 if avg_time<1.0
   msg2 = sprintf('%2.1f it/s\n', 1/avg_time);
 else
   msg2 = sprintf('%2.1f s/it\n', avg_time);
 end
-msg3 = sprintf('Time left: %d:%2.0f\n', mins_left, mod(secs_left,60));
-msg = [msg1, msg2, msg3];
+msg3 = sprintf('Time elapsed: %d:%2.0f\n', mins_elap, mod(secs_elap,60));
+msg4 = sprintf('Time remaining (predicted): %d:%2.0f\n', mins_left, mod(secs_left,60));
+msg = [msg1, msg2, msg3, msg4];
 
 fprintf([reverseStr, msg]);
 reverseStr = repmat(sprintf('\b'), 1, length(msg));
 
+end
+
+function  y = zeropad(x, M)
+  N = length(x);
+  if iscolumn(x), y = [x; zeros(M-N, 1)]; end
+  if isrow(x), y = [x, zeros(1, M-N)]; end
 end

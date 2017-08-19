@@ -92,7 +92,11 @@ truncated = Par.truncated;
 
 dt = Par.dt;
 nTraj = Par.nTraj;
-nSteps = Par.nSteps;
+if strcmp(Model,'Molecular Dynamics')
+  nSteps = Par.nSteps;
+else
+  nSteps = size(qTraj,3);
+end
 t = linspace(0, dt*nSteps, nSteps);
 
 if ~isequal(size(g),[1,3]) || ~isequal(size(A),[1,3])
