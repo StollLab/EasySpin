@@ -59,21 +59,6 @@ global EasySpinLogLevel
 EasySpinLogLevel = Opt.Verbosity;
 
 
-% Build the Spin System Here
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% SPIDYAN commands
-options.silent = 1;
-options.relaxation = 1;
-sqn = 1/2;
-system.sqn = sqn;
-system.interactions = {1,0,'z','e',1.5};
-system.T1 = 1;
-system.T2 = 5;
-[system,Sigma] = setup(system,options);
-% Ham = system.ham*1000/2/pi;
-Relaxation.equilibriumState = system.eq;
-Relaxation.Gamma = system.gamma;
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if length(Exp.B) == 1
   B = [0 0 Exp.B];
@@ -106,6 +91,22 @@ end
 error(err);
 
 Ham = sham(System,B);
+
+Relaxation.Gamma = relaxationsuperoperator(System);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% SPIDYAN commands
+options.silent = 1;
+options.relaxation = 1;
+sqn = System.Spins;
+system.sqn = sqn;
+system.interactions = {1,0,'z','e',1.5};
+system.T1 = 1;
+system.T2 = 5;
+[system,Sigma] = setup(system,options);
+% Ham = system.ham*1000/2/pi;
+Relaxation.equilibriumState = system.eq;
+Gamma = system.gamma;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 nDetectionOperators = length(Opt.DetectionOperators);
 
@@ -152,13 +153,19 @@ for iEvent = 1: length(Events)
     else
       % ... if not, the Sx operator is formed for every spin in the
       % system...
-      xOp(1:length(System.Spins)) = 'x';
+      xOp = ['x' num2str(1)];
       Events{iEvent}.xOp = sop(System.Spins,xOp);
+      for iSpin = 2 : length(System.Spins)
+        xOp = ['x' num2str(iSpin)];
+        Events{iEvent}.xOp = Events{iEvent}.xOp + sop(System.Spins,xOp);
+      end
       % ... and if complex excitation is required, the Sy operator is added
       % on top
       if Events{iEvent}.ComplexExcitation
-        yOp(1:length(System.Spins)) = 'y';
-        Events{iEvent}.xOp= Events{iEvent}.xOp + sop(System.Spins,yOp);
+        for iSpin = 1 : length(System.Spins)
+          yOp = ['y' num2str(iSpin)];
+          Events{iEvent}.xOp= Events{iEvent}.xOp + sop(System.Spins,yOp);
+        end
       end
     end
     % Increment pulse counter

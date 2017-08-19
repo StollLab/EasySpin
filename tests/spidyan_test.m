@@ -5,6 +5,9 @@ Sys.S = 1/2;
 Sys.ResonanceFrequency = 1500;  % New Field for Providing resonace frequeny(ies)
 Sys.InitialState = []; % Field for the initial state, must recognize string or a matrix, collision with Exp.T?
 Sys.EquilibriumState = []; % Field for equilibrium state, same requirements as initial state
+% Sys = nucspinadd(Sys,'14N',[14 14 32]);
+Sys.T1 = 5;
+Sys.T2 = 1;
 
 Pulse.Type = 'quartersin/linear';
 Pulse.trise = 0.015; % us
@@ -12,25 +15,27 @@ Pulse.ComplexExcitation = 0;
 % PC = [0 1; pi -1];
 PC = 0;
 
-Exp.t = [0.1 0.5 0.1 0.5 0.1 0.5 0.1];
-Exp.Pulses = {Pulse 0 Pulse 0 Pulse 0 Pulse};
+% Exp.t = [0.1 0.5 0.1 0.5 0.1 0.5 0.1];
+% Exp.Pulses = {Pulse 0 Pulse 0 Pulse 0 Pulse};
+Exp.t = [0.1 5];
+Exp.Pulses = {Pulse};
 Exp.B = 1240; % New Field: Magnetic Field
 
-Exp.Frequency = [-100 100] +1500;
+Exp.Frequency = [-100 100] + 1500;
 Exp.Flip = [pi pi pi pi];
-Exp.PhaseCycle{1} = PC;
+% Exp.PhaseCycle{1} = PC;
 Exp.TimeStep = 0.0001; % us
 
 
-Opt.DetectionOperators = {'z1' 'x1' 'p1' 'm1'}; % Need a field name here, make a new branch
+% Opt.DetectionOperators = {'z1' 'x1' 'p1' 'm1' 'x2'}; % Need a field name here, make a new branch
 % Opt.DetectionOperators = {'x1' 'p1'}; % Need a field name here, make a new branch
-Opt.DownConversionFrequency = [0 -1.5 -1.5 1.5];
-% Opt.DownConversionFrequency = 0;
-
-Opt.ExcitationOperators = {[0 1; 0 0]};
+% Opt.DownConversionFrequency = [0 -1.5 -1.5 1.5]; 
+Opt.DetectionOperators = {'z1'};
+% Opt.ExcitationOperators = {[0 1; 0 0]}; %%%% Instead of using excitation
+% operators, maybe move this field into pulse???
 
 Opt.DetectedEvents = [1 1 1 1 1 1 1]; 
-Opt.Relaxation = [0 0 0 0 0 0 0 0];
+Opt.Relaxation = [0 1 0 0 0 0 0 0];
 Opt.StateTrajectories = [];
 
 
