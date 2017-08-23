@@ -66,22 +66,18 @@ else
   B = Exp.B;
 end
 
-if isfield(Sys,'ResonanceFrequency')
-  %Translate Frequency to g values
+% Translate Frequency to g values
+if isfield(Sys,'ZeemanFreq')
   if isfield(Sys,'g')
     [~, dgTensor] = size(Sys.g);
   else
     dgTensor = 1;
   end
-  ReferenceSpin = struct('S',1/2,'g',2);
-  RefZeeman = zeeman(ReferenceSpin,B);
-  RefEigenValues = eig(RefZeeman);
-  RefOmega = RefEigenValues(2)-RefEigenValues(1);
-  
-  for ieSpin = 1 : length(Sys.ResonanceFrequency)
-    if Sys.ResonanceFrequency(ieSpin) ~= 0
-      Adaptedg = Sys.ResonanceFrequency(ieSpin)*2/RefOmega;
-      Sys.g(ieSpin,1:dgTensor) = Adaptedg;
+  % Recalculates the g value 
+  for ieSpin = 1 : length(Sys.ZeemanFreq)
+    if Sys.ZeemanFreq(ieSpin) ~= 0
+      g = Sys.ZeemanFreq(ieSpin)*1e9*planck/bmagn/Exp.B;
+      Sys.g(ieSpin,1:dgTensor) = g;
     end
   end
 end
@@ -89,6 +85,43 @@ end
 % Validate spin system
 [System,err] = validatespinsys(Sys);
 error(err);
+
+
+% Build or load initial state
+if isfield(System,'initState') && ~isempty(System.initState)
+  % if some initial state was provided, this checks if the dimensions are
+  % correct
+  [a, b] = size(System.initState);
+  if ischar(System.initState)
+    error('String input for initial state not yet supported.')
+  elseif System.nStates ~= a || System.nStates ~= b
+    error('Initial state has to be a density matrix.')
+  end
+  Sigma = System.initState;
+else
+  % builds initial state, all electrons are -Sz, nuclei are not defined
+  Sigma = -sop(System.Spins,'z1');
+  for iElectron = 2 : System.nElectrons
+    Sigma = Sigma - sop(System.Spins,['z' num2str(iElectron)]);
+  end
+end
+
+% Build or load equilibtrium state - required for relaxation
+if isfield(System,'eqState') && ~isempty(System.eqState)
+  % if eqilibrium state was provided, this checks if the dimensions are
+  % correct
+  [a, b] = size(System.eqState);
+  if ischar(System.eqState)
+    error('String input for equilibrium state not yet supported.')
+  elseif System.nStates ~= a || System.nStates ~= b
+    error('Equilibrium state has to be a density matrix.')
+  end
+  Relaxation.equilibriumState = System.eqState;
+else
+  % initial state is copied from initial state
+Relaxation.equilibriumState  = Sigma;
+end
+
 
 Ham = sham(System,B);
 
@@ -104,20 +137,6 @@ if isfield(Opt,'Relaxation') && ~isempty(Opt.Relaxation) && any(Opt.Relaxation)
     error('Relaxation was requested, but not relaxation times were provided.')
   end
 end
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% SPIDYAN commands
-options.silent = 1;
-options.relaxation = 1;
-sqn = System.Spins;
-system.sqn = sqn;
-system.interactions = {1,0,'z','e',1.5};
-system.T1 = 1;
-system.T2 = 5;
-[system,Sigma] = setup(system,options);
-% Ham = system.ham*1000/2/pi;
-Relaxation.equilibriumState = system.eq;
-Gamma = system.gamma;
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 nDetectionOperators = length(Opt.DetectionOperators);
 

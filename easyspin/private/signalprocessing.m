@@ -3,7 +3,7 @@ function [ ProcessedSignal ] = signalprocessing(TimeAxis,RawSignal,Opt)
 nDetectionOperators = length(Opt.DetectionOperators);
 
 % Setup vector with down conversion frequencies
-DownConversionFrequencies = zeros(1,nDetectionOperators);
+TranslationFrequencies = zeros(1,nDetectionOperators);
 
 % Trys down conversion, if it fails for any reason, the raw signal is
 % returned. Errors are usually when the down conversion frequency is very
@@ -14,12 +14,12 @@ try
   % being used for all detection operators. 
   %%%%%%%%%%%%%%%%%%
   % We might want to remove this feature though, too much of an assumption
-  if isfield(Opt,'DownConversionFrequency') &&  ~isempty(Opt.DownConversionFrequency)
-    nDownConversionFrequencies = length(Opt.DownConversionFrequency);
+  if isfield(Opt,'FreqTranslation') &&  ~isempty(Opt.FreqTranslation)
+    nDownConversionFrequencies = length(Opt.FreqTranslation);
     if nDownConversionFrequencies == 1
-      DownConversionFrequencies(1:nDetectionOperators) = Opt.DownConversionFrequency;
+      TranslationFrequencies(1:nDetectionOperators) = Opt.FreqTranslation;
     else
-      DownConversionFrequencies(1:nDownConversionFrequencies) = Opt.DownConversionFrequency;
+      TranslationFrequencies(1:nDownConversionFrequencies) = Opt.FreqTranslation;
     end
   end
   
@@ -54,6 +54,9 @@ try
       
       % Ensures that signal is purely real or imaginary, if it is supposed 
       % to be purely real/imaginary
+      %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      % Compare to the magnitude
+      
       if max(imag(RfSignal)) < 1e-10
         RfSignal = real(RfSignal);
       elseif max(real(RfSignal)) < 1e-10
@@ -67,12 +70,12 @@ try
       % Does the downconversion, if no down conversion is requested for the
       % current detection operator, the cleaned up signal is written to
       % ProcessedSignal
-      if DownConversionFrequencies(iTrace) ~= 0
+      if TranslationFrequencies(iTrace) ~= 0
         % Depending on the type of trace, different down conversion types
         % are required (see rfmixer for details)
         if isreal(RfSignal)
           % Mixing if signal is real
-          [~, DCSignal] = rfmixer(DCTimeAxis,RfSignal,DownConversionFrequencies(iTrace),'IQdemod');
+          [~, DCSignal] = rfmixer(DCTimeAxis,RfSignal,TranslationFrequencies(iTrace),'IQdemod');
           if iscell(RawSignal)
             Traces(iTrace,:) = real(DCSignal);
           else
@@ -80,7 +83,7 @@ try
           end
         else
           % Mixing if signal is complex
-          [~, DCSignal] = rfmixer(DCTimeAxis,RfSignal,DownConversionFrequencies(iTrace),'IQshift');
+          [~, DCSignal] = rfmixer(DCTimeAxis,RfSignal,TranslationFrequencies(iTrace),'IQshift');
           if iscell(RawSignal)
             Traces(iTrace,:) = DCSignal;
           else
