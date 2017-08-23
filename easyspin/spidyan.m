@@ -73,15 +73,15 @@ if isfield(Sys,'ResonanceFrequency')
   else
     dgTensor = 1;
   end
-  TestSpin = struct('S',1/2,'g',2);
-  Zeeman = zeeman(TestSpin,B);
-  EigenValues = eig(Zeeman);
-  omega_e = EigenValues(2)-EigenValues(1);
+  ReferenceSpin = struct('S',1/2,'g',2);
+  RefZeeman = zeeman(ReferenceSpin,B);
+  RefEigenValues = eig(RefZeeman);
+  RefOmega = RefEigenValues(2)-RefEigenValues(1);
   
   for ieSpin = 1 : length(Sys.ResonanceFrequency)
     if Sys.ResonanceFrequency(ieSpin) ~= 0
-      newgvalue = Sys.ResonanceFrequency(ieSpin)*2/omega_e;
-      Sys.g(ieSpin,1:dgTensor) = newgvalue;
+      Adaptedg = Sys.ResonanceFrequency(ieSpin)*2/RefOmega;
+      Sys.g(ieSpin,1:dgTensor) = Adaptedg;
     end
   end
 end
@@ -92,7 +92,18 @@ error(err);
 
 Ham = sham(System,B);
 
-Relaxation.Gamma = relaxationsuperoperator(System);
+if isfield(Opt,'Relaxation') && ~isempty(Opt.Relaxation) && any(Opt.Relaxation)
+  if isfield(System,'T1') || isfield(System,'T2')
+    if ~isfield(System,'T1')
+      System.T1 = 0;
+    elseif ~isfield(System,'T2')
+      System.T2 = 0;
+    end
+    Relaxation.Gamma = relaxationsuperoperator(System);
+  else
+    error('Relaxation was requested, but not relaxation times were provided.')
+  end
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% SPIDYAN commands
 options.silent = 1;
