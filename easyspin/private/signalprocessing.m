@@ -32,7 +32,7 @@ try
   else
     ProcessedSignal = zeros(size(RawSignal));
     nPoints = size(RawSignal,1);
-    DCTimeAxis = TimeAxis;
+    DCTimeAxis = TimeAxis(1,:);
   end
   
   % loop over all acquired data points
@@ -41,7 +41,7 @@ try
       % Gets the size of the traces for the current data point and the time
       % axis if the RawSignal is a CellArray
       Traces = zeros(size(RawSignal{iPoint}));
-      DCTimeAxis = TimeAxis{iPoint};
+      DCTimeAxis = TimeAxis{1,iPoint};
     end
     % Loop over the Number of Detection Operators
     for iTrace = 1 : nDetectionOperators
@@ -54,13 +54,12 @@ try
       
       % Ensures that signal is purely real or imaginary, if it is supposed 
       % to be purely real/imaginary
-      %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      % Compare to the magnitude
-      
-      if max(imag(RfSignal)) < 1e-10
+      if max(abs(RfSignal))/max(imag(RfSignal)) > 1e8
         RfSignal = real(RfSignal);
-      elseif max(real(RfSignal)) < 1e-10
+        purelyImag = false;
+      elseif max(abs(RfSignal))/max(real(RfSignal)) > 1e8
         RfSignal = imag(RfSignal);
+        purelyImag = true;
       else
         % If signal is complex (S+ or S-), the normalization is wrong by a
         % factor of two and hence needs normalization
@@ -76,10 +75,17 @@ try
         if isreal(RfSignal)
           % Mixing if signal is real
           [~, DCSignal] = rfmixer(DCTimeAxis,RfSignal,TranslationFrequencies(iTrace),'IQdemod');
-          if iscell(RawSignal)
-            Traces(iTrace,:) = real(DCSignal);
+          
+          if purelyImag
+            DCSignal = real(DCSignal)*1i;
           else
-            ProcessedSignal(iPoint,iTrace,:) = real(DCSignal);
+            DCSignal = real(DCSignal);
+          end
+          
+          if iscell(RawSignal)
+            Traces(iTrace,:) = DCSignal;
+          else
+            ProcessedSignal(iPoint,iTrace,:) = DCSignal;
           end
         else
           % Mixing if signal is complex

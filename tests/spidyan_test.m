@@ -29,13 +29,13 @@ Exp.Frequency = [-100 100] + 1500;
 Exp.Flip = [pi pi pi pi];
 % Exp.PhaseCycle{1} = PC;
 
-Exp.Dim1 = {'p2' -0.01};
-Exp.Dim2 = {'d2' 0.01};
-Exp.nPoints = [4 4];
+% Exp.Dim1 = {'p2.Position' 0.01};
+% Exp.Dim2 = {'d2' 0.01};
+% Exp.nPoints = [2];
 
 % Options ---------------------------
-Opt.DetectionOperators = {'z1'}; % Need a field name here, make a new branch
-Opt.FreqTranslation = [0 -1.5 -1.5 1.5]; 
+Opt.DetectionOperators = {'x1'}; % Need a field name here, make a new branch
+Opt.FreqTranslation = [-1.5]; 
 Opt.Relaxation = [0 0 0 0 0 0 0 0];
 % Opt.ExcitationOperators = {[0 1; 0 0]};
 
@@ -50,13 +50,13 @@ Opt.StateTrajectories = [];
 
 
 % Plotting ----------------------------------
-
+%% 
 try
   figure(2);clf
   hold on
   for i = 1 : size(signal,1)
     plotsignal = squeeze(signal(i,:,:));
-    plot(t(i,:),(plotsignal))
+    plot(t(i,:),imag(plotsignal))
   end
 
 catch
