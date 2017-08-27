@@ -200,7 +200,7 @@ end
 % later on, and will decide on how the incremenation tables are stored. For
 % the incrementationscheme only linear increments can be used, and the data
 % structure can therefore be reduced
-IncrementationScheme = 0;
+IncrementationScheme = false;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if isfield(Exp,'nPoints')
@@ -267,6 +267,11 @@ if isfield(Exp,'nPoints')
         EventType = Strings{1}(1);
         EventSpecificIndex = str2double(Strings{1}(2:end));
         
+        if length(Exp.(Field2Get){iLine,2}) ~= 1 && length(Exp.(Field2Get){iLine,2}) ~= Exp.nPoints(iDimension)-1
+          message = ['The number of points provided for Dimension ' num2str(iDimension) 'does not match the length of the vector in the Exp.Dim structure.'];
+          error(message);
+        end
+        
         % -----------------------------------------------------------------
         % Different Processing for a pulse 'p' and a free evolution
         % event/delay 'd'
@@ -279,6 +284,11 @@ if isfield(Exp,'nPoints')
             PulseNumber = EventSpecificIndex;
             
             % Gets the field that is to be modified
+            if length(Strings) == 1
+              message = ['You requested a pulse to be changed in Exp.' (Field2Get) ' but did not specify the field'];
+              error(message)
+            end
+            
             Field = Strings{2};
             
             % Catch if user defines pulse length as 't' instead of 'tp'
@@ -297,17 +307,16 @@ if isfield(Exp,'nPoints')
                 dt = Exp.(Field2Get){iLine,2};
                           
                 if ~IncrementationScheme
-                  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                  % At this point, only a linear increment is processed, in
-                  % the future, the ability to use nonlinear increments has
-                  % to be added here, by providing a vector with values
-                  % instead of a scalar in the Dimension field. This should
-                  % only require a few lines of code
-                  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                  IncrementationTable(SurroundingEvents(1),:) = IncrementationTable(SurroundingEvents(1),:) + (0:Vary.Points(iDimension)-1)*dt;
-                  IncrementationTable(SurroundingEvents(2),:) = IncrementationTable(SurroundingEvents(2),:) - (0:Vary.Points(iDimension)-1)*dt;
+                  if length(dt) == 1
+                    IncrementationTable(SurroundingEvents(1),:) = IncrementationTable(SurroundingEvents(1),:) + (0:Vary.Points(iDimension)-1)*dt;
+                    IncrementationTable(SurroundingEvents(2),:) = IncrementationTable(SurroundingEvents(2),:) - (0:Vary.Points(iDimension)-1)*dt;
+                  else
+                    IncrementationTable(SurroundingEvents(1),2:end) = IncrementationTable(SurroundingEvents(1),2:end) + dt;
+                    IncrementationTable(SurroundingEvents(2),2:end) = IncrementationTable(SurroundingEvents(2),2:end) - dt;
+                  end
                 else
-                  % write the linear matrix for use with incrementation scheme here
+                  Vary.IncrementationTable(SurroundingEvents(1),iDimension) = Vary.IncrementationTable(SurroundingEvents(1),iDimension) + dt;
+                  Vary.IncrementationTable(SurroundingEvents(2),iDimension) = Vary.IncrementationTable(SurroundingEvents(2),iDimension) - dt;
                 end
                 
 
@@ -338,9 +347,13 @@ if isfield(Exp,'nPoints')
             dt = Exp.(Field2Get){iLine,2};
             
             if ~IncrementationScheme
-              IncrementationTable(EventNumber(1),:) = IncrementationTable(EventNumber(1),:) + (0:Vary.Points(iDimension)-1)*dt;
+              if length(dt) == 1
+                IncrementationTable(EventNumber(1),:) = IncrementationTable(EventNumber(1),:) + (0:Vary.Points(iDimension)-1)*dt;
+              else
+                IncrementationTable(EventNumber(1),2:end) = IncrementationTable(EventNumber(1),2:end) + dt;
+              end
             else
-              %write the linear matrix here
+              Vary.IncrementationTable(EventNumber(1),iDimension) = Vary.IncrementationTable(EventNumber(1),iDimension) + dt;
             end
         end
       end
@@ -349,11 +362,6 @@ if isfield(Exp,'nPoints')
     % Stores the IncrementationTable dimension specific
     if ~IncrementationScheme && any(any(IncrementationTable))
       Vary.IncrementationTable{iDimension} = IncrementationTable;
-    else
-      %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      % Store Directly as Vary.IncrementationTable for Incrementation
-      % Schemes
-      %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     end
   end
   
@@ -401,7 +409,13 @@ if isfield(Exp,'nPoints')
           Field = PulseModifications{iPulse}{iModification,2};
           Increment = PulseModifications{iPulse}{iModification,3};
           % Write modifications to pulse structure
-          Pulses{iPulse}.(Field) = Pulses{iPulse}.(Field) + Increment*(DimensionIndices(Dimension)-1);
+          if length(Increment) == 1
+            Pulses{iPulse}.(Field) = Pulses{iPulse}.(Field) + Increment*(DimensionIndices(Dimension)-1);
+          else
+            if DimensionIndices(Dimension) ~= 1
+              Pulses{iPulse}.(Field) = Pulses{iPulse}.(Field) + Increment(DimensionIndices(Dimension)-1);
+            end
+          end
           % Adapt indexing according to dimension
           Pulses{iPulse}.ArrayIndex(Dimension) = DimensionIndices(Dimension);
         end
@@ -436,6 +450,14 @@ if isfield(Exp,'nPoints')
         if ~isempty(ModifiedEvents)
           for i = 1 : length(ModifiedEvents)
             EventLengths(ModifiedEvents(i)) = EventLengths(ModifiedEvents(i)) + Vary.IncrementationTable{iDimension}(ModifiedEvents(i),DimensionIndices(iDimension));
+          end
+        end
+      else
+        % Find Events that are modified...
+        ModifiedEvents = find(Vary.IncrementationTable(:,iDimension));
+        if ~isempty(ModifiedEvents)
+          for i = 1 : length(ModifiedEvents)
+            EventLengths(ModifiedEvents(i)) = EventLengths(ModifiedEvents(i)) + Vary.IncrementationTable(ModifiedEvents(i),iDimension)*(DimensionIndices(iDimension)-1);
           end
         end
       end

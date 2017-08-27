@@ -29,12 +29,12 @@ Exp.Frequency = [-100 100] + 1500;
 Exp.Flip = [pi pi pi pi];
 % Exp.PhaseCycle{1} = PC;
 
-% Exp.Dim1 = {'p2.Position' -0.2};
-%             'd1',0.1};
-% Exp.nPoints = [2];
+Exp.Dim1 = {'p2' -0.01};
+Exp.Dim2 = {'d2' 0.01};
+Exp.nPoints = [4 4];
 
 % Options ---------------------------
-Opt.DetectionOperators = {'z1' 'x1' 'p1' 'm1'}; % Need a field name here, make a new branch
+Opt.DetectionOperators = {'z1'}; % Need a field name here, make a new branch
 Opt.FreqTranslation = [0 -1.5 -1.5 1.5]; 
 Opt.Relaxation = [0 0 0 0 0 0 0 0];
 % Opt.ExcitationOperators = {[0 1; 0 0]};
