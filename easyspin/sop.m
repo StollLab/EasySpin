@@ -100,38 +100,25 @@ else
     end
     return
   else
+    
     Coords = lower(varargin{1});
     
-    % Check syntax of component string
-    foundtransitionselective = contains(Coords,'(');
-    
-    % first, check if commas are used as separators
-    Coords = regexp(Coords,',','split');
-    
-    
-    if length(Coords) == 1 && ~foundtransitionselective
-      isSyntax3 = false;
-      Coords = char(Coords{1});
-      syntax1 = sprintf('^[exyz+\\-pmab]{%d}$',nSpins);
-      isSyntax1 = ~isempty(regexp(Coords,syntax1,'match'));
-      if ~isSyntax1
-        syntax2 = sprintf('^([exyz+\\-pmab]\\d+){1,%d}$',nSpins);
-        isSyntax2 = ~isempty(regexp(Coords,syntax2,'match'));
-        if ~isSyntax2
-          error('Could not determine what ''%s'' is for the given spin system.',Coords);
+    syntax1 = sprintf('^[exyz+\\-pmab]{%d}$',nSpins);
+    isSyntax1 = ~isempty(regexp(Coords,syntax1,'match'));
+    if ~isSyntax1
+      syntax2 = sprintf('^([exyz+\\-pmab]\\d+){1,%d}$',nSpins);
+      isSyntax2 = ~isempty(regexp(Coords,syntax2,'match'));
+      if ~isSyntax2
+        Coords = regexp(Coords,',','split');
+        syntax3 = '^[exyz+\-pmab](\(\d+(\|\d+)?\))?(\d+)?$';
+        matched = (regexp(Coords,syntax3,'match'));
+        isSyntax3 = length(find(~cellfun('isempty', matched))) == length(Coords);
+        if ~isSyntax3
+          error('Could not determine what ''%s'' is for the given spin system.',lower(varargin{1}));
         end
       end
-    else
-      isSyntax1 = false;
-      isSyntax2 = false;
-      syntax3 = '^    [exyz+\-pmab]  ( \(  \d+  (\|\d+)?   \)  )?  (\d+)?  $';
-      syntax3(syntax3==' ') = '';
-      matched = (regexp(Coords,syntax3,'match'));
-      isSyntax3 = length(find(~cellfun('isempty', matched))) == length(Coords);
-      if ~isSyntax3
-        error('Could not determine what ''%s'' is for the given spin system.',lower(varargin{1}));
-      end
     end
+      
     
     if isSyntax1
       Coords = double(Coords);
@@ -151,57 +138,78 @@ else
       % Get list of requested components
       Coords = double(tokens(:,1).');
     elseif isSyntax3
-      % Get tokens
-      types = zeros(1,length(matched));
-      Coords = types;
-      Spins = types;
-      transitions = cell(1,nSpins);
+      % Get tokens and set up data structure
+      Syntaxtypes = zeros(1,length(matched));
+      Coords = Syntaxtypes;
+      Spins = Syntaxtypes;
+      Transitions = cell(1,nSpins);
+      % Loop over all the comma separated operators, e.g.
+      % x(1|2)1,x(1|2)2/x(1|2),x(1|2) or x1,x2/x,x
       for itoken = 1 : length(matched)
        token = char(matched{itoken}); 
+       % split at paranthesis if possible - for transitions selection
        splitted = regexp(token,'[()]','split');
        Coords(itoken) = double(splitted{1}(1));
+       % e.g. length(splitted) > 1: x(1|2)1 or x(1|2)
        if length(splitted) > 1
          if isempty(splitted{end})
-           types(itoken) = 1;
+           % x(1|2)
+           Syntaxtypes(itoken) = 1;
+           % Get spin index temporarily for indexing for the selective 
+           % transtion 
            Spin = itoken;
          else
-           types(itoken) = 2;
+           % x(1|2)
+           Syntaxtypes(itoken) = 2;
+           % Store spin number in vector for processing later ...
            Spins(itoken) = str2double(splitted{end});
+           % ... and temporarily for indexing for the selective transtion  
            Spin = Spins(itoken);
          end
-         selector = regexp(splitted{2},'\|','split');
-         if length(selector) == 1
-           transitions{Spin} = str2double(selector);
-         elseif selector{1} == selector{2}
+         % Find requested level(s)
+         Selector = regexp(splitted{2},'\|','split');
+         % Populationselective, e.g  by e(1)1/e(1) or z(1)/z(1)1
+         if length(Selector) == 1
+           if isempty(regexp(splitted{1}(1),'[ez]','match'))
+             error('sop: You need to provide the second connected level for your operator or change the operator type.')
+           end
+           Transitions{Spin} = str2double(Selector);
+         % Populationselective, e.g  e(1|1)1/e(1|1) or z(1|1)/z(1|1)1
+         elseif Selector{1} == Selector{2}
            if ~isempty(regexp(splitted{1}(1),'[xyabpm+-]','match'))
              error('sop: The transition selective operator you selected connects to identical levels.')
            end
-            transitions{Spin} = str2double(selector{1});
+            Transitions{Spin} = str2double(Selector{1});
+         % Operators that connect two leves, e.g x(1|2)1/x(1|2)
          else
-           transitions{Spin}(1) = str2double(selector{1});
-           transitions{Spin}(2) = str2double(selector{2});
+           if ~isempty(regexp(splitted{1}(1),'[e]','match'))
+             error('sop: Only one level can be selected for a population.')
+           end
+           Transitions{Spin}(1) = str2double(Selector{1});
+           Transitions{Spin}(2) = str2double(Selector{2});
          end
        else
+         % length(splitted) = 1: x1 or x
          if length(splitted{1}) == 1
-           types(itoken) = 1;
+           Syntaxtypes(itoken) = 1;
          else
-           types(itoken) = 2;
+           Syntaxtypes(itoken) = 2;
            Spins(itoken) = str2double(splitted{1}(2:end));
          end
        end
       end
-      if numel(unique(types)) > 1
+      % Further checking of Syntax
+      if numel(unique(Syntaxtypes)) > 1
         error('sop: Please use consistent syntax to declare your spin operator.')
       end
-      if ~any(types == 2) && length(matched) ~= nSpins
+      if ~any(Syntaxtypes == 2) && length(matched) ~= nSpins
         error('Could not determine what ''%s'' is for the given spin system.',lower(varargin{1}));
-      elseif unique(types) == 1
+      elseif unique(Syntaxtypes) == 1
         Spins = 1:nSpins;
       end
       if numel(unique(Spins))<numel(Spins)
-        error('sop: Repeated spin in %s',Coords');
+        error('sop: Repeated spin in %s',lower(varargin{1})');
       end
-      
     end
     
     if (any(SpinVec(Coords=='a')~=1/2)) || ...
@@ -230,19 +238,20 @@ for iSpin = 1:nSpins
   
   n = 2*I+1;
   
-  if exist('transitions','var') && ~isempty(transitions{iSpin})
-    transitionselective = true;
+  % Look for a transition selective operator
+  if exist('Transitions','var') && ~isempty(Transitions{iSpin})
+    TselectiveOp = true;
   else
-    transitionselective = false;
+    TselectiveOp = false;
   end
   
   % Component switchyard
   %----------------------------------------
   switch Comps(iSpin)
     case {'x',1} % x component
-      if transitionselective
-        ib = [transitions{iSpin}(1); transitions{iSpin}(2)];
-        jb = [transitions{iSpin}(2); transitions{iSpin}(1)];
+      if TselectiveOp
+        ib = [Transitions{iSpin}(1); Transitions{iSpin}(2)];
+        jb = [Transitions{iSpin}(2); Transitions{iSpin}(1)];
         sb = [0.5; 0.5];
       else
         m = (1:n-1).';
@@ -252,9 +261,9 @@ for iSpin = 1:nSpins
         sb = [Dia; Dia];
       end
     case {'y',2} % y component
-      if transitionselective
-        ib = [transitions{iSpin}(1); transitions{iSpin}(2)];
-        jb = [transitions{iSpin}(2); transitions{iSpin}(1)];
+      if TselectiveOp
+        ib = [Transitions{iSpin}(1); Transitions{iSpin}(2)];
+        jb = [Transitions{iSpin}(2); Transitions{iSpin}(1)];
         sb = [-0.5i; 0.5i];
       else
         m = (1:n-1).';
@@ -264,14 +273,14 @@ for iSpin = 1:nSpins
         sb = [Dia; -Dia];
       end
     case {'z',3} % z component
-      if transitionselective
-        if length(transitions{iSpin}) == 1
-          ib = [transitions{iSpin}(1)];
-          jb = [transitions{iSpin}(1)];
+      if TselectiveOp
+        if length(Transitions{iSpin}) == 1
+          ib = [Transitions{iSpin}(1)];
+          jb = [Transitions{iSpin}(1)];
           sb = [1];
         else
-          ib = [transitions{iSpin}(1); transitions{iSpin}(2)];
-          jb = [transitions{iSpin}(1); transitions{iSpin}(2)];
+          ib = [Transitions{iSpin}(1); Transitions{iSpin}(2)];
+          jb = [Transitions{iSpin}(1); Transitions{iSpin}(2)];
           sb = [0.5; -0.5];
         end
       else
@@ -281,9 +290,9 @@ for iSpin = 1:nSpins
         sb = I+1-m;
       end
     case {'+','p',4} % up shift
-      if transitionselective
-        ib = [transitions{iSpin}(1)];
-        jb = [transitions{iSpin}(2)];
+      if TselectiveOp
+        ib = [Transitions{iSpin}(1)];
+        jb = [Transitions{iSpin}(2)];
         sb = [1];
       else
         m = (1:n-1).';
@@ -292,9 +301,9 @@ for iSpin = 1:nSpins
         sb = sqrt(m.*m(end:-1:1));
       end
     case {'-','m',5} % down shift
-      if transitionselective
-        ib = [transitions{iSpin}(2)];
-        jb = [transitions{iSpin}(1)];
+      if TselectiveOp
+        ib = [Transitions{iSpin}(2)];
+        jb = [Transitions{iSpin}(1)];
         sb = [1];
       else
         m = (1:n-1).';
@@ -311,12 +320,9 @@ for iSpin = 1:nSpins
       jb = 2;
       sb = 1;
     case {'e',0} % identity
-      if transitionselective
-        if length(transitions{iSpin}) > 1 && transitions{iSpin}(1) ~= transitions{iSpin}(2)
-          error('sop: Only one level can be selected for specifying a population.')
-        end
-        ib = [transitions{iSpin}(1)];
-        jb = [transitions{iSpin}(1)];
+      if TselectiveOp
+        ib = [Transitions{iSpin}(1)];
+        jb = [Transitions{iSpin}(1)];
         sb = [1];
       else
         m = (1:n).';
