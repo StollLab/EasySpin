@@ -68,12 +68,12 @@ nSpins = numel(SpinVec);
 SparseOutput = strcmpi(varargin{end},'sparse');
 
 if SparseOutput
-  Coords = varargin(1:end-1);
+  OperatorSpec = varargin(1:end-1);
 else
-  Coords = varargin(1:end);
+  OperatorSpec = varargin(1:end);
 end
 
-if numel(Coords)==0
+if numel(OperatorSpec)==0
   error('Not enough input arguments!');
 end
 
@@ -86,81 +86,120 @@ if OldSyntax
   
 else
   
-  if nargout~=numel(Coords)
-    error('Number of output arguments (%d) and number of requested operator matrices (%d) do not match.',nargout,numel(Coords));
+  if nargout~=numel(OperatorSpec) && nargout>0
+    error('Number of output arguments (%d) and number of requested operator matrices (%d) do not match.',nargout,numel(OperatorSpec));
   end
   
-  if numel(Coords)>1
-    for k = 1:numel(Coords)
+  if numel(OperatorSpec)>1
+    
+    for k = 1:numel(OperatorSpec)
       if SparseOutput
-        varargout{k} = sop(SpinVec,Coords{k},'sparse');
+        varargout{k} = sop(SpinVec,OperatorSpec{k},'sparse');
       else
-        varargout{k} = sop(SpinVec,Coords{k});
+        varargout{k} = sop(SpinVec,OperatorSpec{k});
       end
     end
     return
+    
   else
     
-    Coords = lower(varargin{1});
+    OperatorSpec = lower(varargin{1});
     
     syntax1 = sprintf('^[exyz+\\-pmab]{%d}$',nSpins);
-    isSyntax1 = ~isempty(regexp(Coords,syntax1,'match'));
+    isSyntax1 = ~isempty(regexp(OperatorSpec,syntax1,'match'));
     if ~isSyntax1
       syntax2 = sprintf('^([exyz+\\-pmab]\\d+){1,%d}$',nSpins);
-      isSyntax2 = ~isempty(regexp(Coords,syntax2,'match'));
+      isSyntax2 = ~isempty(regexp(OperatorSpec,syntax2,'match'));
       if ~isSyntax2
-        Coords = regexp(Coords,',','split');
+        OperatorSpec = regexp(OperatorSpec,',','split');
         syntax3 = '^[exyz+\-pmab](\(\d+(\|\d+)?\))?(\d+)?$';
-        matched = (regexp(Coords,syntax3,'match'));
-        isSyntax3 = length(find(~cellfun('isempty', matched))) == length(Coords);
+        matched = regexp(OperatorSpec,syntax3,'match');
+        isSyntax3 = ~any(cellfun(@isempty, matched));
         if ~isSyntax3
           error('Could not determine what ''%s'' is for the given spin system.',lower(varargin{1}));
         end
       end
     end
-      
-    
+          
     if isSyntax1
-      Coords = double(Coords);
+      
+      Coords = double(OperatorSpec);
       Spins = 1:nSpins;
+      
     elseif isSyntax2
+      
       % Get tokens from pattern
       pattern = '([exyz+\-pmab]\d+)+?';
-      tokens = char(regexp(Coords,pattern,'match'));
+      tokens = char(regexp(OperatorSpec,pattern,'match'));
       % Get list of spin indices
       Spins = str2num(tokens(:,2:end)).'; %#ok<ST2NM>
       if any(Spins>nSpins)
-        error('sop: The spin system only contains %d spins, but you requested ''%s''.',nSpins,Coords);
+        error('sop: The spin system only contains %d spins, but you requested ''%s''.',nSpins,OperatorSpec);
       end
       if numel(unique(Spins))<numel(Spins)
-        error('sop: Repeated spin in %s',Coords');
+        error('sop: Repeated spin in %s',OperatorSpec);
       end
       % Get list of requested components
       Coords = double(tokens(:,1).');
+      
     elseif isSyntax3
+      
+      expr = '([xyzpme])\((\d+)\|?(\d+)?\)(\d?)';
+      Coords = zeros(1,length(matched));
+      Transitions = cell(1,nSpins);
+      for itoken = 1:length(matched)
+        if ~any(matched{itoken}{1}=='(')
+          tokens = regexp(matched{itoken}{1},'([xyzpme])','tokens');
+          token = tokens{1};
+          Coords(itoken) = token{1};
+          Transitions{itoken} = [];
+          Spins(itoken) = itoken;
+        else
+          tokens = regexp(matched{itoken}{1},expr,'tokens');
+          token = tokens{1};
+          Coords(itoken) = token{1};
+          spinIndexPresent(itoken) = ~isempty(token{4});
+          if ~spinIndexPresent(itoken)
+            Spins(itoken) = itoken;
+          else
+            Spins(itoken) = str2num(token{4});
+          end
+          if ~isempty(token{2})
+            if ~isempty(token{3})
+              Transitions{itoken} = cellfun(@str2num,token(2:3));
+            else
+              Transitions{itoken} = str2num(token{2});
+            end
+          else
+            error('Missing level index L1 in (L1|L2) or (L1).')
+          end
+        end
+      end
+      
+      %{
       % Get tokens and set up data structure
-      Syntaxtypes = zeros(1,length(matched));
-      Coords = Syntaxtypes;
-      Spins = Syntaxtypes;
+      spinindexPresent = false(1,length(matched));
+      Coords = zeros(1,length(matched));
+      Spins = zeros(1,length(matched));
       Transitions = cell(1,nSpins);
       % Loop over all the comma separated operators, e.g.
       % x(1|2)1,x(1|2)2/x(1|2),x(1|2) or x1,x2/x,x
       for itoken = 1 : length(matched)
-       token = char(matched{itoken}); 
-       % split at paranthesis if possible - for transitions selection
+       token = matched{itoken}{1};
+       % split at parenthesis if possible - for transitions selection
        splitted = regexp(token,'[()]','split');
        Coords(itoken) = double(splitted{1}(1));
        % e.g. length(splitted) > 1: x(1|2)1 or x(1|2)
        if length(splitted) > 1
          if isempty(splitted{end})
            % x(1|2)
-           Syntaxtypes(itoken) = 1;
+           spinindexPresent(itoken) = false;
            % Get spin index temporarily for indexing for the selective 
            % transtion 
-           Spin = itoken;
+           Spin(itoken) = itoken;
          else
            % x(1|2)
-           Syntaxtypes(itoken) = 2;
+           spinindexPresent(itoken) = true;
            % Store spin number in vector for processing later ...
            Spins(itoken) = str2double(splitted{end});
            % ... and temporarily for indexing for the selective transtion  
@@ -191,25 +230,26 @@ else
        else
          % length(splitted) = 1: x1 or x
          if length(splitted{1}) == 1
-           Syntaxtypes(itoken) = 1;
+           spinindexPresent(itoken) = false;
          else
-           Syntaxtypes(itoken) = 2;
+           spinindexPresent(itoken) = true;
            Spins(itoken) = str2double(splitted{1}(2:end));
          end
        end
       end
       % Further checking of Syntax
-      if numel(unique(Syntaxtypes)) > 1
+      if ~all(spinindexPresent) && ~all(~spinindexPresent)
         error('sop: Please use consistent syntax to declare your spin operator.')
       end
-      if ~any(Syntaxtypes == 2) && length(matched) ~= nSpins
+      if ~any(spinindexPresent) && length(matched) ~= nSpins
         error('Could not determine what ''%s'' is for the given spin system.',lower(varargin{1}));
-      elseif unique(Syntaxtypes) == 1
+      elseif unique(spinindexPresent) == 1
         Spins = 1:nSpins;
       end
       if numel(unique(Spins))<numel(Spins)
         error('sop: Repeated spin in %s',lower(varargin{1})');
       end
+    %}
     end
     
     if (any(SpinVec(Coords=='a')~=1/2)) || ...
