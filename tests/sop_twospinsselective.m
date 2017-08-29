@@ -2,7 +2,7 @@ function [err,data] = test(opt,olddata)
 
 % Check all matrices for S=1
 
-ops = {'x(1|2)1' 'p(1|2),e(1)' 'x,z' 'z2,x1' 'y(1|2)1,p(1|2)2' 'e(1)1,e(2)2' 'x1,x(1|3)2'};
+ops = {'x(1|2)1' '+(1|2),e(1)' 'x,z' 'z2,x1' 'y(1|2)1,+(1|2)2' 'e(1)1,e(2)2' 'x1,x(1|3)2'};
 
 for k = 1:numel(ops)
   Op{k} = sop([1/2 1],ops{k});

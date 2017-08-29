@@ -105,14 +105,14 @@ else
     
     OperatorSpec = lower(varargin{1});
     
-    syntax1 = sprintf('^[exyz+\\-pmab]{%d}$',nSpins);
+    syntax1 = sprintf('^[exyzab+-]{%d}$',nSpins);
     isSyntax1 = ~isempty(regexp(OperatorSpec,syntax1,'match'));
     if ~isSyntax1
-      syntax2 = sprintf('^([exyz+\\-pmab]\\d+){1,%d}$',nSpins);
+      syntax2 = sprintf('^([exyzab+-]\\d+){1,%d}$',nSpins);
       isSyntax2 = ~isempty(regexp(OperatorSpec,syntax2,'match'));
       if ~isSyntax2
         OperatorSpec = regexp(OperatorSpec,',','split');
-        syntax3 = '^[exyz+\-pmab](\(\d+(\|\d+)?\))?(\d+)?$';
+        syntax3 = '^[exyzab+-](\(\d+(\|\d+)?\))?(\d+)?$';
         matched = regexp(OperatorSpec,syntax3,'match');
         isSyntax3 = ~any(cellfun(@isempty, matched));
         if ~isSyntax3
@@ -129,7 +129,7 @@ else
     elseif isSyntax2
       
       % Get tokens from pattern
-      pattern = '([exyz+\-pmab]\d+)+?';
+      pattern = '([exyzab+-]\d+)+?';
       tokens = char(regexp(OperatorSpec,pattern,'match'));
       % Get list of spin indices
       Spins = str2num(tokens(:,2:end)).'; %#ok<ST2NM>
@@ -143,113 +143,93 @@ else
       Coords = double(tokens(:,1).');
       
     elseif isSyntax3
-      
-      expr = '([xyzpme])\((\d+)\|?(\d+)?\)(\d?)';
+      % Initialize
       Coords = zeros(1,length(matched));
       Transitions = cell(1,nSpins);
+      spinIndexPresent = false(1,length(matched));
+      
+      % String pattern to get tokens
+      expr = '([exyz+-])\((\d+)\|?(\d+)?\)(\d?)';
+
+      % loop over all comma separated entries
       for itoken = 1:length(matched)
+        % special case: string does not request a transition/level 
         if ~any(matched{itoken}{1}=='(')
-          tokens = regexp(matched{itoken}{1},'([xyzpme])','tokens');
+          % get tokens
+          tokens = regexp(matched{itoken}{1},'([exyz+-])(\d?)','tokens');
           token = tokens{1};
+          
+          % get spin coordinate
           Coords(itoken) = token{1};
+          % empty
           Transitions{itoken} = [];
-          Spins(itoken) = itoken;
+          
+          % Store spin index...
+          if isempty(token{2})
+            % ... from the counter...
+            Spins(itoken) = itoken;
+          else
+            %... if a spin index was provided
+            Spins(itoken) = str2double(token{2});
+            spinIndexPresent(itoken) = true;
+          end
         else
+          % get tokens
           tokens = regexp(matched{itoken}{1},expr,'tokens');
           token = tokens{1};
+          
+          % get spin coordinate
           Coords(itoken) = token{1};
+          
+          % get spin index if available
           spinIndexPresent(itoken) = ~isempty(token{4});
           if ~spinIndexPresent(itoken)
             Spins(itoken) = itoken;
           else
-            Spins(itoken) = str2num(token{4});
+            Spins(itoken) = str2double(token{4});
           end
+          
+          % get transition...
           if ~isempty(token{2})
             if ~isempty(token{3})
               Transitions{itoken} = cellfun(@str2num,token(2:3));
+              % error if xyz+- is called connect two identical levels
+              if ~isempty(regexp(token{1},'[xyz+-]','match')) && Transitions{itoken}(1) == Transitions{itoken}(2)
+                message = ['sop: The component ''' matched{itoken}{1} ''' of your spin operator connects to identical levels.'];
+                error(message)
+              % error if e is called with two different components
+              elseif ~isempty(regexp(token{1},'[e]','match')) && Transitions{itoken}(1) ~= Transitions{itoken}(2)
+                message = ['sop: The component ''' matched{itoken}{1} ''' can not connect two different levels. Use e(L1) instead of e(L1|L2).'];
+                error(message)
+              end
+          % ... or level
             else
-              Transitions{itoken} = str2num(token{2});
+              Transitions{itoken} = str2double(token{2});
+              % error if xyz+- is called with only a level
+              if ~isempty(regexp(token{1},'[xyz+-]','match'))
+                message = ['sop: The component ''' matched{itoken}{1} ''' of your operator must connect two (different) levels.'];
+                error(message)
+              end
             end
-          else
-            error('Missing level index L1 in (L1|L2) or (L1).')
           end
         end
       end
       
-      %{
-      % Get tokens and set up data structure
-      spinindexPresent = false(1,length(matched));
-      Coords = zeros(1,length(matched));
-      Spins = zeros(1,length(matched));
-      Transitions = cell(1,nSpins);
-      % Loop over all the comma separated operators, e.g.
-      % x(1|2)1,x(1|2)2/x(1|2),x(1|2) or x1,x2/x,x
-      for itoken = 1 : length(matched)
-       token = matched{itoken}{1};
-       % split at parenthesis if possible - for transitions selection
-       splitted = regexp(token,'[()]','split');
-       Coords(itoken) = double(splitted{1}(1));
-       % e.g. length(splitted) > 1: x(1|2)1 or x(1|2)
-       if length(splitted) > 1
-         if isempty(splitted{end})
-           % x(1|2)
-           spinindexPresent(itoken) = false;
-           % Get spin index temporarily for indexing for the selective 
-           % transtion 
-           Spin(itoken) = itoken;
-         else
-           % x(1|2)
-           spinindexPresent(itoken) = true;
-           % Store spin number in vector for processing later ...
-           Spins(itoken) = str2double(splitted{end});
-           % ... and temporarily for indexing for the selective transtion  
-           Spin = Spins(itoken);
-         end
-         % Find requested level(s)
-         Selector = regexp(splitted{2},'\|','split');
-         % Populationselective, e.g  by e(1)1/e(1) or z(1)/z(1)1
-         if length(Selector) == 1
-           if isempty(regexp(splitted{1}(1),'[ez]','match'))
-             error('sop: You need to provide the second connected level for your operator or change the operator type.')
-           end
-           Transitions{Spin} = str2double(Selector);
-         % Populationselective, e.g  e(1|1)1/e(1|1) or z(1|1)/z(1|1)1
-         elseif Selector{1} == Selector{2}
-           if ~isempty(regexp(splitted{1}(1),'[xyabpm+-]','match'))
-             error('sop: The transition selective operator you selected connects to identical levels.')
-           end
-            Transitions{Spin} = str2double(Selector{1});
-         % Operators that connect two leves, e.g x(1|2)1/x(1|2)
-         else
-           if ~isempty(regexp(splitted{1}(1),'[e]','match'))
-             error('sop: Only one level can be selected for a population.')
-           end
-           Transitions{Spin}(1) = str2double(Selector{1});
-           Transitions{Spin}(2) = str2double(Selector{2});
-         end
-       else
-         % length(splitted) = 1: x1 or x
-         if length(splitted{1}) == 1
-           spinindexPresent(itoken) = false;
-         else
-           spinindexPresent(itoken) = true;
-           Spins(itoken) = str2double(splitted{1}(2:end));
-         end
-       end
-      end
       % Further checking of Syntax
-      if ~all(spinindexPresent) && ~all(~spinindexPresent)
-        error('sop: Please use consistent syntax to declare your spin operator.')
+      % Are all components declared in the same syntax?
+      if ~all(spinIndexPresent) && ~all(~spinIndexPresent)
+        error('sop: Please use a consistent syntax to declare your spin operator ''%s''.' ,lower(varargin{1}))
       end
-      if ~any(spinindexPresent) && length(matched) ~= nSpins
-        error('Could not determine what ''%s'' is for the given spin system.',lower(varargin{1}));
-      elseif unique(spinindexPresent) == 1
+      % Is a component missing for a syntax of 'x,x'?
+      if ~any(spinIndexPresent) && length(matched) ~= nSpins
+        error('sop: Could not determine what ''%s'' is for the given spin system.',lower(varargin{1}));
+      elseif all(~spinIndexPresent)
         Spins = 1:nSpins;
       end
+      % Repeated spin
       if numel(unique(Spins))<numel(Spins)
         error('sop: Repeated spin in %s',lower(varargin{1})');
       end
-    %}
     end
     
     if (any(SpinVec(Coords=='a')~=1/2)) || ...
@@ -329,7 +309,7 @@ for iSpin = 1:nSpins
         jb = m;
         sb = I+1-m;
       end
-    case {'+','p',4} % up shift
+    case {'+',4} % up shift
       if TselectiveOp
         ib = [Transitions{iSpin}(1)];
         jb = [Transitions{iSpin}(2)];
@@ -340,7 +320,7 @@ for iSpin = 1:nSpins
         jb = m+1;
         sb = sqrt(m.*m(end:-1:1));
       end
-    case {'-','m',5} % down shift
+    case {'-',5} % down shift
       if TselectiveOp
         ib = [Transitions{iSpin}(2)];
         jb = [Transitions{iSpin}(1)];
