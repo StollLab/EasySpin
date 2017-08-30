@@ -218,9 +218,13 @@ else
               if ~isempty(regexp(token{1},'[xyz+-]','match')) && Transitions{itoken}(1) == Transitions{itoken}(2)
                 message = ['sop: The component ''' str ''' of your spin operator connects identical levels.'];
                 error(message);
-              % error if e is called with two different components
+              % Error if e is called with two different components
               elseif ~isempty(regexp(token{1},'[e]','match')) && Transitions{itoken}(1) ~= Transitions{itoken}(2)
                 message = ['sop: The component ''' str ''' can not connect two different levels. Use e(L1) instead of e(L1|L2).'];
+                error(message);
+              % Error if the two level indices are not in ascending order
+              elseif diff(Transitions{itoken})<0
+                message = ['sop: The two levels (L1|L2) in ''' str ''' must be ascending order such that L1<=L2.'];
                 error(message);
               end
             else
