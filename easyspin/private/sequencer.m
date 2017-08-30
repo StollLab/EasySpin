@@ -6,6 +6,15 @@ function [Events, Vary, Opt] = sequencer(Exp,Opt)
 % -------------------------------------------------------------------------
 Vary = [];
 
+% Need to check for resonator some point here
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+resonator = false;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% other things that need to be done
+% process Exp.Qcrit and nu1
+% be aware of changed pulse lenghts for the resonator and adapt the inter
+% pulse delays accordingly
+
 % Check if Timestep is sufficient
 MaxFreq = max(abs(Exp.Frequency(:)));
 Nyquist = 2*MaxFreq;
@@ -99,6 +108,9 @@ for iEvent = 1 : length(Exp.t)
     for iPCstep = 1 : size(Pulse.PhaseCycle,1)
       Pulse.Phase = Pulse.Phase+Pulse.PhaseCycle(iPCstep,1);
       [t,IQ] = pulse(Pulse);
+      if resonator
+        [t,IQ] = resonator(t,IQ,resParams);
+      end
       Events{iEvent}.IQ(iPCstep,:) = IQ;
     end
     

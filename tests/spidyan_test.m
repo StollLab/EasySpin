@@ -1,4 +1,4 @@
-clear Sys Exp Vary Opt Pulse sigmas 
+clear Sys Exp Vary Opt Pulse sigmas Det
 
 % System ------------------------
 Sys.S = [1];
@@ -23,30 +23,39 @@ Pulse.ComplexExcitation = 0;
 
 Exp.t = [0.1 0.5 0.1 0.5 0.1 0.5 0.1];
 Exp.Pulses = {Pulse 0 Pulse 0 Pulse 0 Pulse};
-Exp.B = 1240; % New Field: Magnetic Field
+Exp.Field = 1240; % New Field: Magnetic Field
 Exp.TimeStep = 0.0001; % us
 Exp.Frequency = [-100 100] + 1500;
 Exp.Flip = [pi pi pi pi];
+Exp.mwFreq = 33.5;
 % Exp.PhaseCycle{1} = PC;
 
 % Exp.Dim1 = {'p2.Position' 0.01};
 % Exp.Dim2 = {'d2' 0.01};
 % Exp.nPoints = [2];
 
+% Detection -------------------------
+Det.DetectionOperators = {'+1','x1'}; % Need a field name here, make a new branch
+Det.FreqTranslation = [-1.5 -1.5]; 
+Det.Events = [1 0 1]; 
+
+
 % Options ---------------------------
-Opt.DetectionOperators = {'x1'}; % Need a field name here, make a new branch
-Opt.FreqTranslation = [-1.5]; 
-Opt.Relaxation = [0 0 0 0 0 0 0 0];
+% Opt.Relaxation = [1 0];
 % Opt.ExcitationOperators = {[0 1; 0 0]};
+Opt.FrameShift = 33.2;
+Opt.Resonator = [];
+
+% delatFreq = Exp.mwFreq r- Opt.SimulationFrame;
+
 
 % Move this into detection structure?
-Opt.DetectedEvents = [1 1 1 1 1 1 1]; 
 Opt.StateTrajectories = [];
 
 
 % Function Call -----------------------------
 
-[t, signal, state, sigmas, Eventsnew]=spidyan(Sys,Exp,Opt);
+[t, signal, state, sigmas, Eventsnew] = spidyan(Sys,Exp,Det,Opt);
 
 
 % Plotting ----------------------------------
@@ -56,7 +65,7 @@ try
   hold on
   for i = 1 : size(signal,1)
     plotsignal = squeeze(signal(i,:,:));
-    plot(t(i,:),imag(plotsignal))
+    plot(t(i,:),real(plotsignal))
   end
 
 catch

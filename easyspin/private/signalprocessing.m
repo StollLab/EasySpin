@@ -9,19 +9,8 @@ TranslationFrequencies = zeros(1,nDetectionOperators);
 % returned. Errors are usually when the down conversion frequency is very
 % wrong, or a non oscillating signal is to be down converted (Sz)
 try
-  % This transcribes the down conversion frequencies into the corresponding
-  % vector. If only one down conversion frequency is provided, this is
-  % being used for all detection operators. 
-  %%%%%%%%%%%%%%%%%%
-  % We might want to remove this feature though, too much of an assumption
-  if isfield(Opt,'FreqTranslation') &&  ~isempty(Opt.FreqTranslation)
-    nDownConversionFrequencies = length(Opt.FreqTranslation);
-    if nDownConversionFrequencies == 1
-      TranslationFrequencies(1:nDetectionOperators) = Opt.FreqTranslation;
-    else
-      TranslationFrequencies(1:nDownConversionFrequencies) = Opt.FreqTranslation;
-    end
-  end
+  nDownConversionFrequencies = length(Opt.FreqTranslation);
+  TranslationFrequencies(1:nDownConversionFrequencies) = Opt.FreqTranslation;
   
   % Recognizing the type of the input, wheter it is a cell or numeri array
   % and gets the number of acquisition points
@@ -65,36 +54,56 @@ try
         % factor of two and hence needs normalization
         RfSignal = 2*RfSignal;
       end
+      % Break signal into smaller signals if a nondetected event is present
+      % (non linear time axis)
+      % store indices
+          
+      num_dig = 10;
+
+      diffTime = round(diff(DCTimeAxis)*(10^num_dig))/(10^num_dig);
+      dt = min(diffTime);
       
+      Opt.dt = dt;
+      
+      BreakIndices = [1  find(diffTime ~= dt)+1 length(DCTimeAxis)+1];
       % Does the downconversion, if no down conversion is requested for the
       % current detection operator, the cleaned up signal is written to
       % ProcessedSignal
+      
       if TranslationFrequencies(iTrace) ~= 0
+        DCSignal = zeros(1,length(RfSignal));
         % Depending on the type of trace, different down conversion types
         % are required (see rfmixer for details)
-        if isreal(RfSignal)
-          % Mixing if signal is real
-          [~, DCSignal] = rfmixer(DCTimeAxis,RfSignal,TranslationFrequencies(iTrace),'IQdemod');
-          
-          if purelyImag
-            DCSignal = real(DCSignal)*1i;
+        for j = 1 : length(BreakIndices)-1
+          Elements = BreakIndices(j):(BreakIndices(j+1)-1);
+          if isreal(RfSignal)
+            % Mixing if signal is real
+            % loop over indices for broken (or not broken) down signal and
+            % provide timestep
+            
+            [~, DCSignal(Elements)] = rfmixer(DCTimeAxis(Elements),RfSignal(Elements),TranslationFrequencies(iTrace),'IQdemod',Opt);
+            
+            if purelyImag
+              DCSignal = real(DCSignal)*1i;
+            else
+              DCSignal = real(DCSignal);
+            end
+            
           else
-            DCSignal = real(DCSignal);
+            % Mixing if signal is complex
+            
+            % loop over indices for broken (or not broken) down signal and
+            % provide timestep
+            
+            [~, DCSignal(Elements)] = rfmixer(DCTimeAxis(Elements),RfSignal(Elements),TranslationFrequencies(iTrace),'IQshift',Opt);
+            
           end
-          
-          if iscell(RawSignal)
-            Traces(iTrace,:) = DCSignal;
-          else
-            ProcessedSignal(iPoint,iTrace,:) = DCSignal;
-          end
+        end
+        
+        if iscell(RawSignal)
+          Traces(iTrace,:) = DCSignal;
         else
-          % Mixing if signal is complex
-          [~, DCSignal] = rfmixer(DCTimeAxis,RfSignal,TranslationFrequencies(iTrace),'IQshift');
-          if iscell(RawSignal)
-            Traces(iTrace,:) = DCSignal;
-          else
-            ProcessedSignal(iPoint,iTrace,:) = DCSignal;
-          end
+          ProcessedSignal(iPoint,iTrace,:) = DCSignal;
         end
         
       else
@@ -112,12 +121,12 @@ try
     end
   end
   
-catch
+catch EM
   % If something goes wrong during down conversion, the RawSignal is
   % returned
   ProcessedSignal = RawSignal;
-  
-  warning('The down conversion of the signal was not successful and created an error. The raw signal in the simulation frame was returned. Please try down conversion manually.')
+  message = ['The down conversion of the signal was not successful and created an error. The raw signal in the simulation frame was returned. The error message was: ' EM.message];
+  warning(message)
 end
 
 end

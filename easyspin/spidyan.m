@@ -16,7 +16,7 @@
 %       S       ... simulated signal (ESEEM) or spectrum (ENDOR)
 %       out     ... structure with FFT of ESEEM signal
 
-function [TimeAxis, Signal,FinalState,StateTrajectories,NewEvents] = spidyan(Sys,Exp,Opt)
+function [TimeAxis, Signal,FinalState,StateTrajectories,NewEvents] = spidyan(Sys,Exp,Det,Opt)
 
 % if (nargin==0), help(mfilename); return; end
 
@@ -60,10 +60,10 @@ EasySpinLogLevel = Opt.Verbosity;
 
 
 
-if length(Exp.B) == 1
-  B = [0 0 Exp.B];
+if length(Exp.Field) == 1
+  B = [0 0 Exp.Field];
 else
-  B = Exp.B;
+  B = Exp.Field;
 end
 
 % Translate Frequency to g values
@@ -76,7 +76,7 @@ if isfield(Sys,'ZeemanFreq')
   % Recalculates the g value 
   for ieSpin = 1 : length(Sys.ZeemanFreq)
     if Sys.ZeemanFreq(ieSpin) ~= 0
-      g = Sys.ZeemanFreq(ieSpin)*1e9*planck/bmagn/Exp.B;
+      g = Sys.ZeemanFreq(ieSpin)*1e9*planck/bmagn/Exp.Field(end);
       Sys.g(ieSpin,1:dgTensor) = g;
     end
   end
@@ -138,9 +138,30 @@ if isfield(Opt,'Relaxation') && ~isempty(Opt.Relaxation) && any(Opt.Relaxation)
   end
 end
 
+if ~isfield(Det,'DetectionOperators') || isempty(Det.DetectionOperators)
+  error('No detection operator provided.')
+else
+  Opt.DetectionOperators = Det.DetectionOperators;
+end
+
 nDetectionOperators = length(Opt.DetectionOperators);
 
 DetectionOperators = cell(1,nDetectionOperators);
+
+if ~isfield(Det,'FreqTranslation') || isempty(Det.FreqTranslation)
+  Opt.FreqTranslation = [];
+else
+  Opt.FreqTranslation = zeros(1,nDetectionOperators);
+  Opt.FreqTranslation(1:length(Det.FreqTranslation)) = Det.FreqTranslation;
+end
+
+Opt.DetectedEvents = zeros(1,length(Exp.t));
+
+if ~isfield(Det,'Events') || isempty(Det.Events)
+  Opt.DetectedEvents(end) = 1;
+else
+  Opt.DetectedEvents(1:length(Det.Events)) = Det.Events;
+end
 
 for iDetectionOperator = 1 : nDetectionOperators
   if ischar(Opt.DetectionOperators{iDetectionOperator})
@@ -204,7 +225,7 @@ for iEvent = 1: length(Events)
 end
 
 % Calls the actual propagation engine
-[TimeAxis, RawSignal, FinalState, StateTrajectories, NewEvents]=thyme(Sigma, Ham, DetectionOperators, Events, Relaxation, Vary);
+[TimeAxis, RawSignal, FinalState, StateTrajectories, NewEvents] = thyme(Sigma, Ham, DetectionOperators, Events, Relaxation, Vary);
 
 % Signal postprocessing, such as down conversion and filtering
 Signal = signalprocessing(TimeAxis,RawSignal,Opt);
