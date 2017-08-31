@@ -642,43 +642,47 @@ if (nNuclei>0)
 
 end
 
-%------ Nuclear-nuclear couplings ---------------------------
+%------ Nuclear-nuclear couplings ----------------------------------------------
 Sys.fullnn = false;
-if (nNuclei>1)
+if nNuclei<2
+  
+  if isfield(Sys,'nn') && ~(isempty(Sys.nn) || all(Sys.nn==0))
+    error('Nuclear-nuclear couplings specified in Sys.nn, but fewer than two nuclei given.');
+  end
+  
+else
   
   % Bilinear coupling defined via Sys.nn
-  nnMatrix = isfield(Sys,'nn');
+  nNucPairs = nNuclei*(nNuclei-1)/2;
   
-  nPairs = nNuclei*(nNuclei-1)/2;
-  
-  if nnMatrix
+  if isfield(Sys,'nn') && ~isempty(Sys.nn)
     
     % Expand isotropic couplings into 3 equal principal values
-    if numel(Sys.nn)==nPairs
+    if numel(Sys.nn)==nNucPairs
       Sys.nn = Sys.nn(:)*[1 1 1];
     end
     
-    fullnn = issize(Sys.nn,[3*nPairs,3]);
-    if ~fullnn
-      err = sizecheck(Sys,'nn',[nPairs 3]);
+    % Size checks for Sys.nn
+    Sys.fullnn = issize(Sys.nn,[3*nNucPairs,3]);
+    if ~Sys.fullnn
+      err = sizecheck(Sys,'nn',[nNucPairs 3]);
       if ~isempty(err), return; end
     end
     
   else
-    Sys.nn = zeros(nPairs,3);
-    fullnn = false;
+    Sys.nn = zeros(nNucPairs,3);
+    Sys.fullnn = false;
   end
-  Sys.fullnn = fullnn;
   
-  % Check for eeFrame, and supplement or error if necessary
-  if fullnn
-    if isfield(Sys,'nnFrame')
+  % Check for nnFrame, supplement or error if necessary
+  if Sys.fullnn
+    if isfield(Sys,'nnFrame') && ~isempty(Sys.nnFrame)
       err = sprintf('Full matrices are specified in Sys.nn, so nnFrame is not allowed.');
       if ~isempty(err), return; end
     end
   else
-    if ~isfield(Sys,'nnFrame'), Sys.nnFrame = zeros(nPairs,3); end
-    err = sizecheck(Sys,'nnFrame',[nPairs 3]);
+    if ~isfield(Sys,'nnFrame'), Sys.nnFrame = zeros(nNucPairs,3); end
+    err = sizecheck(Sys,'nnFrame',[nNucPairs 3]);
     if ~isempty(err), return; end
   end
   
