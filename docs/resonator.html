@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>resonator</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">resonator</div>
+
+<p>
+Simulation of the effect of the resonator on a pulse or computation of pulse shapes compensated for the resonator transfer function.
+</p>
+
+<!-- ============================================================= -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+[tOut,signalOut] = resonator(tIn,signalIn,mwFreq,nu,TransferFunction,'simulate')
+[tIn,signalIn] = resonator(tOut,signalOut,mwFreq,nu,TransferFunction,'compensate')
+
+[tOut,signalOut] = resonator(tIn,signalIn,mwFreq,nu0,QL,'simulate')
+[tIn,signalIn] = resonator(tOut,signalOut,mwFreq,nu0,QL,'compensate')
+
+... = resonator(...,Opt)
+</pre>
+
+<!-- ============================================================= -->
+<div class="subtitle">Description</div>
+
+<p>
+This function simulates the effect of the resonator on the input signal shape or provides a signal compensated for the resonator transfer function that can be used to obtain the desired signal in the resonator.
+</p>
+
+<p>
+The first two input arguments should contain the time axis (in microseconds) and signal (input signal for the option <code>'simulate'</code>, desired output signal for the option <code>'compensate'</code>).
+</p>
+
+<p>
+The third input argument, <code>mwFreq</code>, is the center microwave frequency of the provided signal at the resonator (in GHz).
+</p>
+
+<p>
+The resonator transfer function can be provided directly as frequency axis (<code>nu</code> in GHz) and transfer function (<code>TransferFunction</code>). If the transfer function input is real, it is interpreted as magnitude transfer function, if it is complex it is taken as the full transfer function (see below for details).
+</p>
+<p>
+Alternatively, the resonator center frequency (<code>nu0</code> in GHz) and the loaded Q-value (<code>QL</code>) can be provided to model the resonator frequency response based on the ideal transfer function for an RLC series circuit. 
+</p>
+
+<p>
+The output contains the time axis data (in microseconds) and the distorted or adapted signal.
+</p>
+
+<p>
+Additional calculation parameters can be provided in the <code>Opt</code> structure:
+
+<div class="optionfield"><code>CutoffFactor</code></div>
+<div class="optiondescr">
+Relative cutoff level for pulse shapes modified by the resonator transfer function (default = 1/1000). This determines the length of the returned pulse shape and time axis if <code>Opt.Resonator</code> is used.
+</div>
+
+<div class="optionfield"><code>TimeStep</code></div>
+<div class="optiondescr">
+Time step for the definition of the waveform, in microseconds. If not given, it is automatically determined based on the Nyquist sampling criterion and the pulse frequency content.
+</div>
+
+<div class="optionfield"><code>OverSampleFactor</code></div>
+<div class="optiondescr">
+Oversampling factor for the automatic determination of the time step (default = 10). 
+</div>
+
+<!-- ============================================================= -->
+<div class="subtitle">Examples</div>
+
+<p>
+The distortion of a rectangular pulse by the resonator can be simulated as follows:
+</p>
+
+<pre class="matlab">
+% Pulse
+Par.tp = 0.100; % µs
+[t,rectangular] = pulse(Par);
+
+% Resonator
+nu0 = 9.50; % GHz
+QL = 150;
+mwFreq = 9.50; % GHz
+
+% Distorted pulse shape
+[tOut,signalOut] = resonator(t,rectangular,mwFreq,nu0,QL,'simulate')
+</pre>
+
+<p>
+The output signal has rise and fall times determined by the resonator frequency and loaded Q-value.
+</p>
+
+<p>
+The input pulse shape required to obtain an undistorted pulse can be obtained as follows:
+</p>
+
+<pre class="matlab">
+% Pulse
+Par.tp = 0.100; % µs
+Par.Type = 'quartersin';
+Par.trise = 0.005; % µs
+[t,ideal] = pulse(Par);
+
+% Resonator
+nu0 = 9.50; % GHz
+QL = 100;
+mwFreq = 9.50; % GHz
+
+% Predistorted pulse shape
+[tIn,signalIn] = resonator(t,ideal,mwFreq,nu0,QL,'compensate');
+</pre>
+
+
+<!-- ============================================================= -->
+<div class="subtitle">Algorithm</div>
+
+<p>
+Simulation of the effect of the resonator or predistortion of the pulse shape to account for the resonator transfer function is performed by Fourier convolution and deconvolution. If a complex frequency response is provided, the transfer function in the full frequency range is computed by extending the provided function with an ideal transfer function of a RLC series circuit:
+<div class="eqn">
+<img src="eqn/resonator1.png" alt="[eqn]"><!--MATH
+\begin{equation*}
+H_\mathrm{id}(\nu) = \frac{1}{1+\mathrm{i}Q_\mathrm{L}\left(\frac{\nu}{\nu_\mathrm{res}}-\frac{\nu_\mathrm{res}}{\nu}\right)}
+\end{equation*}
+-->
+</div>
+<p>
+where the loaded Q-value and the center frequency of the resonator are estimated by least-squares fitting. If the provided frequency response is real, it is assumed to correspond to the magnitude response and the phase response is derived in the defined frequency range using the procedure described in Doll, A., Pribitzer, S., Tschaggelar, R., Jeschke, G., Adiabatic and fast passage ultra-wideband inversion in pulsed EPR, <i>J. Magn. Reson.</i> 230, 27-39 (<b>2013</b>), DOI: <a href="http://dx.doi.org/10.1016/j.jmr.2013.01.002">10.1016/j.jmr.2013.01.002</a>. The transfer function is then again extended over the full frequency range as in the previous case. The distorted/corrected pulse shapes are obtained by inverse Fourier transform after multiplication/division of the Fourier transform of the pulse shape with the transfer function (see Kaufmann, T., Keller, T.J., Franck, J.M., Barnes, R.P., Glaser, S., Martinis, J.M., Han, S., DAC-board based X-band EPR spectrometer with arbitrary waveform control, <i>J. Magn. Reson.</i> 235, 95-108 (<b>2013</b>), DOI: <a href="http://dx.doi.org/10.1016/j.jmr.2013.07.015">10.1016/j.jmr.2013.07.015</a> for details). If no time step is provided, an optimized time step is computed based on the frequency content of the returned pulse function.
+
+<!-- ============================================================= -->
+<div class="subtitle">See also</div>
+
+<p>
+<a class="esf" href="pulse.html">pulse</a>,
+<a class="esf" href="transmitter.html">transmitter</a>,
+<a class="esf" href="rfmixer.html">rfmixer</a>
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+
+</html>

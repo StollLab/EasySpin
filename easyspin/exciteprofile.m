@@ -1,6 +1,7 @@
 % exciteprofile      Excitation profile calculation for arbitrary pulses
 %
 % [offsets,Mag] = exciteprofile(t,IQ)
+% [offsets,Mag] = exciteprofile(t,IQ,offsets)
 %
 % Input:
 %   t           = time axis for defined waveform in µs
