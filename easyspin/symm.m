@@ -716,7 +716,7 @@ if isfield(Sys,'D') && any(Sys.D(:)), return; end
 % if any(HighOrderTerm), return; end
 
 % (2) Not isotropic if any A, g or ee tensor is anisotropic
-if isfield(Sys,'A')
+if isfield(Sys,'A') && ~isempty(Sys.A)
   A = Sys.A(:,1);
   if any(Sys.A(:,2)~=A) || any(Sys.A(:,3)~=A)
     return;

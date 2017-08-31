@@ -36,52 +36,57 @@ try
     for iTrace = 1 : nDetectionOperators
       % Load RawSignal of the current Detection Operator
       if iscell(RawSignal)
-        RfSignal = RawSignal{iPoint}(iTrace,:);
+        RFSignal = RawSignal{iPoint}(iTrace,:);
       else
-        RfSignal = squeeze(RawSignal(iPoint,iTrace,:));
+        RFSignal = squeeze(RawSignal(iPoint,iTrace,:));
       end
       
       % Ensures that signal is purely real or imaginary, if it is supposed 
       % to be purely real/imaginary
-      if max(abs(RfSignal))/max(imag(RfSignal)) > 1e8
-        RfSignal = real(RfSignal);
+      if max(abs(RFSignal))/max(imag(RFSignal)) > 1e8
+        RFSignal = real(RFSignal);
         purelyImag = false;
-      elseif max(abs(RfSignal))/max(real(RfSignal)) > 1e8
-        RfSignal = imag(RfSignal);
+      elseif max(abs(RFSignal))/max(real(RFSignal)) > 1e8
+        RFSignal = imag(RFSignal);
         purelyImag = true;
       else
         % If signal is complex (S+ or S-), the normalization is wrong by a
         % factor of two and hence needs normalization
-        RfSignal = 2*RfSignal;
+        RFSignal = 2*RFSignal;
       end
       % Break signal into smaller signals if a nondetected event is present
       % (non linear time axis)
       % store indices
           
+      % Looks for nonlinear steps in the time axis (with rounding), if
+      % jumps in the time axis are detected, the signal is processed
+      % separatel for each continuuous section. This is the case when
+      % detection several events are detected, with one in the middle that
+      % is not, eg. Det.Events = [1 0 1]
       num_dig = 10;
-
       diffTime = round(diff(DCTimeAxis)*(10^num_dig))/(10^num_dig);
-      dt = min(diffTime);
       
+      % Extracting the time step
+      dt = min(diffTime);
       Opt.dt = dt;
       
+      % Indices for splitting the signal
       BreakIndices = [1  find(diffTime ~= dt)+1 length(DCTimeAxis)+1];
+      
+      
       % Does the downconversion, if no down conversion is requested for the
       % current detection operator, the cleaned up signal is written to
       % ProcessedSignal
       
       if TranslationFrequencies(iTrace) ~= 0
-        DCSignal = zeros(1,length(RfSignal));
+        DCSignal = zeros(1,length(RFSignal));
         % Depending on the type of trace, different down conversion types
         % are required (see rfmixer for details)
         for j = 1 : length(BreakIndices)-1
           Elements = BreakIndices(j):(BreakIndices(j+1)-1);
-          if isreal(RfSignal)
-            % Mixing if signal is real
-            % loop over indices for broken (or not broken) down signal and
-            % provide timestep
-            
-            [~, DCSignal(Elements)] = rfmixer(DCTimeAxis(Elements),RfSignal(Elements),TranslationFrequencies(iTrace),'IQdemod',Opt);
+          if isreal(RFSignal)
+            % Mixing if signal is real or imaginary
+            [~, DCSignal(Elements)] = rfmixer(DCTimeAxis(Elements),RFSignal(Elements),TranslationFrequencies(iTrace),'IQdemod',Opt);
             
             if purelyImag
               DCSignal = real(DCSignal)*1i;
@@ -90,12 +95,8 @@ try
             end
             
           else
-            % Mixing if signal is complex
-            
-            % loop over indices for broken (or not broken) down signal and
-            % provide timestep
-            
-            [~, DCSignal(Elements)] = rfmixer(DCTimeAxis(Elements),RfSignal(Elements),TranslationFrequencies(iTrace),'IQshift',Opt);
+            % Mixing if signal is complex          
+            [~, DCSignal(Elements)] = rfmixer(DCTimeAxis(Elements),RFSignal(Elements),TranslationFrequencies(iTrace),'IQshift',Opt);
             
           end
         end
@@ -109,9 +110,9 @@ try
       else
         % stores original cleaned up signal
         if iscell(RawSignal)
-          Traces(iTrace,:) = RfSignal;
+          Traces(iTrace,:) = RFSignal;
         else
-          ProcessedSignal(iPoint,iTrace,:) = RfSignal;
+          ProcessedSignal(iPoint,iTrace,:) = RFSignal;
         end
         
       end

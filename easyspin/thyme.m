@@ -7,7 +7,6 @@ if (nargin==0), help(mfilename); return; end
 if (nargout>5), error('Too many output arguments.'); end
 if (nargin<4) || (nargin>6), error('Wrong number of input arguments!'); end
 
-%move this this into Events?
 % if (nargin<6), IncScheme = 1; end
 % if (nargin<7), Mix = {}; end
 %
@@ -19,11 +18,6 @@ method = 'stepwise';
 
 nEvents = length(Events);
 
-% questions:
-% - we have to look into the normalization for the Detection operators. +
-% or - Detection operators need to divided by two before normalizations are
-% computed. what should the normalization be for transition selective
-% operators or for detecting populations
 
 switch method
   
@@ -418,8 +412,8 @@ switch method
               tvector = currentEvent.t;
               currentSignal = zeros(nDet,size(currentEvent.IQ,2)+1);
             case 'free evolution'
-                tvector = 0:currentEvent.TimeStep:currentEvent.t;
-                currentSignal = zeros(nDet,length(tvector));
+              tvector = 0:currentEvent.TimeStep:currentEvent.t;
+              currentSignal = zeros(nDet,length(tvector));
           end
           
           n = size(Sigma,1);
@@ -436,6 +430,7 @@ switch method
               tvector = currentEvent.t;
             case 'free evolution'
               tvector = [0 currentEvent.t];
+              currentEvent.TimeStep = currentEvent.t;
           end
           
           currentSignal=[];

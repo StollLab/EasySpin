@@ -525,6 +525,9 @@ esfit('mymy',data,Sys,Vary,Exp);
 As you can see, you have to put the parameter you want to fit into the first input structure (called <code>Sys</code>), even if it is not a spin system parameter. This won't confuse EasySpins simulation functions, since they disregard any field they do not use.
 
 <p>
+<a class="esf" href="esfit.html">esfit</a> calls the custom simulation function once per iteration. If <code>Sys</code> is a cell array with multiple spin systems, such as <code>Sys = {Sys1,Sys2}</code>, then this will passed as cell array to the custom function.
+
+<p>
 <a class="esf" href="esfit.html">esfit</a> is able to handle simulation functions that do not provide the simulated data in their first output argument. If you want to use a non-conforming function, just tell <a class="esf" href="esfit.html">esfit</a> how it should be called and which output argument should be used in the fitting. This information is provided in <code>FitOpt.OutArg</code>, which should contain two numbers. The first number is the number of output arguments to expect, and the second number is the output argument to use in the fitting. Say, you have a function <code>myfun</code> that needs to be called with 4 output arguments (<code>[a,b,c,d] = myfun(...)</code>, and you want to use the second one for fitting, then use
 
 <pre class="matlab">

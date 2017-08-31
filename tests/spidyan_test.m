@@ -1,7 +1,7 @@
 clear Sys Exp Vary Opt Pulse sigmas Det
 
 % System ------------------------
-Sys.S = [1];
+Sys.S = [1/2];
 Sys.g = [2 2 2];
 Sys.ZeemanFreq = [1500];  % New Field for Providing resonace frequeny(ies)
 % Sys.initState = [0 0.5; 0.5 0]; % Field for the initial state, must recognize string or a matrix, collision with Exp.T?
@@ -21,8 +21,8 @@ Pulse.ComplexExcitation = 0;
 
 % PC = [0 1; pi -1];
 
-Exp.t = [0.1 0.5 0.1 0.5 0.1 0.5 0.1];
-Exp.Pulses = {Pulse 0 Pulse 0 Pulse 0 Pulse};
+Exp.t = [0.1 0.5 0.1];
+Exp.Pulses = {Pulse 0 Pulse};
 Exp.Field = 1240; % New Field: Magnetic Field
 Exp.TimeStep = 0.0001; % us
 Exp.Frequency = [-100 100] + 1500;
@@ -35,7 +35,7 @@ Exp.mwFreq = 33.5;
 % Exp.nPoints = [2];
 
 % Detection -------------------------
-Det.DetectionOperators = {'+1','x1'}; % Need a field name here, make a new branch
+Det.DetectionOperators = {'+1',[0 1;0 0]}; % Need a field name here, make a new branch
 Det.FreqTranslation = [-1.5 -1.5]; 
 Det.Events = [1 0 1]; 
 

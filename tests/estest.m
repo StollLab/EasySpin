@@ -1,88 +1,91 @@
 % estest    Testing engine for EasySpin
+%
+%   Usage:
+%     estest            run all tests
+%     estest adsf       run all tests whose name starts with asdf
+%     estest asdf d     run all tests whose name starts with asdf and
+%                       display results
+%     estest asdf r     evaluate all tests whose name starts with asdf and
+%                       recalculate and store regression data
+%     estest asdf t     evaluate all tests whose name starts with asdf and
+%                       report timings
+%
+%   Either the command syntax as above or the function syntax, e.g.
+%   estest('asdf','t'), can be used.
+%
+%   Run all tests including timings:   estest('*','t')
+%
+%   All test files must have an underscore _ in their filename.
 
-function estest(TestName,params)
+function out = estest(TestName,params)
 
 % Check whether EasySpin is on the Matlab path
-Espath = fileparts(which('sop'));
-if isempty(Espath)
-  error('EasySpin not on the Matlab path!');
+EasySpinPath = fileparts(which('easyspin'));
+if isempty(EasySpinPath)
+  error('EasySpin is not on the Matlab path!');
 end
 
-if (nargin<2)
-  params = '.';
+fid = 1; % output to command window
+
+if nargin<1
+  TestName = '';
+end
+if nargin<2
+  params = '';
 end
 
 Opt.Display = any(params=='d');
 Opt.Regenerate = any(params=='r');
 Opt.Verbosity = Opt.Display;
 
-OldPath = path;
-OldDir = pwd;
+displayTimings = any(params=='t');
 
-LogLevel = 1;
-
-if (LogLevel>0)
-  fprintf('Display: %d, Regenerate: %d, Verbosity: %d\n',...
-    Opt.Display,Opt.Regenerate, Opt.Verbosity);
+if Opt.Display && displayTimings
+  error('Cannot plot test results and report timings at the same time.');
 end
 
-fid = 1; % standard output
-
-if (nargin==0)
-  FileMask = '*_*.m';
+if any(TestName=='_')
+  FileMask = [TestName '*.m'];
 else
-  if strfind(TestName,'_')
-    FileMask = [TestName '*.m'];
-  else
-    FileMask = [TestName '*_*.m'];
-  end
+  FileMask = [TestName '*_*.m'];
 end
 
 FileList = dir(FileMask);
-
-%for f=numel(FileList):-1:1
-%  if ~isempty(strfind(FileList(f).name,'_test')), FileList(f) = []; end
-%end
 
 if numel(FileList)==0
   error('No test functions matching the pattern %s',FileMask);
 end
 
-for f = 1:numel(FileList)
-  TestNames{f} = FileList(f).name;
-end
+TestFileNames = sort({FileList.name});
 
-[unused,idx] = sort({FileList.name});
-TestNames = TestNames(idx);
+fprintf(fid,'=======================================================================\n');
+fprintf(fid,'EasySpin test set                      %s\n(Matlab %s)\n',datestr(now),version);
+fprintf(fid,'EasySpin location: %s\n',EasySpinPath);
+fprintf(fid,'=======================================================================\n');
+fprintf(fid,'Display: %d, Regenerate: %d, Verbosity: %d\n',...
+  Opt.Display,Opt.Regenerate, Opt.Verbosity);
+fprintf(fid,'-----------------------------------------------------------------------\n');
 
+% Codes for test outcomes:
+%    0   test passed
+%   +1   test failed
+%   +2   test crashed
+%   +3   not tested
 
-if (LogLevel>0)
-  fprintf(fid,'=======================================================================\n');
-  fprintf(fid,'EasySpin test suite                    %s\n(Matlab %s)\n',datestr(now),version);
-  fprintf(fid,'EasySpin location: %s\n',Espath);
-  fprintf(fid,'=======================================================================\n');
-end
+OutcomeStrings = {'pass','failed','crashed','not tested'};
 
-% Error codes:
-%  0   test passed
-% +1   test failed
-% +2   test crashed
-% +3   not tested
-
-ErrorStrings = {'ok','failed','crashed','not tested'};
-
-for iTest = 1:numel(TestNames)
+for iTest = 1:numel(TestFileNames)
   
   if (Opt.Display)
     clf; drawnow;
   end
 
-  thisTest = TestNames{iTest}(1:end-2);
+  thisTest = TestFileNames{iTest}(1:end-2);
   
   olddata = [];
   TestDataFile = ['data/' thisTest '.mat'];
   if exist(TestDataFile,'file')
-    if (Opt.Regenerate)
+    if Opt.Regenerate
       delete(TestDataFile);
     else
       try
@@ -100,10 +103,11 @@ for iTest = 1:numel(TestNames)
   try
     [err,data] = feval(thisTest,Opt,olddata);
     if (Opt.Display)
-      if (iTest<numel(TestNames)), pause; end
+      if (iTest<numel(TestFileNames)), pause; end
     end
+    % if test returns empty err, then treat it as not tested
     if isempty(err)
-      err = 3;
+      err = 3; % not tested
     else
       err = any(err~=0);
     end
@@ -112,42 +116,64 @@ for iTest = 1:numel(TestNames)
     err = 2;
   end
   time_used(iTest) = toc;
+  testError = lasterr;
   
-  SaveTestData = ~isempty(data) & (isempty(olddata) | Opt.Regenerate);
+  saveTestData = ~isempty(data) && (isempty(olddata) || Opt.Regenerate);
   
-  if (SaveTestData)
-    vv = version;
-    if (vv(1)>='7')
-      save(TestDataFile,'data','-V6');
-    else
+  if saveTestData
+    if verLessThan('matlab','7')
       save(TestDataFile,'data');
+    else
+      save(TestDataFile,'data','-V6');
     end
   end
     
   Results(iTest).err = double(err);
   Results(iTest).name = thisTest;
-  Results(iTest).errmsg = lasterr;
-  if ~isempty(lasterr)
-    errStr = [lasterr sprintf('\n')];
+  Results(iTest).errmsg = testError;
+  if ~isempty(testError)
+    errStr = sprintf('%s\n',testError);
   else
     errStr = '';
   end
-  resultStr = ErrorStrings{Results(iTest).err+1};
-  if ~isempty(data), typeStr = 'regression'; else typeStr = 'direct'; end
-  Results(iTest).msg = [sprintf('%-36s  %-14s%s\n',...
-     Results(iTest).name,typeStr,resultStr) errStr];
+  resultStr = OutcomeStrings{Results(iTest).err+1};
   
-  Results(iTest).msg(Results(iTest).msg=='\') = '/';
-  fprintf(fid,Results(iTest).msg);
+  if ~isempty(data)
+    typeStr = 'regression';
+  else
+    typeStr = 'direct';
+  end
+  
+  if displayTimings
+    timeStr = sprintf('%0.3f seconds',time_used(iTest));
+  else
+    timeStr = [];
+  end
+  
+  str = sprintf('%-36s  %-12s%-8s%s\n%s',...
+       Results(iTest).name,typeStr,resultStr,timeStr,errStr);
+  str(str=='\') = '/';
+  
+  Results(iTest).msg = str;
+  
+  fprintf(fid,str);
 end
-fprintf(fid,'-----------------------------------------------------------------------\n');
 
 allErrors = [Results.err];
 
-msg = sprintf('%d successful tests, %d failures, %d crashes\n',sum(allErrors==0),sum(allErrors==1),sum(allErrors==2));
-fprintf(fid,msg);
+% Display timings of slowest tests
+if displayTimings
+  fprintf(fid,'-----------------------------------------------------------------------\n');
+  fprintf(fid,'Total test time:                        %7.3f seconds\n',sum(time_used));
+  fprintf(fid,'Slowest tests:\n');
+  [time,iTest] = sort(time_used,'descend');
+  for q = 1:min(10,numel(time))
+    fprintf(fid,'%-36s    %7.3f seconds\n',Results(iTest(q)).name,time(q));
+  end
+end
 
-if sum(allErrors)>0
+% Display all tests that failed
+if any(allErrors==1) || any(allErrors==2)
   fprintf(fid,'-----------------------------------------------------------------------\n');
   for iTest = find(allErrors)
     fprintf(fid,Results(iTest).msg);
@@ -155,8 +181,14 @@ if sum(allErrors)>0
 end
 
 fprintf(fid,'-----------------------------------------------------------------------\n');
+msg = sprintf('%d passes, %d failures, %d crashes\n',sum(allErrors==0),sum(allErrors==1),sum(allErrors==2));
+fprintf(fid,msg);
+fprintf(fid,'-----------------------------------------------------------------------\n');
 
-path(OldPath);
-cd(OldDir);
+% Return output if desired
+if nargout==1
+  out.Results = Results;
+  out.outcomes = allErrors;
+end
 
 return

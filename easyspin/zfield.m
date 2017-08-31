@@ -31,7 +31,7 @@ if isempty(idxElectrons)
   idxElectrons = 1:Sys.nElectrons;
 end
 
-if any(idxElectrons>Sys.nElectrons) || any(idxElectrons<1),
+if any(idxElectrons>Sys.nElectrons) || any(idxElectrons<1)
   error('Electron spin index/indices (2nd argument) out of range!');
 end
 
@@ -154,7 +154,7 @@ for iSpin = idxElectrons
     
     q = k:-1:-k;
     for iq = find(Bk(iSpin,:)~=0)
-      H = H + Bk(iSpin,iq)*stev(Spins,k,q(iq),iSpin);
+      H = H + Bk(iSpin,iq)*stev(Spins,k,q(iq),iSpin,'sparse');
     end
     
   end % for all tensor ranks

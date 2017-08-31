@@ -76,6 +76,9 @@ end
 if any(strncmp(fieldnames(Sys),'Ham',3))
   err = 'Perturbation theory not available for higher order terms';
 end
+if isfield(Sys,'nn') && any(Sys.nn(:)~=0)
+  err = 'Perturbation theory not available for nuclear-nuclear couplings (Sys.nn).';
+end
 error(err);
 
 
@@ -127,7 +130,7 @@ for iNuc = 1:nNuclei
     A{iNuc} = Sys.A((iNuc-1)*3+(1:3),:);
   else
     R_A2M = erot(Sys.AFrame(iNuc,:)).'; % A frame -> molecular frame
-    A_ = diag(Sys.A(iNuc,:))*Sys.Ascale(iNuc);
+    A_ = diag(Sys.A(iNuc,:));
     A{iNuc} = R_A2M*A_*R_A2M.';
   end
   mI{iNuc} = -I(iNuc):I(iNuc);

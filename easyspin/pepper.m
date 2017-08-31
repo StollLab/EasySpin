@@ -115,21 +115,29 @@ if ~isfield(Opt,'Output'), Opt.Output = 'summed'; end
 error(err);
 summedOutput = Output==1;
 
-if ~isfield(Sys,'singleiso') || (Sys.singleiso==0)
-
-  [SysList,weight] = expandcomponents(Sys,Opt.IsoCutoff);
-  nComponents = numel(SysList);
-  logmsg(1,'Simulating %d component spectra...');
+if ~isfield(Sys,'singleiso') || ~Sys.singleiso
   
-  if (nComponents>1) && SweepAutoRange
-    if FrequencySweep
-      error('Multiple components: Please specify sweep range manually using Exp.mwRange or Exp.mwCenterSweep.');
-    else
-      error('Multiple components: Please specify sweep range manually using Exp.Range or Exp.CenterSweep.');
-    end
+  if ~iscell(Sys), Sys = {Sys}; end
+  
+  nComponents = numel(Sys);
+  logmsg(1,'%d spin system(s)...');
+  
+  for c = 1:nComponents
+    SysList{c} = isotopologues(Sys{c},Opt.IsoCutoff);
+    nIsotopologues(c) = numel(SysList{c});
+    logmsg(1,'  component %d: %d isotopologues',c,nIsotopologues(c));
   end
   
-  separateComponentOutput = (nComponents>1) && ~summedOutput;
+  if (sum(nIsotopologues)>1) && SweepAutoRange
+    if FrequencySweep
+      str = 'Exp.mwRange or Exp.mwCenterSweep';
+    else
+      str = 'Exp.Range or Exp.CenterSweep';
+    end
+    error('Multiple components: Please specify sweep range manually using %s.',str);
+  end
+  
+  separateComponentOutput = (sum(nIsotopologues)>1) && ~summedOutput;
   if separateComponentOutput
     Opt.Output = 'summed';
     spec = [];
@@ -137,15 +145,21 @@ if ~isfield(Sys,'singleiso') || (Sys.singleiso==0)
     spec = 0;
   end
   
+  iSpc = 1;
   for iComponent = 1:nComponents
-    [xAxis,spec_,Transitions] = pepper(SysList{iComponent},Exp,Opt);
-    if separateComponentOutput
-      spec(iComponent,:) = spec_*weight(iComponent);
-    else
-      spec = spec + spec_*weight(iComponent);
+    for iIsotopologue = 1:nIsotopologues(iComponent)
+      Sys_ = SysList{iComponent}(iIsotopologue);
+      Sys_.singleiso = true;
+      [xAxis,spec_,Transitions] = pepper(Sys_,Exp,Opt);
+      if separateComponentOutput
+        spec(iSpc,:) = spec_*Sys_.weight;
+        iSpc = iSpc + 1;
+      else
+        spec = spec + spec_*Sys_.weight;
+      end
     end
   end
-    
+  
   % Output and plotting
   switch nargout
     case 0
