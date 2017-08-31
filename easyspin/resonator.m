@@ -1,11 +1,11 @@
 % resonator      Simulation of/compensation for the effect of the resonator
 %                on a pulse
 %
-%  [t,signal] = resonator(t0,signal0,mwFreq,nu,FrequencyResponse,'simulate')
-%  [t,signal] = resonator(t0,signal0,mwFreq,nu,FrequencyResponse,'compensate')
-%
-%  [t,signal] = resonator(t0,signal0,mwFreq,nu0,QL,'simulate')
-%  [t,signal] = resonator(t0,signal0,mwFreq,nu0,QL,'compensate')
+%  [tOut,signalOut] = resonator(tIn,signalIn,mwFreq,nu,TransferFunction,'simulate')
+%  [tIn,signalIn] = resonator(tOut,signalOut,mwFreq,nu,TransferFunction,'compensate')
+%  [tOut,signalOut] = resonator(tIn,signalIn,mwFreq,nu0,QL,'simulate')
+%  [tIn,signalIn] = resonator(tOut,signalOut,mwFreq,nu0,QL,'compensate')
+%  ... = resonator(...,Opt)
 %
 %  If the option 'simulate' is selected, resonator() simulates the effect
 %  of the resonator on the input signal signal0.
@@ -38,7 +38,7 @@
 %   - nu/nu0               = frequency axis for the resonator transfer 
 %                            function (in GHz) or resonator center 
 %                            frequency (in GHz)
-%   - FrequencyResponse/QL = resonator transfer function or magnitude
+%   - TransferFunction/QL = resonator transfer function or magnitude
 %                            response or loaded Q-value
 %   - 'simulate'/'compensate'
 %   - Options structure with the following fields:

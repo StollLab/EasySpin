@@ -35,14 +35,13 @@ Simulation of the effect of the resonator on a pulse or computation of pulse sha
 <div class="subtitle">Syntax</div>
 
 <pre class="matlab">
-[tOut,signalOut] = resonator(tIn,signalIn,mwFreq,nu,FrequencyResponse,'simulate')
-[tOut,signalOut] = resonator(tIn,signalIn,mwFreq,nu0,QL,'simulate')
+[tOut,signalOut] = resonator(tIn,signalIn,mwFreq,nu,TransferFunction,'simulate')
+[tIn,signalIn] = resonator(tOut,signalOut,mwFreq,nu,TransferFunction,'compensate')
 
-[tIn,signalIn] = resonator(tOut,signalOut,mwFreq,nu,FrequencyResponse,'compensate')
+[tOut,signalOut] = resonator(tIn,signalIn,mwFreq,nu0,QL,'simulate')
 [tIn,signalIn] = resonator(tOut,signalOut,mwFreq,nu0,QL,'compensate')
 
-[tOut,signalOut] = resonator(tIn,signalIn,mwFreq,nu,FrequencyResponse,'simulate',Opt)
-[tIn,signalIn] = resonator(tOut,signalOut,mwFreq,nu0,QL,'compensate',Opt)
+... = resonator(...,Opt)
 </pre>
 
 <!-- ============================================================= -->
@@ -61,7 +60,7 @@ The third input argument, <code>mwFreq</code>, is the center microwave frequency
 </p>
 
 <p>
-The resonator transfer function can be provided directly as frequency axis (<code>nu</code> in GHz) and transfer function (<code>FrequencyResponse</code>). If the transfer function input is real, it is interpreted as magnitude transfer function, if it is complex it is taken as the full transfer function (see below for details).
+The resonator transfer function can be provided directly as frequency axis (<code>nu</code> in GHz) and transfer function (<code>TransferFunction</code>). If the transfer function input is real, it is interpreted as magnitude transfer function, if it is complex it is taken as the full transfer function (see below for details).
 </p>
 <p>
 Alternatively, the resonator center frequency (<code>nu0</code> in GHz) and the loaded Q-value (<code>QL</code>) can be provided to model the resonator frequency response based on the ideal transfer function for an RLC series circuit. 
