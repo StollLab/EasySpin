@@ -19,6 +19,7 @@ $Description{'fastmotion'} = 'Fast-motion cw EPR simulations';
 $Description{'slowmotion'} = 'Slow-motion cw EPR simulations';
 $Description{'endor'} = 'ENDOR simulations';
 $Description{'pulse'} = 'Pulse EPR simulations';
+$Description{'shaping'} = 'Pulse shaping etc.';
 $Description{'analysis'} = 'Data analysis';
 $Description{'varia'} = 'Other examples';
 $Description{'fitting'} = 'Least-squares fitting';

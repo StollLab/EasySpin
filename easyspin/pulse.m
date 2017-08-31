@@ -42,8 +42,8 @@
 %                       and the length of the I and Q vectors, all other
 %                       input parameters (Amplitude, Flip, Frequency,
 %                       Phase, etc.) are ignored.
-%   If compensation for the resonator bandwidth is requested with 
-%   Opt.BWCompensation, the following parameters also need to be defined:
+%   To compensate for the resonator bandwidth to get uniform adiabaticity
+%   (see Ref. 2), define:
 %     Par.FrequencyResponse  = frequency axis in GHz and resonator frequency 
 %                              response (ideal or experimental, real-valued
 %                              input is interpreted as magnitude response)
@@ -54,13 +54,6 @@
 %     Par.mwFreq             = microwave frequency for the experiment in GHz
 %
 %   Opt = optional structure with the following fields
-%    Opt.Output           = 'IQ' - complex-valued pulse (default)
-%                           'I'  - real-valued pulse
-%    Opt.BWCompensation   = true/false, resonator bandwidth compensation
-%                           for frequency-swept pulses with uniform
-%                           adiabaticity (see Ref. 2)
-%                           This option requires definition of the parameters
-%                           Par.FrequencyResponse and Par.mwFreq.
 %    Opt.OverSampleFactor = oversampling factor for the determination of the 
 %                           time step (default: 10)
 %
@@ -198,12 +191,6 @@ end
 
 % Options
 % ----------------------------------------------------------------------- %
-if ~isfield(Opt,'Output')
-  Opt.Output = 'IQ';
-end
-if ~isfield(Opt,'BWCompensation')
-  Opt.BWCompensation = false;
-end
 if ~isfield(Opt,'OverSampleFactor')
   Opt.OverSampleFactor = 10;
 end
@@ -216,13 +203,10 @@ end
 
 % Check availability of required input
 % ----------------------------------------------------------------------- %
-if Opt.BWCompensation
-  
-  if ~isfield(Par,'FrequencyResponse') && ~isfield(Par,'ResonatorFrequency')
-      error(['Resonator bandwidth compensation requires the experimental resonator ',...
-        'transfer function in Par.FrequencyResponse or the Par.ResonatorFrequency and ',...
-        'Par.ResonatorQL parameters for calculation of an ideal transfer function.']);
-  end
+BWCompensation = isfield(Par,'FrequencyResponse') || ...
+  isfield(Par,'ResonatorFrequency') || isfield(Par,'ResonatorQL');
+
+if BWCompensation
   
   if isfield(Par,'FrequencyResponse') && ~isempty(Par.FrequencyResponse)
     [n1,n2] = size(Par.FrequencyResponse);
@@ -738,7 +722,7 @@ else
   % ------------------------------------------------------------------- %
   % Calculate bandwidth compensation
   % ------------------------------------------------------------------- %
-  if Opt.BWCompensation
+  if BWCompensation
     
     % Variable-rate chirps with resonator bandwidth compensation, as
     % described in:
@@ -832,7 +816,7 @@ else
         Par.Qcrit = min(Par.Qcrit,5); % set Q_crit to finite value if it is infinite or large
       end
       
-      if ~Opt.BWCompensation
+      if ~BWCompensation
         switch FrequencyModulation
           case 'linear'
             sweeprate = abs(Par.Frequency(2)-Par.Frequency(1))/Par.tp;
@@ -867,11 +851,6 @@ else
   totalphase = modulation.phase + 2*pi*mean(Par.Frequency)*t + Par.Phase;
   IQ = modulation.A.*exp(1i*totalphase);
   
-end
-
-% Real-valued pulse
-if strcmp(Opt.Output,'I')
-  IQ = real(IQ);
 end
 
 % ----------------------------------------------------------------------- %
@@ -948,11 +927,6 @@ if plotResults
   ylabel('amplitude (MHz)')
   set(gca,'Layer','top')
   legend([S.hI S.hQ],'I','Q','Location','SouthEast')
-  if strcmp(Opt.Output,'I')
-    set(S.hQ,'Visible','off')
-    legend(S.hI,'I','Location','SouthEast')
-    set(S.tick(2),'Value',0,'Enable','off')
-  end
   
   % Frequency modulation plot
   S.label(2) = uicontrol('Style','text','String','Frequency modulation:',...
@@ -1006,14 +980,6 @@ if plotResults
       line([1 1]*Par.Frequency(1),[-1 1],'Color',colBW);
       line([1 1]*Par.Frequency(2),[-1 1],'Color',colBW);
     end
-    if strcmp(Opt.Output,'I')
-      line([0 0],[-1 1],'Color','k');
-      line(-[1 1]*mean(Par.Frequency),[-1 1],'Color',colBW);
-      if numel(Par.Frequency)==2
-        line(-[1 1]*Par.Frequency(1),[-1 1],'Color',colBW);
-        line(-[1 1]*Par.Frequency(2),[-1 1],'Color',colBW);
-      end
-    end
     S.h(1) = plot(exprof.offsets,exprof.M(1,:),'Color',colx);
     S.h(2) = plot(exprof.offsets,exprof.M(2,:),'Color',coly);
     S.h(3) = plot(exprof.offsets,exprof.M(3,:),'Color',colz);
@@ -1045,7 +1011,9 @@ switch nargout
     varargout = {t,IQ};
   case 3 % [t,IQ,modulation] = pulse(...)
     modulation.freq = modulation.freq + mean(Par.Frequency);
-    modulation.phase = modulation.phase + 2*pi*mean(Par.Frequency)*t + Par.Phase;
+    if ~isempty(modulation.phase)
+      modulation.phase = modulation.phase + 2*pi*mean(Par.Frequency)*t + Par.Phase;
+    end
     varargout = {t,IQ,modulation};
   otherwise
     error('The function pulse() needs 2 or 3 output arguments.')

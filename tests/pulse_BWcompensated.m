@@ -15,12 +15,11 @@ Params.Amplitude = 1; % MHz
 Params.mwFreq = 9.5; % GHz
 
 % Ideal spectrometer magnitude response function
-Params.ResonatorFrequency = Params.mwFreq;
-Params.ResonatorQL = 50; % Q-factor
 
 [t,IQ1] = pulse(Params);
-Opt.BWCompensation = 1;
-[t,IQ2] = pulse(Params,Opt);
+Params.ResonatorFrequency = Params.mwFreq;
+Params.ResonatorQL = 50; % Q-factor
+[t,IQ2] = pulse(Params);
 
 % Consistency check in the frequency domain
 f = fdaxis(t);
@@ -75,7 +74,7 @@ err(3) = ~areequal(IQ0_adapted,IQ2,1e-3);
 
 % Sech/tanh and bandwidth-compensated sech/tanh
 %--------------------------------------------------------------------------
-clear Params Opt
+clear Params
 Params.tp = 0.200; % us
 Params.TimeStep = 0.00001; % us
 Params.Type = 'sech/tanh';
@@ -89,12 +88,11 @@ f0 = 9.2:0.010:9.5; % GHz
 dipfreq = 9.35;
 v1 = abs(1./(1+1i*QL*(f0/dipfreq-dipfreq./f0)));
 
-Params.mwFreq = 9.34; % GHz
-Params.FrequencyResponse = [f0; v1];
 
 [t,IQ1] = pulse(Params);
-Opt.BWCompensation = 1;
-[t,IQ2] = pulse(Params,Opt);
+Params.mwFreq = 9.34; % GHz
+Params.FrequencyResponse = [f0; v1];
+[t,IQ2] = pulse(Params);
 
 % Consistency check in the frequency domain
 f = fdaxis(t);
