@@ -32,9 +32,15 @@ x0 = transformVars(x0, Vary, 0);
 % Set some fitting options
 FitOpt = struct('nTrials', 10000, 'TolFun', 1e-1);
 
+% Regarding the function to be evaluated at each step in fitting (errorfun 
+% in this case), for any input arguments other than the fitting parameters 
+% (xdata, ydata, Vary in this case), each esfit algorithm also requires
+% them to be input arguments, which can be stored in a cell for convenience
+errorfunArgs = {Vary, ydata, xdata};
+
 % Perform fitting
 nParameters = numel(x);  % Needed for esfit_montecarlo
-xfit = esfit_montecarlo(@getresid, nParameters, FitOpt, xdata, ydata, Vary);
+xfit = esfit_montecarlo(@errorfun, nParameters, FitOpt, errorfunArgs{:});
 
 % Transform fit parameters back to their original domains
 xfit = transformVars(xfit, Vary, 1);
@@ -67,15 +73,21 @@ y = params(1) + params(2).*xdata.^2;
 
 end
 
-function varargout = getresid(x, xdata, ydata, Vary)
+function varargout = errorfun(x, Vary, ydata, xdata)
 % this function is fed to the esfit algorithm for checking the error during 
 % the fitting process
+% Note: the first three arguments (x, Vary, ydata) are always required by 
+% the esfit algorithms, whereas any additional arguments are dependent on 
+% whether the user-supplied function requires them
 
 global smallestError
 
 xp = transformVars(x, Vary, 1);
 
-simdata = quadratic(xdata, xp);
+simdata = quadratic(xdata, xp);  % the righthand side of this line is the 
+                                 % only line that can be changed, which 
+                                 % depends on what function is being fitted
+                                 % and what arguments it requires
 resid = ydata - simdata;
 rmsd = real(sqrt(mean(resid.^2)));
 
