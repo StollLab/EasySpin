@@ -52,15 +52,15 @@ See also the <a href="userguide_fitting.html">user guide</a> on fitting.
 <code>esfit</code> fits EPR spectra simulated with
 <a class="esf" href="garlic.html">garlic</a>,
 <a class="esf" href="pepper.html">pepper</a>, 
-<a class="esf" href="chili.html">chili</a> etc. to experimental spectral data
+<a class="esf" href="chili.html">chili</a>, etc. to experimental spectral data
 using least-squares fitting algorithms.
 </p>
 
 
 <p>
-If no output is requested, <code>esfit</code> start an <span style="font-weight:bold;">interactive user interface</span> that allows extensive
+If no output is requested, <code>esfit</code> starts an <span style="font-weight:bold;">interactive user interface</span> that allows extensive
 control over the fitting process and also allows the export of the fitting results to the workspace. In the UI, the fitting algorithm can be changed,
-parameters can be excluded from the fit, and multiple fit set can be stored.
+parameters can be excluded from the fit, and multiple fit sets can be stored.
 </p>
 
 <p>
@@ -79,13 +79,13 @@ The input parameters are the following:
 <ul>
 <li>
 <code>SimFnc</code> is the name of the simulation function: <code>'garlic'</code>, <code>'pepper'</code>,
-<code>'chili'</code>, <code>'saffron'</code> or <code>'salt'</code>.
+<code>'chili'</code>, <code>'saffron'</code>, <code>'salt'</code>, or a user-supplied custom function that makes use of one or more of these.
 <li>
-<code>expSpc</code> is a 1D array containing the experimental spectral data.
+<code>expSpc</code> is a 1D array containing the experimental spectral data, which can be one data set or several data sets that have been concatenated (in the latter case, a custom simulation function would need to be defined for fitting).
 <li>
 <code>Sys0</code> is a <a href="spinsystem.html">spin system structure</a> containing all the parameters of the spin system.
-For parameters that are to varied during the fitting process, the values in the structure represent the centers of the search ranges.
-<br>For multi-component systems, <code>Sys0</code> is a list of spin system structures, e.g. <code>{Sys1,Sys2}</code> for a two-component system. The weights for the different components are included in each component structure, e.g. <code>Sys1.weight = 0.7</code> and <code>Sys2.weight = 0.3</code>. The weights are relative (0.7 and 0.3 is the same as 14 and 6) and can be included in the fit. If weight is omitted, it is assumed to be 1. There is no limit on the number of components.
+For parameters that are to be varied during the fitting process, the values in the structure represent the centers of the search ranges.
+<br>For multi-component systems, <code>Sys0</code> is a cell array of spin system structures, e.g. <code>{Sys1,Sys2}</code> for a two-component system. The weights for the different components are included in each component structure, e.g. <code>Sys1.weight = 0.7</code> and <code>Sys2.weight = 0.3</code>. The weights are relative (0.7 and 0.3 is the same as 14 and 6) and can be included in the fit. If weight is omitted, it is assumed to be 1. There is no limit on the number of components.
 <li>
 <code>Vary</code> contains the approximate maximum variations for the spin system parameters allowed in the fitting. If a spin system parameter should be included
 in the fitting, give it a non-zero value in this structure. If it should not be included, set its value in this structure to zero, or don't include it at all.
@@ -94,7 +94,7 @@ Sys0.lwpp = 5;
 Vary.lwpp = 2;    % the linewidth is searched over a range of about 3 to 7
 Vary.lwpp = 0;    % the linewidth kept constant at the value given in Sys0
 </pre>
-For multiple components, <code>Vary</code> should contain one structure per component, e.g. <code>{Vary1,Vary2}</code> for two components. If none of the parameters of a component are varied in the fit, <code>[]</code> can be specified, e.g. <code>{Vary1,[]}</code> for a two-component fit where only parameters of the first component are varied.
+For multiple components, <code>Vary</code> should be a cell array containing one structure per component, e.g. <code>{Vary1,Vary2}</code> for two components. If none of the parameters of a component are varied in the fit, <code>[]</code> can be specified, e.g. <code>{Vary1,[]}</code> for a two-component fit where only parameters of the first component are varied.
 <li>
 <code>Exp</code> contains the experimental parameters needed for the simulation. Make sure to specify the field or frequency range you used for the experimental data in <code>Exp.Range</code> or <code>Exp.mwRange</code>. If you let the simulation function automatically pick a range, it will likely be different from the experimental one, and <code>esfit</code> cannot do its work. For example, if <code>x</code> is the experimental field range, use <code>Exp.Range = [min(x) max(x)]</code>.
 <li>
@@ -124,7 +124,7 @@ FitOpt.Method = 'genetic int';
 </pre>
 
 <p>
-The keywords for choosing one of the available algorithm are
+The keywords for choosing one of the available algorithms are
 
 <ul>
 <li><code>'simplex'</code>: Nelder-Mead simplex algorithm (unconstrained)
@@ -152,8 +152,7 @@ The default value is <code>'fcn'</code>. If there are many resolved lines, <code
 
 <div class="optionfield"><code>Scaling</code></div>
 <div class="optiondescr">
-This string specifies the scaling method. There are different ways a simulated spectrum can be scaled and shifted
-to overlap as much as possible with the experimental one. The possible values are
+This string specifies the scaling method. There are different ways a simulated spectrum can be scaled and shifted to overlap as much as possible with the experimental one during the fitting process. The possible values are:
 
 <ul>
 <li><code>'maxabs'</code>: make the maximum absolute of simulated and experimental spectrum equal
@@ -174,22 +173,12 @@ If the noise level is high, <code>'lsq'</code> is a better choice:
 FitOpt.Scaling = 'lsq';
 </pre>
 
-To include corrections for a baseline in the expermental spectrum, use <code>'lsq0</code>, <code>'lsq1</code>, or <code>'lsq2</code>.
+To include corrections for a baseline in the experimental spectrum, use <code>'lsq0</code>, <code>'lsq1</code>, or <code>'lsq2</code>.
 
 </div>
 
 <p>
-There are some more options which are recognized by all fitting algorithms:
-
-<div class="optionfield"><code>OutArg</code></div>
-<div class="optiondescr">
-This is an array with two numbers <code>[nArgOut useArg]</code> that tells <code>esfit</code> how to use the output arguments of the simulation function. <code>nArgOut</code> is the number of outputs provided by the function. <code>esfit</code> will call the function asking for this number of outputs. The second number, <code>useArg</code>, tells <code>esfit</code>  which of the output arguments actually contains the simulated data.
-<p>
-E.g. <code>OutArg = [3 2]</code> indicates to call the function asking for three outputs and then to use output number 2 for the fitting.
-
-<p>
-For the common EasySpin simulation function, <code>OutArg</code> is chosen automatically. For custom simulation functions that deviate in their output behavior, <code>OutArg</code> might be useful.
-</div>
+There are more options which are recognized by all fitting algorithms:
 
 <div class="optionfield"><code>maxTime</code></div>
 <div class="optiondescr">
@@ -202,28 +191,37 @@ A number, 0 or 1. If set to 0, the fitting functions don't write anything to the
 they print information about the progress of the fitting.
 </div>
 
+<div class="optionfield"><code>OutArg</code></div>
+<div class="optiondescr">
+This is an array with two numbers <code>[nArgOut useArg]</code> that tells <code>esfit</code> how to use the output arguments of the simulation function, which may only be required for advanced usage, e.g. when using a custom fitting function. <code>nArgOut</code> is the number of outputs provided by the function. <code>esfit</code> will call the function asking for this number of outputs. The second number, <code>useArg</code>, tells <code>esfit</code>  which of the output arguments actually contains the simulated data.
+<p>
+E.g. <code>FitOpt.OutArg = [3 2]</code> indicates to call the function asking for three outputs and then to use output number 2 for the fitting.
+
+<p>
+For standard EasySpin simulation functions, <code>OutArg</code> is chosen automatically. For custom simulation functions that deviate in their output behavior, <code>OutArg</code> might be useful.
+</div>
+
 <p>
 Each of the available fitting algorithms can be fine-tuned using a set of parameters.
 </p>
 
 <p>
-Parameters for Nelder/Mead downhill simplex:
+Parameters for <span style="font-weight:bold;">Nelder/Mead downhill simplex</span>:
 </p>
 
 <div class="optionfield"><code>RandomStart</code></div>
-<div class="optionfdescr">
-If set to 1, the starting point in the parameter space is chosen randomly, within the given limits. If set to 0,
-the center of the parameter space is used as starting point. By default, <code>RandomStart</code> is 0.
+<div class="optiondescr">
+If set to 1, the starting point in the parameter space is chosen randomly, within the given limits set by <code>Vary</code>. If set to 0, which is the default value, the center of the parameter space is used as the starting point.
 </div>
 
 <div class="optionfield"><code>TolEdgeLength</code></div>
 <div class="optiondescr">
-Termination tolerance for the length of the parameter step. This number refers to the rescaled fitting parameters, as described above.
+Termination tolerance for the length of the parameter step. This number refers to the rescaled fitting parameters, as described below under Algorithms.
 </div>
 
 <div class="optionfield"><code>TolFun</code></div>
 <div class="optiondescr">
-Termination tolerance for function value change.
+Termination tolerance for error function value change.
 </div>
 
 <div class="optionfield"><code>SimplexPars</code></div>
@@ -237,12 +235,11 @@ Size parameter of the initial simplex. The default value is 0.1.
 </div>
 
 <p>
-Parameters for Levenberg-Marquardt:
+Parameters for <span style="font-weight:bold;">Levenberg-Marquardt</span>:
 
 <div class="optionfield"><code>RandomStart</code></div>
 <div class="optiondescr">
-If set to 1, the starting point in the parameter space is chosen randomly, within the given limits. If set to 0,
-the center of the parameter space is used as starting point. By default, <code>RandomStart</code> is 0.
+If set to 1, the starting point in the parameter space is chosen randomly, within the given limits set by <code>Vary</code>. If set to 0, which is the default value, the center of the parameter space is used as the starting point.
 </div>
 
 <div class="optionfield"><code>TolStep</code></div>
@@ -252,7 +249,7 @@ Termination tolerance for the length of the parameter step. This number refers t
 
 <div class="optionfield"><code>TolFun</code></div>
 <div class="optiondescr">
-Termination tolerance for function value change.
+Termination tolerance for error function value change.
 </div>
 
 <div class="optionfield"><code>lambda</code></div>
@@ -266,11 +263,11 @@ Step size for computing the finite-difference approximation of the Jacobian. Def
 </div>
 
 <p>
-Parameters for Monte Carlo:
+Parameters for <span style="font-weight:bold;">Monte Carlo</span>:
 
 <div class="optionfield"><code>nTrials</code></div>
 <div class="optiondescr">
-Number of random trial simulations.
+Number of random trial simulations before termination.
 </div>
 
 <div class="optionfield"><code>TolFun</code></div>
@@ -279,7 +276,7 @@ Termination tolerance for error function value change.
 </div>
 
 <p>
-Parameters for the genetic algorithm:
+Parameters for the <span style="font-weight:bold;">genetic algorithm</span>:
 
 <div class="optionfield"><code>PopulationSize</code></div>
 <div class="optiondescr">
@@ -292,12 +289,12 @@ should be increased.
 <div class="optiondescr">
 A number specifying the maximum number of generations the algorithm should run. After this number
 has been reached, the algorithm terminates, no matter how good or bad the best fit so far is. The
-default value is 40, but has to increased for fittings with many parameters. If only very few parameters
+default value is 40, but has to be increased for fittings with many parameters. If only very few parameters
 are fitted, <code>maxGenerations</code> can be decreased.
 </div>
 
 <p>
-Parameters for the grid search:
+Parameters for the <span style="font-weight:bold;">grid search<span>:
 
 <div class="optionfield"><code>GridSize</code></div>
 <div class="optiondescr">
@@ -318,7 +315,7 @@ FitOpt.GridSize = [20 3]; % 10 points along g and 3 along lw, giving a total of 
 </div>
 
 <p>
-Parameters for the particle swarm algorithm:
+Parameters for the <span style="font-weight:bold;">particle swarm</span>:
 
 <div class="optionfield"><code>nParticles</code></div>
 <div class="optiondescr">
@@ -327,17 +324,17 @@ Number of particles in the particle swarm.
 
 <div class="optionfield"><code>TolFun</code></div>
 <div class="optiondescr">
-Termination tolerance for function value change.
+Termination tolerance for error function value change.
 </div>
 
 <div class="optionfield"><code>SwarmParams</code></div>
 <div class="optiondescr">
 A vector of four parameters for the algorithm, <code>[k w c1 c2]</code>. <code>k</code> is the velocity limit
 and determines how far a particle can move in an iteration (default 0.2). <code>w</code> is the inertial
-coefficient (default 0.5) and describes the propensity of the particle of moving in the same direction as
-in the iteration before. <code>c1</code> is the cognitive coefficient (default 2) and determines to what
+coefficient (default 0.5) and describes the propensity of a particle to move in the same direction as the preivious
+iteration. <code>c1</code> is the cognitive coefficient (default 2) and determines to what
 degree a particle moves towards the currently optimal point. <code>c2</code> is the social coeffient (default 1)
-and describes how much the particle is following the other particles. Together, <code>k</code>, <code>c1</code>
+and describes how much a particle follows the other particles. Together, <code>k</code>, <code>c1</code>
 and <code>c2</code> determine in which direction a particle will move in a given iteration.
 </div>
 
@@ -345,7 +342,13 @@ and <code>c2</code> determine in which direction a particle will move in a given
 <div class="subtitle">Algorithms</div>
 
 <p>
-Internally, <code>esfit</code> rescales the parameters to be fitted. E.g. if the linewidth should be fitted and is expected to be around 5 mT, plus minus about 1.5 mT, <code>Sys.lw = 3;</code> and <code>Vary.lw = 1.5</code>. After rescaling, <code>esfit</code> treats 5 mT as <code>x = 0</code>, 3.5 mT as <code>-1</code> and 6.5 mT as <code>+1</code>.
+Internally, <code>esfit</code> rescales the parameters to be fitted. E.g. if the linewidth should be fitted and is expected to be around 5 mT, plus minus 1.5 mT, then:
+</p>
+
+<pre class="matlab">Sys.lw = 5; <code>Vary.lw = 1.5</code>; </pre>
+
+<p>
+After rescaling, <code>esfit</code> treats 5 mT as <code>x = 0</code>, 3.5 mT as <code>-1</code> and 6.5 mT as <code>+1</code>.
 </p>
 
 <p>
@@ -364,8 +367,8 @@ Spalek et al, J.Chem.Inf.Model 2005, 45, 18-29.
 <div class="subtitle">Examples</div>
 
 <p>
-Here is a very simple example. Let's assume the experimental data are stored in <code>expspec</code>.
-Then the following code performs a least-squares fitting using the simplex algorithm.
+Here is a very simple example. Let's assume the experimental data are stored in <code>expspc</code>.
+Then the following code performs a least-squares fitting using the Nelder/Mead downhill simplex algorithm.
 </p>
 
 <pre class="matlab">
