@@ -32,7 +32,7 @@
 
 <p>
 This user guide explains how to extract magnetic parameters
-from experimental EPR spectra by fitting an EasySpin simulation
+from experimental EPR spectra by fitting an EasySpin simulation result
 to the experimental spectra using least-squares fitting techniques. EasySpin's function <a class="esf" href="esfit.html">
 esfit</a> contains all the necessary machinery and is very easy to use.
 </p>
@@ -51,7 +51,7 @@ This tutorial contains the following topics:
 There are the following advanced topics:
 
 <ul>
-<li><a href = "#method">Algorithms, targets and scaling</a></li>
+<li><a href = "#method">Algorithms, targets, and scaling</a></li>
 <li><a href = "#hybrid">Hybrid methods</a></li>
 <li><a href = "#stop">Termination criteria</a></li>
 <li><a href = "#multicomp">Multiple components</a></li>
@@ -79,14 +79,14 @@ Here is what the various parameters mean
 
 <ul>
 <li>
-<code>'pepper'</code> indicates that the simulation function <a class="esf" href="pepper.html">pepper</a> is to be used. Any other EasySpin simulation function can be given here, e.g. <code>'garlic'</code>, <code>'chili'</code>, <code>'salt'</code> or <code>'saffron'</code>. You can also define your own simulation functions as described <a href = "#customfunction">later</a>.
+<code>'pepper'</code> indicates that the simulation function <a class="esf" href="pepper.html">pepper</a> is to be used. Any other EasySpin simulation function can be given here, e.g. <code>'garlic'</code>, <code>'chili'</code>, <code>'salt'</code>, or <code>'saffron'</code>. You can also define your own simulation functions as described <a href = "#customfunction">later</a>.
 <li>
 <code>spc</code> is the array of experimental spectral data. For the fitting, the abscissa values are not needed.
 <li>
-<code>Sys0</code> is a structure collecting magnetic parameters of the spin system. The parameters in this structure are used as first guesses in the fitting procedure. For a multi-component fit, this is a list of spin systems, one for each component.
+<code>Sys0</code> is a structure collecting magnetic parameters of the spin system. The parameters in this structure are used as first guesses in the fitting procedure. For a multi-component fit, this is a list of spin systems, one for each component, e.g. <code>{Sys1, Sys2}</code>.
 <li>
 <code>Vary</code> is a structure similar to <code>Sys0</code> containing 
-the search ranges of the parameters that should be fitted. For a multi-component fit, this is again a list of structures, one for each component.
+the search ranges of the parameters that should be fitted. For a multi-component fit, this is again a list of structures, one for each component, e.g. <code>{Vary1, Vary2}</code>.
 <li>
 <code>Exp</code> is a structure containing the experimental parameters for the simulation function.
 </ul>
@@ -95,9 +95,9 @@ The following two parameters are optional
 
 <ul>
 <li>
-<code>SimOpt</code> contains setting for the spectral simulation function.
+<code>SimOpt</code> contains settings for the spectral simulation function.
 <li>
-<code>FitOpt</code> contains settings for the least-squares fitting function.
+<code>FitOpt</code> contains settings for the least-squares fitting algorithm.
 </ul>
 
 The next few sections explain how to set up these input parameters
@@ -153,17 +153,17 @@ Sys0.lw = 1;
 </pre>
 
 <p>
-Some algorithms use this set of parameters as the start set, but other use it only to specify the center of the search range.
+Some algorithms use this set of parameters as the start set, but others use it only to specify the center of the search range.
 </p>
 
 <!-- ============================================================= -->
 <div class="subtitle"><a name="vary">Parameter search range</a></div>
 
 <p>
-Next, <code>esfit</code> has to be told what parameters of the spin system given in <code>Sys0</code> should be fitted, and by how much the can be varied during the least-squares fitting.
+Next, <code>esfit</code> has to be told what parameters of the spin system given in <code>Sys0</code> should be fitted, and by how much they can be varied during the least-squares fitting process.
 
 <p>
-This information is given in the fourth input parameter to <code>esfit</code>. If only the linewidth should be fitted, and it should be varied by approximately +-0.3 mT, use
+This information is given in the fourth input parameter to <code>esfit</code>. If only the linewidth should be fitted, and it should be varied by at most +/-0.3 mT, use
 
 <pre class="matlab">
 Vary.lw = 0.3;
@@ -184,7 +184,7 @@ Vary.lw = 0.3;
 In essence, all the fields in <code>Vary</code> must have the same names as those in <code>Sys0</code>, and any non-zero value indicates that that parameter should be fitted by varying it by at most plus or minus the given amount. Zero values for any parameter excludes it from the fitting.
 
 <p>
-It is advisable not to vary more than about 4 parameters at the same time, as the efficiency of essentiall all fitting algorithms decreases tremendously with the number of fitting parameters.
+It is advisable not to vary more than about 4 parameters at the same time, as the efficiency of essentially all fitting algorithms decreases tremendously with the number of fitting parameters.
 
 <p>
 An important note for fitting slow-motion EPR spectra with <a class="esf" href="chili.html">chili</a>: Do not use <code>tcorr</code> or <code>Diff</code> for fitting the correlation time or the diffusion tensor, but rather the logarithmic forms <code>logtcorr</code> and <code>logDiff</code>.
@@ -193,13 +193,13 @@ An important note for fitting slow-motion EPR spectra with <a class="esf" href="
 <div class="subtitle"><a name="params">Experimental parameters</a></div>
 
 <p>
-Of course, the fitting function must also be provided with the experimental parameters for the spectral simulations. These are given as the fifth parameter, a structure <code>Exp</code> which is directly forwarded to the simulation functions
+Of course, the fitting function must also be provided with the experimental parameters for the spectral simulations. These are given as the fifth parameter, a structure <code>Exp</code>, which is directly forwarded to the simulation functions
 <a class="esf" href="pepper.html">pepper</a>, 
 <a class="esf" href="garlic.html">garlic</a>, or
 <a class="esf" href="chili.html">chili</a>. For details, see the documentation of these functions.
 
 <p>
-A minimal example would be
+A minimal example would be to give the microwave frequency and magnetic field range:
 
 <pre class="matlab">
 Exp.mwFreq = 9.5;
@@ -207,7 +207,7 @@ Exp.Range = [200 400];
 </pre>
 
 <p>
-The micrwave frequency, the field range and all other experimental parameters must correspond to the ones used in acquiring the spectral data.
+The microwave frequency, the field range and all other experimental parameters must correspond to the ones used in acquiring the spectral data.
 
 <!-- ============================================================= -->
 <div class="subtitle"><a name="run">Performing the least-squares fitting</a></div>
@@ -220,7 +220,7 @@ esfit('pepper',spc,Sys0,Vary,Exp);
 </pre>
 
 <p>
-The least-squares fitting is started, and a figure window pops up that contains an interactive graphical user interface (GUI), shown below. The GUI allows you to control which parameters should be varied during a fit, lets you pick another fitting algorithm and target. In addition, multiple fitting results from separate runs can be stored, compared and used as starting points for other fits. The fitting results can be exported to the workspace, so that they are available in the command window.
+The least-squares fitting is started, and a figure window pops up that contains an interactive graphical user interface (GUI), shown below. The GUI allows you to control which parameters should be varied during a fit, lets you pick another fitting algorithm, target, scaling method, and starting point parameter set. In addition, multiple fitting results from separate runs can be stored, compared and used as starting points for other fits. The fitting results can be exported to the workspace, so that they are available in the command window for later use.
 </p>
 
 <img src="img/snap_esfit.png" width="505">
@@ -234,7 +234,7 @@ bestSys = esfit('pepper',spc,Sys0,Vary,Exp);
 </pre>
 
 <p>
-returns the result of the fitting, the optimized spin system or list of spin systems, in <code>bestSys</code>.
+This returns the result of the fitting, the optimized spin system or list of spin systems, in <code>bestSys</code>.
 
 <p>
 If you want to pass settings to the simulation function, collect them in an additional stucture <code>SimOpt</code> and pass them as
@@ -261,6 +261,9 @@ The possible settings set in this last structure are the topic of the rest of th
 <p>
 The performance of the fitting depends crucially on two things: the choice of the optimization algorithm
 and the choice of the target function. Let's have a look at each of them in turn.
+
+<p>
+<span style="font-weight:bold;">Optimization algorithms</span>
 
 <p>
 EasySpin provides optimization algorithms that are in widespread use: (1) the Nelder/Mead downhill simplex method, (2) the Levenberg/Marquardt algorithm,
@@ -301,11 +304,11 @@ FitOpt.Method = 'grid';        % for grid search
 </pre>
 
 <p>
-and then supply this options structure as seventh parameter to the fitting function, for example
+and then supply this option structure as the seventh parameter to the fitting function, for example
 </p>
 
 <pre class="matlab">
-esfit('pepper',spec,Sys0,Vary,Exper,[],FitOpt);
+esfit('pepper',spc,Sys0,Vary,Exp,[],FitOpt);
 </pre>
 
 <p>
@@ -313,15 +316,24 @@ If you don't specify the algorithm, EasySpin uses the downhill simplex by defaul
 </p>
 
 <p>
+Each algorithm has some internal parameters that can be used to fine-tune its performance.
+In general, it is not necessary to fiddle with those parameters at all. For more details, see the documentation of
+<a class="esf" href="esfit.html">esfit</a>.
+</p>
+
+<p>
+<span style="font-weight:bold;">Target function</span>
+
+<p>
 The second important setting is the choice of the target function. <code>esfit</code> computes the error
-of the simulated spectrum using the root-mean-square-deviation (rmsd, ie the square root of the mean of the square of
+of the simulated spectrum using the root-mean-square-deviation (rmsd, i.e. the square root of the mean of the square of
 the deviations), where the deviation is the difference between the experimental and the simulated spectrum.
 
 <p>
-Fitting speed can often by signifantly increased, however, if one used not the spectra directly, but their integrals
-or similar transforms. EasySpin supports several settings here <code>'fcn'</code> (use data as is), <code>'int'</code>
+Fitting speed can often be signifantly increased, however, if one used not the spectra directly, but their integrals
+or similar transforms. EasySpin supports several settings here: <code>'fcn'</code> (use data as is), <code>'int'</code>
 (integral), <code>'dint'</code> (double integral), <code>'diff'</code> (first derivative), <code>'fft'</code> (Fourier
-transform). The setting string is simply appended to the <code>'Method'</code> field, after a space:
+transform). The target function setting string is simply appended to the <code>'Method'</code> field, after a space:
 
 <pre class="matlab">
 FitOpt.Method = 'simplex int';   % simplex algorithm with integrals for rmsd
@@ -333,14 +345,6 @@ FitOpt.Method = 'levmar dint';   % Levenberg/Marquardt with double integral
 Usually, <code>'fcn'</code> is an excellent choice, but in the case of many lines <code>'int'</code> can be better - provided
 the baseline in the experimental spectrum is good. The other settings (<code>'dint'</code>, <code>'diff'</code>, and <code>'fft'</code>)
 have advantages in some situations.
-</p>
-
-
-
-<p>
-Each algorithm has some internal parameters that can be used to fine-tune its performance.
-In general, it is not necessary to fiddle with those parameters at all. For more details, see the documentation of
-<a class="esf" href="esfit.html">esfit</a>.
 </p>
 
 
@@ -356,18 +360,24 @@ FitOpt.Scaling = 'lsq';       % determine scaling via least-squares fitting
 </pre>
 
 <p>
+<span style="font-weight:bold;">Example</span>
+
+<p>
 A simple mock example of this would be
 
 <pre class="matlab">
+% simulate a noisy spectrum as input data for fitting
 Sys.g = 2; Sys.lw = 2; Exp.mwFreq = 9.5; Exp.Range = [335 345];
 [x,y] = pepper(Sys,Exp); y = 3*addnoise(y,2);
+% define parameters and settings for fitting the noisy data
 Sys.g = 2.001; Sys.lw = 1.8; Vary.g = 0.002; Vary.lw = 0.4;
 FitOpt.Scaling = 'maxabs';
+% start fitting
 esfit('pepper',y,Sys,Vary,Exp,[],FitOpt);
 </pre>
 
 <p>
-Change <code>FitOpt.Scaling</code> to see how the two scaling methods differ. Basline correction can be directly incorporated in
+Change <code>FitOpt.Scaling</code> to see how the two scaling methods differ. Baseline correction can be directly incorporated in
 the scaling method - see the documentation of <a class="esf" href="esfit.html">esfit</a> for more details.
 </p>
 
@@ -384,7 +394,7 @@ are two ways to perform such a two-stage fitting: using the UI, or writing your 
 </p>
 
 <p>
-If you use the UI, you have complete control over when a fitting algorithm terminates and which one you want to start next. Any sequence of fittings steps where you use the result of a previous fit as starting values for the next constitute a 'hybrid method'. But of course, the UI lets you do much more complex operations.
+If you use the UI, you have complete control over when a fitting algorithm terminates and which one you want to start next. Any sequence of fitting steps where you use the result of a previous fit as starting values for the next constitutes a 'hybrid method'. But of course, the UI lets you do much more complex operations.
 
 <p>
 Alternatively, you can write code that does two- or multistage fitting. Let's look at an example with a two-stage fitting using genetic
@@ -402,14 +412,14 @@ Sys2 = esfit('pepper',y,Sys1,Vary,Exp,[],FitOpt)
 
 <p>
 Of course, you'll probably have to change some of the termination criteria for the two algorithms so that the genetic search narrows
-down a minimu only coarsely, and the local search can then much more efficiently finalize the fit by refining the parameters.
+down a minimm only coarsely, and the local search can then much more efficiently finalize the fit by refining the parameters.
 
 <!-- ============================================================= -->
 <div class="subtitle"><a name="stop">Termination criteria</a></div>
 
 <p>
 The simplest way to terminate a fitting is by pressing the Stop button on the UI. This will interrupt the
-optimization process no matter whether the result has converged or not.
+optimization process whether the result has converged or not.
 
 
 <p>
@@ -448,7 +458,7 @@ FitOpt.maxTime = 60;     % maximum time, in minutes
 <!-- ============================================================= -->
 <div class="subtitle"><a name="multicomp">Multiple components</a></div>
 <p>
-So far we have looked at the fitting of a spectrum with a single spectral component. EasySpin can least-squares fit spectra with multiple components. For each component, a system structure and a variation structure must be given. For example, this is how <code>esfit</code> is called for a two-component fit:
+So far we have looked at the fitting of a spectrum with a single spectral component. EasySpin can perform least-squares fitting of spectra with multiple components. For each component, a system structure and a variation structure must be given. For example, this is how <code>esfit</code> is called for a two-component fit:
 
 <pre class="matlab">
 esfit('pepper',spc,{Sys1,Sys2},{Vary1,Vary2},Exp,SimOpt,FitOpt);
@@ -478,10 +488,13 @@ Say you need to constrain the spin Hamiltonian values, e.g. two hyperfine tensor
 <p>
 For these and similar cases, you can define your own custom simulation function that implements the constraints or calculations, and then use <code>esfit</code> with your custom function. The requirements on your function are the following:
 <ul>
-<li> It should take three structures as input arguments, just as all the EasySpin simulation functions.
-<li> It should return one output argument with the simulated data. (This can however be adjusted.)
-<li> You can only vary parameters in the first input structure. 
+<li> It should take the three structures <code>Sys</code>, <code>Exp</code>, <code>Opt</code> as input arguments, just as all the EasySpin simulation functions do.
+<li> It should return an output argument with the simulated data. (This can however be adjusted.)
+<li> Only parameters in the first input structure, <code>Sys</code>, can be varied. 
 </ul>
+
+<p>
+<span style="font-weight:bold;">Example: constraint between systems</span>
 
 <p>
 Here is an example of a function <code>mymy.m</code> that simulates a spectrum constraining two hyperfine tensors to be identical:
@@ -495,7 +508,7 @@ fullSys.Nucs = '1H,1H';
 </pre>
 
 <p>
-This function takes the <code>A</code> from the input <code>Sys</code> structure to construct a new spin system structure that is then used to perform the actual simulation.
+This function takes the <code>A</code> from the input <code>Sys</code> structure, constructs a new spin system structure <code>fullSys</code> with two identical <code>A</code>'s, and then performs the actual simulation.
 
 <p>
 With this function, <code>esfit</code> should be called in the following way (assuming <code>Exp</code> has been defined):
@@ -505,6 +518,9 @@ Sys.lwpp = 0.1;
 Vary.A = [1 1 3];
 esfit('mymy',data,Sys,Vary,Exp);
 </pre>
+
+<p>
+<span style="font-weight:bold;">Example: varying non-spin system parameters</span>
 
 <p>
 Here is a second example. If you want to fit the microwave phase, use this custom function:
@@ -522,10 +538,35 @@ esfit('mymy',data,Sys,Vary,Exp);
 </pre>
 
 <p>
-As you can see, you have to put the parameter you want to fit into the first input structure (called <code>Sys</code>), even if it is not a spin system parameter. This won't confuse EasySpins simulation functions, since they disregard any field they do not use.
+As you can see, you have to put the parameter you want to fit into the first input structure (called <code>Sys</code>), even if it is not a spin system parameter. This won't confuse EasySpin's simulation functions, since they disregard any field they do not use. In other words, as long as the new field name (in this case <code>Sys.mwPhase</code>), does not clash with any existing field names that EasySpin simulation functions use in the spin system (e.g. <code>Sys.Nucs</code>, <code>Sys.A</code>, etc.), a user-defined simulation function should work and allows for a great deal of customization. To ensure that there is no field name clashing, check the documentation for the <a class="esf" href="spinsystem.html">spin system</a> and the relevant simulation function.
 
 <p>
-<a class="esf" href="esfit.html">esfit</a> calls the custom simulation function once per iteration. If <code>Sys</code> is a cell array with multiple spin systems, such as <code>Sys = {Sys1,Sys2}</code>, then this will passed as cell array to the custom function.
+<span style="font-weight:bold;">Example: globally fitting multiple spectra</span>
+
+<p>
+During the fitting process, <code>esfit</code> compares a vector containing the input data with a vector of simulated data and determines the error. Normally, each of these two vectors contain data from only a single spectrum (or a spectrum containing multiple components). However, by defining a custom function that combines spectra along the same dimension of the vector, i.e. concatenates the spectra, one can fit multiple spectra simultaneously. For example, to fit spectra that were acquired at X- and Q-band microwave frequencies with the same sample:
+
+<pre class="matlab">
+function y = globalfit(Sys,Exp,Opt);
+
+% X-band
+Exp.mwFreq = 9.5;
+y1 = pepper(Sys,Exp,Opt);
+
+% Q-band
+Exp.mwFreq = 34;
+y2 = pepper(Sys,Exp,Opt);
+
+scale = Sys.scale;  % custom field for relative scaling
+
+% Concatenate the spectra
+y = [y1(:); scale*y2(:)];
+</pre>
+
+Note that each spectrum might have a different number of data points, in which case two more custom fields would be required to specify the number of data points in each (e.g. <code>Exp.nPoints = Exp.nX</code> and  <code>Exp.nPoints = Exp.nQ</code> for the X- and Q-band spectra, respectively).
+
+<p>
+<a class="esf" href="esfit.html">esfit</a> calls the custom simulation function once per iteration. If <code>Sys</code> is a cell array with multiple spin systems, such as <code>Sys = {Sys1,Sys2}</code>, then this will be passed as a cell array to the custom function.
 
 <p>
 <a class="esf" href="esfit.html">esfit</a> is able to handle simulation functions that do not provide the simulated data in their first output argument. If you want to use a non-conforming function, just tell <a class="esf" href="esfit.html">esfit</a> how it should be called and which output argument should be used in the fitting. This information is provided in <code>FitOpt.OutArg</code>, which should contain two numbers. The first number is the number of output arguments to expect, and the second number is the output argument to use in the fitting. Say, you have a function <code>myfun</code> that needs to be called with 4 output arguments (<code>[a,b,c,d] = myfun(...)</code>, and you want to use the second one for fitting, then use
