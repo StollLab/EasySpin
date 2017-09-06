@@ -89,7 +89,7 @@ if OriList
   elseif size(Ori,2)==3
     % ok
   else
-    error('Orientation array must be nx2 or nx3.');
+    error('Ori must be a string (''x'',''y'',''z'',''xy'',''xz'',''yz'',''xyz''), a two-element array ([phi theta]) or a three-element array [phi theta chi].');
   end
   nOri = size(Ori,1);
   
