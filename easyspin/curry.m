@@ -18,33 +18,32 @@
 %
 %      Opt    calculation options
 %        Output    string of keywords defining the outputs
-%                  'mu'       single-center magnetic moment along field
-%                  'mumol'    molar magnetic moment (magnetization) along field
-%                  'muBM'     single-center magnetic moment along field,
-%                               as multiple of Bohr magnetons
-%                  'mueff'    effective magnetic moment (unitless)
-%                  'chi'      single-center magnetic susceptibility,
-%                               component along field
-%                  'chimol'   molar magnetic susceptibility,
-%                               component along field
-%                  'chimolT'  chimol times temperature
-%                  '1/chimol' inverse of chimol
+%                  'mu'        single-center magnetic moment along field
+%                  'mumol'     molar magnetic moment (magnetization) along field
+%                  'muBM'      single-center magnetic moment along field,
+%                                as multiple of Bohr magnetons
+%                  'mueff'     effective magnetic moment (unitless)
+%                  'chi'       single-center magnetic susceptibility,
+%                                component along field
+%                  'chimol'    molar magnetic susceptibility,
+%                                component along field
+%                  'chimolT'   chimol times temperature
+%                  '1/chimol'  inverse of chimol
 %                  The default is 'muBM chimol'.
 %        Units     'SI' (for SI units, default) or 'CGS' (for CGS-emu units)
 %        Method    calculation method, 'operator' (default) or 'energies'
 %        nKnots    number of knots for powder average
+%        Spins     electron spin indices, for spin-selective calculation
 %
 %
-%    Output (if Opt.Output is not given):
+%    Output depends on the settings in Opt.Output. If Opt.Output is not given,
+%    two outputs are provided:
 %      muzBM    magnetic moment along zL axis, as multiple of Bohr magnetons
 %                 (value is the same in SI and CGS-emu)
-%      chizz    molar susceptibility, zLzL component, in SI units (m^3 mol^-1)
+%      chimol   molar susceptibility, zLzL component, in SI units (m^3 mol^-1)
 %
-%    zL is the direction of the applied static magnetic field.
-%
-%    The size of outputs is nB x nT, where nB is the number of
-%    field values in Exp.Field and nT is the number of temperature values
-%    in Exp.Temperature.
+%    The size of outputs is nB x nT, where nB is the number of field values in
+%    Exp.Field and nT is the number of temperature values in Exp.Temperature.
 %
 %   If no output argument is given, the computed data are plotted.
 
@@ -144,9 +143,10 @@ if ~isfield(Opt,'SymmFrame')
   Opt.SymmFrame = eye(3);  % needed for p_symandgrid
 end
 if ~isfield(Opt,'deltaB')
-  Opt.deltaB = 1e-5; % T
+  Opt.deltaB = 1e-2; % T
 end
 
+% Parse output quantity list in Opt.Output
 if ~isfield(Opt,'Output')
   switch nargout
     case 0
@@ -161,7 +161,6 @@ if ~isfield(Opt,'Output')
 end
 logmsg(1,'  output: %s',Opt.Output);
 
-% Parse output quantity list in Opt.Output
 calculateMu = (nargout==0);
 calculateChi = (nargout==0) || (nargout>1);
 calculateMuVec = false;
@@ -178,7 +177,7 @@ for k = 1:numel(keywords)
     case 'chimolT', calculateChi = true;
     case '1/chimol', calculateChi = true;
     otherwise
-      error('%s keyword in Opt.Output is not known.',keywords{k});
+      error('''%s'' keyword in Opt.Output is not known.',keywords{k});
   end
 end
 logmsg(1,'  number of outputs: %d',numel(keywords));
@@ -206,25 +205,35 @@ end
 switch lower(Opt.Method)
   case 'operator'
     useOperatorMethod = true;
-  case 'energies'
+  case 'partitionfunction'
     useOperatorMethod = false;
-    if calculateChi && any(B(:))
-      error('Energy method can calculate susceptibility only in the absence of magnetic field!');
-    end
-    if calculateMuVec
-      error('Energy method cannot calculate full magnetic moment vector!');
-    end
   otherwise
-    error('Opt.Method can be ''operator'' or ''energies''!');
+    error('Opt.Method can be ''operator'' or ''partitionfunction''!');
 end
 logmsg(1,'  calculation method: %s',Opt.Method);
 
-% Set up Hamiltonian and magnetic dipole moment
-%-------------------------------------------------
+% Spin indices for spin-selective magnetic moment calculation
+if ~isfield(Opt,'Spins')
+  Opt.Spins = [];
+elseif ~isempty(Opt.Spins)
+  if any(Opt.Spins<1) || any(Opt.Spins>numel(Sys.S))
+    error('Opt.Spins must contain electron spin indices between 1 and %d.',numel(Sys.S));
+  end
+  if ~useOperatorMethod
+    error('To use Opt.Spins, you must use Opt.Method = ''operator''.');    
+  end
+end
+
+
+% Set up Hamiltonian and magnetic dipole moment operators
+%-------------------------------------------------------------------------------
 % zero-field Hamiltonian F (MHz)
 % magnetic dipole moment operators muOpxM,muOpyM,muOpzM (MHz/mT)
 % all are in the molecular frame
 [H0,GxM,GyM,GzM] = sham(Sys);
+if ~isempty(Opt.Spins)
+  [GxM,GyM,GzM] = zeeman(Sys,Opt.Spins);
+end
 
 % zero-field spin Hamiltonian
 H0 = H0*1e6*planck; % MHz -> J
@@ -282,8 +291,8 @@ for iOri = 1:nOrientations
     
     if useOperatorMethod
       
-      % Calculate mu and chi using magnetic-moment operators
-      %-----------------------------------------------------
+      % Calculate mu with magnetic-moment operators, chi as numerical derivative
+      %-------------------------------------------------------------------------
       [V,E] = eig(H0 - B(iB)*muOpzL);
       E = diag(E); % J
       populations = exp(-(E-E(1))*beta);
@@ -302,7 +311,9 @@ for iOri = 1:nOrientations
       if calculateChi
         
         % Solve eigenproblem at slightly higher field
-        [V,E] = eig(H0 - (B(iB)+dB)*muOpzL);
+        dB = sqrt(eps)*max(B(iB),2); % determine optimal field step
+        B_ = B(iB) + dB; dB = B_ - B(iB); % eliminate roundoff error in dB
+        [V,E] = eig(H0 - B_*muOpzL);
         E = diag(E); % J
         populations = exp(-(E-E(1))*beta);
         if zeroTemp
@@ -321,28 +332,34 @@ for iOri = 1:nOrientations
     else
       
       % Calculate mu and chi using logarithm of partition function
-      %-----------------------------------------------------------
+      %-------------------------------------------------------------------------
+      lnZ = @(E,Emin) log(sum(exp(-(E-Emin)*beta),1)); % log of partition function
+      
+      dB = eps^(1/4)*max(B(iB),2);
+      B_ = B(iB) + dB; dB = B_ - B(iB); % eliminate roundoff error in dB
       E1 = eig(H0 - (B(iB)-dB)*muOpzL);
       E3 = eig(H0 - (B(iB)+dB)*muOpzL);
       Emin = min([E1;E3]);
-      lnZ = @(E) log(sum(exp(-(E-Emin)*beta),1)); % log of partition function
-      lnZ1 = lnZ(E1);
-      lnZ3 = lnZ(E3);
+      lnZ1 = lnZ(E1,Emin);
+      lnZ3 = lnZ(E3,Emin);
+      if calculateChi
+        E2 = eig(H0 - B(iB)*muOpzL);
+        lnZ2 = lnZ(E2,Emin);
+      end
       
-      % Calculate mu via symmetric difference quotient of ln(Z), and accumulate.
+      % Calculate mu via symmetric difference quotient of ln(Z).
       if calculateMu
         muz_ = (lnZ3-lnZ1)/(2*dB)./beta;
       end
       
       % Calculate chi via symmetric second difference quotient of ln(Z).
       if calculateChi
-        E2 = eig(H0 - B(iB)*muOpzL);
-        lnZ2 = lnZ(E2);
-        chizz_ = (lnZ3-2*lnZ2+lnZ1)/(2*dB^2)./beta;
+        chizz_ = (lnZ3-2*lnZ2+lnZ1)/(dB^2)./beta;
       end
       
     end
     
+    % Accumulate
     if calculateMu
       muz(iB,:) = muz(iB,:) + Exp.OriWeights(iOri)*muz_;
     end
@@ -350,7 +367,6 @@ for iOri = 1:nOrientations
       mux(iB,:) = mux(iB,:) + Exp.OriWeights(iOri)*mux_;
       muy(iB,:) = muy(iB,:) + Exp.OriWeights(iOri)*muy_;
     end
-    
     if calculateChi
       chizz(iB,:) = chizz(iB,:) + Exp.OriWeights(iOri)*chizz_;
     end
@@ -445,7 +461,7 @@ if doPlot
   else % 2D data
     cla
     Plot2D = (nFields>10);
-    chizzT_SI = chizz_SI.*repmat(T(:).',nFields,1);
+    chizzT_SI = chizz_SI.*repmat(T,nFields,1);
     if Plot2D
       subplot(2,2,1);
       surf(T,B,muz_SI/bmagn); % SI and CGS-emu values are numerically identical
@@ -535,7 +551,7 @@ if doPlot
 end % if doPlot
 
 %-------------------------------------------------------------------------------
-% Assign output arguments
+% Calculate and assign outputs
 %-------------------------------------------------------------------------------
 
 % Assign unit-ful values
@@ -544,32 +560,27 @@ if useCGSunits
   if calculateMuVec, mux = mux_CGS; muy = muy_CGS; end
   if calculateChi, chizz = chizz_CGS; end
   muB = bmagn/1e-3; % Bohr magneton in CGS-emu units (erg/G = abA cm^2)
+  kB = boltzm/1e-7; % Boltzmann constant in CGS units (erg/K)
+  c = 3*kB/muB^2; % needed for 'mueff'
 else
   if calculateMu, muz = muz_SI; end
   if calculateMuVec, mux = mux_SI; muy = muy_SI; end
   if calculateChi, chizz = chizz_SI; end
   muB = bmagn; % Bohr magneton in SI units (J/T = A m^2)
+  kB = boltzm; % Boltmann constant in SI units (J/K)
+  c = 3*kB/muB^2/mu0; % needed for 'mueff'
 end
 
-% Units-independent output assignment
+% Calculate and assign outputs
 for n = numel(keywords):-1:1
+  
   switch keywords{n}
     case 'mu'
       outval = muz;
     case 'mumol'
       outval = muz*avogadro;
     case 'muBM'
-      outval = muz/muB; % dimensionless; numerically identical in SI and CGS-emu
-    case 'mueff'
-      if useCGSunits
-        %c = 7.99683909968;
-        c = 3*boltzm/avogadro/bmagn^2*10; % in CGS-emu units
-        outval = sqrt(chizz*avogadro.*repmat(T(:).',nFields,1)*c);
-      else
-        %c = 797.7269181318873;
-        c = 3*boltzm/avogadro/bmagn^2/mu0; % in SI units
-        outval = sqrt(chizz*avogadro.*repmat(T(:).',nFields,1)*c);
-      end
+      outval = muz/muB;
     case 'muvec'
       outval = [mux muy muz].';
     case 'chi'
@@ -577,9 +588,13 @@ for n = numel(keywords):-1:1
     case 'chimol'
       outval = chizz*avogadro;
     case 'chimolT'
-      outval = chizz*avogadro.*repmat(T(:).',nFields,1);
+      outval = chizz*avogadro.*repmat(T,nFields,1);
     case '1/chimol'
       outval = 1./(chizz*avogadro);
+    case 'mueff'
+      outval = sqrt(chizz.*repmat(T,nFields,1)*c);
+    case 'chitensor'
+      error('chi tensor currently not implemented.');
     otherwise
       error('Keyword %s in Opt.Output is unknown.',keywords{n});
   end

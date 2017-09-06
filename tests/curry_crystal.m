@@ -34,8 +34,9 @@ if opt.Display
 end
 
 if ~isempty(olddata)
-   ok = areequal(olddata.chix,chix) && areequal(olddata.chiz,chiz);
-   err = ~ok;
+  thr = 1e-5;
+  ok = areequal(olddata.chix,chix,thr) && areequal(olddata.chiz,chiz,thr);
+  err = ~ok;
 else
   err = [];
 end

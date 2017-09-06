@@ -22,7 +22,8 @@ data.mueff2 = mueff2;
 data.mueff3 = mueff3;
 
 if opt.Display
-  plot(T,mueff1,T,mueff2,T,mueff3);
+  plot(T,mueff1,T,mueff2,T,mueff3,...
+    T,olddata.mueff1,'--',T,olddata.mueff2,'--',T,olddata.mueff3,'--');
   axis tight
   set(gca,'XTick',0:25:125);
   ylim([0 9]);
@@ -34,7 +35,7 @@ if opt.Display
 end
 
 if ~isempty(olddata)
-  thr = 1e-6;
+  thr = 1e-4*max(data.mueff1);
   ok(1) = areequal(olddata.mueff1,data.mueff1,thr);
   ok(2) = areequal(olddata.mueff2,data.mueff2,thr);
   ok(3) = areequal(olddata.mueff3,data.mueff3,thr);

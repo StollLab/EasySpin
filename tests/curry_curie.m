@@ -23,6 +23,6 @@ if opt.Display
   legend boxoff
 end
 
-err = ~areequal(chimol_curie,chimol_curry,1e-12);
+err = ~areequal(chimol_curie,chimol_curry,1e-10);
 
 data = [];

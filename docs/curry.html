@@ -184,63 +184,54 @@ The structure <code>Opt</code> collects computational parameters. <code>Opt</cod
 
 <div class="optionfield"><code>Units</code></div>
 <div class="optiondescr">
-Determines the units system in which the results are returned. Two values are possible: <code>'SI'</code> returns all outputs in SI units, and <code>'CGS'</code> returns all outputs in old-style CGS-emu units.
+String that specifies the system of units in which the results are returned. Two values are possible:
 
+<ul>
+<li><code>'SI'</code> returns all outputs in SI units (joule, tesla, etc.). This is the default.
+<li><code>'CGS'</code> returns all outputs in old-style CGS-emu units (erg, gauss, etc.).
+</ul>
+
+<p>
 <pre class="matlab">
 Opt.Units = 'SI';       % use SI system of units
 Opt.Units = 'CGS';      % use CGS-emu system of units
 </pre>
 </div>
 
-
 <div class="optionfield"><code>Output</code></div>
 <div class="optiondescr">
-String to specify the output <code>curry</code> should provide. Keywords should be seperated by blanks. The number of outputs corresponds to the number of keywords, and appears in the same order. The following keywords are allowed:
+String containing a list of keywords that specify the output <code>curry</code> should provide. Keywords should be separated by blanks. The number and order of the outputs corresponds to the number and order of the keywords in <code>Opt.Output</code>. The following keywords are available:
 <p>
 <ul>
-<li><code>mu</code>: single-center magnetic moment
-<li><code>mumol</code>: molar magnetic moment
-<li><code>muBM</code>: single-center magnetic moment in Bohr magnetons
-<li><code>chi</code>: single-center magnetic susceptibility
-<li><code>chimol</code>: molar magnetic susceptibility
-<li><code>chimolT</code>: molar magnetic susceptibility times temperature
-<li><code>1/chimol</code>: inverse of molar magnetic susceptibility
-<li><code>mueff</code>: effective magnetic moment
+<li><code>'mu'</code>: single-center magnetic moment (SI unit: J T<sup>-1</sup>; CGS-emu unit: erg G<sup>-1</sup>)
+<li><code>'muBM'</code>: single-center magnetic moment in Bohr magnetons (unitless and numerically identical in SI and CGS-emu)
+<li><code>'mumol'</code>: molar magnetic moment (SI unit: J T<sup>-1</sup> mol<sup>-1</sup>; CGS-emu unit: erg G<sup>-1</sup> mol<sup>-1</sup>)
+<li><code>'chi'</code>: single-center magnetic susceptibility (SI unit: m<sup>3</sup>; CGS-emu unit: cm<sup>3</sup>)
+<li><code>'chimol'</code>: molar magnetic susceptibility (SI unit: m<sup>3</sup> mol<sup>-1</sup>; CGS-emu unit: cm<sup>3</sup> mol<sup>-1</sup>)
+<li><code>'chimolT'</code>: molar magnetic susceptibility times temperature (SI unit: K m<sup>3</sup> mol<sup>-1</sup>; CGS-emu unit: K cm<sup>3</sup> mol<sup>-1</sup>)
+<li><code>'mueff'</code>: effective Bohr magneton number, also called effective magnetic moment (unitless and numerically identical in both SI and CGS-emu)
 </ul>
 
 <p>
-Examples:
+Here are a few examples:
 <pre class="matlab">
 Opt.Output = 'chimolT';               % one output
+chimolT = curry(Sys,Exp,Opt);
+
+chimolT = curry(Sys,Exp,Opt);
+
 Opt.Output = 'mumol chimol';          % two outputs
-Opt.Output = 'chimolT muBM 1/chimol'; % three outputs
+[mumol,chimol] = curry(Sys,Exp,Opt);
+
+Opt.Output = 'chimolT muBM mueff';    % three outputs
+[chimolT,muBM,mueff] = curry(Sys,Exp,Opt);
 </pre>
 
-The number of given output arguments have to match the number of keywords in <code>Output</code>. Here is an example:
-<pre class="matlab">
-Opt.Output = 'muBM chimolT';
-[muBM,chimolT] = curry(Sys,Exp,Opt);
-</pre>
-</p>
-
-There is one additional keyword that can be listed in <code>Opt.Output</code>: <code>'onecolumn'</code>.
-If given, <code>curry</code> returns all calculated data in one column. Example:
-<p>
-<pre class="matlab">
-Sys = struct('S',1,'D',5000); 
-Exp = struct('Temperature', 1:20, 'Field', 100:100:1000);
-Opt.Output = 'muBM chimolT onecolumn';
-y = curry(Sys,Exp,Opt);
-</pre>
-
-<p>
-<code>y</code> will then contain: <code>[MvsB(B = 100 mT, T = 1 K), MvsB(B = 200 mT, T = 1 K), ..., MvsB(B = 1000 mT, T = 1 K), MvsB(B = 100 mT, T = 2 K), ..., MvsB(B = 1000 mT, T = 20 K), ChiTCGS(B = 100 mT, T = 1 K), ..., ChiTCGS(B = 1000 mT, T = 20 K)]</code>.
-</p><p>The order is given by the order of keywords in <code>Output</code>.
 </div>
 
 <div class="optionfield"><code>Verbosity</code></div>
 <div class="optiondescr">
-Determines how much information is printed to the command window. If <code>Opt.Verbosity=0</code>, <code>curry</code> is silent. 1 logs relevant information, 2 gives more details.
+Determines how much information is printed to the command window. If set to 0, <code>curry</code> is silent. 1 logs relevant information, 2 gives more details.
 </div>
 
 <div class="optionfield"><code>nKnots</code></div>
@@ -257,8 +248,17 @@ Opt.nKnots = 31;       % 3&deg; increments
 
 <div class="optionfield"><code>Method</code></div>
 <div class="optiondescr">
-Calculation method used by <code>curry</code>. <code>'operator'</code> is the default and the method described in Algorithm is used. <code>'energies'</code> is slightly faster for large spin systems, but far more approximatively. Magnetization and susceptibility are obtained as first and second numerical derivative of the thermodynamic free energy. The susceptibility can only be calculated for zero field.
+String specifying the calculation method used by <code>curry</code>, either <code>'operator'</code> or <code>'partitionfunction'</code>.
+
+The two methods give essentially the same results within numerical accuracy. <code>'operator'</code> is the default and the method described in Algorithm is used. <code>'partitionfunction'</code> is slightly faster for large spin systems, but can be slower for smaller spin systems. In this method, magnetic moments and susceptibilities are obtained as first and second numerical derivative of the thermodynamic free energy (via the natural logarithm of the partition function).
 </div>
+
+<div class="optionfield"><code>Spins</code></div>
+<div class="optiondescr">
+List of electron spin indices to include in a spin-selective magnetic moments and susceptibilities. For example, for a spin system with two electron spins (two entries in <code>Sys.S</code>), <code>Opt.Spins = 1</code> requests spin-specific magnetic moments and susceptibilties for the first spin, <code>Opt.Spins = 2</code> the same for the second spin. If this field is omitted, all spins are included in the calculation by default.
+
+</div>
+
 
 <!-- ============================================================= -->
 <div class="subtitle">Algorithm</div>
@@ -273,7 +273,6 @@ To obtain the zz-component of the magnetic susceptibility tensor, the numerical 
 <div class="subtitle">References</div>
 
 <ul>
-<li>T. Quickenden, R. C. Marshall, <em>J. Chem. Educ.</em>, <b>1972</b>, 49(2), 114-116.
 <li>S. Hatscher, H. Schilder, H. Lueken, W. Urland, <em>Pure Appl. Chem.</em>, <b>2005</b>, 77(2), 497-511.
 <li>R. Bo&ccaron;a, Theoretical Foundations of Molecular Magnetism, Elsevier, <b>1999</b>.
 <li>N. F. Chilton, R. P. Anderson, L. D. Turner, A. Soncini, K. S. Murray, <em>J. Comp. Chem.</em> <b>2013</b>, 34, 1164-1175.

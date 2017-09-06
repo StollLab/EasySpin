@@ -9,14 +9,14 @@ Sys.D = rand(1,2)* 10*30e3;
 Exp.Temperature = rand(randi_(50),1)*300;
 Exp.Field = rand(randi_(50),1)*1e4;
 
-Opt.Method = 'energies';
+Opt.Method = 'partitionfunction';
 mu_e = curry(Sys,Exp,Opt);
 
 Opt.Method = 'operator';
 mu_o = curry(Sys,Exp,Opt);
 
 Exp.Field = 0;
-Opt.Method = 'energies';
+Opt.Method = 'partitionfunction';
 Opt.Output = 'chimolT';
 chiTe = curry(Sys,Exp,Opt);
 
