@@ -10,12 +10,11 @@ N = 500;
 % Define a function to fit
 xdata = linspace(-5, 5, N);
 
-% Generate some noise
-noise = randn(1,N);
-
-% Simulate data
+% Simulate noisy data
 x = [1; -1];  % need a vector of parameters
-ydata = quadratic(xdata, x) + noise;
+ydata = quadratic(xdata, x);
+SNR = 10;
+ydata = addnoise(ydata,SNR,'n');
 
 % Define variable ranges for fitting
 Vary{1} = [0, 2];  % used for x(1)
