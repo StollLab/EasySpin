@@ -28,14 +28,14 @@
 <div class="functitle">nucspinrmv</div>
 
 <p>
-Removes a nuclear spin from a spin system.
+Removes nuclear spins from a spin system.
 </p>
 
 <!-- ====================================================== -->
 <div class="subtitle">Syntax</div>
 
 <pre class="matlab">
-NewSys = nucspinrmv(Sys,idx)
+NewSys = nucspinrmv(Sys,rmvidx)
 </pre>
 
 
@@ -43,14 +43,14 @@ NewSys = nucspinrmv(Sys,idx)
 <div class="subtitle">Description</div>
 
 <p>
-This function removes one ro more nuclear spins from the spin
+This function removes one or more nuclear spins from the spin
 system <code>Sys</code> and returns the resulting spin system
 in <code>NewSys</code>.
 </p>
 
 <p>
-<code>idx</code> specifies the indices of the nuclei to remove.
-E.g., <code>idx=1</code> indicates the first nucleus, <code>idx=[2 4]</code>
+<code>rmvidx</code> specifies the indices of the nuclei to be removed.
+E.g., <code>rmvidx=1</code> indicates the first nucleus, <code>rmvidx=[2 4]</code>
 indicates the second and the fourth nuclei.
 </p>
 
@@ -80,12 +80,8 @@ Sys = nucspinrmv(Sys,2)
 
 <p>
 <a href="spinsystem.html">spin system structures</a>,
-<a class="esf" href="nucspinadd.html">nucspinadd</a>
-<!--
-<a class="esf" href="nucdata.html">nucdata</a>,
-<a class="esf" href="nucgval.html">nucgval</a>,
-<a class="esf" href="nucqmom.html">nucqmom</a>
--->
+<a class="esf" href="nucspinadd.html">nucspinadd</a>,
+<a class="esf" href="nucspinkeep.html">nucspinkeep</a>
 </p>
 
 <hr>

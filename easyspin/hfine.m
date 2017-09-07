@@ -31,6 +31,7 @@ nStates = Sys.nStates;
 nElectrons = Sys.nElectrons;
 nNuclei = Sys.nNuclei;
 
+
 F = sparse(nStates,nStates); % sparse zero matrix
 
 if (nNuclei==0)
@@ -42,7 +43,7 @@ end
 
 % Get spin list
 if isempty(Spins) % no 'Spins' specified -> all nuclei and all electrons
-  NucSpins = nElectrons+1:numel(SpinVec);
+  NucSpins = nElectrons+1:(nElectrons+nNuclei);
   ElSpins = 1:nElectrons;
 else
   if any(Spins<1) || any(Spins>numel(SpinVec))
@@ -51,6 +52,7 @@ else
   NucSpins = Spins;
   ElSpins = Spins;
   NucSpins(NucSpins<=nElectrons) = []; % remove electron spins
+  NucSpins(NucSpins>(nElectrons+nNuclei)) = []; % remove orbitla nagular momentum  
   ElSpins(ElSpins>nElectrons) = []; % remove nuclear spins
 end
 
@@ -77,7 +79,6 @@ for edx = 1:length(ElSpins)
     R_M2A = erot(Sys.AFrame(nSp-nElectrons,idx)); % mol frame -> A frame
     R_A2M = R_M2A.'; % A frame -> mol frame
     A = R_A2M*A*R_A2M.';
-    A = A * Sys.Ascale(ndx);
     % Construct hyperfine Hamiltonian.
     for k = 1:3
       for q = 1:3

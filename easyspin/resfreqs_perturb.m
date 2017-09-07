@@ -61,8 +61,11 @@ error(err);
 S = Sys.S;
 highSpin = any(S>1/2);
 
-if (Sys.nElectrons~=1)
+if Sys.nElectrons~=1
   err = sprintf('Perturbation theory available only for systems with 1 electron. Yours has %d.',Sys.nElectrons);
+end
+if any(Sys.L(:))
+  err = sprintf('Pertrubation theory not available for electron spin coupled to orbital angular momentum!');
 end
 if any(Sys.AStrain)
 %  err = ('A strain (Sys.AStrain) not supported with perturbation theory. Use matrix diagonalization or remove Sys.AStrain.');
@@ -70,8 +73,11 @@ end
 if any(Sys.DStrain(:)) && any(Sys.DFrame(:))
   err = 'D strain cannot be used with tilted D tensors.';
 end
-if any(strncmp(fieldnames(Sys),'ZB',2))
+if any(strncmp(fieldnames(Sys),'Ham',3))
   err = 'Perturbation theory not available for higher order terms';
+end
+if isfield(Sys,'nn') && any(Sys.nn(:)~=0)
+  err = 'Perturbation theory not available for nuclear-nuclear couplings (Sys.nn).';
 end
 error(err);
 
@@ -124,7 +130,7 @@ for iNuc = 1:nNuclei
     A{iNuc} = Sys.A((iNuc-1)*3+(1:3),:);
   else
     R_A2M = erot(Sys.AFrame(iNuc,:)).'; % A frame -> molecular frame
-    A_ = diag(Sys.A(iNuc,:))*Sys.Ascale(iNuc);
+    A_ = diag(Sys.A(iNuc,:));
     A{iNuc} = R_A2M*A_*R_A2M.';
   end
   mI{iNuc} = -I(iNuc):I(iNuc);

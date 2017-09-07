@@ -1,37 +1,36 @@
 % nucspinrmv   Remove nuclear spin from spin system
 %
-%   NewSys = nucspinrmv(Sys,idx)
+%   NewSys = nucspinrmv(Sys,rmvidx)
 %
 %   Removes one or more nuclei from the spin system
-%   Sys and returns the result in NewSys. idx a vector
-%   of nuclear numbers as they appear in Sys. E.g. idx=1
-%   removes the first nucleus, idx=[2 4] removes the
+%   Sys and returns the result in NewSys. rmvidx a vector
+%   of nuclear numbers as they appear in Sys. E.g. rmvidx=1
+%   removes the first nucleus, rmvidx=[2 4] removes the
 %   second and the fourth.
 %
 %   Example:
-%    Sys = struct('S',1/2,'g',[2 2 3],'Nucs','14N','A',[4 6 10]);
-%    Sys = nucspinrmv(Sys,1);
+%    Sys = struct('S',1/2,'g',[2 2 3],'Nucs','14N,1H','A',[4 6 10; 1 1 2]);
+%    Sys = nucspinrmv(Sys,1);  % removes the 1H
 
-function NewSys = nucspinrmv(Sys,idx)
+function NewSys = nucspinrmv(Sys,rmvidx)
 
 if (nargin==0), help(mfilename); return; end
 
 NewSys = Sys;
 
 if (nargin<2), return; end
-if isempty(idx), return; end
+if isempty(rmvidx), return; end
 
 Nucs = nucstring2list(NewSys.Nucs);
 nNuclei = numel(Nucs);
 
-if any(idx>nNuclei) || any(idx<=0)
+if any(rmvidx>nNuclei) || any(rmvidx<=0)
   error('There are only %d nuclei in the spin system. Index out of range.',nNuclei);
 end
 
-Nucs(idx) = [];
-
+% nuclei -----------------------------------------------
+Nucs(rmvidx) = [];
 Nucs = nuclist2string(Nucs);
-
 if isempty(Nucs)
   NewSys = rmfield(NewSys,'Nucs');
 else
@@ -41,7 +40,7 @@ end
 % multiplicities ---------------------------------------
 if isfield(NewSys,'n')
   n = NewSys.n;
-  n(idx) = [];
+  n(rmvidx) = [];
   if isempty(Nucs)
     NewSys = rmfield(NewSys,'n');
   else
@@ -67,7 +66,7 @@ if ~fullA
     Field = F{k};
     if isfield(NewSys,Field)
       v = NewSys.(Field);
-      v(idx,:) = [];
+      v(rmvidx,:) = [];
       if isempty(v)
         NewSys = rmfield(NewSys,Field);
       else
@@ -77,8 +76,8 @@ if ~fullA
   end
 else
   v = NewSys.A;
-  for iNuc=1:numel(idx)
-    v((idx(iNuc)-1)*3+(1:3),:) = NaN;
+  for iNuc = numel(rmvidx):-1:1
+    v((rmvidx(iNuc)-1)*3+(1:3),:) = [];
   end
   v(isnan(v))=[];
   if isempty(v)
@@ -92,17 +91,42 @@ else
 end
 
 % nuclear quadrupole ----------------------------------
-F = {'Q','QFrame'};
-for k=1:2
-  Field = F{k};
-  if isfield(NewSys,Field)
-    v = NewSys.(Field);
-    v(idx,:) = [];
-    if isempty(v)
-      NewSys = rmfield(NewSys,Field);
-    else
-      NewSys.(Field) = v;
+if ~isfield(NewSys,'fullQ')
+  if isfield(NewSys,'Q')
+    fullQ = size(NewSys.Q,1)==3*nNuclei;
+  else
+    fullQ = false;
+  end
+else
+  fullQ = NewSys.fullQ;
+end
+
+if ~fullQ
+  F = {'Q','QFrame'};
+  for k = 1:2
+    Field = F{k};
+    if isfield(NewSys,Field)
+      v = NewSys.(Field);
+      v(rmvidx,:) = [];
+      if isempty(v)
+        NewSys = rmfield(NewSys,Field);
+      else
+        NewSys.(Field) = v;
+      end
     end
+  end
+else
+  v = NewSys.Q;
+  for iNuc = numel(rmvidx):-1:1
+    v((rmvidx(iNuc)-1)*3+(1:3),:) = [];
+  end
+  if isempty(v)
+    NewSys = rmfield(NewSys,'Q');
+  else
+    NewSys.Q = v;
+  end
+  if isfield(NewSys,'AFrame')
+    NewSys = rmfield(NewSys,'AFrame');
   end
 end
 

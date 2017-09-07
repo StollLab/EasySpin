@@ -51,7 +51,6 @@ for iNuc = Nuclei
   else
     Q = diag(Sys.Q(iNuc,:));
   end
-  Q = Q*Sys.Qscale(iNuc);
   
   if ~any(Q(:))
     continue

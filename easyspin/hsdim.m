@@ -1,4 +1,4 @@
-% hsdim  Dimension on spin state space 
+% hsdim  Dimension on spin state space
 %
 %   nStates = hsdim(SpinSystem)
 %
@@ -13,9 +13,25 @@ function nStates = hsdim(SpinSystem)
 if (nargin==0), help(mfilename); return; end
 
 if isstruct(SpinSystem)
-  SpinSystem = spinvec(SpinSystem);
+  [Sys,err] = validatespinsys(SpinSystem);
+  error(err);
+  eSpins = Sys.S;
+  nSpins = Sys.I;
+  if isfield(SpinSystem,'n')
+    nEquiv = SpinSystem.n;
+  else
+    nEquiv = [];
+  end
+else
+  eSpins = SpinSystem;
+  nSpins = [];
+  nEquiv = [];
 end
 
-nStates = prod(2*SpinSystem + 1);
+if isempty(nEquiv)
+  nStates = prod(2*[eSpins nSpins]+1);
+else
+  nStates = prod(2*eSpins+1)*prod((2*nSpins+1).*nEquiv);
+end
 
 return

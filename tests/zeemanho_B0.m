@@ -4,6 +4,8 @@ function [err,data] = test(opt,olddata)
 % known prefactors to results using the Stevens operators
 %==================================================================
 
+rand('twister',5);
+
 %Table of conversion factors for Stevens operator
 Alm(8,:) = [24*sqrt(1430),2*sqrt(1430),4*sqrt(143/7),2*sqrt(78/7), ...
   4*sqrt(130/7), 2*sqrt(10/7), 4*sqrt(15), 2*sqrt(2), 8*sqrt(2)];

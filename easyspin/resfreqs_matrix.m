@@ -413,7 +413,7 @@ UserTransitions = ~isempty(Opt.Transitions);
 if (UserTransitions)
   if ischar(Opt.Transitions)
     if strcmp(Opt.Transitions,'all');
-      nSStates = prod(2*CoreSys.S+1);
+      nSStates = prod(2*CoreSys.S+1)*prod(2*CoreSys.L+1);
       logmsg(1,'  using all %d transitions',nSStates*(nSStates-1)/2);
       [u,v] = find(triu(ones(nSStates),1));
       Transitions = sortrows([u,v]);

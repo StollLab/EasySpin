@@ -54,8 +54,9 @@ Spin system structures are used by many EasySpin functions, among them the simul
 <a class="esf" href="chili.html">chili</a> (slow-motion EPR),
 <a class="esf" href="garlic.html">garlic</a> (isotropic EPR),
 <a class="esf" href="pepper.html">pepper</a> (solid-state EPR),
-<a class="esf" href="salt.html">salt</a> (ENDOR), and
-<a class="esf" href="saffron.html">saffron</a> (pulse EPR).
+<a class="esf" href="salt.html">salt</a> (ENDOR)
+<a class="esf" href="saffron.html">saffron</a> (pulse EPR), and
+<a class="esf" href="curry.html">curry</a> (magnetometry).
 </p>
 
 <div class="subtitle">A few examples</div>
@@ -117,6 +118,9 @@ The following groups of parameters can be specified in the spin system structure
 <li><a href = "#D">Zero-field splittings</a></li>
 <li><a href = "#B">Higher-order operators</a></li>
 <li><a href = "#ee">Electron-electron spin-spin couplings</a></li>
+<li><a href = "#nn">Nuclear-nuclear spin-spin couplings</a></li>
+<li><a href = "#soi">Spin-orbit interaction</a></li>
+<li><a href = "#Ham">General Paramters for Spin Hamiltonian expanded in Magnetic Field and Electron Spin</a></li>
 <li><a href = "#lw">Broadenings</a></li>
 </ul>
 
@@ -972,7 +976,189 @@ Sys.ee2 = [130 0 130 130 0 130]; % couplings 1-2, 1-3, 1-4, 2-3, 2-4, 3-4
 EasySpin defines the biquadratic exchange term in the spin Hamiltonian as +j(S1.S2)<sup>2</sup>, with a plus sign. In the literature, it is sometimes defined with a negative sign, so be careful when using literature values.
 
 </div>
-&nbsp;<br>
+
+
+<div class="subtitle"><a name="nn">Nuclear-nuclear spin-spin couplings</a></div>
+
+<p>
+For each pair of nuclear spins, a bilinear coupling matrix (composed of isotropic, anisotropic, and antisymmetric terms) can be given. This term is specified in the field <code>Sys.nn</code>, with the orientation in <code>Sys.nnFrame</code>.
+
+<p>
+In practice, this term is essentially always too small to be of any relevance for EPR or ENDOR spectra. EasySpin provides it so its effects on spectra can be explored.
+
+<div class="optionfield"><code>nn</code></div>
+<div class="optiondescr">
+<em>
+Nx3 or 3Nx3 array of real
+</em>
+<p>
+Principal values of the nuclear-nuclear interaction matrices, or full interaction matrices, in MHz. For providing principal values, each row contains the three principal values of one interaction matrix. For two nuclear spins, <code>nn</code> contains one row only. 
+
+<pre class="matlab">
+Sys.Nucs = '1H,1H';        % two nuclear spins
+Sys.nn = [10 20 30]*1e-6;  % principal values of coupling matrix between spins 1 and 2, MHz
+</pre>
+
+<p>
+For more than two nuclear spins, the pairs are lexicographically ordered according to the indices of the nuclear spins involved. If n is the number of nuclear spins, there are N = n(n-1)/2 rows. For example, for 4 spins there are 6 rows with the principal values for the interaction of spins 1-2, 1-3, 1-4, 2-3, 2-4, 3-4, in this order.
+
+<pre class="matlab">
+Sys.Nucs = '1H,1H,19F';        % three spins
+nn12 = [50 50 100]*1e-6;
+nn13 = [10 10 -30]*1e-6;
+nn14 = [10 10 -30]*1e-6;
+nn23 = [0 0 0];
+nn24 = [0 0 0];
+nn34 = [80 80 80]*1e-6;
+Sys.nn = [nn12; nn13; nn14; nn23; nn24; nn34];  % 6 coupling matrices, MHz
+</pre>
+
+<p>
+If the principal values are given, the orientation of the interaction matrices can be specified via Euler angles in the field <code>nnFrame</code> (see below).
+
+<p>
+It is also possible to specify the full 3x3 interaction matrices instead of the 3 principal values and 3 Euler angles. For two nuclei, <code>nn</code> is a single 3x3 array.
+
+<pre class="matlab">
+Sys.Nucs = '1H,1H';                       % two nuclear spins
+Sys.nn = [50 0 0;0 50 0; 0 0 100]*1e-6;   % one coupling matrix, MHz
+</pre>
+
+<p>
+For more nuclei, the 3x3 matrices are stacked on top of each other, to give a 3Nx3 array.
+
+<pre>
+Sys.S = '1H,1H,1H';                   % three spins
+nn12 = [50 0 0; 0 50 0; 0 0 100]*1e-6;
+nn13 = diag([10 10 -30])*1e-6;
+nn23 = zeros(3);
+Sys.nn = [nn12; nn13; nn23];          % three coupling matrices, MHz
+</pre>
+
+</div>
+
+<div class="optionfield"><code>nnFrame</code></div>
+<div class="optiondescr">
+<em>
+Nx3 array of real
+</em>
+<p>
+Array containing the <a href="eulerangles.html">Euler angles</a> describing the orientation of the nuclear-nuclear interaction matrices (specified in <code>nn</code>) in the molecular frame. Each row contains the three Euler angles for the corresponding row in <code>nn</code>.
+
+<p>
+This is fully analogous to <code>eeFrame</code> (see above). Check out the page on <a href="frames.html">frames</a> for more details on frames.
+
+</div>
+
+
+<div class="subtitle"><a name="soi">Spin-orbit interaction</a></div>
+For each electron spin an orbital angular momentum can be defined in the field <code>L</code>. It is described by the crystal field splitting, the orbital reduction factor and the spin-orbit coupling. Currently, spin-orbit interaction is supported by the simulation functions <a class="esf" href="pepper.html">pepper</a> (solid-state EPR)and <a class="esf" href="curry.html">curry</a>. 
+<p> Please cite Joscha and friends <em>Journal of unsolved questions</em>, <b>2020</b>, 87, 92-109 when using spin-orbit interaction.
+<p>
+<div class="optionfield"><code>L</code></div>
+<div class="optiondescr">
+Defines the orbital angular momenta to which the electron spins should be coupled. <code>L</code> is an optional field. If given it need to have the same number of entries as <code>S</code> and the entries have to be positive integer or 0. Examples:
+<pre class="matlab">
+Sys = struct('S',[1/2 1/2], 'L',[2,2]); % two spin-1/2, each associated to L = 2
+Sys = struct('S',[1/2 3/2], 'L',[0,1]); % one spin-1/2 without L and a spin 3/2 with L = 1
+Sys = struct('S',1, 'L',3);             % one spin 1 associated to a L = 3
+</pre>
+</div>
+<div class="optionfield"><code>CF0, CF2, CF4, CF6, CF8, CF10, CF12</code></div>
+<div class="optiondescr">
+The crystal field of the orbital angular momentum L is in EasySpin described by the coefficients CF(k,q) for the <a href="stevensoperators.html">extended Stevens operators</a> (see also the function <a class="esf" href="stev.html">stev</a>). They are analog to the coefficients B(k,q) for the electron spin (see <a href = "#B">Higher-order operators</a>), but acting on the orbital angular momentum.
+All coefficients should be real, and are understood in units of MHz. The number in the field name indicates the order k of the operator. E.g. <code>CF2</code> is for k = 2, and <code>CF4</code> is k = 4. If any of these fields is not given, it is treated as zero. <code>L</code> must be given, otherwise the CF are ignored.
+
+<p>
+Each field that is given should contain a row vector of 2k+1 parameters, in order of decreasing q, running from +k to -k. For example:
+
+<pre class="matlab">
+Sys.CF2 = [0 0 560 0 0];          % CF(2,q) with q = +2,+1,0,-1,-2
+Sys.CF4 = [0 132 0 0 0 0 0 0 0];  % CF(4,q) with q = +4,+3,+2,+1,0,-1,-2,-3,-4
+</pre>
+The only nonzero elements in the above examples are therefore CF(2,0) and CF(4,+3).
+
+<p>
+In the common case that only the q=0 element is needed for a given k, it can be given alone in an abbreviated syntax valid for any k.
+
+<pre class="matlab">
+Sys.CF2 = [0 0 99 0 0];  % CF(2,0) only, full form
+Sys.CF2 = 99;            % equivalent abbreviated form
+
+Sys.CF4 = [0 0 0 0 -8700 0 0 0 0];  % CF(4,0) only, full form
+Sys.CF4 = -8700;                    % equivalent abbreviated form
+</pre>
+
+<p>
+If more than one electron spin (and therefore more than one orbital angular moment) is present, specify one row of 2k+1 elements for each orbital angular moment. The first row is for the first orbital angular moment, etc.
+
+<pre class="matlab">
+Sys.S = [5/2 2];     % two spins
+Sys.L = [1 2];       % with two orbital angular momenta
+CF20a = 100;          % for the first orbital angular moment
+CF20b = -98;          % for the second orbital angular moment
+Sys.CF2 = [0 0 CF20a 0 0; 0 0 CF20b 0 0]; % two rows: one row per orbital angular moment
+Sys.CF2 = [CF20a; CF20b];                 % abbreviated form for two orbital angular moment, two rows as well
+</pre>
+
+<p>
+Currently, it is not possible to include tilt angles for the principal frames of these crystal field interaction tensors. All of them are assumed to be collinear with the molecular frame. By changing the molecular frame, i.e. by tilting all other tensors (g, A, etc), this limitation can be partially circumvented. Still, all the crystal-field interactions are collinear. Alternatively, you can use <code>wignerd</code> to compute a Wigner rotation matrix that can be used to tilt the tensors explicitly.
+</p>
+
+<pre class="matlab">
+angles = rand(1,3)*pi;   % Euler tilt angles, in radians
+CF2 = [3 4 5 0 2];        % CF(2,q) tensor components
+R = wignerd(2,angles);   % rotation matrix for rank-2 tensor
+CF2 = R*CF2;               % rotated tensor
+Sys.CF2 = CF2.';
+</pre>
+
+</div>
+
+<div class="optionfield"><code>orf</code></div>  
+<div class="optiondescr">
+Orbital reduction factor entering in the Zeeman Hamiltonian and the spin-orbit interaction for each orbital angular momentum. <code>orf</code> is an optional field, if omitted it is assumed as 1 for all orbital angular momenta. The number of elements in <code>orf</code> has to match the number of elements in <code>L</code>.
+
+<pre class="matlab">
+Sys.orf = 3/2;          % orf of a single effective l =1 as calculated by Lines for octahedral Co(II)
+Sys.orf = [0.97, 0.93]; % orf for two orbital angular momenta
+</pre>
+</div>
+
+<div class="optionfield"><code>soc</code></div>  
+<div class="optiondescr">
+Spin-orbit coupling in MHz. It can also contain higher orders of the spin-orbit coupling, as sometimes used for heavier elements. Each electron spin can only be coupled to one orbital angular momentum. If more than one electron is present, the first row contain the coupling between the first electron spin and the first orbital angular momentum and so on. Examples:
+<pre class="matlab">
+% three electron spins, with linear soc parameter of 170, 250 cm-1 and 0:
+Sys.soc = [170; 250; 0]*clight*1e-4;
+% as above, plus the first spin has a cubic soc parameter of 10 cm-1:
+Sys.soc = [170 0, 10; 250, 0, 0; 0, 0, 0]*clight*1e-4; 
+
+Sys = struct('S',[1/2 1], 'L',[2,1]); % two electron spin with S =1/2 and 1 and L = 2 and 1
+Sys.soc = [200; 100]*clight*1e-4; 
+% linear soc parameter between S = 1/2 and L = 2 is 200 cm-1
+% linear soc parameter between S = 1 and L = 1 is 100 cm-1
+</pre>  
+</div>
+
+<div class="subtitle"><a name="Ham">General Parameters for Spin Hamiltonian expanded in Magnetic Field and Electron Spin</a></div>
+<p>
+The Spin-Hamiltonian is in general a polynom of the magnetic field and the spin operator. This general expansion is implemented for electron spins (not for nuclei). Currently, general parameter are supported by the simulation functions <a class="esf" href="pepper.html">pepper</a> (solid-state EPR)and <a class="esf" href="curry.html">curry</a>. The coefficients can be provided in the following way:
+<div class="optionfield"><code>Ham</code></div>  
+<div class="optiondescr">
+The coefficients C(p<sub>B</sub>, p<sub>S</sub>, p, q) should be real and in units of MHz (mT)<sup>-p<sub>B</sub></sup>.The p<sub>B</sub>, p<sub>S</sub>, p are integrated in the field name in this order. If any of these fields are not given, they are treated as zero.
+Each field that is given should contain a row vector of 2p+1 parameters, in order of decreasing q, running from +p to -p. For example: 
+<pre class="matlab">
+Sys.Ham134 = [0 0 36 0 0 0 12 0 0 0]; % pB = 1, pS = 3, p = 4, q = +4,+3,+2,+1,0,-1,-2,-3,-4
+</pre></p>
+<pre class="matlab">
+%convert the more common D and E:
+Sys.Ham022 = [sqrt(2)*E 0 sqrt(2/3)*D 0 0];
+%convert an isotropic g value:
+Sys.Ham110 = -bmagn/planck*1e-9*sqrt(3)*g;
+</pre>
+</div>
+
 
 <div class="subtitle"><a name="lw">Line broadenings and strains</a></div>
 

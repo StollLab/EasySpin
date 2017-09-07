@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>Expand Spin Hamiltonian</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<h1>Spin Hamiltonian expanded in Magnetic Field and Electron Spin</h1>
+
+<p>
+The Hamiltonian for a single spin S and its interaction with the magnetic field 
+is in general a sum of terms with 
+<img src="eqn/moHamiltonian1.png" alt="[eqn]"><!--MATH
+$\left(\boldsymbol{B}\right)^{p_B}\cdot\left(\widehat{\boldsymbol{S}}\right)^{
+p_S}$
+-->
+, with p<sub>B</sub> and p<sub>S</sub> non-negative integers. p<sub>B</sub> +p<sub>S</sub> has to be even to fulfill time-reversal invariance. Only terms with p<sub>S</sub> &le; 2S are effective. Mc Gavine et al. formulated such general spin Hamiltonian using tesseral harmonics. Advantages are the following:
+<ul>
+<li> behavior of all terms under axis rotation is straightforward to establish
+<li> the same symmetry selection rules as for the crystal field applies and can be readily adopted.
+</ul>
+This general spin Hamiltonian can be written as:
+<img src="eqn/moHamiltonian2.png" alt="[eqn]"><!--MATH
+\begin{eqnarray}
+ \nonumber\widehat{H} \left(\boldsymbol{B},\widehat{\boldsymbol{S}}\right)&=& \sum_{p_B 
+= 0}^{\infty} 
+\sum_{\substack{p_S = 0 \\ p_B + p_S \text{ even}}}^{p_S = 2 S} 
+\widehat{\Gamma}^{p_B,p_S} 
+\left(\boldsymbol{B},\widehat{\boldsymbol{S}}\right)\\
+ \nonumber\widehat{\Gamma}^{p_B,p_S} 
+\left(\boldsymbol{B},\widehat{\boldsymbol{S}}\right)&=& 
+\sum_{\substack{p=\left|p_B-p_S\right|\\ p \text{ even}}}^{p_B+p_S}  
+\sum_{q=-p}^p a_{p,q}^{p_B,p_S}\cdot  
+\widehat{T}_{p,q}^{p_B,p_S}\left(\boldsymbol{B},\widehat{\boldsymbol{S}}\right) 
+\\
+  \nonumber a_{p,q}^{p_B,p_S} &=& \begin{cases} \begin{aligned}
+		&\frac{\left(-1\right)^{p_B + p_S + 
+q}}{\sqrt{2}} \left( C_{p,q}^{p_B,p_S}-\imath C_{p,-q}^{p_B,p_S} \right) 
+&\text{ for }q > 0 \\
+		&C_{p,q}^{p_B,p_S} &\text{ for }q = 0 \\
+		&\frac{1}{\sqrt{2}}\left(C_{p,-q}^{p_B,p_S} + \imath 
+C_{p,q}^{p_B,p_S}\right) 
+		&\text{ for } q <0
+\end{aligned}\end{cases}\\
+ \widehat{T}_{p,q}^{p_B,p_S}\left(\boldsymbol{B},\widehat{\boldsymbol{S}}\right) 
+&=& \sum_{q_B = 
+ -p_B}^{p_B}\sum_{q_S = -p_S}^{p_S} \sqrt{2p+1} \left(-1\right)^{p_B + p_S + 
+ q} \nonumber \\
+\nonumber
+ && \cdot\begin{pmatrix}
+  p_B & p_S & p \\
+  q_B & q_S & -q
+ \end{pmatrix} 
+\zeta_{p_B}^{q_B}\left(\boldsymbol{B}\right) \cdot
+\widehat{\sigma}_{p_S}^{q_S}\left(\widehat{\boldsymbol{S } }  \right)\\
+ \nonumber\zeta_{p_B}^{q_B}\left(\boldsymbol{B}\right) &=& 
+\frac{\left(r_B\right)^{p_B}}{\alpha_{p_B}} 
+\sqrt{\frac{4\pi}{2p_B+1}}Y_{p_B}^{q_B}\left(\theta_B,\phi_B\right)\\
+ \nonumber\widehat{\sigma}_{p_S}^{q_S}\left(\widehat{\boldsymbol{S}}\right) &=& 
+\frac{1}{A_{p_S}^{q_S}}
+ \begin{cases}
+  \begin{aligned}
+   &\sqrt{2}\left(-1\right)^{q_S}\left( 
+ \widehat{O}_{p_S}^{q_S}\left(\widehat{\boldsymbol{S}}\right) + \imath 
+ \widehat{O}_{p_S}^{-q_S}\left(\widehat{\boldsymbol{S}}\right)\right) &\text{ 
+for } q_S > 0 \\
+ 	&\widehat{O}_{p_S}^{q_S}\left(\widehat{\boldsymbol{S}}\right) &\text{ for } 
+q_S = 0 \\
+ 	&\sqrt{2}\left(\widehat{O}_{p_S}^{-q_S}\left(\widehat{\boldsymbol{S}}\right) 
+ -\imath\widehat{O}_{p_S}^ {q_S}\left(\widehat{\boldsymbol{S}}\right)\right) 
+&\text{ for } q_S 
+< 0 
+  \end{aligned}
+ \end{cases}
+ \end{eqnarray}
+-->
+
+We used the <a href="stevensoperators.html">extended Stevens operators</a> <img src="eqn/moHamiltonian3.png" alt="[eqn]"><!--MATH
+$\widehat{O}_{p_S}^{q_S}\left(\widehat{\boldsymbol{S}}\right)$
+-->
+. The magnetic field is expressed in spherical coordinates <img src="eqn/moHamiltonian4.png" alt="[eqn]"><!--MATH
+$\boldsymbol{B} = \left( r_B, \theta_B, \phi_B\right)^\text{T}$
+--> and <img src="eqn/moHamiltonian5.png" alt="[eqn]"><!--MATH
+$Y_{p_B}^{q_B}\left(\theta_B,\phi_B\right)$
+--> denote the spherical harmonics.
+Prefactors A<sub>p<sub></sub></sub><sup>q<subS</sub></sup> and &alpha;<sub>p<sub>B</sub></sub> are tabulated in McGavin et al.
+<img src="eqn/moHamiltonian6.png" alt="[eqn]"><!--MATH  
+$\begin{pmatrix}
+  p_B & p_S & p \\
+  q_B & q_S & -q
+ \end{pmatrix}$ 
+--> is a Wigner 3-j symbol.Wigner 3j symbols are zero unless q<sub>B</sub> + q<sub>S</sub> = q and <img src="eqn/moHamiltonian7.png" alt="[eqn]"><!--MATH
+$\left|p_B-p_S\right| \leq p \leq p_B + p_S$
+-->. The parameters describing the spin system are the <img src="eqn/moHamiltonian8.png" alt="[eqn]"><!--MATH
+$C_{p,q}^{p_B,p_S}$
+-->. They are given in units of Energy (Magnetic Field)<sup>p<sub>B</sub></sup>, which correspond in Easyspin to MHz (mT)<sup>p<sub>B</sub></sup>.
+The allowed coefficients have p an even integer numbers between |p<sub>B</sub>-p<sub>S</sub>| and p<sub>B</sub>+p<sub>S</sub> and q integer number between -p and +p. 
+For example for p<sub>B</sub> = 1 and p<sub>S</sub> = 3 
+the 
+following coefficients are allowed: 
+<img src="eqn/moHamiltonian9.png" alt="[eqn]"><!--MATH
+\begin{eqnarray}
+ &C_{2,2}^{p_B = 1,p_S = 3},& C_{2,1}^{p_B = 
+1,p_S = 3},C_{2,0}^{p_B = 1,p_S = 3},C_{2,-1}^{p_B = 1,p_S = 3},C_{2,-2}^{p_B = 
+1,p_S = 3}, \nonumber \\
+&C_{4,4}^{p_B = 1,p_S = 3},& C_{4,3}^{p_B = 1,p_S = 3}, C_{4,2}^{p_B 
+= 1,p_S = 3}, C_{4,1}^{p_B = 1,p_S = 3},\nonumber\\
+&C_{4,0}^{p_B = 1,p_S = 3},& 
+C_{4,-1}^{p_B = 1,p_S = 3}, C_{4,-2}^{p_B = 1,p_S = 3},C_{4,-3}^{p_B = 1,p_S = 
+3} C_{4,-4}^{p_B = 1,p_S = 3}. \nonumber
+\end{eqnarray}
+-->
+<p>
+Next we will derive the coefficients <img src="eqn/moHamiltonian10.png" alt="[eqn]"><!--MATH $C_{p,q}^{p_B,p_S}$ --> for Hamiltonian's 
+widely used in spin physics.
+<!-- ============================================================= -->
+<div class="subtitle"><a name="l">Electron Zeeman Interaction</a></div>
+The commonly used Zeeman Hamiltonian is linear in B and S. Usually it is sufficient to describe the interaction with the external magnetic field.
+<img src="eqn/moHamiltonian11.png" alt="[eqn]"><!--MATH
+$
+ \widehat{H}_\text{Zeeman} \left(\boldsymbol{B},\widehat{\boldsymbol{S}}\right) 
+= \mu_\text{B} 
+\boldsymbol{B}\boldsymbol{g}\widehat{\boldsymbol{S}} \label{eq:zeeman}
+$ -->
+with symmetric g matrix and the Bohr magneton &mu;<sub>B</sub>. We can construct now the 
+<img src="eqn/moHamiltonian12.png" alt="[eqn]"><!--MATH $C_{p,q}^{p_B = 1,p_S = 1}$ --> as:
+<img src="eqn/moHamiltonian13.png" alt="[eqn]"><!--MATH
+ \begin{eqnarray}
+ \nonumber C_{0,0}^{p_B = 1,p_S = 1} &=& 
+ -\frac{\mu_\text{B}}{\sqrt{3}}\left(g_{xx}+g_{yy}+g_{zz}\right) \\
+\nonumber C_{2,0}^{p_B = 1,p_S = 1} &=& 
+\frac{\mu_\text{B}}{\sqrt{6}}\left(2 g_{zz}-g_{xx}-g_{yy}\right) \\
+\nonumber C_{2,2}^{p_B = 1,p_S = 1} &=& 
+\frac{\mu_\text{B}}{\sqrt{2}}\left(g_{xx}-g_{yy}\right) \\
+\nonumber C_{2,-2}^{p_B = 1,p_S = 1} &=& \mu_\text{B} \sqrt{2} g_{xy}\\
+\nonumber C_{2,1}^{p_B = 1,p_S = 1} &=& \mu_\text{B} \sqrt{2} g_{xz}\\
+\nonumber C_{2,-1}^{p_B = 1,p_S = 1} &=& \mu_\text{B} \sqrt{2} g_{yz}
+ \end{eqnarray}
+-->
+
+<!-- ============================================================= -->
+<div class="subtitle"><a name="l">Zero-Field Hamiltonian</a></div>
+The zero-field terms in the spin Hamiltonian are commonly expressed as:
+<img src="eqn/moHamiltonian14.png" alt="[eqn]"><!--MATH
+$ \widehat{H}_\text{zero-field} \left(\widehat{\boldsymbol{S}}\right)= \sum_{p_S 
+= 
+2}^{2S} \sum_{q_S = - p_S}^{ps} B_{p_S}^{q_S}\cdot 
+\widehat{O}_{p_S}^{q_S}\left(\widehat{\boldsymbol{S}}\right)$
+-->
+However, the most common form which is quadratic in S
+and 
+consider 
+the diagonal terms in a trace-free representation is:
+<img src="eqn/moHamiltonian15.png" alt="[eqn]"><!--MATH
+\begin{eqnarray}
+ \nonumber \widehat{H}_\text{DE} \left(\widehat{\boldsymbol{S}}\right) &=&
+ D \left(\widehat{S}_z^2-\frac{1}{3}\widehat{\boldsymbol{S}}^2\right) + E 
+\left(\widehat{S}_x^2-\widehat{S}_y^2\right) \\
+\nonumber  &=& \frac{D}{3} \widehat{O}_{2}^{0}\left(\widehat{\boldsymbol{S}}\right) 
+ + E \widehat{O}_{2}^{2}\left(\widehat{\boldsymbol{S}}\right)
+\end{eqnarray}
+-->
+The corresponding coefficients should now be transformed to the 
+<img src="eqn/moHamiltonian16.png" alt="[eqn]"><!--MATH 
+$C_{p_S,q}^{p_B = 0,p_S}$ 
+--> 
+(only p = p<sub>S</sub> is allowed for p<sub>B</sub> = 0). With 
+&zeta;<sub>0</sub><sup>0</sup> = 1 and 
+<img src="eqn/moHamiltonian17.png" alt="[eqn]"><!--MATH
+ $\begin{pmatrix}
+  0 & p_S & p_S \\
+  0 & q_S & -q_S
+ \end{pmatrix} = \frac{\left(-1\right)^{q_{S}}}{\sqrt{2 p_S +1}}$ 
+--> 
+for even p<sub>S</sub> it 
+is straightforward to transform the coefficients:
+<img src="eqn/moHamiltonian18.png" alt="[eqn]"><!--MATH
+$ C_{p_S,q_S}^{p_B = 0,p_S} = A_{p_S}^{q_S} \cdot B_{p_S}^{q_S}.$
+-->
+D and E in H<sub>DE</sub> are converted to 
+<img src="eqn/moHamiltonian19.png" alt="[eqn]"><!--MATH
+\begin{eqnarray}
+\nonumber C_{2,0}^{0,2} &=&\frac{\sqrt{6}}{3} D \\
+\nonumber C_{2,2}^{0,2} &=& \sqrt{2} E
+\end{eqnarray} 
+-->
+
+<div class="subtitle"><a name="ref">Reference</a></div>
+D. G. McGavin, W. C. Tennant, J. A. Weil <em>J. Magn. Reson.</em>, <b>1990</b>, 87, 92-109.
+<p>
+

@@ -2,7 +2,7 @@ function [err,data] = test(opt,olddata)
 
 % Read Adani spectrometer files
 %-------------------------------------------------
-BaseDir = 'eprfiles/';
+BaseDir = 'eprfiles/adani/';
 
 Files{1} = 'pyrelen-2mT5mmAugstaak300sek.dat';
 

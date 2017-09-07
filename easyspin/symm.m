@@ -29,11 +29,13 @@ end
 
 [Sys,err] = validatespinsys(Sys);
 error(err);
+sysfields = fieldnames(Sys);
+
 
 
 HighOrderTermsPresent = false;
 HigherZeemanPresent = false;
-sysfields = fieldnames(Sys);
+
 stevens = strncmp(sysfields,'B',1).';
 if any(stevens)
   for n=find(stevens)
@@ -50,7 +52,18 @@ if any(higherzeeman)
   end
 end
 if isfield(Sys,'aF') && any(Sys.aF(:)), HighOrderTermsPresent = true; end
-  
+
+cf = strncmp(sysfields,'CF',2).';
+if any(cf)
+  for n=find(cf)
+    if any(Sys.(sysfields{n})(:))
+      CrystalFieldPresent = true;
+      HighOrderTermsPresent = true;
+    else
+      CrystalFieldPresent = false;
+    end
+  end
+end
 
 
 if DebugMode
@@ -703,7 +716,7 @@ if isfield(Sys,'D') && any(Sys.D(:)), return; end
 % if any(HighOrderTerm), return; end
 
 % (2) Not isotropic if any A, g or ee tensor is anisotropic
-if isfield(Sys,'A')
+if isfield(Sys,'A') && ~isempty(Sys.A)
   A = Sys.A(:,1);
   if any(Sys.A(:,2)~=A) || any(Sys.A(:,3)~=A)
     return;

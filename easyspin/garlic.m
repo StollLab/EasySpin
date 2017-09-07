@@ -55,29 +55,29 @@
 %     If no output parameter is specified, the simulated spectrum
 %     is plotted.
 
-function varargout = garlic(Sys,Exp,Options)
+function varargout = garlic(Sys,Exp,Opt)
 
 varargout = cell(1,nargout);
 if (nargin==0), help(mfilename); return; end
 
 switch (nargin)
   case 1, error('Experimental parameters (2nd input) are missing!');
-  case 2, Options = [];
-  case 3,
+  case 2, Opt = [];
+  case 3
 otherwise, error('Wrong number of input parameters!');
 end
 
 switch (nargout)
-case {0,1,2,3},
+case {0,1,2,3}
 otherwise, error('Wrong number of output parameters!');
 end
 
-if ~isfield(Options,'Verbosity')
-  Options.Verbosity = 0; % Log level
+if ~isfield(Opt,'Verbosity')
+  Opt.Verbosity = 0; % Log level
 end
 
 global EasySpinLogLevel;
-EasySpinLogLevel = Options.Verbosity;
+EasySpinLogLevel = Opt.Verbosity;
 
 % Check Matlab version.
 error(chkmlver);
@@ -101,30 +101,44 @@ else
     (~isfield(Exp,'CenterSweep') || isempty(Exp.CenterSweep));
 end
 
-if ~isfield(Options,'IsoCutoff')
-  Options.IsoCutoff = 1e-6;
+if ~isfield(Opt,'IsoCutoff')
+  Opt.IsoCutoff = 1e-6;
 else
-  if Options.IsoCutoff<0 || Options.IsoCutoff>1
+  if Opt.IsoCutoff<0 || Opt.IsoCutoff>1
     error('Options.IsoCutoff must be between 0 and 1.');
   end
 end
 
-if ~isfield(Sys,'singleiso') || (Sys.singleiso==0)
+if ~isfield(Sys,'singleiso') || ~Sys.singleiso
   
-  [SysList,weight] = expandcomponents(Sys,Options.IsoCutoff);
-    
-  if (numel(SysList)>1) && SweepAutoRange
+  if ~iscell(Sys), Sys = {Sys}; end
+  
+  nComponents = numel(Sys);
+  logmsg(1,'%d spin system(s)...');
+  
+  for c = 1:nComponents
+    SysList{c} = isotopologues(Sys{c},Opt.IsoCutoff);
+    nIsotopologues(c) = numel(SysList{c});
+    logmsg(1,'  component %d: %d isotopologues',c,nIsotopologues(c));
+  end
+  
+  if (sum(nIsotopologues)>1) && SweepAutoRange
     if FrequencySweep
-      error('Multiple components: Please specify frequency range manually using Exp.mwRange or Exp.mwCenterSweep.');
+      str = 'Exp.mwRange or Exp.mwCenterSweep';
     else
-      error('Multiple components: Please specify field range manually using Exp.Range or Exp.CenterSweep.');
+      str = 'Exp.Range or Exp.CenterSweep';
     end
+    error('Multiple components: Please specify sweep range manually using %s.',str);
   end
   
   spec = 0;
-  for iComponent = 1:numel(SysList)
-    [xAxis,spec_,Transitions] = garlic(SysList{iComponent},Exp,Options);
-    spec = spec + spec_*weight(iComponent);
+  for iComponent = 1:nComponents
+    for iIsotopologue = 1:nIsotopologues(iComponent)
+      Sys_ = SysList{iComponent}(iIsotopologue);
+      Sys_.singleiso = true;
+      [xAxis,spec_,Transitions] = garlic(Sys_,Exp,Opt);
+      spec = spec + spec_*Sys_.weight;
+    end
   end
   
   % Output and plotting
@@ -170,14 +184,19 @@ end
 
 [Sys,err] = validatespinsys(Sys);
 error(err);
+if Sys.MO_present, error('salt does not support general parameters!'); end
+if any(Sys.L(:)), error('salt does not support L!'); end
 
-if (Sys.nElectrons~=1)
+if (Sys.nElectrons~=1) || (isfield(Sys,'L') && any(Sys.L))
   error('Only systems with one electron spin S=1/2 are supported.');
 elseif (Sys.S~=1/2)
   error('Only systems with electron spin S=1/2 are supported.');
 end
 if isfield(Sys,'Exchange') && (Sys.Exchange~=0)
   error('garlic does not support Heisenberg exchange.');
+end
+if isfield(Sys,'nn') && any(Sys.nn(:)~=0)
+  error('garlic does not support nuclear-nuclear couplings (Sys.nn).');
 end
 
 if isfield(Sys,'logtcorr'), Sys.tcorr = 10.^Sys.logtcorr; end
@@ -387,31 +406,31 @@ end
 %-------------------------------------------------------------------------
 
 % Stretch factor for automatically detected field range
-if ~isfield(Options,'Stretch');
-  Options.Stretch = 0.25;
+if ~isfield(Opt,'Stretch');
+  Opt.Stretch = 0.25;
 end
 
 % Maximum number of Newton-Raphson or fixed-point iteration steps
-if ~isfield(Options,'MaxIterations')
-  Options.MaxIterations = 15;
+if ~isfield(Opt,'MaxIterations')
+  Opt.MaxIterations = 15;
 end
 
 % Accuracy of resonance field computation:
 % If relative iteration-to-iteration change of resonance field
 % falls below this value, the computation is stopped.
-if ~isfield(Options,'Accuracy')
-  Options.Accuracy = 1e-12;
+if ~isfield(Opt,'Accuracy')
+  Opt.Accuracy = 1e-12;
   % Note: relative accuracy of Planck constant is 5e-8
 end
 
 %Options.AcceptLimit = 0.5; % rejection threshold for large hyperfine couplings
 
 % Method for computation of the resonance fields
-if isfield(Options,'PerturbOrder')
+if isfield(Opt,'PerturbOrder')
   error('Options.PerturbOrder is obsolete. Use Options.Method = ''perturb2'' etc instead.');
 end
-if ~isfield(Options,'Method'), Options.Method = 'exact'; end
-switch Options.Method
+if ~isfield(Opt,'Method'), Opt.Method = 'exact'; end
+switch Opt.Method
   case 'exact',    PerturbOrder = 0; % exact calculation, Breit/Rabi
   case 'perturb',  PerturbOrder = 5;
   case 'perturb1', PerturbOrder = 1;
@@ -420,15 +439,15 @@ switch Options.Method
   case 'perturb4', PerturbOrder = 4;
   case 'perturb5', PerturbOrder = 5;
   otherwise
-    error('Unknown method ''%s''.',Options.Method);
+    error('Unknown method ''%s''.',Opt.Method);
 end
 
 % Method for spectrum construction
-if ~isfield(Options,'AccumMethod') || isempty(Options.AccumMethod)
+if ~isfield(Opt,'AccumMethod') || isempty(Opt.AccumMethod)
   if FastMotionRegime
-    Options.AccumMethod = 'explicit';
+    Opt.AccumMethod = 'explicit';
   else
-    Options.AccumMethod = 'binning';
+    Opt.AccumMethod = 'binning';
   end
 end
 
@@ -470,19 +489,21 @@ if (Sys.nNuclei>0)
       a_all(iNuc) = mean(Adiag_)*1e6; % isotropic A values, MHz -> Hz
     end
   end
-  a_all = a_all.*Sys.Ascale;
   n_all = Sys.n;
   if FieldSweep
-    % Make sure zero field splitting is smaller than mw frequency.
-    if sum(abs(a_all).*I_all)*2>mwFreq
-      disp('Microwave frequency is smaller than largest splitting of levels at zero field. Spectrum might be inaccurate. Consider using the function pepper instead.');
+    % Make sure mw frequency is larger than zero field splitting.
+    zfSplitting = sum(abs(a_all).*(I_all+0.5)); % approximate
+    if mwFreq<zfSplitting
+      fprintf(['Microwave frequency (%f GHz) is smaller than\nlargest splitting ' ...
+        'of levels at zero field (estimate %f GHz).\nSpectrum might be inaccurate.\n' ...
+        'Consider using the function pepper() instead.\n'],mwFreq/1e9,zfSplitting/1e9);
     end
   end
   if any(I_all==0)
-    error('Nuclei with spin 0 present.');
+    error('Nuclei with spin 0 present. Cannot compute spectrum.');
   end
   if any(a_all==0)
-    error('Nuclei with coupling 0 present.');
+    error('Nuclei with hyperfine coupling 0 present. Cannot compute spectrum.');
   end
   a_all = a_all*planck;   % Hz -> Joule
 end
@@ -513,7 +534,7 @@ for iNucGrp = 1:Sys.nNuclei
     % Field sweep
     %-------------------------------------------------------------------
     if (PerturbOrder==0)
-      logmsg(1,'  Breit-Rabi solver, accuracy %g',Options.Accuracy);
+      logmsg(1,'  Breit-Rabi solver, accuracy %g',Opt.Accuracy);
       maxIterationsDone = -1;
       
       % Fixed-point iteration, based on the Breit-Rabi formula
@@ -527,18 +548,21 @@ for iNucGrp = 1:Sys.nNuclei
         B_ = 0;
         RelChangeB = inf;
         gamman = 0; % to obtain start field, neglect NZI
-        for iter = 1:Options.MaxIterations
+        for iter = 1:Opt.MaxIterations
           nu = mwFreq + gamman/h*B_;
           q = 1 - (aiso./(2*h*nu)).^2;
           Bnew = aiso./(gammae+gamman)./q.* ...
             (-mI+sign(aiso)*sqrt(mI.^2+q.*((h*nu/aiso).^2 - (I+1/2)^2)));
+          if ~isreal(Bnew)
+            error('Hyperfine coupling too large compared to microwave frequency. Cannot compute resonance field positions. Use pepper() instead.');
+          end
           if (B_~=0), RelChangeB = 1 - Bnew./B_; end
           B_ = Bnew;
           gamman = gn(iNucGrp)*nmagn; % re-include NZI
-          if abs(RelChangeB)<Options.Accuracy, break; end
+          if abs(RelChangeB)<Opt.Accuracy, break; end
         end
         if (iter>maxIterationsDone), maxIterationsDone = iter; end
-        if (iter==Options.MaxIterations)
+        if (iter==Opt.MaxIterations)
           error(sprintf('Breit-Rabi solver didn''t converge after %d iterations!',iter));
         end
         Positions = [Positions B_];
@@ -547,7 +571,7 @@ for iNucGrp = 1:Sys.nNuclei
       logmsg(1,'  maximum %d iterations done',maxIterationsDone);
       
     else
-      logmsg(1,'  perturbation expansion, order %d, accuracy %g',PerturbOrder,Options.Accuracy);
+      logmsg(1,'  perturbation expansion, order %d, accuracy %g',PerturbOrder,Opt.Accuracy);
       
       % Based on \Delta E - h nu = 0 with a 5th-order Taylor expansion in aiso of
       % the Breit-Rabi expression for \Delta E. The resulting polynomial in aiso with terms
@@ -572,13 +596,13 @@ for iNucGrp = 1:Sys.nNuclei
           dc = (n-1:-1:1).*c(1:n-1);
           Bb = -c(2)/c(1); % first-order as start guess
           dB = Bb;
-          for iter = 1:Options.MaxIterations
-            if (abs(dB/Bb)<Options.Accuracy), break; end
+          for iter = 1:Opt.MaxIterations
+            if (abs(dB/Bb)<Opt.Accuracy), break; end
             dB = polyval(c,Bb)/polyval(dc,Bb);
             Bb = Bb - dB;
           end
           if (iter>maxIterationsDone), maxIterationsDone = iter; end
-          if (iter==Options.MaxIterations)
+          if (iter==Opt.MaxIterations)
             error('Newton-Raphson has convergence problem!');
           end
           Positions(end+1) = Bb; % T
@@ -672,12 +696,12 @@ end
 %--------------------------------------------------------------
 if (SweepAutoRange)
   if FieldSweep
-    posrange = (posmax-posmin)*Options.Stretch;
+    posrange = (posmax-posmin)*Opt.Stretch;
     Exp.Range = [posmin,posmax] + [-1 1]*max(5*maxLw,posrange);
     Exp.Range(1) = max(Exp.Range(1),0);
     logmsg(1,'  automatic field range from %g mT to %g mT',Exp.Range(1),Exp.Range(2));
   else
-    posrange = (posmax-posmin)*Options.Stretch; % Hz
+    posrange = (posmax-posmin)*Opt.Stretch; % Hz
     Exp.mwRange = [posmin,posmax] + [-1 1]*max(5*maxLw/1e3,posrange);
     Exp.mwRange(1) = max(Exp.mwRange(1),0);
     Exp.mwRange = Exp.mwRange/1e9; % Hz -> GHz
@@ -753,7 +777,7 @@ else
 end
 xAxis = linspace(SweepRange(1),SweepRange(2),Exp.nPoints);
 
-switch Options.AccumMethod
+switch Opt.AccumMethod
   case 'template'
     % Accumulate spectrum by interpolating from a pre-computed template lineshape
     
@@ -823,7 +847,7 @@ switch Options.AccumMethod
     spec = spec/dxFine;
     
   otherwise
-    error('\n  Unknown method ''%s'' in Options.AccumMethod.\n',Options.AccumMethod);
+    error('\n  Unknown method ''%s'' in Options.AccumMethod.\n',Opt.AccumMethod);
 
 end
 

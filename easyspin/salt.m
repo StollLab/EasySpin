@@ -77,19 +77,33 @@ FrequencyAutoRange = (~isfield(Exp,'Range') || isempty(Exp.Range)) && ...
   (~isfield(Exp,'CenterSweep') || isempty(Exp.CenterSweep));
 if ~isfield(Opt,'IsoCutoff'), Opt.IsoCutoff = 1e-4; end
 
-if ~isfield(Sys,'singleiso')
+if ~isfield(Sys,'singleiso') || ~Sys.singleiso
 
-  [SysList,weight] = expandcomponents(Sys,Opt.IsoCutoff);
+  if ~iscell(Sys), Sys = {Sys}; end
   
-  if (numel(SysList)>1) && FrequencyAutoRange
+  nComponents = numel(Sys);
+  logmsg(1,'%d spin system(s)...');
+  
+  for c = 1:nComponents
+    SysList{c} = isotopologues(Sys{c},Opt.IsoCutoff);
+    nIsotopologues(c) = numel(SysList{c});
+    logmsg(1,'  component %d: %d isotopologues',c,nIsotopologues(c));
+  end
+  
+  if (sum(nIsotopologues)>1) && FrequencyAutoRange
     error('Multiple components: Please specify frequency range manually using Exp.Range or Exp.CenterSweep.');
   end
   
   spec = 0;
-  for iComponent = 1:numel(SysList)
-    [xAxis,spec_,Transitions] = salt(SysList{iComponent},Exp,Opt);
-    spec = spec + spec_*weight(iComponent);
+  for iComponent = 1:nComponents
+    for iIsotopologue = 1:nIsotopologues(iComponent)
+      Sys_ = SysList{iComponent}(iIsotopologue);
+      Sys_.singleiso = true;
+      [xAxis,spec_,Transitions] = salt(Sys_,Exp,Opt);
+      spec = spec + spec_*Sys_.weight;
+    end
   end
+
   
   % Output and plotting
   switch (nargout)
@@ -121,13 +135,15 @@ logmsg(1,'-general-----------------------------------------------');
 % Processing spin system structure
 %==========================================================================
 if ~isfield(Sys,'Nucs'), Sys.Nucs = ''; end
-out = isotopologues(Sys.Nucs);
-if (out.nIso>1)
+isoList = isotopologues(Sys.Nucs);
+if numel(isoList)>1
   error('salt does not support isotope mixtures. Please specify pure isotopes in Sys.Nucs.');
 end
 
 [Sys,err] = validatespinsys(Sys);
 error(err);
+if Sys.MO_present, error('salt does not support general parameters!'); end
+if any(Sys.L(:)), error('salt does not support L!'); end
 
 ConvolutionBroadening = any(Sys.lwEndor>0);
 

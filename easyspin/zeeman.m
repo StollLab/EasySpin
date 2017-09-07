@@ -17,7 +17,10 @@
 %   - Spins: Vector of spin numbers. For one electron spin: 1
 %     is the electron, >=2 are the nuclei. For two electron
 %     spins: 1 and 2 electrons, >=3 nuclei, etc. If Spins is
-%     omitted, all spins are included.
+%     omitted, all spins are included. If also orbital angular momenta
+%     are defined, they follow after the nuclei. Two electrons, three
+%     nuclei and 2 orbital angular momenta: 1 and 2 are electrons, 
+%     3,4, and 5 are nuclei, 6 and 7 are orbital angular momenta. 
 %   - 'sparse': If given, results returned in sparse format.
 %
 %   Output:
@@ -73,6 +76,7 @@ end
 
 % Get number of electrons, nuclei and states
 nElectrons = Sys.nElectrons;
+nEN = Sys.nNuclei + nElectrons;
 nStates = Sys.nStates;
 
 % Initialize Zeeman interaction components to zero
@@ -82,6 +86,7 @@ ZzM = sparse(nStates,nStates);
 
 elFactor = bmagn/(planck*1e9)*Sys.g;
 nucFactor = -nmagn/(planck*1e9)*Sys.gn;
+lFactor = -bmagn/(planck*1e9)*Sys.orf;
 
 % Loop over all spins selected
 for idx = 1:numel(Spins)
@@ -103,11 +108,18 @@ for idx = 1:numel(Spins)
       ZyM = ZyM + g(2,k)*Sk;
       ZzM = ZzM + g(3,k)*Sk;
     end
-  else
+  elseif iSpin<=nEN
     % Nuclei, gn always isotropic
     % Build NZI Hamiltonian in MHz/mT
     pre = nucFactor(iSpin-nElectrons);
     pre = pre * Sys.gnscale(iSpin-nElectrons);
+    ZxM = ZxM + pre*sop(SpinVec,iSpin,1,'sparse');
+    ZyM = ZyM + pre*sop(SpinVec,iSpin,2,'sparse');
+    ZzM = ZzM + pre*sop(SpinVec,iSpin,3,'sparse');
+  else
+    % orbital angular momentum, isotrpic
+    % Build OAM (normal) ZI Hamiltonian in MHz/mT
+    pre = lFactor(iSpin-nEN);
     ZxM = ZxM + pre*sop(SpinVec,iSpin,1,'sparse');
     ZyM = ZyM + pre*sop(SpinVec,iSpin,2,'sparse');
     ZzM = ZzM + pre*sop(SpinVec,iSpin,3,'sparse');

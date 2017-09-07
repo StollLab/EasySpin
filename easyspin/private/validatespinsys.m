@@ -53,6 +53,7 @@ correctFields = {'S','Nucs','Abund','n',...
   'gFrame','DFrame','eeFrame','AFrame','QFrame',...
   'gStrain','HStrain','AStrain','DStrain',...
   'aF','B0','B2','B4','B6','B8','B10','B12',...
+  'L', 'soc', 'orf', 'CF0','CF2','CF4','CF6','CF8','CF10','CF12',...
   'lw','lwpp','lwEndor','tcorr','logtcorr','Diff','logDiff'};
 
 
@@ -73,7 +74,7 @@ for f = 1:numel(givenFields)
 end
 
 for ind = find((strncmpi(givenFields,'Ham',3)))
-  if isempty(ind), break; end;
+  if isempty(ind), break; end
   field = givenFields{ind};
   if length(field)~= 6 
     if str2num(field(4))+str2num(field(5))<10  
@@ -158,7 +159,7 @@ elseif isfield(Sys,'g_')
 else
   %error('Sys.g is missing.');
   if any(strncmp(fieldnames(Sys),'Ham',3))
-    Sys.g = 0;
+    Sys.g = zeros(nElectrons,3);
   else
     Sys.g = gfree*ones(nElectrons,3);
   end
@@ -479,7 +480,7 @@ if (nNuclei>0)
         Sys.A_(:,idx+2) = 0;
         idx = idx + 3;
       end
-    elseif issize(Sys.A_,[nNuclei,2*nElectrons]);
+    elseif issize(Sys.A_,[nNuclei,2*nElectrons])
       % Expand [aiso T] into [aiso T 0]
       A_ = Sys.A_;
       idx1 = 1;
@@ -513,7 +514,7 @@ if (nNuclei>0)
 
     % Cartesian representation  [Ax Ay Az]
     
-    if issize(Sys.A,[3*nNuclei,3*nElectrons]);
+    if issize(Sys.A,[3*nNuclei,3*nElectrons])
       % Full A matrices
       Sys.fullA = 1;
     elseif issize(Sys.A,[1 nNuclei])
@@ -527,7 +528,7 @@ if (nNuclei>0)
     elseif issize(Sys.A,[nNuclei,nElectrons])
       % Expand isotropic A into 3 equal principal values
       Sys.A = kron(Sys.A,[1 1 1]);
-    elseif issize(Sys.A,[nNuclei,2*nElectrons]);
+    elseif issize(Sys.A,[nNuclei,2*nElectrons])
       % Expand axial A into 3 principal values
       idx = [1 1 2];
       for k = 2:nElectrons
@@ -543,15 +544,6 @@ if (nNuclei>0)
     
   end
   
-  if isfield(Sys,'Ascale')
-    if numel(Sys.Ascale)<nNuclei
-      err = ('Insufficient number of elements in Ascale field of spin system.');
-      if ~isempty(err), return; end
-    end
-  else
-    Sys.Ascale = ones(1,nNuclei);
-  end
-
   % Euler angles for A tensor(s)
   if isfield(Sys,'Apa')
     err = sizecheck(Sys,'Apa',[nNuclei,3*nElectrons]);
@@ -614,15 +606,6 @@ if (nNuclei>0)
     end
   end
 
-  if isfield(Sys,'Qscale')
-    if numel(Sys.Qscale)<nNuclei
-      err = ('Insuffient number of elements in Qscale field of spin system.');
-      if ~isempty(err), return; end
-    end
-  else
-    Sys.Qscale = ones(1,nNuclei);
-  end
-
   %--------------------
   
   if Sys.fullQ
@@ -659,6 +642,54 @@ if (nNuclei>0)
 
 end
 
+%------ Nuclear-nuclear couplings ----------------------------------------------
+Sys.fullnn = false;
+if nNuclei<2
+  
+  if isfield(Sys,'nn') && ~(isempty(Sys.nn) || all(Sys.nn==0))
+    error('Nuclear-nuclear couplings specified in Sys.nn, but fewer than two nuclei given.');
+  end
+  
+else
+  
+  % Bilinear coupling defined via Sys.nn
+  nNucPairs = nNuclei*(nNuclei-1)/2;
+  
+  if isfield(Sys,'nn') && ~isempty(Sys.nn)
+    
+    % Expand isotropic couplings into 3 equal principal values
+    if numel(Sys.nn)==nNucPairs
+      Sys.nn = Sys.nn(:)*[1 1 1];
+    end
+    
+    % Size checks for Sys.nn
+    Sys.fullnn = issize(Sys.nn,[3*nNucPairs,3]);
+    if ~Sys.fullnn
+      err = sizecheck(Sys,'nn',[nNucPairs 3]);
+      if ~isempty(err), return; end
+    end
+    
+  else
+    Sys.nn = zeros(nNucPairs,3);
+    Sys.fullnn = false;
+  end
+  
+  % Check for nnFrame, supplement or error if necessary
+  if Sys.fullnn
+    if isfield(Sys,'nnFrame') && ~isempty(Sys.nnFrame)
+      err = sprintf('Full matrices are specified in Sys.nn, so nnFrame is not allowed.');
+      if ~isempty(err), return; end
+    end
+  else
+    if ~isfield(Sys,'nnFrame'), Sys.nnFrame = zeros(nNucPairs,3); end
+    err = sizecheck(Sys,'nnFrame',[nNucPairs 3]);
+    if ~isempty(err), return; end
+  end
+  
+end
+
+
+%----------------------------------------------------------------------
 % Remove spin-zero nuclei
 rmv = Sys.I==0;
 
@@ -680,8 +711,6 @@ if any(rmv)
   Sys.gn(rmv) = [];
   Sys.QFrame(rmv,:) = [];
   Sys.nNuclei = numel(Sys.gn);
-  Sys.Ascale(rmv) = [];
-  Sys.Qscale(rmv) = [];
   Sys.gnscale(rmv) = [];
   Sys.n(rmv) = [];
 end
@@ -740,7 +769,7 @@ end
 switch n2
   case 1, Sys.gStrain = Sys.gStrain(:,[1 1 1]);
   case 2, Sys.gStrain = Sys.gStrain(:,[1 1 2]);
-  case 3, % ok
+  case 3 % ok
   otherwise
   err = sprintf('Sys.gStrain must have 1, 2, or 3 columns!');
 end
@@ -769,7 +798,7 @@ end
 switch n2
   case 1, Sys.DStrain = [Sys.DStrain zeros(nElectrons,2)];
   case 2, Sys.DStrain = [Sys.DStrain zeros(nElectrons,1)];
-  case 3, % ok
+  case 3 % ok
   otherwise
   err = sprintf('Sys.DStrain must have 1, 2, or 3 columns!');
 end
@@ -839,36 +868,55 @@ if isfield(Sys,'Diffpa')
 end
 
 % Multiple Order Hamiltonian
-for lB = 0:8
-  for lS = 0:8
-    for l=abs(lB-lS):(lB+lS)
-      str = ['Ham',num2str([lB,lS,l],'%i%i%i')];
-      if isfield(Sys,str)
-        if lB == 0
-          % check for D, aF, and Bk
-          if lS == 2 && D_present
-            error('Cannot use Sys.D and Sys.Ham022 simultaneously. Remove one of them.');
-          end
-          if lS == 4 && aF_present
-            error('Cannot use Sys.aF and Sys.Ham044 simultaneously. Remove one of them.');
-          end          
-          Bstr = ['B',num2str(lS)];
-          if isfield(Sys,Bstr)
-             error('Cannot use Sys.%s and Sys.%s simultaneously. Remove one of them.',Bstr,str);
-          end
-        end
-        if lB == 1 && any(Sys.g(:))
-             error('Cannot use Sys.g and Sys.%s simultaneously. Remove one of them.',str);
-        end  
-        if issize(Sys.(str),[nElectrons,1])
-          Sys.(str) = [zeros(nElectrons,l), Sys.(str),zeros(nElectrons,l)];
-        else
-          if ~issize(Sys.(str),[nElectrons,2*l+1])
-            if ~issize(Sys.(str),[2*l+1,1])
-              error('Sys.%s has wrong size!',str);
-            else
-              Sys.(str) = Sys.(str).';
-            end
+%=========================================================================================
+Sys.MO_present = false;
+if any(strncmp('Ham',fieldnames(Sys),3))
+  Hamstr = cell(9,9,17);
+  for lB = 8:-1:0
+    for lS = 8:-1:0
+      lmin = abs(lB-lS);
+      for l = (lB+lS):-1:lmin
+        Hamstr{lB+1,lS+1,(l-lmin)+1} = sprintf('Ham%i%i%i',lB,lS,l);
+      end
+    end
+    Bstr{lB+1} = ['B',num2str(lB)];
+  end
+  field = isfield(Sys,Hamstr);
+  if any(field(:))
+    Sys.MO_present = true;
+    
+    % check for D, aF, and Bk
+    lB0 = field(1,:,:);
+    if any(lB0(:))
+      if D_present && field(1,3,1)
+        error('Cannot use Sys.D and Sys.Ham022 simultaneously. Remove one of them.');
+      end
+      if aF_present && field(1,5,1)
+        error('Cannot use Sys.aF and Sys.Ham044 simultaneously. Remove one of them.');
+      end
+      if any(squeeze(field(1,:,1)).*isfield(Sys,Bstr))
+        error('Cannot use higher order operators and corresponding general parameters simultaneously. Remove one of them.');
+      end
+    end
+    %check for g
+    lB1 = field(2,2,:);
+    if any(lB1(:)) && any(Sys.g(:))
+      error('Cannot use Sys.g and and Sys.Ham112 or Sys.Ham110 simultaneously. Remove one of them.');
+    end
+    ls =find(field);
+    % get l
+    [rowsub, colsub, pagsub] = ind2sub([9,9,17], ls);
+    l = pagsub - 1 + abs(rowsub-colsub);
+    for n = 1:length(ls)
+      str = Hamstr{ls(n)};
+      if issize(Sys.(str),[nElectrons,1])
+        Sys.(str) = [zeros(nElectrons,l(n)), Sys.(str),zeros(nElectrons,l(n))];
+      else
+        if ~issize(Sys.(str),[nElectrons,2*l(n)+1])
+          if ~issize(Sys.(str),[2*l(n)+1,1]) || nElectrons~=1
+            error('Sys.%s has wrong size!',str);
+          else
+            Sys.(str) = Sys.(str).';
           end
         end
       end
@@ -876,12 +924,81 @@ for lB = 0:8
   end
 end
 
+
+%------------------- Orbital Angular Momentum
+if isfield(Sys,'L') && ~isempty(Sys.L)
+  % Guard against invalid type
+  if any(~isreal(Sys.L)) || any(mod(real(Sys.L),1)) || any(Sys.S<0)
+    err = 'Orbital angular momentum in L must be positive integers.';
+    return
+  end
+  if numel(Sys.L)~=nElectrons
+    err = 'Define orbital angular momentum L for each spin in S!';
+    return
+  end
+  if ~isfield(Sys,'soc')
+    err = 'No spin-orbit coupling defined in soc.';
+    return
+  end
+  if isempty(Sys.soc) || any(~isreal(Sys.soc))
+    err = 'Spin-orbit coupling in soc must be real numbers.';
+    return
+  end
+  if size(Sys.soc,1) ~= nElectrons
+    if size(Sys.soc)==[1,nElectrons]
+      Sys.soc = Sys.soc.';
+    else
+      err = 'Number of spin-orbit couplings must match number of spins!';
+      return
+    end
+  end
+  if ~isfield(Sys,'orf')
+    Sys.orf= ones(nElectrons,1);
+  else
+    if length(Sys.orf) ~= nElectrons
+      err ='Number of orbital reduction factors must match number of orbital angular momenta!';
+      return
+    end
+    if isempty(Sys.orf) || any(~isreal(Sys.orf))
+      err = 'Orbital reduction factors in orf must be real numbers.';
+      return
+    end
+  end
+  for k=1:12
+    fieldname = sprintf('CF%d',k);
+    if ~isfield(Sys,fieldname), continue; end
+    CFk = Sys.(fieldname);
+    
+    
+    if (size(CFk,1)~=nElectrons)
+      sn = num2str(nElectrons);
+      err = ['Field Sys.', fieldname, ' has to have ',sn,...
+        ' rows, since there are ', sn,' orbital angular momenta.'];
+    end
+    
+    if (size(CFk,2)==1)
+      CFk = [zeros(nElectrons,k) CFk(:) zeros(nElectrons,k)];
+    elseif (size(CFk,2)==k+1)
+      CFk = [CFk zeros(nElectrons,k)];
+    elseif (size(CFk,2)==2*k+1)
+      % full form
+    else
+      err = ['Field Sys.', fieldname, ' has ', num2str(size(CFk,2)), ...
+        ' instead of ', num2str(2*k+1),' coloumns.'];
+    end
+    Sys.(fieldname) = CFk; 
+  end  
+else
+  Sys.L = [];
+  Sys.orf = [];
+end
+  
   
 
 
 
 %--------------------------------------------------------------------------
-Sys.Spins = [Sys.S(:); Sys.I(:)].';
+Sys.Spins = [Sys.S(:); Sys.I(:); Sys.L(:)].';
 Sys.nStates = hsdim(Sys.Spins);
 
 FullSys = Sys;

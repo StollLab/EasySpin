@@ -57,14 +57,14 @@ if (nargin<1) || (nargin>5), error('Wrong number of input arguments!'); end
 
 if (nargout>1 || nargin<2 ) 
 % if no B value is given or several outputs are provided
-  TensorOutput = 1;
+  TensorOutput = true;
 elseif( nargin>2 && isempty(varargin{1}))
   % check if field is non-numeric
-   TensorOutput = 1;
+   TensorOutput = true;
 elseif( nargin==1 )
-  TensorOutput = 1;
+  TensorOutput = true;
 else
-  TensorOutput = 0;
+  TensorOutput = false;
 end
 
 %zero-field Hamiltonian and field dependent tensors up to 3rd order in B
@@ -100,7 +100,7 @@ if TensorOutput
    %get highest order in B0
    fields = fieldnames(SpinSystem);
    for n = 0:3
-    if any(strncmp(fields,['Ham',num2str(n,'%i')],4));
+    if any(strncmp(fields,['Ham',num2str(n,'%i')],4))
       highest = n;
     end
    end
@@ -115,7 +115,7 @@ if TensorOutput
      error('Incorrect number of outputs!');
    end
 
-  if any(lb==0), GO = zeemanho(SpinSystem, [0,0,0], Spins, opt,0);end;
+  if any(lb==0), GO = zeemanho(SpinSystem, [0,0,0], Spins, opt,0); end
   xyz = 1:3;
   if any(lb==1)
     for n=3:-1:1
@@ -161,7 +161,7 @@ if TensorOutput
     len = length(ind);
     si = size(G3{1,1,1});
     dif = zeros(si);
-    for a =1:3, for b =1:3, for c = 1:3
+    for a = 1:3, for b = 1:3, for c = 1:3
           if (size(G3{a,b,c}) == si)
             dif = dif + G3{a,b,c};
           end

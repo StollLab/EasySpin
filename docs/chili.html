@@ -235,16 +235,6 @@ This specifies which nuclei should be excluded from the Stochastic Liouville equ
 Post-convolution is useful for including the effect of nuclei with small hyperfine couplings in spin systems with many nuclei that are too large to be handled by the SLE solver. Nuclei with large hyperfine couplings should never be treated via post-convolution. Only nuclei should be treated by post-convolution for which the hyperfine couplings (and anisotropies) are small enough to put them in the fast-motion regime, close to the isotropic limit, for the given rotational correlation time in <code>Sys.tcorr</code> etc.
 </div>
 
-<p>
-More specialized settings are:
-</p>
-
-<div class="optionfield"><code>Allocation</code></div>
-<div class="optiondescr">
-Array containing two numbers, <code>[maxElements maxRows]</code>, telling <code>chili</code> how much memory to allocate for the Liouvillian matrix. <code>maxElements</code> is the maxmium number of non-zero elements, <code>maxRows</code> is the maximum number of rows (the dimension of Liouville space). Default is [5e6 2e5]. Increase these values if <code>chili</code> complains.
-</div>
-
-
 <!-- =================================================================== -->
 <div class="subtitle">Example</div>
 

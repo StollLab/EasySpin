@@ -14,35 +14,38 @@
 %   Input:
 %   - SpinSystem: vector of spin quantum numbers
 %     or a spin system specification structure
-%   - Comps: string containing 'e','x','y','z','+','-'
-%     for each spin, indicating E,Sx,Sy,Sz,S+,S-
+%   - Comps: string specifying the operator, with several syntaxes
+%      - specify component 'e','x','y','z','+','-' for each spin, indicating
+%        E,Sx,Sy,Sz,S+,S-
+%      - specify component and spin index, e.g. 'x2,z3'
+%      - specify transition after component, e.g. 'x(1|3)' or 'x(1|3)2,z3' or
+%        '+(1|2)1,e(3)2'
 %
 %   Output:
 %   - SpinOp: operator matrix as requested
 %
 %   Examples:
-%     sop([1/2 1],'xy')    % returns SxIy for a S=1/2, I=1 system.
+%     SxIy = sop([1/2 1],'xy')    % returns SxIy for a S=1/2, I=1 system.
 %
-%     sop([1/2 1/2],'e+')  % returns SeI+ for a S=I=1/2 system.
+%     SeIp = sop([1/2 1/2],'e+')  % returns SeI+ for a S=I=1/2 system.
 %
-%     [Sx,Sy,Sz] = sop(1/2,'x','y','z')  % computes three matrices in one go.
+%     [Sx,Sy,Sz] = sop(1/2,'x','y','z')  % computes three matrices in one call.
+%
+%     Sxc = sop(5/2,'x(3|4)') % Sx on central transition -1/2<->+1/2
 
 function varargout = sop(SpinSystem,varargin)
 
-% UNDOCUMENTED OLD SYNTAX
-%  OLD: sop([1/2 1],2,1) equivalent to
-%  NEW: sop([1/2 1],'xe')
-%
-%   OLD SYNTAX  sop(sys,spins,comps)
+% Undocumented numeric syntax:
+%   sop(sys,spins,comps)
 %     spins: list of indices into sys
 %     comps: 1=x, 2=y, 3=z, 4=+, 5=-, all others=e
 %
-%   DO NOT REMOVE THE HANDLING OF THE OLD SYNTAX!!!!
+% Example:
+%    numeric sytnax: sop([1/2 1],2,1) equivalent to
+%    string syntax:  sop([1/2 1],'xe')
+%
+%   DO NOT REMOVE THE HANDLING OF THE NUMERIC SYNTAX!!!!
 %   MANY FUNCTIONS RELY ON IT, e.g. zeeman, internal, stev, hfine, resfields
-
-% UNDOCUMENTED THIRD ARGUMENT:
-%   - 'sparse' (optional): if specified, SpinOp
-%     is returned in sparse form.
 
 % For the spin system J1,J2,J3... the
 % order of the spin states of the basis is
@@ -68,84 +71,206 @@ nSpins = numel(SpinVec);
 SparseOutput = strcmpi(varargin{end},'sparse');
 
 if SparseOutput
-  Coords = varargin(1:end-1);
+  OperatorSpec = varargin(1:end-1);
 else
-  Coords = varargin(1:end);
+  OperatorSpec = varargin(1:end);
 end
 
-if numel(Coords)==0
+if numel(OperatorSpec)==0
   error('Not enough input arguments!');
 end
 
-OldSyntax = ~ischar(varargin{1});
+NumericSyntax = ~ischar(varargin{1});
 
-if OldSyntax,
+if NumericSyntax
   
+  if numel(varargin)<2 || numel(varargin)>3
+    error('Three or four inputs are required for the numeric syntax.')
+  end
   Spins = varargin{1};
   Coords = varargin{2};
-
+  
 else
   
-  if nargout~=numel(Coords)
-    error('Number of output arguments (%d) and number of requested operator matrices (%d) do not match.',nargout,numel(Coords));
+  if nargout~=numel(OperatorSpec) && nargout>0
+    error('sop: Number of output arguments (%d) and number of requested operator matrices (%d) do not match.',nargout,numel(OperatorSpec));
   end
   
-  if numel(Coords)>1
-    for k=1:numel(Coords)
+  if numel(OperatorSpec)>1
+    
+    for k = 1:numel(OperatorSpec)
       if SparseOutput
-        varargout{k} = sop(SpinVec,Coords{k},'sparse');
+        varargout{k} = sop(SpinVec,OperatorSpec{k},'sparse');
       else
-        varargout{k} = sop(SpinVec,Coords{k});
+        varargout{k} = sop(SpinVec,OperatorSpec{k});
       end
     end
     return
-  else
-    Coords = lower(varargin{1});
     
-    % Check syntax of component string
-    syntax1 = sprintf('^[exyz+\\-pmab]{%d}$',nSpins);
-    isSyntax1 = ~isempty(regexp(Coords,syntax1,'match'));
+  else
+    
+    OperatorSpec = varargin{1};
+    
+    % Determine which type of syntax is used in the operator specification
+    %---------------------------------------------------------------------------
+    syntax1regexp = sprintf('^[exyzab+-]{%d}$',nSpins);
+    isSyntax1 = ~isempty(regexp(OperatorSpec,syntax1regexp,'match'));
     if ~isSyntax1
-      syntax2 = sprintf('^([exyz+\\-pmab]\\d+){1,%d}$',nSpins);
-      isSyntax2 = ~isempty(regexp(Coords,syntax2,'match'));
+      syntax2regexp = sprintf('^([exyzab+-]\\d+){1,%d}$',nSpins);
+      isSyntax2 = ~isempty(regexp(OperatorSpec,syntax2regexp,'match'));
       if ~isSyntax2
-        error('Could not determine what ''%s'' is for the given spin system.',Coords);
+        OperatorSpec = regexp(OperatorSpec,',','split');
+        syntax3regexp = '^[exyzab+-](\(\d+(\|\d+)?\))?(\d+)?$';
+        matched = regexp(OperatorSpec,syntax3regexp,'match');
+        isSyntax3 = ~any(cellfun(@isempty, matched));
+        if ~isSyntax3
+          error('sop: Cannot parse ''%s'' for the given spin system.',varargin{1});
+        end
       end
     end
-   
+    
+    % Parse inputs depending on type of syntax
+    %---------------------------------------------------------------------------
     if isSyntax1
-      Coords = double(Coords);
+      
+      Coords = OperatorSpec;
       Spins = 1:nSpins;
+      
     elseif isSyntax2
+      
       % Get tokens from pattern
-      pattern = '([exyz+\-pmab]\d+)+?';
-      tokens = char(regexp(Coords,pattern,'match'));
+      pattern = '([exyzab+-]\d+)+?';
+      tokens = char(regexp(OperatorSpec,pattern,'match'));
       % Get list of spin indices
       Spins = str2num(tokens(:,2:end)).'; %#ok<ST2NM>
       if any(Spins>nSpins)
-        error('sop: The spin system only contains %d spins, but you requested ''%s''.',nSpins,Coords);
+        error('sop: The spin system only contains %d spins, but you requested ''%s''.',nSpins,varargin{1});
       end
       if numel(unique(Spins))<numel(Spins)
-        error('sop: Repeated spin in %s',Coords');
+        error('sop: Duplicate spin index in ''%s''.',OperatorSpec);
       end
       % Get list of requested components
-      Coords = double(tokens(:,1).');
-    end
+      Coords = tokens(:,1).';
+      
+    elseif isSyntax3
+      
+      % Initialize
+      Coords = '';
+      Transitions = cell(1,nSpins);
+      spinIndexPresent = false(1,length(matched));
+      
+      % Regexp to get tokens
+      expr = '([exyzab+-])\((\d+)\|?(\d+)?\)(\d?)';
 
+      % Loop over all comma separated entries
+      for itoken = 1:length(matched)
+        
+        str = matched{itoken}{1};
+        
+        if ~any(str=='(')
+          % Case 1: string does not request a transition/level 
+          
+          % Get tokens
+          tokens = regexp(str,'([exyzab+-])(\d?)','tokens');
+          token = tokens{1};
+          
+          % Get operator components
+          Coords(itoken) = token{1};
+          % No transition information
+          Transitions{itoken} = [];
+          
+          % Store spin index...
+          spinIndexPresent(itoken) = ~isempty(token{2});
+          if ~spinIndexPresent(itoken)
+            % ... from the counter.
+            Spins(itoken) = itoken;
+          else
+            %... if a spin index was provided.
+            Spins(itoken) = str2double(token{2});
+          end
+          
+        else
+          % Case 2: String contains transition/level syntax (|)
+          
+          % Get tokens
+          tokens = regexp(str,expr,'tokens');
+          token = tokens{1};
+          
+          % Get operator component
+          Coords(itoken) = token{1};
+          if any(token{1}=='ab')
+            error('sop: ''a'' or ''b'' cannot be used in conjunction with levels in ''%s''',varargin{1});
+          end
+          
+          % Get spin index if available
+          spinIndexPresent(itoken) = ~isempty(token{4});
+          if ~spinIndexPresent(itoken)
+            Spins(itoken) = itoken;
+          else
+            Spins(itoken) = str2double(token{4});
+          end
+          
+          % Get transition/level information
+          if ~isempty(token{2})
+            if ~isempty(token{3})
+              Transitions{itoken} = cellfun(@str2num,token(2:3));
+              % Error if xyz+- is connecting two identical levels
+              if ~isempty(regexp(token{1},'[xyz+-]','match')) && Transitions{itoken}(1) == Transitions{itoken}(2)
+                message = ['sop: The component ''' str ''' of your spin operator connects identical levels.'];
+                error(message);
+              % Error if e is called with two different components
+              elseif ~isempty(regexp(token{1},'[e]','match')) && Transitions{itoken}(1) ~= Transitions{itoken}(2)
+                message = ['sop: The component ''' str ''' can not connect two different levels. Use e(L1) instead of e(L1|L2).'];
+                error(message);
+              % Error if the two level indices are not in ascending order
+              elseif diff(Transitions{itoken})<0
+                message = ['sop: The two levels (L1|L2) in ''' str ''' must be ascending order such that L1<=L2.'];
+                error(message);
+              end
+            else
+              Transitions{itoken} = str2double(token{2});
+              % error if xyz+- is called with only a level
+              if ~isempty(regexp(token{1},'[xyz+-]','match'))
+                message = ['sop: The component ''' str ''' of your operator must connect two (different) levels.'];
+                error(message);
+              end
+            end
+          end
+          
+        end
+      end
+      
+      % Further syntax checking
+      % Make sure either all or no components have explicit spin indices
+      if ~all(spinIndexPresent) && ~all(~spinIndexPresent)
+        error('sop: Please give spin indices for all components, or omit them all. ''%s'' is inconsistent.' ,varargin{1})
+      end
+      % Is a component missing for a syntax of 'x,x'?
+      if ~any(spinIndexPresent) && length(matched) ~= nSpins
+        error('sop: Could not determine what ''%s'' is for the given spin system.',varargin{1});
+      elseif all(~spinIndexPresent)
+        Spins = 1:nSpins;
+      end
+      % Assert that no spin index occurs more than once
+      if numel(unique(Spins))<numel(Spins)
+        error('sop: Repeated spin index in ''%s''.',varargin{1});
+      end
+    end
+    
     if (any(SpinVec(Coords=='a')~=1/2)) || ...
        (any(SpinVec(Coords=='b')~=1/2))
       error('''a'' and ''b'' work only for spin-1/2.');
     end
-        
+    
   end
 end
 
-% identity operator for each spin
+% Initialize with identity operator for each spin
 Comps = repmat('e',1,nSpins);
-% and specified components for specified spins
+% Assign specified components for specified spins
 Comps(Spins) = Coords;
 
-% the starting null-spin space is one-dimensional
+% The starting null-spin space is one-dimensional
 ia = 1; % 1st (column) index
 ja = 1; % 2nd (row) index
 sa = 1; % value
@@ -155,39 +280,72 @@ na = 1; % dimension
 for iSpin = 1:nSpins
   I = SpinVec(iSpin);
   if (I<=0), continue; end
-
+  
   n = 2*I+1;
+  
+  % Look for a transition selective operator
+  TselectiveOp = exist('Transitions','var') && ~isempty(Transitions{iSpin});
   
   % Component switchyard
   %----------------------------------------
   switch Comps(iSpin)
     case {'x',1} % x component
-      m = (1:n-1).';
-      Dia = 1/2*sqrt(m.*m(end:-1:1));
-      ib = [m; m+1];
-      jb = [m+1; m];
-      sb = [Dia; Dia];
+      if TselectiveOp
+        ib = [Transitions{iSpin}(1); Transitions{iSpin}(2)];
+        jb = [Transitions{iSpin}(2); Transitions{iSpin}(1)];
+        sb = [0.5; 0.5];
+      else
+        m = (1:n-1).';
+        ib = [m; m+1];
+        jb = [m+1; m];
+        Dia = 1/2*sqrt(m.*m(end:-1:1));
+        sb = [Dia; Dia];
+      end
     case {'y',2} % y component
-      m = (1:n-1).';
-      Dia = -0.5i*sqrt(m.*m(end:-1:1));
-      ib = [m; m+1];
-      jb = [m+1; m];
-      sb = [Dia; -Dia];
+      if TselectiveOp
+        ib = [Transitions{iSpin}(1); Transitions{iSpin}(2)];
+        jb = [Transitions{iSpin}(2); Transitions{iSpin}(1)];
+        sb = [-0.5i; 0.5i];
+      else
+        m = (1:n-1).';
+        Dia = -0.5i*sqrt(m.*m(end:-1:1));
+        ib = [m; m+1];
+        jb = [m+1; m];
+        sb = [Dia; -Dia];
+      end
     case {'z',3} % z component
-      m = (1:n).';
-      ib = m;
-      jb = m;
-      sb = I+1-m;
-    case {'+','p',4} % up shift
-      m = (1:n-1).';
-      ib = m;
-      jb = m+1;
-      sb = sqrt(m.*m(end:-1:1));
-    case {'-','m',5} % down shift
-      m = (1:n-1).';
-      ib = m+1;
-      jb = m;
-      sb = sqrt(m.*m(end:-1:1));
+      if TselectiveOp
+        ib = [Transitions{iSpin}(1); Transitions{iSpin}(2)];
+        jb = [Transitions{iSpin}(1); Transitions{iSpin}(2)];
+        sb = [0.5; -0.5];
+      else
+        m = (1:n).';
+        ib = m;
+        jb = m;
+        sb = I+1-m;
+      end
+    case {'+',4} % up shift
+      if TselectiveOp
+        ib = Transitions{iSpin}(1);
+        jb = Transitions{iSpin}(2);
+        sb = 1;
+      else
+        m = (1:n-1).';
+        ib = m;
+        jb = m+1;
+        sb = sqrt(m.*m(end:-1:1));
+      end
+    case {'-',5} % down shift
+      if TselectiveOp
+        ib = Transitions{iSpin}(2);
+        jb = Transitions{iSpin}(1);
+        sb = 1;
+      else
+        m = (1:n-1).';
+        ib = m+1;
+        jb = m;
+        sb = sqrt(m.*m(end:-1:1));
+      end
     case 'a' % alpha, for spin-1/2 only
       ib = 1;
       jb = 1;
@@ -197,17 +355,22 @@ for iSpin = 1:nSpins
       jb = 2;
       sb = 1;
     case {'e',0} % identity
-      m = (1:n).';
-      ib = m;
-      jb = m;
-      sb = ones(n,1);
+      if TselectiveOp
+        ib = Transitions{iSpin}(1);
+        jb = Transitions{iSpin}(1);
+        sb = 1;
+      else
+        m = (1:n).';
+        ib = m;
+        jb = m;
+        sb = ones(n,1);
+      end
     otherwise
       error('Unknown operator specification.');
   end
   
-  % Kronecker product in sparse form
-  % operates only on values and indices.
-  %----------------------------------------
+  % Kronecker product in sparse form operates only on values and indices.
+  %-----------------------------------------------------------------------------
   % expansion vectors for new indices and values
   ka = ones(size(sa));
   kb = ones(size(sb));
@@ -233,7 +396,7 @@ end
 % construct sparse matrix
 OperatorMatrix = sparse(ia,ja,sa,na,na);
 
-% possibly convert sparse to full matrix, output
+% Convert sparse to full matrix if required
 if ~SparseOutput
   OperatorMatrix = full(OperatorMatrix);
 end

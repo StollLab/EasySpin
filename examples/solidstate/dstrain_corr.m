@@ -11,11 +11,11 @@ Exp.mwFreq = 9.5;
 Exp.CenterSweep = [340 100];
 
 % Varying the correlation coefficient
-Sys.DStrain(3) = 0; % no correlation
+Sys.DStrainCorr = 0; % no correlation
 [x,y0] = pepper(Sys,Exp);
-Sys.DStrain(3) = +1; % perfect correlation
+Sys.DStrainCorr = +1; % perfect correlation
 [x,yp] = pepper(Sys,Exp);
-Sys.DStrain(3) = -1; % anticorrelation
+Sys.DStrainCorr = -1; % anticorrelation
 [x,ym] = pepper(Sys,Exp);
 
 plot(x,y0,x,yp,x,ym);
