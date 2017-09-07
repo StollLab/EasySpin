@@ -84,7 +84,7 @@ Bitbucket update
 =========================================================
 - Commit all changes, including edits to build script and release procedure
 - Tag changeset with new version number
-- Merge stable branch into default
+- Merge default branch into stable
 
 Web site update
 =========================================================

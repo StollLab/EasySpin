@@ -21,7 +21,7 @@ for iq = 1:2:2*numel(QL)
   [t_,IQ_] = resonator(t,IQ,mwFreq,mwFreq,QL(round(iq/2)),'simulate');
   
   % Fall time
-  [~,ind] = min(abs(t_-Par.tp));
+  [ignore,ind] = min(abs(t_-Par.tp));
   [k,c] = exponfit(t_(ind:end),real(IQ_(ind:end)),1,'noconst');
   tau_fall = 1/k; % tau = Q/(pi*nu_mw)
   Q_fall = tau_fall*pi*mwFreq*1e3;
@@ -42,7 +42,7 @@ err(1) = any(suberr);
 
 % Resonator profile given as input
 %--------------------------------------------------------------------------
-clearvars -except err
+clear Par
 
 Par.tp = 0.200; % us
 Par.Type = 'rectangular';
@@ -63,7 +63,7 @@ for iq = 1:2:2*numel(QLvalues)
   [t_,IQ_] = resonator(t,IQ,mwFreq,f,H,'simulate');
   
   % Fall time
-  [~,ind] = min(abs(t_-Par.tp));
+  [ignore,ind] = min(abs(t_-Par.tp));
   [k,c] = exponfit(t_(ind:end),real(IQ_(ind:end)),1,'noconst');
   tau_fall = 1/k; % tau = Q/(pi*nu_mw)
   Q_fall = tau_fall*pi*mwFreq*1e3;
@@ -84,7 +84,7 @@ err(2) = any(suberr);
 
 % Transfer function given as input
 %--------------------------------------------------------------------------
-clearvars -except err
+clear Par
 
 Par.tp = 0.200; % us
 Par.Type = 'rectangular';
@@ -105,7 +105,7 @@ for iq = 1:2:2*numel(QLvalues)
   [t_,IQ_] = resonator(t,IQ,mwFreq,f,H,'simulate');
   
   % Fall time
-  [~,ind] = min(abs(t_-Par.tp));
+  [ignore,ind] = min(abs(t_-Par.tp));
   [k,c] = exponfit(t_(ind:end),real(IQ_(ind:end)),1,'noconst');
   tau_fall = 1/k; % tau = Q/(pi*nu_mw)
   Q_fall = tau_fall*pi*mwFreq*1e3;

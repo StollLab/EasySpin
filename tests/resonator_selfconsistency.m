@@ -31,7 +31,7 @@ suberr(1) = ~areequal(IQtest(2:end-1),IQ(2:end-1),0.01*max(IQ));
 
 % Rectangular pulse shifted from resonator center
 %--------------------------------------------------------------------------
-clearvars -except suberr
+clear Par Opt
 Par.tp = 0.200; % us
 [tpulse,IQ] = pulse(Par);
 
@@ -59,7 +59,7 @@ suberr(2) = ~areequal(IQtest(2:end-1),IQ(2:end-1),0.01*max(IQ));
 
 % Gaussian pulse off resonance
 %--------------------------------------------------------------------------
-clearvars -except suberr
+clear Par
 Par.tp = 0.200; % us
 Par.Type = 'gaussian';
 Par.tFWHM = 0.050; % us
@@ -88,7 +88,7 @@ suberr(3) = ~areequal(IQtest,IQ,0.01*max(IQ));
 
 % Sech/tanh pulse shifted from resonator frequency
 %--------------------------------------------------------------------------
-clearvars -except suberr
+clear Par
 
 Par.tp = 0.200; % us
 Par.Type = 'sech/tanh';
