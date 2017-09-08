@@ -195,6 +195,9 @@ end
 if isfield(Sys,'Exchange') && (Sys.Exchange~=0)
   error('garlic does not support Heisenberg exchange.');
 end
+if isfield(Sys,'nn') && any(Sys.nn(:)~=0)
+  error('garlic does not support nuclear-nuclear couplings (Sys.nn).');
+end
 
 if isfield(Sys,'logtcorr'), Sys.tcorr = 10.^Sys.logtcorr; end
 if ~isfield(Sys,'tcorr'), Sys.tcorr = 0; end

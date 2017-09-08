@@ -76,6 +76,9 @@ end
 if any(strncmp(fieldnames(Sys),'Ham',3))
   err = 'Perturbation theory not available for higher order terms';
 end
+if isfield(Sys,'nn') && any(Sys.nn(:)~=0)
+  err = 'Perturbation theory not available for nuclear-nuclear couplings (Sys.nn).';
+end
 error(err);
 
 

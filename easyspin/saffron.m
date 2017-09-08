@@ -331,6 +331,10 @@ if isfield(Sys,'n') && any(Sys.n~=1)
   error('saffron does not support Sys.n. Specify equivalent nuclei explicitly.')
 end
 
+if isfield(Sys,'nn') && any(Sys.nn(:)~=0)
+  error('saffron does not support nuclear-nuclear couplings (Sys.nn).');
+end
+
 if isfield(Sys,'ExciteWidth')
   error('You gave Sys.ExciteWidth, but it should be Exp.ExciteWidth.');
 end

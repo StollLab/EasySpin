@@ -169,8 +169,8 @@ end
 
 [Sys,err] = validatespinsys(Sys);
 error(err);
-if Sys.MO_present, error('salt does not support general parameters!'); end
-if any(Sys.L(:)), error('salt does not support L!'); end
+if Sys.MO_present, error('chili does not support general parameters!'); end
+if any(Sys.L(:)), error('chili does not support L!'); end
 
 if Sys.fullg
   idx = 1:3;
@@ -185,6 +185,10 @@ end
 
 if any(Sys.HStrain(:)) || any(Sys.gStrain(:)) || any(Sys.AStrain(:)) || any(Sys.DStrain(:))
   error('chili does not support strains (HStrain, gStrain, AStrain, DStrain). Please remove from spin system.');
+end
+
+if isfield(Sys,'nn') && any(Sys.nn(:)~=0)
+  error('chili does not support nuclear-nuclear couplings (Sys.nn).');
 end
 
 % Convolution with Gaussian only. Lorentzian broadening is 

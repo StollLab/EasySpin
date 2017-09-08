@@ -3,9 +3,9 @@ function [err,data] = test(opt,olddata)
 %Hamiltonians should be identical
 rand('twister',5);
 
-n = randi(3);
-Sys.S = randi(3,1,n)/2;
-Sys.L = randi(3,1,n);
+n = randi_(3);
+Sys.S = randi_(3,1,n)/2;
+Sys.L = randi_(3,1,n);
 Sys.soc = zeros(n,1);
 Sys.g = rand(3*n,3);
 Sys.orf = rand(n, 1);

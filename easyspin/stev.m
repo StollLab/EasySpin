@@ -2,6 +2,7 @@
 %
 %   Op = stev(S,k,q)
 %   Op = stev(S,k,q,iSpin)
+%   Op = stev(S,k,q,iSpin,'sparse')
 %
 %   Constructs extended Stevens operator matrices for
 %   0<=k<=2*S and -k<=q<=k for the spin S.
@@ -65,20 +66,24 @@ if (nargin<3) || (nargin>5), error('Wrong number of input arguments!'); end
 if (nargin<4)
   iSpin = 1;
 end
+if (nargin<5)
+  Sparse = '';
+end
 
 if isstruct(Spins)
   Spins = spinvec(Spins);
 end
 
-if (nargin<5)
-  Sparse = 0;
+if ischar(Sparse)
+  useSparseMatrices = strcmp(Sparse,'sparse');
 else
- if ischar(Sparse)
-   Sparse = strcmp(Sparse,'sparse');
- else
-   if isempty(Sparse), Sparse = 0; end
-   if ~islogical(Sparse), error('Option Sparse must be either a logical or a string!'); end
- end
+  if isempty(Sparse)
+    useSparseMatrices = false;
+  elseif ~islogical(Sparse)
+    error('Input argument Sparse must be either true/false or ''sparse''!');
+  else
+    useSparseMatrices = Sparse;
+  end
 end
 
 
@@ -163,6 +168,9 @@ if (q>=0)
 else
   Op = c/2i*(T - T'); % sine tesseral operator
 end
-if ~Sparse, Op = full(Op); end% sparse to full conversion 
+
+if ~useSparseMatrices
+  Op = full(Op);
+end
 
 return

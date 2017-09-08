@@ -77,6 +77,9 @@ end
 if any(Sys.DStrain(:)) && any(Sys.DFrame(:))
   err = 'D stain cannot be used with tilted D tensors.';
 end
+if isfield(Sys,'nn') && any(Sys.nn(:)~=0)
+  err = 'Perturbation theory not available for nuclear-nuclear couplings (Sys.nn).';
+end
 error(err);
 
 if ~isfield(Sys,'gAStrainCorr')

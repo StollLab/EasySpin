@@ -76,7 +76,7 @@ IQ0 = A/max(A);
 
 Params.A0 = A0;
 Params.x0 = x0/Params.tp;
-Params.tFWHM = FWHM/Params.tp;
+Params.FWHM = FWHM/Params.tp;
 
 [t,IQ] = pulse(Params);
 
