@@ -1447,6 +1447,13 @@ if (nSites>1) && ~isfield(Opt,'peppercall')
   if ~isempty(Gdat), Gdat = reshape(Gdat,siz); end
 end
 
+% Sort Output
+[Transitions, I] = sortrows(Transitions,1);
+Pdat = Pdat(I,:);
+if ~isempty(Idat), Idat = Idat(I,:); end
+if ~isempty(Wdat), Wdat = Wdat(I,:); end
+if ~isempty(Gdat), Gdat = Gdat(I,:); end
+
 % Arrange the output.
 Output = {Pdat,Idat,Wdat,Transitions,Gdat};
 varargout = Output(1:max(nargout,1));
