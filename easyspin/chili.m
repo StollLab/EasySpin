@@ -785,8 +785,8 @@ for iOri = 1:nOrientations
     iOri,nOrientations,phi(iOri)*180/pi,theta(iOri)*180/pi,Weights(iOri));
 
   if generalLiouvillian
-    D1 = wignerd(1,[phi(iOri),theta(iOri),0]);
-    D2 = wignerd(2,[phi(iOri) theta(iOri) 0]);
+    D1 = wignerd(1,phi(iOri),theta(iOri),0);
+    D2 = wignerd(2,phi(iOri),theta(iOri),0);
     [Q0B,Q1B,Q2B,Q0G,Q1G,Q2G] = rbos(D1,D2,T,F,isFieldDep);
     
     if Opt.pqOrder
@@ -802,7 +802,7 @@ for iOri = 1:nOrientations
       end
     end
   else
-    Sys.d2psi = wignerd(2,[phi(iOri) theta(iOri) 0]);
+    Sys.d2psi = wignerd(2,phi(iOri),theta(iOri),0);
   end
   
   % Starting vector
