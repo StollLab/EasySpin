@@ -1448,7 +1448,7 @@ if (nSites>1) && ~isfield(Opt,'peppercall')
 end
 
 % Sort Output
-[Transitions, I] = sortrows(Transitions,1);
+[Transitions, I] = sortrows(Transitions,[1 2]);
 Pdat = Pdat(I,:);
 if ~isempty(Idat), Idat = Idat(I,:); end
 if ~isempty(Wdat), Wdat = Wdat(I,:); end
