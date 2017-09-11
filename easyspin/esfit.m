@@ -345,7 +345,7 @@ if FitData.GUI
   hAx = axes('Parent',hFig,'Units','pixels','Position',[x0 y0 100 80],'Layer','top');
   h = plot(hAx,1,NaN,'.');
   set(h,'Tag','errorline','MarkerSize',5,'Color',[0.2 0.2 0.8]);
-  set(gca,'FontSize',7,'YScale','lin','XTick','','YAxisLoc','right','Layer','top');
+  set(gca,'FontSize',7,'YScale','lin','XTick',[],'YAxisLoc','right','Layer','top');
   title('log10(rmsd)','Color','k','FontSize',7,'FontWeight','normal');
     
   h = uicontrol('Style','text','Position',[x0+125 y0+64 205 16]);
