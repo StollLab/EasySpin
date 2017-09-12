@@ -60,6 +60,9 @@ correctFields = {'S','Nucs','Abund','n',...
 givenFields = fieldnames(Sys);
 for f = 1:numel(givenFields)
   givField = givenFields{f};
+  if strcmp(givField,'ZeemanFreq')
+    error('Field Sys.ZeemanFreq can only be used in conjunction with the function spidyan.')
+  end
   idx = find(strcmpi(givField,correctFields));
   % check if there is a case-insensitive match
   if idx

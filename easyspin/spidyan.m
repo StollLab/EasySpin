@@ -16,7 +16,7 @@
 %       S       ... simulated signal (ESEEM) or spectrum (ENDOR)
 %       out     ... structure with FFT of ESEEM signal
 
-function [TimeAxis, Signal,FinalState,StateTrajectories,NewEvents] = spidyan(Sys,Exp,Det,Opt)
+function [TimeAxis, Signal,FinalState,StateTrajectories,NewEvents] = spidyan(Sys,Exp,Opt)
 
 % if (nargin==0), help(mfilename); return; end
 
@@ -59,15 +59,42 @@ global EasySpinLogLevel
 EasySpinLogLevel = Opt.Verbosity;
 
 
-
+% check for field
 if length(Exp.Field) == 1
   B = [0 0 Exp.Field];
 else
   B = Exp.Field;
 end
 
+if isfield(Exp,'mwFreq') && ~isempty(Exp.mwFreq)
+  if Exp.mwFreq < 0
+    error('Exp.mwFreq can not be negative.')
+  else
+    Exp.Frequency = Exp.Frequency + Exp.mwFreq;
+  end
+end
+
+
+if isfield(Opt,'FrameShift') && ~isempty(Opt.FrameShift)
+  Exp.Frequency = Exp.Frequency - Opt.FrameShift;
+  if isfield(Sys,'ZeemanFreq')
+    Sys.ZeemanFreq =  Sys.ZeemanFreq - Opt.FrameShift;
+  end
+  
+  if isfield(Sys,'g')  
+    %%%%% Transfer from GHz (Opt.FrameShift) to MHz (Opt.FrameShift*1000)
+    Sys.g = Sys.g - Opt.FrameShift*1000*1e9*planck/bmagn/Exp.Field(end);
+  end
+  % Shift Resonator too
+end
+
+  %%%%% Transfer from GHz to MHz
+Exp.Frequency = Exp.Frequency*1000;
+
 % Translate Frequency to g values
 if isfield(Sys,'ZeemanFreq')
+  %%%%% Transfer from GHz to MHz
+  Sys.ZeemanFreq = Sys.ZeemanFreq*1000;
   if isfield(Sys,'g')
     [~, dgTensor] = size(Sys.g);
   else
@@ -82,150 +109,47 @@ if isfield(Sys,'ZeemanFreq')
   end
 end
 
-% Validate spin system
-[System,err] = validatespinsys(Sys);
-error(err);
-
-
-% Build or load initial state
-if isfield(System,'initState') && ~isempty(System.initState)
-  % if some initial state was provided, this checks if the dimensions are
-  % correct
-  [a, b] = size(System.initState);
-  if ischar(System.initState)
-    error('String input for initial state not yet supported.')
-  elseif System.nStates ~= a || System.nStates ~= b
-    error('Initial state has to be a density matrix.')
-  end
-  Sigma = System.initState;
-else
-  % builds initial state, all electrons are -Sz, nuclei are not defined
-  Sigma = -sop(System.Spins,'z1');
-  for iElectron = 2 : System.nElectrons
-    Sigma = Sigma - sop(System.Spins,['z' num2str(iElectron)]);
-  end
-end
-
-% Build or load equilibtrium state - required for relaxation
-if isfield(System,'eqState') && ~isempty(System.eqState)
-  % if eqilibrium state was provided, this checks if the dimensions are
-  % correct
-  [a, b] = size(System.eqState);
-  if ischar(System.eqState)
-    error('String input for equilibrium state not yet supported.')
-  elseif System.nStates ~= a || System.nStates ~= b
-    error('Equilibrium state has to be a density matrix.')
-  end
-  Relaxation.equilibriumState = System.eqState;
-else
-  % initial state is copied from initial state
-Relaxation.equilibriumState  = Sigma;
+if isfield(Sys,'ZeemanFreq')
+  Sys = rmfield(Sys,'ZeemanFreq');
 end
 
 
-Ham = sham(System,B);
 
-if isfield(Opt,'Relaxation') && ~isempty(Opt.Relaxation) && any(Opt.Relaxation)
-  if isfield(System,'T1') || isfield(System,'T2')
-    if ~isfield(System,'T1')
-      System.T1 = 0;
-    elseif ~isfield(System,'T2')
-      System.T2 = 0;
-    end
-    Relaxation.Gamma = relaxationsuperoperator(System);
-  else
-    error('Relaxation was requested, but not relaxation times were provided.')
-  end
-end
-
-if ~isfield(Det,'DetectionOperators') || isempty(Det.DetectionOperators)
-  error('No detection operator provided.')
-else
-  Opt.DetectionOperators = Det.DetectionOperators;
-end
-
-nDetectionOperators = length(Opt.DetectionOperators);
-
-DetectionOperators = cell(1,nDetectionOperators);
-
-if ~isfield(Det,'FreqTranslation') || isempty(Det.FreqTranslation)
-  Opt.FreqTranslation = [];
-else
-  Opt.FreqTranslation = zeros(1,nDetectionOperators);
-  Opt.FreqTranslation(1:length(Det.FreqTranslation)) = Det.FreqTranslation;
-end
-
-Opt.DetectedEvents = zeros(1,length(Exp.t));
-
-if ~isfield(Det,'Events') || isempty(Det.Events)
+% This is spidyan specific
+if ~isfield(Opt,'Events') || isempty(Opt.Events)
   Opt.DetectedEvents(end) = 1;
 else
-  Opt.DetectedEvents(1:length(Det.Events)) = Det.Events;
+  Opt.DetectedEvents(1:length(Opt.Events)) = Opt.Events;
 end
-
-for iDetectionOperator = 1 : nDetectionOperators
-  if ischar(Opt.DetectionOperators{iDetectionOperator})
-    DetectionOperators{iDetectionOperator} = sop(System.Spins,Opt.DetectionOperators{iDetectionOperator});
-  else
-    DetectionOperators{iDetectionOperator} = Opt.DetectionOperators{iDetectionOperator};
-  end
-end
-
 
 [Events, Vary] = sequencer(Exp,Opt);
 
 
-% -------------------------------------------------------------------------
-% Build the excitation operator for each pulse - if a custom excitation
-% operator is provided in string form, sop will be called. If a matrix is
-% provided, this matrix is used as excitation operator. If no custom
-% excitation operators are given and no complex excitation was requested, 
-% Sx is being used, for complex excitation Sx + Sy
-% -------------------------------------------------------------------------
+% Validate spin system
+% use propagation setup instead here
+[Sys,Sigma,DetOps,Events,Relaxation] = s_propagationsetup(Sys,Events,Opt);
 
-% initialize pulse counting
-iPulse = 1;
+Ham = sham(Sys,B);
 
-% Loop over events and check if they are pulses
-for iEvent = 1: length(Events)
-  if strcmp(Events{iEvent}.type,'pulse')
-    % Checks if user defined excitation operators were provided....
-    if isfield(Opt,'ExcitationOperators') && ~isempty(Opt.ExcitationOperators) && (iPulse <= length(Opt.ExcitationOperators))
-      % ... if yes, they are translated/verified and stored into the
-      % current event ...
-      if ischar(Opt.ExcitationOperators{iPulse})
-        Events{iEvent}.xOp = sop(System.Spins,Opt.ExcitationOperators{iPulse});
-      elseif any(size(Opt.ExcitationOperators{iPulse}) ~= size(Sigma))
-        message = ['The excitation operator that you provided for pulse no. ' num2str(iPulse) ' does not have the same size as the density matrix.'];
-        error(message)
-      else
-         Events{iEvent}.xOp = Opt.ExcitationOperators{iPulse};
-      end
-    else
-      % ... if not, the Sx operator is formed for every spin in the
-      % system...
-      xOp = ['x' num2str(1)];
-      Events{iEvent}.xOp = sop(System.Spins,xOp);
-      for iSpin = 2 : length(System.Spins)
-        xOp = ['x' num2str(iSpin)];
-        Events{iEvent}.xOp = Events{iEvent}.xOp + sop(System.Spins,xOp);
-      end
-      % ... and if complex excitation is required, the Sy operator is added
-      % on top
-      if Events{iEvent}.ComplexExcitation
-        for iSpin = 1 : length(System.Spins)
-          yOp = ['y' num2str(iSpin)];
-          Events{iEvent}.xOp= Events{iEvent}.xOp + sop(System.Spins,yOp);
-        end
-      end
-    end
-    % Increment pulse counter
-    iPulse = iPulse + 1;
+% Spidyan specific
+nDetOps = numel(DetOps);
+if ~isfield(Opt,'FreqTranslation') || isempty(Opt.FreqTranslation)
+  Opt.FreqTranslation = [];
+else
+  if isfield(Opt,'FrameShift') && ~isempty(Opt.FrameShift)
+    Opt.FreqTranslation(Opt.FreqTranslation > 0) = Opt.FreqTranslation(Opt.FreqTranslation > 0) - Opt.FrameShift;
+    Opt.FreqTranslation(Opt.FreqTranslation < 0) = Opt.FreqTranslation(Opt.FreqTranslation < 0) + Opt.FrameShift;
   end
+  FreqTranslation = zeros(1,nDetOps);
+  FreqTranslation(1:length(Opt.FreqTranslation)) = Opt.FreqTranslation;
+  Opt.FreqTranslation = FreqTranslation;
 end
 
+Opt.DetectionOperators = DetOps;
+
+
 % Calls the actual propagation engine
-[TimeAxis, RawSignal, FinalState, StateTrajectories, NewEvents] = thyme(Sigma, Ham, DetectionOperators, Events, Relaxation, Vary);
+[TimeAxis, RawSignal, FinalState, StateTrajectories, NewEvents] = thyme(Sigma, Ham, DetOps, Events, Relaxation, Vary);
 
 % Signal postprocessing, such as down conversion and filtering
 Signal = signalprocessing(TimeAxis,RawSignal,Opt);

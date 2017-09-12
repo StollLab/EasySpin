@@ -123,10 +123,10 @@ for iEvent = 1 : length(Exp.t)
     % Checks if ComplexExcitation is requested for this Pulse, if not
     % specified Complex Excitation is switched off by default - the
     % excitation operator is being built outside of sequencer
-    if ~isfield(Pulse,'ComplexExcitation')
+    if ~isfield(Pulse,'ComplexExcitation') || isempty(Pulse.ComplexExcitation)
       Events{iEvent}.ComplexExcitation = false;
     else
-      Events{iEvent}.ComplexExcitation = true;
+      Events{iEvent}.ComplexExcitation = Pulse.ComplexExcitation;
     end
     
     % Temporarily store pulse paramaters to avoid reassigning them for creating the
