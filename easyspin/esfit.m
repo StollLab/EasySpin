@@ -630,7 +630,7 @@ if ~FitData.GUI
   end
 end
 
-FitData.bestspec = ones(1,numel(FitData.ExpSpec))*NaN;
+%FitData.bestspec = ones(1,numel(FitData.ExpSpec))*NaN;
 
 if FitData.GUI
   data = get(getParameterTableHandle,'Data');

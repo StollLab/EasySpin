@@ -176,11 +176,13 @@ if SysInput
     Aaxial = all(size(Sys.A)==[nNucs 2*nElectrons]);
     Arhombic = all(size(Sys.A)==[nNucs 3*nElectrons]);
     Afull = all(size(Sys.A)==[3*nNucs 3*nElectrons]);
+    Aexchange = size(Sys.A,1)==nNucs; % for compatiblity with chem. exchange program
   end
   if isfield(Sys,'A_')
     A_isotropic = numel(Sys.A_)==nNucs*nElectrons;
     A_axial = all(size(Sys.A_)==[nNucs 2*nElectrons]);
     A_rhombic = all(size(Sys.A_)==[nNucs 3*nElectrons]);
+    A_exchange = size(Sys.A_,1)==nNucs; % for compatiblity with chem. exchange program
   end
   if isfield(Sys,'Q')
     Qaxial = numel(Sys.Q)==nNucs;
@@ -299,7 +301,7 @@ for iNuc = 1:nNucs
     % A - isotropic; axial; rhombic; full
     if isempty(gnref) || gnref==0, gnref = 1; end
     if isfield(Sys,'A')
-      if Aisotropic || Aaxial || Arhombic
+      if Aisotropic || Aaxial || Arhombic || Aexchange
         for k = 1:numel(gn)
           Groups(iNuc).A{k} = Sys.A(iNuc,:)/gnref*gn(k);
         end
@@ -479,7 +481,7 @@ for k = 1:nIsotopologues
         if isfield(Sys,'A')
           if Aisotropic
             A = [A; gr.A{iIso}];
-          elseif Aaxial || Arhombic || Afull
+          elseif Aaxial || Arhombic || Aexchange || Afull
             A = [A; gr.A{iIso}];
           end
         end
