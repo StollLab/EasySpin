@@ -404,6 +404,10 @@ auxNum = jeol_header.auxNum; % format identifier, can be 0, 1 or 12
 dataSet = jeol_header.dataSet; % number of datasets
 dataKind = jeol_header.dataKind; % 'real' or 'complex' or 'imagi'
 
+jeol_data = struct;
+Abscissa = [];
+Data = [];
+
 if (dataSet==1)
   
   % Type-1 data, 1D, real and complex; (G1) and (G2)
