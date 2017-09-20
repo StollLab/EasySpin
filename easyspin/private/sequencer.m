@@ -6,14 +6,45 @@ function [Events, Vary, Opt] = sequencer(Exp,Opt)
 % -------------------------------------------------------------------------
 Vary = [];
 
-% Need to check for resonator some point here
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-resonator = false;
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% other things that need to be done
-% process Exp.Qcrit and nu1
-% be aware of changed pulse lenghts for the resonator and adapt the inter
-% pulse delays accordingly
+% Check if resonator is 
+if isfield(Exp,'Resonator')
+  Resonator = true;
+  
+  if ~isfield(Exp,'mwFreq')
+    error('For using a resonator, the field Exp.mwFreq needs to be provided, and Exp.Frequency needs to be defined in relation to that.')
+  end
+  
+  if ~isfield(Exp.Resonator,'nu') && ~isfield(Exp.Resonator,'TransferFunction') && ~isfield(Exp.Resonator,'nu0') && ~isfield(Exp.Resonator,'QL')
+    error('In order to use a resonator either nu0 and QL or nu and TransferFunction need to be defined.')
+    % Looks for frequency axis nu and transfer function
+  elseif (isfield(Exp.Resonator,'nu') && ~isfield(Exp.Resonator,'TransferFunction')) || (~isfield(Exp.Resonator,'nu') && isfield(Exp.Resonator,'TransferFunction'))
+    error('Either Exp.Resonator.nu or Exp.Resonator.TransferFunction is missing')
+  elseif isfield(Exp.Resonator,'nu') && isfield(Exp.Resonator,'TransferFunction')
+    Resonator.Arg1 = Exp.Resonator.nu;
+    Resonator.Arg2 = Exp.Resonator.TransferFunction;
+  elseif (isfield(Exp.Resonator,'nu0') && ~isfield(Exp.Resonator,'QL')) || (~isfield(Exp.Resonator,'nu0') && isfield(Exp.Resonator,'QL'))
+    % Looks for center frequency nu0 and loaded Qualityfactor
+    error('Either Exp.Resonator.nu0 or Exp.Resonator.QL is missing')
+  elseif isfield(Exp.Resonator,'nu0') && isfield(Exp.Resonator,'QL')
+    Resonator.Arg1 = Exp.Resonator.nu0;
+    Resonator.Arg2 = Exp.Resonator.QL;
+  end
+  
+  % if no mode for the resonator incorporation is given, 'simulate' is
+  % assumed by default
+  if isfield(Exp.Resonator,'Mode')
+    if any(strcmp(Exp.Resonator.Mode,{'simulate' 'compensate'}))
+      Resonator.Arg3 = Exp.Resonator.Mode;
+    else
+      error('Resonator.Mode must be ''simulate'' or ''compensate''.')
+    end
+  else
+    Resonator.Arg3 = 'simulate';
+  end
+else
+  Resonator = false;
+end
+
 
 % Check if Timestep is sufficient
 MaxFreq = max(abs(Exp.Frequency(:)));
@@ -108,9 +139,28 @@ for iEvent = 1 : length(Exp.t)
     for iPCstep = 1 : size(Pulse.PhaseCycle,1)
       Pulse.Phase = Pulse.Phase+Pulse.PhaseCycle(iPCstep,1);
       [t,IQ] = pulse(Pulse);
-      if resonator
-        [t,IQ] = resonator(t,IQ,resParams);
+      if Resonator
+        % if resonator is requested, pulses are elongated due to ringing.
+        % the duration of ringing is stored in an additional field
+        tOrig = t(end);
+        [t,IQ] = resonator(t,IQ,Exp.mwFreq,Resonator.Arg1,Resonator.Arg2,Resonator.Arg3);
+        Events{iEvent}.Ringing = t(end) - tOrig;
       end
+      % Shifts IQ of the pulse if necessary...
+      if isfield(Exp,'mwFreq') && isfield(Opt,'FrameShift')
+        FreqShift = Exp.mwFreq - Opt.FrameShift;
+      elseif  isfield(Opt,'FrameShift')
+        FreqShift = - Opt.FrameShift;
+      elseif isfield(Exp,'mwFreq')
+        FreqShift = Exp.mwFreq;
+      else
+        FreqShift = 0;
+      end
+      if FreqShift ~= 0
+        Opt.dt = Exp.TimeStep;
+        [~, IQ] = rfmixer(t,IQ,FreqShift,'IQshift',Opt);
+      end
+      % ... and stores it in the event structure
       Events{iEvent}.IQ(iPCstep,:) = IQ;
     end
     
@@ -164,19 +214,19 @@ for iEvent = 1 : length(Exp.t)
   
   % Check if detection is provided, if no detection is requested, the last
   % event is detected by default
-  if ~isfield(Opt,'DetectedEvents')
+  if ~isfield(Exp,'DetEvents')
     if iEvent == length(Exp.t)
       Events{iEvent}.Detection = true;
     else
       Events{iEvent}.Detection = false;
     end
   else
-    if length(Opt.DetectedEvents) == 1
-      Events{iEvent}.Detection = Opt.DetectedEvents;
-    elseif iEvent > length(Opt.DetectedEvents)
-      error('You did not specify detection after Event %d.',iEvent);
+    if length(Exp.DetEvents) == 1
+      Events{iEvent}.Detection = Exp.DetEvents;
+    elseif iEvent > length(Exp.DetEvents)
+      Events{iEvent}.Detection = false;
     else 
-      Events{iEvent}.Detection = Opt.DetectedEvents(iEvent);
+      Events{iEvent}.Detection = Exp.DetEvents(iEvent);
     end   
   end
   
@@ -201,6 +251,24 @@ for iEvent = 1 : length(Exp.t)
   % axis and propagators
   Events{iEvent}.TimeStep = Exp.TimeStep;
     
+end
+
+% -------------------------------------------------------------------------
+% Checks for overlap of pulses that are subject to ringing
+% -------------------------------------------------------------------------
+if Resonator
+  for iEvent = PulseIndices
+    FollowingEvent = iEvent + 1;
+    if FollowingEvent <= length(Exp.t) && strcmp(Events{FollowingEvent}.type,'pulse')
+      error('When using a resonator, pulses need to be separated by inter pulse delays to accomodate for ringing from the resonator.')
+    elseif FollowingEvent <= length(Exp.t)
+      ShortenedDelay = Events{FollowingEvent}.t - Events{iEvent}.Ringing;
+      if ShortenedDelay < 0
+        Msg = ['Event ' num2str(FollowingEvent) ' (a delay) is too short to accomodate ringing of the preceding pulse.'];
+        error(Msg);
+      end
+    end    
+  end  
 end
 
 % -------------------------------------------------------------------------
@@ -314,6 +382,10 @@ if isfield(Exp,'nPoints')
               % to the incrementation table
               case 'Position'
                 SurroundingEvents = [EventNumber-1 EventNumber+1];
+                
+                if any(SurroundingEvents>nEvents) || any(SurroundingEvents>nEvents)
+                  error('Moving pulses can not be the first or last event in your Exp structure.')
+                end
                 
                 % get the Increment
                 dt = Exp.(Field2Get){iLine,2};
@@ -439,13 +511,38 @@ if isfield(Exp,'nPoints')
         for iPCstep = 1 : size(Pulses{iPulse}.PhaseCycle,1)
           Pulses{iPulse}.Phase = Pulses{iPulse}.Phase+Pulses{iPulse}.PhaseCycle(iPCstep,1);
           [t,IQ] = pulse(Pulses{iPulse});
+          if Resonator
+            % if a resonator is present, the ringing duration of each pulse
+            % needs to be stored in the vary structure too
+            tOrig = t(end);
+            [t,IQ] = resonator(t,IQ,Exp.mwFreq,Resonator.Arg1,Resonator.Arg2,Resonator.Arg3);
+            Vary.Pulses{iPulse}.Ringing(ArrayIndex{:}) = t(end) - tOrig;
+          end
+          % Shifts IQ of the pulse if necessary...
+          if isfield(Exp,'mwFreq') && isfield(Opt,'FrameShift')
+            FreqShift = Exp.mwFreq - Opt.FrameShift;
+          elseif  isfield(Opt,'FrameShift')
+            FreqShift = - Opt.FrameShift;
+          elseif isfield(Exp,'mwFreq')
+            FreqShift = Exp.mwFreq;
+          else
+            FreqShift = 0;
+          end
+          if FreqShift ~= 0
+            Opt.dt = Exp.TimeStep;
+            [~, IQ] = rfmixer(t,IQ,FreqShift,'IQshift',Opt);
+          end
+          % ... and stores it in the vary structure
           Vary.Pulses{iPulse}.IQs{ArrayIndex{:}}(iPCstep,:) = IQ;
         end
         Vary.Pulses{iPulse}.ts{ArrayIndex{:}} = t;
 
-        
-        % Write pulse length to EventLenghts        
-        EventLengths(Pulses{iPulse}.EventIndex) = t(end);
+        % Write pulse length to EventLenghts
+        if Resonator
+          EventLengths(Pulses{iPulse}.EventIndex) = t(end) - Vary.Pulses{iPulse}.Ringing(ArrayIndex{:});
+        else
+          EventLengths(Pulses{iPulse}.EventIndex) = t(end);
+        end
       end
     end
     
@@ -458,28 +555,60 @@ if isfield(Exp,'nPoints')
       if ~IncrementationScheme && ~isempty(Vary.IncrementationTable{iDimension})
         % Find Events that are modified...
         ModifiedEvents = find(Vary.IncrementationTable{iDimension}(:,DimensionIndices(iDimension)));
-        % ... and change them in EventLenghts
+        % ... and change them in EventLengths
         if ~isempty(ModifiedEvents)
           for i = 1 : length(ModifiedEvents)
             EventLengths(ModifiedEvents(i)) = EventLengths(ModifiedEvents(i)) + Vary.IncrementationTable{iDimension}(ModifiedEvents(i),DimensionIndices(iDimension));
           end
         end
-      else
+      elseif IncrementationScheme
         % Find Events that are modified...
-        ModifiedEvents = find(Vary.IncrementationTable(:,iDimension));
-        if ~isempty(ModifiedEvents)
-          for i = 1 : length(ModifiedEvents)
-            EventLengths(ModifiedEvents(i)) = EventLengths(ModifiedEvents(i)) + Vary.IncrementationTable(ModifiedEvents(i),iDimension)*(DimensionIndices(iDimension)-1);
+          ModifiedEvents = find(Vary.IncrementationTable(:,iDimension));
+          if ~isempty(ModifiedEvents)
+            for i = 1 : length(ModifiedEvents)
+              EventLengths(ModifiedEvents(i)) = EventLengths(ModifiedEvents(i)) + Vary.IncrementationTable(ModifiedEvents(i),iDimension)*(DimensionIndices(iDimension)-1);
+            end
           end
-        end
       end
     end
      
     % Reorder Sequence and check for pulse overlap
-    NewSequence = reorder_events(EventLengths,isPulse);
+    [NewSequence, NewEventLengths] = reorder_events(EventLengths,isPulse);
     
+    % Check if ringing from the resonator causes pulses to overlap, after
+    % they have been reorderd
+    if Resonator
+      for iPulse = 1 : nPulses
+        % get position of the current pulse in the reordered sequence
+        ThisEvent = find(NewSequence == PulseIndices(iPulse));
+        % Get original Event number of the following event and if...
+        FollowingEvent = NewSequence(ThisEvent+1);
+        if strcmp(Events{FollowingEvent}.type,'pulse')
+          %...the following event is a pulse, create an error
+          error('When using a resonator, pulses need to be separated by inter pulse delays to accomodate for ringing from the resonator.')
+        else
+          %...else the duration of the ringing is being loaded...
+          if ~isempty(Vary.Pulses{iPulse})
+            Ringing = Vary.Pulses{iPulse}.Ringing(ArrayIndex{:});
+          else
+            Ringing = Events{PulseIndices(iPulse)}.Ringing;
+          end
+          %...and the following delay is shortened by the correspoding
+          % length
+          ShortenedDelay = NewEventLengths(ThisEvent+1) - Ringing;
+          if ShortenedDelay < 0
+            % if the delay is to short and now becomes negative, an error
+            % is returned
+            Msg = ['The delay ' num2str(FollowingEvent) ' is too short to accomodate for ringing of the preceeding pulse.'];
+            error(Msg);
+          end
+        end
+      end
+    end
+
     % Assert that if events are being moved in the sequence, the values for
-    % Detection and Relaxation are the same
+    % Detection and Relaxation are the same for events that are being
+    % interchanged
     for iEvent = 1 : nEvents
       if Events{NewSequence(iEvent)}.Detection ~= Events{(iEvent)}.Detection
         MessagePart1 = ['Due to a moving pulse, the events ' num2str(iEvent) ' and ' num2str(NewSequence(iEvent))];

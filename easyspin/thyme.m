@@ -3,21 +3,13 @@ function [TimeArray, SignalArray, FinalStates, AllDensityMatrices, Events] = thy
 
 if (nargin==0), help(mfilename); return; end
 
-% if (nargout<1), error('Not enough output arguments.'); end
 if (nargout>5), error('Too many output arguments.'); end
 if (nargin<4) || (nargin>6), error('Wrong number of input arguments!'); end
 
-% if (nargin<6), IncScheme = 1; end
-% if (nargin<7), Mix = {}; end
-%
-% if any(mod(n,1)~=0) || any(n<=0)
-%     error('n, the number of points (4th argument), must be a positive integer.');
-% end
-
+% hardwire method for now
 method = 'stepwise';
 
 nEvents = length(Events);
-
 
 switch method
   
@@ -40,7 +32,7 @@ switch method
     FinalStates = zeros(nPoints,n,n);
     AllDensityMatrices = [];
     initialSigma = Sigma;
-    
+    Resonator = false;
     
     %----------------------------------------------------------------------
     % Creates the pulse list, that is needed for reordering events
@@ -52,7 +44,11 @@ switch method
         case 'pulse'
           isPulse(iEvent) = 1;
           nPulses = nPulses + 1;
-          PulsePositions(nPulses) = iEvent;
+          PulsePositions(nPulses) = iEvent; %#ok<AGROW>
+          % If ringing is found, resonator is set to on
+          if isfield(Events{iEvent},'Ringing') 
+            Resonator = true;
+          end
       end
     end
     
@@ -96,13 +92,67 @@ switch method
         for iPulse = 1 : nPulses
           if ~isempty(Vary.Pulses{iPulse})
             iEvent = PulsePositions(iPulse);
-            t = LoadWaveform(Vary.Pulses{iPulse}.ts,DimensionIndices);
-            EventLengths(iEvent) = t(end);
+            t = LoadfromArray(Vary.Pulses{iPulse}.ts,DimensionIndices);
+            if Resonator
+              % if resonator is present the original length of the pulse is
+              % calculated (and rounded)
+              DecimalRound = 10;
+              Ringing = LoadfromArray(Vary.Pulses{iPulse}.Ringing,DimensionIndices);
+              Ringing = round(Ringing*(10^DecimalRound))/(10^DecimalRound);
+              EventLengths(iEvent) = t(end)-Ringing;
+            else
+              % if not, the length can be obtained from the last element of
+              % the time axis
+              EventLengths(iEvent) = t(end);
+            end
           end
         end
         
         % Reorder Events and adjust event lengths
         [Sequence, NewEventLengths] = reorder_events(EventLengths,isPulse);
+        
+        if Resonator
+          % Loop over the pulses
+          for iPulse = 1 : nPulses
+            % Get the initial event index of the current pulse
+            ThisEventIndex = PulsePositions(iPulse);
+            % Use the inital event index to find it in the position after
+            % reordering
+            ThisEvent = find(Sequence == PulsePositions(iPulse));
+            if ~isempty(Vary.Pulses{iPulse})
+              % if any parameter of the pulse is varied, the length of the
+              % ringing is taken from the vary structure
+              Ringing = LoadfromArray(Vary.Pulses{iPulse}.Ringing,DimensionIndices);
+            else
+              % if the pulse is not in the vary structure, the length of
+              % the ringing is taken from the Event structure
+              Ringing = Events{Sequence(ThisEventIndex)}.Ringing;
+            end
+            % Rounding of the Ringing length
+            DecimalRound = 10;
+            Ringing = round(Ringing*(10^DecimalRound))/(10^DecimalRound);
+            % Length of the pulse is being updated, to make sure that the
+            % counter for detection periods is correct
+            NewEventLengths(ThisEvent) = NewEventLengths(ThisEvent) + Ringing;
+            if ThisEvent < nEvents
+              % if the current pulse is not the last pulse in the new
+              % sequence, the succeeding event is checked to make sure it
+              % is not a pulse
+              FollowingEvent = Sequence(ThisEvent+1);
+              if strcmp(Events{FollowingEvent}.type,'pulse')
+                error('When using a resonator, pulses need to be separated by inter pulse delays to accomodate for ringing from the resonator.')
+              end
+              % And then the free evolution event is shortened by the
+              % length of Ringing
+              NewEventLengths(FollowingEvent) = NewEventLengths(FollowingEvent) - Ringing;
+              % And the new length is checked again 
+              if NewEventLengths(FollowingEvent) < 0
+                Msg = ['The delay ' num2str(FollowingEvent) ' is too short to accomodate for ringing of the preceding pulse.'];
+                error(Msg);
+              end
+            end
+          end       
+        end
         
         % Count the time during detected events
         for iSequence = 1 : nEvents
@@ -139,9 +189,27 @@ switch method
       % Reset Acquisition counter to first data point
       DimensionIndices = ones(1,nDimensions);
       
+    elseif Resonator
+      % This is called, if the simulation is a single experiment (no
+      % Exp.nPoints and hence no Vary structure)
+      for iEvent = 1 : nEvents-1
+        if strcmp(Events{iEvent}.type,'pulse')
+          if strcmp(Events{iEvent+1}.type,'pulse')
+            error('When using a resonator, pulses need to be separated by inter pulse delays to accomodate for ringing from the resonator.')
+          end
+          % Inter pulse delay of the following event is shortened by the
+          % (rounded) duration of ringing
+          Ringing = Events{iEvent}.Ringing;
+          DecimalRound = 10;
+          Ringing = round(Ringing*(10^DecimalRound))/(10^DecimalRound);
+          Events{iEvent+1}.t = Events{iEvent+1}.t - Ringing;
+        end
+        
+      end
     end
     
     if StoreInCellArray
+      % Sets up CellArray output if necessary
       SignalArray = cell(1,nPoints);
       TimeArray = SignalArray;
     end
@@ -178,8 +246,8 @@ switch method
         for iPulse = 1 : nPulses
           if ~isempty(Vary.Pulses{iPulse})
             iEvent = PulsePositions(iPulse);
-            IQ = LoadWaveform(Vary.Pulses{iPulse}.IQs,DimensionIndices);
-            t = LoadWaveform(Vary.Pulses{iPulse}.ts,DimensionIndices);
+            IQ = LoadfromArray(Vary.Pulses{iPulse}.IQs,DimensionIndices);
+            t = LoadfromArray(Vary.Pulses{iPulse}.ts,DimensionIndices);
             % Only replace if the new wave form is different from the
             % previous one
             if ~isequal(Events{iEvent}.IQ,IQ)
@@ -633,13 +701,13 @@ switch method
         
         if currentEvent.StateTrajectories
           if firstDensityMatrix
-            AllDensityMatrices{iPoints} = DensityMatrices;
+            AllDensityMatrices{iPoints} = DensityMatrices; %#ok<AGROW>
             firstDensityMatrix = false;
           else
             iStart = length(AllDensityMatrices{iPoints});
             nElements = length(DensityMatrices);
             for iDensity = 2 : nElements
-              AllDensityMatrices{iPoints}{iStart+iDensity-1} = DensityMatrices{iDensity};
+              AllDensityMatrices{iPoints}{iStart+iDensity-1} = DensityMatrices{iDensity}; %#ok<AGROW>
             end
           end
         end
@@ -706,449 +774,7 @@ switch method
     
   case 'incrementation scheme'
     
-    
-    
-    % IncScheme check
-    %------------------------------------------------------------
-    if (length(IncScheme)>1) && (nargin<7),
-      error('The requested IncScheme requires mixing propagators, but none are provided!');
-    end
-    if any((abs(IncScheme)~=1) & (abs(IncScheme)~=2))
-      error('IncScheme can contain only 1, -1, 2, and -2.');
-    end
-    
-    nEvolutionPeriods = numel(IncScheme);
-    nDimensions = max(abs(IncScheme));
-    
-    % Parameter parsing
-    %------------------------------------------------------------
-    if ~iscell(Det)
-      Det = {Det};
-    end
-    nDetectors = numel(Det);
-    
-    if ~iscell(Mix)
-      Mix = {Mix};
-    end
-    nMixingBlocks = numel(Mix);
-    
-    if (nMixingBlocks~=nEvolutionPeriods-1),
-      error('Number of mixing propagators not correct! %d are needed.',nEvolutionPeriods-1);
-    end
-    N = size(Sigma,1);
-    
-    if (nDimensions==1)
-      for iDet = 1:nDetectors
-        Signal{iDet} = zeros(n,1);
-      end
-      if iscell(Ham0), Ham0 = Ham0{1}; end
-    else
-      if numel(dt)==1, dt = [dt dt]; end
-      if numel(n)==1, n = [n n]; end
-      for iDet = 1:nDetectors
-        Signal{iDet} = zeros(n);
-      end
-    end
-    if nDetectors==1
-      Signal = Signal{1};
-    end
-    
-    % Transform all operators to Hamiltonian eigenbasis (eigenbases)
-    %---------------------------------------------------------------
-    if ~iscell(Ham0)
-      
-      if nnz(Ham0)==nnz(diag(Ham0)) % Check if Hamiltonian is already diagonal
-        E = diag(Ham0);
-        Density = Sigma;
-        Detector = Det;
-      else
-        % Diagonalize Hamiltonian
-        [Vecs,E] = eig(Ham0); % MHz, E doesn't have to be sorted
-        E = real(diag(E));
-        % Transform all other matrices to Hamiltonian eigenbasis
-        Density = Vecs'*Sigma*Vecs;
-        for iMix = 1:nMixingBlocks
-          Mix{iMix} = Vecs'*Mix{iMix}*Vecs;
-        end
-        for iDet = 1:nDetectors
-          Detector{iDet} = Vecs'*Det{iDet}*Vecs;
-        end
-      end
-      
-      % Define free evolution propagators
-      if (nDimensions==1)
-        diagU = exp(-2i*pi*dt*E);
-      else
-        diagUX = exp(-2i*pi*dt(1)*E);
-        diagUY = exp(-2i*pi*dt(2)*E);
-      end
-      
-    else
-      
-      % Check if Hamiltonians are already diagonal
-      if (nnz(Ham0{1})==nnz(diag(Ham0{1})) && nnz(Ham0{1})==nnz(diag(Ham0{1})))
-        Ex = Ham0{1};
-        Ey = Ham0{2};
-        Density = Sigma;
-        Detector = Det;
-      else
-        
-        % Diagonalize Hamiltonians
-        [Vecs{1},Ex] = eig(Ham0{1});
-        [Vecs{2},Ey] = eig(Ham0{2});
-        
-        % Transform all other matrices to Hamiltonian eigenbasis
-        d = abs(IncScheme);
-        Density = Vecs{d(1)}'*Sigma*Vecs{d(1)};
-        for iMix = 1:nMixingBlocks
-          Mix{iMix} = Vecs{d(iMix+1)}'*Mix{iMix}*Vecs{d(iMix)};
-        end
-        for iDet = 1:nDetectors
-          Detector{iDet} = Vecs{d(end)}'*Det{iDet}*Vecs{d(end)};
-        end
-        
-      end
-      
-      % Define free evolution propagators
-      diagUX = exp((-2i*pi*dt(1))*real(diag(Ex)));
-      diagUY = exp((-2i*pi*dt(2))*real(diag(Ey)));
-      
-    end
-    
-    % Time-domain evolution, IncScheme switchyard
-    %------------------------------------------------------------
-    % The following implementations in the propagator eigenframes
-    % (giving diagonal propagators) make use of the following simplifications
-    % of the matrix multiplications associated with the propagations:
-    %
-    %   U*Density*U'   = (diagU*diagU').*Density
-    %   U*Propagator*U = (diagU*diagU.').*Propagator
-    %   (U^-1)*Propagator*U = U'*Propagator*U = (conj(diagU)*diagU.').*Propagator
-    %   U*Propagator*(U^-1) = U*Propagator*U' = (diagU*diagU').*Propagator
-    %
-    % where U are diagonal matrices and diagU are vectors of eigenvalues.
-    
-    % Pre-reshape for trace calculation
-    for iDet = 1:nDetectors
-      Detector{iDet} = reshape(Detector{iDet}.',1,N^2);
-    end
-    if nDetectors==1
-      Detector = Detector{1};
-    end
-    
-    if isequal(IncScheme,1) % IncScheme [1]
-      FinalDensity = Density(:);
-      U_ = diagU*diagU';
-      U_ = U_(:);
-      for ix = 1:n
-        % Compute trace(Detector*FinalDensity)
-        if nDetectors==1
-          Signal(ix) = Detector*FinalDensity;
-        else
-          for iDet = 1:nDetectors
-            Signal{iDet}(ix) = Detector{iDet}*FinalDensity;
-          end
-        end
-        FinalDensity = U_.*FinalDensity; % equivalent to U*FinalDensity*U'
-      end
-      
-    elseif isequal(IncScheme,[1 1]) % IncScheme [1 1]
-      UU_ = diagU*diagU.';
-      % It is not necessary to evolve the initial density matrix.
-      % Only the mixing propagator needs to be evolved.
-      Mix1 = Mix{1};
-      for ix = 1:n
-        % Compute density right before Detection
-        FinalDensity = Mix1*Density*Mix1';
-        % Compute trace(Detector*FinalDensity)
-        if nDetectors==1
-          Signal(ix) = Detector*FinalDensity(:);
-        else
-          for iDet = 1:nDetectors
-            Signal{iDet}(ix) = Detector{iDet}*FinalDensity(:);
-          end
-        end
-        Mix1 = UU_.*Mix1; % equivalent to U*Mix1*U
-      end
-      
-    elseif isequal(IncScheme,[1 -1]) % IncScheme [1 -1]
-      %   % Pre-propagate mixing propagator to end of second period (= start of
-      %   % experiment)
-      %   MixX = diag(diagU.^n)*Mix{1};
-      MixX =Mix{1};
-      UtU_ = conj(diagU)*diagU.';
-      for ix = 1:n
-        FinalDensity = MixX*Density*MixX';
-        if nDetectors==1
-          Signal(ix) = Detector*FinalDensity(:);
-        else
-          for iDet = 1:nDetectors
-            Signal{iDet}(ix) = Detector{iDet}*FinalDensity(:);
-          end
-        end
-        MixX = UtU_.*MixX; % equivalent to U^-1*MixX*U
-      end
-      
-    elseif isequal(IncScheme,[1 2]) % IncScheme [1 2]
-      UX_ = diagUX*diagUX';
-      UY_ = diagUY*diagUY';
-      UY_ = reshape(UY_,N^2,1);
-      Mix1 = Mix{1};
-      for ix = 1:n(1)
-        FinalDensity = reshape(Mix1*Density*Mix1',N^2,1);
-        for iy = 1:n(2)
-          if nDetectors==1
-            Signal(ix,iy) = Detector*FinalDensity;
-          else
-            for iDet = 1:nDetectors
-              Signal{iDet}(ix,iy) = Detector{iDet}*FinalDensity;
-            end
-          end
-          FinalDensity = UY_.*FinalDensity; % equivalent to UY*Density*UY';
-        end
-        Density = UX_.*Density; % equivalent to UX*Density*UX';
-      end
-      
-    elseif isequal(IncScheme,[1 1 2]) % IncScheme [1 1 2]
-      UUX_ = diagUX*diagUX.';
-      UY_ = diagUY*diagUY';
-      Mix1 = Mix{1};
-      Mix2 = Mix{2};
-      for ix = 1:n(1)
-        M = Mix2*Mix1;
-        FinalDensity = M*Density*M';
-        for iy = 1:n(2)
-          if nDetectors==1
-            Signal(ix,iy) = Detector*FinalDensity(:);
-          else
-            for iDet = 1:nDetectors
-              Signal{iDet}(ix,iy) = Detector{iDet}*FinalDensity(:);
-            end
-          end
-          FinalDensity = UY_.*FinalDensity; % equivalent to UY*FinalDensity*UY'
-        end
-        Mix1 = UUX_.*Mix1; % equivalent to UX*Mix1*UX
-      end
-      
-    elseif isequal(IncScheme,[1 -1 2]) % IncScheme [1 -1 2]
-      UtUX_ = conj(diagUX)*diagUX.';
-      UY_ = diagUY*diagUY';
-      %   % Pre-propagate mixing propagator to end of second period (= start of
-      %   % experiment)
-      %   MixX = diag(diagUX.^n(1))*Mix{1};
-      MixX = Mix{1};
-      Mix2 = Mix{2};
-      for ix = 1:n(1)
-        M = Mix2*MixX;
-        FinalDensity = M*Density*M';
-        for iy = 1:n(2)
-          if nDetectors==1
-            Signal(ix,iy) = Detector*FinalDensity(:);
-          else
-            for iDet = 1:nDetectors
-              Signal{iDet}(ix,iy) = Detector{iDet}*FinalDensity(:);
-            end
-          end
-          FinalDensity = UY_.*FinalDensity; % equivalent to UY*FinalDensity*UY'
-        end
-        MixX = UtUX_.*MixX; % equivalent to U^-1*MixX*U
-      end
-      
-    elseif isequal(IncScheme,[1 2 1]) % IncScheme [1 2 1]
-      Mix1 = Mix{1};
-      Mix2 = Mix{2};
-      UUX_ = diagUX*diagUX.';
-      UY = diag(diagUY);
-      for iy = 1:n(2)
-        MixY = Mix2*Mix1;
-        MixYadj = MixY';
-        for ix = 1:n(1)
-          FinalDensity = MixY*Density*MixYadj;
-          if nDetectors==1
-            Signal(ix,iy) = Detector*FinalDensity(:);
-          else
-            for iDet = 1:nDetectors
-              Signal{iDet}(ix,iy) = Detector{iDet}*FinalDensity(:);
-            end
-          end
-          MixY = UUX_.*MixY; % equivalent to UX*MixY*UX
-        end
-        Mix1 = UY*Mix1;
-      end
-      
-    elseif isequal(IncScheme,[1 2 2 1]) % IncScheme [1 2 2 1]
-      Mix1 = Mix{1};
-      Mix2 = Mix{2};
-      Mix3 = Mix{3};
-      UUX_ = diagUX*diagUX.';
-      UUY_ = diagUY*diagUY.';
-      for iy = 1:n(2)
-        MixY = Mix3*Mix2*Mix1;
-        MixYadj = MixY';
-        for ix = 1:n(1)
-          FinalDensity = MixY*Density*MixYadj;
-          if nDetectors==1
-            Signal(ix,iy) = Detector*FinalDensity(:);
-          else
-            for iDet = 1:nDetectors
-              Signal{iDet}(ix,iy) = Detector{iDet}*FinalDensity(:);
-            end
-          end
-          MixY = UUX_.*MixY; % equivalent to UX*MixY*UX
-        end
-        Mix2 = UUY_.*Mix2; % equivalent to UY*Mix2*UY
-      end
-      
-    elseif isequal(IncScheme,[1 2 -2 1]) % IncScheme [1 2 -2 1]
-      Mix1 = Mix{1};
-      %   Mix2 = diag(diagUY.^n(2))*Mix{2}; % pre-propagate to endpoint of third delay
-      Mix2 = Mix{2};
-      Mix3 = Mix{3};
-      UUX_ = diagUX*diagUX.';
-      UtUY_ = conj(diagUY)*diagUY.';
-      for iy = 1:n(2)
-        MixY = Mix3*Mix2*Mix1;
-        MixYadj = MixY';
-        for ix = 1:n(1)
-          FinalDensity = MixY*Density*MixYadj;
-          if nDetectors==1
-            Signal(ix,iy) = Detector*FinalDensity(:);
-          else
-            for iDet = 1:nDetectors
-              Signal{iDet}(ix,iy) = Detector{iDet}*FinalDensity(:);
-            end
-          end
-          MixY = UUX_.*MixY; % equivalent to UX*MixY*UX
-        end
-        Mix2 = UtUY_.*Mix2; % equivalent to UY'*Mix2*UY
-      end
-      
-    elseif isequal(IncScheme,[1 -1 1 -1]) % IncScheme [1 -1 1 -1]
-      %   Mix1X = diag(diagU.^n)*Mix{1}; % pre-propagate to endpoint of second delay
-      Mix1X = Mix{1};
-      Mix2 = Mix{2};
-      %   Mix3X = diag(diagU.^n)*Mix{3}; % pre-propagate to endpoint of fourth delay
-      Mix3X = Mix{3};
-      UtU_ = conj(diagU)*diagU.'; % propagator for Mix1 and Mix3 (add before, remove after)
-      for ix = 1:n
-        MixX = Mix3X*Mix2*Mix1X;
-        FinalDensity = MixX*Density*MixX';
-        if nDetectors==1
-          Signal(ix) = Detector*FinalDensity(:);
-        else
-          for iDet = 1:nDetectors
-            Signal{iDet}(ix) = Detector{iDet}*FinalDensity(:);
-          end
-        end
-        Mix1X = UtU_.*Mix1X; % equivalent to U'*Mix1X*U
-        Mix3X = UtU_.*Mix3X; % equivalent to U'*Mix3X*U
-      end
-      
-    elseif isequal(IncScheme,[1 1 -1 -1]) % IncScheme [1 1 -1 -1]
-      Mix1 = Mix{1};
-      %   Mix2X = diag(diagU.^n)*Mix{2}; % pre-propagate to endpoint of third delay
-      %   Mix3X = diag(diagU.^n)*Mix{3}; % pre-propagate to endpoint of fourth delay
-      Mix2X = Mix{2};
-      Mix3X = Mix{3};
-      UU1_ = diagU*diagU.'; % propagator for Mix1 (add before and after)
-      UU3_ = conj(diagU*diagU.'); % propagator for Mix3 (remove before and after)
-      for ix = 1:n
-        MixX = Mix3X*Mix2X*Mix1;
-        FinalDensity = MixX*Density*MixX';
-        if nDetectors==1
-          Signal(ix) = Detector*FinalDensity(:);
-        else
-          for iDet = 1:nDetectors
-            Signal{iDet}(ix) = Detector{iDet}*FinalDensity(:);
-          end
-        end
-        Mix1 = UU1_.*Mix1; % equivalent to U*Mix1*U
-        Mix3X = UU3_.*Mix3X; % equivalent to U'*Mix3X*U'
-      end
-      
-    elseif isequal(IncScheme,[1 1 -1 -1 2]) % IncScheme [1 1 -1 -1 2]
-      Mix1 = Mix{1};
-      %   Mix2X = diag(diagUX.^n(1))*Mix{2}; % pre-propagate to endpoint of third delay
-      %   Mix3X = diag(diagUX.^n(1))*Mix{3}; % pre-propagate to endpoint of fourth delay
-      Mix2X = Mix{2};
-      Mix3X = Mix{3};
-      Mix4 = Mix{4};
-      UU1_ = diagUX*diagUX.'; % propagator for Mix1 (add before and after)
-      UU3_ = conj(diagUX*diagUX.'); % propagator for Mix3 (remove before and after)
-      UY_ = diagUY*diagUY';
-      for ix = 1:n(1)
-        MixX = Mix4*Mix3X*Mix2X*Mix1;
-        FinalDensity = MixX*Density*MixX';
-        for iy = 1:n(2)
-          if nDetectors==1
-            Signal(ix,iy) = Detector*FinalDensity(:);
-          else
-            for iDet = 1:nDetectors
-              Signal{iDet}(ix,iy) = Detector{iDet}*FinalDensity(:);
-            end
-          end
-          FinalDensity = UY_.*FinalDensity; % equivalent to UY*FinalDensity*UY'
-        end
-        Mix1 = UU1_.*Mix1; % equivalent to U*Mix1*U
-        Mix3X = UU3_.*Mix3X; % equivalent to U'*Mix3X*U'
-      end
-      
-    elseif isequal(IncScheme,[1 -1 -1 1]) % IncScheme [1 -1 -1 1]
-      %   Mix1X = diag(diagU.^n)*Mix{1}; % pre-propagate to endpoint of second delay
-      Mix1X = Mix{1};
-      Mix2 = Mix{2};
-      %   Mix3X = Mix{3}*diag(diagU.^n); % forward-propagate to endpoint of fourth delay
-      Mix3X = Mix{3};
-      UtU1_ = conj(diagU)*diagU.'; % propagator for Mix1 (add before, remove after)
-      UtU3_ = diagU*diagU'; % propagator for Mix3 (remove before, add after)
-      for ix = 1:n
-        MixX = Mix3X*Mix2*Mix1X;
-        FinalDensity = MixX*Density*MixX';
-        if nDetectors==1
-          Signal(ix) = Detector*FinalDensity(:);
-        else
-          for iDet = 1:nDetectors
-            Signal{iDet}(ix) = Detector{iDet}*FinalDensity(:);
-          end
-        end
-        Mix1X = UtU1_.*Mix1X; % equivalent to U'*Mix1X*U
-        Mix3X = UtU3_.*Mix3X; % equivalent to U*Mix3X*U'
-      end
-      
-    elseif isequal(IncScheme,[1 -1 -1 1 2]) % IncScheme [1 -1 -1 1 2]
-      %   Mix1X = diag(diagUX.^n(1))*Mix{1}; % pre-propagate to endpoint of second delay
-      Mix1X = Mix{1};
-      Mix2 = Mix{2};
-      %   Mix3X = Mix{3}*diag(diagUX.^n(1)); % forward-propagate to endpoint of fourth delay
-      Mix3X = Mix{3};
-      Mix4 = Mix{4};
-      UtU1_ = conj(diagUX)*diagUX.'; % propagator for Mix1 (add before, remove after)
-      UtU3_ = diagUX*diagUX'; % propagator for Mix3 (remove before, add after)
-      UY_ = diagUY*diagUY';
-      for ix = 1:n(1)
-        MixX = Mix4*Mix3X*Mix2*Mix1X;
-        FinalDensity = MixX*Density*MixX';
-        for iy = 1:n(2)
-          if nDetectors==1
-            Signal(ix,iy) = Detector*FinalDensity(:);
-          else
-            for iDet = 1:nDetectors
-              Signal{iDet}(ix,iy) = Detector{iDet}*FinalDensity(:);
-            end
-          end
-          FinalDensity = UY_.*FinalDensity; % equivalent to UY*FinalDensity*UY'
-        end
-        Mix1X = UtU1_.*Mix1X; % equivalent to U'*Mix1X*U
-        Mix3X = UtU3_.*Mix3X; % equivalent to U*Mix3X*U'
-      end
-      
-    else
-      error('Unsupported incrementation scheme!');
-    end
-    
-    return
 end
-
 
 function UTable = buildPropagators(Ham0,xOp,dt,vertRes,scale)
 
@@ -1197,7 +823,9 @@ for iDet = 1:nDet
   detectedSignal(iDet) = Det{iDet}*Density/normsDet(iDet);
 end
 
-function LoadedElement = LoadWaveform(Array, ArrayIndex)
+function LoadedElement = LoadfromArray(Array, ArrayIndex)
+  % This function loads an element from an Array (numeric or cell) for a
+  % given ArrayIndex (vector)
   nPerDimension = size(Array);
   IndexToLoad = ones(1,length(ArrayIndex));
   if length(ArrayIndex) == 1
@@ -1212,5 +840,8 @@ function LoadedElement = LoadWaveform(Array, ArrayIndex)
     end
   end
   IndexToLoad = num2cell(IndexToLoad);
-  
-  LoadedElement = Array{IndexToLoad{:}};
+  if iscell(Array)
+    LoadedElement = Array{IndexToLoad{:}};
+  else
+    LoadedElement = Array(IndexToLoad{:});
+  end

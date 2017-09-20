@@ -59,24 +59,14 @@ global EasySpinLogLevel
 EasySpinLogLevel = Opt.Verbosity;
 
 
-% check for field
+% check for magnetic field
 if length(Exp.Field) == 1
   B = [0 0 Exp.Field];
 else
   B = Exp.Field;
 end
 
-if isfield(Exp,'mwFreq') && ~isempty(Exp.mwFreq)
-  if Exp.mwFreq < 0
-    error('Exp.mwFreq can not be negative.')
-  else
-    Exp.Frequency = Exp.Frequency + Exp.mwFreq;
-  end
-end
-
-
 if isfield(Opt,'FrameShift') && ~isempty(Opt.FrameShift)
-  Exp.Frequency = Exp.Frequency - Opt.FrameShift;
   if isfield(Sys,'ZeemanFreq')
     Sys.ZeemanFreq =  Sys.ZeemanFreq - Opt.FrameShift;
   end
@@ -85,7 +75,6 @@ if isfield(Opt,'FrameShift') && ~isempty(Opt.FrameShift)
     %%%%% Transfer from GHz (Opt.FrameShift) to MHz (Opt.FrameShift*1000)
     Sys.g = Sys.g - Opt.FrameShift*1000*1e9*planck/bmagn/Exp.Field(end);
   end
-  % Shift Resonator too
 end
 
   %%%%% Transfer from GHz to MHz
@@ -113,13 +102,11 @@ if isfield(Sys,'ZeemanFreq')
   Sys = rmfield(Sys,'ZeemanFreq');
 end
 
-
-
 % This is spidyan specific
-if ~isfield(Opt,'Events') || isempty(Opt.Events)
-  Opt.DetectedEvents(end) = 1;
+if ~isfield(Exp,'DetEvents') || isempty(Exp.DetEvents)
+  Exp.DetEvents(length(Exp.t)) = 1;
 else
-  Opt.DetectedEvents(1:length(Opt.Events)) = Opt.Events;
+  Exp.DetEvents(1:length(Exp.DetEvents)) = Exp.DetEvents;
 end
 
 [Events, Vary] = sequencer(Exp,Opt);
@@ -134,7 +121,7 @@ Ham = sham(Sys,B);
 % Spidyan specific
 nDetOps = numel(DetOps);
 if ~isfield(Opt,'FreqTranslation') || isempty(Opt.FreqTranslation)
-  Opt.FreqTranslation = [];
+  FreqTranslation = [];
 else
   if isfield(Opt,'FrameShift') && ~isempty(Opt.FrameShift)
     Opt.FreqTranslation(Opt.FreqTranslation > 0) = Opt.FreqTranslation(Opt.FreqTranslation > 0) - Opt.FrameShift;
@@ -142,17 +129,14 @@ else
   end
   FreqTranslation = zeros(1,nDetOps);
   FreqTranslation(1:length(Opt.FreqTranslation)) = Opt.FreqTranslation;
-  Opt.FreqTranslation = FreqTranslation;
 end
-
-Opt.DetectionOperators = DetOps;
 
 
 % Calls the actual propagation engine
 [TimeAxis, RawSignal, FinalState, StateTrajectories, NewEvents] = thyme(Sigma, Ham, DetOps, Events, Relaxation, Vary);
 
 % Signal postprocessing, such as down conversion and filtering
-Signal = signalprocessing(TimeAxis,RawSignal,Opt);
+Signal = signalprocessing(TimeAxis,RawSignal,DetOps,FreqTranslation);
 
 end
 

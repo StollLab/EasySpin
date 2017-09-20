@@ -1,6 +1,6 @@
-function [ ProcessedSignal ] = signalprocessing(TimeAxis,RawSignal,Opt)
+function [ ProcessedSignal ] = signalprocessing(TimeAxis,RawSignal,DetectionOperators,FreqTranslation)
 % Number of detection operators
-nDetectionOperators = length(Opt.DetectionOperators);
+nDetectionOperators = length(DetectionOperators);
 
 % Setup vector with down conversion frequencies
 TranslationFrequencies = zeros(1,nDetectionOperators);
@@ -9,8 +9,8 @@ TranslationFrequencies = zeros(1,nDetectionOperators);
 % returned. Errors are usually when the down conversion frequency is very
 % wrong, or a non oscillating signal is to be down converted (Sz)
 try
-  nDownConversionFrequencies = length(Opt.FreqTranslation);
-  TranslationFrequencies(1:nDownConversionFrequencies) = Opt.FreqTranslation;
+  nDownConversionFrequencies = length(FreqTranslation);
+  TranslationFrequencies(1:nDownConversionFrequencies) = FreqTranslation;
   
   % Recognizing the type of the input, wheter it is a cell or numeri array
   % and gets the number of acquisition points

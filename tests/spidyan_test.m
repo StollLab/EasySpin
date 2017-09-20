@@ -17,27 +17,36 @@ Sys.T2 = 0.5;
 % Experiment -------------------
 Pulse.Type = 'quartersin/linear';
 Pulse.trise = 0.015; % us
-% Pulse.ComplexExcitation = false;
+% Pulse.Qcrit = 0.5;
+% Pulse.Amplitude = 30;
+% Pulse.ComplexExcitation = true;
 
 % PC = [0 1; pi -1];
 
-Exp.t = [0.1 0.5 0.1];
-Exp.Pulses = {Pulse 0 Pulse};
-Exp.Field = 1240; % New Field: Magnetic Field
-Exp.TimeStep = 0.00001; % us
+Exp.t = [0.1 0.01 0.1 0.5 0.1 0.5];
+Exp.Pulses = {Pulse 0 Pulse 0 Pulse};
+Exp.Field = 1240; 
+Exp.TimeStep = 0.0001; % us
 Exp.Frequency = [-0.100 0.100];
 Exp.Flip = [pi pi pi pi];
 Exp.mwFreq = 33.5;
+Exp.DetEvents = [1 1 1 1 1 1]; 
 % Exp.PhaseCycle{1} = PC;
 
-% Exp.Dim1 = {'p2.Position' 0.01};
+Exp.Resonator.nu0 = 33.5;
+Exp.Resonator.QL = 200;
+Exp.Resonator.Mode = 'compensate';
+% Exp.Resonator.nu = [];
+% Exp.Resonator.TransferFunction = [];
+
+Exp.Dim1 = {'p2.Flip' -0.5};
+Exp.Dim2 = {'p3.Position' -0.45};
 % Exp.Dim2 = {'d2' 0.01};
-% Exp.nPoints = [2];
+Exp.nPoints = [2 2];
 
 % Detection -------------------------
-Opt.DetOperator = {'z1','+1'}; % Need a field name here, make a new branch
-Opt.FreqTranslation = [0 -33.5]; 
-Opt.DetectedEvents = [1 0 1]; 
+Opt.DetOperator = {'z1'};
+Opt.FreqTranslation = [0 -33.5 -33.5]; 
 
 
 % Options ---------------------------
@@ -45,11 +54,6 @@ Opt.Relaxation = [0 0];
 % Opt.ExcOperator = {[0 0.5; 0.5 0] 'x1'};
 Opt.FrameShift = 32;
 Opt.Resonator = [];
-
-% delatFreq = Exp.mwFreq r- Opt.SimulationFrame;
-
-
-% Move this into detection structure?
 Opt.StateTrajectories = [];
 
 
@@ -67,6 +71,7 @@ try
     plotsignal = squeeze(signal(i,:,:));
     plot(t(i,:),real(plotsignal))
   end
+%   plot(t(i,:),imag(plotsignal))
 
 catch
   figure(2);clf
