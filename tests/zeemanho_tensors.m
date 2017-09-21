@@ -4,7 +4,7 @@ function [err,data] = test(opt,olddata)
 % matrix output
 %==================================================================
 
-rand('twister',5); % seed randon number generator
+rng_(5,'twister'); % seed randon number generator
 
 Sys.S = 9/2;
 
