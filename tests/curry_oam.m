@@ -1,7 +1,7 @@
 function [err,data] = test(opt,olddata)
 %orbital angular momenta can also be defined as spins, therefore the 
 %results should be identical for the two cases
-rand('twister',5);
+rng_(5,'twister');
 n = randi_(2);
 Sys.S = randi_(3,1,n)/2;
 Sys.g = rand(3*n,3);
