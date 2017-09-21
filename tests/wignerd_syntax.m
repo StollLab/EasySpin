@@ -9,7 +9,7 @@ m1 = -7/2;
 m2 = 3/2;
 Jm1m2 = [J m1 m2];
 
-rng(1);
+rng_(1,'twister');
 
 alpha = rand*2*pi;
 beta = rand*pi;

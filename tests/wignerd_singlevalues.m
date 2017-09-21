@@ -5,7 +5,7 @@ function [err,data] = test(opt,olddata)
 % compiled from single-element calls to wignerd()
 %============================================================================
 
-rng(15654);
+rng_(15654,'twister');
 
 Jlist = [0.5 1 2 3 5 8];
 
