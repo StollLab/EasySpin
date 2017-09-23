@@ -646,8 +646,10 @@ end
 Sys.fullnn = false;
 if nNuclei<2
   
-  if isfield(Sys,'nn') && ~(isempty(Sys.nn) || all(Sys.nn==0))
-    error('Nuclear-nuclear couplings specified in Sys.nn, but fewer than two nuclei given.');
+  if isfield(Sys,'nn')
+    if ~isempty(Sys.nn) && any(Sys.nn(:)~=0)
+      error('Nuclear-nuclear couplings specified in Sys.nn, but fewer than two nuclei given.');
+    end
   end
   
 else
@@ -945,7 +947,7 @@ if isfield(Sys,'L') && ~isempty(Sys.L)
     return
   end
   if size(Sys.soc,1) ~= nElectrons
-    if size(Sys.soc)==[1,nElectrons]
+    if issize(Sys.soc,[1,nElectrons])
       Sys.soc = Sys.soc.';
     else
       err = 'Number of spin-orbit couplings must match number of spins!';
