@@ -219,7 +219,6 @@ switch method
     % Dimension
     %----------------------------------------------------------------------
     for iPoints = 1 : nPoints
-      tic
       
       EventLengths = InitialEventLengths;
       Sigma = initialSigma;
@@ -741,7 +740,6 @@ switch method
           end
         end
       end
-      toc
       
       FinalStates(iPoints,:,:) = Sigma;
       %--------------------------------------------------------------------

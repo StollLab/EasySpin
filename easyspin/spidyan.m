@@ -138,6 +138,8 @@ end
 % Signal postprocessing, such as down conversion and filtering
 Signal = signalprocessing(TimeAxis,RawSignal,DetOps,FreqTranslation);
 
+% Signal = squeeze(Signal);
+
 end
 
 

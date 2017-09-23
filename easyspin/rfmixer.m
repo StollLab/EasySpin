@@ -14,7 +14,7 @@
 %   If no outputs are requested, the results are plotted.
 %
 %   Input:
-%   - tIn:        time axis, in 탎
+%   - tIn:        time axis, in ?s
 %   - signalIn:   input signal vector, in-phase part only for DSB,
 %                 SSB or IQ demodulation mode, in-phase and quadrature
 %                 part for IQ mixer and IQ frequency shift operation
@@ -29,7 +29,7 @@
 %                 'IQdemod' = IQ demodulator
 %                 'IQshift' = IQ frequency shifter (up- or downconversion)
 %   - Options:
-%     Opt.dt =     time step for the output signal, in 탎.
+%     Opt.dt =     time step for the output signal, in ?s.
 %                  If no time step for resampling is given and the input
 %                  time axis is too large, a new time step is computed as
 %                  1/(2*Opt.OverSampleFactor*maxfreq).
@@ -56,7 +56,7 @@
 %                                the noise level in the signal and baseline).
 %
 %   Output:
-%   - tOut:          time axis for the output signal, in 탎.
+%   - tOut:          time axis for the output signal, in ?s.
 %   - signalOut:     output signal vector, in-phase component only for DSB,
 %                    SSB or IQmod, in-phase and quadrature component for
 %                    IQdemod and IQshift
@@ -106,8 +106,10 @@ if any(strcmpi(type,{'DSB','USB','LSB','IQdemod'}));
   end
 elseif any(strcmpi(type,{'IQmod','IQshift'}));
   if isreal(signal)
-    error(['Both input and quadrature components of the input signal are ',...
-           'required for the selected mixer type.'])
+    warning(['Both input and quadrature components of the input signal are ',...
+           'required for the selected mixer type. The quadrature component ',...
+           'is assumed to be zero.'])
+    signal = signal + 1i*ones(size(signal))*1e-300;
   end
 else
   error('The selected mixer type is not available.')
@@ -157,17 +159,17 @@ if abs(mwFreq*1e3) > maxFreqIn % for upconversion
 else % for downconversion
   maxFreqOut = max([abs(mwFreq*1e3) maxFreqIn]);
 end
-nyqdt = 1/(2*maxFreqOut); % 탎, dt for Nyquist criterion
+nyqdt = 1/(2*maxFreqOut); % ?s, dt for Nyquist criterion
 
 tIn = t;
-dtIn = tIn(2) - tIn(1); % input signal time step, in 탎
+dtIn = tIn(2) - tIn(1); % input signal time step, in ?s
 if isfield(Opt,'dt')
   if Opt.dt>nyqdt
     fprintf('Warning: Maximum frequency exceeds Nyquist frequency for specified resampling time step.\n')
   end
 else
   if dtIn > nyqdt
-    Opt.dt = 1/(2*Opt.OverSampleFactor*maxFreqOut); % default resampling time step, in 탎
+    Opt.dt = 1/(2*Opt.OverSampleFactor*maxFreqOut); % default resampling time step, in ?s
   else
     Opt.dt = dtIn;
   end

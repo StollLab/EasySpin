@@ -53,7 +53,6 @@ Opt.FreqTranslation = [0 -33.5 -33.5];
 Opt.Relaxation = [0 0];
 % Opt.ExcOperator = {[0 0.5; 0.5 0] 'x1'};
 Opt.FrameShift = 32;
-Opt.Resonator = [];
 Opt.StateTrajectories = [];
 
 

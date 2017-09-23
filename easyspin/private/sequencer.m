@@ -8,7 +8,7 @@ Vary = [];
 
 % Check if resonator is 
 if isfield(Exp,'Resonator')
-  Resonator = true;
+  InclResonator = true;
   
   if ~isfield(Exp,'mwFreq')
     error('For using a resonator, the field Exp.mwFreq needs to be provided, and Exp.Frequency needs to be defined in relation to that.')
@@ -42,7 +42,7 @@ if isfield(Exp,'Resonator')
     Resonator.Arg3 = 'simulate';
   end
 else
-  Resonator = false;
+  InclResonator = false;
 end
 
 
@@ -106,10 +106,12 @@ for iEvent = 1 : length(Exp.t)
     end
        
     % Gets the flip angle 
-    if length(Exp.Flip) < iPulse
+    if isfield(Exp,'Flip') &&iPulse <= length(Exp.Flip)  
+      Pulse.Flip = Exp.Flip(iPulse);
+    elseif ~isfield(Pulse,'Qcrit') && ~isfield(Pulse,'nu1')
       error('No Flipangle for Pulse No. %d provided.',iPulse)
     else
-      Pulse.Flip = Exp.Flip(iPulse);
+      
     end
     
     % Gets the phase for the pulse, if none is provided, the phase is
@@ -139,7 +141,7 @@ for iEvent = 1 : length(Exp.t)
     for iPCstep = 1 : size(Pulse.PhaseCycle,1)
       Pulse.Phase = Pulse.Phase+Pulse.PhaseCycle(iPCstep,1);
       [t,IQ] = pulse(Pulse);
-      if Resonator
+      if InclResonator
         % if resonator is requested, pulses are elongated due to ringing.
         % the duration of ringing is stored in an additional field
         tOrig = t(end);
@@ -256,7 +258,7 @@ end
 % -------------------------------------------------------------------------
 % Checks for overlap of pulses that are subject to ringing
 % -------------------------------------------------------------------------
-if Resonator
+if InclResonator
   for iEvent = PulseIndices
     FollowingEvent = iEvent + 1;
     if FollowingEvent <= length(Exp.t) && strcmp(Events{FollowingEvent}.type,'pulse')

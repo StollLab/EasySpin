@@ -85,6 +85,7 @@ else
 end
 
 % Set up relaxation superoperator and equilibrium state
+
 % --------------------------------------------------------------------------------------
 if Sys.T1==0 && Sys.T2==0
   Relaxation = [];
@@ -107,6 +108,10 @@ else
     % initial state is copied from initial state
     Relaxation.equilibriumState  = Sigma0;
   end
+end
+
+if isfield(Opt,'Relaxation') && any(Opt.Relaxation) && isempty(Relaxation)
+  error('You need to provide relaxation times if you request Opt.Relaxation')
 end
 
 % Set up excitation operators
