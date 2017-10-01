@@ -120,12 +120,16 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
   if ~iscell(Sys), Sys = {Sys}; end
   
   nComponents = numel(Sys);
-  logmsg(1,'%d spin system(s)...');
+  if nComponents>1
+    logmsg(1,'  %d component spin systems...');
+  else
+    logmsg(1,'  single spin system');
+  end
   
   for c = 1:nComponents
     SysList{c} = isotopologues(Sys{c},Opt.IsoCutoff);
     nIsotopologues(c) = numel(SysList{c});
-    logmsg(1,'  component %d: %d isotopologues',c,nIsotopologues(c));
+    logmsg(1,'    component %d: %d isotopologues',c,nIsotopologues(c));
   end
   
   if (sum(nIsotopologues)>1) && SweepAutoRange
@@ -137,26 +141,30 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
     error('Multiple components: Please specify sweep range manually using %s.',str);
   end
   
-  separateComponentOutput = (sum(nIsotopologues)>1) && ~summedOutput;
-  if separateComponentOutput
-    Opt.Output = 'summed';
+  PowderSimulation = ~isfield(Exp,'CrystalOrientation') || isempty(Exp.CrystalOrientation);
+  appendSpectra = PowderSimulation && ~summedOutput;
+  if appendSpectra
     spec = [];
   else
     spec = 0;
   end
   
-  iSpc = 1;
+  % Loop over all components and isotopologues
   for iComponent = 1:nComponents
     for iIsotopologue = 1:nIsotopologues(iComponent)
+      
+      % Simulate single-isotopologue spectrum
       Sys_ = SysList{iComponent}(iIsotopologue);
       Sys_.singleiso = true;
       [xAxis,spec_,Transitions] = pepper(Sys_,Exp,Opt);
-      if separateComponentOutput
-        spec(iSpc,:) = spec_*Sys_.weight;
-        iSpc = iSpc + 1;
+      
+      % Accumulate or append spectra
+      if appendSpectra
+        spec = [spec; spec_*Sys_.weight];
       else
         spec = spec + spec_*Sys_.weight;
       end
+      
     end
   end
   
@@ -1126,6 +1134,7 @@ if (FieldSweep) && (PowderSimulation)
   end
 end
 
+
 % Convolution with line shape.
 %-----------------------------------------------------------------------
 if (ConvolutionBroadening)
@@ -1179,7 +1188,7 @@ if (ConvolutionBroadening)
   % Convolution with Lorentzian
   if (fwhmL>2*Exp.deltaX)
     logmsg(1,'  convoluting with Lorentzian, FWHM %g %s, derivative %d',fwhmL,unitstr,HarmonicL);
-    if min(size(spec))==1, fwhm = [fwhmL 0]; else fwhm = [0 fwhmL]; end
+    fwhm = [0 fwhmL]; % only convolve along 2nd dimension (= field/freq dimension)
     spec = convspec(spec,Exp.deltaX,fwhm,HarmonicL,0,mwPhaseL);
   else
     % Skip convolution, since it has no effect with such a narrow delta-like Lorentzian.
@@ -1188,7 +1197,7 @@ if (ConvolutionBroadening)
   % Convolution with Gaussian
   if (fwhmG>2*Exp.deltaX)
     logmsg(1,'  convoluting with Gaussian, FWHM %g %s, derivative %d',fwhmG,unitstr,HarmonicG);
-    if min(size(spec))==1, fwhm = [fwhmG 0]; else fwhm = [0 fwhmG]; end
+    if size(spec,1)>1, fwhm = [0 fwhmG]; else, fwhm = fwhmG; end
     spec = convspec(spec,Exp.deltaX,fwhm,HarmonicG,1,mwPhaseG);
   else
     % Skip convolution, since it has no effect with such a narrow delta-like Gaussian.
@@ -1215,6 +1224,7 @@ else
   end
 
 end
+
 
 % Field modulation
 %-----------------------------------------------------------------------
