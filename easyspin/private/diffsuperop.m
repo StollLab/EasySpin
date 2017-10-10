@@ -36,7 +36,7 @@ for b1 = 1:nBasis
     K2  = K(b2);
     jK2 = jK(b2);
     
-    if (L1~=L2), break; end
+    if (L1~=L2), continue; end
     if (M1~=M2), continue; end
     if (abs(K1-K2) > 2), continue; end
     if (jK1~=jK2), continue; end
@@ -95,12 +95,12 @@ if usePotential
       end
       
       val_ = 0;
-      idx_xL = 1;
       prefactor = prefactorL*prefactorK;
-      for xL = 0:min(abs(L1-L2),xLmax)
+      for xL = abs(L1-L2):min(xLmax,L1+L2)
+        idx_xL = xL+1;
         
         % calculate M-dependent 3j-symbol
-        if abs(M1)>L1 || xL>0 || abs(M1)>L2
+        if abs(M1)>L1 || abs(M1)>L2
           jjjxM = 0;
         else
           jjjxM = wigner3j(L1,xL,L2,M1,0,-M1);
@@ -137,7 +137,6 @@ if usePotential
         % combine terms
         val_ = val_ + prefactor * jjjxM * ...
                (sign1*xlk_1*jjjxK_1 + sign2*xlk_2*jjjxK_2);
-        idx_xL = idx_xL+1;
       end
       
       bra(idx) = b1;
@@ -153,7 +152,7 @@ end
 
 Gamma = Gamma_noU + Gamma_U;
 
-% Fill in lower triangular part
-%Gamma = Gamma + triu(Gamma,1).';
+%Fill in lower triangular part
+Gamma = Gamma + triu(Gamma,1).';
 
 return

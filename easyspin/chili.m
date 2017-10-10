@@ -97,11 +97,7 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
   if ~iscell(Sys), Sys = {Sys}; end
   
   nComponents = numel(Sys);
-  if nComponents>1
-    logmsg(1,'  %d component spin systems...');
-  else
-    logmsg(1,'  single spin system');
-  end
+  logmsg(1,'%d spin system(s)...');
   
   for c = 1:nComponents
     SysList{c} = isotopologues(Sys{c},Opt.IsoCutoff);
@@ -119,18 +115,12 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
   end
   
   spec = 0;
-  % Loop over all components and isotopologues
   for iComponent = 1:nComponents
     for iIsotopologue = 1:nIsotopologues(iComponent)
-      
-      % Simulate single-isotopologue spectrum
       Sys_ = SysList{iComponent}(iIsotopologue);
       Sys_.singleiso = true;
       [xAxis,spec_] = chili(Sys_,Exp,Opt);
-      
-      % Accumulate or append spectra
       spec = spec + spec_*Sys_.weight;
-      
     end
   end
   
@@ -732,7 +722,7 @@ if generalLiouvillian
   rmv = false;
   % (1) remove any transitions with pS<pSmin
   for ie = 1:Sys.nElectrons
-    rmv = rmv | pq(:,2*ie-1)<Basis.pSmin;
+    rmv = rmv | pq(:,2*ie-1)<Basis.pSmin; % JDL: is this a cause of error?
   end
   % (2) remove any transitions with |pI|>pImax, for each nucleus
   for in = 1:Sys.nNuclei
@@ -811,6 +801,7 @@ for iOri = 1:nOrientations
         Q2G{k} = Q2G{k}(idxpq,idxpq);
       end
     end
+    
   else
     Sys.d2psi = wignerd(2,phi(iOri),theta(iOri),0);
   end
@@ -820,10 +811,22 @@ for iOri = 1:nOrientations
   logmsg(1,'Computing starting vector...');
   if generalLiouvillian
     % set up in full product basis, then prune
-    StartingVector = startvec(Basis.List,SxOp);
+    StartingVector = startvec(Basis,Potential.lambda,SxOp);
     StartingVector = StartingVector(keep);
+    %JDLs
+    if Opt.SaveSV
+        jersv = StartingVector;
+        save('jersv.mat','jersv');
+    end
+    %JDLe
   else
     StartingVector = chili_startingvector(Basis,Potential,Sys.I);
+    %JDLs
+    if Opt.SaveSV
+      freedsv = StartingVector;
+      save('freedsv.mat','freedsv');
+    end
+    %JDLe
   end
   BasisSize = size(StartingVector,1);
   logmsg(1,'  vector size: %dx1',BasisSize);
@@ -847,6 +850,8 @@ for iOri = 1:nOrientations
     if explicitFieldSweep
       HB = liouvhamiltonian(Basis.List,Q0B,Q1B,Q2B,jjj0,jjj1,jjj2);
       HG = liouvhamiltonian(Basis.List,Q0G,Q1G,Q2G,jjj0,jjj1,jjj2);
+      HB = HB(keep,keep);
+      HG = HG(keep,keep);
     else
       Q0 = Q0B+Q0G;
       if any(F.F1(:))
@@ -864,6 +869,7 @@ for iOri = 1:nOrientations
         end
       end
       H = liouvhamiltonian(Basis.List,Q0,Q1,Q2,jjj0,jjj1,jjj2);
+      H = H(keep,keep);
     end
   end
       
@@ -894,14 +900,28 @@ for iOri = 1:nOrientations
       Dynamics.maxL = size(Potential.xlk,1)-1; % used in chili_lm
       [r,c,Vals,nDim] = chili_lm(Sys,Basis.v,Dynamics,Opt.AllocationBlockSize);
       L = sparse(r,c,Vals,BasisSize,BasisSize);
+      %JDLs
+      if Opt.SaveL && iOri==1
+        freedl = L;
+        save('freedl.mat','freedl');
+      end
+      %JDLe
     else
       
       if explicitFieldSweep
         H = BSweep(iB)*HB + HG;
-        L = -2i*pi*H(keep,keep) + Gamma;
+        %L = -2i*pi*H(keep,keep) + Gamma;
+        L = -2i*pi*H + Gamma;
       else
-        L = -2i*pi*H(keep,keep) + Gamma;
+        %L = -2i*pi*H(keep,keep) + Gamma;
+        L = -2i*pi*H + Gamma;
       end
+      %JDLs
+      if Opt.SaveL && iOri==1
+        jerl = L;
+        save('jerl.mat','jerl');
+      end
+      %JDLe
       nDim = size(L,1);
       
       if (nDim~=BasisSize)
