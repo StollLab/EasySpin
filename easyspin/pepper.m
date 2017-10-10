@@ -1188,7 +1188,7 @@ if (ConvolutionBroadening)
   % Convolution with Lorentzian
   if (fwhmL>2*Exp.deltaX)
     logmsg(1,'  convoluting with Lorentzian, FWHM %g %s, derivative %d',fwhmL,unitstr,HarmonicL);
-    fwhm = [0 fwhmL]; % only convolve along 2nd dimension (= field/freq dimension)
+    if size(spec,1)>1, fwhm = [0 fwhmL]; else, fwhm = fwhmL; end
     spec = convspec(spec,Exp.deltaX,fwhm,HarmonicL,0,mwPhaseL);
   else
     % Skip convolution, since it has no effect with such a narrow delta-like Lorentzian.
