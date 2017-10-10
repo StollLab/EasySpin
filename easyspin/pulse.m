@@ -12,7 +12,11 @@
 %                       determined automatically based on pulse parameters)
 %     Par.Flip        = pulse flip angle, in radians (see Ref. 1)
 %                       (default: pi)
-%     Par.Amplitude   = pulse amplitude, in MHz; ignored if Par.Flip given
+%     Par.Amplitude   = pulse amplitude, in MHz; ignored if Par.Flip or
+%                       Par.Qcrit are given
+%     Par.Qcrit       = critical adiabaticity, used to calculate pulse
+%                       amplitude for frequency-swept pulses [1]; if given
+%                       takes precedence over Par.Amplitude and Par.Flip
 %     Par.Frequency   = pulse frequency; center frequency for amplitude
 %                       modulated pulses, [start-frequency end-frequency]
 %                       for frequency swept pulses; (default: 0)
@@ -33,38 +37,35 @@
 %                       specified pulse shape. The pulse parameters
 %                       required for each of the available modulation
 %                       functions are listed below.
-%     Par.I, Par.Q    = I and Q data describing an arbitrary pulse.
+%     Par.I, .Q, .IQ  = I and Q data describing an arbitrary pulse.
 %                       The time axis is reconstructed based on Par.tp
 %                       and the length of the I and Q vectors, all other
 %                       input parameters (Amplitude, Flip, Frequency,
 %                       Phase, etc.) are ignored.
-%   If compensation for the resonator bandwidth is requested with
-%   Opt.BWCompensation, the following parameters also need to be defined:
-%     Par.MagnitudeResponse = magnitude response function (ideal or experimental)
-%     Par.faxis             = corresponding frequency axis in MHz
-%     Par.mwFreq            = microwave frequency for the experiment in GHz
+%   To compensate for the resonator bandwidth to get uniform adiabaticity
+%   (see Ref. 2), define:
+%     Par.FrequencyResponse  = frequency axis in GHz and resonator frequency 
+%                              response (ideal or experimental, real-valued
+%                              input is interpreted as magnitude response)
+%     Par.mwFreq             = microwave frequency for the experiment in GHz
+%   or
+%     Par.ResonatorFrequency = resonator center frequency in GHz
+%     Par.ResonatorQL        = loaded resonator Q-value
+%     Par.mwFreq             = microwave frequency for the experiment in GHz
 %
 %   Opt = optional structure with the following fields
-%     Opt.IQ               = on/off; complex-valued pulse (on) or
-%                            real-valued pulse (off) (default: on).
-%     Opt.BWCompensation   = on/off; compensate for the resonator
-%                            profile (see Ref. 2), available for linear chirp
-%                            and sech pulses (default: off).
-%                            This option requires definition of the
-%                            parameters Par.faxis, Par.MagnitudeResponse and
-%                            Par.mwFreq.
-%     Opt.OverSampleFactor = oversampling factor for the determination
-%                            of the time step (default: 10)
+%    Opt.OverSampleFactor = oversampling factor for the determination of the 
+%                           time step (default: 10)
 %
 % Available pulse modulation functions:
 %   - Amplitude modulation: rectangular, gaussian, sinc, halfsin, quartersin,
 %                           sech, WURST, Gaussian pulse cascades (G3, Q3, 
 %                           custom coefficients using 'GaussianCascade', see
-%                           private\GaussianCascadeCoefficients.txt for 
+%                           private/GaussianCascadeCoefficients.txt for 
 %                           details), Fourier-series pulses (I-BURP 1/2,
-%                           SNOB i2/i3, custom coefficients using 'FourierSeries',
-%                           see private\FourierSeriesCoefficients.txt for
-%                           details),
+%                           SNOB i2/i3, custom coefficients using 
+%                           'FourierSeries',see 
+%                           private/FourierSeriesCoefficients.txt for details)
 %   - Frequency modulation: none, linear, tanh, uniformQ
 %
 % The parameters required for the different modulation functions are:
@@ -89,7 +90,7 @@
 % 'GaussianCascade'     - A0        = list of relative amplitudes
 %                       - x0        = list of positions (in fractions of
 %                                     tp)
-%                       - tFWHM     = list of FWHM (in fractions of tp)
+%                       - FWHM     = list of FWHM (in fractions of tp)
 % 'FourierSeries'       - A0        = initial amplitude coefficient
 %                       - An        = list of Fourier coefficients for cos
 %                       - Bn        = list of Fourier coefficients for sin
@@ -112,8 +113,8 @@
 %                        (modulation.phase, in rad) modulation functions
 %
 % References:
-% 1. The conversion from flip angles to amplitudes is performed using the
-%    approximations described in:
+% 1. The conversion from flip angles or critical adiabaticities to amplitudes 
+%    is performed using the approximations described in:
 %    Jeschke, G., Pribitzer, S., Doll, A. Coherence Transfer by Passage
 %    Pulses in Electron Paramagnetic Resonance Spectroscopy.
 %    J. Phys. Chem. B 119, 13570–13582 (2015). (DOI: 10.1021/acs.jpcb.5b02964)
@@ -161,26 +162,18 @@ end
 
 plotResults = (nargout==0);
 
-if plotResults
-  calculateExciteProfile = true;
-else
-  calculateExciteProfile = false;
-end
-
 % Set parameters to defaults
-%----------------------------------------------------------------------
+% ----------------------------------------------------------------------- %
 if ~isfield(Par,'tp')
   error('Pulse length not defined in Par.tp.')
 end
 if ~isfield(Par,'Flip') || isempty(Par.Flip)
-  if ~isfield(Par,'Amplitude')
+  if ~isfield(Par,'Amplitude') && ~isfield(Par,'Qcrit')
     Par.Flip = pi;
     Par.Amplitude = [];
   else
     Par.Flip = [];
   end
-else
-  Par.Amplitude = [];
 end
 
 if ~isfield(Par,'Frequency') || isempty(Par.Frequency)
@@ -190,32 +183,73 @@ if ~isfield(Par,'Phase')
   Par.Phase = 0; % rad
 end
 
+if ~isfield(Par,'TimeStep') || isempty(Par.TimeStep)
+  estimateTimeStep = true;
+else
+  estimateTimeStep = false;
+end
+
 % Options
 % ----------------------------------------------------------------------- %
-if ~isfield(Opt,'IQ')
-  Opt.IQ = true;
-end
-if ~isfield(Opt,'BWCompensation')
-  Opt.BWCompensation = 0;
-end
 if ~isfield(Opt,'OverSampleFactor')
   Opt.OverSampleFactor = 10;
 end
 
+if plotResults
+  calculateExciteProfile = true;
+else
+  calculateExciteProfile = false;
+end
+
+% Check availability of required input
+% ----------------------------------------------------------------------- %
+BWCompensation = isfield(Par,'FrequencyResponse') || ...
+  isfield(Par,'ResonatorFrequency') || isfield(Par,'ResonatorQL');
+
+if BWCompensation
+  
+  if isfield(Par,'FrequencyResponse') && ~isempty(Par.FrequencyResponse)
+    [n1,n2] = size(Par.FrequencyResponse);
+    if n2==2
+      Par.FrequencyResponse = Par.FrequencyResponse.';
+    elseif n1~=2 && n2~=2
+      error(['Par.FrequencyResponse should contain both the frequency axis and the ',...
+        'resonator transfer function.']);
+    end
+  end
+
+  if isfield(Par,'ResonatorFrequency') && ~isempty(Par.ResonatorFrequency)
+    if ~isfield(Par,'ResonatorQL') || isempty(Par.ResonatorQL)
+      error(['Use of the resonator bandwidth compensation with an ideal transfer ',...
+        'function requires the inputs Par.ResonatorFrequency and Par.ResonatorQL.']);
+    end
+  end
+  
+  if ~isfield(Par,'mwFreq') || isempty(Par.mwFreq)
+    error('Par.mwFreq is required for the resonator bandwidth compensation.');
+  end
+  
+end
+
+   
 % ----------------------------------------------------------------------- %
 % Calculate pulse function
 % ----------------------------------------------------------------------- %
 modulation = struct;
 
 % Check if pulse I and Q data is given
-if (isfield(Par,'I') && ~isempty(Par.I)) || ...
+if (isfield(Par,'IQ') && ~isempty(Par.IQ)) || ...
+   (isfield(Par,'I') && ~isempty(Par.I)) || ...
    (isfield(Par,'Q') && ~isempty(Par.Q))
   
   if ~isfield(Par,'Type') || isempty(Par.Type)
     Par.Type = 'user-IQ';
   end
   
-  if ~isfield(Par,'I')
+  if isfield(Par,'IQ')
+    Par.I = real(Par.IQ);
+    Par.Q = imag(Par.IQ);
+  elseif ~isfield(Par,'I')
     Par.I = zeros(size(Par.Q));
   elseif ~isfield(Par,'Q')
     Par.Q = zeros(size(Par.I));
@@ -227,10 +261,20 @@ if (isfield(Par,'I') && ~isempty(Par.I)) || ...
   end
   
   t = linspace(0,Par.tp,numel(Par.I));
-  nPoints = numel(t);
   IQ = complex(Par.I,Par.Q);
   
-  Par.TimeStep = t(2)-t(1);
+  if isfield(Par,'TimeStep') && ~isempty(Par.TimeStep)
+    t0 = t;
+    t = t0(1):Par.TimeStep:t0(end);
+    IQ = interp1(t0,IQ,t,'spline');
+  else
+    Par.TimeStep = t(2)-t(1);
+  end
+  
+  if ~isempty(Par.Amplitude)
+    IQ = Par.Amplitude*IQ;
+  end
+  
   modulation.A = [];
   modulation.freq = [];
   modulation.phase = [];
@@ -318,13 +362,14 @@ else
         
       case {'gaussiancascade','g3','q3'}
         
-        if ~(isfield(Par,'A0') && isfield(Par,'x0') && isfield(Par,'tFWHM'))
+        if ~(isfield(Par,'A0') && isfield(Par,'x0') && isfield(Par,'FWHM'))
           
           if strcmp(AmplitudeModulation{na},'gaussiancascade')
-            error('The amplitudes A0, positions x0 and FWHM of the Gaussians are required as input.')
+            error(['The amplitudes A0, positions x0 and FWHM of the ',...
+                   'Gaussians are required as input.'])
           else
             % Load parameters from file
-            fname = 'private\GaussianCascadeCoefficients.txt';
+            fname = 'private/GaussianCascadeCoefficients.txt';
             fid = fopen(fname);
             while 1
               s = fgetl(fid);
@@ -336,7 +381,7 @@ else
                 s = fgetl(fid);
                 Par.A0 = sscanf(s,'%f');
                 s = fgetl(fid);
-                Par.tFWHM = sscanf(s,'%f');
+                Par.FWHM = sscanf(s,'%f');
               end
               term = strfind(s,'end');
               if term
@@ -347,8 +392,10 @@ else
             clear fid s fname id
           end
           
-        elseif ~(numel(Par.A0)==numel(Par.x0) && numel(Par.A0)==numel(Par.tFWHM))
-          error('The same number of parameters is required for the A0, x0 and tFWHM inputs.')
+        elseif ~(numel(Par.A0)==numel(Par.x0) && ...
+                 numel(Par.A0)==numel(Par.FWHM))
+          error(['The same number of parameters is required for the A0, ',...
+                 'x0 and FWHM inputs.'])
         end
         
       case {'fourierseries','i-burp 1','i-burp 2','snob i2','snob i3'}
@@ -360,7 +407,7 @@ else
             error('The Fourier coefficients A0, An and Bn are required as input.')
           else
             % Load Fourier coefficients from file
-            fname = 'private\FourierSeriesCoefficients.txt';
+            fname = 'private/FourierSeriesCoefficients.txt';
             fid = fopen(fname);
             while 1
               s = fgetl(fid);
@@ -389,7 +436,8 @@ else
                
       otherwise
         
-        error('The amplitude modulation function ''%s'' is not defined.',AmplitudeModulation{na});
+        error('The amplitude modulation function ''%s'' is not defined.',...
+              AmplitudeModulation{na});
         
     end
   end
@@ -399,15 +447,17 @@ else
     case 'none'
       
       if numel(Par.Frequency)>1
-        error(['Frequency modulation is set to ''none'', but a frequency range is ',...
-          'given in Par.Frequency. Please define a single pulse frequency.']);
+        error(['Frequency modulation is set to ''none'', but a frequency ',...
+               'range is given in Par.Frequency. Please define a single ',...
+               'pulse frequency.']);
       end
       
     case 'linear'
       
       if numel(Par.Frequency)~=2
         error(['Pulse FM function not sufficiently defined. ',...
-          'Specify frequency range for the linear chirp in Par.Frequency (in MHz).']);
+          'Specify frequency range for the linear chirp in Par.Frequency ',...
+          '(in MHz).']);
       end
       
     case 'tanh'
@@ -430,42 +480,35 @@ else
       
     otherwise
       
-      error('The frequency modulation function ''%s'' is not defined.',FrequencyModulation);
+      error('The frequency modulation function ''%s'' is not defined.',...
+            FrequencyModulation);
       
   end
   
-  if any(ismember(AmplitudeModulation,'sech')) && strcmp(FrequencyModulation,'tanh') && ...
+  if any(ismember(AmplitudeModulation,'sech')) && ...
+      strcmp(FrequencyModulation,'tanh') && ...
       (isfield(Par,'n') && ~isempty(Par.n) && any(Par.n~=1))
-    warning('For uniform adiabaticity pulses with nth order sech amplitude modulation use Par.Type = ''sech/uniformQ''.');
+    warning(['For uniform adiabaticity pulses with nth order sech amplitude',...
+             'modulation use Par.Type = ''sech/uniformQ''.']);
+  end
+  % For frequency-swept pulses Qcrit takes precedence over Flip and Amplitude
+  if isfield(Par,'Qcrit') && ~isempty(Par.Qcrit)
+    if strcmp(FrequencyModulation,'none')
+      warning(['For a pulse without frequency modulation, the Qcrit input ',...
+               'parameter is ignored.']);
+      Par.Qcrit = [];
+      if ~isfield(Par,'Amplitude') || isempty(Par.Amplitude)
+        Par.Flip = pi;
+      end
+    else
+      Par.Amplitude = [];
+      Par.Flip = [];
+    end
   end
   
-  if Opt.BWCompensation
-    
-    % Bandwidth compensation is implemented for these pulses
-    if (strcmp(FrequencyModulation,'linear') && (strcmp(AmplitudeModulation,'rectangular') || strcmp(AmplitudeModulation,'quartersin'))) || ...
-        (strcmp(FrequencyModulation,'tanh') && strcmp(AmplitudeModulation,'sech')) || ...
-        (strcmp(FrequencyModulation,'uniformq') && strcmp(AmplitudeModulation,'sech'))
-      
-      if (~isfield(Par,'faxis') || isempty(Par.faxis)) || ...
-          (~isfield(Par,'MagnitudeResponse') || isempty(Par.MagnitudeResponse))
-        error(['Pulse FM function not sufficiently defined. ',...
-          'Specify the resonator magnitude response function (Par.faxis, Par.MagnitudeResponse).']);
-      end
-      if ~isfield(Par,'mwFreq') || isempty(Par.mwFreq)
-        error(['Pulse FM function not sufficiently defined. ',...
-          'Par.mwFreq is required to compute resonator bandwidth compensation.']);
-      end
-      
-    else
-      error(['Bandwidth compensation is not implemented for the selected pulse. ',...
-        'See documentation for more details.']);
-    end
-    
-  end
-   
   % Estimate pulse bandwidth (for timestep determination)
   % --------------------------------------------------------------------- %
-  if ~isfield(Par,'TimeStep')
+  if estimateTimeStep
     
     % Determine bandwidth of frequency modulation
     switch FrequencyModulation
@@ -512,7 +555,7 @@ else
         case {'gaussiancascade','g3','q3'}
           A0 = zeros(1,numel(t0));
           for j = 1:numel(Par.A0)
-            A0 = A0 + Par.A0(j)*exp(-(4*log(2)/(Par.tFWHM(j)*Par.tp)^2)*(t0-Par.x0(j)*Par.tp).^2);
+            A0 = A0 + Par.A0(j)*exp(-(4*log(2)/(Par.FWHM(j)*Par.tp)^2)*(t0-Par.x0(j)*Par.tp).^2);
           end
           A0 = A0/max(A0);
         case {'fourierseries','i-burp 1','i-burp 2','snob i2','snob i3'}
@@ -537,11 +580,6 @@ else
     AM_BW = 2*(f(indmax+indbw(end))-f(indmax));
     
     BW = max([FM_BW AM_BW]);
-    
-  end
-  
-  % Set up time axis
-  if ~isfield(Par,'TimeStep') || isempty(Par.TimeStep)
     
     % Automatically determine appropriate time step
     % ------------------------------------------------------------------- %
@@ -623,7 +661,7 @@ else
         
         A = zeros(1,numel(t));
         for j = 1:numel(Par.A0)
-          A = A + Par.A0(j)*exp(-(4*log(2)/(Par.tFWHM(j)*Par.tp)^2)*(t-Par.x0(j)*Par.tp).^2);
+          A = A + Par.A0(j)*exp(-(4*log(2)/(Par.FWHM(j)*Par.tp)^2)*(t-Par.x0(j)*Par.tp).^2);
         end
         A = A/max(A);
         
@@ -640,7 +678,8 @@ else
   end
   
   % ------------------------------------------------------------------- %
-  % Frequency (modulation.freq) and phase (modulation.phase) modulation functions
+  % Frequency (modulation.freq) and phase (modulation.phase) modulation 
+  % functions
   % ------------------------------------------------------------------- %
   switch FrequencyModulation
     
@@ -683,7 +722,7 @@ else
   % ------------------------------------------------------------------- %
   % Calculate bandwidth compensation
   % ------------------------------------------------------------------- %
-  if Opt.BWCompensation
+  if BWCompensation
     
     % Variable-rate chirps with resonator bandwidth compensation, as
     % described in:
@@ -707,20 +746,34 @@ else
     
     % Resonator profile in the frequency range of the pulse
     newaxis = nu0 + mean(Par.Frequency) + Par.mwFreq*1e3; % MHz
-    if min(newaxis)<min(Par.faxis) || max(newaxis)>max(Par.faxis)
-      error(['The frequency sweep width of the pulse extends further than ',...
-        'the given resonator profile. Please provide the resonator ',...
-        'profile for the complete pulse frequency sweep width.'])
+    if isfield(Par,'FrequencyResponse')
+      f = Par.FrequencyResponse(1,:)*1e3; % GHz to MHz
+      H = Par.FrequencyResponse(2,:);
+      if min(newaxis)<min(f) || max(newaxis)>max(f)
+        error(['The frequency sweep width of the pulse extends further than ',...
+          'the given resonator profile. Please provide the resonator ',...
+          'profile for the complete pulse frequency sweep width.'])
+      end
+      if ~isreal(H)
+        H = abs(H);
+      end
+      profile = interp1(f,H,newaxis);
+    elseif isfield(Par,'ResonatorFrequency')
+      % Calculate ideal resonator transfer function
+      f0 = Par.ResonatorFrequency*1e3; % center frequency
+      QL = Par.ResonatorQL; % loaded Q-value
+      profile = abs(1./(1+1i*QL*(newaxis/f0-f0./newaxis)));
     end
-    profile = interp1(Par.faxis,Par.MagnitudeResponse,newaxis);
-    if strcmp(AmplitudeModulation,'sech')
+    
+    if strcmp(FrequencyModulation,'uniformQ') || strcmp(Par.Type,'sech/tanh')
+      % Amplitude modulation function taken into account in nu1 for pulses
+      % with uniform adiabaticity
       profile = A0.*profile;
     end
     
     % Frequency dependence of t and time-to-frequency mapping
-    c_ = trapz(nu0,1./profile.^2)/t(end); % const = 2*pi/Qref
-    % Qref = reference adiabaticity
-    t_f = cumtrapz(nu0,(1/c_)*profile.^-2);
+    int = cumtrapz(nu0,profile.^-2);
+    t_f = t(end)*int/int(end);
     nu_adapted = interp1(t_f,nu0,t,'pchip');
     
     % New frequency, phase and amplitude modulation functions
@@ -728,19 +781,24 @@ else
     modulation.phase = 2*pi*cumtrapz(t,modulation.freq);
     modulation.phase = modulation.phase + abs(min(modulation.phase));  % zero phase offset at pulse center
     
-    modulation.A = interp1(nu0,modulation.A,nu_adapted,'pchip');
+    if strcmp(FrequencyModulation,'uniformQ') || strcmp(Par.Type,'sech/tanh')
+      modulation.A = interp1(nu0,A0,nu_adapted,'pchip');
+    end
     
   end
   
   % ------------------------------------------------------------------- %
   % Determine pulse amplitude from flip angle (if only Par.Flip is given)
+  % or from the critical adiabaticity
   % ------------------------------------------------------------------- %
-  if (isfield(Par,'Flip') && ~isempty(Par.Flip)) && ...
-     (~isfield(Par,'Amplitude') || isempty(Par.Amplitude))
+  if (~isfield(Par,'Amplitude') || isempty(Par.Amplitude))
+    
     if strcmp(FrequencyModulation,'none')
       % Amplitude-modulated pulses: flip angle = integral
       
-      Par.Amplitude = Par.Flip/(2*pi*trapz(t,modulation.A));
+      if (isfield(Par,'Flip') && ~isempty(Par.Flip))
+        Par.Amplitude = Par.Flip/(2*pi*trapz(t,modulation.A));
+      end
       
     else
       % Frequency-modulated pulses
@@ -749,13 +807,16 @@ else
       %   see Jeschke et al. (2015) J. Phys. Chem. B, 119, 13570–13582.
       %   http://dx.doi.org/10.1021/acs.jpcb.5b02964
       
-      if Par.Flip>pi
-        error('Pulse amplitude calculation from flip angle not applicable for angles larger than pi.');
+      if ((~isfield(Par,'Qcrit') || isempty(Par.Qcrit)) && ...
+         (isfield(Par,'Flip') && ~isempty(Par.Flip)))
+        if Par.Flip>pi
+          error('Pulse amplitude calculation from flip angle not applicable for angles larger than pi.');
+        end
+        Par.Qcrit = (2/pi)*log(2/(1+cos(Par.Flip)));
+        Par.Qcrit = min(Par.Qcrit,5); % set Q_crit to finite value if it is infinite or large
       end
-      Q_crit = (2/pi)*log(2/(1+cos(Par.Flip)));
-      Q_crit = min(Q_crit,5); % set Q_crit to finite value if it is infinite or large
       
-      if Opt.BWCompensation==0
+      if ~BWCompensation
         switch FrequencyModulation
           case 'linear'
             sweeprate = abs(Par.Frequency(2)-Par.Frequency(1))/Par.tp;
@@ -778,11 +839,11 @@ else
         sweeprate = dnu(ind)/(2*pi*(modulation.A(ind))^2);
       end
       
-      Par.Amplitude = sqrt(2*pi*Q_crit*sweeprate)/(2*pi);
+      Par.Amplitude = sqrt(2*pi*Par.Qcrit*sweeprate)/(2*pi);
       
     end
   end
-  
+    
   % ------------------------------------------------------------------- %
   % Calculate pulse IQ function
   % ------------------------------------------------------------------- %
@@ -790,16 +851,11 @@ else
   totalphase = modulation.phase + 2*pi*mean(Par.Frequency)*t + Par.Phase;
   IQ = modulation.A.*exp(1i*totalphase);
   
-  % Real-valued pulse
-  if ~Opt.IQ
-    IQ = real(IQ);
-  end
-  
 end
 
-% --------------------------------------------------------------------- %
+% ----------------------------------------------------------------------- %
 % Excitation profile calculation
-% --------------------------------------------------------------------- %
+% ----------------------------------------------------------------------- %
 
 if calculateExciteProfile
   
@@ -871,11 +927,6 @@ if plotResults
   ylabel('amplitude (MHz)')
   set(gca,'Layer','top')
   legend([S.hI S.hQ],'I','Q','Location','SouthEast')
-  if ~Opt.IQ
-    set(S.hQ,'Visible','off')
-    legend(S.hI,'I','Location','SouthEast')
-    set(S.tick(2),'Value',0,'Enable','off')
-  end
   
   % Frequency modulation plot
   S.label(2) = uicontrol('Style','text','String','Frequency modulation:',...
@@ -922,30 +973,28 @@ if plotResults
     'Units','Normalized','Position',[5*sep+2.5*width boxpos 0.1 0.1]);
   S.ha(3) = axes('Units','Normalized','Position',[3.5*sep+2*width,btm,width,height]);
   hold on; box on;
-  line([min(exprof.offsets) max(exprof.offsets)],[0 0],'Color',colBW);
-  line([1 1]*mean(Par.Frequency),[-1 1],'Color',colBW);
-  if numel(Par.Frequency)==2
-    line([1 1]*Par.Frequency(1),[-1 1],'Color',colBW);
-    line([1 1]*Par.Frequency(2),[-1 1],'Color',colBW);
-  end
-  if ~Opt.IQ
-    line([0 0],[-1 1],'Color','k');
-    line(-[1 1]*mean(Par.Frequency),[-1 1],'Color',colBW);
+  if exist('exprof','var')
+    line([min(exprof.offsets) max(exprof.offsets)],[0 0],'Color',colBW);
+    line([1 1]*mean(Par.Frequency),[-1 1],'Color',colBW);
     if numel(Par.Frequency)==2
-      line(-[1 1]*Par.Frequency(1),[-1 1],'Color',colBW);
-      line(-[1 1]*Par.Frequency(2),[-1 1],'Color',colBW);
+      line([1 1]*Par.Frequency(1),[-1 1],'Color',colBW);
+      line([1 1]*Par.Frequency(2),[-1 1],'Color',colBW);
     end
+    S.h(1) = plot(exprof.offsets,exprof.M(1,:),'Color',colx);
+    S.h(2) = plot(exprof.offsets,exprof.M(2,:),'Color',coly);
+    S.h(3) = plot(exprof.offsets,exprof.M(3,:),'Color',colz);
+    set(S.h(1),'Visible','off')
+    set(S.h(2),'Visible','off')
+    ylabel('{\itM}_i/{\itM}_0')
+    legend(S.h,'x','y','z','Location','SouthEast')
+    xlabel('frequency (MHz)')
+    axis([exprof.offsets(1) exprof.offsets(end) -1 1])
+    set(gca,'Layer','top')
+  else
+    S.h(1) = [];
+    S.h(2) = [];
+    S.h(3) = [];
   end
-  S.h(1) = plot(exprof.offsets,exprof.M(1,:),'Color',colx);
-  S.h(2) = plot(exprof.offsets,exprof.M(2,:),'Color',coly);
-  S.h(3) = plot(exprof.offsets,exprof.M(3,:),'Color',colz);
-  set(S.h(1),'Visible','off')
-  set(S.h(2),'Visible','off')
-  ylabel('{\itM}_i/{\itM}_0')
-  legend(S.h,'x','y','z','Location','SouthEast')
-  xlabel('frequency (MHz)')
-  axis([exprof.offsets(1) exprof.offsets(end) -1 1])
-  set(gca,'Layer','top')
   
   S.handles = [S.hI S.hQ S.h(1) S.h(2) S.h(3)];
   set(S.tick,'Callback',{@showhide,S});
@@ -962,7 +1011,9 @@ switch nargout
     varargout = {t,IQ};
   case 3 % [t,IQ,modulation] = pulse(...)
     modulation.freq = modulation.freq + mean(Par.Frequency);
-    modulation.phase = modulation.phase + 2*pi*mean(Par.Frequency)*t + Par.Phase;
+    if ~isempty(modulation.phase)
+      modulation.phase = modulation.phase + 2*pi*mean(Par.Frequency)*t + Par.Phase;
+    end
     varargout = {t,IQ,modulation};
   otherwise
     error('The function pulse() needs 2 or 3 output arguments.')
@@ -970,17 +1021,24 @@ end
 
 end
 
-% Callback for tick boxes
+
+% Plot update
+% ----------------------------------------------------------------------- %
 function showhide(varargin)
+% Callback for tick boxes
 
 S = varargin{3}; % get calling handle structure
 
 for i = 1:numel(S.tick)
   val = get(S.tick(i),'Value');
   if val==1
-    set(S.handles(i),'Visible','on')
+    if ~isempty(S.handles(i))
+      set(S.handles(i),'Visible','on');
+    end
   else
-    set(S.handles(i),'Visible','off');
+    if ~isempty(S.handles(i))
+      set(S.handles(i),'Visible','off');
+    end
   end
 end
 

@@ -76,19 +76,59 @@ EasySpinLogLevel = Opt.Verbosity;
 FrequencyAutoRange = (~isfield(Exp,'Range') || isempty(Exp.Range)) && ...
   (~isfield(Exp,'CenterSweep') || isempty(Exp.CenterSweep));
 if ~isfield(Opt,'IsoCutoff'), Opt.IsoCutoff = 1e-4; end
+if ~isfield(Opt,'Output'), Opt.Output = 'summed'; end
 
-if ~isfield(Sys,'singleiso')
+[Output,err] = parseoption(Opt,'Output',{'summed','separate'});
+error(err);
+summedOutput = Output==1;
 
-  [SysList,weight] = expandcomponents(Sys,Opt.IsoCutoff);
+
+if ~isfield(Sys,'singleiso') || ~Sys.singleiso
+
+  if ~iscell(Sys), Sys = {Sys}; end
   
-  if (numel(SysList)>1) && FrequencyAutoRange
+  nComponents = numel(Sys);
+  if nComponents>1
+    logmsg(1,'  %d component spin systems...');
+  else
+    logmsg(1,'  single spin system');
+  end
+  
+  for c = 1:nComponents
+    SysList{c} = isotopologues(Sys{c},Opt.IsoCutoff);
+    nIsotopologues(c) = numel(SysList{c});
+    logmsg(1,'  component %d: %d isotopologues',c,nIsotopologues(c));
+  end
+  
+  if (sum(nIsotopologues)>1) && FrequencyAutoRange
     error('Multiple components: Please specify frequency range manually using Exp.Range or Exp.CenterSweep.');
   end
   
-  spec = 0;
-  for iComponent = 1:numel(SysList)
-    [xAxis,spec_,Transitions] = salt(SysList{iComponent},Exp,Opt);
-    spec = spec + spec_*weight(iComponent);
+  PowderSimulation = ~isfield(Exp,'CrystalOrientation') || isempty(Exp.CrystalOrientation);
+  appendSpectra = PowderSimulation && ~summedOutput;
+  if appendSpectra
+    spec = [];
+  else
+    spec = 0;
+  end
+  
+  % Loop over all components and isotopologues
+  for iComponent = 1:nComponents
+    for iIsotopologue = 1:nIsotopologues(iComponent)
+      
+      % Simulate single-isotopologue spectrum
+      Sys_ = SysList{iComponent}(iIsotopologue);
+      Sys_.singleiso = true;
+      [xAxis,spec_,Transitions] = salt(Sys_,Exp,Opt);
+      
+      % Accumulate or append spectra
+      if appendSpectra
+        spec = [spec; spec_*Sys_.weight];
+      else
+        spec = spec + spec_*Sys_.weight;
+      end
+      
+    end
   end
   
   % Output and plotting
@@ -121,8 +161,8 @@ logmsg(1,'-general-----------------------------------------------');
 % Processing spin system structure
 %==========================================================================
 if ~isfield(Sys,'Nucs'), Sys.Nucs = ''; end
-out = isotopologues(Sys.Nucs);
-if (out.nIso>1)
+isoList = isotopologues(Sys.Nucs);
+if numel(isoList)>1
   error('salt does not support isotope mixtures. Please specify pure isotopes in Sys.Nucs.');
 end
 

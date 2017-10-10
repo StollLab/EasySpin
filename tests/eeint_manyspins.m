@@ -31,7 +31,7 @@ H1 = eeint(Sys1);
 H2 = eeint(Sys2);
 
 % Determine whether there are elements that are different
-valdiff = setdiff(H1,H2);
+valdiff = setdiff(H1(:),H2(:));
 
 err = ~isempty(valdiff);
 data = [];

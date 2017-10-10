@@ -1,9 +1,9 @@
 function [err,data] = test(opt,olddata)
 %orbital angular momenta can also be defined as spins, therefore the two
 %Hamiltonians should be identical
-n = randi(3);
-Sys.S = randi(3,1,n)/2;
-Sys.L = randi(2,1,n);
+n = randi_(3);
+Sys.S = randi_(3,1,n)/2;
+Sys.L = randi_(2,1,n);
 Sys.soc = rand(n,2);
 Sys.orf = rand(n,1);
 lenS = length(Sys.S);

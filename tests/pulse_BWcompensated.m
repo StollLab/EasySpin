@@ -2,28 +2,41 @@ function [err,data] = test(opt,olddata)
 
 % Compare pulse() output pulse shapes with mathematical expressions
 %--------------------------------------------------------------------------
-
+%%
 % Linear chirp and bandwidth-compensated variable rate chirp
+%--------------------------------------------------------------------------
 Params.tp = 0.128; % us
 Params.TimeStep = 0.00001; % us
 Params.Type = 'quartersin/linear';
 Params.trise = 0.030; % us
-Params.Frequency = [-250 250]; % MHz
+Params.Frequency = [-150 150]; % MHz
 Params.Amplitude = 1; % MHz
 
 Params.mwFreq = 9.5; % GHz
 
 % Ideal spectrometer magnitude response function
-QL = 200; % Q-factor
-f0 = 9:0.010:10; % GHz
-v1 = abs(1./(1+1i*QL*(f0/Params.mwFreq-Params.mwFreq./f0)));
-
-Params.MagnitudeResponse = v1;
-Params.faxis = f0*10^3;
 
 [t,IQ1] = pulse(Params);
-Opt.BWCompensation = 1;
-[t,IQ2] = pulse(Params,Opt);
+Params.ResonatorFrequency = Params.mwFreq;
+Params.ResonatorQL = 50; % Q-factor
+[t,IQ2] = pulse(Params);
+
+% Consistency check in the frequency domain
+f = fdaxis(t);
+IQ1_ft = abs(fftshift(fft(IQ1)));
+IQ1_ft = IQ1_ft/max(IQ1_ft);
+IQ2_ft = abs(fftshift(fft(IQ2)));
+IQ2_ft = IQ2_ft/max(IQ2_ft);
+
+f0 = 9:0.00001:10; % GHz
+H = 1./(1+1i*Params.ResonatorQL*(f0/Params.ResonatorFrequency-Params.ResonatorFrequency./f0));
+v1 = abs(H);
+profile = interp1((f0-Params.mwFreq)*1e3,v1,f);
+profile = profile/max(profile);
+check = profile.*IQ2_ft;
+check = check/max(check);
+
+err(1) = ~areequal(std(IQ1_ft(abs(f)<0.6*Params.Frequency(2))),std(check(abs(f)<0.6*Params.Frequency(2))),1e-2);
 
 % Calculation
 t0 = 0:Params.TimeStep:Params.tp;
@@ -50,15 +63,17 @@ f_adapted = interp1(t_f,f+Params.mwFreq*10^3,t0,'pchip');
 f_adapted = f_adapted-Params.mwFreq*10^3;
 phi_adapted = 2*pi*cumtrapz(t0,f_adapted); % Phase modulation
 phi_adapted = phi_adapted+abs(min(phi_adapted));
-A_adapted = interp1(f,A,f_adapted,'pchip');
+A_adapted = A;%interp1(f,A,f_adapted,'pchip');
 
 IQ0 = A.*exp(1i*phi);
 IQ0_adapted = A_adapted.*exp(1i*phi_adapted);
 
-err(1) = ~areequal(IQ0,IQ1,1e-12);
-err(2) = ~areequal(IQ0_adapted,IQ2,1e-12);
+err(2) = ~areequal(IQ0,IQ1,1e-12);
+err(3) = ~areequal(IQ0_adapted,IQ2,1e-3);
+
 
 % Sech/tanh and bandwidth-compensated sech/tanh
+%--------------------------------------------------------------------------
 clear Params
 Params.tp = 0.200; % us
 Params.TimeStep = 0.00001; % us
@@ -73,13 +88,24 @@ f0 = 9.2:0.010:9.5; % GHz
 dipfreq = 9.35;
 v1 = abs(1./(1+1i*QL*(f0/dipfreq-dipfreq./f0)));
 
-Params.mwFreq = 9.34; % GHz
-Params.MagnitudeResponse = v1;
-Params.faxis = f0*10^3;
 
 [t,IQ1] = pulse(Params);
-Opt.BWCompensation = 1;
-[t,IQ2] = pulse(Params,Opt);
+Params.mwFreq = 9.34; % GHz
+Params.FrequencyResponse = [f0; v1];
+[t,IQ2] = pulse(Params);
+
+% Consistency check in the frequency domain
+f = fdaxis(t);
+IQ1_ft = abs(fftshift(fft(IQ1)));
+IQ1_ft = IQ1_ft/max(IQ1_ft);
+IQ2_ft = abs(fftshift(fft(IQ2)));
+IQ2_ft = IQ2_ft/max(IQ2_ft);
+profile = interp1((f0-Params.mwFreq)*1e3,v1,f);
+profile = profile/max(profile);
+check = profile.*IQ2_ft;
+check = check/max(check);
+
+err(4) = ~areequal(std(IQ1_ft(abs(f)<0.6*Params.Frequency(2))),std(check(abs(f)<0.6*Params.Frequency(2))),1e-2);
 
 % Calculation
 t0 = 0:Params.TimeStep:Params.tp;
@@ -109,8 +135,8 @@ A_adapted = interp1(f,A,f_adapted,'pchip');
 IQ0 = A.*exp(1i*phi);
 IQ0_adapted = A_adapted.*exp(1i*phi_adapted);
 
-err(3) = ~areequal(IQ0,IQ1,1e-11);
-err(4) = ~areequal(IQ0_adapted,IQ2,1e-11);
+err(5) = ~areequal(IQ0,IQ1,1e-11);
+err(6) = ~areequal(IQ0_adapted,IQ2,1e-11);
 
 err = any(err);
 
