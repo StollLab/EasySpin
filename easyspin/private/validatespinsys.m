@@ -31,10 +31,14 @@ if ~isstruct(Sys) || (numel(Sys)~=1)
   return
 end
 
+% whether Sys is being reprocessed after removal of nuclei
+reprocessing = false;
 if isfield(Sys,'processed')
   if Sys.processed
     FullSys = Sys;
     return;
+  else
+    reprocessing = true;
   end
 end
 
@@ -279,11 +283,13 @@ end
 
 
 %---------- electron-electron ------------------------------------------
-Sys.fullee = false;
-if (nElectrons>1)
+if ~isfield(Sys,'fullee'), Sys.fullee = false; end
+if (nElectrons>1) && ~reprocessing
   
   eeMatrix = isfield(Sys,'ee');
-  JdD = isfield(Sys,'J') || isfield(Sys,'dvec') || isfield(Sys,'eeD');
+  JdD = (isfield(Sys,'J') && ~isempty(Sys.J)) || ...
+    (isfield(Sys,'dvec') && ~isempty(Sys.dvec)) || ...
+    (isfield(Sys,'eeD') && ~isempty(Sys.eeD));
   
   if ~eeMatrix && ~JdD
     err = 'Spin system contains 2 or more electron spins, but coupling terms are missing (ee; or J, dvec, eeD)!';
@@ -657,7 +663,7 @@ else
   % Bilinear coupling defined via Sys.nn
   nNucPairs = nNuclei*(nNuclei-1)/2;
   
-  if isfield(Sys,'nn') && ~isempty(Sys.nn)
+  if isfield(Sys,'nn') && ~isempty(Sys.nn) && any(Sys.nn(:))
     
     % Expand isotropic couplings into 3 equal principal values
     if numel(Sys.nn)==nNucPairs
@@ -673,6 +679,7 @@ else
     
   else
     Sys.nn = zeros(nNucPairs,3);
+    Sys.nnFrame = zeros(nNucPairs,3);
     Sys.fullnn = false;
   end
   
