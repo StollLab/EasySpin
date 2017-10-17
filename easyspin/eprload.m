@@ -935,6 +935,9 @@ Abscissa = Abscissa(:);
 Data = Curves.MW_Absorption.data(:);
 Parameters = parseparams(Parameters);
 
+% Store all curves from the file (incl. sin and cos MW absorption data)
+Parameters.Curves = Curves;
+
 return
 %--------------------------------------------------
 

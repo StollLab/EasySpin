@@ -1,10 +1,9 @@
 function [err,data] = test(opt,olddata)
 
 BaseDir = 'eprfiles/';
-SimpleFile = [BaseDir 'strong1.dta'];
 
 %-------------------------------------------------
-% Test 3...: Read several formats
+% Test: Read several formats
 %-------------------------------------------------
 
 Extensions = {...
@@ -13,10 +12,8 @@ Extensions = {...
 '*.d00','*.d01'...
 };
 
-Display = 0;
-
 Files = [];
-for k=1:numel(Extensions);
+for k = 1:numel(Extensions)
   Files = [Files;dir([BaseDir Extensions{k}])];
 end
 
