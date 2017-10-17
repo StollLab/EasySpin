@@ -2,7 +2,7 @@ function [err,data] = test(opt,olddata)
 
 % Read Magnettech spectrometer files (old binary format)
 %-------------------------------------------------
-BaseDir = 'eprfiles/';
+BaseDir = 'eprfiles/magnettech/';
 
 Files{1} = 'Mangan.spe';
 
