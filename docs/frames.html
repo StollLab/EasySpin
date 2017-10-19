@@ -242,7 +242,7 @@ This indicates that the crystal frame (xC,yC,zC) has to be rotated by 30 degrees
 </p>
 
 <p>
-<code>Exp.CrystalOrientation</code> describes the crystal-to-lab frame transformation (C&rarr;L). In order to find the transformation that works in reverse, from the crystal to the lab frame (L&rarr;C), use the following: First, determine the <a href="eulerangles.html">Euler angles</a> for the C&rarr;L transformation. Then, to get the corresponding L&rarr;C transformation, invert the order and the signs of the angles. Here is an example:
+<code>Exp.CrystalOrientation</code> describes the crystal-to-lab frame transformation (C&rarr;L). In order to find the transformation that works in reverse, from the lab to the crystal frame (L&rarr;C), use the following: First, determine the <a href="eulerangles.html">Euler angles</a> for the C&rarr;L transformation. Then, to get the corresponding L&rarr;C transformation, invert the order and the signs of the angles. Here is an example:
 
 <pre class="matlab">
 a_C2L = [72 15 -108]*pi/180;      % angles for lab -> crystal transformation

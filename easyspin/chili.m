@@ -97,7 +97,11 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
   if ~iscell(Sys), Sys = {Sys}; end
   
   nComponents = numel(Sys);
-  logmsg(1,'%d spin system(s)...');
+  if nComponents>1
+    logmsg(1,'  %d component spin systems...');
+  else
+    logmsg(1,'  single spin system');
+  end
   
   for c = 1:nComponents
     SysList{c} = isotopologues(Sys{c},Opt.IsoCutoff);
@@ -115,12 +119,18 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
   end
   
   spec = 0;
+  % Loop over all components and isotopologues
   for iComponent = 1:nComponents
     for iIsotopologue = 1:nIsotopologues(iComponent)
+      
+      % Simulate single-isotopologue spectrum
       Sys_ = SysList{iComponent}(iIsotopologue);
       Sys_.singleiso = true;
       [xAxis,spec_] = chili(Sys_,Exp,Opt);
+      
+      % Accumulate or append spectra
       spec = spec + spec_*Sys_.weight;
+      
     end
   end
   
@@ -781,12 +791,12 @@ for iOri = 1:nOrientations
   
   % Set up orientation
   %-------------------------------------------------------
-  logmsg(2,'orientation %d of %d: phi = %g�, theta = %g� (weight %g)',...
+  logmsg(2,'orientation %d of %d: phi = %gdeg, theta = %gdeg (weight %g)',...
     iOri,nOrientations,phi(iOri)*180/pi,theta(iOri)*180/pi,Weights(iOri));
 
   if generalLiouvillian
-    D1 = wignerd(1,[phi(iOri),theta(iOri),0]);
-    D2 = wignerd(2,[phi(iOri) theta(iOri) 0]);
+    D1 = wignerd(1,phi(iOri),theta(iOri),0);
+    D2 = wignerd(2,phi(iOri),theta(iOri),0);
     [Q0B,Q1B,Q2B,Q0G,Q1G,Q2G] = rbos(D1,D2,T,F,isFieldDep);
     
     if Opt.pqOrder
@@ -802,7 +812,7 @@ for iOri = 1:nOrientations
       end
     end
   else
-    Sys.d2psi = wignerd(2,[phi(iOri) theta(iOri) 0]);
+    Sys.d2psi = wignerd(2,phi(iOri),theta(iOri),0);
   end
   
   % Starting vector
@@ -985,7 +995,6 @@ for iOri = 1:nOrientations
     
   end
   
-  thisspec = real(thisspec);
   spec = spec + thisspec*Weights(iOri);
   
 end % orientation loop

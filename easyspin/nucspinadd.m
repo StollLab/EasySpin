@@ -36,6 +36,10 @@ if isfield(Sys,'S')
   end
 end
 
+if isfield(Sys,'nn') && ~isempty(Sys.nn) && any(Sys.nn(:)~=0)
+  errpor('nucspinadd does not work if Sys.nn is present.');
+end
+
 if (nargin<3)
   error('At least the hyperfine values are needed!');
 end

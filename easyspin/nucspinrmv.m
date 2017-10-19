@@ -21,6 +21,10 @@ NewSys = Sys;
 if (nargin<2), return; end
 if isempty(rmvidx), return; end
 
+if isfield(Sys,'nn') && ~isempty(Sys.nn) && any(Sys.nn(:)~=0)
+  error('nucspinrmv does not work if Sys.nn is given.');
+end
+
 Nucs = nucstring2list(NewSys.Nucs);
 nNuclei = numel(Nucs);
 

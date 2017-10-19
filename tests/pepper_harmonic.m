@@ -23,7 +23,7 @@ y2 = cumtrapz(x,y2);
 if (opt.Display)
   subplot(3,1,[1 2]);
   plot(x,y1,x,y2,x,y0);
-  legend('Harmonic 1','Harmonic 2, integ','Harmonic 0, diff',0);
+  legend('Harmonic 1','Harmonic 2, integ','Harmonic 0, diff');
   title('pepper: different harmonics, comparison');
   subplot(3,1,3);
   plot(x,y0-y1,x,y2-y1);

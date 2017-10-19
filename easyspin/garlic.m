@@ -114,7 +114,11 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
   if ~iscell(Sys), Sys = {Sys}; end
   
   nComponents = numel(Sys);
-  logmsg(1,'%d spin system(s)...');
+  if nComponents>1
+    logmsg(1,'  %d component spin systems...');
+  else
+    logmsg(1,'  single spin system');
+  end
   
   for c = 1:nComponents
     SysList{c} = isotopologues(Sys{c},Opt.IsoCutoff);
@@ -134,10 +138,15 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
   spec = 0;
   for iComponent = 1:nComponents
     for iIsotopologue = 1:nIsotopologues(iComponent)
+      
+      % Simulate single-isotopologue spectrum
       Sys_ = SysList{iComponent}(iIsotopologue);
       Sys_.singleiso = true;
       [xAxis,spec_,Transitions] = garlic(Sys_,Exp,Opt);
+      
+      % Accumulate spectra
       spec = spec + spec_*Sys_.weight;
+      
     end
   end
   
@@ -216,7 +225,7 @@ if FastMotionRegime
   if (Sys.tcorr<1e-13)
     error('Correlation time too small (%f seconds).',Sys.tcorr);
   end
-  if isfield(Sys,'n');
+  if isfield(Sys,'n')
     if any(Sys.n>1)
       error('Cannot treat equivalent nuclei in fast-motion regime!\n Please rewrite spin system!');
     end
@@ -406,7 +415,7 @@ end
 %-------------------------------------------------------------------------
 
 % Stretch factor for automatically detected field range
-if ~isfield(Opt,'Stretch');
+if ~isfield(Opt,'Stretch')
   Opt.Stretch = 0.25;
 end
 

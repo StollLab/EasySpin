@@ -3,7 +3,7 @@ function [err,data] = test(opt,olddata)
 % Test whether the 1th order in B of zeemanho is identical to the usual
 % Zeeman Hamiltonian
 %==================================================================
-rand('twister',5);
+rng_(5,'twister');
 
 Sys.S = ceil(rand*20)/2;
 

@@ -62,11 +62,11 @@
 %   - Amplitude modulation: rectangular, gaussian, sinc, halfsin, quartersin,
 %                           sech, WURST, Gaussian pulse cascades (G3, Q3, 
 %                           custom coefficients using 'GaussianCascade', see
-%                           private\GaussianCascadeCoefficients.txt for 
+%                           private/GaussianCascadeCoefficients.txt for 
 %                           details), Fourier-series pulses (I-BURP 1/2,
 %                           SNOB i2/i3, custom coefficients using 
 %                           'FourierSeries',see 
-%                           private\FourierSeriesCoefficients.txt for details)
+%                           private/FourierSeriesCoefficients.txt for details)
 %   - Frequency modulation: none, linear, tanh, uniformQ
 %
 % The parameters required for the different modulation functions are:
@@ -370,7 +370,7 @@ else
                    'Gaussians are required as input.'])
           else
             % Load parameters from file
-            fname = 'private\GaussianCascadeCoefficients.txt';
+            fname = 'private/GaussianCascadeCoefficients.txt';
             fid = fopen(fname);
             while 1
               s = fgetl(fid);
@@ -408,7 +408,7 @@ else
             error('The Fourier coefficients A0, An and Bn are required as input.')
           else
             % Load Fourier coefficients from file
-            fname = 'private\FourierSeriesCoefficients.txt';
+            fname = 'private/FourierSeriesCoefficients.txt';
             fid = fopen(fname);
             while 1
               s = fgetl(fid);
