@@ -779,27 +779,38 @@ Parameters = parseparams(Parameters);
 return
 %--------------------------------------------------
 
-%--------------------------------------------------
+%--------------------------------------------------------------------------
 function [Data, Abscissa, Parameters] = eprload_MagnettechBinary(FileName)
 %--------------------------------------------------------------------------
 %   Binary file format of older Magnettech spectrometers (MS400 and prior)
 %--------------------------------------------------------------------------
 
 hMagnettechFile = fopen(FileName,'r','ieee-le');
-if (hMagnettechFile<0)
+if hMagnettechFile<0
   error('Could not open Magnettech spectrometer file %s.',FileName);
 end
+
+% Check file size to determine whether this is a Magnettech data file
+% - File overhead is 64 bytes, located at end of file
+% - Each data point is 2 bytes
+% - MiniScope MS400 benchtop spectrometer data have 4096 points
+% - Data from other spectrometers (e.g MT500 L-band) can have 512,
+%   1024, 2048, or 4096 points.
+nPoints = [512 1024 2048 4096];
 fileinfo = dir(FileName);
-if (fileinfo.bytes~=8256)
+fileSize = fileinfo.bytes;
+idx = find(fileSize==2*nPoints+64);
+if isempty(idx)
   error('This file does not have the correct file size for a Magnettech SPE file.');
+else
+  nPoints = nPoints(idx);
 end
 
 % Read spectral data
-nPoints = 4096; % all files have the same number of points
 Data = fread(hMagnettechFile,nPoints,'int16');
 
 % Determine format version and other flags
-fseek(hMagnettechFile,8252,'bof');
+fseek(hMagnettechFile,fileSize-4,'bof');
 FileFlags = fread(hMagnettechFile,1,'uint8');
 mwFreqAvailable = bitand(FileFlags,1)~=0;
 oldSpeFormat = bitand(FileFlags,2)==0;
@@ -816,7 +827,7 @@ readfbs = @()fourbytesingle(fread(hMagnettechFile,2,'int16'));
 %end
 
 % Read parameters
-fseek(hMagnettechFile,8192,'bof');
+fseek(hMagnettechFile,2*nPoints,'bof');
 Parameters.B0_Field = readfbs()/10; % G -> mT
 Parameters.B0_Scan = readfbs()/10; % G -> mT
 Parameters.Modulation = readfbs()/10000; % mT
