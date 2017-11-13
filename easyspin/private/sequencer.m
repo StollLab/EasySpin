@@ -8,7 +8,7 @@ Vary = [];
 
 % Check if resonator is 
 if isfield(Exp,'Resonator')
-  InclResonator = true;
+  IncludeResonator = true;
   
   if ~isfield(Exp,'mwFreq')
     error('For using a resonator, the field Exp.mwFreq needs to be provided, and Exp.Frequency needs to be defined in relation to that.')
@@ -42,16 +42,28 @@ if isfield(Exp,'Resonator')
     Resonator.Arg3 = 'simulate';
   end
 else
-  InclResonator = false;
+  IncludeResonator = false;
 end
 
 
 % Check if Timestep is sufficient
-MaxFreq = max(abs(Exp.Frequency(:)));
+if isfield(Exp,'mwFreq') && isfield(Opt,'FrameShift')
+  FreqShift = Exp.mwFreq - Opt.FrameShift;
+elseif  isfield(Opt,'FrameShift')
+  FreqShift = - Opt.FrameShift;
+elseif isfield(Exp,'mwFreq')
+  FreqShift = Exp.mwFreq;
+else
+  FreqShift = 0;
+end
+  
+MaxFreq = max(abs(Exp.Frequency(:)/1000+FreqShift));
 Nyquist = 2*MaxFreq;
+MaxTimeStep = 1/Nyquist/1000; %%%%%%% Time Step is in microseconds and Frequencies in GHz
 
-if Exp.TimeStep > 1/Nyquist
-  warning('Your Time Step (Exp.TimeStep) appears to not fullfill the Nyquist criterium for the pulses you provided.')
+if Exp.TimeStep > MaxTimeStep
+  errMsg = ['Your Time Step (Exp.TimeStep) does not fullfill the Nyquist criterium for the pulses you provided. Adapt it to ' num2str(MaxTimeStep) ' or less.'];
+  error(errMsg);
 end
 
 % Create an empty cell array for all the events
@@ -65,7 +77,7 @@ iDelay = 0;
 % A vector to quickly identify pulses, required for the reordering if
 % pulses cross during the sequence
 isPulse = zeros(1,length(Events));
-
+PulseIndices = [];
 % Setting up data structures for the pulses and events
 for iEvent = 1 : nEvents
   if iEvent > length(Exp.Pulses) || ~isstruct(Exp.Pulses{iEvent})
@@ -104,7 +116,11 @@ for iEvent = 1 : length(Exp.t)
     else
       Pulse.Frequency = Exp.Frequency(iPulse,:);
     end
-       
+    
+    if length(Pulse.Frequency) == 2 && Pulse.Frequency(1) == Pulse.Frequency(2)
+       Pulse.Frequency = Pulse.Frequency(1);
+    end
+    
     % Gets the flip angle 
     if isfield(Exp,'Flip') &&iPulse <= length(Exp.Flip)  
       Pulse.Flip = Exp.Flip(iPulse);
@@ -139,9 +155,9 @@ for iEvent = 1 : length(Exp.t)
     % Loop over the function that creates the PulseShape, as many times at
     % are necessary to calculate all wave forms for the phase cycling
     for iPCstep = 1 : size(Pulse.PhaseCycle,1)
-      Pulse.Phase = Pulse.Phase+Pulse.PhaseCycle(iPCstep,1);
+      Pulse.Phase = Pulse.Phase + Pulse.PhaseCycle(iPCstep,1);
       [t,IQ] = pulse(Pulse);
-      if InclResonator
+      if IncludeResonator
         % if resonator is requested, pulses are elongated due to ringing.
         % the duration of ringing is stored in an additional field
         tOrig = t(end);
@@ -149,15 +165,6 @@ for iEvent = 1 : length(Exp.t)
         Events{iEvent}.Ringing = t(end) - tOrig;
       end
       % Shifts IQ of the pulse if necessary...
-      if isfield(Exp,'mwFreq') && isfield(Opt,'FrameShift')
-        FreqShift = Exp.mwFreq - Opt.FrameShift;
-      elseif  isfield(Opt,'FrameShift')
-        FreqShift = - Opt.FrameShift;
-      elseif isfield(Exp,'mwFreq')
-        FreqShift = Exp.mwFreq;
-      else
-        FreqShift = 0;
-      end
       if FreqShift ~= 0
         Opt.dt = Exp.TimeStep;
         [~, IQ] = rfmixer(t,IQ,FreqShift,'IQshift',Opt);
@@ -175,10 +182,14 @@ for iEvent = 1 : length(Exp.t)
     % Checks if ComplexExcitation is requested for this Pulse, if not
     % specified Complex Excitation is switched off by default - the
     % excitation operator is being built outside of sequencer
-    if ~isfield(Pulse,'ComplexExcitation') || isempty(Pulse.ComplexExcitation)
+    if ~isfield(Opt,'ComplexExcitation') || isempty(Opt.ComplexExcitation)
       Events{iEvent}.ComplexExcitation = false;
+    elseif length(Opt.ComplexExcitation) == 1
+      Events{iEvent}.ComplexExcitation = Opt.ComplexExcitation;
+    elseif iPulse <= length(Opt.ComplexExcitation)
+      Events{iEvent}.ComplexExcitation = Opt.ComplexExcitation(iPulse);
     else
-      Events{iEvent}.ComplexExcitation = Pulse.ComplexExcitation;
+      Events{iEvent}.ComplexExcitation = false;
     end
     
     % Temporarily store pulse paramaters to avoid reassigning them for creating the
@@ -258,7 +269,7 @@ end
 % -------------------------------------------------------------------------
 % Checks for overlap of pulses that are subject to ringing
 % -------------------------------------------------------------------------
-if InclResonator
+if IncludeResonator
   for iEvent = PulseIndices
     FollowingEvent = iEvent + 1;
     if FollowingEvent <= length(Exp.t) && strcmp(Events{FollowingEvent}.type,'pulse')
@@ -513,7 +524,7 @@ if isfield(Exp,'nPoints')
         for iPCstep = 1 : size(Pulses{iPulse}.PhaseCycle,1)
           Pulses{iPulse}.Phase = Pulses{iPulse}.Phase+Pulses{iPulse}.PhaseCycle(iPCstep,1);
           [t,IQ] = pulse(Pulses{iPulse});
-          if Resonator
+          if IncludeResonator
             % if a resonator is present, the ringing duration of each pulse
             % needs to be stored in the vary structure too
             tOrig = t(end);
@@ -540,7 +551,7 @@ if isfield(Exp,'nPoints')
         Vary.Pulses{iPulse}.ts{ArrayIndex{:}} = t;
 
         % Write pulse length to EventLenghts
-        if Resonator
+        if IncludeResonator
           EventLengths(Pulses{iPulse}.EventIndex) = t(end) - Vary.Pulses{iPulse}.Ringing(ArrayIndex{:});
         else
           EventLengths(Pulses{iPulse}.EventIndex) = t(end);
@@ -579,7 +590,7 @@ if isfield(Exp,'nPoints')
     
     % Check if ringing from the resonator causes pulses to overlap, after
     % they have been reorderd
-    if Resonator
+    if IncludeResonator
       for iPulse = 1 : nPulses
         % get position of the current pulse in the reordered sequence
         ThisEvent = find(NewSequence == PulseIndices(iPulse));

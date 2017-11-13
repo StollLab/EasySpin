@@ -1,55 +1,54 @@
-% spidyan    Simulate pulse EPR spectra
+% spidyan    Simulate spindyanmics during pulse EPR experiments
 %
-%     [x,S] = saffron(Sys,Exp,Opt)
-%     [x,S,out] = saffron(Sys,Exp,Opt)
-%
-%     [x1,x2,S] = saffron(Sys,Exp,Opt)
-%     [x1,x2,S,out] = saffron(Sys,Exp,Opt)
+%     [TimeAxis,Signal] = spidyan(Sys,Exp,Opt)
+%     [TimeAxis,Signal,Events,FinalState,StateTrajectories] = spidyan(Sys,Exp,Opt)
 %
 %     Sys   ... spin system with electron spin and ESEEM nuclei
 %     Exp   ... experimental parameters (time unit us)
 %     Opt   ... simulation options
 %
 %     out:
-%       x       ... time or frequency axis (1D experiments)
-%       x1, x2  ... time or frequency axis (2D experiments)
-%       S       ... simulated signal (ESEEM) or spectrum (ENDOR)
-%       out     ... structure with FFT of ESEEM signal
+%       TimeAxis          ... time axis
+%       Signal            ... simulated signals of detected events
+%       FinalState        ... density matrix/matrices at the end of the
+%                             experiment
+%       StateTrajectories ... cell array with density matrices from each
+%                             timestep during evolution
+%       Events            ... structure containing events
 
-function [TimeAxis, Signal,FinalState,StateTrajectories,NewEvents] = spidyan(Sys,Exp,Opt)
+function [TimeAxis,Signal,Events,FinalState,StateTrajectories] = spidyan(Sys,Exp,Opt)
 
-% if (nargin==0), help(mfilename); return; end
+if (nargin==0), help(mfilename); return; end
 
-% Get time for performance report at the end.
-% StartTime = clock;
-% 
-% % Input argument scanning, get display level and prompt
-% %=======================================================================
-% % Check Matlab version
-% VersionErrorStr = chkmlver;
-% error(VersionErrorStr);
-% 
-% % --------License ------------------------------------------------
-% LicErr = 'Could not determine license.';
-% Link = 'epr@eth'; eschecker; error(LicErr); clear Link LicErr
+% Input argument scanning, get display level and prompt
+%=======================================================================
+% Check Matlab version
+VersionErrorStr = chkmlver;
+error(VersionErrorStr);
+
+% --------License ------------------------------------------------
+LicErr = 'Could not determine license.';
+Link = 'epr@eth'; eschecker; error(LicErr); clear Link LicErr
 % --------License ------------------------------------------------
 
 % Guard against wrong number of input or output arguments.
-% if (nargin<2) || (nargin>3), error('Wrong number of input arguments!'); end
-% if (nargout<0), error('Not enough output arguments.'); end
-% if (nargout>4), error('Too many output arguments.'); end
+if (nargin<2) || (nargin>3), error('Wrong number of input arguments!'); end
+if (nargout<0), error('Not enough output arguments.'); end
+if (nargout>5), error('Too many output arguments.'); end
 
 % Initialize options structure to zero if not given.
-% if (nargin<3), Opt = struct('unused',NaN); end
-% if isempty(Opt), Opt = struct('unused',NaN); end
+if (nargin<2), Opt = struct('unused',NaN); end
+if isempty(Opt), Opt = struct('unused',NaN); end
 
-
-% if ~isstruct(Exp)
-%   error('Second input argument (Exp) must be a structure!');
-% end
-% if ~isstruct(Opt)
-%   error('Third input argument (Opt) must be a structure!');
-% end
+if ~isstruct(Sys)
+  error('First input argument (Sys) must be a structure!');
+end
+if ~isstruct(Exp)
+  error('Second input argument (Exp) must be a structure!');
+end
+if ~isstruct(Opt)
+  error('Third input argument (Opt) must be a structure!');
+end
 % 
 
 % A global variable sets the level of log display. The global variable
@@ -59,13 +58,21 @@ global EasySpinLogLevel
 EasySpinLogLevel = Opt.Verbosity;
 
 
-% check for magnetic field
-if length(Exp.Field) == 1
+%----------------------------------------------------------------------
+% Preprocess Input
+%----------------------------------------------------------------------
+
+% Check for magnetic field
+if ~isfield(Exp,'Field')
+  error('Exp.Field is required.')
+elseif length(Exp.Field) == 1
   B = [0 0 Exp.Field];
 else
   B = Exp.Field;
 end
 
+% Adapt Zeeman frequencies and g values for the selected simulation frame, 
+% if they are provided
 if isfield(Opt,'FrameShift') && ~isempty(Opt.FrameShift)
   if isfield(Sys,'ZeemanFreq')
     Sys.ZeemanFreq =  Sys.ZeemanFreq - Opt.FrameShift;
@@ -98,47 +105,87 @@ if isfield(Sys,'ZeemanFreq')
   end
 end
 
+% Remove field ZeemanFreq if given, which is spidyan specific
 if isfield(Sys,'ZeemanFreq')
   Sys = rmfield(Sys,'ZeemanFreq');
 end
 
-% This is spidyan specific
+% This is spidyan specific, and builds a vector that tells spidyan which
+% events are to be detected
 if ~isfield(Exp,'DetEvents') || isempty(Exp.DetEvents)
-  Exp.DetEvents(length(Exp.t)) = 1;
+  Exp.DetEvents(length(Exp.t)) = 0;
 else
   Exp.DetEvents(1:length(Exp.DetEvents)) = Exp.DetEvents;
 end
 
+
+% Build the Event and Vary structure
 [Events, Vary] = sequencer(Exp,Opt);
 
 
-% Validate spin system
-% use propagation setup instead here
-[Sys,Sigma,DetOps,Events,Relaxation] = s_propagationsetup(Sys,Events,Opt);
+% Validate and build spin system as well as excitation operators
+[Sys, Sigma, DetOps, Events, Relaxation] = s_propagationsetup(Sys,Events,Opt);
 
+% Get Hamiltonian
 Ham = sham(Sys,B);
 
-% Spidyan specific
-nDetOps = numel(DetOps);
-if ~isfield(Opt,'FreqTranslation') || isempty(Opt.FreqTranslation)
-  FreqTranslation = [];
-else
-  if isfield(Opt,'FrameShift') && ~isempty(Opt.FrameShift)
-    Opt.FreqTranslation(Opt.FreqTranslation > 0) = Opt.FreqTranslation(Opt.FreqTranslation > 0) - Opt.FrameShift;
-    Opt.FreqTranslation(Opt.FreqTranslation < 0) = Opt.FreqTranslation(Opt.FreqTranslation < 0) + Opt.FrameShift;
-  end
-  FreqTranslation = zeros(1,nDetOps);
-  FreqTranslation(1:length(Opt.FreqTranslation)) = Opt.FreqTranslation;
-end
-
+%----------------------------------------------------------------------
+% Propagation
+%----------------------------------------------------------------------
 
 % Calls the actual propagation engine
-[TimeAxis, RawSignal, FinalState, StateTrajectories, NewEvents] = thyme(Sigma, Ham, DetOps, Events, Relaxation, Vary);
+[TimeAxis, RawSignal, FinalState, StateTrajectories, Events] = thyme(Sigma, Ham, DetOps, Events, Relaxation, Vary);
 
-% Signal postprocessing, such as down conversion and filtering
-Signal = signalprocessing(TimeAxis,RawSignal,DetOps,FreqTranslation);
+%----------------------------------------------------------------------
+% Signal Processing
+%----------------------------------------------------------------------
 
-% Signal = squeeze(Signal);
+% Signal postprocessing, such as down conversion and filtering and
+% checking output of the timeaxis 
+if ~isempty(RawSignal)
+  
+  if ~iscell(TimeAxis)
+    if size(unique(TimeAxis,'rows'),1) == 1
+      TimeAxis = TimeAxis(1,:);
+    end
+  else
+    TimeAxisChanged = false;
+    for iCell = 2 : length(TimeAxis)
+      if ~isequal(TimeAxis{1},TimeAxis{iCell})
+        TimeAxisChanged = true;
+        break
+      end
+    end
+    
+    if ~TimeAxisChanged
+      TimeAxis = TimeAxis{1};
+    end
+    
+  end
+
+  
+  % Adapt FreqTranslation if needed
+  if ~isfield(Opt,'FreqTranslation') || isempty(Opt.FreqTranslation)
+    FreqTranslation = [];
+    
+  else
+    nDetOps = numel(DetOps);
+        
+    if isfield(Opt,'FrameShift') && ~isempty(Opt.FrameShift)
+      Opt.FreqTranslation(Opt.FreqTranslation > 0) = Opt.FreqTranslation(Opt.FreqTranslation > 0) - Opt.FrameShift;
+      Opt.FreqTranslation(Opt.FreqTranslation < 0) = Opt.FreqTranslation(Opt.FreqTranslation < 0) + Opt.FrameShift;
+    end
+    FreqTranslation = zeros(1,nDetOps);
+    FreqTranslation(1:length(Opt.FreqTranslation)) = Opt.FreqTranslation;
+    
+  end
+  
+  % Downconversion/processing of signal
+  Signal = signalprocessing(TimeAxis,RawSignal,DetOps,FreqTranslation);
+
+else
+  Signal = [];
+end
 
 end
 

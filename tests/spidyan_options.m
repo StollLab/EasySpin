@@ -37,6 +37,7 @@ Opt.Relaxation = [1 1];
 data.t1 = t1;
 data.signal1 = signal1;
 
+% Additional Options to test ---------------------------
 Opt.ExcOperator = {[0 1; 0 0] '+1'};
 Opt.StateTrajectories = [1 0 1];
 Opt.DetOperator = {'z1',[0 1; 0 0]};
@@ -49,7 +50,7 @@ data.state = state;
 data.sigmas = sigmas;
 
 if ~isempty(olddata)
-  err = [~areequal(signal1,olddata.signal1,1e-4) ~areequal(signal2,olddata.signal2,1e-4) ~areequal(signal2,olddata.signal2,1e-4)];
+  err = [~areequal(signal1,olddata.signal1,1e-4) ~areequal(signal2,olddata.signal2,1e-4) ~isequal(sigmas,olddata.sigmas)];
 else
   err = [];
 end

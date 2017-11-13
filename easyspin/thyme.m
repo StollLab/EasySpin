@@ -1,5 +1,5 @@
 % thyme  Time domain evolution of density matrix
-function [TimeArray, SignalArray, FinalStates, AllDensityMatrices, Events] = thyme(Sigma,Ham0,Det,Events,Relaxation,Vary)
+function [TimeArray, SignalArray, FinalStates, StateTrajectories, Events] = thyme(Sigma,Ham0,Det,Events,Relaxation,Vary)
 
 if (nargin==0), help(mfilename); return; end
 
@@ -27,10 +27,10 @@ switch method
       nDimensions = 0;
       nPoints = 1;
     end
-         
+    
     n = size(Sigma,2);
     FinalStates = zeros(nPoints,n,n);
-    AllDensityMatrices = [];
+    StateTrajectories = [];
     initialSigma = Sigma;
     Resonator = false;
     
@@ -40,8 +40,8 @@ switch method
     isPulse = zeros(1,nEvents);
     nPulses = 0;
     for iEvent = 1 : nEvents
-      switch Events{iEvent}.type
-        case 'pulse'
+        switch Events{iEvent}.type
+            case 'pulse'
           isPulse(iEvent) = 1;
           nPulses = nPulses + 1;
           PulsePositions(nPulses) = iEvent; %#ok<AGROW>
@@ -700,13 +700,19 @@ switch method
         
         if currentEvent.StateTrajectories
           if firstDensityMatrix
-            AllDensityMatrices{iPoints} = DensityMatrices; %#ok<AGROW>
+            for iCell = 1 : length(DensityMatrices)
+              StateTrajectories{iPoints,iCell} = DensityMatrices{iCell}; %#ok<AGROW>
+            end
             firstDensityMatrix = false;
+            counter = length(DensityMatrices);
           else
-            iStart = length(AllDensityMatrices{iPoints});
-            nElements = length(DensityMatrices);
-            for iDensity = 2 : nElements
-              AllDensityMatrices{iPoints}{iStart+iDensity-1} = DensityMatrices{iDensity}; %#ok<AGROW>
+            if currentEvent.Detection || iEvent == Sequence(end)
+              iStart = counter;
+              nElements = length(DensityMatrices);
+              for iDensity = 2 : nElements
+                StateTrajectories{iPoints,iStart+iDensity-1} = DensityMatrices{iDensity}; %#ok<AGROW>
+              end
+              counter = counter + length(DensityMatrices) - 1;
             end
           end
         end

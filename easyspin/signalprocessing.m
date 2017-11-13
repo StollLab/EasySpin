@@ -19,6 +19,9 @@ try
     ProcessedSignal = cell(size(RawSignal));
     nPoints = length(RawSignal);
   else
+    if length(size(RawSignal)) == 2
+      RawSignal = reshape(RawSignal,[1,size(RawSignal,1),size(RawSignal,2)]);
+    end
     ProcessedSignal = zeros(size(RawSignal));
     nPoints = size(RawSignal,1);
     DCTimeAxis = TimeAxis(1,:);
@@ -121,13 +124,20 @@ try
       ProcessedSignal{iPoint} = Traces;
     end
   end
-  
 catch EM
   % If something goes wrong during down conversion, the RawSignal is
   % returned
   ProcessedSignal = RawSignal;
   message = ['The down conversion of the signal was not successful and created an error. The raw signal in the simulation frame was returned. The error message was: ' EM.message];
   warning(message)
+end
+
+% If only one acquisition point, singleton dimension is removed
+if ~iscell(ProcessedSignal) && size(ProcessedSignal,1) == 1
+  ProcessedSignal = squeeze(ProcessedSignal);
+  if size(ProcessedSignal,2) == 1
+    ProcessedSignal = permute(ProcessedSignal,[2,1]);
+  end
 end
 
 end
