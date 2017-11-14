@@ -447,7 +447,7 @@ if ~isempty(Exp.Ordering)
   else
     error('Exp.Ordering must be a single number or a function handle.');
   end
-  if any(Sys.gStrain) || any(Sys.AStrain) || any(Sys.DStrain) || any(Sys.HStrain)
+  if StrainWidths
     error('Exp.Ordering and g/A/D/H strains cannot be used simultaneously.');
   end
 end
@@ -485,7 +485,7 @@ logmsg(1,msg);
 % Obsolete fields, pepper
 ObsoleteOptions = {'Convolution','Width'};
 for k = 1:numel(ObsoleteOptions)
-  if isfield(Opt,ObsoleteOptions{k}),
+  if isfield(Opt,ObsoleteOptions{k})
     error('Options.%s is obsolete. Please remove from code!',ObsoleteOptions{k});
   end
 end
@@ -597,7 +597,7 @@ if FieldSweep
     AnisotropicWidths = 0;
     if StrainWidths
       logmsg(-inf,'WARNING: Options.Method: eigenfields method -> strains are ignored!');
-      StrainWidths = 0;
+      StrainWidths = false;
     end
     
     Exp1 = Exp;
@@ -608,7 +608,7 @@ if FieldSweep
     [Pdat,Idat] = eigfields(Sys,Exp1,Opt);
     logmsg(2,'  -exiting eigfields-----------------------------------');
     Wdat = [];
-    Gdat = [];
+    %Gdat = [];
     Transitions = [];
     
     if (nOrientations==1)
@@ -616,7 +616,7 @@ if FieldSweep
       Idat = {Idat};
     end
     nReson = 0;
-    for k = 1:nOrientations,
+    for k = 1:nOrientations
       nReson = nReson + numel(Pdat{k});
     end
     logmsg(1,'  %d resonance in total (%g per orientation)',nReson,nReson/nOrientations);
@@ -641,7 +641,7 @@ if FieldSweep
     logmsg(2,'  -entering resfields*----------------------------------');
     switch Method
       case {2,6} % matrix diagonalization, hybrid
-        [Pdat,Idat,Wdat,Transitions,Gdat] = resfields(Sys,Exp1,Opt);
+        [Pdat,Idat,Wdat,Transitions] = resfields(Sys,Exp1,Opt);
       case {3,5} % 2nd-order perturbation theory
         Opt.PerturbOrder = 2;
         [Pdat,Idat,Wdat,Transitions,spec] = resfields_perturb(Sys,Exp1,Opt);
@@ -810,7 +810,7 @@ elseif (~BruteForceSum)
     % out of Matlab's original spline() function, which is called many times.
     spparms('autommd',0);
     % Interpolation parameters. 1st char: g global, l linear. 2nd char: order.
-    if (nOctants==0), % axial symmetry: 1D interpolation
+    if (nOctants==0) % axial symmetry: 1D interpolation
       if any(NaN_in_Pdat)
         InterpMode = {'L3','L3','L3'};
       else
@@ -1242,7 +1242,7 @@ end
 % Assign output.
 %-----------------------------------------------------------------------
 switch (nargout)
-  case 0,
+  case 0
   case 1, varargout = {spec};
   case 2, varargout = {xAxis,spec};
   case 3, varargout = {xAxis,spec,Transitions};
