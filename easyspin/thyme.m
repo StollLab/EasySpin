@@ -40,13 +40,13 @@ switch method
     isPulse = zeros(1,nEvents);
     nPulses = 0;
     for iEvent = 1 : nEvents
-        switch Events{iEvent}.type
-            case 'pulse'
+      switch Events{iEvent}.type
+        case 'pulse'
           isPulse(iEvent) = 1;
           nPulses = nPulses + 1;
           PulsePositions(nPulses) = iEvent; %#ok<AGROW>
           % If ringing is found, resonator is set to on
-          if isfield(Events{iEvent},'Ringing') 
+          if isfield(Events{iEvent},'Ringing')
             Resonator = true;
           end
       end
@@ -287,7 +287,7 @@ switch method
       for iEvent = 1 : nEvents
         currentEvent = Events{iEvent};
         
-        if isempty(currentEvent.Propagation) || ~((isfield(currentEvent.Propagation,'Utotal') || isfield(currentEvent.Propagation,'Ltotal')))
+        if isempty(currentEvent.Propagation) || ~(isfield(currentEvent.Propagation,'Utotal') || isfield(currentEvent.Propagation,'Ltotal'))
                     
           switch currentEvent.type
             case 'pulse'
@@ -336,13 +336,10 @@ switch method
                 % excitation that has no imaginary part
                 %----------------------------------------------------------
                 if currentEvent.ComplexExcitation == 0
-
-                  if ~isempty(currentEvent.Propagation) && isfield(currentEvent.Propagation,'UTable')
-                    UTable = currentEvent.Propagation.UTable;
-                  else
-                    UTable = buildPropagators(Ham0,currentEvent.xOp,currentEvent.TimeStep,vertRes,scale);
-                    Events{iEvent}.Propagation.UTable = UTable;
-                  end
+                  
+                  UTable = buildPropagators(Ham0,currentEvent.xOp,currentEvent.TimeStep,vertRes,scale);
+                  Events{iEvent}.Propagation.UTable = UTable;
+                  
                 end
                 %----------------------------------------------------------
                 
@@ -400,16 +397,11 @@ switch method
                 %----------------------------------------------------------
                 if ~isfield(currentEvent.Propagation,'Ltotal')
                   if currentEvent.ComplexExcitation == 0
-                    if ~isempty(currentEvent.Propagation) && isfield(currentEvent.Propagation,'LTable')
-                      LTable = currentEvent.Propagation.LTable;
-                      SigmassTable = currentEvent.Propagation.SigmassTable;
-                    else
-                      
-                      [LTable, SigmassTable] = buildLiouvillians(Ham0,Gamma,equilibriumState,currentEvent.xOp,currentEvent.TimeStep,vertRes,scale);
-                      
-                      Events{iEvent}.Propagation.LTable = LTable;
-                      Events{iEvent}.Propagation.SigmassTable = SigmassTable;
-                    end
+                    
+                    [LTable, SigmassTable] = buildLiouvillians(Ham0,Gamma,equilibriumState,currentEvent.xOp,currentEvent.TimeStep,vertRes,scale);
+                    
+                    Events{iEvent}.Propagation.LTable = LTable;
+                    Events{iEvent}.Propagation.SigmassTable = SigmassTable;
                     
                   end
                   
@@ -660,7 +652,7 @@ switch method
               end
               
               if currentEvent.StateTrajectories
-                DensityMatrices{itvector}=Sigma;
+                DensityMatrices{itvector} = Sigma;
               end
               %------------------------------------------------------------
             end            

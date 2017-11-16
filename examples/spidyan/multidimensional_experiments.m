@@ -59,10 +59,13 @@ axis tight
 ylim([-1 1])
 
 
-%% 1 Dimensional Experiment - Changing the inter pulse delay
-% Increment the first delay by 100 ns
+%% 1 Dimensional Experiment - Changing the inter pulse delay with a nonlinear increment
+% Increment the first delay by 100 and 250 ns
 Exp.nPoints = 3; 
-Exp.Dim1 = {'d1', 0.1}; 
+Exp.Dim1 = {'d1', [0.1 0.25]};  % The first data point is always the one 
+                                % defined in the Exp structure, hence only 
+                                % [0.1 0.25] is written, even if 
+                                % Exp.nPoints = 3
 
 [TimeAxis, Signal] = spidyan(Sys,Exp,Opt);
 % Since the length of a detected event is changed, the traces of each

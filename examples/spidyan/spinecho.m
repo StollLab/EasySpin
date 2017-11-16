@@ -5,11 +5,11 @@ CenterFrequency = 33.5; % center frequency of Gaussian distribution, GHz
 GWidth = 0.01;     % width of Gaussian distribution, GHz
 FreqStart = 33.45;  % starting value for sampling
 FreqEnd = 33.55;  % final value for sampling
-Sampling = 0.00025;   % stepsize for sampling
+Sampling = 0.0005;   % stepsize for sampling
 ZeemanFreqVec = FreqStart:Sampling:FreqEnd; % vector with resonance frequencies
 P = exp(-((CenterFrequency-ZeemanFreqVec)/GWidth).^2); % probabilities
 P = P/trapz(P); % normalization
-nSpinpackets = length(nu0_vec);
+nSpinpackets = length(ZeemanFreqVec);
 
 % Spin System
 Sys.S = 1/2;
@@ -73,7 +73,7 @@ Exp.Pulses = {Pulse 0 Pulse};
 % Loop over the spinpackets and sum up the traces ------------
 for i = 1 : nSpinpackets
   
-  Sys.ZeemanFreq = nu0_vec(i); % Set Zeeman frequency
+  Sys.ZeemanFreq = ZeemanFreqVec(i); % Set Zeeman frequency
   
   [t, signal, state, sigmas, Eventsnew] = spidyan(Sys,Exp,Opt);
   if i == 1

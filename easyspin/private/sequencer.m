@@ -142,8 +142,10 @@ for iEvent = 1 : length(Exp.t)
     % cycling is switched off for this event
     if isfield(Exp,'PhaseCycle') &&  iPulse <= length(Exp.PhaseCycle) && ~isempty(Exp.PhaseCycle{iPulse})
       Pulse.PhaseCycle = Exp.PhaseCycle{iPulse};
+      nPhaseSteps = size(Pulse.PhaseCycle,1);
     else
       Pulse.PhaseCycle = 0;
+      nPhaseSteps = 1;
     end
        
     % Get the time step size if available
@@ -154,7 +156,7 @@ for iEvent = 1 : length(Exp.t)
     
     % Loop over the function that creates the PulseShape, as many times at
     % are necessary to calculate all wave forms for the phase cycling
-    for iPCstep = 1 : size(Pulse.PhaseCycle,1)
+    for iPCstep = 1 : nPhaseSteps
       Pulse.Phase = Pulse.Phase + Pulse.PhaseCycle(iPCstep,1);
       [t,IQ] = pulse(Pulse);
       if IncludeResonator
@@ -167,7 +169,7 @@ for iEvent = 1 : length(Exp.t)
       % Shifts IQ of the pulse if necessary...
       if FreqShift ~= 0
         Opt.dt = Exp.TimeStep;
-        [~, IQ] = rfmixer(t,IQ,FreqShift,'IQshift',Opt);
+        [t, IQ] = rfmixer(t,IQ,FreqShift,'IQshift',Opt);
       end
       % ... and stores it in the event structure
       Events{iEvent}.IQ(iPCstep,:) = IQ;
@@ -225,14 +227,10 @@ for iEvent = 1 : length(Exp.t)
     end
   end
   
-  % Check if detection is provided, if no detection is requested, the last
-  % event is detected by default
-  if ~isfield(Exp,'DetEvents')
-    if iEvent == length(Exp.t)
-      Events{iEvent}.Detection = true;
-    else
+  % Check if detection is provided, if no detection is requested, detection
+  % is switched off
+  if ~isfield(Exp,'DetEvents') || isempty(Exp.DetEvents)
       Events{iEvent}.Detection = false;
-    end
   else
     if length(Exp.DetEvents) == 1
       Events{iEvent}.Detection = Exp.DetEvents;
@@ -595,6 +593,9 @@ if isfield(Exp,'nPoints')
         % get position of the current pulse in the reordered sequence
         ThisEvent = find(NewSequence == PulseIndices(iPulse));
         % Get original Event number of the following event and if...
+        if ThisEvent == length(NewSequence)
+          break
+        end
         FollowingEvent = NewSequence(ThisEvent+1);
         if strcmp(Events{FollowingEvent}.type,'pulse')
           %...the following event is a pulse, create an error

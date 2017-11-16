@@ -8,7 +8,7 @@ CenterFrequency = 33.5; % center frequency of Gaussian distribution, GHz
 GWidth = 0.01; % width of Gaussian distribution, GHz
 FreqStart = 33.45;  % starting value for sampling
 FreqEnd = 33.55;  % final value for sampling
-Sampling = 0.00025;   % stepsize for sampling
+Sampling = 0.0005;   % stepsize for sampling
 ZeemanFreqVec = FreqStart:Sampling:FreqEnd; % vector with resonance frequencies
 P = exp(-((CenterFrequency-ZeemanFreqVec)/GWidth).^2); % probabilities
 P = P/trapz(P); % normalization
@@ -51,12 +51,12 @@ for i = 1 : nSpinpackets
   % Replace Sys.ZeemanFreq with ZeemanFreq of current spin packet
   Sys.ZeemanFreq = ZeemanFreqVec(i);
   
-  [TimeAxis, signal] = spidyan(Sys,Exp,Opt);
+  [TimeAxis, Signal] = spidyan(Sys,Exp,Opt);
   
   if i == 1
-    Signal = signal*P(i);
+    TotalSignal = Signal*P(i);
   else
-    Signal = Signal + signal*P(i);
+    TotalSignal = TotalSignal + Signal*P(i);
   end
   
 end
@@ -65,7 +65,7 @@ end
 % Downconversion can only be done after all the signal had been summed up
 FreqTranslation = - (CenterFrequency-Opt.FrameShift);
 
-SignalDC = signalprocessing(TimeAxis,Signal,Opt.DetOperator,FreqTranslation);
+SignalDC = signalprocessing(TimeAxis,TotalSignal,Opt.DetOperator,FreqTranslation);
 
 % Get maximum of echo at each acquistion point
 Int = zeros(1,Exp.nPoints);
@@ -73,9 +73,10 @@ for i = 1 : size(SignalDC)
   Int(i) = max(abs(SignalDC(i,:)));
 end
 Int = Int - mean(Int);
+Int = Int/max(abs(Int));
 
 % Calculate Time axis of the ESEEM experiment
-tau = linspace(0,Exp.Dim{1,2}*(n-1),n);
+tau = Exp.t(2)+linspace(0,Exp.Dim{1,2}*(Exp.nPoints-1),Exp.nPoints);
 
 % Plotting of time traces
 figure(1)
