@@ -110,15 +110,6 @@ if isfield(Sys,'ZeemanFreq')
   Sys = rmfield(Sys,'ZeemanFreq');
 end
 
-% This is spidyan specific, and builds a vector that tells spidyan which
-% events are to be detected
-if ~isfield(Exp,'DetEvents') || isempty(Exp.DetEvents)
-  Exp.DetEvents(length(Exp.t)) = 0;
-else
-  Exp.DetEvents(1:length(Exp.DetEvents)) = Exp.DetEvents;
-end
-
-
 % Build the Event and Vary structure
 [Events, Vary] = sequencer(Exp,Opt);
 

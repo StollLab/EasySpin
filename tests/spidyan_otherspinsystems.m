@@ -38,8 +38,21 @@ Sys = nucspinadd(Sys,'1H',[8 45 45]);
 data.t2 = t2;
 data.signal2 = signal2;
 
+clear Sys
+Sys.S = [1/2 1/2];
+Sys.g = [gfree gfree];
+Sys.J = 0;  
+
+Opt = rmfield(Opt,'DetOperator');
+[t3, signal3] = spidyan(Sys,Exp,Opt);
+
+data.t3 = t3;
+data.signal3 = signal3;
+
 if ~isempty(olddata)
-  err = [~areequal(signal1,olddata.signal1,1e-4) ~areequal(signal2,olddata.signal2,1e-4)];
+  err = [~areequal(signal1,olddata.signal1,1e-4) ...
+    ~areequal(signal2,olddata.signal2,1e-4) ...
+    ~areequal(signal3,olddata.signal3,1e-4)];
 else
   err = [];
 end
