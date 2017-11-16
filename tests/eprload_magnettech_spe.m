@@ -5,6 +5,7 @@ function [err,data] = test(opt,olddata)
 BaseDir = 'eprfiles/magnettech/';
 
 Files{1} = 'Mangan.spe';
+Files{2} = 'magnettech_mt500l_1024points.spe';
 
 
 for iFile = 1:numel(Files)
