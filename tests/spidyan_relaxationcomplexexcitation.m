@@ -3,6 +3,8 @@ function [err,data] = test(opt,olddata)
 % System ------------------------
 Sys.S = 1/2;
 Sys.ZeemanFreq = 33.500;
+Sys.T1 = 1;
+Sys.T2 = 0.4;
 
 % Experiment -------------------
 Pulse.Type = 'quartersin/linear';
@@ -15,28 +17,26 @@ Exp.TimeStep = 0.0001; % us
 Exp.Frequency = [-0.100 0.100];
 Exp.Flip = [pi pi];
 Exp.mwFreq = 33.5;
-Exp.DetEvents = [1 0]; 
+Exp.DetEvents = [0 0]; 
 
 % Options ---------------------------
 Opt.DetOperator = {'z1'};
 Opt.FrameShift = 32;
+Opt.Relaxation = 1;
+
+% Testing Complex excitation
+
 Opt.ComplexExcitation = 1;
+[~, ~, ~, statecomplex1] = spidyan(Sys,Exp,Opt);
 
-% Function Call -----------------------------
+Exp.DetEvents = [1 1];
+[~, signalcomplex, ~, statecomplex2] = spidyan(Sys,Exp,Opt);
 
-[t1, signal1] = spidyan(Sys,Exp,Opt);
-
-data.t1 = t1;
-data.signal1 = signal1;
-
-% Using a custom complex excitation operator ----------------------
-Opt.ExcOperator = {sop(Sys.S,'x(1|2)')+sop(Sys.S,'y(1|2)')};
-Opt.ComplexExcitation = [1 1];
-
-[~, signal2] = spidyan(Sys,Exp,Opt);
+data.signalcomplex = signalcomplex;
 
 if ~isempty(olddata)
-  err = [~areequal(signal1,olddata.signal1,1e-4) ~areequal(signal1,signal2,1e-4)];
+  err = [~areequal(statecomplex1,statecomplex2,1e-4) ...
+    ~areequal(signalcomplex,olddata.signalcomplex,1e-4)];
 else
   err = [];
 end
