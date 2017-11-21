@@ -56,8 +56,8 @@ end
 
 function gr = find_gr(X)
 
-n = size(X,1);
-m = size(X,2);
+n = size(X,1);  % chain length
+m = size(X,2);  % number of chains
 
 % Inter-chain variance
 B = n*var(mean(X,1));  % B from reference
@@ -67,6 +67,7 @@ W = mean(var(X,0,1));  % W from reference
 
 sigmasq = (n-1)/n*W + B/n;
 Vhat = sigmasq + B/m/n;
+% Vhat = (n-1)/n*W + (m+1)/(m*n)*B;
 
 % Calculate the R statistic
 gr = Vhat/W;  % 

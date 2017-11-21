@@ -259,11 +259,18 @@ if isempty(Omega)
 %   if isfield(Sys.PseudoPotFun)
 %     
 %   else
-    z = 2*rand(1,Sim.nTraj)-1;
-    Omega = [pi*(2*rand(1,Sim.nTraj)-1);
-                            acos(z);
-             pi*(2*rand(1,Sim.nTraj)-1)];
+%     z = 2*rand(1,Sim.nTraj)-1;
+%     Omega = [pi*(2*rand(1,Sim.nTraj)-1);
+%                             acos(z);
+%              pi*(2*rand(1,Sim.nTraj)-1)];
 %   end
+  gridPts = linspace(-1, 1, Sim.nTraj);
+  gridPhi = zeros(1, Sim.nTraj);
+%   gridPhi = sqrt(pi*Sim.nTraj)*asin(gridPts);
+  gridTheta = acos(gridPts);
+%   gridPsi = zeros(1, Sim.nTraj);
+  gridPsi = sqrt(pi*Sim.nTraj)*asin(gridPts); % TODO why does this angle, and not Phi, not affect the spectra?
+  Omega = [gridPhi; gridTheta; gridPsi];
 end
 
 % If only one starting angle and multiple trajectories, repeat the angle
@@ -303,6 +310,7 @@ qTraj(:,:,1) = q0;
 
 % Simulation
 % -------------------------------------------------------------------------
+
 
 converged = 0;
 

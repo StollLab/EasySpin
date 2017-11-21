@@ -12,6 +12,6 @@ R = quat2rotmat(euler2quat(alpha,beta,gamma));
 
 diff = R - erot(alpha,beta,gamma);
 
-err = any(diff(:)>1e-10);
+err = any(abs(diff(:))>1e-10);
 
 data = [];

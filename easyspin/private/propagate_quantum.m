@@ -92,10 +92,14 @@ truncated = Par.truncated;
 
 dt = Par.dt;
 nTraj = Par.nTraj;
-if strcmp(Model,'Molecular Dynamics')
+if strcmp(Model, 'Molecular Dynamics')
   nSteps = Par.nSteps;
 else
-  nSteps = size(qTraj,3);
+  if strcmp(Method, 'Nitroxide')
+    nSteps = size(RTraj, 4);
+  elseif strcmp(Method, 'ISTOs')
+    nSteps = size(qTraj, 3);
+  end
 end
 t = linspace(0, dt*nSteps, nSteps);
 

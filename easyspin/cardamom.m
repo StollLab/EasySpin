@@ -94,7 +94,7 @@
 %
 %
 %   Opt: simulation options
-%     chkcon         if equal to 1, after the first nSteps of the 
+%     chkCon         if equal to 1, after the first nSteps of the 
 %                    trajectories are calculated, both inter- and intra-
 %                    trajectory convergence is checked using the Gelman-
 %                    Rubin R statistic such that R<1.1, and if this 
@@ -102,7 +102,7 @@
 %                    extended by either a length of time equal to the 
 %                    average of tcorr or by 20% more time steps, whichever 
 %                    is larger
-%     speccon        if equal to 1, after the first nOrients of the FID
+%     specCon        if equal to 1, after the first nOrients of the FID
 %                    are calculated, both inter- and intra-FID convergence 
 %                    are checked using the Gelman-Rubin R statistic such 
 %                    that R<1.1, and if this condition is not satisfied, 
@@ -125,7 +125,7 @@
 %
 %   MD: structure with molecular dynamics simulation parameters
 %
-%     tscale         double (optional
+%     tScale         double (optional
 %                    scale the time step of the simulation based on
 %                    incorrect diffusion coefficients, e.g. molecules 
 %                    solvated in TIP3P water have diffusion coefficients
@@ -235,7 +235,6 @@ Link = 'epr@eth'; eschecker; error(LicErr); clear Link LicErr
 global EasySpinLogLevel;
 global reverseStr
 EasySpinLogLevel = Opt.Verbosity;
-reverseStr = [];
 
 
 % Check Sys
@@ -259,11 +258,11 @@ end
 
 useMD = ~isempty(fieldnames(MD));
 
-if isfield(MD,'tscale')
-  tscale = MD.tscale;  % diffusion constants of molecules solvated in TIP3P
+if isfield(MD,'tScale')
+  tScale = MD.tScale;  % diffusion constants of molecules solvated in TIP3P
                        % water are known to be too large
 else
-  tscale = 1;
+  tScale = 1;
 end
 
 if useMD
@@ -306,7 +305,7 @@ if useMD
 
     MD = mdload(MD.TrajFile, MD.AtomInfo, OutOpt);
     
-    MD.dt = tscale*MD.dt;
+    MD.dt = tScale*MD.dt;
     MD.nSteps = size(MD.FrameZ, 1);
   end
   
@@ -332,6 +331,10 @@ if useMD
   end
   
   MD.nTraj = size(MD.RTraj,3);
+  
+  clear MD.FrameX
+  clear MD.FrameY
+  clear MD.FrameZ
 end
 
 % Check Par
@@ -412,15 +415,15 @@ if ~isfield(Opt,'Method')
 end
 
 if isfield(Opt,'FFTWindow')
-  fftWindow = Opt.FFTWindow;
+  FFTWindow = Opt.FFTWindow;
 else
-  fftWindow = 1;
+  FFTWindow = 1;
 end
 
-if ~isfield(Opt,'speccon')
-  speccon = 0;
+if ~isfield(Opt,'specCon')
+  specCon = 0;
 else
-  speccon = Opt.speccon;
+  specCon = Opt.specCon;
 end
 
 % Check dynamics and ordering
@@ -444,6 +447,7 @@ switch Model
     else
       nOrients = Par.nOrients;
     end
+    if specCon, nOrients = ceil(nOrients/2); end
     
   case 'MOMD'  %  TODO implement directors and ordering
     if ~isfield(Par,'nOrients')
@@ -454,15 +458,16 @@ switch Model
       nOrients = Par.nOrients;
     end
     
-    if speccon
+    if specCon
+      nOrients = ceil(nOrients/2);
       skip = 0;
-      grid_pts = 2*sobol_generate(1,nOrients,skip)-1;
-      grid_phi = sqrt(pi*nOrients)*asin(grid_pts);
-      grid_theta = acos(grid_pts);
+      gridPts = 2*sobol_generate(1,nOrients,skip)-1;
+      gridPhi = sqrt(pi*nOrients)*asin(gridPts);
+      gridTheta = acos(gridPts);
     else
-      grid_pts = linspace(-1,1,nOrients);
-      grid_phi = sqrt(pi*nOrients)*asin(grid_pts);
-      grid_theta = acos(grid_pts);
+      gridPts = linspace(-1,1,nOrients);
+      gridPhi = sqrt(pi*nOrients)*asin(gridPts);
+      gridTheta = acos(gridPts);
     end
     
   case 'SRLS'  %  TODO implement multiple diffusion frames
@@ -476,15 +481,16 @@ switch Model
       nOrients = Par.nOrients;
     end
 
-    if speccon
+    if specCon
+      nOrients = ceil(nOrients/2);
       skip = 0;
-      grid_pts = 2*sobol_generate(1,nOrients,skip)-1;
-      grid_phi = sqrt(pi*nOrients)*asin(grid_pts);
-      grid_theta = acos(grid_pts);
+      gridPts = 2*sobol_generate(1,nOrients,skip)-1;
+      gridPhi = sqrt(pi*nOrients)*asin(gridPts);
+      gridTheta = acos(gridPts);
     else
-      grid_pts = linspace(-1,1,nOrients);
-      grid_phi = sqrt(pi*nOrients)*asin(grid_pts);
-      grid_theta = acos(grid_pts);
+      gridPts = linspace(-1,1,nOrients);
+      gridPhi = sqrt(pi*nOrients)*asin(gridPts);
+      gridTheta = acos(gridPts);
     end
     
   case 'Molecular Dynamics' % TODO process RTraj based on size of input
@@ -494,15 +500,16 @@ switch Model
     DiffGlobal = 6e6;
     nOrients = Par.nOrients;
     
-    if speccon
+    if specCon
+      specCon, nOrients = ceil(nOrients/2);
       skip = 0;
-      grid_pts = 2*sobol_generate(1,nOrients,skip)-1;
-      grid_phi = sqrt(pi*nOrients)*asin(grid_pts);
-      grid_theta = acos(grid_pts);
+      gridPts = 2*sobol_generate(1,nOrients,skip)-1;
+      gridPhi = sqrt(pi*nOrients)*asin(gridPts);
+      gridTheta = acos(gridPts);
     else
-      grid_pts = linspace(-1,1,nOrients);
-      grid_phi = sqrt(pi*nOrients)*asin(grid_pts);
-      grid_theta = acos(grid_pts);
+      gridPts = linspace(-1,1,nOrients);
+      gridPhi = sqrt(pi*nOrients)*asin(gridPts);
+      gridTheta = acos(gridPts);
     end
 
     if strcmp(Opt.Method,'Resampling')
@@ -611,14 +618,9 @@ logmsg(1, '-- Model: %s -----------------------------------------', Model);
 
 logmsg(1, '-- Method: %s -----------------------------------------', Opt.Method);
 
-% % trajectories might differ in length, so we need cells for allocation
-expectval = {};
-tcell = {};
-
 % Run simulation
 % -------------------------------------------------------------------------
 
-clear updateuser
 clear propagate_quantum
 
 HistTot = 0;
@@ -626,14 +628,22 @@ HistTot = 0;
 converged = 0;
 iOrient = 1;
 iter = 1;
+spcArray = [];
+nOrientsTot = 0;
 
-tic
 while ~converged
+  tic
 %   for iOrient = 1:nOrients
+  % trajectories might differ in length, so we need cells for allocation
+  ExpectVal = {};
+  tCell = [];
+  reverseStr = [];
+
   % temporary cells to store intermediate results
-  iexpectval = cell(1,nOrients);
-  itcell = cell(1,nOrients);
-  while iOrient<nOrients+1
+  iExpectVal = cell(1,nOrients);
+  itCell = cell(1,nOrients);
+%   while iOrient<nOrients+1
+  for iOrient = 1:nOrients
 
   %   Par.Omega = [grid_phi(iOrient); grid_theta(iOrient); 0];
 
@@ -642,21 +652,23 @@ while ~converged
   %     case 'Stochastic'
   %     case 'Molecular Dynamics'
       case 'Brownian'
-        [t, RTraj, qTraj] = stochtraj(Sys,Par,Opt);
+        
         if strcmp(Opt.Method,'ISTOs')
           % this method needs quaternions, not rotation matrices
+          [t, ~, qTraj] = stochtraj(Sys,Par,Opt);
           Par.qTraj = qTraj;
         else
           % other methods use rotation matrices
+          [t, RTraj, ~] = stochtraj(Sys,Par,Opt);
           Par.RTraj = RTraj;
         end
 
       case 'MOMD'
-        [t, RTraj, qTraj] = stochtraj(Sys,Par,Opt);
+        [t, ~, qTraj] = stochtraj(Sys,Par,Opt);
         % generate quaternions for rotating to different grid points
-        qmult = repmat(euler2quat(grid_phi(iOrient), grid_theta(iOrient), 0),...
+        qMult = repmat(euler2quat(gridPhi(iOrient), gridTheta(iOrient), 0),...
                        [1,Par.nTraj,Par.nSteps]);
-        qTraj = quatmult(qmult,qTraj);
+        qTraj = quatmult(qMult,qTraj);
         if strcmp(Opt.Method,'ISTOs')
           % this method needs quaternions, not rotation matrices
           Par.qTraj = qTraj;
@@ -667,10 +679,10 @@ while ~converged
 
       case 'SRLS'
         Sys.Diff = DiffLocal;
-        [t, RTraj, qTrajLocal] = stochtraj(Sys,Par,Opt);
+        [t, ~, qTrajLocal] = stochtraj(Sys,Par,Opt);
 
         Sys.Diff = DiffGlobal;
-        [t, RTraj, qTrajGlobal] = stochtraj(Sys,Par,Opt);
+        [t, ~, qTrajGlobal] = stochtraj(Sys,Par,Opt);
         qTraj = quatmult(qTrajGlobal,qTrajLocal);
         if strcmp(Opt.Method,'ISTOs')
           % this method needs quaternions, not rotation matrices
@@ -684,9 +696,9 @@ while ~converged
       case 'Molecular Dynamics'
         % rotation matrices provided by external data, no need to do stochastic
         % simulation
-        qmult = repmat(euler2quat(grid_phi(iOrient), grid_theta(iOrient), 0),...
+        qMult = repmat(euler2quat(gridPhi(iOrient), gridTheta(iOrient), 0),...
                        [1,MD.nTraj,MD.nSteps]);
-        MD.RTraj = matmult(quat2rotmat(qmult),MD.RTraj);
+        MD.RTraj = matmult(quat2rotmat(qMult),MD.RTraj);
 
         if strcmp(Opt.Method,'Resampling')
 
@@ -698,12 +710,12 @@ while ~converged
 
           Sys.PseudoPotFun = PseudoPotFun;
           Sys.Diff = DiffLocal;
-          [t, RTraj, qTraj] = stochtraj(Sys,Par,Opt);
+          [t, ~, qTraj] = stochtraj(Sys,Par,Opt);
 
-          qmult = repmat(euler2quat(grid_phi(iOrient), grid_theta(iOrient), 0),...
+          qMult = repmat(euler2quat(gridPhi(iOrient), gridTheta(iOrient), 0),...
                          [1,Par.nTraj,Par.nSteps]);
   %         qTraj = quatmult(qTrajGlobal, qTraj);
-          qTraj = quatmult(qmult, qTraj);
+          qTraj = quatmult(qMult, qTraj);
   %         [alpha, beta, gamma] = quat2euler(qTraj);
   %         alpha = squeeze(alpha);
   %         beta = squeeze(beta);
@@ -775,33 +787,37 @@ while ~converged
     end
 
     % propagate the density matrix
-    rho_t = propagate_quantum(Sys,Par,Opt,MD,omega,CenterField);
+    rho = propagate_quantum(Sys,Par,Opt,MD,omega,CenterField);
 
     % average over trajectories
-  %   rho_t = squeeze(mean(rho_t,3));
+    rho = squeeze(mean(rho,3));
 
     % calculate the expectation value of S_{+}
-  %   expectval{1,iOrient} = squeeze(rho_t(1,1,:)+rho_t(2,2,:)+rho_t(3,3,:));  % take traces TODO try to speed this up using equality tr(A*B)=sum(sum(A.*B))
-    iexpectval{1,iOrient} = squeeze(rho_t(1,1,:,:)+rho_t(2,2,:,:)+rho_t(3,3,:,:));  % take traces TODO try to speed this up using equality tr(A*B)=sum(sum(A.*B))
+    iExpectVal{1,iOrient} = squeeze(rho(1,1,:)+rho(2,2,:)+rho(3,3,:));  % take traces TODO try to speed this up using equality tr(A*B)=sum(sum(A.*B))
+%     ExpectVal{1,iOrient} = squeeze(rho(1,1,:,:)+rho(2,2,:,:)+rho(3,3,:,:));  % take traces TODO try to speed this up using equality tr(A*B)=sum(sum(A.*B))
 
     if Opt.Verbosity
       updateuser(iOrient,nOrients)
     end
 
     if strcmp(Model,'Molecular Dynamics')
-      nSteps = size(rho_t,4);
+      nSteps = size(rho,4);
       t = linspace(0, nSteps*Par.dt, nSteps).';
     end
 
-    itcell{1,iOrient} = t;
+    itCell{1,iOrient} = t;
     
     iOrient = iOrient + 1;
 
   end
 
   % Trajectory averaging and statistics
-  expectval = [expectval, cellfun(@(x) mean(x,1).', iexpectval, 'UniformOutput', false)];
-  tcell = [tcell, itcell];
+%   ExpectVal = [ExpectVal, cellfun(@(x) mean(x,1).', iExpectVal, 'UniformOutput', false)];
+
+  % Store simulations at new starting orientations from each iteration
+  ExpectVal = cat(2, ExpectVal, iExpectVal);
+  tCell = cat(2, tCell, itCell);
+
 %   if iter==1
 %     expectval = cellfun(@(x) mean(x,1).', iexpectval, 'UniformOutput', false);
 %     tcell = itcell;
@@ -809,107 +825,141 @@ while ~converged
 %     expectval = [expectval, cellfun(@(x) mean(x,1).', iexpectval, 'UniformOutput', false)];
 %     tcell = [tcell, itcell];
 %   end
-    
-  if speccon
-    expvalarray = cell2mat(expectval);
-    gr = grstat(real(expvalarray));
-    converged = all(gr(:)<1.1);
-  else
-    converged = 1;
-  end
   
-  if converged
-    mins_tot = floor(toc/60);
-    msg = sprintf('Done!\nTotal simulation time: %d:%2.0f\n',mins_tot,mod(toc,60));
-    if Opt.Verbosity
-      fprintf(msg);
-    end
-  else
-    msg = sprintf('Convergence not achieved. Propagation is being extended.\n');
-    if Opt.Verbosity
-      fprintf(msg);
-    end
-  end
-  
-end
+% end
 
+%   if strcmp(Model, 'Molecular Dynamics')
+%     % these variables can take up a lot of memory and might prevent the user 
+%     % from implementing a fine enough grid for powder averaging 
+%     clear RTraj
+%     clear RTrajInv
+%     clear qmult
+%     clear MD.RTraj
+%     clear Traj
+%   end
 
-if strcmp(Model, 'Molecular Dynamics')
-  % these variables can take up a lot of memory and might prevent the user 
-  % from implementing a fine enough grid for powder averaging 
-  clear RTraj
-  clear RTrajInv
-  clear qmult
-  clear MD.RTraj
-  clear Traj
-end
+  RTraj = [];
+  qTraj = [];
+  Par.RTraj = [];
+  Par.qTraj = [];
 
 % Perform FFT
 % -------------------------------------------------------------------------
 
-% windowing
-if fftWindow
-%   hamm = 0.54 + 0.46*cos(pi*t/max(t));
-  hamm = cellfun(@(x) 0.54 + 0.46*cos(pi*x/max(x)), tcell, 'UniformOutput', false);
-  expectval = cellfun(@times, expectval, hamm);
-end
+  % windowing
+  if FFTWindow
+  %   hamm = 0.54 + 0.46*cos(pi*t/max(t));
+    hamm = cellfun(@(x) 0.54 + 0.46*cos(pi*x/max(x)), tCell, 'UniformOutput', false);
+    ExpectVal = cellfun(@times, ExpectVal, hamm, 'UniformOutput', false);
+  end
 
 % zero padding for FFT to ensure sufficient B-field resolution (at most 0.1 G)
 % expectval = cell2mat(cellfun(@(x) zeropad(x, maxlength), expectval, 'UniformOutput', false));
 % tlong = (0:Par.dt:maxlength*Par.dt);
 
-Bres = 0.1; % G
-treq = 1/(mt2mhz(Bres/10)*1e6); % mT -> s
+  Bres = 0.1; % G
+  tReq = 1/(mt2mhz(Bres/10)*1e6); % mT -> s
 
-% if max(t)<treq
-tmax = max(cellfun(@(x) max(x), tcell));
-if tmax<treq
-  M = ceil(treq/Par.dt);  % TODO make flexible for propagation length extensions
-else
-%   M = length(expectval);
-  M = ceil(tmax/Par.dt);
-end
-expectval = cell2mat(cellfun(@(x) zeropad(x, M), expectval, 'UniformOutput', false));
-tlong = linspace(0, M*Par.dt, M).';
-
-% broadening
-if Broadening
-  if Sys.lw(1)>0
-    % Gaussian broadening
-    TG = 1/(mt2mhz(Sys.lw(1))*1e6);
-    expectval = exp(-tlong.^2/TG^2/8).*expectval;
-%     GaussBroad = cellfun(@(x) exp(-x.^2/TG.^2/8), tcell, 'UniformOutput', false);
-%     expectval = cellfun(@times, expectval, GaussBroad, 'UniformOutput', false);
+  % if max(t)<treq
+  tMax = max(cellfun(@(x) max(x), tCell));
+  if tMax<tReq
+    M = ceil(tReq/Par.dt);  % TODO make flexible for propagation length extensions
+  else
+  %   M = length(expectval);
+    M = ceil(tMax/Par.dt);
   end
-  if numel(Sys.lw)==2
-    % Lorentzian broadening
-    TL = Dynamics.T2; 
-    expectval = exp(-tlong/TL).*expectval;
-%     LorentzBroad = cellfun(@(x) exp(-x/TL), tcell, 'UniformOutput', false);
-%     expectval = cellfun(@times, expectval, LorentzBroad, 'UniformOutput', false);
+  ExpectVal = cell2mat(cellfun(@(x) zeropad(x, M), ExpectVal, 'UniformOutput', false));
+  tLong = linspace(0, M*Par.dt, M).';
+
+  % broadening
+  if Broadening
+    if Sys.lw(1)>0
+      % Gaussian broadening
+      TG = 1/(mt2mhz(Sys.lw(1))*1e6);
+      ExpectVal = exp(-tLong.^2/TG^2/8).*ExpectVal;
+  %     GaussBroad = cellfun(@(x) exp(-x.^2/TG.^2/8), tcell, 'UniformOutput', false);
+  %     expectval = cellfun(@times, expectval, GaussBroad, 'UniformOutput', false);
+    end
+    if numel(Sys.lw)==2
+      % Lorentzian broadening
+      TL = Dynamics.T2; 
+      ExpectVal = exp(-tLong/TL).*ExpectVal;
+  %     LorentzBroad = cellfun(@(x) exp(-x/TL), tcell, 'UniformOutput', false);
+  %     expectval = cellfun(@times, expectval, LorentzBroad, 'UniformOutput', false);
+    end
   end
+
+  % expectDt = cellfun(@times, expectval, tcell, 'UniformOutput', false);
+
+  % spc = reshape(cell2mat(cellfun(@(x) fft(x,M), expectDt, 'UniformOutput', false)),...
+  %               [M,nOrients]);
+  % Multiply by t for differentiation and take the FFT
+  spcArray = cat(2, spcArray, imag(fftshift(fft(ExpectVal.*tLong, [], 1))));
+  spcNew = mean(spcArray,2);
+
+  if specCon
+    if iter==1
+      spcLast = spcNew;
+%       spread = std(spcArray,[],2);
+      rmsdNew = 1;
+    else
+      span = max(spcNew)-min(spcNew);
+      rmsdNew = sqrt(mean((spcNew-spcLast).^2))/span
+      if rmsdNew<5e-4
+        converged = 1;
+      else
+        rmsdPctChange = abs((rmsdNew-rmsdLast)/rmsdLast)
+        converged = rmsdPctChange<10e-2;
+      end
+    end
+%     if iter == 1
+%       runningAvg = [];
+%     end
+%     gr = grstat(real(ExpectValArray));
+%     converged = all(gr(:)<1.1);
+  else
+    converged = 1;
+  end
+  
+  if converged
+    spcAvg = spcNew;
+    minsTot = floor(toc/60);
+    msg = sprintf('Done!\nTotal simulation time: %d:%2.0f\n',minsTot,mod(toc,60));
+    if Opt.Verbosity
+      fprintf(msg);
+    end
+  else
+    % increase the total number of orientations by 20%
+    msg = sprintf('Convergence not achieved. Propagation is being extended.\n');
+    if Opt.Verbosity
+      fprintf(msg);
+    end
+    rmsdLast = rmsdNew;
+    spcLast = spcNew;  % store for comparison after next iteration completes
+    nOrientsTot = nOrientsTot + nOrients;
+    skip = iter*nOrientsTot;  % seed Sobol sequence generator for next iteration
+    
+%     nOrients = ceil(0.2*nOrientsTot);  % simulate using 20% additional orientations
+    nOrients = nOrientsTot;
+    gridPts = 2*sobol_generate(1,nOrients,skip)-1;
+    gridPhi = sqrt(pi*nOrients)*asin(gridPts);
+    gridTheta = acos(gridPts);
+    iter = iter + 1;
+  end
+
 end
 
-% Multiply by t for differentiation
-expectDt = expectval.*tlong;
-% expectDt = cellfun(@times, expectval, tcell, 'UniformOutput', false);
-
-% spc = reshape(cell2mat(cellfun(@(x) fft(x,M), expectDt, 'UniformOutput', false)),...
-%               [M,nOrients]);
-spc = fft(expectDt, [], 1);
-spc = imag(fftshift(mean(spc,2)));
 freq = 1/(Par.dt*M)*(-M/2:M/2-1);  % TODO check for consistency between FieldSweep and FFT window/resolution
 
 % center the spectrum around the isotropic component of the g-tensor
 fftAxis = mhz2mt(freq/1e6+Exp.mwFreq*1e3, mean(Sys.g));  % Note use of g0, not ge
 
 % interpolate over horizontal sweep range
-outspec = interp1(fftAxis, spc, xAxis);
+outspc = interp1(fftAxis, spcAvg, xAxis);
 
-% average over trajectories for <S_+(t)> output
-% tmat = cell2mat(tcell);
-expectval = mean(expectval, 2);
-expectval = expectval(1:Par.nSteps)
+% average over trajectories for expectation value output
+ExpectVal = mean(ExpectVal, 2);
+ExpectVal = ExpectVal(1:Par.nSteps);
 
 % Final processing
 % -------------------------------------------------------------------------
@@ -919,10 +969,10 @@ case 0
   cla
   if FieldSweep  % TODO fix output plotting
     if (xAxis(end)<10000)
-      plot(xAxis,outspec);
+      plot(xAxis,outspc);
       xlabel('magnetic field (mT)');
     else
-      plot(xAxis/1e3,outspec);
+      plot(xAxis/1e3,outspc);
       xlabel('magnetic field (T)');
     end
     axis tight
@@ -941,11 +991,11 @@ case 0
     title(sprintf('%0.8g mT, %d points',Exp.Field,numel(xAxis)));
   end
 case 1
-  varargout = {outspec};
+  varargout = {outspc};
 case 2
-  varargout = {xAxis,outspec};
+  varargout = {xAxis,outspc};
 case 3
-  varargout = {xAxis,outspec,expectval};
+  varargout = {xAxis,outspc,ExpectVal};
 end
 
 clear global EasySpinLogLevel
@@ -963,21 +1013,21 @@ global reverseStr
 
 % if isempty(reverseStr), reverseStr = []; end
 
-avg_time = toc/iOrient;
-secs_left = (nOrient - iOrient)*avg_time;
-mins_left = floor(secs_left/60);
+avgTime = toc/iOrient;
+secsLeft = (nOrient - iOrient)*avgTime;
+minsLeft = floor(secsLeft/60);
 
-secs_elap = toc;
-mins_elap =  floor(secs_elap/60);
+secsElap = toc;
+minsElap =  floor(secsElap/60);
 
 msg1 = sprintf('Iteration: %d/%d\n', iOrient, nOrient);
-if avg_time<1.0
-  msg2 = sprintf('%2.1f it/s\n', 1/avg_time);
+if avgTime<1.0
+  msg2 = sprintf('%2.1f it/s\n', 1/avgTime);
 else
-  msg2 = sprintf('%2.1f s/it\n', avg_time);
+  msg2 = sprintf('%2.1f s/it\n', avgTime);
 end
-msg3 = sprintf('Time elapsed: %d:%2.0f\n', mins_elap, mod(secs_elap,60));
-msg4 = sprintf('Time remaining (predicted): %d:%2.0f\n', mins_left, mod(secs_left,60));
+msg3 = sprintf('Time elapsed: %d:%2.0f\n', minsElap, mod(secsElap,60));
+msg4 = sprintf('Time remaining (predicted): %d:%2.0f\n', minsLeft, mod(secsLeft,60));
 msg = [msg1, msg2, msg3, msg4];
 
 fprintf([reverseStr, msg]);
