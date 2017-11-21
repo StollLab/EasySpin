@@ -6,8 +6,8 @@
 %   bestsys = esfit(...)
 %   [bestsys,bestspc] = esfit(...)
 %
-%     simfunc     simulation function name:
-%                   'pepper', 'garlic', 'salt', 'chili', etc.
+%     simfunc     simulation function name ('pepper', 'garlic', 'salt', ...
+%                   'chili', or custom function), or function handle
 %     expspc      experimental spectrum, a vector of data points
 %     Sys0        starting values for spin system parameters
 %     Vary        allowed variation of parameters
@@ -47,14 +47,28 @@ FitData = [];
 FitOpts = [];
 FitData.currFitSet = [];
 
-% Simulation function name
+% Simulation function
 %--------------------------------------------------------------------
-if ~ischar(SimFunctionName)
-  error('First parameter must be simulation function name.');
-end
-FitData.SimFcnName = SimFunctionName;
-if ~any(exist(FitData.SimFcnName)==[2 3 5 6])
-  error('First input parameter must be a valid function name.');
+switch class(SimFunctionName)
+  case 'char'
+    % Simulation function is given as a character array
+    FitData.SimFcnName = SimFunctionName;
+    FitData.SimFcn = str2func(SimFunctionName);
+    if ~any(exist(FitData.SimFcnName)==[2 3 5 6])
+      error('First input parameter must be a valid function name or function handle.');
+    end
+  case 'function_handle'
+    % Simulation function is given as a function handle
+    fdata = functions(SimFunctionName);
+    FitData.SimFcnName = fdata.function;
+    FitData.SimFcn = SimFunctionName;
+    if ~strcmpi(fdata.type,'anonymous') && ~strcmpi(fdata.type,'scopedfunction')
+      if ~any(exist(FitData.SimFcnName) == [2 3 5 6])
+        error('First input parameter must be a valid function name or function handle.');
+      end
+    end
+  otherwise
+    error('First parameter must be simulation function name.');
 end
 FitData.lastSetID = 0;
 
@@ -83,7 +97,7 @@ if ~iscell(Vary), Vary = {Vary}; end
 if numel(Vary)~=nSystems
   error(sprintf('%d spin systems given, but %d vary structure.\n Give %d vary structures.',nSystems,numel(Vary),nSystems));
 end
-for iSys=1:nSystems
+for iSys = 1:nSystems
   if ~isstruct(Vary{iSys}), Vary{iSys} = struct; end
 end
 
@@ -150,7 +164,7 @@ FitData.Exp = Exp;
 % Fitting options
 %======================================================================
 if ~isfield(FitOpt,'OutArg')
-  FitData.nOutArguments = abs(nargout(FitData.SimFcnName));
+  FitData.nOutArguments = abs(nargout(FitData.SimFcn));
   FitData.OutArgument = FitData.nOutArguments;
 else
   if numel(FitOpt.OutArg)~=2
@@ -172,7 +186,7 @@ FitOpt.TargetID = 1; % function as is
 if isfield(Exp,'Harmonic') && (Exp.Harmonic>0)
   FitOpt.TargetID = 2; % integral
 else
-  if strcmp(SimFunctionName,'pepper') || strcmp(SimFunctionName,'garlic')
+  if strcmp(FitData.SimFcnName,'pepper') || strcmp(FitData.SimFcnName,'garlic')
     FitOpt.TargetID = 2; % integral
   end
 end
@@ -274,7 +288,7 @@ FitOpts = FitOpt;
 %=====================================================================
 % Setup UI
 %=====================================================================
-if (FitData.GUI)
+if FitData.GUI
   clc
   
   % main figure
@@ -331,7 +345,7 @@ if (FitData.GUI)
   hAx = axes('Parent',hFig,'Units','pixels','Position',[x0 y0 100 80],'Layer','top');
   h = plot(hAx,1,NaN,'.');
   set(h,'Tag','errorline','MarkerSize',5,'Color',[0.2 0.2 0.8]);
-  set(gca,'FontSize',7,'YScale','lin','XTick','','YAxisLoc','right','Layer','top');
+  set(gca,'FontSize',7,'YScale','lin','XTick',[],'YAxisLoc','right','Layer','top');
   title('log10(rmsd)','Color','k','FontSize',7,'FontWeight','normal');
     
   h = uicontrol('Style','text','Position',[x0+125 y0+64 205 16]);
@@ -357,7 +371,7 @@ if (FitData.GUI)
     data{p,5} = sprintf('%0.6g',FitData.CenterVals(p));
     data{p,6} = sprintf('%0.6g',FitData.VaryVals(p));
   end
-  x0 = 660; y0 = 400; dx = 60;
+  x0 = 660; y0 = 400; dx = 80;
   % uitable was introduced in R2008a, undocumented in
   % R2007b, where property 'Tag' doesn't work
   uitable('Tag','ParameterTable',...
@@ -540,7 +554,7 @@ end
 
 % Arrange outputs
 %------------------------------------------------------------
-if (~FitData.GUI)
+if ~FitData.GUI
   if (nSystems==1), BestSys = BestSys{1}; end
   switch (nargout)
     case 0, varargout = {BestSys};
@@ -567,7 +581,7 @@ UserCommand = 0;
 %===================================================================
 % Update UI, pull settings from UI
 %===================================================================
-if (FitData.GUI)
+if FitData.GUI
     
   % Hide Start button, show Stop button
   set(findobj('Tag','StopButton'),'Visible','on');
@@ -604,7 +618,7 @@ end
 % Run fitting algorithm
 %===================================================================
 
-if (~FitData.GUI)
+if ~FitData.GUI
   if FitOpts.PrintLevel
     disp('-- esfit ------------------------------------------------');
     fprintf('Simulation function:      %s\n',FitData.SimFcnName);
@@ -616,9 +630,9 @@ if (~FitData.GUI)
   end
 end
 
-FitData.bestspec = ones(1,numel(FitData.ExpSpec))*NaN;
+%FitData.bestspec = ones(1,numel(FitData.ExpSpec))*NaN;
 
-if (FitData.GUI)
+if FitData.GUI
   data = get(getParameterTableHandle,'Data');
   for iPar = 1:FitData.nParameters
     FitData.inactiveParams(iPar) = data{iPar,1}==0;
@@ -729,10 +743,12 @@ end
 
 % Simulate best-fit spectrum
 if numel(FinalSys)==1
-  [out{1:FitData.nOutArguments}] = feval(FitData.SimFcnName,FinalSys{1},FitData.Exp,FitData.SimOpt);
+  fs = FinalSys{1};
 else
-  [out{1:FitData.nOutArguments}] = feval(FitData.SimFcnName,FinalSys,FitData.Exp,FitData.SimOpt);
+  fs = FinalSys;
 end
+[out{1:FitData.nOutArguments}] = FitData.SimFcn(fs,FitData.Exp,FitData.SimOpt);
+
 % (SimSystems{s}.weight is taken into account in the simulation function)
 BestSpec = out{FitData.OutArgument}; % pick last output argument
 BestSpecScaled = rescale(BestSpec,FitData.ExpSpecScaled,FitOpts.Scaling);
@@ -743,7 +759,7 @@ Residuals = Residuals.'; % col -> row
 rmsd = sqrt(mean(Residuals.^2));
 
 % Output
-%===================================================================
+%===============================================================================
 if ~FitData.GUI
   
   if FitOpts.PrintLevel && (UserCommand~=99)
@@ -781,20 +797,25 @@ else
 end
 
 return
-%===================================================================
-%===================================================================
-%===================================================================
+%===============================================================================
+%===============================================================================
+%===============================================================================
 
 function resi = residuals_(x,ExpSpec,FitDat,FitOpt)
 [rms,resi] = assess(x,ExpSpec,FitDat,FitOpt);
 
-%==========================================================================
+%===============================================================================
 function varargout = assess(x,ExpSpec,FitDat,FitOpt)
 
 global UserCommand FitData FitOpts
-persistent BestSys smallestError errorlist;
+persistent BestSys;
 
-if isempty(smallestError), smallestError = inf; end
+if ~isfield(FitData,'smallestError') || isempty(FitData.smallestError)
+  FitData.smallestError = inf;
+end
+if ~isfield(FitData,'errorlist')
+  FitData.errorlist = [];
+end
 
 Sys0 = FitDat.Sys0;
 Vary = FitDat.Vary;
@@ -807,9 +828,9 @@ x_all = FitData.startx;
 x_all(~inactive) = x;
 [SimSystems,simvalues] = getSystems(Sys0,Vary,x_all);
 if numel(SimSystems)==1
-  [out{1:FitData.nOutArguments}] = feval(FitData.SimFcnName,SimSystems{1},Exp,SimOpt);
+  [out{1:FitData.nOutArguments}] = FitData.SimFcn(SimSystems{1},Exp,SimOpt);
 else
-  [out{1:FitData.nOutArguments}] = feval(FitData.SimFcnName,SimSystems,Exp,SimOpt);
+  [out{1:FitData.nOutArguments}] = FitData.SimFcn(SimSystems,Exp,SimOpt);
 end
 % (SimSystems{s}.weight is taken into account in the simulation function)
 simspec = out{FitData.OutArgument}; % pick last output argument
@@ -821,18 +842,18 @@ simspec = rescale(simspec,ExpSpec,FitOpt.Scaling);
 residuals = getResiduals(simspec(:),ExpSpec(:),FitOpt.TargetID);
 rmsd = real(sqrt(mean(residuals.^2)));
 
-errorlist = [errorlist rmsd];
-isNewBest = rmsd<smallestError;
+FitData.errorlist = [FitData.errorlist rmsd];
+isNewBest = rmsd<FitData.smallestError;
 
 if isNewBest
-  smallestError = rmsd;
+  FitData.smallestError = rmsd;
   FitData.bestspec = simspec;
   BestSys = SimSystems;
 end
 
 % update GUI
 %-----------------------------------------------------------
-if (FitData.GUI) && (UserCommand~=99)
+if FitData.GUI && (UserCommand~=99)
   
   % update graph
   set(findobj('Tag','expdata'),'XData',1:numel(ExpSpec),'YData',ExpSpec);
@@ -872,7 +893,7 @@ if (FitData.GUI) && (UserCommand~=99)
     if isNewBest
       [str,values] = getSystems(BestSys,Vary);
       
-      str = [sprintf(' RMSD: %g\n',(smallestError))];
+      str = sprintf(' RMSD: %g\n',(FitData.smallestError));
       hRmsText = findobj('Tag','RmsText');
       set(hRmsText,'String',str);
       
@@ -898,8 +919,8 @@ if (FitData.GUI) && (UserCommand~=99)
   
   hErrorLine = findobj('Tag','errorline');
   if ~isempty(hErrorLine)
-    n = min(100,numel(errorlist));
-    set(hErrorLine,'XData',1:n,'YData',log10(errorlist(end-n+1:end)));
+    n = min(100,numel(FitData.errorlist));
+    set(hErrorLine,'XData',1:n,'YData',log10(FitData.errorlist(end-n+1:end)));
     ax = get(hErrorLine,'Parent');
     axis(ax,'tight');
     drawnow
@@ -1039,7 +1060,7 @@ for s=1:nSystems
     [idx1,idx2] = find(Vary{s}.(fieldname));
     idx = sortrows([idx1(:) idx2(:)]);
     singletonDims_ = sum(size(FieldValue)==1);
-    for i = 1:numel(idx1)
+    for i = numel(idx1):-1:1
       Fields{p} = fieldname;
       Indices(p,:) = idx(i,:);
       singletonDims(p) = singletonDims_;

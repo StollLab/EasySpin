@@ -3,7 +3,7 @@ function [err,data] = test(opt,olddata)
 % Read Magnettech spectrometer files (new XML format)
 %-------------------------------------------------
 
-BaseDir = 'eprfiles/';
+BaseDir = 'eprfiles/magnettech/';
 
 Files{1} = 'Mangan_Ausgangslage.xml';
 

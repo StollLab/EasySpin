@@ -68,12 +68,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   if (nrhs!=4) mexErrMsgTxt("4 input arguments expected.");
   if (nlhs!=4) mexErrMsgTxt("4 output arguments expected.");
 
-  nNuclei = (int)mxGetScalar(mxGetField(prhs[idxS],0,"nNuclei"));
-  if (nNuclei>2)
-    mexErrMsgTxt("chili_lm0123 works only for 0, 1 or 2 nuclear spins.");
-  
+  /* Parse spin system input structure */
   if (Display) mexPrintf("Parsing system structure...\n");
   idxS = 0;
+  nNuclei = (int)mxGetScalar(mxGetField(prhs[idxS],0,"nNuclei"));
+  if (nNuclei>2)
+    mexErrMsgTxt("chili_lm0123 works only for 0, 1 or 2 nuclear spins.");  
   Sys.EZI0 = mxGetScalar(mxGetField(prhs[idxS],0,"EZ0"));
   Sys.DirTilt = mxGetScalar(mxGetField(prhs[idxS],0,"DirTilt"));
   Sys.d2psi = mxGetPr(mxGetField(prhs[idxS],0,"d2psi"));

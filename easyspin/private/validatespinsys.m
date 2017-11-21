@@ -31,10 +31,14 @@ if ~isstruct(Sys) || (numel(Sys)~=1)
   return
 end
 
+% whether Sys is being reprocessed after removal of nuclei
+reprocessing = false;
 if isfield(Sys,'processed')
   if Sys.processed
     FullSys = Sys;
     return;
+  else
+    reprocessing = true;
   end
 end
 
@@ -74,7 +78,7 @@ for f = 1:numel(givenFields)
 end
 
 for ind = find((strncmpi(givenFields,'Ham',3)))
-  if isempty(ind), break; end;
+  if isempty(ind), break; end
   field = givenFields{ind};
   if length(field)~= 6 
     if str2num(field(4))+str2num(field(5))<10  
@@ -279,11 +283,13 @@ end
 
 
 %---------- electron-electron ------------------------------------------
-Sys.fullee = false;
-if (nElectrons>1)
+if ~isfield(Sys,'fullee'), Sys.fullee = false; end
+if (nElectrons>1) && ~reprocessing
   
   eeMatrix = isfield(Sys,'ee');
-  JdD = isfield(Sys,'J') || isfield(Sys,'dvec') || isfield(Sys,'eeD');
+  JdD = (isfield(Sys,'J') && ~isempty(Sys.J)) || ...
+    (isfield(Sys,'dvec') && ~isempty(Sys.dvec)) || ...
+    (isfield(Sys,'eeD') && ~isempty(Sys.eeD));
   
   if ~eeMatrix && ~JdD
     err = 'Spin system contains 2 or more electron spins, but coupling terms are missing (ee; or J, dvec, eeD)!';
@@ -480,7 +486,7 @@ if (nNuclei>0)
         Sys.A_(:,idx+2) = 0;
         idx = idx + 3;
       end
-    elseif issize(Sys.A_,[nNuclei,2*nElectrons]);
+    elseif issize(Sys.A_,[nNuclei,2*nElectrons])
       % Expand [aiso T] into [aiso T 0]
       A_ = Sys.A_;
       idx1 = 1;
@@ -514,7 +520,7 @@ if (nNuclei>0)
 
     % Cartesian representation  [Ax Ay Az]
     
-    if issize(Sys.A,[3*nNuclei,3*nElectrons]);
+    if issize(Sys.A,[3*nNuclei,3*nElectrons])
       % Full A matrices
       Sys.fullA = 1;
     elseif issize(Sys.A,[1 nNuclei])
@@ -528,7 +534,7 @@ if (nNuclei>0)
     elseif issize(Sys.A,[nNuclei,nElectrons])
       % Expand isotropic A into 3 equal principal values
       Sys.A = kron(Sys.A,[1 1 1]);
-    elseif issize(Sys.A,[nNuclei,2*nElectrons]);
+    elseif issize(Sys.A,[nNuclei,2*nElectrons])
       % Expand axial A into 3 principal values
       idx = [1 1 2];
       for k = 2:nElectrons
@@ -642,6 +648,57 @@ if (nNuclei>0)
 
 end
 
+%------ Nuclear-nuclear couplings ----------------------------------------------
+Sys.fullnn = false;
+if nNuclei<2
+  
+  if isfield(Sys,'nn')
+    if ~isempty(Sys.nn) && any(Sys.nn(:)~=0)
+      error('Nuclear-nuclear couplings specified in Sys.nn, but fewer than two nuclei given.');
+    end
+  end
+  
+else
+  
+  % Bilinear coupling defined via Sys.nn
+  nNucPairs = nNuclei*(nNuclei-1)/2;
+  
+  if isfield(Sys,'nn') && ~isempty(Sys.nn) && any(Sys.nn(:))
+    
+    % Expand isotropic couplings into 3 equal principal values
+    if numel(Sys.nn)==nNucPairs
+      Sys.nn = Sys.nn(:)*[1 1 1];
+    end
+    
+    % Size checks for Sys.nn
+    Sys.fullnn = issize(Sys.nn,[3*nNucPairs,3]);
+    if ~Sys.fullnn
+      err = sizecheck(Sys,'nn',[nNucPairs 3]);
+      if ~isempty(err), return; end
+    end
+    
+  else
+    Sys.nn = zeros(nNucPairs,3);
+    Sys.nnFrame = zeros(nNucPairs,3);
+    Sys.fullnn = false;
+  end
+  
+  % Check for nnFrame, supplement or error if necessary
+  if Sys.fullnn
+    if isfield(Sys,'nnFrame') && ~isempty(Sys.nnFrame)
+      err = sprintf('Full matrices are specified in Sys.nn, so nnFrame is not allowed.');
+      if ~isempty(err), return; end
+    end
+  else
+    if ~isfield(Sys,'nnFrame'), Sys.nnFrame = zeros(nNucPairs,3); end
+    err = sizecheck(Sys,'nnFrame',[nNucPairs 3]);
+    if ~isempty(err), return; end
+  end
+  
+end
+
+
+%----------------------------------------------------------------------
 % Remove spin-zero nuclei
 rmv = Sys.I==0;
 
@@ -721,7 +778,7 @@ end
 switch n2
   case 1, Sys.gStrain = Sys.gStrain(:,[1 1 1]);
   case 2, Sys.gStrain = Sys.gStrain(:,[1 1 2]);
-  case 3, % ok
+  case 3 % ok
   otherwise
   err = sprintf('Sys.gStrain must have 1, 2, or 3 columns!');
 end
@@ -750,7 +807,7 @@ end
 switch n2
   case 1, Sys.DStrain = [Sys.DStrain zeros(nElectrons,2)];
   case 2, Sys.DStrain = [Sys.DStrain zeros(nElectrons,1)];
-  case 3, % ok
+  case 3 % ok
   otherwise
   err = sprintf('Sys.DStrain must have 1, 2, or 3 columns!');
 end
@@ -897,7 +954,7 @@ if isfield(Sys,'L') && ~isempty(Sys.L)
     return
   end
   if size(Sys.soc,1) ~= nElectrons
-    if size(Sys.soc)== [1,nElectrons]
+    if issize(Sys.soc,[1,nElectrons])
       Sys.soc = Sys.soc.';
     else
       err = 'Number of spin-orbit couplings must match number of spins!';

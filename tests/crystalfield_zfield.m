@@ -1,24 +1,24 @@
 function [err,data] = test(opt,olddata)
-%orbital angular momenta can also be defined as spins, therefore the two
-%Hamiltonians should be identical
 
-n = randi(3);
-Sys.S = randi(3,1,n)/2;
-Sys.L = randi(3,1,n);
-Sys.soc = zeros(n,1);
-if n>1, Sys.ee = zeros(nchoosek(length(Sys.S),2),1);end
-PureSpin.S = [Sys.S,Sys.L];
-PureSpin.ee = zeros(nchoosek(length([Sys.S,Sys.L]),2),1);
-for k=2:2:8
+% Orbital angular momenta can also be defined as spins, therefore the two
+% Hamiltonians should be identical.
+
+SysSL.S = [1/2 1];
+SysSL.L = [2 1];
+SysSL.soc = zeros(2,1);
+SysSL.ee = zeros(nchoosek(length(SysSL.S),2),1);
+
+SysS.S = [SysSL.S,SysSL.L];
+SysS.ee = zeros(nchoosek(length(SysS.S),2),1);
+for k = 2:2:8
   fieldname = sprintf('CF%d',k);
   spinfieldname = sprintf('B%d',k);
-  Sys.(fieldname) = rand(n,2*k+1).*repmat(((k/2)<=Sys.L).',1,2*k+1);
-  PureSpin.(spinfieldname) = [zeros(n,2*k+1);Sys.(fieldname)]; 
+  SysSL.(fieldname) = rand(2,2*k+1).*repmat(((k/2)<=SysSL.L).',1,2*k+1);
+  SysS.(spinfieldname) = [zeros(2,2*k+1);SysSL.(fieldname)]; 
 end
 
-H1 = zfield(PureSpin);
-H2 = crystalfield(Sys);
+H_S = zfield(SysS);
+H_SL = crystalfield(SysSL);
 
-err = ~areequal(H1,H2,1e-10);
+err = ~areequal(H_S,H_SL,1e-10);
 data = [];
-

@@ -1,11 +1,11 @@
 function [err,data] = test(opt,olddata)
 %orbital angular momenta can also be defined as spins, therefore the two
 %Hamiltonians should be identical
-rand('twister',5);
+rng_(5,'twister');
 
-n = randi(3);
-Sys.S = randi(3,1,n)/2;
-Sys.L = randi(3,1,n);
+n = randi_(3);
+Sys.S = randi_(3,1,n)/2;
+Sys.L = randi_(3,1,n);
 Sys.soc = zeros(n,1);
 Sys.g = rand(3*n,3);
 Sys.orf = rand(n, 1);

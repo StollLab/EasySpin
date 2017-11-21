@@ -74,7 +74,7 @@ for iElSpin = 1:nElSpins
   isFieldDep(iInt) = true;
   if ~generalLiouvillian
     % Generate custom fields for Freed method
-    if any(abs(F1(iInt,:))>1e-6)
+    if any(abs(F1(iInt,:)/F0(iInt))>1e-9)
       error('g tensor must be symmetric for this method.');
     end
     % Set parameters for chili_liouvmatrix*

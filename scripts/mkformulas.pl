@@ -9,7 +9,7 @@ $templatefile = "template.tex";
 
 $latexoptions = '--interaction=nonstopmode';
 $dvipsoptions = '-o -q';
-$pstoimgoptions = '-antialias -scale=1.45 -multi -crop=a';
+$pstoimgoptions = '-antialias -scale=1.45 -multipage -crop=a -out=';
 
 $templateposition = '%formulaposition';
 
@@ -45,7 +45,7 @@ close file;
 $imgkey = '<img[^\n]*?"\[eqn\]">';
 $html =~ s/$imgkey//sg;
 
-# extract latex codlets from HTML file and write to LaTeX file
+# extract latex snippets from HTML file and write to LaTeX file
 #---------------------------------------------------------------
 @latexcode = $html =~ /<\!--MATH(.*?)-->/sg;
 $n_equations = scalar(@latexcode);
@@ -71,7 +71,12 @@ if ($n_equations>0) {
   #---------------------------------------------------------------
   system('latex '.$latexoptions.' '.$tmpfile.'.tex');
   system('dvips '.$dvipsoptions.' '.$tmpfile);
-  system('pstoimg '.$pstoimgoptions.' '.$tmpfile.'.ps');
+  system('pstoimg '.$pstoimgoptions.$tmpfile.' '.$tmpfile.'.ps');
+  
+  # rename all image files to remove _ and leading zeros (e.g. myfile_01.png -> myfile1.png)
+  system('rename s/_0/_/ *.png');
+  system('rename s/_// *.png');
+  
   # move all image files
   system('mv '.$tmpfile.'*.png '.$pngdir);
   # remove all temporary files

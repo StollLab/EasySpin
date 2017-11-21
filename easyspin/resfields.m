@@ -444,8 +444,8 @@ else
     ZFEnergies =  sort(real(eig(sham(CoreSys, zeros(1,3)))));
   else
     if issparse(kF)
-      ZFEnergies(1) = eigs(kF,1,'sa');
-      ZFEnergies(2) = eigs(kF,1,'la');
+      ZFEnergies(1) = eigs(kF,1,-2*max(abs(kF(:))));
+      ZFEnergies(2) = eigs(kF,1,+2*max(abs(kF(:))));
     else
       ZFEnergies = sort(real(eig(kF)));
     end
@@ -492,8 +492,8 @@ if UserTransitions
     if strcmp(Opt.Transitions,'all');
       if isempty(Opt.nLevels)
         nStates_ = prod(2*CoreSys.S+1)*prod(2*CoreSys.I+1);
-        if isfield(Sys,'L')
-          nStates_ = nStates_*prod(2*CoreSys.I+1);
+        if isfield(CoreSys,'L')
+          nStates_ = nStates_*prod(2*CoreSys.L+1);
         end
       else
         nStates_ = Opt.nLevels;

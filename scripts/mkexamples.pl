@@ -19,15 +19,15 @@ $Description{'fastmotion'} = 'Fast-motion cw EPR simulations';
 $Description{'slowmotion'} = 'Slow-motion cw EPR simulations';
 $Description{'endor'} = 'ENDOR simulations';
 $Description{'pulse'} = 'Pulse EPR simulations';
+$Description{'shaping'} = 'Pulse shaping etc.';
 $Description{'analysis'} = 'Data analysis';
 $Description{'varia'} = 'Other examples';
 $Description{'fitting'} = 'Least-squares fitting';
 $Description{'magnetometry'} = 'Magnetometry';
 
-open(D,'>../documentation/examplesmain.html');
+open(D,'>../docs/examplesmain.html');
 
 print D  <<QQQ;
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -109,5 +109,4 @@ print D <<QQQ;
 
 </body>
 </html>
-
 QQQ

@@ -4,10 +4,10 @@
 %   [m,sigma] = mu0
 %
 %   Returns the magnetic constant (also known as vacuum
-%   permeability) in SI units, newton per ampere^2.
+%   permeability) in SI units (N A^-2 = T^2 m^3 J^-1).
 %
 %   sigma is the standard uncertainty, which is zero for
-%   this constant
+%   this constant.
 
 function [m,sigma] = mu0
 

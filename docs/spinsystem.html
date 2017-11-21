@@ -118,6 +118,7 @@ The following groups of parameters can be specified in the spin system structure
 <li><a href = "#D">Zero-field splittings</a></li>
 <li><a href = "#B">Higher-order operators</a></li>
 <li><a href = "#ee">Electron-electron spin-spin couplings</a></li>
+<li><a href = "#nn">Nuclear-nuclear spin-spin couplings</a></li>
 <li><a href = "#soi">Spin-orbit interaction</a></li>
 <li><a href = "#Ham">General Paramters for Spin Hamiltonian expanded in Magnetic Field and Electron Spin</a></li>
 <li><a href = "#lw">Broadenings</a></li>
@@ -975,7 +976,80 @@ Sys.ee2 = [130 0 130 130 0 130]; % couplings 1-2, 1-3, 1-4, 2-3, 2-4, 3-4
 EasySpin defines the biquadratic exchange term in the spin Hamiltonian as +j(S1.S2)<sup>2</sup>, with a plus sign. In the literature, it is sometimes defined with a negative sign, so be careful when using literature values.
 
 </div>
-&nbsp;<br>
+
+
+<div class="subtitle"><a name="nn">Nuclear-nuclear spin-spin couplings</a></div>
+
+<p>
+For each pair of nuclear spins, a bilinear coupling matrix (composed of isotropic, anisotropic, and antisymmetric terms) can be given. This term is specified in the field <code>Sys.nn</code>, with the orientation in <code>Sys.nnFrame</code>.
+
+<p>
+In practice, this term is essentially always too small to be of any relevance for EPR or ENDOR spectra. EasySpin provides it so its effects on spectra can be explored.
+
+<div class="optionfield"><code>nn</code></div>
+<div class="optiondescr">
+<em>
+Nx3 or 3Nx3 array of real
+</em>
+<p>
+Principal values of the nuclear-nuclear interaction matrices, or full interaction matrices, in MHz. For providing principal values, each row contains the three principal values of one interaction matrix. For two nuclear spins, <code>nn</code> contains one row only. 
+
+<pre class="matlab">
+Sys.Nucs = '1H,1H';        % two nuclear spins
+Sys.nn = [10 20 30]*1e-6;  % principal values of coupling matrix between spins 1 and 2, MHz
+</pre>
+
+<p>
+For more than two nuclear spins, the pairs are lexicographically ordered according to the indices of the nuclear spins involved. If n is the number of nuclear spins, there are N = n(n-1)/2 rows. For example, for 4 spins there are 6 rows with the principal values for the interaction of spins 1-2, 1-3, 1-4, 2-3, 2-4, 3-4, in this order.
+
+<pre class="matlab">
+Sys.Nucs = '1H,1H,19F';        % three spins
+nn12 = [50 50 100]*1e-6;
+nn13 = [10 10 -30]*1e-6;
+nn14 = [10 10 -30]*1e-6;
+nn23 = [0 0 0];
+nn24 = [0 0 0];
+nn34 = [80 80 80]*1e-6;
+Sys.nn = [nn12; nn13; nn14; nn23; nn24; nn34];  % 6 coupling matrices, MHz
+</pre>
+
+<p>
+If the principal values are given, the orientation of the interaction matrices can be specified via Euler angles in the field <code>nnFrame</code> (see below).
+
+<p>
+It is also possible to specify the full 3x3 interaction matrices instead of the 3 principal values and 3 Euler angles. For two nuclei, <code>nn</code> is a single 3x3 array.
+
+<pre class="matlab">
+Sys.Nucs = '1H,1H';                       % two nuclear spins
+Sys.nn = [50 0 0;0 50 0; 0 0 100]*1e-6;   % one coupling matrix, MHz
+</pre>
+
+<p>
+For more nuclei, the 3x3 matrices are stacked on top of each other, to give a 3Nx3 array.
+
+<pre>
+Sys.S = '1H,1H,1H';                   % three spins
+nn12 = [50 0 0; 0 50 0; 0 0 100]*1e-6;
+nn13 = diag([10 10 -30])*1e-6;
+nn23 = zeros(3);
+Sys.nn = [nn12; nn13; nn23];          % three coupling matrices, MHz
+</pre>
+
+</div>
+
+<div class="optionfield"><code>nnFrame</code></div>
+<div class="optiondescr">
+<em>
+Nx3 array of real
+</em>
+<p>
+Array containing the <a href="eulerangles.html">Euler angles</a> describing the orientation of the nuclear-nuclear interaction matrices (specified in <code>nn</code>) in the molecular frame. Each row contains the three Euler angles for the corresponding row in <code>nn</code>.
+
+<p>
+This is fully analogous to <code>eeFrame</code> (see above). Check out the page on <a href="frames.html">frames</a> for more details on frames.
+
+</div>
+
 
 <div class="subtitle"><a name="soi">Spin-orbit interaction</a></div>
 For each electron spin an orbital angular momentum can be defined in the field <code>L</code>. It is described by the crystal field splitting, the orbital reduction factor and the spin-orbit coupling. Currently, spin-orbit interaction is supported by the simulation functions <a class="esf" href="pepper.html">pepper</a> (solid-state EPR)and <a class="esf" href="curry.html">curry</a>. 

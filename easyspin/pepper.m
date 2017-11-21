@@ -120,12 +120,16 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
   if ~iscell(Sys), Sys = {Sys}; end
   
   nComponents = numel(Sys);
-  logmsg(1,'%d spin system(s)...');
+  if nComponents>1
+    logmsg(1,'  %d component spin systems...');
+  else
+    logmsg(1,'  single spin system');
+  end
   
   for c = 1:nComponents
     SysList{c} = isotopologues(Sys{c},Opt.IsoCutoff);
     nIsotopologues(c) = numel(SysList{c});
-    logmsg(1,'  component %d: %d isotopologues',c,nIsotopologues(c));
+    logmsg(1,'    component %d: %d isotopologues',c,nIsotopologues(c));
   end
   
   if (sum(nIsotopologues)>1) && SweepAutoRange
@@ -137,26 +141,30 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
     error('Multiple components: Please specify sweep range manually using %s.',str);
   end
   
-  separateComponentOutput = (sum(nIsotopologues)>1) && ~summedOutput;
-  if separateComponentOutput
-    Opt.Output = 'summed';
+  PowderSimulation = ~isfield(Exp,'CrystalOrientation') || isempty(Exp.CrystalOrientation);
+  appendSpectra = PowderSimulation && ~summedOutput;
+  if appendSpectra
     spec = [];
   else
     spec = 0;
   end
   
-  iSpc = 1;
+  % Loop over all components and isotopologues
   for iComponent = 1:nComponents
     for iIsotopologue = 1:nIsotopologues(iComponent)
+      
+      % Simulate single-isotopologue spectrum
       Sys_ = SysList{iComponent}(iIsotopologue);
       Sys_.singleiso = true;
       [xAxis,spec_,Transitions] = pepper(Sys_,Exp,Opt);
-      if separateComponentOutput
-        spec(iSpc,:) = spec_*Sys_.weight;
-        iSpc = iSpc + 1;
+      
+      % Accumulate or append spectra
+      if appendSpectra
+        spec = [spec; spec_*Sys_.weight];
       else
         spec = spec + spec_*Sys_.weight;
       end
+      
     end
   end
   
@@ -439,7 +447,7 @@ if ~isempty(Exp.Ordering)
   else
     error('Exp.Ordering must be a single number or a function handle.');
   end
-  if any(Sys.gStrain) || any(Sys.AStrain) || any(Sys.DStrain) || any(Sys.HStrain)
+  if StrainWidths
     error('Exp.Ordering and g/A/D/H strains cannot be used simultaneously.');
   end
 end
@@ -477,7 +485,7 @@ logmsg(1,msg);
 % Obsolete fields, pepper
 ObsoleteOptions = {'Convolution','Width'};
 for k = 1:numel(ObsoleteOptions)
-  if isfield(Opt,ObsoleteOptions{k}),
+  if isfield(Opt,ObsoleteOptions{k})
     error('Options.%s is obsolete. Please remove from code!',ObsoleteOptions{k});
   end
 end
@@ -589,7 +597,7 @@ if FieldSweep
     AnisotropicWidths = 0;
     if StrainWidths
       logmsg(-inf,'WARNING: Options.Method: eigenfields method -> strains are ignored!');
-      StrainWidths = 0;
+      StrainWidths = false;
     end
     
     Exp1 = Exp;
@@ -600,7 +608,7 @@ if FieldSweep
     [Pdat,Idat] = eigfields(Sys,Exp1,Opt);
     logmsg(2,'  -exiting eigfields-----------------------------------');
     Wdat = [];
-    Gdat = [];
+    %Gdat = [];
     Transitions = [];
     
     if (nOrientations==1)
@@ -608,7 +616,7 @@ if FieldSweep
       Idat = {Idat};
     end
     nReson = 0;
-    for k = 1:nOrientations,
+    for k = 1:nOrientations
       nReson = nReson + numel(Pdat{k});
     end
     logmsg(1,'  %d resonance in total (%g per orientation)',nReson,nReson/nOrientations);
@@ -633,7 +641,7 @@ if FieldSweep
     logmsg(2,'  -entering resfields*----------------------------------');
     switch Method
       case {2,6} % matrix diagonalization, hybrid
-        [Pdat,Idat,Wdat,Transitions,Gdat] = resfields(Sys,Exp1,Opt);
+        [Pdat,Idat,Wdat,Transitions] = resfields(Sys,Exp1,Opt);
       case {3,5} % 2nd-order perturbation theory
         Opt.PerturbOrder = 2;
         [Pdat,Idat,Wdat,Transitions,spec] = resfields_perturb(Sys,Exp1,Opt);
@@ -802,7 +810,7 @@ elseif (~BruteForceSum)
     % out of Matlab's original spline() function, which is called many times.
     spparms('autommd',0);
     % Interpolation parameters. 1st char: g global, l linear. 2nd char: order.
-    if (nOctants==0), % axial symmetry: 1D interpolation
+    if (nOctants==0) % axial symmetry: 1D interpolation
       if any(NaN_in_Pdat)
         InterpMode = {'L3','L3','L3'};
       else
@@ -1126,6 +1134,7 @@ if (FieldSweep) && (PowderSimulation)
   end
 end
 
+
 % Convolution with line shape.
 %-----------------------------------------------------------------------
 if (ConvolutionBroadening)
@@ -1179,7 +1188,7 @@ if (ConvolutionBroadening)
   % Convolution with Lorentzian
   if (fwhmL>2*Exp.deltaX)
     logmsg(1,'  convoluting with Lorentzian, FWHM %g %s, derivative %d',fwhmL,unitstr,HarmonicL);
-    if min(size(spec))==1, fwhm = [fwhmL 0]; else fwhm = [0 fwhmL]; end
+    if size(spec,1)>1, fwhm = [0 fwhmL]; else, fwhm = fwhmL; end
     spec = convspec(spec,Exp.deltaX,fwhm,HarmonicL,0,mwPhaseL);
   else
     % Skip convolution, since it has no effect with such a narrow delta-like Lorentzian.
@@ -1188,7 +1197,7 @@ if (ConvolutionBroadening)
   % Convolution with Gaussian
   if (fwhmG>2*Exp.deltaX)
     logmsg(1,'  convoluting with Gaussian, FWHM %g %s, derivative %d',fwhmG,unitstr,HarmonicG);
-    if min(size(spec))==1, fwhm = [fwhmG 0]; else fwhm = [0 fwhmG]; end
+    if size(spec,1)>1, fwhm = [0 fwhmG]; else, fwhm = fwhmG; end
     spec = convspec(spec,Exp.deltaX,fwhm,HarmonicG,1,mwPhaseG);
   else
     % Skip convolution, since it has no effect with such a narrow delta-like Gaussian.
@@ -1216,6 +1225,7 @@ else
 
 end
 
+
 % Field modulation
 %-----------------------------------------------------------------------
 if (FieldSweep)
@@ -1232,7 +1242,7 @@ end
 % Assign output.
 %-----------------------------------------------------------------------
 switch (nargout)
-  case 0,
+  case 0
   case 1, varargout = {spec};
   case 2, varargout = {xAxis,spec};
   case 3, varargout = {xAxis,spec,Transitions};

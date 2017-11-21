@@ -11,14 +11,14 @@ function esbuild
 %   PATCH: Increment for every bugfix release.
 % Roughly follow guidelines of seminatic versioning, see
 %   http://semver.org/
-ReleaseID = '5.1.11'; % major.minor.patch
+ReleaseID = '5.2.10'; % major.minor.patch
 
 % Set to true if you want an easyspin-x.y.z.zip file without the
 % long timestamp ID.
 betaVersion = false;
 
 % Expiry date of release, see eschecker.m
-ExpiryDate = '31-Dec-2017';
+ExpiryDate = '31-Dec-2018';
 
 % Cutoff date for date checking, see eschecker.m
 HorizonDate = '31-Dec-2021';
@@ -169,7 +169,7 @@ copyfile([SourceDir filesep 'examples'],ExmplFolder);
 fprintf(' ok\n');
 
 fprintf('  generating examples html file...');
-perl('mkexamples.pl');
+perl('../scripts/mkexamples.pl');
 fprintf(' ok\n');
 
 
