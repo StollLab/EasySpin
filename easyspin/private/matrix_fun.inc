@@ -1,3 +1,4 @@
+/*
 // =======================
 // Code adapted from mmx package on File Exchange
 // http://www.mathworks.com/matlabcentral/fileexchange/37515-mmx-multithreaded-matrix-operations-on-n-d-matrices
@@ -6,6 +7,7 @@
 // ==================================================
 // straightforward implementations of matrix multiply
 // ==================================================
+*/
 void multAB(double *A, const int rA, const int cA, 
             double *B, const int cB,
             double *C) {
@@ -23,10 +25,11 @@ void multAB(double *A, const int rA, const int cA,
    }   
 }
 
-
+/*
 // =============================
 // multiply:   C = op(A) * op(B)
 // =============================
+*/
 void mulMatMat(double *A, const int rA, const int cA, 
                double *B, const int rB, const int cB,
                double *C) {
