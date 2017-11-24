@@ -204,11 +204,11 @@ switch Method
         gTensor = matmult(RTrajGlobal, matmult(gTensor, RTrajGlobalInv));
         ATensor = matmult(RTrajGlobal, matmult(ATensor, RTrajGlobalInv));
       end
-        
+      
     end
     
     GpTensor = gTensor/gfree - g_tr/3/gfree;
-        
+    
     rho_t = zeros(3,3,nTraj,nSteps);
     rho_t(:,:,:,1) = repmat(eye(3),[1,1,nTraj]);
     
@@ -229,11 +229,11 @@ switch Method
     nx = squeeze(ATensor(1,3,:,:)./a);
     ny = squeeze(ATensor(2,3,:,:)./a);
     nz = squeeze(ATensor(3,3,:,:)./a);
-
+    
     % Eqs. A1-A2 in [1]
     ct = cos(theta) - 1;
     st = -sin(theta);
-
+    
     % matrix exponential of hyperfine part
     % Eqs. A1-A2 are used to construct Eq. 37 in [1]
     expadotI = zeros(3,3,size(Gp_zz,3),size(Gp_zz,4));
@@ -254,11 +254,11 @@ switch Method
                          + 1i*sqrt(0.5)*(st.*nx - ct.*nz.*ny);
     expadotI(3,3,:,:) = 1 + ct.*(nz.*nz + 0.5*(nx.*nx + ny.*ny))  ...
                          - 1i*st.*nz;
-
-
+    
+    
     % Calculate propagator, Eq. 35 in [1]
     U = bsxfun(@times, exp(-1i*dt*0.5*omega*Gp_zz), expadotI);
-
+    
     
     % Propagate density matrix
     % ---------------------------------------------------------------------
@@ -268,7 +268,7 @@ switch Method
         rho_t(:,:,:,iStep) = mmult(U(:,:,:,iStep-1),...
                                    mmult(rho_t(:,:,:,iStep-1), U(:,:,:,iStep-1),'complex'),...
                                    'complex');
-
+    
         %  Trace of a product of matrices is the sum of entry-wise products
         %      rho_t(:,:,:,iStep) = U2(:,:,:,iStep-1).*rho_t(:,:,:,iStep-1);
       end
@@ -292,7 +292,7 @@ switch Method
       
       
       % set up spin operators in |S,m_S>|I,m_I> product space
-
+      
       % electron spin operators
 %       SpinOps{1,1} = sop(Sys.Spins,1,1);
 %       SpinOps{1,2} = sop(Sys.Spins,1,2);
@@ -319,7 +319,7 @@ switch Method
       
       % zeroth rank
 %       cacheTensors.Q0 = conj(F0(1))*T0{1} + conj(F0(2))*T0{2};
-
+      
 %       if Liouville
 %         cacheTensors.Q0 = tosuper(conj(F0)*T0,'c');
 %       else
@@ -364,7 +364,7 @@ switch Method
           % for stochastic dynamics, use propagation time step
           dtau = Par.dt;
         end
-
+        
         % use size(D2,3) since the full MD trajectories need to be
         % integrated, not the windowed trajectories
         acorrD200 = zeros(size(D2,3), size(D2,4));
@@ -372,7 +372,7 @@ switch Method
           % normalized autocorrelation functions are needed here
           acorrD200(iTraj,:) = autocorrfft(squeeze(D2(3,3,iTraj,:)).', 0, 1, 1);
         end
-
+        
         acorrD200 = mean(acorrD200, 1);
         time = linspace(0, size(D2,4)*dtau, size(D2,4));
 
@@ -445,7 +445,7 @@ switch Method
 %       rho_t = reshape(rho_t,[36,nTraj,nSteps]);
 %       U = zeros(36,36,nTraj,nSteps);
 %     else
-      U = zeros(6,6,nTraj,nSteps);
+      U = zeros(6,6,nTraj,fullSteps);
 %     end
 
     if Liouville
@@ -485,22 +485,19 @@ switch Method
 %       
 %     end
     
+    H = repmat(cacheTensors.Q0,[1,1,nTraj,fullSteps]);
+
+    % rotate second rank terms and add to Hamiltonian
+    for mp = 1:5
+      for m = 1:5
+        H = H + bsxfun(@times, D2(m,mp,:,1:fullSteps), cacheTensors.Q2{mp,m});
+      end
+    end
+    
     for iStep=1:fullSteps
       for iTraj=1:nTraj
-        % zeroth rank term (HF only)
-%         H(:,:,iTraj,iStep) = cacheTensors.Q0;
-        H = cacheTensors.Q0;
-%         Hfull(:,:,iTraj,iStep) = H;
-        
-        % rotate second rank terms and add to Hamiltonian
-        for mp = 1:5
-          for m = 1:5
-%             Hfull(:,:,iTraj,iStep) = Hfull(:,:,iTraj,iStep) + D2(m,mp,iTraj,iStep)*cacheTensors.Q2{mp,m};
-            H = H + D2(m,mp,iTraj,iStep)*cacheTensors.Q2{mp,m};
-          end
-        end
-        U(:,:,iTraj,iStep) = expeig(1i*dt*H);  % TODO speed this up!
-%         U(:,:,iTraj,iStep) = expm_fast1(1i*dt*H);  % TODO speed this up!
+        U(:,:,iTraj,iStep) = expeig(1i*dt*H(:,:,iTraj,iStep));  % TODO speed this up!
+%         U(:,:,iTraj,iStep) = expm_fast1(1i*dt*H(:,:,iTraj,iStep));  % TODO speed this up!
       end
     end
     
@@ -520,23 +517,25 @@ switch Method
 %       if Liouville
 %         Ueq = zeros(36,36,nTraj);
 %       else
-        Ueq = zeros(6,6,nTraj);
-%         Ueqdag = zeros(6,6,nTraj);
+      Ueq = zeros(6,6,nTraj);
 %       end
+
+      Heq = repmat(cacheTensors.Q0,[1,1,nTraj]);
+      
+      D2avg = mean(D2,4);  % time average of trajectories of Wigner matrices
+      
+      % rotate second rank terms and add to Hamiltonian
+      for mp = 1:5
+        for m = 1:5
+          Heq = Heq + bsxfun(@times, D2avg(m,mp,:), cacheTensors.Q2{mp,m}) ...
+                    + 1i*cacheTensors.Q2{mp,m}*(cacheTensors.Q2{mp,m})'*K2(mp,m);
+        end
+      end
+
       
       for iTraj=1:nTraj
-        % zeroth rank term (HF only)
-        Heq = cacheTensors.Q0;
-        
-        % rotate second rank terms and add to Hamiltonian
-        for mp = 1:5
-          for m = 1:5
-            Heq = Heq + cacheTensors.Q2{mp,m}*mean(D2(m,mp,iTraj,:),4) ...
-                      + 1i*cacheTensors.Q2{mp,m}*(cacheTensors.Q2{mp,m})'*K2(mp,m);
-          end
-        end
-%         Ueq(:,:,iTraj) = expeig(1i*dt*Heq);
-        Ueq(:,:,iTraj) = expm_fast1(1i*dt*Heq);
+%         Ueq(:,:,iTraj) = expeig(1i*dt*Heq(:,:,iTraj));
+          Ueq(:,:,iTraj) = expm_fast1(1i*dt*Heq(:,:,iTraj));
       end
       
       Ueqdag = conj(permute(Ueq,[2,1,3]));
