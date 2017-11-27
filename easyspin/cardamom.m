@@ -653,29 +653,34 @@ while ~converged
   %     case 'Molecular Dynamics'
       case 'Brownian'
         
-        if strcmp(Opt.Method,'ISTOs')
-          % this method needs quaternions, not rotation matrices
-          [t, ~, qTraj] = stochtraj(Sys,Par,Opt);
-          Par.qTraj = qTraj;
-        else
-          % other methods use rotation matrices
-          [t, RTraj, ~] = stochtraj(Sys,Par,Opt);
-          Par.RTraj = RTraj;
-        end
+%         if strcmp(Opt.Method,'ISTOs')
+%           % this method needs quaternions, not rotation matrices
+%           [t, ~, qTraj] = stochtraj(Sys,Par,Opt);
+%           Par.qTraj = qTraj;
+%         else
+%           % other methods use rotation matrices
+%           [t, RTraj, ~] = stochtraj(Sys,Par,Opt);
+%           Par.RTraj = RTraj;
+%         end
+        [t, RTraj, qTraj] = stochtraj(Sys,Par,Opt);
+        Par.qTraj = qTraj;
+        Par.RTraj = RTraj;
 
       case 'MOMD'
-        [t, ~, qTraj] = stochtraj(Sys,Par,Opt);
+        [t, RTraj, qTraj] = stochtraj(Sys,Par,Opt);
         % generate quaternions for rotating to different grid points
         qMult = repmat(euler2quat(gridPhi(iOrient), gridTheta(iOrient), 0),...
                        [1,Par.nTraj,Par.nSteps]);
         qTraj = quatmult(qMult,qTraj);
-        if strcmp(Opt.Method,'ISTOs')
-          % this method needs quaternions, not rotation matrices
-          Par.qTraj = qTraj;
-        else
-          % other methods use rotation matrices
-          Par.RTraj = quat2rotmat(qTraj);
-        end
+        Par.qTraj = qTraj;
+        Par.RTraj = quat2rotmat(qTraj);
+%         if strcmp(Opt.Method,'ISTOs')
+%           % this method needs quaternions, not rotation matrices
+%           Par.qTraj = qTraj;
+%         else
+%           % other methods use rotation matrices
+%           Par.RTraj = quat2rotmat(qTraj);
+%         end
 
       case 'SRLS'
         Sys.Diff = DiffLocal;
@@ -684,14 +689,17 @@ while ~converged
         Sys.Diff = DiffGlobal;
         [t, ~, qTrajGlobal] = stochtraj(Sys,Par,Opt);
         qTraj = quatmult(qTrajGlobal,qTrajLocal);
-        if strcmp(Opt.Method,'ISTOs')
-          % this method needs quaternions, not rotation matrices
-          Par.qTraj = qTraj;  % ordering?
-        else
-          % other methods use rotation matrices
-          RTraj = quat2rotmat(qTraj);
-          Par.RTraj = RTraj;
-        end
+        
+        Par.qTraj = qTraj;
+        Par.RTraj = quat2rotmat(qTraj);
+%         if strcmp(Opt.Method,'ISTOs')
+%           % this method needs quaternions, not rotation matrices
+%           Par.qTraj = qTraj;  % ordering?
+%         else
+%           % other methods use rotation matrices
+%           RTraj = quat2rotmat(qTraj);
+%           Par.RTraj = RTraj;
+%         end
 
       case 'Molecular Dynamics'
         % rotation matrices provided by external data, no need to do stochastic
@@ -774,14 +782,16 @@ while ~converged
   %         set(gca,'CameraViewAngle',6);
   %         
   %         HistTot = HistTot + mean(Hist3D,4);
-
-          if strcmp(Opt.Method,'ISTOs')
-            % this method needs quaternions, not rotation matrices
-            Par.qTraj = qTraj;  % ordering?
-          else
-            % other methods use rotation matrices
-            Par.RTraj = quat2rotmat(qTraj);
-          end
+          
+          Par.qTraj = qTraj;
+          Par.RTraj = quat2rotmat(qTraj);
+%           if strcmp(Opt.Method,'ISTOs')
+%             % this method needs quaternions, not rotation matrices
+%             Par.qTraj = qTraj;  % ordering?
+%           else
+%             % other methods use rotation matrices
+%             Par.RTraj = quat2rotmat(qTraj);
+%           end
         end
 
     end
