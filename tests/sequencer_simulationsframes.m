@@ -16,11 +16,11 @@ Opt.FrameShift = 32;
 Exp.mwFreq = 0;
 Opt = rmfield(Opt,'FrameShift');
 
-[Events1, Vary1] = sequencer(Exp,Opt);
+[Events1, Vary1] = runprivate2('s_sequencer',Exp,Opt);
 
 Exp = rmfield(Exp,'mwFreq');
 
-[Events2, Vary2] = sequencer(Exp,Opt);
+[Events2, Vary2] = runprivate2('s_sequencer',Exp,Opt);
 
 
 if any([~isequal(Events1,Events2) ~isequal(Vary1,Vary2)])

@@ -117,9 +117,9 @@ for iEvent = 1 : length(Exp.t)
       Pulse.Frequency = Exp.Frequency(iPulse,:);
     end
     
-    if length(Pulse.Frequency) == 2 && Pulse.Frequency(1) == Pulse.Frequency(2)
-       Pulse.Frequency = Pulse.Frequency(1);
-    end
+%     if length(Pulse.Frequency) == 2 && Pulse.Frequency(1) == Pulse.Frequency(2)
+%        Pulse.Frequency = Pulse.Frequency(1);
+%     end
     
     % Gets the flip angle 
     if isfield(Exp,'Flip') &&iPulse <= length(Exp.Flip)  
@@ -133,9 +133,13 @@ for iEvent = 1 : length(Exp.t)
     % Gets the phase for the pulse, if none is provided, the phase is
     % assumed to be 0
     if isfield(Exp,'Phase') && length(Exp.Phase) >= iPulse
-      Pulse.Phase = Exp.Phase(iPulse);
-    else
-      Pulse.Phase = 0;
+      if isfield(Pulse,'Phase')
+        Pulse.Phase = Pulse.Phase + Exp.Phase(iPulse);
+      else
+        Pulse.Phase = Exp.Phase(iPulse);
+      end
+    elseif ~isfield(Pulse,'Phase')
+       Pulse.Phase = 0;
     end
     
     % Gets the PhaseCycle for the current Pulse, if none is provided, phase
@@ -350,7 +354,7 @@ if isfield(Exp,'nPoints')
       
       % Loops over all entries in the current line
       for iModifiedEvent = 1 : length(SplitStrings)
-              
+        FieldIndex = [];      
         % modified pulses are defined through p#.Field and if a '.' is
         % found, the string is split again. Delays are ignored this way
         Strings = regexp(SplitStrings{iModifiedEvent},'\.','split');
@@ -358,9 +362,19 @@ if isfield(Exp,'nPoints')
         EventType = Strings{1}(1);
         EventSpecificIndex = str2double(Strings{1}(2:end));
         
-        if length(Exp.(Field2Get){iLine,2}) ~= 1 && length(Exp.(Field2Get){iLine,2}) ~= Exp.nPoints(iDimension)-1
-          message = ['The number of points provided for Dimension ' num2str(iDimension) 'does not match the length of the vector in the Exp.Dim structure.'];
-          error(message);
+        if length(Strings) == 2
+          pars = regexp(Strings{2},'\(|\)','split');
+          Strings{2} = pars{1};
+          if length(pars) > 1          
+            FieldIndex = str2double(pars{2});
+          end
+        end
+        
+        if length(Strings) ~= 2 || ~strcmp(Strings{2},'Frequency') || length(Exp.(Field2Get){iLine,2}) == 1 || ~any(size(Exp.(Field2Get){iLine,2},1) == [1 Exp.nPoints(iDimension)-1])
+          if length(Exp.(Field2Get){iLine,2}) ~= 1 && length(Exp.(Field2Get){iLine,2}) ~= Exp.nPoints(iDimension)-1
+            message = ['The number of points provided for Dimension ' num2str(iDimension) ' does not match the length of the vector in the Exp.Dim structure.'];
+            error(message);
+          end
         end
         
         % -----------------------------------------------------------------
@@ -376,7 +390,7 @@ if isfield(Exp,'nPoints')
             
             % Gets the field that is to be modified
             if length(Strings) == 1
-              message = ['You requested a pulse to be changed in Exp.' (Field2Get) ' but did not specify the field'];
+              message = ['You requested a pulse to be changed in Exp.' (Field2Get) ' but did not specify the field.'];
               error(message)
             end
             
@@ -423,12 +437,13 @@ if isfield(Exp,'nPoints')
                 % have been checked for pulse modifications, the pulses can
                 % be calculated and stored in the Vary structure
                 if isempty(PulseModifications{PulseNumber})
-                  PulseModifications{PulseNumber} = {iDimension Field Exp.(Field2Get){iLine,2}};
+                  PulseModifications{PulseNumber} = {iDimension Field Exp.(Field2Get){iLine,2} FieldIndex};
                 else
                   n = size(PulseModifications{PulseNumber},1);
                   PulseModifications{PulseNumber}{n+1,1} = iDimension;
                   PulseModifications{PulseNumber}{n+1,2} = Field;
                   PulseModifications{PulseNumber}{n+1,3} = Exp.(Field2Get){iLine,2};
+                  PulseModifications{PulseNumber}{n+1,4} = FieldIndex;
                 end
             end
             
@@ -503,12 +518,25 @@ if isfield(Exp,'nPoints')
           Dimension = PulseModifications{iPulse}{iModification,1};
           Field = PulseModifications{iPulse}{iModification,2};
           Increment = PulseModifications{iPulse}{iModification,3};
+          FieldIndex = PulseModifications{iPulse}{iModification,4};
           % Write modifications to pulse structure
-          if length(Increment) == 1
-            Pulses{iPulse}.(Field) = Pulses{iPulse}.(Field) + Increment*(DimensionIndices(Dimension)-1);
+          if length(Increment) == 1 || (strcmp(Field,'Frequency') && size(Increment,1) == 1)
+            if isempty(FieldIndex)
+              Pulses{iPulse}.(Field) = Pulses{iPulse}.(Field) + Increment*(DimensionIndices(Dimension)-1);
+            else
+              Pulses{iPulse}.(Field)(FieldIndex) = Pulses{iPulse}.(Field)(FieldIndex) + Increment*(DimensionIndices(Dimension)-1);
+            end
           else
             if DimensionIndices(Dimension) ~= 1
-              Pulses{iPulse}.(Field) = Pulses{iPulse}.(Field) + Increment(DimensionIndices(Dimension)-1);
+              if strcmp(Field,'Frequency')
+                Pulses{iPulse}.(Field) = Pulses{iPulse}.(Field) + Increment(DimensionIndices(Dimension)-1,:);
+              else
+                if isempty(FieldIndex)
+                  Pulses{iPulse}.(Field) = Pulses{iPulse}.(Field) + Increment(DimensionIndices(Dimension)-1);
+                else
+                  Pulses{iPulse}.(Field)(FieldIndex) = Pulses{iPulse}.(Field)(FieldIndex) + Increment(DimensionIndices(Dimension)-1);
+                end
+              end
             end
           end
           % Adapt indexing according to dimension
@@ -517,6 +545,12 @@ if isfield(Exp,'nPoints')
         
         % Convert array into cell for indexing
         ArrayIndex = num2cell(Pulses{iPulse}.ArrayIndex);
+        
+%         % Ensure that only element is given for Pulse.Frequency if it is a
+%         % monochromatic pulse
+%         if length(Pulses{iPulse}.Frequency) == 2 && Pulses{iPulse}.Frequency(1) == Pulses{iPulse}.Frequency(2)
+%           Pulses{iPulse}.Frequency = Pulses{iPulse}.Frequency(1);
+%         end
         
         % Compute Wave form and store it
         for iPCstep = 1 : size(Pulses{iPulse}.PhaseCycle,1)

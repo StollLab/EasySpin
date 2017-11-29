@@ -16,8 +16,9 @@
 %                             timestep during evolution
 %       Events            ... structure containing events
 
-function [TimeAxis,Signal,Events,FinalState,StateTrajectories] = spidyan(Sys,Exp,Opt)
+function varargout = spidyan(Sys,Exp,Opt) 
 
+% [TimeAxis,Signal,Events,FinalState,StateTrajectories] = spidyan(Sys,Exp,Opt)
 if (nargin==0), help(mfilename); return; end
 
 % Input argument scanning, get display level and prompt
@@ -37,7 +38,7 @@ if (nargout<0), error('Not enough output arguments.'); end
 if (nargout>5), error('Too many output arguments.'); end
 
 % Initialize options structure to zero if not given.
-if (nargin<2), Opt = struct('unused',NaN); end
+if (nargin<3), Opt = struct('unused',NaN); end
 if isempty(Opt), Opt = struct('unused',NaN); end
 
 if ~isstruct(Sys)
@@ -111,7 +112,7 @@ if isfield(Sys,'ZeemanFreq')
 end
 
 % Build the Event and Vary structure
-[Events, Vary] = sequencer(Exp,Opt);
+[Events, Vary] = s_sequencer(Exp,Opt);
 
 
 % Validate and build spin system as well as excitation operators
@@ -125,7 +126,7 @@ Ham = sham(Sys,B);
 %----------------------------------------------------------------------
 
 % Calls the actual propagation engine
-[TimeAxis, RawSignal, FinalState, StateTrajectories, Events] = thyme(Sigma, Ham, DetOps, Events, Relaxation, Vary);
+[TimeAxis, RawSignal, FinalState, StateTrajectories, Events] = s_thyme(Sigma, Ham, DetOps, Events, Relaxation, Vary);
 
 %----------------------------------------------------------------------
 % Signal Processing
@@ -178,6 +179,17 @@ else
   Signal = [];
 end
 
+% Arranging Output
+if nargout == 1
+  varargout = {Signal};
+elseif nargout == 2
+  varargout = {TimeAxis,Signal};
+elseif nargout == 3
+  varargout = {TimeAxis,Signal,FinalState};
+elseif nargout == 4
+  varargout = {TimeAxis,Signal,FinalState,StateTrajectories};
+elseif nargout == 5
+  varargout = {TimeAxis,Signal,FinalState,StateTrajectories,Events};
 end
 
 

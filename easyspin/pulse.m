@@ -448,9 +448,13 @@ else
     case 'none'
       
       if numel(Par.Frequency)>1
-        error(['Frequency modulation is set to ''none'', but a frequency ',...
-               'range is given in Par.Frequency. Please define a single ',...
-               'pulse frequency.']);
+        if Par.Frequency(1) == Par.Frequency(2)
+          Par.Frequency = Par.Frequency(1);
+        else
+          error(['Frequency modulation is set to ''none'', but a frequency ',...
+            'range is given in Par.Frequency. Please define a single ',...
+            'pulse frequency.']);
+        end
       end
       
     case 'linear'

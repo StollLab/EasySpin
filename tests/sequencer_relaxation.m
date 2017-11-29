@@ -18,21 +18,20 @@ Opt.FrameShift = 32;
 
 Opt.Relaxation = 1;
 
-[Events1] = sequencer(Exp,Opt);
+[Events1] = runprivate2('s_sequencer',Exp,Opt);
 
 Opt.Relaxation = [1 1 1 1];
 
-[Events2] = sequencer(Exp,Opt);
-
+[Events2] = runprivate2('s_sequencer',Exp,Opt);
 % Second Test ---------------------------------------
 
 Opt.Relaxation = [1 0];
 
-[Events3] = sequencer(Exp,Opt);
+[Events3] = runprivate2('s_sequencer',Exp,Opt);
 
 Opt.Relaxation = [1 0 0 0];
 
-[Events4] = sequencer(Exp,Opt);
+[Events4] = runprivate2('s_sequencer',Exp,Opt);
 
 
 if any([~isequal(Events1,Events2) ~isequal(Events3,Events4)])

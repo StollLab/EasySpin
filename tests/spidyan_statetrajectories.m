@@ -23,13 +23,13 @@ Opt.FrameShift = 32;
 % State Trajectories ---------------------------
 Opt.StateTrajectories = [1 0 1];
 
-[~, ~, ~, ~, sigmas1] = spidyan(Sys,Exp,Opt);
+[~, ~, ~, sigmas1] = spidyan(Sys,Exp,Opt);
 
 data.sigmas1 = sigmas1;
 
 % State Trajectories ---------------------------
 Opt.StateTrajectories = [1 1 1];
-[~, ~, ~, ~, sigmas2] = spidyan(Sys,Exp,Opt);
+[~, ~, ~, sigmas2] = spidyan(Sys,Exp,Opt);
 
 data.sigmas2 = sigmas2;
 
