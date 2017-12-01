@@ -443,9 +443,8 @@ if ~isempty(Scaling)
         error('Cannot scale by receiver gain, since RCAG in the DSC file is missing.');
       end
       ReceiverGaindB = sscanf(Parameters.RCAG,'%f');
-      ReceiverGain = 10^(ReceiverGaindB/10);
+      ReceiverGain = 10^(ReceiverGaindB/20);
       % Xenon (according to Feb 2011 manual) uses 20*10^(RCAG/20)
-      % ReceiverGain = 20*10^(ReceiverGaindB/20);
       Data = Data/ReceiverGain;
     end
   end
