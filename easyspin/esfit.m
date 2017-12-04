@@ -345,7 +345,7 @@ if FitData.GUI
   hAx = axes('Parent',hFig,'Units','pixels','Position',[x0 y0 100 80],'Layer','top');
   h = plot(hAx,1,NaN,'.');
   set(h,'Tag','errorline','MarkerSize',5,'Color',[0.2 0.2 0.8]);
-  set(gca,'FontSize',7,'YScale','lin','XTick','','YAxisLoc','right','Layer','top');
+  set(gca,'FontSize',7,'YScale','lin','XTick',[],'YAxisLoc','right','Layer','top');
   title('log10(rmsd)','Color','k','FontSize',7,'FontWeight','normal');
     
   h = uicontrol('Style','text','Position',[x0+125 y0+64 205 16]);
@@ -630,7 +630,7 @@ if ~FitData.GUI
   end
 end
 
-FitData.bestspec = ones(1,numel(FitData.ExpSpec))*NaN;
+%FitData.bestspec = ones(1,numel(FitData.ExpSpec))*NaN;
 
 if FitData.GUI
   data = get(getParameterTableHandle,'Data');
@@ -860,8 +860,8 @@ if FitData.GUI && (UserCommand~=99)
   set(findobj('Tag','bestsimdata'),'XData',1:numel(ExpSpec),'YData',real(FitData.bestspec));
   set(findobj('Tag','currsimdata'),'XData',1:numel(ExpSpec),'YData',real(simspec));
   if strcmp(FitOpts.Scaling, 'none')
-    dispData = [FitData.ExpSpec;real(FitData.bestspec).';real(simspec).'];
-    maxy = max(max(dispData)); miny = min(min(dispData));
+    dispData = [FitData.ExpSpec(:); real(FitData.bestspec(:)); real(simspec(:))];
+    maxy = max(dispData); miny = min(dispData);
     YLimits = [miny maxy] + [-1 1]*FitOpt.PlotStretchFactor*(maxy-miny);
     set(findobj('Tag','dataaxes'),'YLim',YLimits);
   end

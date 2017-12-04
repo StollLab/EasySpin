@@ -85,7 +85,11 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
   if ~iscell(Sys), Sys = {Sys}; end
   
   nComponents = numel(Sys);
-  logmsg(1,'%d spin system(s)...');
+  if nComponents>1
+    logmsg(1,'  %d component spin systems...');
+  else
+    logmsg(1,'  single spin system');
+  end
   
   for c = 1:nComponents
     SysList{c} = isotopologues(Sys{c},Opt.IsoCutoff);
@@ -97,6 +101,8 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
   zsum = 0; % inverse domain (FD for ESEEM)
   for iComponent = 1:numel(SysList)
     for iIsotopologue = 1:nIsotopologues(iComponent)
+      
+      % Simulate single-isotopologue spectrum
       Sys_ = SysList{iComponent}(iIsotopologue);
       Sys_.singleiso = true;
       if TwoDim
@@ -104,10 +110,13 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
       else
         [x1,y_,out] = saffron(Sys_,Exp,Opt);
       end
+      
+      % Accumulate or append spectra
       ysum = ysum + y_*Sys_.weight;
       if ~isENDOR
         zsum = zsum + out.fd*Sys_.weight;
       end
+      
     end
   end
   

@@ -82,6 +82,7 @@ for iTest = 1:numel(TestFileNames)
 
   thisTest = TestFileNames{iTest}(1:end-2);
   
+  % Load, or regenerate, comparison data
   olddata = [];
   TestDataFile = ['data/' thisTest '.mat'];
   if exist(TestDataFile,'file')
@@ -92,8 +93,7 @@ for iTest = 1:numel(TestFileNames)
         olddata = load(TestDataFile,'data');
         olddata = olddata.data;
       catch
-        lasterr
-        olddata = [];
+        error('Could not load data for test ''%s''.',thisTest);
       end
     end
   end
