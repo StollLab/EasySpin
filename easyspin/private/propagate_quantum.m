@@ -138,7 +138,7 @@ if strcmp(Model,'Molecular Dynamics')
     end
 
   elseif strcmp(Method,'Resampling')
-    % Steinhoff method does not require tensor averaging, so set nTraj to
+    % Resampling method does not require tensor averaging, so set nTraj to
     % user input
     nTraj = Par.nTraj;
   end
@@ -158,7 +158,7 @@ if strcmp(Model,'Molecular Dynamics')
   
 end
 
-if strcmp(Method,'ISTOs') || truncated
+if strcmp(Method,'ISTOs') || truncated  % TODO make corr fun propagation under nitroxide indep of ISTOs
   
   % Calculate and store rotational basis operators
   % ---------------------------------------------------------------------
@@ -231,47 +231,74 @@ if strcmp(Method,'ISTOs') || truncated
   D2 = wigD(qTraj);
 
   if truncated
-    if isempty(fullSteps)&&isempty(K2)
+    if isempty(fullSteps)||isempty(K2)
       % set time step for integration of correlation functions
       if strcmp(Model,'Molecular Dynamics')
         % for MD trajectories, use MD timestep
         dtau = MD.dt;
+        
+        % use size(D2,3) since the full MD trajectories need to be
+        % integrated, not the windowed trajectories
+        % normalized autocorrelation functions are needed here
+        acorrD200 = autocorrfft(squeeze(D2(3,3,:,:)),2);
+
+        acorrD200 = mean(acorrD200, 1);
+        time = linspace(0, size(D2,4)*dtau, size(D2,4));
+
+        % calculate correlation time
+  %       tauc = max(cumtrapz(time, acorrD200));  % FIXME find a robust way to calculate this
+        [k,c,yfit] = exponfit(time, acorrD200);
+        tauR = 1/k;
+      
       else
         % for stochastic dynamics, use propagation time step
         dtau = Par.dt;
-      end
-
-      % use size(D2,3) since the full MD trajectories need to be
-      % integrated, not the windowed trajectories
-      acorrD200 = zeros(size(D2,3), size(D2,4));
-      for iTraj=1:size(D2,3)
-        % normalized autocorrelation functions are needed here
-        acorrD200(iTraj,:) = autocorrfft(squeeze(D2(3,3,iTraj,:)).', 0, 1, 1);
-      end
-
-      acorrD200 = mean(acorrD200, 1);
-      time = linspace(0, size(D2,4)*dtau, size(D2,4));
-
-      % calculate correlation time
-      tauc = max(cumtrapz(time, acorrD200));  % FIXME find a robust way to calculate this
-
-      % set the number of time steps to use full propagator before 
-      % correlation functions relax
-      fullSteps = ceil(truncated*tauc/dt);
-
-      % calculate correlation functions for approximate propagator
-      acorr = zeros(size(D2,3), size(D2,4));
-      K2 = zeros(5,5,nTraj);
-      for mp=1:5
-        for m=1:5
-          % non-normalized autocorrelation functions are needed here
-          for iTraj=1:size(D2,3)
-            acorr(iTraj,:) = autocorrfft(squeeze(D2(mp,m,iTraj,:)).',0,0,1);
-          end
-          K2(mp,m) = max(max(cumtrapz(time, mean(acorr,1))));  % TODO implement cross-correlation functions
+        time = linspace(0, size(D2,4)*dtau, size(D2,4));
+        if isfield(Sys, 'Diff')
+          tauR = 1/6/mean(Sys.Diff);
+        else
+          tauR = Sys.tcorr;
         end
       end
 
+      % set the number of time steps to use full propagator before 
+      % correlation functions relax
+%       fullSteps = ceil(truncated*tauR/dt);
+      fullSteps = ceil(truncated*1e-9/dt);
+
+      % calculate correlation functions for approximate propagator
+      acorr = zeros(size(D2,3), size(D2,4));
+      K2 = zeros(5,5);
+%       xcorr = zeros(size(D2,3), size(D2,4));
+%       K2 = zeros(5,5,5,5);
+      NtauR = 10*ceil(tauR/dt);
+%       for mppp=1:5
+%       for mpp=1:5
+      D2AcorrAvg = mean(autocorrfft(D2, 4),3);
+%       for mp=1:5
+%         for m=1:5
+%           % non-normalized autocorrelation functions are needed here
+%           for iTraj=1:size(D2,3)
+%             D2Traj1 = squeeze(D2(mp,m,iTraj,:));
+% %             D2Traj2 = squeeze(D2(mppp,mpp,iTraj,:)).';
+%             acorr(iTraj,:) = autocorrfft(D2Traj1);
+% %             xcorr(iTraj,:) = crosscorrfft(D2Traj2,D2Traj1,0,0,1);
+%           end
+%           acorrAvg = mean(acorr,1);
+%           K2(mp,m) = trapz(time(1:NtauR), acorrAvg(1:NtauR));  % TODO implement cross-correlation functions
+% %           K2(mp,m) = max(cumtrapz(time, acorrAvg));  % TODO implement cross-correlation functions
+% %           xcorrAvg = mean(xcorr,1);
+% %           K2(mppp,mpp,mp,m) = trapz(time(1:NtauR), xcorrAvg(1:NtauR));
+%         end
+%       end
+%       end
+%       end
+
+      K2 = squeeze(trapz(time(1:NtauR), D2AcorrAvg(:,:,:,1:NtauR),4));  % TODO implement cross-correlation functions
+
+      idx = K2>1e-11;
+      K2 = K2.*idx;
+      
       % if correlation time is longer than user input, just use full 
       % propagation scheme the entire time
       if fullSteps>nSteps
@@ -313,7 +340,9 @@ if strcmp(Method,'ISTOs') || truncated
   end
   
   D2avg = mean(D2,4);  % time average of trajectories of Wigner matrices
-  
+
+else
+  fullSteps = nSteps;
 end
 
 if exist('D2avg','var')==0, D2avg = []; end
@@ -442,6 +471,8 @@ switch Method
 %     end
 
     rho = propagate(rho, U, fullSteps, nSteps, nTraj, D2avg, truncated, cacheTensors, Liouville, K2, dt, Method);
+    
+    K2 = [];
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   case 'ISTOs'  % see Ref [2]
@@ -458,41 +489,8 @@ switch Method
     U = zeros(6,6,nTraj,fullSteps);
 %     end
 
-    if Liouville
-      rho = reshape(rho,[36,nTraj,nSteps]);
-    end
-    
-%     if truncated
-%       AutoCorrFFT = autocorrfft(squeeze(D2(3,3,:,:)), 0, 1, 1);
-% 
-%       N = round(nSteps/2);
-%       M = round(N/2);
-% 
-%       AutoCorrFFT = mean(AutoCorrFFT, 1).';
-% 
-%       % the ACF will not always reach zero for a small number of trajectories,
-%       % so subtract the offset, which does not change the correlation time
-%       AutoCorrFFT = AutoCorrFFT - mean(AutoCorrFFT(M:3*M));
-%       
-% %       AutoCorrFFTavg = AutoCorrFFTavg + AutoCorrFFT;
-% 
-%       % calculate correlation time
-%       tau = trapz(t(1:N), AutoCorrFFT(1:N));  % FIXME find a robust way to calculate this
-%       if tau>tauc, tauc = tau; end
-% 
-%       fullSteps = 10*ceil(tauc/dt);  % build full propagator until 
-%                                      % correlation functions have relaxed
-%                                      
-%       % if correlation time is longer than user input, just use full 
-%       % propagation scheme the entire time
-%       if fullSteps>nSteps
-%         fullSteps = nSteps; 
-%         truncated = 0;
-%       end
-%       
-%     else
-%       fullSteps = nSteps;  % build full propagator for all time steps
-%       
+%     if Liouville
+%       rho = reshape(rho,[36,nTraj,nSteps]);
 %     end
     
     H = repmat(cacheTensors.Q0,[1,1,nTraj,fullSteps]);
@@ -512,24 +510,18 @@ switch Method
     end
 
     
-%     for iStep=1:fullSteps
-%       for iTraj=1:nTraj
-%         U(:,:,iTraj,iStep) = expeig(1i*dt*H(:,:,iTraj,iStep));  % TODO speed this up!
-% %         U(:,:,iTraj,iStep) = expm_fast1(1i*dt*H(:,:,iTraj,iStep));  % TODO speed this up!
-%       end
-%     end
-    
-%     Udag = conj(permute(U,[2,1,3,4]));
-%     
 %     if Liouville
 %       U = tosuperLR(U, Udag);
-%     end
-% 
-%     if Liouville
-%       rho_t = reshape(rho_t,[6,6,nTraj,nSteps]);
+%       rho = reshape(rho,[36,nTraj,nSteps]);
 %     end
     
     rho = propagate(rho, U, fullSteps, nSteps, nTraj, D2avg, truncated, cacheTensors, Liouville, K2, dt, Method);
+    
+    
+    if Liouville
+      rho = reshape(rho,[6,6,nTraj,nSteps]);
+%       rho = reshape(rho,[6,6,nSteps]);
+    end
     
     % Only keep the m_S=-1/2 subspace part that contributes to 
     %   tr(S_{+}\rho(t))
@@ -650,122 +642,159 @@ if Liouville
 end
 
 if Liouville
-  rho = reshape(rho,[6,6,nTraj,nSteps]);  % ?
+  rho = reshape(rho,[36,nTraj,nSteps]);
 end
 
 if truncated
   % Prepare equilibrium propagators
   % -------------------------------------------------------------------
 
-%       if Liouville
-%         Ueq = zeros(36,36,nTraj);
-%       else
+
   Ueq = zeros(6,6,nTraj);
-%       end
+  Ueqdag = zeros(6,6,nTraj);
 
   Heq = repmat(cacheTensors.Q0,[1,1,nTraj]);
+  
+  HeqOrder1 = 0;
+  HeqOrder2 = 0;
 
   % rotate second rank terms and add to Hamiltonian
   for mp = 1:5
     for m = 1:5
-      Heq = Heq + bsxfun(@times, D2avg(m,mp,:), cacheTensors.Q2{mp,m}) ...
-                + 1i*cacheTensors.Q2{mp,m}*(cacheTensors.Q2{mp,m})'*K2(mp,m);
+      HeqOrder1 = HeqOrder1 + bsxfun(@times, D2avg(m,mp,:), cacheTensors.Q2{mp,m});
+      HeqOrder2 = HeqOrder2 + 1i*cacheTensors.Q2{mp,m}*(cacheTensors.Q2{mp,m})'*K2(mp,m);
+%       Heq = Heq + bsxfun(@times, D2avg(m,mp,:), cacheTensors.Q2{mp,m}) ...
+%                 + 1i*cacheTensors.Q2{mp,m}*(cacheTensors.Q2{mp,m})'*K2(mp,m);
+%       for mppp = 1:5
+%         for mpp = 1:5
+%           Heq = Heq + 1i*cacheTensors.Q2{mp,m}*(cacheTensors.Q2{mppp,mpp})'*K2(mppp,mpp,mp,m);
+%         end
+%       end
     end
   end
+  
+  Heq = Heq + HeqOrder1 +HeqOrder2;
 
 
   for iTraj=1:nTraj
 %         Ueq(:,:,iTraj) = expeig(1i*dt*Heq(:,:,iTraj));
       Ueq(:,:,iTraj) = expm_fast1(1i*dt*Heq(:,:,iTraj));
+      Ueqdag(:,:,iTraj) = expm_fast1(-1i*dt*Heq(:,:,iTraj));
   end
-
-  Ueqdag = conj(permute(Ueq,[2,1,3]));
-
+  
+%   Ueq = mean(Ueq,3);
+%   Ueqdag = mean(Ueqdag,3);
+  
+%   Ueqdag = conj(permute(Ueq,[2,1,3]));
+  
   if Liouville
     Ueq = tosuperLR(Ueq,Ueqdag);
   end
+  
+end
 
-  % full propagation until correlation functions have relaxed
-  if Liouville
+% propagation using full Hamiltonian
+switch Method
+  case 'Nitroxide'
     for iStep=2:fullSteps
-      for iTraj=1:nTraj
-        rho(:,iTraj,iStep) = U(:,:,iTraj,iStep-1)*rho(:,iTraj,iStep-1);  
+      rho(:,:,:,iStep) = mmult(U(:,:,:,iStep-1),...
+                             mmult(rho(:,:,:,iStep-1),...
+                                   U(:,:,:,iStep-1),'complex'),...
+                             'complex');                  
+    end
+
+  case 'ISTOs'
+    if Liouville
+      for iStep=2:fullSteps
+        for iTraj=1:nTraj
+          rho(:,iTraj,iStep) = U(:,:,iTraj,iStep-1)*rho(:,iTraj,iStep-1);  
+        end
+      end
+
+    else % Hilbert space
+      for iStep=2:fullSteps
+        rho(:,:,:,iStep) = mmult(U(:,:,:,iStep-1),...
+                                   mmult(rho(:,:,:,iStep-1),...
+                                         Udag(:,:,:,iStep-1),'complex'),...
+                                   'complex');                  
       end
     end
+end
 
-    % equilibrium propagation
-    for iStep=fullSteps+1:nSteps
-      for iTraj=1:nTraj
-        rho(:,iTraj,iStep) = Ueq(:,:,iTraj)*rho(:,iTraj,iStep-1);  
-      end                 
-    end
+% rho = squeeze(mean(rho,3));
 
-  else
-    switch Method
-      case 'Nitroxide'
-        for iStep=2:fullSteps
-          rho(:,:,:,iStep) = mmult(U(:,:,:,iStep-1),...
-                                 mmult(rho(:,:,:,iStep-1),...
-                                       U(:,:,:,iStep-1),'complex'),...
-                                 'complex');                  
-        end
-        
-        Ueq = Ueq(4:6, 4:6, :);  % extract m_s=+ subspace propagator
-%         Ueqdag = conj(permute(Ueq,[2,1,3]));
-        Ueqdag = Ueq;
-        
-      case 'ISTOs'
-        for iStep=2:fullSteps
-          rho(:,:,:,iStep) = mmult(U(:,:,:,iStep-1),...
-                                     mmult(rho(:,:,:,iStep-1),...
-                                           Udag(:,:,:,iStep-1),'complex'),...
-                                     'complex');                  
-        end
-    end
-
-    % equilibrium propagation
-    for iStep=fullSteps+1:nSteps
-      rho(:,:,:,iStep) = mmult(Ueq,...
-                                 mmult(rho(:,:,:,iStep-1),...
-                                       Ueqdag,'complex'),...
-                                 'complex');                  
-    end
-  end
-
-else
-% truncated trajectory behavior not being used, so use full propagation
-% scheme for all time steps
-  
+if truncated
+  % propagation using correlation function approximation
   switch Method
     case 'Nitroxide'
-      for iStep=2:nSteps
-        rho(:,:,:,iStep) = mmult(U(:,:,:,iStep-1),...
-                                   mmult(rho(:,:,:,iStep-1), U(:,:,:,iStep-1),'complex'),...
+      Ueq = Ueq(4:6, 4:6,:);  % extract m_s=+ subspace propagator
+%       Ueq = Ueq(4:6, 4:6);  % extract m_s=+ subspace propagator
+      Ueqdag = Ueqdag(1:3, 1:3, :);
+%       Ueqdag = Ueq;
+
+      for iStep=fullSteps+1:nSteps
+        rho(:,:,:,iStep) = mmult(Ueq,...
+                                   mmult(rho(:,:,:,iStep-1),...
+                                         Ueqdag,'complex'),...
                                    'complex');
-    
-        %  Trace of a product of matrices is the sum of entry-wise products
-        %      rho_t(:,:,:,iStep) = U2(:,:,:,iStep-1).*rho_t(:,:,:,iStep-1);
+%         rho(:,:,iStep) = Ueq*rho(:,:,iStep-1)*Ueqdag;
       end
       
     case 'ISTOs'
       if Liouville
-        for iStep=2:nSteps
-          for iTraj=1:nTraj
-            rho(:,iTraj,iStep) = U(:,:,iTraj,iStep-1)*rho(:,iTraj,iStep-1);  
-          end
+        for iStep=fullSteps+1:nSteps
+%           for iTraj=1:nTraj
+            rho(:,iStep) = Ueq*rho(:,iStep-1);  
+%           end
         end
-
+        
       else
-        for iStep=2:nSteps
-          rho(:,:,:,iStep) = mmult(U(:,:,:,iStep-1),...
+        for iStep=fullSteps+1:nSteps
+          rho(:,:,:,iStep) = mmult(Ueq,...
                                      mmult(rho(:,:,:,iStep-1),...
-                                           Udag(:,:,:,iStep-1),'complex'),...
-                                     'complex');                  
+                                           Ueqdag,'complex'),...
+                                     'complex');  
+%           rho(:,:,iStep) = Ueq*rho(:,:,iStep-1)*Ueqdag;
         end
       end
   end
-
+  
 end
+
+% else
+% % truncated trajectory behavior not being used, so use full propagation
+% % scheme for all time steps
+%   
+%   switch Method
+%     case 'Nitroxide'
+%       for iStep=2:nSteps
+%         rho(:,:,:,iStep) = mmult(U(:,:,:,iStep-1),...
+%                                    mmult(rho(:,:,:,iStep-1), U(:,:,:,iStep-1),'complex'),...
+%                                    'complex');
+%     
+%         %  Trace of a product of matrices is the sum of entry-wise products
+%         %      rho_t(:,:,:,iStep) = U2(:,:,:,iStep-1).*rho_t(:,:,:,iStep-1);
+%       end
+%       
+%     case 'ISTOs'
+%       if Liouville
+%         for iStep=2:nSteps
+%           for iTraj=1:nTraj
+%             rho(:,iTraj,iStep) = U(:,:,iTraj,iStep-1)*rho(:,iTraj,iStep-1);  
+%           end
+%         end
+% 
+%       else % Hilbert space
+%         for iStep=2:nSteps
+%           rho(:,:,:,iStep) = mmult(U(:,:,:,iStep-1),...
+%                                      mmult(rho(:,:,:,iStep-1),...
+%                                            Udag(:,:,:,iStep-1),'complex'),...
+%                                      'complex');                  
+%         end
+%       end
+%   end
+% 
+% end
 
 end
 
