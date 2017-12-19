@@ -881,7 +881,7 @@ while ~converged
   ExpectVal = cell2mat(cellfun(@(x) zeropad(x, M), ExpectVal, 'UniformOutput', false));
   tLong = linspace(0, M*Par.dt, M).';
 
-  % broadening
+  % convolute for linewidth broadening
   if Broadening
     if Sys.lw(1)>0
       % Gaussian broadening
@@ -903,6 +903,7 @@ while ~converged
 
   % spc = reshape(cell2mat(cellfun(@(x) fft(x,M), expectDt, 'UniformOutput', false)),...
   %               [M,nOrients]);
+  
   % Multiply by t for differentiation and take the FFT
   spcArray = cat(2, spcArray, imag(fftshift(fft(ExpectVal.*tLong, [], 1))));
   spcNew = mean(spcArray,2);

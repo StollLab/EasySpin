@@ -1,63 +1,108 @@
 %  crosscorrfft  Calculate cross-correlation function using the FFT.
 %
-%  CrossCorr = crosscorrfft(y);
-%
-%  This function assumes that the second dimension is the "long" axis.
+%  CrossCorr = crosscorrfft(x, y);
+%  CrossCorr = crosscorrfft(x, y, dim);
+%  CrossCorr = crosscorrfft(x, y, dim, normalized);
+%  CrossCorr = crosscorrfft(x, y, dim, normalized, vector);
 %
 %  Input:
 %     x              array of data
 %     y              array of data
-%     normalized     1: normalize by the variance (the first data point)
+%     dim            integer
+%                      Dimension over which to perform FFT, first
+%                      non-singleton dimension by default
+%     normalized     1: normalize by the variance (default)
 %                    0: no normalization
-%     vector         1: treat input data as if the first dimension
-%                       represents different components of a vector and use
-%                       the dot product (sum over components at the end)
-%                    0: treat each component in first dimension separately
-%     centered       1: subtract the mean before performing FFT
-%                    0: no mean subtraction
+%     vector         integer
+%                      Dimension over which to sum as components of a
+%                      vector (scalar behavior by default)
 %
 %  Output:
-%     CrossCorr       array
+%     CrossCorr       autocorrelation of y
 
-function CrossCorr = autocorrfft(x, y, vector, normalized, centered)
+function CrossCorr = crosscorrfft(varargin)
 
-if nargin==3
-  % normalized and centered output by default
-  normalized = 1;
-  centered = 1;
+switch nargin
+  case 1
+    % normalized output by default
+    x = varargin{1};
+    y = varargin{2};
+    dim = [];
+    normalized = 1;
+    vector = 0;
+  case 2
+    x = varargin{1};
+    y = varargin{2};
+    dim = varargin{3};
+    normalized = 1;
+    vector = 0;
+  case 3
+    x = varargin{1};
+    y = varargin{2};
+    dim = varargin{3};
+    normalized = varargin{4};
+    vector = 0;
+  case 4
+    x = varargin{1};
+    y = varargin{2};
+    dim = varargin{3};
+    normalized = varargin{4};
+    vector = varargin{5};
+  otherwise
+    error('Wrong number of input arguments.')
 end
 
-if ndims(x)~=2||ndims(y)~=2
-  error('The input arrays must have 2 dimensions.')
-end
+Dimsx = ndims(x);
+Dimsy = ndims(y);
 
-if isequal(size(x),size(y))
+if ~isequal(Dimsx,Dimsy)
   error('Input arrays must be the same size.')
 end
 
-if centered
-  x = bsxfun(@minus, x , mean(x,2));
-  y = bsxfun(@minus, y , mean(y,2));
+if isempty(dim)
+  % determine first non-singleton dimension
+  sizey = size(y);
+  idx = find(sizey>1);
+  if ~isempty(idx)
+    dim = idx(1);
+  else
+    error('No non-singleton dimensions were detected for input.')
+  end
 end
 
-N = length(y);
-Fx = fft(x, 2*N, 2);
-Fy = fft(y, 2*N, 2);
-r = ifft(Fx.*conj(Fy),[],2);
-r = real(r(:,1:N));
+% center the data
+x = bsxfun(@minus, x, mean(x, dim));
+y = bsxfun(@minus, y, mean(y, dim));
+
+
+N = size(y, dim);
+Fx = fft(x, 2*N, dim);
+Fy = fft(y, 2*N, dim);
+r = ifft(Fx.*conj(Fy), [], dim);
+
+% select only the first half of the FFT dimension
+idx = cell(1, Dimsy);
+idx(:) = {':'};
+idx(dim) = {1:N};
+CrossCorr = real(r(idx{:}));
 
 if vector
-  CrossCorr = sum(r,1);
-else
-  CrossCorr = r;
+  % sum along dimension given by value of vector argument
+  CrossCorr = sum(CrossCorr, vector);
 end
 
 n = N*ones(1, N) - [1:N] + 1;
-
+sizen = ones(1,Dimsy);
+sizen(dim) = N;
+n = reshape(n,sizen);
 CrossCorr = CrossCorr./n;
 
 if normalized
-  CrossCorr = CrossCorr./CrossCorr(:,1);
+  % divide by first value of the FFT dimension
+  idx = cell(1, Dimsy);
+  idx(:) = {':'};
+  idx{dim} = 1;
+  CrossCorr = CrossCorr./CrossCorr(idx{:});
 end
 
 end

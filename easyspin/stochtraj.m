@@ -221,8 +221,8 @@ else
   logmsg(1,'-- No time step given. Par.dt set to Par.tcorr/10: %0.5g s.', 1/6/mean(Sim.Diff));
   dt = 1/6/mean(Sim.Diff)/10;
   if ~isfield(Par, 'nSteps')
-    logmsg(1,'-- Number of time steps not given. Par.nSteps set to 200e-9/Par.dt: %d.', ceil(200e-9/Sim.dt));
-    nSteps = ceil(200e-9/Sim.dt);
+    logmsg(1,'-- Number of time steps not given. Par.nSteps set to 200e-9/Par.dt: %d.', ceil(200e-9/dt));
+    nSteps = ceil(200e-9/dt);
   else
     nSteps = Par.nSteps;
   end

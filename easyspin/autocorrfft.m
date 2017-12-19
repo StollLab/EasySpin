@@ -1,54 +1,96 @@
 %  autocorrfft  Calculate autocorrelation function using the FFT.
 %
 %  AutoCorr = autocorrfft(y);
+%  AutoCorr = autocorrfft(y, dim);
+%  AutoCorr = autocorrfft(y, dim, normalized);
+%  AutoCorr = autocorrfft(y, dim, normalized, vector);
 %
 %  Input:
 %     y              array of data
-%     vector         1: treat input data as if the first dimension
-%                       represents different components of a vector and use
-%                       the dot product (sum over components at the end)
-%                    0: treat each component in first dimension separately
-%     normalized     1: normalize by the variance (the first data point)
+%     dim            integer
+%                      Dimension over which to perform FFT, first
+%                      non-singleton dimension by default
+%     normalized     1: normalize by the variance (default)
 %                    0: no normalization
-%     centered       1: subtract the mean before performing FFT
-%                    0: no mean subtraction
+%     vector         integer
+%                      Dimension over which to sum as components of a
+%                      vector (scalar behavior by default)
 %
 %  Output:
-%     autocorr       array
+%     AutoCorr       autocorrelation of y
 
-function AutoCorr = autocorrfft(y, vector, normalized, centered)
+function AutoCorr = autocorrfft(varargin)
 
-if nargin==2
-  % normalized and centered output by default
-  normalized = 1;
-  centered = 1;
+switch nargin
+  case 1
+    % normalized output by default
+    y = varargin{1};
+    dim = [];
+    normalized = 1;
+    vector = 0;
+  case 2
+    y = varargin{1};
+    dim = varargin{2};
+    normalized = 1;
+    vector = 0;
+  case 3
+    y = varargin{1};
+    dim = varargin{2};
+    normalized = varargin{3};
+    vector = 0;
+  case 4
+    y = varargin{1};
+    dim = varargin{2};
+    normalized = varargin{3};
+    vector = varargin{4};
+  otherwise
+    error('Wrong number of input arguments.')
 end
 
-if numel(size(y))>2
-  error('The input array must have 1 or 2 dimensions.')
+Dimsy = ndims(y);
+
+if isempty(dim)
+  % determine first non-singleton dimension
+  sizey = size(y);
+  idx = find(sizey>1);
+  if ~isempty(idx)
+    dim = idx(1);
+  else
+    error('No non-singleton dimensions were detected for input.')
+  end
 end
 
-if centered
-  y = bsxfun(@minus, y , mean(y,2));
-end
+% center the data
+y = bsxfun(@minus, y, mean(y, dim));
 
-N = size(y,2);
-F = fft(y, 2*N, 2);
-r = ifft(F.*conj(F),[],2);
-r = real(r(:,1:N));
+
+N = size(y, dim);
+F = fft(y, 2*N, dim);
+r = ifft(F.*conj(F), [], dim);
+
+% select only the first half of the FFT dimension
+idx = cell(1, Dimsy);
+idx(:) = {':'};
+idx(dim) = {1:N};
+AutoCorr = real(r(idx{:}));
 
 if vector
-  AutoCorr = sum(r,1);
-else
-  AutoCorr = r;
+  % sum along dimension given by value of vector argument
+  AutoCorr = sum(AutoCorr, vector);
 end
 
 n = N*ones(1, N) - [1:N] + 1;
-
+sizen = ones(1,Dimsy);
+sizen(dim) = N;
+n = reshape(n,sizen);
 AutoCorr = AutoCorr./n;
 
 if normalized
-  AutoCorr = AutoCorr./AutoCorr(:,1);
+  % divide by first value of the FFT dimension
+  idx = cell(1, Dimsy);
+  idx(:) = {':'};
+  idx{dim} = 1;
+  AutoCorr = AutoCorr./AutoCorr(idx{:});
 end
 
 end

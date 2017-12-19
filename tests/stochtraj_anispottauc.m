@@ -21,16 +21,13 @@ Sys.LMK = [2, 0, 0];
 
 VecTraj = squeeze(R(:,3,:,:));
 
-AutoCorrFFT = zeros(nTraj, nSteps);
+AutoCorrFFT = autocorrfft(VecTraj.^2, 3, 1, 1);
 
-for iTraj = 1:nTraj
-  AutoCorrFFT(iTraj,:) = autocorrfft(squeeze(VecTraj(:,iTraj,:).^2), 1);
-end
+AutoCorrFFT = squeeze(mean(AutoCorrFFT, 2));
 
 N = round(nSteps/2);
 M = round(N/2);
 
-AutoCorrFFT = mean(AutoCorrFFT, 1).';
 AutoCorrFFT = AutoCorrFFT-mean(AutoCorrFFT(M:N));
 AutoCorrFFT = AutoCorrFFT/max(AutoCorrFFT);
 
