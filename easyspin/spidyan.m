@@ -173,10 +173,14 @@ if ~isempty(RawSignal)
   end
   
   % Downconversion/processing of signal
-  Signal = signalprocessing(TimeAxis,RawSignal,DetOps,FreqTranslation);
+  Signal = signalprocessing(TimeAxis,RawSignal,FreqTranslation);
 
 else
   Signal = [];
+end
+
+if size(FinalState,1) == 1
+  FinalState = squeeze(FinalState);
 end
 
 % Arranging Output

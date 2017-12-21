@@ -30,6 +30,7 @@ Exp.DetEvents = 1;
 
 Opt.DetOperator = {'+1'};
 Opt.FrameShift = 32; % GHz
+Opt.FreqTranslation = -33.5; % GHz
 
 % Loop over the spinpackets and sum up the traces ------------
 for i = 1 : nSpinpackets
@@ -46,16 +47,9 @@ for i = 1 : nSpinpackets
   
 end
 
-% Signal Processing and plotting ----------------
-% Downconversion can only be done after all the signal had been summed up
-FreqTranslation = -(CenterFrequency-Opt.FrameShift); 
-
-SignalDC = signalprocessing(t,Signal,Opt.DetOperator,FreqTranslation);
-SignalDC = SignalDC/max((abs(SignalDC)));
-
 figure(1)
 clf
-plot(t*1000,abs(SignalDC));
+plot(t*1000,abs(Signal));
 xlabel('t [ns]')
 axis tight
 ylim([0 1])
@@ -84,16 +78,9 @@ for i = 1 : nSpinpackets
   
 end
 
-% Signal Processing
-% Downconversion can only be done after all the signal had been summed up
-FreqTranslation = - (CenterFrequency-Opt.FrameShift); 
-
-SignalDC = signalprocessing(t,Signal,Opt.DetOperator,FreqTranslation);
-SignalDC = SignalDC/max((abs(SignalDC)));
-
 figure(2)
 clf
-plot(t*1000,abs(SignalDC));
+plot(t*1000,abs(Signal));
 xlabel('t [ns]')
 axis tight
 ylim([0 1])

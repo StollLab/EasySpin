@@ -1,6 +1,15 @@
-function [ ProcessedSignal ] = signalprocessing(TimeAxis,RawSignal,DetectionOperators,FreqTranslation)
+function [ ProcessedSignal ] = signalprocessing(TimeAxis,RawSignal,FreqTranslation)
+
 % Number of detection operators
-nDetectionOperators = length(DetectionOperators);
+if iscell(RawSignal)
+  nDetectionOperators = size(RawSignal{1},1);
+else
+  if length(size(RawSignal)) == 2
+    nDetectionOperators = size(RawSignal,1);
+  elseif length(size(RawSignal)) == 3
+    nDetectionOperators = size(RawSignal,2);
+  end 
+end
 
 % Setup vector with down conversion frequencies
 TranslationFrequencies = zeros(1,nDetectionOperators);
@@ -54,8 +63,13 @@ try
         purelyImag = true;
       else
         % If signal is complex (S+ or S-), the normalization is wrong by a
-        % factor of two and hence needs normalization
-        RFSignal = 2*RFSignal;
+        % factor of two and hence needs normalization, but only do it, if
+        % the signal is also being demodulated. Else, if signalprocessing
+        % is called manually at a later point, the signal gets multiplied
+        % too many times
+        if TranslationFrequencies(iTrace) ~= 0
+          RFSignal = 2*RFSignal;
+        end
       end
       % Break signal into smaller signals if a nondetected event is present
       % (non linear time axis)
@@ -128,7 +142,7 @@ catch EM
   % If something goes wrong during down conversion, the RawSignal is
   % returned
   ProcessedSignal = RawSignal;
-  message = ['The down conversion of the signal was not successful and created an error. The raw signal in the simulation frame was returned. The error message was: ' EM.message];
+  message = ['Down conversion of the signal was not successful and created an error and the raw signal in the simulation frame was returned. The encountered error was: ' EM.message];
   warning(message)
 end
 

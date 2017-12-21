@@ -92,7 +92,7 @@ if Sys.T1==0 && Sys.T2==0
 else
   logmsg(1,'setting up the relaxation superoperator and the equilibrium state...');
 
-  Relaxation.Gamma = relaxationsuperoperator(Sys);
+  Relaxation.Gamma = s_relaxationsuperoperator(Sys);
   
   % Set up equilibrium state (required for relaxation)
   if isfield(Sys,'eqState') && ~isempty(Sys.eqState)

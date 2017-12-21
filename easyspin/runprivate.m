@@ -1,6 +1,6 @@
 function varargout = runprivate(fname,varargin)
 
-[q, q2] = feval(fname,varargin{:});
+[q] = feval(fname,varargin{:});
 
 if iscell(q)
   varargout = q;

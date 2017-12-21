@@ -1,4 +1,4 @@
-function [Gamma] = relaxationsuperoperator(System)
+function [Gamma] = s_relaxationsuperoperator(System)
 %  [gamma] = changeup(system)
 %
 %  The function changeup calculates the relaxation superoperators for a 
@@ -58,10 +58,10 @@ end
 % for T2 times, which allows for easier processing
 if t21 ~= 1 || t22 ~= 1
     T2 = System.T2;
-    if ~any(any(tril(T2)))
+%     if ~any(any(tril(T2)))
         % mirrors upper triangle of matrix to lower triangle
-        T2 = triu(T2)+triu(T2,1)';
-    end
+        T2 = triu(T2) + triu(T2,1)';
+%     end
 elseif t21 == 1 && t22 == 1 
     T2 = System.T2*ones(HilbertDimension);   
 end
