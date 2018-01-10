@@ -37,7 +37,7 @@
 %
 %     PseudoPotFun   numeric
 %                    orienting pseudopotential function to be used for
-%                    calculating the torque
+%                    calculating the torque on the spin label
 %
 %     Sys.lw         double or numeric, size = (1,2)
 %                    vector with FWHM residual broadenings
@@ -117,7 +117,6 @@
 %                      the m_S=-1/2 subspace
 %                    ISTOs: propagate the density matrix using
 %                      irreducible spherical tensor operators
-%                    Resampling: 
 %
 %    FFTWindow       1: use a Hamming window (default), 0: no window
 %
@@ -139,6 +138,16 @@
 %                    0: raw MD data input
 %                    1: frame trajectory input (MD data has already been 
 %                       processed by mdload)
+%
+%     TrajUsage      string (optional)
+%                    Explicit: (default) use molecular orientations in
+%                      trajectories directly as input for simulating the
+%                      spectrum
+%                    Resampling: coarse grain the trajectories by usinh the
+%                      Euler angle probability distribution (for 
+%                      pseudopotential) and orientational correlation 
+%                      functions (for diffusion tensor) to perform further 
+%                      stochastic rotational dynamics simulations
 %
 %    Raw MD data input:
 %
@@ -243,6 +252,9 @@ EasySpinLogLevel = Opt.Verbosity;
 [Sys,err] = validatespinsys(Sys);
 error(err);
 
+if Sys.nElectrons>1, error('cardamom cannot be used for more than one electron.'); end
+if Sys.nNuclei>1, error('cardamom cannot be used for more than one nucleus.'); end
+
 if isfield(Sys, 'lw')
   if any(Sys.lw>0)
     Broadening = 1;
@@ -307,6 +319,12 @@ if useMD
     
     MD.dt = tScale*MD.dt;
     MD.nSteps = size(MD.FrameZ, 1);
+  end
+  
+  if isfield(MD, 'TrajUsage')
+    
+    TrajUsage = MD.TrajUsage;
+    
   end
   
   MD.FrameX = permute(MD.FrameX, [2, 3, 4, 1]);
@@ -411,7 +429,7 @@ xAxis = linspace(Exp.Range(1),Exp.Range(2),Exp.nPoints);  % field axis, mT
 % if ~isfield(Opt,'chkcon'), chkcon = 0; end  % TODO implement spectrum convergence tests
 
 if ~isfield(Opt,'Method')
-  Opt.Method = 'Sezer';
+  Opt.Method = 'Nitroxide';
 end
 
 if isfield(Opt,'FFTWindow')
@@ -512,7 +530,7 @@ switch Model
       gridTheta = acos(gridPts);
     end
 
-    if strcmp(Opt.Method,'Resampling')
+    if strcmp(TrajUsage,'Resampling')
       
       % set up grid of starting orientations
 %       if ~isfield(Par,'Omega')
@@ -708,7 +726,7 @@ while ~converged
                        [1,MD.nTraj,MD.nSteps]);
         MD.RTraj = matmult(quat2rotmat(qMult),MD.RTraj);
 
-        if strcmp(Opt.Method,'Resampling')
+        if strcmp(TrajUsage,'Resampling')
 
           if ~isfield(Par,'Omega')
             % pick trajectory starting points by bootstrapping MD data
@@ -802,8 +820,11 @@ while ~converged
     % average over trajectories
     rho = squeeze(mean(rho,3));
 
+    iExpectVal{1,iOrient} = 0;
     % calculate the expectation value of S_{+}
-    iExpectVal{1,iOrient} = squeeze(rho(1,1,:)+rho(2,2,:)+rho(3,3,:));  % take traces TODO try to speed this up using equality tr(A*B)=sum(sum(A.*B))
+    for k = 1:size(rho,1)
+      iExpectVal{1,iOrient} = iExpectVal{1,iOrient} + squeeze(rho(k,k,:));  % take traces TODO try to speed this up using equality tr(A*B)=sum(sum(A.*B))
+    end
 %     ExpectVal{1,iOrient} = squeeze(rho(1,1,:,:)+rho(2,2,:,:)+rho(3,3,:,:));  % take traces TODO try to speed this up using equality tr(A*B)=sum(sum(A.*B))
 
     if Opt.Verbosity

@@ -79,11 +79,17 @@ else
   error('Par.RTraj, Par.qTraj, or MD.RTraj must be provided.')
 end
 
-if ~isfield(Sys,'g'), error('g-tensor not specified.'); end
-if ~isfield(Sys,'A'), error('A-tensor not specified.'); end
+if strcmp(Method, 'Nitroxide')
+  if ~isfield(Sys,'A'), error('An A-tensor is required for the Nitroxide method.'); end
+end
 
-g = Sys.g;
-A = Sys.A;
+if ~isfield(Sys,'g')
+  error('g-tensor not specified.');
+else
+  g = Sys.g;
+end
+
+if isfield(Sys, 'A'), A = Sys.A; end
 
 if ~isfield(Par,'dt'), error('Time step not specified.'); end
 if ~isfield(Par,'truncated'), Par.truncated = 0; end
@@ -103,8 +109,14 @@ else
 end
 t = linspace(0, dt*nSteps, nSteps);
 
-if ~isequal(size(g),[1,3]) || ~isequal(size(A),[1,3])
-  error('g and A tensor values must be 3-vectors.')
+if ~isequal(size(g),[1,3])
+  error('g-tensor must be a 3-vector.')
+end
+
+if isfield(Sys, 'A')
+  if ~isequal(size(A),[1,3])
+    error('A-tensor must be a 3-vector.')
+  end
 end
 
 % Set up for MD time averaging
@@ -117,7 +129,7 @@ if strcmp(Model,'Molecular Dynamics')
   
   if MD.nTraj > 1, error('Using multiple MD trajectories is not supported.'); end
   
-  if any(strcmp(Method,{'Nitroxide','ISTOs'}))
+  if ~strcmp(MD.TrajUsage,'Resampling')
     % size of averaging window
     nWindow = ceil(Par.dt/MD.dt);
 
@@ -125,8 +137,8 @@ if strcmp(Model,'Molecular Dynamics')
     M = floor(MD.nSteps/nWindow);
 
     % process single long trajectory into multiple short trajectories
-%     lag = ceil(Par.dt/2e-9);  % use 2 ns lag between windows
-      lag = 2;
+    lag = ceil(Par.dt/2e-9);  % use 2 ns lag between windows
+%       lag = 2;
 %     lag = ceil(Par.dt/1e-9);
     if Par.nSteps<M
       nSteps = Par.nSteps;
@@ -137,7 +149,7 @@ if strcmp(Model,'Molecular Dynamics')
       nTraj = 1;
     end
 
-  elseif strcmp(Method,'Resampling')
+  else
     % Resampling method does not require tensor averaging, so set nTraj to
     % user input
     nTraj = Par.nTraj;
@@ -166,40 +178,52 @@ if strcmp(Method,'ISTOs') || truncated  % TODO make corr fun propagation under n
     % ISTOs in the lab frame and IST components in the principal frame 
     % are time-independent, so we only need to calculate them once
 
-
-    % set up spin operators in |S,m_S>|I,m_I> product space
+    for iSpin = 1:numel(Sys.Spins)
+      SpinOps{iSpin,1} = sop(Sys.Spins,iSpin,1);
+      SpinOps{iSpin,2} = sop(Sys.Spins,iSpin,2);
+      SpinOps{iSpin,3} = sop(Sys.Spins,iSpin,3);
+    end
 
     % electron spin operators
 %       SpinOps{1,1} = sop(Sys.Spins,1,1);
 %       SpinOps{1,2} = sop(Sys.Spins,1,2);
-    SpinOps{1,1} = zeros(6);  % S_x and S_y are zero operators in HF limit
-    SpinOps{1,2} = zeros(6);
-    SpinOps{1,3} = sop(Sys.Spins,1,3);
+    SpinOps{1,1} = zeros(size(SpinOps{1,1}));  % S_x and S_y are zero operators in HF limit
+    SpinOps{1,2} = zeros(size(SpinOps{1,1}));
+%     SpinOps{1,3} = sop(Sys.Spins,1,3);
 
-    % nuclear spin operators
-    SpinOps{2,1} = sop(Sys.Spins,2,1);
-    SpinOps{2,2} = sop(Sys.Spins,2,2);
-    SpinOps{2,3} = sop(Sys.Spins,2,3);
+%     % nuclear spin operators
+%     SpinOps{2,1} = sop(Sys.Spins,2,1);
+%     SpinOps{2,2} = sop(Sys.Spins,2,2);
+%     SpinOps{2,3} = sop(Sys.Spins,2,3);
 
     if ~isfield(Sys,'DiffFrame'), Sys.DiffFrame = [0 0 0]; end  % TODO include frames in cardamom
 
     [T,F,~,~,~] = magint(Sys,SpinOps,CenterField,0,0);
 
 %       F0 = F.F0*2*pi;
-    F0 = F.F0(2)*2*pi;  % Hz -> rad s^-1, only keep isotropic HF interaction
+    if isfield(Sys, 'A')
+      F0 = F.F0(2)*2*pi;  % Hz -> rad s^-1, only keep isotropic HF interaction
+    end
     F2 = F.F2*2*pi;  % Hz -> rad s^-1
 
 %       T0 = T.T0;
-    T0 = T.T0{2};  % only keep isotropic HF interaction
+    if isfield(Sys, 'A')
+      T0 = T.T0{2};  % only keep isotropic HF interaction
+    end
     T2 = T.T2;
 
     % zeroth rank
 %       cacheTensors.Q0 = conj(F0(1))*T0{1} + conj(F0(2))*T0{2};
 
-%       if Liouville
-%         cacheTensors.Q0 = tosuper(conj(F0)*T0,'c');
-%       else
-    cacheTensors.Q0 = conj(F0)*T0;
+    if isfield(Sys, 'A')
+      if Liouville
+        cacheTensors.Q0 = tosuper(conj(F0)*T0,'c');
+      else
+        cacheTensors.Q0 = conj(F0)*T0;
+      end
+    else
+      cacheTensors.Q0 = 0;
+    end
 %       end
 
     cacheTensors.Q2 = cell(5,5);
@@ -207,13 +231,17 @@ if strcmp(Method,'ISTOs') || truncated  % TODO make corr fun propagation under n
     % create the 25 second-rank RBOs
     for mp = 1:5
       for m = 1:5
-%           if Liouville
-%             cacheTensors.Q2{mp,m} = tosuper(conj(F2(1,mp))*T2{1,m} ...
-%                                 + conj(F2(2,mp))*T2{2,m},'c');
-%           else
-          cacheTensors.Q2{mp,m} = conj(F2(1,mp))*T2{1,m} ...
-                                      + conj(F2(2,mp))*T2{2,m};
-%           end
+        if Liouville
+          cacheTensors.Q2{mp,m} = zeros(size(T2{1}).^2);
+          for iSpin = 1:numel(Sys.Spins)
+            cacheTensors.Q2{mp,m} = cacheTensors.Q2{mp,m} + conj(F2(iSpin,mp))*tosuper(T2{iSpin,m},'c');
+          end
+        else
+          cacheTensors.Q2{mp,m} = zeros(size(T2{1}));
+          for iSpin = 1:numel(Sys.Spins)
+            cacheTensors.Q2{mp,m} = cacheTensors.Q2{mp,m} + conj(F2(iSpin,mp))*T2{iSpin,m};
+          end
+        end
       end
     end
 
@@ -268,13 +296,14 @@ if strcmp(Method,'ISTOs') || truncated  % TODO make corr fun propagation under n
 
       % calculate correlation functions for approximate propagator
       acorr = zeros(size(D2,3), size(D2,4));
-      K2 = zeros(5,5);
+      K2 = zeros(5,5,nTraj);
 %       xcorr = zeros(size(D2,3), size(D2,4));
 %       K2 = zeros(5,5,5,5);
       NtauR = 10*ceil(tauR/dt);
+%       D2AcorrAvg = mean(autocorrfft(D2, 4),3);
+      D2Acorr = autocorrfft(D2, 4);
 %       for mppp=1:5
 %       for mpp=1:5
-      D2AcorrAvg = mean(autocorrfft(D2, 4),3);
 %       for mp=1:5
 %         for m=1:5
 %           % non-normalized autocorrelation functions are needed here
@@ -369,24 +398,27 @@ switch Method
     
     if strcmp(Model,'Molecular Dynamics')
 
-      gTensorAvg = zeros(3,3,M);
-      ATensorAvg = zeros(3,3,M);
-    
-      % average the interaction tensors over time windows
-      idx = 1:nWindow;
-      for k = 1:M
-        gTensorAvg(:,:,k) = mean(gTensor(:,:,:,idx),4);
-        ATensorAvg(:,:,k) = mean(ATensor(:,:,:,idx),4);
-        idx = idx + nWindow;
-      end
-      
-      gTensor = zeros(3,3,nTraj,nSteps);
-      ATensor = zeros(3,3,nTraj,nSteps);
-      
-      for k = 1:nTraj
-        idx = (1:nSteps) + (k-1)*lag;
-        gTensor(:,:,k,:) = gTensorAvg(:,:,idx);
-        ATensor(:,:,k,:) = ATensorAvg(:,:,idx);
+      if ~strcmp(MD.TrajUsage,'Resampling')
+        gTensorAvg = zeros(3,3,M);
+        ATensorAvg = zeros(3,3,M);
+
+        % average the interaction tensors over time windows
+        idx = 1:nWindow;
+        for k = 1:M
+          gTensorAvg(:,:,k) = mean(gTensor(:,:,:,idx),4);
+          ATensorAvg(:,:,k) = mean(ATensor(:,:,:,idx),4);
+          idx = idx + nWindow;
+        end
+
+        gTensor = zeros(3,3,nTraj,nSteps);
+        ATensor = zeros(3,3,nTraj,nSteps);
+
+        for k = 1:nTraj
+          idx = (1:nSteps) + (k-1)*lag;
+          gTensor(:,:,k,:) = gTensorAvg(:,:,idx);
+          ATensor(:,:,k,:) = ATensorAvg(:,:,idx);
+        end
+        
       end
       
       if isfield(MD,'GlobalDiff')
@@ -451,24 +483,6 @@ switch Method
     
     % Propagate density matrix
     % ---------------------------------------------------------------------
-    
-%     if nTraj>1
-%       for iStep=2:nSteps
-%         rho_t(:,:,:,iStep) = mmult(U(:,:,:,iStep-1),...
-%                                    mmult(rho_t(:,:,:,iStep-1), U(:,:,:,iStep-1),'complex'),...
-%                                    'complex');
-%     
-%         %  Trace of a product of matrices is the sum of entry-wise products
-%         %      rho_t(:,:,:,iStep) = U2(:,:,:,iStep-1).*rho_t(:,:,:,iStep-1);
-%       end
-%     else
-%       for iStep=2:nSteps
-%         rho_t(:,:,1,iStep) = U(:,:,1,iStep-1)*rho_t(:,:,1,iStep-1)*U(:,:,1,iStep-1);
-% 
-%         %  Trace of a product of matrices is the sum of entry-wise products
-%         %      rho_t(:,:,:,iStep) = U2(:,:,:,iStep-1).*rho_t(:,:,:,iStep-1);
-%       end
-%     end
 
     rho = propagate(rho, U, fullSteps, nSteps, nTraj, D2avg, truncated, cacheTensors, Liouville, K2, dt, Method);
     
@@ -477,21 +491,7 @@ switch Method
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   case 'ISTOs'  % see Ref [2]
     
-    rho = zeros(6,6,nTraj,nSteps);
-    rho(1:3,4:6,:,1) = repmat(eye(3),1,1,nTraj,1);
-    rho(4:6,1:3,:,1) = repmat(eye(3),1,1,nTraj,1);
-    
     % calculate Hamiltonians and  propagators
-%     if Liouville
-%       rho_t = reshape(rho_t,[36,nTraj,nSteps]);
-%       U = zeros(36,36,nTraj,nSteps);
-%     else
-    U = zeros(6,6,nTraj,fullSteps);
-%     end
-
-%     if Liouville
-%       rho = reshape(rho,[36,nTraj,nSteps]);
-%     end
     
     H = repmat(cacheTensors.Q0,[1,1,nTraj,fullSteps]);
 
@@ -501,6 +501,8 @@ switch Method
         H = H + bsxfun(@times, D2(m,mp,:,1:fullSteps), cacheTensors.Q2{mp,m});
       end
     end
+    
+    U = zeros(size(H));
     
     for iStep=1:fullSteps
       for iTraj=1:nTraj
@@ -514,110 +516,42 @@ switch Method
 %       U = tosuperLR(U, Udag);
 %       rho = reshape(rho,[36,nTraj,nSteps]);
 %     end
+
+    rho = zeros(Sys.nStates,Sys.nStates,nTraj,nSteps);
+    
+    % initial state after pi/2 pulse is |S_x>|E_I>
+    if isfield(Sys, 'A')
+      % 1 electron + 1 nucleus
+      rho0 = sop(Sys.Spins,'xe');
+    else
+      % 1 electron only
+      rho0 = sop(Sys.S,'x');
+    end
+    
+    rho(:,:,:,1) = repmat(rho0,1,1,nTraj,1); 
+%     rho(1:3,4:6,:,1) = repmat(eye(3),1,1,nTraj,1);
+%     rho(4:6,1:3,:,1) = repmat(eye(3),1,1,nTraj,1);
     
     rho = propagate(rho, U, fullSteps, nSteps, nTraj, D2avg, truncated, cacheTensors, Liouville, K2, dt, Method);
     
     
     if Liouville
-      rho = reshape(rho,[6,6,nTraj,nSteps]);
+      rho = reshape(rho,[Sys.nStates,Sys.nStates,nTraj,nSteps]);
 %       rho = reshape(rho,[6,6,nSteps]);
     end
     
-    % Only keep the m_S=-1/2 subspace part that contributes to 
+    % Only keep the m_S=\beta subspace part that contributes to 
     %   tr(S_{+}\rho(t))
-    rho = rho(4:6,1:3,:,:);
-    
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  case 'Resampling'
-    
-    g_tr = sum(g);
-    
-    % Process MD simulation data
-    % ---------------------------------------------------------------------
-    
-    % Perform rotations on g- and A-tensors
-    gTensor = tensortraj(g,RTraj,RTrajInv);
-
-    ATensor = tensortraj(A,RTraj,RTrajInv)*1e6*2*pi; % MHz (s^-1) -> Hz (rad s^-1)
-    
-    if isfield(MD,'GlobalDiff')
-      gTensor = mmult(RTrajGlobal, mmult(gTensor, RTrajGlobalInv, 'real'), 'real');
-      ATensor = mmult(RTrajGlobal, mmult(ATensor, RTrajGlobalInv, 'real'), 'real');
-    end
-    
-    GpTensor = gTensor/gfree - g_tr/3/gfree;
-        
-    rho = zeros(3,3,Par.nTraj,nSteps);
-    rho(:,:,:,1) = repmat(eye(3),[1,1,Par.nTraj]);
-    
-    % Prepare propagators
-    % ---------------------------------------------------------------------
-    
-    Gp_zz = GpTensor(3,3,:,:);
-
-    % norm of expression in Eq. 24 in [1]
-    a = sqrt(ATensor(1,3,:,:).*ATensor(1,3,:,:) ...
-           + ATensor(2,3,:,:).*ATensor(2,3,:,:) ...
-           + ATensor(3,3,:,:).*ATensor(3,3,:,:));
-
-    % rotation angle and unit vector parallel to axis of rotation
-    % refer to paragraph below Eq. 37 in [1]
-%     theta = Gamma*dt*0.5*squeeze(a);
-    theta = dt*0.5*squeeze(a);
-    nx = squeeze(ATensor(1,3,:,:)./a);
-    ny = squeeze(ATensor(2,3,:,:)./a);
-    nz = squeeze(ATensor(3,3,:,:)./a);
-
-    % Eqs. A1-A2 in [1]
-    ct = cos(theta) - 1;
-    st = -sin(theta);
-
-    % matrix exponential of hyperfine part
-    % Eqs. A1-A2 are used to construct Eq. 37 in [1]
-    expadotI = zeros(3,3,size(Gp_zz,3),size(Gp_zz,4));
-    expadotI(1,1,:,:) = 1 + ct.*(nz.*nz + 0.5*(nx.*nx + ny.*ny)) ...
-                         + 1i*st.*nz;
-    expadotI(1,2,:,:) = sqrt(0.5)*(st.*ny + ct.*nz.*nx) ...
-                         + 1i*sqrt(0.5)*(st.*nx - ct.*nz.*ny);
-    expadotI(1,3,:,:) = 0.5*ct.*(nx.*nx - ny.*ny) ... 
-                         - 1i*ct.*nx.*ny;
-    expadotI(2,1,:,:) = sqrt(0.5)*(-st.*ny + ct.*nz.*nx) ...
-                         + 1i*sqrt(0.5)*(st.*nx + ct.*nz.*ny);
-    expadotI(2,2,:,:) = 1 + ct.*(nx.*nx + ny.*ny);
-    expadotI(2,3,:,:) = sqrt(0.5)*(st.*ny - ct.*nz.*nx) ...
-                         + 1i*sqrt(0.5)*(st.*nx + ct.*nz.*ny);
-    expadotI(3,1,:,:) = 0.5*ct.*(nx.*nx - ny.*ny) ...
-                         + 1i*ct.*nx.*ny;
-    expadotI(3,2,:,:) = sqrt(0.5)*(-st.*ny - ct.*nz.*nx) ...
-                         + 1i*sqrt(0.5)*(st.*nx - ct.*nz.*ny);
-    expadotI(3,3,:,:) = 1 + ct.*(nz.*nz + 0.5*(nx.*nx + ny.*ny))  ...
-                         - 1i*st.*nz;
-    
-    
-    % Calculate propagator, Eq. 35 in [1]
-    U = bsxfun(@times, exp(-1i*dt*0.5*omega*Gp_zz), expadotI);
-    
-    
-    % Propagate density matrix
-    % ---------------------------------------------------------------------
-    
-    if nTraj>1
-      for iStep=2:nSteps
-        rho(:,:,:,iStep) = mmult(U(:,:,:,iStep-1),...
-                                   mmult(rho(:,:,:,iStep-1), U(:,:,:,iStep-1),'complex'),...
-                                   'complex');
-
-        %  Trace of a product of matrices is the sum of entry-wise products
-        %      rho_t(:,:,:,iStep) = U2(:,:,:,iStep-1).*rho_t(:,:,:,iStep-1);
-      end
+    if isfield(Sys, 'A')
+      % 1 electron + 1 nucleus
+      projector = sop(Sys.Spins,'+e');
     else
-      for iStep=2:nSteps
-        rho(:,:,1,iStep) = U(:,:,1,iStep-1)*rho(:,:,1,iStep-1)*U(:,:,1,iStep-1);
-
-        %  Trace of a product of matrices is the sum of entry-wise products
-        %      rho_t(:,:,:,iStep) = U2(:,:,:,iStep-1).*rho_t(:,:,:,iStep-1);
-      end
+      % 1 electron only
+      projector = sop(Sys.S,'+');
     end
+    rho = mmult(repmat(projector,1,1,nTraj,nSteps),rho,'complex');
+%     rho = rho(4:6,1:3,:,:);
+    
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   otherwise
@@ -635,14 +569,16 @@ function rho = propagate(rho, U, fullSteps, nSteps, nTraj, D2avg, truncated, cac
 % Propagate density matrix
 % ---------------------------------------------------------------------
 
+N = size(U,1);
+
 Udag = conj(permute(U,[2,1,3,4]));
 
-if Liouville
-  U = tosuperLR(U, Udag);
-end
+% if Liouville
+%   U = tosuperLR(U, Udag);
+% end
 
 if Liouville
-  rho = reshape(rho,[36,nTraj,nSteps]);
+  rho = reshape(rho,[N,nTraj,nSteps]);
 end
 
 if truncated
@@ -650,8 +586,8 @@ if truncated
   % -------------------------------------------------------------------
 
 
-  Ueq = zeros(6,6,nTraj);
-  Ueqdag = zeros(6,6,nTraj);
+  Ueq = zeros(N,N,nTraj);
+  Ueqdag = zeros(N,N,nTraj);
 
   Heq = repmat(cacheTensors.Q0,[1,1,nTraj]);
   
@@ -662,7 +598,7 @@ if truncated
   for mp = 1:5
     for m = 1:5
       HeqOrder1 = HeqOrder1 + bsxfun(@times, D2avg(m,mp,:), cacheTensors.Q2{mp,m});
-      HeqOrder2 = HeqOrder2 + 1i*cacheTensors.Q2{mp,m}*(cacheTensors.Q2{mp,m})'*K2(mp,m);
+      HeqOrder2 = HeqOrder2 + 1i*cacheTensors.Q2{mp,m}.*(cacheTensors.Q2{mp,m})'.*K2(mp,m,:);
 %       Heq = Heq + bsxfun(@times, D2avg(m,mp,:), cacheTensors.Q2{mp,m}) ...
 %                 + 1i*cacheTensors.Q2{mp,m}*(cacheTensors.Q2{mp,m})'*K2(mp,m);
 %       for mppp = 1:5
@@ -673,7 +609,7 @@ if truncated
     end
   end
   
-  Heq = Heq + HeqOrder1 +HeqOrder2;
+  Heq = Heq + HeqOrder1 + HeqOrder2;
 
 
   for iTraj=1:nTraj
@@ -684,12 +620,15 @@ if truncated
   
 %   Ueq = mean(Ueq,3);
 %   Ueqdag = mean(Ueqdag,3);
+
+  Ueq = Ueq./sum(abs(Ueq),1);
+  Ueqdag = Ueqdag./sum(abs(Ueqdag),1);
   
 %   Ueqdag = conj(permute(Ueq,[2,1,3]));
   
-  if Liouville
-    Ueq = tosuperLR(Ueq,Ueqdag);
-  end
+%   if Liouville
+%     Ueq = tosuperLR(Ueq,Ueqdag);
+%   end
   
 end
 
@@ -729,23 +668,24 @@ if truncated
     case 'Nitroxide'
       Ueq = Ueq(4:6, 4:6,:);  % extract m_s=+ subspace propagator
 %       Ueq = Ueq(4:6, 4:6);  % extract m_s=+ subspace propagator
-      Ueqdag = Ueqdag(1:3, 1:3, :);
-%       Ueqdag = Ueq;
+%       Ueqdag = Ueqdag(4:6, 4:6, :);
+%       Ueqdag = Ueqdag(1:3, 1:3, :);
+      Ueqdag = Ueq;
 
-      for iStep=fullSteps+1:nSteps
+      for iStep = fullSteps+1:nSteps
         rho(:,:,:,iStep) = mmult(Ueq,...
                                    mmult(rho(:,:,:,iStep-1),...
                                          Ueqdag,'complex'),...
                                    'complex');
-%         rho(:,:,iStep) = Ueq*rho(:,:,iStep-1)*Ueqdag;
       end
+%       end
       
     case 'ISTOs'
       if Liouville
         for iStep=fullSteps+1:nSteps
-%           for iTraj=1:nTraj
-            rho(:,iStep) = Ueq*rho(:,iStep-1);  
-%           end
+          for iTraj=1:nTraj
+            rho(:,iTraj,iStep) = Ueq(:,:,iTraj)*rho(:,iTraj,iStep-1);  
+          end
         end
         
       else
@@ -760,41 +700,6 @@ if truncated
   end
   
 end
-
-% else
-% % truncated trajectory behavior not being used, so use full propagation
-% % scheme for all time steps
-%   
-%   switch Method
-%     case 'Nitroxide'
-%       for iStep=2:nSteps
-%         rho(:,:,:,iStep) = mmult(U(:,:,:,iStep-1),...
-%                                    mmult(rho(:,:,:,iStep-1), U(:,:,:,iStep-1),'complex'),...
-%                                    'complex');
-%     
-%         %  Trace of a product of matrices is the sum of entry-wise products
-%         %      rho_t(:,:,:,iStep) = U2(:,:,:,iStep-1).*rho_t(:,:,:,iStep-1);
-%       end
-%       
-%     case 'ISTOs'
-%       if Liouville
-%         for iStep=2:nSteps
-%           for iTraj=1:nTraj
-%             rho(:,iTraj,iStep) = U(:,:,iTraj,iStep-1)*rho(:,iTraj,iStep-1);  
-%           end
-%         end
-% 
-%       else % Hilbert space
-%         for iStep=2:nSteps
-%           rho(:,:,:,iStep) = mmult(U(:,:,:,iStep-1),...
-%                                      mmult(rho(:,:,:,iStep-1),...
-%                                            Udag(:,:,:,iStep-1),'complex'),...
-%                                      'complex');                  
-%         end
-%       end
-%   end
-% 
-% end
 
 end
 
@@ -1091,3 +996,152 @@ D2(5,5,:,:) = Ast.^4;
 
 
 end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Deprecated
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%   case 'Resampling'
+%   
+%     g_tr = sum(g);
+%     
+%     % Process MD simulation data
+%     % ---------------------------------------------------------------------
+%     
+%     % Perform rotations on g- and A-tensors
+%     gTensor = tensortraj(g,RTraj,RTrajInv);
+% 
+%     ATensor = tensortraj(A,RTraj,RTrajInv)*1e6*2*pi; % MHz (s^-1) -> Hz (rad s^-1)
+%     
+%     if isfield(MD,'GlobalDiff')
+%       gTensor = mmult(RTrajGlobal, mmult(gTensor, RTrajGlobalInv, 'real'), 'real');
+%       ATensor = mmult(RTrajGlobal, mmult(ATensor, RTrajGlobalInv, 'real'), 'real');
+%     end
+%     
+%     GpTensor = gTensor/gfree - g_tr/3/gfree;
+%         
+%     rho = zeros(3,3,Par.nTraj,nSteps);
+%     rho(:,:,:,1) = repmat(eye(3),[1,1,Par.nTraj]);
+%     
+%     % Prepare propagators
+%     % ---------------------------------------------------------------------
+%     
+%     Gp_zz = GpTensor(3,3,:,:);
+% 
+%     % norm of expression in Eq. 24 in [1]
+%     a = sqrt(ATensor(1,3,:,:).*ATensor(1,3,:,:) ...
+%            + ATensor(2,3,:,:).*ATensor(2,3,:,:) ...
+%            + ATensor(3,3,:,:).*ATensor(3,3,:,:));
+% 
+%     % rotation angle and unit vector parallel to axis of rotation
+%     % refer to paragraph below Eq. 37 in [1]
+% %     theta = Gamma*dt*0.5*squeeze(a);
+%     theta = dt*0.5*squeeze(a);
+%     nx = squeeze(ATensor(1,3,:,:)./a);
+%     ny = squeeze(ATensor(2,3,:,:)./a);
+%     nz = squeeze(ATensor(3,3,:,:)./a);
+% 
+%     % Eqs. A1-A2 in [1]
+%     ct = cos(theta) - 1;
+%     st = -sin(theta);
+% 
+%     % matrix exponential of hyperfine part
+%     % Eqs. A1-A2 are used to construct Eq. 37 in [1]
+%     expadotI = zeros(3,3,size(Gp_zz,3),size(Gp_zz,4));
+%     expadotI(1,1,:,:) = 1 + ct.*(nz.*nz + 0.5*(nx.*nx + ny.*ny)) ...
+%                          + 1i*st.*nz;
+%     expadotI(1,2,:,:) = sqrt(0.5)*(st.*ny + ct.*nz.*nx) ...
+%                          + 1i*sqrt(0.5)*(st.*nx - ct.*nz.*ny);
+%     expadotI(1,3,:,:) = 0.5*ct.*(nx.*nx - ny.*ny) ... 
+%                          - 1i*ct.*nx.*ny;
+%     expadotI(2,1,:,:) = sqrt(0.5)*(-st.*ny + ct.*nz.*nx) ...
+%                          + 1i*sqrt(0.5)*(st.*nx + ct.*nz.*ny);
+%     expadotI(2,2,:,:) = 1 + ct.*(nx.*nx + ny.*ny);
+%     expadotI(2,3,:,:) = sqrt(0.5)*(st.*ny - ct.*nz.*nx) ...
+%                          + 1i*sqrt(0.5)*(st.*nx + ct.*nz.*ny);
+%     expadotI(3,1,:,:) = 0.5*ct.*(nx.*nx - ny.*ny) ...
+%                          + 1i*ct.*nx.*ny;
+%     expadotI(3,2,:,:) = sqrt(0.5)*(-st.*ny - ct.*nz.*nx) ...
+%                          + 1i*sqrt(0.5)*(st.*nx - ct.*nz.*ny);
+%     expadotI(3,3,:,:) = 1 + ct.*(nz.*nz + 0.5*(nx.*nx + ny.*ny))  ...
+%                          - 1i*st.*nz;
+%     
+%     
+%     % Calculate propagator, Eq. 35 in [1]
+%     U = bsxfun(@times, exp(-1i*dt*0.5*omega*Gp_zz), expadotI);
+%     
+%     
+%     % Propagate density matrix
+%     % ---------------------------------------------------------------------
+%     
+%     if nTraj>1
+%       for iStep=2:nSteps
+%         rho(:,:,:,iStep) = mmult(U(:,:,:,iStep-1),...
+%                                    mmult(rho(:,:,:,iStep-1), U(:,:,:,iStep-1),'complex'),...
+%                                    'complex');
+% 
+%         %  Trace of a product of matrices is the sum of entry-wise products
+%         %      rho_t(:,:,:,iStep) = U2(:,:,:,iStep-1).*rho_t(:,:,:,iStep-1);
+%       end
+%     else
+%       for iStep=2:nSteps
+%         rho(:,:,1,iStep) = U(:,:,1,iStep-1)*rho(:,:,1,iStep-1)*U(:,:,1,iStep-1);
+% 
+%         %  Trace of a product of matrices is the sum of entry-wise products
+%         %      rho_t(:,:,:,iStep) = U2(:,:,:,iStep-1).*rho_t(:,:,:,iStep-1);
+%       end
+%     end
+
+% else
+% % truncated trajectory behavior not being used, so use full propagation
+% % scheme for all time steps
+%   
+%   switch Method
+%     case 'Nitroxide'
+%       for iStep=2:nSteps
+%         rho(:,:,:,iStep) = mmult(U(:,:,:,iStep-1),...
+%                                    mmult(rho(:,:,:,iStep-1), U(:,:,:,iStep-1),'complex'),...
+%                                    'complex');
+%     
+%         %  Trace of a product of matrices is the sum of entry-wise products
+%         %      rho_t(:,:,:,iStep) = U2(:,:,:,iStep-1).*rho_t(:,:,:,iStep-1);
+%       end
+%       
+%     case 'ISTOs'
+%       if Liouville
+%         for iStep=2:nSteps
+%           for iTraj=1:nTraj
+%             rho(:,iTraj,iStep) = U(:,:,iTraj,iStep-1)*rho(:,iTraj,iStep-1);  
+%           end
+%         end
+% 
+%       else % Hilbert space
+%         for iStep=2:nSteps
+%           rho(:,:,:,iStep) = mmult(U(:,:,:,iStep-1),...
+%                                      mmult(rho(:,:,:,iStep-1),...
+%                                            Udag(:,:,:,iStep-1),'complex'),...
+%                                      'complex');                  
+%         end
+%       end
+%   end
+% 
+% end
+
+% Density Matrix Propagation
+%     if nTraj>1
+%       for iStep=2:nSteps
+%         rho_t(:,:,:,iStep) = mmult(U(:,:,:,iStep-1),...
+%                                    mmult(rho_t(:,:,:,iStep-1), U(:,:,:,iStep-1),'complex'),...
+%                                    'complex');
+%     
+%         %  Trace of a product of matrices is the sum of entry-wise products
+%         %      rho_t(:,:,:,iStep) = U2(:,:,:,iStep-1).*rho_t(:,:,:,iStep-1);
+%       end
+%     else
+%       for iStep=2:nSteps
+%         rho_t(:,:,1,iStep) = U(:,:,1,iStep-1)*rho_t(:,:,1,iStep-1)*U(:,:,1,iStep-1);
+% 
+%         %  Trace of a product of matrices is the sum of entry-wise products
+%         %      rho_t(:,:,:,iStep) = U2(:,:,:,iStep-1).*rho_t(:,:,:,iStep-1);
+%       end
+%     end
