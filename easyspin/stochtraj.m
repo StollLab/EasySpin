@@ -161,7 +161,7 @@ if isfield(Sys,'PseudoPotFun')
   logpotfun = log(Sys.PseudoPotFun);
 %   logpotfun = smooth3(log(Sys.PseudoPotFun), 'gaussian');
 
-   pidx = [2, 1, 3];
+  pidx = [2, 1, 3];
   
   [px, py, pz] = gradient(permute(logpotfun, pidx), ...  % TODO replace with gradient function for periodic BCs and ndgrid format
                           da, db, dg);

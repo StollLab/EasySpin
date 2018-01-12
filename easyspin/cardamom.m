@@ -120,6 +120,11 @@
 %
 %    FFTWindow       1: use a Hamming window (default), 0: no window
 %
+%    truncate        integer
+%                    Time point (in nanoseconds) at which to stop using 
+%                    full quantum dynamics propagator and begin using an
+%                    approximate correlation function propagator.
+%
 %
 %
 %   MD: structure with molecular dynamics simulation parameters
@@ -321,11 +326,8 @@ if useMD
     MD.nSteps = size(MD.FrameZ, 1);
   end
   
-  if isfield(MD, 'TrajUsage')
-    
-    TrajUsage = MD.TrajUsage;
-    
-  end
+  if ~isfield(MD, 'TrajUsage'), MD.TrajUsage = 'Explicit'; end
+  TrajUsage = MD.TrajUsage;
   
   MD.FrameX = permute(MD.FrameX, [2, 3, 4, 1]);
   MD.FrameY = permute(MD.FrameY, [2, 3, 4, 1]);
@@ -432,6 +434,14 @@ if ~isfield(Opt,'Method')
   Opt.Method = 'Nitroxide';
 end
 
+if ~isfield(Opt,'truncate')
+  Opt.truncate = 0;
+end
+
+if Opt.truncate && strcmp(Opt.Method,'Nitroxide')
+  error('Correlation function propagation is only available for ISTOs method.')
+end
+
 if isfield(Opt,'FFTWindow')
   FFTWindow = Opt.FFTWindow;
 else
@@ -448,9 +458,6 @@ end
 % -------------------------------------------------------------------------
 
 Dynamics = validate_dynord('cardamom',Sys,FieldSweep);
-
-logmsg(1,'-- time domain simulation -----------------------------------------');
-
 
 % Generate grids
 % -------------------------------------------------------------------------
@@ -528,6 +535,13 @@ switch Model
       gridPts = linspace(-1,1,nOrients);
       gridPhi = sqrt(pi*nOrients)*asin(gridPts);
       gridTheta = acos(gridPts);
+    end
+    
+    if strcmp(Opt.Method, 'ISTOs')
+      % this method uses quaternions, not rotation matrices, so convert
+      % MD.RTraj to quaternions here before the simulation loop
+      MD.qTraj = rotmat2quat(MD.RTraj);
+      clear MD.RTraj
     end
 
     if strcmp(TrajUsage,'Resampling')
@@ -632,6 +646,8 @@ switch Model
     
 end
 
+logmsg(1,'-- time domain simulation -----------------------------------------');
+
 logmsg(1, '-- Model: %s -----------------------------------------', Model);
 
 logmsg(1, '-- Method: %s -----------------------------------------', Opt.Method);
@@ -724,7 +740,11 @@ while ~converged
         % simulation
         qMult = repmat(euler2quat(gridPhi(iOrient), gridTheta(iOrient), 0),...
                        [1,MD.nTraj,MD.nSteps]);
-        MD.RTraj = matmult(quat2rotmat(qMult),MD.RTraj);
+        if strcmp(Opt.Method,'ISTOs')
+          MD.qTraj = quatmult(qMult, MD.qTraj);
+        else
+          MD.RTraj = mmult(quat2rotmat(qMult), MD.RTraj, 'real');
+        end
 
         if strcmp(TrajUsage,'Resampling')
 
@@ -832,7 +852,7 @@ while ~converged
     end
 
     if strcmp(Model,'Molecular Dynamics')
-      nSteps = size(rho,4);
+      nSteps = size(rho,3);
       t = linspace(0, nSteps*Par.dt, nSteps).';
     end
 
@@ -880,8 +900,10 @@ while ~converged
   % windowing
   if FFTWindow
   %   hamm = 0.54 + 0.46*cos(pi*t/max(t));
-    hamm = cellfun(@(x) 0.54 + 0.46*cos(pi*x/max(x)), tCell, 'UniformOutput', false);
-    ExpectVal = cellfun(@times, ExpectVal, hamm, 'UniformOutput', false);
+    hamming = cellfun(@(x) 0.54 + 0.46*cos(pi*x/max(x)), tCell, 'UniformOutput', false);
+    hann = cellfun(@(x) 0.5*(1 + cos(pi*x/max(x))), tCell, 'UniformOutput', false);
+    Window = hann;
+    ExpectVal = cellfun(@times, ExpectVal, Window, 'UniformOutput', false);
   end
 
 % zero padding for FFT to ensure sufficient B-field resolution (at most 0.1 G)

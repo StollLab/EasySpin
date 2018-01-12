@@ -42,7 +42,7 @@ r1 = r(2,rIndex{2:end});
 r2 = r(3,rIndex{2:end});
 r3 = r(4,rIndex{2:end});
 
-% t = zeros(4,Index{2:end});
+t = zeros(size(q));
 
 t(1,qIndex{2:end}) = r0.*q0 - r1.*q1 - r2.*q2 - r3.*q3;
 t(2,qIndex{2:end}) = r0.*q1 + r1.*q0 - r2.*q3 + r3.*q2;

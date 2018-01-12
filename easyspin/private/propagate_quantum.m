@@ -55,7 +55,6 @@ function rho = propagate_quantum(Sys, Par, Opt, MD, omega, CenterField)
 % -------------------------------------------------------------------------
 
 persistent cacheTensors
-persistent qTraj
 persistent fullSteps
 persistent K2
 
@@ -67,17 +66,40 @@ Liouville = Opt.Liouville;
 Method = Opt.Method;
 Model = Par.Model;
 
-if isfield(Par,'RTraj') || isfield(Par,'qTraj')
+if ~isfield(MD,'RTraj') && (~isfield(Par,'RTraj')||~isfield(Par,'qTraj'))
+  error('Either Par.RTraj and Par.qTraj, or MD.RTraj must be provided.')
+end
+
+if strcmp(Model, 'Molecular Dynamics')
+  if ~strcmp(MD.TrajUsage, 'Resampling')
+    if strcmp(Method, 'ISTOs')
+      qTraj = MD.qTraj;
+    else
+      RTraj = MD.RTraj;
+      RTrajInv = permute(RTraj,[2,1,3,4]);
+    end
+  else
+      RTraj = Par.RTraj;
+      RTrajInv = permute(RTraj,[2,1,3,4]);
+      qTraj = Par.qTraj;
+  end
+else
   RTraj = Par.RTraj;
   RTrajInv = permute(RTraj,[2,1,3,4]);
-% elseif isfield(Par,'qTraj')
   qTraj = Par.qTraj;
-elseif isfield(MD,'RTraj')
-  RTraj = MD.RTraj;
-  RTrajInv = permute(RTraj,[2,1,3,4]);
-else
-  error('Par.RTraj, Par.qTraj, or MD.RTraj must be provided.')
 end
+
+% if isfield(Par,'RTraj') || isfield(Par,'qTraj')
+%   RTraj = Par.RTraj;
+%   RTrajInv = permute(RTraj,[2,1,3,4]);
+% % elseif isfield(Par,'qTraj')
+%   qTraj = Par.qTraj;
+% elseif isfield(MD,'RTraj')
+%   RTraj = MD.RTraj;
+%   RTrajInv = permute(RTraj,[2,1,3,4]);
+% else
+%   error('Par.RTraj, Par.qTraj, or MD.RTraj must be provided.')
+% end
 
 if strcmp(Method, 'Nitroxide')
   if ~isfield(Sys,'A'), error('An A-tensor is required for the Nitroxide method.'); end
@@ -92,9 +114,8 @@ end
 if isfield(Sys, 'A'), A = Sys.A; end
 
 if ~isfield(Par,'dt'), error('Time step not specified.'); end
-if ~isfield(Par,'truncated'), Par.truncated = 0; end
 
-truncated = Par.truncated;
+truncate = Opt.truncate;
 
 dt = Par.dt;
 nTraj = Par.nTraj;
@@ -138,7 +159,7 @@ if strcmp(Model,'Molecular Dynamics')
 
     % process single long trajectory into multiple short trajectories
     lag = ceil(Par.dt/2e-9);  % use 2 ns lag between windows
-%       lag = 2;
+%     lag = 2;
 %     lag = ceil(Par.dt/1e-9);
     if Par.nSteps<M
       nSteps = Par.nSteps;
@@ -170,7 +191,7 @@ if strcmp(Model,'Molecular Dynamics')
   
 end
 
-if strcmp(Method,'ISTOs') || truncated  % TODO make corr fun propagation under nitroxide indep of ISTOs
+if strcmp(Method,'ISTOs') || truncate  % TODO make corr fun propagation under nitroxide indep of ISTOs
   
   % Calculate and store rotational basis operators
   % ---------------------------------------------------------------------
@@ -250,15 +271,10 @@ if strcmp(Method,'ISTOs') || truncated  % TODO make corr fun propagation under n
   % Prepare explicit propagators
   % ---------------------------------------------------------------------
 
-  % MD trajectories yield rotation matrices, so convert to quaternions
-  if strcmp(Model,'Molecular Dynamics')&&isempty(qTraj)
-    qTraj = rotmat2quat(RTraj);
-  end
-
   % calculate Wigner D-matrices from the quaternion trajectories
   D2 = wigD(qTraj);
 
-  if truncated
+  if truncate
     if isempty(fullSteps)||isempty(K2)
       % set time step for integration of correlation functions
       if strcmp(Model,'Molecular Dynamics')
@@ -268,9 +284,9 @@ if strcmp(Method,'ISTOs') || truncated  % TODO make corr fun propagation under n
         % use size(D2,3) since the full MD trajectories need to be
         % integrated, not the windowed trajectories
         % normalized autocorrelation functions are needed here
-        acorrD200 = autocorrfft(squeeze(D2(3,3,:,:)),2);
+        acorrD200 = autocorrfft(squeeze(D2(3,3,:,:)),1);  % NOTE: assumption is nTraj=1, i.e. there is only one MD trajectory
 
-        acorrD200 = mean(acorrD200, 1);
+%         acorrD200 = mean(acorrD200, 1);
         time = linspace(0, size(D2,4)*dtau, size(D2,4));
 
         % calculate correlation time
@@ -292,7 +308,7 @@ if strcmp(Method,'ISTOs') || truncated  % TODO make corr fun propagation under n
       % set the number of time steps to use full propagator before 
       % correlation functions relax
 %       fullSteps = ceil(truncated*tauR/dt);
-      fullSteps = ceil(truncated*1e-9/dt);
+      fullSteps = ceil(truncate*1e-9/dt);
 
       % calculate correlation functions for approximate propagator
       acorr = zeros(size(D2,3), size(D2,4));
@@ -323,7 +339,7 @@ if strcmp(Method,'ISTOs') || truncated  % TODO make corr fun propagation under n
 %       end
 %       end
 
-      K2 = squeeze(trapz(time(1:NtauR), D2AcorrAvg(:,:,:,1:NtauR),4));  % TODO implement cross-correlation functions
+      K2 = squeeze(trapz(time(1:NtauR), D2Acorr(:,:,:,1:NtauR),4));  % TODO implement cross-correlation functions
 
       idx = K2>1e-11;
       K2 = K2.*idx;
@@ -332,7 +348,7 @@ if strcmp(Method,'ISTOs') || truncated  % TODO make corr fun propagation under n
       % propagation scheme the entire time
       if fullSteps>nSteps
         fullSteps = nSteps; 
-        truncated = 0;
+        truncate = 0;
       end
     end
 
@@ -422,8 +438,8 @@ switch Method
       end
       
       if isfield(MD,'GlobalDiff')
-        gTensor = matmult(RTrajGlobal, matmult(gTensor, RTrajGlobalInv));
-        ATensor = matmult(RTrajGlobal, matmult(ATensor, RTrajGlobalInv));
+        gTensor = mmult(RTrajGlobal, mmult(gTensor, RTrajGlobalInv, 'real'), 'real');
+        ATensor = mmult(RTrajGlobal, mmult(ATensor, RTrajGlobalInv, 'real'), 'real');
       end
       
     end
@@ -484,7 +500,7 @@ switch Method
     % Propagate density matrix
     % ---------------------------------------------------------------------
 
-    rho = propagate(rho, U, fullSteps, nSteps, nTraj, D2avg, truncated, cacheTensors, Liouville, K2, dt, Method);
+    rho = propagate(rho, U, fullSteps, nSteps, nTraj, D2avg, truncate, cacheTensors, Liouville, K2, dt, Method);
     
     K2 = [];
 
@@ -532,7 +548,7 @@ switch Method
 %     rho(1:3,4:6,:,1) = repmat(eye(3),1,1,nTraj,1);
 %     rho(4:6,1:3,:,1) = repmat(eye(3),1,1,nTraj,1);
     
-    rho = propagate(rho, U, fullSteps, nSteps, nTraj, D2avg, truncated, cacheTensors, Liouville, K2, dt, Method);
+    rho = propagate(rho, U, fullSteps, nSteps, nTraj, D2avg, truncate, cacheTensors, Liouville, K2, dt, Method);
     
     
     if Liouville
