@@ -1,24 +1,25 @@
 % spidyan    Simulate spindyanmics during pulse EPR experiments
 %
-%     [TimeAxis,Signal] = spidyan(Sys,Exp,Opt)
-%     [TimeAxis,Signal,FinalState,StateTrajectories,Events] = spidyan(Sys,Exp,Opt)
+%     [t,Signal] = spidyan(Sys,Exp,Opt)
+%     [t,Signal,out] = spidyan(Sys,Exp,Opt)
 %
-%     Sys   ... spin system with electron spin and ESEEM nuclei
-%     Exp   ... experimental parameters (time unit us)
-%     Opt   ... simulation options
+%     Inputs:
+%       Sys   ... spin system with electron spin and ESEEM nuclei
+%       Exp   ... experimental parameters (time unit us)
+%       Opt   ... simulation options
 %
-%     out:
-%       TimeAxis          ... time axis
+%     Outputs:
+%       t                 ... time axis
 %       Signal            ... simulated signals of detected events
-%       FinalState        ... density matrix/matrices at the end of the
-%                             experiment
-%       StateTrajectories ... cell array with density matrices from each
-%                             timestep during evolution
-%       Events            ... structure containing events
+%       out               ... output structure with fields:
+%         .FinalState        ... density matrix/matrices at the end of the
+%                                experiment
+%         .StateTrajectories ... cell array with density matrices from each
+%                                timestep during evolution
+%         .Events            ... structure containing events
 
 function varargout = spidyan(Sys,Exp,Opt) 
 
-% [TimeAxis,Signal,Events,FinalState,StateTrajectories] = spidyan(Sys,Exp,Opt)
 if (nargin==0), help(mfilename); return; end
 
 % Input argument scanning, get display level and prompt
@@ -200,16 +201,14 @@ if size(FinalState,1) == 1
 end
 
 % Arranging Output
-if nargout == 1
-  varargout = {Signal};
-elseif nargout == 2
-  varargout = {TimeAxis,Signal};
-elseif nargout == 3
-  varargout = {TimeAxis,Signal,FinalState};
-elseif nargout == 4
-  varargout = {TimeAxis,Signal,FinalState,StateTrajectories};
-elseif nargout == 5
-  varargout = {TimeAxis,Signal,FinalState,StateTrajectories,Events};
+switch nargout
+  case 1, varargout = {Signal};
+  case 2, varargout = {TimeAxis,Signal};
+  case 3
+    out.FinalState = FinalState;
+    out.StateTrajectories = StateTrajectories;
+    out.Events = Events;
+    varargout = {TimeAxis,Signal,out};
+  otherwise
+    error('Incorrect number of output arguments. 1,2, or 3 expected.');
 end
-
-

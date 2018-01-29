@@ -37,10 +37,9 @@ Simulation of spin dynamics with arbitrary wave forms
 <pre class="matlab">
 spidyan(Sys,Exp)
 spidyan(Sys,Exp,Opt)
-y = spidyan(...)
-[x,y] = spidyan(...)
-[x,y,s] = spidyan(...)
-[x,y,s,t] = spidyan(...)
+sig = spidyan(...)
+[t,sig] = spidyan(...)
+[t,sig,out] = spidyan(...)
 </pre>
 
 <p>
@@ -55,7 +54,7 @@ The focus of <code>spidyan</code> lies on investigation of spin dynamics and on 
 Hence, the outputs of <code>spidyan</code> are a time domain signal and density matrices of a single spin packet.
 For simulating transients or spectra of realistic samples, use the function <code>saffron</code>, which is based one the same propagation engine.
 Time-domain signals or state trajectories simulated by <code>spidyan</code> are typically further analyzed by (Matlab) software home-written by the user.
-At the expense of requiring more knowledge on spin quantum mechanics than higher-level EasySpin functions, <code>spidyan</code> provides a lot of freedom in specifying input and output (e.g., custom (non-physical) initial states, transition selective excitation operators,  freely-chosable detection operators,...). This freedom should help you to investigate your spin dynamics problem in depth.
+At the expense of requiring more knowledge on spin quantum mechanics than higher-level EasySpin functions, <code>spidyan</code> provides a lot of freedom in specifying input and output (e.g., custom (non-physical) initial states, transition selective excitation operators,  freely-choosable detection operators,...). This freedom should help you to investigate your spin dynamics problem in depth.
 </p>
 
 <div class="subtitle2">Outputs</div>
@@ -67,9 +66,9 @@ There are up to four possible output arguments.
 <p>
 <ul>
 <li>
-The output contains the abscissa data in <code>x</code> (time in microseconds) and the simulated data in <code>y</code> (time domain trace). 
-For a single acquistion or a multidimensional experiment where all time traces have the same length, <code>x</code> and <code>y</code> are numeric arrays. 
-For multidimensional simulations where the length of the trace changes, <code>x</code> and <code>y</code> are cell arrays.
+The output contains the abscissa data in <code>t</code> (time in microseconds) and the simulated data in <code>sig</code> (time domain trace). 
+For a single acquisition or a multidimensional experiment where all time traces have the same length, <code>t</code> and <code>sig</code> are numeric arrays. 
+For multidimensional simulations where the length of the trace changes, <code>t</code> and <code>sig</code> are cell arrays.
 <li>
 <code>s</code> is the final state (or states for a multidimensional experiment) after propagation.
 <li> The cell array <code>t</code> contains state trajectories (density matrices) at each point of detection, but is available only if requested through <code>Opt.StateTrajectories</code>.
@@ -255,7 +254,7 @@ Phace cycling that steps more than one pulse simultaneously is not available.
 
 <p>
 By defining <code>nPoints</code> and  <code>Dim</code> it is possible to vary parameters of the pulse sequence and create one or multidimensional experiments.
-This also changes the structure of the output compared to a single acquistion. 
+This also changes the structure of the output compared to a single acquisition. 
 More details on how the output changes can be found below.
 </p>
 
@@ -283,7 +282,7 @@ Exp.Dim1 = {'d3' -0.1};             % decrements the length of the third delay b
 Several parameters can be changed in one dimension:
 <pre class="matlab">
 Exp.Dim1 = {'p2.Flip' pi/8; 'd3' -0.1}; 	% changes flip angle of pulse and duration of free evolution
-Exp.Dim1 = {'p2.Flip,p3.Flip' pi/8};  		% flip angles of 2nd and 3rd pulse are simulaneously stepped  
+Exp.Dim1 = {'p2.Flip,p3.Flip' pi/8};  		% flip angles of 2nd and 3rd pulse are simultaneously stepped  
 </pre>
 For experiments that involve one or several moving pulses, the identifier <code>Position</code> can be used.
 This is only possible for pulses that are not the first or last event in the sequence. 
@@ -292,7 +291,7 @@ Pulses are allowed to cross, but must not overlap.
 Exp.Dim2 = {'p2.Position' 0.1};   % moves the second pulse 100 ns back each step in the 2nd dimension
 </pre>
 A list of increments can be used by providing vectors with the precomputed increments.
-In this case the inital value is still taken as the one in the sequence definition, and the first element in the list corresponds to the second data point in the indirect dimension.
+In this case the initial value is still taken as the one in the sequence definition, and the first element in the list corresponds to the second data point in the indirect dimension.
 All increments are always applied to the initial value of the field and are not related to each other.
 Hence the length of the vector with the increments must be one element shorter than the desired number of data points:
 <pre class="matlab">
@@ -396,7 +395,7 @@ This removes artifacts at the beginning and end of the time traces that are intr
 <div class="optiondescr">
 The signal is detected in the simulation frame, which causes all signals from detection operators that have non-zero off-diagonal elements to have an oscillating component.
 By translating/shifting the frequency it is possible to center the signal around 0.
-The frequency shift has to given as absolute frequency (even if used in conjuction with <code>FrameShift</code>) in GHz and for each detection operator separately.
+The frequency shift has to given as absolute frequency (even if used in conjunction with <code>FrameShift</code>) in GHz and for each detection operator separately.
 Indexing in <code>FreqTranslation</code> corresponds to the ordering in <code>DetOperator</code>:
 <pre class="matlab">
 Opt.DetOperator = {'+1' 'z1'};   % detects  <i>&Scirc;</i><sub>+</sub> and  <i>&Scirc;<sub>z</sub></i> of the first electron spin
@@ -580,7 +579,7 @@ Opt.FreqTranslation = -33.5;
 
 <p>
 This code already contains everything to run <code>spidyan</code> (for a single spin packet), but in order to obtain a refocused spin-echo it is necessary to sum up several traces of spin packets with different resonance frequencies.
-Instead of using the spectrum of a Nitroxide, we choose a Gaussian line, centered around 33.5 GHz and a width of 10 MHz.
+Instead of using the spectrum of a nitroxide, we choose a Gaussian line, centered around 33.5 GHz and a width of 10 MHz.
 It is sampled every 5 MHz with between 33.45 and 33.55 GHz:
 </p>
 
@@ -650,13 +649,13 @@ The output now contains 100 echos, each for a different first inter-pulse delay.
 
 <p>
 The data type of the returned time-domain signal depends on experiment parameters. 
-If you run a single experiment (no <code>Exp.nPoints</code>), the output <code>y</code> is a numeric array, with the first dimension corresponding to the specified detection operators and the second dimension to the time axis. 
-If you specify a single detection operator, say <i>&Scirc;</i><sub>-</sub>, <code>y</code> is a complex-valued vector. 
-The time axis is returned in <code>x</code>.
+If you run a single experiment (no <code>Exp.nPoints</code>), the output <code>sig</code> is a numeric array, with the first dimension corresponding to the specified detection operators and the second dimension to the time axis. 
+If you specify a single detection operator, say <i>&Scirc;</i><sub>-</sub>, <code>sig</code> is a complex-valued vector. 
+The time axis is returned in <code>t</code>.
 </p>
 
 <p>
-If you run a multidimensional experiment, <code>y</code> can be a numeric array (if each acquisition point has the same length) or a cell array (if the detection length changes).
+If you run a multidimensional experiment, <code>sig</code> can be a numeric array (if each acquisition point has the same length) or a cell array (if the detection length changes).
 In either case the indexing adheres to the following rule: 
 Dimensions are looped from the last to the first dimension, with the last dimension being the most inner loop and the first dimension the most outer loop.
 E. g. for <code>Exp.nPoints = [2 3];</code> a total of 6 data sets will be returned in the order:
@@ -675,19 +674,19 @@ or for <code>Exp.nPoints = [2 3 3]</code>
 </p>
 
 <p>
-If the total length of all detected events is identical for each acquistion point, the signals are returned as a three-dimensional array in <code>y</code> .
-The first dimension corresponds to the acquistion point, sequenced as described above.
+If the total length of all detected events is identical for each acquisition point, the signals are returned as a three-dimensional array in <code>sig</code> .
+The first dimension corresponds to the acquisition point, sequenced as described above.
 The second dimension corresponds to the detection operators and the last dimension are the expectation values.
-If all acquisition points have the same time axis, <code>x</code> is a vector.
-If not, <code>x</code> is a two-dimensional numeric array, with the first dimension being the acquistion points.
-This can be encountered when detetecting a moving echo, with a detection window that is always centered around the echo (see example on two-pulse ESEEM).
+If all acquisition points have the same time axis, <code>t</code> is a vector.
+If not, <code>t</code> is a two-dimensional numeric array, with the first dimension being the acquisition points.
+This can be encountered when detecting a moving echo, with a detection window that is always centered around the echo (see example on two-pulse ESEEM).
 </p>
 
 <p>
-When the detection length changes between acquisition points, <code>x</code> and <code>y</code> become cell arrays. 
-The indexing of the elements in each cell array corresponds to the acquistion points.
-Each element of <code>y</code> is a two-dimensional numeric array with the first dimension corresponding to the detection operators and the second to the time axis.
-The time axes for each acquistion point are stored as vectors in the elements of <code>x</code>.
+When the detection length changes between acquisition points, <code>t</code> and <code>sig</code> become cell arrays. 
+The indexing of the elements in each cell array corresponds to the acquisition points.
+Each element of <code>sig</code> is a two-dimensional numeric array with the first dimension corresponding to the detection operators and the second to the time axis.
+The time axes for each acquisition point are stored as vectors in the elements of <code>t</code>.
 </p>
 
 <div class="subtitle2">Final States</div>
@@ -800,9 +799,9 @@ E.g. for two coupled (electron) spins with <i>S,</i> = 1/2, you get the followin
 If you are interested in the expectation values of <i>&Scirc;<sub>x</sub></i>, it is usually beneficial to use <i>&Scirc;</i><sub>+</sub> as the actual detection operator and then take the real part of the obtained signal.
 This removes artifacts at the beginning and end of the time traces that are introduced when translating a purely real signal during the signal processing.
 <li> 
-In some simulations you may observe echos in your timetrace that should not be there.
-Besides physical reasons (incomplete phase cycling, different refocusing conditions,...), such artefact echos can arise from an aliasing effect if the spectrum (e.g. the Gaussian distribution in the example above) is insufficiently sampled.
-This can easily be checked: By increasing the number of samples from your distribution the artifact echos should move, spread further apart or vanish, while physical echos stay in place. You can also compute the required increment for the spin packet distribution in frequency domain by an inverse Nyquist criterion. If you want to observe up to a time <i>t</i><sub>max</sub> after the first excitation event (first pulse), the frequency increment should not be larger than 1/(2 <i>t</i><sub>max</sub>). Otherwise use Monte Carlo sampling of spin packet frequencies, which will convert the artefacts to 'Monte Carlo noise' that averages with increasing number of trials.  
+In some simulations you may observe echoes in your timetrace that should not be there.
+Besides physical reasons (incomplete phase cycling, different refocusing conditions,...), such artifact echoes can arise from an aliasing effect if the spectrum (e.g. the Gaussian distribution in the example above) is insufficiently sampled.
+This can easily be checked: By increasing the number of samples from your distribution the artifact echoes should move, spread further apart or vanish, while physical echos stay in place. You can also compute the required increment for the spin packet distribution in frequency domain by an inverse Nyquist criterion. If you want to observe up to a time <i>t</i><sub>max</sub> after the first excitation event (first pulse), the frequency increment should not be larger than 1/(2 <i>t</i><sub>max</sub>). Otherwise use Monte Carlo sampling of spin packet frequencies, which will convert the artifacts to 'Monte Carlo noise' that averages with increasing number of trials.  
 <li> 
 If the signal processing fails, <code>spidyan</code> returns the signal in the simulation frame. 
 This can happen if you try to translate <i>&Scirc;<sub>z</sub></i> or provide a wrong frequency. 
