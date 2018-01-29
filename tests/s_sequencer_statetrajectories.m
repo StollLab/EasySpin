@@ -18,22 +18,22 @@ Opt.FrameShift = 32;
 
 Opt.StateTrajectories = 1;
 
-[Events1] = runprivate2('s_sequencer',Exp,Opt);
+[Events1] = runprivate('s_sequencer',Exp,Opt);
 
 
 Opt.StateTrajectories = [1 1 1 1];
 
-[Events2] = runprivate2('s_sequencer',Exp,Opt);
+[Events2] = runprivate('s_sequencer',Exp,Opt);
 
 % Second Test ---------------------------------------
 
 Opt.StateTrajectories = [1 0];
 
-[Events3] = runprivate2('s_sequencer',Exp,Opt);
+[Events3] = runprivate('s_sequencer',Exp,Opt);
 
 Opt.StateTrajectories = [1 0 0 0];
 
-[Events4] = runprivate2('s_sequencer',Exp,Opt);
+[Events4] = runprivate('s_sequencer',Exp,Opt);
 
 
 if any([~isequal(Events1,Events2) ~isequal(Events3,Events4)])

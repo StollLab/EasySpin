@@ -114,7 +114,7 @@ Longitudinal relaxation time in microseconds.
 If it is a scalar, the relaxation time is applied to all transitions. 
 Transition specific relaxation times can be provided in the form of a matrix.
 See section <a href="#relaxation_times">Relaxation times</a> below for more details. 
-Relaxation times for transitions that are not defined (or 0) are automatically reset to 10<sup>10</sup> microseconds.
+Relaxation times for transitions that are not defined (or 0) are automatically set to 10<sup>10</sup> microseconds.
 </div>
 
 <div class="optionfield"><code>T2</code></div>
@@ -123,7 +123,7 @@ Transverse relaxation time in microseconds.
 If it is a scalar, the relaxation time is applied to all transitions. 
 Transition specific relaxation times can be provided in the form of a matrix.
 See section <a href="#relaxation_times">Relaxation times</a> more details. 
-Relaxation times for transitions that are not defined (or 0) are automatically reset to 10<sup>10</sup> microseconds.
+Relaxation times for transitions that are not defined (or 0) are automatically set to 10<sup>10</sup> microseconds.
 </div>
 
 <div class="optionfield"><code>initState</code></div>
@@ -131,12 +131,17 @@ Relaxation times for transitions that are not defined (or 0) are automatically r
 It is possible to run <code>spidyan</code> simulations with a custom initial state, which must be provided in matrix form.
 By default, the initial state assumes the high temperature approximation for all electron spins.
 The structure of density matrices (ordering of operators in terms of product Zeeman basis states) is explained at <a class="esf" href="sop.html">sop</a>.
+<pre class="matlab">
+Sys.S = 1/2;				% Creates an isolated spin 1/2
+Sys.initState = [0 1/2; 1/2 0]; 	% Start simulation from Sx
+</pre>
+
 </div>
 
 <div class="optionfield"><code>eqState</code></div>
 <div class="optiondescr">
-For simulations with relaxation it is possible to provide an <code>eqState</code> that the system relaxes to. 
-It has to be in matrix form.
+For simulations with relaxation it is possible to provide an equilibrium state <code>eqState</code> that the system relaxes to. 
+This state has to be a density operator matrix form.
 By default the initial state is used as equilibrium state.
 </div>
 
@@ -153,7 +158,7 @@ Magnetic field (in mT) at which the experiment is performed.
 
 <div class="optionfield"><code>TimeStep</code></div>
 <div class="optiondescr">
-Time step in microseconds. If the Nyquist criteriums is not fulfilled for the frequency ranges of the pulses, an error is thrown. 
+Time step in microseconds. If the Nyquist theorem is not fulfilled for the frequency ranges of the pulses, an error is thrown. 
 The required <code>TimeStep</code> depends on the choice of simulation frame, and hence on <code>Opt.FrameShift</code> (see <a href="#opt_frame_shift">there</a> and in the examples).
 </div>
 
@@ -181,7 +186,10 @@ If both <code>Qcrit</code> and <code>Amplitude</code> are provided, <code>Qcrit<
 <div class="optiondescr">
 Vector with flip angles for the pulses in radian.
 The indexing does <i>not</i> correspond to the indexing in <code>t</code>, but rather to the pulse indexing.
-Hence, the second element in <code>Flip</code> is the flip angle of the second pulse as defined in <code>Pulses</code>, i.e., to the third event in <code>t</code> in the example above.
+Hence, the second element in <code>Flip</code> is the flip angle of the second pulse as defined in <code>Pulses</code>, i.e., to the third event in <code>t</code> in the example above:
+<pre class="matlab">
+Exp.Flip = [pi/2 pi]; 	% Set flip angle of first pulse to pi/2, of second pulse to pi
+</pre>
 An entry of <code>Flip</code> is ignored, if <code>Qcrit</code> or <code>Amplitude</code> were provided for the same pulse.
 </div>
 
@@ -208,7 +216,7 @@ Exp.Frequency = [-0.25 0.25];  % sweep range if 'Exp.mwFreq' is defined
 <div class="optionfield"><code>mwFreq</code></div>
 <div class="optiondescr">
 EPR spectrometer frequency in GHz.
-If given, all frequencies in <code>Frequencies</code> need to be defined relative to it. 
+If given, all frequencies in <code>Frequency</code> need to be defined relative to it (see there). 
 Required for simulations with resonator.
 </div>
 
@@ -254,6 +262,9 @@ More details on how the output changes can be found below.
 <div class="optionfield"><code>nPoints</code></div>
 <div class="optiondescr">
 A vector that contains the number of points in each dimension, e. g. [10 150] corresponds to 10 points in the first and 150 points in the second dimension. 
+<pre class="matlab">
+Exp.Points = [10 150]; 	% 10 points along the first indirect dimension, 150 along the second
+</pre>
 </div>
 
 <div class="optionfield"><code>Dim</code> or <code>Dim1</code>, <code>Dim2</code>,... </div>
@@ -280,19 +291,21 @@ Pulses are allowed to cross, but must not overlap.
 <pre class="matlab">
 Exp.Dim2 = {'p2.Position' 0.1};   % moves the second pulse 100 ns back each step in the 2nd dimension
 </pre>
-Non-linear increments can be used by providing vectors with the precomputed increments.
-In this case the first value is still taken as the one in the sequence definition, and hence the length of the vector with the increments must be one element shorter than the desired number of data points:
+A list of increments can be used by providing vectors with the precomputed increments.
+In this case the inital value is still taken as the one in the sequence definition, and the first element in the list corresponds to the second data point in the indirect dimension.
+All increments are always applied to the initial value of the field and are not related to each other.
+Hence the length of the vector with the increments must be one element shorter than the desired number of data points:
 <pre class="matlab">
 Exp.nPoints = 5;
-Exp.Dim = {'d2' [0.1 0.3 0.65 -0.2]};   % non-linear increment of the second delay
+Exp.Dim = {'d2' [0.1 0.3 0.65 -0.2]};   % increment of the second delay
 </pre>
 A special case is the field <code>Frequency</code> in the pulse definition of a frequency-swept or of a monochromatic pulse that is defined by identical initial and final frequency.
 Here it is necessary to provide a vector even for a constant increment, with the first element being the change of the initial frequency and the second being the change of the final frequency. 
-Non-linear increments can be provided as well, by using <code>';'</code> as separator:
+A list of increments can be provided as well, by using <code>';'</code> as separator:
 <pre class="matlab">
 Exp.Dim1 = {'p1.Frequency' [-0.005 0.005]};   			% increases sweep width by 10 MHz each step
 Exp.Dim1 = {'p1.Frequency' [0.005 0.005]};    			% moves the excitation band by 5 MHz each step
-Exp.Dim1 = {'p1.Frequency' [0.01 0.01; 0.03 0.03; 0.08 0.08]};  % non-linear increment
+Exp.Dim1 = {'p1.Frequency' [0.01 0.01; 0.03 0.03; 0.08 0.08]};  % vector increment
 </pre>
 For other pulse parameters that are defined by a vector (e.g., the order of an asymmetric hyperbolic secant (HS) pulse <code>Pulse.n</code> or the list of relatives amplitudes of a Gaussian cascade <code>Pulse.A0</code>), selected elements can be incremented by adding an index to the field name:
 <pre class="matlab">
@@ -349,7 +362,18 @@ If set to <code>'compensate'</code> the pulse shape is adapted such that it comp
 <div class="optionfield"><code>FrameShift</code></div>
 <div class="optiondescr">
 For many simulations it is possible to use a rotating frame at a frequency <code>FrameShift</code> in GHz. 
-This reduces the frequencies compared to the ones in the laboratory frame and thus allows for using a larger time step, which in turn can strongly reduce computation time.																											 																																										
+This reduces the frequencies <code>Sys.ZeemanFreq</code>,<code>Sys.Frequency</code>/<code>Sys.mwFreq</code>,<code>Opt.FreqTranslation</code> and <code>Sys.g</code> if provided.
+All of the mentioned frequencies still need to be provided in the lab frame.
+<pre class="matlab">
+Exp.mwFreq = 34.4;	      % Set carrier frequency to 34.4 GHz
+Exp.Frequency = [-0.05 0.05]; % Pulse with bandwidth of 100 MHz, sweeps from 34.35 to 34.45 GHz 
+
+Opt.FrameShift = 33;  	      % Shifts all frequencies down by 33 GHz
+</pre>
+Changing the simulation frame allows for using a larger time step, which in turn can strongly reduce computation time.																											 																																										
+The time step is not increased automatically and has to be adapted manually.
+It is also important to keep in mind, that changing the simulation frame reduces the size of diagonal elements of electrons in the Hamiltonian, but leaves off-diagonal elements unaffected.
+In most simulations this will not make much of a difference, but keep in mind, that using <code>FrameShift</code> changes the ratio between diagonal and off-diagonal elements and could lead to unwanted effects.
 </div>
 
 <div class="optionfield"><code>DetOperator</code></div>
@@ -364,6 +388,8 @@ Detection operators that can not be defined using the <code>sop</code> syntax, c
 Opt.DetOperator = {[0 1; 0 0] [1/2 0; 0 -1/2]};   % the same operators as a above for <i>S</i> = 1/2 in matrix form
 </pre>
 If no detection operator is defined, but detection is active, <i>&Scirc;</i><sub>+</sub> is used for all electron spins.
+If you are interested in the expectation values of <i>&Scirc;<sub>x</sub></i>, it is usually beneficial to use <i>&Scirc;</i><sub>+</sub> as the actual detection operator and then take the real part of the obtained signal.
+This removes artifacts at the beginning and end of the time traces that are introduced when translating a purely real signal during the signal processing.
 </div>
 
 <div class="optionfield"><code>FreqTranslation</code></div>

@@ -20,12 +20,12 @@ Exp.nPoints = [3 3];
 Exp.Dim1 = {'d1', 0.2};
 Exp.Dim2 = {'p1.t', 0.2};
 
-[~, Vary1] = runprivate2('s_sequencer',Exp,Opt);
+[~, Vary1] = runprivate('s_sequencer',Exp,Opt);
 
 Exp.Dim1 = {'d1', [0.2 0.4]};
 Exp.Dim2 = {'p1.t', [0.2 0.4]};
 
-[~, Vary2] = runprivate2('s_sequencer',Exp,Opt);
+[~, Vary2] = runprivate('s_sequencer',Exp,Opt);
 
 % Second Test ---------------------------------------
 
@@ -34,11 +34,11 @@ Exp.Pulses = {Pulse 0 Pulse};
 Exp.nPoints = 3;
 Exp.Dim1 = {'p2.Position', 0.2};
 
-[~, Vary3] = runprivate2('s_sequencer',Exp,Opt);
+[~, Vary3] = runprivate('s_sequencer',Exp,Opt);
 
 Exp.Dim1 = {'p2.Position', [0.2 0.4]};
 
-[~, Vary4] = runprivate2('s_sequencer',Exp,Opt);
+[~, Vary4] = runprivate('s_sequencer',Exp,Opt);
 
 
 if any([~isequal(Vary1,Vary2) ~isequal(Vary3,Vary4)])

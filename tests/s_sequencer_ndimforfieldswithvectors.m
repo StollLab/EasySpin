@@ -20,14 +20,14 @@ Exp.Dim = {'p1.n(2)' -2};
 
 Opt = struct('unused',NaN);
 
-[~, Vary1] = runprivate2('s_sequencer',Exp,Opt);
+[~, Vary1] = runprivate('s_sequencer',Exp,Opt);
 
 Seq1IQs = Vary1.Pulses{1}.IQs;
 
 % Second Syntax -----------------------------
 Exp.Dim = {'p1.n(2)' [-2 -4]};
 
-[~, Vary2] = runprivate2('s_sequencer',Exp,Opt);
+[~, Vary2] = runprivate('s_sequencer',Exp,Opt);
 
 Seq2IQs = Vary2.Pulses{1}.IQs;
 

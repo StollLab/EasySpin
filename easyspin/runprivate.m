@@ -1,11 +1,9 @@
-function varargout = runprivate(fname,varargin)
+function varargout = runprivate2(fname,varargin)
 
-[q] = feval(fname,varargin{:});
+result = cell(1,nargout);
 
-if iscell(q)
-  varargout = q;
-else
-  varargout = {q};
-end
+[result{:}] = feval(fname,varargin{:});
+
+varargout = result;
 
 return

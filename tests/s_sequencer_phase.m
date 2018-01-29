@@ -21,24 +21,24 @@ Opt.FrameShift = 32;
 
 % First Test ---------------------------------------
 
-[Events1] =  runprivate2('s_sequencer',Exp,Opt);
+[Events1] =  runprivate('s_sequencer',Exp,Opt);
 
 Exp.Phase = pi;
 Exp.Pulses = {Pulse 0 Pulse Pulse};
 
-[Events2] = runprivate2('s_sequencer',Exp,Opt);
+[Events2] = runprivate('s_sequencer',Exp,Opt);
 
 % Second Test ---------------------------------------
 
 Exp = rmfield(Exp,'Phase');
 Exp.Pulses = {Pulse1 0 Pulse1 Pulse};
 
-[Events3] = runprivate2('s_sequencer',Exp,Opt);
+[Events3] = runprivate('s_sequencer',Exp,Opt);
 
 Exp.Phase = [pi/2 pi];
 Exp.Pulses = {Pulse2 0 Pulse Pulse};
 
-[Events4] = runprivate2('s_sequencer',Exp,Opt);
+[Events4] = runprivate('s_sequencer',Exp,Opt);
 
 % ---------------------------------------------------
 

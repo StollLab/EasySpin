@@ -1,7 +1,7 @@
 % spidyan    Simulate spindyanmics during pulse EPR experiments
 %
 %     [TimeAxis,Signal] = spidyan(Sys,Exp,Opt)
-%     [TimeAxis,Signal,Events,FinalState,StateTrajectories] = spidyan(Sys,Exp,Opt)
+%     [TimeAxis,Signal,FinalState,StateTrajectories,Events] = spidyan(Sys,Exp,Opt)
 %
 %     Sys   ... spin system with electron spin and ESEEM nuclei
 %     Exp   ... experimental parameters (time unit us)
@@ -75,13 +75,29 @@ end
 % Adapt Zeeman frequencies and g values for the selected simulation frame, 
 % if they are provided
 if isfield(Opt,'FrameShift') && ~isempty(Opt.FrameShift)
+  if Opt.FrameShift < 0
+    warning('The value provided for Opt.FrameShift is negative, but should be positive. The simulation frequency is always shifted to lower frequency and hence does not require a negative sign.')
+    Opt.FrameShift = abs(Opt.FrameShift);
+  end
   if isfield(Sys,'ZeemanFreq')
     Sys.ZeemanFreq =  Sys.ZeemanFreq - Opt.FrameShift;
   end
   
   if isfield(Sys,'g')  
+    nElectrons = length(Sys.S);
+    ng = size(Sys.g,1);
+    
     %%%%% Transfer from GHz (Opt.FrameShift) to MHz (Opt.FrameShift*1000)
-    Sys.g = Sys.g - Opt.FrameShift*1000*1e9*planck/bmagn/Exp.Field(end);
+    gshift =  Opt.FrameShift*1000*1e9*planck/bmagn/Exp.Field(end);
+    
+    if ng == 1 || ng == 2 || (ng == 3 && nElectrons == 3)% isotropic, axial or rhombic g tensor
+      Sys.g = Sys.g - gshift;
+    elseif mod(ng,nElectrons) == 0 % full g tensor
+      gshiftmat = diag([gshift gshift gshift]);
+      gshiftmat = repmat(gshiftmat,[nElectrons,1]);
+      Sys.g = Sys.g - gshiftmat;
+    end
+    
   end
 end
 

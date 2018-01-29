@@ -301,11 +301,7 @@ switch method
               rMax = max(abs(real(currentEvent.IQ(:)))); % max(abs(real....(:)))
               iMax = max(abs(imag(currentEvent.IQ(:))));
               
-              if rMax > iMax
-                MaxWave = rMax;
-              else
-                MaxWave = iMax;
-              end
+              MaxWave = max(rMax,iMax);
               
               vertRes = 1024;
               
