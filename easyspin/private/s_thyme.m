@@ -109,7 +109,7 @@ switch method
         end
         
         % Reorder Events and adjust event lengths
-        [Sequence, NewEventLengths] = reorder_events(EventLengths,isPulse);
+        [Sequence, NewEventLengths] = s_reorder_events(EventLengths,isPulse);
         
         if Resonator
           % Loop over the pulses
@@ -261,7 +261,7 @@ switch method
         end
         
         % Reorder events and get new event lengths
-        [Sequence, NewEventLengths] = reorder_events(EventLengths,isPulse);
+        [Sequence, NewEventLengths] = s_reorder_events(EventLengths,isPulse);
         
         % Write new event durations of free evolution events to the event
         % structure

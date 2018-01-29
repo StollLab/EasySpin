@@ -618,7 +618,7 @@ if isfield(Exp,'nPoints')
     end
      
     % Reorder Sequence and check for pulse overlap
-    [NewSequence, NewEventLengths] = reorder_events(EventLengths,isPulse);
+    [NewSequence, NewEventLengths] = s_reorder_events(EventLengths,isPulse);
     
     % Check if ringing from the resonator causes pulses to overlap, after
     % they have been reorderd

@@ -1,26 +1,27 @@
-function [NewSequence, NewEventLengths] = reorder_events(EventLengths,PulseList)
+function [NewSequence, NewEventLengths] = s_reorder_events(EventLengths,PulseList)
 
 nEvents = numel(EventLengths);
 
-% Transfers intervals to positions - absolute times when an event is to
-% start
+% Transfers intervals to positions - absolute times when an event is to start
 t = [0 cumsum(EventLengths)];
 
-%--------------------------------------------------------------------------
-% Uncomment the following to get plots of how the time periods are defined
-% before reordering
-%--------------------------------------------------------------------------
-% dy = 1;
-% figure
-% for k = 1:nEvents
-%   if isPulse(k), col = 'r'; else, col = 'k'; end
-%   line([1 1]*t(k),[1 nEvents],'Color',[0 0.5 0]);
-%   h = line([t(k) t(k+1)],k*dy*[1 1],'Color',col,'LineWidth',3);
-%   if k<nEvents
-%     line([1 1]*t(k+1),[k,k+1]*dy,'Color',[1 1 1]*0);
-%   end
-% end
-%--------------------------------------------------------------------------
+%-------------------------------------------------------------------------------
+% Plots of how the time periods are defined before reordering (for debugging)
+%-------------------------------------------------------------------------------
+plotTimeLine = false;
+if plotTimeLine
+  dy = 1;
+  figure
+  for k = 1:nEvents
+    if isPulse(k), col = 'r'; else, col = 'k'; end
+    line([1 1]*t(k),[1 nEvents],'Color',[0 0.5 0]);
+    h = line([t(k) t(k+1)],k*dy*[1 1],'Color',col,'LineWidth',3);
+    if k<nEvents
+      line([1 1]*t(k+1),[k,k+1]*dy,'Color',[1 1 1]*0);
+    end
+  end
+end
+%-------------------------------------------------------------------------------
 
 % Sort the events according to their starting position
 [TimeIntervals,NewSequence] = sort(t);
@@ -78,34 +79,24 @@ for iEvent = 1 : nEvents
     ShortenedPulse = NewSequence(iEvent);
     NewSequence(iEvent) = NewSequence(iEvent+1);
     NewSequence(iEvent+1) = ShortenedPulse;
-%     for ii = iEvent + 1 : nEvents
-%       if ~PulseList(NewSequence(ii))
-%         NewSequence(iEvent) = NewSequence(ii);
-%         NewSequence(ii) = ShortenedPulse;
-%         break
-%       end
-%     end
   end
 end
 
-%--------------------------------------------------------------------------
-% Uncomment the following to get plots of how the time periods are defined
-% after reordering
-%--------------------------------------------------------------------------
-% dy = 1;
-% figure
-% for k = 1:nEvents
-%   if PulseList(k), col = 'r'; else, col = 'k'; end
-%   line([1 1]*TimeIntervals(k),[1 nEvents],'Color',[0 0.5 0]);
-%   h = line([TimeIntervals(k) TimeIntervals(k+1)],NewSequence(k)*dy*[1 1],'Color',col,'LineWidth',3);
-%   if k<nEvents
-%     line([1 1]*TimeIntervals(k+1),[k,k+1]*dy,'Color',[1 1 1]*0);
-%   end
-% end
-%--------------------------------------------------------------------------
-
-
-
+%-------------------------------------------------------------------------------
+% Plots of how the time periods are defined after reordering (for debugging)
+%-------------------------------------------------------------------------------
+if plotTimeLine
+  dy = 1;
+  figure
+  for k = 1:nEvents
+    if PulseList(k), col = 'r'; else, col = 'k'; end
+    line([1 1]*TimeIntervals(k),[1 nEvents],'Color',[0 0.5 0]);
+    h = line([TimeIntervals(k) TimeIntervals(k+1)],NewSequence(k)*dy*[1 1],'Color',col,'LineWidth',3);
+    if k<nEvents
+      line([1 1]*TimeIntervals(k+1),[k,k+1]*dy,'Color',[1 1 1]*0);
+    end
+  end
+end
+%-------------------------------------------------------------------------------
 
 end
-
