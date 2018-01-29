@@ -30,15 +30,15 @@ Opt.FrameShift = 32;
 
 % Function Call -----------------------------
 
-[~, ~, ~, state1] = spidyan(Sys,Exp,Opt);
+[~, ~, out1] = spidyan(Sys,Exp,Opt);
 
 % Second Method -------------------------
 Exp = rmfield(Exp,'mwFreq');
 Exp.Frequency = [33.400 33.600];
 
-[~, ~, ~, state2] = spidyan(Sys,Exp,Opt);
+[~, ~, out2] = spidyan(Sys,Exp,Opt);
 
-if ~areequal(state1,state2,1e-4)
+if ~areequal(out1.FinalState,out2.FinalState,1e-4)
   err = 1;
 else
   err = 0;

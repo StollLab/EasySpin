@@ -30,17 +30,17 @@ Opt.FrameShift = 32;
 
 % Function Call -----------------------------
 
-[t, signal, ~, state1] = spidyan(Sys,Exp,Opt);
+[t, signal, out1] = spidyan(Sys,Exp,Opt);
 
 data.t = t;
 data.signal = signal;
 
 Exp.DetEvents = [0 0 0]; 
 
-[~, ~, ~, state2] = spidyan(Sys,Exp,Opt);
+[~, ~, out2] = spidyan(Sys,Exp,Opt);
 
 if ~isempty(olddata)
-  err = [~areequal(state1,state2,1e-4) ~areequal(signal,olddata.signal,1e-4)];
+  err = [~areequal(out1.FinalState,out2.FinalState,1e-4) ~areequal(signal,olddata.signal,1e-4)];
 else
   err = [];
 end

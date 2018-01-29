@@ -27,15 +27,15 @@ Opt.Relaxation = 1;
 % Testing Complex excitation
 
 Opt.ComplexExcitation = 1;
-[~, ~, ~, statecomplex1] = spidyan(Sys,Exp,Opt);
+[~, ~, out1] = spidyan(Sys,Exp,Opt);
 
 Exp.DetEvents = [1 1];
-[~, signalcomplex, ~, statecomplex2] = spidyan(Sys,Exp,Opt);
+[~, signalcomplex, out2] = spidyan(Sys,Exp,Opt);
 
 data.signalcomplex = signalcomplex;
 
 if ~isempty(olddata)
-  err = [~areequal(statecomplex1,statecomplex2,1e-4) ...
+  err = [~areequal(out1.FinalState,out2.FinalState,1e-4) ...
     ~areequal(signalcomplex,olddata.signalcomplex,1e-4)];
 else
   err = [];

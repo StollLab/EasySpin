@@ -188,7 +188,7 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
       if isfield(Exp,'tau') && (Exp.tau<1)
         h=title(sprintf('Mims ENDOR, %g mT, tau = %g ns',Exp.Field,1000*Exp.tau));
       else
-        h=title(sprintf('Mims ENDOR, %g mT, tau = %g us',Exp.Field,Exp.tau));
+        h=title(sprintf('Mims ENDOR, %g mT, tau = %g us',Expx,Exp.tau));
       end
       set(h,'FontWeight','b');
       

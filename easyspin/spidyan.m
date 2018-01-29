@@ -36,7 +36,7 @@ Link = 'epr@eth'; eschecker; error(LicErr); clear Link LicErr
 % Guard against wrong number of input or output arguments.
 if (nargin<2) || (nargin>3), error('Wrong number of input arguments!'); end
 if (nargout<0), error('Not enough output arguments.'); end
-if (nargout>5), error('Too many output arguments.'); end
+if (nargout>3), error('Too many output arguments.'); end
 
 % Initialize options structure to zero if not given.
 if (nargin<3), Opt = struct('unused',NaN); end
@@ -67,10 +67,8 @@ EasySpinLogLevel = Opt.Verbosity;
 % Check for magnetic field
 if ~isfield(Exp,'Field')
   error('Exp.Field is required.')
-elseif length(Exp.Field) == 1
-  B = [0 0 Exp.Field];
-else
-  B = Exp.Field;
+elseif length(Exp.Field) ~= 1
+  error('Exp.Field must be a single number (in mT).');
 end
 
 % Adapt Zeeman frequencies and g values for the selected simulation frame, 
@@ -86,38 +84,35 @@ if isfield(Opt,'FrameShift') && ~isempty(Opt.FrameShift)
   
   if isfield(Sys,'g')  
     nElectrons = length(Sys.S);
-    ng = size(Sys.g,1);
     
-    %%%%% Transfer from GHz (Opt.FrameShift) to MHz (Opt.FrameShift*1000)
-    gshift =  Opt.FrameShift*1000*1e9*planck/bmagn/Exp.Field(end);
+    gshift = (Opt.FrameShift*1e9)*planck/bmagn/(Exp.Field(end)*1e-3);
     
-    if ng == 1 || ng == 2 || (ng == 3 && nElectrons == 3)% isotropic, axial or rhombic g tensor
-      Sys.g = Sys.g - gshift;
-    elseif mod(ng,nElectrons) == 0 % full g tensor
-      gshiftmat = diag([gshift gshift gshift]);
-      gshiftmat = repmat(gshiftmat,[nElectrons,1]);
+    issize = @(A,siz) all(size(A)==siz);
+    fullg = issize(Sys.g,[3*nElectrons 3]);
+    if fullg
+      gshiftmat = repmat(gshift*eye(3),[nElectrons,1]);
       Sys.g = Sys.g - gshiftmat;
+    else
+      Sys.g = Sys.g - gshift;
     end
     
   end
 end
 
-  %%%%% Transfer from GHz to MHz
-Exp.Frequency = Exp.Frequency*1000;
+Exp.Frequency = Exp.Frequency*1000; % GHz -> MHz
 
 % Translate Frequency to g values
 if isfield(Sys,'ZeemanFreq')
-  %%%%% Transfer from GHz to MHz
-  Sys.ZeemanFreq = Sys.ZeemanFreq*1000;
+  Sys.ZeemanFreq = Sys.ZeemanFreq*1000; % GHz -> MHz
   if isfield(Sys,'g')
     [~, dgTensor] = size(Sys.g);
   else
-    dgTensor = 1;
+    dgTensor = true;
   end
-  % Recalculates the g value 
+  % Recalculates the g value
   for ieSpin = 1 : length(Sys.ZeemanFreq)
     if Sys.ZeemanFreq(ieSpin) ~= 0
-      g = Sys.ZeemanFreq(ieSpin)*1e9*planck/bmagn/Exp.Field(end);
+      g = (Sys.ZeemanFreq(ieSpin)*1e6)*planck/bmagn/(Exp.Field*1e-3);
       Sys.g(ieSpin,1:dgTensor) = g;
     end
   end
@@ -136,14 +131,15 @@ end
 [Sys, Sigma, DetOps, Events, Relaxation] = s_propagationsetup(Sys,Events,Opt);
 
 % Get Hamiltonian
-Ham = sham(Sys,B);
+Ham = sham(Sys,Exp.Field*[0 0 1]);
 
 %----------------------------------------------------------------------
 % Propagation
 %----------------------------------------------------------------------
 
 % Calls the actual propagation engine
-[TimeAxis, RawSignal, FinalState, StateTrajectories, Events] = s_thyme(Sigma, Ham, DetOps, Events, Relaxation, Vary);
+[TimeAxis, RawSignal, FinalState, StateTrajectories, Events] = ...
+  s_thyme(Sigma, Ham, DetOps, Events, Relaxation, Vary);
 
 %----------------------------------------------------------------------
 % Signal Processing
@@ -200,10 +196,12 @@ if size(FinalState,1) == 1
   FinalState = squeeze(FinalState);
 end
 
-% Arranging Output
+% Assigning outputs
 switch nargout
-  case 1, varargout = {Signal};
-  case 2, varargout = {TimeAxis,Signal};
+  case 1
+    varargout = {Signal};
+  case 2
+    varargout = {TimeAxis,Signal};
   case 3
     out.FinalState = FinalState;
     out.StateTrajectories = StateTrajectories;
