@@ -2,33 +2,47 @@ function [err,data] = test(opt,olddata)
 % Check that supplying a pseudopotential energy function to stochtraj  
 % generates a proper rotational correlation time
 
+idx = [2, 1, 3];  % for permuting dimensions to go between ngrid and 
+                  % meshgrid ordering
+
 % generate Euler angle grids
-N = 50;
-agrid = linspace(-180, 180, N)/180*pi;
-bgrid = linspace(0, 180, N)/180*pi;
-ggrid = linspace(-180, 180, N)/180*pi;
-% [Agrid, Bgrid, Ggrid] = meshgrid(agrid, bgrid, ggrid);
+N = 100;
 
-fwhma = 60/pi*180;
-fwhmb = 60/pi*180;
-fwhmg = 60/pi*180;
+abins = N;
+bbins = N;
+gbins = N;
 
-% PotFun = gaussian(Agrid, 0, fwhma).*gaussian(Bgrid, 0, fwhmb) ...
-%                                   .*gaussian(Ggrid, 0, fwhmg);
-[funa, funb, func] = meshgrid(wrappedgaussian(agrid, 0, fwhma), ...
-                              wrappedgaussian(bgrid, 0, fwhmb, [0,pi]), ...
-                              wrappedgaussian(ggrid, 0, fwhmg));
-PotFun = funa.*funb.*func;
+alphaGrid = linspace(-pi, pi, abins);
+betaGrid = linspace(0, pi, bbins);
+gammaGrid = linspace(-pi, pi, gbins);
 
-Sys.tcorr = 10*1e-9;
-Sys.PseudoPotFun = PotFun;
+delta = 80;
 
-Par.dt = Sys.tcorr/10;
+fwhma = delta/180*pi;
+fwhmb = delta/180*pi;
+fwhmg = delta/180*pi;
+
+[pdfa, pdfb, pdfg] = ndgrid(wrappedgaussian(alphaGrid, 0, fwhma), ...
+                            wrappedgaussian(betaGrid, 0, fwhmb, [0,pi]), ...
+                            wrappedgaussian(gammaGrid, 0, fwhmg));
+
+pdf = pdfa.*pdfb.*pdfg;
+
+pdf = pdf/sum(pdf(:));
+
+Sys.tcorr = 10e-9;
+Sys.ProbDensFun = pdf;
+
+Par.dt = Sys.tcorr/20;
 Par.nSteps = ceil(200*Sys.tcorr/Par.dt);
-Par.nTraj = 200;
-Par.Omega = [  pi*(2*rand()-1); 
-             2*pi*(2*rand()-1);
-             2*pi*(2*rand()-1) ];
+Par.nTraj = 400;
+
+nTraj = Par.nTraj;
+nSteps = Par.nSteps;
+
+AlphaBins = linspace(-pi, pi, abins);
+BetaBins = linspace(0, pi, bbins);
+GammaBins = linspace(-pi, pi, gbins);
 
 tcorr = Sys.tcorr;
 nTraj = Par.nTraj;
@@ -49,11 +63,16 @@ AutoCorrFFT = AutoCorrFFT/max(AutoCorrFFT);
 
 analytic = exp(-(1/tcorr)*t);
 
-% ChiSquare = sum(((AutoCorrFFT - analytic).^2)./AutoCorrFFT)
-residuals = AutoCorrFFT - analytic;
-rmsd = sqrt(mean(residuals(1:N).^2));
+[k,c,yFit] = exponfit(t(1:N), AutoCorrFFT(1:N));
+tauR = 1/k;
 
-if rmsd > 1e-2 || isnan(rmsd)
+[k, c, yFit] = exponfit(t(1:N), AutoCorrFFT(1:N));
+tauR = 1/k;
+
+residuals = AutoCorrFFT(1:N) - yFit;
+rmsd = sqrt(mean(residuals.^2));
+
+if rmsd > 1e-2 || isnan(rmsd) || tcorr-tauR < 0
   err = 1;
   plot(t(1:N)/1e-6, AutoCorrFFT(1:N), t(1:N)/1e-6, analytic(1:N))
   xlabel('t (\mu s)')

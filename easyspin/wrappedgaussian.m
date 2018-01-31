@@ -65,7 +65,7 @@ M = 2*ceil((xmax-xmin)/shift/2); % round to next highest even number
 k = (-M/2:M/2).';  % column of k's to be used for summation
 xgrid = x - x0 + shift*k;  % grid of argument domains to be evaluated in exponential
 y = sum(gaussian(xgrid, 0, fwhm),1);
-y = y./sum(y);
+y = y./trapz(x, y);
 
 end
 

@@ -355,6 +355,7 @@ if useMD
   clear MD.FrameX
   clear MD.FrameY
   clear MD.FrameZ
+  clear RTrajInv
 end
 
 % Check Par
@@ -380,7 +381,7 @@ else
   if ~isfield(Par,'Model')
     % no Model given
     if isfield(Sys,'LMK') && isfield(Sys,'Coefs') ...
-       || isfield(Sys, 'PseudoPotFun')
+       || isfield(Sys,'ProbDensFun') || isfield(Sys,'PseudoPotFun')
       % LMK and ordering coefs OR user-supplied potential given, so 
       % simulate MOMD
       Par.Model = 'MOMD';
@@ -565,6 +566,8 @@ switch Model
 
       [PseudoPotFun, dummy] = histcnd([phi,theta,psi],...  
                                       {PhiBins,ThetaBins,PsiBins});
+                                    
+      PseudoPotFun = PseudoPotFun/trapz(PhiBins, trapz(ThetaBins, trapz(PsiBins, PseudoPotFun)));
       
       PseudoPotFun(end,:,:) = PseudoPotFun(1,:,:);  % FIXME why does it truncate to zero in the phi direction?
       
@@ -624,7 +627,7 @@ switch Model
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       % estimate rotational diffusion time scale
-      acorr = autocorrfft(squeeze(MD.FrameZ.^2), 1);
+      acorr = autocorrfft(squeeze(MD.FrameZ.^2), 2, 1, 1);
 
       N = round(length(MD.FrameZ)/2);
       M = round(N/2);
@@ -636,8 +639,10 @@ switch Model
       % calculate correlation time
       time = linspace(0,N*MD.dt,N);
       tau = max(cumtrapz(time,acorr(1:N)));
+      [k,c,yfit] = exponfit(time, acorr(1:N), 2);
+      tauR = 1/max(k);
 %       tau = max(cumtrapz(time,datasmooth(acorr(1:N),500,'flat')));  % FIXME find a robust way to calculate this
-      DiffLocal = 1/6/(2*tau);
+      DiffLocal = 1/6/(tauR);
 %       Par.dt = tau/20;
     end
 
@@ -703,7 +708,9 @@ while ~converged
       case 'MOMD'
         [t, RTraj, qTraj] = stochtraj(Sys,Par,Opt);
         % generate quaternions for rotating to different grid points
-        qMult = repmat(euler2quat(gridPhi(iOrient), gridTheta(iOrient), 0),...
+%         qMult = repmat(euler2quat(gridPhi(iOrient), gridTheta(iOrient), 0),...
+%                        [1,Par.nTraj,Par.nSteps]);
+        qMult = repmat(euler2quat(0, gridTheta(iOrient), gridPhi(iOrient)),...
                        [1,Par.nTraj,Par.nSteps]);
         qTraj = quatmult(qMult,qTraj);
         Par.qTraj = qTraj;

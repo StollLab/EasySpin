@@ -17,10 +17,6 @@
 %    gamma          double or numeric, size = (1,...)
 %                   third Euler angle
 
-%   References
-%   ----------
-%   [1] Mathworks Aerospace Toolbox
-
 function [alpha, beta, gamma] = quat2euler(varargin)
 
 if (nargin==0), help(mfilename); return; end
@@ -28,6 +24,8 @@ if (nargin==0), help(mfilename); return; end
 switch nargin
   case 1
     % EasySpin uses passive transformations by default
+%     q = varargin{1};
+%     invert = 1;
     q = quatinv(varargin{1});
   case 2
     if ~ischar(varargin{2}) %|| ~isstring(varargin{2})
@@ -35,9 +33,12 @@ switch nargin
     end
     switch lower(varargin{2})
       case 'passive'
+%         q = varargin{1};
+%         invert = 1;
         q = quatinv(varargin{1});
       case 'active'
         q = varargin{1};
+%         invert = 0;
       otherwise
         error('The second argument must specify ''active'' or ''passive''.')
     end
@@ -58,20 +59,48 @@ end
 
 Index = cell(1, ndims(q));
 Index(:) = {':'};
+               
+q0 = q(1,Index{2:end});
+q1 = q(2,Index{2:end});
+q2 = q(3,Index{2:end});
+q3 = q(4,Index{2:end});
 
-alpha = atan2( 2.*(q(3,Index{2:end}).*q(4,Index{2:end}) ...
-                 - q(1,Index{2:end}).*q(2,Index{2:end})), ...
-               2.*(q(2,Index{2:end}).*q(4,Index{2:end}) ...
-                 + q(1,Index{2:end}).*q(3,Index{2:end})));
+sy = 2*sqrt((q2.*q3+q1.*q0).^2 + (q1.*q3-q2.*q0).^2);
+
+idx = sy < 1e-10;
+
+alpha = atan2( 2.*(q2.*q3 ...
+                 - q0.*q1), ...
+               2.*(q1.*q3 ...
+                 + q0.*q2) );
 
 % since beta can sometimes contain very small imaginary parts, take the
 % real part
-beta = real( acos( q(1,Index{2:end}).^2 - q(2,Index{2:end}).^2 ...
-                 - q(3,Index{2:end}).^2 + q(4,Index{2:end}).^2));
+% beta = real( acos( q0.^2 - q1.^2 ...
+%                  - q2.^2 + q3.^2) );
+beta = real( atan2( sy, 1 - 2*q1.^2 - 2*q2.^2 ) );
 
-gamma = atan2( 2.*(q(3,Index{2:end}).*q(4,Index{2:end}) ...
-                 + q(1,Index{2:end}).*q(2,Index{2:end})), ...
-              -2.*(q(2,Index{2:end}).*q(4,Index{2:end}) ...
-                 - q(1,Index{2:end}).*q(3,Index{2:end})));
+gamma = atan2( 2.*(q2.*q3 ...
+                 + q0.*q1), ...
+              -2.*(q1.*q3 ...
+                 - q0.*q2) );
+               
+% if invert
+%   temp = alpha;
+%   alpha = -gamma;
+%   beta = -beta;
+%   gamma = -temp;
+% end
+               
+% if any(idx)
+%   alpha(idx) = zeros(size(alpha(idx)));
+%   
+%   beta(idx) = atan2( sy(idx), 1 - 2*q1(idx).^2 - 2*q2(idx).^2 );
+%   
+%   gamma(idx) = atan2( -2.*(-q1(idx).*q2(idx) ...
+%                           + q3(idx).*q0(idx)), ...
+%                    1 - 2.*( q1(idx).*q1(idx) ...
+%                           - q3(idx).*q3(idx)) );
+% % end
 
 end

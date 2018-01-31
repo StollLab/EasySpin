@@ -14,7 +14,7 @@ tcorr = Sys.tcorr;
 nTraj = Par.nTraj;
 nSteps = Par.nSteps;
 
-c20 = 2*rand();
+c20 = 10;
 Sys.Coefs = [c20, c20];
 Sys.LMK = [2, 0, 0];
 [t, R] = stochtraj(Sys,Par);
@@ -37,17 +37,21 @@ analytic = exp(-(1/tcorr)*t);
 residuals = AutoCorrFFT - analytic;
 rmsd = sqrt(mean(residuals(1:N).^2));
 
-if rmsd > 1e-2 || isnan(rmsd)
-  err = 1;
-%   subplot(2,1,1)
-%   plot(t(1:N)/1e-6, AutoCorrFFT(1:N), t(1:N)/1e-6, analytic(1:N))
-%   xlabel('t (\mu s)')
-%   subplot(2,1,2)
-%   plot(t(1:N)/1e-6, cumtrapz(t(1:N), AutoCorrFFT(1:N)))
-%   xlabel('t (\mu s)')
-else
-  err = 0;  
+[k, c, yFit] = exponfit(t(1:N), AutoCorrFFT(1:N));
+tauR = 1/k;
 
+residuals = AutoCorrFFT(1:N) - yFit;
+rmsd = sqrt(mean(residuals.^2));
+
+if rmsd > 1e-2 || isnan(rmsd) || tcorr-tauR < 0
+  err = 1;
+  plot(t(1:N)/1e-6, AutoCorrFFT(1:N), t(1:N)/1e-6, analytic(1:N))
+  xlabel('t (\mu s)')
+  subplot(2,1,2)
+  plot(t(1:N)/1e-6, cumtrapz(t(1:N), AutoCorrFFT(1:N)))
+  xlabel('t (\mu s)')
+else
+  err = 0;
 end
 
 data = [];
