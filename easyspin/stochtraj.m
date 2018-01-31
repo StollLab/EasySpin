@@ -137,60 +137,56 @@ Sim.Diff = Dynamics.Diff';
 
 tcorrAvg = 1/6/mean(Dynamics.Diff);
 
-if isfield(Sys,'PseudoPotFun')
+if isfield(Sys,'PseudoPotFun') || isfield(Sys,'ProbDensFun')
   if isfield(Sys,'Coefs')||isfield(Sys,'LMK')
-    error('Please choose either PseudoPotFun or Coefs and LMK. Both cannot be used.')
+    error('Please choose either PseudoPotFun or Coefs and LMK for an orienting potential.')
   end
-%   if ~isa(PseudoPotFun,'function_handle')
-%     error('PseudoPotFun needs to be a function handle.')
-%   end
-  da = 2*pi/size(Sys.PseudoPotFun,1);
-  db = pi/size(Sys.PseudoPotFun,2);
-  dg = 2*pi/size(Sys.PseudoPotFun,3);
   
-  % Sys.PseudoPotFun may contain zeros, so taking the logarithm directly
-  % will yield infs, but since we want to take the gradient of the log of
-  % this data anyway, it is better to perform logarithmic differentiation
-  % directly and then set infs to zero (which would be due to dividing by 
-  % zero, in which case the torque would be negligible at those points 
-  % anyway)
+  if isfield(Sys,'ProbDensFun')
+    ProbDensFun = Sys.ProbDensFun;
+%     idx = ProbDensFun < 1e-14;
+%     ProbDensFun(idx) = 1e-14;
+    PotFun = -log(ProbDensFun); 
+  end
   
-  idx = Sys.PseudoPotFun<1e-12;
-  Sys.PseudoPotFun(idx) = 1e-12;
+  if isfield(Sys,'PseudoPotFun'), PotFun = Sys.PseudoPotFun; end
   
-  logpotfun = log(Sys.PseudoPotFun);
-%   logpotfun = smooth3(log(Sys.PseudoPotFun), 'gaussian');
+%   PotFun = smooth3(PotFun, 'gaussian');
+%   PotFun = smoothn(PotFun, 0.5);
+  
+  aGrid = linspace(-pi, pi, size(PotFun,1));
+  bGrid = linspace(0, pi, size(PotFun,2)+2);
+  bGrid = bGrid(2:end-1);
+  gGrid = linspace(-pi, pi, size(PotFun,3));
 
+  if any(isnan(PotFun(:)))
+    error('At least one NaN detected in log(PseudoPotFun).')
+  end
+  
+  if any(isinf(PotFun(:)))
+    error('At least one inf detected in log(PseudoPotFun).')
+  end
+  
   pidx = [2, 1, 3];
   
-  [px, py, pz] = gradient(permute(logpotfun, pidx), ...  % TODO replace with gradient function for periodic BCs and ndgrid format
-                          da, db, dg);
-  
-  px = permute(px, pidx);
-  py = permute(py, pidx);
-  pz = permute(pz, pidx);
+  [dx, dy, dz] = gradient_euler(PotFun, aGrid, bGrid, gGrid);
   
 %   px = smooth3(px, 'gaussian');
 %   py = smooth3(py, 'gaussian');
 %   pz = smooth3(pz, 'gaussian');
-
-  Agrid = linspace(-pi, pi, size(Sys.PseudoPotFun,1));
-  Bgrid = linspace(0, pi, size(Sys.PseudoPotFun,2));
-  Ggrid = linspace(-pi, pi, size(Sys.PseudoPotFun,3));
   
-%   [Agrid, Bgrid, Ggrid] = meshgrid(Agrid, Bgrid, Ggrid);
-%   Agrid = permute(Agrid, pidx);
-%   Bgrid = permute(Bgrid, pidx);
-%   Ggrid = permute(Ggrid, pidx);
+  method = 'linear';
+  Gradx = griddedInterpolant({aGrid, bGrid, gGrid}, dx, method);
+  Grady = griddedInterpolant({aGrid, bGrid, gGrid}, dy, method);
+  Gradz = griddedInterpolant({aGrid, bGrid, gGrid}, dz, method);
+  Sim.interpGrad = {Gradx, Grady, Gradz};
   
-%   extrap = 'none';
-%   method = 'linear';
-  Fx = griddedInterpolant({Agrid, Bgrid, Ggrid}, px);
-  Fy = griddedInterpolant({Agrid, Bgrid, Ggrid}, py);
-  Fz = griddedInterpolant({Agrid, Bgrid, Ggrid}, pz);
-  Sim.interpF = {Fx, Fy, Fz};
+%   clear logPotFun
+%   clear px
+%   clear py
+%   clear pz
 else
-  Sim.interpF = [];
+  Sim.interpGrad = [];
 end
 
 
@@ -294,6 +290,7 @@ else
 end
 
 % initialize quaternion trajectories and their starting orientations
+% q0 = euler2quat(Omega,'active');
 q0 = euler2quat(Omega);
 qTraj = zeros(4,Sim.nTraj,Sim.nSteps);
 qTraj(:,:,1) = q0;
@@ -423,6 +420,75 @@ end
 % Helper functions
 % -------------------------------------------------------------------------
 
+function [dx, dy, dz] = gradient_euler(Data, aGrid, bGrid, gGrid)
+% performs the second-order numerical gradient on a 3D dataset as a
+% function of Euler angles alpha, beta, gamma
+
+if ~isvector(aGrid) || ~isvector(bGrid) || ~isvector(gGrid)
+  error('aGrid, bGrid, and gGrid must be vectors.')
+end
+
+if ndims(Data)~=3
+  error('Expected a 3-dimensional array for input data.')
+end
+
+sizeData = size(Data);
+
+if sizeData(1)~=length(aGrid) || sizeData(2)~=length(bGrid) || sizeData(3)~=length(gGrid)
+  error('Dimensions of input data array must match the sizes of the grids.')
+end
+
+% create 3D ndgrid from 1D grid vectors
+[AGrid, BGrid, GGrid] = ndgrid(aGrid, bGrid, gGrid);
+
+dAlpha = aGrid(2) - aGrid(1);
+dBeta = bGrid(2) - bGrid(1);
+dGamma = gGrid(2) - gGrid(1);
+
+% calculate second-order numerical derivatives
+
+da = zeros(sizeData);
+da(2:end-1,:,:) = Data(3:end,:,:) - Data(1:end-2,:,:);
+da(1,:,:) = 4*Data(2,:,:) - 3*Data(1,:,:) - Data(3,:,:);
+da(end,:,:) = 3*Data(end,:,:) + Data(end-2,:,:) - 4*Data(end-1,:,:);
+da = da/2/dAlpha;
+
+db = zeros(sizeData);
+db(:,2:end-1,:) = Data(:,3:end,:) - Data(:,1:end-2,:);
+db(:,1,:) = 4*Data(:,2,:) - 3*Data(:,1,:) - Data(:,3,:);
+db(:,end,:) = 3*Data(:,end,:) + Data(:,end-2,:) - 4*Data(:,end-1,:);
+db = db/2/dBeta;
+
+dg = zeros(sizeData);
+dg(:,:,2:end-1) = Data(:,:,3:end) - Data(:,:,1:end-2);
+dg(:,:,1) = 4*Data(:,:,2) - 3*Data(:,:,1) - Data(:,:,3);
+dg(:,:,end) = 3*Data(:,:,end) + Data(:,:,end-2) - 4*Data(:,:,end-1);
+dg = dg/2/dGamma;
+
+% convert to Cartesian
+
+% dx = - csc(BGrid).*cos(GGrid).*da ...
+%      + sin(GGrid).*db ...
+%      + cot(BGrid).*cos(GGrid).*dg;
+% 
+% dy = - csc(BGrid).*sin(GGrid).*da ...
+%      - cos(GGrid).*db ...
+%      + cot(BGrid).*sin(GGrid).*dg;
+% 
+% dz = dg;
+
+dx = -csc(BGrid).*cos(GGrid).*da ...
+    + sin(GGrid).*db ...
+    + cot(BGrid).*cos(GGrid).*dg;
+
+dy = csc(BGrid).*sin(GGrid).*da ...
+   + cos(GGrid).*db ...
+   - cot(BGrid).*sin(GGrid).*dg;
+
+dz = dg;
+
+end
+
 function Sim = genRandSteps(Sim,Integrator)
 % generate random angular steps using one of two different MC integrators
 
@@ -450,22 +516,34 @@ dt = Sim.dt;
 Diff = Sim.Diff;
 Coefs = Sim.Coefs;
 LMK = Sim.LMK;
-interpF = Sim.interpF;
+interpGrad = Sim.interpGrad;
+
+if ~isempty(Coefs)
+  isEigenPot = 1;
+else
+  isEigenPot = 0;
+end
+
+if ~isempty(interpGrad)
+  isNumericPot = 1;
+else
+  isNumericPot = 0;
+end
 
 if iter>0
   % If propagation is being extended, initialize q from the last set
-  if ~isempty(Coefs)
+  if isEigenPot
     % use Wigner functions of quaternions to calculate torque
     torque = anistorque(LMK, Coefs, q(:,:,end));
     AngStep = bsxfun(@times,torque,Diff*dt) + randAngStep(:,:,1);
-  elseif ~isempty(interpF)
+  elseif isNumericPot
     % use orienting pseudopotential functions of Euler angles to calculate
     % torque
     [alpha, beta, gamma] = quat2euler(q(:,:,end));
-    pxint = interp3fast(interpF{1}, alpha, beta, gamma);
-    pyint = interp3fast(interpF{2}, alpha, beta, gamma);
-    pzint = interp3fast(interpF{3}, alpha, beta, gamma);
-    torque = [pxint; pyint; pzint];
+    pxint = interp3fast(interpGrad{1}, alpha, beta, gamma);
+    pyint = interp3fast(interpGrad{2}, alpha, beta, gamma);
+    pzint = interp3fast(interpGrad{3}, alpha, beta, gamma);
+    torque = [-pxint; -pyint; -pzint];
     AngStep = bsxfun(@times,torque,Diff*dt) + randAngStep(:,:,1);
   else
     % If there is no orienting potential, then there is no torque to
@@ -504,19 +582,53 @@ if iter>0
 end
   
 for iStep=2:nSteps
-  if ~isempty(Coefs)
+  qLast = q(:,:,iStep-1);
+  if isEigenPot
     % use Wigner functions of quaternions to calculate torque
-    torque = anistorque(LMK, Coefs, q(:,:,iStep-1));
+    torque = anistorque(LMK, Coefs, qLast);
     AngStep = bsxfun(@times,torque,Diff*dt) + randAngStep(:,:,iStep-1);
-  elseif ~isempty(interpF)
+  elseif isNumericPot
     % use orienting pseudopotential functions of Euler angles to calculate
     % torque
-    [alpha, beta, gamma] = quat2euler(q(:,:,iStep-1));
+%     [alpha, beta, gamma] = quat2euler(qLast);
+    [alpha, beta, gamma] = quat2euler(qLast,'active');
+
+%     [alpha2, beta2, gamma2] = quat2angle(permute(qLast,[2,1]), 'ZYZ');
+%     alpha2 = alpha2.';
+%     beta2 = real(beta2.');
+%     gamma2 = gamma2.';
     
-    pxint = interp3fast(interpF{1}, alpha, beta, gamma);
-    pyint = interp3fast(interpF{2}, alpha, beta, gamma);
-    pzint = interp3fast(interpF{3}, alpha, beta, gamma);
-    torque = [pxint; pyint; pzint];
+%     alpha = alpha + pi/2;
+%     beta = beta - pi/2;
+%     gamma = gamma - pi/2;
+
+%     clf
+%     subplot(3,1,1)
+% %     histogram(alpha, linspace(-pi, pi, 50))
+%     [N, edges] = histcounts(alpha, linspace(-pi, pi, 40));
+% %     [N, edges] = histcounts(alpha, pi-2*acos(linspace(-1, 1, 40)));
+%     edges = (edges(1:end-1)+edges(2:end))/2;
+%     bar(edges, N)
+%     
+%     subplot(3,1,2)
+% %     histogram(beta/pi, linspace(0, 1, 50))
+% %     histogram(beta, pi-acos(linspace(-1, 1, 50)))
+%     [N, edges] = histcounts(beta, linspace(0, pi, 50));
+% %     [N, edges] = histcounts(beta, pi-acos(linspace(-1, 1, 40)));
+%     edges = (edges(1:end-1)+edges(2:end))/2;
+%     bar(edges, N)
+%     
+%     subplot(3,1,3)
+% %     histogram(gamma, linspace(-pi, pi, 50))
+%     [N, edges] = histcounts(gamma, linspace(-pi, pi, 40));
+%     edges = (edges(1:end-1)+edges(2:end))/2;
+%     bar(edges, N)
+    
+    pxint = interp3fast(interpGrad{1}, alpha, beta, gamma);
+    pyint = interp3fast(interpGrad{2}, alpha, beta, gamma);
+    pzint = interp3fast(interpGrad{3}, alpha, beta, gamma);
+    torque = [-pxint.'; -pyint.'; -pzint.'];
+    
     AngStep = bsxfun(@times,torque,Diff*dt) + randAngStep(:,:,iStep-1);
   else
     % If there is no orienting potential, then there is no torque to
@@ -539,17 +651,22 @@ for iStep=2:nSteps
 %        uy.*st, -uz.*st,      ct,  ux.*st; ...
 %        uz.*st,  uy.*st, -ux.*st,      ct];
 
-  q1 = q(1,:,iStep-1);
-  q2 = q(2,:,iStep-1);
-  q3 = q(3,:,iStep-1);
-  q4 = q(4,:,iStep-1);
+  q1 = qLast(1,:);
+  q2 = qLast(2,:);
+  q3 = qLast(3,:);
+  q4 = qLast(4,:);
 
 %   Perform propagation
   q(1,:,iStep) = q1.*ct - q2.*ux.*st - q3.*uy.*st - q4.*uz.*st;
   q(2,:,iStep) = q2.*ct + q1.*ux.*st - q4.*uy.*st + q3.*uz.*st;
   q(3,:,iStep) = q3.*ct + q4.*ux.*st + q1.*uy.*st - q2.*uz.*st;
   q(4,:,iStep) = q4.*ct - q3.*ux.*st + q2.*uy.*st + q1.*uz.*st;
-             
+  
+%   idx = q(1,:,iStep) < 0;
+%   
+%   if any(idx)
+%     q(:,idx,iStep) = -q(:,idx,iStep);
+%   end
   
 %   qnorm = sum(q.*q,1);
 %   if any(qnorm(:)-1>1e-13)
@@ -568,20 +685,7 @@ function Vq = interp3fast(F, Xq, Yq, Zq)
 %    V is ndgrid-ordered, not meshgrid-ordered (fed to griddedInterpolant)
 %interp3fast 3-D interpolation (table lookup).
 
-% p = [2 1 3];
-
-% Xq = permute(Xq,p);
-% Yq = permute(Yq,p);
-% Zq = permute(Zq,p);
-
-Vq = F(Xq,Yq,Zq);
-
-% we don't want meshgrid-order!
-% if iscompact ||  transposedquery
-%     % Compact grid evaluation produces a NDGRID
-%     % Convert to MESHGRID
-%     Vq = permute(Vq,p);
-% end
+Vq = F([Xq.',Yq.',Zq.']);
 
 end
 
