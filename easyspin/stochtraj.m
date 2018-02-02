@@ -144,8 +144,8 @@ if isfield(Sys,'PseudoPotFun') || isfield(Sys,'ProbDensFun')
   
   if isfield(Sys,'ProbDensFun')
     ProbDensFun = Sys.ProbDensFun;
-%     idx = ProbDensFun < 1e-14;
-%     ProbDensFun(idx) = 1e-14;
+    idx = ProbDensFun < 1e-14;
+    ProbDensFun(idx) = 1e-14;
     PotFun = -log(ProbDensFun); 
   end
   
@@ -154,10 +154,10 @@ if isfield(Sys,'PseudoPotFun') || isfield(Sys,'ProbDensFun')
 %   PotFun = smooth3(PotFun, 'gaussian');
 %   PotFun = smoothn(PotFun, 0.5);
   
-  aGrid = linspace(-pi, pi, size(PotFun,1));
-  bGrid = linspace(0, pi, size(PotFun,2)+2);
-  bGrid = bGrid(2:end-1);
-  gGrid = linspace(-pi, pi, size(PotFun,3));
+  alphaGrid = linspace(-pi, pi, size(PotFun,1));
+  betaGrid = linspace(0, pi, size(PotFun,2)+2);
+  betaGrid = betaGrid(2:end-1);
+  gammaGrid = linspace(-pi, pi, size(PotFun,3));
 
   if any(isnan(PotFun(:)))
     error('At least one NaN detected in log(PseudoPotFun).')
@@ -169,16 +169,16 @@ if isfield(Sys,'PseudoPotFun') || isfield(Sys,'ProbDensFun')
   
   pidx = [2, 1, 3];
   
-  [dx, dy, dz] = gradient_euler(PotFun, aGrid, bGrid, gGrid);
+  [dx, dy, dz] = gradient_euler(PotFun, alphaGrid, betaGrid, gammaGrid);
   
 %   px = smooth3(px, 'gaussian');
 %   py = smooth3(py, 'gaussian');
 %   pz = smooth3(pz, 'gaussian');
   
   method = 'linear';
-  Gradx = griddedInterpolant({aGrid, bGrid, gGrid}, dx, method);
-  Grady = griddedInterpolant({aGrid, bGrid, gGrid}, dy, method);
-  Gradz = griddedInterpolant({aGrid, bGrid, gGrid}, dz, method);
+  Gradx = griddedInterpolant({alphaGrid, betaGrid, gammaGrid}, dx, method);
+  Grady = griddedInterpolant({alphaGrid, betaGrid, gammaGrid}, dy, method);
+  Gradz = griddedInterpolant({alphaGrid, betaGrid, gammaGrid}, dz, method);
   Sim.interpGrad = {Gradx, Grady, Gradz};
   
 %   clear logPotFun
@@ -252,21 +252,21 @@ if isfield(Par,'Omega'), Omega = Par.Omega; end
 
 % Supplement starting angles if necessary
 if isempty(Omega)
-%   if isfield(Sys.PseudoPotFun)
-%     
-%   else
-%     z = 2*rand(1,Sim.nTraj)-1;
-%     Omega = [pi*(2*rand(1,Sim.nTraj)-1);
-%                             acos(z);
-%              pi*(2*rand(1,Sim.nTraj)-1)];
-%   end
-  gridPts = linspace(-1, 1, Sim.nTraj);
-  gridPhi = zeros(1, Sim.nTraj);
-%   gridPhi = sqrt(pi*Sim.nTraj)*asin(gridPts);
-  gridTheta = acos(gridPts);
-%   gridPsi = zeros(1, Sim.nTraj);
-  gridPsi = sqrt(pi*Sim.nTraj)*asin(gridPts); % TODO why does this angle, and not Phi, not affect the spectra?
-  Omega = [gridPhi; gridTheta; gridPsi];
+  if isfield(Sys,'ProbDensFun') || isfield(Sys,'PseudoPotFun')
+    [alphaSamples, betaSamples, gammaSamples] = rejectionsample3d(exp(-PotFun), alphaGrid, betaGrid, gammaGrid, Sim.nTraj);
+    Omega = [alphaSamples; 
+             betaSamples; 
+             gammaSamples];
+%   elseif isfield(Sys,'Coefs')
+  else
+    gridPts = linspace(-1, 1, Sim.nTraj);
+    gridPhi = zeros(1, Sim.nTraj);
+  %   gridPhi = sqrt(pi*Sim.nTraj)*asin(gridPts);
+    gridTheta = acos(gridPts);
+  %   gridPsi = zeros(1, Sim.nTraj);
+    gridPsi = sqrt(pi*Sim.nTraj)*asin(gridPts); % TODO why does this angle, and not Phi, not affect the spectra?
+    Omega = [gridPhi; gridTheta; gridPsi];
+  end
 end
 
 % If only one starting angle and multiple trajectories, repeat the angle
@@ -313,12 +313,12 @@ converged = 0;
 
 % if chkcon=1, then we need to keep track of how many iterations have been 
 % completed (i.e. the number of instances of propagation in time by nSteps)
-iter = 0;
+iter = 1;
 
 logmsg(2,'-- Calculating stochastic trajectories -----------------------');
 
 while ~converged
-  if iter==0
+  if iter==1
     %  Pre-calculate angular steps due to random torques
     %  (Eq. 61 from reference, without factor of 1/2)
     Sim = genRandSteps(Sim,Integrator);
@@ -530,25 +530,43 @@ else
   isNumericPot = 0;
 end
 
-if iter>0
-  % If propagation is being extended, initialize q from the last set
+if iter>1
+    % If propagation is being extended, initialize q from the last set
+  startStep = 1;
+else
+  % First step has already been initialized by starting orientation, so
+  % skip to second step
+  startStep = 2;
+end
+
+for iStep = startStep:nSteps
+  
+  if iStep==1
+    qLast = q(:,:,end);
+    q = zeros(4,nTraj,nSteps);
+  else
+    qLast = q(:,:,iStep-1);
+  end
+  
+  currRandAngStep = randAngStep(:,:,iStep);
+  
   if isEigenPot
     % use Wigner functions of quaternions to calculate torque
-    torque = anistorque(LMK, Coefs, q(:,:,end));
-    AngStep = bsxfun(@times,torque,Diff*dt) + randAngStep(:,:,1);
+    torque = anistorque(LMK, Coefs, qLast);
+    AngStep = bsxfun(@times,torque,Diff*dt) + currRandAngStep;
   elseif isNumericPot
     % use orienting pseudopotential functions of Euler angles to calculate
     % torque
-    [alpha, beta, gamma] = quat2euler(q(:,:,end));
+    [alpha, beta, gamma] = quat2euler(qLast,'active');
     pxint = interp3fast(interpGrad{1}, alpha, beta, gamma);
     pyint = interp3fast(interpGrad{2}, alpha, beta, gamma);
     pzint = interp3fast(interpGrad{3}, alpha, beta, gamma);
-    torque = [-pxint; -pyint; -pzint];
-    AngStep = bsxfun(@times,torque,Diff*dt) + randAngStep(:,:,1);
+    torque = [-pxint.'; -pyint.'; -pzint.'];
+    AngStep = bsxfun(@times,torque,Diff*dt) + currRandAngStep;
   else
     % If there is no orienting potential, then there is no torque to
     % calculate
-    AngStep = randAngStep(:,:,1);
+    AngStep = currRandAngStep;
   end
 
   % Calculate size and normalized axis of angular step
@@ -556,7 +574,7 @@ if iter>0
   ux = AngStep(1,:,:)./theta;
   uy = AngStep(2,:,:)./theta;
   uz = AngStep(3,:,:)./theta;
-
+  
   st = sin(theta/2);
   ct = cos(theta/2);
 
@@ -567,112 +585,22 @@ if iter>0
 
   % Calculate q for the first time step
   
-  q1 = q(1,:,end);
-  q2 = q(2,:,end);
-  q3 = q(3,:,end);
-  q4 = q(4,:,end);
-
-  qinit(1,:,1) = q1.*ct - q2.*ux.*st - q3.*uy.*st - q4.*uz.*st;
-  qinit(2,:,1) = q2.*ct + q1.*ux.*st - q4.*uy.*st + q3.*uz.*st;
-  qinit(3,:,1) = q3.*ct + q4.*ux.*st + q1.*uy.*st - q2.*uz.*st;
-  qinit(4,:,1) = q4.*ct - q3.*ux.*st + q2.*uy.*st + q1.*uz.*st;
-
-  q = zeros(4,nTraj,nSteps);
-  q(:,:,1) = qinit;
-end
-  
-for iStep=2:nSteps
-  qLast = q(:,:,iStep-1);
-  if isEigenPot
-    % use Wigner functions of quaternions to calculate torque
-    torque = anistorque(LMK, Coefs, qLast);
-    AngStep = bsxfun(@times,torque,Diff*dt) + randAngStep(:,:,iStep-1);
-  elseif isNumericPot
-    % use orienting pseudopotential functions of Euler angles to calculate
-    % torque
-%     [alpha, beta, gamma] = quat2euler(qLast);
-    [alpha, beta, gamma] = quat2euler(qLast,'active');
-
-%     [alpha2, beta2, gamma2] = quat2angle(permute(qLast,[2,1]), 'ZYZ');
-%     alpha2 = alpha2.';
-%     beta2 = real(beta2.');
-%     gamma2 = gamma2.';
-    
-%     alpha = alpha + pi/2;
-%     beta = beta - pi/2;
-%     gamma = gamma - pi/2;
-
-%     clf
-%     subplot(3,1,1)
-% %     histogram(alpha, linspace(-pi, pi, 50))
-%     [N, edges] = histcounts(alpha, linspace(-pi, pi, 40));
-% %     [N, edges] = histcounts(alpha, pi-2*acos(linspace(-1, 1, 40)));
-%     edges = (edges(1:end-1)+edges(2:end))/2;
-%     bar(edges, N)
-%     
-%     subplot(3,1,2)
-% %     histogram(beta/pi, linspace(0, 1, 50))
-% %     histogram(beta, pi-acos(linspace(-1, 1, 50)))
-%     [N, edges] = histcounts(beta, linspace(0, pi, 50));
-% %     [N, edges] = histcounts(beta, pi-acos(linspace(-1, 1, 40)));
-%     edges = (edges(1:end-1)+edges(2:end))/2;
-%     bar(edges, N)
-%     
-%     subplot(3,1,3)
-% %     histogram(gamma, linspace(-pi, pi, 50))
-%     [N, edges] = histcounts(gamma, linspace(-pi, pi, 40));
-%     edges = (edges(1:end-1)+edges(2:end))/2;
-%     bar(edges, N)
-    
-    pxint = interp3fast(interpGrad{1}, alpha, beta, gamma);
-    pyint = interp3fast(interpGrad{2}, alpha, beta, gamma);
-    pzint = interp3fast(interpGrad{3}, alpha, beta, gamma);
-    torque = [-pxint.'; -pyint.'; -pzint.'];
-    
-    AngStep = bsxfun(@times,torque,Diff*dt) + randAngStep(:,:,iStep-1);
-  else
-    % If there is no orienting potential, then there is no torque to
-    % calculate
-    AngStep = randAngStep(:,:,iStep-1);
-  end
-
-  % Calculate size and normalized axis of angular step
-  theta = sqrt(sum(AngStep.^2, 1));
-  
-  ux = AngStep(1,:)./theta;
-  uy = AngStep(2,:)./theta;
-  uz = AngStep(3,:)./theta;
-
-  st = sin(theta/2);
-  ct = cos(theta/2);
-  
-%   U = [    ct, -ux.*st, -uy.*st, -uz.*st; ...
-%        ux.*st,      ct,  uz.*st, -uy.*st; ...
-%        uy.*st, -uz.*st,      ct,  ux.*st; ...
-%        uz.*st,  uy.*st, -ux.*st,      ct];
-
   q1 = qLast(1,:);
   q2 = qLast(2,:);
   q3 = qLast(3,:);
   q4 = qLast(4,:);
 
-%   Perform propagation
   q(1,:,iStep) = q1.*ct - q2.*ux.*st - q3.*uy.*st - q4.*uz.*st;
   q(2,:,iStep) = q2.*ct + q1.*ux.*st - q4.*uy.*st + q3.*uz.*st;
   q(3,:,iStep) = q3.*ct + q4.*ux.*st + q1.*uy.*st - q2.*uz.*st;
   q(4,:,iStep) = q4.*ct - q3.*ux.*st + q2.*uy.*st + q1.*uz.*st;
   
-%   idx = q(1,:,iStep) < 0;
+%   diff = 1.0-sqrt(sum(q(:,:,iStep).*q(:,:,iStep), 1));
 %   
-%   if any(idx)
-%     q(:,idx,iStep) = -q(:,idx,iStep);
+%   if any(abs(diff(:)) > 1e-14)
+%     error('Quaternions are not normalized on step %d.\n', iStep)
 %   end
   
-%   qnorm = sum(q.*q,1);
-%   if any(qnorm(:)-1>1e-13)
-%     error('qs are not normalized on step %d! Max norm: %e \n', iStep, max(qnorm(:)-1))
-%   end
-
 end
 
 end
