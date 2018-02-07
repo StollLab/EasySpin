@@ -13,7 +13,7 @@ yT = eprload(file,'T'); % temperature
 [x,y,p] = eprload(file);
 
 % Undo the scaling
-yG = yG*(10.^(p.RCAG/10));
+yG = yG*(10.^(p.RCAG/20));
 yP = yP*sqrt(p.MWPW*1000);
 yc = yc*(p.SPTP*1000);
 yT = yT/p.STMP;
@@ -25,6 +25,8 @@ err = any(~ok);
 
 if opt.Display
   plot(x,y,x,yc,x,yG,x,yP);
+  legend('data','conversion time','gain','power');
+  legend boxoff
 end
 
 data = [];
