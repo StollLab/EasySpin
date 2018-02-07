@@ -869,83 +869,102 @@ function [Data, Abscissa, Parameters] = eprload_MagnettechXML(FileName)
 %------------------------------------------------------------------
 %   XML file format of newer Magnettech spectrometers (MS5000)
 %------------------------------------------------------------------
-Document = xmlread(FileName);
-MainNode = Document.getFirstChild;
-if isempty(MainNode)
-  str = '';
-else
-  str = MainNode.getNodeName;
-end
-if ~strcmpi(str,'ESRXmlFile')
-  error('File %s is not a Magnettech xml file.',FileName);
-end
-
-% Read in all the data
-curveList = MainNode.getElementsByTagName('Curve');
-nCurves = curveList.getLength;
-
-% Use Java class for base64 decoding
-% (particular class depends on Matlab version)
+% Preparation for Base64 decoding: Use Java class depending on Matlab version
 if exist('org.apache.commons.codec.binary.Base64','class')
+  % seen on R2012b and R2017b
   base64 = org.apache.commons.codec.binary.Base64;
   oldJavaClass = false;
 elseif exist('org.apache.axis.encoding.Base64','class')
+  % seen on R2007b
   base64 = org.apache.axis.encoding.Base64; 
   oldJavaClass = true;
 else
-  error('No Base64 decoder available to read Magnettech XML data.');
+  error('No Java Base64 decoder available to read Magnettech XML data.');
 end
 
-for iCurve = 0:nCurves-1
-  curve_ = curveList.item(iCurve);
-  Mode = char(curve_.getAttribute('Mode'));
-  if ~strcmp(Mode,'Pre'), continue; end
-  Name = char(curve_.getAttribute('YType'));
-  XOffset = char(curve_.getAttribute('XOffset'));
-  XOffset = sscanf(XOffset,'%f');
-  XSlope = char(curve_.getAttribute('XSlope'));
-  XSlope = sscanf(XSlope,'%f');
-  x = char(curve_.getTextContent);
-  if isempty(x)
-    data = [];
-  else
+% Read XML file and convert to Matlab structure for easy access
+Document = xml2struct(FileName);
+
+% Assert it's an XML file from a Magnettech spectrometer
+if ~isfield(Document,'ESRXmlFile')
+  error('File %s is not a Magnettech xml file.',FileName);
+elseif ~isfield(Document.ESRXmlFile,'Data')
+  error('ESRXmlFile.Data node not found in xml file.');
+elseif ~isfield(Document.ESRXmlFile.Data,'Measurement')
+  error('ESRXmlFile.Data.Measurement node not found in xml file.');
+elseif ~isfield(Document.ESRXmlFile.Data.Measurement,'DataCurves')
+  error('ESRXmlFile.Data.Measurement.DataCurves node not found in xml file.');
+elseif ~isfield(Document.ESRXmlFile.Data.Measurement.DataCurves,'Curve')
+  error('No data. No <Curve> node found in xml file.');
+end
+
+% Get data (stored in a series of <Curve ...> </Curve> nodes under <DataCurves>)
+Measurement = Document.ESRXmlFile.Data.Measurement;
+CurveList = Measurement.DataCurves.Curve;
+
+for iCurve = 1:numel(CurveList)
+  thisCurve = CurveList{iCurve};
+  Name = thisCurve.Attributes.YType;
+  Mode = thisCurve.Attributes.Mode;
+  
+  % Avoid duplicate names (e.g. BField can be stored twice in the same file, once
+  % with Mode='Raw' and once with Mode='Pre')
+  if strcmp(Name,'BField') && strcmp(Mode,'Raw')
+    Name = [Name '_' Mode];
+  end
+  
+  % Read curve data (if they are base64 encoded)
+  data = thisCurve.Text;
+  if ~isempty(data)
+    % Check whether it is base64 compression
+    if ~strcmp(thisCurve.Attributes.Compression,'Base64')
+      error('Data is not Base64 encoded. Cannot read file.');
+    end
     if ~oldJavaClass
-      x = typecast(int8(x),'uint8'); % typecast without changing the underlying data
-      bytestream_ = base64.decode(x); % decode
+      data = typecast(int8(data),'uint8'); % typecast without changing the underlying data
+      bytestream_ = base64.decode(data); % decode
       bytestream_(9:9:end) = []; % remove termination zeros
     else
-      bytestream_ = base64.decode(x); % decode
+      bytestream_ = base64.decode(data); % decode
     end
     data = typecast(bytestream_,'double'); % typecast without changing the underlying data
   end
   Curves.(Name).data = data;
-  Curves.(Name).t = XOffset + (0:numel(data)-1)*XSlope;
+  
+  % Horizontal axis (equal to time for most data types [except for Frequency[Raw],
+  % ADC_24bit[Raw])
+  XOffset = sscanf(thisCurve.Attributes.XOffset,'%f');
+  XSlope = sscanf(thisCurve.Attributes.XSlope,'%f');
+  Curves.(Name).x = XOffset + (0:numel(data)-1)*XSlope;
 end
 
 % Add attributes from Measurement node to Paramater structure
-MeasurementNode = MainNode.getElementsByTagName('Measurement');
-AttribList = MeasurementNode.item(0).getAttributes;
-for k=0:AttribList.getLength-1
-  PName = AttribList.item(k).getName;
-  PVal = AttribList.item(k).getTextContent;
-  PName = ['Measurement_' char(PName)];
-  Parameters.(char(PName)) = char(PVal);
-end
+Parameters = Measurement.Attributes;
 
 % Add all children Param nodes from Parameters node to Parameter structure
-ParameterList = MainNode.getElementsByTagName('Param');
-for k=0:ParameterList.getLength-1
-  PName = ParameterList.item(k).getAttribute('Name');
-  P_ = ParameterList.item(k).getTextContent;
-  Parameters.(char(PName)) = char(P_);
+if isfield(Measurement,'Recipe')
+  ParameterList = Measurement.Recipe.Parameters.Param;
+  for p = 1:numel(ParameterList)
+    PName = ParameterList{p}.Attributes.Name;
+    P_ = ParameterList{p}.Text;
+    Parameters.(PName) = P_;
+  end
 end
 
-Abscissa = interp1(Curves.BField.t,Curves.BField.data,Curves.MW_Absorption.t);
-Abscissa = Abscissa(:);
-Data = Curves.MW_Absorption.data(:);
+if isfield(Curves,'BField')
+  % Field sweeps
+  Abscissa = interp1(Curves.BField.x,Curves.BField.data,Curves.MW_Absorption.x);
+  Abscissa = Abscissa(:);
+  Data = Curves.MW_Absorption.data(:);
+elseif isfield(Curves,'Frequency')
+  % Capture of IQ raw data (dip sweep)
+  Abscissa = Curves.Frequency.data(:);
+  Data = Curves.ADC_24bit.data(:);
+end
 Parameters = parseparams(Parameters);
 
-% Store all curves from the file (incl. sin and cos MW absorption data)
+% Store all curves from the file in the parameters
+% (incl. sin and cos MW absorption data)
 Parameters.Curves = Curves;
 
 return
