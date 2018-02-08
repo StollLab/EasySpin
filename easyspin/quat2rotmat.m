@@ -18,8 +18,8 @@ if qshape(1) ~= 4 || ~isnumeric(q)
   error('q must be an array of size (4,...)')
 end
 
-diff = abs(1.0-squeeze(sum(q.*q, 1)));
-if any(diff(:) > 1e-13)
+diff = 1-squeeze(sqrt(sum(q.*q, 1)));
+if any(abs(diff(:)) > 1e-13)
 %   plot(diff(1,:))
   error('Input is not normalized.')
 end
@@ -55,5 +55,11 @@ mat(2,3,Index{2:end}) = 2*q2q3 - 2*q0q1;
 mat(3,1,Index{2:end}) = 2*q1q3 - 2*q0q2;
 mat(3,2,Index{2:end}) = 2*q2q3 + 2*q0q1;
 mat(3,3,Index{2:end}) = 1 - 2*sq1 - 2*sq2;
+
+% % convert active to passive rotation
+% idx = 1:ndims(mat);
+% idx(1) = 2;
+% idx(2) = 1;
+% mat = permute(mat,idx);
 
 end

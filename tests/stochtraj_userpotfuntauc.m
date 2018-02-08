@@ -63,9 +63,6 @@ AutoCorrFFT = AutoCorrFFT/max(AutoCorrFFT);
 
 analytic = exp(-(1/tcorr)*t);
 
-[k,c,yFit] = exponfit(t(1:N), AutoCorrFFT(1:N));
-tauR = 1/k;
-
 [k, c, yFit] = exponfit(t(1:N), AutoCorrFFT(1:N));
 tauR = 1/k;
 

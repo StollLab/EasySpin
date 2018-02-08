@@ -23,7 +23,7 @@ end
 % Compare methods of rotating vectors
 diff = vrot - quatvecmult(q,v);
 
-if any(diff(:) > 1e-5)
+if any(abs(diff(:)) > 1e-10)
   err = 1;
 else  
   err = 0;

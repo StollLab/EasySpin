@@ -53,14 +53,16 @@ switch (nargin)
     alpha = varargin{1};
     beta = varargin{2};
     gamma = varargin{3};
-    if size(alpha,1)>1, alpha = alpha.'; end
-    if size(beta,1)>1, beta = beta.'; end
-    if size(gamma,1)>1, gamma = gamma.'; end
+    if iscolumn(alpha), alpha = alpha.'; end
+    if iscolumn(beta), beta = beta.'; end
+    if iscolumn(gamma), gamma = gamma.'; end
     if (nargin==4)
       option = varargin{4};
     else
       option = '';
     end
+
+end
 
 if numel(alpha) ~= numel(beta) || numel(beta) ~= numel(gamma)
   error('Inputs must have the same number of elements.')
@@ -84,13 +86,22 @@ switch lower(option)
     error('Last argument must be a string, either ''passive'' or ''active''.')
 end
 
-end
-
 q0 = cos(beta/2).*cos((gamma+alpha)/2);
 q1 = sin(beta/2).*sin((gamma-alpha)/2);
 q2 = sin(beta/2).*cos((gamma-alpha)/2);
 q3 = cos(beta/2).*sin((gamma+alpha)/2);
 
 q = [q0; q1; q2; q3];
+
+% since q=-q, arbitrarily define q0 as always positive
+
+Index = cell(1, ndims(q));
+Index(:) = {':'};
+
+idx = q(1,Index{2:end}) < 0;
+
+if any(idx(:))
+  q(:,idx) = -q(:,idx);
+end
 
 end

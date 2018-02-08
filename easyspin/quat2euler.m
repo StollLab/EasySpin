@@ -24,7 +24,7 @@ if (nargin==0), help(mfilename); return; end
 switch nargin
   case 1
     % EasySpin uses passive transformations by default
-%     q = varargin{1};
+    q = varargin{1};
 %     invert = 1;
     q = quatinv(varargin{1});
   case 2
@@ -59,6 +59,12 @@ end
 
 Index = cell(1, ndims(q));
 Index(:) = {':'};
+
+idx = q(1,Index{2:end}) < 0;
+
+if any(idx(:))
+  q(:,idx) = -q(:,idx);
+end
                
 q0 = q(1,Index{2:end});
 q1 = q(2,Index{2:end});
@@ -101,6 +107,6 @@ gamma = atan2( 2.*(q2.*q3 ...
 %                           + q3(idx).*q0(idx)), ...
 %                    1 - 2.*( q1(idx).*q1(idx) ...
 %                           - q3(idx).*q3(idx)) );
-% % end
+% end
 
 end

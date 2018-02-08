@@ -1,4 +1,6 @@
-% mmult  Matlab gateway function to 3D matrix multiplication C function
+% mmult  
+%
+%   Matlab gateway function to 3D matrix multiplication C function
 %   
 %   A = rand(3,3,100); B = rand(3,3,100);
 %   C = mmult(A,B,'real');
@@ -7,9 +9,6 @@
 %   B = rand(3,3,100) + 1i*rand(3,3,100);
 %   C = mmult(A,B,'complex');
 %
-%   Computes a CW-EPR spectrum of an 14N nitroxide radical using stochastic 
-%   trajectories.
-% Matlab gateway function to matrix multiplication function written in C
 
 function C = mmult(A,B,complexity)
 

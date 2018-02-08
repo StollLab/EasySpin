@@ -57,8 +57,9 @@ t = linspace(0, length(ExpectVal)*Par.dt,length(ExpectVal));
 load('MTSSL_polyAla_spc_istos.mat')  % old data
 
 diff = abs(spc-spcOld);
+rmsd = sqrt(mean(diff.^2));
 
-if all(diff < 1e-12)
+if rmsd < 1e-2
   err = 0;
 %   figure
 % 

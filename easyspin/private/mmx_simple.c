@@ -97,13 +97,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   if ( (Andim != Bndim) ) {  /* //|| (Andim != 3) ) { */
     mexErrMsgTxt("Inputs should have the same number of dimensions.");
   }
-  
+/*  
   for( i=0; i<Andim; i++ ) {
     if (Adims[i] != Bdims[i]) {
       mexErrMsgTxt("Inputs should have the same shape.");
     }
   }
-
+*/
   /*
   // ===============
   // process outputs
@@ -120,8 +120,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   */
   rC = rA;
   cC = cB;
+  
+  Cdims[0] = rC;
+  Cdims[1] = cC;
 
-  for( i=0; i<Cndim; i++ ) {
+  for( i=2; i<Cndim; i++ ) {
     Cdims[i] = Adims[i];
   }
 
