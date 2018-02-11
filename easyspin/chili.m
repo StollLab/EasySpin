@@ -619,6 +619,11 @@ end
                                        Opt.IncludeNZI,...
                                        explicitFieldSweep);
 
+noAnisotropiesPresent = all(F.F1(:)==0) && all(F.F2(:)==0);
+if noAnisotropiesPresent
+  error('This is an isotropic spin system. chili cannot calculate a slow-motion spectrum.');
+end
+
 [Dynamics,err] = processdynamics(Dynamics,FieldSweep);
 error(err);
 
