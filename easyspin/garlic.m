@@ -476,9 +476,9 @@ end
 
 if (FastMotionRegime)
   if FieldSweep
-    FastMotionLw = fastmotion(Sys,CentralResonance,Sys.tcorr);
+    FastMotionLw = fastmotion(Sys,CentralResonance,Sys.tcorr,'field'); % mT
   else
-    FastMotionLw = fastmotion(Sys,Exp.Field,Sys.tcorr);
+    FastMotionLw = fastmotion(Sys,Exp.Field,Sys.tcorr,'freq')/1e3; % MHz -> GHz
   end
   if all(FastMotionLw==0)
     error('Linewidths resulting from fast-motion lindwidth parameters must be positive! Did you supply isotropic values only?');
