@@ -413,10 +413,10 @@ if ~isempty(Exp.Ordering)
   %  error('Partial ordering (Exp.Ordering) can only be used in a powder simulation.');
   %end
   if isnumeric(Exp.Ordering) && (numel(Exp.Ordering)==1) && isreal(Exp.Ordering)
-    UserSuppliedOrderingFcn = false;
-    logmsg(1,'  partial order (built-in function, coefficient = %g)',Exp.Ordering);
+    lambda = Exp.Ordering;
+    Exp.Ordering = @(phi,theta) exp(lambda*plegendre(2,0,cos(theta)));
+    logmsg(1,'  partial order (built-in function, coefficient = %g)',lambda);
   elseif isa(Exp.Ordering,'function_handle')
-    UserSuppliedOrderingFcn = true;
     logmsg(1,'  partial order (user-supplied function)');
   else
     error('Exp.Ordering must be a single number or a function handle.');
@@ -696,16 +696,10 @@ Basis.DirTilt = any(theta~=0);
 
 % Partial ordering for protein/macromolecule
 if ~isempty(Exp.Ordering)
-  if (UserSuppliedOrderingFcn)
-    OrderingWeights = feval(Exp.Ordering,phi,theta);
-    if any(OrderingWeights)<0, error('User-supplied orientation distribution gives negative values!'); end
-    if max(OrderingWeights)==0, error('User-supplied orientation distribution is all-zero.'); end
-    logmsg(2,'  user-supplied ordering potential');
-  else
-    logmsg(2,'  standard ordering potential');
-    U = -Exp.Ordering*plegendre(2,0,cos(theta)); % ordering potential
-    OrderingWeights = exp(-U);
-  end
+  OrderingWeights = Exp.Ordering(phi,theta);
+  if any(OrderingWeights)<0, error('User-supplied orientation distribution gives negative values!'); end
+  if all(OrderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end
+  logmsg(2,'  ordering potential');
 else
   OrderingWeights = ones(1,nOrientations);
 end
