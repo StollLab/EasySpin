@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>lpsvd</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">lpsvd</div>
+
+<p>
+Linear Prediction and Singular Value Decomposition
+</p>
+
+<!-- =================================================================== -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+predictedSpectrum = lpsvd(Spectrum, Time, Method, Order)
+[predictedSpectrum, PredictionParameters] = lpsvd(...)
+</pre>
+
+<!-- =================================================================== -->
+<div class="subtitle">Description</div>
+
+<p>
+<code>lpsvd</code> estimates the parameters of exponentially damped sinusoids 
+by performs linear prediction and singular value decomposition on the input spectrum.
+</p>
+
+<!-- =================================================================== -->
+<div class="subtitle">References</div>
+
+The methods implemented in <code>lpsvd</code> are described in
+
+<ul>
+<li>
+<a href="https://doi.org/10.1109/TASSP.1982.1163974">Kumaresan, R.;Tufts, D.W.; 
+IEEE Trans. Acoust. Speech Signal ASSP-30 (1982) 833</a> 
+<li>
+<a href="https://doi.org/10.1364/JOSA.73.001799">Kung, S.Y.; Arun, K.S.; 
+Bhaskar Rao, D.V.; J. Opt. Soc. Am. 73 (1983), 1799</a>
+<li>
+<a href="https://doi.org/10.1016/0022-2364(87)90023-0">Barkhuijsen, H.; 
+De Beer, R.; Van Ormondt, D.; J. Mag. Reson. 73 (1987), 553</a>
+<li>
+<a href="https://doi.org/10.1006/jmra.1994.1209">Van Huffel, S.;Chen, H.; 
+Decanniere, C.; Van Hecke, P.; J. Mag. Reson., Series A 110 (1994), 228</a>
+</ul>
+
+<!-- =================================================================== -->
+<div class="subtitle">See also</div>
+<p>
+
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+</html>
