@@ -19,6 +19,7 @@
 %     'lsq0'    least-squares fit of a*y+b to yref
 %     'lsq1'    least-squares fit of a*y+b+c*x to yref
 %     'lsq2'    least-squares fit of a*y+b+c*x+d*x^2 to yref
+%     'lsq3'    least-squares fit of a*y+b+c*x+d*x^2+e*x^3 to yref
 %     'none'    no scaling
 
 function varargout = rescale(varargin)
@@ -78,8 +79,8 @@ else
   
   % Rescaling with reference
   %----------------------------------------------------
-  ModeID = find(strcmp(Mode,{'maxabs','minmax','shift','lsq','lsq0','lsq1','lsq2','none'}));
-  IdenticalLengthNeeded = [0 0 0 1 1 1 1 0];
+  ModeID = find(strcmp(Mode,{'maxabs','minmax','shift','lsq','lsq0','lsq1','lsq2','lsq3','none'}));
+  IdenticalLengthNeeded = [0 0 0 1 1 1 1 1 0];
   if isempty(ModeID)
     error('Unknown scaling mode ''%s''',Mode);
   end
@@ -104,8 +105,8 @@ else
       shift = mean(y(notnan)) - mean(yref(notnan));
       ynew = y - shift;
     case 4 % lsq
-      scalefactor = y(notnan)\yref(notnan);
-      scalefactor = abs(scalefactor);
+      scalefactor = (y(notnan)'*y(notnan))\(y(notnan)'*yref(notnan));
+      %scalefactor = abs(scalefactor);
       ynew = scalefactor*y;
     case 5 % lsq0
       D = [y ones(N,1)];
@@ -121,7 +122,12 @@ else
       D = [y ones(N,1) x x.^2];
       params = D(notnan,:)\yref(notnan);
       ynew = D*params;
-    case 8 % no scaling
+    case 8 % lsq3
+      x = (1:N).'/N;
+      D = [y ones(N,1) x x.^2 x.^3];
+      params = D(notnan,:)\yref(notnan);
+      ynew = D*params;
+    case 9 % no scaling
       ynew = y;
   end
   
