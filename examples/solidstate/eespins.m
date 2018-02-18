@@ -2,12 +2,14 @@
 %==========================================================================
 clear, clf
 
-% two-electron system, both electrons with rhombic g
+% Two-electron system, both electrons with rhombic g tensor
 Sys.S = [1/2 1/2];
 Sys.g = [2 2.05 2.1; 2.2 2.25 2.3];
 Sys.lwpp = 1;
-Sys.J = 50; % isotropic exchange coupling, in MHz
-Sys.eeD = [1 1 -2]*100; % dipolar electron-electron coupling, in MHz
+
+% Electron-electron couplings
+Sys.J = 50; % isotropic coupling, in MHz
+Sys.dip = 100; % axial dipolar coupling, in MHz
 
 % X band conditions
 Exp.mwFreq = 9.5;
