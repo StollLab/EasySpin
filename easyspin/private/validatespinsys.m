@@ -347,7 +347,8 @@ if (nElectrons>1) && ~reprocessing
     
     % Size check on list of isotropic exchange coupling constants
     if ~isfield(Sys,'J'), Sys.J = zeros(1,nPairs); end
-    err = sizecheck(Sys,'J',[1 nPairs]);
+    Sys.J = Sys.J(:);
+    err = sizecheck(Sys,'J',[nPairs 1]);
     if ~isempty(err), return; end
     
     % Size check on list of antisymmetric exchange vectors
