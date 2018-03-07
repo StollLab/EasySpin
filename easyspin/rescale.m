@@ -105,32 +105,35 @@ else
       shift = mean(y(notnan)) - mean(yref(notnan));
       ynew = y - shift;
     case 4 % lsq
+      D = y;
       scalefactor = (y(notnan)'*y(notnan))\(y(notnan)'*yref(notnan));
-      %scalefactor = abs(scalefactor);
-      ynew = scalefactor*y;
+      ynew = D*scalefactor;
     case 5 % lsq0
       D = [y ones(N,1)];
-      params = D(notnan,:)\yref(notnan);
-      ynew = D*params;
+      scalefactor = D(notnan,:)\yref(notnan);
+      ynew = D*scalefactor;
     case 6 % lsq1
       x = (1:N).'/N;
       D = [y ones(N,1) x];
-      params = D(notnan,:)\yref(notnan);
-      ynew = D*params;
+      scalefactor = D(notnan,:)\yref(notnan);
+      ynew = D*scalefactor;
     case 7 % lsq2
       x = (1:N).'/N;
       D = [y ones(N,1) x x.^2];
-      params = D(notnan,:)\yref(notnan);
-      ynew = D*params;
+      scalefactor = D(notnan,:)\yref(notnan);
+      ynew = D*scalefactor;
     case 8 % lsq3
       x = (1:N).'/N;
       D = [y ones(N,1) x x.^2 x.^3];
-      params = D(notnan,:)\yref(notnan);
-      ynew = D*params;
+      scalefactor = D(notnan,:)\yref(notnan);
+      ynew = D*scalefactor;
     case 9 % no scaling
       ynew = y;
   end
-  
+  if real(scalefactor(1))<0
+    scalefactor(1) = abs(scalefactor(1));
+    ynew = D*scalefactor;
+  end
 end
 
 % Preserve row layout
@@ -151,6 +154,8 @@ switch nargout
     varargout = {};
   case 1
     varargout = {ynew};
+%   case 2
+%     varargout = {ynew scalefactor};
   otherwise
     error('Wrong number of outputs.');
 end
