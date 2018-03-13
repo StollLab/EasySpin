@@ -19,8 +19,7 @@
 %           between Bmin and Bmax. [mT]
 %   - Opt: options structure with fields
 %        Threshold - if set, return only transitions with
-%          relative intensity above Threshold. Works only if
-%          transition intensities are returned.
+%          relative intensity above Threshold.
 %
 %   Output:
 %   - B:   cell array of all resonance fields [mT]
@@ -42,10 +41,12 @@ error(chkmlver);
 
 % Add empty Options structure if not specified.
 switch nargin
-case 3,
+case 3
 case 2, Opt = [];
 otherwise, error('Incorrect number of inputs!');
 end
+
+if nargout>2, error('Incorrect number of outputs.'); end
 
 if isempty(Opt)
   Opt = struct('unused',NaN);
@@ -60,19 +61,6 @@ end
 if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 0; end
 global EasySpinLogLevel;
 EasySpinLogLevel = Opt.Verbosity;
-
-% Determine whether the caller wants intensities.
-msg = 'positions';
-switch nargout
-case {0,1},
-  ComputeIntensities = 0;
-case 2,
-  ComputeIntensities = 1;
-  msg = [msg, ', intensities'];
-otherwise,
-  error('Incorrect number of output arguments!');
-end
-logmsg(1,'  computing %s',msg);
 
 % Mute warnings because of unavoidable division by zero.
 OldWarningState = warning('off');
@@ -133,7 +121,21 @@ if (Opt.Freq2Field~=1)&&(Opt.Freq2Field~=0)
   error('Options.Freq2Field incorrect!');
 end
 
-ComputeFreq2Field = (1==Opt.Freq2Field);
+computeFreq2Field = (1==Opt.Freq2Field);
+
+if ~isnumeric(Opt.Threshold) || numel(Opt.Threshold)~=1 || Opt.Threshold<0
+  error('Opt.Threshold must be a single nonnegative number.');
+end
+
+% Determine whether intensities should be calculated.
+computeIntensities = nargout>1 || Opt.Threshold~=0;
+
+msg = 'positions';
+if computeIntensities
+  msg = [msg, ', intensities'];
+end
+logmsg(1,'  computing %s',msg);
+
 
 % Build Hamiltonian components.
 %===================================================================
@@ -150,7 +152,7 @@ A = eyekron(F) - kroneye(conj(F)) + mwFreq*eye(length(F)^2);
 % problem has to be solved, not the general one.
 E = diag(eig(A));
 SimpleEigenproblem = all(E>0);
-if SimpleEigenproblem,
+if SimpleEigenproblem
   msg = 'reduced to simple eigenproblem';
 else
   msg = 'general eigenproblem';
@@ -159,7 +161,7 @@ logmsg(1,'  %s, matrix size %dX%d',msg,length(A),length(A));
 clear V E;
 
 % Prepare vectors for intensity computation.
-if ComputeIntensities
+if computeIntensities
   vGx = reshape(Gx.',numel(Gx),1);
   vGy = reshape(Gy.',numel(Gy),1);
   vGz = reshape(Gz.',numel(Gz),1);
@@ -178,7 +180,7 @@ for iOri = 1:nOrientations
   B = kroneye(conj(GzL)) - eyekron(GzL);
   if SimpleEigenproblem, BB = A\B; end
 
-  if ComputeIntensities
+  if computeIntensities
     % Eigenvectors correspond to reshape(|u><v|,[],1) = kron(conj(v),u)
     % For a given eigenfield, u and v are the states with Ev-Eu = mwFreq
     if SimpleEigenproblem
@@ -232,7 +234,7 @@ for iOri = 1:nOrientations
       Polarization = Polarization/prod(2*SpinSystem.I+1);
       
       % Compute frequency-to-field domain conversion factor
-      if ComputeFreq2Field
+      if computeFreq2Field
         % 1/(<v|G|v>-<u|G|u>) = 1/(trace(G|v><v|) - trace(G|u><u|)) =
         %   1/trace(A*(|v><v|-|u><u|)) = 1/trace(A*commute(|u><v|,|v><u|))
         % |u><u| = (|u><v|)(|v><u|)
@@ -275,14 +277,16 @@ for iOri = 1:nOrientations
 end
 
 % One orientation: simple array instead of 1x1 cell array as output!
-if (nOrientations==1),
+if (nOrientations==1)
   EigenFields = EigenFields{1};
   Intensities = Intensities{1};
 end
 
 % Prepare output.
-varargout = {EigenFields,Intensities};
-varargout = varargout(1:max(nargout,1));
+switch nargout
+  case 1, varargout = {EigenFields};
+  case 2, varargout = {EigenFields,Intensities};
+end
 
 % Restore original warning state.
 warning(OldWarningState);

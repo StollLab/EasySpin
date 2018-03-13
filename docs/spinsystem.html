@@ -63,7 +63,8 @@ Spin system structures are used by many EasySpin functions, among them the simul
 
 <p>
 Before we give a full list of possible fields, here are a couple of examples of spin system definitions.
-There are two equivalent ways.</p>
+There are two equivalent ways.
+</p>
 
 <pre class="matlab">
 Sys.S = 1/2;
@@ -791,14 +792,19 @@ Sys.B2 = B2.';
 <div class="subtitle"><a name="ee">Electron-electron spin-spin couplings</a></div>
 
 <p>
-For each pair of electron spins, a <a href="hamiltonian.html#eei">bilinear coupling matrix</a> (composed of isotropic, anisotropic, and antisymmetric terms) can be given. You can enter it in one of two ways:
+For each pair of electron spins, a <a href="hamiltonian.html#eei">bilinear coupling matrix</a> (composed of isotropic, anisotropic, and antisymmetric terms) can be given. You can enter it in one of several ways:
 <ul>
-<li>Give the isotropic, antisymmetric and symmetric parts separately in <code>Sys.J</code>, <code>Sys.dvec</code>, <code>Sys.eeD</code>.
-<li>Give the total coupling matrix in <code>Sys.ee</code> (with <code>Sys.eeFrame</code>).
+<li>Give the isotropic, symmetric, and antisymemtric parts separately in <code>Sys.J</code>, <code>Sys.dip</code>, and <code>Sys.dvec</code>.
+<li>Give the principal values of the coupling matrix in <code>Sys.ee</code> (with <code>Sys.eeFrame</code>).
+<li>Give the total coupling matrix in <code>Sys.ee</code>.
 </ul>
 
 <p>
-In addition, it is also possible to specify an isotropic biquadratic exchange coupling for each electron spin pair in <code>Sys.ee2</code>. This is not very common.
+Except for the last option, give the orientation of the interaction matrices in <code>Sys.eeFrame</code>.
+</p>
+
+<p>
+In addition, it is also possible to specify an isotropic biquadratic exchange coupling for each electron spin pair in <code>Sys.ee2</code>. This is a type of coupling that is very rare.
 </p>
 
 <div class="optionfield"><code>J</code></div>
@@ -830,7 +836,70 @@ J_MHz = J_cm*100*clight/1e6;  % cm^-1 to MHz conversion, exact
 </pre>
 
 <p>
-You can use either <code>Sys.J</code> (together with <code>Sys.dvec</code> and <code>Sys.eeD</code> if needed) or <code>Sys.ee</code> (with <code>Sys.eeFrame</code>), but not both at the same time.
+You can use either <code>Sys.J</code> (together with <code>Sys.dip</code> and <code>Sys.dvec</code> if needed) or <code>Sys.ee</code> (with <code>Sys.eeFrame</code>), but not both at the same time.
+</div>
+</div>
+
+
+<div class="optionfield"><code>dip</code></div>
+<div class="optiondescr">
+<em>
+Nx1, Nx2, or Nx3 array of real
+</em>
+<p>
+List of values that describe the symmetric part of the coupling between two electron spins (dipolar interaction), in units of MHz. Each row corresponds to one electron-electron pair. It can contain 1, 2, or 3 numbers.
+</p>
+
+<ul>
+<li>1 number: This gives the axial dipolar coupling.
+<li>2 numbers: The first is the axial dipolar coupling, and the second one is the rhombic dipolar coupling.
+<li>3 numbers: They give the three principal values of the symmetric dipolar interaction tensor. The trace of a dipolar tensor is zero.
+</ul>
+
+Here are a few examples:
+<pre class="matlab">
+Sys.S = [1/2 1/2];    % two spins
+
+% The following two inputs give the same axial dipolar tensor
+Sys.dip = 23;          % axial dipolar coupling, MHz
+Sys.dip = 23*[1 1 -2]; % principal values of axial dipolar coupling tensor, MHz
+
+% The following two inputs give the same rhombic dipolar tensor
+Sys.dip = [23 3];                    % axial and rhombic dipolar coupling, MHz
+Sys.dip = 23*[1 1 -2] + 3*[1 -1 0];  % principal values of axial dipolar coupling tensor, MHz
+</pre>
+
+<p>
+The axial and rhombic couplings and the principal values of the dipolar tensor are related via
+</p>
+
+<pre class="matlab">
+% axial and rhombic -> principal values
+dip_pv = dip_axial*[1 1 -2] + dip_rhombic*[1 -1 0];
+
+% principal values -> axial and rhombic
+dip_rhombic = (dip_pv(1)-dip_pv(2))/2
+dip_axial = ((dip_pv(1)+dip_pv(2))/2-dip_pv(3))/3
+</pre>
+
+<p>
+For more than two spins, specify the couplings for electron pairs in lexicographic order, for example 1-2, 1-3, 2-3 for a three-spin system.
+
+<pre class="matlab">
+Sys.S = [3/2 3/2 3/2];    % three spins
+dip12 = 1.4e4;    % units: MHz
+dip23 = 2.1e4;
+dip13 = 3.7e4;
+Sys.dip = [dip12; dip13; dip23];  % three tensors
+</pre>
+
+<p>
+To specify the orientation of the dipolar tensor, use <code>Sys.eeFrame</code>.
+
+<p>
+You can use either <code>Sys.dip</code> (together with <code>Sys.J</code> and <code>Sys.dvec</code> if needed) or <code>Sys.ee</code>, but not both at the same time.
+</p>
+
 </div>
 </div>
 
@@ -860,36 +929,7 @@ Sys.J = [d12;d13;d23];  % three interaction vectors, one per row
 </pre>
 
 <p>
-You can use either <code>Sys.J</code> (together with <code>Sys.dvec</code> and <code>Sys.eeD</code> if needed) or <code>Sys.ee</code> (with <code>Sys.eeFrame</code>), but not both at the same time.
-</div>
-</div>
-
-<div class="optionfield"><code>eeD</code></div>
-<div class="optiondescr">
-<em>
-Nx3 array of real
-</em>
-<p>
-List of vectors (one per row, in units of MHz) that describe the symmetric part of the coupling between two electron spins (dipolar interaction). Each row contains the three principal values of the symmetric interaction tensor. Their sum has to give zero (i.e. the tensor has to be traceless).
-
-<pre class="matlab">
-Sys.S = [1 3/2];           % two spins
-Sys.eeD = [-1 -1 2]*140;   % principal value of dipolar coupling tensor, MHz
-</pre>
-
-<p>
-For more than two spins, the vectors are ordered in lexicographic order, for example 1-2, 1-3, 2-3 for a three-spin system.
-
-<pre class="matlab">
-Sys.S = [3/2 3/2 3/2];    % three spins
-D12 = [-1 -1 2]*1.4e4;    % units: MHz
-D23 = [-1 -1 2]*2.1e4;
-D13 = [-1 -1 2]*3.7e4;
-Sys.J = [D12; D13; D23];  % three tensors
-</pre>
-
-<p>
-You can use either <code>Sys.J</code> (together with <code>Sys.dvec</code> and <code>Sys.eeD</code> if needed) or <code>Sys.ee</code> (with <code>Sys.eeFrame</code>), but not both at the same time.
+You can use either <code>Sys.J</code> (together with <code>Sys.dip</code> and <code>Sys.dvec</code> if needed) or <code>Sys.ee</code> (with <code>Sys.eeFrame</code>), but not both at the same time.
 </div>
 </div>
 
@@ -944,9 +984,10 @@ Sys.ee = [ee12; ee13; ee23];             % three coupling matrices
 </pre>
 
 <p>
-Note that you can use either <code>Sys.ee</code> (together with <code>Sys.eeFrame</code>) or <code>Sys.J</code> (together with <code>Sys.dvec</code> and <code>Sys.eeD</code> if needed), but not both at the same time.
+Note that you can use either <code>Sys.ee</code> or <code>Sys.J</code> (together with <code>Sys.dip</code> and <code>Sys.dvec</code> if needed), but not both at the same time.
 
 </div>
+
 
 <div class="optionfield"><code>eeFrame</code></div>
 <div class="optiondescr">

@@ -860,8 +860,8 @@ if FitData.GUI && (UserCommand~=99)
   set(findobj('Tag','bestsimdata'),'XData',1:numel(ExpSpec),'YData',real(FitData.bestspec));
   set(findobj('Tag','currsimdata'),'XData',1:numel(ExpSpec),'YData',real(simspec));
   if strcmp(FitOpts.Scaling, 'none')
-    dispData = [FitData.ExpSpec;real(FitData.bestspec).';real(simspec).'];
-    maxy = max(max(dispData)); miny = min(min(dispData));
+    dispData = [FitData.ExpSpec(:); real(FitData.bestspec(:)); real(simspec(:))];
+    maxy = max(dispData); miny = min(dispData);
     YLimits = [miny maxy] + [-1 1]*FitOpt.PlotStretchFactor*(maxy-miny);
     set(findobj('Tag','dataaxes'),'YLim',YLimits);
   end
