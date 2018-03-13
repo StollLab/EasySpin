@@ -122,9 +122,9 @@ for iEvent = 1 : length(Exp.t)
 %     end
     
     % Gets the flip angle 
-    if isfield(Exp,'Flip') &&iPulse <= length(Exp.Flip)  
+    if isfield(Exp,'Flip') && iPulse <= length(Exp.Flip)  
       Pulse.Flip = Exp.Flip(iPulse);
-    elseif ~isfield(Pulse,'Qcrit') && ~isfield(Pulse,'nu1')
+    elseif ~isfield(Pulse,'Qcrit') && ~isfield(Pulse,'Amplitude')
       error('No Flipangle for Pulse No. %d provided.',iPulse)
     else
       

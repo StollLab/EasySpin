@@ -95,7 +95,7 @@ The three input arguments to <code>spidyan</code> are
 <code>Sys</code> is a <a href="spinsystem.html">spin system structure</a>. 
 Most of the regular fields of <code>Sys</code> can be used for the construction of the spin Hamiltonian. 
 Line broadening parameters used by other simulation functions (<code>lw</code>, <code>lwpp</code>, <code>gStrain</code>, etc.) are ignored.
-To facilitate working with frequency-swept pulses, the field <code>ZeemanFreq</code> is available.
+Some additional fields can be used with <code>spidyan</code>: To facilitate working with frequency-swept pulses, the field <code>ZeemanFreq</code> is available.
 For simulations with relaxation, at least generic relaxation times <code>T1</code> or <code>T2</code> should be provided.
 If only one is provided, the other one is set by default to a very large value (10<sup>10</sup> microseconds), essentially switching that type of relaxation off.
 </p>
@@ -114,6 +114,7 @@ If it is a scalar, the relaxation time is applied to all transitions.
 Transition specific relaxation times can be provided in the form of a matrix.
 See section <a href="#relaxation_times">Relaxation times</a> below for more details. 
 Relaxation times for transitions that are not defined (or 0) are automatically set to 10<sup>10</sup> microseconds.
+In order for <code>spidyan</code> to simulate relaxation effects, it is necessary to switch relaxation on with <code>Opt.Relaxation</code> (see below).
 </div>
 
 <div class="optionfield"><code>T2</code></div>
@@ -123,6 +124,7 @@ If it is a scalar, the relaxation time is applied to all transitions.
 Transition specific relaxation times can be provided in the form of a matrix.
 See section <a href="#relaxation_times">Relaxation times</a> more details. 
 Relaxation times for transitions that are not defined (or 0) are automatically set to 10<sup>10</sup> microseconds.
+In order for <code>spidyan</code> to simulate relaxation effects, it is necessary to switch relaxation on with <code>Opt.Relaxation</code> (see below).
 </div>
 
 <div class="optionfield"><code>initState</code></div>
@@ -152,7 +154,7 @@ By default the initial state is used as equilibrium state.
 
 <div class="optionfield"><code>Field</code></div>
 <div class="optiondescr">
-Magnetic field (in mT) at which the experiment is performed.
+Magnetic field (in mT) at which the experiment is performed, needs to be provided even if the spinsystem is defined with <code>Sys.ZeemanFreq</code>.
 </div>
 
 <div class="optionfield"><code>TimeStep</code></div>
@@ -179,6 +181,8 @@ Exp.Pulses = {Pulse 0 Pulse}; 	% Assign Pulses to events 1 and 3, events 2 and 4
 </pre>
 If the pulse definition contains a field <code>Qcrit</code> or <code>Amplitude</code>, the value in <code>Exp.Flip</code> is ignored.
 If both <code>Qcrit</code> and <code>Amplitude</code> are provided, <code>Qcrit</code> takes priority.
+The pulse length has to be provided through <code>Exp.t</code>. 
+Any values for the pulse length written to the <code>Pulse</code> structure are ignored.
 </div>
 
 <div class="optionfield"><code>Flip</code></div>
@@ -262,7 +266,7 @@ More details on how the output changes can be found below.
 <div class="optiondescr">
 A vector that contains the number of points in each dimension, e. g. [10 150] corresponds to 10 points in the first and 150 points in the second dimension. 
 <pre class="matlab">
-Exp.Points = [10 150]; 	% 10 points along the first indirect dimension, 150 along the second
+Exp.nPoints = [10 150]; 	% 10 points along the first indirect dimension, 150 along the second
 </pre>
 </div>
 

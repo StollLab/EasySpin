@@ -107,7 +107,7 @@ if isfield(Sys,'ZeemanFreq')
   if isfield(Sys,'g')
     [~, dgTensor] = size(Sys.g);
   else
-    dgTensor = true;
+    dgTensor = 1; 
   end
   % Recalculates the g value
   for ieSpin = 1 : length(Sys.ZeemanFreq)

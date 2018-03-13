@@ -1,5 +1,5 @@
 % thyme  Time domain evolution of density matrix
-function [TimeArray, SignalArray, FinalStates, StateTrajectories, Events] = thyme(Sigma,Ham0,Det,Events,Relaxation,Vary)
+function [TimeArray, SignalArray, FinalStates, StateTrajectories, Events] = s_thyme(Sigma,Ham0,Det,Events,Relaxation,Vary)
 
 if (nargin==0), help(mfilename); return; end
 
@@ -211,7 +211,7 @@ switch method
     if StoreInCellArray
       % Sets up CellArray output if necessary
       SignalArray = cell(1,nPoints);
-      TimeArray = SignalArray;
+      TimeArray = cell(1,nPoints);
     end
 
     %----------------------------------------------------------------------
