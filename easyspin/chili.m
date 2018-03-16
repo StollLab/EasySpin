@@ -781,7 +781,7 @@ for iOri = 1:nOrientations
   
   % Set up orientation
   %-------------------------------------------------------
-  logmsg(2,'orientation %d of %d: phi = %g�, theta = %g� (weight %g)',...
+  logmsg(2,'orientation %d of %d: phi = %gdeg, theta = %gdeg (weight %g)',...
     iOri,nOrientations,phi(iOri)*180/pi,theta(iOri)*180/pi,Weights(iOri));
 
   if generalLiouvillian
@@ -1015,7 +1015,6 @@ for iOri = 1:nOrientations
     
   end
   
-  thisspec = real(thisspec);
   spec = spec + thisspec*Weights(iOri);
   
 end % orientation loop

@@ -169,7 +169,11 @@ if SysInput
     nElectrons = 1;
   end
   if isfield(Sys,'A')
-    Aisotropic = numel(Sys.A)==nNucs*nElectrons;
+    if nElectrons==1
+      Aisotropic = numel(Sys.A)==nNucs;
+    else
+      Aisotropic = all(size(Sys.A)==[nNucs nElectrons]);
+    end
     if Aisotropic
       Sys.A = reshape(Sys.A,nNucs,nElectrons);
     end
@@ -179,7 +183,11 @@ if SysInput
     Aexchange = size(Sys.A,1)==nNucs; % for compatiblity with chem. exchange program
   end
   if isfield(Sys,'A_')
-    A_isotropic = numel(Sys.A_)==nNucs*nElectrons;
+    if nElectrons==1
+      A_isotropic = numel(Sys.A_)==nNucs;
+    else
+      A_isotropic = all(size(Sys.A_)==[nNucs nElectrons]);
+    end
     A_axial = all(size(Sys.A_)==[nNucs 2*nElectrons]);
     A_rhombic = all(size(Sys.A_)==[nNucs 3*nElectrons]);
     A_exchange = size(Sys.A_,1)==nNucs; % for compatiblity with chem. exchange program
