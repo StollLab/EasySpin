@@ -1064,13 +1064,13 @@ else
     if Opt.ProductRule
       for iP = 1:nPathways
         for iS = 1:nSubSpaces
-          pathwaybuff{iP,iS} = zeros(siz); 
-          pathwaybuff{iP,iS}(1) = 1e-300i; % make sure it's complex
+          pathwaybuffRe{iP,iS} = zeros(siz); 
+          pathwaybuffIm{iP,iS} = zeros(siz);
         end
       end
     else
-      buff = zeros(siz);
-      buff(1) = 1e-300i; % make sure it's complex
+      buffRe = zeros(siz);
+      buffIm = zeros(siz);
     end
   end
   
@@ -1278,8 +1278,8 @@ for iOri = 1:nOrientations
           if ~Opt.TimeDomain
             if Opt.ProductRule
               for iP = 1:nPathways
-                pathwaybuff{iP,iSpace} = zeros(siz);
-                pathwaybuff{iP,iSpace}(1) = 1e-300i; % make sure it's complex
+                pathwaybuffRe{iP,iSpace} = zeros(siz);
+                pathwaybuffIm{iP,iSpace} = zeros(siz);
               end
             end
           end
@@ -1364,7 +1364,7 @@ for iOri = 1:nOrientations
                 idxIncL(iPathway,:),idxIncR(iPathway,:),...
                 Ea,Eb,G,D,BlockL{:},BlockR{:});
             else
-              sf_peaks(IncSchemeID,buff,Exp.dt,...
+              sf_peaks(IncSchemeID,buffRe,buffIm,Exp.dt,...
                 idxIncL(iPathway,:),idxIncR(iPathway,:),...
                 Ea,Eb,G,D,BlockL{:},BlockR{:});
             end
@@ -1537,11 +1537,11 @@ for iOri = 1:nOrientations
                 end
               else
                 if Opt.ProductRule
-                  sf_peaks(IncSchemeID,pathwaybuff{1,iSpace},Exp.dt,[1 2],[1 2],Ea,Eb,G1,D1,Tl1,Tr1);
-                  sf_peaks(IncSchemeID,pathwaybuff{2,iSpace},Exp.dt,[2 1],[2 1],Ea,Eb,G2,D2,Tl2,Tr2);
+                  sf_peaks(IncSchemeID,pathwaybuffRe{1,iSpace},pathwaybuffIm{1,iSpace},Exp.dt,[1 2],[1 2],Ea,Eb,G1,D1,Tl1,Tr1);
+                  sf_peaks(IncSchemeID,pathwaybuffRe{2,iSpace},pathwaybuffIm{2,iSpace},Exp.dt,[2 1],[2 1],Ea,Eb,G2,D2,Tl2,Tr2);
                 else
-                  sf_peaks(IncSchemeID,buff,Exp.dt,[1 2],[1 2],Ea,Eb,G1,D1,Tl1,Tr1);
-                  sf_peaks(IncSchemeID,buff,Exp.dt,[2 1],[2 1],Ea,Eb,G2,D2,Tl2,Tr2);
+                  sf_peaks(IncSchemeID,buffRe,buffIm,Exp.dt,[1 2],[1 2],Ea,Eb,G1,D1,Tl1,Tr1);
+                  sf_peaks(IncSchemeID,buffRe,buffIm,Exp.dt,[2 1],[2 1],Ea,Eb,G2,D2,Tl2,Tr2);
                 end
               end
 
@@ -1579,11 +1579,11 @@ for iOri = 1:nOrientations
                 end
               else
                 if Opt.ProductRule
-                  sf_peaks(IncSchemeID,pathwaybuff{1,iSpace},Exp.dt,[1 2],[1 2],Ea,Eb,G1,D1,Tl1,Tr1);
-                  sf_peaks(IncSchemeID,pathwaybuff{2,iSpace},Exp.dt,[2 1],[2 1],Ea,Eb,G2,D2,Tl2,Tr2);
+                  sf_peaks(IncSchemeID,pathwaybuffRe{1,iSpace},pathwaybuffIm{1,iSpace},Exp.dt,[1 2],[1 2],Ea,Eb,G1,D1,Tl1,Tr1);
+                  sf_peaks(IncSchemeID,pathwaybuffRe{2,iSpace},pathwaybuffIm{2,iSpace},Exp.dt,[2 1],[2 1],Ea,Eb,G2,D2,Tl2,Tr2);
                 else
-                  sf_peaks(IncSchemeID,buff,Exp.dt,[1 2],[1 2],Ea,Eb,G1,D1,Tl1,Tr1);
-                  sf_peaks(IncSchemeID,buff,Exp.dt,[2 1],[2 1],Ea,Eb,G2,D2,Tl2,Tr2);
+                  sf_peaks(IncSchemeID,buffRe,buffIm,Exp.dt,[1 2],[1 2],Ea,Eb,G1,D1,Tl1,Tr1);
+                  sf_peaks(IncSchemeID,buffRe,buffIm,Exp.dt,[2 1],[2 1],Ea,Eb,G2,D2,Tl2,Tr2);
                 end
               end
               
@@ -1617,11 +1617,11 @@ for iOri = 1:nOrientations
                 end
               else
                 if Opt.ProductRule
-                  sf_peaks(IncSchemeID,pathwaybuff{1,iSpace},Exp.dt,1,1,Ea,Eb,G1,D1);
-                  sf_peaks(IncSchemeID,pathwaybuff{2,iSpace},Exp.dt,2,2,Ea,Eb,G2,D2);
+                  sf_peaks(IncSchemeID,pathwaybuffRe{1,iSpace},pathwaybuffIm{1,iSpace},Exp.dt,1,1,Ea,Eb,G1,D1);
+                  sf_peaks(IncSchemeID,pathwaybuffRe{2,iSpace},pathwaybuffIm{2,iSpace},Exp.dt,2,2,Ea,Eb,G2,D2);
                 else
-                  sf_peaks(IncSchemeID,buff,Exp.dt,1,1,Ea,Eb,G1,D1);
-                  sf_peaks(IncSchemeID,buff,Exp.dt,2,2,Ea,Eb,G2,D2);
+                  sf_peaks(IncSchemeID,buffRe,buffIm,Exp.dt,1,1,Ea,Eb,G1,D1);
+                  sf_peaks(IncSchemeID,buffRe,buffIm,Exp.dt,2,2,Ea,Eb,G2,D2);
                 end
               end
 
@@ -1650,9 +1650,9 @@ for iOri = 1:nOrientations
                 end
               else
                 if Opt.ProductRule
-                  sf_peaks(IncSchemeID,pathwaybuff{1,iSpace},Exp.dt,[1 2],[2 1],Ea,Eb,G,D,T1left,T1right);
+                  sf_peaks(IncSchemeID,pathwaybuffRe{1,iSpace},pathwaybuffIm{1,iSpace},Exp.dt,[1 2],[2 1],Ea,Eb,G,D,T1left,T1right);
                 else
-                  sf_peaks(IncSchemeID,buff,Exp.dt,[1 2],[2 1],Ea,Eb,G,D,T1left,T1right);
+                  sf_peaks(IncSchemeID,buffRe,buffIm,Exp.dt,[1 2],[2 1],Ea,Eb,G,D,T1left,T1right);
                 end
               end
 
@@ -1674,11 +1674,12 @@ for iOri = 1:nOrientations
             if Opt.TimeDomain
               thistd = pathwaytd{iPathway,iSpace};
             else
+              pathwaybuff = complex(pathwaybuffRe{iPathway,iSpace},pathwaybuffIm{iPathway,iSpace});
               if (nDimensions==1)
-                thistd = ifft(pathwaybuff{iPathway,iSpace})*nPointsF;
+                thistd = ifft(pathwaybuff)*nPointsF;
                 thistd = thistd(1:Exp.nPoints);
               else
-                thistd = ifft2dpartial(pathwaybuff{iPathway,iSpace},Exp.nPoints,Opt.PartialIFFT);
+                thistd = ifft2dpartial(pathwaybuff,Exp.nPoints,Opt.PartialIFFT);
                 %thistd = thistd;
               end
             end
@@ -1733,6 +1734,7 @@ else
       td = totaltd;
     else
       logmsg(1,'Postprocessing...');
+      buff = complex(buffRe,buffIm);
       if (nDimensions==1)
         td = ifft(buff)*numel(buff);
         td = td(1:Exp.nPoints);
