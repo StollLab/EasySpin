@@ -1,5 +1,5 @@
 /*
-sf_peaks(IncSchemeID,buffer,dt,idxFreeL,idxFreeR,Ea,Eb,G,D,M1p,M1m)
+sf_peaks(IncSchemeID,bufferRe,bufferIm,dt,idxFreeL,idxFreeR,Ea,Eb,G,D,M1p,M1m)
  */
 
 #include "mex.h"
@@ -29,7 +29,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   /*-----------------------------------------------------------------
      Check number of input and output arguments
     ----------------------------------------------------------------- */
-  if (nrhs<9)
+  if (nrhs<10)
     mexErrMsgTxt("Insufficient number of input arguments.");
   
   /*-----------------------------------------------------------------
@@ -59,10 +59,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   
   a++;
   /* Spec: spectral storage array */
-  if (!mxIsComplex(prhs[a]))
-    mexErrMsgTxt("Spec must be complex!");
   rSpec = mxGetPr(prhs[a]);
-  iSpec = mxGetPi(prhs[a]);
   if (nDimensions==1) {
     nPoints1 = mxGetM(prhs[a]);
     if (nPoints1==1) nPoints1 = mxGetN(prhs[a]);
@@ -72,6 +69,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     nPoints1 = mxGetM(prhs[a]);
     nPoints2 = mxGetN(prhs[a]);
   }
+
+  a++;
+  /* Spec: spectral storage array */
+  iSpec = mxGetPr(prhs[a]);
+  if (mxGetNumberOfElements(prhs[a])!=nPoints1*nPoints2)
+      mexErrMsgTxt("buffIm has wrong number of elements!");
+
   
   a++;
   /* dt ... time increment */
@@ -126,7 +130,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   /* get mixing matrices if necessary */
   if (nFreeEvolutions==2) {
     
-    if (nrhs!=11) mexErrMsgTxt("Wrong number of input arguments.");
+    if (nrhs!=12) mexErrMsgTxt("Wrong number of input arguments.");
     
     /* T1l, T1r ... mixing matrices */
     a++;
@@ -141,10 +145,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     iT1r = mxIsComplex(prhs[a]) ? mxGetPi(prhs[a]) : mxGetPr(imagZeros);
   }
   else if (nFreeEvolutions==1) {
-    if (nrhs!=9) mexErrMsgTxt("Wrong number of input arguments.");
+    if (nrhs!=10) mexErrMsgTxt("Wrong number of input arguments.");
   }
   else if (nFreeEvolutions==4) {
-    if (nrhs!=15) mexErrMsgTxt("Wrong number of input arguments.");
+    if (nrhs!=16) mexErrMsgTxt("Wrong number of input arguments.");
 
     a++;
     if (mxGetNumberOfElements(prhs[a])!=nStates*nStates)
@@ -183,7 +187,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     iT3r = mxIsComplex(prhs[a]) ? mxGetPi(prhs[a]) : mxGetPr(imagZeros);
   }
   else if (nFreeEvolutions==3) {
-    if (nrhs!=13) mexErrMsgTxt("Wrong number of input arguments.");
+    if (nrhs!=14) mexErrMsgTxt("Wrong number of input arguments.");
 
     a++;
     if (mxGetNumberOfElements(prhs[a])!=nStates*nStates)

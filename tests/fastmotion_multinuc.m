@@ -1,13 +1,14 @@
 function [err,data] = test(opt,olddata)
 
 %======================================================
-% Linewdiths of hypothetical system with two 14N
+% Linewidths of hypothetical system with two 14N
 %======================================================
 
-System = struct('g',[2.0088 2.0064 2.0027],'Nucs','14N,14N');
-System.A = mt2mhz([7 6 32; 5 20 4]/10);
-tcorr = 1e-10;
-field = 350;
+System.g = [2.0088 2.0064 2.0027];
+System.Nucs = '14N,14N';
+System.A = mt2mhz([7 6 32; 5 20 4]/10); % MHz
+tcorr = 1e-10; % s
+field = 350; % mT
 
 [lw,mI] = fastmotion(System,field,tcorr);
 

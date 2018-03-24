@@ -141,7 +141,8 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
     error('Multiple components: Please specify sweep range manually using %s.',str);
   end
   
-  PowderSimulation = ~isfield(Exp,'CrystalOrientation') || isempty(Exp.CrystalOrientation);
+  PowderSimulation = ~isfield(Exp,'CrystalOrientation') || isempty(Exp.CrystalOrientation) || ...
+    (isfield(Exp,'Ordering') && ~isempty(Exp.Ordering));
   appendSpectra = PowderSimulation && ~summedOutput;
   if appendSpectra
     spec = [];
@@ -430,19 +431,19 @@ logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.Mode);
 if isfield(Exp,'Orientation') || isfield(Exp,'Orientations')
   error('Exp.Orientation and Exp.Orientations are obsolete (as of EasySpin 5), use Exp.CrystalOrientation instead.');
 end
-PowderSimulation = isempty(Exp.CrystalOrientation);
+PowderSimulation = ~isfield(Exp,'CrystalOrientation') || ...
+  isempty(Exp.CrystalOrientation) || ...
+  (isfield(Exp,'Ordering') && ~isempty(Exp.Ordering));
+%PowderSimulation = isempty(Exp.CrystalOrientation);
 Exp.PowderSimulation = PowderSimulation; % for communication with resf*
 
 % Partial ordering
 if ~isempty(Exp.Ordering)
-  if ~PowderSimulation
-    error('Partial ordering (Exp.Ordering) can only be used in a powder simulation.');
-  end
   if isnumeric(Exp.Ordering) && (numel(Exp.Ordering)==1) && isreal(Exp.Ordering)
-    UserSuppliedOrderingFcn = 0;
-    logmsg(1,'  partial order (built-in function, lambda = %g)',Exp.Ordering);
+    lambda = Exp.Ordering;
+    Exp.Ordering = @(phi,theta) exp(lambda*plegendre(2,0,cos(theta)));
+    logmsg(1,'  partial order (built-in function, lambda = %g)',lambda);
   elseif isa(Exp.Ordering,'function_handle')
-    UserSuppliedOrderingFcn = 1;
     logmsg(1,'  partial order (user-supplied function)');
   else
     error('Exp.Ordering must be a single number or a function handle.');
@@ -785,9 +786,9 @@ elseif (~BruteForceSum)
   
   % Determine methods: projection/summation, interpolation on/off
   %-----------------------------------------------------------------------
-  DoProjection = (~AnisotropicWidths) & (nOctants>=0);
+  DoProjection = (~AnisotropicWidths) && (nOctants>=0);
   
-  DoInterpolation = (Opt.nKnots(2)>1) & (nOctants>=0);
+  DoInterpolation = (Opt.nKnots(2)>1) && (nOctants>=0);
   
   % Preparations for projection
   %-----------------------------------------------------------------------
@@ -804,7 +805,7 @@ elseif (~BruteForceSum)
   
   % Preparations for interpolation
   %-----------------------------------------------------------------------
-  if (DoInterpolation)
+  if DoInterpolation
     % Set an option for the sparse tridiagonal matrix \ solver in global cubic
     % spline interpolation. This function needs some time, so it was taken
     % out of Matlab's original spline() function, which is called many times.
@@ -930,8 +931,8 @@ elseif (~BruteForceSum)
     % Powder spectra: interpolation and accumulation/projection
     %=======================================================================
     Axial = (nOctants==0);
-    if (Axial)
-      if (DoInterpolation)
+    if Axial
+      if DoInterpolation
         [fphi,fthe] = sphgrid(Opt.Symmetry,nfKnots,'f');
       else
         fthe = Exp.theta;
@@ -939,15 +940,10 @@ elseif (~BruteForceSum)
       fSegWeights = -diff(cos(fthe))*4*pi; % sum is 4*pi
       if ~isempty(Exp.Ordering)
         centreTheta = (fthe(1:end-1)+fthe(2:end))/2;
-        if (UserSuppliedOrderingFcn)
-          OrderingWeights = feval(Exp.Ordering,zeros(1,numel(centreTheta)),centreTheta);
-          %OrderingWeights = Exp.Ordering(zeros(1,numel(centreTheta)),centreTheta);
-          if any(OrderingWeights)<0, error('User-supplied orientation distribution gives negative values!'); end
-          if max(OrderingWeights)==0, error('User-supplied orientation distribution is all-zero.'); end
-        else
-          U = -Exp.Ordering*plegendre(2,0,cos(centreTheta));
-          OrderingWeights = exp(-U);
-        end
+        centrePhi = zeros(1,numel(centreTheta));
+        OrderingWeights = Exp.Ordering(centrePhi,centreTheta);
+        if any(OrderingWeights)<0, error('User-supplied orientation distribution gives negative values!'); end
+        if all(OrderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end
         fSegWeights = fSegWeights(:).*OrderingWeights(:);
         fSegWeights = 4*pi/sum(fSegWeights)*fSegWeights;
       elseif ~isempty(Opt.ThetaRange)
@@ -958,7 +954,7 @@ elseif (~BruteForceSum)
       logmsg(1,'  total %d segments, %d transitions',numel(fthe)-1,nTransitions);
       
     else % nonaxial symmetry
-      if (DoInterpolation)
+      if DoInterpolation
         [fphi,fthe] = sphgrid(Opt.Symmetry,nfKnots,'f');
       else
         fthe = Exp.theta;
@@ -967,16 +963,10 @@ elseif (~BruteForceSum)
       [idxTri,Areas] = triangles(nOctants,nfKnots,ang2vec(fphi,fthe));
       if ~isempty(Exp.Ordering)
         centreTheta = mean(fthe(idxTri));
-        if (UserSuppliedOrderingFcn)
-          centrePhi = mean(fphi(idxTri));
-          OrderingWeights = feval(Exp.Ordering,centrePhi,centreTheta);
-          %OrderingWeights = Exp.Ordering(centrePhi,centreTheta);
-          if any(OrderingWeights)<0, error('User-supplied orientation distribution gives negative values!'); end
-          if max(OrderingWeights)==0, error('User-supplied orientation distribution is all-zero.'); end
-        else
-          U = -Exp.Ordering*plegendre(2,0,cos(centreTheta));
-          OrderingWeights = exp(-U);
-        end
+        centrePhi = mean(fphi(idxTri));
+        OrderingWeights = Exp.Ordering(centrePhi,centreTheta);
+        if any(OrderingWeights)<0, error('User-supplied orientation distribution gives negative values!'); end
+        if all(OrderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end
         Areas = Areas(:).*OrderingWeights(:);
         Areas = 4*pi/sum(Areas)*Areas;
       elseif ~isempty(Opt.ThetaRange)
@@ -1000,8 +990,8 @@ elseif (~BruteForceSum)
       %------------------------------------------------------
       %LoopTransition = any(isnan(Pdat(iTrans,:)));
       LoopTransition = 0;
-      InterpolateThis = (DoInterpolation & ~LoopTransition);
-      if (InterpolateThis)
+      InterpolateThis = DoInterpolation && ~LoopTransition;
+      if InterpolateThis
         fPos = esintpol(Pdat(iTrans,:),Opt.InterpParams,Opt.nKnots(2),InterpMode{1},fphi,fthe);
         if (AnisotropicIntensities)
           fInt = esintpol(Idat(iTrans,:),Opt.InterpParams,Opt.nKnots(2),InterpMode{2},fphi,fthe);
