@@ -52,7 +52,7 @@ if qshape(1) ~= 4 || ~isnumeric(q)
   error('q must be an array of size (4,...)')
 end
 
-diff = abs(1.0-squeeze(sum(q.*q, 1)));
+diff = abs(1.0-squeeze(sqrt(sum(q.*q, 1))));
 if any(diff(:) > 1e-13)
   error('q is not normalized.')
 end

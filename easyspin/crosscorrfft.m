@@ -4,6 +4,7 @@
 %  CrossCorr = crosscorrfft(x, y, dim);
 %  CrossCorr = crosscorrfft(x, y, dim, normalized);
 %  CrossCorr = crosscorrfft(x, y, dim, normalized, vector);
+%  CrossCorr = crosscorrfft(x, y, dim, normalized, vector, centered);
 %
 %  Input:
 %     x              array of data
@@ -16,6 +17,8 @@
 %     vector         integer
 %                      Dimension over which to sum as components of a
 %                      vector (scalar behavior by default)
+%     centered       1: subtract mean from data (default)
+%                    0: leave data as is
 %
 %  Output:
 %     CrossCorr       autocorrelation of y
@@ -23,31 +26,42 @@
 function CrossCorr = crosscorrfft(varargin)
 
 switch nargin
-  case 1
+  case 2
     % normalized output by default
     x = varargin{1};
     y = varargin{2};
     dim = [];
     normalized = 1;
     vector = 0;
-  case 2
+    centered = 1;
+  case 3
     x = varargin{1};
     y = varargin{2};
     dim = varargin{3};
     normalized = 1;
     vector = 0;
-  case 3
-    x = varargin{1};
-    y = varargin{2};
-    dim = varargin{3};
-    normalized = varargin{4};
-    vector = 0;
+    centered = 1;
   case 4
     x = varargin{1};
     y = varargin{2};
     dim = varargin{3};
     normalized = varargin{4};
+    vector = 0;
+    centered = 1;
+  case 5
+    x = varargin{1};
+    y = varargin{2};
+    dim = varargin{3};
+    normalized = varargin{4};
     vector = varargin{5};
+    centered = 1;
+case 6
+    x = varargin{1};
+    y = varargin{2};
+    dim = varargin{3};
+    normalized = varargin{4};
+    vector = varargin{5};
+    centered = varargin{6};
   otherwise
     error('Wrong number of input arguments.')
 end
@@ -71,8 +85,10 @@ if isempty(dim)
 end
 
 % center the data
-x = bsxfun(@minus, x, mean(x, dim));
-y = bsxfun(@minus, y, mean(y, dim));
+if centered
+  x = bsxfun(@minus, x, mean(x, dim));
+  y = bsxfun(@minus, y, mean(y, dim));
+end
 
 
 N = size(y, dim);

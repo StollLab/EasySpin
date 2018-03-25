@@ -29,8 +29,12 @@
 %                    quantum numbers L, M, and K corresponding to each set of 
 %                    coefficients
 %
-%     PseudoPotFun   function handle
-%                    orienting pseudopotential function to be used for
+%     ProbDensFun    numeric, 3D array
+%                    probability distribution grid to be used for
+%                    calculating the pseudopotential and the torque
+%
+%     PseudoPotFun   numeric, 3D array
+%                    orienting pseudopotential grid to be used for
 %                    calculating the torque
 %
 %
@@ -137,39 +141,47 @@ Sim.Diff = Dynamics.Diff';
 
 tcorrAvg = 1/6/mean(Dynamics.Diff);
 
-if isfield(Sys,'PseudoPotFun') || isfield(Sys,'ProbDensFun')
+if ~isfield(Sys, 'ProbDensFun')
+  Sys.ProbDensFun = [];
+end
+if ~isfield(Sys, 'PseudoPotFun')
+  Sys.PseudoPotFun = [];
+end
+
+if ~isempty(Sys.ProbDensFun) || ~isempty(Sys.PseudoPotFun)
   if isfield(Sys,'Coefs')||isfield(Sys,'LMK')
     error('Please choose either PseudoPotFun or Coefs and LMK for an orienting potential.')
   end
   
-  if isfield(Sys,'ProbDensFun')
+  if ~isempty(Sys.ProbDensFun)
     ProbDensFun = Sys.ProbDensFun;
     idx = ProbDensFun < 1e-14;
     ProbDensFun(idx) = 1e-14;
-    PotFun = -log(ProbDensFun); 
+    PseudoPotFun = -log(ProbDensFun); 
   end
   
-  if isfield(Sys,'PseudoPotFun'), PotFun = Sys.PseudoPotFun; end
+  if ~isempty(Sys.PseudoPotFun), PseudoPotFun = Sys.PseudoPotFun; end
   
 %   PotFun = smooth3(PotFun, 'gaussian');
 %   PotFun = smoothn(PotFun, 0.5);
   
-  alphaGrid = linspace(-pi, pi, size(PotFun,1));
-  betaGrid = linspace(0, pi, size(PotFun,2)+2);
+  alphaGrid = linspace(-pi, pi, size(PseudoPotFun,1));
+%   betaGrid = linspace(0, pi, size(PseudoPotFun,2));
+  betaGrid = linspace(0, pi, size(PseudoPotFun,2)+2);
   betaGrid = betaGrid(2:end-1);
-  gammaGrid = linspace(-pi, pi, size(PotFun,3));
+  gammaGrid = linspace(-pi, pi, size(PseudoPotFun,3));
 
-  if any(isnan(PotFun(:)))
+  if any(isnan(PseudoPotFun(:)))
     error('At least one NaN detected in log(PseudoPotFun).')
   end
   
-  if any(isinf(PotFun(:)))
+  if any(isinf(PseudoPotFun(:)))
     error('At least one inf detected in log(PseudoPotFun).')
   end
   
   pidx = [2, 1, 3];
   
-  [dx, dy, dz] = gradient_euler(PotFun, alphaGrid, betaGrid, gammaGrid);
+  [dx, dy, dz] = gradient_euler(PseudoPotFun, alphaGrid, betaGrid, gammaGrid);
   
 %   px = smooth3(px, 'gaussian');
 %   py = smooth3(py, 'gaussian');
@@ -252,16 +264,16 @@ if isfield(Par,'Omega'), Omega = Par.Omega; end
 
 % Supplement starting angles if necessary
 if isempty(Omega)
-  if isfield(Sys,'ProbDensFun') || isfield(Sys,'PseudoPotFun')
-    [alphaSamples, betaSamples, gammaSamples] = rejectionsample3d(exp(-PotFun), alphaGrid, betaGrid, gammaGrid, Sim.nTraj);
+  if ~isempty(Sys.PseudoPotFun) || ~isempty(Sys.ProbDensFun)
+    [alphaSamples, betaSamples, gammaSamples] = rejectionsample3d(exp(-PseudoPotFun), alphaGrid, betaGrid, gammaGrid, Sim.nTraj);
     Omega = [alphaSamples; 
              betaSamples; 
              gammaSamples];
 %   elseif isfield(Sys,'Coefs')
   else
     gridPts = linspace(-1, 1, Sim.nTraj);
-    gridPhi = zeros(1, Sim.nTraj);
-  %   gridPhi = sqrt(pi*Sim.nTraj)*asin(gridPts);
+%     gridPhi = zeros(1, Sim.nTraj);
+    gridPhi = sqrt(pi*Sim.nTraj)*asin(gridPts);
     gridTheta = acos(gridPts);
   %   gridPsi = zeros(1, Sim.nTraj);
     gridPsi = sqrt(pi*Sim.nTraj)*asin(gridPts); % TODO why does this angle, and not Phi, not affect the spectra?

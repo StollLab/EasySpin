@@ -12,7 +12,7 @@ TrajDir = '.\mdfiles\';
 load([TrajDir, 'MTSSL_polyAla_traj.mat'])
 
 tscale = 2.5;  % diffusion constant of TIP3P model water molecules in MD 
-               % simulations is ~2.5x too low, so we scale the time domain
+               % simulations is ~2.5x too high, so we scale the time domain
 
 MD.FrameX = Traj.FrameX;
 MD.FrameY = Traj.FrameY;
@@ -54,31 +54,41 @@ t = linspace(0, length(ExpectVal)*Par.dt,length(ExpectVal));
 % Plot for comparison
 % -------------------------------------------------------------------------
 
-load('MTSSL_polyAla_spc_istos.mat')  % old data
+OldDataFile = [TrajDir, 'MTSSL_polyAla_spc_istos.mat'];
 
-diff = abs(spc-spcOld);
-rmsd = sqrt(mean(diff.^2));
+if exist(OldDataFile, 'file')>0
+  load(OldDataFile)
 
-if rmsd < 1e-2
-  err = 0;
-%   figure
-% 
-%   plot(BOld, spcOld, B, spc)
-%   ylim([-1.1,1.1])
-%   ylabel('Im(FFT(M_{+}(t)))')
-%   xlabel('B (mT)')
-%   legend('Old','Current')
-%   hold off
+  diff = abs(spc-spcOld);
+  rmsd = sqrt(mean(diff.^2));
+
+  if rmsd < 1e-2
+    err = 0;
+  %   figure
+  % 
+  %   plot(BOld, spcOld, B, spc)
+  %   ylim([-1.1,1.1])
+  %   ylabel('Im(FFT(M_{+}(t)))')
+  %   xlabel('B (mT)')
+  %   legend('Old','Current')
+  %   hold off
+  else
+    err = 1;
+    figure
+
+    plot(BOld, spcOld, B, spc)
+    ylim([-1.1,1.1])
+    ylabel('Im(FFT(M_{+}(t)))')
+    xlabel('B (mT)')
+    legend('Old','Current')
+    hold off
+  end
 else
-  err = 1;
-  figure
-
-  plot(BOld, spcOld, B, spc)
-  ylim([-1.1,1.1])
-  ylabel('Im(FFT(M_{+}(t)))')
-  xlabel('B (mT)')
-  legend('Old','Current')
-  hold off
+  tOld = t;
+  ExpectValOld = ExpectVal;
+  BOld = B;
+  spcOld = spc;
+  save(OldDataFile, 'tOld', 'ExpectValOld', 'BOld', 'spcOld')
 end
 
 data = [];

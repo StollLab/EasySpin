@@ -16,6 +16,10 @@ if ndims(A)<3||ndims(B)<3%size(A,3)<2 || size(B,3)<2
   error('Do not use this function for 2D arrays. Use the "*" operator instead.')
 end
 
+if exist('complexity', 'var')==0
+  complexity = 'complex';
+end
+
 if ~ischar(complexity)
   error('Complexity flag must be a character array.')
 end

@@ -35,9 +35,13 @@
 %                    quantum numbers L, M, and K corresponding to each set of 
 %                    coefficients
 %
-%     PseudoPotFun   numeric
-%                    orienting pseudopotential function to be used for
-%                    calculating the torque on the spin label
+%     ProbDensFun    numeric, 3D array
+%                    probability distribution grid to be used for
+%                    calculating the pseudopotential and the torque
+%
+%     PseudoPotFun   numeric, 3D array
+%                    orienting pseudopotential grid to be used for
+%                    calculating the torque
 %
 %     Sys.lw         double or numeric, size = (1,2)
 %                    vector with FWHM residual broadenings
@@ -205,8 +209,8 @@
 %                    derivative EPR spectrum
 %
 %     expectval      numeric, size = (2*nSteps,1)
-%                    expectation value of z-magnetization, 
-%                    \langle S_{z} \rangle
+%                    expectation value of complex magnetization, 
+%                    \langle S_{+} \rangle
 
 
 function varargout = cardamom(Sys,Par,Exp,Opt,MD)
@@ -217,10 +221,10 @@ switch nargin
   case 0
     help(mfilename); return;
   case 3 % Opt and MD not specified, initialize them
-    Opt = struct;
-    MD = struct;
+    Opt = [];
+    MD = [];
   case 4 % MD not specified
-    MD = struct;
+    MD = [];
   case 5 % Sys, Par, Exp, Opt, MD specified
   otherwise
     error('Incorrect number of input arguments.')
@@ -273,7 +277,7 @@ end
 % Check MD
 % -------------------------------------------------------------------------
 
-useMD = ~isempty(fieldnames(MD));
+useMD = ~isempty(MD);
 
 if isfield(MD,'tScale')
   tScale = MD.tScale;  % diffusion constants of molecules solvated in TIP3P
@@ -333,9 +337,9 @@ if useMD
   MD.FrameY = permute(MD.FrameY, [2, 3, 4, 1]);
   MD.FrameZ = permute(MD.FrameZ, [2, 3, 4, 1]);
   
-  M = size(MD.FrameX, 4);
+  MDTrajLength = size(MD.FrameX, 4);
   
-  MD.RTraj = zeros(3,3,1,M);
+  MD.RTraj = zeros(3,3,1,MDTrajLength);
   MD.RTraj(:,1,1,:) = MD.FrameX;
   MD.RTraj(:,2,1,:) = MD.FrameY;
   MD.RTraj(:,3,1,:) = MD.FrameZ;
@@ -356,6 +360,20 @@ if useMD
   clear MD.FrameY
   clear MD.FrameZ
   clear RTrajInv
+  
+  % estimate [rotational diffusion time scale
+  acorr = autocorrfft(squeeze(MD.FrameZ.^2), 2, 1, 1);
+
+  N = round(MDTrajLength/4);
+
+  % calculate correlation time
+  time = linspace(0, N*MD.dt, N);
+%     tau = max(cumtrapz(time,acorr(1:N)));
+  [k,c,yfit] = exponfit(time, acorr(1:N), 2);
+  tauR = 1/max(k);
+  tauR = 1.5e-9;
+  DiffLocal = 1/6/(tauR);
+  MD.tauR = tauR;
 end
 
 % Check Par
@@ -373,6 +391,38 @@ if useMD
     Par.Model = 'Molecular Dynamics';
   elseif ~strcmp(Par.Model,'Molecular Dynamics')
     error('Mixing stochastic simulations with MD simulation input is not supported.')
+  end
+  
+  if MD.nTraj > 1, error('Using multiple MD trajectories is not supported.'); end
+  
+  if ~strcmp(MD.TrajUsage,'Resampling')
+    % time step of MD simulation, MD.dt, is usually much smaller than
+    % that of the propagation, Par.dt, so determine the size of the 
+    % averaging window here (Par.dt/MD.dt), then set Par.nTraj and 
+    % Par.nSteps accordingly to number of windows and the size of the
+    % window, respectively
+    
+    % size of averaging window
+    WindowLength = ceil(Par.dt/MD.dt);
+
+    % size of MD trajectory after averaging, i.e. coarse-grained trajectory
+    % length
+    nWindows = floor(MD.nSteps/WindowLength);
+
+    % process single long trajectory into multiple short trajectories
+    lag = ceil(Par.dt/2e-9);  % use 2 ns lag between windows
+    
+    if Par.nSteps<nWindows
+      % Par.nSteps not changed from user input
+      Par.nTraj = floor((nWindows-Par.nSteps)/lag) + 1;
+    else
+      Par.nSteps = nWindows;
+      Par.nTraj = 1;
+    end
+    
+    MD.WindowLength = WindowLength;
+    MD.nWindows = nWindows;
+    MD.lag = lag;
   end
   
 else
@@ -498,7 +548,13 @@ switch Model
     
   case 'SRLS'  %  TODO implement multiple diffusion frames
     DiffLocal = Dynamics.Diff;
-    DiffGlobal = 6e6;
+    if isfield(Sys, 'ProbDensFun')
+      ProbDensFunLocal = Sys.ProbDensFun;
+    end
+    if isfield(Sys, 'PseudoPotFun')
+      PseudoPotFunLocal = Sys.PseudoPotFun;
+    end
+    DiffGlobal = 4e6;
     if ~isfield(Par,'nOrients')
       % if Par.nOrients is not given, just use Par.nTraj as number of
       % orientations
@@ -523,7 +579,6 @@ switch Model
     if ~isfield(Par,'nOrients')
       error('nOrients must be specified for the Molecular Dynamics model.')
     end
-    DiffGlobal = 6e6;
     nOrients = Par.nOrients;
     
     if specCon
@@ -554,96 +609,28 @@ switch Model
 %                      zeros(1,Par.nTraj)];
 %       end
       
+      M = MDTrajLength;
+      
       % calculate orienting potential energy function
-      theta = squeeze(acos(MD.FrameZ(3,:,:,:)));
-      phi = squeeze(atan2(MD.FrameY(3,:,:,:), MD.FrameX(3,:,:,:)));
-      psi = squeeze(atan2(-MD.FrameZ(2,:,:,:), MD.FrameZ(1,:,:,:)));
+      theta = squeeze(acos(MD.FrameZ(3,:,:,1:M)));
+      phi = squeeze(atan2(MD.FrameY(3,:,:,1:M), MD.FrameX(3,:,:,1:M)));
+      psi = squeeze(atan2(-MD.FrameZ(2,:,:,1:M), MD.FrameZ(1,:,:,1:M)));
 
-      nBins = 100;
-      PhiBins = linspace(-pi, pi, nBins);
-      ThetaBins = linspace(0, pi, nBins/2);
-      PsiBins = linspace(-pi, pi, nBins);
+      nBins = 90;
+      phiBins = linspace(-pi, pi, nBins);
+      thetaBins = linspace(0, pi, nBins/2);
+      psiBins = linspace(-pi, pi, nBins);
 
-      [PseudoPotFun, dummy] = histcnd([phi,theta,psi],...  
-                                      {PhiBins,ThetaBins,PsiBins});
+      [pdf, ~] = histcnd([phi,theta,psi], {phiBins,thetaBins,psiBins});
                                     
-      PseudoPotFun = PseudoPotFun/trapz(PhiBins, trapz(ThetaBins, trapz(PsiBins, PseudoPotFun)));
+%       pdf = pdf/trapz(phiBins, trapz(thetaBins, trapz(psiBins, pdf)));
       
-      PseudoPotFun(end,:,:) = PseudoPotFun(1,:,:);  % FIXME why does it truncate to zero in the phi direction?
+      pdf(end,:,:) = pdf(1,:,:);  % FIXME why does it truncate to zero in the phi direction?
       
-      % first two dims are incorrectly ordered by histcnd
-%       PseudoPotFun = permute(PseudoPotFun, [2, 1, 3]);  FIXME figure out correct dimension ordering
+      pdf = smoothn(pdf);
+      
+%       save('pdf.mat', 'pdf')
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% used for plotting PseudoPotFun on a sphere
-
-% %       pad = (PseudoPotFun(1,:,:) + PseudoPotFun(end,:,:))/2;
-%       PseudoPotFun(end,:,:) = PseudoPotFun(1,:,:);
-%       
-%       PseudoPotFun = smooth3(PseudoPotFun, 'gaussian');
-% 
-%       yy = permute(mean(PseudoPotFun, 3), [2, 1]);
-%       yy = yy/max(yy(:));
-%       yy(:,end) = yy(:,1);
-%       
-%       theta = linspace(0, pi, size(yy,1));                   % polar angle
-%       phi = linspace(0, 2*pi, size(yy,2));                   % azimuth angle
-%       
-%       [Phi, Theta] = meshgrid(phi, theta);
-%       radius = 1.0;
-%       amplitude = 1.0;
-% %       rho = radius + amplitude*yy;
-%       rho = yy;
-%       
-%       r = radius.*sin(Theta);    % convert to Cartesian coordinates
-%       x = r.*cos(Phi);
-%       y = r.*sin(Phi);
-%       z = radius.*cos(Theta);
-% 
-%       surf(x, y, z, rho, ...
-%            'edgecolor', 'none', ...
-%            'facecolor', 'interp');
-%       % title('$\ell=0, m=0$')
-%
-% 
-% %       shading interp
-% 
-%       axis equal off      % set axis equal and remove axis
-%       view(90,30)         % set viewpoint
-%       set(gca,'CameraViewAngle',6);
-%       
-%       left = 0.5;
-%       bottom = 0.5;
-%       width = 4;     % Width in inches
-%       height = 4;    % Height in inches
-% 
-%       set(gcf,'PaperUnits','inches');
-%       set(gcf,'PaperSize', [8 8]);
-%       set(gcf,'PaperPosition',[left bottom width height]);
-%       set(gcf,'PaperPositionMode','Manual');
-%       
-%       print('ProbabilityDist', '-dpng', '-r300');
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-      % estimate rotational diffusion time scale
-      acorr = autocorrfft(squeeze(MD.FrameZ.^2), 2, 1, 1);
-
-      N = round(length(MD.FrameZ)/2);
-      M = round(N/2);
-
-%       % the ACF will not always reach zero for a small number of trajectories,
-%       % so subtract the offset, which does not change the correlation time
-%       AutoCorrFFT = AutoCorrFFT - mean(AutoCorrFFT(M:3*M));
-
-      % calculate correlation time
-      time = linspace(0,N*MD.dt,N);
-      tau = max(cumtrapz(time,acorr(1:N)));
-      [k,c,yfit] = exponfit(time, acorr(1:N), 2);
-      tauR = 1/max(k);
-%       tau = max(cumtrapz(time,datasmooth(acorr(1:N),500,'flat')));  % FIXME find a robust way to calculate this
-      DiffLocal = 1/6/(tauR);
-%       Par.dt = tau/20;
     end
 
   otherwise
@@ -670,6 +657,8 @@ iter = 1;
 spcArray = [];
 nOrientsTot = 0;
 
+% [t, RTraj, qTraj] = stochtraj(Sys,Par,Opt);
+
 while ~converged
   tic
 %   for iOrient = 1:nOrients
@@ -691,166 +680,115 @@ while ~converged
   %     case 'Stochastic'
   %     case 'Molecular Dynamics'
       case 'Brownian'
-        
-%         if strcmp(Opt.Method,'ISTOs')
-%           % this method needs quaternions, not rotation matrices
-%           [t, ~, qTraj] = stochtraj(Sys,Par,Opt);
-%           Par.qTraj = qTraj;
-%         else
-%           % other methods use rotation matrices
-%           [t, RTraj, ~] = stochtraj(Sys,Par,Opt);
-%           Par.RTraj = RTraj;
-%         end
+        Sys.Diff = Dynamics.Diff;
         [t, RTraj, qTraj] = stochtraj(Sys,Par,Opt);
         Par.qTraj = qTraj;
         Par.RTraj = RTraj;
 
       case 'MOMD'
+        Sys.Diff = Dynamics.Diff;
         [t, RTraj, qTraj] = stochtraj(Sys,Par,Opt);
         % generate quaternions for rotating to different grid points
 %         qMult = repmat(euler2quat(gridPhi(iOrient), gridTheta(iOrient), 0),...
 %                        [1,Par.nTraj,Par.nSteps]);
-        qMult = repmat(euler2quat(0, gridTheta(iOrient), gridPhi(iOrient)),...
+        qLab = repmat(euler2quat(0, gridTheta(iOrient), gridPhi(iOrient)),...
                        [1,Par.nTraj,Par.nSteps]);
-        qTraj = quatmult(qMult,qTraj);
+        qTraj = quatmult(qLab,qTraj);
         Par.qTraj = qTraj;
         Par.RTraj = quat2rotmat(qTraj);
-%         if strcmp(Opt.Method,'ISTOs')
-%           % this method needs quaternions, not rotation matrices
-%           Par.qTraj = qTraj;
-%         else
-%           % other methods use rotation matrices
-%           Par.RTraj = quat2rotmat(qTraj);
-%         end
 
       case 'SRLS'
+        % local diffusion
         Sys.Diff = DiffLocal;
+        if isfield(Sys, 'ProbDensFun')
+          Sys.ProbDensFun = ProbDensFunLocal;
+        end
+        if isfield(Sys, 'PseudoPotFun')
+          Sys.PseudoPotFun = PseudoPotFunLocal;
+        end
         [t, ~, qTrajLocal] = stochtraj(Sys,Par,Opt);
 
+        % global diffusion
         Sys.Diff = DiffGlobal;
+        if isfield(Sys, 'ProbDensFun')
+          Sys.ProbDensFun = [];
+        end
+        if isfield(Sys, 'PseudoPotFun')
+          Sys.PseudoPotFun = [];
+        end
         [t, ~, qTrajGlobal] = stochtraj(Sys,Par,Opt);
         qTraj = quatmult(qTrajGlobal,qTrajLocal);
         
         Par.qTraj = qTraj;
         Par.RTraj = quat2rotmat(qTraj);
-%         if strcmp(Opt.Method,'ISTOs')
-%           % this method needs quaternions, not rotation matrices
-%           Par.qTraj = qTraj;  % ordering?
-%         else
-%           % other methods use rotation matrices
-%           RTraj = quat2rotmat(qTraj);
-%           Par.RTraj = RTraj;
-%         end
-
+        
       case 'Molecular Dynamics'
-        % rotation matrices provided by external data, no need to do stochastic
-        % simulation
-        qMult = repmat(euler2quat(gridPhi(iOrient), gridTheta(iOrient), 0),...
-                       [1,MD.nTraj,MD.nSteps]);
-        if strcmp(Opt.Method,'ISTOs')
-          MD.qTraj = quatmult(qMult, MD.qTraj);
-        else
-          MD.RTraj = mmult(quat2rotmat(qMult), MD.RTraj, 'real');
-        end
-
-        if strcmp(TrajUsage,'Resampling')
-
-          if ~isfield(Par,'Omega')
-            % pick trajectory starting points by bootstrapping MD data
-            randints = sort(randi(MD.nSteps, 1, Par.nTraj));
-            Par.Omega = [phi(randints).'; theta(randints).'; psi(randints).'];
+        
+        if ~strcmp(TrajUsage,'Resampling')
+          % powder grid rotation
+%           qMult = repmat(euler2quat(gridPhi(iOrient), gridTheta(iOrient), 0),...
+%                          [1,MD.nTraj,MD.nSteps]);
+          qLab = repmat(euler2quat(0, gridTheta(iOrient), gridPhi(iOrient)),...
+                         [1,Par.nTraj,Par.nSteps]);
+                       
+          % global diffusion
+          if isfield(MD, 'GlobalDiff')
+            Sys.Diff = MD.GlobalDiff;
+            [t, RTrajGlobal, qTrajGlobal] = stochtraj(Sys,Par,Opt);
+            qLab = quatmult(qLab, qTrajGlobal);
+          end
+          
+          if strcmp(Opt.Method,'ISTOs')
+            Par.qLab = qLab;
+          else
+            Par.RLab = quat2rotmat(qLab);
           end
 
-          Sys.PseudoPotFun = PseudoPotFun;
+        else
+
+          if ~isfield(Par,'Omega')
+%             % pick trajectory starting points by bootstrapping MD data
+%             randints = sort(randi(MD.nSteps, 1, Par.nTraj));
+%             Par.Omega = [phi(randints).'; theta(randints).'; psi(randints).'];
+%             [alphaSamples, betaSamples, gammaSamples] = rejectionsample3d(pdf, phiBins, thetaBins, psiBins, Par.nTraj);
+%             Par.Omega = [alphaSamples; 
+%                          betaSamples; 
+%                          gammaSamples];
+          end
+          
+%           [hist3D, dummy] = histcnd([alphaSamples.',betaSamples.',gammaSamples.'],...  
+%                                  {phiBins,thetaBins,psiBins});
+%                                
+%           save('hist3D.mat', 'hist3D')
+
+          Sys.ProbDensFun = pdf;
           Sys.Diff = DiffLocal;
           [t, ~, qTraj] = stochtraj(Sys,Par,Opt);
 
-          qMult = repmat(euler2quat(gridPhi(iOrient), gridTheta(iOrient), 0),...
+%           qMult = repmat(euler2quat(gridPhi(iOrient), gridTheta(iOrient), 0),...
+%                          [1,Par.nTraj,Par.nSteps]);
+          qLab = repmat(euler2quat(0, gridTheta(iOrient), gridPhi(iOrient)),...
                          [1,Par.nTraj,Par.nSteps]);
-  %         qTraj = quatmult(qTrajGlobal, qTraj);
-          qTraj = quatmult(qMult, qTraj);
-  %         [alpha, beta, gamma] = quat2euler(qTraj);
-  %         alpha = squeeze(alpha);
-  %         beta = squeeze(beta);
-  %         gamma = squeeze(gamma);
-  %         
-  %         N = 50;
-  %         Aedges = linspace(-pi/2, pi/2, N);
-  %         Bedges = pi-acos(linspace(-1, 1, N));
-  % 
-  %         for iTraj=1:Par.nTraj
-  %             [temp,~] = histcounts2(alpha(iTraj,:), beta(iTraj,:), Aedges, Bedges);
-  %             Hist2D(:,:,iTraj) = temp;
-  %             [temp2,~] = histcounts2(alpha(iTraj,:), beta(iTraj,:), Aedges, linspace(0,pi,N));
-  %             Hist2D2(:,:,iTraj) = temp2;
-  %           [temp,~] = histcnd([alpha(iTraj,:).',beta(iTraj,:).',gamma(iTraj,:).'],...
-  %                                         {PhiBins.',ThetaBins.',PsiBins.'});
-  %                                       
-  %           Hist3D(:,:,:,iTraj) = permute(temp, [2, 1, 3]);
-  %         end
-  %         
-  % % %       pad = (PseudoPotFun(1,:,:) + PseudoPotFun(end,:,:))/2;
-  %         HistAvg = mean(Hist3D, 4);
-  %         HistAvg(end,:,:) = HistAvg(1,:,:);
-  % 
-  % %         HistAvg = smooth3(HistAvg, 'gaussian');
-  % 
-  % %         yy = permute(mean(HistAvg, 3), [2, 1]);
-  %         yy = mean(HistAvg, 3);
-  %         yy = yy/max(yy(:));
-  %         yy(:,end) = yy(:,1);
-  % 
-  %         theta = linspace(0, pi, size(yy,1));                   % polar angle
-  %         phi = linspace(0, 2*pi, size(yy,2));                   % azimuth angle
-  % 
-  %         [Phi, Theta] = meshgrid(phi, theta);
-  %         radius = 1.0;
-  %         amplitude = 1.0;
-  %   %       rho = radius + amplitude*yy;
-  %         rho = yy;
-  % 
-  %         r = radius.*sin(Theta);    % convert to Cartesian coordinates
-  %         x = r.*cos(Phi);
-  %         y = r.*sin(Phi);
-  %         z = radius.*cos(Theta);
-  % 
-  %         surf(x, y, z, rho, ...
-  %              'edgecolor', 'none', ...
-  %              'facecolor', 'interp');
-  %         % title('$\ell=0, m=0$')
-  % 
-  % 
-  %   %       shading interp
-  % 
-  %         axis equal off      % set axis equal and remove axis
-  %         view(90,30)         % set viewpoint
-  %         set(gca,'CameraViewAngle',6);
-  %         
-  %         HistTot = HistTot + mean(Hist3D,4);
+
+          qTraj = quatmult(qLab, qTraj);
           
           Par.qTraj = qTraj;
           Par.RTraj = quat2rotmat(qTraj);
-%           if strcmp(Opt.Method,'ISTOs')
-%             % this method needs quaternions, not rotation matrices
-%             Par.qTraj = qTraj;  % ordering?
-%           else
-%             % other methods use rotation matrices
-%             Par.RTraj = quat2rotmat(qTraj);
-%           end
+          
         end
 
     end
 
     % propagate the density matrix
-    rho = propagate_quantum(Sys,Par,Opt,MD,omega,CenterField);
+    Sprho = propagate_quantum(Sys,Par,Opt,MD,omega,CenterField);
 
     % average over trajectories
-    rho = squeeze(mean(rho,3));
+    Sprho = squeeze(mean(Sprho,3));
 
     iExpectVal{1,iOrient} = 0;
     % calculate the expectation value of S_{+}
-    for k = 1:size(rho,1)
-      iExpectVal{1,iOrient} = iExpectVal{1,iOrient} + squeeze(rho(k,k,:));  % take traces TODO try to speed this up using equality tr(A*B)=sum(sum(A.*B))
+    for k = 1:size(Sprho,1)
+      iExpectVal{1,iOrient} = iExpectVal{1,iOrient} + squeeze(Sprho(k,k,:));  % take traces TODO try to speed this up using equality tr(A*B)=sum(sum(A.*B))
     end
 %     ExpectVal{1,iOrient} = squeeze(rho(1,1,:,:)+rho(2,2,:,:)+rho(3,3,:,:));  % take traces TODO try to speed this up using equality tr(A*B)=sum(sum(A.*B))
 
@@ -859,7 +797,7 @@ while ~converged
     end
 
     if strcmp(Model,'Molecular Dynamics')
-      nSteps = size(rho,3);
+      nSteps = size(Sprho,3);
       t = linspace(0, nSteps*Par.dt, nSteps).';
     end
 
@@ -1101,3 +1039,166 @@ function  y = zeropad(x, M)
   if iscolumn(x), y = [x; zeros(M-N, 1)]; end
   if isrow(x), y = [x, zeros(1, M-N)]; end
 end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% used for plotting PseudoPotFun on a sphere
+
+% %       pad = (PseudoPotFun(1,:,:) + PseudoPotFun(end,:,:))/2;
+%       
+%       pdf = smooth3(pdf, 'gaussian');
+% 
+%       yy = permute(mean(pdf, 3), [2, 1]);
+%       yy = yy/max(yy(:));
+%       yy(:,end) = yy(:,1);
+%       
+%       theta = linspace(0, pi, size(yy,1));                   % polar angle
+%       phi = linspace(0, 2*pi, size(yy,2));                   % azimuth angle
+%       
+%       [Phi, Theta] = meshgrid(phi, theta);
+%       radius = 1.0;
+%       amplitude = 1.0;
+% %       rho = radius + amplitude*yy;
+%       rho = yy;
+%       
+%       r = radius.*sin(Theta);    % convert to Cartesian coordinates
+%       x = r.*cos(Phi);
+%       y = r.*sin(Phi);
+%       z = radius.*cos(Theta);
+% 
+%       surf(x, y, z, rho, ...
+%            'edgecolor', 'none', ...
+%            'facecolor', 'interp');
+%       % title('$\ell=0, m=0$')
+% 
+% 
+% %       shading interp
+% 
+%       axis equal off      % set axis equal and remove axis
+%       view(90,30)         % set viewpoint
+%       set(gca,'CameraViewAngle',6);
+%       
+%       left = 0.5;
+%       bottom = 0.5;
+%       width = 4;     % Width in inches
+%       height = 4;    % Height in inches
+% 
+%       set(gcf,'PaperUnits','inches');
+%       set(gcf,'PaperSize', [8 8]);
+%       set(gcf,'PaperPosition',[left bottom width height]);
+%       set(gcf,'PaperPositionMode','Manual');
+%       
+%       print('ProbabilityDist', '-dpng', '-r300');
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%           nBins = 50;
+%           
+%           Hist3D = zeros(nBins, nBins, nBins, Par.nTraj);
+% 
+%           % alphaBins = pi-2*acos(linspace(-1, 1, abins));
+%           alphaBins = linspace(-pi, pi, nBins);
+%           betaBins = pi-acos(linspace(-1, 1, nBins));
+% %           betaBins = linspace(0, pi, nBins);
+%           gammaBins = linspace(-pi, pi, nBins);
+%           
+% %           M = size(qTraj,3)/2;
+%           M = 1;
+%           
+% 
+%           for iTraj=1:Par.nTraj
+%             % use a "burn-in method" by taking last half of each trajectory
+% %             [alpha, beta, gamma] = quat2euler(qTraj(:,iTraj,M:end));
+%             [alpha, beta, gamma] = quat2euler(qTraj(:,iTraj,M:end), 'active');
+%             alpha = squeeze(alpha);
+%             beta = squeeze(beta);
+%             gamma = squeeze(gamma);
+% 
+% 
+%             % calculate 3D histogram using function obtained from Mathworks File Exchange
+%             [Hist3D(:,:,:,iTraj),~] = histcnd([alpha,beta,gamma],...
+%                                               {alphaBins,betaBins,gammaBins});
+%           end
+% 
+%           Hist3D = mean(Hist3D, 4);  % average over all trajectories
+%           Hist3D = Hist3D/trapz(Hist3D(:));  % normalize
+%           
+%           save('Hist3D.mat', 'Hist3D')
+%           
+%           M = 1;
+          
+%           figure(1)
+%           subplot(1,2,1)
+%           slice(alphaBins, ...
+%                 betaBins, ...
+%                 gammaBins, ...
+%                 permute(pdfDec, pidx), ...
+%                 0, pi/2, 0)
+%           xlabel('alpha')
+%           ylabel('beta')
+%           zlabel('gamma')
+%           colormap hsv
+%           
+%           subplot(1,2,2)
+%           slice(alphaBins, ...
+%                 betaBins, ...
+%                 gammaBins, ...
+%                 permute(Hist3D, pidx), ...
+%                 0, pi/2, 0)
+%           xlabel('alpha')
+%           ylabel('beta')
+%           zlabel('gamma')
+%           colormap hsv
+
+  %         N = 50;
+  %         Aedges = linspace(-pi/2, pi/2, N);
+  %         Bedges = pi-acos(linspace(-1, 1, N));
+  % 
+  %         for iTraj=1:Par.nTraj
+  %             [temp,~] = histcounts2(alpha(iTraj,:), beta(iTraj,:), Aedges, Bedges);
+  %             Hist2D(:,:,iTraj) = temp;
+  %             [temp2,~] = histcounts2(alpha(iTraj,:), beta(iTraj,:), Aedges, linspace(0,pi,N));
+  %             Hist2D2(:,:,iTraj) = temp2;
+  %           [temp,~] = histcnd([alpha(iTraj,:).',beta(iTraj,:).',gamma(iTraj,:).'],...
+  %                                         {PhiBins.',ThetaBins.',PsiBins.'});
+  %                                       
+  %           Hist3D(:,:,:,iTraj) = permute(temp, [2, 1, 3]);
+  %         end
+  %         
+  % % %       pad = (PseudoPotFun(1,:,:) + PseudoPotFun(end,:,:))/2;
+  %         HistAvg = mean(Hist3D, 4);
+  %         HistAvg(end,:,:) = HistAvg(1,:,:);
+  % 
+  % %         HistAvg = smooth3(HistAvg, 'gaussian');
+  % 
+  % %         yy = permute(mean(HistAvg, 3), [2, 1]);
+  %         yy = mean(HistAvg, 3);
+  %         yy = yy/max(yy(:));
+  %         yy(:,end) = yy(:,1);
+  % 
+  %         theta = linspace(0, pi, size(yy,1));                   % polar angle
+  %         phi = linspace(0, 2*pi, size(yy,2));                   % azimuth angle
+  % 
+  %         [Phi, Theta] = meshgrid(phi, theta);
+  %         radius = 1.0;
+  %         amplitude = 1.0;
+  %   %       rho = radius + amplitude*yy;
+  %         rho = yy;
+  % 
+  %         r = radius.*sin(Theta);    % convert to Cartesian coordinates
+  %         x = r.*cos(Phi);
+  %         y = r.*sin(Phi);
+  %         z = radius.*cos(Theta);
+  % 
+  %         surf(x, y, z, rho, ...
+  %              'edgecolor', 'none', ...
+  %              'facecolor', 'interp');
+  %         % title('$\ell=0, m=0$')
+  % 
+  % 
+  %   %       shading interp
+  % 
+  %         axis equal off      % set axis equal and remove axis
+  %         view(90,30)         % set viewpoint
+  %         set(gca,'CameraViewAngle',6);
+  %         
+  %         HistTot = HistTot + mean(Hist3D,4);

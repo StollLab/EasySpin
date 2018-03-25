@@ -4,6 +4,7 @@
 %  AutoCorr = autocorrfft(y, dim);
 %  AutoCorr = autocorrfft(y, dim, normalized);
 %  AutoCorr = autocorrfft(y, dim, normalized, vector);
+%  AutoCorr = autocorrfft(y, dim, normalized, vector, centered);
 %
 %  Input:
 %     y              array of data
@@ -15,6 +16,8 @@
 %     vector         integer
 %                      Dimension over which to sum as components of a
 %                      vector (scalar behavior by default)
+%     centered       1: subtract mean from data (default)
+%                    0: leave data as is
 %
 %  Output:
 %     AutoCorr       autocorrelation of y
@@ -28,21 +31,31 @@ switch nargin
     dim = [];
     normalized = 1;
     vector = 0;
+    centered = 1;
   case 2
     y = varargin{1};
     dim = varargin{2};
     normalized = 1;
     vector = 0;
+    centered = 1;
   case 3
     y = varargin{1};
     dim = varargin{2};
     normalized = varargin{3};
     vector = 0;
+    centered = 1;
   case 4
     y = varargin{1};
     dim = varargin{2};
     normalized = varargin{3};
     vector = varargin{4};
+    centered = 1;
+  case 5
+    y = varargin{1};
+    dim = varargin{2};
+    normalized = varargin{3};
+    vector = varargin{4};
+    centered = varargin{5};
   otherwise
     error('Wrong number of input arguments.')
 end
@@ -61,7 +74,9 @@ if isempty(dim)
 end
 
 % center the data
-y = bsxfun(@minus, y, mean(y, dim));
+if centered
+  y = bsxfun(@minus, y, mean(y, dim));
+end
 
 
 N = size(y, dim);

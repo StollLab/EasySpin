@@ -5,7 +5,7 @@
 %
 %  Input:
 %     A        NxM array, M Markov chains each with length N
-%           or LxNxM array, L instances of M Markov chains...
+%           or LxNxM array, L instances of M Markov chains with length N
 %
 %  Output:
 %     gr       double, Gelman-Rubin R statistic
