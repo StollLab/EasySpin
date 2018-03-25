@@ -470,9 +470,9 @@ switch Method
         for m = 1:5
 %           HeqOrder1 = HeqOrder1 + bsxfun(@times, mean(D2avg(m,mp,:),3), cacheTensors.Q2{mp,m});
 %           HeqOrder1 = HeqOrder1 + bsxfun(@times, D2avg(m,mp,:), cacheTensors.Q2{mp,m});
-%           HeqOrder2 = HeqOrder2 + 1i*cacheTensors.Q2{mp,m}.*(cacheTensors.Q2{mp,m})'.*K2(mp,m,:);
+%           HeqOrder2 = HeqOrder2 + 1i*cacheTensors.Q2{mp,m}*(cacheTensors.Q2{mp,m})'.*K2(mp,m,:);
           HeqOrder1 = HeqOrder1 + bsxfun(@times, D2avg(m,mp,:), tosuper(cacheTensors.Q2{mp,m},'c'));
-          HeqOrder2 = HeqOrder2 + 1i*tosuper(cacheTensors.Q2{mp,m},'c').*tosuper(cacheTensors.Q2{mp,m}','c').*K2(mp,m,:);
+          HeqOrder2 = HeqOrder2 + 1i*tosuper(cacheTensors.Q2{mp,m},'c')*tosuper(cacheTensors.Q2{mp,m}','c').*K2(mp,m,:);
 
 %       for mppp = 1:5
     %         for mpp = 1:5
@@ -492,7 +492,6 @@ switch Method
 %       Ueqdag = zeros(size(U,1),size(U,2),nTraj);
       if Liouville
         Ueq = zeros(size(U,1)^2,size(U,2)^2,nTraj);
-%         Heq = tosuper(Heq, 'c');
         for iTraj=1:nTraj
           Ueq(:,:,iTraj) = expm_fast1(1i*dt*Heq(:,:,iTraj));
         end
@@ -504,20 +503,12 @@ switch Method
           Ueq(:,:,iTraj) = expm_fast1(1i*dt*Heq(:,:,iTraj));
           Ueqdag(:,:,iTraj) = expm_fast1(-1i*dt*Heq(:,:,iTraj));
 %           Ueqdag(:,:,iTraj) = inv(Ueq(:,:,iTraj));
-%           Ueqdag(:,:,iTraj) = expm_fast1(1i*dt*inv(Heq(:,:,iTraj)));
         end
         Sim.Ueq = Ueq;
         Sim.Ueqdag = Ueqdag;
       end
 
 %       Ueqdag = conj(permute(Ueq, [2,1,3,4]));
-
-%       Ueq = Ueq./sum(abs(Ueq),1);
-%       Ueqdag = Ueqdag./sum(abs(Ueqdag),1);
-
-    %   if Liouville
-    %     Ueq = tosuperLR(Ueq,Ueqdag);
-    %   end
 
     end
 
@@ -537,8 +528,6 @@ switch Method
     end
     
     rho(:,:,:,1) = repmat(rho0,1,1,nTraj,1);
-%     rho(1:3,4:6,:,1) = repmat(eye(3),1,1,nTraj,1);
-%     rho(4:6,1:3,:,1) = repmat(eye(3),1,1,nTraj,1);
     
     % Time evolution of density matrix
     % ---------------------------------------------------------------------
