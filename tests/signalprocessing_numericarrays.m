@@ -15,8 +15,7 @@ RawSignal2(2,1:2,:) = [Cos + 1i*Sin*1e-10; Cos*1e-10 + 1i*Sin];
 
 data.ProcessedSignal1 = ProcessedSignal1;
 
-DetectionOperators = {'+1','x2','x2','x2'};
-[ProcessedSignal2] = signalprocessing(TimeAxis,RawSignal2,[-Freq/1000 -Freq/1000 0]);
+[ProcessedSignal2] = signalprocessing(TimeAxis,RawSignal2,[-Freq/1000 -Freq/1000 0 0]);
 
 data.ProcessedSignal2 = ProcessedSignal2;
 

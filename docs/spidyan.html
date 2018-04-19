@@ -54,7 +54,8 @@ The focus of <code>spidyan</code> lies on investigation of spin dynamics and on 
 Hence, the outputs of <code>spidyan</code> are a time domain signal and density matrices of a single spin packet.
 For simulating transients or spectra of realistic samples, use the function <code>saffron</code>, which is based one the same propagation engine.
 Time-domain signals or state trajectories simulated by <code>spidyan</code> are typically further analyzed by (Matlab) software home-written by the user.
-At the expense of requiring more knowledge on spin quantum mechanics than higher-level EasySpin functions, <code>spidyan</code> provides a lot of freedom in specifying input and output (e.g., custom (non-physical) initial states, transition selective excitation operators,  freely-choosable detection operators,...). This freedom should help you to investigate your spin dynamics problem in depth.
+At the expense of requiring more knowledge on spin quantum mechanics than higher-level EasySpin functions, <code>spidyan</code> provides a lot of freedom in specifying input and output (e.g., custom (non-physical) initial states, transition selective excitation operators,  freely-choosable detection operators,...). 
+This freedom should help you to investigate your spin dynamics problem in depth.
 </p>
 
 <div class="subtitle2">Outputs</div>
@@ -70,8 +71,7 @@ The output contains the abscissa data in <code>t</code> (time in microseconds) a
 For a single acquisition or a multidimensional experiment where all time traces have the same length, <code>t</code> and <code>sig</code> are numeric arrays. 
 For multidimensional simulations where the length of the trace changes, <code>t</code> and <code>sig</code> are cell arrays.
 <li>
-<code>s</code> is the final state (or states for a multidimensional experiment) after propagation.
-<li> The cell array <code>t</code> contains state trajectories (density matrices) at each point of detection, but is available only if requested through <code>Opt.StateTrajectories</code>.
+<code>out</code> contains additional output such as the final state in <code>out.FinalState</code> (or states for a multidimensional experiment) after propagation and the cell array <code>out.StateTrajectories</code> which contains state trajectories (density matrices) at each point of detection, but is available only if requested through <code>Opt.StateTrajectories</code>.
 </ul>
 </p>
 
@@ -176,7 +176,7 @@ Free evolution events are declared with '<code>0</code>':
 <pre class="matlab">
 Pulse.Type = 'rectangular';  	% Define Pulse
 
-Exp.t = [0.05 0.2 0.05 0.4];	% Event lenghts of the sequence
+Exp.t = [0.05 0.2 0.05 0.4];	% Event lengths of the sequence
 Exp.Pulses = {Pulse 0 Pulse}; 	% Assign Pulses to events 1 and 3, events 2 and 4 are free evolution events
 </pre>
 If the pulse definition contains a field <code>Qcrit</code> or <code>Amplitude</code>, the value in <code>Exp.Flip</code> is ignored.
@@ -653,60 +653,124 @@ The output now contains 100 echos, each for a different first inter-pulse delay.
 
 <p>
 The data type of the returned time-domain signal depends on experiment parameters. 
-If you run a single experiment (no <code>Exp.nPoints</code>), the output <code>sig</code> is a numeric array, with the first dimension corresponding to the specified detection operators and the second dimension to the time axis. 
-If you specify a single detection operator, say <i>&Scirc;</i><sub>-</sub>, <code>sig</code> is a complex-valued vector. 
-The time axis is returned in <code>t</code>.
+If you run a single experiment (no <code>Exp.nPoints</code>), the output <code>sig</code> is a two-dimensional numeric array, with the first dimension corresponding to the specified detection operators and the second dimension to the time axis. 
+If one the specified detection operators is a ladder operator, say <i>&Scirc;</i><sub>-</sub>, <code>sig</code> is a complex-valued vector. 
+The time axis is returned in <code>t</code> and will be a vector with the same length as <code>sig</code>.
 </p>
 
 <p>
-If you run a multidimensional experiment, <code>sig</code> can be a numeric array (if each acquisition point has the same length) or a cell array (if the detection length changes).
-In either case the indexing adheres to the following rule: 
-Dimensions are looped from the last to the first dimension, with the last dimension being the most inner loop and the first dimension the most outer loop.
-E. g. for <code>Exp.nPoints = [2 3];</code> a total of 6 data sets will be returned in the order:
+If you run a multidimensional experiment, <code>sig</code> can be an (n+2)-dimensional numeric array (if each acquisition point has the same length) or an n-dimensional cell array (if the detection length changes), where n is the number of indirect dimensions of your simulation.
+The indexing of n corresponds to how <code>Exp.nPoints</code> was defined: 
 </p>
 
 <p>
-<code>[1 1], [1 2], [1 3], [2 1], [2 2], [2 3]</code>
+If the total length of all detected events is identical for each acquisition point, <code>sig</code> will be a (n+2) dimensional array.
+For <code>Exp.nPoints = [3 4];</code> a total of 12 data sets will be returned in a four dimensional array:
+
+<pre class="matlab">
+Exp.nPoints = [3 4];
+Opt.DetOperator = {'z1','+1'};
+</pre>
+<pre class="mloutput">
+size(sig) = 
+
+           3	  4	  2 	11003
+</pre>
+
+The first dimension of your output has a length of <code>3</code> and the second dimension <code>4</code>.
+These correspond to the indirect dimensions.
+The second-to-last dimension corresponds to the detection operators and the last dimension are the expectation values at each point of time during which was detected.
+To get the time trace that corresponds to the second point in the first dimension and the last point in the second dimension you could use: 
+<pre class="matlab">
+trace = sig(2,4,:,:);
+% or if you want to remove the singular dimensions (e.g. for plotting)
+trace = squeeze(sig(2,4,:,:));
+</pre>
+If all acquisition points have the same time axis, <code>t</code> is a vector:
+<pre class="mloutput">
+size(t) = 
+
+           1 	11003
+</pre>
+If not, <code>t</code> is an (n+1) dimensional numeric array, with the same indexing for n as for <code>sig</code>.
+This can be encountered when detecting a moving echo, with a detection window that is always centered around the echo, but moves in terms of absolute time (see example on two-pulse ESEEM).
+<pre class="mloutput">
+size(t) = 
+
+           3        4 	   11003
+</pre>
 </p>
 
 <p>
-or for <code>Exp.nPoints = [2 3 3]</code>
-</p>
+When the detection length changes (e.g. if you vary the length of a pulse or a free evolution event that is being detected) between acquisition points, <code>t</code> and <code>sig</code> become n-dimensional cell arrays. 
+The indexing of the elements in each cell array again corresponds to <code>Exp.nPoints</code>:
+<pre class="mloutput">
+size(sig) = 
 
-<p>
-<code>[1 1 1], [1 1 2], [1 1 3], [1 2 1], [1 2 2], [1 2 3], ...</code>
-</p>
+           3	  4
+</pre>
+Each element of <code>sig</code> is a two-dimensional numeric array with the first dimension corresponding to the detection operators and the second to the time axis:
+<pre class="mloutput">
+size(sig{1,1}) = 
 
-<p>
-If the total length of all detected events is identical for each acquisition point, the signals are returned as a three-dimensional array in <code>sig</code> .
-The first dimension corresponds to the acquisition point, sequenced as described above.
-The second dimension corresponds to the detection operators and the last dimension are the expectation values.
-If all acquisition points have the same time axis, <code>t</code> is a vector.
-If not, <code>t</code> is a two-dimensional numeric array, with the first dimension being the acquisition points.
-This can be encountered when detecting a moving echo, with a detection window that is always centered around the echo (see example on two-pulse ESEEM).
-</p>
+           2 	11003
+		   
+size(sig{2,4}) = 
 
-<p>
-When the detection length changes between acquisition points, <code>t</code> and <code>sig</code> become cell arrays. 
-The indexing of the elements in each cell array corresponds to the acquisition points.
-Each element of <code>sig</code> is a two-dimensional numeric array with the first dimension corresponding to the detection operators and the second to the time axis.
-The time axes for each acquisition point are stored as vectors in the elements of <code>t</code>.
+           2 	21003
+</pre>
+The time axes for each acquisition point are stored as vectors in the elements of <code>t</code>:
+<pre class="mloutput">
+size(t) = 
+
+           3	  4
+		   
+size(t{1,1}) = 
+
+           2 	11003
+		   
+size(t{2,4}) = 
+
+           2 	21003
+</pre>
 </p>
 
 <div class="subtitle2">Final States</div>
 
 <p>
-For a single acquisition, the output <code>s</code> is the final density matrix of size n<sub>H</sub> x n<sub>H</sub>, where n<sub>H</sub> is the dimensionality of your spin system in Hilbert space.
-If a simulation with more than one acquistion point is run, <code>s</code> is a three-dimensional numeric array of size n<sub>Points</sub> x n<sub>H</sub> x n<sub>H</sub>.
-Indexing of acquisition points is described above.
+For a single acquisition, the output <code>out.FinalState</code> is the final density matrix of size n<sub>H</sub> x n<sub>H</sub>, where n<sub>H</sub> is the dimensionality of your spin system in Hilbert space.
+If a simulation with more than one acquisition point is run, <code>s</code> is an (n+2)-dimensional numeric array, with the same rules for indexing as demonstrated above for <code>sig</code>.
+E. g. to get the final state of the second data point in the first dimension and the fourth data point in the second dimension, write:
+<pre class="matlab">
+InterestingState = squeeze(out.FinalState(2,4,:,:)); % squeeze removes the singleton dimensions
+</pre>
+<pre class="mloutput">
+InterestingState = 
+
+		0.0592 - 0.0000i   0.4559 + 0.1965i
+		0.4559 - 0.1965i  -0.0592 + 0.0000i
+</pre>
+
 </p>
 
 <div class="subtitle2">State Trajectories</div>
 
 <p>
-If <code>Opt.StateTrajectories</code> is active during at least one event, <code>t</code> contains the state trajectories.
-This means, it contains the state (density matrix) of each propagation step during the selected events.
-<code>t</code> is a cell array with the first dimension being the acquisition points (indexing according to above rule) and the second dimension the data points.
+If <code>Opt.StateTrajectories</code> is active during at least one event, <code>out.StateTrajectories</code> contains the state trajectories.
+This means, it contains the state (density matrix) of each propagation step during the events selected in <code>Opt.StateTrajectories</code>.
+<code>out.StateTrajectories</code> is an n-dimensional cell array where the dimensions once again correspond to <code>Exp.nPoints</code>.
+To get the state trajectories for the second data point in the first dimension and for the fourth datapoint in the second dimension of aboves example, write:
+<pre class="matlab">
+InterestingStateTrajectory = out.StateTrajectories{2,4}
+</pre>
+<pre class="mloutput">
+size(out.StateTrajectories)
+
+     3		4
+size(InterestingStateTrajectory)
+
+     1		21003
+</pre>
 For full recording of state trajectories, detection needs to be active during those events.
 Otherwise only the states at the beginning and the end of that event are recorded.
 </p>
@@ -805,7 +869,8 @@ This removes artifacts at the beginning and end of the time traces that are intr
 <li> 
 In some simulations you may observe echoes in your timetrace that should not be there.
 Besides physical reasons (incomplete phase cycling, different refocusing conditions,...), such artifact echoes can arise from an aliasing effect if the spectrum (e.g. the Gaussian distribution in the example above) is insufficiently sampled.
-This can easily be checked: By increasing the number of samples from your distribution the artifact echoes should move, spread further apart or vanish, while physical echos stay in place. You can also compute the required increment for the spin packet distribution in frequency domain by an inverse Nyquist criterion. If you want to observe up to a time <i>t</i><sub>max</sub> after the first excitation event (first pulse), the frequency increment should not be larger than 1/(2 <i>t</i><sub>max</sub>). Otherwise use Monte Carlo sampling of spin packet frequencies, which will convert the artifacts to 'Monte Carlo noise' that averages with increasing number of trials.  
+This can easily be checked: By increasing the number of samples from your distribution the artifact echoes should move, spread further apart or vanish, while physical echos stay in place. You can also compute the required increment for the spin packet distribution in frequency domain by an inverse Nyquist criterion. 
+If you want to observe up to a time <i>t</i><sub>max</sub> after the first excitation event (first pulse), the frequency increment should not be larger than 1/(2 <i>t</i><sub>max</sub>). Otherwise use Monte Carlo sampling of spin packet frequencies, which will convert the artifacts to 'Monte Carlo noise' that averages with increasing number of trials.  
 <li> 
 If the signal processing fails, <code>spidyan</code> returns the signal in the simulation frame. 
 This can happen if you try to translate <i>&Scirc;<sub>z</sub></i> or provide a wrong frequency. 

@@ -18,7 +18,7 @@ RawSignal2{2} = [Cos; Cos + 1i*Sin*1e-10; Cos*1e-10 + 1i*Sin; ones(1,length(t));
 data.ProcessedSignal1 = ProcessedSignal1;
 TimeAxis{2} = t;
 
-[ProcessedSignal2] = signalprocessing(TimeAxis,RawSignal2,[-Freq/1000 -Freq/1000 0]);
+[ProcessedSignal2] = signalprocessing(TimeAxis,RawSignal2,[-Freq/1000 -Freq/1000 0 0 0]);
 
 data.ProcessedSignal2 = ProcessedSignal2;
 

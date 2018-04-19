@@ -1,5 +1,5 @@
 % A simple ESEEM time trace simulation - running the script will take 
-% several minutes
+% a while
 
 clear Sys Opt Exp Pulse
 
@@ -43,7 +43,8 @@ Exp.nPoints = 100;
 Exp.Dim = {'d1,d2', 0.004};
 
 Opt.DetOperator = {'+1'};
-% Opt.FrameShift = 32;
+Opt.FreqTranslation = [-33.5];
+Opt.FrameShift = 32;
 
 % Loop over the spinpackets and sum up the traces 
 for i = 1 : nSpinpackets
@@ -59,21 +60,17 @@ for i = 1 : nSpinpackets
     TotalSignal = TotalSignal + Signal*P(i);
   end
   
+  disp([num2str(round(i/nSpinpackets*100,1)) ' %'])
 end
 
-%% Signal Processing
-% Downconversion can done after all the signal had been summed up
-FreqTranslation = -CenterFrequency;
-
-SignalDC = signalprocessing(TimeAxis,TotalSignal,FreqTranslation);
-
+%% Data Plotting
 % Get maximum of echo at each acquistion point
-Int = zeros(1,Exp.nPoints);
-for i = 1 : size(SignalDC)
-  Int(i) = max(abs(SignalDC(i,:)));
+EchoModulation = zeros(1,Exp.nPoints);
+for i = 1 : size(TotalSignal,1)
+  EchoModulation(i) = max(abs(TotalSignal(i,:,:)));
 end
-Int = Int - mean(Int);
-Int = Int/max(abs(Int));
+EchoModulation = EchoModulation - mean(EchoModulation);
+EchoModulation = EchoModulation/max(abs(EchoModulation));
 
 % Calculate Time axis of the ESEEM experiment
 tau = Exp.t(2)+linspace(0,Exp.Dim{1,2}*(Exp.nPoints-1),Exp.nPoints);
@@ -82,6 +79,6 @@ tau = Exp.t(2)+linspace(0,Exp.Dim{1,2}*(Exp.nPoints-1),Exp.nPoints);
 figure(1)
 clf
 hold on
-plot(tau*1000,Int)
+plot(tau*1000,EchoModulation)
 xlabel('\tau [ns]')
-ylabel('Echo Intensity')
+ylabel('Normalized Modulation of Echo Amplitude [a.u.]')

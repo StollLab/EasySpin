@@ -9,42 +9,49 @@
 %     out:
 %       x          ... signal(s) after frequency translation
 
-function [ ProcessedSignal ] = signalprocessing(TimeAxis,RawSignal,FreqTranslation)
+function [ ProcessedSignal ] = signalprocessing(TimeAxis,RawSignal,FreqTranslations)
 
-% Number of detection operators
-if iscell(RawSignal)
-  nDetectionOperators = size(RawSignal{1},1);
-else
-  if length(size(RawSignal)) == 2
-    nDetectionOperators = size(RawSignal,1);
-  elseif length(size(RawSignal)) == 3
-    nDetectionOperators = size(RawSignal,2);
-  end 
-end
+nDetectionOperators = length(FreqTranslations);
 
-% Setup vector with down conversion frequencies
-TranslationFrequencies = zeros(1,nDetectionOperators);
-
-% Trys down conversion, if it fails for any reason, the raw signal is
+% Tries down conversion, if it fails for any reason, the raw signal is
 % returned. Errors are usually when the down conversion frequency is very
 % wrong, or a non oscillating signal is to be down converted (Sz)
 try
-  nDownConversionFrequencies = length(FreqTranslation);
-  TranslationFrequencies(1:nDownConversionFrequencies) = FreqTranslation;
-  
-  % Recognizing the type of the input, wheter it is a cell or numeri array
-  % and gets the number of acquisition points
-  % For the cell array each element has to processed individually
+  % Recognizing the type of the input, whether it is a cell or numeric 
+	% array and gets the number of acquisition points
+  % For the cell array each element has to processed individually which is
+  % much more straightforward
   if iscell(RawSignal)
     ProcessedSignal = cell(size(RawSignal));
-    nPoints = length(RawSignal);
+    nPoints = numel(RawSignal);
   else
-    if length(size(RawSignal)) == 2
-      RawSignal = reshape(RawSignal,[1,size(RawSignal,1),size(RawSignal,2)]);
+    % for a numeric array, several tests need to be done
+    SignalSize = size(RawSignal);
+    % First a check of the dimensionality of the input, necessary since
+    % signalprocessing could be called by a user (and not from within
+    % spidyan) where the data might have already been reduced from a
+    % multi-dimensional array to a two dimensional array (e.g. only one
+    % acquistion point)
+    if ndims(RawSignal) == 2 %#ok<ISMAT>
+      nPoints = 1;
+      % turn it into a 3D array, because thats how they are processed
+      RawSignal = reshape(RawSignal,[1 SignalSize]); 
+    else
+      
+      nPoints = prod(SignalSize(1:end-2));
+      % reshape the n-dimensional array into a 3-dimensional array, that
+      % can be looped over linearly along the first dimension (which
+      % corresponds to all the acquistion points)
+      RawSignal = reshape(RawSignal,[nPoints,SignalSize(end-1),SignalSize(end)]);
     end
+    
     ProcessedSignal = zeros(size(RawSignal));
-    nPoints = size(RawSignal,1);
-    DCTimeAxis = TimeAxis(1,:);
+    
+    % reshape time axis if simulation had more than one indirect dimension
+    % and/or time axes are not identical
+    if ndims(TimeAxis) > 2 %#ok<ISMAT>
+      TimeAxis = reshape(TimeAxis,[nPoints,SignalSize(end)]);
+    end
   end
   
   % loop over all acquired data points
@@ -53,7 +60,16 @@ try
       % Gets the size of the traces for the current data point and the time
       % axis if the RawSignal is a CellArray
       Traces = zeros(size(RawSignal{iPoint}));
-      DCTimeAxis = TimeAxis{1,iPoint};
+      DCTimeAxis = TimeAxis{iPoint};
+    else
+      % If a time axis for each acquistion point was provided, the correct
+      % time axis is loaded for the downconversion
+      if size(TimeAxis,1) > 1
+        DCTimeAxis = TimeAxis(iPoint,:);
+      else
+        % if all signals have the same time axis
+        DCTimeAxis = TimeAxis;
+      end
     end
     % Loop over the Number of Detection Operators
     for iTrace = 1 : nDetectionOperators
@@ -78,7 +94,7 @@ try
         % the signal is also being demodulated. Else, if signalprocessing
         % is called manually at a later point, the signal gets multiplied
         % too many times
-        if TranslationFrequencies(iTrace) ~= 0
+        if FreqTranslations(iTrace) ~= 0
           RFSignal = 2*RFSignal;
         end
       end
@@ -106,7 +122,7 @@ try
       % current detection operator, the cleaned up signal is written to
       % ProcessedSignal
       
-      if TranslationFrequencies(iTrace) ~= 0
+      if FreqTranslations(iTrace) ~= 0
         DCSignal = zeros(1,length(RFSignal));
         % Depending on the type of trace, different down conversion types
         % are required (see rfmixer for details)
@@ -114,7 +130,7 @@ try
           Elements = BreakIndices(j):(BreakIndices(j+1)-1);
           if isreal(RFSignal)
             % Mixing if signal is real or imaginary
-            [~, DCSignal(Elements)] = rfmixer(DCTimeAxis(Elements),RFSignal(Elements),TranslationFrequencies(iTrace),'IQdemod',Opt);
+            [~, DCSignal(Elements)] = rfmixer(DCTimeAxis(Elements),RFSignal(Elements),FreqTranslations(iTrace),'IQdemod',Opt);
             
             if purelyImag
               DCSignal = real(DCSignal)*1i;
@@ -124,7 +140,7 @@ try
             
           else
             % Mixing if signal is complex          
-            [~, DCSignal(Elements)] = rfmixer(DCTimeAxis(Elements),RFSignal(Elements),TranslationFrequencies(iTrace),'IQshift',Opt);
+            [~, DCSignal(Elements)] = rfmixer(DCTimeAxis(Elements),RFSignal(Elements),FreqTranslations(iTrace),'IQshift',Opt);
             
           end
         end
@@ -149,6 +165,10 @@ try
       ProcessedSignal{iPoint} = Traces;
     end
   end
+  
+  if ~iscell(RawSignal)
+    ProcessedSignal = reshape(ProcessedSignal,SignalSize);
+  end
 catch EM
   % If something goes wrong during down conversion, the RawSignal is
   % returned
@@ -158,12 +178,10 @@ catch EM
 end
 
 % If only one acquisition point, singleton dimension is removed
-if ~iscell(ProcessedSignal) && size(ProcessedSignal,1) == 1
+if ~iscell(ProcessedSignal) && ndims(ProcessedSignal) == 3 && size(ProcessedSignal,1) == 1
   ProcessedSignal = squeeze(ProcessedSignal);
   if size(ProcessedSignal,2) == 1
     ProcessedSignal = permute(ProcessedSignal,[2,1]);
   end
-end
-
 end
 

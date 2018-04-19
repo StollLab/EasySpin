@@ -79,7 +79,10 @@ ylabel('<S_i>')
 legend('Regular ExOp','Complex ExOp')
 
 % With custom excitation operators it is possible to investigate the effect
-% of pulses during a pulse sequence in more detail
+% of pulses during a pulse sequence in more detail - in this example our
+% custom excitation operator is the same as the default one (Sx), but 
+% manually defined (sop(Sys.S,'x') would also be possible. 
+% Feel free to experiment!
 
 Opt = DefOpt;
 Opt.ExcOperator = {sop(Sys.S,'x(1|2)')};
@@ -118,7 +121,11 @@ Exp.t = [0.2 0.5]; % us
 Exp.Pulses = {Adiabatic};
 Exp.Frequency = [-0.05 0.05]; % GHz
 
-[TimeAxis, Signal, ~, ~, DensityMatrices] = spidyan(Sys,Exp,Opt);
+Exp.nPoints = [1 1];
+Exp.Dim1 = {'p1.tp', 0.01};
+Exp.Dim2 = {'p1.tp', 0.01};
 
-message = ['Cell array ''DensityMatrices'' contains ' num2str(size(DensityMatrices,2)) ' density matrices.'];
+[TimeAxis, Signal, AdvancedOutputs] = spidyan(Sys,Exp,Opt);
+
+message = ['Cell array ''AdvancedOutputs.StateTrajectories'' contains ' num2str(size(AdvancedOutputs.StateTrajectories,2)) ' density matrices.'];
 disp(message)

@@ -26,7 +26,11 @@ Exp.TimeStep = 0.0001; % us
 Exp.Frequency = [0]; % GHz
 Exp.Flip = [pi/2 pi];
 Exp.mwFreq = 33.5; % GHz
+% This detects the entire experiment:
 Exp.DetEvents = 1;
+% If you want to see only the free evolution after the second pulse, try 
+% this instead:
+Exp.DetEvents = [0 0 0 1];
 
 Opt.DetOperator = {'+1'};
 Opt.FrameShift = 32; % GHz
@@ -69,7 +73,7 @@ for i = 1 : nSpinpackets
   
   Sys.ZeemanFreq = ZeemanFreqVec(i); % Set Zeeman frequency
   
-  [t, signal, state, sigmas, Eventsnew] = spidyan(Sys,Exp,Opt);
+  [t, signal] = spidyan(Sys,Exp,Opt);
   if i == 1
     Signal = signal*P(i);
   else

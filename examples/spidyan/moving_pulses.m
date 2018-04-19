@@ -1,4 +1,8 @@
 clear Exp Sys Opt Pulse
+% This script explains how to move a pulse around using Exp.Dim in
+% combination with the option 'Position'. The results are shown as
+% trajectory of a single spin wich is on resoance with the pulses
+
 % Spin System
 Sys.S = 1/2;
 Sys.ZeemanFreq = 33.500; % GHz
@@ -15,7 +19,7 @@ Exp.Flip = [pi/2 pi pi];
 Exp.mwFreq = 33.5; % GHz
 Exp.DetEvents = 1;
 
-% Move the Pulse in the middle to the back in 100 ns steps
+% Move the center pulse to the back in 100 ns steps
 Exp.nPoints = 9;
 Exp.Dim = {'p2.Position',0.1};
 

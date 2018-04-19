@@ -1,4 +1,10 @@
 clear Exp Sys Opt Pulse
+% This script uses different types of inversion pulses. Their inversion 
+% behavior is shown through the trajcetory of a single spin. The spin is on
+% resonance for the monochromatic pulse and in the center of the sweep
+% for the frequency modulated pulses (linear chirp and hyperbolic secant).
+% The monochromatic rectangular pulse is much shorter than the two
+% frequency swept pules.
 
 % Spin System
 Sys.S = [1/2]; 

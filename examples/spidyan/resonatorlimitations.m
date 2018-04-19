@@ -49,7 +49,7 @@ for i = 1 : length(ZFreqs)
   
   [TimeAxis, Signal{i}] = spidyan(Sys,Exp,Opt);
   
-  plot(TimeAxis*1000,real(squeeze(Signal{i})));
+  plot(TimeAxis*1000,real(Signal{i}));
   
 end
 

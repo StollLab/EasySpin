@@ -1,6 +1,6 @@
 clear Exp Sys Opt Pulse
 % This script shows how the set up a pulse sequence with several pulses and
-% then explains on three examples how to run multidimensional experiments
+% then explains on four examples how to run multidimensional experiments
 
 % Spin System -----------------------
 Sys.S = [1/2];
@@ -75,9 +75,9 @@ Exp.Dim1 = {'d1', [0.1 0.25]};  % The first data point is always the one
 figure(3)
 clf
 hold on
-for i = 1:length(Signal)
+for i = 1:numel(Signal)
   % Indexing now corresponds to the elements in the cell array Signal
-  plot(TimeAxis{i}*1000,real(squeeze(Signal{i})));
+  plot(TimeAxis{i}*1000,real(Signal{i}));
 end
 xlabel('t [ns]')
 ylabel('<S_z>')
@@ -85,7 +85,7 @@ axis tight
 ylim([-1 1])
 
 
-%% 2 Dimensional Experiment
+%% 2 Dimensional Experiment with constant length
 Exp.nPoints = [2 3]; % 2 steps in 1st and 3 in 2nd dimension
 Exp.Dim1 = {'p1.Phase,p2.Phase', pi/4}; % Changes the Phase of both pulses 
                                         % by pi/4 each step 
@@ -102,8 +102,33 @@ Opt.FreqTranslation = [-33.5]; % GHz
 figure(4)
 clf
 hold on
-for i = 1:size(Signal)
-  plot(TimeAxis*1000,real(squeeze(Signal(i,:,:))));
+sizeSignal = size(Signal);
+LinearSignal = reshape(Signal,[prod(sizeSignal(1:end-1)) sizeSignal(end)]);
+for i = 1:size(LinearSignal,1)
+  plot(TimeAxis*1000,real(LinearSignal(i,:)));
+end
+xlabel('t [ns]')
+ylabel('<S_x>')
+axis tight
+
+%% 2 Dimensional Experiment with varying length
+Exp.nPoints = [2 3]; % 2 steps in 1st and 3 in 2nd dimension
+Exp.Dim1 = {'p1.Phase,p2.Phase', pi/4}; % Changes the Phase of both pulses 
+                                        % by pi/4 each step 
+Exp.Dim2 = {'p2.tp', 0.05};  % Change the length of the second pulse
+
+% Now, Sz and S^+ are detected
+Opt.DetOperator = {'z1','+1'};
+Opt.FreqTranslation = [0 -33.5]; % GHz
+
+[TimeAxis, Signal] = spidyan(Sys,Exp,Opt);
+
+% Plottting -------------- 
+figure(5)
+clf
+hold on
+for i = 1:numel(Signal)
+  plot(TimeAxis{i}*1000,real(Signal{i}));
 end
 xlabel('t [ns]')
 ylabel('<S_x>')

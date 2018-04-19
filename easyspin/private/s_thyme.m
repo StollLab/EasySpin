@@ -19,17 +19,21 @@ switch method
     normsDet = zeros(1,nDet);
     Ham0 = Ham0*2*pi;
     
+    % Create some variables for bookkeeping
     if ~isempty(Vary)
       nDimensions = numel(Vary.Points);
       DimensionIndices = ones(1,nDimensions);
       nPoints = prod(Vary.Points);
+      IndirectDimensions = num2cell(Vary.Points); % This is used to store the out put in structures that correspond to the dimensions
     else
       nDimensions = 0;
       nPoints = 1;
+      IndirectDimensions = {1}; % If no dimensions are provided, only one acquistion point exists
+      DimensionIndices = 1;
     end
     
     n = size(Sigma,2);
-    FinalStates = zeros(nPoints,n,n);
+    FinalStates = zeros(IndirectDimensions{:},n,n);
     StateTrajectories = [];
     initialSigma = Sigma;
     Resonator = false;
@@ -208,12 +212,6 @@ switch method
       end
     end
     
-    if StoreInCellArray
-      % Sets up CellArray output if necessary
-      SignalArray = cell(1,nPoints);
-      TimeArray = cell(1,nPoints);
-    end
-
     %----------------------------------------------------------------------
     % Loop over number of Points = Product of the Points in each
     % Dimension
@@ -445,10 +443,20 @@ switch method
       
       %--------------------------------------------------------------------
       % Setting up some initial variables
+      
+      % bookkeping to keep track of when the first event is detected and
+      % what should be stored, needed for proper arrangment of the output
+      % later
       ttotal = 0;
       firstDetection = true;
       firstDensityMatrix = true;
+      CurrentStateTrajectories = [];
       startTrace = 2;
+      
+      % Get the data points in all dimensions of the current acquistion,
+      % will be used to store the output at the correct position in the
+      % multidimensional arrays
+      AcquisitionIndex = num2cell(DimensionIndices);
       
       %--------------------------------------------------------------------
       % Loop over event structure
@@ -675,9 +683,10 @@ switch method
             firstDetection = false;
             
           else
-            % adding other signals, this confusing index is necessary in
-            % order to avoid double counting last point of a signal and the
-            % first point of the succiding signal
+            % adding other signals. this slightly confusing index is 
+            % necessary in order to avoid double counting the last point of
+            % the previously detected event and the first point of the 
+            % current signal
             nSignal = size(currentSignal,2);
             endTrace = startTrace+nSignal-2;
             Signal(:,startTrace:endTrace) = currentSignal(:,2:end);
@@ -686,10 +695,12 @@ switch method
           end
         end
         
+        % If StateTrajectories are required, they are stored in a temporary
+        % cell array, which will later be stored to the output
         if currentEvent.StateTrajectories
           if firstDensityMatrix
             for iCell = 1 : length(DensityMatrices)
-              StateTrajectories{iPoints,iCell} = DensityMatrices{iCell}; %#ok<AGROW>
+              CurrentStateTrajectories{iCell} = DensityMatrices{iCell}; %#ok<AGROW>
             end
             firstDensityMatrix = false;
             counter = length(DensityMatrices);
@@ -698,7 +709,7 @@ switch method
               iStart = counter;
               nElements = length(DensityMatrices);
               for iDensity = 2 : nElements
-                StateTrajectories{iPoints,iStart+iDensity-1} = DensityMatrices{iDensity}; %#ok<AGROW>
+                CurrentStateTrajectories{iStart+iDensity-1} = DensityMatrices{iDensity}; %#ok<AGROW>
               end
               counter = counter + length(DensityMatrices) - 1;
             end
@@ -713,29 +724,56 @@ switch method
       
       %--------------------------------------------------------------------
       % If time traces were stored they are now stored in a large numeric
-      % array (cell array if eventlengths changed) that contains all the
-      % time traces according to the Vary structure
+      % array (or cell array if and of the detected events lengths changed)
+      % that contains all the time traces according to the Vary structure
       %--------------------------------------------------------------------
+            
       if ~firstDetection
-        % move all the detected signals into large array here!
-        if StoreInCellArray
-          SignalArray{iPoints} = Signal;
-          TimeArray{iPoints} = t;
-        else
-          if iPoints == 1
+        % If the current acquisition was the first, the arrays must first
+        % be created
+        if iPoints ==1
+          if ~StoreInCellArray
             SignalSize = size(Signal);
-            SignalArray = zeros(nPoints,SignalSize(1),SignalSize(2));
-            SignalArray(iPoints,:,:) = Signal;
-            TimeArray = zeros(nPoints,SignalSize(2));
-            TimeArray(1,:) = t;
+            % Create an empty array for storage of all the signals
+            SignalArray = zeros(IndirectDimensions{:},SignalSize(1),SignalSize(2));
+            % Create an empty array for storage of all the time axes
+            TimeArray = zeros(IndirectDimensions{:},SignalSize(2));
+            
           else
-            SignalArray(iPoints,:,:) = Signal;
-            TimeArray(iPoints,:) = t;
+            % Create cell arrays for output
+            if length(IndirectDimensions) == 1
+              % if no or only one Indirect Dimensions are requesteted, the
+              % output structure is created here, to avoid creating square
+              % cell arrays
+              SignalArray = cell(1,IndirectDimensions{:});
+              TimeArray = cell(1,IndirectDimensions{:});
+            else
+              SignalArray = cell(IndirectDimensions{:});
+              TimeArray = cell(IndirectDimensions{:});
+            end
           end
         end
+        
+        % Now the signals and their corresponding time axis can be stored.
+        % The indexing uses AcquisitionIndex, which provides the current
+        % position in the array
+        if ~StoreInCellArray
+          TimeArray(AcquisitionIndex{:},:) = t;
+          SignalArray(AcquisitionIndex{:},:,:) = Signal;
+        else
+          SignalArray{AcquisitionIndex{:}} = Signal;
+          TimeArray{AcquisitionIndex{:}} = t;
+        end  
       end
+
+      % Store the final state at its correct position
+      FinalStates(AcquisitionIndex{:},:,:) = Sigma;
       
-      FinalStates(iPoints,:,:) = Sigma;
+      % Store the cell array with state tractories (if any) of the current 
+      % acquisition point in its correct position in the output cellarray
+      if ~isempty(CurrentStateTrajectories)
+        StateTrajectories{AcquisitionIndex{:}} = CurrentStateTrajectories; %#ok<AGROW>
+      end
       %--------------------------------------------------------------------
       % Incremeant the index for the Vary structure by 1
       %--------------------------------------------------------------------

@@ -148,52 +148,53 @@ Ham = sham(Sys,Exp.Field*[0 0 1]);
 % Signal postprocessing, such as down conversion and filtering and
 % checking output of the timeaxis 
 if ~isempty(RawSignal)
-  
-  if ~iscell(TimeAxis)
-    if size(unique(TimeAxis,'rows'),1) == 1
-      TimeAxis = TimeAxis(1,:);
-    end
-  else
-    TimeAxisChanged = false;
-    for iCell = 2 : length(TimeAxis)
-      if ~isequal(TimeAxis{1},TimeAxis{iCell})
-        TimeAxisChanged = true;
-        break
-      end
-    end
-    
-    if ~TimeAxisChanged
-      TimeAxis = TimeAxis{1};
-    end
-    
-  end
-
-  
+   
   % Adapt FreqTranslation if needed
-  if ~isfield(Opt,'FreqTranslation') || isempty(Opt.FreqTranslation)
-    FreqTranslation = [];
+  nDetOps = numel(DetOps);
+  FreqTranslation = zeros(1,nDetOps);
+  
+  if isfield(Opt,'FreqTranslation') && ~isempty(Opt.FreqTranslation)
     
-  else
-    nDetOps = numel(DetOps);
-        
+    % This adapts the values for FreqTranslation to simulation frame
     if isfield(Opt,'FrameShift') && ~isempty(Opt.FrameShift)
       Opt.FreqTranslation(Opt.FreqTranslation > 0) = Opt.FreqTranslation(Opt.FreqTranslation > 0) - Opt.FrameShift;
       Opt.FreqTranslation(Opt.FreqTranslation < 0) = Opt.FreqTranslation(Opt.FreqTranslation < 0) + Opt.FrameShift;
     end
-    FreqTranslation = zeros(1,nDetOps);
+    
+    % And then writes them
     FreqTranslation(1:length(Opt.FreqTranslation)) = Opt.FreqTranslation;
     
   end
   
   % Downconversion/processing of signal
   Signal = signalprocessing(TimeAxis,RawSignal,FreqTranslation);
-
+  
+  % If time axis is the same for each data point, it is reduced to a single
+  % vector at this point - helps with plotting
+  if ~iscell(TimeAxis)
+    SizeT = size(TimeAxis);
+    linearTimeAxis = reshape(TimeAxis,[prod(SizeT(1:end-1)) SizeT(end)]);
+    if size(unique(linearTimeAxis,'rows'),1) == 1
+      TimeAxis = linearTimeAxis(1,:);
+    end
+  end
 else
   Signal = [];
 end
 
-if size(FinalState,1) == 1
+% Reduce the dimensionality of the final state for simulations with only
+% one acquisition point
+if ndims(FinalState) == 3 && size(FinalState,1) == 1
   FinalState = squeeze(FinalState);
+end
+
+% Same for the StateTrajectories (if any exist). If only one vector of
+% StateTrajectories was recorded, the nested structure is removed
+if ~isempty(StateTrajectories)
+  SizeStateTrajectories = size(StateTrajectories);
+  if all(SizeStateTrajectories == 1)
+    StateTrajectories = StateTrajectories{1};
+  end
 end
 
 % Assigning outputs

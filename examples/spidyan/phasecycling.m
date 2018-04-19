@@ -1,4 +1,16 @@
 clear Exp Sys Opt Pulse
+% See the effect of a (hypothetical) phase cycle. 
+% First run the script as it is, and it will give you an inversion pulse
+% followed by a free evolution period.
+% Then add the phasecycle by uncommenting the line starting with 
+% Exp.PhaseCycle.
+% Since the detection phase in the provided phase cycle are 1 and -1, the
+% sum of the two phasecycles adds up to zero.
+% Phase Cycles can be assigned to every pulse in your sequence.
+% Connected phasecycles (phase cycling two pulses together) are not
+% possible with Exp.PhaseCycle, but can be written by adding an additional
+% dimension (see documentation) where the phase of pulses is changed.
+% Merging along this dimension has to be done manually.
 
 % Spin System
 Sys.S = 1/2;
@@ -20,8 +32,9 @@ Exp.Field = 1240; % mT
 Exp.TimeStep = 0.0001; % us
 Exp.mwFreq = 33.5; % GHz
 Exp.DetEvents = 1;
+
 % Add the phasecycle to the experiment structure
-Exp.PhaseCycle = {PhaseCycle};
+% Exp.PhaseCycle = {PhaseCycle};
 
 % Options
 Opt.DetOperator = {'z1'};
