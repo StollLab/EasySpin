@@ -15,7 +15,7 @@ Exp.TimeStep = 0.0001; % us
 Exp.Frequency = [-0.100 0.100];
 Exp.Flip = [pi pi];
 Exp.mwFreq = 33.5;
-Exp.DetEvents = [1 0]; 
+Exp.DetEvents = [1 0 0]; 
 
 % Options ---------------------------
 Opt.FrameShift = 32; % GHz

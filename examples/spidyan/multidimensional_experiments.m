@@ -10,7 +10,7 @@ Pulse.Type = 'rectangular';
 
 % This Exp structure creates a pi - tau - pi/2 - tau pulse sequence ------
 Exp.t = [0.05 0.5 0.05 0.5]; % us
-Exp.Pulses = {Pulse 0 Pulse};
+Exp.Pulses = {Pulse 0 Pulse 0};
 Exp.Field = 1240; % mT
 Exp.TimeStep = 0.0001; % us
 Exp.Frequency = 0; % GHz

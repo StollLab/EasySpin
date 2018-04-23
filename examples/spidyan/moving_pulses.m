@@ -11,7 +11,7 @@ Pulse.Type = 'rectangular';
 
 %% Creates a pi/2 - tau1 - pi - tau2 - pi - tau3 sequence
 Exp.t = [0.025 0.1 0.05 0.9 0.05 1]; % us
-Exp.Pulses = {Pulse 0 Pulse 0 Pulse};
+Exp.Pulses = {Pulse 0 Pulse 0 Pulse 0};
 Exp.Field = 1240; % mT
 Exp.TimeStep = 0.0001; % us
 Exp.Frequency = 0; % GHz

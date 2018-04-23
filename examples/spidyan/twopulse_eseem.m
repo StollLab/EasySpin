@@ -31,7 +31,7 @@ Exp.t = [0.05 0.25 0.025 0.125 0.3];
 % together with the first delay. This way the echo always appears at the
 % same position during the last event
 
-Exp.Pulses = {Pulse 0 Pulse};
+Exp.Pulses = {Pulse 0 Pulse 0 0};
 Exp.Field = 1240; 
 Exp.TimeStep = 0.00001;
 Exp.Frequency = [-0.080 0.080];
@@ -39,7 +39,7 @@ Exp.Flip = [pi/2 pi];
 Exp.mwFreq = 33.5;
 Exp.DetEvents = [0 0 0 0 1];
 
-Exp.nPoints = 100;
+Exp.nPoints = 50;
 Exp.Dim = {'d1,d2', 0.004};
 
 Opt.DetOperator = {'+1'};

@@ -33,6 +33,7 @@ data.t1 = t1;
 data.signal1 = signal1;
 
 Exp.t = [0.1 0.5];
+Exp.Pulses = {Pulse 0};
 Exp.Resonator.Mode = 'compensate';
 
 [t2, signal2] = spidyan(Sys,Exp,Opt);

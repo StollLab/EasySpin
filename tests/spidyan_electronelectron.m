@@ -10,7 +10,7 @@ Pulse.Type = 'quartersin/linear';
 Pulse.trise = 0.015; % us
 
 Exp.t = [0.1 0.5];
-Exp.Pulses = {Pulse};
+Exp.Pulses = {Pulse 0};
 Exp.Field = 1195; 
 Exp.TimeStep = 0.0001; % us
 Exp.Frequency = [-0.100 0.100];

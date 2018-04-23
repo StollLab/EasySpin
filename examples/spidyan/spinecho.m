@@ -20,7 +20,7 @@ Sys.S = 1/2;
 Pulse.Type = 'rectangular';
 
 Exp.t = [0.025 0.25 0.05 0.5]; % us
-Exp.Pulses = {Pulse 0 Pulse}; 
+Exp.Pulses = {Pulse 0 Pulse 0}; 
 Exp.Field = 1240; % mT
 Exp.TimeStep = 0.0001; % us
 Exp.Frequency = [0]; % GHz

@@ -31,7 +31,7 @@ Sys.eqState = -sop(Sys.S,'z');
 
 Exp = DefExp;
 Exp.t = [0.2 5]; % us
-Exp.Pulses = {Rectangular};
+Exp.Pulses = {Rectangular 0};
 Exp.Frequency = 0;
 Exp.Flip = pi/2;
 
@@ -118,7 +118,7 @@ Opt = DefOpt;
 Opt.StateTrajectories = [1 1];
 
 Exp.t = [0.2 0.5]; % us
-Exp.Pulses = {Adiabatic};
+Exp.Pulses = {Adiabatic 0};
 Exp.Frequency = [-0.05 0.05]; % GHz
 
 Exp.nPoints = [1 1];

@@ -10,7 +10,7 @@ Exp.TimeStep = 0.0001; % us
 Exp.Frequency = [-0.100 0.100];
 Exp.Flip = [pi pi pi];
 Exp.mwFreq = 33.5;
-Exp.DetEvents = [1 0]; 
+Exp.DetEvents = [1 0 0 0]; 
 
 Opt.FrameShift = 32;
 
@@ -23,18 +23,9 @@ Opt.Relaxation = 1;
 Opt.Relaxation = [1 1 1 1];
 
 [Events2] = runprivate('s_sequencer',Exp,Opt);
-% Second Test ---------------------------------------
-
-Opt.Relaxation = [1 0];
-
-[Events3] = runprivate('s_sequencer',Exp,Opt);
-
-Opt.Relaxation = [1 0 0 0];
-
-[Events4] = runprivate('s_sequencer',Exp,Opt);
 
 
-if any([~isequal(Events1,Events2) ~isequal(Events3,Events4)])
+if ~isequal(Events1,Events2)
   err = 1;
 else
   err = 0;

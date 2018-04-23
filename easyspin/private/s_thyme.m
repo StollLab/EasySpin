@@ -324,112 +324,106 @@ switch method
               %------------------------------------------------------------
               % Propagator/Liouvillian Calculation Starts Here
               %------------------------------------------------------------
-              if ~currentEvent.Relaxation
+              % Only build the propagators if they are not available
+              if (~currentEvent.Relaxation && ~isfield(currentEvent.Propagation,'Utotal')) ... % checks for availability if simulation is in Hilbert space 
+                  || (currentEvent.Relaxation && ~isfield(currentEvent.Propagation,'Ltotal')) % checks for availability in Liouville space
+
+                if currentEvent.Relaxation % Set up for Liouville space simulations
+                  n = size(Sigma,1);
+                  Gamma = Relaxation.Gamma;
+                  equilibriumState = reshape(Relaxation.equilibriumState,n*n,1);
+                end
+                
                 %----------------------------------------------------------
-                % Load or build the Propagator table, only possible for
-                % excitation that has no imaginary part
+                % Build the Propagator table, only possible for
+                % excitation that has no imaginary part - increases speed
+                % by precomputing all propagators and later loading them, 
+                % instead of calculating them at each way point (true as
+                % long as length(Wave) > vertical resolution)
                 %----------------------------------------------------------
-                if currentEvent.ComplexExcitation == 0
+                if currentEvent.ComplexExcitation == 0 && ~currentEvent.Relaxation
                   
                   UTable = buildPropagators(Ham0,currentEvent.xOp,currentEvent.TimeStep,vertRes,scale);
+                  
                   Events{iEvent}.Propagation.UTable = UTable;
                   
-                end
-                %----------------------------------------------------------
-                
-                if currentEvent.Detection
-                  Utotal = cell(nPhaseCycle,length(realBinary));
-                else
-                  Utotal = cell(nPhaseCycle,1);
-                end
-                
-                %----------------------------------------------------------
-                % Loop over the Phasecycles
-                for iPhaseCycle = 1 : nPhaseCycle
-                  % Propagation for one waveform
-                  for iWavePoint = 1 : length(realBinary)
-                    if currentEvent.ComplexExcitation == 0
-                      % Load propagators if Complex Excitation is off
-                      U = UTable{realBinary(iPhaseCycle,iWavePoint)+1};
-                    else % For active Complex Excitation Propagators need to be recalculated
-                      Ham1 = scale/2*(realBinary(iPhaseCycle,iWavePoint)-vertRes/2)*real(currentEvent.xOp)+1i*scale/2*(imagBinary(iPhaseCycle,iWavePoint)-vertRes/2)*imag(currentEvent.xOp);
-                      Ham =  Ham0+Ham1;
-                      U = Propagator(Ham,currentEvent.TimeStep);
-                    end
-                    
-                    %------------------------------------------------------
-                    %  Store Propagators for propation in one step or
-                    %  stepwise
-                    %------------------------------------------------------
-                    if currentEvent.Detection
-                      Utotal{iPhaseCycle,iWavePoint} = U;
-                    else
-                      if iWavePoint == 1
-                        Utotal{iPhaseCycle,1} = U;
-                      else
-                        Utotal{iPhaseCycle,1} = U*Utotal{iPhaseCycle,1};
-                      end
-                    end
-                    %------------------------------------------------------
-                  end
-                end
-                
-                %--------------------------------------------------------
-                % Write to Event Structure
-                %--------------------------------------------------------
-                Events{iEvent}.Propagation.Utotal = Utotal;
-                              
-              elseif currentEvent.Relaxation
-                
-                n = size(Sigma,1);
-                Gamma = Relaxation.Gamma;
-                equilibriumState = reshape(Relaxation.equilibriumState,n*n,1);
-                
-                %----------------------------------------------------------
-                % Check wether a Liouvillian table is available and build
-                % one if not
-                %----------------------------------------------------------
-                if ~isfield(currentEvent.Propagation,'Ltotal')
-                  if currentEvent.ComplexExcitation == 0
-                    
-                    [LTable, SigmassTable] = buildLiouvillians(Ham0,Gamma,equilibriumState,currentEvent.xOp,currentEvent.TimeStep,vertRes,scale);
-                    
-                    Events{iEvent}.Propagation.LTable = LTable;
-                    Events{iEvent}.Propagation.SigmassTable = SigmassTable;
-                    
-                  end
+                elseif currentEvent.ComplexExcitation == 0 && currentEvent.Relaxation
                   
-                  if currentEvent.Detection
+                  [LTable, SigmassTable] = buildLiouvillians(Ham0,Gamma,equilibriumState,currentEvent.xOp,currentEvent.TimeStep,vertRes,scale);
+                  
+                  Events{iEvent}.Propagation.LTable = LTable;
+                  Events{iEvent}.Propagation.SigmassTable = SigmassTable;
+                  
+                end
+
+                % Set up structures for the actual propagators
+                if currentEvent.Detection && ~currentEvent.Relaxation
+                    Utotal = cell(nPhaseCycle,length(realBinary));
+                else
+                  if ~currentEvent.Relaxation
+                    Utotal = cell(nPhaseCycle,1);
+                  else
                     Ltotal = cell(nPhaseCycle,length(realBinary));
                     SigmaSStotal = Ltotal;
                   end
-                  
-                  %--------------------------------------------------------
-                  % Calculating Propagators for all steps of phase cycling
-                  %--------------------------------------------------------
-                  
-                  for iPhaseCycle = 1 : nPhaseCycle
-                    for iWavePoint = 1 : length(realBinary)
+                end
+                
+                for iPhaseCycle = 1 : nPhaseCycle
+                  for iWavePoint = 1 : length(realBinary)
+                    if currentEvent.ComplexExcitation == 0
+                      %----------------------------------------------------
+                      % Lookup tables are only feasible for non-complex
+                      % excitation
+                      %----------------------------------------------------
+                      if ~currentEvent.Relaxation
+                        U = UTable{realBinary(iPhaseCycle,iWavePoint)+1};
+                      else
+                        L=LTable{realBinary(iPhaseCycle,iWavePoint)+1};
+                        SigmaSS=SigmassTable{realBinary(iPhaseCycle,iWavePoint)+1};
+                      end
+                    else
                       %----------------------------------------------------
                       % For complex excitation it is not possible to use a
                       % lookup table
                       %----------------------------------------------------
-                      if currentEvent.ComplexExcitation == 0
-                        L=LTable{realBinary(iPhaseCycle,iWavePoint)+1};
-                        SigmaSS=SigmassTable{realBinary(iPhaseCycle,iWavePoint)+1};
+                      Ham1 = scale/2*(realBinary(iPhaseCycle,iWavePoint)-vertRes/2)*real(currentEvent.xOp)+1i*scale/2*(imagBinary(iPhaseCycle,iWavePoint)-vertRes/2)*imag(currentEvent.xOp);
+                      Ham =  Ham0+Ham1;
+                      if ~currentEvent.Relaxation
+                        U = Propagator(Ham,currentEvent.TimeStep);
                       else
-                        Ham1 = scale/2*(realBinary(iPhaseCycle,iWavePoint)-vertRes/2)*real(currentEvent.xOp)+1i*scale/2*(imagBinary(iPhaseCycle,iWavePoint)-vertRes/2)*imag(currentEvent.xOp);
-                        Ham = Ham0+Ham1;
                         [L, SigmaSS] = Liouvillian(Ham,Gamma,equilibriumState,currentEvent.TimeStep);
                       end
-                      
+                    end
+                    
+                    if ~currentEvent.Relaxation
+                      %------------------------------------------------------
+                      % Store Propagators for propation in one step
+                      % (additional speed bost if no detection) or stepwise
+                      %------------------------------------------------------
+                      if currentEvent.Detection
+                        Utotal{iPhaseCycle,iWavePoint} = U;
+                      else
+                        if iWavePoint == 1
+                          Utotal{iPhaseCycle,1} = U;
+                        else
+                          Utotal{iPhaseCycle,1} = U*Utotal{iPhaseCycle,1};
+                        end
+                      end
+                    else
                       Ltotal{iPhaseCycle,iWavePoint} = L;
                       SigmaSStotal{iPhaseCycle,iWavePoint} = SigmaSS;
+                      
                     end
                   end
-                  %--------------------------------------------------------
-                  % Write to Event Structure
-                  %--------------------------------------------------------
+                end
+
+                
+                %-------------------------------------------------------
+                % Write to Event Structure
+                %--------------------------------------------------------
+                if ~currentEvent.Relaxation
+                  Events{iEvent}.Propagation.Utotal = Utotal;
+                else
                   Events{iEvent}.Propagation.Ltotal = Ltotal;
                   Events{iEvent}.Propagation.SigmaSStotal = SigmaSStotal;
                 end
@@ -440,8 +434,10 @@ switch method
         end
       end
       
-      
       %--------------------------------------------------------------------
+      % Preparing for the actual propagation step
+      %--------------------------------------------------------------------
+      
       % Setting up some initial variables
       
       % bookkeping to keep track of when the first event is detected and

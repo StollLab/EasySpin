@@ -8,7 +8,7 @@ Sys.ZeemanFreq = 33.500;
 Pulse.Type = 'rectangular';
 
 Exp.t = [0.1 0.5 0.1 0.5 0.1 0.5];
-Exp.Pulses = {Pulse 0 Pulse 0 Pulse};
+Exp.Pulses = {Pulse 0 Pulse 0 Pulse 0};
 Exp.Field = 1240; 
 Exp.TimeStep = 0.0001; % us
 Exp.Frequency = 0;

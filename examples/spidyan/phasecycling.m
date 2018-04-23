@@ -26,7 +26,7 @@ PhaseCycle = [0   1;
 % Experiment/Sequence
 Exp.t = [0.025 0.4]; % us
 Exp.Frequency = 0; % GHz
-Exp.Pulses = {Pulse 0 Pulse};
+Exp.Pulses = {Pulse 0};
 Exp.Flip = pi;
 Exp.Field = 1240; % mT
 Exp.TimeStep = 0.0001; % us

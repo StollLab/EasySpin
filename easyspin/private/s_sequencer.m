@@ -78,9 +78,34 @@ iDelay = 0;
 % pulses cross during the sequence
 isPulse = zeros(1,length(Events));
 PulseIndices = [];
+
+
+% Doing some preliminary checks if all parameters have the correct lengths
+if length(Exp.Pulses) ~= length(Exp.t)
+  error('The lengths of Exp.t and Exp.Pulses do not match.')
+end
+
+if isfield(Opt,'Relaxation')
+  if length(Opt.Relaxation) ~= 1 && length(Opt.Relaxation) ~= length(Exp.t)
+    error('The lengths of Exp.t and Opt.Relaxation do not match. Length of Opt.Relaxation has to be 1 or the same as Exp.t.')
+  end
+end
+
+if isfield(Exp,'DetEvents')
+  if length(Exp.DetEvents) ~= 1 && length(Exp.DetEvents) ~= length(Exp.t)
+    error('The lengths of Exp.t and Exp.DetEvents do not match. Length of Exp.DetEvents has to be 1 or the same as Exp.t.')
+  end
+end
+
+if isfield(Opt,'StateTrajectories')
+  if length(Opt.StateTrajectories) ~= 1 && length(Opt.StateTrajectories) ~= length(Exp.t)
+    error('The lengths of Exp.t and Opt.StateTrajectories do not match. Length of Opt.StateTrajectories has to be 1 or the same as Exp.t.')
+  end
+end
+
 % Setting up data structures for the pulses and events
 for iEvent = 1 : nEvents
-  if iEvent > length(Exp.Pulses) || ~isstruct(Exp.Pulses{iEvent})
+  if ~isstruct(Exp.Pulses{iEvent})
     iDelay = iDelay + 1;
     DelayIndices(iDelay) = iEvent;
   else
@@ -224,8 +249,6 @@ for iEvent = 1 : length(Exp.t)
   else
     if length(Opt.Relaxation) == 1
       Events{iEvent}.Relaxation = Opt.Relaxation;
-    elseif iEvent > length(Opt.Relaxation)
-      Events{iEvent}.Relaxation = false;
     else
       Events{iEvent}.Relaxation = Opt.Relaxation(iEvent);
     end
@@ -238,8 +261,6 @@ for iEvent = 1 : length(Exp.t)
   else
     if length(Exp.DetEvents) == 1
       Events{iEvent}.Detection = Exp.DetEvents;
-    elseif iEvent > length(Exp.DetEvents)
-      Events{iEvent}.Detection = false;
     else 
       Events{iEvent}.Detection = Exp.DetEvents(iEvent);
     end   
@@ -252,8 +273,6 @@ for iEvent = 1 : length(Exp.t)
   else
     if length(Opt.StateTrajectories) == 1
       Events{iEvent}.StateTrajectories = Opt.StateTrajectories;
-    elseif iEvent > length(Opt.StateTrajectories)
-      Events{iEvent}.StateTrajectories = false;
     else
       Events{iEvent}.StateTrajectories = Opt.StateTrajectories(iEvent);
     end

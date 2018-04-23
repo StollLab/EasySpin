@@ -171,13 +171,13 @@ Vector that contains the lengths of all the events (pulses and free evolutions) 
 <div class="optionfield"><code>Pulses</code></div>
 <div class="optiondescr">
 Cell array, each element contains the pulse definition and the indexing corresponding to the events defined in <code>t</code>.
-Available pulse types are described at <a href="pulse.html">pulse</a>.
+Available pulse types are described at <a href="pulse.html">pulse</a>. 
 Free evolution events are declared with '<code>0</code>':
 <pre class="matlab">
-Pulse.Type = 'rectangular';  	% Define Pulse
+Pulse.Type = 'rectangular';  	  % Define Pulse, see examples for more details
 
-Exp.t = [0.05 0.2 0.05 0.4];	% Event lengths of the sequence
-Exp.Pulses = {Pulse 0 Pulse}; 	% Assign Pulses to events 1 and 3, events 2 and 4 are free evolution events
+Exp.t = [0.05 0.2 0.05 0.4];	  % Event lengths of the sequence
+Exp.Pulses = {Pulse 0 Pulse 0};   % Assign Pulses to events 1 and 3, events 2 and 4 are free evolution events
 </pre>
 If the pulse definition contains a field <code>Qcrit</code> or <code>Amplitude</code>, the value in <code>Exp.Flip</code> is ignored.
 If both <code>Qcrit</code> and <code>Amplitude</code> are provided, <code>Qcrit</code> takes priority.
@@ -231,10 +231,12 @@ Detection can be set for the entire simulation (meaning detection is on for all 
 Exp.DetEvents = true;   	% the entire sequence is detected
 Exp.DetEvents = [0 0 1 1];	% expectation values are only returned the third and fourth event
 Exp.DetEvents = [];		% no detection
+Exp.DetEvents = 0;		% no detection
 </pre>
 If the field <code>DetEvents</code> is not provided, detection is switched off by default.
 Detection operators can be defined in <code>Opt.DetOperator</code>.
 If <code>DetEvents</code> is active, but no detection operator is defined, <i>&Scirc;</i><sub>+</sub> is used for all electron spins.
+The length of <code>DetEvents</code> has to be either 1 or the same length as <code>Exp.t</code>.
 </div>
 
 <div class="optionfield"><code>Phase</code></div>
@@ -253,7 +255,7 @@ In each row the first element is the phase, and the second element the detection
 PC = [0, 1; pi, -1];   		% phase cycle
 Exp.PhaseCycle = {[] PC};	% phase cycles the second pulse
 </pre>
-Phace cycling that steps more than one pulse simultaneously is not available.
+Phace cycling that steps more than one pulse simultaneously is not available through the <code>PhaseCycle</code> structure, but can be achieved through adding an additional indirect dimension to the experiment (see <code>Dim</code>).
 </div>
 
 <p>
@@ -319,7 +321,12 @@ Exp.Dim1 = {'p1.n(2)' 2};    % increases order of the falling flank of a hyperbo
 Exp.Dim1 = {'p1.Frequency(2)' 0.005};    % changes only the final frequency of the pulse
 Exp.Dim1 = {'p1.Frequency' [0 0.005]};   % identical to the above
 </pre>
-
+Adding an indirect dimension also allows for simultaneous phase cycling of two or more pulses (something that can not be achieved through the <code>Exp.PhaseCycle</code> structure):
+<pre class="matlab">
+Exp.nPoints = 4;
+Exp.Dim = {'p2.Phase,p3.Phase' pi/4};   % changes the phase of the 2nd and 3rd pulse by pi/4 each step
+</pre>
+In the above example, the output of <code>spidyan</code> will contain the individual transients from each phase cycling step and manual merging of the dimensions (with proper detection phase/sign) is required to obtain the phase-cycled signal.
 </div>
 
 <p>
@@ -328,9 +335,11 @@ For all simulations with a resonator the field <code>Exp.mwFreq</code> must be p
 </p>
 <div class="optionfield"><code>Resonator</code></div>
 <div class="optiondescr">
-The resonator profile has to be defined using the resonator center frequency <code>nu0</code> and the loaded Q-value <code>QL</code> or the transfer function <code>TransferFunction</code> in combination with the frequency axis <code>nu</code>.
+The field <code>Exp.Resonator</code> is a structure itself (see example below).
+The resonator profile has to be defined using the resonator center frequency <code>nu0</code> and the loaded Q-value <code>QL</code> (resonator frequency response computed from the ideal transfer function for an RLC series circuit)or the transfer function <code>TransferFunction</code> in combination with the frequency axis <code>nu</code>.
 By setting <code>Mode</code> it is possible to compensate for the resonator. Compensation aims to provide a waveform that excites spin packets in the resonator with constant critical adiabaticity if the originally specified waveform would lead to excitation with constant critical adiabaticity in the absence of a resonator (mainly for chirp and hyperbolic secant pulses).
 For more details see <a class="esf" href="resonator.html">resonator</a>.
+<p>
 <div class="optionfield"><code>nu0</code></div>
 <div class="optiondescr">
 Center frequency of resonator in GHz.
@@ -354,6 +363,11 @@ Optional, can be <code>'simulate'</code> or <code>'compensate'</code>.
 By default the effect of the resonator on the signal is simulated.
 If set to <code>'compensate'</code> the pulse shape is adapted such that it compensates for the resonator profile by using a uniform critical adiabaticity criterion.
 </div>
+<p>
+<pre class="matlab">
+Exp.Resonator.nu0 = 33.5; 	% resonator center frequency in GHz
+Exp.Resonator.QL = 300;	  	% loaded Q-value
+</pre>
 </div>
 
 <div class="subtitle2">Input: Simulation options</div>
@@ -406,7 +420,7 @@ Opt.DetOperator = {'+1' 'z1'};   % detects  <i>&Scirc;</i><sub>+</sub> and  <i>&
 Opt.FreqTranslation = [-33.5 0]; % shifts <i>&Scirc;</i><sub>+</sub> by -33.5 GHz
 				 % <i>&Scirc;<sub>z</sub></i> does not contain a rotating component and does not need to shifted
 </pre>
-For counterrotating detection operators (e.g. <i>&Scirc;</i><sub>-</sub>) the sign changes:
+For counter-rotating detection operators (e.g. <i>&Scirc;</i><sub>-</sub>) the sign changes:
 <pre class="matlab">
 Opt.DetOperator = {'+1' '-1'};		% detects <i>&Scirc;</i><sub>+</sub> and <i>&Scirc;</i><sub>-</sub> of the first electron spin
 Opt.FreqTranslation = [-33.5 33.5]; 	% shifts <i>&Scirc;</i><sub>+</sub> by -33.5 GHz and <i>&Scirc;</i><sub>-</sub> by 33.5 GHz
@@ -421,6 +435,7 @@ Opt.Relaxation = true;   	% switches on relaxation for the entire simulation
 Opt.Relaxation = [0 0 1];	% relaxation is active only during the third event
 </pre>
 If relaxation is switched on, relaxation times (<code>Sys.T1</code> and <code>Sys.T2</code>) have to be provided and the simulation is then performed in Liouville space, which slows down the simulation, for larger spin systems tremendously so.
+In order to avoid unexpected behavior, if the <code>Opt.Relaxation</code> is not used to switch relaxation on/off for the entire sequence, the length of it has to match the length of <code>Exp.t</code> (all events need to be defined).
 </div>
 
 <div class="optionfield"><code>StateTrajectories</code></div>
@@ -433,6 +448,7 @@ Opt.StateTrajectories = [0 0 1];	% state trajectories is active only during the 
 </pre>
 State trajectories are only fully recorded for events where detection is active. 
 Otherwise, the density matrices are stored only at the beginning and end of the event.
+In order to avoid unexpected behavior, if the <code>Opt.StateTrajectories</code> is not control the entire sequence, the length of it has to match the length of <code>Exp.t</code> (all events need to be defined).
 </div>
 
 

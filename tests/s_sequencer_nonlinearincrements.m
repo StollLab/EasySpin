@@ -10,7 +10,7 @@ Exp.TimeStep = 0.0001; % us
 Exp.Frequency = [-0.100 0.100];
 Exp.Flip = [pi pi pi];
 Exp.mwFreq = 33.5;
-Exp.DetEvents = [1 0]; 
+Exp.DetEvents = [1 0 0 0]; 
 
 Opt.FrameShift = 32;
 
@@ -30,7 +30,7 @@ Exp.Dim2 = {'p1.t', [0.2 0.4]};
 % Second Test ---------------------------------------
 
 Exp.t(end) = 0.8;
-Exp.Pulses = {Pulse 0 Pulse};
+Exp.Pulses = {Pulse 0 Pulse 0};
 Exp.nPoints = 3;
 Exp.Dim1 = {'p2.Position', 0.2};
 
