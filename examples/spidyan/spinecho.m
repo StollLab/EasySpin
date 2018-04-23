@@ -1,3 +1,5 @@
+% Running this script will take a few seconds
+
 clear Exp Sys Opt Pulse
 
 % Sets up a Gaussian Distribution of spin packets
@@ -66,7 +68,7 @@ Pulse.trise = 0.005; % us
 
 Exp.t = [0.05 0.25 0.025 0.5];
 Exp.Frequency = [-0.080 0.080];
-Exp.Pulses = {Pulse 0 Pulse};
+Exp.Pulses = {Pulse 0 Pulse 0};
 
 % Loop over the spinpackets and sum up the traces ------------
 for i = 1 : nSpinpackets

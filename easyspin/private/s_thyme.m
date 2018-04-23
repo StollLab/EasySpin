@@ -301,7 +301,18 @@ switch method
               
               MaxWave = max(rMax,iMax);
               
-              vertRes = 1024;
+              if isfield(currentEvent,'vertRes')
+                % undocumented feature, you can provide your pulses with 
+                % their own vertical resolution e.g. for a rectangular 
+                % pulse it would suffice to have a vertRes of 3 (-1,0,1)
+                if mod(currentEvent.vertRes,2)
+                  vertRes = currentEvent.vertRes+1;
+                else
+                  vertRes = currentEvent.vertRes;
+                end
+              else
+                vertRes = 1024;
+              end
               
               scale = 2*2*2*pi*MaxWave/vertRes;
               % one factor 2 is required because of linearly polarized 
@@ -312,13 +323,11 @@ switch method
               tvector(2:length(currentEvent.t)+1) = currentEvent.t+currentEvent.TimeStep;
               
               realArbitrary = real(currentEvent.IQ)/MaxWave;
-              realBinary = floor(vertRes*(realArbitrary+1)/2);
-              realBinary(realBinary == vertRes) = vertRes-1;
+              realBinary = round(vertRes*(realArbitrary+1)/2);
               
               if currentEvent.ComplexExcitation == 1
                 imagArbitrary = imag(currentEvent.IQ)/MaxWave;
-                imagBinary = floor(vertRes*(imagArbitrary+1)/2);
-                imagBinary(imagBinary==vertRes) = vertRes-1;
+                imagBinary = round(vertRes*(imagArbitrary+1)/2);
               end
               
               %------------------------------------------------------------
@@ -804,9 +813,9 @@ end
 
 function UTable = buildPropagators(Ham0,xOp,dt,vertRes,scale)
 
-UTable = cell(1,vertRes);
+UTable = cell(1,vertRes+1);
 
-for iRes = 0:vertRes-1
+for iRes = 0:vertRes
   Ham1 = scale*(iRes-vertRes/2)*real(xOp);
   Ham = Ham0+Ham1;
   U = Propagator(Ham,dt);
@@ -818,10 +827,10 @@ U = expm_fastc(-1i*Ham*dt);
 
 function [LTable, SigmassTable] = buildLiouvillians(Ham0,Gamma,equilibriumState,xOp,dt,vertRes,scale)
 
-SigmassTable = cell(1,vertRes);
-LTable = cell(1,vertRes);
+SigmassTable = cell(1,vertRes+1);
+LTable = cell(1,vertRes+1);
 
-for ivertRes = 0:vertRes-1
+for ivertRes = 0:vertRes
   Ham1 = scale*(ivertRes-vertRes/2)*real(xOp);
   Ham = Ham0 + Ham1;
   [L, SigmaSS] = Liouvillian(Ham,Gamma,equilibriumState,dt);

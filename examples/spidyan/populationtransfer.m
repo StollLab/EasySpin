@@ -3,7 +3,7 @@ clear Exp Sys Opt Pulse
 % polarization build up on the central transition that can be achieved with
 % two frequency swept pulses akin to
 % Doll, A. et al. Sensitivity enhancement by population transfer in Gd(III)
-% spin labels. Phys Chem Chem Phys 17, 7334?7344 (2015).
+% spin labels. Phys Chem Chem Phys 17, 7334-7344 (2015).
 
 
 % System
