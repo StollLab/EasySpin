@@ -31,6 +31,14 @@ Rz = R(3);
 Rd = (Rx-Ry)/4;
 Rperp = (Rx+Ry)/2;
 
+% Treat the cases of isotropic and axial diffusion tensors, where the
+% diffusion operator matrix is diagonal in LMK and LMKjK.
+if Rd==0
+  diagonal = Rperp*L.*(L+1) + (Rz-Rperp)*K.^2;
+  Gamma = spdiags(diagonal,0,nBasis,nBasis);
+  return
+end
+
 idx = 1;
 for b1 = 1:nBasis
   L1  = L(b1);
