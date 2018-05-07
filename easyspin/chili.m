@@ -188,9 +188,9 @@ if Sys.fullg
     mean_g(iElectron) = mean(eig(Sys.g(idx,:)));
     idx = idx + 3;
   end
-  mT2MHz = mt2mhz(1,mean(mean_g));
+  mT2MHz_giso = mt2mhz(1,mean(mean_g));
 else
-  mT2MHz = mt2mhz(1,mean(mean(Sys.g)));
+  mT2MHz_giso = mt2mhz(1,mean(mean(Sys.g)));
 end
 
 if any(Sys.HStrain(:)) || any(Sys.gStrain(:)) || any(Sys.AStrain(:)) || any(Sys.DStrain(:))
@@ -650,7 +650,7 @@ end
 % Set up horizontal sweep axis
 % (nu is used internally, xAxis is used for user output)
 if FieldSweep
-  FreqSweep = Sweep*mT2MHz*1e6; % mT -> Hz
+  FreqSweep = Sweep*mT2MHz_giso*1e6; % mT -> Hz
   nu = Exp.mwFreq*1e9 - linspace(-1,1,Exp.nPoints)*FreqSweep/2;  % Hz
   xAxis = linspace(Exp.Range(1),Exp.Range(2),Exp.nPoints);  % field axis, mT
   dB = xAxis(2)-xAxis(1); % field axis increment, mT
@@ -838,7 +838,9 @@ for iOri = 1:nOrientations
     BSweep = linspace(min(Exp.Range),max(Exp.Range),Exp.nPoints)/1e3; % mT -> T
     omega0 = 1i*2*pi*Exp.mwFreq*1e9; % GHz -> Hz (angular frequency)
   else
-    BSweep = CenterField/1e3; % mT -> T
+    Bcalc = CenterField;
+    %Bcalc = mhz2mt(Exp.mwFreq*1e3,mean(mean(Sys.g)));
+    BSweep = Bcalc/1e3; % mT -> T
     omega0 = complex(1/(Dynamics.T2),2*pi*nu); % angular frequency
   end
   
@@ -1175,7 +1177,7 @@ end
 %==============================================================
 
 switch (nargout)
-case 0,
+case 0
   cla
   if FieldSweep
     if (xAxis(end)<10000)
@@ -1200,9 +1202,9 @@ case 0,
     ylabel('intensity (arb.u.)');
     title(sprintf('%0.8g mT, %d points',Exp.Field,numel(xAxis)));
   end
-case 1,
+case 1
   varargout = {outspec};
-case 2,
+case 2
   varargout = {xAxis,outspec};
 end
 %==============================================================

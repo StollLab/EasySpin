@@ -25,6 +25,10 @@ else
   jK = zeros(nBasis,1);
 end
 
+if numel(R)==1
+  R = R*ones(1,3);
+end
+
 Rx = R(1);
 Ry = R(2);
 Rz = R(3);
