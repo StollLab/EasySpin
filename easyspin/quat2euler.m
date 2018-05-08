@@ -53,7 +53,7 @@ if qshape(1) ~= 4 || ~isnumeric(q)
 end
 
 diff = abs(1.0-squeeze(sqrt(sum(q.*q, 1))));
-if any(diff(:) > 1e-13)
+if any(diff(:) > 1e-10)
   error('q is not normalized.')
 end
 

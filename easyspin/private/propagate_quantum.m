@@ -55,6 +55,7 @@ function Sprho = propagate_quantum(Sys, Par, Opt, MD, omega, CenterField)
 % -------------------------------------------------------------------------
 
 persistent cacheTensors
+persistent D2TrajMol
 % persistent fullSteps
 % persistent K2
 
@@ -272,9 +273,7 @@ switch Method
     % ---------------------------------------------------------------------
 
     Sim.fullSteps = nSteps;
-    Sprho = propagate(rho, U, Method, Sim);
-    
-    K2 = [];
+    Sprho = propagate(rho, U, Method, Sim, Opt);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   case 'ISTOs'  % see Ref [2]
@@ -300,13 +299,13 @@ switch Method
 
       [T,F,~,~,~] = magint(Sys,SpinOps,CenterField,0,0);
 
-  %       F0 = F.F0*2*pi;
+%       F0 = F.F0*2*pi;
       if isfield(Sys, 'A')
         F0 = F.F0(2)*2*pi;  % Hz -> rad s^-1, only keep isotropic HF interaction
       end
       F2 = F.F2*2*pi;  % Hz -> rad s^-1
 
-  %       T0 = T.T0;
+%       T0 = T.T0;
       if isfield(Sys, 'A')
         T0 = T.T0{2};  % only keep isotropic HF interaction
       end
@@ -349,74 +348,86 @@ switch Method
     
     % Process Wigner D-matrices
     % ---------------------------------------------------------------------
-    
-    D2Traj = wigD(qTraj);
 
     if strcmp(Model,'Molecular Dynamics')
-      D2Avg = zeros(5,5,MD.nWindows);
+      if isempty(D2TrajMol)
+        D2TrajMol = wigD(qTraj);
+        D2Avg = zeros(5,5,MD.nWindows);
 
-      % average the interaction tensors over time windows
-      idx = 1:MD.WindowLength;
-      for k = 1:MD.nWindows
-        D2Avg(:,:,k) = mean(D2Traj(:,:,:,idx),4);
-        idx = idx + MD.WindowLength;
+        % average the interaction tensors over time windows
+        idx = 1:MD.WindowLength;
+        for k = 1:MD.nWindows
+          D2Avg(:,:,k) = mean(D2TrajMol(:,:,:,idx),4);
+          idx = idx + MD.WindowLength;
+        end
+
+        D2TrajMol = zeros(5,5,nTraj,nSteps);
+
+        for k = 1:nTraj
+          idx = (1:nSteps) + (k-1)*MD.lag;
+          D2TrajMol(:,:,k,:) = D2Avg(:,:,idx);
+        end
       end
-
-      D2Traj = zeros(5,5,nTraj,nSteps);
-
-      for k = 1:nTraj
-        idx = (1:nSteps) + (k-1)*MD.lag;
-        D2Traj(:,:,k,:) = D2Avg(:,:,idx);
-      end
-
       % combine Wigner D-matrices of global and averaged local motion
       D2Lab = wigD(qLab);
-      D2Traj = mmult(D2Lab, D2Traj);
+      D2Traj = mmult(D2Lab, D2TrajMol);
+    else
+      D2Traj = wigD(qTraj);
     end
     
     if truncate
-%     if isempty(fullSteps)||isempty(K2)
+%       if isempty(fullSteps)||isempty(K2)
 
       % set the number of time steps to use full propagator before 
       % correlation functions relax
-      fullSteps = ceil(truncate*1e-9/dt);
-
-      % calculate correlation functions for approximate propagator
-%       acorr = zeros(size(D2,3), size(D2,4));
-%       K2 = zeros(5,5,nTraj);
-%       xcorr = zeros(size(D2,3), size(D2,4));
-%       K2 = zeros(5,5,5,5);
-      NtauR = 10*ceil(tauR/dt);
-%       D2AcorrAvg = mean(autocorrfft(D2, 4),3);
-      D2Acorr = autocorrfft(D2Traj, 4, 0, 0, 0);
-%       for mppp=1:5
-%       for mpp=1:5
-%       for mp=1:5
-%         for m=1:5
-%           % non-normalized autocorrelation functions are needed here
-%           D2Traj1 = squeeze(D2(mp,m,:,:));
-%           D2Traj2 = squeeze(D2(mppp,mpp,:,:));
-%           xcorr = crosscorrfft(D2Traj2, D2Traj1, 2, 0, 0, 0);
-%           xcorrAvg = mean(xcorr,1);
-%           K2(mppp,mpp,mp,m) = trapz(time(1:NtauR), xcorrAvg(1:NtauR));
-%         end
-%       end
-%       end
-%       end
-
-      K2 = squeeze(trapz(D2Acorr(:,:,:,1:NtauR),4))*dt;  % TODO implement cross-correlation functions
-%       K2 = squeeze(trapz(mean(D2Acorr(:,:,:,1:NtauR),3),4))*dt;  % TODO implement cross-correlation functions
+      if strcmp(truncate, 'all')
+        fullSteps = 1;  % use ensemble-averaged propagator the entire time
+      else
+        fullSteps = ceil(truncate*1e-9/dt);
+      end
       
-      idx = K2>1e-11;
-      K2 = K2.*idx;
-
       % if correlation time is longer than user input, just use full 
       % propagation scheme the entire time
       if fullSteps>nSteps
         fullSteps = nSteps; 
         truncate = 0;
+      else
+
+        % calculate correlation functions for approximate propagator
+        NtauR = 10*ceil(tauR/dt);
+        
+        if NtauR>nSteps
+          NtauR = nSteps;
+        end
+        
+        D2Acorr = autocorrfft(D2Traj, 4, 0, 0, 1);
+%         D2Acorr = autocorrfft(D2Traj-mean(D2Traj,4), 4, 0, 0, 0);
+  %       for mppp=1:5
+  %       for mpp=1:5
+  %       for mp=1:5
+  %         for m=1:5
+  %           % non-normalized autocorrelation functions are needed here
+  %           D2Traj1 = squeeze(D2(mp,m,:,:));
+  %           D2Traj2 = squeeze(D2(mppp,mpp,:,:));
+  %           xcorr = crosscorrfft(D2Traj2, D2Traj1, 2, 0, 0, 0);
+  %           xcorrAvg = mean(xcorr,1);
+  %           K2(mppp,mpp,mp,m) = trapz(time(1:NtauR), xcorrAvg(1:NtauR));
+  %         end
+  %       end
+  %       end
+  %       end
+
+        if strcmp(Opt.debug.EqProp,'time')
+          K2 = squeeze(trapz(D2Acorr(:,:,:,1:NtauR),4))*dt;  % TODO implement cross-correlation functions
+        elseif strcmp(Opt.debug.EqProp,'all')
+          K2 = squeeze(trapz(mean(D2Acorr(:,:,:,1:NtauR),3),4))*dt;  % TODO implement cross-correlation functions
+        end
+
+        idx = K2>1e-11;
+        K2 = K2.*idx;
+
       end
-  %     end
+%       end
 
     else
       % no approximation, use full propagator for all time steps
@@ -446,21 +457,20 @@ switch Method
     
     for iStep=1:fullSteps
       for iTraj=1:nTraj
-%         U(:,:,iTraj,iStep) = expeig(1i*dt*H(:,:,iTraj,iStep));  % TODO speed this up!
-        U(:,:,iTraj,iStep) = expm_fast1(1i*dt*H(:,:,iTraj,iStep));
+        U(:,:,iTraj,iStep) = expeig(1i*dt*H(:,:,iTraj,iStep));  % TODO speed this up!
+%         U(:,:,iTraj,iStep) = expm_fast1(1i*dt*H(:,:,iTraj,iStep));
       end
     end
-%     if Liouville
-%       U = tosuperLR(U, Udag);
-%       rho = reshape(rho,[36,nTraj,nSteps]);
-%     end
 
     if truncate
       % Prepare equilibrium propagators
       % -------------------------------------------------------------------
 
-%       Heq = repmat(cacheTensors.Q0,[1,1,nTraj]);
-      Heq = repmat(tosuper(cacheTensors.Q0,'c'),[1,1,nTraj]);
+%       if Liouville
+%         Heq = repmat(cacheTensors.Q0,[1,1,nTraj]);
+%       else
+        Heq = repmat(tosuper(cacheTensors.Q0,'c'),[1,1,nTraj]);
+%       end
 
       HeqOrder1 = 0;
       HeqOrder2 = 0;
@@ -468,11 +478,13 @@ switch Method
       % rotate second rank terms and add to Hamiltonian
       for mp = 1:5
         for m = 1:5
-%           HeqOrder1 = HeqOrder1 + bsxfun(@times, mean(D2avg(m,mp,:),3), cacheTensors.Q2{mp,m});
-%           HeqOrder1 = HeqOrder1 + bsxfun(@times, D2avg(m,mp,:), cacheTensors.Q2{mp,m});
-%           HeqOrder2 = HeqOrder2 + 1i*cacheTensors.Q2{mp,m}*(cacheTensors.Q2{mp,m})'.*K2(mp,m,:);
-          HeqOrder1 = HeqOrder1 + bsxfun(@times, D2avg(m,mp,:), tosuper(cacheTensors.Q2{mp,m},'c'));
-          HeqOrder2 = HeqOrder2 + 1i*tosuper(cacheTensors.Q2{mp,m},'c')*tosuper(cacheTensors.Q2{mp,m}','c').*K2(mp,m,:);
+%           if Liouville
+%             HeqOrder1 = HeqOrder1 + bsxfun(@times, D2avg(m,mp,:), cacheTensors.Q2{mp,m});
+%             HeqOrder2 = HeqOrder2 + 1i*cacheTensors.Q2{mp,m}*(cacheTensors.Q2{mp,m})'.*K2(mp,m,:);
+%           else
+            HeqOrder1 = HeqOrder1 + bsxfun(@times, D2avg(m,mp,:), tosuper(cacheTensors.Q2{mp,m},'c'));
+            HeqOrder2 = HeqOrder2 + 1i*tosuper(cacheTensors.Q2{mp,m},'c')*tosuper(cacheTensors.Q2{mp,m}','c').*K2(mp,m,:);
+%           end
 
 %       for mppp = 1:5
     %         for mpp = 1:5
@@ -483,30 +495,28 @@ switch Method
       end
 
       Heq = Heq + HeqOrder1 + HeqOrder2;  % FIXME plus or minus?
-%       Heq = Heq + HeqOrder1;
+%       Heq = Heq + HeqOrder2;  % FIXME plus or minus?
 
-%       Ueq = expm_fast1(1i*dt*mean(Heq,3));
-%       Ueqdag = expm_fast1(-1i*dt*mean(Heq,3));
-
-%       Ueq = zeros(size(U,1),size(U,2),nTraj);
-%       Ueqdag = zeros(size(U,1),size(U,2),nTraj);
-      if Liouville
-        Ueq = zeros(size(U,1)^2,size(U,2)^2,nTraj);
-        for iTraj=1:nTraj
-          Ueq(:,:,iTraj) = expm_fast1(1i*dt*Heq(:,:,iTraj));
+%       if Liouville
+        if strcmp(Opt.debug.EqProp,'time')
+          Ueq = zeros(size(U,1)^2,size(U,2)^2,nTraj);
+          for iTraj=1:nTraj
+            Ueq(:,:,iTraj) = expm_fast1(1i*dt*Heq(:,:,iTraj));
+          end
+        elseif strcmp(Opt.debug.EqProp,'all')
+          Ueq = expm_fast1(1i*dt*mean(Heq,3));
         end
         Sim.Ueq = Ueq;
-      else
-        Ueq = zeros(size(U,1),size(U,2),nTraj);
-        Ueqdag = zeros(size(U,1),size(U,2),nTraj);
-        for iTraj=1:nTraj
-          Ueq(:,:,iTraj) = expm_fast1(1i*dt*Heq(:,:,iTraj));
-          Ueqdag(:,:,iTraj) = expm_fast1(-1i*dt*Heq(:,:,iTraj));
-%           Ueqdag(:,:,iTraj) = inv(Ueq(:,:,iTraj));
-        end
-        Sim.Ueq = Ueq;
-        Sim.Ueqdag = Ueqdag;
-      end
+%       else
+%         Ueq = zeros(size(U,1),size(U,2),nTraj);
+%         Ueqdag = zeros(size(U,1),size(U,2),nTraj);
+%         for iTraj=1:nTraj
+%           Ueq(:,:,iTraj) = expm_fast1(1i*dt*Heq(:,:,iTraj));
+%           Ueqdag(:,:,iTraj) = expm_fast1(-1i*dt*Heq(:,:,iTraj));
+%         end
+%         Sim.Ueq = Ueq;
+%         Sim.Ueqdag = Ueqdag;
+%       end
 
 %       Ueqdag = conj(permute(Ueq, [2,1,3,4]));
 
@@ -532,11 +542,14 @@ switch Method
     % Time evolution of density matrix
     % ---------------------------------------------------------------------
     
-    rho = propagate(rho, U, Method, Sim);
+    rho = propagate(rho, U, Method, Sim, Opt);
     
     if Liouville
-%       rho = reshape(rho,[Sys.nStates,Sys.nStates,nSteps]);
-      rho = reshape(rho,[Sys.nStates,Sys.nStates,nTraj,nSteps]);
+      if strcmp(Opt.debug.EqProp,'time')
+        rho = reshape(rho,[Sys.nStates,Sys.nStates,nTraj,nSteps]);
+      elseif strcmp(Opt.debug.EqProp,'all')
+        rho = reshape(rho,[Sys.nStates,Sys.nStates,nSteps]);
+      end
     end
     
     % Multiply density matrix result by S_+ detection operator
@@ -551,9 +564,12 @@ switch Method
       % 1 electron only
       projector = sop(Sys.S,'+');
     end
-    Sprho = mmult(repmat(projector,1,1,nTraj,nSteps),rho);
-%     Sprho = mmult(repmat(projector,1,1,nSteps),rho);
-%     rho = rho(4:6,1:3,:,:);
+    
+    if strcmp(Opt.debug.EqProp,'time')
+      Sprho = mmult(repmat(projector,1,1,nTraj,nSteps),rho);
+    elseif strcmp(Opt.debug.EqProp,'all')
+      Sprho = mmult(repmat(projector,1,1,nSteps),rho);
+    end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   otherwise
@@ -566,7 +582,7 @@ end
 % Helper functions
 % -------------------------------------------------------------------------
 
-function rho = propagate(rho, U, Method, Sim)
+function rho = propagate(rho, U, Method, Sim, Opt)
 
 fullSteps = Sim.fullSteps;
 nSteps = Sim.nSteps;
@@ -576,10 +592,6 @@ Liouville = Sim.Liouville;
 
 % Propagate density matrix
 % ---------------------------------------------------------------------
-
-% if Liouville
-%   U = tosuperLR(U, Udag);
-% end
 
 % N = size(U,1);
 
@@ -617,31 +629,33 @@ switch Method
 %     end
 end
 
-% rho = squeeze(mean(rho, 3));
-% rho = squeeze(mean(rho, 2));
+if strcmp(Opt.debug.EqProp,'all')
+  rho = squeeze(mean(rho, 3));
+end
 
 if truncate
   % propagation using correlation function approximation
-  if Liouville
+%   if Liouville
     Ueq = Sim.Ueq;
-    rho = reshape(rho,[size(Ueq,1),1,nTraj,nSteps]);
-%     rho = reshape(rho,[size(Ueq,1),nTraj,nSteps]);
-    for iStep=fullSteps+1:nSteps
-      rho(:,:,:,iStep) = mmult(Ueq, rho(:,:,:,iStep-1)); 
-%       for iTraj=1:nTraj
-%         rho(:,iTraj,iStep) = Ueq(:,:,iTraj)*rho(:,iTraj,iStep-1); 
-%       end
-%         rho(:,iStep) = Ueq*rho(:,iStep-1); 
+    if strcmp(Opt.debug.EqProp,'time')
+      rho = reshape(rho,[size(Ueq,1),1,nTraj,nSteps]);
+      for iStep=fullSteps+1:nSteps
+        rho(:,:,:,iStep) = mmult(Ueq, rho(:,:,:,iStep-1)); 
+      end
+    elseif strcmp(Opt.debug.EqProp,'all')
+      rho = reshape(rho,[size(Ueq,1),nSteps]);
+      for iStep=fullSteps+1:nSteps
+        rho(:,iStep) = Ueq*rho(:,iStep-1); 
+      end
     end
 
-  else
-    Ueq = Sim.Ueq;
-    Ueqdag = Sim.Ueqdag;
-    for iStep=fullSteps+1:nSteps
-      rho(:,:,:,iStep) = mmult( Ueq, mmult( rho(:,:,:,iStep-1), Ueqdag ) );  
-%           rho(:,:,iStep) = Ueq*rho(:,:,iStep-1)*Ueqdag;
-    end
-  end
+%   else
+%     Ueq = Sim.Ueq;
+%     Ueqdag = Sim.Ueqdag;
+%     for iStep=fullSteps+1:nSteps
+%       rho(:,:,:,iStep) = mmult( Ueq, mmult( rho(:,:,:,iStep-1), Ueqdag ) );  
+%     end
+%   end
 
 end
 

@@ -212,8 +212,20 @@
 %                    expectation value of complex magnetization, 
 %                    \langle S_{+} \rangle
 
+%    Opt.debug       struct
+%                    various debugging options used for testing by
+%                    developers
+%
+%                    EqProp: for computing the equilibrium propagator, 
+%                    set to "time" (default) to only average over the time 
+%                    axis of the Hamiltonian, yielding an approximate 
+%                    propagator for each trajectory; set to "all" to 
+%                    average over both time and trajectory axes, yielding a
+%                    single approximate propagator to be used on the
+%                    trajectory-averaged density matrix
 
 function varargout = cardamom(Sys,Par,Exp,Opt,MD)
+
 % Preprocessing
 % -------------------------------------------------------------------------
 
@@ -340,6 +352,9 @@ if useMD
   MDTrajLength = size(MD.FrameX, 4);
   
   MD.RTraj = zeros(3,3,1,MDTrajLength);
+%   MD.RTraj(1,:,1,:) = MD.FrameX;
+%   MD.RTraj(2,:,1,:) = MD.FrameY;
+%   MD.RTraj(3,:,1,:) = MD.FrameZ;
   MD.RTraj(:,1,1,:) = MD.FrameX;
   MD.RTraj(:,2,1,:) = MD.FrameY;
   MD.RTraj(:,3,1,:) = MD.FrameZ;
@@ -362,18 +377,24 @@ if useMD
   clear RTrajInv
   
   % estimate [rotational diffusion time scale
-  acorr = autocorrfft(squeeze(MD.FrameZ.^2), 2, 1, 1);
+  acorrX = autocorrfft(squeeze(MD.FrameX.^2), 2, 1, 1);
+  acorrY = autocorrfft(squeeze(MD.FrameY.^2), 2, 1, 1);
+  acorrZ = autocorrfft(squeeze(MD.FrameZ.^2), 2, 1, 1);
 
   N = round(MDTrajLength/4);
+%   N = round(10e-9/MD.dt);
 
   % calculate correlation time
   time = linspace(0, N*MD.dt, N);
-%     tau = max(cumtrapz(time,acorr(1:N)));
-  [k,c,yfit] = exponfit(time, acorr(1:N), 2);
-  tauR = 1/max(k);
-  tauR = 1.5e-9;
-  DiffLocal = 1/6/(tauR);
-  MD.tauR = tauR;
+  tauRX = max(cumtrapz(time,acorrX(1:N)));
+  tauRY = max(cumtrapz(time,acorrY(1:N)));
+  tauRZ = max(cumtrapz(time,acorrZ(1:N)));
+%   [k,c,yfit] = exponfit(time, acorr(1:N), 2, 'noconst');
+%   tauR = 1/max(k);
+
+%   DiffLocal = 1/6/(tauRZ);
+  DiffLocal = 1/6./[tauRX, tauRY, tauRZ];
+  MD.tauR = tauRZ;
 end
 
 % Check Par
@@ -397,7 +418,7 @@ if useMD
   
   if ~strcmp(MD.TrajUsage,'Resampling')
     % time step of MD simulation, MD.dt, is usually much smaller than
-    % that of the propagation, Par.dt, so determine the size of the 
+    % the propagation time step, Par.dt, so determine the size of the 
     % averaging window here (Par.dt/MD.dt), then set Par.nTraj and 
     % Par.nSteps accordingly to number of windows and the size of the
     % window, respectively
@@ -485,12 +506,12 @@ if ~isfield(Opt,'Method')
   Opt.Method = 'Nitroxide';
 end
 
-if ~isfield(Opt,'truncate')
-  Opt.truncate = 0;
+if isfield(Opt,'truncate') && strcmp(Opt.Method,'Nitroxide')
+  error('Correlation function propagation is only available for ISTOs method.')
 end
 
-if Opt.truncate && strcmp(Opt.Method,'Nitroxide')
-  error('Correlation function propagation is only available for ISTOs method.')
+if ~isfield(Opt,'truncate')
+  Opt.truncate = 0;
 end
 
 if isfield(Opt,'FFTWindow')
@@ -503,6 +524,28 @@ if ~isfield(Opt,'specCon')
   specCon = 0;
 else
   specCon = Opt.specCon;
+end
+
+if ~isfield(Opt,'debug')
+  Opt.debug = [];
+end
+
+% Debugging options
+if ~isfield(Opt,'debug')
+  Opt.debug.EqProp = 'all';
+else
+  if ~isfield(Opt.debug,'EqProp')
+    Opt.debug.EqProp = 'all';
+  else
+    switch Opt.debug.EqProp
+      case 'time'
+        Opt.debug.EqProp = 'time';
+      case 'all'
+        Opt.debug.EqProp = 'all';
+      otherwise
+        error('Opt.debug.EqProp value not recognized.')
+    end
+  end
 end
 
 % Check dynamics and ordering
@@ -616,6 +659,16 @@ switch Model
       phi = squeeze(atan2(MD.FrameY(3,:,:,1:M), MD.FrameX(3,:,:,1:M)));
       psi = squeeze(atan2(-MD.FrameZ(2,:,:,1:M), MD.FrameZ(1,:,:,1:M)));
 
+%       % use eulang to obtain Euler angles
+%       phi = zeros(MDTrajLength,1);
+%       theta = zeros(MDTrajLength,1);
+%       psi = zeros(MDTrajLength,1);
+%       tic
+%       for k = 1:MDTrajLength
+%         [phi(k), theta(k), psi(k)] = eulang(MD.RTraj(:,:,1,k));
+%         updateuser(k, MDTrajLength)
+%       end
+
       nBins = 90;
       phiBins = linspace(-pi, pi, nBins);
       thetaBins = linspace(0, pi, nBins/2);
@@ -628,8 +681,9 @@ switch Model
       pdf(end,:,:) = pdf(1,:,:);  % FIXME why does it truncate to zero in the phi direction?
       
       pdf = smoothn(pdf);
+%       pdf = smooth3(pdf,'gaussian');
       
-%       save('pdf.mat', 'pdf')
+      save('pdf.mat', 'pdf')
 
     end
 
@@ -764,11 +818,51 @@ while ~converged
           Sys.ProbDensFun = pdf;
           Sys.Diff = DiffLocal;
           [t, ~, qTraj] = stochtraj(Sys,Par,Opt);
+          
+%           %%%%%%%%%%%%
+%           
+%           bins = size(pdf, 1);
+% 
+%           abins = bins;  % use less points for easier heat map visualization
+%           bbins = bins/2;
+%           gbins = bins;
+%           
+%           alphaBins = linspace(-pi, pi, abins);
+%           betaBins = pi-acos(linspace(-1, 1, bbins));
+%           gammaBins = linspace(-pi, pi, gbins);
+%           
+%           for iTraj=1:Par.nTraj
+%             % use a "burn-in method" by taking last half of each trajectory
+%             [alpha, beta, gamma] = quat2euler(qTraj(:,iTraj,:),'active');
+%           %   [alpha, beta, gamma] = quat2euler(qTraj(:,iTraj,N:end));
+%             alpha = squeeze(alpha);
+%             beta = squeeze(beta);
+%             gamma = squeeze(gamma);
+% 
+%           %   q = squeeze(qTraj(:,iTraj,N:end));
+%           %   [alpha, beta, gamma] = quat2angle(permute(q,[2,1]), 'ZYZ');
+% 
+%             % calculate 3D histogram using function obtained from Mathworks File Exchange
+%             [Hist3D(:,:,:,iTraj),~] = histcnd([alpha,beta,gamma],...
+%                                               {alphaBins,betaBins,gammaBins});
+%           end
+%           
+%           hist_tauD100 = mean(Hist3D,4);
+%           save('hist_tauD100.mat', 'hist_tauD100')
+%           
+%           %%%%%%%%%%%%%
 
 %           qMult = repmat(euler2quat(gridPhi(iOrient), gridTheta(iOrient), 0),...
 %                          [1,Par.nTraj,Par.nSteps]);
           qLab = repmat(euler2quat(0, gridTheta(iOrient), gridPhi(iOrient)),...
                          [1,Par.nTraj,Par.nSteps]);
+                       
+          % global diffusion
+          if isfield(MD, 'GlobalDiff')
+            Sys.Diff = MD.GlobalDiff;
+            [t, RTrajGlobal, qTrajGlobal] = stochtraj(Sys,Par,Opt);
+            qLab = quatmult(qLab, qTrajGlobal);
+          end
 
           qTraj = quatmult(qLab, qTraj);
           
@@ -783,7 +877,9 @@ while ~converged
     Sprho = propagate_quantum(Sys,Par,Opt,MD,omega,CenterField);
 
     % average over trajectories
-    Sprho = squeeze(mean(Sprho,3));
+    if strcmp(Opt.debug.EqProp,'time')
+      Sprho = squeeze(mean(Sprho,3));
+    end
 
     iExpectVal{1,iOrient} = 0;
     % calculate the expectation value of S_{+}
@@ -873,8 +969,9 @@ while ~converged
   if Broadening
     if Sys.lw(1)>0
       % Gaussian broadening
-      TG = 1/(mt2mhz(Sys.lw(1))*1e6);
-      ExpectVal = exp(-tLong.^2/TG^2/8).*ExpectVal;
+      w = mt2mhz(Sys.lw(1))*1e6;  % FWHM in Hz
+      alpha = pi^2*w^2/(4*log(2));
+      ExpectVal = exp(-alpha*tLong.^2).*ExpectVal;
   %     GaussBroad = cellfun(@(x) exp(-x.^2/TG.^2/8), tcell, 'UniformOutput', false);
   %     expectval = cellfun(@times, expectval, GaussBroad, 'UniformOutput', false);
     end
