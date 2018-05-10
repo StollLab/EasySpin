@@ -24,11 +24,6 @@ if any(lambda)
     LKM = [L_ M_ K_];
     if mod(L_,2)==0 && M_==0 && mod(K_,2)==0
       % numerically integrate
-      U = @(a,b,c) c20*wignerd([2 0 0],a,b,c) +...
-        c22*wignerd([2 2 0],a,b,c) +...
-        c40*wignerd([4 0 0],a,b,c) +...
-        c42*wignerd([4 2 0],a,b,c) +...
-        c44*wignerd([4 4 0],a,b,c);
       fun = @(a,b,c) wignerd(LKM,a,b,c).*exp(-U(a,b,c)/2);
       wigVector(iWig) = integral3(fun,0,2*pi,0,pi,0,2*pi);
     else
@@ -55,3 +50,14 @@ else
 end
 
 return
+
+function u = U(a,b,c)
+  u = 0;
+  if c20~=0, u = u + wignerd([2 0 0],a,b,c); end
+  if c22~=0, u = u + wignerd([2 2 0],a,b,c); end
+  if c40~=0, u = u + wignerd([4 0 0],a,b,c); end
+  if c42~=0, u = u + wignerd([4 2 0],a,b,c); end
+  if c44~=0, u = u + wignerd([4 4 0],a,b,c); end
+end
+
+end
