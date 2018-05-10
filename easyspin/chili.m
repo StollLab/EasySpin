@@ -178,9 +178,9 @@ if Sys.fullg
     mean_g(iElectron) = mean(eig(Sys.g(idx,:)));
     idx = idx + 3;
   end
-  mT2MHz = mt2mhz(1,mean(mean_g));
+  mT2MHz_giso = mt2mhz(1,mean(mean_g));
 else
-  mT2MHz = mt2mhz(1,mean(mean(Sys.g)));
+  mT2MHz_giso = mt2mhz(1,mean(mean(Sys.g)));
 end
 
 if any(Sys.HStrain(:)) || any(Sys.gStrain(:)) || any(Sys.AStrain(:)) || any(Sys.DStrain(:))
@@ -403,10 +403,10 @@ if ~isempty(Exp.Ordering)
   %  error('Partial ordering (Exp.Ordering) can only be used in a powder simulation.');
   %end
   if isnumeric(Exp.Ordering) && (numel(Exp.Ordering)==1) && isreal(Exp.Ordering)
-    UserSuppliedOrderingFcn = false;
-    logmsg(1,'  partial order (built-in function, coefficient = %g)',Exp.Ordering);
+    lambda = Exp.Ordering;
+    Exp.Ordering = @(phi,theta) exp(lambda*plegendre(2,0,cos(theta)));
+    logmsg(1,'  partial order (built-in function, coefficient = %g)',lambda);
   elseif isa(Exp.Ordering,'function_handle')
-    UserSuppliedOrderingFcn = true;
     logmsg(1,'  partial order (user-supplied function)');
   else
     error('Exp.Ordering must be a single number or a function handle.');
@@ -611,6 +611,11 @@ end
                                        Opt.IncludeNZI,...
                                        explicitFieldSweep);
 
+noAnisotropiesPresent = all(F.F1(:)==0) && all(F.F2(:)==0);
+if noAnisotropiesPresent
+  error('This is an isotropic spin system. chili cannot calculate a slow-motion spectrum.');
+end
+
 [Dynamics,err] = processdynamics(Dynamics,FieldSweep);
 error(err);
 
@@ -637,7 +642,7 @@ end
 % Set up horizontal sweep axis
 % (nu is used internally, xAxis is used for user output)
 if FieldSweep
-  FreqSweep = Sweep*mT2MHz*1e6; % mT -> Hz
+  FreqSweep = Sweep*mT2MHz_giso*1e6; % mT -> Hz
   nu = Exp.mwFreq*1e9 - linspace(-1,1,Exp.nPoints)*FreqSweep/2;  % Hz
   xAxis = linspace(Exp.Range(1),Exp.Range(2),Exp.nPoints);  % field axis, mT
   dB = xAxis(2)-xAxis(1); % field axis increment, mT
@@ -683,16 +688,10 @@ Basis.DirTilt = any(theta~=0);
 
 % Partial ordering for protein/macromolecule
 if ~isempty(Exp.Ordering)
-  if (UserSuppliedOrderingFcn)
-    OrderingWeights = feval(Exp.Ordering,phi,theta);
-    if any(OrderingWeights)<0, error('User-supplied orientation distribution gives negative values!'); end
-    if max(OrderingWeights)==0, error('User-supplied orientation distribution is all-zero.'); end
-    logmsg(2,'  user-supplied ordering potential');
-  else
-    logmsg(2,'  standard ordering potential');
-    U = -Exp.Ordering*plegendre(2,0,cos(theta)); % ordering potential
-    OrderingWeights = exp(-U);
-  end
+  OrderingWeights = Exp.Ordering(phi,theta);
+  if any(OrderingWeights)<0, error('User-supplied orientation distribution gives negative values!'); end
+  if all(OrderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end
+  logmsg(2,'  ordering potential');
 else
   OrderingWeights = ones(1,nOrientations);
 end
@@ -844,7 +843,9 @@ for iOri = 1:nOrientations
     BSweep = linspace(min(Exp.Range),max(Exp.Range),Exp.nPoints)/1e3; % mT -> T
     omega0 = 1i*2*pi*Exp.mwFreq*1e9; % GHz -> Hz (angular frequency)
   else
-    BSweep = CenterField/1e3; % mT -> T
+    Bcalc = CenterField;
+    %Bcalc = mhz2mt(Exp.mwFreq*1e3,mean(mean(Sys.g)));
+    BSweep = Bcalc/1e3; % mT -> T
     omega0 = complex(1/(Dynamics.T2),2*pi*nu); % angular frequency
   end
   
@@ -1198,7 +1199,7 @@ end
 %==============================================================
 
 switch (nargout)
-case 0,
+case 0
   cla
   if FieldSweep
     if (xAxis(end)<10000)
@@ -1223,9 +1224,9 @@ case 0,
     ylabel('intensity (arb.u.)');
     title(sprintf('%0.8g mT, %d points',Exp.Field,numel(xAxis)));
   end
-case 1,
+case 1
   varargout = {outspec};
-case 2,
+case 2
   varargout = {xAxis,outspec};
 end
 %==============================================================
