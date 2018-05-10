@@ -10,7 +10,9 @@
 % Output:
 %   Gamma    diffusion superoperator in the given LMK or LMKjK basis (s^-1)
 
-function Gamma = diffsuperop(R,basis,XLK,usePotential)
+function Gamma = diffsuperop(R,basis,XLK)
+
+usePotential = nargin==3 && any(XLK(:)~=0);
 
 nBasis = size(basis,1);
 
@@ -25,8 +27,16 @@ else
   jK = zeros(nBasis,1);
 end
 
-if numel(R)==1
-  R = R*ones(1,3);
+if usePotential && ~jKbasis
+  error('Cannot use LMK basis with ordering potential.');
+end
+
+switch numel(R)
+  case 1
+    R = R*ones(1,3);
+  case 3
+    % principal values
+  otherwise
 end
 
 Rx = R(1);
@@ -37,12 +47,14 @@ Rperp = (Rx+Ry)/2;
 
 % Treat the cases of isotropic and axial diffusion tensors, where the
 % diffusion operator matrix is diagonal in LMK and LMKjK.
-if Rd==0
+if ~usePotential && Rd==0
   diagonal = Rperp*L.*(L+1) + (Rz-Rperp)*K.^2;
   Gamma = spdiags(diagonal,0,nBasis,nBasis);
   return
 end
 
+% Potential-independent part of diffusion operator
+%-------------------------------------------------------------------------------
 idx = 1;
 for b1 = 1:nBasis
   L1  = L(b1);
@@ -91,10 +103,10 @@ for b1 = 1:nBasis
     
   end
 end
-Gamma_noU = sparse(bra,ket,val,nBasis,nBasis);
+Gamma = sparse(bra,ket,val,nBasis,nBasis);
 
-% Potential-dependent part
-
+% Potential-dependent part of diffusion operator
+%-------------------------------------------------------------------------------
 if usePotential
   idx = 1;
   xLmax = size(XLK,1)-1;
@@ -177,13 +189,9 @@ if usePotential
     end
   end
   Gamma_U = sparse(bra,ket,val,nBasis,nBasis);
-else
-  Gamma_U = sparse(0);
+  Gamma = Gamma + Gamma_U;
 end
 
-Gamma = Gamma_noU + Gamma_U;
-
-%Fill in lower triangular part
 % Fill in lower triangular part
 Gamma = Gamma + triu(Gamma,1).';
 

@@ -769,7 +769,11 @@ if generalLiouvillian
   logmsg(1,'Calculating the relaxation superoperator matrix');
   % Calculate relaxation superoperator in spatial basis, expand to full product
   % basis, and remove unwanted basis functions.
-  Gamma = diffsuperop(Dynamics.Diff,Basis.List,Potential.xlk,usePotential);
+  if usePotential
+    Gamma = diffsuperop(Dynamics.Diff,Basis.List,Potential.xlk);
+  else
+    Gamma = diffsuperop(Dynamics.Diff,Basis.List);
+  end
   Gamma = spkroneye(Gamma,Sys.nStates^2);
   Gamma = Gamma(keep,keep);
   
