@@ -39,17 +39,28 @@
 %
 %
 %   Par: simulation parameters for Monte Carlo integrator
-%     dt             double
-%                    time step (in seconds)
 %
-%     nSteps         double
-%                    number of time steps per simulation
-%
-%     nTraj          double
+%     nTraj          integer
 %                    number of trajectories
 %
 %     Omega          numeric, size = (3,1) or (3,nTraj)
 %                    Euler angles for starting orientation(s)
+%
+%         When specifying the simulation time provide one of the following
+%         combinations:
+%         Precedence: t > nSteps,dt > tMax,nSteps
+%             
+%     t              numeric
+%                    array of time points  (in seconds)
+%
+%     tMax           double
+%                    total time of simulation (in seconds)
+%
+%     dt             double
+%                    time step (in seconds)
+%
+%     nSteps         integer
+%                    number of time steps in simulation
 %
 %
 %   Opt: simulation options
@@ -211,17 +222,17 @@ if isfield(Par,'t')
   nSteps = numel(t);
   dt = t(2) - t(1);
   if (abs(dt - max(t)/nSteps) > eps), error('t is not linearly spaced.'); end
-
+  
 elseif isfield(Par,'nSteps') && isfield(Par,'dt')
   % number of steps and time step are given
   dt = Par.dt;
   nSteps = Par.nSteps;
 
-elseif isfield(Par,'nSteps') && isfield(Par,'tmax')
+elseif isfield(Par,'tMax') && isfield(Par,'nSteps')
   % number of steps and max time are given
-  tmax = Par.tmax;
+  tMax = Par.tMax;
   nSteps = Par.nSteps;
-  dt = tmax/Sim.nSteps;
+  dt = tMax/Sim.nSteps;
 
 else
 %   error(['You must specify a time array, or a number of steps and ' ...

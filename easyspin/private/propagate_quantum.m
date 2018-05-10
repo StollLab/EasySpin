@@ -23,7 +23,10 @@
 %
 %   Par: structure with simulation parameters
 %     dt             double
-%                    time step (in seconds)
+%                    rotational dynamics propagation time step (in seconds)
+%
+%     Dt             double
+%                    spin dynamics propagation time step (in seconds)
 %
 %   Exp: experimental parameter settings
 %     B              double  TODO can this be replaced by a fieldsweep and then used to extract omega0?
@@ -72,9 +75,13 @@ end
 Liouville = Opt.Liouville;
 Method = Opt.Method;
 Model = Par.Model;
+
 if ~isempty(MD)
   tauR = MD.tauR;
+  useMD = 1;
+  isExplicit = MD.isExplicit;
 else
+  useMD = 0;
   tauR = 1/6/mean(Sys.Diff);
 end
 
@@ -82,8 +89,8 @@ if ~isfield(MD,'RTraj') && (~isfield(Par,'RTraj')||~isfield(Par,'qTraj'))
   error('Either Par.RTraj and Par.qTraj, or MD.RTraj must be provided.')
 end
 
-if strcmp(Model, 'Molecular Dynamics')
-  if ~strcmp(MD.TrajUsage, 'Resampling')
+if useMD
+  if isExplicit
     if strcmp(Method, 'ISTOs')
       qTraj = MD.qTraj;
       qLab = Par.qLab;
@@ -103,9 +110,12 @@ if strcmp(Model, 'Molecular Dynamics')
 else
   if strcmp(Method, 'ISTOs')
     qTraj = Par.qTraj;
+    qLab = Par.qLab;
   else
     RTraj = Par.RTraj;
     RTrajInv = permute(RTraj,[2,1,3,4]);
+    RLab = Par.RLab;
+    RLabInv = permute(RLab,[2,1,3,4]);
   end
 end
 
@@ -121,44 +131,34 @@ end
 %   error('Par.RTraj, Par.qTraj, or MD.RTraj must be provided.')
 % end
 
-if strcmp(Method, 'Nitroxide')
-  if ~isfield(Sys,'A'), error('An A-tensor is required for the Nitroxide method.'); end
-end
-
 if ~isfield(Sys,'g')
   error('g-tensor not specified.');
 else
   g = Sys.g;
 end
 
-if isfield(Sys, 'A'), A = Sys.A; end
+if isfield(Sys, 'A')
+  A = Sys.A; 
+else
+  if strcmp(Method, 'Nitroxide'), error('An A-tensor is required for the Nitroxide method.'); end
+end
 
-if ~isfield(Par,'dt'), error('Time step not specified.'); end
+Dt = Par.Dt;
+nTraj = Par.nTraj;
+isBlock = Par.isBlock;
 
 truncate = Opt.truncate;
 
-dt = Par.dt;
-nTraj = Par.nTraj;
-if strcmp(Model, 'Molecular Dynamics')
-  nSteps = Par.nSteps;
-else
-  if strcmp(Method, 'Nitroxide')
-    nSteps = size(RTraj, 4);
-  elseif strcmp(Method, 'ISTOs')
-    nSteps = size(qTraj, 3);
-  end
-end
-t = linspace(0, dt*nSteps, nSteps);
-
-if ~isequal(size(g),[1,3])
-  error('g-tensor must be a 3-vector.')
-end
-
-if isfield(Sys, 'A')
-  if ~isequal(size(A),[1,3])
-    error('A-tensor must be a 3-vector.')
-  end
-end
+nSteps = Par.nSteps;
+% if useMD
+%   nSteps = Par.nSteps;
+% else
+%   if strcmp(Method, 'Nitroxide')
+%     nSteps = size(RTraj, 4);
+%   elseif strcmp(Method, 'ISTOs')
+%     nSteps = size(qTraj, 3);
+%   end
+% end
 
 Sim.nSteps = nSteps;
 Sim.nTraj = nTraj;
@@ -175,47 +175,59 @@ Sim.Liouville = Liouville;
 switch Method
   case 'Nitroxide'  % see Ref [1]
     
+    if ~isequal(size(g),[1,3])
+      error('g-tensor must be a 3-vector.')
+    end
+
+    if isfield(Sys, 'A')
+      if ~isequal(size(A),[1,3])
+        error('A-tensor must be a 3-vector.')
+      end
+    end
+    
     fullSteps = nSteps;
     
-    % Process MD simulation data
-    % ---------------------------------------------------------------------
-    
-    % Perform rotations on g- and A-tensors
+    % perform rotations on g- and A-tensors
     gTensor = tensortraj(g,RTraj,RTrajInv);
 
     ATensor = tensortraj(A,RTraj,RTrajInv)*1e6*2*pi; % MHz (s^-1) -> Hz (rad s^-1)
     
-    if strcmp(Model,'Molecular Dynamics')
+    % block and window averaging
+    if isBlock
+      gTensorAvg = zeros(3,3,size(gTensor,3),Par.nBlocks);
+      ATensorAvg = zeros(3,3,size(ATensor,3),Par.nBlocks);
 
-      if ~strcmp(MD.TrajUsage,'Resampling')
-        gTensorAvg = zeros(3,3,MD.nWindows);
-        ATensorAvg = zeros(3,3,MD.nWindows);
-
-        % average the interaction tensors over time windows
-        idx = 1:MD.WindowLength;
-        for k = 1:MD.nWindows
-          gTensorAvg(:,:,k) = mean(gTensor(:,:,:,idx),4);
-          ATensorAvg(:,:,k) = mean(ATensor(:,:,:,idx),4);
-          idx = idx + MD.WindowLength;
-        end
-
-        gTensor = zeros(3,3,nTraj,nSteps);
-        ATensor = zeros(3,3,nTraj,nSteps);
-
-        for k = 1:nTraj
-          idx = (1:nSteps) + (k-1)*MD.lag;
-          gTensor(:,:,k,:) = gTensorAvg(:,:,idx);
-          ATensor(:,:,k,:) = ATensorAvg(:,:,idx);
-        end
-        
-        gTensor = mmult(RLab, mmult(gTensor, RLabInv, 'real'), 'real');
-        ATensor = mmult(RLab, mmult(ATensor, RLabInv, 'real'), 'real');
-        
+      % average the interaction tensors over time blocks
+      idx = 1:Par.BlockLength;
+      for k = 1:Par.nBlocks
+        gTensorAvg(:,:,:,k) = mean(gTensor(:,:,:,idx),4);
+        ATensorAvg(:,:,:,k) = mean(ATensor(:,:,:,idx),4);
+        idx = idx + Par.BlockLength;
       end
       
-%       gTensor = mmult(RLab, mmult(gTensor, RLabInv, 'real'), 'real');
-%       ATensor = mmult(RLab, mmult(ATensor, RLabInv, 'real'), 'real');
+      % perform window averaging if using MD trajectory explicitly
+      if useMD
+        if isExplicit
+          gTensor = zeros(3,3,nTraj,nSteps);
+          ATensor = zeros(3,3,nTraj,nSteps);
+          for k = 1:nTraj
+            idx = (1:nSteps) + (k-1)*Par.lag;
+            gTensor(:,:,k,:) = gTensorAvg(:,:,idx);
+            ATensor(:,:,k,:) = ATensorAvg(:,:,idx);
+          end
+        else
+          gTensor = gTensorAvg;
+          ATensor = ATensorAvg;
+        end
+      else
+        gTensor = gTensorAvg;
+        ATensor = ATensorAvg;
+      end
+    end
       
+    if ~isempty(RLab)
+      gTensor = mmult(RLab, mmult(gTensor, RLabInv, 'real'), 'real');
+      ATensor = mmult(RLab, mmult(ATensor, RLabInv, 'real'), 'real');
     end
     
     gIso = sum(g)/3;
@@ -236,7 +248,7 @@ switch Method
 
     % rotation angle and unit vector parallel to axis of rotation
     % refer to paragraph below Eq. 37 in [1]
-    theta = dt*0.5*squeeze(a);
+    theta = Dt*0.5*squeeze(a);
     nx = squeeze(ATensor(1,3,:,:)./a);
     ny = squeeze(ATensor(2,3,:,:)./a);
     nz = squeeze(ATensor(3,3,:,:)./a);
@@ -267,7 +279,7 @@ switch Method
                          - 1i*st.*nz;
     
     % Calculate propagator, Eq. 35 in [1]
-    U = bsxfun(@times, exp(-1i*dt*0.5*omega*Gp_zz), expadotI);
+    U = bsxfun(@times, exp(-1i*Dt*0.5*omega*Gp_zz), expadotI);
     
     % Propagate density matrix
     % ---------------------------------------------------------------------
@@ -349,30 +361,49 @@ switch Method
     % Process Wigner D-matrices
     % ---------------------------------------------------------------------
 
-    if strcmp(Model,'Molecular Dynamics')
+    if isBlock
       if isempty(D2TrajMol)
+        % if using an MD trajectory, it is best to process the molecular
+        % dynamics once and store the result
+        % this variable will be set to empty later if an MD trajectory is
+        % not being used
         D2TrajMol = wigD(qTraj);
-        D2Avg = zeros(5,5,MD.nWindows);
+        D2Avg = zeros(5,5,Par.nBlocks);
 
-        % average the interaction tensors over time windows
-        idx = 1:MD.WindowLength;
-        for k = 1:MD.nWindows
+        % average the Wigner D-matrices over time blocks
+        idx = 1:Par.BlockLength;
+        for k = 1:Par.nBlocks
           D2Avg(:,:,k) = mean(D2TrajMol(:,:,:,idx),4);
-          idx = idx + MD.WindowLength;
+          idx = idx + Par.BlockLength;
         end
 
-        D2TrajMol = zeros(5,5,nTraj,nSteps);
+        % perform window averaging if using MD trajectory explicitly
+        if useMD
+          if isExplicit
+            D2TrajMol = zeros(5,5,nTraj,nSteps);
 
-        for k = 1:nTraj
-          idx = (1:nSteps) + (k-1)*MD.lag;
-          D2TrajMol(:,:,k,:) = D2Avg(:,:,idx);
+            for k = 1:nTraj
+              idx = (1:nSteps) + (k-1)*Par.lag;
+              D2TrajMol(:,:,k,:) = D2Avg(:,:,idx);
+            end
+          else
+            D2TrajMol = D2Avg;
+          end
         end
       end
-      % combine Wigner D-matrices of global and averaged local motion
-      D2Lab = wigD(qLab);
-      D2Traj = mmult(D2Lab, D2TrajMol);
+      D2Traj = D2TrajMol;
+      if ~useMD
+        % trajectories will continually be generated, so leave this empty
+        D2TrajMol = [];
+      end
     else
       D2Traj = wigD(qTraj);
+    end
+    
+    % check for new lab frame rotations
+    if ~isempty(qLab)
+      D2Lab = wigD(qLab);
+      D2Traj = mmult(D2Lab, D2Traj);
     end
     
     if truncate
@@ -383,7 +414,7 @@ switch Method
       if strcmp(truncate, 'all')
         fullSteps = 1;  % use ensemble-averaged propagator the entire time
       else
-        fullSteps = ceil(truncate*1e-9/dt);
+        fullSteps = ceil(truncate*1e-9/Dt);
       end
       
       % if correlation time is longer than user input, just use full 
@@ -393,13 +424,15 @@ switch Method
         truncate = 0;
       else
 
-        % calculate correlation functions for approximate propagator
-        NtauR = 10*ceil(tauR/dt);
+        % approximate upper limit of correlation function integration based
+        % on rotational correlation time
+        NtauR = 10*ceil(tauR/Dt);
         
         if NtauR>nSteps
           NtauR = nSteps;
         end
         
+        % calculate correlation functions for approximate propagator
         D2Acorr = autocorrfft(D2Traj, 4, 0, 0, 1);
 %         D2Acorr = autocorrfft(D2Traj-mean(D2Traj,4), 4, 0, 0, 0);
   %       for mppp=1:5
@@ -418,9 +451,9 @@ switch Method
   %       end
 
         if strcmp(Opt.debug.EqProp,'time')
-          K2 = squeeze(trapz(D2Acorr(:,:,:,1:NtauR),4))*dt;  % TODO implement cross-correlation functions
+          K2 = squeeze(trapz(D2Acorr(:,:,:,1:NtauR),4))*Dt;  % TODO implement cross-correlation functions
         elseif strcmp(Opt.debug.EqProp,'all')
-          K2 = squeeze(trapz(mean(D2Acorr(:,:,:,1:NtauR),3),4))*dt;  % TODO implement cross-correlation functions
+          K2 = squeeze(trapz(mean(D2Acorr(:,:,:,1:NtauR),3),4))*Dt;  % TODO implement cross-correlation functions
         end
 
         idx = K2>1e-11;
@@ -457,7 +490,7 @@ switch Method
     
     for iStep=1:fullSteps
       for iTraj=1:nTraj
-        U(:,:,iTraj,iStep) = expeig(1i*dt*H(:,:,iTraj,iStep));  % TODO speed this up!
+        U(:,:,iTraj,iStep) = expeig(1i*Dt*H(:,:,iTraj,iStep));  % TODO speed this up!
 %         U(:,:,iTraj,iStep) = expm_fast1(1i*dt*H(:,:,iTraj,iStep));
       end
     end
@@ -501,10 +534,10 @@ switch Method
         if strcmp(Opt.debug.EqProp,'time')
           Ueq = zeros(size(U,1)^2,size(U,2)^2,nTraj);
           for iTraj=1:nTraj
-            Ueq(:,:,iTraj) = expm_fast1(1i*dt*Heq(:,:,iTraj));
+            Ueq(:,:,iTraj) = expm_fast1(1i*Dt*Heq(:,:,iTraj));
           end
         elseif strcmp(Opt.debug.EqProp,'all')
-          Ueq = expm_fast1(1i*dt*mean(Heq,3));
+          Ueq = expm_fast1(1i*Dt*mean(Heq,3));
         end
         Sim.Ueq = Ueq;
 %       else

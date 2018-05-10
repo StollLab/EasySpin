@@ -53,7 +53,10 @@
 %
 %   Par: structure with simulation parameters
 %     dt             double
-%                    propagation time step (in seconds)
+%                    rotational dynamics propagation time step (in seconds)
+%
+%     Dt             double
+%                    spin dynamics propagation time step (in seconds)
 %
 %     nSteps         int
 %                    number of time steps per simulation
@@ -249,6 +252,7 @@ switch nargout
   case 1 % spc
   case 2 % B,spc
   case 3 % B,spc,expectval
+  case 4 % B,spc,expectval,t
   otherwise
     error('Incorrect number of output arguments.');
 end
@@ -342,8 +346,15 @@ if useMD
     MD.nSteps = size(MD.FrameZ, 1);
   end
   
-  if ~isfield(MD, 'TrajUsage'), MD.TrajUsage = 'Explicit'; end
-  TrajUsage = MD.TrajUsage;
+  % use internal field for easier processing
+  if isfield(MD, 'TrajUsage')
+    if ~strcmp(MD.TrajUsage,'Explicit') && ~strcmp(MD.TrajUsage,'Resampling')
+      error('Input for MD.TrajUsage not recognized.')
+    end
+    MD.isExplicit = strcmp(MD.TrajUsage,'Explicit');
+  else
+    MD.isExplicit = 1;
+  end
   
   MD.FrameX = permute(MD.FrameX, [2, 3, 4, 1]);
   MD.FrameY = permute(MD.FrameY, [2, 3, 4, 1]);
@@ -405,6 +416,46 @@ if ~isfield(Par,'nTraj')&&useMD==0, Par.nTraj = 100; end
 
 % TODO add error checks from stochtraj and create a skipcheck flag for stochtraj
 
+if isfield(Par,'t')
+  % time axis is given explicitly
+  t = Par.t;
+  tMax = max(t);
+  nStepsQuant = numel(t);
+  Par.Dt = t(2) - t(1);
+  Par.dt = Par.Dt;
+  nStepsStoch = round(tMax/Par.dt);
+  % check for linearly spaced time axis
+  absdev = abs(t/Par.Dt-(0:nStepsQuant-1));
+  if max(absdev)>1e-13
+    error('t does not appear to be linearly spaced.');
+  end
+%   if (abs(Dt - tMax/nSteps) > eps), error('t is not linearly spaced.'); end
+  
+elseif isfield(Par,'nSteps') && isfield(Par,'dt')
+    % number of steps and time step are given
+    nStepsQuant = Par.nSteps;
+    if ~isfield(Par,'Dt')
+      Par.Dt = Par.dt;
+    end
+    if Par.Dt<Par.dt
+      error('Par.dt must less than or equal to Par.Dt.')
+    end
+    tMax = nStepsQuant*Par.Dt;
+    nStepsStoch = round(tMax/Par.dt);
+
+elseif isfield(Par,'nSteps') && isfield(Par,'tMax')
+  % number of steps and max time are given
+  tMax = Par.tMax;
+  nStepsQuant = Par.nSteps;
+  Par.Dt = tMax/Par.nSteps;
+  Par.dt = Par.Dt;
+  nStepsStoch = round(tMax/Par.dt);
+
+else
+  error(['You must specify a time array Par.t, or a number of steps '...
+         'Par.nSteps and either a time step Par.dt or total time Par.tMax.'])
+end
+
 % decide on a simulation model based on user input
 if useMD
   if ~isfield(Par,'Model')
@@ -416,34 +467,42 @@ if useMD
   
   if MD.nTraj > 1, error('Using multiple MD trajectories is not supported.'); end
   
-  if ~strcmp(MD.TrajUsage,'Resampling')
-    % time step of MD simulation, MD.dt, is usually much smaller than
-    % the propagation time step, Par.dt, so determine the size of the 
-    % averaging window here (Par.dt/MD.dt), then set Par.nTraj and 
-    % Par.nSteps accordingly to number of windows and the size of the
-    % window, respectively
-    
-    % size of averaging window
-    WindowLength = ceil(Par.dt/MD.dt);
-
-    % size of MD trajectory after averaging, i.e. coarse-grained trajectory
-    % length
-    nWindows = floor(MD.nSteps/WindowLength);
-
-    % process single long trajectory into multiple short trajectories
-    lag = ceil(Par.dt/2e-9);  % use 2 ns lag between windows
-    
-    if Par.nSteps<nWindows
-      % Par.nSteps not changed from user input
-      Par.nTraj = floor((nWindows-Par.nSteps)/lag) + 1;
+  % determine if time block averaging is to be used
+  if MD.isExplicit
+    % check MD.dt
+    if Par.Dt<MD.dt
+      error('Par.Dt must be greater than MD.dt.')
+    end
+    Par.isBlock = 1;
+  else
+    % check Par.Dt
+    if Par.dt<Par.Dt
+      Par.isBlock = 1;
     else
-      Par.nSteps = nWindows;
+      % same step size
+      Par.isBlock = 0;
+    end
+  end
+  
+  % find block properties for block averaging
+  if Par.isBlock
+    if MD.isExplicit
+      [Par.nBlocks,Par.BlockLength] = findblocks(Par.Dt, MD.dt, MD.nSteps);
+    else
+      [Par.nBlocks,Par.BlockLength] = findblocks(Par.Dt, Par.dt, nStepsStoch);
+    end
+  end
+  
+  % process single long trajectory into multiple short trajectories
+  if MD.isExplicit
+    Par.lag = ceil(Par.Dt/2e-9);  % use 2 ns lag between windows
+    if Par.nSteps<Par.nBlocks
+      % Par.nSteps not changed from user input
+      Par.nTraj = floor((Par.nBlocks-Par.nSteps)/Par.lag) + 1;
+    else
+      Par.nSteps = nBlocks;
       Par.nTraj = 1;
     end
-    
-    MD.WindowLength = WindowLength;
-    MD.nWindows = nWindows;
-    MD.lag = lag;
   end
   
 else
@@ -480,6 +539,20 @@ else
       error('For Molecular Dynamics, both MD.RTraj and MD.dt need to be specified.')
     end
   end
+  
+  % check Par.Dt
+  if Par.dt<Par.Dt
+    Par.isBlock = 1;
+  else 
+    % same step size
+    Par.isBlock = 0;
+  end
+    
+  % find block properties for block averaging
+  if Par.isBlock
+    [Par.nBlocks,Par.BlockLength] = findblocks(Par.Dt, Par.dt, nStepsStoch);
+  end
+    
 end
 
 Model = Par.Model;
@@ -643,9 +716,9 @@ switch Model
       clear MD.RTraj
     end
 
-    if strcmp(TrajUsage,'Resampling')
+    if ~MD.isExplicit
+      % set up grid of starting for resampling trajectories
       
-      % set up grid of starting orientations
 %       if ~isfield(Par,'Omega')
 %         Par.Omega = [sqrt(pi*Par.nTraj)*asin(linspace(0,1,Par.nTraj));...
 %                      acos(linspace(0,1,Par.nTraj));...
@@ -711,7 +784,7 @@ iter = 1;
 spcArray = [];
 nOrientsTot = 0;
 
-% [t, RTraj, qTraj] = stochtraj(Sys,Par,Opt);
+t = linspace(0, nStepsQuant*Par.Dt, nStepsQuant);
 
 while ~converged
   tic
@@ -735,19 +808,29 @@ while ~converged
   %     case 'Molecular Dynamics'
       case 'Brownian'
         Sys.Diff = Dynamics.Diff;
-        [t, RTraj, qTraj] = stochtraj(Sys,Par,Opt);
+        Par.nSteps = nStepsStoch;
+        [trash, RTraj, qTraj] = stochtraj(Sys,Par,Opt);
         Par.qTraj = qTraj;
         Par.RTraj = RTraj;
+        Par.qLab = [];
+        Par.RLab = [];
 
       case 'MOMD'
         Sys.Diff = Dynamics.Diff;
-        [t, RTraj, qTraj] = stochtraj(Sys,Par,Opt);
+        Par.nSteps = nStepsStoch;
+        [trash, RTraj, qTraj] = stochtraj(Sys,Par,Opt);
         % generate quaternions for rotating to different grid points
 %         qMult = repmat(euler2quat(gridPhi(iOrient), gridTheta(iOrient), 0),...
 %                        [1,Par.nTraj,Par.nSteps]);
         qLab = repmat(euler2quat(0, gridTheta(iOrient), gridPhi(iOrient)),...
-                       [1,Par.nTraj,Par.nSteps]);
-        qTraj = quatmult(qLab,qTraj);
+                       [1,Par.nTraj,nStepsQuant]);
+        
+        if strcmp(Opt.Method,'ISTOs')
+          Par.qLab = qLab;
+        else
+          Par.RLab = quat2rotmat(qLab);
+        end
+        
         Par.qTraj = qTraj;
         Par.RTraj = quat2rotmat(qTraj);
 
@@ -760,7 +843,8 @@ while ~converged
         if isfield(Sys, 'PseudoPotFun')
           Sys.PseudoPotFun = PseudoPotFunLocal;
         end
-        [t, ~, qTrajLocal] = stochtraj(Sys,Par,Opt);
+        Par.nSteps = nStepsStoch;
+        [trash, ~, qTrajLocal] = stochtraj(Sys,Par,Opt);
 
         % global diffusion
         Sys.Diff = DiffGlobal;
@@ -770,15 +854,18 @@ while ~converged
         if isfield(Sys, 'PseudoPotFun')
           Sys.PseudoPotFun = [];
         end
-        [t, ~, qTrajGlobal] = stochtraj(Sys,Par,Opt);
+        Par.nSteps = nStepsStoch;
+        [trash, ~, qTrajGlobal] = stochtraj(Sys,Par,Opt);
         qTraj = quatmult(qTrajGlobal,qTrajLocal);
         
         Par.qTraj = qTraj;
         Par.RTraj = quat2rotmat(qTraj);
+        Par.qLab = [];
+        Par.RLab = [];
         
       case 'Molecular Dynamics'
         
-        if ~strcmp(TrajUsage,'Resampling')
+        if MD.isExplicit
           % powder grid rotation
 %           qMult = repmat(euler2quat(gridPhi(iOrient), gridTheta(iOrient), 0),...
 %                          [1,MD.nTraj,MD.nSteps]);
@@ -788,7 +875,8 @@ while ~converged
           % global diffusion
           if isfield(MD, 'GlobalDiff')
             Sys.Diff = MD.GlobalDiff;
-            [t, RTrajGlobal, qTrajGlobal] = stochtraj(Sys,Par,Opt);
+            Par.nSteps = nStepsQuant;  % TODO find a way to set this up with a separate time step properly
+            [trash, RTrajGlobal, qTrajGlobal] = stochtraj(Sys,Par,Opt);
             qLab = quatmult(qLab, qTrajGlobal);
           end
           
@@ -817,7 +905,8 @@ while ~converged
 
           Sys.ProbDensFun = pdf;
           Sys.Diff = DiffLocal;
-          [t, ~, qTraj] = stochtraj(Sys,Par,Opt);
+          Par.nSteps = nStepsStoch;
+          [trash, ~, qTraj] = stochtraj(Sys,Par,Opt);
           
 %           %%%%%%%%%%%%
 %           
@@ -860,7 +949,8 @@ while ~converged
           % global diffusion
           if isfield(MD, 'GlobalDiff')
             Sys.Diff = MD.GlobalDiff;
-            [t, RTrajGlobal, qTrajGlobal] = stochtraj(Sys,Par,Opt);
+            Par.nSteps = nStepsStoch;
+            [trash, RTrajGlobal, qTrajGlobal] = stochtraj(Sys,Par,Opt);
             qLab = quatmult(qLab, qTrajGlobal);
           end
 
@@ -874,6 +964,7 @@ while ~converged
     end
 
     % propagate the density matrix
+    Par.nSteps = nStepsQuant;
     Sprho = propagate_quantum(Sys,Par,Opt,MD,omega,CenterField);
 
     % average over trajectories
@@ -892,12 +983,7 @@ while ~converged
       updateuser(iOrient,nOrients)
     end
 
-    if strcmp(Model,'Molecular Dynamics')
-      nSteps = size(Sprho,3);
-      t = linspace(0, nSteps*Par.dt, nSteps).';
-    end
-
-    itCell{1,iOrient} = t;
+    itCell{1,iOrient} = t.';
     
     iOrient = iOrient + 1;
 
@@ -957,13 +1043,13 @@ while ~converged
   % if max(t)<treq
   tMax = max(cellfun(@(x) max(x), tCell));
   if tMax<tReq
-    M = ceil(tReq/Par.dt);  % TODO make flexible for propagation length extensions
+    M = ceil(tReq/Par.Dt);  % TODO make flexible for propagation length extensions
   else
   %   M = length(expectval);
-    M = ceil(tMax/Par.dt);
+    M = ceil(tMax/Par.Dt);
   end
   ExpectVal = cell2mat(cellfun(@(x) zeropad(x, M), ExpectVal, 'UniformOutput', false));
-  tLong = linspace(0, M*Par.dt, M).';
+  tLong = linspace(0, M*Par.Dt, M).';
 
   % convolute for linewidth broadening
   if Broadening
@@ -1045,7 +1131,7 @@ while ~converged
 
 end
 
-freq = 1/(Par.dt*M)*(-M/2:M/2-1);  % TODO check for consistency between FieldSweep and FFT window/resolution
+freq = 1/(Par.Dt*M)*(-M/2:M/2-1);  % TODO check for consistency between FieldSweep and FFT window/resolution
 
 % center the spectrum around the isotropic component of the g-tensor
 fftAxis = mhz2mt(freq/1e6+Exp.mwFreq*1e3, mean(Sys.g));  % Note use of g0, not ge
@@ -1092,6 +1178,8 @@ case 2
   varargout = {xAxis,outspc};
 case 3
   varargout = {xAxis,outspc,ExpectVal};
+case 4
+  varargout = {xAxis,outspc,ExpectVal,t};
 end
 
 clear global EasySpinLogLevel
@@ -1128,6 +1216,23 @@ msg = [msg1, msg2, msg3, msg4];
 
 fprintf([reverseStr, msg]);
 reverseStr = repmat(sprintf('\b'), 1, length(msg));
+
+end
+
+function [nBlocks,BlockLength] = findblocks(Dt, dt, nSteps)
+% time step of molecular simulation, dt, is usually much smaller than
+% the quantum propagation time step, Dt, so determine the size of the 
+% averaging block here (Dt/dt), then set nTraj and nSteps accordingly to 
+% number of blocks and the size of the block, respectively
+
+% size of averaging blocks
+BlockLength = ceil(Dt/dt);
+
+% size of trajectory after averaging, i.e. coarse-grained trajectory length
+nBlocks = floor(nSteps/BlockLength);
+
+BlockLength = BlockLength;
+nBlocks = nBlocks;
 
 end
 
