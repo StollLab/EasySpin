@@ -445,6 +445,8 @@ if ~isfield(Opt,'pqOrder'), Opt.pqOrder = false; end
 if ~isfield(Opt,'Symmetry'), Opt.Symmetry = 'Dinfh'; end
 if ~isfield(Opt,'SymmFrame'), Opt.SymmFrame = []; end
 if ~isfield(Opt,'PostConvNucs'), Opt.PostConvNucs = ''; end
+if ~isfield(Opt,'SaveSV'), Opt.SaveSV = false; end
+if ~isfield(Opt,'SaveL'), Opt.SaveL = false; end
 
 % Obsolete options
 % Opt.MOMD was used prior to 5.0 for powder simulations (in the presence of ordering potential)
