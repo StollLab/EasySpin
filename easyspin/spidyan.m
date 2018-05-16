@@ -206,7 +206,7 @@ switch nargout
   case 3
     out.FinalState = FinalState;
     out.StateTrajectories = StateTrajectories;
-%     out.Events = Events;
+    out.Events = Events;
     varargout = {TimeAxis,Signal,out};
   otherwise
     error('Incorrect number of output arguments. 1,2, or 3 expected.');

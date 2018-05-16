@@ -671,7 +671,7 @@ switch method
         % This combines the signals and time axes from all detected events
         % and prepares the output
         %------------------------------------------------------------------        
-        if~isempty(currentSignal)
+        if ~isempty(currentSignal)
           if firstDetection
             Signal = [];
             t = [];

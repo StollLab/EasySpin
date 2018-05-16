@@ -105,16 +105,17 @@ end
 
 % Setting up data structures for the pulses and events
 for iEvent = 1 : nEvents
-  if ~isstruct(Exp.Pulses{iEvent})
-    iDelay = iDelay + 1;
-    DelayIndices(iDelay) = iEvent;
-  else
+  if isstruct(Exp.Pulses{iEvent})
     iPulse = iPulse + 1;
-    PulseIndices(iPulse) = iEvent;
-    isPulse(iEvent) = 1;
+    PulseIndices(iPulse) = iEvent; %#ok<AGROW>
+    isPulse(iEvent) = true;
+  else
+    iDelay = iDelay + 1;
+    DelayIndices(iDelay) = iEvent; %#ok<AGROW>
+    isPulse(iEvent) = false; 
   end
 end
- 
+
 nPulses = length(PulseIndices);
 Pulses = cell(1,nPulses);
 iPulse = 1;
@@ -124,91 +125,151 @@ iPulse = 1;
 % Create the Eventstructure
 % -------------------------------------------------------------------------
 for iEvent = 1 : length(Exp.t)
-  if length(Exp.Pulses) >= iEvent && isstruct(Exp.Pulses{iEvent})
-    % ---------------------------------------------------------------------
-    % Pulse Specific Fields 
-    % ---------------------------------------------------------------------
-    Pulse = Exp.Pulses{iEvent};
-    
-    Pulse.tp = Exp.t(iEvent);
-    
-    % Gets the frequency band from Exp.Frequency. If only one frequency
-    % band is provided it is used for all pulses.
-    if size(Exp.Frequency,1) == 1
-      Pulse.Frequency = Exp.Frequency;
-    elseif size(Exp.Frequency,1) < iPulse
-      error('The Frequency Band for Pulse No. %d is missing.',iPulse)
-    else
-      Pulse.Frequency = Exp.Frequency(iPulse,:);
-    end
-    
-%     if length(Pulse.Frequency) == 2 && Pulse.Frequency(1) == Pulse.Frequency(2)
-%        Pulse.Frequency = Pulse.Frequency(1);
-%     end
-    
-    % Gets the flip angle 
-    if isfield(Exp,'Flip') && iPulse <= length(Exp.Flip)  
-      Pulse.Flip = Exp.Flip(iPulse);
-    elseif ~isfield(Pulse,'Qcrit') && ~isfield(Pulse,'Amplitude')
-      error('No Flipangle for Pulse No. %d provided.',iPulse)
-    else
-      
-    end
-    
-    % Gets the phase for the pulse, if none is provided, the phase is
-    % assumed to be 0
-    if isfield(Exp,'Phase') && length(Exp.Phase) >= iPulse
-      if isfield(Pulse,'Phase')
-        Pulse.Phase = Pulse.Phase + Exp.Phase(iPulse);
-      else
-        Pulse.Phase = Exp.Phase(iPulse);
-      end
-    elseif ~isfield(Pulse,'Phase')
-       Pulse.Phase = 0;
-    end
+  if isPulse(iEvent)
+    Pulse = [];
     
     % Gets the PhaseCycle for the current Pulse, if none is provided, phase
     % cycling is switched off for this event
     if isfield(Exp,'PhaseCycle') &&  iPulse <= length(Exp.PhaseCycle) && ~isempty(Exp.PhaseCycle{iPulse})
-      Pulse.PhaseCycle = Exp.PhaseCycle{iPulse};
-      nPhaseSteps = size(Pulse.PhaseCycle,1);
+      ThisPhaseCycle = Exp.PhaseCycle{iPulse};
+      nPhaseSteps = size(ThisPhaseCycle,1);
     else
-      Pulse.PhaseCycle = 0;
+      ThisPhaseCycle = 0;
       nPhaseSteps = 1;
     end
-       
-    % Get the time step size if available
-    Pulse.TimeStep = Exp.TimeStep;
-       
+    
+    if isfield(Exp.Pulses{iEvent},'IQ')
+      
+      
+      if iscell(Exp.Pulses{iEvent}.IQ)
+        UserIQ = Exp.Pulses{iEvent}.IQ{1};
+      elseif ismatrix(Exp.Pulses{iEvent}.IQ)
+        UserIQ = Exp.Pulses{iEvent}.IQ;
+      else
+        errMsg = ['The data structure provided for event ' num2str(iEvent) ' is not recognized.'];
+        error(errMsg);
+      end
+      
+      [d1, d2] = size(UserIQ);
+      if d1 ~= nPhaseSteps && d2 ~= nPhaseSteps
+        errMsg = ['The dimensionality of the IQ signal provided for event ' num2str(iEvent) ' is not in agreement with the phasecycle for this pulse. For user-defined waveforms the array must contain all IQs.'];
+        error(errMsg);
+      elseif d2 == nPhaseSteps
+        UserIQ =  UserIQ';
+      end
+      
+      if ~isfield(Exp.Pulses{iEvent},'t')
+        errMsg = ['An userdefined IQ was used for event ' num2str(iEvent) ', but the time axis is  missing. Please provide either through Pulse.t.' ];
+        error(errMsg);
+      else
+        if iscell(Exp.Pulses{iEvent}.t)
+          Pulse.TimeStep = Exp.Pulses{iEvent}.t{1}(2) - Exp.Pulses{iEvent}.t{1}(1);
+          tIQ = Exp.Pulses{iEvent}.t{1};
+        else
+          Pulse.TimeStep = Exp.Pulses{iEvent}.t(2) - Exp.Pulses{iEvent}.t(1);
+          tIQ = Exp.Pulses{iEvent}.t;
+        end
+        Pulse.userIQ.t = Exp.Pulses{iEvent}.t;
+      end
+                        
+      % Shifts IQ of the pulse if necessary...
+      for iPhaseStep = 1 : nPhaseSteps
+          Opt.dt = Exp.TimeStep;
+          if IncludeResonator
+            % if resonator is requested, pulses are elongated due to ringing.
+            % the duration of ringing is stored in an additional field
+            tOrig = t(end);
+            [tIQ,currentIQ] = resonator(t,UserIQ(iPhaseStep,:),Exp.mwFreq,Resonator.Arg1,Resonator.Arg2,Resonator.Arg3);
+            Events{iEvent}.Ringing = t(end) - tOrig;
+          else
+            currentIQ = UserIQ(iPhaseStep,:);
+          end
+          [t, ShiftedUserIQ(iPhaseStep,:)] = rfmixer(tIQ,currentIQ,-Opt.FrameShift,'IQshift',Opt);
+      end
+      Events{iEvent}.IQ =  ShiftedUserIQ;
+      
+      Exp.t(iEvent) = t(end); % updates the Exp.t structure to make sure pulse overlaps are caught (resonator, moving pulses) in case the originally provided value in Exp.t was not correct
+      
+      Pulse.userIQ.IQ = Exp.Pulses{iEvent}.IQ;
+      Pulse.PhaseCycle = ThisPhaseCycle;
+    else
+      % ---------------------------------------------------------------------
+      % Pulse Specific Fields
+      % ---------------------------------------------------------------------
+      Pulse = Exp.Pulses{iEvent};
+      
+      Pulse.tp = Exp.t(iEvent);
+      
+      Pulse.PhaseCycle = ThisPhaseCycle;
+      
+      % Gets the frequency band from Exp.Frequency. If only one frequency
+      % band is provided it is used for all pulses.
+      if size(Exp.Frequency,1) == 1
+        Pulse.Frequency = Exp.Frequency;
+      elseif size(Exp.Frequency,1) < iPulse
+        error('The Frequency Band for Pulse No. %d is missing.',iPulse)
+      else
+        Pulse.Frequency = Exp.Frequency(iPulse,:);
+      end
+      
+      %     if length(Pulse.Frequency) == 2 && Pulse.Frequency(1) == Pulse.Frequency(2)
+      %        Pulse.Frequency = Pulse.Frequency(1);
+      %     end
+      
+      % Gets the flip angle
+      if isfield(Exp,'Flip') && iPulse <= length(Exp.Flip)
+        Pulse.Flip = Exp.Flip(iPulse);
+      elseif ~isfield(Pulse,'Qcrit') && ~isfield(Pulse,'Amplitude')
+        error('No Flipangle for Pulse No. %d provided.',iPulse)
+      end
+      
+      % Gets the phase for the pulse, if none is provided, the phase is
+      % assumed to be 0
+      if isfield(Exp,'Phase') && length(Exp.Phase) >= iPulse
+        if isfield(Pulse,'Phase')
+          Pulse.Phase = Pulse.Phase + Exp.Phase(iPulse);
+        else
+          Pulse.Phase = Exp.Phase(iPulse);
+        end
+      elseif ~isfield(Pulse,'Phase')
+        Pulse.Phase = 0;
+      end
+      
+
+      % Get the time step size if available
+      Pulse.TimeStep = Exp.TimeStep;
+      
+      % Loop over the function that creates the PulseShape, as many times at
+      % are necessary to calculate all wave forms for the phase cycling
+      for iPCstep = 1 : nPhaseSteps
+        Pulse.Phase = Pulse.Phase + Pulse.PhaseCycle(iPCstep,1);
+        [t,IQ] = pulse(Pulse);
+        if IncludeResonator
+          % if resonator is requested, pulses are elongated due to ringing.
+          % the duration of ringing is stored in an additional field
+          tOrig = t(end);
+          [t,IQ] = resonator(t,IQ,Exp.mwFreq,Resonator.Arg1,Resonator.Arg2,Resonator.Arg3);
+          Events{iEvent}.Ringing = t(end) - tOrig;
+        end
+        % Shifts IQ of the pulse if necessary...
+        if FreqShift ~= 0
+          Opt.dt = Exp.TimeStep;
+          [t, IQ] = rfmixer(t,IQ,FreqShift,'IQshift',Opt);
+        end
+        % ... and stores it in the event structure
+        Events{iEvent}.IQ(iPCstep,:) = IQ;
+      end
+      
+    end
+    
     % Specify Type in Event structure
     Events{iEvent}.type = 'pulse';
-    
-    % Loop over the function that creates the PulseShape, as many times at
-    % are necessary to calculate all wave forms for the phase cycling
-    for iPCstep = 1 : nPhaseSteps
-      Pulse.Phase = Pulse.Phase + Pulse.PhaseCycle(iPCstep,1);
-      [t,IQ] = pulse(Pulse);
-      if IncludeResonator
-        % if resonator is requested, pulses are elongated due to ringing.
-        % the duration of ringing is stored in an additional field
-        tOrig = t(end);
-        [t,IQ] = resonator(t,IQ,Exp.mwFreq,Resonator.Arg1,Resonator.Arg2,Resonator.Arg3);
-        Events{iEvent}.Ringing = t(end) - tOrig;
-      end
-      % Shifts IQ of the pulse if necessary...
-      if FreqShift ~= 0
-        Opt.dt = Exp.TimeStep;
-        [t, IQ] = rfmixer(t,IQ,FreqShift,'IQshift',Opt);
-      end
-      % ... and stores it in the event structure
-      Events{iEvent}.IQ(iPCstep,:) = IQ;
-    end
     
     % Store the time axis of the pulse in the Event structure    
     Events{iEvent}.t = t;
     
     % Store the PhaseCycle in the Event structure
-    Events{iEvent}.PhaseCycle = Pulse.PhaseCycle;
+    Events{iEvent}.PhaseCycle = ThisPhaseCycle;
        
     % Checks if ComplexExcitation is requested for this Pulse, if not
     % specified Complex Excitation is switched off by default - the
@@ -389,10 +450,12 @@ if isfield(Exp,'nPoints')
           end
         end
         
-        if length(Strings) ~= 2 || ~strcmp(Strings{2},'Frequency') || length(Exp.(Field2Get){iLine,2}) == 1 || ~any(size(Exp.(Field2Get){iLine,2},1) == [1 Exp.nPoints(iDimension)-1])
-          if length(Exp.(Field2Get){iLine,2}) ~= 1 && length(Exp.(Field2Get){iLine,2}) ~= Exp.nPoints(iDimension)-1
-            message = ['The number of points provided for Dimension ' num2str(iDimension) ' does not match the length of the vector in the Exp.Dim structure.'];
-            error(message);
+        if (length(Strings) ~= 2 || ~strcmp(Strings{2},'IQ'))
+          if length(Strings) ~= 2 || ~strcmp(Strings{2},'Frequency') || length(Exp.(Field2Get){iLine,2}) == 1 || ~any(size(Exp.(Field2Get){iLine,2},1) == [1 Exp.nPoints(iDimension)-1])
+            if length(Exp.(Field2Get){iLine,2}) ~= 1 && length(Exp.(Field2Get){iLine,2}) ~= Exp.nPoints(iDimension)-1
+              message = ['The number of points provided for Dimension ' num2str(iDimension) ' does not match the length of the vector in the Exp.Dim structure.'];
+              error(message);
+            end
           end
         end
         
@@ -407,64 +470,72 @@ if isfield(Exp,'nPoints')
             EventNumber = Pulses{EventSpecificIndex}.EventIndex;
             PulseNumber = EventSpecificIndex;
             
-            % Gets the field that is to be modified
-            if length(Strings) == 1
-              message = ['You requested a pulse to be changed in Exp.' (Field2Get) ' but did not specify the field.'];
-              error(message)
-            end
-            
-            Field = Strings{2};
-            
-            % Catch if user defines pulse length as 't' instead of 'tp'
-            if strcmp(Field,'t')
-              Field = 'tp';
-            end
-            
-            switch Field
-              % If the field is 'Position', the surrounding events (which
-              % have to be delays) are changed in length. This is written
-              % to the incrementation table
-              case 'Position'
-                SurroundingEvents = [EventNumber-1 EventNumber+1];
-                
-                if any(SurroundingEvents>nEvents) || any(SurroundingEvents>nEvents)
-                  error('Moving pulses can not be the first or last event in your Exp structure.')
-                end
-                
-                % get the Increment
-                dt = Exp.(Field2Get){iLine,2};
-                          
-                if ~IncrementationScheme
-                  if length(dt) == 1
-                    IncrementationTable(SurroundingEvents(1),:) = IncrementationTable(SurroundingEvents(1),:) + (0:Vary.Points(iDimension)-1)*dt;
-                    IncrementationTable(SurroundingEvents(2),:) = IncrementationTable(SurroundingEvents(2),:) - (0:Vary.Points(iDimension)-1)*dt;
-                  else
-                    IncrementationTable(SurroundingEvents(1),2:end) = IncrementationTable(SurroundingEvents(1),2:end) + dt;
-                    IncrementationTable(SurroundingEvents(2),2:end) = IncrementationTable(SurroundingEvents(2),2:end) - dt;
+              % Gets the field that is to be modified
+              if length(Strings) == 1
+                message = ['You requested a pulse to be changed in Exp.' (Field2Get) ' but did not specify the field.'];
+                error(message)
+              end
+              
+              Field = Strings{2};
+              
+              % Catch if user defines pulse length as 't' instead of 'tp'
+              if strcmp(Field,'t')
+                Field = 'tp';
+              end
+              
+              switch Field
+                % If the field is 'Position', the surrounding events (which
+                % have to be delays) are changed in length. This is written
+                % to the incrementation table
+                case 'Position'
+                  SurroundingEvents = [EventNumber-1 EventNumber+1];
+                  
+                  if any(SurroundingEvents>nEvents) || any(SurroundingEvents>nEvents)
+                    error('Moving pulses can not be the first or last event in your Exp structure.')
                   end
-                else
-                  Vary.IncrementationTable(SurroundingEvents(1),iDimension) = Vary.IncrementationTable(SurroundingEvents(1),iDimension) + dt;
-                  Vary.IncrementationTable(SurroundingEvents(2),iDimension) = Vary.IncrementationTable(SurroundingEvents(2),iDimension) - dt;
-                end
-                
-
-              otherwise
-                % If not the position is changed it is a pulse parameter.
-                % All pulse parameters are first stored in  a seperate
-                % structure, called PulseModifications. Each dimension can
-                % add fields and values to it. Only after all dimensions
-                % have been checked for pulse modifications, the pulses can
-                % be calculated and stored in the Vary structure
-                if isempty(PulseModifications{PulseNumber})
-                  PulseModifications{PulseNumber} = {iDimension Field Exp.(Field2Get){iLine,2} FieldIndex};
-                else
-                  n = size(PulseModifications{PulseNumber},1);
-                  PulseModifications{PulseNumber}{n+1,1} = iDimension;
-                  PulseModifications{PulseNumber}{n+1,2} = Field;
-                  PulseModifications{PulseNumber}{n+1,3} = Exp.(Field2Get){iLine,2};
-                  PulseModifications{PulseNumber}{n+1,4} = FieldIndex;
-                end
-            end
+                  
+                  % get the Increment
+                  dt = Exp.(Field2Get){iLine,2};
+                  
+                  if ~IncrementationScheme
+                    if length(dt) == 1
+                      IncrementationTable(SurroundingEvents(1),:) = IncrementationTable(SurroundingEvents(1),:) + (0:Vary.Points(iDimension)-1)*dt;
+                      IncrementationTable(SurroundingEvents(2),:) = IncrementationTable(SurroundingEvents(2),:) - (0:Vary.Points(iDimension)-1)*dt;
+                    else
+                      IncrementationTable(SurroundingEvents(1),2:end) = IncrementationTable(SurroundingEvents(1),2:end) + dt;
+                      IncrementationTable(SurroundingEvents(2),2:end) = IncrementationTable(SurroundingEvents(2),2:end) - dt;
+                    end
+                  else
+                    Vary.IncrementationTable(SurroundingEvents(1),iDimension) = Vary.IncrementationTable(SurroundingEvents(1),iDimension) + dt;
+                    Vary.IncrementationTable(SurroundingEvents(2),iDimension) = Vary.IncrementationTable(SurroundingEvents(2),iDimension) - dt;
+                  end
+                  
+                case 'IQ'
+                  if isempty(PulseModifications{PulseNumber})
+                    PulseModifications{PulseNumber} = {iDimension Field [] []};
+                  else
+                    n = size(PulseModifications{PulseNumber},1);
+                    PulseModifications{PulseNumber}{n+1,1} = iDimension;
+                    PulseModifications{PulseNumber}{n+1,2} = Field;
+                  end
+                  
+                otherwise
+                  % If not the position is changed it is a pulse parameter.
+                  % All pulse parameters are first stored in  a seperate
+                  % structure, called PulseModifications. Each dimension can
+                  % add fields and values to it. Only after all dimensions
+                  % have been checked for pulse modifications, the pulses can
+                  % be calculated and stored in the Vary structure
+                  if isempty(PulseModifications{PulseNumber})
+                    PulseModifications{PulseNumber} = {iDimension Field Exp.(Field2Get){iLine,2} FieldIndex};
+                  else
+                    n = size(PulseModifications{PulseNumber},1);
+                    PulseModifications{PulseNumber}{n+1,1} = iDimension;
+                    PulseModifications{PulseNumber}{n+1,2} = Field;
+                    PulseModifications{PulseNumber}{n+1,3} = Exp.(Field2Get){iLine,2};
+                    PulseModifications{PulseNumber}{n+1,4} = FieldIndex;
+                  end
+              end
             
           case 'd'
             % If a delay is changed, the incrementation/decrementation is
@@ -532,74 +603,160 @@ if isfield(Exp,'nPoints')
         % Create and index for storing the pulse shapes in
         % Vary.Pules{iPulse}
         Pulses{iPulse}.ArrayIndex = ones(1,length(DimensionIndices));
+        
+        IQindex = 0;
         for iModification = 1 : size(PulseModifications{iPulse},1)
-          % Load Modifications
-          Dimension = PulseModifications{iPulse}{iModification,1};
-          Field = PulseModifications{iPulse}{iModification,2};
-          Increment = PulseModifications{iPulse}{iModification,3};
-          FieldIndex = PulseModifications{iPulse}{iModification,4};
-          % Write modifications to pulse structure
-          if length(Increment) == 1 || (strcmp(Field,'Frequency') && size(Increment,1) == 1)
-            if isempty(FieldIndex)
-              Pulses{iPulse}.(Field) = Pulses{iPulse}.(Field) + Increment*(DimensionIndices(Dimension)-1);
-            else
-              Pulses{iPulse}.(Field)(FieldIndex) = Pulses{iPulse}.(Field)(FieldIndex) + Increment*(DimensionIndices(Dimension)-1);
-            end
-          else
-            if DimensionIndices(Dimension) ~= 1
-              if strcmp(Field,'Frequency')
-                Pulses{iPulse}.(Field) = Pulses{iPulse}.(Field) + Increment(DimensionIndices(Dimension)-1,:);
+          if strcmp(PulseModifications{iPulse}{iModification,2},'IQ')
+            IQindex = IQindex + 1;
+          end
+        end
+        
+        if ~IQindex
+        
+          for iModification = 1 : size(PulseModifications{iPulse},1)
+            % Load Modifications
+            Dimension = PulseModifications{iPulse}{iModification,1};
+            Field = PulseModifications{iPulse}{iModification,2};
+            Increment = PulseModifications{iPulse}{iModification,3};
+            FieldIndex = PulseModifications{iPulse}{iModification,4};
+            % Write modifications to pulse structure
+            if length(Increment) == 1 || (strcmp(Field,'Frequency') && size(Increment,1) == 1)
+              if isempty(FieldIndex)
+                Pulses{iPulse}.(Field) = Pulses{iPulse}.(Field) + Increment*(DimensionIndices(Dimension)-1);
               else
-                if isempty(FieldIndex)
-                  Pulses{iPulse}.(Field) = Pulses{iPulse}.(Field) + Increment(DimensionIndices(Dimension)-1);
+                Pulses{iPulse}.(Field)(FieldIndex) = Pulses{iPulse}.(Field)(FieldIndex) + Increment*(DimensionIndices(Dimension)-1);
+              end
+            else
+              if DimensionIndices(Dimension) ~= 1
+                if strcmp(Field,'Frequency')
+                  Pulses{iPulse}.(Field) = Pulses{iPulse}.(Field) + Increment(DimensionIndices(Dimension)-1,:);
                 else
-                  Pulses{iPulse}.(Field)(FieldIndex) = Pulses{iPulse}.(Field)(FieldIndex) + Increment(DimensionIndices(Dimension)-1);
+                  if isempty(FieldIndex)
+                    Pulses{iPulse}.(Field) = Pulses{iPulse}.(Field) + Increment(DimensionIndices(Dimension)-1);
+                  else
+                    Pulses{iPulse}.(Field)(FieldIndex) = Pulses{iPulse}.(Field)(FieldIndex) + Increment(DimensionIndices(Dimension)-1);
+                  end
                 end
               end
             end
+            % Adapt indexing according to dimension
+            Pulses{iPulse}.ArrayIndex(Dimension) = DimensionIndices(Dimension);
           end
-          % Adapt indexing according to dimension
-          Pulses{iPulse}.ArrayIndex(Dimension) = DimensionIndices(Dimension);
-        end
-        
-        % Convert array into cell for indexing
-        ArrayIndex = num2cell(Pulses{iPulse}.ArrayIndex);
-        
-%         % Ensure that only element is given for Pulse.Frequency if it is a
-%         % monochromatic pulse
-%         if length(Pulses{iPulse}.Frequency) == 2 && Pulses{iPulse}.Frequency(1) == Pulses{iPulse}.Frequency(2)
-%           Pulses{iPulse}.Frequency = Pulses{iPulse}.Frequency(1);
-%         end
-        
-        % Compute Wave form and store it
-        for iPCstep = 1 : size(Pulses{iPulse}.PhaseCycle,1)
-          Pulses{iPulse}.Phase = Pulses{iPulse}.Phase+Pulses{iPulse}.PhaseCycle(iPCstep,1);
-          [t,IQ] = pulse(Pulses{iPulse});
-          if IncludeResonator
-            % if a resonator is present, the ringing duration of each pulse
-            % needs to be stored in the vary structure too
-            tOrig = t(end);
-            [t,IQ] = resonator(t,IQ,Exp.mwFreq,Resonator.Arg1,Resonator.Arg2,Resonator.Arg3);
-            Vary.Pulses{iPulse}.Ringing(ArrayIndex{:}) = t(end) - tOrig;
+          
+          % Convert array into cell for indexing
+          ArrayIndex = num2cell(Pulses{iPulse}.ArrayIndex);
+          
+          %         % Ensure that only element is given for Pulse.Frequency if it is a
+          %         % monochromatic pulse
+          %         if length(Pulses{iPulse}.Frequency) == 2 && Pulses{iPulse}.Frequency(1) == Pulses{iPulse}.Frequency(2)
+          %           Pulses{iPulse}.Frequency = Pulses{iPulse}.Frequency(1);
+          %         end
+          
+          % Compute Wave form and store it
+          for iPCstep = 1 : size(Pulses{iPulse}.PhaseCycle,1)
+            Pulses{iPulse}.Phase = Pulses{iPulse}.Phase+Pulses{iPulse}.PhaseCycle(iPCstep,1);
+            [t,IQ] = pulse(Pulses{iPulse});
+            if IncludeResonator
+              % if a resonator is present, the ringing duration of each pulse
+              % needs to be stored in the vary structure too
+              tOrig = t(end);
+              [t,IQ] = resonator(t,IQ,Exp.mwFreq,Resonator.Arg1,Resonator.Arg2,Resonator.Arg3);
+              Vary.Pulses{iPulse}.Ringing(ArrayIndex{:}) = t(end) - tOrig;
+            end
+            % Shifts IQ of the pulse if necessary...
+            if isfield(Exp,'mwFreq') && isfield(Opt,'FrameShift')
+              FreqShift = Exp.mwFreq - Opt.FrameShift;
+            elseif  isfield(Opt,'FrameShift')
+              FreqShift = - Opt.FrameShift;
+            elseif isfield(Exp,'mwFreq')
+              FreqShift = Exp.mwFreq;
+            else
+              FreqShift = 0;
+            end
+            if FreqShift ~= 0
+              Opt.dt = Exp.TimeStep;
+              [~, IQ] = rfmixer(t,IQ,FreqShift,'IQshift',Opt);
+            end
+            % ... and stores it in the vary structure
+            Vary.Pulses{iPulse}.IQs{ArrayIndex{:}}(iPCstep,:) = IQ;
           end
-          % Shifts IQ of the pulse if necessary...
-          if isfield(Exp,'mwFreq') && isfield(Opt,'FrameShift')
-            FreqShift = Exp.mwFreq - Opt.FrameShift;
-          elseif  isfield(Opt,'FrameShift')
-            FreqShift = - Opt.FrameShift;
-          elseif isfield(Exp,'mwFreq')
-            FreqShift = Exp.mwFreq;
+          Vary.Pulses{iPulse}.ts{ArrayIndex{:}} = t;
+
+        else
+          %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% wip
+          %%%%%%%%%%%%%%%%%%%%%%%%%%%% wip
+          %%%%%%%%%%%%%%%%%%%%%%%%%%%% wip
+          %%%%%%%%%%%%%%%%%%%%%%%%%%%% wip
+          %%%%%%%%%%%%%%%%%%%%%%%%%%%% wip
+          
+          if IQindex < size(PulseModifications{iPulse},1)
+            errMsg = ['It is not possible to combine changing pulse parameters with user defined IQ, please check your Dim input for Pulse ' (num2str(iPulse)) '.'];
+            error(errMsg)
+          end
+          
+
+          if size(PulseModifications{iPulse},1) == 1
+            Dimension = PulseModifications{iPulse}{1,1};
+            IndexToLoad = DimensionIndices(Dimension);
+            IndexToSave = ones(length(DimensionIndices));
+            IndexToSave(Dimension) = DimensionIndices(Dimension);
+            ArrayIndex = num2cell(IndexToSave);
+            
+            UserIQ = Pulses{iPulse}.userIQ.IQ{IndexToLoad};
+            
+            tIQ = Pulses{iPulse}.userIQ.t{IndexToLoad};
           else
-            FreqShift = 0;
+            IndexToLoad = ones(length(DimensionIndices));
+            
+            for iModification = 1 : size(PulseModifications{iPulse},1)
+              Dimension = PulseModifications{iPulse}{iModification,1};
+              IndexToLoad(Dimension) = DimensionIndices(Dimension);
+            end
+            ArrayIndex = num2cell(IndexToLoad);
+            
+            UserIQ = Pulses{iPulse}.userIQ.IQ{ArrayIndex{:}};
+            
+            tIQ = Pulses{iPulse}.userIQ.t{ArrayIndex{:}};
+            
           end
-          if FreqShift ~= 0
+          
+          nPhaseSteps = size(Pulses{iPulse}.PhaseCycle,1);
+          [d1, d2] = size(UserIQ);
+          
+          if d1 ~= nPhaseSteps && d2 ~= nPhaseSteps
+            errMsg = ['The dimensionality of the IQ signal provided for event ' num2str(iEvent) ' is not in agreement with the phasecycle for this pulse. For user-defined waveforms the array must contain all IQs.'];
+            error(errMsg);
+          elseif d2 == nPhaseSteps
+            UserIQ =  UserIQ';
+          end
+         
+          
+          % Shifts IQ of the pulse if necessary...
+          ShiftedUserIQ = [];
+          for iPhaseStep = 1 : nPhaseSteps
             Opt.dt = Exp.TimeStep;
-            [~, IQ] = rfmixer(t,IQ,FreqShift,'IQshift',Opt);
+            if IncludeResonator
+              % if resonator is requested, pulses are elongated due to ringing.
+              % the duration of ringing is stored in an additional field
+              tOrig = tIQ(end);
+              [tIQ,currentIQ] = resonator(tIQ,UserIQ(iPhaseStep,:),Exp.mwFreq,Resonator.Arg1,Resonator.Arg2,Resonator.Arg3);
+              Vary.Pulses{iPulse}.Ringing(ArrayIndex{:}) = tIQ(end) - tOrig;
+            else
+              currentIQ = UserIQ(iPhaseStep,:);
+            end
+            [t, ShiftedUserIQ(iPhaseStep,:)] = rfmixer(tIQ,currentIQ,-Opt.FrameShift,'IQshift',Opt);
           end
-          % ... and stores it in the vary structure
-          Vary.Pulses{iPulse}.IQs{ArrayIndex{:}}(iPCstep,:) = IQ;
+          
+          Vary.Pulses{iPulse}.IQs{ArrayIndex{:}} = ShiftedUserIQ;
+
+          Vary.Pulses{iPulse}.ts{ArrayIndex{:}} = t;
+          
+          %%%%%%%%%%%%%%%%%%%%%%%%%%%% wip
+          %%%%%%%%%%%%%%%%%%%%%%%%%%%% wip
+          %%%%%%%%%%%%%%%%%%%%%%%%%%%% wip
+          %%%%%%%%%%%%%%%%%%%%%%%%%%%% wip
+          
         end
-        Vary.Pulses{iPulse}.ts{ArrayIndex{:}} = t;
 
         % Write pulse length to EventLenghts
         if IncludeResonator
