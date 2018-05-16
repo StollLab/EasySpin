@@ -69,13 +69,14 @@ NowDate = fix(datenum(builtin('clock')));
 
 % Expired or not?
 %--------------------------------------------------------------------
+esVersion = '$ReleaseID$';
 isExpired1 = NowDate>ExpiryDate;
 isExpired2 = TmpDirDate>ExpiryDate;
 
 if (isExpired1)
-  err = sprintf('Your EasySpin version has expired (1;%d,%d).\nPlease visit easyspin.org and update to the latest version.',NowDate,ExpiryDate);
+  err = sprintf('Your EasySpin version %s has expired (1;%d,%d).\nPlease visit easyspin.org and update to the latest version.',esVersion,NowDate,ExpiryDate);
 elseif (isExpired2)
-  err = sprintf('Your EasySpin version has expired (2;%d,%d).\nPlease visit easyspin.org and update to the latest version.',TmpDirDate,ExpiryDate);
+  err = sprintf('Your EasySpin version %s has expired (2;%d,%d).\nPlease visit easyspin.org and update to the latest version.',esVersion,TmpDirDate,ExpiryDate);
 else
   DaysToExpiry = fix(ExpiryDate - NowDate);
   if (DaysToExpiry<30)

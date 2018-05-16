@@ -122,6 +122,7 @@ replacestr([TbxFolder filesep 'info.xml'],'$ReleaseID$',ReleaseID);
 replacestr([TbxFolder filesep 'easyspininfo.m'],'$ReleaseID$',ReleaseID);
 replacestr([TbxFolder filesep 'easyspininfo.m'],'$ReleaseDate$',ReleaseDate);
 replacestr([TbxFolder filesep 'easyspininfo.m'],'$ExpiryDate$',ExpiryDate);
+replacestr([TbxFolder filesep 'eschecker.m'],'$ReleaseID$',ReleaseID);
 replacestr([TbxFolder filesep 'eschecker.m'],'888888',num2str(datenum(ExpiryDate)));
 replacestr([TbxFolder filesep 'eschecker.m'],'999999',num2str(datenum(HorizonDate)));
 fprintf(' ok\n');
