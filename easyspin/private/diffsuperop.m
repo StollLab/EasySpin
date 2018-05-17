@@ -126,7 +126,7 @@ if usePotential
       if (M1~=M2)
         prefactorL = 0;
       else
-        prefactorL = (-1)^(K1-M1)*sqrt((2*L1+1)*(2*L2+1));
+        prefactorL = sqrt((2*L1+1)*(2*L2+1));
       end
       
       if (K1==0 && K2==0)
@@ -141,6 +141,7 @@ if usePotential
       prefactor = prefactorL*prefactorK;
       for xL = abs(L1-L2):min(xLmax,L1+L2)
         idx_xL = xL+1;
+        if ~any(XLK(idx_xL,:)), continue; end
         
         % calculate M-dependent 3j-symbol
         if abs(M1)>L1 || abs(M1)>L2
