@@ -456,6 +456,9 @@ else
          'Par.nSteps and either a time step Par.dt or total time Par.tMax.'])
 end
 
+dtQuant = Par.Dt;
+dtStoch = Par.dt;
+
 % decide on a simulation model based on user input
 if useMD
   if ~isfield(Par,'Model')
@@ -854,14 +857,15 @@ while ~converged
         if isfield(Sys, 'PseudoPotFun')
           Sys.PseudoPotFun = [];
         end
-        Par.nSteps = nStepsStoch;
+        Par.dt = dtQuant;
+        Par.nSteps = nStepsQuant;
         [trash, ~, qTrajGlobal] = stochtraj(Sys,Par,Opt);
-        qTraj = quatmult(qTrajGlobal,qTrajLocal);
+%         qTraj = quatmult(qTrajGlobal,qTrajLocal);
         
-        Par.qTraj = qTraj;
-        Par.RTraj = quat2rotmat(qTraj);
-        Par.qLab = [];
-        Par.RLab = [];
+        Par.qTraj = qTrajLocal;
+        Par.RTraj = quat2rotmat(qTrajLocal);
+        Par.qLab = qTrajGlobal;
+        Par.RLab = quat2rotmat(qTrajGlobal);
         
       case 'Molecular Dynamics'
         
@@ -907,39 +911,6 @@ while ~converged
           Sys.Diff = DiffLocal;
           Par.nSteps = nStepsStoch;
           [trash, ~, qTraj] = stochtraj(Sys,Par,Opt);
-          
-%           %%%%%%%%%%%%
-%           
-%           bins = size(pdf, 1);
-% 
-%           abins = bins;  % use less points for easier heat map visualization
-%           bbins = bins/2;
-%           gbins = bins;
-%           
-%           alphaBins = linspace(-pi, pi, abins);
-%           betaBins = pi-acos(linspace(-1, 1, bbins));
-%           gammaBins = linspace(-pi, pi, gbins);
-%           
-%           for iTraj=1:Par.nTraj
-%             % use a "burn-in method" by taking last half of each trajectory
-%             [alpha, beta, gamma] = quat2euler(qTraj(:,iTraj,:),'active');
-%           %   [alpha, beta, gamma] = quat2euler(qTraj(:,iTraj,N:end));
-%             alpha = squeeze(alpha);
-%             beta = squeeze(beta);
-%             gamma = squeeze(gamma);
-% 
-%           %   q = squeeze(qTraj(:,iTraj,N:end));
-%           %   [alpha, beta, gamma] = quat2angle(permute(q,[2,1]), 'ZYZ');
-% 
-%             % calculate 3D histogram using function obtained from Mathworks File Exchange
-%             [Hist3D(:,:,:,iTraj),~] = histcnd([alpha,beta,gamma],...
-%                                               {alphaBins,betaBins,gammaBins});
-%           end
-%           
-%           hist_tauD100 = mean(Hist3D,4);
-%           save('hist_tauD100.mat', 'hist_tauD100')
-%           
-%           %%%%%%%%%%%%%
 
 %           qMult = repmat(euler2quat(gridPhi(iOrient), gridTheta(iOrient), 0),...
 %                          [1,Par.nTraj,Par.nSteps]);
@@ -949,15 +920,19 @@ while ~converged
           % global diffusion
           if isfield(MD, 'GlobalDiff')
             Sys.Diff = MD.GlobalDiff;
-            Par.nSteps = nStepsStoch;
+            Par.dt = dtQuant;
+            Par.nSteps = nStepsQuant;
             [trash, RTrajGlobal, qTrajGlobal] = stochtraj(Sys,Par,Opt);
             qLab = quatmult(qLab, qTrajGlobal);
           end
 
-          qTraj = quatmult(qLab, qTraj);
+%           qTraj = quatmult(qLab, qTraj);
           
           Par.qTraj = qTraj;
           Par.RTraj = quat2rotmat(qTraj);
+          
+          Par.qLab = qLab;
+          Par.RLab = quat2rotmat(qLab);
           
         end
 
@@ -965,6 +940,8 @@ while ~converged
 
     % propagate the density matrix
     Par.nSteps = nStepsQuant;
+    Par.Dt = dtQuant;
+    Par.dt = dtStoch;
     Sprho = propagate_quantum(Sys,Par,Opt,MD,omega,CenterField);
 
     % average over trajectories
@@ -1243,6 +1220,39 @@ function  y = zeropad(x, M)
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%           %%%%%%%%%%%%
+%           
+%           bins = size(pdf, 1);
+% 
+%           abins = bins;  % use less points for easier heat map visualization
+%           bbins = bins/2;
+%           gbins = bins;
+%           
+%           alphaBins = linspace(-pi, pi, abins);
+%           betaBins = pi-acos(linspace(-1, 1, bbins));
+%           gammaBins = linspace(-pi, pi, gbins);
+%           
+%           for iTraj=1:Par.nTraj
+%             % use a "burn-in method" by taking last half of each trajectory
+%             [alpha, beta, gamma] = quat2euler(qTraj(:,iTraj,:),'active');
+%           %   [alpha, beta, gamma] = quat2euler(qTraj(:,iTraj,N:end));
+%             alpha = squeeze(alpha);
+%             beta = squeeze(beta);
+%             gamma = squeeze(gamma);
+% 
+%           %   q = squeeze(qTraj(:,iTraj,N:end));
+%           %   [alpha, beta, gamma] = quat2angle(permute(q,[2,1]), 'ZYZ');
+% 
+%             % calculate 3D histogram using function obtained from Mathworks File Exchange
+%             [Hist3D(:,:,:,iTraj),~] = histcnd([alpha,beta,gamma],...
+%                                               {alphaBins,betaBins,gammaBins});
+%           end
+%           
+%           hist_tauD100 = mean(Hist3D,4);
+%           save('hist_tauD100.mat', 'hist_tauD100')
+%           
+%           %%%%%%%%%%%%%
+
 % used for plotting PseudoPotFun on a sphere
 
 % %       pad = (PseudoPotFun(1,:,:) + PseudoPotFun(end,:,:))/2;
@@ -1257,15 +1267,14 @@ end
 %       phi = linspace(0, 2*pi, size(yy,2));                   % azimuth angle
 %       
 %       [Phi, Theta] = meshgrid(phi, theta);
-%       radius = 1.0;
+%       r = 1.0;
 %       amplitude = 1.0;
-% %       rho = radius + amplitude*yy;
+% %       rho = r + amplitude*yy;
 %       rho = yy;
 %       
-%       r = radius.*sin(Theta);    % convert to Cartesian coordinates
-%       x = r.*cos(Phi);
-%       y = r.*sin(Phi);
-%       z = radius.*cos(Theta);
+%       x = r.*sin(Theta).*cos(Phi);
+%       y = r.*sin(Theta).*sin(Phi);
+%       z = r.*cos(Theta);
 % 
 %       surf(x, y, z, rho, ...
 %            'edgecolor', 'none', ...

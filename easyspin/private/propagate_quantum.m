@@ -101,11 +101,15 @@ if useMD
       RLabInv = permute(RLab, [2,1,3,4]);
     end
   else
+    if strcmp(Method, 'ISTOs')
+      qTraj = Par.qTraj;
+      qLab = Par.qLab;
+    else
       RTraj = Par.RTraj;
       RTrajInv = permute(RTraj,[2,1,3,4]);
-      qTraj = Par.qTraj;
-%       RLab = Par.RLab;
-%       RLabInv = permute(RLab, [2,1,3,4]);
+      RLab = Par.RLab;
+      RLabInv = permute(RLab, [2,1,3,4]);
+    end
   end
 else
   if strcmp(Method, 'ISTOs')
