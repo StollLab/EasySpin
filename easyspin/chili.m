@@ -818,20 +818,18 @@ for iOri = 1:nOrientations
     % set up in full product basis, then prune
     StartingVector = startvec(Basis,Potential.lambda,SxOp);
     StartingVector = StartingVector(keep);
-    %JDLs
+    
     if Opt.SaveSV
-        jersv = StartingVector;
-        save('jersv.mat','jersv');
+      jer.sv = StartingVector;
     end
-    %JDLe
+    
   else
     StartingVector = chili_startingvector(Basis,Potential,Sys.I);
-    %JDLs
+    
     if Opt.SaveSV
-      freedsv = StartingVector;
-      save('freedsv.mat','freedsv');
+      freed.sv = StartingVector;
     end
-    %JDLe
+    
   end
   BasisSize = size(StartingVector,1);
   logmsg(1,'  vector size: %dx1',BasisSize);
@@ -907,12 +905,14 @@ for iOri = 1:nOrientations
       Dynamics.maxL = size(Potential.xlk,1)-1; % used in chili_lm
       [r,c,Vals,nDim] = chili_lm(Sys,Basis.v,Dynamics,Opt.AllocationBlockSize);
       L = sparse(r,c,Vals,BasisSize,BasisSize);
-      %JDLs
+      
       if Opt.SaveL && iOri==1
-        freedl = L;
-        save('freedl.mat','freedl');
+        freed.L = L;
+        rL = real(L);
+        freed.H = -imag(L) + 1i*(rL-rL')/2;
+        freed.Gamma = (rL+rL')/2;
       end
-      %JDLe
+      
     else
       
       if explicitFieldSweep
@@ -925,8 +925,9 @@ for iOri = 1:nOrientations
       end
       %JDLs
       if Opt.SaveL && iOri==1
-        jerl = L;
-        save('jerl.mat','jerl');
+        jer.L = L;
+        jer.H = 2*pi*H;
+        jer.Gamma = Gamma;
       end
       %JDLe
       nDim = size(L,1);
@@ -1034,6 +1035,14 @@ if (~generalLiouvillian) || (generalLiouvillian && strcmp(Opt.Solver,'L'))
 end
 if FrequencySweep
   spec = spec*(dB/dnu)*mt2mhz(1,mean(Sys.g)); % scale by g*Beta/h factor for freq sweep
+end
+
+if Opt.SaveL || Opt.SaveSV
+  if generalLiouvillian
+    save('jer','jer');
+  else
+    save('freed','freed');
+  end
 end
 
 %==============================================================
