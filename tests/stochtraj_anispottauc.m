@@ -17,7 +17,8 @@ nSteps = Par.nSteps;
 c20 = 10;
 Sys.Coefs = [c20, c20];
 Sys.LMK = [2, 0, 0];
-[t, R] = stochtraj(Sys,Par);
+[t, q] = stochtraj(Sys,Par);
+R = quat2rotmat(q);
 
 VecTraj = squeeze(R(:,3,:,:));
 

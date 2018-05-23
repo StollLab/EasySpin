@@ -6,6 +6,7 @@
 %   spc = cardamom(...)
 %   [B,spc] = cardamom(...)
 %   [B,spc,expectval] = cardamom(...)
+%   [B,spc,expectval,t] = cardamom(...)
 %
 %   Computes a CW-EPR spectrum of an 14N nitroxide radical using stochastic 
 %   trajectories.
@@ -43,6 +44,13 @@
 %                    orienting pseudopotential grid to be used for
 %                    calculating the torque
 %
+%     Rates          numeric, size = (nStates,nStates)
+%                    transition rate matrix describing inter-state dynamics
+%                    for kinetic Monte Carlo simulations
+%
+%     States         numeric, size = (3,nStates)
+%                    Euler angles for each state's orientation
+%
 %     Sys.lw         double or numeric, size = (1,2)
 %                    vector with FWHM residual broadenings
 %                         1 element:  GaussianFWHM
@@ -71,6 +79,7 @@
 %                    Brownian
 %                    MOMD
 %                    SRLS
+%                    Discrete
 %                    Molecular Dynamics
 %
 %
@@ -214,6 +223,9 @@
 %     expectval      numeric, size = (2*nSteps,1)
 %                    expectation value of complex magnetization, 
 %                    \langle S_{+} \rangle
+%
+%     t              numeric, size = (2*nSteps,1)
+%                    simulation time axis (in s)
 
 %    Opt.debug       struct
 %                    various debugging options used for testing by
@@ -382,11 +394,6 @@ if useMD
   
   MD.nTraj = size(MD.RTraj,3);
   
-  clear MD.FrameX
-  clear MD.FrameY
-  clear MD.FrameZ
-  clear RTrajInv
-  
   % estimate [rotational diffusion time scale
   acorrX = autocorrfft(squeeze(MD.FrameX.^2), 2, 1, 1);
   acorrY = autocorrfft(squeeze(MD.FrameY.^2), 2, 1, 1);
@@ -406,6 +413,11 @@ if useMD
 %   DiffLocal = 1/6/(tauRZ);
   DiffLocal = 1/6./[tauRX, tauRY, tauRZ];
   MD.tauR = tauRZ;
+  
+  MD.FrameX = [];
+  MD.FrameY = [];
+  MD.FrameZ = [];
+  RTrajInv = [];
 end
 
 % Check Par
@@ -498,7 +510,7 @@ if useMD
   
   % process single long trajectory into multiple short trajectories
   if MD.isExplicit
-    Par.lag = ceil(Par.Dt/2e-9);  % use 2 ns lag between windows
+    Par.lag = ceil(2e-9/Par.Dt);  % use 2 ns lag between windows
     if Par.nSteps<Par.nBlocks
       % Par.nSteps not changed from user input
       Par.nTraj = floor((Par.nBlocks-Par.nSteps)/Par.lag) + 1;
@@ -531,9 +543,10 @@ else
   
   else
     % Model is specified
-    if strcmp(Par.Model,'Brownian') && (isfield(Sys,'LMK')||isfield(Sys,'Coefs'))
-      error(['Conflicting inputs: Par.Model is set to "Brownian", but at least '...
-            'one of Sys.LMK or Sys.Coefs has been declared.'])
+    if strcmp(Par.Model,'Brownian') && ...
+        (isfield(Sys,'LMK')||isfield(Sys,'Coefs')||isfield(Sys,'ProbDensFun')||isfield(Sys,'PseudoPotFun'))
+      error(['Conflicting inputs: Par.Model is set to "Brownian", but '...
+            'Sys.LMK, Sys.Coefs, Sys.ProbDensFun, or Sys.PseudoPotFun have been declared.'])
     elseif strcmp(Par.Model,'MOMD') && (~isfield(Sys,'LMK')||~isfield(Sys,'Coefs'))
       if xor(isfield(Sys,'LMK'), isfield(Sys,'Coefs'))
         error('Both Sys.LMK and Sys.Coefs need to be declared for a MOMD simulation.')
@@ -577,6 +590,35 @@ xAxis = linspace(Exp.Range(1),Exp.Range(2),Exp.nPoints);  % field axis, mT
 % -------------------------------------------------------------------------
 
 % if ~isfield(Opt,'chkcon'), chkcon = 0; end  % TODO implement spectrum convergence tests
+
+if ~isfield(Opt,'Model')
+  switch Par.Model
+    case 'Brownian'
+      Opt.Model = 'Continuous';
+    case 'MOMD'
+      Opt.Model = 'Continuous';
+    case 'SRLS'
+      Opt.Model = 'Continuous';
+    case 'Discrete'
+      Opt.Model = 'Discrete';
+    case 'Molecular Dynamics'
+      Opt.Model = 'Continuous';
+  end
+else
+  switch Opt.Model
+    case 'Continuous'
+      if ~strcmp(Par.Model,'Brownian')||~strcmp(Par.Model,'MOMD')...
+         ||~strcmp(Par.Model,'SRLS')||~strcmp(Par.Model,'Molecular Dynamics')
+        error(['Continuous model is incompatible with the chosen Par.Model. '...
+               'Please check documentation for Continuous model compatibilities.'])
+      end
+    case 'Discrete'
+      if ~strcmp(Par.Model,'Discrete')
+        error(['Discrete model is incompatible with the chosen Par.Model. '...
+               'Please check documentation for Discrete model compatibilities.'])
+      end
+  end
+end
 
 if ~isfield(Opt,'Method')
   Opt.Method = 'Nitroxide';
@@ -628,6 +670,7 @@ end
 % -------------------------------------------------------------------------
 
 Dynamics = validate_dynord('cardamom',Sys,FieldSweep);
+Sys.Diff = Dynamics.Diff;
 
 % Generate grids
 % -------------------------------------------------------------------------
@@ -674,6 +717,27 @@ switch Model
       PseudoPotFunLocal = Sys.PseudoPotFun;
     end
     DiffGlobal = 4e6;
+    if ~isfield(Par,'nOrients')
+      % if Par.nOrients is not given, just use Par.nTraj as number of
+      % orientations
+      nOrients = Par.nTraj;
+    else
+      nOrients = Par.nOrients;
+    end
+
+    if specCon
+      nOrients = ceil(nOrients/2);
+      skip = 0;
+      gridPts = 2*sobol_generate(1,nOrients,skip)-1;
+      gridPhi = sqrt(pi*nOrients)*asin(gridPts);
+      gridTheta = acos(gridPts);
+    else
+      gridPts = linspace(-1,1,nOrients);
+      gridPhi = sqrt(pi*nOrients)*asin(gridPts);
+      gridTheta = acos(gridPts);
+    end
+    
+  case 'Discrete'
     if ~isfield(Par,'nOrients')
       % if Par.nOrients is not given, just use Par.nTraj as number of
       % orientations
@@ -812,16 +876,16 @@ while ~converged
       case 'Brownian'
         Sys.Diff = Dynamics.Diff;
         Par.nSteps = nStepsStoch;
-        [trash, RTraj, qTraj] = stochtraj(Sys,Par,Opt);
+        [trash, qTraj] = stochtraj(Sys,Par,Opt);
         Par.qTraj = qTraj;
-        Par.RTraj = RTraj;
+        Par.RTraj = quat2rotmat(qTraj);
         Par.qLab = [];
         Par.RLab = [];
 
       case 'MOMD'
         Sys.Diff = Dynamics.Diff;
         Par.nSteps = nStepsStoch;
-        [trash, RTraj, qTraj] = stochtraj(Sys,Par,Opt);
+        [trash, qTraj] = stochtraj(Sys,Par,Opt);
         % generate quaternions for rotating to different grid points
 %         qMult = repmat(euler2quat(gridPhi(iOrient), gridTheta(iOrient), 0),...
 %                        [1,Par.nTraj,Par.nSteps]);
@@ -838,6 +902,9 @@ while ~converged
         Par.RTraj = quat2rotmat(qTraj);
 
       case 'SRLS'
+        qLab = repmat(euler2quat(0, gridTheta(iOrient), gridPhi(iOrient)),...
+               [1,Par.nTraj,nStepsQuant]);
+        
         % local diffusion
         Sys.Diff = DiffLocal;
         if isfield(Sys, 'ProbDensFun')
@@ -847,7 +914,7 @@ while ~converged
           Sys.PseudoPotFun = PseudoPotFunLocal;
         end
         Par.nSteps = nStepsStoch;
-        [trash, ~, qTrajLocal] = stochtraj(Sys,Par,Opt);
+        [trash, qTrajLocal] = stochtraj(Sys,Par,Opt);
 
         % global diffusion
         Sys.Diff = DiffGlobal;
@@ -859,13 +926,24 @@ while ~converged
         end
         Par.dt = dtQuant;
         Par.nSteps = nStepsQuant;
-        [trash, ~, qTrajGlobal] = stochtraj(Sys,Par,Opt);
-%         qTraj = quatmult(qTrajGlobal,qTrajLocal);
+        [trash, qTrajGlobal] = stochtraj(Sys,Par,Opt);
+        qLab = quatmult(qLab,qTrajGlobal);
         
         Par.qTraj = qTrajLocal;
         Par.RTraj = quat2rotmat(qTrajLocal);
-        Par.qLab = qTrajGlobal;
-        Par.RLab = quat2rotmat(qTrajGlobal);
+        Par.qLab = qLab;
+        Par.RLab = quat2rotmat(qLab);
+        
+      case 'Discrete'
+        qLab = repmat(euler2quat(0, gridTheta(iOrient), gridPhi(iOrient)),...
+               [1,Par.nTraj,nStepsQuant]);
+             
+        [trash, qTrajLocal] = stochtraj(Sys,Par,Opt);
+        
+        Par.qTraj = qTrajLocal;
+        Par.RTraj = quat2rotmat(qTrajLocal);
+        Par.qLab = qLab;
+        Par.RLab = quat2rotmat(qLab);
         
       case 'Molecular Dynamics'
         
@@ -880,7 +958,7 @@ while ~converged
           if isfield(MD, 'GlobalDiff')
             Sys.Diff = MD.GlobalDiff;
             Par.nSteps = nStepsQuant;  % TODO find a way to set this up with a separate time step properly
-            [trash, RTrajGlobal, qTrajGlobal] = stochtraj(Sys,Par,Opt);
+            [trash, qTrajGlobal] = stochtraj(Sys,Par,Opt);
             qLab = quatmult(qLab, qTrajGlobal);
           end
           
@@ -910,7 +988,7 @@ while ~converged
           Sys.ProbDensFun = pdf;
           Sys.Diff = DiffLocal;
           Par.nSteps = nStepsStoch;
-          [trash, ~, qTraj] = stochtraj(Sys,Par,Opt);
+          [trash, qTraj] = stochtraj(Sys,Par,Opt);
 
 %           qMult = repmat(euler2quat(gridPhi(iOrient), gridTheta(iOrient), 0),...
 %                          [1,Par.nTraj,Par.nSteps]);
@@ -922,7 +1000,7 @@ while ~converged
             Sys.Diff = MD.GlobalDiff;
             Par.dt = dtQuant;
             Par.nSteps = nStepsQuant;
-            [trash, RTrajGlobal, qTrajGlobal] = stochtraj(Sys,Par,Opt);
+            [trash, qTrajGlobal] = stochtraj(Sys,Par,Opt);
             qLab = quatmult(qLab, qTrajGlobal);
           end
 

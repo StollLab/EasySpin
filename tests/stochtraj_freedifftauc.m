@@ -14,7 +14,8 @@ tcorr = Sys.tcorr;
 nTraj = Par.nTraj;
 nSteps = Par.nSteps;
 
-[t, R, q] = stochtraj(Sys,Par);
+[t, q] = stochtraj(Sys,Par);
+R = quat2rotmat(q);
 
 VecTraj = squeeze(R(:,3,:,:));
 

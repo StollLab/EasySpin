@@ -41,7 +41,7 @@ N = round(nSteps/2);
 for j=1:size(LMK,1)
   Sys.Coefs = [4, 0];
   Sys.LMK = LMK(j,:);
-  [~, ~, q] = stochtraj(Sys,Par);  % extract quaternions from trajectories
+  [~, q] = stochtraj(Sys,Par);  % extract quaternions from trajectories
   
   % pre-allocate array for 3D histograms
   % note that the output will be of size (nBins,nBins,nBins), rather than the 

@@ -15,7 +15,8 @@ nSteps = Par.nSteps;
 
 nBins = 50;
 
-[t, R] = stochtraj(Sys,Par);
+[t, q] = stochtraj(Sys,Par);
+R = quat2rotmat(q);
 
 VecTraj = squeeze(R(:, 3, :, :));
 

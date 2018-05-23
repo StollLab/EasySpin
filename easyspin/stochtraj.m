@@ -1,8 +1,8 @@
 % stochtraj  Generate stochastic rotational trajectories
 %
-%   [t,RTraj] = stochtraj(Sys)
-%   [t,RTraj] = stochtraj(Sys,Par)
-%   [t,RTraj,qTraj] = stochtraj(...)
+%   [t,qTraj] = stochtraj(Sys)
+%   [t,stateTraj] = stochtraj(Sys,Par)
+%   [t,qTraj,stateTraj] = stochtraj(...)
 %
 %   Sys: stucture with system's dynamical parameters
 %
@@ -37,6 +37,16 @@
 %                    orienting pseudopotential grid to be used for
 %                    calculating the torque
 %
+%     Rates          numeric, size = (nStates,nStates)
+%                    transition rate matrix describing inter-state dynamics
+%                    for kinetic Monte Carlo simulations
+%
+%     States         numeric, size = (3,nStates)
+%                    Euler angles for each state's orientation
+%
+%     States0        numeric, size = (1,1) or (nTraj,1)
+%                    starting states
+%
 %
 %   Par: simulation parameters for Monte Carlo integrator
 %
@@ -45,6 +55,8 @@
 %
 %     Omega          numeric, size = (3,1) or (3,nTraj)
 %                    Euler angles for starting orientation(s)
+%                    if a Discrete model is being used, then these angles
+%                    need to correspond to those of States
 %
 %         When specifying the simulation time provide one of the following
 %         combinations:
@@ -64,6 +76,16 @@
 %
 %
 %   Opt: simulation options
+%
+%     Model          string
+%                    'Continuous': simulates rotational diffusion with 
+%                    continuous degrees of freedom using quaternions
+%                    'Discrete': kinetic Monte carlo simulations with 
+%                    discrete degrees of freedom (states)
+%                    'Hierarchical': simulates using a hybrid model of both
+%                    discrete (states) and continuous degrees of freedom
+%                    (quaternions)
+%
 %     chkcon         if equal to 1, after the first nSteps of the 
 %                    trajectories are calculated, both inter- and intra-
 %                    trajectory convergence is checked using the Gelman-
@@ -75,23 +97,18 @@
 %
 %     Verbosity      0: no display, 1: show info
 %
+%
 %   Output:
-%     t              numeric, size = (nSteps,1) 
+%
+%     t              matrix, size = (nSteps,1) 
 %                    time points of the trajectory (in seconds)
 %
-%     RTraj          numeric, size = (3,3,nTraj,nSteps)
-%                    rotation matrices
+%     qTraj          3D array, size = (4,nTraj,nSteps)
+%                    trajectories of normalized quaternions
 %
-%     qTraj          numeric, size = (4,nTraj,nSteps)
-%                    normalized quaternions
-
-% Implementation based on 
-%  [1] Sezer, et al., J.Chem.Phys. 128, 165106 (2008)
-%       http://dx.doi.org/10.1063/1.2908075
-%  [2] Leimkuhler, Appl.Math.Res.Express 2013, 34 (2013)
-%       https://doi.org/10.1093/amrx/abs010
-%    newer method for SDE integration that starts with weak convergence of 
-%    order 1, but approaches weak convergence of order 2 exponentially fast
+% %     stateTraj      3D array, size = (nStates,nTraj,nSteps)
+% %                    trajectories of states, output from kinetic Monte
+% %                    carlo simulation
 
 function varargout = stochtraj(Sys,Par,Opt)
 
@@ -128,94 +145,160 @@ end
 
 switch nargout
   case 0 % plotting
-  case 2 % t,RTraj
-  case 3 % t,RTraj,qTraj
+  case 2 % t,qTraj
+%   case 2 % t,qTraj or stateTraj
+  case 3 % t,qTraj,stateTraj
   otherwise
     error('Incorrect number of output arguments.');
 end
+
+% Check Opt
+% -------------------------------------------------------------------------
 
 if ~isfield(Opt,'Verbosity')
   Opt.Verbosity = 0; % Log level
 end
 
+if ~isfield(Opt,'Model')
+  Model = 'Continuous';
+else
+  Model = Opt.Model;
+  switch Model
+    case 'Continuous'
+      if all(nargout~=[0,2])
+        error('Continous model requires two output arguments.')
+      end
+    case 'Discrete'
+      if all(nargout~=[0,2,3])
+        error('Discrete model requires two or three output arguments.')
+      end
+    case 'Hierarchical'
+      if all(nargout~=[0,2,3])
+        error('Hierarchical model requires two or three output arguments.')
+      end
+    otherwise
+      error('Stochastic simulation model not recognized.')
+  end
+end
+
+
 global EasySpinLogLevel;
 EasySpinLogLevel = Opt.Verbosity;
 
 
-% Dynamics and ordering potential
+% Check dynamics and ordering potential
 % -------------------------------------------------------------------------
 
-% FieldSweep is not valid for stochtraj, so give empty third arg
-[Dynamics,Sim] = validate_dynord('stochtraj',Sys,[]);
+% for stochastic rotational dynamics
+if strcmp(Model,'Continuous') || strcmp(Model,'Hierarchical')
 
-Sim.Diff = Dynamics.Diff';
+  % FieldSweep is not valid for stochtraj, so give empty third arg
+  [Dynamics,Sim] = validate_dynord('stochtraj',Sys,[]);
 
-tcorrAvg = 1/6/mean(Dynamics.Diff);
+  Sim.Diff = Dynamics.Diff';
 
-if ~isfield(Sys, 'ProbDensFun')
+  tcorrAvg = 1/6/mean(Dynamics.Diff);
+
+  if ~isfield(Sys, 'ProbDensFun')
+    Sys.ProbDensFun = [];
+  end
+  if ~isfield(Sys, 'PseudoPotFun')
+    Sys.PseudoPotFun = [];
+  end
+
+  if ~isempty(Sys.ProbDensFun) || ~isempty(Sys.PseudoPotFun)
+    if isfield(Sys,'Coefs')||isfield(Sys,'LMK')
+      error('Please choose either PseudoPotFun or Coefs and LMK for an orienting potential.')
+    end
+
+    if ~isempty(Sys.ProbDensFun)
+      ProbDensFun = Sys.ProbDensFun;
+      idx = ProbDensFun < 1e-14;
+      ProbDensFun(idx) = 1e-14;
+      PseudoPotFun = -log(ProbDensFun); 
+    end
+
+    if ~isempty(Sys.PseudoPotFun), PseudoPotFun = Sys.PseudoPotFun; end
+
+  %   PotFun = smooth3(PotFun, 'gaussian');
+  %   PotFun = smoothn(PotFun, 0.5);
+
+    alphaGrid = linspace(-pi, pi, size(PseudoPotFun,1));
+  %   betaGrid = linspace(0, pi, size(PseudoPotFun,2));
+    betaGrid = linspace(0, pi, size(PseudoPotFun,2)+2);
+    betaGrid = betaGrid(2:end-1);
+    gammaGrid = linspace(-pi, pi, size(PseudoPotFun,3));
+
+    if any(isnan(PseudoPotFun(:)))
+      error('At least one NaN detected in log(PseudoPotFun).')
+    end
+
+    if any(isinf(PseudoPotFun(:)))
+      error('At least one inf detected in log(PseudoPotFun).')
+    end
+
+    pidx = [2, 1, 3];
+
+    [dx, dy, dz] = gradient_euler(PseudoPotFun, alphaGrid, betaGrid, gammaGrid);
+
+  %   px = smooth3(px, 'gaussian');
+  %   py = smooth3(py, 'gaussian');
+  %   pz = smooth3(pz, 'gaussian');
+
+    method = 'linear';
+    Gradx = griddedInterpolant({alphaGrid, betaGrid, gammaGrid}, dx, method);
+    Grady = griddedInterpolant({alphaGrid, betaGrid, gammaGrid}, dy, method);
+    Gradz = griddedInterpolant({alphaGrid, betaGrid, gammaGrid}, dz, method);
+    Sim.interpGrad = {Gradx, Grady, Gradz};
+
+  %   clear logPotFun
+  %   clear px
+  %   clear py
+  %   clear pz
+  else
+    Sim.interpGrad = [];
+  end
+
+else
   Sys.ProbDensFun = [];
-end
-if ~isfield(Sys, 'PseudoPotFun')
   Sys.PseudoPotFun = [];
 end
 
-if ~isempty(Sys.ProbDensFun) || ~isempty(Sys.PseudoPotFun)
-  if isfield(Sys,'Coefs')||isfield(Sys,'LMK')
-    error('Please choose either PseudoPotFun or Coefs and LMK for an orienting potential.')
+% for kinetic Monte carlo
+if strcmp(Model,'Discrete') || strcmp(Model,'Hierarchical')
+  if isfield(Sys,'Rates')
+    Rates = Sys.Rates;
+    if ~isnumeric(Rates) || ~ismatrix(Rates) || (size(Rates,1)~=size(Rates,2))
+      error('Rates must be a square matrix.')
+    end
+    nStates = size(Rates,1);
+    diagRates = diag(diag(Rates));
+    if any(diag(Rates)>0) || any((Rates(:)-diagRates(:))<0)
+      error('Rates must contain strictly negative diagonal and positive off-diagonal entries.')
+    end
+    if any(sum((Rates-diagRates),2)~=-diag(Rates))
+      error("In the Rates matrix, the sum of each row's off-diagonal elements must equal the negative of the diagonal element.")
+    end
+  else
+    error('A transition rate matrix is required for Discrete and Hierarchical Models.')
   end
   
-  if ~isempty(Sys.ProbDensFun)
-    ProbDensFun = Sys.ProbDensFun;
-    idx = ProbDensFun < 1e-14;
-    ProbDensFun(idx) = 1e-14;
-    PseudoPotFun = -log(ProbDensFun); 
+  if isfield(Sys,'States')
+    States = Sys.States;
+    if size(States,1)~=3 || size(States,2)~=nStates
+      error(['The size of States must be (3,nStates), with the size of the ' ...
+             'second dimension equal to the number of rows (and columns) of Rates.'])
+    end
+  else
+    error('A set of States is required for Discrete and Hierarchical Models.')
   end
-  
-  if ~isempty(Sys.PseudoPotFun), PseudoPotFun = Sys.PseudoPotFun; end
-  
-%   PotFun = smooth3(PotFun, 'gaussian');
-%   PotFun = smoothn(PotFun, 0.5);
-  
-  alphaGrid = linspace(-pi, pi, size(PseudoPotFun,1));
-%   betaGrid = linspace(0, pi, size(PseudoPotFun,2));
-  betaGrid = linspace(0, pi, size(PseudoPotFun,2)+2);
-  betaGrid = betaGrid(2:end-1);
-  gammaGrid = linspace(-pi, pi, size(PseudoPotFun,3));
-
-  if any(isnan(PseudoPotFun(:)))
-    error('At least one NaN detected in log(PseudoPotFun).')
-  end
-  
-  if any(isinf(PseudoPotFun(:)))
-    error('At least one inf detected in log(PseudoPotFun).')
-  end
-  
-  pidx = [2, 1, 3];
-  
-  [dx, dy, dz] = gradient_euler(PseudoPotFun, alphaGrid, betaGrid, gammaGrid);
-  
-%   px = smooth3(px, 'gaussian');
-%   py = smooth3(py, 'gaussian');
-%   pz = smooth3(pz, 'gaussian');
-  
-  method = 'linear';
-  Gradx = griddedInterpolant({alphaGrid, betaGrid, gammaGrid}, dx, method);
-  Grady = griddedInterpolant({alphaGrid, betaGrid, gammaGrid}, dy, method);
-  Gradz = griddedInterpolant({alphaGrid, betaGrid, gammaGrid}, dz, method);
-  Sim.interpGrad = {Gradx, Grady, Gradz};
-  
-%   clear logPotFun
-%   clear px
-%   clear py
-%   clear pz
-else
-  Sim.interpGrad = [];
 end
 
 
 % Discrete Monte carlo settings (Par)
 % -------------------------------------------------------------------------
 
+% set integration time step and number of simulation steps
 if isfield(Par,'t')
   % time axis is given explicitly
   t = Par.t;
@@ -250,16 +333,26 @@ end
 Sim.nSteps = nSteps;
 Sim.dt = dt;
 
-if ~isfield(Par,'Integrator')
-  % default Monte Carlo integrator is Euler-Maruyama
-  Integrator = 'Euler-Maruyama';
-else
-  Integrator = Par.Integrator;
-  if ~strcmp(Integrator,'Euler-Maruyama')&&~strcmp(Integrator,'Leimkuhler-Matthews')
-    error('Input for integrator method not recognized.')
+% set kinetic Monte Carlo cumulative transition probability matrix
+if strcmp(Model,'Discrete') || strcmp(Model,'Hierarchical')
+  TPM = expm(Sim.dt*Rates);
+%   TPM = expeig(Sim.dt*Rates);
+  cumulTPM = cumsum(TPM,1);
+  if any(abs(1-cumulTPM(end,:))>1e-13)
+    error('The columns of cumulTPM = sum(exp(Rates*dt),1) must sum to 1.')
   end
 end
 
+% set integrator type
+if ~isfield(Par,'Integrator')
+  % default Monte Carlo integrator is Euler-Maruyama
+  Sim.Integrator = 'Euler-Maruyama';
+else
+  if ~strcmp(Par.Integrator,'Euler-Maruyama')&&~strcmp(Par.Integrator,'Leimkuhler-Matthews')
+    error('Input for integrator method not recognized.')
+  end
+  Sim.Integrator = Par.Integrator;
+end
 
 
 % Grid and trajectory settings
@@ -268,6 +361,21 @@ end
 % If number of trajectories is not given, set it to 1
 if ~isfield(Par, 'nTraj'), Par.nTraj = 1; end
 Sim.nTraj = Par.nTraj;
+
+% Get user-supplied starting states
+if strcmp(Model,'Discrete')
+  if isfield(Sys,'States0')
+    States0 = Sys.States0;
+    if size(States0,1)~=1 || size(States0,2)~=1 || size(States0,2)~=Par.nTraj
+      error('States0 should be of size (1,1) or (1,Par.nTraj).')
+    end
+    if any(States0<1) || any(States0>nStates)
+      error('Each entry in States0 needs to be equal to an integer within the range [1,nStates].')
+    end
+  else
+    States0 = randi(nStates,1,Par.nTraj);
+  end
+end
 
 % Get user-supplied starting angles
 Omega = [];
@@ -281,6 +389,11 @@ if isempty(Omega)
              betaSamples; 
              gammaSamples];
 %   elseif isfield(Sys,'Coefs')
+  elseif strcmp(Model,'Discrete')
+    Omega = zeros(3,Par.nTraj);
+    for iTraj = 1:Par.nTraj
+      Omega(:,iTraj) = States(:,States0(iTraj));
+    end
   else
     gridPts = linspace(-1, 1, Sim.nTraj);
 %     gridPhi = zeros(1, Sim.nTraj);
@@ -318,6 +431,10 @@ q0 = euler2quat(Omega);
 qTraj = zeros(4,Sim.nTraj,Sim.nSteps);
 qTraj(:,:,1) = q0;
 
+if strcmp(Model,'Discrete')
+  States = euler2quat(States);
+end
+
 % if isfield(Par,'tol')
 %   if ~isfield(Par,'chkcon') || chkcon==0
 %     error('A convergence tolerance was provided, but ''Par.chkcon'' was not equal to 1.')
@@ -331,7 +448,6 @@ qTraj(:,:,1) = q0;
 % Simulation
 % -------------------------------------------------------------------------
 
-
 converged = 0;
 
 % if chkcon=1, then we need to keep track of how many iterations have been 
@@ -340,58 +456,72 @@ iter = 1;
 
 logmsg(2,'-- Calculating stochastic trajectories -----------------------');
 
-while ~converged
-  if iter==1
-    %  Pre-calculate angular steps due to random torques
-    %  (Eq. 61 from reference, without factor of 1/2)
-    Sim = genRandSteps(Sim,Integrator);
+switch Model
+  case 'Continuous'
+    while ~converged
+      if iter==1
+        %  Perform stochastic simulations
+        %  (Eqs. 48 and 61 in reference)
+        qTraj = simrot(qTraj, Sim, iter);
+      else
+        logmsg(3,'-- Convergence not obtained -------------------------------------');
+        logmsg(3,'-- Propagation extended to %dth iteration -----------------------', iter);
+        % Propagation is being extended, so reset nSteps
+        % Continue propagation by 20% more steps or by tcorr/dt, whichever is
+        % greater
+        Sim.nSteps = max([ceil(tcorrAvg/Sim.dt), ceil(1.2*Sim.nSteps)]);
+        qTraj = simrot(qTraj, Sim, iter);
+      end
 
-    %  Perform stochastic simulations
-    %  (Eqs. 48 and 61 in reference)
-    qTraj = propagate_classical(qTraj, Sim, iter);
+      if chkcon
+        gr = grstat(qTraj);
+%         converged = all(gr(:)<1.00001);
+        converged = all(gr(:)<1.000001);
+      else
+        converged = 1;
+      end
 
-  else
-    logmsg(3,'-- Convergence not obtained -------------------------------------');
-    logmsg(3,'-- Propagation extended to %dth iteration -----------------------', iter);
-    % Propagation is being extended, so reset nSteps
-    % Continue propagation by 20% more steps or by tcorr/dt, whichever is
-    % greater
-    Sim.nSteps = max([ceil(tcorrAvg/Sim.dt), ceil(1.2*Sim.nSteps)]);
-    Sim = genRandSteps(Sim,Integrator);
-    qTraj = propagate_classical(qTraj, Sim, iter);
+      iter = iter + 1;
 
-  end
-
-  if chkcon
-    gr = grstat(qTraj);
-    converged = all(gr(:)<1.00001);
-  else
-    converged = 1;
-  end
-
-  iter = iter + 1;
-  
-  if iter>15 && converged==0
-    logmsg(1,['Warning: restarting trajectory set due to lack of convergence.\n',...
-              'Consider increasing length or number of trajectories.\n'])
-    iter = 0;
-    % re-initialize trajectories
-    Sim.nSteps = nSteps;
-    q0 = euler2quat(Omega);
-    qTraj = zeros(4,Sim.nTraj,Sim.nSteps);
-    qTraj(:,:,1) = q0;
-  end
-
+      if iter>15 && converged==0
+        logmsg(1,['Warning: restarting trajectory set due to lack of convergence.\n',...
+                  'Consider increasing length or number of trajectories.\n'])
+        iter = 0;
+        % re-initialize trajectories
+        Sim.nSteps = nSteps;
+        q0 = euler2quat(Omega);
+        qTraj = zeros(4,Sim.nTraj,Sim.nSteps);
+        qTraj(:,:,1) = q0;
+      end
+    end
+  case 'Discrete'
+    nTraj = Sim.nTraj;
+    nSteps = Sim.nSteps;
+    
+    stateTraj = zeros(nTraj,nSteps);
+    stateTraj(:,1) = States0.';
+    u = rand(nTraj,nSteps);
+    
+    for iTraj = 1:nTraj
+      stateNew = stateTraj(iTraj,1);
+      for iStep = 2:nSteps
+        stateLast = stateNew;
+        uLast = u(iTraj,iStep-1);
+        stateNew = find(cumulTPM(:,stateLast)>uLast,1);
+        stateTraj(iTraj,iStep) = stateNew;
+        qTraj(:,iTraj,iStep) = States(:,stateNew);
+      end
+    end
+    
+  case 'Hierarchical'
+    error('Hierarchical model not implemented yet.')
 end
 
-% clear wignerdquat
+    % clear wignerdquat
 
-totSteps = size(qTraj,3);
+    totSteps = size(qTraj,3);
 
 t = linspace(0, totSteps*Sim.dt, totSteps).';
-
-% Convert to rotation matrices
-RTraj = quat2rotmat(qTraj);
 
 logmsg(2,'-- Propagation finished --------------------------------------');
 logmsg(2,'--------------------------------------------------------------');
@@ -404,8 +534,9 @@ switch nargout
   case 0 % Plot results
     maxTraj = 3;
     if Sim.nTraj>maxTraj
-      error('Cannot plot more than %d trajectory.',maxTraj);
+      error('Cannot plot more than %d trajectories.',maxTraj);
     end
+    RTraj = quat2rotmat(q);
     clf
     hold on
     for iTraj = 1:min(maxTraj,Sim.nTraj)
@@ -427,11 +558,24 @@ switch nargout
     ylabel('y');
     zlabel('z');
 
-  case 2  % Output rotation matrices only
-    varargout = {t, RTraj};
-
-  case 3  % Output rotation matrices and quaternions
-    varargout = {t, RTraj, qTraj};
+  case 2  % Output quaternion trajectories
+    varargout = {t, qTraj};
+%     switch Model
+%       case 'Continuous'
+%         varargout = {t, qTraj};
+%       case 'Discrete'
+%         varargout = {t, stateTraj};
+%     end
+  
+  case 3  % Output both quaternion and state trajectories
+    switch Model
+      case 'Continuous'
+        error('Too many output variables for Continuous model.')  % TODO: put this check at the beginning
+      case 'Discrete' 
+        varargout = {t, qTraj, stateTraj};
+      case 'Hierarchical'
+        varargout = {t, qTraj, stateTraj};
+    end
 
 end
 
@@ -443,9 +587,17 @@ end
 % Helper functions
 % -------------------------------------------------------------------------
 
+function C = expeig(A)
+
+[V,D] = eig(A);
+
+C = V*diag(exp(diag(D)))*V';
+
+end
+
 function [dx, dy, dz] = gradient_euler(Data, aGrid, bGrid, gGrid)
-% performs the second-order numerical gradient on a 3D dataset as a
-% function of Euler angles alpha, beta, gamma
+% performs the second-order numerical gradient on a 3D array of Euler 
+% angles
 
 if ~isvector(aGrid) || ~isvector(bGrid) || ~isvector(gGrid)
   error('aGrid, bGrid, and gGrid must be vectors.')
@@ -509,134 +661,6 @@ dy = csc(BGrid).*sin(GGrid).*da ...
    - cot(BGrid).*sin(GGrid).*dg;
 
 dz = dg;
-
-end
-
-function Sim = genRandSteps(Sim,Integrator)
-% generate random angular steps using one of two different MC integrators
-
-% generate Gaussian random deviates
-randns = randn(3,Sim.nTraj,Sim.nSteps);
-
-if strcmp(Integrator,'Euler-Maruyama')
-  % standard method for integrating a first order SDE
-  Sim.randAngStep = bsxfun(@times, randns, sqrt(2*Sim.Diff*Sim.dt));
-elseif strcmp(Integrator,'Leimkuhler-Matthews')
-  % see Ref. [2]
-  Sim.randAngStep = bsxfun(@times, (randns(:,:,1:end-1)+randns(:,:,2:end))/2, ...
-                                   sqrt(2*Sim.Diff*Sim.dt));
-end
-
-end
-
-function q = propagate_classical(q, Sim, iter)
-% Propagate quaternions
-
-randAngStep = Sim.randAngStep;
-nSteps = Sim.nSteps;
-nTraj = Sim.nTraj;
-dt = Sim.dt;
-Diff = Sim.Diff;
-Coefs = Sim.Coefs;
-LMK = Sim.LMK;
-interpGrad = Sim.interpGrad;
-
-if ~isempty(Coefs)
-  isEigenPot = 1;
-else
-  isEigenPot = 0;
-end
-
-if ~isempty(interpGrad)
-  isNumericPot = 1;
-else
-  isNumericPot = 0;
-end
-
-if iter>1
-    % If propagation is being extended, initialize q from the last set
-  startStep = 1;
-else
-  % First step has already been initialized by starting orientation, so
-  % skip to second step
-  startStep = 2;
-end
-
-for iStep = startStep:nSteps
-  
-  if iStep==1
-    qLast = q(:,:,end);
-    q = zeros(4,nTraj,nSteps);
-  else
-    qLast = q(:,:,iStep-1);
-  end
-  
-  currRandAngStep = randAngStep(:,:,iStep);
-  
-  if isEigenPot
-    % use Wigner functions of quaternions to calculate torque
-    torque = anistorque(LMK, Coefs, qLast);
-    AngStep = bsxfun(@times,torque,Diff*dt) + currRandAngStep;
-  elseif isNumericPot
-    % use orienting pseudopotential functions of Euler angles to calculate
-    % torque
-    [alpha, beta, gamma] = quat2euler(qLast,'active');
-    pxint = interp3fast(interpGrad{1}, alpha, beta, gamma);
-    pyint = interp3fast(interpGrad{2}, alpha, beta, gamma);
-    pzint = interp3fast(interpGrad{3}, alpha, beta, gamma);
-    torque = [-pxint.'; -pyint.'; -pzint.'];
-    AngStep = bsxfun(@times,torque,Diff*dt) + currRandAngStep;
-  else
-    % If there is no orienting potential, then there is no torque to
-    % calculate
-    AngStep = currRandAngStep;
-  end
-
-  % Calculate size and normalized axis of angular step
-  theta = sqrt(sum(AngStep.^2, 1));
-  ux = AngStep(1,:,:)./theta;
-  uy = AngStep(2,:,:)./theta;
-  uz = AngStep(3,:,:)./theta;
-  
-  st = sin(theta/2);
-  ct = cos(theta/2);
-
-%   U = [    ct, -ux.*st, -uy.*st, -uz.*st; ...
-%        ux.*st,      ct,  uz.*st, -uy.*st; ...
-%        uy.*st, -uz.*st,      ct,  ux.*st; ...
-%        uz.*st,  uy.*st, -ux.*st,      ct];
-
-  % Calculate q for the first time step
-  
-  q1 = qLast(1,:);
-  q2 = qLast(2,:);
-  q3 = qLast(3,:);
-  q4 = qLast(4,:);
-
-  q(1,:,iStep) = q1.*ct - q2.*ux.*st - q3.*uy.*st - q4.*uz.*st;
-  q(2,:,iStep) = q2.*ct + q1.*ux.*st - q4.*uy.*st + q3.*uz.*st;
-  q(3,:,iStep) = q3.*ct + q4.*ux.*st + q1.*uy.*st - q2.*uz.*st;
-  q(4,:,iStep) = q4.*ct - q3.*ux.*st + q2.*uy.*st + q1.*uz.*st;
-  
-%   diff = 1.0-sqrt(sum(q(:,:,iStep).*q(:,:,iStep), 1));
-%   
-%   if any(abs(diff(:)) > 1e-14)
-%     error('Quaternions are not normalized on step %d.\n', iStep)
-%   end
-  
-end
-
-end
-
-function Vq = interp3fast(F, Xq, Yq, Zq)
-% Adapted from MATLAB's interp3 function, and makes the following
-% assumptions regarding input:
-%    Monotonic grid vectors X, Y, Z were fed to griddedInterpolant to
-%    obtain F
-%    V is ndgrid-ordered, not meshgrid-ordered (fed to griddedInterpolant)
-%interp3fast 3-D interpolation (table lookup).
-
-Vq = F([Xq.',Yq.',Zq.']);
 
 end
 

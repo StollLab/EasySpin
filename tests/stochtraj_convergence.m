@@ -3,12 +3,9 @@ function [err,data] = test(opt,olddata)
 % proper distribution of orientations
 
 Sys.tcorr = 10e-9;
-Par.dt = Sys.tcorr/5;
+Par.dt = Sys.tcorr/10;
 Par.nSteps = ceil(50*Sys.tcorr/Par.dt);
-Par.nTraj = 200;
-Par.Omega = [  pi*(2*rand()-1); 
-             2*pi*(2*rand()-1);
-             2*pi*(2*rand()-1) ];
+Par.nTraj = 500;
 Opt.chkcon = 1;
 % Opt.Verbosity = 1;
 
@@ -20,10 +17,10 @@ nBins = 50;
 c20 = 3;
 Sys.Coefs = [c20, c20];
 Sys.LMK = [2, 0, 0];
-[~, RTraj] = stochtraj(Sys,Par,Opt);
+[~, q] = stochtraj(Sys,Par,Opt);
+R = quat2rotmat(q);
 
-
-VecTraj = squeeze(RTraj(:, 3, :, :));
+VecTraj = squeeze(R(:, 3, :, :));
 
 bins = linspace(0, pi, nBins)';
 ThetaHist = zeros(nBins, nTraj);
