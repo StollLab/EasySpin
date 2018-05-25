@@ -74,8 +74,10 @@ Coupl = Pairs(:,1) + (Pairs(:,2)-1)*System.nElectrons;
 allPairsIdx = e1 + (e2-1)*System.nElectrons;
 
 ee = System.ee;
-if ~System.fullee
+if isfield(System,'eeFrame')
   eeFrame = System.eeFrame;
+else
+  eeFrame = [];
 end
 
 % Bilinear coupling term S1*ee*S2
@@ -87,9 +89,12 @@ for iPair = 1:nPairs
   if System.fullee
     J = ee(3*(iCoupling-1)+(1:3),:);
   else
+    J = diag(ee(iCoupling,:));
+  end
+  if ~isempty(eeFrame) && any(eeFrame(iCoupling,:))
     R_M2ee = erot(eeFrame(iCoupling,:)); % mol frame -> ee frame
     R_ee2M = R_M2ee.';  % ee frame -> mol frame
-    J = R_ee2M*diag(ee(iCoupling,:))*R_ee2M.';
+    J = R_ee2M*J*R_ee2M.';
   end
   
   % Sum up Hamiltonian terms
