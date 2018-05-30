@@ -43,7 +43,7 @@ elseif isfield(Sys,'T1') && ~isfield(Sys,'T2')
 elseif isfield(Sys,'T2') && ~isfield(Sys,'T1')
     Sys.T1 = 0;
 end
-if any([Sys.T1 Sys.T2]<0) || any(~isreal([Sys.T1 Sys.T2]))
+if any([Sys.T1(:); Sys.T2(:)]<0) || any(~isreal([Sys.T1(:); Sys.T2(:)]))
   error('T1 and T2 in Sys.T1 and Sys.T2 must be positive and in microseconds.');
 end
 
@@ -87,7 +87,7 @@ end
 % Set up relaxation superoperator and equilibrium state
 
 % --------------------------------------------------------------------------------------
-if Sys.T1==0 && Sys.T2==0
+if all([Sys.T1(:); Sys.T2(:)] ==0)
   Relaxation = [];
 else
   logmsg(1,'setting up the relaxation superoperator and the equilibrium state...');
