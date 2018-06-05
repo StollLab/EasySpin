@@ -447,6 +447,7 @@ if ~isfield(Opt,'SymmFrame'), Opt.SymmFrame = []; end
 if ~isfield(Opt,'PostConvNucs'), Opt.PostConvNucs = ''; end
 if ~isfield(Opt,'SaveSV'), Opt.SaveSV = false; end
 if ~isfield(Opt,'SaveL'), Opt.SaveL = false; end
+if ~isfield(Opt,'useLMKbasis'), Opt.useLMKbasis = true; end
 
 % Obsolete options
 % Opt.MOMD was used prior to 5.0 for powder simulations (in the presence of ordering potential)
@@ -473,12 +474,6 @@ if ~generalLiouvillian
     error('Opt.LiouvMethod=''Freed'' does not work with this spin system.');
   end
 end
-
-%if generalLiouvillian
-%  if usePotential
-%    error('Ordering potential not supported for Opt.LiouvMethod=''general''.');
-%  end
-%end
 
 % Field sweep method
 if ~isfield(Opt,'ExplicitFieldSweep')
@@ -711,10 +706,15 @@ logmsg(1,'  M-p symmetry: %d',Basis.MpSymm);
 if generalLiouvillian
   
   % Set up basis
-  Basis.List = generatebasis(Basis);
-  nOriBasis = size(Basis.List,1);
+  if Opt.useLMKbasis
+    Basis = generatebasis(Basis,'LMK');
+  else
+    Basis = generatebasis(Basis,'LjKKM');
+  end
+  nOriBasis = numel(Basis.L);
   nSpinBasis = Sys.nStates^2;
-  logmsg(1,'  complete product basis size: %d (%d spatial, %d spin)',nOriBasis*nSpinBasis,nOriBasis,nSpinBasis);
+  logmsg(1,'  complete product basis size: %d (%d spatial, %d spin)',...
+    nOriBasis*nSpinBasis,nOriBasis,nSpinBasis);
   
   % Index vector for reordering basis states from m1-m2 order (standard) to p-q order (Freed)
   [idxpq,mm,pq] = pqorder(Sys.Spins);
@@ -734,7 +734,7 @@ if generalLiouvillian
   
   % Apply M=p-1 symmetry (Meirovitch Eq. (A47))
   if Opt.MpSymm
-    M = Basis.List(:,2);
+    M = Basis.M;
     psum = sum(pq(:,1:2:end),2);
     keep_Mp = bsxfun(@minus,psum,M.')==1; % keep only basis states with pS+pI-M == 1
     keep = keep & keep_Mp(:);
@@ -746,6 +746,10 @@ if generalLiouvillian
 else
   
   [Basis.Size,Basis.SpatialSize,Indices] = chili_basiscount(Basis,Sys);
+  Basis.L = Indices(:,1);
+  Basis.jK = Indices(:,2);
+  Basis.K = Indices(:,3);
+  Basis.M = Indices(:,4);
   logmsg(1,'  basis size: %d',Basis.Size);
     
 end
@@ -754,6 +758,7 @@ end
 %-----------------------------------------------------------------------
 if generalLiouvillian
   
+  logmsg(1,'Precalculating 3j symbols');
   [jjj0,jjj1,jjj2] = jjjsymbol(Basis.LLKM,any(F.F1(:)));
   
   logmsg(1,'Setting up the detection operator');
@@ -766,13 +771,13 @@ if generalLiouvillian
     SxOp = SxOp(idxpq);
   end
   
-  logmsg(1,'Calculating the relaxation superoperator matrix');
   % Calculate relaxation superoperator in spatial basis, expand to full product
   % basis, and remove unwanted basis functions.
-  if usePotential
-    Gamma = diffsuperop(Dynamics.Diff,Basis.List,Potential.xlk);
+  logmsg(1,'Calculating the relaxation superoperator matrix');
+  if Opt.useLMKbasis
+    Gamma = diffsuperop_LMK(Basis,Dynamics.Diff,Potential.xlk);
   else
-    Gamma = diffsuperop(Dynamics.Diff,Basis.List);
+    Gamma = diffsuperop(Basis,Dynamics.Diff,Potential.xlk);
   end
   Gamma = spkroneye(Gamma,Sys.nStates^2);
   Gamma = Gamma(keep,keep);
@@ -816,7 +821,11 @@ for iOri = 1:nOrientations
   logmsg(1,'Computing starting vector...');
   if generalLiouvillian
     % set up in full product basis, then prune
-    StartingVector = startvec(Basis,Potential.lambda,SxOp);
+    if Opt.useLMKbasis
+      StartingVector = startvec_LMK(Basis,Potential.lambda,SxOp);
+    else
+      StartingVector = startvec(Basis,Potential.lambda,SxOp);
+    end
     StartingVector = StartingVector(keep);
     
     if Opt.SaveSV
@@ -852,9 +861,18 @@ for iOri = 1:nOrientations
   end
   
   if generalLiouvillian
+    if Opt.useLMKbasis
+      TT = ksymmetrizer(Basis); % in spatial basis
+      TT = kron(TT,eye(BasisSize/length(TT))); % expand to full basis, incl. spin
+    end
     if explicitFieldSweep
-      HB = liouvhamiltonian(Basis.List,Q0B,Q1B,Q2B,jjj0,jjj1,jjj2);
-      HG = liouvhamiltonian(Basis.List,Q0G,Q1G,Q2G,jjj0,jjj1,jjj2);
+      if Opt.useLMKbasis
+        HB = liouvhamiltonian_LMK(Basis,Q0B,Q1B,Q2B,jjj0,jjj1,jjj2);
+        HG = liouvhamiltonian_LMK(Basis,Q0G,Q1G,Q2G,jjj0,jjj1,jjj2);
+      else
+        HB = liouvhamiltonian(Basis,Q0B,Q1B,Q2B,jjj0,jjj1,jjj2);
+        HG = liouvhamiltonian(Basis,Q0G,Q1G,Q2G,jjj0,jjj1,jjj2);
+      end
       HB = HB(keep,keep);
       HG = HG(keep,keep);
     else
@@ -873,7 +891,11 @@ for iOri = 1:nOrientations
           Q2{i,j} = Q2B{i,j} + Q2G{i,j};
         end
       end
-      H = liouvhamiltonian(Basis.List,Q0,Q1,Q2,jjj0,jjj1,jjj2);
+      if Opt.useLMKbasis
+        H = liouvhamiltonian_LMK(Basis,Q0,Q1,Q2,jjj0,jjj1,jjj2);
+      else
+        H = liouvhamiltonian(Basis,Q0,Q1,Q2,jjj0,jjj1,jjj2);
+      end
       H = H(keep,keep);
     end
   end
@@ -940,9 +962,21 @@ for iOri = 1:nOrientations
       end 
     end
     
-    % Rescale by maximum of Hamiltonian superoperator
+    % Appy K-symmetrization if needed to obtain complex symmetric L for Lanczos
+    % algorithm. It is only needed if the imaginary part of L is non-zero.
+    if generalLiouvillian && Opt.useLMKbasis
+            
+      % symmetrize if needed
+      isNotComplexSymmetric = ~isreal(H);
+      if isNotComplexSymmetric
+        L = TT'*L*TT;
+        StartingVector = TT'*StartingVector;
+      end
+      
+    end
     
-    if (Opt.Rescale)
+    % Rescale by maximum of Liouvillian superoperator
+    if Opt.Rescale
       scale = -min(min(imag(L)));
       L = L/scale;
       omega = omega0/scale;
@@ -1272,7 +1306,7 @@ Basis.oddLmax = Basis.LLKM(2);
 Basis.Kmax = Basis.LLKM(3);
 Basis.Mmax = Basis.LLKM(4);
 
-if (Basis.oddLmax>Basis.evenLmax)
+if Basis.oddLmax > Basis.evenLmax
   Basis.oddLmax = Basis.evenLmax;
 end
 

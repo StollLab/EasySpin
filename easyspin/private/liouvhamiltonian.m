@@ -8,12 +8,12 @@
 
 function H = liouvhamiltonian(basis,Q0,Q1,Q2,jjj0,jjj1,jjj2)
 
-L   = basis(:,1);
-M   = basis(:,2);
-K   = basis(:,3);
-jK  = basis(:,4);
+L   = basis.L;
+M   = basis.M;
+K   = basis.K;
+jK  = basis.jK;
 nSpinBasis = length(Q0);
-nOriBasis = size(basis,1); % length takes longest dimension!!!!!!
+nOriBasis = numel(L);
 nTotalBasis = nOriBasis*nSpinBasis;
 
 %--------------------------------------------------------------------------
@@ -146,16 +146,14 @@ for iBasis = 1:nOriBasis
     idxKa = 3-( K1-K2);
     idxKb = 3-(-K1+K2);
     
-    % first term
-    
     prefactor = (1/(2*sqrt((1+K1zero)*(1+K2zero))))...
       * sqrt(jK1)'*sqrt(jK2) * NL * jjjM;
     
+    % first term
     spinblock = prefactor * jjjKa * ...
       ((-1)^(K1-M1)*Q2{idxM,idxKa} + jK1*jK2*(-1)^(K2-M1)*Q2{idxM,idxKb});
     
     % second term
-    
     if (K1+K2<=2)
       jjjKb = jjj2(L1^2+L1-K1+1,L2^2+L2-K2+1);
       idxKc = 3-(-K1-K2);

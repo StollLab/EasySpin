@@ -1,7 +1,11 @@
 % startvec takes the Hilbert space spin operator Sx as input and returns as
 % output the vector representation of the Sx operator in Liouville space
 
-function StartingVector = startvec(basis,lambda,SxH)
+function StartingVector = startvec_LMK(basis,lambda,SxH)
+
+if isfield(basis,'jK') && ~isempty(basis.jK)
+  error('This function expects an LMK basis, without jK.');
+end
 
 c20 = lambda(1);
 c22 = lambda(2);

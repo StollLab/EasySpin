@@ -1,51 +1,79 @@
-function basisList = generatebasis(Basis)
-
-%%-------------------------------------------------------------------------
-% Generate array of basis functions and their indices in full Liouvillian
-%   
-%   L  increasing from 0 to Lmax
-%   M  decresing from L to -L
-%   K  decreasing from L to 0
-%   jK decreasing from +1 to -1 for nonzero K
+% Generate array of orientational basis functions indices
+% 
+% Basis = generatebasis(Basis,basistype)
 %
-%     L  M  K  jK
-%%-------------------------------------------------------------------------
+% Input:
+%   Basis      structure with basis set information
+%    .evenLmax maximum even L
+%    .oddLmax  maximum odd L
+%    .Kmax     maximum K
+%    .Mmax     maximum M
+%    .deltaK   step size for K (1 or 2) (optional; default 1)
+%    .jKmin    minimum jK (-1 or 1) (optional; default -1)
+%   basistype  string specifying type of basis set
+%              'LjKKM','LMK','LMKjK'
+%
+% Output:
+%   Basis.L
+%   Basis.K
+%   Basis.M
+%   Basis.jK
+%   
+function BasisNew = generatebasis(Basis,basistype)
+
+if nargin < 2
+  basistype = 'LjKKM';
+end
 
 Leven = 0:2:Basis.evenLmax;
 Lodd  = 1:2:Basis.oddLmax;
-Llist = sort([Leven Lodd]);
+Basis.Llist = sort([Leven Lodd]);
+
+if isfield(Basis,'jKmin')
+  if Basis.jKmin~=1 && Basis.jKmin~=-1
+    error('Basis.jKmin must be either -1 or +1.');
+  end
+else
+  Basis.jKmin = -1;
+end
+
+if isfield(Basis,'deltaK')
+  if Basis.deltaK~=1 && Basis.deltaK~=2
+    error('Basis.deltaK must be either 1 or 2.');
+  end
+else
+  Basis.deltaK = 1;
+end
+
+switch basistype
+  case 'LjKKM'
+    BasisNew = generatebasis_LjKKM(Basis);
+  case 'LMKjK'
+    BasisNew = generatebasis_LMKjK(Basis);
+  case 'LMK'
+    BasisNew = generatebasis_LMK(Basis);
+end
+
+return
+
+%-------------------------------------------------------------------------------
+% LjKKM: K-symmetrized basis in ordering as in Freed programs:
+% 1. increasing L, 2. increasing jK, 3. increasing K, 4. increasing M
+%-------------------------------------------------------------------------------
+function BasisNew = generatebasis_LjKKM(Basis)
 
 Kmax = Basis.Kmax;
 Mmax = Basis.Mmax;
 
-%{
-iBasis = 1;
-for L = Llist
-  Mmx = min(L,Mmax);
-  for M = Mmx:-1:-Mmx
-    for K = min(L,Kmax):-1:0
-      if (K~=0)
-        basisList(iBasis,:)   = [L M K  1];
-        basisList(iBasis+1,:) = [L M K -1];
-        iBasis = iBasis + 2;
-      else
-        basisList(iBasis,:) = [L M K (-1)^L];
-        iBasis = iBasis + 1;
-      end
-    end
-  end
-end
-%}
-
-% basis set ordering from S=1/2 code
 jKmin = Basis.jKmin;
 deltaK = Basis.deltaK;
 iBasis = 1;
-for L = Llist
-  if (mod(L,2)==0), Lparity = +1; else Lparity = -1; end
+for L = Basis.Llist
+  if (mod(L,2)==0), Lparity = +1; else, Lparity = -1; end
   for jK = jKmin:2:1
-    for K = 0:deltaK:min(L,Kmax)
-      if ((K==0) && (Lparity~=jK)), continue; end
+    Kmx = min(L,Kmax);
+    for K = 0:deltaK:Kmx
+      if (K==0) && (Lparity~=jK), continue; end
       Mmx = min(L,Mmax);
       for M = -Mmx:1:Mmx
         basisList(iBasis,:) = [L M K jK];
@@ -54,6 +82,69 @@ for L = Llist
     end % K
   end % jK
 end % L
-%}
+
+BasisNew = Basis;
+BasisNew.L = basisList(:,1);
+BasisNew.M = basisList(:,2);
+BasisNew.K = basisList(:,3);
+BasisNew.jK = basisList(:,4);
+
+%-------------------------------------------------------------------------------
+% LMKjK: K-symmetrized basis in ordering close to LMK
+% 1. increasing L, 2. increasing M, 3. increasing K, 4. increasing jK
+%-------------------------------------------------------------------------------
+function BasisNew = generatebasis_LMKjK(Basis)
+
+Kmax = Basis.Kmax;
+Mmax = Basis.Mmax;
+
+jKmin = Basis.jKmin;
+deltaK = Basis.deltaK;
+iBasis = 1;
+for L = Basis.Llist
+  Mmx = min(L,Mmax);
+  for M = -Mmx:1:Mmx
+    Kmx = min(L,Kmax);
+    for K = -Kmx:deltaK:Kmx
+      if (K==0), jK = (-1)^L; else, jK= sign(K); end
+      if jK<jKmin, continue; end
+      basisList(iBasis,:) = [L M abs(K) jK];
+      iBasis = iBasis + 1;
+    end % K
+  end % M
+end % L
+
+BasisNew = Basis;
+BasisNew.L = basisList(:,1);
+BasisNew.M = basisList(:,2);
+BasisNew.K = basisList(:,3);
+BasisNew.jK = basisList(:,4);
 
 return
+
+%-------------------------------------------------------------------------------
+% LMK: LMK basis (not K-symmetrized) in the following ordering: 
+% 1. increasing L, 2. increasing M, 3. increasing K
+%-------------------------------------------------------------------------------
+function BasisNew = generatebasis_LMK(Basis)
+
+Kmax = Basis.Kmax;
+Mmax = Basis.Mmax;
+
+deltaK = Basis.deltaK;
+iBasis = 1;
+for L = Basis.Llist
+  Mmx = min(L,Mmax);
+  for M = -Mmx:1:Mmx
+    Kmx = min(L,Kmax);
+    for K = -Kmx:deltaK:Kmx
+      basisList(iBasis,:) = [L M K];
+      iBasis = iBasis + 1;
+    end % K
+  end % M
+end % L
+
+BasisNew = Basis;
+BasisNew.L = basisList(:,1);
+BasisNew.M = basisList(:,2);
+BasisNew.K = basisList(:,3);

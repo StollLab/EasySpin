@@ -1,3 +1,5 @@
+% Build basis with basis functions and ordering as used in the Freed program
+% (S = 1/2 and zero, one, or two nuclei).
 function [nBasisFunctions,nSpatialBasisFunctions,Indices] = chili_basiscount(Basis,Sys)
 
 DirTilt = Basis.DirTilt;
@@ -25,12 +27,14 @@ if nNuclei>=2, I2 = I(2); end
 iRow = 0;
 iSpatial = 0;
 
-MakeIndices = true;
+makeIndices = true;
 
-if MakeIndices
+if makeIndices
   nRowBlock = 20000; % size of pre-allocation block
   Indices = zeros(nRowBlock,4+2+2*nNuclei);
 end
+
+parity = @(x) 1 - 2*mod(x,2); % -1 for odd number, +1 for even number
 
 for L = 0:evenLmax
   Lparity = parity(L);
@@ -38,7 +42,7 @@ for L = 0:evenLmax
   if (~evenL) && (L>oddLmax), continue; end    
   for jK = jKmin:2:1
     for K = 0:deltaK:min(L,Kmax)
-      if ((K==0) && (Lparity~=jK)), continue; end
+      if (K==0) && (Lparity~=jK), continue; end
       Mmx = min(L,Mmax);
       for M = -Mmx:Mmx
         iSpatial = iSpatial + 1;
@@ -49,11 +53,11 @@ for L = 0:evenLmax
           for qS = -qSmx:2:qSmx
             
             % no nuclei ---------------------------------------
-            if (nNuclei==0)
-              if (MpSymm&&(~DirTilt)&&((pS-1)~=M)), continue; end % Meirovitch Eq.(A47)
+            if nNuclei==0
+              if MpSymm && ~DirTilt && (pS-1)~=M, continue; end % Meirovitch Eq.(A47)
               
               iRow = iRow + 1;
-              if MakeIndices
+              if makeIndices
                 if mod(iRow,nRowBlock)==0
                   Indices(iRow+nRowBlock,:) = 0;
                 end
@@ -61,15 +65,15 @@ for L = 0:evenLmax
               end
                 
             % one nucleus ---------------------------------------
-            elseif (nNuclei==1)
+            elseif nNuclei==1
               
               for pI1 = -pI1max:pI1max
-                if (MpSymm&&(~DirTilt)&&((pI1+pS-1)~=M)), continue; end % Meirovich Eq.(A47)
+                if MpSymm && ~DirTilt && pI1+pS-1~=M, continue; end % Meirovich Eq.(A47)
                 qI1max = 2*I1 - abs(pI1);
                 for qI1 = -qI1max:2:qI1max
                   
                   iRow = iRow + 1;
-                  if MakeIndices
+                  if makeIndices
                     if mod(iRow,nRowBlock)==0
                       Indices(iRow+nRowBlock,:) = 0;
                     end
@@ -80,18 +84,18 @@ for L = 0:evenLmax
               end % pI
               
             % two nuclei ---------------------------------------
-            elseif (nNuclei==2)
+            elseif nNuclei==2
               
               for pI1 = -pI1max:pI1max
                 qI1max = 2*I1 - abs(pI1);
                 for qI1 = -qI1max:2:qI1max
                   for pI2 = -pI2max:pI2max
-                    if MpSymm && (~DirTilt) && (pI1+pI2+pS-1~=M), continue; end % Meirovich Eq.(A47)
+                    if MpSymm && ~DirTilt && pI1+pI2+pS-1~=M, continue; end % Meirovich Eq.(A47)
                     qI2max = 2*I2 - abs(pI2);
                     for qI2 = -qI2max:2:qI2max
                       
                       iRow = iRow + 1;
-                      if MakeIndices
+                      if makeIndices
                         if mod(iRow,nRowBlock)==0
                           Indices(iRow+nRowBlock,:) = 0;
                         end
@@ -117,9 +121,4 @@ Indices  = Indices(1:iRow,:);
 nBasisFunctions = iRow;
 nSpatialBasisFunctions = iSpatial;
 
-return
-%==================================================================
-
-function p = parity(a)
-if (mod(a,2)==0), p = +1; else p = -1; end
 return
