@@ -45,22 +45,20 @@ Exp.DetEvents = [0 0 0 0 1];
 Opt.DetOperator = {'+1'};
 Opt.FreqTranslation = -34.78; % GHz
 
+
 %% A refocused echo with monochromatic pulses
 
+Signal = 0;
 for iOrientation = 1 : numel(Weights)
   
-  LoopSys = Sys;
+  Sys_ = Sys;
   R = erot(phi(iOrientation),theta(iOrientation),0);
-  LoopSys.g = R*LoopSys.g*R';
-  LoopSys.A = R*LoopSys.A*R';
+  Sys_.g = R*Sys_.g*R';
+  Sys_.A = R*Sys_.A*R';
   
-  [t, signal] = spidyan(LoopSys,Exp,Opt);
+  [t, signal_] = spidyan(Sys_,Exp,Opt);
   
-  if iOrientation == 1
-    Signal = signal*Weights(iOrientation);
-  else
-    Signal = Signal + signal*Weights(iOrientation);
-  end
+  Signal = Signal + signal_*Weights(iOrientation);
   
   progress = [num2str(iOrientation/numel(Weights)*100,'%.2f'),' %'];
   disp(progress)
@@ -70,7 +68,7 @@ end
 %%
 
 figure(2)
-hold on
+clf
 plot(t,real(Signal))
-xlabel('t [\mu s]')
-ylabel('Echo Int. a.u.')
+xlabel('t [\mus]')
+ylabel('Echo Int. (arb.u.)')

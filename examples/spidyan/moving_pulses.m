@@ -21,7 +21,7 @@ Exp.DetEvents = 1;
 
 % Move the center pulse to the back in 100 ns steps
 Exp.nPoints = 9;
-Exp.Dim = {'p2.Position',0.1};
+Exp.Dim1 = {'p2.Position',0.1};
 
 % Options
 Opt.DetOperator = {'+1'};

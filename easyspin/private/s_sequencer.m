@@ -414,12 +414,15 @@ if isfield(Exp,'nPoints')
     
     if nDimensions == 1
       if isfield(Exp,'Dim')
-        Field2Get = 'Dim';
-      else
-        Field2Get = 'Dim1';
+        error('You provided Exp.Dim, please always provide Dim with a number, e.g Exp.Dim1.')
       end
-    else
-      Field2Get = ['Dim' num2str(iDimension)];
+    end
+    
+    Field2Get = ['Dim' num2str(iDimension)];
+    
+    if ~isfield(Exp,Field2Get)
+      msg = ['You requested a ' num2str(nDimensions) '-dimensional experiment, but Exp.Dim' num2str(iDimension) ' is missing.'];
+      error(msg);
     end
     
     % Scans all the lines of the Dim field. Each line can contain multiple
@@ -452,7 +455,7 @@ if isfield(Exp,'nPoints')
         
         if (length(Strings) ~= 2 || ~strcmp(Strings{2},'IQ'))
           if length(Strings) ~= 2 || ~strcmp(Strings{2},'Frequency') || length(Exp.(Field2Get){iLine,2}) == 1 || ~any(size(Exp.(Field2Get){iLine,2},1) == [1 Exp.nPoints(iDimension)-1])
-            if length(Exp.(Field2Get){iLine,2}) ~= 1 && length(Exp.(Field2Get){iLine,2}) ~= Exp.nPoints(iDimension)-1
+            if length(Exp.(Field2Get){iLine,2}) ~= 1 && length(Exp.(Field2Get){iLine,2}) ~= Exp.nPoints(iDimension)
               message = ['The number of points provided for Dimension ' num2str(iDimension) ' does not match the length of the vector in the Exp.Dim structure.'];
               error(message);
             end
@@ -502,8 +505,8 @@ if isfield(Exp,'nPoints')
                       IncrementationTable(SurroundingEvents(1),:) = IncrementationTable(SurroundingEvents(1),:) + (0:Vary.Points(iDimension)-1)*dt;
                       IncrementationTable(SurroundingEvents(2),:) = IncrementationTable(SurroundingEvents(2),:) - (0:Vary.Points(iDimension)-1)*dt;
                     else
-                      IncrementationTable(SurroundingEvents(1),2:end) = IncrementationTable(SurroundingEvents(1),2:end) + dt;
-                      IncrementationTable(SurroundingEvents(2),2:end) = IncrementationTable(SurroundingEvents(2),2:end) - dt;
+                      IncrementationTable(SurroundingEvents(1),1:end) = IncrementationTable(SurroundingEvents(1),1:end) + dt;
+                      IncrementationTable(SurroundingEvents(2),1:end) = IncrementationTable(SurroundingEvents(2),1:end) - dt;
                     end
                   else
                     Vary.IncrementationTable(SurroundingEvents(1),iDimension) = Vary.IncrementationTable(SurroundingEvents(1),iDimension) + dt;
@@ -550,7 +553,7 @@ if isfield(Exp,'nPoints')
               if length(dt) == 1
                 IncrementationTable(EventNumber(1),:) = IncrementationTable(EventNumber(1),:) + (0:Vary.Points(iDimension)-1)*dt;
               else
-                IncrementationTable(EventNumber(1),2:end) = IncrementationTable(EventNumber(1),2:end) + dt;
+                IncrementationTable(EventNumber(1),1:end) = IncrementationTable(EventNumber(1),1:end) + dt;
               end
             else
               Vary.IncrementationTable(EventNumber(1),iDimension) = Vary.IncrementationTable(EventNumber(1),iDimension) + dt;
@@ -624,18 +627,20 @@ if isfield(Exp,'nPoints')
               if isempty(FieldIndex)
                 Pulses{iPulse}.(Field) = Pulses{iPulse}.(Field) + Increment*(DimensionIndices(Dimension)-1);
               else
-                Pulses{iPulse}.(Field)(FieldIndex) = Pulses{iPulse}.(Field)(FieldIndex) + Increment*(DimensionIndices(Dimension)-1);
+                if length(Increment) == 1
+                  Pulses{iPulse}.(Field)(FieldIndex) = Pulses{iPulse}.(Field)(FieldIndex) + Increment*(DimensionIndices(Dimension)-1);
+                else
+                  Pulses{iPulse}.(Field)(FieldIndex) = Pulses{iPulse}.(Field)(FieldIndex) + Increment(DimensionIndices(Dimension));
+                end
               end
             else
-              if DimensionIndices(Dimension) ~= 1
-                if strcmp(Field,'Frequency')
-                  Pulses{iPulse}.(Field) = Pulses{iPulse}.(Field) + Increment(DimensionIndices(Dimension)-1,:);
+              if strcmp(Field,'Frequency')
+                Pulses{iPulse}.(Field) = Pulses{iPulse}.(Field) + Increment(DimensionIndices(Dimension),:);
+              else
+                if isempty(FieldIndex)
+                  Pulses{iPulse}.(Field) = Pulses{iPulse}.(Field) + Increment(DimensionIndices(Dimension));
                 else
-                  if isempty(FieldIndex)
-                    Pulses{iPulse}.(Field) = Pulses{iPulse}.(Field) + Increment(DimensionIndices(Dimension)-1);
-                  else
-                    Pulses{iPulse}.(Field)(FieldIndex) = Pulses{iPulse}.(Field)(FieldIndex) + Increment(DimensionIndices(Dimension)-1);
-                  end
+                  Pulses{iPulse}.(Field)(FieldIndex) = Pulses{iPulse}.(Field)(FieldIndex) + Increment(DimensionIndices(Dimension));
                 end
               end
             end

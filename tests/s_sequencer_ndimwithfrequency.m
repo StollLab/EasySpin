@@ -18,29 +18,29 @@ Opt.FrameShift = 32;
 
 % First Syntax -----------------------------
 Exp.nPoints = 3;
-Exp.Dim = {'p1.Frequency' 0.05};
+Exp.Dim1 = {'p1.Frequency' 0.05};
 
 [~, Vary1] = runprivate('s_sequencer',Exp,Opt);
 
 % Second Syntax -----------------------------
-Exp.Dim = {'p1.Frequency' [0.05 0.05]};
+Exp.Dim1 = {'p1.Frequency' [0.05 0.05]};
 
 [~, Vary2] = runprivate('s_sequencer',Exp,Opt);
 
 % Third Syntax -----------------------------
-Exp.Dim = {'p1.Frequency' [0.05 0.05; 0.1 0.1]};
+Exp.Dim1 = {'p1.Frequency' [0 0; 0.05 0.05; 0.1 0.1]};
 
 [~, Vary3] = runprivate('s_sequencer',Exp,Opt);
 
 % Fourth Syntax -----------------------------
 Exp.Frequency = [0 0];
-Exp.Dim = {'p1.Frequency(1),p1.Frequency(2)' 0.05};
+Exp.Dim1 = {'p1.Frequency(1),p1.Frequency(2)' 0.05};
 
 [~, Vary4] = runprivate('s_sequencer',Exp,Opt);
 
 % Fourth Syntax -----------------------------
 Exp.Frequency = [0 0];
-Exp.Dim = {'p1.Frequency(1)' 0.05;
+Exp.Dim1 = {'p1.Frequency(1)' 0.05;
            'p1.Frequency(2)' 0.05};
 
 [~, Vary5] = runprivate('s_sequencer',Exp,Opt);

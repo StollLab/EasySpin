@@ -16,7 +16,7 @@ Exp.DetEvents = 1;
 
 % First Syntax -----------------------------
 Exp.nPoints = 3;
-Exp.Dim = {'p1.n(2)' -2};
+Exp.Dim1 = {'p1.n(2)' -2};
 
 Opt = struct('unused',NaN);
 
@@ -25,7 +25,7 @@ Opt = struct('unused',NaN);
 Seq1IQs = Vary1.Pulses{1}.IQs;
 
 % Second Syntax -----------------------------
-Exp.Dim = {'p1.n(2)' [-2 -4]};
+Exp.Dim1 = {'p1.n(2)' [0 -2 -4]};
 
 [~, Vary2] = runprivate('s_sequencer',Exp,Opt);
 

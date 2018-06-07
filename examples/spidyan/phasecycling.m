@@ -34,7 +34,7 @@ Exp.mwFreq = 33.5; % GHz
 Exp.DetEvents = 1;
 
 % Add the phasecycle to the experiment structure
-% Exp.PhaseCycle = {PhaseCycle};
+Exp.PhaseCycle = {PhaseCycle};
 
 % Options
 Opt.DetOperator = {'z1'};

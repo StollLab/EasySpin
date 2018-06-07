@@ -27,7 +27,7 @@ Exp.DetEvents = [1 1 1];
 Exp.nPoints = 2;
 
 Exp1 = Exp;
-Exp1.Dim = {'p1.Phase', pi};
+Exp1.Dim1 = {'p1.Phase', pi};
 
 % Detection -------------------------
 Opt.DetOperator = {'z1'};

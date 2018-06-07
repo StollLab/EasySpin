@@ -31,6 +31,12 @@ if isfield(Sys,'nn') && any(Sys.nn(:)~=0)
   error('saffron/spidyan do not support nuclear-nuclear couplings (Sys.nn).');
 end
 
+% Look for equilibrium state and issue a warning if an equilibrium state is
+% given, but no relaxation times
+if isfield(Sys,'eqState') && ~isfield(Sys,'T2') && ~isfield(Sys,'T1')
+  warning('An equilibrium state was provided, but no relaxation times. Equilibrium state ignored.');
+end
+
 % Check if T1, T2 are provided or switch off/set to a very large value
 if ~isfield(Sys,'T1') && ~isfield(Sys,'T2')
   if isfield(Sys,'T1T2')
@@ -43,6 +49,7 @@ elseif isfield(Sys,'T1') && ~isfield(Sys,'T2')
 elseif isfield(Sys,'T2') && ~isfield(Sys,'T1')
     Sys.T1 = 0;
 end
+
 if any([Sys.T1(:); Sys.T2(:)]<0) || any(~isreal([Sys.T1(:); Sys.T2(:)]))
   error('T1 and T2 in Sys.T1 and Sys.T2 must be positive and in microseconds.');
 end
@@ -87,7 +94,7 @@ end
 % Set up relaxation superoperator and equilibrium state
 
 % --------------------------------------------------------------------------------------
-if all([Sys.T1(:); Sys.T2(:)] ==0)
+if all([Sys.T1(:); Sys.T2(:)] == 0)
   Relaxation = [];
 else
   logmsg(1,'setting up the relaxation superoperator and the equilibrium state...');

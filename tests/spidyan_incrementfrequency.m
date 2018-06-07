@@ -18,34 +18,25 @@ Exp.mwFreq = 33.5;
 Exp.DetEvents = 1; 
 
 % To test I --------------------------
-Exp.nPoints = [3 3];
-Exp.Dim1 = {'p1.trise' 0.05};
-Exp.Dim2 = {'p2.Qcrit' 0.05};
+Exp.nPoints = [3];
+Exp.Dim1 = {'p1.Frequency' [0 0; -0.05 0.05; -0.1 0.1]};
 
 % Options ---------------------------
 Opt.DetOperator = {'z1'};
 Opt.FrameShift = 32;
 
-[t1, signal1] = spidyan(Sys,Exp,Opt);
+[~, signal1] = spidyan(Sys,Exp,Opt);
 
-data.t1 = t1;
-data.signal1 = signal1;
 
 % To test II --------------------------
-Exp.Dim1 = {'d1' [0 0.2 0.8]
-            'p1.tp' 0.05};
-Exp.Dim2 = {'p1.Qcrit' -1};
+Exp.Dim1 = {'p1.Frequency' [-0.05 0.05]};
 
-[t2, signal2] = spidyan(Sys,Exp,Opt);
+[~, signal2] = spidyan(Sys,Exp,Opt);
 
-data.t2 = t2;
-data.signal2 = signal2;
-
-if ~isempty(olddata)
-  err = ~areequal(signal1,olddata.signal1,1e-4);
-  for i = 1 : length(signal2)
-    err(i+1) = ~areequal(signal2{i},olddata.signal2{i},1e-4);
-  end
+if ~areequal(signal1,signal2,1e-4)
+  err = 1;
 else
-  err = [];
+  err = 0;
 end
+
+data = [];

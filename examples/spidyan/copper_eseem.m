@@ -1,8 +1,10 @@
-% Running this script will take a couple minutes, the processing time can be
-% significantly improved by using the parallel computing box
+% Executing this script will take a couple minutes, the run time can be
+% significantly reduced by using a parfor-loop in combination with the 
+% parallel computing box
+
 clear Sys Exp Opt
 
-% Spin System
+% Spin system
 Sys.S = 1/2;
 Sys.g = diag([2 2 2.02]);
 Sys.A = diag([20 20 200]);
@@ -10,34 +12,35 @@ Sys.Nucs = '63Cu';
 Sys.lwpp = 10;
 Exp.Field = 1240;
 
+% Use this to look at the spectrum (helps with setting the frequency ranges
+% of the pulses)
 % pepper(Sys,Exp)
 
+% Get orientations for the loop:
 Symmetry = symm(Sys);
 nKnots = 100;
 
 [phi,theta,Weights] = sphgrid(Symmetry,nKnots);
 
-% Pulse echo
+% (Chirp) pulse echo
 % Simulation setup -----------------------------
 
 Chirp.Type = 'quartersin/linear';
 Chirp.trise = 0.030;
-Exp.Frequency = [-0.5 0.5]; % excitation band, GHz
-Exp.t = [0.400 0.25 0.200 0.4 0.1]; % us
-Exp.Pulses = {Chirp 0 Chirp 0 0}; 
 
-% Rect.Type = 'rectangular';
-% Exp.Frequency = [0]; % GHz
-% Exp.t = [0.025 0.25 0.025 0.18 0.2]; % us
-% Exp.Pulses = {Rect 0 Rect 0 0}; 
+Exp.Frequency = [-0.5 0.5]; % Excitation band, GHz
+Exp.t = [0.400 0.25 0.200 0.4 0.1]; % Event lengths in us - the lengths of 
+                                    % the free evolutions times were chosen
+                                    % such, that the echo should be
+                                    % centered during the last event
+Exp.Pulses = {Chirp 0 Chirp 0 0};  % Assign pulse structures to events
+Exp.Flip = [pi/2 pi]; % Flip angles of the pulses
 
 Exp.Field = 1240; % mT
 Exp.TimeStep = 0.00005; % us
+Exp.mwFreq = 35; % Carrier frequency in GHz
 
-Exp.Flip = [pi/2 pi];
-Exp.mwFreq = 35; % GHz
-% If you want to see only the free evolution after the second pulse, try 
-% this instead:
+% Detect only the echo (last event):
 Exp.DetEvents = [0 0 0 0 1];
 
 Exp.nPoints = 100;
@@ -84,7 +87,6 @@ Int = Int/max(Int);
 % Create the time axis
 t = 0:(Exp.nPoints-1);
 t = t*Exp.Dim{2}+Exp.t(2);
-
 
 % plot
 figure(1)

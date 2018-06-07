@@ -18,7 +18,7 @@ Exp.mwFreq = 33.5;
 Exp.DetEvents = 1; 
 
 Exp.nPoints = 3;
-Exp.Dim = {'p1.Flip' 0.05};
+Exp.Dim1 = {'p1.Flip' 0.05};
 
 % Options ---------------------------
 Opt.DetOperator = {'z1'};

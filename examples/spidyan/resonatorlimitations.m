@@ -30,7 +30,7 @@ Exp.Resonator.nu0 = 33.5;
 Exp.Resonator.QL = 300;
 
 % Uncomment the following line to compensate for the bandwidth limitation
-% Exp.Resonator.Mode = 'compensate';
+Exp.Resonator.Mode = 'compensate';
 
 Opt.DetOperator = {'z1'};
 Opt.FrameShift = 32;

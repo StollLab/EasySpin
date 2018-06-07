@@ -34,7 +34,7 @@ ylabel('<S_z>')
 axis tight
 ylim([-1 1])
 
-%% 1 Dimensional Experiment - Increment the flip angle of the second pulse
+%% Two Dimensional Experiment - Increment the flip angle of the second pulse
 % The following code changes the flip angle of the second pulse by pi/4
 % Exp.nPoints times
 Exp.nPoints = 5;
@@ -59,12 +59,12 @@ axis tight
 ylim([-1 1])
 
 
-%% 1 Dimensional Experiment - Changing the inter pulse delay with a nonlinear increment
+%% Two Dimensional Experiment - Changing the inter pulse delay with a nonlinear increment
 % Increment the first delay by 100 and 250 ns
 Exp.nPoints = 3; 
-Exp.Dim1 = {'d1', [0.1 0.25]};  % The first data point is always the one 
+Exp.Dim1 = {'d1', [0 0.1 0.25]};  % The first data point is always the one 
                                 % defined in the Exp structure, hence only 
-                                % [0.1 0.25] is written, even if 
+                                % [0 0.1 0.25] is written, even if 
                                 % Exp.nPoints = 3
 
 [TimeAxis, Signal] = spidyan(Sys,Exp,Opt);
@@ -85,7 +85,7 @@ axis tight
 ylim([-1 1])
 
 
-%% 2 Dimensional Experiment with constant length
+%% Three-dimensional experiment with constant length
 Exp.nPoints = [2 3]; % 2 steps in 1st and 3 in 2nd dimension
 Exp.Dim1 = {'p1.Phase,p2.Phase', pi/4}; % Changes the Phase of both pulses 
                                         % by pi/4 each step 
@@ -98,7 +98,7 @@ Opt.FreqTranslation = [-33.5]; % GHz
 
 [TimeAxis, Signal] = spidyan(Sys,Exp,Opt);
 
-% Plottting -------------- 
+% Plotting -------------- 
 figure(4)
 clf
 hold on

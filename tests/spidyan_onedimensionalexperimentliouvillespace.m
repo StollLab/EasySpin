@@ -23,7 +23,7 @@ Opt.FrameShift = 32;
 
 % To test --------------------------
 Exp.nPoints = 3;
-Exp.Dim = {'p1.Flip' 0.05};
+Exp.Dim1 = {'p1.Flip' 0.05};
 Opt.Relaxation = true;
 Sys.T1 = 1;
 Sys.T2 = 0.5;
