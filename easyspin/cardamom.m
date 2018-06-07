@@ -5,7 +5,6 @@
 %   cardamom(Sys,Par,Exp,Opt,MD)
 %   spc = cardamom(...)
 %   [B,spc] = cardamom(...)
-%   [B,spc,expectval] = cardamom(...)
 %   [B,spc,expectval,t] = cardamom(...)
 %
 %   Computes a CW-EPR spectrum of an 14N nitroxide radical using stochastic 
@@ -13,49 +12,59 @@
 %
 %   Sys: stucture with system's dynamical parameters
 %
-%     tcorr          double or numeric, size = (1,3)
+%     tcorr          double or numeric vector, size = (1,3)
 %                    correlation time (in seconds)
 %
-%     logtcorr       double or numeric, size = (1,3)
+%     logtcorr       double or numeric vector, size = (1,3)
 %                    log10 of rotational correlation time (in seconds)
 %
-%     Diff           double or numeric, size = (1,3)
+%     Diff           double or numeric vector, size = (1,3)
 %                    diffusion rate (s^-1)
 %
-%     logDiff        double or numeric, size = (1,3)
+%     logDiff        double or numeric vector, size = (1,3)
 %                    log10 of diffusion rate (s^-1)
 %
 %         All fields can have 1 (isotropic), 2 (axial) or 3 (rhombic) elements.
 %         Precedence: logtcorr > tcorr > logDiff > Diff.
 %
-%     Coefs          numeric, size = (nCoefs,2)
+%     Coefs          numeric matrix, size = (nCoefs,2)
 %                    array of orienting potential coefficients, with each row
 %                    consisting of the corresponding real and imaginary parts
 %
-%     LMK            numeric, size = (nCoefs,3)
+%     LMK            numeric matrix, size = (nCoefs,3)
 %                    quantum numbers L, M, and K corresponding to each set of 
 %                    coefficients
 %
-%     ProbDensFun    numeric, 3D array
+%     ProbDensFun    numeric array, 3D
 %                    probability distribution grid to be used for
 %                    calculating the pseudopotential and the torque
 %
-%     PseudoPotFun   numeric, 3D array
+%     PseudoPotFun   numeric array, 3D
 %                    orienting pseudopotential grid to be used for
 %                    calculating the torque
 %
-%     Rates          numeric, size = (nStates,nStates)
+%     TransRates     numeric matrix, size = (nStates,nStates)
 %                    transition rate matrix describing inter-state dynamics
 %                    for kinetic Monte Carlo simulations
 %
-%     States         numeric, size = (3,nStates)
+%     TransProb      numeric matrix, size = (nStates,nStates)
+%                    transition probability matrix describing inter-state 
+%                    dynamics for kinetic Monte Carlo simulations
+%
+%     States         numeric matrix, size = (3,nStates)
 %                    Euler angles for each state's orientation
 %
-%     Sys.lw         double or numeric, size = (1,2)
+%     tLag           double
+%                    time lag (in s) for sampling the MD trajectory to 
+%                    determine states and transitions, used for a Markov
+%                    state model
+%
+%     Sys.lw         double or numeric vector, size = (1,2)
 %                    vector with FWHM residual broadenings
 %                         1 element:  GaussianFWHM
 %                         2 elements: [GaussianFWHM LorentzianFWHM]
-% %     Sys.lwpp       double or numeric, size = (1,2)
+%
+% %     Sys.lwpp       double or numeric vector, size = (1,2)
 % %                    peak-to-peak line widths, same format as Sys.lw
 %
 %
@@ -66,14 +75,22 @@
 %     Dt             double
 %                    spin dynamics propagation time step (in seconds)
 %
-%     nSteps         int
+%     nSteps         integer
 %                    number of time steps per simulation
 %
-%     nTraj          int
+%     nTraj          integer
 %                    number of trajectories
 %
 %     Omega          numeric, size = (3,1) or (3,nTraj)
 %                    Euler angles for starting orientation(s)
+%
+%     nOrients       integer
+%                    number of lab-to-molecule orientations to loop over
+%
+%     Orients        numeric matrix, size = (2,nOrients)
+%                    (optional) (phi,theta) angles of lab-to-molecule 
+%                    orientations, if not given, these are chosen as points
+%                    on a spherical spiral grid
 %
 %     Model          string
 %                    Brownian
@@ -87,16 +104,16 @@
 %     mwFreq         double
 %                    microwave frequency, in GHz (for field sweeps)
 %
-% %     Range          numeric, size = (1,2)
+% %     Range          numeric vector, size = (1,2)
 % %                    sweep range, [sweepmin sweepmax], in mT (for field sweep)
 % %
-% %     CenterSweep    numeric, size = (1,2)
+% %     CenterSweep    numeric vector, size = (1,2)
 % %                    sweep range, [center sweep], in mT (for field sweep)
 % % 
-% %     nPoints        int
+% %     nPoints        integer
 % %                    number of points
 % % 
-% %     Harmonic       int
+% %     Harmonic       integer
 % %                    detection harmonic: 0, 1 (default), 2
 % % 
 % %     ModAmp         double
@@ -136,7 +153,7 @@
 %
 %    FFTWindow       1: use a Hamming window (default), 0: no window
 %
-%    truncate        integer
+%    truncate        double
 %                    Time point (in nanoseconds) at which to stop using 
 %                    full quantum dynamics propagator and begin using an
 %                    approximate correlation function propagator.
@@ -145,7 +162,10 @@
 %
 %   MD: structure with molecular dynamics simulation parameters
 %
-%     tScale         double (optional
+%     dt             double
+%                    time step for saving MD trajectory snapshots
+%
+%     tScale         double (optional)
 %                    scale the time step of the simulation based on
 %                    incorrect diffusion coefficients, e.g. molecules 
 %                    solvated in TIP3P water have diffusion coefficients
@@ -155,20 +175,27 @@
 %                    Diffusion coefficient for isotropic global rotational
 %                    diffusion (s^-1)
 %
-%     isFrame        integer
-%                    0: raw MD data input
-%                    1: frame trajectory input (MD data has already been 
-%                       processed by mdload)
+%     TrajType       string
+%                    Raw: raw MD trajectory data, including spin label, 
+%                      protein, solvent, etc.
+%                    Label: numeric array, trajectory of spin label atoms 
+%                      only
+%                    Frame: numeric array, trajectory of spin label 
+%                      reference frame only
 %
 %     TrajUsage      string (optional)
 %                    Explicit: (default) use molecular orientations in
 %                      trajectories directly as input for simulating the
 %                      spectrum
-%                    Resampling: coarse grain the trajectories by usinh the
+%                    Resampling: coarse grain the trajectories by using the
 %                      Euler angle probability distribution (for 
 %                      pseudopotential) and orientational correlation 
 %                      functions (for diffusion tensor) to perform further 
 %                      stochastic rotational dynamics simulations
+%                    Markov: coarse grain the trajectories by using the
+%                      side chain dihedral angles to form a Markov state 
+%                      model
+
 %
 %    Raw MD data input:
 %
@@ -239,6 +266,7 @@
 %                    single approximate propagator to be used on the
 %                    trajectory-averaged density matrix
 
+
 function varargout = cardamom(Sys,Par,Exp,Opt,MD)
 
 % Preprocessing
@@ -294,12 +322,12 @@ if Sys.nNuclei>1, error('cardamom cannot be used for more than one nucleus.'); e
 
 if isfield(Sys, 'lw')
   if any(Sys.lw>0)
-    Broadening = 1;
+    isBroadening = 1;
   else
-    Broadening = 0;
+    isBroadening = 0;
   end
 else
-  Broadening = 0;
+  isBroadening = 0;
 end
 
 % Check MD
@@ -307,73 +335,126 @@ end
 
 useMD = ~isempty(MD);
 
-if isfield(MD,'tScale')
-  tScale = MD.tScale;  % diffusion constants of molecules solvated in TIP3P
-                       % water are known to be too large
-else
-  tScale = 1;
-end
-
 if useMD
-  if ~isfield(MD,'isFrame')
+  
+  % scale the time axis
+  if isfield(MD,'tScale')
+    tScale = MD.tScale;
+  else
+    tScale = 1;
+  end
+  
+  if ~isfield(MD,'dt')
+    error('The MD trajectory time step MD.dt must be given.')
+  end
+  
+  % check type of MD trajectory usage
+  if ~isfield(MD,'TrajUsage')
+    MD.TrajUsage = 'Explicit';
+    MD.isFrame = 1;
+  else
+    if ~ischar(MD.TrajUsage)
+      error('MD.TrajUsage must be a string.')
+    end
+    if ~any(strcmp({MD.TrajUsage},{'Explicit','Resampling','Markov'}))
+      errmsg = sprintf('Entry ''%s'' for MD.TrajUsage not recognized.', MD.TrajUsage);
+      error(errmsg)
+    end
+  end
+  
+  if ~isfield(MD,'TrajType')
     % use frame trajectories by default
-    MD.isFrame=1;  % TODO add check for frame trajectory attribute(s)
-  end
-  
-  if MD.isFrame==1
-    % use a frame trajectory
-    if ~isfield(MD,'dt')
-      error('The time step dt must be given in MD.')
-    end
-    
-    if ~isfield(MD,'FrameX')||~isfield(MD,'FrameY')||~isfield(MD,'FrameZ')
-      error('If using a frame trajectory, input MD must contain FrameX, FrameY, and FrameZ.')
-    end
-    sizeFrameX = size(MD.FrameX);
-
-    if ~isequal(sizeFrameX,size(MD.FrameY))||~isequal(sizeFrameX,size(MD.FrameZ))
-      error('All frame trajectory arrays in MD must have the same size.')
-    end
-
-    if sizeFrameX(2)~=3
-      error('All frame trajectory arrays must be of size (nSteps,3).')
-    end
-    
-    MD.nSteps = sizeFrameX(1);
+    MD.TrajType = 'Frame';  % TODO add check for frame trajectory attributes
   else
-    % use raw MD input
-    if ~isfield(MD,'TrajFile')||~isfield(MD,'AtomInfo')
-%        ||~isfield(MD,'TopFile')...
-%        ||~isfield(MD,'ResName')||~isfield(MD,'AtomNames')
-      error('For MD input, TrajFile and AtomInfo must be provided.')
+    if ~any(strcmp({MD.TrajType},{'Frame','Dihedrals','Raw'}))
+      errmsg = sprintf('Entry ''%s'' for MD.TrajType not recognized.', MD.TrajType);
+      error(errmsg)
     end
-    % generate rotation matrices from MD simulation data
-
-    OutOpt.Verbosity = Opt.Verbosity;
-    OutOpt.Frame = 1;
-
-    MD = mdload(MD.TrajFile, MD.AtomInfo, OutOpt);
+  end
     
-    MD.dt = tScale*MD.dt;
-    MD.nSteps = size(MD.FrameZ, 1);
+  switch MD.TrajType
+    case 'Frame'
+      if ~isfield(MD,'FrameX')||~isfield(MD,'FrameY')||~isfield(MD,'FrameZ')
+        error('If using a frame trajectory, MD.FrameX, MD.FrameY, and MD.FrameZ must be given.')
+      end
+      sizeFrameX = size(MD.FrameX);
+
+      if ~isequal(sizeFrameX,size(MD.FrameY))||~isequal(sizeFrameX,size(MD.FrameZ))
+        error('All frame trajectory arrays in MD must have the same size.')
+      end
+
+      if sizeFrameX(2)~=3
+        error('All frame trajectory arrays must be of size (nSteps,3).')
+      end
+
+      MD.nSteps = sizeFrameX(1);
+    case 'Dihedrals'
+      if ~strcmp(MD.TrajUsage,'Markov')
+        error('Using a TrajType of Dihedrals requires TrajUsage to be Markov.')
+      end
+      
+      if ~isfield(MD,'FrameX')||~isfield(MD,'FrameY')||~isfield(MD,'FrameZ')
+        error('If using a frame trajectory, MD.FrameX, MD.FrameY, and MD.FrameZ must be given.')
+      end
+      sizeFrameX = size(MD.FrameX);
+
+      if ~isequal(sizeFrameX,size(MD.FrameY))||~isequal(sizeFrameX,size(MD.FrameZ))
+        error('All frame trajectory arrays in MD must have the same size.')
+      end
+
+      if sizeFrameX(2)~=3
+        error('All frame trajectory arrays must be of size (nSteps,3).')
+      end
+      
+      % use lag time to sample the trajectory such that that the result is
+      % Markovian
+      nLag = ceil(Par.dt/MD.dt);
+      
+      dihedrals = [MD.chi1(1:nLag:end), ...
+                   MD.chi2(1:nLag:end), ...
+                   MD.chi4(1:nLag:end), ...
+                   MD.chi5(1:nLag:end)];
+                 
+      MD.nStates = 48;
+
+      [MD.stateTraj,centroids] = clusterDihedrals(dihedrals,MD.nStates);
+      
+      MD.nSteps = size(MD.stateTraj, 1);  % TODO: find a way to process different step sizes here
+      Par.dt = tScale*Par.dt;
+    case 'Raw'
+      if ~isfield(MD,'TrajFile')||~isfield(MD,'AtomInfo')
+        error('MD.TrajFile and MD.AtomInfo must be provided.')
+      end
+
+      OutOpt.Verbosity = Opt.Verbosity;
+      OutOpt.Format = 'Frame';  % TODO allow this to change depending on models chosen
+
+      MD = mdload(MD.TrajFile, MD.AtomInfo, OutOpt);
+
+      MD.dt = tScale*MD.dt;
+      MD.nSteps = size(MD.FrameZ, 1);
+    otherwise
+      error('Entry for MD.TrajType not recognized.')
   end
   
-  % use internal field for easier processing
-  if isfield(MD, 'TrajUsage')
-    if ~strcmp(MD.TrajUsage,'Explicit') && ~strcmp(MD.TrajUsage,'Resampling')
-      error('Input for MD.TrajUsage not recognized.')
-    end
-    MD.isExplicit = strcmp(MD.TrajUsage,'Explicit');
-  else
-    MD.isExplicit = 1;
-  end
+%         MD.FrameX = permute(MD.FrameX, [2, 3, 4, 1]);
+%       MD.FrameY = permute(MD.FrameY, [2, 3, 4, 1]);
+%       MD.FrameZ = permute(MD.FrameZ, [2, 3, 4, 1]);
+% 
+%       MDTrajLength = size(MD.FrameX, 4);
+%       
+%       MD.RTraj = zeros(3,3,1,MDTrajLength);
+%       MD.RTraj(:,1,1,:) = MD.FrameX;
+%       MD.RTraj(:,2,1,:) = MD.FrameY;
+%       MD.RTraj(:,3,1,:) = MD.FrameZ;
   
+
   MD.FrameX = permute(MD.FrameX, [2, 3, 4, 1]);
   MD.FrameY = permute(MD.FrameY, [2, 3, 4, 1]);
   MD.FrameZ = permute(MD.FrameZ, [2, 3, 4, 1]);
-  
+
   MDTrajLength = size(MD.FrameX, 4);
-  
+
   MD.RTraj = zeros(3,3,1,MDTrajLength);
 %   MD.RTraj(1,:,1,:) = MD.FrameX;
 %   MD.RTraj(2,:,1,:) = MD.FrameY;
@@ -381,26 +462,35 @@ if useMD
   MD.RTraj(:,1,1,:) = MD.FrameX;
   MD.RTraj(:,2,1,:) = MD.FrameY;
   MD.RTraj(:,3,1,:) = MD.FrameZ;
-  
+
 %   q = rotmat2quat(MD.RTraj);
 %   [alpha, beta, gamma] = quat2euler(q);
-  
+
   % Check for orthogonality of rotation matrices
   RTrajInv = permute(MD.RTraj,[2,1,3,4]);
-  
-  if ~allclose(matmult(MD.RTraj,RTrajInv),repmat(eye(3),1,1,size(MD.RTraj,3),size(MD.RTraj,4)),1e-14)
-    error('The rotation matrices are not orthogonal.')
+
+  if ~allclose(matmult(MD.RTraj,RTrajInv),...
+               repmat(eye(3),1,1,size(MD.RTraj,3),size(MD.RTraj,4)),...
+               1e-14)
+    error('Rotation matrices obtained from frame trajectory are not orthogonal.')
   end
-  
+
   MD.nTraj = size(MD.RTraj,3);
+
   
-  % estimate [rotational diffusion time scale
+  if strcmp(MD.TrajUsage,'Markov')
+    Opt.Model = 'Discrete';
+    Opt.statesOnly = 1;
+    Sys.TransProb = calc_TPM(MD.stateTraj,MD.nStates);
+%     Sys.States0 =  TODO: find a way to assign the equilibrium distribution
+    % sample the rotation matrices with a time lag
+  end
+  % estimate rotational diffusion time scale
   acorrX = autocorrfft(squeeze(MD.FrameX.^2), 2, 1, 1);
   acorrY = autocorrfft(squeeze(MD.FrameY.^2), 2, 1, 1);
   acorrZ = autocorrfft(squeeze(MD.FrameZ.^2), 2, 1, 1);
 
   N = round(MDTrajLength/4);
-%   N = round(10e-9/MD.dt);
 
   % calculate correlation time
   time = linspace(0, N*MD.dt, N);
@@ -411,13 +501,15 @@ if useMD
 %   tauR = 1/max(k);
 
 %   DiffLocal = 1/6/(tauRZ);
-  DiffLocal = 1/6./[tauRX, tauRY, tauRZ];
-  MD.tauR = tauRZ;
-  
-  MD.FrameX = [];
-  MD.FrameY = [];
-  MD.FrameZ = [];
+  tauR = mean([tauRX, tauRY, tauRZ]);
+  DiffLocal = 1/6/tauR;
+  MD.tauR = tauR;
+
+%   MD.FrameX = [];
+%   MD.FrameY = [];
+%   MD.FrameZ = [];
   RTrajInv = [];
+
 end
 
 % Check Par
@@ -483,7 +575,7 @@ if useMD
   if MD.nTraj > 1, error('Using multiple MD trajectories is not supported.'); end
   
   % determine if time block averaging is to be used
-  if MD.isExplicit
+  if strcmp(MD.TrajUsage,'Explicit')
     % check MD.dt
     if Par.Dt<MD.dt
       error('Par.Dt must be greater than MD.dt.')
@@ -501,7 +593,7 @@ if useMD
   
   % find block properties for block averaging
   if Par.isBlock
-    if MD.isExplicit
+    if strcmp(MD.TrajUsage,'Explicit')
       [Par.nBlocks,Par.BlockLength] = findblocks(Par.Dt, MD.dt, MD.nSteps);
     else
       [Par.nBlocks,Par.BlockLength] = findblocks(Par.Dt, Par.dt, nStepsStoch);
@@ -509,7 +601,7 @@ if useMD
   end
   
   % process single long trajectory into multiple short trajectories
-  if MD.isExplicit
+  if strcmp(MD.TrajUsage,'Explicit')
     Par.lag = ceil(2e-9/Par.Dt);  % use 2 ns lag between windows
     if Par.nSteps<Par.nBlocks
       % Par.nSteps not changed from user input
@@ -613,7 +705,7 @@ else
                'Please check documentation for Continuous model compatibilities.'])
       end
     case 'Discrete'
-      if ~strcmp(Par.Model,'Discrete')
+      if ~(strcmp(Par.Model,'Discrete')||strcmp(Par.Model,'Molecular Dynamics'))
         error(['Discrete model is incompatible with the chosen Par.Model. '...
                'Please check documentation for Discrete model compatibilities.'])
       end
@@ -624,12 +716,12 @@ if ~isfield(Opt,'Method')
   Opt.Method = 'Nitroxide';
 end
 
-if isfield(Opt,'truncate') && strcmp(Opt.Method,'Nitroxide')
-  error('Correlation function propagation is only available for ISTOs method.')
-end
-
 if ~isfield(Opt,'truncate')
   Opt.truncate = 0;
+end
+
+if Opt.truncate && strcmp(Opt.Method,'Nitroxide')
+  error('Correlation function propagation is only available for ISTOs method.')
 end
 
 if isfield(Opt,'FFTWindow')
@@ -703,9 +795,15 @@ switch Model
       gridPhi = sqrt(pi*nOrients)*asin(gridPts);
       gridTheta = acos(gridPts);
     else
-      gridPts = linspace(-1,1,nOrients);
-      gridPhi = sqrt(pi*nOrients)*asin(gridPts);
-      gridTheta = acos(gridPts);
+      if isfield(Par,'Orients')
+        Orients = Par.Orients;
+        gridPhi = Orients(1,:);
+        gridTheta = Orients(2,:);
+      else
+        gridPts = linspace(-1,1,nOrients);
+        gridPhi = sqrt(pi*nOrients)*asin(gridPts);
+        gridTheta = acos(gridPts);
+      end
     end
     
   case 'SRLS'  %  TODO implement multiple diffusion frames
@@ -716,7 +814,7 @@ switch Model
     if isfield(Sys, 'PseudoPotFun')
       PseudoPotFunLocal = Sys.PseudoPotFun;
     end
-    DiffGlobal = 4e6;
+    DiffGlobal = 6e6;
     if ~isfield(Par,'nOrients')
       % if Par.nOrients is not given, just use Par.nTraj as number of
       % orientations
@@ -732,12 +830,20 @@ switch Model
       gridPhi = sqrt(pi*nOrients)*asin(gridPts);
       gridTheta = acos(gridPts);
     else
-      gridPts = linspace(-1,1,nOrients);
-      gridPhi = sqrt(pi*nOrients)*asin(gridPts);
-      gridTheta = acos(gridPts);
+      if isfield(Par,'Orients')
+        Orients = Par.Orients;
+        gridPhi = Orients(1,:);
+        gridTheta = Orients(2,:);
+      else
+        gridPts = linspace(-1,1,nOrients);
+        gridPhi = sqrt(pi*nOrients)*asin(gridPts);
+        gridTheta = acos(gridPts);
+      end
     end
     
   case 'Discrete'
+    DiffLocal = Dynamics.Diff;
+    DiffGlobal = 6e6;
     if ~isfield(Par,'nOrients')
       % if Par.nOrients is not given, just use Par.nTraj as number of
       % orientations
@@ -753,9 +859,15 @@ switch Model
       gridPhi = sqrt(pi*nOrients)*asin(gridPts);
       gridTheta = acos(gridPts);
     else
-      gridPts = linspace(-1,1,nOrients);
-      gridPhi = sqrt(pi*nOrients)*asin(gridPts);
-      gridTheta = acos(gridPts);
+      if isfield(Par,'Orients')
+        Orients = Par.Orients;
+        gridPhi = Orients(1,:);
+        gridTheta = Orients(2,:);
+      else
+        gridPts = linspace(-1,1,nOrients);
+        gridPhi = sqrt(pi*nOrients)*asin(gridPts);
+        gridTheta = acos(gridPts);
+      end
     end
     
   case 'Molecular Dynamics' % TODO process RTraj based on size of input
@@ -771,9 +883,15 @@ switch Model
       gridPhi = sqrt(pi*nOrients)*asin(gridPts);
       gridTheta = acos(gridPts);
     else
-      gridPts = linspace(-1,1,nOrients);
-      gridPhi = sqrt(pi*nOrients)*asin(gridPts);
-      gridTheta = acos(gridPts);
+      if isfield(Par,'Orients')
+        Orients = Par.Orients;
+        gridPhi = Orients(1,:);
+        gridTheta = Orients(2,:);
+      else
+        gridPts = linspace(-1,1,nOrients);
+        gridPhi = sqrt(pi*nOrients)*asin(gridPts);
+        gridTheta = acos(gridPts);
+      end
     end
     
     if strcmp(Opt.Method, 'ISTOs')
@@ -783,48 +901,42 @@ switch Model
       clear MD.RTraj
     end
 
-    if ~MD.isExplicit
-      % set up grid of starting for resampling trajectories
-      
-%       if ~isfield(Par,'Omega')
-%         Par.Omega = [sqrt(pi*Par.nTraj)*asin(linspace(0,1,Par.nTraj));...
-%                      acos(linspace(0,1,Par.nTraj));...
-%                      zeros(1,Par.nTraj)];
-%       end
-      
-      M = MDTrajLength;
-      
-      % calculate orienting potential energy function
-      theta = squeeze(acos(MD.FrameZ(3,:,:,1:M)));
-      phi = squeeze(atan2(MD.FrameY(3,:,:,1:M), MD.FrameX(3,:,:,1:M)));
-      psi = squeeze(atan2(-MD.FrameZ(2,:,:,1:M), MD.FrameZ(1,:,:,1:M)));
+    if ~strcmp(MD.TrajUsage,'Explicit')
+      switch MD.TrajUsage
+        case 'Resampling'
+          M = MDTrajLength;
 
-%       % use eulang to obtain Euler angles
-%       phi = zeros(MDTrajLength,1);
-%       theta = zeros(MDTrajLength,1);
-%       psi = zeros(MDTrajLength,1);
-%       tic
-%       for k = 1:MDTrajLength
-%         [phi(k), theta(k), psi(k)] = eulang(MD.RTraj(:,:,1,k));
-%         updateuser(k, MDTrajLength)
-%       end
+          % calculate orienting potential energy function
+          theta = squeeze(acos(MD.FrameZ(3,:,:,1:M)));
+          phi = squeeze(atan2(MD.FrameY(3,:,:,1:M), MD.FrameX(3,:,:,1:M)));
+          psi = squeeze(atan2(-MD.FrameZ(2,:,:,1:M), MD.FrameZ(1,:,:,1:M)));
+          
 
-      nBins = 90;
-      phiBins = linspace(-pi, pi, nBins);
-      thetaBins = linspace(0, pi, nBins/2);
-      psiBins = linspace(-pi, pi, nBins);
+%           % use eulang to obtain Euler angles
+%           phi = zeros(MDTrajLength,1);
+%           theta = zeros(MDTrajLength,1);
+%           psi = zeros(MDTrajLength,1);
+%           tic
+%           for k = 1:MDTrajLength
+%             [phi(k), theta(k), psi(k)] = eulang(MD.RTraj(:,:,1,k));
+%             updateuser(k, MDTrajLength)
+%           end
 
-      [pdf, ~] = histcnd([phi,theta,psi], {phiBins,thetaBins,psiBins});
-                                    
-%       pdf = pdf/trapz(phiBins, trapz(thetaBins, trapz(psiBins, pdf)));
-      
-      pdf(end,:,:) = pdf(1,:,:);  % FIXME why does it truncate to zero in the phi direction?
-      
-      pdf = smoothn(pdf);
-%       pdf = smooth3(pdf,'gaussian');
-      
-      save('pdf.mat', 'pdf')
+          nBins = 90;
+          phiBins = linspace(-pi, pi, nBins);
+          thetaBins = linspace(0, pi, nBins/2);
+          psiBins = linspace(-pi, pi, nBins);
 
+          [pdf, ~] = histcnd([phi,theta,psi], {phiBins,thetaBins,psiBins});
+%            pdf = pdf/trapz(phiBins, trapz(thetaBins, trapz(psiBins, pdf)));
+
+          pdf(end,:,:) = pdf(1,:,:);  % FIXME why does it truncate to zero in the phi direction?
+          pdf = smoothn(pdf);
+%           pdf = smooth3(pdf,'gaussian');
+%           save('pdf.mat', 'pdf')
+        case 'Markov'
+          
+      end
     end
 
   otherwise
@@ -875,6 +987,7 @@ while ~converged
   %     case 'Molecular Dynamics'
       case 'Brownian'
         Sys.Diff = Dynamics.Diff;
+        Par.dt = dtStoch;
         Par.nSteps = nStepsStoch;
         [trash, qTraj] = stochtraj(Sys,Par,Opt);
         Par.qTraj = qTraj;
@@ -883,14 +996,16 @@ while ~converged
         Par.RLab = [];
 
       case 'MOMD'
-        Sys.Diff = Dynamics.Diff;
-        Par.nSteps = nStepsStoch;
-        [trash, qTraj] = stochtraj(Sys,Par,Opt);
-        % generate quaternions for rotating to different grid points
 %         qMult = repmat(euler2quat(gridPhi(iOrient), gridTheta(iOrient), 0),...
 %                        [1,Par.nTraj,Par.nSteps]);
         qLab = repmat(euler2quat(0, gridTheta(iOrient), gridPhi(iOrient)),...
                        [1,Par.nTraj,nStepsQuant]);
+        
+        Sys.Diff = Dynamics.Diff;
+        Par.dt = dtStoch;
+        Par.nSteps = nStepsStoch;
+        [trash, qTraj] = stochtraj(Sys,Par,Opt);
+        % generate quaternions for rotating to different grid points
         
         if strcmp(Opt.Method,'ISTOs')
           Par.qLab = qLab;
@@ -913,6 +1028,7 @@ while ~converged
         if isfield(Sys, 'PseudoPotFun')
           Sys.PseudoPotFun = PseudoPotFunLocal;
         end
+        Par.dt = dtStoch;
         Par.nSteps = nStepsStoch;
         [trash, qTrajLocal] = stochtraj(Sys,Par,Opt);
 
@@ -938,7 +1054,20 @@ while ~converged
         qLab = repmat(euler2quat(0, gridTheta(iOrient), gridPhi(iOrient)),...
                [1,Par.nTraj,nStepsQuant]);
              
+        % local diffusion
+%         Sys.Diff = DiffLocal;
+        Par.dt = dtStoch;
+        Par.nSteps = nStepsStoch;
+        Opt.Model = 'Discrete';
         [trash, qTrajLocal] = stochtraj(Sys,Par,Opt);
+        
+        % global diffusion
+        Sys.Diff = DiffGlobal;
+        Par.dt = dtQuant;
+        Par.nSteps = nStepsQuant;
+        Opt.Model = 'Continuous';
+        [trash, qTrajGlobal] = stochtraj(Sys,Par,Opt);
+        qLab = quatmult(qLab,qTrajGlobal);
         
         Par.qTraj = qTrajLocal;
         Par.RTraj = quat2rotmat(qTrajLocal);
@@ -947,71 +1076,96 @@ while ~converged
         
       case 'Molecular Dynamics'
         
-        if MD.isExplicit
-          % powder grid rotation
-%           qMult = repmat(euler2quat(gridPhi(iOrient), gridTheta(iOrient), 0),...
-%                          [1,MD.nTraj,MD.nSteps]);
-          qLab = repmat(euler2quat(0, gridTheta(iOrient), gridPhi(iOrient)),...
-                         [1,Par.nTraj,Par.nSteps]);
-                       
-          % global diffusion
-          if isfield(MD, 'GlobalDiff')
-            Sys.Diff = MD.GlobalDiff;
-            Par.nSteps = nStepsQuant;  % TODO find a way to set this up with a separate time step properly
-            [trash, qTrajGlobal] = stochtraj(Sys,Par,Opt);
-            qLab = quatmult(qLab, qTrajGlobal);
-          end
-          
-          if strcmp(Opt.Method,'ISTOs')
+        switch MD.TrajUsage
+          case 'Explicit'
+            % powder grid rotation
+  %           qMult = repmat(euler2quat(gridPhi(iOrient), gridTheta(iOrient), 0),...
+  %                          [1,MD.nTraj,MD.nSteps]);
+            qLab = repmat(euler2quat(0, gridTheta(iOrient), gridPhi(iOrient)),...
+                           [1,Par.nTraj,Par.nSteps]);
+
+            % global diffusion
+            if isfield(MD, 'GlobalDiff')
+              Sys.Diff = MD.GlobalDiff;
+              Par.dt = dtQuant;
+              Par.nSteps = nStepsQuant;  % TODO find a way to set this up with a separate time step properly
+              [trash, qTrajGlobal] = stochtraj(Sys,Par,Opt);
+              qLab = quatmult(qLab, qTrajGlobal);
+            end
+
+            if strcmp(Opt.Method,'ISTOs')
+              Par.qLab = qLab;
+            else
+              Par.RLab = quat2rotmat(qLab);
+            end
+
+          case 'Resampling'
+            qLab = repmat(euler2quat(0, gridTheta(iOrient), gridPhi(iOrient)),...
+                           [1,Par.nTraj,Par.nSteps]);
+
+            if ~isfield(Par,'Omega')
+  %             % pick trajectory starting points by bootstrapping MD data
+  %             randints = sort(randi(MD.nSteps, 1, Par.nTraj));
+  %             Par.Omega = [phi(randints).'; theta(randints).'; psi(randints).'];
+  %             [alphaSamples, betaSamples, gammaSamples] = rejectionsample3d(pdf, phiBins, thetaBins, psiBins, Par.nTraj);
+  %             Par.Omega = [alphaSamples; 
+  %                          betaSamples; 
+  %                          gammaSamples];
+            end
+
+  %           [hist3D, dummy] = histcnd([alphaSamples.',betaSamples.',gammaSamples.'],...  
+  %                                  {phiBins,thetaBins,psiBins});
+  %                                
+  %           save('hist3D.mat', 'hist3D')
+
+            Sys.ProbDensFun = pdf;
+            Sys.Diff = DiffLocal;
+            Par.dt = dtStoch;
+            Par.nSteps = nStepsStoch;
+            [trash, qTraj] = stochtraj(Sys,Par,Opt);
+
+            % global diffusion
+            if isfield(MD, 'GlobalDiff')
+              Sys.Diff = MD.GlobalDiff;
+              Par.dt = dtQuant;
+              Par.nSteps = nStepsQuant;
+              [trash, qTrajGlobal] = stochtraj(Sys,Par,Opt);
+              qLab = quatmult(qLab, qTrajGlobal);
+            end
+
+  %           qTraj = quatmult(qLab, qTraj);
+
+            Par.qTraj = qTraj;
+            Par.RTraj = quat2rotmat(qTraj);
+
             Par.qLab = qLab;
-          else
             Par.RLab = quat2rotmat(qLab);
-          end
+            
+          case 'Markov'
+            qLab = repmat(euler2quat(0, gridTheta(iOrient), gridPhi(iOrient)),...
+                   [1,Par.nTraj,nStepsQuant]);
 
-        else
-
-          if ~isfield(Par,'Omega')
-%             % pick trajectory starting points by bootstrapping MD data
-%             randints = sort(randi(MD.nSteps, 1, Par.nTraj));
-%             Par.Omega = [phi(randints).'; theta(randints).'; psi(randints).'];
-%             [alphaSamples, betaSamples, gammaSamples] = rejectionsample3d(pdf, phiBins, thetaBins, psiBins, Par.nTraj);
-%             Par.Omega = [alphaSamples; 
-%                          betaSamples; 
-%                          gammaSamples];
-          end
-          
-%           [hist3D, dummy] = histcnd([alphaSamples.',betaSamples.',gammaSamples.'],...  
-%                                  {phiBins,thetaBins,psiBins});
-%                                
-%           save('hist3D.mat', 'hist3D')
-
-          Sys.ProbDensFun = pdf;
-          Sys.Diff = DiffLocal;
-          Par.nSteps = nStepsStoch;
-          [trash, qTraj] = stochtraj(Sys,Par,Opt);
-
-%           qMult = repmat(euler2quat(gridPhi(iOrient), gridTheta(iOrient), 0),...
-%                          [1,Par.nTraj,Par.nSteps]);
-          qLab = repmat(euler2quat(0, gridTheta(iOrient), gridPhi(iOrient)),...
-                         [1,Par.nTraj,Par.nSteps]);
-                       
-          % global diffusion
-          if isfield(MD, 'GlobalDiff')
-            Sys.Diff = MD.GlobalDiff;
-            Par.dt = dtQuant;
-            Par.nSteps = nStepsQuant;
-            [trash, qTrajGlobal] = stochtraj(Sys,Par,Opt);
-            qLab = quatmult(qLab, qTrajGlobal);
-          end
-
-%           qTraj = quatmult(qLab, qTraj);
-          
-          Par.qTraj = qTraj;
-          Par.RTraj = quat2rotmat(qTraj);
-          
-          Par.qLab = qLab;
-          Par.RLab = quat2rotmat(qLab);
-          
+            % local diffusion
+    %         Sys.Diff = DiffLocal;
+            Par.dt = dtStoch;
+            Par.nSteps = nStepsStoch;
+            Opt.Model = 'Discrete';
+            [trash, stateTraj] = stochtraj(Sys,Par,Opt);
+            
+           % global diffusion
+            if isfield(MD, 'GlobalDiff')
+              Sys.Diff = MD.GlobalDiff;
+              Par.dt = dtQuant;
+              Par.nSteps = nStepsQuant;
+              Opt.Model = 'Continuous';
+              [trash, qTrajGlobal] = stochtraj(Sys,Par,Opt);
+              qLab = quatmult(qLab, qTrajGlobal);
+            end
+            
+            Par.RTraj = MD.RTraj(:,:,1,1:nLag:end);
+            Par.stateTraj = stateTraj;
+            Par.qLab = qLab;
+            Par.RLab = quat2rotmat(qLab);
         end
 
     end
@@ -1107,7 +1261,7 @@ while ~converged
   tLong = linspace(0, M*Par.Dt, M).';
 
   % convolute for linewidth broadening
-  if Broadening
+  if isBroadening
     if Sys.lw(1)>0
       % Gaussian broadening
       w = mt2mhz(Sys.lw(1))*1e6;  % FWHM in Hz
@@ -1243,6 +1397,57 @@ end
 
 % Helper functions
 % -------------------------------------------------------------------------
+
+function [stateTraj,centroids] = clusterDihedrals(dihedrals,nStates)
+
+chi1 = dihedrals(:,1);
+chi2 = dihedrals(:,2);
+% chi3 = dihedrals(:,3);
+chi4 = dihedrals(:,3);
+chi5 = dihedrals(:,4);
+
+dihedrals = [wrapTo2Pi(chi1), wrapTo2Pi(chi2), wrapTo2Pi(chi4), chi5];
+
+useParallel = false;
+nReplicates = 5;
+maxIter = 200;
+
+% initialize cluster centroids
+% chi1Min = wrapTo2Pi([-60;65;180]/180*pi);
+% chi2Min = wrapTo2Pi([75;180]/180*pi);
+% chi4Min = wrapTo2Pi([75;8;-100]/180*pi);
+% chi5Min = wrapTo2Pi([180;77]/180*pi);
+
+% start = zeros();
+
+opts = statset('Display', 'final', ...
+               'MaxIter', maxIter);
+%                'UseParallel', useParallel);
+% opts = statset('Display','final','MaxIter',maxIter,'UseParallel',useParallel,'Start',start);
+[stateTraj,centroids] = kmeans(dihedrals, nStates, ...
+                               'Distance', 'sqeuclidean', ...
+                               'Replicates', nReplicates, ...
+                                'Options', opts);
+
+end
+
+function TPM = calc_TPM(stateTraj, nStates)
+
+Nij = zeros(nStates);
+
+stateLast = stateTraj(1);
+nSteps = length(stateTraj);
+
+for iStep = 2:nSteps
+  stateNew = stateTraj(iStep);
+  Nij(stateLast,stateNew) = Nij(stateLast,stateNew) + 1;
+  stateLast = stateNew;
+end
+
+Nij = (Nij + Nij.')/2;
+TPM = Nij./sum(Nij,1);
+
+end
 
 function updateuser(iOrient,nOrient)
 % Update user on progress

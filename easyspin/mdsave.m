@@ -15,10 +15,10 @@
 %                             size of time step (in s)
 %
 %                    if Frame = 0:
-%                      Oxyz     numeric, size = (nSteps,3)
+%                      ONxyz     numeric, size = (nSteps,3)
 %                               x,y,z coordinate trajectory for oxygen
 % 
-%                      Nxyz     numeric, size = (nSteps,3)
+%                      NNxyz     numeric, size = (nSteps,3)
 %                               x,y,z coordinate trajectory for nitrogen
 %  
 %                      C1xyz    numeric, size = (nSteps,3)

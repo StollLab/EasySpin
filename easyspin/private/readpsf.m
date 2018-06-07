@@ -16,23 +16,40 @@
 %                    PSF to refer to the following atoms in the nitroxide 
 %                    molecule:
 %
-%                                   O (OName)
-%                                   |
-%                                   N (NName)
-%                                  / \
-%                        (C1Name) C   C (C2Name)
-%                                 |   |
-%                                ... ...
-%
+%                                    ON (ONname)
+%                                    |
+%                                    NN (NNname)
+%                                  /   \
+%                        (C1name) C1    C2 (C2name)
+%                                 |     |
+%                       (C1Rname) C1R = C2R (C2Rname)
+%                                 |
+%                       (C1Lname) C1L
+%                                 |
+%                       (S1Lname) S1L
+%                                 |
+%                        (SGname) SG
+%                                 |
+%                        (CBname) CB
+%                                 |
+%                     (Nname) N - CA (CAname)
 %
 %   Output:
 %     psf            structure array
 %                    NATOM: number of atoms to be included in simulation
 %                    idx_SpinLabel: indices of the spin label's atoms
-%                    idx_O: index corresponding to atom OName
-%                    idx_N: index corresponding to atom NName
-%                    idx_C1: index corresponding to atom C1Name
-%                    idx_C2: index corresponding to atom C2Name
+%                    idx_ON: index corresponding to atom Oname
+%                    idx_NN: " " NNname
+%                    idx_C1: " " C1name
+%                    idx_C2: " " C2name
+%                    idx_C1R: " " C1Rname
+%                    idx_C2R: " " C2Rname
+%                    idx_C1L: " " C1Lname
+%                    idx_S1L: " " S1Lname
+%                    idx_SG: " " SGname
+%                    idx_CB: " " CBname
+%                    idx_CA: " " CAname
+%                    idx_N: " " Nname
 %
 % For more information on PSF file structure, see:
 %  http://www.ks.uiuc.edu/Training/Tutorials/namd/namd-tutorial-unix-html/node23.html
@@ -66,8 +83,8 @@ if any(~cellfun(@ischar,fieldnames(AtomNames)))
   error('All fields in AtomNames must be given as character arrays.')
 end
 
-if ~isfield(AtomNames,'OName')||~isfield(AtomNames,'NName')...
-    ||~isfield(AtomNames,'C1Name')||~isfield(AtomNames,'C2Name')
+if ~isfield(AtomNames,'ONname')||~isfield(AtomNames,'NNname')...
+    ||~isfield(AtomNames,'C1name')||~isfield(AtomNames,'C2name')
   error('One or more required atom names is missing. Please check documentation.')
 end
 
@@ -137,17 +154,33 @@ while ~feof(FileID)
       % obtain logical arrays of spin label's and nitroxide coordinate 
       % system's atoms
       idx_SpinLabel = strncmpi(residue_names,ResName,4);
-      idx_O = strcmpi(atom_names(idx_SpinLabel),AtomNames.OName);
-      idx_N = strcmpi(atom_names(idx_SpinLabel),AtomNames.NName);
-      idx_C1 = strcmpi(atom_names(idx_SpinLabel),AtomNames.C1Name);
-      idx_C2 = strcmpi(atom_names(idx_SpinLabel),AtomNames.C2Name);
+      idx_ON = strcmpi(atom_names(idx_SpinLabel),AtomNames.ONname);
+      idx_NN = strcmpi(atom_names(idx_SpinLabel),AtomNames.NNname);
+      idx_C1 = strcmpi(atom_names(idx_SpinLabel),AtomNames.C1name);
+      idx_C2 = strcmpi(atom_names(idx_SpinLabel),AtomNames.C2name);
+      idx_C1R = strcmpi(atom_names(idx_SpinLabel),AtomNames.C1Rname);
+      idx_C2R = strcmpi(atom_names(idx_SpinLabel),AtomNames.C2Rname);
+      idx_C1L = strcmpi(atom_names(idx_SpinLabel),AtomNames.C1Lname);
+      idx_S1L = strcmpi(atom_names(idx_SpinLabel),AtomNames.S1Lname);
+      idx_SG = strcmpi(atom_names(idx_SpinLabel),AtomNames.SGname);
+      idx_CB = strcmpi(atom_names(idx_SpinLabel),AtomNames.CBname);
+      idx_CA = strcmpi(atom_names(idx_SpinLabel),AtomNames.CAname);
+      idx_N = strcmpi(atom_names(idx_SpinLabel),AtomNames.Nname);
       
       % convert to integer indices
       psf.idx_SpinLabel = find(idx_SpinLabel);
-      psf.idx_O = nonzeros(psf.idx_SpinLabel.*idx_O);
-      psf.idx_N = nonzeros(psf.idx_SpinLabel.*idx_N);
-      psf.idx_C1 = nonzeros(psf.idx_SpinLabel.*idx_C1);
-      psf.idx_C2 = nonzeros(psf.idx_SpinLabel.*idx_C2);
+      psf.idx_ON = nonzeros(psf.idx_SpinLabel .* idx_ON);
+      psf.idx_NN = nonzeros(psf.idx_SpinLabel .* idx_NN);
+      psf.idx_C1 = nonzeros(psf.idx_SpinLabel .* idx_C1);
+      psf.idx_C2 = nonzeros(psf.idx_SpinLabel .* idx_C2);
+      psf.idx_C1R = nonzeros(psf.idx_SpinLabel .* idx_C1R);
+      psf.idx_C2R = nonzeros(psf.idx_SpinLabel .* idx_C2R);
+      psf.idx_C1L = nonzeros(psf.idx_SpinLabel .* idx_C1L);
+      psf.idx_S1L = nonzeros(psf.idx_SpinLabel .* idx_S1L);
+      psf.idx_SG = nonzeros(psf.idx_SpinLabel .* idx_SG);
+      psf.idx_CB = nonzeros(psf.idx_SpinLabel .* idx_CB);
+      psf.idx_CA = nonzeros(psf.idx_SpinLabel .* idx_CA);
+      psf.idx_N = nonzeros(psf.idx_SpinLabel .* idx_N);
     end
     
     if contains(section,'NBOND')

@@ -2,23 +2,21 @@ function [err,data] = test(opt,olddata)
 % Check that using stochtraj with Discrete model generates proper
 % state residence times
 
-Sys.tcorr = 10*rand()*1e-9;  % TODO: remove requirement on this input parameter for Discrete model
-
 Par.nTraj = 500;
-Sys.Rates = 1e9*[-0.5,  0.5;
+Sys.TransRates = 1e9*[-0.5,  0.5;
                   0.5, -0.5];
 Sys.States = [0,  0;
               0, pi;
               0,  0];
 
-tau = -1/(2*Sys.Rates(1,1));  % mean residence time
+tau = -1/(2*Sys.TransRates(1,1));  % mean residence time
             
 Par.dt = tau/5;
 Par.nSteps = ceil(200*tau/Par.dt);
 
 Opt.Model = 'Discrete';
 
-Rates = Sys.Rates;
+TransRates = Sys.TransRates;
 States = euler2quat(Sys.States);
 nTraj = Par.nTraj;
 nSteps = Par.nSteps;

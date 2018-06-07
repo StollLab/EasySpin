@@ -19,7 +19,7 @@ if qshape(1) ~= 4 || ~isnumeric(q)
 end
 
 diff = 1-squeeze(sqrt(sum(q.*q, 1)));
-if any(abs(diff(:)) > 1e-13)
+if any(abs(diff(:)) > 1e-10)
 %   plot(diff(1,:))
   error('Input is not normalized.')
 end

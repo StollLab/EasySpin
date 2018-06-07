@@ -37,9 +37,13 @@
 %                    orienting pseudopotential grid to be used for
 %                    calculating the torque
 %
-%     Rates          numeric, size = (nStates,nStates)
+%     TransRates     numeric, size = (nStates,nStates)
 %                    transition rate matrix describing inter-state dynamics
 %                    for kinetic Monte Carlo simulations
+%
+%     TransProb      numeric, size = (nStates,nStates)
+%                    transition probability matrix describing inter-state 
+%                    dynamics for kinetic Monte Carlo simulations
 %
 %     States         numeric, size = (3,nStates)
 %                    Euler angles for each state's orientation
@@ -85,6 +89,10 @@
 %                    'Hierarchical': simulates using a hybrid model of both
 %                    discrete (states) and continuous degrees of freedom
 %                    (quaternions)
+%
+%     statesOnly     1 or 0
+%                    specify whether or not to use a discrete model purely
+%                    to generate states and not quaternion orientations
 %
 %     chkcon         if equal to 1, after the first nSteps of the 
 %                    trajectories are calculated, both inter- and intra-
@@ -161,6 +169,7 @@ end
 
 if ~isfield(Opt,'Model')
   Model = 'Continuous';
+  Opt.statesOnly = 0;
 else
   Model = Opt.Model;
   switch Model
@@ -168,11 +177,25 @@ else
       if all(nargout~=[0,2])
         error('Continous model requires two output arguments.')
       end
+      Opt.statesOnly = 0;
     case 'Discrete'
-      if all(nargout~=[0,2,3])
-        error('Discrete model requires two or three output arguments.')
+      if ~isfield(Opt,'statesOnly')
+        Opt.statesOnly = 0;
+      end
+      
+      if Opt.statesOnly
+        if all(nargout~=[0,2])
+          error('Discrete model for states only requires two output arguments.')
+        end
+      else
+        if all(nargout~=[0,2,3])
+          error('Discrete model with orientations requires two or three output arguments.')
+        end
       end
     case 'Hierarchical'
+      if ~isfield(Opt,'statesOnly')
+        Opt.statesOnly = 0;
+      end
       if all(nargout~=[0,2,3])
         error('Hierarchical model requires two or three output arguments.')
       end
@@ -266,31 +289,39 @@ end
 
 % for kinetic Monte carlo
 if strcmp(Model,'Discrete') || strcmp(Model,'Hierarchical')
-  if isfield(Sys,'Rates')
-    Rates = Sys.Rates;
-    if ~isnumeric(Rates) || ~ismatrix(Rates) || (size(Rates,1)~=size(Rates,2))
-      error('Rates must be a square matrix.')
+  if isfield(Sys,'TransRates')
+    TRM = Sys.TransRates;
+    if ~isnumeric(TRM) || ~ismatrix(TRM) || (size(TRM,1)~=size(TRM,2))
+      error('TransRates must be a square matrix.')
     end
-    nStates = size(Rates,1);
-    diagRates = diag(diag(Rates));
-    if any(diag(Rates)>0) || any((Rates(:)-diagRates(:))<0)
-      error('Rates must contain strictly negative diagonal and positive off-diagonal entries.')
+    nStates = size(TRM,1);
+    diagRates = diag(diag(TRM));
+    if any(diag(TRM)>0) || any((TRM(:)-diagRates(:))<0)
+      error('TransRates must contain strictly negative diagonal and positive off-diagonal entries.')
     end
-    if any(sum((Rates-diagRates),2)~=-diag(Rates))
-      error("In the Rates matrix, the sum of each row's off-diagonal elements must equal the negative of the diagonal element.")
+    if any(abs(sum(TRM,2)/norm(TRM))>1e-13)
+      error("In the TransRates matrix, the sum of each row's off-diagonal elements must equal the negative of the diagonal element.")
     end
+  elseif isfield(Sys,'TransProb')
+    TPM = Sys.TransProb;
+    if ~isnumeric(TPM) || ~ismatrix(TPM) || (size(TPM,1)~=size(TPM,2))
+      error('TransProb must be a square matrix.')
+    end
+    nStates = size(TPM,1);
   else
-    error('A transition rate matrix is required for Discrete and Hierarchical Models.')
+    error('A transition rate matrix or a transition probability matrix is required for Discrete and Hierarchical Models.')
   end
   
-  if isfield(Sys,'States')
-    States = Sys.States;
-    if size(States,1)~=3 || size(States,2)~=nStates
-      error(['The size of States must be (3,nStates), with the size of the ' ...
-             'second dimension equal to the number of rows (and columns) of Rates.'])
+  if ~Opt.statesOnly
+    if isfield(Sys,'States')
+      States = Sys.States;
+      if size(States,1)~=3 || size(States,2)~=nStates
+        error(['The size of States must be (3,nStates), with the size of the ' ...
+               'second dimension equal to the number of rows (and columns) of Rates.'])
+      end
+    else
+      error('A set of States is required for Discrete and Hierarchical Models for orientations.')
     end
-  else
-    error('A set of States is required for Discrete and Hierarchical Models.')
   end
 end
 
@@ -335,11 +366,13 @@ Sim.dt = dt;
 
 % set kinetic Monte Carlo cumulative transition probability matrix
 if strcmp(Model,'Discrete') || strcmp(Model,'Hierarchical')
-  TPM = expm(Sim.dt*Rates);
+  if isfield(Sys,'TransRates')
+    TPM = expm(Sim.dt*TRM);
+  end
 %   TPM = expeig(Sim.dt*Rates);
   cumulTPM = cumsum(TPM,1);
   if any(abs(1-cumulTPM(end,:))>1e-13)
-    error('The columns of cumulTPM = sum(exp(Rates*dt),1) must sum to 1.')
+    error('The columns of cumulTPM = sum(TPM,1) must sum to 1.')
   end
 end
 
@@ -390,9 +423,11 @@ if isempty(Omega)
              gammaSamples];
 %   elseif isfield(Sys,'Coefs')
   elseif strcmp(Model,'Discrete')
-    Omega = zeros(3,Par.nTraj);
-    for iTraj = 1:Par.nTraj
-      Omega(:,iTraj) = States(:,States0(iTraj));
+    if ~Opt.statesOnly
+      Omega = zeros(3,Par.nTraj);
+      for iTraj = 1:Par.nTraj
+        Omega(:,iTraj) = States(:,States0(iTraj));
+      end
     end
   else
     gridPts = linspace(-1, 1, Sim.nTraj);
@@ -406,14 +441,16 @@ if isempty(Omega)
 end
 
 % If only one starting angle and multiple trajectories, repeat the angle
-if size(Omega,1)==3 
-  if size(Omega,2)==1 && Sim.nTraj > 1
-    Omega = repmat(Omega,1,Sim.nTraj);
-  elseif size(Omega,2)~=Sim.nTraj
-    error('Number of starting orientations must be equal to 1 or nTraj.')
+if ~Opt.statesOnly
+  if size(Omega,1)==3 
+    if size(Omega,2)==1 && Sim.nTraj > 1
+      Omega = repmat(Omega,1,Sim.nTraj);
+    elseif size(Omega,2)~=Sim.nTraj
+      error('Number of starting orientations must be equal to 1 or nTraj.')
+    end
+  else
+    error('The size of Omega must be (3,1) or (3,nTraj).')
   end
-else
-  error('The size of Omega must be (3,1) or (3,nTraj).')
 end
 
 if isfield(Opt,'chkcon')
@@ -425,13 +462,15 @@ else
   chkcon = 0;
 end
 
-% initialize quaternion trajectories and their starting orientations
-% q0 = euler2quat(Omega,'active');
-q0 = euler2quat(Omega);
-qTraj = zeros(4,Sim.nTraj,Sim.nSteps);
-qTraj(:,:,1) = q0;
+if (strcmp(Model,'Discrete')&&~Opt.statesOnly) || strcmp(Model,'Continuous')
+  % initialize quaternion trajectories and their starting orientations
+  % q0 = euler2quat(Omega,'active');
+  q0 = euler2quat(Omega);
+  qTraj = zeros(4,Sim.nTraj,Sim.nSteps);
+  qTraj(:,:,1) = q0;
+end
 
-if strcmp(Model,'Discrete')
+if strcmp(Model,'Discrete') && ~Opt.statesOnly
   States = euler2quat(States);
 end
 
@@ -494,6 +533,7 @@ switch Model
         qTraj(:,:,1) = q0;
       end
     end
+    totSteps = size(qTraj,3);
   case 'Discrete'
     nTraj = Sim.nTraj;
     nSteps = Sim.nSteps;
@@ -509,17 +549,17 @@ switch Model
         uLast = u(iTraj,iStep-1);
         stateNew = find(cumulTPM(:,stateLast)>uLast,1);
         stateTraj(iTraj,iStep) = stateNew;
-        qTraj(:,iTraj,iStep) = States(:,stateNew);
+        if ~Opt.statesOnly
+          qTraj(:,iTraj,iStep) = States(:,stateNew);
+        end
       end
     end
-    
+    totSteps = size(stateTraj,2);
   case 'Hierarchical'
     error('Hierarchical model not implemented yet.')
 end
 
     % clear wignerdquat
-
-    totSteps = size(qTraj,3);
 
 t = linspace(0, totSteps*Sim.dt, totSteps).';
 
@@ -559,13 +599,16 @@ switch nargout
     zlabel('z');
 
   case 2  % Output quaternion trajectories
-    varargout = {t, qTraj};
-%     switch Model
-%       case 'Continuous'
-%         varargout = {t, qTraj};
-%       case 'Discrete'
-%         varargout = {t, stateTraj};
-%     end
+    switch Model
+      case 'Continuous'
+        varargout = {t, qTraj};
+      case 'Discrete'
+        if Opt.statesOnly
+          varargout = {t, stateTraj};
+        else
+          varargout = {t, qTraj};
+        end
+    end
   
   case 3  % Output both quaternion and state trajectories
     switch Model

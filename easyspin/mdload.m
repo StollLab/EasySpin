@@ -22,18 +22,18 @@
 %                               refer to the following atoms in the 
 %                               nitroxide spin label molecule:
 %
-%                                   O (OName)
+%                                   O (ONName)
 %                                   |
-%                                   N (NName)
+%                                   N (NNName)
 %                                  / \
 %                        (C1Name) C   C (C2Name)
 %
 %     OutOpt         structure array containing the following fields
 %
-%                    Frame     1: (default) coordinate frame vector 
-%                                 trajectories given as output
-%                              0: coordinate frame atom trajectories given 
-%                                 as output
+%                    Format    Frame: (default) coordinate frame vector 
+%                                trajectories given as output
+%                              Dihedrals: spin label side chain dihedrals 
+%                                given as output
 %
 %                    Verbosity 0: no display, 1: show info
 %
@@ -47,31 +47,19 @@
 %                    dt       double
 %                             size of time step (in s)
 %
-%                    if Frame = 0:
-%                      Oxyz     numeric, size = (nSteps,3)
-%                               x,y,z coordinate trajectory for oxygen
-% 
-%                      Nxyz     numeric, size = (nSteps,3)
-%                               x,y,z coordinate trajectory for nitrogen
-%  
-%                      C1xyz    numeric, size = (nSteps,3)
-%                               x,y,z coordinate trajectory for carbon C1
-%  
-%                      C2xyz    numeric, size = (nSteps,3)
-%                               x,y,z coordinate trajectory for carbon C2
-%
-%                    if Frame = 1;
-%                      FrameX   numeric, size = (nSteps,3)
-%                               x,y,z coordinate trajectory for X-axis
-%                               vector
-% 
-%                      FrameY   numeric, size = (nSteps,3)
-%                               x,y,z coordinate trajectory for Y-axis
-%                               vector
-%  
-%                      FrameZ   numeric, size = (nSteps,3)
-%                               x,y,z coordinate trajectory for Z-axis
-%                               vector
+%                    type     string
+%                             'Frame': output of FrameX, FrameY, and FrameZ
+%                               each is numeric, size = (nSteps,3)
+%                               x,y,z coordinate trajectories for X-axis,
+%                               Y-axis, and Z-axis vectors
+%                             'Dihedrals': output of chi1, chi2, chi3, chi4, 
+%                               and chi5, each is numeric array,
+%                               size(nSteps,1), dihedral angles
+%                             if not specified, output is Xxyz, a numeric 
+%                             array, size = (nSteps,3), x,y,z coordinate 
+%                             trajectory for each atom in the spin label
+%                             frame
+
 %
 %
 %   Supported formats are identified via the extension
@@ -159,7 +147,7 @@ elseif iscell(TrajFile)
     error('At least two of the TrajFilePath locations are not identical.')
   end
 else
-  error(['Please provide TrajFile as a single character array ',...
+  error(['Please provide ''TrajFile'' as a single character array ',...
          '(single trajectory file) or a cell array whose elements are ',...
          'character arrays (multiple trajectory files).'])
 end
@@ -179,6 +167,7 @@ end
 
 ExtCombo = [TrajFileExt, ',', TopFileExt];
 
+if ~isfield(OutOpt,'Type'), OutOpt.Type = []; end
 if OutOpt.Verbosity==1, tic; end
 for iTrajFile=1:nTrajFiles
   temp = processMD(TrajFile{iTrajFile}, TopFile, ResName, AtomNames, ExtCombo);
@@ -190,10 +179,21 @@ for iTrajFile=1:nTrajFiles
       error('Time steps of trajectory files are not equal.')
     end
     MD.nSteps = MD.nSteps + temp.nSteps;
-    MD.Oxyz = cat(1, MD.Oxyz, temp.Oxyz);
-    MD.Nxyz = cat(1, MD.Nxyz, temp.Nxyz);
+    MD.ONxyz = cat(1, MD.ONxyz, temp.ONxyz);
+    MD.NNxyz = cat(1, MD.NNxyz, temp.NNxyz);
     MD.C1xyz = cat(1, MD.C1xyz, temp.C1xyz);
     MD.C2xyz = cat(1, MD.C2xyz, temp.C2xyz);
+    if ~OutOpt.isFrame
+      MD.C1Rxyz = cat(1, MD.C1Rxyz, temp.C1Rxyz);
+      MD.C2Rxyz = cat(1, MD.C2Rxyz, temp.C2Rxyz);
+      MD.C1Lxyz = cat(1, MD.C1Lxyz, temp.C1Lxyz);
+      MD.S1Lxyz = cat(1, MD.S1Lxyz, temp.S1Lxyz);
+      MD.SGxyz = cat(1, MD.SGxyz, temp.SGxyz);
+      MD.CBxyz = cat(1, MD.CBxyz, temp.CBxyz);
+      MD.CAxyz = cat(1, MD.CAxyz, temp.CAxyz);
+      MD.Nxyz = cat(1, MD.Nxyz, temp.Nxyz);
+    end
+%     MD.Labelxyz = cat(1, MD.Labelxyz, temp.Labelxyz);
   end
   % this could take a long time, so notify the user of progress
   if OutOpt.Verbosity==1
@@ -201,36 +201,62 @@ for iTrajFile=1:nTrajFiles
   end
 end
 
-if OutOpt.Frame==1
-  % give the reference frame coordinate axis vector trajectories as output
-  
-  % N-O bond vector
-  NO_vec = MD.Oxyz - MD.Nxyz;
+if ~isempty(OutOpt.Type)
+  switch OutOpt.Type
+    % give the reference frame coordinate axis vector trajectories as output
+  %   idxO = find(find(psf.idx_O&psf.idx_SpinLabel));
+  %   idxN = find(find(psf.idx_N&psf.idx_SpinLabel));
+  %   idxC1 = find(find(psf.idx_C1&psf.idx_SpinLabel));
+  %   idxC2 = find(find(psf.idx_C2&psf.idx_SpinLabel));
+  %   
+  %   MD.Oxyz = MD.Labelxyz(:,:,idxO);
+  %   MD.Nxyz = MD.Labelxyz(:,:,idxN);
+  %   MD.C1xyz = MD.Labelxyz(:,:,idxC1);
+  %   MD.C2xyz = MD.Labelxyz(:,:,idxC2);
+    case 'Frame'
+      % N-O bond vector
+      NO_vec = MD.ONxyz - MD.NNxyz;
 
-  % N-C1 bond vector
-  NC1_vec = MD.C1xyz - MD.Nxyz;
+      % N-C1 bond vector
+      NC1_vec = MD.C1xyz - MD.NNxyz;
 
-  % N-C2 bond vector
-  NC2_vec = MD.C2xyz - MD.Nxyz;
-  
-  % Normalize vectors
-  NO_vec = NO_vec./sqrt(sum(NO_vec.*NO_vec,2));
-  NC1_vec = NC1_vec./sqrt(sum(NC1_vec.*NC1_vec,2));
-  NC2_vec = NC2_vec./sqrt(sum(NC2_vec.*NC2_vec,2));
+      % N-C2 bond vector
+      NC2_vec = MD.C2xyz - MD.NNxyz;
 
-  vec1 = cross(NC1_vec, NO_vec, 2);
-  vec2 = cross(NO_vec, NC2_vec, 2);
+      % Normalize vectors
+      NO_vec = NO_vec./sqrt(sum(NO_vec.*NO_vec,2));
+      NC1_vec = NC1_vec./sqrt(sum(NC1_vec.*NC1_vec,2));
+      NC2_vec = NC2_vec./sqrt(sum(NC2_vec.*NC2_vec,2));
 
-  MD.FrameZ = (vec1 + vec2)/2;
-  MD.FrameZ = MD.FrameZ./sqrt(sum(MD.FrameZ.*MD.FrameZ,2));
-  MD.FrameX = NO_vec;
-  MD.FrameY = cross(MD.FrameZ, MD.FrameX, 2);
-  
-  MD = rmfield(MD, 'Oxyz');
-  MD = rmfield(MD, 'Nxyz');
-  MD = rmfield(MD, 'C1xyz');
-  MD = rmfield(MD, 'C2xyz');
-  
+      vec1 = cross(NC1_vec, NO_vec, 2);
+      vec2 = cross(NO_vec, NC2_vec, 2);
+
+      MD.FrameZ = (vec1 + vec2)/2;
+      MD.FrameZ = MD.FrameZ./sqrt(sum(MD.FrameZ.*MD.FrameZ,2));
+      MD.FrameX = NO_vec;
+      MD.FrameY = cross(MD.FrameZ, MD.FrameX, 2);
+
+      AtomFieldCell = {'ONxyz','NNxyz','C1xyz','C2xyz','C1Rxyz','C2Rxyz','C1Lxyz',...
+                   'S1Lxyz','SGxyz','CBxyz','CAxyz','Nxyz'};
+
+      MD = rmfield(MD, AtomFieldCell);
+
+    %   AtomFieldCell = {'Oxyz','Nxyz','C1xyz','C2xyz'};
+    % 
+    %   MD = rmfield(MD, AtomFieldCell);
+    case 'Dihedrals'
+
+      MD.chi1 = dihedral(MD.Nxyz,MD.CAxyz,MD.CBxyz,MD.SGxyz);
+      MD.chi2 = dihedral(MD.CAxyz,MD.CBxyz,MD.SGxyz,MD.S1Lxyz);
+      MD.chi3 = dihedral(MD.CBxyz,MD.SGxyz,MD.S1Lxyz,MD.C1Lxyz);
+      MD.chi4 = dihedral(MD.SGxyz,MD.S1Lxyz,MD.C1Lxyz,MD.C1Rxyz);
+      MD.chi5 = dihedral(MD.S1Lxyz,MD.C1Lxyz,MD.C1Rxyz,MD.C2Rxyz);
+
+      AtomFieldCell = {'ONxyz','NNxyz','C1xyz','C2xyz','C1Rxyz','C2Rxyz','C1Lxyz',...
+                   'S1Lxyz','SGxyz','CBxyz','CAxyz','Nxyz'};
+
+      MD = rmfield(MD, AtomFieldCell);
+  end
 end
 
 end
@@ -245,10 +271,19 @@ switch ExtCombo
     % load spin label trajectory
     Traj = readdcd(TrajFile, psf.idx_SpinLabel);
     % filter based on atom indices from psf file
-    Traj.Oxyz = Traj.xyz(:,:,psf.idx_O==psf.idx_SpinLabel);
-    Traj.Nxyz = Traj.xyz(:,:,psf.idx_N==psf.idx_SpinLabel);
+%     Traj.Labelxyz = Traj.xyz(:,:,psf.idx_SpinLabel);
+    Traj.ONxyz = Traj.xyz(:,:,psf.idx_ON==psf.idx_SpinLabel);
+    Traj.NNxyz = Traj.xyz(:,:,psf.idx_NN==psf.idx_SpinLabel);
     Traj.C1xyz = Traj.xyz(:,:,psf.idx_C1==psf.idx_SpinLabel);
     Traj.C2xyz = Traj.xyz(:,:,psf.idx_C2==psf.idx_SpinLabel);
+    Traj.C1Rxyz = Traj.xyz(:,:,psf.idx_C1R==psf.idx_SpinLabel);
+    Traj.C2Rxyz = Traj.xyz(:,:,psf.idx_C2R==psf.idx_SpinLabel);
+    Traj.C1Lxyz = Traj.xyz(:,:,psf.idx_C1L==psf.idx_SpinLabel);
+    Traj.S1Lxyz = Traj.xyz(:,:,psf.idx_S1L==psf.idx_SpinLabel);
+    Traj.SGxyz = Traj.xyz(:,:,psf.idx_SG==psf.idx_SpinLabel);
+    Traj.CBxyz = Traj.xyz(:,:,psf.idx_CB==psf.idx_SpinLabel);
+    Traj.CAxyz = Traj.xyz(:,:,psf.idx_CA==psf.idx_SpinLabel);
+    Traj.Nxyz = Traj.xyz(:,:,psf.idx_N==psf.idx_SpinLabel);
     % we might not need the full spin label trajectory
     Traj = rmfield(Traj, 'xyz');
   otherwise
@@ -280,6 +315,35 @@ msg = [msg1, msg2, msg3];
 
 fprintf([reverseStr, msg]);
 reverseStr = repmat(sprintf('\b'), 1, length(msg));
+
+end
+
+function DihedralAngle = dihedral(a1Traj,a2Traj,a3Traj,a4Traj)
+% function DihedralAngle = dihedral(traj,atomlist)
+% calculate dihedral angle given 4 different atom indices and a trajectory
+% idx_atom1 = atomlist{1};
+% idx_atom2 = atomlist{2};
+% idx_atom3 = atomlist{3};
+% idx_atom4 = atomlist{4};
+
+% a1 = traj(:, :, idx_atom1) - traj(:, :, idx_atom2);
+a1 = a1Traj - a2Traj;
+a1 = a1./sqrt(sum(a1.*a1, 2));
+% a2 = traj(:, :, idx_atom3) - traj(:, :, idx_atom2);
+a2 = a3Traj - a2Traj;
+a2 = a2./sqrt(sum(a2.*a2, 2));
+% a3 = traj(:, :, idx_atom3) - traj(:, :, idx_atom4);
+a3 = a3Traj - a4Traj;
+a3 = a3./sqrt(sum(a3.*a3, 2));
+
+b1 = cross(a2, a3, 2);
+b2 = cross(a1, a2, 2);
+
+vec1 = dot(a1, b1, 2);
+vec1 = vec1.*sum(a2.*a2, 2).^0.5;
+vec2 = dot(b1, b2, 2);
+
+DihedralAngle = atan2(vec1, vec2);
 
 end
 

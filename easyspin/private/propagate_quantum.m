@@ -1,7 +1,7 @@
 % propagate_quantum  Propagate the density matrix of a spin-1/2 14N
 %                    nitroxide using different methods from the literature.
 %
-%   rho_t = propagate_quantum(Sys,Par,Opt,omega,RTraj);
+%   rho_t = propagate_quantum(Sys,Par,Opt,MD,omega,CenterField);
 %
 %     omega          double
 %                    microwave frequency for CW field sweep, in Hz
@@ -9,11 +9,6 @@
 %     CenterField    double
 %                    magnetic field, in mT
 %
-%     RTraj          numeric, size = (3,3,nTraj,nSteps)
-%                    a series of rotation matrices
-%
-%     qTraj          numeric, size = (4,nTraj,nSteps)
-%                    a series of quaternions representing orientations
 %
 %   Sys: stucture with system's dynamical parameters
 %     g              numeric, size = (1,3)
@@ -76,12 +71,16 @@ Liouville = Opt.Liouville;
 Method = Opt.Method;
 Model = Par.Model;
 
+% define a rotational dynamics time scale for integrating corrlation
+% functions
 if ~isempty(MD)
   tauR = MD.tauR;
+  isMarkov = strcmp(MD.TrajUsage,'Markov');
   useMD = 1;
-  isExplicit = MD.isExplicit;
+  isExplicit = strcmp(MD.TrajUsage,'Explicit');
 else
   useMD = 0;
+  isMarkov = 0;
   tauR = 1/6/mean(Sys.Diff);
 end
 
@@ -89,6 +88,7 @@ if ~isfield(MD,'RTraj') && (~isfield(Par,'RTraj')||~isfield(Par,'qTraj'))
   error('Either Par.RTraj and Par.qTraj, or MD.RTraj must be provided.')
 end
 
+% grab the quaternions or rotation matrices
 if useMD
   if isExplicit
     if strcmp(Method, 'ISTOs')
@@ -123,18 +123,6 @@ else
   end
 end
 
-% if isfield(Par,'RTraj') || isfield(Par,'qTraj')
-%   RTraj = Par.RTraj;
-%   RTrajInv = permute(RTraj,[2,1,3,4]);
-% % elseif isfield(Par,'qTraj')
-%   qTraj = Par.qTraj;
-% elseif isfield(MD,'RTraj')
-%   RTraj = MD.RTraj;
-%   RTrajInv = permute(RTraj,[2,1,3,4]);
-% else
-%   error('Par.RTraj, Par.qTraj, or MD.RTraj must be provided.')
-% end
-
 if ~isfield(Sys,'g')
   error('g-tensor not specified.');
 else
@@ -144,26 +132,19 @@ end
 if isfield(Sys, 'A')
   A = Sys.A; 
 else
-  if strcmp(Method, 'Nitroxide'), error('An A-tensor is required for the Nitroxide method.'); end
+  if strcmp(Method, 'Nitroxide')
+    error('An A-tensor is required for the Nitroxide method.'); 
+  end
 end
 
-Dt = Par.Dt;
+Dt = Par.Dt;  % quantum spin propagation time step
 nTraj = Par.nTraj;
-isBlock = Par.isBlock;
-
-truncate = Opt.truncate;
-
+isBlock = Par.isBlock;  % tensor time block averaging
 nSteps = Par.nSteps;
-% if useMD
-%   nSteps = Par.nSteps;
-% else
-%   if strcmp(Method, 'Nitroxide')
-%     nSteps = size(RTraj, 4);
-%   elseif strcmp(Method, 'ISTOs')
-%     nSteps = size(qTraj, 3);
-%   end
-% end
 
+truncate = Opt.truncate;  % ensemble averaged propagation
+
+% store parameters for feeding into propagation function
 Sim.nSteps = nSteps;
 Sim.nTraj = nTraj;
 Sim.truncate = truncate;
@@ -189,46 +170,67 @@ switch Method
       end
     end
     
-    fullSteps = nSteps;
-    
     % perform rotations on g- and A-tensors
     gTensor = tensortraj(g,RTraj,RTrajInv);
-
     ATensor = tensortraj(A,RTraj,RTrajInv)*1e6*2*pi; % MHz (s^-1) -> Hz (rad s^-1)
     
-    % block and window averaging
-    if isBlock
-      gTensorAvg = zeros(3,3,size(gTensor,3),Par.nBlocks);
-      ATensorAvg = zeros(3,3,size(ATensor,3),Par.nBlocks);
-
-      % average the interaction tensors over time blocks
-      idx = 1:Par.BlockLength;
-      for k = 1:Par.nBlocks
-        gTensorAvg(:,:,:,k) = mean(gTensor(:,:,:,idx),4);
-        ATensorAvg(:,:,:,k) = mean(ATensor(:,:,:,idx),4);
-        idx = idx + Par.BlockLength;
+    if isMarkov
+      gTensorState = zeros(3,3,MD.nStates);
+      ATensorState = zeros(3,3,MD.nStates);
+      
+      % find the average interaction tensor for each state
+      for iState = 1:MD.nStates
+        idxState = (MD.stateTraj == iState);
+        gTensorState(:,:,iState) = squeeze(mean(gTensor(:,:,1,idxState),4));
+        ATensorState(:,:,iState) = squeeze(mean(ATensor(:,:,1,idxState),4));
       end
       
-      % perform window averaging if using MD trajectory explicitly
-      if useMD
-        if isExplicit
-          gTensor = zeros(3,3,nTraj,nSteps);
-          ATensor = zeros(3,3,nTraj,nSteps);
-          for k = 1:nTraj
-            idx = (1:nSteps) + (k-1)*Par.lag;
-            gTensor(:,:,k,:) = gTensorAvg(:,:,idx);
-            ATensor(:,:,k,:) = ATensorAvg(:,:,idx);
+      gTensor = zeros(3,3,nTraj,nSteps);
+      ATensor = zeros(3,3,nTraj,nSteps);
+      % build the time-dependent tensors using Markov state trajectories
+      for iStep = 1:Par.nSteps
+        for iTraj = 1:nTraj
+          state = Par.stateTraj(iTraj,iStep);
+          gTensor(:,:,iTraj,iStep) = gTensorState(:,:,state);
+          ATensor(:,:,iTraj,iStep) = ATensorState(:,:,state);
+        end
+      end
+    else
+      % time block averaging and sliding window processing
+      if isBlock
+        gTensorBlock = zeros(3,3,size(gTensor,3),Par.nBlocks);
+        ATensorBlock = zeros(3,3,size(ATensor,3),Par.nBlocks);
+
+        % average the interaction tensors over time blocks
+        idx = 1:Par.BlockLength;
+        for k = 1:Par.nBlocks
+          gTensorBlock(:,:,:,k) = mean(gTensor(:,:,:,idx),4);
+          ATensorBlock(:,:,:,k) = mean(ATensor(:,:,:,idx),4);
+          idx = idx + Par.BlockLength;
+        end
+
+        % perform sliding window processing if using MD trajectory explicitly
+        if useMD
+          if isExplicit
+            gTensor = zeros(3,3,nTraj,nSteps);
+            ATensor = zeros(3,3,nTraj,nSteps);
+            for k = 1:nTraj
+              idx = (1:nSteps) + (k-1)*Par.lag;
+              gTensor(:,:,k,:) = gTensorBlock(:,:,idx);
+              ATensor(:,:,k,:) = ATensorBlock(:,:,idx);
+            end
+          else
+            gTensor = gTensorBlock;
+            ATensor = ATensorBlock;
           end
         else
-          gTensor = gTensorAvg;
-          ATensor = ATensorAvg;
+          gTensor = gTensorBlock;
+          ATensor = ATensorBlock;
         end
-      else
-        gTensor = gTensorAvg;
-        ATensor = ATensorAvg;
       end
     end
-      
+    
+    % rotate tensors into lab frame explicitly
     if ~isempty(RLab)
       gTensor = mmult(RLab, mmult(gTensor, RLabInv, 'real'), 'real');
       ATensor = mmult(RLab, mmult(ATensor, RLabInv, 'real'), 'real');
@@ -236,9 +238,6 @@ switch Method
     
     gIso = sum(g)/3;
     GpTensor = (gTensor - gIso)/gfree;
-    
-    rho = zeros(3,3,nTraj,nSteps);
-    rho(:,:,:,1) = 0.5*repmat(eye(3),[1,1,nTraj]);
     
     % Prepare propagators
     % ---------------------------------------------------------------------
@@ -287,6 +286,9 @@ switch Method
     
     % Propagate density matrix
     % ---------------------------------------------------------------------
+    
+    rho = zeros(3,3,nTraj,nSteps);
+    rho(:,:,:,1) = 0.5*repmat(eye(3),[1,1,nTraj]);
 
     Sim.fullSteps = nSteps;
     Sprho = propagate(rho, U, Method, Sim, Opt);
@@ -365,6 +367,7 @@ switch Method
     % Process Wigner D-matrices
     % ---------------------------------------------------------------------
 
+    % time block averaging and sliding window processing
     if isBlock
       if isempty(D2TrajMol)
         % if using an MD trajectory, it is best to process the molecular
@@ -381,7 +384,7 @@ switch Method
           idx = idx + Par.BlockLength;
         end
 
-        % perform window averaging if using MD trajectory explicitly
+        % perform sliding window processing if using MD trajectory explicitly
         if useMD
           if isExplicit
             D2TrajMol = zeros(5,5,nTraj,nSteps);
@@ -576,7 +579,7 @@ switch Method
     
     rho(:,:,:,1) = repmat(rho0,1,1,nTraj,1);
     
-    % Time evolution of density matrix
+    % Propagate density matrix
     % ---------------------------------------------------------------------
     
     rho = propagate(rho, U, Method, Sim, Opt);
