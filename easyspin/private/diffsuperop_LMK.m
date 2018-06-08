@@ -1,7 +1,6 @@
 % This function computes the diffusion superoperator matrix in the LMK basis,
 % for a diagonal or non-diagonal diffusion tensor. It is used by chili().
 %
-% It does not support an ordering potential.
 % It does not require any particular order of orientational basis functions.
 %
 % Syntax:
@@ -17,8 +16,9 @@
 %            chili_xlk (assumed all zero if not given)
 %   Method   (optional)
 %            1: method for diagonal diffusion tensors
-%            2: method for diagonal diffusion tensors (a little slower than 1)
-%            3: method for 3x3 diffusion tensors (needed for non-diagonal R)
+%            2: method for diagonal diffusion tensors (faster than 1) (default)
+%            3: method for 3x3 diffusion tensors
+%               (does not support ordering potentials)
 %
 % Output:
 %   Gamma    diffusion superoperator matrix in the given LMK basis (s^-1),
@@ -26,32 +26,41 @@
 
 function Gamma = diffsuperop_LMK(basis,R,XLK,Method)
 
+forceSymmetry = false;
+
 if isfield(basis,'jK') && ~isempty(basis.jK)
   error('This function expects an LMK basis, without jK.');
 end
 
 if nargin<4, Method = []; end
 
-usePotential = nargin==3 && ~isempty(XLK) && any(XLK(:)~=0);
+usePotential = nargin>2 && ~isempty(XLK) && any(XLK(:)~=0);
 if usePotential
-  Lxmax = size(XLK,1)-1;
+  % The calculations in this function use Lx, Mx, Kx, X and not XLK.
+  [idx1,idx2,X] = find(XLK);
+  Lx = idx1-1;
+  Mx = zeros(size(Lx));
+  Kx = idx2-idx1;
 end
 
 fullDiffusionTensor = false;
 switch numel(R)
   case 1 % isotropic value
-    if isempty(Method), Method = 1; end
+    if isempty(Method), Method = 2; end
     Rd = 0;
     Rperp = R;
     Rz = R;
   case 3 % 3 principal values
-    if isempty(Method), Method = 1; end
+    if isempty(Method), Method = 2; end
     Rd = (R(1)-R(2))/4;
     Rperp = (R(1)+R(2))/2;
     Rz = R(3);
   case 9 % full tensor
     fullDiffusionTensor = true;
     if isempty(Method), Method = 3; end
+    if Method~=3
+      error('Only Method 3 is possible for a full diffusion tensor.');
+    end
   otherwise
     error('Wrong number of elements in diffusion tensor.');
 end
@@ -77,16 +86,14 @@ if Method==1
   %-----------------------------------------------------------------------------
   % Only diagonal and upper triangular part of matrix are explicitly calulcated,
   % since Gamma is symmetric
-  if fullDiffusionTensor
-    error('Cannot use full difussion tensor with this method.');
-  end
   idx = 0;
   for b1 = 1:nBasis
     L1 = L(b1);
     M1 = M(b1);
     K1 = K(b1);
     
-    for b2 = b1:nBasis
+    if forceSymmetry, b2Start = b1; else, b2Start = 1; end
+    for b2 = b2Start:nBasis
       M2 = M(b2);
       if M1~=M2, continue; end
       L2 = L(b2);
@@ -111,27 +118,22 @@ if Method==1
       % Potential-dependent part
       if usePotential
         valp_ = 0;
-        for Lx = abs(L1-L2):min(Lxmax,L1+L2)
-          idx_xL = Lx+1;
-          if ~any(XLK(idx_xL,:)), continue; end
-          if abs(K1-K2)>Lx, continue; end
-          
-          % Get potential coefficient
-          xlk_ = XLK(idx_xL,(K1-K2)+Lx+1);
-          if xlk_==0, continue; end
+        for p = 1:numel(X)
+          if Kx(p)~=K1-K2, continue; end
+          if Mx(p)~=M1-M2, continue; end
+          if abs(L1-Lx(p))>L2 || L2>L1+Lx(p), continue; end
           
           % Calculate M- and K-dependent 3j-symbols
-          if abs(M1)>L1 || abs(M1)>L2, continue; end
-          jjjxM = wigner3j(L1,Lx,L2,M1,0,-M1);
-          if abs(K1)>L1 || abs(K2-K1)>Lx || abs(K2)>L2, continue; end
-          jjjxK = wigner3j(L1,Lx,L2,K1,K2-K1,-K2);
+          jjjxM = wigner3j(L1,Lx(p),L2,-M1,M1-M2,M2);
+          if jjjxM==0, continue; end
+          
+          jjjxK = wigner3j(L1,Lx(p),L2,-K1,K1-K2,K2);
+          if jjjxK==0, continue; end
           
           % Accumulate value
-          valp_ = valp_ +  jjjxM * jjjxK * xlk_;
+          valp_ = valp_ +  jjjxM * jjjxK * X(p);
         end
-        if valp_~=0
-          val_ = val_ + (-1)^(K1-M1) * sqrt((2*L1+1)*(2*L2+1)) * valp_;
-        end
+        val_ = val_ + (-1)^(K1-M1) * sqrt((2*L1+1)*(2*L2+1)) * valp_;
       end
       
       % Store non-zero value
@@ -140,7 +142,7 @@ if Method==1
       row(idx) = b1;
       col(idx) = b2;
       values(idx)  = val_;
-      if b1~=b2
+      if forceSymmetry && b1~=b2
         idx = idx + 1;
         row(idx) = b2;
         col(idx) = b1;
@@ -154,18 +156,20 @@ if Method==1
 elseif Method==2
   
   % Method 2: Calculate angular-momentum operator matrices Jp, Jm, Jz, and from
-  % them the diffusion operator, for a diagonal diffusion tensor.
+  % them the diffusion operator, for a diagonal diffusion tensor. Calculate
+  % potential-dependent term using X coefficients and LMK matrix reps for D^L_MK.
   %-----------------------------------------------------------------------------
-  if fullDiffusionTensor
-    error('Cannot use full difussion tensor with this method.');
-  end
-  if usePotential
-    error('Cannot use orienting potential with this method.');
-  end
   
-  [Jp,Jm,Jz,J2] = angmomops(L,M,K);
-  
+  % Calculate potential-indepependent part using angular-momentum matrices.
+  [Jp,Jm,Jz,J2] = angmomops_LMK(L,M,K);  
   Gamma = Rperp*(J2-Jz^2) + Rz*Jz^2 + Rd*(Jp^2+Jm^2);
+  
+  % Calculate potential-dependent part using D^L_MK matrix representations.
+  if usePotential
+    for p = 1:numel(X)
+      Gamma = Gamma + X(p)*wignerops_LMK(L,M,K,Lx(p),Mx(p),Kx(p));
+    end
+  end
   
 elseif Method==3
   
@@ -176,7 +180,7 @@ elseif Method==3
     error('Cannot use orienting potential with this method.');
   end
   
-  [Jp,Jm,Jz] = angmomops(L,M,K);
+  [Jp,Jm,Jz] = angmomops_LMK(L,M,K);
   Jx = (Jp+Jm)/2;
   Jy = (Jp-Jm)/2i;
   
@@ -191,7 +195,7 @@ elseif Method==3
       end
     end
   end
-  
+
 else
   
   error('Only Methods 1, 2, and 3 are implemented.');
@@ -203,7 +207,7 @@ return
 %===============================================================================
 % Calculate matrix representations of common angular-momentum operators in
 % LMK basis.
-function [Jp,Jm,Jz,J2] = angmomops(L,M,K)
+function [Jp,Jm,Jz,J2] = angmomops_LMK(L,M,K)
 
 nBasis = numel(L);
 

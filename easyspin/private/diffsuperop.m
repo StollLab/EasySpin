@@ -156,6 +156,7 @@ if usePotential
         % calculate M-dependent 3j-symbol
         if abs(M1)>L1 || abs(M1)>L2, continue; end
         jjjxM = wigner3j(L1,Lx,L2,M1,0,-M1);
+        if jjjxM==0, continue; end
         
         if useSymmetrizedBasis
           % calculate K-dependent factors, 1st term (K2-K1)

@@ -621,6 +621,7 @@ if numel(Potential.lambda)<5, Potential.lambda(5) = 0; end
 if numel(Potential.lambda)>5, error('Too many potential coefficients!'); end
 
 Potential.L = [2 2 4 4 4];
+Potential.M = [0 0 0 0 0];
 Potential.K = [0 2 0 2 4];
 
 % Calculate list of potential coefficients
@@ -969,8 +970,8 @@ for iOri = 1:nOrientations
     if generalLiouvillian && Opt.useLMKbasis
             
       % symmetrize if needed
-      isNotComplexSymmetric = ~isreal(H);
-      if isNotComplexSymmetric
+      isComplexSymmetric = isreal(H);
+      if ~isComplexSymmetric
         L = TT'*L*TT;
         StartingVector = TT'*StartingVector;
       end

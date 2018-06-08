@@ -50,8 +50,10 @@ end
 if any(abs(Potential.K)>Potential.L)
   error('L and K values of potential coefficients do not satisfy -L<=K<=L.');
 end
-if any(abs(Potential.M)>Potential.L)
-  error('L and M values of potential coefficients do not satisfy -L<=K<=L.');
+if isfield(Potential,'M')
+  if any(abs(Potential.M)>Potential.L)
+    error('L and M values of potential coefficients do not satisfy -L<=K<=L.');
+  end
 end
 
 % Precompute 3j values of (L1,L,L2;0,0,0)
