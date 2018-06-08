@@ -445,8 +445,7 @@ if ~isfield(Opt,'pqOrder'), Opt.pqOrder = false; end
 if ~isfield(Opt,'Symmetry'), Opt.Symmetry = 'Dinfh'; end
 if ~isfield(Opt,'SymmFrame'), Opt.SymmFrame = []; end
 if ~isfield(Opt,'PostConvNucs'), Opt.PostConvNucs = ''; end
-if ~isfield(Opt,'SaveSV'), Opt.SaveSV = false; end
-if ~isfield(Opt,'SaveL'), Opt.SaveL = false; end
+if ~isfield(Opt,'saveMatrices'), Opt.saveMatrices = false; end
 if ~isfield(Opt,'useLMKbasis'), Opt.useLMKbasis = true; end
 
 % Obsolete options
@@ -829,14 +828,14 @@ for iOri = 1:nOrientations
     end
     StartingVector = StartingVector(keep);
     
-    if Opt.SaveSV
+    if Opt.saveMatrices
       jer.sv = StartingVector;
     end
     
   else
     StartingVector = chili_startingvector(Basis,Potential,Sys.I);
     
-    if Opt.SaveSV
+    if Opt.saveMatrices
       freed.sv = StartingVector;
     end
     
@@ -932,7 +931,7 @@ for iOri = 1:nOrientations
       H = -imag(L) + 1i*(rL-rL')/2;
       Gamma = (rL+rL')/2;
       
-      if Opt.SaveL && iOri==1
+      if Opt.saveMatrices && iOri==1
         freed.L = L;
         freed.H = H;
         freed.Gamma = Gamma;
@@ -949,7 +948,7 @@ for iOri = 1:nOrientations
         L = -2i*pi*H + Gamma;
       end
       %JDLs
-      if Opt.SaveL && iOri==1
+      if Opt.saveMatrices && iOri==1
         jer.L = L;
         jer.H = 2*pi*H;
         jer.Gamma = Gamma;
@@ -1074,7 +1073,7 @@ if FrequencySweep
   spec = spec*(dB/dnu)*mt2mhz(1,mean(Sys.g)); % scale by g*Beta/h factor for freq sweep
 end
 
-if Opt.SaveL || Opt.SaveSV
+if Opt.saveMatrices
   if generalLiouvillian
     save('jer','jer');
   else
