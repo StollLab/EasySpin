@@ -23,7 +23,7 @@ function X = chili_xlk(Potential,R)
 
 % Shortcut if all lambda are zero
 %---------------------------------------------------------------
-if all(Potential.lambda==0) || isempty(Potential.lambda)
+if ~isfield(Potential,'lambda') || all(Potential.lambda==0) || isempty(Potential.lambda)
   logmsg(1,'Ordering potential: absent');
   X = zeros(0,0);
   return
@@ -47,17 +47,16 @@ if any(~isreal(Potential.lambda))
   error('Only real potential coefficients are allowed.');
 end
 
-%if any((KK<0)|(KK>LL))
-%  error('L and K values of potential coefficients do not satisfy 0<=K<=L.');
-%end
-
-%if any(mod(LL,2) | mod(KK,2))
-%  error('L and K of potential coefficients must be multiples of 2.');
-%end
+if any(abs(Potential.K)>Potential.L)
+  error('L and K values of potential coefficients do not satisfy -L<=K<=L.');
+end
+if any(abs(Potential.M)>Potential.L)
+  error('L and M values of potential coefficients do not satisfy -L<=K<=L.');
+end
 
 % Precompute 3j values of (L1,L,L2;0,0,0)
 %---------------------------------------------------------------------
-persistent jjj;
+persistent jjj
 if (maxL>length(jjj)-1)
   jjj = zeros(maxL+1,maxL+1,maxL+1);
   for L = 0:maxL
@@ -80,10 +79,11 @@ lambda = zeros(maxL+1,2*maxL+1);
 for q = 1:numel(Potential.lambda)
   idxL = Potential.L(q)+1;
   lambda(idxL,+Potential.K(q)+idxL) = Potential.lambda(q);
-  lambda(idxL,-Potential.K(q)+idxL) = Potential.lambda(q);
+  % assure that potential is real-valued
+  lambda(idxL,-Potential.K(q)+idxL) = Potential.lambda(q)*(-1)^Potential.K(q);
 end
 
-% Compute X matrix
+% Compute X^L_K factors
 %---------------------------------------------------------------------
 % X^L_K = -1/2 * A  -  (2*L+1)/4 * B
 % A: term linear in lambda

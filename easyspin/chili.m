@@ -927,12 +927,14 @@ for iOri = 1:nOrientations
       Dynamics.maxL = size(Potential.xlk,1)-1; % used in chili_lm
       [r,c,Vals,nDim] = chili_lm(Sys,Basis.v,Dynamics,Opt.AllocationBlockSize);
       L = sparse(r,c,Vals,BasisSize,BasisSize);
+      rL = real(L);
+      H = -imag(L) + 1i*(rL-rL')/2;
+      Gamma = (rL+rL')/2;
       
       if Opt.SaveL && iOri==1
         freed.L = L;
-        rL = real(L);
-        freed.H = -imag(L) + 1i*(rL-rL')/2;
-        freed.Gamma = (rL+rL')/2;
+        freed.H = H;
+        freed.Gamma = Gamma;
       end
       
     else
