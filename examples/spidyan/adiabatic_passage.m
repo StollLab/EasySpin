@@ -38,7 +38,7 @@ legend(Opt.DetOperator)
 
 figure(2)
 clf
-plot3(real(Signal(2,:)),imag(Signal(2,:)),real(Signal(1,:)));
+plot3(real(Signal(:,2)),imag(Signal(:,2)),real(Signal(:,1)));
 xlabel('<S_x>')
 ylabel('<S_y>')
 zlabel('<S_z>')

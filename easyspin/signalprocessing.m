@@ -9,7 +9,7 @@
 %     out:
 %       x          ... signal(s) after frequency translation
 
-function [ ProcessedSignal ] = signalprocessing(TimeAxis,RawSignal,FreqTranslations)
+function [ProcessedSignal] = signalprocessing(TimeAxis,RawSignal,FreqTranslations)
 
 nDetectionOperators = length(FreqTranslations);
 
@@ -35,14 +35,21 @@ try
     if ndims(RawSignal) == 2 %#ok<ISMAT>
       nPoints = 1;
       % turn it into a 3D array, because thats how they are processed
-      RawSignal = reshape(RawSignal,[1 SignalSize]); 
+      if SignalSize(end) == nDetectionOperators
+        RawSignal = reshape(RawSignal,[1 1 SignalSize]);
+      else
+        RawSignal = reshape(RawSignal,[1 SignalSize(end-1) SignalSize(end)]);
+      end
     else
-      
       nPoints = prod(SignalSize(1:end-2));
       % reshape the n-dimensional array into a 3-dimensional array, that
       % can be looped over linearly along the first dimension (which
       % corresponds to all the acquistion points)
-      RawSignal = reshape(RawSignal,[nPoints,SignalSize(end-1),SignalSize(end)]);
+      if SignalSize(end) == nDetectionOperators
+        RawSignal = reshape(RawSignal,[nPoints SignalSize(end) SignalSize(end-1)]);
+      else
+        RawSignal = reshape(RawSignal,[nPoints SignalSize(end-1) SignalSize(end)]);
+      end
     end
     
     ProcessedSignal = zeros(size(RawSignal));
@@ -59,6 +66,10 @@ try
     if iscell(RawSignal)
       % Gets the size of the traces for the current data point and the time
       % axis if the RawSignal is a CellArray
+      SignalSize = size(RawSignal{iPoint});
+      if SignalSize(2) == nDetectionOperators
+        RawSignal{iPoint} = reshape(RawSignal,[SignalSize(2) SignalSize(1)]);
+      end
       Traces = zeros(size(RawSignal{iPoint}));
       DCTimeAxis = TimeAxis{iPoint};
     else
@@ -162,12 +173,14 @@ try
       end
     end
     if iscell(RawSignal)
-      ProcessedSignal{iPoint} = Traces;
+      ProcessedSignal{iPoint} = Traces.';
     end
   end
   
   if ~iscell(RawSignal)
     ProcessedSignal = reshape(ProcessedSignal,SignalSize);
+    nDimsSignal = length(SignalSize);
+    ProcessedSignal = permute(ProcessedSignal,[1:nDimsSignal-2,nDimsSignal,nDimsSignal-1]);
   end
 catch EM
   % If something goes wrong during down conversion, the RawSignal is
@@ -178,10 +191,12 @@ catch EM
 end
 
 % If only one acquisition point, singleton dimension is removed
-if ~iscell(ProcessedSignal) && ndims(ProcessedSignal) == 3 && size(ProcessedSignal,1) == 1
-  ProcessedSignal = squeeze(ProcessedSignal);
-  if size(ProcessedSignal,2) == 1
-    ProcessedSignal = permute(ProcessedSignal,[2,1]);
+if ~iscell(ProcessedSignal)
+  if ndims(ProcessedSignal) == 3 && size(ProcessedSignal,1) == 1
+    ProcessedSignal = squeeze(ProcessedSignal);
+  end
+  if ndims(ProcessedSignal) == 2 && size(ProcessedSignal,1) == 1 && nDetectionOperators == 1
+    ProcessedSignal = permute(ProcessedSignal,[2 1]);
   end
 end
 

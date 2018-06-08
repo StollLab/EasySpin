@@ -144,6 +144,7 @@ Sys.initState = [0 1/2; 1/2 0]; 	% Start simulation from Sx
 For simulations with relaxation it is possible to provide an equilibrium state <code>eqState</code> that the system relaxes to. 
 This state has to be a density operator matrix form.
 By default the initial state is used as equilibrium state.
+The equilibrium state is only used if relaxation is active, else it is ignored.
 </div>
 
 
@@ -259,7 +260,7 @@ Phace cycling that steps more than one pulse simultaneously is not available thr
 </div>
 
 <p>
-By defining <code>nPoints</code> and  <code>Dim</code> it is possible to vary parameters of the pulse sequence and create one or multidimensional experiments.
+By defining <code>nPoints</code> and  <code>DimX</code> it is possible to vary parameters of the pulse sequence and create one or multidimensional experiments.
 This also changes the structure of the output compared to a single acquisition. 
 More details on how the output changes can be found below.
 </p>
@@ -272,10 +273,9 @@ Exp.nPoints = [10 150]; 	% 10 points along the first indirect dimension, 150 alo
 </pre>
 </div>
 
-<div class="optionfield"><code>Dim</code> or <code>Dim1</code>, <code>Dim2</code>,... </div>
+<div class="optionfield"><code>Dim1</code>, <code>Dim2</code>,... </div>
 <div class="optiondescr">
-For a one-dimensional experiment <code>Dim</code> or <code>Dim1</code> provide the fields that are to be changed.
-Simulations with more than one dimension (field <code>nPoints</code>) require <code>Dim1</code>, <code>Dim2</code>,... . 
+<code>Dim1</code>, <code>Dim2</code>,... provide the fields that are to be changed along the indirect dimensions (field <code>nPoints</code>).  
 The first data point always uses the values defined initially in the experiment definition.
 All fields that appear in the pulse definition can be changed, e.g:
 <pre class="matlab">
@@ -297,20 +297,30 @@ Pulses are allowed to cross, but must not overlap.
 Exp.Dim2 = {'p2.Position' 0.1};   % moves the second pulse 100 ns back each step in the 2nd dimension
 </pre>
 A list of increments can be used by providing vectors with the precomputed increments.
-In this case the initial value is still taken as the one in the sequence definition, and the first element in the list corresponds to the second data point in the indirect dimension.
-All increments are always applied to the initial value of the field and are not related to each other.
-Hence the length of the vector with the increments must be one element shorter than the desired number of data points:
+All increments are always applied to the initial value of the field (as defined in the <code>Exp</code>) and are not related to each other.
+Hence, if the value in the experiment definition is desired as first data point of the indirect dimension, the fist element has to be zero:
+<pre class="matlab">
+Exp.nPoints = 4;
+
+% this
+Exp.Dim1 = {'d2' [0 0.1 0.2 0.3]};
+% is equal to: 
+Exp.Dim1 = {'d2' 0.1}; 
+</pre>
+Complete freedom is given when it comes to providing the list of increments.
 <pre class="matlab">
 Exp.nPoints = 5;
-Exp.Dim = {'d2' [0.1 0.3 0.65 -0.2]};   % increment of the second delay
+Exp.Dim1 = {'d2' [0 0.1 0.3 0.65 -0.2]};   % increment of the second delay
 </pre>
+However, the program checks that changing lengths of events do not lead to overlapping pulses at any acquisition point.
+<p>
 A special case is the field <code>Frequency</code> in the pulse definition of a frequency-swept or of a monochromatic pulse that is defined by identical initial and final frequency.
 Here it is necessary to provide a vector even for a constant increment, with the first element being the change of the initial frequency and the second being the change of the final frequency. 
 A list of increments can be provided as well, by using <code>';'</code> as separator:
 <pre class="matlab">
 Exp.Dim1 = {'p1.Frequency' [-0.005 0.005]};   			% increases sweep width by 10 MHz each step
 Exp.Dim1 = {'p1.Frequency' [0.005 0.005]};    			% moves the excitation band by 5 MHz each step
-Exp.Dim1 = {'p1.Frequency' [0.01 0.01; 0.03 0.03; 0.08 0.08]};  % vector increment
+Exp.Dim1 = {'p1.Frequency' [0 0; 0.01 0.01; 0.03 0.03; 0.08 0.08]};  % vector increment
 </pre>
 For other pulse parameters that are defined by a vector (e.g., the order of an asymmetric hyperbolic secant (HS) pulse <code>Pulse.n</code> or the list of relatives amplitudes of a Gaussian cascade <code>Pulse.A0</code>), selected elements can be incremented by adding an index to the field name:
 <pre class="matlab">
@@ -319,12 +329,12 @@ Exp.Dim1 = {'p1.n(2)' 2};    % increases order of the falling flank of a hyperbo
 
 % Also possible for 'Frequency'
 Exp.Dim1 = {'p1.Frequency(2)' 0.005};    % changes only the final frequency of the pulse
-Exp.Dim1 = {'p1.Frequency' [0 0.005]};   % identical to the above
+Exp.Dim1 = {'p1.Frequency' [0 0.005]};   % identical to the above and not a list of increments!
 </pre>
 Adding an indirect dimension also allows for simultaneous phase cycling of two or more pulses (something that can not be achieved through the <code>Exp.PhaseCycle</code> structure):
 <pre class="matlab">
 Exp.nPoints = 4;
-Exp.Dim = {'p2.Phase,p3.Phase' pi/4};   % changes the phase of the 2nd and 3rd pulse by pi/4 each step
+Exp.Dim1 = {'p2.Phase,p3.Phase' pi/4};   % changes the phase of the 2nd and 3rd pulse by pi/4 each step
 </pre>
 In the above example, the output of <code>spidyan</code> will contain the individual transients from each phase cycling step and manual merging of the dimensions (with proper detection phase/sign) is required to obtain the phase-cycled signal.
 </div>
@@ -656,7 +666,7 @@ In order to keep the echo appearing at the same time during the last event, we c
 
 <pre class="matlab">
 Exp.nPoints = 100;
-Exp.Dim = {'d1,d2', 0.004};
+Exp.Dim1 = {'d1,d2', 0.004};
 </pre>
 
 <p>
@@ -669,7 +679,7 @@ The output now contains 100 echos, each for a different first inter-pulse delay.
 
 <p>
 The data type of the returned time-domain signal depends on experiment parameters. 
-If you run a single experiment (no <code>Exp.nPoints</code>), the output <code>sig</code> is a two-dimensional numeric array, with the first dimension corresponding to the specified detection operators and the second dimension to the time axis. 
+If you run a single experiment (no <code>Exp.nPoints</code>), the output <code>sig</code> is a two-dimensional numeric array, with the first dimension corresponding being the detected transiend and the second dimension specified detection operators. 
 If one the specified detection operators is a ladder operator, say <i>&Scirc;</i><sub>-</sub>, <code>sig</code> is a complex-valued vector. 
 The time axis is returned in <code>t</code> and will be a vector with the same length as <code>sig</code>.
 </p>
@@ -690,12 +700,12 @@ Opt.DetOperator = {'z1','+1'};
 <pre class="mloutput">
 size(sig) = 
 
-           3	  4	  2 	11003
+           3	  4	  11003		2 	
 </pre>
 
 The first dimension of your output has a length of <code>3</code> and the second dimension <code>4</code>.
 These correspond to the indirect dimensions.
-The second-to-last dimension corresponds to the detection operators and the last dimension are the expectation values at each point of time during which was detected.
+The second-to-last dimension corresponds are the expectation values at each point of time during which was detected (the transient)  and the last dimension to the detection operators.
 To get the time trace that corresponds to the second point in the first dimension and the last point in the second dimension you could use: 
 <pre class="matlab">
 trace = sig(2,4,:,:);
