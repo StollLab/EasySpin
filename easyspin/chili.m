@@ -623,9 +623,6 @@ Potential.L = [2 2 4 4 4];
 Potential.M = [0 0 0 0 0];
 Potential.K = [0 2 0 2 4];
 
-% Calculate list of potential coefficients
-Potential.xlk = chili_xlk(Potential,Dynamics.Diff);
-
 % Basis
 %------------------------------------------------------------------
 
@@ -754,7 +751,7 @@ else
     
 end
 
-% Precalculating operator matrices
+% Precalculate 3j symbols and spin operator matrices
 %-----------------------------------------------------------------------
 if generalLiouvillian
   
@@ -771,16 +768,28 @@ if generalLiouvillian
     SxOp = SxOp(idxpq);
   end
   
-  % Calculate relaxation superoperator in spatial basis, expand to full product
-  % basis, and remove unwanted basis functions.
-  logmsg(1,'Calculating the relaxation superoperator matrix');
+end
+
+% Calculate Gamma
+%-----------------------------------------------------------------------
+logmsg(1,'Calculating the relaxation superoperator matrix');
+if generalLiouvillian
+  
+  % Calculate relaxation superoperator in spatial basis
   if Opt.useLMKbasis
-    Gamma = diffsuperop_LMK(Basis,Dynamics.Diff,Potential.xlk);
+    Gamma = diffsuperop_LMK(Basis,Dynamics.Diff,Potential);
   else
-    Gamma = diffsuperop(Basis,Dynamics.Diff,Potential.xlk);
+    Gamma = diffsuperop(Basis,Dynamics.Diff,Potential);
   end
+  % Expand to full product basis
   Gamma = spkroneye(Gamma,Sys.nStates^2);
+  % Remove unwanted elements
   Gamma = Gamma(keep,keep);
+  
+else
+  
+  % Pre-calculate diffusion operator expansion coefficient
+  Potential.xlk = chili_xlk(Potential,Dynamics.Diff);
   
 end
 

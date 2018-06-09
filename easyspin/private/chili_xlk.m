@@ -23,7 +23,7 @@ function X = chili_xlk(Potential,R)
 
 % Shortcut if all lambda are zero
 %---------------------------------------------------------------
-if ~isfield(Potential,'lambda') || all(Potential.lambda==0) || isempty(Potential.lambda)
+if ~isfield(Potential,'lambda') || ~any(Potential.lambda)
   logmsg(1,'Ordering potential: absent');
   X = zeros(0,0);
   return

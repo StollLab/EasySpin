@@ -6,26 +6,34 @@
 % - It does not require any particular order of spatial basis functions.
 %
 % Input:
-%   basis    Structure with quantum numbers for orientational
-%            basis. If .jK is given, the K-symmetrized (L,M,K,jK) basis is
-%            used, otherwise the (L,M,K) basis is used. All field must have
-%            the same number of elements.
-%     .L     L quantum numbers
-%     .M     M quantum numbers
-%     .K     K quantum numbers
-%     .jK    jK quantum numbers (optional) If given, use LMKjK basis,
-%            if missing, use LMK basis.
-%   R        array with 3 principal values of diffusion tensor (s^-1)
-%   XLK      (optional) ordering potential coefficients, as returned by
-%            chili_xlk
+%   basis     Structure with quantum numbers for orientational
+%             basis. If .jK is given, the K-symmetrized (L,M,K,jK) basis is
+%             used, otherwise the (L,M,K) basis is used. All field must have
+%             the same number of elements.
+%     .L      L quantum numbers
+%     .M      M quantum numbers
+%     .K      K quantum numbers
+%     .jK     jK quantum numbers (optional) If given, use LMKjK basis,
+%             if missing, use LMK basis.
+%   R         array with 3 principal values of diffusion tensor (s^-1)
+%   Potential (optional) structure with ordering potential coefficients in
+%             Potential.xlk, as returned by chili_xlk
 %
 % Output:
 %   Gamma    diffusion superoperator in the given LMK or LMKjK basis (s^-1)
 
-function Gamma = diffsuperop(basis,R,XLK)
+function Gamma = diffsuperop(basis,R,Potential)
 
-usePotential = nargin==3 && ~isempty(XLK) && any(XLK(:));
+
+usePotential = nargin==3 && isfield(Potential,'lambda') && ...
+  ~isempty(Potential.lambda) && any(Potential.lambda(:));
+
 useSymmetrizedBasis = isfield(basis,'jK') && ~isempty(basis.jK) && any(basis.jK);
+
+if usePotential
+  % Calculate diffusion operator expansion coefficients
+  XLK = chili_xlk(Potential,R);
+end
 
 L = basis.L;
 M = basis.M;
@@ -84,6 +92,7 @@ for b1 = 1:nBasis
     K2 = K(b2);
     if K1~=K2 && K1~=K2+2 && K1~=K2-2, continue; end
     
+    % Calculate matrix element
     if K1==K2
       val_ = Rperp*L2*(L2+1) + (Rz-Rperp)*K2^2;
     else
@@ -95,7 +104,7 @@ for b1 = 1:nBasis
         val2_ = Np(L2,K2)*(K1==K2+2) + Nm(L2,K2)*((K1==K2-2)+ph*(-K1==K2-2));
         val_ = val_ + Rd*val2_/sqrt((1+(K1==0))*(1+(K2==0)));
       else
-        val_ = val_ + Rd*Np(L2,K2)*(K1==K2+2)/sqrt((1+(K1==0))*(1+(K2==0)));
+        val_ = val_ + Rd*(Np(L2,K2)*(K1==K2+2)+Nm(L2,K2)*(K1==K2-2));
       end
     end
     

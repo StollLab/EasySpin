@@ -3,15 +3,10 @@
 
 function StartingVector = startvec(basis,lambda,SxH)
 
-c20 = lambda(1);
-c22 = lambda(2);
-c40 = lambda(3);
-c42 = lambda(4);
-c44 = lambda(5);
-
 L = basis.L;
 M = basis.M;
 K = basis.K;
+jK = basis.jK;
 nOriBasis = numel(L);
 
 if ~any(lambda)
@@ -23,30 +18,33 @@ if ~any(lambda)
   return
 end
 
-% set up Wigner part of basis
-wigVector = zeros(1,nOriBasis);
-for iWig = 1:numel(wigVector)
-  L_ = L(iWig);
-  M_ = M(iWig);
-  K_ = K(iWig);
-  LMK = [L_ M_ K_];
+c20 = lambda(1);
+c22 = lambda(2);
+c40 = lambda(3);
+c42 = lambda(4);
+c44 = lambda(5);
+
+% set up starting vector in spatial basis
+oriVector = zeros(nOriBasis,1);
+for b = 1:numel(oriVector)
+  L_ = L(b);
+  M_ = M(b);
+  K_ = K(b);
   if mod(L_,2)==0 && M_==0 && mod(K_,2)==0
     % numerically integrate
-    fun = @(a,b,c) wignerd(LMK,a,b,c).*exp(-U(a,b,c)/2);
-    wigVector(iWig) = integral3(fun,0,2*pi,0,pi,0,2*pi);
+    fun = @(a,b,c) wignerd([L_ M_ K_],a,b,c).*exp(-U(a,b,c)/2);
+    oriVector(b) = integral3(fun,0,2*pi,0,pi,0,2*pi);
   end
 end
-wigVector = wigVector/norm(wigVector);
+oriVector = oriVector/norm(oriVector);
 
 % set up spin part of basis
 SxVector = full(SxH(:)/norm(SxH(:)));
 
 % form starting vector in direct product basis
-StartingVector = real(kron(SxVector,wigVector));
+StartingVector = real(kron(SxVector,oriVector));
 StartingVector = StartingVector/norm(StartingVector);
 StartingVector = sparse(StartingVector);
-
-return
 
   function u = U(a,b,c)
     u = 0;
