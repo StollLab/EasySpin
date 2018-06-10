@@ -29,8 +29,6 @@ Exp.DetEvents = [1 1 1];
 Opt.DetOperator = {'z1'};
 Opt.FreqTranslation = [0]; 
 
-% Options ---------------------------
-Opt.FrameShift = 32;
 
 % Function Call -----------------------------
 [signal1] = spidyan(Sys,Exp,Opt);

@@ -23,7 +23,6 @@ Exp.Dim1 = {'p1.Frequency' [0 0; -0.05 0.05; -0.1 0.1]};
 
 % Options ---------------------------
 Opt.DetOperator = {'z1'};
-Opt.FrameShift = 32;
 
 [~, signal1] = spidyan(Sys,Exp,Opt);
 

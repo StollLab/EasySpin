@@ -13,6 +13,7 @@ Sys.ZeemanFreq = [33.500];
 % Options
 Opt.DetOperator = {'z1'};
 Opt.FrameShift = 32;
+Opt.SimulationMode = 'ShiftFrame';
 
 %% Experiment Definition for a monochromatic rectangular pulse
 

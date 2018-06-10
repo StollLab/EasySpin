@@ -13,15 +13,19 @@ Pulse.Qcrit = 10;
 Exp.t = 0.2; % us
 Exp.Pulses = {Pulse};
 Exp.Field = 1240; % mT
-Exp.TimeStep = 0.0001; % us
-Exp.Frequency = [-0.100 0.100]; % Frequency range of pulse 
+% Exp.TimeStep = 0.00001; % us
+Exp.Frequency = [33.400 33.600]; % Frequency range of pulse 
+
 Exp.mwFreq = 33.5; % GHz
+Exp.Frequency = [-0.1 0.1];
+
 Exp.DetEvents = 1;
 
 % Options
 Opt.DetOperator = {'z1','+1'};
 Opt.FreqTranslation = [0 -33.5]; % GHz
-Opt.FrameShift = 32; % GHz
+Opt.FrameShift = 31; % GHz
+% Opt.SimulationMode = 'ShiftFrame';
 
 % Run simulation
 [TimeAxis, Signal] = spidyan(Sys,Exp,Opt);

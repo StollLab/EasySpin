@@ -22,6 +22,7 @@ Exp.DetEvents = 1;
 % Options ---------------------------
 Opt.DetOperator = {'z1'};
 Opt.FrameShift = 32;
+Opt.SimulationMode = 'FrameShift';
 
 % Define initial state
 Sys.initState = -sop(Sys.S,'z');

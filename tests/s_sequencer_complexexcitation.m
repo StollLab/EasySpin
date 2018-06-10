@@ -12,8 +12,6 @@ Exp.Flip = [pi pi pi];
 Exp.mwFreq = 33.5;
 Exp.DetEvents = [1 0 0 0]; 
 
-Opt.FrameShift = 32;
-
 % First Test ---------------------------------------
 
 Opt.ComplexExcitation = [1];

@@ -19,6 +19,7 @@ Exp.DetEvents = [1 0 0];
 
 % Options ---------------------------
 Opt.FrameShift = 32; % GHz
+Opt.SimulationMode = 'FrameShift';
 
 % State Trajectories ---------------------------
 Opt.StateTrajectories = [1 0 1];

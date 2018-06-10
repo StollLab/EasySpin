@@ -20,6 +20,7 @@ Exp.DetEvents = [1 1];
 
 % Options ---------------------------
 Opt.FrameShift = 32;
+Opt.SimulationMode = 'FrameShift';
 
 [t1, signal1] = spidyan(Sys,Exp,Opt);
 

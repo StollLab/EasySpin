@@ -19,7 +19,6 @@ Exp.DetEvents = 1;
 
 % Options ---------------------------
 Opt.DetOperator = {'z1'};
-Opt.FrameShift = 32;
 
 % To test I --------------------------
 Exp.nPoints = [3];

@@ -158,12 +158,6 @@ The equilibrium state is only used if relaxation is active, else it is ignored.
 Magnetic field (in mT) at which the experiment is performed, needs to be provided even if the spinsystem is defined with <code>Sys.ZeemanFreq</code>.
 </div>
 
-<div class="optionfield"><code>TimeStep</code></div>
-<div class="optiondescr">
-Time step in microseconds. If the Nyquist theorem is not fulfilled for the frequency ranges of the pulses, an error is thrown. 
-The required <code>TimeStep</code> depends on the choice of simulation frame, and hence on <code>Opt.FrameShift</code> (see <a href="#opt_frame_shift">there</a> and in the examples).
-</div>
-
 <div class="optionfield"><code>t</code></div>
 <div class="optiondescr">
 Vector that contains the lengths of all the events (pulses and free evolutions) in microseconds.
@@ -186,15 +180,11 @@ The pulse length has to be provided through <code>Exp.t</code>.
 Any values for the pulse length written to the <code>Pulse</code> structure are ignored.
 </div>
 
-<div class="optionfield"><code>Flip</code></div>
+<div class="optionfield"><code>mwFreq</code></div>
 <div class="optiondescr">
-Vector with flip angles for the pulses in radian.
-The indexing does <i>not</i> correspond to the indexing in <code>t</code>, but rather to the pulse indexing.
-Hence, the second element in <code>Flip</code> is the flip angle of the second pulse as defined in <code>Pulses</code>, i.e., to the third event in <code>t</code> in the example above:
-<pre class="matlab">
-Exp.Flip = [pi/2 pi]; 	% Set flip angle of first pulse to pi/2, of second pulse to pi
-</pre>
-An entry of <code>Flip</code> is ignored, if <code>Qcrit</code> or <code>Amplitude</code> were provided for the same pulse.
+EPR spectrometer frequency in GHz.
+If given, all frequencies in <code>Frequency</code> need to be defined relative to it (see there). 
+Required for simulations with resonator.
 </div>
 
 <div class="optionfield"><code>Frequency</code></div>
@@ -217,27 +207,15 @@ Exp.Frequency = [-0.25 0.25];  % sweep range if 'Exp.mwFreq' is defined
 </pre>
 </div>
 
-<div class="optionfield"><code>mwFreq</code></div>
+<div class="optionfield"><code>Flip</code></div>
 <div class="optiondescr">
-EPR spectrometer frequency in GHz.
-If given, all frequencies in <code>Frequency</code> need to be defined relative to it (see there). 
-Required for simulations with resonator.
-</div>
-
-<div class="optionfield"><code>DetEvents</code></div>
-<div class="optiondescr">
-A vector that controls detection. 
-Detection can be set for the entire simulation (meaning detection is on for all events, even pulses) or for specific events:
+Vector with flip angles for the pulses in radian.
+The indexing does <i>not</i> correspond to the indexing in <code>t</code>, but rather to the pulse indexing.
+Hence, the second element in <code>Flip</code> is the flip angle of the second pulse as defined in <code>Pulses</code>, i.e., to the third event in <code>t</code> in the example above:
 <pre class="matlab">
-Exp.DetEvents = true;   	% the entire sequence is detected
-Exp.DetEvents = [0 0 1 1];	% expectation values are only returned the third and fourth event
-Exp.DetEvents = [];		% no detection
-Exp.DetEvents = 0;		% no detection
+Exp.Flip = [pi/2 pi]; 	% Set flip angle of first pulse to pi/2, of second pulse to pi
 </pre>
-If the field <code>DetEvents</code> is not provided, detection is switched off by default.
-Detection operators can be defined in <code>Opt.DetOperator</code>.
-If <code>DetEvents</code> is active, but no detection operator is defined, <i>&Scirc;</i><sub>+</sub> is used for all electron spins.
-The length of <code>DetEvents</code> has to be either 1 or the same length as <code>Exp.t</code>.
+An entry of <code>Flip</code> is ignored, if <code>Qcrit</code> or <code>Amplitude</code> were provided for the same pulse.
 </div>
 
 <div class="optionfield"><code>Phase</code></div>
@@ -257,6 +235,30 @@ PC = [0, 1; pi, -1];   		% phase cycle
 Exp.PhaseCycle = {[] PC};	% phase cycles the second pulse
 </pre>
 Phace cycling that steps more than one pulse simultaneously is not available through the <code>PhaseCycle</code> structure, but can be achieved through adding an additional indirect dimension to the experiment (see <code>Dim</code>).
+</div>
+
+<div class="optionfield"><code>DetEvents</code></div>
+<div class="optiondescr">
+A vector that controls detection. 
+Detection can be set for the entire simulation (meaning detection is on for all events, even pulses) or for specific events:
+<pre class="matlab">
+Exp.DetEvents = true;   	% the entire sequence is detected
+Exp.DetEvents = [0 0 1 1];	% expectation values are only returned the third and fourth event
+Exp.DetEvents = [];		% no detection
+Exp.DetEvents = 0;		% no detection
+</pre>
+If the field <code>DetEvents</code> is not provided, detection is switched off by default.
+Detection operators can be defined in <code>Opt.DetOperator</code>.
+If <code>DetEvents</code> is active, but no detection operator is defined, <i>&Scirc;</i><sub>+</sub> is used for all electron spins.
+The length of <code>DetEvents</code> has to be either 1 or the same length as <code>Exp.t</code>.
+</div>
+
+<div class="optionfield"><code>TimeStep</code></div>
+<div class="optiondescr">
+Time step in microseconds, optional. 
+If no time step is provided, the program computes a suitable time step (taking into account the highest frequency that is being used for the pulse definition <code>Exp.Frequency</code>) and prints it to the command line.
+If the user provides a time step, the program checks if the Nyquist theorem is not fulfilled for the frequency ranges of the pulses and, if not, an error is thrown. 
+The required <code>TimeStep</code> depends on the choice of simulation frame, and hence on <code>Opt.FrameShift</code> (see <a href="#opt_frame_shift">there</a> and in the examples).
 </div>
 
 <p>
@@ -385,24 +387,6 @@ Exp.Resonator.QL = 300;	  	% loaded Q-value
 <code>Opt</code> contains additional simulation parameters.
 </p>
 
-<a name="opt_frame_shift">
-<div class="optionfield"><code>FrameShift</code></div>
-<div class="optiondescr">
-For many simulations it is possible to use a rotating frame at a frequency <code>FrameShift</code> in GHz. 
-This reduces the frequencies <code>Sys.ZeemanFreq</code>,<code>Sys.Frequency</code>/<code>Sys.mwFreq</code>,<code>Opt.FreqTranslation</code> and <code>Sys.g</code> if provided.
-All of the mentioned frequencies still need to be provided in the lab frame.
-<pre class="matlab">
-Exp.mwFreq = 34.4;	      % Set carrier frequency to 34.4 GHz
-Exp.Frequency = [-0.05 0.05]; % Pulse with bandwidth of 100 MHz, sweeps from 34.35 to 34.45 GHz 
-
-Opt.FrameShift = 33;  	      % Shifts all frequencies down by 33 GHz
-</pre>
-Changing the simulation frame allows for using a larger time step, which in turn can strongly reduce computation time.																											 																																										
-The time step is not increased automatically and has to be adapted manually.
-It is also important to keep in mind, that changing the simulation frame reduces the size of diagonal elements of electrons in the Hamiltonian, but leaves off-diagonal elements unaffected.
-In most simulations this will not make much of a difference, but keep in mind, that using <code>FrameShift</code> changes the ratio between diagonal and off-diagonal elements and could lead to unwanted effects.
-</div>
-
 <div class="optionfield"><code>DetOperator</code></div>
 <div class="optiondescr">
 The field <code>DetOperator</code> is a cell array that contains detection operators. 
@@ -446,6 +430,42 @@ Opt.Relaxation = [0 0 1];	% relaxation is active only during the third event
 </pre>
 If relaxation is switched on, relaxation times (<code>Sys.T1</code> and <code>Sys.T2</code>) have to be provided and the simulation is then performed in Liouville space, which slows down the simulation, for larger spin systems tremendously so.
 In order to avoid unexpected behavior, if the <code>Opt.Relaxation</code> is not used to switch relaxation on/off for the entire sequence, the length of it has to match the length of <code>Exp.t</code> (all events need to be defined).
+</div>
+
+<a name="opt_frame_shift">
+<div class="optionfield"><code>SimulationMode</code></div>
+<div class="optiondescr">
+The optional field <code>SimulationMode</code> provides a tool to change the simulation frame, possible values are <code>'LabFrame'</code> and <code>'FrameShift'</code>.
+By default, the program switches into a rotating frame (but not "the rotating frame"), which allows to use a much larger timestep and in turn speeds up the simulation significantly.
+This reduces the energy difference of the diagonal elements of the Hamiltonian (only electron spins are affected), but leaves off-diagonal elements unaffected.
+As long as the difference between diagonal and off-diagonal elements is not reduced to the same order of magnitude, the such introduced error can be neglected.
+If you want to make absolutely sure, that spin dynamics are correct for your simulation, you can force a full lab frame treatment through:
+<pre class="matlab">
+Opt.SimulationMode = 'LabFrame';
+</pre>
+If you want to select the frequency of the rotating frame yourself, you can do so by setting
+<pre class="matlab">
+Opt.SimulationMode = 'FrameShift';
+</pre>
+and by providing the frequency of the rotating frame with <code>Opt.FrameShift</code> in GHz.
+No matter your choice of <code>SimulationMode</code>, all frequencies of your experiments must always be provided in the lab frame.
+</div>
+
+<div class="optionfield"><code>FrameShift</code></div>
+<div class="optiondescr">
+When <code>SimulationMode</code> is set to the value <code>'FrameShift'</code>, the field <code>Opt.FrameShift</code> is the frequency of the rotating frame that you want to use.
+No matter the choice of your simulation frame, all other frequencies must still be given in the lab frame - the program handles all required frequency shifts.
+For example, if you run a Q-band simulation and you do not want to use the default simulation frame, but one that rotates at 30 GHz, you can do so with:
+<pre class="matlab">
+Exp.mwFreq = 34.4;	      	% Set carrier frequency to 34.4 GHz
+Exp.Frequency = [-0.05 0.05]; % Pulse with bandwidth of 100 MHz, sweeps from 34.35 to 34.45 GHz 
+
+Opt.SimulationMode = 'FrameShift';
+Opt.FrameShift = 30;  	      % Changes into a rotating frame with 30 GHz
+</pre>
+Changing the simulation frame allows for using a larger time step, which in turn can strongly reduce computation time.																											 																																										
+Keep in mind, that if a time step is provided with <code>Exp.TimeStep</code> it is not adapted automatically.
+To have the program adapt the time step, remove the field <code>Exp.TimeStep</code> .
 </div>
 
 <div class="optionfield"><code>StateTrajectories</code></div>
@@ -894,7 +914,7 @@ If you are interested in the expectation values of <i>&Scirc;<sub>x</sub></i>, i
 This removes artifacts at the beginning and end of the time traces that are introduced when translating a purely real signal during the signal processing.
 <li> 
 In some simulations you may observe echoes in your timetrace that should not be there.
-Besides physical reasons (incomplete phase cycling, different refocusing conditions,...), such artifact echoes can arise from an aliasing effect if the spectrum (e.g. the Gaussian distribution in the example above) is insufficiently sampled.
+Besides physical reasons (incomplete phase cycling, different refocusing conditions,...), such artifact echoes can arise from an aliasing effect if the spectrum (e.g. the nitroxide spectrum in the example above) is insufficiently sampled.
 This can easily be checked: By increasing the number of samples from your distribution the artifact echoes should move, spread further apart or vanish, while physical echos stay in place. You can also compute the required increment for the spin packet distribution in frequency domain by an inverse Nyquist criterion. 
 If you want to observe up to a time <i>t</i><sub>max</sub> after the first excitation event (first pulse), the frequency increment should not be larger than 1/(2 <i>t</i><sub>max</sub>). Otherwise use Monte Carlo sampling of spin packet frequencies, which will convert the artifacts to 'Monte Carlo noise' that averages with increasing number of trials.  
 <li> 

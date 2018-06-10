@@ -11,7 +11,6 @@ Exp.Frequency = [-0.100 0.100];
 Exp.Flip = [pi pi pi];
 Exp.mwFreq = 33.5;
 
-Opt.FrameShift = 32;
 
 % First Test ---------------------------------------
 

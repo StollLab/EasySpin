@@ -24,6 +24,7 @@ Exp.Resonator.QL = 300;
 % Options ---------------------------
 Opt.DetOperator = {'z1'};
 Opt.FrameShift = 32;
+Opt.SimulationMode = 'FrameShift';
 
 % Function Call -----------------------------
 

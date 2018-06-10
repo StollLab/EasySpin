@@ -21,6 +21,7 @@ Exp.DetEvents = 1;
 % Options -------------------------
 Opt.DetOperator = {'z1'};
 Opt.FrameShift = 32;
+Opt.SimulationMode = 'FrameShift';
 
 % Run simulation --------------
 [TimeAxis, Signal] = spidyan(Sys,Exp,Opt);

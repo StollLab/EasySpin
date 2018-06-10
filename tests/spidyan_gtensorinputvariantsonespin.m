@@ -18,6 +18,7 @@ Exp.DetEvents = [1 1];
 
 % Options ---------------------------
 Opt.FrameShift = 32;
+Opt.SimulationMode = 'FrameShift';
 
 % Isotropic
 Sys.g = [gfree];

@@ -27,6 +27,7 @@ Opt.FreqTranslation = [0 -33.5];
 
 % Options ---------------------------
 Opt.FrameShift = 32;
+Opt.SimulationMode = 'FrameShift';
 
 % Function Call -----------------------------
 

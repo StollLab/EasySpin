@@ -22,6 +22,7 @@ Exp.Dim1 = {'p2.Position' 0.25};
 % Options ---------------------------
 Opt.DetOperator = {'z1'};
 Opt.FrameShift = 32;
+Opt.SimulationMode = 'FrameShift';
 
 [t1, signal1] = spidyan(Sys,Exp,Opt);     
 

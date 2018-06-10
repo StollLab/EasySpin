@@ -45,26 +45,58 @@ else
   IncludeResonator = false;
 end
 
+FreqShift = 0;
 
-% Check if Timestep is sufficient
-if isfield(Exp,'mwFreq') && isfield(Opt,'FrameShift')
-  FreqShift = Exp.mwFreq - Opt.FrameShift;
-elseif  isfield(Opt,'FrameShift')
-  FreqShift = - Opt.FrameShift;
-elseif isfield(Exp,'mwFreq')
-  FreqShift = Exp.mwFreq;
-else
-  FreqShift = 0;
+% Set FrequencyShift and store them in Opt
+if isfield(Exp,'mwFreq')
+  FreqShift = FreqShift + Exp.mwFreq;
 end
-  
-MaxFreq = max(abs(Exp.Frequency(:)/1000+FreqShift));
+
+if isfield(Opt,'SimulationMode') && any(strcmp(Opt.SimulationMode,{'LabFrame' 'FrameShift'}))
+  switch Opt.SimulationMode
+    case 'LabFrame'
+      FreqShift = FreqShift; % Do nothing
+      FrameShift = false;
+    case 'FrameShift'
+      if ~isfield(Opt,'FrameShift')
+        error('If you request ''FrameShift'' with Opt.SimulationMode, you need to provide frequency for shifting with Opt.FrameShift.')
+      end
+      FreqShift = FreqShift - Opt.FrameShift;
+      FrameShift = Opt.FrameShift;
+  end
+else
+  % If no simulation mode is specified, 
+  MinFreq = min(abs(Exp.Frequency(:)+FreqShift));
+  FrameShift = floor(MinFreq-2);
+  if FrameShift > 0
+    FreqShift = FreqShift - FrameShift;
+  end
+  if isfield(Opt,'FrameShift')
+    warning('You provided the field Opt.FrameShift, but did not set Opt.SimulationMode accordingly. Opt.FrameShift ignored, FrameShift is computed automatically.')
+  end	
+end
+
+Opt.FrameShift = FrameShift;
+Opt.FreqShift = FreqShift;
+
+% Check if TimeStep exists and if it is sufficient or, if none provided,
+% compute a new one
+MaxFreq = max(abs(Exp.Frequency(:)+FreqShift));
 Nyquist = 2*MaxFreq;
 MaxTimeStep = 1/Nyquist/1000; %%%%%%% Time Step is in microseconds and Frequencies in GHz
 
-if Exp.TimeStep > MaxTimeStep
-  errMsg = ['Your Time Step (Exp.TimeStep) does not fullfill the Nyquist criterium for the pulses you provided. Adapt it to ' num2str(MaxTimeStep) ' or less.'];
-  error(errMsg);
+if isfield(Exp,'TimeStep')
+  if Exp.TimeStep > MaxTimeStep
+    errMsg = ['Your Time Step (Exp.TimeStep) does not fullfill the Nyquist criterium for the pulses you provided. Adapt it to ' num2str(MaxTimeStep) ' or less.'];
+    error(errMsg);
+  end
+else
+ Exp.TimeStep = round(MaxTimeStep/2,2,'significant');
+ message = ['Exp.TimeStep not provided, assuming ' num2str(Exp.TimeStep) 'us as timestep'];
+ warning(message)
 end
+
+Exp.Frequency = Exp.Frequency*1000; % GHz -> MHz
 
 % Create an empty cell array for all the events
 Events = cell(1,length(Exp.t));
@@ -345,6 +377,9 @@ for iEvent = 1 : length(Exp.t)
   % Store the time step, which will be needed in thyme to calculate time
   % axis and propagators
   Events{iEvent}.TimeStep = Exp.TimeStep;
+  
+  % Keep track of the frameshift
+  Events{iEvent}.FrameShift = FrameShift;
     
 end
 
@@ -530,12 +565,26 @@ if isfield(Exp,'nPoints')
                   % have been checked for pulse modifications, the pulses can
                   % be calculated and stored in the Vary structure
                   if isempty(PulseModifications{PulseNumber})
-                    PulseModifications{PulseNumber} = {iDimension Field Exp.(Field2Get){iLine,2} FieldIndex};
+                    if strcmp(Field,'Frequency') 
+                      % This is necessary to make sure that 'Frequency' is 
+                      % set correctly. In the defintion GHz are being used 
+                      % which need to be turned into MHz (line 99) for pulse().
+                      PulseModifications{PulseNumber} = {iDimension Field Exp.(Field2Get){iLine,2}*1000 FieldIndex};
+                    else
+                      PulseModifications{PulseNumber} = {iDimension Field Exp.(Field2Get){iLine,2} FieldIndex};
+                    end
                   else
                     n = size(PulseModifications{PulseNumber},1);
                     PulseModifications{PulseNumber}{n+1,1} = iDimension;
                     PulseModifications{PulseNumber}{n+1,2} = Field;
-                    PulseModifications{PulseNumber}{n+1,3} = Exp.(Field2Get){iLine,2};
+                    if strcmp(Field,'Frequency') 
+                      % This is necessary to make sure that 'Frequency' is 
+                      % set correctly. In the defintion GHz are being used 
+                      % which need to be turned into MHz (line 99) for pulse().
+                      PulseModifications{PulseNumber}{n+1,3} = Exp.(Field2Get){iLine,2}*1000;
+                    else
+                      PulseModifications{PulseNumber}{n+1,3} = Exp.(Field2Get){iLine,2};
+                    end
                     PulseModifications{PulseNumber}{n+1,4} = FieldIndex;
                   end
               end
@@ -650,13 +699,7 @@ if isfield(Exp,'nPoints')
           
           % Convert array into cell for indexing
           ArrayIndex = num2cell(Pulses{iPulse}.ArrayIndex);
-          
-          %         % Ensure that only element is given for Pulse.Frequency if it is a
-          %         % monochromatic pulse
-          %         if length(Pulses{iPulse}.Frequency) == 2 && Pulses{iPulse}.Frequency(1) == Pulses{iPulse}.Frequency(2)
-          %           Pulses{iPulse}.Frequency = Pulses{iPulse}.Frequency(1);
-          %         end
-          
+                  
           % Compute Wave form and store it
           for iPCstep = 1 : size(Pulses{iPulse}.PhaseCycle,1)
             Pulses{iPulse}.Phase = Pulses{iPulse}.Phase+Pulses{iPulse}.PhaseCycle(iPCstep,1);
@@ -668,16 +711,6 @@ if isfield(Exp,'nPoints')
               [t,IQ] = resonator(t,IQ,Exp.mwFreq,Resonator.Arg1,Resonator.Arg2,Resonator.Arg3);
               Vary.Pulses{iPulse}.Ringing(ArrayIndex{:}) = t(end) - tOrig;
             end
-            % Shifts IQ of the pulse if necessary...
-            if isfield(Exp,'mwFreq') && isfield(Opt,'FrameShift')
-              FreqShift = Exp.mwFreq - Opt.FrameShift;
-            elseif  isfield(Opt,'FrameShift')
-              FreqShift = - Opt.FrameShift;
-            elseif isfield(Exp,'mwFreq')
-              FreqShift = Exp.mwFreq;
-            else
-              FreqShift = 0;
-            end
             if FreqShift ~= 0
               Opt.dt = Exp.TimeStep;
               [~, IQ] = rfmixer(t,IQ,FreqShift,'IQshift',Opt);
@@ -688,18 +721,12 @@ if isfield(Exp,'nPoints')
           Vary.Pulses{iPulse}.ts{ArrayIndex{:}} = t;
 
         else
-          %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% wip
-          %%%%%%%%%%%%%%%%%%%%%%%%%%%% wip
-          %%%%%%%%%%%%%%%%%%%%%%%%%%%% wip
-          %%%%%%%%%%%%%%%%%%%%%%%%%%%% wip
-          %%%%%%%%%%%%%%%%%%%%%%%%%%%% wip
-          
+         
           if IQindex < size(PulseModifications{iPulse},1)
             errMsg = ['It is not possible to combine changing pulse parameters with user defined IQ, please check your Dim input for Pulse ' (num2str(iPulse)) '.'];
             error(errMsg)
           end
-          
-
+ 
           if size(PulseModifications{iPulse},1) == 1
             Dimension = PulseModifications{iPulse}{1,1};
             IndexToLoad = DimensionIndices(Dimension);
@@ -755,11 +782,6 @@ if isfield(Exp,'nPoints')
           Vary.Pulses{iPulse}.IQs{ArrayIndex{:}} = ShiftedUserIQ;
 
           Vary.Pulses{iPulse}.ts{ArrayIndex{:}} = t;
-          
-          %%%%%%%%%%%%%%%%%%%%%%%%%%%% wip
-          %%%%%%%%%%%%%%%%%%%%%%%%%%%% wip
-          %%%%%%%%%%%%%%%%%%%%%%%%%%%% wip
-          %%%%%%%%%%%%%%%%%%%%%%%%%%%% wip
           
         end
 

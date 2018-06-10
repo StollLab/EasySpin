@@ -11,10 +11,12 @@ Exp.Frequency = [-0.100 0.100];
 Exp.Flip = [pi pi pi];
 Exp.mwFreq = 33.5;
 
-Opt.FrameShift = 32;
+Opt.FrameShift = 31;
+Opt.SimulationMode = 'FrameShift';
 
 Exp.mwFreq = 0;
 Opt = rmfield(Opt,'FrameShift');
+Opt = rmfield(Opt,'SimulationMode');
 
 [Events1, Vary1] = runprivate('s_sequencer',Exp,Opt);
 

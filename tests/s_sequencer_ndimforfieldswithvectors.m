@@ -18,7 +18,7 @@ Exp.DetEvents = 1;
 Exp.nPoints = 3;
 Exp.Dim1 = {'p1.n(2)' -2};
 
-Opt = struct('unused',NaN);
+Opt.SimulationMode = 'LabFrame';
 
 [~, Vary1] = runprivate('s_sequencer',Exp,Opt);
 
@@ -34,7 +34,7 @@ Seq2IQs = Vary2.Pulses{1}.IQs;
 Pulse.n = [6 6];
 Pulse.TimeStep = 0.0001;
 Pulse.tp = 0.1;
-Pulse.Frequency = [0.95 1.05];
+Pulse.Frequency = [0.95 1.05]*1000;
 Pulse.Flip = pi;
 % pulse(Pulse)
 

@@ -36,6 +36,7 @@ Exp.DetEvents = [0 0 0 1];
 
 Opt.DetOperator = {'+1'};
 Opt.FrameShift = 32; % GHz
+Opt.SimulationMode = 'FrameShift';
 Opt.FreqTranslation = -33.5; % GHz
 
 % Loop over the spinpackets and sum up the traces ------------

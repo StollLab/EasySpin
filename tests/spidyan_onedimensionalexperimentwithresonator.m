@@ -19,6 +19,7 @@ Exp.DetEvents = 1;
 % Options ---------------------------
 Opt.DetOperator = {'z1'};
 Opt.FrameShift = 32;
+Opt.SimulationMode = 'FrameShift';
 
 % To test --------------------------
 Exp.Resonator.nu0 = 33.5;

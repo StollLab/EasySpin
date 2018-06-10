@@ -25,8 +25,6 @@ Exp.mwFreq = 33.5;
 Opt.DetOperator = {'z1','+1'};
 Opt.FreqTranslation = [0 -33.5]; 
 
-% Options ---------------------------
-Opt.FrameShift = 32;
 
 % Function Call -----------------------------
 

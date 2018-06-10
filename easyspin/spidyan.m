@@ -71,35 +71,29 @@ elseif length(Exp.Field) ~= 1
   error('Exp.Field must be a single number (in mT).');
 end
 
+% Build the Event and Vary structure
+[Events, Vary, Opt] = s_sequencer(Exp,Opt);
+
 % Adapt Zeeman frequencies and g values for the selected simulation frame, 
 % if they are provided
-if isfield(Opt,'FrameShift') && ~isempty(Opt.FrameShift)
-  if Opt.FrameShift < 0
-    warning('The value provided for Opt.FrameShift is negative, but should be positive. The simulation frequency is always shifted to lower frequency and hence does not require a negative sign.')
-    Opt.FrameShift = abs(Opt.FrameShift);
-  end
-  if isfield(Sys,'ZeemanFreq')
-    Sys.ZeemanFreq =  Sys.ZeemanFreq - Opt.FrameShift;
-  end
-  
-  if isfield(Sys,'g')  
-    nElectrons = length(Sys.S);
-    
-    gshift = (Opt.FrameShift*1e9)*planck/bmagn/(Exp.Field(end)*1e-3);
-    
-    issize = @(A,siz) all(size(A)==siz);
-    fullg = issize(Sys.g,[3*nElectrons 3]);
-    if fullg
-      gshiftmat = repmat(gshift*eye(3),[nElectrons,1]);
-      Sys.g = Sys.g - gshiftmat;
-    else
-      Sys.g = Sys.g - gshift;
-    end
-    
-  end
+if isfield(Sys,'ZeemanFreq')
+  Sys.ZeemanFreq =  Sys.ZeemanFreq - Opt.FrameShift;
 end
 
-Exp.Frequency = Exp.Frequency*1000; % GHz -> MHz
+if isfield(Sys,'g')
+  nElectrons = length(Sys.S);
+  
+  gshift = (Opt.FrameShift*1e9)*planck/bmagn/(Exp.Field(end)*1e-3);
+  
+  issize = @(A,siz) all(size(A)==siz);
+  fullg = issize(Sys.g,[3*nElectrons 3]);
+  if fullg
+    gshiftmat = repmat(gshift*eye(3),[nElectrons,1]);
+    Sys.g = Sys.g - gshiftmat;
+  else
+    Sys.g = Sys.g - gshift;
+  end
+end
 
 % Translate Frequency to g values
 if isfield(Sys,'ZeemanFreq')
@@ -122,10 +116,6 @@ end
 if isfield(Sys,'ZeemanFreq')
   Sys = rmfield(Sys,'ZeemanFreq');
 end
-
-% Build the Event and Vary structure
-[Events, Vary] = s_sequencer(Exp,Opt);
-
 
 % Validate and build spin system as well as excitation operators
 [Sys, Sigma, DetOps, Events, Relaxation] = s_propagationsetup(Sys,Events,Opt);
@@ -156,10 +146,8 @@ if ~isempty(RawSignal)
   if isfield(Opt,'FreqTranslation') && ~isempty(Opt.FreqTranslation)
     
     % This adapts the values for FreqTranslation to simulation frame
-    if isfield(Opt,'FrameShift') && ~isempty(Opt.FrameShift)
-      Opt.FreqTranslation(Opt.FreqTranslation > 0) = Opt.FreqTranslation(Opt.FreqTranslation > 0) - Opt.FrameShift;
-      Opt.FreqTranslation(Opt.FreqTranslation < 0) = Opt.FreqTranslation(Opt.FreqTranslation < 0) + Opt.FrameShift;
-    end
+    Opt.FreqTranslation(Opt.FreqTranslation > 0) = Opt.FreqTranslation(Opt.FreqTranslation > 0) - Events{1}.FrameShift;
+    Opt.FreqTranslation(Opt.FreqTranslation < 0) = Opt.FreqTranslation(Opt.FreqTranslation < 0) + Events{1}.FrameShift;
     
     % And then writes them
     FreqTranslation(1:length(Opt.FreqTranslation)) = Opt.FreqTranslation;

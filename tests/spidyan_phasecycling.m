@@ -25,6 +25,7 @@ Exp.Phase = [0 pi];
 % Options ---------------------------
 Opt.DetOperator = {'z1'};
 Opt.FrameShift = 32;
+Opt.SimulationMode = 'FrameShift';
 
 % Function Call -----------------------------
 

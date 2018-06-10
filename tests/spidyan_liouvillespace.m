@@ -23,6 +23,7 @@ Exp.DetEvents = [1 1];
 Opt.DetOperator = {'z1'};
 Opt.FrameShift = 32;
 Opt.Relaxation = 1;
+Opt.SimulationMode = 'FrameShift';
 
 % Function Call -----------------------------
 [~, signal1] = spidyan(Sys,Exp,Opt);

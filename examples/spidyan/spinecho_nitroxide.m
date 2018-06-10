@@ -44,6 +44,7 @@ Exp.DetEvents = [0 0 0 0 1];
 
 Opt.DetOperator = {'+1'};
 Opt.FreqTranslation = -34.78; % GHz
+Opt.SimulationMode = 'LabFrame';
 
 
 %% A refocused echo with monochromatic pulses

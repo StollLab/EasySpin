@@ -12,6 +12,7 @@ Exp.mwFreq = 33.5;
 Exp.DetEvents = 1; 
 
 Opt.FrameShift = 32;
+Opt.SimulationMode = 'FrameShift';
 
 % This tests different ways of defining a dimension where the frequency is
 % swept - They should all give the same results
