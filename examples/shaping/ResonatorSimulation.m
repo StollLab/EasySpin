@@ -14,6 +14,7 @@ clear, clc, clf
 ResonatorFrequency = 9.50; % GHz
 ResonatorQL = 300;
 mwFreq = 9.49; % GHz
+
 % Transfer function (for plot)
 f = 9.2:0.001:9.8;
 H = 1./(1+1i*ResonatorQL*(f/ResonatorFrequency-ResonatorFrequency./f));
