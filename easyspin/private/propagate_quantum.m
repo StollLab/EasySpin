@@ -188,7 +188,7 @@ switch Method
       gTensor = zeros(3,3,nTraj,nSteps);
       ATensor = zeros(3,3,nTraj,nSteps);
       % build the time-dependent tensors using Markov state trajectories
-      for iStep = 1:Par.nSteps
+      for iStep = 1:nSteps
         for iTraj = 1:nTraj
           state = Par.stateTraj(iTraj,iStep);
           gTensor(:,:,iTraj,iStep) = gTensorState(:,:,state);

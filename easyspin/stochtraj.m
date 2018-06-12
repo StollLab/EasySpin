@@ -399,7 +399,7 @@ Sim.nTraj = Par.nTraj;
 if strcmp(Model,'Discrete')
   if isfield(Sys,'States0')
     States0 = Sys.States0;
-    if size(States0,1)~=1 || size(States0,2)~=1 || size(States0,2)~=Par.nTraj
+    if ~all(size(States0)==[1,1])&&~all(size(States0)==[1,Par.nTraj])
       error('States0 should be of size (1,1) or (1,Par.nTraj).')
     end
     if any(States0<1) || any(States0>nStates)
@@ -442,14 +442,27 @@ end
 
 % If only one starting angle and multiple trajectories, repeat the angle
 if ~Opt.statesOnly
-  if size(Omega,1)==3 
-    if size(Omega,2)==1 && Sim.nTraj > 1
-      Omega = repmat(Omega,1,Sim.nTraj);
-    elseif size(Omega,2)~=Sim.nTraj
-      error('Number of starting orientations must be equal to 1 or nTraj.')
-    end
-  else
-    error('The size of Omega must be (3,1) or (3,nTraj).')
+  switch size(Omega,1)
+    case 3
+      % Euler angles
+      if size(Omega,2)==1 && Sim.nTraj > 1
+        Omega = repmat(Omega,1,Sim.nTraj);
+      elseif size(Omega,2)~=Sim.nTraj
+        error('Number of starting orientations must be equal to 1 or nTraj.')
+      end
+      % set starting quaternions
+      % q0 = euler2quat(Omega,'active');
+      q0 = euler2quat(Omega);
+    case 4
+      % quaternions
+      if size(Omega,2)==1 && Sim.nTraj > 1
+        Omega = repmat(Omega,1,Sim.nTraj);
+      elseif size(Omega,2)~=Sim.nTraj
+        error('Number of starting orientations must be equal to 1 or nTraj.')
+      end
+      q0 = Omega;
+    otherwise
+      error('The size of Omega must be (3,1) or (3,nTraj) for Euler angles, or (4,1) or (4,nTraj) for quaternions.')
   end
 end
 
@@ -464,8 +477,6 @@ end
 
 if (strcmp(Model,'Discrete')&&~Opt.statesOnly) || strcmp(Model,'Continuous')
   % initialize quaternion trajectories and their starting orientations
-  % q0 = euler2quat(Omega,'active');
-  q0 = euler2quat(Omega);
   qTraj = zeros(4,Sim.nTraj,Sim.nSteps);
   qTraj(:,:,1) = q0;
 end

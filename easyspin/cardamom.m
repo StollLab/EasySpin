@@ -54,11 +54,6 @@
 %     States         numeric matrix, size = (3,nStates)
 %                    Euler angles for each state's orientation
 %
-%     tLag           double
-%                    time lag (in s) for sampling the MD trajectory to 
-%                    determine states and transitions, used for a Markov
-%                    state model
-%
 %     Sys.lw         double or numeric vector, size = (1,2)
 %                    vector with FWHM residual broadenings
 %                         1 element:  GaussianFWHM
@@ -170,6 +165,11 @@
 %                    incorrect diffusion coefficients, e.g. molecules 
 %                    solvated in TIP3P water have diffusion coefficients
 %                    that are ~2.5x too large
+%
+%     tLag           double
+%                    time lag (in s) for sampling the MD trajectory to 
+%                    determine states and transitions, used for a Markov
+%                    state model
 %
 %     GlobalDiff     double (optional)
 %                    Diffusion coefficient for isotropic global rotational
@@ -408,7 +408,7 @@ if useMD
       
       % use lag time to sample the trajectory such that that the result is
       % Markovian
-      nLag = ceil(Par.dt/MD.dt);
+      nLag = ceil(MD.tLag/MD.dt);
       
       dihedrals = [MD.chi1(1:nLag:end), ...
                    MD.chi2(1:nLag:end), ...
@@ -416,11 +416,12 @@ if useMD
                    MD.chi5(1:nLag:end)];
                  
       MD.nStates = 48;
+%       MD.nStates = 5;
 
       [MD.stateTraj,centroids] = clusterDihedrals(dihedrals,MD.nStates);
       
       MD.nSteps = size(MD.stateTraj, 1);  % TODO: find a way to process different step sizes here
-      Par.dt = tScale*Par.dt;
+      Par.dt = tScale*MD.tLag;
     case 'Raw'
       if ~isfield(MD,'TrajFile')||~isfield(MD,'AtomInfo')
         error('MD.TrajFile and MD.AtomInfo must be provided.')
@@ -436,17 +437,6 @@ if useMD
     otherwise
       error('Entry for MD.TrajType not recognized.')
   end
-  
-%         MD.FrameX = permute(MD.FrameX, [2, 3, 4, 1]);
-%       MD.FrameY = permute(MD.FrameY, [2, 3, 4, 1]);
-%       MD.FrameZ = permute(MD.FrameZ, [2, 3, 4, 1]);
-% 
-%       MDTrajLength = size(MD.FrameX, 4);
-%       
-%       MD.RTraj = zeros(3,3,1,MDTrajLength);
-%       MD.RTraj(:,1,1,:) = MD.FrameX;
-%       MD.RTraj(:,2,1,:) = MD.FrameY;
-%       MD.RTraj(:,3,1,:) = MD.FrameZ;
   
 
   MD.FrameX = permute(MD.FrameX, [2, 3, 4, 1]);
@@ -1082,7 +1072,7 @@ while ~converged
   %           qMult = repmat(euler2quat(gridPhi(iOrient), gridTheta(iOrient), 0),...
   %                          [1,MD.nTraj,MD.nSteps]);
             qLab = repmat(euler2quat(0, gridTheta(iOrient), gridPhi(iOrient)),...
-                           [1,Par.nTraj,Par.nSteps]);
+                           [1,Par.nTraj,nStepsQuant]);
 
             % global diffusion
             if isfield(MD, 'GlobalDiff')
@@ -1143,10 +1133,14 @@ while ~converged
             
           case 'Markov'
             qLab = repmat(euler2quat(0, gridTheta(iOrient), gridPhi(iOrient)),...
-                   [1,Par.nTraj,nStepsQuant]);
+                           [1,Par.nTraj,nStepsQuant]);
+%             qLab = repmat(euler2quat(0, gridTheta(iOrient), gridPhi(iOrient)),...
+%                            [1,Par.nTraj]);
 
             % local diffusion
     %         Sys.Diff = DiffLocal;
+            randints = sort(randi(size(MD.stateTraj,2), 1, Par.nTraj));
+            Sys.States0 = MD.stateTraj(randints).';
             Par.dt = dtStoch;
             Par.nSteps = nStepsStoch;
             Opt.Model = 'Discrete';
@@ -1158,7 +1152,10 @@ while ~converged
               Par.dt = dtQuant;
               Par.nSteps = nStepsQuant;
               Opt.Model = 'Continuous';
+%               Par.Omega = qLab;
+%               Par.Omega = [0;0;0];
               [trash, qTrajGlobal] = stochtraj(Sys,Par,Opt);
+%               qLab = qTrajGlobal;
               qLab = quatmult(qLab, qTrajGlobal);
             end
             

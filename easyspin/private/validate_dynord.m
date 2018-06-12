@@ -91,11 +91,10 @@ switch program
     Sim.LMK = Sys.LMK;
 
     % parse the dynamics parameter input using private function
-    if isfield(Sys,'tcorr'), Dynamics.tcorr = Sys.tcorr;
-    elseif isfield(Sys,'Diff'), Dynamics.Diff = Sys.Diff;
-    elseif isfield(Sys,'logtcorr'), Dynamics.logtcorr = Sys.logtcorr;
-    elseif isfield(Sys,'logDiff'), Dynamics.logDiff = Sys.logDiff;
-    else error('A rotational correlation time or diffusion rate is required.'); end
+    if isfield(Sys,'tcorr'), Dynamics.tcorr = Sys.tcorr; end
+    if isfield(Sys,'Diff'), Dynamics.Diff = Sys.Diff; end
+    if isfield(Sys,'logtcorr'), Dynamics.logtcorr = Sys.logtcorr; end
+    if isfield(Sys,'logDiff'), Dynamics.logDiff = Sys.logDiff; end
     
     % FieldSweep not implemented for stochtraj yet
     [Dynamics, err] = processdynamics(Dynamics,[]);
