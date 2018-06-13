@@ -10,13 +10,15 @@ jK = basis.jK;
 nOriBasis = numel(L);
 
 if ~any(lambda)
-  if L(1)~=0 || M(1)~=0 || K(1)~=0
-    error('The first spatial basis function must be L=M=K=0.');
+  idx0 = find(L==0 & M==0 & K==0);
+  if numel(idx0)~=0
+    error('Exactly one orientational basis function with L=M=K=0 is allowed.');
   end
-  SxVector = SxH(:)/norm(SxH(:));
-  nSpinBasis = numel(SxVector);
+  nSpinBasis = numel(SxH);
+  idx = (idx0-1)*nSpinBasis + (1:nSpinBasis);
   nBasis = nOriBasis*nSpinBasis;
-  StartingVector = sparse(1:nSpinBasis,1,SxVector,nBasis,nBasis);
+  StartingVector = sparse(idx,1,SxH(:),nBasis,nBasis);
+  StartingVector = StartingVector/norm(StartingVector);
   return
 end
 

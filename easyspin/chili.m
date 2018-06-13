@@ -448,21 +448,15 @@ if ~isfield(Opt,'Symmetry'), Opt.Symmetry = 'Dinfh'; end
 if ~isfield(Opt,'SymmFrame'), Opt.SymmFrame = []; end
 if ~isfield(Opt,'PostConvNucs'), Opt.PostConvNucs = ''; end
 if ~isfield(Opt,'Diagnostics'), Opt.Diagnostics = ''; end
-if ~isfield(Opt,'useLMKbasis'), Opt.useLMKbasis = true; end
+if ~isfield(Opt,'useLMKbasis'), Opt.useLMKbasis = false; end
 
 if ~ischar(Opt.Diagnostics) && ~isempty(Opt.Diagnostics) && ~isvarname(Opt.Diagnostics)
-  error('Opt.Diagnosics must be a valid Matlab variable name.');
+  error('If given, Opt.Diagnosics must be a valid Matlab variable name.');
 end
 saveDiagnostics = ~isempty(Opt.Diagnostics);
 
-% Obsolete options
-% Opt.MOMD was used prior to 5.0 for powder simulations (in the presence of ordering potential)
-if isfield(Opt,'MOMD')
-  error('Opt.MOMD is obsolete. Now, a powder/MOMD simulation is automatically performed whenever an ordering potential is given - unless you specify a crystal orientation in Exp.CrystalOrientation.');
-end
-
 if isfield(Opt,'Method')
-  error('Opt.Method is not supported. Did you mean Opt.LiouvMethod?');
+  error('Opt.Method is not supported. Use Opt.LiouvMethod.');
 end
 
 % Set default method for constructing Liouvillian
@@ -764,10 +758,10 @@ else
   Basis.K = Indices(:,3);
   Basis.M = Indices(:,4);
   logmsg(1,'  basis size: %d',Basis.Size);
-  if saveDiagnostics
-    diagnostics.LjKKM = Indices;
-  end
   
+end
+if saveDiagnostics
+  diagnostics.basis = Basis;
 end
 
 % Precalculate 3j symbols and spin operator matrices
@@ -998,9 +992,10 @@ for iOri = 1:nOrientations
       omega = omega0;
     end
     
-    maxDvalLim = 2e3;
     maxDval = max(max(abs(imag(L))));
     logmsg(1,'  size: %dx%d, maxabs: %g',length(L),length(L),full(maxDval));
+    
+    maxDvalLim = 2e3;
     if maxDval>maxDvalLim
       %  error(sprintf('Numerical instability, values in diffusion matrix are too large (%g)!',maxDval));
     end

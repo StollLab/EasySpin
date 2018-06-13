@@ -69,14 +69,14 @@ jKmin = Basis.jKmin;
 deltaK = Basis.deltaK;
 iBasis = 1;
 for L = Basis.Llist
-  if (mod(L,2)==0), Lparity = +1; else, Lparity = -1; end
+  if mod(L,2)==0, Lparity = +1; else, Lparity = -1; end
   for jK = jKmin:2:1
     Kmx = min(L,Kmax);
     for K = 0:deltaK:Kmx
       if (K==0) && (Lparity~=jK), continue; end
       Mmx = min(L,Mmax);
       for M = -Mmx:1:Mmx
-        basisList(iBasis,:) = [L M K jK];
+        basisList(iBasis,:) = [L jK K M];
         iBasis = iBasis + 1;
       end % M
     end % K
@@ -85,9 +85,9 @@ end % L
 
 BasisNew = Basis;
 BasisNew.L = basisList(:,1);
-BasisNew.M = basisList(:,2);
+BasisNew.jK = basisList(:,2);
 BasisNew.K = basisList(:,3);
-BasisNew.jK = basisList(:,4);
+BasisNew.M = basisList(:,4);
 
 %-------------------------------------------------------------------------------
 % LMKjK: K-symmetrized basis in ordering close to LMK
