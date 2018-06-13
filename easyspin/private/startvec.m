@@ -10,11 +10,13 @@ jK = basis.jK;
 nOriBasis = numel(L);
 
 if ~any(lambda)
-  % assumes L=M=K=0 is the first spatial basis function!
+  if L(1)~=0 || M(1)~=0 || K(1)~=0
+    error('The first spatial basis function must be L=M=K=0.');
+  end
   SxVector = SxH(:)/norm(SxH(:));
-  nSpin = numel(SxVector);
-  nBasis = nSpin*nOriBasis;
-  StartingVector = sparse(1:nSpin,1,SxVector,nBasis,nBasis);
+  nSpinBasis = numel(SxVector);
+  nBasis = nOriBasis*nSpinBasis;
+  StartingVector = sparse(1:nSpinBasis,1,SxVector,nBasis,nBasis);
   return
 end
 

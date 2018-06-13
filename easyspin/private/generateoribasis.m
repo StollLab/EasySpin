@@ -1,6 +1,6 @@
 % Generate array of orientational basis functions indices
 % 
-% Basis = generatebasis(Basis,basistype)
+% Basis = generateoribasis(Basis,basistype)
 %
 % Input:
 %   Basis      structure with basis set information
@@ -19,7 +19,7 @@
 %   Basis.M
 %   Basis.jK
 %   
-function BasisNew = generatebasis(Basis,basistype)
+function BasisNew = generateoribasis(Basis,basistype)
 
 if nargin < 2
   basistype = 'LjKKM';

@@ -2,15 +2,20 @@
 % spin basis from the standard descending mm order to ascending pq order,
 % as used by Freed.
 %
-%  Spins: vector of spin quantum numbers
-%  idx:   index vector to convert from descending mm order to ascending pq order
+% Input:
+%  Spins   vector of spin quantum numbers
 %
-%   If H is a Liouville operator matrix with basis functions in descending mm order,
-%   then H(idx,idx) is the same operator with basis functions in ascending pq order.
+% Output:
+%  idx    index vector to convert from descending mm order to ascending pq order
+%  pq     list of (p,q) quantum numbers
+%  mm     list of (m1,m2) quantum numbers
+%
+% If M is an operator matrix a with basis functions in descending mm order, then
+% M(idx,idx) is the same operator with basis functions in ascending pq order.
 %
 % pqorder is used by chili.
 
-function [idx,mm,pq] = pqorder(Spins)
+function [idx,pq,mm] = pqorder(Spins)
 
 nSpins = numel(Spins);
 nStates = 2*Spins+1;

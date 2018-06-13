@@ -201,14 +201,16 @@ if isfield(Sys,'psi')
   error('Sys.psi is obsolete. Remove it from your code. See the documentation for details.');
 end
 
-if ~isfield(Sys,'DiffFrame'), Sys.DiffFrame = [0 0 0]; end
-if ~isfield(Sys,'Exchange'), Sys.Exchange = 0; end
-if ~isfield(Sys,'lambda'), Sys.lambda = []; end
-
 if isfield(Sys,'tcorr'), Dynamics.tcorr = Sys.tcorr; end
 if isfield(Sys,'Diff'), Dynamics.Diff = Sys.Diff; end
 if isfield(Sys,'logtcorr'), Dynamics.logtcorr = Sys.logtcorr; end
 if isfield(Sys,'logDiff'), Dynamics.logDiff = Sys.logDiff; end
+if ~isfield(Sys,'DiffFrame'), Sys.DiffFrame = [0 0 0]; end
+
+if ~isfield(Sys,'lambda'), Sys.lambda = []; end
+
+if ~isfield(Sys,'Exchange'), Sys.Exchange = 0; end
+
 if isfield(Sys,'lwpp'), Dynamics.lwpp = Sys.lwpp; end
 if isfield(Sys,'lw'), Dynamics.lw = Sys.lw; end
 
@@ -435,7 +437,7 @@ end
 % Options
 %-------------------------------------------------------------------
 if isempty(Opt), Opt = struct('unused',NaN); end
-if ~isfield(Opt,'Rescale'), Opt.Rescale = 1; end % rescale A before Lanczos
+if ~isfield(Opt,'Rescale'), Opt.Rescale = 1; end
 if ~isfield(Opt,'Threshold'), Opt.Threshold = 1e-6; end
 if ~isfield(Opt,'Diagnostic'), Opt.Diagnostic = 0; end
 if ~isfield(Opt,'Solver'), Opt.Solver = 'L'; end
@@ -445,13 +447,22 @@ if ~isfield(Opt,'pqOrder'), Opt.pqOrder = false; end
 if ~isfield(Opt,'Symmetry'), Opt.Symmetry = 'Dinfh'; end
 if ~isfield(Opt,'SymmFrame'), Opt.SymmFrame = []; end
 if ~isfield(Opt,'PostConvNucs'), Opt.PostConvNucs = ''; end
-if ~isfield(Opt,'saveMatrices'), Opt.saveMatrices = false; end
+if ~isfield(Opt,'Diagnostics'), Opt.Diagnostics = ''; end
 if ~isfield(Opt,'useLMKbasis'), Opt.useLMKbasis = true; end
+
+if ~ischar(Opt.Diagnostics) && ~isempty(Opt.Diagnostics) && ~isvarname(Opt.Diagnostics)
+  error('Opt.Diagnosics must be a valid Matlab variable name.');
+end
+saveDiagnostics = ~isempty(Opt.Diagnostics);
 
 % Obsolete options
 % Opt.MOMD was used prior to 5.0 for powder simulations (in the presence of ordering potential)
 if isfield(Opt,'MOMD')
   error('Opt.MOMD is obsolete. Now, a powder/MOMD simulation is automatically performed whenever an ordering potential is given - unless you specify a crystal orientation in Exp.CrystalOrientation.');
+end
+
+if isfield(Opt,'Method')
+  error('Opt.Method is not supported. Did you mean Opt.LiouvMethod?');
 end
 
 % Set default method for constructing Liouvillian
@@ -461,7 +472,6 @@ if ~isfield(Opt,'LiouvMethod') || isempty(Opt.LiouvMethod)
   else
     Opt.LiouvMethod = 'general';
   end
-else
 end
 
 [LiouvMethod,err] = parseoption(Opt,'LiouvMethod',{'Freed','general'});
@@ -469,7 +479,7 @@ error(err);
 generalLiouvillian = (LiouvMethod==2);
 
 if ~generalLiouvillian
-  if (Sys.nElectrons>1) || (Sys.S~=1/2)
+  if (Sys.nElectrons>1) || (Sys.S~=1/2) || (Sys.nNuclei>2)
     error('Opt.LiouvMethod=''Freed'' does not work with this spin system.');
   end
 end
@@ -490,7 +500,7 @@ if doPostConvolution
   end
   nPostConvNucs = numel(Opt.PostConvNucs);
   if (Sys.nNuclei-nPostConvNucs>2) && ~generalLiouvillian
-    error('Cannot have more than two nuclei for the Stochastic Liouville equation with this Opt.Method.');
+    error('Cannot have more than two nuclei for the Stochastic Liouville equation with this Opt.LiouvMethod.');
   end
   fullSys = Sys;
   Sys = nucspinrmv(Sys,Opt.PostConvNucs);
@@ -501,7 +511,7 @@ end
 
 if ~generalLiouvillian
   if Sys.nNuclei>2
-    error('Cannot have more than two nuclei for the Stochastic Liouville equation with this Opt.Method.');
+    error('Cannot have more than two nuclei for the Stochastic Liouville equation with this Opt.LiouvMethod.');
   end
 end
 
@@ -649,7 +659,7 @@ end
 
 % Set up list of orientations
 %=====================================================================
-if (PowderSimulation)
+if PowderSimulation
   if Opt.nKnots(1)==1
     phi = 0;
     theta = 0;
@@ -704,30 +714,36 @@ if generalLiouvillian
   
   % Set up basis
   if Opt.useLMKbasis
-    Basis = generatebasis(Basis,'LMK');
+    Basis = generateoribasis(Basis,'LMK');
   else
-    Basis = generatebasis(Basis,'LjKKM');
+    Basis = generateoribasis(Basis,'LjKKM');
   end
   nOriBasis = numel(Basis.L);
   nSpinBasis = Sys.nStates^2;
   logmsg(1,'  complete product basis size: %d (%d spatial, %d spin)',...
     nOriBasis*nSpinBasis,nOriBasis,nSpinBasis);
   
-  % Index vector for reordering basis states from m1-m2 order (standard) to p-q order (Freed)
-  [idxpq,mm,pq] = pqorder(Sys.Spins);
+  % Get (p,q) quantum numbers for transitions, and index vector for reordering
+  % basis states from m1-m2 order (standard) to p-q order (Freed)
+  [idxpq,pq] = pqorder(Sys.Spins);
   
-  % Removing unwanted spin functions
-  rmv = false;
-  % (1) remove any transitions with pS<pSmin
+  % Removing unwanted spin functions (in mm ordering)
+  keep = true;
+  % (1) keep transitions with pS>=pSmin, for each electron
   for ie = 1:Sys.nElectrons
-    rmv = rmv | pq(:,2*ie-1)<Basis.pSmin; % JDL: is this a cause of error?
+    pS = pq(:,2*ie-1);
+    keep = keep & (pS>=Basis.pSmin);
   end
   % (2) remove any transitions with |pI|>pImax, for each nucleus
   for in = 1:Sys.nNuclei
-    rmv = rmv | any(abs(pq(:,2*Sys.nElectrons+2*in-1))>Basis.pImax(in),2);
+    pI = pq(:,2*Sys.nElectrons+2*in-1);
+    keep = keep & abs(pI)>Basis.pImax(in);
   end
-  keep = repmat(~rmv,nOriBasis,1);
-  logmsg(1,'  pruning spin basis: keeping %d of %d functions',sum(~rmv),nSpinBasis);
+  if Opt.pqOrder
+    keep = keep(idxpq);
+  end
+  keep = repmat(keep,nOriBasis,1);
+  logmsg(1,'  pruning spin basis: keeping %d of %d functions',sum(keep),nSpinBasis);
   
   % Apply M=p-1 symmetry (Meirovitch Eq. (A47))
   if Opt.MpSymm
@@ -737,9 +753,9 @@ if generalLiouvillian
     keep = keep & keep_Mp(:);
     logmsg(1,'  applying M-p symmetry: keeping %d of %d functions',sum(keep),numel(keep));
   end
-  
-  logmsg(1,'  final basis size: %d (%f%% of %d)',sum(keep),100*sum(keep)/nOriBasis/nSpinBasis,nOriBasis*nSpinBasis);
     
+  logmsg(1,'  final basis size: %d (%f%% of %d)',sum(keep),100*sum(keep)/nOriBasis/nSpinBasis,nOriBasis*nSpinBasis);
+  
 else
   
   [Basis.Size,Basis.SpatialSize,Indices] = chili_basiscount(Basis,Sys);
@@ -748,7 +764,10 @@ else
   Basis.K = Indices(:,3);
   Basis.M = Indices(:,4);
   logmsg(1,'  basis size: %d',Basis.Size);
-    
+  if saveDiagnostics
+    diagnostics.LjKKM = Indices;
+  end
+  
 end
 
 % Precalculate 3j symbols and spin operator matrices
@@ -756,7 +775,8 @@ end
 if generalLiouvillian
   
   logmsg(1,'Precalculating 3j symbols');
-  [jjj0,jjj1,jjj2] = jjjsymbol(Basis.LLKM,any(F.F1(:)));
+  computeRankOne = any(F.F1(:));
+  [jjj0,jjj1,jjj2] = jjjsymbol(Basis.LLKM,computeRankOne);
   
   logmsg(1,'Setting up the detection operator');
   SxOp = SpinOps{1,1};
@@ -783,12 +803,11 @@ if generalLiouvillian
   end
   % Expand to full product basis
   Gamma = spkroneye(Gamma,Sys.nStates^2);
-  % Remove unwanted elements
   Gamma = Gamma(keep,keep);
   
 else
   
-  % Pre-calculate diffusion operator expansion coefficient
+  % Pre-calculate diffusion operator Wigner expansion coefficient
   Potential.xlk = chili_xlk(Potential,Dynamics.Diff);
   
 end
@@ -837,17 +856,13 @@ for iOri = 1:nOrientations
     end
     StartingVector = StartingVector(keep);
     
-    if Opt.saveMatrices
-      jer.sv = StartingVector;
-    end
-    
   else
+    
     StartingVector = chili_startingvector(Basis,Potential,Sys.I);
     
-    if Opt.saveMatrices
-      freed.sv = StartingVector;
-    end
-    
+  end
+  if saveDiagnostics
+    diagnostics.sv = StartingVector;
   end
   BasisSize = size(StartingVector,1);
   logmsg(1,'  vector size: %dx1',BasisSize);
@@ -872,7 +887,7 @@ for iOri = 1:nOrientations
   if generalLiouvillian
     if Opt.useLMKbasis
       TT = ksymmetrizer(Basis); % in spatial basis
-      TT = kron(TT,eye(BasisSize/length(TT))); % expand to full basis, incl. spin
+      TT = kron(TT,Sys.nStates^2); % expand to full basis, incl. spin
     end
     if explicitFieldSweep
       if Opt.useLMKbasis
@@ -938,31 +953,15 @@ for iOri = 1:nOrientations
       L = sparse(r,c,Vals,BasisSize,BasisSize);
       rL = real(L);
       H = -imag(L) + 1i*(rL-rL')/2;
+      H = H/(2*pi);
       Gamma = (rL+rL')/2;
-      
-      if Opt.saveMatrices && iOri==1
-        freed.L = L;
-        freed.H = H;
-        freed.Gamma = Gamma;
-      end
       
     else
       
       if explicitFieldSweep
         H = BSweep(iB)*HB + HG;
-        %L = -2i*pi*H(keep,keep) + Gamma;
-        L = -2i*pi*H + Gamma;
-      else
-        %L = -2i*pi*H(keep,keep) + Gamma;
-        L = -2i*pi*H + Gamma;
       end
-      %JDLs
-      if Opt.saveMatrices && iOri==1
-        jer.L = L;
-        jer.H = 2*pi*H;
-        jer.Gamma = Gamma;
-      end
-      %JDLe
+      L = -2i*pi*H + Gamma;
       nDim = size(L,1);
       
       if (nDim~=BasisSize)
@@ -970,29 +969,33 @@ for iOri = 1:nOrientations
       end
       if any(isnan(L))
         error('Liouvillian matrix contains NaN entries! Please report.');
-      end 
+      end
+    end
+    
+    if saveDiagnostics && iOri==1
+      diagnostics.L = L;
+      diagnostics.H = H;
+      diagnostics.Gamma = Gamma;
     end
     
     % Appy K-symmetrization if needed to obtain complex symmetric L for Lanczos
-    % algorithm. It is only needed if the imaginary part of L is non-zero.
+    % algorithm. L = -i*H + Gamma is complex symmetric unless H has an imaginary
+    % component.
     if generalLiouvillian && Opt.useLMKbasis
-            
-      % symmetrize if needed
       isComplexSymmetric = isreal(H);
       if ~isComplexSymmetric
         L = TT'*L*TT;
         StartingVector = TT'*StartingVector;
       end
-      
     end
     
-    % Rescale by maximum of Liouvillian superoperator
+    % Rescale by maximum of Liouvillian superoperator, for numerical stability
     if Opt.Rescale
       scale = -min(min(imag(L)));
       L = L/scale;
       omega = omega0/scale;
     else
-      omega = omega0; % angular frequency
+      omega = omega0;
     end
     
     maxDvalLim = 2e3;
@@ -1082,12 +1085,8 @@ if FrequencySweep
   spec = spec*(dB/dnu)*mt2mhz(1,mean(Sys.g)); % scale by g*Beta/h factor for freq sweep
 end
 
-if Opt.saveMatrices
-  if generalLiouvillian
-    save('jer','jer');
-  else
-    save('freed','freed');
-  end
+if saveDiagnostics
+  assignin('base',Opt.Diagnostics,diagnostics);
 end
 
 %==============================================================
