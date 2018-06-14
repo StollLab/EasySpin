@@ -592,7 +592,7 @@ if useMD
   
   % process single long trajectory into multiple short trajectories
   if strcmp(MD.TrajUsage,'Explicit')
-    Par.lag = ceil(2e-9/Par.Dt);  % use 2 ns lag between windows
+    Par.lag = ceil(8e-9/Par.Dt);  % use 2 ns lag between windows
     if Par.nSteps<Par.nBlocks
       % Par.nSteps not changed from user input
       Par.nTraj = floor((Par.nBlocks-Par.nSteps)/Par.lag) + 1;
@@ -923,7 +923,7 @@ switch Model
           pdf(end,:,:) = pdf(1,:,:);  % FIXME why does it truncate to zero in the phi direction?
           pdf = smoothn(pdf);
 %           pdf = smooth3(pdf,'gaussian');
-%           save('pdf.mat', 'pdf')
+          save('pdf_smoothing.mat', 'pdf')
         case 'Markov'
           
       end
