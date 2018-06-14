@@ -3,68 +3,69 @@
 %   chili(Sys,Exp,Opt)
 %   spc = chili(...)
 %   [B,spc] = chili(...)
+%   [nu,spc] = chili(...)
 %
-%   Computes the slow-motion cw EPR spectrum of systems with
-%   one electron and one nuclear spin.
+%   Computes the slow-motion cw EPR spectrum.
 %
 %   Sys: spin system structure
 %
-%     Sys.tcorr           rotational correlation time (in seconds)
-%     Sys.logtcorr        log10 of rotational correlation time (in seconds)
-%     Sys.Diff            diffusion rate (s^-1)
-%     Sys.logDiff         log10 of diffusion rate (s^-1)
+%     Sys.tcorr       rotational correlation time (in seconds)
+%     Sys.logtcorr    log10 of rotational correlation time (in seconds)
+%     Sys.Diff        diffusion rate (s^-1)
+%     Sys.logDiff     log10 of diffusion rate (s^-1)
 %
 %         All fields can have 1 (isotropic), 2 (axial) or 3 (rhombic) elements.
 %         Precedence: logtcorr > tcorr > logDiff > Diff.
 %
-%     Sys.DiffFrame       Euler angles of the diffusion tensor (default [0 0 0])
-%     Sys.lw              vector with FWHM residual broadenings
-%                         1 element:  GaussianFWHM
-%                         2 elements: [GaussianFWHM LorentzianFWHM]
-%                         field sweep: mT, frequency sweep: MHz
-%     Sys.lwpp            peak-to-peak line widths, same format as Sys.lw
-%     Sys.lambda          ordering potential coefficients
-%                         [lambda20 lambda22 lambda40 lambda42 lambda44]
-%     Sys.Exchange        Heisenberg exchange frequency (MHz)
+%     Sys.DiffFrame   Euler angles describing the orientaiton of the
+%                     diffusion tensor in the molecular frame (default [0 0 0])
+%     Sys.lw          vector with FWHM residual broadenings
+%                     1 element:  GaussianFWHM
+%                     2 elements: [GaussianFWHM LorentzianFWHM]
+%                     field sweep: mT, frequency sweep: MHz
+%     Sys.lwpp        peak-to-peak line widths, same format as Sys.lw
+%     Sys.lambda      ordering potential coefficients
+%                       [lambda20 lambda22 lambda40 lambda42 lambda44]
+%     Sys.Exchange    Heisenberg exchange frequency (MHz)
 %
 %    Exp: experimental parameter settings
-%      mwFreq              microwave frequency, in GHz (for field sweeps)
-%      Range               sweep range, [sweepmin sweepmax], in mT (for field sweep)
-%      CenterSweep         sweep range, [center sweep], in mT (for field sweeps
-%      Field               static field, in mT (for frequency sweeps)
-%      mwRange             sweep range, [sweepmin sweepmax], in GHz (for freq. sweeps)
-%      mwCenterSweep       sweep range, [center sweep], in GHz (for freq. sweeps)
-%      nPoints             number of points
-%      Harmonic            detection harmonic: 0, 1 (default), 2
-%      ModAmp              peak-to-peak modulation amplitude, in mT (field sweeps only)
-%      mwPhase             detection phase (0 = absorption, pi/2 = dispersion)
-%      Temperature         temperature, in K
+%      mwFreq         microwave frequency, in GHz (for field sweeps)
+%      Range          sweep range, [sweepmin sweepmax], in mT (for field sweep)
+%      CenterSweep    sweep range, [center sweep], in mT (for field sweeps
+%      Field          static field, in mT (for frequency sweeps)
+%      mwRange        sweep range, [sweepmin sweepmax], in GHz (for freq. sweeps)
+%      mwCenterSweep  sweep range, [center sweep], in GHz (for freq. sweeps)
+%      nPoints        number of points
+%      Harmonic       detection harmonic: 0, 1 (default), 2
+%      ModAmp         peak-to-peak modulation amplitude, in mT (field sweeps only)
+%      mwPhase        detection phase (0 = absorption, pi/2 = dispersion)
+%      Temperature    temperature, in K
 %
 %   Opt: simulation options
-%      LLKM            basis size: [evenLmax oddLmax Kmax Mmax]
-%      PostConvNucs    nuclei to include perturbationally via post-convolution
-%      Verbosity       0: no display, 1: show info
-%      nKnots          number of knots for powder simulation
-%      Symmetry        symmetry to use for powder simulation
+%      LLKM           basis set parameters, [evenLmax oddLmax Kmax Mmax]
+%      PostConvNucs   nuclei to include perturbationally via post-convolution
+%      Verbosity      0: no display, 1: show info
+%      nKnots         number of knots for powder simulation
+%      Symmetry       symmetry to use for powder simulation
 %
 %   Output:
-%     B      magnetic field axis vector, in mT
-%     spc    simulated spectrum, arbitrary units
+%     B               magnetic field axis vector, in mT (for field sweeps)
+%     nu              frequency axis vector, in mT (for frequency sweeps)
+%     spc             simulated spectrum, arbitrary units
 %
 %     If no output arguments are specified, chili plots the
 %     simulated spectrum.
 
 function varargout = chili(Sys,Exp,Opt)
 
-
-if (nargin==0), help(mfilename); return; end
+if nargin==0, help(mfilename); return; end
 
 error(chkmlver);
 if (nargin<2) || (nargin>3), error('Wrong number of input arguments!'); end
-if (nargout<0), error('Not enough output arguments.'); end
-if (nargout>2), error('Too many output arguments.'); end
+if nargout<0, error('Not enough output arguments.'); end
+if nargout>2, error('Too many output arguments.'); end
 
-if (nargin<3), Opt = struct('unused',NaN); end
+if nargin<3, Opt = struct; end
 
 if ~isfield(Opt,'Verbosity')
   Opt.Verbosity = 0; % Log level
@@ -129,7 +130,7 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
     case 0
       cla
       if FrequencySweep
-        if (xAxis(end)<1)
+        if xAxis(end)<1
           plot(xAxis*1e3,spec);
           xlabel('frequency (MHz)');
         else
@@ -138,7 +139,7 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
         end
         title(sprintf('%0.8g mT',Exp.Field));
       else
-        if (xAxis(end)<10000)
+        if xAxis(end)<10000
           plot(xAxis,spec);
           xlabel('magnetic field (mT)');
         else
@@ -220,10 +221,6 @@ usePotential = ~isempty(Potential.lambda) && ~all(Potential.lambda==0);
 
 % Experimental settings
 %-------------------------------------------------------------------
-if isfield(Exp,'MOMD')
-  error('Exp.MOMD is obsolete. Now, a powder/MOMD simulation is automatically performed whenever an ordering potential is given - unless you specify a crystal orientation in Exp.CrystalOrientation.');
-end
-
 if ~isfield(Exp,'nPoints'), Exp.nPoints = 1024; end
 if ~isfield(Exp,'Harmonic'), Exp.Harmonic = []; end
 if ~isfield(Exp,'mwPhase'), Exp.mwPhase = 0; end
@@ -360,10 +357,10 @@ end
 if any(Exp.ModAmp<0) || any(isnan(Exp.ModAmp)) || numel(Exp.ModAmp)~=1
   error('Exp.ModAmp must be either a single positive number or zero.');
 end
-if (Exp.ModAmp>0)
+if Exp.ModAmp>0
   if FieldSweep
     logmsg(1,'  field modulation, amplitude %g mT',Exp.ModAmp);
-    if (Exp.Harmonic<1)
+    if Exp.Harmonic<1
       error('With field modulation (Exp.ModAmp), Exp.Harmonic=0 does not work.');
     end
     Exp.ModHarmonic = Exp.Harmonic;
@@ -390,6 +387,9 @@ switch Exp.Mode
   otherwise, error('Exp.Mode must be either ''perpendicular'' or ''parallel''.');
 end
 logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.Mode);
+if ParallelMode
+  error('chili does not support parallel-mode spectra.');
+end
 
 % Complain if fields only valid in pepper() are given
 if isfield(Exp,'Orientations')
@@ -405,9 +405,9 @@ if ~isempty(Exp.Ordering)
   %  error('Partial ordering (Exp.Ordering) can only be used in a powder simulation.');
   %end
   if isnumeric(Exp.Ordering) && (numel(Exp.Ordering)==1) && isreal(Exp.Ordering)
-    lambda = Exp.Ordering;
-    Exp.Ordering = @(phi,theta) exp(lambda*plegendre(2,0,cos(theta)));
-    logmsg(1,'  partial order (built-in function, coefficient = %g)',lambda);
+    lam = Exp.Ordering;
+    Exp.Ordering = @(phi,theta) exp(lam*plegendre(2,0,cos(theta)));
+    logmsg(1,'  partial order (built-in function, coefficient = %g)',lam);
   elseif isa(Exp.Ordering,'function_handle')
     logmsg(1,'  partial order (user-supplied function)');
   else
@@ -503,12 +503,6 @@ if doPostConvolution
   error(err);
 end
 
-if ~generalLiouvillian
-  if Sys.nNuclei>2
-    error('Cannot have more than two nuclei for the Stochastic Liouville equation with this Opt.LiouvMethod.');
-  end
-end
-
 if any(Sys.n~=1)
   error('Cannot solve the Stochastic Liouville equation for systems with any Sys.n > 1.');
 end
@@ -521,28 +515,20 @@ if numel(Opt.nKnots)<2, Opt.nKnots(2) = 0; end
 if isfield(Opt,'LLMK')
   error('Opt.LLMK is not a valid field. Use Opt.LLKM.');
 end
-if ~isfield(Opt,'LLKM')
-  Opt.LLKM = [14 7 6 2];
-end
+if ~isfield(Opt,'LLKM'), Opt.LLKM = [14 7 6 2]; end
 Basis.LLKM = Opt.LLKM;
-if ~isfield(Opt,'jKmin')
-  Opt.jKmin = [];
-end
+
+if ~isfield(Opt,'jKmin'), Opt.jKmin = []; end
 Basis.jKmin = Opt.jKmin;
-if ~isfield(Opt,'deltaK')
-  Opt.deltaK = [];
-end
+
+if ~isfield(Opt,'deltaK'), Opt.deltaK = []; end
 Basis.deltaK = Opt.deltaK;
 
-if ~isfield(Opt,'pSmin')
-  Opt.pSmin = 0;
-end
+if ~isfield(Opt,'pSmin'), Opt.pSmin = 0; end
 Basis.pSmin = Opt.pSmin;
 
 % Maximum nuclear coherence order
-if ~isfield(Opt,'pImax')
-  Opt.pImax = [];
-end
+if ~isfield(Opt,'pImax'), Opt.pImax = []; end
 if Opt.pImax<0
   error('Opt.pImax must be 0 or larger.');
 end
@@ -555,7 +541,7 @@ Basis.MpSymm = Opt.MpSymm;
 
 switch Opt.Solver
   case 'L'
-    if (Opt.Lentz==1) % Lentz method
+    if Opt.Lentz==1 % Lentz method
       SolverString = 'Lanczos tridiagonalization, left-to-right continued fraction evaluation';
     else
       SolverString = 'Lanczos tridiagonalization, right-to-left continued fraction evaluation';
@@ -723,12 +709,12 @@ if generalLiouvillian
   
   % Removing unwanted spin functions (in mm ordering)
   keep = true;
-  % (1) keep transitions with pS>=pSmin, for each electron
+  % (1) keep only transitions with pS>=pSmin, for each electron
   for ie = 1:Sys.nElectrons
     pS = pq(:,2*ie-1);
     keep = keep & (pS>=Basis.pSmin);
   end
-  % (2) remove any transitions with |pI|>pImax, for each nucleus
+  % (2) keep only transitions with |pI|<=pImax, for each nucleus
   for in = 1:Sys.nNuclei
     pI = pq(:,2*Sys.nElectrons+2*in-1);
     keep = keep & (abs(pI)<=Basis.pImax(in));
@@ -945,10 +931,12 @@ for iOri = 1:nOrientations
       Dynamics.maxL = size(Potential.xlk,1)-1; % used in chili_lm
       [r,c,Vals,nDim] = chili_lm(Sys,Basis.v,Dynamics,Opt.AllocationBlockSize);
       L = sparse(r,c,Vals,BasisSize,BasisSize);
-      rL = real(L);
-      H = -imag(L) + 1i*(rL-rL')/2;
-      H = H/(2*pi);
-      Gamma = (rL+rL')/2;
+      if saveDiagnostics
+        rL = real(L);
+        H = -imag(L) + 1i*(rL-rL')/2;
+        H = H/(2*pi);
+        Gamma = (rL+rL')/2;
+      end
       
     else
       
@@ -958,7 +946,7 @@ for iOri = 1:nOrientations
       L = -2i*pi*H + Gamma;
       nDim = size(L,1);
       
-      if (nDim~=BasisSize)
+      if nDim~=BasisSize
         error('Matrix size (%d) inconsistent with basis size (%d). Please report.',nDim,BasisSize);
       end
       if any(isnan(L))
@@ -1014,7 +1002,7 @@ for iOri = 1:nOrientations
       case 'L' % Lanczos method
         [alpha,beta,minerr] = chili_lanczos(L,StartingVector,omega,Opt);
         minerr = minerr(end);
-        if (minerr<Opt.Threshold)
+        if minerr<Opt.Threshold
           thisspec = chili_contfracspec(omega,alpha,beta);
           logmsg(1,'  converged to within %g at iteration %d/%d',...
             Opt.Threshold,numel(alpha),BasisSize);
@@ -1071,15 +1059,15 @@ for iOri = 1:nOrientations
 end % orientation loop
 
 % Rescale to match rigid limit chili intensities to pepper intensities
-
 spec = spec/(4*pi); % scale by powder average factor of 4pi
-if (~generalLiouvillian) || (generalLiouvillian && strcmp(Opt.Solver,'L'))
+if ~generalLiouvillian || (generalLiouvillian && strcmp(Opt.Solver,'L'))
   spec = spec/2; % scale to match general direct solver intensity (due to Lanczos and S- ?)
 end
 if FrequencySweep
   spec = spec*(dB/dnu)*mt2mhz(1,mean(Sys.g)); % scale by g*Beta/h factor for freq sweep
 end
 
+% Save structure with internal data to workspace for diagnostics
 if saveDiagnostics
   assignin('base',Opt.Diagnostics,diagnostics);
 end
@@ -1091,8 +1079,7 @@ end
 %==============================================================
 % Phasing
 %==============================================================
-spec = cos(Exp.mwPhase)*real(spec)+sin(Exp.mwPhase)*imag(spec);
-%spec = real(exp(1i*Exp.mwPhase)*spec);
+spec = real(exp(-1i*Exp.mwPhase)*spec);
 %==============================================================
 
 
@@ -1145,7 +1132,7 @@ end
 % Basis set analysis
 %==============================================================
 Opt.BasisAnalysis = false;
-if (Opt.BasisAnalysis)
+if Opt.BasisAnalysis
   logmsg(1,'-------------------------------------------------------------------');
   logmsg(1,'Basis set analysis');
   omega_ = linspace(omega(1),omega(end),12);
@@ -1186,15 +1173,10 @@ if isfinite(Exp.Temperature)
   spec = spec*Polarization;
 end
 
-% Parallel mode: no intensities
-if ParallelMode
-  spec = spec*0;
-end
-
 
 %==============================================================
 % Convolutional broadening
-%---------------------------------------------------------
+%--------------------------------------------------------------
 % Convolution with Gaussian only. Lorentzian broadening is already
 % included in the slow-motion simulation via T2.
 fwhmG = Sys.lw(1);
@@ -1226,11 +1208,11 @@ outspec = spec;
 % Field modulation, or derivatives
 %--------------------------------------------------------------
 if FieldSweep
-  if (Exp.ModAmp>0)
+  if Exp.ModAmp>0
     logmsg(1,'  applying field modulation');
     outspec = fieldmod(xAxis,outspec,Exp.ModAmp,Exp.ModHarmonic);
   else
-    if (Exp.DerivHarmonic>0)
+    if Exp.DerivHarmonic>0
       logmsg(1,'  harmonic %d: using differentiation',Exp.DerivHarmonic);
       dx = xAxis(2)-xAxis(1);
       for h = 1:Exp.DerivHarmonic
@@ -1254,7 +1236,7 @@ switch (nargout)
 case 0
   cla
   if FieldSweep
-    if (xAxis(end)<10000)
+    if xAxis(end)<10000
       plot(xAxis,outspec);
       xlabel('magnetic field (mT)');
     else
@@ -1265,7 +1247,7 @@ case 0
     ylabel('intensity (arb.u.)');
     title(sprintf('%0.8g GHz, %d points',Exp.mwFreq,numel(xAxis)));
   else
-    if (xAxis(end)<1)
+    if xAxis(end)<1
       plot(xAxis*1e3,spec);
       xlabel('frequency (MHz)');
     else
@@ -1294,7 +1276,8 @@ return
 %====================================================================
 
 
-%--------------------------------------------------------------------
+
+%========================================================================
 function Basis = processbasis(Bas,maxPotentialK,I,Symmetry)
 
 Basis = Bas;
@@ -1354,9 +1337,9 @@ end
 if ~isfield(Basis,'pImax')
   Basis.pImax = [];
 end
-if (nNuclei==0)
+if nNuclei==0
   Basis.pImax = 0;
-elseif (nNuclei==1)
+elseif nNuclei==1
   pImax = 2*I;
   if isempty(Basis.pImax)
     Basis.pImax = pImax;
@@ -1381,7 +1364,8 @@ Basis.v = [...
   Basis.pImax];
 
 return
-% 
+
+
 %========================================================================
 function [Dyn,err] = processdynamics(D,FieldSweep)
 
@@ -1417,7 +1401,7 @@ end
 switch numel(Dyn.Diff)
   case 1, Dyn.Diff = Dyn.Diff([1 1 1]);
   case 2, Dyn.Diff = Dyn.Diff([1 1 2]);
-  case 3, % Diff already rhombic
+  case 3 % Diff already rhombic
   otherwise
     err = 'Sys.Diff must have 1, 2 or 3 elements (isotropic, axial, rhombic).';
     return
@@ -1433,7 +1417,7 @@ if isfield(Dyn,'lw')
   else
     LorentzFWHM = 0;
   end
-  if (LorentzFWHM~=0)
+  if LorentzFWHM~=0
     % Lorentzian T2 from FWHM in freq domain 1/T2 = pi*FWHM
     Dyn.T2 = 1/LorentzFWHM/pi;
   else

@@ -13,11 +13,15 @@ K = basis.K;
 nOriBasis = numel(L);
 
 if ~any(lambda)
-  % assumes L=M=K=0 is the first spatial basis function!
-  SxVector = SxH(:)/norm(SxH(:));
-  nSpin = numel(SxVector);
-  nBasis = nSpin*nOriBasis;
-  StartingVector = sparse(1:nSpin,1,SxVector,nBasis,nBasis);
+  idx0 = find(L==0 & M==0 & K==0);
+  if numel(idx0)~=1
+    error('Exactly one orientational basis function with L=M=K=0 is allowed.');
+  end
+  nSpinBasis = numel(SxH);
+  idx = (idx0-1)*nSpinBasis + (1:nSpinBasis);
+  nBasis = nOriBasis*nSpinBasis;
+  StartingVector = sparse(idx,1,SxH(:),nBasis,nBasis);
+  StartingVector = StartingVector/sqrt(sum(StartingVector.^2));
   return
 end
 
@@ -41,21 +45,18 @@ for b = 1:numel(oriVector)
 end
 oriVector = oriVector/norm(oriVector);
 
-% set up spin part of basis
-SxVector = full(SxH(:)/norm(SxH(:)));
-
 % form starting vector in direct product basis
-StartingVector = real(kron(SxVector,oriVector));
+StartingVector = real(kron(SxH(:),oriVector));
 StartingVector = StartingVector/norm(StartingVector);
 StartingVector = sparse(StartingVector);
 
   function u = U(a,b,c)
     u = 0;
-    if c20~=0, u = u + wignerd([2 0 0],a,b,c); end
-    if c22~=0, u = u + wignerd([2 2 0],a,b,c); end
-    if c40~=0, u = u + wignerd([4 0 0],a,b,c); end
-    if c42~=0, u = u + wignerd([4 2 0],a,b,c); end
-    if c44~=0, u = u + wignerd([4 4 0],a,b,c); end
+    if c20~=0, u = u + c20*wignerd([2 0 0],a,b,c); end
+    if c22~=0, u = u + c22*(wignerd([2 2 0],a,b,c) + wignerd([2 -2 0],a,b,c)); end
+    if c40~=0, u = u + c40*wignerd([4 0 0],a,b,c); end
+    if c42~=0, u = u + c42*(wignerd([4 2 0],a,b,c) + wignerd([4 -2 0],a,b,c)); end
+    if c44~=0, u = u + c44*(wignerd([4 4 0],a,b,c) + wignerd([4 -4 0],a,b,c)); end
   end
 
 end

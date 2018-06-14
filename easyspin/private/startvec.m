@@ -49,11 +49,11 @@ StartingVector = sparse(StartingVector);
 
   function u = U(a,b,c)
     u = 0;
-    if c20~=0, u = u + wignerd([2 0 0],a,b,c); end
-    if c22~=0, u = u + wignerd([2 2 0],a,b,c); end
-    if c40~=0, u = u + wignerd([4 0 0],a,b,c); end
-    if c42~=0, u = u + wignerd([4 2 0],a,b,c); end
-    if c44~=0, u = u + wignerd([4 4 0],a,b,c); end
+    if c20~=0, u = u + c20*wignerd([2 0 0],a,b,c); end
+    if c22~=0, u = u + c22*(wignerd([2 2 0],a,b,c) + wignerd([2 -2 0],a,b,c)); end
+    if c40~=0, u = u + c40*wignerd([4 0 0],a,b,c); end
+    if c42~=0, u = u + c42*(wignerd([4 2 0],a,b,c) + wignerd([4 -2 0],a,b,c)); end
+    if c44~=0, u = u + c44*(wignerd([4 4 0],a,b,c) + wignerd([4 -4 0],a,b,c)); end
   end
 
 end

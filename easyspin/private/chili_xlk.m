@@ -20,6 +20,10 @@ function X = chili_xlk(Potential,R)
 % Missing minus in Earle: Is he correct and the others wrong?
 % No, sign depends on definition of U = -k T ... or U = + k T...
 
+if isfield(Potential,'M') && any(Potential.M(:))
+  error('chili_xlk does not support potential coefficients with M~=0.');
+end
+
 
 % Shortcut if all lambda are zero
 %---------------------------------------------------------------
@@ -150,9 +154,6 @@ for L = 0:maxL
 
     value = -1/2*A  - (2*L+1)/4*(-1)^K*B;
     X((L)+1,(K)+L+1) = value;
-    if abs(value)>0
-    %fprintf('%d,%d: %f\n',L,K,value);
-    end    
   end
 end
 
