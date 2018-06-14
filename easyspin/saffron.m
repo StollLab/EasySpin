@@ -136,37 +136,37 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
   switch Opt.Output
     case 1
     switch nargout
-      case 0, % plotting, done below
+      case 0 % plotting, done below
       case 1, varargout = {ysum};
       case 2, varargout = {x1,ysum};
-      case 3,
+      case 3
         if TwoDim
           varargout = {x1,x2,ysum};
         else
           varargout = {x1,ysum,out};
         end
-      case 4,
+      case 4
         if TwoDim
           varargout = {x1,x2,ysum,out};
         end
     end
     case 2
     switch nargout
-      case 0, % plotting, done below
+      case 0 % plotting, done below
       case 1, varargout = {zsum};
-      case 2,         
+      case 2         
         if TwoDim
           varargout = {out.f1,zsum};
         else
           varargout = {out.f,zsum};
         end
-      case 3,
+      case 3
         if TwoDim
           varargout = {out.f1,out.f2,zsum};
         else
           varargout = {out.f,zsum,out};
         end
-      case 4,
+      case 4
         if TwoDim
           varargout = {out.f1,out.f2,zsum,out};
         end
@@ -755,12 +755,6 @@ if ~isfield(Opt,'SymmFrame'), Opt.SymmFrame = []; end
 if ~isfield(Opt,'Transitions'), Opt.Transitions = []; end
 if ~isfield(Opt,'Sites'), Opt.Sites = []; end
 
-if ~isfield(Opt,'EndorMethod')
-  % 0 = sum-over-transitions, adjacent level population swap (wrong for >1 nucleus)
-  % 1 = sum-over-transitions, bandwidth-filtered Iy pi pulse on all nuclei
-  % 2 = frequency sweep, bandwidth-filtered Iy pi pulse on all nuclei
-  Opt.EndorMethod = 1;
-end
 
 % Nuclei: which nuclei to include in the simulation
 if isfield(Opt,'Nuclei')
@@ -792,9 +786,33 @@ end
 TwoElectronManifolds = (Sys.nElectrons==1) && (Sys.S==1/2) && ...
   (numel(shfNuclei)==Sys.nNuclei);
 
+% ProductRule: determines whether product rule is used or not
+if ~isfield(Opt,'ProductRule'), Opt.ProductRule = 0; end
+if (Sys.nNuclei==1), Opt.ProductRule = 0; end
+%if (isENDOR), Opt.ProductRule = 1; end
+
+% EndorMethod: how to simulate the effect of the RF pulse in ENDOR
+if ~isfield(Opt,'EndorMethod')
+  % 0 = sum-over-transitions, adjacent level population swap (wrong for >1 nucleus)
+  % 1 = sum-over-transitions, bandwidth-filtered Iy pi pulse on all nuclei
+  % 2 = frequency sweep, bandwidth-filtered Iy pi pulse on all nuclei
+  if numel(shfNuclei)==1 || Opt.ProductRule 
+    Opt.EndorMethod = 0;
+  else
+    Opt.EndorMethod = 1;
+  end
+end
+switch Opt.EndorMethod
+  case 0, logmsg(1,'using population swaps of adjacent nuclear sublevels');
+  case 1, logmsg(1,'using bandwidth-filtered Iy pi pulse, sum over transitions');
+  case 2, logmsg(1,'using bandwidth-filtered Iy pi pulse, full RF sweel');
+  otherwise, error('Unknown setting for Opt.EndorMethod. Must be 0, 1, or 2.');
+end
+
+
 % Expansion factor: determines size of spectral buffer
 if ~isfield(Opt,'Expand')
-  if (nDimensions==1), Opt.Expand = 4; else Opt.Expand = 2; end
+  if (nDimensions==1), Opt.Expand = 4; else, Opt.Expand = 2; end
 end
 maxExpand = 8;
 if (numel(Opt.Expand)~=1) || (Opt.Expand<0) || (Opt.Expand>maxExpand) || rem(Opt.Expand,1)
@@ -810,22 +828,17 @@ if (Opt.nKnots<7)
   error('Opt.nKnots must be at least 7. You gave %d.',Opt.nKnots);
 end
 
-% ProductRule: determines whether product rule is used or not
-if ~isfield(Opt,'ProductRule'), Opt.ProductRule = 0; end
-if (Sys.nNuclei==1), Opt.ProductRule = 0; end
-%if (isENDOR), Opt.ProductRule = 1; end
-
 if (any(realPulse) && Opt.ProductRule)
   error('saffron: Cannot apply product rule and real pulses at the same time.');
 end
 
 if ~isfield(Opt,'OriThreshold'), Opt.OriThreshold = 0.005; end
 
-if ~isfield(Opt,'Window'),
+if ~isfield(Opt,'Window')
   if (nDimensions==1), Opt.Window = 'ham+'; else Opt.Window = 'ham+'; end
 end
 
-if ~isfield(Opt,'ZeroFillFactor');
+if ~isfield(Opt,'ZeroFillFactor')
   Opt.ZeroFillFactor = 2;
 end
 
@@ -1051,13 +1064,13 @@ else
     if Opt.ProductRule
       for iP = 1:nPathways
         for iS = 1:nSubSpaces
-          pathwaybuff{iP,iS} = zeros(siz); 
-          pathwaybuff{iP,iS}(1) = 1e-300i; % make sure it's complex
+          pathwaybuffRe{iP,iS} = zeros(siz); 
+          pathwaybuffIm{iP,iS} = zeros(siz);
         end
       end
     else
-      buff = zeros(siz);
-      buff(1) = 1e-300i; % make sure it's complex
+      buffRe = zeros(siz);
+      buffIm = zeros(siz);
     end
   end
   
@@ -1081,7 +1094,7 @@ logmsg(1,'Looping over %d orientations...',nOrientations);
 
 % Prepare offsets
 if any(realPulse)
-  if ~isfield(Opt,'nOffsets');
+  if ~isfield(Opt,'nOffsets')
     Opt.nOffsets = 291;
   end
   if ~isfield(Opt,'lwOffset')
@@ -1265,8 +1278,8 @@ for iOri = 1:nOrientations
           if ~Opt.TimeDomain
             if Opt.ProductRule
               for iP = 1:nPathways
-                pathwaybuff{iP,iSpace} = zeros(siz);
-                pathwaybuff{iP,iSpace}(1) = 1e-300i; % make sure it's complex
+                pathwaybuffRe{iP,iSpace} = zeros(siz);
+                pathwaybuffIm{iP,iSpace} = zeros(siz);
               end
             end
           end
@@ -1303,9 +1316,9 @@ for iOri = 1:nOrientations
               % Free evolution propagator
               t = Exp.t(iInt);
               if (t>0)
-                if (idxFreeL(iPathway,iInt)==1), E = Ea; else E = Eb; end
+                if (idxFreeL(iPathway,iInt)==1), E = Ea; else, E = Eb; end
                 Left = diag(exp(-2i*pi*E*t)) * Left;
-                if (idxFreeR(iPathway,iInt)==1), E = Ea; else E = Eb; end
+                if (idxFreeR(iPathway,iInt)==1), E = Ea; else, E = Eb; end
                 Right = Right * diag(exp(+2i*pi*E*t));
               end
 
@@ -1351,7 +1364,7 @@ for iOri = 1:nOrientations
                 idxIncL(iPathway,:),idxIncR(iPathway,:),...
                 Ea,Eb,G,D,BlockL{:},BlockR{:});
             else
-              sf_peaks(IncSchemeID,buff,Exp.dt,...
+              sf_peaks(IncSchemeID,buffRe,buffIm,Exp.dt,...
                 idxIncL(iPathway,:),idxIncR(iPathway,:),...
                 Ea,Eb,G,D,BlockL{:},BlockR{:});
             end
@@ -1433,16 +1446,16 @@ for iOri = 1:nOrientations
                     end
                   end
                   
-                case -1
-                  % Sum-over-transitions method, adjacent level population swap
-                  %---------------------------------------------------------
+                case 0
+                  % Sum-over-transitions method, adjacent-level population swap
+                  %------------------------------------------------------------
                   % Loop over all pairs of adjacent nuclear levels and swap
                   % populations. This is correct only for a single nucleus at a
                   % time. (only available method prior to 5.0.21)
                   
                   % loop only over adjacent nuclear sublevel pairs 
-                  for j=1:nNucStates-1
-                    for i=j+1
+                  for j = 1:nNucStates-1
+                    for i = j+1
                       % RF pulse approximation: only swap diagonal elements ii and jj
                       G1_ = G1; q = G1_(i,i); G1_(i,i) = G1_(j,j); G1_(j,j) = q;
                       G2_ = G2; q = G2_(i,i); G2_(i,i) = G2_(j,j); G2_(j,j) = q;
@@ -1524,11 +1537,11 @@ for iOri = 1:nOrientations
                 end
               else
                 if Opt.ProductRule
-                  sf_peaks(IncSchemeID,pathwaybuff{1,iSpace},Exp.dt,[1 2],[1 2],Ea,Eb,G1,D1,Tl1,Tr1);
-                  sf_peaks(IncSchemeID,pathwaybuff{2,iSpace},Exp.dt,[2 1],[2 1],Ea,Eb,G2,D2,Tl2,Tr2);
+                  sf_peaks(IncSchemeID,pathwaybuffRe{1,iSpace},pathwaybuffIm{1,iSpace},Exp.dt,[1 2],[1 2],Ea,Eb,G1,D1,Tl1,Tr1);
+                  sf_peaks(IncSchemeID,pathwaybuffRe{2,iSpace},pathwaybuffIm{2,iSpace},Exp.dt,[2 1],[2 1],Ea,Eb,G2,D2,Tl2,Tr2);
                 else
-                  sf_peaks(IncSchemeID,buff,Exp.dt,[1 2],[1 2],Ea,Eb,G1,D1,Tl1,Tr1);
-                  sf_peaks(IncSchemeID,buff,Exp.dt,[2 1],[2 1],Ea,Eb,G2,D2,Tl2,Tr2);
+                  sf_peaks(IncSchemeID,buffRe,buffIm,Exp.dt,[1 2],[1 2],Ea,Eb,G1,D1,Tl1,Tr1);
+                  sf_peaks(IncSchemeID,buffRe,buffIm,Exp.dt,[2 1],[2 1],Ea,Eb,G2,D2,Tl2,Tr2);
                 end
               end
 
@@ -1566,11 +1579,11 @@ for iOri = 1:nOrientations
                 end
               else
                 if Opt.ProductRule
-                  sf_peaks(IncSchemeID,pathwaybuff{1,iSpace},Exp.dt,[1 2],[1 2],Ea,Eb,G1,D1,Tl1,Tr1);
-                  sf_peaks(IncSchemeID,pathwaybuff{2,iSpace},Exp.dt,[2 1],[2 1],Ea,Eb,G2,D2,Tl2,Tr2);
+                  sf_peaks(IncSchemeID,pathwaybuffRe{1,iSpace},pathwaybuffIm{1,iSpace},Exp.dt,[1 2],[1 2],Ea,Eb,G1,D1,Tl1,Tr1);
+                  sf_peaks(IncSchemeID,pathwaybuffRe{2,iSpace},pathwaybuffIm{2,iSpace},Exp.dt,[2 1],[2 1],Ea,Eb,G2,D2,Tl2,Tr2);
                 else
-                  sf_peaks(IncSchemeID,buff,Exp.dt,[1 2],[1 2],Ea,Eb,G1,D1,Tl1,Tr1);
-                  sf_peaks(IncSchemeID,buff,Exp.dt,[2 1],[2 1],Ea,Eb,G2,D2,Tl2,Tr2);
+                  sf_peaks(IncSchemeID,buffRe,buffIm,Exp.dt,[1 2],[1 2],Ea,Eb,G1,D1,Tl1,Tr1);
+                  sf_peaks(IncSchemeID,buffRe,buffIm,Exp.dt,[2 1],[2 1],Ea,Eb,G2,D2,Tl2,Tr2);
                 end
               end
               
@@ -1604,11 +1617,11 @@ for iOri = 1:nOrientations
                 end
               else
                 if Opt.ProductRule
-                  sf_peaks(IncSchemeID,pathwaybuff{1,iSpace},Exp.dt,1,1,Ea,Eb,G1,D1);
-                  sf_peaks(IncSchemeID,pathwaybuff{2,iSpace},Exp.dt,2,2,Ea,Eb,G2,D2);
+                  sf_peaks(IncSchemeID,pathwaybuffRe{1,iSpace},pathwaybuffIm{1,iSpace},Exp.dt,1,1,Ea,Eb,G1,D1);
+                  sf_peaks(IncSchemeID,pathwaybuffRe{2,iSpace},pathwaybuffIm{2,iSpace},Exp.dt,2,2,Ea,Eb,G2,D2);
                 else
-                  sf_peaks(IncSchemeID,buff,Exp.dt,1,1,Ea,Eb,G1,D1);
-                  sf_peaks(IncSchemeID,buff,Exp.dt,2,2,Ea,Eb,G2,D2);
+                  sf_peaks(IncSchemeID,buffRe,buffIm,Exp.dt,1,1,Ea,Eb,G1,D1);
+                  sf_peaks(IncSchemeID,buffRe,buffIm,Exp.dt,2,2,Ea,Eb,G2,D2);
                 end
               end
 
@@ -1637,9 +1650,9 @@ for iOri = 1:nOrientations
                 end
               else
                 if Opt.ProductRule
-                  sf_peaks(IncSchemeID,pathwaybuff{1,iSpace},Exp.dt,[1 2],[2 1],Ea,Eb,G,D,T1left,T1right);
+                  sf_peaks(IncSchemeID,pathwaybuffRe{1,iSpace},pathwaybuffIm{1,iSpace},Exp.dt,[1 2],[2 1],Ea,Eb,G,D,T1left,T1right);
                 else
-                  sf_peaks(IncSchemeID,buff,Exp.dt,[1 2],[2 1],Ea,Eb,G,D,T1left,T1right);
+                  sf_peaks(IncSchemeID,buffRe,buffIm,Exp.dt,[1 2],[2 1],Ea,Eb,G,D,T1left,T1right);
                 end
               end
 
@@ -1661,11 +1674,12 @@ for iOri = 1:nOrientations
             if Opt.TimeDomain
               thistd = pathwaytd{iPathway,iSpace};
             else
+              pathwaybuff = complex(pathwaybuffRe{iPathway,iSpace},pathwaybuffIm{iPathway,iSpace});
               if (nDimensions==1)
-                thistd = ifft(pathwaybuff{iPathway,iSpace})*nPointsF;
+                thistd = ifft(pathwaybuff)*nPointsF;
                 thistd = thistd(1:Exp.nPoints);
               else
-                thistd = ifft2dpartial(pathwaybuff{iPathway,iSpace},Exp.nPoints,Opt.PartialIFFT);
+                thistd = ifft2dpartial(pathwaybuff,Exp.nPoints,Opt.PartialIFFT);
                 %thistd = thistd;
               end
             end
@@ -1720,6 +1734,7 @@ else
       td = totaltd;
     else
       logmsg(1,'Postprocessing...');
+      buff = complex(buffRe,buffIm);
       if (nDimensions==1)
         td = ifft(buff)*numel(buff);
         td = td(1:Exp.nPoints);
@@ -1752,7 +1767,7 @@ if ~isENDOR
       switch (nDimensions)
         case 1
           t1 = (0:Exp.nPoints-1)*Exp.dt;
-        case 2,
+        case 2
           t1 = (0:Exp.nPoints(1)-1)*Exp.dt(1);
           t2 = (0:Exp.nPoints(2)-1)*Exp.dt(2);          
       end
@@ -1852,7 +1867,7 @@ if ~isENDOR
 
   end
 
-  if max(abs(fd))<1e-300;
+  if max(abs(fd))<1e-300
     fd = fd*0;
   end
 
@@ -1868,7 +1883,7 @@ else
   % Collect output structure
   f1 = rf;
   fd = endorspc;
-  if max(abs(fd))<1e-300;
+  if max(abs(fd))<1e-300
     fd = fd*0;
   end
   out = [];
@@ -1888,7 +1903,7 @@ else
   switch nargout
     case 1, varargout = {td};
     case 2, varargout = {t1,td};
-    case 3, if (nDimensions==2), varargout = {t1,t2,td}; else varargout = {t1,td,out}; end
+    case 3, if (nDimensions==2), varargout = {t1,t2,td}; else, varargout = {t1,td,out}; end
     case 4, if (nDimensions==2), varargout = {t1,t2,td,out}; end
   end
 end

@@ -31,42 +31,32 @@
 <div class="subtitle">Overview</div>
 
 <p>
-EPR spectra are not infinitely sharp, they are broadened by relaxation, unresolved hyperfine splittings,
-or distributions in magnetic properties such as g and A values, and others. EasySpin allows you to include
-broadening in most spectral simulations (solid-state cw EPR with
+EPR spectra do not consist of a discrete set of infinitely sharp lines. Lines are broadened by dynamic effects (relaxation, tumbling, chemical exchange) or static effects (orientational disorder, unresolved hyperfine splittings, distributions in magnetic properties such as g, A, and D values).
+
+<p>
+EasySpin takes orientational disorder into account explicitly for solid-state spectra. It allows you to include some forms of additional broadening in most spectral simulations (solid-state cw EPR with
 <a class="esf" href="pepper.html">pepper</a>, liquid EPR with
 <a class="esf" href="garlic.html">garlic</a>, ENDOR with
-<a class="esf" href="salt.html">salt</a>).
+<a class="esf" href="salt.html">salt</a>). In addition, any static broadening model can be implemented using <a href="#explicit">explicit averaging</a>.
 </p>
 
 <p>
-There are two types of broadenings
+The two types of broadening models built into EasySpin are:
 
 <ul>
 <li>
 <a href="#convol">Isotropic convolutional broadenings</a>:
-A convolutional spectral broadening is computed by convoluting the final simulated stick spectrum
-with a Gaussian or Lorentzian line shape of a given width. This broadening method is the 
-simplest possible: it is isotropic and does not assume any physical model causing the broadening.
-It can be used to visually adjust the broadening of a simulated spectrum to match the one of
-an experimental one. Since this broadening method does not assume a physical reason for the broadening,
-it is often called "phenomenological". It should only be applied to S=1/2 systems with small g
-anisotropy.
+A convolutional spectral broadening is computed by convolving the final simulated field-swept or frequency-swept stick spectrum with a Gaussian or Lorentzian line shape of a given width. This broadening method is the simplest possible: it is isotropic and is not based on any physical model causing the broadening. It can be used to visually adjust the broadening of a simulated spectrum to match the one of an experimental one. Since this broadening method does not assume a physical reason for the broadening, it is often called "phenomenological". It should only be applied to S=1/2 systems with small g anisotropy. It works OK for high-spin systems with small zero-field splittings such as organic triplets.
+
 <li>
-<a href="#aniso">Anisotropic broadenings</a>: Often, the spectral broadening depends on the orientation
-of the spin system relative to the external magnetic field. Such broadenings are taken into account in
-the simulation by adding to the simulated spectrum a Gaussian for each resonance line during the
-simulation. Physical origins for anisotropic broadenings are unresolved hyperfine splittings and so-called
-strains. A strain is a distribution in a spin hamiltonian parameter due to small structural variations among
-the paramagnetic centers in the sample. E.g., g strain describes a distribution of g principal values.
+<a href="#aniso">Anisotropic broadenings</a>: Often, the spectral broadening depends on the orientation of the spin center relative to the external magnetic field. Such broadenings are taken into account in the simulation by adding to the simulated spectrum a Gaussian for each resonance line during the simulation. Physical origins for anisotropic broadenings are unresolved hyperfine splittings and so-called strains. A strain is a distribution in a spin hamiltonian parameter due to small structural variations among the paramagnetic centers in the sample. For example, g strain describes a distribution of g principal values.
 </ul>
 
 <p>
 The broadenings are given in fields of the <a href="spinsystem.html">spin system structure</a>, which contains the spin system and all associated spin Hamiltonian parameters. Not all types of broadenings are supported by all simulation functions.
 
 <p>
-Broadenings are treated differently in the simulation of slow-motion cw EPR spectra
-using <code>chili</code>. See the documentation of <a class="esf" href="chili.html">chili</a>.
+Broadenings are treated differently in the simulation of slow-motion cw EPR spectra using <code>chili</code>. See the documentation of <a class="esf" href="chili.html">chili</a>.
 </p>
 
 <p>
@@ -81,14 +71,15 @@ Use only broadenings of one type at a time.
 <div class="subtitle"><a name="convol">Isotropic convolutional broadenings</a></div>
 
 <p>
-<span style="color:#ff0000">Warning!</span> This type of broadening should only be used
-for S=1/2 systems with very small g anisotropy. For systems with higher electron spin or
-with substantial g anisotropy, it will lead to incorrect results.
+This type of broadening is applied by convolving a stick spectrum with a single lineshape. Therefore, it applies the same line width and line shape to each transition and orientation.
 </p>
 
 <p>
-The following fields in the spin system structure specify
-convolutional broadenings.
+Isotropic convolutional broadening should only be used for S=1/2 systems with very small g anisotropy, and for S>1/2 systems with small zero-field splittings. For systems with substantial g anisotropy, or higher electron spin with substantial zero-field splitting, it will lead to incorrect results. The reason is that in those cases, distributions in g and D are almost always dominant, and a simple comvolutional broadening is inappropriate.
+</p>
+
+<p>
+The following fields in the spin system structure specify convolutional broadenings.
 </p>
 
 <p>
@@ -130,24 +121,32 @@ Line width (FWHM) for ENDOR broadening. Usage is the same as <code>lw</code>. Fo
 
 
 <p>
-Anisotropic broadenings in solid-state cw EPR spectra has two main physical origins:
+To model anisotropic broadenings in solid-state cw EPR spectra, use fields depending on the physical origin of the broadening:
 <ul>
-<li>unresolved hyperfine couplings (<code>HStrain</code>)
-<li>strains, i.e. distributions in Hamiltonian parameters (<code>gStrain</code>,
-<code>AStrain</code> and <code>DStrain</code>).
+<li>For unresolved hyperfine splittings, use <code>HStrain</code>.
+<li>For strains, i.e. distributions in spin Hamiltonian parameters: use <code>gStrain</code>, <code>AStrain</code> and/or <code>DStrain</code>.
 </ul>
 
 <p>
-More than one of these broadenings can be specified. The total broadening for a given orientation is the combination of all individual broadenings
+More than one of these broadenings can be specified simultaneously. The total broadening for a given orientation is the combination of all individual broadenings.
 </p>
+
+<p>
+The broadenings resulting from the various strains are computed in an approximate way. For example, for <code>gStrain</code>, the derivative with respect to g of the resonance field of a given transition is computed, and then the magnitude of this derivative is multiplied by the value from <code>gStrain</code> to give the actual line width. A Gaussian with this line width is then added to the spectrum. A similar procedure is used for all other strains.
+
+<p>
+This approximation, which corresponds to the first term in a Taylor expansion or to first-order perturbation theory, is valid only as long as the strain distribution width is much smaller than the parameter itself, e.g. a <code>gStrain</code> of 0.02 for a <code>g</code> of 2. If the distributions is wider, an explicit loop (see below) should be used, see <a href="#explicit">below</a>.
+
 
 <div class="optionfield"><code>HStrain</code></div>
 <div class="optiondescr">
-Residual line width (full width at half height, FWHM), in MHz, describing broadening due to unresolved hyperfine couplings. The three components are the Gaussian line widths in the x, y and z direction of the molecular frame.
+<code>[FWHM_x FWHM_y FWHM_z]</code>
+<br>
+Anisotropic residual line width (full width at half height, FWHM), in MHz, describing broadening due to unresolved hyperfine couplings or other transition-independent effects. The three components are the Gaussian line widths in the x, y and z direction of the molecular frame.
 
 <pre class="matlab">
 Sys.HStrain = [10 10 10];        % 10 MHz Gaussian FWHM broadening in all directions
-Sys.HStrain = [10 10 50];        % larger broadening along the molecular z axis
+Sys.HStrain = [10 10 50];        % broadening along the molecular z axis larger than along x and y
 </pre>
 
 <p>
@@ -174,14 +173,17 @@ If the spin system contains only one electron spin, it is possible to specify co
 <div class="optiondescr">
 <code>[FWHM_gx FWHM_gy FWHM_gz]</code>
 <br>
-Defines the g strain for the electron spin. It specifies the FWHM widths of the Gaussian distributions of the g principal values (x, y and z). The distributions are assumed to be completely uncorrelated. g strain is not supported for systems with more than one electron spin.
+Defines the g strain for the electron spin. It specifies the FWHM widths of the Gaussian distributions of the g principal values (gx, gy and gz). The distributions are assumed to be completely uncorrelated.
+
+<p>If the spin system contains more than one electron spin, <code>gStrain</code> should contain one row for each electron spin.
+
 </div>
 
 <div class="optionfield"><code>AStrain</code></div>
 <div class="optiondescr">
 <code>[FWHM_Ax FWHM_Ay FWHM_Az]</code>, in MHz
 <br>
-Vector of FWHM widths (in Megahertz) of the Gaussian distributions of the corresponding principal values in <code>A</code> (x, y, z) of the first nucleus in the spin system. The distributions are completely uncorrelated. AStrain is not supported for systems with more than one electron spin.
+Vector of FWHM widths (in MHz) of the Gaussian distributions of the corresponding principal values in <code>A</code> (Ax, Ay, Az) of the first nucleus in the spin system. The distributions are completely uncorrelated. AStrain is not supported for systems with more than one electron spin, and it is only available for the first nucleus.
 
 To set the correlation between <code>gStrain</code> and <code>AStrain</code>, use the field <code>gAStrainCorr</code>.
 </div>
@@ -190,7 +192,7 @@ To set the correlation between <code>gStrain</code> and <code>AStrain</code>, us
 <div class="optiondescr">
 <code>+1</code> (default) or <code>-1</code>
 <br>
-Sets the correlation between <code>gStrain</code> and <code>AStrain</code>. <code>+1</code> indicates that positive change in gx is correlated with a positive change in Ax etc,whereas <code>-1</code> indicates anticorrelation. 
+Sets the correlation between <code>gStrain</code> and <code>AStrain</code>. <code>+1</code> indicates that positive change in gx is correlated with a positive change in Ax etc, whereas <code>-1</code> indicates anticorrelation. 
 </div>
 
 <div class="optionfield"><code>DStrain</code></div>
@@ -198,6 +200,9 @@ Sets the correlation between <code>gStrain</code> and <code>AStrain</code>. <cod
 <code>FWHM_D</code> or <code>[FWHM_D FWHM_E]</code>
 <br>
 Widths (FWHM) in MHz of the Gaussian distributions of the scalar parameters D and E that specify the D matrix of the <a href="hamiltonian.html#zfi">zero-field interaction</a>. If <code>FWHM_E</code> is omitted, it defaults to zero.
+
+<p>
+The distributions in D and in E are treated as uncorrelated, unless <code>DStrainCorr</code> is provided.
 
 <p>If the spin system contains more than one electron spin, <code>DStrain</code> should contain one row for each electron spin.
 </p>
@@ -213,24 +218,55 @@ Examples:
 <div class="optiondescr">
 <code>+1</code> (default) or <code>-1</code>
 <br>
-Sets the correlation coefficient between <code>D</code> and <code>E</code>, which can be between -1 and +1. <code>+1</code> indicates that positive change in D is correlated with a positive change in E, whereas <code>-1</code> indicates anticorrelation. If not given, it defaults to 0, and the distributions in D and E are uncorrelated.
+Sets the correlation coefficient between <code>D</code> and <code>E</code>, which can be between -1 and +1. <code>+1</code> indicates that positive change in D is correlated with a positive change in E, whereas <code>-1</code> indicates anticorrelation. Any value between -1 and +1 is possible. If not given, it defaults to 0, and the distributions in D and E are uncorrelated.
 
 <p>
 If the spin system has more than one electron spin, give one correlation coefficient per electron spin.
 </div>
 
-
-
-<p>
-The broadenings resulting from the various strains are computed in an approximate way. For example, for <code>gStrain</code>, the derivative with respect to g of the resonance field of a given transition is computed, and then the magnitude of this derivative is multiplied by the value from <code>gStrain</code> to give the actual line width. A Gaussian with this line width is then added to the spectrum. A similar procedure is used for all other strains.
+<div class="subtitle"><a name="explicit">Broadening via explicit averaging over distributions</a></div>
 
 <p>
-This approximation, which corresponds to the first term in a Taylor expansion or to first-order perturbation theory, is valid only as long as the strain distribution width is much smaller than the parameter itself, e.g. a <code>gStrain</code> of 0.02 for a <code>g</code> of 2. If the distributions is wider, an explicit loop (see below) should be used.
-
-<div class="subtitle">Using your own broadening models</div>
+You can model any arbitrary form of inhomogeneous broadening. For this, run explicit loops over distributions of spin Hamiltonian parameters, simulate the associated spectra and sum them up (including weights of the distribution function) to obtain an broadened spectrum.
+</p>
 
 <p>
-When none of the above inhomogeneous broadenings apply to your problem, you can always run a loop over any distribution of spin Hamiltonian parameters, simulate the associated spectra and sum them up (including weights of the distribution function) to obtain an inhomogeneously broadened line.
+This approach is necessary if the distributions are so broad as to render the built-in perturbational treatment invalid, or if you want to average over non-Gaussian distributions, or correlated distributions, or distributions over parameters other than g, A, and D.
+</p>
+
+<p>
+Here is a basic example for a broad Gaussian distribution of D:
+
+<pre class="matlab">
+% Set up distribution of D
+D0 = 1000;                      % center of distribution, MHz
+Dfwhm = 500;                    % FWHM of distribution, MHz
+D = linspace(0,2*D0,401);       % range of D values, MHz
+weights = gaussian(D,D0,Dfwhm); % associated weights
+
+% Spin system
+Sys.S = 1;
+Sys.lwpp = 1; % mT
+
+% Experiment
+Exp.mwFreq = 9.5; % GHz
+Exp.Range = 330+ [-1 1]*100; % mT
+
+% Explicit averaging loop over D distribution
+spec = 0;
+for iD = 1:numel(D)
+  Sys.D = D(iD);
+  [B,spec_] = pepper(Sys,Exp);
+  spec = spec + weights(iD)*spec_;
+end
+
+% Plotting
+subplot(2,1,1); plot(D,weights); axis tight
+subplot(2,1,2); plot(B,spec); axis tight
+</pre>
+
+<p>
+If more than one parameter is distributed, then nested loops over a multi-dimensional distribution are needed.
 </p>
 
 <hr>

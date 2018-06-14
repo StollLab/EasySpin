@@ -84,6 +84,11 @@ Aout = polyval(coeff,Ain);
 
 % Transmitter nonlinearity simulation and compensation
 % ----------------------------------------------------------------------- %
+if verLessThan('Matlab','7.13') % R2011b
+  % because of calls to griddedInterpolant
+  error('Your Matlab version does not support this feature. At least R2011b is needed.');
+end
+
 switch option
   case 'simulate'
     

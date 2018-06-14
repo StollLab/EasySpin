@@ -53,7 +53,7 @@ end
 
 %-------- spellcheck fields (lower/upper case) ------------------
 correctFields = {'S','Nucs','Abund','n',...
-  'g','g_','D','ee','ee2','A','A_','Q',...
+  'g','g_','D','ee','J','dip','dvec','ee2','A','A_','Q',...
   'gFrame','DFrame','eeFrame','AFrame','QFrame',...
   'gStrain','HStrain','AStrain','DStrain',...
   'aF','B0','B2','B4','B6','B8','B10','B12',...
@@ -81,7 +81,7 @@ for ind = find((strncmpi(givenFields,'Ham',3)))
   if isempty(ind), break; end
   field = givenFields{ind};
   if length(field)~= 6 
-    if str2num(field(4))+str2num(field(5))<10  
+    if str2double(field(4))+str2double(field(5))<10  
       error('Wrong length of Sys.%s entry, should be Hamxyz (with x,y,z integer numbers)',field);
     else
       if length(field)~= 7
@@ -289,15 +289,15 @@ if (nElectrons>1) && ~reprocessing
   eeMatrix = isfield(Sys,'ee');
   JdD = (isfield(Sys,'J') && ~isempty(Sys.J)) || ...
     (isfield(Sys,'dvec') && ~isempty(Sys.dvec)) || ...
-    (isfield(Sys,'eeD') && ~isempty(Sys.eeD));
+    (isfield(Sys,'dip') && ~isempty(Sys.dip));
   
   if ~eeMatrix && ~JdD
-    err = 'Spin system contains 2 or more electron spins, but coupling terms are missing (ee; or J, dvec, eeD)!';
+    err = 'Spin system contains 2 or more electron spins, but coupling terms are missing (ee; or J, dip, dvec)!';
     return
   end
   
   if eeMatrix && JdD
-    err = 'Both Sys.ee and (Sys.J,Sys.dvec,Sys.eeD) are given - use only one or the other!';
+    err = 'Both Sys.ee and (Sys.J,Sys.dip,Sys.dvec) are given - use only one or the other!';
     return
   end
   
@@ -336,45 +336,70 @@ if (nElectrons>1) && ~reprocessing
     end
     
   else
-    % Bilinear coupling defined via J, dvec and eeD
+    % Bilinear coupling defined via J, dip, and dvec
     %----------------------------------------------------------------------
     % J:    isotropic exchange +J*S1*S2
+    % dip:  dipolar coupling
+    %        - 1 value: axial component
+    %        - 2 values: axial and rhombic component
+    %        - 3 values: principal values of dipolar tensor
     % dvec: antisymmetric exchange dvec.(S1xS2)
-    % eeD:  dipolar coupling S1.diag(eeD).S2 or S1.eeD.S2
-    fullee = false;
     
     % Size check on list of isotropic exchange coupling constants
     if ~isfield(Sys,'J'), Sys.J = zeros(1,nPairs); end
-    err = sizecheck(Sys,'J',[1 nPairs]);
+    Sys.J = Sys.J(:);
+    err = sizecheck(Sys,'J',[nPairs 1]);
     if ~isempty(err), return; end
     
     % Size check on list of antisymmetric exchange vectors
     if ~isfield(Sys,'dvec'), Sys.dvec = zeros(nPairs,3); end
     err = sizecheck(Sys,'dvec',[nPairs,3]);
     if ~isempty(err), return; end
-    
+
     % Size check on dipolar tensor diagonals
-    if ~isfield(Sys,'eeD'), Sys.eeD = zeros(nPairs,3); end
-    err = sizecheck(Sys,'eeD',[nPairs,3]);
-    if ~isempty(err), return; end
-    
-    % Assert zero traces of dipolar tensors
-    if any(sum(Sys.eeD,2)/max(abs(Sys.eeD(:)))>1e-10)
-      err = 'Sys.eeD contains dipolar tensors with non-zero trace. Use Sys.J for this.';
+    if ~isfield(Sys,'dip'), Sys.dip = zeros(nPairs,3); end
+    if numel(Sys.dip)==nPairs
+      Sys.dip = Sys.dip(:);
     end
-    if ~isempty(err), return; end
+    if size(Sys.dip,1)~=nPairs
+      error('Sys.dip must contain %d rows, since there are %d unique pairs of electron spins.',nPairs,nPairs);
+    end
+
+    if isfield(Sys,'eeD')
+      error('Sys.eeD is obsolete. Use Sys.dip instead.');
+    end
     
-    % Combine (Sys.J,Sys.dvec,Sys.eeD) into full interaction matrix in Sys.ee
-    Sys.fullee = true;
-    idx = 1:3;
-    for iPair = 1:nPairs
-      J = Sys.J(iPair);
-      d = Sys.dvec(iPair,:);
-      ee = J*eye(3) + ...
-         [0 d(3) -d(2); -d(3) 0 d(1); d(2) -d(1) 0] + ...
-         diag(Sys.eeD(iPair,:));
-      Sys.ee(idx,:) = ee;
-      idx = idx + 3;
+    % Convert axial/rhombic components to principal values
+    switch size(Sys.dip,2)
+      case 1
+        Sys.dip = Sys.dip*[1 1 -2];
+      case 2
+        Sys.dip = Sys.dip(:,1)*[1 1 -2] + Sys.dip(:,2)*[+1 -1 0];
+      case 3
+        % Remove isotropic component to guarantee zero traces of dipolar tensors
+        Sys.dip = Sys.dip - repmat(mean(Sys.dip,2),1,3);
+      otherwise
+        error('Sys.dip must contain 1, 2, or 3 columns.');
+    end
+    
+    % Combine (Sys.J,Sys.dip,Sys.dvec) into full interaction matrix in Sys.ee
+    fullee = any(Sys.dvec(:)~=0);
+    Sys.fullee = fullee;
+    if fullee
+      idx = 1:3;
+      for iPair = 1:nPairs
+        J = Sys.J(iPair);
+        d = Sys.dvec(iPair,:);
+        ee = J*eye(3) + ...
+          [0 d(3) -d(2); -d(3) 0 d(1); d(2) -d(1) 0] + ...
+          diag(Sys.dip(iPair,:));
+        Sys.ee(idx,:) = ee;
+        idx = idx + 3;
+      end
+    else
+      for iPair = 1:nPairs
+        Sys.ee(iPair,:) = Sys.J(iPair) + Sys.dip(iPair,:);
+      end
     end
     
   end
