@@ -576,14 +576,25 @@ end
 % Process
 %-------------------------------------------------------
 
+% Precalculate spin operator matrices
 if generalLiouvillian
   logmsg(1,'  using general Liouvillian code');
+  
   % calculate spin operators
+  logmsg(1,'  calculating spin matrices');
   for iSpin = 1:numel(Sys.Spins)
-    SpinOps{iSpin,1} = sop(Sys.Spins,iSpin,1,'sparse');
-    SpinOps{iSpin,2} = sop(Sys.Spins,iSpin,2,'sparse');
-    SpinOps{iSpin,3} = sop(Sys.Spins,iSpin,3,'sparse');
+    SpinOps{iSpin,1} = sop(Sys.Spins,iSpin,1,'sparse'); % Sx
+    SpinOps{iSpin,2} = sop(Sys.Spins,iSpin,2,'sparse'); % Sy
+    SpinOps{iSpin,3} = sop(Sys.Spins,iSpin,3,'sparse'); % Sz
   end
+
+  logmsg(1,'  setting up detection operator');
+  SdetOp = sparse(0);
+  for e = 1:Sys.nElectrons
+    Splus = SpinOps{e,1} + 1i*SpinOps{e,2};
+    SdetOp = SdetOp + Splus;
+  end
+  
 else
   logmsg(1,'  using S=1/2 Liouvillian code');
   % no need to calculate spin operators for the Freed code
@@ -733,7 +744,13 @@ if generalLiouvillian
     keep = keep & keep_Mp(:);
     logmsg(1,'  applying M-p symmetry: keeping %d of %d functions',sum(keep),numel(keep));
   end
-    
+  
+  % Reorder detection operator if needed
+  SdetOp = SdetOp(:);
+  if Opt.pqOrder
+    SdetOp = SdetOp(idxpq);
+  end
+  
   logmsg(1,'  final basis size: %d (%f%% of %d)',sum(keep),100*sum(keep)/nOriBasis/nSpinBasis,nOriBasis*nSpinBasis);
   
 else
@@ -750,24 +767,14 @@ if saveDiagnostics
   diagnostics.basis = Basis;
 end
 
-% Precalculate 3j symbols and spin operator matrices
+% Precalculate 3j symbols
 %-----------------------------------------------------------------------
 if generalLiouvillian
   
   logmsg(1,'Precalculating 3j symbols');
   computeRankOne = any(F.F1(:));
   [jjj0,jjj1,jjj2] = jjjsymbol(Basis.LLKM,computeRankOne);
-  
-  logmsg(1,'Setting up the detection operator');
-  SxOp = SpinOps{1,1};
-  for e = 2:Sys.nElectrons
-    SxOp = SxOp + SpinOps{e,1};
-  end
-  SxOp = SxOp(:);
-  if Opt.pqOrder
-    SxOp = SxOp(idxpq);
-  end
-  
+    
 end
 
 % Calculate Gamma
@@ -830,9 +837,9 @@ for iOri = 1:nOrientations
   if generalLiouvillian
     % set up in full product basis, then prune
     if Opt.useLMKbasis
-      StartingVector = startvec_LMK(Basis,Potential.lambda,SxOp);
+      StartingVector = startvec_LMK(Basis,Potential.lambda,SdetOp);
     else
-      StartingVector = startvec(Basis,Potential.lambda,SxOp);
+      StartingVector = startvec(Basis,Potential.lambda,SdetOp);
     end
     StartingVector = StartingVector(keep);
     
@@ -1060,9 +1067,7 @@ end % orientation loop
 
 % Rescale to match rigid limit chili intensities to pepper intensities
 spec = spec/(4*pi); % scale by powder average factor of 4pi
-if ~generalLiouvillian || (generalLiouvillian && strcmp(Opt.Solver,'L'))
-  spec = spec/2; % scale to match general direct solver intensity (due to Lanczos and S- ?)
-end
+spec = spec/2; % since chili uses S+ and pepper uses Sx
 if FrequencySweep
   spec = spec*(dB/dnu)*mt2mhz(1,mean(Sys.g)); % scale by g*Beta/h factor for freq sweep
 end
