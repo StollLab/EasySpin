@@ -8,13 +8,13 @@ Sys.J = 0;
 % Experiment -------------------
 Pulse.Type = 'quartersin/linear';
 Pulse.trise = 0.015; % us
+Pulse.tp = 0.1;
+Pulse.Frequency = [-0.100 0.100];
+Pulse.Flip = pi;
 
-Exp.t = [0.1 0.5];
-Exp.Pulses = {Pulse 0};
+Exp.Sequence = {Pulse 0.5};
 Exp.Field = 1195; 
 Exp.TimeStep = 0.0001; % us
-Exp.Frequency = [-0.100 0.100];
-Exp.Flip = [pi pi];
 Exp.mwFreq = 33.5;
 Exp.DetEvents = [1 1]; 
 

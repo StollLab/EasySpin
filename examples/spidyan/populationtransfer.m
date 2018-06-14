@@ -12,23 +12,28 @@ Sys.ZeemanFreq = 33.500; % GHz
 Sys.D = 166;  % MHz
 
 % Pulse
-Pulse.Type = 'quartersin/linear';
-Pulse.trise = 0.05; % us
-Pulse.Qcrit = 10;
+Pulse1.Type = 'quartersin/linear';
+Pulse1.trise = 0.05; % us
+Pulse1.Qcrit = 10;
+Pulse1.tp = 1;
+Pulse1.Frequency = [-0.500 -0.17];
+
+Pulse2.Type = 'quartersin/linear';
+Pulse2.trise = 0.05; % us
+Pulse2.Qcrit = 10;
+Pulse2.tp = 1;
+Pulse2.Frequency = [0.500 0.17];
 
 % Sequence
-Exp.t = [1 1]; % us
-Exp.Pulses = {Pulse Pulse};
+Exp.Sequence = {Pulse1 Pulse2};
 Exp.Field = 1240; % mT
-Exp.TimeStep = 0.0001; % us
-Exp.Frequency = [-0.500 -0.17; 0.500 0.17]; % GHz
+
 Exp.mwFreq = 33.5; % GHz
 Exp.DetEvents = 1;
 
 % The detection operators detect polarization between (1) levels 1 and 2,
 % levels 2 and (3) levels 3 and 4
 Opt.DetOperator = {'z(1|2)' 'z(2|3)' 'z(3|4)'};
-Opt.FrameShift = 32; % GHz
 
 [TimeAxis, Signal] = spidyan(Sys,Exp,Opt);
 

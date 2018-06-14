@@ -8,12 +8,12 @@ Sys.ZeemanFreq = 33.500;
 Pulse.Type = 'quartersin/linear';
 Pulse.trise = 0.015; % us
 Pulse.Qcrit = 7;
+Pulse.Frequency = [-0.1 0.1];
+Pulse.tp = 0.1;
 
-Exp.t = [0.2 0.5 0.2];
-Exp.Pulses = {Pulse 0 Pulse};
+Exp.Sequence = {Pulse 0.5 Pulse};
 Exp.Field = 1240; 
 Exp.TimeStep = 0.0001; % us
-Exp.Frequency = [-0.1 0.1];
 Exp.mwFreq = 33.5;
 Exp.DetEvents = 1; 
 

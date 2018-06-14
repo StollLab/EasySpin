@@ -12,16 +12,13 @@ Sys.ZeemanFreq = [33.600];
 Pulse.Type = 'rectangular';
 Pulse.TimeStep = 0.0001;
 Pulse.Flip = pi;
-Pulse.Frequency = 100;
+Pulse.Frequency = 0.100;
 Pulse.tp = 0.1;
 
 % Experiment with pulses internally defined -------------------
-Exp.t = [0.1 0.5 0.1];
-Exp.Pulses = {Pulse 0 Pulse};
+Exp.Sequence = {Pulse 0.5 Pulse};
 Exp.Field = 1240; 
 Exp.TimeStep = 0.0001; % us
-Exp.Frequency = 0.1;
-Exp.Flip = [pi pi];
 Exp.mwFreq = 33.5;
 Exp.DetEvents = [1 1 1];
 Exp.nPoints = 2;
@@ -41,6 +38,7 @@ Opt.FrameShift = 32;
 [signal1] = spidyan(Sys,Exp1,Opt);
 
 % Build custom IQ
+Pulse.Frequency = Pulse.Frequency*1000; % GHz to MHz
 Pulse.Phase = 0;
 [t,IQ1] = pulse(Pulse);
 Opt.dt = Exp.TimeStep;
@@ -56,7 +54,7 @@ PulseIQ.t = {t1 t2};
 
 %  Exp with userdefined IQ
 Exp2 = Exp;
-Exp2.Pulses{1} = PulseIQ;
+Exp2.Sequence{1} = PulseIQ;
 Exp2.Dim1 = {'p1.IQ' []};
 
 [signal2] = spidyan(Sys,Exp2,Opt);
@@ -72,7 +70,7 @@ Exp4 = Exp;
 PulseIQ.IQ = {IQ1; IQ2};
 PulseIQ.t = {t1; t2};
 
-Exp4.Pulses{1} = PulseIQ;
+Exp4.Sequence{1} = PulseIQ;
 Exp4.Dim1 = {'p1.IQ' []};
 Exp4.Dim2 = {'d1' 0.05};
 Exp4.nPoints = [2 5];
@@ -83,7 +81,7 @@ Exp5 = Exp4;
 PulseIQ.IQ = {IQ1 IQ2};
 PulseIQ.t = {t1; t2};
 
-Exp5.Pulses{1} = PulseIQ;
+Exp5.Sequence{1} = PulseIQ;
 
 [signal5] = spidyan(Sys,Exp5,Opt);
 

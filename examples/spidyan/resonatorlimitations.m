@@ -15,13 +15,12 @@ Pulse.Type = 'quartersin/linear';
 Pulse.trise = 0.1; % us
 Pulse.Qcrit = 5; % If a critical adiabaticity is provided for the Pulse,
 % Exp.Flip does not need to be defined or will be ignored
+Pulse.tp = 0.5;
+Pulse.Frequency = [-0.15 0.15]; % frequency range of sweep, GHz
 
-Exp.t = 0.5; % us
-Exp.Pulses = {Pulse};
-Exp.Frequency = [-0.15 0.15]; % frequency range of sweep, GHz
+Exp.Sequence = {Pulse};
 
 Exp.Field = 1240; % mT
-Exp.TimeStep = 0.0001; % us
 Exp.mwFreq = 33.5; % GHz
 Exp.DetEvents = 1;
 
@@ -29,11 +28,11 @@ Exp.DetEvents = 1;
 Exp.Resonator.nu0 = 33.5;
 Exp.Resonator.QL = 300;
 
-% Uncomment the following line to compensate for the bandwidth limitation
+% Uncomment the following line to compensate for the bandwidth limitation,
+% also note how the pulses get longer in the plot than 500 ns
 Exp.Resonator.Mode = 'compensate';
 
 Opt.DetOperator = {'z1'};
-Opt.FrameShift = 32;
 
 
 % Set up for plotting

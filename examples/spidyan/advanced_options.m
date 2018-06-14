@@ -7,7 +7,7 @@ DefSys.T2 = 0.5; % us
 
 % Pulse Definitions
 Rectangular.Type = 'rectangular';
-
+Rectangular.tp = 
 Adiabatic.Type = 'quartersin/linear';
 Adiabatic.trise = 0.05; % us
 Adiabatic.Qcrit = 5;

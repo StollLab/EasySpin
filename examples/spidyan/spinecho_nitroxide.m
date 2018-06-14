@@ -1,5 +1,5 @@
 % Running this script will take a few seconds
-clear Sys Exp Opt
+clear Sys Exp Opt Chirp90 Chirp180
 
 % Spin System
 Sys.S = 1/2;
@@ -20,23 +20,26 @@ nKnots = 20; % adjust carefully! the more orientations we pick, the better the r
 % Pulse echo
 % Simulation setup -----------------------------
 
-Chirp.Type = 'quartersin/linear';
-Chirp.trise = 0.030;
+Chirp90.Type = 'quartersin/linear';
+Chirp90.trise = 0.030;
+Chirp90.tp = 0.200;
+Chirp90.Flip = pi/2;
+Chirp90.Frequency = [-0.3 0.3]; % excitation band, GHz
 
+Chirp180.Type = 'quartersin/linear';
+Chirp180.trise = 0.030;
+Chirp180.tp = 0.100;
+Chirp180.Flip = pi;
+Chirp180.Frequency = [-0.3 0.3]; % excitation band, GHz
 
 % save time by using five events: the last two events are free evolution
 % events, but we only detect during the very last one. This saves time 
 % during the simulation (the shorter the detection window, the faster)
-Exp.t = [0.200 0.25 0.100 0.3 0.1]; % us 
-Exp.Pulses = {Chirp 0 Chirp 0 0}; 
-
-% Since in this simulation we decided to simulate in the rotating frame, we
-% need a much shorter timestep! (compare Opt.FrameShift
-Exp.TimeStep = 0.00001; % us
+Exp.Sequence = {Chirp90 0.25 Chirp180 0.3 0.1}; 
 
 Exp.Flip = [pi/2 pi];
 Exp.mwFreq = 34.78; % GHz
-Exp.Frequency = [-0.3 0.3]; % excitation band, GHz
+
 
 % If you want to see only the free evolution after the second pulse, try 
 % this instead:
@@ -70,6 +73,6 @@ end
 
 figure(2)
 clf
-plot(t,real(Signal))
+plot(t,abs(Signal))
 xlabel('t [\mus]')
 ylabel('Echo Int. (arb.u.)')

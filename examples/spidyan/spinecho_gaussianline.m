@@ -1,6 +1,6 @@
 % Running this script will take a few seconds
 
-clear Exp Sys Opt Pulse
+clear Exp Sys Opt Pulse90 Pulse 180
 
 % Sets up a Gaussian Distribution of spin packets
 CenterFrequency = 33.5; % center frequency of Gaussian distribution, GHz
@@ -19,15 +19,18 @@ Sys.S = 1/2;
 %% A refocused echo with monochromatic pulses
 
 % Simulation setup -----------------------------
-Pulse.Type = 'rectangular';
+Pulse90.Type = 'rectangular';
+Pulse90.tp = 0.025;
+Pulse90.Flip = pi/2;
 
-Exp.t = [0.025 0.25 0.05 0.5]; % us
-Exp.Pulses = {Pulse 0 Pulse 0}; 
+Pulse180.Type = 'rectangular';
+Pulse180.tp = 0.025;
+Pulse180.Flip = pi/2;
+
+Exp.Sequence = {Pulse90 0.25 Pulse90 0.5}; 
 Exp.Field = 1240; % mT
-Exp.TimeStep = 0.0001; % us
-Exp.Frequency = [0]; % GHz
-Exp.Flip = [pi/2 pi];
 Exp.mwFreq = 33.5; % GHz
+
 % This detects the entire experiment:
 Exp.DetEvents = 1;
 % If you want to see only the free evolution after the second pulse, try 
@@ -64,12 +67,17 @@ ylim([0 1])
 %% Echo with linear chirps
 
 % Experiment setup -------------------------
-Pulse.Type = 'quartersin/linear';
-Pulse.trise = 0.005; % us
+Chirp90.Type = 'quartersin/linear';
+Chirp90.trise = 0.005; % us
+Chirp90.tp = 0.05; % us
+Chirp90.Frequency = [-0.080 0.080];
 
-Exp.t = [0.05 0.25 0.025 0.5];
-Exp.Frequency = [-0.080 0.080];
-Exp.Pulses = {Pulse 0 Pulse 0};
+Chirp180.Type = 'quartersin/linear';
+Chirp180.trise = 0.005; % us
+Chirp180.tp = 0.025; % us
+Chirp180.Frequency = [-0.080 0.080];
+
+Exp.Sequence = {Chirp90 0.25 Chirp180 0.5};
 
 % Loop over the spinpackets and sum up the traces ------------
 for i = 1 : nSpinpackets

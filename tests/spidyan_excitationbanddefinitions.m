@@ -10,16 +10,17 @@ Sys.ZeemanFreq = 33.500;
 % Experiment -------------------
 Pulse.Type = 'quartersin/linear';
 Pulse.trise = 0.015; % us
-
-Exp.t = [0.1 0.5 0.1];
-Exp.Pulses = {Pulse 0 Pulse};
-Exp.Field = 1240; 
-Exp.TimeStep = 0.00001; % us
-Exp.Flip = [pi pi];
+Pulse.tp = 0.1;
+Pulse.Flip = pi;
 
 % First method ----------------------
-Exp.Frequency = [-0.100 0.100];
 Exp.mwFreq = 33.5;
+Pulse.Frequency = [-0.100 0.100];
+
+Exp.Sequence = {Pulse 0.5 Pulse};
+Exp.Field = 1240; 
+Exp.TimeStep = 0.00001; % us
+
 
 % Detection -------------------------
 Opt.DetOperator = {'z1','+1'};
@@ -32,7 +33,8 @@ Opt.FreqTranslation = [0 -33.5];
 
 % Second Method -------------------------
 Exp = rmfield(Exp,'mwFreq');
-Exp.Frequency = [33.400 33.600];
+Pulse.Frequency = [33.400 33.600];
+Exp.Sequence = {Pulse 0.5 Pulse};
 
 [~, ~, out2] = spidyan(Sys,Exp,Opt);
 

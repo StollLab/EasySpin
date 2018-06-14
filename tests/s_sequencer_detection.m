@@ -2,14 +2,19 @@ function [err,data] = test(opt,olddata)
 
 Pulse.Type = 'quartersin/linear';
 Pulse.trise = 0.015; % us
+Pulse.Flip = pi;
+Pulse.Frequency = [-0.100 0.100];
+Pulse.tp = 0.1;
 
-Exp.t = [0.1 0.5 0.1 0.2];
-Exp.Pulses = {Pulse 0 Pulse Pulse};
+Pulse2 = Pulse;
+Pulse2.tp = 0.2;
+
+Exp.Sequence = {Pulse 0.5 Pulse Pulse2};
 Exp.Field = 1240; 
 Exp.TimeStep = 0.0001; % us
-Exp.Frequency = [-0.100 0.100];
-Exp.Flip = [pi pi pi];
+
 Exp.mwFreq = 33.5;
+Exp.DetEvents = [1 0 0 0]; 
 
 
 % First Test ---------------------------------------

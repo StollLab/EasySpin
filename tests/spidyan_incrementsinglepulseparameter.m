@@ -8,13 +8,19 @@ Sys.ZeemanFreq = 33.500;
 HS.Type = 'sech/uniformQ';
 HS.beta = 10;
 HS.n = [10 10];
+HS.tp = 0.2;
+HS.Frequency = [-0.1 0.1];
 
-Exp.t = [0.2 0.5 0.2];
-Exp.Pulses = {HS 0 HS};
-Exp.Flip = [pi/2 pi];
+HS1 = HS;
+HS1.Flip = pi/2;
+
+HS2 = HS;
+HS2.Flip = pi;
+
+
+Exp.Sequence = {HS1 0.5 HS2};
 Exp.Field = 1240; 
 Exp.TimeStep = 0.0001; % us
-Exp.Frequency = [-0.1 0.1];
 Exp.mwFreq = 33.5;
 Exp.DetEvents = 1; 
 

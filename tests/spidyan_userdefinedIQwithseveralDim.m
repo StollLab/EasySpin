@@ -11,16 +11,14 @@ Sys.ZeemanFreq = [33.600];
 Pulse.Type = 'rectangular';
 Pulse.TimeStep = 0.0001;
 Pulse.Flip = pi;
-Pulse.Frequency = 100;
+Pulse.Frequency = 0.100;
 Pulse.tp = 0.1;
 
 % Experiment with pulses internally defined -------------------
 Exp.t = [0.1 0.5 0.1];
-Exp.Pulses = {Pulse 0 Pulse};
+Exp.Sequence = {Pulse 0.5 Pulse};
 Exp.Field = 1240; 
 Exp.TimeStep = 0.0001; % us
-Exp.Frequency = 0.1;
-Exp.Flip = [pi pi];
 Exp.mwFreq = 33.5;
 Exp.DetEvents = [1 1 1];
 
@@ -43,6 +41,7 @@ Opt.FrameShift = 32;
 
 % Build custom IQ
 Pulse.Phase = 0;
+Pulse.Frequency = Pulse.Frequency*1000; % GHz to MHz
 [t,IQ11] = pulse(Pulse);
 Opt.dt = Exp.TimeStep;
 [t11, IQ11] = rfmixer(t,IQ11,Exp.mwFreq,'IQshift',Opt);
@@ -81,7 +80,7 @@ PulseIQ.t = {t11 t12 t13; t21 t22 t23};
 
 %  Exp with userdefined IQ
 Exp2 = Exp;
-Exp2.Pulses{3} = PulseIQ;
+Exp2.Sequence{3} = PulseIQ;
 Exp2.Dim1 = {'p2.IQ' []};
 Exp2.Dim2 = {'p2.IQ' []};
 
@@ -109,7 +108,7 @@ PulseIQ.IQ(1,:,:) = {IQ11 IQ12 IQ13; IQ21 IQ22 IQ23};
 PulseIQ.t = cell(1,2,3);
 PulseIQ.t(1,:,:) = {t11 t12 t13; t21 t22 t23};
 
-Exp4.Pulses{3} = PulseIQ;
+Exp4.Sequence{3} = PulseIQ;
 
 [signal4] = spidyan(Sys,Exp4,Opt);
 

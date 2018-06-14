@@ -12,21 +12,17 @@ Sys.ZeemanFreq = [33.500];
 
 % Options
 Opt.DetOperator = {'z1'};
-Opt.FrameShift = 32;
-Opt.SimulationMode = 'ShiftFrame';
 
 %% Experiment Definition for a monochromatic rectangular pulse
 
 % Pulse definition
 Monochromatic.Type = 'rectangular';
+Monochromatic.tp = 0.06;
+Monochromatic.Flip = pi/2;
 
 % Experiment/Sequence - A single monochromatic pulse
-Exp.t = 0.06; % us
-Exp.Pulses = {Monochromatic};
+Exp.Sequence = {Monochromatic};
 Exp.Field = 1240; % mT
-Exp.TimeStep = 0.0001; % us
-Exp.Frequency = 0; % GHz
-Exp.Flip = pi;
 Exp.mwFreq = 33.5; % GHz
 Exp.DetEvents = 1;
 
@@ -44,13 +40,13 @@ ylim([-1 1])
 %% Experiment structure for a linear chirp pulse with quartersin amplitude modulation and a bandwidth of 100 MHz
 LinearChirp.Type = 'quartersin/linear';
 LinearChirp.trise = 0.030;
+LinearChirp.tp = 0.2;
+LinearChirp.Frequency = [-0.05 0.05];
+LinearChirp.Flip = pi;
 
-Exp.t = 0.200; % us
-Exp.Pulses = {LinearChirp};
+Exp.Sequence = {LinearChirp};
 Exp.Field = 1240; % mT
-Exp.TimeStep = 0.0001; % us
-Exp.Frequency = [-0.05 0.05]; % excitation band, GHz
-Exp.Flip = pi;
+
 Exp.mwFreq = 33.5; % GHz
 Exp.DetEvents = 1;
 
@@ -67,13 +63,12 @@ axis tight
 HS.Type = 'sech/tanh';
 HS.beta = 10;
 HS.n = 1;
+HS.tp = 0.2;
+HS.Frequency = [-0.05 0.05]; % excitation band, GHz
+HS.Flip = pi;
 
-Exp.t = 0.200; % us
-Exp.Pulses = {HS};
+Exp.Sequence = {HS};
 Exp.Field = 1240; % mT
-Exp.TimeStep = 0.0001; % us
-Exp.Frequency = [-0.05 0.05]; % excitation band, GHz
-Exp.Flip = pi;
 Exp.mwFreq = 33.5; % GHz
 Exp.DetEvents = 1;
 

@@ -1,13 +1,12 @@
 function [err,data] = test(opt,olddata)
 
 Pulse.Type = 'rectangular';
+Pulse.tp = 0.1;
+Pulse.Flip = pi;
 
-Exp.t = [0.1 0.5 0.1];
-Exp.Pulses = {Pulse 0 Pulse};
+Exp.Sequence = {Pulse 0.5 Pulse};
 Exp.Field = 1240; 
 Exp.TimeStep = 0.0001; % us
-Exp.Frequency = 0;
-Exp.Flip = [pi pi];
 Exp.mwFreq = 33.5;
 Exp.DetEvents = 1; 
 
@@ -34,7 +33,9 @@ Exp.Dim1 = {'p1.Frequency' [0 0; 0.05 0.05; 0.1 0.1]};
 [~, Vary3] = runprivate('s_sequencer',Exp,Opt);
 
 % Fourth Syntax -----------------------------
-Exp.Frequency = [0 0];
+Pulse.Frequency = [0 0];
+Exp.Sequence = {Pulse 0.5 Pulse};
+
 Exp.Dim1 = {'p1.Frequency(1),p1.Frequency(2)' 0.05};
 
 [~, Vary4] = runprivate('s_sequencer',Exp,Opt);

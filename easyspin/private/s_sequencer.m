@@ -65,12 +65,32 @@ if isfield(Opt,'SimulationMode') && any(strcmp(Opt.SimulationMode,{'LabFrame' 'F
       FrameShift = Opt.FrameShift;
   end
 else
-  % If no simulation mode is specified, 
-  MinFreq = min(abs(Exp.Frequency(:)+FreqShift));
+  
+  if isfield(Exp,'mwFreq')
+    MinFreq = Exp.mwFreq;
+  else
+    MinFreq = [];
+  end
+  
+  % If no simulation mode is specified,
+  for iEvent = 1 : length(Exp.Sequence)
+    if isstruct(Exp.Sequence{iEvent}) && isfield(Exp.Sequence{iEvent},'Frequency')
+      if isempty(MinFreq)
+        MinFreq = min(Exp.Sequence{iEvent}.Frequency);
+      else
+        MinFreq = min([MinFreq (Exp.Sequence{iEvent}.Frequency + FreqShift)]);
+      end
+    end
+  end
+   
+  % Have at least 2 GHz difference to the lowest frequency (for the frame
+  % shift)
   FrameShift = floor(MinFreq-2);
+  % only shift down, no upshifting
   if FrameShift > 0
     FreqShift = FreqShift - FrameShift;
   end
+  
   if isfield(Opt,'FrameShift')
     warning('You provided the field Opt.FrameShift, but did not set Opt.SimulationMode accordingly. Opt.FrameShift ignored, FrameShift is computed automatically.')
   end	
@@ -81,7 +101,13 @@ Opt.FreqShift = FreqShift;
 
 % Check if TimeStep exists and if it is sufficient or, if none provided,
 % compute a new one
-MaxFreq = max(abs(Exp.Frequency(:)+FreqShift));
+MaxFreq = FreqShift;
+  for iEvent = 1 : length(Exp.Sequence)
+    if isstruct(Exp.Sequence{iEvent}) && isfield(Exp.Sequence{iEvent},'Frequency')
+       MaxFreq = max([(Exp.Sequence{iEvent}.Frequency + FreqShift) MaxFreq]);
+    end
+  end
+  
 Nyquist = 2*MaxFreq;
 MaxTimeStep = 1/Nyquist/1000; %%%%%%% Time Step is in microseconds and Frequencies in GHz
 
@@ -91,16 +117,14 @@ if isfield(Exp,'TimeStep')
     error(errMsg);
   end
 else
- Exp.TimeStep = round(MaxTimeStep/2,2,'significant');
- message = ['Exp.TimeStep not provided, assuming ' num2str(Exp.TimeStep) 'us as timestep'];
- warning(message)
+ Exp.TimeStep = round(MaxTimeStep/4,2,'significant');
+%  message = ['Exp.TimeStep not provided, assuming ' num2str(Exp.TimeStep) 'us as timestep'];
+%  warning(message)
 end
 
-Exp.Frequency = Exp.Frequency*1000; % GHz -> MHz
-
 % Create an empty cell array for all the events
-Events = cell(1,length(Exp.t));
-nEvents = length(Exp.t);
+Events = cell(1,length(Exp.Sequence));
+nEvents = length(Exp.Sequence);
 
 % Variables for bookkeeping of pulses and free evolution events
 iPulse = 0;
@@ -111,33 +135,29 @@ iDelay = 0;
 isPulse = zeros(1,length(Events));
 PulseIndices = [];
 
-
-% Doing some preliminary checks if all parameters have the correct lengths
-if length(Exp.Pulses) ~= length(Exp.t)
-  error('The lengths of Exp.t and Exp.Pulses do not match.')
-end
+Intervals = zeros(1,length(Exp.Sequence));
 
 if isfield(Opt,'Relaxation')
-  if length(Opt.Relaxation) ~= 1 && length(Opt.Relaxation) ~= length(Exp.t)
-    error('The lengths of Exp.t and Opt.Relaxation do not match. Length of Opt.Relaxation has to be 1 or the same as Exp.t.')
+  if length(Opt.Relaxation) ~= 1 && length(Opt.Relaxation) ~= length(Exp.Sequence)
+    error('The lengths of Exp.Sequence and Opt.Relaxation do not match. Length of Opt.Relaxation has to be 1 or the same as Exp.Sequence.')
   end
 end
 
 if isfield(Exp,'DetEvents')
-  if length(Exp.DetEvents) ~= 1 && length(Exp.DetEvents) ~= length(Exp.t)
-    error('The lengths of Exp.t and Exp.DetEvents do not match. Length of Exp.DetEvents has to be 1 or the same as Exp.t.')
+  if length(Exp.DetEvents) ~= 1 && length(Exp.DetEvents) ~= length(Exp.Sequence)
+    error('The lengths of Exp.Sequence and Exp.DetEvents do not match. Length of Exp.DetEvents has to be 1 or the same as Exp.Sequence.')
   end
 end
 
 if isfield(Opt,'StateTrajectories')
-  if length(Opt.StateTrajectories) ~= 1 && length(Opt.StateTrajectories) ~= length(Exp.t)
-    error('The lengths of Exp.t and Opt.StateTrajectories do not match. Length of Opt.StateTrajectories has to be 1 or the same as Exp.t.')
+  if length(Opt.StateTrajectories) ~= 1 && length(Opt.StateTrajectories) ~= length(Exp.Sequence)
+    error('The lengths of Exp.Sequence and Opt.StateTrajectories do not match. Length of Opt.StateTrajectories has to be 1 or the same as Exp.Sequence.')
   end
 end
 
 % Setting up data structures for the pulses and events
 for iEvent = 1 : nEvents
-  if isstruct(Exp.Pulses{iEvent})
+  if isstruct(Exp.Sequence{iEvent})
     iPulse = iPulse + 1;
     PulseIndices(iPulse) = iEvent; %#ok<AGROW>
     isPulse(iEvent) = true;
@@ -156,7 +176,7 @@ iPulse = 1;
 % -------------------------------------------------------------------------
 % Create the Eventstructure
 % -------------------------------------------------------------------------
-for iEvent = 1 : length(Exp.t)
+for iEvent = 1 : length(Exp.Sequence)
   if isPulse(iEvent)
     Pulse = [];
     
@@ -170,45 +190,44 @@ for iEvent = 1 : length(Exp.t)
       nPhaseSteps = 1;
     end
     
-    if isfield(Exp.Pulses{iEvent},'IQ')
+    if isfield(Exp.Sequence{iEvent},'IQ')
       
-      
-      if iscell(Exp.Pulses{iEvent}.IQ)
-        UserIQ = Exp.Pulses{iEvent}.IQ{1};
-      elseif ismatrix(Exp.Pulses{iEvent}.IQ)
-        UserIQ = Exp.Pulses{iEvent}.IQ;
+      if iscell(Exp.Sequence{iEvent}.IQ)
+        UserIQ = Exp.Sequence{iEvent}.IQ{1};
+      elseif ismatrix(Exp.Sequence{iEvent}.IQ)
+        UserIQ = Exp.Sequence{iEvent}.IQ;
       else
-        errMsg = ['The data structure provided for event ' num2str(iEvent) ' is not recognized.'];
+        errMsg = ['The data structure of the userdefined IQ of pulse on position ' num2str(iEvent) ' in Exp.Sequence is not recognized.'];
         error(errMsg);
       end
       
       [d1, d2] = size(UserIQ);
       if d1 ~= nPhaseSteps && d2 ~= nPhaseSteps
-        errMsg = ['The dimensionality of the IQ signal provided for event ' num2str(iEvent) ' is not in agreement with the phasecycle for this pulse. For user-defined waveforms the array must contain all IQs.'];
+        errMsg = ['The dimensionality of the IQ signal provided of the pulse on position ' num2str(iEvent) ' in Exp.Sequence  is not in agreement with the phasecycle for this pulse. For user-defined waveforms the array must contain all IQs.'];
         error(errMsg);
       elseif d2 == nPhaseSteps
         UserIQ =  UserIQ';
       end
       
-      if ~isfield(Exp.Pulses{iEvent},'t')
-        errMsg = ['An userdefined IQ was used for event ' num2str(iEvent) ', but the time axis is  missing. Please provide either through Pulse.t.' ];
+      if ~isfield(Exp.Sequence{iEvent},'t')
+        errMsg = ['A userdefined IQ was used for the pulse on position ' num2str(iEvent) ' in Exp.Sequence but the time axis is  missing. Please provide either through Pulse.t.' ];
         error(errMsg);
       else
-        if iscell(Exp.Pulses{iEvent}.t)
-          Pulse.TimeStep = Exp.Pulses{iEvent}.t{1}(2) - Exp.Pulses{iEvent}.t{1}(1);
-          tIQ = Exp.Pulses{iEvent}.t{1};
+        if iscell(Exp.Sequence{iEvent}.t)
+          Pulse.TimeStep = Exp.Sequence{iEvent}.t{1}(2) - Exp.Sequence{iEvent}.t{1}(1);
+          tIQ = Exp.Sequence{iEvent}.t{1};
         else
-          Pulse.TimeStep = Exp.Pulses{iEvent}.t(2) - Exp.Pulses{iEvent}.t(1);
-          tIQ = Exp.Pulses{iEvent}.t;
+          Pulse.TimeStep = Exp.Sequence{iEvent}.t(2) - Exp.Sequence{iEvent}.t(1);
+          tIQ = Exp.Sequence{iEvent}.t;
         end
-        Pulse.userIQ.t = Exp.Pulses{iEvent}.t;
+        Pulse.userIQ.t = Exp.Sequence{iEvent}.t;
       end
                         
       % Shifts IQ of the pulse if necessary...
       for iPhaseStep = 1 : nPhaseSteps
           Opt.dt = Exp.TimeStep;
           if IncludeResonator
-            % if resonator is requested, pulses are elongated due to ringing.
+            % but first if resonator is requested, pulses are elongated due to ringing.
             % the duration of ringing is stored in an additional field
             tOrig = t(end);
             [tIQ,currentIQ] = resonator(t,UserIQ(iPhaseStep,:),Exp.mwFreq,Resonator.Arg1,Resonator.Arg2,Resonator.Arg3);
@@ -219,57 +238,63 @@ for iEvent = 1 : length(Exp.t)
           [t, ShiftedUserIQ(iPhaseStep,:)] = rfmixer(tIQ,currentIQ,-Opt.FrameShift,'IQshift',Opt);
       end
       Events{iEvent}.IQ =  ShiftedUserIQ;
-      
-      Exp.t(iEvent) = t(end); % updates the Exp.t structure to make sure pulse overlaps are caught (resonator, moving pulses) in case the originally provided value in Exp.t was not correct
-      
-      Pulse.userIQ.IQ = Exp.Pulses{iEvent}.IQ;
+       
+      Pulse.userIQ.IQ = Exp.Sequence{iEvent}.IQ;
       Pulse.PhaseCycle = ThisPhaseCycle;
     else
       % ---------------------------------------------------------------------
       % Pulse Specific Fields
       % ---------------------------------------------------------------------
-      Pulse = Exp.Pulses{iEvent};
       
-      Pulse.tp = Exp.t(iEvent);
-      
-      Pulse.PhaseCycle = ThisPhaseCycle;
-      
-      % Gets the frequency band from Exp.Frequency. If only one frequency
-      % band is provided it is used for all pulses.
-      if size(Exp.Frequency,1) == 1
-        Pulse.Frequency = Exp.Frequency;
-      elseif size(Exp.Frequency,1) < iPulse
-        error('The Frequency Band for Pulse No. %d is missing.',iPulse)
-      else
-        Pulse.Frequency = Exp.Frequency(iPulse,:);
+      % if no pulse type is provided, the default is a rectangular pulse
+      if ~isfield(Exp.Sequence{iEvent},'Type')
+        
+        % First check for field frequency and correct it
+        if ~isfield(Exp.Sequence{iEvent},Frequency)
+          % if no frequency is defined, frequency is set to 0 (Exp.mwFreq
+          % will be added later)
+          Exp.Sequence{iEvent}.Frequency = 0;
+          Exp.Sequence{iEvent}.Type = 'rectangular';
+        elseif length(Exp.Sequence{iEvent}.Frequency) > 1 && (Exp.Sequence{iEvent}.Frequency(2) ~= Exp.Sequence{iEvent}.Frequency(1))
+          % make sure that, if a frequency was provided, it is not a frequency sweep 
+          msg = ['Pulse at position ' num2str(iEvent) ' in Exp.Sequence: no Pulse.Type specified, assuming a monochromatice rectangular pulse, but the field Pulse.Frequency looks like a frequency-swept pulse.'];
+          error(msg);
+        end
+      elseif strcmp(Exp.Sequence{iEvent}.Type,'rectangular') && ~isfield(Exp.Sequence{iEvent},'Frequency')
+        Exp.Sequence{iEvent}.Frequency = 0;        
       end
       
-      %     if length(Pulse.Frequency) == 2 && Pulse.Frequency(1) == Pulse.Frequency(2)
-      %        Pulse.Frequency = Pulse.Frequency(1);
-      %     end
+      Pulse = Exp.Sequence{iEvent};
       
+      if ~isfield(Pulse,'tp')
+        msg = ['Pulse at position ' num2str(iEvent) ' in Exp.Sequence: no Pulse.tp specified. Please provide a pulse length.'];
+        error(msg);
+      end
+      
+      % Makes sure a frequency was provided
+      if ~isfield(Pulse,'Frequency')
+        error('The Frequency Band for Pulse in position %d in Exp.Sequence is missing.',iEvent)
+      end
+      
+      Pulse.PhaseCycle = ThisPhaseCycle;
+
       % Gets the flip angle
-      if isfield(Exp,'Flip') && iPulse <= length(Exp.Flip)
-        Pulse.Flip = Exp.Flip(iPulse);
+      if isfield(Exp.Sequence{iEvent},'Flip')
+        Pulse.Flip = Exp.Sequence{iEvent}.Flip;
       elseif ~isfield(Pulse,'Qcrit') && ~isfield(Pulse,'Amplitude')
         error('No Flipangle for Pulse No. %d provided.',iPulse)
       end
       
       % Gets the phase for the pulse, if none is provided, the phase is
       % assumed to be 0
-      if isfield(Exp,'Phase') && length(Exp.Phase) >= iPulse
-        if isfield(Pulse,'Phase')
-          Pulse.Phase = Pulse.Phase + Exp.Phase(iPulse);
-        else
-          Pulse.Phase = Exp.Phase(iPulse);
-        end
-      elseif ~isfield(Pulse,'Phase')
+      if ~isfield(Pulse,'Phase')
         Pulse.Phase = 0;
       end
       
-
-      % Get the time step size if available
+      % Get the time step
       Pulse.TimeStep = Exp.TimeStep;
+      
+      Pulse.Frequency = Pulse.Frequency*1000; % GHz to MHz
       
       % Loop over the function that creates the PulseShape, as many times at
       % are necessary to calculate all wave forms for the phase cycling
@@ -292,6 +317,7 @@ for iEvent = 1 : length(Exp.t)
         Events{iEvent}.IQ(iPCstep,:) = IQ;
       end
       
+      Pulse.Frequency = Pulse.Frequency/1000; % MHz to GHz
     end
     
     % Specify Type in Event structure
@@ -321,12 +347,16 @@ for iEvent = 1 : length(Exp.t)
     Pulse.EventIndex = iEvent;
     Pulses{iPulse} = Pulse;
     iPulse = iPulse + 1;
+    
+    Intervals(iEvent) = t(end);
   else
     % ---------------------------------------------------------------------
     % Delay/Free Evolution Specific Fields
     % ---------------------------------------------------------------------
     Events{iEvent}.type = 'free evolution';
-    Events{iEvent}.t = Exp.t(iEvent);
+    Events{iEvent}.t = Exp.Sequence{iEvent};
+    
+    Intervals(iEvent) = Exp.Sequence{iEvent};
   end
   
   % -----------------------------------------------------------------------
@@ -380,6 +410,8 @@ for iEvent = 1 : length(Exp.t)
   
   % Keep track of the frameshift
   Events{iEvent}.FrameShift = FrameShift;
+  
+  
     
 end
 
@@ -389,9 +421,9 @@ end
 if IncludeResonator
   for iEvent = PulseIndices
     FollowingEvent = iEvent + 1;
-    if FollowingEvent <= length(Exp.t) && strcmp(Events{FollowingEvent}.type,'pulse')
+    if FollowingEvent <= length(Exp.Sequence) && strcmp(Events{FollowingEvent}.type,'pulse')
       error('When using a resonator, pulses need to be separated by inter pulse delays to accomodate for ringing from the resonator.')
-    elseif FollowingEvent <= length(Exp.t)
+    elseif FollowingEvent <= length(Exp.Sequence)
       ShortenedDelay = Events{FollowingEvent}.t - Events{iEvent}.Ringing;
       if ShortenedDelay < 0
         Msg = ['Event ' num2str(FollowingEvent) ' (a delay) is too short to accomodate ringing of the preceding pulse.'];
@@ -565,26 +597,12 @@ if isfield(Exp,'nPoints')
                   % have been checked for pulse modifications, the pulses can
                   % be calculated and stored in the Vary structure
                   if isempty(PulseModifications{PulseNumber})
-                    if strcmp(Field,'Frequency') 
-                      % This is necessary to make sure that 'Frequency' is 
-                      % set correctly. In the defintion GHz are being used 
-                      % which need to be turned into MHz (line 99) for pulse().
-                      PulseModifications{PulseNumber} = {iDimension Field Exp.(Field2Get){iLine,2}*1000 FieldIndex};
-                    else
-                      PulseModifications{PulseNumber} = {iDimension Field Exp.(Field2Get){iLine,2} FieldIndex};
-                    end
+                    PulseModifications{PulseNumber} = {iDimension Field Exp.(Field2Get){iLine,2} FieldIndex};
                   else
                     n = size(PulseModifications{PulseNumber},1);
                     PulseModifications{PulseNumber}{n+1,1} = iDimension;
                     PulseModifications{PulseNumber}{n+1,2} = Field;
-                    if strcmp(Field,'Frequency') 
-                      % This is necessary to make sure that 'Frequency' is 
-                      % set correctly. In the defintion GHz are being used 
-                      % which need to be turned into MHz (line 99) for pulse().
-                      PulseModifications{PulseNumber}{n+1,3} = Exp.(Field2Get){iLine,2}*1000;
-                    else
-                      PulseModifications{PulseNumber}{n+1,3} = Exp.(Field2Get){iLine,2};
-                    end
+                    PulseModifications{PulseNumber}{n+1,3} = Exp.(Field2Get){iLine,2};
                     PulseModifications{PulseNumber}{n+1,4} = FieldIndex;
                   end
               end
@@ -642,7 +660,7 @@ if isfield(Exp,'nPoints')
   for iDataPoint = 1 : nDataPoints
     % Load starting values for pulses and event lengths
     Pulses = InitialPulses;
-    EventLengths = Exp.t;
+    EventLengths = Intervals;
     
     % ---------------------------------------------------------------------
     % First we need to loop over all pulses and check them for 
@@ -700,6 +718,8 @@ if isfield(Exp,'nPoints')
           % Convert array into cell for indexing
           ArrayIndex = num2cell(Pulses{iPulse}.ArrayIndex);
                   
+          Pulses{iPulse}.Frequency = Pulses{iPulse}.Frequency*1000; % GHz to MHz
+          
           % Compute Wave form and store it
           for iPCstep = 1 : size(Pulses{iPulse}.PhaseCycle,1)
             Pulses{iPulse}.Phase = Pulses{iPulse}.Phase+Pulses{iPulse}.PhaseCycle(iPCstep,1);
@@ -718,8 +738,11 @@ if isfield(Exp,'nPoints')
             % ... and stores it in the vary structure
             Vary.Pulses{iPulse}.IQs{ArrayIndex{:}}(iPCstep,:) = IQ;
           end
+          
           Vary.Pulses{iPulse}.ts{ArrayIndex{:}} = t;
-
+          
+          Pulses{iPulse}.Frequency = Pulses{iPulse}.Frequency/1000; % MHz to GHz
+          
         else
          
           if IQindex < size(PulseModifications{iPulse},1)

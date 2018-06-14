@@ -4,14 +4,14 @@ Pulse.Type = 'sech/uniformQ';
 
 Pulse.beta = 10;
 Pulse.n = [6 6];
+Pulse.Frequency = [0.95 1.05];
+Pulse.Flip = pi;
+Pulse.tp = 0.1;
 
-
-Exp.t = [0.1 0.5 0.1];
-Exp.Pulses = {Pulse 0 Pulse};
+Exp.Sequence = {Pulse 0.5 Pulse};
 Exp.Field = 1240; 
 Exp.TimeStep = 0.0001; % us
-Exp.Frequency = [0.95 1.05];
-Exp.Flip = [pi pi];
+
 Exp.DetEvents = 1;
 
 % First Syntax -----------------------------

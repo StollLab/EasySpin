@@ -14,7 +14,10 @@ InitFrequency  = 1; % in GHz
 df = -0.05; % frequency increment
 tp = 0.01;
 
-Pulse.Type = 'rectangular';  
+Pulse.Type = 'rectangular';
+Pulse.tp = tp
+Pulse.Flip = Flip;
+Pulse.Frequency = InitFrequency;
 
 % For manually calling pulse --------
 Manual.Type = 'rectangular';  
@@ -24,12 +27,9 @@ Manual.Flip = Flip;
 % pulse(Manual)
 % -------------
 
-Exp.t = [tp 0.5 tp];
-Exp.Pulses = {Pulse 0 Pulse};
+Exp.Sequence = {Pulse 0.5 Pulse};
 Exp.Field = 1240; 
 Exp.TimeStep = TimeStep; % us
-Exp.Frequency = InitFrequency;
-Exp.Flip = [Flip Flip];
 
 Opt.SimulationMode = 'LabFrame';
 

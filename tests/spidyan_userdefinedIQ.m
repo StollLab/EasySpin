@@ -12,16 +12,13 @@ Sys.ZeemanFreq = [33.600];
 Pulse.Type = 'rectangular';
 Pulse.TimeStep = 0.0001;
 Pulse.Flip = pi;
-Pulse.Frequency = 100;
+Pulse.Frequency = 0.100;
 Pulse.tp = 0.1;
 
 % Experiment with pulses internally defined -------------------
-Exp.t = [0.1 0.5 0.1];
-Exp.Pulses = {Pulse 0 Pulse};
+Exp.Sequence = {Pulse 0.5 Pulse};
 Exp.Field = 1240; 
 Exp.TimeStep = 0.0001; % us
-Exp.Frequency = 0.1;
-Exp.Flip = [pi pi];
 Exp.mwFreq = 33.5;
 Exp.DetEvents = [1 1 1]; 
 
@@ -33,6 +30,7 @@ Opt.FreqTranslation = [0];
 % Function Call -----------------------------
 [signal1] = spidyan(Sys,Exp,Opt);
 
+Pulse.Frequency = Pulse.Frequency*1000; % GHz to MHz;
 % Build custom IQ
 [t,IQ] = pulse(Pulse);
 Opt.dt = Exp.TimeStep/10;
@@ -43,7 +41,7 @@ Opt.dt = Exp.TimeStep/10;
 Exp2 = Exp;
 IQPulse.IQ = IQ;
 IQPulse.t = t;
-Exp2.Pulses{1} = IQPulse;
+Exp2.Sequence{1} = IQPulse;
 
 [signal2] = spidyan(Sys,Exp2,Opt);
 
@@ -51,7 +49,7 @@ Exp3 = Exp;
 IQPulse2.IQ = {IQ};
 IQPulse2.t = {t};
 
-Exp3.Pulses{1} = IQPulse2;
+Exp3.Sequence{1} = IQPulse2;
 
 [signal3] = spidyan(Sys,Exp3,Opt);
 

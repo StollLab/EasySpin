@@ -8,19 +8,20 @@ Sys.ZeemanFreq = [33.500];
 
 % Experiment -------------------
 Pulse.Type = 'rectangular';
+Pulse.tp = 0.1;
+Pulse.Flip = pi;
+
+Pulse2 = Pulse;
+Pulse2.Phase = pi;
 
 PC = [0, 1; pi, -1];
 
-Exp.t = [0.1 0.1 0.1];
-Exp.Pulses = {Pulse Pulse Pulse};
+Exp.Sequence = {Pulse Pulse2 Pulse};
 Exp.Field = 1240; 
 Exp.TimeStep = 0.0001; % us
-Exp.Frequency = [0 0; 0 0; 0 0];
-Exp.Flip = [pi pi pi];
 Exp.mwFreq = 33.5;
 Exp.DetEvents = 1; 
 Exp.PhaseCycle = {PC [] PC};
-Exp.Phase = [0 pi];
 
 % Options ---------------------------
 Opt.DetOperator = {'z1'};

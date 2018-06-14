@@ -8,21 +8,18 @@ Sys.eqState = -sop(Sys.S,'z');
 
 % Pulse Definitions
 Rectangular.Type = 'rectangular';
+Rectangular.tp = 0.2;
+Rectangular.Flip = pi;
 
 % A default Experiment/Sequence
 Exp.Field = 1240; % mT 
-Exp.TimeStep = 0.0001; % us
 Exp.mwFreq = 33.5; % GHz
 Exp.DetEvents = 1;
 
-Exp.t = [0.2 5]; % us
-Exp.Pulses = {Rectangular 0};
-Exp.Frequency = 0;
-Exp.Flip = pi/2;
+Exp.Sequence = {Rectangular 5};
 
 % Options
 Opt.DetOperator = {'z1'};
-Opt.FrameShift = 32; % GHz
 Opt.Relaxation = [0 1];
 
 [TimeAxis, Signal] = spidyan(Sys,Exp,Opt);

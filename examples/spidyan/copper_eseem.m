@@ -25,30 +25,33 @@ nKnots = 100;
 % (Chirp) pulse echo
 % Simulation setup -----------------------------
 
-Chirp.Type = 'quartersin/linear';
-Chirp.trise = 0.030;
+Chirp90.Type = 'quartersin/linear';
+Chirp90.trise = 0.030;
+Chirp90.Frequency = [-0.5 0.5]; % Excitation band, GHz
+Chirp90.tp = 0.4;
+Chirp90.Flip = pi/2;
 
-Exp.Frequency = [-0.5 0.5]; % Excitation band, GHz
-Exp.t = [0.400 0.25 0.200 0.4 0.1]; % Event lengths in us - the lengths of 
+Chirp180.Type = 'quartersin/linear';
+Chirp180.trise = 0.030;
+Chirp180.Frequency = [-0.5 0.5]; % Excitation band, GHz
+Chirp180.tp = 0.2;
+Chirp180.Flip = pi/2;
+
+Exp.Sequence = {Chirp90 0.25 Chirp180 0.4 0.1}; % Event lengths in us - the lengths of 
                                     % the free evolutions times were chosen
                                     % such, that the echo should be
                                     % centered during the last event
-Exp.Pulses = {Chirp 0 Chirp 0 0};  % Assign pulse structures to events
-Exp.Flip = [pi/2 pi]; % Flip angles of the pulses
-
 Exp.Field = 1240; % mT
-Exp.TimeStep = 0.00005; % us
 Exp.mwFreq = 35; % Carrier frequency in GHz
 
 % Detect only the echo (last event):
 Exp.DetEvents = [0 0 0 0 1];
 
 Exp.nPoints = 100;
-Exp.Dim = {'d1,d2', 0.004};
+Exp.Dim1 = {'d1,d2', 0.004};
 
 Opt.DetOperator = {'+1'};
 Opt.FreqTranslation = -35; % GHz
-Opt.FrameShift = 30; % Using a frame shift allows us to propagate faster
 
 %% A refocused echo with monochromatic pulses
 Signals = cell(1,numel(Weights));

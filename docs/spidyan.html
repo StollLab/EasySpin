@@ -158,71 +158,40 @@ The equilibrium state is only used if relaxation is active, else it is ignored.
 Magnetic field (in mT) at which the experiment is performed, needs to be provided even if the spinsystem is defined with <code>Sys.ZeemanFreq</code>.
 </div>
 
-<div class="optionfield"><code>t</code></div>
+<div class="optionfield"><code>Sequence</code></div>
 <div class="optiondescr">
-Vector that contains the lengths of all the events (pulses and free evolutions) in microseconds.
-</div>
-
-<div class="optionfield"><code>Pulses</code></div>
-<div class="optiondescr">
-Cell array, each element contains the pulse definition and the indexing corresponding to the events defined in <code>t</code>.
-Available pulse types are described at <a href="pulse.html">pulse</a>. 
-Free evolution events are declared with '<code>0</code>':
+A cell array that contains the pulse definition and the inter-pulse delays.
+Available pulse types and their parameters are described at <a href="pulse.html">pulse</a>. 
+For a pulse it is necessary to insert a structure containing the pulse defintion, free evolution events are declared with a scalar that corresponds to their lenght in microsecond:
 <pre class="matlab">
-Pulse.Type = 'rectangular';  	  % Define Pulse, see examples for more details
+P90.Type = 'rectangular';  	% Define Pulse, see examples for more details
+P90.tp = 0.032;		  	% Pulse Length in microseconds
+P90.Flip = pi;		  	% Flip angle of the pulse
 
-Exp.t = [0.05 0.2 0.05 0.4];	  % Event lengths of the sequence
-Exp.Pulses = {Pulse 0 Pulse 0};   % Assign Pulses to events 1 and 3, events 2 and 4 are free evolution events
+P180.Type = 'rectangular';  	% Define Pulse, see examples for more details
+P180.tp = 0.032;		% Pulse Length in microseconds
+P180.Flip = pi;		  	% Flip angle of the pulse
+
+Exp.Sequence = {P90 0.2 P180 0.4}; % Creates a two pulse (echo) sequence, with an inter-pulse 
+				   % delay of 0.2 microseconds and a final free-evolution period 
+				   % of 0.4 microseconds
 </pre>
-If the pulse definition contains a field <code>Qcrit</code> or <code>Amplitude</code>, the value in <code>Exp.Flip</code> is ignored.
-If both <code>Qcrit</code> and <code>Amplitude</code> are provided, <code>Qcrit</code> takes priority.
-The pulse length has to be provided through <code>Exp.t</code>. 
-Any values for the pulse length written to the <code>Pulse</code> structure are ignored.
 </div>
 
 <div class="optionfield"><code>mwFreq</code></div>
 <div class="optiondescr">
 EPR spectrometer frequency in GHz.
-If given, all frequencies in <code>Frequency</code> need to be defined relative to it (see there). 
-Required for simulations with resonator.
-</div>
-
-<div class="optionfield"><code>Frequency</code></div>
-<div class="optiondescr">
-Defines the frequency in GHz of the pulses in relation to <code>mwFreq</code> (if provided) or in absolute frequency.
-For a monochromatic pulse, the fixed frequency has to be given, for frequency-swept pulses an initial and final frequency must be provided.
-In simulations with pulses with different excitation windows, <code>;</code> can be used as separator: 
+If given, all frequencies in the pulse definition (e.g. <code>Pulse.Frequency</code>) need to be defined relative to it:
 <pre class="matlab">
-Exp.Frequency = [-0.05; 0.2];			% excitation windows for two monochromatic pulses
-Exp.Frequency = [-0.05 -0.025; 0.1 0.4];	% excitation windows for two frequency-swept pulses
-</pre>
-To use monochromatic in conjunction with frequency-swept pulses, identical initial and final frequencies need to be provided for the former, e.g. <code>[0.3 0.3; -0.1 -0.4]</code> defines one monochromatic and one frequency-swept pulse.
-<p>
-If <code>Exp.mwFreq</code> is defined, frequencies must be given relative to that carrier frequency:
-<pre class="matlab">
-Exp.Frequency = [33.25 33.75]; % sweep range for omitted 'Exp.mwFreq' field
-% or
 Exp.mwFreq = 33.5;
-Exp.Frequency = [-0.25 0.25];  % sweep range if 'Exp.mwFreq' is defined
-</pre>
-</div>
 
-<div class="optionfield"><code>Flip</code></div>
-<div class="optiondescr">
-Vector with flip angles for the pulses in radian.
-The indexing does <i>not</i> correspond to the indexing in <code>t</code>, but rather to the pulse indexing.
-Hence, the second element in <code>Flip</code> is the flip angle of the second pulse as defined in <code>Pulses</code>, i.e., to the third event in <code>t</code> in the example above:
+Pulse.Frequency = [-0.25 0.25];  % sweep range of pulse if 'Exp.mwFreq' is defined
+</pre>
+If <code>Exp.mwFreq</code> is omitted, the frequency range of the pulse has to be written in absolute frequencies:
 <pre class="matlab">
-Exp.Flip = [pi/2 pi]; 	% Set flip angle of first pulse to pi/2, of second pulse to pi
+Pulse.Frequency = [33.25 33.75];  % same pulse as above, but no Exp.mwFreq
 </pre>
-An entry of <code>Flip</code> is ignored, if <code>Qcrit</code> or <code>Amplitude</code> were provided for the same pulse.
-</div>
-
-<div class="optionfield"><code>Phase</code></div>
-<div class="optiondescr">
-An optional vector with the phases of the pulses in radian. 
-The indexing corresponds to the pulse index.
-If a phase is provided in the pulse definition, both phases are added.
+If you want to use a resonator in your simulation it is necessary to provide <code>Exp.mwFreq</code>.
 </div>
 
 <div class="optionfield"><code>PhaseCycle</code></div>
@@ -259,7 +228,8 @@ Time step in microseconds, optional.
 If no time step is provided, the program computes a suitable time step (taking into account the highest frequency that is being used for the pulse definition <code>Exp.Frequency</code>) and prints it to the command line.
 If the user provides a time step, the program checks if the Nyquist theorem is not fulfilled for the frequency ranges of the pulses and, if not, an error is thrown. 
 The required <code>TimeStep</code> depends on the choice of simulation frame, and hence on <code>Opt.FrameShift</code> (see <a href="#opt_frame_shift">there</a> and in the examples).
-</div>
+Any time steps given in the pulse definition are ignored.
+ </div>
 
 <p>
 By defining <code>nPoints</code> and  <code>DimX</code> it is possible to vary parameters of the pulse sequence and create one or multidimensional experiments.
@@ -457,8 +427,8 @@ When <code>SimulationMode</code> is set to the value <code>'FrameShift'</code>, 
 No matter the choice of your simulation frame, all other frequencies must still be given in the lab frame - the program handles all required frequency shifts.
 For example, if you run a Q-band simulation and you do not want to use the default simulation frame, but one that rotates at 30 GHz, you can do so with:
 <pre class="matlab">
-Exp.mwFreq = 34.4;	      	% Set carrier frequency to 34.4 GHz
-Exp.Frequency = [-0.05 0.05]; % Pulse with bandwidth of 100 MHz, sweeps from 34.35 to 34.45 GHz 
+Exp.mwFreq = 34.4;	        % Set carrier frequency to 34.4 GHz
+Pulse.Frequency = [-0.05 0.05]; % Pulse with bandwidth of 100 MHz, sweeps from 34.35 to 34.45 GHz 
 
 Opt.SimulationMode = 'FrameShift';
 Opt.FrameShift = 30;  	      % Changes into a rotating frame with 30 GHz

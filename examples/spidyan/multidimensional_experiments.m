@@ -1,4 +1,4 @@
-clear Exp Sys Opt Pulse
+clear Exp Sys Opt Pulse90 Pulse180
 % This script shows how the set up a pulse sequence with several pulses and
 % then explains on four examples how to run multidimensional experiments
 
@@ -6,15 +6,19 @@ clear Exp Sys Opt Pulse
 Sys.S = [1/2];
 Sys.ZeemanFreq = [33.500];
 
-Pulse.Type = 'rectangular';
+Pulse90.Type = 'rectangular';
+Pulse90.tp = 0.05;
+Pulse90.Flip = pi;
 
+Pulse180.Type = 'rectangular';
+Pulse180.tp = 0.05;
+Pulse180.Flip = pi;
+  
 % This Exp structure creates a pi - tau - pi/2 - tau pulse sequence ------
-Exp.t = [0.05 0.5 0.05 0.5]; % us
-Exp.Pulses = {Pulse 0 Pulse 0};
+Exp.Sequence = {Pulse90 0.5 Pulse180 0.5}; % us
 Exp.Field = 1240; % mT
 Exp.TimeStep = 0.0001; % us
-Exp.Frequency = 0; % GHz
-Exp.Flip = [pi pi/2];
+
 Exp.mwFreq = 33.5; % GHz
 Exp.DetEvents = 1;
 

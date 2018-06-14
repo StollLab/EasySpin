@@ -8,13 +8,13 @@ Sys.ZeemanFreq = [33.400];
 
 % Experiment -------------------
 Pulse.Type = 'rectangular';
+Pulse.tp = 0.1;
+Pulse.Flip = pi;
 
-Exp.t = [0.1];
-Exp.Pulses = {Pulse};
+
+Exp.Sequence = {Pulse};
 Exp.Field = 1240; 
 Exp.TimeStep = 0.0001; % us
-Exp.Frequency = 0;
-Exp.Flip = pi;
 Exp.mwFreq = 33.5;
 Exp.DetEvents = 1; 
 
@@ -33,8 +33,7 @@ Opt.SimulationMode = 'FrameShift';
 data.t1 = t1;
 data.signal1 = signal1;
 
-Exp.t = [0.1 0.5];
-Exp.Pulses = {Pulse 0};
+Exp.Sequence = {Pulse 0.5};
 Exp.Resonator.Mode = 'compensate';
 
 [t2, signal2] = spidyan(Sys,Exp,Opt);

@@ -6,13 +6,12 @@ Sys.ZeemanFreq = 33.500;
 
 % Experiment -------------------
 Pulse.Type = 'rectangular';
+Pulse.Flip = pi;
+Pulse.tp = 0.1;
 
-Exp.t = [0.1 0.5 0.1 0.5 0.1 0.5];
-Exp.Pulses = {Pulse 0 Pulse 0 Pulse 0};
+Exp.Sequence = {Pulse 0.5 Pulse 0.5 Pulse 0.5};
 Exp.Field = 1240; 
 Exp.TimeStep = 0.0001; % us
-Exp.Frequency = 0;
-Exp.Flip = [pi pi pi];
 Exp.mwFreq = 33.5;
 Exp.DetEvents = 1; 
 

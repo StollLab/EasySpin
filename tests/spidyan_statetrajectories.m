@@ -7,13 +7,14 @@ Sys.ZeemanFreq = 33.500; % GHz
 % Experiment -------------------
 Pulse.Type = 'quartersin/linear';
 Pulse.trise = 0.015; % us
+Pulse.tp = 0.1;
+Pulse.Frequency = [-0.100 0.100];
+Pulse.Flip = pi;
 
-Exp.t = [0.1 0.5 0.1]; % us
-Exp.Pulses = {Pulse 0 Pulse};
+Exp.Sequence = {Pulse 0.5 Pulse};
 Exp.Field = 1240; % mT
 Exp.TimeStep = 0.0001; % us
-Exp.Frequency = [-0.100 0.100];
-Exp.Flip = [pi pi];
+
 Exp.mwFreq = 33.5;
 Exp.DetEvents = [1 0 0]; 
 
