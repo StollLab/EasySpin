@@ -219,11 +219,11 @@
 %                        PSF to refer to the following atoms in the nitroxide 
 %                        spin label molecule:
 %
-%                                   O (OName)
+%                                   O (ONname)
 %                                   |
-%                                   N (NName)
+%                                   N (NNname)
 %                                  / \
-%                        (C1Name) C   C (C2Name)
+%                        (C1name) C   C (C2name)
 %
 %   OR
 %
@@ -459,7 +459,7 @@ if useMD
   % Check for orthogonality of rotation matrices
   RTrajInv = permute(MD.RTraj,[2,1,3,4]);
 
-  if ~allclose(matmult(MD.RTraj,RTrajInv),...
+  if ~allclose(multimatmult(MD.RTraj,RTrajInv),...
                repmat(eye(3),1,1,size(MD.RTraj,3),size(MD.RTraj,4)),...
                1e-14)
     error('Rotation matrices obtained from frame trajectory are not orthogonal.')
@@ -592,7 +592,7 @@ if useMD
   
   % process single long trajectory into multiple short trajectories
   if strcmp(MD.TrajUsage,'Explicit')
-    Par.lag = ceil(8e-9/Par.Dt);  % use 2 ns lag between windows
+    Par.lag = ceil(3*MD.tauR/Par.Dt);  % use 2 ns lag between windows
     if Par.nSteps<Par.nBlocks
       % Par.nSteps not changed from user input
       Par.nTraj = floor((Par.nBlocks-Par.nSteps)/Par.lag) + 1;
@@ -943,7 +943,7 @@ logmsg(1, '-- Method: %s -----------------------------------------', Opt.Method)
 % Run simulation
 % -------------------------------------------------------------------------
 
-clear propagate_quantum
+clear cardamom_propagatedm
 
 HistTot = 0;
 
@@ -1171,7 +1171,7 @@ while ~converged
     Par.nSteps = nStepsQuant;
     Par.Dt = dtQuant;
     Par.dt = dtStoch;
-    Sprho = propagate_quantum(Sys,Par,Opt,MD,omega,CenterField);
+    Sprho = cardamom_propagatedm(Sys,Par,Opt,MD,omega,CenterField);
 
     % average over trajectories
     if strcmp(Opt.debug.EqProp,'time')
@@ -1417,14 +1417,15 @@ maxIter = 200;
 
 % start = zeros();
 
-opts = statset('Display', 'final', ...
-               'MaxIter', maxIter);
+% opts = statset('Display', 'final', ...
+%                'MaxIter', maxIter);
 %                'UseParallel', useParallel);
 % opts = statset('Display','final','MaxIter',maxIter,'UseParallel',useParallel,'Start',start);
-[stateTraj,centroids] = kmeans(dihedrals, nStates, ...
-                               'Distance', 'sqeuclidean', ...
-                               'Replicates', nReplicates, ...
-                                'Options', opts);
+% [stateTraj,centroids] = kmeans(dihedrals, nStates, ...
+%                                'Distance', 'sqeuclidean', ...
+%                                'Replicates', nReplicates, ...
+%                                 'Options', opts);
+[stateTraj,centroids] = cardamom_kmeans(dihedrals, nStates, 20, 1);
 
 end
 

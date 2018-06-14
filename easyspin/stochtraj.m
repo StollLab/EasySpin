@@ -417,7 +417,7 @@ if isfield(Par,'Omega'), Omega = Par.Omega; end
 % Supplement starting angles if necessary
 if isempty(Omega)
   if ~isempty(Sys.PseudoPotFun) || ~isempty(Sys.ProbDensFun)
-    [alphaSamples, betaSamples, gammaSamples] = rejectionsample3d(exp(-PseudoPotFun), alphaGrid, betaGrid, gammaGrid, Sim.nTraj);
+    [alphaSamples, betaSamples, gammaSamples] = cardamom_rejectionsample3d(exp(-PseudoPotFun), alphaGrid, betaGrid, gammaGrid, Sim.nTraj);
     Omega = [alphaSamples; 
              betaSamples; 
              gammaSamples];
@@ -512,7 +512,7 @@ switch Model
       if iter==1
         %  Perform stochastic simulations
         %  (Eqs. 48 and 61 in reference)
-        qTraj = simrot(qTraj, Sim, iter);
+        qTraj = stochtraj_proprottraj(qTraj, Sim, iter);
       else
         logmsg(3,'-- Convergence not obtained -------------------------------------');
         logmsg(3,'-- Propagation extended to %dth iteration -----------------------', iter);
@@ -520,11 +520,11 @@ switch Model
         % Continue propagation by 20% more steps or by tcorr/dt, whichever is
         % greater
         Sim.nSteps = max([ceil(tcorrAvg/Sim.dt), ceil(1.2*Sim.nSteps)]);
-        qTraj = simrot(qTraj, Sim, iter);
+        qTraj = stochtraj_proprottraj(qTraj, Sim, iter);
       end
 
       if chkcon
-        gr = grstat(qTraj);
+        gr = stochtraj_grstat(qTraj);
 %         converged = all(gr(:)<1.00001);
         converged = all(gr(:)<1.000001);
       else

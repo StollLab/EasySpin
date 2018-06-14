@@ -267,9 +267,9 @@ function Traj = processMD(TrajFile, TopFile, ResName, AtomNames, ExtCombo)
 switch ExtCombo
   case '.DCD,.PSF'
     % obtain atom indices of nitroxide coordinate atoms
-    psf = readpsf(TopFile, ResName, AtomNames);  % TODO perform consistency checks between topology and trajectory files
+    psf = md_readpsf(TopFile, ResName, AtomNames);  % TODO perform consistency checks between topology and trajectory files
     % load spin label trajectory
-    Traj = readdcd(TrajFile, psf.idx_SpinLabel);
+    Traj = md_readdcd(TrajFile, psf.idx_SpinLabel);
     % filter based on atom indices from psf file
 %     Traj.Labelxyz = Traj.xyz(:,:,psf.idx_SpinLabel);
     Traj.ONxyz = Traj.xyz(:,:,psf.idx_ON==psf.idx_SpinLabel);
