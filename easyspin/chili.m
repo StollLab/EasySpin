@@ -731,7 +731,7 @@ if generalLiouvillian
   % (2) remove any transitions with |pI|>pImax, for each nucleus
   for in = 1:Sys.nNuclei
     pI = pq(:,2*Sys.nElectrons+2*in-1);
-    keep = keep & abs(pI)>Basis.pImax(in);
+    keep = keep & (abs(pI)<=Basis.pImax(in));
   end
   if Opt.pqOrder
     keep = keep(idxpq);

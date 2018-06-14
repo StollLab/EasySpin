@@ -11,14 +11,14 @@ nOriBasis = numel(L);
 
 if ~any(lambda)
   idx0 = find(L==0 & M==0 & K==0);
-  if numel(idx0)~=0
+  if numel(idx0)~=1
     error('Exactly one orientational basis function with L=M=K=0 is allowed.');
   end
   nSpinBasis = numel(SxH);
   idx = (idx0-1)*nSpinBasis + (1:nSpinBasis);
   nBasis = nOriBasis*nSpinBasis;
   StartingVector = sparse(idx,1,SxH(:),nBasis,nBasis);
-  StartingVector = StartingVector/norm(StartingVector);
+  StartingVector = StartingVector/sqrt(sum(StartingVector.^2));
   return
 end
 
@@ -42,11 +42,8 @@ for b = 1:numel(oriVector)
 end
 oriVector = oriVector/norm(oriVector);
 
-% set up spin part of basis
-SxVector = full(SxH(:)/norm(SxH(:)));
-
 % form starting vector in direct product basis
-StartingVector = real(kron(SxVector,oriVector));
+StartingVector = real(kron(SxH(:),oriVector));
 StartingVector = StartingVector/norm(StartingVector);
 StartingVector = sparse(StartingVector);
 
