@@ -17,10 +17,10 @@ Exp.Field = 1195;
 Exp.TimeStep = 0.0001; % us
 
 Exp.mwFreq = 33.5;
-Exp.DetEvents = [1 1]; 
+Exp.DetSequence = [1 1]; 
 
 % Options ---------------------------
-Opt.DetOperator = {'z1'};
+Exp.DetOperator = {'z1'};
 Opt.FrameShift = 32;
 Opt.SimulationMode = 'FrameShift';
 

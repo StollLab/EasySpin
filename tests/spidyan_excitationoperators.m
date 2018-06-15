@@ -16,11 +16,11 @@ Exp.Field = 1240;
 Exp.TimeStep = 0.0001; % us
 
 Exp.mwFreq = 33.5;
-Exp.DetEvents = [1 0]; 
+Exp.DetSequence = [1 0]; 
 
 % Options ---------------------------
-Opt.DetOperator = {'+','+(1|2)'};
-Opt.FreqTranslation = [-33.5 -33.5];
+Exp.DetOperator = {'+','+(1|2)'};
+Exp.DetFrequency = [33.5 33.5];
 Opt.FrameShift = 32;
 Opt.SimulationMode = 'FrameShift';
 

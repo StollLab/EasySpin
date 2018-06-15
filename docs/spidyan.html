@@ -176,6 +176,7 @@ Exp.Sequence = {P90 0.2 P180 0.4}; % Creates a two pulse (echo) sequence, with a
 				   % delay of 0.2 microseconds and a final free-evolution period 
 				   % of 0.4 microseconds
 </pre>
+The delays are defined to go from the end of one previous element in <code>Sequence</code> to the beginning of the next (unlike in Bruker spectrometers).
 </div>
 
 <div class="optionfield"><code>mwFreq</code></div>
@@ -206,22 +207,6 @@ Exp.PhaseCycle = {[] PC};	% phase cycles the second pulse
 Phace cycling that steps more than one pulse simultaneously is not available through the <code>PhaseCycle</code> structure, but can be achieved through adding an additional indirect dimension to the experiment (see <code>Dim</code>).
 </div>
 
-<div class="optionfield"><code>DetEvents</code></div>
-<div class="optiondescr">
-A vector that controls detection. 
-Detection can be set for the entire simulation (meaning detection is on for all events, even pulses) or for specific events:
-<pre class="matlab">
-Exp.DetEvents = true;   	% the entire sequence is detected
-Exp.DetEvents = [0 0 1 1];	% expectation values are only returned the third and fourth event
-Exp.DetEvents = [];		% no detection
-Exp.DetEvents = 0;		% no detection
-</pre>
-If the field <code>DetEvents</code> is not provided, detection is switched off by default.
-Detection operators can be defined in <code>Opt.DetOperator</code>.
-If <code>DetEvents</code> is active, but no detection operator is defined, <i>&Scirc;</i><sub>+</sub> is used for all electron spins.
-The length of <code>DetEvents</code> has to be either 1 or the same length as <code>Exp.t</code>.
-</div>
-
 <div class="optionfield"><code>TimeStep</code></div>
 <div class="optiondescr">
 Time step in microseconds, optional. 
@@ -229,7 +214,110 @@ If no time step is provided, the program computes a suitable time step (taking i
 If the user provides a time step, the program checks if the Nyquist theorem is not fulfilled for the frequency ranges of the pulses and, if not, an error is thrown. 
 The required <code>TimeStep</code> depends on the choice of simulation frame, and hence on <code>Opt.FrameShift</code> (see <a href="#opt_frame_shift">there</a> and in the examples).
 Any time steps given in the pulse definition are ignored.
- </div>
+</div>
+
+<p>
+Detection:
+</p>
+
+<div class="optionfield"><code>DetWindow</code></div>
+<div class="optiondescr">
+The field <code>DetWindow</code> is a simple tool to control detection and is given in microseconds:
+The zero-time of the detection is taken as the end of the last element in <code>Exp.Sequence</code>.
+<p>
+To do single point detection, it is sufficient to tell <code>DetWindow</code> the time of the detection point.
+E.g. to detect at the center of the echo after a two pulse:
+<pre class="matlab">
+tau = 0.5
+Exp.Sequence = {pulse90 tau pulse180 tau};   	% a two-pulse echo
+
+Exp.DetWindow = 0;	% detect a single point at the end of the second delay (center of the echo)
+</pre>
+The detection position can be set to anywhere at the end of the sequence, as long as it does not overlap with a pulse:
+<pre class="matlab">
+Exp.DetWindow =  0.2;	% detect a single point 200 ns after the second delay
+Exp.DetWindow = -0.2;	% detect a single point 200 ns before the end of the second delay
+</pre>
+In order to detect a transient, <code>DetWindow</code> has to be provided with a start and end value:
+<pre class="matlab">
+tau = 0.5
+Exp.Sequence = {pulse90 tau pulse180 tau};   	% a two-pulse echo
+
+Exp.DetWindow = [-0.1 0.1];	% detect a from -100 ns to 100 ns centered around of the end of tau
+</pre>
+Of course, it is also possible to detect a transient anywhere after the last pulse, as long is it does not overlap with it:
+<pre class="matlab">
+Exp.DetWindow = [0 0.3];	% start detection at the end of the last event and detect for 300 ns
+Exp.DetWindow = [-0.3 -0.1];	% start detection 300 ns before the end of the last event and detect for 200 ns
+</pre>
+If you want to detect an FID or have a fixed experiment length (e.g. 3p ESEEM) you can also write:
+<pre class="matlab">
+Exp.Sequence = {pulse90 0.5 pulse90 0.8 pulse90};   	% a three-pulse ESEEM sequence (the last element is a pulse)
+
+Exp.DetWindow = 0.5;	% detect a single point after 500ns after the last pi/2 pulse (center of echo)
+
+Exp.DetWindow = [0.250 0.750] % detect a transient, centered around the echo
+
+Exp.DetWindow = [0 0.100]    % detect an FID after the last pulse
+
+</pre>
+</div>
+
+<div class="optionfield"><code>DetSequence</code></div>
+<div class="optiondescr">
+A vector for advanced control of the detection, e.g. detect during pulses.
+Detection can be set for the entire simulation (meaning detection is on for all events, even pulses) or for specific events:
+<pre class="matlab">
+Exp.DetSequence = true;   	% the entire sequence is detected
+Exp.DetSequence = [0 0 1 1];	% expectation values are only returned the third and fourth element in Exp.Sequence
+Exp.DetSequence = 0;		% no detection
+</pre>
+Besides booleans, <code>Exp.DetSequence</code> also accepts strings:
+<pre class="matlab">
+Exp.DetSequence = 'all';   	% the entire sequence is detected
+Exp.DetSequence = 'last';	% the last element in Exp.Sequence is detected
+</pre>
+If the field <code>DetSequence</code> is not provided, detection is switched off by default.
+Detection operators can be defined in <code>Exp.DetOperator</code>.
+If <code>DetSequence</code> is active, but no detection operator is defined, <i>&Scirc;</i><sub>+</sub> is used for all electron spins.
+The length of <code>DetSequence</code> has to be either 1 or the same length as <code>Exp.Sequence</code>.
+<p>
+If <code>Exp.DetWindow</code> is provided, any input from <code>DetSequence</code> is ignored.
+</div>
+
+<div class="optionfield"><code>DetOperator</code></div>
+<div class="optiondescr">
+The field <code>DetOperator</code> is a cell array that contains detection operators. 
+They can be defined by using the same syntax as in  <code>sop</code> (see <a class="esf" href="sop.html">there</a>): 
+<pre class="matlab">
+Exp.DetOperator = {'+1' 'z1'};   % detects <i>&Scirc;</i><sub>+</sub> and <i>&Scirc;<sub>z</sub></i> of the first electron spin
+</pre>
+Detection operators that can not be defined using the <code>sop</code> syntax, can be provided in matrix form:
+<pre class="matlab">
+Exp.DetOperator = {[0 1; 0 0] [1/2 0; 0 -1/2]};   % the same operators as a above for <i>S</i> = 1/2 in matrix form
+</pre>
+If no detection operator is defined, but detection is active, <i>&Scirc;</i><sub>+</sub> is used for all electron spins.
+If you are interested in the expectation values of <i>&Scirc;<sub>x</sub></i>, it is usually beneficial to use <i>&Scirc;</i><sub>+</sub> as the actual detection operator and then take the real part of the obtained signal.
+This removes artifacts at the beginning and end of the time traces that are introduced when translating a purely real signal during the signal processing.
+</div>
+
+<div class="optionfield"><code>DetFrequency</code></div>
+<div class="optiondescr">
+The signal is detected in the simulation frame, which causes all signals from detection operators that have non-zero off-diagonal elements to have an oscillating component.
+By translating/shifting the frequency it is possible to center the signal around 0 (baseband) or any other desired frequency.
+The frequency shift has to given as absolute frequency (even if used in conjunction with <code>FrameShift</code>) in GHz and for each detection operator separately.
+Indexing in <code>DetFrequency</code> corresponds to the ordering in <code>DetOperator</code>:
+<pre class="matlab">
+Exp.DetOperator = {'+1' 'z1'};   % detects  <i>&Scirc;</i><sub>+</sub> and  <i>&Scirc;<sub>z</sub></i> of the first electron spin
+Exp.DetFrequency = [33.5 0]; % shifts <i>&Scirc;</i><sub>+</sub> by -33.5 GHz
+				 % <i>&Scirc;<sub>z</sub></i> does not contain a rotating component and does not need to shifted
+</pre>
+For counter-rotating detection operators (e.g. <i>&Scirc;</i><sub>-</sub>) the sign of the corresponding element in <code>DetFrequency</code> has to reflect this:
+<pre class="matlab">
+Exp.DetOperator = {'+1' '-1'};		% detects <i>&Scirc;</i><sub>+</sub> and <i>&Scirc;</i><sub>-</sub> of the first electron spin
+Exp.DetFrequency = [33.5 -33.5]; 	% shifts <i>&Scirc;</i><sub>+</sub> by -33.5 GHz and <i>&Scirc;</i><sub>-</sub> by 33.5 GHz
+</pre>
+</div>
 
 <p>
 By defining <code>nPoints</code> and  <code>DimX</code> it is possible to vary parameters of the pulse sequence and create one or multidimensional experiments.
@@ -357,40 +445,6 @@ Exp.Resonator.QL = 300;	  	% loaded Q-value
 <code>Opt</code> contains additional simulation parameters.
 </p>
 
-<div class="optionfield"><code>DetOperator</code></div>
-<div class="optiondescr">
-The field <code>DetOperator</code> is a cell array that contains detection operators. 
-They can be defined by using the same syntax as in  <code>sop</code> (see <a class="esf" href="sop.html">there</a>): 
-<pre class="matlab">
-Opt.DetOperator = {'+1' 'z1'};   % detects <i>&Scirc;</i><sub>+</sub> and <i>&Scirc;<sub>z</sub></i> of the first electron spin
-</pre>
-Detection operators that can not be defined using the <code>sop</code> syntax, can be provided in matrix form:
-<pre class="matlab">
-Opt.DetOperator = {[0 1; 0 0] [1/2 0; 0 -1/2]};   % the same operators as a above for <i>S</i> = 1/2 in matrix form
-</pre>
-If no detection operator is defined, but detection is active, <i>&Scirc;</i><sub>+</sub> is used for all electron spins.
-If you are interested in the expectation values of <i>&Scirc;<sub>x</sub></i>, it is usually beneficial to use <i>&Scirc;</i><sub>+</sub> as the actual detection operator and then take the real part of the obtained signal.
-This removes artifacts at the beginning and end of the time traces that are introduced when translating a purely real signal during the signal processing.
-</div>
-
-<div class="optionfield"><code>FreqTranslation</code></div>
-<div class="optiondescr">
-The signal is detected in the simulation frame, which causes all signals from detection operators that have non-zero off-diagonal elements to have an oscillating component.
-By translating/shifting the frequency it is possible to center the signal around 0.
-The frequency shift has to given as absolute frequency (even if used in conjunction with <code>FrameShift</code>) in GHz and for each detection operator separately.
-Indexing in <code>FreqTranslation</code> corresponds to the ordering in <code>DetOperator</code>:
-<pre class="matlab">
-Opt.DetOperator = {'+1' 'z1'};   % detects  <i>&Scirc;</i><sub>+</sub> and  <i>&Scirc;<sub>z</sub></i> of the first electron spin
-Opt.FreqTranslation = [-33.5 0]; % shifts <i>&Scirc;</i><sub>+</sub> by -33.5 GHz
-				 % <i>&Scirc;<sub>z</sub></i> does not contain a rotating component and does not need to shifted
-</pre>
-For counter-rotating detection operators (e.g. <i>&Scirc;</i><sub>-</sub>) the sign changes:
-<pre class="matlab">
-Opt.DetOperator = {'+1' '-1'};		% detects <i>&Scirc;</i><sub>+</sub> and <i>&Scirc;</i><sub>-</sub> of the first electron spin
-Opt.FreqTranslation = [-33.5 33.5]; 	% shifts <i>&Scirc;</i><sub>+</sub> by -33.5 GHz and <i>&Scirc;</i><sub>-</sub> by 33.5 GHz
-</pre>
-</div>
-
 <div class="optionfield"><code>Relaxation</code></div>
 <div class="optiondescr">
 Relaxation can be controlled for the entire sequence or specific events:
@@ -399,7 +453,7 @@ Opt.Relaxation = true;   	% switches on relaxation for the entire simulation
 Opt.Relaxation = [0 0 1];	% relaxation is active only during the third event
 </pre>
 If relaxation is switched on, relaxation times (<code>Sys.T1</code> and <code>Sys.T2</code>) have to be provided and the simulation is then performed in Liouville space, which slows down the simulation, for larger spin systems tremendously so.
-In order to avoid unexpected behavior, if the <code>Opt.Relaxation</code> is not used to switch relaxation on/off for the entire sequence, the length of it has to match the length of <code>Exp.t</code> (all events need to be defined).
+In order to avoid unexpected behavior, if the <code>Opt.Relaxation</code> is not used to switch relaxation on/off for the entire sequence, the length of it has to match the length of <code>Exp.Sequence</code> (all events need to be defined).
 </div>
 
 <a name="opt_frame_shift">
@@ -434,8 +488,8 @@ Opt.SimulationMode = 'FrameShift';
 Opt.FrameShift = 30;  	      % Changes into a rotating frame with 30 GHz
 </pre>
 Changing the simulation frame allows for using a larger time step, which in turn can strongly reduce computation time.																											 																																										
-Keep in mind, that if a time step is provided with <code>Exp.TimeStep</code> it is not adapted automatically.
-To have the program adapt the time step, remove the field <code>Exp.TimeStep</code> .
+Keep in mind, that if a time step is provided with <code>Exp.SequenceimeStep</code> it is not adapted automatically.
+To have the program adapt the time step, remove the field <code>Exp.SequenceimeStep</code> .
 </div>
 
 <div class="optionfield"><code>StateTrajectories</code></div>
@@ -448,7 +502,7 @@ Opt.StateTrajectories = [0 0 1];	% state trajectories is active only during the 
 </pre>
 State trajectories are only fully recorded for events where detection is active. 
 Otherwise, the density matrices are stored only at the beginning and end of the event.
-In order to avoid unexpected behavior, if the <code>Opt.StateTrajectories</code> is not control the entire sequence, the length of it has to match the length of <code>Exp.t</code> (all events need to be defined).
+In order to avoid unexpected behavior, if the <code>Opt.StateTrajectories</code> is not control the entire sequence, the length of it has to match the length of <code>Exp.Sequence</code> (all events need to be defined).
 </div>
 
 
@@ -510,13 +564,13 @@ Pulse.Type = 'quartersin/linear';
 Pulse.trise = 0.015;
 Pulse.Qcrit = 10;
 
-Exp.t = 0.2; 
+Exp.Sequence = 0.2; 
 Exp.Pulses = {Pulse};
 Exp.Field = 1240; 
-Exp.TimeStep = 0.00001; 
+Exp.SequenceimeStep = 0.00001; 
 Exp.Frequency = [-0.100 0.100];
 Exp.mwFreq = 33.5;
-Exp.DetEvents = 1;
+Exp.DetSequence = 1;
 </pre></pre>
 
 <p>
@@ -524,15 +578,15 @@ Before starting the simulation, we need to define a few more parameters:
 </p>
 
 <pre class="matlab">
-Opt.DetOperator = {'z1','+1'};
-Opt.FreqTranslation = [0 -33.5];
+Exp.DetOperator = {'z1','+1'};
+Exp.DetFrequency = [0 -33.5];
 Opt.FrameShift = 32;
 </pre>
 
 <p>
 With <code>FrameShift</code> the simulation is carried out in a frame that rotates at 32 GHz, which means that detected frequencies will now be centered around of 1.5 instead of 33.5 GHz.
 This allows us to use a larger <code>TimeStep</code>, which speeds up the simulation.
-As detection is done in the simulation frame <i>&Scirc;</i><sub>+</sub> has a rotating component that can be removed with <code>FreqTranslation</code>.
+As detection is done in the simulation frame <i>&Scirc;</i><sub>+</sub> has a rotating component that can be removed with <code>DetFrequency</code>.
 Next <code>spidyan</code> can be called, and the output plotted:
 </p>
 
@@ -546,7 +600,7 @@ xlabel('t [ns]')
 axis tight
 ylim([-1 1])
 ylabel('S_i')
-legend(Opt.DetOperator)
+legend(Exp.DetOperator)
 </pre>
 
 <p>
@@ -577,24 +631,24 @@ Sys = nucspinadd(Sys,'1H',[8 45 45]);
 Pulse.Type = 'quartersin/linear';
 Pulse.trise = 0.005;
 
-Exp.t = [0.05 0.25 0.025 0.125 0.3];
+Exp.Sequence = [0.05 0.25 0.025 0.125 0.3];
 Exp.Pulses = {Pulse 0 Pulse};
 Exp.Field = 1240; 
-Exp.TimeStep = 0.0001;
+Exp.SequenceimeStep = 0.0001;
 Exp.Frequency = [-0.080 0.080];
 Exp.Flip = [pi/2 pi];
 Exp.mwFreq = 33.5;
-Exp.DetEvents = [0 0 0 0 1];
+Exp.DetSequence = [0 0 0 0 1];
 </pre>
 <p>
-Since it is not necessary to run the simulation at actual Q-band frequencies, we can again simulate in a frame at 32 GHz, which allows us to use the smaller timestep defined in <code>Exp.TimeStep</code> and increases the computation speed.
+Since it is not necessary to run the simulation at actual Q-band frequencies, we can again simulate in a frame at 32 GHz, which allows us to use the smaller timestep defined in <code>Exp.SequenceimeStep</code> and increases the computation speed.
 For detection we choose <i>&Scirc;</i><sub>+</sub> and translate detected signals by -33.5 GHz (the center of the Gaussian distribution) - the frequency shift has to be provided in absolute frequency, even if <code>Opt.FrameShift</code> is used:
 </p>
 
 <pre class="matlab">
 Opt.FrameShift = 32;
-Opt.DetOperator = {'+1'};
-Opt.FreqTranslation = -33.5;
+Exp.DetOperator = {'+1'};
+Exp.DetFrequency = -33.5;
 </pre>
 
 <p>
@@ -685,7 +739,7 @@ For <code>Exp.nPoints = [3 4];</code> a total of 12 data sets will be returned i
 
 <pre class="matlab">
 Exp.nPoints = [3 4];
-Opt.DetOperator = {'z1','+1'};
+Exp.DetOperator = {'z1','+1'};
 </pre>
 <pre class="mloutput">
 size(sig) = 

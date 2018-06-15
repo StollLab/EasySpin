@@ -18,10 +18,10 @@ Exp.Field = 1240;
 Exp.TimeStep = 0.0001; % us
 
 Exp.mwFreq = 33.5;
-Exp.DetEvents = [0 0]; 
+Exp.DetSequence = [0 0]; 
 
 % Options ---------------------------
-Opt.DetOperator = {'z1'};
+Exp.DetOperator = {'z1'};
 Opt.FrameShift = 32;
 Opt.Relaxation = 1;
 Opt.SimulationMode = 'FrameShift';
@@ -31,7 +31,7 @@ Opt.SimulationMode = 'FrameShift';
 Opt.ComplexExcitation = 1;
 [~, ~, out1] = spidyan(Sys,Exp,Opt);
 
-Exp.DetEvents = [1 1];
+Exp.DetSequence = [1 1];
 [~, signalcomplex, out2] = spidyan(Sys,Exp,Opt);
 
 data.signalcomplex = signalcomplex;

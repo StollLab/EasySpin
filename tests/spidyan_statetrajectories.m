@@ -16,7 +16,7 @@ Exp.Field = 1240; % mT
 Exp.TimeStep = 0.0001; % us
 
 Exp.mwFreq = 33.5;
-Exp.DetEvents = [1 0 0]; 
+Exp.DetSequence = [1 0 0]; 
 
 % Options ---------------------------
 Opt.FrameShift = 32; % GHz

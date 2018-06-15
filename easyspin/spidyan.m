@@ -81,7 +81,11 @@ if isfield(Sys,'ZeemanFreq')
 end
 
 if isfield(Sys,'g')
-  nElectrons = length(Sys.S);
+  if isfield(Sys,'S')
+    nElectrons = length(Sys.S);
+  else
+    nElectrons = 1;
+  end
   
   gshift = (Opt.FrameShift*1e9)*planck/bmagn/(Exp.Field(end)*1e-3);
   
@@ -118,6 +122,10 @@ if isfield(Sys,'ZeemanFreq')
 end
 
 % Validate and build spin system as well as excitation operators
+if isfield(Exp,'DetOperator')
+  Opt.DetOperator = Exp.DetOperator;
+end
+
 [Sys, Sigma, DetOps, Events, Relaxation] = s_propagationsetup(Sys,Events,Opt);
 
 % Get Hamiltonian
@@ -131,43 +139,54 @@ Ham = sham(Sys,Exp.Field*[0 0 1]);
 [TimeAxis, RawSignal, FinalState, StateTrajectories, Events] = ...
   s_thyme(Sigma, Ham, DetOps, Events, Relaxation, Vary);
 
+
+
 %----------------------------------------------------------------------
 % Signal Processing
 %----------------------------------------------------------------------
 
 % Signal postprocessing, such as down conversion and filtering and
 % checking output of the timeaxis 
-if ~isempty(RawSignal)
-   
-  % Adapt FreqTranslation if needed
-  nDetOps = numel(DetOps);
-  FreqTranslation = zeros(1,nDetOps);
-  
-  if isfield(Opt,'FreqTranslation') && ~isempty(Opt.FreqTranslation)
-    
-    % This adapts the values for FreqTranslation to simulation frame
-    Opt.FreqTranslation(Opt.FreqTranslation > 0) = Opt.FreqTranslation(Opt.FreqTranslation > 0) - Events{1}.FrameShift;
-    Opt.FreqTranslation(Opt.FreqTranslation < 0) = Opt.FreqTranslation(Opt.FreqTranslation < 0) + Events{1}.FrameShift;
-    
-    % And then writes them
-    FreqTranslation(1:length(Opt.FreqTranslation)) = Opt.FreqTranslation;
-    
-  end
-  
-  % Downconversion/processing of signal
-  Signal = signalprocessing(TimeAxis,RawSignal,FreqTranslation);
-  
-  % If time axis is the same for each data point, it is reduced to a single
-  % vector at this point - helps with plotting
-  if ~iscell(TimeAxis)
-    SizeT = size(TimeAxis);
-    linearTimeAxis = reshape(TimeAxis,[prod(SizeT(1:end-1)) SizeT(end)]);
-    if size(unique(linearTimeAxis,'rows'),1) == 1
-      TimeAxis = linearTimeAxis(1,:);
-    end
+if Opt.SinglePointDetection
+  if isfield(Exp,'nPoints')
+    DimSignal =  ndims(RawSignal);
+    Signal = permute(RawSignal,[1:(DimSignal-1) DimSignal+1 DimSignal]);
+  else
+    Signal = RawSignal;
   end
 else
-  Signal = [];
+  if ~isempty(RawSignal)
+    
+    % Adapt FreqTranslation if needed
+    nDetOps = numel(DetOps);
+    FreqTranslation = zeros(1,nDetOps);
+    
+    if isfield(Exp,'DetFrequency') && ~isempty(Exp.DetFrequency)
+      
+      % This adapts the values for DetFrequency to simulation frame
+      Exp.DetFrequency(Exp.DetFrequency > 0) = Exp.DetFrequency(Exp.DetFrequency > 0) - Events{1}.FrameShift;
+      Exp.DetFrequency(Exp.DetFrequency < 0) = Exp.DetFrequency(Exp.DetFrequency < 0) + Events{1}.FrameShift;
+      
+      % And then writes them
+      FreqTranslation(1:length(Exp.DetFrequency)) = - Exp.DetFrequency; % To make it a down conversion for negative frequencies add the neg sign
+      
+    end
+    
+    % Downconversion/processing of signal
+    Signal = signalprocessing(TimeAxis,RawSignal,FreqTranslation);
+    
+    % If time axis is the same for each data point, it is reduced to a single
+    % vector at this point - helps with plotting
+    if ~iscell(TimeAxis)
+      SizeT = size(TimeAxis);
+      linearTimeAxis = reshape(TimeAxis,[prod(SizeT(1:end-1)) SizeT(end)]);
+      if size(unique(linearTimeAxis,'rows'),1) == 1
+        TimeAxis = linearTimeAxis(1,:);
+      end
+    end
+  else
+    Signal = [];
+  end
 end
 
 % Reduce the dimensionality of the final state for simulations with only

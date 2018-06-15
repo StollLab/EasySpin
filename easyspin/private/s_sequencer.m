@@ -6,6 +6,58 @@ function [Events, Vary, Opt] = sequencer(Exp,Opt)
 % -------------------------------------------------------------------------
 Vary = [];
 
+Opt.SinglePointDetection = false;
+
+if isfield(Exp,'DetWindow')
+  if isfield(Exp,'DetSequence')
+   warning('You provided Exp.DetWindow and Exp.DetSequence. Exp.DetSequence will be ignored.')
+  end
+  
+  if any(Exp.DetWindow<0) && isstruct(Exp.Sequence{end})
+    error('You provided Exp.DetWindow with a negative value, but the last element in Exp.Sequence is a pulse. Detection into a pulse is not possible. Please adapt your detection or append an appropriate free evolution event.')
+  elseif min(Exp.DetWindow) < 0 && (abs(min(Exp.DetWindow)) > Exp.Sequence{end})
+    error('Your detection window is extending beyond the last free evolution into a pulse. Please shorten detection window or adapt the length of the free evolution.')
+  end
+  
+  
+  if isstruct(Exp.Sequence{end}) 
+    if Exp.DetWindow(1)>0
+      Exp.Sequence{end+1} = Exp.DetWindow(1);
+    end
+  else
+    Exp.Sequence{end} = Exp.Sequence{end} + Exp.DetWindow(1);
+  end
+  if length(Exp.DetWindow) == 1
+    Opt.SinglePointDetection = true;
+    Exp.Sequence{end+1} = 0;
+  else
+    Exp.Sequence{end+1} = diff(Exp.DetWindow);
+  end
+  
+  Exp.DetSequence = zeros(1,length(Exp.Sequence));
+  Exp.DetSequence(end) = true;
+  
+elseif isfield(Exp,'DetSequence')
+  if ischar(Exp.DetSequence)
+    if strcmp(Exp.DetSequence,'last')
+      Exp.DetSequence = zeros(1,length(Exp.Sequence));
+      Exp.DetSequence(end) = true;
+    elseif strcmp(Exp.DetSequence,'all')
+      Exp.DetSequence = ones(1,length(Exp.Sequence));
+    else
+      msg = 'The string you provided in Exp.DetSequence was not recognized';
+      error(msg);
+    end
+  else
+    if length(Exp.DetSequence) ~= 1 && length(Exp.DetSequence) ~= length(Exp.Sequence)
+      error('The lengths of Exp.Sequence and Exp.DetSequence do not match. Length of Exp.DetSequence has to be 1 or the same as Exp.Sequence.')
+    end
+  end
+  if sum(Exp.DetSequence) == 1 && ~isstruct(Exp.Sequence{Exp.DetSequence==1}) && Exp.Sequence{Exp.DetSequence==1} == 0
+    Opt.SinglePointDetection = true;
+  end
+end
+
 % Check if resonator is 
 if isfield(Exp,'Resonator')
   IncludeResonator = true;
@@ -142,13 +194,7 @@ if isfield(Opt,'Relaxation')
     error('The lengths of Exp.Sequence and Opt.Relaxation do not match. Length of Opt.Relaxation has to be 1 or the same as Exp.Sequence.')
   end
 end
-
-if isfield(Exp,'DetEvents')
-  if length(Exp.DetEvents) ~= 1 && length(Exp.DetEvents) ~= length(Exp.Sequence)
-    error('The lengths of Exp.Sequence and Exp.DetEvents do not match. Length of Exp.DetEvents has to be 1 or the same as Exp.Sequence.')
-  end
-end
-
+ 
 if isfield(Opt,'StateTrajectories')
   if length(Opt.StateTrajectories) ~= 1 && length(Opt.StateTrajectories) ~= length(Exp.Sequence)
     error('The lengths of Exp.Sequence and Opt.StateTrajectories do not match. Length of Opt.StateTrajectories has to be 1 or the same as Exp.Sequence.')
@@ -250,7 +296,7 @@ for iEvent = 1 : length(Exp.Sequence)
       if ~isfield(Exp.Sequence{iEvent},'Type')
         
         % First check for field frequency and correct it
-        if ~isfield(Exp.Sequence{iEvent},Frequency)
+        if ~isfield(Exp.Sequence{iEvent},'Frequency')
           % if no frequency is defined, frequency is set to 0 (Exp.mwFreq
           % will be added later)
           Exp.Sequence{iEvent}.Frequency = 0;
@@ -379,13 +425,13 @@ for iEvent = 1 : length(Exp.Sequence)
   
   % Check if detection is provided, if no detection is requested, detection
   % is switched off
-  if ~isfield(Exp,'DetEvents') || isempty(Exp.DetEvents)
+  if ~isfield(Exp,'DetSequence') || isempty(Exp.DetSequence)
       Events{iEvent}.Detection = false;
   else
-    if length(Exp.DetEvents) == 1
-      Events{iEvent}.Detection = Exp.DetEvents;
+    if length(Exp.DetSequence) == 1
+      Events{iEvent}.Detection = Exp.DetSequence;
     else 
-      Events{iEvent}.Detection = Exp.DetEvents(iEvent);
+      Events{iEvent}.Detection = Exp.DetSequence(iEvent);
     end   
   end
   

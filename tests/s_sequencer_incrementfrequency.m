@@ -15,7 +15,7 @@ df = -0.05; % frequency increment
 tp = 0.01;
 
 Pulse.Type = 'rectangular';
-Pulse.tp = tp
+Pulse.tp = tp;
 Pulse.Flip = Flip;
 Pulse.Frequency = InitFrequency;
 

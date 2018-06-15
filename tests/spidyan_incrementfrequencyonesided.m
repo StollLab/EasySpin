@@ -15,26 +15,26 @@ Exp.Sequence = {Pulse 0.5 Pulse};
 Exp.Field = 1240; 
 Exp.TimeStep = 0.0001; % us
 Exp.mwFreq = 33.5;
-Exp.DetEvents = 1; 
+Exp.DetSequence = 1; 
 
 % Options ---------------------------
-Opt.DetOperator = {'z1'};
+Exp.DetOperator = {'z1'};
 
 % To test I --------------------------
 Exp.nPoints = [3];
 Exp.Dim1 = {'p1.Frequency' [-0.05 0]};
 
-[~, signal1] = spidyan(Sys,Exp,Opt);
+[~, signal1] = spidyan(Sys,Exp);
 
 % To test II --------------------------
 Exp.Dim1 = {'p1.Frequency(1)' -0.05};
 
-[~, signal2] = spidyan(Sys,Exp,Opt);
+[~, signal2] = spidyan(Sys,Exp);
 
 % To test III -------------------------
 Exp.Dim1 = {'p1.Frequency(1)' [0 -0.05 -0.1]};
 
-[~, signal3] = spidyan(Sys,Exp,Opt);
+[~, signal3] = spidyan(Sys,Exp);
 
 if any([~areequal(signal1,signal2,1e-4) ~areequal(signal1,signal3,1e-4)])
   err = 1;

@@ -169,12 +169,20 @@ end
 % -------------------------------------------------------------------------
 logmsg(1,'setting up the detection operators...');
 
-if ~isfield(Opt,'DetOperator') || isempty(Opt.DetOperator)
+useDefaultDetOperator = ~isfield(Opt,'DetOperator') || isempty(Opt.DetOperator);
+
+
+if useDefaultDetOperator
   % default value, equals to S+ for all electron spins 
   DetOps{1} = totSpinOps{1}+1i*totSpinOps{2}; 
 else
   
+  if ischar(Opt.DetOperator)
+    Opt.DetOperator = {Opt.DetOperator};
+  end
+
   nDetOps = length(Opt.DetOperator);
+  
   DetOps = cell(1,nDetOps);  
   for iDetectionOperator = 1 : nDetOps
     if ischar(Opt.DetOperator{iDetectionOperator})

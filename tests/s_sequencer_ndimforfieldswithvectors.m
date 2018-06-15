@@ -12,7 +12,7 @@ Exp.Sequence = {Pulse 0.5 Pulse};
 Exp.Field = 1240; 
 Exp.TimeStep = 0.0001; % us
 
-Exp.DetEvents = 1;
+Exp.DetSequence = 1;
 
 % First Syntax -----------------------------
 Exp.nPoints = 3;

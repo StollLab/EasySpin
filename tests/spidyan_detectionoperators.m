@@ -16,13 +16,13 @@ Exp.Field = 1240;
 Exp.TimeStep = 0.0001; % us
 
 Exp.mwFreq = 33.5;
-Exp.DetEvents = [1 0 0]; 
+Exp.DetSequence = [1 0 0]; 
 
 % Options ---------------------------
 Opt.FrameShift = 32;
 % Detection -------------------------
-Opt.DetOperator = {'z1','+1'};
-Opt.FreqTranslation = [0 -33.5]; 
+Exp.DetOperator = {'z1','+1'};
+Exp.DetFrequency = [0 33.5]; 
 Opt.SimulationMode = 'FrameShift';
 
 % Function Call -----------------------------
@@ -32,12 +32,12 @@ data.t1 = t1;
 data.signal1 = signal1;
 
 % Test Detection operators I ---------------------------
-Opt.DetOperator = {'z1',[0 1; 0 0]};
+Exp.DetOperator = {'z1',[0 1; 0 0]};
 
 [~, signal2] = spidyan(Sys,Exp,Opt);
 
 % Test Detection operators II ---------------------------
-Opt.DetOperator = {[1/2 0; 0 -1/2],[0 1; 0 0]};
+Exp.DetOperator = {[1/2 0; 0 -1/2],[0 1; 0 0]};
 
 [~, signal3] = spidyan(Sys,Exp,Opt);
 

@@ -21,11 +21,11 @@ Exp.Field = 1240;
 Exp.TimeStep = 0.0001; % us
 
 Exp.mwFreq = 33.5;
-Exp.DetEvents = [1 1 1]; 
+Exp.DetSequence = [1 1 1]; 
 
 % Detection -------------------------
-Opt.DetOperator = {'z1','+1'};
-Opt.FreqTranslation = [0 -33.5]; 
+Exp.DetOperator = {'z1','+1'};
+Exp.DetFrequency = [0 33.5]; 
 
 % Options ---------------------------
 Opt.FrameShift = 32;

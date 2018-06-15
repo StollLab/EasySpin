@@ -23,20 +23,20 @@ Exp.TimeStep = 0.00001; % us
 
 
 % Detection -------------------------
-Opt.DetOperator = {'z1','+1'};
-Opt.FreqTranslation = [0 -33.5]; 
+Exp.DetOperator = {'z1','+1'};
+Exp.DetFrequency = [0 33.5]; 
 
 
 % Function Call -----------------------------
 
-[~, ~, out1] = spidyan(Sys,Exp,Opt);
+[~, ~, out1] = spidyan(Sys,Exp);
 
 % Second Method -------------------------
 Exp = rmfield(Exp,'mwFreq');
 Pulse.Frequency = [33.400 33.600];
 Exp.Sequence = {Pulse 0.5 Pulse};
 
-[~, ~, out2] = spidyan(Sys,Exp,Opt);
+[~, ~, out2] = spidyan(Sys,Exp);
 
 if ~areequal(out1.FinalState,out2.FinalState,1e-4)
   err = 1;

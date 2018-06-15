@@ -13,13 +13,13 @@ Exp.Sequence = {Pulse 0.5 Pulse 0.5 Pulse 0.5};
 Exp.Field = 1240; 
 Exp.TimeStep = 0.0001; % us
 Exp.mwFreq = 33.5;
-Exp.DetEvents = 1; 
+Exp.DetSequence = 1; 
 
 Exp.nPoints = 4;
 Exp.Dim1 = {'p2.Position' 0.25};
 
 % Options ---------------------------
-Opt.DetOperator = {'z1'};
+Exp.DetOperator = {'z1'};
 Opt.FrameShift = 32;
 Opt.SimulationMode = 'FrameShift';
 
