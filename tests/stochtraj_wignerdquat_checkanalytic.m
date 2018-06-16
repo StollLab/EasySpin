@@ -86,7 +86,7 @@ err1 = zeros(3,3,len);
 
 for M=-L:L
   for K=-L:L
-    err1(2-M,2-K,:) = abs(wignerdquat(L,M,K,q)-reshape(D1(2-M,2-K,:),[1,len]));
+    err1(2-M,2-K,:) = abs(runprivate('stochtraj_wignerdquat',L,M,K,q)-reshape(D1(2-M,2-K,:),[1,len]));
   end
 end
 
@@ -95,7 +95,7 @@ err2 = zeros(5,5,len);
 
 for M=-L:L
   for K=-L:L
-    err2(3-M,3-K,:) = abs(wignerdquat(L,M,K,q)-reshape(D2(3-M,3-K,:),[1,len]));
+    err2(3-M,3-K,:) = abs(runprivate('stochtraj_wignerdquat',L,M,K,q)-reshape(D2(3-M,3-K,:),[1,len]));
   end
 end
 err = any(abs(err1(:))>1e-15)||any(abs(err2(:))>1e-15);
