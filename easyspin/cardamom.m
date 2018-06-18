@@ -415,12 +415,6 @@ if useMD
                    MD.chi4(1:nLag:end), ...
                    MD.chi5(1:nLag:end)];
                  
-      MD.nStates = 48;
-%       MD.nStates = 5;
-
-      [MD.stateTraj,centroids] = clusterDihedrals(dihedrals,MD.nStates);
-      
-      MD.nSteps = size(MD.stateTraj, 1);  % TODO: find a way to process different step sizes here
       Par.dt = tScale*MD.tLag;
     case 'Raw'
       if ~isfield(MD,'TrajFile')||~isfield(MD,'AtomInfo')
@@ -471,9 +465,69 @@ if useMD
   if strcmp(MD.TrajUsage,'Markov')
     Opt.Model = 'Discrete';
     Opt.statesOnly = 1;
-    Sys.TransProb = calc_TPM(MD.stateTraj,MD.nStates);
+    
+    MD.nStates = 48;
+%       MD.nStates = 5;
+
+    % Perform k-means clustering
+    [MD.stateTraj,centroids] = clusterDihedrals(dihedrals,MD.nStates);
+    MD.nSteps = size(MD.stateTraj, 1);  % TODO: find a way to process different step sizes here
+
+    % Initialize HMM using clustering results
+    mu0 = centroids.';
+    for iState = 1:MD.nStates
+      Sigma0(:,:,iState) = cov(dihedrals(MD.stateTraj==iState,:));
+    end
+%     prior0 = normalise(rand(MD.nStates,1));
+%     transmat0 = mk_stochastic(rand(MD.nStates,MD.nStates));
+
+    mixmat0 = ones(MD.nStates,1);
+
+    randints = randi(size(MD.stateTraj,1), MD.nStates, 1);
+    prior0 = MD.stateTraj(randints);
+    transmat0 = calc_TPM(MD.stateTraj,MD.nStates).';
 %     Sys.States0 =  TODO: find a way to assign the equilibrium distribution
-    % sample the rotation matrices with a time lag
+
+    checkEmptyTrans = 1;
+    ProbRatioThresh = 1e-3;  % threshold in probability ratio for finding 
+                             % rarely visited states
+    while checkEmptyTrans
+      % run expectation-maximization algorithm on HMM model parameters
+      ModelIn.prior = prior0;
+      ModelIn.transmat = transmat0;
+      ModelIn.mu = mu0;
+      ModelIn.Sigma = Sigma0;
+
+      [logL, ModelOut] = cardamom_emghmm(dihedrals, ModelIn, 20);
+
+      prior1 = ModelOut.prior;
+      transmat1 = ModelOut.transmat;
+      mu1 = ModelOut.mu;
+      Sigma1 = ModelOut.Sigma;
+      
+      nStates = size(transmat1,1);
+      EmptyTransList = zeros(nStates,1);
+      for iState = 1:nStates
+        % check for rare states
+        maxProb = max(transmat1(:));
+        StateTransProbs = [transmat1(iState,:).'; transmat1(:,iState)];
+        EmptyTransList(iState) = all(StateTransProbs./maxProb < ProbRatioThresh);
+      end
+      if any(EmptyTransList)
+        % reset model vars by removing entries for rarely visited states
+        idxNonEmpty = ~EmptyTransList;
+        prior0 = prior1(idxNonEmpty);
+        transmat0 = transmat1(idxNonEmpty,:);
+        transmat0 = transmat0(:,idxNonEmpty);
+        mu0 = mu1(:,idxNonEmpty);
+        Sigma0 = Sigma1(:,:,idxNonEmpty);
+        mixmat0 = mixmat1(idxNonEmpty);
+      else
+        % no rare states found, reset nStates if it has changed
+        checkEmptyTrans = 0;
+        MD.nStates = size(transmat1,1);
+      end
+    end
   end
   % estimate rotational diffusion time scale
   acorrX = autocorrfft(squeeze(MD.FrameX.^2), 2, 1, 1);
@@ -900,7 +954,6 @@ switch Model
           theta = squeeze(acos(MD.FrameZ(3,:,:,1:M)));
           phi = squeeze(atan2(MD.FrameY(3,:,:,1:M), MD.FrameX(3,:,:,1:M)));
           psi = squeeze(atan2(-MD.FrameZ(2,:,:,1:M), MD.FrameZ(1,:,:,1:M)));
-          
 
 %           % use eulang to obtain Euler angles
 %           phi = zeros(MDTrajLength,1);
@@ -1137,10 +1190,10 @@ while ~converged
 %             qLab = repmat(euler2quat(0, gridTheta(iOrient), gridPhi(iOrient)),...
 %                            [1,Par.nTraj]);
 
-            % local diffusion
-    %         Sys.Diff = DiffLocal;
-            randints = sort(randi(size(MD.stateTraj,2), 1, Par.nTraj));
-            Sys.States0 = MD.stateTraj(randints).';
+%             randints = sort(randi(size(MD.stateTraj,1), 1, Par.nTraj));
+%             Sys.States0 = MD.stateTraj(randints).';  % FIXME sample from prior distribution
+            Sys.States0 = rejectionsample(MD.nStates, prior1, Par.nTraj);
+            Sys.TransProb = transmat1.';
             Par.dt = dtStoch;
             Par.nSteps = nStepsStoch;
             Opt.Model = 'Discrete';
@@ -1491,6 +1544,25 @@ nBlocks = floor(nSteps/BlockLength);
 
 BlockLength = BlockLength;
 nBlocks = nBlocks;
+
+end
+
+function xSamples = rejectionsample(maxX, p, nSamples)
+
+xGrid = 1:maxX;
+
+c = max(p(:));
+
+iSample = 1;
+xSamples = zeros(1,nSamples);
+while iSample < nSamples + 1
+  xProposal = randi(maxX);
+  q = c;
+  if rand() < p(xProposal)/q
+    xSamples(iSample) = xGrid(xProposal);
+    iSample = iSample + 1;
+  end
+end
 
 end
 
