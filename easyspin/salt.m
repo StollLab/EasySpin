@@ -104,7 +104,8 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
     error('Multiple components: Please specify frequency range manually using Exp.Range or Exp.CenterSweep.');
   end
   
-  PowderSimulation = ~isfield(Exp,'CrystalOrientation') || isempty(Exp.CrystalOrientation);
+  PowderSimulation = ~isfield(Exp,'CrystalOrientation') || isempty(Exp.CrystalOrientation) || ...
+    (isfield(Exp,'Ordering') && isempty(Exp.Ordering));
   appendSpectra = PowderSimulation && ~summedOutput;
   if appendSpectra
     spec = [];
@@ -264,7 +265,8 @@ end
 if isfield(Exp,'Orientation') || isfield(Exp,'Orientations')
   error('Exp.Orientation and Exp.Orientations are obsolete (as of EasySpin 5), use Exp.CrystalOrientation instead.');
 end
-PowderSimulation = isempty(Exp.CrystalOrientation);
+PowderSimulation = ~isfield(Exp,'CrystalOrientation') || isempty(Exp.CrystalOrientation) || ...
+  (isfield(Exp,'Ordering') && isempty(Exp.Ordering));
 Exp.PowderSimulation = PowderSimulation;
 
 % Partial ordering
@@ -273,10 +275,10 @@ if ~isempty(Exp.Ordering)
     error('Partial ordering (Exp.Ordering) can only be used in a powder simulation.');
   end
   if isnumeric(Exp.Ordering) && (numel(Exp.Ordering)==1) && isreal(Exp.Ordering)
-    UserSuppliedOrderingFcn = 0;
-    logmsg(1,'  partial order (built-in function, lambda = %g)',Exp.Ordering);
+    lambda = Exp.Ordering;
+    Exp.Ordering = @(phi,theta) exp(lambda*plegendre(2,0,cos(theta)));
+    logmsg(1,'  partial order (built-in function, lambda = %g)',lambda);
   elseif isa(Exp.Ordering,'function_handle')
-    UserSuppliedOrderingFcn = 1;
     logmsg(1,'  partial order (user-supplied function)');
   else
     error('Exp.Ordering must be a single number or a function handle.');
@@ -708,15 +710,10 @@ else
     fSegWeights = -diff(cos(fthe))*4*pi; % sum is 4*pi
     if ~isempty(Exp.Ordering)
       centreTheta = (fthe(1:end-1)+fthe(2:end))/2;
-      if (UserSuppliedOrderingFcn)
-        OrderingWeights = feval(Exp.Ordering,zeros(1,numel(centreTheta)),centreTheta);
-        %OrderingWeights = Exp.Ordering(zeros(1,numel(centreTheta)),centreTheta);
-        if any(OrderingWeights)<0, error('User-supplied orientation distribution gives negative values!'); end
-        if max(OrderingWeights)==0, error('User-supplied orientation distribution is all-zero.'); end
-      else
-        U = -Exp.Ordering*plegendre(2,0,cos(centreTheta));
-        OrderingWeights = exp(-U);
-      end
+      centrePhi = zeros(1,numel(centreTheta));
+      OrderingWeights = Exp.Ordering(centrePhi,centreTheta);
+      if any(OrderingWeights)<0, error('User-supplied orientation distribution gives negative values!'); end
+      if all(OrderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end
       fSegWeights = fSegWeights(:).*OrderingWeights(:);
       fSegWeights = 4*pi/sum(fSegWeights)*fSegWeights;
     elseif ~isempty(Opt.ThetaRange)
@@ -736,16 +733,11 @@ else
     [idxTri,Areas] = triangles(nOctants,nfKnots,ang2vec(fphi,fthe));
     if ~isempty(Exp.Ordering)
       centreTheta = mean(fthe(idxTri));
-      if (UserSuppliedOrderingFcn)
-        centrePhi = mean(fphi(idxTri));
-        OrderingWeights = feval(Exp.Ordering,centrePhi,centreTheta);
-        %OrderingWeights = Exp.Ordering(centrePhi,centreTheta);
-        if any(OrderingWeights)<0, error('User-supplied orientation distribution gives negative values!'); end
-        if max(OrderingWeights)==0, error('User-supplied orientation distribution is all-zero.'); end
-      else
-        U = -Exp.Ordering*plegendre(2,0,cos(centreTheta));
-        OrderingWeights = exp(-U);
-      end
+      centrePhi = mean(fphi(idxTri));
+      %OrderingWeights = feval(Exp.Ordering,centrePhi,centreTheta);
+      OrderingWeights = Exp.Ordering(centrePhi,centreTheta);
+      if any(OrderingWeights)<0, error('User-supplied orientation distribution gives negative values!'); end
+      if max(OrderingWeights)==0, error('User-supplied orientation distribution is all-zero.'); end
       Areas = Areas(:).*OrderingWeights(:);
       Areas = 4*pi/sum(Areas)*Areas;
     elseif ~isempty(Opt.ThetaRange)

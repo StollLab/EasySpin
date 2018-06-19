@@ -476,9 +476,9 @@ end
 
 if (FastMotionRegime)
   if FieldSweep
-    FastMotionLw = fastmotion(Sys,CentralResonance,Sys.tcorr);
+    FastMotionLw = fastmotion(Sys,CentralResonance,Sys.tcorr,'field'); % mT
   else
-    FastMotionLw = fastmotion(Sys,Exp.Field,Sys.tcorr);
+    FastMotionLw = fastmotion(Sys,Exp.Field,Sys.tcorr,'freq')/1e3; % MHz -> GHz
   end
   if all(FastMotionLw==0)
     error('Linewidths resulting from fast-motion lindwidth parameters must be positive! Did you supply isotropic values only?');
@@ -703,15 +703,17 @@ end
 
 % Autoranging
 %--------------------------------------------------------------
-if (SweepAutoRange)
+if SweepAutoRange
   if FieldSweep
-    posrange = (posmax-posmin)*Opt.Stretch;
-    Exp.Range = [posmin,posmax] + [-1 1]*max(5*maxLw,posrange);
+    posrange = (posmax-posmin)*Opt.Stretch; % mT
+    minrange = 1; % mT
+    Exp.Range = [posmin,posmax] + [-1 1]*max([5*maxLw,posrange,minrange]);
     Exp.Range(1) = max(Exp.Range(1),0);
     logmsg(1,'  automatic field range from %g mT to %g mT',Exp.Range(1),Exp.Range(2));
   else
     posrange = (posmax-posmin)*Opt.Stretch; % Hz
-    Exp.mwRange = [posmin,posmax] + [-1 1]*max(5*maxLw/1e3,posrange);
+    minrange = 1e6; % Hz
+    Exp.mwRange = [posmin,posmax] + [-1 1]*max([5*maxLw/1e3,posrange,minrange]);
     Exp.mwRange(1) = max(Exp.mwRange(1),0);
     Exp.mwRange = Exp.mwRange/1e9; % Hz -> GHz
     logmsg(1,'  automatic frequency range from %g GHz to %g GHz',Exp.mwRange(1),Exp.mwRange(2));

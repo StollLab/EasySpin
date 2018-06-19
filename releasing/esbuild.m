@@ -11,7 +11,7 @@ function esbuild
 %   PATCH: Increment for every bugfix release.
 % Roughly follow guidelines of seminatic versioning, see
 %   http://semver.org/
-ReleaseID = '5.2.13'; % major.minor.patch
+ReleaseID = '5.2.17'; % major.minor.patch
 
 % Set to true if you want an easyspin-x.y.z.zip file without the
 % long timestamp ID.

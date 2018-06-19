@@ -266,7 +266,11 @@ if ~isfield(FitOpt,'nTrials'), FitOpt.nTrials = 20000; end
 if ~isfield(FitOpt,'TolFun'), FitOpt.TolFun = 1e-4; end
 if ~isfield(FitOpt,'TolStep'), FitOpt.TolStep = 1e-6; end
 if ~isfield(FitOpt,'maxTime'), FitOpt.maxTime = inf; end
-if ~isfield(FitOpt,'RandomStart'), FitOpt.Startpoint = 1; else, FitOpt.Startpoint = 0; end
+if isfield(FitOpt,'RandomStart') && FitOpt.RandomStart
+  FitOpt.Startpoint = 2; % random start point
+else
+  FitOpt.Startpoint = 1; % start point at center of range
+end
 
 if ~isfield(FitOpt,'GridSize'), FitOpt.GridSize = 7; end
 

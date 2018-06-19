@@ -36,6 +36,7 @@ Linewidths in the fast-motional regime.
 
 <pre class="matlab">
 lw = fastmotion(Sys,B0,tcorr)
+lw = fastmotion(Sys,B0,tcorr,domain)
 [lw,mI] = fastmotion(...)
 </pre>
 
@@ -43,17 +44,11 @@ lw = fastmotion(Sys,B0,tcorr)
 <div class="subtitle">Description</div>
 
 <p>
-Given the g, A and Q tensors in <code>Sys</code>, the magnetic field (mT) in
-<code>B0</code> and a rotation correlation time (seconds) in <code>tcorr</code>,
-<code>fastmotion</code> computes the EPR line widths resulting from rotational
-motion of the paramagnetic molecules. The widths depends on the anisotropies
-of g, A and Q. The widths are returned in <code>lw</code>,
-and the associated lines are identified by sets of m<sub>I</sub> numbers
-in <code>mI</code>. One row corresponds to one EPR resonance line.
+Given the g, A and Q tensors in <code>Sys</code>, the magnetic field (mT) in <code>B0</code> and a rotation correlation time (seconds) in <code>tcorr</code>, <code>fastmotion</code> computes the EPR line widths resulting from rotational motion of the paramagnetic molecules. The widths depends on the anisotropies of g, A and Q. The widths are returned in <code>lw</code> (in units of mT or MHz, depending on <code>domain</code>), and the associated lines are identified by sets of m<sub>I</sub> numbers in <code>mI</code>. One row corresponds to one EPR resonance line.
 </p>
 
 <p>
-The three input parameters are
+The four input parameters are
 </p>
 
 <div class="optionfield"><code>Sys</code></div>
@@ -73,13 +68,18 @@ Rotational correlation time for isotropic Brownian rotational diffusion, in seco
 The correlation time <code>tcorr</code> and the diffusion rate <code>D</code> are related by <code>tcorr = 1/(6*D)</code>.<br>
 </div>
 
+<div class="optionfield"><code>domain</code></div>
+<div class="optiondescr">
+Indicates the domain for the linewidths, either <code>'field'</code> for field sweeps (units of mT) or <code>'freq'</code> for frequency sweeps (units MHz). Default is <code>'field'</code>.
+</div>
+
 <p>
 The two output parameters are
 </p>
 
 <div class="optionfield"><code>lw</code></div>
 <div class="optiondescr">
-All line widths (FWHM for Lorentzians), in mT.
+All line widths (FWHM for Lorentzians), in mT or MHz.
 </div>
 
 <div class="optionfield"><code>mI</code></div>
@@ -121,7 +121,7 @@ Nitroxide.A = mt2mhz([7.59 5.95 31.76]/10);
 
 Field = 350;
 tcorr = 1e-10;
-[lw,mI] = fastmotion(Nitroxide,Field,tcorr)
+[lw,mI] = fastmotion(Nitroxide,Field,tcorr,'field')
 </pre>
 
 <pre class="mloutput">
