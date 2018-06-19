@@ -15,7 +15,6 @@ nTraj = size(RTraj,3);
 nSteps = size(RTraj,4);
 
 TTraj = multimatmult(RTraj, ...
-                     multimatmult(repmat(T,1,1,nTraj,nSteps), RTrajInv, 'real'), ...
-                     'real');
+                     multimatmult(repmat(T,1,1,nTraj,nSteps), RTrajInv));
 
 end

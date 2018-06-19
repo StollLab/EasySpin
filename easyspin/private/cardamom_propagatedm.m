@@ -232,8 +232,8 @@ switch Method
     
     % rotate tensors into lab frame explicitly
     if ~isempty(RLab)
-      gTensor = multimatmult(RLab, multimatmult(gTensor, RLabInv, 'real'), 'real');
-      ATensor = multimatmult(RLab, multimatmult(ATensor, RLabInv, 'real'), 'real');
+      gTensor = multimatmult(RLab, multimatmult(gTensor, RLabInv));
+      ATensor = multimatmult(RLab, multimatmult(ATensor, RLabInv));
     end
     
     gIso = sum(g)/3;

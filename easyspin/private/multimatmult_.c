@@ -29,10 +29,11 @@ void mulMatMat(double *A, const int rA, const int cA,
    int i, j, k;
    double *a, *c, tmp;  
    for( i=0; i<cB; i++ ){
+     c   = C + i*rA;
       for( k=0; k<cA; k++ ){
          tmp = B[i*cA+k];
          a   = A + k*rA;
-         c   = C + i*rA;
+/*         c   = C + i*rA; */
          for( j=0; j<rA; j++ ){
             c[j] += tmp * a[j];
          }
