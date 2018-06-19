@@ -332,7 +332,9 @@ function [B,scale] = normalize(A)
 % rescale an array so that all entries sum to one
 
 scale = sum(A(:));
-scale = scale + (scale==0);
+if abs(scale) <1e-14
+  error('Zero encountered during normalization.')
+end
 
 B = A/scale;
 
