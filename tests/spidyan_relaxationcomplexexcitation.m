@@ -22,9 +22,8 @@ Exp.DetSequence = [0 0];
 
 % Options ---------------------------
 Exp.DetOperator = {'z1'};
-Opt.FrameShift = 32;
+Opt.SimFrequency = 32;
 Opt.Relaxation = 1;
-Opt.SimulationMode = 'FrameShift';
 
 % Testing Complex excitation
 

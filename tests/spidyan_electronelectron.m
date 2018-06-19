@@ -16,11 +16,11 @@ Exp.Sequence = {Pulse 0.5};
 Exp.Field = 1195; 
 Exp.TimeStep = 0.0001; % us
 Exp.mwFreq = 33.5;
-Exp.DetSequence = [1 1]; 
+Exp.DetSequence = [1 1];
+Exp.DetFrequency = 0;
 
 % Options ---------------------------
-Opt.FrameShift = 32;
-Opt.SimulationMode = 'FrameShift';
+Opt.SimFrequency = 32;
 
 [t1, signal1] = spidyan(Sys,Exp,Opt);
 

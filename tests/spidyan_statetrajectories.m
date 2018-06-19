@@ -19,8 +19,7 @@ Exp.mwFreq = 33.5;
 Exp.DetSequence = [1 0 0]; 
 
 % Options ---------------------------
-Opt.FrameShift = 32; % GHz
-Opt.SimulationMode = 'FrameShift';
+Opt.SimFrequency = 32; % GHz
 
 % State Trajectories ---------------------------
 Opt.StateTrajectories = [1 0 1];

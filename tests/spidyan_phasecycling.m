@@ -25,8 +25,7 @@ Exp.PhaseCycle = {PC [] PC};
 
 % Options ---------------------------
 Exp.DetOperator = {'z1'};
-Opt.FrameShift = 32;
-Opt.SimulationMode = 'FrameShift';
+Opt.SimFrequency = 32;
 
 % Function Call -----------------------------
 

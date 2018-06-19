@@ -10,8 +10,8 @@ Exp.TimeStep = 0.0001; % us
 Exp.mwFreq = 33.5;
 Exp.DetSequence = 1; 
 
-Opt.FrameShift = 32;
-Opt.SimulationMode = 'FrameShift';
+Opt.SimFrequency = 32;
+
 
 % This tests different ways of defining a dimension where the frequency is
 % swept - They should all give the same results

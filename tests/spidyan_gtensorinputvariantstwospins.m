@@ -19,8 +19,7 @@ Exp.mwFreq = 33.5;
 Exp.DetSequence = [1 1]; 
 
 % Options ---------------------------
-Opt.FrameShift = 32;
-Opt.SimulationMode = 'FrameShift';
+Opt.SimFrequency = 32;
 
 % Isotropic
 Sys.g = [gfree gfree];

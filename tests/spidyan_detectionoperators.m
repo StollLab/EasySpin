@@ -19,11 +19,10 @@ Exp.mwFreq = 33.5;
 Exp.DetSequence = [1 0 0]; 
 
 % Options ---------------------------
-Opt.FrameShift = 32;
+Opt.SimFrequency = 32;
 % Detection -------------------------
 Exp.DetOperator = {'z1','+1'};
 Exp.DetFrequency = [0 33.5]; 
-Opt.SimulationMode = 'FrameShift';
 
 % Function Call -----------------------------
 [t1, signal1] = spidyan(Sys,Exp,Opt);

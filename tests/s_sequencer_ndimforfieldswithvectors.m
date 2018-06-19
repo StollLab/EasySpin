@@ -18,7 +18,7 @@ Exp.DetSequence = 1;
 Exp.nPoints = 3;
 Exp.Dim1 = {'p1.n(2)' -2};
 
-Opt.SimulationMode = 'LabFrame';
+Opt.SimFrequency = 0;
 
 [~, Vary1] = runprivate('s_sequencer',Exp,Opt);
 

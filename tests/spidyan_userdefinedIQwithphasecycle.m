@@ -30,7 +30,7 @@ Opt.DetOperator = {'z1'};
 Opt.FreqTranslation = [0]; 
 
 % Options ---------------------------
-Opt.FrameShift = 32;
+Opt.SimFrequency = 32;
 
 % Function Call -----------------------------
 

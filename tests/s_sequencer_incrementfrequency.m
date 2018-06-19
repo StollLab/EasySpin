@@ -31,7 +31,7 @@ Exp.Sequence = {Pulse 0.5 Pulse};
 Exp.Field = 1240; 
 Exp.TimeStep = TimeStep; % us
 
-Opt.SimulationMode = 'LabFrame';
+Opt.SimFrequency = 0;
 
 % First Test - Change one pulse along one dimension -----------------------
 Exp.nPoints = 3;

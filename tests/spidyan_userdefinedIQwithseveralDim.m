@@ -33,7 +33,7 @@ Exp1.Dim1 = {'p2.Phase', pi};
 Exp1.Dim2 = {'p2.t', 0.1};
 
 % Options ---------------------------
-Opt.FrameShift = 32;
+Opt.SimFrequency = 32;
 
 % Function Call -----------------------------
 

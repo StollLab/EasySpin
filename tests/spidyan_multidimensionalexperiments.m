@@ -24,8 +24,7 @@ Exp.Dim2 = {'p2.Qcrit' 0.05};
 
 % Options ---------------------------
 Exp.DetOperator = {'z1'};
-Opt.FrameShift = 32;
-Opt.SimulationMode = 'FrameShift';
+Opt.SimFrequency = 32;
 
 [t1, signal1] = spidyan(Sys,Exp,Opt);
 

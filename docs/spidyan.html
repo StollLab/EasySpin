@@ -155,7 +155,8 @@ The equilibrium state is only used if relaxation is active, else it is ignored.
 
 <div class="optionfield"><code>Field</code></div>
 <div class="optiondescr">
-Magnetic field (in mT) at which the experiment is performed, needs to be provided even if the spinsystem is defined with <code>Sys.ZeemanFreq</code>.
+Magnetic field (in mT) at which the experiment is performed, needs to be provided only if the spinsystem is defined with <code>Sys.g</code>.
+If <code>Sys.ZeemanFreq</code> is used, <code>Field</code> can be omitted.
 </div>
 
 <div class="optionfield"><code>Sequence</code></div>
@@ -288,7 +289,8 @@ If <code>Exp.DetWindow</code> is provided, any input from <code>DetSequence</cod
 <div class="optionfield"><code>DetOperator</code></div>
 <div class="optiondescr">
 The field <code>DetOperator</code> is a cell array that contains detection operators. 
-They can be defined by using the same syntax as in  <code>sop</code> (see <a class="esf" href="sop.html">there</a>): 
+If no detection operator is defined, but detection is active, <i>&Scirc;</i><sub>+</sub> is used for all electron spins.
+Detection operators can be defined by using the same syntax as in  <code>sop</code> (see <a class="esf" href="sop.html">there</a>): 
 <pre class="matlab">
 Exp.DetOperator = {'+1' 'z1'};   % detects <i>&Scirc;</i><sub>+</sub> and <i>&Scirc;<sub>z</sub></i> of the first electron spin
 </pre>
@@ -296,7 +298,13 @@ Detection operators that can not be defined using the <code>sop</code> syntax, c
 <pre class="matlab">
 Exp.DetOperator = {[0 1; 0 0] [1/2 0; 0 -1/2]};   % the same operators as a above for <i>S</i> = 1/2 in matrix form
 </pre>
-If no detection operator is defined, but detection is active, <i>&Scirc;</i><sub>+</sub> is used for all electron spins.
+For convencience it is possible write a single detection operator without the curly brackets:
+<pre class="matlab">
+Exp.DetOperator = '+1'; % same as {'+1'}
+
+Exp.DetOperator = [1/2 0; 0 -1/2];   % identical to {[1/2 0; 0 -1/2]}
+</pre>
+<p>
 If you are interested in the expectation values of <i>&Scirc;<sub>x</sub></i>, it is usually beneficial to use <i>&Scirc;</i><sub>+</sub> as the actual detection operator and then take the real part of the obtained signal.
 This removes artifacts at the beginning and end of the time traces that are introduced when translating a purely real signal during the signal processing.
 </div>
@@ -456,40 +464,25 @@ If relaxation is switched on, relaxation times (<code>Sys.T1</code> and <code>Sy
 In order to avoid unexpected behavior, if the <code>Opt.Relaxation</code> is not used to switch relaxation on/off for the entire sequence, the length of it has to match the length of <code>Exp.Sequence</code> (all events need to be defined).
 </div>
 
-<a name="opt_frame_shift">
-<div class="optionfield"><code>SimulationMode</code></div>
+<div class="optionfield"><code>SimFrequency</code></div>
 <div class="optiondescr">
-The optional field <code>SimulationMode</code> provides a tool to change the simulation frame, possible values are <code>'LabFrame'</code> and <code>'FrameShift'</code>.
-By default, the program switches into a rotating frame (but not "the rotating frame"), which allows to use a much larger timestep and in turn speeds up the simulation significantly.
-This reduces the energy difference of the diagonal elements of the Hamiltonian (only electron spins are affected), but leaves off-diagonal elements unaffected.
-As long as the difference between diagonal and off-diagonal elements is not reduced to the same order of magnitude, the such introduced error can be neglected.
-If you want to make absolutely sure, that spin dynamics are correct for your simulation, you can force a full lab frame treatment through:
-<pre class="matlab">
-Opt.SimulationMode = 'LabFrame';
-</pre>
-If you want to select the frequency of the rotating frame yourself, you can do so by setting
-<pre class="matlab">
-Opt.SimulationMode = 'FrameShift';
-</pre>
-and by providing the frequency of the rotating frame with <code>Opt.FrameShift</code> in GHz.
-No matter your choice of <code>SimulationMode</code>, all frequencies of your experiments must always be provided in the lab frame.
-</div>
-
-<div class="optionfield"><code>FrameShift</code></div>
-<div class="optiondescr">
-When <code>SimulationMode</code> is set to the value <code>'FrameShift'</code>, the field <code>Opt.FrameShift</code> is the frequency of the rotating frame that you want to use.
-No matter the choice of your simulation frame, all other frequencies must still be given in the lab frame - the program handles all required frequency shifts.
-For example, if you run a Q-band simulation and you do not want to use the default simulation frame, but one that rotates at 30 GHz, you can do so with:
+Optional, frequency of the (rotating) simulation frame in GHz. 
+If <code>SimFrequency</code> is not provided, a suitable simulation frame is automatically selected.
+No matter the choice of the simulation frame, all other frequencies must still be given in the lab frame - the program handles all required frequency shifts.
+For example, for running a Q-band simulation without using the default simulation frame, but one that rotates at 30 GHz:
 <pre class="matlab">
 Exp.mwFreq = 34.4;	        % Set carrier frequency to 34.4 GHz
 Pulse.Frequency = [-0.05 0.05]; % Pulse with bandwidth of 100 MHz, sweeps from 34.35 to 34.45 GHz 
 
-Opt.SimulationMode = 'FrameShift';
-Opt.FrameShift = 30;  	      % Changes into a rotating frame with 30 GHz
+Opt.SimFrequency = 30;  	      % Changes into a rotating frame at 30 GHz
+</pre>
+To force a simulation in the labframe <code>SimFrequency</code> has to be set to zero:
+<pre class="matlab">
+Opt.SimFrequency = 0;  	      % Propagation in the labframe
 </pre>
 Changing the simulation frame allows for using a larger time step, which in turn can strongly reduce computation time.																											 																																										
-Keep in mind, that if a time step is provided with <code>Exp.SequenceimeStep</code> it is not adapted automatically.
-To have the program adapt the time step, remove the field <code>Exp.SequenceimeStep</code> .
+Keep in mind, that if a time step is provided with <code>Exp.TimeStep</code> it is not adapted automatically.
+To have the program adapt the time step, remove the field <code>Exp.TimeStep</code> .
 </div>
 
 <div class="optionfield"><code>StateTrajectories</code></div>

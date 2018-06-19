@@ -91,7 +91,7 @@ switch method
           end
         end
                 
-        % Loops over the pulses, and loads the pulse lenght for the current
+        % Loops over the pulses, and loads the pulse length for the current
         % acquisition point
         for iPulse = 1 : nPulses
           if ~isempty(Vary.Pulses{iPulse})
@@ -446,7 +446,6 @@ switch method
       %--------------------------------------------------------------------
       % Preparing for the actual propagation step
       %--------------------------------------------------------------------
-      
       % Setting up some initial variables
       
       % bookkeping to keep track of when the first event is detected and

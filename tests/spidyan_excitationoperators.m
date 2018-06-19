@@ -21,8 +21,7 @@ Exp.DetSequence = [1 0];
 % Options ---------------------------
 Exp.DetOperator = {'+','+(1|2)'};
 Exp.DetFrequency = [33.5 33.5];
-Opt.FrameShift = 32;
-Opt.SimulationMode = 'FrameShift';
+Opt.SimFrequency = 32;
 
 % Test custom exc operator syntax
 Opt.ExcOperator = {sop(Sys.S,'x(1|2)')};

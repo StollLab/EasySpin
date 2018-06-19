@@ -26,7 +26,7 @@ Exp.DetSequence = [1 1 1];
 Exp.DetOperator = {'z1'};
 
 % Options ---------------------------
-Opt.FrameShift = 32;
+Opt.SimFrequency = 32;
 
 % Function Call -----------------------------
 

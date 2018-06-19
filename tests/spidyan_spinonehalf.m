@@ -25,8 +25,7 @@ Exp.DetOperator = {'z1','+1'};
 Exp.DetFrequency = [0 33.5]; 
 
 % Options ---------------------------
-Opt.FrameShift = 32;
-Opt.SimulationMode = 'FrameShift';
+Opt.SimFrequency = 32;
 
 % Function Call -----------------------------
 

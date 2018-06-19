@@ -18,9 +18,9 @@ if Sys.MO_present, error('saffron/spidyan do not support general parameters!'); 
 if any(Sys.L(:)), error('saffron/spidyan do not support L!'); end
 
 if (Sys.nNuclei==0)
-  logmsg(1,'spins: %d electrons',Sys.nElectrons);
+  logmsg(1,'spin system: %d electron(s)',Sys.nElectrons);
 else
-  logmsg(1,'spins: %d electrons, %d nuclei',Sys.nElectrons,Sys.nNuclei);
+  logmsg(1,'spin system: %d electron(s), %d nuclei',Sys.nElectrons,Sys.nNuclei);
 end
 
 if isfield(Sys,'n') && any(Sys.n~=1)
@@ -31,6 +31,7 @@ if isfield(Sys,'nn') && any(Sys.nn(:)~=0)
   error('saffron/spidyan do not support nuclear-nuclear couplings (Sys.nn).');
 end
 
+logmsg(1,'looking and verifying fields related to relaxation...');
 % Look for equilibrium state and issue a warning if an equilibrium state is
 % given, but no relaxation times
 if isfield(Sys,'eqState') && ~isfield(Sys,'T2') && ~isfield(Sys,'T1')
@@ -58,6 +59,7 @@ end
 % --------------------------------------------------------------------------------------
 % Total electron spin operators, used for building initial and equilibrium
 % denisity matrix as well es detection and excitation operators
+logmsg(1,'obtaining spin operators...');
 totSpinOps = cell(1,3);
 for iSpin = 1:numel(Sys.S)
   if iSpin == 1
@@ -177,12 +179,16 @@ if useDefaultDetOperator
   DetOps{1} = totSpinOps{1}+1i*totSpinOps{2}; 
 else
   
+  % catch the case Exp.DetOperator = 'z1' instead of {'z1'} - spidyan
+  % checks and corrects for this case before
   if ischar(Opt.DetOperator)
     Opt.DetOperator = {Opt.DetOperator};
   end
 
   nDetOps = length(Opt.DetOperator);
   
+  % compute DetOperators if input was string or validate them if input was
+  % matrix
   DetOps = cell(1,nDetOps);  
   for iDetectionOperator = 1 : nDetOps
     if ischar(Opt.DetOperator{iDetectionOperator})
@@ -194,5 +200,5 @@ else
       DetOps{iDetectionOperator} = Opt.DetOperator{iDetectionOperator};
     end
   end
-
+logmsg(1,'spin system validation finished successfully!');
 end
