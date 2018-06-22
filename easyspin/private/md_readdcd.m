@@ -164,7 +164,7 @@ header.NATOM = fread(FileID, 1, 'int32');
 % check consistency
 blocksize3 = fread(FileID, 1, 'int32');
 if header.blocksize3~=blocksize3
-  error('Inconsistent sizes for block 3.')
+  error('Inconsistent sizes for block 3. Check the integrity of the DCD file.')
 end
 
 % coordinates
@@ -179,21 +179,21 @@ end
 
 coordblocksize = (4*2 + 4*header.NATOM)*3;
 
-nFrames = floor(fileSize - headersize) / (extrablocksize + coordblocksize);
+nSnapShots = floor(fileSize - headersize) / (extrablocksize + coordblocksize);
 
-% if nFrames~=header.NSTEP-header.ISTRT  FIXME why doesn't this work?
-%   error('Number of frames is not equal to the number of time steps. Check the integrity of the DCD file.')
+% if nSnapShots~=header.NSTEP-header.ISTRT  FIXME why doesn't this work?
+%   error('Number of snapshots is not equal to the number of time steps. Check the integrity of the DCD file.')
 % end
 
 if isempty(idx)
   idx = 1:header.NATOM;
 end
 
-Traj.xyz = zeros(nFrames, numel(idx)*3);
-box = zeros(nFrames, 3);
+Traj.xyz = zeros(nSnapShots, numel(idx)*3);
+box = zeros(nSnapShots, 3);
 
 % read next frames
-for iFrame = 1:nFrames
+for iFrame = 1:nSnapShots
   % charmm extrablock (unitcell info)
   if header.CHARMMextrablock
     blocksize = fread(FileID, 1, 'int32');
@@ -232,7 +232,7 @@ for iFrame = 1:nFrames
 end
 
 Traj.dt = header.NSAVC*TIMEFACTOR*header.DELTA*1e-15;
-Traj.nSteps = nFrames;
+Traj.nSteps = nSnapShots;
 Traj.xyz = reshape(Traj.xyz, [Traj.nSteps, 3, numel(idx)]);
 
 end

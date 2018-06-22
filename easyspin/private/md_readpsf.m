@@ -8,6 +8,10 @@
 %     FileName       character array
 %                    Name of DCD file to be read.
 %
+%     SegName        character array
+%                    Name of segment consisting of the protein and spin
+%                    label.
+%
 %     ResName        character array
 %                    Name of residue assigned to spin label side chain,
 %                    e.g. "CYR1" is the default used by CHARMM-GUI.
@@ -28,18 +32,20 @@
 %                       (C1Lname) C1L
 %                                 |
 %                       (S1Lname) S1L
-%                                 |
-%                        (SGname) SG
-%                                 |
-%                        (CBname) CB
-%                                 |
-%                     (Nname) N - CA (CAname)
+%                                /
+%                      (SGname) SG
+%                               |
+%                      (CBname) CB
+%                               |
+%                   (Nname) N - CA (CAname)
 %
 %   Output:
 %     psf            structure array
 %                    NATOM: number of atoms to be included in simulation
+%                    idx_Protein: indices of the protein and label atoms
+%                    idx_ProteinCA: indices of protein's alpha carbon atoms
 %                    idx_SpinLabel: indices of the spin label's atoms
-%                    idx_ON: index corresponding to atom Oname
+%                    idx_ON: index corresponding to atom ONname
 %                    idx_NN: " " NNname
 %                    idx_C1: " " C1name
 %                    idx_C2: " " C2name
@@ -55,7 +61,7 @@
 % For more information on PSF file structure, see:
 %  http://www.ks.uiuc.edu/Training/Tutorials/namd/namd-tutorial-unix-html/node23.html
 
-function psf = md_readpsf(FileName, ResName, AtomNames)
+function psf = md_readpsf(FileName, SegName, ResName, AtomNames)
 
 % Note:
 % This function assumes the following order of sections in the PSF, which 
@@ -130,7 +136,7 @@ while ~feof(FileID)
     %    [nLines] ![section]...
     % where nLines gives the number of lines that the section occupies 
     % after this beginning line
-    nLines = str2num(line{1});
+    nLines = round(str2double(line{1}));
     section = line{2};
     
     if contains(section,'NTITLE')
@@ -146,14 +152,18 @@ while ~feof(FileID)
       psf.NATOM = nLines;
       
       % read NATOM section
-      data = textscan(FileID, AtomFormat, nLines);
-      residue_names = data(4);
+      FileContents = textscan(FileID, AtomFormat, nLines);
+      residue_names = FileContents(4);
       residue_names = residue_names{1};
-      atom_names = data(5);
+      atom_names = FileContents(5);
       atom_names = atom_names{1};
+      segment_names = FileContents(2);
+      segment_names = segment_names{1};
       
-      % obtain logical arrays of spin label's and nitroxide coordinate 
-      % system's atoms
+      % obtain logical arrays of atom indices
+      idx_ProteinLabel = (strcmpi(segment_names,SegName) & strcmpi(atom_names,'CA')) ...
+                         | strncmpi(residue_names,ResName,4);
+      idx_ProteinCA = strcmpi(segment_names,SegName) & strcmpi(atom_names,'CA');
       idx_SpinLabel = strncmpi(residue_names,ResName,4);
       idx_ON = strcmpi(atom_names(idx_SpinLabel),AtomNames.ONname);
       idx_NN = strcmpi(atom_names(idx_SpinLabel),AtomNames.NNname);
@@ -168,20 +178,35 @@ while ~feof(FileID)
       idx_CA = strcmpi(atom_names(idx_SpinLabel),AtomNames.CAname);
       idx_N = strcmpi(atom_names(idx_SpinLabel),AtomNames.Nname);
       
-      % convert to integer indices
-      psf.idx_SpinLabel = find(idx_SpinLabel);
-      psf.idx_ON = nonzeros(psf.idx_SpinLabel .* idx_ON);
-      psf.idx_NN = nonzeros(psf.idx_SpinLabel .* idx_NN);
-      psf.idx_C1 = nonzeros(psf.idx_SpinLabel .* idx_C1);
-      psf.idx_C2 = nonzeros(psf.idx_SpinLabel .* idx_C2);
-      psf.idx_C1R = nonzeros(psf.idx_SpinLabel .* idx_C1R);
-      psf.idx_C2R = nonzeros(psf.idx_SpinLabel .* idx_C2R);
-      psf.idx_C1L = nonzeros(psf.idx_SpinLabel .* idx_C1L);
-      psf.idx_S1L = nonzeros(psf.idx_SpinLabel .* idx_S1L);
-      psf.idx_SG = nonzeros(psf.idx_SpinLabel .* idx_SG);
-      psf.idx_CB = nonzeros(psf.idx_SpinLabel .* idx_CB);
-      psf.idx_CA = nonzeros(psf.idx_SpinLabel .* idx_CA);
-      psf.idx_N = nonzeros(psf.idx_SpinLabel .* idx_N);
+      % convert to integer indices, which are needed to read the appropriate
+      % parts of DCD binary files
+      psf.idx_Protein = find(idx_ProteinLabel);
+      psf.idx_ProteinCA = find(find(idx_ProteinCA));
+      psf.idx_SpinLabel = find(find(idx_SpinLabel));
+      psf.idx_ON = find(idx_ON);
+      psf.idx_NN = find(idx_NN);
+      psf.idx_C1 = find(idx_C1);
+      psf.idx_C2 = find(idx_C2);
+      psf.idx_C1R = find(idx_C1R);
+      psf.idx_C2R = find(idx_C2R);
+      psf.idx_C1L = find(idx_C1L);
+      psf.idx_S1L = find(idx_S1L);
+      psf.idx_SG = find(idx_SG);
+      psf.idx_CB = find(idx_CB);
+      psf.idx_CA = find(idx_CA);
+      psf.idx_N = find(idx_N);
+%       psf.idx_ON = nonzeros(psf.idx_SpinLabel .* idx_ON);
+%       psf.idx_NN = nonzeros(psf.idx_SpinLabel .* idx_NN);
+%       psf.idx_C1 = nonzeros(psf.idx_SpinLabel .* idx_C1);
+%       psf.idx_C2 = nonzeros(psf.idx_SpinLabel .* idx_C2);
+%       psf.idx_C1R = nonzeros(psf.idx_SpinLabel .* idx_C1R);
+%       psf.idx_C2R = nonzeros(psf.idx_SpinLabel .* idx_C2R);
+%       psf.idx_C1L = nonzeros(psf.idx_SpinLabel .* idx_C1L);
+%       psf.idx_S1L = nonzeros(psf.idx_SpinLabel .* idx_S1L);
+%       psf.idx_SG = nonzeros(psf.idx_SpinLabel .* idx_SG);
+%       psf.idx_CB = nonzeros(psf.idx_SpinLabel .* idx_CB);
+%       psf.idx_CA = nonzeros(psf.idx_SpinLabel .* idx_CA);
+%       psf.idx_N = nonzeros(psf.idx_SpinLabel .* idx_N);
     end
     
     if contains(section,'NBOND')

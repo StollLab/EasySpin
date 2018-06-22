@@ -20,6 +20,8 @@ Files = strcat(SimpleFile, Extensions);
 
 AtomInfo.ResName = 'CYR1';
 
+AtomInfo.SegName = 'PROT';
+
 AtomInfo.AtomNames.ONname = 'ON';
 AtomInfo.AtomNames.NNname = 'NN';
 AtomInfo.AtomNames.C1name = 'C1';
