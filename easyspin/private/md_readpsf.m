@@ -159,12 +159,13 @@ while ~feof(FileID)
       atom_names = atom_names{1};
       segment_names = FileContents(2);
       segment_names = segment_names{1};
+      mass = FileContents(8);
+      psf.mass = mass{1};
       
       % obtain logical arrays of atom indices
-      idx_ProteinLabel = (strcmpi(segment_names,SegName) & strcmpi(atom_names,'CA')) ...
-                         | strncmpi(residue_names,ResName,4);
+      idx_ProteinLabel = strcmpi(segment_names,SegName);
       idx_ProteinCA = strcmpi(segment_names,SegName) & strcmpi(atom_names,'CA');
-      idx_SpinLabel = strncmpi(residue_names,ResName,4);
+      idx_SpinLabel = strcmpi(segment_names,SegName) & strncmpi(residue_names,ResName,4);
       idx_ON = strcmpi(atom_names(idx_SpinLabel),AtomNames.ONname);
       idx_NN = strcmpi(atom_names(idx_SpinLabel),AtomNames.NNname);
       idx_C1 = strcmpi(atom_names(idx_SpinLabel),AtomNames.C1name);
@@ -180,9 +181,9 @@ while ~feof(FileID)
       
       % convert to integer indices, which are needed to read the appropriate
       % parts of DCD binary files
-      psf.idx_Protein = find(idx_ProteinLabel);
-      psf.idx_ProteinCA = find(find(idx_ProteinCA));
-      psf.idx_SpinLabel = find(find(idx_SpinLabel));
+      psf.idx_ProteinLabel = find(idx_ProteinLabel);
+      psf.idx_ProteinCA = find(idx_ProteinCA) - psf.idx_ProteinLabel(1) + 1;
+      psf.idx_SpinLabel = find(idx_SpinLabel) - psf.idx_ProteinLabel(1) + 1;
       psf.idx_ON = find(idx_ON);
       psf.idx_NN = find(idx_NN);
       psf.idx_C1 = find(idx_C1);

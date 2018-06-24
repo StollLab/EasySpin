@@ -42,7 +42,7 @@
 %                    dt        double
 %                              size of time step (in s)
 %
-%                    Protein   numeric array, size = (nSteps,nResidues,3)
+%                    ProtCAxyz numeric array, size = (nSteps,nResidues,3)
 %                              xyz coordinates of protein alpha carbon
 %                              atoms
 %
@@ -58,7 +58,7 @@
 %                              xyz coordinates of coordinate frame z-axis
 %                              vector
 %
-%                    Dihedrals numeric array, size = (nSteps,5)
+%                    chi1-chi5 numeric array, size = (nSteps,5)
 %                              dihedral angles of spin label side chain
 %                              bonds
 %
@@ -206,7 +206,7 @@ for iTrajFile=1:nTrajFiles
       error('Time steps of trajectory files %s and %s are not equal.',TrajFile{iTrajFile},TrajFile{iTrajFile-1})
     end
     MD.nSteps = MD.nSteps + temp.nSteps;
-    MD.Protxyz = cat(1, MD.Protxyz, temp.Protxyz);
+    MD.ProtCAxyz = cat(1, MD.ProtCAxyz, temp.ProtCAxyz);
     MD.Labelxyz = cat(1, MD.Labelxyz, temp.Labelxyz);
   end
   % this could take a long time, so notify the user of progress
@@ -288,10 +288,10 @@ switch ExtCombo
     % obtain atom indices of nitroxide coordinate atoms
     psf = md_readpsf(TopFile, SegName, ResName, AtomNames);  % TODO perform consistency checks between topology and trajectory files
     
-    Traj = md_readdcd(TrajFile, psf.idx_Protein);
+    Traj = md_readdcd(TrajFile, psf.idx_ProteinLabel);
 
     % protein alpha carbon atoms
-    Traj.Protxyz = Traj.xyz(:,:,psf.idx_ProteinCA);
+    Traj.ProtCAxyz = Traj.xyz(:,:,psf.idx_ProteinCA);
 
     % spin label atoms
     Traj.Labelxyz = Traj.xyz(:,:,psf.idx_SpinLabel);
