@@ -37,15 +37,17 @@ Simulation of stochastic rotational trajectories.
 <pre class="matlab">
 stochtraj(Sys)
 stochtraj(Sys,Par)
-[t,RTraj] = stochtraj(...)
-[t,RTraj,qTraj] = stochtraj(...)
+stochtraj(Sys,Par,Opt)
+[t,qTraj] = stochtraj(...)
+[t,stateTraj] = stochtraj(...)
+[t,qTraj,stateTraj] = stochtraj(...)
 </pre>
 
 <!-- =================================================================== -->
 <div class="subtitle">Description</div>
 
 <p>
-<code>stochtraj</code> computes trajectories of stochastic rotational diffusion in the time domain via propagation of quaternions. The motion can be isotropic or anisotropic and can include an orienting potential.
+<code>stochtraj</code> computes stochastic trajectories of rotational diffusion using orientational quaternions or Markov chains using a Markov state model.
 </p>
 
 <p>
@@ -62,11 +64,11 @@ If no input argument is given, a short help summary is shown (same as when typin
 </p>
 
 <p>
-Up to three output arguments are returned:
+Depending on the input options, up to three output arguments are returned:
 <ul>
 <li><code>t</code>: time axis, in seconds
-<li><code>RTraj</code>: rotation matrices
 <li><code>qTraj</code>: quaternions
+<li><code>stateTraj</code>: Markov states (integer)
 </ul>
 
 <p>
@@ -76,7 +78,7 @@ If no output argument is given, <code>stochtraj</code> plots one of the trajecto
 <div class="subtitle2">Input: System dynamics </div>
 
 <p>
-<code>Sys</code> is a structure containing the dynamic properties for generating the stochastic rotational trajectories. Many of its fields overlap with those of <code>chili</code>. This allows the user to easily simulate EPR spectra in both frequency and time domains for comparison.
+<code>Sys</code> is a structure containing the dynamic properties for generating the stochastic trajectories. Many of its fields overlap with those of <code>chili</code>. This allows the user to easily simulate EPR spectra in both frequency and time domains for comparison.
 </p>
 For the timescale(s) of motion, one of the fields <code>tcorr</code>, <code>logtcorr</code>, <code>Diff</code> or <code>logDiff</code> should be given. If more than one of these is given, the first in the list <code>logtcorr</code>, <code>tcorr</code>, <code>logDiff</code>, <code>Diff</code> takes precedence over the other(s).
 </p>
@@ -111,7 +113,7 @@ Use this instead of <code>tcorr</code> for least-squares fitting with <a class="
 
 <div class="optionfield"><code>Diff</code></div>
 <div class="optiondescr">
-Rotational diffusion rates (principal values of the rotational diffusion tensor), in second<sup>-1</sup>.
+Rotational diffusion rates (principal values of the rotational diffusion tensor), in seconds<sup>-1</sup>.
   <ul>
   <li>one number: isotopic diffusion tensor
   <li>two numbers: input <code>[Dxy Dzz]</code> gives axial tensor <code>[Dxy Dxy Dzz]</code>
@@ -123,13 +125,17 @@ Rotational diffusion rates (principal values of the rotational diffusion tensor)
 <div class="optionfield"><code>logDiff</code></div>
 <div class="optiondescr">
 Base-10 logarithm of <code>Diff</code>. If given, <code>Diff</code> is ignored.
-  <br>
-  Use this instead of <code>Diff</code> for least-squares fitting
-  with <a class="esf" href="esfit.html">esfit</a>.
 </div>
 
 <p>
-It is also possible to specify an orienting potential to simulate restricted rotational diffusion. <code>stochtraj</code> accomplishes this by representing the orienting potential function using a series of Wigner D-functions (see reference for details). To take advantage of this feature, the user should specify each term in the orienting potential by specifying (1) the real and imaginary parts of the coefficients using <code>Coefs</code> and (2) the indices corresponding to each term using <code>LMK</code>. If these fields are left blank, unrestricted diffusion will be simulated.
+It is also possible to specify an orienting potential energy function to simulate restricted rotational diffusion. <code>stochtraj</code> accomplishes this by representing the orienting potential function using either a series of Wigner D-functions (see reference for details) or a numerical array. To take advantage of this feature, the user should specify either: 
+<ul>
+<li>each term in the orienting potential by specifying the real and imaginary parts of the coefficients using <code>Coefs</code> and the indices corresponding to each term using <code>LMK</code>, or
+<li>a numerical array <code>PseudoPotFun</code> representing the potential energy function directly.
+</ul>
+
+If these fields are left blank, unrestricted diffusion will be simulated.
+</p>
 
 <div class="optionfield"><code>Coefs</code></div>
 <div class="optiondescr">
@@ -145,11 +151,36 @@ For details about this type of ordering potential, see K.A. Earle & D.E. Budil, 
 An array of size (N,3) containing the indices L,M,K for each orienting potential coefficient in <code>Coefs</code>. The resulting orienting potential must be real, so the range of allowed index values are as follows: L&gt;0; if K=0, then 0&lt;M&le;L; and if K&ne;0, then 0&lt;K&le;L and -L&le;M&le;L.
 </div>
 
+<div class="optionfield"><code>PseudoPotFun</code></div>
+<div class="optiondescr">
+A 3D array representing the orienting potential energy function. Dimensions 1, 2, and 3 of this array represent the x, y, and z Cartesian coordinate axes.
+</div>
+
+<p>
+In addition to simulating trajectories of rotational diffusion, <code>stochtraj</code> can simulate Markov chains using a Markov state model by specifying the following parameters dynamical properties. Note that either <code>TransRates</code> or <code>TransProb</code> can be given, with the former taking precendence of both are given.
+</p>
+
+<div class="optionfield"><code>TransRates</code></div>
+<div class="optiondescr">
+Transition rate matrix, in seconds<sup>-1</sup>.
+</div>
+
+<div class="optionfield"><code>TransProb</code></div>
+<div class="optiondescr">
+Transition probability matrix.
+</div>
+
+<div class="optionfield"><code>States</code></div>
+<div class="optiondescr">
+Euler angles representing the orientation of each state.
+</div>
+
+
 <div class="subtitle2">Input: Simulation parameters</div>
 
 
 <p>
-<code>Par</code> is a structure containing the parameters for generating the stochastic rotational trajectories. The parameters can be categorized into two groups: Monte Carlo settings, and trajectory settings.
+<code>Par</code> is a structure containing the parameters for calculating the stochastic trajectories. The parameters can be categorized into two groups: Monte Carlo settings and trajectory settings.
 <p>
 <p>
 The Monte Carlo settings specify the parameters used to perform the time integration in the simulation. One can provide an array of time points <code>t</code> along which to integrate, a number of steps <code>nSteps</code> and a time step <code>dt</code>, or a number of steps <code>nSteps</code> and a total time for simulation <code>tmax</code>.
@@ -176,11 +207,21 @@ The total time of the simulation, in seconds.
 
 
 <p>
-Lastly, the trajectory settings are used to specify the starting orientations, <code>Omega</code>, which correspond to the Euler angles &alpha;, &beta;, and &gamma;; and how many trajectories to simulate, <code>nTraj</code>. If only one set of angles is given and <code>nTraj</code> is greater than one, then this starting orientation will be repeated for each trajectory. If <code>nTraj</code> is not provided, only one trajectory will be simulated. If no angles are provided, then a number of starting orientations equal to <code>nTraj</code> will be chosen from a uniform random distribution over the unit sphere, where &alpha;, &beta;, and &gamma; are sampled from [0,2&pi;), [0,&pi;), and [0,2&pi;), respectively.
+Lastly, the trajectory settings are used to specify the number of trajectories to be simulated, <code>nTraj</code>, and the starting states of each trajectory using <code>Omega</code> for rotational diffusion or <code>States0</code> for Markov chains.
+</p>
+
+<p>
+If only one starting state is given (a single triplet of Euler angles or a single Markov state) and <code>nTraj</code> is greater than one, then this state will be repeated for each trajectory. If <code>nTraj</code> is not provided, only one trajectory will be simulated.
+</p>
 
 <div class="optionfield"><code>Omega</code></div>
 <div class="optiondescr">
-An array of size (3,1) or (3,nTraj) containing triplets of the Euler angles &alpha;, &beta;, &gamma;, which are used to specify starting orientations, in radians.
+Used for rotational diffusion. Starting orientations for trajectories, given as an array of size (3,1) or (3,nTraj) containing triplets of the Euler angles &alpha;, &beta;, &gamma;, in radians. If <code>Omega</code> is not provided when simulating rotational diffusion, then a number of starting orientations equal to <code>nTraj</code> will be chosen from a uniform random distribution over the unit sphere, where &alpha;, &beta;, and &gamma; are sampled from [0,2&pi;), [0,&pi;), and [0,2&pi;), respectively.
+</div>
+
+<div class="optionfield"><code>States0</code></div>
+<div class="optiondescr">
+Used for Markov chains. Starting states for each Markov chain, given as an array of size (1,nTraj).
 </div>
 
 <div class="optionfield"><code>nTraj</code></div>
@@ -190,7 +231,23 @@ The total number of trajectories to simulate.
 
 <div class="subtitle2">Input: Simulation options</div>
 
+<p>
+<code>Opt</code> is a structure with additional simulation options, including specification of the type of simulation through the field <code>Model</code>.
+</p>
 
+<div class="optionfield"><code>Model</code></div>
+<div class="optiondescr">
+<ul>
+<li> 'Continuous' (default): simulate stochastic rotational diffusion
+<li> 'Discrete': simulate Markovian jumps between discrete orientations
+</ul>
+</div>
+
+<div class="optionfield"><code>statesOnly</code></div>
+<div class="optiondescr">
+0 (default), 1<br>
+If equal to 1, only return the trajectories of Markov states, in which case <code>Sys.States</code> need not be specified.
+</div>
 
 <div class="optionfield"><code>chkcon</code></div>
 <div class="optiondescr">
@@ -228,7 +285,7 @@ Par.Omega = [0,0,0];
 </pre>
 
 <p>
-To simulate 400 1-&mu;s long, slow motion trajectories in an orienting potential with coefficient &lambda;<sup>2</sup><sub>0,0</sub> = 1, each of which starts at a random point on the unit sphere, enter
+To simulate 400 1-&mu;s long, slow motion trajectories in an orienting potential with coefficient &lambda;<sup>2</sup><sub>0,0</sub> = 1, whose starting points are chosen randomly from the uniform distribution on the unit sphere, enter
 </p>
 
 <pre class="matlab">
@@ -240,7 +297,7 @@ Par.dt = 1e-9;
 Par.nSteps = 500;
 Par.nTraj = 400;
 
-[t,RTraj] = stochtraj(Sys,Par);
+[t,qTraj] = stochtraj(Sys,Par);
 </pre>
 
 

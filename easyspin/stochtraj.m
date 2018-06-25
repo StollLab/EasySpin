@@ -48,8 +48,6 @@
 %     States         numeric, size = (3,nStates)
 %                    Euler angles for each state's orientation
 %
-%     States0        numeric, size = (1,1) or (nTraj,1)
-%                    starting states
 %
 %
 %   Par: simulation parameters for Monte Carlo integrator
@@ -58,9 +56,11 @@
 %                    number of trajectories
 %
 %     Omega          numeric, size = (3,1) or (3,nTraj)
-%                    Euler angles for starting orientation(s)
-%                    if a Discrete model is being used, then these angles
-%                    need to correspond to those of States
+%                    Euler angles for starting orientation(s) of rotational
+%                    diffusion
+%
+%     States0        numeric, size = (1,1) or (nTraj,1)
+%                    starting states of Markov chains
 %
 %         When specifying the simulation time provide one of the following
 %         combinations:
@@ -86,9 +86,9 @@
 %                    continuous degrees of freedom using quaternions
 %                    'Discrete': kinetic Monte carlo simulations with 
 %                    discrete degrees of freedom (states)
-%                    'Hierarchical': simulates using a hybrid model of both
-%                    discrete (states) and continuous degrees of freedom
-%                    (quaternions)
+% %                    'Hierarchical': simulates using a hybrid model of both
+% %                    discrete (states) and continuous degrees of freedom
+% %                    (quaternions)
 %
 %     statesOnly     1 or 0
 %                    specify whether or not to use a discrete model purely
@@ -114,9 +114,9 @@
 %     qTraj          3D array, size = (4,nTraj,nSteps)
 %                    trajectories of normalized quaternions
 %
-% %     stateTraj      3D array, size = (nStates,nTraj,nSteps)
-% %                    trajectories of states, output from kinetic Monte
-% %                    carlo simulation
+%     stateTraj      3D array, size = (nStates,nTraj,nSteps)
+%                    trajectories of states, output from kinetic Monte
+%                    carlo simulation
 
 function varargout = stochtraj(Sys,Par,Opt)
 
@@ -397,8 +397,8 @@ Sim.nTraj = Par.nTraj;
 
 % Get user-supplied starting states
 if strcmp(Model,'Discrete')
-  if isfield(Sys,'States0')
-    States0 = Sys.States0;
+  if isfield(Par,'States0')
+    States0 = Par.States0;
     if ~all(size(States0)==[1,1])&&~all(size(States0)==[1,Par.nTraj])
       error('States0 should be of size (1,1) or (1,Par.nTraj).')
     end
