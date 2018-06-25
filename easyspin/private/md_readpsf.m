@@ -153,49 +153,62 @@ while ~feof(FileID)
       
       % read NATOM section
       FileContents = textscan(FileID, AtomFormat, nLines);
-      residue_names = FileContents(4);
-      residue_names = residue_names{1};
-      atom_names = FileContents(5);
-      atom_names = atom_names{1};
-      segment_names = FileContents(2);
-      segment_names = segment_names{1};
+      segmentNames = FileContents(2);
+      segmentNames = segmentNames{1};
+      residueNames = FileContents(4);
+      residueNames = residueNames{1};
+      atomNames = FileContents(5);
+      atomNames = atomNames{1};
       mass = FileContents(8);
       psf.mass = mass{1};
       
-      % obtain logical arrays of atom indices
-      idx_ProteinLabel = strcmpi(segment_names,SegName);
-      idx_ProteinCA = strcmpi(segment_names,SegName) & strcmpi(atom_names,'CA');
-      idx_SpinLabel = strcmpi(segment_names,SegName) & strncmpi(residue_names,ResName,4);
-      idx_ON = strcmpi(atom_names(idx_SpinLabel),AtomNames.ONname);
-      idx_NN = strcmpi(atom_names(idx_SpinLabel),AtomNames.NNname);
-      idx_C1 = strcmpi(atom_names(idx_SpinLabel),AtomNames.C1name);
-      idx_C2 = strcmpi(atom_names(idx_SpinLabel),AtomNames.C2name);
-      idx_C1R = strcmpi(atom_names(idx_SpinLabel),AtomNames.C1Rname);
-      idx_C2R = strcmpi(atom_names(idx_SpinLabel),AtomNames.C2Rname);
-      idx_C1L = strcmpi(atom_names(idx_SpinLabel),AtomNames.C1Lname);
-      idx_S1L = strcmpi(atom_names(idx_SpinLabel),AtomNames.S1Lname);
-      idx_SG = strcmpi(atom_names(idx_SpinLabel),AtomNames.SGname);
-      idx_CB = strcmpi(atom_names(idx_SpinLabel),AtomNames.CBname);
-      idx_CA = strcmpi(atom_names(idx_SpinLabel),AtomNames.CAname);
-      idx_N = strcmpi(atom_names(idx_SpinLabel),AtomNames.Nname);
+      % filter for atoms belonging to the protein and spin label
+      idx_ProteinLabel = strcmpi(segmentNames,SegName);
+      segmentNames = segmentNames(idx_ProteinLabel);
+      residueNames = residueNames(idx_ProteinLabel);
+      atomNames = atomNames(idx_ProteinLabel);
       
-      % convert to integer indices, which are needed to read the appropriate
-      % parts of DCD binary files
+      % generate logical arrays to filter for protein alpha carbon and spin
+      % label atoms
+      psf.idx_ProteinCA = strcmpi(segmentNames,SegName) & strcmpi(atomNames,'CA');
+      
+      idx_SpinLabel = strcmpi(segmentNames,SegName) & strncmpi(residueNames,ResName,4);
+      psf.idx_ON = strcmpi(atomNames(idx_SpinLabel),AtomNames.ONname);
+      psf.idx_NN = strcmpi(atomNames(idx_SpinLabel),AtomNames.NNname);
+      psf.idx_C1 = strcmpi(atomNames(idx_SpinLabel),AtomNames.C1name);
+      psf.idx_C2 = strcmpi(atomNames(idx_SpinLabel),AtomNames.C2name);
+      psf.idx_C1R = strcmpi(atomNames(idx_SpinLabel),AtomNames.C1Rname);
+      psf.idx_C2R = strcmpi(atomNames(idx_SpinLabel),AtomNames.C2Rname);
+      psf.idx_C1L = strcmpi(atomNames(idx_SpinLabel),AtomNames.C1Lname);
+      psf.idx_S1L = strcmpi(atomNames(idx_SpinLabel),AtomNames.S1Lname);
+      psf.idx_SG = strcmpi(atomNames(idx_SpinLabel),AtomNames.SGname);
+      psf.idx_CB = strcmpi(atomNames(idx_SpinLabel),AtomNames.CBname);
+      psf.idx_CA = strcmpi(atomNames(idx_SpinLabel),AtomNames.CAname);
+      psf.idx_N = strcmpi(atomNames(idx_SpinLabel),AtomNames.Nname);
+      psf.idx_SpinLabel = idx_SpinLabel;
+      
+      % the ProteinLabel indices will be read directly from the binary 
+      % files, so convert to integer indices
       psf.idx_ProteinLabel = find(idx_ProteinLabel);
-      psf.idx_ProteinCA = find(idx_ProteinCA) - psf.idx_ProteinLabel(1) + 1;
-      psf.idx_SpinLabel = find(idx_SpinLabel) - psf.idx_ProteinLabel(1) + 1;
-      psf.idx_ON = find(idx_ON);
-      psf.idx_NN = find(idx_NN);
-      psf.idx_C1 = find(idx_C1);
-      psf.idx_C2 = find(idx_C2);
-      psf.idx_C1R = find(idx_C1R);
-      psf.idx_C2R = find(idx_C2R);
-      psf.idx_C1L = find(idx_C1L);
-      psf.idx_S1L = find(idx_S1L);
-      psf.idx_SG = find(idx_SG);
-      psf.idx_CB = find(idx_CB);
-      psf.idx_CA = find(idx_CA);
-      psf.idx_N = find(idx_N);
+      
+%       psf.idx_ProteinCA = find(idx_ProteinCA);
+% %       psf.idx_ProteinCA = find(idx_ProteinCA) - psf.idx_ProteinLabel(1) + 1;
+%       psf.idx_SpinLabel = find(idx_SpinLabel);
+% %       psf.idx_SpinLabel = find(idx_SpinLabel) - psf.idx_ProteinLabel(1) + 1;
+% 
+%       psf.idx_ON = find(idx_ON);
+%       psf.idx_NN = find(idx_NN);
+%       psf.idx_C1 = find(idx_C1);
+%       psf.idx_C2 = find(idx_C2);
+%       psf.idx_C1R = find(idx_C1R);
+%       psf.idx_C2R = find(idx_C2R);
+%       psf.idx_C1L = find(idx_C1L);
+%       psf.idx_S1L = find(idx_S1L);
+%       psf.idx_SG = find(idx_SG);
+%       psf.idx_CB = find(idx_CB);
+%       psf.idx_CA = find(idx_CA);
+%       psf.idx_N = find(idx_N);
+      
 %       psf.idx_ON = nonzeros(psf.idx_SpinLabel .* idx_ON);
 %       psf.idx_NN = nonzeros(psf.idx_SpinLabel .* idx_NN);
 %       psf.idx_C1 = nonzeros(psf.idx_SpinLabel .* idx_C1);
