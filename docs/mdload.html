@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>mdload</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">mdload</div>
+
+<p>
+Load protein and spin label data from molecular dynamics simulation trajectory output files.
+</p>
+
+<!-- ================================================================ -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+MD = mdload(TrajFile, AtomInfo);
+MD = mdload(TrajFile, AtomInfo, OutOpt);
+</pre>
+
+<!-- ================================================================ -->
+<div class="subtitle">Description</div>
+
+<p>
+This function loads protein alpha carbon atomic coordinates, spin label atomic coordinates, and spin label side chain dihedral angles data from molecular dynamics (MD) simulation trajectory output files.
+</p>
+
+<div class="subtitle2">Input: Trajectory file information</div>
+
+<p>
+<code>TrajFile</code> is the trajectory filename or set of filenames to be loaded. If <code>TrajFile</code> is just a file name without a directory (e.g. <code>'TrajFile1.DCD'</code>), <code>mdload</code> looks for it in Matlab's current directory. <code>TrajFile</code> can also include the full path to the file (e.g. <code>C:\mydata\sample5\TrajFile1.DCD'</code>). For multiple trajectory files, <code>TrajFile</code> can be set to a cell array containing character arrays as entries (e.g. <code>{'TrajFile1.DCD','TrajFile2.DCD'}</code>).
+
+<p>
+Formats are identified by the extension of the file name specified in <code>TrajFile</code>. The following MD simulation programs, their default output trajectory file extensions, and their input topology file extensions are supported:
+</p>
+
+<table>
+<tr><td>MD program</td><td>Trajectory file extension</td><td>Topology file extension</td></tr>
+<tr><td>NAMD</td><td><code>DCD</code></td><td><code>PSF</code></td></tr>
+<tr><td>CHARMM</td><td><code>DCD</code></td><td><code>PSF</code></td></tr>
+</table>
+
+<div class="subtitle2">Input: Topology information</div>
+
+<p>
+<code>AtomInfo</code> is a structure containing information regarding the structure and organization of the MD trajectory data.
+</p>
+
+<div class="optionfield"><code>TopFile</code></div>
+<div class="optiondescr">
+Name of the topology input file. Please specify the full path.
+</div>
+
+<div class="optionfield"><code>SegName</code></div>
+<div class="optiondescr">
+Name of the segment in <code>TopFile</code> assigned to the spin-labeled protein.
+</div>
+
+<div class="optionfield"><code>ResName</code></div>
+<div class="optiondescr">
+Name of the residue in <code>TopFile</code> assigned to the spin-label, e.g. <code>'CYR1'</code> is the default name given to MTSSL by CHARMM-GUI.
+</div>
+
+<div class="optionfield"><code>AtomNames</code></div>
+<div class="optiondescr">
+A structure containing the names of the spin label's individual atoms used by <code>TopFile</code>. For MTSSL, the atom names should be given as the following fields:
+<ul>
+<li><code>ONname</code>
+<li><code>NNname</code>
+<li><code>C1name</code>
+<li><code>C2name</code>
+<li><code>C1Rname</code>
+<li><code>C2Rname</code>
+<li><code>C1Lname</code>
+<li><code>S1Lname</code>
+<li><code>SGname</code>
+<li><code>CBname</code>
+<li><code>CAname</code>
+<li><code>Nname</code>
+</ul>
+</div>
+
+
+<div class="subtitle2">Input: Output options</div>
+
+<p>
+<code>OutOpt</code> is a structure containing options regarding the output of <code>mdload</code>. The field <code>Verbosity</code> controls whether or not <code>mdload</code> will display messages to the console regarding its progress. Since MD simulation trajectory output files can be quite large (several gigabytes), loading and processing their data can be time-consuming, and <code>Verbosity</code> is set to 1 by default.
+</p>
+
+
+<div class="subtitle2">Output: Processed MD data</div>
+
+<p>
+<code>MD</code> is a structure containing all output from <code>mdload</code>, including all raw and processed data that can be used by <a class="esf" href="cardamom.html">cardamom</a> to simulate an EPR spectrum.
+</p>
+
+<div class="optionfield"><code>nSteps</code></div>
+<div class="optiondescr">
+Number of snapshots in the MD simulation output.
+</div>
+
+<div class="optionfield"><code>dt</code></div>
+<div class="optiondescr">
+Time step between snapshots, in seconds.
+</div>
+
+<div class="optionfield"><code>ProtCAxyz</code></div>
+<div class="optiondescr">
+Cartesian coordinates of the protein's &alpha;-carbon atoms in the MD simulation box frame, in <span>&#8491;</span>.
+</div>
+
+<div class="optionfield"><code>FrameX, FrameY, FrameZ</code></div>
+<div class="optiondescr">
+Cartesian coordinates of the spin label tensor frame's x-, y-, and z-coordinate frame axis vectors with respect to the MD simulation box frame, in <span>&#8491;</span>.
+</div>
+
+<div class="optionfield"><code>chi1-chi5</code></div>
+<div class="optiondescr">
+A structure containing the names of the spin label's individual atoms used by <code>TopFile</code>. For MTSSL, the atom names should be given as the following fields:
+</div>
+
+<!-- ================================================================ -->
+<div class="subtitle">Examples</div>
+
+<p>
+To load and process a <code>DCD</code> trajectory file <code>myTraj.DCD</code> generated by NAMD, with a <code>PSF</code> topology input file <code>myTop.PSF</code>, use
+</p>
+
+<pre class="matlab">
+AtomInfo.ResName = 'CYR1';
+
+AtomInfo.SegName = 'PROA';
+
+AtomInfo.AtomNames.ONname = 'ON';
+AtomInfo.AtomNames.NNname = 'NN';
+AtomInfo.AtomNames.C1name = 'C1';
+AtomInfo.AtomNames.C2name = 'C2';
+AtomInfo.AtomNames.C1Rname = 'C1R';
+AtomInfo.AtomNames.C2Rname = 'C2R';
+AtomInfo.AtomNames.C1Lname = 'C1L';
+AtomInfo.AtomNames.S1Lname = 'S1L';
+AtomInfo.AtomNames.SGname = 'SG';
+AtomInfo.AtomNames.CBname = 'CB';
+AtomInfo.AtomNames.CAname = 'CA';
+AtomInfo.AtomNames.Nname = 'N';
+
+MD = mdload('myTraj.DCD',AtomInfo);
+</pre>
+
+<!-- ============================================================= -->
+<div class="subtitle">See also</div>
+
+<p>
+<a class="esf" href="mdsave.html">mdsave</a>
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+
+</html>
