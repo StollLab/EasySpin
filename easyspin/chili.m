@@ -799,6 +799,34 @@ else
   
 end
 
+
+  
+% Starting vector
+%-------------------------------------------------------
+logmsg(1,'Computing starting vector...');
+if generalLiouvillian
+  % set up in full product basis, then prune
+  if Opt.useLMKbasis
+    StartingVector = startvec_LMK(Basis,Potential.lambda,SdetOp);
+  else
+    StartingVector = startvec(Basis,Potential.lambda,SdetOp);
+  end
+  StartingVector = StartingVector(keep);
+  
+else
+  
+  StartingVector = chili_startingvector(Basis,Potential,Sys.I);
+  
+end
+if saveDiagnostics
+  diagnostics.sv = StartingVector;
+end
+BasisSize = size(StartingVector,1);
+logmsg(1,'  vector size: %dx1',BasisSize);
+logmsg(1,'  non-zero elements: %d/%d (%0.2f%%)',...
+  nnz(StartingVector),BasisSize,100*nnz(StartingVector)/BasisSize);
+logmsg(1,'  maxabs %g, norm %g',full(max(abs(StartingVector))),norm(StartingVector));
+
 % Loop over all orientations
 %=====================================================================
 spec = 0;
@@ -830,32 +858,7 @@ for iOri = 1:nOrientations
   else
     Sys.d2psi = wignerd(2,phi(iOri),theta(iOri),0);
   end
-  
-  % Starting vector
-  %-------------------------------------------------------
-  logmsg(1,'Computing starting vector...');
-  if generalLiouvillian
-    % set up in full product basis, then prune
-    if Opt.useLMKbasis
-      StartingVector = startvec_LMK(Basis,Potential.lambda,SdetOp);
-    else
-      StartingVector = startvec(Basis,Potential.lambda,SdetOp);
-    end
-    StartingVector = StartingVector(keep);
-    
-  else
-    
-    StartingVector = chili_startingvector(Basis,Potential,Sys.I);
-    
-  end
-  if saveDiagnostics
-    diagnostics.sv = StartingVector;
-  end
-  BasisSize = size(StartingVector,1);
-  logmsg(1,'  vector size: %dx1',BasisSize);
-  logmsg(1,'  non-zero elements: %d/%d (%0.2f%%)',...
-    nnz(StartingVector),BasisSize,100*nnz(StartingVector)/BasisSize);
-  logmsg(1,'  maxabs %g, norm %g',full(max(abs(StartingVector))),norm(StartingVector));
+
   
   % Liouvillian matrix
   %-------------------------------------------------------
