@@ -28,7 +28,7 @@ c40 = lambda(3);
 c42 = lambda(4);
 c44 = lambda(5);
 
-% set up starting vector in spatial basis
+% set up starting vector in orientational basis
 oriVector = zeros(nOriBasis,1);
 for b = 1:numel(oriVector)
   L_  = L(b);
@@ -37,15 +37,13 @@ for b = 1:numel(oriVector)
   jK_ = jK(b);
   if mod(L_,2)==0 && M_==0 && mod(K_,2)==0 && jK_==1
     % numerically integrate
-    fun = @(a,b,c) wignerd([L_ M_ K_],a,b,c) .* exp(-U(a,b,c)/2) .* sin(b);
-    Int = integral3(fun,0,2*pi,0,pi,0,2*pi);
+    fun = @(a,b,c) conj(wignerd([L_ M_ K_],a,b,c)) .* exp(-U(a,b,c)/2) .* sin(b);
+    Int = sqrt((2*L_+1)/(8*pi^2)) * integral3(fun,0,2*pi,0,pi,0,2*pi);
     oriVector(b) = sqrt(2/(1 + (K_==0))) * Int;
   end
 end
-oriVector = oriVector/norm(oriVector);
 
 % form starting vector in direct product basis
-%StartingVector = real(kron(SxH(:),oriVector));
 StartingVector = real(kron(oriVector,SxH(:)));
 StartingVector = StartingVector/norm(StartingVector);
 StartingVector = sparse(StartingVector);

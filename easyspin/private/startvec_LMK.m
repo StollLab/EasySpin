@@ -39,15 +39,14 @@ for b = 1:numel(oriVector)
   K_ = K(b);
   if mod(L_,2)==0 && M_==0 && mod(K_,2)==0
     % numerically integrate
-    fun = @(a,b,c) wignerd([L_ M_ K_],a,b,c) .* exp(-U(a,b,c)/2) .* sin(b);
-    Int = integral3(fun,0,2*pi,0,pi,0,2*pi);
+    fun = @(a,b,c) conj(wignerd([L_ M_ K_],a,b,c)) .* exp(-U(a,b,c)/2) .* sin(b);
+    Int = sqrt((2*L_+1)/(8*pi^2)) * integral3(fun,0,2*pi,0,pi,0,2*pi);
     oriVector(b) = Int;
   end
 end
-oriVector = oriVector/norm(oriVector);
 
 % form starting vector in direct product basis
-StartingVector = real(kron(SxH(:),oriVector));
+StartingVector = real(kron(oriVector,SxH(:)));
 StartingVector = StartingVector/norm(StartingVector);
 StartingVector = sparse(StartingVector);
 
