@@ -807,9 +807,9 @@ logmsg(1,'Computing starting vector...');
 if generalLiouvillian
   % set up in full product basis, then prune
   if Opt.useLMKbasis
-    StartingVector = startvec_LMK(Basis,Potential.lambda,SdetOp);
+    StartingVector = startvec_LMK(Basis,Potential,SdetOp);
   else
-    StartingVector = startvec(Basis,Potential.lambda,SdetOp);
+    StartingVector = startvec(Basis,Potential,SdetOp);
   end
   StartingVector = StartingVector(keep);
   

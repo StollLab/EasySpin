@@ -1,13 +1,21 @@
 % startvec takes the Hilbert space spin operator Sx as input and returns as
 % output the vector representation of the Sx operator in Liouville space
 
-function StartingVector = startvec(basis,lambda,SxH)
+function StartingVector = startvec(basis,Potential,SxH)
 
 L = basis.L;
 M = basis.M;
 K = basis.K;
 jK = basis.jK;
 nOriBasis = numel(L);
+
+lambda = Potential.lambda;
+Lp = Potential.L;
+Mp = Potential.M;
+Kp = Potential.K;
+if any(Mp)
+  error('Potential coefficients with non-zero M are not supported.');
+end
 
 if ~any(lambda)
   idx0 = find(L==0 & M==0 & K==0);
@@ -21,12 +29,6 @@ if ~any(lambda)
   StartingVector = StartingVector/sqrt(sum(StartingVector.^2));
   return
 end
-
-c20 = lambda(1);
-c22 = lambda(2);
-c40 = lambda(3);
-c42 = lambda(4);
-c44 = lambda(5);
 
 % set up starting vector in orientational basis
 oriVector = zeros(nOriBasis,1);
@@ -50,11 +52,15 @@ StartingVector = sparse(StartingVector);
 
   function u = U(a,b,c)
     u = 0;
-    if c20~=0, u = u - c20*wignerd([2 0 0],a,b,c); end
-    if c22~=0, u = u - c22*(wignerd([2 0 2],a,b,c) + wignerd([2 0 -2],a,b,c)); end
-    if c40~=0, u = u - c40*wignerd([4 0 0],a,b,c); end
-    if c42~=0, u = u - c42*(wignerd([4 0 2],a,b,c) + wignerd([4 0 -2],a,b,c)); end
-    if c44~=0, u = u - c44*(wignerd([4 0 4],a,b,c) + wignerd([4 0 -4],a,b,c)); end
+    for p = 1:numel(lambda)
+      if lambda(p)==0, continue; end
+      if Kp(p)==0
+        u = u - wignerd([Lp(p) 0 0],a,b,c) * lambda(p);
+      else
+        u = u - wignerd([Lp(p) 0 +Kp(p)],a,b,c) * lambda(p) ...
+              - wignerd([Lp(p) 0 -Kp(p)],a,b,c) * lambda(p)' * (-1)^Kp(p);
+      end
+    end
   end
 
 end
