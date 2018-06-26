@@ -37,9 +37,9 @@ for b = 1:numel(oriVector)
   jK_ = jK(b);
   if mod(L_,2)==0 && M_==0 && mod(K_,2)==0 && jK_==1
     % numerically integrate
-    prefactor = sqrt(2/(1 + (K_==0)));
-    fun = @(a,b,c) real(wignerd([L_ M_ K_],a,b,c)).*exp(-U(a,b,c)/2);
-    oriVector(b) = prefactor*integral3(fun,0,2*pi,0,pi,0,2*pi);
+    fun = @(a,b,c) wignerd([L_ M_ K_],a,b,c) .* exp(-U(a,b,c)/2) .* sin(b);
+    Int = integral3(fun,0,2*pi,0,pi,0,2*pi);
+    oriVector(b) = sqrt(2/(1 + (K_==0))) * Int;
   end
 end
 oriVector = oriVector/norm(oriVector);
@@ -53,10 +53,10 @@ StartingVector = sparse(StartingVector);
   function u = U(a,b,c)
     u = 0;
     if c20~=0, u = u + c20*wignerd([2 0 0],a,b,c); end
-    if c22~=0, u = u + c22*(wignerd([2 2 0],a,b,c) + wignerd([2 -2 0],a,b,c)); end
+    if c22~=0, u = u + c22*(wignerd([2 0 2],a,b,c) + wignerd([2 0 -2],a,b,c)); end
     if c40~=0, u = u + c40*wignerd([4 0 0],a,b,c); end
-    if c42~=0, u = u + c42*(wignerd([4 2 0],a,b,c) + wignerd([4 -2 0],a,b,c)); end
-    if c44~=0, u = u + c44*(wignerd([4 4 0],a,b,c) + wignerd([4 -4 0],a,b,c)); end
+    if c42~=0, u = u + c42*(wignerd([4 0 2],a,b,c) + wignerd([4 0 -2],a,b,c)); end
+    if c44~=0, u = u + c44*(wignerd([4 0 4],a,b,c) + wignerd([4 0 -4],a,b,c)); end
   end
 
 end
