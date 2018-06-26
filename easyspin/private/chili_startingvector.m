@@ -5,6 +5,10 @@ Options.Tolerance = 1e-10; % for numerical integration
 lambdaLK = Potential.lambda;
 XLK = Potential.xlk;
 
+if lambdaLK(5)~=0
+  error('This algorithm cannot handle lambda(5), i.e. L=4 and K=4.');
+end
+
 switch numel(I)
   case 0, v = chili_sv0(Basis,lambdaLK,XLK,Options);
   case 1, v = chili_sv1(Basis,lambdaLK,XLK,I,Options);
