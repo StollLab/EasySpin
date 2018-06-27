@@ -29,6 +29,7 @@ plot(theta*180/pi,U/echarge);
 set(gca,'FontSize',12);
 xlabel('theta (deg)');
 ylabel('potential energy (eV)');
+xlim([0 90]);
 
 subplot(2,1,2)
 plot(theta*180/pi,P);
@@ -36,6 +37,7 @@ set(gca,'FontSize',12);
 xlabel('theta (deg)');
 ylabel('probability density');
 ylim([0 max(P)]);
+xlim([0 90]);
 
 %%
 % basis function for axial order: Y_(2,0)
