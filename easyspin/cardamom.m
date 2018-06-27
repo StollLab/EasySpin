@@ -195,6 +195,10 @@
 %                    Markov: coarse grain the trajectories by using the
 %                      side chain dihedral angles to form a Markov state 
 %                      model
+%
+%     removeGlobal   integer
+%                    1: (default) remove protein global diffusion
+%                    0: no removal (e.g. if protein is fixed)
 
 %
 %    Raw MD data input:
@@ -348,6 +352,10 @@ if useMD
     error('The MD trajectory time step MD.dt must be given.')
   end
   
+  if ~isfield(MD,'nSteps')
+    error('The number of MD trajectory time steps MD.nSteps must be given.')
+  end
+  
   % check type of MD trajectory usage
   if ~isfield(MD,'TrajUsage')
     MD.TrajUsage = 'Explicit';
@@ -374,47 +382,39 @@ if useMD
     
   switch MD.TrajType
     case 'Frame'
-      if ~isfield(MD,'FrameX')||~isfield(MD,'FrameY')||~isfield(MD,'FrameZ')
-        error('If using a frame trajectory, MD.FrameX, MD.FrameY, and MD.FrameZ must be given.')
+      if ~isfield(MD,'FrameTraj')
+        error('If using a frame trajectory, MD.FrameTraj must be given.')
       end
-      sizeFrameX = size(MD.FrameX);
+      sizeFrameTraj = size(MD.FrameTraj);
 
-      if ~isequal(sizeFrameX,size(MD.FrameY))||~isequal(sizeFrameX,size(MD.FrameZ))
-        error('All frame trajectory arrays in MD must have the same size.')
+      if ~isequal(sizeFrameTraj,[MD.nSteps,3,3])
+        error('Frame trajectory must be of size (MD.nSteps,3,3).')
       end
-
-      if sizeFrameX(2)~=3
-        error('All frame trajectory arrays must be of size (nSteps,3).')
-      end
-
-      MD.nSteps = sizeFrameX(1);
+      
     case 'Dihedrals'
       if ~strcmp(MD.TrajUsage,'Markov')
         error('Using a TrajType of Dihedrals requires TrajUsage to be Markov.')
       end
       
-      if ~isfield(MD,'FrameX')||~isfield(MD,'FrameY')||~isfield(MD,'FrameZ')
-        error('If using a frame trajectory, MD.FrameX, MD.FrameY, and MD.FrameZ must be given.')
-      end
-      sizeFrameX = size(MD.FrameX);
-
-      if ~isequal(sizeFrameX,size(MD.FrameY))||~isequal(sizeFrameX,size(MD.FrameZ))
-        error('All frame trajectory arrays in MD must have the same size.')
-      end
-
-      if sizeFrameX(2)~=3
-        error('All frame trajectory arrays must be of size (nSteps,3).')
+      if ~isfield(MD,'tLag')
+        error('If using a Markov model, the sampling lag time MD.tLag must be given.')
       end
       
-      % use lag time to sample the trajectory such that that the result is
-      % Markovian
+      if ~isfield(MD,'FrameTraj')
+        error('If using a frame trajectory, MD.FrameTraj must be given.')
+      end
+      sizeFrameTraj = size(MD.FrameTraj);
+
+      if ~isequal(sizeFrameTraj,[MD.nSteps,3,3])
+        error('Frame trajectory must be of size (MD.nSteps,3,3).')
+      end
+      
+      % use lag time to sample the trajectory of dihedral angles such that 
+      % that the result is Markovian
       nLag = ceil(MD.tLag/MD.dt);
+      MD.dihedrals = MD.dihedrals(1:nLag:end,:);
       
-      dihedrals = [MD.chi1(1:nLag:end), ...
-                   MD.chi2(1:nLag:end), ...
-                   MD.chi4(1:nLag:end), ...
-                   MD.chi5(1:nLag:end)];
-                 
+      % set the Markov chain time step based on the sampling lag time
       Par.dt = tScale*MD.tLag;
     case 'Raw'
       if ~isfield(MD,'TrajFile')||~isfield(MD,'AtomInfo')
@@ -427,25 +427,36 @@ if useMD
       MD = mdload(MD.TrajFile, MD.AtomInfo, OutOpt);
 
       MD.dt = tScale*MD.dt;
-      MD.nSteps = size(MD.FrameZ, 1);
     otherwise
       error('Entry for MD.TrajType not recognized.')
   end
   
+  MD.FrameTraj = permute(MD.FrameTraj, [2, 3, 4, 1]);
+  
+  if ~isfield(MD,'removeGlobal')
+    MD.removeGlobal = 1;
+  end
+  
+  if MD.removeGlobal
+    nAtoms = size(MD.ProtCAxyz,3);
 
-  MD.FrameX = permute(MD.FrameX, [2, 3, 4, 1]);
-  MD.FrameY = permute(MD.FrameY, [2, 3, 4, 1]);
-  MD.FrameZ = permute(MD.FrameZ, [2, 3, 4, 1]);
+    logmsg(1,'-- removing protein global diffusion -----------------------------------------');
 
-  MDTrajLength = size(MD.FrameX, 4);
+    % rotate trajectory to align with principal frame
+  %   [trash, RAlign] = orient_mine(MD.ProtCATraj(1,:,:));
+    RAlign = orientprotein(MD.ProtCAxyz);
+    clear trash
 
-  MD.RTraj = zeros(3,3,1,MDTrajLength);
-%   MD.RTraj(1,:,1,:) = MD.FrameX;
-%   MD.RTraj(2,:,1,:) = MD.FrameY;
-%   MD.RTraj(3,:,1,:) = MD.FrameZ;
-  MD.RTraj(:,1,1,:) = MD.FrameX;
-  MD.RTraj(:,2,1,:) = MD.FrameY;
-  MD.RTraj(:,3,1,:) = MD.FrameZ;
+    MD.RTraj = zeros(3,3,1,MD.nSteps);
+    for iStep = 1:MD.nSteps
+      MD.RTraj(:,1,1,iStep) = MD.FrameTraj(:,1,1,iStep).'*RAlign(:,:,iStep);
+      MD.RTraj(:,2,1,iStep) = MD.FrameTraj(:,2,1,iStep).'*RAlign(:,:,iStep);
+      MD.RTraj(:,3,1,iStep) = MD.FrameTraj(:,3,1,iStep).'*RAlign(:,:,iStep);
+    end
+  
+  else
+    MD.RTraj = MD.FrameTraj;
+  end
 
 %   q = rotmat2quat(MD.RTraj);
 %   [alpha, beta, gamma] = quat2euler(q);
@@ -463,20 +474,25 @@ if useMD
 
   
   if strcmp(MD.TrajUsage,'Markov')
+    logmsg(1,'-- building Markov state model -----------------------------------------');
+    
     Opt.Model = 'Discrete';
     Opt.statesOnly = 1;
     
     MD.nStates = 48;
-%       MD.nStates = 5;
 
     % Perform k-means clustering
-    [MD.stateTraj,centroids] = clusterDihedrals(dihedrals,MD.nStates);
+    [MD.stateTraj,centroids] = clusterDihedrals(MD.dihedrals,MD.nStates);
     MD.nSteps = size(MD.stateTraj, 1);  % TODO: find a way to process different step sizes here
+    
+    % remove chi3
+    MD.dihedrals = MD.dihedrals(:,logical([1,1,0,1,1]));
 
     % Initialize HMM using clustering results
     mu0 = centroids.';
     for iState = 1:MD.nStates
-      Sigma0(:,:,iState) = cov(dihedrals(MD.stateTraj==iState,:));
+      idxState = MD.stateTraj==iState;
+      Sigma0(:,:,iState) = cov(MD.dihedrals(idxState,:));
     end
 %     prior0 = normalise(rand(MD.nStates,1));
 %     transmat0 = mk_stochastic(rand(MD.nStates,MD.nStates));
@@ -486,7 +502,12 @@ if useMD
     randints = randi(size(MD.stateTraj,1), MD.nStates, 1);
     prior0 = MD.stateTraj(randints);
     transmat0 = calc_TPM(MD.stateTraj,MD.nStates).';
-%     Sys.States0 =  TODO: find a way to assign the equilibrium distribution
+    
+    % check if transmat0 is positive definite
+    [trash,isNotPosDef] = chol(transmat0);
+    if isNotPosDef
+      transmat0 = sqrtm(transmat0'*transmat0);
+    end
 
     checkEmptyTrans = 1;
     ProbRatioThresh = 1e-3;  % threshold in probability ratio for finding 
@@ -498,7 +519,7 @@ if useMD
       ModelIn.mu = mu0;
       ModelIn.Sigma = Sigma0;
 
-      [logL, ModelOut] = cardamom_emghmm(dihedrals, ModelIn, 20);
+      [logL, ModelOut] = cardamom_emghmm(MD.dihedrals, ModelIn, 20);
 
       prior1 = ModelOut.prior;
       transmat1 = ModelOut.transmat;
@@ -528,19 +549,19 @@ if useMD
         MD.nStates = size(transmat1,1);
       end
     end
+%     prior1 = prior0;
+%     transmat1 = transmat0;
   end
   % estimate rotational diffusion time scale
-  acorrX = autocorrfft(squeeze(MD.FrameX.^2), 2, 1, 1);
-  acorrY = autocorrfft(squeeze(MD.FrameY.^2), 2, 1, 1);
-  acorrZ = autocorrfft(squeeze(MD.FrameZ.^2), 2, 1, 1);
+  FrameAcorr = autocorrfft(squeeze(MD.FrameTraj.^2), 2, 1, 1);
 
-  N = round(MDTrajLength/4);
+  N = round(MD.nSteps/4);
 
   % calculate correlation time
   time = linspace(0, N*MD.dt, N);
-  tauRX = max(cumtrapz(time,acorrX(1:N)));
-  tauRY = max(cumtrapz(time,acorrY(1:N)));
-  tauRZ = max(cumtrapz(time,acorrZ(1:N)));
+  tauRX = max(cumtrapz(time,FrameAcorr(1:N)));
+  tauRY = max(cumtrapz(time,FrameAcorr(1:N)));
+  tauRZ = max(cumtrapz(time,FrameAcorr(1:N)));
 %   [k,c,yfit] = exponfit(time, acorr(1:N), 2, 'noconst');
 %   tauR = 1/max(k);
 
@@ -549,10 +570,10 @@ if useMD
   DiffLocal = 1/6/tauR;
   MD.tauR = tauR;
 
-%   MD.FrameX = [];
-%   MD.FrameY = [];
-%   MD.FrameZ = [];
-  RTrajInv = [];
+  % these variables could be huge and are no longer needed, so delete them 
+  % now
+  MD = rmfield(MD, 'FrameTraj');
+  clear RTrajInv
 
 end
 
@@ -646,7 +667,8 @@ if useMD
   
   % process single long trajectory into multiple short trajectories
   if strcmp(MD.TrajUsage,'Explicit')
-    Par.lag = ceil(3*MD.tauR/Par.Dt);  % use 2 ns lag between windows
+%     Par.lag = ceil(3*MD.tauR/Par.Dt);  % use 2 ns lag between windows
+    Par.lag = ceil(2e-9/Par.Dt);  % use 2 ns lag between windows
     if Par.nSteps<Par.nBlocks
       % Par.nSteps not changed from user input
       Par.nTraj = floor((Par.nBlocks-Par.nSteps)/Par.lag) + 1;
@@ -1275,10 +1297,10 @@ while ~converged
 %     clear Traj
 %   end
 
-  RTraj = [];
-  qTraj = [];
-  Par.RTraj = [];
-  Par.qTraj = [];
+  clear RTraj
+  clear qTraj
+  clear Par.RTraj
+  clear Par.qTraj
 
 % Perform FFT
 % -------------------------------------------------------------------------
@@ -1448,13 +1470,72 @@ end
 % Helper functions
 % -------------------------------------------------------------------------
 
+function rotmat = orientprotein(traj)
+% orient protein along the principal axes of inertia
+%
+
+% setup
+nFrame = size(traj, 1);
+nAtom = size(traj, 3);
+rotmat = zeros(3,3,nFrame);
+
+% subtract by the geometric center
+traj = traj - mean(traj,3);
+
+% calculate the principal axis of inertia
+for iFrame = 1:nFrame
+  thisFrame = squeeze(traj(iFrame,:,:));
+  
+  mass = 1;
+  x = thisFrame(1,:);
+  y = thisFrame(2,:);
+  z = thisFrame(3,:);
+  
+  I = zeros(3,3);
+  
+  I(1,1) = sum(mass.*(y.^2 + z.^2));
+  I(2,2) = sum(mass.*(x.^2 + z.^2));
+  I(3,3) = sum(mass.*(x.^2 + y.^2));
+  
+  I(1,2) = - sum(mass.*(x.*y));
+  I(2,1) = I(1,2);
+  
+  I(1,3) = - sum(mass.*(x.*z));
+  I(3,1) = I(1,3);
+  
+  I(2,3) = - sum(mass.*(y.*z));
+  I(3,2) = I(2,3);
+  
+  % scale I for better performance
+  I = I./norm(I);
+  
+  [~, ~, a] = svd(I); %a is already sorted by descending order
+%   p_axis = a(:, end:-1:1); %z-axis has the largest inertia
+  p_axis = a;
+  
+  % check reflection
+  if det(p_axis) < 0
+    p_axis(:,1) = - p_axis(:,1);
+  end
+  
+%   %% project onto the principal axis of inertia
+%   proj = thisFrame.' * p_axis;
+%   traj(iFrame, 1, :) = proj(:, 1).';
+%   traj(iFrame, 2, :) = proj(:, 2).';
+%   traj(iFrame, 3, :) = proj(:, 3).';
+  
+  rotmat(:,:,iFrame) = p_axis;
+end
+
+end
+
 function [stateTraj,centroids] = clusterDihedrals(dihedrals,nStates)
 
 chi1 = dihedrals(:,1);
 chi2 = dihedrals(:,2);
 % chi3 = dihedrals(:,3);
-chi4 = dihedrals(:,3);
-chi5 = dihedrals(:,4);
+chi4 = dihedrals(:,4);
+chi5 = dihedrals(:,5);
 
 dihedrals = [wrapTo2Pi(chi1), wrapTo2Pi(chi2), wrapTo2Pi(chi4), chi5];
 
@@ -1559,7 +1640,7 @@ while iSample < nSamples + 1
   xProposal = randi(maxX);
   q = c;
   if rand() < p(xProposal)/q
-    xSamples(iSample) = xGrid(xProposal);
+    xSamples(1,iSample) = xGrid(xProposal);
     iSample = iSample + 1;
   end
 end

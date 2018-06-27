@@ -37,8 +37,9 @@ Simulation of slow motion CW-EPR spectra in the time domain.
 <pre class="matlab">
 cardamom(Sys,Par,Exp)
 cardamom(Sys,Par,Exp,Opt)
+cardamom(Sys,Par,Exp,Opt,MD)
 [B,spc] = cardamom(...)
-[B,spc,expectval] = cardamom(...)
+[B,spc,expectval,t] = cardamom(...)
 </pre>
 
 <!-- =================================================================== -->
@@ -66,14 +67,16 @@ If no input argument is given, a short help summary is shown (same as when typin
 </p>
 
 <p>
-Up to three output arguments are returned:
+Up to four output arguments are returned:
 <ul>
 <li><code>B</code>: magnetic field axis, in mT
-<li><code>expectval</code>: expectation value of the magnetization in the x-y plane, i.e. the free induction decay signal
+<li><code>spc</code>: derivative of the CW-EPR absorption spectrum, arbitrary units
+<li><code>expectval</code>: expectation value of the complex magnetization in the x-y plane, i.e. the free induction decay signal
+<li><code>t</code>: time axis, in s
 </ul>
 
 <p>
-If no output argument is given, <code>stochtraj</code> plots one of the trajectories.
+The first two output arguments <code>B</code> and <code>spc</code> are mandatory, whereas the last two arguments <code>expectval</code> and <code>t</code> are optional.
 </p>
 
 <div class="subtitle2">Input: System dynamics </div>
@@ -137,7 +140,10 @@ It is also possible to specify an orienting potential to simulate restricted dif
 <div class="optionfield"><code>Coefs</code></div>
 <div class="optiondescr">
 An array of size (N,2) containing the orienting potential coefficients, where N corresponds to the number of terms in the orienting potential function, and the first and second entries in the second dimension correspond to the real and imaginary parts of &lambda;<sup>L</sup><sub>M,K</sub> (the symbols c and &epsilon; are used in the literature as well). The full form of the ordering potential is expressed as 
-U(&Omega;) = - k<sub>B</sub> T &Sigma;<sub>L,M,K</sub>&lambda;<sup>L</sup><sub>M,K</sub>(D<sup>L</sup><sub>M,K</sub>+(-1)<sup>M-K</sup>D<sup>L</sup><sub>-M,-K</sub>), where D<sup>L</sup><sub>M,K</sub> are the Wigner D-functions.
+<p>
+U(&Omega;) = - k<sub>B</sub> T &Sigma;<sub>L,M,K</sub>&lambda;<sup>L</sup><sub>M,K</sub>(D<sup>L</sup><sub>M,K</sub>+(-1)<sup>M-K</sup>D<sup>L</sup><sub>-M,-K</sub>), 
+<p>
+where D<sup>L</sup><sub>M,K</sub> are the Wigner D-functions.
 <p>
 For example, using a complex number <code>lambda200</code> to represent the coefficient &lambda;<sup>2</sup><sub>0,0</sub> of the commonly used second order Legendre polynomial, set <code>Sys.Coefs = [real(lambda200), imag(lambda200)]</code>.
 For details about this type of ordering potential, see K.A. Earle & D.E. Budil, Calculating Slow-Motion ESR Spectra of Spin-Labeled Polymers, in: S. Schlick: Advanced ESR Methods in Polymer Research, Wiley, 2006.

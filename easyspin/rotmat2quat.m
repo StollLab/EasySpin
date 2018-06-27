@@ -28,7 +28,7 @@ if ismatrix(mat)
 else
   matInv = permute(mat,[2,1,3,4]);
   diff = abs(repmat(eye(3),1,1,size(mat,3),size(mat,4))...
-             - multimatmult(mat,matInv,'real'));
+             - multimatmult(mat,matInv));
 end
 
 if any(diff(:) > 1e-13)

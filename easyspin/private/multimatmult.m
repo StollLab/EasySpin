@@ -1,4 +1,5 @@
-% multimatmult  Matlab gateway function to 3D matrix multiplication C function
+% multimatmult  Matlab gateway function to 3D matrix multiplication C 
+%               function multimatmult_
 %   
 %   A = rand(3,3,100); B = rand(3,3,100);
 %   C = multimatmult(A,B);

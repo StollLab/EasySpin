@@ -14,10 +14,10 @@ load([TrajDir, 'MTSSL_polyAla_traj.mat'])
 tscale = 2.5;  % diffusion constant of TIP3P model water molecules in MD 
                % simulations is ~2.5x too high, so we scale the time domain
 
-MD.FrameX = Traj.FrameX;
-MD.FrameY = Traj.FrameY;
-MD.FrameZ = Traj.FrameZ;
+MD.FrameTraj = cat(3, Traj.FrameX, Traj.FrameY, Traj.FrameZ);
 MD.dt = tscale*Traj.dt;
+MD.nSteps = Traj.nSteps;
+MD.removeGlobal = 0;
 
 MD.GlobalDiff = 6e6;
 

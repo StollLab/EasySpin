@@ -63,23 +63,15 @@
 %                              xyz coordinates of protein alpha carbon
 %                              atoms
 %
-%                    FrameX    numeric array, size = (nSteps,3)
-%                              xyz coordinates of coordinate frame x-axis
-%                              vector
+%                    FrameTraj numeric array, size = (nSteps,3,3)
+%                              xyz coordinates of coordinate frame axis
+%                              vectors, x-axis corresponds to
+%                              FrameTraj(:,:,1), y-axis corresponds to
+%                              FrameTraj(:,:,2), etc.
 %
-%                    FrameY    numeric array, size = (nSteps,3)
-%                              xyz coordinates of coordinate frame y-axis
-%                              vector
-%
-%                    FrameZ    numeric array, size = (nSteps,3)
-%                              xyz coordinates of coordinate frame z-axis
-%                              vector
-%
-%                    chi1-chi5 numeric array, size = (nSteps,5)
+%                    dihedrals numeric array, size = (nSteps,5)
 %                              dihedral angles of spin label side chain
 %                              bonds
-%
-%
 
 %
 %
@@ -232,6 +224,13 @@ for iTrajFile=1:nTrajFiles
   end
 end
 
+clear temp
+
+% initialize big arrays here for efficient memory usage
+MD.FrameTraj = zeros(MD.nSteps,3,3);
+MD.dihedrals = zeros(MD.nSteps,5);
+
+% filter out spin label atomic coordinates
 ONxyz = MD.Labelxyz(:,:,psf.idx_ON);
 NNxyz = MD.Labelxyz(:,:,psf.idx_NN);
 C1xyz = MD.Labelxyz(:,:,psf.idx_C1);
@@ -244,6 +243,8 @@ SGxyz = MD.Labelxyz(:,:,psf.idx_SG);
 CBxyz = MD.Labelxyz(:,:,psf.idx_CB);
 CAxyz = MD.Labelxyz(:,:,psf.idx_CA);
 Nxyz = MD.Labelxyz(:,:,psf.idx_N);
+
+clear MD.Labelxyz
 
 % ONxyz = cat(1, MD.ONxyz, temp.ONxyz);
 % NNxyz = cat(1, MD.NNxyz, temp.NNxyz);
@@ -274,26 +275,24 @@ NO_vec = NO_vec./sqrt(sum(NO_vec.*NO_vec,2));
 NC1_vec = NC1_vec./sqrt(sum(NC1_vec.*NC1_vec,2));
 NC2_vec = NC2_vec./sqrt(sum(NC2_vec.*NC2_vec,2));
 
+% z-axis
 vec1 = cross(NC1_vec, NO_vec, 2);
 vec2 = cross(NO_vec, NC2_vec, 2);
+MD.FrameTraj(:,:,3) = vec1 + vec2;
+MD.FrameTraj(:,:,3) = MD.MD.FrameTraj(:,:,3)./sqrt(sum(MD.FrameTraj(:,:,3).*MD.FrameTraj(:,:,3),2));
 
-MD.FrameZ = (vec1 + vec2)/2;
-MD.FrameZ = MD.FrameZ./sqrt(sum(MD.FrameZ.*MD.FrameZ,2));
-MD.FrameX = NO_vec;
-MD.FrameY = cross(MD.FrameZ, MD.FrameX, 2);
+% x-axis
+MD.FrameTraj(:,:,1) = NO_vec;
+
+% y-axis
+MD.FrameTraj(:,:,2) = cross(MD.FrameTraj(:,:,3), MD.FrameTraj(:,:,1), 2);
 
 % Calculate side chain dihedral angles
-MD.chi1 = dihedral(Nxyz,CAxyz,CBxyz,SGxyz);
-MD.chi2 = dihedral(CAxyz,CBxyz,SGxyz,S1Lxyz);
-MD.chi3 = dihedral(CBxyz,SGxyz,S1Lxyz,C1Lxyz);
-MD.chi4 = dihedral(SGxyz,S1Lxyz,C1Lxyz,C1Rxyz);
-MD.chi5 = dihedral(S1Lxyz,C1Lxyz,C1Rxyz,C2Rxyz);
-
-% % Remove individual atom xyz coordinates
-% AtomFieldCell = {'ONxyz','NNxyz','C1xyz','C2xyz','C1Rxyz',...
-%                  'C2Rxyz','C1Lxyz','S1Lxyz','SGxyz','CBxyz','CAxyz',...
-%                  'Nxyz'};
-% MD = rmfield(MD, AtomFieldCell);
+MD.dihedrals(:,1) = dihedral(Nxyz,CAxyz,CBxyz,SGxyz);
+MD.dihedrals(:,2) = dihedral(CAxyz,CBxyz,SGxyz,S1Lxyz);
+MD.dihedrals(:,3) = dihedral(CBxyz,SGxyz,S1Lxyz,C1Lxyz);
+MD.dihedrals(:,4) = dihedral(SGxyz,S1Lxyz,C1Lxyz,C1Rxyz);
+MD.dihedrals(:,5) = dihedral(S1Lxyz,C1Lxyz,C1Rxyz,C2Rxyz);
 
 end
 

@@ -1,4 +1,4 @@
-% cardamom_emghmm      Optimize a multivariate Gaussian-hidden Markov model 
+% cardamom_emghmm     Optimize a multivariate Gaussian-hidden Markov model 
 %                     parameter set using the expectation-maximization 
 %                     algorithm
 %
@@ -102,8 +102,8 @@ while ~converged && nIter<maxIter+1
   % -----------------------------------------------------------------------
   
   % calculate emmission probabilities
-%   b = multivargauss(data, mu, Sigma);  
-  b = mixgauss_prob(data.', mu, Sigma).';
+  b = multivargauss(data, mu, Sigma);  
+%   b = mixgauss_prob(data.', mu, Sigma).';
   
   [logL, alpha, beta, gamma, sumxi, scale] = forwardbackward(data, transmat, b, prior);
 %   [logL, alpha, beta, gamma, xi] = forwardbackward(data, transmat, b, prior);
@@ -124,7 +124,8 @@ while ~converged && nIter<maxIter+1
 %     end
 %   end
   
-  transmat = mk_stochastic(transmat);
+%   transmat = mk_stochastic(transmat);
+  transmat = transmat./sum(transmat,2);
 %   [transmat, prior] = msmtransitionmatrix(transmat, 1000);
   
   % update mu
@@ -232,7 +233,7 @@ b = zeros(nPoints,nStates);
 for iState = 1:nStates
   Sigma0 = Sigma(:,:,iState);
   mu0 = mu(:,iState).';
-  p = 1/(2*pi*det(Sigma0)^(1/2))*exp(-0.5.*(x-mu0)*inv(Sigma0)*(x-mu0).');
+  p = 1/(2*pi*det(Sigma0)^(1/2))*exp(-0.5.*(x-mu0)*(Sigma0\(x-mu0).'));
   p = diag(p);
   b(:,iState) = p;
 end
