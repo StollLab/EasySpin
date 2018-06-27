@@ -462,6 +462,24 @@ if isfield(Opt,'MOMD')
   error('Opt.MOMD is obsolete. Now, a powder/MOMD simulation is automatically performed whenever an ordering potential is given - unless you specify a crystal orientation in Exp.CrystalOrientation.');
 end
 
+% Post-convolution nuclei
+doPostConvolution = ~isempty(Opt.PostConvNucs);
+if doPostConvolution
+  Opt.PostConvNucs = sort(unique(Opt.PostConvNucs));
+  if any(Opt.PostConvNucs<1) || any(Opt.PostConvNucs>Sys.nNuclei)
+    error('Opt.PostConvNucs must contain indices of nuclei (1 to %d).',Sys.nNuclei);
+  end
+  nPostConvNucs = numel(Opt.PostConvNucs);
+  if (Sys.nNuclei-nPostConvNucs>2) && ~generalLiouvillian
+    error('Cannot have more than two nuclei for the Stochastic Liouville equation with this Opt.Method.');
+  end
+  fullSys = Sys;
+  Sys = nucspinrmv(Sys,Opt.PostConvNucs);
+  Sys.processed = 0;
+  [Sys,err] = validatespinsys(Sys);
+  error(err);
+end
+
 % Set default method for constructing Liouvillian
 if ~isfield(Opt,'LiouvMethod') || isempty(Opt.LiouvMethod)
   if (Sys.nElectrons==1) && (Sys.S==1/2) && (Sys.nNuclei<=2)
@@ -475,6 +493,12 @@ end
 [LiouvMethod,err] = parseoption(Opt,'LiouvMethod',{'Freed','general'});
 error(err);
 generalLiouvillian = (LiouvMethod==2);
+
+if ~generalLiouvillian
+  if Sys.nNuclei>2
+    error('Cannot have more than two nuclei for the Stochastic Liouville equation with this Opt.Method.');
+  end
+end
 
 if ~generalLiouvillian
   if (Sys.nElectrons>1) || (Sys.S~=1/2)
@@ -494,30 +518,6 @@ if ~isfield(Opt,'ExplicitFieldSweep')
 end
 
 explicitFieldSweep = Opt.ExplicitFieldSweep;
-
-% Post-convolution nuclei
-doPostConvolution = ~isempty(Opt.PostConvNucs);
-if doPostConvolution
-  Opt.PostConvNucs = sort(unique(Opt.PostConvNucs));
-  if any(Opt.PostConvNucs<1) || any(Opt.PostConvNucs>Sys.nNuclei)
-    error('Opt.PostConvNucs must contain indices of nuclei (1 to %d).',Sys.nNuclei);
-  end
-  nPostConvNucs = numel(Opt.PostConvNucs);
-  if (Sys.nNuclei-nPostConvNucs>2) && ~generalLiouvillian
-    error('Cannot have more than two nuclei for the Stochastic Liouville equation with this Opt.Method.');
-  end
-  fullSys = Sys;
-  Sys = nucspinrmv(Sys,Opt.PostConvNucs);
-  Sys.processed = 0;
-  [Sys,err] = validatespinsys(Sys);
-  error(err);
-end
-
-if ~generalLiouvillian
-  if Sys.nNuclei>2
-    error('Cannot have more than two nuclei for the Stochastic Liouville equation with this Opt.Method.');
-  end
-end
 
 if any(Sys.n~=1)
   error('Cannot solve the Stochastic Liouville equation for systems with any Sys.n > 1.');
