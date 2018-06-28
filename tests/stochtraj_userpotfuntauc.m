@@ -22,9 +22,9 @@ fwhma = delta/180*pi;
 fwhmb = delta/180*pi;
 fwhmg = delta/180*pi;
 
-[pdfa, pdfb, pdfg] = ndgrid(wrappedgaussian(alphaGrid, 0, fwhma), ...
-                            wrappedgaussian(betaGrid, 0, fwhmb, [0,pi]), ...
-                            wrappedgaussian(gammaGrid, 0, fwhmg));
+[pdfa, pdfb, pdfg] = ndgrid(runprivate('wrappedgaussian', alphaGrid, 0, fwhma), ...
+                            runprivate('wrappedgaussian', betaGrid, 0, fwhmb, [0,pi]), ...
+                            runprivate('wrappedgaussian', gammaGrid, 0, fwhmg));
 
 pdf = pdfa.*pdfb.*pdfg;
 
@@ -53,7 +53,7 @@ R = quat2rotmat(q);
 
 VecTraj = squeeze(R(:,3,:,:));
 
-AutoCorrFFT = autocorrfft(VecTraj.^2, 3, 1, 1);
+AutoCorrFFT = runprivate('autocorrfft', VecTraj.^2, 3, 1, 1);
 
 AutoCorrFFT = squeeze(mean(AutoCorrFFT, 2));
 

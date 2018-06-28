@@ -26,7 +26,7 @@ RTraj = quat2rotmat(qTraj);
 
 VecTraj = squeeze(RTraj(:,3,:,:));
 
-AutoCorrFFT = autocorrfft(VecTraj.^2, 3, 1, 1);
+AutoCorrFFT = runprivate('autocorrfft', VecTraj.^2, 3, 1, 1);
 
 AutoCorrFFT = squeeze(mean(AutoCorrFFT, 2));
 

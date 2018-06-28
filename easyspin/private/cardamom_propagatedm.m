@@ -1,7 +1,7 @@
-% propagate_quantum  Propagate the density matrix of a spin-1/2 14N
-%                    nitroxide using different methods from the literature.
+% cardamom_propagatedm Propagate the density matrix of a spin-1/2 14N
+%                      nitroxide using different methods from the literature.
 %
-%   rho_t = propagate_quantum(Sys,Par,Opt,MD,omega,CenterField);
+%   Sprho = cardamom_propagatedm(Sys,Par,Opt,MD,omega,CenterField);
 %
 %     omega          double
 %                    microwave frequency for CW field sweep, in Hz
@@ -47,7 +47,7 @@
 % [2] Oganesyan, Phys. Chem. Chem. Phys. 13, 4724 (2011)
 %      http://dx.doi.org/10.1039/c0cp01068e
 
-function Sprho = propagate_quantum(Sys, Par, Opt, MD, omega, CenterField)
+function Sprho = cardamom_propagatedm(Sys, Par, Opt, MD, omega, CenterField)
 
 % Preprocessing
 % -------------------------------------------------------------------------
