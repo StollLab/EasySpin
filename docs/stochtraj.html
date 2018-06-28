@@ -128,16 +128,16 @@ Base-10 logarithm of <code>Diff</code>. If given, <code>Diff</code> is ignored.
 </div>
 
 <p>
-It is also possible to specify an orienting potential energy function to simulate restricted rotational diffusion. <code>stochtraj</code> accomplishes this by representing the orienting potential function using either a series of Wigner D-functions (see reference for details) or a numerical array. To take advantage of this feature, the user should specify either: 
+It is also possible to specify an orienting potential energy function to simulate restricted rotational diffusion. <code>stochtraj</code> accomplishes this by representing the orienting potential function using either a series of Wigner D-functions (see reference for details) or a numerical array. To take advantage of this feature, the user should declare the structure <code>Sys.Potential</code> with fields being either: 
 <ul>
-<li>each term in the orienting potential by specifying the real and imaginary parts of the coefficients using <code>Coefs</code> and the indices corresponding to each term using <code>LMK</code>, or
+<li>each term in the orienting potential by specifying the real and imaginary parts of the coefficients using <code>lambda</code> and the indices corresponding to each term using <code>LMK</code>, or
 <li>a numerical array <code>PseudoPotFun</code> representing the potential energy function directly.
 </ul>
 
 If these fields are left blank, unrestricted diffusion will be simulated.
 </p>
 
-<div class="optionfield"><code>Coefs</code></div>
+<div class="optionfield"><code>lambda</code></div>
 <div class="optiondescr">
 An array of size (N,2) containing the orienting potential coefficients, where N corresponds to the number of terms in the orienting potential function, and the first and second entries in the second dimension correspond to the real and imaginary parts of &lambda;<sup>L</sup><sub>M,K</sub> (the symbols c and &epsilon; are used in the literature as well). The full form of the ordering potential is expressed as 
 <p>
@@ -145,13 +145,13 @@ U(&Omega;) = - k<sub>B</sub> T &Sigma;<sub>L,M,K</sub>&lambda;<sup>L</sup><sub>M
 </p>
 where D<sup>L</sup><sub>M,K</sub> are the Wigner D-functions and it is assumed that the terms in the sum are appropriately processed to ensure that the result is always real.
 <p>
-For example, using a complex number <code>lambda200</code> to represent the coefficient &lambda;<sup>2</sup><sub>0,0</sub> of the commonly used second order Legendre polynomial, set <code>Sys.Coefs = [real(lambda200), imag(lambda200)]</code>.
+For example, using a complex number <code>lambda200</code> to represent the coefficient &lambda;<sup>2</sup><sub>0,0</sub> of the commonly used second order Legendre polynomial, set <code>Sys.lambda = [real(lambda200), imag(lambda200)]</code>.
 For details about this type of ordering potential, see K.A. Earle & D.E. Budil, Calculating Slow-Motion ESR Spectra of Spin-Labeled Polymers, in: S. Schlick: Advanced ESR Methods in Polymer Research, Wiley, 2006.
 </div>
 
 <div class="optionfield"><code>LMK</code></div>
 <div class="optiondescr">
-An array of size (N,3) containing the indices L,M,K for each orienting potential coefficient in <code>Coefs</code>. The resulting orienting potential must be real, so the range of allowed index values are as follows: L&gt;0; if K=0, then 0&lt;M&le;L; and if K&ne;0, then 0&lt;K&le;L and -L&le;M&le;L.
+An array of size (N,3) containing the indices L,M,K for each orienting potential coefficient in <code>lambda</code>. The resulting orienting potential must be real, so the range of allowed index values are as follows: L&gt;0; if K=0, then 0&lt;M&le;L; and if K&ne;0, then 0&lt;K&le;L and -L&le;M&le;L.
 </div>
 
 <div class="optionfield"><code>PseudoPotFun</code></div>
@@ -293,8 +293,8 @@ To simulate 400 1-&mu;s long, slow motion trajectories in an orienting potential
 
 <pre class="matlab">
 Sys.tcorr = 50e-9;  % 50 ns rotational correlation time
-Sys.Coefs = [1,0];  % purely real orienting potential coefficient
-Sys.LMK = [2,0,0];  % L=2, M=K=0
+Sys.Potential.lambda = [1,0];  % purely real orienting potential coefficient
+Sys.Potential.LMK = [2,0,0];  % L=2, M=K=0
 
 Par.dt = 1e-9;
 Par.nSteps = 500;
