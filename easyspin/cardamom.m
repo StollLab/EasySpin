@@ -27,21 +27,26 @@
 %         All fields can have 1 (isotropic), 2 (axial) or 3 (rhombic) elements.
 %         Precedence: logtcorr > tcorr > logDiff > Diff.
 %
-%     Coefs          numeric matrix, size = (nCoefs,2)
-%                    array of orienting potential coefficients, with each row
-%                    consisting of the corresponding real and imaginary parts
+%     Potential      structure 
+%                    defines an orienting potential using the following 
+%                    fields:
 %
-%     LMK            numeric matrix, size = (nCoefs,3)
-%                    quantum numbers L, M, and K corresponding to each set of 
-%                    coefficients
+%       lambda         numeric, size = (nCoefs,2)
+%                      array of orienting potential coefficients, with each 
+%                      row consisting of the corresponding real and 
+%                      imaginary parts
 %
-%     ProbDensFun    numeric array, 3D
-%                    probability distribution grid to be used for
-%                    calculating the pseudopotential and the torque
+%       LMK            numeric, size = (nCoefs,3)
+%                      quantum numbers L, M, and K corresponding to each 
+%                      set of coefficients
 %
-%     PseudoPotFun   numeric array, 3D
-%                    orienting pseudopotential grid to be used for
-%                    calculating the torque
+%       ProbDensFun    numeric, 3D array
+%                      probability distribution grid to be used for
+%                      calculating the pseudopotential and the torque
+%
+%       PseudoPotFun   numeric, 3D array
+%                      orienting pseudopotential grid to be used for
+%                      calculating the torque
 %
 %     TransRates     numeric matrix, size = (nStates,nStates)
 %                    transition rate matrix describing inter-state dynamics
@@ -438,20 +443,25 @@ if useMD
   end
   
   if MD.removeGlobal
-    nAtoms = size(MD.ProtCAxyz,3);
 
     logmsg(1,'-- removing protein global diffusion -----------------------------------------');
+    
+    nAtoms = size(MD.ProtCAxyz,3);
 
-    % rotate trajectory to align with principal frame
-  %   [trash, RAlign] = orient_mine(MD.ProtCATraj(1,:,:));
-    RAlign = orientprotein(MD.ProtCAxyz);
-    clear trash
+    % find rotation matrix to align protein alpha carbons with inertia 
+    % tensor in first snapshot
+    RAlign = findproteinorient(MD.ProtCAxyz);
 
-    MD.RTraj = zeros(3,3,1,MD.nSteps);
+    
+    % we don't need this anymore and it could be huge
+    MD = rmfield(MD,'ProtCAxyz');
+
     for iStep = 1:MD.nSteps
-      MD.RTraj(:,1,1,iStep) = MD.FrameTraj(:,1,1,iStep).'*RAlign(:,:,iStep);
-      MD.RTraj(:,2,1,iStep) = MD.FrameTraj(:,2,1,iStep).'*RAlign(:,:,iStep);
-      MD.RTraj(:,3,1,iStep) = MD.FrameTraj(:,3,1,iStep).'*RAlign(:,:,iStep);
+      R = RAlign(:,:,iStep);
+      thisStep = MD.FrameTraj(:,:,1,iStep);
+      MD.RTraj(:,1,1,iStep) = thisStep(:,1).'*R;
+      MD.RTraj(:,2,1,iStep) = thisStep(:,2).'*R;
+      MD.RTraj(:,3,1,iStep) = thisStep(:,3).'*R;
     end
   
   else
@@ -466,7 +476,7 @@ if useMD
 
   if ~allclose(multimatmult(MD.RTraj,RTrajInv),...
                repmat(eye(3),1,1,size(MD.RTraj,3),size(MD.RTraj,4)),...
-               1e-14)
+               1e-13)
     error('Rotation matrices obtained from frame trajectory are not orthogonal.')
   end
 
@@ -683,15 +693,9 @@ else
   % simulations internally to produce them
   if ~isfield(Par,'Model')
     % no Model given
-    if isfield(Sys,'LMK') && isfield(Sys,'Coefs') ...
-       || isfield(Sys,'ProbDensFun') || isfield(Sys,'PseudoPotFun')
-      % LMK and ordering coefs OR user-supplied potential given, so 
-      % simulate MOMD
+    if isfield(Sys,'Potential')
+      % lambda and LMK OR user-supplied potential given, so simulate MOMD
       Par.Model = 'MOMD';
-    
-    elseif xor(isfield(Sys,'LMK'),isfield(Sys,'Coefs'))
-      error(['Both Sys.LMK and Sys.Coefs need to be declared for a MOMD '...
-            'simulation.'])
     
     else
       % user did not specify a model or ordering potential, so perform 
@@ -701,14 +705,11 @@ else
   
   else
     % Model is specified
-    if strcmp(Par.Model,'Brownian') && ...
-        (isfield(Sys,'LMK')||isfield(Sys,'Coefs')||isfield(Sys,'ProbDensFun')||isfield(Sys,'PseudoPotFun'))
+    if strcmp(Par.Model,'Brownian') && isfield(Sys,'Potential')
       error(['Conflicting inputs: Par.Model is set to "Brownian", but '...
-            'Sys.LMK, Sys.Coefs, Sys.ProbDensFun, or Sys.PseudoPotFun have been declared.'])
-    elseif strcmp(Par.Model,'MOMD') && (~isfield(Sys,'LMK')||~isfield(Sys,'Coefs'))
-      if xor(isfield(Sys,'LMK'), isfield(Sys,'Coefs'))
-        error('Both Sys.LMK and Sys.Coefs need to be declared for a MOMD simulation.')
-      end
+            'an orienting potential been declared.'])
+    elseif strcmp(Par.Model,'MOMD') && ~isfield(Sys,'Potential')
+      error('A MOMD model was selected, but no Potential was given.')
     elseif strcmp(Par.Model,'Molecular Dynamics') && (~isfield(MD,'RTraj')||~isfield(MD,'dt'))
       error('For Molecular Dynamics, both MD.RTraj and MD.dt need to be specified.')
     end
@@ -1287,21 +1288,6 @@ while ~converged
   
 % end
 
-%   if strcmp(Model, 'Molecular Dynamics')
-%     % these variables can take up a lot of memory and might prevent the user 
-%     % from implementing a fine enough grid for powder averaging 
-%     clear RTraj
-%     clear RTrajInv
-%     clear qmult
-%     clear MD.RTraj
-%     clear Traj
-%   end
-
-  clear RTraj
-  clear qTraj
-  clear Par.RTraj
-  clear Par.qTraj
-
 % Perform FFT
 % -------------------------------------------------------------------------
 
@@ -1412,6 +1398,17 @@ while ~converged
 
 end
 
+clear RTraj
+clear RTrajInv
+clear qTraj
+% Par = rmfield(Par,{'RTraj','qTraj'});
+
+if strcmp(Model, 'Molecular Dynamics')
+  % these variables can take up a lot of memory and might prevent the user 
+  % from implementing a fine enough grid for powder averaging 
+  clear MD
+end
+
 freq = 1/(Par.Dt*M)*(-M/2:M/2-1);  % TODO check for consistency between FieldSweep and FFT window/resolution
 
 % center the spectrum around the isotropic component of the g-tensor
@@ -1470,61 +1467,60 @@ end
 % Helper functions
 % -------------------------------------------------------------------------
 
-function rotmat = orientprotein(traj)
+function rotmat = findproteinorient(traj)
 % orient protein along the principal axes of inertia
 %
 
 % setup
-nFrame = size(traj, 1);
-nAtom = size(traj, 3);
-rotmat = zeros(3,3,nFrame);
+nSteps = size(traj, 1);
+nAtoms = size(traj, 3);
+mass = 1;
+rotmat = zeros(3,3,nSteps);
 
 % subtract by the geometric center
 traj = traj - mean(traj,3);
 
-% calculate the principal axis of inertia
-for iFrame = 1:nFrame
-  thisFrame = squeeze(traj(iFrame,:,:));
-  
-  mass = 1;
-  x = thisFrame(1,:);
-  y = thisFrame(2,:);
-  z = thisFrame(3,:);
-  
+for iStep = 1:nSteps
+  % calculate the principal axis of inertia
+  thisStep = squeeze(traj(iStep,:,:));
+  x = thisStep(1,:);
+  y = thisStep(2,:);
+  z = thisStep(3,:);
+
   I = zeros(3,3);
-  
+
   I(1,1) = sum(mass.*(y.^2 + z.^2));
   I(2,2) = sum(mass.*(x.^2 + z.^2));
   I(3,3) = sum(mass.*(x.^2 + y.^2));
-  
+
   I(1,2) = - sum(mass.*(x.*y));
   I(2,1) = I(1,2);
-  
+
   I(1,3) = - sum(mass.*(x.*z));
   I(3,1) = I(1,3);
-  
+
   I(2,3) = - sum(mass.*(y.*z));
   I(3,2) = I(2,3);
-  
+
   % scale I for better performance
   I = I./norm(I);
-  
+
   [~, ~, a] = svd(I); %a is already sorted by descending order
 %   p_axis = a(:, end:-1:1); %z-axis has the largest inertia
   p_axis = a;
-  
+
   % check reflection
   if det(p_axis) < 0
     p_axis(:,1) = - p_axis(:,1);
   end
+
+%   % project onto the principal axis of inertia
+%   proj = thisStep.' * p_axis;
+%   traj(iStep, 1, :) = proj(:, 1).';
+%   traj(iStep, 2, :) = proj(:, 2).';
+%   traj(iStep, 3, :) = proj(:, 3).';
   
-%   %% project onto the principal axis of inertia
-%   proj = thisFrame.' * p_axis;
-%   traj(iFrame, 1, :) = proj(:, 1).';
-%   traj(iFrame, 2, :) = proj(:, 2).';
-%   traj(iFrame, 3, :) = proj(:, 3).';
-  
-  rotmat(:,:,iFrame) = p_axis;
+  rotmat(:,:,iStep) = p_axis;
 end
 
 end
@@ -1539,26 +1535,12 @@ chi5 = dihedrals(:,5);
 
 dihedrals = [wrapTo2Pi(chi1), wrapTo2Pi(chi2), wrapTo2Pi(chi4), chi5];
 
-useParallel = false;
-nReplicates = 5;
-maxIter = 200;
-
 % initialize cluster centroids
 % chi1Min = wrapTo2Pi([-60;65;180]/180*pi);
 % chi2Min = wrapTo2Pi([75;180]/180*pi);
 % chi4Min = wrapTo2Pi([75;8;-100]/180*pi);
 % chi5Min = wrapTo2Pi([180;77]/180*pi);
 
-% start = zeros();
-
-% opts = statset('Display', 'final', ...
-%                'MaxIter', maxIter);
-%                'UseParallel', useParallel);
-% opts = statset('Display','final','MaxIter',maxIter,'UseParallel',useParallel,'Start',start);
-% [stateTraj,centroids] = kmeans(dihedrals, nStates, ...
-%                                'Distance', 'sqeuclidean', ...
-%                                'Replicates', nReplicates, ...
-%                                 'Options', opts);
 [stateTraj,centroids] = cardamom_kmeans(dihedrals, nStates, 20, 1);
 
 end

@@ -1,13 +1,13 @@
 %  stochtraj_anistorque  Calculate the torque due to an anisotripic orienting potential.
 %
-%   torque = stochtraj_anistorque(LMK, Coefs, q);
+%   torque = stochtraj_anistorque(LMK, lambda, q);
 %
 %   Input:
 %     LMK            numeric, size = (nCoefs,3)
 %                    integers corresponding to the quantum numbers L, M, 
 %                    and K
 %
-%     Coefs          numeric, size = (nCoefs,2)
+%     lambda          numeric, size = (nCoefs,2)
 %                    real coefficients cLMK+ and cLMK- for orienting 
 %                    potentials
 %
@@ -22,7 +22,7 @@
 %   ----------
 %   [1] Sezer, et al., J.Chem.Phys. 128, 165106 (2008), doi: 10.1063/1.2908075
 
-function torque = stochtraj_anistorque(LMK, Coefs, q)
+function torque = stochtraj_anistorque(LMK, lambda, q)
 % Preprocessing
 % -------------------------------------------------------------------------
 shapeq = num2cell(size(q));
@@ -37,13 +37,13 @@ if ~ismatrix(LMK) || size(LMK,2)~=3
   error('LMK must be an array of shape Nx3.')
 end
 
-if ~ismatrix(Coefs) || size(Coefs,2)~=2
-  error('Coefs must be an array of shape Nx2.')
+if ~ismatrix(lambda) || size(lambda,2)~=2
+  error('lambda must be an array of shape Nx2.')
 end
 
-nCoefs = size(Coefs,1);
+nCoefs = size(lambda,1);
 
-lambda = Coefs(:,1) + 1i*Coefs(:,2);
+lambda = lambda(:,1) + 1i*lambda(:,2);
 
 Lvals = LMK(:,1);
 Mvals = LMK(:,2);

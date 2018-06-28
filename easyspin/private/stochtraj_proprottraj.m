@@ -14,11 +14,11 @@ nSteps = Sim.nSteps;
 nTraj = Sim.nTraj;
 dt = Sim.dt;
 Diff = Sim.Diff;
-Coefs = Sim.Coefs;
+lambda = Sim.lambda;
 LMK = Sim.LMK;
 interpGrad = Sim.interpGrad;
 
-if ~isempty(Coefs)
+if ~isempty(lambda)
   isEigenPot = 1;
 else
   isEigenPot = 0;
@@ -56,7 +56,7 @@ for iStep = startStep:nSteps
   
   if isEigenPot
     % use Wigner functions of quaternions to calculate torque
-    torque = stochtraj_calcanistorque(LMK, Coefs, qLast);
+    torque = stochtraj_calcanistorque(LMK, lambda, qLast);
     AngStep = bsxfun(@times,torque,Diff*dt) + currRandAngStep;
   elseif isNumericPot
     % use orienting pseudopotential functions of Euler angles to calculate

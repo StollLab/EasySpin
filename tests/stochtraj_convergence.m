@@ -15,8 +15,8 @@ nSteps = Par.nSteps;
 nBins = 50;
 
 c20 = 3;
-Sys.Coefs = [c20, c20];
-Sys.LMK = [2, 0, 0];
+Sys.Potential.lambda = [c20, c20];
+Sys.Potential.LMK = [2, 0, 0];
 [~, q] = stochtraj(Sys,Par,Opt);
 R = quat2rotmat(q);
 

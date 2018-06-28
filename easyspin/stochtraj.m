@@ -21,21 +21,26 @@
 %         All fields can have 1 (isotropic), 2 (axial) or 3 (rhombic) elements.
 %         Precedence: logtcorr > tcorr > logDiff > Diff.
 %
-%     Coefs          numeric, size = (nCoefs,2)
-%                    array of orienting potential coefficients, with each row
-%                    consisting of the corresponding real and imaginary parts
+%     Potential      structure 
+%                    defines an orienting potential using the following 
+%                    fields:
 %
-%     LMK            numeric, size = (nCoefs,3)
-%                    quantum numbers L, M, and K corresponding to each set of 
-%                    coefficients
+%       lambda         numeric, size = (nCoefs,2)
+%                      array of orienting potential coefficients, with each 
+%                      row consisting of the corresponding real and 
+%                      imaginary parts
 %
-%     ProbDensFun    numeric, 3D array
-%                    probability distribution grid to be used for
-%                    calculating the pseudopotential and the torque
+%       LMK            numeric, size = (nCoefs,3)
+%                      quantum numbers L, M, and K corresponding to each 
+%                      set of coefficients
 %
-%     PseudoPotFun   numeric, 3D array
-%                    orienting pseudopotential grid to be used for
-%                    calculating the torque
+%       ProbDensFun    numeric, 3D array
+%                      probability distribution grid to be used for
+%                      calculating the pseudopotential and the torque
+%
+%       PseudoPotFun   numeric, 3D array
+%                      orienting pseudopotential grid to be used for
+%                      calculating the torque
 %
 %     TransRates     numeric, size = (nStates,nStates)
 %                    transition rate matrix describing inter-state dynamics
@@ -222,69 +227,79 @@ if strcmp(Model,'Continuous') || strcmp(Model,'Hierarchical')
 
   tcorrAvg = 1/6/mean(Dynamics.Diff);
 
-  if ~isfield(Sys, 'ProbDensFun')
-    Sys.ProbDensFun = [];
-  end
-  if ~isfield(Sys, 'PseudoPotFun')
-    Sys.PseudoPotFun = [];
-  end
+  if isfield(Sys, 'Potential')
+      if ~isfield(Sys.Potential, 'ProbDensFun')
+        Sys.Potential.ProbDensFun = [];
+      end
+      if ~isfield(Sys.Potential, 'PseudoPotFun')
+        Sys.Potential.PseudoPotFun = [];
+      end
 
-  if ~isempty(Sys.ProbDensFun) || ~isempty(Sys.PseudoPotFun)
-    if isfield(Sys,'Coefs')||isfield(Sys,'LMK')
-      error('Please choose either PseudoPotFun or Coefs and LMK for an orienting potential.')
+    if ~isempty(Sys.Potential.ProbDensFun) || ~isempty(Sys.Potential.PseudoPotFun)
+      if isfield(Sys.Potential,'lambda')||isfield(Sys.Potential,'LMK')
+        error('Please choose either PseudoPotFun or lambda and LMK for an orienting potential.')
+      end
+      
+      isUserPotFun = 1;
+
+      if ~isempty(Sys.Potential.ProbDensFun)
+        ProbDensFun = Sys.Potential.ProbDensFun;
+        idx = ProbDensFun < 1e-14;
+        ProbDensFun(idx) = 1e-14;
+        PseudoPotFun = -log(ProbDensFun); 
+      end
+
+      if ~isempty(Sys.Potential.PseudoPotFun), PseudoPotFun = Sys.Potential.PseudoPotFun; end
+
+    %   PotFun = smooth3(PotFun, 'gaussian');
+    %   PotFun = smoothn(PotFun, 0.5);
+
+      alphaGrid = linspace(-pi, pi, size(PseudoPotFun,1));
+    %   betaGrid = linspace(0, pi, size(PseudoPotFun,2));
+      betaGrid = linspace(0, pi, size(PseudoPotFun,2)+2);
+      betaGrid = betaGrid(2:end-1);
+      gammaGrid = linspace(-pi, pi, size(PseudoPotFun,3));
+
+      if any(isnan(PseudoPotFun(:)))
+        error('At least one NaN detected in log(PseudoPotFun).')
+      end
+
+      if any(isinf(PseudoPotFun(:)))
+        error('At least one inf detected in log(PseudoPotFun).')
+      end
+
+      pidx = [2, 1, 3];
+
+      [dx, dy, dz] = gradient_euler(PseudoPotFun, alphaGrid, betaGrid, gammaGrid);
+
+    %   px = smooth3(px, 'gaussian');
+    %   py = smooth3(py, 'gaussian');
+    %   pz = smooth3(pz, 'gaussian');
+
+      method = 'linear';
+      Gradx = griddedInterpolant({alphaGrid, betaGrid, gammaGrid}, dx, method);
+      Grady = griddedInterpolant({alphaGrid, betaGrid, gammaGrid}, dy, method);
+      Gradz = griddedInterpolant({alphaGrid, betaGrid, gammaGrid}, dz, method);
+      Sim.interpGrad = {Gradx, Grady, Gradz};
+
+    %   clear logPotFun
+    %   clear px
+    %   clear py
+    %   clear pz
+    else
+      Sim.interpGrad = [];
+      isUserPotFun = 0;
     end
-
-    if ~isempty(Sys.ProbDensFun)
-      ProbDensFun = Sys.ProbDensFun;
-      idx = ProbDensFun < 1e-14;
-      ProbDensFun(idx) = 1e-14;
-      PseudoPotFun = -log(ProbDensFun); 
-    end
-
-    if ~isempty(Sys.PseudoPotFun), PseudoPotFun = Sys.PseudoPotFun; end
-
-  %   PotFun = smooth3(PotFun, 'gaussian');
-  %   PotFun = smoothn(PotFun, 0.5);
-
-    alphaGrid = linspace(-pi, pi, size(PseudoPotFun,1));
-  %   betaGrid = linspace(0, pi, size(PseudoPotFun,2));
-    betaGrid = linspace(0, pi, size(PseudoPotFun,2)+2);
-    betaGrid = betaGrid(2:end-1);
-    gammaGrid = linspace(-pi, pi, size(PseudoPotFun,3));
-
-    if any(isnan(PseudoPotFun(:)))
-      error('At least one NaN detected in log(PseudoPotFun).')
-    end
-
-    if any(isinf(PseudoPotFun(:)))
-      error('At least one inf detected in log(PseudoPotFun).')
-    end
-
-    pidx = [2, 1, 3];
-
-    [dx, dy, dz] = gradient_euler(PseudoPotFun, alphaGrid, betaGrid, gammaGrid);
-
-  %   px = smooth3(px, 'gaussian');
-  %   py = smooth3(py, 'gaussian');
-  %   pz = smooth3(pz, 'gaussian');
-
-    method = 'linear';
-    Gradx = griddedInterpolant({alphaGrid, betaGrid, gammaGrid}, dx, method);
-    Grady = griddedInterpolant({alphaGrid, betaGrid, gammaGrid}, dy, method);
-    Gradz = griddedInterpolant({alphaGrid, betaGrid, gammaGrid}, dz, method);
-    Sim.interpGrad = {Gradx, Grady, Gradz};
-
-  %   clear logPotFun
-  %   clear px
-  %   clear py
-  %   clear pz
   else
     Sim.interpGrad = [];
+    isUserPotFun = 0;
   end
+  
 
 else
-  Sys.ProbDensFun = [];
-  Sys.PseudoPotFun = [];
+  Sim.ProbDensFun = [];
+  Sim.PseudoPotFun = [];
+  isUserPotFun = 0;
 end
 
 % for kinetic Monte carlo
@@ -416,12 +431,12 @@ if isfield(Par,'Omega'), Omega = Par.Omega; end
 
 % Supplement starting angles if necessary
 if isempty(Omega)
-  if ~isempty(Sys.PseudoPotFun) || ~isempty(Sys.ProbDensFun)
+  if isUserPotFun
     [alphaSamples, betaSamples, gammaSamples] = cardamom_rejectionsample3d(exp(-PseudoPotFun), alphaGrid, betaGrid, gammaGrid, Sim.nTraj);
     Omega = [alphaSamples; 
              betaSamples; 
              gammaSamples];
-%   elseif isfield(Sys,'Coefs')
+%   elseif isfield(Sys,'lambda')
   elseif strcmp(Model,'Discrete')
     if ~Opt.statesOnly
       Omega = zeros(3,Par.nTraj);

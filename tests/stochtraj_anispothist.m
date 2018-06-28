@@ -39,8 +39,8 @@ err = 0;
 N = round(nSteps/2);
 
 for j=1:size(LMK,1)
-  Sys.Coefs = [4, 0];
-  Sys.LMK = LMK(j,:);
+  Sys.Potential.lambda = [4, 0];
+  Sys.Potential.LMK = LMK(j,:);
   [~, q] = stochtraj(Sys,Par);  % extract quaternions from trajectories
   
   % pre-allocate array for 3D histograms
@@ -78,7 +78,7 @@ for j=1:size(LMK,1)
 %   zlabel('gamma')
 %   colormap hsv
   
-  rmsd = calc_rmsd(Sys.Coefs,Sys.LMK,Hist3D,Agrid,Bgrid,Ggrid);
+  rmsd = calc_rmsd(Sys.Potential.lambda,Sys.Potential.LMK,Hist3D,Agrid,Bgrid,Ggrid);
   
   if rmsd>5e-3||any(isnan(Hist3D(:)))
     % numerical result does not match analytical result
@@ -94,14 +94,14 @@ data = [];
 % Helper function to compare numerical result with analytic expression
 % -------------------------------------------------------------------------
 
-function rmsd = calc_rmsd(Coefs, LMK, Hist3D, Agrid, Bgrid, Ggrid)
+function rmsd = calc_rmsd(lambda, LMK, Hist3D, Agrid, Bgrid, Ggrid)
 
 % convert LMK indices to a string
 LMKstr = num2str(LMK(:));
 LMKstr = strcat(LMKstr(1),LMKstr(2),LMKstr(3));
 
-Re = Coefs(1);
-Im = Coefs(2);
+Re = lambda(1);
+Im = lambda(2);
 
 switch LMKstr
   case '110'
