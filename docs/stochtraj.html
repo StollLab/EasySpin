@@ -140,7 +140,10 @@ If these fields are left blank, unrestricted diffusion will be simulated.
 <div class="optionfield"><code>Coefs</code></div>
 <div class="optiondescr">
 An array of size (N,2) containing the orienting potential coefficients, where N corresponds to the number of terms in the orienting potential function, and the first and second entries in the second dimension correspond to the real and imaginary parts of &lambda;<sup>L</sup><sub>M,K</sub> (the symbols c and &epsilon; are used in the literature as well). The full form of the ordering potential is expressed as 
-U(&Omega;) = - k<sub>B</sub> T &Sigma;<sub>L,M,K</sub>&lambda;<sup>L</sup><sub>M,K</sub>(D<sup>L</sup><sub>M,K</sub>+(-1)<sup>M-K</sup>D<sup>L</sup><sub>-M,-K</sub>), where D<sup>L</sup><sub>M,K</sub> are the Wigner D-functions.
+<p>
+U(&Omega;) = - k<sub>B</sub> T &Sigma;<sub>L,M,K</sub>&lambda;<sup>L</sup><sub>M,K</sub> D<sup>L</sup><sub>M,K</sub> (&Omega;), 
+</p>
+where D<sup>L</sup><sub>M,K</sub> are the Wigner D-functions and it is assumed that the terms in the sum are appropriately processed to ensure that the result is always real.
 <p>
 For example, using a complex number <code>lambda200</code> to represent the coefficient &lambda;<sup>2</sup><sub>0,0</sub> of the commonly used second order Legendre polynomial, set <code>Sys.Coefs = [real(lambda200), imag(lambda200)]</code>.
 For details about this type of ordering potential, see K.A. Earle & D.E. Budil, Calculating Slow-Motion ESR Spectra of Spin-Labeled Polymers, in: S. Schlick: Advanced ESR Methods in Polymer Research, Wiley, 2006.
