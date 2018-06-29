@@ -35,7 +35,7 @@ Chirp180.Frequency = [-0.3 0.3]; % excitation band, GHz
 % save time by using five events: the last two events are free evolution
 % events, but we only detect during the very last one. This saves time 
 % during the simulation (the shorter the detection window, the faster)
-Exp.Sequence = {Chirp90 0.25 Chirp180 0.3 0.1}; 
+Exp.Sequence = {Chirp90 0.25 Chirp180 0.25 0.2}; 
 
 Exp.Flip = [pi/2 pi];
 Exp.mwFreq = 34.78; % GHz
@@ -43,12 +43,13 @@ Exp.mwFreq = 34.78; % GHz
 
 % If you want to see only the free evolution after the second pulse, try 
 % this instead:
-Exp.DetEvents = [0 0 0 0 1];
+Exp.DetSequence = [0 0 0 0 1];
+Exp.DetOperator = {'+1'};
 
-Opt.DetOperator = {'+1'};
-Opt.FreqTranslation = -34.78; % GHz
-Opt.SimulationMode = 'LabFrame';
+Exp.DetFrequency = 34.78; % GHz
 
+% Opt.SimFrequency = 0;
+Opt.Verbosity = true;
 
 %% A refocused echo with monochromatic pulses
 
@@ -57,21 +58,21 @@ for iOrientation = 1 : numel(Weights)
   
   Sys_ = Sys;
   R = erot(phi(iOrientation),theta(iOrientation),0);
-  Sys_.g = R*Sys_.g*R';
-  Sys_.A = R*Sys_.A*R';
+  Sys_.g = R'*Sys_.g*R;
+  Sys_.A = R'*Sys_.A*R;
   
   [t, signal_] = spidyan(Sys_,Exp,Opt);
   
   Signal = Signal + signal_*Weights(iOrientation);
   
   progress = [num2str(iOrientation/numel(Weights)*100,'%.2f'),' %'];
-  disp(progress)
+%   disp(progress)
   
 end
 
 %%
 
-figure(2)
+figure(3)
 clf
 plot(t,abs(Signal))
 xlabel('t [\mus]')

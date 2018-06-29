@@ -42,6 +42,8 @@ Opt.FrameShift = 32; % GHz
 Opt.SimulationMode = 'FrameShift';
 Opt.FreqTranslation = -33.5; % GHz
 
+
+Signal = 0;
 % Loop over the spinpackets and sum up the traces ------------
 for i = 1 : nSpinpackets
   
@@ -49,11 +51,7 @@ for i = 1 : nSpinpackets
   
   [t, signal] = spidyan(Sys,Exp,Opt);
   
-  if i == 1
-    Signal = signal*P(i);
-  else
-    Signal = Signal + signal*P(i);
-  end
+  Signal = Signal + signal*P(i);
   
 end
 

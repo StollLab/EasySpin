@@ -9,7 +9,7 @@ HS.Type = 'sech/uniformQ';
 HS.beta = 10;
 HS.n = [10 10];
 HS.tp = 0.2;
-HS.Frequency = [-0.1 0.1];
+HS.Frequency = 1000* [-0.1 0.1];
 
 HS1 = HS;
 HS1.Flip = pi/2;
@@ -26,7 +26,7 @@ Exp.DetSequence = 1;
 
 % Options ---------------------------
 Exp.DetOperator = {'z1'};
-Opt.SimFrequency = 32;
+Opt.SimFreq = 32;
 
 % To test I --------------------------
 Exp.nPoints = [3];

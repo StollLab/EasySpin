@@ -12,7 +12,7 @@ Pulse.Type = 'quartersin/linear';
 Pulse.trise = 0.015; % us
 Pulse.tp = 0.1;
 Pulse.Flip = pi;
-Pulse.Frequency = [-0.100 0.100];
+Pulse.Frequency = 1000* [-0.100 0.100];
 
 Exp.Sequence = {Pulse 0.5 Pulse};
 Exp.Field = 1240; 
@@ -22,10 +22,10 @@ Exp.DetSequence = [1 1 1];
 
 % Detection -------------------------
 Exp.DetOperator = {'z1','+1'};
-Exp.DetFrequency = [0 33.5]; 
+Exp.DetFreq = [0 33.5]; 
 
 % Options ---------------------------
-Opt.SimFrequency = 32;
+Opt.SimFreq = 32;
 
 % Function Call -----------------------------
 

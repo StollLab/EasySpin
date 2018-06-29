@@ -3,7 +3,7 @@ function [err,data] = test(opt,olddata)
 Pulse.Type = 'quartersin/linear';
 Pulse.trise = 0.015; % us
 Pulse.tp = 0.1;
-Pulse.Frequency = [-0.100 0.100];
+Pulse.Frequency = 1000* [-0.100 0.100];
 Pulse.Flip = pi;
 
 Exp.Sequence = {Pulse 0.5 Pulse Pulse};
@@ -11,11 +11,13 @@ Exp.Field = 1240;
 Exp.TimeStep = 0.0001; % us
 Exp.mwFreq = 33.5;
 
-Opt.SimFrequency = 31;
+Opt.SimulationMode = 'step wise';
+
+Opt.SimFreq = 31;
 
 [Events1, Vary1] = runprivate('s_sequencer',Exp,Opt);
 
-Pulse.Frequency = [-0.100 0.100] + 33.5;
+Pulse.Frequency = 1000* [-0.100 0.100] + 33500;
 
 Exp.Sequence = {Pulse 0.5 Pulse Pulse};
 

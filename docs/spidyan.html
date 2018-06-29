@@ -187,11 +187,11 @@ If given, all frequencies in the pulse definition (e.g. <code>Pulse.Frequency</c
 <pre class="matlab">
 Exp.mwFreq = 33.5;
 
-Pulse.Frequency = [-0.25 0.25];  % sweep range of pulse if 'Exp.mwFreq' is defined
+Pulse.Frequency = [-250 250];  % 500 MHz sweep of pulse if 'Exp.mwFreq' is defined in MHz
 </pre>
 If <code>Exp.mwFreq</code> is omitted, the frequency range of the pulse has to be written in absolute frequencies:
 <pre class="matlab">
-Pulse.Frequency = [33.25 33.75];  % same pulse as above, but no Exp.mwFreq
+Pulse.Frequency = [33250 33750];  % same pulse as above, but no Exp.mwFreq, in MHz
 </pre>
 If you want to use a resonator in your simulation it is necessary to provide <code>Exp.mwFreq</code>.
 </div>
@@ -309,21 +309,21 @@ If you are interested in the expectation values of <i>&Scirc;<sub>x</sub></i>, i
 This removes artifacts at the beginning and end of the time traces that are introduced when translating a purely real signal during the signal processing.
 </div>
 
-<div class="optionfield"><code>DetFrequency</code></div>
+<div class="optionfield"><code>DetFreq</code></div>
 <div class="optiondescr">
 The signal is detected in the simulation frame, which causes all signals from detection operators that have non-zero off-diagonal elements to have an oscillating component.
 By translating/shifting the frequency it is possible to center the signal around 0 (baseband) or any other desired frequency.
 The frequency shift has to given as absolute frequency (even if used in conjunction with <code>FrameShift</code>) in GHz and for each detection operator separately.
-Indexing in <code>DetFrequency</code> corresponds to the ordering in <code>DetOperator</code>:
+Indexing in <code>DetFreq</code> corresponds to the ordering in <code>DetOperator</code>:
 <pre class="matlab">
 Exp.DetOperator = {'+1' 'z1'};   % detects  <i>&Scirc;</i><sub>+</sub> and  <i>&Scirc;<sub>z</sub></i> of the first electron spin
-Exp.DetFrequency = [33.5 0]; % shifts <i>&Scirc;</i><sub>+</sub> by -33.5 GHz
+Exp.DetFreq = [33.5 0]; % shifts <i>&Scirc;</i><sub>+</sub> by -33.5 GHz
 				 % <i>&Scirc;<sub>z</sub></i> does not contain a rotating component and does not need to shifted
 </pre>
-For counter-rotating detection operators (e.g. <i>&Scirc;</i><sub>-</sub>) the sign of the corresponding element in <code>DetFrequency</code> has to reflect this:
+For counter-rotating detection operators (e.g. <i>&Scirc;</i><sub>-</sub>) the sign of the corresponding element in <code>DetFreq</code> has to reflect this:
 <pre class="matlab">
 Exp.DetOperator = {'+1' '-1'};		% detects <i>&Scirc;</i><sub>+</sub> and <i>&Scirc;</i><sub>-</sub> of the first electron spin
-Exp.DetFrequency = [33.5 -33.5]; 	% shifts <i>&Scirc;</i><sub>+</sub> by -33.5 GHz and <i>&Scirc;</i><sub>-</sub> by 33.5 GHz
+Exp.DetFreq = [33.5 -33.5]; 	% shifts <i>&Scirc;</i><sub>+</sub> by -33.5 GHz and <i>&Scirc;</i><sub>-</sub> by 33.5 GHz
 </pre>
 </div>
 
@@ -414,19 +414,19 @@ For all simulations with a resonator the field <code>Exp.mwFreq</code> must be p
 <div class="optionfield"><code>Resonator</code></div>
 <div class="optiondescr">
 The field <code>Exp.Resonator</code> is a structure itself (see example below).
-The resonator profile has to be defined using the resonator center frequency <code>nu0</code> and the loaded Q-value <code>QL</code> (resonator frequency response computed from the ideal transfer function for an RLC series circuit)or the transfer function <code>TransferFunction</code> in combination with the frequency axis <code>nu</code>.
+The resonator profile has to be defined using the resonator center frequency <code>ResonatorFrequency</code> and the loaded Q-value <code>ResonatorQL</code> (resonator frequency response computed from the ideal transfer function for an RLC series circuit)or the transfer function <code>TransferFunction</code> in combination with the frequency axis <code>nu</code>.
 By setting <code>Mode</code> it is possible to compensate for the resonator. Compensation aims to provide a waveform that excites spin packets in the resonator with constant critical adiabaticity if the originally specified waveform would lead to excitation with constant critical adiabaticity in the absence of a resonator (mainly for chirp and hyperbolic secant pulses).
 For more details see <a class="esf" href="resonator.html">resonator</a>.
 <p>
-<div class="optionfield"><code>nu0</code></div>
+<div class="optionfield"><code>ResonatorFrequency</code></div>
 <div class="optiondescr">
 Center frequency of resonator in GHz.
 </div>
-<div class="optionfield"><code>QL</code></div>
+<div class="optionfield"><code>ResonatorQL</code></div>
 <div class="optiondescr">
 The loaded Q-value.
 </div>
-<div class="optionfield"><code>nu</code></div>
+<div class="optionfield"><code>Frequency</code></div>
 <div class="optiondescr">
 Frequency axis of the resonator transfer function in GHz.
 </div>
@@ -443,8 +443,8 @@ If set to <code>'compensate'</code> the pulse shape is adapted such that it comp
 </div>
 <p>
 <pre class="matlab">
-Exp.Resonator.nu0 = 33.5; 	% resonator center frequency in GHz
-Exp.Resonator.QL = 300;	  	% loaded Q-value
+Exp.Resonator.ResonatorFrequency = 33.5; 	% resonator center frequency in GHz
+Exp.Resonator.ResonatorQL = 300;	  	% loaded Q-value
 </pre>
 </div>
 
@@ -464,21 +464,21 @@ If relaxation is switched on, relaxation times (<code>Sys.T1</code> and <code>Sy
 In order to avoid unexpected behavior, if the <code>Opt.Relaxation</code> is not used to switch relaxation on/off for the entire sequence, the length of it has to match the length of <code>Exp.Sequence</code> (all events need to be defined).
 </div>
 
-<div class="optionfield"><code>SimFrequency</code></div>
+<div class="optionfield"><code>SimFreq</code></div>
 <div class="optiondescr">
 Optional, frequency of the (rotating) simulation frame in GHz. 
-If <code>SimFrequency</code> is not provided, a suitable simulation frame is automatically selected.
+If <code>SimFreq</code> is not provided, a suitable simulation frame is automatically selected.
 No matter the choice of the simulation frame, all other frequencies must still be given in the lab frame - the program handles all required frequency shifts.
 For example, for running a Q-band simulation without using the default simulation frame, but one that rotates at 30 GHz:
 <pre class="matlab">
 Exp.mwFreq = 34.4;	        % Set carrier frequency to 34.4 GHz
-Pulse.Frequency = [-0.05 0.05]; % Pulse with bandwidth of 100 MHz, sweeps from 34.35 to 34.45 GHz 
+Pulse.Frequency = [-50 50]; % Pulse with bandwidth of 100 MHz, sweeps from 34.35 to 34.45 GHz 
 
-Opt.SimFrequency = 30;  	      % Changes into a rotating frame at 30 GHz
+Opt.SimFreq = 30;  	      % Changes into a rotating frame at 30 GHz
 </pre>
-To force a simulation in the labframe <code>SimFrequency</code> has to be set to zero:
+To force a simulation in the labframe <code>SimFreq</code> has to be set to zero:
 <pre class="matlab">
-Opt.SimFrequency = 0;  	      % Propagation in the labframe
+Opt.SimFreq = 0;  	      % Propagation in the labframe
 </pre>
 Changing the simulation frame allows for using a larger time step, which in turn can strongly reduce computation time.																											 																																										
 Keep in mind, that if a time step is provided with <code>Exp.TimeStep</code> it is not adapted automatically.
@@ -561,7 +561,7 @@ Exp.Sequence = 0.2;
 Exp.Pulses = {Pulse};
 Exp.Field = 1240; 
 Exp.SequenceimeStep = 0.00001; 
-Exp.Frequency = [-0.100 0.100];
+Exp.Frequency = [-100 100];
 Exp.mwFreq = 33.5;
 Exp.DetSequence = 1;
 </pre></pre>
@@ -572,14 +572,14 @@ Before starting the simulation, we need to define a few more parameters:
 
 <pre class="matlab">
 Exp.DetOperator = {'z1','+1'};
-Exp.DetFrequency = [0 -33.5];
+Exp.DetFreq = [0 -33.5];
 Opt.FrameShift = 32;
 </pre>
 
 <p>
 With <code>FrameShift</code> the simulation is carried out in a frame that rotates at 32 GHz, which means that detected frequencies will now be centered around of 1.5 instead of 33.5 GHz.
 This allows us to use a larger <code>TimeStep</code>, which speeds up the simulation.
-As detection is done in the simulation frame <i>&Scirc;</i><sub>+</sub> has a rotating component that can be removed with <code>DetFrequency</code>.
+As detection is done in the simulation frame <i>&Scirc;</i><sub>+</sub> has a rotating component that can be removed with <code>DetFreq</code>.
 Next <code>spidyan</code> can be called, and the output plotted:
 </p>
 
@@ -641,7 +641,7 @@ For detection we choose <i>&Scirc;</i><sub>+</sub> and translate detected signal
 <pre class="matlab">
 Opt.FrameShift = 32;
 Exp.DetOperator = {'+1'};
-Exp.DetFrequency = -33.5;
+Exp.DetFreq = -33.5;
 </pre>
 
 <p>

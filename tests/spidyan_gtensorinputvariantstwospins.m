@@ -8,7 +8,7 @@ Sys.J = 0;
 Pulse.Type = 'quartersin/linear';
 Pulse.trise = 0.015; % us
 Pulse.tp = 0.1;
-Pulse.Frequency = [-0.100 0.100];
+Pulse.Frequency = 1000* [-0.100 0.100];
 Pulse.Flip = pi;
 
 Exp.Sequence = {Pulse 0.5};
@@ -19,7 +19,7 @@ Exp.mwFreq = 33.5;
 Exp.DetSequence = [1 1]; 
 
 % Options ---------------------------
-Opt.SimFrequency = 32;
+Opt.SimFreq = 32;
 
 % Isotropic
 Sys.g = [gfree gfree];

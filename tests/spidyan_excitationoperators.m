@@ -8,7 +8,7 @@ Sys.ZeemanFreq = 33.500;
 Pulse.Type = 'quartersin/linear';
 Pulse.trise = 0.015; % us
 Pulse.tp = 0.1;
-Pulse.Frequency = [-0.100 0.100];
+Pulse.Frequency = 1000* [-0.100 0.100];
 Pulse.Flip = pi;
 
 Exp.Sequence = {Pulse Pulse};
@@ -20,8 +20,8 @@ Exp.DetSequence = [1 0];
 
 % Options ---------------------------
 Exp.DetOperator = {'+','+(1|2)'};
-Exp.DetFrequency = [33.5 33.5];
-Opt.SimFrequency = 32;
+Exp.DetFreq = [33.5 33.5];
+Opt.SimFreq = 32;
 
 % Test custom exc operator syntax
 Opt.ExcOperator = {sop(Sys.S,'x(1|2)')};

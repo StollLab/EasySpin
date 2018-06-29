@@ -10,8 +10,8 @@ function [err,data] = test(opt,olddata)
 
 TimeStep = 0.0001;
 Flip = pi;
-InitFrequency  = 1; % in GHz
-df = -0.05; % frequency increment
+InitFrequency  = 1000; % in GHz
+df = -50; % frequency increment
 tp = 0.01;
 
 Pulse.Type = 'rectangular';
@@ -31,7 +31,8 @@ Exp.Sequence = {Pulse 0.5 Pulse};
 Exp.Field = 1240; 
 Exp.TimeStep = TimeStep; % us
 
-Opt.SimFrequency = 0;
+Opt.SimFreq = 0;
+Opt.SimulationMode = 'step wise';
 
 % First Test - Change one pulse along one dimension -----------------------
 Exp.nPoints = 3;
@@ -43,7 +44,7 @@ Seq1IQs = Vary1.Pulses{1}.IQs;
 
 IQs = cell(1,Exp.nPoints);
 for i = 1:3
-  Manual.Frequency = (InitFrequency + (i-1)*df)*1000;
+  Manual.Frequency = (InitFrequency + (i-1)*df);
   [~,IQs{i}] = pulse(Manual);
 end
 
@@ -74,7 +75,7 @@ Seq3IQs = Vary3.Pulses{1}.IQs;
 IQs3 = cell(Exp.nPoints);
 for i = 1:3
   for j = 1:3
-  Manual.Frequency = (InitFrequency + (i-1)*2*df + (j-1)*df)*1000;
+  Manual.Frequency = (InitFrequency + (i-1)*2*df + (j-1)*df);
   [~,IQs3{i,j}] = pulse(Manual);
   end
 end

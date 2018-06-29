@@ -4,7 +4,7 @@ Pulse.Type = 'sech/uniformQ';
 
 Pulse.beta = 10;
 Pulse.n = [6 6];
-Pulse.Frequency = [0.95 1.05];
+Pulse.Frequency = 1000* [0.95 1.05];
 Pulse.Flip = pi;
 Pulse.tp = 0.1;
 
@@ -18,7 +18,8 @@ Exp.DetSequence = 1;
 Exp.nPoints = 3;
 Exp.Dim1 = {'p1.n(2)' -2};
 
-Opt.SimFrequency = 0;
+Opt.SimFreq = 0;
+Opt.SimulationMode = 'step wise';
 
 [~, Vary1] = runprivate('s_sequencer',Exp,Opt);
 

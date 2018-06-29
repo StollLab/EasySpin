@@ -8,7 +8,7 @@ Sys.ZeemanFreq = 33.500;
 Pulse.Type = 'quartersin/linear';
 Pulse.trise = 0.015; % us
 Pulse.Qcrit = 7;
-Pulse.Frequency = [-0.1 0.1];
+Pulse.Frequency = 1000* [-0.1 0.1];
 Pulse.tp = 0.1;
 
 Exp.Sequence = {Pulse 0.5 Pulse};

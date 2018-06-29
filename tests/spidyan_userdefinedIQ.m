@@ -12,7 +12,7 @@ Sys.ZeemanFreq = [33.600];
 Pulse.Type = 'rectangular';
 Pulse.TimeStep = 0.0001;
 Pulse.Flip = pi;
-Pulse.Frequency = 0.100;
+Pulse.Frequency = 1000* 0.100;
 Pulse.tp = 0.1;
 
 % Experiment with pulses internally defined -------------------
@@ -30,7 +30,6 @@ Opt = [];
 % Function Call -----------------------------
 [signal1] = spidyan(Sys,Exp,Opt);
 
-Pulse.Frequency = Pulse.Frequency*1000; % GHz to MHz;
 % Build custom IQ
 [t,IQ] = pulse(Pulse);
 Opt.dt = Exp.TimeStep/10;

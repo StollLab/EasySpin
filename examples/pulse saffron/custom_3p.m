@@ -19,3 +19,10 @@ Exp.dt = 0.012;
 Opt.nKnots = 91;
 
 saffron(Sys,Exp,Opt);
+
+Pulse.Flip = pi/2;
+
+Exp.Sequence = {Pulse tau Pulse 0 Pulse tau};
+
+Exp.nPoints = 200;
+Exp.Dim = {'d2' 0.012};

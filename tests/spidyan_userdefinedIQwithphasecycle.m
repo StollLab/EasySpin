@@ -12,7 +12,7 @@ Sys.ZeemanFreq = [33.600];
 Pulse.Type = 'rectangular';
 Pulse.TimeStep = 0.0001;
 Pulse.Flip = pi;
-Pulse.Frequency = 0.100;
+Pulse.Frequency = 1000* 0.100;
 Pulse.tp = 0.1;
 
 PC = [0, 1; pi, -1];
@@ -30,7 +30,7 @@ Opt.DetOperator = {'z1'};
 Opt.FreqTranslation = [0]; 
 
 % Options ---------------------------
-Opt.SimFrequency = 32;
+Opt.SimFreq = 32;
 
 % Function Call -----------------------------
 
@@ -38,7 +38,6 @@ Opt.SimFrequency = 32;
 
 % Build custom IQ
 Pulse.Phase = 0;
-Pulse.Frequency = Pulse.Frequency*1000; % GHz to MHz
 [t,IQ1] = pulse(Pulse);
 Opt.dt = Exp.TimeStep/10;
 [~, IQ1] = rfmixer(t,IQ1,Exp.mwFreq,'IQshift',Opt);

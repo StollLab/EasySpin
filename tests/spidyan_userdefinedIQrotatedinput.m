@@ -12,7 +12,7 @@ Sys.ZeemanFreq = [33.600];
 Pulse.Type = 'rectangular';
 Pulse.TimeStep = 0.0001;
 Pulse.Flip = pi;
-Pulse.Frequency = 0.100;
+Pulse.Frequency = 1000* 0.100;
 Pulse.tp = 0.1;
 
 % Experiment with pulses internally defined -------------------
@@ -26,15 +26,13 @@ Exp.DetSequence = [1 1 1];
 Exp.DetOperator = {'z1'};
 
 % Options ---------------------------
-Opt.SimFrequency = 32;
+Opt.SimFreq = 32;
 
 % Function Call -----------------------------
 
 [signal1] = spidyan(Sys,Exp,Opt);
 
 % Build custom IQ
-Pulse.Frequency = Pulse.Frequency*1000; % GHz to MHz
-
 [t,IQ] = pulse(Pulse);
 Opt.dt = Exp.TimeStep/10;
 [t, IQ] = rfmixer(t,IQ,Exp.mwFreq,'IQshift',Opt);

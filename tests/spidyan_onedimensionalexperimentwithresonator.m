@@ -17,11 +17,11 @@ Exp.DetSequence = 1;
 
 % Options ---------------------------
 Exp.DetOperator = {'z1'};
-Opt.SimFrequency = 32;
+Opt.SimFreq = 32;
 
 % To test --------------------------
-Exp.Resonator.nu0 = 33.5;
-Exp.Resonator.QL = 300;
+Exp.Resonator.ResonatorFrequency = 33.5;
+Exp.Resonator.ResonatorQL = 300;
 
 Exp.nPoints = 3;
 Exp.Dim1 = {'d1' 0.05;

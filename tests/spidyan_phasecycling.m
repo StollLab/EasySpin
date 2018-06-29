@@ -25,7 +25,7 @@ Exp.PhaseCycle = {PC [] PC};
 
 % Options ---------------------------
 Exp.DetOperator = {'z1'};
-Opt.SimFrequency = 32;
+Opt.SimFreq = 32;
 
 % Function Call -----------------------------
 

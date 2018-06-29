@@ -22,7 +22,7 @@ Exp.Dim1 = {'p1.Flip' 0.05};
 
 % Options ---------------------------
 Exp.DetOperator = {'z1'};
-Opt.SimFrequency = 32;
+Opt.SimFreq = 32;
 
 [t1, signal1] = spidyan(Sys,Exp,Opt);
 

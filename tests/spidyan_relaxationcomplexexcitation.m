@@ -11,7 +11,7 @@ Pulse.Type = 'quartersin/linear';
 Pulse.trise = 0.015; % us
 Pulse.tp = 0.1;
 Pulse.Flip = pi;
-Pulse.Frequency = [-0.100 0.100];
+Pulse.Frequency = 1000* [-0.100 0.100];
 
 Exp.Sequence = {Pulse 0.5};
 Exp.Field = 1240; 
@@ -22,7 +22,7 @@ Exp.DetSequence = [0 0];
 
 % Options ---------------------------
 Exp.DetOperator = {'z1'};
-Opt.SimFrequency = 32;
+Opt.SimFreq = 32;
 Opt.Relaxation = 1;
 
 % Testing Complex excitation

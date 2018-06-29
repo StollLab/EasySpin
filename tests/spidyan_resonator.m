@@ -18,12 +18,12 @@ Exp.TimeStep = 0.0001; % us
 Exp.mwFreq = 33.5;
 Exp.DetSequence = 1; 
 
-Exp.Resonator.nu0 = 33.5;
-Exp.Resonator.QL = 300;
+Exp.Resonator.ResonatorFrequency = 33.5;
+Exp.Resonator.ResonatorQL = 300;
 
 % Options ---------------------------
 Exp.DetOperator = {'z1'};
-Opt.SimFrequency = 32;
+Opt.SimFreq = 32;
 
 % Function Call -----------------------------
 
@@ -41,8 +41,8 @@ data.t2 = t2;
 data.signal2 = signal2;
 
 Exp = rmfield(Exp,'Resonator');
-Exp.Resonator.nu = 33:0.0001:34;
-Exp.Resonator.TransferFunction = ones(1,length(Exp.Resonator.nu));
+Exp.Resonator.Frequency = 33:0.0001:34;
+Exp.Resonator.TransferFunction = ones(1,length(Exp.Resonator.Frequency));
 
 [t3, signal3] = spidyan(Sys,Exp,Opt);
 

@@ -3,7 +3,7 @@ function [err,data] = test(opt,olddata)
 Pulse.Type = 'quartersin/linear';
 Pulse.trise = 0.015; % us
 Pulse.Flip = pi;
-Pulse.Frequency = [-0.100 0.100];
+Pulse.Frequency = 1000* [-0.100 0.100];
 Pulse.tp = 0.1;
 
 Pulse2 = Pulse;
@@ -16,6 +16,7 @@ Exp.TimeStep = 0.0001; % us
 Exp.mwFreq = 33.5;
 Exp.DetSequence = [1 0 0 0]; 
 
+Opt.SimulationMode = 'step wise';
 
 % First Test ---------------------------------------
 

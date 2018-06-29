@@ -1,4 +1,4 @@
-function varargout = runprivate2(fname,varargin)
+function varargout = runprivate(fname,varargin)
 
 result = cell(1,nargout);
 

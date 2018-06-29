@@ -1,9 +1,219 @@
-function [Events, Vary, Opt] = sequencer(Exp,Opt)
+function [varargout] = s_sequencer(Exp,Opt)
 % This function creates the Event and Vary Structures
+
+logmsg(1,'-validating pulse sequence-----------------------------');
+
+% Validate the input and select a propagation engine
+predefinedExperiment = isstring(Exp.Sequence);
+
+message = [];
+
+OrigSimulationMode = Opt.SimulationMode;
+
+saffronSpecificFieldsExp = {'ExciteWidth','Filter'};
+saffronSpecificFieldsOpt = {'TimeDomain','Expand','ProductRule',...
+  'EndorMethod','nOffsets','lwOffset','logplot','Window','ZeroFillFactor'};
+generalFields = {'mwFreq','Field','CrystalOrientation','CrystalSymmetry'};
+
+if predefinedExperiment
+  Exp_oldSyntax = Exp;
+  logmsg(1,'  found predefined experiment');
+end
+
+DetDelay = 0;
+if isfield(Exp,'DetWindow')
+  if length(Exp.DetWindow) > 1 && Exp.DetWindow(2)-Exp.DetWindow(1)
+    Opt.SimulationMode = 'step wise';
+    message = addtomessage(message,'Exp.DetWindow is set to transient detection');
+  else
+    DetDelay = Exp.DetWindow(1);
+  end
+end
+
+if ~predefinedExperiment && (~isfield(Opt,'SimulationMode') || strcmp(Opt.SimulationMode,'saffron 1.0'))
+  Exp_oldSyntax = [];
+  
+  Sequence = Exp.Sequence;
+  if isfield(Exp,'DetWindow')
+    if isstruct(Sequence{end})
+      Sequence{end+1} = DetDelay;
+    else
+      Sequence{end} = Sequence{end} + DetDelay;
+      if Sequence{end} < 0
+        error('The last event before your detection event is too short.')
+      end
+    end
+  end
+  
+  % getting some basic knowledge about the experiment
+  Pulses = cellfun(@isstruct,Sequence);
+  PulsePositions = find(Pulses);
+  DelayPositions = find(Pulses==0);
+  
+  nPulses = length(PulsePositions);
+  nDelays = length(DelayPositions);
+  
+  if any(diff(PulsePositions)==0)
+    % neigbouring pulses, can not be processed by saffron
+    Opt.SimulationMode = 'step wise';
+    message = addtomessage(message,'two or more pulses are not separated by an interpulse delay');
+  end
+  
+  Flip = zeros(1,nPulses);
+  tp = zeros(1,nPulses);
+  Phase = ones(1,nPulses);
+  iPulse = 1;
+  
+  % Loop over the sequence - verify and write into saffron specific fields
+  for Pos = PulsePositions
+    % make sure its a rectangular pulse
+    if isfield(Sequence{Pos},'Type') && ~strcmp(Sequence{Pos},'rectangular')
+      message = addtomessage(message,'the fast algorithm only supports ideal or monochromatic rectangular pulses');
+      Opt.SimulationMode = 'step wise';
+    end
+    
+    % determine flip angle
+    if isfield(Sequence{Pos},'Flip')
+      Flip(iPulse) = Sequence{Pos}.Flip/pi*2;
+    else
+      Opt.SimulationMode = 'step wise';
+      message = addtomessage(message,'flip angles must be provided');
+    end
+    
+    if isfield(Sequence{Pos},'Phase')
+      Phase(iPulse) = mod(Phase(iPulse)+(Sequence{Pos}.Phase/pi*2),4);
+    end
+    
+    % Get time length for non-ideal pulses
+    if isfield(Sequence{Pos},'tp') && Sequence{Pos}.tp ~= 0
+      tp(iPulse) = Sequence{Pos}.tp;
+    end
+    
+    iPulse = iPulse + 1;
+  end
+  
+  % set up saffron fields for delays
+  t = zeros(1,nDelays);
+  iDelay = 1;
+  
+  for Pos = DelayPositions
+    t(iDelay) = Sequence{Pos};
+    iDelay = iDelay + 1;
+  end
+  
+  Exp_oldSyntax.t = t;
+  Exp_oldSyntax.Flip = Flip;
+  Exp_oldSyntax.tp = tp;
+  Exp_oldSyntax.Phase = Phase;
+  disp(Phase)
+  
+  % Populate NewExp with all the other saffron specific fields
+  % compares the list of saffron specific fields with
+  for iField = 1 : length(generalFields)
+    if isfield(Exp,generalFields{iField})
+      Exp_oldSyntax.(generalFields{iField}) = Exp.(generalFields{iField});
+    end
+  end
+  
+  if isfield(Exp,'nPoints')
+    nDimensions = length(Exp.nPoints);
+    
+    Inc = zeros(1,nDelays);
+    
+    if nDimensions > 2
+      message = addtomessage(message,'more than 2 indirect dimensions were provided');
+      Opt.SimulationMode = 'step wise';
+    end
+    dt = zeros(1,nDimensions);
+    
+    % loop over the indirect dimensions and check what is being changed -
+    % the old saffron engine can only increment delays
+    for iDimension = 1 : nDimensions
+      Field2Get = ['Dim' num2str(iDimension)];
+      
+      % Loop over the lines of Exp.DimX, eg: Exp.DimX = {'d1,d2' 0.4; 'd2' 0.3}
+      for iLine = 1 : size(Exp.(Field2Get),1)
+        % Gets the string, that lists the events/fields that are to be
+        % changed
+        FullString = Exp.(Field2Get){iLine,1};
+        
+        % changed values are seperated with commas, eg: {'d1,d2' 0.4}
+        SplitStrings = regexp(FullString,',','split');
+        
+        % loop over the individual comma separated increments: {'d1,d2'
+        % 0.4} --> {'d1' 0.4} and {'d2' 0.4}
+        for iModifiedEvent = 1 : length(SplitStrings)
+          
+          Strings = regexp(SplitStrings{iModifiedEvent},'\.','split');
+          
+          EventType = Strings{1}(1);
+          EventSpecificIndex = str2double(Strings{1}(2:end));
+          
+          if strcmp(EventType,'p')
+            % can't use saffron with changing pulses
+            message = addtomessage(message,['a pulse parameter is changed along indirect dimension no. ' num2str(iDimension)]);
+            Opt.SimulationMode = 'step wise';
+          else
+            Inc(EventSpecificIndex) = iDimension;
+          end
+          
+          if dt(iDimension) == 0
+            dt(iDimension) = Exp.(Field2Get){iLine,2};
+          elseif dt(iDimension) ~= Exp.(Field2Get){iLine,2}
+            Opt.SimulationMode = 'step wise';
+            message = addtomessage(message,['the increment of dimension no. ' num2str(iDimension) ' is not linear']);
+          end
+        end
+        
+      end
+    end
+    
+    Exp_oldSyntax.Inc = Inc;
+    Exp_oldSyntax.dt = dt;
+    
+    Exp_oldSyntax.nPoints = Exp.nPoints;
+  end
+end
+
+if ~strcmp(OrigSimulationMode,Opt.SimulationMode)
+  message = ['Your experiment definition does not allow for the fast simulation mode. The simulation mode has been changed to stepwise. The reason was: ' message];
+  disp(message);
+  if any(isfield(Exp,saffronSpecificFieldsExp))
+    msg = [];
+    for i = 1: length(saffronSpecificFieldsExp)
+      if isfield(Exp,saffronSpecificFieldsExp{i})
+        msg = addtomessage(msg,saffronSpecificFieldsExp{i});
+      end
+    end
+    msg = ['The following fields in the Exp structure are specific to the fast algorithm and will be ignored: ' msg];
+    disp(msg)
+  end 
+  if any(isfield(Opt,saffronSpecificFieldsOpt))
+    msg = [];
+    for i = 1: length(saffronSpecificFieldsOpt)
+      if isfield(Opt,saffronSpecificFieldsOpt{i})
+        msg = addtomessage(msg,saffronSpecificFieldsOpt{i});
+      end
+    end
+    msg = ['The following fields in the Opt structure are specific to the fast algorithm and will be ignored: ' msg];
+    disp(msg)
+  end
+end
+
+if strcmp(Opt.SimulationMode,'saffron 1.0')
+  
+  varargout{1} = Exp_oldSyntax;
+  varargout{2} = [];
+  varargout{3} = Opt;
+  
+  return
+end
+
 
 % -------------------------------------------------------------------------
 % Pre-Processing
 % -------------------------------------------------------------------------
+
 Vary = [];
 
 Opt.SinglePointDetection = false;
@@ -11,9 +221,9 @@ Opt.SinglePointDetection = false;
 % Set up detection
 if isfield(Exp,'DetWindow')
   % Validate Exp.DetWindow
-  logmsg(1,'setting up detection window...');
+  logmsg(1,'  setting up detection window:');
   if isfield(Exp,'DetSequence')
-   warning('You provided Exp.DetWindow and Exp.DetSequence. Exp.DetSequence will be ignored.')
+    warning('You provided Exp.DetWindow and Exp.DetSequence. Exp.DetSequence will be ignored.')
   end
   
   % Ensure that detection window does not overlap with a pulse
@@ -25,7 +235,7 @@ if isfield(Exp,'DetWindow')
   
   % Set up Exp.DetSequence - this requires adding a detection event of
   % Exp.Sequence
-  if isstruct(Exp.Sequence{end}) 
+  if isstruct(Exp.Sequence{end})
     if Exp.DetWindow(1)>0
       Exp.Sequence{end+1} = Exp.DetWindow(1);
     end
@@ -36,9 +246,11 @@ if isfield(Exp,'DetWindow')
     % single point detection
     Opt.SinglePointDetection = true;
     Exp.Sequence{end+1} = 0;
+    logmsg(1,'  single point detection');
   else
     % transient
     Exp.Sequence{end+1} = diff(Exp.DetWindow);
+    logmsg(1,'  transient detection');
   end
   
   Exp.DetSequence = zeros(1,length(Exp.Sequence));
@@ -46,14 +258,16 @@ if isfield(Exp,'DetWindow')
   
 elseif isfield(Exp,'DetSequence')
   % setting up detection in case of Exp.DetSequence
-  logmsg(1,'setting up detection...');
+  logmsg(1,'  setting up detection:');
   if ischar(Exp.DetSequence)
     % parsing strings
     if strcmp(Exp.DetSequence,'last')
       Exp.DetSequence = zeros(1,length(Exp.Sequence));
       Exp.DetSequence(end) = true;
+      logmsg(1,'  detection is active during the last element in Exp.Sequence');
     elseif strcmp(Exp.DetSequence,'all')
       Exp.DetSequence = ones(1,length(Exp.Sequence));
+      logmsg(1,'  all elements in Exp.Sequence are detected');
     else
       msg = 'The string you provided in Exp.DetSequence was not recognized';
       error(msg);
@@ -62,42 +276,44 @@ elseif isfield(Exp,'DetSequence')
     if length(Exp.DetSequence) ~= 1 && length(Exp.DetSequence) ~= length(Exp.Sequence)
       error('The lengths of Exp.Sequence and Exp.DetSequence do not match. Length of Exp.DetSequence has to be 1 or the same as Exp.Sequence.')
     end
+    logmsg(1,'  detection set according to Exp.DetSequence');
   end
   
   % identifying single point detection
   if sum(Exp.DetSequence) == 1 && ~isstruct(Exp.Sequence{Exp.DetSequence==1}) && Exp.Sequence{Exp.DetSequence==1} == 0
     Opt.SinglePointDetection = true;
+    logmsg(1,'  single point detection');
   end
   
 else
   % default if no detection is given:
-  logmsg(1,'assuming defaults for detection...');
+  logmsg(1,'  no detection specified, detection is active during the entire sequence');
   Exp.DetSequence = ones(1,length(Exp.Sequence));
 end
 
-% Check if resonator is 
+% Check if resonator is
 if isfield(Exp,'Resonator')
-  logmsg(1,'validating resonator...');
+  logmsg(1,'  validating resonator:');
   IncludeResonator = true;
   
   if ~isfield(Exp,'mwFreq')
     error('For using a resonator, the field Exp.mwFreq needs to be provided, and Exp.Frequency needs to be defined in relation to that.')
   end
   
-  if ~isfield(Exp.Resonator,'nu') && ~isfield(Exp.Resonator,'TransferFunction') && ~isfield(Exp.Resonator,'nu0') && ~isfield(Exp.Resonator,'QL')
-    error('In order to use a resonator either nu0 and QL or nu and TransferFunction need to be defined.')
+  if ~isfield(Exp.Resonator,'Frequency') && ~isfield(Exp.Resonator,'TransferFunction') && ~isfield(Exp.Resonator,'ResonatorFrequency') && ~isfield(Exp.Resonator,'ResonatorQL')
+    error('In order to use a resonator either ResonatorFrequency and ResonatorQL or nu and TransferFunction need to be defined.')
     % Looks for frequency axis nu and transfer function
-  elseif (isfield(Exp.Resonator,'nu') && ~isfield(Exp.Resonator,'TransferFunction')) || (~isfield(Exp.Resonator,'nu') && isfield(Exp.Resonator,'TransferFunction'))
-    error('Either Exp.Resonator.nu or Exp.Resonator.TransferFunction is missing')
-  elseif isfield(Exp.Resonator,'nu') && isfield(Exp.Resonator,'TransferFunction')
-    Resonator.Arg1 = Exp.Resonator.nu;
+  elseif (isfield(Exp.Resonator,'Frequency') && ~isfield(Exp.Resonator,'TransferFunction')) || (~isfield(Exp.Resonator,'Frequency') && isfield(Exp.Resonator,'TransferFunction'))
+    error('Either Exp.Resonator.Frequency or Exp.Resonator.TransferFunction is missing')
+  elseif isfield(Exp.Resonator,'Frequency') && isfield(Exp.Resonator,'TransferFunction')
+    Resonator.Arg1 = Exp.Resonator.Frequency;
     Resonator.Arg2 = Exp.Resonator.TransferFunction;
-  elseif (isfield(Exp.Resonator,'nu0') && ~isfield(Exp.Resonator,'QL')) || (~isfield(Exp.Resonator,'nu0') && isfield(Exp.Resonator,'QL'))
-    % Looks for center frequency nu0 and loaded Qualityfactor
-    error('Either Exp.Resonator.nu0 or Exp.Resonator.QL is missing')
-  elseif isfield(Exp.Resonator,'nu0') && isfield(Exp.Resonator,'QL')
-    Resonator.Arg1 = Exp.Resonator.nu0;
-    Resonator.Arg2 = Exp.Resonator.QL;
+  elseif (isfield(Exp.Resonator,'ResonatorFrequency') && ~isfield(Exp.Resonator,'ResonatorQL')) || (~isfield(Exp.Resonator,'ResonatorFrequency') && isfield(Exp.Resonator,'ResonatorQL'))
+    % Looks for center frequency ResonatorFrequency and loaded Qualityfactor
+    error('Either Exp.Resonator.ResonatorFrequency or Exp.Resonator.ResonatorQL is missing')
+  elseif isfield(Exp.Resonator,'ResonatorFrequency') && isfield(Exp.Resonator,'ResonatorQL')
+    Resonator.Arg1 = Exp.Resonator.ResonatorFrequency;
+    Resonator.Arg2 = Exp.Resonator.ResonatorQL;
   end
   
   % if no mode for the resonator incorporation is given, 'simulate' is
@@ -124,16 +340,16 @@ if isfield(Exp,'mwFreq')
   FreqShift = FreqShift + Exp.mwFreq;
 end
 
-logmsg(1,'setting up simulation frame...');
-if isfield(Opt,'SimFrequency')
+logmsg(1,'  setting up simulation frame:');
+if isfield(Opt,'SimFreq')
   % user provided value fo shift of simulation frequency
-  if Opt.SimFrequency == 0
+  if Opt.SimFreq == 0
     % user requested lab frame
     FreqShift = FreqShift; %#ok<ASGSL> % Do nothing
     FrameShift = false;
   else
-    FreqShift = FreqShift - Opt.SimFrequency;
-    FrameShift = Opt.SimFrequency;
+    FreqShift = FreqShift - Opt.SimFreq;
+    FrameShift = Opt.SimFreq;
   end
   
 else
@@ -141,25 +357,25 @@ else
   % guess a frequency for the frame shift
   
   if isfield(Exp,'mwFreq')
-    MinFreq = Exp.mwFreq;
+    minPulseFreq = Exp.mwFreq;
   else
-    MinFreq = [];
+    minPulseFreq = [];
   end
   
   % loop over the pulses and look for the minimum frequency there
   for iEvent = 1 : length(Exp.Sequence)
     if isstruct(Exp.Sequence{iEvent}) && isfield(Exp.Sequence{iEvent},'Frequency')
-      if isempty(MinFreq)
-        MinFreq = min(Exp.Sequence{iEvent}.Frequency);
+      if isempty(minPulseFreq)
+        minPulseFreq = min(Exp.Sequence{iEvent}.Frequency/1000);
       else
-        MinFreq = min([MinFreq (Exp.Sequence{iEvent}.Frequency + FreqShift)]);
+        minPulseFreq = min([minPulseFreq (Exp.Sequence{iEvent}.Frequency/1000 + FreqShift)]);
       end
     end
   end
-   
+  
   % Have at least 2 GHz difference to the lowest frequency (for the frame
   % shift)
-  FrameShift = floor(MinFreq-2);
+  FrameShift = floor(minPulseFreq-2);
   % only shift down, no upshifting - if lab frame frequencies exist that
   % are < 2 GHz
   if FrameShift > 0
@@ -168,9 +384,9 @@ else
 end
 
 if FrameShift ~= 0
-  logmsg(1,'simulation frame frequency is %d GHz',FrameShift);
+  logmsg(1,'  simulation frame frequency is %d GHz',FrameShift);
 else
-  logmsg(1,'simulating in the lab frame');
+  logmsg(1,'  simulating in the lab frame');
 end
 
 Opt.FrameShift = FrameShift;
@@ -178,15 +394,15 @@ Opt.FreqShift = FreqShift;
 
 % Check if TimeStep exists and if it is sufficient or, if none provided,
 % compute a new one
-logmsg(1,'determining minimal required time step');
-MaxFreq = FreqShift;
-  for iEvent = 1 : length(Exp.Sequence)
-    if isstruct(Exp.Sequence{iEvent}) && isfield(Exp.Sequence{iEvent},'Frequency')
-       MaxFreq = max([(Exp.Sequence{iEvent}.Frequency + FreqShift) MaxFreq]);
-    end
+logmsg(1,'  determining minimal required time step');
+maxPulseFreq = FreqShift;
+for iEvent = 1 : length(Exp.Sequence)
+  if isstruct(Exp.Sequence{iEvent}) && isfield(Exp.Sequence{iEvent},'Frequency')
+    maxPulseFreq = max([(Exp.Sequence{iEvent}.Frequency/1000 + FreqShift) maxPulseFreq]);
   end
-  
-Nyquist = 2*MaxFreq;
+end
+
+Nyquist = 2*maxPulseFreq;
 MaxTimeStep = 1/Nyquist/1000; % Time Step is in microseconds and Frequencies in GHz
 
 % validate time step
@@ -196,11 +412,11 @@ if isfield(Exp,'TimeStep')
     error(errMsg);
   end
 else
-  logmsg(1,'automatically assuming a suitable time step');
+  logmsg(1,'  automatically assuming a suitable time step');
   Exp.TimeStep = round(MaxTimeStep/4,2,'significant');
 end
 
-logmsg(1,'the time step is %0.2e microseconds',Exp.TimeStep);
+logmsg(1,'  the time step is %0.2e microseconds',Exp.TimeStep);
 
 % Create an empty cell array for all the events
 Events = cell(1,length(Exp.Sequence));
@@ -224,8 +440,8 @@ if isfield(Opt,'Relaxation')
     error('The lengths of Exp.Sequence and Opt.Relaxation do not match. Length of Opt.Relaxation has to be 1 or the same as Exp.Sequence.')
   end
 end
- 
-% making sure that state trajectories are defined globally of for all 
+
+% making sure that state trajectories are defined globally of for all
 % individual elements in Exp.Sequence
 if isfield(Opt,'StateTrajectories')
   if length(Opt.StateTrajectories) ~= 1 && length(Opt.StateTrajectories) ~= length(Exp.Sequence)
@@ -242,7 +458,7 @@ for iEvent = 1 : nEvents
   else
     iDelay = iDelay + 1;
     DelayIndices(iDelay) = iEvent; %#ok<AGROW>
-    isPulse(iEvent) = false; 
+    isPulse(iEvent) = false;
   end
 end
 
@@ -254,12 +470,16 @@ iPulse = 1;
 % -------------------------------------------------------------------------
 % Create the Eventstructure
 % -------------------------------------------------------------------------
-logmsg(1,'parsing Exp.Sequence...');
-logmsg(1,'found %d pulse(s) and %d free evolution period(s)',nPulses,iDelay);
-if nPulses > 0
-  logmsg(1,'computing wave forms and setting up the event structures');
+logmsg(1,'  parsing Exp.Sequence:');
+if isfield(Exp,'DetWindow')
+  logmsg(1,'  found %d pulse(s), %d free evolution period(s) and a detection window',nPulses,iDelay-1);
 else
-  logmsg(1,'setting up the event structures');
+  logmsg(1,'  found %d pulse(s) and %d free evolution period(s)',nPulses,iDelay);
+end
+if nPulses > 0
+  logmsg(1,'  computing wave forms and setting up the event structures');
+else
+  logmsg(1,'  setting up the event structures');
 end
 
 for iEvent = 1 : length(Exp.Sequence)
@@ -294,12 +514,12 @@ for iEvent = 1 : length(Exp.Sequence)
             error('If you do not provide a frequency for the pulse, you need to give Exp.mwFreq.')
           end
         elseif length(Exp.Sequence{iEvent}.Frequency) > 1 && (Exp.Sequence{iEvent}.Frequency(2) ~= Exp.Sequence{iEvent}.Frequency(1))
-          % make sure that, if a frequency was provided, it is not a frequency sweep 
+          % make sure that, if a frequency was provided, it is not a frequency sweep
           msg = ['Pulse at position ' num2str(iEvent) ' in Exp.Sequence: no Pulse.Type specified, assuming a monochromatice rectangular pulse, but the field Pulse.Frequency looks like a frequency-swept pulse.'];
           error(msg);
         end
       elseif strcmp(Exp.Sequence{iEvent}.Type,'rectangular') && ~isfield(Exp.Sequence{iEvent},'Frequency')
-        Exp.Sequence{iEvent}.Frequency = 0;        
+        Exp.Sequence{iEvent}.Frequency = 0;
       end
       
       Pulse = Exp.Sequence{iEvent};
@@ -315,7 +535,7 @@ for iEvent = 1 : length(Exp.Sequence)
       end
       
       Pulse.PhaseCycle = ThisPhaseCycle;
-
+      
       % Gets the flip angle
       if isfield(Exp.Sequence{iEvent},'Flip')
         Pulse.Flip = Exp.Sequence{iEvent}.Flip;
@@ -331,9 +551,7 @@ for iEvent = 1 : length(Exp.Sequence)
       
       % Get the time step
       Pulse.TimeStep = Exp.TimeStep;
-      
-      Pulse.Frequency = Pulse.Frequency*1000; % GHz to MHz
-      
+            
       % Loop over the function that creates the PulseShape, as many times at
       % are necessary to calculate all wave forms for the phase cycling
       for iPCstep = 1 : nPhaseSteps
@@ -355,7 +573,6 @@ for iEvent = 1 : length(Exp.Sequence)
         Events{iEvent}.IQ(iPCstep,:) = IQ;
       end
       
-      Pulse.Frequency = Pulse.Frequency/1000; % MHz to GHz
     else
       % in case user provided their own IQ(s)
       
@@ -393,23 +610,23 @@ for iEvent = 1 : length(Exp.Sequence)
         end
         Pulse.userIQ.t = Exp.Sequence{iEvent}.t;
       end
-                        
+      
       % Shifts IQ of the pulse if necessary...
       for iPhaseStep = 1 : nPhaseSteps
-          Opt.dt = Exp.TimeStep;
-          if IncludeResonator
-            % but first if resonator is requested, pulses are elongated due to ringing.
-            % the duration of ringing is stored in an additional field
-            tOrig = t(end);
-            [tIQ,currentIQ] = resonator(t,UserIQ(iPhaseStep,:),Exp.mwFreq,Resonator.Arg1,Resonator.Arg2,Resonator.Arg3);
-            Events{iEvent}.Ringing = t(end) - tOrig;
-          else
-            currentIQ = UserIQ(iPhaseStep,:);
-          end
-          [t, ShiftedUserIQ(iPhaseStep,:)] = rfmixer(tIQ,currentIQ,-Opt.FrameShift,'IQshift',Opt);
+        Opt.dt = Exp.TimeStep;
+        if IncludeResonator
+          % but first if resonator is requested, pulses are elongated due to ringing.
+          % the duration of ringing is stored in an additional field
+          tOrig = t(end);
+          [tIQ,currentIQ] = resonator(t,UserIQ(iPhaseStep,:),Exp.mwFreq,Resonator.Arg1,Resonator.Arg2,Resonator.Arg3);
+          Events{iEvent}.Ringing = t(end) - tOrig;
+        else
+          currentIQ = UserIQ(iPhaseStep,:);
+        end
+        [t, ShiftedUserIQ(iPhaseStep,:)] = rfmixer(tIQ,currentIQ,-Opt.FrameShift,'IQshift',Opt);
       end
       Events{iEvent}.IQ =  ShiftedUserIQ;
-       
+      
       Pulse.userIQ.IQ = Exp.Sequence{iEvent}.IQ;
       Pulse.PhaseCycle = ThisPhaseCycle;
       
@@ -418,12 +635,12 @@ for iEvent = 1 : length(Exp.Sequence)
     % Specify Type in Event structure
     Events{iEvent}.type = 'pulse';
     
-    % Store the time axis of the pulse in the Event structure    
+    % Store the time axis of the pulse in the Event structure
     Events{iEvent}.t = t;
     
     % Store the PhaseCycle in the Event structure
     Events{iEvent}.PhaseCycle = ThisPhaseCycle;
-       
+    
     % Checks if ComplexExcitation is requested for this Pulse, if not
     % specified Complex Excitation is switched off by default - the
     % excitation operator is being built outside of sequencer
@@ -475,13 +692,13 @@ for iEvent = 1 : length(Exp.Sequence)
   % Check if detection is provided, if no detection is requested, detection
   % is switched off
   if ~isfield(Exp,'DetSequence') || isempty(Exp.DetSequence)
-      Events{iEvent}.Detection = false;
+    Events{iEvent}.Detection = false;
   else
     if length(Exp.DetSequence) == 1
       Events{iEvent}.Detection = Exp.DetSequence;
-    else 
+    else
       Events{iEvent}.Detection = Exp.DetSequence(iEvent);
-    end   
+    end
   end
   
   % Check if Density Matrices are to be stored, if not specified, Density
@@ -512,7 +729,7 @@ end
 % Checks for overlap of pulses that are subject to ringing
 % -------------------------------------------------------------------------
 if IncludeResonator
-  logmsg(1,'checking for pulse overlap due to ringing from resonator...');
+  logmsg(1,'  checking for pulse overlap due to ringing from resonator:');
   
   for iEvent = PulseIndices
     FollowingEvent = iEvent + 1;
@@ -524,9 +741,9 @@ if IncludeResonator
         Msg = ['Event ' num2str(FollowingEvent) ' (a delay) is too short to accomodate ringing of the preceding pulse.'];
         error(Msg);
       end
-    end    
-  end 
-  logmsg(1,'all good!');
+    end
+  end
+  logmsg(1,'  all good!');
 end
 
 % -------------------------------------------------------------------------
@@ -542,12 +759,12 @@ IncrementationScheme = false;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if isfield(Exp,'nPoints')
-  logmsg(1,'validating indirect dimensions...');
+  logmsg(1,'-validating indirect dimensions------------------------');
   nDimensions = length(Exp.nPoints);
   Vary.Points = Exp.nPoints;
   
   % Layout the Incrementation data structure
-  if IncrementationScheme 
+  if IncrementationScheme
     Vary.IncrementationTable = zeros(nEvents,nDimensions);
   else
     Vary.IncrementationTable = cell(1,nDimensions);
@@ -555,7 +772,7 @@ if isfield(Exp,'nPoints')
   
   % This cell array will carry all the modifications that are being made to
   % a pulse in any dimension - each element corresponds to a pulse and will
-  % contain the dimensions, fields and values that are to be changed 
+  % contain the dimensions, fields and values that are to be changed
   PulseModifications = cell(1,nPulses);
   
   % -----------------------------------------------------------------------
@@ -565,9 +782,10 @@ if isfield(Exp,'nPoints')
   % changed pulse parameters are stored in PulseModifications. After all
   % dimensions have been checked, the values stored in Pulse
   % -----------------------------------------------------------------------
-  logmsg(1,'found %d indirect dimension(s)',nDimensions);
+  logmsg(1,'  found %d indirect dimension(s)',nDimensions);
+  logmsg(1,'  with a total %d acquisition points',prod(Vary.Points));
   for iDimension = 1 : nDimensions
-    logmsg(1,'parsing dimension no. %d',iDimension);
+    logmsg(1,'  parsing dimension no. %d',iDimension);
     % If it is not possible to use a predefined incrementation scheme,
     % incrementation tables are created for each individual dimension, that
     % contain all the changes to event lengths for all events in the
@@ -591,7 +809,7 @@ if isfield(Exp,'nPoints')
     end
     
     % Scans all the lines of the Dim field. Each line can contain multiple
-    % events/fields 
+    % events/fields
     for iLine = 1 : size(Exp.(Field2Get),1)
       % Gets the string, that lists the events/fields that are to be
       % changed
@@ -602,7 +820,7 @@ if isfield(Exp,'nPoints')
       
       % Loops over all entries in the current line
       for iModifiedEvent = 1 : length(SplitStrings)
-        FieldIndex = [];      
+        FieldIndex = [];
         % modified pulses are defined through p#.Field and if a '.' is
         % found, the string is split again. Delays are ignored this way
         Strings = regexp(SplitStrings{iModifiedEvent},'\.','split');
@@ -610,10 +828,13 @@ if isfield(Exp,'nPoints')
         EventType = Strings{1}(1);
         EventSpecificIndex = str2double(Strings{1}(2:end));
         
+        % The field index allows to increment a value of a pulse parameter
+        % that is given as vector, eg the inital and final order of a HS
+        % pulse: Exp.Dim1 = {'p2.n(2)' 0.5}; --> Field Index gets the (2)
         if length(Strings) == 2
           pars = regexp(Strings{2},'\(|\)','split');
           Strings{2} = pars{1};
-          if length(pars) > 1          
+          if length(pars) > 1
             FieldIndex = str2double(pars{2});
           end
         end
@@ -637,78 +858,78 @@ if isfield(Exp,'nPoints')
         % event/delay 'd'
         % -----------------------------------------------------------------
         switch EventType
-          case 'p'         
+          case 'p'
             % Convert the index as provided in the Dimension structure to
             % an eventnumber and pulsenumber
             EventNumber = Pulses{EventSpecificIndex}.EventIndex;
             PulseNumber = EventSpecificIndex;
             
-              % Gets the field that is to be modified
-              if length(Strings) == 1
-                message = ['You requested a pulse to be changed in Exp.' (Field2Get) ' but did not specify the field.'];
-                error(message)
-              end
-              
-              Field = Strings{2};
-              
-              % Catch if user defines pulse length as 't' instead of 'tp'
-              if strcmp(Field,'t')
-                Field = 'tp';
-              end
-              
-              switch Field
-                % If the field is 'Position', the surrounding events (which
-                % have to be delays) are changed in length. This is written
-                % to the incrementation table
-                case 'Position'
-                  SurroundingEvents = [EventNumber-1 EventNumber+1];
-                  
-                  if any(SurroundingEvents>nEvents) || any(SurroundingEvents>nEvents)
-                    error('Moving pulses can not be the first or last event in your Exp structure.')
-                  end
-                  
-                  % get the Increment
-                  dt = Exp.(Field2Get){iLine,2};
-                  
-                  if ~IncrementationScheme
-                    if length(dt) == 1
-                      IncrementationTable(SurroundingEvents(1),:) = IncrementationTable(SurroundingEvents(1),:) + (0:Vary.Points(iDimension)-1)*dt;
-                      IncrementationTable(SurroundingEvents(2),:) = IncrementationTable(SurroundingEvents(2),:) - (0:Vary.Points(iDimension)-1)*dt;
-                    else
-                      IncrementationTable(SurroundingEvents(1),1:end) = IncrementationTable(SurroundingEvents(1),1:end) + dt;
-                      IncrementationTable(SurroundingEvents(2),1:end) = IncrementationTable(SurroundingEvents(2),1:end) - dt;
-                    end
+            % Gets the field that is to be modified
+            if length(Strings) == 1
+              message = ['You requested a pulse to be changed in Exp.' (Field2Get) ' but did not specify the field.'];
+              error(message)
+            end
+            
+            Field = Strings{2};
+            
+            % Catch if user defines pulse length as 't' instead of 'tp'
+            if strcmp(Field,'t')
+              Field = 'tp';
+            end
+            
+            switch Field
+              % If the field is 'Position', the surrounding events (which
+              % have to be delays) are changed in length. This is written
+              % to the incrementation table
+              case 'Position'
+                SurroundingEvents = [EventNumber-1 EventNumber+1];
+                
+                if any(SurroundingEvents>nEvents) || any(SurroundingEvents>nEvents)
+                  error('Moving pulses can not be the first or last event in your Exp structure.')
+                end
+                
+                % get the Increment
+                dt = Exp.(Field2Get){iLine,2};
+                
+                if ~IncrementationScheme
+                  if length(dt) == 1
+                    IncrementationTable(SurroundingEvents(1),:) = IncrementationTable(SurroundingEvents(1),:) + (0:Vary.Points(iDimension)-1)*dt;
+                    IncrementationTable(SurroundingEvents(2),:) = IncrementationTable(SurroundingEvents(2),:) - (0:Vary.Points(iDimension)-1)*dt;
                   else
-                    Vary.IncrementationTable(SurroundingEvents(1),iDimension) = Vary.IncrementationTable(SurroundingEvents(1),iDimension) + dt;
-                    Vary.IncrementationTable(SurroundingEvents(2),iDimension) = Vary.IncrementationTable(SurroundingEvents(2),iDimension) - dt;
+                    IncrementationTable(SurroundingEvents(1),1:end) = IncrementationTable(SurroundingEvents(1),1:end) + dt;
+                    IncrementationTable(SurroundingEvents(2),1:end) = IncrementationTable(SurroundingEvents(2),1:end) - dt;
                   end
-                  
-                case 'IQ'
-                  if isempty(PulseModifications{PulseNumber})
-                    PulseModifications{PulseNumber} = {iDimension Field [] []};
-                  else
-                    n = size(PulseModifications{PulseNumber},1);
-                    PulseModifications{PulseNumber}{n+1,1} = iDimension;
-                    PulseModifications{PulseNumber}{n+1,2} = Field;
-                  end
-                  
-                otherwise
-                  % If not the position is changed it is a pulse parameter.
-                  % All pulse parameters are first stored in  a seperate
-                  % structure, called PulseModifications. Each dimension can
-                  % add fields and values to it. Only after all dimensions
-                  % have been checked for pulse modifications, the pulses can
-                  % be calculated and stored in the Vary structure
-                  if isempty(PulseModifications{PulseNumber})
-                    PulseModifications{PulseNumber} = {iDimension Field Exp.(Field2Get){iLine,2} FieldIndex};
-                  else
-                    n = size(PulseModifications{PulseNumber},1);
-                    PulseModifications{PulseNumber}{n+1,1} = iDimension;
-                    PulseModifications{PulseNumber}{n+1,2} = Field;
-                    PulseModifications{PulseNumber}{n+1,3} = Exp.(Field2Get){iLine,2};
-                    PulseModifications{PulseNumber}{n+1,4} = FieldIndex;
-                  end
-              end
+                else
+                  Vary.IncrementationTable(SurroundingEvents(1),iDimension) = Vary.IncrementationTable(SurroundingEvents(1),iDimension) + dt;
+                  Vary.IncrementationTable(SurroundingEvents(2),iDimension) = Vary.IncrementationTable(SurroundingEvents(2),iDimension) - dt;
+                end
+                
+              case 'IQ'
+                if isempty(PulseModifications{PulseNumber})
+                  PulseModifications{PulseNumber} = {iDimension Field [] []};
+                else
+                  n = size(PulseModifications{PulseNumber},1);
+                  PulseModifications{PulseNumber}{n+1,1} = iDimension;
+                  PulseModifications{PulseNumber}{n+1,2} = Field;
+                end
+                
+              otherwise
+                % If not the position is changed it is a pulse parameter.
+                % All pulse parameters are first stored in  a seperate
+                % structure, called PulseModifications. Each dimension can
+                % add fields and values to it. Only after all dimensions
+                % have been checked for pulse modifications, the pulses can
+                % be calculated and stored in the Vary structure
+                if isempty(PulseModifications{PulseNumber})
+                  PulseModifications{PulseNumber} = {iDimension Field Exp.(Field2Get){iLine,2} FieldIndex};
+                else
+                  n = size(PulseModifications{PulseNumber},1);
+                  PulseModifications{PulseNumber}{n+1,1} = iDimension;
+                  PulseModifications{PulseNumber}{n+1,2} = Field;
+                  PulseModifications{PulseNumber}{n+1,3} = Exp.(Field2Get){iLine,2};
+                  PulseModifications{PulseNumber}{n+1,4} = FieldIndex;
+                end
+            end
             
           case 'd'
             % If a delay is changed, the incrementation/decrementation is
@@ -760,14 +981,14 @@ if isfield(Exp,'nPoints')
   
   % Loop over all DataPoints/Aquisitions and check for pulse overlap and
   % compute pulse shapes if they are changed
-  logmsg(1,'creating the Vary structure that contains all required wave forms and delay changes...');
+  logmsg(1,'  creating the Vary structure that contains all required wave forms and delay changes');
   for iDataPoint = 1 : nDataPoints
     % Load starting values for pulses and event lengths
     Pulses = InitialPulses;
     EventLengths = Intervals;
     
     % ---------------------------------------------------------------------
-    % First we need to loop over all pulses and check them for 
+    % First we need to loop over all pulses and check them for
     % modifications
     % ---------------------------------------------------------------------
     for iPulse = 1 : nPulses
@@ -786,7 +1007,7 @@ if isfield(Exp,'nPoints')
         end
         
         if ~IQindex
-        
+          
           for iModification = 1 : size(PulseModifications{iPulse},1)
             % Load Modifications
             Dimension = PulseModifications{iPulse}{iModification,1};
@@ -821,9 +1042,7 @@ if isfield(Exp,'nPoints')
           
           % Convert array into cell for indexing
           ArrayIndex = num2cell(Pulses{iPulse}.ArrayIndex);
-                  
-          Pulses{iPulse}.Frequency = Pulses{iPulse}.Frequency*1000; % GHz to MHz
-          
+              
           % Compute Wave form and store it
           for iPCstep = 1 : size(Pulses{iPulse}.PhaseCycle,1)
             Pulses{iPulse}.Phase = Pulses{iPulse}.Phase+Pulses{iPulse}.PhaseCycle(iPCstep,1);
@@ -845,16 +1064,15 @@ if isfield(Exp,'nPoints')
           
           Vary.Pulses{iPulse}.ts{ArrayIndex{:}} = t;
           
-          Pulses{iPulse}.Frequency = Pulses{iPulse}.Frequency/1000; % MHz to GHz
           
         else
-           % if user wants to change p1.IQ (user provided IQ)
+          % if user wants to change p1.IQ (user provided IQ)
           
           if IQindex < size(PulseModifications{iPulse},1)
             errMsg = ['It is not possible to combine changing pulse parameters with user defined IQ, please check your Dim input for Pulse ' (num2str(iPulse)) '.'];
             error(errMsg)
           end
- 
+          
           if size(PulseModifications{iPulse},1) == 1
             Dimension = PulseModifications{iPulse}{1,1};
             IndexToLoad = DimensionIndices(Dimension);
@@ -890,7 +1108,7 @@ if isfield(Exp,'nPoints')
             error(errMsg);
           elseif d2 == nPhaseSteps
             UserIQ =  UserIQ';
-          end      
+          end
           
           % Shifts IQ of the pulse if necessary...
           ShiftedUserIQ = [];
@@ -909,11 +1127,11 @@ if isfield(Exp,'nPoints')
           end
           
           Vary.Pulses{iPulse}.IQs{ArrayIndex{:}} = ShiftedUserIQ;
-
+          
           Vary.Pulses{iPulse}.ts{ArrayIndex{:}} = t;
           
         end
-
+        
         % Write pulse length to EventLenghts
         if IncludeResonator
           EventLengths(Pulses{iPulse}.EventIndex) = t(end) - Vary.Pulses{iPulse}.Ringing(ArrayIndex{:});
@@ -941,15 +1159,15 @@ if isfield(Exp,'nPoints')
         end
       elseif IncrementationScheme
         % Find Events that are modified...
-          ModifiedEvents = find(Vary.IncrementationTable(:,iDimension));
-          if ~isempty(ModifiedEvents)
-            for i = 1 : length(ModifiedEvents)
-              EventLengths(ModifiedEvents(i)) = EventLengths(ModifiedEvents(i)) + Vary.IncrementationTable(ModifiedEvents(i),iDimension)*(DimensionIndices(iDimension)-1);
-            end
+        ModifiedEvents = find(Vary.IncrementationTable(:,iDimension));
+        if ~isempty(ModifiedEvents)
+          for i = 1 : length(ModifiedEvents)
+            EventLengths(ModifiedEvents(i)) = EventLengths(ModifiedEvents(i)) + Vary.IncrementationTable(ModifiedEvents(i),iDimension)*(DimensionIndices(iDimension)-1);
           end
+        end
       end
     end
-     
+    
     % Reorder Sequence and check for pulse overlap
     [NewSequence, NewEventLengths] = s_reorder_events(EventLengths,isPulse);
     
@@ -986,7 +1204,7 @@ if isfield(Exp,'nPoints')
         end
       end
     end
-
+    
     % Assert that if events are being moved in the sequence, the values for
     % Detection and Relaxation are the same for events that are being
     % interchanged
@@ -1015,7 +1233,21 @@ if isfield(Exp,'nPoints')
       end
     end
     
-  end 
+  end
 end
 
-logmsg(1,'pulse sequence parsed successfully!');
+varargout{1} = Events;
+varargout{2} = Vary;
+varargout{3} = Opt;
+
+logmsg(1,'  pulse sequence parsed successfully!');
+
+end
+
+function newstring = addtomessage(oldstring,toadd)
+if isempty(oldstring)
+  newstring = toadd;
+else
+  newstring = [oldstring ', ' toadd];
+end
+end

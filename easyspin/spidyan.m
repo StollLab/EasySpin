@@ -22,6 +22,8 @@ function varargout = spidyan(Sys,Exp,Opt)
 
 if (nargin==0), help(mfilename); return; end
 
+StartTime = clock;
+
 % Input argument scanning, get display level and prompt
 %=======================================================================
 % Check Matlab version
@@ -66,10 +68,9 @@ logmsg(2,'  log level %d',EasySpinLogLevel);
 %----------------------------------------------------------------------
 
 % Check for magnetic field
-logmsg(1,'looking for Exp.Field...');
 if ~isfield(Exp,'Field')
-  logmsg(1,'no Exp.Field given');
-  logmsg(1,'checking if Sys allows for running without a field...');
+  logmsg(1,'  no Exp.Field given');
+  logmsg(1,'  checking if Sys allows for running without a field...');
   if isfield(Sys,'g')
     error('Exp.Field is required for Sys.g.')
   elseif Sys.ZeemanFreq % && (~isfield(Sys,'S') || all(Sys.S==1/2))
@@ -78,8 +79,8 @@ if ~isfield(Exp,'Field')
     % to calculate nuclear Larmor frequencies (if nuclei are given). The
     % program does so, by "guessing" a field from Sys.ZeemanFreq and gfree
     Exp.Field = (Sys.ZeemanFreq(1)*1e6)*planck/bmagn/(gfree*1e-6);
-    logmsg(1,'Exp.Field is needed for calculating simulation frame frequencies');
-    logmsg(1,'setting Exp.Field to %.1f mT',Exp.Field);
+    logmsg(1,'  Exp.Field is needed for calculating simulation frame frequencies');
+    logmsg(1,'  setting Exp.Field to %.1f mT',Exp.Field);
   else
     error('Exp.Field is required for given spin system.')
   end  
@@ -87,8 +88,9 @@ elseif length(Exp.Field) ~= 1
   error('Exp.Field must be a single number (in mT).');
 end
 
-logmsg(1,'-validating pulse sequence-----------------------------');
 % Build the Event and Vary structure
+Opt.SimulationMode = 'step wise'; % to force s_sequencer to setup for step wise
+
 [Events, Vary, Opt] = s_sequencer(Exp,Opt);
 
 % Adapt Zeeman frequencies for the selected simulation frame
@@ -107,7 +109,7 @@ if isfield(Sys,'g')
   end
   
   if Opt.FrameShift ~= 0
-    logmsg(1,'adapting Sys.g to the simulation frame');
+    logmsg(1,'  adapting Sys.g to the simulation frame');
   end
   gshift = (Opt.FrameShift*1e9)*planck/bmagn/(Exp.Field(end)*1e-3);
   
@@ -123,7 +125,7 @@ end
 
 % Translate Frequency to g values
 if isfield(Sys,'ZeemanFreq')
-  logmsg(1,'translating Sys.ZeemanFreq into g values');
+  logmsg(1,'  translating Sys.ZeemanFreq into g values');
   Sys.ZeemanFreq = Sys.ZeemanFreq*1000; % GHz -> MHz
   if isfield(Sys,'g')
     [~, dgTensor] = size(Sys.g);
@@ -141,7 +143,7 @@ end
 
 % Remove field ZeemanFreq if given, which is spidyan specific
 if isfield(Sys,'ZeemanFreq')
-  logmsg(1,'removing Sys.ZeemanFreq from Sys structure');
+  logmsg(1,'  removing Sys.ZeemanFreq from Sys structure');
   Sys = rmfield(Sys,'ZeemanFreq');
 end
 
@@ -156,30 +158,13 @@ if isfield(Exp,'DetOperator')
 end
 
 % Validate and build spin system as well as excitation operators
-logmsg(1,'parsing the Sys structure...');
+logmsg(1,'  parsing the Sys structure...');
 
 [Sys, Sigma, DetOps, Events, Relaxation] = s_propagationsetup(Sys,Events,Opt);
 
 % Get Hamiltonian
-logmsg(1,'computing lab frame Hamiltonian');
+logmsg(1,'  computing lab frame Hamiltonian');
 Ham = sham(Sys,Exp.Field*[0 0 1]);
-
-% Check if Exp.DetFrequency and Exp.DetOperator have the same length
-if isfield(Exp,'DetFrequency')
-  logmsg(1,'veryfing Exp.DetFrequency...');
-  if isfield(Exp,'DetOperator') 
-    if length(Exp.DetFrequency) ~= length(Exp.DetOperator)
-      error('Exp.DetOperator and Exp.DetFrequency must contain the same number of elements.')
-    end
-  elseif length(Exp.DetFrequency) ~= 1
-    error('If Exp.DetOperator is not provided the default detection operator (S+ for all electrons) is assumed. In this case Exp.DetFrequency must contain only one frequency.')
-  end
-else
-  if ~isfield(Exp,'DetOperator') && isfield(Exp,'mwFreq')
-    logmsg(1,'using Exp.mwFreq as detection frequency');
-    Exp.DetFrequency = Exp.mwFreq;
-  end
-end
 
 %----------------------------------------------------------------------
 % Propagation
@@ -187,22 +172,22 @@ end
 
 % Calls the actual propagation engine
 logmsg(1,'-starting propagation----------------------------------');
-logmsg(1,'this may take a while...');
+logmsg(1,'  this may take a while...');
 [TimeAxis, RawSignal, FinalState, StateTrajectories, Events] = ...
   s_thyme(Sigma, Ham, DetOps, Events, Relaxation, Vary);
-logmsg(1,'propagation finished!');
+logmsg(1,'  propagation finished!');
 
 %----------------------------------------------------------------------
 % Signal Processing
 %----------------------------------------------------------------------
-logmsg(1,'-validating output from s_thyme------------------------');
+logmsg(1,'-validating and processing outout----------------------');
 % Signal postprocessing, such as down conversion and filtering and
 % checking output of the timeaxis 
 
 nDetOps = numel(DetOps); % number of detection operators
 
 if Opt.SinglePointDetection
-  logmsg(1,'single point detection...');
+  logmsg(1,'  single point detection...');
   if isfield(Exp,'nPoints') && nDetOps ~= 1
     DimSignal =  ndims(RawSignal);
     Signal = permute(RawSignal,[1:(DimSignal-1) DimSignal+1 DimSignal]);
@@ -211,19 +196,36 @@ if Opt.SinglePointDetection
   end
 else
   if ~isempty(RawSignal)
-    logmsg(1,'processing transients...');
+    % Check if Exp.DetFreq and Exp.DetOperator have the same length
+    if isfield(Exp,'DetFreq')
+      logmsg(1,'  veryfing Exp.DetFreq...');
+      if isfield(Exp,'DetOperator')
+        if length(Exp.DetFreq) ~= length(Exp.DetOperator)
+          error('Exp.DetOperator and Exp.DetFreq must contain the same number of elements.')
+        end
+      elseif length(Exp.DetFreq) ~= 1
+        error('If Exp.DetOperator is not provided the default detection operator (S+ for all electrons) is assumed. In this case Exp.DetFreq must contain only one frequency.')
+      end
+    else
+      if ~isfield(Exp,'DetOperator') && isfield(Exp,'mwFreq')
+        logmsg(1,'  using Exp.mwFreq as detection frequency');
+        Exp.DetFreq = Exp.mwFreq;
+      end
+    end
+    
+    logmsg(1,'  processing transients...');
     
     % Adapt FreqTranslation if needed
     FreqTranslation = zeros(1,nDetOps);
     
-    if isfield(Exp,'DetFrequency') && ~isempty(Exp.DetFrequency)
+    if isfield(Exp,'DetFreq') && ~isempty(Exp.DetFreq)
       
-      % This adapts the values for DetFrequency to simulation frame
-      Exp.DetFrequency(Exp.DetFrequency > 0) = Exp.DetFrequency(Exp.DetFrequency > 0) - Events{1}.FrameShift;
-      Exp.DetFrequency(Exp.DetFrequency < 0) = Exp.DetFrequency(Exp.DetFrequency < 0) + Events{1}.FrameShift;
+      % This adapts the values for DetFreq to simulation frame
+      Exp.DetFreq(Exp.DetFreq > 0) = Exp.DetFreq(Exp.DetFreq > 0) - Events{1}.FrameShift;
+      Exp.DetFreq(Exp.DetFreq < 0) = Exp.DetFreq(Exp.DetFreq < 0) + Events{1}.FrameShift;
       
       % And then writes them
-      FreqTranslation(1:length(Exp.DetFrequency)) = - Exp.DetFrequency; % To make it a down conversion for negative frequencies add the neg sign
+      FreqTranslation(1:length(Exp.DetFreq)) = - Exp.DetFreq; % To make it a down conversion for negative frequencies add the neg sign
       
     end
     
@@ -240,7 +242,7 @@ else
       end
     end
   else
-    logmsg(1,'nothing was detected...');
+    logmsg(1,'  nothing was detected...');
     Signal = [];
   end
 end
@@ -264,8 +266,8 @@ end
 switch nargout
   case 0
     % no output argument - graphical output
-    logmsg(1,'no output requested');
-    logmsg(1,'-switching to graphical output--------------------------');
+    logmsg(1,'-no output requested------------------------------------');
+    logmsg(1,'  switching to graphical output');
     if isempty(Signal)
       disp('Detection was switched off, nothing to display.')
     else
@@ -281,7 +283,7 @@ switch nargout
       end
       
       % Set up figures
-      logmsg(1,'setting up figures...');
+      logmsg(1,'  setting up figures...');
       % only make figures if a) transients were detected or b) single point
       % detection with indirect dimension (but not more than 2) and more
       % than one acquisition point
@@ -305,15 +307,15 @@ switch nargout
       
       if Opt.SinglePointDetection
         % plotting single point detection
-        logmsg(1,'single point detection:');
+        logmsg(1,'  single point detection:');
         if nDataPoints == 1
           % if only a single datapoint was acquired, there is no point in
           % plotting it, instead the output is displayed in the console
           for iDetOp = 1 : nDetOps
             if ischar(Exp.DetOperator{iDetOp})
-              string  = ['Expectation value of ' Exp.DetOperator{iDetOp} ':   '];
+              string  = ['  Expectation value of ' Exp.DetOperator{iDetOp} ':   '];
             else
-              string = ['Expectation value of operator no.' num2str(iDetOp) ':   '];
+              string = ['  Expectation value of operator no.' num2str(iDetOp) ':   '];
             end
             disp([string num2str(Signal(1,iDetOp))]);
           end
@@ -321,11 +323,11 @@ switch nargout
           if length(Exp.nPoints) > 2
             % more than two dimensions can not be displayed in a general
             % way
-            logmsg(1,'more than two indirect dimensions - stopping');
+            logmsg(1,'  more than two indirect dimensions - stopping');
             disp('Unable to display more than two indirect dimensions.')
           elseif length(Exp.nPoints) == 1
             % one dimensional case
-            logmsg(1,'creating plot(s) for one indirect dimension');
+            logmsg(1,'  creating plot(s) for one indirect dimension');
             for iDetOp = 1 : nDetOps
               figure(iDetOp)
               if length(Exp.Dim1{1,2}) == 1
@@ -341,7 +343,7 @@ switch nargout
             end
           elseif length(Exp.nPoints) == 2
             % two dimensional case
-            logmsg(1,'creating plot(s) for two indirect dimensions');
+            logmsg(1,'  creating plot(s) for two indirect dimensions');
             for iDetOp = 1 : nDetOps
               if length(Exp.Dim1{1,2}) == 1
                 % y-axis and its label in case of linear increments
@@ -369,7 +371,7 @@ switch nargout
         end
       else
         % plotting transients - this can get a little messy
-        logmsg(1,'plotting transient(s)');
+        logmsg(1,'  plotting transient(s)');
         if nDataPoints == 1
           % plotting a single acquisition point
           for iDetOp = 1 : nDetOps
@@ -422,3 +424,18 @@ switch nargout
   otherwise
     error('Incorrect number of output arguments. 1,2, or 3 expected.');
 end
+
+%===============================================================
+% Report performance
+%===============================================================
+[Hours,Minutes,Seconds] = elapsedtime(StartTime,clock);
+if (Hours>0)
+  msg = sprintf('spidyan took %dh%dm%0.3fs',Hours,Minutes,Seconds);
+elseif (Minutes>0)
+  msg = sprintf('spidyan took %dm%0.3fs',Minutes,Seconds);
+else
+  msg = sprintf('spidyan took %0.3fs',Seconds);
+end
+logmsg(1,msg);
+
+logmsg(1,'=end=spidyan======%s=================\n',datestr(now));

@@ -18,9 +18,9 @@ if Sys.MO_present, error('saffron/spidyan do not support general parameters!'); 
 if any(Sys.L(:)), error('saffron/spidyan do not support L!'); end
 
 if (Sys.nNuclei==0)
-  logmsg(1,'spin system: %d electron(s)',Sys.nElectrons);
+  logmsg(1,'  spin system: %d electron(s)',Sys.nElectrons);
 else
-  logmsg(1,'spin system: %d electron(s), %d nuclei',Sys.nElectrons,Sys.nNuclei);
+  logmsg(1,'  spin system: %d electron(s), %d nuclei',Sys.nElectrons,Sys.nNuclei);
 end
 
 if isfield(Sys,'n') && any(Sys.n~=1)
@@ -31,7 +31,7 @@ if isfield(Sys,'nn') && any(Sys.nn(:)~=0)
   error('saffron/spidyan do not support nuclear-nuclear couplings (Sys.nn).');
 end
 
-logmsg(1,'looking and verifying fields related to relaxation...');
+logmsg(1,'  looking for and verifying fields related to relaxation');
 % Look for equilibrium state and issue a warning if an equilibrium state is
 % given, but no relaxation times
 if isfield(Sys,'eqState') && ~isfield(Sys,'T2') && ~isfield(Sys,'T1')
@@ -59,7 +59,7 @@ end
 % --------------------------------------------------------------------------------------
 % Total electron spin operators, used for building initial and equilibrium
 % denisity matrix as well es detection and excitation operators
-logmsg(1,'obtaining spin operators...');
+logmsg(1,'  obtaining spin operators');
 totSpinOps = cell(1,3);
 for iSpin = 1:numel(Sys.S)
   if iSpin == 1
@@ -75,7 +75,7 @@ end
 
 % Set up initial state
 % --------------------------------------------------------------------------------------
-logmsg(1,'setting up the initial state...');
+logmsg(1,'  setting up the initial state');
 
 % Build or load initial state
 if isfield(Sys,'initState') && ~isempty(Sys.initState)
@@ -99,7 +99,7 @@ end
 if all([Sys.T1(:); Sys.T2(:)] == 0)
   Relaxation = [];
 else
-  logmsg(1,'setting up the relaxation superoperator and the equilibrium state...');
+  logmsg(1,'  setting up the relaxation superoperator and the equilibrium state');
 
   Relaxation.Gamma = s_relaxationsuperoperator(Sys);
   
@@ -125,7 +125,7 @@ end
 
 % Set up excitation operators
 % --------------------------------------------------------------------------------------
-logmsg(1,'setting up the excitation operators...');
+logmsg(1,'  setting up the excitation operators');
 
 % -------------------------------------------------------------------------
 % Build the excitation operator for each pulse - if a custom excitation
@@ -169,7 +169,7 @@ end
 
 % Set up detection operators
 % -------------------------------------------------------------------------
-logmsg(1,'setting up the detection operators...');
+logmsg(1,'  setting up the detection operators');
 
 useDefaultDetOperator = ~isfield(Opt,'DetOperator') || isempty(Opt.DetOperator);
 
@@ -200,5 +200,5 @@ else
       DetOps{iDetectionOperator} = Opt.DetOperator{iDetectionOperator};
     end
   end
-logmsg(1,'spin system validation finished successfully!');
+logmsg(1,'  spin system validation finished successfully!');
 end

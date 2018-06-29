@@ -9,7 +9,7 @@ Pulse.Type = 'quartersin/linear';
 Pulse.trise = 0.015; % us
 Pulse.Qcrit = 7;
 Pulse.tp = 0.2;
-Pulse.Frequency = [-0.1 0.1];
+Pulse.Frequency = 1000* [-0.1 0.1];
 
 Exp.Sequence = {Pulse 0.5 Pulse};
 Exp.Field = 1240; 
@@ -24,7 +24,7 @@ Exp.Dim2 = {'p2.Qcrit' 0.05};
 
 % Options ---------------------------
 Exp.DetOperator = {'z1'};
-Opt.SimFrequency = 32;
+Opt.SimFreq = 32;
 
 [t1, signal1] = spidyan(Sys,Exp,Opt);
 

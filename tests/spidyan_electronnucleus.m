@@ -9,7 +9,7 @@ Sys = nucspinadd(Sys,'1H',[8 45 45]);
 Pulse.Type = 'quartersin/linear';
 Pulse.trise = 0.015; % us
 Pulse.tp = 0.1;
-Pulse.Frequency = [-0.100 0.100];
+Pulse.Frequency = 1000* [-0.100 0.100];
 Pulse.Flip = pi;
 
 Exp.Sequence = {Pulse 0.5};
@@ -23,8 +23,8 @@ Exp.DetSequence = [1 1];
 
 % Options ---------------------------
 Exp.DetOperator = {'z1'};
-Exp.DetFrequency = [0]; 
-Opt.SimFrequency = 32;
+Exp.DetFreq = [0]; 
+Opt.SimFreq = 32;
 
 [t1, signal1] = spidyan(Sys,Exp,Opt);
 

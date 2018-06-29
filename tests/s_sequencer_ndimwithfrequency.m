@@ -10,8 +10,8 @@ Exp.TimeStep = 0.0001; % us
 Exp.mwFreq = 33.5;
 Exp.DetSequence = 1; 
 
-Opt.SimFrequency = 32;
-
+Opt.SimFreq = 32;
+Opt.SimulationMode = 'step wise';
 
 % This tests different ways of defining a dimension where the frequency is
 % swept - They should all give the same results
@@ -33,7 +33,7 @@ Exp.Dim1 = {'p1.Frequency' [0 0; 0.05 0.05; 0.1 0.1]};
 [~, Vary3] = runprivate('s_sequencer',Exp,Opt);
 
 % Fourth Syntax -----------------------------
-Pulse.Frequency = [0 0];
+Pulse.Frequency = 1000* [0 0];
 Exp.Sequence = {Pulse 0.5 Pulse};
 
 Exp.Dim1 = {'p1.Frequency(1),p1.Frequency(2)' 0.05};
@@ -41,7 +41,7 @@ Exp.Dim1 = {'p1.Frequency(1),p1.Frequency(2)' 0.05};
 [~, Vary4] = runprivate('s_sequencer',Exp,Opt);
 
 % Fourth Syntax -----------------------------
-Exp.Frequency = [0 0];
+Exp.Frequency = 1000* [0 0];
 Exp.Dim1 = {'p1.Frequency(1)' 0.05;
            'p1.Frequency(2)' 0.05};
 

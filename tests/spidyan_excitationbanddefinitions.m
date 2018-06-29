@@ -15,7 +15,7 @@ Pulse.Flip = pi;
 
 % First method ----------------------
 Exp.mwFreq = 33.5;
-Pulse.Frequency = [-0.100 0.100];
+Pulse.Frequency = 1000* [-0.100 0.100];
 
 Exp.Sequence = {Pulse 0.5 Pulse};
 Exp.Field = 1240; 
@@ -24,7 +24,7 @@ Exp.TimeStep = 0.00001; % us
 
 % Detection -------------------------
 Exp.DetOperator = {'z1','+1'};
-Exp.DetFrequency = [0 33.5]; 
+Exp.DetFreq = [0 33.5]; 
 
 
 % Function Call -----------------------------
@@ -33,7 +33,7 @@ Exp.DetFrequency = [0 33.5];
 
 % Second Method -------------------------
 Exp = rmfield(Exp,'mwFreq');
-Pulse.Frequency = [33.400 33.600];
+Pulse.Frequency = 1000* [33.400 33.600];
 Exp.Sequence = {Pulse 0.5 Pulse};
 
 [~, ~, out2] = spidyan(Sys,Exp);

@@ -18,7 +18,7 @@ Exp.DetSequence = 1;
 
 % Options ---------------------------
 Exp.DetOperator = {'z1'};
-Opt.SimFrequency = 32;
+Opt.SimFreq = 32;
 
 % To test --------------------------
 Exp.nPoints = 3;
