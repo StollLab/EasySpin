@@ -4,9 +4,9 @@ function [varargout] = s_sequencer(Exp,Opt)
 logmsg(1,'-validating pulse sequence-----------------------------');
 
 % Validate the input and select a propagation engine
-predefinedExperiment = isstring(Exp.Sequence);
+predefinedExperiment = ischar(Exp.Sequence);
 
-message = [];
+message = []; % initialize message that explains the choice of simulation algorithm - 'fast' or 'general'
 
 OrigSimulationMode = Opt.SimulationMode;
 
@@ -15,22 +15,30 @@ saffronSpecificFieldsOpt = {'TimeDomain','Expand','ProductRule',...
   'EndorMethod','nOffsets','lwOffset','logplot','Window','ZeroFillFactor'};
 generalFields = {'mwFreq','Field','CrystalOrientation','CrystalSymmetry'};
 
-if predefinedExperiment
-  Exp_oldSyntax = Exp;
-  logmsg(1,'  found predefined experiment');
-end
-
+% Check a few general fields if the fast algorithm can be run at all
 DetDelay = 0;
 if isfield(Exp,'DetWindow')
   if length(Exp.DetWindow) > 1 && Exp.DetWindow(2)-Exp.DetWindow(1)
-    Opt.SimulationMode = 'step wise';
+    Opt.SimulationMode = 'thyme';
     message = addtomessage(message,'Exp.DetWindow is set to transient detection');
   else
     DetDelay = Exp.DetWindow(1);
   end
 end
 
-if ~predefinedExperiment && (~isfield(Opt,'SimulationMode') || strcmp(Opt.SimulationMode,'saffron 1.0'))
+if isfield(Exp,'Resonator')
+  Opt.SimulationMode = 'thyme';
+  message = addtomessage(message,'Exp.Resonator structure was found');
+end
+ 
+%
+if predefinedExperiment && isfield(Exp,'DetWindow')
+  Opt.SimulationMode = 'thyme';
+  message = addtomessage(message,'predefined experiments can not be run in combination with Exp.DetWindow');
+end
+
+% Creates the Exp structure in the old saffron syntax
+if ~predefinedExperiment && (~isfield(Opt,'SimulationMode') || strcmp(Opt.SimulationMode,'fast'))
   Exp_oldSyntax = [];
   
   Sequence = Exp.Sequence;
@@ -55,7 +63,7 @@ if ~predefinedExperiment && (~isfield(Opt,'SimulationMode') || strcmp(Opt.Simula
   
   if any(diff(PulsePositions)==0)
     % neigbouring pulses, can not be processed by saffron
-    Opt.SimulationMode = 'step wise';
+    Opt.SimulationMode = 'thyme';
     message = addtomessage(message,'two or more pulses are not separated by an interpulse delay');
   end
   
@@ -69,14 +77,14 @@ if ~predefinedExperiment && (~isfield(Opt,'SimulationMode') || strcmp(Opt.Simula
     % make sure its a rectangular pulse
     if isfield(Sequence{Pos},'Type') && ~strcmp(Sequence{Pos},'rectangular')
       message = addtomessage(message,'the fast algorithm only supports ideal or monochromatic rectangular pulses');
-      Opt.SimulationMode = 'step wise';
+      Opt.SimulationMode = 'thyme';
     end
     
     % determine flip angle
     if isfield(Sequence{Pos},'Flip')
       Flip(iPulse) = Sequence{Pos}.Flip/pi*2;
     else
-      Opt.SimulationMode = 'step wise';
+      Opt.SimulationMode = 'thyme';
       message = addtomessage(message,'flip angles must be provided');
     end
     
@@ -105,7 +113,6 @@ if ~predefinedExperiment && (~isfield(Opt,'SimulationMode') || strcmp(Opt.Simula
   Exp_oldSyntax.Flip = Flip;
   Exp_oldSyntax.tp = tp;
   Exp_oldSyntax.Phase = Phase;
-  disp(Phase)
   
   % Populate NewExp with all the other saffron specific fields
   % compares the list of saffron specific fields with
@@ -122,7 +129,7 @@ if ~predefinedExperiment && (~isfield(Opt,'SimulationMode') || strcmp(Opt.Simula
     
     if nDimensions > 2
       message = addtomessage(message,'more than 2 indirect dimensions were provided');
-      Opt.SimulationMode = 'step wise';
+      Opt.SimulationMode = 'thyme';
     end
     dt = zeros(1,nDimensions);
     
@@ -152,7 +159,7 @@ if ~predefinedExperiment && (~isfield(Opt,'SimulationMode') || strcmp(Opt.Simula
           if strcmp(EventType,'p')
             % can't use saffron with changing pulses
             message = addtomessage(message,['a pulse parameter is changed along indirect dimension no. ' num2str(iDimension)]);
-            Opt.SimulationMode = 'step wise';
+            Opt.SimulationMode = 'thyme';
           else
             Inc(EventSpecificIndex) = iDimension;
           end
@@ -160,7 +167,7 @@ if ~predefinedExperiment && (~isfield(Opt,'SimulationMode') || strcmp(Opt.Simula
           if dt(iDimension) == 0
             dt(iDimension) = Exp.(Field2Get){iLine,2};
           elseif dt(iDimension) ~= Exp.(Field2Get){iLine,2}
-            Opt.SimulationMode = 'step wise';
+            Opt.SimulationMode = 'thyme';
             message = addtomessage(message,['the increment of dimension no. ' num2str(iDimension) ' is not linear']);
           end
         end
@@ -200,7 +207,7 @@ if ~strcmp(OrigSimulationMode,Opt.SimulationMode)
   end
 end
 
-if strcmp(Opt.SimulationMode,'saffron 1.0')
+if strcmp(Opt.SimulationMode,'fast')
   
   varargout{1} = Exp_oldSyntax;
   varargout{2} = [];
@@ -209,7 +216,6 @@ if strcmp(Opt.SimulationMode,'saffron 1.0')
   return
 end
 
-
 % -------------------------------------------------------------------------
 % Pre-Processing
 % -------------------------------------------------------------------------
@@ -217,6 +223,11 @@ end
 Vary = [];
 
 Opt.SinglePointDetection = false;
+
+if predefinedExperiment
+  % set up Exp structure from predefined experiment for thyme
+  Exp = s_predefinedexperiments(Exp);
+end
 
 % Set up detection
 if isfield(Exp,'DetWindow')
