@@ -794,7 +794,7 @@ if isfield(Exp,'nPoints')
   % dimensions have been checked, the values stored in Pulse
   % -----------------------------------------------------------------------
   logmsg(1,'  found %d indirect dimension(s)',nDimensions);
-  logmsg(1,'  with a total %d acquisition points',prod(Vary.Points));
+  logmsg(1,'  with a total %d data points',prod(Vary.Points));
   for iDimension = 1 : nDimensions
     logmsg(1,'  parsing dimension no. %d',iDimension);
     % If it is not possible to use a predefined incrementation scheme,

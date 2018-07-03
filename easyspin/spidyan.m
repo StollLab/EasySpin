@@ -89,7 +89,7 @@ elseif length(Exp.Field) ~= 1
 end
 
 % Build the Event and Vary structure
-Opt.SimulationMode = 'step wise'; % to force s_sequencer to setup for step wise
+Opt.SimulationMode = 'thyme'; % to force s_sequencer to setup for step wise
 
 [Events, Vary, Opt] = s_sequencer(Exp,Opt);
 
@@ -172,7 +172,7 @@ Ham = sham(Sys,Exp.Field*[0 0 1]);
 
 % Calls the actual propagation engine
 logmsg(1,'-starting propagation----------------------------------');
-logmsg(1,'  this may take a while...');
+logmsg(1,'  depending on the Exp setup this may take a while...');
 [TimeAxis, RawSignal, FinalState, StateTrajectories, Events] = ...
   s_thyme(Sigma, Ham, DetOps, Events, Relaxation, Vary);
 logmsg(1,'  propagation finished!');

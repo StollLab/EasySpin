@@ -11,7 +11,7 @@ Exp.Field = 1240; % run the experiment at Q band
 
 % pepper(Sys,Exp) % You can use pepper to see the spectrum and to make sure
 % you set your pulses correctly
-
+Opt.Verbosity = true;
 Symmetry = symm(Sys);
 nKnots = 20; % adjust carefully! the more orientations we pick, the better the result, but it might also take much longer
 
@@ -24,13 +24,13 @@ Chirp90.Type = 'quartersin/linear';
 Chirp90.trise = 0.030;
 Chirp90.tp = 0.200;
 Chirp90.Flip = pi/2;
-Chirp90.Frequency = [-0.3 0.3]; % excitation band, GHz
+Chirp90.Frequency = [-300 300]; % excitation band, GHz
 
 Chirp180.Type = 'quartersin/linear';
 Chirp180.trise = 0.030;
 Chirp180.tp = 0.100;
 Chirp180.Flip = pi;
-Chirp180.Frequency = [-0.3 0.3]; % excitation band, GHz
+Chirp180.Frequency = [-300 300]; % excitation band, GHz
 
 % save time by using five events: the last two events are free evolution
 % events, but we only detect during the very last one. This saves time 
@@ -40,16 +40,15 @@ Exp.Sequence = {Chirp90 0.25 Chirp180 0.25 0.2};
 Exp.Flip = [pi/2 pi];
 Exp.mwFreq = 34.78; % GHz
 
-
 % If you want to see only the free evolution after the second pulse, try 
 % this instead:
 Exp.DetSequence = [0 0 0 0 1];
 Exp.DetOperator = {'+1'};
 
-Exp.DetFrequency = 34.78; % GHz
+% Exp.DetFreq= 34.78; % GHz
 
 % Opt.SimFrequency = 0;
-Opt.Verbosity = true;
+
 
 %% A refocused echo with monochromatic pulses
 
