@@ -1,5 +1,5 @@
 function [err,data] = test(opt,olddata)
-% Check that supplying a pseudopotential energy function to stochtraj 
+% Check that supplying a pseudopotential energy function to stochtraj_diffusion 
 % generates a proper distribution of orientations
 
 idx = [2, 1, 3];  % for permuting dimensions to go between ngrid and 
@@ -52,7 +52,7 @@ Hist3D = zeros(abins, bbins, gbins, nTraj);
      
 err = 0;
 
-[t, qTraj] = stochtraj(Sys,Par);  % extract quaternions from trajectories
+[t, qTraj] = stochtraj_diffusion(Sys,Par);  % extract quaternions from trajectories
 
 M = 500;
 

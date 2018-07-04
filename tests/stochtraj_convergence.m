@@ -1,6 +1,6 @@
 function [err,data] = test(opt,olddata)
-% Check that using stochtraj with anisotropic diffusion generates a
-% proper distribution of orientations
+% Check that using stochtraj_diffusion with with convergence-checking works
+% properly
 
 Sys.tcorr = 10e-9;
 Par.dt = Sys.tcorr/10;
@@ -17,7 +17,7 @@ nBins = 50;
 c20 = 3;
 Sys.Potential.lambda = [c20, c20];
 Sys.Potential.LMK = [2, 0, 0];
-[~, q] = stochtraj(Sys,Par,Opt);
+[~, q] = stochtraj_diffusion(Sys,Par,Opt);
 R = quat2rotmat(q);
 
 VecTraj = squeeze(R(:, 3, :, :));

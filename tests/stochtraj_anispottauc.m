@@ -1,5 +1,5 @@
 function [err,data] = test(opt,olddata)
-% Check that using stochtraj with anisotropic diffusion generates a
+% Check that using stochtraj_diffusion with anisotropic diffusion generates a
 % proper rotational correlation timez
 
 Sys.tcorr = 10*rand()*1e-9;
@@ -17,7 +17,7 @@ nSteps = Par.nSteps;
 c20 = 10;
 Sys.Potential.lambda = [c20, c20];
 Sys.Potential.LMK = [2, 0, 0];
-[t, q] = stochtraj(Sys,Par);
+[t, q] = stochtraj_diffusion(Sys,Par);
 R = quat2rotmat(q);
 
 VecTraj = squeeze(R(:,3,:,:));

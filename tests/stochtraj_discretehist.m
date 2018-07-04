@@ -16,7 +16,7 @@ Par.nSteps = ceil(200*tau/Par.dt);
 
 Opt.Model = 'Discrete';
 
-[t, trash, stateTraj] = stochtraj(Sys,Par,Opt);
+[t, trash, stateTraj] = stochtraj_jump(Sys,Par,Opt);
 
 [n,trash,trash] = histcounts(stateTraj,'Normalization','Probability');
 

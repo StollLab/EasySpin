@@ -5,7 +5,7 @@ Par.dt = 0.1e-9;
 Par.nSteps = 2000;
 Par.nTraj = 1;
 
-[t, q] = stochtraj(Sys,Par);
+[t, q] = stochtraj_diffusion(Sys,Par);
 
 err = false;
 

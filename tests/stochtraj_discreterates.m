@@ -4,7 +4,7 @@ function [err,data] = test(opt,olddata)
 
 Par.nTraj = 500;
 Sys.TransRates = 1e9*[-0.5,  0.5;
-                  0.5, -0.5];
+                       0.5, -0.5];
 Sys.States = [0,  0;
               0, pi;
               0,  0];
@@ -21,7 +21,7 @@ States = euler2quat(Sys.States);
 nTraj = Par.nTraj;
 nSteps = Par.nSteps;
 
-[t, qTraj] = stochtraj(Sys,Par,Opt);
+[t, qTraj] = stochtraj_jump(Sys,Par,Opt);
 RTraj = quat2rotmat(qTraj);
 
 VecTraj = squeeze(RTraj(:,3,:,:));

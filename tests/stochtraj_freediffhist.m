@@ -1,5 +1,5 @@
 function [err,data] = test(opt,olddata)
-% Check that using stochtraj with free diffusion generates a proper 
+% Check that using stochtraj_diffusion with free diffusion generates a proper 
 % distribution of orientations
 
 Sys.tcorr = 10*rand()*1e-9;
@@ -15,7 +15,7 @@ nSteps = Par.nSteps;
 
 nBins = 50;
 
-[t, q] = stochtraj(Sys,Par);
+[t, q] = stochtraj_diffusion(Sys,Par);
 R = quat2rotmat(q);
 
 VecTraj = squeeze(R(:, 3, :, :));

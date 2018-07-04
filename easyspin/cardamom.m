@@ -1055,7 +1055,7 @@ while ~converged
         Sys.Diff = Dynamics.Diff;
         Par.dt = dtStoch;
         Par.nSteps = nStepsStoch;
-        [trash, qTraj] = stochtraj(Sys,Par,Opt);
+        [trash, qTraj] = stochtraj_diffusion(Sys,Par,Opt);
         Par.qTraj = qTraj;
         Par.RTraj = quat2rotmat(qTraj);
         Par.qLab = [];
@@ -1070,7 +1070,7 @@ while ~converged
         Sys.Diff = Dynamics.Diff;
         Par.dt = dtStoch;
         Par.nSteps = nStepsStoch;
-        [trash, qTraj] = stochtraj(Sys,Par,Opt);
+        [trash, qTraj] = stochtraj_diffusion(Sys,Par,Opt);
         % generate quaternions for rotating to different grid points
         
         if strcmp(Opt.Method,'ISTOs')
@@ -1096,7 +1096,7 @@ while ~converged
         end
         Par.dt = dtStoch;
         Par.nSteps = nStepsStoch;
-        [trash, qTrajLocal] = stochtraj(Sys,Par,Opt);
+        [trash, qTrajLocal] = stochtraj_diffusion(Sys,Par,Opt);
 
         % global diffusion
         Sys.Diff = DiffGlobal;
@@ -1108,7 +1108,7 @@ while ~converged
         end
         Par.dt = dtQuant;
         Par.nSteps = nStepsQuant;
-        [trash, qTrajGlobal] = stochtraj(Sys,Par,Opt);
+        [trash, qTrajGlobal] = stochtraj_diffusion(Sys,Par,Opt);
         qLab = quatmult(qLab,qTrajGlobal);
         
         Par.qTraj = qTrajLocal;
@@ -1120,19 +1120,18 @@ while ~converged
         qLab = repmat(euler2quat(0, gridTheta(iOrient), gridPhi(iOrient)),...
                [1,Par.nTraj,nStepsQuant]);
              
-        % local diffusion
-%         Sys.Diff = DiffLocal;
+        % Markovian jumps
         Par.dt = dtStoch;
         Par.nSteps = nStepsStoch;
         Opt.Model = 'Discrete';
-        [trash, qTrajLocal] = stochtraj(Sys,Par,Opt);
+        [trash, qTrajLocal] = stochtraj_jump(Sys,Par,Opt);
         
         % global diffusion
         Sys.Diff = DiffGlobal;
         Par.dt = dtQuant;
         Par.nSteps = nStepsQuant;
         Opt.Model = 'Continuous';
-        [trash, qTrajGlobal] = stochtraj(Sys,Par,Opt);
+        [trash, qTrajGlobal] = stochtraj_diffusion(Sys,Par,Opt);
         qLab = quatmult(qLab,qTrajGlobal);
         
         Par.qTraj = qTrajLocal;
@@ -1155,7 +1154,7 @@ while ~converged
               Sys.Diff = MD.GlobalDiff;
               Par.dt = dtQuant;
               Par.nSteps = nStepsQuant;  % TODO find a way to set this up with a separate time step properly
-              [trash, qTrajGlobal] = stochtraj(Sys,Par,Opt);
+              [trash, qTrajGlobal] = stochtraj_diffusion(Sys,Par,Opt);
               qLab = quatmult(qLab, qTrajGlobal);
             end
 
@@ -1188,14 +1187,14 @@ while ~converged
             Sys.Diff = DiffLocal;
             Par.dt = dtStoch;
             Par.nSteps = nStepsStoch;
-            [trash, qTraj] = stochtraj(Sys,Par,Opt);
+            [trash, qTraj] = stochtraj_diffusion(Sys,Par,Opt);
 
             % global diffusion
             if isfield(MD, 'GlobalDiff')
               Sys.Diff = MD.GlobalDiff;
               Par.dt = dtQuant;
               Par.nSteps = nStepsQuant;
-              [trash, qTrajGlobal] = stochtraj(Sys,Par,Opt);
+              [trash, qTrajGlobal] = stochtraj_diffusion(Sys,Par,Opt);
               qLab = quatmult(qLab, qTrajGlobal);
             end
 
@@ -1220,7 +1219,7 @@ while ~converged
             Par.dt = dtStoch;
             Par.nSteps = nStepsStoch;
             Opt.Model = 'Discrete';
-            [trash, stateTraj] = stochtraj(Sys,Par,Opt);
+            [trash, stateTraj] = stochtraj_jump(Sys,Par,Opt);
             
            % global diffusion
             if isfield(MD, 'GlobalDiff')
@@ -1230,7 +1229,7 @@ while ~converged
               Opt.Model = 'Continuous';
 %               Par.Omega = qLab;
 %               Par.Omega = [0;0;0];
-              [trash, qTrajGlobal] = stochtraj(Sys,Par,Opt);
+              [trash, qTrajGlobal] = stochtraj_diffusion(Sys,Par,Opt);
 %               qLab = qTrajGlobal;
               qLab = quatmult(qLab, qTrajGlobal);
             end

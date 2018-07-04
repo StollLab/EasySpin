@@ -1,6 +1,6 @@
 function [err,data] = test(opt,olddata)
-% Check that using stochtraj with an anisotropic orienting potential 
-% generates a proper distribution of orientations by 
+% Check that using stochtraj_diffusion with an anisotropic orienting 
+% potential generates a proper distribution of orientations by 
 % (1) calculating a histogram of Euler angles for each trajectory, and
 % (2) averaging over all trajectories and comparing with the corresponding
 %     Boltzmann distribution function, i.e. \exp(-U(\omega)/kT)
@@ -41,7 +41,7 @@ N = round(nSteps/2);
 for j=1:size(LMK,1)
   Sys.Potential.lambda = [4, 0];
   Sys.Potential.LMK = LMK(j,:);
-  [~, q] = stochtraj(Sys,Par);  % extract quaternions from trajectories
+  [~, q] = stochtraj_diffusion(Sys,Par);  % extract quaternions from trajectories
   
   % pre-allocate array for 3D histograms
   % note that the output will be of size (nBins,nBins,nBins), rather than the 
