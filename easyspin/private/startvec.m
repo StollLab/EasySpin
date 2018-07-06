@@ -13,19 +13,21 @@ lambda = Potential.lambda;
 Lp = Potential.L;
 Mp = Potential.M;
 Kp = Potential.K;
-if any(Mp)
-  error('Potential coefficients with non-zero M are not supported.');
-end
+
+% Detect Freed-style potential (even L, M=0, even K)
+zeroM = all(Mp==0);
+evenL = all(mod(Lp,2)==0);
+evenK = all(mod(Kp,2)==0);
 
 if ~any(lambda)
   idx0 = find(L==0 & M==0 & K==0);
   if numel(idx0)~=1
     error('Exactly one orientational basis function with L=M=K=0 is allowed.');
   end
-  nSpinBasis = numel(SxH);
+  nSpinBasis = numel(SopH);
   idx = (idx0-1)*nSpinBasis + (1:nSpinBasis);
   nBasis = nOriBasis*nSpinBasis;
-  StartingVector = sparse(idx,1,SxH(:),nBasis,nBasis);
+  StartingVector = sparse(idx,1,SopH(:),nBasis,nBasis);
   StartingVector = StartingVector/sqrt(sum(StartingVector.^2));
   return
 end
@@ -37,12 +39,22 @@ for b = 1:numel(oriVector)
   M_  = M(b);
   K_  = K(b);
   jK_ = jK(b);
-  if mod(L_,2)==0 && M_==0 && mod(K_,2)==0 && jK_==1
-    % numerically integrate
+  
+  if zeroM
+    if M_~=0, continue; end
+    if evenL && mod(L_,2)~=0, continue; end
+    if evenK && mod(K_,2)~=0, continue; end
+    if jK_~=1, continue; end
+    fun = @(b,c) cos(K_*c) .* wignerd([L_ 0 K_],b) .* exp(-U(0,b,c)/2) .* sin(b);
+    Int = (2*pi) * integral2(fun,0,pi,0,2*pi);
+  else
     fun = @(a,b,c) conj(wignerd([L_ M_ K_],a,b,c)) .* exp(-U(a,b,c)/2) .* sin(b);
-    Int = sqrt((2*L_+1)/(8*pi^2)) * integral3(fun,0,2*pi,0,pi,0,2*pi);
-    oriVector(b) = sqrt(2/(1 + (K_==0))) * Int;
+    Int = integral3(fun,0,2*pi,0,pi,0,2*pi);
   end
+  
+  if abs(Int)<1e-10, continue; end
+  
+  oriVector(b) = sqrt(2/(1 + (K_==0))) * sqrt((2*L_+1)/(8*pi^2)) * Int;
 end
 
 % form starting vector in direct product basis
