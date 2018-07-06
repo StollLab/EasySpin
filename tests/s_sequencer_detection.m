@@ -16,7 +16,7 @@ Exp.TimeStep = 0.0001; % us
 Exp.mwFreq = 33.5;
 Exp.DetSequence = [1 0 0 0]; 
 
-Opt.SimulationMode = 'step wise';
+Opt.SimulationMode = 'thyme';
 
 % First Test ---------------------------------------
 

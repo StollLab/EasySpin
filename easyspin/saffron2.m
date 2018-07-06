@@ -93,10 +93,12 @@ if isfield(SysVal,'nn') && any(SysVal.nn(:)~=0)
   Opt.SimulationMode = 'thyme';
 end
 
-[Events,Vary,Opt] = s_sequencer(Exp,Opt);
-
-if strcmp(Opt.SimulationMode,'fast')
-  Exp = Events;
+if ~isfield(Exp,'Processed')
+  [Events,Vary,Opt] = s_sequencer(Exp,Opt);
+  
+  if strcmp(Opt.SimulationMode,'fast')
+    Exp = Events;
+  end
 end
 
 DefaultExp.Temperature = [];
@@ -129,6 +131,15 @@ if ~isfield(Opt,'Symmetry'), Opt.Symmetry = []; end
 if ~isfield(Opt,'SymmFrame'), Opt.SymmFrame = []; end
 if ~isfield(Opt,'Transitions'), Opt.Transitions = []; end
 if ~isfield(Opt,'Sites'), Opt.Sites = []; end
+
+% Number of knots: determines number of orientations
+if ~isfield(Opt,'nKnots'), Opt.nKnots = 30+1; end
+if numel(Opt.nKnots)>1
+  error('Only one number allowed in Opt.nKnots. saffron does not support interpolation.');
+end
+if (Opt.nKnots<7)
+  error('Opt.nKnots must be at least 7. You gave %d.',Opt.nKnots);
+end
 
 % set up orientation loop:
 if ~isfield(Exp,'OriWeights')
@@ -860,16 +871,7 @@ if strcmp(Opt.SimulationMode,'fast')
   if (numel(Opt.Expand)~=1) || (Opt.Expand<0) || (Opt.Expand>maxExpand) || rem(Opt.Expand,1)
     error('Opt.Expand must be an integer between 0 and %d.',maxExpand);
   end
-  
-  % Number of knots: determines number of orientations
-  if ~isfield(Opt,'nKnots'), Opt.nKnots = 30+1; end
-  if numel(Opt.nKnots)>1
-    error('Only one number allowed in Opt.nKnots. saffron does not support interpolation.');
-  end
-  if (Opt.nKnots<7)
-    error('Opt.nKnots must be at least 7. You gave %d.',Opt.nKnots);
-  end
-  
+    
   if (any(realPulse) && Opt.ProductRule)
     error('saffron: Cannot apply product rule and real pulses at the same time.');
   end

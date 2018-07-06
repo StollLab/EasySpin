@@ -13,7 +13,7 @@ Exp.nPoints = 200;
 Opt.nKnots = 181;
 Opt.Verbosity = 0;
 
-y = saffron(Sys,Exp,Opt);
+y = saffron2(Sys,Exp,Opt);
 y = y/max(abs(y(:)));
 y = real(y);
 

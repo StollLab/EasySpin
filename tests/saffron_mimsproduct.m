@@ -15,9 +15,9 @@ opt.Verbosity = 0;
 
 opt.EndorMethod = 1;
 opt.ProductRule = 0;
-[x,y0] = saffron(sys,exp,opt);
+[x,y0] = saffron2(sys,exp,opt);
 opt.ProductRule = 1;
-[x,y1] = saffron(sys,exp,opt);
+[x,y1] = saffron2(sys,exp,opt);
 
 n = @(y)y/max(abs(y));
 y0 = n(y0);

@@ -30,7 +30,7 @@ if isfield(Exp,'Resonator')
   Opt.SimulationMode = 'thyme';
   message = addtomessage(message,'Exp.Resonator structure was found');
 end
- 
+
 %
 if predefinedExperiment && isfield(Exp,'DetWindow')
   Opt.SimulationMode = 'thyme';
@@ -38,147 +38,152 @@ if predefinedExperiment && isfield(Exp,'DetWindow')
 end
 
 % Creates the Exp structure in the old saffron syntax
-if ~predefinedExperiment && (~isfield(Opt,'SimulationMode') || strcmp(Opt.SimulationMode,'fast'))
-  Exp_oldSyntax = [];
+if ~isfield(Opt,'SimulationMode') || strcmp(Opt.SimulationMode,'fast')
   
-  Sequence = Exp.Sequence;
-  if isfield(Exp,'DetWindow')
-    if isstruct(Sequence{end})
-      Sequence{end+1} = DetDelay;
-    else
-      Sequence{end} = Sequence{end} + DetDelay;
-      if Sequence{end} < 0
-        error('The last event before your detection event is too short.')
-      end
-    end
-  end
-  
-  % getting some basic knowledge about the experiment
-  Pulses = cellfun(@isstruct,Sequence);
-  PulsePositions = find(Pulses);
-  DelayPositions = find(Pulses==0);
-  
-  nPulses = length(PulsePositions);
-  nDelays = length(DelayPositions);
-  
-  if any(diff(PulsePositions)==0)
-    % neigbouring pulses, can not be processed by saffron
-    Opt.SimulationMode = 'thyme';
-    message = addtomessage(message,'two or more pulses are not separated by an interpulse delay');
-  end
-  
-  Flip = zeros(1,nPulses);
-  tp = zeros(1,nPulses);
-  Phase = ones(1,nPulses);
-  iPulse = 1;
-  
-  % Loop over the sequence - verify and write into saffron specific fields
-  for Pos = PulsePositions
-    % make sure its a rectangular pulse
-    if isfield(Sequence{Pos},'Type') && ~strcmp(Sequence{Pos},'rectangular')
-      message = addtomessage(message,'the fast algorithm only supports ideal or monochromatic rectangular pulses');
-      Opt.SimulationMode = 'thyme';
-    end
+  if predefinedExperiment
+    Exp_oldSyntax = Exp;
+  else
+    Exp_oldSyntax = [];
     
-    % determine flip angle
-    if isfield(Sequence{Pos},'Flip')
-      Flip(iPulse) = Sequence{Pos}.Flip/pi*2;
-    else
-      Opt.SimulationMode = 'thyme';
-      message = addtomessage(message,'flip angles must be provided');
-    end
-    
-    if isfield(Sequence{Pos},'Phase')
-      Phase(iPulse) = mod(Phase(iPulse)+(Sequence{Pos}.Phase/pi*2),4);
-    end
-    
-    % Get time length for non-ideal pulses
-    if isfield(Sequence{Pos},'tp') && Sequence{Pos}.tp ~= 0
-      tp(iPulse) = Sequence{Pos}.tp;
-    end
-    
-    iPulse = iPulse + 1;
-  end
-  
-  % set up saffron fields for delays
-  t = zeros(1,nDelays);
-  iDelay = 1;
-  
-  for Pos = DelayPositions
-    t(iDelay) = Sequence{Pos};
-    iDelay = iDelay + 1;
-  end
-  
-  Exp_oldSyntax.t = t;
-  Exp_oldSyntax.Flip = Flip;
-  Exp_oldSyntax.tp = tp;
-  Exp_oldSyntax.Phase = Phase;
-  
-  % Populate NewExp with all the other saffron specific fields
-  % compares the list of saffron specific fields with
-  for iField = 1 : length(generalFields)
-    if isfield(Exp,generalFields{iField})
-      Exp_oldSyntax.(generalFields{iField}) = Exp.(generalFields{iField});
-    end
-  end
-  
-  if isfield(Exp,'nPoints')
-    nDimensions = length(Exp.nPoints);
-    
-    Inc = zeros(1,nDelays);
-    
-    if nDimensions > 2
-      message = addtomessage(message,'more than 2 indirect dimensions were provided');
-      Opt.SimulationMode = 'thyme';
-    end
-    dt = zeros(1,nDimensions);
-    
-    % loop over the indirect dimensions and check what is being changed -
-    % the old saffron engine can only increment delays
-    for iDimension = 1 : nDimensions
-      Field2Get = ['Dim' num2str(iDimension)];
-      
-      % Loop over the lines of Exp.DimX, eg: Exp.DimX = {'d1,d2' 0.4; 'd2' 0.3}
-      for iLine = 1 : size(Exp.(Field2Get),1)
-        % Gets the string, that lists the events/fields that are to be
-        % changed
-        FullString = Exp.(Field2Get){iLine,1};
-        
-        % changed values are seperated with commas, eg: {'d1,d2' 0.4}
-        SplitStrings = regexp(FullString,',','split');
-        
-        % loop over the individual comma separated increments: {'d1,d2'
-        % 0.4} --> {'d1' 0.4} and {'d2' 0.4}
-        for iModifiedEvent = 1 : length(SplitStrings)
-          
-          Strings = regexp(SplitStrings{iModifiedEvent},'\.','split');
-          
-          EventType = Strings{1}(1);
-          EventSpecificIndex = str2double(Strings{1}(2:end));
-          
-          if strcmp(EventType,'p')
-            % can't use saffron with changing pulses
-            message = addtomessage(message,['a pulse parameter is changed along indirect dimension no. ' num2str(iDimension)]);
-            Opt.SimulationMode = 'thyme';
-          else
-            Inc(EventSpecificIndex) = iDimension;
-          end
-          
-          if dt(iDimension) == 0
-            dt(iDimension) = Exp.(Field2Get){iLine,2};
-          elseif dt(iDimension) ~= Exp.(Field2Get){iLine,2}
-            Opt.SimulationMode = 'thyme';
-            message = addtomessage(message,['the increment of dimension no. ' num2str(iDimension) ' is not linear']);
-          end
+    Sequence = Exp.Sequence;
+    if isfield(Exp,'DetWindow')
+      if isstruct(Sequence{end})
+        Sequence{end+1} = DetDelay;
+      else
+        Sequence{end} = Sequence{end} + DetDelay;
+        if Sequence{end} < 0
+          error('The last event before your detection event is too short.')
         end
-        
       end
     end
     
-    Exp_oldSyntax.Inc = Inc;
-    Exp_oldSyntax.dt = dt;
+    % getting some basic knowledge about the experiment
+    Pulses = cellfun(@isstruct,Sequence);
+    PulsePositions = find(Pulses);
+    DelayPositions = find(Pulses==0);
     
-    Exp_oldSyntax.nPoints = Exp.nPoints;
+    nPulses = length(PulsePositions);
+    nDelays = length(DelayPositions);
+    
+    if any(diff(PulsePositions)==0)
+      % neigbouring pulses, can not be processed by saffron
+      Opt.SimulationMode = 'thyme';
+      message = addtomessage(message,'two or more pulses are not separated by an interpulse delay');
+    end
+    
+    Flip = zeros(1,nPulses);
+    tp = zeros(1,nPulses);
+    Phase = ones(1,nPulses);
+    iPulse = 1;
+    
+    % Loop over the sequence - verify and write into saffron specific fields
+    for Pos = PulsePositions
+      % make sure its a rectangular pulse
+      if isfield(Sequence{Pos},'Type') && ~strcmp(Sequence{Pos},'rectangular')
+        message = addtomessage(message,'the fast algorithm only supports ideal or monochromatic rectangular pulses');
+        Opt.SimulationMode = 'thyme';
+      end
+      
+      % determine flip angle
+      if isfield(Sequence{Pos},'Flip')
+        Flip(iPulse) = Sequence{Pos}.Flip/pi*2;
+      else
+        Opt.SimulationMode = 'thyme';
+        message = addtomessage(message,'flip angles must be provided');
+      end
+      
+      if isfield(Sequence{Pos},'Phase')
+        Phase(iPulse) = mod(Phase(iPulse)+(Sequence{Pos}.Phase/pi*2),4);
+      end
+      
+      % Get time length for non-ideal pulses
+      if isfield(Sequence{Pos},'tp') && Sequence{Pos}.tp ~= 0
+        tp(iPulse) = Sequence{Pos}.tp;
+      end
+      
+      iPulse = iPulse + 1;
+    end
+    
+    % set up saffron fields for delays
+    t = zeros(1,nDelays);
+    iDelay = 1;
+    
+    for Pos = DelayPositions
+      t(iDelay) = Sequence{Pos};
+      iDelay = iDelay + 1;
+    end
+    
+    Exp_oldSyntax.t = t;
+    Exp_oldSyntax.Flip = Flip;
+    Exp_oldSyntax.tp = tp;
+    Exp_oldSyntax.Phase = Phase;
+    
+    % Populate NewExp with all the other saffron specific fields
+    % compares the list of saffron specific fields with
+    for iField = 1 : length(generalFields)
+      if isfield(Exp,generalFields{iField})
+        Exp_oldSyntax.(generalFields{iField}) = Exp.(generalFields{iField});
+      end
+    end
+    
+    if isfield(Exp,'nPoints')
+      nDimensions = length(Exp.nPoints);
+      
+      Inc = zeros(1,nDelays);
+      
+      if nDimensions > 2
+        message = addtomessage(message,'more than 2 indirect dimensions were provided');
+        Opt.SimulationMode = 'thyme';
+      end
+      dt = zeros(1,nDimensions);
+      
+      % loop over the indirect dimensions and check what is being changed -
+      % the old saffron engine can only increment delays
+      for iDimension = 1 : nDimensions
+        Field2Get = ['Dim' num2str(iDimension)];
+        
+        % Loop over the lines of Exp.DimX, eg: Exp.DimX = {'d1,d2' 0.4; 'd2' 0.3}
+        for iLine = 1 : size(Exp.(Field2Get),1)
+          % Gets the string, that lists the events/fields that are to be
+          % changed
+          FullString = Exp.(Field2Get){iLine,1};
+          
+          % changed values are seperated with commas, eg: {'d1,d2' 0.4}
+          SplitStrings = regexp(FullString,',','split');
+          
+          % loop over the individual comma separated increments: {'d1,d2'
+          % 0.4} --> {'d1' 0.4} and {'d2' 0.4}
+          for iModifiedEvent = 1 : length(SplitStrings)
+            
+            Strings = regexp(SplitStrings{iModifiedEvent},'\.','split');
+            
+            EventType = Strings{1}(1);
+            EventSpecificIndex = str2double(Strings{1}(2:end));
+            
+            if strcmp(EventType,'p')
+              % can't use saffron with changing pulses
+              message = addtomessage(message,['a pulse parameter is changed along indirect dimension no. ' num2str(iDimension)]);
+              Opt.SimulationMode = 'thyme';
+            else
+              Inc(EventSpecificIndex) = iDimension;
+            end
+            
+            if dt(iDimension) == 0
+              dt(iDimension) = Exp.(Field2Get){iLine,2};
+            elseif dt(iDimension) ~= Exp.(Field2Get){iLine,2}
+              Opt.SimulationMode = 'thyme';
+              message = addtomessage(message,['the increment of dimension no. ' num2str(iDimension) ' is not linear']);
+            end
+          end
+          
+        end
+      end
+      
+      Exp_oldSyntax.Inc = Inc;
+      Exp_oldSyntax.dt = dt;
+      
+      Exp_oldSyntax.nPoints = Exp.nPoints;
+    end
   end
 end
 
@@ -209,6 +214,7 @@ end
 
 if strcmp(Opt.SimulationMode,'fast')
   
+  Exp_oldSyntax.Processed = true;
   varargout{1} = Exp_oldSyntax;
   varargout{2} = [];
   varargout{3} = Opt;
