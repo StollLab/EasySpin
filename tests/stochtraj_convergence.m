@@ -17,10 +17,9 @@ nBins = 50;
 c20 = 3;
 Sys.Potential.lambda = [c20, c20];
 Sys.Potential.LMK = [2, 0, 0];
-[~, q] = stochtraj_diffusion(Sys,Par,Opt);
-R = quat2rotmat(q);
+[~, RTraj] = stochtraj_diffusion(Sys,Par,Opt);
 
-VecTraj = squeeze(R(:, 3, :, :));
+VecTraj = squeeze(RTraj(:, 3, :, :));
 
 bins = linspace(0, pi, nBins)';
 ThetaHist = zeros(nBins, nTraj);

@@ -48,10 +48,9 @@ tcorr = Sys.tcorr;
 nTraj = Par.nTraj;
 nSteps = Par.nSteps;
 
-[t, q] = stochtraj_diffusion(Sys,Par);
-R = quat2rotmat(q);
+[t, RTraj] = stochtraj_diffusion(Sys,Par);
 
-VecTraj = squeeze(R(:,3,:,:));
+VecTraj = squeeze(RTraj(:,3,:,:));
 
 AutoCorrFFT = runprivate('autocorrfft', VecTraj.^2, 3, 1, 1);
 

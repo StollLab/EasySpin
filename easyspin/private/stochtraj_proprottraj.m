@@ -13,7 +13,8 @@ function q = stochtraj_proprottraj(q, Sim, iter)
 nSteps = Sim.nSteps;
 nTraj = Sim.nTraj;
 dt = Sim.dt;
-Diff = Sim.Diff(:);
+Sim.Diff = Sim.Diff(:);
+Diff = Sim.Diff;
 lambda = Sim.lambda;
 LMK = Sim.LMK;
 if ~isfield(Sim,'interpGrad')

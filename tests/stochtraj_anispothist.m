@@ -41,7 +41,7 @@ N = round(nSteps/2);
 for j=1:size(LMK,1)
   Sys.Potential.lambda = [4, 0];
   Sys.Potential.LMK = LMK(j,:);
-  [~, q] = stochtraj_diffusion(Sys,Par);  % extract quaternions from trajectories
+  [~, ~, qTraj] = stochtraj_diffusion(Sys,Par);  % extract quaternions from trajectories
   
   % pre-allocate array for 3D histograms
   % note that the output will be of size (nBins,nBins,nBins), rather than the 
@@ -51,7 +51,7 @@ for j=1:size(LMK,1)
   
   for iTraj=1:nTraj
     % use a "burn-in method" by taking last half of each trajectory
-    [alpha, beta, gamma] = quat2euler(q(:,iTraj,N:end));
+    [alpha, beta, gamma] = quat2euler(qTraj(:,iTraj,N:end));
     alpha = squeeze(alpha);
     beta = squeeze(beta);
     gamma = squeeze(gamma);

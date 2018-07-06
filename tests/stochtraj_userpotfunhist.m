@@ -52,7 +52,7 @@ Hist3D = zeros(abins, bbins, gbins, nTraj);
      
 err = 0;
 
-[t, qTraj] = stochtraj_diffusion(Sys,Par);  % extract quaternions from trajectories
+[t, ~, qTraj] = stochtraj_diffusion(Sys,Par);  % extract quaternions from trajectories
 
 M = 500;
 

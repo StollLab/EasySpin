@@ -17,10 +17,9 @@ nSteps = Par.nSteps;
 c20 = 10;
 Sys.Potential.lambda = [c20, c20];
 Sys.Potential.LMK = [2, 0, 0];
-[t, q] = stochtraj_diffusion(Sys,Par);
-R = quat2rotmat(q);
+[t, RTraj] = stochtraj_diffusion(Sys,Par);
 
-VecTraj = squeeze(R(:,3,:,:));
+VecTraj = squeeze(RTraj(:,3,:,:));
 
 AutoCorrFFT = runprivate('autocorrfft', VecTraj.^2, 3, 1, 1);
 

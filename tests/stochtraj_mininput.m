@@ -9,11 +9,10 @@ nTraj = Par.nTraj;
 
 nBins = 70;
 
-[t, q] = stochtraj_diffusion(Sys,Par);
-R = quat2rotmat(q);
-nSteps = size(R,3);
+[t, RTraj] = stochtraj_diffusion(Sys,Par);
+nSteps = size(RTraj,3);
 
-VecTraj = squeeze(R(:, 3, :, :));
+VecTraj = squeeze(RTraj(:, 3, :, :));
 
 bins = linspace(0, pi, nBins)';
 ThetaHist = zeros(nBins, nTraj);
