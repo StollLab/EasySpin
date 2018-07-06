@@ -1,7 +1,7 @@
 % startvec takes the Hilbert space spin operator Sx as input and returns as
 % output the vector representation of the Sx operator in Liouville space
 
-function StartingVector = startvec(basis,Potential,SxH)
+function StartingVector = startvec(basis,Potential,SopH)
 
 L = basis.L;
 M = basis.M;
@@ -58,7 +58,7 @@ for b = 1:numel(oriVector)
 end
 
 % form starting vector in direct product basis
-StartingVector = real(kron(oriVector,SxH(:)));
+StartingVector = real(kron(oriVector,SopH(:)));
 StartingVector = StartingVector/norm(StartingVector);
 StartingVector = sparse(StartingVector);
 

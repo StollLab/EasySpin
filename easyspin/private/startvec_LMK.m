@@ -1,7 +1,7 @@
 % startvec takes the Hilbert space spin operator Sx as input and returns as
 % output the vector representation of the Sx operator in Liouville space
 
-function StartingVector = startvec_LMK(basis,Potential,SxH)
+function StartingVector = startvec_LMK(basis,Potential,SopH)
 
 if isfield(basis,'jK') && ~isempty(basis.jK) && any(basis.jK)
   error('This function expects an LMK basis, without jK.');
@@ -59,7 +59,7 @@ for b = 1:numel(oriVector)
 end
 
 % form starting vector in direct product basis
-StartingVector = real(kron(oriVector,SxH(:)));
+StartingVector = real(kron(oriVector,SopH(:)));
 StartingVector = StartingVector/norm(StartingVector);
 StartingVector = sparse(StartingVector);
 

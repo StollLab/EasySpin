@@ -591,8 +591,11 @@ if generalLiouvillian
   logmsg(1,'  setting up detection operator');
   SdetOp = sparse(0);
   for e = 1:Sys.nElectrons
-    Splus = SpinOps{e,1} + 1i*SpinOps{e,2};
-    SdetOp = SdetOp + Splus;
+    if Opt.pSmin==1
+      SdetOp = SdetOp + SpinOps{e,1} + 1i*SpinOps{e,2}; % S+
+    else
+      SdetOp = SdetOp + SpinOps{e,1}; % Sx
+    end
   end
   
 else
