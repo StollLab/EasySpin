@@ -81,7 +81,7 @@ end
 function checkfields(requiredFields, Exp)
     for iField = 1 : numel(requiredFields)
       if ~isfield(Exp,requiredFields{iField})
-        msg = ['The field Exp.' requiredFields{iField} ' is required to run ' Exp.Sequence ' with the general method.'];
+        msg = ['The field Exp.' requiredFields{iField} ' is required to run ' Exp.Sequence ' with the general method (and may not be allowed to be zero).'];
         error(msg);
       end
     end

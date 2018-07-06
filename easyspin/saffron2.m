@@ -93,6 +93,31 @@ if isfield(SysVal,'nn') && any(SysVal.nn(:)~=0)
   Opt.SimulationMode = 'thyme';
 end
 
+if isfield(Opt,'Relaxation') && length(Opt.Relaxation) > 1
+  error('Opt.Relaxation has to be a boolean.')
+end
+
+%error on spidyan specific fields
+ForbiddenSysFields = {'initState','eqState'};
+if any(isfield(Sys,ForbiddenSysFields))
+  error('Sys.initState and Sys.eqState are specific to spidyan and can not be used with saffron. Please remove them.')
+end
+
+ForbiddenOptFields = {'StateTrajectories','ExcOperator','ComplexExcitation'};
+for index = 1 : numel(ForbiddenOptFields)
+  field_ = ForbiddenOptFields{index};
+  if isfield(Opt,field_)
+    Opt = rmfield(Opt,field_);
+    warning(['Opt.' field_ ' is specific to spidyan and can not be used with saffron. It will be ignored.'])
+  end
+end
+
+ForbiddenExpFields = {'DetSequence','DetOperator'};
+if any(isfield(Exp,ForbiddenExpFields))
+  error('Exp.DetSequence and Exp.DetOperator are specific to spidyan and can not be used with saffron. Please remove them.')
+end
+
+
 if ~isfield(Exp,'Processed')
   [Events,Vary,Opt] = s_sequencer(Exp,Opt);
   
@@ -458,7 +483,7 @@ if strcmp(Opt.SimulationMode,'fast')
   if any(Sys.T1T2<=0) || any(~isreal(Sys.T1T2))
     error('T1 and T2 in Sys.T1 and Sys.T2 must be positive, in microseconds.');
   end
-  
+    
   % Pulse sequence
   PredefinedExperiment = isfield(Exp,'Sequence') && ~isempty(Exp.Sequence);
   if PredefinedExperiment
