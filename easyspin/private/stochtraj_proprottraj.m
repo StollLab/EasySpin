@@ -13,10 +13,14 @@ function q = stochtraj_proprottraj(q, Sim, iter)
 nSteps = Sim.nSteps;
 nTraj = Sim.nTraj;
 dt = Sim.dt;
-Diff = Sim.Diff;
+Diff = Sim.Diff(:);
 lambda = Sim.lambda;
 LMK = Sim.LMK;
-interpGrad = Sim.interpGrad;
+if ~isfield(Sim,'interpGrad')
+  interpGrad = [];
+else
+  interpGrad = Sim.interpGrad;
+end
 
 if ~isempty(lambda)
   isEigenPot = 1;

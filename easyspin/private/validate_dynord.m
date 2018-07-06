@@ -3,9 +3,11 @@
 %   (Could be) Implemented to simplify and maintain consistency in code across programs.
 %
 
-function varargout = check_dynord(program,Sys,FieldSweep)
+function varargout = validate_dynord(program,Sys,FieldSweep)
 
 assert(ischar(program), 'Program name must be a string.')
+
+if nargin<3, FieldSweep = false; end
 
 switch program
   case 'chili'
@@ -21,6 +23,7 @@ switch program
     if isfield(Sys,'Diff'), Dynamics.Diff = Sys.Diff; end
     if isfield(Sys,'logtcorr'), Dynamics.logtcorr = Sys.logtcorr; end
     if isfield(Sys,'logDiff'), Dynamics.logDiff = Sys.logDiff; end
+    
     if isfield(Sys,'lwpp'), Dynamics.lwpp = Sys.lwpp; end
     if isfield(Sys,'lw'), Dynamics.lw = Sys.lw; end
 
@@ -47,6 +50,7 @@ switch program
     if isfield(Sys,'Diff'), Dynamics.Diff = Sys.Diff; end
     if isfield(Sys,'logtcorr'), Dynamics.logtcorr = Sys.logtcorr; end
     if isfield(Sys,'logDiff'), Dynamics.logDiff = Sys.logDiff; end
+    
     if isfield(Sys,'lwpp'), Dynamics.lwpp = Sys.lwpp; end
     if isfield(Sys,'lw'), Dynamics.lw = Sys.lw; end
 
@@ -59,7 +63,7 @@ switch program
     
     varargout = {Dynamics};%,Potential,usePotential};
 
-  case 'stochtraj'
+  case 'stochtraj_diffusion'
     if isfield(Sys,'Potential')
       if isfield(Sys.Potential,'lambda') && isfield(Sys.Potential,'LMK')
         if ~ismatrix(Sys.Potential.LMK) || size(Sys.Potential.LMK,2)~=3

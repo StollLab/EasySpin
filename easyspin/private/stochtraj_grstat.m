@@ -13,11 +13,11 @@
 %              instances
 
 % Implementation based on
-%   Gelman and Rubin, Journal of Computational and Graphical Statistics 7, 
+%   Gelman and Rubin, Journal of Computational and Graphical Statistics 7,
 %   434 (1998)
 %     http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.55.1675
 
-function stat = grstat(A)
+function stat = stochtraj_grstat(A)
 
 if (nargin==0), help(mfilename); return; end
 
@@ -54,24 +54,24 @@ else
   error('Number of input array dimensions must be 2 or 3.')
 end
 
-function gr = find_gr(X)
-
-n = size(X,1);  % chain length
-m = size(X,2);  % number of chains
-
-% Inter-chain variance
-B = n*var(mean(X,1));  % B from reference
-
-% Intra-chain variance
-W = mean(var(X,0,1));  % W from reference
-
-sigmasq = (n-1)/n*W + B/n;
-Vhat = sigmasq + B/m/n;
-% Vhat = (n-1)/n*W + (m+1)/(m*n)*B;
-
-% Calculate the R statistic
-gr = Vhat/W;  % 
-
-end
+  function gr = find_gr(X)
+    
+    n = size(X,1);  % chain length
+    m = size(X,2);  % number of chains
+    
+    % Inter-chain variance
+    B = n*var(mean(X,1));  % B from reference
+    
+    % Intra-chain variance
+    W = mean(var(X,0,1));  % W from reference
+    
+    sigmasq = (n-1)/n*W + B/n;
+    Vhat = sigmasq + B/m/n;
+    % Vhat = (n-1)/n*W + (m+1)/(m*n)*B;
+    
+    % Calculate the R statistic
+    gr = Vhat/W;  %
+    
+  end
 
 end
