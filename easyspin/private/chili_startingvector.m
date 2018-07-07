@@ -27,7 +27,7 @@ MpSymm = Basis.MpSymm;
 DirTilt = Basis.DirTilt;
 
 Potential = any(lambdaLK);
-if (Potential)
+if Potential
   %AxialPotential = all(lambda([2 4])==0);
   PotLmax = size(XLK,1)-1;
   PotKmax = PotLmax;
@@ -47,29 +47,29 @@ nRows = 0; % number of rows of the column vector v
 nCols = 1;
 idx = 0;
 
-iseven = @(x)mod(x,2)==0;
-isodd = @(x)mod(x,2)~=0;
+iseven = @(x) mod(x,2)==0;
+isodd = @(x) mod(x,2)~=0;
+parity = @(x) 1-2*mod(x,2);
 for L = 0:evenLmax
   if isodd(L) && (L>oddLmax), continue; end
   for jK = jKmin:2:1
     Kmx = min(L,Kmax);
     for K = 0:deltaK:Kmx
-      if (K==0) && (parity(L)~=jK), continue; end
+      if (K==0) && (jK~=parity(L)), continue; end
       
       %==============================================
       thisValue = 0;
       if iseven(L) && iseven(K)
-        if (~Potential)
-          % Zero potential: non-zero values for L==K==0
+        if ~Potential
+          % Zero potential: non-zero value only for L==K==0
           if (L==0) && (K==0), thisValue = 1; end
-        elseif ((PotKmax==0) && (K~=0))
+        elseif (PotKmax==0) && (K~=0)
           % Axial potential (max K == 0): zero for K>0
-          %thisValue = 0;
+          thisValue = 0;
         else
-          %
           % Axial potential K==0, nonaxial potential: numerical integration
           thisValue = quadl(@orifun,0,1,Options.Tolerance,0,L,K,lambdaLK);
-          if (K~=0)
+          if K~=0
             thisValue = thisValue * sqrt((2*L+1)/prod(L-K+1:L+K));
           else
             thisValue = thisValue * sqrt((2*L+1)/2);
@@ -83,21 +83,22 @@ for L = 0:evenLmax
         for pS = pSmin:1
           qSmx = 1 - abs(pS);
           for qS = -qSmx:2:qSmx
-            if ((MpSymm)&&(~DirTilt)&&((0+pS-1)~=M)), continue; end % Meirovich Eq.(A47)
-            
+            if MpSymm
+              if ~DirTilt && (0+pS-1)~=M, continue; end % Meirovich Eq.(A47)
+            end
+              
             nRows = nRows + 1;
+            
+            if thisValue==0, continue; end
             
             %==============================================
             NonZeroElement = (jK==1) && (M==0) && (pS~=0);
-            if NonZeroElement && ...
-                (((~DirTilt) && (pS==1)) || ...
-                (( DirTilt) && (abs(pS)==1)))
-              if (thisValue~=0)
-                idx = idx + 1;
-                Value(idx) = thisValue;
-                Col(idx) = 1;
-                Row(idx) = nRows;
-              end
+            if ~NonZeroElement, continue; end
+            if (~DirTilt && pS==1) || (DirTilt && (pS)==1) % abs(pS) in 2nd term?
+              idx = idx + 1;
+              Value(idx) = thisValue;
+              Col(idx) = 1;
+              Row(idx) = nRows;
             end
             %==============================================
             
@@ -113,7 +114,6 @@ Col = Col(1:idx);
 Row = Row(1:idx);
 
 v = full(sparse(Row,Col,Value,nRows,nCols));
-v = sum(v,2);
 v = v/norm(v);
 
 return
@@ -128,7 +128,7 @@ oddLmax = Basis.oddLmax;
 Kmax = Basis.Kmax;
 Mmax = Basis.Mmax;
 deltaK = Basis.deltaK;
-jkmn = Basis.jKmin;
+jKmin = Basis.jKmin;
 pSmin = Basis.pSmin;
 pImax = Basis.pImax;
 
@@ -156,14 +156,15 @@ nRows = 0; % number of rows of the column vector v
 nCols = 2*I+1;
 idx = 0;
 
-iseven = @(x)mod(x,2)==0;
-isodd = @(x)mod(x,2)~=0;
+iseven = @(x) mod(x,2)==0;
+isodd = @(x) mod(x,2)~=0;
+parity = @(x) 1-2*mod(x,2);
 for L = 0:evenLmax
   if isodd(L) && (L>oddLmax), continue; end    
-  for jK = jkmn:2:1
+  for jK = jKmin:2:1
     Kmx = min(L,Kmax);
     for K = 0:deltaK:Kmx
-      if (K==0) && (parity(L)~=jK), continue; end
+      if (K==0) && (jK~=parity(L)), continue; end
       
       %==============================================
       thisValue = 0;
@@ -173,7 +174,7 @@ for L = 0:evenLmax
           if (L==0) && (K==0), thisValue = 1; end
         elseif ((PotKmax==0) && (K~=0))
           % Axial potential (max K == 0): zero for K>0
-          %thisValue = 0;
+          thisValue = 0;
         else
           %
           % Axial potential K==0, nonaxial potential: numerical integration
@@ -196,7 +197,9 @@ for L = 0:evenLmax
           for qS = -qSmx:2:qSmx
             
             for pI = -pImax:pImax
-              if (MpSymm && (~DirTilt)&&((pI+pS-1)~=M)), continue; end % Meirovich Eq.(A47)
+              if MpSymm
+                if ~DirTilt && (pI+pS-1)~=M, continue; end % Meirovich Eq.(A47)
+              end
               
               %==============================================
               NonZeroElement = (jK==1) & (M==0) & (pS~=0) & (pI==0);
@@ -207,17 +210,16 @@ for L = 0:evenLmax
                 
                 nRows = nRows + 1;
                 
+                if thisValue==0, continue; end
+                
                 %==============================================
-                if NonZeroElement && ...
-                    (((~DirTilt) && (pS==1)) || ...
-                    (( DirTilt) && (abs(pS)==1)))
-                  if (thisValue~=0)
-                    mI = qI/2; % qI/2 gives mI of transition, since pI==0
-                    idx = idx + 1;
-                    Value(idx) = thisValue;
-                    Row(idx) = nRows;
-                    Col(idx) = mI + I + 1;
-                  end
+                if ~NonZeroElement, continue; end
+                if (~DirTilt && pS==1) || (DirTilt && (pS)==1) % abs(pS) in 2nd term?
+                  mI = qI/2; % qI/2 gives mI of transition, since pI==0
+                  idx = idx + 1;
+                  Value(idx) = thisValue;
+                  Row(idx) = nRows;
+                  Col(idx) = mI + I + 1;
                 end
                 %==============================================
                 
@@ -253,7 +255,7 @@ oddLmax = Basis.oddLmax;
 Kmax = Basis.Kmax;
 Mmax = Basis.Mmax;
 deltaK = Basis.deltaK;
-jkmn = Basis.jKmin;
+jKmin = Basis.jKmin;
 pSmin = Basis.pSmin;
 pI1max = Basis.pI1max;
 pI2max = Basis.pI2max;
@@ -285,14 +287,15 @@ nRows = 0; % number of rows of the column vector v
 nCols = prod(2*I+1);
 idx = 0;
 
-iseven = @(x)mod(x,2)==0;
-isodd = @(x)mod(x,2)~=0;
+iseven = @(x) mod(x,2)==0;
+isodd = @(x) mod(x,2)~=0;
+parity = @(x) 1-2*mod(x,2);
 for L = 0:evenLmax
   if isodd(L) && (L>oddLmax), continue; end    
-  for jK = jkmn:2:1
+  for jK = jKmin:2:1
     Kmx = min(L,Kmax);
     for K = 0:deltaK:Kmx
-      if (K==0) && (parity(L)~=jK), continue; end
+      if (K==0) && (jK~=parity(L)), continue; end
       
       %==============================================
       thisValue = 0;
@@ -302,7 +305,7 @@ for L = 0:evenLmax
           if (L==0) && (K==0), thisValue = 1; end
         elseif ((PotKmax==0) && (K~=0))
           % Axial potential (max K == 0): zero for K>0
-          %thisValue = 0;
+          thisValue = 0;
         else
           %
           % Axial potential K==0, nonaxial potential: numerical integration
@@ -323,7 +326,6 @@ for L = 0:evenLmax
           qSmx = 1 - abs(pS);
           for qS = -qSmx:2:qSmx
             for pI1 = -pI1max:pI1max
-              %if ((MpSymm) && (~DirTilt)&&((pI1+pS-1)~=M)), continue; end % Meirovich Eq.(A47)
               
               qI1max = 2*I1 - abs(pI1);
               for qI1 = -qI1max:2:qI1max
@@ -335,21 +337,22 @@ for L = 0:evenLmax
                     (pS~=0) && (pI1==0) && (pI2==0);
                   %==============================================
                   for qI2 = -qI2max:2:qI2max
-                    if ((MpSymm) && (~DirTilt)&&((pI1+pI2+pS-1)~=M)), continue; end % Meirovich Eq.(A47)
+                    if MpSymm
+                      if ~DirTilt && (pI1+pI2+pS-1)~=M, continue; end % Meirovich Eq.(A47)
+                    end
                     
                     nRows = nRows + 1;
                     
+                    if thisValue==0, continue; end
+                    
                     %==============================================
-                    if NonZeroElement && ...
-                        (((~DirTilt) && (pS==1)) || ...
-                        (( DirTilt) && (abs(pS)==1)))
-                      if (thisValue~=0)
-                        mI = [qI1 qI2]/2; % gives [mI1 mI2] of transition
-                        idx = idx + 1;
-                        Value(idx) = thisValue;
-                        Col(idx) = sum(mI+I+1);
-                        Row(idx) = nRows;
-                      end
+                    if ~NonZeroElement, continue; end
+                    if (~DirTilt && pS==1) || (DirTilt && (pS)==1) % abs(pS) in 2nd term?
+                      mI = [qI1 qI2]/2; % gives [mI1 mI2] of transition
+                      idx = idx + 1;
+                      Value(idx) = thisValue;
+                      Col(idx) = sum(mI+I+1);
+                      Row(idx) = nRows;
                     end
                     %==============================================
                     
@@ -374,12 +377,6 @@ v = full(sparse(Row,Col,Value,nRows,nCols));
 v = sum(v,2);
 v = v/norm(v);
 
-return
-
-
-%=====================================================================
-function p = parity(a)
-if mod(a,2), p = -1; else p = +1; end
 return
 
 
