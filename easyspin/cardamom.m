@@ -392,8 +392,8 @@ if useMD
       end
       sizeFrameTraj = size(MD.FrameTraj);
 
-      if ~isequal(sizeFrameTraj,[MD.nSteps,3,3])
-        error('Frame trajectory must be of size (MD.nSteps,3,3).')
+      if ~isequal(sizeFrameTraj,[3,3,1,MD.nSteps])
+        error('Frame trajectory must be of size (3,3,1,MD.nSteps).')
       end
       
     case 'Dihedrals'
@@ -436,37 +436,8 @@ if useMD
       error('Entry for MD.TrajType not recognized.')
   end
   
-  MD.FrameTraj = permute(MD.FrameTraj, [2, 3, 4, 1]);
-  
-  if ~isfield(MD,'removeGlobal')
-    MD.removeGlobal = 1;
-  end
-  
-  if MD.removeGlobal
-
-    logmsg(1,'-- removing protein global diffusion -----------------------------------------');
-    
-    nAtoms = size(MD.ProtCAxyz,3);
-
-    % find rotation matrix to align protein alpha carbons with inertia 
-    % tensor in first snapshot
-    RAlign = findproteinorient(MD.ProtCAxyz);
-
-    
-    % we don't need this anymore and it could be huge
-    MD = rmfield(MD,'ProtCAxyz');
-
-    for iStep = 1:MD.nSteps
-      R = RAlign(:,:,iStep);
-      thisStep = MD.FrameTraj(:,:,1,iStep);
-      MD.RTraj(:,1,1,iStep) = thisStep(:,1).'*R;
-      MD.RTraj(:,2,1,iStep) = thisStep(:,2).'*R;
-      MD.RTraj(:,3,1,iStep) = thisStep(:,3).'*R;
-    end
-  
-  else
-    MD.RTraj = MD.FrameTraj;
-  end
+%   MD.RTraj = MD.FrameTraj;
+  MD.RTraj = MD.FrameTrajwrtProt;
 
 %   q = rotmat2quat(MD.RTraj);
 %   [alpha, beta, gamma] = quat2euler(q);
@@ -563,7 +534,7 @@ if useMD
 %     transmat1 = transmat0;
   end
   % estimate rotational diffusion time scale
-  FrameAcorr = autocorrfft(squeeze(MD.FrameTraj.^2), 2, 1, 1);
+  FrameAcorr = autocorrfft(squeeze(MD.FrameTraj.^2), 4, 1, 1);
 
   N = round(MD.nSteps/4);
 
@@ -1465,64 +1436,6 @@ end
 
 % Helper functions
 % -------------------------------------------------------------------------
-
-function rotmat = findproteinorient(traj)
-% orient protein along the principal axes of inertia
-%
-
-% setup
-nSteps = size(traj, 1);
-nAtoms = size(traj, 3);
-mass = 1;
-rotmat = zeros(3,3,nSteps);
-
-% subtract by the geometric center
-traj = traj - mean(traj,3);
-
-for iStep = 1:nSteps
-  % calculate the principal axis of inertia
-  thisStep = squeeze(traj(iStep,:,:));
-  x = thisStep(1,:);
-  y = thisStep(2,:);
-  z = thisStep(3,:);
-
-  I = zeros(3,3);
-
-  I(1,1) = sum(mass.*(y.^2 + z.^2));
-  I(2,2) = sum(mass.*(x.^2 + z.^2));
-  I(3,3) = sum(mass.*(x.^2 + y.^2));
-
-  I(1,2) = - sum(mass.*(x.*y));
-  I(2,1) = I(1,2);
-
-  I(1,3) = - sum(mass.*(x.*z));
-  I(3,1) = I(1,3);
-
-  I(2,3) = - sum(mass.*(y.*z));
-  I(3,2) = I(2,3);
-
-  % scale I for better performance
-  I = I./norm(I);
-
-  [~, ~, a] = svd(I); %a is already sorted by descending order
-%   p_axis = a(:, end:-1:1); %z-axis has the largest inertia
-  p_axis = a;
-
-  % check reflection
-  if det(p_axis) < 0
-    p_axis(:,1) = - p_axis(:,1);
-  end
-
-%   % project onto the principal axis of inertia
-%   proj = thisStep.' * p_axis;
-%   traj(iStep, 1, :) = proj(:, 1).';
-%   traj(iStep, 2, :) = proj(:, 2).';
-%   traj(iStep, 3, :) = proj(:, 3).';
-  
-  rotmat(:,:,iStep) = p_axis;
-end
-
-end
 
 function [stateTraj,centroids] = clusterDihedrals(dihedrals,nStates)
 

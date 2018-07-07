@@ -49,29 +49,33 @@
 %
 %                    Verbosity 0: no display, 1: (default) show info
 %
+%                    keepProtCA  0: (default) delete protein alpha carbon 
+%                                   coordinates
+%                                1: keep them
+%
 %
 %   Output:
 %     MD             structure array containing the following fields:
 %
-%                    nSteps    integer
-%                              total number of steps in trajectory
+%                    nSteps      integer
+%                                total number of steps in trajectory
 %
-%                    dt        double
-%                              size of time step (in s)
+%                    dt          double
+%                                size of time step (in s)
 %
-%                    ProtCAxyz numeric array, size = (nSteps,nResidues,3)
-%                              xyz coordinates of protein alpha carbon
-%                              atoms
+%                    FrameTraj   numeric array, size = (3,3,nTraj,nSteps)
+%                                xyz coordinates of coordinate frame axis
+%                                vectors, x-axis corresponds to
+%                                FrameTraj(:,1,nTraj,:), y-axis corresponds to
+%                                FrameTraj(:,2,nTraj,:), etc.
 %
-%                    FrameTraj numeric array, size = (nSteps,3,3)
-%                              xyz coordinates of coordinate frame axis
-%                              vectors, x-axis corresponds to
-%                              FrameTraj(:,:,1), y-axis corresponds to
-%                              FrameTraj(:,:,2), etc.
+%             FrameTrajwrtProt   numeric array, size = (3,3,nTraj,nSteps)
+%                                same as FrameTraj, but with global
+%                                rotational diffusion of protein removed
 %
-%                    dihedrals numeric array, size = (nSteps,5)
-%                              dihedral angles of spin label side chain
-%                              bonds
+%                    dihedrals   numeric array, size = (5,nTraj,nSteps)
+%                                dihedral angles of spin label side chain
+%                                bonds
 
 %
 %
@@ -95,7 +99,7 @@ end
 
 % if ~isfield(OutOpt,'Type'), OutOpt.Type = 'Protein+Frame'; end
 if ~isfield(OutOpt,'Verbosity'), OutOpt.Verbosity = 1; end
-
+if ~isfield(OutOpt,'keepProtCA'), OutOpt.keepProtCA = 0; end
 % OutType = OutOpt.Type;
 
 % supported file types
@@ -228,6 +232,7 @@ clear temp
 
 % initialize big arrays here for efficient memory usage
 MD.FrameTraj = zeros(MD.nSteps,3,3);
+MD.FrameTrajwrtProt = zeros(3,3,1,MD.nSteps);
 MD.dihedrals = zeros(MD.nSteps,5);
 
 % filter out spin label atomic coordinates
@@ -244,20 +249,7 @@ CBxyz = MD.Labelxyz(:,:,psf.idx_CB);
 CAxyz = MD.Labelxyz(:,:,psf.idx_CA);
 Nxyz = MD.Labelxyz(:,:,psf.idx_N);
 
-clear MD.Labelxyz
-
-% ONxyz = cat(1, MD.ONxyz, temp.ONxyz);
-% NNxyz = cat(1, MD.NNxyz, temp.NNxyz);
-% C1xyz = cat(1, MD.C1xyz, temp.C1xyz);
-% C2xyz = cat(1, MD.C2xyz, temp.C2xyz);
-% C1Rxyz = cat(1, MD.C1Rxyz, temp.C1Rxyz);
-% C2Rxyz = cat(1, MD.C2Rxyz, temp.C2Rxyz);
-% C1Lxyz = cat(1, MD.C1Lxyz, temp.C1Lxyz);
-% S1Lxyz = cat(1, MD.S1Lxyz, temp.S1Lxyz);
-% SGxyz = cat(1, MD.SGxyz, temp.SGxyz);
-% CBxyz = cat(1, MD.CBxyz, temp.CBxyz);
-% CAxyz = cat(1, MD.CAxyz, temp.CAxyz);
-% Nxyz = cat(1, MD.Nxyz, temp.Nxyz);
+MD = rmfield(MD,'Labelxyz');
 
 % Calculate frame vectors
 
@@ -279,7 +271,7 @@ NC2_vec = NC2_vec./sqrt(sum(NC2_vec.*NC2_vec,2));
 vec1 = cross(NC1_vec, NO_vec, 2);
 vec2 = cross(NO_vec, NC2_vec, 2);
 MD.FrameTraj(:,:,3) = vec1 + vec2;
-MD.FrameTraj(:,:,3) = MD.MD.FrameTraj(:,:,3)./sqrt(sum(MD.FrameTraj(:,:,3).*MD.FrameTraj(:,:,3),2));
+MD.FrameTraj(:,:,3) = MD.FrameTraj(:,:,3)./sqrt(sum(MD.FrameTraj(:,:,3).*MD.FrameTraj(:,:,3),2));
 
 % x-axis
 MD.FrameTraj(:,:,1) = NO_vec;
@@ -287,12 +279,34 @@ MD.FrameTraj(:,:,1) = NO_vec;
 % y-axis
 MD.FrameTraj(:,:,2) = cross(MD.FrameTraj(:,:,3), MD.FrameTraj(:,:,1), 2);
 
+% find rotation matrix to align protein alpha carbons with inertia 
+% tensor in first snapshot
+MD.RProtDiff = findproteinorient(MD.ProtCAxyz);
+
+if ~OutOpt.keepProtCA
+  % we don't need this anymore and it could be huge
+  MD = rmfield(MD,'ProtCAxyz');
+end
+
+MD.FrameTraj = permute(MD.FrameTraj, [2, 3, 4, 1]);
+
+% find frame trajectory without protein's rotational diffusion
+for iStep = 1:MD.nSteps
+  R = MD.RProtDiff(:,:,iStep);
+  thisStep = MD.FrameTraj(:,:,1,iStep);
+  MD.FrameTrajwrtProt(:,1,1,iStep) = thisStep(:,1).'*R;
+  MD.FrameTrajwrtProt(:,2,1,iStep) = thisStep(:,2).'*R;
+  MD.FrameTrajwrtProt(:,3,1,iStep) = thisStep(:,3).'*R;
+end
+
 % Calculate side chain dihedral angles
 MD.dihedrals(:,1) = dihedral(Nxyz,CAxyz,CBxyz,SGxyz);
 MD.dihedrals(:,2) = dihedral(CAxyz,CBxyz,SGxyz,S1Lxyz);
 MD.dihedrals(:,3) = dihedral(CBxyz,SGxyz,S1Lxyz,C1Lxyz);
 MD.dihedrals(:,4) = dihedral(SGxyz,S1Lxyz,C1Lxyz,C1Rxyz);
 MD.dihedrals(:,5) = dihedral(S1Lxyz,C1Lxyz,C1Rxyz,C2Rxyz);
+
+MD.dihedrals = permute(MD.dihedrals,[2,3,1]);
 
 end
 
@@ -384,6 +398,64 @@ vec1 = vec1.*sum(a2.*a2, 2).^0.5;
 vec2 = dot(b1, b2, 2);
 
 DihedralAngle = atan2(vec1, vec2);
+
+end
+
+function rotmat = findproteinorient(traj)
+% orient protein along the principal axes of inertia
+%
+
+% setup
+nSteps = size(traj, 1);
+nAtoms = size(traj, 3);
+mass = 1;
+rotmat = zeros(3,3,nSteps);
+
+% subtract by the geometric center
+traj = traj - mean(traj,3);
+
+for iStep = 1:nSteps
+  % calculate the principal axis of inertia
+  thisStep = squeeze(traj(iStep,:,:));
+  x = thisStep(1,:);
+  y = thisStep(2,:);
+  z = thisStep(3,:);
+
+  I = zeros(3,3);
+
+  I(1,1) = sum(mass.*(y.^2 + z.^2));
+  I(2,2) = sum(mass.*(x.^2 + z.^2));
+  I(3,3) = sum(mass.*(x.^2 + y.^2));
+
+  I(1,2) = - sum(mass.*(x.*y));
+  I(2,1) = I(1,2);
+
+  I(1,3) = - sum(mass.*(x.*z));
+  I(3,1) = I(1,3);
+
+  I(2,3) = - sum(mass.*(y.*z));
+  I(3,2) = I(2,3);
+
+  % scale I for better performance
+  I = I./norm(I);
+
+  [~, ~, a] = svd(I); %a is already sorted by descending order
+%   p_axis = a(:, end:-1:1); %z-axis has the largest inertia
+  p_axis = a;
+
+  % check reflection
+  if det(p_axis) < 0
+    p_axis(:,1) = - p_axis(:,1);
+  end
+
+%   % project onto the principal axis of inertia
+%   proj = thisStep.' * p_axis;
+%   traj(iStep, 1, :) = proj(:, 1).';
+%   traj(iStep, 2, :) = proj(:, 2).';
+%   traj(iStep, 3, :) = proj(:, 3).';
+  
+  rotmat(:,:,iStep) = p_axis;
+end
 
 end
 

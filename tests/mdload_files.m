@@ -31,6 +31,7 @@ AtomInfo.AtomNames.CAname = 'CA';
 AtomInfo.AtomNames.Nname = 'N';
 
 OutOpt.Verbosity = 0;
+OutOpt.keepProtCA = 1;
 
 nTests = size(Files, 1);
 
@@ -48,8 +49,11 @@ if exist(OldDataFile,'file')>0
       readerr(iFile) = true;
       fprintf('   NaNs were detected in output from mdload with args:\n   "%s" and "%s".\n',...
               Files{iFile,1},Files{iFile,2})
-    elseif ~areequal(Traj.ProtCAxyz, ProtCAxyz_ref)||~areequal(Traj.Labelxyz, Labelxyz_ref)...
-           ||~areequal(Traj.FrameZ, FrameZ_ref)||~areequal(Traj.chi1, chi1_ref)
+    elseif ~areequal(Traj.ProtCAxyz, ProtCAxyz_ref)...
+           ||~areequal(Traj.FrameTraj, FrameTraj_ref)...
+           ||~areequal(Traj.FrameTrajwrtProt, FrameTrajwrtProt_ref)...
+           ||~areequal(Traj.dihedrals, dihedrals_ref)...
+           ||~areequal(Traj.RProtDiff, RProtDiff_ref)
       readerr(iFile) = true;
       fprintf('   Loaded trajectories did not match reference trajectories for:\n   "%s" and "%s".\n',...
               Files{iFile,1},Files{iFile,2})
@@ -62,11 +66,13 @@ else
   Traj = mdload(Files{1,1}, AtomInfo, OutOpt);
   
   ProtCAxyz_ref = Traj.ProtCAxyz;
-  Labelxyz_ref = Traj.Labelxyz;
-  FrameZ_ref = Traj.FrameZ;
-  chi1_ref = Traj.chi1;
+  FrameTraj_ref = Traj.FrameTraj;
+  FrameTrajwrtProt_ref = Traj.FrameTrajwrtProt;
+  dihedrals_ref = Traj.dihedrals;
+  RProtDiff_ref = Traj.RProtDiff;
   
-  save(OldDataFile, 'ProtCAxyz_ref', 'Labelxyz_ref', 'FrameZ_ref', 'chi1_ref')
+  save(OldDataFile, 'ProtCAxyz_ref', 'FrameTraj_ref', 'FrameTrajwrtProt_ref',...
+                    'dihedrals_ref', 'RProtDiff_ref')
   
   readerr = 0;
   

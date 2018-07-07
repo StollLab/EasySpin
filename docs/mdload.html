@@ -43,7 +43,7 @@ MD = mdload(TrajFile, AtomInfo, OutOpt);
 <div class="subtitle">Description</div>
 
 <p>
-This function loads protein alpha carbon atomic coordinates, spin label atomic coordinates, and spin label side chain dihedral angles data from molecular dynamics (MD) simulation trajectory output files.
+This function loads spin label frame data with and without protein global rotational diffusion, rotation matrices representing the protein's orientation, and spin label side chain dihedral angles data from molecular dynamics (MD) simulation trajectory output files.
 </p>
 
 <div class="subtitle2">Input: Trajectory file information</div>
@@ -125,14 +125,14 @@ Number of snapshots in the MD simulation output.
 Time step between snapshots, in seconds.
 </div>
 
-<div class="optionfield"><code>ProtCAxyz</code></div>
-<div class="optiondescr">
-Cartesian coordinates of the protein's &alpha;-carbon atoms in the MD simulation box frame, in <span>&#8491;</span>.
-</div>
-
 <div class="optionfield"><code>FrameTraj</code></div>
 <div class="optiondescr">
 Cartesian coordinates of the spin label tensor frame's x-, y-, and z-coordinate frame axis vectors with respect to the MD simulation box frame, in <span>&#8491;</span>.
+</div>
+
+<div class="optionfield"><code>FrameTrajwrtProt</code></div>
+<div class="optiondescr">
+Same as <code>FrameTraj</code>, but without global rotational diffusion of the host protein, in <span>&#8491;</span>.
 </div>
 
 <div class="optionfield"><code>dihedrals</code></div>
