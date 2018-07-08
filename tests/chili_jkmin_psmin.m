@@ -22,37 +22,32 @@ pSmin = [-1 0 1];
 
 % Simulate spectra using all combinations of jKmin and pSmin
 %-------------------------------------------------------------------------------
+err = false;
 idx = 0;
-for j = 1:numel(jKmin)
-  for p = 1:numel(pSmin)
+for p = 1:numel(pSmin)
+  for j = 1:numel(jKmin)
     Opt.jKmin = jKmin(j);
     Opt.pSmin = pSmin(p);
     
     idx = idx+1;
     Opt.LiouvMethod = 'Freed';
-    [x,y1(:,idx)] = chili(Sys,Exp,Opt);
+    [B,y_Freed] = chili(Sys,Exp,Opt);
     
     Opt.LiouvMethod = 'general';
-    [x,y2(:,idx)] = chili(Sys,Exp,Opt);
+    [B,y_general] = chili(Sys,Exp,Opt);
+    
+    % Plotting
+    if opt.Display
+      subplot(3,2,idx);
+      plot(B,y_Freed,B,y_general);
+      legend('Freed','general');
+      title(sprintf('jKmin = %d, pSmin = %d',Opt.jKmin,Opt.pSmin));
+    end
+
+    % Determine whether spectra are identical
+    err = err || ~areequal(y_Freed,y_general,1e-6*max(y_Freed));
+
   end
 end
-
-% Determine whether spectra are identical
-%-------------------------------------------------------------------------------
-err = false;
-for k = 1:size(y1,2)
-  err = err || ~areequal(y1(:,k),y2(:,k),1e-2*max(y1(:,k)));
-end
-
-% Plotting
-%-------------------------------------------------------------------------------
-if opt.Display
-  cla
-  sh = 5;
-  for k = 1:6
-    plot(x,y1(:,k)+sh*(k-1),x,y2(:,k)+sh*(k-1));
-  end
-end
-
 
 data = [];

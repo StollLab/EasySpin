@@ -1,6 +1,6 @@
 % Build basis with basis functions and ordering as used in the Freed program
 % (S = 1/2 and zero, one, or two nuclei).
-function [nBasisFunctions,nSpatialBasisFunctions,Indices] = chili_basiscount(Basis,Sys)
+function Basis = chili_basiscount(Basis,Sys)
 
 DirTilt = Basis.DirTilt;
 
@@ -118,7 +118,19 @@ for L = 0:evenLmax
 end % L
 Indices  = Indices(1:iRow,:);
 
-nBasisFunctions = iRow;
-nSpatialBasisFunctions = iSpatial;
+Basis.L = Indices(:,1);
+Basis.jK = Indices(:,2);
+Basis.K = Indices(:,3);
+Basis.M = Indices(:,4);
+Basis.pS = Indices(:,5);
+Basis.qS = Indices(:,6);
+if nNuclei>=1
+  Basis.pI1 = Indices(:,7);
+  Basis.qI1 = Indices(:,8);
+  if nNuclei>=2
+    Basis.pI2 = Indices(:,9);
+    Basis.qI2 = Indices(:,10);
+  end
+end
 
 return

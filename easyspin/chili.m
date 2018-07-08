@@ -591,7 +591,8 @@ if generalLiouvillian
   logmsg(1,'  setting up detection operator');
   SdetOp = sparse(0);
   for e = 1:Sys.nElectrons
-    SdetOp = SdetOp + SpinOps{e,1} + 1i*SpinOps{e,2}; % S+
+    %SdetOp = SdetOp + SpinOps{e,1} + 1i*SpinOps{e,2}; % S+
+    SdetOp = SdetOp + SpinOps{e,1}; % Sx
   end
   
 else
@@ -754,12 +755,8 @@ if generalLiouvillian
   
 else
   
-  [Basis.Size,Basis.SpatialSize,Indices] = chili_basiscount(Basis,Sys);
-  Basis.L = Indices(:,1);
-  Basis.jK = Indices(:,2);
-  Basis.K = Indices(:,3);
-  Basis.M = Indices(:,4);
-  logmsg(1,'  basis size: %d',Basis.Size);
+  Basis = chili_basisbuild(Basis,Sys);
+  logmsg(1,'  basis size: %d',numel(Basis.L));
   
 end
 if saveDiagnostics
@@ -807,10 +804,11 @@ if generalLiouvillian
   % set up in full product basis, then prune
   StartingVector = startvec(Basis,Potential,SdetOp,Opt.useLMKbasis);
   StartingVector = StartingVector(keep);
+  StartingVector = StartingVector/norm(StartingVector);
   
 else
   
-  StartingVector = chili_startingvector(Basis,Potential,Sys.I);
+  StartingVector = chili_startingvector(Basis,Potential);
   
 end
 if saveDiagnostics
@@ -861,7 +859,7 @@ for iOri = 1:nOrientations
   
   if explicitFieldSweep
     BSweep = linspace(min(Exp.Range),max(Exp.Range),Exp.nPoints)/1e3; % mT -> T
-    omega0 = 1i*2*pi*Exp.mwFreq*1e9; % GHz -> Hz (angular frequency)
+    omega0 = 2i*pi*Exp.mwFreq*1e9; % GHz -> Hz (angular frequency)
   else
     Bcalc = CenterField;
     %Bcalc = mhz2mt(Exp.mwFreq*1e3,mean(mean(Sys.g)));
@@ -995,6 +993,7 @@ for iOri = 1:nOrientations
     
     logmsg(1,'  non-zero elements: %d/%d (%0.2f%%)',nnz(L),length(L).^2,100*nnz(L)/length(L)^2);
     
+    
     %==============================================================
     % Computation of the spectral function
     %==============================================================
@@ -1065,7 +1064,7 @@ end % orientation loop
 
 % Rescale to match rigid limit chili intensities to pepper intensities
 spec = spec/(4*pi); % scale by powder average factor of 4pi
-spec = spec/2; % since chili uses S+ and pepper uses Sx
+spec = spec/2; % since chili uses normalized Sx and pepper uses unnormalized Sx
 if FrequencySweep
   spec = spec*(dB/dnu)*mt2mhz(1,mean(Sys.g)); % scale by g*Beta/h factor for freq sweep
 end
