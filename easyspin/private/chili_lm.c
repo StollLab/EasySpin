@@ -132,13 +132,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   allocationOptions = mxGetPr(prhs[3]);
   blockSize = (long)allocationOptions[0];
   if (Display) {
-    if (nNuclei==0)
-     nBasis = BasisSize0();
-    else if (nNuclei==1)
-      nBasis = BasisSize1();
-    else if (nNuclei==2)
-      nBasis = BasisSize2();
-    mexPrintf("  basis size: %d\n",nBasis);
     mexPrintf("  allocation block size: %d\n",blockSize);
   }
   
