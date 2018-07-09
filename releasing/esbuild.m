@@ -11,7 +11,7 @@ function esbuild
 %   PATCH: Increment for every bugfix release.
 % Roughly follow guidelines of seminatic versioning, see
 %   http://semver.org/
-ReleaseID = '5.2.16'; % major.minor.patch
+ReleaseID = '5.2.18'; % major.minor.patch
 
 % Set to true if you want an easyspin-x.y.z.zip file without the
 % long timestamp ID.
@@ -122,7 +122,6 @@ replacestr([TbxFolder filesep 'info.xml'],'$ReleaseID$',ReleaseID);
 replacestr([TbxFolder filesep 'easyspininfo.m'],'$ReleaseID$',ReleaseID);
 replacestr([TbxFolder filesep 'easyspininfo.m'],'$ReleaseDate$',ReleaseDate);
 replacestr([TbxFolder filesep 'easyspininfo.m'],'$ExpiryDate$',ExpiryDate);
-replacestr([TbxFolder filesep 'eschecker.m'],'$ReleaseID$',ReleaseID);
 replacestr([TbxFolder filesep 'eschecker.m'],'888888',num2str(datenum(ExpiryDate)));
 replacestr([TbxFolder filesep 'eschecker.m'],'999999',num2str(datenum(HorizonDate)));
 fprintf(' ok\n');

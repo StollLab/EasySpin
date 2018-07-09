@@ -131,7 +131,7 @@ Sys.A = [20,20,80];  % MHz
 </pre>
 
 <p>
-The first line defines the g tensor of the spin system via its three principal values. <code>chili</code> always assumes a single unpaired electron spin S=1/2.
+The first line defines the g tensor of the spin system via its three principal values. <code>chili</code> always assumes a single unpaired electron spin S=1/2 if no spin is given.
 </p>
 
 <p>
@@ -140,7 +140,7 @@ Use a comma-separated list of isotope labels to give more than one nucleus. E.g.
 </p>
 
 <p>
-<code>Sys.A</code> gives the hyperfine couplings in MHz (Megahertz),
+<code>Sys.A</code> gives the hyperfine couplings in MHz (megahertz),
 with three principal values on a row for each of the nuclei listed in <code>Sys.Nucs</code>.
 The following defines a hydrogen atom with a 10 MHz coupling to the unpaired electron and
 a <sup>13</sup>C atom with a 12 MHz coupling.
@@ -220,12 +220,14 @@ or by givings its base-10 logarithm
 Sys.logDiff = 9;   % 1e9 s^-1 = 1 ns^-1
 </pre>
 
+<p>	
 <code>Diff</code> and <code>tcorr</code> are related by
 
 <pre class="matlab">
 Diff = 1/6/tcorr;
 </pre>
 
+<p>	
 The input field <code>Diff</code> can be used to specify an axial rotational diffusion
 tensor, by giving a 2-element vector with first the perpendicular and the the parallel
 principal value:
@@ -275,8 +277,8 @@ chili(Nx,Exp);
 <p>
 <code>chili</code> can also include an orienting potential in the simulation.
 It is specified in the field <code>lambda</code> in the spin system structure.
-Up to five coefficients can be given, &lambda;<sub>2,0</sub>, &lambda;<sub>2,2</sub>,  &lambda;<sub>4,0</sub>,
-   &lambda;<sub>4,2</sub>, and  &lambda;<sub>4,4</sub>, in that order.  For example,
+Up to four coefficients can be given, &lambda;<sub>2,0</sub>, &lambda;<sub>2,2</sub>, &lambda;<sub>4,0</sub>,
+and &lambda;<sub>4,2</sub>, in that order.  For example,
 </p>
 
 <pre class="matlab">
@@ -420,7 +422,7 @@ By default, its value is set to 0, so that <code>chili</code> is silent. It can 
 </p>
 
 <pre class="matlab">
-Opt.Verbosity = 1;     % log information
+Opt.Verbosity = 1;     % print information
 </pre>
 
 <p>
@@ -428,7 +430,7 @@ Another important option is <code>LLKM</code>. It specifies the number of orient
 </p>
 
 <pre class="matlab">
-Opt.LLKM  = [24 20 10 10];
+Opt.LLKM  = [24 20 10 10];  % a large basis
 </pre>
 
 <p>
@@ -439,11 +441,11 @@ To see the values of <code>LLKM</code> that <code>chili</code> is using, set <co
 <div class="subtitle"><a name="multinuc">Systems with more than one nucleus</a></div>
 
 <p>
-<code>chili</code> is not capable of simulating a slow-motional cw EPR spectrum of systems with more than one nucleus by solving the Stochastic Liouville equation. 
+<code>chili</code> is capable of simulating a slow-motional cw EPR spectrum of systems with multiple nuclei. However, the simulations can be very slow or run out of memory.
 </p>
 
 <p>
-However, if the hyperfine coupling of one nucleus is significantly larger than those of the other nuclei, <code>chili</code> uses an approximate procedure: The slow-motional spectrum simulated using only the electron spin and the nucleus with the dominant hyperfine coupling is convoluted with the isotropic splitting pattern due to all other nuclei. This post-convolution technique gives resonable results.
+These issue can be avoided if the hyperfine coupling of one nucleus is significantly larger than those of the other nuclei. Then, <code>chili</code> can use an approximate procedure: The slow-motional spectrum simulated using only the electron spin and the nucleus with the dominant hyperfine coupling is convoluted with the isotropic splitting pattern due to all other nuclei. This post-convolution technique gives reasonable results.
 </p>
 
 <p>
@@ -451,11 +453,13 @@ A simple example is
 </p>
 
 <pre class="matlab">
-CuPc = struct('g',[2.0525 2.0525 2.1994],'Nucs','63Cu,14N','n',[1 4]);
-CuPc.A = [-54 -54 -608; 52.4 41.2 41.8];
+CuPc = struct('g',[2.0525 2.0525 2.1994],'Nucs','63Cu,14N,14N,14N,14N');
+AN = [52.4 41.2 41.8];
+CuPc.A = [-54 -54 -608; AN; AN; AN; AN];
 CuPc.logtcorr = -7.35;
 Exp = struct('mwFreq',9.878,'CenterSweep',[330 120],'nPoints',5e3);
-Opt.LLKM = [36 30 8 8];
+Opt.Verbosity = 1;
+Opt.PostConvNucs = 2:5;  % specify which nuclei to use for post-convolution
 chili(CuPc,Exp,Opt);
 </pre>
 
@@ -488,8 +492,8 @@ Nx.g = [2.008 2.006 2.002];
 Nx.Nucs = '14N';
 Nx.A = [20 20 100];
 Nx.tcorr = 3e-9;
-Exp.Field = 340;         % static field, in mT
-Exp.Range = [9.3 9.7];   % frequency range, in GHz
+Exp.Field = 340;           % static field, in mT
+Exp.mwRange = [9.3 9.7];   % frequency range, in GHz
 chili(Nx,Exp);
 </pre>
 
