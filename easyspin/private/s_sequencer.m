@@ -188,8 +188,12 @@ if ~isfield(Opt,'SimulationMode') || strcmp(Opt.SimulationMode,'fast')
 end
 
 if ~strcmp(OrigSimulationMode,Opt.SimulationMode)
-  message = ['Your experiment definition does not allow for the fast simulation mode. The simulation mode has been changed to stepwise. The reason was: ' message];
+  message = ['Your experiment definition does not allow for the fast simulation mode. The simulation mode has been changed to ''thyme''.' newline 'The reason for this was: ' message];
+  message = [message newline 'If you are aware of this and want to supress this message, consider using Opt.SimulationMode = ''thyme''.'];
   disp(message);
+end
+
+if strcmp(Opt.SimulationMode,'thyme')
   if any(isfield(Exp,saffronSpecificFieldsExp))
     msg = [];
     for i = 1: length(saffronSpecificFieldsExp)

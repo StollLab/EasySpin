@@ -120,7 +120,7 @@ else
 end
 
 if isfield(Opt,'Relaxation') && any(Opt.Relaxation) && isempty(Relaxation)
-  error('You need to provide relaxation times Sys.T1 and Sys.T2 if Opt.Relaxation is active.')
+  error('You need to provide relaxation times Sys.T1 and Sys.T2 if you request relaxation.')
 end
 
 % Set up excitation operators

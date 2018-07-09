@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>User guide: spidyan</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">Advances pulse EPR simulations and spin dynamics</div>
+
+<p>
+This user guide explains how to simulate a variety of pulse EPR spectra, using EasySpin's function <a class="esf" href="saffron.html">saffron</a>.
+</p>
+
+<p>
+<a class="esf" href="saffron.html">saffron</a> can simulate data from a broad range of pulse EPR experiments. The most common ones are predefined: 2-pulse ESEEM, 3-pulse ESEEM, 4-pulse ESEEM, HYSCORE and Mims ENDOR. Others can be simulated using <a class="esf" href="saffron.html">saffron</a>'s interface for custom user-defined pulse sequences. It can accommodate a single electron spin (S=1/2 or S>1/2) coupled to an arbitrary number of magnetic nuclei.
+
+<p>
+<a class="esf" href="saffron.html">saffron</a> has some limitations. Currently, it can only simulate experiments with rectangular pulses and a single microwave carrier frequency. Relaxation is limited to T<sub>1</sub> and T<sub>2</sub>.
+
+<p>
+In the following, we go over the following topics:
+
+<ul>
+<li><a href = "#calling">Running the simulation</a></li>
+<li><a href = "#exp">Experimental parameters</a></li>
+<li><a href = "#orisel">Orientation selection</a></li>
+<li><a href = "#userdef">User-defined experiments</a></li>
+<li><a href = "#crystals">Single crystals</a></li>
+<li><a href = "#options">Options</a></li>
+</ul>
+
+Look at the list of <a href="examplesmain.html">examples</a> for more examples on how to use <a class="esf" href="saffron.html">saffron</a>.
+
+<!-- ============================================================= -->
+<div class="subtitle"><a name="calling">Running the simulation</a></div>
+<div class="subtitle">Examples</div>
+
+<p>
+This section gives two examples on how to use <code>spidyan</code>.
+The first demonstration shows how to create a three-dimensional plot of the spin trajectory during an adiabatic pulse for a single spin.
+The second example shows how to simulate a two-pulse echo and how to extend it to an ESEEM experiment, all for a Gaussian line.
+More can be found at <a href="examplesmain.html">examples</a>.
+</p>
+
+<div class="subtitle2">Adiabatic passage</div>
+
+<p>
+As an illustration, we want to look at the trajectory of a single spin <i>S</i> = 1/2 during a chirp with smoothed edges.
+We start by defining a spin system:
+</p>
+
+<pre class="matlab">
+Sys.S = 1/2;
+Sys.ZeemanFreq = 33.500;
+</pre>
+
+<p>
+Since we are looking only at one spin (not a powder average) and want the resonance to be in the center of the sweep, it is easier to use the field <code>ZeemanFreq</code> for the defintion of the Hamiltonian (this could also be done with <code>Sys.g</code>). 
+Next we define what type of pulse we want to use and then add it to <code>Exp</code>.
+</p>
+
+
+<pre class="matlab">
+Pulse.Type = 'quartersin/linear';
+Pulse.trise = 0.015;
+Pulse.Qcrit = 10;
+
+Exp.Sequence = 0.2; 
+Exp.Pulses = {Pulse};
+Exp.Field = 1240; 
+Exp.SequenceimeStep = 0.00001; 
+Exp.Frequency = [-100 100];
+Exp.mwFreq = 33.5;
+Exp.DetSequence = 1;
+</pre></pre>
+
+<p>
+Before starting the simulation, we need to define a few more parameters:
+</p>
+
+<pre class="matlab">
+Exp.DetOperator = {'z1','+1'};
+Exp.DetFreq = [0 -33.5];
+Opt.FrameShift = 32;
+</pre>
+
+<p>
+With <code>FrameShift</code> the simulation is carried out in a frame that rotates at 32 GHz, which means that detected frequencies will now be centered around of 1.5 instead of 33.5 GHz.
+This allows us to use a larger <code>TimeStep</code>, which speeds up the simulation.
+As detection is done in the simulation frame <i>&Scirc;</i><sub>+</sub> has a rotating component that can be removed with <code>DetFreq</code>.
+Next <code>spidyan</code> can be called, and the output plotted:
+</p>
+
+<pre class="matlab">
+[TimeAxis, Signal] = spidyan(Sys,Exp,Opt);
+
+figure(1)
+clf
+plot(TimeAxis*1000,real(Signal));
+xlabel('t [ns]')
+axis tight
+ylim([-1 1])
+ylabel('S_i')
+legend(Exp.DetOperator)
+</pre>
+
+<p>
+We can use the fact that <i>&Scirc;</i><sub>+</sub> = <i>&Scirc;<sub>x</sub></i> + i <i>&Scirc;<sub>y</sub></i> to create a three-dimensional depiction of the inversion process:
+</p>
+
+<pre class="matlab">
+figure(2)
+clf
+plot3(real(Signal(2,:)),imag(Signal(2,:)),real(Signal(1,:)));
+xlabel('S_x')
+ylabel('S_y')
+zlabel('S_z')
+</pre>
+
+<div class="subtitle2">Refocused Echo</div>
+<p>
+Here we will set up a simple refocused echo with linearly-swept chirp pulses for a Gaussian distribution of spin packets.
+Since we want well-defined excitation profiles, the beginning and end of the chirp pulses are weighted with a quarter sine wave to smooth the edges.
+The MATLAB script can also be found in the <a href="examplesmain.html">examples</a>.
+We start by defining the spin system and the pulse sequence:
+</p>
+<pre class="matlab">
+Sys.S = 1/2;
+Sys.ZeemanFreq = 33.500;
+Sys = nucspinadd(Sys,'1H',[8 45 45]);
+
+Pulse.Type = 'quartersin/linear';
+Pulse.trise = 0.005;
+
+Exp.Sequence = [0.05 0.25 0.025 0.125 0.3];
+Exp.Pulses = {Pulse 0 Pulse};
+Exp.Field = 1240; 
+Exp.SequenceimeStep = 0.0001;
+Exp.Frequency = [-0.080 0.080];
+Exp.Flip = [pi/2 pi];
+Exp.mwFreq = 33.5;
+Exp.DetSequence = [0 0 0 0 1];
+</pre>
+<p>
+Since it is not necessary to run the simulation at actual Q-band frequencies, we can again simulate in a frame at 32 GHz, which allows us to use the smaller timestep defined in <code>Exp.SequenceimeStep</code> and increases the computation speed.
+For detection we choose <i>&Scirc;</i><sub>+</sub> and translate detected signals by -33.5 GHz (the center of the Gaussian distribution) - the frequency shift has to be provided in absolute frequency, even if <code>Opt.FrameShift</code> is used:
+</p>
+
+<pre class="matlab">
+Opt.FrameShift = 32;
+Exp.DetOperator = {'+1'};
+Exp.DetFreq = -33.5;
+</pre>
+
+<p>
+This code already contains everything to run <code>spidyan</code> (for a single spin packet), but in order to obtain a refocused spin-echo it is necessary to sum up several traces of spin packets with different resonance frequencies.
+Instead of using the spectrum of a nitroxide, we choose a Gaussian line, centered around 33.5 GHz and a width of 10 MHz.
+It is sampled every 5 MHz with between 33.45 and 33.55 GHz:
+</p>
+
+<pre class="matlab">
+CenterFrequency = 33.5;
+GWidth = 0.01; 
+FreqStart = 33.45;
+FreqEnd = 33.55;
+Sampling = 0.0005; % must adhere to an 'inverse' Nyquist criterion with respect to length of the experiment
+ZeemanFreqVec = FreqStart:Sampling:FreqEnd;
+P = exp(-((CenterFrequency-ZeemanFreqVec)/GWidth).^2);
+P = P/trapz(P); % normalizes the distribution to unity area
+nSpinpackets = length(ZeemanFreqVec);
+</pre>
+
+<p>
+And with this, <code>spidyan</code> can now be called from within a <code>for</code>-loop, that samples all the spin packets defined by <code>ZeemanFreqVec</code>. 
+Individual <code>spidyan</code> calls return the traces of the individual spin packets, which need to be weighed with their probability and summed to obtain the echo of the ensemble:
+</p>
+
+<pre class="matlab">
+for i = 1 : nSpinpackets
+  
+  Sys.ZeemanFreq = ZeemanFreqVec(i);
+  
+  [TimeAxis, Signal] = spidyan(Sys,Exp,Opt);
+  
+  if i == 1
+    TotalSignal = Signal*P(i);
+  else
+    TotalSignal = TotalSignal + Signal*P(i);
+  end
+  
+end
+</pre>
+
+<p>
+The output <code>TotalSignal</code> is now the signal as it would be detected by the spectrometer:
+</p>
+
+<pre class="matlab">
+figure(1)
+clf
+plot(TimeAxis*1000,abs(TotalSignal));
+xlabel('t [ns]')
+axis tight
+ylim([0 1])
+</pre>
+
+<p>
+By varying the inter-pulse delay, this experiment can be easily extended to the two-pulse ESEEM experiment.
+In order to keep the echo appearing at the same time during the last event, we can increment the second delay as well:
+</p>
+
+<pre class="matlab">
+Exp.nPoints = 100;
+Exp.Dim1 = {'d1,d2', 0.004};
+</pre>
+
+<p>
+The output now contains 100 echos, each for a different first inter-pulse delay.
+</p>
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+</html>

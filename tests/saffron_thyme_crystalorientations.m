@@ -12,6 +12,7 @@ nPoints = 10;
 Field = 350;
 
 Opt.nKnots = 20;
+Opt.SimulationMode = 'thyme';
 
 %--- Tests
 

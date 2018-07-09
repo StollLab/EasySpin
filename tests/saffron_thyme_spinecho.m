@@ -26,6 +26,7 @@ Exp.Sequence = {Chirp90 0.25 Chirp180 0.25};
 Exp.DetWindow = [-0.1 0.1] + Chirp180.tp;
 
 Opt.nKnots = 7;
+Opt.SimulationMode = 'thyme';
 
 [x, y] = saffron2(Sys,Exp,Opt);
 

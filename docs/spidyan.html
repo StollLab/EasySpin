@@ -167,7 +167,7 @@ For a pulse it is necessary to insert a structure containing the pulse defintion
 <pre class="matlab">
 P90.Type = 'rectangular';  	% Define Pulse, see examples for more details
 P90.tp = 0.032;		  	% Pulse Length in microseconds
-P90.Flip = pi;		  	% Flip angle of the pulse
+P90.Flip = pi/2;		  	% Flip angle of the pulse
 
 P180.Type = 'rectangular';  	% Define Pulse, see examples for more details
 P180.tp = 0.032;		% Pulse Length in microseconds
@@ -223,11 +223,15 @@ Detection:
 
 <div class="optionfield"><code>DetWindow</code></div>
 <div class="optiondescr">
-The field <code>DetWindow</code> is a simple tool to control detection and is given in microseconds:
+The field <code>DetWindow</code> controls detection and is given in microseconds:
 The zero-time of the detection is taken as the end of the last element in <code>Exp.Sequence</code>.
+
 <p>
+<img src="img/detection_windows.png" width="600">
+</p>
+
 To do single point detection, it is sufficient to tell <code>DetWindow</code> the time of the detection point.
-E.g. to detect at the center of the echo after a two pulse:
+E.g. to detect at the center of the echo after a two pulse experiment:
 <pre class="matlab">
 tau = 0.5
 Exp.Sequence = {pulse90 tau pulse180 tau};   	% a two-pulse echo
@@ -260,7 +264,6 @@ Exp.DetWindow = 0.5;	% detect a single point after 500ns after the last pi/2 pul
 Exp.DetWindow = [0.250 0.750] % detect a transient, centered around the echo
 
 Exp.DetWindow = [0 0.100]    % detect an FID after the last pulse
-
 </pre>
 </div>
 
@@ -525,191 +528,6 @@ Opt.ComplexExcitation = [0 1 0];  % complex excitation is active only during the
 </div>
 
 
-<div class="subtitle">Examples</div>
-
-<p>
-This section gives two examples on how to use <code>spidyan</code>.
-The first demonstration shows how to create a three-dimensional plot of the spin trajectory during an adiabatic pulse for a single spin.
-The second example shows how to simulate a two-pulse echo and how to extend it to an ESEEM experiment, all for a Gaussian line.
-More can be found at <a href="examplesmain.html">examples</a>.
-</p>
-
-<div class="subtitle2">Adiabatic passage</div>
-
-<p>
-As an illustration, we want to look at the trajectory of a single spin <i>S</i> = 1/2 during a chirp with smoothed edges.
-We start by defining a spin system:
-</p>
-
-<pre class="matlab">
-Sys.S = 1/2;
-Sys.ZeemanFreq = 33.500;
-</pre>
-
-<p>
-Since we are looking only at one spin (not a powder average) and want the resonance to be in the center of the sweep, it is easier to use the field <code>ZeemanFreq</code> for the defintion of the Hamiltonian (this could also be done with <code>Sys.g</code>). 
-Next we define what type of pulse we want to use and then add it to <code>Exp</code>.
-</p>
-
-
-<pre class="matlab">
-Pulse.Type = 'quartersin/linear';
-Pulse.trise = 0.015;
-Pulse.Qcrit = 10;
-
-Exp.Sequence = 0.2; 
-Exp.Pulses = {Pulse};
-Exp.Field = 1240; 
-Exp.SequenceimeStep = 0.00001; 
-Exp.Frequency = [-100 100];
-Exp.mwFreq = 33.5;
-Exp.DetSequence = 1;
-</pre></pre>
-
-<p>
-Before starting the simulation, we need to define a few more parameters:
-</p>
-
-<pre class="matlab">
-Exp.DetOperator = {'z1','+1'};
-Exp.DetFreq = [0 -33.5];
-Opt.FrameShift = 32;
-</pre>
-
-<p>
-With <code>FrameShift</code> the simulation is carried out in a frame that rotates at 32 GHz, which means that detected frequencies will now be centered around of 1.5 instead of 33.5 GHz.
-This allows us to use a larger <code>TimeStep</code>, which speeds up the simulation.
-As detection is done in the simulation frame <i>&Scirc;</i><sub>+</sub> has a rotating component that can be removed with <code>DetFreq</code>.
-Next <code>spidyan</code> can be called, and the output plotted:
-</p>
-
-<pre class="matlab">
-[TimeAxis, Signal] = spidyan(Sys,Exp,Opt);
-
-figure(1)
-clf
-plot(TimeAxis*1000,real(Signal));
-xlabel('t [ns]')
-axis tight
-ylim([-1 1])
-ylabel('S_i')
-legend(Exp.DetOperator)
-</pre>
-
-<p>
-We can use the fact that <i>&Scirc;</i><sub>+</sub> = <i>&Scirc;<sub>x</sub></i> + i <i>&Scirc;<sub>y</sub></i> to create a three-dimensional depiction of the inversion process:
-</p>
-
-<pre class="matlab">
-figure(2)
-clf
-plot3(real(Signal(2,:)),imag(Signal(2,:)),real(Signal(1,:)));
-xlabel('S_x')
-ylabel('S_y')
-zlabel('S_z')
-</pre>
-
-<div class="subtitle2">Refocused Echo</div>
-<p>
-Here we will set up a simple refocused echo with linearly-swept chirp pulses for a Gaussian distribution of spin packets.
-Since we want well-defined excitation profiles, the beginning and end of the chirp pulses are weighted with a quarter sine wave to smooth the edges.
-The MATLAB script can also be found in the <a href="examplesmain.html">examples</a>.
-We start by defining the spin system and the pulse sequence:
-</p>
-<pre class="matlab">
-Sys.S = 1/2;
-Sys.ZeemanFreq = 33.500;
-Sys = nucspinadd(Sys,'1H',[8 45 45]);
-
-Pulse.Type = 'quartersin/linear';
-Pulse.trise = 0.005;
-
-Exp.Sequence = [0.05 0.25 0.025 0.125 0.3];
-Exp.Pulses = {Pulse 0 Pulse};
-Exp.Field = 1240; 
-Exp.SequenceimeStep = 0.0001;
-Exp.Frequency = [-0.080 0.080];
-Exp.Flip = [pi/2 pi];
-Exp.mwFreq = 33.5;
-Exp.DetSequence = [0 0 0 0 1];
-</pre>
-<p>
-Since it is not necessary to run the simulation at actual Q-band frequencies, we can again simulate in a frame at 32 GHz, which allows us to use the smaller timestep defined in <code>Exp.SequenceimeStep</code> and increases the computation speed.
-For detection we choose <i>&Scirc;</i><sub>+</sub> and translate detected signals by -33.5 GHz (the center of the Gaussian distribution) - the frequency shift has to be provided in absolute frequency, even if <code>Opt.FrameShift</code> is used:
-</p>
-
-<pre class="matlab">
-Opt.FrameShift = 32;
-Exp.DetOperator = {'+1'};
-Exp.DetFreq = -33.5;
-</pre>
-
-<p>
-This code already contains everything to run <code>spidyan</code> (for a single spin packet), but in order to obtain a refocused spin-echo it is necessary to sum up several traces of spin packets with different resonance frequencies.
-Instead of using the spectrum of a nitroxide, we choose a Gaussian line, centered around 33.5 GHz and a width of 10 MHz.
-It is sampled every 5 MHz with between 33.45 and 33.55 GHz:
-</p>
-
-<pre class="matlab">
-CenterFrequency = 33.5;
-GWidth = 0.01; 
-FreqStart = 33.45;
-FreqEnd = 33.55;
-Sampling = 0.0005; % must adhere to an 'inverse' Nyquist criterion with respect to length of the experiment
-ZeemanFreqVec = FreqStart:Sampling:FreqEnd;
-P = exp(-((CenterFrequency-ZeemanFreqVec)/GWidth).^2);
-P = P/trapz(P); % normalizes the distribution to unity area
-nSpinpackets = length(ZeemanFreqVec);
-</pre>
-
-<p>
-And with this, <code>spidyan</code> can now be called from within a <code>for</code>-loop, that samples all the spin packets defined by <code>ZeemanFreqVec</code>. 
-Individual <code>spidyan</code> calls return the traces of the individual spin packets, which need to be weighed with their probability and summed to obtain the echo of the ensemble:
-</p>
-
-<pre class="matlab">
-for i = 1 : nSpinpackets
-  
-  Sys.ZeemanFreq = ZeemanFreqVec(i);
-  
-  [TimeAxis, Signal] = spidyan(Sys,Exp,Opt);
-  
-  if i == 1
-    TotalSignal = Signal*P(i);
-  else
-    TotalSignal = TotalSignal + Signal*P(i);
-  end
-  
-end
-</pre>
-
-<p>
-The output <code>TotalSignal</code> is now the signal as it would be detected by the spectrometer:
-</p>
-
-<pre class="matlab">
-figure(1)
-clf
-plot(TimeAxis*1000,abs(TotalSignal));
-xlabel('t [ns]')
-axis tight
-ylim([0 1])
-</pre>
-
-<p>
-By varying the inter-pulse delay, this experiment can be easily extended to the two-pulse ESEEM experiment.
-In order to keep the echo appearing at the same time during the last event, we can increment the second delay as well:
-</p>
-
-<pre class="matlab">
-Exp.nPoints = 100;
-Exp.Dim1 = {'d1,d2', 0.004};
-</pre>
-
-<p>
-The output now contains 100 echos, each for a different first inter-pulse delay.
-</p>
-
 <div class="subtitle">Output Structure</div>
 
 <div class="subtitle2">Time Traces</div>
@@ -838,108 +656,7 @@ For full recording of state trajectories, detection needs to be active during th
 Otherwise only the states at the beginning and the end of that event are recorded.
 </p>
 
-<a name="relaxation_times">
-<div class="subtitle">Relaxation Times</div>
-<p>
-The simplest way to use relaxation is to apply the same longitudinal and transverse relaxation times (in microseconds) to all transitions of the spin system.
-A 1.5 microseconds longitudinal relaxation time and a 0.5 microseconds transverse relaxation time can be assigned to all transitions in the system with
-</p>
 
-<pre class="matlab">
-Sys.T1 = 1.5;  % longitudinal relaxation time in microseconds
-Sys.T2 = 0.5;  % transverse relaxation time in microseconds
-</pre>
-
-<p>
-In some cases, it might be of interest to investigate the effect of only one type of relaxation: If only <code>T1</code> or <code>T2</code> are defined, the missing relaxation time is by default set to 10<sup>10</sup> microseconds.
-</p>
-
-<p>
-In systems with larger spin quantum numbers or several spins, relaxation times can differ for different types of transitions.
-If you do not want to use the same relaxation time for each transition, relaxation times can also be provided in matrices. 
-To set up the input correctly, some knowledge of the spin system and the resulting density matrices is required:
-For a single-spin system the basis functions of the operators in the Zeeman basis state are in descending order, left to right (more at <a href="sop.html">sop</a>).
-E.g., an <i>S</i> = 1 system has three states and the three pathways connecting them can be described by a 3 &times; 3 (density like) matrix:
-</p>
-
-<img src="img/spidyan_relaxation1.png" width="250">
-
-<p>
-With this we can now design matrix input for <code>T1</code> and <code>T2</code>, that can be translated into a relaxation superoperator:
-</p>
-
-<pre class="matlab">
-Sys.T1(1,2) = 1.5;  % transition 1 (blue)
-Sys.T1(1,3) = 0.5;  % transition 2 (green)
-Sys.T1(2,3) = 1.4;  % transition 3 (red)
-
-Sys.T2(1,2) = 0.3;  % transition 1 (blue)
-Sys.T2(1,3) = 0.1;  % transition 2 (green)
-Sys.T2(2,3) = 0.3;  % transition 3 (red)
-</pre>
-
-<pre class="mloutput">
-Sys.T1 =
-		0		1.5		0.5
-		0		  0		1.4
-		0		  0		  0
-		
-Sys.T2 =
-		0		0.3		0.1
-		0		  0		0.3
-		0		  0		  0
-</pre>
-
-<p>
-It suffices to define the upper triangle only (as done above). 
-But for longitudinal (not so for transverse) relaxation there can be a difference between "up" (|+1>&#8594;|0>) and "down" (|0>&#8594;|+1>) pathways. 
-If you are interested in assigning different relaxation times for opposing directions, you can do this by using the lower triangle:
-</p>
-
-<pre class="matlab">
-Sys.T1(2,1) = 1.3;  % transition 1 (grey)
-Sys.T1(3,1) = 0.7;  % transition 2 (grey)
-Sys.T1(3,2) = 1.1;  % transition 3 (grey)
-</pre>
-
-<pre class="mloutput">
-Sys.T1 =
-		  0		1.5		0.5
-		1.3		  0		1.4
-		0.7		1.1		  0
-</pre>
-
-<p>
-In case the lower triangle is not defined for <code>T1</code>, the upper triangle is used for up and down directions.
-Any transitions that are not assigned a relaxation time (matrix element 0 in the upper triangle), are automatically set to 10<sup>10</sup> microseconds, which effectively switches relaxation off on that pathway. 
-Relaxation times  in the lower triangle of <code>T2</code> are ignored.
-</p>
-
-<p>
-Spin systems that contain several spins are assigned relaxation times analogously, but require a slightly deeper insight into ordering of the states:
-The representation of the operators is in terms of product Zeeman basis states |m<sub>1</sub>,m<sub>2</sub>,m<sub>3</sub>,..>, where m<sub>1</sub> is for the first spin, m<sub>2</sub> is for the second spin, etc.
-The basis functions are again in descending order m<sub>i</sub>, left to the right.
-E.g. for two coupled (electron) spins with <i>S,</i> = 1/2, you get the following energy level scheme:
-</p>
-
-<img src="img/spidyan_relaxation2.png" width="450">
-
-<div class="subtitle">Tips and Tricks</div>
-<ul>
-<li> 
-If you are interested in the expectation values of <i>&Scirc;<sub>x</sub></i>, it is usually beneficial to use <i>&Scirc;</i><sub>+</sub> as the actual detection operator and then take the real part of the obtained signal.
-This removes artifacts at the beginning and end of the time traces that are introduced when translating a purely real signal during the signal processing.
-<li> 
-In some simulations you may observe echoes in your timetrace that should not be there.
-Besides physical reasons (incomplete phase cycling, different refocusing conditions,...), such artifact echoes can arise from an aliasing effect if the spectrum (e.g. the nitroxide spectrum in the example above) is insufficiently sampled.
-This can easily be checked: By increasing the number of samples from your distribution the artifact echoes should move, spread further apart or vanish, while physical echos stay in place. You can also compute the required increment for the spin packet distribution in frequency domain by an inverse Nyquist criterion. 
-If you want to observe up to a time <i>t</i><sub>max</sub> after the first excitation event (first pulse), the frequency increment should not be larger than 1/(2 <i>t</i><sub>max</sub>). Otherwise use Monte Carlo sampling of spin packet frequencies, which will convert the artifacts to 'Monte Carlo noise' that averages with increasing number of trials.  
-<li> 
-If the signal processing fails, <code>spidyan</code> returns the signal in the simulation frame. 
-This can happen if you try to translate <i>&Scirc;<sub>z</sub></i> or provide a wrong frequency. 
-Instead of adapting down conversion and rerunning the entire simulation, you can call <code>signalprocessing</code> with the original signal and the correct down conversion frequencies.
-More info on <a class="esf" href="signalprocessing.html">signalprocessing</a>.
-</ul>
 
 
 <div class="subtitle">See also</div>

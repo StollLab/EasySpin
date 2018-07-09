@@ -1,7 +1,7 @@
 function [Exp] = s_predefinedexperiments(Exp)
 % This function creates the Event and Vary Structures
 
-defaultPoints = 126;
+defaultPoints = 512;
 
 P90.tp = 0.016;
 P90.Flip = pi/2;
@@ -69,7 +69,9 @@ switch Exp.Sequence
     Exp.Sequence = {P90 Exp.tau P90 Exp.t1 P180 Exp.t2 P90 Exp.tau};
     
     if ~isfield(Exp,'nPoints')
-      Exp.nPoints = [defaultPoints defaultPoints];
+      Exp.nPoints = [defaultPoints/4 defaultPoints/4];
+	  elseif length(Exp.nPoints) == 1
+	  Exp.nPoints = [Exp.nPoints Exp.nPoints];
     end
     
     Exp.Dim1 = {'d2' Exp.dt};

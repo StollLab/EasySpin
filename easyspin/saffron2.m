@@ -95,6 +95,10 @@ end
 
 if isfield(Opt,'Relaxation') && length(Opt.Relaxation) > 1
   error('Opt.Relaxation has to be a boolean.')
+elseif ~isfield(Opt,'Relaxation') && (isfield(Sys,'T1') || isfield(Sys,'T2'))
+  Opt.Relaxation = true;
+elseif ~isfield(Opt,'Relaxation')
+  Opt.Relaxation = false;
 end
 
 %error on spidyan specific fields
@@ -1990,6 +1994,11 @@ else
   TimeAxis = cell(1,nOrientations);
   
   logmsg(1,'-starting orientation loop-----------------------------');
+  if Opt.Relaxation
+    logmsg(1,'  relaxation is active during simulation');
+  else
+    logmsg(1,'  no relaxation during propagation');
+  end
   logmsg(1,'  propagating %d orientations',nOrientations);
   Field = Exp.Field;
   parfor iOrientation = 1 : nOrientations

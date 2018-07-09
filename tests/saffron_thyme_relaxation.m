@@ -1,6 +1,5 @@
 function [err,data] = test(opt,olddata)
 
-% Spin System
 Sys.S = 1/2;
 Sys.g = [2.00906 2.0062 2.0023];
 Sys.A = [11.5 11.5 95];
@@ -28,7 +27,7 @@ Exp.Sequence = {Chirp90 0.25 Chirp180 0.25};
 Exp.DetWindow = [-0.1 0.1] + Chirp180.tp;
 
 Opt.nKnots = 7;
-Opt.Relaxation = 1;
+Opt.SimulationMode = 'thyme';
 
 [x, y] = saffron2(Sys,Exp,Opt);
 
