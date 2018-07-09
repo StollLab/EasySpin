@@ -7,7 +7,7 @@
    <link rel="stylesheet" href="highlight/matlab.css">
    <script src="highlight/highlight.pack.js"></script>
    <script>hljs.initHighlightingOnLoad();</script>
-   <title>stochtraj</title>
+   <title>stochtraj_diffusion</title>
 </head>
 
 <body>
@@ -25,7 +25,7 @@
 
 <section>
 
-<div class="functitle">stochtraj</div>
+<div class="functitle">stochtraj_diffusion</div>
 
 <p>
 Simulation of stochastic rotational trajectories.
@@ -35,23 +35,22 @@ Simulation of stochastic rotational trajectories.
 <div class="subtitle">Syntax</div>
 
 <pre class="matlab">
-stochtraj(Sys)
-stochtraj(Sys,Par)
-stochtraj(Sys,Par,Opt)
-[t,qTraj] = stochtraj(...)
-[t,stateTraj] = stochtraj(...)
-[t,qTraj,stateTraj] = stochtraj(...)
+stochtraj_diffusion(Sys)
+stochtraj_diffusion(Sys,Par)
+stochtraj_diffusion(Sys,Par,Opt)
+[t,RTraj] = stochtraj_diffusion(...)
+[t,RTraj,qTraj] = stochtraj_diffusion(...)
 </pre>
 
 <!-- =================================================================== -->
 <div class="subtitle">Description</div>
 
 <p>
-<code>stochtraj</code> computes stochastic trajectories of rotational diffusion using orientational quaternions or Markov chains using a Markov state model.
+<code>stochtraj_diffusion</code> computes stochastic trajectories of rotational diffusion using orientational quaternions.
 </p>
 
 <p>
-<code>stochtraj</code> accepts up to three input arguments
+<code>stochtraj_diffusion</code> accepts up to three input arguments
 
 <ul>
 <li><code>Sys</code>: dynamic properties
@@ -60,19 +59,19 @@ stochtraj(Sys,Par,Opt)
 </ul>
 
 <p>
-If no input argument is given, a short help summary is shown (same as when typing <code>help stochtraj</code>).
+If no input argument is given, a short help summary is shown (same as when typing <code>help stochtraj_diffusion</code>).
 </p>
 
 <p>
-Depending on the input options, up to three output arguments are returned:
+Up to three output arguments are returned:
 <ul>
 <li><code>t</code>: time axis, in seconds
+<li><code>RTraj</code>: rotation matrices
 <li><code>qTraj</code>: quaternions
-<li><code>stateTraj</code>: Markov states (integer)
 </ul>
 
 <p>
-If no output argument is given, <code>stochtraj</code> plots one of the trajectories.
+If no output argument is given, <code>stochtraj_diffusion</code> plots one of the trajectories.
 </p>
 
 <div class="subtitle2">Input: System dynamics </div>
@@ -128,7 +127,7 @@ Base-10 logarithm of <code>Diff</code>. If given, <code>Diff</code> is ignored.
 </div>
 
 <p>
-It is also possible to specify an orienting potential energy function to simulate restricted rotational diffusion. <code>stochtraj</code> accomplishes this by representing the orienting potential function using either a series of Wigner D-functions (see reference for details) or a numerical array. To take advantage of this feature, the user should declare the structure <code>Sys.Potential</code> with fields being either: 
+It is also possible to specify an orienting potential energy function to simulate restricted rotational diffusion. <code>stochtraj_diffusion</code> accomplishes this by representing the orienting potential function using either a series of Wigner D-functions (see reference for details) or a numerical array. To take advantage of this feature, the user should declare the structure <code>Sys.Potential</code> with fields being either: 
 <ul>
 <li>each term in the orienting potential by specifying the real and imaginary parts of the coefficients using <code>lambda</code> and the indices corresponding to each term using <code>LMK</code>, or
 <li>a numerical array <code>PseudoPotFun</code> representing the potential energy function directly.
@@ -157,25 +156,6 @@ An array of size (N,3) containing the indices L,M,K for each orienting potential
 <div class="optionfield"><code>PseudoPotFun</code></div>
 <div class="optiondescr">
 A 3D array representing the orienting potential energy function. Dimensions 1, 2, and 3 of this array represent the x, y, and z Cartesian coordinate axes.
-</div>
-
-<p>
-In addition to simulating trajectories of rotational diffusion, <code>stochtraj</code> can simulate Markov chains using a Markov state model by specifying the following parameters dynamical properties. Note that either <code>TransRates</code> or <code>TransProb</code> can be given, with the former taking precendence of both are given.
-</p>
-
-<div class="optionfield"><code>TransRates</code></div>
-<div class="optiondescr">
-Transition rate matrix, in seconds<sup>-1</sup>.
-</div>
-
-<div class="optionfield"><code>TransProb</code></div>
-<div class="optiondescr">
-Transition probability matrix.
-</div>
-
-<div class="optionfield"><code>States</code></div>
-<div class="optiondescr">
-Euler angles representing the orientation of each state.
 </div>
 
 
@@ -210,11 +190,7 @@ The total time of the simulation, in seconds.
 
 
 <p>
-Lastly, the trajectory settings are used to specify the number of trajectories to be simulated, <code>nTraj</code>, and the starting states of each trajectory using <code>Omega</code> for rotational diffusion or <code>States0</code> for Markov chains.
-</p>
-
-<p>
-If only one starting state is given (a single triplet of Euler angles or a single Markov state) and <code>nTraj</code> is greater than one, then this state will be repeated for each trajectory. If <code>nTraj</code> is not provided, only one trajectory will be simulated.
+Lastly, the trajectory settings are used to specify the number of trajectories to be simulated, <code>nTraj</code>, and the starting states of each trajectory using <code>Omega</code>.
 </p>
 
 <div class="optionfield"><code>Omega</code></div>
@@ -222,40 +198,25 @@ If only one starting state is given (a single triplet of Euler angles or a singl
 Used for rotational diffusion. Starting orientations for trajectories, given as an array of size (3,1) or (3,nTraj) containing triplets of the Euler angles &alpha;, &beta;, &gamma;, in radians. If <code>Omega</code> is not provided when simulating rotational diffusion, then a number of starting orientations equal to <code>nTraj</code> will be chosen from a uniform random distribution over the unit sphere, where &alpha;, &beta;, and &gamma; are sampled from [0,2&pi;), [0,&pi;), and [0,2&pi;), respectively.
 </div>
 
-<div class="optionfield"><code>States0</code></div>
-<div class="optiondescr">
-Used for Markov chains. Starting states for each Markov chain, given as an array of size (1,nTraj).
-</div>
-
 <div class="optionfield"><code>nTraj</code></div>
 <div class="optiondescr">
 The total number of trajectories to simulate.
 </div>
 
+<p>
+If only one starting orientation is given and <code>nTraj</code> is greater than one, then this starting orientation will be used for each trajectory. If <code>Omega</code> is not provided, then starting orientations will be chosen uniformly at random over the unit 4-sphere. If <code>nTraj</code> is not provided, only one trajectory will be simulated.
+</p>
+
 <div class="subtitle2">Input: Simulation options</div>
 
 <p>
-<code>Opt</code> is a structure with additional simulation options, including specification of the type of simulation through the field <code>Model</code>.
+<code>Opt</code> is a structure with additional simulation options.
 </p>
-
-<div class="optionfield"><code>Model</code></div>
-<div class="optiondescr">
-<ul>
-<li> 'Continuous' (default): simulate stochastic rotational diffusion
-<li> 'Discrete': simulate Markovian jumps between discrete orientations
-</ul>
-</div>
-
-<div class="optionfield"><code>statesOnly</code></div>
-<div class="optiondescr">
-0 (default), 1<br>
-If equal to 1, only return the trajectories of Markov states, in which case <code>Sys.States</code> need not be specified.
-</div>
 
 <div class="optionfield"><code>chkcon</code></div>
 <div class="optiondescr">
 0 (default), 1<br>
-If equal to 1, after the first <code>nSteps</code> of the trajectories are calculated, <code>stochtraj</code> will check for both inter- and intra-trajectory convergence using the Gelman-Rubin R statistic (to be specific, requiring that R&lt;1.1, see A. Gelman and D. Rubin, Statistical Science 7, 457 (1992) for details). If convergence is not obtained, then propagation will be extended by either a length of time equal to the average of <code>tcorr</code> or by 20% more time steps, whichever is larger.
+If equal to 1, after the first <code>nSteps</code> of the trajectories are calculated, <code>stochtraj_diffusion</code> will check for both inter- and intra-trajectory convergence using the Gelman-Rubin R statistic (to be specific, requiring that R&lt;1.1, see A. Gelman and D. Rubin, Statistical Science 7, 457 (1992) for details). If convergence is not obtained, then propagation will be extended by either a length of time equal to the average of <code>tcorr</code> or by 20% more time steps, whichever is larger.
 </div>
 <!--
 <div class="optionfield"><code>tol</code></div>
@@ -267,7 +228,7 @@ Termination tolerance for chi squared in angular distribution. If <code>Par.chkc
 <div class="optionfield"><code>Verbosity</code></div>
 <div class="optiondescr">
 0 (default), 1<br>
-Determines how much information <code>stochtraj</code> prints to the screen. If <code>Opt.Verbosity=0</code>, it is completely silent. 1 prints details about the progress of the computation.
+Determines how much information <code>stochtraj_diffusion</code> prints to the screen. If <code>Opt.Verbosity=0</code>, it is completely silent. 1 prints details about the progress of the computation.
 </div>
 
 <!-- =================================================================== -->
@@ -284,7 +245,7 @@ Par.dt = 1e-9;  % 1 ns time step
 Par.nSteps = 1e3;  % 1000 time steps
 Par.Omega = [0,0,0];
 
-[t,RTraj] = stochtraj(Sys,Par);
+[t,RTraj] = stochtraj_diffusion(Sys,Par);
 </pre>
 
 <p>
@@ -300,7 +261,7 @@ Par.dt = 1e-9;
 Par.nSteps = 500;
 Par.nTraj = 400;
 
-[t,qTraj] = stochtraj(Sys,Par);
+[t,qTraj] = stochtraj_diffusion(Sys,Par);
 </pre>
 
 
@@ -308,7 +269,7 @@ Par.nTraj = 400;
 <div class="subtitle">Algorithm</div>
 
 <p>
-<code>stochtraj</code> solves the stochastic rotational Langevin equation by numerically propagating quaternions. The quaternions specify orientations of the body-fixed coordinate frame with respect to the space-fixed frame. Since both isotropic and anisotropic diffusion tensors are diagonal in the body-fixed frame, defining the quaternions in this manner considerably simplifies the problem.
+<code>stochtraj_diffusion</code> solves the stochastic rotational Langevin equation by numerically propagating quaternions. The quaternions specify orientations of the body-fixed coordinate frame with respect to the space-fixed frame. Since both isotropic and anisotropic diffusion tensors are diagonal in the body-fixed frame, defining the quaternions in this manner considerably simplifies the problem.
 </p>
 <p>
 For full details of the methods used here, see: 
@@ -318,6 +279,8 @@ D. Sezer, J. H. Freed, and B. Roux, J. Chem. Phys. B 128, 165106 (2008).
 <!-- =================================================================== -->
 <div class="subtitle">See also</div>
 <p>
+<a class="esf" href="stochtraj_jump.html">stochtraj_jump</a>, 
+<a class="esf" href="cardamom.html">cardamom</a>, 
 <a class="esf" href="chili.html">chili</a>
 </p>
 

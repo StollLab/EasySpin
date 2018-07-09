@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>stochtraj</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">stochtraj_jump</div>
+
+<p>
+Simulation of stochastic jump trajectories using a Markov state model.
+</p>
+
+<!-- =================================================================== -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+stochtraj_jump(Sys)
+stochtraj_jump(Sys,Par)
+stochtraj_jump(Sys,Par,Opt)
+[t,qTraj] = stochtraj_jump(...)
+[t,stateTraj] = stochtraj_jump(...)
+[t,qTraj,stateTraj] = stochtraj_jump(...)
+</pre>
+
+<!-- =================================================================== -->
+<div class="subtitle">Description</div>
+
+<p>
+<code>stochtraj_jump</code> computes stochastic trajectories of Markovian jumps between specified molecular orientations represented by quaternions.
+</p>
+
+<p>
+<code>stochtraj_jump</code> accepts up to three input arguments
+
+<ul>
+<li><code>Sys</code>: dynamic properties
+<li><code>Par</code>: (optional) simulation parameters for monte carlo integrator and trajectories
+<li><code>Opt</code>: (optional) simulation options
+</ul>
+
+<p>
+If no input argument is given, a short help summary is shown (same as when typing <code>help stochtraj_jump</code>).
+</p>
+
+<p>
+Depending on the input options, up to three output arguments are returned:
+<ul>
+<li><code>t</code>: time axis, in seconds
+<li><code>qTraj</code>: quaternions
+<li><code>stateTraj</code>: Markov states (integer)
+</ul>
+
+<p>
+If no output argument is given, <code>stochtraj_jump</code> plots one of the trajectories.
+</p>
+
+<div class="subtitle2">Input: System dynamics </div>
+
+<p>
+<code>Sys</code> is a structure containing the dynamic properties for generating the stochastic trajectories. Many of its fields overlap with those of <code>chili</code>. This allows the user to easily simulate EPR spectra in both frequency and time domains for comparison.
+</p>
+
+Note that either <code>TransRates</code> or <code>TransProb</code> can be given, with the former taking precendence of both are given.
+</p>
+
+<div class="optionfield"><code>TransRates</code></div>
+<div class="optiondescr">
+Transition rate matrix, in seconds<sup>-1</sup>.
+</div>
+
+<div class="optionfield"><code>TransProb</code></div>
+<div class="optiondescr">
+Transition probability matrix.
+</div>
+
+<div class="optionfield"><code>States</code></div>
+<div class="optiondescr">
+Euler angles or quaternions representing the orientation of each state.
+</div>
+
+
+<div class="subtitle2">Input: Simulation parameters</div>
+
+
+<p>
+<code>Par</code> is a structure containing the parameters for calculating the stochastic trajectories. The parameters can be categorized into two groups: Monte Carlo settings and trajectory settings.
+<p>
+<p>
+The Monte Carlo settings specify the parameters used to perform the time integration in the simulation. One can provide an array of time points <code>t</code> along which to integrate, a number of steps <code>nSteps</code> and a time step <code>dt</code>, or a number of steps <code>nSteps</code> and a total time for simulation <code>tmax</code>.
+
+<div class="optionfield"><code>t</code></div>
+<div class="optiondescr">
+An array of time points along which to integrate, in seconds. If this is provided, no other Monte Carlo settings need to be specified.
+</div>
+
+<div class="optionfield"><code>nSteps</code></div>
+<div class="optiondescr">
+The total number of time steps used to perform integration.
+</div>
+
+<div class="optionfield"><code>dt</code></div>
+<div class="optiondescr">
+The time step of the integration, in seconds.
+</div>
+
+<div class="optionfield"><code>tmax</code></div>
+<div class="optiondescr">
+The total time of the simulation, in seconds.
+</div>
+
+<p>
+Lastly, the trajectory settings are used to specify the number of trajectories to be simulated, <code>nTraj</code>, and the starting states of each trajectory <code>States0</code>. 
+</p>
+
+<div class="optionfield"><code>States0</code></div>
+<div class="optiondescr">
+Used for Markov chains. Starting states for each Markov chain, given as an array of size (1,nTraj).
+</div>
+
+<div class="optionfield"><code>nTraj</code></div>
+<div class="optiondescr">
+The total number of trajectories to simulate.
+</div>
+
+<p>
+If only one starting state is given and <code>nTraj</code> is greater than one, then this starting state will be used for each trajectory. If <code>States0</code> is not provided, then the starting states will be chosen uniformly at random. If <code>nTraj</code> is not provided, only one trajectory will be simulated.
+</p>
+
+<div class="subtitle2">Input: Simulation options</div>
+
+<p>
+<code>Opt</code> is a structure with additional simulation options.
+</p>
+
+<div class="optionfield"><code>statesOnly</code></div>
+<div class="optiondescr">
+0 (default), 1<br>
+If equal to 1, only return the trajectories of Markov states, in which case <code>Sys.States</code> need not be specified.
+</div>
+
+<!--
+<div class="optionfield"><code>chkcon</code></div>
+<div class="optiondescr">
+0 (default), 1<br>
+If equal to 1, after the first <code>nSteps</code> of the trajectories are calculated, <code>stochtraj_jump</code> will check for both inter- and intra-trajectory convergence using the Gelman-Rubin R statistic (to be specific, requiring that R&lt;1.1, see A. Gelman and D. Rubin, Statistical Science 7, 457 (1992) for details). If convergence is not obtained, then propagation will be extended by either a length of time equal to the average of <code>tcorr</code> or by 20% more time steps, whichever is larger.
+</div>
+-->
+<!--
+<div class="optionfield"><code>tol</code></div>
+<div class="optiondescr">
+Termination tolerance for chi squared in angular distribution. If <code>Par.chkcon=1</code> and <code>tol</code> is not specified, the default value is <code>1e-3</code>.
+</div>
+-->
+
+<div class="optionfield"><code>Verbosity</code></div>
+<div class="optiondescr">
+0 (default), 1<br>
+Determines how much information <code>stochtraj_jump</code> prints to the screen. If <code>Opt.Verbosity=0</code>, it is completely silent. 1 prints details about the progress of the computation.
+</div>
+
+<!-- =================================================================== -->
+<div class="subtitle">Example</div>
+
+<p>
+To simulate a 200-ns long, fast motion Brownian diffusion trajectory starting from the north pole on the unit sphere, enter
+</p>
+
+<pre class="matlab">
+Sys.tcorr = 5e-9;  % 5 ns rotational correlation time
+
+Par.dt = 1e-9;  % 1 ns time step
+Par.nSteps = 1e3;  % 1000 time steps
+Par.Omega = [0,0,0];
+
+[t,RTraj] = stochtraj_jump(Sys,Par);
+</pre>
+
+<p>
+To simulate 400 1-&mu;s long, slow motion trajectories in an orienting potential with coefficient &lambda;<sup>2</sup><sub>0,0</sub> = 1, whose starting points are chosen randomly from the uniform distribution on the unit sphere, enter
+</p>
+
+<pre class="matlab">
+Sys.tcorr = 50e-9;  % 50 ns rotational correlation time
+Sys.Potential.lambda = [1,0];  % purely real orienting potential coefficient
+Sys.Potential.LMK = [2,0,0];  % L=2, M=K=0
+
+Par.dt = 1e-9;
+Par.nSteps = 500;
+Par.nTraj = 400;
+
+[t,qTraj] = stochtraj_jump(Sys,Par);
+</pre>
+
+
+<!-- =================================================================== -->
+<div class="subtitle">Algorithm</div>
+
+<p>
+<code>stochtraj_jump</code> solves the stochastic rotational Langevin equation by numerically propagating quaternions. The quaternions specify orientations of the body-fixed coordinate frame with respect to the space-fixed frame. Since both isotropic and anisotropic diffusion tensors are diagonal in the body-fixed frame, defining the quaternions in this manner considerably simplifies the problem.
+</p>
+<p>
+For full details of the methods used here, see: 
+</p>
+D. Sezer, J. H. Freed, and B. Roux, J. Chem. Phys. B 128, 165106 (2008).
+
+<!-- =================================================================== -->
+<div class="subtitle">See also</div>
+<p>
+<a class="esf" href="chili.html">chili</a>
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+</html>
