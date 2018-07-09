@@ -32,9 +32,7 @@ end
 
 if nargin<4, Method = []; end
 
-% Calculate Wigner expansion coefficients of potential-dependent part of
-% diffusion operator
-XLK = chili_xlk(Potential,R);
+XLK = Potential.xlk;
 
 usePotential = nargin>2 && ~isempty(XLK) && any(XLK(:)~=0);
 if usePotential

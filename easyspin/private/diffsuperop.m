@@ -30,10 +30,7 @@ usePotential = nargin==3 && isfield(Potential,'lambda') && ...
 
 useSymmetrizedBasis = isfield(basis,'jK') && ~isempty(basis.jK) && any(basis.jK);
 
-if usePotential
-  % Calculate diffusion operator expansion coefficients
-  XLK = chili_xlk(Potential,R);
-end
+XLK = Potential.xlk;
 
 L = basis.L;
 M = basis.M;

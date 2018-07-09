@@ -1,5 +1,5 @@
 % chili_xlk    Computes the coefficients of the orienting
-%              potential terms in the diffusion operator.
+%              potential operator coefficients for the diffusion operator.
 %
 %     X = chili_xlk(Potential,R)
 %
@@ -20,7 +20,7 @@ function X = chili_xlk(Potential,R)
 % Missing minus in Earle: Is he correct and the others wrong?
 % No, sign depends on definition of U = -k T ... or U = + k T...
 
-if isfield(Potential,'M') && any(Potential.M(:))
+if any(Potential.M)
   error('chili_xlk does not support potential coefficients with M~=0.');
 end
 
@@ -32,7 +32,7 @@ if ~isfield(Potential,'lambda') || ~any(Potential.lambda)
   X = zeros(0,0);
   return
 end
-logmsg(1,'Ordering potential: computing X(l,k) coefficients.');
+logmsg(1,'Ordering potential: computing X^L_K coefficients.');
 
 
 % Get principal values of diffusion tensor
@@ -49,15 +49,6 @@ maxL = max(Potential.L)*2;
 
 if any(~isreal(Potential.lambda))
   error('Only real potential coefficients are allowed.');
-end
-
-if any(abs(Potential.K)>Potential.L)
-  error('L and K values of potential coefficients do not satisfy -L<=K<=L.');
-end
-if isfield(Potential,'M')
-  if any(abs(Potential.M)>Potential.L)
-    error('L and M values of potential coefficients do not satisfy -L<=K<=L.');
-  end
 end
 
 % Precompute 3j values of (L1,L,L2;0,0,0)
@@ -152,8 +143,7 @@ for L = 0:maxL
       end
     end
 
-    value = -1/2*A  - (2*L+1)/4*(-1)^K*B;
-    X((L)+1,(K)+L+1) = value;
+    X((L)+1,(K)+L+1) = -1/2*A  - (2*L+1)/4*(-1)^K*B;
   end
 end
 

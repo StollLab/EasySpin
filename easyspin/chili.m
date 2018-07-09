@@ -25,7 +25,7 @@
 %                     field sweep: mT, frequency sweep: MHz
 %     Sys.lwpp        peak-to-peak line widths, same format as Sys.lw
 %     Sys.lambda      ordering potential coefficients
-%                       [lambda20 lambda22 lambda40 lambda42 lambda44]
+%                       [lambda20 lambda22 lambda40 lambda42]
 %     Sys.Exchange    Heisenberg exchange frequency (MHz)
 %
 %    Exp: experimental parameter settings
@@ -196,8 +196,8 @@ end
 % included in the slow-motion simulation via T2.
 ConvolutionBroadening = any(Sys.lw(1)>0);
 
-% Dynamics and ordering potential
-%-------------------------------------------------------------------
+% Dynamics
+%-------------------------------------------------------------------------------
 if isfield(Sys,'psi')
   error('Sys.psi is obsolete. Remove it from your code. See the documentation for details.');
 end
@@ -208,16 +208,60 @@ if isfield(Sys,'logtcorr'), Dynamics.logtcorr = Sys.logtcorr; end
 if isfield(Sys,'logDiff'), Dynamics.logDiff = Sys.logDiff; end
 if ~isfield(Sys,'DiffFrame'), Sys.DiffFrame = [0 0 0]; end
 
-if ~isfield(Sys,'lambda'), Sys.lambda = []; end
-
 if ~isfield(Sys,'Exchange'), Sys.Exchange = 0; end
 
 if isfield(Sys,'lwpp'), Dynamics.lwpp = Sys.lwpp; end
 if isfield(Sys,'lw'), Dynamics.lw = Sys.lw; end
 
 Dynamics.Exchange = Sys.Exchange;
-Potential.lambda = Sys.lambda;
-usePotential = ~isempty(Potential.lambda) && ~all(Potential.lambda==0);
+
+% Ordering potential
+%-------------------------------------------------------------------------------
+% Extract and organize information about potential
+if isfield(Sys,'lambda') && ~isempty(Sys.lambda)
+  if isfield(Sys,'Potential')
+    error('Cannot have Sys.lambda and Sys.Potential simultaneously.');
+  end
+  if numel(Sys.lambda)<4, Sys.lambda(4) = 0; end
+  if numel(Sys.lambda)>4, error('Too many potential coefficients in Sys.lambda!'); end
+  Potential.lambda = Sys.lambda;
+  Potential.L = [2 2 4 4];
+  Potential.M = [0 0 0 0];
+  Potential.K = [0 2 0 2];
+  Potential.oldstyle = true;
+  usePotential = true;
+else
+  if isfield(Sys,'Potential')
+    Potential = Sys.Potential;
+    usePotential = true;
+  else
+    Potential.lambda = [];
+    Potential.L = [];
+    Potential.M = [];
+    Potential.K = [];
+    Potential.oldstyle = false;
+    usePotential = false;
+  end
+end
+
+
+% Validate ordering potential inputs
+if usePotential
+  if ~isempty(Potential.lambda)
+    if any(Potential.L<0)
+      error('L must be a list of nonnegative integers.');
+    end
+    if any(abs(Potential.K)>Potential.L)
+      error('L and K values of potential coefficients do not satisfy -L<=K<=L.');
+    end
+    if any(abs(Potential.M)>Potential.L)
+      error('L and M values of potential coefficients do not satisfy -L<=K<=L.');
+    end
+    if any(Potential.K<0)
+      error('Only nonnegative values of K are allowed.');
+    end
+  end
+end
 
 % Experimental settings
 %-------------------------------------------------------------------
@@ -614,15 +658,6 @@ end
 [Dynamics,err] = processdynamics(Dynamics,FieldSweep);
 error(err);
 
-% Ordering potential
-%------------------------------------------------------------------
-if ~isfield(Potential,'lambda'), Potential.lambda = [0 0 0 0 0]; end
-if numel(Potential.lambda)<5, Potential.lambda(5) = 0; end
-if numel(Potential.lambda)>5, error('Too many potential coefficients!'); end
-
-Potential.L = [2 2 4 4 4];
-Potential.M = [0 0 0 0 0];
-Potential.K = [0 2 0 2 4];
 
 % Basis
 %------------------------------------------------------------------
@@ -775,8 +810,13 @@ end
 
 % Calculate Gamma
 %-----------------------------------------------------------------------
-logmsg(1,'Calculating the relaxation superoperator matrix');
+% Pre-calculate diffusion operator Wigner expansion coefficient
+logmsg(1,'Calculating XLK coefficients for diffusion matrix');
+Potential.xlk = chili_xlk(Potential,Dynamics.Diff);
+
 if generalLiouvillian
+
+  logmsg(1,'Calculating the diffusion matrix');
   
   % Calculate relaxation superoperator in spatial basis
   if Opt.useLMKbasis
@@ -786,13 +826,12 @@ if generalLiouvillian
   end
   % Expand to full product basis
   Gamma = spkroneye(Gamma,Sys.nStates^2);
-  Gamma = Gamma(keep,keep);
+  Gamma = Gamma(keep,keep); % prune
   
 else
   
-  % Pre-calculate diffusion operator Wigner expansion coefficient
-  Potential.xlk = chili_xlk(Potential,Dynamics.Diff);
-  
+  % Gamma is calculated simultaneously with H
+    
 end
 
 
@@ -931,7 +970,11 @@ for iOri = 1:nOrientations
       end
       Sys.DirTilt = Basis.DirTilt; % used in chili_lm
       Dynamics.xlk = Potential.xlk; % used in chili_lm
-      Dynamics.maxL = size(Potential.xlk,1)-1; % used in chili_lm
+      if usePotential
+        Dynamics.maxL = 2*max(Potential.L); % maxmimum L in XLK ( = 2*L from potential)
+      else
+        Dynamics.maxL = -1;
+      end
       [r,c,Vals,nDim] = chili_lm(Sys,Basis.v,Dynamics,Opt.AllocationBlockSize);
       L = sparse(r,c,Vals,BasisSize,BasisSize);
       if saveDiagnostics
@@ -1322,7 +1365,7 @@ end
 % Use only even L values (oddLmax=0) and no K values (Kmx=0)
 % in case of axial magnetic tensors, axial potential, 
 % and no magnetic/diffusion tilt
-if axialSystem && (Basis.deltaK==2) && (maxPotentialK==0)
+if axialSystem && (Basis.deltaK==2) && (isempty(maxPotentialK) || (maxPotentialK==0))
   Basis.oddLmax = 0;
   Basis.Kmax = 0;
 end

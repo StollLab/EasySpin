@@ -1,6 +1,8 @@
 function stvec = chili_startingvector(Basis,Potential)
 
-absTol = 1e-8; % for numerical integration
+if any(Potential.lambda) && ~Potential.oldstyle
+  error('This functions works only for potentials with M=0, L=2,4, and K=0,2.');
+end
 
 lambda = Potential.lambda;
 isPotential = any(lambda);
@@ -12,10 +14,12 @@ isNuc2 = isfield(Basis,'pI2');
 nBasis = numel(Basis.L);
 stvec = zeros(nBasis,1);
 
+absTol = 1e-8; % for numerical integration
 useOldIntegrator = verLessThan('matlab','7.14'); % us quadl() instead of integral()
 
 cacheval = NaN;
 cacheLK = [NaN NaN];
+
 for b = 1:nBasis
   L = Basis.L(b);
   K = Basis.K(b);

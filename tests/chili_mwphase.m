@@ -19,8 +19,9 @@ if ~isempty(olddata)
     plot(x,data.y,x,olddata.y);
     legend('current','old');
     legend boxoff
+    title(sprintf('MAD = %g',max(abs(data.y-olddata.y))));
   end
-  ok = areequal(data.y,olddata.y,1e-4);
+  ok = areequal(data.y,olddata.y,5e-4*max(data.y));
   err = ~ok;
 else
   err = [];
