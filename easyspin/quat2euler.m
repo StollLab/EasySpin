@@ -9,22 +9,22 @@
 %
 %   Output:
 %    alpha          double or numeric, size = (1,...)
-%                   first Euler angle
+%                   first Euler angle, in radians
 %
 %    beta           double or numeric, size = (1,...)
-%                   second Euler angle
+%                   second Euler angle, in radians
 %
 %    gamma          double or numeric, size = (1,...)
-%                   third Euler angle
+%                   third Euler angle, in radians
 
-function [alpha, beta, gamma] = quat2euler(varargin)
+function varargout = quat2euler(varargin)
 
 if (nargin==0), help(mfilename); return; end
 
 switch nargin
   case 1
     % EasySpin uses passive transformations by default
-    q = varargin{1};
+%     q = varargin{1};
 %     invert = 1;
     q = quatinv(varargin{1});
   case 2
@@ -108,5 +108,17 @@ gamma = atan2( 2.*(q2.*q3 ...
 %                    1 - 2.*( q1(idx).*q1(idx) ...
 %                           - q3(idx).*q3(idx)) );
 % end
+
+switch (nargout)
+  case 0
+%     alpha, beta, gamma
+    varargout = {cat(1, alpha, beta, gamma)};
+  case 1
+    varargout = {cat(1, alpha, beta, gamma)};
+  case 3
+    varargout = {alpha, beta, gamma};
+  otherwise
+    error('Incorrect number of output arguments.')
+end
 
 end

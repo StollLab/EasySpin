@@ -1,4 +1,4 @@
-%  quatvecmult Rotate a vector using a quaternion.
+%  quatvecmult Rotate a vector using a unit quaternion.
 %
 %  r = quatvecmult(q, v);
 %

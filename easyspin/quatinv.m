@@ -1,4 +1,4 @@
-%  quatinv Invert a quaternion.
+%  quatinv Invert a unit quaternion.
 %
 %  qinv = quatvecmult(q);
 %

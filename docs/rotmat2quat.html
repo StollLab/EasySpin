@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>rotmat2quat</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">rotmat2quat</div>
+
+<p>
+Convert rotation matrices to unit quaternion(s).
+</p>
+
+<!-- ============================================================= -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+[q0,q1,q2,q3] = rotmat2quat(R)
+q = rotmat2quat(R)
+</pre>
+
+<!-- ============================================================= -->
+<div class="subtitle">Description</div>
+
+<p>
+Computes the unit quaternion(s) corresponding to the input rotation matrices. The rotation matrices are given as an array <code>R</code> of size 3x3xN. The corresponding unit quaternion(s) are returned as a 4xN array or using the individual components <code>q0</code>, <code>q1</code>, <code>q2</code>, <code>q3</code> (each of size 1xN).
+</p>
+
+<p>
+Note that <code>rotmat2quat</code> is vectorized and will accept arrays of rotation matrices of size 3x3xNxMx... with an arbitrary number of dimenions, in which case the unit quaternions will be returned as an array of size 3x3xNxMx... .
+</p>
+
+<p>
+For details about rotation matrices and orientations,
+see the page on <a href="eulerangles.html">relative orientations</a>.
+</p>
+
+<!-- ============================================================= -->
+<div class="subtitle">Examples</div>
+
+<p>
+Let's create an arbitrary rotation matrix using Euler angles.
+</p>
+
+<pre class="matlab">
+ang = [34 72 -143]*pi/180;
+R = erot(ang)
+</pre>
+<pre class="mloutput">
+R =
+    0.1319   -0.6369    0.7595
+    0.6008   -0.5581   -0.5724
+    0.7885    0.5318    0.3090
+</pre>
+
+<p>
+Taking this rotation matrix, we compute the unit quaternion.
+</p>
+	
+<pre class="matlab">
+q = rotmat2quat(R)
+</pre>
+<pre class="mloutput">
+q =
+    0.4698
+    0.5876
+   -0.0154
+    0.6586
+</pre>
+
+<p>
+Now, feeding this quaternion into <code>quat2rotmat</code>,
+we get back the original rotation matrix.
+</p>
+
+<pre class="matlab">
+quat2rotmat(q)
+</pre>
+<pre class="mloutput">
+ans =
+    0.1319   -0.6369    0.7595
+    0.6008   -0.5581   -0.5724
+    0.7885    0.5318    0.3090
+</pre>
+
+
+<!-- ============================================================= -->
+<div class="subtitle">See also</div>
+
+<p>
+<a class="esf" href="quat2rotmat.html">quat2rotmat</a>,
+<a class="esf" href="quat2euler.html">quat2euler</a>,
+<a class="esf" href="euler2quat.html">euler2quat</a>,
+<a class="esf" href="quatvecmult.html">quatvecmult</a>
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+</html>

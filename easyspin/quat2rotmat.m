@@ -1,4 +1,4 @@
-%  quat2rotmat Convert a quaternion to a rotation matrix.
+%  quat2rotmat Convert unit quaternions to rotation matrices.
 %
 %  mat = quat2rotmat(q);
 %
