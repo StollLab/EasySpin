@@ -31,7 +31,7 @@ pdf = pdfa.*pdfb.*pdfg;
 pdf = pdf/sum(pdf(:));
 
 Sys.tcorr = 10e-9;
-Sys.Potential.ProbDensFun = pdf;
+Sys.Potential = -log(pdf);
 
 Par.dt = Sys.tcorr/20;
 Par.nSteps = ceil(200*Sys.tcorr/Par.dt);

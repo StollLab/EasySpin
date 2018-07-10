@@ -5,7 +5,7 @@ function [err,data] = test(opt,olddata)
 Par.nTraj = 500;
 Sys.TransRates = 1e9*[-0.5,  0.5;
                        0.5, -0.5];
-Sys.States = [0,  0;
+Sys.Orientations = [0,  0;
               0, pi;
               0,  0];
 
@@ -16,13 +16,12 @@ Par.nSteps = ceil(200*tau/Par.dt);
 
 Opt.Model = 'Discrete';
 
-TransRates = Sys.TransRates;
-States = euler2quat(Sys.States);
-nTraj = Par.nTraj;
+%TransRates = Sys.TransRates;
+%States = euler2quat(Sys.Orientations);
+%nTraj = Par.nTraj;
 nSteps = Par.nSteps;
 
-[t, qTraj] = stochtraj_jump(Sys,Par,Opt);
-RTraj = quat2rotmat(qTraj);
+[t, RTraj] = stochtraj_jump(Sys,Par,Opt);
 
 VecTraj = squeeze(RTraj(:,3,:,:));
 

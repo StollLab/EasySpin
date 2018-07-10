@@ -22,27 +22,19 @@
 %         All fields can have 1 (isotropic), 2 (axial) or 3 (rhombic) elements.
 %         Precedence: logtcorr > tcorr > logDiff > Diff.
 %
-%     Potential      structure 
-%                    defines an orienting potential using the following 
-%                    fields:
+%     Potential      defines an orienting potential using one of the following:
 %
-%       lambda         numeric, size = (nCoefs,2)
-%                      array of orienting potential coefficients, with each 
-%                      row consisting of the corresponding real and 
-%                      imaginary parts
-%
-%       LMK            numeric, size = (nCoefs,3)
-%                      quantum numbers L, M, and K corresponding to each 
-%                      set of coefficients
-%
-%       ProbDensFun    numeric, 3D array
-%                      probability distribution grid to be used for
-%                      calculating the pseudopotential and the torque
-%
-%       PseudoPotFun   numeric, 3D array
-%                      orienting pseudopotential grid to be used for
-%                      calculating the torque
-%
+%                    a) set of LMKs and lambdas for an expansion in terms of
+%                       Wigner functions [L1 M1 K1 lambda1; L2 M2 K2 lambda2]
+%                       lambda can be real or complex
+%                    b) 3D array defining the potential over a grid, with the
+%                       first dimension representing alpha [0,2*pi], the second
+%                       beta [0,pi], and the third gamma [0,2*pi]
+%                    c) a function handle for a function that takes three
+%                       arguments (alpha, beta, and gamma) and returns the value
+%                       of the ordering potential for that orientation. The
+%                       function should be vectorized, i.e. work with arrays of
+%                       alpha, beta, and gamma.
 %
 %
 %   Par: simulation parameters for Monte Carlo integrator
@@ -148,51 +140,87 @@ Sim.Diff = Dynamics.Diff;
 tcorrAvg = 1/6/mean(Dynamics.Diff);
 
 % Supplement fields
-if ~isfield(Sys,'Potential'), Sys.Potential = struct; end
-if ~isfield(Sys.Potential,'ProbDensFun'), Sys.Potential.ProbDensFun = []; end
-if ~isfield(Sys.Potential,'PseudoPotFun'), Sys.Potential.PseudoPotFun = []; end
-if ~isfield(Sys.Potential,'LMK'), Sys.Potential.LMK = []; end
-if ~isfield(Sys.Potential,'lambda'), Sys.Potential.lambda = []; end
+if ~isfield(Sys,'Potential'), Sys.Potential = []; end
 
-isUserPotFun = ~isempty(Sys.Potential.ProbDensFun) || ~isempty(Sys.Potential.PseudoPotFun);
-isLMKexpansion = ~isempty(Sys.Potential.lambda) || ~isempty(Sys.Potential.LMK);
-
-if isUserPotFun && isLMKexpansion
-  error('Please choose either PseudoPotFun or lambda and LMK for an orienting potential.')
-end
+isUserPotFun = ndims(Sys.Potential)==3 || isa(Sys.Potential,'function_handle');
 
 if isUserPotFun
   
   % Get potential function
-  if ~isempty(Sys.Potential.PseudoPotFun)
-    PseudoPotFun = Sys.Potential.PseudoPotFun;
-  elseif ~isempty(Sys.Potential.ProbDensFun)
-    ProbDensFun = Sys.Potential.ProbDensFun;
-    ProbDensFun(ProbDensFun < 1e-14) = 1e-14;
-    PseudoPotFun = -log(ProbDensFun);
-  end
+  PseudoPotFun = Sys.Potential;
   
   % Check potential function
-  if any(isnan(PseudoPotFun(:)))
-    error('NaN detected in PseudoPotFun.');
-  end  
-  if any(isinf(PseudoPotFun(:)))
-    error('At least one inf detected in PseudoPotFun.');
+  if isnumeric(PseudoPotFun)
+    if any(isnan(PseudoPotFun(:)))
+      error('NaN detected in PseudoPotFun.');
+    end
+    if any(isinf(PseudoPotFun(:)))
+      error('At least one inf detected in PseudoPotFun.');
+    end
   end
 
-  % Calculate gradient
-  alphaGrid = linspace(-pi,pi,size(PseudoPotFun,1));
-  betaGrid = linspace(0,pi,size(PseudoPotFun,2)+2);
+  % Set up orientational grid
+  if isnumeric(PseudoPotFun)
+    nGrid = size(PseudoPotFun);
+  else
+    nGrid = [25 13 25]; % 15 degree increments for each angle
+  end
+  alphaGrid = linspace(-pi,pi,nGrid(1));
+  betaGrid = linspace(0,pi,nGrid(2)+2);
   betaGrid = betaGrid(2:end-1); % avoid poles
-  gammaGrid = linspace(-pi,pi,size(PseudoPotFun,3));
+  gammaGrid = linspace(-pi,pi,nGrid(3));
+  
+  if ~isnumeric(PseudoPotFun)
+    PseudoPotFun = PseudoPotFun(alphaGrid,betaGrid,gammaGrid);
+  end
+  
+  % Calculate gradient
   [dx,dy,dz] = gradient_euler(PseudoPotFun, alphaGrid, betaGrid, gammaGrid);
   
-  % Set  up interpolant for gradient
+  % Set up interpolant for gradient
   method = 'linear';
   Gradx = griddedInterpolant({alphaGrid, betaGrid, gammaGrid}, dx, method);
   Grady = griddedInterpolant({alphaGrid, betaGrid, gammaGrid}, dy, method);
   Gradz = griddedInterpolant({alphaGrid, betaGrid, gammaGrid}, dz, method);
   Sim.interpGrad = {Gradx, Grady, Gradz};
+  
+else
+  
+  if ~isempty(Sys.Potential)
+    
+    if size(Sys.Potential,2)~=4
+      error('Sys.Potential need four numbers (L, M, K, lambda) per row.');
+    end
+    Lvals = Sys.Potential(:,1);
+    Mvals = Sys.Potential(:,2);
+    Kvals = Sys.Potential(:,3);
+    lambda = Sys.Potential(:,4);
+    
+    % Checks limits on K and M, and real-valuedness of lambda for M=0 and K=0
+    if any(Lvals(:)<1)
+      error('In Sys.Potential, all values of L must be greater than or equal to one.');
+    end
+    if any(abs(Mvals)>Lvals) || any(Mvals<0)
+      error('In Sys.Potential, all values of M must be between 0 and L.');
+    end
+    if any(abs(Kvals)>Lvals)
+      error('In Sys.Potential, all values of K must be between -L and L.');
+    end
+    Mzero = Mvals==0;
+    if any(Kvals(Mzero)<0)
+      error('In Sys.Potential, for M = 0 the values of K must be between 0 and L.');
+    end
+    L00 = Mvals==0 & Kvals==0;
+    if any(~isreal(lambda(L00)))
+      error('In Sys.Potential, for M = K = 0 lambda must be real-valued.');
+    end
+    
+    Sim.LMK = Sys.Potential(:,1:3);
+    Sim.lambda = Sys.Potential(:,4);
+  else
+    Sim.LMK = [];
+    Sys.lambda = [];
+  end
   
 end
 
@@ -295,15 +323,6 @@ end
 % initialize quaternion trajectories and their starting orientations
 qTraj = zeros(4,Sim.nTraj,Sim.nSteps);
 qTraj(:,:,1) = q0;
-
-% if isfield(Par,'tol')
-%   if ~isfield(Par,'chkcon') || chkcon==0
-%     error('A convergence tolerance was provided, but ''Par.chkcon'' was not equal to 1.')
-%   end
-%   tol = Par.tol;
-% else
-%   tol = 1e-3;
-% end
 
 if ~isfield(Opt,'convTolerance')
   Opt.convTolerance = 1e-6;

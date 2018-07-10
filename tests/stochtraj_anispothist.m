@@ -22,9 +22,7 @@ LMK = [1,1,0;
        2,0,0;
        2,0,1;
        2,0,2];
-     
-ReLambda = 2*rand(size(LMK,1),1)-1;  % real part of ordering coefficient lambda
-ImLambda = 2*rand(size(LMK,1),1)-1;  % imaginary part
+lambda = 4; % same lambda for all LMK
 
 AlphaBins = linspace(-pi, pi, nBins);
 BetaBins = linspace(0, pi, nBins/2);
@@ -39,8 +37,7 @@ err = 0;
 N = round(nSteps/2);
 
 for j=1:size(LMK,1)
-  Sys.Potential.lambda = [4, 0];
-  Sys.Potential.LMK = LMK(j,:);
+  Sys.Potential = [LMK(j,:) lambda];
   [~, ~, qTraj] = stochtraj_diffusion(Sys,Par);  % extract quaternions from trajectories
   
   % pre-allocate array for 3D histograms
@@ -78,7 +75,7 @@ for j=1:size(LMK,1)
 %   zlabel('gamma')
 %   colormap hsv
   
-  rmsd = calc_rmsd(Sys.Potential.lambda,Sys.Potential.LMK,Hist3D,Agrid,Bgrid,Ggrid);
+  rmsd = calc_rmsd(Sys.Potential(1,4),Sys.Potential(1,1:3),Hist3D,Agrid,Bgrid,Ggrid);
   
   if rmsd>5e-3||any(isnan(Hist3D(:)))
     % numerical result does not match analytical result
@@ -100,8 +97,8 @@ function rmsd = calc_rmsd(lambda, LMK, Hist3D, Agrid, Bgrid, Ggrid)
 LMKstr = num2str(LMK(:));
 LMKstr = strcat(LMKstr(1),LMKstr(2),LMKstr(3));
 
-Re = lambda(1);
-Im = lambda(2);
+Re = real(lambda);
+Im = imag(lambda);
 
 switch LMKstr
   case '110'

@@ -1,13 +1,13 @@
-%  stochtraj_anistorque  Calculate the torque due to an anisotripic orienting potential.
+%  stochtraj_calcanistorque  Calculate the torque due to an anisotripic orienting potential.
 %
-%   torque = stochtraj_anistorque(LMK, lambda, q);
+%   torque = stochtraj_calanistorque(LMK, lambda, q);
 %
 %   Input:
 %     LMK            numeric, size = (nCoefs,3)
 %                    integers corresponding to the quantum numbers L, M, 
 %                    and K
 %
-%     lambda          numeric, size = (nCoefs,2)
+%     lambda         numeric, size = (nCoefs,1)
 %                    real coefficients cLMK+ and cLMK- for orienting 
 %                    potentials
 %
@@ -22,7 +22,7 @@
 %   ----------
 %   [1] Sezer, et al., J.Chem.Phys. 128, 165106 (2008), doi: 10.1063/1.2908075
 
-function torque = stochtraj_anistorque(LMK, lambda, q)
+function torque = stochtraj_calcanistorque(LMK, lambda, q)
 % Preprocessing
 % -------------------------------------------------------------------------
 shapeq = num2cell(size(q));
@@ -37,34 +37,20 @@ if ~ismatrix(LMK) || size(LMK,2)~=3
   error('LMK must be an array of shape Nx3.')
 end
 
-if ~ismatrix(lambda) || size(lambda,2)~=2
-  error('lambda must be an array of shape Nx2.')
+if ~ismatrix(lambda) || size(lambda,2)~=1
+  error('lambda must be an array of shape Nx1.')
 end
 
 nCoefs = size(lambda,1);
-
-lambda = lambda(:,1) + 1i*lambda(:,2);
 
 Lvals = LMK(:,1);
 Mvals = LMK(:,2);
 Kvals = LMK(:,3);
 
-if any(Lvals(:)<1)
-  error('All values of L must be greater than or equal to one.')
-end
-
-if any(abs(Mvals(:))>Lvals)
-  error('All values of M must be between -L and L.')
-end
-
-if any(abs(Kvals(:))>Lvals)
-  error('All values of K must be between -L and L.')
-end
-
 iJvecu = zeros(3, size(q,2), nCoefs);
 
 % Not sure if there is a good way to vectorize this
-for n=1:nCoefs
+for n = 1:nCoefs
   L = Lvals(n);
   M = Mvals(n);
   K = Kvals(n);
@@ -87,26 +73,26 @@ end
 
 % Helper functions
 % -------------------------------------------------------------------------
-function  out = iJu(L, M, K, cLK, q)
+function  out = iJu(L, M, K, lam, q)
 % Calculate the result of i\vo{J}u for a given potential coefficient
 % cjm corresponds to c_{m}^{j} in Eq. 58 in [1]
 
 if K==L
   % K cannot be greater than L, so D_{0,K+1}^L = 0
-  iJxu = 1i/2*cLK*Cpm(L,K,'-')*stochtraj_wignerdquat(L,M,K-1,q);
-  iJyu = -1/2*cLK*Cpm(L,K,'-')*stochtraj_wignerdquat(L,M,K-1,q);
+  iJxu = 1i/2*lam*Cpm(L,K,'-')*stochtraj_wignerdquat(L,M,K-1,q);
+  iJyu = -1/2*lam*Cpm(L,K,'-')*stochtraj_wignerdquat(L,M,K-1,q);
 elseif K==-L
   % K cannot be less than -L, so D_{0,K-1}^L = 0
-  iJxu = 1i/2*cLK*Cpm(L,K,'+')*stochtraj_wignerdquat(L,M,K+1,q);
-  iJyu =  1/2*cLK*Cpm(L,K,'+')*stochtraj_wignerdquat(L,M,K+1,q);
+  iJxu = 1i/2*lam*Cpm(L,K,'+')*stochtraj_wignerdquat(L,M,K+1,q);
+  iJyu =  1/2*lam*Cpm(L,K,'+')*stochtraj_wignerdquat(L,M,K+1,q);
 else
-  iJxu = 1i/2*cLK*(Cpm(L,K,'+')*stochtraj_wignerdquat(L,M,K+1,q) ...
+  iJxu = 1i/2*lam*(Cpm(L,K,'+')*stochtraj_wignerdquat(L,M,K+1,q) ...
                   +Cpm(L,K,'-')*stochtraj_wignerdquat(L,M,K-1,q));
-  iJyu =  1/2*cLK*(Cpm(L,K,'+')*stochtraj_wignerdquat(L,M,K+1,q) ...
+  iJyu =  1/2*lam*(Cpm(L,K,'+')*stochtraj_wignerdquat(L,M,K+1,q) ...
                   -Cpm(L,K,'-')*stochtraj_wignerdquat(L,M,K-1,q));
 end
 
-iJzu = 1i*cLK*K*stochtraj_wignerdquat(L,M,K,q);    
+iJzu = 1i*lam*K*stochtraj_wignerdquat(L,M,K,q);    
 
 out = [iJxu; iJyu; iJzu];
 

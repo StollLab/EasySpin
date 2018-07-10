@@ -15,8 +15,7 @@ nTraj = Par.nTraj;
 nSteps = Par.nSteps;
 
 c20 = 10;
-Sys.Potential.lambda = [c20, c20];
-Sys.Potential.LMK = [2, 0, 0];
+Sys.Potential = [2, 0, 0, c20];
 [t, RTraj] = stochtraj_diffusion(Sys,Par);
 
 VecTraj = squeeze(RTraj(:,3,:,:));

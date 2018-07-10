@@ -27,26 +27,19 @@
 %         All fields can have 1 (isotropic), 2 (axial) or 3 (rhombic) elements.
 %         Precedence: logtcorr > tcorr > logDiff > Diff.
 %
-%     Potential      structure 
-%                    defines an orienting potential using the following 
-%                    fields:
+%     Potential      defines an orienting potential using one of the following:
 %
-%       lambda         numeric, size = (nCoefs,2)
-%                      array of orienting potential coefficients, with each 
-%                      row consisting of the corresponding real and 
-%                      imaginary parts
-%
-%       LMK            numeric, size = (nCoefs,3)
-%                      quantum numbers L, M, and K corresponding to each 
-%                      set of coefficients
-%
-%       ProbDensFun    numeric, 3D array
-%                      probability distribution grid to be used for
-%                      calculating the pseudopotential and the torque
-%
-%       PseudoPotFun   numeric, 3D array
-%                      orienting pseudopotential grid to be used for
-%                      calculating the torque
+%                    a) set of LMKs and lambdas for an expansion in terms of
+%                       Wigner functions [L1 M1 K1 lambda1; L2 M2 K2 lambda2]
+%                       lambda can be real or complex
+%                    b) 3D array defining the potential over a grid, with the
+%                       first dimension representing alpha [0,2*pi], the second
+%                       beta [0,pi], and the third gamma [0,2*pi]
+%                    c) a function handle for a function that takes three
+%                       arguments (alpha, beta, and gamma) and returns the value
+%                       of the ordering potential for that orientation. The
+%                       function should be vectorized, i.e. work with arrays of
+%                       alpha, beta, and gamma.
 %
 %     TransRates     numeric matrix, size = (nStates,nStates)
 %                    transition rate matrix describing inter-state dynamics
@@ -844,9 +837,6 @@ switch Model
     
   case 'SRLS'  %  TODO implement multiple diffusion frames
     DiffLocal = Dynamics.Diff;
-    if isfield(Sys, 'ProbDensFun')
-      ProbDensFunLocal = Sys.ProbDensFun;
-    end
     if isfield(Sys, 'PseudoPotFun')
       PseudoPotFunLocal = Sys.PseudoPotFun;
     end
@@ -1051,9 +1041,6 @@ while ~converged
         
         % local diffusion
         Sys.Diff = DiffLocal;
-        if isfield(Sys, 'ProbDensFun')
-          Sys.ProbDensFun = ProbDensFunLocal;
-        end
         if isfield(Sys, 'PseudoPotFun')
           Sys.PseudoPotFun = PseudoPotFunLocal;
         end

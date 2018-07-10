@@ -1,11 +1,12 @@
 % stochtraj_jump  Generate stochastic trajectories of Markovian jumps using
 %                 kinetic Monte Caro
 %
-%   [t,qTraj] = stochtraj_jump(Sys)
-%   [t,qTraj] = stochtraj_jump(Sys,Par)
-%   [t,qTraj] = stochtraj_jump(Sys,Par,Opt)
+%   [t,RTraj] = stochtraj_jump(Sys)
+%   ... = stochtraj_jump(Sys,Par)
+%   ... = stochtraj_jump(Sys,Par,Opt)
+%   [t,RTraj,qTraj] = stochtraj_jump(...)
+%   [t,RTraj,qTraj,stateTraj] = stochtraj_jump(...)
 %   [t,stateTraj] = stochtraj_jump(...)
-%   [t,qTraj,stateTraj] = stochtraj_jump(...)
 %
 %   Sys: stucture with system's dynamical parameters
 %
@@ -16,8 +17,10 @@
 %     TransProb      numeric, size = (nStates,nStates)
 %                    transition probability matrix describing inter-state 
 %                    dynamics for kinetic Monte Carlo simulations
+%                    (alternative input to TransRates; ignored if TransRates
+%                    is given)
 %
-%     States         numeric, size = (3,nStates)
+%     Orientations   numeric, size = (3,nStates)
 %                    Euler angles for each state's orientation
 %
 %
@@ -49,20 +52,20 @@
 %
 %   Opt: simulation options
 %
-%     statesOnly     1 or 0
-%                    specify whether or not to use a discrete model purely
-%                    to generate states and not quaternion orientations
+%     statesOnly        1 or 0
+%                       specify whether or not to use a discrete model purely
+%                       to generate states and not quaternion orientations
 %
-%     chkcon         if equal to 1, after the first nSteps of the 
-%                    trajectories are calculated, both inter- and intra-
-%                    trajectory convergence is checked using the Gelman-
-%                    Rubin R statistic such that R<1.1, and if this 
-%                    condition is not satisfied, then propagation will be 
-%                    extended by either a length of time equal to the 
-%                    average of tcorr or by 20% more time steps, whichever 
-%                    is larger
+%     checkConvergence  if equal to 1, after the first nSteps of the 
+%                       trajectories are calculated, both inter- and intra-
+%                       trajectory convergence is checked using the Gelman-
+%                       Rubin R statistic such that R<1.1, and if this 
+%                       condition is not satisfied, then propagation will be 
+%                       extended by either a length of time equal to the 
+%                       average of tcorr or by 20% more time steps, whichever 
+%                       is larger
 %
-%     Verbosity      0: no display, 1: show info
+%     Verbosity         0: no display, 1: show info
 %
 %
 %   Output:
@@ -81,39 +84,29 @@ function varargout = stochtraj_jump(Sys,Par,Opt)
 % Preprocessing
 % -------------------------------------------------------------------------
 
-% Only Sys needs to be given to run stochtraj_jump properly, so if Par is 
+% Only Sys needs to be given to run stochtraj_jump, so if Par is 
 % not given, initialize it here
 switch nargin
   case 0
     help(mfilename); return;
   case 1
     % only Sys is given
-    Par = struct('unused',NaN);
-    Opt = struct('unused',NaN);
-%    skipchk = 0;
+    Par = struct;
+    Opt = struct;
   case 2
     % Opt is not given
-    Opt = struct('unused',NaN);
-%    skipchk = 0;
+    Opt = struct;
   case 3
     % do nothing
-%    skipchk = 0;
-%   case 4
-%     % 4th argument is used as a flag to skip error checking
-%     if ischar(flag) && strcmp(flag,'skipchk')
-%       skipchk = 1;
-%     else
-%       error('Fourth argument is for internal use only. Please remove it.'); 
-%     end
   otherwise
     error('Too many input arguments.')
 end
 
 switch nargout
   case 0 % plotting
-  case 2 % t,qTraj
-%   case 2 % t,qTraj or stateTraj
-  case 3 % t,qTraj,stateTraj
+  case 2 % t,RTraj; t,stateTraj
+  case 3 % t,RTraj,qTraj
+  case 4 % t,RTraj,qTraj,stateTraj
   otherwise
     error('Incorrect number of output arguments.');
 end
@@ -126,9 +119,8 @@ if ~isfield(Opt,'Verbosity')
 end
 
 if ~isfield(Opt,'statesOnly')
-  Opt.statesOnly = 0;
+  Opt.statesOnly = false;
 end
-
 
 global EasySpinLogLevel;
 EasySpinLogLevel = Opt.Verbosity;
@@ -137,9 +129,14 @@ EasySpinLogLevel = Opt.Verbosity;
 % Check dynamics
 % -------------------------------------------------------------------------
 
+if isfield(Sys,'Potential')
+  warning('Sys.Potential is given. This field is not used by stochtraj_jump.');
+end
+
 if isfield(Sys,'TransRates')
+  
   TRM = Sys.TransRates;
-  if ~isnumeric(TRM) || ~ismatrix(TRM) || (size(TRM,1)~=size(TRM,2))
+  if ~isnumeric(TRM) || ~ismatrix(TRM) || size(TRM,1)~=size(TRM,2)
     error('TransRates must be a square matrix.')
   end
   nStates = size(TRM,1);
@@ -150,31 +147,35 @@ if isfield(Sys,'TransRates')
   if any(abs(sum(TRM,2)/norm(TRM))>1e-13)
     error("In the TransRates matrix, the sum of each row's off-diagonal elements must equal the negative of the diagonal element.")
   end
+  TPM = expm(Par.dt*TRM);
+  
 elseif isfield(Sys,'TransProb')
+  
   TPM = Sys.TransProb;
-  if ~isnumeric(TPM) || ~ismatrix(TPM) || (size(TPM,1)~=size(TPM,2))
+  if ~isnumeric(TPM) || ~ismatrix(TPM) || size(TPM,1)~=size(TPM,2)
     error('TransProb must be a square matrix.')
   end
   nStates = size(TPM,1);
+  
 else
   error(['A transition rate matrix or a transition probability matrix ',... 
          'is required a jump simulation.'])
 end
   
 if ~Opt.statesOnly
-  if isfield(Sys,'States')
-    States = Sys.States;
-    if size(States,1)~=3 || size(States,2)~=nStates
-      error(['The size of States must be (3,nStates), with the size of the ' ...
+  if isfield(Sys,'Orientations')
+    Orientations = Sys.Orientations;
+    if size(Orientations,1)~=3 || size(Orientations,2)~=nStates
+      error(['The size of Sys.Orientations must be (3,nStates), with the size of the ' ...
              'second dimension equal to the number of rows (and columns) of TransProb.'])
     end
   else
-    error('A set of States is required for a jump simulation.')
+    error('A set of Sys.Orientations is required for a jump simulation.')
   end
 end
 
 
-% Discrete Monte carlo settings (Par)
+% Discrete Monte Carlo settings (Par)
 % -------------------------------------------------------------------------
 
 % set integration time step and number of simulation steps
@@ -194,42 +195,37 @@ elseif isfield(Par,'tMax') && isfield(Par,'nSteps')
   % number of steps and max time are given
   tMax = Par.tMax;
   nSteps = Par.nSteps;
-  dt = tMax/Sim.nSteps;
+  dt = tMax/nSteps;
 
 else
-%   error(['You must specify a time array, or a number of steps and ' ...
-%         'either a time step or tmax.'])
-  logmsg(1,'-- No time step given. Par.dt set to Par.tcorr/10: %0.5g s.', 1/6/mean(Sim.Diff));
-  dt = 1/6/mean(Sim.Diff)/10;
+  tcorr = 1/6/mean(Par.Diff);
+  logmsg(1,'-- No time step given. Par.dt set to Par.tcorr/10: %0.5g s.', tcorr);
+  dt = tcorr/10;
   if ~isfield(Par, 'nSteps')
-    logmsg(1,'-- Number of time steps not given. Par.nSteps set to 200e-9/Par.dt: %d.', ceil(200e-9/dt));
     nSteps = ceil(200e-9/dt);
+    logmsg(1,'-- Number of time steps not given. Par.nSteps set to 200e-9/Par.dt: %d.', nSteps);
   else
     nSteps = Par.nSteps;
   end
 end
 
-Sim.nSteps = nSteps;
-Sim.dt = dt;
+Par.nSteps = nSteps;
+Par.dt = dt;
 
 % set kinetic Monte Carlo cumulative transition probability matrix
-if isfield(Sys,'TransRates')
-  TPM = expm(Sim.dt*TRM);
-end
 cumulTPM = cumsum(TPM,1);
-if any(abs(1-cumulTPM(end,:))>1e-13)
+if any(abs(cumulTPM(end,:)-1)>1e-13)
   error('The columns of cumulTPM = sum(TPM,1) must sum to 1.')
 end
 
 % set integrator type
 if ~isfield(Par,'Integrator')
   % default Monte Carlo integrator is Euler-Maruyama
-  Sim.Integrator = 'Euler-Maruyama';
-else
-  if ~strcmp(Par.Integrator,'Euler-Maruyama')&&~strcmp(Par.Integrator,'Leimkuhler-Matthews')
-    error('Input for integrator method not recognized.')
-  end
-  Sim.Integrator = Par.Integrator;
+  Par.Integrator = 'Euler-Maruyama';
+end
+
+if ~strcmp(Par.Integrator,'Euler-Maruyama')&&~strcmp(Par.Integrator,'Leimkuhler-Matthews')
+  error('Input for integrator method not recognized.')
 end
 
 
@@ -237,68 +233,59 @@ end
 % -------------------------------------------------------------------------
 
 % If number of trajectories is not given, set it to 1
-if ~isfield(Par, 'nTraj'), Par.nTraj = 1; end
-Sim.nTraj = Par.nTraj;
+if ~isfield(Par,'nTraj'), Par.nTraj = 1; end
 
 % Get user-supplied starting states
 if isfield(Par,'States0')
   States0 = Par.States0;
-  if ~all(size(States0)==[1,1])&&~all(size(States0)==[1,Par.nTraj])
+  if ~isvector(States0) || numel(States0)~=Par.nTraj
     error('States0 should be of size (1,1) or (1,Par.nTraj).')
   end
   if any(States0<1) || any(States0>nStates)
     error(['Each entry in States0 needs to be equal to an integer ',...
            'within the range [1,nStates].\n'])
   end
+  States0 = States0(:);
 else
   States0 = randi(nStates,1,Par.nTraj);
 end
 
-if isfield(Opt,'chkcon')
-  chkcon = Opt.chkcon;
-  if chkcon==1 && Sim.nTraj==1
+if isfield(Opt,'checkConvergence')
+  checkConvergence = Opt.chkcon;
+  if checkConvergence && Par.nTraj==1
     error(['Checking convergence of a single trajectory using the ',...
            'R statistic is not supported.\n'])
   end
 else
-  chkcon = 0;
+  checkConvergence = false;
 end
 
 if ~Opt.statesOnly
-  States = euler2quat(States);
+  qStates = euler2quat(Orientations);
   % initialize quaternion trajectories and their starting orientations
-  qTraj = zeros(4,Sim.nTraj,Sim.nSteps);
-  for iTraj = 1:Sim.nTraj
-    qTraj(:,iTraj,1) = States(:,States0(iTraj));
+  qTraj = zeros(4,Par.nTraj,Par.nSteps);
+  for iTraj = 1:Par.nTraj
+    qTraj(:,iTraj,1) = qStates(:,States0(iTraj));
   end
 end
-
-% if isfield(Par,'tol')
-%   if ~isfield(Par,'chkcon') || chkcon==0
-%     error('A convergence tolerance was provided, but ''Par.chkcon'' was not equal to 1.')
-%   end
-%   tol = Par.tol;
-% else
-%   tol = 1e-3;
-% end
  
 
 % Simulation
 % -------------------------------------------------------------------------
 
-converged = 0;
+converged = false;
 
-% if chkcon=1, then we need to keep track of how many iterations have been 
+% if checkConvergence=1, then we need to keep track of how many iterations have been 
 % completed (i.e. the number of instances of propagation in time by nSteps)
 iter = 1;
 
 logmsg(2,'-- Calculating stochastic trajectories -----------------------');
 
-nTraj = Sim.nTraj;
-nSteps = Sim.nSteps;
+nTraj = Par.nTraj;
+nSteps = Par.nSteps;
 
 stateTraj = zeros(nTraj,nSteps);
-stateTraj(:,1) = States0.';
+stateTraj(:,1) = States0;
 u = rand(nTraj,nSteps);
 
 for iTraj = 1:nTraj
@@ -309,13 +296,13 @@ for iTraj = 1:nTraj
     stateNew = find(cumulTPM(:,stateLast)>uLast,1);
     stateTraj(iTraj,iStep) = stateNew;
     if ~Opt.statesOnly
-      qTraj(:,iTraj,iStep) = States(:,stateNew);
+      qTraj(:,iTraj,iStep) = qStates(:,stateNew);
     end
   end
 end
 totSteps = size(stateTraj,2);
 
-t = linspace(0, totSteps*Sim.dt, totSteps).';
+t = linspace(0, totSteps*Par.dt, totSteps).';
 
 logmsg(2,'-- Propagation finished --------------------------------------');
 logmsg(2,'--------------------------------------------------------------');
@@ -327,13 +314,13 @@ logmsg(2,'--------------------------------------------------------------');
 switch nargout
   case 0 % Plot results
     maxTraj = 3;
-    if Sim.nTraj>maxTraj
+    if Par.nTraj>maxTraj
       error('Cannot plot more than %d trajectories.',maxTraj);
     end
     RTraj = quat2rotmat(q);
     clf
     hold on
-    for iTraj = 1:min(maxTraj,Sim.nTraj)
+    for iTraj = 1:min(maxTraj,Par.nTraj)
       x = squeeze(RTraj(1,3,iTraj,:));
       y = squeeze(RTraj(2,3,iTraj,:));
       z = squeeze(RTraj(3,3,iTraj,:));
@@ -352,15 +339,21 @@ switch nargout
     ylabel('y');
     zlabel('z');
 
-  case 2  % Output quaternion trajectories
+  case 2  % Output rotation matrix or state trajectories
     if Opt.statesOnly
       varargout = {t, stateTraj};
     else
-      varargout = {t, qTraj};
+      RTraj = quat2rotmat(qTraj);
+      varargout = {t, RTraj};
     end
   
-  case 3  % Output both quaternion and state trajectories
-    varargout = {t, qTraj, stateTraj};
+  case 3  % Output both rotation matrix and quaternion trajectories
+    RTraj = quat2rotmat(qTraj);
+    varargout = {t, RTraj, qTraj};
+    
+  case 4  % Output rotation matrix, quaternion and state trajectories
+    RTraj = quat2rotmat(qTraj);
+    varargout = {t, RTraj, qTraj, stateTraj};
 
 end
 
