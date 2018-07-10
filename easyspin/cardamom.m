@@ -5,10 +5,10 @@
 %   cardamom(Sys,Par,Exp,Opt,MD)
 %   spc = cardamom(...)
 %   [B,spc] = cardamom(...)
-%   [B,spc,expectval,t] = cardamom(...)
+%   [B,spc,ExpectVal,t] = cardamom(...)
 %
-%   Computes a CW-EPR spectrum of an 14N nitroxide radical using stochastic 
-%   trajectories.
+%   Computes a CW-EPR spectrum of an S=1/2 spin label using stochastic or
+%   molecular dynamics trajectories.
 %
 %   Sys: stucture with system's dynamical parameters
 %
@@ -63,9 +63,6 @@
 %                    vector with FWHM residual broadenings
 %                         1 element:  GaussianFWHM
 %                         2 elements: [GaussianFWHM LorentzianFWHM]
-%
-% %     Sys.lwpp       double or numeric vector, size = (1,2)
-% %                    peak-to-peak line widths, same format as Sys.lw
 %
 %
 %   Par: structure with simulation parameters
@@ -135,6 +132,7 @@
 %                    extended by either a length of time equal to the 
 %                    average of tcorr or by 20% more time steps, whichever 
 %                    is larger
+%
 %     specCon        if equal to 1, after the first nOrients of the FID
 %                    are calculated, both inter- and intra-FID convergence 
 %                    are checked using the Gelman-Rubin R statistic such 
@@ -147,23 +145,23 @@
 %     Method         string
 %                    Nitroxide: propagate the density matrix using an 
 %                      analytical expression for the matrix exponential in 
-%                      the m_S=-1/2 subspace
+%                      the m_S=-1/2 subspace (14N nitroxides only, faster)
 %                    ISTOs: propagate the density matrix using
-%                      irreducible spherical tensor operators
+%                      irreducible spherical tensor operators (general, slower)
 %
 %    FFTWindow       1: use a Hamming window (default), 0: no window
 %
 %    truncate        double
-%                    Time point (in nanoseconds) at which to stop using 
+%                    time point (in nanoseconds) at which to stop using 
 %                    full quantum dynamics propagator and begin using an
-%                    approximate correlation function propagator.
+%                    approximate propagator using correlation functions
 %
 %
 %
 %   MD: structure with molecular dynamics simulation parameters
 %
 %     dt             double
-%                    time step for saving MD trajectory snapshots
+%                    time step (in s) for saving MD trajectory snapshots
 %
 %     tScale         double (optional)
 %                    scale the time step of the simulation based on
@@ -992,10 +990,7 @@ logmsg(1, '-- Method: %s -----------------------------------------', Opt.Method)
 
 clear cardamom_propagatedm
 
-HistTot = 0;
-
 converged = 0;
-iOrient = 1;
 iter = 1;
 spcArray = [];
 nOrientsTot = 0;
@@ -1013,10 +1008,8 @@ while ~converged
   % temporary cells to store intermediate results
   iExpectVal = cell(1,nOrients);
   itCell = cell(1,nOrients);
-%   while iOrient<nOrients+1
-  for iOrient = 1:nOrients
 
-  %   Par.Omega = [grid_phi(iOrient); grid_theta(iOrient); 0];
+  for iOrient = 1:nOrients
 
     % generate/process trajectories
     switch Model
@@ -1042,7 +1035,6 @@ while ~converged
         Par.dt = dtStoch;
         Par.nSteps = nStepsStoch;
         [~, RTraj, qTraj] = stochtraj_diffusion(Sys,Par,Opt);
-        % generate quaternions for rotating to different grid points
         
         if strcmp(Opt.Method,'ISTOs')
           Par.qLab = qLab;
@@ -1139,16 +1131,6 @@ while ~converged
             qLab = repmat(euler2quat(0, gridTheta(iOrient), gridPhi(iOrient)),...
                            [1,Par.nTraj,Par.nSteps]);
 
-            if ~isfield(Par,'Omega')
-  %             % pick trajectory starting points by bootstrapping MD data
-  %             randints = sort(randi(MD.nSteps, 1, Par.nTraj));
-  %             Par.Omega = [phi(randints).'; theta(randints).'; psi(randints).'];
-  %             [alphaSamples, betaSamples, gammaSamples] = rejectionsample3d(pdf, phiBins, thetaBins, psiBins, Par.nTraj);
-  %             Par.Omega = [alphaSamples; 
-  %                          betaSamples; 
-  %                          gammaSamples];
-            end
-
   %           [hist3D, dummy] = histcnd([alphaSamples.',betaSamples.',gammaSamples.'],...  
   %                                  {phiBins,thetaBins,psiBins});
   %                                
@@ -1183,8 +1165,6 @@ while ~converged
 %             qLab = repmat(euler2quat(0, gridTheta(iOrient), gridPhi(iOrient)),...
 %                            [1,Par.nTraj]);
 
-%             randints = sort(randi(size(MD.stateTraj,1), 1, Par.nTraj));
-%             Sys.States0 = MD.stateTraj(randints).';  % FIXME sample from prior distribution
             Sys.States0 = rejectionsample(MD.nStates, prior1, Par.nTraj);
             Sys.TransProb = transmat1.';
             Par.dt = dtStoch;
@@ -1340,15 +1320,8 @@ while ~converged
     converged = 1;
   end
   
-  if converged
-    spcAvg = spcNew;
-    minsTot = floor(toc/60);
-    msg = sprintf('Done!\nTotal simulation time: %d:%2.0f\n',minsTot,mod(toc,60));
-    if Opt.Verbosity
-      fprintf(msg);
-    end
-  else
-    % increase the total number of orientations by 20%
+  if ~converged
+    % double the number of orientations in powder averaging
     msg = sprintf('Convergence not achieved. Propagation is being extended.\n');
     if Opt.Verbosity
       fprintf(msg);
@@ -1358,12 +1331,18 @@ while ~converged
     nOrientsTot = nOrientsTot + nOrients;
     skip = iter*nOrientsTot;  % seed Sobol sequence generator for next iteration
     
-%     nOrients = ceil(0.2*nOrientsTot);  % simulate using 20% additional orientations
     nOrients = nOrientsTot;
     gridPts = 2*sobol_generate(1,nOrients,skip)-1;
     gridPhi = sqrt(pi*nOrients)*asin(gridPts);
     gridTheta = acos(gridPts);
     iter = iter + 1;
+  else
+    spcAvg = spcNew;
+    minsTot = floor(toc/60);
+    if Opt.Verbosity
+      msg = sprintf('Done!\nTotal simulation time: %d:%2.0f\n',minsTot,mod(toc,60));
+      fprintf(msg);
+    end
   end
 
 end

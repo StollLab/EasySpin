@@ -26,19 +26,19 @@ int rA, cA, rB ,cB, rC, cC, strideA, strideB, strideC;
 void mulMatMat(double *A, const int rA, const int cA, 
                double *B, const int rB, const int cB,
                double *C) {
-   int i, j, k;
-   double *a, *c, tmp;  
-   for( i=0; i<cB; i++ ){
-     c   = C + i*rA;
-      for( k=0; k<cA; k++ ){
-         tmp = B[i*cA+k];
-         a   = A + k*rA;
-/*         c   = C + i*rA; */
-         for( j=0; j<rA; j++ ){
-            c[j] += tmp * a[j];
-         }
+  int i, j, k;
+  double *a, *c, tmp;  
+  for( i=0; i<cB; i++ ){
+    c = C + i*rA;
+    for( k=0; k<cA; k++ ){
+      tmp = B[i*cA+k];
+      a = A + k*rA;
+  /*        c   = C + i*rA; */
+      for( j=0; j<rA; j++ ){
+        c[j] += tmp * a[j];
       }
-   }   
+    }
+  }
 }
 
 /*
@@ -52,13 +52,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   mwSize *Adims, *Bdims, *Cdims;
   double *Ai, *Bi;
   int i, j, k, N;
-
-  /*
-  // just getting help or setting the thread count, exit now
-  */
-  if( nrhs < 2 ) {
-    return;   
-  }
 
   /*
   // ==============
@@ -130,7 +123,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   Cdims[1] = cC;
 
   for( i=2; i<Cndim; i++ ) {
-    Cdims[i] = Adims[i];
+    Cdims[i] = Adims[i];  /* assumes that A and B are the same size */
   }
 
   /*
