@@ -24,13 +24,9 @@
 
 function Gamma = diffsuperop(basis,R,Potential)
 
-
-usePotential = nargin==3 && isfield(Potential,'lambda') && ...
-  ~isempty(Potential.lambda) && any(Potential.lambda(:));
+usePotential = nargin==3 && isfield(Potential,'lambda') && any(Potential.lambda(:));
 
 useSymmetrizedBasis = isfield(basis,'jK') && ~isempty(basis.jK) && any(basis.jK);
-
-XLK = Potential.xlk;
 
 L = basis.L;
 M = basis.M;
@@ -122,107 +118,116 @@ for b1 = 1:nBasis
 end
 Gamma = sparse(row,col,values,nBasis,nBasis);
 
+
 % Potential-dependent part of diffusion operator
 %-------------------------------------------------------------------------------
-if usePotential
-  idx = 0;
-  xLmax = size(XLK,1)-1;
-  for b1 = 1:nBasis
-    L1  = L(b1);
-    M1  = M(b1);
-    K1  = K(b1);
-    jK1 = jK(b1);
+if ~usePotential, return; end
+
+idx = 0;
+XLK = Potential.xlk;
+xLmax = size(XLK,1)-1;
+for b1 = 1:nBasis
+  L1  = L(b1);
+  M1  = M(b1);
+  K1  = K(b1);
+  jK1 = jK(b1);
+  
+  % run only over upper triangular part
+  for b2 = b1:nBasis
+    L2  = L(b2);
+    M2  = M(b2);
+    K2  = K(b2);
+    jK2 = jK(b2);
     
-    % run only over upper triangular part
-    for b2 = b1:nBasis
-      L2  = L(b2);
-      M2  = M(b2);
-      K2  = K(b2);
-      jK2 = jK(b2);
+    if M1~=M2, continue; end
+    
+    prefactorL = sqrt((2*L1+1)*(2*L2+1));
+    
+    if useSymmetrizedBasis
       
-      if M1~=M2, continue; end
-      
-      % calculate prefactors
-      prefactorL = sqrt((2*L1+1)*(2*L2+1));
-      
-      if (K1==0 && K2==0)
-        prefactorK = sqrt(jK1)'*sqrt(jK2)/4;
-      elseif (K1~=0 && K2~=0)
-        prefactorK = sqrt(jK1)'*sqrt(jK2)/2;
+      % calculate jK-dependent prefactor
+      if K1==0 && K2==0
+        prefactorjK = sqrt(jK1)'*sqrt(jK2)/4;
+      elseif K1~=0 && K2~=0
+        prefactorjK = sqrt(jK1)'*sqrt(jK2)/2;
       else
-        prefactorK = sqrt(jK1)'*sqrt(jK2)/sqrt(8);
+        prefactorjK = sqrt(jK1)'*sqrt(jK2)/sqrt(8);
       end
+      prefactor = prefactorL*prefactorjK;
       
       val_ = 0;
-      prefactor = prefactorL*prefactorK;
       for Lx = abs(L1-L2):min(xLmax,L1+L2)
         idx_xL = Lx+1;
         if ~any(XLK(idx_xL,:)), continue; end
         
         % calculate M-dependent 3j-symbol
-        if abs(M1)>L1 || abs(M1)>L2, continue; end
         jjjxM = wigner3j(L1,Lx,L2,M1,0,-M1);
         if jjjxM==0, continue; end
         
-        if useSymmetrizedBasis
-          % calculate K-dependent factors, 1st term (K2-K1)
-          if abs(K1-K2)>Lx
-            xlk_1 = 0;
-          else
-            idx_xK_1 = (K1-K2)+Lx+1;
-            xlk_1 = XLK(idx_xL,idx_xK_1);
-          end
-          if abs(K1)>L1 || abs(K2-K1)>Lx || abs(K2)>L2
-            jjjxK_1 = 0;
-          else
-            jjjxK_1 = wigner3j(L1,Lx,L2,K1,K2-K1,-K2);
-          end
-          sign1 = (-1)^(K1-M1) + jK1*jK2*(-1)^(Lx+K1-M1);
-          
-          % calculate K-dependent factors, 2nd term (K1+K2)
-          if abs(K1+K2)>Lx
-            xlk_2 = 0;
-          else
-            idx_xK_2 = (K1+K2)+Lx+1;
-            xlk_2 = XLK(idx_xL,idx_xK_2);
-          end
-          if abs(K1)>L1 || abs(K2+K1)>Lx || abs(K2)>L2
-            jjjxK_2 = 0;
-          else
-            jjjxK_2 = wigner3j(L1,Lx,L2,K1,-K2-K1,K2);
-          end
-          sign2 = jK1*(-1)^(Lx+L2-M1) + jK2*(-1)^(L2+K1+K2-M1);
-          
-          % combine terms
-          val_ = val_ + prefactor * jjjxM * ...
-            (sign1*xlk_1*jjjxK_1 + sign2*xlk_2*jjjxK_2);
+        % calculate K-dependent factors, 1st term (K2-K1)
+        if abs(K2-K1)>Lx
+          term1 = 0;
         else
-          
-          if abs(K1-K2)>Lx, continue; end
-          idx_xK_ = (K1-K2)+Lx+1;
-          xlk_ = XLK(idx_xL,idx_xK_);
-          if abs(K1)>L1 || abs(K2-K1)>Lx || abs(K2)>L2, continue; end
-          jjjxK = wigner3j(L1,Lx,L2,K1,K2-K1,-K2);
-          % combine terms
-          val_ = val_ + (-1)^(K1-M1)*prefactorL * jjjxM * jjjxK * xlk_;
-          
+          xlk_ = XLK(idx_xL,(K1-K2)+Lx+1);
+          jjjxK_ = wigner3j(L1,Lx,L2,K1,K2-K1,-K2);
+          sign_ = (-1)^(K1-M1) + jK1*jK2*(-1)^(Lx+K1-M1);
+          term1 = sign_*xlk_*jjjxK_;
         end
+        
+        % calculate K-dependent factors, 2nd term (K1+K2)
+        if abs(K1+K2)>Lx
+          term2 = 0;
+        else
+          xlk_ = XLK(idx_xL,(K1+K2)+Lx+1);
+          jjjxK_ = wigner3j(L1,Lx,L2,K1,-K2-K1,K2);
+          sign_ = jK1*(-1)^(Lx+L2-M1) + jK2*(-1)^(L2+K1+K2-M1);
+          term2 = sign_*xlk_*jjjxK_;
+        end
+        
+        % combine terms
+        val_ = val_ + prefactor * jjjxM * (term1 + term2);
+        
       end
       
-      idx = idx + 1;
-      bra(idx) = b1;
-      ket(idx) = b2;
-      val(idx)  = val_;
-      if b1~=b2
-        idx = idx + 1;
-        bra(idx) = b2;
-        ket(idx) = b1;
-        val(idx)  = val_;
+    else
+      
+      val_ = 0;
+      for Lx = abs(L1-L2):min(xLmax,L1+L2)
+        xlk_ = XLK(Lx+1,(K1-K2)+Lx+1);
+        if xlk_==0, continue; end
+        
+        % calculate M-dependent 3j-symbol
+        jjjxM = wigner3j(L1,Lx,L2,M1,0,-M1);
+        if jjjxM==0, continue; end
+        
+        % calculate K-dependent 3j-symbol
+        if abs(K2-K1)>Lx, continue; end
+        jjjxK = wigner3j(L1,Lx,L2,K1,K2-K1,-K2);
+        if jjjxK==0, continue; end
+        
+        % combine terms
+        val_ = val_ + xlk_ * jjjxM * jjjxK;
       end
+      val_ = (-1)^(K1-M1) * prefactorL * val_;
       
     end
+    
+    % Store non-zero value
+    if val_==0, continue; end
+    idx = idx + 1;
+    rowp(idx) = b1;
+    colp(idx) = b2;
+    valp(idx)  = val_;
+    if b1~=b2
+      idx = idx + 1;
+      rowp(idx) = b2;
+      colp(idx) = b1;
+      valp(idx)  = val_;
+    end
+    
   end
-  Gamma = Gamma + sparse(bra,ket,val,nBasis,nBasis);
 end
+
+Gamma = Gamma + sparse(rowp,colp,valp,nBasis,nBasis);
 
 return

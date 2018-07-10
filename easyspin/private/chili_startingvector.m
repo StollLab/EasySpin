@@ -1,6 +1,6 @@
 function stvec = chili_startingvector(Basis,Potential)
 
-if any(Potential.lambda) && ~Potential.oldstyle
+if any(Potential.lambda) && ~Potential.oldStyle
   error('This functions works only for potentials with M=0, L=2,4, and K=0,2.');
 end
 
@@ -13,7 +13,7 @@ isNuc2 = isfield(Basis,'pI2');
 
 nBasis = numel(Basis.L);
 stvec = zeros(nBasis,1);
-
+  
 absTol = 1e-8; % for numerical integration
 useOldIntegrator = verLessThan('matlab','7.14'); % us quadl() instead of integral()
 
@@ -66,12 +66,11 @@ stvec = sparse(stvec);
 return
 
 %===============================================================================
-% Integrand of the orientational integral in the starting vector.
+% Integrand of the orientational integral over z in the starting vector.
 % (see Schneider 1989, p.19)
+%   based on the integral over gamma (valid for even K and Kp==2)
+%     \int_0^{2\pi} cos(K gamma) exp(B cos(2 gamma)) d gamma = 2 \pi besseli(K/2,B)
 function val = orifun(z,L,K,lambda)
-
-% based on the integral (valid for even K)
-%   \int_0^{2\pi} cos(K g) exp(B cos(2 g)) d g = 2 \pi besseli(K/2,B)
 
 % Potential terms with K == 0
 A = 0;

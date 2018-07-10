@@ -33,7 +33,7 @@ if ~any(lambda)
   idx = (idx0-1)*nSpinBasis + (1:nSpinBasis);
   nBasis = nOriBasis*nSpinBasis;
   StartingVector = sparse(idx,1,SopH(:),nBasis,nBasis);
-  StartingVector = StartingVector/sqrt(sum(StartingVector.^2));
+  StartingVector = StartingVector/sqrt(sum(StartingVector.^2)); % norm doesn't work for sparse
   return
 end
 

@@ -24,9 +24,11 @@
 %                     2 elements: [GaussianFWHM LorentzianFWHM]
 %                     field sweep: mT, frequency sweep: MHz
 %     Sys.lwpp        peak-to-peak line widths, same format as Sys.lw
-%     Sys.lambda      ordering potential coefficients
-%                       [lambda20 lambda22 lambda40 lambda42]
 %     Sys.Exchange    Heisenberg exchange frequency (MHz)
+%     Sys.lambda      ordering potential coefficients (simplified)
+%                       [lambda20 lambda22 lambda40 lambda42]
+%     Sys.Potential   ordering potential coefficients
+%                       [L1 M1 K1 lambda1; L2 M2 K2 lambda2; ...]
 %
 %    Exp: experimental parameter settings
 %      mwFreq         microwave frequency, in GHz (for field sweeps)
@@ -219,7 +221,7 @@ Dynamics.Exchange = Sys.Exchange;
 %-------------------------------------------------------------------------------
 % Extract and organize information about potential
 if isfield(Sys,'lambda') && ~isempty(Sys.lambda)
-  if isfield(Sys,'Potential')
+  if isfield(Sys,'Potential') && ~isempty(Sys.Potential)
     error('Cannot have Sys.lambda and Sys.Potential simultaneously.');
   end
   if numel(Sys.lambda)<4, Sys.lambda(4) = 0; end
@@ -228,18 +230,21 @@ if isfield(Sys,'lambda') && ~isempty(Sys.lambda)
   Potential.L = [2 2 4 4];
   Potential.M = [0 0 0 0];
   Potential.K = [0 2 0 2];
-  Potential.oldstyle = true;
+  Potential.oldStyle = true;
   usePotential = true;
 else
+  Potential.oldStyle = false;
   if isfield(Sys,'Potential')
-    Potential = Sys.Potential;
+    Potential.L = Sys.Potential(:,1);
+    Potential.M = Sys.Potential(:,2);
+    Potential.K = Sys.Potential(:,3);
+    Potential.lambda = Sys.Potential(:,4);
     usePotential = true;
   else
-    Potential.lambda = [];
     Potential.L = [];
     Potential.M = [];
     Potential.K = [];
-    Potential.oldstyle = false;
+    Potential.lambda = [];
     usePotential = false;
   end
 end
@@ -249,7 +254,7 @@ end
 if usePotential
   if ~isempty(Potential.lambda)
     if any(Potential.L<0)
-      error('L must be a list of nonnegative integers.');
+      error('L values of potential coefficients must be nonnegative.');
     end
     if any(abs(Potential.K)>Potential.L)
       error('L and K values of potential coefficients do not satisfy -L<=K<=L.');
@@ -259,6 +264,13 @@ if usePotential
     end
     if any(Potential.K<0)
       error('Only nonnegative values of K are allowed.');
+    end
+    Mzero = Potential.M==0;
+    if any(Potential.K(Mzero)<0)
+      error('For potential terms with M=0, K must be nonnegative.');
+    end
+    if ~isreal(Potential.lambda(Potential.K==0 & Potential.M==0))
+      error('Potential coefficient for M=K=0 must be real-valued.');
     end
   end
 end
@@ -505,7 +517,8 @@ end
 
 % Set default method for constructing Liouvillian
 if ~isfield(Opt,'LiouvMethod') || isempty(Opt.LiouvMethod)
-  if (Sys.nElectrons==1) && (Sys.S==1/2) && (Sys.nNuclei<=2)
+  if (Sys.nElectrons==1) && (Sys.S==1/2) && (Sys.nNuclei<=2) && ...
+      (~usePotential || Potential.oldStyle)
     Opt.LiouvMethod = 'Freed';
   else
     Opt.LiouvMethod = 'general';
@@ -625,7 +638,7 @@ if generalLiouvillian
   logmsg(1,'  using general Liouvillian code');
   
   % calculate spin operators
-  logmsg(1,'  calculating spin matrices');
+  logmsg(1,'  setting up spin operators');
   for iSpin = 1:numel(Sys.Spins)
     SpinOps{iSpin,1} = sop(Sys.Spins,iSpin,1,'sparse'); % Sx
     SpinOps{iSpin,2} = sop(Sys.Spins,iSpin,2,'sparse'); % Sy
@@ -635,7 +648,6 @@ if generalLiouvillian
   logmsg(1,'  setting up detection operator');
   SdetOp = sparse(0);
   for e = 1:Sys.nElectrons
-    %SdetOp = SdetOp + SpinOps{e,1} + 1i*SpinOps{e,2}; % S+
     SdetOp = SdetOp + SpinOps{e,1}; % Sx
   end
   
@@ -663,9 +675,6 @@ error(err);
 %------------------------------------------------------------------
 
 Basis = processbasis(Basis,max(Potential.K),Sys.I,Symmetry);
-if isempty(Basis.jKmin)
-  error('Basis.jKmin is empty. Please report.');
-end
 
 % Set up horizontal sweep axis
 % (nu is used internally, xAxis is used for user output)
@@ -970,11 +979,7 @@ for iOri = 1:nOrientations
       end
       Sys.DirTilt = Basis.DirTilt; % used in chili_lm
       Dynamics.xlk = Potential.xlk; % used in chili_lm
-      if usePotential
-        Dynamics.maxL = 2*max(Potential.L); % maxmimum L in XLK ( = 2*L from potential)
-      else
-        Dynamics.maxL = -1;
-      end
+      Dynamics.maxL = size(Dynamics.xlk,1)-1; % maxmimum L in XLK ( = 2*L from potential)
       [r,c,Vals,nDim] = chili_lm(Sys,Basis.v,Dynamics,Opt.AllocationBlockSize);
       L = sparse(r,c,Vals,BasisSize,BasisSize);
       if saveDiagnostics
@@ -1107,7 +1112,10 @@ end % orientation loop
 
 % Rescale to match rigid limit chili intensities to pepper intensities
 spec = spec/(4*pi); % scale by powder average factor of 4pi
+
 spec = spec/2; % since chili uses normalized Sx and pepper uses unnormalized Sx
+% (works only for S=1/2)
+
 if FrequencySweep
   spec = spec*(dB/dnu)*mt2mhz(1,mean(Sys.g)); % scale by g*Beta/h factor for freq sweep
 end
