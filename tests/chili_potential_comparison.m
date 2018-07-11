@@ -11,7 +11,7 @@ Exp.Field = 340;
 Exp.mwRange = [9.4 9.9];
 Exp.nPoints = 512;
 
-Opt.LLKM = [10 5 2 2];
+Opt.LLKM = [10 6 6 6];
 
 for p = 1:4
   Sys.lambda = [0 0 0 0];

@@ -28,10 +28,9 @@ const double Rzz = Diff.Rzz;
 const double ExchangeFreq = Diff.Exchange;
 const double *xlk = Diff.xlk;
 
-/* Lband = (lptmx>=2) ? lptmx*2 : 2; */
-const int Lband = 8;
+const int Lband = Diff.maxL>=4 ? Diff.maxL : 2;
 /* Kband = kptmx*2; */
-const int Kband = 8;
+/*const int Kband = Lband*2;*/
 /*========================================================== */
 
 /* Loop variables */
@@ -170,7 +169,7 @@ for (L1=0;L1<=Lemax;L1++) {
                           if (K1==0) N_K /= sqrt(2.0);
                           if (K2==0) N_K /= sqrt(2.0);
                           
-                          /* Normalisation prefactor in Eq.(A40) and Eq.(A41) */
+                          /* Normalization prefactor in Eq.(A40) and Eq.(A41) */
                           NormFactor = N_L*N_K*parity(M1+K1);
                           /*---------------------------------------------------------------------- */
 						  
@@ -179,11 +178,11 @@ for (L1=0;L1<=Lemax;L1++) {
                           /*---------------------------------------------------------------------- */
                           PotDiff = 0;
                           if (Potential) {
-                            if ((abs(Ld)<=Lband)&&(parity(Ks)==1)&&
-                                (jKd==0)&&(abs(Kd)<=Kband)&&(abs(Ks)<=Kband)) {
+                            /*if ((abs(Ld)<=Lband)&&(parity(Ks)==1)&&(jKd==0)&&(abs(Kd)<=Kband)&&(abs(Ks)<=Kband)) {*/
+                            if ((abs(Ld)<=Lband)&&(parity(Ks)==1)&&(jKd==0)) {
                               for (L=0; L<=Lband; L+=2) {
                                 Term1 = 0;
-                                if (Kd>=-L) {
+                                if (abs(Kd)<=L) {
                                   X = xlk[(Kd+L)*(Diff.maxL+1) + L]; /* X^L_{K1-K2} */
                                   if (X!=0)
                                     Term1 = X * jjj(L1,L,L2,K1,-Kd,-K2);
