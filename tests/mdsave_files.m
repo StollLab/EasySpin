@@ -3,10 +3,6 @@ function [err,data] = test(opt,olddata)
 BaseDir = 'mdfiles/';
 SimpleFile = [BaseDir, 'A10R1_polyAla'];
 
-load([BaseDir, 'ONxyz_ref.mat'])
-load([BaseDir, 'NNxyz_ref.mat'])
-load([BaseDir, 'C1xyz_ref.mat'])
-load([BaseDir, 'C2xyz_ref.mat'])
 
 %-------------------------------------------------
 % Read several formats
@@ -35,7 +31,7 @@ AtomInfo.AtomNames.CBname = 'CB';
 AtomInfo.AtomNames.CAname = 'CA';
 AtomInfo.AtomNames.Nname = 'N';
 
-
+OutOpt.Verbosity = 0;
 OutOpt.Type = 'Frame';
 OutOpt.overwrite = 1;
 
@@ -48,15 +44,12 @@ for iFile = 1:nTests
   AtomInfo.TopFile = Files{iFile,2};
   MD = mdload(Files{iFile,1}, AtomInfo, OutOpt);
   
-  FrameX_ref = MD.FrameX;
-  FrameY_ref = MD.FrameY;
-  FrameZ_ref = MD.FrameZ;
+  FrameTraj_ref = MD.FrameTraj;
   
   mdsave(tempFileName,MD,OutOpt)
   load(tempFileName)
   
-  if ~areequal(MD.FrameX, FrameX_ref)||~areequal(MD.FrameY, FrameY_ref)...
-         ||~areequal(MD.FrameZ, FrameZ_ref)
+  if ~areequal(MD.FrameTraj, FrameTraj_ref)
     readerr(iFile) = true;
     fprintf('   Saved trajectories did not match reference trajectories for:\n   "%s" and "%s".\n',...
             Files{iFile,1},Files{iFile,2})

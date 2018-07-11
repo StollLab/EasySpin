@@ -106,18 +106,12 @@ if Opt.Frame==1
   
   MD.isFrame = 1;
   
-  if ~isfield(MD,'FrameX')||~isfield(MD,'FrameY')||~isfield(MD,'FrameZ')
-    error('If saving a frame trajectory, input MD must contain FrameX, FrameY, and FrameZ coordinates.')
+  if ~isfield(MD,'FrameTraj')
+    error('If saving a frame trajectory, input MD must contain FrameTraj coordinates.')
   end
   
-  sizeFrameX = size(MD.FrameX);
-  
-  if ~isequal(sizeFrameX,size(MD.FrameY))||~isequal(sizeFrameX,size(MD.FrameZ))
-    error('All frame trajectory arrays in MD must have the same size.')
-  end
-  
-  if sizeFrameX(2)~=3
-    error('All frame trajectory arrays must be of size (nSteps,3).')
+  if any(any(size(MD.FrameTraj)~=[3,3,1,MD.nSteps]))
+    error('MD.FrameTraj must be of size (3,3,1,MD.nSteps).')
   end
   
 end

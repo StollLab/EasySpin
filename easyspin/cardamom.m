@@ -247,7 +247,7 @@
 %     spc            numeric, size = (2*nSteps,1)
 %                    derivative EPR spectrum
 %
-%     expectval      numeric, size = (2*nSteps,1)
+%     ExpectVal      numeric, size = (2*nSteps,1)
 %                    expectation value of complex magnetization, 
 %                    \langle S_{+} \rangle
 %
@@ -427,11 +427,15 @@ if useMD
       error('Entry for MD.TrajType not recognized.')
   end
   
-%   MD.RTraj = MD.FrameTraj;
-  MD.RTraj = MD.FrameTrajwrtProt;
-
-%   q = rotmat2quat(MD.RTraj);
-%   [alpha, beta, gamma] = quat2euler(q);
+  if ~isfield(MD,'removeGlobal')
+    MD.removeGlobal = 1;
+  end
+  
+  if MD.removeGlobal
+    MD.RTraj = MD.FrameTrajwrtProt;
+  else
+    MD.RTraj = MD.FrameTraj;
+  end
 
   % Check for orthogonality of rotation matrices
   RTrajInv = permute(MD.RTraj,[2,1,3,4]);
@@ -525,7 +529,7 @@ if useMD
 %     transmat1 = transmat0;
   end
   % estimate rotational diffusion time scale
-  FrameAcorr = autocorrfft(squeeze(MD.FrameTraj.^2), 4, 1, 1);
+  FrameAcorr = autocorrfft(squeeze(MD.FrameTraj.^2), 2, 1, 1);
 
   N = round(MD.nSteps/4);
 

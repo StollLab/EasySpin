@@ -15,6 +15,7 @@ tscale = 2.5;  % diffusion constant of TIP3P model water molecules in MD
                % simulations is ~2.5x too high, so we scale the time domain
 
 MD.FrameTraj = cat(3, Traj.FrameX, Traj.FrameY, Traj.FrameZ);
+MD.FrameTraj = permute(MD.FrameTraj,[2,3,4,1]);
 MD.dt = tscale*Traj.dt;
 MD.nSteps = Traj.nSteps;
 MD.removeGlobal = 0;
@@ -47,9 +48,8 @@ Opt.Verbosity = 0;
 Opt.FFTWindow = 1;
 Opt.Method = 'Nitroxide';
 
-[B, spc, ExpectVal] = cardamom(Sys, Par, Exp, Opt, MD);
+[B, spc, ExpectVal,t] = cardamom(Sys, Par, Exp, Opt, MD);
 spc = spc/max(spc);
-t = linspace(0, length(ExpectVal)*Par.dt,length(ExpectVal));
 
 % Plot for comparison
 % -------------------------------------------------------------------------
