@@ -35,11 +35,10 @@ Simulation of slow motion CW-EPR spectra in the time domain.
 <div class="subtitle">Syntax</div>
 
 <pre class="matlab">
-cardamom(Sys,Par,Exp)
-cardamom(Sys,Par,Exp,Opt)
-cardamom(Sys,Par,Exp,Opt,MD)
-[B,spc] = cardamom(...)
-[B,spc,expectval,t] = cardamom(...)
+[B,spc] = cardamom(Sys,Par,Exp)
+[B,spc,ExpectVal,t] = cardamom(Sys,Par,Exp)
+[...] = cardamom(Sys,Par,Exp,Opt)
+[...] = cardamom(Sys,Par,Exp,Opt,MD)
 </pre>
 
 <!-- =================================================================== -->
@@ -71,7 +70,7 @@ Up to four output arguments are returned:
 <ul>
 <li><code>B</code>: magnetic field axis, in mT
 <li><code>spc</code>: derivative of the CW-EPR absorption spectrum, arbitrary units
-<li><code>expectval</code>: expectation value of the complex magnetization in the x-y plane, i.e. the free induction decay signal
+<li><code>ExpectVal</code>: expectation value of the complex magnetization in the x-y plane, i.e. the free induction decay signal
 <li><code>t</code>: time axis, in s
 </ul>
 
@@ -135,23 +134,36 @@ Base-10 logarithm of <code>Diff</code>. If given, <code>Diff</code> is ignored.
 </div>
 
 <p>
-It is also possible to specify an orienting potential to simulate restricted diffusion. <code>stochtraj</code> accomplishes this by representing the orienting potential function using a series of Wigner D-functions (see reference for details). To take advantage of this feature, the user should specify each term in the orienting potential by specifying (1) the real and imaginary parts of the coefficients using <code>Coefs</code> and (2) the indices corresponding to each term using <code>LMK</code>. If these fields are left blank, unrestricted diffusion will be simulated.
+It is also possible to specify an orienting potential to simulate restricted diffusion. <code>stochtraj_diffusion</code> accomplishes this by representing the orienting potential function using either a series of Wigner D-functions (see reference for details), a numerical 3D array, or a function handle. To take advantage of one of these feature, the user should declare the structure <code>Sys.Potential</code> and assign to it one one of the following
 
-<div class="optionfield"><code>Coefs</code></div>
+<div class="optionfield">2D array (Wigner function expansion)</div>
 <div class="optiondescr">
-An array of size (N,2) containing the orienting potential coefficients, where N corresponds to the number of terms in the orienting potential function, and the first and second entries in the second dimension correspond to the real and imaginary parts of &lambda;<sup>L</sup><sub>M,K</sub> (the symbols c and &epsilon; are used in the literature as well). The full form of the ordering potential is expressed as 
+
+An array of size (N,4), where each row corresponds to a term in the expansion; the first three columns contain the indices L, M, and K; and the fourth column contains the potential coefficients &lambda;<sup>L</sup><sub>M,K</sub> (the symbols c and &epsilon; are used in the literature as well). Note that the resulting orienting potential function must be real, so the range of allowed index values are as follows: L&gt;0; if K=0, then 0&lt;M&le;L; and if K&ne;0, then 0&lt;K&le;L and -L&le;M&le;L.
+
 <p>
-U(&Omega;) = - k<sub>B</sub> T &Sigma;<sub>L,M,K</sub>&lambda;<sup>L</sup><sub>M,K</sub>(D<sup>L</sup><sub>M,K</sub>+(-1)<sup>M-K</sup>D<sup>L</sup><sub>-M,-K</sub>), 
+For example, to specify an orienting potential using <code>lambda200</code> to represent the coefficient &lambda;<sup>2</sup><sub>0,0</sub> of the commonly used second order Legendre polynomial, set <code>Sys.Potential = [2, 0, 0, lambda200]</code>.
+</p>
+
 <p>
-where D<sup>L</sup><sub>M,K</sub> are the Wigner D-functions.
+The full form of the ordering potential is expressed as 
+</p>
 <p>
-For example, using a complex number <code>lambda200</code> to represent the coefficient &lambda;<sup>2</sup><sub>0,0</sub> of the commonly used second order Legendre polynomial, set <code>Sys.Coefs = [real(lambda200), imag(lambda200)]</code>.
+U(&Omega;) = - k<sub>B</sub> T &Sigma;<sub>L,M,K</sub>&lambda;<sup>L</sup><sub>M,K</sub> D<sup>L</sup><sub>M,K</sub> (&Omega;), 
+</p>
+where D<sup>L</sup><sub>M,K</sub> are the Wigner D-functions, &lambda;<sup>L</sup><sub>M,K</sub> are the potential coefficients, and it is assumed that the terms in the sum are appropriately processed to ensure that the result is always real.
+<p>
 For details about this type of ordering potential, see K.A. Earle & D.E. Budil, Calculating Slow-Motion ESR Spectra of Spin-Labeled Polymers, in: S. Schlick: Advanced ESR Methods in Polymer Research, Wiley, 2006.
 </div>
 
-<div class="optionfield"><code>LMK</code></div>
+<div class="optionfield">3D array (numerical representation)</div>
 <div class="optiondescr">
-An array of size (N,3) containing the indices L,M,K for each orienting potential coefficient in <code>Coefs</code>. The resulting orienting potential must be real, so the range of allowed index values are as follows: L&gt;0; if K=0, then 0&lt;M&le;L; and if K&ne;0, then 0&lt;K&le;L and -L&le;M&le;L.
+A 3D array of size (N,M,N) representing the orienting potential energy function U(&alpha;,&beta;,&gamma;). Dimensions 1, 2, and 3 of this array correspond to the Euler angles &alpha;, &beta;, and &gamma;, respectively.
+</div>
+
+<div class="optionfield">Function handle (functional representation)</div>
+<div class="optiondescr">
+A user-defined function representing U(&alpha;,&beta;,&gamma;). This function must by vectorized (accept arrays as inputs) and accept three input arguments, corresponding to the Euler angles &alpha;, &beta;, and &gamma;, and yield one output.
 </div>
 
 <div class="subtitle2">Input: Simulation parameters</div>
