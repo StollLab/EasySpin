@@ -42,7 +42,7 @@
 %     nTraj          integer
 %                    number of trajectories
 %
-%     Omega          numeric, size = (3,1) or (3,nTraj)
+%     OriStart       numeric, size = (3,1), (1,3), or (3,nTraj)
 %                    Euler angles for starting orientation(s) of rotational
 %                    diffusion
 %
@@ -68,11 +68,16 @@
 %     checkConvergence  if set to true, after the first nSteps of the 
 %                       trajectories are calculated, both inter- and intra-
 %                       trajectory convergence is checked using the Gelman-
-%                       Rubin R statistic such that R<1.1, and if this 
-%                       condition is not satisfied, then propagation will be 
-%                       extended by either a length of time equal to the 
-%                       average of tcorr or by 20% more time steps, whichever 
-%                       is larger
+%                       Rubin R statistic such that R<1+Opt.convTolerance, and
+%                       if this condition is not satisfied, then propagation
+%                       will be extended by either a length of time equal to the 
+%                       average tcorr or by 20% more time steps, whichever 
+%                       is larger.
+%
+%     convTolerance     Convergence tolerance for Gelman-Rubin R statistic. The
+%                       threshold for R is 1 + Opt.convTolerance, e.g. if 
+%                       Opt.convTolerance = 1e-6, then the threshold R is
+%                       1.000001.
 %
 %     Verbosity         0: no display, 1: show info
 %
@@ -280,44 +285,44 @@ if ~isfield(Par,'nTraj'), Par.nTraj = 1; end
 Sim.nTraj = Par.nTraj;
 
 % Get user-supplied starting angles
-Omega = [];
-if isfield(Par,'Omega'), Omega = Par.Omega; end
+OriStart = [];
+if isfield(Par,'OriStart'), OriStart = Par.OriStart; end
 
-% Supplement starting angles if necessary
-if isempty(Omega)
+% Supplement starting orientations if necessary
+if isempty(OriStart)
   if isUserPotFun
     % TODO: also do this if lambda+LMK are given
     [alphaSamples, betaSamples, gammaSamples] = cardamom_rejectionsample3d(exp(-PseudoPotFun), alphaGrid, betaGrid, gammaGrid, Sim.nTraj);
-    Omega = [alphaSamples; betaSamples; gammaSamples];
+    OriStart = [alphaSamples; betaSamples; gammaSamples];
   else
     % Set up spiral grid over
     gridPts = linspace(-1, 1, Sim.nTraj);
     gridTheta = acos(gridPts);
     gridPhi = sqrt(pi*Sim.nTraj)*asin(gridPts);
     gridPsi = sqrt(pi*Sim.nTraj)*asin(gridPts); % TODO: why does this angle, and not Phi, not affect the spectra?
-    Omega = [gridPhi; gridTheta; gridPsi];
+    OriStart = [gridPhi; gridTheta; gridPsi];
   end
 end
 
 % Assure it's a column vector if a vector is given
-if isvector(Omega), Omega = Omega(:); end
+if isvector(OriStart), OriStart = OriStart(:); end
 
 % If only one starting angle and multiple trajectories, repeat the angle
-if size(Omega,2)==1 && Sim.nTraj>1
-  Omega = repmat(Omega,1,Sim.nTraj);
+if size(OriStart,2)==1 && Sim.nTraj>1
+  OriStart = repmat(OriStart,1,Sim.nTraj);
 end  
   
-if size(Omega,2)~=Sim.nTraj
+if size(OriStart,2)~=Sim.nTraj
   error('Number of starting orientations must be equal to Par.nTraj.')
 end
 
-switch size(Omega,1)
+switch size(OriStart,1)
   case 3 % Euler angles
-    q0 = euler2quat(Omega);
+    q0 = euler2quat(OriStart);
   case 4 % quaternions
-    q0 = Omega;
+    q0 = OriStart;
   otherwise
-    error('The size of Omega must be (3,1) or (3,nTraj) for Euler angles, or (4,1) or (4,nTraj) for quaternions.')
+    error('The size of OriStart must be (3,1) or (3,nTraj) for Euler angles, or (4,1) or (4,nTraj) for quaternions.')
 end
 
 % initialize quaternion trajectories and their starting orientations
@@ -376,7 +381,7 @@ while ~converged
     iter = 1;
     % re-initialize trajectories
     Sim.nSteps = nSteps;
-    q0 = euler2quat(Omega);
+    q0 = euler2quat(OriStart);
     qTraj = zeros(4,Sim.nTraj,Sim.nSteps);
     qTraj(:,:,1) = q0;
   end

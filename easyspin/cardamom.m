@@ -71,7 +71,7 @@
 %     nTraj          integer
 %                    number of trajectories
 %
-%     Omega          numeric, size = (3,1) or (3,nTraj)
+%     OriStart       numeric, size = (3,1), (1,3), or (3,nTraj)
 %                    Euler angles for starting orientation(s)
 %
 %     nOrients       integer
@@ -1169,8 +1169,8 @@ while ~converged
               Par.dt = dtQuant;
               Par.nSteps = nStepsQuant;
               Opt.Model = 'Continuous';
-%               Par.Omega = qLab;
-%               Par.Omega = [0;0;0];
+%               Par.OriStart = qLab;
+%               Par.OriStart = [0;0;0];
               [~, ~, qTrajGlobal] = stochtraj_diffusion(Sys,Par,Opt);
 %               qLab = qTrajGlobal;
               qLab = quatmult(qLab, qTrajGlobal);

@@ -66,8 +66,8 @@ If no input argument is given, a short help summary is shown (same as when typin
 Up to three output arguments are returned:
 <ul>
 <li><code>t</code>: time axis, in seconds
-<li><code>RTraj</code>: rotation matrices
-<li><code>qTraj</code>: quaternions
+<li><code>RTraj</code>: trajectory in terms of rotation matrices
+<li><code>qTraj</code>: trajectory in terms of quaternions
 </ul>
 
 <p>
@@ -126,17 +126,18 @@ Rotational diffusion rates (principal values of the rotational diffusion tensor)
 Base-10 logarithm of <code>Diff</code>. If given, <code>Diff</code> is ignored.
 </div>
 
-<p>
-It is also possible to specify an orienting potential energy function to simulate restricted rotational diffusion. <code>stochtraj_diffusion</code> accomplishes this by representing the orienting potential function using either a series of Wigner D-functions (see reference for details), a numerical 3D array, or a function handle. To take advantage of one of these feature, the user should declare the structure <code>Sys.Potential</code> and assign to it one one of the following
 
-<div class="optionfield">2D array (Wigner function expansion)</div>
+<div class="optionfield"><code>Potential</code></div>
 <div class="optiondescr">
 
-An array of size (N,4), where each row corresponds to a term in the expansion; the first three columns contain the indices L, M, and K; and the fourth column contains the potential coefficients &lambda;<sup>L</sup><sub>M,K</sub> (the symbols c and &epsilon; are used in the literature as well). Note that the resulting orienting potential function must be real, so the range of allowed index values are as follows: L&gt;0; if K=0, then 0&lt;M&le;L; and if K&ne;0, then 0&lt;K&le;L and -L&le;M&le;L.
+It is also possible to specify an orienting potential energy function to simulate restricted rotational diffusion. <code>stochtraj_diffusion</code> accomplishes this by representing the orienting potential function using either a series of Wigner D-functions (see reference for details), a numerical 3D array, or a function handle. To take advantage of one of these feature, use <code>Sys.Potential</code> and assign to it one of the following:
+
+<ul>
+<li>
+<em>2D array</em> (Wigner function expansion). An array of size (N,4), where each row corresponds to a term in the expansion; the first three columns contain the indices L, M, and K; and the fourth column contains the potential coefficients &lambda;<sup>L</sup><sub>M,K</sub> (the symbols c and &epsilon; are used in the literature as well).
 
 <p>
-For example, to specify an orienting potential using <code>lambda200</code> to represent the coefficient &lambda;<sup>2</sup><sub>0,0</sub> of the commonly used second order Legendre polynomial, set <code>Sys.Potential = [2, 0, 0, lambda200]</code>.
-</p>
+The ranges of allowed index values are as follows: L&ge;0; 0&le;K&le;L; if K=0, then 0&le;M&le;L; and if K&ne;0, then -L&le;M&le;L. Given the associated &lambda;<sup>L</sup><sub>M,K</sub>, <code>stochtraj_diffusion</code> will automatically include appropriate &lambda;<sup>L</sup><sub>-M,-K</sub> to assure the potential is real-valued. This also means that the input &lambda;<sup>L</sup><sub>0,0</sub> have to be real.
 
 <p>
 The full form of the ordering potential is expressed as 
@@ -144,21 +145,45 @@ The full form of the ordering potential is expressed as
 <p>
 U(&Omega;) = - k<sub>B</sub> T &Sigma;<sub>L,M,K</sub>&lambda;<sup>L</sup><sub>M,K</sub> D<sup>L</sup><sub>M,K</sub> (&Omega;), 
 </p>
-where D<sup>L</sup><sub>M,K</sub> are the Wigner D-functions, &lambda;<sup>L</sup><sub>M,K</sub> are the potential coefficients, and it is assumed that the terms in the sum are appropriately processed to ensure that the result is always real.
+where D<sup>L</sup><sub>M,K</sub> are the Wigner D-functions, &lambda;<sup>L</sup><sub>M,K</sub> are the potential coefficients. The temperature is not needed, as it is divided out in the Langevin equation (which uses only U(&Omega;)/k<sub>B</sub>T).
+
+<p>
+For example, to specify an orienting potential using <code>lambda200</code> to represent the coefficient &lambda;<sup>2</sup><sub>0,0</sub> of the commonly used second-order Legendre polynomial, use
+</p>
+
+<pre class="matlab">
+Sys.Potential = [2, 0, 0, 1.2];  % L=2, M=K=0, lambda = 1.2
+</pre>
+
 <p>
 For details about this type of ordering potential, see K.A. Earle & D.E. Budil, Calculating Slow-Motion ESR Spectra of Spin-Labeled Polymers, in: S. Schlick: Advanced ESR Methods in Polymer Research, Wiley, 2006.
-</div>
 
-<div class="optionfield">3D array (numerical representation)</div>
-<div class="optiondescr">
-A 3D array of size (N,M,N) representing the orienting potential energy function U(&alpha;,&beta;,&gamma;). Dimensions 1, 2, and 3 of this array correspond to the Euler angles &alpha;, &beta;, and &gamma;, respectively.
-</div>
+<li>
+<p>
+<em>3D array</em> (numerical representation). A 3D array of size (N,M,N) representing the orienting potential energy function U(&alpha;,&beta;,&gamma;). Dimensions 1, 2, and 3 of this array correspond to the Euler angles &alpha;, &beta;, and &gamma;, respectively.
 
-<div class="optionfield">Function handle (functional representation)</div>
-<div class="optiondescr">
+<pre class="matlab">
+alpha = linspace(0,2*pi);    % grid over alpha
+beta = linspace(0,pi);       % grid over beta
+gamma = linspace(0,2*pi);    % grid over gamma
+Uarray = lambda*(3*cos(beta).^2-1) % potential energy over grid
+Sys.Potential = Uarray;
+</pre>
+
+<li>
+<p>
+<em>Function handle</em> (functional representation). 
 A user-defined function representing U(&alpha;,&beta;,&gamma;). This function must by vectorized (accept arrays as inputs) and accept three input arguments, corresponding to the Euler angles &alpha;, &beta;, and &gamma;, and yield one output.
-</div>
 
+<pre class="matlab">
+lambda200 = 0.86;
+U = @(a,b,c) lambda200*(3*cos(b).^2-1);
+Sys.Potential = U;
+</pre>
+
+
+</ul>
+</div>
 
 <div class="subtitle2">Input: Simulation parameters</div>
 
@@ -189,14 +214,16 @@ The time step of the integration, in seconds.
 The total time of the simulation, in seconds.
 </div>
 
-
 <p>
-Lastly, the trajectory settings are used to specify the number of trajectories to be simulated, <code>nTraj</code>, and the starting states of each trajectory using <code>Omega</code>.
+Lastly, the trajectory settings are used to specify the number of trajectories to be simulated, <code>nTraj</code>, and the starting states of each trajectory using <code>OriStart</code>.
 </p>
 
-<div class="optionfield"><code>Omega</code></div>
+<div class="optionfield"><code>OriStart</code></div>
 <div class="optiondescr">
-Used for rotational diffusion. Starting orientations for trajectories, given as an array of size (3,1) or (3,nTraj) containing triplets of the Euler angles &alpha;, &beta;, &gamma;, in radians. If <code>Omega</code> is not provided when simulating rotational diffusion, then a number of starting orientations equal to <code>nTraj</code> will be chosen from a uniform random distribution over the unit sphere, where &alpha;, &beta;, and &gamma; are sampled from [0,2&pi;), [0,&pi;), and [0,2&pi;), respectively.
+Starting orientations for trajectories, given as an array of size (3,1), (1,3), or (3,nTraj) containing triplets of the Euler angles &alpha;, &beta;, &gamma;, in radians. If <code>OriStart</code> is not provided, then a number of starting orientations equal to <code>nTraj</code> will be chosen from a uniform random distribution, where &alpha;, &beta;, and &gamma; are sampled from [0,2&pi;), [0,&pi;), and [0,2&pi;), respectively.
+
+<p>
+If simulating restricted diffusion using an orienting potential, it is strongly recommended to <em>not</em> specify <code>Par.OriStart</code>. In this case, it is best to let <code>stochtraj_diffusion</code> determine the optimal distribution of starting orientations for the trajectories to achieve faster convergence, which is dictated by sampling the Boltzmann distribution associated with the orienting potential.
 </div>
 
 <div class="optionfield"><code>nTraj</code></div>
@@ -205,7 +232,7 @@ The total number of trajectories to simulate.
 </div>
 
 <p>
-If only one starting orientation is given and <code>nTraj</code> is greater than one, then this starting orientation will be used for each trajectory. If <code>Omega</code> is not provided, then starting orientations will be chosen uniformly at random over the unit 4-sphere. If <code>nTraj</code> is not provided, only one trajectory will be simulated.
+If only one starting orientation is given and <code>nTraj</code> is greater than one, then this starting orientation will be used for each trajectory. If <code>OriStart</code> is not provided, then starting orientations will be chosen uniformly at random over the unit 4-sphere. If <code>nTraj</code> is not provided, only one trajectory will be simulated.
 </p>
 
 <div class="subtitle2">Input: Simulation options</div>
@@ -214,17 +241,18 @@ If only one starting orientation is given and <code>nTraj</code> is greater than
 <code>Opt</code> is a structure with additional simulation options.
 </p>
 
-<div class="optionfield"><code>chkcon</code></div>
+<div class="optionfield"><code>checkConvergence</code></div>
 <div class="optiondescr">
 0 (default), 1<br>
-If equal to 1, after the first <code>nSteps</code> of the trajectories are calculated, <code>stochtraj_diffusion</code> will check for both inter- and intra-trajectory convergence using the Gelman-Rubin R statistic (to be specific, requiring that R&lt;1.1, see A. Gelman and D. Rubin, Statistical Science 7, 457 (1992) for details). If convergence is not obtained, then propagation will be extended by either a length of time equal to the average of <code>tcorr</code> or by 20% more time steps, whichever is larger.
+If equal to 1, after the first <code>nSteps</code> of the trajectories are calculated, <code>stochtraj_diffusion</code> will check for both inter- and intra-trajectory convergence using the Gelman-Rubin R statistic (see A. Gelman and D. Rubin, Statistical Science 7, 457 (1992) for details). The trajectories are considered converged if <code>R &lt; 1+Opt.convTolerance</code>. If this condition is not satisfied after the <code>nSteps</code>, then propagation will be extended by either a length of time equal to the average correlation time or by 20% of the current trajectory length, whichever is larger.
+
+If convergence is not obtained, then propagation will be extended by either a length of time equal to the average of <code>tcorr</code> or by 20% more time steps, whichever is larger.
 </div>
-<!--
-<div class="optionfield"><code>tol</code></div>
+
+<div class="optionfield"><code>convTolerance</code></div>
 <div class="optiondescr">
-Termination tolerance for chi squared in angular distribution. If <code>Par.chkcon=1</code> and <code>tol</code> is not specified, the default value is <code>1e-3</code>.
+Convergence tolerance for Gelman-Rubin R statistic. The threshold for R is <code>1 + Opt.convTolerance</code>, e.g. if <code>Opt.convTolerance = 1e-6</code>, then the threshold R is 1.000001.
 </div>
--->
 
 <div class="optionfield"><code>Verbosity</code></div>
 <div class="optiondescr">
@@ -236,33 +264,32 @@ Determines how much information <code>stochtraj_diffusion</code> prints to the s
 <div class="subtitle">Example</div>
 
 <p>
-To simulate a 200-ns long, fast motion Brownian diffusion trajectory starting from the north pole on the unit sphere, enter
+To simulate a 200-ns long, fast-motion Brownian diffusion trajectory starting from the north pole on the unit sphere, enter
 </p>
 
 <pre class="matlab">
-Sys.tcorr = 5e-9;  % 5 ns rotational correlation time
+Sys.tcorr = 5e-9;       % 5 ns rotational correlation time
 
-Par.dt = 1e-9;  % 1 ns time step
-Par.nSteps = 1e3;  % 1000 time steps
-Par.Omega = [0,0,0];
+Par.dt = 1e-9;          % 1 ns time step
+Par.nSteps = 1e3;       % 1000 time steps
+Par.OriStart = [0,0,0]; % start at north pole
 
 [t,RTraj] = stochtraj_diffusion(Sys,Par);
 </pre>
 
 <p>
-To simulate 400 1-&mu;s long, slow motion trajectories in an orienting potential with coefficient &lambda;<sup>2</sup><sub>0,0</sub> = 1, whose starting points are chosen randomly from the uniform distribution on the unit sphere, enter
+To simulate 400 1-&mu;s long, slow-motion trajectories in the presence of an orienting potential with coefficient &lambda;<sup>2</sup><sub>0,0</sub> = 1.2, and with starting orientations chosen randomly, use
 </p>
 
 <pre class="matlab">
 Sys.tcorr = 50e-9;  % 50 ns rotational correlation time
-Sys.Potential.lambda = [1,0];  % purely real orienting potential coefficient
-Sys.Potential.LMK = [2,0,0];  % L=2, M=K=0
+Sys.Potential = [2, 0, 0, 1.2];  % L=2, M=K=0, lambda = 1.2
 
-Par.dt = 1e-9;
-Par.nSteps = 500;
-Par.nTraj = 400;
+Par.dt = 1e-9;       % 1 ns time step 
+Par.nSteps = 1000;   % 1000 steps
+Par.nTraj = 400;     % 400 trajectories
 
-[t,qTraj] = stochtraj_diffusion(Sys,Par);
+[t,RTraj] = stochtraj_diffusion(Sys,Par);
 </pre>
 
 
