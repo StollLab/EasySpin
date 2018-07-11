@@ -41,7 +41,7 @@ Rd = (R(1)-R(2))/4;
 % Process lambda list
 %---------------------------------------------------------------
 
-maxL = max(Potential.L)*2;
+maxL = max(Potential.L(Potential.lambda~=0))*2;
 
 if any(~isreal(Potential.lambda))
   error('Only real potential coefficients are allowed.');

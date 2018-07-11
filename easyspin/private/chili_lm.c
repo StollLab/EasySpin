@@ -122,7 +122,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   idxD = 2;
   Diff.Exchange = mxGetScalar(mxGetField(prhs[idxD],0,"Exchange"));
   Diff.xlk = mxGetPr(mxGetField(prhs[idxD],0,"xlk"));
-  Diff.maxL = mxGetScalar(mxGetField(prhs[idxD],0,"maxL"));
+  Diff.maxL = (int)mxGetScalar(mxGetField(prhs[idxD],0,"maxL"));
   R = mxGetPr(mxGetField(prhs[idxD],0,"Diff"));
   Diff.Rxx = R[0];
   Diff.Ryy = R[1];
