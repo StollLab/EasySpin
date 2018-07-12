@@ -87,12 +87,21 @@ To dictate the inter- and intra-state dynamics, either <code>TransRates</code> o
 
 <div class="optionfield"><code>TransRates</code></div>
 <div class="optiondescr">
-Transition rate matrix of size (nStates,nStates), in seconds<sup>-1</sup>.
+Transition rate matrix of size (nStates,nStates), in seconds<sup>-1</sup>. The elements of <code>Sys.TransRates</code> must satisfy the following properties:
+<ul>
+<li> all diagonal elements must be non-positive
+<li> all off-diagonal elements must be non-negative
+<li> all columns must sum to zero
+</ul>
 </div>
 
 <div class="optionfield"><code>TransProb</code></div>
 <div class="optiondescr">
-Transition probability matrix of size (nStates,nStates).
+Transition probability matrix of size (nStates,nStates). The elements of <code>Sys.TransProb</code> must satisfy the following properties:
+<ul>
+<li> all elements must be non-negative
+<li> all columns must sum to one
+</ul>
 </div>
 
 <div class="optionfield"><code>Orientations</code></div>
@@ -197,7 +206,7 @@ Sys.Orientations = [0,  0, 0;
 Par.dt = 1e-9;       % size of time step, in s
 Par.nSteps = 200;    % number of time steps
 
-[t, RTraj] = stochtraj_jump(Sys,Par,Opt);
+[t, RTraj] = stochtraj_jump(Sys,Par);
 </pre>
 
 <p>
@@ -215,7 +224,7 @@ Par.dt = 1e-9;       % size of time step, in s
 Par.nSteps = 1000;    % number of time steps
 Par.nTraj = 400;
 
-[t, RTraj] = stochtraj_jump(Sys,Par,Opt);
+[t, RTraj] = stochtraj_jump(Sys,Par);
 </pre>
 
 <!-- =================================================================== -->
