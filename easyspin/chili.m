@@ -265,8 +265,7 @@ if usePotential
     if any(Potential.K<0)
       error('Only nonnegative values of K are allowed.');
     end
-    Mzero = Potential.M==0;
-    if any(Potential.K(Mzero)<0)
+    if any(Potential.K(Potential.M==0)<0)
       error('For potential terms with M=0, K must be nonnegative.');
     end
     if ~isreal(Potential.lambda(Potential.K==0 & Potential.M==0))
@@ -820,8 +819,13 @@ end
 % Calculate Gamma
 %-----------------------------------------------------------------------
 % Pre-calculate diffusion operator Wigner expansion coefficient
-logmsg(1,'Calculating XLK coefficients for diffusion matrix');
-Potential.xlk = chili_xlk(Potential,Dynamics.Diff);
+logmsg(1,'Calculating Wigner expansion coefficients for diffusion matrix');
+if all(Potential.M==0)
+  Potential.xlk = chili_xlk(Potential,Dynamics.Diff);
+else
+  Potential.xlmk = chili_xlmk(Potential,Dynamics.Diff);
+  error('chili does not support potentials containing terms with M~=0.');
+end
 
 if generalLiouvillian
 

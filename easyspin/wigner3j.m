@@ -79,6 +79,12 @@ if ~istriangle(j1,j2,j3)
   return;
 end
 
+% (iii) The sum of j must be even if the sum of m is zero
+if m1==0 && m2==0 && m3==0 && mod(j1+j2+j3,2)
+  value = 0;
+  return
+end
+
 % Nonzero value: computation
 %--------------------------------------------------
 
