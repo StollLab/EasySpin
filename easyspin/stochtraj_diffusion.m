@@ -87,7 +87,7 @@
 %     t              matrix, size = (nSteps,1) 
 %                    time points of the trajectory (in seconds)
 %
-%     RTraj          3D array, size = (4,nTraj,nSteps)
+%     RTraj          4D array, size = (3,3,nTraj,nSteps)
 %                    trajectories of rotation matrices
 %
 %     qTraj          3D array, size = (4,nTraj,nSteps)

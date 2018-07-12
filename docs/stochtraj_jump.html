@@ -7,7 +7,7 @@
    <link rel="stylesheet" href="highlight/matlab.css">
    <script src="highlight/highlight.pack.js"></script>
    <script>hljs.initHighlightingOnLoad();</script>
-   <title>stochtraj</title>
+   <title>stochtraj_jump</title>
 </head>
 
 <body>
@@ -38,9 +38,9 @@ Simulation of stochastic jump trajectories using a Markov state model.
 stochtraj_jump(Sys)
 stochtraj_jump(Sys,Par)
 stochtraj_jump(Sys,Par,Opt)
-[t,qTraj] = stochtraj_jump(...)
+[t,RTraj] = stochtraj_jump(...)
 [t,stateTraj] = stochtraj_jump(...)
-[t,qTraj,stateTraj] = stochtraj_jump(...)
+[t,RTraj,qTraj,stateTraj] = stochtraj_jump(...)
 </pre>
 
 <!-- =================================================================== -->
@@ -67,8 +67,9 @@ If no input argument is given, a short help summary is shown (same as when typin
 Depending on the input options, up to three output arguments are returned:
 <ul>
 <li><code>t</code>: time axis, in seconds
-<li><code>qTraj</code>: quaternions
-<li><code>stateTraj</code>: Markov states (integer)
+<li><code>RTraj</code>: trajectories in terms of rotation matrices
+<li><code>qTraj</code>: trajectories in terms of quaternions
+<li><code>stateTraj</code>: trajectories in terms of Markov states (integer)
 </ul>
 
 <p>
@@ -81,22 +82,22 @@ If no output argument is given, <code>stochtraj_jump</code> plots one of the tra
 <code>Sys</code> is a structure containing the dynamic properties for generating the stochastic trajectories. Many of its fields overlap with those of <code>chili</code>. This allows the user to easily simulate EPR spectra in both frequency and time domains for comparison.
 </p>
 
-Note that either <code>TransRates</code> or <code>TransProb</code> can be given, with the former taking precendence of both are given.
+To dictate the inter- and intra-state dynamics, either <code>TransRates</code> or <code>TransProb</code> can be given, with the former taking precendence if both are given.
 </p>
 
 <div class="optionfield"><code>TransRates</code></div>
 <div class="optiondescr">
-Transition rate matrix, in seconds<sup>-1</sup>.
+Transition rate matrix of size (nStates,nStates), in seconds<sup>-1</sup>.
 </div>
 
 <div class="optionfield"><code>TransProb</code></div>
 <div class="optiondescr">
-Transition probability matrix.
+Transition probability matrix of size (nStates,nStates).
 </div>
 
-<div class="optionfield"><code>States</code></div>
+<div class="optionfield"><code>Orientations</code></div>
 <div class="optiondescr">
-Euler angles or quaternions representing the orientation of each state.
+An array of Euler angles representing the orientation of each state, size (nStates,1) or (1,nStates).
 </div>
 
 
@@ -130,12 +131,12 @@ The total time of the simulation, in seconds.
 </div>
 
 <p>
-Lastly, the trajectory settings are used to specify the number of trajectories to be simulated, <code>nTraj</code>, and the starting states of each trajectory <code>States0</code>. 
+Lastly, the trajectory settings are used to specify the number of trajectories to be simulated, <code>nTraj</code>, and the starting states of each trajectory <code>StatesStart</code>. 
 </p>
 
-<div class="optionfield"><code>States0</code></div>
+<div class="optionfield"><code>StatesStart</code></div>
 <div class="optiondescr">
-Used for Markov chains. Starting states for each Markov chain, given as an array of size (1,nTraj).
+Starting states for each trajectory, given as an array of size (1,nTraj).
 </div>
 
 <div class="optionfield"><code>nTraj</code></div>
@@ -144,7 +145,7 @@ The total number of trajectories to simulate.
 </div>
 
 <p>
-If only one starting state is given and <code>nTraj</code> is greater than one, then this starting state will be used for each trajectory. If <code>States0</code> is not provided, then the starting states will be chosen uniformly at random. If <code>nTraj</code> is not provided, only one trajectory will be simulated.
+If only one starting state is given and <code>nTraj</code> is greater than one, then this starting state will be used for each trajectory. If <code>StatesStart</code> is not provided, then the starting states will be chosen uniformly at random with replacement. If <code>nTraj</code> is not provided, only one trajectory will be simulated.
 </p>
 
 <div class="subtitle2">Input: Simulation options</div>
@@ -160,16 +161,17 @@ If equal to 1, only return the trajectories of Markov states, in which case <cod
 </div>
 
 <!--
-<div class="optionfield"><code>chkcon</code></div>
+<div class="optionfield"><code>checkConvergence</code></div>
 <div class="optiondescr">
 0 (default), 1<br>
-If equal to 1, after the first <code>nSteps</code> of the trajectories are calculated, <code>stochtraj_jump</code> will check for both inter- and intra-trajectory convergence using the Gelman-Rubin R statistic (to be specific, requiring that R&lt;1.1, see A. Gelman and D. Rubin, Statistical Science 7, 457 (1992) for details). If convergence is not obtained, then propagation will be extended by either a length of time equal to the average of <code>tcorr</code> or by 20% more time steps, whichever is larger.
+If equal to 1, after the first <code>nSteps</code> of the trajectories are calculated, <code>stochtraj_diffusion</code> will check for both inter- and intra-trajectory convergence using the Gelman-Rubin R statistic (see A. Gelman and D. Rubin, Statistical Science 7, 457 (1992) for details). The trajectories are considered converged if <code>R &lt; 1+Opt.convTolerance</code>. If this condition is not satisfied after the <code>nSteps</code>, then propagation will be extended by either a length of time equal to the average correlation time or by 20% of the current trajectory length, whichever is larger.
+
+If convergence is not obtained, then propagation will be extended by either a length of time equal to the average of <code>tcorr</code> or by 20% more time steps, whichever is larger.
 </div>
--->
-<!--
-<div class="optionfield"><code>tol</code></div>
+
+<div class="optionfield"><code>convTolerance</code></div>
 <div class="optiondescr">
-Termination tolerance for chi squared in angular distribution. If <code>Par.chkcon=1</code> and <code>tol</code> is not specified, the default value is <code>1e-3</code>.
+Convergence tolerance for Gelman-Rubin R statistic. The threshold for R is <code>1 + Opt.convTolerance</code>, e.g. if <code>Opt.convTolerance = 1e-6</code>, then the threshold R is 1.000001.
 </div>
 -->
 
@@ -183,46 +185,38 @@ Determines how much information <code>stochtraj_jump</code> prints to the screen
 <div class="subtitle">Example</div>
 
 <p>
-To simulate a 200-ns long, fast motion Brownian diffusion trajectory starting from the north pole on the unit sphere, enter
+To simulate a 200-ns long trajectory of Markovian jumps between the north and south poles with equal transition rates of 1x10<sup>9</sup> s<sup>-1</sup>, use
 </p>
 
 <pre class="matlab">
-Sys.tcorr = 5e-9;  % 5 ns rotational correlation time
+Sys.TransRates = 1e9*[-1,  1;
+                       1, -1];  % transition rate matrix, in s^-1
+Sys.Orientations = [0,  0, 0;
+                    0, pi, 0];  % Euler angles of Markov states
+            
+Par.dt = 1e-9;       % size of time step, in s
+Par.nSteps = 200;    % number of time steps
 
-Par.dt = 1e-9;  % 1 ns time step
-Par.nSteps = 1e3;  % 1000 time steps
-Par.Omega = [0,0,0];
-
-[t,RTraj] = stochtraj_jump(Sys,Par);
+[t, RTraj] = stochtraj_jump(Sys,Par,Opt);
 </pre>
 
 <p>
-To simulate 400 1-&mu;s long, slow motion trajectories in an orienting potential with coefficient &lambda;<sup>2</sup><sub>0,0</sub> = 1, whose starting points are chosen randomly from the uniform distribution on the unit sphere, enter
+To simulate 400, 1-&mu;s long trajectories of Markovian jumps between 2 orientations chosen uniformly at random, with equal probability of staying in a particular state or jumping to the other state, use
 </p>
 
 <pre class="matlab">
-Sys.tcorr = 50e-9;  % 50 ns rotational correlation time
-Sys.Potential.lambda = [1,0];  % purely real orienting potential coefficient
-Sys.Potential.LMK = [2,0,0];  % L=2, M=K=0
-
-Par.dt = 1e-9;
-Par.nSteps = 500;
+Sys.TransProb = [0.5, 0.5;
+                 0.5, 0.5];           % transition probability matrix
+Sys.Orientations = [2*pi*rand(2,1), 
+                      pi*rand(2,1), 
+                    2*pi*rand(2,1)];  % Euler angles of Markov states
+            
+Par.dt = 1e-9;       % size of time step, in s
+Par.nSteps = 1000;    % number of time steps
 Par.nTraj = 400;
 
-[t,qTraj] = stochtraj_jump(Sys,Par);
+[t, RTraj] = stochtraj_jump(Sys,Par,Opt);
 </pre>
-
-
-<!-- =================================================================== -->
-<div class="subtitle">Algorithm</div>
-
-<p>
-<code>stochtraj_jump</code> solves the stochastic rotational Langevin equation by numerically propagating quaternions. The quaternions specify orientations of the body-fixed coordinate frame with respect to the space-fixed frame. Since both isotropic and anisotropic diffusion tensors are diagonal in the body-fixed frame, defining the quaternions in this manner considerably simplifies the problem.
-</p>
-<p>
-For full details of the methods used here, see: 
-</p>
-D. Sezer, J. H. Freed, and B. Roux, J. Chem. Phys. B 128, 165106 (2008).
 
 <!-- =================================================================== -->
 <div class="subtitle">See also</div>

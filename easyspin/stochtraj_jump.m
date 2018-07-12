@@ -1,5 +1,5 @@
 % stochtraj_jump  Generate stochastic trajectories of Markovian jumps using
-%                 kinetic Monte Caro
+%                 kinetic Monte Carlo
 %
 %   [t,RTraj] = stochtraj_jump(Sys)
 %   ... = stochtraj_jump(Sys,Par)
@@ -24,14 +24,13 @@
 %                    Euler angles for each state's orientation
 %
 %
-%
 %   Par: simulation parameters for Monte Carlo integrator
 %
 %     nTraj          integer
 %                    number of trajectories
 %
-%     States0        numeric, size = (1,1) or (nTraj,1)
-%                    starting states of Markov chains
+%     StatesStart    numeric, size = (1,1) or (nTraj,1)
+%                    starting states of trajectories
 %
 %         When specifying the simulation time provide one of the following
 %         combinations:
@@ -56,14 +55,14 @@
 %                       specify whether or not to use a discrete model purely
 %                       to generate states and not quaternion orientations
 %
-%     checkConvergence  if equal to 1, after the first nSteps of the 
-%                       trajectories are calculated, both inter- and intra-
-%                       trajectory convergence is checked using the Gelman-
-%                       Rubin R statistic such that R<1.1, and if this 
-%                       condition is not satisfied, then propagation will be 
-%                       extended by either a length of time equal to the 
-%                       average of tcorr or by 20% more time steps, whichever 
-%                       is larger
+% %     checkConvergence  if equal to 1, after the first nSteps of the 
+% %                       trajectories are calculated, both inter- and intra-
+% %                       trajectory convergence is checked using the Gelman-
+% %                       Rubin R statistic such that R<1.1, and if this 
+% %                       condition is not satisfied, then propagation will be 
+% %                       extended by either a length of time equal to the 
+% %                       average of tcorr or by 20% more time steps, whichever 
+% %                       is larger
 %
 %     Verbosity         0: no display, 1: show info
 %
@@ -72,6 +71,9 @@
 %
 %     t              matrix, size = (nSteps,1) 
 %                    time points of the trajectory (in seconds)
+%
+%     RTraj          4D array, size = (3,3,nTraj,nSteps)
+%                    trajectories of rotation matrices
 %
 %     qTraj          3D array, size = (4,nTraj,nSteps)
 %                    trajectories of normalized quaternions
@@ -165,9 +167,13 @@ end
 if ~Opt.statesOnly
   if isfield(Sys,'Orientations')
     Orientations = Sys.Orientations;
-    if size(Orientations,1)~=3 || size(Orientations,2)~=nStates
-      error(['The size of Sys.Orientations must be (3,nStates), with the size of the ' ...
-             'second dimension equal to the number of rows (and columns) of TransProb.'])
+    if isequal(size(Orientations),[3,nStates])
+      % do nothing
+    elseif isequal(size(Orientations),[nStates,3])
+      % transpose to size (3,nStates)
+      Orientations = Orientations.';
+    else
+      error('The size of Sys.Orientations must be (3,nStates) or (nStates,3).')
     end
   else
     error('A set of Sys.Orientations is required for a jump simulation.')
@@ -236,18 +242,18 @@ end
 if ~isfield(Par,'nTraj'), Par.nTraj = 1; end
 
 % Get user-supplied starting states
-if isfield(Par,'States0')
-  States0 = Par.States0;
-  if ~isvector(States0) || numel(States0)~=Par.nTraj
-    error('States0 should be of size (1,1) or (1,Par.nTraj).')
+if isfield(Par,'StatesStart')
+  StatesStart = Par.StatesStart;
+  if ~isvector(StatesStart) || numel(StatesStart)~=Par.nTraj
+    error('Par.StatesStart should be of size (1,1) or (1,Par.nTraj).')
   end
-  if any(States0<1) || any(States0>nStates)
-    error(['Each entry in States0 needs to be equal to an integer ',...
-           'within the range [1,nStates].\n'])
+  if any(StatesStart<1) || any(StatesStart>nStates)
+    error(['Each entry in Par.StatesStart needs to be equal to an integer ',...
+           'between 1 and nStates.'])
   end
-  States0 = States0(:);
+  StatesStart = StatesStart(:);
 else
-  States0 = randi(nStates,1,Par.nTraj);
+  StatesStart = randi(nStates,1,Par.nTraj);
 end
 
 if isfield(Opt,'checkConvergence')
@@ -265,7 +271,7 @@ if ~Opt.statesOnly
   % initialize quaternion trajectories and their starting orientations
   qTraj = zeros(4,Par.nTraj,Par.nSteps);
   for iTraj = 1:Par.nTraj
-    qTraj(:,iTraj,1) = qStates(:,States0(iTraj));
+    qTraj(:,iTraj,1) = qStates(:,StatesStart(iTraj));
   end
 end
  
@@ -285,7 +291,7 @@ nTraj = Par.nTraj;
 nSteps = Par.nSteps;
 
 stateTraj = zeros(nTraj,nSteps);
-stateTraj(:,1) = States0;
+stateTraj(:,1) = StatesStart;
 u = rand(nTraj,nSteps);
 
 for iTraj = 1:nTraj

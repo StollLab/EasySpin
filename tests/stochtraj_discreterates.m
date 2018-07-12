@@ -6,22 +6,17 @@ Par.nTraj = 500;
 Sys.TransRates = 1e9*[-0.5,  0.5;
                        0.5, -0.5];
 Sys.Orientations = [0,  0;
-              0, pi;
-              0,  0];
+                    0, pi;
+                    0,  0];
 
 tau = -1/(2*Sys.TransRates(1,1));  % mean residence time
             
 Par.dt = tau/5;
 Par.nSteps = ceil(200*tau/Par.dt);
 
-Opt.Model = 'Discrete';
-
-%TransRates = Sys.TransRates;
-%States = euler2quat(Sys.Orientations);
-%nTraj = Par.nTraj;
 nSteps = Par.nSteps;
 
-[t, RTraj] = stochtraj_jump(Sys,Par,Opt);
+[t, RTraj] = stochtraj_jump(Sys,Par);
 
 VecTraj = squeeze(RTraj(:,3,:,:));
 
