@@ -205,11 +205,11 @@ elseif isfield(Par,'tMax') && isfield(Par,'nSteps')
 
 else
   tcorr = 1/6/mean(Par.Diff);
-  logmsg(1,'-- No time step given. Par.dt set to Par.tcorr/10: %0.5g s.', tcorr);
+  logmsg(1,'-- No time step given. Setting it to %0.5g s.', tcorr);
   dt = tcorr/10;
   if ~isfield(Par, 'nSteps')
     nSteps = ceil(200e-9/dt);
-    logmsg(1,'-- Number of time steps not given. Par.nSteps set to 200e-9/Par.dt: %d.', nSteps);
+    logmsg(1,'-- Number of time steps not given. Using %d steps.', nSteps);
   else
     nSteps = Par.nSteps;
   end

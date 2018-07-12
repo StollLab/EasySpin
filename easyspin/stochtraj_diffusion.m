@@ -142,7 +142,7 @@ EasySpinLogLevel = Opt.Verbosity;
 [Dynamics,Sim] = validate_dynord('stochtraj_diffusion',Sys);
 Sim.Diff = Dynamics.Diff;
 
-tcorrAvg = 1/6/mean(Dynamics.Diff);
+tcorr = 1/6/mean(Dynamics.Diff);
 
 % Supplement fields
 if ~isfield(Sys,'Potential'), Sys.Potential = []; end
@@ -248,18 +248,24 @@ elseif isfield(Par,'nSteps') && isfield(Par,'dt')
 
 elseif isfield(Par,'nSteps') && isfield(Par,'tMax')
   % number of steps and max time are given
-  tMax = Par.tMax;
   nSteps = Par.nSteps;
-  dt = tMax/Sim.nSteps;
+  dt = Par.tMax/nSteps;
 
+elseif isfield(Par,'tMax') && isfield(Par,'dt')
+  dt = Par.dt;
+  if (dt<=0)
+    error('Par.dt must be positive.');
+  end
+  nSteps = ceil(Par.tMax/dt);
+  
 else
-  logmsg(1,'-- No time step given. Par.dt set to Par.tcorr/10: %0.5g s.', tcorrAvg);
-  dt = tcorrAvg/10;
-  if ~isfield(Par,'nSteps')
-    nSteps = ceil(200e-9/dt);
-    logmsg(1,'-- Number of time steps not given. Par.nSteps set to 200e-9/Par.dt: %d.', nSteps);
-  else
+  dt = min(tcorr)/10;
+  logmsg(0,'-- No time parameters given. Using time step of %0.5g s.', dt);
+  if isfield(Par,'nSteps')
     nSteps = Par.nSteps;
+  else
+    nSteps = ceil(200*max(tcorr)/dt);
+    logmsg(0,'-- Number of time steps not given. Using %d steps.', nSteps);
   end
 end
 
@@ -362,7 +368,7 @@ while ~converged
     logmsg(3,'-- Propagation extended to %dth iteration -----------------------', iter);
     % Propagation is being extended, so reset nSteps
     % Continue propagation by 20% more steps or by tcorr/dt, whichever is greater
-    Sim.nSteps = max([ceil(tcorrAvg/Sim.dt), ceil(1.2*Sim.nSteps)]);
+    Sim.nSteps = max([ceil(tcorr/Sim.dt), ceil(1.2*Sim.nSteps)]);
     qTraj = stochtraj_proprottraj(qTraj, Sim, iter);
   end
 
@@ -401,31 +407,7 @@ logmsg(2,'--------------------------------------------------------------');
 
 switch nargout
   case 0 % Plot results
-    maxTraj = 3;
-    if Sim.nTraj>maxTraj
-      error('Cannot plot more than %d trajectories.',maxTraj);
-    end
-    clf
-    hold on
-    for iTraj = 1:min(maxTraj,Sim.nTraj)
-      x = squeeze(RTraj(1,3,iTraj,:));
-      y = squeeze(RTraj(2,3,iTraj,:));
-      z = squeeze(RTraj(3,3,iTraj,:));
-      plot3(x,y,z);
-    end
-    axis equal
-    axlim = 1.2;
-    xlim([-1 1]*axlim);
-    ylim([-1 1]*axlim);
-    zlim([-1 1]*axlim);
-    ax = gca;
-    ax.Box = 'on';
-    ax.BoxStyle = 'full';
-    view([-32 32]);
-    xlabel('x');
-    ylabel('y');
-    zlabel('z');
-
+    plotTrajectories(Sim,RTraj);
   case 2  % Output rotation matrix trajectories
     varargout = {t, RTraj};
 
@@ -439,8 +421,88 @@ clear global EasySpinLogLevel
 
 end
 
+% Plotting functions
+%===============================================================================
+function plotTrajectories(Sim,RTraj)
+    maxTraj = 3;
+    if Sim.nTraj>maxTraj
+      error('Cannot plot more than %d trajectories.',maxTraj);
+    end
+    clf
+    hold on
+    nPlotTraj = min(maxTraj,Sim.nTraj);
+    for iTraj = 1:nPlotTraj
+      xMol = squeeze(RTraj(:,1,iTraj,:));
+      yMol = squeeze(RTraj(:,2,iTraj,:));
+      zMol = squeeze(RTraj(:,3,iTraj,:));
+      hx(iTraj) = plot3(xMol(1,:),xMol(2,:),xMol(3,:));
+      hy(iTraj) = plot3(yMol(1,:),yMol(2,:),yMol(3,:));
+      hz(iTraj) = plot3(zMol(1,:),zMol(2,:),zMol(3,:));
+    end
+    set(hx,'Tag','xTrajectory','Visible','off','Color',[0.9 0 0]);
+    set(hy,'Tag','yTrajectory','Visible','off','Color',[0 0.5 0]);
+    set(hz,'Tag','zTrajectory','Visible','on','Color',[0 0 0.7]);
+    axis equal
+    axlim = 1.2;
+    xlim([-1 1]*axlim);
+    ylim([-1 1]*axlim);
+    zlim([-1 1]*axlim);
+    ax = gca;
+    ax.Box = 'on';
+    ax.BoxStyle = 'full';
+    view([-32 32]);
+    xlabel('x_{Lab}');
+    ylabel('y_{Lab}');
+    zlabel('z_{Lab}');
+    if nPlotTraj==1
+      title('Trajectory of the molecular axes (x = red, y = green, z = blue)');
+    else
+      title(sprintf('%d trajectories of the molecular axes (x = red, y = green, z = blue).',nPlotTraj));
+    end
+    
+  uicontrol(gcf,'Style','togglebutton',...
+    'Tag','xButton',...
+    'String','x',...
+    'Callback',@(src,event)updateVisibility('xButton','xTrajectory'),...
+    'Visible','on',...
+    'Value',0,...
+    'Tooltip','Show/hide trajectory of molecular x axis',...
+    'Position',[5 5 20 20]);
+  uicontrol(gcf,'Style','togglebutton',...
+    'Tag','yButton',...
+    'String','y',...
+    'Callback',@(src,event)updateVisibility('yButton','yTrajectory'),...
+    'Visible','on',...
+    'Value',0,...
+    'Tooltip','Show/hide trajectory of molecular y axis',...
+    'Position',[25 5 20 20]);
+  uicontrol(gcf,'Style','togglebutton',...
+    'Tag','zButton',...
+    'String','z',...
+    'Callback',@(src,event)updateVisibility('zButton','zTrajectory'),...
+    'Visible','on',...
+    'Value',1,...
+    'Tooltip','Show/hide trajectory of molecular z axis',...
+    'Position',[45 5 20 20]);
+    
+
+end
+
+
+function updateVisibility(buttonTag,lineTag)
+h = findobj('Tag',buttonTag);
+hLine = findobj('Tag',lineTag);
+if h.Value==1
+  newstate = 'on';
+else
+  newstate = 'off';
+end
+set(hLine,'Visible',newstate);
+end
+
 % Helper functions
-%-------------------------------------------------------------------------------
+%===============================================================================
+
 
 function [dx, dy, dz] = gradient_euler(Data, aGrid, bGrid, gGrid)
 % performs the second-order numerical gradient on a 3D array of Euler angles
