@@ -160,8 +160,8 @@ elseif isfield(Sys,'TransProb')
   nStates = size(TPM,1);
   
 else
-  error(['A transition rate matrix or a transition probability matrix ',... 
-         'is required a jump simulation.'])
+  error(['A transition rate matrix (Sys.TransRates) or a transition probability matrix (Sys.TransProb) ',... 
+         'is required.'])
 end
   
 if ~Opt.statesOnly
@@ -176,7 +176,8 @@ if ~Opt.statesOnly
       error('The size of Sys.Orientations must be (3,nStates) or (nStates,3).')
     end
   else
-    error('A set of Sys.Orientations is required for a jump simulation.')
+    error('Orientations for the %d states are required. Give a %dx%d array in Sys.Orientations.',...
+      nStates,nStates,3);
   end
 end
 
@@ -204,7 +205,7 @@ elseif isfield(Par,'tMax') && isfield(Par,'nSteps')
   dt = tMax/nSteps;
 
 else
-  tcorr = 1/6/mean(Par.Diff);
+  tcorr = 1/6/mean(Sys.Diff);
   logmsg(1,'-- No time step given. Setting it to %0.5g s.', tcorr);
   dt = tcorr/10;
   if ~isfield(Par, 'nSteps')

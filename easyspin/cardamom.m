@@ -452,7 +452,6 @@ if useMD
   if strcmp(MD.TrajUsage,'Markov')
     logmsg(1,'-- building Markov state model -----------------------------------------');
     
-    Opt.Model = 'Discrete';
     Opt.statesOnly = 1;
     
     MD.nStates = 48;
@@ -715,35 +714,6 @@ xAxis = linspace(Exp.Range(1),Exp.Range(2),Exp.nPoints);  % field axis, mT
 % -------------------------------------------------------------------------
 
 % if ~isfield(Opt,'chkcon'), chkcon = 0; end  % TODO implement spectrum convergence tests
-
-if ~isfield(Opt,'Model')
-  switch Par.Model
-    case 'Brownian'
-      Opt.Model = 'Continuous';
-    case 'MOMD'
-      Opt.Model = 'Continuous';
-    case 'SRLS'
-      Opt.Model = 'Continuous';
-    case 'Discrete'
-      Opt.Model = 'Discrete';
-    case 'Molecular Dynamics'
-      Opt.Model = 'Continuous';
-  end
-else
-  switch Opt.Model
-    case 'Continuous'
-      if ~strcmp(Par.Model,'Brownian')||~strcmp(Par.Model,'MOMD')...
-         ||~strcmp(Par.Model,'SRLS')||~strcmp(Par.Model,'Molecular Dynamics')
-        error(['Continuous model is incompatible with the chosen Par.Model. '...
-               'Please check documentation for Continuous model compatibilities.'])
-      end
-    case 'Discrete'
-      if ~(strcmp(Par.Model,'Discrete')||strcmp(Par.Model,'Molecular Dynamics'))
-        error(['Discrete model is incompatible with the chosen Par.Model. '...
-               'Please check documentation for Discrete model compatibilities.'])
-      end
-  end
-end
 
 if ~isfield(Opt,'Method')
   Opt.Method = 'Nitroxide';
@@ -1077,14 +1047,12 @@ while ~converged
         % Markovian jumps
         Par.dt = dtStoch;
         Par.nSteps = nStepsStoch;
-        Opt.Model = 'Discrete';
         [trash, qTrajLocal] = stochtraj_jump(Sys,Par,Opt);
         
         % global diffusion
         Sys.Diff = DiffGlobal;
         Par.dt = dtQuant;
         Par.nSteps = nStepsQuant;
-        Opt.Model = 'Continuous';
         [~, ~, qTrajGlobal] = stochtraj_diffusion(Sys,Par,Opt);
         qLab = quatmult(qLab,qTrajGlobal);
         
@@ -1160,7 +1128,6 @@ while ~converged
             Sys.TransProb = transmat1.';
             Par.dt = dtStoch;
             Par.nSteps = nStepsStoch;
-            Opt.Model = 'Discrete';
             [trash, stateTraj] = stochtraj_jump(Sys,Par,Opt);
             
            % global diffusion
@@ -1168,7 +1135,6 @@ while ~converged
               Sys.Diff = MD.GlobalDiff;
               Par.dt = dtQuant;
               Par.nSteps = nStepsQuant;
-              Opt.Model = 'Continuous';
 %               Par.OriStart = qLab;
 %               Par.OriStart = [0;0;0];
               [~, ~, qTrajGlobal] = stochtraj_diffusion(Sys,Par,Opt);
