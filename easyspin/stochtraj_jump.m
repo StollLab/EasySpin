@@ -342,31 +342,53 @@ logmsg(2,'--------------------------------------------------------------');
 
 switch nargout
   case 0 % Plot results
-    maxTraj = 1;
-    if Par.nTraj>maxTraj
-      error('Cannot plot more than %d trajectories.',maxTraj);
-    end
-    RTraj = quat2rotmat(qTraj);
+    maxTraj = 3;
+    
     clf
-    hold on
-    for iTraj = 1:min(maxTraj,Par.nTraj)
-      x = squeeze(RTraj(1,3,iTraj,:));
-      y = squeeze(RTraj(2,3,iTraj,:));
-      z = squeeze(RTraj(3,3,iTraj,:));
-      plot3(x,y,z);
+    
+    nPlotTraj = min(nTraj,maxTraj);
+    for iTraj = 1:nPlotTraj
+      subplot(nPlotTraj,1,iTraj)
+      hold on
+      s = stateTraj(iTraj,:);
+      
+      hl = plot(t,s);
+      set(hl,'Color',[1 1 1]*0.3);
+      for iState = 1:nStates
+        idx = s==iState;
+        h = plot(t(idx),iState*ones(1,sum(idx)),'o');
+      end
+    
+      xlabel('time (s)');
+      ylabel('state');
+      set(gca,'YTick',1:nStates);
+      axis tight
+      stateLims = [1 nStates] + [-1 1]*0.5;
+      ylim(stateLims);
+      box on
+      title(sprintf('Trajectory %d (%d states, %d steps)',iTraj,nStates,length(s)));
+      
+      histdata = zeros(1,nStates);
+      for iState = 1:nStates
+        histdata(iState) = sum(s==iState);
+      end
+      
+      p0 = get(gca,'Position');
+      p0(3) = 0.7;
+      set(gca,'Position',p0);
+      p1 = p0;
+      p1(1) = p0(1)+p0(3);
+      p1(3) = (1-p0(3)-p0(1))-0.07;
+      ax = axes('Position',p1);
+      barh(1:nStates,histdata,0.3);
+      ylim(stateLims)
+      set(ax,'XAxisLocation','top');
+      set(ax,'YAxisLocation','right');
+      ylabel(ax,'histogram');
+      xlabel(ax,'count')
+      set(ax,'YTick',[]);
+      %ax.YLabel.Rotation = -90;
     end
-    axis equal
-    axlim = 1.2;
-    xlim([-1 1]*axlim);
-    ylim([-1 1]*axlim);
-    zlim([-1 1]*axlim);
-    ax = gca;
-    ax.Box = 'on';
-    ax.BoxStyle = 'full';
-    view([-32 32]);
-    xlabel('x');
-    ylabel('y');
-    zlabel('z');
 
   case 2  % Output rotation matrix or state trajectories
     if Opt.statesOnly
