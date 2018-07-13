@@ -24,7 +24,7 @@ Exp.mwFreq = 9.4;
 Opt.Verbosity = 0;
 Opt.Method = 'ISTOs';
 
-[Bcard,ycard] = cardamom(Sys,Par,Exp,Opt);
+[Bcard,ycard] = cardamom(Sys,Exp,Par,Opt);
 
 ycard = ycard/max(ycard);
 

@@ -48,7 +48,7 @@ Opt.Verbosity = 0;
 Opt.FFTWindow = 1;
 Opt.Method = 'Nitroxide';
 
-[B, spc, ExpectVal,t] = cardamom(Sys, Par, Exp, Opt, MD);
+[B, spc, ExpectVal,t] = cardamom(Sys,Exp,Par,Opt,MD);
 spc = spc/max(spc);
 
 % Plot for comparison

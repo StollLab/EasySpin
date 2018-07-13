@@ -1,8 +1,8 @@
 % cardamom  Trajectory-based simulation of CW-EPR spectra.
 %
-%   cardamom(Sys,Par,Exp)
-%   cardamom(Sys,Par,Exp,Opt)
-%   cardamom(Sys,Par,Exp,Opt,MD)
+%   cardamom(Sys,Exp,Par)
+%   cardamom(Sys,Exp,Par,Opt)
+%   cardamom(Sys,Exp,Par,Opt,MD)
 %   spc = cardamom(...)
 %   [B,spc] = cardamom(...)
 %   [B,spc,ExpectVal,t] = cardamom(...)
@@ -264,7 +264,7 @@
 %                    trajectory-averaged density matrix
 
 
-function varargout = cardamom(Sys,Par,Exp,Opt,MD)
+function varargout = cardamom(Sys,Exp,Par,Opt,MD)
 
 % Preprocessing
 % -------------------------------------------------------------------------
@@ -288,8 +288,8 @@ switch nargout
   case 0 % plotting
   case 1 % spc
   case 2 % B,spc
-  case 3 % B,spc,expectval
-  case 4 % B,spc,expectval,t
+  case 3 % B,spc,ExpectVal
+  case 4 % B,spc,ExpectVal,t
   otherwise
     error('Incorrect number of output arguments.');
 end
@@ -894,7 +894,7 @@ switch Model
       MD.qTraj = rotmat2quat(MD.RTraj);
       clear MD.RTraj
     end
-sph2cart
+    
     if ~strcmp(MD.TrajUsage,'Explicit')
       switch MD.TrajUsage
         case 'Resampling'
