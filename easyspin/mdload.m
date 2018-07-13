@@ -73,10 +73,13 @@
 %                                same as FrameTraj, but with global
 %                                rotational diffusion of protein removed
 %
+%                    RProtDiff   numeric array, size = (3,3,nTraj,nSteps)
+%                                trajectories of protein global rotational
+%                                diffusion represented by rotation matrices
+%
 %                    dihedrals   numeric array, size = (5,nTraj,nSteps)
 %                                dihedral angles of spin label side chain
 %                                bonds
-
 %
 %
 %   Supported formats are identified via the extension

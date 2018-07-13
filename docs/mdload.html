@@ -125,9 +125,14 @@ Number of snapshots in the MD simulation output.
 Time step between snapshots, in seconds.
 </div>
 
+<div class="optionfield"><code>RProtDiff</code></div>
+<div class="optiondescr">
+An array of size 3x3x<code>nTraj</code>x<code>nSteps</code> containing the rotation matrices representing the global rotational diffusion of the protein.
+</div>
+
 <div class="optionfield"><code>FrameTraj</code></div>
 <div class="optiondescr">
-Cartesian coordinates of the spin label tensor frame's x-, y-, and z-coordinate frame axis vectors with respect to the MD simulation box frame, in <span>&#8491;</span>.
+An array of size 3x3x<code>nTraj</code>x<code>nSteps</code> containing the cartesian coordinates of the spin label tensor frame's x-, y-, and z-coordinate frame axis vectors with respect to the MD simulation box frame, in <span>&#8491;</span>.
 </div>
 
 <div class="optionfield"><code>FrameTrajwrtProt</code></div>
@@ -137,7 +142,7 @@ Same as <code>FrameTraj</code>, but without global rotational diffusion of the h
 
 <div class="optionfield"><code>dihedrals</code></div>
 <div class="optiondescr">
-Dihedral angles of the spin label chain's chain bonds, in radians.
+An array of size 3x3x<code>nTraj</code>x<code>nSteps</code> containing the dihedral angles of the spin label chain's chain bonds, in radians.
 </div>
 
 <!-- ================================================================ -->
@@ -172,7 +177,8 @@ MD = mdload('myTraj.DCD',AtomInfo);
 <div class="subtitle">See also</div>
 
 <p>
-<a class="esf" href="mdsave.html">mdsave</a>
+<a class="esf" href="mdsave.html">mdsave</a>, 
+<a class="esf" href="cardamom.html">cardamom</a>
 </p>
 
 <hr>

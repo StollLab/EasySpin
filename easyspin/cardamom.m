@@ -41,15 +41,18 @@
 %                       function should be vectorized, i.e. work with arrays of
 %                       alpha, beta, and gamma.
 %
-%     TransRates     numeric matrix, size = (nStates,nStates)
+%     TransRates     numeric, size = (nStates,nStates)
 %                    transition rate matrix describing inter-state dynamics
 %                    for kinetic Monte Carlo simulations
 %
-%     TransProb      numeric matrix, size = (nStates,nStates)
+%     TransProb      numeric, size = (nStates,nStates)
 %                    transition probability matrix describing inter-state 
-%                    dynamics for kinetic Monte Carlo simulations
+%                    dynamics for kinetic Monte Carlo simulations, note
+%                    that a time step must be given to use Sys.TransProb
+%                    (alternative input to TransRates; ignored if TransRates
+%                    is given)
 %
-%     States         numeric matrix, size = (3,nStates)
+%     Orientations   numeric, size = (3,nStates)
 %                    Euler angles for each state's orientation
 %
 %     Sys.lw         double or numeric vector, size = (1,2)
@@ -552,7 +555,6 @@ end
 % If number of trajectories is not given, set it to 100
 if ~isfield(Par,'nTraj')&&useMD==0, Par.nTraj = 100; end
 
-% TODO add error checks from stochtraj and create a skipcheck flag for stochtraj
 
 if isfield(Par,'t')
   % time axis is given explicitly
@@ -706,8 +708,6 @@ xAxis = linspace(Exp.Range(1),Exp.Range(2),Exp.nPoints);  % field axis, mT
 
 % Check Opt
 % -------------------------------------------------------------------------
-
-% if ~isfield(Opt,'chkcon'), chkcon = 0; end  % TODO implement spectrum convergence tests
 
 if ~isfield(Opt,'Method')
   Opt.Method = 'Nitroxide';
