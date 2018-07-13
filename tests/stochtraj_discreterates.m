@@ -5,9 +5,8 @@ function [err,data] = test(opt,olddata)
 Par.nTraj = 500;
 Sys.TransRates = 1e9*[-0.5,  0.5;
                        0.5, -0.5];
-Sys.Orientations = [0,  0;
-                    0, pi;
-                    0,  0];
+Sys.Orientations = [0,  0, 0;
+                    0, pi, 0];
 
 tau = -1/(2*Sys.TransRates(1,1));  % mean residence time
             
@@ -38,6 +37,7 @@ if rmsd > 1e-2
   err = 1;
   plot(t(1:N), AutoCorrFFT(1:N), t(1:N), analytic(1:N))
 else  
+  plot(t(1:N), AutoCorrFFT(1:N), t(1:N), analytic(1:N))
   err = 0;
 end
 

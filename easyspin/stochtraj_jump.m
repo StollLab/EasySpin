@@ -16,7 +16,8 @@
 %
 %     TransProb      numeric, size = (nStates,nStates)
 %                    transition probability matrix describing inter-state 
-%                    dynamics for kinetic Monte Carlo simulations
+%                    dynamics for kinetic Monte Carlo simulations, note
+%                    that a time step must be given to use Sys.TransProb
 %                    (alternative input to TransRates; ignored if TransRates
 %                    is given)
 %
@@ -139,30 +140,52 @@ if isfield(Sys,'TransRates')
   
   TRM = Sys.TransRates;
   if ~isnumeric(TRM) || ~ismatrix(TRM) || size(TRM,1)~=size(TRM,2)
-    error('TransRates must be a square matrix.')
+    error('Sys.TransRates must be a square matrix.')
   end
+  diff = TRM - TRM';
+  isSymm = all(abs(diff(:))<1e-12);
+  if ~isSymm, error('Sys.TransRates must be symmetric.'); end
+  
   nStates = size(TRM,1);
   diagRates = diag(diag(TRM));
   if any(diag(TRM)>0) || any((TRM(:)-diagRates(:))<0)
-    error('TransRates must contain strictly negative diagonal and positive off-diagonal entries.')
+    error('Sys.TransRates must contain strictly negative diagonal and positive off-diagonal entries.')
   end
-  if any(abs(sum(TRM,2)/norm(TRM))>1e-13)
-    error("In the TransRates matrix, the sum of each row's off-diagonal elements must equal the negative of the diagonal element.")
+  if any(abs(sum(TRM,2)/max(abs(TRM(:))))>1e-13)
+    error('In Sys.TransRates, the sum of each row''s off-diagonal elements must equal the negative of the diagonal element.')
   end
   TPM = expm(Par.dt*TRM);
   
+  % get the relaxation times
+  [~,D] = eig(TRM);
+  tcorr = 1./diag(D(abs(D)/max(abs(D(:)))>1e-11));
+  
 elseif isfield(Sys,'TransProb')
+  if ~isfield(Par,'dt')
+    error('If Sys.TransProb is specified, then the time step Par.dt must also be specified.')
+  end
   
   TPM = Sys.TransProb;
   if ~isnumeric(TPM) || ~ismatrix(TPM) || size(TPM,1)~=size(TPM,2)
-    error('TransProb must be a square matrix.')
+    error('Sys.TransProb must be a square matrix.')
   end
+  diff = TPM - TPM';
+  isSymm = all(abs(diff(:)/max(abs(TPM(:))))<1e-12);
+  if ~isSymm, error('Sys.TransProb must be symmetric.'); end
+  
+  if any(abs(1-sum(TPM,1))>1e-12)
+    error('The columns of Sys.TransProb must sum to 1.')
+  end
+  
   nStates = size(TPM,1);
   
 else
   error(['A transition rate matrix (Sys.TransRates) or a transition probability matrix (Sys.TransProb) ',... 
          'is required.'])
 end
+
+% set kinetic Monte Carlo cumulative transition probability matrix
+cumulTPM = cumsum(TPM,1);
   
 if ~Opt.statesOnly
   if isfield(Sys,'Orientations')
@@ -197,33 +220,32 @@ elseif isfield(Par,'nSteps') && isfield(Par,'dt')
   % number of steps and time step are given
   dt = Par.dt;
   nSteps = Par.nSteps;
-
-elseif isfield(Par,'tMax') && isfield(Par,'nSteps')
+  
+elseif isfield(Par,'nSteps') && isfield(Par,'tMax')
   % number of steps and max time are given
-  tMax = Par.tMax;
   nSteps = Par.nSteps;
-  dt = tMax/nSteps;
+  dt = Par.tMax/nSteps;
+
+elseif isfield(Par,'tMax') && isfield(Par,'dt')
+  dt = Par.dt;
+  if (dt<=0)
+    error('Par.dt must be positive.');
+  end
+  nSteps = ceil(Par.tMax/dt);
 
 else
-  tcorr = 1/6/mean(Sys.Diff);
-  logmsg(1,'-- No time step given. Setting it to %0.5g s.', tcorr);
-  dt = tcorr/10;
-  if ~isfield(Par, 'nSteps')
-    nSteps = ceil(200e-9/dt);
-    logmsg(1,'-- Number of time steps not given. Using %d steps.', nSteps);
-  else
+  dt = min(tcorr)/10;
+  logmsg(0,'-- No time parameters given. Using time step of %0.5g s.', dt);
+  if isfield(Par,'nSteps')
     nSteps = Par.nSteps;
+  else
+    nSteps = ceil(200*max(tcorr)/dt);
+    logmsg(0,'-- Number of time steps not given. Using %d steps.', nSteps);
   end
 end
 
 Par.nSteps = nSteps;
 Par.dt = dt;
-
-% set kinetic Monte Carlo cumulative transition probability matrix
-cumulTPM = cumsum(TPM,1);
-if any(abs(cumulTPM(end,:)-1)>1e-13)
-  error('The columns of cumulTPM = sum(TPM,1) must sum to 1.')
-end
 
 % set integrator type
 if ~isfield(Par,'Integrator')
@@ -320,11 +342,11 @@ logmsg(2,'--------------------------------------------------------------');
 
 switch nargout
   case 0 % Plot results
-    maxTraj = 3;
+    maxTraj = 1;
     if Par.nTraj>maxTraj
       error('Cannot plot more than %d trajectories.',maxTraj);
     end
-    RTraj = quat2rotmat(q);
+    RTraj = quat2rotmat(qTraj);
     clf
     hold on
     for iTraj = 1:min(maxTraj,Par.nTraj)
