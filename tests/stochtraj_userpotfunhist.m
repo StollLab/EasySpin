@@ -12,9 +12,12 @@ abins = N;
 bbins = N;
 gbins = N;
 
-alphaGrid = linspace(-pi, pi, abins);
+alphaGrid = linspace(0, 2*pi, abins);
 betaGrid = linspace(0, pi, bbins);
-gammaGrid = linspace(-pi, pi, gbins);
+gammaGrid = linspace(0, 2*pi, gbins);
+% alphaGrid = linspace(-pi, pi, abins);
+% betaGrid = linspace(0, pi, bbins);
+% gammaGrid = linspace(-pi, pi, gbins);
 
 delta = 80;
 
@@ -40,10 +43,6 @@ Par.nTraj = 400;
 nTraj = Par.nTraj;
 nSteps = Par.nSteps;
 
-AlphaBins = linspace(-pi, pi, abins);
-BetaBins = linspace(0, pi, bbins);
-GammaBins = linspace(-pi, pi, gbins);
-
 % pre-allocate array for 3D histograms
 % note that the output will be of size (nBins,nBins,nBins), rather than the 
 % typical (nBins-1,nBins-1,nBins-1) size output from MATLAB's hist
@@ -52,9 +51,7 @@ Hist3D = zeros(abins, bbins, gbins, nTraj);
      
 err = 0;
 
-[t, ~, qTraj] = stochtraj_diffusion(Sys,Par);  % extract quaternions from trajectories
-
-M = 500;
+[~,~,qTraj] = stochtraj_diffusion(Sys,Par);  % extract quaternions from trajectories
 
 N = round(nSteps/2);
 

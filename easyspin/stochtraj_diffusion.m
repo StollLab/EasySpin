@@ -170,10 +170,10 @@ if isUserPotFun
   else
     nGrid = [25 13 25]; % 15 degree increments for each angle
   end
-  alphaGrid = linspace(-pi,pi,nGrid(1));
+  alphaGrid = linspace(0,2*pi,nGrid(1));
   betaGrid = linspace(0,pi,nGrid(2)+2);
   betaGrid = betaGrid(2:end-1); % avoid poles
-  gammaGrid = linspace(-pi,pi,nGrid(3));
+  gammaGrid = linspace(0,2*pi,nGrid(3));
   
   if ~isnumeric(PseudoPotFun)
     PseudoPotFun = PseudoPotFun(alphaGrid,betaGrid,gammaGrid);

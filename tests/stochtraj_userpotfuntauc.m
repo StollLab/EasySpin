@@ -12,9 +12,9 @@ abins = N;
 bbins = N;
 gbins = N;
 
-alphaGrid = linspace(-pi, pi, abins);
+alphaGrid = linspace(0, 2*pi, abins);
 betaGrid = linspace(0, pi, bbins);
-gammaGrid = linspace(-pi, pi, gbins);
+gammaGrid = linspace(0, 2*pi, gbins);
 
 delta = 80;
 
@@ -37,15 +37,7 @@ Par.dt = Sys.tcorr/20;
 Par.nSteps = ceil(200*Sys.tcorr/Par.dt);
 Par.nTraj = 400;
 
-nTraj = Par.nTraj;
-nSteps = Par.nSteps;
-
-AlphaBins = linspace(-pi, pi, abins);
-BetaBins = linspace(0, pi, bbins);
-GammaBins = linspace(-pi, pi, gbins);
-
 tcorr = Sys.tcorr;
-nTraj = Par.nTraj;
 nSteps = Par.nSteps;
 
 [t, RTraj] = stochtraj_diffusion(Sys,Par);
@@ -63,7 +55,7 @@ AutoCorrFFT = AutoCorrFFT/max(AutoCorrFFT);
 
 analytic = exp(-(1/tcorr)*t);
 
-[k, c, yFit] = exponfit(t(1:N), AutoCorrFFT(1:N));
+[k, ~, yFit] = exponfit(t(1:N), AutoCorrFFT(1:N));
 tauR = 1/k;
 
 residuals = AutoCorrFFT(1:N) - yFit;

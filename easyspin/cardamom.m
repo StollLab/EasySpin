@@ -229,16 +229,10 @@
 %
 %    Frame Trajectory input:
 %
-%     FrameX         numeric, size = (nSteps,3)
-%                    x,y,z coordinate trajectory for X-axis vector
+%     FrameTraj      numeric, size = (nSteps,3)
+%                    x,y,z coordinate trajectory for X-, Y-, and Z-axis
+%                    vectors
 % 
-%     FrameY         numeric, size = (nSteps,3)
-%                    x,y,z coordinate trajectory for Y-axis vector
-%  
-%     FrameZ         numeric, size = (nSteps,3)
-%                    x,y,z coordinate trajectory for Z-axis vector
-%
-%
 %
 %   Output:
 %     B              numeric, size = (2*nSteps,1) 
@@ -900,7 +894,7 @@ switch Model
       MD.qTraj = rotmat2quat(MD.RTraj);
       clear MD.RTraj
     end
-
+sph2cart
     if ~strcmp(MD.TrajUsage,'Explicit')
       switch MD.TrajUsage
         case 'Resampling'
@@ -911,6 +905,8 @@ switch Model
           phi = squeeze(atan2(MD.FrameY(3,:,:,1:M), MD.FrameX(3,:,:,1:M)));
           psi = squeeze(atan2(-MD.FrameZ(2,:,:,1:M), MD.FrameZ(1,:,:,1:M)));
 
+          phi = phi + 2*pi*(phi<0);
+          psi = psi + 2*pi*(psi<0);
 %           % use eulang to obtain Euler angles
 %           phi = zeros(MDTrajLength,1);
 %           theta = zeros(MDTrajLength,1);
@@ -922,9 +918,9 @@ switch Model
 %           end
 
           nBins = 90;
-          phiBins = linspace(-pi, pi, nBins);
+          phiBins = linspace(0, 2*pi, nBins);
           thetaBins = linspace(0, pi, nBins/2);
-          psiBins = linspace(-pi, pi, nBins);
+          psiBins = linspace(0, 2*pi, nBins);
 
           [pdf, ~] = histcnd([phi,theta,psi], {phiBins,thetaBins,psiBins});
 %            pdf = pdf/trapz(phiBins, trapz(thetaBins, trapz(psiBins, pdf)));
@@ -1047,7 +1043,7 @@ while ~converged
         % Markovian jumps
         Par.dt = dtStoch;
         Par.nSteps = nStepsStoch;
-        [trash, qTrajLocal] = stochtraj_jump(Sys,Par,Opt);
+        [~, qTrajLocal] = stochtraj_jump(Sys,Par,Opt);
         
         % global diffusion
         Sys.Diff = DiffGlobal;
@@ -1128,7 +1124,7 @@ while ~converged
             Sys.TransProb = transmat1.';
             Par.dt = dtStoch;
             Par.nSteps = nStepsStoch;
-            [trash, stateTraj] = stochtraj_jump(Sys,Par,Opt);
+            [~, stateTraj] = stochtraj_jump(Sys,Par,Opt);
             
            % global diffusion
             if isfield(MD, 'GlobalDiff')
