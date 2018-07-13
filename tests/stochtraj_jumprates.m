@@ -1,6 +1,5 @@
 function [err,data] = test(opt,olddata)
-% Check that using stochtraj with Discrete model generates proper
-% state residence times
+% Check that using stochtraj_jump generates proper state residence times
 
 Par.nTraj = 500;
 Sys.TransRates = 1e9*[-0.5,  0.5;
@@ -15,7 +14,7 @@ Par.nSteps = ceil(200*tau/Par.dt);
 
 nSteps = Par.nSteps;
 
-[t, RTraj] = stochtraj_jump(Sys,Par);
+[t,RTraj] = stochtraj_jump(Sys,Par);
 
 VecTraj = squeeze(RTraj(:,3,:,:));
 
@@ -37,7 +36,7 @@ if rmsd > 1e-2
   err = 1;
   plot(t(1:N), AutoCorrFFT(1:N), t(1:N), analytic(1:N))
 else  
-  plot(t(1:N), AutoCorrFFT(1:N), t(1:N), analytic(1:N))
+%   plot(t(1:N), AutoCorrFFT(1:N), t(1:N), analytic(1:N))
   err = 0;
 end
 
