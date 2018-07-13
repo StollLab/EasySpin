@@ -122,7 +122,7 @@ if ~isfield(Opt,'Verbosity')
 end
 
 if ~isfield(Opt,'statesOnly')
-  Opt.statesOnly = false;
+  Opt.statesOnly = false || nargout==0;
 end
 
 global EasySpinLogLevel;
@@ -139,50 +139,54 @@ end
 if isfield(Sys,'TransRates')
   
   TRM = Sys.TransRates;
+  
+  % error checking
   if ~isnumeric(TRM) || ~ismatrix(TRM) || size(TRM,1)~=size(TRM,2)
     error('Sys.TransRates must be a square matrix.')
   end
-  diff = TRM - TRM';
-  isSymm = all(abs(diff(:))<1e-12);
-  if ~isSymm, error('Sys.TransRates must be symmetric.'); end
-  
-  nStates = size(TRM,1);
-  diagRates = diag(diag(TRM));
-  if any(diag(TRM)>0) || any((TRM(:)-diagRates(:))<0)
+  any2d = @(M)any(M(:));
+  if any(diag(TRM)>0) || any2d(TRM-diag(diag(TRM))<0)
     error('Sys.TransRates must contain strictly negative diagonal and positive off-diagonal entries.')
   end
-  if any(abs(sum(TRM,2)/max(abs(TRM(:))))>1e-13)
-    error('In Sys.TransRates, the sum of each row''s off-diagonal elements must equal the negative of the diagonal element.')
+  if any(abs(sum(TRM,1)/max(abs(TRM(:))))>1e-13)
+    error('In Sys.TransRates, the sum over each column must be zero.')
   end
-  TPM = expm(Par.dt*TRM);
   
+  TPM = expm(Par.dt*TRM);
+
   % get the relaxation times
-  [~,D] = eig(TRM);
-  tcorr = 1./diag(D(abs(D)/max(abs(D(:)))>1e-11));
+  D = eig(TRM);
+  idx = abs(D)/max(abs(D))>1e-11;
+  tcorr = -1./D(idx);
   
 elseif isfield(Sys,'TransProb')
+  
+  TPM = Sys.TransProb;
+  
+  % error checking
+  if ~isnumeric(TPM) || ~ismatrix(TPM) || size(TPM,1)~=size(TPM,2)
+    error('Sys.TransProb must be a square matrix.')
+  end
+  if any(TPM(:)<0)
+    error('All elements in Sys.TransProp must positive (or zero).');
+  end
+  if any(abs(sum(TPM,1)-1)>1e-12)
+    error('The columns of Sys.TransProb must sum to 1.')
+  end
+  
   if ~isfield(Par,'dt')
     error('If Sys.TransProb is specified, then the time step Par.dt must also be specified.')
   end
   
-  TPM = Sys.TransProb;
-  if ~isnumeric(TPM) || ~ismatrix(TPM) || size(TPM,1)~=size(TPM,2)
-    error('Sys.TransProb must be a square matrix.')
-  end
-  diff = TPM - TPM';
-  isSymm = all(abs(diff(:)/max(abs(TPM(:))))<1e-12);
-  if ~isSymm, error('Sys.TransProb must be symmetric.'); end
-  
-  if any(abs(1-sum(TPM,1))>1e-12)
-    error('The columns of Sys.TransProb must sum to 1.')
-  end
-  
-  nStates = size(TPM,1);
-  
 else
+  
   error(['A transition rate matrix (Sys.TransRates) or a transition probability matrix (Sys.TransProb) ',... 
          'is required.'])
+       
 end
+
+nStates = size(TPM,1);
+
 
 % set kinetic Monte Carlo cumulative transition probability matrix
 cumulTPM = cumsum(TPM,1);
@@ -199,8 +203,8 @@ if ~Opt.statesOnly
       error('The size of Sys.Orientations must be (3,nStates) or (nStates,3).')
     end
   else
-    error('Orientations for the %d states are required. Give a %dx%d array in Sys.Orientations.',...
-      nStates,nStates,3);
+    error(['Orientations for the %d states are required. Give a %dx%d array in Sys.Orientations.',...
+      '\nIf only states are desired, use Opt.statesOnly = 1.'],nStates,nStates,3);
   end
 end
 

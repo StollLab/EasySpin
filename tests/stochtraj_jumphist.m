@@ -1,29 +1,30 @@
 function [err,data] = test(opt,olddata)
-% Check that using stochtraj_jump generates proper state probability
-% distribution
+
+% Check that stochtraj_jump generates proper state probability distribution
+
+rng_(1);
+
+kp = 3e9; % rate constant for forward process A -> B
+km = 1e9; % rate constant for reverse process B -> A
+Sys.TransRates = [-kp, +km; +kp, -km];
 
 Par.nTraj = 500;
-Sys.TransRates = 1e9*[-0.5,  0.5;
-                       0.5, -0.5];
-Sys.Orientations = [0,  0, 0;
-                    0, pi, 0];
+Par.dt = 1/mean([kp km])/10;
+Par.nSteps = 1000;
 
-tau = -1/(2*Sys.TransRates(1,1));  % mean residence time
-            
-Par.dt = tau/5;
-Par.nSteps = ceil(200*tau/Par.dt);
+Opt.statesOnly = true;
+[t,stateTraj] = stochtraj_jump(Sys,Par,Opt);
 
-[~,~,~,stateTraj] = stochtraj_jump(Sys,Par);
+nA = sum(stateTraj==1);
+nB = sum(stateTraj==2);
 
-[n,~,~] = histcounts(stateTraj,'Normalization','Probability');
+ratioMC = nA/nB;
+ratio = km/kp;
 
-if abs(n(1)-n(2))>0.05
-  err = 1;
+err = abs(ratioMC/ratio-1)>0.001;
+
+if opt.Display
   histogram(stateTraj)
-else  
-  err = 0;
 end
 
 data = [];
-
-end
