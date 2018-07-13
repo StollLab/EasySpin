@@ -26,7 +26,7 @@ Exp.Dim1 = {'d2' 0.1};
 Exp.Dim2 = {'d3' 0.1};
 
 Opt.Verbosity = 0;
-y = saffron2(Sys,Exp,Opt);
+y = saffron(Sys,Exp,Opt);
 
 data.y = y;
 

@@ -18,7 +18,7 @@ Exp2.dt = 0.120;
 Exp2.nPoints = 256;
 
 Opt.Verbosity = 0;
-[x,y] = saffron2(Sys,Exp2,Opt);
+[x,y] = saffron(Sys,Exp2,Opt);
 
 data = [];
 err = false;

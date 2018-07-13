@@ -21,7 +21,7 @@ Exp.tau = tau;
 Exp.nPoints = nPoints;
 Exp.Field = Field;
 
-[x1, y1] = saffron2(Sys,Exp,Opt);
+[x1, y1] = saffron(Sys,Exp,Opt);
 
 data.x1 = x1;
 data.y1 = y1;
@@ -43,7 +43,7 @@ ExpManual.Field = Field;
 ExpManual.nPoints = nPoints;
 ExpManual.Dim1 = {'d2' dt};
 
-[x2, y2] = saffron2(Sys,ExpManual,Opt);
+[x2, y2] = saffron(Sys,ExpManual,Opt);
 
 data.x2 = x2;
 data.y2 = y2;

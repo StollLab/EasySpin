@@ -31,7 +31,7 @@ Exp.Dim1 = {'d1,d2' 0.5};
 Opt.nKnots = 7;
 Opt.SimulationMode = 'thyme';
 
-[x1, y1] = saffron2(Sys,Exp,Opt);
+[x1, y1] = saffron(Sys,Exp,Opt);
 
 data.x1 = x1;
 data.y1 = y1;
@@ -40,7 +40,7 @@ Exp.nPoints = [3 2];
 Exp.Dim1 = {'d1,d2' 0.5};
 Exp.Dim2 = {'p1.Flip' pi/3};
 
-[x2, y2] = saffron2(Sys,Exp,Opt);
+[x2, y2] = saffron(Sys,Exp,Opt);
 
 data.x2 = x2;
 data.y2 = y2;

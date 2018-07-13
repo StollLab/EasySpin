@@ -44,7 +44,7 @@ y = saffron(...)
 </pre>
 
 <p>
-See also the <a href="examplesmain.html">examples</a> on how to use <code>saffron</code>.
+See also the <a href="examplesmain.html">examples</a> on how to use <code>saffron</code> and the <a href="userguide_saffron.html">userguide</a>.
 
 <!-- ====================================================== -->
 <div class="subtitle">Description</div>
@@ -294,6 +294,7 @@ When <code>CrystalSymmetry</code> is given, all symmetry-related sites in the cr
 <p>
 The following fields can only be used with the <em>fast</em> algorithm
 </p>
+<a name="filter">
 
 <div class="optionfield"><code>ExciteWidth</code></div>
 <div class="optiondescr">
@@ -334,6 +335,7 @@ Any time steps given in the pulse definition are ignored.
 <div class="optiondescr">
 The field <code>DetWindow</code> controls detection and is given in microseconds:
 The zero-time of the detection is taken as the end of the last element in <code>Exp.Sequence</code>.
+It only works with the <em>thyme</em> method.
 
 <p>
 <img src="img/detection_windows.png" width="600">
@@ -584,7 +586,7 @@ When relaxation is requested, the simulation is carried out in the Liouville spa
 </p>
 
 <p>
-This is based on the now deprecated <code>SPIDYAN</code> software package.
+The algorithm is based on the now deprecated <code>SPIDYAN</code> software package.
 </p>
 
 <p>

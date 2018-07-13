@@ -24,13 +24,13 @@ Sys1.g = [2.046 2.046 2.279];
 Sys1.Nucs = '2H,63Cu';  %WORKS FINE
 Sys1.A = [A_2H; A_63Cu]; % MHz
 
-[x1, y1] = saffron2(Sys1,Exp,Opt);
+[x1, y1] = saffron(Sys1,Exp,Opt);
 
 Sys2.g = [2.046 2.046 2.279];
 Sys2.Nucs = '63Cu,2H'; %DOES NOT WORK
 Sys2.A = [A_63Cu; A_2H]; % MHz
 
-[x2, y2] = saffron2(Sys2,Exp,Opt);
+[x2, y2] = saffron(Sys2,Exp,Opt);
 
 if (opt.Display)
   subplot(4,1,[1 2 3]);

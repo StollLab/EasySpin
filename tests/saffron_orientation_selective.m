@@ -14,7 +14,7 @@ Sys.g = [2 2.2];
 
 Opt.nKnots = 91;
 
-[x,y] = saffron2(Sys,Exp,Opt);
+[x,y] = saffron(Sys,Exp,Opt);
 
 data.x = x;
 data.y = y;

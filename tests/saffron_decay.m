@@ -23,7 +23,7 @@ Exp.tau = tau;
 Exp.nPoints = nPoints;
 Exp.Field = Field;
 
-[x1, y1] = saffron2(Sys,Exp,Opt);
+[x1, y1] = saffron(Sys,Exp,Opt);
 
 data.x1 = x1;
 data.y1 = y1;

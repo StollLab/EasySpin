@@ -29,7 +29,7 @@ Exp.DetWindow = [-0.1 0.1] + Chirp180.tp;
 Opt.nKnots = 7;
 Opt.SimulationMode = 'thyme';
 
-[x, y] = saffron2(Sys,Exp,Opt);
+[x, y] = saffron(Sys,Exp,Opt);
 
 data.x = x;
 data.y = y;

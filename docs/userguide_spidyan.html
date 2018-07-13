@@ -25,7 +25,7 @@
 
 <section>
 
-<div class="functitle">Advances pulse EPR simulations and spin dynamics</div>
+<div class="functitle">Advanced pulse EPR simulations and spin dynamics</div>
 
 <p>
 This user guide explains how to simulate a variety of pulse EPR spectra, using EasySpin's function <a class="esf" href="saffron.html">saffron</a>.
@@ -237,6 +237,25 @@ Exp.Dim1 = {'d1,d2', 0.004};
 <p>
 The output now contains 100 echos, each for a different first inter-pulse delay.
 </p>
+
+<a name="tipsntricks">
+<div class="subtitle">Tips and Tricks</div>
+<ul>
+<li> 
+If you are interested in the expectation values of <i>&Scirc;<sub>x</sub></i>, it is usually beneficial to use <i>&Scirc;</i><sub>+</sub> as the actual detection operator and then take the real part of the obtained signal.
+This removes artifacts at the beginning and end of the time traces that are introduced when translating a purely real signal during the signal processing.
+<li> 
+In some simulations you may observe echoes in your timetrace that should not be there.
+Besides physical reasons (incomplete phase cycling, different refocusing conditions,...), such artifact echoes can arise from an aliasing effect if the spectrum (e.g. the nitroxide spectrum in the example above) is insufficiently sampled.
+This can easily be checked: By increasing the number of samples from your distribution the artifact echoes should move, spread further apart or vanish, while physical echos stay in place. You can also compute the required increment for the spin packet distribution in frequency domain by an inverse Nyquist criterion. 
+If you want to observe up to a time <i>t</i><sub>max</sub> after the first excitation event (first pulse), the frequency increment should not be larger than 1/(2 <i>t</i><sub>max</sub>). Otherwise use Monte Carlo sampling of spin packet frequencies, which will convert the artifacts to 'Monte Carlo noise' that averages with increasing number of trials.  
+<li> 
+If the signal processing fails, <code>spidyan</code> returns the signal in the simulation frame. 
+This can happen if you try to translate <i>&Scirc;<sub>z</sub></i> or provide a wrong frequency. 
+Instead of adapting down conversion and rerunning the entire simulation, you can call <code>signalprocessing</code> with the original signal and the correct down conversion frequencies.
+More info on <a class="esf" href="signalprocessing.html">signalprocessing</a>.
+</ul>
+
 <hr>
 </section>
 

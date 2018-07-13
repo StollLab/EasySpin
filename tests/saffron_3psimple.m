@@ -13,7 +13,7 @@ Sys.A = (2+Delta)*nuI + [-1 2]*0*nuI;
 Sys.Q = [4*0.1*nuI, 0.6];
 
 Opt.Verbosity = 0;
-[x,y] = saffron2(Sys,Exp,Opt);
+[x,y] = saffron(Sys,Exp,Opt);
 y = y/max(abs(y));
 
 if (opt.Display)

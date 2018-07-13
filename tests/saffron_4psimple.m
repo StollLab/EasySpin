@@ -10,7 +10,7 @@ Exp.dt = 0.010;
 Exp.Field = 350;
 
 Opt.Verbosity = 0;
-[x,y] = saffron2(Sys,Exp,Opt);
+[x,y] = saffron(Sys,Exp,Opt);
 y = y/max(abs(y));
 
 if (opt.Display)

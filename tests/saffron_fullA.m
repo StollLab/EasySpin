@@ -18,11 +18,11 @@ Ra = erot(AFrame);
 A = Ra.'*diag(Adiag)*Ra;
 
 Sys.A = A;
-[x,y1]=saffron2(Sys,Exp,Opt);
+[x,y1]=saffron(Sys,Exp,Opt);
 
 Sys.A = Adiag;
 Sys.AFrame = AFrame;
-[x,y2]=saffron2(Sys,Exp,Opt);
+[x,y2]=saffron(Sys,Exp,Opt);
 
 y1=real(y1);
 y2=real(y2);

@@ -9,13 +9,21 @@ Sys.Nucs = '14N';
 Sys.A = [3 2];
 Sys.Q = 1;
 
+tau = 0.1;
+dt = 0.08;
+
+p90.Flip = pi/2;
+p90.tp = 0.01;
+p180.Flip = pi;
+p180.tp = 0.01;
+
 Exp.Field = 350;
-Exp.Flip = [1 1 2 1];
-Exp.Inc = [0 1 2 0];
-Exp.t = [0.1 0 0 0.1]*1e-3;
-Exp.tp = [10 10 10 10]*1e-3;
-Exp.dt = 0.08;
-Exp.nPoints = 101;
+
+Exp.Sequence = {p90 tau p90 0 p180 0 p90 tau};
+
+Exp.nPoints = [101 101];
+Exp.Dim1 = {'d2' dt};
+Exp.Dim2 = {'d3' dt};
 
 Opt.nKnots = 91;
 Opt.nOffsets = 30;

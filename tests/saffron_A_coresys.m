@@ -17,7 +17,7 @@ Exp.Range = [13 16.4];
 Exp.mwFreq = 9.7;
 Exp.ExciteWidth = 50;
 
-[x,y] = saffron2(Sys,Exp);
+[x,y] = saffron(Sys,Exp);
 
 data = [];
 

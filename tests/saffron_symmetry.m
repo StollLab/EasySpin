@@ -12,9 +12,9 @@ Sys.Nucs = '1H';
 Sys.A = [3 3 12];
 
 Sys.AFrame = [0 0 0];
-[x,y1] = saffron2(Sys,Exp);
+[x,y1] = saffron(Sys,Exp);
 Sys.AFrame = [167 -78 -47]*pi/180;
-[x,y2] = saffron2(Sys,Exp);
+[x,y2] = saffron(Sys,Exp);
 
 if (opt.Display)
   xlabel('time [us]');

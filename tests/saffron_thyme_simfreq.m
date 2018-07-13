@@ -30,7 +30,7 @@ Opt.nKnots = 7;
 % Opt.SimulationMode = 'thyme';
 Opt.SimFreq = 15;
 
-[x, y] = saffron2(Sys,Exp,Opt);
+[x, y] = saffron(Sys,Exp,Opt);
 
 data.x = x;
 data.y = y;

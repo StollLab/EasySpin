@@ -11,7 +11,7 @@ P180.Flip= pi;
 
 switch Exp.Sequence
   case '2pESEEM'
-    requiredFields = {'dt'};
+    requiredFields = {'dt','tau'};
     
     checkfields(requiredFields,Exp)
               
@@ -51,7 +51,8 @@ switch Exp.Sequence
     
     Exp.Dim1 = {'d2' Exp.dt};
     
-    % PhaseCycle
+    Exp.PhaseCycle{1}=[0, 1; pi, -1];
+    Exp.PhaseCycle{3}=[0, 1; pi, -1];
 
   case 'HYSCORE'
     

@@ -18,12 +18,8 @@ generalFields = {'mwFreq','Field','CrystalOrientation','CrystalSymmetry'};
 % Check a few general fields if the fast algorithm can be run at all
 DetDelay = 0;
 if isfield(Exp,'DetWindow')
-  if length(Exp.DetWindow) > 1 && Exp.DetWindow(2)-Exp.DetWindow(1)
     Opt.SimulationMode = 'thyme';
-    message = addtomessage(message,'Exp.DetWindow is set to transient detection');
-  else
-    DetDelay = Exp.DetWindow(1);
-  end
+    message = addtomessage(message,'Exp.DetWindow does not work with the fast method');
 end
 
 if isfield(Exp,'Resonator')
@@ -46,16 +42,6 @@ if ~isfield(Opt,'SimulationMode') || strcmp(Opt.SimulationMode,'fast')
     Exp_oldSyntax = [];
     
     Sequence = Exp.Sequence;
-    if isfield(Exp,'DetWindow')
-      if isstruct(Sequence{end})
-        Sequence{end+1} = DetDelay;
-      else
-        Sequence{end} = Sequence{end} + DetDelay;
-        if Sequence{end} < 0
-          error('The last event before your detection event is too short.')
-        end
-      end
-    end
     
     % getting some basic knowledge about the experiment
     Pulses = cellfun(@isstruct,Sequence);
@@ -217,7 +203,7 @@ if strcmp(Opt.SimulationMode,'thyme')
 end
 
 if strcmp(Opt.SimulationMode,'fast')
-  
+   
   Exp_oldSyntax.Processed = true;
   varargout{1} = Exp_oldSyntax;
   varargout{2} = [];
@@ -238,6 +224,46 @@ if predefinedExperiment
   % set up Exp structure from predefined experiment for thyme
   Exp = s_predefinedexperiments(Exp);
 end
+
+
+Pulses = cellfun(@isstruct,Exp.Sequence);
+PulsePositions = find(Pulses);
+
+% check if pulses have a finite length
+idealPulses = false;
+
+% and wether their definition requires Exp.mwFreq to be given
+mwFreqrequired = false;
+
+msgtp = 'Please provide pulse lenghts (Par.tp) for the following pulses:';
+msgFrequency = 'Please provide Exp.mwFreq or Par.Frequency for the following pulses:';
+for Pos = PulsePositions
+  PulseNumber = find(PulsePositions==Pos);
+  if ~isfield(Exp.Sequence{Pos},'tp')
+    idealPulses = true;
+    msgtp = [msgtp ' ' num2str(PulseNumber) ','];
+  end
+  if ~isfield(Exp.Sequence{Pos},'Frequency') && ~isfield(Exp,'mwFreq')
+    mwFreqrequired = true;
+    msgFrequency = [msgFrequency ' ' num2str(PulseNumber) ','];
+  end
+end
+
+msgtp = strip(msgtp,',');
+msgFrequency = strip(msgFrequency,',');
+
+if idealPulses && mwFreqrequired
+  errmsg = ['Real pulses are required for the thyme-method.' newline msgtp newline msgFrequency];
+elseif idealPulses
+  errmsg = ['Real pulses are required for the thyme-method.' newline msgtp];
+elseif mwFreqrequired
+  errmsg = ['Real pulses are required for the thyme-method.' newline msgFrequency];
+else
+  errmsg = [];
+end
+
+error(errmsg);
+
 
 % Set up detection
 if isfield(Exp,'DetWindow')
