@@ -73,17 +73,17 @@ if ~isfield(Opt,'Verbosity')
   Opt.Verbosity = 0; % Log level
 end
 
-% --------License ------------------------------------------------
+% --------License --------------------------------------------------------------
 LicErr = 'Could not determine license.';
 Link = 'epr@eth'; eschecker; error(LicErr); clear Link LicErr
-% --------License ------------------------------------------------
+% --------License --------------------------------------------------------------
 
 global EasySpinLogLevel;
 EasySpinLogLevel = Opt.Verbosity;
 
-%==================================================================
+%===============================================================================
 % Loop over components and isotopologues
-%==================================================================
+%===============================================================================
 FrequencySweep = ~isfield(Exp,'mwFreq') & isfield(Exp,'Field');
 
 if FrequencySweep
@@ -157,13 +157,13 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
   end
   return
 end
-%==================================================================
+%===============================================================================
 
 
 logmsg(1,'-- slow motion regime simulation ----------------------------------');
 
 % Spin system
-%-------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 if ~isfield(Sys,'Nucs'), Sys.Nucs = ''; end
 isoList = isotopologues(Sys.Nucs);
 if numel(isoList)>1
@@ -217,7 +217,7 @@ if isfield(Sys,'lw'), Dynamics.lw = Sys.lw; end
 
 Dynamics.Exchange = Sys.Exchange;
 
-% Ordering potential
+% Orientational potential
 %-------------------------------------------------------------------------------
 % Extract and organize information about potential
 if isfield(Sys,'lambda') && ~isempty(Sys.lambda)
@@ -235,6 +235,9 @@ if isfield(Sys,'lambda') && ~isempty(Sys.lambda)
 else
   Potential.oldStyle = false;
   if isfield(Sys,'Potential')
+    if size(Potential,2)~=4
+      error('Sys.Potential needs 4 entries per row (L, M, K, lambda).');
+    end
     Potential.L = Sys.Potential(:,1);
     Potential.M = Sys.Potential(:,2);
     Potential.K = Sys.Potential(:,3);
@@ -249,8 +252,7 @@ else
   end
 end
 
-
-% Validate ordering potential inputs
+% Validate potential inputs
 if usePotential
   if ~isempty(Potential.lambda)
     if any(Potential.L<0)
@@ -490,7 +492,7 @@ else
 end
 
 % Options
-%-------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 if isempty(Opt), Opt = struct('unused',NaN); end
 if ~isfield(Opt,'Rescale'), Opt.Rescale = 1; end
 if ~isfield(Opt,'Threshold'), Opt.Threshold = 1e-6; end
@@ -560,7 +562,7 @@ if doPostConvolution
 end
 
 if any(Sys.n~=1)
-  error('Cannot solve the Stochastic Liouville equation for systems with any Sys.n > 1.');
+  error('chili cannot handle systems with any Sys.n > 1.');
 end
 
 if ~isfield(Opt,'nKnots'), Opt.nKnots = [5 0]; end
@@ -630,7 +632,7 @@ if ~generalLiouvillian
 end
 
 % Process
-%-------------------------------------------------------
+%-------------------------------------------------------------------------------
 
 % Precalculate spin operator matrices
 if generalLiouvillian
@@ -671,7 +673,7 @@ error(err);
 
 
 % Basis
-%------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 
 Basis = processbasis(Basis,max(Potential.K),Sys.I,Symmetry);
 
@@ -692,7 +694,7 @@ end
 
 
 % Set up list of orientations
-%=====================================================================
+%===============================================================================
 if PowderSimulation
   if Opt.nKnots(1)==1
     phi = 0;
@@ -737,7 +739,7 @@ Weights = 4*pi*Weights/sum(Weights);
 
 
 % Basis set preparations
-%-----------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 logmsg(1,'Setting up basis set...');
 logmsg(1,'  spatial basis: Leven max %d, Lodd max %d, Kmax %d, Mmax %d, deltaK %d, jKmin %+d',...
   Basis.LLKM(1),Basis.LLKM(2),Basis.LLKM(3),Basis.LLKM(4),Basis.deltaK,Basis.jKmin);
@@ -807,17 +809,17 @@ if saveDiagnostics
 end
 
 % Precalculate 3j symbols
-%-----------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 if generalLiouvillian
   
   logmsg(1,'Precalculating 3j symbols');
-  computeRankOne = any(F.F1(:));
+  computeRankOne = any(F.F1(:)~=0);
   [jjj0,jjj1,jjj2] = jjjsymbol(Basis.LLKM,computeRankOne);
-    
+  
 end
 
-% Calculate Gamma
-%-----------------------------------------------------------------------
+% Calculate diffusion operator matrix
+%-------------------------------------------------------------------------------
 % Pre-calculate diffusion operator Wigner expansion coefficient
 logmsg(1,'Calculating Wigner expansion coefficients for diffusion matrix');
 if all(Potential.M==0)
@@ -850,30 +852,27 @@ end
 
   
 % Starting vector
-%-------------------------------------------------------
+%-------------------------------------------------------------------------------
 logmsg(1,'Computing starting vector...');
 if generalLiouvillian
   % set up in full product basis, then prune
-  StartingVector = startvec(Basis,Potential,SdetOp,Opt.useLMKbasis);
-  StartingVector = StartingVector(keep);
-  StartingVector = StartingVector/norm(StartingVector);
-  
+  StartVector = startvec(Basis,Potential,SdetOp,Opt.useLMKbasis);
+  StartVector = StartVector(keep);
+  StartVector = StartVector/norm(StartVector);  
 else
-  
-  StartingVector = chili_startingvector(Basis,Potential);
-  
+  StartVector = chili_startingvector(Basis,Potential);
 end
 if saveDiagnostics
-  diagnostics.sv = StartingVector;
+  diagnostics.sv = StartVector;
 end
-BasisSize = size(StartingVector,1);
+BasisSize = size(StartVector,1);
 logmsg(1,'  vector size: %dx1',BasisSize);
 logmsg(1,'  non-zero elements: %d/%d (%0.2f%%)',...
-  nnz(StartingVector),BasisSize,100*nnz(StartingVector)/BasisSize);
-logmsg(1,'  maxabs %g, norm %g',full(max(abs(StartingVector))),norm(StartingVector));
+  nnz(StartVector),BasisSize,100*nnz(StartVector)/BasisSize);
+logmsg(1,'  maxabs %g, norm %g',full(max(abs(StartVector))),norm(StartVector));
 
 % Loop over all orientations
-%=====================================================================
+%===============================================================================
 spec = 0;
 for iOri = 1:nOrientations
   
@@ -1022,7 +1021,7 @@ for iOri = 1:nOrientations
       isComplexSymmetric = isreal(H);
       if ~isComplexSymmetric
         L = TT'*L*TT;
-        StartingVector = TT'*StartingVector;
+        StartVector = TT'*StartVector;
       end
     end
     
@@ -1056,7 +1055,7 @@ for iOri = 1:nOrientations
     switch Opt.Solver
       
       case 'L' % Lanczos method
-        [alpha,beta,minerr] = chili_lanczos(L,StartingVector,omega,Opt);
+        [alpha,beta,minerr] = chili_lanczos(L,StartVector,omega,Opt);
         minerr = minerr(end);
         if minerr<Opt.Threshold
           thisspec = chili_contfracspec(omega,alpha,beta);
@@ -1070,7 +1069,7 @@ for iOri = 1:nOrientations
         
       case 'C' % conjugated gradients
         CGshift = 1e-6 + 1e-6i;
-        [xx,alpha,beta,err,StepsDone] = chili_conjgrad(L,StartingVector,CGshift);
+        [xx,alpha,beta,err,StepsDone] = chili_conjgrad(L,StartVector,CGshift);
         
         logmsg(1,'  step %d/%d: CG converged to within %g',...
           StepsDone,BasisSize,err);
@@ -1079,13 +1078,13 @@ for iOri = 1:nOrientations
         
       case 'R' % bi-conjugate gradients stabilized
         for iOmega = 1:numel(omega)
-          u = bicgstab(L+omega(iOmega)*speye(size(L)),StartingVector,Opt.Threshold,nDim);
-          thisspec(iOmega) = real(u'*StartingVector);
+          u = bicgstab(L+omega(iOmega)*speye(size(L)),StartVector,Opt.Threshold,nDim);
+          thisspec(iOmega) = real(u'*StartVector);
         end
         
       case '\' % MATLAB backslash solver for linear system
         I = speye(size(L));
-        rho0 = StartingVector;
+        rho0 = StartVector;
         for iOmega = 1:numel(omega)
           thisspec(iSpec) = rho0'*((L+omega(iOmega)*I)\rho0);
           if generalLiouvillian
@@ -1099,7 +1098,7 @@ for iOri = 1:nOrientations
         L = full(L);
         [U,Lam] = eig(L);
         Lam = diag(Lam);
-        rho0 = StartingVector;
+        rho0 = StartVector;
         Amplitude = (rho0'*U).'.*(U\rho0);
         thisspec = 0;
         for iPeak = 1:numel(Amplitude)
@@ -1195,8 +1194,8 @@ if Opt.BasisAnalysis
   omega_ = linspace(omega(1),omega(end),12);
   u_sum = 0;
   for iOmega = 1:numel(omega_)
-    u = bicgstab(L+omega_(iOmega)*speye(size(L)),StartingVector,1e-7,180);
-    u_sum = u_sum + abs(u)/abs(StartingVector'*u);
+    u = bicgstab(L+omega_(iOmega)*speye(size(L)),StartVector,1e-7,180);
+    u_sum = u_sum + abs(u)/abs(StartVector'*u);
   end
   u_sum = u_sum/max(u_sum);
 

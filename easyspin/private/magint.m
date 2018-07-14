@@ -1,12 +1,12 @@
-function [T,F,System,Symmetry,isFieldDep] = magint(System,SpinOps,CenterField,IncludeNuclearZeeman,explicitFieldSweep)
+function [T,F,System,Symmetry,isFieldDep] = magint(System,SpinOps,CenterField,includeNuclearZeeman,explicitFieldSweep)
 % generate the irreducible spherical tensor components and, if using the
 % general Liouvillian method, their corresponding operators as well
 
 if isempty(SpinOps)
   % no need to use spin operators for Freed code
-  generalLiouvillian = 0;
+  generalLiouvillian = false;
 else
-  generalLiouvillian = 1;
+  generalLiouvillian = true;
 end
 
 % Transformation from molecular frame to diffusion frame
@@ -25,7 +25,7 @@ nZFS = sum(System.S>1/2);
 nElPairs = nElSpins*(nElSpins-1)/2;
 nInteractions = nElZeeman + nHyperfine + nZFS + nElPairs;
 
-if IncludeNuclearZeeman
+if includeNuclearZeeman
   nInteractions = nInteractions + nNucSpins;
 end
 
@@ -186,7 +186,7 @@ end
 % Nuclear Zeeman interaction terms (-muN*B*gn*I/h)
 %--------------------------------------------------------------------------
 if generalLiouvillian
-  if IncludeNuclearZeeman
+  if includeNuclearZeeman
     for iNucSpin = 1:nNucSpins
         I_ = SpinOps(nElSpins+iNucSpin,:);
         gn_ = System.gn(iNucSpin);
@@ -197,7 +197,7 @@ if generalLiouvillian
     end
   end
 else
-  if IncludeNuclearZeeman
+  if includeNuclearZeeman
     gn0 = zeros(nNucSpins,1);
     for iNucSpin = 1:nNucSpins
       gn0(iNucSpin) = istocoeff(System.gn(iNucSpin));
