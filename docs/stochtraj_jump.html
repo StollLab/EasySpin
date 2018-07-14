@@ -115,23 +115,22 @@ An array of Euler angles representing the orientation of each state, size (nStat
 
 <p>
 <code>Par</code> is a structure containing the parameters for calculating the stochastic trajectories. The parameters can be categorized into two groups: Monte Carlo settings and trajectory settings.
+</p>
 <p>
+The Monte Carlo settings specify the parameters used to perform the time integration in the simulation. One can provide a number of steps <code>nSteps</code> and a time step <code>dt</code> or a total time for simulation <code>tmax</code> and a time step <code>dt</code>.
+</p>
 <p>
-The Monte Carlo settings specify the parameters used to perform the time integration in the simulation. One can provide an array of time points <code>t</code> along which to integrate, a number of steps <code>nSteps</code> and a time step <code>dt</code>, or a number of steps <code>nSteps</code> and a total time for simulation <code>tmax</code>.
+Note that, regardless of the combination of inputs that are used from below, a time step <code>Par.dt</code> must be given explicitly.
+</p>
 
-<div class="optionfield"><code>t</code></div>
+<div class="optionfield"><code>dt</code></div>
 <div class="optiondescr">
-An array of time points along which to integrate, in seconds. If this is provided, no other Monte Carlo settings need to be specified.
+The time step of the integration, in seconds.
 </div>
 
 <div class="optionfield"><code>nSteps</code></div>
 <div class="optiondescr">
 The total number of time steps used to perform integration.
-</div>
-
-<div class="optionfield"><code>dt</code></div>
-<div class="optiondescr">
-The time step of the integration, in seconds.
 </div>
 
 <div class="optionfield"><code>tmax</code></div>

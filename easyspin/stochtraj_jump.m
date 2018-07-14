@@ -35,10 +35,7 @@
 %
 %         When specifying the simulation time provide one of the following
 %         combinations:
-%         Precedence: t > nSteps,dt > tMax,nSteps
-%             
-%     t              numeric
-%                    array of time points  (in seconds)
+%         Precedence: nSteps,dt > tMax,nSteps
 %
 %     tMax           double
 %                    total time of simulation (in seconds)
@@ -136,6 +133,10 @@ if isfield(Sys,'Potential')
   warning('Sys.Potential is given. This field is not used by stochtraj_jump.');
 end
 
+if ~isfield(Par,'dt')
+  error('The time step Par.dt must be specified.')
+end
+
 if isfield(Sys,'TransRates')
   
   TRM = Sys.TransRates;
@@ -174,10 +175,6 @@ elseif isfield(Sys,'TransProb')
     error('The columns of Sys.TransProb must sum to 1.')
   end
   
-  if ~isfield(Par,'dt')
-    error('If Sys.TransProb is specified, then the time step Par.dt must also be specified.')
-  end
-  
 else
   
   error(['A transition rate matrix (Sys.TransRates) or a transition probability matrix (Sys.TransProb) ',... 
@@ -213,22 +210,11 @@ end
 % -------------------------------------------------------------------------
 
 % set integration time step and number of simulation steps
-if isfield(Par,'t')
-  % time axis is given explicitly
-  t = Par.t;
-  nSteps = numel(t);
-  dt = t(2) - t(1);
-  if (abs(dt - max(t)/nSteps) > eps), error('t is not linearly spaced.'); end
   
-elseif isfield(Par,'nSteps') && isfield(Par,'dt')
+if isfield(Par,'nSteps') && isfield(Par,'dt')
   % number of steps and time step are given
   dt = Par.dt;
   nSteps = Par.nSteps;
-  
-elseif isfield(Par,'nSteps') && isfield(Par,'tMax')
-  % number of steps and max time are given
-  nSteps = Par.nSteps;
-  dt = Par.tMax/nSteps;
 
 elseif isfield(Par,'tMax') && isfield(Par,'dt')
   dt = Par.dt;
@@ -238,14 +224,15 @@ elseif isfield(Par,'tMax') && isfield(Par,'dt')
   nSteps = ceil(Par.tMax/dt);
 
 else
-  dt = min(tcorr)/10;
-  logmsg(0,'-- No time parameters given. Using time step of %0.5g s.', dt);
-  if isfield(Par,'nSteps')
-    nSteps = Par.nSteps;
-  else
+  % only time step is given
+  dt = Par.dt;
+  if isfield(Sys,'TransRates')
     nSteps = ceil(200*max(tcorr)/dt);
-    logmsg(0,'-- Number of time steps not given. Using %d steps.', nSteps);
+  elseif isfield(Sys,'TransProb')
+    nSteps = 500;
   end
+  logmsg(0,'-- Number of time steps not given. Using %d steps.', nSteps);
+  
 end
 
 Par.nSteps = nSteps;
