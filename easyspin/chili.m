@@ -235,7 +235,7 @@ if isfield(Sys,'lambda') && ~isempty(Sys.lambda)
 else
   Potential.oldStyle = false;
   if isfield(Sys,'Potential')
-    if size(Potential,2)~=4
+    if size(Sys.Potential,2)~=4
       error('Sys.Potential needs 4 entries per row (L, M, K, lambda).');
     end
     Potential.L = Sys.Potential(:,1);
@@ -826,7 +826,7 @@ if all(Potential.M==0)
   Potential.xlk = chili_xlk(Potential,Dynamics.Diff);
 else
   Potential.xlmk = chili_xlmk(Potential,Dynamics.Diff);
-  error('chili does not support potentials containing terms with M~=0.');
+  %error('chili does not support potentials containing terms with M~=0.');
 end
 
 if generalLiouvillian

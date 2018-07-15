@@ -77,7 +77,7 @@ for b1 = 1:nBasis
   if useKSymmetrizedBasis
     jK1 = jK(b1);
   end
-  for b2 = b1:nBasis % run only over upper triangular part (matrix is symmetric)
+  for b2 = b1:nBasis % run only over diagonal and upper triangular part (matrix is hermitian)
     L2 = L(b2);
     if L1~=L2, continue; end
     M2 = M(b2);
@@ -115,7 +115,7 @@ for b1 = 1:nBasis
       idx  = idx + 1;
       row(idx) = b2;
       col(idx) = b1;
-      values(idx) = val_;
+      values(idx) = conj(val_);
     end
     
   end
@@ -126,17 +126,16 @@ Gamma = sparse(row,col,values,nBasis,nBasis);
 % Potential-dependent part of diffusion operator
 %-------------------------------------------------------------------------------
 if ~usePotential, return; end
-calcFullMatrix = true;
+
+if Mzero
+  Lxmax = size(Potential.xlk,1)-1;
+  X = @(L,M,K) Potential.xlk(L+1,K+L+1);
+else
+  Lxmax = numel(Potential.xlmk)-1;
+  X = @(L,M,K) Potential.xlmk{L+1}(M+L+1,K+L+1);
+end
 
 idx = 0;
-useFullX = isfield(Potential,'xlmk');
-if useFullX
-  X = Potential.xlmk;
-  Lxmax = numel(X)-1;
-else
-  X = Potential.xlk;
-  Lxmax = size(X,1)-1;
-end
 for b1 = 1:nBasis
   L1  = L(b1);
   M1  = M(b1);
@@ -144,9 +143,7 @@ for b1 = 1:nBasis
   if useKSymmetrizedBasis
     jK1 = jK(b1);
   end  
-  % run over full matrix, or only over diagonal and upper triangular part
-  if calcFullMatrix, b2range = 1:nBasis; else, b2range = b1:nBasis; end
-  for b2 = b2range
+  for b2 = b1:nBasis   % run only over diagonal and upper triangular part, since matrix is hermitian
     L2  = L(b2);
     M2  = M(b2);
     if Mzero
@@ -160,30 +157,15 @@ for b1 = 1:nBasis
     if useKSymmetrizedBasis
       
       val_ = 0;
-      for Lx = abs(L1-L2):min(Lxmax,L1+L2)
+      for Lx = abs(L1-L2):min(Lxmax,L1+L2) % limit to terms that satisfy triangle condition
         
-        if abs(M2-M1)>Lx, continue; end
-        if useFullX
-          XL = X{Lx+1};
-        else
-          XL = X(Lx+1,:);
-        end
-        if ~any(XL(:)), continue; end
+        if abs(M1-M2)>Lx, continue; end
         
-        idxM = (M1-M2)+Lx+1;
         v = 0;
         
         % calculate first K-dependent term -(K1-K2)
         if abs(K1-K2)<=Lx
-          if useFullX
-            X1_ = ...
-              XL(idxM,( K1-K2)+Lx+1) + ...
-              XL(idxM,(-K1+K2)+Lx+1)*jK1*jK2*(-1)^(Lx+K1+K2);
-          else
-            X1_ = ...
-              XL(( K1-K2)+Lx+1) + ...
-              XL((-K1+K2)+Lx+1)*jK1*jK2*(-1)^(Lx+K1+K2);
-          end
+          X1_ = X(Lx,M1-M2, K1-K2) + X(Lx,M1-M2,-K1+K2)*jK1*jK2*(-1)^(Lx+K1+K2);
           if X1_~=0
             v = v + X1_*wigner3j(L1,Lx,L2,-K1,K1-K2,K2);
           end
@@ -191,15 +173,7 @@ for b1 = 1:nBasis
         
         % calculate second K-dependent term -(K1+K2)
         if abs(K1+K2)<=Lx
-          if useFullX
-            X2_ = ...
-              XL(idxM,(-K1-K2)+Lx+1)*jK1*(-1)^(K1+Lx+L2) + ...
-              XL(idxM,( K1+K2)+Lx+1)*jK2*(-1)^(L2+K2);
-          else
-            X2_ = ...
-              XL((-K1-K2)+Lx+1)*jK1*(-1)^(K1+Lx+L2) + ...
-              XL(( K1+K2)+Lx+1)*jK2*(-1)^(L2+K2);
-          end
+          X2_ = X(Lx,M1-M2,-K1-K2)*jK1*(-1)^(K1+Lx+L2) + X(Lx,M1-M2, K1+K2)*jK2*(-1)^(L2+K2);
           if X2_~=0
             v = v + X2_*wigner3j(L1,Lx,L2,-K1,K1+K2,-K2);
           end
@@ -221,11 +195,7 @@ for b1 = 1:nBasis
         if abs(M1-M2)>Lx, continue; end
         if abs(K1-K2)>Lx, continue; end
         
-        if useFullX
-          X_ = X{Lx+1}((M1-M2)+Lx+1,(K1-K2)+Lx+1);
-        else
-          X_ = X(Lx+1,(K1-K2)+Lx+1);
-        end
+        X_ = X(Lx,M1-M2,K1-K2);
         if X_==0, continue; end
         
         % calculate M-dependent 3j-symbol
@@ -253,7 +223,7 @@ for b1 = 1:nBasis
       idx = idx + 1;
       rowp(idx) = b2;
       colp(idx) = b1;
-      valp(idx)  = val_;
+      valp(idx) = conj(val_);
     end
     
   end
