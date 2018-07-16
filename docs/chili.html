@@ -170,13 +170,11 @@ In addition to the rotational dynamics, convolutional line broadening can be inc
 </div>
 
 <p>
-If there is an ordering potential, it should be given in <code>Sys.lambda</code>.
+If there is an orientational potential, it should be given in <code>Sys.Potential</code>.
 
-<div class="optionfield"><code>lambda</code></div>
+<div class="optionfield"><code>Potential</code></div>
 <div class="optiondescr">
-An array of coefficients for the orienting potential, with up to five elements, <code>[lambda20 lambda22 lambda40 lambda42 lambda44]</code>, corresponding to the five linear combination coefficients &lambda;<sub>2,0</sub>, &lambda;<sub>2,2</sub>,  &lambda;<sub>4,0</sub>, &lambda;<sub>4,2</sub>, and  &lambda;<sub>4,4</sub> (the symbols c or &epsilon; are used in the literature as well) for the ordering potential U(&Omega;) = - k<sub>B</sub> T &Sigma;<sub>L,K</sub>&lambda;<sub>L,K</sub>(D<sup>L</sup><sub>0,K</sub>+D<sup>L</sup><sub>0,-K</sub>), where the D<sup>L</sup><sub>M,K</sub> are Wigner functions.
-<p>
-If you give less than five numbers, the omitted ones are assumed to be zero.
+An array of coefficients for the orientational potential, with four numbers per row: L, M, K, and &lambda;. ordering potential U(&Omega;) = - k<sub>B</sub> T &Sigma;<sub>L,K</sub>&lambda;<sub>L,K</sub>(D<sup>L</sup><sub>0,K</sub>+D<sup>L</sup><sub>0,-K</sub>), where the D<sup>L</sup><sub>M,K</sub> are Wigner functions.
 <p>
 The frame of the ordering potential is assumed to be collinear with that of the rotational diffusion tensor.
 <p>
@@ -220,7 +218,7 @@ If this field is not specified, <code>chili</code> automatically picks a medium-
 
 <div class="optionfield"><code>nKnots</code></div>
 <div class="optiondescr">
-Number of orientations used in a powder simulation. Default is 5. Increase this value if the orienting potential coefficients <code>Sys.lambda</code> are large.
+Number of orientations used in a powder simulation. Default is 5. Increase this value if the orientational potential coefficients <code>Sys.Potential</code> are large.
 </div>
 
 <div class="optionfield"><code>LiouvMethod</code></div>

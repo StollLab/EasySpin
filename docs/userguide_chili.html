@@ -270,21 +270,19 @@ chili(Nx,Exp);
 
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="potential">The orienting potential</a></div>
+<div class="subtitle"><a name="potential">The orientational potential</a></div>
 
 <p>
-<code>chili</code> can also include an orienting potential in the simulation.
-It is specified in the field <code>lambda</code> in the spin system structure.
-Up to five coefficients can be given, &lambda;<sub>2,0</sub>, &lambda;<sub>2,2</sub>,  &lambda;<sub>4,0</sub>,
-   &lambda;<sub>4,2</sub>, and  &lambda;<sub>4,4</sub>, in that order.  For example,
+<code>chili</code> can also include an orientational potential in the simulation. This can be used to model hindered rotational diffusion.
+It is specified in the field <code>Potential</code> in the spin system structure. The potential is expressed as a linear combination of Wigner function, with the expansion coefficients &lambda; and the function quantum numbers L, M, and K. For each expansion term, specify L, M, K, and &lambda; in a row. For example,
 </p>
 
 <pre class="matlab">
-Nx.lambda = [0.3, -0.2];
+Nx.lambda = [2 0 0 0.3; 2 0 2 -0.2];
 </pre>
 
 <p>
-indicates &lambda;<sub>2,0</sub> = 0.3 and  &lambda;<sub>2,2</sub> = -0.2.
+indicates &lambda;<sub>2,0,0</sub> = 0.3 and &lambda;<sub>2,0,2</sub> = -0.2.
 
 <!-- ============================================================= -->
 <div class="subtitle"><a name="expparams">Basic experimental settings</a></div>
@@ -402,7 +400,7 @@ Exp.mwPhase = 3*pi/180;          % 3 degrees dispersion admixed to absorption
 In a frozen solution of spin-labelled protein, the protein  molecules assume all possible orientations. For slow-motion spectra, this orientational distribution has to be taken into account if a orienting potential is present. If not, it is sufficient to compute only one orientation, as the spectra from all orientations are identical.
 
 <p>
-The summation of slow-motion spectra over all possible orientations of an immobile protein ("director") is historically called the <em>MOMD</em> (microscopic order macroscopic disorder) model. This is equivalent to a powder spectrum. In <code>chili</code>, the powder spectrum is simulated whenever you specify an ordering potential. To get a single-crystal spectra, i.e. the slow-motion spectrum for the nitroxide attached to a rigid protein with a single orientation, give the crystal orientation in <code>Exp.CrystalOrientation</code>. <code>Exp.CrystalOrientaiton</code> contains the Euler tilt angle (in radians), betwen the lab frame (which is lab-fixed) and the frame of the orienting potential (which is fixed to the protein).
+The summation of slow-motion spectra over all possible orientations of an immobile protein ("director") is historically called the <em>MOMD</em> (microscopic order macroscopic disorder) model. This is equivalent to a powder spectrum. In <code>chili</code>, the powder spectrum is simulated whenever you specify an orientational potential. To get a single-crystal spectra, i.e. the slow-motion spectrum for the nitroxide attached to a rigid protein with a single orientation, give the crystal orientation in <code>Exp.CrystalOrientation</code>. <code>Exp.CrystalOrientaiton</code> contains the Euler tilt angle (in radians), betwen the lab frame (which is lab-fixed) and the frame of the orienting potential (which is fixed to the protein).
 
 <p>
 When <code>chili</code> performs a powder simulation, it takes the number of orientations to include from <code>Opt.nKnots</code>. Often, <code>Opt.nKnots</code> does not have to be changed from its default setting, but if the spectrum does not appear to be smooth, <code>Opt.nKnots</code> can be increased. Of course, this also increases the simulation time. For quick simulations, <code>Opt.nKnots</code> should be minimized.
@@ -498,7 +496,7 @@ By default, <code>chili</code> returns the absorption spectrum (<code>Exp.Harmon
 </p>
 
 <p>
-All other capabilities of <code>chili</code> apply equally to frequency sweep and to field sweeps. For example, you can simulate multi-component spectra, you can use an ordering potential, you can run powder spectra, and you can adjust the basis size.
+All other capabilities of <code>chili</code> apply equally to frequency sweep and to field sweeps. For example, you can simulate multi-component spectra, you can use an orientational potential, you can run powder spectra, and you can adjust the basis size.
 </p>
 
 <hr>

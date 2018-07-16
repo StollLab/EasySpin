@@ -13,9 +13,13 @@ Exp.nPoints = 512;
 
 Opt.LLKM = [10 6 6 6];
 
+lam = +2;
+Pot = [2 0 0 lam; 2 0 2 lam; 4 0 0 lam; 4 0 2 lam];
+
 for p = 1:4
-  Sys.lambda = [0 0 0 0];
-  Sys.lambda(p) = +2;
+  %Sys.lambda = [0 0 0 0];
+  %Sys.lambda(p) = +2;
+  Sys.Potential = Pot(p,:);
   
   Opt.LiouvMethod = 'Freed';
   [B,y1] = chili(Sys,Exp,Opt);

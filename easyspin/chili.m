@@ -210,6 +210,8 @@ if isfield(Sys,'logtcorr'), Dynamics.logtcorr = Sys.logtcorr; end
 if isfield(Sys,'logDiff'), Dynamics.logDiff = Sys.logDiff; end
 if ~isfield(Sys,'DiffFrame'), Sys.DiffFrame = [0 0 0]; end
 
+if ~isfield(Sys,'Potential'), Sys.Potential = []; end
+
 if ~isfield(Sys,'Exchange'), Sys.Exchange = 0; end
 
 if isfield(Sys,'lwpp'), Dynamics.lwpp = Sys.lwpp; end
@@ -219,37 +221,38 @@ Dynamics.Exchange = Sys.Exchange;
 
 % Orientational potential
 %-------------------------------------------------------------------------------
-% Extract and organize information about potential
+% Error on obsolete field Sys.lambda, include explicit upgrade information
 if isfield(Sys,'lambda') && ~isempty(Sys.lambda)
-  if isfield(Sys,'Potential') && ~isempty(Sys.Potential)
-    error('Cannot have Sys.lambda and Sys.Potential simultaneously.');
+  if numel(Sys.lambda)>4
+    error('Sys.lambda must be a vector with at most 4 elements.');
   end
-  if numel(Sys.lambda)<4, Sys.lambda(4) = 0; end
-  if numel(Sys.lambda)>4, error('Too many potential coefficients in Sys.lambda!'); end
-  Potential.lambda = Sys.lambda;
-  Potential.L = [2 2 4 4];
-  Potential.M = [0 0 0 0];
-  Potential.K = [0 2 0 2];
-  Potential.oldStyle = true;
+  lam = Sys.lambda;
+  LMK = [2 0 0; 2 0 2; 4 0 0; 4 0 2];
+  str = '    Sys.Potential = [';
+  for p = 1:numel(lam)
+    str = [str sprintf('%d %d %d %g',LMK(p,1),LMK(p,2),LMK(p,3),lam(p))];
+    if p~=numel(lam), str = [str '; ']; end
+  end
+  str = [str '];    % L M K lambda'];
+  error(sprintf('\n  Sys.lambda is obsolete.\n  Use the following instead:\n\n%s\n',str));
+end
+
+% Extract and organize information about potential
+if ~isempty(Sys.Potential)
+  if size(Sys.Potential,2)~=4
+    error('Sys.Potential needs 4 entries per row (L, M, K, lambda).');
+  end
+  Potential.L = Sys.Potential(:,1);
+  Potential.M = Sys.Potential(:,2);
+  Potential.K = Sys.Potential(:,3);
+  Potential.lambda = Sys.Potential(:,4);
   usePotential = true;
 else
-  Potential.oldStyle = false;
-  if isfield(Sys,'Potential')
-    if size(Sys.Potential,2)~=4
-      error('Sys.Potential needs 4 entries per row (L, M, K, lambda).');
-    end
-    Potential.L = Sys.Potential(:,1);
-    Potential.M = Sys.Potential(:,2);
-    Potential.K = Sys.Potential(:,3);
-    Potential.lambda = Sys.Potential(:,4);
-    usePotential = true;
-  else
-    Potential.L = [];
-    Potential.M = [];
-    Potential.K = [];
-    Potential.lambda = [];
-    usePotential = false;
-  end
+  Potential.L = [];
+  Potential.M = [];
+  Potential.K = [];
+  Potential.lambda = [];
+  usePotential = false;
 end
 
 % Validate potential inputs
@@ -274,6 +277,17 @@ if usePotential
       error('Potential coefficient for M=K=0 must be real-valued.');
     end
   end
+end
+
+if usePotential
+  % Determine whether it is a simple potential
+  % (even L, zero M, even K, real lambda, etc)
+  Potential.evenL = all(mod(Potential.L,2)==0);
+  Potential.evenK = all(mod(Potential.K,2)==0);
+  Potential.zeroM = all(Potential.M==0);
+  Potential.oldStyle = ...
+    Potential.evenL && Potential.zeroM && Potential.evenK &&...
+    all(isreal(Potential.lambda)) && max(Potential.L)<=4 && max(Potential.K)<=2;
 end
 
 % Experimental settings
@@ -534,6 +548,23 @@ if ~generalLiouvillian
   if (Sys.nElectrons>1) || (Sys.S~=1/2) || (Sys.nNuclei>2)
     error('Opt.LiouvMethod=''Freed'' does not work with this spin system.');
   end
+  if usePotential && ~Potential.oldStyle
+    error('Opt.LiouvMethod=''Freed'' does not work with this orientational potential.');
+  end
+end
+
+% Organize potential if it is oldStyle and Freed method is requested
+if usePotential && Potential.oldStyle && ~generalLiouvillian
+  LMK = [2 0 0; 2 0 2; 4 0 0; 4 0 2]; % standard terms and order for Freed code
+  lambda = [0 0 0 0];
+  for p = 1:4
+    idx = find(all(Sys.Potential(:,1:3)==LMK(p,:)));
+    if ~isempty(idx), lambda(p) = Sys.Potential(idx,4); end
+  end
+  Potential.lambda = lambda;
+  Potential.L = LMK(:,1);
+  Potential.M = LMK(:,2);
+  Potential.K = LMK(:,3);
 end
 
 % Field sweep method
@@ -779,7 +810,7 @@ if generalLiouvillian
     keep = keep(idxpq);
   end
   keep = repmat(keep,nOriBasis,1);
-  logmsg(1,'  pruning spin basis: keeping %d of %d functions',sum(keep),nSpinBasis);
+  logmsg(1,'  pruning spin basis: keeping %0.2f%% of %d functions',sum(keep)/numel(keep)*100,nSpinBasis);
   
   % Apply M=p-1 symmetry (Meirovitch Eq. (A47))
   if Opt.MpSymm

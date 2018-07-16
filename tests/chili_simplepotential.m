@@ -17,7 +17,8 @@ Exp.nPoints = 512;
 Opt.LLKM = [10 5 2 2];
 Opt.Verbosity = 0;
 Opt.nKnots = 1;
-Nx.lambda = +1; % corresponds to lambda^2_0
+%Nx.lambda = +1; % corresponds to lambda^2_0
+Nx.Potential = [2 0 0 +1];
 
 [x,y] = chili(Nx,Exp,Opt);
 y = y.'/max(abs(y));

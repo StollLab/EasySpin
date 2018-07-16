@@ -12,7 +12,8 @@ Exp.Range = [326 344];
 
 Sys.g = [2.05 2.03 2.00];
 Sys.tcorr = [1 2 3]*1e-9; % rhombic diffusion
-Sys.lambda = [1 1 1 1]; % complex potential
+%Sys.lambda = [1 1 1 1]; % multi-term potential
+Sys.Potential = [2 0 0 1; 2 0 2 1; 4 0 0 1; 4 0 2 1];
 
 Opt.pqOrder = true;
 Opt.LLKM = [6 3 2 2];

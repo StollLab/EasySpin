@@ -163,26 +163,29 @@ for b1 = 1:nBasis
         
         v = 0;
         
-        % calculate first K-dependent term -(K1-K2)
+        % calculate first K-dependent term, +-(K1-K2)
         if abs(K1-K2)<=Lx
-          X1_ = X(Lx,M1-M2, K1-K2) + X(Lx,M1-M2,-K1+K2)*jK1*jK2*(-1)^(Lx+K1+K2);
+          X1_ = X(Lx,M1-M2,K1-K2) + X(Lx,M1-M2,-K1+K2)*jK1*jK2*(-1)^(Lx+K1+K2);
           if X1_~=0
             v = v + X1_*wigner3j(L1,Lx,L2,-K1,K1-K2,K2);
           end
         end
         
-        % calculate second K-dependent term -(K1+K2)
+        % calculate second K-dependent term, +-(K1+K2)
         if abs(K1+K2)<=Lx
-          X2_ = X(Lx,M1-M2,-K1-K2)*jK1*(-1)^(K1+Lx+L2) + X(Lx,M1-M2, K1+K2)*jK2*(-1)^(L2+K2);
+          X2_ = X(Lx,M1-M2,-K1-K2)*jK1*(-1)^(K1+Lx+L2) + X(Lx,M1-M2,K1+K2)*jK2*(-1)^(L2+K2);
           if X2_~=0
             v = v + X2_*wigner3j(L1,Lx,L2,-K1,K1+K2,-K2);
           end
-        end
+        end        
         
         % combine terms, including M-dependent 3j-symbol
+        if v==0, continue; end
         val_ = val_ + wigner3j(L1,Lx,L2,-M1,M1-M2,M2) * v;
         
       end
+      
+      if val_==0, continue; end
       
       prefactorjK = sqrt(jK1)'*sqrt(jK2)/2/sqrt((1+(K1==0))*(1+(K2==0)));
       prefactorL = sqrt((2*L1+1)*(2*L2+1));
@@ -219,7 +222,7 @@ for b1 = 1:nBasis
     rowp(idx) = b1;
     colp(idx) = b2;
     valp(idx)  = val_;
-    if ~calcFullMatrix && b1~=b2
+    if b1~=b2
       idx = idx + 1;
       rowp(idx) = b2;
       colp(idx) = b1;

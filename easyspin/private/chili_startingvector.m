@@ -1,6 +1,7 @@
 function stvec = chili_startingvector(Basis,Potential)
 
-if any(Potential.lambda) && ~Potential.oldStyle
+if ~isempty(Potential.lambda) && ~Potential.oldStyle
+  Potential
   error('This functions works only for potentials with M=0, L=2,4, and K=0,2.');
 end
 
@@ -72,15 +73,17 @@ return
 %     \int_0^{2\pi} cos(K gamma) exp(B cos(2 gamma)) d gamma = 2 \pi besseli(K/2,B)
 function val = orifun(z,L,K,lambda)
 
+p = numel(lambda);
+
 % Potential terms with K == 0
 A = 0;
 if lambda(1), A = A + lambda(1)/2*plegendre(2,0,z); end
-if lambda(3), A = A + lambda(3)/2*plegendre(4,0,z); end
+if p>=3 && lambda(3), A = A + lambda(3)/2*plegendre(4,0,z); end
 
 % Potential terms with K == 2
 B = 0;
-if lambda(2), B = B + lambda(2)/(2*sqrt( 6))*plegendre(2,2,z); end
-if lambda(4), B = B + lambda(4)/(6*sqrt(10))*plegendre(4,2,z); end
+if p>=2 && lambda(2), B = B + lambda(2)/(2*sqrt( 6))*plegendre(2,2,z); end
+if p==4 && lambda(4), B = B + lambda(4)/(6*sqrt(10))*plegendre(4,2,z); end
 
 val = plegendre(L,K,z).*exp(A).*besseli(K/2,B)*(2*pi);
 
