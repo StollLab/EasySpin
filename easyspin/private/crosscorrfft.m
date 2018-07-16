@@ -93,7 +93,11 @@ end
 
 N = size(y, dim);
 Fx = fft(x, 2*N, dim);
-Fy = fft(y, 2*N, dim);
+if ~isequal(x,y)
+  Fy = fft(y, 2*N, dim);
+else
+  Fy = Fx;
+end
 r = ifft(Fx.*conj(Fy), [], dim);
 
 % select only the first half of the FFT dimension

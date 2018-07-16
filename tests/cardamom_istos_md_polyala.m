@@ -11,13 +11,11 @@ TrajDir = '.\mdfiles\';
 
 load([TrajDir, 'MTSSL_polyAla_traj.mat'])
 
-tscale = 2.5;  % diffusion constant of TIP3P model water molecules in MD 
-               % simulations is ~2.5x too high, so we scale the time domain
+tScale = 2.5;  % diffusion constant of TIP3P model water molecules in MD 
+               % simulations is ~2.5x too high, so we scale the time axis
 
-MD.FrameTraj = cat(3, Traj.FrameX, Traj.FrameY, Traj.FrameZ);
-MD.FrameTraj = permute(MD.FrameTraj,[2,3,4,1]);
-MD.dt = tscale*Traj.dt;
-MD.nSteps = Traj.nSteps;
+MD = Traj;
+MD.tScale = tScale;
 MD.removeGlobal = 0;
 
 MD.GlobalDiff = 6e6;
@@ -64,14 +62,7 @@ if exist(OldDataFile, 'file')>0
 
   if rmsd < 1e-2
     err = 0;
-  %   figure
-  % 
-  %   plot(BOld, spcOld, B, spc)
-  %   ylim([-1.1,1.1])
-  %   ylabel('Im(FFT(M_{+}(t)))')
-  %   xlabel('B (mT)')
-  %   legend('Old','Current')
-  %   hold off
+
   else
     err = 1;
     figure
