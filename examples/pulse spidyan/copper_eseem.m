@@ -2,29 +2,28 @@
 % significantly reduced by using a parfor-loop in combination with the 
 % parallel computing box
 
-clear Sys Exp Opt
+clear
 
 % Spin system
 Sys.S = 1/2;
-Sys.g = diag([2 2 2.02]);
-Sys.A = diag([20 20 200]);
+Sys.g = diag([2 2 2.02]); 
+Sys.A = diag([20 20 200]); MHz
 Sys.Nucs = '63Cu';
-Sys.lwpp = 10;
-Exp.Field = 1240;
+Sys.lwpp = 10; 
+
+Exp_.Field = 1240;
 
 % Use this to look at the spectrum (helps with setting the frequency ranges
 % of the pulses)
-% pepper(Sys,Exp)
+% pepper(Sys,Exp_)
 
 % Get orientations for the loop:
 Symmetry = symm(Sys);
-nKnots = 100;
+nKnots = 40;
 
 [phi,theta,Weights] = sphgrid(Symmetry,nKnots);
 
-% (Chirp) pulse echo
-% Simulation setup -----------------------------
-
+% Pulse definitions
 Chirp90.Type = 'quartersin/linear';
 Chirp90.trise = 0.030;
 Chirp90.Frequency = [-0.5 0.5]; % Excitation band, GHz
@@ -44,29 +43,27 @@ Exp.Sequence = {Chirp90 0.25 Chirp180 0.4 0.1}; % Event lengths in us - the leng
 Exp.Field = 1240; % mT
 Exp.mwFreq = 35; % Carrier frequency in GHz
 
-% Detect only the echo (last event):
-Exp.DetEvents = [0 0 0 0 1];
-
+% Indirect dimension
 Exp.nPoints = 100;
 Exp.Dim1 = {'d1,d2', 0.004};
 
-Opt.DetOperator = {'+1'};
-Opt.FreqTranslation = -35; % GHz
+% detection
+Exp.DetEvents = [0 0 0 0 1];
+Exp.DetOperator = {'+1'};
+Exp.DetFreq = Exp.mwFreq; % GHz
 
-%% A refocused echo with monochromatic pulses
+%% Orientation loop
+
 Signals = cell(1,numel(Weights));
 
-% if you do now have the parallel computing toolbox available use a
-% regular for loop:
-% for  iOrientation = 1 : numel(Weights)
 parfor iOrientation = 1 : numel(Weights)
   
-  LoopSys = Sys;
+  Sys_ = Sys;
   R = erot(phi(iOrientation),theta(iOrientation),0);
-  LoopSys.g = R*LoopSys.g*R';
-  LoopSys.A = R*LoopSys.A*R';
+  Sys_.g = R*Sys_.g*R';
+  Sys_.A = R*Sys_.A*R';
   
-  [Signals{iOrientation}] = spidyan(LoopSys,Exp,Opt);
+  [Signals{iOrientation}] = spidyan(Sys_,Exp);
   
 end
 
@@ -87,6 +84,7 @@ end
 
 Int = Int/max(Int);
 
+%% Plotting
 % Create the time axis
 t = 0:(Exp.nPoints-1);
 t = t*Exp.Dim{2}+Exp.t(2);
@@ -95,5 +93,5 @@ t = t*Exp.Dim{2}+Exp.t(2);
 figure(1)
 clf
 plot(t,real(Int))
-xlabel('\tau [\mus]')
-ylabel('Rel. Echo Int. a.u.')
+xlabel('\tau (\mus)')
+ylabel('Rel. Echo Int. (arb.u.)')

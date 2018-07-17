@@ -1,11 +1,14 @@
-clear Exp Sys Opt Pulse90 Pulse180
+% setting up indirect dimensions (spidyan)
+%==========================================================================
 % This script shows how the set up a pulse sequence with several pulses and
 % then explains on four examples how to run multidimensional experiments
 
-% Spin System -----------------------
-Sys.S = [1/2];
-Sys.ZeemanFreq = [33.500];
+clear
 
+% Spin System
+Sys.ZeemanFreq = 9.5;
+
+% Experiment
 Pulse90.Type = 'rectangular';
 Pulse90.tp = 0.05;
 Pulse90.Flip = pi;
@@ -14,27 +17,21 @@ Pulse180.Type = 'rectangular';
 Pulse180.tp = 0.05;
 Pulse180.Flip = pi;
   
-% This Exp structure creates a pi - tau - pi/2 - tau pulse sequence ------
+% pi - tau - pi/2 - tau
 Exp.Sequence = {Pulse90 0.5 Pulse180 0.5}; % us
-Exp.Field = 1240; % mT
-Exp.TimeStep = 0.0001; % us
 
-Exp.mwFreq = 33.5; % GHz
-Exp.DetEvents = 1;
+Exp.mwFreq = 9.5; % GHz
 
-% Options -------------------------
-Opt.DetOperator = {'z1'};
-Opt.FrameShift = 32;
-Opt.SimulationMode = 'FrameShift';
+Exp.DetOperator = {'z1'};
 
 % Run simulation --------------
-[TimeAxis, Signal] = spidyan(Sys,Exp,Opt);
+[TimeAxis, Signal] = spidyan(Sys,Exp);
 
 % Plotting of the initial pulse sequence --------------------
 figure(1)
 clf
 plot(TimeAxis*1000,real(Signal));
-xlabel('t [ns]')
+xlabel('t (ns)')
 ylabel('<S_z>')
 axis tight
 ylim([-1 1])
@@ -45,36 +42,27 @@ ylim([-1 1])
 Exp.nPoints = 5;
 Exp.Dim1 = {'p2.Flip', pi/4};
 
-[TimeAxis, Signal] = spidyan(Sys,Exp,Opt);
-% Signal now is a three dimensional array, with the first dimension being
-% the index of the acquisition (nPoints), second the index of the detection 
-% operator and third the detected points
+[TimeAxis, Signal] = spidyan(Sys,Exp);
 
-
-% Plotting -----------------------
+% Signal now is an n-dimensional array
 figure(2)
 clf
 hold on
 for i = 1:size(Signal,1)
-  plot(TimeAxis*1000,real(squeeze(Signal(i,:,:))));
+  plot(TimeAxis*1000,real(squeeze(Signal(i,:))));
 end
-xlabel('t [ns]')
+xlabel('t (ns)')
 ylabel('<S_z>')
 axis tight
 ylim([-1 1])
-
-
 %% Two Dimensional Experiment - Changing the inter pulse delay with a nonlinear increment
 % Increment the first delay by 100 and 250 ns
 Exp.nPoints = 3; 
-Exp.Dim1 = {'d1', [0 0.1 0.25]};  % The first data point is always the one 
-                                % defined in the Exp structure, hence only 
-                                % [0 0.1 0.25] is written, even if 
-                                % Exp.nPoints = 3
+Exp.Dim1 = {'d1', [0 0.1 0.25]};
 
-[TimeAxis, Signal] = spidyan(Sys,Exp,Opt);
+[TimeAxis, Signal] = spidyan(Sys,Exp);
 % Since the length of a detected event is changed, the traces of each
-% acquistion point have different lengths and Signal has to be a cell array
+% acquistion point have different lengths and Signal becomes a cell array
 
 % Plotting --------
 figure(3)
@@ -89,7 +77,6 @@ ylabel('<S_z>')
 axis tight
 ylim([-1 1])
 
-
 %% Three-dimensional experiment with constant length
 Exp.nPoints = [2 3]; % 2 steps in 1st and 3 in 2nd dimension
 Exp.Dim1 = {'p1.Phase,p2.Phase', pi/4}; % Changes the Phase of both pulses 
@@ -98,10 +85,10 @@ Exp.Dim2 = {'p2.Flip', pi/2};  % Change the flip angle of the second pulse
 
 % In order to see the influence of the phase, the detection is changed to
 % S^+ and the detected trace down converted with Opt.FreqTranslation
-Opt.DetOperator = {'+1'};
-Opt.FreqTranslation = [-33.5]; % GHz
+Exp.DetOperator = {'+1'};
+Exp.DetFreq = 9.5; % GHz
 
-[TimeAxis, Signal] = spidyan(Sys,Exp,Opt);
+[TimeAxis, Signal] = spidyan(Sys,Exp);
 
 % Plotting -------------- 
 figure(4)
@@ -123,10 +110,10 @@ Exp.Dim1 = {'p1.Phase,p2.Phase', pi/4}; % Changes the Phase of both pulses
 Exp.Dim2 = {'p2.tp', 0.05};  % Change the length of the second pulse
 
 % Now, Sz and S^+ are detected
-Opt.DetOperator = {'z1','+1'};
-Opt.FreqTranslation = [0 -33.5]; % GHz
+Exp.DetOperator = {'z1','+1'};
+Exp.DetFreq = [0 9.5]; % GHz
 
-[TimeAxis, Signal] = spidyan(Sys,Exp,Opt);
+[TimeAxis, Signal] = spidyan(Sys,Exp);
 
 % Plottting -------------- 
 figure(5)

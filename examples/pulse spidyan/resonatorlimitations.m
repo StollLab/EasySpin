@@ -1,38 +1,41 @@
-% Simulates three Electron spins with different ZeemanFrequencies during an
-% adiabatic pulse with (see comments in for loop)
+% resonator limitations and compensation (spidyan)
+%==========================================================================
+% this script shows the effect of a resonator on in the inversion of three
+% spins. One spin has a resonance frequency that is the same as the
+% centerfrequency of the resonator, one is +100 MHz from the resonator
+% frequency and the third is -100 MHz from the resonator center frequency
+% You can have a look at these three options:
 % - No resonator
 % - Resonator
 % - And compensation of the resonator
+%
+% Compensation of the resonator profile was described in 
+% Doll, A., Pribitzer, S., Tschaggelar, R., Jeschke, G.,
+% J. Magn. Reson. 230, 27-39 (2013), DOI: 10.1016/j.jmr.2013.01.002
 
-clear Sys Opt Exp Pulse
+clear
 
 % Zeeman frequencies of the spins
-ZFreqs = [33.4 33.5 33.6];
-
-Sys.S = [1/2];
+ZFreqs = [9.4 9.5 9.6];
 
 Pulse.Type = 'quartersin/linear';
 Pulse.trise = 0.1; % us
 Pulse.Qcrit = 5; % If a critical adiabaticity is provided for the Pulse,
-% Exp.Flip does not need to be defined or will be ignored
+% Pulse.Flip does not need to be defined or will be ignored
 Pulse.tp = 0.5;
-Pulse.Frequency = [-0.15 0.15]; % frequency range of sweep, GHz
+Pulse.Frequency = [-200 200];
 
 Exp.Sequence = {Pulse};
-
-Exp.Field = 1240; % mT
-Exp.mwFreq = 33.5; % GHz
-Exp.DetEvents = 1;
+Exp.mwFreq = 9.5; % GHz
+Exp.DetOperator = {'z1'};
 
 % Uncomment the following two lines to see the effect of the resonator
-Exp.Resonator.nu0 = 33.5;
-Exp.Resonator.QL = 300;
+Exp.Resonator.ResonatorFrequency = 9.5;
+Exp.Resonator.ResonatorQL = 150;
 
 % Uncomment the following line to compensate for the bandwidth limitation,
 % also note how the pulses get longer in the plot than 500 ns
 Exp.Resonator.Mode = 'compensate';
-
-Opt.DetOperator = {'z1'};
 
 
 % Set up for plotting
@@ -44,15 +47,14 @@ Signal = cell(1,length(ZFreqs));
 
 for i = 1 : length(ZFreqs)
   
-  Sys.ZeemanFreq = [ZFreqs(i)];
-  
-  [TimeAxis, Signal{i}] = spidyan(Sys,Exp,Opt);
+  Sys_.ZeemanFreq = [ZFreqs(i)];
+  [TimeAxis, Signal{i}] = spidyan(Sys_,Exp);
   
   plot(TimeAxis*1000,real(Signal{i}));
   
 end
 
-xlabel('t [ns]')
+xlabel('t (ns)')
 axis tight
 ylim([-1 1])
 legend(string(ZFreqs))

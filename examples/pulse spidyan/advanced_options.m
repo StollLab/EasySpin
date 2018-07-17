@@ -1,72 +1,70 @@
-clear Exp Sys Opt Pulse
+% advanced options for spindynamics (spidyan)
+%==========================================================================
+% demonstration of some of the advanced options in spidyan and how to use
+% them
+
+clear
+
 % Default Spin System
-DefSys.S = 1/2;
-DefSys.ZeemanFreq = 33.500; % GHz
-DefSys.T1 = 1; % us
-DefSys.T2 = 0.5; % us
+Sys.S = 1/2;
+Sys.ZeemanFreq = 33.500; % GHz
+Sys.T1 = 1; % us
+Sys.T2 = 0.5; % us
 
 % Pulse Definitions
 Rectangular.Type = 'rectangular';
-Rectangular.tp = 
+Rectangular.tp = 0.02; % us
+Rectangular.Flip = pi/2; %rad
+
 Adiabatic.Type = 'quartersin/linear';
+Adiabatic.Flip = pi/2; % rad
+Adiabatic.tp = 0.2; % us
 Adiabatic.trise = 0.05; % us
-Adiabatic.Qcrit = 5;
+Adiabatic.Qcrit = 5; % critical adiabaticity  
+Adiabatic.Frequency = [-50 50]; % frequency band,MHz
 
 % A default Experiment/Sequence
-DefExp.Field = 1240; % mT 
-DefExp.TimeStep = 0.0001; % us
-DefExp.mwFreq = 33.5; % GHz
-DefExp.DetEvents = 1;
-
-% Options
-DefOpt.DetOperator = {'z1'};
-DefOpt.FrameShift = 32; % GHz
+Exp.mwFreq = 33.5; % GHz
+Exp.DetOperator = {'z1'};
 
 %% 1) Using a custom initial state and equilibrium state:
 % The spin relaxes to from the provided initial state to the equilibrium
 
-Sys = DefSys;
-Sys.initState = +sop(Sys.S,'z');
-Sys.eqState = -sop(Sys.S,'z');
+Sys_ = Sys;
+Sys_.initState = +sop(Sys_.S,'z');
+Sys_.eqState = -sop(Sys_.S,'z');
 
-Exp = DefExp;
-Exp.t = [0.2 5]; % us
-Exp.Pulses = {Rectangular 0};
-Exp.Frequency = 0;
-Exp.Flip = pi/2;
+Exp_ = Exp;
+Exp_.Sequence = {Rectangular 5}; % pulse and 5 mus free evolution
 
-Opt = DefOpt;
-% Relaxation is active only during the second event
-Opt.Relaxation = [0 1];
 
-[TimeAxis, Signal] = spidyan(Sys,Exp,Opt);
+Opt_.Relaxation = [0 1]; 
+
+[TimeAxis, Signal] = spidyan(Sys_,Exp_,Opt_);
 
 % plotting
 figure(1)
 clf
 plot(TimeAxis*1000,real(Signal))
-xlabel('t [ns]')
+xlabel('t (ns)')
 ylabel('<S_i>')
-legend(DefOpt.DetOperator)
+legend(Exp.DetOperator)
 
-%% 2) complex and custom excitation operators
+%% 2) complex excitation operators
 % Complex excitation operators allows to investigate Bloch Siegert shifts
 % If ComplexExcitation is active, the excitation operator takes the form:
 % real(IQ)*Sx + imag(IQ)*Sy
 
-Sys = DefSys;
+Sys_ = Sys;
 
-Exp = DefExp;
-Exp.t = 0.2; % us
-Exp.Pulses = {Adiabatic};
-Exp.Frequency = [-0.05 0.05]; % GHz
+Exp_ = Exp;
+Exp_.Sequence = {Adiabatic};
 
-Opt = DefOpt;
+[TimeAxis, Regular] = spidyan(Sys_,Exp_);
 
-[TimeAxis, Regular] = spidyan(Sys,Exp,Opt);
-
-Opt.ComplexExcitation = 1;
-[~, ComplexExOp] = spidyan(Sys,Exp,Opt);
+Opt_ = [];
+Opt_.ComplexExcitation = 1;
+[~, ComplexExOp] = spidyan(Sys_,Exp_,Opt_);
 
 % plotting
 figure(2)
@@ -74,20 +72,21 @@ clf
 hold on
 plot(TimeAxis*1000,Regular)
 plot(TimeAxis*1000,ComplexExOp)
-xlabel('t [ns]')
+xlabel('t (ns)')
 ylabel('<S_i>')
 legend('Regular ExOp','Complex ExOp')
 
+%% 3) custom excitation operators
 % With custom excitation operators it is possible to investigate the effect
 % of pulses during a pulse sequence in more detail - in this example our
 % custom excitation operator is the same as the default one (Sx), but 
 % manually defined (sop(Sys.S,'x') would also be possible. 
 % Feel free to experiment!
 
-Opt = DefOpt;
-Opt.ExcOperator = {sop(Sys.S,'x(1|2)')};
+Opt_ = [];
+Opt_.ExcOperator = {sop(Sys_.S,'x(1|2)')};
 
-[TimeAxis, Custom] = spidyan(Sys,Exp,Opt);
+[TimeAxis, Custom] = spidyan(Sys_,Exp_,Opt_);
 
 plot(TimeAxis*1000,Custom)
 legend('Regular ExOp','Complex ExOp','Custom ExOp')
@@ -97,11 +96,11 @@ legend('Regular ExOp','Complex ExOp','Custom ExOp')
 % In this case the excitation operator takes the form:
 % real(IQ)*real(ExOperator) + imag(IQ)*imag(ExOperator)
 
-Opt = DefOpt;
-Opt.ExcOperator = {sop(Sys.S,'x(1|2)')+sop(Sys.S,'y(1|2)')};
-Opt.ComplexExcitation = 1;
+Opt_ = [];
+Opt_.ExcOperator = {sop(Sys_.S,'x(1|2)')+sop(Sys_.S,'y(1|2)')};
+Opt_.ComplexExcitation = 1;
 
-[TimeAxis, Custom] = spidyan(Sys,Exp,Opt);
+[TimeAxis, Custom] = spidyan(Sys_,Exp_,Opt_);
 
 plot(TimeAxis*1000,Custom)
 legend('Regular ExOp','Complex ExOp','Custom ExOp','Complex custom ExOp')
@@ -110,22 +109,16 @@ legend('Regular ExOp','Complex ExOp','Custom ExOp','Complex custom ExOp')
 % if state trajectories is switched on for an event, density matrices at
 % each propagation point are stored and returned
 
-Sys = DefSys;
-Exp = DefExp;
-Opt = DefOpt;
+Sys_ = Sys;
+Exp_ = Exp;
+Opt_ = [];
 
 % Switches on state trajectories for both events
-Opt.StateTrajectories = [1 1];
+Opt_.StateTrajectories = [1 1];
 
-Exp.t = [0.2 0.5]; % us
-Exp.Pulses = {Adiabatic 0};
-Exp.Frequency = [-0.05 0.05]; % GHz
+Exp_.Sequence = {Adiabatic 0.5};
 
-Exp.nPoints = [1 1];
-Exp.Dim1 = {'p1.tp', 0.01};
-Exp.Dim2 = {'p1.tp', 0.01};
-
-[TimeAxis, Signal, AdvancedOutputs] = spidyan(Sys,Exp,Opt);
+[TimeAxis, Signal, AdvancedOutputs] = spidyan(Sys_,Exp_,Opt_);
 
 message = ['Cell array ''AdvancedOutputs.StateTrajectories'' contains ' num2str(size(AdvancedOutputs.StateTrajectories,2)) ' density matrices.'];
 disp(message)

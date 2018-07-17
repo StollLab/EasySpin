@@ -155,7 +155,7 @@ The equilibrium state is only used if relaxation is active, else it is ignored.
 
 <div class="optionfield"><code>Field</code></div>
 <div class="optiondescr">
-Magnetic field (in mT) at which the experiment is performed, needs to be provided only if the spinsystem is defined with <code>Sys.g</code>.
+Magnetic field (in mT) at which the experiment is performed, needs to be provided only if the spin system is defined with <code>Sys.g</code>.
 If <code>Sys.ZeemanFreq</code> is used, <code>Field</code> can be omitted.
 </div>
 
@@ -220,6 +220,7 @@ Any time steps given in the pulse definition are ignored.
 <p>
 Detection:
 </p>
+<h2 id="detection"></h2>
 
 <div class="optionfield"><code>DetWindow</code></div>
 <div class="optiondescr">
@@ -268,6 +269,7 @@ Exp.DetWindow = [0 0.100]    % detect an FID after the last pulse
 </div>
 
 <div class="optionfield"><code>DetSequence</code></div>
+<h2 id="detsequence"></h2>
 <div class="optiondescr">
 A vector for advanced control of the detection, e.g. detect during pulses.
 Detection can be set for the entire simulation (meaning detection is on for all events, even pulses) or for specific events:
@@ -330,6 +332,7 @@ Exp.DetFreq = [33.5 -33.5]; 	% shifts <i>&Scirc;</i><sub>+</sub> by -33.5 GHz an
 </pre>
 </div>
 
+<h2 id="indirect_dimensions"></h2>
 <p>
 By defining <code>nPoints</code> and  <code>DimX</code> it is possible to vary parameters of the pulse sequence and create one or multidimensional experiments.
 This also changes the structure of the output compared to a single acquisition. 

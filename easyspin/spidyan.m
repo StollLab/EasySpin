@@ -95,6 +95,13 @@ Opt.SimulationMode = 'thyme'; % to force s_sequencer to setup for step wise
 
 % Adapt Zeeman frequencies for the selected simulation frame
 logmsg(1,'-validating spin system--------------------------------');
+
+if ~isfield(Sys,'S')
+ if isfield(Sys,'ZeemanFreq') && ~isscalar(Sys.ZeemanFreq)
+  error('If you provide more than one value in Sys.ZeemanFreq, Sys.S must be specified');
+ end
+end
+
 if isfield(Sys,'ZeemanFreq') && Opt.FrameShift ~= 0
   logmsg(1,'adapting Sys.ZeemanFreq to the simulation frame');
   Sys.ZeemanFreq =  Sys.ZeemanFreq - Opt.FrameShift;
