@@ -18,7 +18,7 @@ MD = Traj;
 MD.tScale = tScale;
 MD.removeGlobal = 0;
 
-MD.GlobalDiff = 6e6;
+MD.DiffGlobal = 6e6;
 
 % Calculate spectrum using cardamom
 % -------------------------------------------------------------------------

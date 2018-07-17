@@ -170,7 +170,7 @@
 %                    determine states and transitions, used for a Markov
 %                    state model
 %
-%     GlobalDiff     double (optional)
+%     DiffGlobal     double (optional)
 %                    Diffusion coefficient for isotropic global rotational
 %                    diffusion (s^-1)
 %
@@ -346,6 +346,10 @@ if useMD
   end
   MD.dt = tScale*MD.dt;
   
+  if ~isfield(MD,'DiffGlobal')
+    MD.DiffGlobal = [];
+  end
+  
   if ~isfield(MD,'nSteps')
     error('The number of MD trajectory time steps MD.nSteps must be given.')
   end
@@ -516,11 +520,16 @@ end
 % Check dynamics and ordering
 % -------------------------------------------------------------------------
 
+isDiffSim = ~useMD;
+
 FieldSweep = true;
-Dynamics = validate_dynord('cardamom',Sys,FieldSweep);
-DiffLocal = Dynamics.Diff;
-Sys.Diff = DiffLocal;
-tcorr = 1./6./DiffLocal;
+Dynamics = validate_dynord('cardamom',Sys,FieldSweep,isDiffSim);
+
+if isDiffSim
+  DiffLocal = Dynamics.Diff;
+  Sys.Diff = DiffLocal;
+  tcorr = 1./6./DiffLocal;
+end
 
 % Check Par
 % -------------------------------------------------------------------------
@@ -569,7 +578,7 @@ else
   if isfield(Par,'nSteps')
     nSteps = Par.nSteps;
   else
-    nSteps = round(250*max(tcorr)/Par.dt);
+    nSteps = ceil(250e-9/Par.dt);
     logmsg(0,'-- Number of time steps not given. Using %d steps.', nSteps);
   end
   nStepsStoch = nSteps;
@@ -806,7 +815,7 @@ end
 if specCon
   nOrients = ceil(nOrients/2);
   skip = 0;
-  gridPts = 2*sobol_generate(1,nOrients,skip)-1;
+  gridPts = 2*cardamom_sobol_generate(1,nOrients,skip)-1;
   gridPhi = sqrt(pi*nOrients)*asin(gridPts);
   gridTheta = acos(gridPts);
 else
@@ -856,6 +865,13 @@ while ~converged
     
     qLab = repmat(euler2quat(0, gridTheta(iOrient), gridPhi(iOrient)),...
                    [1,Par.nTraj,nStepsQuant]);
+                 
+%     % global diffusion
+%     Sys.Diff = DiffGlobal;
+%     Par.dt = dtQuant;
+%     Par.nSteps = nStepsQuant;
+%     [~, ~, qTrajGlobal] = stochtraj_diffusion(Sys,Par,Opt);
+%     qLab = quatmult(qLab,qTrajGlobal);
 
     switch Model
 
@@ -934,8 +950,8 @@ while ~converged
       case 'Molecular Dynamics'
         
         % global diffusion
-        if isfield(MD, 'GlobalDiff')
-          Sys.Diff = MD.GlobalDiff;
+        if ~isempty(MD.DiffGlobal)
+          Sys.Diff = MD.DiffGlobal;
           Par.dt = dtQuant;
           Par.nSteps = nStepsQuant;
           Opt.statesOnly = 0;
@@ -995,7 +1011,6 @@ while ~converged
     for k = 1:size(Sprho,1)
       iExpectVal{1,iOrient} = iExpectVal{1,iOrient} + squeeze(Sprho(k,k,:));  % take traces TODO try to speed this up using equality tr(A*B)=sum(sum(A.*B))
     end
-%     ExpectVal{1,iOrient} = squeeze(rho(1,1,:,:)+rho(2,2,:,:)+rho(3,3,:,:));  % take traces TODO try to speed this up using equality tr(A*B)=sum(sum(A.*B))
 
     if Opt.Verbosity
       updateuser(iOrient,nOrients)
@@ -1068,8 +1083,8 @@ while ~converged
       if rmsdNew<5e-4
         converged = 1;
       else
-        rmsdPctChange = abs((rmsdNew-rmsdLast)/rmsdLast)
-        converged = rmsdPctChange<10e-2;
+        rmsdPctChange = abs(100*(rmsdNew-rmsdLast)/rmsdLast)
+        converged = rmsdPctChange<10;
       end
     end
 
@@ -1089,7 +1104,7 @@ while ~converged
     skip = iter*nOrientsTot;  % seed Sobol sequence generator for next iteration
     
     nOrients = nOrientsTot;
-    gridPts = 2*sobol_generate(1,nOrients,skip)-1;
+    gridPts = 2*cardamom_sobol_generate(1,nOrients,skip)-1;
     gridPhi = sqrt(pi*nOrients)*asin(gridPts);
     gridTheta = acos(gridPts);
     iter = iter + 1;
@@ -1172,6 +1187,8 @@ end
 
 % Helper functions
 % -------------------------------------------------------------------------
+
+
 
 function [stateTraj,centroids] = clusterDihedrals(dihedrals,nStates)
 

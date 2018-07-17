@@ -35,19 +35,20 @@ Simulation of slow motion CW-EPR spectra in the time domain.
 <div class="subtitle">Syntax</div>
 
 <pre class="matlab">
-[B,spc] = cardamom(Sys,Par,Exp)
-[B,spc,ExpectVal,t] = cardamom(Sys,Par,Exp)
-[...] = cardamom(Sys,Par,Exp,Opt)
-[...] = cardamom(Sys,Par,Exp,Opt,MD)
+[B,spc] = cardamom(Sys,Exp)
+[B,spc,ExpectVal,t] = cardamom(Sys,Exp)
+[...] = cardamom(Sys,Exp,Par)
+[...] = cardamom(Sys,Exp,Par,Opt)
+[...] = cardamom(Sys,Exp,Par,Opt,MD)
 </pre>
 
 <!-- =================================================================== -->
 <div class="subtitle">Description</div>
 
 <p>
-<code>cardamom</code> simulates a CW-EPR spectrum using trajectories of orientations, which are obtained from either stochastic dynamics simulations (SDS) or molecular dynamics simulations (MDS). If SDS are to be used, then <code>cardamom</code> internally calls 
-<a class="esf" href="stochtraj.html"><code>stochtraj</code> </a>
-to simulate the required trajectories based on user input. If MDS are to be used, then <code>cardamom</code> internally calls <code>mdload</code> to process MDS output files for obtaining trajectories.
+<code>cardamom</code> simulates a CW-EPR spectrum using trajectories of orientations, which are obtained from either stochastic dynamics simulations (SDS) or molecular dynamics simulations (MDS). If SDS are to be used, then <code>cardamom</code> uses 
+<a class="esf" href="stochtraj_diffusion.html"><code>stochtraj_diffusion</code> </a> or <a class="esf" href="stochtraj_jump.html"><code>stochtraj_jump</code> </a>
+to simulate the trajectories required to calculate a cw EPR spectrum. If MDS are to be used, then <code>cardamom</code> uses <code>mdload</code> to process MDS output files into rotational trajectories.
 </p>
 
 <p>
@@ -55,8 +56,8 @@ to simulate the required trajectories based on user input. If MDS are to be used
 
 <ul>
 <li><code>Sys</code>: dynamic properties
-<li><code>Par</code>: simulation parameters for quantum propagation
 <li><code>Exp</code>: experimental parameters
+<li><code>Par</code>: simulation parameters for quantum propagation
 <li><code>Opt</code>: simulation options
 <li><code>MD</code>: molecular dynamics parameters
 </ul>
@@ -75,7 +76,7 @@ Up to four output arguments are returned:
 </ul>
 
 <p>
-The first two output arguments <code>B</code> and <code>spc</code> are mandatory, whereas the last two arguments <code>expectval</code> and <code>t</code> are optional.
+The first two output arguments <code>B</code> and <code>spc</code> are mandatory, whereas the last output argument pair <code>ExpectVal</code> and <code>t</code> is optional.
 </p>
 
 <div class="subtitle2">Input: System dynamics </div>
