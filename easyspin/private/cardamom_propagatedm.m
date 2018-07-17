@@ -82,7 +82,9 @@ if ~isempty(MD)
 else
   useMD = 0;
   isMarkov = 0;
-  tauR = 1/6/mean(Sys.Diff);
+  if isfield(Sys,'Diff')       % TODO make this work for jumps and ISTOs
+    tauR = 1/6/mean(Sys.Diff);
+  end
 end
 
 if ~isfield(MD,'RTraj') && (~isfield(Par,'RTraj')||~isfield(Par,'qTraj'))
@@ -542,10 +544,10 @@ switch Method
         if strcmp(Opt.debug.EqProp,'time')
           Ueq = zeros(size(U,1)^2,size(U,2)^2,nTraj);
           for iTraj=1:nTraj
-            Ueq(:,:,iTraj) = expm_fast1(1i*Dt*Heq(:,:,iTraj));
+            Ueq(:,:,iTraj) = expm(1i*Dt*Heq(:,:,iTraj));
           end
         elseif strcmp(Opt.debug.EqProp,'all')
-          Ueq = expm_fast1(1i*Dt*mean(Heq,3));
+          Ueq = expm(1i*Dt*mean(Heq,3));
         end
         Sim.Ueq = Ueq;
 %       else

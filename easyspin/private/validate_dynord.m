@@ -58,8 +58,9 @@ switch program
       if isfield(Sys,'Diff'), Dynamics.Diff = Sys.Diff; end
       if isfield(Sys,'logtcorr'), Dynamics.logtcorr = Sys.logtcorr; end
       if isfield(Sys,'logDiff'), Dynamics.logDiff = Sys.logDiff; end
-      if isfield(Sys,'DiffGlobal'), Dynamics.DiffGlobal = Sys.DiffGlobal; end
     end
+    
+    if isfield(Sys,'DiffGlobal'), Dynamics.DiffGlobal = Sys.DiffGlobal; end
     
     if isfield(Sys,'lwpp'), Dynamics.lwpp = Sys.lwpp; end
     if isfield(Sys,'lw'), Dynamics.lw = Sys.lw; end

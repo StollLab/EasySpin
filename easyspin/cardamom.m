@@ -313,6 +313,11 @@ EasySpinLogLevel = Opt.Verbosity;
 % Check Sys
 % -------------------------------------------------------------------------
 
+if ~isfield(Sys,'Nucs')
+  Sys.Nucs = '14N';
+  logmsg(0,'-- List of nuclei Sys.Nucs not specified. Using Sys.Nucs=''14N'' for a nitroxide spin label.');
+end
+
 [Sys,err] = validatespinsys(Sys);
 error(err);
 
@@ -514,11 +519,25 @@ if useMD
 
 end
 
+% Check local dynamics models
+if ~isfield(Par,'Model'), Par.Model = 'stochastic'; end
+if ~isempty(Par.Model)
+  if ~strcmp(Par.Model,'stochastic') && ~strcmp(Par.Model,'jump') && ~strcmp(Par.Model,'MD')
+    error('Model ''%s'' in Par.Model not recognized.',Par.Model);
+  end
+end
+
 
 % Check dynamics and ordering
 % -------------------------------------------------------------------------
 
-isDiffSim = ~useMD;
+if useMD
+  isDiffSim = strcmp(MD.TrajUsage,'Resampling');
+elseif strcmp(Par.Model,'jump')
+  isDiffSim = false;
+else
+  isDiffSim = true;
+end
 
 FieldSweep = true;
 Dynamics = validate_dynord('cardamom',Sys,FieldSweep,isDiffSim);
@@ -533,18 +552,24 @@ if useMD
   Dynamics.DiffGlobal = MD.DiffGlobal;
 end
 
+if isfield(Sys,'Potential')
+  isLocalPotential = true;
+  LocalPotential = Sys.Potential;
+else
+  isLocalPotential = false;
+end
+
 % Check Par
 % -------------------------------------------------------------------------
 
 % Supply defaults
-if ~isfield(Par,'nTraj')&&useMD==0, Par.nTraj = 100; end
-if ~isfield(Par,'Model'), Par.Model = ''; end
-
-if ~isempty(Par.Model)
-  if ~strcmp(Par.Model,'stochastic') && ~strcmp(Par.Model,'jump') && ~strcmp(Par.Model,'MD')
-    error('Model ''%s'' in Par.Model not recognized.',Par.Model);
-  end
+% default number of trajectories
+if ~isfield(Par,'nTraj')&&useMD==0
+  Par.nTraj = 100; 
+  logmsg(0,'-- Number of trajectories Par.nTraj not given. Using %d trajectories.', Par.nTraj);
 end
+% Supply defaults
+if ~isfield(Par,'nTraj')&&useMD==0, Par.nTraj = 100; end
 
 if isfield(Par,'t')
   % time axis is given explicitly
@@ -581,7 +606,11 @@ elseif isfield(Par,'nSteps') && isfield(Par,'tMax')
   nStepsStoch = round(tMax/Par.dt);
 
 else
-  Par.dt = min(tcorr)/10;
+  if isDiffSim
+    Par.dt = min(tcorr)/10;
+  elseif strcmp(Par.Model,'jump') && ~isfield(Par,'dt')
+    error('The time step Par.dt must be specified for a jump simulation.')
+  end
   Par.Dt = Par.dt;
   logmsg(0,'-- No time parameters given. Using time step of %0.5g s.', Par.dt);
   if isfield(Par,'nSteps')
@@ -752,7 +781,7 @@ switch LocalDynamicsModel
   case 'MD' % TODO process RTraj based on size of input
     
     if ~isfield(Par,'nOrients')
-      error('nOrients must be specified for the Molecular Dynamics model.')
+      error('nOrients must be specified for the MD model.')
     end
     
     if strcmp(Opt.Method, 'ISTOs')
@@ -783,12 +812,12 @@ switch LocalDynamicsModel
           [pdf, ~] = histcnd([phi,theta,psi], {phiBins,thetaBins,psiBins});
 
           pdf(end,:,:) = pdf(1,:,:);  % FIXME why does it truncate to zero in the phi direction?
-          pdf = smoothn(pdf);
+          pdf = smooth3(pdf,'gaussian');
+          pdf(pdf<1e-10) = 1e-10;  % put a finite floor on histogram
+          Sys.Potential = -log(pdf);
+%           pdf = smoothn(pdf);
       end
     end
-
-  otherwise
-    error('Model ''%s'' not recognized. Please check the documentation for acceptable models.',LocalDynamicsModel)
     
 end
 
@@ -850,13 +879,15 @@ while ~converged
   itCell = cell(1,nOrients);
 
   for iOrient = 1:nOrients
-    
     % Generate trajectory of local dynamics
     switch LocalDynamicsModel
       
       case 'stochastic'
         
         Sys.Diff = Dynamics.Diff;
+        if isLocalPotential
+          Sys.Potential = LocalPotential;
+        end
         Par.dt = dtStoch;
         Par.nSteps = nStepsStoch;
         [~, RTrajLocal, qTrajLocal] = stochtraj_diffusion(Sys,Par,Opt);
@@ -883,6 +914,9 @@ while ~converged
             
             Sys.ProbDensFun = pdf;
             Sys.Diff = DiffLocal;
+            if isLocalPotential
+              Sys.Potential = LocalPotential;
+            end
             Par.dt = dtStoch;
             Par.nSteps = nStepsStoch;
             [~, RTrajLocal, qTrajLocal] = stochtraj_diffusion(Sys,Par,Opt);
@@ -909,9 +943,11 @@ while ~converged
     
     % Generate trajectory of global dynamics
     includeGlobalDynamics = ~isempty(Dynamics.DiffGlobal);
-    if includGlobalDynamics
+    if includeGlobalDynamics
       Sys.Diff = Dynamics.DiffGlobal;
-      Sys.PseudoPotFun = [];
+     if isLocalPotential
+       Sys.Potential = LocalPotential;
+     end
       Par.dt = dtQuant;
       Par.nSteps = nStepsQuant;
       [~, ~, qTrajGlobal] = stochtraj_diffusion(Sys,Par,Opt);
@@ -920,7 +956,7 @@ while ~converged
     % Combine global trajectories with starting orientations
     qLab = repmat(euler2quat(0, gridTheta(iOrient), gridPhi(iOrient)),...
       [1,Par.nTraj,nStepsQuant]);
-    if includGlobalDynamics
+    if includeGlobalDynamics
       qLab = quatmult(qLab,qTrajGlobal);
     end
     
