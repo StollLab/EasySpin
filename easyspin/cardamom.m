@@ -27,6 +27,9 @@
 %         All fields can have 1 (isotropic), 2 (axial) or 3 (rhombic) elements.
 %         Precedence: logtcorr > tcorr > logDiff > Diff.
 %
+%     DiffGlobal     double or numeric vector, size = (1,3)
+%                    global diffusion rate (s^-1)
+%
 %     Potential      defines an orienting potential using one of the following:
 %
 %                    a) set of LMKs and lambdas for an expansion in terms of
@@ -85,12 +88,7 @@
 %                    orientations, if not given, these are chosen as points
 %                    on a spherical spiral grid
 %
-%     Model          string
-%                    Brownian
-%                    MOMD
-%                    SRLS
-%                    Jump
-%                    Molecular Dynamics
+%     Model          string: 'stochastic', 'jump', 'MD'
 %
 %
 %   Exp: experimental parameter settings
@@ -531,11 +529,22 @@ if isDiffSim
   tcorr = 1./6./DiffLocal;
 end
 
+if useMD
+  Dynamics.DiffGlobal = MD.DiffGlobal;
+end
+
 % Check Par
 % -------------------------------------------------------------------------
 
-% default number of trajectories
+% Supply defaults
 if ~isfield(Par,'nTraj')&&useMD==0, Par.nTraj = 100; end
+if ~isfield(Par,'Model'), Par.Model = ''; end
+
+if ~isempty(Par.Model)
+  if ~strcmp(Par.Model,'stochastic') && ~strcmp(Par.Model,'jump') && ~strcmp(Par.Model,'MD')
+    error('Model ''%s'' in Par.Model not recognized.',Par.Model);
+  end
+end
 
 if isfield(Par,'t')
   % time axis is given explicitly
@@ -592,8 +601,8 @@ dtStoch = Par.dt;
 if useMD
   if ~isfield(Par,'Model')
     % no Model given
-    Par.Model = 'Molecular Dynamics';
-  elseif ~strcmp(Par.Model,'Molecular Dynamics')
+    Par.Model = 'MD';
+  elseif ~strcmp(Par.Model,'MD')
     error('Mixing stochastic simulations with MD simulation input is not supported.')
   end
   
@@ -642,24 +651,8 @@ else
   % no MD simulation trajectories provided, so perform stochastic dynamics
   % simulations internally
   
-  if isfield(Par,'Model')
-    
-    if strcmp(Par.Model,'Brownian') && isfield(Sys,'Potential')
-      error(['Conflicting inputs: Par.Model is set to "Brownian", but '...
-            'an orientational potential been declared in Sys.Potential.'])
-    elseif strcmp(Par.Model,'MOMD') && ~isfield(Sys,'Potential')
-      error('A MOMD model was selected, but Sys.Potential was not given.')
-    end
-    
-  else
-    % no Model given
-    
-    if isfield(Sys,'Potential')
-      Par.Model = 'MOMD';
-    else
-      Par.Model = 'Brownian';
-    end
-
+  if ~isfield(Par,'Model')
+    Par.Model = 'stochastic';
   end
   
   % check for time coarse-graining (time block averaging)
@@ -673,12 +666,16 @@ else
     
 end
 
-Model = Par.Model;
+LocalDynamicsModel = Par.Model;
 
 % Check Exp
 % -------------------------------------------------------------------------
 
-[Exp, CenterField] = validate_exp('cardamom',Sys,Exp);
+[Exp,FieldSweep,CenterField,CenterFreq,Sweep] = validate_exp('cardamom',Sys,Exp);
+
+if ~FieldSweep
+  error('cardamom does not support frequency sweeps.');  % TODO expand usage to include frequency sweep
+end
 
 omega = 2*pi*Exp.mwFreq*1e9;  % GHz -> rad s^-1
 
@@ -688,7 +685,6 @@ else
   SampleOrientation = [];
 end
 
-FieldSweep = true;  % TODO expand usage to include frequency sweep
 
 % set up horizontal sweep axis
 xAxis = linspace(Exp.Range(1),Exp.Range(2),Exp.nPoints);  % field axis, mT
@@ -744,21 +740,16 @@ else
 end
 
 
-% Check Model
+% Check model for local diffusion
 % -------------------------------------------------------------------------
-
-switch Model
-  case {'Brownian','MOMD','Jump'}
-    
-  case 'SRLS'
+switch LocalDynamicsModel
+  case 'stochastic'
     
     DiffLocal = Dynamics.Diff;
-    DiffGlobal = 6e6;
-    if isfield(Sys, 'PseudoPotFun')
-      PseudoPotFunLocal = Sys.PseudoPotFun;
-    end
+  
+  case 'jump'
     
-  case 'Molecular Dynamics' % TODO process RTraj based on size of input
+  case 'MD' % TODO process RTraj based on size of input
     
     if ~isfield(Par,'nOrients')
       error('nOrients must be specified for the Molecular Dynamics model.')
@@ -768,7 +759,7 @@ switch Model
       % this method uses quaternions, not rotation matrices, so convert
       % MD.RTraj to quaternions here before the simulation loop
       MD.qTraj = rotmat2quat(MD.RTraj);
-      clear MD.RTraj
+      MD.RTraj = [];
     end
     
     if ~strcmp(MD.TrajUsage,'Explicit')
@@ -797,7 +788,7 @@ switch Model
     end
 
   otherwise
-    error('Model not recognized. Please check the documentation for acceptable models.')
+    error('Model ''%s'' not recognized. Please check the documentation for acceptable models.',LocalDynamicsModel)
     
 end
 
@@ -831,10 +822,8 @@ else
 end
 
 logmsg(1,'-- time domain simulation -----------------------------------------');
-
-logmsg(1, '-- Model: %s -----------------------------------------', Model);
-
-logmsg(1, '-- Method: %s -----------------------------------------', Opt.Method);
+logmsg(1,'-- Model: %s -----------------------------------------', LocalDynamicsModel);
+logmsg(1,'-- Method: %s -----------------------------------------', Opt.Method);
 
 % Run simulation
 % -------------------------------------------------------------------------
@@ -861,173 +850,122 @@ while ~converged
   itCell = cell(1,nOrients);
 
   for iOrient = 1:nOrients
-    % generate/process trajectories
     
-    qLab = repmat(euler2quat(0, gridTheta(iOrient), gridPhi(iOrient)),...
-                   [1,Par.nTraj,nStepsQuant]);
-                 
-%     % global diffusion
-%     Sys.Diff = DiffGlobal;
-%     Par.dt = dtQuant;
-%     Par.nSteps = nStepsQuant;
-%     [~, ~, qTrajGlobal] = stochtraj_diffusion(Sys,Par,Opt);
-%     qLab = quatmult(qLab,qTrajGlobal);
-
-    switch Model
-
-      case 'Brownian'
+    % Generate trajectory of local dynamics
+    switch LocalDynamicsModel
+      
+      case 'stochastic'
         
         Sys.Diff = Dynamics.Diff;
-        Par.dt = dtStoch;
-        Par.nSteps = nStepsStoch;
-        [~, RTraj, qTraj] = stochtraj_diffusion(Sys,Par,Opt);
-        Par.qTraj = qTraj;
-        Par.RTraj = RTraj;
-        Par.qLab = [];
-        Par.RLab = [];
-
-      case 'MOMD'
-        
-        Sys.Diff = Dynamics.Diff;
-        Par.dt = dtStoch;
-        Par.nSteps = nStepsStoch;
-        [~, RTraj, qTraj] = stochtraj_diffusion(Sys,Par,Opt);
-        
-        if strcmp(Opt.Method,'ISTOs')
-          Par.qLab = qLab;
-        else
-          Par.RLab = quat2rotmat(qLab);
-        end
-        
-        Par.qTraj = qTraj;
-        Par.RTraj = RTraj;
-
-      case 'SRLS'
-        
-        % local diffusion
-        Sys.Diff = DiffLocal;
-        if isfield(Sys, 'PseudoPotFun')
-          Sys.PseudoPotFun = PseudoPotFunLocal;
-        end
         Par.dt = dtStoch;
         Par.nSteps = nStepsStoch;
         [~, RTrajLocal, qTrajLocal] = stochtraj_diffusion(Sys,Par,Opt);
-
-        % global diffusion
-        Sys.Diff = DiffGlobal;
-        if isfield(Sys, 'PseudoPotFun')
-          Sys.PseudoPotFun = [];
-        end
-        Par.dt = dtQuant;
-        Par.nSteps = nStepsQuant;
-        [~, ~, qTrajGlobal] = stochtraj_diffusion(Sys,Par,Opt);
-        qLab = quatmult(qLab,qTrajGlobal);
         
-        Par.qTraj = qTrajLocal;
-        Par.RTraj = RTrajLocal;
-        Par.qLab = qLab;
-        Par.RLab = quat2rotmat(qLab);
+      case 'jump'
         
-      case 'Jump'
-             
-        % Markovian jumps
         Par.dt = dtStoch;
         Par.nSteps = nStepsStoch;
-        [~, qTrajLocal] = stochtraj_jump(Sys,Par,Opt);
+        [~, RTrajLocal, qTrajLocal] = stochtraj_jump(Sys,Par,Opt);
         
-        % global diffusion
-        Sys.Diff = DiffGlobal;
-        Par.dt = dtQuant;
-        Par.nSteps = nStepsQuant;
-        [~, ~, qTrajGlobal] = stochtraj_diffusion(Sys,Par,Opt);
-        qLab = quatmult(qLab,qTrajGlobal);
-        
-        Par.qTraj = qTrajLocal;
-        Par.RTraj = quat2rotmat(qTrajLocal);
-        Par.qLab = qLab;
-        Par.RLab = quat2rotmat(qLab);
-        
-      case 'Molecular Dynamics'
-        
-        % global diffusion
-        if ~isempty(MD.DiffGlobal)
-          Sys.Diff = MD.DiffGlobal;
-          Par.dt = dtQuant;
-          Par.nSteps = nStepsQuant;
-          Opt.statesOnly = 0;
-          [~, ~, qTrajGlobal] = stochtraj_diffusion(Sys,Par,Opt);
-          qLab = quatmult(qLab, qTrajGlobal);
-        end
+      case 'MD'
         
         switch MD.TrajUsage
           case 'Explicit'
-
+            
+            RTrajLocal = MD.RTraj;
+            if isfield(MD,'qTraj')
+              qTrajLocal = MD.qTraj;
+            else
+              qTrajLocal = rotmat2quat(MD.RTraj);
+            end
+            
           case 'Resampling'
-
+            
             Sys.ProbDensFun = pdf;
             Sys.Diff = DiffLocal;
             Par.dt = dtStoch;
             Par.nSteps = nStepsStoch;
-            [~, RTraj, qTraj] = stochtraj_diffusion(Sys,Par,Opt);
-
-            Par.qTraj = qTraj;
-            Par.RTraj = RTraj;
+            [~, RTrajLocal, qTrajLocal] = stochtraj_diffusion(Sys,Par,Opt);
             
           case 'Markov'
-
+            
             Sys.States0 = rejectionsample(MD.nStates, prior1, Par.nTraj);
             Sys.TransProb = transmat1.';
             Par.dt = dtStoch;
             Par.nSteps = nStepsStoch;
-            Opt.statesOnly = 1;
+            Opt.statesOnly = true;
             [~, stateTraj] = stochtraj_jump(Sys,Par,Opt);
             
-            Par.RTraj = MD.RTraj(:,:,1,1:nLag:end);
+            RTrajLocal = MD.RTraj(:,:,1,1:nLag:end);
+            qTrajLocal = rotmat2quat(Par.RTraj);
             Par.stateTraj = stateTraj;
             
         end
         
-        if strcmp(Opt.Method,'ISTOs')
-          Par.qLab = qLab;
-        else
-          Par.RLab = quat2rotmat(qLab);
-        end
-
     end
-
+    
+    Par.qTraj = qTrajLocal;
+    Par.RTraj = RTrajLocal;
+    
+    % Generate trajectory of global dynamics
+    includeGlobalDynamics = ~isempty(Dynamics.DiffGlobal);
+    if includGlobalDynamics
+      Sys.Diff = Dynamics.DiffGlobal;
+      Sys.PseudoPotFun = [];
+      Par.dt = dtQuant;
+      Par.nSteps = nStepsQuant;
+      [~, ~, qTrajGlobal] = stochtraj_diffusion(Sys,Par,Opt);
+    end
+    
+    % Combine global trajectories with starting orientations
+    qLab = repmat(euler2quat(0, gridTheta(iOrient), gridPhi(iOrient)),...
+      [1,Par.nTraj,nStepsQuant]);
+    if includGlobalDynamics
+      qLab = quatmult(qLab,qTrajGlobal);
+    end
+    
+    Par.qLab = qLab;
+    Par.RLab = quat2rotmat(qLab);
+    
+    if strcmp(Opt.Method,'ISTOs')
+      Par.qLab = qLab;
+    else
+      Par.RLab = quat2rotmat(qLab);
+    end
+    
     % propagate the density matrix
     Par.nSteps = nStepsQuant;
     Par.Dt = dtQuant;
     Par.dt = dtStoch;
     Sprho = cardamom_propagatedm(Sys,Par,Opt,MD,omega,CenterField);
-
+    
     % average over trajectories
     if strcmp(Opt.debug.EqProp,'time')
       Sprho = squeeze(mean(Sprho,3));
     end
-
+    
     iExpectVal{1,iOrient} = 0;
     % calculate the expectation value of S_{+}
     for k = 1:size(Sprho,1)
       iExpectVal{1,iOrient} = iExpectVal{1,iOrient} + squeeze(Sprho(k,k,:));  % take traces TODO try to speed this up using equality tr(A*B)=sum(sum(A.*B))
     end
-
+    
     if Opt.Verbosity
       updateuser(iOrient,nOrients)
     end
-
+    
     itCell{1,iOrient} = t.';
     
     iOrient = iOrient + 1;
-
+    
   end
 
   % Store simulations at new starting orientations from each iteration
   ExpectVal = cat(2, ExpectVal, iExpectVal);
   tCell = cat(2, tCell, itCell);
 
-% Perform FFT
-% -------------------------------------------------------------------------
+  % Perform FFT
+  % -------------------------------------------------------------------------
 
   % windowing
   if FFTWindow
@@ -1119,12 +1057,10 @@ while ~converged
 
 end
 
-clear RTraj
-clear RTrajInv
-clear qTraj
+clear RTraj RTrajInv qTraj
 % Par = rmfield(Par,{'RTraj','qTraj'});
 
-if strcmp(Model, 'Molecular Dynamics')
+if strcmp(LocalDynamicsModel, 'Molecular Dynamics')
   % these variables can take up a lot of memory and might prevent the user 
   % from implementing a fine enough grid for powder averaging 
   clear MD

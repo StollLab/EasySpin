@@ -51,11 +51,14 @@ switch program
 %     if ~isfield(Sys,'Exchange'), Sys.Exchange = 0; end
 %     if ~isfield(Sys,'lambda'), Sys.lambda = []; end
 
+    if ~isfield(Sys,'DiffGlobal'), Sys.DiffGlobal = []; end
+
     if isDiffSim
       if isfield(Sys,'tcorr'), Dynamics.tcorr = Sys.tcorr; end  % TODO process and feed to stochtraj?
       if isfield(Sys,'Diff'), Dynamics.Diff = Sys.Diff; end
       if isfield(Sys,'logtcorr'), Dynamics.logtcorr = Sys.logtcorr; end
       if isfield(Sys,'logDiff'), Dynamics.logDiff = Sys.logDiff; end
+      if isfield(Sys,'DiffGlobal'), Dynamics.DiffGlobal = Sys.DiffGlobal; end
     end
     
     if isfield(Sys,'lwpp'), Dynamics.lwpp = Sys.lwpp; end

@@ -16,7 +16,7 @@ Sys.lw = [0.0, 0.1];
 Par.dt = 1e-9;
 Par.nSteps = ceil(150e-9/Par.dt);
 Par.nTraj = 50;
-Par.Model = 'Brownian';
+Par.Model = 'stochastic';
 
 Exp.mwFreq = 9.4;
 

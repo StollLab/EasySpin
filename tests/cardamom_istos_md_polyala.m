@@ -37,7 +37,7 @@ Par.nTraj = 100;
 Par.dt = 2.0e-9;
 Par.nSteps = ceil(T/Par.dt);
 Par.nOrients = 100;
-Par.Model = 'Molecular Dynamics';
+Par.Model = 'MD';
 
 Exp.mwFreq = 9.4;
 
