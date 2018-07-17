@@ -272,6 +272,10 @@ function varargout = cardamom(Sys,Exp,Par,Opt,MD)
 switch nargin
   case 0
     help(mfilename); return;
+  case 2 % Par, Opt, and MD not specified, initialize them
+    Par = [];
+    Opt = [];
+    MD = [];
   case 3 % Opt and MD not specified, initialize them
     Opt = [];
     MD = [];
@@ -398,7 +402,8 @@ if useMD
     % use lag time to sample the trajectory of dihedral angles such that 
     % that the result is Markovian
     nLag = ceil(MD.tLag/MD.dt);
-    MD.dihedrals = MD.dihedrals(1:nLag:end,:);
+    MD.dihedrals = MD.dihedrals(:,:,1:nLag:end);
+    MD.dihedrals = permute(MD.dihedrals,[3,1,2]);
 
     % set the Markov chain time step based on the sampling lag time
     Par.dt = tScale*MD.tLag;
@@ -431,28 +436,31 @@ if useMD
     prior0 = MD.stateTraj(randints);
     transmat0 = calc_TPM(MD.stateTraj,MD.nStates).';
     
-    % check if transmat0 is positive definite
-    [~,isNotPosDef] = chol(transmat0);
-    if isNotPosDef
-      transmat0 = sqrtm(transmat0'*transmat0);
-    end
+%     % check if transmat0 is positive definite
+%     [~,isNotPosDef] = chol(transmat0);
+%     if isNotPosDef
+%       transmat0 = sqrtm(transmat0'*transmat0);
+%     end
 
     checkEmptyTrans = 1;
     ProbRatioThresh = 1e-3;  % threshold in probability ratio for finding 
                              % rarely visited states
     while checkEmptyTrans
       % run expectation-maximization algorithm on HMM model parameters
-      ModelIn.prior = prior0;
-      ModelIn.transmat = transmat0;
-      ModelIn.mu = mu0;
-      ModelIn.Sigma = Sigma0;
-
-      [~, ModelOut] = cardamom_emghmm(MD.dihedrals, ModelIn, 20);
-
-      prior1 = ModelOut.prior;
-      transmat1 = ModelOut.transmat;
-      mu1 = ModelOut.mu;
-      Sigma1 = ModelOut.Sigma;
+%       ModelIn.prior = prior0;
+%       ModelIn.transmat = transmat0;
+%       ModelIn.mu = mu0;
+%       ModelIn.Sigma = Sigma0;
+% 
+%       [~, ModelOut] = cardamom_emghmm(MD.dihedrals, ModelIn, 20);
+% 
+%       prior1 = ModelOut.prior;
+%       transmat1 = ModelOut.transmat;
+%       mu1 = ModelOut.mu;
+%       Sigma1 = ModelOut.Sigma;
+      
+[LL, prior1, transmat1, mu1, Sigma1, mixmat1] = ...
+    mhmm_em(MD.dihedrals.', prior0, transmat0, mu0, Sigma0, mixmat0, 'max_iter', 20);
       
       nStates = size(transmat1,1);
       EmptyTransList = zeros(nStates,1);
@@ -498,11 +506,21 @@ if useMD
   % these variables could be huge and are no longer needed, so delete them 
   % now
   MD = rmfield(MD, 'FrameTraj');
-  MD = rmfield(MD, 'FrameTrajwrtProt');
-  MD = rmfield(MD, 'RProtDiff');
+%   MD = rmfield(MD, 'FrameTrajwrtProt');
+%   MD = rmfield(MD, 'RProtDiff');
   clear RTrajInv
 
 end
+
+
+% Check dynamics and ordering
+% -------------------------------------------------------------------------
+
+FieldSweep = true;
+Dynamics = validate_dynord('cardamom',Sys,FieldSweep);
+DiffLocal = Dynamics.Diff;
+Sys.Diff = DiffLocal;
+tcorr = 1./6./DiffLocal;
 
 % Check Par
 % -------------------------------------------------------------------------
@@ -545,8 +563,17 @@ elseif isfield(Par,'nSteps') && isfield(Par,'tMax')
   nStepsStoch = round(tMax/Par.dt);
 
 else
-  error(['You must specify a time array Par.t, or a number of steps '...
-         'Par.nSteps and either a time step Par.dt or total time Par.tMax.'])
+  Par.dt = min(tcorr)/10;
+  Par.Dt = Par.dt;
+  logmsg(0,'-- No time parameters given. Using time step of %0.5g s.', Par.dt);
+  if isfield(Par,'nSteps')
+    nSteps = Par.nSteps;
+  else
+    nSteps = round(250*max(tcorr)/Par.dt);
+    logmsg(0,'-- Number of time steps not given. Using %d steps.', nSteps);
+  end
+  nStepsStoch = nSteps;
+  nStepsQuant = nSteps;
 end
 
 dtQuant = Par.Dt;
@@ -646,6 +673,12 @@ Model = Par.Model;
 
 omega = 2*pi*Exp.mwFreq*1e9;  % GHz -> rad s^-1
 
+if isfield(Exp,'SampleOrientation')
+  SampleOrientation = Exp.SampleOrientation;
+else
+  SampleOrientation = [];
+end
+
 FieldSweep = true;  % TODO expand usage to include frequency sweep
 
 % set up horizontal sweep axis
@@ -701,13 +734,8 @@ else
   end
 end
 
-% Check dynamics and ordering
-% -------------------------------------------------------------------------
 
-Dynamics = validate_dynord('cardamom',Sys,FieldSweep);
-Sys.Diff = Dynamics.Diff;
-
-% Generate grids for powder averaging in the lab frame and check Model
+% Check Model
 % -------------------------------------------------------------------------
 
 switch Model
@@ -764,10 +792,15 @@ switch Model
     
 end
 
+
+% Generate grids for powder averaging in the lab frame
+% -------------------------------------------------------------------------
+
 if isfield(Par,'nOrients')
   nOrients = Par.nOrients;
 else
   nOrients = Par.nTraj;
+  logmsg(0,'-- Par.nOrients not specified. Using %d orientations.', nOrients);
 end
 
 if specCon
@@ -819,8 +852,11 @@ while ~converged
   itCell = cell(1,nOrients);
 
   for iOrient = 1:nOrients
-
     % generate/process trajectories
+    
+    qLab = repmat(euler2quat(0, gridTheta(iOrient), gridPhi(iOrient)),...
+                   [1,Par.nTraj,nStepsQuant]);
+
     switch Model
 
       case 'Brownian'
@@ -835,9 +871,6 @@ while ~converged
         Par.RLab = [];
 
       case 'MOMD'
-
-        qLab = repmat(euler2quat(0, gridTheta(iOrient), gridPhi(iOrient)),...
-                       [1,Par.nTraj,nStepsQuant]);
         
         Sys.Diff = Dynamics.Diff;
         Par.dt = dtStoch;
@@ -854,9 +887,6 @@ while ~converged
         Par.RTraj = RTraj;
 
       case 'SRLS'
-        
-        qLab = repmat(euler2quat(0, gridTheta(iOrient), gridPhi(iOrient)),...
-               [1,Par.nTraj,nStepsQuant]);
         
         % local diffusion
         Sys.Diff = DiffLocal;
@@ -883,9 +913,6 @@ while ~converged
         Par.RLab = quat2rotmat(qLab);
         
       case 'Jump'
-        
-        qLab = repmat(euler2quat(0, gridTheta(iOrient), gridPhi(iOrient)),...
-               [1,Par.nTraj,nStepsQuant]);
              
         % Markovian jumps
         Par.dt = dtStoch;
@@ -906,29 +933,20 @@ while ~converged
         
       case 'Molecular Dynamics'
         
+        % global diffusion
+        if isfield(MD, 'GlobalDiff')
+          Sys.Diff = MD.GlobalDiff;
+          Par.dt = dtQuant;
+          Par.nSteps = nStepsQuant;
+          Opt.statesOnly = 0;
+          [~, ~, qTrajGlobal] = stochtraj_diffusion(Sys,Par,Opt);
+          qLab = quatmult(qLab, qTrajGlobal);
+        end
+        
         switch MD.TrajUsage
           case 'Explicit'
-            qLab = repmat(euler2quat(0, gridTheta(iOrient), gridPhi(iOrient)),...
-                           [1,Par.nTraj,nStepsQuant]);
-
-            % global diffusion
-            if isfield(MD, 'GlobalDiff')
-              Sys.Diff = MD.GlobalDiff;
-              Par.dt = dtQuant;
-              Par.nSteps = nStepsQuant;  % TODO find a way to set this up with a separate time step properly
-              [~, ~, qTrajGlobal] = stochtraj_diffusion(Sys,Par,Opt);
-              qLab = quatmult(qLab, qTrajGlobal);
-            end
-
-            if strcmp(Opt.Method,'ISTOs')
-              Par.qLab = qLab;
-            else
-              Par.RLab = quat2rotmat(qLab);
-            end
 
           case 'Resampling'
-            qLab = repmat(euler2quat(0, gridTheta(iOrient), gridPhi(iOrient)),...
-                           [1,Par.nTraj,Par.nSteps]);
 
             Sys.ProbDensFun = pdf;
             Sys.Diff = DiffLocal;
@@ -936,44 +954,27 @@ while ~converged
             Par.nSteps = nStepsStoch;
             [~, RTraj, qTraj] = stochtraj_diffusion(Sys,Par,Opt);
 
-            % global diffusion
-            if isfield(MD, 'GlobalDiff')
-              Sys.Diff = MD.GlobalDiff;
-              Par.dt = dtQuant;
-              Par.nSteps = nStepsQuant;
-              [~, ~, qTrajGlobal] = stochtraj_diffusion(Sys,Par,Opt);
-              qLab = quatmult(qLab, qTrajGlobal);
-            end
-
             Par.qTraj = qTraj;
             Par.RTraj = RTraj;
-
-            Par.qLab = qLab;
-            Par.RLab = quat2rotmat(qLab);
             
           case 'Markov'
-            qLab = repmat(euler2quat(0, gridTheta(iOrient), gridPhi(iOrient)),...
-                           [1,Par.nTraj,nStepsQuant]);
 
             Sys.States0 = rejectionsample(MD.nStates, prior1, Par.nTraj);
             Sys.TransProb = transmat1.';
             Par.dt = dtStoch;
             Par.nSteps = nStepsStoch;
+            Opt.statesOnly = 1;
             [~, stateTraj] = stochtraj_jump(Sys,Par,Opt);
-            
-           % global diffusion
-            if isfield(MD, 'GlobalDiff')
-              Sys.Diff = MD.GlobalDiff;
-              Par.dt = dtQuant;
-              Par.nSteps = nStepsQuant;
-              [~, ~, qTrajGlobal] = stochtraj_diffusion(Sys,Par,Opt);
-              qLab = quatmult(qLab, qTrajGlobal);
-            end
             
             Par.RTraj = MD.RTraj(:,:,1,1:nLag:end);
             Par.stateTraj = stateTraj;
-            Par.qLab = qLab;
-            Par.RLab = quat2rotmat(qLab);
+            
+        end
+        
+        if strcmp(Opt.Method,'ISTOs')
+          Par.qLab = qLab;
+        else
+          Par.RLab = quat2rotmat(qLab);
         end
 
     end
@@ -1006,29 +1007,15 @@ while ~converged
 
   end
 
-  % Trajectory averaging and statistics
-%   ExpectVal = [ExpectVal, cellfun(@(x) mean(x,1).', iExpectVal, 'UniformOutput', false)];
-
   % Store simulations at new starting orientations from each iteration
   ExpectVal = cat(2, ExpectVal, iExpectVal);
   tCell = cat(2, tCell, itCell);
-
-%   if iter==1
-%     expectval = cellfun(@(x) mean(x,1).', iexpectval, 'UniformOutput', false);
-%     tcell = itcell;
-%   else
-%     expectval = [expectval, cellfun(@(x) mean(x,1).', iexpectval, 'UniformOutput', false)];
-%     tcell = [tcell, itcell];
-%   end
-  
-% end
 
 % Perform FFT
 % -------------------------------------------------------------------------
 
   % windowing
   if FFTWindow
-  %   hamm = 0.54 + 0.46*cos(pi*t/max(t));
     hamming = cellfun(@(x) 0.54 + 0.46*cos(pi*x/max(x)), tCell, 'UniformOutput', false);
     hann = cellfun(@(x) 0.5*(1 + cos(pi*x/max(x))), tCell, 'UniformOutput', false);
     Window = hann;
@@ -1045,9 +1032,8 @@ while ~converged
   % if max(t)<treq
   tMax = max(cellfun(@(x) max(x), tCell));
   if tMax<tReq
-    M = ceil(tReq/Par.Dt);  % TODO make flexible for propagation length extensions
+    M = ceil(tReq/Par.Dt);
   else
-  %   M = length(expectval);
     M = ceil(tMax/Par.Dt);
   end
   ExpectVal = cell2mat(cellfun(@(x) zeropad(x, M), ExpectVal, 'UniformOutput', false));
@@ -1060,22 +1046,13 @@ while ~converged
       w = mt2mhz(Sys.lw(1))*1e6;  % FWHM in Hz
       alpha = pi^2*w^2/(4*log(2));
       ExpectVal = exp(-alpha*tLong.^2).*ExpectVal;
-  %     GaussBroad = cellfun(@(x) exp(-x.^2/TG.^2/8), tcell, 'UniformOutput', false);
-  %     expectval = cellfun(@times, expectval, GaussBroad, 'UniformOutput', false);
     end
     if numel(Sys.lw)==2
       % Lorentzian broadening
       TL = Dynamics.T2; 
       ExpectVal = exp(-tLong/TL).*ExpectVal;
-  %     LorentzBroad = cellfun(@(x) exp(-x/TL), tcell, 'UniformOutput', false);
-  %     expectval = cellfun(@times, expectval, LorentzBroad, 'UniformOutput', false);
     end
   end
-
-  % expectDt = cellfun(@times, expectval, tcell, 'UniformOutput', false);
-
-  % spc = reshape(cell2mat(cellfun(@(x) fft(x,M), expectDt, 'UniformOutput', false)),...
-  %               [M,nOrients]);
   
   % Multiply by t for differentiation and take the FFT
   spcArray = cat(2, spcArray, imag(fftshift(fft(ExpectVal.*tLong, [], 1))));
@@ -1084,7 +1061,6 @@ while ~converged
   if specCon
     if iter==1
       spcLast = spcNew;
-%       spread = std(spcArray,[],2);
       rmsdNew = 1;
     else
       span = max(spcNew)-min(spcNew);
@@ -1096,11 +1072,7 @@ while ~converged
         converged = rmsdPctChange<10e-2;
       end
     end
-%     if iter == 1
-%       runningAvg = [];
-%     end
-%     gr = grstat(real(ExpectValArray));
-%     converged = all(gr(:)<1.1);
+
   else
     converged = 1;
   end

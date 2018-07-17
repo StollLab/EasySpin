@@ -101,7 +101,8 @@ q3 = cos(beta/2).*sin((gamma+alpha)/2);
 
 q = [q0; q1; q2; q3];
 
-% since q=-q, arbitrarily define q0 as always positive
+% since q and -q give the same transformation, arbitrarily define q0 as 
+% always positive
 
 Index = cell(1, ndims(q));
 Index(:) = {':'};

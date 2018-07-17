@@ -24,7 +24,7 @@ Opt.Verbosity = 0;
 Opt.Method = 'Nitroxide';
 Opt.speccon = 1;
 
-[Bcard,ycard] = cardamom(Sys,Par,Exp,Opt);
+[Bcard,ycard] = cardamom(Sys,Exp,Par,Opt);
 
 ycard = ycard/max(ycard);
 
@@ -42,14 +42,7 @@ rmsd = sqrt(mean((ycard-ychili).^2));
 
 if rmsd < 0.2
   err = 0;
-%   figure
-% 
-%   plot(Bcard, ycard, Bchili, ychili)
-%   ylim([-1.1,1.1])
-%   ylabel('Im(FFT(M_{+}(t)))')
-%   xlabel('B (mT)')
-%   legend('cardamom','chili')
-%   hold off
+
 else
   err = 1;
   figure
