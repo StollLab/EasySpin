@@ -587,7 +587,7 @@ if doPostConvolution
   end
   fullSys = Sys;
   Sys = nucspinrmv(Sys,Opt.PostConvNucs);
-  Sys.processed = 0;
+  Sys.processed = false;
   [Sys,err] = validatespinsys(Sys);
   error(err);
 end
