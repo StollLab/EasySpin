@@ -510,11 +510,6 @@ if useMD
   DiffLocal = 1/6/tauR;
   MD.tauR = tauR;
 
-  % these variables could be huge and are no longer needed, so delete them 
-  % now
-  MD = rmfield(MD, 'FrameTraj');
-%   MD = rmfield(MD, 'FrameTrajwrtProt');
-%   MD = rmfield(MD, 'RProtDiff');
   clear RTrajInv
 
 end
@@ -795,8 +790,8 @@ switch LocalDynamicsModel
 %     if strcmp(Opt.Method, 'ISTOs')
 %       % this method uses quaternions, not rotation matrices, so convert
 %       % MD.RTraj to quaternions here before the simulation loop
-    qTrajLocal = rotmat2quat(MD.RTraj);
     RTrajLocal = MD.RTraj;
+    qTrajLocal = rotmat2quat(MD.RTraj);
     
     if ~strcmp(MD.TrajUsage,'Explicit')
       switch MD.TrajUsage
@@ -804,9 +799,12 @@ switch LocalDynamicsModel
           M = MDTrajLength;
 
           % calculate orienting potential energy function
-          theta = squeeze(acos(MD.FrameZ(3,:,:,1:M)));
-          phi = squeeze(atan2(MD.FrameY(3,:,:,1:M), MD.FrameX(3,:,:,1:M)));
-          psi = squeeze(atan2(-MD.FrameZ(2,:,:,1:M), MD.FrameZ(1,:,:,1:M)));
+          theta = squeeze(acos(MD.FrameTraj(3,3,:,1:M)));
+          phi = squeeze(atan2(MD.FrameTraj(3,2,:,1:M), MD.FrameTraj(3,1,:,1:M)));
+          psi = squeeze(atan2(-MD.FrameTraj(2,3,:,1:M), MD.FrameTraj(1,3,:,1:M)));
+%           theta = squeeze(acos(MD.FrameZ(3,:,:,1:M)));
+%           phi = squeeze(atan2(MD.FrameY(3,:,:,1:M), MD.FrameX(3,:,:,1:M)));
+%           psi = squeeze(atan2(-MD.FrameZ(2,:,:,1:M), MD.FrameZ(1,:,:,1:M)));
 
           phi = phi + 2*pi*(phi<0);
           psi = psi + 2*pi*(psi<0);
@@ -824,10 +822,17 @@ switch LocalDynamicsModel
           Sys.Potential = -log(pdf);
 %           pdf = smoothn(pdf);
       end
+      
     end
     
+  % these variables could be huge and are no longer needed, so delete them 
+  % now
+  MD = rmfield(MD, 'FrameTraj');
+  MD = rmfield(MD, 'RTraj');
+%   MD = rmfield(MD, 'FrameTrajwrtProt');
+%   MD = rmfield(MD, 'RProtDiff');
+    
 end
-
 
 % Generate grids for powder averaging in the lab frame
 % -------------------------------------------------------------------------
@@ -933,16 +938,19 @@ while ~converged
             Opt.statesOnly = true;
             [~, stateTraj] = stochtraj_jump(Sys,Par,Opt);
             
-            RTrajLocal = MD.RTraj(:,:,1,1:nLag:end);
-            qTrajLocal = rotmat2quat(Par.RTraj);
+            RTrajLocal = RTrajLocal(:,:,1,1:nLag:end);
+            qTrajLocal = rotmat2quat(RTrajLocal);
             Par.stateTraj = stateTraj;
             
         end
         
     end
     
-    Par.qTraj = qTrajLocal;
-    Par.RTraj = RTrajLocal;
+    if strcmp(Opt.Method,'ISTOs')
+      Par.qTraj = qTrajLocal;
+    else
+      Par.RTraj = RTrajLocal;
+    end
     
     % Generate trajectory of global dynamics
     includeGlobalDynamics = ~isempty(Dynamics.DiffGlobal);
@@ -962,9 +970,6 @@ while ~converged
     if includeGlobalDynamics
       qLab = quatmult(qLab,qTrajGlobal);
     end
-    
-    Par.qLab = qLab;
-    Par.RLab = quat2rotmat(qLab);
     
     if strcmp(Opt.Method,'ISTOs')
       Par.qLab = qLab;

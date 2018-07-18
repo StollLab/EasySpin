@@ -87,18 +87,21 @@ else
   end
 end
 
-if ~isfield(MD,'RTraj') && (~isfield(Par,'RTraj')||~isfield(Par,'qTraj'))
-  error('Either Par.RTraj and Par.qTraj, or MD.RTraj must be provided.')
+if ~isfield(Par,'RTraj') && ~isfield(Par,'qTraj')
+  error('Either Par.RTraj or Par.qTraj must be provided.')
 end
+% if ~isfield(MD,'RTraj') && (~isfield(Par,'RTraj')||~isfield(Par,'qTraj'))
+%   error('Either Par.RTraj and Par.qTraj, or MD.RTraj must be provided.')
+% end
 
 % grab the quaternions or rotation matrices
 if useMD
   if isExplicit
     if strcmp(Method, 'ISTOs')
-      qTraj = rotmat2quat(MD.RTraj);
+      qTraj = Par.qTraj;
       qLab = Par.qLab;
     else
-      RTraj = MD.RTraj;
+      RTraj = Par.RTraj;
       RTrajInv = permute(RTraj,[2,1,3,4]);
       RLab = Par.RLab;
       RLabInv = permute(RLab, [2,1,3,4]);
