@@ -551,6 +551,10 @@ if ~generalLiouvillian
   if usePotential && ~Potential.oldStyle
     error('Opt.LiouvMethod=''Freed'' does not work with this orientational potential.');
   end
+else
+  if any(Sys.Exchange~=0)
+    error('Opt.LiouvMethod=''general'' does not work with spin exchange.');
+  end
 end
 
 % Organize potential if it is oldStyle and Freed method is requested
