@@ -520,7 +520,13 @@ if useMD
 end
 
 % Check local dynamics models
-if ~isfield(Par,'Model'), Par.Model = 'stochastic'; end
+if ~isfield(Par,'Model')
+  if useMD
+    Par.Model = 'MD';
+  else
+    Par.Model = 'stochastic';
+  end
+end
 if ~isempty(Par.Model)
   if ~strcmp(Par.Model,'stochastic') && ~strcmp(Par.Model,'jump') && ~strcmp(Par.Model,'MD')
     error('Model ''%s'' in Par.Model not recognized.',Par.Model);
@@ -609,7 +615,9 @@ else
   if isDiffSim
     Par.dt = min(tcorr)/10;
   elseif strcmp(Par.Model,'jump') && ~isfield(Par,'dt')
-    error('The time step Par.dt must be specified for a jump simulation.')
+    error('The time step Par.dt must be specified when using an jump model.')
+  elseif strcmp(Par.Model,'MD') && ~isfield(Par,'dt')
+    error('The time step Par.dt must be specified when using an MD model.')
   end
   Par.Dt = Par.dt;
   logmsg(0,'-- No time parameters given. Using time step of %0.5g s.', Par.dt);
@@ -784,12 +792,11 @@ switch LocalDynamicsModel
       error('nOrients must be specified for the MD model.')
     end
     
-    if strcmp(Opt.Method, 'ISTOs')
-      % this method uses quaternions, not rotation matrices, so convert
-      % MD.RTraj to quaternions here before the simulation loop
-      MD.qTraj = rotmat2quat(MD.RTraj);
-      MD.RTraj = [];
-    end
+%     if strcmp(Opt.Method, 'ISTOs')
+%       % this method uses quaternions, not rotation matrices, so convert
+%       % MD.RTraj to quaternions here before the simulation loop
+    qTrajLocal = rotmat2quat(MD.RTraj);
+    RTrajLocal = MD.RTraj;
     
     if ~strcmp(MD.TrajUsage,'Explicit')
       switch MD.TrajUsage
@@ -903,12 +910,8 @@ while ~converged
         switch MD.TrajUsage
           case 'Explicit'
             
-            RTrajLocal = MD.RTraj;
-            if isfield(MD,'qTraj')
-              qTrajLocal = MD.qTraj;
-            else
-              qTrajLocal = rotmat2quat(MD.RTraj);
-            end
+            % the MD trajectories are not changing, so RTraj and qTraj were
+            % processed earlier outside of the loop
             
           case 'Resampling'
             
@@ -1011,9 +1014,9 @@ while ~converged
     ExpectVal = cellfun(@times, ExpectVal, Window, 'UniformOutput', false);
   end
 
-% zero padding for FFT to ensure sufficient B-field resolution (at most 0.1 G)
-% expectval = cell2mat(cellfun(@(x) zeropad(x, maxlength), expectval, 'UniformOutput', false));
-% tlong = (0:Par.dt:maxlength*Par.dt);
+  % zero padding for FFT to ensure sufficient B-field resolution (at most 0.1 G)
+  % expectval = cell2mat(cellfun(@(x) zeropad(x, maxlength), expectval, 'UniformOutput', false));
+  % tlong = (0:Par.dt:maxlength*Par.dt);
 
   Bres = 0.1; % G
   tReq = 1/(mt2mhz(Bres/10)*1e6); % mT -> s
@@ -1215,11 +1218,11 @@ minsLeft = floor(secsLeft/60);
 secsElap = toc;
 minsElap =  floor(secsElap/60);
 
-msg1 = sprintf('Iteration: %d/%d\n', iOrient, nOrient);
+msg1 = sprintf('Lab orientation: %d/%d\n', iOrient, nOrient);
 if avgTime<1.0
-  msg2 = sprintf('%2.1f it/s\n', 1/avgTime);
+  msg2 = sprintf('%2.1f orientations/s\n', 1/avgTime);
 else
-  msg2 = sprintf('%2.1f s/it\n', avgTime);
+  msg2 = sprintf('%2.1f s/orientation\n', avgTime);
 end
 msg3 = sprintf('Time elapsed: %d:%2.0f\n', minsElap, mod(secsElap,60));
 msg4 = sprintf('Time remaining (predicted): %d:%2.0f\n', minsLeft, mod(secsLeft,60));
