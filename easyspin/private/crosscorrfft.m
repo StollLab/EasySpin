@@ -111,18 +111,18 @@ if vector
   CrossCorr = sum(CrossCorr, vector);
 end
 
-n = N*ones(1, N) - [1:N] + 1;
+n = N*ones(1, N) - (1:N) + 1;
 sizen = ones(1,Dimsy);
 sizen(dim) = N;
 n = reshape(n,sizen);
-CrossCorr = CrossCorr./n;
+CrossCorr = bsxfun(@rdivide,CrossCorr,n);
 
 if normalized
   % divide by first value of the FFT dimension
   idx = cell(1, Dimsy);
   idx(:) = {':'};
   idx{dim} = 1;
-  CrossCorr = CrossCorr./CrossCorr(idx{:});
+  CrossCorr = bsxfun(@rdivide,CrossCorr,CrossCorr(idx{:}));
 end
 
 end

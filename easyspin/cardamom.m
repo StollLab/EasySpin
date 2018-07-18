@@ -1042,12 +1042,12 @@ while ~converged
     if numel(Sys.lw)==2
       % Lorentzian broadening
       TL = Dynamics.T2; 
-      ExpectVal = exp(-tLong/TL).*ExpectVal;
+      ExpectVal = bsxfun(@times,exp(-tLong/TL),ExpectVal);
     end
   end
   
   % Multiply by t for differentiation and take the FFT
-  spcArray = cat(2, spcArray, imag(fftshift(fft(ExpectVal.*tLong, [], 1))));
+  spcArray = cat(2, spcArray, imag(fftshift(fft(bsxfun(@times,ExpectVal,tLong), [], 1))));
   spcNew = mean(spcArray,2);
 
   if specCon

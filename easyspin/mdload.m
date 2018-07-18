@@ -266,15 +266,15 @@ NC1_vec = C1xyz - NNxyz;
 NC2_vec = C2xyz - NNxyz;
 
 % Normalize vectors
-NO_vec = NO_vec./sqrt(sum(NO_vec.*NO_vec,2));
-NC1_vec = NC1_vec./sqrt(sum(NC1_vec.*NC1_vec,2));
-NC2_vec = NC2_vec./sqrt(sum(NC2_vec.*NC2_vec,2));
+NO_vec = bsxfun(@rdivide,NO_vec,sqrt(sum(NO_vec.*NO_vec,2)));
+NC1_vec = bsxfun(@rdivide,NC1_vec,sqrt(sum(NC1_vec.*NC1_vec,2)));
+NC2_vec = bsxfun(@rdivide,NC2_vec,sqrt(sum(NC2_vec.*NC2_vec,2)));
 
 % z-axis
 vec1 = cross(NC1_vec, NO_vec, 2);
 vec2 = cross(NO_vec, NC2_vec, 2);
 MD.FrameTraj(:,:,3) = vec1 + vec2;
-MD.FrameTraj(:,:,3) = MD.FrameTraj(:,:,3)./sqrt(sum(MD.FrameTraj(:,:,3).*MD.FrameTraj(:,:,3),2));
+MD.FrameTraj(:,:,3) = bsxfun(@rdivide,MD.FrameTraj(:,:,3),sqrt(sum(MD.FrameTraj(:,:,3).*MD.FrameTraj(:,:,3),2)));
 
 % x-axis
 MD.FrameTraj(:,:,1) = NO_vec;
@@ -385,13 +385,13 @@ function DihedralAngle = dihedral(a1Traj,a2Traj,a3Traj,a4Traj)
 
 % a1 = traj(:, :, idx_atom1) - traj(:, :, idx_atom2);
 a1 = a1Traj - a2Traj;
-a1 = a1./sqrt(sum(a1.*a1, 2));
+a1 = bsxfun(@rdivide,a1,sqrt(sum(a1.*a1, 2)));
 % a2 = traj(:, :, idx_atom3) - traj(:, :, idx_atom2);
 a2 = a3Traj - a2Traj;
-a2 = a2./sqrt(sum(a2.*a2, 2));
+a2 = bsxfun(@rdivide,a2,sqrt(sum(a2.*a2, 2)));
 % a3 = traj(:, :, idx_atom3) - traj(:, :, idx_atom4);
 a3 = a3Traj - a4Traj;
-a3 = a3./sqrt(sum(a3.*a3, 2));
+a3 = bsxfun(@rdivide,a3,sqrt(sum(a3.*a3, 2)));
 
 b1 = cross(a2, a3, 2);
 b2 = cross(a1, a2, 2);
@@ -415,7 +415,7 @@ mass = 1;
 rotmat = zeros(3,3,nSteps);
 
 % subtract by the geometric center
-traj = traj - mean(traj,3);
+traj = bsxfun(@minus,traj,mean(traj,3));
 
 for iStep = 1:nSteps
   % calculate the principal axis of inertia

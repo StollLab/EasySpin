@@ -36,7 +36,7 @@ if ~ischar(FileName)
   error('Filename must be given as a character array.')
 end
 
-if ~endsWith(lower(FileName),'.dcd')
+if ~strcmpi(FileName(end-3:end),'.dcd')
   error('Please give the full filename including the ".dcd" extension.')
 end
 

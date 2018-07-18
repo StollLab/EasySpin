@@ -75,7 +75,7 @@ if ~ischar(FileName)
   error('FileName must be given as a character array.')
 end
 
-if ~endsWith(lower(FileName),'.psf')
+if ~strcmpi(FileName(end-3:end),'.psf')
   error('Please give the full filename including the ".psf" extension.')
 end
 
@@ -103,7 +103,7 @@ ensurefclose = onCleanup(@() fclose(FileID));
 % proper PSF formatting dictates that the first line of the file should
 % start with "PSF"
 line = fgetl(FileID);
-if ~ischar(line)||~startsWith(line,'PSF')
+if ~ischar(line)||~strcmpi(line(1:3),'PSF')
   error('File "%s" does not have proper PSF format. See documentation for details.', FileName)
 end
 
@@ -139,12 +139,12 @@ while ~feof(FileID)
     nLines = round(str2double(line{1}));
     section = line{2};
     
-    if contains(section,'NTITLE')
+    if ~isempty(strfind(section,'NTITLE'))
       % skip this section
       reachedNTITLE = 1;
     end
     
-    if contains(section,'NATOM')
+    if ~isempty(strfind(section,'NATOM'))
       if ~reachedNTITLE
         error('Section ordering in "%s" is not standard. See documentation for proper formatting.', FileName)
       end
@@ -223,7 +223,7 @@ while ~feof(FileID)
 %       psf.idx_N = nonzeros(psf.idx_SpinLabel .* idx_N);
     end
     
-    if contains(section,'NBOND')
+    if ~isempty(strfind(section,'NBOND'))
       if ~reachedNTITLE||~reachedNATOM
         error('Section ordering in "%s" is not standard. See documentation for proper formatting', FileName)
       end

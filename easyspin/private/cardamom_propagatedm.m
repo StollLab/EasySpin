@@ -95,7 +95,7 @@ end
 if useMD
   if isExplicit
     if strcmp(Method, 'ISTOs')
-      qTraj = MD.qTraj;
+      qTraj = rotmat2quat(MD.RTraj);
       qLab = Par.qLab;
     else
       RTraj = MD.RTraj;
@@ -525,7 +525,7 @@ switch Method
 %             HeqOrder1 = HeqOrder1 + bsxfun(@times, D2avg(m,mp,:), cacheTensors.Q2{mp,m});
 %             HeqOrder2 = HeqOrder2 + 1i*cacheTensors.Q2{mp,m}*(cacheTensors.Q2{mp,m})'.*K2(mp,m,:);
 %           else
-            HeqOrder1 = HeqOrder1 + bsxfun(@times, D2avg(m,mp,:), tosuper(cacheTensors.Q2{mp,m},'c'));
+            cHeqOrder1 = HeqOrder1 + bsxfun(@times, D2avg(m,mp,:), tosuper(cacheTensors.Q2{mp,m},'c'));
             HeqOrder2 = HeqOrder2 + 1i*tosuper(cacheTensors.Q2{mp,m},'c')*tosuper(cacheTensors.Q2{mp,m}','c').*K2(mp,m,:);
 %           end
 
@@ -537,7 +537,7 @@ switch Method
         end
       end
 
-      Heq = Heq + HeqOrder1 + HeqOrder2;  % FIXME plus or minus?
+      Heq = bsxfun(@plus,Heq+HeqOrder1,HeqOrder2);  % FIXME plus or minus?
 %       Heq = Heq + HeqOrder2;  % FIXME plus or minus?
 
 %       if Liouville
