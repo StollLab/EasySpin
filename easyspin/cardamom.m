@@ -1037,7 +1037,7 @@ while ~converged
       % Gaussian broadening
       w = mt2mhz(Sys.lw(1))*1e6;  % FWHM in Hz
       alpha = pi^2*w^2/(4*log(2));
-      ExpectVal = exp(-alpha*tLong.^2).*ExpectVal;
+      ExpectVal = bsxfun(@times,exp(-alpha*tLong.^2),ExpectVal);
     end
     if numel(Sys.lw)==2
       % Lorentzian broadening
