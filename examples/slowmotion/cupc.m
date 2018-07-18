@@ -1,24 +1,32 @@
 % Slow-motion spectrum of copper phthalocyanine in sulfuric acid
-%==========================================================================
-clear, clf
+%===============================================================================
+clear, clf, clc
 
 % CuPc parameters
-%--------------------------------------------------------------------------
-g = [2.0525 2.1994];
-AN = [52.4 41.2 41.8];
-CuPc = struct('g',g,'Nucs','63Cu,14N,14N,14N,14N');
-CuPc.A = [-54 -54 -608; AN; AN; AN; AN];
+%-------------------------------------------------------------------------------
+CuPc.g = [2.0525 2.1994];
+CuPc.Nucs = '63Cu,14N';
+CuPc.n = [1 4]; % one 63Cu and four 14N
+CuPc.A = [-54 -54 -608; 52.4 41.2 41.8]; % MHz
 
-CuPc.logtcorr = -7.35;
-CuPc.lw = 0.3;
+CuPc.tcorr = 10^-7.5; % seconds
+CuPc.lw = 0.3; % mT
 
 % Experimental parameters
-%----------------------------------------------------
-Exp = struct('mwFreq',9.878,'CenterSweep',[325 100]);
-Exp.nPoints = 1e4;
+%-------------------------------------------------------------------------------
+Exp.mwFreq = 9.878; % GHz
+Exp.CenterSweep = [325 100]; % mT
+
+% Simulation options
+%-------------------------------------------------------------------------------
+% The following is the setting that tells chili to treat the 14N nuclei
+% perturbationally using post-convolution, instead of including them into the
+% full spin Hamiltonian matrix.
+Opt.PostConvNucs = 2; % 2 is the index of 14N in the CuPc.Nucs
+% Large basis set, since motion is slow, some settings are zero because of the
+% axial symmetry of the electron+63Cu system
+Opt.LLKM = [16 0 0 4];
 
 % Simulation and plotting
-%----------------------------------------------------
-Opt.LLKM = [36 30 0 8];
-Opt.PostConvNucs = 2:5;   % treat nitrogens using post-convolution
+%-------------------------------------------------------------------------------
 chili(CuPc,Exp,Opt);
