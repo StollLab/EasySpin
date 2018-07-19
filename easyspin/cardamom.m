@@ -796,7 +796,7 @@ switch LocalDynamicsModel
     if ~strcmp(MD.TrajUsage,'Explicit')
       switch MD.TrajUsage
         case 'Resampling'
-          M = MDTrajLength;
+          M = size(MD.FrameTraj,4);
 
           % calculate orienting potential energy function
           theta = squeeze(acos(MD.FrameTraj(3,3,:,1:M)));

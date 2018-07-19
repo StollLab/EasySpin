@@ -528,7 +528,7 @@ switch Method
 %             HeqOrder1 = HeqOrder1 + bsxfun(@times, D2avg(m,mp,:), cacheTensors.Q2{mp,m});
 %             HeqOrder2 = HeqOrder2 + 1i*cacheTensors.Q2{mp,m}*(cacheTensors.Q2{mp,m})'.*K2(mp,m,:);
 %           else
-            cHeqOrder1 = HeqOrder1 + bsxfun(@times, D2avg(m,mp,:), tosuper(cacheTensors.Q2{mp,m},'c'));
+            HeqOrder1 = HeqOrder1 + bsxfun(@times, D2avg(m,mp,:), tosuper(cacheTensors.Q2{mp,m},'c'));
             HeqOrder2 = HeqOrder2 + 1i*tosuper(cacheTensors.Q2{mp,m},'c')*tosuper(cacheTensors.Q2{mp,m}','c').*K2(mp,m,:);
 %           end
 
