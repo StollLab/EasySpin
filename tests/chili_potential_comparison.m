@@ -14,12 +14,10 @@ Exp.nPoints = 512;
 Opt.LLKM = [10 6 6 6];
 
 lam = +2;
-Pot = [2 0 0 lam; 2 0 2 lam; 4 0 0 lam; 4 0 2 lam];
+LMK = [2 0 0; 2 0 2; 4 0 0; 4 0 2];
 
 for p = 1:4
-  %Sys.lambda = [0 0 0 0];
-  %Sys.lambda(p) = +2;
-  Sys.Potential = Pot(p,:);
+  Sys.Potential = [LMK(p,:) lam];
   
   Opt.LiouvMethod = 'Freed';
   [B,y1] = chili(Sys,Exp,Opt);
@@ -32,7 +30,7 @@ for p = 1:4
     subplot(4,1,p);
     plot(B,y1,B,y2);
     legend('Freed','general');
-    title(sprintf('lambda(%d) = %g',p,Sys.lambda(p)));
+    title(sprintf('lambda(%d,%d,%d) = %g',LMK(p,1),LMK(p,2),LMK(p,3),lam));
   end
   
 end

@@ -9,7 +9,6 @@ Nitroxide.Nucs = '14N';
 Nitroxide.A = [20,20,85];
 Nitroxide.lw = 0.3;
 Nitroxide.tcorr = 1e-8;
-%Nitroxide.lambda = 1;
 Nitroxide.Potential = [2 0 0 1];
 
 Experiment.mwFreq = 9.5;

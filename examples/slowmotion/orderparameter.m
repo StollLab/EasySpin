@@ -2,7 +2,7 @@
 %===============================================================================
 
 % How to calculate an order parameter S(2,0) given an orientation potential
-% coefficient (lambda_20 or C_20, i.e. L = 2 and K = 0; M = 0).
+% coefficient (lambda_200 or C_200, i.e. L = 2, M = 0, and K = 0.
 
 clear, clc, clf
 

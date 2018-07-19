@@ -2,8 +2,7 @@ function [err,data] = test(opt,olddata)
 
 Sys.g = [2 2.05 2.1];
 Sys.tcorr = 1e-9;
-%Sys.lambda = 1;
-Sys.Potential = [2 0 0 1];
+Sys.Potential = [2 0 0 +1];
 
 Exp.Field = 350;
 Exp.mwRange = [9.4 10.6];

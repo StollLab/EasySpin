@@ -25,8 +25,6 @@
 %                     field sweep: mT, frequency sweep: MHz
 %     Sys.lwpp        peak-to-peak line widths, same format as Sys.lw
 %     Sys.Exchange    Heisenberg exchange frequency (MHz)
-%     Sys.lambda      ordering potential coefficients (simplified)
-%                       [lambda20 lambda22 lambda40 lambda42]
 %     Sys.Potential   ordering potential coefficients
 %                       [L1 M1 K1 lambda1; L2 M2 K2 lambda2; ...]
 %
