@@ -110,7 +110,7 @@ else
     if ischar(Sys.eqState)
       error('String input for equilibrium state not yet supported.')
     elseif Sys.nStates ~= a || Sys.nStates ~= b
-      error('Equilibrium state has to be a density matrix.')
+      error('User-provided equilibrium state does not have the same dimensions as the density matrix.')
     end
     Relaxation.equilibriumState = Sys.eqState;
   else

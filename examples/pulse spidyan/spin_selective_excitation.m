@@ -1,9 +1,8 @@
 % selective excitation of two spins with identical resonance frequency  (spidyan)
 %==========================================================================
-% this example shows how to enhance the central transition in high-spin
-% system using to frequency swept pulses, analogous to 
-% Doll, A. et al. Sensitivity enhancement by population transfer in Gd(III)
-% spin labels. Phys Chem Chem Phys 17, 7334-7344 (2015).
+% shows how to use spin selective excitation operators. both spins in this
+% example have an identical frequency, but by using Opt.ExcOperator it is
+% possible to flip them selectively
 
 clear
 

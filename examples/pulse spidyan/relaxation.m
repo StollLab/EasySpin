@@ -7,32 +7,20 @@
 
 clear
 
-% Default Spin System
-Sys.S = 1/2;
+% Spin System
 Sys.ZeemanFreq = 9.500; % GHz
-Sys.T1 = 2; % us
-Sys.T2 = 1; % us
-Sys.eqState = -sop(Sys.S,'z'); % make up some equilibrium state
+Sys.T1 = 1; % us
+Sys.T2 = 0.5; % us
 
 % Pulse Definitions
-Rectangular.Type = 'rectangular';
-Rectangular.tp = 0.02;
-Rectangular.Flip = pi;
+Rectangular.tp = 0.02; % mus
+Rectangular.Flip = pi; % rad
 
 % A default Experiment/Sequence
 Exp.mwFreq = 9.5; % GHz
-Exp.Sequence = {Rectangular 5};
+Exp.Sequence = {Rectangular 2};
 Exp.DetOperator = {'z1'};
 
-% Options
 Opt.Relaxation = [0 1]; % switches relaxation on only during the free evolution period 
 
-[TimeAxis, Signal] = spidyan(Sys,Exp,Opt);
-
-% plotting
-figure(1)
-clf
-plot(TimeAxis,real(Signal))
-xlabel('t (\mus)')
-ylabel('<S_i>')
-legend(Exp.DetOperator)
+spidyan(Sys,Exp,Opt);

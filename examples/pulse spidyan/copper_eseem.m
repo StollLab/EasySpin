@@ -1,25 +1,24 @@
-% Executing this script will take a couple minutes, the run time can be
-% significantly reduced by using a parfor-loop in combination with the 
-% parallel computing box
+% eseem of a copper compound using spidyan (spidyan)
+%==========================================================================
+% this simulates a two-pulse ESEEM trace for a copper compound, using
+% spidyan. the orientation loop has to be manually defined.
 
 clear
 
 % Spin system
-Sys.S = 1/2;
 Sys.g = diag([2 2 2.02]); 
-Sys.A = diag([20 20 200]); MHz
+Sys.A = diag([20 20 200]); % MHz
 Sys.Nucs = '63Cu';
 Sys.lwpp = 10; 
 
-Exp_.Field = 1240;
-
 % Use this to look at the spectrum (helps with setting the frequency ranges
 % of the pulses)
+% Exp_.Field = 1240;
 % pepper(Sys,Exp_)
 
 % Get orientations for the loop:
 Symmetry = symm(Sys);
-nKnots = 40;
+nKnots = 20;
 
 [phi,theta,Weights] = sphgrid(Symmetry,nKnots);
 
@@ -44,8 +43,8 @@ Exp.Field = 1240; % mT
 Exp.mwFreq = 35; % Carrier frequency in GHz
 
 % Indirect dimension
-Exp.nPoints = 100;
-Exp.Dim1 = {'d1,d2', 0.004};
+Exp.nPoints = 100; 
+Exp.Dim1 = {'d1,d2', 0.004}; % mus
 
 % detection
 Exp.DetEvents = [0 0 0 0 1];

@@ -8,12 +8,12 @@
 Sys.ZeemanFreq = 9.500; % GHz
 
 Pulse90.Type = 'rectangular';
-Pulse90.Flip = pi/2;
-Pulse90.tp = 0.025;
+Pulse90.Flip = pi/2; % rad
+Pulse90.tp = 0.025; % mus
 
 Pulse180.Type = 'rectangular';
-Pulse180.Flip = pi;
-Pulse180.tp = 0.05;
+Pulse180.Flip = pi; % rad
+Pulse180.tp = 0.05; % mus
 
 % Create a pi/2 - tau1 - pi - tau2 - pi - tau3 sequence
 Exp.Sequence = {Pulse90 0.1 Pulse180 0.9 Pulse180 1};

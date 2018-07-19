@@ -10,12 +10,12 @@ Sys.ZeemanFreq = 9.5;
 
 % Experiment
 Pulse90.Type = 'rectangular';
-Pulse90.tp = 0.05;
-Pulse90.Flip = pi;
+Pulse90.tp = 0.05; % mus
+Pulse90.Flip = pi; % rad
 
 Pulse180.Type = 'rectangular';
-Pulse180.tp = 0.05;
-Pulse180.Flip = pi;
+Pulse180.tp = 0.05; % mus
+Pulse180.Flip = pi; % rad
   
 % pi - tau - pi/2 - tau
 Exp.Sequence = {Pulse90 0.5 Pulse180 0.5}; % us
@@ -40,7 +40,7 @@ ylim([-1 1])
 % The following code changes the flip angle of the second pulse by pi/4
 % Exp.nPoints times
 Exp.nPoints = 5;
-Exp.Dim1 = {'p2.Flip', pi/4};
+Exp.Dim1 = {'p2.Flip', pi/4}; % rad
 
 [TimeAxis, Signal] = spidyan(Sys,Exp);
 
@@ -58,7 +58,7 @@ ylim([-1 1])
 %% Two Dimensional Experiment - Changing the inter pulse delay with a nonlinear increment
 % Increment the first delay by 100 and 250 ns
 Exp.nPoints = 3; 
-Exp.Dim1 = {'d1', [0 0.1 0.25]};
+Exp.Dim1 = {'d1', [0 0.1 0.25]}; % mus
 
 [TimeAxis, Signal] = spidyan(Sys,Exp);
 % Since the length of a detected event is changed, the traces of each
@@ -107,7 +107,7 @@ axis tight
 Exp.nPoints = [2 3]; % 2 steps in 1st and 3 in 2nd dimension
 Exp.Dim1 = {'p1.Phase,p2.Phase', pi/4}; % Changes the Phase of both pulses 
                                         % by pi/4 each step 
-Exp.Dim2 = {'p2.tp', 0.05};  % Change the length of the second pulse
+Exp.Dim2 = {'p2.tp', 0.05};  % Change the length of the second pulse, us
 
 % Now, Sz and S^+ are detected
 Exp.DetOperator = {'z1','+1'};

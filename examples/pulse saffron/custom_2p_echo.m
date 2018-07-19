@@ -5,7 +5,6 @@
 clear
 
 % Spin system
-Sys.S = 1/2;
 Sys.g = [2.00906 2.0062 2.0023];
 Sys.A = [11.5 11.5 95]; % MHz
 Sys.Nucs = '14N';
@@ -27,8 +26,8 @@ tau = 0.5; % mus
 Exp.Sequence = {Chirp90 tau Chirp180 tau+Chirp180.tp};
 Exp.mwFreq = 9.1; % GHz
 Exp.Field = 324.9; % mT
-Exp.DetWindow = [-0.05 0.05]; % mus
+Exp.DetWindow = [-0.02 0.02]; % mus
 
-Opt.nKnots = 60;
+Opt.nKnots = 20;
 
 saffron(Sys,Exp,Opt);

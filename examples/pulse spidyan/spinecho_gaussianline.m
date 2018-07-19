@@ -5,8 +5,9 @@
 % saffront. this might be advantageous for example when you are only 
 % interested in the dynamics during your pulse sequence and dont need to 
 % simulate an entire spectrum. or it can help you speed up simulations
-% This script calculates two echos, the first one with rectangular pulses,
-% the second one with frequency-swept pulses.
+% This script calculates two echos:
+%  - first with rectangular pulses
+%  - second with frequency-swept pulses.
 
 clear
 

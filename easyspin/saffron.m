@@ -2001,7 +2001,15 @@ else
        
     Ham = sham(Sys_,Field*[0 0 1]);
     
-    [TimeAxis{iOrientation}, RawSignals{iOrientation}] = s_thyme(Sigma, Ham, DetOps, Events, Relaxation, Vary);
+    Relaxation_ = Relaxation;
+    if ~isempty(Relaxation_)
+      logmsg(1,'  adapting relaxation superoperator to system frame');
+      [U,~] = eig(Ham);
+      R = kron(transpose(U),(U'));
+      Relaxation_.Gamma = R'*Relaxation_.Gamma*R;
+    end
+    
+    [TimeAxis{iOrientation}, RawSignals{iOrientation}] = s_thyme(Sigma, Ham, DetOps, Events, Relaxation_, Vary);
   end
   
   TimeAxis = TimeAxis{1};

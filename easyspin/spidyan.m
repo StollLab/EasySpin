@@ -176,6 +176,12 @@ Ham = sham(Sys,Exp.Field*[0 0 1]);
 %----------------------------------------------------------------------
 % Propagation
 %----------------------------------------------------------------------
+if ~isempty(Relaxation)
+  logmsg(1,'  adapting relaxation superoperator to system frame');
+  [U,~] = eig(Ham);
+  R = kron(transpose(U),(U'));
+  Relaxation.Gamma = R'*Relaxation.Gamma*R;
+end
 
 % Calls the actual propagation engine
 logmsg(1,'-starting propagation----------------------------------');

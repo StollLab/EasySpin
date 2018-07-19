@@ -229,7 +229,7 @@ tau = 0.5;
 Exp.Sequence = {Chirp90 tau Chirp180 tau+Chirp180.tp};
 Exp.mwFreq = 9.1;
 Exp.Field = 324.9;
-Exp.DetWindow = [-0.05 0.05];
+Exp.DetWindow = [-0.02 0.02];
 </pre>
 
 <p>
@@ -259,7 +259,7 @@ Now, let us gradually decrease the flip angle of the second pulse in the above e
 
 <pre class="matlab">
 Exp.nPoints = 20;
-Exp.Dim1 = {'p2.Flip' -pi/30};
+Exp.Dim1 = {'p1.Flip' -pi/30};
 </pre>
 
 <p>
@@ -276,7 +276,7 @@ we reduce the bandwidth of both pulses by 10 MHz each step.
 It is also possible to combine different pulse parameters:
 <pre class="matlab">
 Exp.nPoints = 20;
-Exp.Dim1 = {'p1.Frequency,p2.Frequency' [+5 -5]; 'p2.Flip' -pi/30};
+Exp.Dim1 = {'p1.Frequency,p2.Frequency' [+5 -5]; 'p1.Flip' -pi/30};
 </pre>
 
 combines the two above examples.

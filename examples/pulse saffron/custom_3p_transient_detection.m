@@ -7,9 +7,8 @@
 
 clear
 
-Sys.S = 1/2;
 Sys.Nucs = '1H';
-Sys.A_ = [5 2]; % MHz
+Sys.A_ = [7 3]; % MHz
 
 tau = 0.4; % mus
 
@@ -20,15 +19,17 @@ Exp.Field = 350; % mT
 Exp.Sequence = {p90 tau p90 0.1 p90 tau};
 Exp.mwFreq = 9.81; % GHz
 
-Exp.DetWindow = [-0.05 0.05]; % mus
+Exp.DetWindow = [-0.1 0.1]; % mus
 Exp.DetIntegrate = true;
 
-Exp.nPoints = 512; % 512 data points in indirect dimension
+Exp.nPoints = 128; % 128 data points in indirect dimension
 Exp.Dim1 = {'d2', 0.005}; % increment of second delay by 5 ns per step
 
-Exp.PhaseCycle{1} = [0, 1; pi, -1];
-Exp.PhaseCycle{3} = [0, 1; pi, -1];
 
-Opt.nKnots = 50;
+Exp.PhaseCycle{1} = [0, 1; pi, -1];  % [+(+x)-(-x)]  phase cycle
+Exp.PhaseCycle{3} = [0, 1; pi, -1];  % [+(+x)-(-x)]  phase cycle
+
+Opt.nKnots = 100;
+Opt.Verbosity = true; 
 
 saffron(Sys,Exp,Opt);

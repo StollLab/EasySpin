@@ -1,12 +1,11 @@
 % spin trajectory during adiabatic passage (spidyan)
 %==========================================================================
 % With this script the trajectory of spin during adiabatic passage is
-% plotted in a) a two dimensional plot and b) a three dimensional plot.
+% plotted in Fig. 1 in two and in Fig 2 in three dimensions
 
 clear
 
 % Spin System
-Sys.S = 1/2;
 Sys.ZeemanFreq = 9.500; % resonance frequency of the spin in GHz
 
 % Pulse Definition

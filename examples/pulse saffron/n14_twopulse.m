@@ -7,14 +7,14 @@
 clear, clf, clc
 
 Exp.Sequence = '2pESEEM';
-Exp.Field = 324.9;
-Exp.dt = 0.100;
-Exp.nPoints = 1001;
+Exp.Field = 324.9; % mT
+Exp.dt = 0.100; % mus
+Exp.nPoints = 1001; 
 
 Sys.Nucs = '14N';
-nuI = larmorfrq(Sys.Nucs,Exp.Field);
-Sys.A = 2*nuI;
-Sys.Q = [4*0.1*nuI, 0.6];
+nuI = larmorfrq(Sys.Nucs,Exp.Field); % MHz
+Sys.A = 2*nuI; %  % MHz
+Sys.Q = [4*0.1*nuI, 0.6]; % MHz
 
 Opt.nKnots = 31;
 

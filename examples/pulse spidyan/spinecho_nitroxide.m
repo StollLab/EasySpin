@@ -7,8 +7,8 @@ clear
 
 % Spin System
 Sys.S = 1/2;
-Sys.g = diag([2.00906 2.0062 2.0023]);
-Sys.A = diag([11.5 11.5 95]);
+Sys.g = diag([2.00906 2.0062 2.0023]); % MHz
+Sys.A = diag([11.5 11.5 95]); % MHz
 Sys.Nucs = '14N';
 
 Exp.Field = 324.9; % mT

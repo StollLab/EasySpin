@@ -4,11 +4,11 @@
 % and Exp.nPoints to create a custom pulse sequence that can be
 % simulated using the fast method
 
-clear,clc,clf
+clear
 
 Sys.S = 1/2;
 Sys.Nucs = '1H';
-Sys.A_ = [5 2];
+Sys.A_ = [5 2];^% MHz
 
 tau = 0.01; % mus
 p180.Flip = pi/2; % rad
