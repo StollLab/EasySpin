@@ -418,10 +418,12 @@ if useMD
     % we will need only the states when calling stochtraj_jump later
     Opt.statesOnly = 1;
     
-    MD.nStates = 48;
+    if ~isfield(MD,'nStates')
+      MD.nStates = 48;
+    end
 
     % Perform k-means clustering
-    [MD.stateTraj,centroids] = clusterDihedrals(MD.dihedrals,MD.nStates);
+    [MD.stateTraj,centroids] = clusterDihedrals(MD.dihedrals,MD.nStates,Opt.Verbosity);
     MD.nSteps = size(MD.stateTraj, 1);  % TODO: find a way to process different step sizes here
     
     % remove chi3, as its dynamics are very slow on the typical MD
@@ -438,6 +440,7 @@ if useMD
 %     transmat0 = mk_stochastic(rand(MD.nStates,MD.nStates));
 
     mixmat0 = ones(MD.nStates,1);
+%     mixmat0 = [];
 
     randints = randi(size(MD.stateTraj,1), MD.nStates, 1);
     prior0 = MD.stateTraj(randints);
@@ -466,9 +469,10 @@ if useMD
 %       mu1 = ModelOut.mu;
 %       Sigma1 = ModelOut.Sigma;
       
-[LL, prior1, transmat1, mu1, Sigma1, mixmat1] = ...
-    mhmm_em(MD.dihedrals.', prior0, transmat0, mu0, Sigma0, mixmat0, 'max_iter', 20);
-      
+[~,prior1,transmat1,mu1,Sigma1,mixmat1] = ...
+    cardamom_emghmm(MD.dihedrals.',prior0,transmat0,mu0,Sigma0,mixmat0,...
+                    'max_iter',20,'verbose',Opt.Verbosity);
+
       nStates = size(transmat1,1);
       EmptyTransList = zeros(nStates,1);
       for iState = 1:nStates
@@ -821,6 +825,11 @@ switch LocalDynamicsModel
           pdf(pdf<1e-10) = 1e-10;  % put a finite floor on histogram
           Sys.Potential = -log(pdf);
 %           pdf = smoothn(pdf);
+        case 'Markov'
+          
+          RTrajLocal = RTrajLocal(:,:,1,1:nLag:end);
+          qTrajLocal = rotmat2quat(RTrajLocal);
+          
       end
       
     end
@@ -938,8 +947,6 @@ while ~converged
             Opt.statesOnly = true;
             [~, stateTraj] = stochtraj_jump(Sys,Par,Opt);
             
-            RTrajLocal = RTrajLocal(:,:,1,1:nLag:end);
-            qTrajLocal = rotmat2quat(RTrajLocal);
             Par.stateTraj = stateTraj;
             
         end
@@ -1170,7 +1177,7 @@ end
 
 
 
-function [stateTraj,centroids] = clusterDihedrals(dihedrals,nStates)
+function [stateTraj,centroids] = clusterDihedrals(dihedrals,nStates,verbosity)
 
 chi1 = dihedrals(:,1);
 chi2 = dihedrals(:,2);
@@ -1186,7 +1193,7 @@ dihedrals = [wrapTo2Pi(chi1), wrapTo2Pi(chi2), wrapTo2Pi(chi4), chi5];
 % chi4Min = wrapTo2Pi([75;8;-100]/180*pi);
 % chi5Min = wrapTo2Pi([180;77]/180*pi);
 
-[stateTraj,centroids] = cardamom_kmeans(dihedrals, nStates, 20, 1);
+[stateTraj,centroids] = cardamom_kmeans(dihedrals, nStates, 20, verbosity);
 
 end
 
