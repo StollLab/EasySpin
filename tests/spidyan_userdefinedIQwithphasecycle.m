@@ -20,7 +20,7 @@ PC = [0, 1; pi, -1];
 % Experiment with pulses internally defined -------------------
 Exp.Sequence = {Pulse 0.5 Pulse};
 Exp.Field = 1240; 
-Exp.TimeStep = 0.0001; % us
+Opt.TimeStep = 0.0001; % us
 Exp.mwFreq = 33.5;
 Exp.DetEvents = [1 1 1]; 
 Exp.PhaseCycle = {PC []};
@@ -39,12 +39,12 @@ Opt.SimFreq = 32;
 % Build custom IQ
 Pulse.Phase = 0;
 [t,IQ1] = pulse(Pulse);
-Opt.dt = Exp.TimeStep/10;
+Opt.dt = Opt.TimeStep/10;
 [~, IQ1] = rfmixer(t,IQ1,Exp.mwFreq,'IQshift',Opt);
 
 Pulse.Phase = pi;
 [t,IQ2] = pulse(Pulse);
-Opt.dt = Exp.TimeStep/10;
+Opt.dt = Opt.TimeStep/10;
 [t, IQ2] = rfmixer(t,IQ2,Exp.mwFreq,'IQshift',Opt);
 
 IQPulse.IQ = [IQ1; IQ2];

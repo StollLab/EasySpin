@@ -18,7 +18,7 @@ Pulse.tp = 0.1;
 Exp.t = [0.1 0.5 0.1];
 Exp.Sequence = {Pulse 0.5 Pulse};
 Exp.Field = 1240; 
-Exp.TimeStep = 0.0001; % us
+Opt.TimeStep = 0.0001; % us
 Exp.mwFreq = 33.5;
 Exp.DetSequence = [1 1 1];
 
@@ -42,36 +42,36 @@ Opt.SimFreq = 32;
 % Build custom IQ
 Pulse.Phase = 0;
 [t,IQ11] = pulse(Pulse);
-Opt.dt = Exp.TimeStep;
+Opt.dt = Opt.TimeStep;
 [t11, IQ11] = rfmixer(t,IQ11,Exp.mwFreq,'IQshift',Opt);
 
 Pulse.Phase = pi;
 [t,IQ21] = pulse(Pulse);
-Opt.dt = Exp.TimeStep;
+Opt.dt = Opt.TimeStep;
 [t21, IQ21] = rfmixer(t,IQ21,Exp.mwFreq,'IQshift',Opt);
 
 Pulse.tp = 0.2;
 
 Pulse.Phase = 0;
 [t,IQ12] = pulse(Pulse);
-Opt.dt = Exp.TimeStep;
+Opt.dt = Opt.TimeStep;
 [t12, IQ12] = rfmixer(t,IQ12,Exp.mwFreq,'IQshift',Opt);
 
 Pulse.Phase = pi;
 [t,IQ22] = pulse(Pulse);
-Opt.dt = Exp.TimeStep;
+Opt.dt = Opt.TimeStep;
 [t22, IQ22] = rfmixer(t,IQ22,Exp.mwFreq,'IQshift',Opt);
 
 Pulse.tp = 0.3;
 
 Pulse.Phase = 0;
 [t,IQ13] = pulse(Pulse);
-Opt.dt = Exp.TimeStep;
+Opt.dt = Opt.TimeStep;
 [t13, IQ13] = rfmixer(t,IQ13,Exp.mwFreq,'IQshift',Opt);
 
 Pulse.Phase = pi;
 [t,IQ23] = pulse(Pulse);
-Opt.dt = Exp.TimeStep;
+Opt.dt = Opt.TimeStep;
 [t23, IQ23] = rfmixer(t,IQ23,Exp.mwFreq,'IQshift',Opt);
 
 PulseIQ.IQ = {IQ11 IQ12 IQ13; IQ21 IQ22 IQ23};

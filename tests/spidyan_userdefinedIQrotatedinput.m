@@ -18,7 +18,7 @@ Pulse.tp = 0.1;
 % Experiment with pulses internally defined -------------------
 Exp.Sequence = {Pulse 0.5 Pulse};
 Exp.Field = 1240; 
-Exp.TimeStep = 0.0001; % us
+Opt.TimeStep = 0.0001; % us
 Exp.mwFreq = 33.5;
 Exp.DetSequence = [1 1 1]; 
 
@@ -34,7 +34,7 @@ Opt.SimFreq = 32;
 
 % Build custom IQ
 [t,IQ] = pulse(Pulse);
-Opt.dt = Exp.TimeStep/10;
+Opt.dt = Opt.TimeStep/10;
 [t, IQ] = rfmixer(t,IQ,Exp.mwFreq,'IQshift',Opt);
 
 IQ = IQ';

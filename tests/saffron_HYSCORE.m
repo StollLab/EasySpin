@@ -56,8 +56,8 @@ data.x2 = x2;
 data.y2 = y2;
 
 if ~isempty(olddata)
-  err = any([~areequal(x1,olddata.x1,1e-4) ~areequal(y1,olddata.y1,1e-4)...
-    ~areequal(x2,olddata.x2,1e-4) ~areequal(y2,olddata.y2,1e-4)]);
+  err = any([~areequal(x1{1},olddata.x1,1e-4) ~areequal(y1,olddata.y1,1e-4)...
+    ~areequal(x2{1},olddata.x2,1e-4) ~areequal(y2,olddata.y2,1e-4)]);
 else
   err = [];
 end

@@ -37,8 +37,7 @@ Exp.DetWindow = [-0.05 0.05];
 Opt.nKnots = 20;
 Opt.Verbosity = true;
 
-Exp.nPoints = 20;
-Exp.Dim1 = {'p2.Flip' -pi/30};
+Exp.nPoints = 10;
+Exp.Dim1 = {'p2.Flip' -pi/40};
 
-% Exp.Dim1 = {'p1.Frequency,p2.Frequency' [+5 -5]};
 saffron(Sys,Exp,Opt);

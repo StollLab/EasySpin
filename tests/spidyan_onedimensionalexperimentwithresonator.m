@@ -11,17 +11,18 @@ Pulse.Flip = pi;
 
 Exp.Sequence = {Pulse 0.5 Pulse};
 Exp.Field = 1240; 
-Exp.TimeStep = 0.0001; % us
+Opt.TimeStep = 0.0001; % us
 Exp.mwFreq = 33.5;
 Exp.DetSequence = 1; 
+Exp.DetPhase = 0;
 
 % Options ---------------------------
 Exp.DetOperator = {'z1'};
 Opt.SimFreq = 32;
 
 % To test --------------------------
-Exp.Resonator.ResonatorFrequency = 33.5;
-Exp.Resonator.ResonatorQL = 300;
+Exp.ResonatorFrequency = 33.5;
+Exp.ResonatorQL = 300;
 
 Exp.nPoints = 3;
 Exp.Dim1 = {'d1' 0.05;

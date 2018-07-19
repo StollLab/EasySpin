@@ -1,7 +1,5 @@
 function [err,data] = test(opt,olddata)
 
-clear Sys Exp Vary Opt Pulse sigmas Det
-
 % System ------------------------
 Sys.S = [1/2];
 Sys.ZeemanFreq = [33.400];
@@ -14,12 +12,13 @@ Pulse.Flip = pi;
 
 Exp.Sequence = {Pulse};
 Exp.Field = 1240; 
-Exp.TimeStep = 0.0001; % us
+Opt.TimeStep = 0.0001; % us
 Exp.mwFreq = 33.5;
 Exp.DetSequence = 1; 
+Exp.DetPhase = 0;
 
-Exp.Resonator.ResonatorFrequency = 33.5;
-Exp.Resonator.ResonatorQL = 300;
+Exp.ResonatorFrequency = 33.5;
+Exp.ResonatorQL = 300;
 
 % Options ---------------------------
 Exp.DetOperator = {'z1'};
@@ -33,16 +32,20 @@ data.t1 = t1;
 data.signal1 = signal1;
 
 Exp.Sequence = {Pulse 0.5};
-Exp.Resonator.Mode = 'compensate';
+Exp.ResonatorMode = 'compensate';
 
 [t2, signal2] = spidyan(Sys,Exp,Opt);
 
 data.t2 = t2;
 data.signal2 = signal2;
 
-Exp = rmfield(Exp,'Resonator');
-Exp.Resonator.Frequency = 33:0.0001:34;
-Exp.Resonator.TransferFunction = ones(1,length(Exp.Resonator.Frequency));
+Exp = rmfield(Exp,'ResonatorMode');
+Exp = rmfield(Exp,'ResonatorFrequency');
+Exp = rmfield(Exp,'ResonatorQL');
+
+FrequencyResponse(1,:) = 33:0.0001:34;
+FrequencyResponse(2,:) = ones(1,length(FrequencyResponse));
+Exp.FrequencyResponse = FrequencyResponse;
 
 [t3, signal3] = spidyan(Sys,Exp,Opt);
 

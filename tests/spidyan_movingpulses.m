@@ -11,9 +11,10 @@ Pulse.tp = 0.1;
 
 Exp.Sequence = {Pulse 0.5 Pulse 0.5 Pulse 0.5};
 Exp.Field = 1240; 
-Exp.TimeStep = 0.0001; % us
+Opt.TimeStep = 0.0001; % us
 Exp.mwFreq = 33.5;
-Exp.DetSequence = 1; 
+Exp.DetSequence = 1;
+Exp.DetPhase = 0;
 
 Exp.nPoints = 4;
 Exp.Dim1 = {'p2.Position' 0.25};

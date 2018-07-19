@@ -24,6 +24,7 @@ Chirp180.Frequency = [-300 300];
 
 Exp.Sequence = {Chirp90 0.25 Chirp180 0.25}; 
 Exp.DetWindow = [-0.1 0.1] + Chirp180.tp;
+Exp.DetPhase = 0;
 
 Exp.nPoints = 2;
 Exp.Dim1 = {'d1,d2' 0.5};

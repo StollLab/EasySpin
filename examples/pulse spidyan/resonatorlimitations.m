@@ -30,13 +30,12 @@ Exp.mwFreq = 9.5; % GHz
 Exp.DetOperator = {'z1'};
 
 % Uncomment the following two lines to see the effect of the resonator
-Exp.Resonator.ResonatorFrequency = 9.5;
-Exp.Resonator.ResonatorQL = 150;
+Exp.ResonatorFrequency = 9.5; % resonator frequency in GHz
+Exp.ResonatorQL = 150; % loaded Q factor of resonator
 
 % Uncomment the following line to compensate for the bandwidth limitation,
-% also note how the pulses get longer in the plot than 500 ns
-Exp.Resonator.Mode = 'compensate';
-
+% also note how the pulses in the plot get longer than 500 ns
+Exp.ResonatorMode = 'compensate';
 
 % Set up for plotting
 figure(1)

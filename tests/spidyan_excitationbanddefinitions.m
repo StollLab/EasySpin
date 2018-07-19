@@ -32,7 +32,7 @@ Exp.DetFreq = [0 33.5];
 [~, ~, out1] = spidyan(Sys,Exp);
 
 % Second Method -------------------------
-Exp = rmfield(Exp,'mwFreq');
+Exp.mwFreq = 0;
 Pulse.Frequency = 1000* [33.400 33.600];
 Exp.Sequence = {Pulse 0.5 Pulse};
 

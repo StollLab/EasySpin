@@ -16,15 +16,14 @@ saffronSpecificFieldsOpt = {'TimeDomain','Expand','ProductRule',...
 generalFields = {'mwFreq','Field','CrystalOrientation','CrystalSymmetry'};
 
 % Check a few general fields if the fast algorithm can be run at all
-DetDelay = 0;
 if isfield(Exp,'DetWindow')
     Opt.SimulationMode = 'thyme';
     message = addtomessage(message,'Exp.DetWindow does not work with the fast method');
 end
 
-if isfield(Exp,'Resonator')
+if isfield(Exp,'ResonatorFrequency') || isfield(Exp,'ResonatorQL') || isfield(Exp,'FrequencyResponse')
   Opt.SimulationMode = 'thyme';
-  message = addtomessage(message,'Exp.Resonator structure was found');
+  message = addtomessage(message,'Exp defintion contains resonator fields');
 end
 
 %
@@ -147,9 +146,9 @@ if ~isfield(Opt,'SimulationMode') || strcmp(Opt.SimulationMode,'fast')
             EventSpecificIndex = str2double(Strings{1}(2:end));
             
             if strcmp(EventType,'p')
-              % can't use saffron with changing pulses
-              message = addtomessage(message,['a pulse parameter is changed along indirect dimension no. ' num2str(iDimension)]);
-              Opt.SimulationMode = 'thyme';
+                % Pulse parameters can not be changed
+                message = addtomessage(message,['a pulse parameter is changed along indirect dimension no. ' num2str(iDimension)]);
+                Opt.SimulationMode = 'thyme';
             else
               Inc(EventSpecificIndex) = iDimension;
             end
@@ -205,18 +204,23 @@ end
 if strcmp(Opt.SimulationMode,'fast')
    
   Exp_oldSyntax.Processed = true;
-  varargout{1} = Exp_oldSyntax;
+  varargout{1} = [];
   varargout{2} = [];
   varargout{3} = Opt;
+  varargout{4} = Exp_oldSyntax;
   
   return
 end
 
 % -------------------------------------------------------------------------
-% Pre-Processing
+% Pre-Processing for the thyme method
 % -------------------------------------------------------------------------
 
 Vary = [];
+
+if ~isfield(Exp,'mwFreq')
+  error('Exp.mwFreq is required for the thyme method.')
+end
 
 Opt.SinglePointDetection = false;
 
@@ -236,16 +240,19 @@ idealPulses = false;
 mwFreqrequired = false;
 
 msgtp = 'Please provide pulse lenghts (Par.tp) for the following pulses:';
-msgFrequency = 'Please provide Exp.mwFreq or Par.Frequency for the following pulses:';
+msgFrequency = 'Please provide Par.Frequency for the following pulses:';
 for Pos = PulsePositions
   PulseNumber = find(PulsePositions==Pos);
-  if ~isfield(Exp.Sequence{Pos},'tp')
+  if ~isfield(Exp.Sequence{Pos},'tp') && ~isfield(Exp.Sequence{Pos},'IQ')
     idealPulses = true;
     msgtp = [msgtp ' ' num2str(PulseNumber) ','];
   end
-  if ~isfield(Exp.Sequence{Pos},'Frequency') && ~isfield(Exp,'mwFreq')
+  if ~isfield(Exp.Sequence{Pos},'Frequency') && ~isfield(Exp,'mwFreq') && ~isfield(Exp.Sequence{Pos},'IQ')
     mwFreqrequired = true;
     msgFrequency = [msgFrequency ' ' num2str(PulseNumber) ','];
+  end
+  if isfield(Exp.Sequence{Pos},'IQ') && ~isfield(Opt,'TimeStep')
+    error('If you use userprovided IQs for pulses, Opt.TimeStep must be given.')
   end
 end
 
@@ -338,44 +345,43 @@ else
   Exp.DetSequence = ones(1,length(Exp.Sequence));
 end
 
-% Check if resonator is
-if isfield(Exp,'Resonator')
-  logmsg(1,'  validating resonator:');
-  IncludeResonator = true;
-  
-  if ~isfield(Exp,'mwFreq')
-    error('For using a resonator, the field Exp.mwFreq needs to be provided, and Exp.Frequency needs to be defined in relation to that.')
+% Check if resonator is provided
+IncludeResonator = false;
+if any([isfield(Exp,'ResonatorFrequency') isfield(Exp,'ResonatorQL') isfield(Exp,'FrequencyResponse')])
+  logmsg(1,'  resonator present');
+  if isfield(Exp,'ResonatorFrequency') && isfield(Exp,'ResonatorQL')
+    logmsg(1,['  resonator frequency: ' num2str(Exp.ResonatorFrequency)]);
+    logmsg(1,['  resonator QL: ' num2str(Exp.ResonatorQL)]);
+    Resonator.Arg1 = Exp.ResonatorFrequency;
+    Resonator.Arg2 = Exp.ResonatorQL;
+    IncludeResonator = true;
+  elseif isfield(Exp,'ResonatorFrequency')
+    error('Exp.ResonatorFrequency provided, but Exp.ResonatorQL is missing')
+  elseif isfield(Exp,'ResonatorQL')
+    error('Exp.ResonatorQL provided, but Exp.ResonatorFrequency is missing')
   end
   
-  if ~isfield(Exp.Resonator,'Frequency') && ~isfield(Exp.Resonator,'TransferFunction') && ~isfield(Exp.Resonator,'ResonatorFrequency') && ~isfield(Exp.Resonator,'ResonatorQL')
-    error('In order to use a resonator either ResonatorFrequency and ResonatorQL or nu and TransferFunction need to be defined.')
-    % Looks for frequency axis nu and transfer function
-  elseif (isfield(Exp.Resonator,'Frequency') && ~isfield(Exp.Resonator,'TransferFunction')) || (~isfield(Exp.Resonator,'Frequency') && isfield(Exp.Resonator,'TransferFunction'))
-    error('Either Exp.Resonator.Frequency or Exp.Resonator.TransferFunction is missing')
-  elseif isfield(Exp.Resonator,'Frequency') && isfield(Exp.Resonator,'TransferFunction')
-    Resonator.Arg1 = Exp.Resonator.Frequency;
-    Resonator.Arg2 = Exp.Resonator.TransferFunction;
-  elseif (isfield(Exp.Resonator,'ResonatorFrequency') && ~isfield(Exp.Resonator,'ResonatorQL')) || (~isfield(Exp.Resonator,'ResonatorFrequency') && isfield(Exp.Resonator,'ResonatorQL'))
-    % Looks for center frequency ResonatorFrequency and loaded Qualityfactor
-    error('Either Exp.Resonator.ResonatorFrequency or Exp.Resonator.ResonatorQL is missing')
-  elseif isfield(Exp.Resonator,'ResonatorFrequency') && isfield(Exp.Resonator,'ResonatorQL')
-    Resonator.Arg1 = Exp.Resonator.ResonatorFrequency;
-    Resonator.Arg2 = Exp.Resonator.ResonatorQL;
+  if isfield(Exp,'FrequencyResponse')
+    if IncludeResonator
+      logmsg(1,'  also found FrequencyResponse of the resonator, ignoring ResonatorFrequency and QL');
+    end
+    logmsg(1,'  using Exp.FrequencyResponse to simulate resonator.');
+    Resonator.Arg1 = Exp.FrequencyResponse(1,:);
+    Resonator.Arg2 = Exp.FrequencyResponse(2,:);
+    IncludeResonator = true;
   end
   
-  % if no mode for the resonator incorporation is given, 'simulate' is
-  % assumed by default
-  if isfield(Exp.Resonator,'Mode')
-    if any(strcmp(Exp.Resonator.Mode,{'simulate' 'compensate'}))
-      Resonator.Arg3 = Exp.Resonator.Mode;
+  if isfield(Exp,'ResonatorMode')
+    if any(strcmp(Exp.ResonatorMode,{'simulate' 'compensate'}))
+      logmsg(1,['  resonator mode: ' Exp.ResonatorMode]);
+      Resonator.Arg3 = Exp.ResonatorMode;
     else
       error('Resonator.Mode must be ''simulate'' or ''compensate''.')
     end
   else
     Resonator.Arg3 = 'simulate';
+    logmsg(1,'  found no Exp.ResonatorMode, incorporating resonator, but not compensating for it');
   end
-else
-  IncludeResonator = false;
 end
 
 FreqShift = 0;
@@ -403,7 +409,7 @@ else
   % determine minimum frequency in the experiment definition in order to
   % guess a frequency for the frame shift
   
-  if isfield(Exp,'mwFreq')
+  if isfield(Exp,'mwFreq') && Exp.mwFreq ~= 0
     minPulseFreq = Exp.mwFreq;
   else
     minPulseFreq = [];
@@ -453,17 +459,18 @@ Nyquist = 2*maxPulseFreq;
 MaxTimeStep = 1/Nyquist/1000; % Time Step is in microseconds and Frequencies in GHz
 
 % validate time step
-if isfield(Exp,'TimeStep')
-  if Exp.TimeStep > MaxTimeStep
-    errMsg = ['Your Time Step (Exp.TimeStep) does not fullfill the Nyquist criterium for the pulses you provided. Adapt it to ' num2str(MaxTimeStep) ' or less.'];
+if isfield(Opt,'TimeStep')
+  if Opt.TimeStep > MaxTimeStep
+    errMsg = ['Your Time Step (Opt.TimeStep) does not fullfill the Nyquist criterium for the pulses you provided. Adapt it to ' num2str(MaxTimeStep) ' or less.'];
     error(errMsg);
   end
+  Opt.TimeStep = Opt.TimeStep;
 else
   logmsg(1,'  automatically assuming a suitable time step');
-  Exp.TimeStep = round(MaxTimeStep/4,2,'significant');
+  Opt.TimeStep = round(MaxTimeStep/4,2,'significant');
 end
 
-logmsg(1,'  the time step is %0.2e microseconds',Exp.TimeStep);
+logmsg(1,'  the time step is %0.2e microseconds',Opt.TimeStep);
 
 % Create an empty cell array for all the events
 Events = cell(1,length(Exp.Sequence));
@@ -597,7 +604,7 @@ for iEvent = 1 : length(Exp.Sequence)
       end
       
       % Get the time step
-      Pulse.TimeStep = Exp.TimeStep;
+      Pulse.TimeStep = Opt.TimeStep;
             
       % Loop over the function that creates the PulseShape, as many times at
       % are necessary to calculate all wave forms for the phase cycling
@@ -613,7 +620,7 @@ for iEvent = 1 : length(Exp.Sequence)
         end
         % Shifts IQ of the pulse if necessary...
         if FreqShift ~= 0
-          Opt.dt = Exp.TimeStep;
+          Opt.dt = Opt.TimeStep;
           [t, IQ] = rfmixer(t,IQ,FreqShift,'IQshift',Opt);
         end
         % ... and stores it in the event structure
@@ -660,7 +667,7 @@ for iEvent = 1 : length(Exp.Sequence)
       
       % Shifts IQ of the pulse if necessary...
       for iPhaseStep = 1 : nPhaseSteps
-        Opt.dt = Exp.TimeStep;
+        Opt.dt = Opt.TimeStep;
         if IncludeResonator
           % but first if resonator is requested, pulses are elongated due to ringing.
           % the duration of ringing is stored in an additional field
@@ -765,7 +772,7 @@ for iEvent = 1 : length(Exp.Sequence)
   
   % Store the time step, which will be needed in thyme to calculate time
   % axis and propagators
-  Events{iEvent}.TimeStep = Exp.TimeStep;
+  Events{iEvent}.TimeStep = Opt.TimeStep;
   
   % Keep track of the frameshift
   Events{iEvent}.FrameShift = FrameShift;
@@ -1102,7 +1109,7 @@ if isfield(Exp,'nPoints')
               Vary.Pulses{iPulse}.Ringing(ArrayIndex{:}) = t(end) - tOrig;
             end
             if FreqShift ~= 0
-              Opt.dt = Exp.TimeStep;
+              Opt.dt = Opt.TimeStep;
               [~, IQ] = rfmixer(t,IQ,FreqShift,'IQshift',Opt);
             end
             % ... and stores it in the vary structure
@@ -1160,7 +1167,7 @@ if isfield(Exp,'nPoints')
           % Shifts IQ of the pulse if necessary...
           ShiftedUserIQ = [];
           for iPhaseStep = 1 : nPhaseSteps
-            Opt.dt = Exp.TimeStep;
+            Opt.dt = Opt.TimeStep;
             if IncludeResonator
               % if resonator is requested, pulses are elongated due to ringing.
               % the duration of ringing is stored in an additional field
@@ -1286,6 +1293,7 @@ end
 varargout{1} = Events;
 varargout{2} = Vary;
 varargout{3} = Opt;
+varargout{4} = Exp;
 
 logmsg(1,'  pulse sequence parsed successfully!');
 

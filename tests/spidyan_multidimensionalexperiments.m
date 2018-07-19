@@ -13,9 +13,10 @@ Pulse.Frequency = 1000* [-0.1 0.1];
 
 Exp.Sequence = {Pulse 0.5 Pulse};
 Exp.Field = 1240; 
-Exp.TimeStep = 0.0001; % us
+Opt.TimeStep = 0.0001; % us
 Exp.mwFreq = 33.5;
 Exp.DetSequence = 1; 
+Exp.DetPhase = 0;
 
 % To test I --------------------------
 Exp.nPoints = [3 3];

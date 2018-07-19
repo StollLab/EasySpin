@@ -16,10 +16,11 @@ Exp.Sequence = {Pulse 0.5};
 Exp.TimeStep = 0.0001; % us
 
 Exp.Field = 1195; 
-Exp.TimeStep = 0.0001; % us
+Opt.TimeStep = 0.0001; % us
 
 Exp.mwFreq = 33.5;
 Exp.DetSequence = [1 1]; 
+Exp.DetPhase = 0;
 
 % Options ---------------------------
 Exp.DetOperator = {'z1'};

@@ -11,7 +11,7 @@ RefExp.Field = 324.9;
 
 Opt.SimulationMode = 'fast';
 
-[ProcessedExp1] = runprivate('s_sequencer',RefExp,Opt);
+[~,~,~,ProcessedExp1] = runprivate('s_sequencer',RefExp,Opt);
 
 ProcessedExp1 = rmfield(ProcessedExp1,'Processed');
 
@@ -34,7 +34,7 @@ Opt.lwOffset = 100;
 Opt.logplot = 1;
 Opt.ZeroFillFactor = 4;
 
-[ProcessedExp2, ~,ProcessedOpt] = runprivate('s_sequencer',RefExp2,Opt);
+[~, ~,ProcessedOpt,ProcessedExp2] = runprivate('s_sequencer',RefExp2,Opt);
 
 ProcessedExp2 = rmfield(ProcessedExp2,'Processed');
 

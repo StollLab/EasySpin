@@ -193,6 +193,23 @@ logmsg(1,'-validating and processing outout----------------------');
 
 nDetOps = numel(DetOps); % number of detection operators
 
+% Applying detection phase
+if ~isempty(RawSignal)
+  if isfield(Exp,'DetPhase')
+    logmsg(1,'  applying detection phase: %d*pi',Exp.DetPhase/pi);
+    phase = exp(-1i*Exp.DetPhase);
+  else
+    logmsg(1,'  applying default detection phase: pi');
+    phase = exp(-1i*pi);
+  end
+  
+  if iscell(RawSignal)
+    RawSignal = cellfun(@(x) x*phase,RawSignal,'un',0);
+  else
+    RawSignal = RawSignal*phase;
+  end
+end
+
 if Opt.SinglePointDetection
   logmsg(1,'  single point detection...');
   if isfield(Exp,'nPoints') && nDetOps ~= 1

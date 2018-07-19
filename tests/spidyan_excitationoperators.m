@@ -13,10 +13,11 @@ Pulse.Flip = pi;
 
 Exp.Sequence = {Pulse Pulse};
 Exp.Field = 1240; 
-Exp.TimeStep = 0.0001; % us
+Opt.TimeStep = 0.0001; % us
 
 Exp.mwFreq = 33.5;
 Exp.DetSequence = [1 0]; 
+Exp.DetPhase = 0;
 
 % Options ---------------------------
 Exp.DetOperator = {'+','+(1|2)'};

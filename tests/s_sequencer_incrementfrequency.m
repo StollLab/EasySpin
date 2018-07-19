@@ -10,7 +10,7 @@ function [err,data] = test(opt,olddata)
 
 TimeStep = 0.0001;
 Flip = pi;
-InitFrequency  = 1000; % in GHz
+InitFrequency  = 1000; % in MHz
 df = -50; % frequency increment
 tp = 0.01;
 
@@ -29,7 +29,7 @@ Manual.Flip = Flip;
 
 Exp.Sequence = {Pulse 0.5 Pulse};
 Exp.Field = 1240; 
-Exp.TimeStep = TimeStep; % us
+Opt.TimeStep = TimeStep; % us
 
 Opt.SimFreq = 0;
 Opt.SimulationMode = 'step wise';
@@ -37,6 +37,7 @@ Opt.SimulationMode = 'step wise';
 % First Test - Change one pulse along one dimension -----------------------
 Exp.nPoints = 3;
 Exp.Dim1 = {'p1.Frequency' df};
+Exp.mwFreq = 0;
 
 [~, Vary1] = runprivate('s_sequencer',Exp,Opt);
 

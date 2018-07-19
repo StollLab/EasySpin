@@ -12,13 +12,14 @@ Pulse.Flip = pi;
 
 Exp.Sequence = {Pulse 0.5 Pulse};
 Exp.Field = 1240; 
-Exp.TimeStep = 0.0001; % us
+Opt.TimeStep = 0.0001; % us
 
 Exp.mwFreq = 33.5;
 Exp.DetSequence = 1; 
 
 Exp.nPoints = 3;
 Exp.Dim1 = {'p1.Flip' 0.05};
+Exp.DetPhase = 0;
 
 % Options ---------------------------
 Exp.DetOperator = {'z1'};

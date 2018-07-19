@@ -14,10 +14,11 @@ Pulse.Flip = pi;
 
 Exp.Sequence = {Pulse 0.5};
 Exp.Field = 1195; 
-Exp.TimeStep = 0.0001; % us
+Opt.TimeStep = 0.0001; % us
 Exp.mwFreq = 33.5;
 Exp.DetSequence = [1 1];
 Exp.DetFreq = 0;
+Exp.DetPhase = 0;
 
 % Options ---------------------------
 Opt.SimFreq = 32;

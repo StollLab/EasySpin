@@ -1,18 +1,17 @@
 % saffron    Simulate pulse EPR spectra
-%
+
+%     S = saffron(Sys,Exp,Opt)
 %     [x,S] = saffron(Sys,Exp,Opt)
 %     [x,S,out] = saffron(Sys,Exp,Opt)
-%
-%     [x1,x2,S] = saffron(Sys,Exp,Opt)
-%     [x1,x2,S,out] = saffron(Sys,Exp,Opt)
 %
 %     Sys   ... spin system with electron spin and ESEEM nuclei
 %     Exp   ... experimental parameters (time unit us)
 %     Opt   ... simulation options
 %
 %     out:
-%       x       ... time or frequency axis (1D experiments)
-%       x1, x2  ... time or frequency axis (2D experiments)
+%       x       ... axis for S, contains indirect dimensions and for
+%                   transient detection time axis of transient, frequency
+%                   axis for ENDOR
 %       S       ... simulated signal (ESEEM) or spectrum (ENDOR)
 %       out     ... structure with FFT of ESEEM signal
 
@@ -37,7 +36,7 @@ for i = 1 % header - nothing to see here %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   % Guard against wrong number of input or output arguments.
   if (nargin<2) || (nargin>3), error('Wrong number of input arguments!'); end
   if (nargout<0), error('Not enough output arguments.'); end
-  if (nargout>4), error('Too many output arguments.'); end
+  if (nargout>3), error('Too many output arguments.'); end
   
   % Initialize options structure to zero if not given.
   if (nargin<3), Opt = struct('unused',NaN); end
@@ -71,6 +70,10 @@ if ~isfield(Opt,'SimulationMode')
   Opt.SimulationMode = 'fast';
 end
 
+if iscell(Sys)
+  error('Sys input with more than one component not yet supported.')
+end
+
 % validation of the spin system needs to be done first:
 [SysVal,err] = validatespinsys(Sys);
 error(err);
@@ -79,17 +82,14 @@ if SysVal.MO_present, error('saffron does not support general parameters!'); end
 if any(SysVal.L(:)), error('saffron does not support L!'); end
 
 if (SysVal.nElectrons>1)
-  %       error('saffron does not support systems with more than one electron spin.');
   Opt.SimulationMode = 'thyme';
 end
 
 if isfield(SysVal,'n') && any(SysVal.n~=1)
-  %       error('saffron does not support Sys.n. Specify equivalent nuclei explicitly.')
   Opt.SimulationMode = 'thyme';
 end
 
 if isfield(SysVal,'nn') && any(SysVal.nn(:)~=0)
-  % error('saffron does not support nuclear-nuclear couplings (Sys.nn).');
   Opt.SimulationMode = 'thyme';
 end
 
@@ -101,7 +101,7 @@ elseif ~isfield(Opt,'Relaxation')
   Opt.Relaxation = false;
 end
 
-%error on spidyan specific fields
+% error on spidyan specific fields
 ForbiddenSysFields = {'initState','eqState'};
 if any(isfield(Sys,ForbiddenSysFields))
   error('Sys.initState and Sys.eqState are specific to spidyan and can not be used with saffron. Please remove them.')
@@ -121,13 +121,8 @@ if any(isfield(Exp,ForbiddenExpFields))
   error('Exp.DetSequence and Exp.DetOperator are specific to spidyan and can not be used with saffron. Please remove them.')
 end
 
-
 if ~isfield(Exp,'Processed')
-  [Events,Vary,Opt] = s_sequencer(Exp,Opt);
-  
-  if strcmp(Opt.SimulationMode,'fast')
-    Exp = Events;
-  end
+  [Events,Vary,Opt,Exp] = s_sequencer(Exp,Opt);
 end
 
 DefaultExp.Temperature = [];
@@ -234,10 +229,12 @@ if strcmp(Opt.SimulationMode,'fast')
         % Simulate single-isotopologue spectrum
         Sys_ = SysList{iComponent}(iIsotopologue);
         Sys_.singleiso = true;
+        [x,y_,out] = saffron(Sys_,Exp,Opt);
         if TwoDim
-          [x1,x2,y_,out] = saffron(Sys_,Exp,Opt);
+          x1 = x{1};
+          x2 = x{2};
         else
-          [x1,y_,out] = saffron(Sys_,Exp,Opt);
+          x1 = x;
         end
         
         % Accumulate or append spectra
@@ -267,16 +264,17 @@ if strcmp(Opt.SimulationMode,'fast')
         switch nargout
           case 0 % plotting, done below
           case 1, varargout = {ysum};
-          case 2, varargout = {x1,ysum};
+          case 2
+            if TwoDim
+              varargout = {{x1,x2},ysum,};
+            else
+              varargout = {x1,ysum};
+            end
           case 3
             if TwoDim
-              varargout = {x1,x2,ysum};
+              varargout = {{x1,x2},ysum,out};
             else
               varargout = {x1,ysum,out};
-            end
-          case 4
-            if TwoDim
-              varargout = {x1,x2,ysum,out};
             end
         end
       case 2
@@ -285,19 +283,15 @@ if strcmp(Opt.SimulationMode,'fast')
           case 1, varargout = {zsum};
           case 2
             if TwoDim
-              varargout = {out.f1,zsum};
+              varargout = {{out.f1,out.f2},zsum};
             else
               varargout = {out.f,zsum};
             end
           case 3
             if TwoDim
-              varargout = {out.f1,out.f2,zsum};
+              varargout = {{out.f1,out.f2},zsum,out};
             else
               varargout = {out.f,zsum,out};
-            end
-          case 4
-            if TwoDim
-              varargout = {out.f1,out.f2,zsum,out};
             end
         end
     end
@@ -1960,9 +1954,8 @@ if strcmp(Opt.SimulationMode,'fast')
   else
     switch nargout
       case 1, varargout = {td};
-      case 2, varargout = {t1,td};
-      case 3, if (nDimensions==2), varargout = {t1,t2,td}; else, varargout = {t1,td,out}; end
-      case 4, if (nDimensions==2), varargout = {t1,t2,td,out}; end
+      case 2, if (nDimensions==2), varargout = {{t1,t2},td}; else, varargout = {t1,td}; end
+      case 3, if (nDimensions==2), varargout = {{t1,t2},td,out}; else, varargout = {t1,td,out}; end
     end
   end
   
@@ -2001,6 +1994,7 @@ else
   end
   logmsg(1,'  propagating %d orientations',nOrientations);
   Field = Exp.Field;
+
   parfor iOrientation = 1 : nOrientations
     
     Sys_ = rotatesystem(Sys,Orientations(iOrientation,:));
@@ -2018,6 +2012,16 @@ else
     Signal = Signal + RawSignals{iOrientation}*Exp.OriWeights(iOrientation);
   end
   
+  if isfield(Exp,'DetPhase')
+    logmsg(1,'  applying detection phase: %d*pi',Exp.DetPhase/pi);
+    phase = exp(-1i*Exp.DetPhase);
+  else
+    logmsg(1,'  applying default detection phase: pi');
+    phase = exp(-1i*pi);
+  end
+  
+  Signal = Signal*phase;
+  
   if ~Opt.SinglePointDetection && isfield(Exp,'DetIntegrate') && Exp.DetIntegrate
     logmsg(1,'-integrating echos-------------------------------------');
 
@@ -2025,7 +2029,7 @@ else
    
     Signal = reshape(Signal,[nDataPoints, sizeSig(end)]);
     
-    Signal = sum(abs(Signal),2);
+    Signal = sum(Signal,2);
     
     Signal = reshape(Signal, [sizeSig(1:end-2) 1]);
     
@@ -2034,14 +2038,7 @@ else
     logmsg(1,'  integrated %d transients',numel(Signal));
   end
    
-  
-  % Signalprocessing
-  
-  if ~isfield(Exp,'nPoints')
-    nDims = 1;
-  else
-    nDims = length(Exp.nPoints);
-  end
+  % Signalprocessing  
   if ~Opt.SinglePointDetection
     logmsg(1,'-processing transients---------------------------------');
     
@@ -2064,25 +2061,55 @@ else
     dt = Events{end}.TimeStep;
     TimeAxis = Exp.DetWindow(1):dt:Exp.DetWindow(2);
   end
+
+  logmsg(1,'-setting up axes for output----------------------------');
+  if ~isfield(Exp,'nPoints')
+    nDims = 1;
+  else
+    nDims = length(Exp.nPoints);
+  end
   
   if ~isfield(Exp,'nPoints')
-    x = 1; % one datapoint
+    x = []; % one datapoint
+    logmsg(1,'  no indirect dimensions');
   else
+    logmsg(1,'  setting up %d axes for indirect dimensions',nDims);
     
     x = cell(1,nDims);
+
     for iDim = 1 : nDims
+
       Dimension_ = ['Dim' num2str(iDim)];
-      if length(Exp.(Dimension_){1,2}) == 1
-        x{iDim} = Exp.(Dimension_){1,2}*(0:Exp.nPoints(iDim)-1);
-      else
-        x{iDim} = 1:Exp.nPoints(iDim);
+
+      nParameters = size(Exp.(Dimension_),1);
+      axes = zeros(nParameters,Exp.nPoints(iDim));
+
+      for iParameter = 1: nParameters
+        if length(Exp.(Dimension_){iParameter,2}) == 1
+          axes(iParameter,:) = Exp.(Dimension_){iParameter,2}*(0:Exp.nPoints(iDim)-1);
+        else
+          axes(iParameter,:) = 1:Exp.nPoints(iDim);
+        end
       end
-    end
-    
-    if numel(x) == 1
-      x = x{1};
+
+      x{iDim} = axes;
     end
   end
+  
+  % adds the transient time axis to the output
+  if ~Opt.SinglePointDetection
+    logmsg(1,'  adding axis of direct dimension');
+    if isempty(x)
+      x = TimeAxis;
+    else
+      x{nDims+1} = TimeAxis;
+    end
+  end
+  
+  if iscell(x) && numel(x)==1
+    x = x{1};
+  end
+
   
   switch nargout
     case 0
@@ -2098,7 +2125,7 @@ else
             plot(TimeAxis',real(Signal)')
             ylabel('Signal (arb. u.)')
           else
-            surf(TimeAxis,x,real(Signal));
+            surf(x{2},x{1}(1,:),real(Signal));
             shading flat
             if length(Exp.Dim1{1,2}) == 1
               % x-axis and its label in case of linear increments
@@ -2112,7 +2139,7 @@ else
           xlabel('Transient (\mus)')
           axis tight
         else
-          plot(x,real(Signal));
+          plot(x(1,:),real(Signal));
           ylabel('Signal (arb. u.)')
           if length(Exp.Dim1{1,2}) == 1
             % x-axis and its label in case of linear increments
@@ -2128,18 +2155,10 @@ else
     case 1
       varargout{1} = Signal;
     case 2
-      if Opt.SinglePointDetection
-        varargout{1} = x;
-      else
-        varargout{1} = TimeAxis;
-      end
+      varargout{1} = x;
       varargout{2} = Signal;
     otherwise
-      if Opt.SinglePointDetection
-        varargout{1} = x;
-      else
-        varargout{1} = TimeAxis;
-      end
+      varargout{1} = x;
       varargout{2} = Signal;
       varargout{3:nargout} = [];
   end

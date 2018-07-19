@@ -25,7 +25,7 @@ NewExp.Dim1 = {'d2' RefExp.dt};
 
 Opt.SimulationMode = 'fast';
 
-[ProcessedExp] = runprivate('s_sequencer',NewExp,Opt);
+[~,~,~,ProcessedExp] = runprivate('s_sequencer',NewExp,Opt);
 
 ProcessedExp = rmfield(ProcessedExp,'Processed');
 

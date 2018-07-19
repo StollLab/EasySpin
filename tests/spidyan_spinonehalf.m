@@ -16,13 +16,14 @@ Pulse.Frequency = 1000* [-0.100 0.100];
 
 Exp.Sequence = {Pulse 0.5 Pulse};
 Exp.Field = 1240; 
-Exp.TimeStep = 0.0001; % us
+Opt.TimeStep = 0.0001; % us
 Exp.mwFreq = 33.5;
 Exp.DetSequence = [1 1 1]; 
 
 % Detection -------------------------
 Exp.DetOperator = {'z1','+1'};
 Exp.DetFreq = [0 33.5]; 
+Exp.DetPhase = 0;
 
 % Options ---------------------------
 Opt.SimFreq = 32;

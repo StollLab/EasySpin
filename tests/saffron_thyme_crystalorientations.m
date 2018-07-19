@@ -1,8 +1,7 @@
 function [err,data] = test(opt,olddata)
 
-% the original data sets to compare to where created with the old saffron
-
 Sys.S = 1/2;
+Sys.g = 1.898468237763169;
 Sys.Nucs = '1H';
 Sys.A_ = [5 2];
 
@@ -10,9 +9,6 @@ dt = 0.01;
 tau = 0.1;
 nPoints = 10;
 Field = 350;
-
-Opt.nKnots = 20;
-Opt.SimulationMode = 'thyme';
 
 %--- Tests
 
@@ -25,17 +21,18 @@ Exp.Field = Field;
 
 Exp.DetWindow = [-0.05 0.05];
 Exp.mwFreq = 9.3;
+Exp.DetPhase = 0;
 
 Exp.CrystalOrientation = [0 pi/2 0];
 
-[x1, y1] = saffron(Sys,Exp,Opt);
+[x1, y1] = saffron(Sys,Exp);
 
 data.x1 = x1;
 data.y1 = y1;
 
 Exp.CrystalOrientation = [0 pi/2 0; 0 0 0];
 
-[x2, y2] = saffron(Sys,Exp,Opt);
+[x2, y2] = saffron(Sys,Exp);
 
 data.x2 = x2;
 data.y2 = y2;

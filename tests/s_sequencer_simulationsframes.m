@@ -21,7 +21,7 @@ Pulse.Frequency = 1000* [-0.100 0.100] + 33500;
 
 Exp.Sequence = {Pulse 0.5 Pulse Pulse};
 
-Exp = rmfield(Exp,'mwFreq');
+Exp.mwFreq = 0;
 
 [Events2, Vary2] = runprivate('s_sequencer',Exp,Opt);
 

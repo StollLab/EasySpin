@@ -40,11 +40,10 @@ saffron(Sys,Exp,Opt)
 y = saffron(...)
 [x,y] = saffron(...)
 [x,y,p] = saffron(...)
-[x1,x2,y,p] = saffron(...)
 </pre>
 
 <p>
-See also the <a href="examplesmain.html">examples</a> on how to use <code>saffron</code> and the <a href="userguide_saffron.html">userguide</a>.
+See also the <a href="examplesmain.html">examples</a> on how to use <code>saffron</code> and <a href="userguide_saffron.html">part I</a> and <a href="userguide_saffron_thyme.html">part II</a> of the userguide.
 
 <!-- ====================================================== -->
 <div class="subtitle">Description</div>
@@ -55,11 +54,15 @@ Two different simulations methods are available: a fast one that works with pred
 For more details see <a href="#algorithms">here</a>.
 
 <p>
-The output contain the abscissa data in <code>x</code> (time in microseconds or frequency in MHz) and the simulated data in <code>y</code> (time domain trace or ENDOR spectrum). For 2D experiments such as HYSCORE, the two axes are returned in <code>x1</code> and <code>x2</code>. For ESEEM simulations, <code>p</code> contains the frequency abscissa (in MHz) in <code>p.f</code> and the spectrum obtained by Fourier transform from the time domain data in <code>p.fd</code>.
+The output contain the abscissa data in <code>x</code> and the simulated data in <code>y</code> (time domain trace or ENDOR spectrum). 
+<code>x</code> is a vector, if <code>y</code> is one dimensional. 
+If <code>y</code> has more than one dimension, <code>x</code> becomes a cell array with the individial axes.
+In case of transient detection, the time axis of the transient is always the last element in <code>x</code>.
+For ESEEM simulations, <code>p</code> contains the frequency abscissa (in MHz) in <code>p.f</code> and the spectrum obtained by Fourier transform from the time domain data in <code>p.fd</code>.
 
 <p>
 If you don't request any output, <code>saffron</code> plots the simulated data. 
-The data can not be plotted for simulations with three or more indirect dimensions.
+The data can not be plotted for simulations with three or more indirect dimensions with single point detection, or two or more indirect dimensions with transient detection.
 
 <p>
 The three input arguments to the function are
@@ -165,17 +168,13 @@ The delays are defined to go from the end of one previous element in <code>Seque
 EPR spectrometer frequency in GHz. 
 For the the <em>fast</em> method this needs only to be given if orientation selection is wanted.
 <p> 
-If given for <em>thyme</em> all frequencies in the pulse definition (e.g. <code>Pulse.Frequency</code>) need to be defined relative to it:
+Required for the <em>thyme</em> method.
+All frequencies in the pulse definition (e.g. <code>Pulse.Frequency</code>) need to be defined relative to it:
 <pre class="matlab">
 Exp.mwFreq = 33.5;
 
-Pulse.Frequency = [-250 250];  % 500 MHz sweep of pulse if 'Exp.mwFreq' is defined in MHz
+Pulse.Frequency = [-250 250];  % 500 MHz sweep
 </pre>
-If <code>Exp.mwFreq</code> is omitted, the frequency range of the pulse has to be written in absolute frequencies:
-<pre class="matlab">
-Pulse.Frequency = [33250 33750];  % same pulse as above, but no Exp.mwFreq, in MHz
-</pre>
-If you want to use a resonator in your simulation it is necessary to provide <code>Exp.mwFreq</code>.
 </div>
 
 <p>
@@ -322,15 +321,6 @@ Exp.PhaseCycle = {[] PC};	% phase cycles the second pulse
 Phace cycling that steps more than one pulse simultaneously is not available through the <code>PhaseCycle</code> structure, but can be achieved through adding an additional indirect dimension to the experiment (see <code>Dim</code>).
 </div>
 
-<div class="optionfield"><code>TimeStep</code></div>
-<div class="optiondescr">
-Time step in microseconds, optional. 
-If no time step is provided, the program computes a suitable time step (taking into account the highest frequency that is being used for the pulse definition <code>Exp.Frequency</code>) and prints it to the command line.
-If the user provides a time step, the program checks if the Nyquist theorem is not fulfilled for the frequency ranges of the pulses and, if not, an error is thrown. 
-The required <code>TimeStep</code> depends on the choice of simulation frame, and hence on <code>Opt.FrameShift</code> (see <a href="#opt_frame_shift">there</a> and in the examples).
-Any time steps given in the pulse definition are ignored.
-</div>
-
 <div class="optionfield"><code>DetWindow</code></div>
 <div class="optiondescr">
 The field <code>DetWindow</code> controls detection and is given in microseconds:
@@ -389,16 +379,35 @@ Exp.DetFreq = 33.5; % shifts detected signal by -33.5 GHz
 If no <code>DetFreq</code> is provided, <code>Exp.mwFreq</code> is taken as frequency for down-conversion.
 </div>
 
-<p>
-The bandwidth limiting effect of a resonator on a pulse can be incorporated. 
-For all simulations with a resonator the field <code>Exp.mwFreq</code> must be provided and <code>Exp.Frequencies</code> defined in relation to it.
-</p>
-<div class="optionfield"><code>Resonator</code></div>
+<div class="optionfield"><code>DetPhase</code></div>
 <div class="optiondescr">
-The field <code>Exp.Resonator</code> is a structure itself (see example below).
-The resonator profile has to be defined using the resonator center frequency <code>ResonatorFrequency</code> and the loaded Q-value <code>ResonatorQL</code> (resonator frequency response computed from the ideal transfer function for an RLC series circuit)or the transfer function <code>TransferFunction</code> in combination with the frequency axis <code>nu</code>.
-By setting <code>Mode</code> it is possible to compensate for the resonator. Compensation aims to provide a waveform that excites spin packets in the resonator with constant critical adiabaticity if the originally specified waveform would lead to excitation with constant critical adiabaticity in the absence of a resonator (mainly for chirp and hyperbolic secant pulses).
-For more details see <a class="esf" href="resonator.html">resonator</a>.
+Phase of detection in radians, optional. 
+The default value is <code>pi</code>.
+</div>
+
+<p>
+Bandwidth limiting effects of a resonator on a pulse can be incorporated in two ways:
+
+<p>
+The resonator profile is defined using the resonator center frequency <code>ResonatorFrequency</code> and the loaded Q-value <code>ResonatorQL</code>.
+The resonator frequency response is then computed from the ideal transfer function for an RLC series circuit) 
+
+<pre class="matlab">
+Exp.ResonatorFrequency = 33.5; 	% resonator center frequency in GHz
+Exp.ResonatorQL = 300;	  	% loaded Q-value
+</pre>
+
+<p>
+Or the transfer function in combination with the frequency axis are given with <code>FrequencyResponse</code>.
+
+<pre class="matlab">
+Exp.FrequencyResponse = [Frequency; TransferFunction] 	% transfer function and its correspond frequency axis
+</pre>
+
+<p>
+By setting <code>ResonatorMode</code> it is possible to compensate for the resonator. 
+Compensation aims to provide a waveform that excites spin packets in the resonator with constant critical adiabaticity if the originally specified waveform would lead to excitation with constant critical adiabaticity in the absence of a resonator (mainly for chirp and hyperbolic secant pulses).
+For more details see <a class="esf" href="pulse.html">pulse</a> and <a class="esf" href="resonator.html">resonator</a>.
 <p>
 <div class="optionfield"><code>ResonatorFrequency</code></div>
 <div class="optiondescr">
@@ -408,26 +417,20 @@ Center frequency of resonator in GHz.
 <div class="optiondescr">
 The loaded Q-value.
 </div>
-<div class="optionfield"><code>Frequency</code></div>
+<div class="optionfield"><code>FrequencyResponse</code></div>
 <div class="optiondescr">
-Frequency axis of the resonator transfer function in GHz.
+This gives the frequency response of the resonator, in the form <code>Par.FrequencyResponse = [Frequency; TransferFunction]</code> with the (possibly experimental) resonator transfer function in <code>TransferFunction</code> and the corresponding frequency axis in <code>Frequency</code> (in GHz). 
+A complex transfer function input in <code>Par.FrequencyResponse</code> is used directly in the bandwidth compensation. 
+A real transfer function input is assumed to correspond to the magnitude response, and the associated phase response is estimated.
+
+<p>
+If <code>FrequencyResponse</code> is given, the alternative input fields <code>ResonatorFrequency</code> and <code>ResonatorQL</code> are ignored.
 </div>
-<div class="optionfield"><code>TransferFunction</code></div>
-<div class="optiondescr">
-If the transfer function input is real, it is interpreted as magnitude transfer function.
-If it is complex it is taken as the full transfer function.
-</div>
-<div class="optionfield"><code>Mode</code></div>
+<div class="optionfield"><code>ResonatorMode</code></div>
 <div class="optiondescr">
 Optional, can be <code>'simulate'</code> or <code>'compensate'</code>. 
 By default the effect of the resonator on the signal is simulated.
 If set to <code>'compensate'</code> the pulse shape is adapted such that it compensates for the resonator profile by using a uniform critical adiabaticity criterion.
-</div>
-<p>
-<pre class="matlab">
-Exp.Resonator.ResonatorFrequency = 33.5; 	% resonator center frequency in GHz
-Exp.Resonator.ResonatorQL = 300;	  	% loaded Q-value
-</pre>
 </div>
 
 <div class="subtitle2">Input: Simulation options</div>
@@ -521,8 +524,15 @@ To force a simulation in the labframe <code>SimFreq</code> has to be set to zero
 Opt.SimFreq = 0;  	      % Propagation in the labframe
 </pre>
 Changing the simulation frame allows for using a larger time step, which in turn can strongly reduce computation time.																											 																																										
-Keep in mind, that if a time step is provided with <code>Exp.TimeStep</code> it is not adapted automatically.
-To have the program adapt the time step, remove the field <code>Exp.TimeStep</code> .
+Keep in mind, that if a time step is provided with <code>Opt.TimeStep</code> it is not adapted automatically.
+To have the program adapt the time step to the simulation frequency, remove the field <code>Opt.TimeStep</code> .
+</div>
+
+<div class="optionfield"><code>TimeStep</code></div>
+<div class="optiondescr">
+Time step in microseconds, optional. 
+If no time step is provided, the program computes a suitable time step (taking into account the highest frequency that is being used for the pulse definition <code>Exp.Frequency</code>).
+If the user provides a time step, the program checks if the Nyquist theorem is not fulfilled for the frequency ranges of the pulses and, if not, an error is thrown. 
 </div>
 
 <div class="subtitle">Algorithms</div>

@@ -30,7 +30,7 @@ Pulse90.Flip = pi/2; % flip angle, rad
 
 Pulse180.Type = 'rectangular';
 Pulse180.tp = 0.025; % pulse length, mus
-Pulse180.Flip = pi/2;  % flip angle, rad
+Pulse180.Flip = pi;  % flip angle, rad
 
 Exp.Sequence = {Pulse90 0.25 Pulse90 0.5}; 
 Exp.mwFreq = 9.5; % GHz
