@@ -22,9 +22,9 @@ fwhma = delta/180*pi;
 fwhmb = delta/180*pi;
 fwhmg = delta/180*pi;
 
-[pdfa, pdfb, pdfg] = ndgrid(runprivate('wrappedgaussian', alphaGrid, 0, fwhma), ...
+[pdfa, pdfb, pdfg] = ndgrid(runprivate('wrappedgaussian', alphaGrid, 0, fwhma, [0,2*pi]), ...
                             runprivate('wrappedgaussian', betaGrid, 0, fwhmb, [0,pi]), ...
-                            runprivate('wrappedgaussian', gammaGrid, 0, fwhmg));
+                            runprivate('wrappedgaussian', gammaGrid, 0, fwhmg, [0,2*pi]));
 
 pdf = pdfa.*pdfb.*pdfg;
 

@@ -168,7 +168,7 @@ if isUserPotFun
   if isnumeric(PseudoPotFun)
     nGrid = size(PseudoPotFun);
   else
-    nGrid = [25 13 25]; % 15 degree increments for each angle
+    nGrid = [101 51 101]; % 15 degree increments for each angle
   end
   alphaGrid = linspace(0,2*pi,nGrid(1));
   betaGrid = linspace(0,pi,nGrid(2)+2);
@@ -176,7 +176,8 @@ if isUserPotFun
   gammaGrid = linspace(0,2*pi,nGrid(3));
   
   if ~isnumeric(PseudoPotFun)
-    PseudoPotFun = PseudoPotFun(alphaGrid,betaGrid,gammaGrid);
+    [AlphaGrid,BetaGrid,GammaGrid] = ndgrid(alphaGrid,betaGrid,gammaGrid);
+    PseudoPotFun = PseudoPotFun(AlphaGrid,BetaGrid,GammaGrid);
   end
   
   % Calculate gradient

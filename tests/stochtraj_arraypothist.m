@@ -8,9 +8,9 @@ idx = [2, 1, 3];  % for permuting dimensions to go between ngrid and
 % generate Euler angle grids
 N = 100;
 
-abins = N;
-bbins = N;
-gbins = N;
+abins = N+1;
+bbins = N/2+1;
+gbins = N+1;
 
 alphaGrid = linspace(0, 2*pi, abins);
 betaGrid = linspace(0, pi, bbins);
@@ -25,19 +25,21 @@ fwhma = delta/180*pi;
 fwhmb = delta/180*pi;
 fwhmg = delta/180*pi;
 
-[pdfa, pdfb, pdfg] = ndgrid(runprivate('wrappedgaussian', alphaGrid, 0, fwhma), ...
+[pdfa, pdfb, pdfg] = ndgrid(runprivate('wrappedgaussian', alphaGrid, 0, fwhma, [0,2*pi]), ...
                             runprivate('wrappedgaussian', betaGrid, 0, fwhmb, [0,pi]), ...
-                            runprivate('wrappedgaussian', gammaGrid, 0, fwhmg));
+                            runprivate('wrappedgaussian', gammaGrid, 0, fwhmg, [0,2*pi]));
 
 pdf = pdfa.*pdfb.*pdfg;
 
 pdf = pdf/sum(pdf(:));
+PDF = pdf;
+PDF(PDF<1e-10) = 1e-10;
 
 Sys.tcorr = 10e-9;
-Sys.Potential = -log(pdf);
+Sys.Potential = -log(PDF);
 
 Par.dt = Sys.tcorr/20;
-Par.nSteps = ceil(200*Sys.tcorr/Par.dt);
+Par.nSteps = ceil(400*Sys.tcorr/Par.dt);
 Par.nTraj = 400;
 
 nTraj = Par.nTraj;
@@ -55,9 +57,13 @@ err = 0;
 
 N = round(nSteps/2);
 
-alphaBins = linspace(-pi, pi, gbins);
+alphaBins = linspace(0, 2*pi, gbins);
+% betaBins = linspace(0, pi, bbins);
 betaBins = pi-acos(linspace(-1, 1, bbins));
-gammaBins = linspace(-pi, pi, gbins);
+gammaBins = linspace(0, 2*pi, gbins);
+% alphaBins = linspace(-pi, pi, gbins);
+% betaBins = pi-acos(linspace(-1, 1, bbins));
+% gammaBins = linspace(-pi, pi, gbins);
 
 for iTraj=1:nTraj
   % use a "burn-in method" by taking last half of each trajectory
@@ -72,15 +78,15 @@ for iTraj=1:nTraj
 end
 
 Hist3D = mean(Hist3D, 4);  % average over all trajectories
-Hist3D = Hist3D/sum(Hist3D(:));  % normalize
+Hist3D = Hist3D/trapz(Hist3D(:));  % normalize
 
-[pdfa, pdfb, pdfg] = ndgrid(runprivate('wrappedgaussian', alphaBins, 0, fwhma), ...
+[pdfa, pdfb, pdfg] = ndgrid(runprivate('wrappedgaussian', alphaBins, 0, fwhma, [0,2*pi]), ...
                             runprivate('wrappedgaussian', betaBins, 0, fwhmb, [0,pi]).*sin(betaBins), ...
-                            runprivate('wrappedgaussian', gammaBins, 0, fwhmg));
+                            runprivate('wrappedgaussian', gammaBins, 0, fwhmg, [0,2*pi]));
 
 pdf = pdfa.*pdfb.*pdfg;
 
-pdf = pdf/sum(pdf(:));
+pdf = pdf/trapz(pdf(:));
 
 rmsd = calc_rmsd(pdf, Hist3D);
 
@@ -97,6 +103,7 @@ if rmsd>2e-2||any(isnan(Hist3D(:)))
   xlabel('alpha')
   ylabel('beta')
   zlabel('gamma')
+  title('Histogram')
   colormap hsv
 
   subplot(1,2,2)
@@ -108,6 +115,7 @@ if rmsd>2e-2||any(isnan(Hist3D(:)))
   xlabel('alpha')
   ylabel('beta')
   zlabel('gamma')
+  title('PDF from potential')
   colormap hsv
 end
 
