@@ -21,7 +21,7 @@ if (nargin==0), help(mfilename); return; end
 if (nargin<3), scale = 1; end
 if (nargin<4), step = 1; end
 
-if ischar(scale) | numel(scale)>1
+if ischar(scale) || numel(scale)>1
   error('Third parameter (scale) must be a number.');
 end
 
@@ -49,11 +49,11 @@ if min(size(x))==1
   x = repmat(x,1,size(y,2));
 end
 
-if shift(end)<shift(1);
+if shift(end)<shift(1)
   shift = shift(end:-1:1);
 end
 
-h = plot(x,y,'b');
+h = plot(x,y);
 set(gca,'YTick',shift);
 set(gca,'YTickLabel',TickLabels);
 axis tight

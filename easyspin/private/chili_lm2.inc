@@ -28,10 +28,9 @@ const double Rzz = Diff.Rzz;
 const double ExchangeFreq = Diff.Exchange;
 const double *xlk = Diff.xlk;
 
-/* Lband = (lptmx>=2) ? lptmx*2 : 2; */
 const int Lband = Diff.maxL>=4 ? Diff.maxL : 2;
 /* Kband = kptmx*2; */
-/*const int Kband = 8;*/
+/*const int Kband = Lband*2;*/
 /*========================================================== */
 
 /* Loop variables */
@@ -170,7 +169,7 @@ for (L1=0;L1<=Lemax;L1++) {
                           if (K1==0) N_K /= sqrt(2.0);
                           if (K2==0) N_K /= sqrt(2.0);
                           
-                          /* Normalisation prefactor in Eq.(A40) and Eq.(A41) */
+                          /* Normalization prefactor in Eq.(A40) and Eq.(A41) */
                           NormFactor = N_L*N_K*parity(M1+K1);
                           /*---------------------------------------------------------------------- */
 						  
@@ -179,6 +178,7 @@ for (L1=0;L1<=Lemax;L1++) {
                           /*---------------------------------------------------------------------- */
                           PotDiff = 0;
                           if (Potential) {
+                            /*if ((abs(Ld)<=Lband)&&(parity(Ks)==1)&&(jKd==0)&&(abs(Kd)<=Kband)&&(abs(Ks)<=Kband)) {*/
                             if ((abs(Ld)<=Lband)&&(parity(Ks)==1)&&(jKd==0)) {
                               for (L=0; L<=Lband; L+=2) {
                                 Term1 = 0;
@@ -477,62 +477,4 @@ nRows = iRow;
 nElements = iElement;
 if (Display)
   mexPrintf("       %d elements, %d rows;\n",nElements,nRows);
-}
-
-
-/*======================================================================= */
-/* Determine basis size */
-int BasisSize2()
-/*======================================================================= */
-{
-
-/* Loop variables */
-int L1, jK1, K1, M1, pS1, qS1, pI1, qI1, pI1b, qI1b;
-
-/* Min and max values for loop variables */
-int K1max, M1max, qS1max, qI1max, qI1bmax;
-
-int iRow = 0;
-double I = Sys.I;
-double Ib = Sys.Ib;
-
-for (L1=0;L1<=Lemax;L1++) {
-  if (isodd(L1) && (L1>Lomax)) continue;
-  for (jK1=jKmin;jK1<=1;jK1+=2) {
-    K1max = mini(Kmax,L1);
-    for (K1=0;K1<=K1max;K1+=deltaK) {
-      if ((K1==0)&(parity(L1)!=jK1)) continue;
-      M1max = mini(Mmax,L1);
-      for (M1=-M1max;M1<=M1max;M1++) {
-      
-        for (pS1=pSmin;pS1<=1;pS1++) {
-          qS1max = 1 - abs(pS1);
-          for (qS1=-qS1max;qS1<=qS1max;qS1+=2) {
-          
-            for (pI1 = -pImax;pI1<=pImax;pI1++) {
-              qI1max = (int)(2*I) - abs(pI1);
-              for (qI1=-qI1max;qI1<=qI1max;qI1+=2) {
-                
-                for (pI1b = -pIbmax;pI1b<=pIbmax;pI1b++) {
-                  if ((MeirovitchSymm) && (Sys.DirTilt==0)&&((pI1+pI1b+pS1-1)!=M1)) continue;
-                  qI1bmax = (int)(2*Ib) - abs(pI1b);
-                  for (qI1b=-qI1bmax;qI1b<=qI1bmax;qI1b+=2) {
-                
-                    /*mexPrintf("%3d %3d %3d %3d    %2d %2d %2d %2d %2d %2d\n",L1,jK1,K1,M1,pS1,qS1,pI1,qI1,pI2,qI2);*/
-                    
-                    iRow++;
-                  } /* qI1b */
-                } /* pI1b */
-              } /* qI1 */
-            } /* pI1 */
-          } /* qS1 */
-        } /* pS1 */
-		
-      } /* M1 */
-    } /* K1 */
-  } /* jK1 */
-} /* L1 */
-
-return iRow; /* number of rows */
-
 }

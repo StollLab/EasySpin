@@ -1,7 +1,7 @@
 function [err,data] = test(opt,olddata)
 
 %=======================================================
-% Approximate field-sweep doublet, Freed solver
+% Approximate field-sweep doublet, fast method
 %=======================================================
 
 Sys.S = 1/2;
@@ -14,7 +14,7 @@ Exp.mwFreq = 9.5;
 Exp.Range = [332 346];
 Exp.Harmonic = 0;
 
-Opt.LiouvMethod = 'Freed';
+Opt.LiouvMethod = 'fast';
 
 [x,y] = chili(Sys,Exp,Opt);
 

@@ -37,7 +37,7 @@ Simulation of field- and frequency-sweep cw EPR spectra in the slow-motional reg
 <pre class="matlab">
 chili(Sys,Exp)
 spec = chili(...)
-[x,spec] = chili(...)
+[B,spec] = chili(...)
 ... = chili(Sys,Exp,Opt)
 </pre>
 
@@ -68,8 +68,8 @@ If no input argument is given, a short help summary is shown (same as when typin
 <p>
 Up to two output arguments are returned:
 <ul>
-<li><code>x</code>: magnetic field axis, in mT, or frequency axis, in GHz
-<li><code>spec</code>: spectrum
+<li><code>B</code>: magnetic field axis, in mT
+<li><code>spc</code>: spectrum
 </ul>
 
 <p>
@@ -80,13 +80,10 @@ If no output argument is given, <code>chili</code> plots the spectrum.
 <code>chili</code> can simulate field-swept spectra as well as frequency-swept spectra. For field-swept spectra, specify <code>Exp.mwFreq</code> (in GHz), for frequency-swept spectra specify <code>Exp.Field</code> (in mT).
 </p>
 
-<p>
-<code>chili</code> has two parallel implementations. One is fast, but restricted to S=1/2 with up to two nuclei. The other one works for general spin systems, but is much slower. <code>chili</code> automatically chooses the faster method, unless instructed otherwise (see options).
-
 <div class="subtitle2">Input: Spin system</div>
 
 <p>
-<code>Sys</code> is a structure containing the parameters of the <a href="spinsystem.html">spin system</a>. For the fast method, the used parameters are <code>g</code>, <code>gFrame</code>, <code>Nucs</code>, <code>A</code>, and <code>AFrame</code>. The nuclear quadrupole interaction (specified in <code>Q</code> and <code>QFrame</code>) is neglected. For the slow method, all spin Hamiltonian parameters are taken into account. See the documentation on <a href="spinsystem.html">spin system structures</a> for details.
+<code>Sys</code> is a structure containing the parameters of the <a href="spinsystem.html">spin system</a>. Only S=1/2 systems are supported. The used static parameters are <code>g</code>, <code>gFrame</code>, <code>Nucs</code>, <code>A</code>, <code>AFrame</code>. The nuclear quadrupole interaction (specified in <code>Q</code> and <code>QFrame</code>) is neglected. See the documentation on <a href="spinsystem.html">spin system structures</a> for details.
 </p>
 
 <p>
@@ -108,22 +105,19 @@ Rotational correlation time, in seconds.
 
 <p>For example,
 <pre class="matlab">
-Sys.tcorr = 1e-9;         % isotropic diffusion, 1 ns correlation time
-Sys.tcorr = [5 1]*1e-9;   % axial anisotropic diffusion, 5 ns around x and y axes, 1 ns around z
+Sys.tcorr = 1e-9;         % isotropic diffusion, 1ns correlation time
+Sys.tcorr = [5 1]*1e-9;   % axial anisotropic diffusion, 5ns around x and y axes, 1ns around z
 Sys.tcorr = [5 4 1]*1e-9; % rhombic anisotropic diffusion
 </pre>
-
-<p>
-The axes x, y, and z refer to a molecule-fixed frame in which the diffusion tensor is diagonal (the "diffusion frame", see <code>DiffFrame</code> field).
   
 <p>
-Instead of <code>tcorr</code>, <code>Diff</code> can be used, see below. If <code>tcorr</code> is given, <code>Diff</code> is ignored. The correlation time <code>tcorr</code> and the diffusion rate <code>Diff</code> are related by <code>tcorr = 1./(6*Diff)</code>.
+Instead of <code>tcorr</code>, <code>Diff</code> can be used, see below. If <code>tcorr</code> is given, <code>Diff</code> is ignored. The correlation time <code>tcorr</code> and the diffusion rate <code>Diff</code> are related by <code>tcorr = 1/(6*Diff)</code>.
 <br>
 </div>
 
 <div class="optionfield"><code>logtcorr</code></div>
 <div class="optiondescr">
-Base-10 logarithm of the rotational correlation time. If given, <code>tcorr</code>, <code>logDiff</code> and <code>Diff</code> are ignored.<br>
+Base-10 logarithm of the correlation time, offering an alternative way to input the correlation time. If given, <code>tcorr</code>, <code>logDiff</code> and <code>Diff</code> are ignored.<br>
 Use this instead of <code>tcorr</code> for least-squares fitting with <a class="esf" href="esfit.html">esfit</a>.
 </div>
 
@@ -132,16 +126,18 @@ Use this instead of <code>tcorr</code> for least-squares fitting with <a class="
 Rotational diffusion rates (principal values of the rotational diffusion tensor), in second<sup>-1</sup>.
   <ul>
   <li>one number: isotopic diffusion tensor
-  <li>two numbers: input <code>[Dxy Dz]</code> gives axial tensor <code>[Dxy Dxy Dz]</code>
-  <li>three numbers: rhombic tensor <code>[Dx Dy Dz]</code>
+  <li>two numbers: input <code>[Dxy Dzz]</code> gives axial tensor <code>[Dxy Dxy Dzz]</code>
+  <li>three numbers: rhombic tensor <code>[Dxy Dxy Dzz]</code>
   </ul>
   <code>Diff</code> is ignored if <code>logtcorr</code>, <code>tcorr</code> or <code>logDiff</code> is given.
 </div>
   
 <div class="optionfield"><code>logDiff</code></div>
 <div class="optiondescr">
-Base-10 logarithm of <code>Diff</code>. If given, <code>Diff</code> is ignored.<br>
-Use this instead of <code>Diff</code> for least-squares fitting with <a class="esf" href="esfit.html">esfit</a>.
+Base-10 logarithm of <code>Diff</code>. If given, <code>Diff</code> is ignored.
+  <br>
+  Use this instead of <code>Diff</code> for least-squares fitting
+  with <a class="esf" href="esfit.html">esfit</a>.
 </div>
 
 <div class="optionfield"><code>DiffFrame</code></div>
@@ -174,18 +170,17 @@ In addition to the rotational dynamics, convolutional line broadening can be inc
 </div>
 
 <p>
-If there is an ordering potential, it should be given in <code>Sys.lambda</code>.
+If there is an orientational potential, it should be given in <code>Sys.Potential</code>.
 
-<div class="optionfield"><code>lambda</code></div>
+<div class="optionfield"><code>Potential</code></div>
 <div class="optiondescr">
-An array of coefficients for the orienting potential, with up to four elements, <code>[lambda20 lambda22 lambda40 lambda42]</code>, corresponding to the four linear combination coefficients &lambda;<sub>2,0</sub>, &lambda;<sub>2,2</sub>, &lambda;<sub>4,0</sub>, and &lambda;<sub>4,2</sub> for the ordering potential
-U(&Omega;) = - k<sub>B</sub> T &Sigma;<sub>L</sub>&lambda;<sub>L,0</sub>D<sup>L</sup><sub>00</sub> - k<sub>B</sub> T &Sigma;<sub>L</sub>&lambda;<sub>L,2</sub>(D<sup>L</sup><sub>0,2</sub>+D<sup>L</sup><sub>0,-2</sub>), where the D<sup>L</sup><sub>M,K</sub> are Wigner D functions.
-<p>
-If you give less than five numbers, the omitted ones are assumed to be zero.
+An array of coefficients for the orientational potential, with four numbers per row: L, M, K, and &lambda;. ordering potential U(&Omega;) = - k<sub>B</sub> T &Sigma;<sub>L,K</sub>&lambda;<sub>L,K</sub>(D<sup>L</sup><sub>0,K</sub>+D<sup>L</sup><sub>0,-K</sub>), where the D<sup>L</sup><sub>M,K</sub> are Wigner functions.
 <p>
 The frame of the ordering potential is assumed to be collinear with that of the rotational diffusion tensor.
 <p>
-For details about this type of ordering potential, see K.A. Earle & D.E. Budil, Calculating Slow-Motion ESR Spectra of Spin-Labeled Polymers, in: S. Schlick: Advanced ESR Methods in Polymer Research, Wiley, 2006.
+If the environment of cylindrically symmetric (e.g. in a uniaxial liquid crystal), then use a potential with M=0 terms. If the spin label is cylindrically symmetric, use a potential with K=0 terms only.
+<p>
+In terms of performance, the simulations are fastest if all terms have M=K=0, they are fast for if all terms are M=0 or all terms are K=0, and they are very slow if any term has both M and K different from zero.
 </div>
 
 <p>
@@ -194,7 +189,7 @@ For concentrated solutions, it is possible to include Heisenberg exchange:
 
 <div class="optionfield"><code>Exchange</code></div>
 <div class="optiondescr">
-Effective Heisenberg spin exchange frequency, in MHz. Implements a simple contact-exchange model, see eq. (A27) from Meirovitch et al, J.Chem.Phys.77, 3915-3938. See also Freed, in:Spin Labeling (ed L.J. Berliner), 1976, p.68.
+Effective Heisenberg spin exchange rate, in inverse microseconds. Implements a simple contact-exchange model, see eq. (A27) from Meirovitch et al, J.Chem.Phys.77, 3915-3938. See also Freed, in: Spin Labeling (ed. L.J. Berliner), 1976, p.68.
 </div>
 
 <!-- ------------------------------------------------------------------- -->
@@ -207,30 +202,30 @@ The experiment structure <code>Exp</code> contains all parameters relating to th
 <div class="subtitle2">Input: Simulation options</div>
 
 <p>
-<code>Opt</code>, the options structure, collects all settings relating to the algorithm used and the behaviour of the function. The most important settings are:
+<code>Opt</code>, the options structure, collects all settings relating to the algorithm used and the behavior of the function. The most important settings are:
 </p>
 
 <div class="optionfield"><code>Verbosity</code></div>
 <div class="optiondescr">
 0 (default), 1<br>
-Determines how much information <code>chili</code> prints to the screen. If <code>Opt.Verbosity=0</code>, is is completely silent. 1 prints details about the progress of the computation.
+Determines how much information <code>chili</code> prints to the command window. If <code>Opt.Verbosity=0</code>, is is completely silent. 1 prints details about the progress of the computation.
 </div>
 
-<div class="optionfield"><code>LLKM</code></div>
+<div class="optionfield"><code>LLMK</code></div>
 <div class="optiondescr">
-4-element vector <code>[evenLmax oddLmax Kmax Mmax]</code><br>
-Specifies the rotational basis size by giving the maximum values for, in that order, even L, odd L, K and M. K and M must be less than or equal to the maximum value of L.<br>
-If this field is not specified, <code>chili</code> automatically picks a medium-sized basis. This is adequate for many, but certainly not all, cases. In general, the basis needs to be larger for slower motions and can be smaller for faster motions. It is stronly advised to vary these settings to check whether the simulated spectrum is converged.
+4-element vector <code>[evenLmax oddLmax Mmax Kmax]</code><br>
+Specifies the rotational basis size by giving the maximum values for, in that order, even L, odd L, M and K. The maximum values for M and K must be less than or equal to the maximum value of L.<br>
+If this field is not specified, <code>chili</code> uses a default basis. This is adequate only for a few cases. In general, the basis needs to be larger for slower motions and can be smaller for faster motions. It is strongly advised to increase these four numbers until the simulated spectrum is converged.
 </div>
 
 <div class="optionfield"><code>nKnots</code></div>
 <div class="optiondescr">
-Number of orientations used in a powder simulation. Default is 5. Increase this value if the orienting potential coefficients <code>Sys.lambda</code> are large.
+Number of orientations used in a powder simulation. Default is 5. Increase this value if the orientational potential coefficients <code>Sys.Potential</code> are large.
 </div>
 
 <div class="optionfield"><code>LiouvMethod</code></div>
 <div class="optiondescr">
-This specifies which method is used to construct the Liouville matrix. The two possible values are <code>'Freed'</code> and <code>'general'</code>. The first method is very fast, but limited to one electron spin with S=1/2 and up to two nuclei. Also, the nuclear quadrupole interaction is neglected. On the other hand, the general method works for any spin system, but is significantly slower. By default, <code>chili</code> uses the fast method if applicable and falls back to the general method otherwise.
+This specifies which method is use to construct the Liouville matrix (i.e. the Hamiltonian and the relaxation superoperator). The two possible values are <code>'fast'</code> and <code>'general'</code>. The fast method is very fast, but limited to one electron spin with S=1/2 coupled to up to two nuclei and to orientational potentials with even L&le;4, zero M, even K &le;2, and real coefficients. On the other hand, the general method works for any spin system and any form of potential, but is significantly slower. By default, <code>chili</code> uses the fast method if applicable and falls back to the general method otherwise.
 </div>
 
 <div class="optionfield"><code>PostConvNucs</code></div>
@@ -244,15 +239,16 @@ Post-convolution is useful for including the effect of nuclei with small hyperfi
 <div class="subtitle">Example</div>
 
 <p>
-The cw EPR spectrum of a slow tumbling nitroxide radical can be simulated with the following lines.
+The cw EPR spectrum of a nitroxide radical tumbling in solution on a time scale of nanoseconds can be simulated with the following lines.
 </p>
 
 <pre class="matlab">
+clear
 Sys.g = [2.008 2.0061 2.0027];
 Sys.Nucs = '14N';
-Sys.A = [16 16 86];  % MHz
-Sys.tcorr = 1e-9;  % = 1 ns
-Exp.mwFreq = 9.5;
+Sys.A = [16 16 86];   % MHz
+Sys.tcorr = 3e-9;     % 3 ns
+Exp.mwFreq = 9.5;     % GHz
 chili(Sys,Exp);
 </pre>
 
@@ -261,15 +257,15 @@ chili(Sys,Exp);
 <div class="subtitle">Algorithm</div>
 
 <p>
-<code>chili</code> solves the Stochastic Liouville equation (SLE) using a basis set of normalized Wigner rotation functions D<sup>L</sup><sub>K,M</sub>(&Omega;) with -L &le; K,M &le; L to represent the orientational distribution of the spin system. The number of basis functions is determined by maximum values of even L, odd L, K and M. The larger these values, the larger the basis and the more accurate the spectrum.
+<code>chili</code> solves the Stochastic Liouville equation (SLE). It represents the orientational distribution of the spin system using normalized Wigner rotation functions D<sup>L</sup><sub>K,M</sub>(&Omega;) with -L&le;K,M&le;L as basis functions. The number of basis functions is determined by maximum values of even L, odd L, K and M. The larger these values, the larger the basis and the more accurate the spectrum.
 </p>
 
 <p>
-<code>chili</code> computes the frequency-swept EPR spectrum, and then converts it to a field-swept spectrum using a first-order approximation. This is appropriate for most organic radicals. It is somewhat inaccurate for transition metal complexes, e.g. Cu<sup>2+</sup> or VO<sup>2+</sup>. For the diffusion, both secular and nonsecular terms are included.
+<code>chili</code> computes EPR line positions to first order, which is appropriate for most organic radicals. It is inaccurate for transition metal complexes, e.g. Cu<sup>2+</sup> or VO<sup>2+</sup>. For the diffusion, both secular and nonsecular terms are included.
 </p>
 
 <p>
-If the spin system has S=1/2 and contains no more than two nuclei, <code>chili</code> by default uses a fast method to construct the Liouvillian matrix that is based on explicit expressions for the matrix elements (<code>Opt.LiouvMethod='Freed'</code>). For all other cases, a more general matrix-level method is used to construct the Liouvillian matrix.
+If the spin system has S=1/2 and contains no more than two nuclei, <code>chili</code> by default uses a fast method to construct the Liouvillian matrix that uses code based on the software from the Freed lab at Cornell (<code>Opt.Method='fast'</code>). For all other cases, a general code is used to construct the Liouvillian matrix.
 </p>
 
 <p>
