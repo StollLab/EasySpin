@@ -11,7 +11,7 @@ Sys{1}.ee = J + dip;
 Sys{2}.S = S;
 Sys{2}.g = [g; g];
 Sys{2}.J = J;
-Sys{2}.eeD = dip;
+Sys{2}.dip = dip;
 
 frame2 = [-15 90 0]*pi/180;
 B0 = 400;

@@ -350,6 +350,12 @@ else
         if ~isfield(Par,'n') || isempty(Par.n)
           Par.n = 1;
         end
+        if ~isnumeric(Par.n) || all(numel(Par.n)~=[1 2])
+          error('Par.n must contain 1 or 2 numbers.');
+        end
+        if any(~isreal(Par.n)) || any(mod(Par.n,1)) || any(Par.n<1)
+          error('Par.n must contain nonnegative integers.');
+        end
         
       case 'wurst'
         
@@ -647,15 +653,17 @@ else
         
       case 'sech'
         
-        if numel(Par.n)==1 % symmetric pulse
+        if numel(Par.n)==1 % symmetric sech pulse
           if Par.n==1 % reduces numerical errors
-            A = sech((Par.beta/Par.tp)*ti);
+            A = sech(Par.beta*ti/Par.tp);
           else
-            A = sech(Par.beta*2^(Par.n-1)*(ti/Par.tp).^Par.n);
+            A = sech(Par.beta*0.5*(2*ti/Par.tp).^Par.n);
           end
-        else % asymmetric pulse
-          A(1:round(nPoints/2)) = sech(Par.beta*2^(Par.n(1)-1)*(ti(1:round(nPoints/2))/Par.tp).^Par.n(1));
-          A(round(nPoints/2)+1:nPoints) = sech(Par.beta*2^(Par.n(2)-1)*(ti(round(nPoints/2)+1:nPoints)/Par.tp).^Par.n(2));
+        else % asymmetric sech pulse
+          idxL = ti<0;
+          idxR = ~idxL;
+          A(idxL) = sech(Par.beta*0.5*(2*ti(idxL)/Par.tp).^Par.n(1));
+          A(idxR) = sech(Par.beta*0.5*(2*ti(idxR)/Par.tp).^Par.n(2));
         end
         
       case 'wurst'
