@@ -52,15 +52,21 @@ if ~isnumeric(q) || size(q,1)~=4
   error('q must be an array of size (4,...) array.')
 end
 
+% Adjust to match output of wignerd
+switch ndims(q)
+  case 2, q(1,:) = -q(1,:);
+  case 3, q(1,:,:) = -q(1,:,:);
+end
+
 
 % Setup
 % -------------------------------------------------------------------------
 
-if isempty(cache) || ~allclose(cache.LMK,[L,M,K]) || ~allclose(cache.sizeq,size(q)) %  FIXME
+if isempty(cache) || ~all(cache.LMK==[L,M,K]) || ~all(cache.sizeq==size(q))
   cache.sizeq = size(q);
   cache.LMK = [L,M,K];
   cache.prefactor = sqrt(factorial(L+M)*factorial(L-M)*factorial(L+K)*factorial(L-K));
-  cache.s = sIndices(L,M,K);
+  cache.s = max(0,K-M):min(L+K,L-M);
   cache.powers = repmat(permute([ L+K-cache.s; ...
                                   M-K+cache.s; ...
                                       cache.s; ...
@@ -89,14 +95,3 @@ D = cache.prefactor*sum(...
                                     cache.denoms),...
                              1),...
                         3);
-
-
-% Helper functions
-% -------------------------------------------------------------------------
-function s = sIndices(L,M,K)
-% Compute the values for M, K, and s for a given L
-s = max(0,K-M):min(L+K,L-M);
-
-end
-
-end
