@@ -1,7 +1,6 @@
 function stvec = chili_startingvector(Basis,Potential)
 
 if ~isempty(Potential.lambda) && ~Potential.oldStyle
-  Potential
   error('This functions works only for potentials with M=0, L=2,4, and K=0,2.');
 end
 

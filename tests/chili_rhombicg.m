@@ -11,14 +11,14 @@ Exp.Field = 333;
 Exp.mwRange = [9 10];
 Exp.Harmonic = 0;
 
-Opt.LLKM = [6 0 4 4];
+Opt.LLMK = [6 0 4 4];
 Opt.Verbosity = 0;
 Opt.MeirovitchSymm = false;
 Opt.pSmin = -1;
 Opt.jKmin = -1;
 Opt.deltaK = 1;
 
-Opt.LiouvMethod = 'Freed';
+Opt.LiouvMethod = 'fast';
 [x1,y1] = chili(Sys,Exp,Opt);
 
 Opt.LiouvMethod = 'general';

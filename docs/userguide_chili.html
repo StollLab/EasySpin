@@ -382,15 +382,15 @@ The third input structure, <code>Opt</code>, collects parameters related to the 
 </p>
 
 <p>
-The most important field in this structure is <code>Opt.LLKM</code>. It gives parameters that determine the number of orientational basis functions used in the simulation. For spectra in the fast and intermediate motion regime, the preset values don't have to be changed. However, close to the rigid limit, the default settings of <code>Opt.LLKM</code> might be too small. In that case, the four values in <code>Opt.LLKM</code> has to be increased, e.g.
+The most important field in this structure is <code>Opt.LLMK</code>. It gives parameters that determine the number of orientational basis functions used in the simulation. For spectra in the fast and intermediate motion regime, the preset values don't have to be changed. However, close to the rigid limit, the default settings of <code>Opt.LLMK</code> might be too small. In that case, the four values in <code>Opt.LLMK</code> has to be increased, e.g.
 </p>
 
 <pre class="matlab">
-Opt.LLKM  = [24 20 10 10];  % moderately high values
+Opt.LLMK  = [24 20 10 10];  % moderately high values
 </pre>
 
 <p>
-To see the values of <code>Opt.LLKM</code> that <code>chili</code> is using, set <code>Opt.Verbosity=1</code>, as described next.
+To see the values of <code>Opt.LLMK</code> that <code>chili</code> is using, set <code>Opt.Verbosity=1</code>, as described next.
 </p>
 
 <p>
@@ -422,7 +422,7 @@ CuPc = struct('g',[2.0525 2.0525 2.1994],'Nucs','63Cu,14N','n',[1 4]);
 CuPc.A = [-54 -54 -608; 52.4 41.2 41.8];
 CuPc.logtcorr = -8.3;
 Exp = struct('mwFreq',9.878,'CenterSweep',[330 120],'nPoints',5e3);
-Opt.LLKM = [36 30 8 8];
+Opt.LLMK = [36 30 8 8];
 Opt.PostConvNucs = 2;  % indicate to use post-convolution for 14N
 chili(CuPc,Exp,Opt);
 </pre>

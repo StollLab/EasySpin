@@ -2,12 +2,12 @@
 % the ordering potential (Potential) and the spin operator in SopH (either S+
 % or Sx).
 
-function StartingVector = startvec(basis,Potential,SopH,useLMKbasis)
+function StartingVector = startvec(basis,Potential,SopH,useLMKbasis,useSelectionRules)
 
 jKbasis = ~useLMKbasis;
 
 % Settings
-useSelectionRules = true;
+if nargin<5, useSelectionRules = true; end
 IntegralThreshold = 1e-10;
 
 L = basis.L;
@@ -46,10 +46,11 @@ if ~isempty(idx)
   Kp = Kp(idx);
 end
 
-% Detect Freed-style potential (contains only terms with even L, M=0, and even K)
+% Detect old-style potential (contains only terms with even L, M=0, and even K)
 zeroMp = all(Mp==0);
 zeroKp = all(Kp==0);
 evenLp = all(mod(Lp,2)==0);
+evenMp = all(mod(Mp,2)==0);
 evenKp = all(mod(Kp,2)==0);
 
 % Set up starting vector in orientational basis
@@ -76,6 +77,12 @@ for b = 1:numel(oriVector)
       fun = @(b,c) cos(K_*c) .* wignerd([L_ 0 K_],b) .* exp(-U(0,b,c)/2) .* sin(b);
       Int = (2*pi) * integral2(fun,0,pi,0,2*pi);
     end
+  elseif useSelectionRules && zeroKp
+    if K_~=0, continue; end
+    if evenLp && mod(L_,2)~=0, continue; end
+    if evenMp && mod(M_,2)~=0, continue; end
+    fun = @(a,b) cos(M_*a) .* wignerd([L_ M_ 0],b) .* exp(-U(a,b,0)/2) .* sin(b);
+    Int = (2*pi) * integral2(fun,0,2*pi,0,pi);
   else
     fun = @(a,b,c) conj(wignerd([L_ M_ K_],a,b,c)) .* exp(-U(a,b,c)/2) .* sin(b);
     Int = integral3(fun,0,2*pi,0,pi,0,2*pi);

@@ -13,7 +13,7 @@ Exp.Field = 334;
 Exp.mwRange = [9 11];
 Exp.CrystalOrientation = [0 0 0];
 
-Opt.LLKM = [100 0 0 0];
+Opt.LLMK = [100 0 0 0];
 Opt.Verbosity = 0;
 
 c200 = 3;

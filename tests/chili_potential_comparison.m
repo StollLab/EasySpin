@@ -1,7 +1,7 @@
 function [err,data] = test(opt,olddata)
 
 %===============================================================================
-% Compare Freed and general code with various potentials
+% Compare fast and general code with various potentials
 %===============================================================================
 
 Sys.g = [2.05 2.02 2.00];
@@ -11,7 +11,7 @@ Exp.Field = 340;
 Exp.mwRange = [9.4 9.9];
 Exp.nPoints = 512;
 
-Opt.LLKM = [10 6 6 6];
+Opt.LLMK = [10 6 6 6];
 
 lam = +2;
 LMK = [2 0 0; 2 0 2; 4 0 0; 4 0 2];
@@ -19,7 +19,7 @@ LMK = [2 0 0; 2 0 2; 4 0 0; 4 0 2];
 for p = 1:4
   Sys.Potential = [LMK(p,:) lam];
   
-  Opt.LiouvMethod = 'Freed';
+  Opt.LiouvMethod = 'fast';
   [B,y1] = chili(Sys,Exp,Opt);
   Opt.LiouvMethod = 'general';
   [B,y2] = chili(Sys,Exp,Opt);
@@ -29,7 +29,7 @@ for p = 1:4
   if opt.Display
     subplot(4,1,p);
     plot(B,y1,B,y2);
-    legend('Freed','general');
+    legend('fast','general');
     title(sprintf('lambda(%d,%d,%d) = %g',LMK(p,1),LMK(p,2),LMK(p,3),lam));
   end
   

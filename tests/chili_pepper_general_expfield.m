@@ -17,7 +17,7 @@ Exp.Range = [337 339.5];
 
 Opt.LiouvMethod = 'general';
 Opt.ExplicitFieldSweep = true;
-Opt.LLKM = [20 0 0 0];
+Opt.LLMK = [20 0 0 0];
 
 [x2,y2] = chili(Sys,Exp,Opt);
 

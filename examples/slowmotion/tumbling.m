@@ -9,7 +9,7 @@ Sys.lw = 0.05; % Gaussian broadening, mT
 Exp.mwFreq = 9.5; % GHz
 Exp.Range = [337 340]; % mT
 
-Opt.LLKM = [30 10 10 10]; % need a larger basis for slow tumbling
+Opt.LLMK = [30 10 10 10]; % need a larger basis for slow tumbling
 
 % Simulate spectra for various correlation times
 %-------------------------------------------------------------------------------

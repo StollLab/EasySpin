@@ -15,7 +15,7 @@ Exp.Range = [320 350]; % mT
 Exp.CrystalOrientation = [0 0 0];
 Exp.Harmonic = 0;   % show absorption spectrum, which is more intuitive
 
-Opt.LLKM = [100 0 0 0]; % orientational basis set
+Opt.LLMK = [100 0 0 0]; % orientational basis set
 
 % Set potential coefficient for L=2, M=2, K=2 term
 c200 = 2; % positive indicates preferential along z axis

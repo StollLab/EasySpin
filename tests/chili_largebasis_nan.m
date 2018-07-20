@@ -11,7 +11,7 @@ Sys.tcorr = 10e-6;
 Exp.mwFreq = 9.5;
 Exp.CenterSweep = [338.4 1.5];
 
-Opt.LLKM = [50 1 1 1];
+Opt.LLMK = [50 1 1 1];
 
 [x1,y1] = chili(Sys,Exp,Opt);
 Sys.A = 10; Sys.Nucs = '1H';

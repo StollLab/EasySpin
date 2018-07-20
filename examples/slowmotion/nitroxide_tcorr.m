@@ -12,7 +12,7 @@ Nitroxide.lw = 0.1; % mT
 Experiment.mwFreq = 9.5;   % GHz
 
 Options.Verbosity = 1;
-Options.LLKM = [24 14 6 6]; % moderately large basis size
+Options.LLMK = [24 14 6 6]; % moderately large basis size
 
 % Simulate spectra over a range of rotational correlation times
 %-------------------------------------------------------------------------------

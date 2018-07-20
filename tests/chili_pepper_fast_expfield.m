@@ -1,7 +1,7 @@
 function [err,data] = test(opt,olddata)
 
 %===========================================================================
-% Intensity match for rigid limit chili and pepper explicit B sweep (Freed)
+% Intensity match for rigid limit chili and pepper explicit B sweep (fast)
 %===========================================================================
 
 Sys.g = [2.01 2.003];
@@ -15,9 +15,9 @@ Exp.Range = [337 339.5];
 
 [x,y1] = pepper(Sys,Exp);
 
-Opt.LiouvMethod = 'Freed';
+Opt.LiouvMethod = 'fast';
 Opt.ExplicitFieldSweep = true;
-Opt.LLKM = [20 0 0 0];
+Opt.LLMK = [20 0 0 0];
 
 [x2,y2] = chili(Sys,Exp,Opt);
 

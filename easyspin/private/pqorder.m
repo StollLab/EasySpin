@@ -1,6 +1,6 @@
 % pqorder returns an index array that allows reordering of the Liouville
 % spin basis from the standard descending mm order to ascending pq order,
-% as used by Freed.
+% as used by the Cornell programs (Freed).
 %
 % Input:
 %  Spins   vector of spin quantum numbers

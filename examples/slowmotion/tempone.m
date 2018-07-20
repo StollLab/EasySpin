@@ -17,7 +17,7 @@ Tempone.lw = [0 0.2]; % Lorentzian broadening, FWHM, mT
 
 Experiment.mwFreq = 9.2646; % GHz
 
-Opt.LLKM = [14 7 6 2];
+Opt.LLMK = [14 7 2 6];
 
 [B,spc] = chili(Tempone,Experiment,Opt);
 

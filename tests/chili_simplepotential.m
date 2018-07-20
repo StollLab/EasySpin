@@ -14,7 +14,7 @@ Exp.mwFreq = 9.54445;
 Exp.CenterSweep = [340 12];
 Exp.nPoints = 512;
 
-Opt.LLKM = [10 5 2 2];
+Opt.LLMK = [10 5 2 2];
 Opt.Verbosity = 0;
 Opt.nKnots = 1;
 Nx.Potential = [2 0 0 +1];

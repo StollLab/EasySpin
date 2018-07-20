@@ -3,7 +3,7 @@ function [T,F,System,Symmetry,isFieldDep] = magint(System,SpinOps,CenterField,in
 % general Liouvillian method, their corresponding operators as well
 
 if isempty(SpinOps)
-  % no need to use spin operators for Freed code
+  % no need to use spin operators for fast code
   generalLiouvillian = false;
 else
   generalLiouvillian = true;
@@ -73,7 +73,7 @@ for iElSpin = 1:nElSpins
   [F0(iInt),F1(iInt,:),F2(iInt,:)] = istocoeff(g*bmagn/planck); % Hz
   isFieldDep(iInt) = true;
   if ~generalLiouvillian
-    % Generate custom fields for Freed method
+    % Generate custom fields for fast method
     if any(abs(F1(iInt,:)/F0(iInt))>1e-9)
       error('g tensor must be symmetric for this method.');
     end
@@ -113,7 +113,7 @@ for iElSpin = 1:nElSpins
     [F0(iInt),F1(iInt,:),F2(iInt,:)] = istocoeff(A_);
     isFieldDep(iInt) = false;
     if ~generalLiouvillian
-      % Generate custom fields for Freed method
+      % Generate custom fields for fast method
       if (any(abs(F1(iInt,:))>1e-6))
         error('Hyperfine tensors must be symmetric for this method.');
       end

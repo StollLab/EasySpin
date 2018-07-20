@@ -25,7 +25,7 @@ Exp.CenterSweep = [325 100]; % mT
 Opt.PostConvNucs = 2; % 2 is the index of 14N in the CuPc.Nucs
 % Large basis set, since motion is slow, some settings are zero because of the
 % axial symmetry of the electron+63Cu system
-Opt.LLKM = [16 0 0 4];
+Opt.LLMK = [16 0 4 0];
 
 % Simulation and plotting
 %-------------------------------------------------------------------------------
