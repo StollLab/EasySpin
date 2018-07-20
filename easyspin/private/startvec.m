@@ -100,9 +100,10 @@ StartingVector = sparse(StartingVector);
     u = 0;
     for p = 1:numel(lambda)
       if lambda(p)==0, continue; end
-      u = u - wignerd([Lp(p) +Mp(p) +Kp(p)],a,b,c) * lambda(p);
-      if Kp(p)~=0 || Mp(p)~=0
-        u = u - wignerd([Lp(p) -Mp(p) -Kp(p)],a,b,c) * lambda(p)' * (-1)^(Mp(p)-Kp(p));
+      if Kp(p)==0 && Mp(p)==0
+        u = u - wignerd([Lp(p) +Mp(p) +Kp(p)],b) * real(lambda(p));
+      else
+        u = u - 2*real(wignerd([Lp(p) +Mp(p) +Kp(p)],a,b,c) * lambda(p));
       end
     end
   end
