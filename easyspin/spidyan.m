@@ -91,6 +91,12 @@ end
 % Build the Event and Vary structure
 Opt.SimulationMode = 'thyme'; % to force s_sequencer to setup for step wise
 
+% If the user provides relaxation times, but no Opt.Relaxation,
+% relaxationis switched on for the entire sequence
+if (isfield(Sys,'T1') || isfield(Sys,'T2')) && ~isfield(Opt,'Relaxation')
+  Opt.Relaxation = true;
+end
+
 [Events, Vary, Opt] = s_sequencer(Exp,Opt);
 
 % Adapt Zeeman frequencies for the selected simulation frame

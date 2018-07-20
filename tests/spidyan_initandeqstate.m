@@ -23,6 +23,7 @@ Exp.DetPhase = 0;
 % Options ---------------------------
 Exp.DetOperator = {'z1'};
 Opt.SimFreq = 32;
+Opt.Relaxation = false;
 
 % Define initial state
 Sys.initState = -sop(Sys.S,'z');

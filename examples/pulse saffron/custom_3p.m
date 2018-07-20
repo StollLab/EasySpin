@@ -11,11 +11,11 @@ Sys.Nucs = '1H';
 Sys.A_ = [5 2];^% MHz
 
 tau = 0.01; % mus
-p180.Flip = pi/2; % rad
+p90.Flip = pi/2; % rad
 
 
 Exp.Field = 350; % mT
-Exp.Sequence = {p180 tau p180 0 p180 tau};
+Exp.Sequence = {p90 tau p90 0.06 p90 tau};
 
 Exp.nPoints = 512;
 Exp.Dim1 = {'d2', 0.005}; % mus
