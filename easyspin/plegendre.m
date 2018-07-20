@@ -16,6 +16,7 @@
 % computation of very high degree and order normalised associated
 % Legendre functions.
 % Journal of Geodesy 2002 76:279-299
+% https://doi.org/10.1007/s00190-002-0216-2
 
 function y = plegendre(L,M,x)
 

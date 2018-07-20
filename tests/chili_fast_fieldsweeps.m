@@ -1,7 +1,7 @@
 function [err,data] = test(opt,olddata)
 
 %==============================================================
-% Compare approximate and explicit field-swept spectra (Freed)
+% Compare approximate and explicit field-swept spectra (fast)
 %==============================================================
 
 Sys.g = [2.01 2.003];
@@ -13,7 +13,7 @@ Exp.Harmonic = 0;
 Exp.nPoints = 200;
 Exp.Range = [337 339];
 
-Opt.LiouvMethod = 'Freed';
+Opt.LiouvMethod = 'fast';
 
 [x,y1] = chili(Sys,Exp,Opt);
 

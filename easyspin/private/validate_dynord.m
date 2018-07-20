@@ -3,7 +3,7 @@
 %   (Could be) Implemented to simplify and maintain consistency in code across programs.
 %
 
-function varargout = validate_dynord(program,Sys,FieldSweep,isDiffSim)
+function varargout = validate_dynord(program,Sys,FieldSweep)
 
 assert(ischar(program), 'Program name must be a string.')
 
@@ -22,7 +22,7 @@ switch program
 
     if ~isfield(Sys,'DiffFrame'), Sys.DiffFrame = [0 0 0]; end
     if ~isfield(Sys,'Exchange'), Sys.Exchange = 0; end
-    if ~isfield(Sys,'lambda'), Sys.lambda = []; end
+    if ~isfield(Sys,'Potential'), Sys.Potential = []; end
 
     if isfield(Sys,'tcorr'), Dynamics.tcorr = Sys.tcorr; end
     if isfield(Sys,'Diff'), Dynamics.Diff = Sys.Diff; end
@@ -33,8 +33,7 @@ switch program
     if isfield(Sys,'lw'), Dynamics.lw = Sys.lw; end
 
     Dynamics.Exchange = Sys.Exchange;
-    Potential.lambda = Sys.lambda;
-    usePotential = ~isempty(Potential.lambda) && ~all(Potential.lambda==0);
+    usePotential = ~isempty(Sys.Potential) && ~all(Sys.Potential(:,4)==0);
     
     [Dynamics,err] = processdynamics(Dynamics,FieldSweep);
     error(err);
@@ -49,7 +48,6 @@ switch program
 % 
 %     if ~isfield(Sys,'DiffFrame'), Sys.DiffFrame = [0 0 0]; end  % TODO implement in cardamom
 %     if ~isfield(Sys,'Exchange'), Sys.Exchange = 0; end
-%     if ~isfield(Sys,'lambda'), Sys.lambda = []; end
 
     if ~isfield(Sys,'DiffGlobal'), Sys.DiffGlobal = []; end
 
@@ -64,10 +62,6 @@ switch program
     
     if isfield(Sys,'lwpp'), Dynamics.lwpp = Sys.lwpp; end
     if isfield(Sys,'lw'), Dynamics.lw = Sys.lw; end
-
-%     Dynamics.Exchange = Sys.Exchange;
-%     Potential.lambda = Sys.lambda;
-%     usePotential = ~isempty(Potential.lambda) && ~all(Potential.lambda==0);
     
     [Dynamics,err] = processdynamics(Dynamics,FieldSweep,isDiffSim);
     error(err);

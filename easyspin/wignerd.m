@@ -159,7 +159,7 @@ else
   if betaonly
     D = d;
   else
-    D = exp(1i*alpha*m1).*d.*exp(1i*gamma*m2);
+    D = exp(1i*(alpha*m1+gamma*m2)).*d;
   end
   
 end

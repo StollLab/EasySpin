@@ -370,19 +370,29 @@ end
 
 % Construct abscissa vectors
 AxisNames = {'X','Y','Z'};
-for a=3:-1:1
-  if (Dimensions(a)<=1), continue; end
+for a = 3:-1:1
+  if Dimensions(a)<=1, continue; end
   AxisType = Parameters.([AxisNames{a} 'TYP']);
   if strcmp(AxisType,'IGD')
     % Nonlinear axis -> Try to read companion file (.XGF, .YGF, .ZGF)
-    fg = fopen([FullBaseName '.' AxisNames{a} 'GF'],'r',ByteOrder);
+    companionFileName = [FullBaseName '.' AxisNames{a} 'GF'];
+    % Determine data format form XFMT/YMFT/ZFMT
+    DataFormat = Parameters.([AxisNames{a} 'FMT']);
+    switch DataFormat
+      case 'D', sourceFormat = 'float64';
+      case 'F', sourceFormat = 'float32';
+      case 'I', sourceFormat = 'int32';
+      case 'S', sourceFormat = 'int16';
+      otherwise
+        error('Cannot read data format %s for companion file %s',DataFormat,companionFileName);
+    end
+    % Open and read companion file
+    fg = fopen(companionFileName,'r',ByteOrder);
     if fg>0
-      % Here we should check for the number format in
-      % XFMT/YFMT/ZFMT instead of assuming 'float64'.
-      Abscissa{a} = fread(fg,Dimensions(a),'float64',ByteOrder);
+      Abscissa{a} = fread(fg,Dimensions(a),sourceFormat,ByteOrder);
       fclose(fg);
     else
-      warning('Could not read companion file for nonlinear axis.');
+      warning('Could not read companion file %s for nonlinear axis. Assuming linear axis.',companionFileName);
       AxisType = 'IDX';
     end
   end

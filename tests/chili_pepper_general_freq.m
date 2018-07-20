@@ -15,7 +15,7 @@ Exp.mwRange = [9.49 9.555];
 [x,y1] = pepper(Sys,Exp);
 
 Opt.LiouvMethod = 'general';
-Opt.LLKM = [20 0 0 0];
+Opt.LLMK = [20 0 0 0];
 
 [x,y2] = chili(Sys,Exp,Opt);
 
