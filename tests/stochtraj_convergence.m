@@ -4,7 +4,7 @@ function [err,data] = test(opt,olddata)
 
 Sys.tcorr = 10e-9;
 Par.dt = Sys.tcorr/10;
-Par.nSteps = ceil(50*Sys.tcorr/Par.dt);
+Par.nSteps = ceil(200*Sys.tcorr/Par.dt);
 Par.nTraj = 500;
 Opt.chkcon = 1;
 % Opt.Verbosity = 1;
@@ -14,9 +14,23 @@ nSteps = Par.nSteps;
 
 nBins = 50;
 
+N = 100;
+alphaGrid = linspace(0, 2*pi, N);
+betaGrid = linspace(0, pi, N);
+gammaGrid = linspace(0, 2*pi, N);
+
+[AlphaGrid,BetaGrid,GammaGrid] = ndgrid(alphaGrid,betaGrid,gammaGrid);
+
 c20 = 3;
-Sys.Potential = [2, 0, 0, c20];
-[~, RTraj] = stochtraj_diffusion(Sys,Par,Opt);
+LMK = [2,0,0];
+Yfun = real(wignerd(LMK,AlphaGrid,BetaGrid,GammaGrid));
+U = -c20*Yfun;
+
+Sys.Potential = U;
+
+% c20 = 3;
+% Sys.Potential = [2, 0, 0, c20];
+[~, RTraj, qTraj] = stochtraj_diffusion(Sys,Par,Opt);
 
 VecTraj = squeeze(RTraj(:, 3, :, :));
 
@@ -26,7 +40,9 @@ ThetaHist = zeros(nBins, nTraj);
 N = round(nSteps/2);
 
 for iTraj = 1:nTraj
-  ThetaHist(:, iTraj) = hist(squeeze(acos(VecTraj(3,iTraj,N:end))), bins);
+  [alpha,beta,gamma] = quat2euler(qTraj(:,iTraj,N:end));
+  ThetaHist(:,iTraj) = hist(squeeze(beta), bins);
+%   ThetaHist(:, iTraj) = hist(squeeze(acos(VecTraj(3,iTraj,N:end))), bins);
 end
 
 ThetaHist = mean(ThetaHist, 2);

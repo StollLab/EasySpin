@@ -7,22 +7,32 @@ M = 1;
 % Euler->quaternion->Euler
 
 % Generate some uniformly random Euler angles
-alphaIn = pi*(2*rand(1,N,M)-1);
+alphaIn = 2*pi*rand(1,N,M);
 betaIn = pi*rand(1,N,M);
-gammaIn = pi*(2*rand(1,N,M)-1);
+gammaIn = 2*pi*rand(1,N,M);
+% alphaIn = linspace(0,2*pi,N);
+% betaIn = linspace(0,pi,N);
+% gammaIn = linspace(0,2*pi,N);
+
+[Alpha,Beta,Gamma] = ndgrid(alphaIn,betaIn,gammaIn);
+alphaIn = Alpha(:).';
+betaIn = Beta(:).';
+gammaIn = Gamma(:).';
 
 omegaIn = [alphaIn; betaIn; gammaIn];
 
 % Convert to quaternion
 q = euler2quat(omegaIn);
-% q = euler2quat(alphaIn, betaIn, gammaIn);
 
 % Convert back to Euler angles
 [alphaOut, betaOut, gammaOut] = quat2euler(q);
 omegaOut = [alphaOut; betaOut; gammaOut];
 
-% diffEqE = [alphaOut-alphaIn; betaOut-betaIn; gammaOut-gammaIn];
 diffEqE = omegaIn - omegaOut;
+% omegaInProb = omegaIn(abs(diffEqE)>1e-3);
+% omegaInProb = omegaIn(abs(diffEqE)>1e-3);
+% omegaIn(abs(diffEqE)>1e-3)/pi*180
+% diffEqE(abs(diffEqE)>1e-3)/pi*180
 
 % q = 2*rand(4,N,M);
 % q = q./sqrt(sum(q.*q,1));
@@ -53,11 +63,7 @@ qp = euler2quat(alpha, beta, gamma);
 diffqEq = q - qp;
 
 % Check for consistency
-if any(abs(diffEqE(:))>1e-10)||any(abs(diffqEq(:))>1e-10)
-  err = 1;
-else  
-  err = 0;
-end
+err = any(abs(diffEqE(:))>1e-10)||any(abs(diffqEq(:))>1e-10);
 
 data = [];
 
