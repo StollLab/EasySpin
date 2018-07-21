@@ -3,7 +3,7 @@
 %   (Could be) Implemented to simplify and maintain consistency in code across programs.
 %
 
-function varargout = validate_dynord(program,Sys,FieldSweep)
+function varargout = validate_dynord(program,Sys,FieldSweep,isDiffSim)
 
 assert(ischar(program), 'Program name must be a string.')
 

@@ -77,16 +77,16 @@
 %                                trajectories of protein global rotational
 %                                diffusion represented by rotation matrices
 %
-%                    dihedrals   numeric array, size = (5,nTraj,nSteps)
-%                                dihedral angles of spin label side chain
-%                                bonds
-%
 %
 %   Supported formats are identified via the extension
 %   in 'TrajFile' and 'TopFile'. Extensions:
 %
 %     NAMD, CHARMM:        .DCD, .PSF
 %
+
+%                    dihedrals   numeric array, size = (5,nTraj,nSteps)
+%                                dihedral angles of spin label side chain
+%                                bonds
 
 function MD = mdload(TrajFile, AtomInfo, OutOpt)
 
@@ -302,14 +302,14 @@ for iStep = 1:MD.nSteps
   MD.FrameTrajwrtProt(:,3,1,iStep) = thisStep(:,3).'*R;
 end
 
-% Calculate side chain dihedral angles
-MD.dihedrals(:,1) = dihedral(Nxyz,CAxyz,CBxyz,SGxyz);
-MD.dihedrals(:,2) = dihedral(CAxyz,CBxyz,SGxyz,S1Lxyz);
-MD.dihedrals(:,3) = dihedral(CBxyz,SGxyz,S1Lxyz,C1Lxyz);
-MD.dihedrals(:,4) = dihedral(SGxyz,S1Lxyz,C1Lxyz,C1Rxyz);
-MD.dihedrals(:,5) = dihedral(S1Lxyz,C1Lxyz,C1Rxyz,C2Rxyz);
-
-MD.dihedrals = permute(MD.dihedrals,[2,3,1]);
+% % Calculate side chain dihedral angles
+% MD.dihedrals(:,1) = dihedral(Nxyz,CAxyz,CBxyz,SGxyz);
+% MD.dihedrals(:,2) = dihedral(CAxyz,CBxyz,SGxyz,S1Lxyz);
+% MD.dihedrals(:,3) = dihedral(CBxyz,SGxyz,S1Lxyz,C1Lxyz);
+% MD.dihedrals(:,4) = dihedral(SGxyz,S1Lxyz,C1Lxyz,C1Rxyz);
+% MD.dihedrals(:,5) = dihedral(S1Lxyz,C1Lxyz,C1Rxyz,C2Rxyz);
+% 
+% MD.dihedrals = permute(MD.dihedrals,[2,3,1]);
 
 end
 

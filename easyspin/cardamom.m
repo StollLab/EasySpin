@@ -189,50 +189,10 @@
 %                      pseudopotential) and orientational correlation 
 %                      functions (for diffusion tensor) to perform further 
 %                      stochastic rotational dynamics simulations
-%                    Markov: coarse grain the trajectories by using the
-%                      side chain dihedral angles to form a Markov state 
-%                      model
 %
 %     removeGlobal   integer
 %                    1: (default) remove protein global diffusion
 %                    0: no removal (e.g. if protein is fixed)
-
-%
-%    Raw MD data input:
-%
-%     TrajFile       character array, or cell array containing character
-%                    arrays as elements
-%                    Name of trajectory output file(s), including the file
-%                    extension ".[extension]".
-%
-%     AtomInfo
-%
-%         TopFile        character array
-%                        Name of topology input file used for molecular 
-%                        dynamics simulations.
-%
-%         ResName        character array
-%                        Name of residue assigned to spin label side chain,
-%                        e.g. "CYR1" is the default used by CHARMM-GUI.
-%
-%         AtomNames      structure array
-%                        Structure array containing the atom names used in the 
-%                        PSF to refer to the following atoms in the nitroxide 
-%                        spin label molecule:
-%
-%                                   O (ONname)
-%                                   |
-%                                   N (NNname)
-%                                  / \
-%                        (C1name) C   C (C2name)
-%
-%   OR
-%
-%    Frame Trajectory input:
-%
-%     FrameTraj      numeric, size = (nSteps,3)
-%                    x,y,z coordinate trajectory for X-, Y-, and Z-axis
-%                    vectors
 % 
 %
 %   Output:
@@ -260,6 +220,10 @@
 %                    average over both time and trajectory axes, yielding a
 %                    single approximate propagator to be used on the
 %                    trajectory-averaged density matrix
+
+%                    Markov: coarse grain the trajectories by using the
+%                      side chain dihedral angles to form a Markov state 
+%                      model
 
 
 function varargout = cardamom(Sys,Exp,Par,Opt,MD)
@@ -362,7 +326,7 @@ if useMD
     if ~ischar(MD.TrajUsage)
       error('MD.TrajUsage must be a string.')
     end
-    if ~any(strcmp({MD.TrajUsage},{'Explicit','Resampling','Markov'}))
+    if ~any(strcmp({MD.TrajUsage},{'Explicit','Resampling'}))%,'Markov'}))
       errmsg = sprintf('Entry ''%s'' for MD.TrajUsage not recognized.', MD.TrajUsage);
       error(errmsg)
     end
@@ -399,106 +363,106 @@ if useMD
 
   MD.nTraj = size(MD.RTraj,3);  % this is assumed to be one for now
   
-  if strcmp(MD.TrajUsage,'Markov')
-    logmsg(1,'-- building Markov state model -----------------------------------------');
-
-    if ~isfield(MD,'tLag')
-      error('If using a Markov model, the sampling lag time MD.tLag must be given.')
-    end
-
-    % use lag time to sample the trajectory of dihedral angles such that 
-    % that the result is Markovian
-    nLag = ceil(MD.tLag/MD.dt);
-    MD.dihedrals = MD.dihedrals(:,:,1:nLag:end);
-    MD.dihedrals = permute(MD.dihedrals,[3,1,2]);
-
-    % set the Markov chain time step based on the sampling lag time
-    Par.dt = tScale*MD.tLag;
-    
-    % we will need only the states when calling stochtraj_jump later
-    Opt.statesOnly = 1;
-    
-    if ~isfield(MD,'nStates')
-      MD.nStates = 48;
-    end
-
-    % Perform k-means clustering
-    [MD.stateTraj,centroids] = clusterDihedrals(MD.dihedrals,MD.nStates,Opt.Verbosity);
-    MD.nSteps = size(MD.stateTraj, 1);  % TODO: find a way to process different step sizes here
-    
-    % remove chi3, as its dynamics are very slow on the typical MD
-    % timescale
-    MD.dihedrals = MD.dihedrals(:,logical([1,1,0,1,1]));
-
-    % initialize HMM using clustering results
-    mu0 = centroids.';
-    for iState = 1:MD.nStates
-      idxState = MD.stateTraj==iState;
-      Sigma0(:,:,iState) = cov(MD.dihedrals(idxState,:));
-    end
-%     prior0 = normalise(rand(MD.nStates,1));
-%     transmat0 = mk_stochastic(rand(MD.nStates,MD.nStates));
-
-    mixmat0 = ones(MD.nStates,1);
-%     mixmat0 = [];
-
-    randints = randi(size(MD.stateTraj,1), MD.nStates, 1);
-    prior0 = MD.stateTraj(randints);
-    transmat0 = calc_TPM(MD.stateTraj,MD.nStates).';
-    
-%     % check if transmat0 is positive definite
-%     [~,isNotPosDef] = chol(transmat0);
-%     if isNotPosDef
-%       transmat0 = sqrtm(transmat0'*transmat0);
+%   if strcmp(MD.TrajUsage,'Markov')
+%     logmsg(1,'-- building Markov state model -----------------------------------------');
+% 
+%     if ~isfield(MD,'tLag')
+%       error('If using a Markov model, the sampling lag time MD.tLag must be given.')
 %     end
-
-    checkEmptyTrans = 1;
-    ProbRatioThresh = 1e-3;  % threshold in probability ratio for finding 
-                             % rarely visited states
-    while checkEmptyTrans
-      % run expectation-maximization algorithm on HMM model parameters
-%       ModelIn.prior = prior0;
-%       ModelIn.transmat = transmat0;
-%       ModelIn.mu = mu0;
-%       ModelIn.Sigma = Sigma0;
 % 
-%       [~, ModelOut] = cardamom_emghmm(MD.dihedrals, ModelIn, 20);
+%     % use lag time to sample the trajectory of dihedral angles such that 
+%     % that the result is Markovian
+%     nLag = ceil(MD.tLag/MD.dt);
+%     MD.dihedrals = MD.dihedrals(:,:,1:nLag:end);
+%     MD.dihedrals = permute(MD.dihedrals,[3,1,2]);
 % 
-%       prior1 = ModelOut.prior;
-%       transmat1 = ModelOut.transmat;
-%       mu1 = ModelOut.mu;
-%       Sigma1 = ModelOut.Sigma;
-      
-[~,prior1,transmat1,mu1,Sigma1,mixmat1] = ...
-    cardamom_emghmm(MD.dihedrals.',prior0,transmat0,mu0,Sigma0,mixmat0,...
-                    'max_iter',20,'verbose',Opt.Verbosity);
-
-      nStates = size(transmat1,1);
-      EmptyTransList = zeros(nStates,1);
-      for iState = 1:nStates
-        % check for rare states
-        maxProb = max(transmat1(:));
-        StateTransProbs = [transmat1(iState,:).'; transmat1(:,iState)];
-        EmptyTransList(iState) = all(StateTransProbs./maxProb < ProbRatioThresh);
-      end
-      if any(EmptyTransList)
-        % reset model vars by removing entries for rarely visited states
-        idxNonEmpty = ~EmptyTransList;
-        prior0 = prior1(idxNonEmpty);
-        transmat0 = transmat1(idxNonEmpty,:);
-        transmat0 = transmat0(:,idxNonEmpty);
-        mu0 = mu1(:,idxNonEmpty);
-        Sigma0 = Sigma1(:,:,idxNonEmpty);
-        mixmat0 = mixmat1(idxNonEmpty);
-      else
-        % no rare states found, reset nStates if it has changed
-        checkEmptyTrans = 0;
-        MD.nStates = size(transmat1,1);
-      end
-    end
-%     prior1 = prior0;
-%     transmat1 = transmat0;
-  end
+%     % set the Markov chain time step based on the sampling lag time
+%     Par.dt = tScale*MD.tLag;
+%     
+%     % we will need only the states when calling stochtraj_jump later
+%     Opt.statesOnly = 1;
+%     
+%     if ~isfield(MD,'nStates')
+%       MD.nStates = 48;
+%     end
+% 
+%     % Perform k-means clustering
+%     [MD.stateTraj,centroids] = clusterDihedrals(MD.dihedrals,MD.nStates,Opt.Verbosity);
+%     MD.nSteps = size(MD.stateTraj, 1);  % TODO: find a way to process different step sizes here
+%     
+%     % remove chi3, as its dynamics are very slow on the typical MD
+%     % timescale
+%     MD.dihedrals = MD.dihedrals(:,logical([1,1,0,1,1]));
+% 
+%     % initialize HMM using clustering results
+%     mu0 = centroids.';
+%     for iState = 1:MD.nStates
+%       idxState = MD.stateTraj==iState;
+%       Sigma0(:,:,iState) = cov(MD.dihedrals(idxState,:));
+%     end
+% %     prior0 = normalise(rand(MD.nStates,1));
+% %     transmat0 = mk_stochastic(rand(MD.nStates,MD.nStates));
+% 
+%     mixmat0 = ones(MD.nStates,1);
+% %     mixmat0 = [];
+% 
+%     randints = randi(size(MD.stateTraj,1), MD.nStates, 1);
+%     prior0 = MD.stateTraj(randints);
+%     transmat0 = calc_TPM(MD.stateTraj,MD.nStates).';
+%     
+% %     % check if transmat0 is positive definite
+% %     [~,isNotPosDef] = chol(transmat0);
+% %     if isNotPosDef
+% %       transmat0 = sqrtm(transmat0'*transmat0);
+% %     end
+% 
+%     checkEmptyTrans = 1;
+%     ProbRatioThresh = 1e-3;  % threshold in probability ratio for finding 
+%                              % rarely visited states
+%     while checkEmptyTrans
+%       % run expectation-maximization algorithm on HMM model parameters
+% %       ModelIn.prior = prior0;
+% %       ModelIn.transmat = transmat0;
+% %       ModelIn.mu = mu0;
+% %       ModelIn.Sigma = Sigma0;
+% % 
+% %       [~, ModelOut] = cardamom_emghmm(MD.dihedrals, ModelIn, 20);
+% % 
+% %       prior1 = ModelOut.prior;
+% %       transmat1 = ModelOut.transmat;
+% %       mu1 = ModelOut.mu;
+% %       Sigma1 = ModelOut.Sigma;
+%       
+% [~,prior1,transmat1,mu1,Sigma1,mixmat1] = ...
+%     cardamom_emghmm(MD.dihedrals.',prior0,transmat0,mu0,Sigma0,mixmat0,...
+%                     'max_iter',20,'verbose',Opt.Verbosity);
+% 
+%       nStates = size(transmat1,1);
+%       EmptyTransList = zeros(nStates,1);
+%       for iState = 1:nStates
+%         % check for rare states
+%         maxProb = max(transmat1(:));
+%         StateTransProbs = [transmat1(iState,:).'; transmat1(:,iState)];
+%         EmptyTransList(iState) = all(StateTransProbs./maxProb < ProbRatioThresh);
+%       end
+%       if any(EmptyTransList)
+%         % reset model vars by removing entries for rarely visited states
+%         idxNonEmpty = ~EmptyTransList;
+%         prior0 = prior1(idxNonEmpty);
+%         transmat0 = transmat1(idxNonEmpty,:);
+%         transmat0 = transmat0(:,idxNonEmpty);
+%         mu0 = mu1(:,idxNonEmpty);
+%         Sigma0 = Sigma1(:,:,idxNonEmpty);
+%         mixmat0 = mixmat1(idxNonEmpty);
+%       else
+%         % no rare states found, reset nStates if it has changed
+%         checkEmptyTrans = 0;
+%         MD.nStates = size(transmat1,1);
+%       end
+%     end
+% %     prior1 = prior0;
+% %     transmat1 = transmat0;
+%   end
   % estimate rotational diffusion time scale
   FrameAcorr = autocorrfft(squeeze(MD.FrameTraj.^2), 2, 2, 1);
 
@@ -822,13 +786,13 @@ switch LocalDynamicsModel
 
           pdf(end,:,:) = pdf(1,:,:);  % FIXME why does it truncate to zero in the phi direction?
           pdf = smooth3(pdf,'gaussian');
-          pdf(pdf<1e-10) = 1e-10;  % put a finite floor on histogram
+          pdf(pdf<1e-14) = 1e-14;  % put a finite floor on histogram
           Sys.Potential = -log(pdf);
 %           pdf = smoothn(pdf);
-        case 'Markov'
-          
-          RTrajLocal = RTrajLocal(:,:,1,1:nLag:end);
-          qTrajLocal = rotmat2quat(RTrajLocal);
+%         case 'Markov'
+%           
+%           RTrajLocal = RTrajLocal(:,:,1,1:nLag:end);
+%           qTrajLocal = rotmat2quat(RTrajLocal);
           
       end
       
@@ -938,16 +902,16 @@ while ~converged
             Par.nSteps = nStepsStoch;
             [~, RTrajLocal, qTrajLocal] = stochtraj_diffusion(Sys,Par,Opt);
             
-          case 'Markov'
-            
-            Sys.States0 = rejectionsample(MD.nStates, prior1, Par.nTraj);
-            Sys.TransProb = transmat1.';
-            Par.dt = dtStoch;
-            Par.nSteps = nStepsStoch;
-            Opt.statesOnly = true;
-            [~, stateTraj] = stochtraj_jump(Sys,Par,Opt);
-            
-            Par.stateTraj = stateTraj;
+%           case 'Markov'
+%             
+%             Sys.States0 = rejectionsample(MD.nStates, prior1, Par.nTraj);
+%             Sys.TransProb = transmat1.';
+%             Par.dt = dtStoch;
+%             Par.nSteps = nStepsStoch;
+%             Opt.statesOnly = true;
+%             [~, stateTraj] = stochtraj_jump(Sys,Par,Opt);
+%             
+%             Par.stateTraj = stateTraj;
             
         end
         
