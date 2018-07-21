@@ -25,50 +25,53 @@
 
 <section>
 
-<div class="subtitle" style="margin-top:0ex;">Download and requirements</div>
+<div class="subtitle" style="margin-top:0ex;">Download</div>
 
 <p><i>EasySpin</i> comes in a single zip file, containing all toolbox functions and the full documentation.
 
 <p>Visit the <a target="_blank" href="http://easyspin.org">EasySpin website</a> for downloading the latest version.
 
+<div class="subtitle" style="margin-top:0ex;">Requirements</div>
+
 <p>
-<i>EasySpin</i> requires MATLAB 7.5 (R2007b) or later on either Windows, Linux or Mac. EasySpin does not run on older Matlab versions.
-Beyond a basic MATLAB installation, no additional MATLAB toolboxes are needed to run EasySpin.
+<i>EasySpin</i> requires MATLAB 8.4 (R2014b) or later on either Windows, Linux or Mac. EasySpin does not run on MATLAB versions older than R2014b.
+Beyond a basic MATLAB installation, no additional MATLAB toolboxes are needed to run <i>EasySpin</i>. <i>EasySpin</i> does not run on Octave (a free MATLAB clone).
 </p>
 
 <div class="subtitle">Installation</div>
 
 <ol>
-<li><b>Download and install support software</b><br>
-A small but critical part of <i>EasySpin</i> is not written in MATLAB, but in C. In order
-to compile and run this part, some support software has to be installed, depending on the platform.
-<ul>
-<li>Windows, 64-bit: Download and install <a target="_blank" href="http://www.microsoft.com/downloads/en/details.aspx?familyid=BD512D9E-43C8-4655-81BF-9350143D5867">Microsoft Visual C++ 2010 Redistributable Package (x64)</a>.
-<li>Windows, 32-bit: Skip this step.
-<li>Mac OS X: Skip this step.
-<li>Linux: Skip this step.
-</ul>
 <li><b>Download and unpack EasySpin</b><br>
-Download the <i>EasySpin</i> zip file and unpack it to a folder, e.g., <code>C:\</code> or <code>/var/myfiles/</code>.
+Download the <i>EasySpin</i> zip file and unpack it to a folder of your choice, e.g., <code>C:\</code> or <code>/var/myfiles/</code>.
 Once unpacked, <i>EasySpin</i> is contained in a subfolder of <code>C:\</code>
-(or <code>/var/myfiles/</code> or whatever directory you chose) which in turn contains various subfolders:
+(or <code>/var/myfiles/</code> or whatever folder you chose) which in turn contains several subfolders:
 <ul>
 <li><code>easyspin-x.y.z/easyspin</code> - all the toolbox functions.
 <li><code>easyspin-x.y.z/documentation</code> - documentation, entry point is <code>index.html</code>.
-<li><code>easyspin-x.y.z/examples</code> - all examples, grouped into subdirectories.
+<li><code>easyspin-x.y.z/examples</code> - all examples, grouped into subfolders.
 </ul>
 
 <li><b>Tell MATLAB about EasySpin</b><br>
-Launch MATLAB and go to Home &rarr; Set Path (or File &rarr; Set Path... in versions prior to R2012b). Remove any folders containing older <i>EasySpin</i> installations from the MATLAB search path.
+Launch MATLAB and go to Home &rarr; Set Path. Remove any folders containing older <i>EasySpin</i> installations from the MATLAB search path.
 Add the <i>EasySpin</i> subfolder <code>easyspin-x.y.z/easyspin</code> to the MATLAB search path by clicking on
 "Add Folder...", selecting the <code>easyspin-x.y.z/easyspin</code> subfolder from your new EasySpin directory, and clicking on "Save".
 
-<li><b>Check and compile EasySpin</b><br>
-In MATLAB, type <code>easyspin</code> at the command prompt. This will display information about the installed version of EasySpin. Also, it will compile a few files from the <code>easyspin/private</code> folder, if they have not yet been compiled for your platform. Possibly you are asked to select a C compiler. In that case, choose Lcc (Windows 32bit) or gcc (Linux, Mac). 
+<li><b>Check EasySpin</b><br>
+In MATLAB, type <code>easyspin</code> at the command prompt. This will display information about the installed version of EasySpin. Also, it might try to compile a few files from the <code>easyspin/private</code> folder. Possibly you are asked to select or install a C compiler. See below for information on how to proceed in that case.
 
 <li><b>Documentation</b><br>
 Set up bookmarks for the EasySpin documentation. Online, you can go to <a href="easyspin.org">easyspin.org</a> to view the online documentation. To view the offline documentation, point your web browser to <code>documentation/index.html</code> in your <i>EasySpin</i> installation directory and bookmark that page.
 </ol>
+
+<div class="subtitle">Installation of support software</div>
+
+A few small but performance-critical parts of <i>EasySpin</i> are not written in MATLAB, but in C. These parts come pre-compiled with the EasySpin distribution. However, in some cases it might be necessary to recompile them for your platform. For this, some support software might need to be installed, depending on the platform.
+<ul>
+<li>Windows: Download and install one of the compiler supported for your MATLAB version - see <a href="https://www.mathworks.com/support/sysreq/previous_releases.html">list of compatible compilers</a>.
+<li>Mac OS X: Install Xcode.
+<li>Linux: A C compiler (gcc) is installed on most Linux distributions.
+</ul>
+
 
 <div class="subtitle">License</div>
 
