@@ -88,6 +88,18 @@ Time step for the definition of the waveform, in microseconds. If not given, it 
 Oversampling factor for the automatic determination of the time step (default = 10). 
 </div>
 
+<div class="optionfield"><code>N</code></div>
+<div class="optiondescr">
+Bandwidth multiplication factor used in the determination of the width of the frequency domain window considered for the Fourier convolution/deconvolution. The center frequency and bandwidth of the input signal are estimated from the magnitude FT and the width is set to <code>Opt.N</code> times the estimated bandwidth. (default = 20).
+Adjustment of this factor and of <code>Opt.Window</code> may be required in some cases to obtain the correct output signal using <code>'compensate'</code>.
+</div>
+
+<div class="optionfield"><code>Window</code> and <code>alpha</code></div>
+<div class="optiondescr">
+Type of apodization window used on the frequency domain output data (default: <code>'gau'</code> (Gaussian), see <a class="esf" href="apowin.html">apowin</a> for available options). Some apodization functions require an additional parameter to be specified in <code>Opt.alpha</code> (default: 0.6).
+</div>
+
+
 <!-- ============================================================= -->
 <div class="subtitle">Examples</div>
 

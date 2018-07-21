@@ -42,14 +42,26 @@
 %                            response or loaded Q-value
 %   - 'simulate'/'compensate'
 %   - Options structure with the following fields:
-%        Opt.CutoffFactor     = cutoff factor for truncation of the impulse 
-%                               response function (used for resonator simulation) 
+%        Opt.CutoffFactor     = cutoff factor for truncation of the pulse after
+%                               convolution/deconvolution with the resonator
+%                               transfer function
 %                               (default:1/1000)
 %        Opt.TimeStep         = time step in µs (if it is not provided the
 %                               ideal time step is estimated based on the 
 %                               Nyquist condition with an oversampling factor)
 %        Opt.OverSampleFactor = oversampling factor for the determination of the 
 %                               time step (default: 10)
+%        Opt.N                = multiplication factor used in the determination
+%                               of the width of the frequency domain window considered
+%                               for the Fourier convolution/deconvolution, the center
+%                               frequency and bandwidth of the input signal are 
+%                               estimated from the magnitude FT and the width 
+%                               is set to Opt.N times the estimated bandwidth
+%        Opt.Window           = type of apodization window used on the frequency
+%                               domain output (over the width determined by Opt.N)
+%                               (see apowin() for available options) (default: 'gau')
+%        Opt.alpha            = alpha parameter the apodization function defined in
+%                               Opt.Window (see apowin() for details) (default: 0.6)
 %
 %  Output:
 %   - t         = time axis for the output signal (in µs)
@@ -99,10 +111,10 @@ if nargin==7
 else
   Opt = struct();
 end
-if ~isfield(Opt,'CutoffFactor')
+if ~isfield(Opt,'CutoffFactor') || isempty(Opt.CutoffFactor)
   Opt.CutoffFactor = 1/1000;
 end
-if ~isfield(Opt,'OverSampleFactor')
+if ~isfield(Opt,'OverSampleFactor') || isempty(Opt.OverSampleFactor)
   Opt.OverSampleFactor = 10;
 end
 if ~isfield(Opt,'TimeStep') || isempty(Opt.TimeStep)
@@ -110,13 +122,22 @@ if ~isfield(Opt,'TimeStep') || isempty(Opt.TimeStep)
 else
   estimateTimeStep = false;
 end
+if ~isfield(Opt,'N') || isempty(Opt.N)
+  Opt.N = 20;
+end
+if ~isfield(Opt,'Window') || isempty(Opt.Window)
+  Opt.Window = 'gau';
+end
+if (~isfield(Opt,'alpha') || isempty(Opt.alpha))
+  Opt.alpha = 0.6;
+end
 
 % --------------------------------------------------------------------- %
 % Simulation or compensation for the resonator
 % --------------------------------------------------------------------- %
   
-% Pulse Fourier transform 
-dt = 0.00025; % µs
+% Pulse Fourier transform
+dt = (t0(2)-t0(1))/4;
 signal_ = interp1(t0,signal0,0:dt:t0(end),'spline');  
 N = round((numel(f)-numel(signal_))/2);
 signal_ = [zeros(1,N-1) signal_ zeros(1,N)];
@@ -124,38 +145,73 @@ signal_ = [zeros(1,N-1) signal_ zeros(1,N)];
 FT = ifftshift(fft(fftshift(signal_)));
 f_ = fdaxis(dt,numel(FT));
 
+% Extract pulse frequency response
+if isreal(signal0) && mwFreq==0
+  [dummy,ind0] = min(abs(f_));
+  intg = cumtrapz(abs(FT(ind0:end)));
+  [dummy,indmax] = min(abs(intg-0.5*max(intg)));
+  indmax = ind0+indmax;
+  indbw = find(abs(FT(indmax:end))>0.01*max(abs(FT)),1,'last');
+else
+  intg = cumtrapz(abs(FT));
+  [dummy,indmax] = min(abs(intg-0.5*max(intg)));
+  indbw = find(abs(FT(indmax:end))>0.01*max(abs(FT)),1,'last');
+end
+startind = indmax-Opt.N*indbw;
+endind = indmax+Opt.N*indbw;
+delta = max(max(endind-numel(f_),1-startind),0);
+indpulse = startind+delta:endind-delta;
+f_pulse = f_(indpulse);
+FT_pulse = FT(indpulse);
+
 % Interpolation of the transfer function onto the same axis
-H = H/max(real(H));
-H_ = real(H) - 1i*imag(hilberttrans(real(H)));
-H_ = interp1((f-mwFreq*1e3),H_,f_,'spline');
+H_ = interp1((f-mwFreq*1e3),H,f_pulse,'pchip');
 
 switch option
   case 'simulate'
   % Fourier convolution
-  FTc = FT.*H_;
+  FTc_pulse = FT_pulse.*H_;
   case 'compensate'
   % Fourier deconvolution
-  FTc = FT./H_;
+  FTc_pulse = FT_pulse./H_;
 end
 
-% Windowing and inverse Fourier transform
+% Windowing
+if any(strcmp(Opt.Window,{'gau','exp','kai'}))
+  windowfunction = apowin(Opt.Window,numel(FTc_pulse),Opt.alpha);
+else
+  windowfunction = apowin(Opt.Window,numel(FTc_pulse));
+end
+FTc_pulse = FTc_pulse.*windowfunction.';
+
+% Inverse Fourier transform
+FTc = zeros(size(FT));
+FTc(indpulse) = FTc_pulse;
 t_ = (-0.5*numel(FTc):1:0.5*numel(FTc)-1)*dt;
-FTc = FTc.*apowin('gau',numel(FTc),0.6).';
 signal_ = fftshift(ifft(ifftshift(FTc)));
 
 % Extract pulse
-ind = find(abs(signal_)>(Opt.CutoffFactor*max(abs(signal_))));
-ind = ind(1):1:ind(end);
-t_ = t_(ind)-t_(ind(1));
-signal_ = signal_(ind);
+switch option
+  case 'simulate'
+    % Start of the pulse determined by input signal
+    endind = find(abs(signal_)>(Opt.CutoffFactor*max(abs(signal_))),1,'last');
+    [dummy,startind] = min(abs(t_+t0(end)/2));
+    t_ = t_(startind:endind)-t_(startind);
+    signal_ = signal_(startind:endind);
+  case 'compensate'
+    ind = find(abs(signal_)>(Opt.CutoffFactor*max(abs(signal_))));
+    ind = ind(1):1:ind(end);
+    t_ = t_(ind)-t_(ind(1));
+    signal_ = signal_(ind);
+end
     
 % Update time step
 if estimateTimeStep
   
   % Get maximum frequency
   [maxvalue,indmax] = max(abs(FTc));
-  indbw = find(abs(FTc(indmax:end))>0.05*maxvalue);
-  maxFreq = 2*(f_(indmax+indbw(end))-f_(indmax));
+  indbw = find(abs(FTc(indmax:end))>0.05*maxvalue,1,'last');
+  maxFreq = 2*(f_(indmax+indbw-1)-f_(indmax));
   
   % Define new time step
   Nyquist_dt = 1/(2*maxFreq);
@@ -170,6 +226,10 @@ end
   
 t = 0:Opt.TimeStep:t_(end);
 signal = interp1(t_,signal_,t,'spline');
+
+if isreal(signal0) && mwFreq==0
+  signal = 2*real(signal);
+end
   
 end
 
@@ -282,10 +342,12 @@ switch type
     beta(ind(end):numel(f)) = ((betaexp(ind(end))-x)-betaid(ind(end)))*exp(-1/log(2)*(f(ind(end):end)-f(ind(end)))) + betaid(ind(end):end);
     
     % Transfer function
-    H = abs(H0).*exp(1i*beta);
+    H = abs(H0).*exp(1i*beta);    
+    H = real(H) - 1i*imag(hilberttrans(real(H)));
     
 end
 
+H = H/max(real(H));
 f = f*1e3; % GHz to MHz
 
 end
