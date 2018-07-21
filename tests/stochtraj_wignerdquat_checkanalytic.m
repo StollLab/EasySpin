@@ -10,10 +10,14 @@ gamma = 2*pi*(2*rand(1,len)-1);
 
 q = euler2quat(alpha,beta,gamma);
 
-A = q(1,:) - 1i*q(4,:);
+A = -q(1,:) - 1i*q(4,:);  % added a negative sign to q(1)
 B = -q(3,:) - 1i*q(2,:);
-Ast = q(1,:) + 1i*q(4,:);
-Bst = -q(3,:) + 1i*q(2,:);
+Ast = conj(A);
+Bst = conj(B);
+% A = q(1,:) - 1i*q(4,:);
+% B = -q(3,:) - 1i*q(2,:);
+% Ast = q(1,:) + 1i*q(4,:);
+% Bst = -q(3,:) + 1i*q(2,:);
 
 Z = A.*Ast - B.*Bst;
 
