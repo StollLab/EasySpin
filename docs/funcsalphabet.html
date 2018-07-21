@@ -42,6 +42,7 @@ EasySpin functions - Alphabetical List
 <tr><td><a href="bmagn.html">bmagn</a></td><td>Bohr magneton</td></tr>
 <tr><td><a href="bohrrad.html">bohrrad</a></td><td>Bohr radius</td></tr>
 <tr><td><a href="boltzm.html">boltzm</a></td><td>Boltzmann constant</td></tr>
+<tr><td><a href="cardamom.html">cardamom</a></td><td>Trajectory-based cw EPR spectra</td></tr>
 <tr><td><a href="cgmatrix.html">cgmatrix</a></td><td>Transformation between uncoupled and coupled representations</td></tr>
 <tr><td><a href="chili.html">chili</a></td><td>Slow-motional regime cw EPR spectra</td></tr>
 <tr><td><a href="clebschgordan.html">clebschgordan</a></td><td>Clebsch-Gordan coefficients</td></tr>
@@ -69,6 +70,7 @@ EasySpin functions - Alphabetical List
 <tr><td><a href="erot.html">erot</a></td><td>Computes rotation matrix from Euler angles</td></tr>
 <tr><td><a href="esfit.html">esfit</a></td><td>Least-squares fitting of EPR spectra</td></tr>
 <tr><td><a href="eulang.html">eulang</a></td><td>Euler angles from rotation matrix</td></tr>
+<tr><td><a href="euler2quat.html">euler2quat</a></td><td>Unit quaternions from Euler angles</td></tr>
 <tr><td><a href="evolve.html">evolve</a></td><td>Evolves density matrices in time-domain</td></tr>
 <tr><td><a href="evolt.html">evolt</a></td><td>Electron volt</td></tr>
 <tr><td><a href="ewrls.html">ewrls</a></td><td>Least-squares adaptive filter averaging</td></tr>
@@ -84,7 +86,7 @@ EasySpin functions - Alphabetical List
 <tr><td><a href="hartree.html">hartree</a></td><td>Atomic unit of energy</td></tr>
 <tr><td><a href="hbar.html">hbar</a></td><td>Reduced Planck constant</td></tr>
 <tr><td><a href="hfine.html">hfine</a></td><td>Hyperfine interaction Hamiltonian</td></tr>
-<tr><td><a href="hilberttrans.html">hilberttrans</a></td><td>Hilbert transform</td></tr>,
+<tr><td><a href="hilberttrans.html">hilberttrans</a></td><td>Hilbert transform</td></tr>
 <tr><td><a href="hsdim.html">hsdim</a></td><td>State space dimension of a spin system</td></tr>
 <tr><td><a href="isotopes.html">isotopes</a></td><td>A browsable list of isotopes</td></tr>
 <tr><td><a href="larmorfrq.html">larmorfrq</a></td><td>Larmor frequency of nuclear spins</td></tr>
@@ -93,6 +95,7 @@ EasySpin functions - Alphabetical List
 <tr><td><a href="lorentzian.html">lorentzian</a></td><td>Lorentzian line shape<td></td></tr>
 <tr><td><a href="lshape.html">lshape</a></td><td>General line shape function</td></tr>
 <tr><td><a href="makespec.html">makespec</a></td><td>Construct spectrum from peak positions and amplitudes</td></tr>
+<tr><td><a href="mdload.html">mdload</a></td><td>Load molecular-dynamics trajectory from file</td></tr>
 <tr><td><a href="mhz2mt.html">mhz2mt</a></td><td>Unit conversion from MHz to mT</td></tr>
 <tr><td><a href="molgas.html">molgas</a></td><td>Molar gas constant</td></tr>
 <tr><td><a href="mt2mhz.html">mt2mhz</a></td><td>Unit conversion from mT to MHz</td></tr>
@@ -119,6 +122,11 @@ EasySpin functions - Alphabetical List
 <tr><td><a href="pmass.html">pmass</a></td><td>Mass of proton</td></tr>
 <tr><td><a href="propint.html">propint</a></td><td>Compute pulse propagator</td></tr>
 <tr><td><a href="pulse.html">pulse</a></td><td>Calculate pulse functions for defined pulse shapes.</td></tr>
+<tr><td><a href="quat2euler.html">quat2euler</a></td><td>Euler angles from unit quaternions</td></tr>
+<tr><td><a href="quat2rotmat.html">quat2rotmat</a></td><td>Converts  a unit quaternion to a rotation matrix</td></tr>
+<tr><td><a href="quatinv.html">quatinv</a></td><td>Calculates the inverse of a unit quaternion.</td></tr>
+<tr><td><a href="quatmult.html">quatmult</a></td><td>Performs quaternion multiplication between two quaternions</td></tr>
+<tr><td><a href="quatvecmult.html">quatvecmult</a></td><td>Rotates a vector using a unit quaternion</td></tr>
 <tr><td><a href="rcfilt.html">rcfilt</a></td><td>RC filtering of EPR spectra</td></tr>
 <tr><td><a href="rfmixer.html">rfmixer</a></td><td>Digital up- and downconversion</td></tr>
 <tr><td><a href="rescale.html">rescale</a></td><td>Rescale spectra</td></tr>
@@ -131,6 +139,7 @@ EasySpin functions - Alphabetical List
 <tr><td><a href="rotatecrystal.html">rotatecrystal</a></td><td>Rotate the crystal orientation for single-crystal experiments</td></tr>
 <tr><td><a href="rotaxi2mat.html">rotaxi2mat</a></td><td>Convert rotation axis plus angle to rotation matrix</td></tr>
 <tr><td><a href="rotmat2axi.html">rotmat2axi</a></td><td>Convert rotation matrix to rotation axis plus angle</td></tr>
+<tr><td><a href="rotmat2quat.html">rotmat2quat</a></td><td>Converts a rotation matrix to a unit quaternion</td></tr>
 <tr><td><a href="rotplane.html">rotplane</a></td><td>Set of vectors/orientations in a plane</td></tr>
 <tr><td><a href="rydberg.html">rydberg</a></td><td>Rydberg constant</td></tr>
 <tr><td><a href="saffron.html">saffron</a></td><td>Pulse EPR spectra simulation</td></tr>
@@ -146,6 +155,8 @@ EasySpin functions - Alphabetical List
 <tr><td><a href="spinvec.html">spinvec</a></td><td>Spin quantum numbers in a spin system</td></tr>
 <tr><td><a href="stackplot.html">stackplot</a></td><td>Stacked plot of 1D data</td></tr>
 <tr><td><a href="stev.html">stev</a></td><td>Extended Stevens operator matrices</td></tr>
+<tr><td><a href="stochtraj_diffusion.html">stochtraj_diffusion</a></td><td>Simulate trajectories of rotational diffusion</td></tr>
+<tr><td><a href="stochtraj_jump.html">stochtraj_jump</a></td><td>Simulate trajectories of Markovian jumps</td></tr>
 <tr><td><a href="symm.html">symm</a></td><td>Symmetry determination for Spin Hamiltonians</td></tr>
 <tr><td><a href="transmitter.html">transmitter</a></td><td>Simulation of/compensation for transmitter nonlinearity.</td></tr>
 <tr><td><a href="vec2ang.html">vec2ang</a></td><td>Polar angles from cartesian unit vector</td></tr>
