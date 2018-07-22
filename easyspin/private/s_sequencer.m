@@ -173,9 +173,9 @@ if ~isfield(Opt,'SimulationMode') || strcmp(Opt.SimulationMode,'fast')
 end
 
 if ~strcmp(OrigSimulationMode,Opt.SimulationMode)
-  message = ['Your experiment definition does not allow for the fast simulation mode. The simulation mode has been changed to ''thyme''.' newline 'The reason for this was: ' message];
-  message = [message newline 'If you are aware of this and want to supress this message, consider using Opt.SimulationMode = ''thyme''.'];
-  disp(message);
+  message = ['Your experiment definition does not allow for the fast simulation mode. The simulation mode has been changed to ''thyme''.' '\n' 'The reason for this was: ' message];
+  message = [message '\n' 'If you are aware of this and want to supress this message, consider using Opt.SimulationMode = ''thyme''.'];
+  fprintf(message);
 end
 
 if strcmp(Opt.SimulationMode,'thyme')
@@ -256,20 +256,22 @@ for Pos = PulsePositions
   end
 end
 
-msgtp = strip(msgtp,',');
-msgFrequency = strip(msgFrequency,',');
+if msgtp(end)==',', msgtp(end) = ''; end
+if msgFrequency(end)==',', msgFrequency(end) = ''; end
 
 if idealPulses && mwFreqrequired
-  errmsg = ['Real pulses are required for the thyme-method.' newline msgtp newline msgFrequency];
+  errmsg = ['Real pulses are required for the thyme-method.\n' msgtp '\n' msgFrequency];
 elseif idealPulses
-  errmsg = ['Real pulses are required for the thyme-method.' newline msgtp];
+  errmsg = ['Real pulses are required for the thyme-method.\n' msgtp];
 elseif mwFreqrequired
-  errmsg = ['Real pulses are required for the thyme-method.' newline msgFrequency];
+  errmsg = ['Real pulses are required for the thyme-method.\n' msgFrequency];
 else
   errmsg = [];
 end
 
-error(errmsg);
+if ~isempty(errmsg)
+  error(sprintf(errmsg));
+end
 
 
 % Set up detection

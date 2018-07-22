@@ -813,7 +813,7 @@ for iRes = 0:vertRes
 end
 
   function U = Propagator(Ham,dt)
-    U = expm_fastc(-1i*Ham*dt);
+    U = expm(-1i*Ham*dt);
     
     function [LTable, SigmassTable] = buildLiouvillians(Ham0,Gamma,equilibriumState,xOp,dt,vertRes,scale)
       
@@ -836,7 +836,7 @@ end
         L = -1i*HamSuOp-Gamma;
         SigmaSS = Gamma*equilibriumState; % steady state solutions for the density matrices
         SigmaSS = -L\SigmaSS;
-        L = expm_fastc(L*dt); %calculations of the Liouvillians
+        L = expm(L*dt); %calculations of the Liouvillians
         
         function detectedSignal = Detect(Sigma,Det,normsDet)
           
