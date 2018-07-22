@@ -1,3 +1,2 @@
 syntax: glob
-private/*.mex*
-*.asv
+#private/*.mex*
