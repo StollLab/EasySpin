@@ -1,2 +1,2 @@
 syntax: glob
-private/*.mex*
+#private/*.mex*
