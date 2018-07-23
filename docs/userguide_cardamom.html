@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>User guide: cardamom</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">Simulating trajectory-based cw EPR spectra</div>
+
+<p>
+This user guide explains how to simulate trajectory-based cw EPR spectra of using EasySpin's function <a class="esf" href="cardamom.html">cardamom</a>. It is assumed that you are familiar with the basics of MATLAB, esp. with structures.
+</p>
+
+This user guide contains the following topics:
+
+<ul>
+<li><a href = "#calling">Running the simulation</a></li>
+<li><a href = "#spinsys">Specifying the static parameters</a></li>
+<li><a href = "#dynamics">Dynamic parameters and model</a></li>
+<li><a href = "#potential">The orientational potential</a></li>
+<li><a href = "#expparams">Basic experimental settings</a></li>
+<!-- <li><a href = "#moreexpparams">More experimental settings</a></li> -->
+<li><a href = "#simparams">Time axis and grid parameters</a></li>
+<li><a href = "#momd">Powder vs single orientation vs global diffusion</a></li>
+<li><a href = "#simoptions">Simulation options</a></li>
+<li><a href = "#moleculardynamics">MD settings</a></li>
+</ul>
+
+<!--
+There are the following advanced topics:
+
+<ul>
+<li><a href = "#multinuc">Systems with more than one nucleus</a></li>
+<li><a href = "#freqsweep">Frequency-swept spectra</a></li>
+</ul>
+-->
+
+<!-- ============================================================= -->
+<div class="subtitle"><a name="calling">Running the simulation</a></div>
+
+<p>
+Trajectory-based cw EPR spectra are computed by the EasySpin function <a class="esf" href="cardamom.html">cardamom</a>.
+</p>
+
+<pre class="matlab">
+cardamom(Sys,Exp,Par)
+</pre>
+
+<p>
+It is called with three arguments. The first argument <code>Sys</code> tells <code>cardamom</code>
+all about the static and dynamic parameters of the spin system. 
+The second argument <code>Exp</code> gives the experimental parameters. 
+The third argument <code>Par</code> gives the simulation parameters.
+</p>
+
+<p>
+If no output argument is given, <code>cardamom</code>
+plots the computed spectrum. But it can also return one, two, or four outputs.
+(Don't forget the semicolon at the end of the line to suppress
+output to the command window.)
+</p>
+
+<pre class="matlab">
+[Field,Spec] = cardamom(Sys,Exp,Par);
+[Field,Spec,FID,time] = cardamom(Sys,Exp,Par);
+</pre>
+
+<p>
+The outputs <code>Field</code> and <code>Spec</code> are
+vectors containing the magnetic field axis and the spectrum, respectively, whereas <code>FID</code> and <code>time</code> are vectors containing the FID signal and the time axis.
+If these are requested, <code>cardamom</code> does not plot the spectrum.
+</p>
+
+<p>
+Doing a simulation only requires a few lines of code. A simple example is
+</p>
+
+<pre class="matlab">
+Sys = struct('g',[2.008,2.006,2.003],'Nucs','14N','A',[20,20,85]);
+Sys.tcorr = 4e-8;
+Exp = struct('mwFreq',9.5);
+Par = struct('dt',2e-9,'nSteps',100,'nTraj'400);
+cardamom(Sys,Exp,Par);
+</pre>
+
+<p>
+The first line defines the spin system, a nitroxide radical with anisotropic
+g and A tensors. 
+The second line gives the rotational correlation time of the radical. 
+The third line specifies experimental parameters, here only the microwave frequency is needed (the
+magnetic field range is chosen automatically).
+The fourth line defines the simulation parameters and trajectory properties.
+The fifth line calls the simulation function, which plots the result.
+Copy and paste the code above to your MATLAB command window to see the graph.
+</p>
+
+<p>
+Of course, the names of the input and output variables don't have
+to be <code>Sys</code>, <code>Par</code>, </code><code>Exp</code>, <code>Field</code>, and <code>Spec</code>.
+You can give them any name you like, as long as it is a valid MATLAB
+variable name, e.g., <code>FremySaltSolution</code> or <code>QbandExperiment</code>.
+For convenience, thoughout this tutorial, we will use short names like <code>Sys</code> and <code>Exp</code>.
+</p>
+
+<!-- ============================================================= -->
+<div class="subtitle"><a name="spinsys">Specifying the static parameters</a></div>
+
+<p>
+The first input argument specifies the static parameters of the paramagnetic molecule.
+It is a MATLAB structure with various fields giving values for the spin system parameters.
+</p>
+
+<pre class="matlab">
+Sys.g = [2.008,2.006,2.003];
+Sys.Nucs = '14N';
+Sys.A = [20,20,80];  % MHz
+</pre>
+
+<p>
+The first line defines the g tensor of the spin system via its three principal values. <code>cardamom</code> always assumes a single unpaired electron spin S=1/2 if no spin is given.
+</p>
+
+<p>
+The field <code>Sys.Nucs</code> contains a string giving all the magnetic nuclei in the spin system, a nitrogen-14 in the above example. 
+If <code>Sys.Nucs</code> is not specified, <code>cardamom</code> always assumes a <sup>14</sup>N nitroxide spin label. If a simulation with a different type of nucleus is desired, then a different simulation method called <code>'ISTOs'</code>needs to be declared in <code>Opt.Method</code>. For more details, please see <a class="esf" href="cardamom.html">cardamom</a>.
+<!-- 
+Use a comma-separated list of isotope labels to give more than one nucleus. E.g., <code>Sys.Nucs = '14N,1H,1H'</code> specifies one nitrogen and two different protons. See the <a href="#multinuc">section on multinuclear systems</a> about details of the slow-motion simulation in that case.
+-->
+</p>
+
+<p>
+<code>Sys.A</code> gives the hyperfine couplings in MHz (megahertz),
+with three principal values on a row for each of the nuclei listed in <code>Sys.Nucs</code>.
+<!-- 
+The following defines a hydrogen atom with a 10 MHz coupling to the unpaired electron and
+a <sup>13</sup>C atom with a 12 MHz coupling.
+
+<pre class="matlab">
+Sys.Nucs = '1H,13C';
+Sys.A = [10 12]; % MHz
+</pre>
+-->
+
+<p>
+Remember that <code>cardamom</code> (and other EasySpin functions, too),
+take the hyperfine coupling values to be in <b>MHz</b>.
+Often, values for hyperfine couplings are given in G (Gauss) or mT
+(Milltesla), so you have to convert these values.
+For g = 2.00232, 1 G corresponds to 2.8025 MHz, and 1 mT corresponds to 28.025 MHz.
+The simplest way to convert coupling constants from magnetic field units to MHz is to use the EasySpin
+function <a class="esf" href="mt2mhz.html">mt2mhz</a>:
+</p>
+
+<pre class="matlab">
+A_MHz = mt2mhz(A_mT);    % mT -> MHz conversion
+A_MHz = mt2mhz(A_G/10);  %  G -> MHz conversion (1 G = 0.1 mT)
+</pre>
+
+<!--
+<p>
+The orientations of the tensors relative to the molecular frame are defined
+in terms of Euler angles in 3-element array (see the function
+<a class="esf" href="erot.html">erot</a>).
+</p>
+
+<pre class="matlab">
+Sys.gFrame = [0 0 0];    % Euler angles for g tensor
+Sys.AFrame = [0 pi/4 0]; % Euler angles for A tensor
+</pre>
+
+<p>
+For more details on these static parameters, see the documentation on <a href="spinsystem.html">spin systems</a>.
+</p>
+-->
+
+<!-- ============================================================= -->
+<div class="subtitle"><a name="dynamics">Dynamic parameters and model</a></div>
+
+<p>
+The spin system structure also collects parameters relating to the dynamics of the paramagnetic molecules.
+</p>
+
+<p>
+There are two types of local dynamics models in <code>cardamom</code> that can be used to simulate a cw EPR spectrum: <code>stochastic</code>, which simulates rotational diffusion, and <code>jump</code>, which simulates jumps between a set of discrete orientations. Each of these models can be declared using the field <code>Par.Model</code>.
+</p>
+
+<p>
+For a rotational diffusion model (<code>Par.Model='stochastic'</code>), there are several alternative ways to specify the rate of isotropic rotational diffusion:
+either by specifying <code>tcorr</code>, the rotational correlation time in seconds
+</p>
+
+<pre class="matlab">
+Sys.tcorr = 1e-7;   % 10^-7 s = 100 ns
+</pre>
+
+<p>
+or by giving its base-10 logarithm
+</p>
+
+<pre class="matlab">
+Sys.logtcorr = -7;   % 10^-7 s = 100 ns
+</pre>
+
+<p>
+or by specifying the principal value of the rotational diffusion tensor (in s<sup>-1</sup>)
+</p>
+
+<pre class="matlab">
+Sys.Diff = 1e9;  % 1e9 s^-1 = 1 ns^-1
+</pre>
+
+<p>
+or by giving its base-10 logarithm
+</p>
+
+<pre class="matlab">
+Sys.logDiff = 9;   % 1e9 s^-1 = 1 ns^-1
+</pre>
+
+<p>	
+<code>Diff</code> and <code>tcorr</code> are related by
+
+<pre class="matlab">
+Diff = 1/6/tcorr;
+</pre>
+
+<p>	
+The input field <code>Diff</code> can be used to specify an axial rotational diffusion
+tensor, by giving a 2-element vector with first the perpendicular and the the parallel
+principal value:
+
+<pre class="matlab">
+Sys.Diff = [1 2]*1e8;  % in hertz
+</pre>
+
+<p>
+For a jump model (<code>Par.Model='jump'</code>), the field <code>TransRates</code> can be used to specify the transition rate matrix (for two states in this case):
+</p>
+
+<pre class="matlab">
+Sys.TransRates = [-0.5,  0.2;
+                   0.5, -0.2]*1e8;  % in hertz
+</pre>
+
+<p>
+Alternatively, the transition probability matrix <code>TransProb</code> can be given for a stochastic jump model:
+</p>
+
+<pre class="matlab">
+Sys.TransRates = [0.3, 0.36;
+                  0.7, 0.64];
+</pre>
+
+<p>
+Note that <code>Orientations</code>, a set of Euler angles whose size is equal to the number of states (number of rows or columns in either of the above matrices), must also be given for a jump model:
+</p>
+
+<pre class="matlab">
+Sys.Orientations = [   0,    0, 0;
+                    pi/4, pi/2, 0];
+</pre>
+
+<p>
+The <code>lw</code> field has the same meaning 
+As for the other simulation functions
+<a class="esf" href="garlic.html">garlic</a> and
+<a class="esf" href="pepper.html">pepper</a>,
+the field <code>Sys.lw</code> can be used to specify
+a Gaussian and a Lorentzian broadening (FWHM, in mT)
+</p>
+
+<pre class="matlab">
+Sys.lw = [0.05 0.01];   % [GaussianFWHM, LorentzianFWHM] in mT
+</pre>
+
+<p>
+For the reliability of the simulation algorithm we recommend to always use a small residual Lorentzian line width in <code>Sys.lw</code>
+</p>
+
+<!--
+<code>cardamom</code> is also capable of simulating spectra including Heisenberg spin exchange. The effective exchange frequency (in MHz) is specified in <code>Sys.Exchange</code>, e.g.
+
+<pre class="matlab">
+Sys.Exchange = 100;     % 100 MHz
+</pre>
+
+<p>
+A short example of a nitroxide radical EPR spectrum with exchange narrowing is
+</p>
+
+<pre class="matlab">
+Nx = struct('g',[2.0088, 2.0061, 2.0027],'Nucs','14N','A',[16 16 86]);
+Nx.tcorr = 1e-7; Nx.lw = [0 0.1]; Nx.Exchange = 100;
+Exp = struct('mwFreq',9.5,'CenterSweep',[338, 10]);
+cardamom(Nx,Exp);
+</pre>
+-->
+
+
+<!-- ============================================================= -->
+<div class="subtitle"><a name="potential">The orientational potential</a></div>
+
+<p>
+<code>cardamom</code> can also include an orientational potential in the simulation.
+It is specified in the field <code>Potential</code> in the spin system structure.
+A Wigner D-function expansion can be used to specify the orientational potential by giving the L, M, and K values in the first three columns and the coefficient in the fourth column. Each term in the expansion then corresponds to each row in the matrix. For example:
+</p>
+
+<pre class="matlab">
+Nx.Potential = [2, 0, 0,  0.3;
+                2, 0, 2, -0.2];
+</pre>
+
+<p>
+indicates &lambda;<sup>2</sup><sub>0,0</sub> = 0.3 in the first row and  &lambda;<sup>2</sup><sub>0,2</sub> = -0.2 in the second row.
+</p>
+
+<p>
+Note that an orientational potential can only be used for a stochastic rotational diffusion model, not a jump model.
+</p>
+
+<!-- ============================================================= -->
+<div class="subtitle"><a name="expparams">Basic experimental settings</a></div>
+
+<p>
+The second input argument, <code>Exp</code>, collects all experimental settings. Just as the spin system, <code>Exp</code> is a structure containing several fields.
+</p>
+
+<p>
+<span class="param">Microwave frequency</span>. To simulate an EPR spectrum, EasySpin needs at a minimum the spectrometer frequency. Put it into <code>Exp.mwFreq</code>, in units of GHz. 
+</p>
+
+<pre class="matlab">
+Exp.mwFreq = 9.385;  % X-band
+Exp.mwFreq = 34.9;   % Q-band
+</pre>
+
+<p>
+<span class="param">Field range</span>. There are two ways to enter the magnetic field sweep range. Either give the center field and the sweep width (in mT) in <code>Exp.CenterSweep</code>, or specify the lower and upper limit of the sweep range (again in mT) in <code>Exp.Range</code>.
+</p>
+
+<pre class="matlab">
+Exp.CenterSweep = [340 80]; % in mT
+Exp.Range = [300 380];      % in mT
+</pre>
+
+<p>
+On many cw EPR spectrometers, the field range is specified using center field and sweep width, so <code>Exp.CenterSweep</code> is often the more natural choice.
+</p>
+
+<p>
+<code>Exp.CenterSweep</code> and <code>Exp.Range</code> are only optional. If both are omitted, EasySpin tries to determine a field range large enough to accomodate the full spectrum. This automatic ranging works for most common systems, but fails in some complicated situations. EasySpin will issue an error when it fails.
+</p>
+
+<p>
+<span class="param">Points</span>. By default, <code>cardamom</code> computes a 1024-point spectrum. However, you can change the number of points to a different value using
+</p>
+
+<pre class="matlab">
+Exp.nPoints = 5001;
+</pre>
+
+<p>
+You can set any value, unlike some EPR spectrometers, where often only powers of 2 are available (1024, 2048, 4096, 8192).
+</p>
+
+<!--
+<p>
+<span class="param">Harmonic</span>. By default, EasySpin computes the first-harmonic absorption spectrum, i.e. the first derivative of the absorption spectrum. By changing <code>Exp.Harmonic</code>, you can request the absorption spectrum directly or the second-harmonic (second derivative) of it.
+</p>
+
+<pre class="matlab">
+Exp.Harmonic = 0; % absorption spectrum, direct detection
+Exp.Harmonic = 1; % first harmonic (default)
+Exp.Harmonic = 2; % second harmonic
+</pre>
+
+<p>
+<span class="param">Modulation amplitude</span>. If you want to include effects of field modulation like overmodulation, use <code>Exp.ModAmp</code>
+</p>
+
+<pre class="matlab">
+Exp.ModAmp = 0.2; % 0.2 mT (2 G) modulation amplitude, peak-to-peak
+</pre>
+
+<p>
+<span class="param">Time constant</span>. To include the effect of the time constant, apply the
+function <a href="rcfilt.html">rcfilt</a> to the simulated spectrum.
+</p>
+-->
+
+<!-- ============================================================= -->
+
+<!--
+<div class="subtitle"><a name="moreexpparams">More experimental settings</a></div>
+
+<p>
+For more advanced spectral simulations, EasySpin offers more possibilities in the experimental parameter structure <code>Exp</code>.
+</p>
+
+<p>
+<span class="param">Mode</span>. Most cw EPR resonators operate in <em>perpendicular</em> mode, i.e., the oscillating magnetic field component of the microwave in the resonator is perpendicular to the static field. Some resonators can operate in <em>parallel</em> mode, where the microwave field is parallel to the static one. EasySpin can simulate both types of spectra:
+</p>
+
+<pre class="matlab">
+Exp.Mode = 'perpendicular'; % perpendicular mode (default)
+Exp.Mode = 'parallel';      % parallel mode
+</pre>
+
+<p>
+<span class="param">Temperature</span>. The polarizing effects of low sample temperatures can also be included in the
+simulation by specifying the temperature:
+</p>
+
+<pre class="matlab">
+Exp.Temperature = 4.2; % temperature in kelvin
+</pre>
+
+<p>
+With this setting, EasySpin will include the relevant polarization factors resulting from a thermal equilibrium population of the energy levels. For S=1/2 systems, it is not necessary to include the temperature. However, it is important in high-spin systems with large zero-field splittings, and in coupled spin systems with exchange couplings.
+</p>
+
+<p>
+<span class="param">Microwave phase</span>. Occasionally, the EPR absorption signal has a small admixture of the dispersion signal. This happens for example when the microwave phase in the reference arm is not absolutely correctly adjusted. EasySpin can mix dispersion with absorption if a Lorentzian broadening is given:
+
+<pre class="matlab">
+Sys.lwpp = [0.2 0.01];           % Lorentzian broadening (2nd number) required
+
+Exp.mwPhase = 0;                 % pure absorption
+Exp.mwPhase = pi/2;              % pure dispersion
+Exp.mwPhase = 3*pi/180;          % 3 degrees dispersion admixed to absorption
+</pre>
+-->
+
+<!-- ============================================================= -->
+<div class="subtitle"><a name="simparams">Time axis and grid parameters</a></div>
+
+<p>
+Save for the jump model, which requires a simulation time step <code>Par.dt</code> to be declared, <code>cardamom</code> will try to determine the best parameters to simulate a cw EPR spectrum. However, depending on the desired model, sometimes it is necessary tell <code>cardamom</code> specify how the time axis and orientational grids should be handled.
+</p>
+
+<!-- ============================================================= -->
+<div class="subtitle"><a name="momd">Powder vs single orientation vs global diffusion</a></div>
+
+<p>
+In a frozen solution of spin-labeled protein, the protein  molecules assume all possible orientations. For slow-motion spectra, the situation is more complex. 
+The spin label will undergo "local" rotational diffusion, which may or may not be under the influece of an orientational potential. 
+The protein itself, depending on its size and environment, might also be undergoing "global" rotational diffusion, which would couple to the local diffusion of the spin label. Otherwise, the protein might be "fixed" on the timescale of a cw EPR measurement.
+For the latter case, if the spin label is under the influence of an orientational potential, the distribution of protein orientations must be taken into account.
+If there is no potential, then it is sufficient to compute only one orientation, as the spectra from all orientations are identical.
+</p>
+
+<p>
+The summation of slow-motion spectra over all possible orientations of an immobile protein ("director") is historically called the <em>MOMD</em> (microscopic order macroscopic disorder) model. This is equivalent to a powder spectrum. In <code>cardamom</code>, the powder spectrum is simulated whenever you specify an orientational potential. To get a single-crystal spectrum, i.e. the slow-motion spectrum for the nitroxide attached to a rigid protein with a single orientation, give the crystal orientation in <code>Par.Orients</code>. <code>Par.Orients</code> contains the Euler tilt angles (in radians), betwen the lab frame (which is lab-fixed) and the frame of the orienting potential (which is fixed to the protein).
+</p>
+
+<p>
+When <code>cardamom</code> performs a powder simulation, it takes the number of orientations to include from <code>Par.nOrients</code>. Often, <code>Par.nOrients</code> does not have to be changed from its default setting, but if the spectrum does not appear to be smooth, <code>Par.nOrients</code> can be increased. Of course, this also increases the simulation time. For quick simulations, <code>Par.nOrients</code> should be minimized.
+</p>
+
+<!-- ============================================================= -->
+<div class="subtitle"><a name="simoptions">Simulation options</a></div>
+
+<p>
+The third input structure, <code>Opt</code>, collects parameters related to the simulation algorithm.
+</p>
+
+<p>
+The field <code>Verbosity</code> specifies whether <code>cardamom</code> should print information about its computation into the MATLAB command window.
+By default, its value is set to 0, so that <code>cardamom</code> is silent. It can be switched on by giving
+</p>
+
+<pre class="matlab">
+Opt.Verbosity = 1;     % print information
+</pre>
+
+<!-- ============================================================= -->
+<div class="subtitle"><a name="moleculardynamics">MD settings</a></div>
+
+<p>
+Since <code>cardamom</code> simulates cw EPR spectra based on time-domain information, molecular dynamics (MD) trajectories of spin-labeled proteins can also be used to simulate spectra. To use this feature, the MD simulation output first must be processed to extract the information that <code>cardamom</code> needs to perform the simulation.
+</p>
+
+<p>
+EasySpin can interface with MD simulation output using the function <code>mdload</code>. 
+To do this, <code>mdload</code> needs to know about the trajectory output files using <code>TrajFile</code> and the  relevant atomic information using <code>AtomInfo</code>. The output is then stored in the structure variable <code>MD</code>:
+</p>
+
+<pre class="matlab">
+MD = mdload(TrajFile, AtomInfo);
+</pre>
+
+<p>
+<code>TrajFile</code> can be a single trajectory output file or a list of files. <code>AtomInfo</code> tells <code>mdload</code> how to look for spin label and protein information in <code>TrajFile</code>. For more details on how to do this, please see the technical documentation <a class="esf" href="mdload.html">mdload</a>.
+</p>
+
+Once the MD simulation information is successfully loaded into <code>MD</code> using <code>mdload</code>, a cw EPR spectrum can be simulated by declaring the <code>Model</code> as <code>'MD'</code> and supplying the structure variable <code>MD</code> to <code>cardamom</code> using the fifth input argument:
+
+<pre class="matlab">
+Par.Model = 'MD';
+[Field,Spec] = cardamom(Sys,Exp,Par,Opt,MD);
+</pre>
+
+<p>
+By default, <code>cardamom</code> uses the orientations directly from the MD simulation trajectories to simulate the spectrum. For other trajectory usage options, see the technical documentation page for <a class="esf" href="cardamom.html">cardamom</a>.
+</p>
+
+<p>
+Note that EasySpin currently supports only NAMD and CHARMM formats (.PSF for topology files and .dcd for trajectory files). Please let the developers know if there is another file format that you would like to be supported.
+</p>
+
+
+<hr>
+
+</section>
+
+<footer></footer>
+
+</body>
+</html>
