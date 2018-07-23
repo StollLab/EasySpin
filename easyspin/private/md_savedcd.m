@@ -108,7 +108,7 @@ if header.nset ~= size(trj, 1)
   header.nset = size(trj, 1);
 end
 
-if exist('box', 'var') && ~isempty(box)
+if exist('box_', 'var') && ~isempty(box_)
   % charmm format
   header.is_charmm = true;
   header.is_charmm_extrablock = true;
@@ -255,7 +255,7 @@ if isempty(idx)
 end
 
 Traj.xyz = zeros(nFrames, numel(idx)*3);
-box = zeros(nFrames, 3);
+box_ = zeros(nFrames, 3);
 
 % read next frames
 for iFrame = 1:nFrames
@@ -289,7 +289,7 @@ for iFrame = 1:nFrames
 %   end
 
 %   if header.CHARMMextrablock
-%     box(iFrame, :) = dummy([1 3 6])';
+%     box_(iFrame, :) = dummy([1 3 6])';
 %   end
   Traj.xyz(iFrame, 1:3:end) = x(idx)';
   Traj.xyz(iFrame, 2:3:end) = y(idx)';
