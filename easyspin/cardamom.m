@@ -172,14 +172,6 @@
 %                    Diffusion coefficient for isotropic global rotational
 %                    diffusion (s^-1)
 %
-%     TrajType       string
-%                    Raw: raw MD trajectory data, including spin label, 
-%                      protein, solvent, etc.
-%                    Label: numeric array, trajectory of spin label atoms 
-%                      only
-%                    Frame: numeric array, trajectory of spin label 
-%                      reference frame only
-%
 %     TrajUsage      string (optional)
 %                    Explicit: (default) use molecular orientations in
 %                      trajectories directly as input for simulating the
@@ -642,7 +634,7 @@ if useMD
       % Par.nSteps not changed from user input
       Par.nTraj = floor((Par.nBlocks-Par.nSteps)/Par.lag) + 1;
     else
-      Par.nSteps = nBlocks;
+      Par.nSteps = Par.nBlocks;
       Par.nTraj = 1;
     end
   end
@@ -937,7 +929,7 @@ while ~converged
     
     % Combine global trajectories with starting orientations
     qLab = repmat(euler2quat(0, gridTheta(iOrient), gridPhi(iOrient)),...
-      [1,Par.nTraj,nStepsQuant]);
+                  [1,Par.nTraj,nStepsQuant]);
     if includeGlobalDynamics
       qLab = quatmult(qLab,qTrajGlobal);
     end
