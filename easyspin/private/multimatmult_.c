@@ -1,8 +1,8 @@
 /*
-// =======================
-// Code adapted from mmx package on File Exchange
-// http://www.mathworks.com/matlabcentral/fileexchange/37515-mmx-multithreaded-matrix-operations-on-n-d-matrices
-// =======================
+=======================
+Code adapted from mmx package on File Exchange
+www.mathworks.com/matlabcentral/fileexchange/37515-mmx-multithreaded-matrix-operations-on-n-d-matrices
+=======================
 */
 
 #include "mex.h"
@@ -11,17 +11,17 @@
 #include <math.h>
 
 /*
-// ================
-// global variables
-// ================
+================
+global variables
+================
 */
 double *A, *B, *C;
 int rA, cA, rB ,cB, rC, cC, strideA, strideB, strideC;
 
 /*
-// ==================================================
-// straightforward implementations of matrix multiply
-// ==================================================
+==================================================
+straightforward implementations of matrix multiply
+==================================================
 */
 void mulMatMat(double *A, const int rA, const int cA, 
                double *B, const int rB, const int cB,
@@ -42,9 +42,9 @@ void mulMatMat(double *A, const int rA, const int cA,
 }
 
 /*
-// =============
-// mexFunction()
-// =============
+=============
+mexFunction()
+=============
 */
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
@@ -54,9 +54,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   int i, j, k, N;
 
   /*
-  // ==============
-  // process inputs
-  // ==============
+  ==============
+  process inputs
+  ==============
   */
 
   if( nrhs != 2 ) {
@@ -64,14 +64,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
 
   /*
-  // type check
+  type check
   */
   if ( (!mxIsDouble(prhs[0])) || (!mxIsDouble(prhs[1])) ) {
     mexErrMsgTxt("Only inputs of type 'double' are supported.");
   }
 
   /*
-  // get rA, cA, rB, cB
+  get rA, cA, rB, cB
   */
   A     = mxGetPr(prhs[0]);
   Andim = mxGetNumberOfDimensions(prhs[0]);
@@ -87,12 +87,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
 
   /*
-  // ================
-  // dimension checks
-  // ================
+  ================
+  dimension checks
+  ================
   */
   
-  if ( (Andim != Bndim) ) {  /* //|| (Andim != 3) ) { */
+  if ( (Andim != Bndim) ) {  /* || (Andim != 3) ) { */
     mexErrMsgTxt("Inputs should have the same number of dimensions.");
   }
 /*  
@@ -103,9 +103,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
 */
   /*
-  // ===============
-  // process outputs
-  // =============== 
+  ===============
+  process outputs
+  =============== 
   */
 
 
@@ -114,7 +114,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   Cdims    = (mwSize *) mxMalloc( Cndim * sizeof(mwSize) );
 
   /*
-  // set Cdims[0,1]
+  set Cdims[0,1]
   */
   rC = rA;
   cC = cB;
@@ -127,14 +127,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
 
   /*
-  // stride sizes
+  stride sizes
   */
   strideA    = rA*cA;
   strideB    = rB*cB;
   strideC    = rC*cC;
 
   /*
-  // N is the total number of matrix operations
+  N is the total number of matrix operations
   */
   N  = 1;
   for( i=2; i<Cndim; i++ ) {
@@ -142,7 +142,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
 
   /*
-  // allocate C
+  allocate C
   */
   plhs[0] = mxCreateNumericArray(Cndim, Cdims, mxDOUBLE_CLASS, mxREAL);
   nlhs    = 1;
@@ -150,12 +150,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   for( i=0; i<N; i++ ){
     /*
-    // pointers to scheduled data
+    pointers to scheduled data
     */
     Ai = A + strideA*i;
     Bi = B + strideB*i;
     /*
-    // excecute the task
+    excecute the task
     */
     mulMatMat(Ai, rA, cA, Bi, rB, cB, C + strideC*i);
   }
