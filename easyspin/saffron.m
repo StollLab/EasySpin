@@ -181,8 +181,12 @@ else
   nDataPoints = 1;
 end
 
-if strcmp(Opt.SimulationMode,'thyme') && isfield(Exp,'nPoints') && length(Exp.nPoints) > 1 && ~nargout
-  error('Not enough output arguments for more than one indirect dimensions. The data can not be generally plotted.')
+if strcmp(Opt.SimulationMode,'thyme')  && ~nargout && isfield(Exp,'nPoints')
+  if Opt.SinglePointDetection  && length(Exp.nPoints) > 2
+    error('Not enough output arguments for more than two indirect dimensions with single point detections. The data can not be generally plotted.')
+  elseif ~Opt.SinglePointDetection  && length(Exp.nPoints) > 1
+    error('Not enough output arguments for more than one indirect dimensions with transient detections. The data can not be generally plotted.')
+  end
 end
 
 if strcmp(Opt.SimulationMode,'fast')
@@ -2080,6 +2084,10 @@ else
   if ~isfield(Exp,'nPoints')
     x = []; % one datapoint
     logmsg(1,'  no indirect dimensions');
+    if ~Opt.SinglePointDetection
+      % make first dimension the transient
+      Signal = Signal';
+    end
   else
     logmsg(1,'  setting up %d axes for indirect dimensions',nDims);
     
@@ -2124,42 +2132,7 @@ else
       logmsg(1,'-no output requested------------------------------------');
       logmsg(1,'  switching to graphical output');
       % plotting
-      if nDims == 1
-        clf
-        title('Detected Signal')
-        
-        if ~Opt.SinglePointDetection
-          if size(Signal,1) == 1
-            plot(TimeAxis',real(Signal)')
-            ylabel('Signal (arb. u.)')
-          else
-            surf(x{2},x{1}(1,:),real(Signal));
-            shading flat
-            if length(Exp.Dim1{1,2}) == 1
-              % x-axis and its label in case of linear increments
-              ylabel(['\Delta' Exp.Dim1{1,1}])
-            else
-              % x-axis and its label in case of user provided increments
-              ylabel(['Data Points ' Exp.Dim1{1,1}])
-            end
-            zlabel('Signal (arb. u.)')
-          end
-          xlabel('Transient (\mus)')
-          axis tight
-        else
-          plot(x(1,:),real(Signal));
-          ylabel('Signal (arb. u.)')
-          if length(Exp.Dim1{1,2}) == 1
-            % x-axis and its label in case of linear increments
-            xlabel(['\Delta' Exp.Dim1{1,1}])
-          else
-            % x-axis and its label in case of user provided increments
-            xlabel(['Data Points ' Exp.Dim1{1,1}])
-          end
-        end
-      else
-        disp('Can not plot two or more indirect dimensions in combination with transient detection.')
-      end
+      s_plotting(TimeAxis,Signal,Exp,Opt);
     case 1
       varargout{1} = Signal;
     case 2

@@ -174,7 +174,7 @@ end
 
 if ~strcmp(OrigSimulationMode,Opt.SimulationMode)
   message = ['Your experiment definition does not allow for the fast simulation mode. The simulation mode has been changed to ''thyme''.' '\n' 'The reason for this was: ' message];
-  message = [message '\n' 'If you are aware of this and want to supress this message, consider using Opt.SimulationMode = ''thyme''.'];
+  message = [message '\n' 'If you are aware of this and want to supress this message, consider using Opt.SimulationMode = ''thyme''. \n'];
   fprintf(message);
 end
 
@@ -298,7 +298,7 @@ if isfield(Exp,'DetWindow')
   else
     Exp.Sequence{end} = Exp.Sequence{end} + Exp.DetWindow(1);
   end
-  if length(Exp.DetWindow) == 1
+  if length(Exp.DetWindow) == 1 || Exp.DetWindow(1) == Exp.DetWindow(2)
     % single point detection
     Opt.SinglePointDetection = true;
     Exp.Sequence{end+1} = 0;
