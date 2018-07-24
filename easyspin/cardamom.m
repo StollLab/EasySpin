@@ -878,12 +878,17 @@ while ~converged
       case 'stochastic'
         
         Sys.Diff = Dynamics.Diff;
-        if isLocalPotential
-          Sys.Potential = LocalPotential;
-        end
         Par.dt = dtStoch;
         Par.nSteps = nStepsStoch;
+        if isLocalPotential
+          Sys.Potential = LocalPotential;
+          Par.nSteps = 2*nStepsStoch;
+        end
         [~, RTrajLocal, qTrajLocal] = stochtraj_diffusion(Sys,Par,Opt);
+        if isLocalPotential
+          RTrajLocal = RTrajLocal(:,:,:,nStepsStoch+1:end);
+          qTrajLocal = qTrajLocal(:,:,nStepsStoch+1:end);
+        end
         
       case 'jump'
         
