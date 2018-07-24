@@ -802,6 +802,7 @@ end
 % Generate grids for powder averaging in the lab frame
 % -------------------------------------------------------------------------
 
+% default number of orientations
 if isfield(Par,'nOrients')
   nOrients = Par.nOrients;
 else
@@ -809,18 +810,33 @@ else
   logmsg(0,'-- Par.nOrients not specified. Using %d orientations.', nOrients);
 end
 
-if specCon
-  nOrients = ceil(nOrients/2);
-  skip = 0;
-  gridPts = 2*cardamom_sobol_generate(1,nOrients,skip)-1;
-  gridPhi = sqrt(pi*nOrients)*asin(gridPts);
-  gridTheta = acos(gridPts);
+Orients = [];
+if isfield(Par,'Orients')
+  Orients = Par.Orients;
+  if isvector(Orients)
+    % assure that Orients is a column vector
+    Orients = Orients(:);
+    if nOrients>1
+      % if only one orientation, then repeat it nOrients times
+      Orients = repmat(Orients,[1,nOrients]);
+    end
+  end
+end
+
+% assign lab orientations for powder averaging
+if ~isempty(Orients)
+  gridPhi = Orients(1,:);
+  gridTheta = Orients(2,:);
 else
-  if isfield(Par,'Orients')
-    Orients = Par.Orients;
-    gridPhi = Orients(1,:);
-    gridTheta = Orients(2,:);
+  if specCon
+    % generate Sobol sequence over a spiral grid
+    nOrients = ceil(nOrients/2);
+    skip = 0;
+    gridPts = 2*cardamom_sobol_generate(1,nOrients,skip)-1;
+    gridPhi = sqrt(pi*nOrients)*asin(gridPts);
+    gridTheta = acos(gridPts);
   else
+    % generate a spiral grid
     gridPts = linspace(-1,1,nOrients);
     gridPhi = sqrt(pi*nOrients)*asin(gridPts);
     gridTheta = acos(gridPts);
@@ -1021,15 +1037,15 @@ while ~converged
   if specCon
     if iter==1
       spcLast = spcNew;
-      rmsdNew = 1;
+      rmsdNew = NaN;
     else
       span = max(spcNew)-min(spcNew);
-      rmsdNew = sqrt(mean((spcNew-spcLast).^2))/span
-      if rmsdNew<5e-4
+      rmsdNew = sqrt(mean((spcNew-spcLast).^2))/span;
+      if rmsdNew<2e-2
         converged = 1;
-      else
+      elseif iter>2
         rmsdPctChange = abs(100*(rmsdNew-rmsdLast)/rmsdLast)
-        converged = rmsdPctChange<10;
+        converged = rmsdPctChange<50;
       end
     end
 
@@ -1049,9 +1065,14 @@ while ~converged
     skip = iter*nOrientsTot;  % seed Sobol sequence generator for next iteration
     
     nOrients = nOrientsTot;
-    gridPts = 2*cardamom_sobol_generate(1,nOrients,skip)-1;
-    gridPhi = sqrt(pi*nOrients)*asin(gridPts);
-    gridTheta = acos(gridPts);
+    if ~isempty(Orients)
+      gridPhi = repmat(Orients(1,:),[1,2^(iter-1)]);
+      gridTheta = repmat(Orients(2,:),[1,2^(iter-1)]);
+    else
+      gridPts = 2*cardamom_sobol_generate(1,nOrients,skip)-1;
+      gridPhi = sqrt(pi*nOrients)*asin(gridPts);
+      gridTheta = acos(gridPts);
+    end
     iter = iter + 1;
   else
     spcAvg = spcNew;
