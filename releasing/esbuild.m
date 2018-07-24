@@ -37,12 +37,10 @@ end
 
 %error('Must include perl script that replaces $ReleaseID$ and $ReleaseDate$ globally.');
 
-[Y,M,D,H,MI,S] = datevec(now);
-ReleaseDate = sprintf('%04d-%02d-%02d',Y,M,D);
-BuildTimeStamp = sprintf('%04d%02d%02d-%02d%02d%02d',Y,M,D,H,MI,round(S));
-% Matlab 6.5 equivalent for
-%BuildTimeStamp = datestr(now,'yymmddHHMMSS');
+[Y,M,D] = datevec(now);
+BuildTimeStamp = datestr(now,'yyyymmdd-HHMMSS');
 BuildID = sprintf('%s+%s',ReleaseID,BuildTimeStamp);
+ReleaseDate = sprintf('%04d-%02d-%02d',Y,M,D);
 
 fprintf('Building EasySpin %s.\n',BuildID);
 
@@ -61,13 +59,13 @@ fprintf('Creating build folder...');
 
 BuildFolder = [tempdir 'easyspin-' ReleaseID];
 
-if exist(BuildFolder,'dir');
+if exist(BuildFolder,'dir')
   ok = rmdir(BuildFolder);
   if (~ok)
     error('Could not remove old build folder %s.',BuildFolder);
   end
 end
-if exist(BuildFolder,'file');
+if exist(BuildFolder,'file')
   delete(BuildFolder);
 end
 
@@ -92,21 +90,25 @@ TbxPcodeDir = [BuildFolder filesep 'easyspinpcode'];
 disp('Toolbox');
 TbxSrcDir = [SourceDir filesep 'easyspin'];
 
-% Asserting that c files do not contain // comments (which are not
-% supported by all C compilers.)
-fprintf('  Checking *.c files for absence of // comments...');
-cfiles = dir([TbxSrcDir filesep 'private' filesep '*.c']);
-for k=1:numel(cfiles)
-  Lines = textread([TbxSrcDir filesep 'private' filesep cfiles(k).name],'%s','whitespace','\n');
-  f = [];
-  for q=1:numel(Lines)
-    f = [f strfind(Lines{q},'//')];
+% Assert that .c files do not contain // comments (which are not
+% supported by strict ANSI-C compilers, but are supported by the C99
+% standard .)
+enforceANSICcomments = false;
+if enforceANSICcomments
+  fprintf('  Checking *.c files for absence of // comments...');
+  cfiles = dir([TbxSrcDir filesep 'private' filesep '*.c']);
+  for k=1:numel(cfiles)
+    Lines = textread([TbxSrcDir filesep 'private' filesep cfiles(k).name],'%s','whitespace','\n');
+    f = [];
+    for q=1:numel(Lines)
+      f = [f strfind(Lines{q},'//')];
+    end
+    if ~isempty(f)
+      error('Found // comment in file %s',cfiles(k).name);
+    end
   end
-  if ~isempty(f)
-    error('Found // comment in file %s',cfiles(k).name);
-  end
+  fprintf(' ok\n');
 end
-fprintf(' ok\n');
 
 fprintf('  Generating toolbox folder...');
 mkdir(BuildFolder,'easyspin');
