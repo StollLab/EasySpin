@@ -16,7 +16,7 @@
 %
 %
 %   Output:
-%     D              complex
+%     Del            complex
 %                    Wigner D-matrix element
 
 %   References
@@ -24,7 +24,7 @@
 %   [1] Hanson, A. J., Ch. 27.2.1, Visualizing Quaternions (2006)
 
 
-function D = stochtraj_wignerdquat(L, M, K, q)
+function Del = stochtraj_wignerdquat(L, M, K, q)
 % Calculate the D-matrix using a quaternion polynomial, see Eq. 27.9 in
 % reference, where M=m' and K=m
 
@@ -52,11 +52,11 @@ if ~isnumeric(q) || size(q,1)~=4
   error('q must be an array of size (4,...) array.')
 end
 
-% Adjust to match output of wignerd
-switch ndims(q)
-  case 2, q(1,:) = -q(1,:);
-  case 3, q(1,:,:) = -q(1,:,:);
-end
+% % Adjust to match output of wignerd
+% switch ndims(q)
+%   case 2, q(1,:) = -q(1,:);
+%   case 3, q(1,:,:) = -q(1,:,:);
+% end
 
 
 % Setup
@@ -87,7 +87,7 @@ Q = [    q(1,:) -  1i*q(4,:); ...
 Q = repmat(Q, [1,1,numel(cache.s)]);
 
 % Calculate
-D = cache.prefactor*sum(...
+Del = cache.prefactor*sum(...
                         prod(...
                              bsxfun(@rdivide,...
                                     bsxfun(@power,...

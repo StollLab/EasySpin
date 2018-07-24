@@ -14,22 +14,8 @@ nSteps = Par.nSteps;
 
 nBins = 50;
 
-N = 100;
-alphaGrid = linspace(0, 2*pi, N);
-betaGrid = linspace(0, pi, N);
-gammaGrid = linspace(0, 2*pi, N);
-
-[AlphaGrid,BetaGrid,GammaGrid] = ndgrid(alphaGrid,betaGrid,gammaGrid);
-
 c20 = 3;
-LMK = [2,0,0];
-Yfun = real(wignerd(LMK,AlphaGrid,BetaGrid,GammaGrid));
-U = -c20*Yfun;
-
-Sys.Potential = U;
-
-% c20 = 3;
-% Sys.Potential = [2, 0, 0, c20];
+Sys.Potential = [2, 0, 0, c20];
 [~, RTraj, qTraj] = stochtraj_diffusion(Sys,Par,Opt);
 
 VecTraj = squeeze(RTraj(:, 3, :, :));
@@ -40,9 +26,8 @@ ThetaHist = zeros(nBins, nTraj);
 N = round(nSteps/2);
 
 for iTraj = 1:nTraj
-  [alpha,beta,gamma] = quat2euler(qTraj(:,iTraj,N:end));
+  [alpha,beta,gamma] = quat2euler(qTraj(:,iTraj,N:end),'active');
   ThetaHist(:,iTraj) = hist(squeeze(beta), bins);
-%   ThetaHist(:, iTraj) = hist(squeeze(acos(VecTraj(3,iTraj,N:end))), bins);
 end
 
 ThetaHist = mean(ThetaHist, 2);
@@ -58,7 +43,7 @@ rmsd = sqrt(mean(residuals.^2));
 
 if rmsd > 1e-2
   err = 1;
-  plot(bins, ThetaHist, bins, BoltzDist)
+  plot(bins, ThetaHist, 'r', bins, BoltzDist, 'k')
 else  
   err = 0;
 end

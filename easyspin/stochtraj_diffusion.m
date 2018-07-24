@@ -319,14 +319,13 @@ if isempty(OriStart)
         if M==0 && K==0
           Yfun = real(wignerd([L,M,K],AlphaGrid,BetaGrid,GammaGrid));
         else
-          Yfun =   wignerd([L,M,K],AlphaGrid,BetaGrid,GammaGrid) ...
-                 + wignerd([L,-M,-K],AlphaGrid,BetaGrid,GammaGrid);
+          Yfun =   2*real(wignerd([L,M,K],AlphaGrid,BetaGrid,GammaGrid));
         end
         
         U = U + -lambda*Yfun;
       end
       
-      [aSamples, bSamples, gSamples] = cardamom_rejectionsample3d(exp(-U).*sin(betaGrid), alphaGrid, betaGrid, gammaGrid, Par.nTraj);
+      [aSamples, bSamples, gSamples] = cardamom_rejectionsample3d(exp(-U), alphaGrid, betaGrid, gammaGrid, Par.nTraj);
       OriStart = [aSamples; 
                   bSamples; 
                   gSamples];
@@ -348,7 +347,7 @@ if isvector(OriStart), OriStart = OriStart(:); end
 if size(OriStart,2)==1 && Sim.nTraj>1
   OriStart = repmat(OriStart,1,Sim.nTraj);
 end  
-  
+
 if size(OriStart,2)~=Sim.nTraj
   error('Number of starting orientations must be equal to Par.nTraj.')
 end
