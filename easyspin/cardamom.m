@@ -488,6 +488,34 @@ if ~isempty(Par.Model)
   end
 end
 
+% Check Exp
+% -------------------------------------------------------------------------
+
+[Exp,FieldSweep,CenterField,CenterFreq,Sweep] = validate_exp('cardamom',Sys,Exp);
+
+% if ~FieldSweep
+%   error('cardamom does not support frequency sweeps.');  % TODO expand usage to include frequency sweep
+% end
+
+if FieldSweep
+  omega0 = 2*pi*Exp.mwFreq*1e9;  % GHz -> rad s^-1
+else
+  omega0 = 2*pi*CenterFreq*1e9;  % MHz -> rad s^-1
+end
+
+if isfield(Exp,'SampleOrientation')
+  SampleOrientation = Exp.SampleOrientation;
+else
+  SampleOrientation = [];
+end
+
+
+% set up horizontal sweep axis
+if FieldSweep
+  xAxis = linspace(Exp.Range(1),Exp.Range(2),Exp.nPoints);  % field axis, mT
+else
+  xAxis = linspace(Exp.mwRange(1),Exp.mwRange(2),Exp.nPoints);  % field axis, GHz
+end
 
 % Check dynamics and ordering
 % -------------------------------------------------------------------------
@@ -500,7 +528,7 @@ else
   isDiffSim = true;
 end
 
-FieldSweep = true;
+% FieldSweep = true;
 Dynamics = validate_dynord('cardamom',Sys,FieldSweep,isDiffSim);
 
 if isDiffSim
@@ -659,27 +687,6 @@ else
 end
 
 LocalDynamicsModel = Par.Model;
-
-% Check Exp
-% -------------------------------------------------------------------------
-
-[Exp,FieldSweep,CenterField,CenterFreq,Sweep] = validate_exp('cardamom',Sys,Exp);
-
-if ~FieldSweep
-  error('cardamom does not support frequency sweeps.');  % TODO expand usage to include frequency sweep
-end
-
-omega = 2*pi*Exp.mwFreq*1e9;  % GHz -> rad s^-1
-
-if isfield(Exp,'SampleOrientation')
-  SampleOrientation = Exp.SampleOrientation;
-else
-  SampleOrientation = [];
-end
-
-
-% set up horizontal sweep axis
-xAxis = linspace(Exp.Range(1),Exp.Range(2),Exp.nPoints);  % field axis, mT
 
 
 % Check Opt
@@ -965,7 +972,7 @@ while ~converged
     Par.nSteps = nStepsQuant;
     Par.Dt = dtQuant;
     Par.dt = dtStoch;
-    Sprho = cardamom_propagatedm(Sys,Par,Opt,MD,omega,CenterField);
+    Sprho = cardamom_propagatedm(Sys,Par,Opt,MD,omega0,CenterField);
     
     % average over trajectories
     if strcmp(Opt.debug.EqProp,'time')
@@ -1102,10 +1109,20 @@ end
 freq = 1/(Par.Dt*M)*(-M/2:M/2-1);  % TODO check for consistency between FieldSweep and FFT window/resolution
 
 % center the spectrum around the isotropic component of the g-tensor
-fftAxis = mhz2mt(freq/1e6+Exp.mwFreq*1e3, mean(Sys.g));  % Note use of g0, not ge
+if FieldSweep
+  fftAxis = mhz2mt(freq/1e6+Exp.mwFreq*1e3, mean(Sys.g));  % MHz -> mT, note use of g0, not ge
+else
+  fftAxis = freq/1e9+mt2mhz(Exp.Field,mean(Sys.g))/1e3;  % GHz
+end
 
 % interpolate over horizontal sweep range
-outspc = interp1(fftAxis, spcAvg, xAxis);
+if FieldSweep
+  outspc = interp1(fftAxis, spcAvg, xAxis);
+else
+  spcAvg = spcAvg(end:-1:1);   % reverse the axis for frequency sweep
+  outspc = interp1(fftAxis, spcAvg, xAxis);
+  outspc = cumtrapz(xAxis(end:-1:1),outspc);  % frequency sweeps outputs the absorption
+end
 
 % average over trajectories for expectation value output
 ExpectVal = mean(ExpectVal, 2);
