@@ -20,16 +20,14 @@ Opt.SimulationMode = 'step wise';
 
 % First Test ---------------------------------------
 
-Opt.ComplexExcitation = [1];
-
 [Events1] = runprivate('s_sequencer',Exp,Opt);
 
-Opt.ComplexExcitation = [1 1 1];
+Exp.mwPolarization = 'circular';
 
 [Events2] = runprivate('s_sequencer',Exp,Opt);
 
 
-if ~isequal(Events1,Events2)
+if isequal(Events1,Events2)
   err = 1;
 else
   err = 0;

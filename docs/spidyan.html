@@ -203,6 +203,18 @@ Exp.PhaseCycle = {[] PC};	% phase cycles the second pulse
 Phace cycling that steps more than one pulse simultaneously is not available through the <code>PhaseCycle</code> structure, but can be achieved through adding an additional indirect dimension to the experiment (see <code>Dim</code>).
 </div>
 
+<div class="optionfield"><code>mwPolarization</code></div>
+<div class="optiondescr">
+Optional, can be <code>'linear'</code> or <code>'circular'</code>, default is <code>'linear'</code>.
+If <code>mwPolarization</code> is <code>'circular'</code>, the excitation operator also uses the imaginary part of the waveform.
+The default excitation then becomes <code>real</code>(<code>IQ</code>) <i>&Scirc;<sub>x</sub></i> + <code>imag</code>(<code>IQ</code>) <i>&Scirc;<sub>y</sub></i>.
+<pre class="matlab">
+Exp.mwPolarization = 'circular';     % mwPolarziation set to circular for all pulses
+</pre>
+<code>mwPolarization</code> can also be used in combination with custom excitation operators (<code>Opt.ExcOperator</code>), if they have a imaginary component.
+Keep in mind, that using <code>'circular'</code> does not allow <code>spidyan</code> to use some of its speed up tricks and can lead to significantly longer simulation times.
+</div>
+
 <p>
 Detection:
 </p>
@@ -255,8 +267,8 @@ Exp.DetWindow = [0 0.100]    % detect an FID after the last pulse
 </div>
 
 <div class="optionfield"><code>DetSequence</code></div>
-<h2 id="detsequence"></h2>
 <div class="optiondescr">
+<h2 id="detsequence"></h2>
 A vector for advanced control of the detection, e.g. detect during pulses.
 Detection can be set for the entire simulation (meaning detection is on for all events, even pulses) or for specific events:
 <pre class="matlab">
@@ -525,19 +537,6 @@ Opt.ExcOperator = {[0 1/2; 1/2 0]};  % custom excitation operator for the first 
 </pre>
 The imaginary part of a custom excitation operator is only considered if <code>ComplexExcitation</code> is active for the respective pulse.
 </div>
-
-<div class="optionfield"><code>ComplexExcitation</code></div>
-<div class="optiondescr">
-If <code>ComplexExcitation</code> is active, the excitation operator also uses the imaginary part of the waveform.
-The default excitation then becomes <code>real</code>(<code>IQ</code>) <i>&Scirc;<sub>x</sub></i> + <code>imag</code>(<code>IQ</code>) <i>&Scirc;<sub>y</sub></i>.
-It can be switched on for all pulses or specific pulses. In the latter the indexing corresponds to the pulse index, not the event index.
-<pre class="matlab">
-Opt.ComplexExcitation = true;     % switches on complex excitation for all pulses
-Opt.ComplexExcitation = [0 1 0];  % complex excitation is active only during the second pulse (not event)
-</pre>
-<code>ComplexExcitation</code> can also be used in combination with custom excitation operators (<code>ExcOperator</code>).
-</div>
-
 
 <div class="subtitle">Output Structure</div>
 

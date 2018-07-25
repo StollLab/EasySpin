@@ -10,11 +10,11 @@ Sys.ZeemanFreq = 9.5;
 
 % Experiment
 Pulse90.Type = 'rectangular';
-Pulse90.tp = 0.05; % mus
+Pulse90.tp = 0.05; % us
 Pulse90.Flip = pi; % rad
 
 Pulse180.Type = 'rectangular';
-Pulse180.tp = 0.05; % mus
+Pulse180.tp = 0.05; % us
 Pulse180.Flip = pi; % rad
   
 % pi - tau - pi/2 - tau
@@ -58,7 +58,7 @@ ylim([-1 1])
 %% Two Dimensional Experiment - Changing the inter pulse delay with a nonlinear increment
 % Increment the first delay by 100 and 250 ns
 Exp.nPoints = 3; 
-Exp.Dim1 = {'d1', [0 0.1 0.25]}; % mus
+Exp.Dim1 = {'d1', [0 0.1 0.25]}; % us
 
 [TimeAxis, Signal] = spidyan(Sys,Exp);
 % Since the length of a detected event is changed, the traces of each

@@ -11,7 +11,7 @@
 
 clear
 
-% Sets up a Gaussian Distribution of spin packets
+%% set up a Gaussian line of spin packets
 CenterFrequency = 9.5; % center frequency of Gaussian distribution, GHz
 GWidth = 0.01;     % width of Gaussian distribution, GHz
 FreqStart = 9.45;  % starting value for sampling
@@ -26,11 +26,11 @@ nSpinpackets = length(ZeemanFreqVec);
 
 % Experiment definition
 Pulse90.Type = 'rectangular';
-Pulse90.tp = 0.025; % pulse length, mus
+Pulse90.tp = 0.025; % pulse length, us
 Pulse90.Flip = pi/2; % flip angle, rad
 
 Pulse180.Type = 'rectangular';
-Pulse180.tp = 0.025; % pulse length, mus
+Pulse180.tp = 0.025; % pulse length, us
 Pulse180.Flip = pi;  % flip angle, rad
 
 Exp.Sequence = {Pulse90 0.25 Pulse90 0.5}; 
@@ -60,11 +60,11 @@ end
 figure(1)
 clf
 plot(t,real(Signal));
-xlabel('t (\mus)')
+xlabel('transient (\mus)')
 axis tight
 
 
-%% Echo with linear chirps
+%% echo with linear chirps
 
 % Experiment definition
 Chirp90.Type = 'quartersin/linear';
@@ -97,6 +97,6 @@ end
 
 figure(2)
 clf
-plot(t*1000,abs(Signal));
-xlabel('t (\mus)')
+plot(t,abs(Signal));
+xlabel('transient (\mus)')
 axis tight

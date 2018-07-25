@@ -28,7 +28,7 @@ Opt.Relaxation = 1;
 
 % Testing Complex excitation
 
-Opt.ComplexExcitation = 1;
+Exp.mwPolarization = 'circular';
 [~, ~, out1] = spidyan(Sys,Exp,Opt);
 
 Exp.DetSequence = [1 1];

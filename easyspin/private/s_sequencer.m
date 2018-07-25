@@ -173,8 +173,7 @@ if ~isfield(Opt,'SimulationMode') || strcmp(Opt.SimulationMode,'fast')
 end
 
 if ~strcmp(OrigSimulationMode,Opt.SimulationMode)
-  message = ['Your experiment definition does not allow for the fast simulation mode. The simulation mode has been changed to ''thyme''.' '\n' 'The reason for this was: ' message];
-  message = [message '\n' 'If you are aware of this and want to supress this message, consider using Opt.SimulationMode = ''thyme''. \n'];
+  message = ['The ''thyme'' simulation mode has to be used.' '\n' 'The reason for this was: ' message '\n'];
   fprintf(message);
 end
 
@@ -521,6 +520,13 @@ end
 nPulses = length(PulseIndices);
 Pulses = cell(1,nPulses);
 iPulse = 1;
+
+if isfield(Exp,'mwPolarization')
+  if ~ischar(Exp.mwPolarization)
+    error('Exp.mwPolarization has to be ''linear'' or ''circular''.')
+  end
+end
+
 % -------------------------------------------------------------------------
 
 % -------------------------------------------------------------------------
@@ -700,12 +706,8 @@ for iEvent = 1 : length(Exp.Sequence)
     % Checks if ComplexExcitation is requested for this Pulse, if not
     % specified Complex Excitation is switched off by default - the
     % excitation operator is being built outside of sequencer
-    if ~isfield(Opt,'ComplexExcitation') || isempty(Opt.ComplexExcitation)
-      Events{iEvent}.ComplexExcitation = false;
-    elseif length(Opt.ComplexExcitation) == 1
-      Events{iEvent}.ComplexExcitation = Opt.ComplexExcitation;
-    elseif iPulse <= length(Opt.ComplexExcitation)
-      Events{iEvent}.ComplexExcitation = Opt.ComplexExcitation(iPulse);
+    if isfield(Exp,'mwPolarization') && ~isempty(Exp.mwPolarization) && strcmp(Exp.mwPolarization,'circular')
+      Events{iEvent}.ComplexExcitation = true;
     else
       Events{iEvent}.ComplexExcitation = false;
     end

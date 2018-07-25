@@ -9,7 +9,7 @@ Sys.ZeemanFreq = 9.500; % resonance frequency of spin in GHz
 
 % eperiment setup
 Pulse.Type = 'rectangular';
-Pulse.tp = 0.001; % mus
+Pulse.tp = 0.001; % us
 Pulse.Amplitude = 30; % MHz
 
 Exp.Sequence = {Pulse}; 

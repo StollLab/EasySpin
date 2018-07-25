@@ -107,7 +107,7 @@ if any(isfield(Sys,ForbiddenSysFields))
   error('Sys.initState and Sys.eqState are specific to spidyan and can not be used with saffron. Please remove them.')
 end
 
-ForbiddenOptFields = {'StateTrajectories','ExcOperator','ComplexExcitation'};
+ForbiddenOptFields = {'StateTrajectories','ExcOperator'};
 for index = 1 : numel(ForbiddenOptFields)
   field_ = ForbiddenOptFields{index};
   if isfield(Opt,field_)
@@ -330,9 +330,7 @@ if strcmp(Opt.SimulationMode,'fast')
           ExperimentNames = {'2pESEEM','3pESEEM','4pESEEM','HYSCORE','MimsENDOR'};
           plotQuadratureSignal = ~PredefinedExperiment && ~isreal(out.td);
           if plotQuadratureSignal
-            h = plot(x1,real(out.td),'b',x1,imag(out.td),'r');
-            set(h(1),'Color',[0 0 1]);
-            set(h(2),'Color',[0.8 0.6 1]);
+            h = plot(x1,real(out.td),x1,imag(out.td));
             legend('Re','Im');
             legend boxoff
           else
@@ -362,15 +360,11 @@ if strcmp(Opt.SimulationMode,'fast')
           idx = find(out.f==0):length(out.f);
           xf = out.f(idx);
           if plotQuadratureSignal
-            h = plot(xf,abs(out.fd(idx)),'g',xf,real(out.fd(idx)),'b',xf,imag(out.fd(idx)),'r');
+            h = plot(xf,abs(out.fd(idx)),xf,real(out.fd(idx)),xf,imag(out.fd(idx)));
             legend('abs','Re','Im');
             legend boxoff
-            set(h(2),'Color',[0   0   1]);
-            set(h(3),'Color',[0.8 0.6 1]);
-            set(h(1),'Color',[0   0.8    0]);
           else
-            h = plot(xf,abs(out.fd(idx)),'b',xf,real(out.fd(idx)),'g');
-            set(h(2),'Color',[0 0.8 0]);
+            h = plot(xf,abs(out.fd(idx)),xf,real(out.fd(idx)));
             legend('abs','Re');
             legend boxoff
           end

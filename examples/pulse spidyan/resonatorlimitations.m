@@ -22,7 +22,7 @@ Pulse.Type = 'quartersin/linear';
 Pulse.trise = 0.1; % us
 Pulse.Qcrit = 5; % If a critical adiabaticity is provided for the Pulse,
 % Pulse.Flip does not need to be defined or will be ignored
-Pulse.tp = 0.5; % mus
+Pulse.tp = 0.5; % us
 Pulse.Frequency = [-200 200]; % MHz
 
 Exp.Sequence = {Pulse};
@@ -35,7 +35,7 @@ Exp.ResonatorQL = 150; % loaded Q factor of resonator
 
 % Uncomment the following line to compensate for the bandwidth limitation,
 % also note how the pulses in the plot get longer than 500 ns
-Exp.ResonatorMode = 'compensate';
+% Exp.ResonatorMode = 'compensate';
 
 % Set up for plotting
 figure(1)

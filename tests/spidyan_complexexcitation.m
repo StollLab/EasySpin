@@ -22,7 +22,7 @@ Exp.DetPhase = 0;
 % Options ---------------------------
 Exp.DetOperator = {'z1'};
 Opt.SimFreq = 32;
-Opt.ComplexExcitation = 1;
+Exp.mwPolarization = 'circular';
 
 % Function Call -----------------------------
 
@@ -33,7 +33,7 @@ data.signal1 = signal1;
 
 % Using a custom complex excitation operator ----------------------
 Opt.ExcOperator = {sop(Sys.S,'x(1|2)')+sop(Sys.S,'y(1|2)')};
-Opt.ComplexExcitation = [1 1];
+Exp.mwPolarization = 'circular';
 
 [~, signal2] = spidyan(Sys,Exp,Opt);
 

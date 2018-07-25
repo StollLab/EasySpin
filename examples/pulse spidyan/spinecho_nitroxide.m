@@ -22,15 +22,15 @@ Symmetry = symm(Sys);
 
 % eperiment setup
 Chirp90.Type = 'quartersin/linear'; 
-Chirp90.trise = 0.030; % smoothed edges, mus
-Chirp90.tp = 0.200; % pulse length, mus
+Chirp90.trise = 0.030; % smoothed edges, us
+Chirp90.tp = 0.200; % pulse length, us
 Chirp90.Flip = pi/2; % flip angle in rad
 Chirp90.Frequency = [-120 120]; % excitation band, GHz
 Chirp90.Phase = pi; 
 
 Chirp180.Type = 'quartersin/linear';
-Chirp180.trise = 0.030;% smoothed edges, mus
-Chirp180.tp = 0.100; % pulse length, mus
+Chirp180.trise = 0.030;% smoothed edges, us
+Chirp180.tp = 0.100; % pulse length, us
 Chirp180.Flip = pi; % flip angle in rad
 Chirp180.Frequency = [-120 120]; % excitation band, GHz
 Chirp180.Phase = pi;
@@ -38,11 +38,11 @@ Chirp180.Phase = pi;
 % save time by using five events: the last two events are free evolution
 % events, but we only detect during the very last one. This saves time 
 % during the simulation (the shorter the detection window, the faster)
-tau = 0.5; % mus
+tau = 0.5; % us
 Exp.Sequence = {Chirp90 tau Chirp180 tau+Chirp180.tp}; 
 Exp.mwFreq = 9.1; % GHz
 
-Exp.DetWindow = [-0.05 0.05]; % mus
+Exp.DetWindow = [-0.05 0.05]; % us
 Exp.DetOperator = {'+1'};
 Exp.DetFreq = 9.1; % GHz
 
@@ -69,5 +69,5 @@ end
 figure(1)
 clf
 plot(t,real(Signal))
-xlabel('Transient (\mus)')
+xlabel('transient (\mus)')
 ylabel('Signal (arb.u.)')

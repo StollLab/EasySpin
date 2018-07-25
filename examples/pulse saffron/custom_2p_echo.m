@@ -26,7 +26,7 @@ tau = 0.5; % mus
 Exp.Sequence = {Chirp90 tau Chirp180 tau+Chirp180.tp};
 Exp.mwFreq = 9.1; % GHz
 Exp.Field = 324.9; % mT
-Exp.DetWindow = [-0.02 0.02]; % mus
+Exp.DetWindow = [-0.02 0.02]; % us
 
 Opt.nKnots = 20;
 

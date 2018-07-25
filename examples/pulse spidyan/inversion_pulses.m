@@ -28,7 +28,7 @@ ylim([-1 1])
 
 % Pulse definition
 Monochromatic.Type = 'rectangular';
-Monochromatic.tp = 0.06; % pulse length in mus
+Monochromatic.tp = 0.06; % pulse length in us
 Monochromatic.Flip = pi; % flip angle of pulse in rad
 
 % Experiment/Sequence - A single monochromatic pulse
@@ -43,7 +43,7 @@ plot(TimeAxis*1000,real(Signal));
 %% Experiment structure for a linear chirp pulse with quartersin amplitude modulation and a bandwidth of 100 MHz
 LinearChirp.Type = 'quartersin/linear';
 LinearChirp.trise = 0.030; % rise time (smoothing) of the edges in the time domain
-LinearChirp.tp = 0.2; % pulse length in mus
+LinearChirp.tp = 0.2; % pulse length in us
 LinearChirp.Frequency = [-50 50]; % frequency band
 LinearChirp.Flip = pi; % flip angle in rad
 

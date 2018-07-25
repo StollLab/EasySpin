@@ -321,6 +321,17 @@ Exp.PhaseCycle = {[] PC};	% phase cycles the second pulse
 Phace cycling that steps more than one pulse simultaneously is not available through the <code>PhaseCycle</code> structure, but can be achieved through adding an additional indirect dimension to the experiment (see <code>Dim</code>).
 </div>
 
+<div class="optionfield"><code>mwPolarization</code></div>
+<div class="optiondescr">
+Optional, can be <code>'linear'</code> or <code>'circular'</code>, default is <code>'linear'</code>.
+If <code>mwPolarization</code> is <code>'circular'</code>, the excitation operator also uses the imaginary part of the waveform.
+The default excitation then becomes <code>real</code>(<code>IQ</code>) <i>&Scirc;<sub>x</sub></i> + <code>imag</code>(<code>IQ</code>) <i>&Scirc;<sub>y</sub></i>.
+<pre class="matlab">
+Exp.mwPolarization = 'circular';     % mwPolarziation set to circular for all pulses
+</pre>
+Keep in mind, that using <code>'circular'</code> does not allow <code>saffron</code> to use some of its speed up tricks and can lead to significantly longer simulation times.
+</div>
+
 <div class="optionfield"><code>DetWindow</code></div>
 <div class="optiondescr">
 The field <code>DetWindow</code> controls detection and is given in microseconds:

@@ -1,5 +1,5 @@
 function s_plotting(TimeAxis,Signal,Exp,Opt)
-% This function plots the outout of saffron and spidyan
+% This function plots the output of saffron and spidyan
 
 if ~isfield(Exp,'DetOperator')
   % this field will be used as title in the plotting
@@ -30,7 +30,7 @@ if ~Opt.SinglePointDetection || (Opt.SinglePointDetection && isfield(Exp,'nPoint
       if strcmp(Exp.DetOperator{iDetOp},'Electron Coherence') 
         LabelsDetectionOp{iDetOp} = 'Signal (arb.u.)';
       else
-        LabelsDetectionOp{iDetOp} = ['<' Exp.DetOperator{iDetOp} '>'];
+        LabelsDetectionOp{iDetOp} = ['\langle' Exp.DetOperator{iDetOp} '\rangle'];
       end
     else
       % title of detection operators that were provided in matrix form
@@ -41,18 +41,18 @@ if ~Opt.SinglePointDetection || (Opt.SinglePointDetection && isfield(Exp,'nPoint
   end
 end
 
-% Get labels for indirect dimensions and setting up axes
+% Get labels for indirect dimensions and set up axes
 if isfield(Exp,'nPoints')
   LabelsIndirectDims = cell(1,length(Exp.nPoints));
   AxesIndirectDims = cell(1,length(Exp.nPoints));
   for iDim = 1 : length(Exp.nPoints)
     CurrentDim = ['Dim' num2str(iDim)];
     if length(Exp.(CurrentDim){1,2}) == 1
-      % y-axis and its label in case of linear increments
+      % axis and its label in case of linear increments
       AxesIndirectDims{iDim} = Exp.(CurrentDim){1,2}*(0:Exp.nPoints(iDim)-1);
       LabelsIndirectDims{iDim} = [num2str(CurrentDim) ' / \Delta' Exp.(CurrentDim){1,1}];
     else 
-      % y-axis and its label in case of userdefined increments
+      % axis and its label in case of userdefined increments
       AxesIndirectDims{iDim} = 1:Exp.nPoints(iDim);
       LabelsIndirectDims{iDim} = [num2str(CurrentDim) ' / Data Points ' Exp.(CurrentDim){1,1}];
     end
@@ -104,6 +104,7 @@ if Opt.SinglePointDetection
     end
   end
 else
+% Transient plotting
   if isfield(Exp,'nPoints') && length(Exp.nPoints) > 1
     % more than 1 indirect dimension in combination with transient
     % detection can not be displayed
@@ -152,10 +153,12 @@ else
             plot3(TimeAxis(iDataPoint,:),SecondAxis,real(Signal(iDataPoint,:,iDetOp)));
           end
         end
+        
         view([41.2000 61.2])
         xlabel(TransientLabel)
         ylabel(LabelsIndirectDims{1})
         zlabel(LabelsDetectionOp{iDetOp})
+        
       end
     end
   end
