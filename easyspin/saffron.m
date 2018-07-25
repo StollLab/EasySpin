@@ -2080,7 +2080,7 @@ else
     logmsg(1,'  no indirect dimensions');
     if ~Opt.SinglePointDetection
       % make first dimension the transient
-      Signal = Signal';
+      Signal = Signal.';
     end
   else
     logmsg(1,'  setting up %d axes for indirect dimensions',nDims);
