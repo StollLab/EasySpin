@@ -11,7 +11,7 @@ function esbuild
 %   PATCH: Increment for every bugfix release.
 % Roughly follow guidelines of seminatic versioning, see
 %   http://semver.org/
-ReleaseID = '5.2.20'; % major.minor.patch
+ReleaseID = '6.0-alpha0'; % major.minor.patch
 
 % Set to true if you want an easyspin-x.y.z.zip file without the
 % long timestamp ID.
@@ -31,8 +31,8 @@ ZipDestDir = [baseDir '\easyspin-archive'];
 %-----------------------------------------------------------
 clc
 v = sscanf(version,'%f',1);
-if (v>7.5)
-  error('EasySpin build must be done with Matlab 7.5 (R2007b, because of pcode).');
+if v>8.4
+  error('EasySpin build must be done with Matlab 8.4 (R2014b).');
 end
 
 %error('Must include perl script that replaces $ReleaseID$ and $ReleaseDate$ globally.');
@@ -281,7 +281,7 @@ end
 function replacestr(fname,S0,S1)
 
 fid = fopen(fname);
-Lines = textscan(fid,'%s','whitespace','','delimiter','\n','bufsize',100000);
+Lines = textscan(fid,'%s','whitespace','','delimiter','\n');
 Lines = Lines{1};
 fclose(fid);
 nLines = numel(Lines);
