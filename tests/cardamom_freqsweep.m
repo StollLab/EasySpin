@@ -43,6 +43,8 @@ rmsd = sqrt(mean((ycard-ychili).^2))/(max(ychili)-min(ychili));
 
 if rmsd < 0.1
   err = 0;
+else
+  err = 1;
   figure
 
   plot(fcard, ycard, fchili, ychili)
@@ -51,8 +53,6 @@ if rmsd < 0.1
   xlabel('f (GHz)')
   legend('cardamom','chili')
   hold off
-else
-  err = 1;
 end
 
 data = [];

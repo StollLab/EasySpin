@@ -801,8 +801,12 @@ switch LocalDynamicsModel
   % now
   MD = rmfield(MD, 'FrameTraj');
   MD = rmfield(MD, 'RTraj');
-%   MD = rmfield(MD, 'FrameTrajwrtProt');
-%   MD = rmfield(MD, 'RProtDiff');
+  if isfield(MD, 'FrameTrajwrtProt')   
+    MD = rmfield(MD, 'FrameTrajwrtProt');
+  end
+  if isfield(MD, 'RProtDiff')
+    MD = rmfield(MD, 'RProtDiff');
+  end
     
 end
 
