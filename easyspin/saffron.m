@@ -2022,8 +2022,8 @@ else
     logmsg(1,'  applying detection phase: %d*pi',Exp.DetPhase/pi);
     phase = exp(-1i*Exp.DetPhase);
   else
-    logmsg(1,'  applying default detection phase: pi');
-    phase = exp(-1i*pi);
+    logmsg(1,'  applying default detection phase: 0');
+    phase = exp(-1i*0);
   end
   
   Signal = Signal*phase;
@@ -2078,10 +2078,6 @@ else
   if ~isfield(Exp,'nPoints')
     x = []; % one datapoint
     logmsg(1,'  no indirect dimensions');
-    if ~Opt.SinglePointDetection
-      % make first dimension the transient
-      Signal = Signal.';
-    end
   else
     logmsg(1,'  setting up %d axes for indirect dimensions',nDims);
     

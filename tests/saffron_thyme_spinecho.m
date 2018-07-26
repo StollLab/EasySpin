@@ -42,14 +42,14 @@ if (opt.Display)
     legend('new','old');
     title(mfilename);
     subplot(3,1,3);
-    plot(x,real(olddata.y'-y));
+    plot(x,real(olddata.y-y));
     axis tight
     xlabel('time [us]');
   end
 end
 
 if ~isempty(olddata)
-  err = ~areequal(y,olddata.y',1e-4);
+  err = ~areequal(y,olddata.y,1e-4);
 else
   err = [];
 end

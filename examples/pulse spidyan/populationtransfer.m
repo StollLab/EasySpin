@@ -39,7 +39,7 @@ Exp.DetOperator = {'z(1|2)' 'z(2|3)' 'z(3|4)'};
 % plotting
 figure(1)
 clf
-plot(TimeAxis,real(Signal));
+plot(TimeAxis,-real(Signal));
 xlabel('t ({\mu}s)')
 axis tight
 ylabel('<S_i>')

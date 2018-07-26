@@ -46,6 +46,7 @@ Exp.DetWindow = [-0.05 0.05]; % us
 Exp.DetOperator = {'+1'};
 Exp.DetFreq = 9.1; % GHz
 
+
 Signal = 0; % initialize Signal
 for iOrientation = 1 : numel(Weights)
   

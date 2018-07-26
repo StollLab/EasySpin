@@ -180,6 +180,15 @@ if isfield(Exp,'DetOperator')
   Opt.DetOperator = Exp.DetOperator;
 end
 
+if isfield(Exp,'DetPhase')
+  if isfield(Opt,'DetOperator') && length(Exp.DetPhase) ~= length(Opt.DetOperator)
+    error('Exp.DetPhase has to have the same length as Exp.DetOperator.');
+  elseif ~isfield(Opt,'DetOperator') && length(Exp.DetPhase) ~= 1
+    error('Exp.DetPhase has to have length one if no Exp.DetOperator is provided.');
+  end  
+end
+  
+
 % Validate and build spin system as well as excitation operators
 logmsg(1,'  parsing the Sys structure...');
 
@@ -216,20 +225,11 @@ logmsg(1,'-validating and processing outout----------------------');
 nDetOps = numel(DetOps); % number of detection operators
 
 % Applying detection phase
-if ~isempty(RawSignal)
-  if isfield(Exp,'DetPhase')
-    logmsg(1,'  applying detection phase: %d*pi',Exp.DetPhase/pi);
-    phase = exp(-1i*Exp.DetPhase);
-  else
-    logmsg(1,'  applying default detection phase: pi');
-    phase = exp(-1i*pi);
-  end
+if ~isempty(RawSignal) && isfield(Exp,'DetPhase')
+  logmsg(1,'  applying detection phase: %d*pi',Exp.DetPhase/pi);
+  DetPhase = exp(-1i*Exp.DetPhase);
   
-  if iscell(RawSignal)
-    RawSignal = cellfun(@(x) x*phase,RawSignal,'un',0);
-  else
-    RawSignal = RawSignal*phase;
-  end
+  RawSignal = applyPhaseShift(RawSignal,DetPhase);
 end
 
 if Opt.SinglePointDetection
@@ -346,3 +346,36 @@ end
 logmsg(1,msg);
 
 logmsg(1,'=end=spidyan======%s=================\n',datestr(now));
+
+function PhasedSignal = applyPhaseShift(RawSignal, Phase)
+
+nPhases = length(Phase);
+
+if iscell(RawSignal)
+  nPoints = numel(RawSignal);
+  
+  PhasedSignal = cell(size(RawSignal));
+  
+  for iPoint = 1 : nPoints
+    PhasedSignal{iPoint} = bsxfun(@times,RawSignal{iPoint},Phase');
+  end
+  
+else
+  SignalSize = size(RawSignal);
+  
+  nPoints = prod(SignalSize(1:end-2));
+  % reshape the n-dimensional array into a 3-dimensional array, that
+  % can be looped over linearly along the first dimension (which
+  % corresponds to all the acquistion points)
+  RawSignal = reshape(RawSignal,[nPoints SignalSize(end-1) SignalSize(end)]);
+  
+  PhasedSignal = zeros(size(RawSignal));
+  
+  for iPhase = 1 : nPhases
+    PhasedSignal(:,iPhase,:) = RawSignal(:,iPhase,:)*Phase(iPhase);
+  end
+  
+  PhasedSignal = reshape(PhasedSignal,SignalSize);
+  
+end
+

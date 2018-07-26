@@ -330,7 +330,7 @@ Exp.DetFreq = [33.5 0]; % shifts <i>&Scirc;</i><sub>+</sub> by -33.5 GHz
 </pre>
 For counter-rotating detection operators (e.g. <i>&Scirc;</i><sub>-</sub>) the sign of the corresponding element in <code>DetFreq</code> has to reflect this:
 <pre class="matlab">
-Exp.DetOperator = {'+1' '-1'};		% detects <i>&Scirc;</i><sub>+</sub> and <i>&Scirc;</i><sub>-</sub> of the first electron spin
+Exp.DetOperator = {'+1' '-1'};	% detects <i>&Scirc;</i><sub>+</sub> and <i>&Scirc;</i><sub>-</sub> of the first electron spin
 Exp.DetFreq = [33.5 -33.5]; 	% shifts <i>&Scirc;</i><sub>+</sub> by -33.5 GHz and <i>&Scirc;</i><sub>-</sub> by 33.5 GHz
 </pre>
 </div>
@@ -338,7 +338,12 @@ Exp.DetFreq = [33.5 -33.5]; 	% shifts <i>&Scirc;</i><sub>+</sub> by -33.5 GHz an
 <div class="optionfield"><code>DetPhase</code></div>
 <div class="optiondescr">
 Phase of detection in radians, optional. 
-The default value is <code>pi</code>.
+Has to be specified for each detection operator separately:
+<pre class="matlab">
+Exp.DetOperator = {'z1' '+1'};
+Exp.DetPhase = [0 pi]; 		% change detection phase of second detection operator by &pi;
+</pre>
+The default value is <code>0</code>. The phase provided in <code>DetPhase</code> is added to the signal, regardless the type of operator.
 </div>
 
 <h2 id="indirect_dimensions"></h2>

@@ -42,6 +42,7 @@ Exp.DetSequence = [0 0 0 1]; % detect the last event
 
 Exp.DetOperator = {'+1'}; % detect electron coherence
 Exp.DetFreq = 9.5; % GHz
+% Exp.DetPhase = pi; % rad, for proper phasing of the signal
 
 Signal = 0; % initialize the signal
 
@@ -80,6 +81,8 @@ Chirp180.Frequency = [-80 80]; % frequency band
 Chirp180.Flip = pi; % flip angle in rad
 
 Exp.Sequence = {Chirp90 0.25 Chirp180 0.5}; % free evolution events in us
+% Exp.DetPhase = 0; % rad, for proper phasing of the signal
+
 
 % Loop over the spinpackets and sum up the traces
 for i = 1 : nSpinpackets
@@ -97,6 +100,6 @@ end
 
 figure(2)
 clf
-plot(t,abs(Signal));
+plot(t,real(Signal));
 xlabel('transient (\mus)')
 axis tight

@@ -12,6 +12,11 @@ if isfield(Exp,'nPoints')
   nDataPoints = prod(Exp.nPoints);
 else
   nDataPoints = 1;
+  if  ~Opt.SinglePointDetection && size(Signal,1) == length(Exp.DetOperator)
+    % make first dimension the transient - required for the plotting
+    % further down
+    Signal = Signal.';
+  end
 end
 
 % Set up figures
