@@ -172,14 +172,6 @@
 %                    Diffusion coefficient for isotropic global rotational
 %                    diffusion (s^-1)
 %
-%     TrajType       string
-%                    Raw: raw MD trajectory data, including spin label, 
-%                      protein, solvent, etc.
-%                    Label: numeric array, trajectory of spin label atoms 
-%                      only
-%                    Frame: numeric array, trajectory of spin label 
-%                      reference frame only
-%
 %     TrajUsage      string (optional)
 %                    Explicit: (default) use molecular orientations in
 %                      trajectories directly as input for simulating the
@@ -496,6 +488,34 @@ if ~isempty(Par.Model)
   end
 end
 
+% Check Exp
+% -------------------------------------------------------------------------
+
+[Exp,FieldSweep,CenterField,CenterFreq,Sweep] = validate_exp('cardamom',Sys,Exp);
+
+% if ~FieldSweep
+%   error('cardamom does not support frequency sweeps.');  % TODO expand usage to include frequency sweep
+% end
+
+if FieldSweep
+  omega0 = 2*pi*Exp.mwFreq*1e9;  % GHz -> rad s^-1
+else
+  omega0 = 2*pi*CenterFreq*1e9;  % MHz -> rad s^-1
+end
+
+if isfield(Exp,'SampleOrientation')
+  SampleOrientation = Exp.SampleOrientation;
+else
+  SampleOrientation = [];
+end
+
+
+% set up horizontal sweep axis
+if FieldSweep
+  xAxis = linspace(Exp.Range(1),Exp.Range(2),Exp.nPoints);  % field axis, mT
+else
+  xAxis = linspace(Exp.mwRange(1),Exp.mwRange(2),Exp.nPoints);  % field axis, GHz
+end
 
 % Check dynamics and ordering
 % -------------------------------------------------------------------------
@@ -508,7 +528,7 @@ else
   isDiffSim = true;
 end
 
-FieldSweep = true;
+% FieldSweep = true;
 Dynamics = validate_dynord('cardamom',Sys,FieldSweep,isDiffSim);
 
 if isDiffSim
@@ -642,7 +662,7 @@ if useMD
       % Par.nSteps not changed from user input
       Par.nTraj = floor((Par.nBlocks-Par.nSteps)/Par.lag) + 1;
     else
-      Par.nSteps = nBlocks;
+      Par.nSteps = Par.nBlocks;
       Par.nTraj = 1;
     end
   end
@@ -667,27 +687,6 @@ else
 end
 
 LocalDynamicsModel = Par.Model;
-
-% Check Exp
-% -------------------------------------------------------------------------
-
-[Exp,FieldSweep,CenterField,CenterFreq,Sweep] = validate_exp('cardamom',Sys,Exp);
-
-if ~FieldSweep
-  error('cardamom does not support frequency sweeps.');  % TODO expand usage to include frequency sweep
-end
-
-omega = 2*pi*Exp.mwFreq*1e9;  % GHz -> rad s^-1
-
-if isfield(Exp,'SampleOrientation')
-  SampleOrientation = Exp.SampleOrientation;
-else
-  SampleOrientation = [];
-end
-
-
-% set up horizontal sweep axis
-xAxis = linspace(Exp.Range(1),Exp.Range(2),Exp.nPoints);  % field axis, mT
 
 
 % Check Opt
@@ -802,14 +801,19 @@ switch LocalDynamicsModel
   % now
   MD = rmfield(MD, 'FrameTraj');
   MD = rmfield(MD, 'RTraj');
-%   MD = rmfield(MD, 'FrameTrajwrtProt');
-%   MD = rmfield(MD, 'RProtDiff');
+  if isfield(MD, 'FrameTrajwrtProt')   
+    MD = rmfield(MD, 'FrameTrajwrtProt');
+  end
+  if isfield(MD, 'RProtDiff')
+    MD = rmfield(MD, 'RProtDiff');
+  end
     
 end
 
 % Generate grids for powder averaging in the lab frame
 % -------------------------------------------------------------------------
 
+% default number of orientations
 if isfield(Par,'nOrients')
   nOrients = Par.nOrients;
 else
@@ -817,18 +821,33 @@ else
   logmsg(0,'-- Par.nOrients not specified. Using %d orientations.', nOrients);
 end
 
-if specCon
-  nOrients = ceil(nOrients/2);
-  skip = 0;
-  gridPts = 2*cardamom_sobol_generate(1,nOrients,skip)-1;
-  gridPhi = sqrt(pi*nOrients)*asin(gridPts);
-  gridTheta = acos(gridPts);
+Orients = [];
+if isfield(Par,'Orients')
+  Orients = Par.Orients;
+  if isvector(Orients)
+    % assure that Orients is a column vector
+    Orients = Orients(:);
+    if nOrients>1
+      % if only one orientation, then repeat it nOrients times
+      Orients = repmat(Orients,[1,nOrients]);
+    end
+  end
+end
+
+% assign lab orientations for powder averaging
+if ~isempty(Orients)
+  gridPhi = Orients(1,:);
+  gridTheta = Orients(2,:);
 else
-  if isfield(Par,'Orients')
-    Orients = Par.Orients;
-    gridPhi = Orients(1,:);
-    gridTheta = Orients(2,:);
+  if specCon
+    % generate Sobol sequence over a spiral grid
+    nOrients = ceil(nOrients/2);
+    skip = 0;
+    gridPts = 2*cardamom_sobol_generate(1,nOrients,skip)-1;
+    gridPhi = sqrt(pi*nOrients)*asin(gridPts);
+    gridTheta = acos(gridPts);
   else
+    % generate a spiral grid
     gridPts = linspace(-1,1,nOrients);
     gridPhi = sqrt(pi*nOrients)*asin(gridPts);
     gridTheta = acos(gridPts);
@@ -870,12 +889,17 @@ while ~converged
       case 'stochastic'
         
         Sys.Diff = Dynamics.Diff;
-        if isLocalPotential
-          Sys.Potential = LocalPotential;
-        end
         Par.dt = dtStoch;
         Par.nSteps = nStepsStoch;
+        if isLocalPotential
+          Sys.Potential = LocalPotential;
+          Par.nSteps = 2*nStepsStoch;
+        end
         [~, RTrajLocal, qTrajLocal] = stochtraj_diffusion(Sys,Par,Opt);
+        if isLocalPotential
+          RTrajLocal = RTrajLocal(:,:,:,nStepsStoch+1:end);
+          qTrajLocal = qTrajLocal(:,:,nStepsStoch+1:end);
+        end
         
       case 'jump'
         
@@ -937,7 +961,7 @@ while ~converged
     
     % Combine global trajectories with starting orientations
     qLab = repmat(euler2quat(0, gridTheta(iOrient), gridPhi(iOrient)),...
-      [1,Par.nTraj,nStepsQuant]);
+                  [1,Par.nTraj,nStepsQuant]);
     if includeGlobalDynamics
       qLab = quatmult(qLab,qTrajGlobal);
     end
@@ -952,7 +976,7 @@ while ~converged
     Par.nSteps = nStepsQuant;
     Par.Dt = dtQuant;
     Par.dt = dtStoch;
-    Sprho = cardamom_propagatedm(Sys,Par,Opt,MD,omega,CenterField);
+    Sprho = cardamom_propagatedm(Sys,Par,Opt,MD,omega0,CenterField);
     
     % average over trajectories
     if strcmp(Opt.debug.EqProp,'time')
@@ -1029,15 +1053,15 @@ while ~converged
   if specCon
     if iter==1
       spcLast = spcNew;
-      rmsdNew = 1;
+      rmsdNew = NaN;
     else
       span = max(spcNew)-min(spcNew);
-      rmsdNew = sqrt(mean((spcNew-spcLast).^2))/span
-      if rmsdNew<5e-4
+      rmsdNew = sqrt(mean((spcNew-spcLast).^2))/span;
+      if rmsdNew<2e-2
         converged = 1;
-      else
+      elseif iter>2
         rmsdPctChange = abs(100*(rmsdNew-rmsdLast)/rmsdLast)
-        converged = rmsdPctChange<10;
+        converged = rmsdPctChange<50;
       end
     end
 
@@ -1057,9 +1081,14 @@ while ~converged
     skip = iter*nOrientsTot;  % seed Sobol sequence generator for next iteration
     
     nOrients = nOrientsTot;
-    gridPts = 2*cardamom_sobol_generate(1,nOrients,skip)-1;
-    gridPhi = sqrt(pi*nOrients)*asin(gridPts);
-    gridTheta = acos(gridPts);
+    if ~isempty(Orients)
+      gridPhi = repmat(Orients(1,:),[1,2^(iter-1)]);
+      gridTheta = repmat(Orients(2,:),[1,2^(iter-1)]);
+    else
+      gridPts = 2*cardamom_sobol_generate(1,nOrients,skip)-1;
+      gridPhi = sqrt(pi*nOrients)*asin(gridPts);
+      gridTheta = acos(gridPts);
+    end
     iter = iter + 1;
   else
     spcAvg = spcNew;
@@ -1084,10 +1113,20 @@ end
 freq = 1/(Par.Dt*M)*(-M/2:M/2-1);  % TODO check for consistency between FieldSweep and FFT window/resolution
 
 % center the spectrum around the isotropic component of the g-tensor
-fftAxis = mhz2mt(freq/1e6+Exp.mwFreq*1e3, mean(Sys.g));  % Note use of g0, not ge
+if FieldSweep
+  fftAxis = mhz2mt(freq/1e6+Exp.mwFreq*1e3, mean(Sys.g));  % MHz -> mT, note use of g0, not ge
+else
+  fftAxis = freq/1e9+mt2mhz(Exp.Field,mean(Sys.g))/1e3;  % GHz
+end
 
 % interpolate over horizontal sweep range
-outspc = interp1(fftAxis, spcAvg, xAxis);
+if FieldSweep
+  outspc = interp1(fftAxis, spcAvg, xAxis);
+else
+  spcAvg = spcAvg(end:-1:1);   % reverse the axis for frequency sweep
+  outspc = interp1(fftAxis, spcAvg, xAxis);
+  outspc = cumtrapz(xAxis(end:-1:1),outspc);  % frequency sweeps outputs the absorption
+end
 
 % average over trajectories for expectation value output
 ExpectVal = mean(ExpectVal, 2);

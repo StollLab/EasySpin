@@ -13,6 +13,8 @@ Par.nTraj = 400;
 nTraj = Par.nTraj;
 nSteps = Par.nSteps;
 
+pidx = [2,1,3];
+
 nBins = 50;
 
 % L,M,K indices to test
@@ -22,15 +24,18 @@ LMK = [1,1,0;
        2,0,0;
        2,0,1;
        2,0,2];
+% LMK = [2,0,0;
+%        2,0,2];
 lambda = 4; % same lambda for all LMK
 
-AlphaBins = linspace(-pi, pi, nBins);
-BetaBins = linspace(0, pi, nBins/2);
-GammaBins = linspace(-pi, pi, nBins);
+alphaBins = linspace(0, 2*pi, nBins+1);
+betaBins = linspace(0, pi, nBins/2+1);
+gammaBins = linspace(0, 2*pi, nBins+1);
 
 % form grids to be acted upon by Boltzmann distribution function
 % expressions
-[Agrid,Bgrid,Ggrid] = meshgrid(AlphaBins,BetaBins,GammaBins);
+% [Agrid,Bgrid,Ggrid] = meshgrid(AlphaBins,BetaBins,GammaBins);
+[Agrid,Bgrid,Ggrid] = ndgrid(alphaBins,betaBins,gammaBins);
      
 err = 0;
 
@@ -44,7 +49,7 @@ for j=1:size(LMK,1)
   % note that the output will be of size (nBins,nBins,nBins), rather than the 
   % typical (nBins-1,nBins-1,nBins-1) size output from MATLAB's hist
   % functions
-  Hist3D = zeros(nBins, nBins/2, nBins, nTraj);
+  Hist3D = zeros(nBins+1, nBins/2+1, nBins+1, nTraj);
   
   for iTraj=1:nTraj
     % use a "burn-in method" by taking last half of each trajectory
@@ -54,7 +59,7 @@ for j=1:size(LMK,1)
     gamma = squeeze(gamma);
     % calculate 3D histogram using function obtained from Mathworks File Exchange
     [Hist3D(:,:,:,iTraj),dummy] = histcnd([alpha,beta,gamma],...
-                                          {AlphaBins,BetaBins,GammaBins});
+                                          {alphaBins,betaBins,gammaBins});
   end
 
   Hist3D = mean(Hist3D, 4);  % average over all trajectories
@@ -66,8 +71,8 @@ for j=1:size(LMK,1)
 %   zlabel('gamma')
 %   colormap hsv
   
-  Hist3D = permute(Hist3D, [2, 1, 3]);  % first two dims are incorrectly 
-                                        % ordered by histcnd
+%   Hist3D = permute(Hist3D, [2, 1, 3]);  % first two dims are incorrectly 
+%                                         % ordered by histcnd
   
 %   slice(Agrid, Bgrid, Ggrid, Hist3D, 0, pi/2, 0)
 %   xlabel('alpha')
@@ -75,7 +80,8 @@ for j=1:size(LMK,1)
 %   zlabel('gamma')
 %   colormap hsv
   
-  rmsd = calc_rmsd(Sys.Potential(1,4),Sys.Potential(1,1:3),Hist3D,Agrid,Bgrid,Ggrid);
+  rmsd = calc_rmsd(Sys.Potential(1,4),Sys.Potential(1,1:3),Hist3D,...
+                   Agrid,Bgrid,Ggrid,alphaBins,betaBins,gammaBins);
   
   if rmsd>5e-3||any(isnan(Hist3D(:)))
     % numerical result does not match analytical result
@@ -91,7 +97,7 @@ data = [];
 % Helper function to compare numerical result with analytic expression
 % -------------------------------------------------------------------------
 
-function rmsd = calc_rmsd(lambda, LMK, Hist3D, Agrid, Bgrid, Ggrid)
+function rmsd = calc_rmsd(lambda, LMK, Hist3D, Agrid, Bgrid, Ggrid,alphaBins,betaBins,gammaBins)
 
 % convert LMK indices to a string
 LMKstr = num2str(LMK(:));
@@ -104,7 +110,8 @@ switch LMKstr
   case '110'
     BoltzDist = exp(1/sqrt(2)*sin(Bgrid).*(Re*cos(Ggrid)-Im*sin(Ggrid)));
   case '101'
-    BoltzDist = exp(1/sqrt(2)*sin(Bgrid).*(Re*cos(Agrid)+Im*sin(Agrid)));
+%     BoltzDist = exp(1/sqrt(2)*sin(Bgrid).*(Re*cos(Agrid)+Im*sin(Agrid)));
+    BoltzDist = exp(2*real(lambda*conj(wignerd([1,0,1],Agrid,Bgrid,Ggrid))));
   case '111'
     BoltzDist = exp(-cos(Bgrid/2).^2.*(Re*cos(Agrid+Ggrid)-Im*sin(Agrid+Ggrid)));
   case '200'
@@ -117,21 +124,6 @@ end
 
 BoltzInt = sum(reshape(BoltzDist.*sin(Bgrid),1,numel(Bgrid)));
 BoltzDist = BoltzDist.*sin(Bgrid)/BoltzInt;
-
-% figure(1)
-% slice(Agrid, Bgrid, Ggrid, Hist3D, 0, pi/2, 0)
-% xlabel('alpha')
-% ylabel('beta')
-% zlabel('gamma')
-% colormap hsv
-% 
-% figure(2)
-% slice(Agrid, Bgrid, Ggrid, BoltzDist, 0, pi/2, 0)
-% xlabel('alpha')
-% ylabel('beta')
-% zlabel('gamma')
-% colormap hsv
-% colorbar
 
 residuals = Hist3D - BoltzDist;
 rmsd = sqrt(mean(residuals(:).^2));

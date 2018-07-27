@@ -84,9 +84,14 @@ The first two output arguments <code>B</code> and <code>spc</code> are mandatory
 <p>
 <code>Sys</code> is a structure containing the dynamic properties for generating the stochastic rotational trajectories. Many of its fields overlap with those of <code>chili</code>. This allows the user to easily simulate EPR spectra in both frequency and time domains for easy comparison.
 </p>
+
+<p>
+<span style="font-weight:bold;">Stochastic model</span>
+
+<p>
+A stochastic model of rotational diffusion can be used for local dynamics by declaring <code>Par.Model='stochastic'</code>.
 For the timescale(s) of motion, one of the fields <code>tcorr</code>, <code>logtcorr</code>, <code>Diff</code> or <code>logDiff</code> should be given. If more than one of these is given, the first in the list <code>logtcorr</code>, <code>tcorr</code>, <code>logDiff</code>, <code>Diff</code> takes precedence over the other(s).
 </p>
-
 
 <div class="optionfield"><code>tcorr</code></div>
 <div class="optiondescr">
@@ -135,15 +140,16 @@ Base-10 logarithm of <code>Diff</code>. If given, <code>Diff</code> is ignored.
 </div>
 
 <p>
-It is also possible to specify an orienting potential to simulate restricted diffusion. <code>stochtraj_diffusion</code> accomplishes this by representing the orienting potential function using either a series of Wigner D-functions (see reference for details), a numerical 3D array, or a function handle. To take advantage of one of these feature, the user should declare the structure <code>Sys.Potential</code> and assign to it one one of the following
+It is also possible to specify an orienting potential to simulate restricted diffusion. <code>cardamom</code> accomplishes this by representing the orienting potential function using either a series of Wigner D-functions (see reference for details), a numerical 3D array, or a function handle. To take advantage of one of these feature, use <code>Sys.Potential</code> and assign to it one of the following:
+</p>
 
-<div class="optionfield">2D array (Wigner function expansion)</div>
-<div class="optiondescr">
-
-An array of size (N,4), where each row corresponds to a term in the expansion; the first three columns contain the indices L, M, and K; and the fourth column contains the potential coefficients &lambda;<sup>L</sup><sub>M,K</sub> (the symbols c and &epsilon; are used in the literature as well). Note that the resulting orienting potential function must be real, so the range of allowed index values are as follows: L&gt;0; if K=0, then 0&lt;M&le;L; and if K&ne;0, then 0&lt;K&le;L and -L&le;M&le;L.
+<ul>
+<li>
+<em>2D array</em> (Wigner function expansion). An array of size (N,4), where each row corresponds to a term in the expansion; the first three columns contain the indices L, M, and K; and the fourth column contains the potential coefficients &lambda;<sup>L</sup><sub>M,K</sub> (the symbols c and &epsilon; are used in the literature as well).
+</p>
 
 <p>
-For example, to specify an orienting potential using <code>lambda200</code> to represent the coefficient &lambda;<sup>2</sup><sub>0,0</sub> of the commonly used second order Legendre polynomial, set <code>Sys.Potential = [2, 0, 0, lambda200]</code>.
+The ranges of allowed index values are as follows: L&ge;0; 0&le;K&le;L; if K=0, then 0&le;M&le;L; and if K&ne;0, then -L&le;M&le;L. Given the associated &lambda;<sup>L</sup><sub>M,K</sub>, <code>stochtraj_diffusion</code> will automatically include appropriate &lambda;<sup>L</sup><sub>-M,-K</sub> to assure the potential is real-valued. This also means that the input &lambda;<sup>L</sup><sub>0,0</sub> have to be real.
 </p>
 
 <p>
@@ -152,23 +158,93 @@ The full form of the ordering potential is expressed as
 <p>
 U(&Omega;) = - k<sub>B</sub> T &Sigma;<sub>L,M,K</sub>&lambda;<sup>L</sup><sub>M,K</sub> D<sup>L</sup><sub>M,K</sub> (&Omega;), 
 </p>
-where D<sup>L</sup><sub>M,K</sub> are the Wigner D-functions, &lambda;<sup>L</sup><sub>M,K</sub> are the potential coefficients, and it is assumed that the terms in the sum are appropriately processed to ensure that the result is always real.
+where D<sup>L</sup><sub>M,K</sub> are the Wigner D-functions, &lambda;<sup>L</sup><sub>M,K</sub> are the potential coefficients. The temperature is not needed, as it is divided out in the Langevin equation (which uses only U(&Omega;)/k<sub>B</sub>T).
+
+<p>
+For example, to specify an orienting potential using <code>lambda200</code> to represent the coefficient &lambda;<sup>2</sup><sub>0,0</sub> of the commonly used second-order Legendre polynomial, use
+</p>
+
+<pre class="matlab">
+Sys.Potential = [2, 0, 0, 1.2];  % L=2, M=K=0, lambda = 1.2
+</pre>
+
 <p>
 For details about this type of ordering potential, see K.A. Earle & D.E. Budil, Calculating Slow-Motion ESR Spectra of Spin-Labeled Polymers, in: S. Schlick: Advanced ESR Methods in Polymer Research, Wiley, 2006.
-</div>
 
-<div class="optionfield">3D array (numerical representation)</div>
-<div class="optiondescr">
-A 3D array of size (N,M,N) representing the orienting potential energy function U(&alpha;,&beta;,&gamma;). Dimensions 1, 2, and 3 of this array correspond to the Euler angles &alpha;, &beta;, and &gamma;, respectively.
-</div>
+<li>
+<p>
+<em>3D array</em> (numerical representation). A 3D array of size (N,M,N) representing the orienting potential energy function U(&alpha;,&beta;,&gamma;). Dimensions 1, 2, and 3 of this array correspond to the Euler angles &alpha;, &beta;, and &gamma;, respectively.
 
-<div class="optionfield">Function handle (functional representation)</div>
-<div class="optiondescr">
+<pre class="matlab">
+alpha = linspace(0,2*pi);    % grid over alpha
+beta = linspace(0,pi);       % grid over beta
+gamma = linspace(0,2*pi);    % grid over gamma
+Uarray = lambda*(3*cos(beta).^2-1) % potential energy over grid
+Sys.Potential = Uarray;
+</pre>
+
+<li>
+<p>
+<em>Function handle</em> (functional representation). 
 A user-defined function representing U(&alpha;,&beta;,&gamma;). This function must by vectorized (accept arrays as inputs) and accept three input arguments, corresponding to the Euler angles &alpha;, &beta;, and &gamma;, and yield one output.
+
+<pre class="matlab">
+lambda200 = 0.86;
+U = @(a,b,c) lambda200*(3*cos(b).^2-1);
+Sys.Potential = U;
+</pre>
+
+
+</ul>
 </div>
 
-<div class="subtitle2">Input: Simulation parameters</div>
+<p>
+<span style="font-weight:bold;">Jump model</span>
 
+<p>
+A jump model with a discrete number of orientational states can be used for local dynamics by declaring <code>Par.Model='jump'</code>. To dictate the inter- and intra-state dynamics, either <code>TransRates</code> or <code>TransProb</code> can be given, with the former taking precendence if both are given.
+</p>
+
+<div class="optionfield"><code>TransRates</code></div>
+<div class="optiondescr">
+Transition rate matrix of size (nStates,nStates), in seconds<sup>-1</sup>. The elements of <code>Sys.TransRates</code> must satisfy the following properties:
+<ul>
+<li> all diagonal elements must be non-positive
+<li> all off-diagonal elements must be non-negative
+<li> all columns must sum to zero
+</ul>
+</div>
+
+<div class="optionfield"><code>TransProb</code></div>
+<div class="optiondescr">
+Transition probability matrix of size (nStates,nStates). The elements of <code>Sys.TransProb</code> must satisfy the following properties:
+<ul>
+<li> all elements must be non-negative
+<li> all columns must sum to one
+</ul>
+</div>
+
+<div class="optionfield"><code>Orientations</code></div>
+<div class="optiondescr">
+An array of Euler angles representing the orientation of each state, size (nStates,1) or (1,nStates).
+</div>
+
+
+<!-- ============================================================= -->
+<div class="subtitle2">Input: Simulation parameters</div>
+<!-- ============================================================= -->
+
+<!-- ============================================================= -->
+<p>
+<code>Par.OriStart</code>
+</p>
+<p>
+<code>Par.nOrients</code>,<code>Par.Orients</code>
+</p>
+<p>
+<code>Par.Model</code>
+</p>
+<!-- ============================================================= -->
 
 <p>
 <code>Par</code> is a structure containing the parameters for generating the stochastic rotational trajectories. The parameters can be categorized into two groups: Monte Carlo settings, and trajectory settings.
@@ -198,23 +274,13 @@ The total time of the simulation, in seconds.
 
 
 <p>
-Lastly, the trajectory settings are used to specify the starting orientation angles, (<code>alpha</code>, <code>beta</code>, <code>gamma</code>),
-which correspond to the Euler angles &alpha;, &beta;, and &gamma;; and how many trajectories to simulate, <code>nTraj</code>. If only one set of angles is given and <code>nTraj</code> is greater than one, then this starting orientation will be repeated for each trajectory. If <code>nTraj</code> is not provided, only one trajectory will be simulated. If no angles are provided, then a number of starting orientations equal to <code>nTraj</code> will be chosen from a uniform random distribution over the unit sphere, where &alpha;, &beta;, and &gamma; are sampled from [0,2&pi;), [0,&pi;), and [0,2&pi;), respectively.
+Lastly, the trajectory settings are used to specify the starting orientations for the trajectories using triplets of Euler angles in <code>OriStart = [alpha;beta;gamma]</code>,
+which correspond to the Euler angles &alpha;, &beta;, and &gamma;; how many trajectories to simulate, <code>nTraj</code>; and a set of orientations in the lab frame for a powder-like summation, <code>Orients</code>.
+</p>
 
-
-<div class="optionfield"><code>alpha</code></div>
+<div class="optionfield"><code>OriStart</code></div>
 <div class="optiondescr">
-The Euler angle &alpha; used to specify starting orientations, in radians.
-</div>
-
-<div class="optionfield"><code>beta</code></div>
-<div class="optiondescr">
-The Euler angle &beta; used to specify starting orientations, in radians.
-</div>
-
-<div class="optionfield"><code>gamma</code></div>
-<div class="optiondescr">
-The Euler angle &gamma; used to specify starting orientations, in radians.
+The Euler angles corresponding to the starting orientations for trajectories, in radians.
 </div>
 
 <div class="optionfield"><code>nTraj</code></div>
@@ -222,79 +288,172 @@ The Euler angle &gamma; used to specify starting orientations, in radians.
 The total number of trajectories to simulate.
 </div>
 
+<div class="optionfield"><code>Orients</code></div>
+<div class="optiondescr">
+Orientations of the system in the lab frame (powder-like summation).
+</div>
+
+<div class="optionfield"><code>nOrients</code></div>
+<div class="optiondescr">
+The total number of orientations in the lab frame.
+</div>
+
+<p>
+If only one set of starting orientations <code>OriStart</code> is given and <code>nTraj</code> is greater than one, then this starting orientation will be repeated for each trajectory. If <code>nTraj</code> is not provided, only one trajectory will be simulated. If <code>OriStart</code> is not provided, then for the case of unrestricted diffusion, a number of starting orientations equal to <code>nTraj</code> will be chosen from a uniform random distribution over the unit sphere, where &alpha;, &beta;, and &gamma; are sampled from [0,2&pi;), [0,&pi;), and [0,2&pi;), respectively. If one is simulating using restricted diffusion (<code>Sys.Potential</code> is present), then <code>OriStart</code> will be sampled from the equilibrium distribution corresponding to the potential.
+</p>
+
+<p>
+For the lab orientations <code>Orients</code>, if these are not specified but <code>nOrients</code> is declared, then <code>nOrients</code> orientations will be chosen using a spiral grid on the unit sphere. If neither are provided, then the number of lab orientations to sum over will be set equal to <code>Par.nTraj</code> and they will be chosen from a spiral grid.
+</p>
+
+
+<!-- ============================================================= -->
 <div class="subtitle2">Input: Simulation options</div>
+<!-- ============================================================= -->
+
+<p>
+<code>Opt</code> is a structure with additional simulation options.
+</p>
 
 
-
-<div class="optionfield"><code>chkcon</code></div>
+<div class="optionfield"><code>specConvergence</code></div>
 <div class="optiondescr">
-0 (default), 1<br>
-If equal to 1, after the first <code>nSteps</code> of the trajectories are calculated, <code>stochtraj</code> will check for both inter- and intra-trajectory convergence using the Gelman-Rubin R statistic (to be specific, requiring that R&lt;1.1, see A. Gelman and D. Rubin, Statistical Science 7, 457 (1992) for details). If convergence is not obtained, then propagation will be extended by either a length of time equal to the average of <code>tcorr</code> or by 20% more time steps, whichever is larger.
+Termination tolerance for simulating spectra at different lab orientations. If true, <code>cardamom</code> will keep doubling the number of lab orientations in the spectral summation until the RMSD between the last sum and the new sum, say N vs. 2N orientations, changes by less than 10%.
 </div>
-<!--
-<div class="optionfield"><code>tol</code></div>
-<div class="optiondescr">
-Termination tolerance for chi squared in angular distribution. If <code>Par.chkcon=1</code> and <code>tol</code> is not specified, the default value is <code>1e-3</code>.
-</div>
--->
 
 <div class="optionfield"><code>Verbosity</code></div>
 <div class="optiondescr">
 0 (default), 1<br>
-Determines how much information <code>stochtraj</code> prints to the screen. If <code>Opt.Verbosity=0</code>, is is completely silent. 1 prints details about the progress of the computation.
+Determines how much information <code>cardamom</code> prints to the screen. If <code>Opt.Verbosity=0</code>, is is completely silent. 1 prints details about the progress of the computation.
 </div>
 
-<!-- =================================================================== -->
-<div class="subtitle">Example</div>
+<div class="optionfield"><code>Method</code></div>
+<div class="optiondescr">
+Determines the method with which the time-dependent  spin Hamiltonian is constructed and the spin density matrix propagated. If set to <code>'Nitroxide'</code> (default), <code>cardamom</code> will construct a <sup>14</sup>N Hamiltonian restricted to the electron spin S=-1/2 subspace and propagate it within this subspace, allowing for a very efficient analytical calculation of the propagator at each time step. If set to <code>'ISTOs'</code>, <code>cardamom</code> will construct a spin Hamiltonian using irreducible spherical tensor operators and calculate the full propagator using a matrix exponential, which is very general but much less efficient than the specialized <code>'Nitroxide'</code> method.
+</div>
+
+<div class="optionfield"><code>FFTWindow</code></div>
+<div class="optiondescr">
+If true (default), a windowing function is applied to the simulated FID prior to calculating the FFT to obtain the spectrum. If false, no windowing function is used.
+</div>
+
+<div class="optionfield"><code>truncate</code></div>
+<div class="optiondescr">
+Number of ns at which to begin using an ensemble-averaged propagator, which can save time when simulating a cw EPR spectrum. This option can only be used for the general method <code>Method='ISTOs</code>.
+</div>
+
+
+<!-- ============================================================= -->
+<div class="subtitle2">Input: Molecular dynamics options</div>
+<!-- ============================================================= -->
 
 <p>
-To simulate a 200-ns long, fast motion Brownian diffusion trajectory starting from the north pole on the unit sphere, enter
+<code>MD</code> is a structure with properties and options regarding the usage of MD simulation trajectories to simulate an EPR spectrum.
+</p>
+
+<div class="optionfield"><code>nSteps</code></div>
+<div class="optiondescr">
+Number of snapshots in the MD simulation output.
+</div>
+
+<div class="optionfield"><code>dt</code></div>
+<div class="optiondescr">
+Time step between snapshots, in seconds.
+</div>
+
+<div class="optionfield"><code>tScale</code></div>
+<div class="optiondescr">
+Scaling factor for time steps between MD snapshots. This could be necessary if the model for the spin label's environment molecules does not yield the correct time scale for diffusion, e.g. TIP3P water.
+</div>
+
+<div class="optionfield"><code>RProtDiff</code></div>
+<div class="optiondescr">
+An array of size 3x3x<code>nTraj</code>x<code>nSteps</code> containing the rotation matrices representing the global rotational diffusion of the protein.
+</div>
+
+<div class="optionfield"><code>FrameTraj</code></div>
+<div class="optiondescr">
+An array of size 3x3x<code>nTraj</code>x<code>nSteps</code> containing the cartesian coordinates of the spin label tensor frame's x-, y-, and z-coordinate frame axis vectors with respect to the MD simulation box frame, in <span>&#8491;</span>.
+</div>
+
+<div class="optionfield"><code>FrameTrajwrtProt</code></div>
+<div class="optiondescr">
+Same as <code>FrameTraj</code>, but without global rotational diffusion of the host protein, in <span>&#8491;</span>.
+</div>
+
+<div class="optionfield"><code>removeGlobal</code></div>
+<div class="optiondescr">
+If set to true (default), <code>cardamom</code> will use <code>FrameTrajwrtProt</code> to simulate a spectrum. If set to false, <code>FrameTraj</code> will be used instead.
+</div>
+
+<div class="optionfield"><code>DiffGlobal</code></div>
+<div class="optiondescr">
+Optional rotational diffusion coefficient for simulating stochastic isotropic global rotational diffusion, which will be coupled to the local diffusion obtained from the MD simulation trajectory.
+</div>
+
+<div class="optionfield"><code>TrajUsage</code></div>
+<div class="optiondescr">
+Determines how the MD simulation trajectory data is used to simulate a spectrum. If set to <code>'Explicit'</code> (default), the atomic coordinates of the spin label will be used directly by <code>cardamom</code>. 
+If set to <code>'Resampling'</code>, a coarse-grained model will be used to simulate a spectrum, where an orientational potential energy function is constructed from an MD trajectory-derived orientational histogram for the spin label and restricted diffusion is simulated using this potential. Note that the local dynamics, e.g. <code>Sys.Diff</code> must be specified when using the latter option.
+</div>
+
+<!-- ============================================================= -->
+<div class="subtitle">Example</div>
+<!-- ============================================================= -->
+
+<p>
+To simulate a cw EPR spectrum of an <sup>14</sup>N nitroxide spin label with a rotational correlation time of 5 ns using a , use
 </p>
 
 <pre class="matlab">
-Sys.tcorr = 5e-9;  % 5 ns rotational correlation time
+Sys.g = [2.009, 2.006, 2.002];
+Sys.A = mt2mhz([6,6,36]/10);    % hyperfine tensor, G -> MHz
+Sys.tcorr = 5e-9;               % 5 ns rotational correlation time
 
-Par.dt = 1e-9;  % 1 ns time step
-Par.nSteps = 1e3;  % 1000 time steps
-Par.alpha = 0;
-Par.beta = 0;
-Par.gamma = 0;
+Exp.mwFreq = 9.4;             % microwave frequency, in GHz
 
-stochtraj(Sys,Par);
+[B,spc] = cardamom(Sys,Exp);
 </pre>
 
 <p>
-To simulate 400 1-&mu;s long, slow motion trajectories in an orienting potential with coefficient &lambda;<sup>2</sup><sub>0,0</sub> = 1, each of which starts at a random point on the unit sphere, enter
+To simulate a cw EPR spectrum using very slow motion trajectories, with an orientational potential with coefficient &lambda;<sup>2</sup><sub>0,0</sub> = 1.0 and a 250-ns long FID, enter
 </p>
 
 <pre class="matlab">
+Sys.g = [2.009, 2.006, 2.002];
+Sys.A = mt2mhz([6,6,36]/10);    % hyperfine tensor, G -> MHz
 Sys.tcorr = 50e-9;  % 50 ns rotational correlation time
-Sys.Coefs = [1,0];  % purely real orienting potential coefficient
-Sys.LMK = [2,0,0];  % L=2, M=K=0
+Sys.Potential = [2, 0, 0, 1.0];
+
+Exp.mwFreq = 9.4;
 
 Par.dt = 1e-9;
-Par.nSteps = 500;
+Par.nSteps = ceil(250e-9/Par.dt);
 Par.nTraj = 400;
 
-stochtraj(Sys,Par);
+[B,spc] = cardamom(Sys,Exp,Par);
 </pre>
 
-
+<!--
 <!-- =================================================================== -->
+<!--
 <div class="subtitle">Algorithm</div>
 
 <p>
-<code>stochtraj</code> solves the stochastic rotational Langevin equation by numerically propagating quaternions. The quaternions specify orientations of the body-fixed coordinate frame with respect to the space-fixed frame. Since both isotropic and anisotropic diffusion tensors are diagonal in the body-fixed frame, defining the quaternions in this manner considerably simplifies the problem.
+<code>cardamom</code> solves 
 </p>
 <p>
 For full details of the methods used here, see: 
 </p>
-D. Sezer, J. H. Freed, and B. Roux, J. Chem. Phys. B 128, 165106 (2008).
+-->
 
 <!-- =================================================================== -->
 <div class="subtitle">See also</div>
 <p>
-<a class="esf" href="chili.html">chili</a>
+<a class="esf" href="chili.html">chili</a>,
+<a class="esf" href="stochtraj_diffusion.html">stochtraj_diffusion</a>,
+<a class="esf" href="stochtraj_jump.html">stochtraj_jump</a>,
+<a class="esf" href="mdload.html">mdload</a>
 </p>
 
 <hr>

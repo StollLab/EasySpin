@@ -54,10 +54,12 @@ for n = 1:nCoefs
   L = Lvals(n);
   M = Mvals(n);
   K = Kvals(n);
-  iJvecu(Index{:},n) = real(iJu(L,M,K,lambda(n),q));
-%  FIXME Why doesn't this work?! Accumulation of rounding errors?
-%   iJvecu(Index{:},n) =               0.5*(iJu(L,M,K,lambda(n),q) ...
-%                               + (-1)^(M-K)*iJu(L,-M,-K,conj(lambda(n)),q));
+  
+  if M==0 && K==0
+    iJvecu(Index{:},n) = real(iJu(L,M,K,lambda(n),q));
+  else
+    iJvecu(Index{:},n) = 2*real(iJu(L, M, K, lambda(n), q));
+  end
 end
 
 if nCoefs > 1
@@ -66,7 +68,11 @@ else
   torque = -iJvecu;
 end
 
- assert(all(imag(torque(:))<1e-14), 'Torque is not real.')
+if all(imag(torque(:))<1e-11)
+  torque = real(torque);
+else
+  error('Finite imaginary part of torque detected.')
+end
 
 end
  

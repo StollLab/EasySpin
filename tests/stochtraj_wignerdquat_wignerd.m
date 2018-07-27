@@ -25,6 +25,8 @@ for M = -L:L
   end
 end
 
+D2 = D2';
+
 err = max(abs(D1(:)-D2(:))) > 1e-15;
 
 data = [];

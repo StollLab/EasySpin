@@ -297,10 +297,39 @@ if isfield(Par,'OriStart'), OriStart = Par.OriStart; end
 
 % Supplement starting orientations if necessary
 if isempty(OriStart)
-  if isUserPotFun
-    % TODO: also do this if lambda+LMK are given
-    [alphaSamples, betaSamples, gammaSamples] = cardamom_rejectionsample3d(exp(-PseudoPotFun), alphaGrid, betaGrid, gammaGrid, Sim.nTraj);
-    OriStart = [alphaSamples; betaSamples; gammaSamples];
+  if ~isempty(Sys.Potential)
+    if isUserPotFun
+      [alphaSamples, betaSamples, gammaSamples] = cardamom_rejectionsample3d(exp(-PseudoPotFun).*sin(betaGrid), alphaGrid, betaGrid, gammaGrid, Sim.nTraj);
+      OriStart = [alphaSamples; betaSamples; gammaSamples];
+    else
+      N = 100;
+      alphaGrid = linspace(0, 2*pi, N+1);
+      betaGrid = linspace(0, pi, N/2+1);
+      gammaGrid = linspace(0, 2*pi, N+1);
+
+      [AlphaGrid,BetaGrid,GammaGrid] = ndgrid(alphaGrid,betaGrid,gammaGrid);
+
+      U = 0;
+      nTerms = size(Sys.Potential,1);
+      for iTerm = 1:nTerms
+        L = Sys.Potential(iTerm,1);
+        M = Sys.Potential(iTerm,2);
+        K = Sys.Potential(iTerm,3);
+        lambda = Sys.Potential(iTerm,4);
+        if M==0 && K==0
+          Yfun = real(wignerd([L,M,K],AlphaGrid,BetaGrid,GammaGrid));
+        else
+          Yfun =   2*real(wignerd([L,M,K],AlphaGrid,BetaGrid,GammaGrid));
+        end
+        
+        U = U + -lambda*Yfun;
+      end
+      
+      [aSamples, bSamples, gSamples] = cardamom_rejectionsample3d(exp(-U), alphaGrid, betaGrid, gammaGrid, Par.nTraj);
+      OriStart = [aSamples; 
+                  bSamples; 
+                  gSamples];
+    end
   else
     % Set up spiral grid over
     gridPts = linspace(-1, 1, Sim.nTraj);
@@ -318,7 +347,7 @@ if isvector(OriStart), OriStart = OriStart(:); end
 if size(OriStart,2)==1 && Sim.nTraj>1
   OriStart = repmat(OriStart,1,Sim.nTraj);
 end  
-  
+
 if size(OriStart,2)~=Sim.nTraj
   error('Number of starting orientations must be equal to Par.nTraj.')
 end
