@@ -13,7 +13,7 @@ Sys.T1 = 1; % us
 Sys.T2 = 0.5; % us
 
 % Pulse Definitions
-Rectangular.tp = 0.02; % mus
+Rectangular.tp = 0.02; % us
 Rectangular.Flip = pi; % rad
 
 % A default Experiment/Sequence

@@ -54,9 +54,11 @@ Two different simulations methods are available: a fast one that works with pred
 For more details see <a href="#algorithms">here</a>.
 
 <p>
-The output contain the abscissa data in <code>x</code> and the simulated data in <code>y</code> (time domain trace or ENDOR spectrum). 
+The output contain the abscissa data in <code>x</code> and the simulated data in <code>y</code>. 
+For single-point detection simulations, <code>y</code> is a n-dimensional array, where n is the number of indirect dimensions.
+In case of transient detection, <code>y</code> is a n+1-dimensional array, where n is the number of indirect dimensions and the last dimension is the direct dimension.
 <code>x</code> is a vector, if <code>y</code> is one dimensional. 
-If <code>y</code> has more than one dimension, <code>x</code> becomes a cell array with the individial axes.
+If <code>y</code> has more than one dimension, <code>x</code> becomes a cell array with the individual axes.
 In case of transient detection, the time axis of the transient is always the last element in <code>x</code>.
 For ESEEM simulations, <code>p</code> contains the frequency abscissa (in MHz) in <code>p.f</code> and the spectrum obtained by Fourier transform from the time domain data in <code>p.fd</code>.
 
@@ -232,22 +234,34 @@ Exp.Dim1 = {'d2' [0 0.1 0.3 0.65 -0.2]};   % increment of the second delay
 </pre>
 However, the program checks that changing lengths of events do not lead to overlapping pulses at any acquisition point.
 <p>
-A special case is the field <code>Frequency</code> in the pulse definition of a frequency-swept or of a monochromatic pulse that is defined by identical initial and final frequency.
-Here it is necessary to provide a vector even for a constant increment, with the first element being the change of the initial frequency and the second being the change of the final frequency. 
+A special case is the field <code>Par.Frequency</code> in the pulse definition of a frequency-swept or of a monochromatic pulse that is defined by identical initial and final frequency.
+If one value is provided in <code>Exp.DimX</code>, this is going to be added to both elements in the <code>Par.Frequency</code> field - the pulse is moved in the frequency domain:
+<pre class="matlab">
+Exp.Dim1 = {'p1.Frequency' 5};   % changes both elements in Par.Frequency by 5 MHz per step
+</pre>
+An equivalent input as the above is the following, where each the increment for each field in <code>Par.Frequency</code> is given:
+<pre class="matlab">
+Exp.Dim1 = {'p1.Frequency' [5 5]};   % changes both elements in Par.Frequency by 5 MHz per step
+</pre>
+This syntax can also be used to change the sweep width:
+<pre class="matlab">
+Exp.Dim1 = {'p1.Frequency' [-5 5]};   			% increases sweep width by 10 MHz each step
+Exp.Dim1 = {'p1.Frequency' [0 5]};    			% increment only the final frequency of the frequency sweep
+</pre>
 A list of increments can be provided as well, by using <code>';'</code> as separator:
 <pre class="matlab">
-Exp.Dim1 = {'p1.Frequency' [-0.005 0.005]};   			% increases sweep width by 10 MHz each step
-Exp.Dim1 = {'p1.Frequency' [0.005 0.005]};    			% moves the excitation band by 5 MHz each step
-Exp.Dim1 = {'p1.Frequency' [0 0; 0.01 0.01; 0.03 0.03; 0.08 0.08]};  % vector increment
+Exp.Dim1 = {'p1.Frequency' [0 0; 10 10; 30 30; 80 80]};  % vector increment for shifting the frequency range of the pulse
+Exp.Dim1 = {'p1.Frequency' [0 0; -10 0; 0 30; -80 80]};  % vector increment changing the excitation range of the pulse
 </pre>
+<p>
 For other pulse parameters that are defined by a vector (e.g., the order of an asymmetric hyperbolic secant (HS) pulse <code>Pulse.n</code> or the list of relatives amplitudes of a Gaussian cascade <code>Pulse.A0</code>), selected elements can be incremented by adding an index to the field name:
 <pre class="matlab">
 Exp.Dim1 = {'p1.A0(3)' 0.1; 'p1.A0(4)' -0.1};   % changes relative amplitudes of the third and fourth pulse in a Gaussian cascade
 Exp.Dim1 = {'p1.n(2)' 2};    % increases order of the falling flank of a hyperbolic secant pulse by 2 each step
 
 % Also possible for 'Frequency'
-Exp.Dim1 = {'p1.Frequency(2)' 0.005};    % changes only the final frequency of the pulse
-Exp.Dim1 = {'p1.Frequency' [0 0.005]};   % identical to the above and not a list of increments!
+Exp.Dim1 = {'p1.Frequency(2)' 5};    % changes only the final frequency of the pulse
+Exp.Dim1 = {'p1.Frequency' [0 5]};   % identical to the above and not a list of increments!
 </pre>
 Adding an indirect dimension also allows for simultaneous phase cycling of two or more pulses (something that can not be achieved through the <code>Exp.PhaseCycle</code> structure):
 <pre class="matlab">
@@ -255,6 +269,13 @@ Exp.nPoints = 4;
 Exp.Dim1 = {'p2.Phase,p3.Phase' pi/4};   % changes the phase of the 2nd and 3rd pulse by pi/4 each step
 </pre>
 In the above example, the output of <code>spidyan</code> will contain the individual transients from each phase cycling step and manual merging of the dimensions (with proper detection phase/sign) is required to obtain the phase-cycled signal.
+<p>
+This is an example for a two-dimensional experiment (e.g. for a two-pulse echo) to optimize two pulse parameters:
+<pre class="matlab">
+Exp.nPoints = [20 15];
+Exp.Dim1 = {'p1.Frequency,p2.Frequency' [-2.5 2.5]}; % increase excitation band by 5 MHz each step of both pulses
+Exp.Dim1 = {'p1.tp' 2; 'p2.tp' 1}; % us, step pulse lengths
+</pre>
 </div>
 
 <p>
@@ -321,11 +342,23 @@ Exp.PhaseCycle = {[] PC};	% phase cycles the second pulse
 Phace cycling that steps more than one pulse simultaneously is not available through the <code>PhaseCycle</code> structure, but can be achieved through adding an additional indirect dimension to the experiment (see <code>Dim</code>).
 </div>
 
+<div class="optionfield"><code>mwPolarization</code></div>
+<div class="optiondescr">
+Optional, can be <code>'linear'</code> or <code>'circular'</code>, default is <code>'linear'</code>.
+If <code>mwPolarization</code> is <code>'circular'</code>, the excitation operator also uses the imaginary part of the waveform.
+The default excitation then becomes <code>real</code>(<code>IQ</code>) <i>&Scirc;<sub>x</sub></i> + <code>imag</code>(<code>IQ</code>) <i>&Scirc;<sub>y</sub></i>.
+<pre class="matlab">
+Exp.mwPolarization = 'circular';     % mwPolarziation set to circular for all pulses
+</pre>
+Keep in mind, that using <code>'circular'</code> does not allow <code>saffron</code> to use some of its speed up tricks and can lead to significantly longer simulation times.
+</div>
+
 <div class="optionfield"><code>DetWindow</code></div>
 <div class="optiondescr">
 The field <code>DetWindow</code> controls detection and is given in microseconds:
 The zero-time of the detection is taken as the end of the last element in <code>Exp.Sequence</code>.
 It only works with the <em>thyme</em> method.
+The detected signal corresponds to &langle;<i>&Scirc;</i><sub>-</sub>&rangle;, which means the real part corresponds to &langle;<i>&Scirc;</i><sub>x</sub>&rangle; and the imaginary part to &langle;-<i>&Scirc;</i><sub>y</sub>&rangle;.
 
 <p>
 <img src="img/detection_windows.png" width="600">
@@ -382,7 +415,7 @@ If no <code>DetFreq</code> is provided, <code>Exp.mwFreq</code> is taken as freq
 <div class="optionfield"><code>DetPhase</code></div>
 <div class="optiondescr">
 Phase of detection in radians, optional. 
-The default value is <code>pi</code>.
+The default value is <code>0</code>.
 </div>
 
 <p>

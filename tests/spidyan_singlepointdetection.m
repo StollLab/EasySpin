@@ -10,7 +10,6 @@ Pulse.Flip = pi;
 Exp.Sequence = {Pulse 0};
 Exp.mwFreq = 33.5;
 Exp.DetSequence = [0 1]; 
-Exp.DetPhase = 0;
 
 % Options ---------------------------
 Exp.DetOperator = {'z1'};

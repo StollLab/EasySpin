@@ -12,13 +12,13 @@ Sys.ZeemanFreq = [9.500 9.500]; % GHz
 
 Sys.J = 0; % MHz
 
-P90.tp = 0.016; % mus
+P90.tp = 0.016; % us
 P90.Flip = pi/2; % rad
 
-P180.tp = 0.032; % mus
+P180.tp = 0.032; % us
 P180.Flip = pi; % rad
 
-tau = 0.5; % mus
+tau = 0.5; % us
 
 % Sequence
 Exp.Sequence = {P90 tau P180 tau P180 tau};
