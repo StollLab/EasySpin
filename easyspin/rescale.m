@@ -154,8 +154,8 @@ switch nargout
     varargout = {};
   case 1
     varargout = {ynew};
-%   case 2
-%     varargout = {ynew scalefactor};
+  case 2
+    varargout = {ynew scalefactor};
   otherwise
     error('Wrong number of outputs.');
 end
