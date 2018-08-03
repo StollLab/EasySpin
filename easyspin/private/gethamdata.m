@@ -20,18 +20,18 @@ function [V,E,dEdB,dE] = gethamdata(B,F,G,idxT,nLevels)
 % Compute eigenvalues and eigenvectors of Hamiltonian
 if issparse(F)
   [V,E] = eigs(F+B*G,nLevels);
-  E = diag(E).';
-  [E,idx_] = sort(E);
-  V = V(:,idx_);
 else
   [V,E] = eig(F+B*G);
-  E = diag(E).';
-  if (nLevels<numel(E))
-    E = E(1:nLevels);
-    V = V(:,1:nLevels);
-  end
 end
-
+E = diag(E).';
+if ~issorted(E)
+  [E,idx_] = sort(E);
+  V = V(:,idx_);
+end
+if (nLevels<numel(E))
+  E = E(1:nLevels);
+  V = V(:,1:nLevels);
+end
 % Compute correct eigenvectors for zero-field degeneracies
 if (B==0)
   dE = abs(diff(E)).';
