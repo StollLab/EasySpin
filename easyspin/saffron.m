@@ -805,8 +805,11 @@ end
 switch Opt.EndorMethod
   case 0, logmsg(1,'using population swaps of adjacent nuclear sublevels');
   case 1, logmsg(1,'using bandwidth-filtered Iy pi pulse, sum over transitions');
-  case 2, logmsg(1,'using bandwidth-filtered Iy pi pulse, full RF sweel');
+  case 2, logmsg(1,'using bandwidth-filtered Iy pi pulse, full RF sweep');
   otherwise, error('Unknown setting for Opt.EndorMethod. Must be 0, 1, or 2.');
+end
+if Opt.EndorMethod==0 && numel(shfNuclei)>1 && ~Opt.ProductRule
+  error('Opt.EndorMethod=0 gives incorrect results for multiple nuclei.')
 end
 
 
