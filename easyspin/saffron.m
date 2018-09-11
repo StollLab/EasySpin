@@ -2003,7 +2003,7 @@ else
     if ~isempty(Relaxation_)
       logmsg(1,'  adapting relaxation superoperator to system frame');
       [U,~] = eig(Ham);
-      R = kron(transpose(U),(U'));
+      R = kron(transpose(U),U');
       Relaxation_.Gamma = R'*Relaxation_.Gamma*R;
     end
     
@@ -2012,8 +2012,8 @@ else
   
   TimeAxis = TimeAxis{1};
   
+  % Accumulate powder signal
   Signal = 0;
-  
   for iOrientation = 1 : nOrientations
     Signal = Signal + RawSignals{iOrientation}*Exp.OriWeights(iOrientation);
   end

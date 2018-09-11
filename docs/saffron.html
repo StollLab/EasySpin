@@ -332,14 +332,17 @@ The following fields can only be used with the <em>thyme</em> method:
 
 <div class="optionfield"><code>PhaseCycle</code></div>
 <div class="optiondescr">
-Cell array that contains the individual phase cycles, with the indexing corresponding to the pulse indices.
-The phase cycle itself needs to be given in array form, where rows correspond to the phase cycling steps. 
-In each row the first element is the phase, and the second element the detection phase.
+Cell array that specifies the phase cycle, with one entry for each pulse. To cycle the phase of a pulse, provide an array with each phase step in a separate row. In each row the first element is the pulse phase angle (in radians), and the second element the detection phase (+1 or -1 or 1i or -1i).
 <pre class="matlab">
-PC = [0, 1; pi, -1];   		% phase cycle
-Exp.PhaseCycle = {[] PC};	% phase cycles the second pulse
+PC2 = [0, +1; pi, -1];   % step 1: pulse phase angle = 0, detection phase = +1
+                         % step 2: pulse phase angle = pi, detection phase = -1
+
+Exp.PhaseCycle = {[0 +1] PC2};  % phase cycle only second pulse; use [0 1] for non-cycled pulses
+Exp.PhaseCycle = {[] PC2};      % alternative: [] for non-cycled pulses
 </pre>
-Phace cycling that steps more than one pulse simultaneously is not available through the <code>PhaseCycle</code> structure, but can be achieved through adding an additional indirect dimension to the experiment (see <code>Dim</code>).
+The phase cycle is built from the individual phase steps for each pulse in a nested fashion, where each pulse is cycled separately.
+
+To step more than one pulse simultaneously, use an additional indirect phase dimension to the experiment (see <code>Dim</code>).
 </div>
 
 <div class="optionfield"><code>mwPolarization</code></div>

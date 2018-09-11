@@ -3,7 +3,7 @@ function s_plotting(TimeAxis,Signal,Exp,Opt)
 
 if ~isfield(Exp,'DetOperator')
   % this field will be used as title in the plotting
-  Exp.DetOperator = {'Electron Coherence'};
+  Exp.DetOperator = {'electron coherence'};
 end
 
 nDetOps = length(Exp.DetOperator);
@@ -27,20 +27,19 @@ logmsg(1,'  setting up figures...');
 if ~Opt.SinglePointDetection || (Opt.SinglePointDetection && isfield(Exp,'nPoints') && length(Exp.nPoints) < 3 && nDataPoints > 1)
   LabelsDetectionOp = cell(1,nDetOps);
   for iDetOp = 1 : nDetOps
-    figure(iDetOp)
-    clf
+    figure
     if ischar(Exp.DetOperator{iDetOp})
       % title for detection operators that used the sop syntax
       title(['Signal of ' Exp.DetOperator{iDetOp}])
-      if strcmp(Exp.DetOperator{iDetOp},'Electron Coherence') 
-        LabelsDetectionOp{iDetOp} = 'Signal (arb.u.)';
+      if strcmp(Exp.DetOperator{iDetOp},'electron coherence') 
+        LabelsDetectionOp{iDetOp} = 'signal (arb.u.)';
       else
         LabelsDetectionOp{iDetOp} = ['\langle' Exp.DetOperator{iDetOp} '\rangle'];
       end
     else
       % title of detection operators that were provided in matrix form
       title(['Signal detected with detection operator no.' num2str(iDetOp)])
-      LabelsDetectionOp{iDetOp} = 'Expectation value';
+      LabelsDetectionOp{iDetOp} = 'expectation value';
     end
     hold on
   end
@@ -64,7 +63,7 @@ if isfield(Exp,'nPoints')
   end
 end
 
-TransientLabel = 'Transient (\mus)';
+TransientLabel = 'time (\mus)';
 
 % plotting single point detection
 if Opt.SinglePointDetection
@@ -90,7 +89,7 @@ if Opt.SinglePointDetection
       % one dimensional case
       logmsg(1,'  creating plot(s) for one indirect dimension');
       for iDetOp = 1 : nDetOps
-        figure(iDetOp)
+        figure
         plot(AxesIndirectDims{1},real(squeeze(Signal(:,1,iDetOp))));
         xlabel(LabelsIndirectDims{1});
         ylabel(LabelsDetectionOp{iDetOp})
@@ -108,8 +107,10 @@ if Opt.SinglePointDetection
       end
     end
   end
+  
 else
 % Transient plotting
+
   if isfield(Exp,'nPoints') && length(Exp.nPoints) > 1
     % more than 1 indirect dimension in combination with transient
     % detection can not be displayed
@@ -121,7 +122,7 @@ else
     if nDataPoints == 1
       % plotting a single acquisition point
       for iDetOp = 1 : nDetOps
-        figure(iDetOp)
+        figure;
         plot(TimeAxis,real(Signal(:,iDetOp)));
         xlabel(TransientLabel)
         ylabel(LabelsDetectionOp{iDetOp})
@@ -138,7 +139,7 @@ else
       end
       
       for iDetOp = 1 : nDetOps
-        figure(iDetOp)
+        figure;
         if iscell(Signal)
           for iDataPoint = 1 : nDataPoints
             % plotting the cell arrays
