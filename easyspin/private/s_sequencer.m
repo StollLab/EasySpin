@@ -45,7 +45,7 @@ if ~isfield(Opt,'SimulationMode') || strcmp(Opt.SimulationMode,'fast')
     % getting some basic knowledge about the experiment
     Pulses = cellfun(@isstruct,Sequence);
     PulsePositions = find(Pulses);
-    DelayPositions = find(Pulses==0);
+    DelayPositions = find(~Pulses);
     
     nPulses = length(PulsePositions);
     nDelays = length(DelayPositions);
@@ -59,34 +59,35 @@ if ~isfield(Opt,'SimulationMode') || strcmp(Opt.SimulationMode,'fast')
     Flip = zeros(1,nPulses);
     tp = zeros(1,nPulses);
     Phase = ones(1,nPulses);
-    iPulse = 1;
     
-    % Loop over the sequence - verify and write into saffron specific fields
-    for Pos = PulsePositions
+    % Loop over pulses, verify and write into saffron specific fields
+    for iPulse = 1:nPulses
+      
+      pulse_ = Sequence{PulsePositions(iPulse)};
+      
       % make sure its a rectangular pulse
-      if isfield(Sequence{Pos},'Type') && ~strcmp(Sequence{Pos},'rectangular')
+      if isfield(pulse_,'Type') && ~strcmp(pulse_,'rectangular') && ~strcmp(pulse_,'rectangular/none')
         message = addtomessage(message,'the fast algorithm only supports ideal or monochromatic rectangular pulses');
         Opt.SimulationMode = 'thyme';
       end
       
       % determine flip angle
-      if isfield(Sequence{Pos},'Flip')
-        Flip(iPulse) = Sequence{Pos}.Flip/pi*2;
+      if isfield(pulse_,'Flip')
+        Flip(iPulse) = pulse_.Flip/(pi/2);
       else
         Opt.SimulationMode = 'thyme';
         message = addtomessage(message,'flip angles must be provided');
       end
       
-      if isfield(Sequence{Pos},'Phase')
-        Phase(iPulse) = mod(Phase(iPulse)+(Sequence{Pos}.Phase/pi*2),4);
+      if isfield(pulse_,'Phase')
+        Phase(iPulse) = mod(Phase(iPulse) + pulse_.Phase/(pi/2),4);
       end
       
       % Get time length for non-ideal pulses
-      if isfield(Sequence{Pos},'tp') && Sequence{Pos}.tp ~= 0
-        tp(iPulse) = Sequence{Pos}.tp;
+      if isfield(pulse_,'tp') && pulse_.tp ~= 0
+        tp(iPulse) = pulse_.tp;
       end
       
-      iPulse = iPulse + 1;
     end
     
     % set up saffron fields for delays
@@ -174,7 +175,7 @@ end
 
 if ~strcmp(OrigSimulationMode,Opt.SimulationMode)
   message = ['The ''thyme'' simulation mode has to be used.' '\n' 'The reason for this was: ' message '\n'];
-  fprintf(message);
+  logmsg(1,message);
 end
 
 if strcmp(Opt.SimulationMode,'thyme')
@@ -587,13 +588,15 @@ for iEvent = 1 : length(Exp.Sequence)
       Pulse = Exp.Sequence{iEvent};
       
       if ~isfield(Pulse,'tp')
-        msg = ['Pulse at position ' num2str(iEvent) ' in Exp.Sequence: no Pulse.tp specified. Please provide a pulse length.'];
-        error(msg);
+        error('Pulse at position %d in Exp.Sequence: no Pulse.tp specified. Please provide a pulse length.',iEvent);
       end
       
-      % Makes sure a frequency was provided
+      % Supplement frequency band if it is missing
+      %if ~isfield(Pulse,'Frequency')
+      %  error('Pulse at position %d in Exp.Sequence: frequency band (Pulse.Frequency) is missing.',iEvent)
+      %end
       if ~isfield(Pulse,'Frequency')
-        error('The Frequency Band for Pulse in position %d in Exp.Sequence is missing.',iEvent)
+        Pulse.Frequency = [0 0];
       end
       
       Pulse.PhaseCycle = ThisPhaseCycle;
@@ -602,7 +605,7 @@ for iEvent = 1 : length(Exp.Sequence)
       if isfield(Exp.Sequence{iEvent},'Flip')
         Pulse.Flip = Exp.Sequence{iEvent}.Flip;
       elseif ~isfield(Pulse,'Qcrit') && ~isfield(Pulse,'Amplitude')
-        error('No Flipangle for Pulse No. %d provided.',iPulse)
+        error('Flip angle for pulse no. %d is missing.',iPulse)
       end
       
       % Gets the phase for the pulse, if none is provided, the phase is
@@ -616,8 +619,9 @@ for iEvent = 1 : length(Exp.Sequence)
             
       % Loop over the function that creates the PulseShape, as many times at
       % are necessary to calculate all wave forms for the phase cycling
+      phase0 = Pulse.Phase;
       for iPCstep = 1 : nPhaseSteps
-        Pulse.Phase = Pulse.Phase + Pulse.PhaseCycle(iPCstep,1);
+        Pulse.Phase = phase0 + Pulse.PhaseCycle(iPCstep,1);
         [t,IQ] = pulse(Pulse);
         if IncludeResonator
           % if resonator is requested, pulses are elongated due to ringing.
@@ -1102,8 +1106,9 @@ if isfield(Exp,'nPoints')
           ArrayIndex = num2cell(Pulses{iPulse}.ArrayIndex);
               
           % Compute Wave form and store it
+          phase0 = Pulses{iPulse}.Phase;
           for iPCstep = 1 : size(Pulses{iPulse}.PhaseCycle,1)
-            Pulses{iPulse}.Phase = Pulses{iPulse}.Phase+Pulses{iPulse}.PhaseCycle(iPCstep,1);
+            Pulses{iPulse}.Phase = phase0 + Pulses{iPulse}.PhaseCycle(iPCstep,1);
             [t,IQ] = pulse(Pulses{iPulse});
             if IncludeResonator
               % if a resonator is present, the ringing duration of each pulse
