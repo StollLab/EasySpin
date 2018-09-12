@@ -619,8 +619,9 @@ for iEvent = 1 : length(Exp.Sequence)
             
       % Loop over the function that creates the PulseShape, as many times at
       % are necessary to calculate all wave forms for the phase cycling
+      phase0 = Pulse.Phase;
       for iPCstep = 1 : nPhaseSteps
-        Pulse.Phase = Pulse.Phase + Pulse.PhaseCycle(iPCstep,1);
+        Pulse.Phase = phase0 + Pulse.PhaseCycle(iPCstep,1);
         [t,IQ] = pulse(Pulse);
         if IncludeResonator
           % if resonator is requested, pulses are elongated due to ringing.
@@ -1105,8 +1106,9 @@ if isfield(Exp,'nPoints')
           ArrayIndex = num2cell(Pulses{iPulse}.ArrayIndex);
               
           % Compute Wave form and store it
+          phase0 = Pulses{iPulse}.Phase;
           for iPCstep = 1 : size(Pulses{iPulse}.PhaseCycle,1)
-            Pulses{iPulse}.Phase = Pulses{iPulse}.Phase+Pulses{iPulse}.PhaseCycle(iPCstep,1);
+            Pulses{iPulse}.Phase = phase0 + Pulses{iPulse}.PhaseCycle(iPCstep,1);
             [t,IQ] = pulse(Pulses{iPulse});
             if IncludeResonator
               % if a resonator is present, the ringing duration of each pulse
