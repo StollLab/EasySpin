@@ -898,10 +898,44 @@ elseif ~isfield(Document.ESRXmlFile.Data.Measurement.DataCurves,'Curve')
   error('No data. No <Curve> node found in xml file.');
 end
 
-% Get data (stored in a series of <Curve ...> </Curve> nodes under <DataCurves>)
-Measurement = Document.ESRXmlFile.Data.Measurement;
+% Add attributes from Measurement node to Paramater structure
+Data = Document.ESRXmlFile.Data;
+Measurement = Data.Measurement;
+Parameters = Measurement.Attributes;
 CurveList = Measurement.DataCurves.Curve;
 
+% Add all children Param nodes from Parameters node to Parameter structure
+% (if Recipe is present - it's absent for a dip sweep)
+if isfield(Measurement,'Recipe')
+  ParameterList = Measurement.Recipe.Parameters.Param;
+  for p = 1:numel(ParameterList)
+    PName = ParameterList{p}.Attributes.Name;
+    P_ = ParameterList{p}.Text;
+    Parameters.(PName) = P_;
+  end
+end
+
+% Determine what type of sweep this is (field sweep or other)
+if isfield(Measurement,'Recipe')
+  switch Measurement.Recipe.Attributes.Type
+    case 'single', xAxis = 'field';
+    case 'kinetic', xAxis = 'time';
+    case 'temperature', xAxis = 'temperature';
+    case 'goniometric', xAxis = 'goniometer angle';
+    case 'modulationSweep', xAxis = 'modulation';
+    case 'powerSweep', xAxis = 'power';
+    case 'xRay', xAxis = 'xRay';
+    otherwise
+      error('Unknown Recipe.Type in the xml file.');
+  end
+  if isfield(Parameters,'BHoldEnabled')
+    if strcmp(Parameters.BHoldEnabled,'True')
+      xAxis = 'time';
+    end
+  end
+end
+
+% Get data (stored in a series of <Curve ...> </Curve> nodes under <DataCurves>)
 for iCurve = 1:numel(CurveList)
   thisCurve = CurveList{iCurve};
   Name = thisCurve.Attributes.YType;
@@ -938,29 +972,36 @@ for iCurve = 1:numel(CurveList)
   Curves.(Name).x = XOffset + (0:numel(data)-1)*XSlope;
 end
 
-% Add attributes from Measurement node to Paramater structure
-Parameters = Measurement.Attributes;
-
-% Add all children Param nodes from Parameters node to Parameter structure
-if isfield(Measurement,'Recipe')
-  ParameterList = Measurement.Recipe.Parameters.Param;
-  for p = 1:numel(ParameterList)
-    PName = ParameterList{p}.Attributes.Name;
-    P_ = ParameterList{p}.Text;
-    Parameters.(PName) = P_;
-  end
-end
-
 if isfield(Curves,'BField')
-  % Field sweeps
-  Abscissa = interp1(Curves.BField.x,Curves.BField.data,Curves.MW_Absorption.x);
-  Abscissa = Abscissa(:);
-  Data = Curves.MW_Absorption.data(:);
+  % Field sweeps, transients, and parameter sweeps
+  
+  switch xAxis
+    case 'field'
+      Abscissa = interp1(Curves.BField.x,Curves.BField.data,Curves.MW_Absorption.x);
+      Abscissa = Abscissa(:);
+      Data = Curves.MW_Absorption.data(:);
+      % Remove data outside desired field range
+      xmin = str2double(Parameters.Bfrom);
+      xmax = str2double(Parameters.Bto);
+      idx = Abscissa>=xmin & Abscissa<=xmax;
+      Abscissa = Abscissa(idx);
+      Data = Data(idx);
+    case 'time'
+      Abscissa = Curves.MW_Absorption.x(:);
+      Abscissa = Abscissa(:);
+      Data = Curves.MW_Absorption.data(:);
+    otherwise
+      error('Cannot construct abscissa for this measurement type');
+  end
+  
 elseif isfield(Curves,'Frequency')
   % Capture of IQ raw data (dip sweep)
+  
   Abscissa = Curves.Frequency.data(:);
   Data = Curves.ADC_24bit.data(:);
+  
 end
+
 Parameters = parseparams(Parameters);
 
 % Store all curves from the file in the parameters
