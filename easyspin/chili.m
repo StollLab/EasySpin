@@ -1028,7 +1028,7 @@ if doPostConvolution
   
   % Spin system with shf nuclei only
   pcidx = Opt.PostConvNucs;
-  pcSys.g = mean(fullSys.g);
+  pcSys.g = mean(fullSys.g(:));
   pcSys.A = mean(fullSys.A(pcidx,:),2);
   if isfield(fullSys,'n')
     pcSys.n = fullSys.n(pcidx);
