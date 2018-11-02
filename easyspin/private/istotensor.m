@@ -4,13 +4,15 @@
 % cell array. The anisotropic components are arranged as a row of 5
 % matrices in a cell array in decreasing order of component M from 2 to -2.
 
-function [T0,T1,T2] = istotensor(A,B)
+function [T0,T1,T2] = istotensor(A,B,CartesianTensors)
 
 
 Ax = A{1}; Ay = A{2}; Az = A{3};
 Bx = B{1}; By = B{2}; Bz = B{3};
 
-CartesianTensors = false;
+if nargin<3
+  CartesianTensors = false;
+end
 
 if CartesianTensors
   
@@ -23,7 +25,7 @@ if CartesianTensors
   T1 = cell(1,3);
   T1{1} = -0.5*((Ax*Bz - Az*Bx) + 1i*(Ay*Bz - Az*By)); % M = +1
   T1{3} = -0.5*((Ax*Bz - Az*Bx) - 1i*(Ay*Bz - Az*By)); % M = -1
-  T1{2} = -(1/sqrt(2))*(Ay*Bx - Ax*By);               % M =  0
+  T1{2} = -(1i/sqrt(2))*(Ay*Bx - Ax*By);               % M =  0
   
   % L = 2
   %-----------------------------------------
@@ -51,7 +53,7 @@ else  % polar representation
   T1 = cell(1,3);
   T1{1} = -0.5 * (Ar*Bz - Az*Br);            % M = +1
   T1{3} = -0.5 * (Al*Bz - Az*Bl);            % M = -1
-  T1{2} = -(0.5i/sqrt(2)) * (Ar*Bl - Al*Br); % M =  0      
+  T1{2} = -(0.5/sqrt(2)) * (Ar*Bl - Al*Br); % M =  0      
   
   % L = 2
   %-----------------------------------------
