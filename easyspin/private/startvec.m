@@ -9,6 +9,8 @@ jKbasis = ~useLMKbasis;
 % Settings
 if nargin<5, useSelectionRules = true; end
 IntegralThreshold = 1e-10;
+AbsTol3D = 1e-6;
+RelTol3D = 1e-6;
 
 L = basis.L;
 M = basis.M;
@@ -85,7 +87,7 @@ for b = 1:numel(oriVector)
     Int = (2*pi) * integral2(fun,0,2*pi,0,pi);
   else
     fun = @(a,b,c) conj(wignerd([L_ M_ K_],a,b,c)) .* exp(-U(a,b,c)/2) .* sin(b);
-    Int = integral3(fun,0,2*pi,0,pi,0,2*pi);
+    Int = integral3(fun,0,2*pi,0,pi,0,2*pi,'AbsTol',AbsTol3D,'RelTol',RelTol3D);
   end
   
   if abs(Int) < IntegralThreshold, continue; end

@@ -198,17 +198,32 @@ ConvolutionBroadening = any(Sys.lw(1)>0);
 % Dynamics
 %-------------------------------------------------------------------------------
 % Add defaults
-if isfield(Sys,'tcorr'), Dynamics.tcorr = Sys.tcorr; end
-if isfield(Sys,'Diff'), Dynamics.Diff = Sys.Diff; end
-if isfield(Sys,'logtcorr'), Dynamics.logtcorr = Sys.logtcorr; end
-if isfield(Sys,'logDiff'), Dynamics.logDiff = Sys.logDiff; end
 if ~isfield(Sys,'DiffFrame'), Sys.DiffFrame = [0 0 0]; end
 if ~isfield(Sys,'Potential'), Sys.Potential = []; end
-if ~isfield(Sys,'Exchange'), Sys.Exchange = 0; end
 if isfield(Sys,'lwpp'), Dynamics.lwpp = Sys.lwpp; end
 if isfield(Sys,'lw'), Dynamics.lw = Sys.lw; end
 
+
+% Heisenberg exchange
+%-------------------------------------------------------------------------------
+if ~isfield(Sys,'Exchange'), Sys.Exchange = 0; end
 Dynamics.Exchange = Sys.Exchange;
+Dynamics.Exchange = Dynamics.Exchange*2*pi*1e6; % microseconds^-1 -> rad s^-1
+
+% Check and parse diffusion rate information
+%-------------------------------------------------------------------------------
+DiffFields = {'logtcorr','tcorr','Diff','logDiff'};
+hasDiffFields = isfield(Sys,DiffFields);
+if sum(hasDiffFields)>1
+  error('Only one of Sys.tcorr, Sys.logtcorr, Sys.Diff, and Sys.logDiff is allowed.');
+elseif ~any(hasDiffFields)
+  error('One of Sys.tcorr, Sys.logtcorr, Sys.Diff, and Sys.logDiff is required.');
+end
+for k = 1:numel(DiffFields)
+  if hasDiffFields(k)
+    Dynamics.(DiffFields{k}) = Sys.(DiffFields{k});
+  end
+end
 
 % Orientational potential
 %-------------------------------------------------------------------------------
@@ -250,7 +265,7 @@ else
 end
 usePotential = ~isempty(Potential.lambda);
 
-% Validate potential inputs
+% Validate inputs for orientational potential
 if usePotential
   if any(Potential.L<0)
     error('L values of potential coefficients must be nonnegative.');
@@ -264,8 +279,8 @@ if usePotential
   if any(Potential.K<0)
     error('Only nonnegative values of K are allowed.');
   end
-  if any(Potential.K(Potential.M==0)<0)
-    error('For potential terms with M=0, K must be nonnegative.');
+  if any(Potential.M(Potential.K==0)<0)
+    error('For potential terms with K=0, M must be nonnegative.');
   end
   if ~isreal(Potential.lambda(Potential.K==0 & Potential.M==0))
     error('Potential coefficients for M=K=0 must be real-valued.');
@@ -703,6 +718,7 @@ if noAnisotropiesPresent
   error('This is an isotropic spin system. chili cannot calculate a slow-motion spectrum.');
 end
 
+% process diffusion tensor and linewidth
 [Dynamics,err] = processdynamics(Dynamics,FieldSweep);
 error(err);
 
@@ -1107,7 +1123,7 @@ for iOri = 1:nOrientations
         
       case 'C' % conjugated gradients
         CGshift = 1e-6 + 1e-6i;
-        [xx,alpha,beta,err,StepsDone] = chili_conjgrad(L,StartVector,CGshift);
+        [~,alpha,beta,err,StepsDone] = chili_conjgrad(L,StartVector,CGshift);
         
         logmsg(1,'  step %d/%d: CG converged to within %g',...
           StepsDone,BasisSize,err);
@@ -1465,6 +1481,9 @@ err = '';
 % convert everything (tcorr, logcorr, logDiff) to Diff
 if isfield(Dyn,'Diff')
   % Diff given
+  if any(Dyn.Diff<0)
+    error('Sys.Diff cannot be negative.');
+  end
 elseif isfield(Dyn,'logDiff')
   Dyn.Diff = 10.^Dyn.logDiff;
 elseif isfield(Dyn,'tcorr')
@@ -1477,6 +1496,7 @@ else
   return
 end
 
+% check values
 if any(Dyn.Diff<0)
   error('Negative diffusion rate or correlation times are not possible.');
 elseif any(Dyn.Diff>1e12)
@@ -1495,10 +1515,12 @@ switch numel(Dyn.Diff)
     return
 end
 
+% linewidth
+%-------------------------------------------------------------------------------
 if isfield(Dyn,'lw')
   if numel(Dyn.lw)>1
     if FieldSweep
-      LorentzFWHM = Dyn.lw(2)*28 * 1e6; % mT -> MHz -> Hz
+      LorentzFWHM = Dyn.lw(2)*28 * 1e6; % mT -> MHz -> Hz (g = 2.0006)
     else
       LorentzFWHM = Dyn.lw(2)*1e6; % MHz -> Hz
     end
@@ -1512,10 +1534,5 @@ if isfield(Dyn,'lw')
     Dyn.T2 = inf;
   end
 end
-
-% Spin exchange
-%-------------------------------------------------------------------------------
-if ~isfield(Dyn,'Exchange'), Dyn.Exchange = 0; end
-Dyn.Exchange = Dyn.Exchange*2*pi*1e6; % microseconds^-1 -> angular frequency
 
 return
