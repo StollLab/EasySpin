@@ -1,69 +1,54 @@
-% istotensor takes two vector spin operators as input and gives as output
-% the 1 isotropic and 5 rank-2 Cartesian irreducible spherical tensor
-% components. The isotropic component is stored as a row of 1 matrix in a
-% cell array. The anisotropic components are arranged as a row of 5
-% matrices in a cell array in decreasing order of component M from 2 to -2.
+% istotensor  Irreducbile spherical tensor operator from 2 vector operators
+%
+%   [T0,T1,T2] = istotensor(a,b)
+%
+% istotensor converts two cartesian vector operators (or, more specifically,
+% their outer product b*a') into three irreducible spherical tensors
+% T^(l)(a,b) of rank l=0, 1, and 2.
+%
+% Examples of vectors/vector operators are the magnetic field, electron spin
+% vector operators, or nuclear spin vector operators.
+%
+% Input:
+%    a  ... 3-element array or cell array for the first vector/vector operator
+%    b  ... 3-element array or cell array for the second vector/vector operator
+%
+% Output:
+%    T0  ... rank-0 irreducbile spherical tensor (scalar)
+%    T1  ... rank-1 irreducible spherical tensor (3x1 cell array)
+%    T2  ... rank-2 irreducible spherical tensor (5x1 cell array)
+%
+% Reference:
+%   Michael Mehring
+%   Principles of High Resolution NMR in Solids, 2nd edition
+%   Wiley, 1983
+%   Appendix A, starting on p.288
 
-function [T0,T1,T2] = istotensor(A,B,CartesianTensors)
+function [T0,T1,T2] = istotensor(a,b)
 
-
-Ax = A{1}; Ay = A{2}; Az = A{3};
-Bx = B{1}; By = B{2}; Bz = B{3};
-
-if nargin<3
-  CartesianTensors = false;
+if iscell(a)
+  ax = a{1}; ay = a{2}; az = a{3};
+else
+  ax = a(1); ay = a(2); az = a(3);
 end
-
-if CartesianTensors
-  
-  % L = 0
-  %-----------------------------------------
-  T0 = -(1/sqrt(3)) * (Ax*Bx+Ay*By+Az*Bz); % M = 0
-  
-  % L = 1
-  %-----------------------------------------
-  T1 = cell(1,3);
-  T1{1} = -0.5*((Ax*Bz - Az*Bx) + 1i*(Ay*Bz - Az*By)); % M = +1
-  T1{3} = -0.5*((Ax*Bz - Az*Bx) - 1i*(Ay*Bz - Az*By)); % M = -1
-  T1{2} = -(1i/sqrt(2))*(Ay*Bx - Ax*By);               % M =  0
-  
-  % L = 2
-  %-----------------------------------------
-  T2 = cell(1,5);
-  T2{1} =  0.5*((Ax*Bx - Ay*By) + 1i*(Ax*By + Ay*Bx)); % M = +2
-  T2{5} =  0.5*((Ax*Bx - Ay*By) - 1i*(Ax*By + Ay*Bx)); % M = -2
-  T2{2} = -0.5*((Ax*Bz + Az*Bx) + 1i*(Ay*Bz + Az*By)); % M = +1
-  T2{4} =  0.5*((Ax*Bz + Az*Bx) - 1i*(Ay*Bz + Az*By)); % M = -1
-  T2{3} =  sqrt(2/3) *  (Az*Bz - 0.5*(Ax*Bx + Ay*By)); % M =  0
-  
-else  % polar representation
-  
-  Ar   = Ax + 1i*Ay;  % raising operators  (up)
-  Br   = Bx + 1i*By;
-  
-  Al = Ax - 1i*Ay;    % lowering operators (down)
-  Bl = Bx - 1i*By;
-  
-  % L = 0
-  %-----------------------------------------
-  T0 = -(1/sqrt(3)) * (Az*Bz + 0.5*(Ar*Bl + Al*Br)); % M = 0
-  
-    % L = 1
-  %-----------------------------------------
-  T1 = cell(1,3);
-  T1{1} = -0.5 * (Ar*Bz - Az*Br);            % M = +1
-  T1{3} = -0.5 * (Al*Bz - Az*Bl);            % M = -1
-  T1{2} = -(0.5/sqrt(2)) * (Ar*Bl - Al*Br); % M =  0      
-  
-  % L = 2
-  %-----------------------------------------
-  T2 = cell(1,5);
-  T2{1} =  0.5 * (Ar*Br);                              % M = +2
-  T2{5} =  0.5 * (Al*Bl);                              % M = -2
-  T2{2} = -0.5 * (Ar*Bz + Az*Br);                      % M = +1
-  T2{4} =  0.5 * (Al*Bz + Az*Bl);                      % M = -1
-  T2{3} =  sqrt(2/3) * (Az*Bz - 0.25*(Ar*Bl + Al*Br)); % M =  0
-  
+if iscell(b)
+  bx = b{1}; by = b{2}; bz = b{3};
+else
+  bx = b(1); by = b(2); bz = b(3);
 end
+  
+T0 = -(1/sqrt(3)) * (ax*bx+ay*by+az*bz);             % (0,0)
 
+T1 = cell(3,1);
+T1{1} = -0.5*((ax*bz - az*bx) + 1i*(ay*bz - az*by)); % (1,+1)
+T1{2} = -(1i/sqrt(2))*(ay*bx - ax*by);               % (1,0)
+T1{3} = -0.5*((ax*bz - az*bx) - 1i*(ay*bz - az*by)); % (1,-1)
+
+T2 = cell(5,1);
+T2{1} =  0.5*((ax*bx - ay*by) + 1i*(ax*by + ay*bx)); % (2,+2)
+T2{2} = -0.5*((ax*bz + az*bx) + 1i*(ay*bz + az*by)); % (2,+1)
+T2{3} =  sqrt(2/3) *  (az*bz - 0.5*(ax*bx + ay*by)); % (2,0)
+T2{4} =  0.5*((ax*bz + az*bx) - 1i*(ay*bz + az*by)); % (2,-1)
+T2{5} =  0.5*((ax*bx - ay*by) - 1i*(ax*by + ay*bx)); % (2,-2)
+  
 return
