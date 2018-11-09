@@ -932,9 +932,7 @@ for iOri = 1:nOrientations
     iOri,nOrientations,phi(iOri)*180/pi,theta(iOri)*180/pi,Weights(iOri));
 
   if generalLiouvillian
-    D1 = wignerd(1,phi(iOri),theta(iOri),0);
-    D2 = wignerd(2,phi(iOri),theta(iOri),0);
-    [Q0B,Q1B,Q2B,Q0G,Q1G,Q2G] = rbos(D1,D2,T,F,isFieldDep);
+    [Q0B,Q1B,Q2B,Q0G,Q1G,Q2G] = rbos(T,F,[phi(iOri),theta(iOri),0],isFieldDep);
     
     if Opt.pqOrder
       Q0B = Q0B(idxpq,idxpq);
