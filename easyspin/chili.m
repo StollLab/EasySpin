@@ -958,12 +958,12 @@ for iOri = 1:nOrientations
   
   if explicitFieldSweep
     BSweep = linspace(min(Exp.Range),max(Exp.Range),Exp.nPoints)/1e3; % mT -> T
-    omega0 = 2i*pi*Exp.mwFreq*1e9; % GHz -> Hz (angular frequency)
+    omega0 = complex(2*pi*Exp.mwFreq*1e9,1/Dynamics.T2); % GHz -> rad s^-1 (angular frequency)
   else
     Bcalc = CenterField;
     %Bcalc = mhz2mt(Exp.mwFreq*1e3,mean(mean(Sys.g)));
     BSweep = Bcalc/1e3; % mT -> T
-    omega0 = complex(1/(Dynamics.T2),2*pi*nu); % angular frequency
+    omega0 = complex(2*pi*nu,1/Dynamics.T2); % Hz -> rad s^-1 (angular frequency)
   end
   
   if generalLiouvillian
@@ -1034,13 +1034,18 @@ for iOri = 1:nOrientations
       
       % Call mex function to get L matrix elements
       [r,c,Vals,nDim] = chili_lm(Sys,Basis.v,Dynamics,Opt.AllocationBlockSize);
+      % (chili_lm constructs r/c/Vals for -1i*H + Gamma
+      Vals = conj(Vals); % make sure L = +1i*H + Gamma (assumes Gamma is real)
       L = sparse(r,c,Vals,BasisSize,BasisSize);
       
       if saveDiagnostics
-        rL = real(L);
-        H = -imag(L) + 1i*(rL-rL')/2;
-        H = H/(2*pi);
-        Gamma = (rL+rL')/2;
+        % extract H and Gamma from L = iH + Gamma
+        % (assumes only that H and Gamma are Hermitian)
+        reL = real(L);
+        imL = imag(L);
+        Gamma = (reL+reL.')/2 + 1i*(imL-imL.')/2;
+        H = (imL+imL.')/2 + 1i*(reL.'-reL)/2;
+        H = H/(2*pi); % rad s^-1 -> Hz
       end
       
     else
@@ -1048,7 +1053,7 @@ for iOri = 1:nOrientations
       if explicitFieldSweep
         H = BSweep(iB)*HB + HG;
       end
-      L = -2i*pi*H + Gamma;
+      L = 2i*pi*H + Gamma;
       nDim = size(L,1);
       
       if nDim~=BasisSize
@@ -1079,7 +1084,7 @@ for iOri = 1:nOrientations
     
     % Rescale by maximum of Liouvillian superoperator, for numerical stability
     if Opt.Rescale
-      scale = -min(min(imag(L)));
+      scale = max(abs(L(:)));
       L = L/scale;
       omega = omega0/scale;
     else
@@ -1107,10 +1112,10 @@ for iOri = 1:nOrientations
     switch Opt.Solver
       
       case 'L' % Lanczos method
-        [alpha,beta,minerr] = chili_lanczos(L,StartVector,omega,Opt);
+        [alpha,beta,minerr] = chili_lanczos(L,StartVector,-1i*omega,Opt);
         minerr = minerr(end);
         if minerr<Opt.Threshold
-          thisspec = chili_contfracspec(omega,alpha,beta);
+          thisspec = chili_contfracspec(-1i*omega,alpha,beta);
           logmsg(1,'  converged to within %g at iteration %d/%d',...
             Opt.Threshold,numel(alpha),BasisSize);
         else
@@ -1126,25 +1131,25 @@ for iOri = 1:nOrientations
         logmsg(1,'  step %d/%d: CG converged to within %g',...
           StepsDone,BasisSize,err);
         
-        thisspec = chili_contfracspec(omega,alpha,beta);
+        thisspec = chili_contfracspec(-1i*omega,alpha,beta);
         
       case 'R' % bi-conjugate gradients stabilized
+        I = speye(size(L));
+        rho0 = StartVector;
         for iOmega = 1:numel(omega)
-          u = bicgstab(L+omega(iOmega)*speye(size(L)),StartVector,Opt.Threshold,nDim);
-          thisspec(iOmega) = real(u'*StartVector);
+          Q = L - 1i*omega(iOmega)*I;
+          u = bicgstab(Q,rho0,Opt.Threshold,nDim);
+          thisspec(iOmega) = rho0'*u;
         end
         
       case '\' % MATLAB backslash solver for linear system
         I = speye(size(L));
         rho0 = StartVector;
         for iOmega = 1:numel(omega)
-          thisspec(iSpec) = rho0'*((L+omega(iOmega)*I)\rho0);
-          if generalLiouvillian
-            thisspec(iSpec) = thisspec(iSpec);%*2; % scale to match Lanczos
-          end
+          Q = L - 1i*omega(iOmega)*I;
+          thisspec(iSpec) = rho0'*(Q\rho0);
           iSpec = iSpec + 1;
         end
-        %thisspec = real(thisspec);
         
       case 'D' % "direct" method by Binsch (eigenbasis)
         L = full(L);
@@ -1154,7 +1159,7 @@ for iOri = 1:nOrientations
         Amplitude = (rho0'*U).'.*(U\rho0);
         thisspec = 0;
         for iPeak = 1:numel(Amplitude)
-          thisspec = thisspec + Amplitude(iPeak)./(Lam(iPeak)+omega);
+          thisspec = thisspec + Amplitude(iPeak)./(Lam(iPeak)-1i*omega);
         end
         
     end
@@ -1186,7 +1191,7 @@ end
 %===============================================================================
 % Phasing
 %===============================================================================
-spec = real(exp(-1i*Exp.mwPhase)*spec);
+spec = real(exp(1i*Exp.mwPhase)*spec);
 
 
 %===============================================================================
