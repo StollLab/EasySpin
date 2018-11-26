@@ -1,7 +1,7 @@
 % chili_xlmk   Computes the coefficients X^L_MK of the orienting
 %              potential operator coefficients for the diffusion operator.
 %
-%     X = chili_xlk(Potential,R)
+%     X = chili_xlmk(Potential,R)
 %
 %          Potential.lambda   coefficients of potential expansion
 %          Potential.L        L numbers of potential coefficients
@@ -12,7 +12,7 @@
 function X = chili_xlmk(Potential,R)
 
 % Unpack potential parameters
-idx = Potential.lambda~=0; % remove zero terms
+idx = Potential.lambda(:)~=0; % remove zero terms
 lambda = Potential.lambda(idx);
 Lpot = Potential.L(idx);
 Mpot = Potential.M(idx);
@@ -27,9 +27,9 @@ end
 % Add terms needed to render potential real-valued
 idx = Mpot~=0 | Kpot~=0;
 lambda = [lambda conj(lambda(idx)).*(-1).^(Kpot(idx)-Mpot(idx))];
-Lpot = [Lpot  Lpot(idx)];
-Mpot = [Mpot -Mpot(idx)];
-Kpot = [Kpot -Kpot(idx)];
+Lpot = [Lpot;  Lpot(idx)];
+Mpot = [Mpot; -Mpot(idx)];
+Kpot = [Kpot; -Kpot(idx)];
 
 maxLpot = max(Lpot);
 maxLx = maxLpot*2;

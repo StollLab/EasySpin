@@ -514,7 +514,7 @@ end
 if isempty(Opt), Opt = struct; end
 
 % Documented
-if ~isfield(Opt,'LLMK'), Opt.LLMK = [14 7 2 6]; end
+if ~isfield(Opt,'LLMK'), Opt.LLMK = [14 7 2 2]; end
 if ~isfield(Opt,'nKnots'), Opt.nKnots = [5 0]; end
 if ~isfield(Opt,'LiouvMethod'), Opt.LiouvMethod = ''; end
 if ~isfield(Opt,'PostConvNucs'), Opt.PostConvNucs = ''; end
@@ -523,7 +523,6 @@ if ~isfield(Opt,'PostConvNucs'), Opt.PostConvNucs = ''; end
 % Undocumented
 if ~isfield(Opt,'Rescale'), Opt.Rescale = true; end
 if ~isfield(Opt,'Threshold'), Opt.Threshold = 1e-6; end
-if ~isfield(Opt,'Diagnostic'), Opt.Diagnostic = false; end
 if ~isfield(Opt,'Solver'), Opt.Solver = 'L'; end
 if ~isfield(Opt,'Lentz'), Opt.Lentz = true; end
 if ~isfield(Opt,'IncludeNZI'), Opt.IncludeNZI = true; end
@@ -660,8 +659,8 @@ switch Opt.Solver
     SolverString = 'biconjugate gradients, stabilized';
   case '\'
     SolverString = 'backslash linear';
-  case 'D'
-    SolverString = 'direct method (eigenbasis, Binsch)';
+  case 'E'
+    SolverString = 'eigenvalue method, sum of Lorentzians';
   otherwise
     error('Unknown method in Options.Solver. Must be ''L'', ''R'', ''C'', or ''\''.');
 end
@@ -713,6 +712,11 @@ end
                                        Opt.IncludeNZI,...
                                        explicitFieldSweep);
 
+if saveDiagnostics
+  diagnostics.T = T;
+  diagnostics.F = F;
+end
+                                     
 noAnisotropiesPresent = all(F.F1(:)==0) && all(F.F2(:)==0);
 if noAnisotropiesPresent
   error('This is an isotropic spin system. chili cannot calculate a slow-motion spectrum.');
@@ -896,7 +900,7 @@ if generalLiouvillian
 else
   
   % Gamma is calculated simultaneously with H
-    
+  
 end
 
 
@@ -969,7 +973,8 @@ for iOri = 1:nOrientations
   if generalLiouvillian
     if Opt.useLMKbasis
       TT = ksymmetrizer(Basis); % in spatial basis
-      TT = kron(TT,Sys.nStates^2); % expand to full basis, incl. spin
+      TT = kron(TT,eye(Sys.nStates^2)); % expand to full basis, incl. spin
+      TT = TT(keep,keep); % prune
     end
     if explicitFieldSweep
       if Opt.useLMKbasis
@@ -1003,6 +1008,11 @@ for iOri = 1:nOrientations
         H = liouvhamiltonian(Basis,Q0,Q1,Q2,jjj0,jjj1,jjj2);
       end
       H = H(keep,keep);
+      if saveDiagnostics
+        diagnostics.Q0 = Q0;
+        diagnostics.Q1 = Q1;
+        diagnostics.Q2 = Q2;        
+      end
     end
   end
       
@@ -1016,8 +1026,8 @@ for iOri = 1:nOrientations
     end
   end
   
-  iSpec = 1;
   for iB = 1:numel(BSweep)
+    
     if ~generalLiouvillian
       if explicitFieldSweep
         Sys.EZ0 = EZ0_*BSweep(iB);
@@ -1038,8 +1048,8 @@ for iOri = 1:nOrientations
       Vals = conj(Vals); % make sure L = +1i*H + Gamma (assumes Gamma is real)
       L = sparse(r,c,Vals,BasisSize,BasisSize);
       
-      if saveDiagnostics
-        % extract H and Gamma from L = iH + Gamma
+      if saveDiagnostics && iOri==1
+        % extract H and Gamma from L = 1i*H + Gamma
         % (assumes only that H and Gamma are Hermitian)
         reL = real(L);
         imL = imag(L);
@@ -1053,7 +1063,7 @@ for iOri = 1:nOrientations
       if explicitFieldSweep
         H = BSweep(iB)*HB + HG;
       end
-      L = 2i*pi*H + Gamma;
+      L = 2i*pi*H + Gamma;  % Hamiltonian: Hz -> rad s^-1
       nDim = size(L,1);
       
       if nDim~=BasisSize
@@ -1072,12 +1082,18 @@ for iOri = 1:nOrientations
     end
     
     % Appy K-symmetrization if needed to obtain complex symmetric L for Lanczos
-    % algorithm. L = -i*H + Gamma is complex symmetric unless H has an imaginary
-    % component.
+    % algorithm. L = i*H + Gamma is complex symmetric if both the imaginary
+    % parts of H and Gamma are zero, i.e. if both H and Gamma are real-valued.
     if generalLiouvillian && Opt.useLMKbasis
       isComplexSymmetric = isreal(H);
+      %maxerr = @(A)max(abs(A(:)));
+      %imagerr = @(A)maxerr(imag(A))/maxerr(real(A));
+      %Himag = imagerr(H)
+      %Gimag = imagerr(Gamma)
       if ~isComplexSymmetric
         L = TT'*L*TT;
+        ksymmHimag = imagerr(TT'*H*TT)
+        ksymmHimag = imagerr(TT'*Gamma*TT)
         StartVector = TT'*StartVector;
       end
     end
@@ -1091,8 +1107,8 @@ for iOri = 1:nOrientations
       omega = omega0;
     end
     
-    maxDval = max(max(abs(imag(L))));
-    logmsg(1,'  size: %dx%d, maxabs: %g',length(L),length(L),full(maxDval));
+    maxDval = max(abs(real(L(:))));
+    logmsg(1,'  size: %dx%d, maxabsreal: %g',length(L),length(L),full(maxDval));
     
     maxDvalLim = 2e3;
     if maxDval>maxDvalLim
@@ -1107,63 +1123,70 @@ for iOri = 1:nOrientations
     %===========================================================================
     logmsg(1,'Computing spectrum...');
     if explicitFieldSweep
-      Opt.Solver = '\';
-    end
-    switch Opt.Solver
       
-      case 'L' % Lanczos method
-        [alpha,beta,minerr] = chili_lanczos(L,StartVector,-1i*omega,Opt);
-        minerr = minerr(end);
-        if minerr<Opt.Threshold
+      I = speye(size(L));
+      rho0 = StartVector;
+      Q = L - 1i*omega*I;
+      thisspec(iB) = rho0'*(Q\rho0);
+      
+    else
+      
+      switch Opt.Solver
+        
+        case 'L' % Lanczos method
+          [alpha,beta,minerr] = chili_lanczos(L,StartVector,-1i*omega,Opt);
+          minerr = minerr(end);
+          if minerr<Opt.Threshold
+            thisspec = chili_contfracspec(-1i*omega,alpha,beta);
+            logmsg(1,'  converged to within %g at iteration %d/%d',...
+              Opt.Threshold,numel(alpha),BasisSize);
+          else
+            thisspec = ones(size(omega));
+            logmsg(0,'  Tridiagonalization did not converge to within %g after %d steps!\n  Increase Options.LLMK (current settings [%d,%d,%d,%d])',...
+              Opt.Threshold,BasisSize,Opt.LLMK');
+          end
+          
+        case 'C' % conjugated gradients
+          CGshift = 1e-6 + 1e-6i;
+          [~,alpha,beta,err,StepsDone] = chili_conjgrad(L,StartVector,CGshift);
+          
+          logmsg(1,'  step %d/%d: CG converged to within %g',...
+            StepsDone,BasisSize,err);
+          
           thisspec = chili_contfracspec(-1i*omega,alpha,beta);
-          logmsg(1,'  converged to within %g at iteration %d/%d',...
-            Opt.Threshold,numel(alpha),BasisSize);
-        else
-          thisspec = ones(size(omega));
-          logmsg(0,'  Tridiagonalization did not converge to within %g after %d steps!\n  Increase Options.LLMK (current settings [%d,%d,%d,%d])',...
-            Opt.Threshold,BasisSize,Opt.LLMK');
-        end
-        
-      case 'C' % conjugated gradients
-        CGshift = 1e-6 + 1e-6i;
-        [~,alpha,beta,err,StepsDone] = chili_conjgrad(L,StartVector,CGshift);
-        
-        logmsg(1,'  step %d/%d: CG converged to within %g',...
-          StepsDone,BasisSize,err);
-        
-        thisspec = chili_contfracspec(-1i*omega,alpha,beta);
-        
-      case 'R' % bi-conjugate gradients stabilized
-        I = speye(size(L));
-        rho0 = StartVector;
-        for iOmega = 1:numel(omega)
-          Q = L - 1i*omega(iOmega)*I;
-          u = bicgstab(Q,rho0,Opt.Threshold,nDim);
-          thisspec(iOmega) = rho0'*u;
-        end
-        
-      case '\' % MATLAB backslash solver for linear system
-        I = speye(size(L));
-        rho0 = StartVector;
-        for iOmega = 1:numel(omega)
-          Q = L - 1i*omega(iOmega)*I;
-          thisspec(iSpec) = rho0'*(Q\rho0);
-          iSpec = iSpec + 1;
-        end
-        
-      case 'D' % "direct" method by Binsch (eigenbasis)
-        L = full(L);
-        [U,Lam] = eig(L);
-        Lam = diag(Lam);
-        rho0 = StartVector;
-        Amplitude = (rho0'*U).'.*(U\rho0);
-        thisspec = 0;
-        for iPeak = 1:numel(Amplitude)
-          thisspec = thisspec + Amplitude(iPeak)./(Lam(iPeak)-1i*omega);
-        end
-        
-    end
+          
+        case 'R' % bi-conjugate gradients stabilized
+          I = speye(size(L));
+          rho0 = StartVector;
+          for iOmega = 1:numel(omega)
+            Q = L - 1i*omega(iOmega)*I;
+            u = bicgstab(Q,rho0,Opt.Threshold,nDim);
+            thisspec(iOmega) = rho0'*u;
+          end
+          
+        case '\' % MATLAB backslash solver for sparse linear system
+          I = speye(size(L));
+          rho0 = StartVector;
+          for iOmega = 1:numel(omega)
+            Q = L - 1i*omega(iOmega)*I;
+            thisspec(iOmega) = rho0'*(Q\rho0);
+          end
+          
+        case 'E' % eigenvalue method (sum of Lorentzians)
+          % see e.g. G. Binsch, J. Am. Chem. Soc. 91, 1304 (1969)
+          L = full(L);
+          [U,Lam] = eig(L);
+          Lam = diag(Lam);
+          rho0 = StartVector;
+          Amplitude = (rho0'*U).'.*(U\rho0);
+          thisspec = 0;
+          for iPeak = 1:numel(Amplitude)
+            thisspec = thisspec + Amplitude(iPeak)./(Lam(iPeak)-1i*omega);
+          end
+          
+      end
     
+    end
   end
   
   spec = spec + thisspec*Weights(iOri);
