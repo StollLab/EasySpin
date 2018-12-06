@@ -1,16 +1,19 @@
 function esbuild
-%===========================================================
+%========================================================================
 %                 EasySpin build script
-%===========================================================
+%========================================================================
 
+
+%========================================================================
+% Build settings
+%========================================================================
 % ReleaseID: MAJOR.MINOR.PATCH
 %   MAJOR: Change only when major new functionality is implemented
 %     including incompatible changes.
 %   MINOR: Change when new functionality is added in a backwards-
 %     compatible manner.
 %   PATCH: Increment for every bugfix release.
-% Roughly follow guidelines of seminatic versioning, see
-%   http://semver.org/
+% Roughly follow guidelines of semantic versioning, see http://semver.org/
 ReleaseID = '6.0-alpha2'; % major.minor.patch
 
 % Set to true if you want an easyspin-x.y.z.zip file without the
@@ -27,8 +30,10 @@ HorizonDate = '31-Dec-2022';
 baseDir = 'C:\Users\abc\Documents\work';
 SourceDir = [baseDir '\easyspin-dev'];
 ZipDestDir = [baseDir '\easyspin-archive'];
+%========================================================================
 
-%-----------------------------------------------------------
+
+%------------------------------------------------------------------------
 clc
 v = sscanf(version,'%f',1);
 if v>8.4
@@ -84,9 +89,9 @@ DocFolder = [BuildFolder filesep 'documentation'];
 
 TbxPcodeDir = [BuildFolder filesep 'easyspinpcode'];
 
-%------------------------------------------------------------
+%------------------------------------------------------------------------
 % Toolbox folder
-%------------------------------------------------------------
+%------------------------------------------------------------------------
 disp('Toolbox');
 TbxSrcDir = [SourceDir filesep 'easyspin'];
 
@@ -129,9 +134,9 @@ replacestr([TbxFolder filesep 'eschecker.m'],'999999',num2str(datenum(HorizonDat
 fprintf(' ok\n');
 
 
-%---------------------------------------------------------------------
+%------------------------------------------------------------------------
 % P-coding
-%---------------------------------------------------------------------
+%------------------------------------------------------------------------
 % Copy everything to a third directory for pcoding
 % This makes sure .m files are not newer than .p files
 %  (otherwise Matlab complains about potentially obsolete p-files)
@@ -160,9 +165,9 @@ fprintf(' ok\n');
 rmdir(TbxPcodeDir,'s');
 
 
-%------------------------------------------------------------
+%------------------------------------------------------------------------
 % Examples
-%------------------------------------------------------------
+%------------------------------------------------------------------------
 disp('Examples');
 
 fprintf('  generating examples dir and copying files...');
@@ -175,9 +180,9 @@ perl('../scripts/mkexamples.pl');
 fprintf(' ok\n');
 
 
-%------------------------------------------------------------
+%------------------------------------------------------------------------
 % Documentation
-%------------------------------------------------------------
+%------------------------------------------------------------------------
 disp('Documentation');
 
 fprintf('  generating documentation folder...');
@@ -197,9 +202,10 @@ for iFile = 1:numel(docFiles)
 end
 fprintf(' ok\n');
 
-%------------------------------------------------------------
+
+%------------------------------------------------------------------------
 % Packaging
-%------------------------------------------------------------
+%------------------------------------------------------------------------
 disp('Packaging');
 % package for public release
 if ZipDestDir(end)==filesep, ZipDestDir(end) = []; end
@@ -223,18 +229,17 @@ if ~betaVersion
   fprintf(' ok\n');
 end
 
-%------------------------------------------------------------
+%------------------------------------------------------------------------
 % Clean-up
-%------------------------------------------------------------
+%------------------------------------------------------------------------
 fprintf('Removing build tree...');
 rmdir(BuildFolder,'s');
 fprintf(' ok\n');
 
 disp('Done!');
 
-
-
 return
+
 
 %========================================================================
 %========================================================================
