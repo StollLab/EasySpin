@@ -21,13 +21,16 @@ ReleaseID = '6.0-alpha2'; % major.minor.patch
 betaVersion = false;
 
 % Expiry date of release, see eschecker.m
-ExpiryDate = '31-Dec-2018';
+% ExpiryDate = '31-Dec-2018';
+[Year, Month, Day] = datevec(now);
+ExpiryDate = datestr(datenum(Year,Month+6,1)-1);
+
 
 % Cutoff date for date checking, see eschecker.m
-HorizonDate = '31-Dec-2022';
+HorizonDate = datestr(datenum(Year+4,12,31));
 
 % Folders
-baseDir = 'C:\Users\abc\Documents\work';
+baseDir = './../../';
 SourceDir = [baseDir '\easyspin-dev'];
 ZipDestDir = [baseDir '\easyspin-archive'];
 %========================================================================
@@ -36,16 +39,15 @@ ZipDestDir = [baseDir '\easyspin-archive'];
 %------------------------------------------------------------------------
 clc
 v = sscanf(version,'%f',1);
-if v>8.4
-  error('EasySpin build must be done with Matlab 8.4 (R2014b).');
-end
+% if v>8.4
+%   error('EasySpin build must be done with Matlab 8.4 (R2014b).');
+% end
 
 %error('Must include perl script that replaces $ReleaseID$ and $ReleaseDate$ globally.');
 
-[Y,M,D] = datevec(now);
 BuildTimeStamp = datestr(now,'yyyymmdd-HHMMSS');
 BuildID = sprintf('%s+%s',ReleaseID,BuildTimeStamp);
-ReleaseDate = sprintf('%04d-%02d-%02d',Y,M,D);
+ReleaseDate = sprintf('%04d-%02d-%02d',Year,Month,Day);
 
 fprintf('Building EasySpin %s.\n',BuildID);
 
@@ -176,7 +178,7 @@ copyfile([SourceDir filesep 'examples'],ExmplFolder);
 fprintf(' ok\n');
 
 fprintf('  generating examples html file...');
-perl('../scripts/mkexamples.pl');
+perl('./mkexamples.pl');
 fprintf(' ok\n');
 
 
