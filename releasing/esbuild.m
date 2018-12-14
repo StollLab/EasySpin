@@ -31,8 +31,8 @@ HorizonDate = datestr(datenum(Year+4,12,31));
 
 % Folders
 baseDir = './../../';
-SourceDir = [baseDir '\easyspin-dev'];
-ZipDestDir = [baseDir '\easyspin-archive'];
+SourceDir = [baseDir '\easyspin'];
+ZipDestDir = [baseDir '\easyspin-builds'];
 %========================================================================
 
 
