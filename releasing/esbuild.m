@@ -9,9 +9,9 @@ function esbuild
 %   MINOR: Change when new functionality is added in a backwards-
 %     compatible manner.
 %   PATCH: Increment for every bugfix release.
-% Roughly follow guidelines of seminatic versioning, see
+% Roughly follow guidelines of semantic versioning, see
 %   http://semver.org/
-ReleaseID = '5.2.22'; % major.minor.patch
+ReleaseID = '5.2.23'; % major.minor.patch
 
 % Set to true if you want an easyspin-x.y.z.zip file without the
 % long timestamp ID.
