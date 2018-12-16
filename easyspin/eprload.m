@@ -920,11 +920,11 @@ if isfield(Measurement,'Recipe')
   switch Measurement.Recipe.Attributes.Type
     case 'single', xAxis = 'field';
     case 'kinetic', xAxis = 'time';
-    case 'temperature', xAxis = 'temperature';
-    case 'goniometric', xAxis = 'goniometer angle';
-    case 'modulationSweep', xAxis = 'modulation';
-    case 'powerSweep', xAxis = 'power';
-    case 'xRay', xAxis = 'xRay';
+    case 'temperature', xAxis = 'field';
+    case 'goniometric', xAxis = 'field';
+    case 'modulationSweep', xAxis = 'field';
+    case 'powerSweep', xAxis = 'field';
+    case 'xRay', xAxis = 'field';
     otherwise
       error('Unknown Recipe.Type in the xml file.');
   end
