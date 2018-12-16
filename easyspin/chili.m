@@ -514,7 +514,7 @@ end
 if isempty(Opt), Opt = struct; end
 
 % Documented
-if ~isfield(Opt,'LLMK'), Opt.LLMK = [14 7 2 2]; end
+if ~isfield(Opt,'LLMK'), Opt.LLMK = [14 7 2 6]; end
 if ~isfield(Opt,'nKnots'), Opt.nKnots = [5 0]; end
 if ~isfield(Opt,'LiouvMethod'), Opt.LiouvMethod = ''; end
 if ~isfield(Opt,'PostConvNucs'), Opt.PostConvNucs = ''; end
