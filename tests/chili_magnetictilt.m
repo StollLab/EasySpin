@@ -24,5 +24,5 @@ if opt.Display
   legend('no tilt','tilt');
 end
 
-err = ~areequal(y0,y1,1e-3);
+err = ~areequal(y0,y1,2e-3);
 data = [];

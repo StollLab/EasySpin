@@ -9,9 +9,8 @@ Potential.M = [0 0 0 0 0 0 0 0];
 Potential.K = [0 1 2 0 1 2 3 4];
 
 R = [1 2 3];
-maxLx = max(Potential.L)*2;
 
-[XLMK{1:maxLx+1}] = runprivate('chili_xlmk',Potential,R);
+XLMK = runprivate('chili_xlmk',Potential,R);
 XLK = runprivate('chili_xlk',Potential,R);
 
 for k = numel(XLMK):-1:1
