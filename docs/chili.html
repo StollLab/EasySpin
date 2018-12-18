@@ -178,7 +178,7 @@ In addition to the rotational dynamics, convolutional line broadening can be inc
 <div class="optionfield"><code>Potential</code></div>
 <div class="optiondescr">
 <p>
-An array of coefficients for the orientational potential, with four numbers per row: L, M, K, and &lambda;. The ordering potential is expressed as U(&Omega;) = - k<sub>B</sub> T &Sigma;<sub>L,M,K</sub>&lambda;<sup>L</sup><sub>M,K</sub>D<sup>L</sup><sub>M,K</sub>, where the D<sup>L</sup><sub>M,K</sub> are Wigner functions and &lambda;<sup>L</sup><sub>M,K</sub> are the possibly complex-valued coefficients. L is a nonnegative integer, and both M and K are integers between -L and L.
+An array of coefficients for the orientational potential, with four numbers per row: L, M, K, and &lambda;. The potential is expressed as U(&Omega;) = - k<sub>B</sub> T &Sigma;<sub>L,M,K</sub>&lambda;<sup>L</sup><sub>M,K</sub>D<sup>L</sup><sub>M,K</sub>, where the D<sup>L</sup><sub>M,K</sub> are Wigner functions and &lambda;<sup>L</sup><sub>M,K</sub> are the possibly complex-valued coefficients. L is a nonnegative integer, and both M and K are integers between -L and L.
 
 <pre class="matlab">
 Sys.Potential = [2 0 0 0.3];                  % L=2, M=K=0 coefficient is 0.3
@@ -189,7 +189,7 @@ Sys.Potential = [2 0 0 0.3; 2 0 2 -0.1];      % two coefficients
 Since the overall potential must be real-valued, there is a symmetry relation between coefficients with the same L, |M| and |K|: &lambda;<sup>L</sup><sub>-M,-K</sub> = (-1)<sup>M-K</sup> (&lambda;<sup>L</sup><sub>M,K</sub>)<sup>*</sup>. Therefore, <code>chili</code> limits the input coefficients to: (1) those with positive K, (2) those with K=0 and positive M, (3) the one with M=K=0 which must be real-valued. All others are supplemented internally using the symmetry.
 
 <p>
-The frame of the ordering potential is assumed to be collinear with that of the rotational diffusion tensor (<code>Sys.DiffFrame</code>).
+The frame of the orientational potential is assumed to be collinear with that of the rotational diffusion tensor (<code>Sys.DiffFrame</code>).
 <p>
 The orientational symmetry of the potential reflects the symmetry of the paramagnetic molecule and the symmetry of the nanoenvironment in which it is tumbling:
 <ul>

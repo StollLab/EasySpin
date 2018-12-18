@@ -218,7 +218,7 @@ end
 return
 
 %===============================================================================
-% General ordering potential function (real-valued)
+% General orientational potential function (real-valued)
 %===============================================================================
 function y = LMKsum(a,b,c,lam,Lp,Mp,Kp)
 y = 0;
@@ -232,7 +232,7 @@ for p = 1:numel(lam)
 end
 
 %{
-% General ordering potential function (real-valued)
+% General orientational potential function (real-valued)
 % (as implemented in startvec.m)
 function u = LMKsum2(a,b,c)
 u = 0;
