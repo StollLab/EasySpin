@@ -14,14 +14,14 @@ function esbuild
 %     compatible manner.
 %   PATCH: Increment for every bugfix release.
 % Roughly follow guidelines of semantic versioning, see http://semver.org/
-ReleaseID = '6.0-alpha2'; % major.minor.patch
+ReleaseID = '6.0-dev3'; % major.minor.patch
 
 % Set to true if you want an easyspin-x.y.z.zip file without the
 % long timestamp ID.
 betaVersion = false;
 
 % Expiry date of release, see eschecker.m
-ExpiryDate = '31-Dec-2018';
+ExpiryDate = '30-Jun-2019';
 
 % Cutoff date for date checking, see eschecker.m
 HorizonDate = '31-Dec-2022';
