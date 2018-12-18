@@ -1,8 +1,8 @@
 function [err,data] = test(opt,olddata)
 
 %===============================================================================
-% Compare rigid-limit simulation with ordering potential
-% btw. chili and pepper
+% Compare rigid-limit simulation with orientational potential
+% using chili and pepper
 %===============================================================================
 
 Sys.g = [2 2.2];

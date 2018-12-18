@@ -153,7 +153,7 @@ The ranges of allowed index values are as follows: L&ge;0; 0&le;K&le;L; if K=0, 
 </p>
 
 <p>
-The full form of the ordering potential is expressed as 
+The full form of the orientational potential is expressed as 
 </p>
 <p>
 U(&Omega;) = - k<sub>B</sub> T &Sigma;<sub>L,M,K</sub>&lambda;<sup>L</sup><sub>M,K</sub> D<sup>L</sup><sub>M,K</sub> (&Omega;), 
@@ -161,7 +161,7 @@ U(&Omega;) = - k<sub>B</sub> T &Sigma;<sub>L,M,K</sub>&lambda;<sup>L</sup><sub>M
 where D<sup>L</sup><sub>M,K</sub> are the Wigner D-functions, &lambda;<sup>L</sup><sub>M,K</sub> are the potential coefficients. The temperature is not needed, as it is divided out in the Langevin equation (which uses only U(&Omega;)/k<sub>B</sub>T).
 
 <p>
-For example, to specify an orienting potential using <code>lambda200</code> to represent the coefficient &lambda;<sup>2</sup><sub>0,0</sub> of the commonly used second-order Legendre polynomial, use
+For example, to specify an orientational potential using <code>lambda200</code> to represent the coefficient &lambda;<sup>2</sup><sub>0,0</sub> of the commonly used second-order Legendre polynomial, use
 </p>
 
 <pre class="matlab">
@@ -169,7 +169,7 @@ Sys.Potential = [2, 0, 0, 1.2];  % L=2, M=K=0, lambda = 1.2
 </pre>
 
 <p>
-For details about this type of ordering potential, see K.A. Earle & D.E. Budil, Calculating Slow-Motion ESR Spectra of Spin-Labeled Polymers, in: S. Schlick: Advanced ESR Methods in Polymer Research, Wiley, 2006.
+For details about this type of orientational potential, see K.A. Earle & D.E. Budil, Calculating Slow-Motion ESR Spectra of Spin-Labeled Polymers, in: S. Schlick: Advanced ESR Methods in Polymer Research, Wiley, 2006.
 
 <li>
 <p>

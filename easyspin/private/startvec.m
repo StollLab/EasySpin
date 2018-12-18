@@ -1,5 +1,5 @@
 % startvec calculates the starting vector in the given basis (basis), including
-% the ordering potential (Potential) and the spin operator in SopH (either S+
+% the orientational potential (Potential) and the spin operator in SopH (either S+
 % or Sx).
 
 function StartingVector = startvec(basis,Potential,SopH,useLMKbasis,useSelectionRules)
@@ -104,7 +104,7 @@ StartingVector = real(kron(oriVector,SopH(:)));
 StartingVector = StartingVector/norm(StartingVector);
 StartingVector = sparse(StartingVector);
 
-  % General ordering potential function (real-valued)
+  % General orientational potential function (real-valued)
   function u = U(a,b,c)
     u = 0;
     for p = 1:numel(lambda)

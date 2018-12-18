@@ -14,7 +14,7 @@ function esbuild
 %     compatible manner.
 %   PATCH: Increment for every bugfix release.
 % Roughly follow guidelines of semantic versioning, see http://semver.org/
-ReleaseID = '6.0-alpha2'; % major.minor.patch
+ReleaseID = '6.0-dev3'; % major.minor.patch
 
 % Set to true if you want an easyspin-x.y.z.zip file without the
 % long timestamp ID.

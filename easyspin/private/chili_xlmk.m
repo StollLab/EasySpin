@@ -17,6 +17,10 @@ lambda = Potential.lambda(idx);
 Lpot = Potential.L(idx);
 Mpot = Potential.M(idx);
 Kpot = Potential.K(idx);
+Lpot = Lpot(:);
+Mpot = Mpot(:);
+Kpot = Kpot(:);
+lambda = lambda(:);
 
 % Catch absence of potential
 if isempty(lambda)
@@ -26,7 +30,7 @@ end
 
 % Add terms needed to render potential real-valued
 idx = Mpot~=0 | Kpot~=0;
-lambda = [lambda conj(lambda(idx)).*(-1).^(Kpot(idx)-Mpot(idx))];
+lambda = [lambda; conj(lambda(idx)).*(-1).^(Kpot(idx)-Mpot(idx))];
 Lpot = [Lpot;  Lpot(idx)];
 Mpot = [Mpot; -Mpot(idx)];
 Kpot = [Kpot; -Kpot(idx)];

@@ -493,18 +493,18 @@ end
 % Determine whether to do a powder simulation
 if ~usePotential
   if isempty(Exp.Ordering) || all(Exp.Ordering==0)
-    logmsg(1,'  No ordering potential given, skipping powder simulation.');
+    logmsg(1,'  No orientational potential given, skipping powder simulation.');
     PowderSimulation = false;
   else
-  logmsg(1,'  Ordering potential given, doing powder simulation.');
+  logmsg(1,'  Orientational potential given, doing powder simulation.');
     PowderSimulation = true;
   end    
 else
   if ~isempty(Exp.CrystalOrientation)
-    logmsg(1,'  Ordering potential given, doing single-crystal simulation.');
+    logmsg(1,'  Orientational potential given, doing single-crystal simulation.');
     PowderSimulation = false;
   else
-    logmsg(1,'  Ordering potential given, doing powder simulation.');
+    logmsg(1,'  Orientational potential given, doing powder simulation.');
     PowderSimulation = true;
   end
 end
@@ -514,7 +514,7 @@ end
 if isempty(Opt), Opt = struct; end
 
 % Documented
-if ~isfield(Opt,'LLMK'), Opt.LLMK = [14 7 2 2]; end
+if ~isfield(Opt,'LLMK'), Opt.LLMK = [14 7 2 6]; end
 if ~isfield(Opt,'nKnots'), Opt.nKnots = [5 0]; end
 if ~isfield(Opt,'LiouvMethod'), Opt.LiouvMethod = ''; end
 if ~isfield(Opt,'PostConvNucs'), Opt.PostConvNucs = ''; end
@@ -784,7 +784,7 @@ if ~isempty(Exp.Ordering)
   OrderingWeights = Exp.Ordering(phi,theta);
   if any(OrderingWeights)<0, error('User-supplied orientation distribution gives negative values!'); end
   if all(OrderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end
-  logmsg(2,'  ordering potential');
+  logmsg(2,'  orientational potential');
 else
   OrderingWeights = ones(1,nOrientations);
 end
@@ -1225,7 +1225,7 @@ if doPostConvolution
   
   % Spin system with shf nuclei only
   pcidx = Opt.PostConvNucs;
-  pcSys.g = mean(fullSys.g);
+  pcSys.g = mean(fullSys.g(:));
   pcSys.A = mean(fullSys.A(pcidx,:),2);
   if isfield(fullSys,'n')
     pcSys.n = fullSys.n(pcidx);

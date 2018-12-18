@@ -12,7 +12,7 @@
 %   R         array with 3 principal values of diffusion tensor (s^-1),
 %             or single value if diffusion is isotropic
 %   Potential (optional) structure containing information on potential
-%             .xlk      ordering potential coefficients, as returned by
+%             .xlk      orientational potential coefficients, as returned by
 %                       chili_xlk (assumed all zero if not given)
 %             .Lx,.Kx   corresponding function indices
 %             .lambda   potential coefficients
@@ -74,7 +74,7 @@ if Method==1
   %-----------------------------------------------------------------------------
   
   % Treat the cases of isotropic and axial diffusion tensors in the absence of
-  % an ordering potential. In these cases, the diffusion operator matrix is
+  % an orientational potential. In these cases, the diffusion operator matrix is
   % diagonal.
   if isAxial && ~usePotential
     diagonal = Rperp*(L.*(L+1)-K.^2) + Rz*K.^2;

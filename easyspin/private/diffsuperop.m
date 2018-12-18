@@ -56,7 +56,7 @@ switch numel(R)
 end
 
 % Treat the cases of isotropic and axial diffusion tensors in the absence of
-% an ordering potential. In these cases, the diffusion operator matrix is
+% an orientational potential. In these cases, the diffusion operator matrix is
 % diagonal in both the LMK and LMKjK basis.
 if ~usePotential && Rd==0
   diagonal = Rperp*(L.*(L+1)-K.^2) + Rz*K.^2;

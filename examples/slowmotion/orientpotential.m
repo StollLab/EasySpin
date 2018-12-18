@@ -1,7 +1,7 @@
-% Effect of ordering potential on slow-motion an rigid-limit EPR spectra
+% Effect of orientational potential on slow-motion an rigid-limit EPR spectra
 %===============================================================================
-% This example illustrates how the ordering potential input works and how an
-% ordering potential affects a simple EPR spectrum, both in the rigid limit and
+% This example illustrates how the orientational potential input works and how an
+% orientational potential affects a simple EPR spectrum, both in the rigid limit and
 % in the slow-motion regime.
 
 clear, clc, clf
@@ -20,7 +20,7 @@ Opt.LLMK = [100 0 0 0]; % orientational basis set
 % Set potential coefficient for L=2, M=2, K=2 term
 c200 = 2; % positive indicates preferential along z axis
 
-% Simulate reference rigid-limit spectrum without ordering
+% Simulate reference rigid-limit spectrum without orientational potential
 Exp.Ordering = 0;
 [B,spcref] = pepper(Sys,Exp,Opt);
 
