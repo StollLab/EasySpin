@@ -1,4 +1,7 @@
 #!/usr/bin/perl
+use strict;
+use warnings;
+# this needs to be run on the build machine:
 
 # lock for lock file, continue if file is too old
 # wait 1 minute, check again
@@ -22,6 +25,9 @@ $pathtooldindexhtml = $uploaddir.$indexhtml.'.bak';
 
 $pathtodownloadtml = $uploaddir.$downloadthml;
 $patholddownloadhtml = $uploaddir.$downloadthml.'.bak'; 
+
+$mfileold = './releasing/esbuild.m';
+$mfilenew = './releasing/esbuild.mnew';
 
 # options
 $allowedbranches = qw(stable,default,buildsys);
@@ -49,9 +55,39 @@ print "Converting LaTeX markup to svg \n";
 
 # -----------------------------------------------------------------
 # Update tag in m file
-# needs to be done
-#
-#---------------------
+$oldtag = "ReleaseID(.*?); \% major.minor.patch";
+$newtag = "ReleaseID = \'".$tag."\'; \% major.minor.patch";
+
+my ($major, $minor, $patch, $dev) = ($tag =~ m/(\d+).(\d+).(\d+)(.*)/);
+print "major: $major \n";
+print "minor: $minor \n";
+print "patch: $patch \n";
+print "dev: $dev \n";
+
+if ($dev) {
+   print "Making a developer build\n";
+}
+
+print("Updating tags in build.m\n");
+open(input,'<'.$mfileold) or die("Cannot open $mfileold!");
+open(output,'>'.$mfilenew) or die("Cannot open $mfilenew!");
+while (<input>) {
+    $_ =~ s/$oldtag/$newtag/g;
+    if ($dev){
+        $_ =~ s/betaVersion(.*?);/betaVersion = True;/g;
+        }
+    else {
+        $_ =~ s/betaVersion(.*?);/betaVersion = False;/g;
+    }
+    print output $_;    
+}
+
+close(input) or die("Cannot close $_!");
+close(output) or die("Cannot close $_!");
+
+system('mv '.$mfilenew.' '.$mfileold);
+
+# -----------------------------------------------------------------
 # calling Matlab and waiting until a new build was added to the build directory
 # Open build dirrectory and get current number of files
 opendir(dirr,$builddir) or die("Can't open $builddir: $!\n");
@@ -93,14 +129,7 @@ $oldversion = '<!--'.$branch.'-->(.*?)<!--version-->';
 $newversion = '<!--'.$branch.'-->'.$tag.'<!--version-->';
 
 # update the index.html file
-print("Updating index.html\n");
-open(input,'<'.$pathtooldindexhtml) or die("Cannot open $pathtooldindexhtml!");
-open(output,'>'.$pathtoindexhtml) or die("Cannot open $pathtoindexhtml!");
-while (<input>) {
-    $_ =~ s/$oldzipfile/$newzipfile/g;
-    $_ =~ s/$oldversion/$newversion/g;
-    print output $_;    
-}
+
 
 close(input) or die("Cannot close $_!");
 close(output) or die("Cannot close $_!");
@@ -137,6 +166,13 @@ system("rm ".$uploaddir."*");
 # ssh delete examples and documentation
 # unzip new file on the server, copy documentation and examples, delete unzipped files
 
+
+$sshlogin = "ssh $login \n";
+$changedirectory = "cd $serverdir/test/ \n";
+$removefolders = "rm -r ./documentation ./examples \n";
+$unzipdocumentation = qq(unzip -qq easyspin-6.0-alpha2.zip 'easyspin-6.0-alpha2/documentation/*' -d ./documentation/ \n);
+$unzipexamples = qq(unzip -qq $filename 'easyspin-$tag/examples/*' -d ./examples/ \n);
+$exit = "exit";
 
 # delete lockfile
 print "Finished! \n";
