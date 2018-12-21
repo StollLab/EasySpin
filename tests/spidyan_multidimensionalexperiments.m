@@ -1,5 +1,8 @@
 function [err,data] = test(opt,olddata)
 
+orig_state = warning;
+warning('off','all');
+
 % System ------------------------
 Sys.S = 1/2;
 Sys.ZeemanFreq = 33.500;
@@ -50,3 +53,5 @@ if ~isempty(olddata)
 else
   err = [];
 end
+
+warning(orig_state);

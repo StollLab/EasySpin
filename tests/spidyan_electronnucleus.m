@@ -1,5 +1,8 @@
 function [err,data] = test(opt,olddata)
 
+orig_state = warning;
+warning('off','all');
+
 % System ------------------------
 Sys.S = [1/2];
 Sys.g = gfree;
@@ -38,3 +41,4 @@ else
   err = [];
 end
 
+warning(orig_state);

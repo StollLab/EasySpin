@@ -1,6 +1,7 @@
 function [err,data] = test(opt,olddata)
 
-clear Sys Exp Vary Opt Pulse sigmas Det
+orig_state = warning;
+warning('off','all');
 
 % System ------------------------
 Sys.S = [1/2];
@@ -41,3 +42,4 @@ else
   err = [];
 end
 
+warning(orig_state);

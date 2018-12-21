@@ -463,13 +463,16 @@ MaxTimeStep = 1/Nyquist/1000; % Time Step is in microseconds and Frequencies in 
 % validate time step
 if isfield(Opt,'TimeStep')
   if Opt.TimeStep > MaxTimeStep
-    errMsg = ['Your Time Step (Opt.TimeStep) does not fullfill the Nyquist criterion for the pulses you provided. Adapt it to ' num2str(MaxTimeStep, '%10.1e') ' us or less.'];
+    errMsg = ['Your Time Step (Opt.TimeStep) does not fulfill the Nyquist criterion for the pulses you provided. Adapt it to ' num2str(MaxTimeStep/40, '%10.1e') ' us or less.'];
     error(errMsg);
+  elseif Opt.TimeStep > MaxTimeStep/40
+    warnMsg = ['Although your Time Step (Opt.TimeStep) fulfills the Nyquist criterion for the pulses you provided, it might not be small enough for accurate results. You might want to adapt it to ' num2str(MaxTimeStep/40, '%10.1e') ' us or less.'];
+    warning(warnMsg);
   end
   Opt.TimeStep = Opt.TimeStep;
 else
   logmsg(1,'  automatically assuming a suitable time step');
-  Opt.TimeStep = round(MaxTimeStep/4,2,'significant');
+  Opt.TimeStep = round(MaxTimeStep/80,2,'significant');
 end
 
 logmsg(1,'  the time step is %0.2e microseconds',Opt.TimeStep);
