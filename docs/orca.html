@@ -28,16 +28,16 @@
 <h1>Import ORCA data</h1>
 
 <p>
-EasySpin can read ORCA outputs. <a href="http://cec.mpg.de/forum" target="_blank">ORCA</a> is a quantum chemistry program with extensive support for the calculation of EPR properties such as the g tensor, A tensors, electric field gradients and D tensors.
+<a href="http://orcaforum.kofo.mpg.de/" target="_blank">ORCA</a> is a quantum chemistry program that can calculate molecular EPR properties such as the g tensor, A tensors, electric field gradients, and D tensors.
 
 <p>
-Here, we look at how you can import these ORCA-calculated tensors into EasySpin, using the function <a class="esf" href="orca2easyspin.html">orca2easysin</a>.
+Here, we show how you can import these ORCA-calculated tensors from ORCA output files into EasySpin, using the function <a class="esf" href="orca2easyspin.html">orca2easysin</a>.
 
 <!-- --------------------------------------------------------------------- -->
 <div class="subtitle">Calculating EPR properties using ORCA</div>
 
 <p>
-In order to get EPR parameters from an ORCA calculation, you have to tell ORCA to calculate these parameters. Here is a very simple example. Let's generate an ORCA input file <code>hydroxyl.oif</code>:
+In order to get EPR parameters from an ORCA calculation, you have to tell ORCA to calculate these parameters. Here is a very simple example of an ORCA input file for the hydroxyl radical. Let's name the file <code>hydroxyl.oif</code>:
 
 <pre class="nohighlight">
 ! UKS B3LYP 6-31G
@@ -53,21 +53,21 @@ end
 </pre>
 
 <p>
-To get EPR parameters, include the <code>%eprnmr...end</code> block that specifies what you want ORCA to calculate. <code>gtensor 1</code> instructs ORCA to calculate the g tensor. The <code>Nuclei</code> line tells ORCA to calculate for all hydrogens the following properties: Fermi contact hyperfine coupling (<code>aiso</code>), dipolar hyperfine coupling (<code>adip</code>), orbital contribution to hyperfine coupling (<code>aorb</code>), electric field gradient at nucleus (<code>fgrad</code>), and spin density at nucleus (<code>rho</code>).
+The <code>%eprnmr...end</code> block specifies which EPR parameters you want ORCA to calculate. <code>gtensor 1</code> instructs ORCA to calculate the g tensor. The <code>Nuclei</code> line tells ORCA to calculate for all hydrogens the following properties: Fermi contact hyperfine coupling (<code>aiso</code>), dipolar hyperfine coupling (<code>adip</code>), orbital contribution to hyperfine coupling (<code>aorb</code>), electric field gradient at nucleus (<code>fgrad</code>), and spin density at nucleus (<code>rho</code>).
 
 <p>
 For details about ORCA calculations, see the ORCA manual.
 </p>
 
 <p>
-Next, you need to run the ORCA calculation. On the command prompt, type
+Next, you need to run the ORCA calculation. On the Windows/Linux/MacOS command/shell prompt, type
 
 <pre class="matlab">
 orca hydroxyl.oif > hydroxyl.oof
 </pre>
 
 <p>
-This will generate a long output file <code>hydroxyl.oof</code> in text format. Also, it generates a smaller file <code>hydroxyl.prop</code>. This is a binary file containing all the calculated properties.
+This will generate a long output text file <code>hydroxyl.oof</code>. Additionally, it generates a smaller binary file <code>hydroxyl.prop</code> that contains all the calculated properties.
 
 <!-- --------------------------------------------------------------------- -->
 <div class="subtitle">Importing the results of the ORCA calculation</div>
