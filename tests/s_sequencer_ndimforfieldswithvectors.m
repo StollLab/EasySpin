@@ -1,5 +1,8 @@
 function [err,data] = test(opt,olddata)
 
+orig_state = warning;
+warning('off','all');
+
 Pulse.Type = 'sech/uniformQ';  
 
 Pulse.beta = 10;
@@ -53,3 +56,5 @@ else
 end
 
 data = [];
+
+warning(orig_state);
