@@ -346,7 +346,7 @@ if isvector(OriStart), OriStart = OriStart(:); end
 % If only one starting angle and multiple trajectories, repeat the angle
 if size(OriStart,2)==1 && Sim.nTraj>1
   OriStart = repmat(OriStart,1,Sim.nTraj);
-end  
+end
 
 if size(OriStart,2)~=Sim.nTraj
   error('Number of starting orientations must be equal to Par.nTraj.')

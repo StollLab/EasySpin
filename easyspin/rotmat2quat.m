@@ -31,7 +31,7 @@ else
              - multimatmult(mat,matInv));
 end
 
-if any(diff(:) > 1e-13)
+if any(diff(:) > 1e-10)
   error('The rotation matrices are not orthogonal.')
 end
 
@@ -84,7 +84,7 @@ for k=1:size(mat,4)
 end
 
 diff = abs(1.0-squeeze(sum(q.*q, 1)));
-if any(diff(:) > 1e-13)
+if any(diff(:) > 1e-10)
 %   plot(diff(1,:))
   error('Output q is not normalized.')
 end

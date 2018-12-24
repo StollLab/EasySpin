@@ -5,7 +5,7 @@ Par.nTraj = 500;
 
 kp = rand()*1e9; % rate constant for forward process A -> B
 km = rand()*1e9; % rate constant for reverse process B -> A
-Sys.TransRates = [-kp, +km; +kp, -km];
+Sys.TransRates = [-kp, +km; +kp, -km].';
 
 Sys.Orientations = [0,  0, 0;
                     0, pi, 0];

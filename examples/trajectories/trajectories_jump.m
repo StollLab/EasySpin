@@ -7,8 +7,8 @@
 
 clear
 
-Sys.TransProb = [ 0.1, 0.3;
-                  0.9, 0.7 ];  % transition probability matrix
+Sys.TransProb = [ 0.1, 0.9;
+                  0.3, 0.7 ];  % transition probability matrix
 
 Par.dt = 1e-9;                 % time step, s
 
