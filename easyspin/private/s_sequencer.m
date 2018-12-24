@@ -251,8 +251,8 @@ for Pos = PulsePositions
     mwFreqrequired = true;
     msgFrequency = [msgFrequency ' ' num2str(PulseNumber) ','];
   end
-  if isfield(Exp.Sequence{Pos},'IQ') && ~isfield(Opt,'TimeStep')
-    error('If you use userprovided IQs for pulses, Opt.TimeStep must be given.')
+  if isfield(Exp.Sequence{Pos},'IQ') && ~isfield(Opt,'IntTimeStep')
+    error('If you use userprovided IQs for pulses, Opt.IntTimeStep must be given.')
   end
 end
 
@@ -447,7 +447,7 @@ end
 Opt.FrameShift = FrameShift;
 Opt.FreqShift = FreqShift;
 
-% Check if TimeStep exists and if it is sufficient or, if none provided,
+% Check if IntTimeStep exists and if it is sufficient or, if none provided,
 % compute a new one
 logmsg(1,'  determining minimal required time step');
 maxPulseFreq = FreqShift;
@@ -458,24 +458,58 @@ for iEvent = 1 : length(Exp.Sequence)
 end
 
 Nyquist = 2*maxPulseFreq;
-MaxTimeStep = 1/Nyquist/1000; % Time Step is in microseconds and Frequencies in GHz
+NyquistTime = 1/Nyquist/1000; % Time Step is in microseconds and Frequencies in GHz
+
+IntStepFactor = 50; % control the size of the integration time step - 1/x of Nyquist
+DetStepFactor = IntStepFactor/2; % gets the scaling factor for the detection time step (approx. 1/2 the size of the Nyquist step), in terms of multiples of integration time step
+RefIntTimeStep = round(NyquistTime/IntStepFactor,2,'significant'); % The default integration time step
+RefDetTimeStep = DetStepFactor*RefIntTimeStep; % The default dection time step
 
 % validate time step
-if isfield(Opt,'TimeStep')
-  if Opt.TimeStep > MaxTimeStep
-    errMsg = ['Your Time Step (Opt.TimeStep) does not fulfill the Nyquist criterion for the pulses you provided. Adapt it to ' num2str(MaxTimeStep/40, '%10.1e') ' us or less.'];
+if isfield(Opt,'IntTimeStep') && ~isfield(Exp,'DetTimeStep')
+  
+  if Opt.IntTimeStep > NyquistTime
+    errMsg = ['Your integration time step (Opt.IntTimeStep) does not fulfill the Nyquist criterion for the pulses you provided. For best results adapt it to ' num2str(RefIntTimeStep, '%10.1e') ' us or less.'];
     error(errMsg);
-  elseif Opt.TimeStep > MaxTimeStep/40
-    warnMsg = ['Although your Time Step (Opt.TimeStep) fulfills the Nyquist criterion for the pulses you provided, it might not be small enough for accurate results. You might want to adapt it to ' num2str(MaxTimeStep/40, '%10.1e') ' us or less.'];
+  elseif Opt.IntTimeStep > NyquistTime/(1/2*IntStepFactor)
+    warnMsg = ['Although your integration time step (Opt.IntTimeStep) fulfills the Nyquist criterion for the pulses you provided, it might not be small enough for accurate results. You might want to adapt it to ' num2str(RefIntTimeStep, '%10.1e') ' us or less.'];
     warning(warnMsg);
   end
-  Opt.TimeStep = Opt.TimeStep;
+  
+  logmsg(1,'  automatically assuming a suitable detection time step');
+  Exp.DetTimeStep = RefDetTimeStep;
+  
+elseif ~isfield(Opt,'IntTimeStep') && isfield(Exp,'DetTimeStep')
+  
+  logmsg(1,'  computing an integration time step that fits the provided Exp.DetTimeStep');
+  factor = ceil(Exp.DetTimeStep/RefIntTimeStep);
+  Opt.IntTimeStep = Exp.DetTimeStep/factor; 
+  
+elseif isfield(Opt,'IntTimeStep') && isfield(Exp,'DetTimeStep')
+  
+  if mod(Opt.IntTimeStep,Exp.DetTimeStep)
+    errMsg = 'The provided integration time step (Opt.IntTimeStep) and detection time step (Exp.DetTimeStep) do not match. Exp.DetTimeStep has to be a multiple of Opt.IntTimeStep.';
+    error(errMsg);
+  end
+  
+  if Opt.IntTimeStep > NyquistTime
+    errMsg = ['Your integration time step (Opt.IntTimeStep) does not fulfill the Nyquist criterion for the pulses you provided. For best results adapt it to ' num2str(RefIntTimeStep, '%10.1e') ' us or less.'];
+    error(errMsg);
+  elseif Opt.IntTimeStep > NyquistTime/(2/3*IntStepFactor)
+    warnMsg = ['Although your integration time step (Opt.IntTimeStep) fulfills the Nyquist criterion for the pulses you provided, it might not be small enough for accurate results. You might want to adapt it to ' num2str(RefIntTimeStep, '%10.1e') ' us or less.'];
+    warning(warnMsg);
+  end
+ 
 else
-  logmsg(1,'  automatically assuming a suitable time step');
-  Opt.TimeStep = round(MaxTimeStep/80,2,'significant');
+  
+  logmsg(1,'  automatically assuming a suitable integration time step');
+  Opt.IntTimeStep = RefIntTimeStep;
+  Exp.DetTimeStep = RefDetTimeStep;
+  
 end
 
-logmsg(1,'  the time step is %0.2e microseconds',Opt.TimeStep);
+logmsg(1,'  the integration time step is %0.2e microseconds',Opt.IntTimeStep);
+logmsg(1,'  the detection time step is %0.2e microseconds',Exp.DetTimeStep);
 
 % Create an empty cell array for all the events
 Events = cell(1,length(Exp.Sequence));
@@ -618,7 +652,7 @@ for iEvent = 1 : length(Exp.Sequence)
       end
       
       % Get the time step
-      Pulse.TimeStep = Opt.TimeStep;
+      Pulse.TimeStep = Opt.IntTimeStep;
             
       % Loop over the function that creates the PulseShape, as many times at
       % are necessary to calculate all wave forms for the phase cycling
@@ -635,7 +669,7 @@ for iEvent = 1 : length(Exp.Sequence)
         end
         % Shifts IQ of the pulse if necessary...
         if FreqShift ~= 0
-          Opt.dt = Opt.TimeStep;
+          Opt.dt = Opt.IntTimeStep;
           [t, IQ] = rfmixer(t,IQ,FreqShift,'IQshift',Opt);
         end
         % ... and stores it in the event structure
@@ -682,7 +716,7 @@ for iEvent = 1 : length(Exp.Sequence)
       
       % Shifts IQ of the pulse if necessary...
       for iPhaseStep = 1 : nPhaseSteps
-        Opt.dt = Opt.TimeStep;
+        Opt.dt = Opt.IntTimeStep;
         if IncludeResonator
           % but first if resonator is requested, pulses are elongated due to ringing.
           % the duration of ringing is stored in an additional field
@@ -783,7 +817,7 @@ for iEvent = 1 : length(Exp.Sequence)
   
   % Store the time step, which will be needed in thyme to calculate time
   % axis and propagators
-  Events{iEvent}.TimeStep = Opt.TimeStep;
+  Events{iEvent}.TimeStep = Opt.IntTimeStep;
   
   % Keep track of the frameshift
   Events{iEvent}.FrameShift = FrameShift;
@@ -1121,7 +1155,7 @@ if isfield(Exp,'nPoints')
               Vary.Pulses{iPulse}.Ringing(ArrayIndex{:}) = t(end) - tOrig;
             end
             if FreqShift ~= 0
-              Opt.dt = Opt.TimeStep;
+              Opt.dt = Opt.IntTimeStep;
               [~, IQ] = rfmixer(t,IQ,FreqShift,'IQshift',Opt);
             end
             % ... and stores it in the vary structure
@@ -1179,7 +1213,7 @@ if isfield(Exp,'nPoints')
           % Shifts IQ of the pulse if necessary...
           ShiftedUserIQ = [];
           for iPhaseStep = 1 : nPhaseSteps
-            Opt.dt = Opt.TimeStep;
+            Opt.dt = Opt.IntTimeStep;
             if IncludeResonator
               % if resonator is requested, pulses are elongated due to ringing.
               % the duration of ringing is stored in an additional field

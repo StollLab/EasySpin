@@ -528,16 +528,20 @@ To force a simulation in the labframe <code>SimFreq</code> has to be set to zero
 Opt.SimFreq = 0;  	      % Propagation in the labframe
 </pre>
 Changing the simulation frame allows for using a larger time step, which in turn can strongly reduce computation time.																											 																																										
-Keep in mind, that if a time step is provided with <code>Opt.TimeStep</code> it is not adapted automatically.
-To have the program adapt the time step, remove the field <code>Opt.TimeStep</code> .
+Keep in mind, that if a time step is provided with <code>Opt.IntTimeStep</code> it is not adapted automatically.
+To have the program adapt the time step, remove the field <code>Opt.IntTimeStep</code> .
 </div>
 
 
-<div class="optionfield"><code>TimeStep</code></div>
+<div class="optionfield"><code>IntTimeStep</code></div>
 <div class="optiondescr">
-Time step in microseconds, optional. 
+Integration time step in microseconds, optional. 
 If no time step is provided, the program computes a suitable time step (taking into account the highest frequency that is being used for the pulse definition <code>Exp.Frequency</code>).
-If the user provides a time step, the program checks if the Nyquist theorem is not fulfilled for the frequency ranges of the pulses and, if not, an error is thrown. 
+Accurate results are obtained for an integration time step that corresponds to about 50 data points per oscillaton or 1/50th of the largest time step size to fulfill the Nyquist criterion.
+<p>
+User provided intgration time steps must at least fulfill the Nyquist criterion, or an error is thrown. 
+For integration time steps larger than the recommended ones, a warning is printed to the command line.
+</p>
 </div>
 
 <div class="optionfield"><code>StateTrajectories</code></div>
