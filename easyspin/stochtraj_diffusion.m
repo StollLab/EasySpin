@@ -32,7 +32,7 @@
 %                       beta [0,pi], and the third gamma [0,2*pi]
 %                    c) a function handle for a function that takes three
 %                       arguments (alpha, beta, and gamma) and returns the value
-%                       of the ordering potential for that orientation. The
+%                       of the orientational potential for that orientation. The
 %                       function should be vectorized, i.e. work with arrays of
 %                       alpha, beta, and gamma.
 %
@@ -135,7 +135,7 @@ global EasySpinLogLevel;
 EasySpinLogLevel = Opt.Verbosity;
 
 
-% Check dynamics and ordering potential
+% Check dynamics and orientational potential
 %-------------------------------------------------------------------------------
 
 % FieldSweep is not valid for stochtraj, so give empty third arg

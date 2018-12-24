@@ -9,7 +9,7 @@ Exp.mwFreq = 9.8;
 Exp.Harmonic = 0;
 Exp.Range = [345 353];
 
-Exp.mwPhase = 30*pi/180;
+Exp.mwPhase = 90*pi/180;
 [x,y] = chili(Sys,Exp);
 
 data.y = y;

@@ -50,9 +50,9 @@ xlabel('t (ns)')
 ylabel('<S_i>')
 legend(Exp.DetOperator)
 
-%% 2) complex excitation operators
-% Complex excitation operators allows to investigate Bloch Siegert shifts
-% If ComplexExcitation is active, the excitation operator takes the form:
+%% 2) circular mwPolarization
+% circular mwPolarization excitation operators allow to investigate Bloch Siegert shifts
+% If circular mwPolarization is 'circular', the excitation operator takes the form:
 % real(IQ)*Sx + imag(IQ)*Sy
 
 Sys_ = Sys;
@@ -62,9 +62,9 @@ Exp_.Sequence = {Adiabatic};
 
 [TimeAxis, Regular] = spidyan(Sys_,Exp_);
 
-Opt_ = [];
-Opt_.ComplexExcitation = 1;
-[~, ComplexExOp] = spidyan(Sys_,Exp_,Opt_);
+Exp_.mwPolarization = 'circular';
+
+[~, ComplexExOp] = spidyan(Sys_,Exp_);
 
 % plotting
 figure(2)
@@ -74,7 +74,7 @@ plot(TimeAxis*1000,Regular)
 plot(TimeAxis*1000,ComplexExOp)
 xlabel('t (ns)')
 ylabel('<S_i>')
-legend('Regular ExOp','Complex ExOp')
+legend('linear mwPolarization','circular mwPolarization')
 
 %% 3) custom excitation operators
 % With custom excitation operators it is possible to investigate the effect
@@ -86,24 +86,28 @@ legend('Regular ExOp','Complex ExOp')
 Opt_ = [];
 Opt_.ExcOperator = {sop(Sys_.S,'x(1|2)')};
 
+Exp_ = Exp;
+Exp_.Sequence = {Adiabatic};
+
 [TimeAxis, Custom] = spidyan(Sys_,Exp_,Opt_);
 
 plot(TimeAxis*1000,Custom)
-legend('Regular ExOp','Complex ExOp','Custom ExOp')
+legend('linear mwPolarization','circular mwPolarization','userdefined ExOp')
 
-% It is also possible to combine ComplexExcitation with custom excitation 
+% It is also possible to combine circular mwPolarization with custom excitation 
 % operators
 % In this case the excitation operator takes the form:
 % real(IQ)*real(ExOperator) + imag(IQ)*imag(ExOperator)
 
 Opt_ = [];
 Opt_.ExcOperator = {sop(Sys_.S,'x(1|2)')+sop(Sys_.S,'y(1|2)')};
-Opt_.ComplexExcitation = 1;
+
+Exp_.mwPolarization = 'circular';
 
 [TimeAxis, Custom] = spidyan(Sys_,Exp_,Opt_);
 
 plot(TimeAxis*1000,Custom)
-legend('Regular ExOp','Complex ExOp','Custom ExOp','Complex custom ExOp')
+legend('linear mwPolarization','circular mwPolarization','userdefined ExOp','circular polarized userdefined ExOp')
 
 %% 3) state trajectories
 % if state trajectories is switched on for an event, density matrices at

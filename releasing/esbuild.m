@@ -1,24 +1,27 @@
 function esbuild
-%===========================================================
+%========================================================================
 %                 EasySpin build script
-%===========================================================
+%========================================================================
 
+
+%========================================================================
+% Build settings
+%========================================================================
 % ReleaseID: MAJOR.MINOR.PATCH
 %   MAJOR: Change only when major new functionality is implemented
 %     including incompatible changes.
 %   MINOR: Change when new functionality is added in a backwards-
 %     compatible manner.
 %   PATCH: Increment for every bugfix release.
-% Roughly follow guidelines of seminatic versioning, see
-%   http://semver.org/
-ReleaseID = '6.0-alpha0'; % major.minor.patch
+% Roughly follow guidelines of semantic versioning, see http://semver.org/
+ReleaseID = '6.0-dev3'; % major.minor.patch
 
 % Set to true if you want an easyspin-x.y.z.zip file without the
 % long timestamp ID.
 betaVersion = false;
 
 % Expiry date of release, see eschecker.m
-ExpiryDate = '31-Dec-2019';
+ExpiryDate = '30-Jun-2019';
 
 % Cutoff date for date checking, see eschecker.m
 HorizonDate = '31-Dec-2022';
@@ -27,8 +30,10 @@ HorizonDate = '31-Dec-2022';
 baseDir = 'C:\Users\abc\Documents\work';
 SourceDir = [baseDir '\easyspin-dev'];
 ZipDestDir = [baseDir '\easyspin-archive'];
+%========================================================================
 
-%-----------------------------------------------------------
+
+%------------------------------------------------------------------------
 clc
 v = sscanf(version,'%f',1);
 if v>8.4
@@ -37,12 +42,10 @@ end
 
 %error('Must include perl script that replaces $ReleaseID$ and $ReleaseDate$ globally.');
 
-[Y,M,D,H,MI,S] = datevec(now);
-ReleaseDate = sprintf('%04d-%02d-%02d',Y,M,D);
-BuildTimeStamp = sprintf('%04d%02d%02d-%02d%02d%02d',Y,M,D,H,MI,round(S));
-% Matlab 6.5 equivalent for
-%BuildTimeStamp = datestr(now,'yymmddHHMMSS');
+[Y,M,D] = datevec(now);
+BuildTimeStamp = datestr(now,'yyyymmdd-HHMMSS');
 BuildID = sprintf('%s+%s',ReleaseID,BuildTimeStamp);
+ReleaseDate = sprintf('%04d-%02d-%02d',Y,M,D);
 
 fprintf('Building EasySpin %s.\n',BuildID);
 
@@ -61,13 +64,13 @@ fprintf('Creating build folder...');
 
 BuildFolder = [tempdir 'easyspin-' ReleaseID];
 
-if exist(BuildFolder,'dir');
+if exist(BuildFolder,'dir')
   ok = rmdir(BuildFolder);
   if (~ok)
     error('Could not remove old build folder %s.',BuildFolder);
   end
 end
-if exist(BuildFolder,'file');
+if exist(BuildFolder,'file')
   delete(BuildFolder);
 end
 
@@ -86,27 +89,31 @@ DocFolder = [BuildFolder filesep 'documentation'];
 
 TbxPcodeDir = [BuildFolder filesep 'easyspinpcode'];
 
-%------------------------------------------------------------
+%------------------------------------------------------------------------
 % Toolbox folder
-%------------------------------------------------------------
+%------------------------------------------------------------------------
 disp('Toolbox');
 TbxSrcDir = [SourceDir filesep 'easyspin'];
 
-% Asserting that c files do not contain // comments (which are not
-% supported by all C compilers.)
-fprintf('  Checking *.c files for absence of // comments...');
-cfiles = dir([TbxSrcDir filesep 'private' filesep '*.c']);
-for k=1:numel(cfiles)
-  Lines = textread([TbxSrcDir filesep 'private' filesep cfiles(k).name],'%s','whitespace','\n');
-  f = [];
-  for q=1:numel(Lines)
-    f = [f strfind(Lines{q},'//')];
+% Assert that .c files do not contain // comments (which are not
+% supported by strict ANSI-C compilers, but are supported by the C99
+% standard .)
+enforceANSICcomments = false;
+if enforceANSICcomments
+  fprintf('  Checking *.c files for absence of // comments...');
+  cfiles = dir([TbxSrcDir filesep 'private' filesep '*.c']);
+  for k=1:numel(cfiles)
+    Lines = textread([TbxSrcDir filesep 'private' filesep cfiles(k).name],'%s','whitespace','\n');
+    f = [];
+    for q=1:numel(Lines)
+      f = [f strfind(Lines{q},'//')];
+    end
+    if ~isempty(f)
+      error('Found // comment in file %s',cfiles(k).name);
+    end
   end
-  if ~isempty(f)
-    error('Found // comment in file %s',cfiles(k).name);
-  end
+  fprintf(' ok\n');
 end
-fprintf(' ok\n');
 
 fprintf('  Generating toolbox folder...');
 mkdir(BuildFolder,'easyspin');
@@ -127,9 +134,9 @@ replacestr([TbxFolder filesep 'eschecker.m'],'999999',num2str(datenum(HorizonDat
 fprintf(' ok\n');
 
 
-%---------------------------------------------------------------------
+%------------------------------------------------------------------------
 % P-coding
-%---------------------------------------------------------------------
+%------------------------------------------------------------------------
 % Copy everything to a third directory for pcoding
 % This makes sure .m files are not newer than .p files
 %  (otherwise Matlab complains about potentially obsolete p-files)
@@ -158,9 +165,9 @@ fprintf(' ok\n');
 rmdir(TbxPcodeDir,'s');
 
 
-%------------------------------------------------------------
+%------------------------------------------------------------------------
 % Examples
-%------------------------------------------------------------
+%------------------------------------------------------------------------
 disp('Examples');
 
 fprintf('  generating examples dir and copying files...');
@@ -173,9 +180,9 @@ perl('../scripts/mkexamples.pl');
 fprintf(' ok\n');
 
 
-%------------------------------------------------------------
+%------------------------------------------------------------------------
 % Documentation
-%------------------------------------------------------------
+%------------------------------------------------------------------------
 disp('Documentation');
 
 fprintf('  generating documentation folder...');
@@ -195,9 +202,10 @@ for iFile = 1:numel(docFiles)
 end
 fprintf(' ok\n');
 
-%------------------------------------------------------------
+
+%------------------------------------------------------------------------
 % Packaging
-%------------------------------------------------------------
+%------------------------------------------------------------------------
 disp('Packaging');
 % package for public release
 if ZipDestDir(end)==filesep, ZipDestDir(end) = []; end
@@ -221,18 +229,17 @@ if ~betaVersion
   fprintf(' ok\n');
 end
 
-%------------------------------------------------------------
+%------------------------------------------------------------------------
 % Clean-up
-%------------------------------------------------------------
+%------------------------------------------------------------------------
 fprintf('Removing build tree...');
 rmdir(BuildFolder,'s');
 fprintf(' ok\n');
 
 disp('Done!');
 
-
-
 return
+
 
 %========================================================================
 %========================================================================

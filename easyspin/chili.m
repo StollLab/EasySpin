@@ -198,17 +198,32 @@ ConvolutionBroadening = any(Sys.lw(1)>0);
 % Dynamics
 %-------------------------------------------------------------------------------
 % Add defaults
-if isfield(Sys,'tcorr'), Dynamics.tcorr = Sys.tcorr; end
-if isfield(Sys,'Diff'), Dynamics.Diff = Sys.Diff; end
-if isfield(Sys,'logtcorr'), Dynamics.logtcorr = Sys.logtcorr; end
-if isfield(Sys,'logDiff'), Dynamics.logDiff = Sys.logDiff; end
 if ~isfield(Sys,'DiffFrame'), Sys.DiffFrame = [0 0 0]; end
 if ~isfield(Sys,'Potential'), Sys.Potential = []; end
-if ~isfield(Sys,'Exchange'), Sys.Exchange = 0; end
 if isfield(Sys,'lwpp'), Dynamics.lwpp = Sys.lwpp; end
 if isfield(Sys,'lw'), Dynamics.lw = Sys.lw; end
 
+
+% Heisenberg exchange
+%-------------------------------------------------------------------------------
+if ~isfield(Sys,'Exchange'), Sys.Exchange = 0; end
 Dynamics.Exchange = Sys.Exchange;
+Dynamics.Exchange = Dynamics.Exchange*2*pi*1e6; % microseconds^-1 -> rad s^-1
+
+% Check and parse diffusion rate information
+%-------------------------------------------------------------------------------
+DiffFields = {'logtcorr','tcorr','Diff','logDiff'};
+hasDiffFields = isfield(Sys,DiffFields);
+if sum(hasDiffFields)>1
+  error('Only one of Sys.tcorr, Sys.logtcorr, Sys.Diff, and Sys.logDiff is allowed.');
+elseif ~any(hasDiffFields)
+  error('One of Sys.tcorr, Sys.logtcorr, Sys.Diff, and Sys.logDiff is required.');
+end
+for k = 1:numel(DiffFields)
+  if hasDiffFields(k)
+    Dynamics.(DiffFields{k}) = Sys.(DiffFields{k});
+  end
+end
 
 % Orientational potential
 %-------------------------------------------------------------------------------
@@ -250,7 +265,7 @@ else
 end
 usePotential = ~isempty(Potential.lambda);
 
-% Validate potential inputs
+% Validate inputs for orientational potential
 if usePotential
   if any(Potential.L<0)
     error('L values of potential coefficients must be nonnegative.');
@@ -264,8 +279,8 @@ if usePotential
   if any(Potential.K<0)
     error('Only nonnegative values of K are allowed.');
   end
-  if any(Potential.K(Potential.M==0)<0)
-    error('For potential terms with M=0, K must be nonnegative.');
+  if any(Potential.M(Potential.K==0)<0)
+    error('For potential terms with K=0, M must be nonnegative.');
   end
   if ~isreal(Potential.lambda(Potential.K==0 & Potential.M==0))
     error('Potential coefficients for M=K=0 must be real-valued.');
@@ -478,18 +493,18 @@ end
 % Determine whether to do a powder simulation
 if ~usePotential
   if isempty(Exp.Ordering) || all(Exp.Ordering==0)
-    logmsg(1,'  No ordering potential given, skipping powder simulation.');
+    logmsg(1,'  No orientational potential given, skipping powder simulation.');
     PowderSimulation = false;
   else
-  logmsg(1,'  Ordering potential given, doing powder simulation.');
+  logmsg(1,'  Orientational potential given, doing powder simulation.');
     PowderSimulation = true;
   end    
 else
   if ~isempty(Exp.CrystalOrientation)
-    logmsg(1,'  Ordering potential given, doing single-crystal simulation.');
+    logmsg(1,'  Orientational potential given, doing single-crystal simulation.');
     PowderSimulation = false;
   else
-    logmsg(1,'  Ordering potential given, doing powder simulation.');
+    logmsg(1,'  Orientational potential given, doing powder simulation.');
     PowderSimulation = true;
   end
 end
@@ -508,7 +523,6 @@ if ~isfield(Opt,'PostConvNucs'), Opt.PostConvNucs = ''; end
 % Undocumented
 if ~isfield(Opt,'Rescale'), Opt.Rescale = true; end
 if ~isfield(Opt,'Threshold'), Opt.Threshold = 1e-6; end
-if ~isfield(Opt,'Diagnostic'), Opt.Diagnostic = false; end
 if ~isfield(Opt,'Solver'), Opt.Solver = 'L'; end
 if ~isfield(Opt,'Lentz'), Opt.Lentz = true; end
 if ~isfield(Opt,'IncludeNZI'), Opt.IncludeNZI = true; end
@@ -645,8 +659,8 @@ switch Opt.Solver
     SolverString = 'biconjugate gradients, stabilized';
   case '\'
     SolverString = 'backslash linear';
-  case 'D'
-    SolverString = 'direct method (eigenbasis, Binsch)';
+  case 'E'
+    SolverString = 'eigenvalue method, sum of Lorentzians';
   otherwise
     error('Unknown method in Options.Solver. Must be ''L'', ''R'', ''C'', or ''\''.');
 end
@@ -698,11 +712,17 @@ end
                                        Opt.IncludeNZI,...
                                        explicitFieldSweep);
 
+if saveDiagnostics
+  diagnostics.T = T;
+  diagnostics.F = F;
+end
+                                     
 noAnisotropiesPresent = all(F.F1(:)==0) && all(F.F2(:)==0);
 if noAnisotropiesPresent
   error('This is an isotropic spin system. chili cannot calculate a slow-motion spectrum.');
 end
 
+% process diffusion tensor and linewidth
 [Dynamics,err] = processdynamics(Dynamics,FieldSweep);
 error(err);
 
@@ -764,7 +784,7 @@ if ~isempty(Exp.Ordering)
   OrderingWeights = Exp.Ordering(phi,theta);
   if any(OrderingWeights)<0, error('User-supplied orientation distribution gives negative values!'); end
   if all(OrderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end
-  logmsg(2,'  ordering potential');
+  logmsg(2,'  orientational potential');
 else
   OrderingWeights = ones(1,nOrientations);
 end
@@ -880,7 +900,7 @@ if generalLiouvillian
 else
   
   % Gamma is calculated simultaneously with H
-    
+  
 end
 
 
@@ -916,9 +936,7 @@ for iOri = 1:nOrientations
     iOri,nOrientations,phi(iOri)*180/pi,theta(iOri)*180/pi,Weights(iOri));
 
   if generalLiouvillian
-    D1 = wignerd(1,phi(iOri),theta(iOri),0);
-    D2 = wignerd(2,phi(iOri),theta(iOri),0);
-    [Q0B,Q1B,Q2B,Q0G,Q1G,Q2G] = rbos(D1,D2,T,F,isFieldDep);
+    [Q0B,Q1B,Q2B,Q0G,Q1G,Q2G] = rbos(T,F,[phi(iOri),theta(iOri),0],isFieldDep);
     
     if Opt.pqOrder
       Q0B = Q0B(idxpq,idxpq);
@@ -944,18 +962,19 @@ for iOri = 1:nOrientations
   
   if explicitFieldSweep
     BSweep = linspace(min(Exp.Range),max(Exp.Range),Exp.nPoints)/1e3; % mT -> T
-    omega0 = 2i*pi*Exp.mwFreq*1e9; % GHz -> Hz (angular frequency)
+    omega0 = complex(2*pi*Exp.mwFreq*1e9,1/Dynamics.T2); % GHz -> rad s^-1 (angular frequency)
   else
     Bcalc = CenterField;
     %Bcalc = mhz2mt(Exp.mwFreq*1e3,mean(mean(Sys.g)));
     BSweep = Bcalc/1e3; % mT -> T
-    omega0 = complex(1/(Dynamics.T2),2*pi*nu); % angular frequency
+    omega0 = complex(2*pi*nu,1/Dynamics.T2); % Hz -> rad s^-1 (angular frequency)
   end
   
   if generalLiouvillian
     if Opt.useLMKbasis
       TT = ksymmetrizer(Basis); % in spatial basis
-      TT = kron(TT,Sys.nStates^2); % expand to full basis, incl. spin
+      TT = kron(TT,eye(Sys.nStates^2)); % expand to full basis, incl. spin
+      TT = TT(keep,keep); % prune
     end
     if explicitFieldSweep
       if Opt.useLMKbasis
@@ -989,6 +1008,11 @@ for iOri = 1:nOrientations
         H = liouvhamiltonian(Basis,Q0,Q1,Q2,jjj0,jjj1,jjj2);
       end
       H = H(keep,keep);
+      if saveDiagnostics
+        diagnostics.Q0 = Q0;
+        diagnostics.Q1 = Q1;
+        diagnostics.Q2 = Q2;        
+      end
     end
   end
       
@@ -1002,8 +1026,8 @@ for iOri = 1:nOrientations
     end
   end
   
-  iSpec = 1;
   for iB = 1:numel(BSweep)
+    
     if ~generalLiouvillian
       if explicitFieldSweep
         Sys.EZ0 = EZ0_*BSweep(iB);
@@ -1020,13 +1044,18 @@ for iOri = 1:nOrientations
       
       % Call mex function to get L matrix elements
       [r,c,Vals,nDim] = chili_lm(Sys,Basis.v,Dynamics,Opt.AllocationBlockSize);
+      % (chili_lm constructs r/c/Vals for -1i*H + Gamma
+      Vals = conj(Vals); % make sure L = +1i*H + Gamma (assumes Gamma is real)
       L = sparse(r,c,Vals,BasisSize,BasisSize);
       
-      if saveDiagnostics
-        rL = real(L);
-        H = -imag(L) + 1i*(rL-rL')/2;
-        H = H/(2*pi);
-        Gamma = (rL+rL')/2;
+      if saveDiagnostics && iOri==1
+        % extract H and Gamma from L = 1i*H + Gamma
+        % (assumes only that H and Gamma are Hermitian)
+        reL = real(L);
+        imL = imag(L);
+        Gamma = (reL+reL.')/2 + 1i*(imL-imL.')/2;
+        H = (imL+imL.')/2 + 1i*(reL.'-reL)/2;
+        H = H/(2*pi); % rad s^-1 -> Hz
       end
       
     else
@@ -1034,7 +1063,7 @@ for iOri = 1:nOrientations
       if explicitFieldSweep
         H = BSweep(iB)*HB + HG;
       end
-      L = -2i*pi*H + Gamma;
+      L = 2i*pi*H + Gamma;  % Hamiltonian: Hz -> rad s^-1
       nDim = size(L,1);
       
       if nDim~=BasisSize
@@ -1053,27 +1082,33 @@ for iOri = 1:nOrientations
     end
     
     % Appy K-symmetrization if needed to obtain complex symmetric L for Lanczos
-    % algorithm. L = -i*H + Gamma is complex symmetric unless H has an imaginary
-    % component.
+    % algorithm. L = i*H + Gamma is complex symmetric if both the imaginary
+    % parts of H and Gamma are zero, i.e. if both H and Gamma are real-valued.
     if generalLiouvillian && Opt.useLMKbasis
       isComplexSymmetric = isreal(H);
+      %maxerr = @(A)max(abs(A(:)));
+      %imagerr = @(A)maxerr(imag(A))/maxerr(real(A));
+      %Himag = imagerr(H)
+      %Gimag = imagerr(Gamma)
       if ~isComplexSymmetric
         L = TT'*L*TT;
+        ksymmHimag = imagerr(TT'*H*TT)
+        ksymmHimag = imagerr(TT'*Gamma*TT)
         StartVector = TT'*StartVector;
       end
     end
     
     % Rescale by maximum of Liouvillian superoperator, for numerical stability
     if Opt.Rescale
-      scale = -min(min(imag(L)));
+      scale = max(abs(L(:)));
       L = L/scale;
       omega = omega0/scale;
     else
       omega = omega0;
     end
     
-    maxDval = max(max(abs(imag(L))));
-    logmsg(1,'  size: %dx%d, maxabs: %g',length(L),length(L),full(maxDval));
+    maxDval = max(abs(real(L(:))));
+    logmsg(1,'  size: %dx%d, maxabsreal: %g',length(L),length(L),full(maxDval));
     
     maxDvalLim = 2e3;
     if maxDval>maxDvalLim
@@ -1088,63 +1123,70 @@ for iOri = 1:nOrientations
     %===========================================================================
     logmsg(1,'Computing spectrum...');
     if explicitFieldSweep
-      Opt.Solver = '\';
-    end
-    switch Opt.Solver
       
-      case 'L' % Lanczos method
-        [alpha,beta,minerr] = chili_lanczos(L,StartVector,omega,Opt);
-        minerr = minerr(end);
-        if minerr<Opt.Threshold
-          thisspec = chili_contfracspec(omega,alpha,beta);
-          logmsg(1,'  converged to within %g at iteration %d/%d',...
-            Opt.Threshold,numel(alpha),BasisSize);
-        else
-          thisspec = ones(size(omega));
-          logmsg(0,'  Tridiagonalization did not converge to within %g after %d steps!\n  Increase Options.LLMK (current settings [%d,%d,%d,%d])',...
-            Opt.Threshold,BasisSize,Opt.LLMK');
-        end
+      I = speye(size(L));
+      rho0 = StartVector;
+      Q = L - 1i*omega*I;
+      thisspec(iB) = rho0'*(Q\rho0);
+      
+    else
+      
+      switch Opt.Solver
         
-      case 'C' % conjugated gradients
-        CGshift = 1e-6 + 1e-6i;
-        [xx,alpha,beta,err,StepsDone] = chili_conjgrad(L,StartVector,CGshift);
-        
-        logmsg(1,'  step %d/%d: CG converged to within %g',...
-          StepsDone,BasisSize,err);
-        
-        thisspec = chili_contfracspec(omega,alpha,beta);
-        
-      case 'R' % bi-conjugate gradients stabilized
-        for iOmega = 1:numel(omega)
-          u = bicgstab(L+omega(iOmega)*speye(size(L)),StartVector,Opt.Threshold,nDim);
-          thisspec(iOmega) = real(u'*StartVector);
-        end
-        
-      case '\' % MATLAB backslash solver for linear system
-        I = speye(size(L));
-        rho0 = StartVector;
-        for iOmega = 1:numel(omega)
-          thisspec(iSpec) = rho0'*((L+omega(iOmega)*I)\rho0);
-          if generalLiouvillian
-            thisspec(iSpec) = thisspec(iSpec);%*2; % scale to match Lanczos
+        case 'L' % Lanczos method
+          [alpha,beta,minerr] = chili_lanczos(L,StartVector,-1i*omega,Opt);
+          minerr = minerr(end);
+          if minerr<Opt.Threshold
+            thisspec = chili_contfracspec(-1i*omega,alpha,beta);
+            logmsg(1,'  converged to within %g at iteration %d/%d',...
+              Opt.Threshold,numel(alpha),BasisSize);
+          else
+            thisspec = ones(size(omega));
+            logmsg(0,'  Tridiagonalization did not converge to within %g after %d steps!\n  Increase Options.LLMK (current settings [%d,%d,%d,%d])',...
+              Opt.Threshold,BasisSize,Opt.LLMK');
           end
-          iSpec = iSpec + 1;
-        end
-        %thisspec = real(thisspec);
-        
-      case 'D' % "direct" method by Binsch (eigenbasis)
-        L = full(L);
-        [U,Lam] = eig(L);
-        Lam = diag(Lam);
-        rho0 = StartVector;
-        Amplitude = (rho0'*U).'.*(U\rho0);
-        thisspec = 0;
-        for iPeak = 1:numel(Amplitude)
-          thisspec = thisspec + Amplitude(iPeak)./(Lam(iPeak)+omega);
-        end
-        
-    end
+          
+        case 'C' % conjugated gradients
+          CGshift = 1e-6 + 1e-6i;
+          [~,alpha,beta,err,StepsDone] = chili_conjgrad(L,StartVector,CGshift);
+          
+          logmsg(1,'  step %d/%d: CG converged to within %g',...
+            StepsDone,BasisSize,err);
+          
+          thisspec = chili_contfracspec(-1i*omega,alpha,beta);
+          
+        case 'R' % bi-conjugate gradients stabilized
+          I = speye(size(L));
+          rho0 = StartVector;
+          for iOmega = 1:numel(omega)
+            Q = L - 1i*omega(iOmega)*I;
+            u = bicgstab(Q,rho0,Opt.Threshold,nDim);
+            thisspec(iOmega) = rho0'*u;
+          end
+          
+        case '\' % MATLAB backslash solver for sparse linear system
+          I = speye(size(L));
+          rho0 = StartVector;
+          for iOmega = 1:numel(omega)
+            Q = L - 1i*omega(iOmega)*I;
+            thisspec(iOmega) = rho0'*(Q\rho0);
+          end
+          
+        case 'E' % eigenvalue method (sum of Lorentzians)
+          % see e.g. G. Binsch, J. Am. Chem. Soc. 91, 1304 (1969)
+          L = full(L);
+          [U,Lam] = eig(L);
+          Lam = diag(Lam);
+          rho0 = StartVector;
+          Amplitude = (rho0'*U).'.*(U\rho0);
+          thisspec = 0;
+          for iPeak = 1:numel(Amplitude)
+            thisspec = thisspec + Amplitude(iPeak)./(Lam(iPeak)-1i*omega);
+          end
+          
+      end
     
+    end
   end
   
   spec = spec + thisspec*Weights(iOri);
@@ -1172,7 +1214,7 @@ end
 %===============================================================================
 % Phasing
 %===============================================================================
-spec = real(exp(-1i*Exp.mwPhase)*spec);
+spec = real(exp(1i*Exp.mwPhase)*spec);
 
 
 %===============================================================================
@@ -1183,7 +1225,7 @@ if doPostConvolution
   
   % Spin system with shf nuclei only
   pcidx = Opt.PostConvNucs;
-  pcSys.g = mean(fullSys.g);
+  pcSys.g = mean(fullSys.g(:));
   pcSys.A = mean(fullSys.A(pcidx,:),2);
   if isfield(fullSys,'n')
     pcSys.n = fullSys.n(pcidx);
@@ -1465,6 +1507,9 @@ err = '';
 % convert everything (tcorr, logcorr, logDiff) to Diff
 if isfield(Dyn,'Diff')
   % Diff given
+  if any(Dyn.Diff<0)
+    error('Sys.Diff cannot be negative.');
+  end
 elseif isfield(Dyn,'logDiff')
   Dyn.Diff = 10.^Dyn.logDiff;
 elseif isfield(Dyn,'tcorr')
@@ -1477,6 +1522,7 @@ else
   return
 end
 
+% check values
 if any(Dyn.Diff<0)
   error('Negative diffusion rate or correlation times are not possible.');
 elseif any(Dyn.Diff>1e12)
@@ -1495,10 +1541,12 @@ switch numel(Dyn.Diff)
     return
 end
 
+% linewidth
+%-------------------------------------------------------------------------------
 if isfield(Dyn,'lw')
   if numel(Dyn.lw)>1
     if FieldSweep
-      LorentzFWHM = Dyn.lw(2)*28 * 1e6; % mT -> MHz -> Hz
+      LorentzFWHM = Dyn.lw(2)*28 * 1e6; % mT -> MHz -> Hz (g = 2.0006)
     else
       LorentzFWHM = Dyn.lw(2)*1e6; % MHz -> Hz
     end
@@ -1512,10 +1560,5 @@ if isfield(Dyn,'lw')
     Dyn.T2 = inf;
   end
 end
-
-% Spin exchange
-%-------------------------------------------------------------------------------
-if ~isfield(Dyn,'Exchange'), Dyn.Exchange = 0; end
-Dyn.Exchange = Dyn.Exchange*2*pi*1e6; % microseconds^-1 -> angular frequency
 
 return

@@ -1,5 +1,8 @@
 function [err,data] = test(opt,olddata)
 
+orig_state = warning;
+warning('off','all');
+
 % System ------------------------
 Sys.S = [3/2];
 Sys.D = 200;
@@ -35,3 +38,4 @@ else
   err = [];
 end
 
+warning(orig_state);

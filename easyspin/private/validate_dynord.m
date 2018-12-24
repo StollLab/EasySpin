@@ -1,4 +1,4 @@
-% check_dynord    Process dynamics and ordering potential.
+% check_dynord    Process dynamics and orientational potential.
 %
 %   (Could be) Implemented to simplify and maintain consistency in code across programs.
 %
@@ -92,11 +92,11 @@ switch program
         Sim.lambda = Sys.Potential.lambda;
         Sim.LMK = Sys.Potential.LMK;
       elseif ~isfield(Sys.Potential,'lambda') && ~isfield(Sys.Potential,'LMK')
-        % if no ordering potential coefficient is given, initialize empty arrays
+        % if no orientational potential coefficient is given, initialize empty arrays
         Sim.lambda = [];
         Sim.LMK = [];
       else
-        error('Both ordering coefficients and LMK are required for an ordering potential.')
+        error('Both potential coefficients and LMK are required for an orientational potential.')
       end
     else
       Sim.lambda = [];

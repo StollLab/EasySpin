@@ -104,8 +104,9 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
     error('Multiple components: Please specify frequency range manually using Exp.Range or Exp.CenterSweep.');
   end
   
-  PowderSimulation = ~isfield(Exp,'CrystalOrientation') || isempty(Exp.CrystalOrientation) || ...
-    (isfield(Exp,'Ordering') && isempty(Exp.Ordering));
+  PowderSimulation = ~isfield(Exp,'CrystalOrientation') || ...
+    isempty(Exp.CrystalOrientation) || ...
+    (isfield(Exp,'Ordering') && ~isempty(Exp.Ordering));
   appendSpectra = PowderSimulation && ~summedOutput;
   if appendSpectra
     spec = [];
@@ -265,8 +266,9 @@ end
 if isfield(Exp,'Orientation') || isfield(Exp,'Orientations')
   error('Exp.Orientation and Exp.Orientations are obsolete (as of EasySpin 5), use Exp.CrystalOrientation instead.');
 end
-PowderSimulation = ~isfield(Exp,'CrystalOrientation') || isempty(Exp.CrystalOrientation) || ...
-  (isfield(Exp,'Ordering') && isempty(Exp.Ordering));
+PowderSimulation = ~isfield(Exp,'CrystalOrientation') || ...
+  isempty(Exp.CrystalOrientation) || ...
+  (isfield(Exp,'Ordering') && ~isempty(Exp.Ordering));
 Exp.PowderSimulation = PowderSimulation;
 
 % Partial ordering

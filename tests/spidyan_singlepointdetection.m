@@ -10,7 +10,6 @@ Pulse.Flip = pi;
 Exp.Sequence = {Pulse 0};
 Exp.mwFreq = 33.5;
 Exp.DetSequence = [0 1]; 
-Exp.DetPhase = 0;
 
 % Options ---------------------------
 Exp.DetOperator = {'z1'};
@@ -19,7 +18,7 @@ Exp.DetOperator = {'z1'};
 % one single acquistion point ------------------
 [sig] = spidyan(Sys,Exp);
 
-sigexpected = 0.9975441;
+sigexpected = 1.0000;
 
 
 % two dimensions -----------------------

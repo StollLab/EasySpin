@@ -1,5 +1,8 @@
 function [err,data] = test(opt,olddata)
 
+orig_state = warning;
+warning('off','all');
+
 % System ------------------------
 Sys.S = 1/2;
 Sys.ZeemanFreq = 33.500;
@@ -14,7 +17,6 @@ Pulse.Flip = pi;
 Exp.Sequence = {Pulse 0.5 Pulse};
 Exp.Field = 1240; 
 Opt.TimeStep = 0.0001; % us
-Exp.DetPhase = 0;
 
 Exp.mwFreq = 33.5;
 Exp.DetSequence = [1 0 0]; 
@@ -49,3 +51,4 @@ else
   err = [];
 end
 
+warning(orig_state);

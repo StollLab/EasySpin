@@ -1,6 +1,8 @@
 function [err,data] = test(opt,olddata)
 
-clear Sys Exp Vary Opt Pulse sigmas Det
+orig_state = warning;
+warning('off','all');
+
 
 % System ------------------------
 Sys.S = [1/2];
@@ -23,7 +25,6 @@ Exp.DetSequence = [1 1 1];
 % Detection -------------------------
 Exp.DetOperator = {'z1','+1'};
 Exp.DetFreq = [0 33.5]; 
-Exp.DetPhase = 0;
 
 % Options ---------------------------
 Opt.SimFreq = 32;
@@ -45,3 +46,4 @@ else
   err = [];
 end
 
+warning(orig_state);

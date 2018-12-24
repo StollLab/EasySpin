@@ -11,7 +11,8 @@ Sys.tcorr = 10e-9;
 
 Exp.Field = 350;
 Exp.mwRange = [9.6 10];
-Opt.LiouvMethod = 'fast';
+Opt.LiouvMethod = 'general';
+Opt.Solver = 'L';
 
 [x,y] = chili(Sys,Exp,Opt);
 
@@ -29,8 +30,10 @@ end
 if opt.Display
   if ~isempty(olddata)
     subplot(4,1,1:3);
-    plot(data.x,data.y,'r',olddata.x,olddata.y,'g');
-    legend('new','old');
+    y_rescaled = data.y/max(data.y)*max(olddata.y);
+    max(olddata.y)/max(data.y)
+    plot(olddata.x,olddata.y,data.x,data.y,data.x,y_rescaled);
+    legend('old','new','rescaled new');
     legend boxoff
     subplot(4,1,4);
     plot(data.x,data.y-olddata.y,'r');

@@ -1,5 +1,8 @@
 function [err,data] = test(opt,olddata)
 
+orig_state = warning;
+warning('off','all');
+
 % System ------------------------
 Sys.S = 1/2;
 Sys.ZeemanFreq = 33.500;
@@ -28,7 +31,7 @@ Opt.Relaxation = 1;
 
 % Testing Complex excitation
 
-Opt.ComplexExcitation = 1;
+Exp.mwPolarization = 'circular';
 [~, ~, out1] = spidyan(Sys,Exp,Opt);
 
 Exp.DetSequence = [1 1];
@@ -43,3 +46,4 @@ else
   err = [];
 end
 
+warning(orig_state);

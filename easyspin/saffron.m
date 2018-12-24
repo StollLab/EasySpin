@@ -107,7 +107,7 @@ if any(isfield(Sys,ForbiddenSysFields))
   error('Sys.initState and Sys.eqState are specific to spidyan and can not be used with saffron. Please remove them.')
 end
 
-ForbiddenOptFields = {'StateTrajectories','ExcOperator','ComplexExcitation'};
+ForbiddenOptFields = {'StateTrajectories','ExcOperator'};
 for index = 1 : numel(ForbiddenOptFields)
   field_ = ForbiddenOptFields{index};
   if isfield(Opt,field_)
@@ -181,8 +181,12 @@ else
   nDataPoints = 1;
 end
 
-if strcmp(Opt.SimulationMode,'thyme') && isfield(Exp,'nPoints') && length(Exp.nPoints) > 1 && ~nargout
-  error('Not enough output arguments for more than one indirect dimensions. The data can not be generally plotted.')
+if strcmp(Opt.SimulationMode,'thyme')  && ~nargout && isfield(Exp,'nPoints')
+  if Opt.SinglePointDetection  && length(Exp.nPoints) > 2
+    error('Not enough output arguments for more than two indirect dimensions with single point detections. The data can not be generally plotted.')
+  elseif ~Opt.SinglePointDetection  && length(Exp.nPoints) > 1
+    error('Not enough output arguments for more than one indirect dimensions with transient detections. The data can not be generally plotted.')
+  end
 end
 
 if strcmp(Opt.SimulationMode,'fast')
@@ -326,9 +330,7 @@ if strcmp(Opt.SimulationMode,'fast')
           ExperimentNames = {'2pESEEM','3pESEEM','4pESEEM','HYSCORE','MimsENDOR'};
           plotQuadratureSignal = ~PredefinedExperiment && ~isreal(out.td);
           if plotQuadratureSignal
-            h = plot(x1,real(out.td),'b',x1,imag(out.td),'r');
-            set(h(1),'Color',[0 0 1]);
-            set(h(2),'Color',[0.8 0.6 1]);
+            h = plot(x1,real(out.td),x1,imag(out.td));
             legend('Re','Im');
             legend boxoff
           else
@@ -358,15 +360,11 @@ if strcmp(Opt.SimulationMode,'fast')
           idx = find(out.f==0):length(out.f);
           xf = out.f(idx);
           if plotQuadratureSignal
-            h = plot(xf,abs(out.fd(idx)),'g',xf,real(out.fd(idx)),'b',xf,imag(out.fd(idx)),'r');
+            h = plot(xf,abs(out.fd(idx)),xf,real(out.fd(idx)),xf,imag(out.fd(idx)));
             legend('abs','Re','Im');
             legend boxoff
-            set(h(2),'Color',[0   0   1]);
-            set(h(3),'Color',[0.8 0.6 1]);
-            set(h(1),'Color',[0   0.8    0]);
           else
-            h = plot(xf,abs(out.fd(idx)),'b',xf,real(out.fd(idx)),'g');
-            set(h(2),'Color',[0 0.8 0]);
+            h = plot(xf,abs(out.fd(idx)),xf,real(out.fd(idx)));
             legend('abs','Re');
             legend boxoff
           end
@@ -881,8 +879,11 @@ if strcmp(Opt.SimulationMode,'fast')
   switch Opt.EndorMethod
     case 0, logmsg(1,'using population swaps of adjacent nuclear sublevels');
     case 1, logmsg(1,'using bandwidth-filtered Iy pi pulse, sum over transitions');
-    case 2, logmsg(1,'using bandwidth-filtered Iy pi pulse, full RF sweel');
+  case 2, logmsg(1,'using bandwidth-filtered Iy pi pulse, full RF sweep');
     otherwise, error('Unknown setting for Opt.EndorMethod. Must be 0, 1, or 2.');
+end
+if Opt.EndorMethod==0 && numel(shfNuclei)>1 && ~Opt.ProductRule
+  error('Opt.EndorMethod=0 gives incorrect results for multiple nuclei.')
   end
   
   
@@ -2005,7 +2006,7 @@ else
     if ~isempty(Relaxation_)
       logmsg(1,'  adapting relaxation superoperator to system frame');
       [U,~] = eig(Ham);
-      R = kron(transpose(U),(U'));
+      R = kron(transpose(U),U');
       Relaxation_.Gamma = R'*Relaxation_.Gamma*R;
     end
     
@@ -2014,8 +2015,8 @@ else
   
   TimeAxis = TimeAxis{1};
   
+  % Accumulate powder signal
   Signal = 0;
-  
   for iOrientation = 1 : nOrientations
     Signal = Signal + RawSignals{iOrientation}*Exp.OriWeights(iOrientation);
   end
@@ -2024,8 +2025,8 @@ else
     logmsg(1,'  applying detection phase: %d*pi',Exp.DetPhase/pi);
     phase = exp(-1i*Exp.DetPhase);
   else
-    logmsg(1,'  applying default detection phase: pi');
-    phase = exp(-1i*pi);
+    logmsg(1,'  applying default detection phase: 0');
+    phase = exp(-1i*0);
   end
   
   Signal = Signal*phase;
@@ -2124,42 +2125,7 @@ else
       logmsg(1,'-no output requested------------------------------------');
       logmsg(1,'  switching to graphical output');
       % plotting
-      if nDims == 1
-        clf
-        title('Detected Signal')
-        
-        if ~Opt.SinglePointDetection
-          if size(Signal,1) == 1
-            plot(TimeAxis',real(Signal)')
-            ylabel('Signal (arb. u.)')
-          else
-            surf(x{2},x{1}(1,:),real(Signal));
-            shading flat
-            if length(Exp.Dim1{1,2}) == 1
-              % x-axis and its label in case of linear increments
-              ylabel(['\Delta' Exp.Dim1{1,1}])
-            else
-              % x-axis and its label in case of user provided increments
-              ylabel(['Data Points ' Exp.Dim1{1,1}])
-            end
-            zlabel('Signal (arb. u.)')
-          end
-          xlabel('Transient (\mus)')
-          axis tight
-        else
-          plot(x(1,:),real(Signal));
-          ylabel('Signal (arb. u.)')
-          if length(Exp.Dim1{1,2}) == 1
-            % x-axis and its label in case of linear increments
-            xlabel(['\Delta' Exp.Dim1{1,1}])
-          else
-            % x-axis and its label in case of user provided increments
-            xlabel(['Data Points ' Exp.Dim1{1,1}])
-          end
-        end
-      else
-        disp('Can not plot two or more indirect dimensions in combination with transient detection.')
-      end
+      s_plotting(TimeAxis,Signal,Exp,Opt);
     case 1
       varargout{1} = Signal;
     case 2
@@ -2370,19 +2336,25 @@ end
 
 function [Sys] = rotatesystem(Sys,angles)
 
-rotatble = {'g' 'A' 'Q' 'D' 'ee' 'nn'};
+rotatable = {'g' 'A' 'Q' 'D' 'ee' 'nn'};
 
-fields2rotate = rotatble(isfield(Sys,rotatble));
+fields2rotate = rotatable(isfield(Sys,rotatable));
 
 for iField = 1 : numel(fields2rotate)
   
   field_ = [fields2rotate{iField} 'Frame'];
   
-  for iRow = 1: size(field_,1)
-    R0 = erot(Sys.(field_));
-    R1 = erot(angles);
-    
-    Sys.(field_) = eulang(R0*R1);
+  nRows = size(Sys.(field_),1);
+  nCol = size(Sys.(field_),2)/3;
+  
+  for iRow = 1 : nRows
+    for iCol = 1 : nCol
+      R0 = erot(Sys.(field_)(iRow,3*(iCol-1)+1:3*iCol));
+      R1 = erot(angles);
+      
+      Sys.(field_)(iRow,3*(iCol-1)+1:3*iCol) = eulang(R0*R1);
+    end
   end
   
 end
+

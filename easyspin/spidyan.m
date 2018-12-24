@@ -63,6 +63,7 @@ EasySpinLogLevel = Opt.Verbosity;
 
 logmsg(1,['=begin=spidyan====' datestr(now) '=================']);
 logmsg(2,'  log level %d',EasySpinLogLevel);
+
 %----------------------------------------------------------------------
 % Preprocess Input
 %----------------------------------------------------------------------
@@ -98,6 +99,15 @@ if (isfield(Sys,'T1') || isfield(Sys,'T2')) && ~isfield(Opt,'Relaxation')
 end
 
 [Events, Vary, Opt] = s_sequencer(Exp,Opt);
+
+% check if output can be plotted in case nargout == 0
+if nargout == 0 && isfield(Exp,'nPoints')
+  if Opt.SinglePointDetection && length(Exp.nPoints) > 2
+    error('spidyan can not plot more than two indirect dimensions in combination with single point detection.');
+  elseif ~Opt.SinglePointDetection && length(Exp.nPoints) > 1
+    error('spidyan can not plot more than one indirect dimension in combination with transient detection.');
+  end
+end
 
 % Adapt Zeeman frequencies for the selected simulation frame
 logmsg(1,'-validating spin system--------------------------------');
@@ -170,6 +180,15 @@ if isfield(Exp,'DetOperator')
   Opt.DetOperator = Exp.DetOperator;
 end
 
+if isfield(Exp,'DetPhase')
+  if isfield(Opt,'DetOperator') && length(Exp.DetPhase) ~= length(Opt.DetOperator)
+    error('Exp.DetPhase has to have the same length as Exp.DetOperator.');
+  elseif ~isfield(Opt,'DetOperator') && length(Exp.DetPhase) ~= 1
+    error('Exp.DetPhase has to have length one if no Exp.DetOperator is provided.');
+  end  
+end
+  
+
 % Validate and build spin system as well as excitation operators
 logmsg(1,'  parsing the Sys structure...');
 
@@ -206,20 +225,11 @@ logmsg(1,'-validating and processing outout----------------------');
 nDetOps = numel(DetOps); % number of detection operators
 
 % Applying detection phase
-if ~isempty(RawSignal)
-  if isfield(Exp,'DetPhase')
-    logmsg(1,'  applying detection phase: %d*pi',Exp.DetPhase/pi);
-    phase = exp(-1i*Exp.DetPhase);
-  else
-    logmsg(1,'  applying default detection phase: pi');
-    phase = exp(-1i*pi);
-  end
+if ~isempty(RawSignal) && isfield(Exp,'DetPhase')
+  logmsg(1,'  applying detection phase: %d*pi',Exp.DetPhase/pi);
+  DetPhase = exp(-1i*Exp.DetPhase);
   
-  if iscell(RawSignal)
-    RawSignal = cellfun(@(x) x*phase,RawSignal,'un',0);
-  else
-    RawSignal = RawSignal*phase;
-  end
+  RawSignal = applyPhaseShift(RawSignal,DetPhase);
 end
 
 if Opt.SinglePointDetection
@@ -307,146 +317,7 @@ switch nargout
     if isempty(Signal)
       disp('Detection was switched off, nothing to display.')
     else
-      if ~isfield(Exp,'DetOperator')
-        % this field will be used as title in the plotting
-        Exp.DetOperator = {'Electron Coherence'};
-      end
-      
-      if isfield(Exp,'nPoints')
-        nDataPoints = prod(Exp.nPoints);
-      else
-        nDataPoints = 1;
-      end
-      
-      % Set up figures
-      logmsg(1,'  setting up figures...');
-      % only make figures if a) transients were detected or b) single point
-      % detection with indirect dimension (but not more than 2) and more
-      % than one acquisition point
-      if ~Opt.SinglePointDetection || (Opt.SinglePointDetection && isfield(Exp,'nPoints') && length(Exp.nPoints) < 3 && nDataPoints > 1)
-        for iDetOp = 1 : nDetOps
-          figure(iDetOp)
-          clf
-          if ischar(Exp.DetOperator{iDetOp})
-            % title for detection operators that used the sop syntax
-            title(['Signal of ' Exp.DetOperator{iDetOp}])
-            ylabel(['<' Exp.DetOperator{iDetOp} '>'])
-          else
-            % title of detection operators that were provided in matrix form
-            title(['Signal detected with detection operator no.' num2str(iDetOp)])
-            ylabel('<S>')
-          end
-          xlabel('t (\mus)')
-          hold on
-        end
-      end
-      
-      if Opt.SinglePointDetection
-        % plotting single point detection
-        logmsg(1,'  single point detection:');
-        if nDataPoints == 1
-          % if only a single datapoint was acquired, there is no point in
-          % plotting it, instead the output is displayed in the console
-          for iDetOp = 1 : nDetOps
-            if ischar(Exp.DetOperator{iDetOp})
-              string  = ['  Expectation value of ' Exp.DetOperator{iDetOp} ':   '];
-            else
-              string = ['  Expectation value of operator no.' num2str(iDetOp) ':   '];
-            end
-            disp([string num2str(Signal(1,iDetOp))]);
-          end
-        else
-          if length(Exp.nPoints) > 2
-            % more than two dimensions can not be displayed in a general
-            % way
-            logmsg(1,'  more than two indirect dimensions - stopping');
-            disp('Unable to display more than two indirect dimensions.')
-          elseif length(Exp.nPoints) == 1
-            % one dimensional case
-            logmsg(1,'  creating plot(s) for one indirect dimension');
-            for iDetOp = 1 : nDetOps
-              figure(iDetOp)
-              if length(Exp.Dim1{1,2}) == 1
-                % x-axis and its label in case of linear increments
-                xvec = Exp.Dim1{1,2}*(0:Exp.nPoints(1)-1);
-                xlabel(['\Delta' Exp.Dim1{1,1}])
-              else
-                % x-axis and its label in case of user provided increments
-                xvec = 1:Exp.nPoints(1);
-                xlabel(['Data Points ' Exp.Dim1{1,1}])
-              end
-              plot(xvec,real(squeeze(Signal(:,1,iDetOp))));
-            end
-          elseif length(Exp.nPoints) == 2
-            % two dimensional case
-            logmsg(1,'  creating plot(s) for two indirect dimensions');
-            for iDetOp = 1 : nDetOps
-              if length(Exp.Dim1{1,2}) == 1
-                % y-axis and its label in case of linear increments
-                yvec = Exp.Dim1{1,2}*(0:Exp.nPoints(1)-1);
-                ylabel(['\Delta' Exp.Dim1{1,1}])
-              else
-                % y-axis and its label in case of userdefined increments
-                yvec = 1:Exp.nPoints(1);
-                ylabel(['Data Points ' Exp.Dim1{1,1}])
-              end
-              if length(Exp.Dim2{1,2}) == 1
-                % x-axis and its label in case of linear increments
-                xvec = Exp.Dim2{1,2}*(0:Exp.nPoints(2)-1);
-                xlabel(['\Delta' Exp.Dim2{1,1}])
-              else
-                % x-axis and its label in case of userdefined increments
-                xvec = 1:Exp.nPoints(2);
-                xlabel(['Data Points ' Exp.Dim2{1,1}])
-              end
-              figure(iDetOp)
-              surf(xvec,yvec,real(squeeze(Signal(:,:,1,iDetOp))));
-              shading flat
-            end
-          end
-        end
-      else
-        % plotting transients - this can get a little messy
-        logmsg(1,'  plotting transient(s)');
-        if nDataPoints == 1
-          % plotting a single acquisition point
-          for iDetOp = 1 : nDetOps
-            figure(iDetOp)
-            plot(TimeAxis,real(Signal(:,iDetOp)));
-          end
-        else
-          if ~iscell(Signal)
-            % plotting if signals are organized in a numeric array
-            SignalSize = size(Signal);
-            if length(Exp.DetOperator) == 1
-              SignalSize(end+1) = 1;
-            end
-            % reshape such to three dimensions
-            Signal = reshape(Signal,[nDataPoints SignalSize(end-1) SignalSize(end)]);
-          end
-          % set up time axes
-          if ~iscell(TimeAxis) && size(TimeAxis,1) == 1
-            IndexVec = ones(1,nDataPoints);
-          else
-            IndexVec = 1:nDataPoints;
-          end
-          
-          for iDetOp = 1 : nDetOps
-            figure(iDetOp)
-            for iDataPoint = 1 : nDataPoints
-              if iscell(Signal)
-                % plotting the cell arrays
-                plot(TimeAxis{iDataPoint},real(Signal{iDataPoint}(:,iDetOp)));
-              else
-                % plotting the reshaped numeric arrays
-                plot(TimeAxis(IndexVec(iDataPoint),:),real(squeeze(Signal(iDataPoint,:,iDetOp))));
-              end
-            end
-          end
-          
-        end
-        
-      end
+      s_plotting(TimeAxis,Signal,Exp,Opt);
     end
   case 1
     varargout = {Signal};
@@ -475,3 +346,36 @@ end
 logmsg(1,msg);
 
 logmsg(1,'=end=spidyan======%s=================\n',datestr(now));
+
+function PhasedSignal = applyPhaseShift(RawSignal, Phase)
+
+nPhases = length(Phase);
+
+if iscell(RawSignal)
+  nPoints = numel(RawSignal);
+  
+  PhasedSignal = cell(size(RawSignal));
+  
+  for iPoint = 1 : nPoints
+    PhasedSignal{iPoint} = bsxfun(@times,RawSignal{iPoint},Phase');
+  end
+  
+else
+  SignalSize = size(RawSignal);
+  
+  nPoints = prod(SignalSize(1:end-2));
+  % reshape the n-dimensional array into a 3-dimensional array, that
+  % can be looped over linearly along the first dimension (which
+  % corresponds to all the acquistion points)
+  RawSignal = reshape(RawSignal,[nPoints SignalSize(end-1) SignalSize(end)]);
+  
+  PhasedSignal = zeros(size(RawSignal));
+  
+  for iPhase = 1 : nPhases
+    PhasedSignal(:,iPhase,:) = RawSignal(:,iPhase,:)*Phase(iPhase);
+  end
+  
+  PhasedSignal = reshape(PhasedSignal,SignalSize);
+  
+end
+

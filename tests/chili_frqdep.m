@@ -21,8 +21,9 @@ data.y = y;
 
 if ~isempty(olddata)
   if opt.Display
-    xx = 1:numel(x(1,:));
-    plot(xx,data.y,'r',xx,olddata.y,'g');
+    xx = 1:size(x,2);
+    plot(xx,data.y,xx,olddata.y,'.');
+    legend('new','old');
   end
   ok = areequal(y,olddata.y,1e-4);
   err = ~ok;

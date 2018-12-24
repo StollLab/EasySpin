@@ -1,5 +1,8 @@
 function [err,data] = test(opt,olddata)
 
+orig_state = warning;
+warning('off','all');
+
 % System ------------------------
 Sys.S = 1;
 Sys.ZeemanFreq = 33.500;
@@ -17,7 +20,6 @@ Opt.TimeStep = 0.0001; % us
 
 Exp.mwFreq = 33.5;
 Exp.DetSequence = [1 0]; 
-Exp.DetPhase = 0;
 
 % Options ---------------------------
 Exp.DetOperator = {'+','+(1|2)'};
@@ -49,3 +51,4 @@ else
   err = [];
 end
 
+warning(orig_state);
