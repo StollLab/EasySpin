@@ -1917,7 +1917,7 @@ opts.maxTotalIts = 50000;
 %opts.factr = 1e5;
 %opts.pgtol = 1e-7;
 
-[x, f, info] = lbfgsb(fcn, zeros(nstate*nstate, 1), Inf(nstate*nstate, 1), opts);
+[x, f, info] = cardamom_lbfgsb(fcn, zeros(nstate*nstate, 1), Inf(nstate*nstate, 1), opts);
 x = reshape(x, nstate, nstate);
 
 x_i = sum(x, 2);
