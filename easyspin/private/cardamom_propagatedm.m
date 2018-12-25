@@ -55,6 +55,8 @@ function Sprho = cardamom_propagatedm(Sys, Par, Opt, MD, omega, CenterField)
 
 persistent cacheTensors
 persistent D2TrajMol
+persistent gTensorState
+persistent ATensorState
 % persistent fullSteps
 % persistent K2
 
@@ -181,14 +183,20 @@ switch Method
     ATensor = cardamom_tensortraj(A,RTraj,RTrajInv)*1e6*2*pi; % MHz (s^-1) -> Hz (rad s^-1)
     
     if isMarkov
-      gTensorState = zeros(3,3,MD.nStates);
-      ATensorState = zeros(3,3,MD.nStates);
-      
-      % find the average interaction tensor for each state
-      for iState = 1:MD.nStates
-        idxState = (MD.stateTraj == iState);
-        gTensorState(:,:,iState) = squeeze(mean(gTensor(:,:,1,idxState),4));
-        ATensorState(:,:,iState) = squeeze(mean(ATensor(:,:,1,idxState),4));
+      if isempty(gTensorState)
+        gTensorState = zeros(3,3,MD.nStates,size(MD.stateTraj,1));
+        ATensorState = zeros(3,3,MD.nStates,size(MD.stateTraj,1));
+
+        % find the average interaction tensor for each state
+        for iState = 1:MD.nStates
+          for iTraj = 1:size(MD.stateTraj,1)
+            idxState = (MD.stateTraj(iTraj,:) == iState);
+            gTensorState(:,:,iState,iTraj) = squeeze(mean(gTensor(:,:,iTraj,idxState),4));
+            ATensorState(:,:,iState,iTraj) = squeeze(mean(ATensor(:,:,iTraj,idxState),4));
+          end
+        end
+        gTensorState = mean(gTensorState,4,'omitnan');
+        ATensorState = mean(ATensorState,4,'omitnan');
       end
       
       gTensor = zeros(3,3,nTraj,nSteps);

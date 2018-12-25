@@ -33,7 +33,7 @@ function [LL, prior, transmat, mu, Sigma, mixmat] = ...
 % entries of mixmat to 0, e.g., 2 components if Q=1, 3 components if Q=2,
 % then set mixmat(1,3)=0. In this case, B2(1,3,:)=1.0.
 
-if ~isempty(varargin) & ~isstr(varargin{1}) % catch old syntax
+if ~isempty(varargin) & ~ischar(varargin{1}) % catch old syntax
   error('optional arguments should be passed as string/value pairs')
 end
 
@@ -71,15 +71,16 @@ while (num_iter <= max_iter) & ~converged
   
   
   % M step
-  if adj_prior
-    prior = normalise(exp_num_visits1);
-  end
-  if adj_trans 
-    transmat = mk_stochastic(exp_num_trans);
-  end
-  if adj_mix
-    mixmat = mk_stochastic(postmix);
-  end
+  [transmat, prior, ~] = msmtransitionmatrix(exp_num_trans, 1000);
+%   if adj_prior
+%     prior = normalise(exp_num_visits1);
+%   end
+%   if adj_trans 
+%     transmat = mk_stochastic(exp_num_trans);
+%   end
+%   if adj_mix
+%     mixmat = mk_stochastic(postmix);
+%   end
   if adj_mu | adj_Sigma
     [mu2, Sigma2] = mixgauss_Mstep(postmix, m, op, ip, 'cov_type', cov_type);
     if adj_mu
@@ -149,7 +150,8 @@ for ex=1:numex
 	fwdback(prior, transmat, B, 'obslik2', B2, 'mixmat', mixmat);
   else
     B = mixgauss_prob(obs, mu, Sigma);
-    [alpha, beta, gamma,  current_loglik, xi_summed] = fwdback(prior, transmat, B);
+%     [alpha, beta, gamma,  current_loglik, xi_summed] = fwdback(prior, transmat, B);
+    [alpha, beta, gamma,  current_loglik, xi_summed] = fwdback(prior, transmat, B, 'fwd_only', 1);
   end    
   loglik = loglik +  current_loglik; 
   if verbose, fprintf(1, 'll at ex %d = %f\n', ex, loglik); end
@@ -283,27 +285,21 @@ end
 t = 1;
 alpha(:,1) = init_state_distrib(:) .* obslik(:,t);
 if scaled
- %[alpha(:,t), scale(t)] = normaliseC(alpha(:,t));
  [alpha(:,t), scale(t)] = normalise(alpha(:,t));
 end
-%assert(approxeq(sum(alpha(:,t)),1))
+
 for t=2:T
- %trans = transmat(:,:,act(t-1))';
  trans = transmat{act(t-1)};
  if maximize
    m = max_mult(trans', alpha(:,t-1));
-   %A = repmat(alpha(:,t-1), [1 Q]);
-   %m = max(trans .* A, [], 1);
  else
    m = trans' * alpha(:,t-1);
  end
  alpha(:,t) = m(:) .* obslik(:,t);
  if scaled
-   %[alpha(:,t), scale(t)] = normaliseC(alpha(:,t));
    [alpha(:,t), scale(t)] = normalise(alpha(:,t));
  end
  if compute_xi & fwd_only  % useful for online EM
-   %xi(:,:,t-1) = normaliseC((alpha(:,t-1) * obslik(:,t)') .* trans);
    xi_summed = xi_summed + normalise((alpha(:,t-1) * obslik(:,t)') .* trans);
  end
  %assert(approxeq(sum(alpha(:,t)),1))
@@ -340,7 +336,6 @@ else
 end
 
 beta(:,T) = ones(Q,1);
-%gamma(:,T) = normaliseC(alpha(:,T) .* beta(:,T));
 gamma(:,T) = normalise(alpha(:,T) .* beta(:,T));
 t=T;
 if compute_gamma2
@@ -350,11 +345,10 @@ if compute_gamma2
  else
    gamma2(:,:,t) = obslik2(:,:,t) .* mixmat .* repmat(gamma(:,t), [1 M]) ./ repmat(denom, [1 M]);
  end
- %gamma2(:,:,t) = normaliseC(obslik2(:,:,t) .* mixmat .* repmat(gamma(:,t), [1 M])); % wrong!
 end
+
 for t=T-1:-1:1
  b = beta(:,t+1) .* obslik(:,t+1);
- %trans = transmat(:,:,act(t));
  trans = transmat{act(t)};
  if maximize
    B = repmat(b(:)', Q, 1);
@@ -363,13 +357,10 @@ for t=T-1:-1:1
    beta(:,t) = trans * b;
  end
  if scaled
-   %beta(:,t) = normaliseC(beta(:,t));
    beta(:,t) = normalise(beta(:,t));
  end
- %gamma(:,t) = normaliseC(alpha(:,t) .* beta(:,t));
  gamma(:,t) = normalise(alpha(:,t) .* beta(:,t));
  if compute_xi
-   %xi(:,:,t) = normaliseC((trans .* (alpha(:,t) * b')));
    xi_summed = xi_summed + normalise((trans .* (alpha(:,t) * b')));
  end
  if compute_gamma2
@@ -379,7 +370,6 @@ for t=T-1:-1:1
    else
      gamma2(:,:,t) = obslik2(:,:,t) .* mixmat .* repmat(gamma(:,t), [1 M]) ./ repmat(denom,  [1 M]);
    end
-   %gamma2(:,:,t) = normaliseC(obslik2(:,:,t) .* mixmat .* repmat(gamma(:,t), [1 M]));
  end
 end
 
@@ -622,12 +612,16 @@ elseif ndims(Sigma)==3 % tied across M
   B2 = zeros(Q,M,T);
   for j=1:Q
     % D(m,t) = sq dist between data(:,t) and mu(:,j,m)
+    if ~isposdef(Sigma(:,:,j))
+      Sigma(:,:,j) = Sigma(:,:,j) + 1e-3*eye(size(Sigma,1));
+    end
     if isposdef(Sigma(:,:,j))
       D = sqdist(data, permute(mu(:,j,:), [1 3 2]), inv(Sigma(:,:,j)))';
       logB2 = -(d/2)*log(2*pi) - 0.5*logdet(Sigma(:,:,j)) - 0.5*D;
+%       logB2 = -(d/2)*log(2*pi) - 0.5*log(det(Sigma(:,:,j))) - 0.5*D;
       B2(j,:,:) = exp(logB2);
     else
-      error(sprintf('mixgauss_prob: Sigma(:,:,q=%d) not psd\n', j));
+      error('mixgauss_prob: Sigma(:,:,q=%d) not psd\n', j);
     end
   end
   
@@ -978,6 +972,162 @@ else
   qmag = sum(q .* Aq, 1);
   m = repmat(qmag, pn, 1) + repmat(pmag', 1, qn) - 2*p'*Aq;
   
+end
+
+end
+
+
+function c = msmcountmatrix(indexOfCluster, tau, nstate)
+%% msmcountmatrix
+% calculate transition count matrix from a set of binned trajectory data
+%
+%% Syntax
+%# c = msmcountmatrix(indexOfCluster);
+%# c = msmcountmatrix(indexOfCluster, tau);
+%# c = msmcountmatrix(indexOfCluster, tau, nstate);
+%# c = msmcountmatrix(indexOfCluster, [], nstate);
+%
+% Description
+% calculate count matrix of transition from state i to state j during time step tau
+%
+% Adapted from Yasuhiro Matsunaga's mdtoolbox
+% 
+
+%% setup
+if ~iscell(indexOfCluster)
+  indexOfCluster_noncell = indexOfCluster;
+  clear indexOfCluster;
+  indexOfCluster{1} = indexOfCluster_noncell;
+  clear indexOfCluster_noncell;
+end
+ntrj = numel(indexOfCluster);
+
+if ~exist('nstate', 'var') || isempty(nstate)
+  nstate = max(cellfun(@(x) max(x), indexOfCluster));
+  disp(sprintf('Message: nstate = %d is used.', nstate));
+end
+
+if ~exist('tau', 'var') || isempty(tau)
+  tau = 1;
+  disp('Message: tau = 1 is used.');
+end
+
+%% count transitions
+c = sparse(nstate, nstate);
+
+for itrj = 1:ntrj
+  nframe = numel(indexOfCluster{itrj});
+
+  index_from = 1:(nframe-tau);
+  index_to   = (1+tau):nframe;
+  indexOfCluster_from = indexOfCluster{itrj}(index_from);
+  indexOfCluster_to   = indexOfCluster{itrj}(index_to);
+
+  %% ignore invalid indices
+  nframe = numel(indexOfCluster_from);
+  s = ones(nframe, 1);
+
+  id = (indexOfCluster_from <= 0);
+  s(id) = 0;
+  indexOfCluster_from(id) = 1;
+
+  id = (indexOfCluster_to   <= 0);
+  s(id) = 0;
+  indexOfCluster_to(id)   = 1;
+
+  id = isnan(indexOfCluster_from);
+  s(id) = 0;
+  indexOfCluster_from(id) = 1;
+
+  id = isnan(indexOfCluster_to);
+  s(id) = 0;
+  indexOfCluster_to(id)   = 1;
+
+  %% calc count matrix
+  % count transitions and make count matrix C_ij by using a sparse
+  % matrix
+  c_itrj = sparse(indexOfCluster_from, indexOfCluster_to, s, nstate, nstate);
+  c = c + c_itrj;
+end
+
+end
+
+
+function [t, pi_i, x] = msmtransitionmatrix(c, maxiteration)
+% msmtransitionmatrix
+% estimate transition probability matrix from count matrix
+%
+% Syntax
+%# [t, pi_i] = msmtransitionmatrix(c);
+%# [t, pi_i] = msmtransitionmatrix(c, maxiteration);
+%
+% Description
+% this routines uses the reversible maximum likelihood estimator
+%
+% Adapted from Yasuhiro Matsunaga's mdtoolbox
+% 
+
+%% setup
+if issparse(c)
+  c = full(c);
+end
+
+nstate = size(c, 1);
+
+c_sym  = c + c';
+x      = c_sym;
+
+c_i    = sum(c, 2);
+x_i    = sum(x, 2);
+
+if ~exist('maxiteration', 'var')
+  maxiteration = 1000;
+end
+
+%% optimization by L-BFGS-B
+fcn = @(x) myfunc_column(x, c, c_i, nstate);
+opts.x0 = x(:);
+opts.maxIts = maxiteration;
+opts.maxTotalIts = 50000;
+%opts.factr = 1e5;
+%opts.pgtol = 1e-7;
+
+[x, f, info] = cardamom_lbfgsb(fcn, zeros(nstate*nstate, 1), Inf(nstate*nstate, 1), opts);
+x = reshape(x, nstate, nstate);
+
+x_i = sum(x, 2);
+t = bsxfun(@rdivide, x, x_i);
+t(isnan(t)) = 0;
+pi_i = x_i./sum(x_i);
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [f, g] = myfunc_column(x, c, c_i, nstate);
+x = reshape(x, nstate, nstate);
+[f, g] = myfunc_matrix(x, c, c_i);
+g = g(:);
+
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [f, g] = myfunc_matrix(x, c, c_i)
+x_i = sum(x, 2);
+
+% F
+tmp = c .* log(bsxfun(@rdivide, x, x_i));
+%index = ~(isnan(tmp));
+index = (x > (10*eps));
+f = - sum(tmp(index));
+
+% G
+t = c_i./x_i;
+g = (c./x) + (c'./x') - bsxfun(@plus, t, t');
+g((x_i < (10*eps)), :) = 0;
+index = ((x > (10*eps)) & (x' > (10*eps)));
+g(~index) = 0;
+g(isnan(g)) = 0;
+g = -g;
+
 end
 
 end

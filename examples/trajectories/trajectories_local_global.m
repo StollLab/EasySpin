@@ -1,4 +1,4 @@
-% trajectories of Markovian jumps between discrete states
+% trajectories of coupled stochastic rotational diffusion
 %==========================================================================
 % This script simulates two "levels" of rotational diffusion: fast,
 % restricted local diffusion, and slow, Brownian global diffusion. The two

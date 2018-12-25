@@ -8,9 +8,12 @@ rng(1)
 tol = 5*eps;
 len = 3;
 
-beta  =   pi*(2*rand(1,len)-1);
-alpha = 2*pi*(2*rand(1,len)-1);
-gamma = 2*pi*(2*rand(1,len)-1);
+% beta  =   pi*(2*rand(1,len)-1);
+% alpha = 2*pi*(2*rand(1,len)-1);
+% gamma = 2*pi*(2*rand(1,len)-1);
+beta  =   pi*rand(1,len);
+alpha = 2*pi*rand(1,len);
+gamma = 2*pi*rand(1,len);
 
 q = euler2quat(alpha,beta,gamma);
 

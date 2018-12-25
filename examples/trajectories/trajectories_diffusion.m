@@ -1,4 +1,4 @@
-% trajectories of Markovian jumps between discrete states
+% trajectories of stochastic rotational diffusion
 %==========================================================================
 % This script simulates rotational diffusion using the provided rotational
 % correlation time. By calling stochtraj_diffusion without any output 
@@ -8,8 +8,6 @@
 clear
 
 Sys.tcorr = 1e-9;              % rotational correlation time, s
-Sys.Potential = [2,0,0,2.0];   % orientational potential with L=2, M=0, 
-                               % K=0, and a coefficient of 2.0
 
 Par.OriStart = [0;0;0];        % starting orientation on the north pole
 

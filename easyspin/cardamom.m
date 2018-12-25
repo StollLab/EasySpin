@@ -181,12 +181,15 @@
 %                      pseudopotential) and orientational correlation 
 %                      functions (for diffusion tensor) to perform further 
 %                      stochastic rotational dynamics simulations
-%
+%                    Markov: coarse grain the trajectories by using the
+%                      side chain dihedral angles to build a Markov state 
+%                      model
+% 
 %     removeGlobal   integer
 %                    1: (default) remove protein global diffusion
 %                    0: no removal (e.g. if protein is fixed)
 % 
-%
+% 
 %   Output:
 %     B              numeric, size = (2*nSteps,1) 
 %                    magnetic field (mT)
@@ -212,10 +215,6 @@
 %                    average over both time and trajectory axes, yielding a
 %                    single approximate propagator to be used on the
 %                    trajectory-averaged density matrix
-
-%                    Markov: coarse grain the trajectories by using the
-%                      side chain dihedral angles to form a Markov state 
-%                      model
 
 
 function varargout = cardamom(Sys,Exp,Par,Opt,MD)
@@ -265,6 +264,9 @@ global EasySpinLogLevel;
 global reverseStr
 EasySpinLogLevel = Opt.Verbosity;
 
+if ~isfield(Opt,'debug')
+  Opt.debug = [];
+end
 
 % Check Sys
 % -------------------------------------------------------------------------
@@ -303,7 +305,6 @@ if useMD
   if ~isfield(MD,'dt')
     error('The MD trajectory time step MD.dt must be given.')
   end
-  MD.dt = tScale*MD.dt;
   
   if ~isfield(MD,'DiffGlobal')
     MD.DiffGlobal = [];
@@ -318,7 +319,7 @@ if useMD
     if ~ischar(MD.TrajUsage)
       error('MD.TrajUsage must be a string.')
     end
-    if ~any(strcmp({MD.TrajUsage},{'Explicit','Resampling'}))%,'Markov'}))
+    if ~any(strcmp({MD.TrajUsage},{'Explicit','Resampling','Markov'}))
       errmsg = sprintf('Entry ''%s'' for MD.TrajUsage not recognized.', MD.TrajUsage);
       error(errmsg)
     end
@@ -330,7 +331,7 @@ if useMD
     error('The spin label frame trajectory MD.FrameTraj must be given.')
   end
 
-  if ~isequal(size(MD.FrameTraj),[3,3,1,MD.nSteps])
+  if ~isequal(size(MD.FrameTraj),[3,3,size(MD.FrameTraj,3),MD.nSteps])
     error('Frame trajectory must be of size (3,3,1,MD.nSteps).')
   end
   
@@ -349,120 +350,141 @@ if useMD
 
   if ~allclose(multimatmult(MD.RTraj,RTrajInv),...
                repmat(eye(3),1,1,size(MD.RTraj,3),size(MD.RTraj,4)),...
-               1e-13)
+               1e-10)
     error('Rotation matrices obtained from frame trajectory are not orthogonal.')
   end
 
   MD.nTraj = size(MD.RTraj,3);  % this is assumed to be one for now
   
-%   if strcmp(MD.TrajUsage,'Markov')
-%     logmsg(1,'-- building Markov state model -----------------------------------------');
-% 
-%     if ~isfield(MD,'tLag')
-%       error('If using a Markov model, the sampling lag time MD.tLag must be given.')
-%     end
-% 
-%     % use lag time to sample the trajectory of dihedral angles such that 
-%     % that the result is Markovian
-%     nLag = ceil(MD.tLag/MD.dt);
-%     MD.dihedrals = MD.dihedrals(:,:,1:nLag:end);
-%     MD.dihedrals = permute(MD.dihedrals,[3,1,2]);
-% 
-%     % set the Markov chain time step based on the sampling lag time
-%     Par.dt = tScale*MD.tLag;
-%     
-%     % we will need only the states when calling stochtraj_jump later
-%     Opt.statesOnly = 1;
-%     
-%     if ~isfield(MD,'nStates')
-%       MD.nStates = 48;
-%     end
-% 
-%     % Perform k-means clustering
-%     [MD.stateTraj,centroids] = clusterDihedrals(MD.dihedrals,MD.nStates,Opt.Verbosity);
-%     MD.nSteps = size(MD.stateTraj, 1);  % TODO: find a way to process different step sizes here
-%     
-%     % remove chi3, as its dynamics are very slow on the typical MD
-%     % timescale
-%     MD.dihedrals = MD.dihedrals(:,logical([1,1,0,1,1]));
-% 
-%     % initialize HMM using clustering results
-%     mu0 = centroids.';
-%     for iState = 1:MD.nStates
-%       idxState = MD.stateTraj==iState;
-%       Sigma0(:,:,iState) = cov(MD.dihedrals(idxState,:));
-%     end
-% %     prior0 = normalise(rand(MD.nStates,1));
-% %     transmat0 = mk_stochastic(rand(MD.nStates,MD.nStates));
-% 
-%     mixmat0 = ones(MD.nStates,1);
-% %     mixmat0 = [];
-% 
-%     randints = randi(size(MD.stateTraj,1), MD.nStates, 1);
-%     prior0 = MD.stateTraj(randints);
-%     transmat0 = calc_TPM(MD.stateTraj,MD.nStates).';
-%     
-% %     % check if transmat0 is positive definite
-% %     [~,isNotPosDef] = chol(transmat0);
-% %     if isNotPosDef
-% %       transmat0 = sqrtm(transmat0'*transmat0);
-% %     end
-% 
-%     checkEmptyTrans = 1;
-%     ProbRatioThresh = 1e-3;  % threshold in probability ratio for finding 
-%                              % rarely visited states
-%     while checkEmptyTrans
-%       % run expectation-maximization algorithm on HMM model parameters
-% %       ModelIn.prior = prior0;
-% %       ModelIn.transmat = transmat0;
-% %       ModelIn.mu = mu0;
-% %       ModelIn.Sigma = Sigma0;
-% % 
-% %       [~, ModelOut] = cardamom_emghmm(MD.dihedrals, ModelIn, 20);
-% % 
-% %       prior1 = ModelOut.prior;
-% %       transmat1 = ModelOut.transmat;
-% %       mu1 = ModelOut.mu;
-% %       Sigma1 = ModelOut.Sigma;
-%       
-% [~,prior1,transmat1,mu1,Sigma1,mixmat1] = ...
-%     cardamom_emghmm(MD.dihedrals.',prior0,transmat0,mu0,Sigma0,mixmat0,...
-%                     'max_iter',20,'verbose',Opt.Verbosity);
-% 
-%       nStates = size(transmat1,1);
-%       EmptyTransList = zeros(nStates,1);
-%       for iState = 1:nStates
-%         % check for rare states
-%         maxProb = max(transmat1(:));
-%         StateTransProbs = [transmat1(iState,:).'; transmat1(:,iState)];
-%         EmptyTransList(iState) = all(StateTransProbs./maxProb < ProbRatioThresh);
-%       end
-%       if any(EmptyTransList)
-%         % reset model vars by removing entries for rarely visited states
-%         idxNonEmpty = ~EmptyTransList;
-%         prior0 = prior1(idxNonEmpty);
-%         transmat0 = transmat1(idxNonEmpty,:);
-%         transmat0 = transmat0(:,idxNonEmpty);
-%         mu0 = mu1(:,idxNonEmpty);
-%         Sigma0 = Sigma1(:,:,idxNonEmpty);
-%         mixmat0 = mixmat1(idxNonEmpty);
-%       else
-%         % no rare states found, reset nStates if it has changed
-%         checkEmptyTrans = 0;
-%         MD.nStates = size(transmat1,1);
-%       end
-%     end
-% %     prior1 = prior0;
-% %     transmat1 = transmat0;
-%   end
-  % estimate rotational diffusion time scale
-  FrameAcorr = autocorrfft(squeeze(MD.FrameTraj.^2), 2, 2, 1);
+  if ~strcmp(MD.TrajUsage,'Markov')
+    MD.dt = tScale*MD.dt;
+  else
+    logmsg(1,'-- building Markov state model -----------------------------------------');
 
-  N = round(MD.nSteps/4);
+    % we will need only the states when calling stochtraj_jump later
+    Opt.statesOnly = 1;
+
+    if ~isfield(MD,'nStates')
+      MD.nStates = 48;
+    end
+    
+    if ~isfield(MD,'isSeeded')
+      MD.isSeeded = 0;
+    end
+    
+    % clustering function wants an array of shape (nSteps,nDims,nTraj)
+    MD.dihedrals = permute(MD.dihedrals,[3,1,2]);
+    
+    % remove chi3, as its dynamics are very slow on the typical MD
+    % timescale
+    if size(MD.dihedrals,2)==5
+      MD.dihedrals = MD.dihedrals(:,logical([1,1,0,1,1]),:);
+    end
+
+    if size(MD.dihedrals,2)==4
+      MD.dihedrals(:,1) = wrapTo2Pi(MD.dihedrals(:,1));
+      MD.dihedrals(:,2) = wrapTo2Pi(MD.dihedrals(:,2));
+      MD.dihedrals(:,3) = wrapTo2Pi(MD.dihedrals(:,3));
+    end
+
+    if size(MD.dihedrals,2)==5
+      MD.dihedrals(:,1) = wrapTo2Pi(MD.dihedrals(:,1));
+      MD.dihedrals(:,2) = wrapTo2Pi(MD.dihedrals(:,2));
+      MD.dihedrals(:,4) = wrapTo2Pi(MD.dihedrals(:,4));
+    end
+    
+    % perform k-means clustering
+    if MD.isSeeded
+      isSeeded = 1;
+      nRepeats = 1;
+    else
+      isSeeded = 0;
+      nRepeats = 10;
+    end
+    [MD.stateTraj, mu0, Sigma0] = ...
+      initializeHMM(MD.dihedrals, MD.nStates, nRepeats, Opt.Verbosity, isSeeded);
+    MD.nSteps = size(MD.stateTraj, 1);  % TODO: find a way to process different step sizes here
+    MD.nStates = size(mu0,2);
+
+    mixmat0 = ones(MD.nStates,1);
+
+    if ~isfield(MD,'tLag')
+%       error('If using a Markov model, the sampling lag time MD.tLag must be given.')
+%       tLag = [50, 100, 200, 300, 400, 500, 600, 800]*1e-12;
+      tLag = (100:50:800)*1e-12;
+    else
+      if rem(MD.tLag,100e-12)~=0, error('MD.tLag must be an integer multiple of 100e-12.'), end
+      tLag = MD.tLag;
+    end
+    
+    ntLag = numel(tLag);
+    tauMarkov = cell(ntLag,1);
+      
+    % use lag time to sample the trajectory of dihedral angles such that 
+    % that the result is Markovian
+    nLagEM = ceil(100e-12/MD.dt);
+    dihedrals = MD.dihedrals(1:nLagEM:end,:,:);
+
+    % EM function wants an array of shape (nDims,nSteps,nTraj)
+    dihedrals = permute(dihedrals,[2,1,3]);
+
+    stateTraj = MD.stateTraj(1:nLagEM:end,:);
+    c = msmcountmatrix(stateTraj, 1, MD.nStates);
+    [transmat0, prior0, ~] = msmtransitionmatrix(c, 1000);
+%       [transmat0, prior0] = countTransitions(stateTraj, MD.nStates);
+
+    checkEmptyTrans = 1;
+    ProbRatioThresh = 1e-4;  % threshold in probability ratio for finding 
+                             % rarely visited states
+                             
+    % run expectation-maximization algorithm on HMM model parameters
+
+    [logLikelihood,prior1,transmat1,mu1,Sigma1,~] = ...
+      cardamom_emghmm(dihedrals,prior0,transmat0,mu0,Sigma0,mixmat0,...
+                      'max_iter',100,'verbose',Opt.Verbosity,...
+                      'adj_mu', 1, 'adj_Sigma', 1);
+
+%         dihedrals = MD.dihedrals(1:nLag:end,:,:);
+
+    stateTraj = zeros(size(dihedrals,2),size(dihedrals,3));
+    for iTraj = 1:size(dihedrals,3)
+      [obslik, ~] = mixgauss_prob(dihedrals(:,:,iTraj), mu1, Sigma1);
+      stateTraj(:,iTraj) = viterbi_path(prior1, transmat1, obslik).';
+    end
+        
+    for itLag = 1:ntLag
+      nLagLoop = ceil(tLag(itLag)/100e-12);  % multiples of 100e-12
+      c = msmcountmatrix(stateTraj(1:nLagLoop:end,:), 1, size(transmat1,1));
+%         c = countTransitions(stateTraj, MD.nStates);
+      [transmat1, prior1, ~] = msmtransitionmatrix(c, 1000);
+
+      MD.stateTraj = stateTraj(1:nLagLoop:end,:).';
+      MD.nStates = size(transmat1,1);
+
+      lambda = eig(transmat1);
+      lambda = sort(real(lambda), 1, 'descend');
+      lambda = lambda(lambda>0);
+      tauMarkov{itLag} = -tLag(itLag)./log(lambda(2:end).');
+    end
+    
+    nLag = ceil(tLag(itLag)/MD.dt);
+    
+    % set the Markov chain time step based on the (scaled) sampling lag time
+    Par.dt = tScale*tLag(itLag);
+    MD.dt = tScale*MD.dt;
+    MD.dihedrals = dihedrals(:,1:nLagLoop:end,:);
+    
+  end
+  
+  % estimate rotational diffusion time scale
+  FrameAcorr = squeeze(autocorrfft(squeeze(MD.FrameTraj.^2), 3, 1, 1, 1));
+
+  N = round(MD.nSteps/2);
 
   % calculate correlation time
   time = linspace(0, N*MD.dt, N);
-  tauR = max(cumtrapz(time,FrameAcorr(1:N),2),[],2);
+  
+  tauR = max(cumtrapz(time,FrameAcorr(:,1:N),2),[],2);
 %   [k,c,yfit] = exponfit(time, acorr(1:N), 2, 'noconst');
 %   tauR = 1/max(k);
 
@@ -539,6 +561,12 @@ end
 
 if useMD
   Dynamics.DiffGlobal = MD.DiffGlobal;
+  if isfield(MD, 'Potential')
+    isGlobalPotential = true;
+    GlobalPotential = MD.Potential;  % TODO fully implement this in Dynamics-checking and documentation
+  else
+    isGlobalPotential = false;
+  end
 end
 
 if isfield(Sys,'Potential')
@@ -626,7 +654,7 @@ if useMD
     error('Mixing stochastic simulations with MD simulation input is not supported.')
   end
   
-  if MD.nTraj > 1, error('Using multiple MD trajectories is not supported.'); end
+%   if MD.nTraj > 1, error('Using multiple MD trajectories is not supported.'); end
   
   % determine if time block averaging is to be used
   if strcmp(MD.TrajUsage,'Explicit')
@@ -716,12 +744,8 @@ else
   specCon = 0;
 end
 
-if ~isfield(Opt,'debug')
-  Opt.debug = [];
-end
-
 % Debugging options
-if ~isfield(Opt,'debug')
+if ~isempty(Opt.debug)
   Opt.debug.EqProp = 'all';
 else
   if ~isfield(Opt.debug,'EqProp')
@@ -769,9 +793,9 @@ switch LocalDynamicsModel
           theta = squeeze(acos(MD.FrameTraj(3,3,:,1:M)));
           phi = squeeze(atan2(MD.FrameTraj(3,2,:,1:M), MD.FrameTraj(3,1,:,1:M)));
           psi = squeeze(atan2(-MD.FrameTraj(2,3,:,1:M), MD.FrameTraj(1,3,:,1:M)));
-%           theta = squeeze(acos(MD.FrameZ(3,:,:,1:M)));
-%           phi = squeeze(atan2(MD.FrameY(3,:,:,1:M), MD.FrameX(3,:,:,1:M)));
-%           psi = squeeze(atan2(-MD.FrameZ(2,:,:,1:M), MD.FrameZ(1,:,:,1:M)));
+%           theta = squeeze(acos(MD.FrameTraj(3,3,:,1:M)));
+%           phi = squeeze(atan2(MD.FrameTraj(2,3,:,1:M), MD.FrameTraj(1,3,:,1:M)));
+%           psi = squeeze(atan2(-MD.FrameTraj(3,2,:,1:M), MD.FrameTraj(3,1,:,1:M)));
 
           phi = phi + 2*pi*(phi<0);
           psi = psi + 2*pi*(psi<0);
@@ -785,13 +809,17 @@ switch LocalDynamicsModel
 
           pdf(end,:,:) = pdf(1,:,:);  % FIXME why does it truncate to zero in the phi direction?
           pdf = smooth3(pdf,'gaussian');
-          pdf(pdf<1e-14) = 1e-14;  % put a finite floor on histogram
-          Sys.Potential = -log(pdf);
 %           pdf = smoothn(pdf);
-%         case 'Markov'
-%           
-%           RTrajLocal = RTrajLocal(:,:,1,1:nLag:end);
-%           qTrajLocal = rotmat2quat(RTrajLocal);
+          save('pdf.mat','pdf')
+          pdf(pdf<1e-14) = 1e-14;  % put a finite floor on histogram
+          isLocalPotential = 1;
+%           Sys.Potential = -log(pdf);
+          LocalPotential = -log(pdf);
+          
+        case 'Markov'
+          
+          RTrajLocal = RTrajLocal(:,:,:,1:nLag:end);
+          qTrajLocal = rotmat2quat(RTrajLocal);
           
       end
       
@@ -917,25 +945,31 @@ while ~converged
             
           case 'Resampling'
             
-            Sys.ProbDensFun = pdf;
             Sys.Diff = DiffLocal;
+            Par.nSteps = nStepsStoch;
+%             Sys.Potential = LocalPotential;
             if isLocalPotential
               Sys.Potential = LocalPotential;
+              Par.nSteps = 2*nStepsStoch;
             end
             Par.dt = dtStoch;
-            Par.nSteps = nStepsStoch;
             [~, RTrajLocal, qTrajLocal] = stochtraj_diffusion(Sys,Par,Opt);
+            if isLocalPotential
+              RTrajLocal = RTrajLocal(:,:,:,nStepsStoch+1:end);
+              qTrajLocal = qTrajLocal(:,:,nStepsStoch+1:end);
+            end
             
-%           case 'Markov'
-%             
-%             Sys.States0 = rejectionsample(MD.nStates, prior1, Par.nTraj);
-%             Sys.TransProb = transmat1.';
-%             Par.dt = dtStoch;
-%             Par.nSteps = nStepsStoch;
-%             Opt.statesOnly = true;
-%             [~, stateTraj] = stochtraj_jump(Sys,Par,Opt);
-%             
-%             Par.stateTraj = stateTraj;
+          case 'Markov'
+            
+            Sys.TransProb = transmat1;
+            Par.dt = dtStoch;
+            Par.nSteps = 2*nStepsStoch;
+            Par.StatesStart = rejectionsample(MD.nStates, prior1, Par.nTraj);
+            Opt.statesOnly = true;
+            [~, stateTraj] = stochtraj_jump(Sys,Par,Opt);
+            stateTraj = stateTraj(:,nStepsStoch+1:end);
+            
+            Par.stateTraj = stateTraj;
             
         end
         
@@ -950,18 +984,22 @@ while ~converged
     % Generate trajectory of global dynamics
     includeGlobalDynamics = ~isempty(Dynamics.DiffGlobal);
     if includeGlobalDynamics
-      Sys.Diff = Dynamics.DiffGlobal;
+     Sys.Diff = Dynamics.DiffGlobal;
      if isLocalPotential
-       Sys.Potential = LocalPotential;
+       Sys.Potential = [];
+     elseif isGlobalPotential
+       Sys.Potential = GlobalPotential;
      end
-      Par.dt = dtQuant;
-      Par.nSteps = nStepsQuant;
-      [~, ~, qTrajGlobal] = stochtraj_diffusion(Sys,Par,Opt);
+     Par.dt = dtQuant;
+     Par.nSteps = nStepsQuant;
+     [~, ~, qTrajGlobal] = stochtraj_diffusion(Sys,Par,Opt);
     end
     
     % Combine global trajectories with starting orientations
-    qLab = repmat(euler2quat(0, gridTheta(iOrient), gridPhi(iOrient)),...
+    qLab = repmat(euler2quat(gridPhi(iOrient), gridTheta(iOrient), 0),...
                   [1,Par.nTraj,nStepsQuant]);
+%     qLab = repmat(euler2quat(0, gridTheta(iOrient), gridPhi(iOrient)),...
+%                   [1,Par.nTraj,nStepsQuant]);
     if includeGlobalDynamics
       qLab = quatmult(qLab,qTrajGlobal);
     end
@@ -1180,41 +1218,152 @@ end
 
 
 
-function [stateTraj,centroids] = clusterDihedrals(dihedrals,nStates,verbosity)
+function [stateTraj,mu0,Sigma0] = initializeHMM(dihedrals,nStates,nRepeats,verbosity,isSeeded)
 
-chi1 = dihedrals(:,1);
-chi2 = dihedrals(:,2);
-% chi3 = dihedrals(:,3);
-chi4 = dihedrals(:,4);
-chi5 = dihedrals(:,5);
+[nSteps,nDims,nTraj] = size(dihedrals);
 
-dihedrals = [wrapTo2Pi(chi1), wrapTo2Pi(chi2), wrapTo2Pi(chi4), chi5];
+% if more than one trajectory, collapse 3rd dim (traj) onto 1st dim (time)
+if nTraj > 1
+  dihedralsTemp = dihedrals;
+  dihedrals = [];
+  for iTraj = 1:nTraj
+    dihedrals = cat(1, dihedrals, dihedralsTemp(:,:,iTraj));
+  end
+end
 
-% initialize cluster centroids
-% chi1Min = wrapTo2Pi([-60;65;180]/180*pi);
-% chi2Min = wrapTo2Pi([75;180]/180*pi);
-% chi4Min = wrapTo2Pi([75;8;-100]/180*pi);
-% chi5Min = wrapTo2Pi([180;77]/180*pi);
+% if size(dihedrals,2)==4
+%   dihedrals(:,1) = wrapTo2Pi(dihedrals(:,1));
+%   dihedrals(:,2) = wrapTo2Pi(dihedrals(:,2));
+%   dihedrals(:,3) = wrapTo2Pi(dihedrals(:,3));
+% %   dihedrals(:,4) = wrapTo2Pi(dihedrals(:,4));
+% end
+% 
+% if size(dihedrals,2)==5
+%   dihedrals(:,1) = wrapTo2Pi(dihedrals(:,1));
+%   dihedrals(:,2) = wrapTo2Pi(dihedrals(:,2));
+%   dihedrals(:,4) = wrapTo2Pi(dihedrals(:,4));
+% end
 
-[stateTraj,centroids] = cardamom_kmeans(dihedrals, nStates, 20, verbosity);
+if isSeeded
+
+  % initialize cluster centroids
+  % for polyala
+%   chi1Min = wrapTo2Pi([-60;65;180]/180*pi);
+%   chi2Min = wrapTo2Pi([75;180]/180*pi);
+%   chi4Min = wrapTo2Pi([75;8;-100]/180*pi);
+%   chi5Min = [180;77]/180*pi;
+
+  % for V131C
+%   chi1Min = wrapTo2Pi([-60;180]/180*pi);
+%   chi2Min = wrapTo2Pi([-55;55;180]/180*pi);
+%   chi3Min = [-90;90]/180*pi;
+%   chi4Min = wrapTo2Pi([-170;-100;60]/180*pi);
+%   chi5Min = [-100;-20;100]/180*pi;
+
+  chi1Min = wrapTo2Pi([-60;60;180]/180*pi);
+  chi2Min = wrapTo2Pi([-60;60;180]/180*pi);
+  chi3Min = [-90;90]/180*pi;
+  chi4Min = wrapTo2Pi([-60;60;180]/180*pi);
+  chi5Min = [-90;90]/180*pi;
+%   chi5Min = [-90;0;90]/180*pi;
+
+  
+  chiStart = zeros(4,numel(chi1Min),numel(chi2Min),numel(chi4Min),numel(chi5Min));
+
+  for ichi1 = 1:numel(chi1Min)
+    for ichi2 = 1:numel(chi2Min)
+        for ichi4 = 1:numel(chi4Min)
+          for ichi5 = 1:numel(chi5Min)
+            chiStart(:,ichi1,ichi2,ichi4,ichi5) = ...
+            [chi1Min(ichi1); chi2Min(ichi2); chi4Min(ichi4); chi5Min(ichi5)];
+          end
+        end
+    end
+  end
+
+  chiStart = reshape(chiStart, 4, []).';
+
+%   chiStart = zeros(5,numel(chi1Min),numel(chi2Min),numel(chi3Min),numel(chi4Min),numel(chi5Min));
+% 
+%   for ichi1 = 1:numel(chi1Min)
+%     for ichi2 = 1:numel(chi2Min)
+%       for ichi3 = 1:numel(chi3Min)
+%         for ichi4 = 1:numel(chi4Min)
+%           for ichi5 = 1:numel(chi5Min)
+%             chiStart(:,ichi1,ichi2,ichi3,ichi4,ichi5) = ...
+%             [chi1Min(ichi1); chi2Min(ichi2); chi3Min(ichi3); chi4Min(ichi4); chi5Min(ichi5)];
+%           end
+%         end
+%       end
+%     end
+%   end
+% 
+%   chiStart = reshape(chiStart, 5, []).';
+else
+  
+  chiStart = [];
+  
+end
+
+[stateTraj,centroids] = ...
+  cardamom_kmeans(dihedrals, nStates, nRepeats, chiStart, verbosity);
+
+% initialize the means and covariance matrices for the HMM
+mu0 = centroids.';
+Sigma0 = zeros(nDims,nDims,nStates);
+for iState = 1:nStates
+  idxState = stateTraj==iState;
+  Sigma0(:,:,iState) = cov(dihedrals(idxState,:));
+end
+
+stateTraj = reshape(stateTraj,[nSteps,nTraj]);
 
 end
 
-function TPM = calc_TPM(stateTraj, nStates)
+function [transmat0, prior0] = countTransitions(stateTraj, nStates)
 
-Nij = zeros(nStates);
+Nij = zeros(nStates,nStates);
 
-stateLast = stateTraj(1);
-nSteps = length(stateTraj);
+[nSteps,nTraj] = size(stateTraj);
 
-for iStep = 2:nSteps
-  stateNew = stateTraj(iStep);
-  Nij(stateLast,stateNew) = Nij(stateLast,stateNew) + 1;
-  stateLast = stateNew;
+for iTraj = 1:nTraj
+  stateLast = stateTraj(1,iTraj);
+  for iStep = 2:nSteps
+    stateNew = stateTraj(iStep);
+    Nij(stateLast,stateNew) = Nij(stateLast,stateNew) + 1;
+    stateLast = stateNew;
+  end
 end
 
 Nij = (Nij + Nij.')/2;
-TPM = Nij./sum(Nij,1);
+% transmat0 = Nij./sum(Nij,2);
+transmat0 = mk_stochastic(Nij);
+
+prior0 = sum(Nij,2);
+prior0 = prior0/sum(prior0);
+
+
+% P = mk_stochastic(Nij);
+% [V,D,W] = eig(P);
+% 
+% S = zeros(nStates);
+% for ii=1:nStates
+%   for jj=1:nStates
+%     S(ii,jj) = (W(ii,1)*P(ii,jj) + W(jj,1)*P(jj,ii))/2; 
+%   end
+% end
+% 
+% TPM = mk_stochastic(S);
+% 
+% s = sum(S,2);
+% prior = s/sum(s);
+% 
+% % PSym = W(:,1).'*P;
+% % PSymHat = 1/2*(PSym + PSym.');
+% % piHat = sum(PSymHat,2);
+% % 
+% % TPM = PSymHat./piHat;
+% % prior = piHat;
 
 end
 
@@ -1288,6 +1437,524 @@ function  y = zeropad(x, M)
   N = length(x);
   if iscolumn(x), y = [x; zeros(M-N, 1)]; end
   if isrow(x), y = [x, zeros(1, M-N)]; end
+end
+
+function [B, B2] = mixgauss_prob(data, mu, Sigma, mixmat, unit_norm)
+% EVAL_PDF_COND_MOG Evaluate the pdf of a conditional mixture of Gaussians
+% function [B, B2] = eval_pdf_cond_mog(data, mu, Sigma, mixmat, unit_norm)
+%
+% Notation: Y is observation, M is mixture component, and both may be conditioned on Q.
+% If Q does not exist, ignore references to Q=j below.
+% Alternatively, you may ignore M if this is a conditional Gaussian.
+%
+% INPUTS:
+% data(:,t) = t'th observation vector 
+%
+% mu(:,k) = E[Y(t) | M(t)=k] 
+% or mu(:,j,k) = E[Y(t) | Q(t)=j, M(t)=k]
+%
+% Sigma(:,:,j,k) = Cov[Y(t) | Q(t)=j, M(t)=k]
+% or there are various faster, special cases:
+%   Sigma() - scalar, spherical covariance independent of M,Q.
+%   Sigma(:,:) diag or full, tied params independent of M,Q. 
+%   Sigma(:,:,j) tied params independent of M. 
+%
+% mixmat(k) = Pr(M(t)=k) = prior
+% or mixmat(j,k) = Pr(M(t)=k | Q(t)=j) 
+% Not needed if M is not defined.
+%
+% unit_norm - optional; if 1, means data(:,i) AND mu(:,i) each have unit norm (slightly faster)
+%
+% OUTPUT:
+% B(t) = Pr(y(t)) 
+% or
+% B(i,t) = Pr(y(t) | Q(t)=i) 
+% B2(i,k,t) = Pr(y(t) | Q(t)=i, M(t)=k) 
+%
+% If the number of mixture components differs depending on Q, just set the trailing
+% entries of mixmat to 0, e.g., 2 components if Q=1, 3 components if Q=2,
+% then set mixmat(1,3)=0. In this case, B2(1,3,:)=1.0.
+
+
+
+
+if isvector(mu) & size(mu,2)==1
+  d = length(mu);
+  Q = 1; M = 1;
+elseif ndims(mu)==2
+  [d Q] = size(mu);
+  M = 1;
+else
+  [d Q M] = size(mu);
+end
+[d T] = size(data);
+
+if nargin < 4, mixmat = ones(Q,1); end
+if nargin < 5, unit_norm = 0; end
+
+%B2 = zeros(Q,M,T); % ATB: not needed allways
+%B = zeros(Q,T);
+
+if isscalar(Sigma)
+  mu = reshape(mu, [d Q*M]);
+  if unit_norm % (p-q)'(p-q) = p'p + q'q - 2p'q = n+m -2p'q since p(:,i)'p(:,i)=1
+    %avoid an expensive repmat
+    disp('unit norm')
+    %tic; D = 2 -2*(data'*mu)'; toc 
+    D = 2 - 2*(mu'*data);
+    tic; D2 = sqdist(data, mu)'; toc
+    assert(approxeq(D,D2)) 
+  else
+    D = sqdist(data, mu)';
+  end
+  clear mu data % ATB: clear big old data
+  % D(qm,t) = sq dist between data(:,t) and mu(:,qm)
+  logB2 = -(d/2)*log(2*pi*Sigma) - (1/(2*Sigma))*D; % det(sigma*I) = sigma^d
+  B2 = reshape(exp(logB2), [Q M T]);
+  clear logB2 % ATB: clear big old data
+  
+elseif ndims(Sigma)==2 % tied full
+  mu = reshape(mu, [d Q*M]);
+  D = sqdist(data, mu, inv(Sigma))';
+  % D(qm,t) = sq dist between data(:,t) and mu(:,qm)
+  logB2 = -(d/2)*log(2*pi) - 0.5*logdet(Sigma) - 0.5*D;
+  %denom = sqrt(det(2*pi*Sigma));
+  %numer = exp(-0.5 * D);
+  %B2 = numer/denom;
+  B2 = reshape(exp(logB2), [Q M T]);
+  
+elseif ndims(Sigma)==3 % tied across M
+  B2 = zeros(Q,M,T);
+  for j=1:Q
+    % D(m,t) = sq dist between data(:,t) and mu(:,j,m)
+    if isposdef(Sigma(:,:,j))
+      D = sqdist(data, permute(mu(:,j,:), [1 3 2]), inv(Sigma(:,:,j)))';
+      logB2 = -(d/2)*log(2*pi) - 0.5*logdet(Sigma(:,:,j)) - 0.5*D;
+%       logB2 = -(d/2)*log(2*pi) - 0.5*log(det(Sigma(:,:,j))) - 0.5*D;
+      B2(j,:,:) = exp(logB2);
+    else
+      error(sprintf('mixgauss_prob: Sigma(:,:,q=%d) not psd\n', j));
+    end
+  end
+  
+else % general case
+  B2 = zeros(Q,M,T);
+  for j=1:Q
+    for k=1:M
+      %if mixmat(j,k) > 0
+      B2(j,k,:) = gaussian_prob(data, mu(:,j,k), Sigma(:,:,j,k));
+      %end
+    end
+  end
+end
+
+% B(j,t) = sum_k B2(j,k,t) * Pr(M(t)=k | Q(t)=j) 
+
+% The repmat is actually slower than the for-loop, because it uses too much memory
+% (this is true even for small T).
+
+%B = squeeze(sum(B2 .* repmat(mixmat, [1 1 T]), 2));
+%B = reshape(B, [Q T]); % undo effect of squeeze in case Q = 1
+  
+B = zeros(Q,T);
+if Q < T
+  for q=1:Q
+    %B(q,:) = mixmat(q,:) * squeeze(B2(q,:,:)); % squeeze chnages order if M=1
+    B(q,:) = mixmat(q,:) * permute(B2(q,:,:), [2 3 1]); % vector * matrix sums over m
+  end
+else
+  for t=1:T
+    B(:,t) = sum(mixmat .* B2(:,:,t), 2); % sum over m
+  end
+end
+%t=toc;fprintf('%5.3f\n', t)
+
+%tic
+%A = squeeze(sum(B2 .* repmat(mixmat, [1 1 T]), 2));
+%t=toc;fprintf('%5.3f\n', t)
+%assert(approxeq(A,B)) % may be false because of round off error
+
+end
+
+function b = isposdef(a)
+% ISPOSDEF   Test for positive definite matrix.
+%    ISPOSDEF(A) returns 1 if A is positive definite, 0 otherwise.
+%    Using chol is much more efficient than computing eigenvectors.
+
+%  From Tom Minka's lightspeed toolbox
+
+[R,p] = chol(a);
+b = (p == 0);
+
+end
+
+function y = logdet(A)
+% log(det(A)) where A is positive-definite.
+% This is faster and more stable than using log(det(A)).
+
+%  From Tom Minka's lightspeed toolbox
+
+U = chol(A);
+y = 2*sum(log(diag(U)));
+
+end
+
+function m = sqdist(p, q, A)
+% SQDIST      Squared Euclidean or Mahalanobis distance.
+% SQDIST(p,q)   returns m(i,j) = (p(:,i) - q(:,j))'*(p(:,i) - q(:,j)).
+% SQDIST(p,q,A) returns m(i,j) = (p(:,i) - q(:,j))'*A*(p(:,i) - q(:,j)).
+
+%  From Tom Minka's lightspeed toolbox
+
+[d, pn] = size(p);
+[d, qn] = size(q);
+
+if nargin == 2
+  
+  pmag = sum(p .* p, 1);
+  qmag = sum(q .* q, 1);
+  m = repmat(qmag, pn, 1) + repmat(pmag', 1, qn) - 2*p'*q;
+  %m = ones(pn,1)*qmag + pmag'*ones(1,qn) - 2*p'*q;
+  
+else
+
+  if isempty(A) | isempty(p)
+    error('sqdist: empty matrices');
+  end
+  Ap = A*p;
+  Aq = A*q;
+  pmag = sum(p .* Ap, 1);
+  qmag = sum(q .* Aq, 1);
+  m = repmat(qmag, pn, 1) + repmat(pmag', 1, qn) - 2*p'*Aq;
+  
+end
+
+end
+
+function path = viterbi_path(prior, transmat, obslik)
+% VITERBI Find the most-probable (Viterbi) path through the HMM state trellis.
+% path = viterbi(prior, transmat, obslik)
+%
+% Inputs:
+% prior(i) = Pr(Q(1) = i)
+% transmat(i,j) = Pr(Q(t+1)=j | Q(t)=i)
+% obslik(i,t) = Pr(y(t) | Q(t)=i)
+%
+% Outputs:
+% path(t) = q(t), where q1 ... qT is the argmax of the above expression.
+
+
+% delta(j,t) = prob. of the best sequence of length t-1 and then going to state j, and O(1:t)
+% psi(j,t) = the best predecessor state, given that we ended up in state j at t
+
+scaled = 1;
+
+T = size(obslik, 2);
+prior = prior(:);
+Q = length(prior);
+
+delta = zeros(Q,T);
+psi = zeros(Q,T);
+path = zeros(1,T);
+scale = ones(1,T);
+
+
+t=1;
+delta(:,t) = prior .* obslik(:,t);
+if scaled
+  [delta(:,t), n] = normalise(delta(:,t));
+  scale(t) = 1/n;
+end
+psi(:,t) = 0; % arbitrary value, since there is no predecessor to t=1
+for t=2:T
+  for j=1:Q
+    [delta(j,t), psi(j,t)] = max(delta(:,t-1) .* transmat(:,j));
+    delta(j,t) = delta(j,t) * obslik(j,t);
+  end
+  if scaled
+    [delta(:,t), n] = normalise(delta(:,t));
+    scale(t) = 1/n;
+  end
+end
+[p, path(T)] = max(delta(:,T));
+for t=T-1:-1:1
+  path(t) = psi(path(t+1),t+1);
+end
+
+% If scaled==0, p = prob_path(best_path)
+% If scaled==1, p = Pr(replace sum with max and proceed as in the scaled forwards algo)
+% Both are different from p(data) as computed using the sum-product (forwards) algorithm
+
+if 0
+  if scaled
+    loglik = -sum(log(scale));
+    %loglik = prob_path(prior, transmat, obslik, path);
+  else
+    loglik = log(p);
+  end
+end
+
+end
+
+function [M, z] = normalise(A, dim)
+% NORMALISE Make the entries of a (multidimensional) array sum to 1
+% [M, c] = normalise(A)
+% c is the normalizing constant
+%
+% [M, c] = normalise(A, dim)
+% If dim is specified, we normalise the specified dimension only,
+% otherwise we normalise the whole array.
+
+if nargin < 2
+  z = sum(A(:));
+  % Set any zeros to one before dividing
+  % This is valid, since c=0 => all i. A(i)=0 => the answer should be 0/1=0
+  s = z + (z==0);
+  M = A / s;
+elseif dim==1 % normalize each column
+  z = sum(A);
+  s = z + (z==0);
+  %M = A ./ (d'*ones(1,size(A,1)))';
+  M = A ./ repmatC(s, size(A,1), 1);
+else
+  % Keith Battocchi - v. slow because of repmat
+  z=sum(A,dim);
+  s = z + (z==0);
+  L=size(A,dim);
+  d=length(size(A));
+  v=ones(d,1);
+  v(dim)=L;
+  %c=repmat(s,v);
+  c=repmat(s,v');
+  M=A./c;
+end
+
+end
+
+function [transmat, initState] = transmat_train_observed(labels,  nstates, varargin)
+% transmat_train_observed ML estimation from fully observed data
+% function [transmat, initState] = transmat_train_observed(labels,  nstates, varargin)
+%
+% If all sequences have the same length
+% labels(ex,t)
+% If sequences have different lengths, we use cell arrays
+% labels{ex}(t)
+
+[dirichletPriorWeight, mkSymmetric, other] = process_options(...
+    varargin, 'dirichletPriorWeight', 0, 'mkSymmetric', 0);
+
+if ~iscell(labels)
+  [numex T] = size(labels);
+  if T==1
+    labels = labels';
+  end
+  %fprintf('T=%d, numex=%d\n', T, numex);
+  labels = num2cell(labels,2); % each row gets its own cell
+end
+numex = length(labels);
+
+counts = zeros(nstates, nstates);
+counts1 = zeros(nstates,1);
+for s=1:numex
+  labs = labels{s}; labs = labs(:)';
+  dat = [labs(1:end-1); labs(2:end)];
+  counts = counts + compute_counts(dat, [nstates nstates]);
+  q = labs(1);
+  counts1(q) = counts1(q) + 1;
+end
+pseudo_counts = dirichletPriorWeight*ones(nstates, nstates);
+if mkSymmetric
+  counts = counts + counts';
+end
+transmat = mk_stochastic(counts + pseudo_counts);
+initState = normalize(counts1 + dirichletPriorWeight*ones(nstates,1));
+
+end
+
+function [T,Z] = mk_stochastic(T)
+% MK_STOCHASTIC Ensure the argument is a stochastic matrix, i.e., the sum over the last dimension is 1.
+% [T,Z] = mk_stochastic(T)
+%
+% If T is a vector, it will sum to 1.
+% If T is a matrix, each row will sum to 1.
+% If T is a 3D array, then sum_k T(i,j,k) = 1 for all i,j.
+
+% Set zeros to 1 before dividing
+% This is valid since S(j) = 0 iff T(i,j) = 0 for all j
+
+if (ndims(T)==2) & (size(T,1)==1 | size(T,2)==1) % isvector
+  [T,Z] = normalise(T);
+elseif ndims(T)==2 % matrix
+  Z = sum(T,2); 
+  S = Z + (Z==0);
+  norm = repmat(S, 1, size(T,2));
+  T = T ./ norm;
+else % multi-dimensional array
+  ns = size(T);
+  T = reshape(T, prod(ns(1:end-1)), ns(end));
+  Z = sum(T,2);
+  S = Z + (Z==0);
+  norm = repmat(S, 1, ns(end));
+  T = T ./ norm;
+  T = reshape(T, ns);
+end
+
+end
+
+
+function c = msmcountmatrix(indexOfCluster, tau, nstate)
+%% msmcountmatrix
+% calculate transition count matrix from a set of binned trajectory data
+%
+%% Syntax
+%# c = msmcountmatrix(indexOfCluster);
+%# c = msmcountmatrix(indexOfCluster, tau);
+%# c = msmcountmatrix(indexOfCluster, tau, nstate);
+%# c = msmcountmatrix(indexOfCluster, [], nstate);
+%
+% Description
+% calculate count matrix of transition from state i to state j during time step tau
+%
+% Adapted from Yasuhiro Matsunaga's mdtoolbox
+% 
+
+%% setup
+if ~iscell(indexOfCluster)
+  indexOfCluster_noncell = indexOfCluster;
+  clear indexOfCluster;
+  indexOfCluster{1} = indexOfCluster_noncell;
+  clear indexOfCluster_noncell;
+end
+ntrj = numel(indexOfCluster);
+
+if ~exist('nstate', 'var') || isempty(nstate)
+  nstate = max(cellfun(@(x) max(x), indexOfCluster));
+  disp(sprintf('Message: nstate = %d is used.', nstate));
+end
+
+if ~exist('tau', 'var') || isempty(tau)
+  tau = 1;
+  disp('Message: tau = 1 is used.');
+end
+
+%% count transitions
+c = sparse(nstate, nstate);
+
+for itrj = 1:ntrj
+  nframe = numel(indexOfCluster{itrj});
+
+  index_from = 1:(nframe-tau);
+  index_to   = (1+tau):nframe;
+  indexOfCluster_from = indexOfCluster{itrj}(index_from);
+  indexOfCluster_to   = indexOfCluster{itrj}(index_to);
+
+  %% ignore invalid indices
+  nframe = numel(indexOfCluster_from);
+  s = ones(nframe, 1);
+
+  id = (indexOfCluster_from <= 0);
+  s(id) = 0;
+  indexOfCluster_from(id) = 1;
+
+  id = (indexOfCluster_to   <= 0);
+  s(id) = 0;
+  indexOfCluster_to(id)   = 1;
+
+  id = isnan(indexOfCluster_from);
+  s(id) = 0;
+  indexOfCluster_from(id) = 1;
+
+  id = isnan(indexOfCluster_to);
+  s(id) = 0;
+  indexOfCluster_to(id)   = 1;
+
+  %% calc count matrix
+  % count transitions and make count matrix C_ij by using a sparse
+  % matrix
+  c_itrj = sparse(indexOfCluster_from, indexOfCluster_to, s, nstate, nstate);
+  c = c + c_itrj;
+end
+
+end
+
+
+function [t, pi_i, x] = msmtransitionmatrix(c, maxiteration)
+% msmtransitionmatrix
+% estimate transition probability matrix from count matrix
+%
+% Syntax
+%# [t, pi_i] = msmtransitionmatrix(c);
+%# [t, pi_i] = msmtransitionmatrix(c, maxiteration);
+%
+% Description
+% this routines uses the reversible maximum likelihood estimator
+%
+% Adapted from Yasuhiro Matsunaga's mdtoolbox
+% 
+
+%% setup
+if issparse(c)
+  c = full(c);
+end
+
+nstate = size(c, 1);
+
+c_sym  = c + c';
+x      = c_sym;
+
+c_i    = sum(c, 2);
+x_i    = sum(x, 2);
+
+if ~exist('maxiteration', 'var')
+  maxiteration = 1000;
+end
+
+%% optimization by L-BFGS-B
+fcn = @(x) myfunc_column(x, c, c_i, nstate);
+opts.x0 = x(:);
+opts.maxIts = maxiteration;
+opts.maxTotalIts = 50000;
+%opts.factr = 1e5;
+%opts.pgtol = 1e-7;
+
+[x, f, info] = cardamom_lbfgsb(fcn, zeros(nstate*nstate, 1), Inf(nstate*nstate, 1), opts);
+x = reshape(x, nstate, nstate);
+
+x_i = sum(x, 2);
+t = bsxfun(@rdivide, x, x_i);
+t(isnan(t)) = 0;
+pi_i = x_i./sum(x_i);
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [f, g] = myfunc_column(x, c, c_i, nstate);
+x = reshape(x, nstate, nstate);
+[f, g] = myfunc_matrix(x, c, c_i);
+g = g(:);
+
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [f, g] = myfunc_matrix(x, c, c_i)
+x_i = sum(x, 2);
+
+% F
+tmp = c .* log(bsxfun(@rdivide, x, x_i));
+%index = ~(isnan(tmp));
+index = (x > (10*eps));
+f = - sum(tmp(index));
+
+% G
+t = c_i./x_i;
+g = (c./x) + (c'./x') - bsxfun(@plus, t, t');
+g((x_i < (10*eps)), :) = 0;
+index = ((x > (10*eps)) & (x' > (10*eps)));
+g(~index) = 0;
+g(isnan(g)) = 0;
+g = -g;
+
+end
+
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
