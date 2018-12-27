@@ -1,5 +1,5 @@
 function [LL, prior, transmat, mu, Sigma, mixmat] = ...
-     mhmm_em(data, prior, transmat, mu, Sigma, mixmat, varargin);
+     mhmm_em(data, prior, transmat, mu, Sigma, mixmat, varargin)
 % LEARN_MHMM Compute the ML parameters of an HMM with (mixtures of) Gaussians output using EM.
 % [ll_trace, prior, transmat, mu, sigma, mixmat] = learn_mhmm(data, ...
 %   prior0, transmat0, mu0, sigma0, mixmat0, ...) 
