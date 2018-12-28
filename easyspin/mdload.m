@@ -298,36 +298,35 @@ MD = rmfield(MD,'Labelxyz');
 MD.FrameTraj = zeros(MD.nSteps,3,3,1);
 MD.FrameTrajwrtProt = zeros(3,3,1,MD.nSteps);
 
+normalize = @(v)bsxfun(@rdivide,v,sqrt(sum(v.*v,2)));
+
 switch LabelName
   case 'R1'
-    NO_vec = ONxyz - NNxyz;  % N-O bond vector
-    NC1_vec = C1xyz - NNxyz; % N-C1 bond vector
-    NC2_vec = C2xyz - NNxyz; % N-C2 bond vector
+    
+    NO_vec = normalize(ONxyz - NNxyz);  % N-O bond vector
+    NC1_vec = normalize(C1xyz - NNxyz); % N-C1 bond vector
+    NC2_vec = normalize(C2xyz - NNxyz); % N-C2 bond vector
     
     % z-axis
-    normalize = @(v)bsxfun(@rdivide,v,sqrt(sum(v.*v,2)));
-    vec = cross(NC1_vec, NO_vec, 2) + cross(NO_vec, NC2_vec, 2);
-    MD.FrameTraj(:,:,3) = normalize(vec);
+    MD.FrameTraj(:,:,3) = normalize(cross(NC1_vec, NO_vec, 2) + cross(NO_vec, NC2_vec, 2));
     
     % x-axis
-    MD.FrameTraj(:,:,1) = normalize(NO_vec);
+    MD.FrameTraj(:,:,1) = NO_vec;
     
     % y-axis
     MD.FrameTraj(:,:,2) = cross(MD.FrameTraj(:,:,3), MD.FrameTraj(:,:,1), 2);
     
   case 'TOAC'
     
-    NO_vec = ONxyz - NNxyz;    % N-O bond vector
-    NCG1_vec = CG1xyz - NNxyz; % N-CG1 bond vector
-    NCG2_vec = CG2xyz - NNxyz; % N-CG2 bond vector
+    NO_vec = normalize(ONxyz - NNxyz);    % N-O bond vector
+    NCG1_vec = normalize(CG1xyz - NNxyz); % N-CG1 bond vector
+    NCG2_vec = normalize(CG2xyz - NNxyz); % N-CG2 bond vector
     
     % z-axis
-    normalize = @(v)bsxfun(@rdivide,v,sqrt(sum(v.*v,2)));
-    vec = cross(NCG1_vec, NO_vec, 2) + cross(NO_vec, NCG2_vec, 2);
-    MD.FrameTraj(:,:,3) = normalize(vec);
+    MD.FrameTraj(:,:,3) = normalize(cross(NCG1_vec, NO_vec, 2) + cross(NO_vec, NCG2_vec, 2));
     
     % x-axis
-    MD.FrameTraj(:,:,1) = normalize(NO_vec);
+    MD.FrameTraj(:,:,1) = NO_vec;
     
     % y-axis
     MD.FrameTraj(:,:,2) = cross(MD.FrameTraj(:,:,3), MD.FrameTraj(:,:,1), 2);
