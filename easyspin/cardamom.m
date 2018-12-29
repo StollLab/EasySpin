@@ -361,102 +361,146 @@ if useMD
   else
     logmsg(1,'-- building Markov state model -----------------------------------------');
 
-    % we will need only the states when calling stochtraj_jump later
-    Opt.statesOnly = 1;
-
     if ~isfield(MD,'nStates')
-      MD.nStates = 48;
+      error('Please provide the number of desired states in MD.nStates.')
     end
     
     if ~isfield(MD,'isSeeded')
-      MD.isSeeded = 0;
+      MD.isSeeded = false;
     end
     
-    % clustering function wants an array of shape (nSteps,nDims,nTraj)
+    % Reorder to (nSteps,nDims,nTraj), for input to clustering function
     MD.dihedrals = permute(MD.dihedrals,[3,1,2]);
     
-    % remove chi3, as its dynamics are very slow on the typical MD
-    % timescale
-    if size(MD.dihedrals,2)==5
-      MD.dihedrals = MD.dihedrals(:,logical([1,1,0,1,1]),:);
-    end
+    switch LabelName
+      case 'R1'
 
-    if size(MD.dihedrals,2)==4
-      MD.dihedrals(:,1) = wrapTo2Pi(MD.dihedrals(:,1));
-      MD.dihedrals(:,2) = wrapTo2Pi(MD.dihedrals(:,2));
-      MD.dihedrals(:,3) = wrapTo2Pi(MD.dihedrals(:,3));
-    end
-
-    if size(MD.dihedrals,2)==5
-      MD.dihedrals(:,1) = wrapTo2Pi(MD.dihedrals(:,1));
-      MD.dihedrals(:,2) = wrapTo2Pi(MD.dihedrals(:,2));
-      MD.dihedrals(:,4) = wrapTo2Pi(MD.dihedrals(:,4));
+        % Remove chi3, as its dynamics are very slow on the typical MD timescale
+        removeChi3 = true;
+        if removeChi3 && size(MD.dihedrals,2)==5
+          MD.dihedrals = MD.dihedrals(:,logical([1,1,0,1,1]),:);
+        end
+        
+        %{
+        if size(MD.dihedrals,2)==4
+          MD.dihedrals(:,1) = wrapTo2Pi(MD.dihedrals(:,1));
+          MD.dihedrals(:,2) = wrapTo2Pi(MD.dihedrals(:,2));
+          MD.dihedrals(:,3) = wrapTo2Pi(MD.dihedrals(:,3));
+        end
+        
+        if size(MD.dihedrals,2)==5
+          MD.dihedrals(:,1) = wrapTo2Pi(MD.dihedrals(:,1));
+          MD.dihedrals(:,2) = wrapTo2Pi(MD.dihedrals(:,2));
+          MD.dihedrals(:,4) = wrapTo2Pi(MD.dihedrals(:,4));
+        end
+        %}
     end
     
-    % perform k-means clustering
+    % Set up initial cluster centers
+    %---------------------------------------------------------------------------
     if MD.isSeeded
-      isSeeded = 1;
+      
+      % initialize cluster centroids
+      % empirically determined values for polyala
+      %   chi1Min = wrapTo2Pi([-60;65;180]/180*pi);
+      %   chi2Min = wrapTo2Pi([75;180]/180*pi);
+      %   chi4Min = wrapTo2Pi([75;8;-100]/180*pi);
+      %   chi5Min = [180;77]/180*pi;
+      
+      % empirically determined values for T4L V131R1
+      %   chi1Min = wrapTo2Pi([-60;180]/180*pi);
+      %   chi2Min = wrapTo2Pi([-55;55;180]/180*pi);
+      %   chi3Min = [-90;90]/180*pi;
+      %   chi4Min = wrapTo2Pi([-170;-100;60]/180*pi);
+      %   chi5Min = [-100;-20;100]/180*pi;
+      
+      % theoretical values
+      chi1Min = wrapTo2Pi([-60;60;180]/180*pi);
+      chi2Min = wrapTo2Pi([-60;60;180]/180*pi);
+      chi3Min = [-90;90]/180*pi;
+      chi4Min = wrapTo2Pi([-60;60;180]/180*pi);
+      chi5Min = [-90;90]/180*pi;
+      %   chi5Min = [-90;0;90]/180*pi;
+      
+      chiStart = zeros(4,numel(chi1Min),numel(chi2Min),numel(chi4Min),numel(chi5Min));
+      
+      for ichi1 = 1:numel(chi1Min)
+        for ichi2 = 1:numel(chi2Min)
+          for ichi4 = 1:numel(chi4Min)
+            for ichi5 = 1:numel(chi5Min)
+              chiStart(:,ichi1,ichi2,ichi4,ichi5) = ...
+                [chi1Min(ichi1); chi2Min(ichi2); chi4Min(ichi4); chi5Min(ichi5)];
+            end
+          end
+        end
+      end
+      
+      chiStart = reshape(chiStart, 4, []).';
+      
+      %   chiStart = zeros(5,numel(chi1Min),numel(chi2Min),numel(chi3Min),numel(chi4Min),numel(chi5Min));
+      %
+      %   for ichi1 = 1:numel(chi1Min)
+      %     for ichi2 = 1:numel(chi2Min)
+      %       for ichi3 = 1:numel(chi3Min)
+      %         for ichi4 = 1:numel(chi4Min)
+      %           for ichi5 = 1:numel(chi5Min)
+      %             chiStart(:,ichi1,ichi2,ichi3,ichi4,ichi5) = ...
+      %             [chi1Min(ichi1); chi2Min(ichi2); chi3Min(ichi3); chi4Min(ichi4); chi5Min(ichi5)];
+      %           end
+      %         end
+      %       end
+      %     end
+      %   end
+      %
+      %   chiStart = reshape(chiStart, 5, []).';
       nRepeats = 1;
     else
-      isSeeded = 0;
       nRepeats = 10;
-    end
-    [MD.stateTraj, mu0, Sigma0] = ...
-      initializeHMM(MD.dihedrals, MD.nStates, nRepeats, Opt.Verbosity, isSeeded);
-    MD.nSteps = size(MD.stateTraj, 1);  % TODO: find a way to process different step sizes here
-    MD.nStates = size(mu0,2);
-
-    mixmat0 = ones(MD.nStates,1);
-
-    if ~isfield(MD,'tLag')
-%       error('If using a Markov model, the sampling lag time MD.tLag must be given.')
-%       tLag = [50, 100, 200, 300, 400, 500, 600, 800]*1e-12;
-      tLag = (100:50:800)*1e-12;
-    else
-      if rem(MD.tLag,100e-12)~=0, error('MD.tLag must be an integer multiple of 100e-12.'), end
-      tLag = MD.tLag;
+      chiStart = [];
     end
     
+    % Perform k-means clustering
+    [MD.stateTraj, mu0, Sigma0] = ...
+      initializeHMM(MD.dihedrals, chiStart, MD.nStates, nRepeats, Opt.Verbosity);
+    
+    if ~isfield(MD,'tLag')
+      MD.tLag = (100:50:800)*1e-12; % seconds
+    end
+    if rem(MD.tLag,100e-12)~=0
+      error('MD.tLag must be an integer multiple of 100e-12.');
+    end
+    tLag = MD.tLag;
     ntLag = numel(tLag);
     tauMarkov = cell(ntLag,1);
-      
-    % use lag time to sample the trajectory of dihedral angles such that 
+    
+    % Use lag time to sample the trajectory of dihedral angles such that
     % that the result is Markovian
     nLagEM = ceil(100e-12/MD.dt);
     dihedrals = MD.dihedrals(1:nLagEM:end,:,:);
-
+    
+    % Estimate transition probability matrix and stationary distribution
+    stateTraj = MD.stateTraj(1:nLagEM:end,:);
+    [transmat0, eqdistr0] = countTransitions(stateTraj, MD.nStates);
+    
     % EM function wants an array of shape (nDims,nSteps,nTraj)
     dihedrals = permute(dihedrals,[2,1,3]);
-
-    stateTraj = MD.stateTraj(1:nLagEM:end,:);
-    c = msmcountmatrix(stateTraj, 1, MD.nStates);
-    [transmat0, prior0, ~] = msmtransitionmatrix(c, 1000);
-%       [transmat0, prior0] = countTransitions(stateTraj, MD.nStates);
-
-    checkEmptyTrans = 1;
-    ProbRatioThresh = 1e-4;  % threshold in probability ratio for finding 
-                             % rarely visited states
-                             
-    % run expectation-maximization algorithm on HMM model parameters
-
-    [logLikelihood,prior1,transmat1,mu1,Sigma1,~] = ...
-      cardamom_emghmm(dihedrals,prior0,transmat0,mu0,Sigma0,mixmat0,...
-                      'max_iter',100,'verbose',Opt.Verbosity,...
-                      'adj_mu', 1, 'adj_Sigma', 1);
-
-%         dihedrals = MD.dihedrals(1:nLag:end,:,:);
-
+    
+    % Deterime/estimate HMM model parameters using expectation maximization
+    [~,eqdistr1,transmat1,mu1,Sigma1,~] = ...
+      cardamom_emghmm(dihedrals,eqdistr0,transmat0,mu0,Sigma0,[],...
+      'max_iter',100,'verbose',Opt.Verbosity,...
+      'adj_mu', 1, 'adj_Sigma', 1);
+    
+    % Determines most probable hidden-state trajectory
     stateTraj = zeros(size(dihedrals,2),size(dihedrals,3));
     for iTraj = 1:size(dihedrals,3)
       [obslik, ~] = mixgauss_prob(dihedrals(:,:,iTraj), mu1, Sigma1);
-      stateTraj(:,iTraj) = viterbi_path(prior1, transmat1, obslik).';
+      stateTraj(:,iTraj) = viterbi_path(eqdistr1, transmat1, obslik).';
     end
-        
+    
     for itLag = 1:ntLag
       nLagLoop = ceil(tLag(itLag)/100e-12);  % multiples of 100e-12
-      c = msmcountmatrix(stateTraj(1:nLagLoop:end,:), 1, size(transmat1,1));
-%         c = countTransitions(stateTraj, MD.nStates);
-      [transmat1, prior1, ~] = msmtransitionmatrix(c, 1000);
+      [transmat1, eqdistr1] = countTransitions(stateTraj(1:nLagLoop:end,:), size(transmat1,1));
 
       MD.stateTraj = stateTraj(1:nLagLoop:end,:).';
       MD.nStates = size(transmat1,1);
@@ -964,7 +1008,7 @@ while ~converged
             Sys.TransProb = transmat1;
             Par.dt = dtStoch;
             Par.nSteps = 2*nStepsStoch;
-            Par.StatesStart = rejectionsample(MD.nStates, prior1, Par.nTraj);
+            Par.StatesStart = rejectionsample(MD.nStates, eqdistr1, Par.nTraj);
             Opt.statesOnly = true;
             [~, stateTraj] = stochtraj_jump(Sys,Par,Opt);
             stateTraj = stateTraj(:,nStepsStoch+1:end);
@@ -1218,7 +1262,7 @@ end
 
 
 
-function [stateTraj,mu0,Sigma0] = initializeHMM(dihedrals,nStates,nRepeats,verbosity,isSeeded)
+function [stateTraj,mu0,Sigma0] = initializeHMM(dihedrals,chiStart,nStates,nRepeats,verbosity)
 
 [nSteps,nDims,nTraj] = size(dihedrals);
 
@@ -1231,80 +1275,7 @@ if nTraj > 1
   end
 end
 
-% if size(dihedrals,2)==4
-%   dihedrals(:,1) = wrapTo2Pi(dihedrals(:,1));
-%   dihedrals(:,2) = wrapTo2Pi(dihedrals(:,2));
-%   dihedrals(:,3) = wrapTo2Pi(dihedrals(:,3));
-% %   dihedrals(:,4) = wrapTo2Pi(dihedrals(:,4));
-% end
-% 
-% if size(dihedrals,2)==5
-%   dihedrals(:,1) = wrapTo2Pi(dihedrals(:,1));
-%   dihedrals(:,2) = wrapTo2Pi(dihedrals(:,2));
-%   dihedrals(:,4) = wrapTo2Pi(dihedrals(:,4));
-% end
-
-if isSeeded
-
-  % initialize cluster centroids
-  % for polyala
-%   chi1Min = wrapTo2Pi([-60;65;180]/180*pi);
-%   chi2Min = wrapTo2Pi([75;180]/180*pi);
-%   chi4Min = wrapTo2Pi([75;8;-100]/180*pi);
-%   chi5Min = [180;77]/180*pi;
-
-  % for V131C
-%   chi1Min = wrapTo2Pi([-60;180]/180*pi);
-%   chi2Min = wrapTo2Pi([-55;55;180]/180*pi);
-%   chi3Min = [-90;90]/180*pi;
-%   chi4Min = wrapTo2Pi([-170;-100;60]/180*pi);
-%   chi5Min = [-100;-20;100]/180*pi;
-
-  chi1Min = wrapTo2Pi([-60;60;180]/180*pi);
-  chi2Min = wrapTo2Pi([-60;60;180]/180*pi);
-  chi3Min = [-90;90]/180*pi;
-  chi4Min = wrapTo2Pi([-60;60;180]/180*pi);
-  chi5Min = [-90;90]/180*pi;
-%   chi5Min = [-90;0;90]/180*pi;
-
-  
-  chiStart = zeros(4,numel(chi1Min),numel(chi2Min),numel(chi4Min),numel(chi5Min));
-
-  for ichi1 = 1:numel(chi1Min)
-    for ichi2 = 1:numel(chi2Min)
-        for ichi4 = 1:numel(chi4Min)
-          for ichi5 = 1:numel(chi5Min)
-            chiStart(:,ichi1,ichi2,ichi4,ichi5) = ...
-            [chi1Min(ichi1); chi2Min(ichi2); chi4Min(ichi4); chi5Min(ichi5)];
-          end
-        end
-    end
-  end
-
-  chiStart = reshape(chiStart, 4, []).';
-
-%   chiStart = zeros(5,numel(chi1Min),numel(chi2Min),numel(chi3Min),numel(chi4Min),numel(chi5Min));
-% 
-%   for ichi1 = 1:numel(chi1Min)
-%     for ichi2 = 1:numel(chi2Min)
-%       for ichi3 = 1:numel(chi3Min)
-%         for ichi4 = 1:numel(chi4Min)
-%           for ichi5 = 1:numel(chi5Min)
-%             chiStart(:,ichi1,ichi2,ichi3,ichi4,ichi5) = ...
-%             [chi1Min(ichi1); chi2Min(ichi2); chi3Min(ichi3); chi4Min(ichi4); chi5Min(ichi5)];
-%           end
-%         end
-%       end
-%     end
-%   end
-% 
-%   chiStart = reshape(chiStart, 5, []).';
-else
-  
-  chiStart = [];
-  
-end
-
+% Do clustering
 [stateTraj,centroids] = ...
   cardamom_kmeans(dihedrals, nStates, nRepeats, chiStart, verbosity);
 
@@ -1320,50 +1291,10 @@ stateTraj = reshape(stateTraj,[nSteps,nTraj]);
 
 end
 
-function [transmat0, prior0] = countTransitions(stateTraj, nStates)
+function [transmat0, eqdistr0] = countTransitions(stateTraj, nStates)
 
-Nij = zeros(nStates,nStates);
-
-[nSteps,nTraj] = size(stateTraj);
-
-for iTraj = 1:nTraj
-  stateLast = stateTraj(1,iTraj);
-  for iStep = 2:nSteps
-    stateNew = stateTraj(iStep);
-    Nij(stateLast,stateNew) = Nij(stateLast,stateNew) + 1;
-    stateLast = stateNew;
-  end
-end
-
-Nij = (Nij + Nij.')/2;
-% transmat0 = Nij./sum(Nij,2);
-transmat0 = mk_stochastic(Nij);
-
-prior0 = sum(Nij,2);
-prior0 = prior0/sum(prior0);
-
-
-% P = mk_stochastic(Nij);
-% [V,D,W] = eig(P);
-% 
-% S = zeros(nStates);
-% for ii=1:nStates
-%   for jj=1:nStates
-%     S(ii,jj) = (W(ii,1)*P(ii,jj) + W(jj,1)*P(jj,ii))/2; 
-%   end
-% end
-% 
-% TPM = mk_stochastic(S);
-% 
-% s = sum(S,2);
-% prior = s/sum(s);
-% 
-% % PSym = W(:,1).'*P;
-% % PSymHat = 1/2*(PSym + PSym.');
-% % piHat = sum(PSymHat,2);
-% % 
-% % TPM = PSymHat./piHat;
-% % prior = piHat;
+c = msmcountmatrix(stateTraj, 1, nStates);
+[transmat0, eqdistr0, ~] = msmtransitionmatrix(c);
 
 end
 
@@ -1803,10 +1734,10 @@ end
 
 
 function c = msmcountmatrix(indexOfCluster, tau, nstate)
-%% msmcountmatrix
+% msmcountmatrix
 % calculate transition count matrix from a set of binned trajectory data
 %
-%% Syntax
+% Syntax
 %# c = msmcountmatrix(indexOfCluster);
 %# c = msmcountmatrix(indexOfCluster, tau);
 %# c = msmcountmatrix(indexOfCluster, tau, nstate);
@@ -1818,7 +1749,7 @@ function c = msmcountmatrix(indexOfCluster, tau, nstate)
 % Adapted from Yasuhiro Matsunaga's mdtoolbox
 % 
 
-%% setup
+% setup
 if ~iscell(indexOfCluster)
   indexOfCluster_noncell = indexOfCluster;
   clear indexOfCluster;
@@ -1837,7 +1768,7 @@ if ~exist('tau', 'var') || isempty(tau)
   disp('Message: tau = 1 is used.');
 end
 
-%% count transitions
+% count transitions
 c = sparse(nstate, nstate);
 
 for itrj = 1:ntrj
@@ -1848,7 +1779,7 @@ for itrj = 1:ntrj
   indexOfCluster_from = indexOfCluster{itrj}(index_from);
   indexOfCluster_to   = indexOfCluster{itrj}(index_to);
 
-  %% ignore invalid indices
+  % ignore invalid indices
   nframe = numel(indexOfCluster_from);
   s = ones(nframe, 1);
 
@@ -1868,7 +1799,7 @@ for itrj = 1:ntrj
   s(id) = 0;
   indexOfCluster_to(id)   = 1;
 
-  %% calc count matrix
+  % calc count matrix
   % count transitions and make count matrix C_ij by using a sparse
   % matrix
   c_itrj = sparse(indexOfCluster_from, indexOfCluster_to, s, nstate, nstate);
@@ -1892,7 +1823,7 @@ function [t, pi_i, x] = msmtransitionmatrix(c, maxiteration)
 % Adapted from Yasuhiro Matsunaga's mdtoolbox
 % 
 
-%% setup
+% setup
 if issparse(c)
   c = full(c);
 end
@@ -1909,7 +1840,7 @@ if ~exist('maxiteration', 'var')
   maxiteration = 1000;
 end
 
-%% optimization by L-BFGS-B
+% optimization by L-BFGS-B
 fcn = @(x) myfunc_column(x, c, c_i, nstate);
 opts.x0 = x(:);
 opts.maxIts = maxiteration;
@@ -1926,15 +1857,15 @@ t(isnan(t)) = 0;
 pi_i = x_i./sum(x_i);
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [f, g] = myfunc_column(x, c, c_i, nstate);
+%-------------------------------------------------------------------------------
+function [f, g] = myfunc_column(x, c, c_i, nstate)
 x = reshape(x, nstate, nstate);
 [f, g] = myfunc_matrix(x, c, c_i);
 g = g(:);
 
 end
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%-------------------------------------------------------------------------------
 function [f, g] = myfunc_matrix(x, c, c_i)
 x_i = sum(x, 2);
 
@@ -1957,7 +1888,7 @@ end
 
 end
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%-------------------------------------------------------------------------------
 %           %%%%%%%%%%%%
 %           
 %           bins = size(pdf, 1);

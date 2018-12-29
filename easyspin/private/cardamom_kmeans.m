@@ -54,7 +54,7 @@ sumdist = zeros(1,nRepeats);
 
 for iRepeat = 1:nRepeats
 
-  % initialize centroids and cluster indices
+  % Initialize centroids and cluster indices
   if ~isempty(centroids0)
     nClusters0 = size(centroids0,1);
     centroids(1:nClusters,:) = centroids0;
@@ -79,6 +79,8 @@ for iRepeat = 1:nRepeats
     distances = zeros(nPoints,nClusters);
     for k = 1:size(centroids,1)
       % loop over centroids
+      % TODO: needs correct distance metric for each angle dimension
+      % (modulo 2pi, subtract 2pi if >pi, abs?)
       distances(:,k) = sqrt(sum((data-centroids(k,:)).^2, 2));
     end
     

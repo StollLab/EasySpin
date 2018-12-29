@@ -348,7 +348,7 @@ end
 
 % Reorder dimensions
 MD.FrameTraj = permute(MD.FrameTraj, [2, 3, 4, 1]);
-MD.dihedrals = permute(MD.dihedrals, [2,3,1]);
+MD.dihedrals = permute(MD.dihedrals, [2,3,1]); % (step,iDihedral,iTraj) -> (iDihedral,iTraj,step)
 
 % Clear large arrays
 clear C1Lxyz C1Rxyz C1xyz C2Rxyz C2xyz CAxyz CBxyz NNxyz Nxyz ONxyz S1Lxyz SGxyz
