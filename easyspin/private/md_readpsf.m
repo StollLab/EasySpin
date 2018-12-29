@@ -115,10 +115,25 @@ if any(~cellfun(@ischar,fieldnames(AtomNames)))
   error('All fields in AtomNames must be given as character arrays.')
 end
 
-if ~isfield(AtomNames,'ONname')||~isfield(AtomNames,'NNname')...
-    ||~isfield(AtomNames,'C1name')||~isfield(AtomNames,'C2name')
-  error('One or more required atom names is missing. Please check documentation.')
+switch LabelName
+  case 'R1'
+    if ~isfield(AtomNames,'ONname')||~isfield(AtomNames,'NNname')...
+        ||~isfield(AtomNames,'C1name')||~isfield(AtomNames,'C2name')...
+        ||~isfield(AtomNames,'C1Rname')||~isfield(AtomNames,'C2Rname')...
+        ||~isfield(AtomNames,'C1Lname')||~isfield(AtomNames,'S1Lname')...
+        ||~isfield(AtomNames,'SGname')||~isfield(AtomNames,'CBname')...
+        ||~isfield(AtomNames,'CAname')||~isfield(AtomNames,'Nname')
+      error('One or more required atom names is missing. Please check documentation.')
+    end
+  case 'TOAC'
+    if ~isfield(AtomNames,'ONname')||~isfield(AtomNames,'NNname')...
+        ||~isfield(AtomNames,'CG1name')||~isfield(AtomNames,'CG2name')...
+        ||~isfield(AtomNames,'CB1name')||~isfield(AtomNames,'CB2name')...
+        ||~isfield(AtomNames,'CAname')||~isfield(AtomNames,'Nname')
+      error('One or more required atom names is missing. Please check documentation.')
+    end
 end
+    
 
 % open the file
 FileID = fopen(FileName, 'r');
@@ -189,6 +204,7 @@ while ~feof(FileID)
       
       % filter for atoms belonging to the protein and spin label
       idx_ProteinLabel = strcmpi(segmentNames,SegName);
+      if ~any(idx_ProteinLabel), error('SegName ''%s'' not found.', SegName), end
       segmentNames = segmentNames(idx_ProteinLabel);
       residueNames = residueNames(idx_ProteinLabel);
       atomNames = atomNames(idx_ProteinLabel);
@@ -224,7 +240,7 @@ while ~feof(FileID)
           psf.idx_CG2 = findatomindex(AtomNames.CG2name);
           psf.idx_CB1 = findatomindex(AtomNames.CB1name);
           psf.idx_CB2 = findatomindex(AtomNames.CB2name);
-          psf.idx_CA = findatomoindex(AtomNames.CAname);
+          psf.idx_CA = findatomindex(AtomNames.CAname);
           psf.idx_N = findatomindex(AtomNames.Nname);
       end
 
