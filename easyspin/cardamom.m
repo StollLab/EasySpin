@@ -400,59 +400,25 @@ if useMD
     %---------------------------------------------------------------------------
     if MD.isSeeded
       
-      % initialize cluster centroids
+      % Initialize cluster centroids
       % empirically determined values for polyala
-      %   chi1Min = wrapTo2Pi([-60;65;180]/180*pi);
-      %   chi2Min = wrapTo2Pi([75;180]/180*pi);
-      %   chi4Min = wrapTo2Pi([75;8;-100]/180*pi);
-      %   chi5Min = [180;77]/180*pi;
-      
+      %chi = {[-60,65,180],[75,180],[-90,90],[75,8,-100],[180,77]};
       % empirically determined values for T4L V131R1
-      %   chi1Min = wrapTo2Pi([-60;180]/180*pi);
-      %   chi2Min = wrapTo2Pi([-55;55;180]/180*pi);
-      %   chi3Min = [-90;90]/180*pi;
-      %   chi4Min = wrapTo2Pi([-170;-100;60]/180*pi);
-      %   chi5Min = [-100;-20;100]/180*pi;
-      
+      %chi = {[-60,180],[-55,55,180],[-90,90],[-170,-100,60],[-100,-20,100]};
       % theoretical values
-      chi1Min = wrapTo2Pi([-60;60;180]/180*pi);
-      chi2Min = wrapTo2Pi([-60;60;180]/180*pi);
-      chi3Min = [-90;90]/180*pi;
-      chi4Min = wrapTo2Pi([-60;60;180]/180*pi);
-      chi5Min = [-90;90]/180*pi;
-      %   chi5Min = [-90;0;90]/180*pi;
+      chi = {[-60,60,180],[-60,60,180],[-90,90],[-60,60,180],[-90,90]};
       
-      chiStart = zeros(4,numel(chi1Min),numel(chi2Min),numel(chi4Min),numel(chi5Min));
+      % Convert from degrees to radians
+      chi = cellfun(@(x)x*pi/180,chi);
       
-      for ichi1 = 1:numel(chi1Min)
-        for ichi2 = 1:numel(chi2Min)
-          for ichi4 = 1:numel(chi4Min)
-            for ichi5 = 1:numel(chi5Min)
-              chiStart(:,ichi1,ichi2,ichi4,ichi5) = ...
-                [chi1Min(ichi1); chi2Min(ichi2); chi4Min(ichi4); chi5Min(ichi5)];
-            end
-          end
-        end
+      % Create array with all combinations
+      idx = cellfun(@(a)1:numel(a),chi,'UniformOutput',false);
+      [idx{:}] = ndgrid(idx{:});
+      chiStart = [];
+      for k = numel(chi):-1:1
+        chiStart(:,k) = reshape(chi{k}(idx{k}),[],1);
       end
       
-      chiStart = reshape(chiStart, 4, []).';
-      
-      %   chiStart = zeros(5,numel(chi1Min),numel(chi2Min),numel(chi3Min),numel(chi4Min),numel(chi5Min));
-      %
-      %   for ichi1 = 1:numel(chi1Min)
-      %     for ichi2 = 1:numel(chi2Min)
-      %       for ichi3 = 1:numel(chi3Min)
-      %         for ichi4 = 1:numel(chi4Min)
-      %           for ichi5 = 1:numel(chi5Min)
-      %             chiStart(:,ichi1,ichi2,ichi3,ichi4,ichi5) = ...
-      %             [chi1Min(ichi1); chi2Min(ichi2); chi3Min(ichi3); chi4Min(ichi4); chi5Min(ichi5)];
-      %           end
-      %         end
-      %       end
-      %     end
-      %   end
-      %
-      %   chiStart = reshape(chiStart, 5, []).';
       nRepeats = 1;
     else
       nRepeats = 10;
