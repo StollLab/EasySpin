@@ -12,11 +12,22 @@ rng(1)
 nPoints = 100;
 nDims = 2;
 
-testData1 = randn(nPoints,nDims);
-testData2 = randn(nPoints,nDims)+3;
-testData3 = randn(nPoints,nDims)-3;
+width = 30;
 
+% testData1 = randn(nPoints,nDims);
+% testData2 = randn(nPoints,nDims)+3;
+% testData3 = randn(nPoints,nDims)-3;
+testData1 = width*randn(nPoints,nDims);
+testData2 = width*randn(nPoints,nDims)+150;
+testData3 = [20*randn(nPoints,1)-150, 20*randn(nPoints,1)];
+
+% testData = [testData1; testData2];
 testData = [testData1; testData2; testData3];
+testData = testData/180*pi;
+testData(testData>pi) = testData(testData>pi) - 2*pi;
+testData(testData<-pi) = testData(testData<-pi) + 2*pi;
+% testData = mod(testData,pi);
+
 
 nClusters = 3;
 nRepeats = 5;

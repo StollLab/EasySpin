@@ -77,11 +77,15 @@ for iRepeat = 1:nRepeats
 
     % calculate distances to centroids
     distances = zeros(nPoints,nClusters);
-    for k = 1:size(centroids,1)
+    for k = 1:nClusters
       % loop over centroids
       % TODO: needs correct distance metric for each angle dimension
       % (modulo 2pi, subtract 2pi if >pi, abs?)
-      distances(:,k) = sqrt(sum((data-centroids(k,:)).^2, 2));
+      differences = mod(abs(bsxfun(@minus,data,centroids(k,:))),2*pi);
+      idx = differences>pi;
+      differences(idx) = 2*pi - differences(idx);
+      distances(:,k) = sum(differences.^2, 2);
+%       distances(:,k) = sqrt(sum((data-centroids(k,:)).^2, 2));
     end
     
     % assignment step
@@ -89,14 +93,15 @@ for iRepeat = 1:nRepeats
 
     % update step
     for iCluster = 1:nClusters
-      centroids(iCluster,:) = mean(data(idxClusters==iCluster,:), 1);
+%       centroids(iCluster,:) = mean(data(idxClusters==iCluster,:), 1);
+      centroids(iCluster,:) = calc_centroids_pbc(data(idxClusters==iCluster,:),2*pi);
     end
     
     centroidsChange = centroids - centroidsLast;
     
     if iIter > 1
-%       if all(abs(centroidsChange(:)) < 1e-4), break, end
-      if all(idxClustersLast==idxClusters), break, end
+      if all(abs(centroidsChange(:)) < 1e-4), break, end
+%       if all(idxClustersLast==idxClusters), break, end
     end
     
     idxClustersLast = idxClusters;
@@ -142,5 +147,25 @@ centroidsBest = centroidsAll{iBest};
 %                                   'Replicates',nRepeats,...
 %                                   'Options',opts);
 % end
+
+end
+
+
+function centroids = calc_centroids_pbc(x,W)
+% Calculate centroid coordinates while accounting for periodic boundary
+% conditions
+
+refPoint = x(1,:);
+
+% Unwrap points with respect to the reference point
+distances = x - refPoint;
+distances(distances>pi) = distances(distances>pi) - 2*pi;
+distances(distances<-pi) = distances(distances<-pi) + 2*pi;
+xUnwrapped = refPoint + distances;
+
+% Wrap centroids as needed
+centroids = mean(xUnwrapped,1);
+centroids(centroids>pi) = mean(centroids(centroids>pi) - 2*pi,1);
+centroids(centroids<-pi) = mean(centroids(centroids<-pi) + 2*pi,1);
 
 end
