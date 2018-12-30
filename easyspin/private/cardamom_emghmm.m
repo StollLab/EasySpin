@@ -1,5 +1,5 @@
 function [LL, prior, transmat, mu, Sigma, mixmat] = ...
-     mhmm_em(data, prior, transmat, mu, Sigma, mixmat, varargin)
+     cardamom_emghmm(data, prior, transmat, mu, Sigma, mixmat, varargin)
 % LEARN_MHMM Compute the ML parameters of an HMM with (mixtures of) Gaussians output using EM.
 % [ll_trace, prior, transmat, mu, sigma, mixmat] = learn_mhmm(data, ...
 %   prior0, transmat0, mu0, sigma0, mixmat0, ...) 
@@ -33,7 +33,7 @@ function [LL, prior, transmat, mu, Sigma, mixmat] = ...
 % entries of mixmat to 0, e.g., 2 components if Q=1, 3 components if Q=2,
 % then set mixmat(1,3)=0. In this case, B2(1,3,:)=1.0.
 
-if ~isempty(varargin) & ~ischar(varargin{1}) % catch old syntax
+if ~isempty(varargin) && ~ischar(varargin{1}) % catch old syntax
   error('optional arguments should be passed as string/value pairs')
 end
 
@@ -963,7 +963,7 @@ if nargin == 2
   
 else
 
-  if isempty(A) | isempty(p)
+  if isempty(A) || isempty(p)
     error('sqdist: empty matrices');
   end
   Ap = A*p;
@@ -978,10 +978,10 @@ end
 
 
 function c = msmcountmatrix(indexOfCluster, tau, nstate)
-%% msmcountmatrix
+% msmcountmatrix
 % calculate transition count matrix from a set of binned trajectory data
 %
-%% Syntax
+% Syntax
 %# c = msmcountmatrix(indexOfCluster);
 %# c = msmcountmatrix(indexOfCluster, tau);
 %# c = msmcountmatrix(indexOfCluster, tau, nstate);
@@ -993,7 +993,7 @@ function c = msmcountmatrix(indexOfCluster, tau, nstate)
 % Adapted from Yasuhiro Matsunaga's mdtoolbox
 % 
 
-%% setup
+% setup
 if ~iscell(indexOfCluster)
   indexOfCluster_noncell = indexOfCluster;
   clear indexOfCluster;
@@ -1012,7 +1012,7 @@ if ~exist('tau', 'var') || isempty(tau)
   disp('Message: tau = 1 is used.');
 end
 
-%% count transitions
+% count transitions
 c = sparse(nstate, nstate);
 
 for itrj = 1:ntrj
@@ -1023,7 +1023,7 @@ for itrj = 1:ntrj
   indexOfCluster_from = indexOfCluster{itrj}(index_from);
   indexOfCluster_to   = indexOfCluster{itrj}(index_to);
 
-  %% ignore invalid indices
+  % ignore invalid indices
   nframe = numel(indexOfCluster_from);
   s = ones(nframe, 1);
 
@@ -1043,7 +1043,7 @@ for itrj = 1:ntrj
   s(id) = 0;
   indexOfCluster_to(id)   = 1;
 
-  %% calc count matrix
+  % calc count matrix
   % count transitions and make count matrix C_ij by using a sparse
   % matrix
   c_itrj = sparse(indexOfCluster_from, indexOfCluster_to, s, nstate, nstate);
@@ -1067,7 +1067,7 @@ function [t, pi_i, x] = msmtransitionmatrix(c, maxiteration)
 % Adapted from Yasuhiro Matsunaga's mdtoolbox
 % 
 
-%% setup
+% setup
 if issparse(c)
   c = full(c);
 end
@@ -1084,7 +1084,7 @@ if ~exist('maxiteration', 'var')
   maxiteration = 1000;
 end
 
-%% optimization by L-BFGS-B
+% optimization by L-BFGS-B
 fcn = @(x) myfunc_column(x, c, c_i, nstate);
 opts.x0 = x(:);
 opts.maxIts = maxiteration;
@@ -1102,7 +1102,7 @@ pi_i = x_i./sum(x_i);
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [f, g] = myfunc_column(x, c, c_i, nstate);
+function [f, g] = myfunc_column(x, c, c_i, nstate)
 x = reshape(x, nstate, nstate);
 [f, g] = myfunc_matrix(x, c, c_i);
 g = g(:);

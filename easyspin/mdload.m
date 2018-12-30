@@ -92,10 +92,9 @@
 %                                trajectories of protein global rotational
 %                                diffusion represented by rotation matrices
 %
-%                    dihedrals   numeric array, size = (5,nTraj,nSteps)
-%                                dihedral angles of spin label side chain
-%                                bonds
-%
+%                    dihedrals   numeric array, size = (nDims,nTraj,nSteps)
+%                                dihedral angles of spin label side chain;
+%                                nDims=5 for R1, nDims=1 for TOAC
 %
 %   Supported formats are identified via the extension
 %   in 'TrajFile' and 'TopFile'. Extensions:
@@ -127,11 +126,10 @@ EasySpinLogLevel = OutOpt.Verbosity;
 supportedTrajFileExts = {'.DCD'};
 supportedTopFileExts = {'.PSF'};
 
-if isfield(AtomInfo,'TopFile')
-  TopFile = AtomInfo.TopFile;
-else
+if ~isfield(AtomInfo,'TopFile')
   error('AtomInfo.TopFile is missing.')
 end
+TopFile = AtomInfo.TopFile;
 
 if ~isfield(AtomInfo,'LabelName')
   AtomInfo.LabelName = 'R1';
@@ -141,23 +139,20 @@ if ~any(strcmp(LabelName,{'R1','TOAC'}))
   error('Label ''%s'' is not supported.',LabelName);
 end
 
-if isfield(AtomInfo,'ResName')
-  ResName = AtomInfo.ResName;
-else
+if ~isfield(AtomInfo,'ResName')
   error('AtomInfo.ResName is missing.')
 end
+ResName = AtomInfo.ResName;
 
-if isfield(AtomInfo,'AtomNames')
-  AtomNames = AtomInfo.AtomNames;
-else
+if ~isfield(AtomInfo,'AtomNames')
   error('AtomInfo.AtomNames is missing.')
 end
+AtomNames = AtomInfo.AtomNames;
 
-if isfield(AtomInfo,'SegName')
-  SegName = AtomInfo.SegName;
-else
+if ~isfield(AtomInfo,'SegName')
   error('AtomInfo.SegName is missing.')
 end
+SegName = AtomInfo.SegName;
 
 if ~ischar(TopFile)||regexp(TopFile,'\w+\.\w+','once')<1
   error('TopFile must be given as a character array, including the filename extension.')
@@ -179,20 +174,6 @@ if ischar(TrajFile)
   TrajFile = {TrajFile};
 end
   
-%   if exist(TrajFile,'file')>0
-%     % extract file extension and file path
-%     [TrajFilePath, TrajFileName, TrajFileExt] = fileparts(TrajFile);
-%     % add full file path to TrajFile
-%     TrajFile = fullfile(TrajFilePath, [TrajFileName, TrajFileExt]);
-%   else
-%     error('TrajFile "%s" could not be found.', TrajFile)
-%   end
-%   
-%   TrajFile = {TrajFile};
-%   TrajFilePath = {TrajFilePath};
-%   TrajFileExt = {TrajFileExt};
-%   nTrajFiles = 1;
-
 if ~iscell(TrajFile)
   error(['Please provide ''TrajFile'' as a single character array ',...
          '(single trajectory file) or a cell array whose elements are ',...
@@ -237,13 +218,15 @@ if ~any(strcmp(TopFileExt,supportedTopFileExts))
 end
 
 
+% Importing data from MD trajectory files
+%-------------------------------------------------------------------------------
 logmsg(1,'-- extracting data from MD trajectory files -----------------------------------------');
 
 if OutOpt.Verbosity==1, tic; end
 
 % parse through list of trajectory output files
 ExtCombo = [TrajFileExt, ',', TopFileExt];
-for iTrajFile=1:nTrajFiles
+for iTrajFile = 1:nTrajFiles
   [temp,psf] = processMD(TrajFile{iTrajFile}, TopFile, SegName, ResName, LabelName, AtomNames, ExtCombo);
   if iTrajFile==1
     MD = temp;
@@ -265,85 +248,85 @@ end
 clear temp
 
 % Extract spin label atomic coordinates
+%-------------------------------------------------------------------------------
 switch LabelName
   case 'R1'
-    ONxyz = MD.Labelxyz(:,:,psf.idx_ON);
-    NNxyz = MD.Labelxyz(:,:,psf.idx_NN);
-    C1xyz = MD.Labelxyz(:,:,psf.idx_C1);
-    C2xyz = MD.Labelxyz(:,:,psf.idx_C2);
-    C1Rxyz = MD.Labelxyz(:,:,psf.idx_C1R);
-    C2Rxyz = MD.Labelxyz(:,:,psf.idx_C2R);
-    C1Lxyz = MD.Labelxyz(:,:,psf.idx_C1L);
-    S1Lxyz = MD.Labelxyz(:,:,psf.idx_S1L);
-    SGxyz = MD.Labelxyz(:,:,psf.idx_SG);
-    CBxyz = MD.Labelxyz(:,:,psf.idx_CB);
-    CAxyz = MD.Labelxyz(:,:,psf.idx_CA);
-    Nxyz = MD.Labelxyz(:,:,psf.idx_N);
+    v.ON = MD.Labelxyz(:,:,psf.idx_ON);
+    v.NN = MD.Labelxyz(:,:,psf.idx_NN);
+    v.C1 = MD.Labelxyz(:,:,psf.idx_C1);
+    v.C2 = MD.Labelxyz(:,:,psf.idx_C2);
+    v.C1R = MD.Labelxyz(:,:,psf.idx_C1R);
+    v.C2R = MD.Labelxyz(:,:,psf.idx_C2R);
+    v.C1L = MD.Labelxyz(:,:,psf.idx_C1L);
+    v.S1L = MD.Labelxyz(:,:,psf.idx_S1L);
+    v.SG = MD.Labelxyz(:,:,psf.idx_SG);
+    v.CB = MD.Labelxyz(:,:,psf.idx_CB);
+    v.CA = MD.Labelxyz(:,:,psf.idx_CA);
+    v.N = MD.Labelxyz(:,:,psf.idx_N);
   case 'TOAC'
-    ONxyz = MD.Labelxyz(:,:,psf.idx_ON);
-    NNxyz = MD.Labelxyz(:,:,psf.idx_NN);
-    CG2xyz = MD.Labelxyz(:,:,psf.idx_CG2);
-    CG1xyz = MD.Labelxyz(:,:,psf.idx_CG1);
-    CB2xyz = MD.Labelxyz(:,:,psf.idx_CB2);
-    CB1xyz = MD.Labelxyz(:,:,psf.idx_CB1);
-    CAxyz = MD.Labelxyz(:,:,psf.idx_CA);
-    Nxyz = MD.Labelxyz(:,:,psf.idx_N);
+    v.ON = MD.Labelxyz(:,:,psf.idx_ON);
+    v.NN = MD.Labelxyz(:,:,psf.idx_NN);
+    v.CG2 = MD.Labelxyz(:,:,psf.idx_CG2);
+    v.CG1 = MD.Labelxyz(:,:,psf.idx_CG1);
+    v.CB2 = MD.Labelxyz(:,:,psf.idx_CB2);
+    v.CB1 = MD.Labelxyz(:,:,psf.idx_CB1);
+    v.CA = MD.Labelxyz(:,:,psf.idx_CA);
+    v.N = MD.Labelxyz(:,:,psf.idx_N);
 end
 
 MD = rmfield(MD,'Labelxyz');
 
 % Calculate frame vectors
-%--------------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 % Initialize big arrays here for efficient memory usage
 MD.FrameTraj = zeros(MD.nSteps,3,3,1);
-MD.FrameTrajwrtProt = zeros(3,3,1,MD.nSteps);
 
 normalize = @(v)bsxfun(@rdivide,v,sqrt(sum(v.*v,2)));
 
 switch LabelName
   case 'R1'
     
-    NO_vec = normalize(ONxyz - NNxyz);  % N-O bond vector
-    NC1_vec = normalize(C1xyz - NNxyz); % N-C1 bond vector
-    NC2_vec = normalize(C2xyz - NNxyz); % N-C2 bond vector
+    v.NNNO = normalize(v.ON - v.NN);  % N-O bond vector
+    v.NNC1 = normalize(v.C1 - v.NN); % N-C1 bond vector
+    v.NNC2 = normalize(v.C2 - v.NN); % N-C2 bond vector
     
     % z-axis
-    MD.FrameTraj(:,:,3) = normalize(cross(NC1_vec, NO_vec, 2) + cross(NO_vec, NC2_vec, 2));
+    MD.FrameTraj(:,:,3) = normalize(cross(v.NNC1,v.NNNO,2) + cross(v.NNNO,v.NNC2,2));
     
     % x-axis
-    MD.FrameTraj(:,:,1) = NO_vec;
+    MD.FrameTraj(:,:,1) = v.NNNO;
     
     % y-axis
     MD.FrameTraj(:,:,2) = cross(MD.FrameTraj(:,:,3), MD.FrameTraj(:,:,1), 2);
     
   case 'TOAC'
     
-    NO_vec = normalize(ONxyz - NNxyz);    % N-O bond vector
-    NCG1_vec = normalize(CG1xyz - NNxyz); % N-CG1 bond vector
-    NCG2_vec = normalize(CG2xyz - NNxyz); % N-CG2 bond vector
+    v.NNNO = normalize(v.ON - v.NN);    % N-O bond vector
+    v.NNCG1 = normalize(v.CG1 - v.NN); % N-CG1 bond vector
+    v.NNCG2 = normalize(v.CG2 - v.NN); % N-CG2 bond vector
     
     % z-axis
-    MD.FrameTraj(:,:,3) = normalize(cross(NCG1_vec, NO_vec, 2) + cross(NO_vec, NCG2_vec, 2));
+    MD.FrameTraj(:,:,3) = normalize(cross(v.NNCG1,v.NNNO,2) + cross(v.NNNO,v.NNCG2,2));
     
     % x-axis
-    MD.FrameTraj(:,:,1) = NO_vec;
+    MD.FrameTraj(:,:,1) = v.NNNO;
     
     % y-axis
     MD.FrameTraj(:,:,2) = cross(MD.FrameTraj(:,:,3), MD.FrameTraj(:,:,1), 2);
 end
 
 % Calculate side chain dihedral angles
-%-------------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 switch LabelName
   case 'R1'
     MD.dihedrals = zeros(MD.nSteps,5);
-    MD.dihedrals(:,1) = dihedral(Nxyz,CAxyz,CBxyz,SGxyz);
-    MD.dihedrals(:,2) = dihedral(CAxyz,CBxyz,SGxyz,S1Lxyz);
-    MD.dihedrals(:,3) = dihedral(CBxyz,SGxyz,S1Lxyz,C1Lxyz);
-    MD.dihedrals(:,4) = dihedral(SGxyz,S1Lxyz,C1Lxyz,C1Rxyz);
-    MD.dihedrals(:,5) = dihedral(S1Lxyz,C1Lxyz,C1Rxyz,C2Rxyz);
+    MD.dihedrals(:,1) = dihedral(v.N,v.CA,v.CB,v.SG);
+    MD.dihedrals(:,2) = dihedral(v.CA,v.CB,v.SG,v.S1L);
+    MD.dihedrals(:,3) = dihedral(v.CB,v.SG,v.S1L,v.C1L);
+    MD.dihedrals(:,4) = dihedral(v.SG,v.S1L,v.C1L,v.C1R);
+    MD.dihedrals(:,5) = dihedral(v.S1L,v.C1L,v.C1R,v.C2R);
   case 'TOAC'
-    MD.dihedrals(:,1) = dihedral(CAxyz,CB1xyz,CG1xyz,NNxyz);
+    MD.dihedrals(:,1) = dihedral(v.CA,v.CB1,v.CG1,v.NN);
 end
 
 % Reorder dimensions
@@ -351,14 +334,11 @@ MD.FrameTraj = permute(MD.FrameTraj, [2, 3, 4, 1]);
 MD.dihedrals = permute(MD.dihedrals, [2,3,1]); % (step,iDihedral,iTraj) -> (iDihedral,iTraj,step)
 
 % Clear large arrays
-clear C1Lxyz C1Rxyz C1xyz C2Rxyz C2xyz CAxyz CBxyz NNxyz Nxyz ONxyz S1Lxyz SGxyz
-clear CAxyz CB1xyz CB2xyz CG1xyz CG2xyz NNxyz Nxyz ONxyz
-clear NO_vec NC1_vec NC2_vec vec1 vec2
-
-logmsg(1,'-- removing protein global diffusion -----------------------------------------');
+clear v
 
 % Remove global diffusion of protein
-% -------------------------------------------------------------------------
+%-------------------------------------------------------------------------------
+logmsg(1,'-- removing protein global diffusion -----------------------------------------');
 
 % Align protein alpha carbons with inertia tensor frame in first snapshot
 MD.ProtCAxyz = orientproteintraj(MD.ProtCAxyz);
@@ -375,14 +355,15 @@ nAtoms = size(MD.ProtCAxyz,2);
 mass = ones(1,nAtoms);
 ProtCAxyzInt = zeros(3, nAtoms, MD.nSteps);
 ProtCAxyzInt(:,:,1) = MD.ProtCAxyz(:,:,1);
+MD.FrameTrajwrtProt = zeros(3,3,1,MD.nSteps);
 MD.FrameTrajwrtProt(:,:,:,1) = MD.FrameTraj(:,:,:,1);
 
 % LabelFrameInt = zeros(3, nAtoms, MD.nSteps);
 % LabelFrameInt(:,:,:,1) = MD.FrameTraj(:,:,:,1);
 
-tic
 
 % Find optimal rotation matrices and quaternions
+tic % toc is used in updateuser()
 firstFrameReference = true;
 if firstFrameReference
   refFrame = MD.ProtCAxyz(:,:,1);
@@ -430,12 +411,12 @@ if ~OutOpt.keepProtCA
   MD = rmfield(MD,'ProtCAxyz');
 end
 
-% logmsg(1,'-- estimating protein global diffusion tensor -----------------------------------------');
 
+% Estimate global diffusion tensor of protein
+%-------------------------------------------------------------------------------
 calcProtDiffTensor = false;
 if calcProtDiffTensor
-% % estimate global diffusion tensor of protein
-% % -------------------------------------------------------------------------
+% logmsg(1,'-- estimating protein global diffusion tensor -----------------------------------------');
 % 
 % dt = 2.5*MD.dt;  % NOTE: this assumes a solvent-exposed labeling site with 
 %                  % a TIP3P water model
@@ -471,6 +452,7 @@ if calcProtDiffTensor
 end
 
 end
+%===============================================================================
 
 function [Traj,psf] = processMD(TrajFile, TopFile, SegName, ResName, LabelName, AtomNames, ExtCombo)
 

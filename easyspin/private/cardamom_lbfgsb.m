@@ -38,7 +38,7 @@ function [x,f,info] = cardamom_lbfgsb( fcn, l, u, opts )
 %       opts.maxIts         How many iterations to allow (default: 100)
 %       opts.maxTotalIts    How many iterations to allow, including linesearch iterations
 %                       (default: 5000)
-%       opts.printEvery     How often to display information (default: 1)
+%       opts.printEvery     How often to display information (default: Inf, i.e. never)
 %       opts.errFcn         A function handle (or cell array of several function handles)
 %                       that computes whatever you want. The output will be printed
 %                       to the screen every 'printEvery' iterations. (default: [] )
@@ -148,7 +148,7 @@ maxIts  = setOpts( 'maxIts', 100, 1 );
 maxTotalIts     = setOpts( 'maxTotalIts', 5e3 );
 
 % Print out information this often (and set to Inf to suppress)
-printEvery  = setOpts( 'printEvery', 1 );
+printEvery  = setOpts( 'printEvery', inf );
 
 errFcn      = setOpts( 'errFcn', [] );
 
@@ -180,7 +180,7 @@ if isempty(k), k = 1; end
 if nargin==0
     % reset persistent variables and return information
     if ~isempty(history) && ~isempty(k) 
-        printFcn(k,history);
+        %printFcn(k,history);
         f = history(1:k,:);
     end
     history = [];

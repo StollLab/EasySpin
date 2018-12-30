@@ -189,6 +189,7 @@
 %                    1: (default) remove protein global diffusion
 %                    0: no removal (e.g. if protein is fixed)
 % 
+%     LabelName      name of spin label, 'R1' (default) or 'TOAC'
 % 
 %   Output:
 %     B              numeric, size = (2*nSteps,1) 
@@ -289,141 +290,135 @@ else
 end
 
 % Check MD
-% -------------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 
 useMD = ~isempty(MD);
 
 if useMD
   
-  % scale the time axis if desired
+  if ~isfield(MD,'dt')
+    error('The MD trajectory time step MD.dt must be given.')
+  end
+  
+  % Scale the time axis if desired
   if isfield(MD,'tScale')
     tScale = MD.tScale;
   else
     tScale = 1;
   end
   
-  if ~isfield(MD,'dt')
-    error('The MD trajectory time step MD.dt must be given.')
-  end
-  
   if ~isfield(MD,'DiffGlobal')
     MD.DiffGlobal = [];
   end
   
-  if ~isfield(MD,'nSteps')
-    error('The number of MD trajectory time steps MD.nSteps must be given.')
+  if ~isfield(MD,'LabelName')
+    MD.LabelName = 'R1';
   end
   
-  % check type of MD trajectory usage
-  if isfield(MD,'TrajUsage')
-    if ~ischar(MD.TrajUsage)
-      error('MD.TrajUsage must be a string.')
-    end
-    if ~any(strcmp({MD.TrajUsage},{'Explicit','Resampling','Markov'}))
-      errmsg = sprintf('Entry ''%s'' for MD.TrajUsage not recognized.', MD.TrajUsage);
-      error(errmsg)
-    end
-  else
+  if ~isfield(MD,'removeChi3')
+    MD.removeChi3 = true;
+  end
+  
+  % Check type of MD trajectory usage
+  if ~isfield(MD,'TrajUsage')
     MD.TrajUsage = 'Explicit';
   end
-    
+  if ~ischar(MD.TrajUsage)
+    error('MD.TrajUsage must be a string.')
+  end
+  if ~any(strcmp({MD.TrajUsage},{'Explicit','Resampling','Markov'}))
+    errmsg = sprintf('Setting ''%s'' for MD.TrajUsage not recognized.', MD.TrajUsage);
+    error(errmsg);
+  end
+  
   if ~isfield(MD,'FrameTraj')
     error('The spin label frame trajectory MD.FrameTraj must be given.')
   end
-
-  if ~isequal(size(MD.FrameTraj),[3,3,size(MD.FrameTraj,3),MD.nSteps])
-    error('Frame trajectory must be of size (3,3,1,MD.nSteps).')
-  end
   
   if ~isfield(MD,'removeGlobal')
-    MD.removeGlobal = 1;
-  end
-  
+    MD.removeGlobal = true;
+  end  
   if MD.removeGlobal
     MD.RTraj = MD.FrameTrajwrtProt;
   else
     MD.RTraj = MD.FrameTraj;
   end
-
+  
+  if size(MD.RTraj,1)~=3 || size(MD.RTraj,2)~=3
+    error('Frame trajectory in MD must be of size (3,3,nTraj,nSteps).');
+  end
+  MD.nTraj = size(MD.RTraj,3);  % number of trajectories; assumed to be one for now
+  MD.nSteps = size(MD.RTraj,4); % number of time steps
+    
   % Check for orthogonality of rotation matrices
   RTrajInv = permute(MD.RTraj,[2,1,3,4]);
-
   if ~allclose(multimatmult(MD.RTraj,RTrajInv),...
                repmat(eye(3),1,1,size(MD.RTraj,3),size(MD.RTraj,4)),...
                1e-10)
-    error('Rotation matrices obtained from frame trajectory are not orthogonal.')
+    error('Rotation matrices in frame trajectory are not orthogonal.')
   end
-
-  MD.nTraj = size(MD.RTraj,3);  % this is assumed to be one for now
+  clear RTrajInv
   
-  if ~strcmp(MD.TrajUsage,'Markov')
-    MD.dt = tScale*MD.dt;
-  else
+  % Build Markov state model
+  if strcmp(MD.TrajUsage,'Markov')
     logmsg(1,'-- building Markov state model -----------------------------------------');
 
     if ~isfield(MD,'nStates')
-      error('Please provide the number of desired states in MD.nStates.')
+      error('Please provide the number of desired states in MD.nStates.');
     end
     
     if ~isfield(MD,'isSeeded')
       MD.isSeeded = false;
     end
     
-    % Reorder to (nSteps,nDims,nTraj), for input to clustering function
-    MD.dihedrals = permute(MD.dihedrals,[3,1,2]);
-    
-    switch LabelName
+    switch MD.LabelName
       case 'R1'
 
         % Remove chi3, as its dynamics are very slow on the typical MD timescale
-        removeChi3 = true;
-        if removeChi3 && size(MD.dihedrals,2)==5
-          MD.dihedrals = MD.dihedrals(:,logical([1,1,0,1,1]),:);
+        if MD.removeChi3 && size(MD.dihedrals,1)==5
+          MD.dihedrals(3,:,:) = [];
         end
         
-        %{
-        if size(MD.dihedrals,2)==4
-          MD.dihedrals(:,1) = wrapTo2Pi(MD.dihedrals(:,1));
-          MD.dihedrals(:,2) = wrapTo2Pi(MD.dihedrals(:,2));
-          MD.dihedrals(:,3) = wrapTo2Pi(MD.dihedrals(:,3));
-        end
-        
-        if size(MD.dihedrals,2)==5
-          MD.dihedrals(:,1) = wrapTo2Pi(MD.dihedrals(:,1));
-          MD.dihedrals(:,2) = wrapTo2Pi(MD.dihedrals(:,2));
-          MD.dihedrals(:,4) = wrapTo2Pi(MD.dihedrals(:,4));
-        end
-        %}
     end
     
-    % Set up initial cluster centers
-    %---------------------------------------------------------------------------
+    % Set up initial cluster centroids if wanted
     if MD.isSeeded
       
-      % Initialize cluster centroids
-      % empirically determined values for polyala
-      %chi = {[-60,65,180],[75,180],[-90,90],[75,8,-100],[180,77]};
-      % empirically determined values for T4L V131R1
-      %chi = {[-60,180],[-55,55,180],[-90,90],[-170,-100,60],[-100,-20,100]};
-      % theoretical values
-      chi = {[-60,60,180],[-60,60,180],[-90,90],[-60,60,180],[-90,90]};
-      
-      % Convert from degrees to radians
-      chi = cellfun(@(x)x*pi/180,chi);
-      
-      % Create array with all combinations
-      idx = cellfun(@(a)1:numel(a),chi,'UniformOutput',false);
-      [idx{:}] = ndgrid(idx{:});
-      chiStart = [];
-      for k = numel(chi):-1:1
-        chiStart(:,k) = reshape(chi{k}(idx{k}),[],1);
+      switch LabelName
+        case 'R1'
+          % Empirically determined values for polyala
+          %chi = {[-60,65,180],[75,180],[-90,90],[75,8,-100],[180,77]};
+          % Empirically determined values for T4L V131R1
+          %chi = {[-60,180],[-55,55,180],[-90,90],[-170,-100,60],[-100,-20,100]};
+          % Theoretical values
+          chi = {[-60,60,180],[-60,60,180],[-90,90],[-60,60,180],[-90,90]};
+          
+          if removeChi3, chi(3) = []; end
+          
+          % Convert from degrees to radians
+          chi = cellfun(@(x)x*pi/180,chi);
+          
+          % Create array with all combinations
+          idx = cellfun(@(a)1:numel(a),chi,'UniformOutput',false);
+          [idx{:}] = ndgrid(idx{:});
+          chiStart = [];
+          for k = numel(chi):-1:1
+            chiStart(:,k) = reshape(chi{k}(idx{k}),[],1);
+          end
+          
+          nRepeats = 1;
+        case 'TOAC'
+          error('TOAC dihedrals cannot be seeded.');
       end
       
-      nRepeats = 1;
     else
       nRepeats = 10;
       chiStart = [];
     end
+    
+    % Reorder from (nDims,nTraj,nSteps) to (nSteps,nDims,nTraj),
+    % for input to clustering function.
+    MD.dihedrals = permute(MD.dihedrals,[3,1,2]);
     
     % Perform k-means clustering
     [MD.stateTraj, mu0, Sigma0] = ...
@@ -448,14 +443,13 @@ if useMD
     stateTraj = MD.stateTraj(1:nLagEM:end,:);
     [transmat0, eqdistr0] = countTransitions(stateTraj, MD.nStates);
     
-    % EM function wants an array of shape (nDims,nSteps,nTraj)
+    % Reorder (nSteps,nDims,nTraj) to (nDims,nSteps,nTraj), for EM function
     dihedrals = permute(dihedrals,[2,1,3]);
     
     % Deterime/estimate HMM model parameters using expectation maximization
     [~,eqdistr1,transmat1,mu1,Sigma1,~] = ...
       cardamom_emghmm(dihedrals,eqdistr0,transmat0,mu0,Sigma0,[],...
-      'max_iter',100,'verbose',Opt.Verbosity,...
-      'adj_mu', 1, 'adj_Sigma', 1);
+      'max_iter',100,'verbose',Opt.Verbosity);
     
     % Determines most probable hidden-state trajectory
     stateTraj = zeros(size(dihedrals,2),size(dihedrals,3));
@@ -472,37 +466,30 @@ if useMD
       MD.nStates = size(transmat1,1);
 
       lambda = eig(transmat1);
-      lambda = sort(real(lambda), 1, 'descend');
+      lambda = sort(real(lambda),1,'descend');
       lambda = lambda(lambda>0);
       tauMarkov{itLag} = -tLag(itLag)./log(lambda(2:end).');
     end
     
     nLag = ceil(tLag(itLag)/MD.dt);
     
-    % set the Markov chain time step based on the (scaled) sampling lag time
-    Par.dt = tScale*tLag(itLag);
-    MD.dt = tScale*MD.dt;
     MD.dihedrals = dihedrals(:,1:nLagLoop:end,:);
+
+    % Set the Markov chain time step based on the (scaled) sampling lag time
+    Par.dt = tScale*tLag(itLag);
     
   end
+
+  MD.dt = tScale*MD.dt;
   
-  % estimate rotational diffusion time scale
+  % Estimate rotational diffusion time scale
   FrameAcorr = squeeze(autocorrfft(squeeze(MD.FrameTraj.^2), 3, 1, 1, 1));
-
   N = round(MD.nSteps/2);
-
-  % calculate correlation time
   time = linspace(0, N*MD.dt, N);
-  
   tauR = max(cumtrapz(time,FrameAcorr(:,1:N),2),[],2);
-%   [k,c,yfit] = exponfit(time, acorr(1:N), 2, 'noconst');
-%   tauR = 1/max(k);
-
   tauR = mean(tauR);
   DiffLocal = 1/6/tauR;
   MD.tauR = tauR;
-
-  clear RTrajInv
 
 end
 
@@ -521,7 +508,7 @@ if ~isempty(Par.Model)
 end
 
 % Check Exp
-% -------------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 
 [Exp,FieldSweep,CenterField,CenterFreq,Sweep] = validate_exp('cardamom',Sys,Exp);
 
@@ -550,7 +537,7 @@ else
 end
 
 % Check dynamics and ordering
-% -------------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 
 if useMD
   isDiffSim = strcmp(MD.TrajUsage,'Resampling');
@@ -587,7 +574,7 @@ else
 end
 
 % Check Par
-% -------------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 
 % Supply defaults
 % default number of trajectories
@@ -655,31 +642,28 @@ end
 dtQuant = Par.Dt;
 dtStoch = Par.dt;
 
-% decide on a simulation model based on user input
+% Decide on a simulation model based on user input
 if useMD
   if ~isfield(Par,'Model')
-    % no Model given
     Par.Model = 'MD';
   elseif ~strcmp(Par.Model,'MD')
     error('Mixing stochastic simulations with MD simulation input is not supported.')
   end
   
-%   if MD.nTraj > 1, error('Using multiple MD trajectories is not supported.'); end
-  
-  % determine if time block averaging is to be used
+  % Determine if time block averaging is to be used
   if strcmp(MD.TrajUsage,'Explicit')
     % check MD.dt
     if Par.Dt<MD.dt
       error('Par.Dt must be greater than MD.dt.')
     end
-    Par.isBlock = 1;
+    Par.isBlock = true;
   else
     % check Par.Dt
     if Par.dt<Par.Dt
-      Par.isBlock = 1;
+      Par.isBlock = true;
     else
       % same step size
-      Par.isBlock = 0;
+      Par.isBlock = false;
     end
   end
   
@@ -715,11 +699,11 @@ else
   
   % check for time coarse-graining (time block averaging)
   if Par.dt<Par.Dt
-    Par.isBlock = 1;
+    Par.isBlock = true;
     [Par.nBlocks,Par.BlockLength] = findblocks(Par.Dt, Par.dt, nStepsStoch);
   else 
     % same step size
-    Par.isBlock = 0;
+    Par.isBlock = false;
   end
     
 end
@@ -728,7 +712,7 @@ LocalDynamicsModel = Par.Model;
 
 
 % Check Opt
-% -------------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 
 if ~isfield(Opt,'Method')
   Opt.Method = 'Nitroxide';
@@ -774,7 +758,7 @@ end
 
 
 % Check model for local diffusion
-% -------------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 switch LocalDynamicsModel
   case 'stochastic'
     
@@ -820,7 +804,7 @@ switch LocalDynamicsModel
           pdf(end,:,:) = pdf(1,:,:);  % FIXME why does it truncate to zero in the phi direction?
           pdf = smooth3(pdf,'gaussian');
 %           pdf = smoothn(pdf);
-          save('pdf.mat','pdf')
+          %save('pdf.mat','pdf')
           pdf(pdf<1e-14) = 1e-14;  % put a finite floor on histogram
           isLocalPotential = 1;
 %           Sys.Potential = -log(pdf);
@@ -1149,7 +1133,7 @@ while ~converged
 
 end
 
-clear RTraj RTrajInv qTraj
+clear RTraj qTraj
 % Par = rmfield(Par,{'RTraj','qTraj'});
 
 if strcmp(LocalDynamicsModel, 'Molecular Dynamics')
@@ -1241,7 +1225,7 @@ if nTraj > 1
   end
 end
 
-% Do clustering
+% Do k-means clustering
 [stateTraj,centroids] = ...
   cardamom_kmeans(dihedrals, nStates, nRepeats, chiStart, verbosity);
 
