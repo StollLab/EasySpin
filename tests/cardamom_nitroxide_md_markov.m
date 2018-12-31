@@ -14,12 +14,11 @@ tScale = 2.5;  % diffusion constant of TIP3P model water molecules in MD
 
 MD = Traj;
 MD.dt = MD.dt*tScale;
-MD.tScale = tScale;
-MD.removeGlobal = 0;
+MD.removeGlobal = false;
 
 MD.TrajUsage = 'Markov';
 
-MD.tLag = tScale*200e-12;
+MD.tLag = 200e-12*tScale;
 MD.nStates = 20;
 MD.nTrials = 2;
 

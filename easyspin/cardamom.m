@@ -362,6 +362,13 @@ if useMD
       MD.isSeeded = false;
     end
     
+    if ~isfield(MD,'tLag')
+      error('MD.tLag is required.');
+    end
+    if abs(rem(MD.tLag,MD.dt))>1e-8
+      error('MD.tLag must be an integer multiple of %g.',MD.dt);
+    end
+    
     if strcmp(MD.LabelName,'R1')
       % Remove chi3, as its dynamics are very slow on the typical MD timescale
       if MD.removeChi3 && size(MD.dihedrals,1)==5
@@ -427,12 +434,11 @@ if useMD
       initializehmm(MD.dihedrals, chiStart, MD.nStates, MD.nTrials, Opt.Verbosity);
     
     logmsg(1,'  MSM parameter estimation');
-    % Downsample dihedrals trajectory at a time step, where it is
-    % expected to be Markovian
-    tLagEM = 250e-12;
-    nLagEM = ceil(tLagEM/MD.dt);
-    dihedrals = MD.dihedrals(1:nLagEM:end,:,:);
-    stateTraj = MD.stateTraj(1:nLagEM:end,:);
+    
+    % Downsample dihedrals trajectory to the desired lag time
+    nLag = ceil(MD.tLag/MD.dt);
+    dihedrals = MD.dihedrals(1:nLag:end,:,:);
+    stateTraj = MD.stateTraj(1:nLag:end,:);
     
     % Estimate transition probability matrix and initial distribution
     [transmat0,eqdistr0] = estimatemarkovparameters(stateTraj);
@@ -445,7 +451,6 @@ if useMD
     [~,eqdistr1,transmat1,mu1,Sigma1,~] = ...
       cardamom_emghmm(dihedrals,eqdistr0,transmat0,mu0,Sigma0,[],Opt.Verbosity);
     
-
     logmsg(1,'  Viterbi state trajectory calculation');
     % Determine most probable hidden-state trajectory
     nTraj = size(dihedrals,3);
@@ -455,42 +460,10 @@ if useMD
       stateTraj(:,iTraj) = viterbi_path(eqdistr1, transmat1, obslikelyhood).';
     end
     
-    if ~isfield(MD,'tLag')
-      MD.tLag = (1:10)*tLagEM;
-      % remove lag times over 1 ns, with will have issues with undersampling
-      MD.tLag(MD.tLag>1e-9) = []; 
-    end
-    if rem(MD.tLag,tLagEM)~=0
-      error('MD.tLag must be an integer multiple of %g.',tLagEM);
-    end
-    
-    tLag = MD.tLag;
-    ntLag = numel(tLag);
-    logmsg(1,'  Loop over %d lag times',ntLag);
-    %tauMarkov = cell(ntLag,1);
-    for itLag = 1:ntLag
-      nLag_ = ceil(tLag(itLag)/tLagEM);
-      [transmat1, eqdistr1] = estimatemarkovparameters(stateTraj(1:nLag_:end,:));
-      
-      MD.stateTraj = stateTraj(1:nLag_:end,:).';
-      MD.nStates = size(transmat1,1);
-      
-      % Calculate relaxation times via eigenvalues of trans.prob. matrix
-      % (largest eigenvalue should be 1)
-      %{
-      lambda = eig(transmat1);
-      lambda = sort(real(lambda),1,'descend');
-      lambda = lambda(lambda>0);
-      tauMarkov{itLag} = -tLag(itLag)./log(lambda(2:end).');
-      %}
-    end
-    
-    nLag = ceil(tLag(itLag)/MD.dt);
-    
-    MD.dihedrals = dihedrals(:,1:nLag_:end,:);
+    [transmat1, eqdistr1] = estimatemarkovparameters(stateTraj);
     
     % Set the Markov chain time step based on the (scaled) sampling lag time
-    Par.dt = tLag(itLag);
+    Par.dt = MD.tLag;
     logmsg(1,'  ---- HMM done ---');
     
   end
@@ -502,8 +475,7 @@ if useMD
   tauR = max(cumtrapz(time,FrameAcorr(:,1:N),2),[],2);
   tauR = mean(tauR);
   DiffLocal = 1/6/tauR;
-  MD.tauR = tauR;
-  
+  MD.tauR = tauR;  
 
 end
 
