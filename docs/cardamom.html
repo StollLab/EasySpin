@@ -353,12 +353,7 @@ Number of ns at which to begin using an ensemble-averaged propagator, which can 
 
 <div class="optionfield"><code>dt</code></div>
 <div class="optiondescr">
-Time step between snapshots in the MD simulation trajectory, in seconds.
-</div>
-
-<div class="optionfield"><code>tScale</code></div>
-<div class="optiondescr">
-Scaling factor for time steps between MD snapshots. This could be necessary if the model for the spin label's environment molecules does not yield the correct time scale for diffusion, e.g. TIP3P water.
+Time step between snapshots in the MD simulation trajectory, in seconds. It could be necessary to rescale this if the model for the spin label's environment molecules does not yield the correct time scale for diffusion, e.g. TIP3P water, where the time step is often increased by a factor of 2.5.
 </div>
 
 <div class="optionfield"><code>RProtDiff</code></div>

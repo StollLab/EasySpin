@@ -157,12 +157,6 @@
 %     dt             double
 %                    time step (in s) for saving MD trajectory snapshots
 %
-%     tScale         double (optional)
-%                    scale the time step of the simulation based on
-%                    incorrect diffusion coefficients, e.g. molecules 
-%                    solvated in TIP3P water have diffusion coefficients
-%                    that are ~2.5x too large
-%
 %     tLag           double
 %                    time lag (in s) for sampling the MD trajectory to 
 %                    determine states and transitions, used for a Markov
@@ -303,14 +297,7 @@ if useMD
   if ~isfield(MD,'dt')
     error('The MD trajectory time step MD.dt must be given.')
   end
-  
-  % Scale the time axis if desired
-  if isfield(MD,'tScale')
-    tScale = MD.tScale;
-  else
-    tScale = 1;
-  end
-  
+    
   if ~isfield(MD,'DiffGlobal')
     MD.DiffGlobal = [];
   end
@@ -439,10 +426,11 @@ if useMD
     [MD.stateTraj, mu0, Sigma0] = ...
       initializehmm(MD.dihedrals, chiStart, MD.nStates, MD.nTrials, Opt.Verbosity);
     
-    logmsg(1,'  MSM parameter estimation for 100ps lagtime');
-    % Downsample dihedrals trajectory to a lag time of 100 ps, where it is
+    logmsg(1,'  MSM parameter estimation');
+    % Downsample dihedrals trajectory at a time step, where it is
     % expected to be Markovian
-    nLagEM = ceil(100e-12/MD.dt);
+    tLagEM = 250e-12;
+    nLagEM = ceil(tLagEM/MD.dt);
     dihedrals = MD.dihedrals(1:nLagEM:end,:,:);
     stateTraj = MD.stateTraj(1:nLagEM:end,:);
     
@@ -468,10 +456,12 @@ if useMD
     end
     
     if ~isfield(MD,'tLag')
-      MD.tLag = (100:50:800)*1e-12; % seconds
+      MD.tLag = (1:10)*tLagEM;
+      % remove lag times over 1 ns, with will have issues with undersampling
+      MD.tLag(MD.tLag>1e-9) = []; 
     end
-    if rem(MD.tLag,100e-12)~=0
-      error('MD.tLag must be an integer multiple of 100e-12 (i.e. 100 ps).');
+    if rem(MD.tLag,tLagEM)~=0
+      error('MD.tLag must be an integer multiple of %g.',tLagEM);
     end
     
     tLag = MD.tLag;
@@ -479,7 +469,7 @@ if useMD
     logmsg(1,'  Loop over %d lag times',ntLag);
     %tauMarkov = cell(ntLag,1);
     for itLag = 1:ntLag
-      nLag_ = ceil(tLag(itLag)/100e-12);  % multiples of 100e-12
+      nLag_ = ceil(tLag(itLag)/tLagEM);
       [transmat1, eqdistr1] = estimatemarkovparameters(stateTraj(1:nLag_:end,:));
       
       MD.stateTraj = stateTraj(1:nLag_:end,:).';
@@ -500,12 +490,10 @@ if useMD
     MD.dihedrals = dihedrals(:,1:nLag_:end,:);
     
     % Set the Markov chain time step based on the (scaled) sampling lag time
-    Par.dt = tScale*tLag(itLag);
+    Par.dt = tLag(itLag);
     logmsg(1,'  ---- HMM done ---');
     
   end
-  
-  MD.dt = tScale*MD.dt;
   
   % Estimate rotational diffusion time constant (used in the density propagation)
   FrameAcorr = squeeze(autocorrfft(squeeze(MD.FrameTraj.^2), 3, 1, 1, 1));
