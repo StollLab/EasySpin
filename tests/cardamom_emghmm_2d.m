@@ -70,9 +70,7 @@ prior0 = prior0./sum(prior0,1);
 testData = permute(testData,[2,1,3]);
 
 [logLikelihood,prior1,transmat1,mu1,Sigma1,~] = ...
-  runprivate('cardamom_emghmm',testData,prior0,transmat0,mu0,Sigma0,mixmat0,...
-                  'max_iter',100,'verbose',verbosity,...
-                  'adj_mu', 1, 'adj_Sigma', 1);
+    runprivate('cardamom_emghmm',testData,prior0,transmat0,mu0,Sigma0,[],verbosity);
 
 % Compare
 % -------------------------------------------------------------------------

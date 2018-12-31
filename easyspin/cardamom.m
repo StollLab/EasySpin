@@ -190,6 +190,10 @@
 %                    0: no removal (e.g. if protein is fixed)
 % 
 %     LabelName      name of spin label, 'R1' (default) or 'TOAC'
+%
+%     nTrials        integer
+%                    number of initialization trials for k-means
+%                    clustering; used for the Markov method
 % 
 %   Output:
 %     B              numeric, size = (2*nSteps,1) 
@@ -384,6 +388,11 @@ if useMD
     % Set up initial cluster centroids if wanted
     if MD.isSeeded
       
+      if ~isfield(MD,'nTrials')
+        logmsg(0,'-- K-means clustering initialization is seeded, so resetting MD.nTrials = 1.');
+        MD.nTrials = 1;
+      end
+      
       switch LabelName
         case 'R1'
           % Empirically determined values for polyala
@@ -406,13 +415,15 @@ if useMD
             chiStart(:,k) = reshape(chi{k}(idx{k}),[],1);
           end
           
-          nRepeats = 1;
+          MD.nTrials = 1;
         case 'TOAC'
           error('TOAC dihedrals cannot be seeded.');
       end
       
     else
-      nRepeats = 10;
+      if ~isfield(MD,'nTrials')
+        MD.nTrials = 10;
+      end
       chiStart = [];
     end
     
@@ -422,7 +433,7 @@ if useMD
     
     % Perform k-means clustering
     [MD.stateTraj, mu0, Sigma0] = ...
-      initializeHMM(MD.dihedrals, chiStart, MD.nStates, nRepeats, Opt.Verbosity);
+      initializehmm(MD.dihedrals, chiStart, MD.nStates, MD.nTrials, Opt.Verbosity);
     
     if ~isfield(MD,'tLag')
       MD.tLag = (100:50:800)*1e-12; % seconds
@@ -446,10 +457,9 @@ if useMD
     % Reorder (nSteps,nDims,nTraj) to (nDims,nSteps,nTraj), for EM function
     dihedrals = permute(dihedrals,[2,1,3]);
     
-    % Deterime/estimate HMM model parameters using expectation maximization
+    % Determine/estimate HMM model parameters using expectation maximization
     [~,eqdistr1,transmat1,mu1,Sigma1,~] = ...
-      cardamom_emghmm(dihedrals,eqdistr0,transmat0,mu0,Sigma0,[],...
-      'max_iter',100,'verbose',Opt.Verbosity);
+      cardamom_emghmm(dihedrals,eqdistr0,transmat0,mu0,Sigma0,[],Opt.Verbosity);
     
     % Determines most probable hidden-state trajectory
     stateTraj = zeros(size(dihedrals,2),size(dihedrals,3));
@@ -1212,7 +1222,7 @@ end
 
 
 
-function [stateTraj,mu0,Sigma0] = initializeHMM(dihedrals,chiStart,nStates,nRepeats,verbosity)
+function [stateTraj,mu0,Sigma0] = initializehmm(dihedrals,chiStart,nStates,nRepeats,verbosity)
 
 [nSteps,nDims,nTraj] = size(dihedrals);
 

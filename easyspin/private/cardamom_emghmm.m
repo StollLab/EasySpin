@@ -1,5 +1,5 @@
-function [LL, prior, transmat, mu, Sigma, mixmat] = ...
-     cardamom_emghmm(data, prior, transmat, mu, Sigma, mixmat, varargin)
+function [logLikIter, eqDistr, transmat, mu, Sigma, mixmat] = ...
+     cardamom_emghmm(data, eqDistr, transmat, mu, Sigma, mixmat, verbose)
 % LEARN_MHMM Compute the ML parameters of an HMM with (mixtures of) Gaussians output using EM.
 % [ll_trace, prior, transmat, mu, sigma, mixmat] = learn_mhmm(data, ...
 %   prior0, transmat0, mu0, sigma0, mixmat0, ...) 
@@ -20,82 +20,73 @@ function [LL, prior, transmat, mu, Sigma, mixmat] = ...
 % 'max_iter' - max number of EM iterations [10]
 % 'thresh' - convergence threshold [1e-4]
 % 'verbose' - if 1, print out loglik at every iteration [1]
-% 'cov_type' - 'full', 'diag' or 'spherical' ['full']
-%
-% To clamp some of the parameters, so learning does not change them:
-% 'adj_prior' - if 0, do not change prior [1]
-% 'adj_trans' - if 0, do not change transmat [1]
-% 'adj_mix' - if 0, do not change mixmat [1]
-% 'adj_mu' - if 0, do not change mu [1]
-% 'adj_Sigma' - if 0, do not change Sigma [1]
-%
-% If the number of mixture components differs depending on Q, just set  the trailing
-% entries of mixmat to 0, e.g., 2 components if Q=1, 3 components if Q=2,
-% then set mixmat(1,3)=0. In this case, B2(1,3,:)=1.0.
 
-if ~isempty(varargin) && ~ischar(varargin{1}) % catch old syntax
-  error('optional arguments should be passed as string/value pairs')
-end
-
-[max_iter, thresh, verbose, cov_type,  adj_prior, adj_trans, adj_mix, adj_mu, adj_Sigma] = ...
-    process_options(varargin, 'max_iter', 10, 'thresh', 1e-4, 'verbose', 1, ...
-		    'cov_type', 'full', 'adj_prior', 1, 'adj_trans', 1, 'adj_mix', 1, ...
-		    'adj_mu', 1, 'adj_Sigma', 1);
+iterMax = 100;
+thresh = 1e-4;
+cov_type = 'full';
   
 previous_loglik = -inf;
-loglik = 0;
+logLik = 0;
 converged = 0;
-num_iter = 1;
-LL = [];
+iter = 1;
+logLikIter = [];
 
 if ~iscell(data)
   data = num2cell(data, [1 2]); % each elt of the 3rd dim gets its own cell
 end
-numex = length(data);
 
+nTraj = length(data);
+nSteps = size(data{1},1);
+nStates = length(eqDistr);
 
-O = size(data{1},1);
-Q = length(prior);
-if isempty(mixmat)
-  mixmat = ones(Q,1);
-end
-M = size(mixmat,2);
-if M == 1
-  adj_mix = 0;
-end
-
-while (num_iter <= max_iter) & ~converged
+while (iter <= iterMax) && ~converged
   % E step
-  [loglik, exp_num_trans, exp_num_visits1, postmix, m, ip, op] = ...
-      ess_mhmm(prior, transmat, mixmat, mu, Sigma, data);
-  
-  
-  % M step
-  [transmat, prior, ~] = msmtransitionmatrix(exp_num_trans, 1000);
-%   if adj_prior
-%     prior = normalise(exp_num_visits1);
-%   end
-%   if adj_trans 
-%     transmat = mk_stochastic(exp_num_trans);
-%   end
-%   if adj_mix
-%     mixmat = mk_stochastic(postmix);
-%   end
-  if adj_mu | adj_Sigma
-    [mu2, Sigma2] = mixgauss_Mstep(postmix, m, op, ip, 'cov_type', cov_type);
-    if adj_mu
-      mu = reshape(mu2, [O Q M]);
-    end
-    if adj_Sigma
-      Sigma = reshape(Sigma2, [O O Q M]);
+%   [logLik, transCounts, exp_num_visits1, postmix, m, ip, op] = ...
+%       ess_mhmm(eqDistr, transmat, mu, Sigma, data);
+  transCounts = zeros(nStates,nStates);
+  exp_num_visits1 = zeros(nStates,1);
+  gamma_summed = zeros(nStates,1);
+
+  logLik = 0;
+  for iTraj=1:nTraj
+    obs = data{iTraj};
+    
+    nSteps = size(obs,1);
+    m = zeros(nSteps,nStates,1);
+    op = zeros(nSteps,nSteps,nStates,1);
+    ip = zeros(nStates,1);
+    
+    B = mixgauss_prob(obs, mu, Sigma);
+    fwd_only = false;
+    [alpha, beta, gamma, current_loglik, xi_summed] = fwdback(eqDistr, transmat, B, fwd_only);
+    logLik = logLik +  current_loglik;
+
+    transCounts = transCounts + xi_summed; % sum(xi,3);
+    exp_num_visits1 = exp_num_visits1 + gamma(:,1);
+
+    gamma_summed = gamma_summed + sum(gamma,2);
+    for iState=1:nStates
+      w = gamma(iState,:); % w(t) = w(i,k,t,l)
+      wobs = obs .* repmat(w, [nSteps 1]); % wobs(:,t) = w(t) * obs(:,t)
+      m(:,iState) = m(:,iState) + sum(wobs, 2); % m(:) = sum_t w(t) obs(:,t)
+      op(:,:,iState) = op(:,:,iState) + wobs * obs'; % op(:,:) = sum_t w(t) * obs(:,t) * obs(:,t)'
+      ip(iState,1) = ip(iState,1) + sum(sum(wobs .* obs, 2)); % ip = sum_t w(t) * obs(:,t)' * obs(:,t)
     end
   end
   
-  if verbose, fprintf(1, 'iteration %d, loglik = %f\n', num_iter, loglik); end
-  num_iter =  num_iter + 1;
-  converged = em_converged(loglik, previous_loglik, thresh);
-  previous_loglik = loglik;
-  LL = [LL loglik];
+  
+  % M step
+  [transmat, eqDistr, ~] = msmtransitionmatrix(transCounts, 1000);
+%   prior = normalise(exp_num_visits1);
+%   transmat = mk_stochastic(exp_num_trans);
+  [mu, Sigma] = mixgauss_Mstep(gamma_summed, m, op, ip);
+  
+  % Check convergence
+  if verbose, fprintf(1, 'iteration %d, loglik = %f\n', iter, logLik); end
+  iter =  iter + 1;
+  converged = em_converged(logLik, previous_loglik, thresh);
+  previous_loglik = logLik;
+  logLikIter = [logLikIter logLik];
 end
 
 end
@@ -104,8 +95,8 @@ end
 % Helper functions
 % -------------------------------------------------------------------------
 
-function [loglik, exp_num_trans, exp_num_visits1, postmix, m, ip, op] = ...
-    ess_mhmm(prior, transmat, mixmat, mu, Sigma, data)
+function [loglik, transCounts, exp_num_visits1, postmix, m, ip, op] = ...
+    ess_mhmm(eqDistr, transmat, mu, Sigma, data)
 % ESS_MHMM Compute the Expected Sufficient Statistics for a MOG Hidden Markov Model.
 %
 % Outputs:
@@ -124,63 +115,41 @@ function [loglik, exp_num_trans, exp_num_visits1, postmix, m, ip, op] = ...
 verbose = 0;
 
 %[O T numex] = size(data);
-numex = length(data);
-O = size(data{1},1);
-Q = length(prior);
-M = size(mixmat,2);
-exp_num_trans = zeros(Q,Q);
-exp_num_visits1 = zeros(Q,1);
-postmix = zeros(Q,M);
-m = zeros(O,Q,M);
-op = zeros(O,O,Q,M);
-ip = zeros(Q,M);
-
-mix = (M>1);
+nTraj = length(data);
+nSteps = size(data{1},1);
+nStates = length(eqDistr);
+transCounts = zeros(nStates,nStates);
+exp_num_visits1 = zeros(nStates,1);
+postmix = zeros(nStates,1);
+m = zeros(nSteps,nStates,1);
+op = zeros(nSteps,nSteps,nStates,1);
+ip = zeros(nStates,1);
 
 loglik = 0;
-if verbose, fprintf(1, 'forwards-backwards example # '); end
-for ex=1:numex
-  if verbose, fprintf(1, '%d ', ex); end
-  %obs = data(:,:,ex);
-  obs = data{ex};
-  T = size(obs,2);
-  if mix
-    [B, B2] = mixgauss_prob(obs, mu, Sigma, mixmat);
-    [alpha, beta, gamma,  current_loglik, xi_summed, gamma2] = ...
-	fwdback(prior, transmat, B, 'obslik2', B2, 'mixmat', mixmat);
-  else
-    B = mixgauss_prob(obs, mu, Sigma);
-%     [alpha, beta, gamma,  current_loglik, xi_summed] = fwdback(prior, transmat, B);
-    [alpha, beta, gamma,  current_loglik, xi_summed] = fwdback(prior, transmat, B, 'fwd_only', 1);
-  end    
-  loglik = loglik +  current_loglik; 
-  if verbose, fprintf(1, 'll at ex %d = %f\n', ex, loglik); end
+for iTraj=1:nTraj
+  obs = data{iTraj};
+  B = mixgauss_prob(obs, mu, Sigma);
+  fwd_only = false;
+  [alpha, beta, gamma, current_loglik, xi_summed] = fwdback(eqDistr, transmat, B, fwd_only);
+  loglik = loglik +  current_loglik;
 
-  exp_num_trans = exp_num_trans + xi_summed; % sum(xi,3);
+  transCounts = transCounts + xi_summed; % sum(xi,3);
   exp_num_visits1 = exp_num_visits1 + gamma(:,1);
   
-  if mix
-    postmix = postmix + sum(gamma2,3);
-  else
-    postmix = postmix + sum(gamma,2); 
-    gamma2 = reshape(gamma, [Q 1 T]); % gamma2(i,m,t) = gamma(i,t)
-  end
-  for i=1:Q
-    for k=1:M
-      w = reshape(gamma2(i,k,:), [1 T]); % w(t) = w(i,k,t,l)
-      wobs = obs .* repmat(w, [O 1]); % wobs(:,t) = w(t) * obs(:,t)
-      m(:,i,k) = m(:,i,k) + sum(wobs, 2); % m(:) = sum_t w(t) obs(:,t)
-      op(:,:,i,k) = op(:,:,i,k) + wobs * obs'; % op(:,:) = sum_t w(t) * obs(:,t) * obs(:,t)'
-      ip(i,k) = ip(i,k) + sum(sum(wobs .* obs, 2)); % ip = sum_t w(t) * obs(:,t)' * obs(:,t)
-    end
+  postmix = postmix + sum(gamma,2);
+  for iState=1:nStates
+    w = gamma(iState,:); % w(t) = w(i,k,t,l)
+    wobs = obs .* repmat(w, [nSteps 1]); % wobs(:,t) = w(t) * obs(:,t)
+    m(:,iState) = m(:,iState) + sum(wobs, 2); % m(:) = sum_t w(t) obs(:,t)
+    op(:,:,iState) = op(:,:,iState) + wobs * obs'; % op(:,:) = sum_t w(t) * obs(:,t) * obs(:,t)'
+    ip(iState,1) = ip(iState,1) + sum(sum(wobs .* obs, 2)); % ip = sum_t w(t) * obs(:,t)' * obs(:,t)
   end
 end
-if verbose, fprintf(1, '\n'); end
 
 end
 
-function [alpha, beta, gamma, loglik, xi_summed, gamma2] = fwdback(init_state_distrib, ...
-   transmat, obslik, varargin)
+function [alpha, beta, gamma, loglik, xi_summed] = fwdback(prior, ...
+   transmat, obslik, fwd_only)
 % FWDBACK Compute the posterior probs. in an HMM using the forwards backwards algo.
 %
 % [alpha, beta, gamma, loglik, xi, gamma2] = fwdback(init_state_distrib, transmat, obslik, ...)
@@ -194,75 +163,27 @@ function [alpha, beta, gamma, loglik, xi_summed, gamma2] = fwdback(init_state_di
 % transmat(i,j) = Pr(Q(t) = j | Q(t-1)=i)
 %  or transmat{a}(i,j) = Pr(Q(t) = j | Q(t-1)=i, A(t-1)=a) if there are discrete inputs
 % obslik(i,t) = Pr(Y(t)| Q(t)=i)
-%   (Compute obslik using eval_pdf_xxx on your data sequence first.)
 %
-% Optional parameters may be passed as 'param_name', param_value pairs.
-% Parameter names are shown below; default values in [] - if none, argument is mandatory.
-%
-% For HMMs with MOG outputs: if you want to compute gamma2, you must specify
-% 'obslik2' - obslik(i,j,t) = Pr(Y(t)| Q(t)=i,M(t)=j)  []
-% 'mixmat' - mixmat(i,j) = Pr(M(t) = j | Q(t)=i)  []
-%  or mixmat{t}(m,q) if not stationary
-%
-% For HMMs with discrete inputs:
-% 'act' - act(t) = action performed at step t
 %
 % Optional arguments:
 % 'fwd_only' - if 1, only do a forwards pass and set beta=[], gamma2=[]  [0]
-% 'scaled' - if 1,  normalize alphas and betas to prevent underflow [1]
-% 'maximize' - if 1, use max-product instead of sum-product [0]
 %
 % OUTPUTS:
 % alpha(i,t) = p(Q(t)=i | y(1:t)) (or p(Q(t)=i, y(1:t)) if scaled=0)
 % beta(i,t) = p(y(t+1:T) | Q(t)=i)*p(y(t+1:T)|y(1:t)) (or p(y(t+1:T) | Q(t)=i) if scaled=0)
 % gamma(i,t) = p(Q(t)=i | y(1:T))
 % loglik = log p(y(1:T))
-% xi(i,j,t-1)  = p(Q(t-1)=i, Q(t)=j | y(1:T))  - NO LONGER COMPUTED
 % xi_summed(i,j) = sum_{t=}^{T-1} xi(i,j,t)  - changed made by Herbert Jaeger
-% gamma2(j,k,t) = p(Q(t)=j, M(t)=k | y(1:T)) (only for MOG  outputs)
 %
 % If fwd_only = 1, these become
 % alpha(i,t) = p(Q(t)=i | y(1:t))
 % beta = []
 % gamma(i,t) = p(Q(t)=i | y(1:t))
 % xi(i,j,t-1)  = p(Q(t-1)=i, Q(t)=j | y(1:t))
-% gamma2 = []
-%
-% Note: we only compute xi if it is requested as a return argument, since it can be very large.
-% Similarly, we only compute gamma2 on request (and if using MOG outputs).
-%
-% Examples:
-%
-% [alpha, beta, gamma, loglik] = fwdback(pi, A, multinomial_prob(sequence, B));
-%
-% [B, B2] = mixgauss_prob(data, mu, Sigma, mixmat);
-% [alpha, beta, gamma, loglik, xi, gamma2] = fwdback(pi, A, B, 'obslik2', B2, 'mixmat', mixmat);
 
-if 0 % nargout >= 5
-  warning('this now returns sum_t xi(i,j,t) not xi(i,j,t)')
-end
+[nStates, nSteps] = size(obslik);
 
-if nargout >= 5, compute_xi = 1; else compute_xi = 0; end
-if nargout >= 6, compute_gamma2 = 1; else compute_gamma2 = 0; end
-
-[obslik2, mixmat, fwd_only, scaled, act, maximize, compute_xi, compute_gamma2] = ...
-   process_options(varargin, ...
-       'obslik2', [], 'mixmat', [], ...
-       'fwd_only', 0, 'scaled', 1, 'act', [], 'maximize', 0, ...
-                   'compute_xi', compute_xi, 'compute_gamma2', compute_gamma2);
-
-[Q T] = size(obslik);
-
-if isempty(obslik2)
- compute_gamma2 = 0;
-end
-
-if isempty(act)
- act = ones(1,T);
- transmat = { transmat } ;
-end
-
-scale = ones(1,T);
+scale = ones(1,nSteps);
 
 % scale(t) = Pr(O(t) | O(1:t-1)) = 1/c(t) as defined by Rabiner (1989).
 % Hence prod_t scale(t) = Pr(O(1)) Pr(O(2)|O(1)) Pr(O(3) | O(1:2)) ... = Pr(O(1), ... ,O(T))
@@ -272,115 +193,46 @@ scale = ones(1,T);
 
 loglik = 0;
 
-alpha = zeros(Q,T);
-gamma = zeros(Q,T);
-if compute_xi
- xi_summed = zeros(Q,Q);
-else
- xi_summed = [];
-end
+alpha = zeros(nStates,nSteps);
+gamma = zeros(nStates,nSteps);
+xi_summed = zeros(nStates,nStates);
 
 %%%%%%%%% Forwards %%%%%%%%%%
 
-t = 1;
-alpha(:,1) = init_state_distrib(:) .* obslik(:,t);
-if scaled
- [alpha(:,t), scale(t)] = normalise(alpha(:,t));
+[alpha(:,1), scale(1)] = normalise(prior(:) .* obslik(:,1));
+
+for iStep=2:nSteps
+ [alpha(:,iStep), scale(iStep)] = normalise(transmat' * alpha(:,iStep-1) .* obslik(:,iStep));
+ if fwd_only  % useful for online EM
+   xi_summed = xi_summed + normalise((alpha(:,iStep-1) * obslik(:,iStep)') .* transmat);
+ end
 end
 
-for t=2:T
- trans = transmat{act(t-1)};
- if maximize
-   m = max_mult(trans', alpha(:,t-1));
- else
-   m = trans' * alpha(:,t-1);
- end
- alpha(:,t) = m(:) .* obslik(:,t);
- if scaled
-   [alpha(:,t), scale(t)] = normalise(alpha(:,t));
- end
- if compute_xi & fwd_only  % useful for online EM
-   xi_summed = xi_summed + normalise((alpha(:,t-1) * obslik(:,t)') .* trans);
- end
- %assert(approxeq(sum(alpha(:,t)),1))
-end
-if scaled
- if any(scale==0)
-   loglik = -inf;
- else
-   loglik = sum(log(scale));
- end
+if any(scale==0)
+ loglik = -inf;
 else
- loglik = log(sum(alpha(:,T)));
+ loglik = sum(log(scale));
 end
 
 if fwd_only
  gamma = alpha;
  beta = [];
- gamma2 = [];
  return;
 end
 
 %%%%%%%%% Backwards %%%%%%%%%%
 
-beta = zeros(Q,T);
-if compute_gamma2
-  if iscell(mixmat)
-    M = size(mixmat{1},2);
-  else
-    M = size(mixmat, 2);
-  end
- gamma2 = zeros(Q,M,T);
-else
- gamma2 = [];
-end
+beta = zeros(nStates,nSteps);
 
-beta(:,T) = ones(Q,1);
-gamma(:,T) = normalise(alpha(:,T) .* beta(:,T));
-t=T;
-if compute_gamma2
- denom = obslik(:,t) + (obslik(:,t)==0); % replace 0s with 1s before dividing
- if iscell(mixmat)
-   gamma2(:,:,t) = obslik2(:,:,t) .* mixmat{t} .* repmat(gamma(:,t), [1 M]) ./ repmat(denom, [1 M]);
- else
-   gamma2(:,:,t) = obslik2(:,:,t) .* mixmat .* repmat(gamma(:,t), [1 M]) ./ repmat(denom, [1 M]);
- end
-end
+beta(:,end) = ones(nStates,1);
+gamma(:,end) = normalise(alpha(:,end) .* beta(:,end));
 
-for t=T-1:-1:1
- b = beta(:,t+1) .* obslik(:,t+1);
- trans = transmat{act(t)};
- if maximize
-   B = repmat(b(:)', Q, 1);
-   beta(:,t) = max(trans .* B, [], 2);
- else
-   beta(:,t) = trans * b;
- end
- if scaled
-   beta(:,t) = normalise(beta(:,t));
- end
- gamma(:,t) = normalise(alpha(:,t) .* beta(:,t));
- if compute_xi
-   xi_summed = xi_summed + normalise((trans .* (alpha(:,t) * b')));
- end
- if compute_gamma2
-   denom = obslik(:,t) + (obslik(:,t)==0); % replace 0s with 1s before dividing
-   if iscell(mixmat)
-     gamma2(:,:,t) = obslik2(:,:,t) .* mixmat{t} .* repmat(gamma(:,t), [1 M]) ./ repmat(denom,  [1 M]);
-   else
-     gamma2(:,:,t) = obslik2(:,:,t) .* mixmat .* repmat(gamma(:,t), [1 M]) ./ repmat(denom,  [1 M]);
-   end
- end
+for iStep=nSteps-1:-1:1
+ b = beta(:,iStep+1) .* obslik(:,iStep+1);
+ beta(:,iStep) = normalise(transmat * b);
+ gamma(:,iStep) = normalise(alpha(:,iStep) .* beta(:,iStep));
+ xi_summed = xi_summed + normalise((transmat .* (alpha(:,iStep) * b')));
 end
-
-% We now explain the equation for gamma2
-% Let zt=y(1:t-1,t+1:T) be all observations except y(t)
-% gamma2(Q,M,t) = P(Qt,Mt|yt,zt) = P(yt|Qt,Mt,zt) P(Qt,Mt|zt) / P(yt|zt)
-%                = P(yt|Qt,Mt) P(Mt|Qt) P(Qt|zt) / P(yt|zt)
-% Now gamma(Q,t) = P(Qt|yt,zt) = P(yt|Qt) P(Qt|zt) / P(yt|zt)
-% hence
-% P(Qt,Mt|yt,zt) = P(yt|Qt,Mt) P(Mt|Qt) [P(Qt|yt,zt) P(yt|zt) / P(yt|Qt)] / P(yt|zt)
-%                = P(yt|Qt,Mt) P(Mt|Qt) P(Qt|yt,zt) / P(yt|Qt)
 
 end
 
@@ -445,86 +297,35 @@ function [mu, Sigma] = mixgauss_Mstep(w, Y, YY, YTY, varargin)
 % If covariance is tied, Sigma has size d*d.
 % But diagonal and spherical covariances are represented in full size.
 
-[cov_type, tied_cov,  clamped_cov, clamped_mean, cov_prior, other] = ...
-    process_options(varargin,...
-		    'cov_type', 'full', 'tied_cov', 0,  'clamped_cov', [], 'clamped_mean', [], ...
-		    'cov_prior', []);
-
-[Ysz Q] = size(Y);
+[nDims, nStates] = size(Y);
 N = sum(w);
-if isempty(cov_prior)
-  %cov_prior = zeros(Ysz, Ysz, Q);
-  %for q=1:Q
-  %  cov_prior(:,:,q) = 0.01*cov(Y(:,q)');
-  %end
-  cov_prior = repmat(0.01*eye(Ysz,Ysz), [1 1 Q]);
-end
+cov_prior = repmat(0.01*eye(nDims,nDims), [1 1 nStates]);
 %YY = reshape(YY, [Ysz Ysz Q]) + cov_prior; % regularize the scatter matrix
-YY = reshape(YY, [Ysz Ysz Q]);
+YY = reshape(YY, [nDims nDims nStates]);
 
 % Set any zero weights to one before dividing
 % This is valid because w(i)=0 => Y(:,i)=0, etc
 w = w + (w==0);
 		    
-if ~isempty(clamped_mean)
-  mu = clamped_mean;
-else
-  % eqn 6
-  %mu = Y ./ repmat(w(:)', [Ysz 1]);% Y may have a funny size
-  mu = zeros(Ysz, Q);
-  for i=1:Q
-    mu(:,i) = Y(:,i) / w(i);
-  end
+% eqn 6
+%mu = Y ./ repmat(w(:)', [Ysz 1]);% Y may have a funny size
+mu = zeros(nDims, nStates);
+for i=1:nStates
+  mu(:,i) = Y(:,i) / w(i);
 end
 
-if ~isempty(clamped_cov)
-  Sigma = clamped_cov;
-  return;
+Sigma = zeros(nDims,nDims,nStates);
+for i=1:nStates
+  % eqn 12
+  SS = YY(:,:,i)/w(i)  - mu(:,i)*mu(:,i)';
+  Sigma(:,:,i) = SS;
 end
 
-if ~tied_cov
-  Sigma = zeros(Ysz,Ysz,Q);
-  for i=1:Q
-    if cov_type(1) == 's'
-      % eqn 17
-      s2 = (1/Ysz)*( (YTY(i)/w(i)) - mu(:,i)'*mu(:,i) );
-      Sigma(:,:,i) = s2 * eye(Ysz);
-    else
-      % eqn 12
-      SS = YY(:,:,i)/w(i)  - mu(:,i)*mu(:,i)';
-      if cov_type(1)=='d'
-	SS = diag(diag(SS));
-      end
-      Sigma(:,:,i) = SS;
-    end
-  end
-else % tied cov
-  if cov_type(1) == 's'
-    % eqn 19
-    s2 = (1/(N*Ysz))*(sum(YTY,2) + sum(diag(mu'*mu) .* w));
-    Sigma = s2*eye(Ysz);
-  else
-    SS = zeros(Ysz, Ysz);
-    % eqn 15
-    for i=1:Q % probably could vectorize this...
-      SS = SS + YY(:,:,i)/N - mu(:,i)*mu(:,i)';
-    end
-    if cov_type(1) == 'd'
-      Sigma = diag(diag(SS));
-    else
-      Sigma = SS;
-    end
-  end
-end
-
-if tied_cov
-  Sigma =  repmat(Sigma, [1 1 Q]);
-end
 Sigma = Sigma + cov_prior;
 
 end
 
-function [B, B2] = mixgauss_prob(data, mu, Sigma, mixmat, unit_norm)
+function B = mixgauss_prob(data, mu, Sigma)
 % EVAL_PDF_COND_MOG Evaluate the pdf of a conditional mixture of Gaussians
 % function [B, B2] = eval_pdf_cond_mog(data, mu, Sigma, mixmat, unit_norm)
 %
@@ -544,148 +345,40 @@ function [B, B2] = mixgauss_prob(data, mu, Sigma, mixmat, unit_norm)
 %   Sigma(:,:) diag or full, tied params independent of M,Q. 
 %   Sigma(:,:,j) tied params independent of M. 
 %
-% mixmat(k) = Pr(M(t)=k) = prior
-% or mixmat(j,k) = Pr(M(t)=k | Q(t)=j) 
-% Not needed if M is not defined.
-%
-% unit_norm - optional; if 1, means data(:,i) AND mu(:,i) each have unit norm (slightly faster)
 %
 % OUTPUT:
-% B(t) = Pr(y(t)) 
-% or
-% B(i,t) = Pr(y(t) | Q(t)=i) 
-% B2(i,k,t) = Pr(y(t) | Q(t)=i, M(t)=k) 
-%
-% If the number of mixture components differs depending on Q, just set the trailing
-% entries of mixmat to 0, e.g., 2 components if Q=1, 3 components if Q=2,
-% then set mixmat(1,3)=0. In this case, B2(1,3,:)=1.0.
+% B(i,t) = Pr(y(t) | iState(t)=i) 
 
 
-
-
-if isvector(mu) & size(mu,2)==1
-  d = length(mu);
-  Q = 1; M = 1;
-elseif ndims(mu)==2
-  [d Q] = size(mu);
-  M = 1;
-else
-  [d Q M] = size(mu);
-end
-[d T] = size(data);
-
-if nargin < 4, mixmat = ones(Q,1); end
-if nargin < 5, unit_norm = 0; end
-
-%B2 = zeros(Q,M,T); % ATB: not needed allways
-%B = zeros(Q,T);
-
-if isscalar(Sigma)
-  mu = reshape(mu, [d Q*M]);
-  if unit_norm % (p-q)'(p-q) = p'p + q'q - 2p'q = n+m -2p'q since p(:,i)'p(:,i)=1
-    %avoid an expensive repmat
-    disp('unit norm')
-    %tic; D = 2 -2*(data'*mu)'; toc 
-    D = 2 - 2*(mu'*data);
-    tic; D2 = sqdist(data, mu)'; toc
-    assert(approxeq(D,D2)) 
-  else
-    D = sqdist(data, mu)';
-  end
-  clear mu data % ATB: clear big old data
-  % D(qm,t) = sq dist between data(:,t) and mu(:,qm)
-  logB2 = -(d/2)*log(2*pi*Sigma) - (1/(2*Sigma))*D; % det(sigma*I) = sigma^d
-  B2 = reshape(exp(logB2), [Q M T]);
-  clear logB2 % ATB: clear big old data
+nStates = size(mu,2);
+[nDims, nSteps] = size(data);
   
-elseif ndims(Sigma)==2 % tied full
-  mu = reshape(mu, [d Q*M]);
-  D = sqdist(data, mu, inv(Sigma))';
-  % D(qm,t) = sq dist between data(:,t) and mu(:,qm)
-  logB2 = -(d/2)*log(2*pi) - 0.5*logdet(Sigma) - 0.5*D;
-  %denom = sqrt(det(2*pi*Sigma));
-  %numer = exp(-0.5 * D);
-  %B2 = numer/denom;
-  B2 = reshape(exp(logB2), [Q M T]);
+B = zeros(nStates,nSteps);
+% for iState=1:nStates
+%   % D(m,t) = sq dist between data(:,t) and mu(:,j,m)
+%   if ~isposdef(Sigma(:,:,iState))
+%     Sigma(:,:,iState) = Sigma(:,:,iState) + 1e-3*eye(size(Sigma,1));
+%   end
+%   if isposdef(Sigma(:,:,iState))
+%     D = sqdist(data, permute(mu(:,iState,:), [1 3 2]), inv(Sigma(:,:,iState)))';
+%     logB2 = -(nDims/2)*log(2*pi) - 0.5*logdet(Sigma(:,:,iState)) - 0.5*D;
+% %       logB2 = -(d/2)*log(2*pi) - 0.5*log(det(Sigma(:,:,j))) - 0.5*D;
+%     B(iState,:) = exp(logB2);
+%   else
+%     error('mixgauss_prob: Sigma(:,:,q=%d) not psd\n', iState);
+%   end
+% end
   
-elseif ndims(Sigma)==3 % tied across M
-  B2 = zeros(Q,M,T);
-  for j=1:Q
-    % D(m,t) = sq dist between data(:,t) and mu(:,j,m)
-    if ~isposdef(Sigma(:,:,j))
-      Sigma(:,:,j) = Sigma(:,:,j) + 1e-3*eye(size(Sigma,1));
-    end
-    if isposdef(Sigma(:,:,j))
-      D = sqdist(data, permute(mu(:,j,:), [1 3 2]), inv(Sigma(:,:,j)))';
-      logB2 = -(d/2)*log(2*pi) - 0.5*logdet(Sigma(:,:,j)) - 0.5*D;
-%       logB2 = -(d/2)*log(2*pi) - 0.5*log(det(Sigma(:,:,j))) - 0.5*D;
-      B2(j,:,:) = exp(logB2);
-    else
-      error('mixgauss_prob: Sigma(:,:,q=%d) not psd\n', j);
-    end
+% else % general case
+%   B = zeros(nStates,nSteps);
+  for iState=1:nStates
+    B(iState,:) = gaussian_prob(data, mu(:,iState), Sigma(:,:,iState));
   end
-  
-else % general case
-  B2 = zeros(Q,M,T);
-  for j=1:Q
-    for k=1:M
-      %if mixmat(j,k) > 0
-      B2(j,k,:) = gaussian_prob(data, mu(:,j,k), Sigma(:,:,j,k));
-      %end
-    end
-  end
-end
-
-% B(j,t) = sum_k B2(j,k,t) * Pr(M(t)=k | Q(t)=j) 
-
-% The repmat is actually slower than the for-loop, because it uses too much memory
-% (this is true even for small T).
-
-%B = squeeze(sum(B2 .* repmat(mixmat, [1 1 T]), 2));
-%B = reshape(B, [Q T]); % undo effect of squeeze in case Q = 1
-  
-B = zeros(Q,T);
-if Q < T
-  for q=1:Q
-    %B(q,:) = mixmat(q,:) * squeeze(B2(q,:,:)); % squeeze chnages order if M=1
-    B(q,:) = mixmat(q,:) * permute(B2(q,:,:), [2 3 1]); % vector * matrix sums over m
-  end
-else
-  for t=1:T
-    B(:,t) = sum(mixmat .* B2(:,:,t), 2); % sum over m
-  end
-end
-%t=toc;fprintf('%5.3f\n', t)
-
-%tic
-%A = squeeze(sum(B2 .* repmat(mixmat, [1 1 T]), 2));
-%t=toc;fprintf('%5.3f\n', t)
-%assert(approxeq(A,B)) % may be false because of round off error
+% end
 
 end
 
-function p = approxeq(a, b, tol, rel)
-% APPROXEQ Are a and b approximately equal (to within a specified tolerance)?
-% p = approxeq(a, b, thresh)
-% 'tol' defaults to 1e-3.
-% p(i) = 1 iff abs(a(i) - b(i)) < thresh
-%
-% p = approxeq(a, b, thresh, 1)
-% p(i) = 1 iff abs(a(i)-b(i))/abs(a(i)) < thresh
 
-if nargin < 3, tol = 1e-2; end
-if nargin < 4, rel = 0; end
-
-a = a(:);
-b = b(:);
-d = abs(a-b);
-if rel
-  p = ~any( (d ./ (abs(a)+eps)) > tol);
-else
-  p = ~any(d > tol);
-end
-
-end
 
 function [converged, decrease] = em_converged(loglik, previous_loglik, threshold, check_increased)
 % EM_CONVERGED Has EM converged?

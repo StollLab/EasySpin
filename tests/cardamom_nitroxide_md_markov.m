@@ -20,6 +20,7 @@ MD.TrajUsage = 'Markov';
 
 MD.tLag = 200e-12;
 MD.nStates = 20;
+MD.nTrials = 2;
 
 % Calculate spectrum using cardamom
 % -------------------------------------------------------------------------
@@ -42,7 +43,7 @@ Par.Model = 'MD';
 
 Exp.mwFreq = 9.4;
 
-Opt.Verbosity = 0;
+Opt.Verbosity = 1;
 Opt.FFTWindow = 1;
 Opt.Method = 'Nitroxide';
 
