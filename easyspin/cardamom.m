@@ -375,14 +375,11 @@ if useMD
       MD.isSeeded = false;
     end
     
-    switch MD.LabelName
-      case 'R1'
-
-        % Remove chi3, as its dynamics are very slow on the typical MD timescale
-        if MD.removeChi3 && size(MD.dihedrals,1)==5
-          MD.dihedrals(3,:,:) = [];
-        end
-        
+    if strcmp(MD.LabelName,'R1')
+      % Remove chi3, as its dynamics are very slow on the typical MD timescale
+      if MD.removeChi3 && size(MD.dihedrals,1)==5
+        MD.dihedrals(3,:,:) = [];
+      end
     end
     
     % Set up initial cluster centroids if wanted
@@ -402,7 +399,10 @@ if useMD
           % Theoretical values
           chi = {[-60,60,180],[-60,60,180],[-90,90],[-60,60,180],[-90,90]};
           
-          if removeChi3, chi(3) = []; end
+          % Remove chi3 if it is absent from the dihedrals trajectories
+          if size(MD.dihedrals,1)==4
+            chi(3) = [];
+          end
           
           % Convert from degrees to radians
           chi = cellfun(@(x)x*pi/180,chi);
@@ -431,68 +431,83 @@ if useMD
     % for input to clustering function.
     MD.dihedrals = permute(MD.dihedrals,[3,1,2]);
     
-    % Perform k-means clustering
+    logmsg(1,'  data: %d dihedrals; %d steps; %d trajectories',...
+      size(MD.dihedrals,2),size(MD.dihedrals,1),size(MD.dihedrals,3));
+    
+    % Perform k-means clustering, return centroids mu0 and spreads Sigma0
+    logmsg(1,'  k-means clustering into %d clusters (%d repeats)',MD.nStates,MD.nTrials);
     [MD.stateTraj, mu0, Sigma0] = ...
       initializehmm(MD.dihedrals, chiStart, MD.nStates, MD.nTrials, Opt.Verbosity);
+    
+    logmsg(1,'  MSM parameter estimation for 100ps lagtime');
+    % Downsample dihedrals trajectory to a lag time of 100 ps, where it is
+    % expected to be Markovian
+    nLagEM = ceil(100e-12/MD.dt);
+    dihedrals = MD.dihedrals(1:nLagEM:end,:,:);
+    stateTraj = MD.stateTraj(1:nLagEM:end,:);
+    
+    % Estimate transition probability matrix and initial distribution
+    [transmat0,eqdistr0] = estimatemarkovparameters(stateTraj);
+    
+    % Reorder (nSteps,nDims,nTraj) to (nDims,nSteps,nTraj), for EM function
+    dihedrals = permute(dihedrals,[2,1,3]);
+    
+    logmsg(1,'  HMM parameter estimation');
+    % Determine/estimate HMM model parameters using expectation maximization
+    [~,eqdistr1,transmat1,mu1,Sigma1,~] = ...
+      cardamom_emghmm(dihedrals,eqdistr0,transmat0,mu0,Sigma0,[],Opt.Verbosity);
+    
+
+    logmsg(1,'  Viterbi state trajectory calculation');
+    % Determine most probable hidden-state trajectory
+    nTraj = size(dihedrals,3);
+    stateTraj = zeros(size(dihedrals,2),nTraj);
+    for iTraj = 1:nTraj
+      [obslikelyhood, ~] = mixgauss_prob(dihedrals(:,:,iTraj), mu1, Sigma1);
+      stateTraj(:,iTraj) = viterbi_path(eqdistr1, transmat1, obslikelyhood).';
+    end
     
     if ~isfield(MD,'tLag')
       MD.tLag = (100:50:800)*1e-12; % seconds
     end
     if rem(MD.tLag,100e-12)~=0
-      error('MD.tLag must be an integer multiple of 100e-12.');
+      error('MD.tLag must be an integer multiple of 100e-12 (i.e. 100 ps).');
     end
+    
     tLag = MD.tLag;
     ntLag = numel(tLag);
-    tauMarkov = cell(ntLag,1);
-    
-    % Use lag time to sample the trajectory of dihedral angles such that
-    % that the result is Markovian
-    nLagEM = ceil(100e-12/MD.dt);
-    dihedrals = MD.dihedrals(1:nLagEM:end,:,:);
-    
-    % Estimate transition probability matrix and stationary distribution
-    stateTraj = MD.stateTraj(1:nLagEM:end,:);
-    [transmat0, eqdistr0] = countTransitions(stateTraj, MD.nStates);
-    
-    % Reorder (nSteps,nDims,nTraj) to (nDims,nSteps,nTraj), for EM function
-    dihedrals = permute(dihedrals,[2,1,3]);
-    
-    % Determine/estimate HMM model parameters using expectation maximization
-    [~,eqdistr1,transmat1,mu1,Sigma1,~] = ...
-      cardamom_emghmm(dihedrals,eqdistr0,transmat0,mu0,Sigma0,[],Opt.Verbosity);
-    
-    % Determines most probable hidden-state trajectory
-    stateTraj = zeros(size(dihedrals,2),size(dihedrals,3));
-    for iTraj = 1:size(dihedrals,3)
-      [obslik, ~] = mixgauss_prob(dihedrals(:,:,iTraj), mu1, Sigma1);
-      stateTraj(:,iTraj) = viterbi_path(eqdistr1, transmat1, obslik).';
-    end
-    
+    logmsg(1,'  Loop over %d lag times',ntLag);
+    %tauMarkov = cell(ntLag,1);
     for itLag = 1:ntLag
-      nLagLoop = ceil(tLag(itLag)/100e-12);  % multiples of 100e-12
-      [transmat1, eqdistr1] = countTransitions(stateTraj(1:nLagLoop:end,:), size(transmat1,1));
-
-      MD.stateTraj = stateTraj(1:nLagLoop:end,:).';
+      nLag_ = ceil(tLag(itLag)/100e-12);  % multiples of 100e-12
+      [transmat1, eqdistr1] = estimatemarkovparameters(stateTraj(1:nLag_:end,:));
+      
+      MD.stateTraj = stateTraj(1:nLag_:end,:).';
       MD.nStates = size(transmat1,1);
-
+      
+      % Calculate relaxation times via eigenvalues of trans.prob. matrix
+      % (largest eigenvalue should be 1)
+      %{
       lambda = eig(transmat1);
       lambda = sort(real(lambda),1,'descend');
       lambda = lambda(lambda>0);
       tauMarkov{itLag} = -tLag(itLag)./log(lambda(2:end).');
+      %}
     end
     
     nLag = ceil(tLag(itLag)/MD.dt);
     
-    MD.dihedrals = dihedrals(:,1:nLagLoop:end,:);
-
+    MD.dihedrals = dihedrals(:,1:nLag_:end,:);
+    
     % Set the Markov chain time step based on the (scaled) sampling lag time
     Par.dt = tScale*tLag(itLag);
+    logmsg(1,'  ---- HMM done ---');
     
   end
-
+  
   MD.dt = tScale*MD.dt;
   
-  % Estimate rotational diffusion time scale
+  % Estimate rotational diffusion time constant (used in the density propagation)
   FrameAcorr = squeeze(autocorrfft(squeeze(MD.FrameTraj.^2), 3, 1, 1, 1));
   N = round(MD.nSteps/2);
   time = linspace(0, N*MD.dt, N);
@@ -500,6 +515,7 @@ if useMD
   tauR = mean(tauR);
   DiffLocal = 1/6/tauR;
   MD.tauR = tauR;
+  
 
 end
 
@@ -893,8 +909,6 @@ logmsg(1,'-- Method: %s -----------------------------------------', Opt.Method);
 % Run simulation
 % -------------------------------------------------------------------------
 
-clear cardamom_propagatedm
-
 converged = 0;
 iter = 1;
 spcArray = [];
@@ -1251,10 +1265,36 @@ stateTraj = reshape(stateTraj,[nSteps,nTraj]);
 
 end
 
-function [transmat0, eqdistr0] = countTransitions(stateTraj, nStates)
+% Estimate transition probability matrix and initial probability distribution
+% from a set of state trajectories.
+% Input:
+%    stateTraj  array (nSteps,nTraj) of state indices (1..nStates)
+% Output:
+%    tpmat      transition probability matrix (nStates,nStates)
+%    distr      initial probability density (nStates,1)
+function [tpmat,distr] = estimatemarkovparameters(stateTraj)
 
-c = msmcountmatrix(stateTraj, 1, nStates);
-[transmat0, eqdistr0, ~] = msmtransitionmatrix(c);
+% Determine count matrix N
+%-------------------------------------------------------------------------------
+% N(i,j) = number of times X(t)==i and X(t+tau)==j along all the trajectories
+nStates = max(max(stateTraj));
+N = sparse(nStates,nStates);
+
+% Time step for which to determine the count matrix
+tau = 1;
+
+% Calculate (and accumulate) count matrix N
+nTraj = size(stateTraj,2);
+for iTraj = 1:nTraj
+  state1 = stateTraj(1:end-tau,iTraj);
+  state2 = stateTraj(1+tau:end,iTraj);
+  N = N + sparse(state1,state2,1,nStates,nStates);
+end
+N = full(N);
+
+% Calculate transition probability matrix and initial distribution
+%-------------------------------------------------------------------------------
+[tpmat,distr] = msmtransitionmatrix(N);
 
 end
 
@@ -1693,89 +1733,13 @@ end
 end
 
 
-function c = msmcountmatrix(indexOfCluster, tau, nstate)
-% msmcountmatrix
-% calculate transition count matrix from a set of binned trajectory data
-%
-% Syntax
-%# c = msmcountmatrix(indexOfCluster);
-%# c = msmcountmatrix(indexOfCluster, tau);
-%# c = msmcountmatrix(indexOfCluster, tau, nstate);
-%# c = msmcountmatrix(indexOfCluster, [], nstate);
-%
-% Description
-% calculate count matrix of transition from state i to state j during time step tau
-%
-% Adapted from Yasuhiro Matsunaga's mdtoolbox
-% 
-
-% setup
-if ~iscell(indexOfCluster)
-  indexOfCluster_noncell = indexOfCluster;
-  clear indexOfCluster;
-  indexOfCluster{1} = indexOfCluster_noncell;
-  clear indexOfCluster_noncell;
-end
-ntrj = numel(indexOfCluster);
-
-if ~exist('nstate', 'var') || isempty(nstate)
-  nstate = max(cellfun(@(x) max(x), indexOfCluster));
-  disp(sprintf('Message: nstate = %d is used.', nstate));
-end
-
-if ~exist('tau', 'var') || isempty(tau)
-  tau = 1;
-  disp('Message: tau = 1 is used.');
-end
-
-% count transitions
-c = sparse(nstate, nstate);
-
-for itrj = 1:ntrj
-  nframe = numel(indexOfCluster{itrj});
-
-  index_from = 1:(nframe-tau);
-  index_to   = (1+tau):nframe;
-  indexOfCluster_from = indexOfCluster{itrj}(index_from);
-  indexOfCluster_to   = indexOfCluster{itrj}(index_to);
-
-  % ignore invalid indices
-  nframe = numel(indexOfCluster_from);
-  s = ones(nframe, 1);
-
-  id = (indexOfCluster_from <= 0);
-  s(id) = 0;
-  indexOfCluster_from(id) = 1;
-
-  id = (indexOfCluster_to   <= 0);
-  s(id) = 0;
-  indexOfCluster_to(id)   = 1;
-
-  id = isnan(indexOfCluster_from);
-  s(id) = 0;
-  indexOfCluster_from(id) = 1;
-
-  id = isnan(indexOfCluster_to);
-  s(id) = 0;
-  indexOfCluster_to(id)   = 1;
-
-  % calc count matrix
-  % count transitions and make count matrix C_ij by using a sparse
-  % matrix
-  c_itrj = sparse(indexOfCluster_from, indexOfCluster_to, s, nstate, nstate);
-  c = c + c_itrj;
-end
-
-end
-
-
-function [t, pi_i, x] = msmtransitionmatrix(c, maxiteration)
+function [TPM, pi_i, x] = msmtransitionmatrix(N, maxiteration)
 % msmtransitionmatrix
-% estimate transition probability matrix from count matrix
+% estimate transition probability matrix TPM from count matrix N
 %
 % Syntax
-%# [t, pi_i] = msmtransitionmatrix(c);
-%# [t, pi_i] = msmtransitionmatrix(c, maxiteration);
+% [TPM, pi_i] = msmtransitionmatrix(N);
+% [TPM, pi_i] = msmtransitionmatrix(N, maxiteration);
 %
 % Description
 % this routines uses the reversible maximum likelihood estimator
@@ -1783,43 +1747,39 @@ function [t, pi_i, x] = msmtransitionmatrix(c, maxiteration)
 % Adapted from Yasuhiro Matsunaga's mdtoolbox
 % 
 
-% setup
-if issparse(c)
-  c = full(c);
-end
-
-nstate = size(c, 1);
-
-c_sym  = c + c';
-x      = c_sym;
-
-c_i    = sum(c, 2);
-x_i    = sum(x, 2);
-
 if ~exist('maxiteration', 'var')
   maxiteration = 1000;
 end
 
+% setup
+nStates = size(N, 1);
+
+N_sym = N + N.'; % symmetrize count matrix
+x = N_sym;
+
+N_i = sum(N, 2);
+x_i = sum(x, 2);
+
 % optimization by L-BFGS-B
-fcn = @(x) myfunc_column(x, c, c_i, nstate);
+fcn = @(x) myfunc_column(x, N, N_i, nStates);
 opts.x0 = x(:);
 opts.maxIts = maxiteration;
 opts.maxTotalIts = 50000;
 %opts.factr = 1e5;
 %opts.pgtol = 1e-7;
 
-[x, f, info] = cardamom_lbfgsb(fcn, zeros(nstate*nstate, 1), Inf(nstate*nstate, 1), opts);
-x = reshape(x, nstate, nstate);
+[x, f, info] = cardamom_lbfgsb(fcn, zeros(nStates*nStates, 1), Inf(nStates*nStates, 1), opts);
+x = reshape(x,nStates,nStates);
 
-x_i = sum(x, 2);
-t = bsxfun(@rdivide, x, x_i);
-t(isnan(t)) = 0;
+x_i = sum(x,2);
+TPM = bsxfun(@rdivide,x,x_i);
+TPM(isnan(TPM)) = 0;
 pi_i = x_i./sum(x_i);
 
 
 %-------------------------------------------------------------------------------
-function [f, g] = myfunc_column(x, c, c_i, nstate)
-x = reshape(x, nstate, nstate);
+function [f, g] = myfunc_column(x, c, c_i, nStates)
+x = reshape(x,nStates,nStates);
 [f, g] = myfunc_matrix(x, c, c_i);
 g = g(:);
 

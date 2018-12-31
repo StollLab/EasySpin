@@ -82,7 +82,7 @@ while (iter <= iterMax) && ~converged
   [mu, Sigma] = mixgauss_Mstep(gamma_summed, m, op, ip);
   
   % Check convergence
-  if verbose, fprintf(1, 'iteration %d, loglik = %f\n', iter, logLik); end
+  if verbose, fprintf(1, '    iteration %d, loglik = %f\n', iter, logLik); end
   iter =  iter + 1;
   converged = em_converged(logLik, previous_loglik, thresh);
   previous_loglik = logLik;

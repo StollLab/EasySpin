@@ -79,13 +79,11 @@ for iRepeat = 1:nRepeats
     distances = zeros(nPoints,nClusters);
     for k = 1:nClusters
       % loop over centroids
-      % TODO: needs correct distance metric for each angle dimension
-      % (modulo 2pi, subtract 2pi if >pi, abs?)
-      differences = mod(abs(bsxfun(@minus,data,centroids(k,:))),2*pi);
+      differences = abs(bsxfun(@minus,data,centroids(k,:)));
+      differences = mod(differences,2*pi);
       idx = differences>pi;
       differences(idx) = 2*pi - differences(idx);
       distances(:,k) = sum(differences.^2, 2);
-%       distances(:,k) = sqrt(sum((data-centroids(k,:)).^2, 2));
     end
     
     % assignment step
@@ -117,7 +115,7 @@ for iRepeat = 1:nRepeats
   sumdist(1,iRepeat) = sum(minDistances);
   
   if verbosity
-    fprintf('Best sum of distances is %0.3f on repeat %d.\n',sumdist(1,iRepeat),iRepeat)
+    fprintf('    repeat %d: best sum of distances is %0.3f\n',iRepeat,sumdist(1,iRepeat));
   end
   
   idxClustersAll{iRepeat} = idxClusters;
