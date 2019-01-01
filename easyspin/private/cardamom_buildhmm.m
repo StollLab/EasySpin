@@ -1,102 +1,90 @@
-function MD = cardamom_buildhmm(MD,Opt)
-% Initialize a hidden Markov model for spin label dynamics
+% cardamom_buildhmm    Hidden Markov model (HMM) for spin label dynamics
 %
-% Output fields added to or modified in MD structure:
-%   transmat
-%   
-%   eqdistr
-%   
-%   stateTraj
+%   HMM = cardamom_buildhmm(dihedrals,nStates,nLag,Opt)
 %
-%   dihedrals
+% Input:
+%   dihedrals     3D array of dihedrals, (nDims,nSteps,nTrajectories), in radians
+%   nStates       number of states for the HMM
+%   nLag          lag time, as a integer multiple of the MD time step
+%   Opt           structure with options
+%     .Verbosity  print to command window if > 0
+%     .isSeeded   whether to use systematic seeds for the centroids in k-means
+%     .nTrials    number of trials in k-means clustering (if not seeded)
 %
-%   nLag
+% Output:
+%   HMM         structure with HMM parameters
+%    .transmat  transition probability matrix
+%    .eqdistr   equilibrium distribution vector
+%    .stateTraj state trajectory
 
-if ~isfield(MD,'nStates')
-  error('Please provide the number of desired states in MD.nStates.');
-end
+function HMM = cardamom_buildhmm(dihedrals,nStates,nLag,Opt)
 
-if ~isfield(MD,'isSeeded')
-  MD.isSeeded = false;
-end
-
-if ~isfield(MD,'tLag')
-  error('MD.tLag is required.');
-end
-if abs(rem(MD.tLag,MD.dt))>1e-8
-  error('MD.tLag must be an integer multiple of %g.',MD.dt);
+if ~isfield(Opt,'isSeeded')
+  Opt.isSeeded = false;
 end
 
-if strcmp(MD.LabelName,'R1')
-  % Remove chi3, as its dynamics are very slow on the typical MD timescale
-  if MD.removeChi3 && size(MD.dihedrals,1)==5
-    MD.dihedrals(3,:,:) = [];
-  end
+if ~isfield(Opt,'nTrials')
+  Opt.nTrials = 10;
 end
+if Opt.isSeeded
+  Opt.nTrials = 1;
+end
+
+if abs(nLag-round(nLag))>1e-5 || nLag < 1
+  error('nLag must be an integer >= 1.');
+end
+nLag = round(nLag);
 
 % Set up initial cluster centroids if wanted
-if MD.isSeeded
+chiStart = [];
+if Opt.isSeeded
 
-  if ~isfield(MD,'nTrials')
-    logmsg(0,'-- K-means clustering initialization is seeded, so resetting MD.nTrials = 1.');
-    MD.nTrials = 1;
+  nDims = size(dihedrals,1);
+  if (nDims==4) || (nDims==5)
+    % Empirically determined values for polyala
+    %chi = {[-60,65,180],[75,180],[-90,90],[75,8,-100],[180,77]};
+    % Empirically determined values for T4L V131R1
+    %chi = {[-60,180],[-55,55,180],[-90,90],[-170,-100,60],[-100,-20,100]};
+    % Theoretical values
+    chi = {[-60,60,180],[-60,60,180],[-90,90],[-60,60,180],[-90,90]};
+    
+    % Remove chi3 if it is absent from the dihedrals trajectories
+    if size(dihedrals,1)==4
+      chi(3) = [];
+    end
+    
+    % Convert from degrees to radians
+    chi = cellfun(@(x)x*pi/180,chi);
+    
+    % Create array with all combinations
+    idx = cellfun(@(a)1:numel(a),chi,'UniformOutput',false);
+    [idx{:}] = ndgrid(idx{:});
+    chiStart = [];
+    for k = numel(chi):-1:1
+      chiStart(:,k) = reshape(chi{k}(idx{k}),[],1);
+    end
+
   end
 
-  switch LabelName
-    case 'R1'
-      % Empirically determined values for polyala
-      %chi = {[-60,65,180],[75,180],[-90,90],[75,8,-100],[180,77]};
-      % Empirically determined values for T4L V131R1
-      %chi = {[-60,180],[-55,55,180],[-90,90],[-170,-100,60],[-100,-20,100]};
-      % Theoretical values
-      chi = {[-60,60,180],[-60,60,180],[-90,90],[-60,60,180],[-90,90]};
-
-      % Remove chi3 if it is absent from the dihedrals trajectories
-      if size(MD.dihedrals,1)==4
-        chi(3) = [];
-      end
-
-      % Convert from degrees to radians
-      chi = cellfun(@(x)x*pi/180,chi);
-
-      % Create array with all combinations
-      idx = cellfun(@(a)1:numel(a),chi,'UniformOutput',false);
-      [idx{:}] = ndgrid(idx{:});
-      chiStart = [];
-      for k = numel(chi):-1:1
-        chiStart(:,k) = reshape(chi{k}(idx{k}),[],1);
-      end
-
-      MD.nTrials = 1;
-    case 'TOAC'
-      error('TOAC dihedrals cannot be seeded.');
-  end
-
-else
-  if ~isfield(MD,'nTrials')
-    MD.nTrials = 10;
-  end
-  chiStart = [];
 end
 
 logmsg(1,'  data: %d dihedrals; %d steps; %d trajectories',...
-  size(MD.dihedrals,1),size(MD.dihedrals,2),size(MD.dihedrals,3));
+  size(dihedrals,1),size(dihedrals,2),size(dihedrals,3));
 
 % Reorder from (nDims,nTraj,nSteps) to (nSteps,nDims,nTraj),
 % for input to clustering function.
-MD.dihedrals = permute(MD.dihedrals,[3,1,2]);
+dihedrals = permute(dihedrals,[3,1,2]);
 
 % Perform k-means clustering, return centroids mu0 and spreads Sigma0
-logmsg(1,'  k-means clustering into %d clusters (%d repeats)',MD.nStates,MD.nTrials);
-[MD.stateTraj, mu0, Sigma0] = ...
-  initializehmm(MD.dihedrals, chiStart, MD.nStates, MD.nTrials, Opt.Verbosity);
+logmsg(1,'  k-means clustering into %d clusters (%d repeats)',nStates,Opt.nTrials);
+[stateTraj, mu0, Sigma0] = ...
+  initializehmm(dihedrals, chiStart, nStates, Opt.nTrials, Opt.Verbosity);
 
 logmsg(1,'  MSM parameter estimation');
 
 % Downsample dihedrals trajectory to the desired lag time
-MD.nLag = ceil(MD.tLag/MD.dt);
-dihedrals = MD.dihedrals(1:MD.nLag:end,:,:);
-stateTraj = MD.stateTraj(1:MD.nLag:end,:);
+dihedrals = dihedrals(1:nLag:end,:,:);
+stateTraj = stateTraj(1:nLag:end,:);
 
 % Estimate transition probability matrix and initial distribution
 [transmat0,eqdistr0] = estimatemarkovparameters(stateTraj);
@@ -120,18 +108,19 @@ end
 
 % Determine TPM and equilibrium distribution from most probable
 % hidden-state trajectory
-[MD.transmat, MD.eqdistr] = estimatemarkovparameters(stateTraj);
-MD.stateTraj = stateTraj;
+[HMM.transmat, HMM.eqdistr] = estimatemarkovparameters(stateTraj);
+HMM.stateTraj = stateTraj;
 
 % Reorder (nDims,nSteps,nTraj) to (nDims,nTraj,nSteps), to follow
 % convention of MD.FrameTraj, etc.
-MD.dihedrals = permute(dihedrals,[1,3,2]);
+%MD.dihedrals = permute(dihedrals,[1,3,2]);
+
+HMM.nLag = nLag;
 
 end
 
 % Helper functions 
-% -------------------------------------------------------------------------
-%%
+%-------------------------------------------------------------------------------
 
 function [stateTraj,mu0,Sigma0] = initializehmm(dihedrals,chiStart,nStates,nRepeats,verbosity)
 

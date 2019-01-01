@@ -5,7 +5,6 @@ rng(1)
 
 % Load pre-processed MD frame trajectory
 % -------------------------------------------------------------------------
-
 load('.\mdfiles\MTSSL_polyAla_traj.mat')
 
 tScale = 2.5;  % diffusion constant of TIP3P model water molecules in MD 
@@ -13,36 +12,33 @@ tScale = 2.5;  % diffusion constant of TIP3P model water molecules in MD
 
 MD = Traj;
 MD.dt = MD.dt*tScale;
-MD.removeGlobal = false;
+MD.dihedrals(3,:,:) = [];
 
-MD.TrajUsage = 'Markov';
+tLag = 100e-12*tScale;
+nLag = tLag/MD.dt;
 
-MD.tLag = 100e-12*tScale;
-MD.nStates = 20;
-MD.nTrials = 2;
+nStates = 20;
 
 % Parameters 
-MD.LabelName = 'R1';
 MD.removeChi3 = true;
 
+Opt.nTrials = 2;
 Opt.Verbosity = 1;
 
 global EasySpinLogLevel
 EasySpinLogLevel = Opt.Verbosity;
 
-MD = runprivate('cardamom_buildhmm',MD,Opt);
+HMM = runprivate('cardamom_buildhmm',MD.dihedrals,nStates,nLag,Opt);
 
 % Compare
 % -------------------------------------------------------------------------
 
-data.transmat = MD.transmat;
-data.eqdistr = MD.eqdistr;
-data.stateTraj = MD.stateTraj;
+data.transmat = HMM.transmat;
+data.eqdistr = HMM.eqdistr;
 
 if ~isempty(olddata)
-  err = any(any(abs(olddata.transmat-MD.transmat)>1e-10)) ...
-       || any(abs(olddata.eqdistr-MD.eqdistr)>1e-10) ...
-       || any(abs(olddata.stateTraj-MD.stateTraj)>1e-10);
+  err = any(any(abs(olddata.transmat-HMM.transmat)>1e-10)) ...
+       || any(abs(olddata.eqdistr-HMM.eqdistr)>1e-10);
 else
   err = [];
 end

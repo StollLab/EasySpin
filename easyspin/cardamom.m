@@ -150,6 +150,10 @@
 %                    full quantum dynamics propagator and begin using an
 %                    approximate propagator using correlation functions
 %
+%     nTrials        integer
+%                    number of initialization trials for k-means
+%                    clustering; used for the Markov method
+% 
 %
 %
 %   MD: structure with molecular dynamics simulation parameters
@@ -159,8 +163,10 @@
 %
 %     tLag           double
 %                    time lag (in s) for sampling the MD trajectory to 
-%                    determine states and transitions, used for a Markov
-%                    state model
+%                    determine states and transitions, used for the hidden
+%                    Markov model
+%
+%     nStates        number of states in the hidden Markov model
 %
 %     DiffGlobal     double (optional)
 %                    Diffusion coefficient for isotropic global rotational
@@ -185,10 +191,6 @@
 % 
 %     LabelName      name of spin label, 'R1' (default) or 'TOAC'
 %
-%     nTrials        integer
-%                    number of initialization trials for k-means
-%                    clustering; used for the Markov method
-% 
 %   Output:
 %     B              numeric, size = (2*nSteps,1) 
 %                    magnetic field (mT)
@@ -306,10 +308,6 @@ if useMD
     MD.LabelName = 'R1';
   end
   
-  if ~isfield(MD,'removeChi3')
-    MD.removeChi3 = true;
-  end
-  
   % Check type of MD trajectory usage
   if ~isfield(MD,'TrajUsage')
     MD.TrajUsage = 'Explicit';
@@ -354,9 +352,21 @@ if useMD
   if strcmp(MD.TrajUsage,'Markov')
     logmsg(1,'-- building Markov state model -----------------------------------------');
     
-    MD = cardamom_buildhmm(MD,Opt);
-    % adds MD.transmat, MD.eqdistr, MD.nLag
-    % modifies MD.stateTraj, MD.dihedrals
+    % Trim chi3 for R1 if wanted
+    if strcmp(MD.LabelName,'R1')
+      if ~isfield(Opt,'removeChi3')
+        Opt.removeChi3 = true;
+      end
+      % Remove chi3 of R1, as its dynamics are very slow on the typical MD timescale
+      if Opt.removeChi3
+        MD.dihedrals(3,:,:) = [];
+      end
+    end
+    
+    nLag = MD.tLag/MD.dt;
+    HMM = cardamom_buildhmm(MD.dihedrals,MD.nStates,nLag,Opt);
+    % provides HMM.transmat, HMM.eqdistr, HMM.stateTraj
+    MD.stateTraj = HMM.stateTraj;
     
     % Set the Markov chain time step based on the (scaled) sampling lag time
     Par.dt = MD.tLag;
@@ -694,7 +704,7 @@ switch LocalDynamicsModel
           
         case 'Markov'
           
-          RTrajLocal = RTrajLocal(:,:,:,1:MD.nLag:end);
+          RTrajLocal = RTrajLocal(:,:,:,1:nLag:end);
           qTrajLocal = rotmat2quat(RTrajLocal);
           
       end
@@ -836,10 +846,10 @@ while ~converged
             
           case 'Markov'
             
-            Sys.TransProb = MD.transmat;
+            Sys.TransProb = HMM.transmat;
             Par.dt = dtStoch;
             Par.nSteps = 2*nStepsStoch;
-            Par.StatesStart = rejectionsample(MD.nStates, MD.eqdistr, Par.nTraj);
+            Par.StatesStart = rejectionsample(HMM.eqdistr, Par.nTraj);
             Opt.statesOnly = true;
             [~, stateTraj] = stochtraj_jump(Sys,Par,Opt);
             stateTraj = stateTraj(:,nStepsStoch+1:end);
@@ -1138,18 +1148,18 @@ nBlocks = nBlocks;
 
 end
 
-function xSamples = rejectionsample(maxX, p, nSamples)
+function xSamples = rejectionsample(p, nSamples)
 
+maxX = numel(p);
 xGrid = 1:maxX;
 
-c = max(p(:));
+p_max = max(p(:));
 
 iSample = 1;
 xSamples = zeros(1,nSamples);
-while iSample < nSamples + 1
+while iSample <= nSamples
   xProposal = randi(maxX);
-  q = c;
-  if rand() < p(xProposal)/q
+  if rand() < p(xProposal)/p_max
     xSamples(1,iSample) = xGrid(xProposal);
     iSample = iSample + 1;
   end
