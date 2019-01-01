@@ -353,122 +353,10 @@ if useMD
   % Build Markov state model
   if strcmp(MD.TrajUsage,'Markov')
     logmsg(1,'-- building Markov state model -----------------------------------------');
-
+    
     MD = cardamom_buildhmm(MD,Opt);
-%     if ~isfield(MD,'nStates')
-%       error('Please provide the number of desired states in MD.nStates.');
-%     end
-%     
-%     if ~isfield(MD,'isSeeded')
-%       MD.isSeeded = false;
-%     end
-%     
-%     if ~isfield(MD,'tLag')
-%       error('MD.tLag is required.');
-%     end
-%     if abs(rem(MD.tLag,MD.dt))>1e-8
-%       error('MD.tLag must be an integer multiple of %g.',MD.dt);
-%     end
-%     
-%     if strcmp(MD.LabelName,'R1')
-%       % Remove chi3, as its dynamics are very slow on the typical MD timescale
-%       if MD.removeChi3 && size(MD.dihedrals,1)==5
-%         MD.dihedrals(3,:,:) = [];
-%       end
-%     end
-%     
-%     % Set up initial cluster centroids if wanted
-%     if MD.isSeeded
-%       
-%       if ~isfield(MD,'nTrials')
-%         logmsg(0,'-- K-means clustering initialization is seeded, so resetting MD.nTrials = 1.');
-%         MD.nTrials = 1;
-%       end
-%       
-%       switch LabelName
-%         case 'R1'
-%           % Empirically determined values for polyala
-%           %chi = {[-60,65,180],[75,180],[-90,90],[75,8,-100],[180,77]};
-%           % Empirically determined values for T4L V131R1
-%           %chi = {[-60,180],[-55,55,180],[-90,90],[-170,-100,60],[-100,-20,100]};
-%           % Theoretical values
-%           chi = {[-60,60,180],[-60,60,180],[-90,90],[-60,60,180],[-90,90]};
-%           
-%           % Remove chi3 if it is absent from the dihedrals trajectories
-%           if size(MD.dihedrals,1)==4
-%             chi(3) = [];
-%           end
-%           
-%           % Convert from degrees to radians
-%           chi = cellfun(@(x)x*pi/180,chi);
-%           
-%           % Create array with all combinations
-%           idx = cellfun(@(a)1:numel(a),chi,'UniformOutput',false);
-%           [idx{:}] = ndgrid(idx{:});
-%           chiStart = [];
-%           for k = numel(chi):-1:1
-%             chiStart(:,k) = reshape(chi{k}(idx{k}),[],1);
-%           end
-%           
-%           MD.nTrials = 1;
-%         case 'TOAC'
-%           error('TOAC dihedrals cannot be seeded.');
-%       end
-%       
-%     else
-%       if ~isfield(MD,'nTrials')
-%         MD.nTrials = 10;
-%       end
-%       chiStart = [];
-%     end
-%     
-%     % Reorder from (nDims,nTraj,nSteps) to (nSteps,nDims,nTraj),
-%     % for input to clustering function.
-%     MD.dihedrals = permute(MD.dihedrals,[3,1,2]);
-%     
-%     logmsg(1,'  data: %d dihedrals; %d steps; %d trajectories',...
-%       size(MD.dihedrals,2),size(MD.dihedrals,1),size(MD.dihedrals,3));
-%     
-%     % Perform k-means clustering, return centroids mu0 and spreads Sigma0
-%     logmsg(1,'  k-means clustering into %d clusters (%d repeats)',MD.nStates,MD.nTrials);
-%     [MD.stateTraj, mu0, Sigma0] = ...
-%       initializehmm(MD.dihedrals, chiStart, MD.nStates, MD.nTrials, Opt.Verbosity);
-%     
-%     logmsg(1,'  MSM parameter estimation');
-%     
-%     % Downsample dihedrals trajectory to the desired lag time
-%     nLag = ceil(MD.tLag/MD.dt);
-%     dihedrals = MD.dihedrals(1:nLag:end,:,:);
-%     stateTraj = MD.stateTraj(1:nLag:end,:);
-%     
-%     % Estimate transition probability matrix and initial distribution
-%     [transmat0,eqdistr0] = estimatemarkovparameters(stateTraj);
-%     
-%     % Reorder (nSteps,nDims,nTraj) to (nDims,nSteps,nTraj), for EM function
-%     dihedrals = permute(dihedrals,[2,1,3]);
-%     
-%     logmsg(1,'  HMM parameter estimation');
-%     % Determine/estimate HMM model parameters using expectation maximization
-%     [~,eqdistr1,transmat1,mu1,Sigma1,~] = ...
-%       cardamom_emghmm(dihedrals,eqdistr0,transmat0,mu0,Sigma0,[],Opt.Verbosity);
-%     
-%     logmsg(1,'  Viterbi state trajectory calculation');
-%     % Determine most probable hidden-state trajectory
-%     nTraj = size(dihedrals,3);
-%     stateTraj = zeros(size(dihedrals,2),nTraj);
-%     for iTraj = 1:nTraj
-%       [obslikelihood, ~] = mixgauss_prob(dihedrals(:,:,iTraj), mu1, Sigma1);
-%       stateTraj(:,iTraj) = viterbi_path(eqdistr1, transmat1, obslikelihood).';
-%     end
-%     
-%     % Determine TPM and equilibrium distribution from most probable
-%     % hidden-state trajectory
-%     [transmat1, eqdistr1] = estimatemarkovparameters(stateTraj);
-%     MD.stateTraj = stateTraj;
-%     
-%     % Reorder (nDims,nSteps,nTraj) to (nDims,nTraj,nSteps), to follow
-%     % convention of MD.FrameTraj, etc.
-%     MD.dihedrals = permute(dihedrals,[1,3,2]);
+    % adds MD.transmat, MD.eqdistr, MD.nLag
+    % modifies MD.stateTraj, MD.dihedrals
     
     % Set the Markov chain time step based on the (scaled) sampling lag time
     Par.dt = MD.tLag;
@@ -876,6 +764,7 @@ logmsg(1,'-- Method: %s -----------------------------------------', Opt.Method);
 
 % Run simulation
 % -------------------------------------------------------------------------
+clear cardamom_propagatedm
 
 converged = 0;
 iter = 1;
