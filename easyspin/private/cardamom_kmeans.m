@@ -80,9 +80,7 @@ for iRepeat = 1:nRepeats
     for k = 1:nClusters
       % loop over centroids
       differences = abs(bsxfun(@minus,data,centroids(k,:)));
-      differences = mod(differences,2*pi);
-      idx = differences>pi;
-      differences(idx) = 2*pi - differences(idx);
+      differences = pi - abs(differences-pi);
       distances(:,k) = sum(differences.^2, 2);
     end
     
