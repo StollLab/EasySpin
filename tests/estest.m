@@ -119,7 +119,7 @@ for iTest = 1:numel(TestFileNames)
     err = 2;
     errorInfo = exception;
     errorStr = getReport(errorInfo);
-    errorStr = ['    ' regexprep(errorStr,'\n','\n    ') newline];
+    errorStr = ['    ' regexprep(errorStr,'\n','\n    ') char(10)];
   end
   time_used(iTest) = toc;
   
