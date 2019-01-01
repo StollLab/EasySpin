@@ -18,7 +18,7 @@ MD.removeGlobal = false;
 
 MD.TrajUsage = 'Markov';
 
-MD.tLag = 200e-12*tScale;
+MD.tLag = 100e-12*tScale;
 MD.nStates = 20;
 MD.nTrials = 2;
 
@@ -31,12 +31,11 @@ Sys.Nucs = '14N';
 
 Sys.g = [2.009, 2.006, 2.002];
 Sys.A = mt2mhz([6, 36]/10);
-Sys.tcorr = 2e-9;
 Sys.lw = [0.1, 0.1];
 
 Par.nTraj = 100;
 
-Par.dt = 0.5e-9;
+Par.dt = MD.tLag;
 Par.nSteps = ceil(T/Par.dt);
 Par.nOrients = 100;
 Par.Model = 'MD';

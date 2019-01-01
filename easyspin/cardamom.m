@@ -456,11 +456,18 @@ if useMD
     nTraj = size(dihedrals,3);
     stateTraj = zeros(size(dihedrals,2),nTraj);
     for iTraj = 1:nTraj
-      [obslikelyhood, ~] = mixgauss_prob(dihedrals(:,:,iTraj), mu1, Sigma1);
-      stateTraj(:,iTraj) = viterbi_path(eqdistr1, transmat1, obslikelyhood).';
+      [obslikelihood, ~] = mixgauss_prob(dihedrals(:,:,iTraj), mu1, Sigma1);
+      stateTraj(:,iTraj) = viterbi_path(eqdistr1, transmat1, obslikelihood).';
     end
     
+    % Determine TPM and equilibrium distribution from most probable
+    % hidden-state trajectory
     [transmat1, eqdistr1] = estimatemarkovparameters(stateTraj);
+    MD.stateTraj = stateTraj;
+    
+    % Reorder (nDims,nSteps,nTraj) to (nDims,nTraj,nSteps), to follow
+    % convention of MD.FrameTraj, etc.
+    MD.dihedrals = permute(dihedrals,[1,3,2]);
     
     % Set the Markov chain time step based on the (scaled) sampling lag time
     Par.dt = MD.tLag;
