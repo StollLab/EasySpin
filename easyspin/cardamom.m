@@ -366,7 +366,7 @@ if useMD
     nLag = MD.tLag/MD.dt;
     HMM = cardamom_buildhmm(MD.dihedrals,MD.nStates,nLag,Opt);
     % provides HMM.transmat, HMM.eqdistr, HMM.stateTraj
-    MD.stateTraj = HMM.stateTraj;
+    MD.stateTraj = HMM.stateTraj.';
     
     % Set the Markov chain time step based on the (scaled) sampling lag time
     Par.dt = MD.tLag;
@@ -704,7 +704,7 @@ switch LocalDynamicsModel
           
         case 'Markov'
           
-          RTrajLocal = RTrajLocal(:,:,:,1:nLag:end);
+          RTrajLocal = RTrajLocal(:,:,:,1:HMM.nLag:end);
           qTrajLocal = rotmat2quat(RTrajLocal);
           
       end

@@ -20,7 +20,6 @@ MD.TrajUsage = 'Markov';
 
 MD.tLag = 100e-12*tScale;
 MD.nStates = 20;
-MD.nTrials = 2;
 
 % Calculate spectrum using cardamom
 % -------------------------------------------------------------------------
@@ -45,6 +44,7 @@ Exp.mwFreq = 9.4;
 Opt.Verbosity = 1;
 Opt.FFTWindow = 1;
 Opt.Method = 'Nitroxide';
+Opt.nTrials = 2;
 
 [~, spc] = cardamom(Sys,Exp,Par,Opt,MD);
 spc = spc/max(spc);
