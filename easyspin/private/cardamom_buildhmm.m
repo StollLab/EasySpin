@@ -19,6 +19,10 @@
 
 function HMM = cardamom_buildhmm(dihedrals,nStates,nLag,Opt)
 
+logmsg(1,'  HMM model building ----------------------------------');
+logmsg(1,'  data: %d dihedrals; %d steps; %d trajectories',...
+  size(dihedrals,1),size(dihedrals,3),size(dihedrals,2));
+
 if ~isfield(Opt,'isSeeded')
   Opt.isSeeded = false;
 end
@@ -36,8 +40,10 @@ end
 nLag = round(nLag);
 
 % Set up initial cluster centroids if wanted
+%-------------------------------------------------------------------------------
 chiStart = [];
 if Opt.isSeeded
+  logmsg(1,'  using provided seeds');
 
   nDims = size(dihedrals,1);
   if (nDims==4) || (nDims==5)
@@ -65,11 +71,12 @@ if Opt.isSeeded
     end
 
   end
-
+else
+  logmsg(1,'  using random seeds');  
 end
 
-logmsg(1,'  data: %d dihedrals; %d steps; %d trajectories',...
-  size(dihedrals,1),size(dihedrals,2),size(dihedrals,3));
+% Use k-means clustering etc to get initial estimates of HMM parameters
+%-------------------------------------------------------------------------------
 
 % Reorder from (nDims,nTraj,nSteps) to (nSteps,nDims,nTraj),
 % for input to clustering function.
@@ -92,28 +99,17 @@ stateTraj = stateTraj(1:nLag:end,:);
 % Reorder (nSteps,nDims,nTraj) to (nDims,nSteps,nTraj), for EM function
 dihedrals = permute(dihedrals,[2,1,3]);
 
-logmsg(1,'  HMM parameter estimation');
+% Optimize HMM parameters
+%-------------------------------------------------------------------------------
 % Determine/estimate HMM model parameters using expectation maximization
-[~,eqdistr1,transmat1,mu1,Sigma1,~] = ...
+[HMM.eqdistr,HMM.transmat,HMM.mu,HMM.Sigma] = ...
   cardamom_emghmm(dihedrals,eqdistr0,transmat0,mu0,Sigma0,[],Opt.Verbosity);
 
-logmsg(1,'  Viterbi state trajectory calculation');
+% Calculate Viterbi state trajectory
+%-------------------------------------------------------------------------------
+logmsg(1,'  Viterbi state trajectories calculation');
 % Determine most probable hidden-state trajectory
-nTraj = size(dihedrals,3);
-stateTraj = zeros(size(dihedrals,2),nTraj);
-for iTraj = 1:nTraj
-  [obslikelihood, ~] = mixgauss_prob(dihedrals(:,:,iTraj), mu1, Sigma1);
-  stateTraj(:,iTraj) = viterbi_path(eqdistr1, transmat1, obslikelihood).';
-end
-
-% Determine TPM and equilibrium distribution from most probable
-% hidden-state trajectory
-[HMM.transmat, HMM.eqdistr] = estimatemarkovparameters(stateTraj);
-HMM.stateTraj = stateTraj;
-
-% Reorder (nDims,nSteps,nTraj) to (nDims,nTraj,nSteps), to follow
-% convention of MD.FrameTraj, etc.
-%MD.dihedrals = permute(dihedrals,[1,3,2]);
+HMM.stateTraj = viterbitrajectory(dihedrals,HMM.transmat,HMM.eqdistr,HMM.mu,HMM.Sigma);
 
 HMM.nLag = nLag;
 
@@ -121,6 +117,14 @@ end
 
 % Helper functions 
 %-------------------------------------------------------------------------------
+function vTraj = viterbitrajectory(dihedrals,transmat,eqdistr,mu,Sigma)
+nTraj = size(dihedrals,3);
+vTraj = zeros(size(dihedrals,2),nTraj);
+for iTraj = 1:nTraj
+  [obslikelihood, ~] = mixgauss_prob(dihedrals(:,:,iTraj), mu, Sigma);
+  vTraj(:,iTraj) = viterbi_path(eqdistr, transmat, obslikelihood).';
+end
+end
 
 function [stateTraj,mu0,Sigma0] = initializehmm(dihedrals,chiStart,nStates,nRepeats,verbosity)
 
