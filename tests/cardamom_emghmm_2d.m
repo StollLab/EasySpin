@@ -69,7 +69,7 @@ prior0 = prior0./sum(prior0,1);
 % EM function wants an array of shape (nDims,nSteps,nTraj)
 testData = permute(testData,[2,1,3]);
 
-[logLikelihood,prior1,transmat1,mu1,Sigma1,~] = ...
+[prior1,transmat1,mu1,Sigma1,~] = ...
     runprivate('cardamom_emghmm',testData,prior0,transmat0,mu0,Sigma0,[],verbosity);
 
 % Compare

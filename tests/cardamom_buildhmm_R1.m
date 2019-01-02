@@ -35,10 +35,12 @@ HMM = runprivate('cardamom_buildhmm',MD.dihedrals,nStates,nLag,Opt);
 
 data.transmat = HMM.transmat;
 data.eqdistr = HMM.eqdistr;
+data.stateTraj = HMM.stateTraj;
 
 if ~isempty(olddata)
   err = any(any(abs(olddata.transmat-HMM.transmat)>1e-10)) ...
-       || any(abs(olddata.eqdistr-HMM.eqdistr)>1e-10);
+       || any(abs(olddata.eqdistr-HMM.eqdistr)>1e-10) ...
+       || any(abs(olddata.stateTraj-HMM.stateTraj)>1e-10);
 else
   err = [];
 end
