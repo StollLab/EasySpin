@@ -45,16 +45,15 @@ while (iter <= iterMax) && ~converged
 %       ess_mhmm(eqDistr, transmat, mu, Sigma, data);
   transCounts = zeros(nStates,nStates);
   exp_num_visits1 = zeros(nStates,1);
-  gamma_summed = zeros(nStates,1);
+  weightsSummed = zeros(nStates,1);
 
   logLik = 0;
   for iTraj=1:nTraj
     obs = data{iTraj};
+    nDims = size(obs,1);
     
     nSteps = size(obs,1);
-    m = zeros(nSteps,nStates,1);
-    op = zeros(nSteps,nSteps,nStates,1);
-    ip = zeros(nStates,1);
+    muUpdater = zeros(nSteps,nStates,1);
     
     B = mixgauss_prob(obs, mu, Sigma);
     fwd_only = false;
@@ -64,13 +63,11 @@ while (iter <= iterMax) && ~converged
     transCounts = transCounts + xi_summed; % sum(xi,3);
     exp_num_visits1 = exp_num_visits1 + gamma(:,1);
 
-    gamma_summed = gamma_summed + sum(gamma,2);
+    weightsSummed = weightsSummed + sum(gamma,2);
     for iState=1:nStates
-      w = gamma(iState,:); % w(t) = w(i,k,t,l)
-      wobs = obs .* repmat(w, [nSteps 1]); % wobs(:,t) = w(t) * obs(:,t)
-      m(:,iState) = m(:,iState) + sum(wobs, 2); % m(:) = sum_t w(t) obs(:,t)
-      op(:,:,iState) = op(:,:,iState) + wobs * obs'; % op(:,:) = sum_t w(t) * obs(:,t) * obs(:,t)'
-      ip(iState,1) = ip(iState,1) + sum(sum(wobs .* obs, 2)); % ip = sum_t w(t) * obs(:,t)' * obs(:,t)
+      weights = gamma(iState,:); % w(t) = w(i,k,t,l)
+      weightedObs = obs .* weights; % wobs(:,t) = w(t) * obs(:,t)
+      muUpdater(:,iState) = muUpdater(:,iState) + sum(weightedObs, 2); % m(:) = sum_t w(t) obs(:,t)
     end
   end
   
@@ -79,7 +76,29 @@ while (iter <= iterMax) && ~converged
   [transmat, eqDistr, ~] = msmtransitionmatrix(transCounts, 1000);
 %   prior = normalise(exp_num_visits1);
 %   transmat = mk_stochastic(exp_num_trans);
-  [mu, Sigma] = mixgauss_Mstep(gamma_summed, m, op, ip);
+    cov_prior = repmat(0.01*eye(nDims,nDims), [1 1 nStates]);
+
+    % Set any zero weights to one before dividing
+    % This is valid because w(i)=0 => Y(:,i)=0, etc
+    weightsSummed = weightsSummed + (weightsSummed==0);
+
+    % Update means
+    mu = zeros(nDims, nStates);
+    for iState=1:nStates
+      mu(:,iState) = muUpdater(:,iState) / weightsSummed(iState);
+    end
+
+    % Update covariance matrices using updated means
+    Sigma = zeros(nDims,nDims,nStates);
+    for iState=1:nStates
+      weights = gamma(iState,:);
+      distances = obs - mu(:,iState);
+      SS = weights .* distances * distances';
+      Sigma(:,:,iState) = SS/weightsSummed(iState);
+    end
+
+    % Ensure that no covariance matrix is too small
+    Sigma = Sigma + cov_prior;
   
   % Check convergence
   if verbose, fprintf(1, '    iteration %d, loglik = %f\n', iter, logLik); end
@@ -264,64 +283,6 @@ if use_log
 else
   p = exp(-0.5*mahal) / (denom+eps);
 end
-
-end
-
-function [mu, Sigma] = mixgauss_Mstep(w, Y, YY, YTY, varargin)
-% MSTEP_COND_GAUSS Compute MLEs for mixture of Gaussians given expected sufficient statistics
-% function [mu, Sigma] = Mstep_cond_gauss(w, Y, YY, YTY, varargin)
-%
-% We assume P(Y|Q=i) = N(Y; mu_i, Sigma_i)
-% and w(i,t) = p(Q(t)=i|y(t)) = posterior responsibility
-% See www.ai.mit.edu/~murphyk/Papers/learncg.pdf.
-%
-% INPUTS:
-% w(i) = sum_t w(i,t) = responsibilities for each mixture component
-%  If there is only one mixture component (i.e., Q does not exist),
-%  then w(i) = N = nsamples,  and 
-%  all references to i can be replaced by 1.
-% YY(:,:,i) = sum_t w(i,t) y(:,t) y(:,t)' = weighted outer product
-% Y(:,i) = sum_t w(i,t) y(:,t) = weighted observations
-% YTY(i) = sum_t w(i,t) y(:,t)' y(:,t) = weighted inner product
-%   You only need to pass in YTY if Sigma is to be estimated as spherical.
-%
-% Optional parameters may be passed as 'param_name', param_value pairs.
-% Parameter names are shown below; default values in [] - if none, argument is mandatory.
-%
-% 'cov_type' - 'full', 'diag' or 'spherical' ['full']
-% 'tied_cov' - 1 (Sigma) or 0 (Sigma_i) [0]
-% 'clamped_cov' - pass in clamped value, or [] if unclamped [ [] ]
-% 'clamped_mean' - pass in clamped value, or [] if unclamped [ [] ]
-% 'cov_prior' - Lambda_i, added to YY(:,:,i) [0.01*eye(d,d,Q)]
-%
-% If covariance is tied, Sigma has size d*d.
-% But diagonal and spherical covariances are represented in full size.
-
-[nDims, nStates] = size(Y);
-N = sum(w);
-cov_prior = repmat(0.01*eye(nDims,nDims), [1 1 nStates]);
-%YY = reshape(YY, [Ysz Ysz Q]) + cov_prior; % regularize the scatter matrix
-YY = reshape(YY, [nDims nDims nStates]);
-
-% Set any zero weights to one before dividing
-% This is valid because w(i)=0 => Y(:,i)=0, etc
-w = w + (w==0);
-		    
-% eqn 6
-%mu = Y ./ repmat(w(:)', [Ysz 1]);% Y may have a funny size
-mu = zeros(nDims, nStates);
-for i=1:nStates
-  mu(:,i) = Y(:,i) / w(i);
-end
-
-Sigma = zeros(nDims,nDims,nStates);
-for i=1:nStates
-  % eqn 12
-  SS = YY(:,:,i)/w(i)  - mu(:,i)*mu(:,i)';
-  Sigma(:,:,i) = SS;
-end
-
-Sigma = Sigma + cov_prior;
 
 end
 
