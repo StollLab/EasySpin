@@ -1,17 +1,88 @@
-Install perl
+Installing perl
 
-install package:
-sudo cpan Net::SSH::Perl
- - if building failes with "Could not make: unknown error" make might be missing, install with 'sudo apt-get install build-essential'
- - if it still does not install: 'sudo cpan' 'install -f Net::SSH::Perl' - this forces the install even if dependencies are missing or not passing all tests
+	- sudo apt-get install perl
+
+	- install package:
+		- sudo cpan Net::SSH::Perl
+		- if building failes with "Could not make: unknown error" make might be missing, install with 'sudo apt-get install build-essential'
+		- if it still does not install: 'sudo cpan' 'install -f Net::SSH::Perl' - this forces the install even if dependencies are missing or not passing all tests
  
  
-copy key files hostmonster_rsa and bitbucket_rsa (need to create one for user) to: ~/.ssh/
-verify ssh-agent is running 'eval "$(ssh-agent -s)"'
-you might have to ensure its automatically running when bash is started, see: https://stackoverflow.com/questions/18880024/start-ssh-agent-on-login
-add keyfiles with 'ssh-add ~/.ssh/hostmonster_rsa' and 'ssh-add ~/.ssh/bitbucket_rsa'
+Setting up SSH authentication
+	- sudo apt-get install ssh 
+	- copy key files hostmonster_rsa and bitbucket_rsa (need to create one for user) to: ~/.ssh/
+	- set the ssh agent up to run automatically when somebody logs in:
+		- add the following to ~/.bash_profile, if .bash_profile does not exist, just create a new one
+			SSH_ENV="$HOME/.ssh/environment"
 
-this needs to be added to .hg/hgrc:
+			function start_agent {
+				echo "Initialising new SSH agent..."
+				/usr/bin/ssh-agent | sed 's/^echo/#echo/' > "${SSH_ENV}"
+				echo succeeded
+				chmod 600 "${SSH_ENV}"
+				. "${SSH_ENV}" > /dev/null
+				/usr/bin/ssh-add;
+			}
 
-[extensions]
-purge = 
+			# Source SSH settings, if applicable
+
+			if [ -f "${SSH_ENV}" ]; then
+				. "${SSH_ENV}" > /dev/null
+				ps -ef | grep ${SSH_AGENT_PID} | grep ssh-agent$ > /dev/null || {
+				start_agent;
+			}
+			else
+				start_agent;
+			fi
+		- now every time you login you should get a message that the SSH agent is being initialised
+	- add keyfiles with 'ssh-add ~/.ssh/hostmonster_rsa' and 'ssh-add ~/.ssh/bitbucket_rsa' (this also needs to be done from within the build script and hence the pathes need to be updated, see below)
+	- it might be necessary to change read write permissions:
+		- chmod 600 ~/.ssh/KEYFILES
+		
+	
+Install TexLive
+	- sudo apt-get install texlive-latex-extra
+	- make sure the dvisvgm package is installed:
+		- sudo apt install texlive-extra-utils
+		- verify with: dvisvgm -V
+
+
+Install and verify MATLAB installation
+
+
+Install and setup up mercurial
+	- sudo apt-get install mercurial
+	- setup the easyspin directories:
+		- mkdir ~/easyspin-buildsys
+		- cd ~/easyspin-buildsys
+		- mkdir ./easyspin ./easyspin-builds ./uploads
+	- clone easyspin
+		- cd easyspin
+		- hg clone ssh://hg@bitbucket.org/sstoll/easyspin
+		- if the keys were set up correctly that should trigger the download
+	- make sure the purge extension is available
+		- nano ./.hg/hgrc
+		- add the following two lines to the the bottom of the file (it is okay that the purge = has nothing to the right of the equal sign)
+			[extensions]
+			purge = 
+	
+
+Setup the buildsys
+	- in the easyspin directory:
+		- hg pull -u
+		- hg update default
+	- copy the buildsys files
+		- cp ./releasing/* ~/easyspin-buildsys
+	- verify all the paths and options are correct
+		- cd ~/easyspin-buildsys
+		- nano build.pl
+		- verify all entries in the Settings section
+		
+
+Running the buildsys
+	- two ways are available to run the buildsys
+	- build all EasySpin versions that are not in the easyspin-builds directory and upload the most recent versions
+		- perl build.pl
+	- build a specific tag
+		- perl build.pl 5.3.1
+		- only builds the easyspin version, but does not upload anything
