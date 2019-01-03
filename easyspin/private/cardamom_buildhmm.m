@@ -72,7 +72,7 @@ if Opt.isSeeded
 
   end
 else
-  logmsg(1,'  using random seeds');  
+  logmsg(1,'  using random seeds');
 end
 
 % Use k-means clustering etc to get initial estimates of HMM parameters
@@ -83,9 +83,26 @@ end
 dihedrals = permute(dihedrals,[3,1,2]);
 
 % Perform k-means clustering, return centroids mu0 and spreads Sigma0
-logmsg(1,'  k-means clustering into %d clusters (%d repeats)',nStates,Opt.nTrials);
+logmsg(1,'  clustering into %d clusters using k-means (%d repeats)',nStates,Opt.nTrials);
 [stateTraj, mu0, Sigma0] = ...
   initializehmm(dihedrals, chiStart, nStates, Opt.nTrials, Opt.Verbosity);
+
+% Print results of clustering
+if Opt.Verbosity >= 1
+  fprintf('    cluster population  max(stddev)/deg  mu0/deg\n');
+  for k = 1:nStates
+    pop(k) = sum(stateTraj==k)/numel(stateTraj);
+    stddev(k) = sqrt(max(eig(Sigma0(:,:,k))));
+  end
+  for k = 1:nStates
+    fprintf('     %3d      %0.4f       %6.2f',k,pop(k),stddev(k)*180/pi);
+    fprintf('        (')
+    for d = 1:size(mu0,1)
+      fprintf('%4.0f ',mu0(d,k)*180/pi);
+    end
+    fprintf(')\n');
+  end
+end
 
 logmsg(1,'  MSM parameter estimation');
 
