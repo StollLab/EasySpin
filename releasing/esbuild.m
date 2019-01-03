@@ -14,7 +14,7 @@ function esbuild
 %     compatible manner.
 %   PATCH: Increment for every bugfix release.
 % Roughly follow guidelines of semantic versioning, see http://semver.org/
-ReleaseID = '4.0.0'; % major.minor.patch
+ReleaseID = '6.0.0-dev.3'; % major.minor.patch
 
 % Set to true if you want an easyspin-x.y.z.zip file without the
 % long timestamp ID.
@@ -30,7 +30,7 @@ ExpiryDate = datestr(datenum(Year,Month+6,1)-1);
 HorizonDate = datestr(datenum(Year+4,12,31));
 
 % Folders
-baseDir = './../../';
+baseDir = '.';
 SourceDir = [baseDir '\easyspin'];
 ZipDestDir = [baseDir '\easyspin-builds'];
 %========================================================================
@@ -226,7 +226,7 @@ zipFileShort = [ZipDestDir filesep 'easyspin-' ReleaseID '.zip'];
 % fprintf(' ok\n');
 
 fprintf('  packing zip file %s...',zipFileShort);
-zip(zipFile,BuildFolder);
+zip(zipFileShort,BuildFolder);
 fprintf(' ok\n');
 
 

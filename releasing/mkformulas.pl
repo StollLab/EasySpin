@@ -2,10 +2,10 @@
 
 $noparams = ($#ARGV+1==0);  
 
-$HTMLdir = './docs';
+$HTMLdir = './easyspin/docs';
 $pngdir = $HTMLdir.'/eqn';
 
-$templatefile = "./releasing/template.tex";
+$templatefile = "template.tex";
 
 $latexoptions = '--interaction=nonstopmode';
 # convert the first 100 pages of .dvi file to .svg and scale by a factor 1.3

@@ -9,17 +9,19 @@ use Net::SSH::Perl; # to use ssh
 # Settings
 
 # directories
-my $parentdir = './..'; # topdirectory 
+my $parentdir = '.'; # topdirectory 
 my $builddir = $parentdir.'/easyspin-builds/'; # directory that builds are created in
 my $uploaddir =  $parentdir.'/upload/'; # directory that will be used to upload files to easyspin.org
 my $serverdir = '~/public_html/easyspin/test/'; # parentfolder on the server, used to copy files from $uploaddir into
+my $repodir = $parentdir.'/easyspin/';
 
 # tagged main versions, needs to be updated for each version
 my $stableversion = 5;
 my $defaultversion = 6;
+my @cutoffversion = (5, 1, 0); # dont build versions lower than this (main,minor) version
 
 # esbuild.m location
-my $esbuild = './releasing/esbuild.m';
+my $esbuild = "esbuild.m";
 
 my $username = "easyspin";
 my $hostname = "easyspin.org";
@@ -93,79 +95,119 @@ system("ssh-add ~/.ssh/no_phrase_rsa"); # private key to log into bitbucket, nee
 # Get Tags and compare to locally available zip files, then get the list versions to build and loop over
 # ---------------------------------------------------------------------------------
 # updating and pulling from bitbucket.com  
-system('hg pull -u');
+system('hg pull -u -R '.$repodir);
 
-my @tagfile = `hg tags`;
-
-my @tags = ();
-
-# process the hg tags file and grab the version numbers, including the dev versions, but not 'tip'
-foreach (@tagfile) {
-    my @buildID = ($_ =~ m/(\d+)\.(\d+)\.(\d+)(.*?)\s/);
-    if (@buildID){
-        my $ID = "$buildID[0].$buildID[1].$buildID[2]$buildID[3]";
-        push @tags,$ID;
-    }
-}
-
-# get highest version number for the three branches
+my @tagstobuild = ();
 
 my @newestversion = (0, 0, 0);  # (stable, default, dev)
 
-# scan through all the tags, and compare them to the newestversions
-foreach (@tags) {
-    my @buildID = ($_ =~ m/(\d+).(\d+).(\d+)(.*)/); # match major, minor, patch and everything that follows
-    my $version = 100000*$buildID[0]+1000*$buildID[1]+$buildID[2];
-    
-    if ($buildID[3]){ # check if is an developer version
-        my @devVersion = ($buildID[3] =~ m/-?([a-z]+).*(\d+)/);
-        if ($devVersion[0] eq 'alpha') {
-            $version = $version + 0.2 
-        }
-        elsif ($devVersion[0] eq 'beta') {
-            $version = $version + 0.3
-        }
-        elsif ($devVersion[0] eq 'dev') {
-            $version = $version + 0.1
-        }
+my $callTags = qq(hg tags -R $repodir);
+my @tagfile = `$callTags`;
 
-        if ($devVersion[1]) {
-            $version = $version + 0.01*$devVersion[1];
-        }
+my $NumericCutoff = 100000*$cutoffversion[0]+1000*$cutoffversion[1]+$cutoffversion[2];
 
-        $newestversion[2] = $version if $version > $newestversion[2];
+unless ($ARGV[0]) {
+
+    my @tags = ();
+
+    # process the hg tags file and grab the version numbers, including the dev versions, but not 'tip'
+    foreach (@tagfile) {
+        my @buildID = ($_ =~ m/(\d+)\.(\d+)\.(\d+)(.*?)\s/);
+
+        if (@buildID and $buildID[0]){
+            my $version = 100000*$buildID[0]+1000*$buildID[1]+$buildID[2];
+
+            if ($version >= $NumericCutoff) {
+            my $ID = "$buildID[0].$buildID[1].$buildID[2]$buildID[3]";
+            push @tags,$ID;
+            }
+
+        }
     }
-    elsif ($buildID[0] eq $defaultversion) {
-        $newestversion[1] = $version if $version > $newestversion[1];
+
+    # get highest version number for the three branches
+
+    # scan through all the tags, and compare them to the newestversions
+    foreach (@tags) {
+        my @buildID = ($_ =~ m/(\d+).(\d+).(\d+)(.*)/); # match major, minor, patch and everything that follows
+        my $version = 100000*$buildID[0]+1000*$buildID[1]+$buildID[2];
+        
+        if ($buildID[3]){ # check if is an developer version
+            my @devVersion = ($buildID[3] =~ m/-?([a-z]+).*(\d+)/);
+            if ($devVersion[0] eq 'alpha') {
+                $version = $version + 0.2 
+            }
+            elsif ($devVersion[0] eq 'beta') {
+                $version = $version + 0.3
+            }
+            elsif ($devVersion[0] eq 'dev') {
+                $version = $version + 0.1
+            }
+
+            if ($devVersion[1]) {
+                $version = $version + 0.01*$devVersion[1];
+            }
+
+            $newestversion[2] = $version if $version > $newestversion[2];
+        }
+        elsif ($buildID[0] eq $defaultversion) {
+            $newestversion[1] = $version if $version > $newestversion[1];
+        }
+        elsif ($buildID[0] eq $stableversion) {
+            $newestversion[0] = $version if $version > $newestversion[0];
+        }
     }
-    elsif ($buildID[0] eq $stableversion) {
-        $newestversion[0] = $version if $version > $newestversion[0];
+
+    print "The most recent versions are @newestversion \n";
+
+    #  Get the currently available builds in the build directory
+    opendir(my $buildfiles,$builddir);
+    my @availablebuilds = readdir($buildfiles);
+
+    my $zipfiles = '';
+    for my $file (@availablebuilds) {
+        my @buildID = ($file =~ m/(\d+).(\d+).(\d+)(.*).zip/);
+        if (@buildID){
+            my $ID = "$buildID[0].$buildID[1].$buildID[2]$buildID[3],";
+            $zipfiles = join( "", $zipfiles, $ID);
+        }
+    }
+
+    print "The following builds are already in the build directory: $zipfiles \n";
+
+    # Identify which versions need to be built
+    foreach (@tags) {
+        unless ($zipfiles =~ m/$_,/) {
+            push @tagstobuild, $_;
+        }
     }
 }
+else {
+    my $cmdlinearg = $ARGV[0];
+    my $tagexists = 0;
 
-print "The most recent versions are @newestversion \n";
+    my @SemanticBuildID = ($cmdlinearg =~ m/(\d+)\.(\d+)\.(\d+)(.*?)/);
+    print @SemanticBuildID;
 
-#  Get the currently available builds in the build directory
-opendir(my $buildfiles,$builddir);
-my @availablebuilds = readdir($buildfiles);
+    if (@SemanticBuildID){
+        my $version = 100000*$SemanticBuildID[0]+1000*$SemanticBuildID[1]+$SemanticBuildID[2];
 
-my $zipfiles = '';
-for my $file (@availablebuilds) {
-    my @buildID = ($file =~ m/(\d+).(\d+).(\d+)(.*).zip/);
-    if (@buildID){
-        my $ID = "$buildID[0].$buildID[1].$buildID[2]$buildID[3],";
-        $zipfiles = join( "", $zipfiles, $ID);
+        if ($version < $NumericCutoff) {
+            die "Only Easyspin versions starting from $cutoffversion[0].$cutoffversion[1].$cutoffversion[2] can be built using this script \n";
+        }
+
     }
-}
 
-print "The following builds are already in the build directory: $zipfiles \n";
+    foreach (@tagfile) {
+        if ($_ =~ m/\b$cmdlinearg\b/) {
+            $tagexists = 1  ;
+        }
+    }
 
-# Identify which versions need to be built
-my @tagstobuild = ();
-foreach (@tags) {
- unless ($zipfiles =~ m/$_,/) {
-    push @tagstobuild, $_;
- }
+    unless ($tagexists) {
+        die "the tag '$cmdlinearg' was not found \n";
+    }
+    push @tagstobuild, $cmdlinearg;
 }
 
 print("The following versions will be built: @tagstobuild \n");
@@ -175,17 +217,20 @@ print("The following versions will be built: @tagstobuild \n");
 # Uploads happen only if the newest version of a release channel is being built
 my $MatchPattern = '(\d+).(\d+).(\d+)-?([a-z]+)?[-.]?(\d+)?';
 
-
 foreach (@tagstobuild) {
     my $thisBuild = $_;
     my @thisBuildID = ($thisBuild =~ m/$MatchPattern/);
 
     print "Building $thisBuild \n";
 
+    system('hg purge -R '.$repodir);
+
+    system("hg update $thisBuild -R $repodir -C");
+
     # ---------------------------------------------------------------------------------
     # Build .svg versions of formulae in the html documentation and replace the tags in html files
     print "Converting LaTeX markup in documentation to svg and modifying html files. \n";
-    # system('perl ./releasing/mkformulas.pl');
+    system('perl mkformulas.pl');
 
     # ---------------------------------------------------------------------------------
     # Update ReleaseID (and betaVersion) in esbuild.m 
@@ -233,7 +278,7 @@ foreach (@tagstobuild) {
     print("Triggering Matlab build \n");
     system('matlab.exe '.$MatlabOptions." ".$MatlabTarget);
 
-    print("Waiting for Matlab to finish building EasySpin $thisBuild. \n");
+    print("Waiting for Matlab to finish building EasySpin $thisBuild \n");
 
     while ($CurrentEntriesInBuilddir == $EntriesInBuilddir) {
         opendir(my $tempdir,$builddir);
@@ -242,12 +287,6 @@ foreach (@tagstobuild) {
         sleep 5;
     }
     sleep 10;
-
-    copy easyspin.zip file to upload directory
-    my $zipfilename = 'easyspin-'.$thisBuild.'.zip';
-    print("Copying $zipfilename to upload directory. \n");
-    system('cp '.$builddir.$zipfilename.' '.$uploaddir.$zipfilename);
-
 
     # ---------------------------------------------------------------------------------
     # Translate semantic versioning and compare decived wether it needs to be uploaded
@@ -278,6 +317,12 @@ foreach (@tagstobuild) {
 
     if ($upload) {
 
+        # copy easyspin.zip file to upload directory
+        my $zipfilename = 'easyspin-'.$thisBuild.'.zip';
+        print("Copying $zipfilename to upload directory. \n");
+        system('cp '.$builddir.$zipfilename.' '.$uploaddir.$zipfilename);
+
+
         my $releasechannel = '';
 
         print "Updating website and uploading for $thisBuild \n";
@@ -305,69 +350,69 @@ foreach (@tagstobuild) {
 
         # loop over all the html files
 
-        # foreach (@htmlfiles) {
-        #     my $currentfile = $_;
-        #     print("Getting $currentfile \n");
-        #     # download the current zipfile from easyspin.org
-        #     system('scp '.$WebServerLogin.':'.$serverdir.$currentfile.' '.$uploaddir.$currentfile.'.bak');
+        foreach (@htmlfiles) {
+            my $currentfile = $_;
+            print("Getting $currentfile \n");
+            # download the current zipfile from easyspin.org
+            system('scp '.$WebServerLogin.':'.$serverdir.$currentfile.' '.$uploaddir.$currentfile.'.bak');
             
-        #     print("Updating index.html \n");
-        #     open(my $inputhtml,'<'.$uploaddir.$currentfile.'.bak') or die("Cannot open $currentfile.bak!");
-        #     open(my $outputhtml,'>'.$uploaddir.$currentfile) or die("Cannot open $currentfile!");
-        #     while (<$inputhtml>) {
-        #         $_ =~ s/$oldzipfile/$newzipfile/g;
-        #         $_ =~ s/$oldversion/$newversion/g;
-        #         print $outputhtml $_;    
-        #     }
+            print("Updating index.html \n");
+            open(my $inputhtml,'<'.$uploaddir.$currentfile.'.bak') or die("Cannot open $currentfile.bak!");
+            open(my $outputhtml,'>'.$uploaddir.$currentfile) or die("Cannot open $currentfile!");
+            while (<$inputhtml>) {
+                $_ =~ s/$oldzipfile/$newzipfile/g;
+                $_ =~ s/$oldversion/$newversion/g;
+                print $outputhtml $_;    
+            }
 
-        #     close($inputhtml) or die("Cannot close $inputhtml!");
-        #     close($outputhtml) or die("Cannot close $outputhtml!");  
-        # }
+            close($inputhtml) or die("Cannot close $inputhtml!");
+            close($outputhtml) or die("Cannot close $outputhtml!");  
+        }
 
         print("Deleting backup versions of html files \n");
         system('rm '.$uploaddir.'*.bak');
 
-        # # upload entire upload directory to easyspin org and then clean it
-        # print("Uploading all new files to easyspin.org \n");
-        # system('scp '.$uploaddir.'* '.$WebServerLogin.':'.$serverdir);
+        # upload entire upload directory to easyspin org and then clean it
+        print("Uploading all new files to easyspin.org \n");
+        system('scp '.$uploaddir.'* '.$WebServerLogin.':'.$serverdir);
 
-        # # clear upload directory
-        # print("Clean upload directory \n");
-        # system("rm ".$uploaddir."*");
+        # clear upload directory
+        print("Clean upload directory \n");
+        system("rm ".$uploaddir."*");
 
         # ---------------------------------------------------------------------------------
         # SSH into the server, unzip the build and extract documentation
         # only happens for the 'stable' release channel!
         if ($releasechannel eq 'stable') {
             print("Logging into easyspin.org via SSH \n");
-            # my $ssh = Net::SSH::Perl->new($hostname);
-            # $ssh -> login("$username");
+            my $ssh = Net::SSH::Perl->new($hostname);
+            $ssh -> login("$username");
 
-            # my $changedirectory = "cd ".$serverdir." \n";
-            # my $removefolders = "rm -r ./documentation ./examples \n";
-            # my $unzipdocumentation = qq(unzip -qq $zipfilename 'easyspin-$thisBuild/documentation/*' -d ./tmp/ \n);
-            # my $unzipexamples = qq(unzip -qq $zipfilename 'easyspin-$thisBuild/examples/*' -d ./tmp/ \n);
-            # my $movefiles = qq(mv ./tmp/easyspin-$thisBuild/* ./ \n);
-            # my $rmtemp = qq(rm -r ./tmp \n);
+            my $changedirectory = "cd ".$serverdir." \n";
+            my $removefolders = "rm -r ./documentation ./examples \n";
+            my $unzipdocumentation = qq(unzip -qq $zipfilename 'easyspin-$thisBuild/documentation/*' -d ./tmp/ \n);
+            my $unzipexamples = qq(unzip -qq $zipfilename 'easyspin-$thisBuild/examples/*' -d ./tmp/ \n);
+            my $movefiles = qq(mv ./tmp/easyspin-$thisBuild/* ./ \n);
+            my $rmtemp = qq(rm -r ./tmp \n);
 
-            # print("Unzipping new stable version and updating documentation and examples \n");
-            # my $cmd = $changedirectory.$removefolders.$unzipexamples.$unzipdocumentation.$movefiles.$rmtemp;
+            print("Unzipping new stable version and updating documentation and examples \n");
+            my $cmd = $changedirectory.$removefolders.$unzipexamples.$unzipdocumentation.$movefiles.$rmtemp;
 
-            # my ($stdout,$stderr,$exit) = $ssh->cmd("$cmd");
+            my ($stdout,$stderr,$exit) = $ssh->cmd("$cmd");
         }
     }
 }
 
 # ---------------------------------------------------------------------------------
 # Discard changes and purge untracked files
-# system('hg update -r '.$branch.' -C');
-# system('hg purge');
-
+print "Cleaning up repository \n";
+system("hg update -r default -C -R $repodir");
+system("hg purge -R $repodir");
 
 # ---------------------------------------------------------------------------------
 # Clean up lockfile and exit
+\print "removing lockfile \n";
 close $lockfile;
 system('rm '.$parentdir.'/'.$lockfilename);
 
-print "Lock released.\n";
 print "All finished.\n";

@@ -1,0 +1,17 @@
+Install perl
+
+install package:
+sudo cpan Net::SSH::Perl
+ - if building failes with "Could not make: unknown error" make might be missing, install with 'sudo apt-get install build-essential'
+ - if it still does not install: 'sudo cpan' 'install -f Net::SSH::Perl' - this forces the install even if dependencies are missing or not passing all tests
+ 
+ 
+copy key files hostmonster_rsa and bitbucket_rsa (need to create one for user) to: ~/.ssh/
+verify ssh-agent is running 'eval "$(ssh-agent -s)"'
+you might have to ensure its automatically running when bash is started, see: https://stackoverflow.com/questions/18880024/start-ssh-agent-on-login
+add keyfiles with 'ssh-add ~/.ssh/hostmonster_rsa' and 'ssh-add ~/.ssh/bitbucket_rsa'
+
+this needs to be added to .hg/hgrc:
+
+[extensions]
+purge = 
