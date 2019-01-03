@@ -184,13 +184,14 @@ switch Method
     
     if isMarkov
       if isempty(gTensorState)
-        gTensorState = zeros(3,3,MD.nStates,size(MD.stateTraj,1));
-        ATensorState = zeros(3,3,MD.nStates,size(MD.stateTraj,1));
+        nVitTraj = size(MD.viterbiTraj,1);
+        gTensorState = zeros(3,3,MD.nStates,nVitTraj);
+        ATensorState = zeros(3,3,MD.nStates,nVitTraj);
 
         % find the average interaction tensor for each state
         for iState = 1:MD.nStates
-          for iTraj = 1:size(MD.stateTraj,1)
-            idxState = (MD.stateTraj(iTraj,:) == iState);
+          for iTraj = 1:nVitTraj
+            idxState = MD.viterbiTraj(iTraj,:) == iState;
             gTensorState(:,:,iState,iTraj) = squeeze(mean(gTensor(:,:,iTraj,idxState),4));
             ATensorState(:,:,iState,iTraj) = squeeze(mean(ATensor(:,:,iTraj,idxState),4));
           end

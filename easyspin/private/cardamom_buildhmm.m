@@ -126,7 +126,7 @@ dihedrals = permute(dihedrals,[2,1,3]);
 %-------------------------------------------------------------------------------
 logmsg(1,'  Viterbi state trajectories calculation');
 % Determine most probable hidden-state trajectory
-HMM.stateTraj = viterbitrajectory(dihedrals,HMM.transmat,HMM.eqdistr,HMM.mu,HMM.Sigma);
+HMM.viterbiTraj = viterbitrajectory(dihedrals,HMM.transmat,HMM.eqdistr,HMM.mu,HMM.Sigma);
 
 HMM.nLag = nLag;
 

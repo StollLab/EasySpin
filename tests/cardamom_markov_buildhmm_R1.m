@@ -35,6 +35,7 @@ HMM = runprivate('cardamom_buildhmm',MD.dihedrals,nStates,nLag,Opt);
 
 data.transmat = HMM.transmat;
 data.eqdistr = HMM.eqdistr;
+HMM.stateTraj = HMM.viterbiTraj;
 data.stateTraj = HMM.stateTraj;
 
 if ~isempty(olddata)
