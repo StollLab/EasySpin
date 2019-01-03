@@ -13,7 +13,7 @@ tScale = 2.5;  % diffusion constant of TIP3P model water molecules in MD
                % simulations is ~2.5x too high, so we scale the time axis
 
 MD = Traj;
-MD.tScale = tScale;
+MD.dt = MD.dt*tScale;
 MD.removeGlobal = 0;
 
 MD.DiffGlobal = 6e6;
