@@ -33,9 +33,14 @@
 
 function [idxBest, centroidsBest] = cardamom_kmeans(data,nClusters,nRepeats,centroids0,verbosity)
 
+if ~exist('nRepeats','var'), nRepeats = 1; end
+if ~exist('centroids0','var'), centroids0 = []; end
+if ~exist('verbosity','var'), verbosity = 0; end
+
 [nPoints, nDims] = size(data);
 
-nIters = 200;
+nIterations = 200;
+centroidsChangeThreshold = 1e-4;
 
 if ~isempty(centroids0)
   if size(centroids0,2) ~= nDims || size(centroids0,1) > nClusters
@@ -50,7 +55,10 @@ end
 
 idxClustersAll = {1,nRepeats};
 centroidsAll = {1,nRepeats};
-sumdist = zeros(1,nRepeats);
+sumdist2 = zeros(1,nRepeats);
+
+% Use implicit singleton expansion if available, i.e. in R2016b (9.1) or later
+implicitSingletonExpansion = ~verLessThan('matlab','9.1');
 
 for iRepeat = 1:nRepeats
 
@@ -71,21 +79,24 @@ for iRepeat = 1:nRepeats
 %   idxClusters = randi(nClusters,[nPoints,1]);
 %   idxClustersLast = zeros(nPoints,1);t
 
-  for iIter = 1:nIters
+  for iIter = 1:nIterations
 
     centroidsLast = centroids;
 
     % calculate distances to centroids
-    distances = zeros(nPoints,nClusters);
+    distances2 = zeros(nPoints,nClusters);
     for k = 1:nClusters
-      % loop over centroids
-      differences = abs(bsxfun(@minus,data,centroids(k,:)));
+      if implicitSingletonExpansion
+        differences = abs(data-centroids(k,:)); % R2016b and later
+      else
+        differences = abs(bsxfun(@minus,data,centroids(k,:))); % pre-R2016b
+      end
       differences = pi - abs(differences-pi);
-      distances(:,k) = sum(differences.^2, 2);
+      distances2(:,k) = sum(differences.^2, 2);
     end
     
     % assignment step
-    [minDistances, idxClusters] = min(distances,[],2);
+    [minDistances2, idxClusters] = min(distances2,[],2);
 
     % update step
     for iCluster = 1:nClusters
@@ -96,7 +107,7 @@ for iRepeat = 1:nRepeats
     centroidsChange = centroids - centroidsLast;
     
     if iIter > 1
-      if all(abs(centroidsChange(:)) < 1e-4), break, end
+      if max(abs(centroidsChange(:))) < centroidsChangeThreshold, break, end
 %       if all(idxClustersLast==idxClusters), break, end
     end
     
@@ -104,16 +115,16 @@ for iRepeat = 1:nRepeats
 
   end
   
-  if iIter == nIters
-    warning('Centroid changes did not converge within %d iterations.', nIters)
+  if iIter == nIterations
+    warning('Centroid changes did not converge within %d iterations.', nIterations)
   end
   
   centroids = centroidsLast;
   
-  sumdist(1,iRepeat) = sum(minDistances);
+  sumdist2(1,iRepeat) = sum(minDistances2);
   
   if verbosity
-    fprintf('    repeat %d: best sum of distances is %0.3f\n',iRepeat,sumdist(1,iRepeat));
+    fprintf('    repeat %d: best sum of squared distances is %0.3f\n',iRepeat,sumdist2(1,iRepeat));
   end
   
   idxClustersAll{iRepeat} = idxClusters;
@@ -121,7 +132,7 @@ for iRepeat = 1:nRepeats
   
 end
 
-[~,iBest] = min(sumdist,[],2);
+[~,iBest] = min(sumdist2,[],2);
 idxBest = idxClustersAll{iBest};
 centroidsBest = centroidsAll{iBest};
 
