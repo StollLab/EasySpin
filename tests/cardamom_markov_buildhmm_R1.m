@@ -23,7 +23,7 @@ nStates = 20;
 MD.removeChi3 = true;
 
 Opt.nTrials = 2;
-Opt.Verbosity = 1;
+Opt.Verbosity = 0;
 
 global EasySpinLogLevel
 EasySpinLogLevel = Opt.Verbosity;

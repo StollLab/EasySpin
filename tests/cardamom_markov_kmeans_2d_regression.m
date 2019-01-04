@@ -48,6 +48,6 @@ if ~isempty(olddata)
   err = any(abs(olddata.centroidsBest-centroidsBest)>1e-10);
 else
   err = [];
-end
+  endz
 
 end

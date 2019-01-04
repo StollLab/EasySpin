@@ -51,7 +51,7 @@ if opt.Display
   axis equal
   axis([-1 1 -1 1]);
   for k = 1:4
-    chi_ = chi(idx==k);
+    chi_ = chi(idx_km==k);
     plot(cos(chi_),sin(chi_),'o');
   end
 end
