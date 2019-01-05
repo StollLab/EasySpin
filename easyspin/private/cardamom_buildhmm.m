@@ -60,7 +60,7 @@ if Opt.isSeeded
     end
     
     % Convert from degrees to radians
-    chi = cellfun(@(x)x*pi/180,chi);
+    chi = cellfun(@(x)x*pi/180,chi, 'UniformOutput', false);
     
     % Create array with all combinations
     idx = cellfun(@(a)1:numel(a),chi,'UniformOutput',false);
@@ -135,14 +135,59 @@ end
 % Helper functions 
 %-------------------------------------------------------------------------------
 function vTraj = viterbitrajectory(dihedrals,transmat,eqdistr,mu,Sigma)
-nTraj = size(dihedrals,3);
-vTraj = zeros(size(dihedrals,2),nTraj);
+nStates = size(transmat,1);
+[nDims,nSteps,nTraj] = size(dihedrals);
+vTraj = zeros(nSteps,nTraj);
 for iTraj = 1:nTraj
-  [obslikelihood, ~] = mixgauss_prob(dihedrals(:,:,iTraj), mu, Sigma);
+%   [obslikelihood, ~] = mixgauss_prob(dihedrals(:,:,iTraj), mu, Sigma);
+  obs = dihedrals(:,:,iTraj);
+  obslikelihood = zeros(nStates,nSteps);
+  for iState=1:nStates
+    obslikelihood(iState,:) = gaussian_prob_pbc(obs, mu(:,iState), Sigma(:,:,iState), 2*pi);
+  end
   vTraj(:,iTraj) = viterbi_path(eqdistr, transmat, obslikelihood).';
 end
 end
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function c = cov_pbc(x, mu, W)
+
+[nPoints,nDims] = size(x);
+    
+% remove the centers
+xc = zeros(nPoints,nDims);
+for iPoint = 1:nPoints
+  xc(iPoint,:) = dist_pbc(x(iPoint,:)-mu, W);
+end
+
+c = (xc' * xc) ./ nPoints;
+
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function dist = dist_pbc(dist,W)
+
+w = W/2;
+
+% dist = w - abs(pi - abs(dist));
+
+idx1 = dist > w;
+idx2 = dist < -w;
+
+dist(idx1) = dist(idx1) - W;
+dist(idx2) = dist(idx2) + W;
+
+% for iDim=1:size(dist,2)
+%   if dist(iDim) > w
+%     dist(iDim) = dist(iDim)-W;
+%   elseif dist(iDim) < -w
+%     dist(iDim) = dist(iDim)+W;
+%   end
+% end
+
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [stateTraj,mu0,Sigma0] = initializehmm(dihedrals,chiStart,nStates,nRepeats,verbosity)
 
 [nSteps,nDims,nTraj] = size(dihedrals);
@@ -165,13 +210,15 @@ mu0 = centroids.';
 Sigma0 = zeros(nDims,nDims,nStates);
 for iState = 1:nStates
   idxState = stateTraj==iState;
-  Sigma0(:,:,iState) = cov(dihedrals(idxState,:));
+  Sigma0(:,:,iState) = cov_pbc(dihedrals(idxState,:), mu0(:,iState).', 2*pi);
+%   Sigma0(:,:,iState) = cov(dihedrals(idxState,:));
 end
 
 stateTraj = reshape(stateTraj,[nSteps,nTraj]);
 
 end
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [tpmat,distr] = estimatemarkovparameters(stateTraj)
 % Estimate transition probability matrix and initial probability distribution
 % from a set of state trajectories.
@@ -205,6 +252,35 @@ N = full(N);
 
 end
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function p = gaussian_prob_pbc(x, m, C, W)
+% GAUSSIAN_PROB Evaluate a multivariate Gaussian density.
+% p = gaussian_prob(X, m, C)
+% p(i) = N(X(:,i), m, C) where C = covariance matrix and each COLUMN of x is a datavector
+
+% p = gaussian_prob(X, m, C, 1) returns log N(X(:,i), m, C) (to prevents underflow).
+%
+% If X has size dxN, then p has size Nx1, where N = number of examples
+
+if length(m)==1 % scalar
+  x = x(:)';
+end
+[d, N] = size(x);
+%assert(length(m)==d); % slow
+m = m(:);
+M = m*ones(1,N); % replicate the mean across columns
+denom = (2*pi)^(d/2)*sqrt(abs(det(C)));
+dist = dist_pbc(x - M, W);
+mahal = sum((dist'*inv(C)).*dist',2);   % Chris Bregler's trick
+% mahal = sum(((x-M)'*inv(C)).*(x-M)',2);   % Chris Bregler's trick
+if any(mahal<0)
+  warning('mahal < 0 => C is not psd')
+end
+p = exp(-0.5*mahal) / (denom+eps);
+
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [B, B2] = mixgauss_prob(data, mu, Sigma, mixmat, unit_norm)
 % EVAL_PDF_COND_MOG Evaluate the pdf of a conditional mixture of Gaussians
 % function [B, B2] = eval_pdf_cond_mog(data, mu, Sigma, mixmat, unit_norm)
@@ -342,6 +418,7 @@ end
 
 end
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function b = isposdef(a)
 % ISPOSDEF   Test for positive definite matrix.
 %    ISPOSDEF(A) returns 1 if A is positive definite, 0 otherwise.
@@ -354,6 +431,7 @@ b = (p == 0);
 
 end
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function y = logdet(A)
 % log(det(A)) where A is positive-definite.
 % This is faster and more stable than using log(det(A)).
@@ -365,6 +443,7 @@ y = 2*sum(log(diag(U)));
 
 end
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function m = sqdist(p, q, A)
 % SQDIST      Squared Euclidean or Mahalanobis distance.
 % SQDIST(p,q)   returns m(i,j) = (p(:,i) - q(:,j))'*(p(:,i) - q(:,j)).
@@ -397,6 +476,7 @@ end
 
 end
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function path = viterbi_path(prior, transmat, obslik)
 % VITERBI Find the most-probable (Viterbi) path through the HMM state trellis.
 % path = viterbi(prior, transmat, obslik)
@@ -462,6 +542,7 @@ end
 
 end
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [M, z] = normalise(A, dim)
 % NORMALISE Make the entries of a (multidimensional) array sum to 1
 % [M, c] = normalise(A)
@@ -497,6 +578,7 @@ end
 
 end
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [T,Z] = mk_stochastic(T)
 % MK_STOCHASTIC Ensure the argument is a stochastic matrix, i.e., the sum over the last dimension is 1.
 % [T,Z] = mk_stochastic(T)
@@ -527,6 +609,7 @@ end
 
 end
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [TPM, pi_i, x] = msmtransitionmatrix(N, maxiteration)
 % msmtransitionmatrix
 % estimate transition probability matrix TPM from count matrix N
