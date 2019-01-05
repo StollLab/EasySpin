@@ -28,7 +28,7 @@ Opt.Verbosity = 0;
 global EasySpinLogLevel
 EasySpinLogLevel = Opt.Verbosity;
 
-HMM = runprivate('cardamom_buildhmm',MD.dihedrals,nStates,nLag,Opt);
+HMM = runprivate('cardamom_buildhmm',MD.dihedrals,nStates,nLag,MD.dt,Opt);
 
 % Compare
 % -------------------------------------------------------------------------

@@ -6,6 +6,7 @@
 %   dihedrals     3D array of dihedrals, (nDims,nSteps,nTrajectories), in radians
 %   nStates       number of states for the HMM
 %   nLag          lag time, as a integer multiple of the MD time step
+%   dt            MD time step, in s
 %   Opt           structure with options
 %     .Verbosity  print to command window if > 0
 %     .isSeeded   whether to use systematic seeds for the centroids in k-means
@@ -17,7 +18,7 @@
 %    .eqdistr   equilibrium distribution vector
 %    .stateTraj state trajectory
 
-function HMM = cardamom_buildhmm(dihedrals,nStates,nLag,Opt)
+function HMM = cardamom_buildhmm(dihedrals,nStates,nLag,dt,Opt)
 
 logmsg(1,'  HMM model building ----------------------------------');
 logmsg(1,'  data: %d dihedrals; %d steps; %d trajectories',...
@@ -127,6 +128,13 @@ dihedrals = permute(dihedrals,[2,1,3]);
 logmsg(1,'  Viterbi state trajectories calculation');
 % Determine most probable hidden-state trajectory
 HMM.viterbiTraj = viterbitrajectory(dihedrals,HMM.transmat,HMM.eqdistr,HMM.mu,HMM.Sigma);
+
+% Calculate relaxation times for the TPM and time lag
+%-------------------------------------------------------------------------------
+lambda = eig(HMM.transmat);
+lambda = sort(real(lambda), 1, 'descend');
+lambda = lambda(lambda>0);
+HMM.tauRelax = -nLag*dt./log(lambda(2:end).');
 
 HMM.nLag = nLag;
 

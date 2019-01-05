@@ -364,7 +364,7 @@ if useMD
     end
     
     nLag = MD.tLag/MD.dt;
-    HMM = cardamom_buildhmm(MD.dihedrals,MD.nStates,nLag,Opt);
+    HMM = cardamom_buildhmm(MD.dihedrals,MD.nStates,nLag,MD.dt,Opt);
     % provides HMM.transmat, HMM.eqdistr, HMM.stateTraj
     MD.viterbiTraj = HMM.viterbiTraj.';
     
