@@ -33,7 +33,7 @@ clusteridx = clusteridx(idx);
 % Run k-means clustering
 seeds = [-60; 30; 100; 160]*pi/180;
 nRepeats = 1;
-[idx_km,~] = runprivate('cardamom_kmeans',chi,nClusters,nRepeats,seeds);
+[idx_km,~] = runprivate('mdhmm_kmeans',chi,nClusters,nRepeats,seeds);
 
 % Check whether k-means produced correct clustering
 for k = 1:nClusters

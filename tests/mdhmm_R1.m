@@ -25,10 +25,7 @@ MD.removeChi3 = true;
 Opt.nTrials = 2;
 Opt.Verbosity = 0;
 
-global EasySpinLogLevel
-EasySpinLogLevel = Opt.Verbosity;
-
-HMM = runprivate('cardamom_buildhmm',MD.dihedrals,nStates,nLag,MD.dt,Opt);
+HMM = mdhmm(MD.dihedrals,MD.dt,nStates,nLag,Opt);
 
 % Compare
 % -------------------------------------------------------------------------

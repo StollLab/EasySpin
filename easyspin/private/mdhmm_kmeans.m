@@ -1,7 +1,7 @@
-% cardamom_kmeans  Perform k-means clustering on input data using random
+% mdhmm_kmeans  Perform k-means clustering on input data using random
 %                  initialization
 %
-%   [idxBest,centroidsBest] = cardamom_kmeans(data,nClusters,nRepeats)
+%   [idxBest,centroidsBest] = mdhmm_kmeans(data,nClusters,nRepeats)
 %
 %
 %     data           numeric matrix, size = (nPoints,nDims)
@@ -31,16 +31,16 @@
 %     centroidsBest  numeric matrix, size = (nClusters,nDims)
 %                    coordinates of centroids
 
-function [idxBest, centroidsBest] = cardamom_kmeans(data,nClusters,nRepeats,centroids0,verbosity)
+function [idxBest, centroidsBest] = mdhmm_kmeans(data,nClusters,nRepeats,centroids0,verbosity)
 
 if ~exist('nRepeats','var'), nRepeats = 1; end
 if ~exist('centroids0','var'), centroids0 = []; end
 if ~exist('verbosity','var'), verbosity = 0; end
 
-[nPoints, nDims] = size(data);
-
-nIterations = 200;
+maxIterations = 200;
 centroidsChangeThreshold = 1e-4;
+
+[nPoints, nDims] = size(data);
 
 if ~isempty(centroids0)
   if size(centroids0,2) ~= nDims || size(centroids0,1) > nClusters
@@ -80,7 +80,7 @@ for iRepeat = 1:nRepeats
 %   idxClusters = randi(nClusters,[nPoints,1]);
 %   idxClustersLast = zeros(nPoints,1);t
 
-  for iIter = 1:nIterations
+  for iIter = 1:maxIterations
 
     centroidsLast = centroids;
 
@@ -116,8 +116,8 @@ for iRepeat = 1:nRepeats
 
   end
   
-  if iIter == nIterations
-    warning('Centroid changes did not converge within %d iterations.', nIterations)
+  if iIter == maxIterations
+    warning('Centroid changes did not converge within %d iterations.', maxIterations)
   end
   
   centroids = centroidsLast;

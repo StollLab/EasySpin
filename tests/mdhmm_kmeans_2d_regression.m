@@ -38,7 +38,7 @@ centroids0 = [];
 % Perform clustering
 % -------------------------------------------------------------------------
 
-[idxBest, centroidsBest] = runprivate('cardamom_kmeans',...
+[idxBest, centroidsBest] = runprivate('mdhmm_kmeans',...
                                       testData,nClusters,nRepeats,centroids0,verbosity);
 
 

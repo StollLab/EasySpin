@@ -1,26 +1,37 @@
-% cardamom_buildhmm    Hidden Markov model (HMM) for spin label dynamics
+% mdhmm    Build hidden Markov model (HMM) from MD trajectory of dihedrals
 %
-%   HMM = cardamom_buildhmm(dihedrals,nStates,nLag,Opt)
+%   HMM = mdhmm(dihedrals,dt,nStates,nLag,Opt)
 %
 % Input:
-%   dihedrals     3D array of dihedrals, (nDims,nSteps,nTrajectories), in radians
-%   nStates       number of states for the HMM
-%   nLag          lag time, as a integer multiple of the MD time step
+%   dihedrals     3D array of spin-label side chain dihedral angles
+%                   (nDims,nSteps,nTrajectories), in radians
 %   dt            MD time step, in s
+%   nStates       number of desired states for the HMM
+%   nLag          desired lag time, as a integer multiple of the MD time step
 %   Opt           structure with options
 %     .Verbosity  print to command window if > 0
 %     .isSeeded   whether to use systematic seeds for the centroids in k-means
 %     .nTrials    number of trials in k-means clustering (if not seeded)
 %
 % Output:
-%   HMM         structure with HMM parameters
-%    .transmat  transition probability matrix
-%    .eqdistr   equilibrium distribution vector
-%    .stateTraj state trajectory
+%   HMM             structure with HMM parameters
+%    .transmat      transition probability matrix
+%    .eqdistr       equilibrium distribution vector
+%    .mu            center vectors of states
+%    .Sigma         covariance matrices of states
+%    .viterbiTraj   Viterbi state trajectory (most likely given the dihedrals)
+%    .tauRelax      relaxation times of HMM
 
-function HMM = cardamom_buildhmm(dihedrals,nStates,nLag,dt,Opt)
+function HMM = mdhmm(dihedrals,dt,nStates,nLag,Opt)
 
-logmsg(1,'  HMM model building ----------------------------------');
+if nargin<5, Opt = struct; end
+
+if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 1; end
+
+global EasySpinLogLevel
+EasySpinLogLevel = Opt.Verbosity;
+
+logmsg(1,'-- HMM model building ----------------------------------');
 logmsg(1,'  data: %d dihedrals; %d steps; %d trajectories',...
   size(dihedrals,1),size(dihedrals,3),size(dihedrals,2));
 
@@ -40,11 +51,14 @@ if abs(nLag-round(nLag))>1e-5 || nLag < 1
 end
 nLag = round(nLag);
 
-% Set up initial cluster centroids if wanted
+% Use k-means clustering etc to get initial estimates of HMM parameters
 %-------------------------------------------------------------------------------
+logmsg(1,'  clustering into %d clusters using k-means (%d repeats)',nStates,Opt.nTrials);
+
+% Set up initial cluster centroids if wanted
 chiStart = [];
 if Opt.isSeeded
-  logmsg(1,'  using provided seeds');
+  logmsg(1,'    using provided seeds');
 
   nDims = size(dihedrals,1);
   if (nDims==4) || (nDims==5)
@@ -73,18 +87,14 @@ if Opt.isSeeded
 
   end
 else
-  logmsg(1,'  using random seeds');
+  logmsg(1,'    using random seeds');
 end
-
-% Use k-means clustering etc to get initial estimates of HMM parameters
-%-------------------------------------------------------------------------------
 
 % Reorder from (nDims,nTraj,nSteps) to (nSteps,nDims,nTraj),
 % for input to clustering function.
 dihedrals = permute(dihedrals,[3,1,2]);
 
 % Perform k-means clustering, return centroids mu0 and spreads Sigma0
-logmsg(1,'  clustering into %d clusters using k-means (%d repeats)',nStates,Opt.nTrials);
 [stateTraj, mu0, Sigma0] = ...
   initializehmm(dihedrals, chiStart, nStates, Opt.nTrials, Opt.Verbosity);
 
@@ -105,7 +115,7 @@ if Opt.Verbosity >= 1
   end
 end
 
-logmsg(1,'  MSM parameter estimation');
+logmsg(1,'  estimation of transition probability matrix and initial distribution');
 
 % Downsample dihedrals trajectory to the desired lag time
 dihedrals = dihedrals(1:nLag:end,:,:);
@@ -119,9 +129,10 @@ dihedrals = permute(dihedrals,[2,1,3]);
 
 % Optimize HMM parameters
 %-------------------------------------------------------------------------------
+logmsg(1,'  HMM optimization using EM algorithm');
 % Determine/estimate HMM model parameters using expectation maximization
 [HMM.eqdistr,HMM.transmat,HMM.mu,HMM.Sigma] = ...
-  cardamom_emghmm(dihedrals,eqdistr0,transmat0,mu0,Sigma0,[],Opt.Verbosity);
+  mdhmm_em(dihedrals,eqdistr0,transmat0,mu0,Sigma0,[],Opt.Verbosity);
 
 % Calculate Viterbi state trajectory
 %-------------------------------------------------------------------------------
@@ -131,6 +142,7 @@ HMM.viterbiTraj = viterbitrajectory(dihedrals,HMM.transmat,HMM.eqdistr,HMM.mu,HM
 
 % Calculate relaxation times for the TPM and time lag
 %-------------------------------------------------------------------------------
+logmsg(1,'  Calculate relaxatim times');
 lambda = eig(HMM.transmat);
 lambda = sort(real(lambda), 1, 'descend');
 lambda = lambda(lambda>0);
@@ -211,7 +223,7 @@ end
 
 % Do k-means clustering
 [stateTraj,centroids] = ...
-  cardamom_kmeans(dihedrals, nStates, nRepeats, chiStart, verbosity);
+  mdhmm_kmeans(dihedrals, nStates, nRepeats, chiStart, verbosity);
 
 % initialize the means and covariance matrices for the HMM
 mu0 = centroids.';
@@ -279,7 +291,7 @@ m = m(:);
 M = m*ones(1,N); % replicate the mean across columns
 denom = (2*pi)^(d/2)*sqrt(abs(det(C)));
 dist = dist_pbc(x - M, W);
-mahal = sum((dist'*inv(C)).*dist',2);   % Chris Bregler's trick
+mahal = sum((dist'/C).*dist',2);   % Chris Bregler's trick
 % mahal = sum(((x-M)'*inv(C)).*(x-M)',2);   % Chris Bregler's trick
 if any(mahal<0)
   warning('mahal < 0 => C is not psd')
@@ -325,19 +337,16 @@ function [B, B2] = mixgauss_prob(data, mu, Sigma, mixmat, unit_norm)
 % entries of mixmat to 0, e.g., 2 components if Q=1, 3 components if Q=2,
 % then set mixmat(1,3)=0. In this case, B2(1,3,:)=1.0.
 
-
-
-
-if isvector(mu) & size(mu,2)==1
+if iscolumn(mu)
   d = length(mu);
   Q = 1; M = 1;
 elseif ndims(mu)==2
-  [d Q] = size(mu);
+  [d, Q] = size(mu);
   M = 1;
 else
-  [d Q M] = size(mu);
+  [d, Q, M] = size(mu);
 end
-[d T] = size(data);
+[d, T] = size(data);
 
 if nargin < 4, mixmat = ones(Q,1); end
 if nargin < 5, unit_norm = 0; end
@@ -383,7 +392,7 @@ elseif ndims(Sigma)==3 % tied across M
 %       logB2 = -(d/2)*log(2*pi) - 0.5*log(det(Sigma(:,:,j))) - 0.5*D;
       B2(j,:,:) = exp(logB2);
     else
-      error(sprintf('mixgauss_prob: Sigma(:,:,q=%d) not psd\n', j));
+      error('mixgauss_prob: Sigma(:,:,q=%d) not psd\n', j);
     end
   end
   
@@ -434,7 +443,7 @@ function b = isposdef(a)
 
 %  From Tom Minka's lightspeed toolbox
 
-[R,p] = chol(a);
+[~,p] = chol(a);
 b = (p == 0);
 
 end
@@ -471,7 +480,7 @@ if nargin == 2
   
 else
 
-  if isempty(A) | isempty(p)
+  if isempty(A) || isempty(p)
     error('sqdist: empty matrices');
   end
   Ap = A*p;
@@ -598,9 +607,9 @@ function [T,Z] = mk_stochastic(T)
 % Set zeros to 1 before dividing
 % This is valid since S(j) = 0 iff T(i,j) = 0 for all j
 
-if (ndims(T)==2) & (size(T,1)==1 | size(T,2)==1) % isvector
+if isvector(T)
   [T,Z] = normalise(T);
-elseif ndims(T)==2 % matrix
+elseif ismatrix(T)
   Z = sum(T,2); 
   S = Z + (Z==0);
   norm = repmat(S, 1, size(T,2));
@@ -653,7 +662,7 @@ opts.maxTotalIts = 50000;
 %opts.factr = 1e5;
 %opts.pgtol = 1e-7;
 
-[x, f, info] = cardamom_lbfgsb(fcn, zeros(nStates*nStates, 1), Inf(nStates*nStates, 1), opts);
+[x, ~, ~] = mdhmm_lbfgsb(fcn, zeros(nStates*nStates, 1), Inf(nStates*nStates, 1), opts);
 x = reshape(x,nStates,nStates);
 
 x_i = sum(x,2);

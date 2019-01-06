@@ -52,7 +52,7 @@ centroids0 = [];
 % Perform clustering
 % -------------------------------------------------------------------------
 
-[idxBest, centroidsBest] = runprivate('cardamom_kmeans',...
+[idxBest, centroidsBest] = runprivate('mdhmm_kmeans',...
                                       testDataWrapped,nStates,nRepeats,centroids0,verbosity);
 
                                     
@@ -80,7 +80,7 @@ eqdistr0 = eqdistr0./sum(eqdistr0,1);
 testDataWrapped = permute(testDataWrapped,[2,1,3]);
 
 [eqdistr1,transmat1,mu1,Sigma1,~] = ...
-    runprivate('cardamom_emghmm',testDataWrapped,eqdistr0,transmat0,mu0,Sigma0,[],verbosity);
+    runprivate('mdhmm_em',testDataWrapped,eqdistr0,transmat0,mu0,Sigma0,[],verbosity);
 
 % Compare
 % -------------------------------------------------------------------------

@@ -1,5 +1,3 @@
-function [eqDistr, transmat, mu, Sigma, mixmat] = ...
-     cardamom_emghmm(data, eqDistr, transmat, mu, Sigma, mixmat, verbose)
 % LEARN_MHMM Compute the ML parameters of an HMM with (mixtures of) Gaussians output using EM.
 % [prior, transmat, mu, sigma, mixmat] = learn_mhmm(data, ...
 %   prior0, transmat0, mu0, sigma0, mixmat0, ...) 
@@ -20,6 +18,9 @@ function [eqDistr, transmat, mu, Sigma, mixmat] = ...
 % 'max_iter' - max number of EM iterations [10]
 % 'thresh' - convergence threshold [1e-4]
 % 'verbose' - if 1, print out loglik at every iteration [1]
+
+function [eqDistr, transmat, mu, Sigma, mixmat] = ...
+     mdhmm_emghmm(data, eqDistr, transmat, mu, Sigma, mixmat, verbose)
 
 iterMax = 100;
 thresh = 1e-4;
@@ -353,7 +354,7 @@ opts.maxTotalIts = 50000;
 %opts.factr = 1e5;
 %opts.pgtol = 1e-7;
 
-[x, f, info] = cardamom_lbfgsb(fcn, zeros(nstate*nstate, 1), Inf(nstate*nstate, 1), opts);
+[x, f, info] = mdhmm_lbfgsb(fcn, zeros(nstate*nstate, 1), Inf(nstate*nstate, 1), opts);
 x = reshape(x, nstate, nstate);
 
 x_i = sum(x, 2);

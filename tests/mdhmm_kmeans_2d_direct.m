@@ -43,7 +43,7 @@ nRepeats = 10;
 verbosity = 0;
 centroids0 = [];
 
-[idxBest, centroidsBest] = runprivate('cardamom_kmeans',...
+[idxBest, centroidsBest] = runprivate('mdhmm_kmeans',...
                                       testDataWrapped,nClusters,nRepeats,centroids0,verbosity);
 
 % Check whether k-means produced correct clustering

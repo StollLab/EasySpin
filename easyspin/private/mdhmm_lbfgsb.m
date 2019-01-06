@@ -1,4 +1,4 @@
-function [x,f,info] = cardamom_lbfgsb( fcn, l, u, opts )
+function [x,f,info] = mdhmm_lbfgsb( fcn, l, u, opts )
 % x = lbfgsb( fcn, l, u )
 %   uses the lbfgsb v.3.0 library (fortran files must be installed;
 %       see compile_mex.m ) which is the L-BFGS-B algorithm.
@@ -163,7 +163,7 @@ callF_wrapped = @(x,varargin) fcn_wrapper( callF, errFcn, maxIts, ...
 % callF_wrapped = @(x,varargin)callF(x); % also valid, but simpler
 
 % Call the mex file
-[f,x,taskInteger,outer_count, k] = cardamom_lbfgsb_wrapper( m, x, l, u, nbd, ...
+[f,x,taskInteger,outer_count, k] = mdhmm_lbfgsb_wrapper( m, x, l, u, nbd, ...
     callF_wrapped, factr, pgtol, ...
     iprint, maxIts, maxTotalIts);
 

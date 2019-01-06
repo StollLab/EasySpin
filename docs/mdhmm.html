@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>cardamom</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">mdhmm</div>
+
+<p>
+Construct a hidden Markov model (HMM) from spin label side chain dihedrals obtained from MD simulations.
+</p>
+
+<!-- =================================================================== -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+HMM = mdhmm(dihedrals,dt,nStates,nLag)
+HMM = mdhmm(dihedrals,dt,nStates,nLag,Opt)
+</pre>
+
+<!-- =================================================================== -->
+<div class="subtitle">Description</div>
+
+<p>
+<code>mdhmm</code> takes the trajectories of dihedral angles provided in <code>dihedrals</code> and builds a Gaussian hidden Markov model (HMM) that stochastically models these trajectories.
+</p>
+
+<p>
+<code>mdhmm</code> accepts up to five input arguments
+
+<ul>
+<li><code>dihedrals</code>: trajectory or tracetories of dihedrals
+<li><code>dt</code>: time step (in seconds) of the dihedral trajectory
+<li><code>nStates</code>: desired number of states for the HMM
+<li><code>nLag</code>: desired lag time for the HMM, as a multiplication factor for <code>dt</code>
+<li><code>Opt</code>: simulation options
+</ul>
+
+<p>
+The possible fields in the structure <code>Opt</code> are 
+</p>
+
+<div class="optionfield"><code>Verbosity</code></div>
+<div class="optiondescr">
+If > 0, print information to the command window.
+</div>
+
+<div class="optionfield"><code>isSeeded</code></div>
+<div class="optiondescr">
+If set to <code>true</code>, use systematic seeds for the clustering of the dihedral angles. If set to <code>false</code>, use random seeds.
+</div>
+
+<div class="optionfield"><code>nTrials</code></div>
+<div class="optiondescr">
+Number of times to repeat the k-means clustering (only meaningful with random seeds).
+</div>
+
+
+
+<p>
+If no input argument is given, a short help summary is shown (same as when typing <code>help cardamom</code>).
+</p>
+
+<p>
+<code>mdhmm</code> returns a structure with information about the Gaussian HMM. It has the following fields
+
+<div class="optionfield"><code>transprob</code></div>
+<div class="optiondescr">
+Transition probability matrix
+</div>
+
+<div class="optionfield"><code>eqdistr</code></div>
+<div class="optiondescr">
+Equilibrium distribution among the HMM states
+</div>
+
+<div class="optionfield"><code>mu</code></div>
+<div class="optiondescr">
+Center vectors for all states
+</div>
+
+<div class="optionfield"><code>Sigma</code></div>
+<div class="optiondescr">
+Covariance matrices for all states
+</div>
+
+<div class="optionfield"><code>viterbiTraj</code></div>
+<div class="optiondescr">
+Most likely state trajectory given the model and the dihedral trajectory.
+</div>
+
+<div class="optionfield"><code>tauRelax</code></div>
+<div class="optiondescr">
+List of relaxation times (in seconds) of the Gaussian HMM.
+</div>
+
+<!-- =================================================================== -->
+<div class="subtitle">Algorithm</div>
+
+<p>
+<code>mdhmm</code> uses k-means clustering to determine an initial set of state centers and covariance matrices, and a maximum-likelihood estimator to obtain initial estimates for the transition probability matrix and the equilibrium distribution. It then uses these estimates as starting values to optimize them, using the Baum-Welch expectation maximization algorithm. This yields the final HMM parameters. At the end, the most likely state trajectory giving rise to the dihedrals trajectory is calculated using the Viterbi algorithm, and the relaxation times of the HMM are calculated from the eigenvalues of the transition probability matrix.
+</p>
+
+<!-- =================================================================== -->
+<div class="subtitle">See also</div>
+<p>
+<a class="esf" href="cardamom.html">cardamom</a>,
+<a class="esf" href="mdload.html">mdload</a>,
+<a class="esf" href="stochtraj_diffusion.html">stochtraj_diffusion</a>,
+<a class="esf" href="stochtraj_jump.html">stochtraj_jump</a>
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+</html>

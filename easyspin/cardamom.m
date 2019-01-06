@@ -364,8 +364,8 @@ if useMD
     end
     
     nLag = MD.tLag/MD.dt;
-    HMM = cardamom_buildhmm(MD.dihedrals,MD.nStates,nLag,MD.dt,Opt);
-    % provides HMM.transmat, HMM.eqdistr, HMM.stateTraj
+    HMM = mdhmm(MD.dihedrals,MD.dt,MD.nStates,nLag,Opt);
+    % provides HMM.transmat, HMM.eqdistr, HMM.viterbiTraj, etc
     MD.viterbiTraj = HMM.viterbiTraj.';
     
     % Set the Markov chain time step based on the (scaled) sampling lag time
