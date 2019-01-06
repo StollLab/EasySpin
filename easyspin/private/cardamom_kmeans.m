@@ -125,7 +125,7 @@ for iRepeat = 1:nRepeats
   sumdist2(1,iRepeat) = sum(minDistances2);
   
   if verbosity
-    fprintf('    repeat %d: best sum of squared distances is %0.3f\n',iRepeat,sumdist2(1,iRepeat));
+    fprintf('    repeat %d: best sum of squared distances is %0.3f after %d iterations\n',iRepeat,sumdist2(1,iRepeat),iIter);
   end
   
   idxClustersAll{iRepeat} = idxClusters;
