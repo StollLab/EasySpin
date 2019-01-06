@@ -72,8 +72,9 @@ for iRepeat = 1:nRepeats
       centroids(nClusters:nClusters0,:) = data(randidx,:);
     end
   else
-    randidx = randperm(nPoints,nClusters);
-    centroids = data(randidx,:);
+%     randidx = randperm(nPoints,nClusters);
+%     centroids = data(randidx,:);
+    centroids = kppseed(data, nClusters);
   end
 
 %   idxClusters = randi(nClusters,[nPoints,1]);
@@ -157,6 +158,42 @@ centroidsBest = centroidsAll{iBest};
 
 end
 
+% Helper functions
+% -------------------------------------------------------------------------
+
+function centroids0 = kppseed(data, nSeeds)
+% Seed k-means clustering using k-means++ algorithm, where each successive
+% seed is chosen randomly with probability proportional to the distance to
+% the nearest center
+
+% Adapted from code by Mo Chen (sth4nth@gmail.com).
+[nPoints,nDims] = size(data);
+D = inf(nPoints,1);
+
+centroids0 = zeros(nSeeds,nDims);
+centroids0(1,:) = data(ceil(nPoints*rand),:);
+for k = 2:nSeeds
+  dist = dist_pbc(data-centroids0(k-1,:), 2*pi);
+  D = min(D,sum(dist.^2,2));
+  D = D./sum(D);
+  centroids0(k,:) = data(find(rand<cumsum(D),1),:);
+end
+
+end
+
+function dist = dist_pbc(dist,W)
+
+w = W/2;
+
+% dist = w - abs(pi - abs(dist));
+
+idx1 = dist > w;
+idx2 = dist < -w;
+
+dist(idx1) = dist(idx1) - W;
+dist(idx2) = dist(idx2) + W;
+
+end
 
 function centroids = calc_centroids_pbc(x,W)
 % Calculate centroid coordinates while accounting for periodic boundary
