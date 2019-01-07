@@ -15,8 +15,8 @@
 %
 % Output:
 %   HMM             structure with HMM parameters
-%    .transmat      transition probability matrix
-%    .eqdistr       equilibrium distribution vector
+%    .TransProb     transition probability matrix
+%    .eqDistr       equilibrium distribution vector
 %    .mu            center vectors of states
 %    .Sigma         covariance matrices of states
 %    .viterbiTraj   Viterbi state trajectory (most likely given the dihedrals)
@@ -122,7 +122,8 @@ dihedrals = dihedrals(1:nLag:end,:,:);
 stateTraj = stateTraj(1:nLag:end,:);
 
 % Estimate transition probability matrix and initial distribution
-[transmat0,eqdistr0] = estimatemarkovparameters(stateTraj);
+[TransProb0,~] = estimatemarkovparameters(stateTraj);
+initDistr0 = rand(1,nStates);
 
 % Reorder (nSteps,nDims,nTraj) to (nDims,nSteps,nTraj), for EM function
 dihedrals = permute(dihedrals,[2,1,3]);
@@ -131,19 +132,19 @@ dihedrals = permute(dihedrals,[2,1,3]);
 %-------------------------------------------------------------------------------
 logmsg(1,'  HMM optimization using EM algorithm');
 % Determine/estimate HMM model parameters using expectation maximization
-[HMM.eqdistr,HMM.transmat,HMM.mu,HMM.Sigma] = ...
-  mdhmm_em(dihedrals,eqdistr0,transmat0,mu0,Sigma0,[],Opt.Verbosity);
+[HMM.eqDistr,HMM.TransProb,HMM.mu,HMM.Sigma] = ...
+  mdhmm_em(dihedrals,initDistr0,TransProb0,mu0,Sigma0,Opt.Verbosity);
 
 % Calculate Viterbi state trajectory
 %-------------------------------------------------------------------------------
 logmsg(1,'  Viterbi state trajectories calculation');
 % Determine most probable hidden-state trajectory
-HMM.viterbiTraj = viterbitrajectory(dihedrals,HMM.transmat,HMM.eqdistr,HMM.mu,HMM.Sigma);
+HMM.viterbiTraj = viterbitrajectory(dihedrals,HMM.TransProb,HMM.eqDistr,HMM.mu,HMM.Sigma);
 
 % Calculate relaxation times for the TPM and time lag
 %-------------------------------------------------------------------------------
-logmsg(1,'  Calculate relaxatim times');
-lambda = eig(HMM.transmat);
+logmsg(1,'  Calculate relaxation times');
+lambda = eig(HMM.TransProb);
 lambda = sort(real(lambda), 1, 'descend');
 lambda = lambda(lambda>0);
 HMM.tauRelax = -nLag*dt./log(lambda(2:end).');
@@ -301,199 +302,6 @@ p = exp(-0.5*mahal) / (denom+eps);
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [B, B2] = mixgauss_prob(data, mu, Sigma, mixmat, unit_norm)
-% EVAL_PDF_COND_MOG Evaluate the pdf of a conditional mixture of Gaussians
-% function [B, B2] = eval_pdf_cond_mog(data, mu, Sigma, mixmat, unit_norm)
-%
-% Notation: Y is observation, M is mixture component, and both may be conditioned on Q.
-% If Q does not exist, ignore references to Q=j below.
-% Alternatively, you may ignore M if this is a conditional Gaussian.
-%
-% INPUTS:
-% data(:,t) = t'th observation vector 
-%
-% mu(:,k) = E[Y(t) | M(t)=k] 
-% or mu(:,j,k) = E[Y(t) | Q(t)=j, M(t)=k]
-%
-% Sigma(:,:,j,k) = Cov[Y(t) | Q(t)=j, M(t)=k]
-% or there are various faster, special cases:
-%   Sigma() - scalar, spherical covariance independent of M,Q.
-%   Sigma(:,:) diag or full, tied params independent of M,Q. 
-%   Sigma(:,:,j) tied params independent of M. 
-%
-% mixmat(k) = Pr(M(t)=k) = prior
-% or mixmat(j,k) = Pr(M(t)=k | Q(t)=j) 
-% Not needed if M is not defined.
-%
-% unit_norm - optional; if 1, means data(:,i) AND mu(:,i) each have unit norm (slightly faster)
-%
-% OUTPUT:
-% B(t) = Pr(y(t)) 
-% or
-% B(i,t) = Pr(y(t) | Q(t)=i) 
-% B2(i,k,t) = Pr(y(t) | Q(t)=i, M(t)=k) 
-%
-% If the number of mixture components differs depending on Q, just set the trailing
-% entries of mixmat to 0, e.g., 2 components if Q=1, 3 components if Q=2,
-% then set mixmat(1,3)=0. In this case, B2(1,3,:)=1.0.
-
-if iscolumn(mu)
-  d = length(mu);
-  Q = 1; M = 1;
-elseif ndims(mu)==2
-  [d, Q] = size(mu);
-  M = 1;
-else
-  [d, Q, M] = size(mu);
-end
-[d, T] = size(data);
-
-if nargin < 4, mixmat = ones(Q,1); end
-if nargin < 5, unit_norm = 0; end
-
-%B2 = zeros(Q,M,T); % ATB: not needed allways
-%B = zeros(Q,T);
-
-if isscalar(Sigma)
-  mu = reshape(mu, [d Q*M]);
-  if unit_norm % (p-q)'(p-q) = p'p + q'q - 2p'q = n+m -2p'q since p(:,i)'p(:,i)=1
-    %avoid an expensive repmat
-    disp('unit norm')
-    %tic; D = 2 -2*(data'*mu)'; toc 
-    D = 2 - 2*(mu'*data);
-    tic; D2 = sqdist(data, mu)'; toc
-    assert(approxeq(D,D2)) 
-  else
-    D = sqdist(data, mu)';
-  end
-  clear mu data % ATB: clear big old data
-  % D(qm,t) = sq dist between data(:,t) and mu(:,qm)
-  logB2 = -(d/2)*log(2*pi*Sigma) - (1/(2*Sigma))*D; % det(sigma*I) = sigma^d
-  B2 = reshape(exp(logB2), [Q M T]);
-  clear logB2 % ATB: clear big old data
-  
-elseif ndims(Sigma)==2 % tied full
-  mu = reshape(mu, [d Q*M]);
-  D = sqdist(data, mu, inv(Sigma))';
-  % D(qm,t) = sq dist between data(:,t) and mu(:,qm)
-  logB2 = -(d/2)*log(2*pi) - 0.5*logdet(Sigma) - 0.5*D;
-  %denom = sqrt(det(2*pi*Sigma));
-  %numer = exp(-0.5 * D);
-  %B2 = numer/denom;
-  B2 = reshape(exp(logB2), [Q M T]);
-  
-elseif ndims(Sigma)==3 % tied across M
-  B2 = zeros(Q,M,T);
-  for j=1:Q
-    % D(m,t) = sq dist between data(:,t) and mu(:,j,m)
-    if isposdef(Sigma(:,:,j))
-      D = sqdist(data, permute(mu(:,j,:), [1 3 2]), inv(Sigma(:,:,j)))';
-      logB2 = -(d/2)*log(2*pi) - 0.5*logdet(Sigma(:,:,j)) - 0.5*D;
-%       logB2 = -(d/2)*log(2*pi) - 0.5*log(det(Sigma(:,:,j))) - 0.5*D;
-      B2(j,:,:) = exp(logB2);
-    else
-      error('mixgauss_prob: Sigma(:,:,q=%d) not psd\n', j);
-    end
-  end
-  
-else % general case
-  B2 = zeros(Q,M,T);
-  for j=1:Q
-    for k=1:M
-      %if mixmat(j,k) > 0
-      B2(j,k,:) = gaussian_prob(data, mu(:,j,k), Sigma(:,:,j,k));
-      %end
-    end
-  end
-end
-
-% B(j,t) = sum_k B2(j,k,t) * Pr(M(t)=k | Q(t)=j) 
-
-% The repmat is actually slower than the for-loop, because it uses too much memory
-% (this is true even for small T).
-
-%B = squeeze(sum(B2 .* repmat(mixmat, [1 1 T]), 2));
-%B = reshape(B, [Q T]); % undo effect of squeeze in case Q = 1
-  
-B = zeros(Q,T);
-if Q < T
-  for q=1:Q
-    %B(q,:) = mixmat(q,:) * squeeze(B2(q,:,:)); % squeeze chnages order if M=1
-    B(q,:) = mixmat(q,:) * permute(B2(q,:,:), [2 3 1]); % vector * matrix sums over m
-  end
-else
-  for t=1:T
-    B(:,t) = sum(mixmat .* B2(:,:,t), 2); % sum over m
-  end
-end
-%t=toc;fprintf('%5.3f\n', t)
-
-%tic
-%A = squeeze(sum(B2 .* repmat(mixmat, [1 1 T]), 2));
-%t=toc;fprintf('%5.3f\n', t)
-%assert(approxeq(A,B)) % may be false because of round off error
-
-end
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function b = isposdef(a)
-% ISPOSDEF   Test for positive definite matrix.
-%    ISPOSDEF(A) returns 1 if A is positive definite, 0 otherwise.
-%    Using chol is much more efficient than computing eigenvectors.
-
-%  From Tom Minka's lightspeed toolbox
-
-[~,p] = chol(a);
-b = (p == 0);
-
-end
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function y = logdet(A)
-% log(det(A)) where A is positive-definite.
-% This is faster and more stable than using log(det(A)).
-
-%  From Tom Minka's lightspeed toolbox
-
-U = chol(A);
-y = 2*sum(log(diag(U)));
-
-end
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function m = sqdist(p, q, A)
-% SQDIST      Squared Euclidean or Mahalanobis distance.
-% SQDIST(p,q)   returns m(i,j) = (p(:,i) - q(:,j))'*(p(:,i) - q(:,j)).
-% SQDIST(p,q,A) returns m(i,j) = (p(:,i) - q(:,j))'*A*(p(:,i) - q(:,j)).
-
-%  From Tom Minka's lightspeed toolbox
-
-[d, pn] = size(p);
-[d, qn] = size(q);
-
-if nargin == 2
-  
-  pmag = sum(p .* p, 1);
-  qmag = sum(q .* q, 1);
-  m = repmat(qmag, pn, 1) + repmat(pmag', 1, qn) - 2*p'*q;
-  %m = ones(pn,1)*qmag + pmag'*ones(1,qn) - 2*p'*q;
-  
-else
-
-  if isempty(A) || isempty(p)
-    error('sqdist: empty matrices');
-  end
-  Ap = A*p;
-  Aq = A*q;
-  pmag = sum(p .* Ap, 1);
-  qmag = sum(q .* Aq, 1);
-  m = repmat(qmag, pn, 1) + repmat(pmag', 1, qn) - 2*p'*Aq;
-  
-end
-
-end
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function path = viterbi_path(prior, transmat, obslik)
 % VITERBI Find the most-probable (Viterbi) path through the HMM state trellis.
 % path = viterbi(prior, transmat, obslik)
@@ -591,37 +399,6 @@ else
   %c=repmat(s,v);
   c=repmat(s,v');
   M=A./c;
-end
-
-end
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [T,Z] = mk_stochastic(T)
-% MK_STOCHASTIC Ensure the argument is a stochastic matrix, i.e., the sum over the last dimension is 1.
-% [T,Z] = mk_stochastic(T)
-%
-% If T is a vector, it will sum to 1.
-% If T is a matrix, each row will sum to 1.
-% If T is a 3D array, then sum_k T(i,j,k) = 1 for all i,j.
-
-% Set zeros to 1 before dividing
-% This is valid since S(j) = 0 iff T(i,j) = 0 for all j
-
-if isvector(T)
-  [T,Z] = normalise(T);
-elseif ismatrix(T)
-  Z = sum(T,2); 
-  S = Z + (Z==0);
-  norm = repmat(S, 1, size(T,2));
-  T = T ./ norm;
-else % multi-dimensional array
-  ns = size(T);
-  T = reshape(T, prod(ns(1:end-1)), ns(end));
-  Z = sum(T,2);
-  S = Z + (Z==0);
-  norm = repmat(S, 1, ns(end));
-  T = T ./ norm;
-  T = reshape(T, ns);
 end
 
 end

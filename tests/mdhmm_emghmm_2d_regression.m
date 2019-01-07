@@ -64,46 +64,48 @@ mu0 = centroidsBest.';
 Sigma0 = zeros(nDims,nDims,nStates);
 for iState = 1:nStates
   idxState = idxBest==iState;
-  Sigma0(:,:,iState) = cov_pbc(testData(idxState,:), mu0(:,iState).', 2*pi);
+  Sigma0(:,:,iState) = cov_pbc(testDataWrapped(idxState,:), mu0(:,iState).', 2*pi);
 %   Sigma0(:,:,iState) = cov(testData(idxState,:));
 end
 
-mixmat0 = ones(nStates,1);
+TransProb0 = rand(nStates);
+TransProb0 = TransProb0./sum(TransProb0,2);
 
-transmat0 = rand(nStates);
-transmat0 = transmat0./sum(transmat0,2);
-
-eqdistr0 = rand(nStates,1);
-eqdistr0 = eqdistr0./sum(eqdistr0,1);
+initDistr0 = rand(nStates,1);
+initDistr0 = initDistr0./sum(initDistr0,1);
 
 % EM function wants an array of shape (nDims,nSteps,nTraj)
 testDataWrapped = permute(testDataWrapped,[2,1,3]);
 
-[eqdistr1,transmat1,mu1,Sigma1,~] = ...
-    runprivate('mdhmm_em',testDataWrapped,eqdistr0,transmat0,mu0,Sigma0,[],verbosity);
+[eqDistr1,TransProb1,mu1,Sigma1] = ...
+    runprivate('mdhmm_em',testDataWrapped,initDistr0,TransProb0,mu0,Sigma0,verbosity);
 
 % Compare
 % -------------------------------------------------------------------------
 
-data.transmat = transmat1;
-data.eqdistr = eqdistr1;
-
-% hold on
-% % scatter(testDataWrapped(1,:), testDataWrapped(2,:), 10, 'filled')
-% for iState = 1:nStates
-%   idxState = idxBest==iState;
-%   scatter(testDataWrapped(1,idxState), testDataWrapped(2,idxState), 10, 'filled')
-% end
-% scatter(mu0(1,:), mu0(2,:), 40, 'filled')
-% scatter(mu1(1,:), mu1(2,:), 40, 'green')
-% hold off
+data.TransProb = TransProb1;
+data.eqDistr = eqDistr1;
 
 
 if ~isempty(olddata)
-  err = any(any(abs(olddata.transmat-transmat1)>1e-10)) ...
-       || any(abs(olddata.eqdistr-eqdistr1)>1e-10);
+  err = any(any(abs(olddata.TransProb-TransProb1)>1e-10)) ...
+       || any(abs(olddata.eqDistr-eqDistr1)>1e-10);
 else
   err = [];
+end
+
+if opt.Display
+  
+  hold on
+  % scatter(testDataWrapped(1,:), testDataWrapped(2,:), 10, 'filled')
+  for iState = 1:nStates
+    idxState = idxBest==iState;
+    scatter(testDataWrapped(1,idxState), testDataWrapped(2,idxState), 10, 'filled')
+  end
+  scatter(mu0(1,:), mu0(2,:), 40, 'filled')
+  scatter(mu1(1,:), mu1(2,:), 40, 'green')
+  hold off
+  
 end
 
 end

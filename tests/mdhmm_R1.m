@@ -23,21 +23,21 @@ nStates = 20;
 MD.removeChi3 = true;
 
 Opt.nTrials = 2;
-Opt.Verbosity = 0;
+Opt.Verbosity = 1;
 
 HMM = mdhmm(MD.dihedrals,MD.dt,nStates,nLag,Opt);
 
 % Compare
 % -------------------------------------------------------------------------
 
-data.transmat = HMM.transmat;
-data.eqdistr = HMM.eqdistr;
+data.TransProb = HMM.TransProb;
+data.eqDistr = HMM.eqDistr;
 HMM.stateTraj = HMM.viterbiTraj;
 data.stateTraj = HMM.stateTraj;
 
 if ~isempty(olddata)
-  err = any(any(abs(olddata.transmat-HMM.transmat)>1e-10)) ...
-       || any(abs(olddata.eqdistr-HMM.eqdistr)>1e-10) ...
+  err = any(any(abs(olddata.TransProb-HMM.TransProb)>1e-10)) ...
+       || any(abs(olddata.eqDistr-HMM.eqDistr)>1e-10) ...
        || any(abs(olddata.stateTraj-HMM.stateTraj)>1e-10);
 else
   err = [];

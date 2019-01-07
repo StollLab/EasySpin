@@ -193,9 +193,9 @@
 % 
 %     LabelName      name of spin label, 'R1' (default) or 'TOAC'
 %
-%     HMM            structure
-%      .transmat     transition probability matrix
-%      .eqdistr      equilibrium distribution vector
+%     HMM            structure, output from 'mdhmm'
+%      .TransProb    transition probability matrix
+%      .eqDistr      equilibrium distribution vector
 %      .mu           center vectors of states
 %      .Sigma        covariance matrices of states
 %      .viterbiTraj  Viterbi state trajectory (most likely given the dihedrals)
@@ -857,10 +857,10 @@ while ~converged
 
       case 'MD-HMM'
 
-        Sys.TransProb = HMM.transmat;
+        Sys.TransProb = HMM.TransProb;
         Par.dt = dtStoch;
         Par.nSteps = 2*nStepsStoch;
-        Par.StatesStart = rejectionsample(HMM.eqdistr, Par.nTraj);
+        Par.StatesStart = rejectionsample(HMM.eqDistr, Par.nTraj);
         Opt.statesOnly = true;
         [~, stateTraj] = stochtraj_jump(Sys,Par,Opt);
         stateTraj = stateTraj(:,nStepsStoch+1:end);

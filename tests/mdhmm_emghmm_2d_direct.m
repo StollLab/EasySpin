@@ -61,22 +61,22 @@ mu0 = centroidsBest.';
 Sigma0 = zeros(nDims,nDims,nStates);
 for iState = 1:nStates
   idxState = idxBest==iState;
-  Sigma0(:,:,iState) = cov_pbc(testData(idxState,:), mu0(:,iState).', 2*pi);
+  Sigma0(:,:,iState) = cov_pbc(testDataWrapped(idxState,:), mu0(:,iState).', 2*pi);
 end
 
 % Initialize TPM and equilibrium distribution using uniform distributions
-transmat0 = rand(nStates);
-transmat0 = transmat0./sum(transmat0,2);
+TransProb0 = rand(nStates);
+TransProb0 = TransProb0./sum(TransProb0,2);
 
-eqdistr0 = rand(nStates,1);
-eqdistr0 = eqdistr0./sum(eqdistr0,1);
+initDistr0 = rand(nStates,1);
+initDistr0 = initDistr0./sum(initDistr0,1);
 
 % EM function wants an array of shape (nDims,nSteps,nTraj)
 testDataWrapped = permute(testDataWrapped,[2,1,3]);
 
 % Run expectation maximization algorithm
-[eqdistr1,transmat1,mu1,Sigma1,~] = ...
-    runprivate('mdhmm_em',testDataWrapped,eqdistr0,transmat0,mu0,Sigma0,[],verbosity);
+[eqDistr1,TransProb1,mu1,Sigma1] = ...
+    runprivate('mdhmm_em',testDataWrapped,initDistr0,TransProb0,mu0,Sigma0,verbosity);
 
 % Compare
 % -------------------------------------------------------------------------
@@ -99,17 +99,17 @@ end
 
 % Reorder HMM parameters based on best agreement
 mu1 = mu1(:,bestidx);
-temp = transmat1(:,bestidx);
-transmat1 = temp(bestidx,:);
+temp = TransProb1(:,bestidx);
+TransProb1 = temp(bestidx,:);
 
 muDiff = abs(mu1 - muTrue');
-transmatChange = abs(Sys.TransProb - transmat1)./transmat1;
+TransProbChange = abs(Sys.TransProb - TransProb1)./TransProb1;
 
 muThreshold = 5/180*pi;
-transmatThreshold = 0.5;
+tranProbThreshold = 0.5;
 
 if    (max(muDiff(:)) > muThreshold) ...
-   || (max(transmatChange(:)) > transmatThreshold)
+   || (max(TransProbChange(:)) > tranProbThreshold)
   err = 1;
 end
 

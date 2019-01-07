@@ -1,33 +1,55 @@
-% LEARN_MHMM Compute the ML parameters of an HMM with (mixtures of) Gaussians output using EM.
-% [prior, transmat, mu, sigma, mixmat] = learn_mhmm(data, ...
-%   prior0, transmat0, mu0, sigma0, mixmat0, ...) 
+% mdhmm_em  Calculate the maximum-likelihood parameters for a multivariate
+%           Gaussian HMM using the Baum-Welch algorithm
 %
-% Notation: Q(t) = hidden state, Y(t) = observation, M(t) = mixture variable
+%   function [eqDistr, TransProb, mu, Sigma] = ...
+%     mdhmm_em(data, initDistr, TransProb, mu, Sigma, verbosity)
 %
-% INPUTS:
-% data{ex}(:,t) or data(:,t,ex) if all sequences have the same length
-% prior(i) = Pr(Q(1) = i), 
-% transmat(i,j) = Pr(Q(t+1)=j | Q(t)=i)
-% mu(:,j,k) = E[Y(t) | Q(t)=j, M(t)=k ]
-% Sigma(:,:,j,k) = Cov[Y(t) | Q(t)=j, M(t)=k]
-% mixmat(j,k) = Pr(M(t)=k | Q(t)=j) : set to [] or ones(Q,1) if only one mixture component
 %
-% Optional parameters may be passed as 'param_name', param_value pairs.
-% Parameter names are shown below; default values in [] - if none, argument is mandatory.
+%     data           numeric matrix, size = (nPoints,nDims,nTraj)
+%                    input data
 %
-% 'max_iter' - max number of EM iterations [10]
-% 'thresh' - convergence threshold [1e-4]
-% 'verbose' - if 1, print out loglik at every iteration [1]
+%     initdistr      numeric vector, size = (1,nStates)
+%                    initial starting state probability distribution
+%
+%     TransProb      numeric, size = (nStates,nStates)
+%                    initial transition probability matrix describing 
+%                    inter-state dynamics for a given time step
+%
+%     mu             numeric matrix, size = (nDims,nStates)
+%                    initial centers of Gaussians assigned to states
+%
+%     Sigma          numeric matrix, size = (nDims,nDims,nStates)
+%                    initial covariance matrices of Gaussians assigned to
+%                    states
+%
+%     verbosity      0 or 1
+%                    if set to 1, display information regarding the
+%                    progress
+%    
+%   Output:
+%
+%     TransProb      numeric, size = (nStates,nStates)
+%                    transition probability matrix describing inter-state 
+%                    dynamics for a given time step
+%
+%     mu             numeric matrix, size = (nDims,nStates)
+%                    centers of Gaussians assigned to states
+%
+%     Sigma          numeric matrix, size = (nDims,nDims,nStates)
+%                    covariance matrices of Gaussians assigned to states
+%
+%     eqdistr        numeric vector, size = (1,nStates)
+%                    equilibrium state probability distribution
 
-function [eqDistr, transmat, mu, Sigma, mixmat] = ...
-     mdhmm_emghmm(data, eqDistr, transmat, mu, Sigma, mixmat, verbose)
+% Code adapted from Kevin Murphy's HMM toolbox
+
+function [eqDistr, TransProb, mu, Sigma] = ...
+     mdhmm_em(data, initDistr, TransProb, mu, Sigma, verbosity)
 
 iterMax = 100;
 thresh = 1e-4;
-cov_type = 'full';
   
 previous_loglik = -inf;
-logLik = 0;
 converged = 0;
 iter = 1;
 logLikIter = [];
@@ -37,15 +59,12 @@ if ~iscell(data)
 end
 
 nTraj = length(data);
-nSteps = size(data{1},1);
-nStates = length(eqDistr);
+nStates = length(initDistr);
 
 while (iter <= iterMax) && ~converged
   % E step
-%   [logLik, transCounts, exp_num_visits1, postmix, m, ip, op] = ...
-%       ess_mhmm(eqDistr, transmat, mu, Sigma, data);
   transCounts = zeros(nStates,nStates);
-  exp_num_visits1 = zeros(nStates,1);
+  expNumVisits1 = zeros(nStates,1);
   weightsSummed = zeros(nStates,1);
 
   logLik = 0;
@@ -60,11 +79,11 @@ while (iter <= iterMax) && ~converged
       B(iState,:) = gaussian_prob_pbc(obs, mu(:,iState), Sigma(:,:,iState), 2*pi);
     end
     fwd_only = false;
-    [~, ~, gamma, current_loglik, xi_summed] = fwdback(eqDistr, transmat, B, fwd_only);
+    [~, ~, gamma, current_loglik, xi_summed] = fwdback(initDistr, TransProb, B, fwd_only);
     logLik = logLik +  current_loglik;
 
     transCounts = transCounts + xi_summed; % sum(xi,3);
-    exp_num_visits1 = exp_num_visits1 + gamma(:,1);
+    expNumVisits1 = expNumVisits1 + gamma(:,1);
 
     weightsSummed = weightsSummed + sum(gamma,2);
     for iState=1:nStates
@@ -76,8 +95,8 @@ while (iter <= iterMax) && ~converged
   
   
   % M step
-  [transmat, eqDistr, ~] = msmtransitionmatrix(transCounts, 1000);
-%   prior = normalise(exp_num_visits1);
+  [TransProb, eqDistr, ~] = msmtransitionmatrix(transCounts, 1000);
+  initDistr = normalise(expNumVisits1);
 %   transmat = mk_stochastic(exp_num_trans);
   cov_prior = repmat(0.01*eye(nDims,nDims), [1 1 nStates]);
 
@@ -103,7 +122,7 @@ while (iter <= iterMax) && ~converged
   Sigma = Sigma + cov_prior;
   
   % Check convergence
-  if verbose, fprintf(1, '    iteration %d, loglik = %f\n', iter, logLik); end
+  if verbosity, fprintf(1, '    iteration %d, loglik = %f\n', iter, logLik); end
   iter =  iter + 1;
   converged = em_converged(logLik, previous_loglik, thresh);
   previous_loglik = logLik;
