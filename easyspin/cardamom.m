@@ -186,25 +186,21 @@
 %     DiffGlobal     double (optional)
 %                    Diffusion coefficient for isotropic global rotational
 %                    diffusion (s^-1)
-%
-%     TrajUsage      string (optional)
-%                    Explicit: (default) use molecular orientations in
-%                      trajectories directly as input for simulating the
-%                      spectrum
-%                    Resampling: coarse grain the trajectories by using the
-%                      Euler angle probability distribution (for 
-%                      pseudopotential) and orientational correlation 
-%                      functions (for diffusion tensor) to perform further 
-%                      stochastic rotational dynamics simulations
-%                    Markov: coarse grain the trajectories by using the
-%                      side chain dihedral angles to build a Markov state 
-%                      model
 % 
 %     removeGlobal   integer
 %                    1: (default) remove protein global diffusion
 %                    0: no removal (e.g. if protein is fixed)
 % 
 %     LabelName      name of spin label, 'R1' (default) or 'TOAC'
+%
+%     HMM            structure
+%      .transmat     transition probability matrix
+%      .eqdistr      equilibrium distribution vector
+%      .mu           center vectors of states
+%      .Sigma        covariance matrices of states
+%      .viterbiTraj  Viterbi state trajectory (most likely given the dihedrals)
+%      .tauRelax     relaxation times of HMM
+%                    
 %
 %   Output:
 %     B              numeric, size = (2*nSteps,1) 
@@ -374,28 +370,47 @@ if useMD
   
   % Build Markov state model
   if strcmp(Par.Model,'MD-HMM')
-    logmsg(1,'-- building Markov state model -----------------------------------------');
-    
-    % Trim chi3 for R1 if wanted
-    if strcmp(MD.LabelName,'R1')
-      if ~isfield(Opt,'removeChi3')
-        Opt.removeChi3 = true;
+    if isfield(MD,'HMM')
+      logmsg(1,'-- using provided HMM input parameters -----------------------------------------');
+      
+      HMM = MD.HMM;
+      if ~isfield(HMM,'transmat')
+        error('The transition probability matrix must be provided in HMM.transmat.')
       end
-      % Remove chi3 of R1, as its dynamics are very slow on the typical MD timescale
-      if Opt.removeChi3
-        MD.dihedrals(3,:,:) = [];
+      if ~isfield(HMM,'nLag')
+        error('The time lag (an integer multiple of the MD time step) must be provided in HMM.nLag.')
       end
+      if ~isfield(HMM,'eqdistr')
+        error('The equilibrium state distribution must be provided in HMM.eqdistr.')
+      end
+      if ~isfield(HMM,'viterbiTraj')
+        error('The Viterbi trajectory must be provided in HMM.viterbiTraj.')
+      end
+      
+    else
+      logmsg(1,'-- building HMM -----------------------------------------');
+
+      % Trim chi3 for R1 if wanted
+      if strcmp(MD.LabelName,'R1')
+        if ~isfield(Opt,'removeChi3')
+          Opt.removeChi3 = true;
+        end
+        % Remove chi3 of R1, as its dynamics are very slow on the typical MD timescale
+        if Opt.removeChi3
+          MD.dihedrals(3,:,:) = [];
+        end
+      end
+
+      nLag = MD.tLag/MD.dt;
+      HMM = mdhmm(MD.dihedrals,MD.dt,MD.nStates,nLag,Opt);
+      
+      logmsg(1,'  ---- HMM done ---');
     end
-    
-    nLag = MD.tLag/MD.dt;
-    HMM = mdhmm(MD.dihedrals,MD.dt,MD.nStates,nLag,Opt);
     % provides HMM.transmat, HMM.eqdistr, HMM.viterbiTraj, etc
     MD.viterbiTraj = HMM.viterbiTraj.';
-    
+
     % Set the Markov chain time step based on the (scaled) sampling lag time
     Par.dt = MD.tLag;
-    logmsg(1,'  ---- HMM done ---');
-    
   end
   
   % Estimate rotational diffusion time constant (used in the density propagation)
