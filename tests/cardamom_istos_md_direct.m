@@ -1,6 +1,6 @@
 function [err,data] = test(opt,olddata)
 % Regression test for MD trajectory-based simulation of EPR spectrum using
-% cardamom and nitroxide method
+% cardamom and ISTOs method (with correlation function approximation)
 
 rng(1)
 
@@ -21,7 +21,7 @@ MD.DiffGlobal = 6e6;
 % Calculate spectrum using cardamom
 % -------------------------------------------------------------------------
 
-T = 250e-9;
+T = 200e-9;
 
 Sys.Nucs = '14N';
 
@@ -31,20 +31,20 @@ Sys.lw = [0.1, 0.1];
 
 Par.nTraj = 100;
 
-Par.dt = 1.0e-9;
+Par.dt = 2.0e-9;
 Par.nSteps = ceil(T/Par.dt);
 Par.nOrients = 100;
-Par.Model = 'MD';
+Par.Model = 'MD-direct';
 
 Exp.mwFreq = 9.4;
 
 Opt.Verbosity = 0;
 Opt.FFTWindow = 1;
-Opt.Method = 'Nitroxide';
+Opt.Method = 'ISTOs';
+Opt.truncate = 30;
 
 [~, spc] = cardamom(Sys,Exp,Par,Opt,MD);
 spc = spc/max(spc);
-
 
 data.spc = spc;
 

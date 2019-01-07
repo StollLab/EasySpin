@@ -78,9 +78,9 @@ Model = Par.Model;
 % functions
 if ~isempty(MD)
   tauR = MD.tauR;
-  isHMMfromMD = strcmp(MD.TrajUsage,'Markov');
+  isHMMfromMD = strcmp(Par.Model,'MD-HMM');
   useMD = 1;
-  isExplicit = strcmp(MD.TrajUsage,'Explicit');
+  isDirectfromMD = strcmp(Par.Model,'MD-direct');
 else
   useMD = 0;
   isHMMfromMD = 0;
@@ -98,7 +98,7 @@ end
 
 % grab the quaternions or rotation matrices
 if useMD
-  if isExplicit
+  if isDirectfromMD
     if strcmp(Method, 'ISTOs')
       qTraj = Par.qTraj;
       qLab = Par.qLab;
@@ -238,7 +238,7 @@ switch Method
         idx = idx + Par.BlockLength;
       end
 
-      if useMD && isExplicit
+      if useMD && isDirectfromMD
         % Perform sliding window processing if using MD trajectory explicitly
         gTensor = zeros(3,3,nTraj,nSteps);
         ATensor = zeros(3,3,nTraj,nSteps);
@@ -411,7 +411,7 @@ switch Method
 
         % perform sliding window processing if using MD trajectory explicitly
         if useMD
-          if isExplicit
+          if isDirectfromMD
             D2TrajMol = zeros(5,5,nTraj,nSteps);
 
             for k = 1:nTraj

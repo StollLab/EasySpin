@@ -17,7 +17,6 @@ MD.tScale = tScale;
 MD.removeGlobal = 0;
 
 MD.DiffGlobal = 6e6;
-MD.TrajUsage = 'Resampling';
 
 % Calculate spectrum using cardamom
 % -------------------------------------------------------------------------
@@ -36,7 +35,7 @@ Par.nTraj = 100;
 Par.dt = 0.5e-9;
 Par.nSteps = ceil(T/Par.dt);
 Par.nOrients = 100;
-Par.Model = 'MD';
+Par.Model = 'MD-HBD';
 
 Exp.mwFreq = 9.4;
 

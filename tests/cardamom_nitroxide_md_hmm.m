@@ -16,8 +16,6 @@ MD = Traj;
 MD.dt = MD.dt*tScale;
 MD.removeGlobal = false;
 
-MD.TrajUsage = 'Markov';
-
 MD.tLag = 100e-12*tScale;
 MD.nStates = 20;
 
@@ -37,7 +35,7 @@ Par.nTraj = 100;
 Par.dt = MD.tLag;
 Par.nSteps = ceil(T/Par.dt);
 Par.nOrients = 100;
-Par.Model = 'MD';
+Par.Model = 'MD-HMM';
 
 Exp.mwFreq = 9.4;
 
@@ -54,10 +52,10 @@ data.spc = spc;
 
 if ~isempty(olddata)
   err = any(abs(olddata.spc-spc)>1e-10);
-%   hold on;
-%   plot(olddata.spc,'Color','black')
-%   plot(spc,'Color','red')
-%   legend('Old','New')
+  hold on;
+  plot(olddata.spc,'Color','black')
+  plot(spc,'Color','red')
+  legend('Old','New')
 else
   err = [];
 end

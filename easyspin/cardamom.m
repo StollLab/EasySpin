@@ -88,7 +88,22 @@
 %                    orientations, if not given, these are chosen as points
 %                    on a spherical spiral grid
 %
-%     Model          string: 'stochastic', 'jump', 'MD'
+%     Model          string 
+%                    the model for spin label dynamics
+%                    'stochastic'
+%                    'jump'
+%                    'MD-direct': use molecular orientations in MD
+%                      trajectories directly as input for simulating the
+%                      spectrum
+%                    'MD-HBD': coarse grain the MD trajectories by using 
+%                      the Euler angle probability distribution (for 
+%                      pseudopotential) from the spin label's orientations 
+%                      to perform further stochastic rotational dynamics 
+%                      simulations
+%                    'MD-HMM': coarse grain the MD trajectories by using 
+%                      the spin label's side chain dihedral angles to build 
+%                      a hidden Markov model model to perform further 
+%                      stochastic jump dynamics simulations
 %
 %
 %   Exp: experimental parameter settings
@@ -226,10 +241,6 @@ function varargout = cardamom(Sys,Exp,Par,Opt,MD)
 switch nargin
   case 0
     help(mfilename); return;
-  case 2 % Par, Opt, and MD not specified, initialize them
-    Par = [];
-    Opt = [];
-    MD = [];
   case 3 % Opt and MD not specified, initialize them
     Opt = [];
     MD = [];
@@ -289,12 +300,37 @@ else
   isBroadening = 0;
 end
 
+% Check local dynamics models
+%-------------------------------------------------------------------------------
+if ~isfield(Par,'Model')
+  error('Please specify a simulation model using Par.Model.')
+end
+
+if ~ischar(Par.Model)
+  error('Par.Model must be a string.')
+end
+
+switch Par.Model
+  case 'stochastic'
+    
+  case 'jump'
+    
+  case {'MD-direct','MD-HBD','MD-HMM'}
+    if isempty(MD)
+      error('For the model ''%s'', MD simulation information must be provided in the input argument ''MD''.',Par.Model)
+    end
+  otherwise
+    errmsg = sprintf('Setting ''%s'' for Par.Model not recognized.', Par.Model);
+    error(errmsg);
+end
+
 % Check MD
 %-------------------------------------------------------------------------------
 
 useMD = ~isempty(MD);
 
 if useMD
+  logmsg(1,'-- using MD simulation data -----------------------------------------');
   
   if ~isfield(MD,'dt')
     error('The MD trajectory time step MD.dt must be given.')
@@ -306,18 +342,6 @@ if useMD
   
   if ~isfield(MD,'LabelName')
     MD.LabelName = 'R1';
-  end
-  
-  % Check type of MD trajectory usage
-  if ~isfield(MD,'TrajUsage')
-    MD.TrajUsage = 'Explicit';
-  end
-  if ~ischar(MD.TrajUsage)
-    error('MD.TrajUsage must be a string.')
-  end
-  if ~any(strcmp({MD.TrajUsage},{'Explicit','Resampling','Markov'}))
-    errmsg = sprintf('Setting ''%s'' for MD.TrajUsage not recognized.', MD.TrajUsage);
-    error(errmsg);
   end
   
   if ~isfield(MD,'FrameTraj')
@@ -349,7 +373,7 @@ if useMD
   clear RTrajInv
   
   % Build Markov state model
-  if strcmp(MD.TrajUsage,'Markov')
+  if strcmp(Par.Model,'MD-HMM')
     logmsg(1,'-- building Markov state model -----------------------------------------');
     
     % Trim chi3 for R1 if wanted
@@ -385,20 +409,6 @@ if useMD
 
 end
 
-% Check local dynamics models
-if ~isfield(Par,'Model')
-  if useMD
-    Par.Model = 'MD';
-  else
-    Par.Model = 'stochastic';
-  end
-end
-if ~isempty(Par.Model)
-  if ~strcmp(Par.Model,'stochastic') && ~strcmp(Par.Model,'jump') && ~strcmp(Par.Model,'MD')
-    error('Model ''%s'' in Par.Model not recognized.',Par.Model);
-  end
-end
-
 % Check Exp
 %-------------------------------------------------------------------------------
 
@@ -432,7 +442,7 @@ end
 %-------------------------------------------------------------------------------
 
 if useMD
-  isDiffSim = strcmp(MD.TrajUsage,'Resampling');
+  isDiffSim = strcmp(Par.Model,'MD-HBD');
 elseif strcmp(Par.Model,'jump')
   isDiffSim = false;
 else
@@ -536,14 +546,9 @@ dtStoch = Par.dt;
 
 % Decide on a simulation model based on user input
 if useMD
-  if ~isfield(Par,'Model')
-    Par.Model = 'MD';
-  elseif ~strcmp(Par.Model,'MD')
-    error('Mixing stochastic simulations with MD simulation input is not supported.')
-  end
   
   % Determine if time block averaging is to be used
-  if strcmp(MD.TrajUsage,'Explicit')
+  if strcmp(Par.Model,'MD-direct')
     % check MD.dt
     if Par.Dt<MD.dt
       error('Par.Dt must be greater than MD.dt.')
@@ -561,7 +566,7 @@ if useMD
   
   % find block properties for block averaging
   if Par.isBlock
-    if strcmp(MD.TrajUsage,'Explicit')
+    if strcmp(Par.Model,'MD-direct')
       [Par.nBlocks,Par.BlockLength] = findblocks(Par.Dt, MD.dt, MD.nSteps);
     else
       [Par.nBlocks,Par.BlockLength] = findblocks(Par.Dt, Par.dt, nStepsStoch);
@@ -569,7 +574,7 @@ if useMD
   end
   
   % process single long trajectory into multiple short trajectories
-  if strcmp(MD.TrajUsage,'Explicit')
+  if strcmp(Par.Model,'MD-direct')
 %     Par.lag = ceil(3*MD.tauR/Par.Dt);  % use 2 ns lag between windows
     Par.lag = ceil(2e-9/Par.Dt);  % use 2 ns lag between windows
     if Par.nSteps<Par.nBlocks
@@ -584,10 +589,6 @@ if useMD
 else
   % no MD simulation trajectories provided, so perform stochastic dynamics
   % simulations internally
-  
-  if ~isfield(Par,'Model')
-    Par.Model = 'stochastic';
-  end
   
   % check for time coarse-graining (time block averaging)
   if Par.dt<Par.Dt
@@ -658,10 +659,10 @@ switch LocalDynamicsModel
   
   case 'jump'
     
-  case 'MD' % TODO process RTraj based on size of input
+  case {'MD-direct','MD-HBD','MD-HMM'} % TODO process RTraj based on size of input
     
     if ~isfield(Par,'nOrients')
-      error('nOrients must be specified for the MD model.')
+      error('nOrients must be specified for an MD model.')
     end
     
 %     if strcmp(Opt.Method, 'ISTOs')
@@ -670,45 +671,43 @@ switch LocalDynamicsModel
     RTrajLocal = MD.RTraj;
     qTrajLocal = rotmat2quat(MD.RTraj);
     
-    if ~strcmp(MD.TrajUsage,'Explicit')
-      switch MD.TrajUsage
-        case 'Resampling'
-          M = size(MD.FrameTraj,4);
+    if strcmp(Par.Model,'MD-HBD')
+      M = size(MD.FrameTraj,4);
 
-          % calculate orienting potential energy function
-          theta = squeeze(acos(MD.FrameTraj(3,3,:,1:M)));
-          phi = squeeze(atan2(MD.FrameTraj(3,2,:,1:M), MD.FrameTraj(3,1,:,1:M)));
-          psi = squeeze(atan2(-MD.FrameTraj(2,3,:,1:M), MD.FrameTraj(1,3,:,1:M)));
-%           theta = squeeze(acos(MD.FrameTraj(3,3,:,1:M)));
-%           phi = squeeze(atan2(MD.FrameTraj(2,3,:,1:M), MD.FrameTraj(1,3,:,1:M)));
-%           psi = squeeze(atan2(-MD.FrameTraj(3,2,:,1:M), MD.FrameTraj(3,1,:,1:M)));
+      % calculate orienting potential energy function
+      theta = squeeze(acos(MD.FrameTraj(3,3,:,1:M)));
+      phi = squeeze(atan2(MD.FrameTraj(3,2,:,1:M), MD.FrameTraj(3,1,:,1:M)));
+      psi = squeeze(atan2(-MD.FrameTraj(2,3,:,1:M), MD.FrameTraj(1,3,:,1:M)));
+  %           theta = squeeze(acos(MD.FrameTraj(3,3,:,1:M)));
+  %           phi = squeeze(atan2(MD.FrameTraj(2,3,:,1:M), MD.FrameTraj(1,3,:,1:M)));
+  %           psi = squeeze(atan2(-MD.FrameTraj(3,2,:,1:M), MD.FrameTraj(3,1,:,1:M)));
 
-          phi = phi + 2*pi*(phi<0);
-          psi = psi + 2*pi*(psi<0);
+      phi = phi + 2*pi*(phi<0);
+      psi = psi + 2*pi*(psi<0);
 
-          nBins = 90;
-          phiBins = linspace(0, 2*pi, nBins);
-          thetaBins = linspace(0, pi, nBins/2);
-          psiBins = linspace(0, 2*pi, nBins);
+      nBins = 90;
+      phiBins = linspace(0, 2*pi, nBins);
+      thetaBins = linspace(0, pi, nBins/2);
+      psiBins = linspace(0, 2*pi, nBins);
 
-          [pdf, ~] = histcnd([phi,theta,psi], {phiBins,thetaBins,psiBins});
+      [pdf, ~] = histcnd([phi,theta,psi], {phiBins,thetaBins,psiBins});
 
-          pdf(end,:,:) = pdf(1,:,:);  % FIXME why does it truncate to zero in the phi direction?
-          pdf = smooth3(pdf,'gaussian');
-%           pdf = smoothn(pdf);
-          %save('pdf.mat','pdf')
-          pdf(pdf<1e-14) = 1e-14;  % put a finite floor on histogram
-          isLocalPotential = 1;
-%           Sys.Potential = -log(pdf);
-          LocalPotential = -log(pdf);
+      pdf(end,:,:) = pdf(1,:,:);  % FIXME why does it truncate to zero in the phi direction?
+      pdf = smooth3(pdf,'gaussian');
+  %           pdf = smoothn(pdf);
+      %save('pdf.mat','pdf')
+      pdf(pdf<1e-14) = 1e-14;  % put a finite floor on histogram
+      isLocalPotential = 1;
+  %           Sys.Potential = -log(pdf);
+      LocalPotential = -log(pdf);
           
-        case 'Markov'
+    end
           
-          RTrajLocal = RTrajLocal(:,:,:,1:HMM.nLag:end);
-          qTrajLocal = rotmat2quat(RTrajLocal);
-          
-      end
-      
+    if strcmp(Par.Model,'MD-HMM')
+
+      RTrajLocal = RTrajLocal(:,:,:,1:HMM.nLag:end);
+      qTrajLocal = rotmat2quat(RTrajLocal);
+
     end
     
   % these variables could be huge and are no longer needed, so delete them 
@@ -820,43 +819,38 @@ while ~converged
         Par.nSteps = nStepsStoch;
         [~, RTrajLocal, qTrajLocal] = stochtraj_jump(Sys,Par,Opt);
         
-      case 'MD'
-        
-        switch MD.TrajUsage
-          case 'Explicit'
+      case 'MD-direct'
             
-            % the MD trajectories are not changing, so RTraj and qTraj were
-            % processed earlier outside of the loop
+        % the MD trajectories are not changing, so RTraj and qTraj were
+        % processed earlier outside of the loop
             
-          case 'Resampling'
+      case 'MD-HBD'
             
-            Sys.Diff = DiffLocal;
-            Par.nSteps = nStepsStoch;
+        Sys.Diff = DiffLocal;
+        Par.nSteps = nStepsStoch;
 %             Sys.Potential = LocalPotential;
-            if isLocalPotential
-              Sys.Potential = LocalPotential;
-              Par.nSteps = 2*nStepsStoch;
-            end
-            Par.dt = dtStoch;
-            [~, RTrajLocal, qTrajLocal] = stochtraj_diffusion(Sys,Par,Opt);
-            if isLocalPotential
-              RTrajLocal = RTrajLocal(:,:,:,nStepsStoch+1:end);
-              qTrajLocal = qTrajLocal(:,:,nStepsStoch+1:end);
-            end
-            
-          case 'Markov'
-            
-            Sys.TransProb = HMM.transmat;
-            Par.dt = dtStoch;
-            Par.nSteps = 2*nStepsStoch;
-            Par.StatesStart = rejectionsample(HMM.eqdistr, Par.nTraj);
-            Opt.statesOnly = true;
-            [~, stateTraj] = stochtraj_jump(Sys,Par,Opt);
-            stateTraj = stateTraj(:,nStepsStoch+1:end);
-            
-            Par.stateTraj = stateTraj;
-            
+        if isLocalPotential
+          Sys.Potential = LocalPotential;
+          Par.nSteps = 2*nStepsStoch;
         end
+        Par.dt = dtStoch;
+        [~, RTrajLocal, qTrajLocal] = stochtraj_diffusion(Sys,Par,Opt);
+        if isLocalPotential
+          RTrajLocal = RTrajLocal(:,:,:,nStepsStoch+1:end);
+          qTrajLocal = qTrajLocal(:,:,nStepsStoch+1:end);
+        end
+
+      case 'MD-HMM'
+
+        Sys.TransProb = HMM.transmat;
+        Par.dt = dtStoch;
+        Par.nSteps = 2*nStepsStoch;
+        Par.StatesStart = rejectionsample(HMM.eqdistr, Par.nTraj);
+        Opt.statesOnly = true;
+        [~, stateTraj] = stochtraj_jump(Sys,Par,Opt);
+        stateTraj = stateTraj(:,nStepsStoch+1:end);
+
+        Par.stateTraj = stateTraj;
         
     end
     
