@@ -102,7 +102,7 @@ dihedrals = permute(dihedrals,[3,1,2]);
 if Opt.Verbosity >= 1
   fprintf('    cluster population  max(stddev)/deg  mu0/deg\n');
   for k = 1:nStates
-    pop(k) = sum(stateTraj==k)/numel(stateTraj);
+    pop(k) = sum(stateTraj(:)==k)/numel(stateTraj);
     stddev(k) = sqrt(max(eig(Sigma0(:,:,k))));
   end
   for k = 1:nStates
@@ -173,13 +173,10 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function c = cov_pbc(x, mu, W)
 
-[nPoints,nDims] = size(x);
+nPoints = size(x,1);
     
 % remove the centers
-xc = zeros(nPoints,nDims);
-for iPoint = 1:nPoints
-  xc(iPoint,:) = dist_pbc(x(iPoint,:)-mu, W);
-end
+xc = dist_pbc(x-mu, W);
 
 c = (xc' * xc) ./ nPoints;
 
@@ -215,11 +212,12 @@ function [stateTraj,mu0,Sigma0] = initializehmm(dihedrals,chiStart,nStates,nRepe
 
 % if more than one trajectory, collapse 3rd dim (traj) onto 1st dim (time)
 if nTraj > 1
-  dihedralsTemp = dihedrals;
-  dihedrals = [];
-  for iTraj = 1:nTraj
-    dihedrals = cat(1, dihedrals, dihedralsTemp(:,:,iTraj));
-  end
+  dihedrals = reshape(dihedrals,[],nDims);
+%   dihedralsTemp = dihedrals;
+%   dihedrals = [];
+%   for iTraj = 1:nTraj
+%     dihedrals = cat(1, dihedrals, dihedralsTemp(:,:,iTraj));
+%   end
 end
 
 % Do k-means clustering
@@ -235,6 +233,7 @@ for iState = 1:nStates
 %   Sigma0(:,:,iState) = cov(dihedrals(idxState,:));
 end
 
+% Undo collapsing onto first dim for multiple trajectories
 stateTraj = reshape(stateTraj,[nSteps,nTraj]);
 
 end

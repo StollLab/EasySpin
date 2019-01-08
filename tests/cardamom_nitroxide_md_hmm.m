@@ -52,10 +52,10 @@ data.spc = spc;
 
 if ~isempty(olddata)
   err = any(abs(olddata.spc-spc)>1e-10);
-  hold on;
-  plot(olddata.spc,'Color','black')
-  plot(spc,'Color','red')
-  legend('Old','New')
+%   hold on;
+%   plot(olddata.spc,'Color','black')
+%   plot(spc,'Color','red')
+%   legend('Old','New')
 else
   err = [];
 end

@@ -1,6 +1,6 @@
 function [err,data] = test(opt,olddata)
-% Direct test on means and transmats for multivariate Gaussian HMM 
-% expectation maximization function in 2D for periodic boundary conditions
+% Direct test for multivariate Gaussian HMM expectation maximization 
+% function using multiple trajectories
 
 rng(1)
 
@@ -15,13 +15,13 @@ verbosity = 0;
 Sys.TransProb = [  0.7, 0.1, 0.2; 
                    0.1, 0.8, 0.1;
                    0.1, 0.3, 0.6 ];
-Par.nTraj = 1;
+Par.nTraj = 3;
 Par.dt = 1e-9;
 Par.nSteps = 10000;
 Opt.statesOnly = true;
 [~,stateTraj] = stochtraj_jump(Sys,Par,Opt);
 
-testData = zeros(Par.nSteps, nDims);
+testData = zeros(Par.nSteps, nDims, Par.nTraj);
 
 % Create observation trajectory using state trajectory and normal 
 % distributions assigned to each state
@@ -35,9 +35,12 @@ muTrue = [   0,   0;
               150, 150; 
              -150,   0 ]/180*pi;
 
-for iStep = 1:Par.nSteps
-  state = stateTraj(iStep);
-  testData(iStep,:) = width*randn(1,2) + muTrue(state,:);
+for iTraj = 1:Par.nTraj
+  traj = stateTraj(iTraj,:);
+  for iStep = 1:Par.nSteps
+    state = traj(iStep);
+    testData(iStep,:,iTraj) = width*randn(1,2) + muTrue(state,:);
+  end
 end
 
 % Wrap data according to periodic boundary conditions
@@ -48,9 +51,19 @@ testDataWrapped(testData<-pi) = testData(testData<-pi) + 2*pi;
 % Perform clustering using random seeds
 % -------------------------------------------------------------------------
 
+nTraj = size(testDataWrapped,3);
+
+% if more than one trajectory, collapse 3rd dim (traj) onto 1st dim (time)
+if nTraj > 1
+  testDataWrappedCollapsed = [];
+  for iTraj = 1:nTraj
+    testDataWrappedCollapsed = cat(1, testDataWrappedCollapsed, testDataWrapped(:,:,iTraj));
+  end
+end
+
 centroids0 = [];
 [idxBest, centroidsBest] = runprivate('mdhmm_kmeans',...
-                                      testDataWrapped,nStates,nRepeats,centroids0,verbosity);
+                                      testDataWrappedCollapsed,nStates,nRepeats,centroids0,verbosity);
 
                                     
 % Train HMM parameters against observation trajectory
@@ -61,22 +74,23 @@ mu0 = centroidsBest.';
 Sigma0 = zeros(nDims,nDims,nStates);
 for iState = 1:nStates
   idxState = idxBest==iState;
-  Sigma0(:,:,iState) = cov_pbc(testDataWrapped(idxState,:), mu0(:,iState).', 2*pi);
+%   stateData = testDataWrappedCollapsed(idxState,:);
+  Sigma0(:,:,iState) = cov_pbc(testDataWrappedCollapsed(idxState,:), mu0(:,iState).', 2*pi);
 end
 
 % Initialize TPM and equilibrium distribution using uniform distributions
 TransProb0 = rand(nStates);
 TransProb0 = TransProb0./sum(TransProb0,2);
 
-initDistr0 = rand(nStates,1);
-initDistr0 = initDistr0./sum(initDistr0,1);
+eqDistr0 = rand(nStates,1);
+eqDistr0 = eqDistr0./sum(eqDistr0,1);
 
 % EM function wants an array of shape (nDims,nSteps,nTraj)
 testDataWrapped = permute(testDataWrapped,[2,1,3]);
 
 % Run expectation maximization algorithm
 [eqDistr1,TransProb1,mu1,Sigma1] = ...
-    runprivate('mdhmm_em',testDataWrapped,initDistr0,TransProb0,mu0,Sigma0,verbosity);
+    runprivate('mdhmm_em',testDataWrapped,eqDistr0,TransProb0,mu0,Sigma0,verbosity);
 
 % Compare
 % -------------------------------------------------------------------------
@@ -103,13 +117,13 @@ temp = TransProb1(:,bestidx);
 TransProb1 = temp(bestidx,:);
 
 muDiff = abs(mu1 - muTrue');
-TransProbChange = abs(Sys.TransProb - TransProb1)./TransProb1;
+transmatChange = abs(Sys.TransProb - TransProb1)./TransProb1;
 
 muThreshold = 5/180*pi;
-tranProbThreshold = 0.5;
+transmatThreshold = 0.5;
 
 if    (max(muDiff(:)) > muThreshold) ...
-   || (max(TransProbChange(:)) > tranProbThreshold)
+   || (max(transmatChange(:)) > transmatThreshold)
   err = 1;
 end
 
@@ -137,13 +151,10 @@ end
 
 function c = cov_pbc(x, mu, W)
 
-[nPoints,nDims] = size(x);
+nPoints = size(x,1);
     
 % remove the centers
-xc = zeros(nPoints,nDims);
-for iPoint = 1:nPoints
-  xc(iPoint,:) = dist_pbc(x(iPoint,:)-mu, W);
-end
+xc = dist_pbc(x-mu, W);
 
 c = (xc' * xc) ./ nPoints;
 

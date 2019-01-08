@@ -124,7 +124,7 @@ while (iter <= iterMax) && ~converged
   % Check convergence
   if verbosity, fprintf(1, '    iteration %d, loglik = %f\n', iter, logLik); end
   iter =  iter + 1;
-  converged = em_converged(logLik, previous_loglik, thresh);
+  converged = em_converged(logLik, previous_loglik, thresh, verbosity);
   previous_loglik = logLik;
   logLikIter = [logLikIter logLik];
 end
@@ -264,7 +264,7 @@ dist(idx2) = dist(idx2) + W;
 
 end
 
-function [converged, decrease] = em_converged(loglik, previous_loglik, threshold, check_increased)
+function [converged, decrease] = em_converged(loglik, previous_loglik, threshold, verbosity)
 % EM_CONVERGED Has EM converged?
 % [converged, decrease] = em_converged(loglik, previous_loglik, threshold)
 %
@@ -278,19 +278,16 @@ function [converged, decrease] = em_converged(loglik, previous_loglik, threshold
 % If we are doing MAP estimation (using priors), the likelihood can decrase,
 % even though the mode of the posterior is increasing.
 
-if nargin < 3, threshold = 1e-4; end
-if nargin < 4, check_increased = 1; end
-
 converged = 0;
 decrease = 0;
 
-if check_increased
-  if loglik - previous_loglik < -1e-3 % allow for a little imprecision
+if loglik - previous_loglik < -1e-3 % allow for a little imprecision
+  if verbosity
     fprintf(1, '******likelihood decreased from %6.4f to %6.4f!\n', previous_loglik, loglik);
-    decrease = 1;
-converged = 0;
-return;
   end
+  decrease = 1;
+  converged = 0;
+  return;
 end
 
 delta_loglik = abs(loglik - previous_loglik);

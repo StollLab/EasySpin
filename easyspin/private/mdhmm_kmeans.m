@@ -88,11 +88,10 @@ for iRepeat = 1:nRepeats
     distances2 = zeros(nPoints,nClusters);
     for k = 1:nClusters
       if implicitSingletonExpansion
-        differences = abs(data-centroids(k,:)); % R2016b and later
+        differences = pi - abs(pi - abs(data-centroids(k,:))); % R2016b and later
       else
-        differences = abs(bsxfun(@minus,data,centroids(k,:))); % pre-R2016b
+        differences = pi - abs(pi - abs(bsxfun(@minus,data,centroids(k,:)))); % pre-R2016b
       end
-      differences = pi - abs(differences-pi);
       distances2(:,k) = sum(differences.^2, 2);
     end
     
@@ -112,7 +111,7 @@ for iRepeat = 1:nRepeats
 %       if all(idxClustersLast==idxClusters), break, end
     end
     
-    idxClustersLast = idxClusters;
+%     idxClustersLast = idxClusters;
 
   end
   
@@ -187,11 +186,13 @@ w = W/2;
 
 % dist = w - abs(pi - abs(dist));
 
-idx1 = dist > w;
-idx2 = dist < -w;
+dist = w - abs(w - abs(dist));
 
-dist(idx1) = dist(idx1) - W;
-dist(idx2) = dist(idx2) + W;
+% idx1 = dist > w;
+% idx2 = dist < -w;
+% 
+% dist(idx1) = dist(idx1) - W;
+% dist(idx2) = dist(idx2) + W;
 
 end
 
