@@ -75,7 +75,7 @@ initDistr0 = initDistr0./sum(initDistr0,1);
 testDataWrapped = permute(testDataWrapped,[2,1,3]);
 
 % Run expectation maximization algorithm
-[eqDistr1,TransProb1,mu1,Sigma1] = ...
+[~,eqDistr1,TransProb1,mu1,Sigma1] = ...
     runprivate('mdhmm_em',testDataWrapped,initDistr0,TransProb0,mu0,Sigma0,verbosity);
 
 % Compare

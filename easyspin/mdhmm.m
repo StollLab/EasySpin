@@ -132,7 +132,7 @@ dihedrals = permute(dihedrals,[2,1,3]);
 %-------------------------------------------------------------------------------
 logmsg(1,'  HMM optimization using EM algorithm');
 % Determine/estimate HMM model parameters using expectation maximization
-[HMM.eqDistr,HMM.TransProb,HMM.mu,HMM.Sigma] = ...
+[HMM.logLik, HMM.eqDistr,HMM.TransProb,HMM.mu,HMM.Sigma] = ...
   mdhmm_em(dihedrals,initDistr0,TransProb0,mu0,Sigma0,Opt.Verbosity);
 
 % Calculate Viterbi state trajectory

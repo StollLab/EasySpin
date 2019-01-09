@@ -43,7 +43,7 @@
 
 % Code adapted from Kevin Murphy's HMM toolbox
 
-function [eqDistr, TransProb, mu, Sigma] = ...
+function [logLikIter, eqDistr, TransProb, mu, Sigma] = ...
      mdhmm_em(data, initDistr, TransProb, mu, Sigma, verbosity)
 
 iterMax = 100;
@@ -108,6 +108,8 @@ while (iter <= iterMax) && ~converged
   for iState=1:nStates
     mu(:,iState) = mu(:,iState) + muUpdater(:,iState) / weightsSummed(iState);
   end
+  mu(mu>pi) = mu(mu>pi) - 2*pi;
+  mu(mu<-pi) = mu(mu<-pi) + 2*pi;
 
   % Update covariance matrices using updated means
   Sigma = zeros(nDims,nDims,nStates);
