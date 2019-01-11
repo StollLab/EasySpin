@@ -122,8 +122,8 @@ dihedrals = dihedrals(1:nLag:end,:,:);
 stateTraj = stateTraj(1:nLag:end,:);
 
 % Estimate transition probability matrix and initial distribution
-[TransProb0,~] = estimatemarkovparameters(stateTraj);
-initDistr0 = rand(1,nStates);
+[TransProb0,eqDistr0] = estimatemarkovparameters(stateTraj);
+initDistr0 = eqDistr0;
 
 % Reorder (nSteps,nDims,nTraj) to (nDims,nSteps,nTraj), for EM function
 dihedrals = permute(dihedrals,[2,1,3]);
@@ -140,6 +140,28 @@ logmsg(1,'  HMM optimization using EM algorithm');
 logmsg(1,'  Viterbi state trajectories calculation');
 % Determine most probable hidden-state trajectory
 HMM.viterbiTraj = viterbitrajectory(dihedrals,HMM.TransProb,HMM.eqDistr,HMM.mu,HMM.Sigma);
+
+% Remove states that are absent from Viterbi trajectory
+%-------------------------------------------------------------------------------
+stateCounts = histcounts(HMM.viterbiTraj,nStates);
+idxEmptyStates = stateCounts==0;
+if any(idxEmptyStates)
+  EmptyStates = find(idxEmptyStates);
+  nStates = nStates - numel(EmptyStates);
+  fprintf('  Empty states found in Viterbi trajectory!\n')
+  fprintf('  The following empty states were removed from the model:\n  ')
+  EmptyStatesDec = EmptyStates;
+  for k=1:numel(EmptyStates)
+    fprintf('%3d  ',EmptyStates(k))
+    idxDecrement = HMM.viterbiTraj>EmptyStatesDec(k);
+    HMM.viterbiTraj(idxDecrement) = HMM.viterbiTraj(idxDecrement) - 1;
+    EmptyStatesDec = EmptyStatesDec-1;
+  end
+  fprintf('\n')
+  HMM.mu = HMM.mu(:,~idxEmptyStates);
+  HMM.Sigma = HMM.Sigma(:,:,~idxEmptyStates);
+  [HMM.TransProb,HMM.eqDistr] = estimatemarkovparameters(HMM.viterbiTraj);
+end
 
 % Calculate relaxation times for the TPM and time lag
 %-------------------------------------------------------------------------------

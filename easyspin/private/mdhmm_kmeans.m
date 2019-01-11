@@ -37,7 +37,7 @@ if ~exist('nRepeats','var'), nRepeats = 1; end
 if ~exist('centroids0','var'), centroids0 = []; end
 if ~exist('verbosity','var'), verbosity = 0; end
 
-maxIterations = 200;
+maxIterations = 500;
 centroidsChangeThreshold = 1e-4;
 
 [nPoints, nDims] = size(data);

@@ -374,13 +374,13 @@ if useMD
       logmsg(1,'-- using provided HMM input parameters -----------------------------------------');
       
       HMM = MD.HMM;
-      if ~isfield(HMM,'transmat')
+      if ~isfield(HMM,'TransProb')
         error('The transition probability matrix must be provided in HMM.transmat.')
       end
       if ~isfield(HMM,'nLag')
         error('The time lag (an integer multiple of the MD time step) must be provided in HMM.nLag.')
       end
-      if ~isfield(HMM,'eqdistr')
+      if ~isfield(HMM,'eqDistr')
         error('The equilibrium state distribution must be provided in HMM.eqdistr.')
       end
       if ~isfield(HMM,'viterbiTraj')

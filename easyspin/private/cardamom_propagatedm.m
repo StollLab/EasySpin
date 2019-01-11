@@ -216,13 +216,14 @@ switch Method
       gTensor = zeros(3,3,nTraj,nSteps);
       ATensor = zeros(3,3,nTraj,nSteps);
       
-      for iStep = 1:nSteps
+      for iState = 1:MD.nStates
         for iTraj = 1:nTraj
-          state = Par.stateTraj(iTraj,iStep);
-          gTensor(:,:,iTraj,iStep) = gTensorState(:,:,state);
-          ATensor(:,:,iTraj,iStep) = ATensorState(:,:,state);
-        end
+          idxState = Par.stateTraj(iTraj,:)==iState;
+          gTensor(:,:,iTraj,idxState) = repmat(gTensorState(:,:,iState),[1,1,1,sum(idxState)]);
+          ATensor(:,:,iTraj,idxState) = repmat(ATensorState(:,:,iState),[1,1,1,sum(idxState)]);
+        end   
       end
+      
     end
     
     % Time block averaging and sliding window processing of tensors
