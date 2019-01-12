@@ -14,11 +14,7 @@ function esbuild
 %     compatible manner.
 %   PATCH: Increment for every bugfix release.
 % Roughly follow guidelines of semantic versioning, see http://semver.org/
-ReleaseID = '6.0.0-dev.3'; % major.minor.patch
-
-% Set to true if you want an easyspin-x.y.z.zip file without the
-% long timestamp ID.
-betaVersion = false;
+ReleaseID = '5.2.1'; % major.minor.patch
 
 % Expiry date of release, see eschecker.m
 % ExpiryDate = '31-Dec-2018';
@@ -31,8 +27,8 @@ HorizonDate = datestr(datenum(Year+4,12,31));
 
 % Folders
 baseDir = '.';
-SourceDir = [baseDir '\easyspin'];
-ZipDestDir = [baseDir '\easyspin-builds'];
+SourceDir = ['./easyspin-temp/'];
+ZipDestDir = ['./easyspin-builds/'];
 %========================================================================
 
 
@@ -46,7 +42,8 @@ v = sscanf(version,'%f',1);
 %error('Must include perl script that replaces $ReleaseID$ and $ReleaseDate$ globally.');
 
 BuildTimeStamp = datestr(now,'yyyymmdd-HHMMSS');
-BuildID = sprintf('%s+%s',ReleaseID,BuildTimeStamp);
+% BuildID = sprintf('%s+%s',ReleaseID,BuildTimeStamp);
+BuildID = sprintf('%s',ReleaseID);
 ReleaseDate = sprintf('%04d-%02d-%02d',Year,Month,Day);
 
 fprintf('Building EasySpin %s.\n',BuildID);
@@ -176,11 +173,6 @@ fprintf('  generating examples dir and copying files...');
 mkdir(BuildFolder,'examples');
 copyfile([SourceDir filesep 'examples'],ExmplFolder);
 fprintf(' ok\n');
-
-fprintf('  generating examples html file...');
-perl('./mkexamples.pl');
-fprintf(' ok\n');
-
 
 %------------------------------------------------------------------------
 % Documentation

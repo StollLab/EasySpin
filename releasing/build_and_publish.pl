@@ -4,18 +4,35 @@ use warnings;
 # other dependencies
 use Fcntl ':flock'; # for locking on system level
 use Net::SSH::Perl; # to use ssh
-use Cwd;
-my $workingdir = getcwd;
 
-# values imported from config.pl
-our ($parentdir, $builddir, $uploaddir, $serverdir, $repodir, $stableversion, $defaultversion,  @cutoffversion, $esbuild, $username, $hostname, @htmlfiles);
+# ---------------------------------------------------------------------------------
+# Settings
 
-require './config.pl';
+# directories
+my $parentdir = '.'; # topdirectory 
+my $builddir = $parentdir.'/easyspin-builds/'; # directory that builds are created in
+my $uploaddir =  $parentdir.'/upload/'; # directory that will be used to upload files to easyspin.org
+my $serverdir = '~/public_html/easyspin/test/'; # parentfolder on the server, used to copy files from $uploaddir into
+my $repodir = $parentdir.'/easyspin/';
 
-# settings ------------------------------------------------------------------
+# tagged main versions, needs to be updated for each version
+my $stableversion = 5;
+my $defaultversion = 6;
+my @cutoffversion = (5, 1, 0); # dont build versions lower than this (main,minor) version
+
+# esbuild.m location
+my $esbuild = "esbuild.m";
+
+my $username = "easyspin";
+my $hostname = "easyspin.org";
+
+my $WebServerLogin = $username."@".$hostname;
+
+my @htmlfiles = ("index.html","download.html","version.html");
+
 # options for file locking - to ensure only one instance is running:
-our $numberallowedattempts = 3; # number of attempts to obtain a lock
-our $waittime = 90; # time to wait between attempts in seconds
+my $numberallowedattempts = 3; # number of attempts to obtain a lock
+my $waittime = 90; # time to wait between attempts in seconds
 
 # ---------------------------------------------------------------------------------
 # creating a lock file 
@@ -43,23 +60,43 @@ else {
     exit;
 }
 
+# ---------------------------------------------------------------------------------
+# Ensure ssh client is running and add keys to keychain - for this to work, the following must be added to ~/.bash_profile (create a new file if it doesnt exist):
+
+# SSH_ENV="$HOME/.ssh/environment"
+
+# function start_agent {
+#     echo "Initialising new SSH agent..."
+#     /usr/bin/ssh-agent | sed 's/^echo/#echo/' > "${SSH_ENV}"
+#     echo succeeded
+#     chmod 600 "${SSH_ENV}"
+#     . "${SSH_ENV}" > /dev/null
+#     /usr/bin/ssh-add;
+# }
+
+# # Source SSH settings, if applicable
+
+# if [ -f "${SSH_ENV}" ]; then
+#     . "${SSH_ENV}" > /dev/null
+#     #ps ${SSH_AGENT_PID} doesn't work under cywgin
+#     ps -ef | grep ${SSH_AGENT_PID} | grep ssh-agent$ > /dev/null || {
+#         start_agent;
+#     }
+# else
+#     start_agent;
+# fi
+# 
+# The above code will make sure that the ssh agent is running when somebody logs in
+
+system("ssh-add ~/.ssh/hostmonster_rsa"); # private key to log into hostmonster.com
 system("ssh-add ~/.ssh/no_phrase_rsa"); # private key to log into bitbucket, needs to be adapted specific user
 
-if (-e "$repodir") {
-    system("rm -R $repodir");
-}
+# ---------------------------------------------------------------------------------
+# Get Tags and compare to locally available zip files, then get the list versions to build and loop over
+# ---------------------------------------------------------------------------------
+# updating and pulling from bitbucket.com  
+system('hg pull -u -R '.$repodir);
 
-system("mkdir $repodir");
-system(qq(hg clone ssh://hg\@bitbucket.org/sstoll/easyspin $repodir));
-
-
-my $LinesToAdd = qq([extensions]\npurge = );
-
-open(my $hgConf, '>>', "$repodir.hg/hgrc") or die "Could not open hg config file!";
-say $hgConf $LinesToAdd;
-close $hgConf;
-
-# -----------------------------------------------------------------
 my @tagstobuild = ();
 
 my @newestversion = (0, 0, 0);  # (stable, default, dev)
@@ -192,27 +229,13 @@ foreach (@tagstobuild) {
 
     # ---------------------------------------------------------------------------------
     # Build .svg versions of formulae in the html documentation and replace the tags in html files
-    chdir($repodir.'scripts/');
-
-    system('perl mkexamples.pl');
-
-    chdir($workingdir);
-
-    # ---------------------------------------------------------------------------------
-    # Build .svg versions of formulae in the html documentation and replace the tags in html files
     print "Converting LaTeX markup in documentation to svg and modifying html files. \n";
-    system("perl mkformulas.pl");
+    system('perl mkformulas.pl');
 
     # ---------------------------------------------------------------------------------
     # Update ReleaseID (and betaVersion) in esbuild.m 
     my $findReleaseID = "ReleaseID(.*?); \% major.minor.patch"; # pattern to find ReleaseID 
     my $thisReleaseID = "ReleaseID = \'".$thisBuild."\'; \% major.minor.patch"; # Update ReleaseID
-    
-    my $findSourceDir = "SourceDir = (.*?);";
-    my $replaceSourceDir = "SourceDir = ['$repodir'];";
-
-    my $findZipDestDir = "ZipDestDir = (.*?);";
-    my $replaceZipDestDir = "ZipDestDir = ['$builddir'];";
 
     my $esbuildNew = $esbuild.'new';
 
@@ -221,8 +244,14 @@ foreach (@tagstobuild) {
     open(my $output,'>'.$esbuildNew) or die("Cannot open $esbuildNew!");
     while (<$input>) {
         $_ =~ s/$findReleaseID/$thisReleaseID/g;
-        $_ =~ s/$findSourceDir/$replaceSourceDir/g;
-        $_ =~ s/$findZipDestDir/$replaceZipDestDir/g;
+        # do we need this? --------------------------------------
+        # if ($dev){
+        #     $_ =~ s/betaVersion(.*?);/betaVersion = false;/g;
+        #     }
+        # else {
+        #     $_ =~ s/betaVersion(.*?);/betaVersion = false;/g;
+        # }
+        # -------------------------------------------------------
         print $output $_;    
     }
 
@@ -288,19 +317,101 @@ foreach (@tagstobuild) {
 
     if ($upload) {
 
-        system(qq(perl publish.pl $thisBuild));
-       
+        # copy easyspin.zip file to upload directory
+        my $zipfilename = 'easyspin-'.$thisBuild.'.zip';
+        print("Copying $zipfilename to upload directory. \n");
+        system('cp '.$builddir.$zipfilename.' '.$uploaddir.$zipfilename);
+
+
+        my $releasechannel = '';
+
+        print "Updating website and uploading for $thisBuild \n";
+
+        if ($thisBuildID[3]) {
+            $releasechannel = 'development';
+        }
+        elsif ($thisBuildID[0] eq $stableversion) {
+            $releasechannel = 'stable';
+        }
+        elsif ($thisBuildID[0] eq $defaultversion) {
+            $releasechannel = 'default';
+        }
+
+        
+        # ---------------------------------------------------------------------------------
+        # get html files from easyspin.org and update them with the new version tags and zipfile names
+
+        # regexp to find versions and links to zip files in the html files
+        my $oldzipfile = '<!--'.$releasechannel.'-->(.*?)<!--zip-->';
+        my $newzipfile = '<!--'.$releasechannel.'--><a href="easyspin-'.$thisBuild.'.zip"><!--zip-->';
+
+        my $oldversion = '<!--'.$releasechannel.'-->(.*?)<!--version-->';
+        my $newversion = '<!--'.$releasechannel.'-->'.$thisBuild.'<!--version-->';
+
+        # loop over all the html files
+
+        foreach (@htmlfiles) {
+            my $currentfile = $_;
+            print("Getting $currentfile \n");
+            # download the current zipfile from easyspin.org
+            system('scp '.$WebServerLogin.':'.$serverdir.$currentfile.' '.$uploaddir.$currentfile.'.bak');
+            
+            print("Updating index.html \n");
+            open(my $inputhtml,'<'.$uploaddir.$currentfile.'.bak') or die("Cannot open $currentfile.bak!");
+            open(my $outputhtml,'>'.$uploaddir.$currentfile) or die("Cannot open $currentfile!");
+            while (<$inputhtml>) {
+                $_ =~ s/$oldzipfile/$newzipfile/g;
+                $_ =~ s/$oldversion/$newversion/g;
+                print $outputhtml $_;    
+            }
+
+            close($inputhtml) or die("Cannot close $inputhtml!");
+            close($outputhtml) or die("Cannot close $outputhtml!");  
+        }
+
+        print("Deleting backup versions of html files \n");
+        system('rm '.$uploaddir.'*.bak');
+
+        # upload entire upload directory to easyspin org and then clean it
+        print("Uploading all new files to easyspin.org \n");
+        system('scp '.$uploaddir.'* '.$WebServerLogin.':'.$serverdir);
+
+        # clear upload directory
+        print("Clean upload directory \n");
+        system("rm ".$uploaddir."*");
+
+        # ---------------------------------------------------------------------------------
+        # SSH into the server, unzip the build and extract documentation
+        # only happens for the 'stable' release channel!
+        if ($releasechannel eq 'stable') {
+            print("Logging into easyspin.org via SSH \n");
+            my $ssh = Net::SSH::Perl->new($hostname);
+            $ssh -> login("$username");
+
+            my $changedirectory = "cd ".$serverdir." \n";
+            my $removefolders = "rm -r ./documentation ./examples \n";
+            my $unzipdocumentation = qq(unzip -qq $zipfilename 'easyspin-$thisBuild/documentation/*' -d ./tmp/ \n);
+            my $unzipexamples = qq(unzip -qq $zipfilename 'easyspin-$thisBuild/examples/*' -d ./tmp/ \n);
+            my $movefiles = qq(mv ./tmp/easyspin-$thisBuild/* ./ \n);
+            my $rmtemp = qq(rm -r ./tmp \n);
+
+            print("Unzipping new stable version and updating documentation and examples \n");
+            my $cmd = $changedirectory.$removefolders.$unzipexamples.$unzipdocumentation.$movefiles.$rmtemp;
+
+            my ($stdout,$stderr,$exit) = $ssh->cmd("$cmd");
+        }
     }
 }
 
+# ---------------------------------------------------------------------------------
+# Discard changes and purge untracked files
+print "Cleaning up repository \n";
+system("hg update -r default -C -R $repodir");
+system("hg purge -R $repodir");
 
-#-------------------------------
-if (-e "$repodir") {
-    system("rm -R $repodir");
-}
 # ---------------------------------------------------------------------------------
 # Clean up lockfile and exit
-print "removing lockfile \n";
+\print "removing lockfile \n";
 close $lockfile;
 system('rm '.$parentdir.'/'.$lockfilename);
 

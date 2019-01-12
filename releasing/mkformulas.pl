@@ -1,15 +1,24 @@
-#!/usr/bin/perl
-
 $noparams = ($#ARGV+1==0);  
 
-$HTMLdir = './easyspin/docs';
+our ($repodir);
+
+require './config.pl';
+
+$HTMLdir = "$repodir/docs";
 $pngdir = $HTMLdir.'/eqn';
+$tempdir = "./latextemp/";
 
-$templatefile = "template.tex";
+if (-e "$tempdir") {
+    system("rm -R $tempdir");
+}
 
-$latexoptions = '--interaction=nonstopmode';
+system("mkdir $tempdir");
+
+$templatefile = "$repodir/scripts/template.tex";
+
+$latexoptions = '--interaction=nonstopmode --output-directory=./latextemp/';
 # convert the first 100 pages of .dvi file to .svg and scale by a factor 1.3
-$dvisvgmoptions = '--page=-10000 --transform=S1.3';
+$dvisvgmoptions = '--page=-10000 --transform=S1.3 --output=./latextemp/%f%1p';
 
 $templateposition = '%formulaposition';
 
@@ -63,24 +72,19 @@ if ($n_equations>0) {
 
   $tmpfile = $htmlfile;
   $tmpfile =~ s/\.html//;
-  open(HANDLE,">".$tmpfile.".tex") or die ("Could not open $tmpfile!");
+  open(HANDLE,"> $tempdir$tmpfile.tex") or die ("Could not open $tmpfile!");
   print HANDLE $tmp;
   close(HANDLE) or die("Could not close $tmpfile!");
 
   # generate math graphics files
   #---------------------------------------------------------------
-  system('latex '.$latexoptions.' '.$tmpfile.'.tex');
-  system('dvisvgm '.$dvisvgmoptions.' '.$tmpfile.'.dvi');
-
-  # rename all image files to remove _ and leading zeros (e.g. myfile_01.png -> myfile1.png)
-  system('rename s/-0/_/ *.svg');
-  system('rename s/-// *.svg');
-  system('rename s/_// *.svg');
+  system("latex $latexoptions $tempdir$tmpfile.tex");
+  system("dvisvgm $dvisvgmoptions $tempdir$tmpfile.dvi");
 
   # move all image files
-  system('mv '.$tmpfile.'*.svg '.$pngdir);
+  system("mv  $tempdir$tmpfile*.svg $pngdir");
   # remove all temporary files
-  system('\rm '.$tmpfile.'.*');
+  system("rm $tempdir$tmpfile.*");
   
   # insert <img> tags into HTML file
   #---------------------------------------------------------------
@@ -93,4 +97,8 @@ if ($n_equations>0) {
   print HANDLE $html;
   close(HANDLE) or die("Cannot close $file!");
 }
+}
+
+if (-e "$tempdir") {
+    system("rm -R $tempdir");
 }
