@@ -53,6 +53,10 @@ system("mkdir $repodir");
 system(qq(hg clone ssh://hg\@bitbucket.org/sstoll/easyspin $repodir));
 
 
+unless (-e "$builddir") {
+    system("mkdir $builddir");
+}
+
 my $LinesToAdd = qq([extensions]\npurge = );
 
 open(my $hgConf, '>>', "$repodir.hg/hgrc") or die "Could not open hg config file!";
@@ -239,25 +243,25 @@ foreach (@tagstobuild) {
     my $MatlabTarget = qq(-r "run('$esbuild');exit;");
 
     # Open build dirrectory and get current number of files
-    opendir(my $tempdir,$builddir) or die("Can't open $builddir: $!\n");
+    # opendir(my $tempdir,$builddir) or die("Can't open $builddir: $!\n");
 
-    my $EntriesInBuilddir = () = readdir($tempdir);
-    my $CurrentEntriesInBuilddir = $EntriesInBuilddir;
+    # my $EntriesInBuilddir = () = readdir($tempdir);
+    # my $CurrentEntriesInBuilddir = $EntriesInBuilddir;
 
-    closedir($tempdir);
+    # closedir($tempdir);
 
     print("Triggering Matlab build \n");
-    system('matlab.exe '.$MatlabOptions." ".$MatlabTarget);
+    system('matlab '.$MatlabOptions." ".$MatlabTarget);
 
-    print("Waiting for Matlab to finish building EasySpin $thisBuild \n");
+    # print("Waiting for Matlab to finish building EasySpin $thisBuild \n");
 
-    while ($CurrentEntriesInBuilddir == $EntriesInBuilddir) {
-        opendir(my $tempdir,$builddir);
-        $CurrentEntriesInBuilddir = () = readdir($tempdir);
-        closedir($tempdir);
-        sleep 5;
-    }
-    sleep 10;
+    # while ($CurrentEntriesInBuilddir == $EntriesInBuilddir) {
+    #     opendir(my $tempdir,$builddir);
+    #     $CurrentEntriesInBuilddir = () = readdir($tempdir);
+    #     closedir($tempdir);
+    #     sleep 5;
+    # }
+    # sleep 10;
 
     # ---------------------------------------------------------------------------------
     # Translate semantic versioning and compare decived wether it needs to be uploaded

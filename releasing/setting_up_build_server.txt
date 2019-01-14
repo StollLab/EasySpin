@@ -2,7 +2,8 @@ Installing perl
 
 	- sudo apt-get install perl
 
-	- install package:
+	- install packages:
+		- apt-get install libgmp-dev
 		- sudo cpan Net::SSH::Perl
 		- if building failes with "Could not make: unknown error" make might be missing, install with 'sudo apt-get install build-essential'
 		- if it still does not install: 'sudo cpan' 'install -f Net::SSH::Perl' - this forces the install even if dependencies are missing or not passing all tests
@@ -52,37 +53,34 @@ Install and verify MATLAB installation
 
 Install and setup up mercurial
 	- sudo apt-get install mercurial
-	- setup the easyspin directories:
-		- mkdir ~/easyspin-buildsys
-		- cd ~/easyspin-buildsys
-		- mkdir ./easyspin ./easyspin-builds ./uploads
-	- clone easyspin
-		- cd easyspin
-		- hg clone ssh://hg@bitbucket.org/sstoll/easyspin
-		- if the keys were set up correctly that should trigger the download
-	- make sure the purge extension is available
-		- nano ./.hg/hgrc
-		- add the following two lines to the the bottom of the file (it is okay that the purge = has nothing to the right of the equal sign)
-			[extensions]
-			purge = 
 	
 
 Setup the buildsys
-	- in the easyspin directory:
-		- hg pull -u
-		- hg update default
-	- copy the buildsys files
-		- cp ./releasing/* ~/easyspin-buildsys
-	- verify all the paths and options are correct
-		- cd ~/easyspin-buildsys
-		- nano build.pl
-		- verify all entries in the Settings section
-		
+	- create a directory of your choosing. e.g. mkdir ~/esbuildsys
+	- copy the files config.pl, build.pl, publish.pl, esbuild.m and mkequations.pl
+	- go through settings in config.pl, and adapt them if you wish
+		- see there for details on the individual parameters
 
-Running the buildsys
-	- two ways are available to run the buildsys
+Running the build.pl
+	- two ways are available
 	- build all EasySpin versions that are not in the easyspin-builds directory and upload the most recent versions
 		- perl build.pl
 	- build a specific tag
 		- perl build.pl 5.3.1
 		- only builds the easyspin version, but does not upload anything
+		
+Running publish.pl
+	- publish MUST be called with an argument that specifies the version that you want to upload
+	- the corresponding easyspin-TAG.zip file must be in the build directory (specified with config.pl)
+	- example call to upload the 5.2.22 version: perl publish.pl 5.2.22
+	- the release channel can be specified in config.pl, e.g.:
+		- my $stableversion = 5;
+		- all easyspin major versions 5 are interpreted as meant for the release channel stable
+		- publish.pl will update all entries on the website that are tagged with stable with the version that is being uploaded
+	- development versions need to end with alpha/beta/dev and optional a number, e.g: easyspin-6.0.0-dev.3, easyspin-5.2.24-beta
+		- these are all interpreted as belonging to the development channel and everything that is tagged with development is updated on the website, regardless of the major version
+	- it is possible to upload a build, that does not conform to the semantic versioning, e.g. easyspin-evolve.zip
+		- this could be an experimental build, coming from a specific branch
+		- the releasechannel for such a file always is 'experimental'
+		- easyspin-evolve.zip must be present in the build directory!
+		- perl publish.pl evolve
