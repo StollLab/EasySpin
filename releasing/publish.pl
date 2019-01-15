@@ -3,10 +3,9 @@ use warnings;
 
 # other dependencies
 use Fcntl ':flock'; # for locking on system level
-use Net::SSH::Perl; # to use ssh
+use Net::SSH::Perl; # to use SSH protocol
 
 my $Build;
-
 if ($ARGV[0]){
     $Build = $ARGV[0];
 }
@@ -14,37 +13,37 @@ else {
     die("publish.pl must be called with an argument that specifies the version to upload. \n");
 }
 
+# variables imported from config.pl
+our ($SourceDir, $BuildsDir, $UploadDir, $ServerDir, $StableMajorVersion, $DefaultMajorVersion, $KeyForStableVersion, $KeyForDefaultVersion, $KeyForDeveloperVersion, $KeyForExperimentalVersion, $ChannelForDocumentation, $username, $hostname, @HTMLfiles);
 
-# values imported from config.pl
-our ($parentdir, $builddir, $uploaddir, $serverdir, $repodir, $stableversion, $defaultversion, $stabletag, $defaulttag, $devtag, $exptag, @cutoffversion, $channelfordocumentation, $username, $hostname, @htmlfiles);
-require './config.pl';
+require './config.pl'; # load configuration file
 
 # settings ------------------------------------------------------------------
 # options for file locking - to ensure only one instance is running:
-my $numberallowedattempts = 3; # number of attempts to obtain a lock
-my $waittime = 90; # time to wait between attempts in seconds
+my $NumberOfAttempts = 3; # number of Attempts to obtain a lock
+my $WaitTime = 90; # time to wait between Attempts in seconds
 
 my $WebServerLogin = $username."@".$hostname;
 
 # ---------------------------------------------------------------------------------
 # creating a lock file 
-my $lockfilename = "upload.lock";
-open (my $lockfile,'>'.$parentdir.'/'.$lockfilename) or die $!;
+my $LockFilename = "upload.lock";
+open (my $LockFile,'>'.$SourceDir.'/'.$LockFilename) or die $!;
 
-my $attempts = 0;
-my $lockobtained = 0;
+my $Attempts = 0;
+my $LockObtained = 0;
 
-while ($attempts < $numberallowedattempts) {
-    $lockobtained = flock $lockfile, LOCK_EX|LOCK_NB;
-    if ($lockobtained) {
+while ($Attempts < $NumberOfAttempts) {
+    $LockObtained = flock $LockFile, LOCK_EX|LOCK_NB;
+    if ($LockObtained) {
         last;
     }
-    ++$attempts;
-    print("Another instance of publish.pl appears to be running, trying again in $waittime seconds.\n");
-    sleep($waittime);
+    ++$Attempts;
+    print("Another instance of publish.pl appears to be running, trying again in $WaitTime seconds.\n");
+    sleep($WaitTime);
 }
 
-if ($lockobtained) {
+if ($LockObtained) {
     print "Created lock file. \n";
 }
 else {
@@ -53,112 +52,124 @@ else {
 }
 
 # ---------------------------------------------------------------------------------
-# add keys to keychain
+# add key to hostmojster to keychain
 system("ssh-add ~/.ssh/hostmonster_rsa"); # private key to log into hostmonster.com
 
-if (-e "$uploaddir") {
-    system("rm -R $uploaddir");
+
+# ---------------------------------------------------------------------------------
+# set up environment
+if (-e "$UploadDir") {
+    system("rm -R $UploadDir");
 }
 
-system("mkdir $uploaddir");
+system("mkdir $UploadDir");
 
-my $zipfilename = 'easyspin-'.$Build.'.zip';
+# ---------------------------------------------------------------------------------
+# look for zip file with the provided tag
+my $zipFileName = 'easyspin-'.$Build.'.zip';
 
-if (-e "$builddir$zipfilename") {
-    print("Copying $zipfilename to upload directory. \n");
-    system('cp '.$builddir.$zipfilename.' '.$uploaddir.$zipfilename);
+if (-e "$BuildsDir$zipFileName") {
+    print("Copying $zipFileName to upload directory. \n");
+    system('cp '.$BuildsDir.$zipFileName.' '.$UploadDir.$zipFileName);
 }
 else {
-    die("$zipfilename does not exist in $builddir \n");
+    die("$zipFileName does not exist in $BuildsDir \n");
 }
 
-my $releasechannel;
+# ---------------------------------------------------------------------------------
+# determin the releasechannel
+my $ReleaseChannel;
 my $MatchPattern = '(\d+).(\d+).(\d+)-?([a-z]+)?[-.]?(\d+)?';
 
 my @BuildID = ($Build =~ m/$MatchPattern/);
 
 if ($BuildID[0]) {
     if ($BuildID[3]) {
-        $releasechannel = $devtag;
+        $ReleaseChannel = $KeyForDeveloperVersion;
     }
-    elsif ($BuildID[0] eq $stableversion) {
-        $releasechannel = $stabletag;
+    elsif ($BuildID[0] eq $StableMajorVersion) {
+        $ReleaseChannel = $KeyForStableVersion;
     }
-    elsif ($BuildID[0] eq $defaultversion) {
-        $releasechannel = $defaulttag;
+    elsif ($BuildID[0] eq $DefaultMajorVersion) {
+        $ReleaseChannel = $KeyForDefaultVersion;
     }
 }
 else {
-    $releasechannel = $exptag;
+    # if tag does not follow semantic versioning, e.g. easyspin-evolve.zip
+    $ReleaseChannel = $KeyForExperimentalVersion;
 }
 
+# ---------------------------------------------------------------------------------
 # regexp to find versions and links to zip files in the html files
-my $oldzipfile = '<!--'.$releasechannel.'-->(.*?)<!--zip-->';
-my $newzipfile = '<!--'.$releasechannel.'--><a href="easyspin-'.$Build.'.zip"><!--zip-->';
+my $matchLinkTozipFile = '<!--'.$ReleaseChannel.'-->(.*?)<!--zip-->';
+my $replaceLinkTozipFile = '<!--'.$ReleaseChannel.'--><a href="easyspin-'.$Build.'.zip"><!--zip-->';
 
-my $oldversion = '<!--'.$releasechannel.'-->(.*?)<!--version-->';
-my $newversion = '<!--'.$releasechannel.'-->'.$Build.'<!--version-->';
-
+my $matchOldVersion = '<!--'.$ReleaseChannel.'-->(.*?)<!--version-->';
+my $replaceOldVersion = '<!--'.$ReleaseChannel.'-->'.$Build.'<!--version-->';
 
 # ---------------------------------------------------------------------------------
 # get html files from easyspin.org and update them with the new version tags and zipfile names
+foreach (@HTMLfiles) {
+    my $CurrentFile = $_;
+    print("Getting $CurrentFile \n");
 
-foreach (@htmlfiles) {
-    my $currentfile = $_;
-    print("Getting $currentfile \n");
     # download the current zipfile from easyspin.org
-    system('scp '.$WebServerLogin.':'.$serverdir.$currentfile.' '.$uploaddir.$currentfile.'.bak');
+    system('scp '.$WebServerLogin.':'.$ServerDir.$CurrentFile.' '.$UploadDir.$CurrentFile.'.bak');
     
+    # scan through the html file and replace strings
     print("Updating index.html \n");
-    open(my $inputhtml,'<'.$uploaddir.$currentfile.'.bak') or die("Cannot open $currentfile.bak!");
-    open(my $outputhtml,'>'.$uploaddir.$currentfile) or die("Cannot open $currentfile!");
-    while (<$inputhtml>) {
-        $_ =~ s/$oldzipfile/$newzipfile/g;
-        $_ =~ s/$oldversion/$newversion/g;
-        print $outputhtml $_;    
+    open(my $InputHTML,'<'.$UploadDir.$CurrentFile.'.bak') or die("Cannot open $CurrentFile.bak!");
+    open(my $OutputHTML,'>'.$UploadDir.$CurrentFile) or die("Cannot open $CurrentFile!");
+    while (<$InputHTML>) {
+        $_ =~ s/$matchLinkTozipFile/$replaceLinkTozipFile/g;
+        $_ =~ s/$matchOldVersion/$replaceOldVersion/g;
+        print $OutputHTML $_;    
     }
 
-    close($inputhtml) or die("Cannot close $inputhtml!");
-    close($outputhtml) or die("Cannot close $outputhtml!");  
+    close($InputHTML) or die("Cannot close $InputHTML!");
+    close($OutputHTML) or die("Cannot close $OutputHTML!");  
 }
 
 print("Deleting backup versions of html files \n");
-system('rm '.$uploaddir.'*.bak');
+system('rm '.$UploadDir.'*.bak');
 
+# ---------------------------------------------------------------------------------
 # upload entire upload directory to easyspin org and then clean it
 print("Uploading all new files to easyspin.org \n");
 
-system('scp '.$uploaddir.'* '.$WebServerLogin.':'.$serverdir);
+system('scp '.$UploadDir.'* '.$WebServerLogin.':'.$ServerDir);
 
 # clear upload directory
 print("Clear upload directory \n");
-system("rm -R $uploaddir");
+system("rm -R $UploadDir");
 
 # ---------------------------------------------------------------------------------
 # SSH into the server, unzip the build and extract documentation
-# only happens for the 'stable' release channel!
-if ($releasechannel eq $channelfordocumentation) {
+# only happens for the release channel that is specified with $ChannelForDocumentation in the config file
+if ($ReleaseChannel eq $ChannelForDocumentation) {
     print("Logging into easyspin.org via SSH \n");
-    my $ssh = Net::SSH::Perl->new($hostname);
-    $ssh -> login("$username");
+    my $SSHSession = Net::SSH::Perl->new($hostname);
+    $SSHSession -> login("$username");
 
-    my $changedirectory = "cd ".$serverdir." \n";
-    my $removefolders = "rm -r ./documentation ./examples \n";
-    my $unzipdocumentation = qq(unzip -qq $zipfilename 'easyspin-$Build/documentation/*' -d ./tmp/ \n);
-    my $unzipexamples = qq(unzip -qq $zipfilename 'easyspin-$Build/examples/*' -d ./tmp/ \n);
-    my $movefiles = qq(mv ./tmp/easyspin-$Build/* ./ \n);
-    my $rmtemp = qq(rm -r ./tmp \n);
+    my $changeDir = "cd ".$ServerDir." \n";
+    my $rmFolders = "rm -r ./documentation ./examples \n";
+    my $unzipDoc = qq(unzip -qq $zipFileName 'easyspin-$Build/documentation/*' -d ./tmp/ \n);
+    my $unzipExamples = qq(unzip -qq $zipFileName 'easyspin-$Build/examples/*' -d ./tmp/ \n);
+    my $moveFiles = qq(mv ./tmp/easyspin-$Build/* ./ \n);
+    my $rmTempDir = qq(rm -r ./tmp \n);
 
     print("Unzipping new stable version and updating documentation and examples \n");
-    my $cmd = $changedirectory.$removefolders.$unzipexamples.$unzipdocumentation.$movefiles.$rmtemp;
+    my $IssueCmd = $changeDir.$rmFolders.$unzipExamples.$unzipDoc.$moveFiles.$rmTempDir;
 
-    my ($stdout,$stderr,$exit) = $ssh->cmd("$cmd");
+    # send command
+    my ($STDOut,$STDErr,$Exit) = $SSHSession->cmd("$IssueCmd");
 }
 
 # ---------------------------------------------------------------------------------
-# Clean up lockfile and exit
-print "removing lockfile \n";
-close $lockfile;
-system('rm '.$parentdir.'/'.$lockfilename);
+# Clean up LockFile and exit
+print "removing LockFile \n";
+close $LockFile;
+system('rm '.$SourceDir.'/'.$LockFilename);
 
+# ---------------------------------------------------------------------------------
 print "All finished.\n";
