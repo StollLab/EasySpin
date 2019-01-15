@@ -73,7 +73,7 @@ my @TagsToBuild = ();
 
 my @NewestVersion = (0, 0, 0);  # (stable, default, dev)
 
-my $callTags = qq(hg AvailableTags -R $TempRepoDir); # read tagfile
+my $callTags = qq(hg tags -R $TempRepoDir); # read tagfile
 my @TagFile = `$callTags`;
 
 # compute the numeric value of the cutoff version

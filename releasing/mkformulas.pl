@@ -1,10 +1,10 @@
 $noparams = ($#ARGV+1==0);  
 
-our ($repodir);
+our ($TempRepoDir);
 
 require './config.pl';
 
-$HTMLdir = "$repodir/docs";
+$HTMLdir = "$TempRepoDir/docs";
 $pngdir = $HTMLdir.'/eqn';
 $tempdir = "./latextemp/";
 
@@ -14,7 +14,7 @@ if (-e "$tempdir") {
 
 system("mkdir $tempdir");
 
-$templatefile = "$repodir/scripts/template.tex";
+$templatefile = "$TempRepoDir/scripts/template.tex";
 
 $latexoptions = '--interaction=nonstopmode --output-directory=./latextemp/';
 # convert the first 100 pages of .dvi file to .svg and scale by a factor 1.3
