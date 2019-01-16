@@ -354,7 +354,7 @@ end
 
 switch size(OriStart,1)
   case 3 % Euler angles
-    q0 = euler2quat(OriStart);
+    q0 = euler2quat(OriStart,'active');
   case 4 % quaternions
     q0 = OriStart;
   otherwise
@@ -417,7 +417,7 @@ while ~converged
     iter = 1;
     % re-initialize trajectories
     Sim.nSteps = nSteps;
-    q0 = euler2quat(OriStart);
+    q0 = euler2quat(OriStart,'active');
     qTraj = zeros(4,Sim.nTraj,Sim.nSteps);
     qTraj(:,:,1) = q0;
   end

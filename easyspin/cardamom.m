@@ -688,12 +688,9 @@ switch LocalDynamicsModel
       M = size(MD.FrameTraj,4);
 
       % calculate orienting potential energy function
-      theta = squeeze(acos(MD.FrameTraj(3,3,:,1:M)));
-      phi = squeeze(atan2(MD.FrameTraj(3,2,:,1:M), MD.FrameTraj(3,1,:,1:M)));
-      psi = squeeze(atan2(-MD.FrameTraj(2,3,:,1:M), MD.FrameTraj(1,3,:,1:M)));
-  %           theta = squeeze(acos(MD.FrameTraj(3,3,:,1:M)));
-  %           phi = squeeze(atan2(MD.FrameTraj(2,3,:,1:M), MD.FrameTraj(1,3,:,1:M)));
-  %           psi = squeeze(atan2(-MD.FrameTraj(3,2,:,1:M), MD.FrameTraj(3,1,:,1:M)));
+      qTemp = squeeze(rotmat2quat(MD.FrameTraj));
+      [phi,theta,psi] = quat2euler(qTemp,'active');
+      clear qTemp
 
       phi = phi + 2*pi*(phi<0);
       psi = psi + 2*pi*(psi<0);
@@ -703,7 +700,8 @@ switch LocalDynamicsModel
       thetaBins = linspace(0, pi, nBins/2);
       psiBins = linspace(0, 2*pi, nBins);
 
-      [pdf, ~] = histcnd([phi,theta,psi], {phiBins,thetaBins,psiBins});
+      [pdf, ~] = histcnd([phi(:),theta(:),psi(:)], ...
+                         {phiBins,thetaBins,psiBins});
 
       pdf(end,:,:) = pdf(1,:,:);  % FIXME why does it truncate to zero in the phi direction?
       pdf = smooth3(pdf,'gaussian');
@@ -888,10 +886,10 @@ while ~converged
     end
     
     % Combine global trajectories with starting orientations
-    qLab = repmat(euler2quat(gridPhi(iOrient), gridTheta(iOrient), 0),...
-                  [1,Par.nTraj,nStepsQuant]);
-%     qLab = repmat(euler2quat(0, gridTheta(iOrient), gridPhi(iOrient)),...
+%     qLab = repmat(euler2quat(gridPhi(iOrient), gridTheta(iOrient), 0, 'active'),...
 %                   [1,Par.nTraj,nStepsQuant]);
+    qLab = repmat(euler2quat(0, gridTheta(iOrient), gridPhi(iOrient), 'active'),...
+                  [1,Par.nTraj,nStepsQuant]);
     if includeGlobalDynamics
       qLab = quatmult(qLab,qTrajGlobal);
     end
