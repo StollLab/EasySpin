@@ -495,12 +495,10 @@ end
 
 % Supply defaults
 % default number of trajectories
-if ~isfield(Par,'nTraj')&&useMD==0
+if ~isfield(Par,'nTraj')&&~strcmp(Par.Model,'MD-direct')
   Par.nTraj = 100; 
   logmsg(0,'-- Number of trajectories Par.nTraj not given. Using %d trajectories.', Par.nTraj);
 end
-% Supply defaults
-if ~isfield(Par,'nTraj')&&useMD==0, Par.nTraj = 100; end
 
 if isfield(Par,'t')
   % time axis is given explicitly

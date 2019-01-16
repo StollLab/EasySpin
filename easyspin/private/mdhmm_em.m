@@ -46,7 +46,7 @@
 function [logLikIter, eqDistr, TransProb, mu, Sigma] = ...
      mdhmm_em(data, initDistr, TransProb, mu, Sigma, verbosity)
 
-iterMax = 100;
+iterMax = 200;
 thresh = 1e-4;
   
 previous_loglik = -inf;
