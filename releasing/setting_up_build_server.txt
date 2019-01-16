@@ -43,10 +43,7 @@ Setting up SSH authentication
 	
 Install TexLive
 	- sudo apt-get install texlive-latex-extra
-	- make sure the dvisvgm package is installed:
-		- sudo apt install texlive-extra-utils
-		- verify with: dvisvgm -V
-
+	- sudo apt-get install latex2html
 
 Install and verify MATLAB installation
 

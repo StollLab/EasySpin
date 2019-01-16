@@ -8,7 +8,7 @@ use Cwd; # to get working directory
 my $WorkingDir = getcwd; # get current working directory
 
 # variables imported from config.pl
-our ($SourceDir, $BuildsDir, $TempRepoDir, $StableMajorVersion, $DefaultMajorVersion,  @VersionCutoff, $esbuild);
+our ($SourceDir, $BuildsDir, $TempRepoDir, $StableMajorVersion, $DefaultMajorVersion, @VersionCutoff, $esbuild);
 
 require './config.pl'; # load the configuration file
 
@@ -58,6 +58,10 @@ system(qq(hg clone ssh://hg\@bitbucket.org/sstoll/easyspin $TempRepoDir));
 unless (-e "$BuildsDir") {
     system("mkdir $BuildsDir");
 }
+
+# delete temporary build directory where p files are encoded in if a previous build crashed
+system("rm -R /tmp/easyspin*");
+
 
 
 # update hg configuration file to include the purge extension, which is needed to cleanly update to a different commint
@@ -168,7 +172,6 @@ else {
 
     # try to match the commandline argument against the semantic versioning
     my @SemanticBuildID = ($cmdLineArgument =~ m/(\d+)\.(\d+)\.(\d+)(.*?)/);
-    print @SemanticBuildID;
 
     # if argument corresponds to semantic versioning, make sure version is newer than cutoff version
     if (@SemanticBuildID){
@@ -298,7 +301,7 @@ foreach (@TagsToBuild) {
 }
 
 # ---------------------------------------------------------------------------------
-# Clean up temporary EasySpin directory
+# Clean up temporary EasySpin directories
 if (-e "$TempRepoDir") {
     system("rm -R $TempRepoDir");
 }
