@@ -327,6 +327,7 @@ switch LabelName
     MD.dihedrals(:,5) = dihedral(v.S1L,v.C1L,v.C1R,v.C2R);
   case 'TOAC'
     MD.dihedrals(:,1) = dihedral(v.CA,v.CB1,v.CG1,v.NN);
+    MD.dihedrals(:,2) = dihedral(v.CA,v.CB2,v.CG2,v.NN);
 end
 
 % Reorder dimensions
