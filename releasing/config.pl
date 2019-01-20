@@ -13,6 +13,9 @@ our $TempRepoDir = $SourceDir.'/easyspin-temp/'; # where easyspin is cloned into
 # settings of the easyspin webserver
 our $hostname = "easyspin.org"; # URL of easyspin server
 our $username = "easyspin"; # username for SSH
+ 
+our $KeyWebserver = '~/.ssh/hostmonster_rsa'; # private key to log into hostmonster.com
+our $KeyBitBucket = '~/.ssh/bitbucket_rsa'; # private key for bitbucket
 
 our @HTMLfiles = ("index.html","download.html","version.html"); # files on the webserver that will be updated
 
@@ -29,12 +32,7 @@ our $KeyForExperimentalVersion = 'experimental'; # keyword for all builds that d
 
 our $ChannelForDocumentation = $KeyForStableVersion; # decides which release channel is used for the online documentation
 
-our @VersionCutoff = (5, 1, 0); # versions lower than this (major,minor,patch) version are ignored and will not be automatically built
+our @VersionCutoff = (5, 2, 0); # versions lower than this (major,minor,patch) version are ignored and will not be automatically built
 
 # name and location of the esbuild script
 our $esbuild = "./esbuild.m";
-
-
-
-
-

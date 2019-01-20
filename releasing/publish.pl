@@ -14,7 +14,7 @@ else {
 }
 
 # variables imported from config.pl
-our ($SourceDir, $BuildsDir, $UploadDir, $ServerDir, $StableMajorVersion, $DefaultMajorVersion, $KeyForStableVersion, $KeyForDefaultVersion, $KeyForDeveloperVersion, $KeyForExperimentalVersion, $ChannelForDocumentation, $username, $hostname, @HTMLfiles);
+our ($SourceDir, $BuildsDir, $UploadDir, $ServerDir, $StableMajorVersion, $DefaultMajorVersion, $KeyForStableVersion, $KeyForDefaultVersion, $KeyForDeveloperVersion, $KeyForExperimentalVersion, $ChannelForDocumentation, $username, $hostname, @HTMLfiles, $KeyWebserver);
 
 require './config.pl'; # load configuration file
 
@@ -53,13 +53,13 @@ else {
 
 # ---------------------------------------------------------------------------------
 # add key to hostmojster to keychain
-system("ssh-add ~/.ssh/hostmonster_rsa"); # private key to log into hostmonster.com
+system("ssh-add $KeyWebserver"); # private key to log into hostmonster.com
 
 
 # ---------------------------------------------------------------------------------
 # set up environment
 if (-e "$UploadDir") {
-    system("rm -R $UploadDir");
+    system("rm -r $UploadDir");
 }
 
 system("mkdir $UploadDir");

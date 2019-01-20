@@ -8,7 +8,7 @@ use Cwd; # to get working directory
 my $WorkingDir = getcwd; # get current working directory
 
 # variables imported from config.pl
-our ($SourceDir, $BuildsDir, $TempRepoDir, $StableMajorVersion, $DefaultMajorVersion, @VersionCutoff, $esbuild);
+our ($SourceDir, $BuildsDir, $TempRepoDir, $StableMajorVersion, $DefaultMajorVersion, @VersionCutoff, $esbuild, $KeyBitBucket);
 
 require './config.pl'; # load the configuration file
 
@@ -45,11 +45,11 @@ else {
 
 # ---------------------------------------------------------------------------------
 # set up build environment
-system("ssh-add ~/.ssh/no_phrase_rsa"); # private key to log into bitbucket, needs to be adapted specific user
+system("ssh-add $KeyBitBucket"); # private key to log into bitbucket, needs to be adapted specific user
 
 # delete and reinitialize temporary directory of EasySpin if a previous build crashed
 if (-e "$TempRepoDir") {
-    system("rm -R $TempRepoDir");
+    system("rm -r $TempRepoDir");
 }
 system("mkdir $TempRepoDir");
 system(qq(hg clone ssh://hg\@bitbucket.org/sstoll/easyspin $TempRepoDir));
@@ -60,7 +60,7 @@ unless (-e "$BuildsDir") {
 }
 
 # delete temporary build directory where p files are encoded in if a previous build crashed
-system("rm -R /tmp/easyspin*");
+system("rm -rf /tmp/easyspin*");
 
 
 
@@ -303,7 +303,7 @@ foreach (@TagsToBuild) {
 # ---------------------------------------------------------------------------------
 # Clean up temporary EasySpin directories
 if (-e "$TempRepoDir") {
-    system("rm -R $TempRepoDir");
+    system("rm -r $TempRepoDir");
 }
 
 # ---------------------------------------------------------------------------------
