@@ -14,6 +14,7 @@ Setting up SSH authentication
 	- copy key files hostmonster_rsa and bitbucket_rsa (need to create one for user) to: ~/.ssh/
 	- set the ssh agent up to run automatically when somebody logs in:
 		- add the following to ~/.bash_profile, if .bash_profile does not exist, just create a new one
+			
 			SSH_ENV="$HOME/.ssh/environment"
 
 			function start_agent {
@@ -35,6 +36,7 @@ Setting up SSH authentication
 			else
 				start_agent;
 			fi
+			
 		- now every time you login you should get a message that the SSH agent is being initialised
 	- add keyfiles with 'ssh-add ~/.ssh/hostmonster_rsa' and 'ssh-add ~/.ssh/bitbucket_rsa' (this also needs to be done from within the build script and hence the pathes need to be updated, see below)
 	- it might be necessary to change read write permissions:
