@@ -21,10 +21,10 @@ AtomInfo.LabelName = 'TOAC';
 
 AtomInfo.AtomNames.ONname = 'OE';
 AtomInfo.AtomNames.NNname = 'ND';
-AtomInfo.AtomNames.CG1name = 'CG2';
-AtomInfo.AtomNames.CG2name = 'CG1';
-AtomInfo.AtomNames.CB1name = 'CB2';
-AtomInfo.AtomNames.CB2name = 'CB1';
+AtomInfo.AtomNames.CGSname = 'CG2';
+AtomInfo.AtomNames.CGRname = 'CG1';
+AtomInfo.AtomNames.CBSname = 'CB2';
+AtomInfo.AtomNames.CBRname = 'CB1';
 AtomInfo.AtomNames.CAname = 'CA';
 AtomInfo.AtomNames.Nname = 'N';
 

@@ -127,8 +127,8 @@ switch LabelName
     end
   case 'TOAC'
     if ~isfield(AtomNames,'ONname')||~isfield(AtomNames,'NNname')...
-        ||~isfield(AtomNames,'CG1name')||~isfield(AtomNames,'CG2name')...
-        ||~isfield(AtomNames,'CB1name')||~isfield(AtomNames,'CB2name')...
+        ||~isfield(AtomNames,'CGSname')||~isfield(AtomNames,'CGRname')...
+        ||~isfield(AtomNames,'CBSname')||~isfield(AtomNames,'CBRname')...
         ||~isfield(AtomNames,'CAname')||~isfield(AtomNames,'Nname')
       error('One or more required atom names is missing. Please check documentation.')
     end
@@ -236,10 +236,10 @@ while ~feof(FileID)
         case 'TOAC'
           psf.idx_ON = findatomindex(AtomNames.ONname);
           psf.idx_NN = findatomindex(AtomNames.NNname);
-          psf.idx_CG1 = findatomindex(AtomNames.CG1name);
-          psf.idx_CG2 = findatomindex(AtomNames.CG2name);
-          psf.idx_CB1 = findatomindex(AtomNames.CB1name);
-          psf.idx_CB2 = findatomindex(AtomNames.CB2name);
+          psf.idx_CGS = findatomindex(AtomNames.CGSname);
+          psf.idx_CGR = findatomindex(AtomNames.CGRname);
+          psf.idx_CBS = findatomindex(AtomNames.CBSname);
+          psf.idx_CBR = findatomindex(AtomNames.CBRname);
           psf.idx_CA = findatomindex(AtomNames.CAname);
           psf.idx_N = findatomindex(AtomNames.Nname);
       end

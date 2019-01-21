@@ -53,9 +53,9 @@
 %                                         |
 %                                         NN (NNname)
 %                                        /   \
-%                             (CG1name) CG1  CG2 (CG2name)
+%                             (CGRname) CGR  CGS (CGSname)
 %                                       |    |
-%                             (CB1name) CB1  CB2 (CB2name)
+%                             (CBRname) CBR  CBS (CBSname)
 %                                        \  /
 %                             (Nname) N - CA (CAname)
 %
@@ -266,10 +266,10 @@ switch LabelName
   case 'TOAC'
     v.ON = MD.Labelxyz(:,:,psf.idx_ON);
     v.NN = MD.Labelxyz(:,:,psf.idx_NN);
-    v.CG2 = MD.Labelxyz(:,:,psf.idx_CG2);
-    v.CG1 = MD.Labelxyz(:,:,psf.idx_CG1);
-    v.CB2 = MD.Labelxyz(:,:,psf.idx_CB2);
-    v.CB1 = MD.Labelxyz(:,:,psf.idx_CB1);
+    v.CGS = MD.Labelxyz(:,:,psf.idx_CGS);
+    v.CGR = MD.Labelxyz(:,:,psf.idx_CGR);
+    v.CBS = MD.Labelxyz(:,:,psf.idx_CBS);
+    v.CBR = MD.Labelxyz(:,:,psf.idx_CBR);
     v.CA = MD.Labelxyz(:,:,psf.idx_CA);
     v.N = MD.Labelxyz(:,:,psf.idx_N);
 end
@@ -302,11 +302,11 @@ switch LabelName
   case 'TOAC'
     
     v.NNNO = normalize(v.ON - v.NN);    % N-O bond vector
-    v.NNCG1 = normalize(v.CG1 - v.NN); % N-CG1 bond vector
-    v.NNCG2 = normalize(v.CG2 - v.NN); % N-CG2 bond vector
+    v.NNCGR = normalize(v.CGR - v.NN); % N-CGR bond vector
+    v.NNCGS = normalize(v.CGS - v.NN); % N-CGS bond vector
     
     % z-axis
-    MD.FrameTraj(:,:,3) = normalize(cross(v.NNCG1,v.NNNO,2) + cross(v.NNNO,v.NNCG2,2));
+    MD.FrameTraj(:,:,3) = normalize(cross(v.NNCGR,v.NNNO,2) + cross(v.NNNO,v.NNCGS,2));
     
     % x-axis
     MD.FrameTraj(:,:,1) = v.NNNO;
@@ -326,8 +326,8 @@ switch LabelName
     MD.dihedrals(:,4) = dihedral(v.SG,v.S1L,v.C1L,v.C1R);
     MD.dihedrals(:,5) = dihedral(v.S1L,v.C1L,v.C1R,v.C2R);
   case 'TOAC'
-    MD.dihedrals(:,1) = dihedral(v.CA,v.CB1,v.CG1,v.NN);
-    MD.dihedrals(:,2) = dihedral(v.CA,v.CB2,v.CG2,v.NN);
+    MD.dihedrals(:,1) = dihedral(v.CA,v.CBS,v.CGS,v.NN);
+    MD.dihedrals(:,2) = dihedral(v.CA,v.CBR,v.CGR,v.NN);
 end
 
 % Reorder dimensions
