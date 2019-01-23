@@ -390,17 +390,6 @@ if useMD
     else
       logmsg(1,'-- building HMM -----------------------------------------');
 
-      % Trim chi3 for R1 if wanted
-      if strcmp(MD.LabelName,'R1')
-        if ~isfield(Opt,'removeChi3')
-          Opt.removeChi3 = true;
-        end
-        % Remove chi3 of R1, as its dynamics are very slow on the typical MD timescale
-        if Opt.removeChi3
-          MD.dihedrals(3,:,:) = [];
-        end
-      end
-
       nLag = MD.tLag/MD.dt;
       HMM = mdhmm(MD.dihedrals,MD.dt,MD.nStates,nLag,Opt);
       

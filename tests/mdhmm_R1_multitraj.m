@@ -12,7 +12,6 @@ tScale = 2.5;  % diffusion constant of TIP3P model water molecules in MD
 
 MD = Traj;
 MD.dt = MD.dt*tScale;
-MD.dihedrals(3,:,:) = [];
 
 % Split single trajectory into two trajectories
 MD.nSteps = MD.nSteps/2;
@@ -26,7 +25,6 @@ nLag = tLag/MD.dt;
 nStates = 20;
 
 % Parameters 
-MD.removeChi3 = true;
 
 Opt.nTrials = 2;
 Opt.Verbosity = 1;
