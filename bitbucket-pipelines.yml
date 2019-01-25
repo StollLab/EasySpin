@@ -1,12 +1,9 @@
-# This is a sample build configuration for Other.
-# Check our guides at https://confluence.atlassian.com/x/5Q4SMw for more examples.
-# Only use spaces to indent your .yml configuration.
-# -----
-# You can specify a custom docker image from Docker Hub as your build environment.
+# Pipeline connects to tigress via ssh and triggers a build (and upload)
 image: atlassian/default-image:2
 
 pipelines:
-  default:
+  custom: # make trigger manual
+    build and deploy: # name of the trigger that is shown in the bitbucket interface
     - step:
         script:
           - ssh esbuilder@tigress.chem.washington.edu "source ~/.bash_profile; cd esbuildsys; perl build.pl;"
