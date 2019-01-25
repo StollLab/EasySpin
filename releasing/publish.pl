@@ -101,8 +101,9 @@ else {
 
 # ---------------------------------------------------------------------------------
 # regexp to find versions and links to zip files in the html files
-my $matchLinkTozipFile = '<!--'.$ReleaseChannel.'-->(.*?)<!--zip-->';
-my $replaceLinkTozipFile = '<!--'.$ReleaseChannel.'--><a href="easyspin-'.$Build.'.zip"><!--zip-->';
+my $findLinkTozipFile = '<!--'.$ReleaseChannel.'zip-->';
+my $matchzipFile = "easyspin-(.*?).zip";
+my $replacezipFile = "easyspin-$Build.zip";my $replaceLinkTozipFile = '<!--'.$ReleaseChannel.'--><a href="easyspin-'.$Build.'.zip"><!--zip-->';
 
 my $matchOldVersion = '<!--'.$ReleaseChannel.'-->(.*?)<!--version-->';
 my $replaceOldVersion = '<!--'.$ReleaseChannel.'-->'.$Build.'<!--version-->';
@@ -117,11 +118,14 @@ foreach (@HTMLfiles) {
     system('scp '.$WebServerLogin.':'.$ServerDir.$CurrentFile.' '.$UploadDir.$CurrentFile.'.bak');
     
     # scan through the html file and replace strings
-    print("Updating index.html \n");
+    print("Updating $CurrentFile \n");
     open(my $InputHTML,'<'.$UploadDir.$CurrentFile.'.bak') or die("Cannot open $CurrentFile.bak!");
     open(my $OutputHTML,'>'.$UploadDir.$CurrentFile) or die("Cannot open $CurrentFile!");
     while (<$InputHTML>) {
-        $_ =~ s/$matchLinkTozipFile/$replaceLinkTozipFile/g;
+
+        if ($_ =~ m/$findLinkTozipFile/) {
+            $_ =~ s/$matchzipFile/$replacezipFile/g;
+        }
         $_ =~ s/$matchOldVersion/$replaceOldVersion/g;
         print $OutputHTML $_;    
     }
@@ -152,17 +156,18 @@ if ($ReleaseChannel eq $ChannelForDocumentation) {
     $SSHSession -> login("$username");
 
     my $changeDir = "cd ".$ServerDir." \n";
-    my $rmFolders = "rm -r ./documentation ./examples \n";
+    my $rmFolders = "rm -rf ./documentation ./examples \n";
     my $unzipDoc = qq(unzip -qq $zipFileName 'easyspin-$Build/documentation/*' -d ./tmp/ \n);
     my $unzipExamples = qq(unzip -qq $zipFileName 'easyspin-$Build/examples/*' -d ./tmp/ \n);
-    my $moveFiles = qq(mv ./tmp/easyspin-$Build/* ./ \n);
+    my $moveFiles = qq(cp -r ./tmp/easyspin-$Build/* ./ \n);
     my $rmTempDir = qq(rm -r ./tmp \n);
 
     print("Unzipping new stable version and updating documentation and examples \n");
     my $IssueCmd = $changeDir.$rmFolders.$unzipExamples.$unzipDoc.$moveFiles.$rmTempDir;
 
     # send command
-    my ($STDOut,$STDErr,$Exit) = $SSHSession->cmd("$IssueCmd");
+    my ($STDOut,$STDErr,$Exit) = $SSHSession->cmd($IssueCmd);
+
 }
 
 # ---------------------------------------------------------------------------------
