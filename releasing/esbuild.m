@@ -15,6 +15,7 @@ function esbuild
 %   PATCH: Increment for every bugfix release.
 % Roughly follow guidelines of semantic versioning, see http://semver.org/
 ReleaseID = '5.2.1'; % major.minor.patch
+ReleaseChannel = 'stable'; % release channel, used for automatic updates
 
 % Expiry date of release, see eschecker.m
 % ExpiryDate = '31-Dec-2018';
@@ -127,6 +128,7 @@ fprintf(' ok\n');
 fprintf('  Setting release information and expiry date... ');
 replacestr([TbxFolder filesep 'info.xml'],'$ReleaseID$',ReleaseID);
 replacestr([TbxFolder filesep 'easyspininfo.m'],'$ReleaseID$',ReleaseID);
+replacestr([TbxFolder filesep 'easyspininfo.m'],'$ReleaseChannel$',ReleaseChannel);
 replacestr([TbxFolder filesep 'easyspininfo.m'],'$ReleaseDate$',ReleaseDate);
 replacestr([TbxFolder filesep 'easyspininfo.m'],'$ExpiryDate$',ExpiryDate);
 replacestr([TbxFolder filesep 'eschecker.m'],'888888',num2str(datenum(ExpiryDate)));

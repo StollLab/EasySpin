@@ -8,7 +8,7 @@ use Cwd; # to get working directory
 my $WorkingDir = getcwd; # get current working directory
 
 # variables imported from config.pl
-our ($SourceDir, $BuildsDir, $TempRepoDir, $StableMajorVersion, $DefaultMajorVersion, @VersionCutoff, $esbuild, $KeyBitBucket);
+our ($SourceDir, $BuildsDir, $TempRepoDir, $StableMajorVersion, $DefaultMajorVersion, $KeyForStableVersion, $KeyForDefaultVersion, $KeyForDeveloperVersion, $KeyForExperimentalVersion, @VersionCutoff, $esbuild, $KeyBitBucket);
 
 require './config.pl'; # load the configuration file
 
@@ -234,6 +234,27 @@ foreach (@TagsToBuild) {
     my $matchReleaseID = "ReleaseID(.*?); \% major.minor.patch"; # pattern to find ReleaseID 
     my $replaceReleaseID = "ReleaseID = \'".$thisBuild."\'; \% major.minor.patch"; # Update ReleaseID
     
+
+    my $ReleaseChannel;
+    if ($thisBuildID[0]) {
+        if ($thisBuildID[3]) {
+            $ReleaseChannel = $KeyForDeveloperVersion;
+        }
+        elsif ($thisBuildID[0] eq $StableMajorVersion) {
+            $ReleaseChannel = $KeyForStableVersion;
+        }
+        elsif ($thisBuildID[0] eq $DefaultMajorVersion) {
+            $ReleaseChannel = $KeyForDefaultVersion;
+        }
+    }
+    else {
+        # if tag does not follow semantic versioning, e.g. easyspin-evolve.zip
+        $ReleaseChannel = $KeyForExperimentalVersion;
+    }
+
+    my $matchReleaseChannel = "ReleaseChannel = (.*?);"; # pattern to find ReleaseID 
+    my $replaceReleaseChannel = "ReleaseChannel = '$ReleaseChannel';"; # Update ReleaseID
+
     my $matchSourceDir = "SourceDir = (.*?);";
     my $replaceSourceDir = "SourceDir = ['$TempRepoDir'];";
 
@@ -242,11 +263,12 @@ foreach (@TagsToBuild) {
 
     my $esbuildNew = $esbuild.'new';
 
-    print("Updating ReleaseID in esbuild.m\n");
+    print("Updating esbuild.m\n");
     open(my $Input,'<'.$esbuild) or die("Cannot open $esbuild!");
     open(my $Output,'>'.$esbuildNew) or die("Cannot open $esbuildNew!");
     while (<$Input>) {
         $_ =~ s/$matchReleaseID/$replaceReleaseID/g;
+        $_ =~ s/$matchReleaseChannel/$replaceReleaseChannel/g;
         $_ =~ s/$matchSourceDir/$replaceSourceDir/g;
         $_ =~ s/$matchZipDestDir/$replaceZipDestDir/g;
         print $Output $_;    
