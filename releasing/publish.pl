@@ -108,6 +108,9 @@ my $replacezipFile = "easyspin-$Build.zip";my $replaceLinkTozipFile = '<!--'.$Re
 my $matchOldVersion = '<!--'.$ReleaseChannel.'-->(.*?)<!--version-->';
 my $replaceOldVersion = '<!--'.$ReleaseChannel.'-->'.$Build.'<!--version-->';
 
+my $matchInVersionsFile = "$ReleaseChannel:.*";
+my $replaceInVersionsFile = "$ReleaseChannel:$Build";
+
 # ---------------------------------------------------------------------------------
 # get html files from easyspin.org and update them with the new version tags and zipfile names
 foreach (@HTMLfiles) {
@@ -127,6 +130,7 @@ foreach (@HTMLfiles) {
             $_ =~ s/$matchzipFile/$replacezipFile/g;
         }
         $_ =~ s/$matchOldVersion/$replaceOldVersion/g;
+        $_ =~ s/$matchInVersionsFile/$replaceInVersionsFile/g;
         print $OutputHTML $_;    
     }
 

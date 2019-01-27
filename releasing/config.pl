@@ -17,7 +17,7 @@ our $username = "easyspin"; # username for SSH
 our $KeyWebserver = '~/.ssh/hostmonster_rsa'; # private key to log into hostmonster.com
 our $KeyBitBucket = '~/.ssh/bitbucket_rsa'; # private key for bitbucket
 
-our @HTMLfiles = ("index.html","download.html","version.html"); # files on the webserver that will be updated
+our @HTMLfiles = ("index.html","download.html","versions.txt"); # files on the webserver that will be updated
 
 # assign major versions of easyspin to releasechannels
 # releasechannels are only used for sorting through the html files and replacing links and version numbers
