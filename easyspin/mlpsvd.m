@@ -1,7 +1,7 @@
-% Linear Prediction Singular Value Decomposition
+% 2D Linear Prediction Singular Value Decomposition down a single dimension
 %
-%  predictedSpectrum = lpsvd(Spectrum, Time, Method, Order)
-% [predictedSpectrum, PredictionParameters] = lpsvd(...)
+%  predictedSpectrum = mlpsvd(Spectrum, Time, Method, Order, 2D-Method)
+% [predictedSpectrum, PredictionParameters] = mlpsvd(...)
 %
 % Performs Linear Prediction SVD using a damped exponential model:
 % y = amp * exp(1i*phase) * exp(time * (1i*2*pi*freq - damp) );
@@ -13,7 +13,7 @@
 % Method - the method string input determines the LPSVD algorithm used,
 %          if not provided it will default to 'ss'
 %
-% methods:
+% Methods:
 % 'kt' Based on:
 % Kumaresan, R.;Tufts, D.W.; IEEE Trans. Acoust. Speech Signal ASSP-30 833 (1982)
 %
@@ -34,6 +34,18 @@
 % 'mdl'  minimum description length
 % 'aic' Akaike information protocol
 % however these methods are known to underestimate the number of components
+%
+%
+% 2D-Method - the method used to simultaneously handle the processing of
+%             the spectra in the time domain. if not provided default 'sum'
+% Vanhamme, L.; Van Huffel, S. SPIE 3461, 237 (1998)
+%
+% 'sum' uses the sum of the time series to determine the model
+% 'stack' stacks the hankel matrix for each spectrum and decomposes to 
+%         determine the signal poles
+%          
+
+
 
 
 
@@ -103,7 +115,7 @@ if ischar(order)
     case 'aic'
       M = length(S);
       aic = zeros(1,M);
-      for k = 0:M-1;
+      for k = 0:M-1
         aic(k+1) = 2*N*( (M-k)*log((sum(S(k+1:M))/(M-k))) - sum(log(S(k+1:M)))) ...
           + 2*k*(2*M-k);
       end
@@ -112,7 +124,7 @@ if ischar(order)
     case 'mdl'
       M = length(S);
       mdl = zeros(1,M);
-      for k = 0:M-1;
+      for k = 0:M-1
         mdl(k+1) = N*( (M-k)*log((sum(S(k+1:M))/(M-k))) - sum(log(S(k+1:M))))...
           + k*(2*M-k)*log(N)/2;
       end
@@ -184,9 +196,9 @@ y = exp((-damp + 1i*2*pi*freq)*time);
 
 % Calculate their phase and amplitude
 
-% using Cholesky decomposition in hopes of avoiding singular matrices on inversion
 a = (data*y')/(y*y');
 
+% using Cholesky decomposition in hopes of avoiding singular matrices on inversion
 % R = chol(y*y');
 % a = ((data*y')/R')/R;
 
