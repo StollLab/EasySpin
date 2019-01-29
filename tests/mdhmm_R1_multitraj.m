@@ -27,7 +27,7 @@ nStates = 20;
 % Parameters 
 
 Opt.nTrials = 2;
-Opt.Verbosity = 1;
+Opt.Verbosity = 0;
 
 HMM = mdhmm(MD.dihedrals,MD.dt,nStates,nLag,Opt);
 
