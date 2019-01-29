@@ -864,7 +864,10 @@ while ~converged
       Par.RTraj = RTrajLocal;
     end
     
-    % Generate trajectory of global dynamics
+    % Generate trajectory of global dynamics with a time step equal to that 
+    % of the quantum propagation (these rotations will be performed AFTER
+    % the time-dependent interaction tensors are calculated and possibly 
+    % averaged)
     includeGlobalDynamics = ~isempty(Dynamics.DiffGlobal);
     if includeGlobalDynamics
      Sys.Diff = Dynamics.DiffGlobal;

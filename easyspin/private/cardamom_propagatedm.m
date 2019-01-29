@@ -99,35 +99,20 @@ end
 % grab the quaternions or rotation matrices
 if useMD
   if isDirectfromMD
-    if strcmp(Method, 'ISTOs')
-      qTraj = Par.qTraj;
-      qLab = Par.qLab;
-    else
-      RTraj = Par.RTraj;
-      RTrajInv = permute(RTraj,[2,1,3,4]);
-      RLab = Par.RLab;
-      RLabInv = permute(RLab, [2,1,3,4]);
+    if ~strcmp(Method, 'ISTOs')
+      RTrajInv = permute(Par.RTraj,[2,1,3,4]);
+      RLabInv = permute(Par.RLab, [2,1,3,4]);
     end
   else
-    if strcmp(Method, 'ISTOs')
-      qTraj = Par.qTraj;
-      qLab = Par.qLab;
-    else
-      RTraj = Par.RTraj;
-      RTrajInv = permute(RTraj,[2,1,3,4]);
-      RLab = Par.RLab;
-      RLabInv = permute(RLab, [2,1,3,4]);
+    if ~strcmp(Method, 'ISTOs')
+      RTrajInv = permute(Par.RTraj,[2,1,3,4]);
+      RLabInv = permute(Par.RLab, [2,1,3,4]);
     end
   end
 else
-  if strcmp(Method, 'ISTOs')
-    qTraj = Par.qTraj;
-    qLab = Par.qLab;
-  else
-    RTraj = Par.RTraj;
-    RTrajInv = permute(RTraj,[2,1,3,4]);
-    RLab = Par.RLab;
-    RLabInv = permute(RLab,[2,1,3,4]);
+  if ~strcmp(Method, 'ISTOs')
+    RTrajInv = permute(Par.RTraj,[2,1,3,4]);
+    RLabInv = permute(Par.RLab,[2,1,3,4]);
   end
 end
 
@@ -180,8 +165,8 @@ switch Method
     
     if ~isHMMfromMD
       % Calculate time-dependent tensors from orientational trajectories
-      gTensor = cardamom_tensortraj(g,RTraj,RTrajInv);
-      ATensor = cardamom_tensortraj(A,RTraj,RTrajInv)*1e6*2*pi; % MHz (s^-1) -> Hz (rad s^-1)
+      gTensor = cardamom_tensortraj(g,Par.RTraj,RTrajInv);
+      ATensor = cardamom_tensortraj(A,Par.RTraj,RTrajInv)*1e6*2*pi; % MHz (s^-1) -> Hz (rad s^-1)
       
     else
       % Calculate time-dependent tensors from state trajectories
@@ -190,8 +175,8 @@ switch Method
       % MD-derived frame trajectories and Viterbi trajectories
       if isempty(gTensorState)
         % Perform MD-derived rotations on g- and A-tensors
-        gTensorMD = cardamom_tensortraj(g,RTraj,RTrajInv);
-        ATensorMD = cardamom_tensortraj(A,RTraj,RTrajInv)*1e6*2*pi; % MHz (s^-1) -> Hz (rad s^-1)
+        gTensorMD = cardamom_tensortraj(g,Par.RTraj,RTrajInv);
+        ATensorMD = cardamom_tensortraj(A,Par.RTraj,RTrajInv)*1e6*2*pi; % MHz (s^-1) -> Hz (rad s^-1)
         
         nVitTraj = size(MD.viterbiTraj,1);
         gTensorState = zeros(3,3,MD.nStates,nVitTraj);
@@ -257,9 +242,9 @@ switch Method
     end
     
     % Rotate tensors into lab frame explicitly
-    if ~isempty(RLab)
-      gTensor = multimatmult(RLab, multimatmult(gTensor, RLabInv));
-      ATensor = multimatmult(RLab, multimatmult(ATensor, RLabInv));
+    if ~isempty(Par.RLab)
+      gTensor = multimatmult(Par.RLab, multimatmult(gTensor, RLabInv));
+      ATensor = multimatmult(Par.RLab, multimatmult(ATensor, RLabInv));
     end
     
     gIso = sum(g)/3;
@@ -400,7 +385,7 @@ switch Method
         % dynamics once and store the result
         % this variable will be set to empty later if an MD trajectory is
         % not being used
-        D2TrajMol = wigD(qTraj);
+        D2TrajMol = wigD(Par.qTraj);
         D2Avg = zeros(5,5,Par.nBlocks);
 
         % average the Wigner D-matrices over time blocks
@@ -430,12 +415,12 @@ switch Method
         D2TrajMol = [];
       end
     else
-      D2Traj = wigD(qTraj);
+      D2Traj = wigD(Par.qTraj);
     end
     
     % check for new lab frame rotations
-    if ~isempty(qLab)
-      D2Lab = wigD(qLab);
+    if ~isempty(Par.qLab)
+      D2Lab = wigD(Par.qLab);
       D2Traj = multimatmult(D2Lab, D2Traj);
     end
     
