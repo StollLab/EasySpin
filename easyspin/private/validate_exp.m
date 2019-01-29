@@ -3,7 +3,7 @@
 %   (Could be) Implemented to simplify and maintain consistency in code across programs.
 %
 
-function varargout = check_exp(program,Sys,Exp)
+function varargout = validate_exp(program,Sys,Exp)
 
 assert(ischar(program), 'Program name must be a string.')
 
@@ -545,21 +545,22 @@ switch program
           end
         end
       end
-%     else
-%       if isfield(Exp,'mwCenterSweep')   TODO implement in cardamom
-%         if isfield(Exp,'mwRange')
-%           logmsg(0,'Using Exp.mwCenterSweep and ignoring Exp.mwRange.');
-%         end
-%       else
-%         if isfield(Exp,'mwRange')
-%           Exp.mwCenterSweep = [mean(Exp.mwRange) diff(Exp.mwRange)];
-%         else
-%           error('Either Exp.mwRange or Exp.mwCenterSweep need to be given.');
-%         end
-%       end
+    else
+      if isfield(Exp,'mwCenterSweep')   %TODO implement in cardamom
+        if isfield(Exp,'mwRange')
+          logmsg(0,'Using Exp.mwCenterSweep and ignoring Exp.mwRange.');
+        end
+      else
+        if isfield(Exp,'mwRange')
+          Exp.mwCenterSweep = [mean(Exp.mwRange) diff(Exp.mwRange)];
+        else
+          error('Either Exp.mwRange or Exp.mwCenterSweep need to be given.');
+        end
+      end
     end
 
     if FieldSweep
+      CenterFreq = [];
       CenterField = Exp.CenterSweep(1);
       Sweep = Exp.CenterSweep(2);
       Exp.Range = Exp.CenterSweep(1) + [-1 1]/2*Sweep;
@@ -674,7 +675,7 @@ switch program
 %       end
 %     end
     
-    varargout = {Exp, CenterField};%, ParallelMode, UserSuppliedOrderingFcn, PowderSimulation};
+    varargout = {Exp, FieldSweep, CenterField, CenterFreq, Sweep};%, ParallelMode, UserSuppliedOrderingFcn, PowderSimulation};
 
   otherwise
     error('Program not recognized.')

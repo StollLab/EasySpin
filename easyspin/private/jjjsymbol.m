@@ -7,9 +7,9 @@
 %
 % L,M ordering (first to last): increasing L, and for each L, decreasing M.
 
-function [jjj0,jjj1,jjj2] = jjjsymbol(LLKM,computeRank1)
+function [jjj0,jjj1,jjj2] = jjjsymbol(evenLmax,oddLmax,computeRank1)
 
-L = [0:2:LLKM(1) 1:2:LLKM(2)];
+L = [0:2:evenLmax 1:2:oddLmax];
 nBasis = (max(L)+1)^2;
 
 % Rank-0 3j-symbols

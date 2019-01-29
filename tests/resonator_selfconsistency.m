@@ -85,7 +85,6 @@ IQtest = interp1(ttest+x,IQtest,tpulse,'spline',0);
 
 suberr(3) = ~areequal(IQtest,IQ,0.01*max(IQ));
 
-
 % Sech/tanh pulse shifted from resonator frequency
 %--------------------------------------------------------------------------
 clear Par
@@ -115,7 +114,6 @@ x = fminsearch(fitfunc,x0);
 IQtest = interp1(ttest+x,IQtest,tpulse,'spline');
 
 suberr(4) = ~areequal(IQtest,IQ,0.01*max(IQ));
-
 
 err = any(suberr);
 

@@ -13,6 +13,7 @@ exp.nPoints = 1024;
 
 opt.Verbosity = 0;
 
+opt.EndorMethod = 1;
 opt.ProductRule = 0;
 [x,y0] = saffron(sys,exp,opt);
 opt.ProductRule = 1;
@@ -23,7 +24,7 @@ y0 = n(y0);
 y1 = n(y1);
 
 if (opt.Display)
-  plot(x,y1,x,-y0,'r');
+  plot(x,y1,x,y0,'r');
   xlabel('Frequency /MHz')
 end
 

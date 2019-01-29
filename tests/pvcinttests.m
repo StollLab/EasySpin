@@ -1,7 +1,7 @@
 clear
 
 %==============================================================
-% Compare intensities for rigid limit chili and pepper (Freed)
+% Compare intensities for rigid limit chili and pepper (fast)
 %==============================================================
 
 Sys.g = [2.01 2.003];
@@ -14,10 +14,10 @@ Exp.mwRange = [9.49 9.555];
 
 [x,y1] = pepper(Sys,Exp);
 
-Opt.LiouvMethod = 'Freed';
+Opt.LiouvMethod = 'fast';
 %Opt.Solver = '\';
 %Opt.ExplicitFieldSweep = true;
-Opt.LLKM = [20 0 0 0];
+Opt.LLMK = [20 0 0 0];
 
 [x,y2] = chili(Sys,Exp,Opt);
 
@@ -34,7 +34,7 @@ data = [];
 
 clear
 %==============================================================
-% Compare intensities for rigid limit chili and pepper (Freed)
+% Compare intensities for rigid limit chili and pepper (fast)
 %==============================================================
 
 Sys.g = [2.01 2.003];
@@ -47,10 +47,10 @@ Exp.Range = [337 339.5];
 
 [x,y1] = pepper(Sys,Exp);
 
-Opt.LiouvMethod = 'Freed';
+Opt.LiouvMethod = 'fast';
 Opt.Solver = '\';
 %Opt.ExplicitFieldSweep = true;
-Opt.LLKM = [20 0 0 0];
+Opt.LLMK = [20 0 0 0];
 
 [x,y2] = chili(Sys,Exp,Opt);
 

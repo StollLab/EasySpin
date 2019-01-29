@@ -53,6 +53,10 @@ if Flipped, yData = yData.'; end
 [nRows,nCols] = size(yData);
 x = x(:);
 
+% Rescale horizontal axis
+scale = max(abs(x));
+x = x/scale;
+
 % Pre-allocation.
 k = zeros(nExponents,nCols);
 c = zeros(nExponents+1,nCols);
@@ -102,6 +106,9 @@ for iCol = 1:nCols
   
 end
 
+% Rescale
+k = k/scale;
+
 if Flipped
   yFitted = yFitted.';
 else
@@ -116,10 +123,13 @@ return
 
 function kGuessed = GuessSingleDecay(t,y)
 % estimate coefficients for y = A*exp(-k*x)+Offset
-offset = y(end);
-kGuessed = (y(1)-offset)/sum(y-offset)/(t(2)-t(1));
-if (kGuessed<0),
-  kGuessed = 1/(length(t)/2*(t(2)-t(1)));
+C = y(end);
+A = y(1)-C;
+dt = t(2)-t(1);
+integral_ = sum(y-C)*dt;
+kGuessed = A/integral_;
+if (kGuessed<0)
+  kGuessed = 1/(length(t)/2*dt);
 end
 return
 
@@ -198,6 +208,7 @@ nFunEvals = 1;
 nu = 2;
 StopCriterion = 0;
 mok = 0;
+NormStep = NaN;
 
 % Iterations: Loop as long as no stop criterion is fulfilled.
 while ~StopCriterion

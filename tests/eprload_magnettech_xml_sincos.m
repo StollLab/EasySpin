@@ -10,7 +10,8 @@ FileName = 'MINST_050_SK1087.xml';
 fullFileName = [BaseDir FileName];
 [x,data,pars] = eprload(fullFileName);
 
-ok = isfield(pars,'Curves') && isfield(pars.Curves,'MW_AbsorptionSinus') &&...
+ok = isfield(pars,'Curves') && ...
+  isfield(pars.Curves,'MW_AbsorptionSinus') &&...
   isfield(pars.Curves,'MW_AbsorptionCosinus');
 err = ~ok;
 

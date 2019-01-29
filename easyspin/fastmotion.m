@@ -1,6 +1,7 @@
 % fastmotion  Computes linewidth parameters for fast-motion regime
 %
 %   lw = fastmotion(Sys,Field,tcorr)
+%   lw = fastmotion(Sys,Field,tcorr,domain)
 %   [lw,mI] = fastmotion(...)
 %
 %   Computes FWHM Lorentzian linewidths
@@ -21,8 +22,9 @@
 %      Q      principal values of Q tensor [MHz]
 %   Field     center magnetic field [mT]
 %   tcorr     isotropic rotational correlation time [seconds]
+%   domain    'feield' or 'freq', for linewidths
 %
-%   lw        all FWHM line widths [mT]
+%   lw        all FWHM line widths [mT or MHz]
 %   mI        mI quantum numbers for the lines, one line per row
 %
 %   Example:
@@ -35,7 +37,7 @@
 %    [lw,mI,coeffs] = ...
 % is for debugging purposes.
 
-function [lw,mI,coeffs] = fastmotion(System,Field,tau20)
+function [lw,mI,coeffs] = fastmotion(System,Field,tau20,domain)
 
 if (nargin==0), help(mfilename); return; end
 
@@ -47,6 +49,14 @@ if (nargin==0)
   Field = 350; % mT
   tau20 = 1e-10; % s
 end
+
+if nargin<4
+  domain = 'field';
+end
+if ~any(strcmp(domain,{'freq','field'}))
+  error('Fourth input must be either ''field'' or ''freq''.');
+end
+fieldUnits = strcmp(domain,'field');
 
 if isfield(System,'Nucs')
   I = nucspin(System.Nucs);
@@ -62,18 +72,29 @@ if isfield(System,'S')
   end
 end
 
-if numel(System.g)~=3 && numel(System.g)~=9
-  error('  Sys.g has wrong size (must contain either 3 principal g values or full 3x3 g matrix.');
-end
+anisotropic_g = max(System.g(:))~=min(System.g(:));
 
 if nNucs>0
-  if numel(System.A)<nNucs*3
-    error('Three values per nucleus in System.A needed!');
+  switch size(System.A,1)
+    case nNucs
+      anisotropic_A = any(max(System.A,[],2)~=min(System.A,[],2));
+    case 3*nNucs
+      anisotropic_A = false;
+      for iNuc = 1:nNucs
+        diagA = diag(System.A(1+(iNuc-1)*3,:));
+        anisotropic_A = anisotropic_A || max(diagA)~=min(diagA);
+      end
+    otherwise
+      error('System.A has incorrect size.');
   end
 end
 
 if (tau20<1e-14)
   error('Correlation time too small!');
+end
+
+if ~anisotropic_g && ~anisotropic_A && ~isfield(System,'Q')
+  error('Either g or A must be anisotropic, or Q must be present.');
 end
 
 fullg = numel(System.g)==9;
@@ -97,7 +118,9 @@ if ~isfield(System,'QFrame'); System.QFrame = zeros(nNucs,3); end
 
 for iNuc = 1:nNucs
   R_A2M = erot(System.AFrame(iNuc,:)).'; % A frame -> molecular frame
-  A = R_A2M*diag(System.A(iNuc,:))*R_A2M.';
+  diagA = System.A(iNuc,:);
+  if numel(diagA)==2, diagA = diagA([1 1 2]); end
+  A = R_A2M*diag(diagA)*R_A2M.';
   A0(iNuc) = trace(A)/3;
   A1(:,iNuc) = reshape(A - eye(3)*A0(iNuc),9,1);
 end
@@ -138,10 +161,18 @@ C = diag(AA).' * (1/12*j0-1/60*j1);
 D = AA * (4/15*j0+1/10*j1);
 D = D - tril(D);
 
-A = convertcoeffs(A,g0);
-B = convertcoeffs(B,g0);
-C = convertcoeffs(C,g0);
-D = convertcoeffs(D,g0);
+A = convertcoeffs(A);
+B = convertcoeffs(B);
+C = convertcoeffs(C);
+D = convertcoeffs(D);
+
+if fieldUnits
+  A = mhz2mt(A,g0);
+  B = mhz2mt(B,g0);
+  C = mhz2mt(C,g0);
+  D = mhz2mt(D,g0);
+end
+
 coeffs.A = A;
 coeffs.B = B;
 coeffs.C = C;
@@ -160,9 +191,14 @@ if nNucs>0
   qC = j0/20 * PP.* I.*(I+1).*2;
   qE = j0/20 * PP.* (-3);
   
-  qA = convertcoeffs(qA,g0);
-  qC = convertcoeffs(qC,g0);
-  qE = convertcoeffs(qE,g0);
+  qA = convertcoeffs(qA);
+  qC = convertcoeffs(qC);
+  qE = convertcoeffs(qE);
+  if fieldUnits
+    qA = mhz2mt(qA,g0);
+    qC = mhz2mt(qC,g0);
+    qE = mhz2mt(qE,g0);
+  end
 else
   qA = 0;
   qC = 0;
@@ -192,11 +228,11 @@ return
 %============================================================
 %============================================================
 
-function c_mT = convertcoeffs(c_angfrq,g0)
+function c_MHz = convertcoeffs(c_angfrq)
 %c = c_angfrq/1e6/(2*pi); % angular frequency -> MHz
 c = c_angfrq/1e6/(1);
 c = c/pi; % FWHM of Lorentzian is 1/pi/T2
-c_mT = mhz2mt(c,g0); % -> mT
+c_MHz = c;
 return
 
 

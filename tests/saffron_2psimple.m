@@ -1,6 +1,5 @@
 function [err,data] = test(opt,olddata)
 
-clear Sys Exp Opt
 Exp.Sequence = '2pESEEM';
 Exp.Field = 324.9;
 Exp.dt = 0.050;

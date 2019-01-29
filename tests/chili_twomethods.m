@@ -1,7 +1,7 @@
 function [err,data] = test(opt,olddata)
 
 %=======================================================
-% Comparison Freed and general code for Liouvillian
+% Comparison fast and general code for Liouvillian
 %=======================================================
 
 Sys.g = [2.008 2.0061 2.0027];
@@ -12,14 +12,14 @@ Sys.tcorr = 1e-9;
 Exp.mwFreq = 9.5;
 Exp.Harmonic = 0;
 
-Opt.LiouvMethod = 'Freed';
+Opt.LiouvMethod = 'fast';
 [x,y1] = chili(Sys,Exp,Opt);
 Opt.LiouvMethod = 'general';
 [x,y2] = chili(Sys,Exp,Opt);
 
 if opt.Display
   plot(x,y1,x,y2);
-  legend('Freed','general');
+  legend('fast','general');
 end
 
 err = ~areequal(y1,y2,1e-3*max(y1));

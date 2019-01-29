@@ -137,6 +137,9 @@ logmsg(1,'  number of knots: %d',Opt.nKnots);
 if ~isfield(Opt,'Symmetry')
   Opt.Symmetry = []; % needed for p_symandgrid
 end
+if ~isfield(Opt,'SymmFrame')
+  Opt.SymmFrame = []; % needed for p_symandgrid
+end
 
 calculateM = true;
 OneColoumn = false;

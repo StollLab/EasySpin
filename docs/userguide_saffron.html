@@ -32,10 +32,20 @@ This user guide explains how to simulate a variety of pulse EPR spectra, using E
 </p>
 
 <p>
-<a class="esf" href="saffron.html">saffron</a> can simulate data from a broad range of pulse EPR experiments. The most common ones are predefined: 2-pulse ESEEM, 3-pulse ESEEM, 4-pulse ESEEM, HYSCORE and Mims ENDOR. Others can be simulated using <a class="esf" href="saffron.html">saffron</a>'s interface for custom user-defined pulse sequences. It can accommodate a single electron spin (S=1/2 or S>1/2) coupled to an arbitrary number of magnetic nuclei.
+<a class="esf" href="saffron.html">saffron</a> can simulate data from a broad range of pulse EPR experiments. The most common ones are predefined: 2-pulse ESEEM, 3-pulse ESEEM, 4-pulse ESEEM, HYSCORE and Mims ENDOR. 
 
 <p>
-<a class="esf" href="saffron.html">saffron</a> has some limitations. Currently, it can only simulate experiments with rectangular pulses and a single microwave carrier frequency. Relaxation is limited to T<sub>1</sub> and T<sub>2</sub>.
+Others can be simulated using <a class="esf" href="saffron.html">saffron</a>'s interface for custom user-defined pulse sequences.
+For this <a class="esf" href="saffron.html">saffron</a> employs two different algorithms to simulate pulse experiments:
+
+<p>
+The <code>fast</code> algorithm can accommodate a single electron spin (S=1/2 or S>1/2) coupled to an arbitrary number of magnetic nuclei.
+It is also limited to experiments with rectangular pulses and a single microwave carrier frequency. 
+Relaxation is limited to T<sub>1</sub> and T<sub>2</sub>.
+The <em>fast</em> algorithm also does not work with transient detection and more than two indirect dimensions or the modification of a pulse parameter along one of the indirect dimensions.
+
+<p>
+If any of these requirements are not met, <a class="esf" href="saffron.html">saffron</a> uses the slower but general <em>thyme</em> algorithm (named after the function that is used for propagation), which is described <a href="userguide_saffron_thyme.html">here</a>.
 
 <p>
 In the following, we go over the following topics:
@@ -44,9 +54,10 @@ In the following, we go over the following topics:
 <li><a href = "#calling">Running the simulation</a></li>
 <li><a href = "#exp">Experimental parameters</a></li>
 <li><a href = "#orisel">Orientation selection</a></li>
-<li><a href = "#userdef">User-defined experiments</a></li>
+<li><a href = "#userdef">Fast user-defined experiments</a></li>
 <li><a href = "#crystals">Single crystals</a></li>
 <li><a href = "#options">Options</a></li>
+<li><a href = "#relaxation">Adding relaxation</a></li>
 </ul>
 
 Look at the list of <a href="examplesmain.html">examples</a> for more examples on how to use <a class="esf" href="saffron.html">saffron</a>.
@@ -100,7 +111,10 @@ Exp.Field = 350;   % mT
 </pre>
 
 <p>
-There are two ways to specify the pulse experiment. You can either use one of the built-in ones, or you can define it fully yourself. We will discuss user-defined experiments <a href="#userdef">further down</a>. The pre-defined built-in experiments include 2-pulse ESEEM, 3-pulse ESEEM, 4-pulse ESEEM, HYSCORE, and Mims ENDOR. You specify them in the field <code>Exp.Sequence</code>.
+There are two ways to specify the pulse experiment. You can either use one of the built-in ones, or you can define it fully yourself. 
+We will discuss user-defined experiments <a href="#userdef">further down</a>. 
+For a full list of supported built-in experiments and their parameters look <a class="esf" href="predefinedexperiments.html">here</a>.
+You specify them in the field <code>Exp.Sequence</code>.
 
 <pre class="matlab">
 Exp.Sequence = '2pESEEM';
@@ -147,8 +161,9 @@ Exp.Range = [2 40];     % MHz
 Further, you can specify the number of points. This is done in <code>Exp.nPoints</code>. If you don't give it, EasySpin uses a default value.
 
 <pre class="matlab">
-Exp.nPoints = 200;   % for 1D experiments, or 2D experiments with equal dimensions
-Exp.nPoints = [200 100]  % for 2D experiments with unequal dimensions
+Exp.nPoints = 200;        % for 1D experiments
+Exp.nPoints = [200 200];  % for 2D experiments with equal dimensions
+Exp.nPoints = [200 100];  % for 2D experiments with unequal dimensions
 </pre>
 
 <!-- ============================================================= -->
@@ -175,69 +190,131 @@ Exp.mwFreq = 9.5;   % GHz
 Both <code>Exp.ExciteWidth</code> and <code>Exp.mwFreq</code> are necessary to obtain orientation selection. If your excitation bandwidth is narrow, and your magnetic field/microwave frequency settings are off-resonant relative to any EPR transition, you won't get any intensity in your pulse EPR spectrum.
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="userdef">User-defined experiments</a></div>
+<div class="subtitle"><a name="userdef">Fast user-defined experiments</a></div>
 
 <p>
-<a class="esf" href="saffron.html">saffron</a> allows you specify your own custom pulse sequencey. For this, you need to provide full details about pulses, delays and incrementation. A pulse experiment is specified in two parts: the pulse sequence and the incrementation scheme. Together, they fully specify the pulse experiment.
+<a class="esf" href="saffron.html">saffron</a> allows you specify your own custom pulse sequence. For this, you need to provide full details about pulses, delays and incrementation. 
+A pulse experiment is specified in two parts: the pulse sequence and the indirect dimensions. Together, they fully specify the pulse experiment.
 
 <p>
-To specify the pulse sequence, you need to provide details about each (rectangular) pulse and its temporal placement relative to the preceding on. Each pulse needs a flip angle and a duration. The flip angles go into <code>Exp.Flip</code>, as multiples of 90&deg;. The durations are expected in <code>Exp.tp</code>, in units of microseconds.
+To specify the pulse sequence, you need to provide details about each (rectangular) pulse and its temporal placement relative to the preceding one. 
+Each pulse needs a flip angle and, if you want to use real pulses, a duration. 
+Pulses need to be defined separately <code>Par</code>.and can then be combined with delays in <code>Exp.Sequence</code>.
+The flip angles go into <code>Par.Flip</code>, in radians:
+
 
 <pre class="matlab">
-% Two-pulse ESEEM sequence
-Exp.Flip = [1 2];        % 90&deg; - 180&deg;
-Exp.tp = [0.010 0.020];  % pulse durations, us
+% Create two ideal pulses:
+p90.Flip = pi/2; 
+p180.Flip = pi; 
 
-% HYSCORE sequence
-Exp.Flip = [1 1 2 1];      % 90&deg; - 90&deg; - 180&deg; - 90&deg;
-Exp.tp = [1 1 1 1]*0.010;  % all pulses same length, us
+% Two-pulse ESEEM sequence with ideal pulses
+tau = 0.1; % start value for tau
+Exp.Sequence = {p90 tau p180 tau};  % 90&deg; - tau - 180&deg -  tau;
 </pre>
 
 <p>
-Setting a pulse length in <code>Exp.tp</code> to zero corresponds to an zero-length pulse with infinite excitation bandwidth and flip angle given in <code>Exp.Flip</code>.
+For real pulses, durations are expected in <code>Par.tp</code>, in units of microseconds:
 
-<p>
-If you have pulses with different phases, specify the phases in <code>Exp.Phase</code>. Again, give it in multiples of 90&deg;
 <pre class="matlab">
-Exp.Phase = [0 0 2 0];     % phases (+x,+x,-x,+x)
+% Create two real pulses:
+p90real.Flip = pi/2;  % flip angle
+p90real.tp = 0.01; % length of pulse in microseconds
+
+p180real.Flip = pi; % flip angle 
+p180real.tp = 0.02; % length of pulse in microseconds
+
+% HYSCORE sequence with real pulses
+tau = 0.1; % length of first interpulse delay in microseconds
+t1 = 0; % start value for t1 
+t2 = 0; % start value for t2 
+
+Exp.Sequence = {p90real tau p90real t1 p180real t2 p90real tau};      % 90&deg; - tau - 90&deg; - t1 - 180&deg; - t2 - 90&deg - tau;
 </pre>
 
 <p>
-This defines the pulse sequence. Next, we need to define the incrementation scheme. This includes specifying which pulse intervals are incremented or decremented, and which dimension in the data the incrementation should count for. For this, use <code>Exp.Inc</code>. For each inter-pulse delay, there should be one number: 0 indicates fixed, 1 indicates variation as 1st data dimension, 2 indicates variation as 2nd data dimension. Here are a few examples:
+Omitting <code>Par.tp</code> or setting it to zero corresponds to a zero-length pulse with infinite excitation bandwidth and flip angle given in <code>Par.Flip</code>.
+
+<p>
+If you have pulses with different phases, specify the phases in <code>Par.Phase</code>. Again, give it in radians;
+<pre class="matlab">
+p90.Phase = pi/2 % set phase to +y
+p180real.Phase = pi; % set phase to -x
+</pre>
+
+<p>
+This defines the pulse sequence. Next, we need to define the incrementation scheme. 
+This includes specifying which pulse intervals are incremented or decremented, and which dimension in the data the incrementation should count for. 
+The <em>fast</em> algorithm only supports in/ or decrementation of delays along a maximum of two indirect dimensions.
+How to change pulse parameters or run experiments with more than two indirect dimensions is discussed <a class="esf" href="userguide_saffron_thyme.html">here</a>.
+
+<p>
+For this, use the field <code>Exp.Dim1</code> for a one-dimensional experiment or <code>Exp.Dim1</code> and <code>Exp.Dim2</code> for a two-dimensional experiment. 
+Each entry first has a string, that identifies the delay you want to change, which is followed by the size of the increment for each step in microseconds.
+For delays, the string has to have the form <code>'dx'</code> where <code>d</code> stands for 'delay' and <code>x</code> for a number that corresponds to the index of the delay, e.g. <code>'d1'</code> is the first delay in <code>Exp.Sequence</code>.
+Here are a few examples:
 
 <pre class="matlab">
-Exp.Inc = [1 1];       % two-pulse ESEEM
-Exp.Inc = [0 1 0];     % three-pulse ESEEM
-Exp.Inc = [1 2 1];     % 2D three-pulse ESEEM
-Exp.Inc  = [0 1 2 0];  % HYSCORE
+% One dimensional experiment:
+Exp.Dim1 = {'d1' 0.01}; % increment the first delay by 10 ns each step
+
+% Two dimensional experiment:
+Exp.Dim1 = {'d2' 0.01}; % increment 2nd delay by 10 ns along the 1st dimension
+Exp.Dim2 = {'d3' 0.02}; % increment 3rd delay by 10 ns along the 2nd dimension
+</pre>
+
+<p>
+It is also possible to change two or more delays within one dimension:
+
+<pre class="matlab">
+% Increment two delays equally:
+Exp.Dim1 = {'d1,d2' 0.01}; % increment the 1st and 2nd delay by 10 ns
+
+% Increment two delays with different dt:
+Exp.Dim1 = {'d1' 0.01; 'd2' 0.03 }; 
 </pre>
 
 <p>
 If you want to decrement an interval instead of incrementing it, use negative signs. For, example, the following gives a one-dimensional incrementation scheme where the second interval is incremented and the third one is decrement at the same time. This gives a fixed-length pulse experiment.
 
 <pre class="matlab">
-Exp.Inc = [0 1 -1 0];   % combination of increment and decrement
+Exp.Dim1 = {'d2' 0.01;'d3' -0.01};    % combination of increment and decrement
 </pre>
 
 <p>
-To complete the pulse experiment specification, we need the starting values for all the intervals (<code>Exp.t</code>) and the step sizes (<code>Exp.dt</code>). For each pulse interval, no matter whether it is fixed or varied during the experiment, you must provide an initial duration, in us.
+Keep in mind, the starting values (the first data points) are always the ones given in <code>Exp.Sequence</code>.
+
+<p>
+The last thing that is missing is to tell <a class="esf" href="saffron.html">saffron</a> the number of data points along each indirect dimension.
+This is done with <code>Exp.nPoints</code>. For a two-dimensional experiment the points of both dimensions must be specified:
 
 <pre class="matlab">
-Exp.t = [0.100 0.100];              % two-pulse ESEEM, us
-Exp.t = [0.130 0.080 0.080 0.130];  % HYSCORE, us
+Exp.nPoints = 200;        % for 1D experiments
+Exp.nPoints = [200 200];  % for 2D experiments with equal dimensions
+Exp.nPoints = [200 100];  % for 2D experiments with unequal dimensions
 </pre>
 
 <p>
-The step sizes are given in <code>Exp.dt</code>. For a one-dimensional experiment, give just one value. For a two-dimensional experiment, you can give one or two values. As for all time quantities, the units are microseconds.
+With all this, the manual definition of a three-pulse ESEEM experiment could look like this: 
 
 <pre class="matlab">
-% 1D experiments
-Exp.dt = 0.010;          % us
+% Spin system
+Sys.S = 1/2;
+Sys.Nucs = '1H';
+Sys.A_ = [5 2];
 
-% 2D experiments
-Exp.dt = [0.010 0.050];  % different step sizes, us
-Exp.dt = [0.010 0.010];  % equal step sizes, us
-Exp.dt = 0.010;          % expands to [0.010 0.010]
+% Experiment definition
+p90.Flip = pi/2; % by providing only a flip angle, pulses are ideal
+tau = 0.4;
+
+Exp.Field = 350;
+Exp.Sequence = {p90 tau p90 0 p90 tau}; % three pulse ESEEM sequence, the
+					% starting value for the 2nd delay is 0
+
+Exp.nPoints = 512;        % 512 data points
+Exp.Dim1 = {'d2', 0.1}; % increment 2nd delay by 8 ns 
+
+saffron(Sys,Exp);
 </pre>
 
 <p>
@@ -247,7 +324,16 @@ For more settings, such as coherence filters, see the reference page on <a class
 <div class="subtitle"><a name="crystal">Single crystals</a></div>
 
 <p>
-By default, <a class="esf" href="saffron.html">saffron</a> simulates powder spectra. But just like all other EasySpin simulation functions, it can also handle single crystals. For this, use the fields <code>Exp.CrystalOrientation</code> (for the crystal orientation in the spectrometer) and <code>Exp.CrystalSymmetry</code> (for the space group of the crystal). For more details, see the pages on <a href="frames.html">frames</a> and <a href="crystalsim.html">crystal simulations</a>.
+By default, <a class="esf" href="saffron.html">saffron</a> simulates powder spectra. 
+But just like all other EasySpin simulation functions, it can also handle single crystals. 
+For this, use the fields <code>Exp.CrystalOrientation</code> (for the crystal orientation in the spectrometer) and <code>Exp.CrystalSymmetry</code> (for the space group of the crystal, optional):
+
+<pre class="matlab">
+Exp.CrystalOrientation = [0 pi/2 0];    % single crystal, crystal z axis perpendicular to B0
+</pre>
+
+<p>
+For more details, see the pages on <a href="frames.html">frames</a> and <a href="crystalsim.html">crystal simulations</a>.
 
 <!-- ============================================================= -->
 <div class="subtitle"><a name="options">Options</a></div>
@@ -274,6 +360,33 @@ Opt.ProductRule = 1;    % use product rule approximation
 
 <p>
 For other settings, included settings for data processing and display, see the reference page on <a class="esf" href="saffron.html">saffron</a>.
+
+<!-- ============================================================= -->
+<div class="subtitle"><a name="relaxation">Adding relaxation</a></div>
+
+<p> 
+It is possible to add relaxation to pre-defined experimental sequences.
+In contrast to the slower <em>thyme</em> method, this relaxation is not directly included in the propagation. 
+Hence, it is not possible to use transition selective relaxation times and T<sub>1</sub> and T<sub>2</sub> have to be given as scalars in microseconds
+
+<p>
+This example shows how to add decay to a two-pulse sequence:
+
+<pre class="mlexample">
+Exp.Sequence = '2pESEEM';
+Exp.Field = 324.9;
+Exp.dt = 0.010;
+
+Sys.Nucs = '14N';
+nuI = larmorfrq(Sys.Nucs,Exp.Field);
+Sys.A = 2*nuI;
+Sys.Q = [4*0.1*nuI, 0.6];
+Sys.T1 = 4; % adds T1
+Sys.T2 = 2; % adds T2
+</pre>
+
+<p>
+If either of the two relaxation types is omitted or set to zero it is ignored.
 
 <hr>
 </section>
