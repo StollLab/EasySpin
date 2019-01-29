@@ -7,7 +7,7 @@ rng(1)
 % Load pre-processed MD frame trajectory
 % -------------------------------------------------------------------------
 
-load('.\mdfiles\MTSSL_polyAla_traj.mat')
+load('MTSSL_polyAla_traj.mat')
 
 tScale = 2.5;  % diffusion constant of TIP3P model water molecules in MD 
                % simulations is ~2.5x too high, so we scale the time axis
@@ -38,8 +38,7 @@ Par.Model = 'MD-direct';
 
 Exp.mwFreq = 9.4;
 
-Opt.Verbosity = 0;
-Opt.FFTWindow = 1;
+Opt.Verbosity = 1;
 Opt.Method = 'Nitroxide';
 
 [~, spc] = cardamom(Sys,Exp,Par,Opt,MD);

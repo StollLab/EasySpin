@@ -90,7 +90,7 @@
 %
 %     Model          string 
 %                    the model for spin label dynamics
-%                    'stochastic'
+%                    'diffusion'
 %                    'jump'
 %                    'MD-direct': use molecular orientations in MD
 %                      trajectories directly as input for simulating the
@@ -200,6 +200,7 @@
 %      .Sigma        covariance matrices of states
 %      .viterbiTraj  Viterbi state trajectory (most likely given the dihedrals)
 %      .tauRelax     relaxation times of HMM
+%      .logLik       log-likelihood of HMM during optimization
 %                    
 %
 %   Output:
@@ -307,7 +308,7 @@ if ~ischar(Par.Model)
 end
 
 switch Par.Model
-  case 'stochastic'
+  case 'diffusion'
     
   case 'jump'
     
@@ -655,7 +656,7 @@ end
 % Check model for local diffusion
 %-------------------------------------------------------------------------------
 switch LocalDynamicsModel
-  case 'stochastic'
+  case 'diffusion'
     
     DiffLocal = Dynamics.Diff;
   
@@ -798,7 +799,7 @@ while ~converged
     % Generate trajectory of local dynamics
     switch LocalDynamicsModel
       
-      case 'stochastic'
+      case 'diffusion'
         
         Sys.Diff = Dynamics.Diff;
         Par.dt = dtStoch;

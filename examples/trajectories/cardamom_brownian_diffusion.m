@@ -15,10 +15,12 @@ Exp.mwFreq = 9.4;
 
 Par.nTraj = 200;
 Par.dt = 1e-9;
-Par.Model = 'stochastic';
+Par.Model = 'diffusion';
 Par.nSteps = ceil(200e-9/Par.dt);
 
-[Bcard,spc] = cardamom(Sys,Exp,Par);
+Opt.Verbosity = 1;
+
+[Bcard,spc] = cardamom(Sys,Exp,Par,Opt);
 ycard = spc/max(spc);
   
 % simulate using chili
