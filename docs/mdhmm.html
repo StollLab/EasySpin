@@ -7,7 +7,7 @@
    <link rel="stylesheet" href="highlight/matlab.css">
    <script src="highlight/highlight.pack.js"></script>
    <script>hljs.initHighlightingOnLoad();</script>
-   <title>cardamom</title>
+   <title>mdhmm</title>
 </head>
 
 <body>
@@ -85,12 +85,12 @@ If no input argument is given, a short help summary is shown (same as when typin
 <p>
 <code>mdhmm</code> returns a structure with information about the Gaussian HMM. It has the following fields
 
-<div class="optionfield"><code>transprob</code></div>
+<div class="optionfield"><code>TransProb</code></div>
 <div class="optiondescr">
 Transition probability matrix
 </div>
 
-<div class="optionfield"><code>eqdistr</code></div>
+<div class="optionfield"><code>eqDistr</code></div>
 <div class="optiondescr">
 Equilibrium distribution among the HMM states
 </div>
@@ -115,11 +115,17 @@ Most likely state trajectory given the model and the dihedral trajectory.
 List of relaxation times (in seconds) of the Gaussian HMM.
 </div>
 
+<div class="optionfield"><code>logLik</code></div>
+<div class="optiondescr">
+Trajectory of log-likelihood for the Gaussian HMM parameter values throughout model optimization.
+</div>
+
 <!-- =================================================================== -->
 <div class="subtitle">Algorithm</div>
 
 <p>
-<code>mdhmm</code> uses k-means clustering to determine an initial set of state centers and covariance matrices, and a maximum-likelihood estimator to obtain initial estimates for the transition probability matrix and the equilibrium distribution. It then uses these estimates as starting values to optimize them, using the Baum-Welch expectation maximization algorithm. This yields the final HMM parameters. At the end, the most likely state trajectory giving rise to the dihedrals trajectory is calculated using the Viterbi algorithm, and the relaxation times of the HMM are calculated from the eigenvalues of the transition probability matrix.
+<code>mdhmm</code> uses k-means clustering to determine an initial set of state centers and covariance matrices, and a maximum-likelihood estimator to obtain initial estimates for the transition probability matrix and the initial distribution. It then uses these estimates as starting values to optimize them, using the Baum-Welch expectation maximization algorithm. This yields the final HMM parameters. At the end, the most likely state trajectory giving rise to the dihedral trajectory is calculated using the Viterbi algorithm, and the relaxation times of the HMM are calculated from the eigenvalues of the transition probability matrix. 
+For diagnostics purposes, the log-likelihood exhibited by the set of HMM parameter values throughout model optimization is also provided.
 </p>
 
 <!-- =================================================================== -->

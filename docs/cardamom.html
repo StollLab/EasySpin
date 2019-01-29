@@ -46,9 +46,9 @@ Simulation of slow motion CW-EPR spectra in the time domain.
 <div class="subtitle">Description</div>
 
 <p>
-<code>cardamom</code> simulates a CW-EPR spectrum using trajectories of orientations, which are obtained from either stochastic dynamics simulations (SDS) or molecular dynamics simulations (MDS). If SDS are to be used, then <code>cardamom</code> uses 
+<code>cardamom</code> simulates a CW-EPR spectrum using trajectories of orientations, which are obtained from either stochastic dynamics simulations or molecular dynamics  (MD) simulations. If stochastic dynamics is to be used, then <code>cardamom</code> uses 
 <a class="esf" href="stochtraj_diffusion.html"><code>stochtraj_diffusion</code> </a> or <a class="esf" href="stochtraj_jump.html"><code>stochtraj_jump</code> </a>
-to simulate the trajectories required to calculate a cw EPR spectrum. If MDS are to be used, then <code>cardamom</code> uses <code>mdload</code> to process MDS output files into rotational trajectories.
+to simulate the orientational trajectories required to calculate a cw EPR spectrum. If MD is to be used, then <code>cardamom</code> requires that the information and processed output of the MD simulation (which can itself be done by using <code>mdload</code>) be provided, including the orientational trajectories.
 </p>
 
 <p>
@@ -79,14 +79,18 @@ Up to four output arguments are returned:
 The first two output arguments <code>B</code> and <code>spc</code> are mandatory, whereas the last output argument pair <code>ExpectVal</code> and <code>t</code> is optional.
 </p>
 
+<!-- ============================================================= -->
 <div class="subtitle2">Input: System dynamics </div>
+<!-- ============================================================= -->
 
 <p>
 <code>Sys</code> is a structure containing the dynamic properties for generating the stochastic rotational trajectories. Many of its fields overlap with those of <code>chili</code>. This allows the user to easily simulate EPR spectra in both frequency and time domains for easy comparison.
 </p>
 
+<!-- ============================================================= -->
 <p>
 <span style="font-weight:bold;">Stochastic model</span>
+<!-- ============================================================= -->
 
 <p>
 A stochastic model of rotational diffusion can be used for local dynamics by declaring <code>Par.Model='stochastic'</code>.
@@ -140,7 +144,7 @@ Base-10 logarithm of <code>Diff</code>. If given, <code>Diff</code> is ignored.
 </div>
 
 <p>
-It is also possible to specify an orienting potential to simulate restricted diffusion. <code>cardamom</code> accomplishes this by representing the orienting potential function using either a series of Wigner D-functions (see reference for details), a numerical 3D array, or a function handle. To take advantage of one of these feature, use <code>Sys.Potential</code> and assign to it one of the following:
+It is also possible to specify an orientational potential to simulate restricted diffusion. <code>cardamom</code> accomplishes this by representing the orientational potential function using either a series of Wigner D-functions (see reference for details), a numerical 3D array, or a function handle. To take advantage of one of these feature, use <code>Sys.Potential</code> and assign to it one of the following:
 </p>
 
 <ul>
@@ -198,8 +202,10 @@ Sys.Potential = U;
 </ul>
 </div>
 
+<!-- ============================================================= -->
 <p>
 <span style="font-weight:bold;">Jump model</span>
+<!-- ============================================================= -->
 
 <p>
 A jump model with a discrete number of orientational states can be used for local dynamics by declaring <code>Par.Model='jump'</code>. To dictate the inter- and intra-state dynamics, either <code>TransRates</code> or <code>TransProb</code> can be given, with the former taking precendence if both are given.
@@ -229,25 +235,25 @@ Transition probability matrix of size (nStates,nStates). The elements of <code>S
 An array of Euler angles representing the orientation of each state, size (nStates,1) or (1,nStates).
 </div>
 
+<!-- ============================================================= -->
+<p>
+<span style="font-weight:bold;">MD model</span>
+<!-- ============================================================= -->
 
+<p>
+An MD model can also be employed, where MD trajectories are used to model local dynamics and obtain additional trajectories. 
+There are three types of MD model that make use of MD trajectories in different ways: 
+<code>Par.Model='MD-direct'</code>, where orientational trajectories are directly extracted from the MD trajectory atomic coordinate output; <code>Par.Model='MD-HBD'</code>, where the orientations and dynamics of the paramagnetic spin system are used to build and simulate trajectories from a coarse-grained, hindered Brownian dynamics (HBD) model; and <code>Par.Model='MD-HMM'</code>, where the dihedral angles of the spin label are projected onto a hidden Markov model (HMM), from which jump trajectories of time-averaged, state-dependent Hamiltonians are simulated.
+</p>
+
+<!-- ============================================================= -->
 <!-- ============================================================= -->
 <div class="subtitle2">Input: Simulation parameters</div>
 <!-- ============================================================= -->
-
-<!-- ============================================================= -->
-<p>
-<code>Par.OriStart</code>
-</p>
-<p>
-<code>Par.nOrients</code>,<code>Par.Orients</code>
-</p>
-<p>
-<code>Par.Model</code>
-</p>
 <!-- ============================================================= -->
 
 <p>
-<code>Par</code> is a structure containing the parameters for generating the stochastic rotational trajectories. The parameters can be categorized into two groups: Monte Carlo settings, and trajectory settings.
+<code>Par</code> is a structure containing the parameters for generating the stochastic orientational trajectories. The parameters can be categorized into three groups: Monte Carlo settings, trajectory settings, and model setting.
 <p>
 <p>
 The Monte Carlo settings specify the parameters used to perform the time integration in the simulation. One can provide an array of time points <code>t</code> along which to integrate, a number of steps <code>nSteps</code> and a time step <code>dt</code>, or a number of steps <code>nSteps</code> and a total time for simulation <code>tmax</code>.
@@ -306,7 +312,6 @@ If only one set of starting orientations <code>OriStart</code> is given and <cod
 For the lab orientations <code>Orients</code>, if these are not specified but <code>nOrients</code> is declared, then <code>nOrients</code> orientations will be chosen using a spiral grid on the unit sphere. If neither are provided, then the number of lab orientations to sum over will be set equal to <code>Par.nTraj</code> and they will be chosen from a spiral grid.
 </p>
 
-
 <!-- ============================================================= -->
 <div class="subtitle2">Input: Simulation options</div>
 <!-- ============================================================= -->
@@ -337,10 +342,10 @@ Determines the method with which the time-dependent  spin Hamiltonian is constru
 If true (default), a windowing function is applied to the simulated FID prior to calculating the FFT to obtain the spectrum. If false, no windowing function is used.
 </div>
 
-<div class="optionfield"><code>truncate</code></div>
+<!-- <div class="optionfield"><code>truncate</code></div>
 <div class="optiondescr">
 Number of ns at which to begin using an ensemble-averaged propagator, which can save time when simulating a cw EPR spectrum. This option can only be used for the general method <code>Method='ISTOs</code>.
-</div>
+</div> -->
 
 
 <!-- ============================================================= -->
@@ -381,12 +386,6 @@ If set to true (default), <code>cardamom</code> will use <code>FrameTrajwrtProt<
 Optional rotational diffusion coefficient for simulating stochastic isotropic global rotational diffusion, which will be coupled to the local diffusion obtained from the MD simulation trajectory.
 </div>
 
-<div class="optionfield"><code>TrajUsage</code></div>
-<div class="optiondescr">
-Determines how the MD simulation trajectory data is used to simulate a spectrum. If set to <code>'Explicit'</code> (default), the atomic coordinates of the spin label will be used directly by <code>cardamom</code>. 
-If set to <code>'Resampling'</code>, a coarse-grained model will be used to simulate a spectrum, where an orientational potential energy function is constructed from an MD trajectory-derived orientational histogram for the spin label and restricted diffusion is simulated using this potential. Note that the local dynamics, e.g. <code>Sys.Diff</code> must be specified when using the latter option.
-</div>
-
 <!-- ============================================================= -->
 <div class="subtitle">Example</div>
 <!-- ============================================================= -->
@@ -422,6 +421,24 @@ Par.nSteps = ceil(250e-9/Par.dt);
 Par.nTraj = 400;
 
 [B,spc] = cardamom(Sys,Exp,Par);
+</pre>
+
+<p>
+To simulate a cw EPR spectrum using an MD trajectory with a direct model (we assume that the MD trajectory has already been processed and output to the variable <code>MD</code> using <code>mdload</code>), enter
+</p>
+
+<pre class="matlab">
+Sys.g = [2.009, 2.006, 2.002];
+Sys.A = mt2mhz([6,6,36]/10);    % hyperfine tensor, G -> MHz
+
+Exp.mwFreq = 9.4;
+
+Par.Model = 'MD-direct';
+Par.dt = 1e-9;
+Par.nSteps = ceil(250e-9/Par.dt);
+Par.nOrients = 400;
+
+[B,spc] = cardamom(Sys,Exp,Par,MD);
 </pre>
 
 <!--
