@@ -91,7 +91,7 @@ else
   
   y = y(:);
   yref = yref(:);
-  notnan = ~isnan(yref) & ~isnan(y);
+  notnan = all(~isnan(yref)) && all(~isnan(y));
 
   switch ModeID
     case 1 % maxabs
