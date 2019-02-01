@@ -18,7 +18,7 @@ Pulse.tp = 0.1;
 % Experiment with pulses internally defined -------------------
 Exp.Sequence = {Pulse 0.5 Pulse};
 Exp.Field = 1240; 
-Opt.TimeStep = 0.0001; % us
+Opt.IntTimeStep = 0.0001; % us
 Exp.mwFreq = 33.5;
 Exp.DetSequence = [1 1 1];
 Exp.nPoints = 2;
@@ -41,12 +41,12 @@ Opt.SimFreq = 32;
 % Build custom IQ
 Pulse.Phase = 0;
 [t,IQ1] = pulse(Pulse);
-Opt.dt = Opt.TimeStep;
+Opt.dt = Opt.IntTimeStep;
 [t1, IQ1] = rfmixer(t,IQ1,Exp.mwFreq,'IQshift',Opt);
 
 Pulse.Phase = pi;
 [t,IQ2] = pulse(Pulse);
-Opt.dt = Opt.TimeStep;
+Opt.dt = Opt.IntTimeStep;
 [t2, IQ2] = rfmixer(t,IQ2,Exp.mwFreq,'IQshift',Opt);
 
 PulseIQ.IQ = {IQ1 IQ2};

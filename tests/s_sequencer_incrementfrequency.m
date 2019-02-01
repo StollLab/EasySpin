@@ -32,7 +32,7 @@ Manual.Flip = Flip;
 
 Exp.Sequence = {Pulse 0.5 Pulse};
 Exp.Field = 1240; 
-Opt.TimeStep = TimeStep; % us
+Opt.IntTimeStep = TimeStep; % us
 
 Opt.SimFreq = 0;
 Opt.SimulationMode = 'step wise';
