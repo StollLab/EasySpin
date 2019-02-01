@@ -16,7 +16,7 @@ Sys.lw = [0.0, 0.1];
 Par.dt = 3e-9;
 Par.nSteps = ceil(100e-9/Par.dt);
 Par.nTraj = 50;
-Par.Model = 'stochastic';
+Par.Model = 'diffusion';
 
 Exp.mwFreq = 9.4;
 

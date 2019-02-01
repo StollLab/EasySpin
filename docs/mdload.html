@@ -79,25 +79,21 @@ Name of the segment in <code>TopFile</code> assigned to the spin-labeled protein
 
 <div class="optionfield"><code>ResName</code></div>
 <div class="optiondescr">
-Name of the residue in <code>TopFile</code> assigned to the spin-label, e.g. <code>'CYR1'</code> is the default name given to MTSSL by CHARMM-GUI.
+Name of the residue in <code>TopFile</code> assigned to the spin-label, e.g. <code>'CYR1'</code> is the default name given to R1 by CHARMM-GUI.
+</div>
+
+<div class="optionfield"><code>LabelName</code></div>
+<div class="optiondescr">
+Name of the spin label in <code>TopFile</code>, either <code>'R1'</code> (default) or <code>'TOAC'</code>.
 </div>
 
 <div class="optionfield"><code>AtomNames</code></div>
 <div class="optiondescr">
-A structure containing the names of the spin label's individual atoms used by <code>TopFile</code>. For MTSSL, the atom names should be given as the following fields:
+A structure containing the names of the spin label's individual atoms used by <code>TopFile</code>.
 <ul>
-<li><code>ONname</code>
-<li><code>NNname</code>
-<li><code>C1name</code>
-<li><code>C2name</code>
-<li><code>C1Rname</code>
-<li><code>C2Rname</code>
-<li><code>C1Lname</code>
-<li><code>S1Lname</code>
-<li><code>SGname</code>
-<li><code>CBname</code>
-<li><code>CAname</code>
-<li><code>Nname</code>
+<li>For R1, the atom names should be given as the following fields:
+<code>ONname</code>, <code>NNname</code>, <code>C1name</code>, <code>C2name</code>, <code>C1Rname</code>, <code>C2Rname</code>, <code>C1Lname</code>, <code>S1Lname</code>, <code>SGname</code>, <code>CBname</code>, <code>CAname</code>, <code>Nname</code>.
+<li>For TOAC, the required atom names are <code>ONname</code>, <code>NNname</code>, <code>CGSname</code>, <code>CGRname</code>, <code>CBSname</code>, <code>CBRname</code>, <code>CAname</code>, <code>Nname</code>.
 </ul>
 </div>
 
@@ -148,6 +144,8 @@ To load and process a <code>DCD</code> trajectory file <code>myTraj.DCD</code> g
 </p>
 
 <pre class="matlab">
+AtomInfo.TopFile = 'myTop.PSF';
+
 AtomInfo.ResName = 'CYR1';
 
 AtomInfo.SegName = 'PROA';

@@ -32,34 +32,17 @@ q1 = q(2,Index{2:end});
 q2 = q(3,Index{2:end});
 q3 = q(4,Index{2:end});
 
-sq1 = q1.*q1;
-sq2 = q2.*q2;
-sq3 = q3.*q3;
-
-q0q1 = q0.*q1;
-q0q2 = q0.*q2;
-q0q3 = q0.*q3;
-q1q2 = q1.*q2;
-q1q3 = q1.*q3;
-q2q3 = q2.*q3;
-
 % needed if 3rd dimension is singleton and 4th is not
 mat = zeros([3,3,qshape(2:end)]); 
 
-mat(1,1,Index{2:end}) = 1 - 2*sq2 - 2*sq3;
-mat(1,2,Index{2:end}) = 2*q1q2 - 2*q0q3;
-mat(1,3,Index{2:end}) = 2*q1q3 + 2*q0q2;
-mat(2,1,Index{2:end}) = 2*q1q2 + 2*q0q3;
-mat(2,2,Index{2:end}) = 1 - 2*sq1 - 2*sq3;
-mat(2,3,Index{2:end}) = 2*q2q3 - 2*q0q1;
-mat(3,1,Index{2:end}) = 2*q1q3 - 2*q0q2;
-mat(3,2,Index{2:end}) = 2*q2q3 + 2*q0q1;
-mat(3,3,Index{2:end}) = 1 - 2*sq1 - 2*sq2;
-
-% % convert active to passive rotation
-% idx = 1:ndims(mat);
-% idx(1) = 2;
-% idx(2) = 1;
-% mat = permute(mat,idx);
+mat(1,1,Index{2:end}) = 1 - 2*q2.*q2 - 2*q3.*q3;
+mat(1,2,Index{2:end}) = 2*q1.*q2 - 2*q0.*q3;
+mat(1,3,Index{2:end}) = 2*q1.*q3 + 2*q0.*q2;
+mat(2,1,Index{2:end}) = 2*q1.*q2 + 2*q0.*q3;
+mat(2,2,Index{2:end}) = 1 - 2*q1.*q1 - 2*q3.*q3;
+mat(2,3,Index{2:end}) = 2*q2.*q3 - 2*q0.*q1;
+mat(3,1,Index{2:end}) = 2*q1.*q3 - 2*q0.*q2;
+mat(3,2,Index{2:end}) = 2*q2.*q3 + 2*q0.*q1;
+mat(3,3,Index{2:end}) = 1 - 2*q1.*q1 - 2*q2.*q2;
 
 end

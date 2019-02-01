@@ -24,12 +24,22 @@ fwhma = delta/180*pi;
 fwhmb = delta/180*pi;
 fwhmg = delta/180*pi;
 
-[pdfa, pdfb, pdfg] = ndgrid(runprivate('wrappedgaussian', alphaGrid, 0, fwhma, [0,2*pi]), ...
+% [pdfa, pdfb, pdfg] = ndgrid(runprivate('wrappedgaussian', alphaGrid, 0, fwhma, [0,2*pi]), ...
+%                             runprivate('wrappedgaussian', betaGrid, 0, fwhmb, [0,pi]), ...
+%                             runprivate('wrappedgaussian', gammaGrid, 0, fwhmg, [0,2*pi]));
+[pdfa, pdfb, pdfg] = ndgrid(runprivate('wrappedgaussian', alphaGrid, pi/2, fwhma, [0,2*pi]), ...
                             runprivate('wrappedgaussian', betaGrid, 0, fwhmb, [0,pi]), ...
                             runprivate('wrappedgaussian', gammaGrid, 0, fwhmg, [0,2*pi]));
 
-pdf = pdfa.*pdfb.*pdfg;
+pdf1 = pdfa.*pdfb.*pdfg;
 
+[pdfa, pdfb, pdfg] = ndgrid(runprivate('wrappedgaussian', alphaGrid, pi/4, fwhma, [0,2*pi]), ...
+                            runprivate('wrappedgaussian', betaGrid, pi/2, fwhmb, [0,pi]), ...
+                            runprivate('wrappedgaussian', gammaGrid, 3*pi/4, fwhmg, [0,2*pi]));
+
+pdf2 = pdfa.*pdfb.*pdfg;
+pdf = pdf1+pdf2;
+                          
 pdf = pdf/sum(pdf(:));
 PDF = pdf;
 PDF(PDF<1e-10) = 1e-10;
@@ -68,6 +78,7 @@ gammaBins = linspace(0, 2*pi, gbins);
 for iTraj=1:nTraj
 %   use a "burn-in method" by taking last half of each trajectory
     [alpha, beta, gamma] = quat2euler(qTraj(:,iTraj,N:end),'active');
+%     [alpha, beta, gamma] = quat2euler(qTraj(:,iTraj,N:end));
     alpha = squeeze(alpha);
     beta = squeeze(beta);
     gamma = squeeze(gamma);
@@ -86,10 +97,12 @@ pdf = pdf.*sin(betaBins)/sum(pdf(:));
 
 rmsd = calc_rmsd(pdf, Hist3D);
 
-if rmsd>3e-1||any(isnan(Hist3D(:)))
+if rmsd>0.3||any(isnan(Hist3D(:)))
 %   numerical result does not match analytical result
   err = 1;
-  
+end
+
+if opt.Display
   subplot(1,2,1)
   slice(alphaBins, ...
         betaBins, ...
