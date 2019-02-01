@@ -3,7 +3,7 @@
 %   Tests the EasySpin installation and prints
 %   release details.
 
-function varargout = easyspininfo
+function varargout = easyspininfo()
 
 Display = (nargout==0);
 
@@ -19,34 +19,17 @@ AllFiles = what(esPath);
 esVersion = '$ReleaseID$';  % is replaced with actual version by build script
 esDate = '$ReleaseDate$'; % is replaced with actual date by build script
 esExpiryDate = '$ExpiryDate$'; % is replaced with actual date by build script
+esReleaseChannel = '$ReleaseChannel$'; % is replaced with release channel by build script
 
-developmentVersion = (esVersion(1)=='$');
 
-% Check online for update
-%----------------------------------------------------------
-%{
-if ~developmentVersion
-  htmlfile = '';
-  try
-    htmlfile = urlread('http://easyspin.org/version.html');
-  catch
-    disp('Could not reach EasySpin server to check for available update.');
-  end
-  if ~isempty(htmlfile)
-    latestESversion = regexp(htmlfile,'\d+\.\d+\.\d+','match','once');
-    if isempty(latestESversion)
-      disp('Could not determine current version on EasySpin server.');
-    else
-      versionid2num = @(id)sum(sscanf(id,'%d.%d.%d').*100.^[2;1;0]);
-      versionHere = versionid2num(esVersion);
-      versionOnline = versionid2num(latestESversion);
-      if (versionOnline>versionHere)
-        fprintf('\n  A new EasySpin version (%s) is available at http://easyspin.org.\n  Please update.\n\n',latestESversion);
-      end
-    end
-  end
+
+out.ReleaseChannel = esReleaseChannel;
+out.Version = esVersion;
+out.Path = esPath;
+if (nargout>0)
+  varargout = {out};
 end
-%}
+
 
 % Determine operating system
 %--------------------------------------------------------------
@@ -89,18 +72,12 @@ clear functions
 %--------------------------------------------------------------
 if Display
   fprintf('==================================================================\n');
-  if ~developmentVersion
-    fprintf('  Release:          %s (%s)\n',esVersion,esDate);
-  else
-    fprintf('  Release:          development\n');
-  end
+  fprintf('  Release:          %s (%s)\n',esVersion,esDate);
 end
 
 Diagnostics = true;
 if Diagnostics && Display
-  if ~developmentVersion
-    fprintf('  Expiry date:      %s\n',esExpiryDate);
-  end
+  fprintf('  Expiry date:      %s\n',esExpiryDate);
   fprintf('  Folder:           %s\n',esPath);
   fprintf('  MATLAB version:   %s\n',builtin('version'));
   fprintf('  Platform:         %s\n',platform);
@@ -118,6 +95,9 @@ if Diagnostics && Display
   fprintf('  System date:      %s\n',datestr(now));
   fprintf('  Temp dir:         %s\n',tempdir);
   fprintf('==================================================================\n');
+  % Check online for update
+  %----------------------------------------------------------
+  easyspinupdate(out);
 end
 
 
@@ -189,10 +169,6 @@ if isempty(Shadowed) & isempty(Shadowing),
     %fprintf('ok\n');
   end
 else
-end
-
-if (nargout>0)
-  varargout = cell(1,nargout);
 end
 
 return

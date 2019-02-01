@@ -14,38 +14,39 @@ function esbuild
 %     compatible manner.
 %   PATCH: Increment for every bugfix release.
 % Roughly follow guidelines of semantic versioning, see http://semver.org/
-ReleaseID = '6.0-dev3'; % major.minor.patch
-
-% Set to true if you want an easyspin-x.y.z.zip file without the
-% long timestamp ID.
-betaVersion = false;
+ReleaseID = '5.2.1'; % major.minor.patch
+ReleaseChannel = 'stable'; % release channel, used for automatic updates
 
 % Expiry date of release, see eschecker.m
-ExpiryDate = '30-Jun-2019';
+% ExpiryDate = '31-Dec-2018';
+[Year, Month, Day] = datevec(now);
+ExpiryDate = datestr(datenum(Year,Month+6,1)-1);
+
 
 % Cutoff date for date checking, see eschecker.m
-HorizonDate = '31-Dec-2022';
+HorizonDate = datestr(datenum(Year+4,12,31));
 
 % Folders
-baseDir = 'C:\Users\abc\Documents\work';
-SourceDir = [baseDir '\easyspin-dev'];
-ZipDestDir = [baseDir '\easyspin-archive'];
+baseDir = '.';
+SourceDir = ['./easyspin-temp/'];
+ZipDestDir = ['./easyspin-builds/'];
+
 %========================================================================
 
 
 %------------------------------------------------------------------------
 clc
 v = sscanf(version,'%f',1);
-if v>8.4
-  error('EasySpin build must be done with Matlab 8.4 (R2014b).');
-end
+% if v>8.4
+%   error('EasySpin build must be done with Matlab 8.4 (R2014b).');
+% end
 
 %error('Must include perl script that replaces $ReleaseID$ and $ReleaseDate$ globally.');
 
-[Y,M,D] = datevec(now);
 BuildTimeStamp = datestr(now,'yyyymmdd-HHMMSS');
-BuildID = sprintf('%s+%s',ReleaseID,BuildTimeStamp);
-ReleaseDate = sprintf('%04d-%02d-%02d',Y,M,D);
+% BuildID = sprintf('%s+%s',ReleaseID,BuildTimeStamp);
+BuildID = sprintf('%s',ReleaseID);
+ReleaseDate = sprintf('%04d-%02d-%02d',Year,Month,Day);
 
 fprintf('Building EasySpin %s.\n',BuildID);
 
@@ -127,6 +128,7 @@ fprintf(' ok\n');
 fprintf('  Setting release information and expiry date... ');
 replacestr([TbxFolder filesep 'info.xml'],'$ReleaseID$',ReleaseID);
 replacestr([TbxFolder filesep 'easyspininfo.m'],'$ReleaseID$',ReleaseID);
+replacestr([TbxFolder filesep 'easyspininfo.m'],'$ReleaseChannel$',ReleaseChannel);
 replacestr([TbxFolder filesep 'easyspininfo.m'],'$ReleaseDate$',ReleaseDate);
 replacestr([TbxFolder filesep 'easyspininfo.m'],'$ExpiryDate$',ExpiryDate);
 replacestr([TbxFolder filesep 'eschecker.m'],'888888',num2str(datenum(ExpiryDate)));
@@ -175,11 +177,6 @@ mkdir(BuildFolder,'examples');
 copyfile([SourceDir filesep 'examples'],ExmplFolder);
 fprintf(' ok\n');
 
-fprintf('  generating examples html file...');
-perl('../scripts/mkexamples.pl');
-fprintf(' ok\n');
-
-
 %------------------------------------------------------------------------
 % Documentation
 %------------------------------------------------------------------------
@@ -209,25 +206,24 @@ fprintf(' ok\n');
 disp('Packaging');
 % package for public release
 if ZipDestDir(end)==filesep, ZipDestDir(end) = []; end
-zipFile = [ZipDestDir filesep 'easyspin-' BuildID '.zip'];
+% zipFile = [ZipDestDir filesep 'easyspin-' BuildID '.zip'];
 zipFileShort = [ZipDestDir filesep 'easyspin-' ReleaseID '.zip'];
 
-fprintf('  packing zip file %s...',zipFile);
-if exist(zipFile,'file')
-  try
-    delete(zipFile);
-  catch
-    error('Cannot delete zip file.');
-  end
-end
-zip(zipFile,BuildFolder);
+% fprintf('  packing zip file %s...',zipFile);
+% if exist(zipFile,'file')
+%   try
+%     delete(zipFile);
+%   catch
+%     error('Cannot delete zip file.');
+%   end
+% end
+% zip(zipFile,BuildFolder);
+% fprintf(' ok\n');
+
+fprintf('  packing zip file %s...',zipFileShort);
+zip(zipFileShort,BuildFolder);
 fprintf(' ok\n');
 
-if ~betaVersion
-  fprintf('  copying to %s...',zipFileShort);
-  copyfile(zipFile,zipFileShort,'f');
-  fprintf(' ok\n');
-end
 
 %------------------------------------------------------------------------
 % Clean-up

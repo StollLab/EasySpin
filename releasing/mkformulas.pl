@@ -1,15 +1,38 @@
-#!/usr/bin/perl
+$noparams = ($#ARGV+1==0);  
 
-$noparams = ($#ARGV+1==0);
+use Cwd; # to get working directory
+my $WorkingDir = getcwd; # get current working directory
 
-$HTMLdir = '../docs';
+our ($TempRepoDir);
+require './config.pl';
+
+$HTMLdir = "$TempRepoDir/docs";
 $pngdir = $HTMLdir.'/eqn';
+$tempdir = "./latextemp/";
 
-$templatefile = "template.tex";
+if (-e "$pngdir") {
+    system("rm -R $pngdir");
+}
 
-$latexoptions = '--interaction=nonstopmode';
-$dvipsoptions = '-o -q';
-$pstoimgoptions = '-antialias -scale=1.45 -multipage -crop=a -out=';
+system("mkdir $pngdir");
+
+if (-e "$tempdir") {
+    system("rm -R $tempdir");
+}
+
+system("mkdir $tempdir");
+
+$templatefile = "$TempRepoDir/scripts/template.tex";
+
+$latexoptions = '--interaction=batchmode --output-directory=./latextemp/';
+
+# unfortunately dvisvgm does not create good results, and it is necessary to fall back to the png version
+# convert the first 1000 pages of .dvi file to .svg and scale by a factor 1.3
+# $dvisvgmoptions = '--page=-10000 --transform=S1.3 --output=./latextemp/%f%1p';
+
+$dvipsoptions = '-q';
+$pstoimgoptions = '-antialias -scale=1.45 -quiet -multipage -crop=a -out=';
+
 
 $templateposition = '%formulaposition';
 
@@ -63,24 +86,31 @@ if ($n_equations>0) {
 
   $tmpfile = $htmlfile;
   $tmpfile =~ s/\.html//;
-  open(HANDLE,">".$tmpfile.".tex") or die ("Could not open $tmpfile!");
+  open(HANDLE,"> $tempdir$tmpfile.tex") or die ("Could not open $tmpfile!");
   print HANDLE $tmp;
   close(HANDLE) or die("Could not close $tmpfile!");
 
+
   # generate math graphics files
   #---------------------------------------------------------------
-  system('latex '.$latexoptions.' '.$tmpfile.'.tex');
-  system('dvips '.$dvipsoptions.' '.$tmpfile);
-  system('pstoimg '.$pstoimgoptions.$tmpfile.' '.$tmpfile.'.ps');
+  # system("latex $latexoptions $tempdir$tmpfile.tex");
+  system("latex $latexoptions $tmpfile.tex");
   
+  system("dvips  $dvipsoptions -o $tempdir$tmpfile.ps $tempdir$tmpfile.dvi");
+
+  chdir($tempdir);
+  system("pstoimg $pstoimgoptions$tmpfile  $tmpfile.ps");
   # rename all image files to remove _ and leading zeros (e.g. myfile_01.png -> myfile1.png)
+  
   system('rename s/_0/_/ *.png');
   system('rename s/_// *.png');
   
+  chdir($WorkingDir);
+  
   # move all image files
-  system('mv '.$tmpfile.'*.png '.$pngdir);
+  system("mv  $tempdir$tmpfile*.png $pngdir");
   # remove all temporary files
-  system('\rm '.$tmpfile.'.*');
+  system("rm $tempdir$tmpfile.*");
   
   # insert <img> tags into HTML file
   #---------------------------------------------------------------
@@ -93,4 +123,8 @@ if ($n_equations>0) {
   print HANDLE $html;
   close(HANDLE) or die("Cannot close $file!");
 }
+}
+
+if (-e "$tempdir") {
+    system("rm -R $tempdir");
 }
