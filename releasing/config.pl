@@ -2,7 +2,7 @@
 
 # directories
 our $SourceDir = '.'; # the directory where the buildsys is supposed to run
-our $ServerDir = '~/public_html/easyspin/test/'; # easyspin directory on the server
+our $ServerDir = '~/public_html/easyspin/'; # easyspin directory on the server
 
 our $BuildsDir = $SourceDir.'/easyspin-builds/'; # directory that builds are created in, will be created if not present
 
