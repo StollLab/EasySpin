@@ -19,7 +19,7 @@ PC = [0, 1; pi, -1];
 
 Exp.Sequence = {Pulse Pulse2 Pulse};
 Exp.Field = 1240; 
-Opt.TimeStep = 0.0001; % us
+Opt.IntTimeStep = 0.0001; % us
 Exp.mwFreq = 33.5;
 Exp.DetSequence = 1; 
 Exp.PhaseCycle = {PC [] PC};
