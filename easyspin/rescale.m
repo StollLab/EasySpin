@@ -88,21 +88,22 @@ else
   % Rescaling with reference
   %----------------------------------------------------
   ModeID = find(strcmp(Mode,{'maxabs','minmax','shift','lsq','lsq0','lsq1','lsq2','none'}));
-  IdenticalLengthNeeded = [0 0 0 1 1 1 1 0];
+  equalLengthNeeded = [0 0 0 1 1 1 1 0];
   if isempty(ModeID)
     error('Unknown scaling mode ''%s''',Mode);
   end
-  if IdenticalLengthNeeded(ModeID)
-    if numel(y)~=numel(yref)
-      error('For least-squares rescaling, vectors must have same number of elements.');
-    end
+  equalLength = numel(y)==numel(yref);
+  if equalLengthNeeded(ModeID) && ~equalLength
+    error('For least-squares rescaling, vectors must have same number of elements.');
   end
   
   y = y(:);
   yref = yref(:);
   yref_notnan = yref(~isnan(yref));
   y_notnan = y(~isnan(y));
-  notnan_both = ~isnan(y) & ~isnan(yref);
+  if equalLength
+    notnan_both = ~isnan(y) & ~isnan(yref);
+  end
 
   switch ModeID
     case 1 % maxabs
