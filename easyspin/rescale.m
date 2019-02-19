@@ -1,13 +1,15 @@
-% rescale     Rescaling of one spectrum so that it fits a second
+% rescale     Rescaling of one data vector so that it fits a second
 %
 %   ynew = rescale(y,mode1)
 %   ynew = rescale(y,yref,mode2)
 %
-%   Shifts and rescales the spectrum y. If given, ynew serves
+%   Shifts and rescales the data vector y. If given, ynew serves
 %   as the reference. The rescaled y is returned in ynew.
 %
+%   y and yref need to be 1D vectors.
+%
 %   mode1:
-%     'minmax'  shifts&scales to minimum 0 and maximum 1
+%     'minmax'  shifts and scales to minimum 0 and maximum 1
 %     'maxabs'  scales to maximum abs 1, no shift
 %     'none'    no scaling
 %
@@ -46,11 +48,17 @@ switch (nargin)
     error('Wrong number of input parameters.');
 end    
 
+% Make sure y is a vector
 N = numel(y);
 if (length(y)~=N)
   error('y must be a row or column vector. rescale() does not work on 2D arrays.');
 end
 isRowVector = size(y,1)==1;
+
+% Make sure yref is a vector
+if (length(yref)~=numel(yref))
+  error('yref must be a row or column vector. rescale() does not work on 2D arrays.');
+end
 
 if isempty(yref)
   
@@ -66,7 +74,8 @@ if isempty(yref)
   
   switch ModeID
     case 1 % minmax
-      mi = 0; ma = 1;
+      mi = 0;
+      ma = 1;
       ynew = mi + (ma-mi)/(max(y)-min(y))*(y-min(y));
     case 2 % maxabs
       ynew = y/max(abs(y));
@@ -91,35 +100,37 @@ else
   
   y = y(:);
   yref = yref(:);
-  notnan = all(~isnan(yref)) && all(~isnan(y));
+  yref_notnan = yref(~isnan(yref));
+  y_notnan = y(~isnan(y));
+  notnan_both = ~isnan(y) & ~isnan(yref);
 
   switch ModeID
     case 1 % maxabs
-      scalefactor = max(abs(yref(notnan)))/max(abs(y(notnan)));
+      scalefactor = max(abs(yref_notnan ))/max(abs(y_notnan));
       ynew = scalefactor*y;
     case 2 % minmax
-      scalefactor = (max(yref(notnan))-min(yref(notnan)))/(max(y(notnan))-min(y(notnan)));
-      ynew = scalefactor*(y-min(y(notnan))) + min(yref(notnan));
+      scalefactor = (max(yref_notnan)-min(yref_notnan))/(max(y_notnan)-min(y_notnan));
+      ynew = scalefactor*(y-min(y_notnan)) + min(yref_notnan);
     case 3 % shift
-      shift = mean(y(notnan)) - mean(yref(notnan));
+      shift = mean(y_notnan) - mean(yref_notnan);
       ynew = y - shift;
     case 4 % lsq
-      scalefactor = y(notnan)\yref(notnan);
+      scalefactor = y(notnan_both)\yref(notnan_both);
       scalefactor = abs(scalefactor);
       ynew = scalefactor*y;
     case 5 % lsq0
       D = [y ones(N,1)];
-      params = D(notnan,:)\yref(notnan);
+      params = D(notnan_both,:)\yref(notnan_both);
       ynew = D*params;
     case 6 % lsq1
       x = (1:N).'/N;
       D = [y ones(N,1) x];
-      params = D(notnan,:)\yref(notnan);
+      params = D(notnan_both,:)\yref(notnan_both);
       ynew = D*params;
     case 7 % lsq2
       x = (1:N).'/N;
       D = [y ones(N,1) x x.^2];
-      params = D(notnan,:)\yref(notnan);
+      params = D(notnan_both,:)\yref(notnan_both);
       ynew = D*params;
     case 8 % no scaling
       ynew = y;
@@ -128,7 +139,9 @@ else
 end
 
 % Preserve row layout
-if isRowVector, ynew = ynew.'; end
+if isRowVector
+  ynew = ynew.';
+end
 
 switch nargout
   case 0
