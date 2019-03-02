@@ -4,7 +4,7 @@
 %
 % Input:
 %   dihedrals     3D array of spin-label side chain dihedral angles
-%                   (nDims,nSteps,nTrajectories), in radians
+%                   (nDims,nTrajectories,nSteps), in radians
 %   dt            MD time step, in s
 %   nStates       number of desired states for the HMM
 %   nLag          desired lag time, as a integer multiple of the MD time step
@@ -59,20 +59,11 @@ logmsg(1,'  clustering into %d clusters using k-means (%d repeats)',nStates,Opt.
 chiStart = [];
 if Opt.isSeeded
   logmsg(1,'    using provided seeds');
-
+  
   nDims = size(dihedrals,1);
-  if (nDims==4) || (nDims==5)
-    % Empirically determined values for polyala
-    %chi = {[-60,65,180],[75,180],[-90,90],[75,8,-100],[180,77]};
-    % Empirically determined values for T4L V131R1
-    %chi = {[-60,180],[-55,55,180],[-90,90],[-170,-100,60],[-100,-20,100]};
+  if nDims==5
     % Theoretical values
     chi = {[-60,60,180],[-60,60,180],[-90,90],[-60,60,180],[-90,90]};
-    
-    % Remove chi3 if it is absent from the dihedrals trajectories
-    if size(dihedrals,1)==4
-      chi(3) = [];
-    end
     
     % Convert from degrees to radians
     chi = cellfun(@(x)x*pi/180,chi, 'UniformOutput', false);
@@ -95,18 +86,18 @@ end
 dihedrals = permute(dihedrals,[3,1,2]);
 
 % Perform k-means clustering, return centroids mu0 and spreads Sigma0
-[stateTraj, mu0, Sigma0] = ...
-  initializehmm(dihedrals, chiStart, nStates, Opt.nTrials, Opt.Verbosity);
+[stateTraj,mu0,Sigma0] = ...
+  initializehmm(dihedrals,chiStart,nStates,Opt.nTrials,Opt.Verbosity);
 
 % Print results of clustering
 if Opt.Verbosity >= 1
-  fprintf('    cluster population  max(stddev)/deg  mu0/deg\n');
+  fprintf('    cluster  population  max(stddev)/deg  mu0/deg\n');
   for k = 1:nStates
     pop(k) = sum(stateTraj(:)==k)/numel(stateTraj);
     stddev(k) = sqrt(max(eig(Sigma0(:,:,k))));
   end
   for k = 1:nStates
-    fprintf('     %3d      %0.4f       %6.2f',k,pop(k),stddev(k)*180/pi);
+    fprintf('     %3d       %0.4f       %6.1f',k,pop(k),stddev(k)*180/pi);
     fprintf('        (')
     for d = 1:size(mu0,1)
       fprintf('%4.0f ',mu0(d,k)*180/pi);
@@ -130,15 +121,16 @@ dihedrals = permute(dihedrals,[2,1,3]);
 
 % Optimize HMM parameters
 %-------------------------------------------------------------------------------
-logmsg(1,'  HMM optimization using EM algorithm');
 % Determine/estimate HMM model parameters using expectation maximization
-[HMM.logLik, HMM.eqDistr,HMM.TransProb,HMM.mu,HMM.Sigma] = ...
+logmsg(1,'  HMM optimization using EM algorithm');
+[logLik, HMM.eqDistr,HMM.TransProb,HMM.mu,HMM.Sigma] = ...
   mdhmm_em(dihedrals,initDistr0,TransProb0,mu0,Sigma0,Opt.Verbosity);
+HMM.logLik = logLik(end);
 
 % Calculate Viterbi state trajectory
 %-------------------------------------------------------------------------------
-logmsg(1,'  Viterbi state trajectories calculation');
 % Determine most probable hidden-state trajectory
+logmsg(1,'  Viterbi state trajectories calculation');
 HMM.viterbiTraj = viterbitrajectory(dihedrals,HMM.TransProb,HMM.eqDistr,HMM.mu,HMM.Sigma);
 
 % Remove states that are absent from Viterbi trajectory
@@ -146,18 +138,17 @@ HMM.viterbiTraj = viterbitrajectory(dihedrals,HMM.TransProb,HMM.eqDistr,HMM.mu,H
 stateCounts = histcounts(HMM.viterbiTraj,nStates);
 idxEmptyStates = stateCounts==0;
 if any(idxEmptyStates)
-  EmptyStates = find(idxEmptyStates);
-  nStates = nStates - numel(EmptyStates);
-  fprintf('  Empty states found in Viterbi trajectory!\n')
+  emptyStates = find(idxEmptyStates);
+  fprintf('  %d empty states found in Viterbi trajectory!\n',numel(emptyStates));
   fprintf('  The following empty states were removed from the model:\n  ')
-  EmptyStatesDec = EmptyStates;
-  for k=1:numel(EmptyStates)
-    fprintf('%3d  ',EmptyStates(k))
+  EmptyStatesDec = emptyStates;
+  for k = 1:numel(emptyStates)
+    fprintf('%3d  ',emptyStates(k))
     idxDecrement = HMM.viterbiTraj>EmptyStatesDec(k);
     HMM.viterbiTraj(idxDecrement) = HMM.viterbiTraj(idxDecrement) - 1;
     EmptyStatesDec = EmptyStatesDec-1;
   end
-  fprintf('\n')
+  fprintf('\n');
   HMM.mu = HMM.mu(:,~idxEmptyStates);
   HMM.Sigma = HMM.Sigma(:,:,~idxEmptyStates);
   [HMM.TransProb,HMM.eqDistr] = estimatemarkovparameters(HMM.viterbiTraj);
@@ -167,67 +158,65 @@ end
 %-------------------------------------------------------------------------------
 logmsg(1,'  Calculate relaxation times');
 lambda = eig(HMM.TransProb);
-lambda = sort(real(lambda), 1, 'descend');
+lambda = sort(real(lambda),1,'descend');
 lambda = lambda(lambda>0);
 HMM.tauRelax = -nLag*dt./log(lambda(2:end).');
 
 HMM.nLag = nLag;
 
 end
+%===============================================================================
+%===============================================================================
 
-% Helper functions 
+
+%===============================================================================
+% Helper functions
 %-------------------------------------------------------------------------------
 function vTraj = viterbitrajectory(dihedrals,transmat,eqdistr,mu,Sigma)
 nStates = size(transmat,1);
-[nDims,nSteps,nTraj] = size(dihedrals);
+[~,nSteps,nTraj] = size(dihedrals);
 vTraj = zeros(nSteps,nTraj);
 for iTraj = 1:nTraj
-%   [obslikelihood, ~] = mixgauss_prob(dihedrals(:,:,iTraj), mu, Sigma);
+  %[obslikelihood, ~] = mixgauss_prob(dihedrals(:,:,iTraj), mu, Sigma);
   obs = dihedrals(:,:,iTraj);
   obslikelihood = zeros(nStates,nSteps);
-  for iState=1:nStates
-    obslikelihood(iState,:) = gaussian_prob_pbc(obs, mu(:,iState), Sigma(:,:,iState), 2*pi);
+  for iState = 1:nStates
+    obslikelihood(iState,:) = gaussian_prob_circular(obs,mu(:,iState),Sigma(:,:,iState));
   end
-  vTraj(:,iTraj) = viterbi_path(eqdistr, transmat, obslikelihood).';
-end
+  vTraj(:,iTraj) = viterbi_path(eqdistr,transmat,obslikelihood).';
 end
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function c = cov_pbc(x, mu, W)
+end
+
+%===============================================================================
+function c = cov_pbc(x, mu)
+% Calculate covariance matrix, with samples x and mean mu
 
 nPoints = size(x,1);
-    
-% remove the centers
-xc = dist_pbc(x-mu, W);
-
+xc = dist_pbc(x,mu);
 c = (xc' * xc) ./ nPoints;
 
 end
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function dist = dist_pbc(dist,W)
+%===============================================================================
+function dist = dist_pbc(x1,x2)
+% Distance between two angles, x1 and x2, in radians
+% Takes the circular nature of angles into account
 
-w = W/2;
+% One-line solution: (slower)
+% dist = pi - abs(pi - abs(x1-x2));
 
-% dist = w - abs(pi - abs(dist));
+dist = x1-x2;
 
-idx1 = dist > w;
-idx2 = dist < -w;
+idx1 = dist > pi;
+idx2 = dist < -pi;
 
-dist(idx1) = dist(idx1) - W;
-dist(idx2) = dist(idx2) + W;
-
-% for iDim=1:size(dist,2)
-%   if dist(iDim) > w
-%     dist(iDim) = dist(iDim)-W;
-%   elseif dist(iDim) < -w
-%     dist(iDim) = dist(iDim)+W;
-%   end
-% end
+dist(idx1) = dist(idx1) - 2*pi;
+dist(idx2) = dist(idx2) + 2*pi;
 
 end
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%===============================================================================
 function [stateTraj,mu0,Sigma0] = initializehmm(dihedrals,chiStart,nStates,nRepeats,verbosity)
 
 [nSteps,nDims,nTraj] = size(dihedrals);
@@ -251,7 +240,7 @@ mu0 = centroids.';
 Sigma0 = zeros(nDims,nDims,nStates);
 for iState = 1:nStates
   idxState = stateTraj==iState;
-  Sigma0(:,:,iState) = cov_pbc(dihedrals(idxState,:), mu0(:,iState).', 2*pi);
+  Sigma0(:,:,iState) = cov_pbc(dihedrals(idxState,:), mu0(:,iState).');
 %   Sigma0(:,:,iState) = cov(dihedrals(idxState,:));
 end
 
@@ -260,7 +249,7 @@ stateTraj = reshape(stateTraj,[nSteps,nTraj]);
 
 end
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%===============================================================================
 function [tpmat,distr] = estimatemarkovparameters(stateTraj)
 % Estimate transition probability matrix and initial probability distribution
 % from a set of state trajectories.
@@ -273,7 +262,7 @@ function [tpmat,distr] = estimatemarkovparameters(stateTraj)
 % Determine count matrix N
 %-------------------------------------------------------------------------------
 % N(i,j) = number of times X(t)==i and X(t+tau)==j along all the trajectories
-nStates = max(max(stateTraj));
+nStates = max(stateTraj(:));
 N = sparse(nStates,nStates);
 
 % Time step for which to determine the count matrix
@@ -294,35 +283,40 @@ N = full(N);
 
 end
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function p = gaussian_prob_pbc(x, m, C, W)
-% GAUSSIAN_PROB Evaluate a multivariate Gaussian density.
-% p = gaussian_prob(X, m, C)
-% p(i) = N(X(:,i), m, C) where C = covariance matrix and each COLUMN of x is a datavector
-
-% p = gaussian_prob(X, m, C, 1) returns log N(X(:,i), m, C) (to prevents underflow).
+%===============================================================================
+function p = gaussian_prob_circular(x, m, C)
+% gaussian_prob_circular Evaluate a multivariate Gaussian density for angles
 %
-% If X has size dxN, then p has size Nx1, where N = number of examples
+%   p = gaussian_prob_circular(x, m, C)
+%
+% Input:
+%   x   data array, d x N
+%         one d-dimensional datavector per column; N samples
+%   m   mean, vector d x 1
+%   C   covariance matrix, d x d
+% Output:
+%   p   probabilities, N x 1
+%       p(i) = Normal(x(:,i), m, C)
+%
+% This takes the circular nature of angles into account.
 
 if length(m)==1 % scalar
-  x = x(:)';
+  x = x(:).'; % make row vector
 end
-[d, N] = size(x);
-%assert(length(m)==d); % slow
+[d,N] = size(x);
 m = m(:);
 M = m*ones(1,N); % replicate the mean across columns
 denom = (2*pi)^(d/2)*sqrt(abs(det(C)));
-dist = dist_pbc(x - M, W);
-mahal = sum((dist'/C).*dist',2);   % Chris Bregler's trick
-% mahal = sum(((x-M)'*inv(C)).*(x-M)',2);   % Chris Bregler's trick
+dx = dist_pbc(x,M).';
+mahal = sum((dx/C).*dx,2);
 if any(mahal<0)
-  warning('mahal < 0 => C is not psd')
+  warning('mahal < 0 => C is not positive semidefinite.')
 end
 p = exp(-0.5*mahal) / (denom+eps);
 
 end
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%===============================================================================
 function path = viterbi_path(prior, transmat, obslik)
 % VITERBI Find the most-probable (Viterbi) path through the HMM state trellis.
 % path = viterbi(prior, transmat, obslik)
@@ -354,7 +348,10 @@ scale = ones(1,T);
 t=1;
 delta(:,t) = prior .* obslik(:,t);
 if scaled
-  [delta(:,t), n] = normalise(delta(:,t));
+  n = sum(delta(:,t));
+  if n~=0
+    delta(:,t) = delta(:,t)/n;
+  end
   scale(t) = 1/n;
 end
 psi(:,t) = 0; % arbitrary value, since there is no predecessor to t=1
@@ -364,7 +361,10 @@ for t=2:T
     delta(j,t) = delta(j,t) * obslik(j,t);
   end
   if scaled
-    [delta(:,t), n] = normalise(delta(:,t));
+    n = sum(delta(:,t));
+    if n~=0
+      delta(:,t) = delta(:,t)/n;
+    end
     scale(t) = 1/n;
   end
 end
@@ -377,7 +377,7 @@ end
 % If scaled==1, p = Pr(replace sum with max and proceed as in the scaled forwards algo)
 % Both are different from p(data) as computed using the sum-product (forwards) algorithm
 
-if 0
+if false
   if scaled
     loglik = -sum(log(scale));
     %loglik = prob_path(prior, transmat, obslik, path);
@@ -388,43 +388,8 @@ end
 
 end
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [M, z] = normalise(A, dim)
-% NORMALISE Make the entries of a (multidimensional) array sum to 1
-% [M, c] = normalise(A)
-% c is the normalizing constant
-%
-% [M, c] = normalise(A, dim)
-% If dim is specified, we normalise the specified dimension only,
-% otherwise we normalise the whole array.
 
-if nargin < 2
-  z = sum(A(:));
-  % Set any zeros to one before dividing
-  % This is valid, since c=0 => all i. A(i)=0 => the answer should be 0/1=0
-  s = z + (z==0);
-  M = A / s;
-elseif dim==1 % normalize each column
-  z = sum(A);
-  s = z + (z==0);
-  %M = A ./ (d'*ones(1,size(A,1)))';
-  M = A ./ repmatC(s, size(A,1), 1);
-else
-  % Keith Battocchi - v. slow because of repmat
-  z=sum(A,dim);
-  s = z + (z==0);
-  L=size(A,dim);
-  d=length(size(A));
-  v=ones(d,1);
-  v(dim)=L;
-  %c=repmat(s,v);
-  c=repmat(s,v');
-  M=A./c;
-end
-
-end
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%===============================================================================
 function [TPM, pi_i, x] = msmtransitionmatrix(N, maxiteration)
 % msmtransitionmatrix
 % estimate transition probability matrix TPM from count matrix N

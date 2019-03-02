@@ -79,11 +79,11 @@ Model = Par.Model;
 if ~isempty(MD)
   tauR = MD.tauR;
   isHMMfromMD = strcmp(Par.Model,'MD-HMM');
-  useMD = 1;
+  useMD = true;
   isDirectfromMD = strcmp(Par.Model,'MD-direct');
 else
-  useMD = 0;
-  isHMMfromMD = 0;
+  useMD = false;
+  isHMMfromMD = false;
   if isfield(Sys,'Diff')       % TODO make this work for jumps and ISTOs
     tauR = 1/6/mean(Sys.Diff);
   end
@@ -172,7 +172,7 @@ switch Method
       % Calculate time-dependent tensors from state trajectories
 
       % Calculate the average interaction tensors for each state using 
-      % MD-derived frame trajectories and Viterbi trajectories
+      % MD-derived frame trajectories and Viterbi state trajectories
       if isempty(gTensorState)
         % Perform MD-derived rotations on g- and A-tensors
         gTensorMD = cardamom_tensortraj(g,Par.RTraj,RTrajInv);

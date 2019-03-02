@@ -665,7 +665,7 @@ switch LocalDynamicsModel
   case {'MD-direct','MD-HBD','MD-HMM'} % TODO process RTraj based on size of input
     
     if ~isfield(Par,'nOrients')
-      error('nOrients must be specified for an MD model.')
+      error('Par.nOrients must be specified for an MD-based model.')
     end
     
 %     if strcmp(Opt.Method, 'ISTOs')
@@ -1124,8 +1124,8 @@ if avgTime<1.0
 else
   msg2 = sprintf('%2.1f s/orientation\n', avgTime);
 end
-msg3 = sprintf('Time elapsed: %d:%d:%2.0f\n', floor(minsElap/60), mod(minsElap,60), mod(secsElap,60));
-msg4 = sprintf('Time remaining (predicted): %d:%d:%2.0f\n', floor(minsLeft/60), mod(minsLeft,60), mod(secsLeft,60));
+msg3 = sprintf('Time elapsed: %02d:%02d:%02.0f\n', floor(minsElap/60), mod(minsElap,60), mod(secsElap,60));
+msg4 = sprintf('Time remaining (predicted): %02d:%02d:%02.0f\n', floor(minsLeft/60), mod(minsLeft,60), mod(secsLeft,60));
 msg = [msg1, msg2, msg3, msg4];
 
 fprintf([reverseStr, msg]);
