@@ -398,6 +398,7 @@ if useMD
     end
     % provides HMM.transmat, HMM.eqdistr, HMM.viterbiTraj, etc
     MD.viterbiTraj = HMM.viterbiTraj.';
+    MD.nStates = HMM.nStates;
 
     % Set the Markov chain time step based on the (scaled) sampling lag time
     Par.dt = MD.tLag;

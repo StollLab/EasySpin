@@ -139,11 +139,11 @@ HMM.logLik = logLik(end);
 logmsg(1,'  Viterbi state trajectories calculation');
 HMM.viterbiTraj = viterbitrajectory(dihedrals,HMM.TransProb,HMM.eqDistr,HMM.mu,HMM.Sigma);
 
-% Prune states not visited in Viterbi trajectory
+% Eliminate states not visited in Viterbi trajectory
 %-------------------------------------------------------------------------------
 visited = false(1,nStates);
 visited(unique(HMM.viterbiTraj)) = true;
-if any(visited)
+if any(~visited)
   logmsg(1,'  Eliminating %d unvisited states from model',sum(~visited));
   newStateNumbers = cumsum(visited);
   HMM.viterbiTraj = newStateNumbers(HMM.viterbiTraj);
