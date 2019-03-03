@@ -32,8 +32,10 @@ global EasySpinLogLevel
 EasySpinLogLevel = Opt.Verbosity;
 
 logmsg(1,'-- HMM model building ----------------------------------');
-logmsg(1,'  data: %d dihedrals; %d steps; %d trajectories',...
-  size(dihedrals,1),size(dihedrals,3),size(dihedrals,2));
+nDims = size(dihedrals,1);
+nTraj = size(dihedrals,2);
+nSteps = size(dihedrals,3);
+logmsg(1,'  data: %d dihedrals; %d steps; %d trajectories',nDims,nSteps,nTraj);
 
 if ~isfield(Opt,'isSeeded')
   Opt.isSeeded = false;
@@ -50,6 +52,10 @@ if abs(nLag-round(nLag))>1e-5 || nLag < 1
   error('nLag must be an integer >= 1.');
 end
 nLag = round(nLag);
+HMM.nLag = nLag;
+HMM.dt = dt;
+HMM.tLag = nLag*dt;
+HMM.nStates = nStates;
 
 % Use k-means clustering etc to get initial estimates of HMM parameters
 %-------------------------------------------------------------------------------
@@ -133,26 +139,19 @@ HMM.logLik = logLik(end);
 logmsg(1,'  Viterbi state trajectories calculation');
 HMM.viterbiTraj = viterbitrajectory(dihedrals,HMM.TransProb,HMM.eqDistr,HMM.mu,HMM.Sigma);
 
-% Remove states that are absent from Viterbi trajectory
+% Prune states not visited in Viterbi trajectory
 %-------------------------------------------------------------------------------
-stateCounts = histcounts(HMM.viterbiTraj,nStates);
-idxEmptyStates = stateCounts==0;
-if any(idxEmptyStates)
-  emptyStates = find(idxEmptyStates);
-  fprintf('  %d empty states found in Viterbi trajectory!\n',numel(emptyStates));
-  fprintf('  The following empty states were removed from the model:\n  ')
-  EmptyStatesDec = emptyStates;
-  for k = 1:numel(emptyStates)
-    fprintf('%3d  ',emptyStates(k))
-    idxDecrement = HMM.viterbiTraj>EmptyStatesDec(k);
-    HMM.viterbiTraj(idxDecrement) = HMM.viterbiTraj(idxDecrement) - 1;
-    EmptyStatesDec = EmptyStatesDec-1;
-  end
-  fprintf('\n');
-  HMM.mu = HMM.mu(:,~idxEmptyStates);
-  HMM.Sigma = HMM.Sigma(:,:,~idxEmptyStates);
+visited = false(1,nStates);
+visited(unique(HMM.viterbiTraj)) = true;
+if any(visited)
+  logmsg(1,'  Eliminating %d unvisited states from model',sum(~visited));
+  newStateNumbers = cumsum(visited);
+  HMM.viterbiTraj = newStateNumbers(HMM.viterbiTraj);
+  HMM.mu = HMM.mu(:,visited);
+  HMM.Sigma = HMM.Sigma(:,:,visited);
   [HMM.TransProb,HMM.eqDistr] = estimatemarkovparameters(HMM.viterbiTraj);
 end
+HMM.nStates = length(HMM.eqDistr);
 
 % Calculate relaxation times for the TPM and time lag
 %-------------------------------------------------------------------------------
@@ -160,9 +159,10 @@ logmsg(1,'  Calculate relaxation times');
 lambda = eig(HMM.TransProb);
 lambda = sort(real(lambda),1,'descend');
 lambda = lambda(lambda>0);
-HMM.tauRelax = -nLag*dt./log(lambda(2:end).');
+HMM.tauRelax = -nLag*dt./log(lambda(2:end).'); % exclude constant eq. component
+logmsg(1,'    max: %0.3g s, min: %0.3g s',max(HMM.tauRelax),min(HMM.tauRelax));
 
-HMM.nLag = nLag;
+logmsg(1,'-- done ------------------------------------------------');
 
 end
 %===============================================================================
