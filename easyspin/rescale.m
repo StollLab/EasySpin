@@ -21,6 +21,7 @@
 %     'lsq0'    least-squares fit of a*y+b to yref
 %     'lsq1'    least-squares fit of a*y+b+c*x to yref
 %     'lsq2'    least-squares fit of a*y+b+c*x+d*x^2 to yref
+%     'lsq3'    least-squares fit of a*y+b+c*x+d*x^2+e*x^3 to yref
 %     'none'    no scaling
 
 function varargout = rescale(varargin)
@@ -87,8 +88,8 @@ else
   
   % Rescaling with reference
   %----------------------------------------------------
-  ModeID = find(strcmp(Mode,{'maxabs','minmax','shift','lsq','lsq0','lsq1','lsq2','none'}));
-  equalLengthNeeded = [0 0 0 1 1 1 1 0];
+  ModeID = find(strcmp(Mode,{'maxabs','minmax','shift','lsq','lsq0','lsq1','lsq2','lsq3','none'}));
+  equalLengthNeeded = [0 0 0 1 1 1 1 1 0];
   if isempty(ModeID)
     error('Unknown scaling mode ''%s''',Mode);
   end
@@ -115,28 +116,36 @@ else
     case 3 % shift
       shift = mean(y_notnan) - mean(yref_notnan);
       ynew = y - shift;
+      scalefactor = 1;
     case 4 % lsq
       scalefactor = y(notnan_both)\yref(notnan_both);
-      scalefactor = abs(scalefactor);
       ynew = scalefactor*y;
     case 5 % lsq0
       D = [y ones(N,1)];
-      params = D(notnan_both,:)\yref(notnan_both);
-      ynew = D*params;
+      scalefactor = D(notnan_both,:)\yref(notnan_both);
+      ynew = D*scalefactor;
     case 6 % lsq1
       x = (1:N).'/N;
       D = [y ones(N,1) x];
-      params = D(notnan_both,:)\yref(notnan_both);
-      ynew = D*params;
+      scalefactor = D(notnan_both,:)\yref(notnan_both);
+      ynew = D*scalefactor;
     case 7 % lsq2
       x = (1:N).'/N;
       D = [y ones(N,1) x x.^2];
-      params = D(notnan_both,:)\yref(notnan_both);
-      ynew = D*params;
-    case 8 % no scaling
+      scalefactor = D(notnan_both,:)\yref(notnan_both);
+      ynew = D*scalefactor;
+    case 8 % lsq3
+      x = (1:N).'/N;
+      D = [y ones(N,1) x x.^2 x.^3];
+      scalefactor = D(notnan,:)\yref(notnan);
+      ynew = D*scalefactor;
+    case 9 % no scaling
       ynew = y;
   end
-  
+  if real(scalefactor(1))<0
+    scalefactor(1) = abs(scalefactor(1));
+    ynew = D*scalefactor;
+  end
 end
 
 % Preserve row layout
@@ -159,6 +168,8 @@ switch nargout
     varargout = {};
   case 1
     varargout = {ynew};
+  case 2
+    varargout = {ynew scalefactor};
   otherwise
     error('Wrong number of outputs.');
 end
