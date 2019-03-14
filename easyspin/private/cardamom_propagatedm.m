@@ -55,6 +55,8 @@ function Sprho = cardamom_propagatedm(Sys, Par, Opt, MD, omega, CenterField)
 
 persistent cacheTensors
 persistent D2TrajMol
+persistent gTensorState
+persistent ATensorState
 % persistent fullSteps
 % persistent K2
 
@@ -76,12 +78,12 @@ Model = Par.Model;
 % functions
 if ~isempty(MD)
   tauR = MD.tauR;
-  isMarkov = strcmp(MD.TrajUsage,'Markov');
+  isHMMfromMD = strcmp(Par.Model,'MD-HMM');
   useMD = 1;
-  isExplicit = strcmp(MD.TrajUsage,'Explicit');
+  isDirectfromMD = strcmp(Par.Model,'MD-direct');
 else
   useMD = 0;
-  isMarkov = 0;
+  isHMMfromMD = 0;
   if isfield(Sys,'Diff')       % TODO make this work for jumps and ISTOs
     tauR = 1/6/mean(Sys.Diff);
   end
@@ -96,36 +98,21 @@ end
 
 % grab the quaternions or rotation matrices
 if useMD
-  if isExplicit
-    if strcmp(Method, 'ISTOs')
-      qTraj = Par.qTraj;
-      qLab = Par.qLab;
-    else
-      RTraj = Par.RTraj;
-      RTrajInv = permute(RTraj,[2,1,3,4]);
-      RLab = Par.RLab;
-      RLabInv = permute(RLab, [2,1,3,4]);
+  if isDirectfromMD
+    if ~strcmp(Method, 'ISTOs')
+      RTrajInv = permute(Par.RTraj,[2,1,3,4]);
+      RLabInv = permute(Par.RLab, [2,1,3,4]);
     end
   else
-    if strcmp(Method, 'ISTOs')
-      qTraj = Par.qTraj;
-      qLab = Par.qLab;
-    else
-      RTraj = Par.RTraj;
-      RTrajInv = permute(RTraj,[2,1,3,4]);
-      RLab = Par.RLab;
-      RLabInv = permute(RLab, [2,1,3,4]);
+    if ~strcmp(Method, 'ISTOs')
+      RTrajInv = permute(Par.RTraj,[2,1,3,4]);
+      RLabInv = permute(Par.RLab, [2,1,3,4]);
     end
   end
 else
-  if strcmp(Method, 'ISTOs')
-    qTraj = Par.qTraj;
-    qLab = Par.qLab;
-  else
-    RTraj = Par.RTraj;
-    RTrajInv = permute(RTraj,[2,1,3,4]);
-    RLab = Par.RLab;
-    RLabInv = permute(RLab,[2,1,3,4]);
+  if ~strcmp(Method, 'ISTOs')
+    RTrajInv = permute(Par.RTraj,[2,1,3,4]);
+    RLabInv = permute(Par.RLab,[2,1,3,4]);
   end
 end
 
@@ -145,7 +132,7 @@ end
 
 Dt = Par.Dt;  % quantum spin propagation time step
 nTraj = Par.nTraj;
-isBlock = Par.isBlock;  % tensor time block averaging
+isBlockAveraging = Par.isBlock;  % tensor time block averaging
 nSteps = Par.nSteps;
 
 truncate = Opt.truncate;  % ensemble averaged propagation
@@ -176,70 +163,88 @@ switch Method
       end
     end
     
-    % perform rotations on g- and A-tensors
-    gTensor = cardamom_tensortraj(g,RTraj,RTrajInv);
-    ATensor = cardamom_tensortraj(A,RTraj,RTrajInv)*1e6*2*pi; % MHz (s^-1) -> Hz (rad s^-1)
-    
-    if isMarkov
-      gTensorState = zeros(3,3,MD.nStates);
-      ATensorState = zeros(3,3,MD.nStates);
+    if ~isHMMfromMD
+      % Calculate time-dependent tensors from orientational trajectories
+      gTensor = cardamom_tensortraj(g,Par.RTraj,RTrajInv);
+      ATensor = cardamom_tensortraj(A,Par.RTraj,RTrajInv)*1e6*2*pi; % MHz (s^-1) -> Hz (rad s^-1)
       
-      % find the average interaction tensor for each state
-      for iState = 1:MD.nStates
-        idxState = (MD.stateTraj == iState);
-        gTensorState(:,:,iState) = squeeze(mean(gTensor(:,:,1,idxState),4));
-        ATensorState(:,:,iState) = squeeze(mean(ATensor(:,:,1,idxState),4));
+    else
+      % Calculate time-dependent tensors from state trajectories
+
+      % Calculate the average interaction tensors for each state using 
+      % MD-derived frame trajectories and Viterbi trajectories
+      if isempty(gTensorState)
+        % Perform MD-derived rotations on g- and A-tensors
+        gTensorMD = cardamom_tensortraj(g,Par.RTraj,RTrajInv);
+        ATensorMD = cardamom_tensortraj(A,Par.RTraj,RTrajInv)*1e6*2*pi; % MHz (s^-1) -> Hz (rad s^-1)
+        
+        nVitTraj = size(MD.viterbiTraj,1);
+        gTensorState = zeros(3,3,MD.nStates,nVitTraj);
+        ATensorState = zeros(3,3,MD.nStates,nVitTraj);
+
+        % Average over time axis
+        for iState = 1:MD.nStates
+          for iTraj = 1:nVitTraj
+            idxState = MD.viterbiTraj(iTraj,:) == iState;
+            gTensorState(:,:,iState,iTraj) = squeeze(mean(gTensorMD(:,:,iTraj,idxState),4));
+            ATensorState(:,:,iState,iTraj) = squeeze(mean(ATensorMD(:,:,iTraj,idxState),4));
+          end
+        end
+        
+        % Average over trajectories
+        gTensorState = mean(gTensorState,4,'omitnan');
+        ATensorState = mean(ATensorState,4,'omitnan');
       end
       
+      % Calculate new time-dependent tensors from state trajectories
+      % generated using optimized HMM parameters
       gTensor = zeros(3,3,nTraj,nSteps);
       ATensor = zeros(3,3,nTraj,nSteps);
-      % build the time-dependent tensors using Markov state trajectories
-      for iStep = 1:nSteps
+      
+      for iState = 1:MD.nStates
         for iTraj = 1:nTraj
-          state = Par.stateTraj(iTraj,iStep);
-          gTensor(:,:,iTraj,iStep) = gTensorState(:,:,state);
-          ATensor(:,:,iTraj,iStep) = ATensorState(:,:,state);
-        end
+          idxState = Par.stateTraj(iTraj,:)==iState;
+          gTensor(:,:,iTraj,idxState) = repmat(gTensorState(:,:,iState),[1,1,1,sum(idxState)]);
+          ATensor(:,:,iTraj,idxState) = repmat(ATensorState(:,:,iState),[1,1,1,sum(idxState)]);
+        end   
       end
-    else
-      % time block averaging and sliding window processing
-      if isBlock
-        gTensorBlock = zeros(3,3,size(gTensor,3),Par.nBlocks);
-        ATensorBlock = zeros(3,3,size(ATensor,3),Par.nBlocks);
+      
+    end
+    
+    % Time block averaging and sliding window processing of tensors
+    if isBlockAveraging
+      gTensorBlock = zeros(3,3,size(gTensor,3),Par.nBlocks);
+      ATensorBlock = zeros(3,3,size(ATensor,3),Par.nBlocks);
 
-        % average the interaction tensors over time blocks
-        idx = 1:Par.BlockLength;
-        for k = 1:Par.nBlocks
-          gTensorBlock(:,:,:,k) = mean(gTensor(:,:,:,idx),4);
-          ATensorBlock(:,:,:,k) = mean(ATensor(:,:,:,idx),4);
-          idx = idx + Par.BlockLength;
-        end
+      % Average the interaction tensors over time blocks
+      idx = 1:Par.BlockLength;
+      for k = 1:Par.nBlocks
+        gTensorBlock(:,:,:,k) = mean(gTensor(:,:,:,idx),4);
+        ATensorBlock(:,:,:,k) = mean(ATensor(:,:,:,idx),4);
+        idx = idx + Par.BlockLength;
+      end
 
-        % perform sliding window processing if using MD trajectory explicitly
-        if useMD
-          if isExplicit
-            gTensor = zeros(3,3,nTraj,nSteps);
-            ATensor = zeros(3,3,nTraj,nSteps);
-            for k = 1:nTraj
-              idx = (1:nSteps) + (k-1)*Par.lag;
-              gTensor(:,:,k,:) = gTensorBlock(:,:,idx);
-              ATensor(:,:,k,:) = ATensorBlock(:,:,idx);
-            end
-          else
-            gTensor = gTensorBlock;
-            ATensor = ATensorBlock;
-          end
-        else
-          gTensor = gTensorBlock;
-          ATensor = ATensorBlock;
+      if useMD && isDirectfromMD
+        % Perform sliding window processing if using MD trajectory explicitly
+        gTensor = zeros(3,3,nTraj,nSteps);
+        ATensor = zeros(3,3,nTraj,nSteps);
+        for k = 1:nTraj
+          idx = (1:nSteps) + (k-1)*Par.lag;
+          gTensor(:,:,k,:) = gTensorBlock(:,:,idx);
+          ATensor(:,:,k,:) = ATensorBlock(:,:,idx);
         end
+      else
+        % No sliding windows for other methods, as the length of generated
+        % trajectories is determined by length of FID
+        gTensor = gTensorBlock;
+        ATensor = ATensorBlock;
       end
     end
     
-    % rotate tensors into lab frame explicitly
-    if ~isempty(RLab)
-      gTensor = multimatmult(RLab, multimatmult(gTensor, RLabInv));
-      ATensor = multimatmult(RLab, multimatmult(ATensor, RLabInv));
+    % Rotate tensors into lab frame explicitly
+    if ~isempty(Par.RLab)
+      gTensor = multimatmult(Par.RLab, multimatmult(gTensor, RLabInv));
+      ATensor = multimatmult(Par.RLab, multimatmult(ATensor, RLabInv));
     end
     
     gIso = sum(g)/3;
@@ -250,12 +255,12 @@ switch Method
     
     Gp_zz = GpTensor(3,3,:,:);
 
-    % norm of expression in Eq. 24 in [1]
+    % Norm of expression in Eq. 24 in [1]
     a = sqrt(ATensor(1,3,:,:).*ATensor(1,3,:,:) ...
            + ATensor(2,3,:,:).*ATensor(2,3,:,:) ...
            + ATensor(3,3,:,:).*ATensor(3,3,:,:));
 
-    % rotation angle and unit vector parallel to axis of rotation
+    % Rotation angle and unit vector parallel to axis of rotation
     % refer to paragraph below Eq. 37 in [1]
     theta = Dt*0.5*squeeze(a);
     nx = squeeze(ATensor(1,3,:,:)./a);
@@ -266,7 +271,7 @@ switch Method
     ct = cos(theta) - 1;
     st = -sin(theta);
     
-    % matrix exponential of hyperfine part
+    % Matrix exponential of hyperfine part
     % Eqs. A1-A2 are used to construct Eq. 37 in [1]
     expadotI = zeros(3,3,size(Gp_zz,3),size(Gp_zz,4));
     expadotI(1,1,:,:) = 1 + ct.*(nz.*nz + 0.5*(nx.*nx + ny.*ny)) ...
@@ -374,13 +379,13 @@ switch Method
     % ---------------------------------------------------------------------
 
     % time block averaging and sliding window processing
-    if isBlock
+    if isBlockAveraging
       if isempty(D2TrajMol)
         % if using an MD trajectory, it is best to process the molecular
         % dynamics once and store the result
         % this variable will be set to empty later if an MD trajectory is
         % not being used
-        D2TrajMol = wigD(qTraj);
+        D2TrajMol = wigD(Par.qTraj);
         D2Avg = zeros(5,5,Par.nBlocks);
 
         % average the Wigner D-matrices over time blocks
@@ -392,7 +397,7 @@ switch Method
 
         % perform sliding window processing if using MD trajectory explicitly
         if useMD
-          if isExplicit
+          if isDirectfromMD
             D2TrajMol = zeros(5,5,nTraj,nSteps);
 
             for k = 1:nTraj
@@ -410,12 +415,12 @@ switch Method
         D2TrajMol = [];
       end
     else
-      D2Traj = wigD(qTraj);
+      D2Traj = wigD(Par.qTraj);
     end
     
     % check for new lab frame rotations
-    if ~isempty(qLab)
-      D2Lab = wigD(qLab);
+    if ~isempty(Par.qLab)
+      D2Lab = wigD(Par.qLab);
       D2Traj = multimatmult(D2Lab, D2Traj);
     end
     

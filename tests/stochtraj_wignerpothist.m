@@ -53,7 +53,8 @@ for j=1:size(LMK,1)
   
   for iTraj=1:nTraj
     % use a "burn-in method" by taking last half of each trajectory
-    [alpha, beta, gamma] = quat2euler(qTraj(:,iTraj,N:end));
+%     [alpha, beta, gamma] = quat2euler(qTraj(:,iTraj,N:end));
+    [alpha, beta, gamma] = quat2euler(qTraj(:,iTraj,N:end),'active');
     alpha = squeeze(alpha);
     beta = squeeze(beta);
     gamma = squeeze(gamma);
@@ -65,23 +66,9 @@ for j=1:size(LMK,1)
   Hist3D = mean(Hist3D, 4);  % average over all trajectories
   Hist3D = Hist3D/sum(Hist3D(:));  % normalize
   
-%   slice(Agrid, Bgrid, Ggrid, Hist3D, 0, pi/2, 0)
-%   xlabel('alpha')
-%   ylabel('beta')
-%   zlabel('gamma')
-%   colormap hsv
-  
-%   Hist3D = permute(Hist3D, [2, 1, 3]);  % first two dims are incorrectly 
-%                                         % ordered by histcnd
-  
-%   slice(Agrid, Bgrid, Ggrid, Hist3D, 0, pi/2, 0)
-%   xlabel('alpha')
-%   ylabel('beta')
-%   zlabel('gamma')
-%   colormap hsv
-  
   rmsd = calc_rmsd(Sys.Potential(1,4),Sys.Potential(1,1:3),Hist3D,...
                    Agrid,Bgrid,Ggrid,alphaBins,betaBins,gammaBins);
+                 
   
   if rmsd>5e-3||any(isnan(Hist3D(:)))
     % numerical result does not match analytical result
@@ -106,27 +93,61 @@ LMKstr = strcat(LMKstr(1),LMKstr(2),LMKstr(3));
 Re = real(lambda);
 Im = imag(lambda);
 
+% BoltzDist = exp(2*real(lambda*conj(wignerd(LMK([1,3,2]),Agrid,Bgrid,Ggrid))));
+% BoltzDist = exp(2*real(lambda*conj(wignerd(LMK,Agrid,Bgrid,Ggrid))));
+% BoltzDist = exp(2*real(lambda*conj(permute(wignerd(LMK,Agrid,Bgrid,Ggrid),[3,2,1]))));
+
 switch LMKstr
   case '110'
-    BoltzDist = exp(1/sqrt(2)*sin(Bgrid).*(Re*cos(Ggrid)-Im*sin(Ggrid)));
+%     BoltzDist = exp(1/sqrt(2)*sin(Bgrid).*(Re*cos(Ggrid)-Im*sin(Ggrid)));
+    U = sqrt(2)*sin(Bgrid).*(Re*cos(Agrid)+Im*sin(Agrid));
+%     BoltzDist = exp(2*real(lambda*conj(wignerd([1,1,0],Agrid,Bgrid,Ggrid))));
   case '101'
 %     BoltzDist = exp(1/sqrt(2)*sin(Bgrid).*(Re*cos(Agrid)+Im*sin(Agrid)));
-    BoltzDist = exp(2*real(lambda*conj(wignerd([1,0,1],Agrid,Bgrid,Ggrid))));
+    U = -sqrt(2)*sin(Bgrid).*(Re*cos(Ggrid)+Im*sin(Ggrid));
+%     BoltzDist = exp(2*real(lambda*conj(wignerd([1,0,1],Agrid,Bgrid,Ggrid))));
   case '111'
-    BoltzDist = exp(-cos(Bgrid/2).^2.*(Re*cos(Agrid+Ggrid)-Im*sin(Agrid+Ggrid)));
+%     BoltzDist = exp(-cos(Bgrid/2).^2.*(Re*cos(Agrid+Ggrid)-Im*sin(Agrid+Ggrid)));
+    U = -2*cos(Bgrid/2).^2.*(Re*cos(Agrid+Ggrid)+Im*sin(Agrid+Ggrid));
   case '200'
-    BoltzDist = exp(Re*1/2*(3*cos(Bgrid).^2 - 1));
+    U = -Re*(3*cos(Bgrid).^2 - 1);
   case '201'
-    BoltzDist = exp(sqrt(3/8)*sin(2*Bgrid).*(Im*sin(Agrid)-Re*cos(Agrid)));
+    U = -sqrt(6)*cos(Bgrid).*sin(Bgrid).*(Re*cos(Ggrid)+Im*sin(Ggrid));
   case '202'
-    BoltzDist = exp(sqrt(3/8)*sin(Bgrid).^2.*(Re*cos(2*Agrid)-Im*sin(2*Agrid)));
+    U = -sqrt(3/2)*sin(Bgrid).^2.*(Re*cos(2*Ggrid)+Im*sin(2*Ggrid));
 end
+
+BoltzDist = exp(-U);
 
 BoltzInt = sum(reshape(BoltzDist.*sin(Bgrid),1,numel(Bgrid)));
 BoltzDist = BoltzDist.*sin(Bgrid)/BoltzInt;
 
 residuals = Hist3D - BoltzDist;
 rmsd = sqrt(mean(residuals(:).^2));
+
+% subplot(1,2,1)
+%   slice(alphaBins, ...
+%         betaBins, ...
+%         gammaBins, ...
+%         permute(Hist3D, [2,1,3]), ...
+%         0, pi/2, 0)
+%   xlabel('alpha')
+%   ylabel('beta')
+%   zlabel('gamma')
+%   title('Histogram')
+%   colormap hsv
+% 
+%   subplot(1,2,2)
+%   slice(alphaBins, ...
+%         betaBins, ...
+%         gammaBins, ...
+%         permute(BoltzDist, [2,1,3]), ...
+%         0, pi/2, 0)
+%   xlabel('alpha')
+%   ylabel('beta')
+%   zlabel('gamma')
+%   title('PDF from potential')
+%   colormap hsv
 
 end
 

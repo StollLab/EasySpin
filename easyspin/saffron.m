@@ -879,8 +879,11 @@ if strcmp(Opt.SimulationMode,'fast')
   switch Opt.EndorMethod
     case 0, logmsg(1,'using population swaps of adjacent nuclear sublevels');
     case 1, logmsg(1,'using bandwidth-filtered Iy pi pulse, sum over transitions');
-    case 2, logmsg(1,'using bandwidth-filtered Iy pi pulse, full RF sweel');
+  case 2, logmsg(1,'using bandwidth-filtered Iy pi pulse, full RF sweep');
     otherwise, error('Unknown setting for Opt.EndorMethod. Must be 0, 1, or 2.');
+end
+if Opt.EndorMethod==0 && numel(shfNuclei)>1 && ~Opt.ProductRule
+  error('Opt.EndorMethod=0 gives incorrect results for multiple nuclei.')
   end
   
   
@@ -2333,19 +2336,25 @@ end
 
 function [Sys] = rotatesystem(Sys,angles)
 
-rotatble = {'g' 'A' 'Q' 'D' 'ee' 'nn'};
+rotatable = {'g' 'A' 'Q' 'D' 'ee' 'nn'};
 
-fields2rotate = rotatble(isfield(Sys,rotatble));
+fields2rotate = rotatable(isfield(Sys,rotatable));
 
 for iField = 1 : numel(fields2rotate)
   
   field_ = [fields2rotate{iField} 'Frame'];
   
-  for iRow = 1: size(field_,1)
-    R0 = erot(Sys.(field_));
-    R1 = erot(angles);
-    
-    Sys.(field_) = eulang(R0*R1);
+  nRows = size(Sys.(field_),1);
+  nCol = size(Sys.(field_),2)/3;
+  
+  for iRow = 1 : nRows
+    for iCol = 1 : nCol
+      R0 = erot(Sys.(field_)(iRow,3*(iCol-1)+1:3*iCol));
+      R1 = erot(angles);
+      
+      Sys.(field_)(iRow,3*(iCol-1)+1:3*iCol) = eulang(R0*R1);
+    end
   end
   
 end
+

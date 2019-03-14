@@ -1,5 +1,8 @@
 function [err,data] = test(opt,olddata)
 
+orig_state = warning;
+warning('off','all');
+
 % This test makes sure, that 'Frequency' is correctly incremented.
 % Since the frequencies are currently defined in GHz, and pulse() requires
 % MHz, they need to be converted by s_sequencer. There was a bug, where
@@ -29,7 +32,7 @@ Manual.Flip = Flip;
 
 Exp.Sequence = {Pulse 0.5 Pulse};
 Exp.Field = 1240; 
-Opt.TimeStep = TimeStep; % us
+Opt.IntTimeStep = TimeStep; % us
 
 Opt.SimFreq = 0;
 Opt.SimulationMode = 'step wise';
@@ -103,3 +106,5 @@ if plot
     plot(real(Seq3IQs{i}))
   end
 end
+
+warning(orig_state);

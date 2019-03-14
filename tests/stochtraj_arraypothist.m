@@ -2,6 +2,8 @@ function [err,data] = test(opt,olddata)
 % Check that supplying a pseudopotential energy function to stochtraj_diffusion 
 % generates a proper distribution of orientations
 
+rng(1)
+
 idx = [2, 1, 3];  % for permuting dimensions to go between ngrid and 
                   % meshgrid ordering
 
@@ -16,42 +18,37 @@ alphaGrid = linspace(0, 2*pi, abins);
 betaGrid = linspace(0, pi, bbins);
 gammaGrid = linspace(0, 2*pi, gbins);
 
-% delta = 80;
-% 
-% fwhma = delta/180*pi;
-% fwhmb = delta/180*pi;
-% fwhmg = delta/180*pi;
-% 
+delta = 80;
+
+fwhma = delta/180*pi;
+fwhmb = delta/180*pi;
+fwhmg = delta/180*pi;
+
 % [pdfa, pdfb, pdfg] = ndgrid(runprivate('wrappedgaussian', alphaGrid, 0, fwhma, [0,2*pi]), ...
 %                             runprivate('wrappedgaussian', betaGrid, 0, fwhmb, [0,pi]), ...
 %                             runprivate('wrappedgaussian', gammaGrid, 0, fwhmg, [0,2*pi]));
-% 
-% pdf = pdfa.*pdfb.*pdfg;
-% 
-% pdf = pdf/sum(pdf(:));
-% PDF = pdf;
-% PDF(PDF<1e-10) = 1e-10;
+[pdfa, pdfb, pdfg] = ndgrid(runprivate('wrappedgaussian', alphaGrid, pi/2, fwhma, [0,2*pi]), ...
+                            runprivate('wrappedgaussian', betaGrid, 0, fwhmb, [0,pi]), ...
+                            runprivate('wrappedgaussian', gammaGrid, 0, fwhmg, [0,2*pi]));
 
-[AlphaGrid,BetaGrid,GammaGrid] = ndgrid(alphaGrid, betaGrid, gammaGrid);
+pdf1 = pdfa.*pdfb.*pdfg;
 
-lambda = 2;
+[pdfa, pdfb, pdfg] = ndgrid(runprivate('wrappedgaussian', alphaGrid, pi/4, fwhma, [0,2*pi]), ...
+                            runprivate('wrappedgaussian', betaGrid, pi/2, fwhmb, [0,pi]), ...
+                            runprivate('wrappedgaussian', gammaGrid, 3*pi/4, fwhmg, [0,2*pi]));
 
-L = 2;
-M = 2;
-K = 0;
-LMK = [L,M,K];
-if M==0 && K==0
-  Yfun = real(wignerd(LMK,AlphaGrid,BetaGrid,GammaGrid));
-else
-  Yfun = 2*real(wignerd(LMK,AlphaGrid,BetaGrid,GammaGrid));
-end
-U = -lambda*Yfun;
+pdf2 = pdfa.*pdfb.*pdfg;
+pdf = pdf1+pdf2;
+                          
+pdf = pdf/sum(pdf(:));
+PDF = pdf;
+PDF(PDF<1e-10) = 1e-10;
+U = -log(PDF);
 
 PotFun = U;
 
 Sys.tcorr = 10e-9;
 Sys.Potential = PotFun;
-% Sys.Potential = -log(PDF);
 
 Par.dt = Sys.tcorr/20;
 Par.nSteps = ceil(400*Sys.tcorr/Par.dt);
@@ -69,20 +66,19 @@ Hist3D = zeros(abins, bbins, gbins, nTraj);
 err = 0;
 
 [~,RTraj,qTraj] = stochtraj_diffusion(Sys,Par);  % extract quaternions from trajectories
+reverse = repmat(qTraj(1,:,:)<0,[4,1,1]);
+qTraj(reverse) = -qTraj(reverse);
 
 N = round(nSteps/2);
 
 alphaBins = linspace(0, 2*pi, gbins);
 betaBins = linspace(0, pi, bbins);
-% betaBins = pi-acos(linspace(-1, 1, bbins));
 gammaBins = linspace(0, 2*pi, gbins);
 
-% alpha = zeros(N,1);
-% beta = zeros(N,1);
-% gamma = zeros(N,1);
 for iTraj=1:nTraj
 %   use a "burn-in method" by taking last half of each trajectory
     [alpha, beta, gamma] = quat2euler(qTraj(:,iTraj,N:end),'active');
+%     [alpha, beta, gamma] = quat2euler(qTraj(:,iTraj,N:end));
     alpha = squeeze(alpha);
     beta = squeeze(beta);
     gamma = squeeze(gamma);
@@ -101,10 +97,12 @@ pdf = pdf.*sin(betaBins)/sum(pdf(:));
 
 rmsd = calc_rmsd(pdf, Hist3D);
 
-if rmsd>2e-1||any(isnan(Hist3D(:)))
-  % numerical result does not match analytical result
+if rmsd>0.3||any(isnan(Hist3D(:)))
+%   numerical result does not match analytical result
   err = 1;
-  
+end
+
+if opt.Display
   subplot(1,2,1)
   slice(alphaBins, ...
         betaBins, ...

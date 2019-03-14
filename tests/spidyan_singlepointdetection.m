@@ -18,7 +18,7 @@ Exp.DetOperator = {'z1'};
 % one single acquistion point ------------------
 [sig] = spidyan(Sys,Exp);
 
-sigexpected = 0.9975441;
+sigexpected = 1.0000;
 
 
 % two dimensions -----------------------

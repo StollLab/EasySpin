@@ -6,7 +6,7 @@ rng_(1);
 
 kp = 3e9; % rate constant for forward process A -> B
 km = 1e9; % rate constant for reverse process B -> A
-Sys.TransRates = [-kp, +km; +kp, -km];
+Sys.TransRates = [-kp, +km; +kp, -km].';
 
 Par.nTraj = 500;
 Par.dt = 1/mean([kp km])/10;

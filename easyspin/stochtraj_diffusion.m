@@ -32,7 +32,7 @@
 %                       beta [0,pi], and the third gamma [0,2*pi]
 %                    c) a function handle for a function that takes three
 %                       arguments (alpha, beta, and gamma) and returns the value
-%                       of the ordering potential for that orientation. The
+%                       of the orientational potential for that orientation. The
 %                       function should be vectorized, i.e. work with arrays of
 %                       alpha, beta, and gamma.
 %
@@ -135,7 +135,7 @@ global EasySpinLogLevel;
 EasySpinLogLevel = Opt.Verbosity;
 
 
-% Check dynamics and ordering potential
+% Check dynamics and orientational potential
 %-------------------------------------------------------------------------------
 
 % FieldSweep is not valid for stochtraj, so give empty third arg
@@ -346,7 +346,7 @@ if isvector(OriStart), OriStart = OriStart(:); end
 % If only one starting angle and multiple trajectories, repeat the angle
 if size(OriStart,2)==1 && Sim.nTraj>1
   OriStart = repmat(OriStart,1,Sim.nTraj);
-end  
+end
 
 if size(OriStart,2)~=Sim.nTraj
   error('Number of starting orientations must be equal to Par.nTraj.')
@@ -354,7 +354,7 @@ end
 
 switch size(OriStart,1)
   case 3 % Euler angles
-    q0 = euler2quat(OriStart);
+    q0 = euler2quat(OriStart,'active');
   case 4 % quaternions
     q0 = OriStart;
   otherwise
@@ -417,7 +417,7 @@ while ~converged
     iter = 1;
     % re-initialize trajectories
     Sim.nSteps = nSteps;
-    q0 = euler2quat(OriStart);
+    q0 = euler2quat(OriStart,'active');
     qTraj = zeros(4,Sim.nTraj,Sim.nSteps);
     qTraj(:,:,1) = q0;
   end

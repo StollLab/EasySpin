@@ -20,7 +20,7 @@ Par.nTraj = 200;
 Par.dt = Sys.tcorr/10;      % use a smaller time step to ensure that each 
                             % trajectory "feels" the orienational 
                             % restriction
-Par.Model = 'stochastic';
+Par.Model = 'diffusion';
 Par.nSteps = ceil(200e-9/Par.dt);
 
 Opt.Verbosity = 1;           % simulations of trajectories with an 

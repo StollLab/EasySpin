@@ -1,8 +1,8 @@
 ==================================================================
-EasySpin release packaging and publishing procedure
+EasySpin release packaging and publishing protocol
 ==================================================================
 
-Things that should have been done before release packaging
+Things that should have been done before build&release
 ------------------------------------------------------------------
 - fix all bugs (see issue list on bitbucket)
 - update release notes in docs/releases.html
@@ -22,7 +22,7 @@ Testing
 - run complete test suite (tests/estest) on all platforms available
 - run all examples
 
-Functions list
+Documentation
 ------------------------------------------------------------------
 %- run scripts/mkfunclist.pl to generate funclist.txt
 %- remove from funclist.txt the nonpublic functions
@@ -30,9 +30,6 @@ Functions list
 %   isotopologues, p_symandgrid, rescale, resfields_pert, runprivate)
 - add new functions to docs/funcsalphabet.html
 - add new functions to docs/funcscategory.html
-
-Documentation
-------------------------------------------------------------------
 - recompile LaTeX source for formulas in documentation
   (script scripts/mkformulas.pl, must be done on a Linux machine with LaTeX/dvips/pstoimg installed)
 
@@ -66,14 +63,14 @@ done by script esbuild:
 - archive zip and development file
 
 Bitbucket update
-==================================================================
+------------------------------------------------------------------
 - Commit all changes, including edits to build script and release procedure
 - Tag changeset with new version number
 - If bugfix release: merge stable branch into default.
   If new release: merge default branch into stable.
 
-Web site update
-==================================================================
+Deployment: Web site update
+------------------------------------------------------------------
 Update local website folder easyspin/website
 - update references: include new publications, remove old ones from pubs subfolder
 - delete old easyspin-x.y.z.zip file
@@ -100,8 +97,8 @@ Update local website folder easyspin/website
 
 - check website, test download, check documentation, check examples
 
-Announce
-==================================================================
+Deployment: Announce
+------------------------------------------------------------------
 - notify people that reported crucial bugs
 - major release: announce to email list
 - major and minor release: announce to forum

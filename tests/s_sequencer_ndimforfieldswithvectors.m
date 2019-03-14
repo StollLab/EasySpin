@@ -1,5 +1,8 @@
 function [err,data] = test(opt,olddata)
 
+orig_state = warning;
+warning('off','all');
+
 Pulse.Type = 'sech/uniformQ';  
 
 Pulse.beta = 10;
@@ -11,7 +14,7 @@ Pulse.tp = 0.1;
 Exp.Sequence = {Pulse 0.5 Pulse};
 Exp.Field = 1240;
 Exp.mwFreq = 0;
-Opt.TimeStep = 0.0001; % us
+Opt.IntTimeStep = 0.0001; % us
 
 Exp.DetSequence = 1;
 
@@ -53,3 +56,5 @@ else
 end
 
 data = [];
+
+warning(orig_state);

@@ -1,17 +1,24 @@
-% rbos takes as input the Wigner D matrix, and the ISTO components and coefficients
-% for each interaction term in the Hamiltonian. The output is 1 isotropic
+% rbos takes as input the ISTO components and coefficients for each
+% interaction term in the Hamiltonian as well as the Euler angles describing
+% the orientation of the spin system.
+%
+% The output is 1 isotropic
 % RBO and 25 anistropic rank-2 RBOs. The anisotropic RBOs are arranged as
 % matrices in a 5-by-5 cell array in which the rows are the M components
 % and the columns are the K components, in decreasing order from 2 to -2
 
-function [Q0G,Q1G,Q2G,Q0F,Q1F,Q2F] = rbos(D1,D2,T,F,isFieldDep)
+function [Q0G,Q1G,Q2G,Q0F,Q1F,Q2F] = rbos(T,F,angles,isFieldDep)
 
-% ISTOs
+% Calculate Wigner rotation matrices
+D1 = wignerd(1,angles(1),angles(2),angles(3));
+D2 = wignerd(2,angles(1),angles(2),angles(3));
+
+% Components of spin spherical tensor operators
 T0 = T.T0;
 T1 = T.T1;
 T2 = T.T2;
 
-% ISTs
+% Components of interaction spherical tensors
 F0 = F.F0;
 F1 = F.F1;
 F2 = F.F2;

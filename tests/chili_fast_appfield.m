@@ -32,8 +32,8 @@ end
 if opt.Display
   if ~isempty(olddata)
     subplot(4,1,1:3);
-    plot(data.x,data.y,'r',olddata.x,olddata.y,'g');
-    legend('new','old');
+    plot(olddata.x,olddata.y,data.x,data.y);
+    legend('old','new');
     legend boxoff
     subplot(4,1,4);
     plot(data.x,data.y-olddata.y,'r');

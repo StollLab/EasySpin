@@ -1,5 +1,5 @@
 % startvec calculates the starting vector in the given basis (basis), including
-% the ordering potential (Potential) and the spin operator in SopH (either S+
+% the orientational potential (Potential) and the spin operator in SopH (either S+
 % or Sx).
 
 function StartingVector = startvec(basis,Potential,SopH,useLMKbasis,useSelectionRules)
@@ -9,6 +9,8 @@ jKbasis = ~useLMKbasis;
 % Settings
 if nargin<5, useSelectionRules = true; end
 IntegralThreshold = 1e-10;
+AbsTol3D = 1e-6;
+RelTol3D = 1e-6;
 
 L = basis.L;
 M = basis.M;
@@ -85,7 +87,7 @@ for b = 1:numel(oriVector)
     Int = (2*pi) * integral2(fun,0,2*pi,0,pi);
   else
     fun = @(a,b,c) conj(wignerd([L_ M_ K_],a,b,c)) .* exp(-U(a,b,c)/2) .* sin(b);
-    Int = integral3(fun,0,2*pi,0,pi,0,2*pi);
+    Int = integral3(fun,0,2*pi,0,pi,0,2*pi,'AbsTol',AbsTol3D,'RelTol',RelTol3D);
   end
   
   if abs(Int) < IntegralThreshold, continue; end
@@ -102,7 +104,7 @@ StartingVector = real(kron(oriVector,SopH(:)));
 StartingVector = StartingVector/norm(StartingVector);
 StartingVector = sparse(StartingVector);
 
-  % General ordering potential function (real-valued)
+  % General orientational potential function (real-valued)
   function u = U(a,b,c)
     u = 0;
     for p = 1:numel(lambda)

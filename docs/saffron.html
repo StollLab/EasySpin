@@ -508,10 +508,11 @@ Determines whether product rule is used or not (1 or 0). By default, it is not u
 <div class="optiondescr">
 Determines which method to use to simulate ENDOR spectra. There are three methods:
 <ul>
-<li><code>EndorMethod = 1</code>: This is the default method. It is a sum-over-transitions method that applies bandwidth-limited rf pi pulses (using single-transition operators in the eigenbasis of the nuclear sub-Hamiltonians) on each nuclear transition in turn. It is able to reproduce inter-nuclear cross suppression effects (implicit triple). All rf pulses are modelled as 180 degree pulses on all allowed nuclear transitions, independent of the nature of the nucleus.
-<li><code>EndorMethod = 2</code>: This is an alternative method. It uses a brute-force rf sweep approach: It loops over every frequency on the rf axis and calculates the echo amplitude using the same rf pulse operators as <code>EndorMethod=1</code>.
-<li><code>EndorMethod = -1</code>: This is the legacy method (default prior to version 5.0.20). For one nucleus, it is equivalent to <code>EndorMethod=1</code>. For multiple nuclei, it gives wrong results: With <code>ProductRule=1</code>, cross suppression effects are not modelled, and with <code>ProductRule=0</code>, peak positions are wrong.
+<li><code>EndorMethod = 0</code>: This is a sum-over-transitions method that emulates rf pulses by swapping populations of adjacent nuclear spin levels. For one nucleus, it is roughly equivalent to <code>EndorMethod=1</code>, but faster. For multiple nuclei, it gives wrong results: With <code>ProductRule=1</code>, cross suppression effects are not modeled, and with <code>ProductRule=0</code>, peak positions are wrong.
+<li><code>EndorMethod = 1</code>: This is a sum-over-transitions method that applies bandwidth-limited rf pi pulses (using single-transition operators in the eigenbasis of the nuclear sub-Hamiltonians) on each nuclear transition in turn. It is able to reproduce inter-nuclear cross suppression effects (implicit triple). All rf pulses are modeled as 180 degree pulses on all allowed nuclear transitions, independent of the nature of the nucleus.
+<li><code>EndorMethod = 2</code>: This is an alternative method. It uses a very slow brute-force rf sweep approach: It loops over every frequency on the rf axis and calculates the echo amplitude using the same rf pulse operators as <code>EndorMethod=1</code>.
 </ul>
+The default method is 0 for a single nucleus or multiple nuclei with product rule, otherwise it is 1.
 </div>
 
 <div class="optionfield"><code>nOffsets</code></div>
@@ -560,15 +561,19 @@ To force a simulation in the labframe <code>SimFreq</code> has to be set to zero
 Opt.SimFreq = 0;  	      % Propagation in the labframe
 </pre>
 Changing the simulation frame allows for using a larger time step, which in turn can strongly reduce computation time.																											 																																										
-Keep in mind, that if a time step is provided with <code>Opt.TimeStep</code> it is not adapted automatically.
-To have the program adapt the time step to the simulation frequency, remove the field <code>Opt.TimeStep</code> .
+Keep in mind, that if a time step is provided with <code>Opt.IntTimeStep</code> it is not adapted automatically.
+To have the program adapt the time step to the simulation frequency, remove the field <code>Opt.IntTimeStep</code> .
 </div>
 
-<div class="optionfield"><code>TimeStep</code></div>
+<div class="optionfield"><code>IntTimeStep</code></div>
 <div class="optiondescr">
-Time step in microseconds, optional. 
+Integration time step in microseconds, optional. 
 If no time step is provided, the program computes a suitable time step (taking into account the highest frequency that is being used for the pulse definition <code>Exp.Frequency</code>).
-If the user provides a time step, the program checks if the Nyquist theorem is not fulfilled for the frequency ranges of the pulses and, if not, an error is thrown. 
+Accurate results are obtained for an integration time step that corresponds to about 50 data points per oscillaton or 1/50th of the largest time step size to fulfill the Nyquist criterion.
+<p>
+User provided intgration time steps must at least fulfill the Nyquist criterion, or an error is thrown. 
+For integration time steps larger than the recommended ones, a warning is printed to the command line.
+</p>
 </div>
 
 <div class="subtitle">Algorithms</div>

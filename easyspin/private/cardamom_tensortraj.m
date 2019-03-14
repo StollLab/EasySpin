@@ -1,7 +1,7 @@
 % given one or more trajectories of rotation matrices, calculate the 
 % corresponding time dependence of an interaction tensor
 
-function TTraj = tensortraj(T,RTraj,RTrajInv)
+function TTraj = cardamom_tensortraj(T,RTraj,RTrajInv)
 
 if numel(T)==3
   T = diag(T);

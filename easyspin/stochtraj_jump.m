@@ -149,8 +149,8 @@ if isfield(Sys,'TransRates')
   if any(diag(TRM)>0) || any2d(TRM-diag(diag(TRM))<0)
     error('Sys.TransRates must contain strictly negative diagonal and positive off-diagonal entries.')
   end
-  if any(abs(sum(TRM,1)/max(abs(TRM(:))))>1e-13)
-    error('In Sys.TransRates, the sum over each column must be zero.')
+  if any(abs(sum(TRM,2)/max(abs(TRM(:))))>1e-13)
+    error('In Sys.TransRates, the sum over each row must be zero.')
   end
   
   TPM = expm(Par.dt*TRM);
@@ -171,8 +171,8 @@ elseif isfield(Sys,'TransProb')
   if any(TPM(:)<0)
     error('All elements in Sys.TransProp must positive (or zero).');
   end
-  if any(abs(sum(TPM,1)-1)>1e-12)
-    error('The columns of Sys.TransProb must sum to 1.')
+  if any(abs(nonzeros(sum(TPM,2))-1)>1e-12)
+    error('The rows of Sys.TransProb must sum to 1.')
   end
   
 else
@@ -186,7 +186,8 @@ nStates = size(TPM,1);
 
 
 % set kinetic Monte Carlo cumulative transition probability matrix
-cumulTPM = cumsum(TPM,1);
+% cumulTPM = cumsum(TPM,1);
+cumulTPM = cumsum(TPM,2);
   
 if ~Opt.statesOnly
   if isfield(Sys,'Orientations')
@@ -313,7 +314,8 @@ for iTraj = 1:nTraj
   for iStep = 2:nSteps
     stateLast = stateNew;
     uLast = u(iTraj,iStep-1);
-    stateNew = find(cumulTPM(:,stateLast)>uLast,1);
+%     stateNew = find(cumulTPM(:,stateLast)>uLast,1);
+    stateNew = find(cumulTPM(stateLast,:)>uLast,1);
     stateTraj(iTraj,iStep) = stateNew;
     if ~Opt.statesOnly
       qTraj(:,iTraj,iStep) = qStates(:,stateNew);

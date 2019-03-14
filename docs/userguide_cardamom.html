@@ -205,7 +205,7 @@ There are two types of local dynamics models in <code>cardamom</code> that can b
 </p>
 
 <p>
-For a rotational diffusion model (<code>Par.Model='stochastic'</code>), there are several alternative ways to specify the rate of isotropic rotational diffusion:
+For a rotational diffusion model (<code>Par.Model='diffusion'</code>), there are several alternative ways to specify the rate of isotropic rotational diffusion:
 either by specifying <code>tcorr</code>, the rotational correlation time in seconds
 </p>
 
@@ -514,10 +514,10 @@ MD = mdload(TrajFile, AtomInfo);
 <code>TrajFile</code> can be a single trajectory output file or a list of files. <code>AtomInfo</code> tells <code>mdload</code> how to look for spin label and protein information in <code>TrajFile</code>. For more details on how to do this, please see the technical documentation <a class="esf" href="mdload.html">mdload</a>.
 </p>
 
-Once the MD simulation information is successfully loaded into <code>MD</code> using <code>mdload</code>, a cw EPR spectrum can be simulated by declaring the <code>Model</code> as <code>'MD'</code> and supplying the structure variable <code>MD</code> to <code>cardamom</code> using the fifth input argument:
+Once the MD simulation information is successfully loaded into <code>MD</code> using <code>mdload</code>, a cw EPR spectrum can be simulated by declaring the <code>Model</code> as <code>'MD-direct'</code> and supplying the structure variable <code>MD</code> to <code>cardamom</code> using the fifth input argument:
 
 <pre class="matlab">
-Par.Model = 'MD';
+Par.Model = 'MD-direct';
 [Field,Spec] = cardamom(Sys,Exp,Par,Opt,MD);
 </pre>
 
