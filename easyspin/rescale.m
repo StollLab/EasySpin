@@ -2,12 +2,14 @@
 %
 %   ynew = rescale(y,mode1)
 %   ynew = rescale(y,yref,mode2)
+%   [ynew, scalefactors] = rescale(...)
 %
 %   Shifts and rescales the data vector y. If given, ynew serves
 %   as the reference. The rescaled y is returned in ynew.
 %
 %   y and yref need to be 1D vectors.
 %
+% Inputs:
 %   mode1:
 %     'minmax'  shifts and scales to minimum 0 and maximum 1
 %     'maxabs'  scales to maximum abs 1, no shift
@@ -23,6 +25,13 @@
 %     'lsq2'    least-squares fit of a*y+b+c*x+d*x^2 to yref
 %     'lsq3'    least-squares fit of a*y+b+c*x+d*x^2+e*x^3 to yref
 %     'none'    no scaling
+%
+%   Positive scaling is enforced, i.e. no inverting 
+%   of the rescaled data  
+%
+% Output:
+%   ynew          the new rescaled y vector
+%   scalefactors  the scaling factors and polynomial coefficients
 
 function varargout = rescale(varargin)
 
@@ -116,7 +125,7 @@ else
     case 3 % shift
       shift = mean(y_notnan) - mean(yref_notnan);
       ynew = y - shift;
-      scalefactor = 1;
+      scalefactor = [1 shift];
     case 4 % lsq
       scalefactor = y(notnan_both)\yref(notnan_both);
       ynew = scalefactor*y;
@@ -137,7 +146,7 @@ else
     case 8 % lsq3
       x = (1:N).'/N;
       D = [y ones(N,1) x x.^2 x.^3];
-      scalefactor = D(notnan,:)\yref(notnan);
+      scalefactor = D(notnan_both,:)\yref(notnan_both);
       ynew = D*scalefactor;
     case 9 % no scaling
       ynew = y;
