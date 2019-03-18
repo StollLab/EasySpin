@@ -31,41 +31,47 @@ end
 
 %rand('state',sum(100*clock)); % obsoleted in R2011a
 
-switch model
-  case 'u',
-    noise = rand(size(y))-0.5;
-
-  case 'n',
-    noise = randn(size(y));
-
-  case 'f', % general 1/f^alpha noise
-    alpha = 1;
-    
-    % construct frequency domain with 1/f^alpha power characteristics
-    % and random phases
-    nPoints = numel(y);
-    freq = 0:floor(nPoints/2);
-    Amplitudes = freq.^(-alpha/2);
-    Amplitudes(1) = 1;
-    Phases = exp(2i*pi*rand(size(Amplitudes)));
-    FreqDomain = Amplitudes.*Phases;
-    if mod(nPoints,2)
-      d = [FreqDomain conj(FreqDomain(end:-1:2))];
-    else
-      d = [FreqDomain conj(FreqDomain(end-1:-1:2))];
-    end
-    noise = real(ifft(d));
-    isColVec = size(y,1)>size(y,2);
-    if isColVec, noise = noise(:); end
-
-  otherwise
-    error('Wrong noise model. Use ''n'', ''u'', or ''f''.');
+dims = size(y);
+% check for complex data
+iscpx = double(~isreal(y));
+for cpx=0:iscpx
+  if cpx, rnoise = noise;end
+  switch model
+    case 'u',
+      noise = rand(dims)-0.5;
+      
+    case 'n',
+      noise = randn(dims);
+      
+    case 'f', % general 1/f^alpha noise
+      alpha = 1;
+      
+      % construct frequency domain with 1/f^alpha power characteristics
+      % and random phases
+      nPoints = numel(y);
+      freq = 0:floor(nPoints/2);
+      Amplitudes = freq.^(-alpha/2);
+      Amplitudes(1) = 1;
+      Phases = exp(2i*pi*rand(size(Amplitudes)));
+      FreqDomain = Amplitudes.*Phases;
+      if mod(nPoints,2)
+        d = [FreqDomain conj(FreqDomain(end:-1:2))];
+      else
+        d = [FreqDomain conj(FreqDomain(end-1:-1:2))];
+      end
+      noise = real(ifft(d));
+      isColVec = dims(1)>dims(2);
+      if isColVec, noise = noise(:); end
+      
+    otherwise
+      error('Wrong noise model. Use ''n'', ''u'', or ''f''.');
+  end
+  if cpx, noise = complex(rnoise,noise);end
 end
-
 noise = noise/std(noise(:)); % scale to stddev = 1;
 noise = reshape(noise,size(y));
 
-signallevel = max(y(:))-min(y(:));
+signallevel = abs(max(y(:))-min(y(:)));
 if (signallevel>0)
   noiselevel = signallevel/SNR;
 else
