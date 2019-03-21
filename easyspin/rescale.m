@@ -125,10 +125,11 @@ else
     case 3 % shift
       shift = mean(y_notnan) - mean(yref_notnan);
       ynew = y - shift;
-      scalefactor = [1 shift];
+      scalefactor = shift;
     case 4 % lsq
+      D = y;
       scalefactor = y(notnan_both)\yref(notnan_both);
-      ynew = scalefactor*y;
+      ynew = scalefactor*D;
     case 5 % lsq0
       D = [y ones(N,1)];
       scalefactor = D(notnan_both,:)\yref(notnan_both);
@@ -151,7 +152,7 @@ else
     case 9 % no scaling
       ynew = y;
   end
-  if real(scalefactor(1))<0
+  if real(scalefactor(1))<0 && ModeID>3
     scalefactor(1) = abs(scalefactor(1));
     ynew = D*scalefactor;
   end
