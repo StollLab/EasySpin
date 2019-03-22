@@ -86,11 +86,17 @@ if isempty(yref)
     case 1 % minmax
       mi = 0;
       ma = 1;
-      ynew = mi + (ma-mi)/(max(y)-min(y))*(y-min(y));
+      scalefactor(1) = (ma-mi)/(max(y)-min(y));
+      scalefactor(2) = mi -(ma-mi)/(max(y)-min(y))*min(y);
+      D = [y ones(N,1)];
+      ynew = D*scalefactor.';
+      %ynew = mi + (ma-mi)/(max(y)-min(y))*(y-min(y));
     case 2 % maxabs
-      ynew = y/max(abs(y));
+      scalefactor = 1/max(abs(y));
+      ynew = y*scalefactor;
     case 3 % no scaling
       ynew = y;
+      scalefactor = 1;
   end
   
 else
@@ -151,6 +157,7 @@ else
       ynew = D*scalefactor;
     case 9 % no scaling
       ynew = y;
+      scalefactor = 1;
   end
   if real(scalefactor(1))<0 && ModeID>3
     scalefactor(1) = abs(scalefactor(1));

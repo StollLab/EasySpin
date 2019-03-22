@@ -71,7 +71,9 @@ end
 noise = noise/std(noise(:)); % scale to stddev = 1;
 noise = reshape(noise,size(y));
 
-signallevel = abs(max(y(:))-min(y(:)));
+signallevel = (max(y(:))-min(y(:)));
+signallevel = max([real(signallevel) imag(signallevel)]);
+
 if (signallevel>0)
   noiselevel = signallevel/SNR;
 else
