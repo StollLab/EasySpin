@@ -157,8 +157,13 @@ p_excitationgeometry;
 ComputeNonEquiPops = numel(Exp.Temperature)>1;
 if (ComputeNonEquiPops)
   nElectronStates = prod(2*System.S+1);
-  if (numel(Exp.Temperature)~=nElectronStates)
+  if (length(Exp.Temperature)~=nElectronStates)
     error('Exp.Temperature must either be a scalar or a %d-vector',nElectronStates);
+  end
+  if ~isfield(System,'PopBasis')
+    PopBasis = 'Molecular';
+  else
+    PopBasis = System.PopBasis;
   end
   ComputeBoltzmannPopulations = false;
 else
@@ -409,17 +414,29 @@ end
 % Spin-polarized systems: precompute zero-field energies, states, populations
 if (ComputeNonEquiPops)
   
-  % Vector of zero-field populations for the core system
-  ZFPopulations = Exp.Temperature(:);
-  ZFPopulations = ZFPopulations/sum(ZFPopulations);
   nElStates = prod(2*System.S+1);
-  ZFPopulations = kron(ZFPopulations,ones(nCore/nElStates,1));
+  if (numel(Exp.Temperature) == nElectronStates)
+    % Vector of zero-field populations for the core system
+    ZFPopulations = Exp.Temperature(:);
+    if strcmp(PopBasis,'Molecular');
+      ZFPopulations = ZFPopulations/sum(ZFPopulations);
+    end
+    ZFPopulations = kron(ZFPopulations,ones(nCore/nElStates,1));
+  else
+    ZFPopulations = Exp.Temperature;%/sum(diag(Exp.Temperature));    
+    ZFPopulations = kron(ZFPopulations,diag(ones(nCore/nElStates,1)));
+  end
+  
   
   % Pre-compute zero-field energies and eigenstates
   if higherOrder
     [ZFStates,ZFEnergies] =  eig(sham(CoreSys, zeros(1,3)));
   else
-    [ZFStates,ZFEnergies] = eig(kF);
+    if Opt.Sparse
+      [ZFStates,ZFEnergies] = eigs(kF,length(kF));
+    else
+      [ZFStates,ZFEnergies] = eig(kF);
+    end
   end
   [ZFEnergies,idx] = sort(real(diag(ZFEnergies)));
   ZFStates = ZFStates(:,idx);
@@ -439,6 +456,7 @@ if (ComputeNonEquiPops)
       ZFStates(:,1) = (v1+v2)/sqrt(2);
     end
   end
+  
 else
   if higherOrder
     ZFEnergies =  sort(real(eig(sham(CoreSys, zeros(1,3)))));
@@ -1142,9 +1160,16 @@ for iOri = 1:nOrientations
               Polarization = Polarization/prod(2*System.I+1);            
             end
           elseif (ComputeNonEquiPops)
-            PopulationU = (abs(ZFStates'*U).^2).'*ZFPopulations; % lower level
-            PopulationV = (abs(ZFStates'*V).^2).'*ZFPopulations; % upper level
-            Polarization = PopulationU - PopulationV;
+            switch PopBasis
+              case 'Molecular'
+              PopulationU = (abs(ZFStates'*U).^2).'*ZFPopulations; % lower level
+              PopulationV = (abs(ZFStates'*V).^2).'*ZFPopulations; % upper level
+              Polarization = PopulationU - PopulationV;
+              case 'Spin'
+              PopulationU = abs(ZFPopulations.'*U).^2; % lower level
+              PopulationV = abs(ZFPopulations.'*V).^2; % upper level              
+              Polarization = PopulationU - PopulationV;
+            end
           else
             % no temperature given
             Polarization = 1; % same polarization for each electron transition
@@ -1446,6 +1471,13 @@ if (nSites>1) && ~isfield(Opt,'peppercall')
   if ~isempty(Wdat), Wdat = reshape(Wdat,siz); end
   if ~isempty(Gdat), Gdat = reshape(Gdat,siz); end
 end
+
+% Sort Output
+[Transitions, I] = sortrows(Transitions,[1 2]);
+Pdat = Pdat(I,:);
+if ~isempty(Idat), Idat = Idat(I,:); end
+if ~isempty(Wdat), Wdat = Wdat(I,:); end
+if ~isempty(Gdat), Gdat = Gdat(I,:); end
 
 % Arrange the output.
 Output = {Pdat,Idat,Wdat,Transitions,Gdat};

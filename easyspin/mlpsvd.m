@@ -1,7 +1,7 @@
-% Linear Prediction Singular Value Decomposition
+% 2D Linear Prediction Singular Value Decomposition down a single dimension
 %
-%  predictedSpectrum = lpsvd(Spectrum, Time, Method, Order)
-% [predictedSpectrum, PredictionParameters] = lpsvd(...)
+%  predictedSpectrum = mlpsvd(Spectrum, Time, Method, Order, 2D-Method)
+% [predictedSpectrum, PredictionParameters] = mlpsvd(...)
 %
 % Performs Linear Prediction SVD using a damped exponential model:
 % y = amp * exp(1i*phase) * exp(time * (1i*2*pi*freq - damp) );
@@ -13,7 +13,7 @@
 % Method - the method string input determines the LPSVD algorithm used,
 %          if not provided it will default to 'ss'
 %
-% methods:
+% Methods:
 % 'kt' Based on:
 % Kumaresan, R.;Tufts, D.W.; IEEE Trans. Acoust. Speech Signal ASSP-30 833 (1982)
 %
@@ -34,49 +34,80 @@
 % 'mdl'  minimum description length
 % 'aic' Akaike information protocol
 % however these methods are known to underestimate the number of components
+%
+%
+% 2D-Method - the method used to simultaneously handle the processing of
+%             the spectra in the time domain. if not provided default 'sum'
+% Vanhamme, L.; Van Huffel, S. SPIE 3461, 237 (1998)
+%
+% 'sum' uses the sum of the time series to determine the model
+% 'stack' stacks the hankel matrix for each spectrum and decomposes to 
+%         determine the signal poles
+%          
 
 
 
 
-function [y,parameters] = lpsvd(data,time,method,order)
+
+
+function [y,parameters] = mlpsvd(data,time,method,order,multi)
 
 % Check inputs+
 
 dim = size(data);
+idx = find(dim == length(time));
 
-if min(dim)>1
-  error('Data must be a row or column vector.');
-end
-if numel(dim)>2
-  error('Data must be a row or column vector.');
-end
-
-data = data(:);
-
-if length(data)~=length(time)
+if isempty(idx)
   error('Time vector must be the same length as data')
 end
+
+% order so that time is rowwise, dimension 2
+time = time(:).';
+if idx == 1
+  data = data.';
+  dim = size(data);
+end
+
 if nargin<3 || isempty(method)
   method = 'ss';
 end
 
-if nargin<4
+if nargin<4 || isempty(order)
   order = 'mdl';
 else
   m = order;
 end
 
-dat = data/max(abs(data));
-N = length(data);
+if  nargin<5 || isempty(multi)
+  multi = 'sum';
+end
+
+N = dim(2);
 
 % estimate L such that L > M(the number of sinusoidal signals)
 L = floor(0.6*N);
 
-% generate the LxM Hankel matrix
-A = hankel(conj(dat(2:N-L+1)), conj(dat((N-L+1):N)));
+% switch between the multispectra methods
+switch multi
+  case 'sum'
+    % determine the signal poles by summing
+    dat = sum(data,1);
+    dat = dat/max(abs(dat));
+    A = hankel(conj(dat(2:N-L+1)), conj(dat((N-L+1):N)));
+    [U,S,V] = svd(A,'econ');
+    S = diag(S);
+    
+  case 'stack'
+    dat = data/max(max(abs(data )));
+    A = zeros(dim(1)*(N-L),L);
+    for i = 1:dim(1)
+      H = hankel(conj(dat(i,2:N-L+1)), conj(dat(i,(N-L+1):N)));
+      A((i-1)*(N-L)+(1:(N-L)),:) = H;
+    end
+    [U,S,V] = svd(A,'econ');
+    S = diag(S);
 
-[U,S,V] = svd(A,'econ');
-S = diag(S);
+end
 
 % determine the model order
 if ischar(order)
@@ -84,7 +115,7 @@ if ischar(order)
     case 'aic'
       M = length(S);
       aic = zeros(1,M);
-      for k = 0:M-1;
+      for k = 0:M-1
         aic(k+1) = 2*N*( (M-k)*log((sum(S(k+1:M))/(M-k))) - sum(log(S(k+1:M)))) ...
           + 2*k*(2*M-k);
       end
@@ -93,7 +124,7 @@ if ischar(order)
     case 'mdl'
       M = length(S);
       mdl = zeros(1,M);
-      for k = 0:M-1;
+      for k = 0:M-1
         mdl(k+1) = N*( (M-k)*log((sum(S(k+1:M))/(M-k))) - sum(log(S(k+1:M))))...
           + k*(2*M-k)*log(N)/2;
       end
@@ -161,15 +192,17 @@ damp = damp(I);
 
 
 % generate the signals
-y = exp(time(:)*(-damp' + 1i*2*pi*freq'));
+y = exp((-damp + 1i*2*pi*freq)*time);
 
 % Calculate their phase and amplitude
-%a = (y'*y)\(y'*data(:));
-% using Cholesky decomposition in hopes of avoiding singular matrices on inversion
-R = chol(y'*y);
-a = R\(R'\(y'*data(:)));
 
-y = y*a;
+a = (data*y')/(y*y');
+
+% using Cholesky decomposition in hopes of avoiding singular matrices on inversion
+% R = chol(y*y');
+% a = ((data*y')/R')/R;
+
+y = a*y;
 amp = abs(a);
 phase = imag(log(a./amp));
 
@@ -183,9 +216,11 @@ parameters.damping = damp;
 parameters.frequency = freq;
 parameters.amplitude = amp;
 parameters.phase = phase;
-parameters.model = @(time) exp(time(:)*(-damp' + 1i*2*pi*freq')) * (amp .*exp(1i*phase));
+parameters.model = @(time)  (amp .*exp(1i*phase))*exp((-damp + 1i*2*pi*freq)*time) ;
 
-y = reshape(y,dim);
+if idx == 1
+  y = y.';
+end
 return
 
 

@@ -168,6 +168,11 @@ if (ComputeNonEquiPops)
   if (numel(Exp.Temperature)~=nElectronStates)
     error('Exp.Temperature must either be a scalar or a %d-vector',nElectronStates);
   end
+    if ~isfield(System,'PopBasis')
+    PopBasis = 'Molecular';
+  else
+    PopBasis = System.PopBasis;
+  end
   ComputeBoltzmannPopulations = false;
 else
   if isinf(Exp.Temperature)
@@ -370,20 +375,26 @@ end
 % Spin-polarized systems: precompute zero-field energies, states, populations
 if (ComputeNonEquiPops)
   
-  % Vector of zero-field populations for the core system
-  ZFPopulations = Exp.Temperature(:);
-  ZFPopulations = ZFPopulations/sum(ZFPopulations);
   nElStates = prod(2*System.S+1);
-  ZFPopulations = kron(ZFPopulations,ones(nCore/nElStates,1));
-  
+  if (numel(Exp.Temperature) == nElectronStates)
+    % Vector of zero-field populations for the core system
+    ZFPopulations = Exp.Temperature(:);
+    if strcmp(PopBasis,'Molecular');
+      ZFPopulations = ZFPopulations/sum(ZFPopulations);
+    end
+    ZFPopulations = kron(ZFPopulations,ones(nCore/nElStates,1));
+  else
+    ZFPopulations = Exp.Temperature;%/sum(diag(Exp.Temperature));
+    ZFPopulations = kron(ZFPopulations,diag(ones(nCore/nElStates,1)));
+  end
   % Pre-compute zero-field energies and eigenstates
   if higherOrder
     [ZFStates,ZFEnergies] = eig(sham(CoreSys, zeros(1,3)));
   else
     [ZFStates,ZFEnergies] = eig(kF);
   end
-    [ZFEnergies,idx] = sort(real(diag(ZFEnergies)));
-    ZFStates = ZFStates(:,idx);
+  [ZFEnergies,idx] = sort(real(diag(ZFEnergies)));
+  ZFStates = ZFStates(:,idx);
   % Correct zero-field states for S=1 and axial D
   if (CoreSys.S==1)
     if (ZFEnergies(2)==ZFEnergies(3))
@@ -666,16 +677,22 @@ for iOri = 1:nOrientations
       end
       
     elseif (ComputeNonEquiPops)
-      
-      % Compute level populations by projection from zero-field populations and states
-      for iState = 1:nCore
-        Populations(iState) = (abs(ZFStates'*Vs(:,iState)).^2).'*ZFPopulations;
+      switch PopBasis
+      	case 'Molecular'
+        % Compute level populations by projection from zero-field populations and states
+        for iState = 1:nCore
+          Populations(iState) = (abs(ZFStates'*Vs(:,iState)).^2).'*ZFPopulations;
+        end
+      case 'Spin'
+        for iState = 1:nCore
+          Populations(iState) = (abs(ZFPopulations.'*Vs(:,iState)).^2);
+        end  
       end
       Polarization = Populations(u) - Populations(v);
       if (nPerturbNuclei>0)
         Polarization = Polarization/prod(2*System.I+1);
       end
-      
+       
     else
       % no temperature given
       % same polarization for each electron transition
@@ -937,6 +954,12 @@ if (nSites>1) && ~isfield(Opt,'peppercall')
   if ~isempty(Idat), Idat = reshape(Idat,siz); end
   if ~isempty(Wdat), Wdat = reshape(Wdat,siz); end
 end
+
+% Sort Output
+[Transitions, I] = sortrows(Transitions,[1 2]);
+Pdat = Pdat(I,:);
+if ~isempty(Idat), Idat = Idat(I,:); end
+if ~isempty(Wdat), Wdat = Wdat(I,:); end
 
 % Arrange the output.
 Output = {Pdat,Idat,Wdat,Transitions};

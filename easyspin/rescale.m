@@ -2,12 +2,14 @@
 %
 %   ynew = rescale(y,mode1)
 %   ynew = rescale(y,yref,mode2)
+%   [ynew, scalefactors] = rescale(...)
 %
 %   Shifts and rescales the data vector y. If given, ynew serves
 %   as the reference. The rescaled y is returned in ynew.
 %
 %   y and yref need to be 1D vectors.
 %
+% Inputs:
 %   mode1:
 %     'minmax'  shifts and scales to minimum 0 and maximum 1
 %     'maxabs'  scales to maximum abs 1, no shift
@@ -21,7 +23,15 @@
 %     'lsq0'    least-squares fit of a*y+b to yref
 %     'lsq1'    least-squares fit of a*y+b+c*x to yref
 %     'lsq2'    least-squares fit of a*y+b+c*x+d*x^2 to yref
+%     'lsq3'    least-squares fit of a*y+b+c*x+d*x^2+e*x^3 to yref
 %     'none'    no scaling
+%
+%   Positive scaling is enforced, i.e. no inverting 
+%   of the rescaled data  
+%
+% Output:
+%   ynew          the new rescaled y vector
+%   scalefactors  the scaling factors and polynomial coefficients
 
 function varargout = rescale(varargin)
 
@@ -76,19 +86,25 @@ if isempty(yref)
     case 1 % minmax
       mi = 0;
       ma = 1;
-      ynew = mi + (ma-mi)/(max(y)-min(y))*(y-min(y));
+      scalefactor(1) = (ma-mi)/(max(y)-min(y));
+      scalefactor(2) = mi -(ma-mi)/(max(y)-min(y))*min(y);
+      D = [y ones(N,1)];
+      ynew = D*scalefactor.';
+      %ynew = mi + (ma-mi)/(max(y)-min(y))*(y-min(y));
     case 2 % maxabs
-      ynew = y/max(abs(y));
+      scalefactor = 1/max(abs(y));
+      ynew = y*scalefactor;
     case 3 % no scaling
       ynew = y;
+      scalefactor = 1;
   end
   
 else
   
   % Rescaling with reference
   %----------------------------------------------------
-  ModeID = find(strcmp(Mode,{'maxabs','minmax','shift','lsq','lsq0','lsq1','lsq2','none'}));
-  equalLengthNeeded = [0 0 0 1 1 1 1 0];
+  ModeID = find(strcmp(Mode,{'maxabs','minmax','shift','lsq','lsq0','lsq1','lsq2','lsq3','none'}));
+  equalLengthNeeded = [0 0 0 1 1 1 1 1 0];
   if isempty(ModeID)
     error('Unknown scaling mode ''%s''',Mode);
   end
@@ -115,28 +131,38 @@ else
     case 3 % shift
       shift = mean(y_notnan) - mean(yref_notnan);
       ynew = y - shift;
+      scalefactor = shift;
     case 4 % lsq
+      D = y;
       scalefactor = y(notnan_both)\yref(notnan_both);
-      scalefactor = abs(scalefactor);
-      ynew = scalefactor*y;
+      ynew = scalefactor*D;
     case 5 % lsq0
       D = [y ones(N,1)];
-      params = D(notnan_both,:)\yref(notnan_both);
-      ynew = D*params;
+      scalefactor = D(notnan_both,:)\yref(notnan_both);
+      ynew = D*scalefactor;
     case 6 % lsq1
       x = (1:N).'/N;
       D = [y ones(N,1) x];
-      params = D(notnan_both,:)\yref(notnan_both);
-      ynew = D*params;
+      scalefactor = D(notnan_both,:)\yref(notnan_both);
+      ynew = D*scalefactor;
     case 7 % lsq2
       x = (1:N).'/N;
       D = [y ones(N,1) x x.^2];
-      params = D(notnan_both,:)\yref(notnan_both);
-      ynew = D*params;
-    case 8 % no scaling
+      scalefactor = D(notnan_both,:)\yref(notnan_both);
+      ynew = D*scalefactor;
+    case 8 % lsq3
+      x = (1:N).'/N;
+      D = [y ones(N,1) x x.^2 x.^3];
+      scalefactor = D(notnan_both,:)\yref(notnan_both);
+      ynew = D*scalefactor;
+    case 9 % no scaling
       ynew = y;
+      scalefactor = 1;
   end
-  
+  if real(scalefactor(1))<0 && ModeID>3
+    scalefactor(1) = abs(scalefactor(1));
+    ynew = D*scalefactor;
+  end
 end
 
 % Preserve row layout
@@ -159,6 +185,8 @@ switch nargout
     varargout = {};
   case 1
     varargout = {ynew};
+  case 2
+    varargout = {ynew scalefactor};
   otherwise
     error('Wrong number of outputs.');
 end
