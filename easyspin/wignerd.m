@@ -128,7 +128,8 @@ else
   % Calculate single matrix element of Wigner D matrix
   %-----------------------------------------------------------------------------
   % Calculate Wigner d-function via Jacobi polynomial
-  % (see Biedenharn/Louck, Angular Momentum in Quantum Physics)
+  % (see L.C.Biedenharn & J.D. Louck, Angular Momentum in Quantum Physics,
+  % eq. 3.74, p.50)
   
   % Determine k, a (nonnegative), and b (nonnegative)
   [k,idx] = min([J+m2,J-m2,J+m1,J-m1]);
@@ -152,8 +153,7 @@ else
   
   % Calculate d-function
   d = (-1)^lam * sqrt(q) * ...
-    sin(beta/2).^a .* cos(beta/2).^b .* ...
-    jacobip(k,a,b,cos(beta));
+    sin(beta/2).^a .* cos(beta/2).^b .* jacobip(k,a,b,cos(beta));
   
   % Include alpha and gamma factors if given
   if betaonly
@@ -172,6 +172,8 @@ end
 %
 % Calculate Jacobi polynomial of degree n with parameters a and b at x,
 % utilizing the three-term recurrence relation with respect to n.
+% see Eqs. 18.9.1 and 18.9.2 at https://dlmf.nist.gov/18.9
+% see http://functions.wolfram.com/Polynomials/JacobiP/17/01/01/01/0002/
 %-------------------------------------------------------------------------------
 
 function P = jacobip(n,a,b,x)

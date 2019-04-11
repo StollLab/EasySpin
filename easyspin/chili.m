@@ -533,6 +533,7 @@ if ~isfield(Opt,'Diagnostics'), Opt.Diagnostics = ''; end
 if ~isfield(Opt,'useLMKbasis'), Opt.useLMKbasis = false; end
 if ~isfield(Opt,'useStartvecSelectionRules'), Opt.useStartvecSelectionRules = true; end
 if ~isfield(Opt,'ExplicitFieldSweep'), Opt.ExplicitFieldSweep = false; end
+if ~isfield(Opt,'PeqTol'), Opt.PeqTol = []; end
 
 if ~ischar(Opt.Diagnostics) && ~isempty(Opt.Diagnostics) && ~isvarname(Opt.Diagnostics)
   error('If given, Opt.Diagnosics must be a valid Matlab variable name.');
@@ -910,7 +911,7 @@ end
 logmsg(1,'Computing starting vector...');
 if generalLiouvillian
   % set up in full product basis, then prune
-  StartVector = startvec(Basis,Potential,SdetOp,Opt.useLMKbasis,Opt.useStartvecSelectionRules);
+  StartVector = startvec(Basis,Potential,SdetOp,Opt.useLMKbasis,Opt.useStartvecSelectionRules,Opt.PeqTol);
   StartVector = StartVector(keep);
   StartVector = StartVector/norm(StartVector);  
 else
