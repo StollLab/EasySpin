@@ -127,33 +127,15 @@ if calculateMatrix
 else
   % Calculate single matrix element of Wigner D matrix
   %-----------------------------------------------------------------------------
-  % Calculate Wigner d-function via Jacobi polynomial
-  % (see L.C.Biedenharn & J.D. Louck, Angular Momentum in Quantum Physics,
-  % eq. 3.74, p.50)
   
-  % Determine k, a (nonnegative), and b (nonnegative)
-  [k,idx] = min([J+m2,J-m2,J+m1,J-m1]);
-  switch idx
-    case 1, a = m1-m2; lam = 0;
-    case 2, a = m2-m1; lam = a;
-    case 3, a = m2-m1; lam = a;
-    case 4, a = m1-m2; lam = 0;
+  % Calculate little-d function of beta angle
+  if J==0
+    d = ones(size(beta));
+  elseif J==1 || J==2
+    d = littled_explicit(J,m1,m2,beta);
+  else
+    d = littled_jacobi(J,m1,m2,beta);
   end
-  b = 2*J-2*k-a;
-  
-  % Calculate quotient of binomial factors, nchoosek(2*J-k,k+a)/nchoose(k+b,k)
-  q_enum = [2*J-k:-1:2*J-2*k-a+1, 1:b];
-  q_denom = [1:k+a, k+1:k+b];
-  if J > 28
-    % Sort values in order not to loose accuracy
-    q_enum = sort(q_enum);
-    q_denom = sort(q_denom);
-  end
-  q = prod(q_enum./q_denom);
-  
-  % Calculate d-function
-  d = (-1)^lam * sqrt(q) * ...
-    sin(beta/2).^a .* cos(beta/2).^b .* jacobip(k,a,b,cos(beta));
   
   % Include alpha and gamma factors if given
   if betaonly
@@ -192,3 +174,87 @@ for N = 2:n
   P0 = P1;
   P1 = P;
 end
+
+%===============================================================================
+% Calculate Wigner d-function via Jacobi polynomial
+% (see L.C.Biedenharn & J.D. Louck, Angular Momentum in Quantum Physics,
+% eq. 3.74, p.50)
+function d = littled_jacobi(J,m1,m2,beta)
+% Determine k, a (nonnegative), and b (nonnegative)
+[k,idx] = min([J+m2,J-m2,J+m1,J-m1]);
+switch idx
+  case 1, a = m1-m2; lam = 0;
+  case 2, a = m2-m1; lam = a;
+  case 3, a = m2-m1; lam = a;
+  case 4, a = m1-m2; lam = 0;
+end
+b = 2*J-2*k-a;
+
+% Calculate quotient of binomial factors, nchoosek(2*J-k,k+a)/nchoose(k+b,k)
+q_enum = [2*J-k:-1:2*J-2*k-a+1, 1:b];
+q_denom = [1:k+a, k+1:k+b];
+if J > 28
+  % Sort values in order not to loose accuracy
+  q_enum = sort(q_enum);
+  q_denom = sort(q_denom);
+end
+q = prod(q_enum./q_denom);
+
+% Calculate d-function
+d = (-1)^lam * sqrt(q) * ...
+  sin(beta/2).^a .* cos(beta/2).^b .* jacobip(k,a,b,cos(beta));
+
+%===============================================================================
+% Calculate Wigner d-function using explicit expressions
+% (see Varshalovich et al, Tables 4.4 and 4.6, p. 119)
+function d = littled_explicit(J,m1,m2,beta)
+
+cidx = J+1-m1;
+ridx = J+1-m2;
+idx = (cidx-1)*(2*J+1)+ridx;
+
+switch J
+  case 0
+    d = ones(size(beta));
+  case 1
+    switch idx
+      case 1, d = (1+cos(beta))/2;
+      case 2, d = sin(beta)/sqrt(2);
+      case 3, d = (1-cos(beta))/2;
+      case 4, d = -sin(beta)/sqrt(2);
+      case 5, d  = cos(beta);
+      case 6, d = sin(beta)/sqrt(2);
+      case 7, d = (1-cos(beta))/2;
+      case 8, d = -sin(beta)/sqrt(2);
+      case 9, d = (1+cos(beta))/2;
+    end
+  case 2
+    switch idx
+      case  1, d = (1+cos(beta)).^2/4;
+      case  2, d = sin(beta).*(1+cos(beta))/2;
+      case  3, d = sqrt(3/2)/2*sin(beta).^2;
+      case  4, d = sin(beta).*(1-cos(beta))/2;
+      case  5, d = (1-cos(beta)).^2/4;
+      case  6, d = -sin(beta).*(1+cos(beta))/2;
+      case  7, cb = cos(beta); d = (2*cb.^2+cb-1)/2;
+      case  8, d = sqrt(3/2)*sin(beta).*cos(beta);
+      case  9, cb = cos(beta); d = -(2*cb.^2-cb-1)/2;
+      case 10, d = sin(beta).*(1-cos(beta))/2;
+      case 11, d = sqrt(3/2)/2*sin(beta).^2;
+      case 12, d = -sqrt(3/2)*sin(beta).*cos(beta);
+      case 13, d = (3*cos(beta).^2-1)/2;
+      case 14, d = sqrt(3/2)*sin(beta).*cos(beta);
+      case 15, d = sqrt(3/2)/2*sin(beta).^2;
+      case 16, d = -sin(beta).*(1-cos(beta))/2;
+      case 17, cb = cos(beta); d = -(2*cb.^2-cb-1)/2;
+      case 18, d = - sqrt(3/2)*sin(beta).*cos(beta);
+      case 19, cb = cos(beta); d = (2*cb.^2+cb-1)/2;
+      case 20, d = sin(beta).*(1+cos(beta))/2;
+      case 21, d = (1-cos(beta)).^2/4;
+      case 22, d = -sin(beta).*(1-cos(beta))/2;
+      case 23, d = sqrt(3/2)/2*sin(beta).^2;
+      case 24, d = -sin(beta).*(1+cos(beta))/2;
+      case 25, d = (1+cos(beta)).^2/4;
+    end
+end
+
