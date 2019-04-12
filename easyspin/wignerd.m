@@ -1,34 +1,38 @@
-% wignerd  Wigner D-matrix / D-function
+% wignerd  Wigner rotation matrices
 %
 %   D = wignerd(J,alpha,beta,gamma);
-%   D = wignerd(J,alpha,beta,gamma,'-');
-%   D = wignerd(J,alpha,beta,gamma,'+');
-%   D = wignerd(J,beta,...);
-%   Dm1m2 = wignerd(Jm1m2,...);
+%   D = wignerd(J,alpha,beta,gamma,phase);
+%   Dm1m2 = wignerd(Jm1m2,alpha,beta,gamma);
+%   Dm1m2 = wignerd(Jm1m2,alpha,beta,gamma,phase);
+%   d = wignerd(J,beta);
+%   d = wignerd(J,beta,phase);
+%   dm1m2 = wignerd(Jm1m2,beta);
+%   dm1m2 = wignerd(Jm1m2,beta,phase);
 %
-%   This function computes the Wigner rotation matrix with elements D^J_(m1,m2),
+%   This function computes the Wigner rotation matrix with elements D^J_{m1,m2},
 %   where m1 and m2 run from J to -J. If m1 and m2 are given in Jm1m2 = [J m1 m2],
-%   only the single matrix element D^J_(m1,m2) is calculated.
+%   only the single matrix element D^J_{m1,m2} is calculated.
 %
-%   J      ... rank J; J = 0, 1/2, 1, 3/2, 2, 5/2, etc.
-%   Jm1m2  ... rank and two indices, [J m1 m2]; m1|m2 = J, J-1, ..., -J
-%   alpha, beta, gamma ... Euler angles, in radians
-%   D      ... Wigner rotation matrix, size (2J+1)x(2J+1)
-%   Dm1m2  ... Wigner rotation matrix element
+%   Input:
+%     J      ... rank J; J = 0, 1/2, 1, 3/2, 2, 5/2, etc.
+%     Jm1m2  ... rank and two indices, [J m1 m2]; with m1,m2 = J, J-1, ..., -J
+%     alpha, beta, gamma ... Euler angles, in radians
+%             If only beta is given, alpha and gamma are assumed zero.
+%     phase  ... sign convention for the rotation operator, '+' or '-'
+%            '-': expm(-1i*alpha*Jz)*expm(-1i*beta*Jy)*expm(-1i*gamma*Jz)
+%                (as used in Brink/Satcher, Zare, Sakurai, Varshalovich, Biedenharn/Louck, Mehring).
+%            '+': expm(+1i*alpha*Jz)*expm(+1i*beta*Jy)*expm(+1i*gamma*Jz)
+%                (as used in Edmonds, Mathematica).
+%            The default sign convention is '-'.
 %
-%   If only beta is given, alpha and gamma are assumed zero, and the Wigner
-%   small-d matrix d^J(beta) or small-d matrix element d^J_(m1,m2)(beta)
-%   is computed.
-%
-%   The sign convention for the rotation operator is given by the last argument
-%   - '-': expm(-1i*alpha*Jz)*expm(-1i*beta*Jy)*expm(-1i*gamma*Jz)
-%     (sign convention as in Brink/Satcher, Zare, Sakurai, Varshalovich).
-%   - '+': expm(+1i*alpha*Jz)*expm(+1i*beta*Jy)*expm(+1i*gamma*Jz)
-%     (sign convention as in Edmonds, Mathematica).
-%   The default sign convention is '-'.
+%  Output: 
+%     D      ... Wigner rotation matrix D^J, size (2J+1)x(2J+1)
+%     Dm1m2  ... Wigner rotation matrix element D^J_{m1,m2}
+%     d      ... reduced Wigner rotation matrix d^J, size (2J+1)x(2J+1)
+%     dm1m2  ... reduced Wigner rotation matrix element d^J_{m1,m2}
 %
 %   The basis is ordered +J..-J from left to right and from top to bottom,
-%   so that e.g. the output matrix element D(1,2) corresponds to D^J_(J,J-1).
+%   so that e.g. the output matrix element D(1,2) corresponds to D^J_{J,J-1}.
 
 function D = wignerd(J,varargin)
 
@@ -87,23 +91,18 @@ if ~calculateMatrix
   end
 end
 
+% Determine phase setting (convert from char to +-1)
 if ~ischar(phase) || numel(phase)~=1
   error('Last argument must be either ''+'' or ''-''.');
 end
-
-if (phase=='+')
-  % do nothing
-elseif (phase=='-')
-  beta = -beta;
-  if ~betaonly
-    alpha = -alpha;
-    gamma = -gamma;
-  end
+if phase=='-'
+  phase = -1;
 else
-  error('Phase (last argument) must be either ''+'' or ''-''.');
+  phase = +1;
 end
 
 if calculateMatrix
+  
   % Calculate full Wigner D matrix
   %-----------------------------------------------------------------------------
   if ~any(beta) && (betaonly || (~any(alpha) && ~any(gamma)))
@@ -114,34 +113,33 @@ if calculateMatrix
   % Calculate Wigner little-d matrix via Jy operator matrix exponential
   v = sqrt((1:2*J).*(2*J:-1:1))/2; % off-diagonals of Jy matrix (without 1/i)
   Jy = diag(v,+1) - diag(v,-1); % assemble Jy matrix
-  d = expm(beta*Jy); % (i dropped since 1/i dropped in Jy)
+  d = expm(phase*beta*Jy); % (i dropped since 1/i dropped in Jy)
   
   % Include alpha and gamma terms if given
   if betaonly
     D = d;
   else
     mz = J:-1:-J; % diagonal of Jz matrix
-    D = (exp(1i*alpha*mz).'*exp(1i*gamma*mz)).*d;
+    D = (exp(1i*phase*alpha*mz).'*exp(1i*phase*gamma*mz)).*d;
   end
   
 else
+  
   % Calculate single matrix element of Wigner D matrix
   %-----------------------------------------------------------------------------
   
   % Calculate little-d function of beta angle
-  if J==0
-    d = ones(size(beta));
-  elseif J==1 || J==2
-    d = littled_explicit(J,m1,m2,beta);
+  if J<=2
+    d = littled_explicit(J,m1,m2,phase*beta);
   else
-    d = littled_jacobi(J,m1,m2,beta);
+    d = littled_jacobi(J,m1,m2,phase*beta);
   end
   
   % Include alpha and gamma factors if given
   if betaonly
     D = d;
   else
-    D = exp(1i*(alpha*m1+gamma*m2)).*d;
+    D = exp(phase*1i*(alpha*m1+gamma*m2)).*d;
   end
   
 end
@@ -157,7 +155,6 @@ end
 % see Eqs. 18.9.1 and 18.9.2 at https://dlmf.nist.gov/18.9
 % see http://functions.wolfram.com/Polynomials/JacobiP/17/01/01/01/0002/
 %-------------------------------------------------------------------------------
-
 function P = jacobip(n,a,b,x)
 
 P0 = 1;
@@ -176,23 +173,27 @@ for N = 2:n
 end
 
 %===============================================================================
-% Calculate Wigner d-function via Jacobi polynomial
+% Calculate reduced rotation matrix element d^J_{m1,m2} via Jacobi polynomial
 % (see L.C.Biedenharn & J.D. Louck, Angular Momentum in Quantum Physics,
-% eq. 3.74, p.50)
+% eq. 3.73, 3.74, p.50)
+%-------------------------------------------------------------------------------
 function d = littled_jacobi(J,m1,m2,beta)
+
+% Invert sign, since the Biedenharn/Louck equations are for expm(-1i*beta*Jy)
+beta = -beta;
+
 % Determine k, a (nonnegative), and b (nonnegative)
 [k,idx] = min([J+m2,J-m2,J+m1,J-m1]);
 switch idx
-  case 1, a = m1-m2; lam = 0;
-  case 2, a = m2-m1; lam = a;
-  case 3, a = m2-m1; lam = a;
-  case 4, a = m1-m2; lam = 0;
+  case 1, mu = m1-m2; nu = -m1-m2; lam = mu;
+  case 2, mu = m2-m1; nu =  m1+m2; lam = 0;
+  case 3, mu = m2-m1; nu = -m1-m2; lam = 0;
+  case 4, mu = m1-m2; nu =  m1+m2; lam = mu;
 end
-b = 2*J-2*k-a;
 
 % Calculate quotient of binomial factors, nchoosek(2*J-k,k+a)/nchoose(k+b,k)
-q_enum = [2*J-k:-1:2*J-2*k-a+1, 1:b];
-q_denom = [1:k+a, k+1:k+b];
+q_enum = [2*J-k:-1:2*J-2*k-mu+1, 1:nu];
+q_denom = [1:k+mu, k+1:k+nu];
 if J > 28
   % Sort values in order not to loose accuracy
   q_enum = sort(q_enum);
@@ -202,20 +203,32 @@ q = prod(q_enum./q_denom);
 
 % Calculate d-function
 d = (-1)^lam * sqrt(q) * ...
-  sin(beta/2).^a .* cos(beta/2).^b .* jacobip(k,a,b,cos(beta));
+  sin(beta/2).^mu .* cos(beta/2).^nu .* jacobip(k,mu,nu,cos(beta));
 
 %===============================================================================
-% Calculate Wigner d-function using explicit expressions
-% (see Varshalovich et al, Tables 4.4 and 4.6, p. 119)
+% Calculate reduced rotation matrix element d^J_{m1,m2} using explicit expressions
+% (see Varshalovich et al, Tables 4.3, 4.4, 4.5, and 4.6, p. 119)
+%-------------------------------------------------------------------------------
 function d = littled_explicit(J,m1,m2,beta)
 
-cidx = J+1-m1;
-ridx = J+1-m2;
+% Invert sign, since the expressions from Varshalovich, used below, are derived
+% for expm(-1i*Jy*beta).
+beta = -beta;
+
+ridx = J+1-m1;
+cidx = J+1-m2;
 idx = (cidx-1)*(2*J+1)+ridx;
 
 switch J
   case 0
     d = ones(size(beta));
+  case 0.5
+    switch idx
+      case 1, d = cos(beta/2);
+      case 2, d = sin(beta/2);
+      case 3, d = -sin(beta/2);
+      case 4, d = cos(beta/2);
+    end
   case 1
     switch idx
       case 1, d = (1+cos(beta))/2;
@@ -227,6 +240,25 @@ switch J
       case 7, d = (1-cos(beta))/2;
       case 8, d = -sin(beta)/sqrt(2);
       case 9, d = (1+cos(beta))/2;
+    end
+  case 1.5
+    switch idx
+      case  1, d = cos(beta/2).^3;
+      case  2, d = sqrt(3)*sin(beta/2).*cos(beta/2).^2;
+      case  3, d = sqrt(3)*sin(beta/2).^2.*cos(beta/2);
+      case  4, d = sin(beta/2).^3;
+      case  5, d = -sqrt(3)*sin(beta/2).*cos(beta/2).^2;
+      case  6, d = cos(beta/2).*(3*cos(beta/2).^2-2);
+      case  7, d = -sin(beta/2).*(3*sin(beta/2).^2-2);
+      case  8, d = sqrt(3)*sin(beta/2).^2.*cos(beta/2);
+      case  9, d = sqrt(3)*sin(beta/2).^2.*cos(beta/2);
+      case 10, d = sin(beta/2).*(3*sin(beta/2).^2-2);
+      case 11, d = cos(beta/2).*(3*cos(beta/2).^2-2);
+      case 12, d = sqrt(3)*sin(beta/2).*cos(beta/2).^2;
+      case 13, d = -sin(beta/2).^3;
+      case 14, d = sqrt(3)*sin(beta/2).^2.*cos(beta/2);
+      case 15, d = -sqrt(3)*sin(beta/2).*cos(beta/2).^2;
+      case 16, d = cos(beta/2).^3;
     end
   case 2
     switch idx
