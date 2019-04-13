@@ -129,7 +129,7 @@ else
   %-----------------------------------------------------------------------------
   
   % Calculate little-d function of beta angle
-  if J<=2
+  if J<=4
     d = littled_explicit(J,m1,m2,phase*beta);
   else
     d = littled_jacobi(J,m1,m2,phase*beta);
@@ -217,20 +217,20 @@ beta = -beta;
 
 ridx = J+1-m1;
 cidx = J+1-m2;
-idx = (cidx-1)*(2*J+1)+ridx;
+linidx = (cidx-1)*(2*J+1)+ridx;
 
 switch J
   case 0
     d = ones(size(beta));
   case 0.5
-    switch idx
+    switch linidx
       case 1, d = cos(beta/2);
       case 2, d = sin(beta/2);
       case 3, d = -sin(beta/2);
       case 4, d = cos(beta/2);
     end
   case 1
-    switch idx
+    switch linidx
       case 1, d = (1+cos(beta))/2;
       case 2, d = sin(beta)/sqrt(2);
       case 3, d = (1-cos(beta))/2;
@@ -242,7 +242,7 @@ switch J
       case 9, d = (1+cos(beta))/2;
     end
   case 1.5
-    switch idx
+    switch linidx
       case  1, d = cos(beta/2).^3;
       case  2, d = sqrt(3)*sin(beta/2).*cos(beta/2).^2;
       case  3, d = sqrt(3)*sin(beta/2).^2.*cos(beta/2);
@@ -261,7 +261,7 @@ switch J
       case 16, d = cos(beta/2).^3;
     end
   case 2
-    switch idx
+    switch linidx
       case  1, d = (1+cos(beta)).^2/4;
       case  2, d = sin(beta).*(1+cos(beta))/2;
       case  3, d = sqrt(3/2)/2*sin(beta).^2;
@@ -288,5 +288,246 @@ switch J
       case 24, d = -sin(beta).*(1+cos(beta))/2;
       case 25, d = (1+cos(beta)).^2/4;
     end
+  case 2.5
+    switch linidx
+      case  1, d = cos(beta/2).^5;
+      case  2, d = sqrt(5)*sin(beta/2).*cos(beta/2).^4;
+      case  3, d = sqrt(10)*sin(beta/2).^2.*cos(beta/2).^3;
+      case  4, d = sqrt(10)*sin(beta/2).^3.*cos(beta/2).^2;
+      case  5, d = sqrt(5)*sin(beta/2).^4.*cos(beta/2);
+      case  6, d = sin(beta/2).^5;
+      case  7, d = -sqrt(5)*sin(beta/2).*cos(beta/2).^4;
+      case  8, d = cos(beta/2).^3.*(1-5*sin(beta/2).^2);
+      case  9, d = sqrt(2)*sin(beta/2).*cos(beta/2).^2.*(2-5*sin(beta/2).^2);
+      case 10, d = -sqrt(2)*sin(beta/2).^2.*cos(beta/2).*(2-5*cos(beta/2).^2);
+      case 11, d = -sin(beta/2).^3.*(1-5*cos(beta/2).^2);
+      case 12, d = sqrt(5)*sin(beta/2).^4.*cos(beta/2);
+      case 13, d = sqrt(10)*sin(beta/2).^2.*cos(beta/2).^3;
+      case 14, d = -sqrt(2)*sin(beta/2).*cos(beta/2).^2.*(2-5*sin(beta/2).^2);
+      case 15, d = cos(beta/2).*(3-12*cos(beta/2).^2+10*cos(beta/2).^4);
+      case 16, d = sin(beta/2).*(3-12*sin(beta/2).^2+10*sin(beta/2).^4);
+      case 17, d = -sqrt(2)*sin(beta/2).^2.*cos(beta/2).*(2-5*cos(beta/2).^2);
+      case 18, d = sqrt(10)*sin(beta/2).^3.*cos(beta/2).^2;
+      case 19, d = -sqrt(10)*sin(beta/2).^3.*cos(beta/2).^2;
+      case 20, d = -sqrt(2)*sin(beta/2).^2.*cos(beta/2).*(2-5*cos(beta/2).^2);
+      case 21, d = -sin(beta/2).*(3-12*sin(beta/2).^2+10*sin(beta/2).^4);
+      case 22, d = cos(beta/2).*(3-12*cos(beta/2).^2+10*cos(beta/2).^4);
+      case 23, d = sqrt(2)*sin(beta/2).*cos(beta/2).^2.*(2-5*sin(beta/2).^2);
+      case 24, d = sqrt(10)*sin(beta/2).^2.*cos(beta/2).^3;
+      case 25, d = sqrt(5)*sin(beta/2).^4.*cos(beta/2);
+      case 26, d = sin(beta/2).^3.*(1-5*cos(beta/2).^2);
+      case 27, d = -sqrt(2)*sin(beta/2).^2.*cos(beta/2).*(2-5*cos(beta/2).^2);
+      case 28, d = -sqrt(2)*sin(beta/2).*cos(beta/2).^2.*(2-5*sin(beta/2).^2);
+      case 29, d = cos(beta/2).^3.*(1-5*sin(beta/2).^2);
+      case 30, d = sqrt(5)*sin(beta/2).*cos(beta/2).^4;
+      case 31, d = -sin(beta/2).^5;
+      case 32, d = sqrt(5)*sin(beta/2).^4.*cos(beta/2);
+      case 33, d = -sqrt(10)*sin(beta/2).^3.*cos(beta/2).^2;
+      case 34, d = sqrt(10)*sin(beta/2).^2.*cos(beta/2).^3;
+      case 35, d = -sqrt(5)*sin(beta/2).*cos(beta/2).^4;
+      case 36, d = cos(beta/2).^5;
+    end
+  case 3
+    switch linidx
+      case  1, d = (1+cos(beta)).^3/8;
+      case  2, d = sqrt(6)/8*sin(beta).*(1+cos(beta)).^2;
+      case  3, d = sqrt(15)/8*sin(beta).^2.*(1+cos(beta));
+      case  4, d = sqrt(5)/4*sin(beta).^3;
+      case  5, d = sqrt(15)/8*sin(beta).^2.*(1-cos(beta));
+      case  6, d = sqrt(6)/8*sin(beta).*(1-cos(beta)).^2;
+      case  7, d = (1-cos(beta)).^3/8;
+      case  8, d = -sqrt(6)/8*sin(beta).*(1+cos(beta)).^2;
+      case  9, d = -1/4*(1+cos(beta)).^2.*(2-3*cos(beta));
+      case 10, d = -sqrt(10)/8*sin(beta).*(1-2*cos(beta)-3*cos(beta).^2);
+      case 11, d = sqrt(30)/4*sin(beta).^2.*cos(beta);
+      case 12, d = sqrt(10)/8*sin(beta).*(1+2*cos(beta)-3*cos(beta).^2);
+      case 13, d = 1/4*(1-cos(beta)).^2.*(2+3*cos(beta));
+      case 14, d = sqrt(6)/8*sin(beta).*(1-cos(beta)).^2;
+      case 15, d = sqrt(15)/8*sin(beta).^2.*(1+cos(beta));
+      case 16, d = sqrt(10)/8*sin(beta).*(1-2*cos(beta)-3*cos(beta).^2);
+      case 17, d = -1/8*(1+cos(beta)).*(1+10*cos(beta)-15*cos(beta).^2);
+      case 18, d = -sqrt(3)/4*sin(beta).*(1-5*cos(beta).^2);
+      case 19, d = -1/8*(1-cos(beta)).*(1-10*cos(beta)-15*cos(beta).^2);
+      case 20, d = sqrt(10)/8*sin(beta).*(1+2*cos(beta)-3*cos(beta).^2);
+      case 21, d = sqrt(15)/8*sin(beta).^2.*(1-cos(beta));
+      case 22, d = -sqrt(5)/4*sin(beta).^3;
+      case 23, d = sqrt(30)/4*sin(beta).^2.*cos(beta);
+      case 24, d = sqrt(3)/4*sin(beta).*(1-5*cos(beta).^2);
+      case 25, d = -1/2*cos(beta).*(3-5*cos(beta).^2);
+      case 26, d = -sqrt(3)/4*sin(beta).*(1-5*cos(beta).^2);
+      case 27, d = sqrt(30)/4*sin(beta).^2.*cos(beta);
+      case 28, d = sqrt(5)/4*sin(beta).^3;
+      case 29, d = sqrt(15)/8*sin(beta).^2.*(1-cos(beta));
+      case 30, d = -sqrt(10)/8*sin(beta).*(1+2*cos(beta)-3*cos(beta).^2);
+      case 31, d = -1/8*(1-cos(beta)).*(1-10*cos(beta)-15*cos(beta).^2);
+      case 32, d = sqrt(3)/4*sin(beta).*(1-5*cos(beta).^2);
+      case 33, d = -1/8*(1+cos(beta)).*(1+10*cos(beta)-15*cos(beta).^2);
+      case 34, d = -sqrt(10)/8*sin(beta).*(1-2*cos(beta)-3*cos(beta).^2);
+      case 35, d = sqrt(15)/8*sin(beta).^2.*(1+cos(beta));
+      case 36, d = -sqrt(6)/8*sin(beta).*(1-cos(beta)).^2;
+      case 37, d = 1/4*(1-cos(beta)).^2.*(2+3*cos(beta));
+      case 38, d = -sqrt(10)/8*sin(beta).*(1+2*cos(beta)-3*cos(beta).^2);
+      case 39, d = sqrt(30)/4*sin(beta).^2.*cos(beta);
+      case 40, d = sqrt(10)/8*sin(beta).*(1-2*cos(beta)-3*cos(beta).^2);
+      case 41, d = -1/4*(1+cos(beta)).^2.*(2-3*cos(beta));
+      case 42, d = sqrt(6)/8*sin(beta).*(1+cos(beta)).^2;
+      case 43, d = (1-cos(beta)).^3/8;
+      case 44, d = -sqrt(6)/8*sin(beta).*(1-cos(beta)).^2;
+      case 45, d = sqrt(15)/8*sin(beta).^2.*(1-cos(beta));
+      case 46, d = -sqrt(5)/4*sin(beta).^3;
+      case 47, d = sqrt(15)/8*sin(beta).^2.*(1+cos(beta));
+      case 48, d = -sqrt(6)/8*sin(beta).*(1+cos(beta)).^2;
+      case 49, d = (1+cos(beta)).^3/8;
+    end
+  case 3.5
+    switch linidx
+      case  1, d = cos(beta/2).^7;
+      case  2, d = sqrt(7)*cos(beta/2).^6.*sin(beta/2);
+      case  3, d = sqrt(21)*cos(beta/2).^5.*sin(beta/2).^2;
+      case  4, d = sqrt(35)*cos(beta/2).^4.*sin(beta/2).^3;
+      case  5, d = sqrt(35)*cos(beta/2).^3.*sin(beta/2).^4;
+      case  6, d = sqrt(21)*cos(beta/2).^2.*sin(beta/2).^5;
+      case  7, d = sqrt(7)*cos(beta/2).*sin(beta/2).^6;
+      case  8, d = sin(beta/2).^7;
+      case  9, d = -sqrt(7)*cos(beta/2).^6.*sin(beta/2);
+      case 10, d = cos(beta/2).^5.*(1-7*sin(beta/2).^2);
+      case 11, d = sqrt(3)*cos(beta/2).^4.*sin(beta/2).*(2-7*sin(beta/2).^2);
+      case 12, d = sqrt(5)*cos(beta/2).^3.*sin(beta/2).^2.*(3-7*sin(beta/2).^2);
+      case 13, d = -sqrt(5)*cos(beta/2).^2.*sin(beta/2).^3.*(3-7*cos(beta/2).^2);
+      case 14, d = -sqrt(3)*cos(beta/2).*sin(beta/2).^4.*(2-7*cos(beta/2).^2);
+      case 15, d = -sin(beta/2).^5.*(1-7*cos(beta/2).^2);
+      case 16, d = sqrt(7)*cos(beta/2).*sin(beta/2).^6;
+      case 17, d = sqrt(21)*cos(beta/2).^5.*sin(beta/2).^2;
+      case 18, d = -sqrt(3)*cos(beta/2).^4.*sin(beta/2).*(2-7*sin(beta/2).^2);
+      case 19, d = cos(beta/2).^3.*(10-30*cos(beta/2).^2+21*cos(beta/2).^4);
+      case 20, d = sqrt(15)*cos(beta/2).^2.*sin(beta/2).*(2-8*cos(beta/2).^2+7*cos(beta/2).^4);
+      case 21, d = sqrt(15)*cos(beta/2).*sin(beta/2).^2.*(2-8*sin(beta/2).^2+7*sin(beta/2).^4);
+      case 22, d = sin(beta/2).^3.*(10-30*sin(beta/2).^2+21*sin(beta/2).^4);
+      case 23, d = -sqrt(3)*cos(beta/2).*sin(beta/2).^4.*(2-7*cos(beta/2).^2);
+      case 24, d = sqrt(21)*cos(beta/2).^2.*sin(beta/2).^5;
+      case 25, d = -sqrt(35)*cos(beta/2).^4.*sin(beta/2).^3;
+      case 26, d = sqrt(5)*cos(beta/2).^3.*sin(beta/2).^2.*(3-7*sin(beta/2).^2);
+      case 27, d = -sqrt(15)*cos(beta/2).^2.*sin(beta/2).*(2-8*cos(beta/2).^2+7*cos(beta/2).^4);
+      case 28, d = -cos(beta/2).*(4-30*cos(beta/2).^2+60*cos(beta/2).^4-35*cos(beta/2).^6);
+      case 29, d = sin(beta/2).*(4-30*sin(beta/2).^2+60*sin(beta/2).^4-35*sin(beta/2).^6);
+      case 30, d = sqrt(15)*cos(beta/2).*sin(beta/2).^2.*(2-8*sin(beta/2).^2+7*sin(beta/2).^4);
+      case 31, d = -sqrt(5)*cos(beta/2).^2.*sin(beta/2).^3.*(3-7*cos(beta/2).^2);
+      case 32, d = sqrt(35)*cos(beta/2).^3.*sin(beta/2).^4;
+      case 33, d = sqrt(35)*cos(beta/2).^3.*sin(beta/2).^4;
+      case 34, d = sqrt(5)*cos(beta/2).^2.*sin(beta/2).^3.*(3-7*cos(beta/2).^2);
+      case 35, d = sqrt(15)*cos(beta/2).*sin(beta/2).^2.*(2-8*sin(beta/2).^2+7*sin(beta/2).^4);
+      case 36, d = -sin(beta/2).*(4-30*sin(beta/2).^2+60*sin(beta/2).^4-35*sin(beta/2).^6);
+      case 37, d = -cos(beta/2).*(4-30*cos(beta/2).^2+60*cos(beta/2).^4-35*cos(beta/2).^6);
+      case 38, d = sqrt(15)*cos(beta/2).^2.*sin(beta/2).*(2-8*cos(beta/2).^2+7*cos(beta/2).^4);
+      case 39, d = sqrt(5)*cos(beta/2).^3.*sin(beta/2).^2.*(3-7*sin(beta/2).^2);
+      case 40, d = sqrt(35)*cos(beta/2).^4.*sin(beta/2).^3;
+      case 41, d = -sqrt(21)*cos(beta/2).^2.*sin(beta/2).^5;
+      case 42, d = -sqrt(3)*cos(beta/2).*sin(beta/2).^4.*(2-7*cos(beta/2).^2);
+      case 43, d = -sin(beta/2).^3.*(10-30*sin(beta/2).^2+21*sin(beta/2).^4);
+      case 44, d = sqrt(15)*cos(beta/2).*sin(beta/2).^2.*(2-8*sin(beta/2).^2+7*sin(beta/2).^4);
+      case 45, d = -sqrt(15)*cos(beta/2).^2.*sin(beta/2).*(2-8*cos(beta/2).^2+7*cos(beta/2).^4);
+      case 46, d = cos(beta/2).^3.*(10-30*cos(beta/2).^2+21*cos(beta/2).^4);
+      case 47, d = sqrt(3)*cos(beta/2).^4.*sin(beta/2).*(2-7*sin(beta/2).^2);
+      case 48, d = sqrt(21)*cos(beta/2).^5.*sin(beta/2).^2;
+      case 49, d = sqrt(7)*cos(beta/2).*sin(beta/2).^6;
+      case 50, d = sin(beta/2).^5.*(1-7*cos(beta/2).^2);
+      case 51, d = -sqrt(3)*cos(beta/2).*sin(beta/2).^4.*(2-7*cos(beta/2).^2);
+      case 52, d = sqrt(5)*cos(beta/2).^2.*sin(beta/2).^3.*(3-7*cos(beta/2).^2);
+      case 53, d = sqrt(5)*cos(beta/2).^3.*sin(beta/2).^2.*(3-7*sin(beta/2).^2);
+      case 54, d = -sqrt(3)*cos(beta/2).^4.*sin(beta/2).*(2-7*sin(beta/2).^2);
+      case 55, d = cos(beta/2).^5.*(1-7*sin(beta/2).^2);
+      case 56, d = sqrt(7)*cos(beta/2).^6.*sin(beta/2);
+      case 57, d = -sin(beta/2).^7;
+      case 58, d = sqrt(7)*cos(beta/2).*sin(beta/2).^6;
+      case 59, d = -sqrt(21)*cos(beta/2).^2.*sin(beta/2).^5;
+      case 60, d = sqrt(35)*cos(beta/2).^3.*sin(beta/2).^4;
+      case 61, d = -sqrt(35)*cos(beta/2).^4.*sin(beta/2).^3;
+      case 62, d = sqrt(21)*cos(beta/2).^5.*sin(beta/2).^2;
+      case 63, d = -sqrt(7)*cos(beta/2).^6.*sin(beta/2);
+      case 64, d = cos(beta/2).^7;
+    end
+  case 4
+    switch linidx
+      case  1, d = (1+cos(beta))^4/16;
+      case  2, d = sqrt(2)/8*sin(beta).*(1+cos(beta)).^3;
+      case  3, d = sqrt(7)/8*sin(beta).^2.*(1+cos(beta)).^2;
+      case  4, d = sqrt(14)/8*sin(beta).^3.*(1+cos(beta));
+      case  5, d = sqrt(70)/16*sin(beta).^4;
+      case  6, d = sqrt(14)/8*sin(beta).^3.*(1-cos(beta));
+      case  7, d = sqrt(7)/8*sin(beta).^2.*(1-cos(beta)).^2;
+      case  8, d = sqrt(2)/8*sin(beta).*(1-cos(beta)).^3;
+      case  9, d = (1-cos(beta))^4/16;
+      case 10, d = -sqrt(2)/8*sin(beta).*(1+cos(beta)).^3;
+      case 11, d = -1/8*(1+cos(beta)).^3.*(3-4*cos(beta));
+      case 12, d = -sqrt(14)/8*sin(beta).*(1+cos(beta)).^2.*(1-2*cos(beta));
+      case 13, d = -sqrt(7)/8*sin(beta).^2.*(1+cos(beta)).*(1-4*cos(beta));
+      case 14, d = sqrt(35)/4*sin(beta).^3.*cos(beta);
+      case 15, d = sqrt(7)/8*sin(beta).^2.*(1-cos(beta)).*(1+4*cos(beta));
+      case 16, d = sqrt(14)/8*sin(beta).*(1-cos(beta)).^2.*(1+2*cos(beta));
+      case 17, d = 1/8*(1-cos(beta)).^3.*(3+4*cos(beta));
+      case 18, d = sqrt(2)/8*sin(beta).*(1-cos(beta)).^3;
+      case 19, d = sqrt(7)/8*sin(beta).^2.*(1+cos(beta)).^2;
+      case 20, d = sqrt(14)/8*sin(beta).*(1+cos(beta)).^2.*(1-2*cos(beta));
+      case 21, d = 1/4*(1+cos(beta)).^2.*(1-7*cos(beta)+7*cos(beta).^2);
+      case 22, d = -sqrt(2)/8*sin(beta).*(1+cos(beta)).*(1+7*cos(beta)-14*cos(beta).^2);
+      case 23, d = -sqrt(10)/8*sin(beta).^2.*(1-7*cos(beta).^2);
+      case 24, d = -sqrt(2)/8*sin(beta).*(1-cos(beta)).*(1-7*cos(beta)-14*cos(beta).^2);
+      case 25, d = 1/4*(1-cos(beta)).^2.*(1+7*cos(beta)+7*cos(beta).^2);
+      case 26, d = sqrt(14)/8*sin(beta).*(1-cos(beta)).^2.*(1+2*cos(beta));
+      case 27, d = sqrt(7)/8*sin(beta).^2.*(1-cos(beta)).^2;
+      case 28, d = -sqrt(14)/8*sin(beta).^3.*(1+cos(beta));
+      case 29, d = -sqrt(7)/8*sin(beta).^2.*(1+cos(beta)).*(1-4*cos(beta));
+      case 30, d = sqrt(2)/8*sin(beta).*(1+cos(beta)).*(1+7*cos(beta)-14*cos(beta).^2);
+      case 31, d = 1/8*(1+cos(beta)).*(3-6*cos(beta)-21*cos(beta).^2+28*cos(beta).^3);
+      case 32, d = -sqrt(5)/4*sin(beta).*cos(beta).*(3-7*cos(beta).^2);
+      case 33, d = -1/8*(1-cos(beta)).*(3+6*cos(beta)-21*cos(beta).^2-28*cos(beta).^3);
+      case 34, d = -sqrt(2)/8*sin(beta).*(1-cos(beta)).*(1-7*cos(beta)-14*cos(beta).^2);
+      case 35, d = sqrt(7)/8*sin(beta).^2.*(1-cos(beta)).*(1+4*cos(beta));
+      case 36, d = sqrt(14)/8*sin(beta).^3.*(1-cos(beta));
+      case 37, d = sqrt(70)/16*sin(beta).^4;
+      case 38, d = -sqrt(35)/4*sin(beta).^3.*cos(beta);
+      case 39, d = -sqrt(10)/8*sin(beta).^2.*(1-7*cos(beta).^2);
+      case 40, d = sqrt(5)/4*sin(beta).*cos(beta).*(3-7*cos(beta).^2);
+      case 41, d = 1/8*(3-30*cos(beta).^2+35*cos(beta).^4);
+      case 42, d = -sqrt(5)/4*sin(beta).*cos(beta).*(3-7*cos(beta).^2);
+      case 43, d = -sqrt(10)/8*sin(beta).^2.*(1-7*cos(beta).^2);
+      case 44, d = sqrt(35)/4*sin(beta).^3.*cos(beta);
+      case 45, d = sqrt(70)/16*sin(beta).^4;
+      case 46, d = -sqrt(14)/8*sin(beta).^3.*(1-cos(beta));
+      case 47, d = sqrt(7)/8*sin(beta).^2.*(1-cos(beta)).*(1+4*cos(beta));
+      case 48, d = sqrt(2)/8*sin(beta).*(1-cos(beta)).*(1-7*cos(beta)-14*cos(beta).^2);
+      case 49, d = -1/8*(1-cos(beta)).*(3+6*cos(beta)-21*cos(beta).^2-28*cos(beta).^3);
+      case 50, d = sqrt(5)/4*sin(beta).*cos(beta).*(3-7*cos(beta).^2);
+      case 51, d = 1/8*(1+cos(beta)).*(3-6*cos(beta)-21*cos(beta).^2+28*cos(beta).^3);
+      case 52, d = -sqrt(2)/8*sin(beta).*(1+cos(beta)).*(1+7*cos(beta)-14*cos(beta).^2);
+      case 53, d = -sqrt(7)/8*sin(beta).^2.*(1+cos(beta)).*(1-4*cos(beta));
+      case 54, d = sqrt(14)/8*sin(beta).^3.*(1+cos(beta));
+      case 55, d = sqrt(7)/8*sin(beta).^2.*(1-cos(beta)).^2;
+      case 56, d = -sqrt(14)/8*sin(beta).*(1-cos(beta)).^2.*(1+2*cos(beta));
+      case 57, d = 1/4*(1-cos(beta)).^2.*(1+7*cos(beta)+7*cos(beta).^2);
+      case 58, d = sqrt(2)/8*sin(beta).*(1-cos(beta)).*(1-7*cos(beta)-14*cos(beta).^2);
+      case 59, d = -sqrt(10)/8*sin(beta).^2.*(1-7*cos(beta).^2);
+      case 60, d = sqrt(2)/8*sin(beta).*(1+cos(beta)).*(1+7*cos(beta)-14*cos(beta).^2);
+      case 61, d = 1/4*(1+cos(beta)).^2.*(1-7*cos(beta)+7*cos(beta).^2);
+      case 62, d = -sqrt(14)/8*sin(beta).*(1+cos(beta)).^2.*(1-2*cos(beta));
+      case 63, d = sqrt(7)/8*sin(beta).^2.*(1+cos(beta)).^2;
+      case 64, d = -sqrt(2)/8*sin(beta).*(1-cos(beta)).^3;
+      case 65, d = 1/8*(1-cos(beta)).^3.*(3+4*cos(beta));
+      case 66, d = -sqrt(14)/8*sin(beta).*(1-cos(beta)).^2.*(1+2*cos(beta));
+      case 67, d = sqrt(7)/8*sin(beta).^2.*(1-cos(beta)).*(1+4*cos(beta));
+      case 68, d = -sqrt(35)/4*sin(beta).^3.*cos(beta);
+      case 69, d = -sqrt(7)/8*sin(beta).^2.*(1+cos(beta)).*(1-4*cos(beta));
+      case 70, d = sqrt(14)/8*sin(beta).*(1+cos(beta)).^2.*(1-2*cos(beta));
+      case 71, d = -1/8*(1+cos(beta)).^3.*(3-4*cos(beta));
+      case 72, d = sqrt(2)/8*sin(beta).*(1+cos(beta)).^3;
+      case 73, d = (1-cos(beta))^4/16;
+      case 74, d = -sqrt(2)/8*sin(beta).*(1-cos(beta)).^3;
+      case 75, d = sqrt(7)/8*sin(beta).^2.*(1-cos(beta)).^2;
+      case 76, d = -sqrt(14)/8*sin(beta).^3.*(1-cos(beta));
+      case 77, d = sqrt(70)/16*sin(beta).^4;
+      case 78, d = -sqrt(14)/8*sin(beta).^3.*(1+cos(beta));
+      case 79, d = sqrt(7)/8*sin(beta).^2.*(1+cos(beta)).^2;
+      case 80, d = -sqrt(2)/8*sin(beta).*(1+cos(beta)).^3;
+      case 81, d = (1+cos(beta))^4/16;
+    end
 end
-
