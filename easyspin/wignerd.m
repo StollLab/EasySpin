@@ -448,7 +448,7 @@ switch J
     end
   case 4
     switch linidx
-      case  1, d = (1+cos(beta))^4/16;
+      case  1, d = (1+cos(beta)).^4/16;
       case  2, d = sqrt(2)/8*sin(beta).*(1+cos(beta)).^3;
       case  3, d = sqrt(7)/8*sin(beta).^2.*(1+cos(beta)).^2;
       case  4, d = sqrt(14)/8*sin(beta).^3.*(1+cos(beta));
@@ -456,7 +456,7 @@ switch J
       case  6, d = sqrt(14)/8*sin(beta).^3.*(1-cos(beta));
       case  7, d = sqrt(7)/8*sin(beta).^2.*(1-cos(beta)).^2;
       case  8, d = sqrt(2)/8*sin(beta).*(1-cos(beta)).^3;
-      case  9, d = (1-cos(beta))^4/16;
+      case  9, d = (1-cos(beta)).^4/16;
       case 10, d = -sqrt(2)/8*sin(beta).*(1+cos(beta)).^3;
       case 11, d = -1/8*(1+cos(beta)).^3.*(3-4*cos(beta));
       case 12, d = -sqrt(14)/8*sin(beta).*(1+cos(beta)).^2.*(1-2*cos(beta));
@@ -520,7 +520,7 @@ switch J
       case 70, d = sqrt(14)/8*sin(beta).*(1+cos(beta)).^2.*(1-2*cos(beta));
       case 71, d = -1/8*(1+cos(beta)).^3.*(3-4*cos(beta));
       case 72, d = sqrt(2)/8*sin(beta).*(1+cos(beta)).^3;
-      case 73, d = (1-cos(beta))^4/16;
+      case 73, d = (1-cos(beta)).^4/16;
       case 74, d = -sqrt(2)/8*sin(beta).*(1-cos(beta)).^3;
       case 75, d = sqrt(7)/8*sin(beta).^2.*(1-cos(beta)).^2;
       case 76, d = -sqrt(14)/8*sin(beta).^3.*(1-cos(beta));
@@ -528,6 +528,6 @@ switch J
       case 78, d = -sqrt(14)/8*sin(beta).^3.*(1+cos(beta));
       case 79, d = sqrt(7)/8*sin(beta).^2.*(1+cos(beta)).^2;
       case 80, d = -sqrt(2)/8*sin(beta).*(1+cos(beta)).^3;
-      case 81, d = (1+cos(beta))^4/16;
+      case 81, d = (1+cos(beta)).^4/16;
     end
 end
