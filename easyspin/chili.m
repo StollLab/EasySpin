@@ -274,15 +274,16 @@ if usePotential
     error('L and K values of potential coefficients do not satisfy -L<=K<=L.');
   end
   if any(abs(Potential.M)>Potential.L)
-    error('L and M values of potential coefficients do not satisfy -L<=K<=L.');
+    error('L and M values of potential coefficients do not satisfy -L<=M<=L.');
   end
   if any(Potential.K<0)
-    error('Only nonnegative values of K are allowed.');
+    error('Only nonnegative values of K are allowed. Terms with negative K required to render the potential real-valued are supplemented automatically.');
   end
   if any(Potential.M(Potential.K==0)<0)
-    error('For potential terms with K=0, M must be nonnegative.');
+    error('For potential terms with K=0, M must be nonnegative. Terms with negative M required to render the potential real-valued are supplemented automatically.');
   end
-  if ~isreal(Potential.lambda(Potential.K==0 & Potential.M==0))
+  zeroMK = Potential.K==0 & Potential.M==0;
+  if any(~isreal(Potential.lambda(zeroMK)))
     error('Potential coefficients for M=K=0 must be real-valued.');
   end
 end
@@ -562,8 +563,10 @@ if ~generalLiouvillian
   if (Sys.nElectrons>1) || (Sys.S~=1/2) || (Sys.nNuclei>2)
     error('Opt.LiouvMethod=''fast'' does not work with this spin system.');
   end
-  if usePotential && ~Potential.oldStyle
-    error('Opt.LiouvMethod=''fast'' does not work with this orientational potential.');
+  if usePotential
+    if ~Potential.oldStyle
+      error('Opt.LiouvMethod=''fast'' does not work with this orientational potential.');
+    end
   end
 else
   if any(Sys.Exchange~=0)
@@ -574,12 +577,12 @@ end
 % Organize potential if it is oldStyle and fast method is requested
 if usePotential && Potential.oldStyle && ~generalLiouvillian
   LMK = [2 0 0; 2 0 2; 4 0 0; 4 0 2]; % standard terms and order for fast code
-  lambda = [0 0 0 0];
+  lambda = [0 0 0 0].';
   PotLMK = Sys.Potential(:,1:3);
   n = size(PotLMK,1);
   for p = 1:4
-    idx = find(all(PotLMK==repmat(LMK(p,:),n,1)));
-    if ~isempty(idx), lambda(p) = Sys.Potential(idx,4); end
+    [found,idx] = ismember(LMK(p,:),PotLMK,'rows');
+    if found, lambda(p) = Sys.Potential(idx,4); end
   end
   Potential.lambda = lambda;
   Potential.L = LMK(:,1);
@@ -877,11 +880,17 @@ end
 % Calculate diffusion operator matrix
 %-------------------------------------------------------------------------------
 % Pre-calculate diffusion operator Wigner expansion coefficient
-logmsg(1,'Calculating Wigner expansion coefficients for diffusion matrix');
-if all(Potential.M==0)
-  Potential.xlk = chili_xlk(Potential,Dynamics.Diff);
+if usePotential
+  logmsg(1,'Calculating Wigner expansion coefficients for diffusion matrix');
+  xlkOutput = all(Potential.M==0);
+  if xlkOutput
+    Potential.xlk = chili_xlmk(Potential,Dynamics.Diff,true);
+  else
+    Potential.xlmk = chili_xlmk(Potential,Dynamics.Diff,false);
+  end
 else
-  Potential.xlmk = chili_xlmk(Potential,Dynamics.Diff);
+  Potential.xlk = [];
+  Potential.xlmk = [];
 end
 
 if generalLiouvillian
