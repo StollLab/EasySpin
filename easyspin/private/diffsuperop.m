@@ -129,7 +129,7 @@ if ~usePotential, return; end
 
 if Mzero
   Lxmax = size(Potential.xlk,1)-1;
-  X = @(L,M,K) Potential.xlk(L+1,K+L+1);
+  X = @(L,M,K) (M==0).*Potential.xlk(L+1,K+L+1);
 else
   Lxmax = numel(Potential.xlmk)-1;
   X = @(L,M,K) Potential.xlmk{L+1}(M+L+1,K+L+1);
