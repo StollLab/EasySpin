@@ -1,5 +1,5 @@
-% chili_xlmk   Computes the coefficients X^L_MK of the orienting
-%              potential operator coefficients for the diffusion operator.
+% chili_xlmk   Compute the coefficients X^L_MK of the potential-dependent
+%              part of the diffusion operator.
 %
 %     X = chili_xlmk(Potential,R,xlkOutput)
 %
@@ -13,20 +13,13 @@
 
 function X = chili_xlmk(Potential,R,xlkOutput)
 
-if numel(R)~=3
-  error('Provide 3 principal values of diffusion tensor as second input.');
-end
-
 if xlkOutput
   if any(Potential.M)~=0
-    error('Compact output not possible if there are potential coefficients with non-zero M.');
-  end
-  if any(~isreal(Potential.lambda))
-    error('Compact output not possible if there are complex potential coefficients.');
+    error('XLK output not possible if there are potential coefficients with non-zero M.');
   end
 end
 
-% Catch absence of potential
+% Check for absence of potential
 %-------------------------------------------------------------------------------
 if isempty(Potential.lambda) || all(Potential.lambda==0)
   if xlkOutput
@@ -57,7 +50,6 @@ maxLpot = max(Lpot);
 
 % Set up lambda arrays
 %-------------------------------------------------------------------------------
-maxLx = maxLpot*2;
 lam_ = cell(maxLpot+1,1);
 for L = 0:maxLpot
   lam_{L+1} = zeros(2*L+1);
@@ -70,23 +62,16 @@ lam = @(L,M,K) lam_{L+1}(M+L+1,K+L+1);
 
 % Get principal values of diffusion tensor
 %-------------------------------------------------------------------------------
+if numel(R)~=3
+  error('Provide 3 principal values of diffusion tensor as second input.');
+end
 Rz = R(3);
 Rp = (R(1)+R(2))/2;
 Rd = (R(1)-R(2))/4;
 
-% Compute X^L_MK coefficients
-%-------------------------------------------------------------------------------
-% X^L_MK = -1/2 * A  -  (2*L+1)/4 * (-1)^(K-M) * B
-% A: term linear in lambda
-% B: term quadratic in lambda (double sum)
-
-% Define helper functions
-Nm = @(L,K) sqrt((L+K-1)*(L+K)*(L-K+1)*(L-K+2));
-Np = @(L,K) sqrt((L-K-1)*(L-K)*(L+K+1)*(L+K+2));
-Mm = @(L,K) sqrt((L+K)*(L-K+1));
-Mp = @(L,K) sqrt((L-K)*(L+K+1));
-
 % Initialize X output arrays
+%-------------------------------------------------------------------------------
+maxLx = maxLpot*2;
 if xlkOutput
   X = zeros(maxLx+1,2*maxLx+1);
 else
@@ -96,27 +81,38 @@ else
   end
 end
 
+% Calculate X^L_MK coefficients
+%-------------------------------------------------------------------------------
+% X^L_MK = -1/2 * A  -  1/4 * (2*L+1) * (-1)^(K-M) * B
+%   A: three terms linear in lambda
+%   B: double sum of terms quadratic in lambda
+
+% Define helper functions
+cm = @(L,K) sqrt(L*(L+1)-K*(K-1));
+cp = @(L,K) sqrt(L*(L+1)-K*(K+1));
+
 % Loop over LMK, calculate X^L_MK
 for L = 0:maxLx
   if xlkOutput, Mrange = 0; else, Mrange = -L:L; end
   for M = Mrange
     for K = -L:L
       
-      % Calculate first term
+      % Calculate A terms
       A = 0;
       if L<=maxLpot
         if Rd~=0
           if K+2<=L
-            A = A + Rd*Nm(L,K+2)*lam(L,M,K+2);
+            A = A + Rd*cm(L,K+1)*cm(L,K+2)*lam(L,M,K+2);
           end
           if K-2>=-L
-            A = A + Rd*Np(L,K-2)*lam(L,M,K-2);
+            A = A + Rd*cp(L,K-1)*cp(L,K-2)*lam(L,M,K-2);
           end
         end
         A = A + lam(L,M,K) * (Rp*(L*(L+1)-K^2) + Rz*K^2);
       end
       
-      % Calculate double sum (running only over non-zero potential coefficients)
+      % Calculate B terms
+      % (double sum; running only over non-zero potential coefficients)
       B = 0;
       for p1 = 1:nPotentialTerms
         lam1 = lambda(p1);
@@ -143,13 +139,13 @@ for L = 0:maxLx
           B_ = 0;
           if Rd~=0
             if K1-K+K2+2==0 && abs(K1+1)<=L1 && abs(K2+1)<=L2
-              cpp = Mp(L1,K1)*Mp(L2,K2);
+              cpp = cp(L1,K1)*cp(L2,K2);
               if cpp~=0
                 B_ = B_ + Rd*cpp*wigner3j(L1,L,L2,K1+1,-K,K2+1);
               end
             end
             if K1-K+K2-2==0 && abs(K1-1)<=L1 && abs(K2-1)<=L2
-              cmm = Mm(L1,K1)*Mm(L2,K2);
+              cmm = cm(L1,K1)*cm(L2,K2);
               if cmm~=0
                 B_ = B_ + Rd*cmm*wigner3j(L1,L,L2,K1-1,-K,K2-1);
               end
@@ -161,7 +157,7 @@ for L = 0:maxLx
             end
             if Rp~=0
               if abs(K1+1)<=L1 && abs(K2-1)<=L2
-                cpm = Mp(L1,K1)*Mm(L2,K2);
+                cpm = cp(L1,K1)*cm(L2,K2);
                 if cpm~=0
                   B_ = B_ + Rp*cpm*wigner3j(L1,L,L2,K1+1,-K,K2-1);
                 end
@@ -175,6 +171,7 @@ for L = 0:maxLx
         end
       end
       
+      % Combine A and B terms, and store
       X_ = -1/2*A  - (2*L+1)/4*(-1)^(K-M)*B;
       if xlkOutput
         X(L+1,K+L+1) = X_;
