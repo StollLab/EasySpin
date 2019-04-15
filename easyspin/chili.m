@@ -1429,10 +1429,6 @@ Basis.oddLmax = Basis.LLMK(2);
 Basis.Mmax = Basis.LLMK(3);
 Basis.Kmax = Basis.LLMK(4);
 
-if Basis.oddLmax > Basis.evenLmax
-  Basis.oddLmax = Basis.evenLmax-1;
-end
-
 % Set jKmin = +1 if tensorial coefficients are all real. This is the
 % case when all tensors (g and A) are collinear and tilted relative to
 % the diffusion tensor by the angles (0,beta,0).
@@ -1452,6 +1448,7 @@ if isempty(Basis.deltaK)
   end
 end
 
+%{
 % Use only even L values (oddLmax=0) and no K values (Kmax=0)
 % in case of axial magnetic tensors, axial potential, 
 % and no magnetic/diffusion tilt
@@ -1459,6 +1456,7 @@ if axialSystem && (Basis.deltaK==2) && (isempty(maxPotentialK) || (maxPotentialK
   Basis.oddLmax = 0;
   Basis.Kmax = 0;
 end
+%}
 
 % Spin basis parameters: pSmin, pImax
 %-------------------------------------------------------------------------------
