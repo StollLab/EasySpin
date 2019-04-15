@@ -2,7 +2,9 @@
 % the orientational potential (Potential) and the spin operator in SopH (either S+
 % or Sx).
 
-function StartingVector = startvec(basis,Potential,SopH,useLMKbasis,useSelectionRules,PeqTolerances)
+function [StartingVector,nIntegrals] = startvec(basis,Potential,SopH,useLMKbasis,useSelectionRules,PeqTolerances)
+
+nIntegrals = [0 0 0];
 
 jKbasis = ~useLMKbasis;
 
@@ -79,9 +81,11 @@ for b = 1:numel(oriVector)
       if K_~=0, continue; end
       fun = @(b) wignerd([L_ 0 0],b) .* exp(-U(0,b,0)/2) .* sin(b);
       Int = (2*pi)^2 * integral(fun,0,pi);
+      nIntegrals = nIntegrals + [1 0 0];
     else
       fun = @(b,c) cos(K_*c) .* wignerd([L_ 0 K_],b) .* exp(-U(0,b,c)/2) .* sin(b);
       Int = (2*pi) * integral2(fun,0,pi,0,2*pi,'AbsTol',PeqIntAbsTol,'RelTol',PeqIntRelTol);
+      nIntegrals = nIntegrals + [0 1 0];
     end
   elseif useSelectionRules && zeroKp
     if K_~=0, continue; end
@@ -89,9 +93,11 @@ for b = 1:numel(oriVector)
     if evenMp && mod(M_,2)~=0, continue; end
     fun = @(a,b) cos(M_*a) .* wignerd([L_ M_ 0],b) .* exp(-U(a,b,0)/2) .* sin(b);
     Int = (2*pi) * integral2(fun,0,2*pi,0,pi,'AbsTol',PeqIntAbsTol,'RelTol',PeqIntRelTol);
+    nIntegrals = nIntegrals + [0 1 0];
   else
     fun = @(a,b,c) conj(wignerd([L_ M_ K_],a,b,c)) .* exp(-U(a,b,c)/2) .* sin(b);
     Int = integral3(fun,0,2*pi,0,pi,0,2*pi,'AbsTol',PeqIntAbsTol,'RelTol',PeqIntRelTol);
+    nIntegrals = nIntegrals + [0 0 1];
   end
   
   if abs(Int) < PeqIntThreshold, continue; end

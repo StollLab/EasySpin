@@ -911,10 +911,11 @@ end
 logmsg(1,'Computing starting vector...');
 if generalLiouvillian
   % set up in full product basis, then prune
-  StartVector = startvec(Basis,Potential,SdetOp,Opt.useLMKbasis,Opt.useStartvecSelectionRules,Opt.PeqTol);
+  [StartVector,nInt] = startvec(Basis,Potential,SdetOp,Opt.useLMKbasis,Opt.useStartvecSelectionRules,Opt.PeqTol);
   StartVector = StartVector(keep);
-  StartVector = StartVector/norm(StartVector);  
+  StartVector = StartVector/norm(StartVector);
 else
+  nInt = [];
   StartVector = chili_startingvector(Basis,Potential);
 end
 if saveDiagnostics
@@ -925,6 +926,9 @@ logmsg(1,'  vector size: %dx1',BasisSize);
 logmsg(1,'  non-zero elements: %d/%d (%0.2f%%)',...
   nnz(StartVector),BasisSize,100*nnz(StartVector)/BasisSize);
 logmsg(1,'  maxabs %g, norm %g',full(max(abs(StartVector))),norm(StartVector));
+if ~isempty(nInt)
+  logmsg(1,'  evaluated integrals: 1D %d, 2D %d, 3D %d',nInt(1),nInt(2),nInt(3));
+end
 
 % Loop over all orientations
 %===============================================================================
