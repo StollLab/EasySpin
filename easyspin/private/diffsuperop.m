@@ -1,5 +1,7 @@
 % diffsuperop   Calculation of diffusion operator matrix for general potential
 %
+%   Gamma = diffsuperop(basis,R,Potential,XLMK)
+%
 % This function computes the diffusion superoperator matrix:
 % - It can use either LML or LMKjK basis, depending on what is given in basis.
 % - It requires a diagonal diffusion tensor.
@@ -17,24 +19,21 @@
 %             if missing, use LMK basis.
 %   R         array with 3 principal values of diffusion tensor (s^-1)
 %   Potential (optional) structure 
-%     .xlmk   expansion coefficients, as returned by chili_xlmk
-%     .xlk    expansion coefficients, as returned by chili_xlk
+%   XLMK      expansion coefficients, as returned by chili_xlmk
 %
 % Output:
 %   Gamma    diffusion superoperator in the given LMK or LMKjK basis (s^-1)
 
-function Gamma = diffsuperop(basis,R,Potential)
+function Gamma = diffsuperop(basis,R,Potential,XLMK)
 
-usePotential = nargin==3 && isfield(Potential,'lambda') && any(Potential.lambda(:));
-
+usePotential = nargin==4 && ~isempty(XLMK);
+allMzero = all(Potential.M==0);
 useKSymmetrizedBasis = isfield(basis,'jK') && ~isempty(basis.jK) && any(basis.jK);
 
 L = basis.L;
 M = basis.M;
 K = basis.K;
 nBasis = numel(L);
-
-Mzero = all(Potential.M==0);
 
 if useKSymmetrizedBasis
   jK = basis.jK;
@@ -127,13 +126,8 @@ Gamma = sparse(row,col,values,nBasis,nBasis);
 %-------------------------------------------------------------------------------
 if ~usePotential, return; end
 
-if Mzero
-  Lxmax = size(Potential.xlk,1)-1;
-  X = @(L,M,K) (M==0).*Potential.xlk(L+1,K+L+1);
-else
-  Lxmax = numel(Potential.xlmk)-1;
-  X = @(L,M,K) Potential.xlmk{L+1}(M+L+1,K+L+1);
-end
+Lxmax = numel(XLMK)-1;
+X = @(L,M,K) XLMK{L+1}(M+L+1,K+L+1);
 
 idx = 0;
 for b1 = 1:nBasis
@@ -146,7 +140,7 @@ for b1 = 1:nBasis
   for b2 = b1:nBasis   % run only over diagonal and upper triangular part, since matrix is hermitian
     L2  = L(b2);
     M2  = M(b2);
-    if Mzero
+    if allMzero
       if M1~=M2, continue; end
     end
     K2  = K(b2);

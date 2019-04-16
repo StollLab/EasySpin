@@ -174,8 +174,11 @@ end
 
 %===============================================================================
 % Calculate reduced rotation matrix element d^J_{m1,m2} via Jacobi polynomial
-% (see L.C.Biedenharn & J.D. Louck, Angular Momentum in Quantum Physics,
-% eq. 3.73, 3.74, p.50)
+% see
+%    L.C.Biedenharn & J.D. Louck, Angular Momentum in Quantum Physics,
+%      eq. 3.73, 3.74, p.50
+%    Varshalovich et al, Quantum Theory of Angular Momentum
+%      eq. 4.3.4 (13)-(15)
 %-------------------------------------------------------------------------------
 function d = littled_jacobi(J,m1,m2,beta)
 

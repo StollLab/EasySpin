@@ -12,9 +12,8 @@
 %   R         array with 3 principal values of diffusion tensor (s^-1),
 %             or single value if diffusion is isotropic
 %   Potential (optional) structure containing information on potential
-%             .xlk      orientational potential coefficients, as returned by
-%                       chili_xlk (assumed all zero if not given)
-%             .Lx,.Kx   corresponding function indices
+%             .X        orientational potential coefficients, as returned by
+%                       chili_xlmk (assumed all zero if not given)
 %             .lambda   potential coefficients
 %             .L,.M.,K  corresponding function indices
 %   Method    (optional)
@@ -24,7 +23,7 @@
 % Output:
 %   Gamma    diffusion superoperator matrix in the LMK basis (s^-1), sparse
 
-function Gamma = diffsuperop_LMK(basis,R,Potential,Method)
+function Gamma = diffsuperop_LMK(basis,R,Potential,XLMK,Method)
 
 if isfield(basis,'jK') && ~isempty(basis.jK)
   error('This function expects an LMK basis, without jK.');
@@ -32,15 +31,21 @@ end
 
 if nargin<4, Method = []; end
 
-XLK = Potential.xlk;
-
-usePotential = nargin>2 && ~isempty(XLK) && any(XLK(:)~=0);
+usePotential = nargin>2 && any(Potential.lambda~=0);
 if usePotential
-  % The calculations in this function use Lx, Mx, Kx, X and not XLK.
-  [idx1,idx2,X] = find(XLK);
-  Lx = idx1-1;
-  Mx = zeros(size(Lx));
-  Kx = idx2-idx1;
+  % Create a list of non-zero X coefficients and their indices Lx, Mx, Kx
+  % from Potential.X
+  Lx = [];
+  Mx = [];
+  Kx = [];
+  X = [];
+  for L_ = 0:numel(XLMK)-1
+    [r,c,val] = find(XLMK{L_+1});
+    Mx = [Mx r-L_-1];
+    Kx = [Kx c-L_-1];
+    Lx = [Lx L_*ones(1,numel(c))];
+    X = [X val];
+  end
 end
 
 if isempty(Method), Method = 1; end
@@ -67,7 +72,6 @@ L = basis.L;
 M = basis.M;
 K = basis.K;
 nBasis = numel(L);
-
 
 if Method==1
   % Method 1: Calculate the diffusion operator directly (fast).

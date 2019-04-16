@@ -1,41 +1,38 @@
 % chili_xlmk   Compute the coefficients X^L_MK of the potential-dependent
 %              part of the diffusion operator.
 %
-%     X = chili_xlmk(Potential,R,xlkOutput)
+%     X = chili_xlmk(Potential,R)
 %
-%          Potential.lambda   coefficients of potential expansion
-%          Potential.L        L numbers of potential coefficients
-%          Potential.M        M numbers of potential coefficients
-%          Potential.K        K numbers of potential coefficients
-%          R                  3 principal values of diffusion tensor
-%          xlkOutput          If true, returns array of X^L_K (all M zero)
-%                             If false, returns cell array of X^L_MK
+% Input:
+%   Potential.lambda   coefficients of potential expansion
+%   Potential.L        L numbers of potential coefficients
+%   Potential.M        M numbers of potential coefficients
+%   Potential.K        K numbers of potential coefficients
+%   R                  3 principal values of diffusion tensor
+%
+% Output:
+%   X                  cell array of X^L_MK
 
-function X = chili_xlmk(Potential,R,xlkOutput)
-
-if xlkOutput
-  if any(Potential.M)~=0
-    error('XLK output not possible if there are potential coefficients with non-zero M.');
-  end
-end
+function X = chili_xlmk(Potential,R)
 
 % Check for absence of potential
 %-------------------------------------------------------------------------------
 if isempty(Potential.lambda) || all(Potential.lambda==0)
-  if xlkOutput
-    X = zeros(0,0);
-  else
-    X = cell(0,0);
-  end
+  X = cell(0,0);
   return
 end
 
-% Unpack potential coefficients
+% Unpack potential coefficients, remove zero coefficients
 %-------------------------------------------------------------------------------
 Lpot = Potential.L(:);
 Mpot = Potential.M(:);
 Kpot = Potential.K(:);
 lambda = Potential.lambda(:);
+rmv = lambda==0;
+Lpot(rmv) = [];
+Mpot(rmv) = [];
+Kpot(rmv) = [];
+lambda(rmv) = [];
 
 % Add terms needed to render potential real-valued
 %-------------------------------------------------------------------------------
@@ -47,6 +44,7 @@ Kpot = [Kpot; -Kpot(idx)];
 
 nPotentialTerms = numel(lambda);
 maxLpot = max(Lpot);
+allMzero = all(Mpot==0);
 
 % Set up lambda arrays
 %-------------------------------------------------------------------------------
@@ -62,23 +60,23 @@ lam = @(L,M,K) lam_{L+1}(M+L+1,K+L+1);
 
 % Get principal values of diffusion tensor
 %-------------------------------------------------------------------------------
-if numel(R)~=3
-  error('Provide 3 principal values of diffusion tensor as second input.');
+switch numel(R)
+  case 1 % isotropic
+    R = [R R R];
+  case 3 % three principal values
+  otherwise
+    error('Provide 3 principal values of diffusion tensor as second input.');
 end
 Rz = R(3);
 Rp = (R(1)+R(2))/2;
 Rd = (R(1)-R(2))/4;
 
-% Initialize X output arrays
+% Initialize X output array
 %-------------------------------------------------------------------------------
 maxLx = maxLpot*2;
-if xlkOutput
-  X = zeros(maxLx+1,2*maxLx+1);
-else
-  X = cell(maxLx+1,1);
-  for L = 0:maxLx
-    X{L+1} = zeros(2*L+1);
-  end
+X = cell(maxLx+1,1);
+for L = 0:maxLx
+  X{L+1} = zeros(2*L+1);
 end
 
 % Calculate X^L_MK coefficients
@@ -93,7 +91,7 @@ cp = @(L,K) sqrt(L*(L+1)-K*(K+1));
 
 % Loop over LMK, calculate X^L_MK
 for L = 0:maxLx
-  if xlkOutput, Mrange = 0; else, Mrange = -L:L; end
+  if allMzero, Mrange = 0; else, Mrange = -L:L; end
   for M = Mrange
     for K = -L:L
       
@@ -173,11 +171,7 @@ for L = 0:maxLx
       
       % Combine A and B terms, and store
       X_ = -1/2*A  - (2*L+1)/4*(-1)^(K-M)*B;
-      if xlkOutput
-        X(L+1,K+L+1) = X_;
-      else
-        X{L+1}(M+L+1,K+L+1) = X_;
-      end
+      X{L+1}(M+L+1,K+L+1) = X_;
       
     end
   end

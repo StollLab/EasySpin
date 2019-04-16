@@ -288,14 +288,13 @@ if usePotential
   end
 end
 
-% Check for old-style potential (even L and K, zero M, real-valued lambda)
+% Check for old-style potential (L=2,4; M=0; K=0,2; real-valued lambda)
 if usePotential
-  Potential.evenL = all(mod(Potential.L,2)==0);
-  Potential.evenK = all(mod(Potential.K,2)==0);
-  Potential.zeroM = all(Potential.M==0);
-  Potential.oldStyle = ...
-    Potential.evenL && Potential.zeroM && Potential.evenK &&...
-    all(isreal(Potential.lambda));
+  oldStylePotential = ...
+     all(Potential.L==2 | Potential.L==4) && ...
+     all(Potential.M==0) && ...
+     all(Potential.K==0 | Potential.K==2) && ...
+     all(isreal(Potential.lambda));
 end
 
 % Experimental settings
@@ -548,7 +547,7 @@ end
 % Determine default method for constructing Liouvillian
 if ~isfield(Opt,'LiouvMethod') || isempty(Opt.LiouvMethod)
   if (Sys.nElectrons==1) && (Sys.S==1/2) && (Sys.nNuclei<=2) && ...
-      (~usePotential || Potential.oldStyle)
+      (~usePotential || oldStylePotential)
     Opt.LiouvMethod = 'fast';
   else
     Opt.LiouvMethod = 'general';
@@ -557,37 +556,21 @@ end
 
 [LiouvMethod,err] = parseoption(Opt,'LiouvMethod',{'fast','general'});
 error(err);
-generalLiouvillian = (LiouvMethod==2);
+generalLiouvillian = LiouvMethod==2;
 
-if ~generalLiouvillian
+if generalLiouvillian
+  if any(Sys.Exchange~=0)
+    error('Opt.LiouvMethod=''general'' does not support spin exchange (Sys.Exchange).');
+  end
+else
   if (Sys.nElectrons>1) || (Sys.S~=1/2) || (Sys.nNuclei>2)
     error('Opt.LiouvMethod=''fast'' does not work with this spin system.');
   end
   if usePotential
-    if ~Potential.oldStyle
+    if ~oldStylePotential
       error('Opt.LiouvMethod=''fast'' does not work with this orientational potential.');
     end
   end
-else
-  if any(Sys.Exchange~=0)
-    error('Opt.LiouvMethod=''general'' does not support spin exchange (Sys.Exchange).');
-  end
-end
-
-% Organize potential if it is oldStyle and fast method is requested
-if usePotential && Potential.oldStyle && ~generalLiouvillian
-  LMK = [2 0 0; 2 0 2; 4 0 0; 4 0 2]; % standard terms and order for fast code
-  lambda = [0 0 0 0].';
-  PotLMK = Sys.Potential(:,1:3);
-  n = size(PotLMK,1);
-  for p = 1:4
-    [found,idx] = ismember(LMK(p,:),PotLMK,'rows');
-    if found, lambda(p) = Sys.Potential(idx,4); end
-  end
-  Potential.lambda = lambda;
-  Potential.L = LMK(:,1);
-  Potential.M = LMK(:,2);
-  Potential.K = LMK(:,3);
 end
 
 % Field sweep method
@@ -882,26 +865,20 @@ end
 % Pre-calculate diffusion operator Wigner expansion coefficient
 if usePotential
   logmsg(1,'Calculating Wigner expansion coefficients for diffusion matrix');
-  xlkOutput = all(Potential.M==0);
-  if xlkOutput
-    Potential.xlk = chili_xlmk(Potential,Dynamics.Diff,true);
-  else
-    Potential.xlmk = chili_xlmk(Potential,Dynamics.Diff,false);
-  end
+  XLMK = chili_xlmk(Potential,Dynamics.R);
 else
-  Potential.xlk = [];
-  Potential.xlmk = [];
+  XLMK = {};
 end
 
 if generalLiouvillian
 
   logmsg(1,'Calculating the diffusion matrix');
   
-  % Calculate relaxation superoperator in spatial basis
+  % Calculate diffusion superoperator in spatial basis
   if Opt.useLMKbasis
-    Gamma = diffsuperop_LMK(Basis,Dynamics.Diff,Potential);
+    Gamma = diffsuperop_LMK(Basis,Dynamics.R,Potential,XLMK);
   else
-    Gamma = diffsuperop(Basis,Dynamics.Diff,Potential);
+    Gamma = diffsuperop(Basis,Dynamics.R,Potential,XLMK);
   end
   % Expand to full product basis
   Gamma = spkroneye(Gamma,Sys.nStates^2);
@@ -919,17 +896,31 @@ end
 %-------------------------------------------------------------------------------
 logmsg(1,'Computing starting vector...');
 if generalLiouvillian
-  % set up in full product basis, then prune
+  % Set up in full product basis, then prune
   [StartVector,nInt] = startvec(Basis,Potential,SdetOp,Opt.useLMKbasis,Opt.useStartvecSelectionRules,Opt.PeqTol);
   StartVector = StartVector(keep);
   StartVector = StartVector/norm(StartVector);
 else
+  if usePotential
+    % Organize potential as expected by chili_startingvector
+    LMK = [2 0 0; 2 0 2; 4 0 0; 4 0 2]; % standard terms and order for fast code
+    PotLMK = [Potential.L Potential.M Potential.K];
+    lambda_shortlist = [0; 0; 0; 0];
+    for p = 1:4
+      [found,idx] = ismember(LMK(p,:),PotLMK,'rows');
+      if found, lambda_shortlist(p) = Potential.lambda(idx); end
+    end
+  else
+    lambda_shortlist = [];
+  end
+  StartVector = chili_startingvector(Basis,lambda_shortlist);
   nInt = [];
-  StartVector = chili_startingvector(Basis,Potential);
 end
+
 if saveDiagnostics
   diagnostics.sv = StartVector;
 end
+
 BasisSize = size(StartVector,1);
 logmsg(1,'  vector size: %dx1',BasisSize);
 logmsg(1,'  non-zero elements: %d/%d (%0.2f%%)',...
@@ -1053,8 +1044,16 @@ for iOri = 1:nOrientations
         end
       end
       Sys.DirTilt = Basis.DirTilt; % used in chili_lm
-      Dynamics.xlk = Potential.xlk; % used in chili_lm
-      Dynamics.maxL = size(Dynamics.xlk,1)-1; % maxmimum L in XLK ( = 2*L from potential)
+      
+      % Build xlk array needed by chili_lm (rearranged from XLMK)
+      maxL = numel(XLMK)-1; % maxmimum L in XLMK ( = 2*L from potential)
+      xlk = [];
+      for L_ = 0:maxL
+        xlk(L_+1,1:2*L_+1) = XLMK{L_+1}(L_+1,:);
+      end
+      Dynamics.xlk = xlk;
+      Dynamics.maxL = maxL;      
+      Dynamics.Diff = Dynamics.R;
       
       % Call mex function to get L matrix elements
       [r,c,Vals,nDim] = chili_lm(Sys,Basis.v,Dynamics,Opt.AllocationBlockSize);
@@ -1509,44 +1508,44 @@ return
 
 
 %===============================================================================
-function [Dyn,err] = processdynamics(D,FieldSweep)
+function [Dyn,err] = processdynamics(Dyn,FieldSweep)
 
-Dyn = D;
 err = '';
 
 % diffusion tensor, correlation time
 %-------------------------------------------------------------------------------
-% convert everything (tcorr, logcorr, logDiff) to Diff
+% convert everything (tcorr, logcorr, logDiff, Diff) to R
 if isfield(Dyn,'Diff')
   % Diff given
   if any(Dyn.Diff<0)
     error('Sys.Diff cannot be negative.');
   end
+  Dyn.R = Dyn.Diff;
 elseif isfield(Dyn,'logDiff')
-  Dyn.Diff = 10.^Dyn.logDiff;
+  Dyn.R = 10.^Dyn.logDiff;
 elseif isfield(Dyn,'tcorr')
-  Dyn.Diff = 1/6./Dyn.tcorr;
+  Dyn.R = 1/6./Dyn.tcorr;
 elseif isfield(Dyn,'logtcorr')
   if Dyn.logtcorr>=0, error('Sys.logtcorr must be negative.'); end
-  Dyn.Diff = 1/6./10.^Dyn.logtcorr;
+  Dyn.R = 1/6./10.^Dyn.logtcorr;
 else
   err = sprintf('You must specify a rotational correlation time or a diffusion tensor\n(Sys.tcorr, Sys.logtcorr, Sys.Diff or Sys.logDiff).');
   return
 end
 
 % check values
-if any(Dyn.Diff<0)
+if any(Dyn.R<0)
   error('Negative diffusion rate or correlation times are not possible.');
-elseif any(Dyn.Diff>1e12)
+elseif any(Dyn.R>1e12)
   fprintf('Diffusion rate very fast. Simulation might not converge.\n');
-elseif any(Dyn.Diff<1e3)
+elseif any(Dyn.R<1e3)
   fprintf('Diffusion rate very slow. Simulation might not converge.\n');
 end
 
 % expand to rhombic tensor
-switch numel(Dyn.Diff)
-  case 1, Dyn.Diff = Dyn.Diff([1 1 1]);
-  case 2, Dyn.Diff = Dyn.Diff([1 1 2]);
+switch numel(Dyn.R)
+  case 1, Dyn.R = Dyn.R([1 1 1]);
+  case 2, Dyn.R= Dyn.R([1 1 2]);
   case 3 % Diff already rhombic
   otherwise
     err = 'Sys.Diff must have 1, 2 or 3 elements (isotropic, axial, rhombic).';

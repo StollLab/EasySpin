@@ -1,12 +1,11 @@
-function stvec = chili_startingvector(Basis,Potential)
+function stvec = chili_startingvector(Basis,lambda)
 
-if ~isempty(Potential.lambda) && ~Potential.oldStyle
+if ~isempty(lambda) && numel(lambda)~=4
   error('This functions works only for potentials with M=0, L=2,4, and K=0,2.');
 end
 
-lambda = Potential.lambda;
 isPotential = any(lambda);
-maxKp = max(Potential.K);
+maxKp = 2;
 
 isNuc1 = isfield(Basis,'pI1');
 isNuc2 = isfield(Basis,'pI2');
