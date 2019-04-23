@@ -896,9 +896,19 @@ end
 %-------------------------------------------------------------------------------
 logmsg(1,'Computing starting vector...');
 if generalLiouvillian
-  % Set up in full product basis, then prune
-  [StartVector,nInt] = startvec(Basis,Potential,SdetOp,Opt.useLMKbasis,Opt.useStartvecSelectionRules,Opt.PeqTol);
-  StartVector = StartVector(keep);
+  if ~isfield(Opt,'StartVec') || isempty(Opt.StartVec)
+    % Set up in full product basis, then prune
+    [StartVector,nInt] = startvec(Basis,Potential,SdetOp,Opt.useLMKbasis,Opt.useStartvecSelectionRules,Opt.PeqTol);
+    StartVector = StartVector(keep);
+  else
+    logmsg(1,'  using provided vector');
+    if numel(Opt.StartVec)==sum(keep)
+      StartVector = Opt.StartVec;
+      nInt = [];
+    else
+      error('Opt.StartVec must have %d elements.',sum(keep));
+    end
+  end
   StartVector = StartVector/norm(StartVector);
 else
   if usePotential
