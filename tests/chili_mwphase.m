@@ -16,12 +16,12 @@ data.y = y;
 
 if ~isempty(olddata)
   if opt.Display
-    plot(x,data.y,x,olddata.y);
+    plot(x,data.y/max(data.y),x,olddata.y/max(olddata.y));
     legend('current','old');
     legend boxoff
-    title(sprintf('MAD = %g',max(abs(data.y-olddata.y))));
+    title(sprintf('MAD = %g',max(abs(data.y/max(data.y)-olddata.y/max(olddata.y)))));
   end
-  ok = areequal(data.y,olddata.y,5e-4*max(data.y));
+  ok = areequal(data.y/max(data.y),olddata.y/max(olddata.y),5e-4);
   err = ~ok;
 else
   err = [];

@@ -1127,6 +1127,7 @@ for iOri = 1:nOrientations
       L = L/scale;
       omega = omega0/scale;
     else
+      scale = 1;
       omega = omega0;
     end
     
@@ -1212,7 +1213,7 @@ for iOri = 1:nOrientations
     end
   end
   
-  spec = spec + thisspec*Weights(iOri);
+  spec = spec + thisspec*Weights(iOri)/scale;
   
 end % orientation loop
 

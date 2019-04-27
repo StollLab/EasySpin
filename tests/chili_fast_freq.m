@@ -21,7 +21,7 @@ data.y = y;
 
 % Check for consistency
 if ~isempty(olddata)
-  ok = areequal(y,olddata.y,1e-2*max(y));
+  ok = areequal(y/max(y),olddata.y/max(olddata.y),1e-2);
   err = ~ok;
 else
   err = [];
@@ -31,7 +31,6 @@ if opt.Display
   if ~isempty(olddata)
     subplot(4,1,1:3);
     y_rescaled = data.y/max(data.y)*max(olddata.y);
-    max(olddata.y)/max(data.y)
     plot(olddata.x,olddata.y,data.x,data.y,data.x,y_rescaled);
     legend('old','new','rescaled new');
     legend boxoff
