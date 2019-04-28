@@ -652,6 +652,7 @@ switch Opt.Solver
     error('Unknown method in Options.Solver. Must be ''L'', ''R'', ''C'', or ''\''.');
 end
 logmsg(1,'Solver: %s',SolverString);
+useLanczosSolver = Opt.Solver=='L';
 
 if ~generalLiouvillian
   % reallocation block size, used in chili_lm
@@ -863,6 +864,7 @@ end
 % Calculate diffusion operator matrix
 %-------------------------------------------------------------------------------
 % Pre-calculate diffusion operator Wigner expansion coefficient
+% (needed for both Opt.Method='fast' and 'general')
 if usePotential
   logmsg(1,'Calculating Wigner expansion coefficients for diffusion matrix');
   XLMK = chili_xlmk(Potential,Dynamics.R);
@@ -875,11 +877,7 @@ if generalLiouvillian
   logmsg(1,'Calculating the diffusion matrix');
   
   % Calculate diffusion superoperator in spatial basis
-  if Opt.useLMKbasis
-    Gamma = diffsuperop_LMK(Basis,Dynamics.R,Potential,XLMK);
-  else
-    Gamma = diffsuperop(Basis,Dynamics.R,Potential,XLMK);
-  end
+  Gamma = diffsuperop(Basis,Dynamics.R,XLMK,Potential);
   % Expand to full product basis
   Gamma = spkroneye(Gamma,Sys.nStates^2);
   Gamma = Gamma(keep,keep); % prune
@@ -898,7 +896,7 @@ logmsg(1,'Computing starting vector...');
 if generalLiouvillian
   if ~isfield(Opt,'StartVec') || isempty(Opt.StartVec)
     % Set up in full product basis, then prune
-    [StartVector,nInt] = startvec(Basis,Potential,SdetOp,Opt.useLMKbasis,Opt.useStartvecSelectionRules,Opt.PeqTol);
+    [StartVector,nInt] = startvec(Basis,Potential,SdetOp,Opt.useStartvecSelectionRules,Opt.PeqTol);
     StartVector = StartVector(keep);
   else
     logmsg(1,'  using provided vector');
@@ -986,7 +984,7 @@ for iOri = 1:nOrientations
   end
   
   if generalLiouvillian
-    if Opt.useLMKbasis
+    if Opt.useLMKbasis && useLanczosSolver
       TT = ksymmetrizer(Basis); % in spatial basis
       TT = kron(TT,eye(Sys.nStates^2)); % expand to full basis, incl. spin
       TT = TT(keep,keep); % prune
@@ -1107,7 +1105,7 @@ for iOri = 1:nOrientations
     % Appy K-symmetrization if needed to obtain complex symmetric L for Lanczos
     % algorithm. L = i*H + Gamma is complex symmetric if both the imaginary
     % parts of H and Gamma are zero, i.e. if both H and Gamma are real-valued.
-    if generalLiouvillian && Opt.useLMKbasis
+    if generalLiouvillian && Opt.useLMKbasis && useLanczosSolver
       isComplexSymmetric = isreal(H);
       %maxerr = @(A)max(abs(A(:)));
       %imagerr = @(A)maxerr(imag(A))/maxerr(real(A));

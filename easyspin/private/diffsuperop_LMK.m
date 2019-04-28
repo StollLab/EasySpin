@@ -16,6 +16,7 @@
 %                       chili_xlmk (assumed all zero if not given)
 %             .lambda   potential coefficients
 %             .L,.M.,K  corresponding function indices
+%   XLMK      diffusion operator coefficients, as provided by chili_xlmk
 %   Method    (optional)
 %             1: method for diagonal diffusion tensors
 %             2: method for diagonal diffusion tensors (faster than 1) (default)
@@ -23,7 +24,7 @@
 % Output:
 %   Gamma    diffusion superoperator matrix in the LMK basis (s^-1), sparse
 
-function Gamma = diffsuperop_LMK(basis,R,Potential,XLMK,Method)
+function Gamma = diffsuperop_LMK(basis,R,XLMK,Potential,Method)
 
 if isfield(basis,'jK') && ~isempty(basis.jK)
   error('This function expects an LMK basis, without jK.');

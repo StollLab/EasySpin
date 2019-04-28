@@ -2,11 +2,11 @@
 % the orientational potential (Potential) and the spin operator in SopH (either S+
 % or Sx).
 
-function [StartingVector,nIntegrals] = startvec(basis,Potential,SopH,useLMKbasis,useSelectionRules,PeqTolerances)
+function [StartingVector,nIntegrals] = startvec(basis,Potential,SopH,useSelectionRules,PeqTolerances)
 
 nIntegrals = [0 0 0];
 
-jKbasis = ~useLMKbasis;
+jKbasis = isfield(basis,'jK') && ~isempty(basis.jK) && any(basis.jK);
 
 % Settings
 if nargin<5, useSelectionRules = true; end

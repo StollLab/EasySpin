@@ -1,6 +1,6 @@
 % diffsuperop   Calculation of diffusion operator matrix for general potential
 %
-%   Gamma = diffsuperop(basis,R,Potential,XLMK)
+%   Gamma = diffsuperop(basis,R,XLMK,Potential)
 %
 % This function computes the diffusion superoperator matrix:
 % - It can use either LML or LMKjK basis, depending on what is given in basis.
@@ -18,16 +18,17 @@
 %     .jK     jK quantum numbers (optional) If given, use LMKjK basis,
 %             if missing, use LMK basis.
 %   R         array with 3 principal values of diffusion tensor (s^-1)
-%   Potential (optional) structure 
 %   XLMK      expansion coefficients, as returned by chili_xlmk
+%   Potential structure with potential coefficients, the only used field is
+%     .M      
 %
 % Output:
 %   Gamma    diffusion superoperator in the given LMK or LMKjK basis (s^-1)
 
-function Gamma = diffsuperop(basis,R,Potential,XLMK)
+function Gamma = diffsuperop(basis,R,XLMK,Potential)
 
-usePotential = nargin==4 && ~isempty(XLMK);
-allMzero = all(Potential.M==0);
+includePotential = nargin>2 && ~isempty(XLMK);
+allMzero = nargin>3 && all(Potential.M==0);
 useKSymmetrizedBasis = isfield(basis,'jK') && ~isempty(basis.jK) && any(basis.jK);
 
 L = basis.L;
@@ -39,31 +40,31 @@ if useKSymmetrizedBasis
   jK = basis.jK;
 end
 
+% Get principal values of diffusion tensor
+%-------------------------------------------------------------------------------
 switch numel(R)
-  case 1
-    % isotropic
-    Rz = R;
-    Rperp = R;
-    Rd = 0;
-  case 3
-    % principal values
-    Rz = R(3);
-    Rd = (R(1)-R(2))/4;
-    Rperp = (R(1)+R(2))/2;
+  case 1 % isotropic
+    R = [R R R];
+  case 3 % three principal values
   otherwise
-    error('Three principal values of diffusion tensor required.');
+    error('Provide 3 principal values of diffusion tensor as second input.');
 end
+Rz = R(3);
+Rp = (R(1)+R(2))/2;
+Rd = (R(1)-R(2))/4;
 
+% Special case: isotropic/axial diffusion, no potential
+%-------------------------------------------------------------------------------
 % Treat the cases of isotropic and axial diffusion tensors in the absence of
 % an orientational potential. In these cases, the diffusion operator matrix is
 % diagonal in both the LMK and LMKjK basis.
-if ~usePotential && Rd==0
-  diagonal = Rperp*(L.*(L+1)-K.^2) + Rz*K.^2;
+if ~includePotential && Rd==0
+  diagonal = Rp*(L.*(L+1)-K.^2) + Rz*K.^2;
   Gamma = spdiags(diagonal,0,nBasis,nBasis);
   return
 end
 
-% Potential-independent part of diffusion operator
+% Calculate potential-independent part of diffusion operator
 %-------------------------------------------------------------------------------
 % This works for both the LMK basis and the K-symmetrized basis.
 Np = @(L,K) sqrt((L*(L+1)-K*(K+1))*(L*(L+1)-(K+1)*(K+2)));
@@ -90,7 +91,7 @@ for b1 = 1:nBasis
     
     % Calculate axial contribution
     if K1==K2
-      val_ = Rperp*L2*(L2+1) + (Rz-Rperp)*K2^2;
+      val_ = Rp*L2*(L2+1) + (Rz-Rp)*K2^2;
     else
       val_ = 0;
     end
@@ -122,9 +123,9 @@ end
 Gamma = sparse(row,col,values,nBasis,nBasis);
 
 
-% Potential-dependent part of diffusion operator
+% Calculate potential-dependent part of diffusion operator
 %-------------------------------------------------------------------------------
-if ~usePotential, return; end
+if ~includePotential, return; end
 
 Lxmax = numel(XLMK)-1;
 X = @(L,M,K) XLMK{L+1}(M+L+1,K+L+1);
@@ -195,16 +196,12 @@ for b1 = 1:nBasis
         X_ = X(Lx,M1-M2,K1-K2);
         if X_==0, continue; end
         
-        % calculate M-dependent 3j-symbol
-        jjjxM = wigner3j(L1,Lx,L2,-M1,M1-M2,M2);
-        if jjjxM==0, continue; end
+        threej_M = wigner3j(L1,Lx,L2,-M1,M1-M2,M2);
+        if threej_M==0, continue; end
+        threej_K = wigner3j(L1,Lx,L2,-K1,K1-K2,K2);
+        if threej_K==0, continue; end
         
-        % calculate K-dependent 3j-symbol
-        jjjxK = wigner3j(L1,Lx,L2,-K1,K1-K2,K2);
-        if jjjxK==0, continue; end
-        
-        % combine terms
-        val_ = val_ + X_ * jjjxM * jjjxK;
+        val_ = val_ + X_ * threej_M * threej_K;
       end
       val_ = (-1)^(K1-M1) * sqrt((2*L1+1)*(2*L2+1)) * val_;
       
