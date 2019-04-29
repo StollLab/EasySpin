@@ -145,7 +145,7 @@ if ~isnan(Exp.CenterSweep)
 end
 
 if isnan(Exp.Range), error('Experiment.Range/Exp.CenterSweep is missing!'); end
-if (diff(Exp.Range)<=0) | ~isfinite(Exp.Range) | ~isreal(Exp.Range) | any(Exp.Range<0)
+if (diff(Exp.Range)<=0) || ~isfinite(Exp.Range) || ~isreal(Exp.Range) || any(Exp.Range<0)
   error('Exp.Range is not valid!');
 end
 
@@ -197,7 +197,7 @@ end
 % Fields with changed format: formerly strings/documented, now {0,1}/undocumented
 changedFields = {'Intensity','Gradient'};
 for iFld = 1:numel(changedFields)
-  if isfield(Opt,changedFields{iFld}),
+  if isfield(Opt,changedFields{iFld})
     if ischar(Opt.(changedFields{iFld}))
       error('Options.%s is obsolete. Please remove from code!',changedFields{iFld});
     end
@@ -418,7 +418,7 @@ if (ComputeNonEquiPops)
   if (numel(Exp.Temperature) == nElectronStates)
     % Vector of zero-field populations for the core system
     ZFPopulations = Exp.Temperature(:);
-    if strcmp(PopBasis,'Molecular');
+    if strcmp(PopBasis,'Molecular')
       ZFPopulations = ZFPopulations/sum(ZFPopulations);
     end
     ZFPopulations = kron(ZFPopulations,ones(nCore/nElStates,1));
@@ -507,7 +507,7 @@ UserTransitions = ~isempty(Opt.Transitions);
 if UserTransitions
 
   if ischar(Opt.Transitions)
-    if strcmp(Opt.Transitions,'all');
+    if strcmp(Opt.Transitions,'all')
       if isempty(Opt.nLevels)
         nStates_ = prod(2*CoreSys.S+1)*prod(2*CoreSys.I+1);
         if isfield(CoreSys,'L')
@@ -1339,7 +1339,7 @@ Transitions = Transitions(idxTr,:);
 nTransitions = size(Pdat,1);
 logmsg(2,'  ## %2d resonances left',nTransitions);
 
-if (EasySpinLogLevel>=2),
+if (EasySpinLogLevel>=2)
   partlyNaN = any(isnan(Pdat),2);
   x = full(sparse(Transitions(:,1),Transitions(:,2),double(partlyNaN)));
   nLoopPairs = sum(sum(fix(x/2)));
@@ -1365,12 +1365,12 @@ end
 
 % Assert positive intensities, but only for thermal equilibrium populations
 if (~ComputeNonEquiPops)
-  if any(Idat(:)<0),
+  if any(Idat(:)<0)
     logmsg(-inf,'*********** Negative intensity encountered in resfields!! Please report! **********');
   end
 end
 % Assert positive widths
-if any(Wdat(:)<0),
+if any(Wdat(:)<0)
   logmsg(-inf,'*********** Negative width encountered in resfields!! Please report! **************');
 end
 
@@ -1473,7 +1473,7 @@ if (nSites>1) && ~isfield(Opt,'peppercall')
 end
 
 % Sort Output
-[Transitions, I] = sortrows(Transitions,[1 2]);
+[Transitions, I] = sortrows(Transitions);
 Pdat = Pdat(I,:);
 if ~isempty(Idat), Idat = Idat(I,:); end
 if ~isempty(Wdat), Wdat = Wdat(I,:); end

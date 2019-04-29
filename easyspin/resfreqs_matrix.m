@@ -152,7 +152,7 @@ if ~isnan(Exp.CenterSweep)
 end
 
 if isnan(Exp.Range), Exp.Range = []; end
-if (diff(Exp.Range)<=0) | ~isfinite(Exp.Range) | ~isreal(Exp.Range) | any(Exp.Range<0)
+if (diff(Exp.Range)<=0) || ~isfinite(Exp.Range) || ~isreal(Exp.Range) || any(Exp.Range<0)
   error('Exp.Range is not valid!');
 end
 
@@ -170,9 +170,9 @@ if (ComputeNonEquiPops)
   end
     if ~isfield(System,'PopBasis')
     PopBasis = 'Molecular';
-  else
-    PopBasis = System.PopBasis;
-  end
+    else
+      PopBasis = System.PopBasis;
+    end
   ComputeBoltzmannPopulations = false;
 else
   if isinf(Exp.Temperature)
@@ -379,7 +379,7 @@ if (ComputeNonEquiPops)
   if (numel(Exp.Temperature) == nElectronStates)
     % Vector of zero-field populations for the core system
     ZFPopulations = Exp.Temperature(:);
-    if strcmp(PopBasis,'Molecular');
+    if strcmp(PopBasis,'Molecular')
       ZFPopulations = ZFPopulations/sum(ZFPopulations);
     end
     ZFPopulations = kron(ZFPopulations,ones(nCore/nElStates,1));
@@ -423,7 +423,7 @@ end
 UserTransitions = ~isempty(Opt.Transitions);
 if (UserTransitions)
   if ischar(Opt.Transitions)
-    if strcmp(Opt.Transitions,'all');
+    if strcmp(Opt.Transitions,'all')
       nSStates = prod(2*CoreSys.S+1)*prod(2*CoreSys.L+1);
       logmsg(1,'  using all %d transitions',nSStates*(nSStates-1)/2);
       [u,v] = find(triu(ones(nSStates),1));
@@ -726,7 +726,7 @@ for iOri = 1:nOrientations
         LineWidth2 = LineWidth2 + abs(m(dHdAx))^2;
         LineWidth2 = LineWidth2 + abs(m(dHdAy))^2;
         LineWidth2 = LineWidth2 + abs(m(dHdAz))^2;
-      end;
+      end
       
       % g strain
       if UsegStrain
@@ -810,7 +810,7 @@ else
   logmsg(2,'  ## no intensities computed, no intensity post-selection');
 end
 
-if (EasySpinLogLevel>=2),
+if (EasySpinLogLevel>=2)
   partlyNaN = any(isnan(Pdat),2);
   nChopped = sum(partlyNaN);
   if (nChopped>0)
@@ -838,7 +838,7 @@ if numel(idxRmv)>0
   logmsg(2,'  ## removing %2d resonances (below threshold, out of range)',numel(idxRmv));
   Pdat(idxRmv,:) = [];
   Transitions(idxRmv,:)=[];
-  if (ComputeIntensities), Idat(idxRmv,:) = []; end;
+  if (ComputeIntensities), Idat(idxRmv,:) = []; end
   if (ComputeStrains), Wdat(idxRmv,:) = []; end
   if (nPerturbNuclei>0)
     for iiNuc = 1:nPerturbNuclei
@@ -868,11 +868,11 @@ end
 
 % Assert positive intensities, but only for thermal equilibrium populations
 if ComputeIntensities && (~ComputeNonEquiPops)
-  if any(TransitionRates<0),
+  if any(TransitionRates<0)
     logmsg(-inf,'*********** Negative intensity encountered in resfields!! Please report! **********');
   end
 end
-if any(Wdat(:)<0),
+if any(Wdat(:)<0)
   logmsg(-inf,'*********** Negative width encountered in resfields!! Please report! **************');
 end
 
@@ -956,7 +956,7 @@ if (nSites>1) && ~isfield(Opt,'peppercall')
 end
 
 % Sort Output
-[Transitions, I] = sortrows(Transitions,[1 2]);
+[Transitions, I] = sortrows(Transitions);
 Pdat = Pdat(I,:);
 if ~isempty(Idat), Idat = Idat(I,:); end
 if ~isempty(Wdat), Wdat = Wdat(I,:); end
