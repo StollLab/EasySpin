@@ -882,6 +882,10 @@ if generalLiouvillian
   Gamma = spkroneye(Gamma,Sys.nStates^2);
   Gamma = Gamma(keep,keep); % prune
   
+  maxerr = @(x) full(max(abs(x(:))));
+  imagerr = @(x) maxerr(imag(x))/maxerr(real(x));
+  logmsg(1,'  imag/real = %f',imagerr(Gamma));
+  
 else
   
   % Gamma is calculated simultaneously with H
@@ -1156,6 +1160,13 @@ for iOri = 1:nOrientations
       switch Opt.Solver
         
         case 'L' % Lanczos method
+          if generalLiouvillian && usePotential
+            maxabs = @(a)max(abs(a));
+            isComplexSymmetric = maxabs(L-L.')/maxabs(L) < 1e-10;
+            if ~isComplexSymmetric
+              error('L is not complex symmetric - cannot use Lanczos method.');
+            end
+          end
           [alpha,beta,minerr] = chili_lanczos(L,StartVector,-1i*omega,Opt);
           minerr = minerr(end);
           if minerr<Opt.Threshold
