@@ -622,8 +622,13 @@ Basis.pSmin = Opt.pSmin;
 
 % Maximum nuclear coherence order
 if ~isfield(Opt,'pImax'), Opt.pImax = []; end
-if Opt.pImax<0
-  error('Opt.pImax must be 0 or larger.');
+if ~isempty(Opt.pImax)
+  if numel(Opt.pImax)~=Sys.nNuclei && numel(Opt.pImax)~=1
+    error('Opt.pImax must contain either one entry for every nucleus or just a single number.');
+  end
+  if any(Opt.pImax<0)
+    error('Every element in Opt.pImax must be 0 or larger.');
+  end
 end
 Basis.pImax = Opt.pImax;
 
@@ -696,8 +701,9 @@ else
 end
 
 % calculate ISTOs and symmetry properties
+includeNQI = false;
 [T,F,Sys,Symmetry,isFieldDep] = magint(Sys,SpinOps,CenterField,...
-                                       Opt.IncludeNZI,...
+                                       Opt.IncludeNZI,includeNQI,...
                                        explicitFieldSweep);
 
 if saveDiagnostics
@@ -786,7 +792,7 @@ Weights = 4*pi*Weights/sum(Weights);
 logmsg(1,'Setting up basis set...');
 logmsg(1,'  spatial basis: Leven max %d, Lodd max %d, Mmax %d, Kmax %d, deltaK %d, jKmin %+d',...
   Basis.LLMK(1),Basis.LLMK(2),Basis.LLMK(3),Basis.LLMK(4),Basis.deltaK,Basis.jKmin);
-logmsg(1,'  spin basis: pSmin %+d, pImax %d',Basis.pSmin,Basis.pImax);
+logmsg(1,'  spin basis: pSmin %+d, pImax %s',Basis.pSmin,num2str(Basis.pImax));
 logmsg(1,'  M-p symmetry: %d',Basis.MpSymm);
 
 if generalLiouvillian
@@ -1467,7 +1473,8 @@ if isempty(Basis.jKmin)
   end
 end
 
-% Use only even K if there is no magnetic or diffusion tilt.
+% Use only even K if there is no beta tilt (i.e. all +1 and -1 spherical
+% tensor components in the Hamiltonian are zero).
 if isempty(Basis.deltaK)
   if nobetatilts
     Basis.deltaK = 2;
@@ -1486,7 +1493,7 @@ if axialSystem && (Basis.deltaK==2) && (isempty(maxPotentialK) || (maxPotentialK
 end
 %}
 
-% Spin basis parameters: pSmin, pImax
+% Spin basis truncation parameters: pSmin, pImax
 %-------------------------------------------------------------------------------
 
 % pSmin
@@ -1494,24 +1501,21 @@ if ~isfield(Basis,'pSmin') || isempty(Basis.pSmin)
   Basis.pSmin = 0;
 end
 
-% pImax
+% pImax (maximum nuclear coherence order, for each nucleus)
 if ~isfield(Basis,'pImax')
   Basis.pImax = [];
 end
 if nNuclei==0
   Basis.pImax = 0;
-elseif nNuclei==1
-  pImax = 2*I;
-  if isempty(Basis.pImax)
-    Basis.pImax = pImax;
-  end
-  Basis.pImax = min(Basis.pImax,pImax);
 else
-  pImax = 2*I;
   if isempty(Basis.pImax)
-    Basis.pImax = pImax;
+    Basis.pImax = 2*I;
   end
-  Basis.pImax = min(Basis.pImax,pImax);
+  Basis.pImax = min(Basis.pImax,2*I);
+end
+
+% Set fields for fast two-nuclei code
+if nNuclei==2
   Basis.pI1max = Basis.pImax(1);
   Basis.pI2max = Basis.pImax(2);
 end

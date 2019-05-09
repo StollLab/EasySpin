@@ -1,4 +1,5 @@
-function [T,F,System,Symmetry,isFieldDep] = magint(System,SpinOps,CenterField,includeNuclearZeeman,explicitFieldSweep)
+function [T,F,System,Symmetry,isFieldDep] = magint(System,SpinOps,CenterField,...
+  includeNuclearZeeman,includeNuclearQuadrupole,explicitFieldSweep)
 % generate the irreducible spherical tensor components and, if using the
 % general Liouvillian method, their corresponding operators as well
 
@@ -29,8 +30,7 @@ if includeNuclearZeeman
   nInteractions = nInteractions + nNucSpins;
 end
 
-IncludeNuclearQuadrupole = false;
-if IncludeNuclearQuadrupole
+if includeNuclearQuadrupole
   nInteractions = nInteractions + nNucSpins;
 end
 
@@ -218,7 +218,7 @@ end
 
 % Nuclear electric quadrupole interaction terms
 %--------------------------------------------------------------------------
-if IncludeNuclearQuadrupole
+if includeNuclearQuadrupole
   for iNucSpin = 1:nNucSpins
     Q_ = System.Q(iNucSpin,:)*1e6; % MHz -> Hz
     if any(System.QFrame(iNucSpin,:))

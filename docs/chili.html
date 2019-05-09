@@ -237,6 +237,12 @@ Specifies the rotational basis size by giving the maximum values for, in that or
 If this field is not specified, <code>chili</code> uses a default basis. This is adequate only for a few cases. In general, the basis needs to be larger for slower motions and can be smaller for faster motions. It is strongly advised to increase these four numbers until the simulated spectrum is converged.
 </div>
 
+<div class="optionfield"><code>pImax</code></div>
+<div class="optiondescr">
+vector, one element per nucleus<br>
+Determines for each nucleus the maximum nuclear coherence order |&Delta;m<sub>I</sub>| to include in the spin basis. 0 corresponds to only allowed EPR transitions, 1 includes additionally forbidden EPR transitions with |&Delta;m<sub>I</sub>|=1, etc. By default, all possible orders are included. By reducing <code>pImax</code>, the spin basis is truncated, and the calculation runs faster. For nitroxides, truncation to <code>Opt.pImax=1</code> often works and can yield spectra fairly close to the correct one. Truncation to <code>Opt.pImax=0</code> rarely works and is generally not advisable.
+</div>
+
 <div class="optionfield"><code>nKnots</code></div>
 <div class="optiondescr">
 Number of orientations used in a powder simulation. Default is 5. Increase this value if the orientational potential coefficients <code>Sys.Potential</code> are large.
