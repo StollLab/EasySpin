@@ -326,7 +326,7 @@ switch Method
 
       if ~isfield(Sys,'DiffFrame'), Sys.DiffFrame = [0 0 0]; end  % TODO include frames in cardamom
 
-      [T,F,~,~,~] = magint(Sys,SpinOps,CenterField,0,0);
+      [T,F,~,~,~] = magint(Sys,SpinOps,CenterField,0,0,0);
 
 %       F0 = F.F0*2*pi;
       if isfield(Sys, 'A')

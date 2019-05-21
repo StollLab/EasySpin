@@ -8,8 +8,9 @@
 
 function [me,sigma] = emass
 
-% 2014 CODATA value
-% Concise form 	 9.109 383 56(11) x 10-31 kg 
+% 2018 CODATA value
 
-me =    9.10938356e-31;
-sigma = 0.00000011e-31;
+me =    9.1093837015e-31;
+sigma = 0.0000000028e-31;
+
+return

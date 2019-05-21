@@ -8,7 +8,7 @@
 
 function [mu,sigma] = bmagn
 
-% CODATA 2014 value 927.400 9994(57) x 10^-26 J T-1
+% CODATA 2018 value
 
-mu =    9.274009994e-24;
-sigma = 0.000000057e-24;
+mu =    9.2740100783e-24;
+sigma = 0.0000000028e-24;

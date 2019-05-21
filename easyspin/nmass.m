@@ -8,8 +8,9 @@
 
 function [mn,sigma] = nmass
 
-% 2014 CODATA value
-% Concise form 	 1.674 927 471(21) x 10-27 kg
+% 2018 CODATA value
 
-mn =    1.674927471e-27;
-sigma = 0.000000021e-27;
+mn =    1.67492749804e-27;
+sigma = 0.00000000095e-27;
+
+return
