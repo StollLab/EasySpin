@@ -328,29 +328,23 @@ switch Method
 
       [T,F,~,~,~] = magint(Sys,SpinOps,CenterField,0,0);
 
-%       F0 = F.F0*2*pi;
-      if isfield(Sys, 'A')
-        F0 = F.F0(2)*2*pi;  % Hz -> rad s^-1, only keep isotropic HF interaction
+      if numel(F.F0)>1
+        F0 = F.F0(2:end)*2*pi;  % Hz -> rad s^-1, remove isotropic Zeeman interaction
       end
       F2 = F.F2*2*pi;  % Hz -> rad s^-1
 
-%       T0 = T.T0;
-      if isfield(Sys, 'A')
-        T0 = T.T0{2};  % only keep isotropic HF interaction
+      if numel(F.F0)>1
+        T0 = T.T0(2:end);  % remove isotropic Zeeman interaction
       end
       T2 = T.T2;
 
       % zeroth rank
-  %       cacheTensors.Q0 = conj(F0(1))*T0{1} + conj(F0(2))*T0{2};
-
-      if isfield(Sys, 'A')
-%         if Liouville
-%           cacheTensors.Q0 = conj(F0)*tosuper(T0,'c');
-%         else
-          cacheTensors.Q0 = conj(F0)*T0;
-%         end
-      else
-        cacheTensors.Q0 = 0;
+      cacheTensors.Q0 = 0;
+      if numel(F.F0)>1
+        for k = 1:numel(F0)
+          cacheTensors.Q0 = cacheTensors.Q0 + conj(F0(k))*T0{k};
+        end
+        cacheTensors.H0 = conj(F0(1))*T0{1};
       end
 
       cacheTensors.Q2 = cell(5,5);
@@ -358,18 +352,10 @@ switch Method
       % create the 25 second-rank RBOs
       for mp = 1:5
         for m = 1:5
-%           if Liouville
-%             cacheTensors.Q2{mp,m} = zeros(size(T2{1}).^2);
-%             for iSpin = 1:numel(Sys.Spins)
-%               cacheTensors.Q2{mp,m} = cacheTensors.Q2{mp,m} ...
-%                                       + conj(F2(iSpin,mp))*tosuper(T2{iSpin,m},'c');
-%             end
-%           else
             cacheTensors.Q2{mp,m} = zeros(size(T2{1}));
-            for iSpin = 1:numel(Sys.Spins)
-              cacheTensors.Q2{mp,m} = cacheTensors.Q2{mp,m} + conj(F2(iSpin,mp))*T2{iSpin,m};
+            for iInt = 1:size(F2,1)
+              cacheTensors.Q2{mp,m} = cacheTensors.Q2{mp,m} + conj(F2(iInt,mp))*T2{iInt,m};
             end
-%           end
         end
       end
 
@@ -492,6 +478,7 @@ switch Method
     % ---------------------------------------------------------------------
     
     H = repmat(cacheTensors.Q0,[1,1,nTraj,fullSteps]);
+    H0 = cacheTensors.Q0;
 
     % rotate second rank terms and add to Hamiltonian
     for mp = 1:5
@@ -499,17 +486,17 @@ switch Method
         H = H + bsxfun(@times, D2Traj(m,mp,:,1:fullSteps), cacheTensors.Q2{mp,m});
       end
     end
-    
-%     if Liouville
-%       H = tosuper(H, 'c');
-%     end
+%     H = H - H0;
+%     H = H - cacheTensors.H0;
     
     U = zeros(size(H));
     
     for iStep=1:fullSteps
+      U0 = expm_fast1(1i*iStep*Dt*cacheTensors.H0);
       for iTraj=1:nTraj
-        U(:,:,iTraj,iStep) = expeig(1i*Dt*H(:,:,iTraj,iStep));  % TODO speed this up!
-%         U(:,:,iTraj,iStep) = expm_fast1(1i*dt*H(:,:,iTraj,iStep));
+%         U(:,:,iTraj,iStep) = expeig(1i*Dt*H(:,:,iTraj,iStep));  % TODO speed this up!
+        U(:,:,iTraj,iStep) = expm_fast1(1i*Dt*H(:,:,iTraj,iStep));
+%         U(:,:,iTraj,iStep) = expm_fast1(1i*Dt*U0'*H(:,:,iTraj,iStep)*U0);
       end
     end
 

@@ -280,7 +280,7 @@ end
 % Check Sys
 % -------------------------------------------------------------------------
 
-if ~isfield(Sys,'Nucs')
+if ~isfield(Sys,'Nucs')&&~strcmp(Opt.Method,'ISTOs')
   Sys.Nucs = '14N';
   logmsg(0,'-- List of nuclei Sys.Nucs not specified. Using Sys.Nucs=''14N'' for a nitroxide spin label.');
 end

@@ -146,7 +146,7 @@ visited(unique(HMM.viterbiTraj)) = true;
 if any(~visited)
   logmsg(1,'  Eliminating %d unvisited states from model',sum(~visited));
   newStateNumbers = cumsum(visited);
-  HMM.viterbiTraj = newStateNumbers(HMM.viterbiTraj);
+  HMM.viterbiTraj = newStateNumbers(HMM.viterbiTraj).';
   HMM.mu = HMM.mu(:,visited);
   HMM.Sigma = HMM.Sigma(:,:,visited);
   [HMM.TransProb,HMM.eqDistr] = estimatemarkovparameters(HMM.viterbiTraj);
