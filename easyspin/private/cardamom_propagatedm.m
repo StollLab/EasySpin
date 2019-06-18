@@ -224,7 +224,7 @@ switch Method
         idx = idx + Par.BlockLength;
       end
 
-      if useMD && isDirectfromMD
+      if useMD && isDirectfromMD && nTraj>1
         % Perform sliding window processing if using MD trajectory explicitly
         gTensor = zeros(3,3,nTraj,nSteps);
         ATensor = zeros(3,3,nTraj,nSteps);
@@ -320,36 +320,27 @@ switch Method
         SpinOps{iSpin,3} = sop(Sys.Spins,iSpin,3);
       end
 
-      % electron spin operators
-      SpinOps{1,1} = zeros(size(SpinOps{1,1}));  % S_x and S_y are zero operators in HF limit TODO: generalize this
-      SpinOps{1,2} = zeros(size(SpinOps{1,1}));
-
       if ~isfield(Sys,'DiffFrame'), Sys.DiffFrame = [0 0 0]; end  % TODO include frames in cardamom
 
       [T,F,~,~,~] = magint(Sys,SpinOps,CenterField,0,0);
 
-      if numel(F.F0)>1
-        F0 = F.F0(2:end)*2*pi;  % Hz -> rad s^-1, remove isotropic Zeeman interaction
-      end
-      F2 = F.F2*2*pi;  % Hz -> rad s^-1
+      F0 = F.F0*2*pi;  % Hz -> rad s^-1
+      F2 = F.F2*2*pi;
 
-      if numel(F.F0)>1
-        T0 = T.T0(2:end);  % remove isotropic Zeeman interaction
-      end
+      T0 = T.T0;
       T2 = T.T2;
 
       % zeroth rank
       cacheTensors.Q0 = 0;
-      if numel(F.F0)>1
-        for k = 1:numel(F0)
-          cacheTensors.Q0 = cacheTensors.Q0 + conj(F0(k))*T0{k};
-        end
-        cacheTensors.H0 = conj(F0(1))*T0{1};
+      for k = 1:numel(F0)
+        cacheTensors.Q0 = cacheTensors.Q0 + conj(F0(k))*T0{k};
       end
+      
+      cacheTensors.H0 = conj(F0(1))*T0{1};  % isotropic Zeeman interaction 
+                                            % for interaction frame transformation
 
+      % second rank (25 "RBOs")
       cacheTensors.Q2 = cell(5,5);
-
-      % create the 25 second-rank RBOs
       for mp = 1:5
         for m = 1:5
             cacheTensors.Q2{mp,m} = zeros(size(T2{1}));
@@ -478,7 +469,7 @@ switch Method
     % ---------------------------------------------------------------------
     
     H = repmat(cacheTensors.Q0,[1,1,nTraj,fullSteps]);
-    H0 = cacheTensors.Q0;
+    H0 = cacheTensors.H0;
 
     % rotate second rank terms and add to Hamiltonian
     for mp = 1:5
@@ -486,17 +477,13 @@ switch Method
         H = H + bsxfun(@times, D2Traj(m,mp,:,1:fullSteps), cacheTensors.Q2{mp,m});
       end
     end
-%     H = H - H0;
-%     H = H - cacheTensors.H0;
     
     U = zeros(size(H));
-    
     for iStep=1:fullSteps
-      U0 = expm_fast1(1i*iStep*Dt*cacheTensors.H0);
+      U0 = expm_fast1(-1i*Dt*H0);  % interaction frame transformation operator
       for iTraj=1:nTraj
-%         U(:,:,iTraj,iStep) = expeig(1i*Dt*H(:,:,iTraj,iStep));  % TODO speed this up!
-        U(:,:,iTraj,iStep) = expm_fast1(1i*Dt*H(:,:,iTraj,iStep));
-%         U(:,:,iTraj,iStep) = expm_fast1(1i*Dt*U0'*H(:,:,iTraj,iStep)*U0);
+%         U(:,:,iTraj,iStep) = U0*expeig(1i*Dt*H(:,:,iTraj,iStep));  % TODO speed this up!
+        U(:,:,iTraj,iStep) = U0*expm_fast1(1i*Dt*H(:,:,iTraj,iStep));
       end
     end
 

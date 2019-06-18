@@ -39,9 +39,7 @@ Par.Model = 'MD-direct';
 Exp.mwFreq = 9.4;
 
 Opt.Verbosity = 0;
-Opt.FFTWindow = 1;
 Opt.Method = 'ISTOs';
-Opt.truncate = 30;
 
 [~, spc] = cardamom(Sys,Exp,Par,Opt,MD);
 spc = spc/max(spc);
