@@ -160,11 +160,6 @@
 %
 %    FFTWindow       1: use a Hamming window (default), 0: no window
 %
-%    truncate        double
-%                    time point (in nanoseconds) at which to stop using 
-%                    full quantum dynamics propagator and begin using an
-%                    approximate propagator using correlation functions
-%
 %     nTrials        integer
 %                    number of initialization trials for k-means
 %                    clustering; used for the Markov method
@@ -613,14 +608,6 @@ LocalDynamicsModel = Par.Model;
 
 if ~isfield(Opt,'Method')
   Opt.Method = 'Nitroxide';
-end
-
-if ~isfield(Opt,'truncate')
-  Opt.truncate = 0;
-end
-
-if Opt.truncate && strcmp(Opt.Method,'Nitroxide')
-  error('Correlation function propagation is only available for ISTOs method.')
 end
 
 if isfield(Opt,'FFTWindow')

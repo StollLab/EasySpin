@@ -3,43 +3,35 @@
 %
 %   Sprho = cardamom_propagatedm(Sys,Par,Opt,MD,omega,CenterField);
 %
-%     omega          double
-%                    microwave frequency for CW field sweep, in Hz
-%
-%     CenterField    double
-%                    magnetic field, in mT
-%
-%
+% Inputs:
 %   Sys: stucture with system's dynamical parameters
 %     g              numeric, size = (1,3)
 %                    principal values of the g-tensor
 %     A              numeric, size = (1,3)
 %                    principal values of the A-tensor
-%
 %   Par: structure with simulation parameters
 %     dt             double
 %                    rotational dynamics propagation time step (in seconds)
-%
 %     Dt             double
 %                    spin dynamics propagation time step (in seconds)
-%
 %   Exp: experimental parameter settings
 %     B              double  TODO can this be replaced by a fieldsweep and then used to extract omega0?
 %                    center magnetic field
-%
 %   Opt: optional settings
 %     Method         string
 %                    'Nitroxide': propagate using the m_s=-1/2 subspace
 %                    'ISTOs': propagate using correlation functions
-%
 %   MD:
 %     RTraj          numeric, size = (3,3,nTraj,nSteps)
 %                    externally provided rotation matrices
+%   omega            double
+%                    microwave frequency for CW field sweep, in Hz
+%   CenterField      double
+%                    magnetic field, in mT
 %
-%
-%   Output:
-%     rho_t          numeric, size = (3,3,nTraj,nSteps)
-%                    a series of density matrices
+%  Output:
+%    Sprho          numeric, size = (3,3,nTraj,nSteps)
+%                   a series of density matrices
 
 % Implementations based on 
 % [1] Sezer, et al., J. Chem. Phys. 128, 165106 (2008)
@@ -53,18 +45,10 @@ persistent cacheTensors
 persistent D2TrajMol
 persistent gTensorState
 persistent ATensorState
-% persistent fullSteps
-% persistent K2
 
 % Preprocessing
 % -------------------------------------------------------------------------
 
-if ~isfield(Opt, 'Liouville')
-  % Liouville space propagation is needed for the ensemble-averaged propagator
-  Opt.Liouville = Opt.truncate;
-end
-
-Liouville = Opt.Liouville;
 PropagationMethod = Opt.Method;
 
 % Define a rotational dynamics time scale for integrating correlation functions
@@ -89,14 +73,6 @@ Dt = Par.Dt;  % quantum propagation time step
 nTraj = Par.nTraj;
 doBlockAveraging = Par.isBlock;  % tensor time block averaging
 nSteps = Par.nSteps;
-
-truncate = Opt.truncate;  % ensemble averaged propagation
-
-% store parameters for feeding into propagation function
-Sim.nSteps = nSteps;
-Sim.nTraj = nTraj;
-Sim.truncate = truncate;
-Sim.Liouville = Liouville;
 
 % Simulation
 % -------------------------------------------------------------------------
@@ -261,8 +237,7 @@ switch PropagationMethod
     rho = zeros(3,3,nTraj,nSteps);
     rho(:,:,:,1) = 0.5*repmat(eye(3),[1,1,nTraj]);
 
-    Sim.fullSteps = nSteps;
-    Sprho = propagate(rho, U, PropagationMethod, Sim, Opt);
+    Sprho = propagate(rho, U, PropagationMethod, nSteps, Opt);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   case 'ISTOs'  % see Ref [2]
@@ -355,78 +330,14 @@ switch PropagationMethod
       D2Lab = wigD(Par.qLab);
       D2Traj = multimatmult(D2Lab, D2Traj);
     end
-    
-    if truncate
-%       if isempty(fullSteps)||isempty(K2)
-
-      % set the number of time steps to use full propagator before 
-      % correlation functions relax
-      if strcmp(truncate, 'all')
-        fullSteps = 1;  % use ensemble-averaged propagator the entire time
-      else
-        fullSteps = ceil(truncate*1e-9/Dt);
-      end
-      
-      % if correlation time is longer than user input, just use full 
-      % propagation scheme the entire time
-      if fullSteps>nSteps
-        fullSteps = nSteps; 
-        truncate = false;
-      else
-
-        % approximate upper limit of correlation function integration based
-        % on rotational correlation time
-        NtauR = 10*ceil(tauR/Dt);
         
-        if NtauR>nSteps
-          NtauR = nSteps;
-        end
-        
-        % calculate correlation functions for approximate propagator
-        D2Acorr = autocorrfft(D2Traj, 4, 0, 0, 1);
-%         D2Acorr = autocorrfft(D2Traj-mean(D2Traj,4), 4, 0, 0, 0);
-  %       for mppp=1:5
-  %       for mpp=1:5
-  %       for mp=1:5
-  %         for m=1:5
-  %           % non-normalized autocorrelation functions are needed here
-  %           D2Traj1 = squeeze(D2(mp,m,:,:));
-  %           D2Traj2 = squeeze(D2(mppp,mpp,:,:));
-  %           xcorr = crosscorrfft(D2Traj2, D2Traj1, 2, 0, 0, 0);
-  %           xcorrAvg = mean(xcorr,1);
-  %           K2(mppp,mpp,mp,m) = trapz(time(1:NtauR), xcorrAvg(1:NtauR));
-  %         end
-  %       end
-  %       end
-  %       end
-
-        if strcmp(Opt.debug.EqProp,'time')
-          K2 = squeeze(trapz(D2Acorr(:,:,:,1:NtauR),4))*Dt;  % TODO implement cross-correlation functions
-        elseif strcmp(Opt.debug.EqProp,'all')
-          K2 = squeeze(trapz(mean(D2Acorr(:,:,:,1:NtauR),3),4))*Dt;  % TODO implement cross-correlation functions
-        end
-
-        idx = K2>1e-11;
-        K2 = K2.*idx;
-
-      end
-%       end
-      
-      D2avg = mean(D2Traj, 4);  % time average of trajectories of Wigner matrices
-      
-    else
-      % no approximation, use full propagator for all time steps
-      fullSteps = nSteps;
-      
-    end
-    
     % Calculate Hamiltonians
     % ---------------------------------------------------------------------
     H0 = cacheTensors.H0;
-    H = repmat(cacheTensors.Q0,[1,1,nTraj,fullSteps]);
+    H = repmat(cacheTensors.Q0,[1,1,nTraj,nSteps]);
     for mp = 1:5
       for m = 1:5
-        H = H + bsxfun(@times, D2Traj(m,mp,:,1:fullSteps), cacheTensors.Q2{mp,m});
+        H = H + bsxfun(@times, D2Traj(m,mp,:,1:nSteps), cacheTensors.Q2{mp,m});
       end
     end
     
@@ -435,94 +346,26 @@ switch PropagationMethod
     algo = 'eig';
     U0 = expm_(-1i*Dt*H0,algo);  % interaction frame transformation operator
     U = zeros(size(H));
-    for iStep = 1:fullSteps
+    for iStep = 1:nSteps
       for iTraj = 1:nTraj
         U(:,:,iTraj,iStep) = U0*expm_(1i*Dt*H(:,:,iTraj,iStep),algo);
       end
     end
     
-    if truncate
-      % Prepare equilibrium propagators
-      % -------------------------------------------------------------------
-
-%       if Liouville
-%         Heq = repmat(cacheTensors.Q0,[1,1,nTraj]);
-%       else
-        Heq = repmat(tosuper(cacheTensors.Q0,'c'),[1,1,nTraj]);
-%       end
-
-      HeqOrder1 = 0;
-      HeqOrder2 = 0;
-
-      % rotate second rank terms and add to Hamiltonian
-      for mp = 1:5
-        for m = 1:5
-%           if Liouville
-%             HeqOrder1 = HeqOrder1 + bsxfun(@times, D2avg(m,mp,:), cacheTensors.Q2{mp,m});
-%             HeqOrder2 = HeqOrder2 + 1i*cacheTensors.Q2{mp,m}*(cacheTensors.Q2{mp,m})'.*K2(mp,m,:);
-%           else
-            HeqOrder1 = HeqOrder1 + bsxfun(@times, D2avg(m,mp,:), tosuper(cacheTensors.Q2{mp,m},'c'));
-            HeqOrder2 = HeqOrder2 + 1i*tosuper(cacheTensors.Q2{mp,m},'c')*tosuper(cacheTensors.Q2{mp,m}','c').*K2(mp,m,:);
-%           end
-
-%       for mppp = 1:5
-    %         for mpp = 1:5
-    %           HeqOrder2 = HeqOrder2 + 1i*cacheTensors.Q2{mp,m}*(cacheTensors.Q2{mppp,mpp})'*K2(mppp,mpp,mp,m,:);
-    %         end
-    %       end
-        end
-      end
-
-      Heq = bsxfun(@plus,Heq+HeqOrder1,HeqOrder2);  % FIXME plus or minus?
-%       Heq = Heq + HeqOrder2;  % FIXME plus or minus?
-
-%       if Liouville
-        if strcmp(Opt.debug.EqProp,'time')
-          Ueq = zeros(size(U,1)^2,size(U,2)^2,nTraj);
-          for iTraj=1:nTraj
-            Ueq(:,:,iTraj) = expm(1i*Dt*Heq(:,:,iTraj));
-          end
-        elseif strcmp(Opt.debug.EqProp,'all')
-          Ueq = expm(1i*Dt*mean(Heq,3));
-        end
-        Sim.Ueq = Ueq;
-%       else
-%         Ueq = zeros(size(U,1),size(U,2),nTraj);
-%         Ueqdag = zeros(size(U,1),size(U,2),nTraj);
-%         for iTraj=1:nTraj
-%           Ueq(:,:,iTraj) = expm_fast1(1i*dt*Heq(:,:,iTraj));
-%           Ueqdag(:,:,iTraj) = expm_fast1(-1i*dt*Heq(:,:,iTraj));
-%         end
-%         Sim.Ueq = Ueq;
-%         Sim.Ueqdag = Ueqdag;
-%       end
-
-%       Ueqdag = conj(permute(Ueq, [2,1,3,4]));
-
-    end
-
     % Set up starting state of density matrix after pi/2 pulse, S_x
     % ---------------------------------------------------------------------
-    Sim.fullSteps = fullSteps;
     rho = zeros(Sys.nStates,Sys.nStates,nTraj,nSteps);
     rho0 = sop(Sys.Spins,'x1');
     rho(:,:,:,1) = repmat(rho0,1,1,nTraj,1);
     
     % Propagate density matrix
     % ---------------------------------------------------------------------
-    rho = propagate(rho, U, PropagationMethod, Sim, Opt);
-    if Liouville
-      if strcmp(Opt.debug.EqProp,'time')
-        rho = reshape(rho,[Sys.nStates,Sys.nStates,nTraj,nSteps]);
-      elseif strcmp(Opt.debug.EqProp,'all')
-        rho = reshape(rho,[Sys.nStates,Sys.nStates,nSteps]);
-      end
-    end
+    rho = propagate(rho, U, PropagationMethod, nSteps, Opt);
     
     % Multiply density matrix result by S_+ detection operator
     % ---------------------------------------------------------------------
     % Only keep the m_S=\beta subspace part that contributes to tr(S_{+}\rho(t))
-    projector = sop(Sys.Spins,'+1');    
+    projector = sop(Sys.Spins,'+1');
     if strcmp(Opt.debug.EqProp,'time')
       Sprho = multimatmult(repmat(projector,1,1,nTraj,nSteps),rho);
     elseif strcmp(Opt.debug.EqProp,'all')
@@ -543,28 +386,17 @@ end
 % Helper functions
 % -------------------------------------------------------------------------
 
-function rho = propagate(rho, U, Method, Sim, Opt)
-
-fullSteps = Sim.fullSteps;
-nSteps = Sim.nSteps;
-nTraj = Sim.nTraj;
-truncate = Sim.truncate;
-%Liouville = Sim.Liouville;
+function rho = propagate(rho, U, Method, nSteps, Opt)
 
 % Propagate density matrix
 % ---------------------------------------------------------------------
 
-% N = size(U,1);
-
-% if Liouville
-%   rho = reshape(rho,[N,1,nTraj,nSteps]);
-% end
-
 % propagation using full Hamiltonian
 switch Method
+  
   case 'Nitroxide'
-    % subspace propagation only requires U, but not Udag
-    for iStep = 2:fullSteps
+    % subspace propagation only requires U, but not U adjoint
+    for iStep = 2:nSteps
       rho(:,:,:,iStep) = ...
         multimatmult( U(:,:,:,iStep-1),...
         multimatmult( rho(:,:,:,iStep-1),...
@@ -573,53 +405,17 @@ switch Method
     
   case 'ISTOs'
     
-%     if Liouville
-%       for iStep=2:fullSteps
-%         rho(:,:,:,iStep) = multimatmult(U(:,:,:,iStep-1), rho(:,:,:,iStep-1));   
-% %         for iTraj=1:nTraj
-% %           rho(:,:,iTraj,iStep) = U(:,:,iTraj,iStep-1)*rho(:,:,iTraj,iStep-1);  
-% %         end
-%       end
-
-%     else % Hilbert space
-      Uadj = conj(permute(U,[2,1,3,4])); % adjoint of propagator
-      for iStep = 2:fullSteps
-        rho(:,:,:,iStep) = ...
-          multimatmult( U(:,:,:,iStep-1),...
-          multimatmult( rho(:,:,:,iStep-1),...
-          Uadj(:,:,:,iStep-1) ) );
-      end
-%     end
+    Uadj = conj(permute(U,[2,1,3,4])); % adjoint of propagator
+    for iStep = 2:nSteps
+      rho(:,:,:,iStep) = ...
+        multimatmult( U(:,:,:,iStep-1),...
+        multimatmult( rho(:,:,:,iStep-1),...
+        Uadj(:,:,:,iStep-1) ) );
+    end
 end
 
 if strcmp(Opt.debug.EqProp,'all')
   rho = squeeze(mean(rho, 3));
-end
-
-if truncate
-  % propagation using correlation function approximation
-%   if Liouville
-    Ueq = Sim.Ueq;
-    if strcmp(Opt.debug.EqProp,'time')
-      rho = reshape(rho,[size(Ueq,1),1,nTraj,nSteps]);
-      for iStep=fullSteps+1:nSteps
-        rho(:,:,:,iStep) = multimatmult(Ueq, rho(:,:,:,iStep-1)); 
-      end
-    elseif strcmp(Opt.debug.EqProp,'all')
-      rho = reshape(rho,[size(Ueq,1),nSteps]);
-      for iStep=fullSteps+1:nSteps
-        rho(:,iStep) = Ueq*rho(:,iStep-1); 
-      end
-    end
-
-%   else
-%     Ueq = Sim.Ueq;
-%     Ueqdag = Sim.Ueqdag;
-%     for iStep=fullSteps+1:nSteps
-%       rho(:,:,:,iStep) = multimatmult( Ueq, multimatmult( rho(:,:,:,iStep-1), Ueqdag ) );  
-%     end
-%   end
-
 end
 
 end
