@@ -38,7 +38,7 @@ Par.Model = 'MD-direct';
 
 Exp.mwFreq = 9.4;
 
-Opt.Verbosity = 1;
+Opt.Verbosity = 0;
 Opt.Method = 'Nitroxide';
 
 [~, spc] = cardamom(Sys,Exp,Par,Opt,MD);

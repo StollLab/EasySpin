@@ -39,7 +39,7 @@ Par.Model = 'MD-HMM';
 
 Exp.mwFreq = 9.4;
 
-Opt.Verbosity = 1;
+Opt.Verbosity = 0;
 Opt.FFTWindow = 1;
 Opt.Method = 'Nitroxide';
 Opt.nTrials = 2;

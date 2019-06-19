@@ -50,7 +50,7 @@ iterMax = 200;
 thresh = 1e-4;
   
 previous_loglik = -inf;
-converged = 0;
+converged = false;
 iter = 1;
 logLikIter = [];
 
@@ -68,7 +68,7 @@ while (iter <= iterMax) && ~converged
   weightsSummed = zeros(nStates,1);
 
   logLik = 0;
-  for iTraj=1:nTraj
+  for iTraj = 1:nTraj
     obs = data{iTraj};
     [nDims,nSteps] = size(obs);
     
