@@ -49,10 +49,6 @@
 
 function Sprho = cardamom_propagatedm(Sys, Par, Opt, MD, omega, CenterField)
 
-% Preprocessing
-% -------------------------------------------------------------------------
-
-
 persistent cacheTensors
 persistent D2TrajMol
 persistent gTensorState
@@ -60,22 +56,18 @@ persistent ATensorState
 % persistent fullSteps
 % persistent K2
 
+% Preprocessing
+% -------------------------------------------------------------------------
+
 if ~isfield(Opt, 'Liouville')
-  if Opt.truncate
-    % Liouville space propagation is needed for the ensemble-averaged
-    % propagator
-    Opt.Liouville = 1;
-  else
-    Opt.Liouville = 0;
-  end
+  % Liouville space propagation is needed for the ensemble-averaged propagator
+  Opt.Liouville = Opt.truncate;
 end
 
 Liouville = Opt.Liouville;
-Method = Opt.Method;
-Model = Par.Model;
+PropagationMethod = Opt.Method;
 
-% define a rotational dynamics time scale for integrating corrlation
-% functions
+% Define a rotational dynamics time scale for integrating correlation functions
 if ~isempty(MD)
   tauR = MD.tauR;
   isHMMfromMD = strcmp(Par.Model,'MD-HMM');
@@ -92,47 +84,10 @@ end
 if ~isfield(Par,'RTraj') && ~isfield(Par,'qTraj')
   error('Either Par.RTraj or Par.qTraj must be provided.')
 end
-% if ~isfield(MD,'RTraj') && (~isfield(Par,'RTraj')||~isfield(Par,'qTraj'))
-%   error('Either Par.RTraj and Par.qTraj, or MD.RTraj must be provided.')
-% end
 
-% grab the quaternions or rotation matrices
-if useMD
-  if isDirectfromMD
-    if ~strcmp(Method, 'ISTOs')
-      RTrajInv = permute(Par.RTraj,[2,1,3,4]);
-      RLabInv = permute(Par.RLab, [2,1,3,4]);
-    end
-  else
-    if ~strcmp(Method, 'ISTOs')
-      RTrajInv = permute(Par.RTraj,[2,1,3,4]);
-      RLabInv = permute(Par.RLab, [2,1,3,4]);
-    end
-  end
-else
-  if ~strcmp(Method, 'ISTOs')
-    RTrajInv = permute(Par.RTraj,[2,1,3,4]);
-    RLabInv = permute(Par.RLab,[2,1,3,4]);
-  end
-end
-
-if ~isfield(Sys,'g')
-  error('g-tensor not specified.');
-else
-  g = Sys.g;
-end
-
-if isfield(Sys, 'A')
-  A = Sys.A; 
-else
-  if strcmp(Method, 'Nitroxide')
-    error('An A-tensor is required for the Nitroxide method.'); 
-  end
-end
-
-Dt = Par.Dt;  % quantum spin propagation time step
+Dt = Par.Dt;  % quantum propagation time step
 nTraj = Par.nTraj;
-isBlockAveraging = Par.isBlock;  % tensor time block averaging
+doBlockAveraging = Par.isBlock;  % tensor time block averaging
 nSteps = Par.nSteps;
 
 truncate = Opt.truncate;  % ensemble averaged propagation
@@ -143,24 +98,29 @@ Sim.nTraj = nTraj;
 Sim.truncate = truncate;
 Sim.Liouville = Liouville;
 
-% Gamma = gfree*bmagn/(planck/2/pi);  % rad s^-1 T^-1
-% omegaN = 19.331e6*B;  % gyromagnetic ratio for 14N: 
-                      % 19.331x10^6 rad s^-1 T^-1
-
 % Simulation
 % -------------------------------------------------------------------------
 
-switch Method
+switch PropagationMethod
   case 'Nitroxide'  % see Ref [1]
     
+    RTrajInv = permute(Par.RTraj,[2,1,3,4]);
+    RLabInv = permute(Par.RLab,[2,1,3,4]);
+    
+    if ~isfield(Sys,'g')
+      error('A g-tensor is required for the Nitroxide method.');
+    end
+    g = Sys.g;
     if ~isequal(size(g),[1,3])
       error('g-tensor must be a 3-vector.')
     end
 
-    if isfield(Sys, 'A')
-      if ~isequal(size(A),[1,3])
-        error('A-tensor must be a 3-vector.')
-      end
+    if ~isfield(Sys, 'A')
+      error('An A-tensor is required for the Nitroxide method.');
+    end
+    A = Sys.A;
+    if ~isequal(size(A),[1,3])
+      error('A-tensor must be a 3-vector.')
     end
     
     if ~isHMMfromMD
@@ -170,8 +130,8 @@ switch Method
       
     else
       % Calculate time-dependent tensors from state trajectories
-
-      % Calculate the average interaction tensors for each state using 
+      
+      % Calculate the average interaction tensors for each state using
       % MD-derived frame trajectories and Viterbi state trajectories
       if isempty(gTensorState)
         % Perform MD-derived rotations on g- and A-tensors
@@ -181,7 +141,7 @@ switch Method
         nVitTraj = size(MD.viterbiTraj,1);
         gTensorState = zeros(3,3,MD.nStates,nVitTraj);
         ATensorState = zeros(3,3,MD.nStates,nVitTraj);
-
+        
         % Average over time axis
         for iState = 1:MD.nStates
           for iTraj = 1:nVitTraj
@@ -206,13 +166,13 @@ switch Method
           idxState = Par.stateTraj(iTraj,:)==iState;
           gTensor(:,:,iTraj,idxState) = repmat(gTensorState(:,:,iState),[1,1,1,sum(idxState)]);
           ATensor(:,:,iTraj,idxState) = repmat(ATensorState(:,:,iState),[1,1,1,sum(idxState)]);
-        end   
+        end
       end
       
     end
     
     % Time block averaging and sliding window processing of tensors
-    if isBlockAveraging
+    if doBlockAveraging
       gTensorBlock = zeros(3,3,size(gTensor,3),Par.nBlocks);
       ATensorBlock = zeros(3,3,size(ATensor,3),Par.nBlocks);
 
@@ -302,61 +262,57 @@ switch Method
     rho(:,:,:,1) = 0.5*repmat(eye(3),[1,1,nTraj]);
 
     Sim.fullSteps = nSteps;
-    Sprho = propagate(rho, U, Method, Sim, Opt);
+    Sprho = propagate(rho, U, PropagationMethod, Sim, Opt);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   case 'ISTOs'  % see Ref [2]
     
     % Calculate and store rotational basis operators
     % ---------------------------------------------------------------------
-    
     if isempty(cacheTensors)
       % ISTOs in the lab frame and IST components in the principal frame 
       % are time-independent, so we only need to calculate them once
-
+      
       for iSpin = 1:numel(Sys.Spins)
         SpinOps{iSpin,1} = sop(Sys.Spins,iSpin,1);
         SpinOps{iSpin,2} = sop(Sys.Spins,iSpin,2);
         SpinOps{iSpin,3} = sop(Sys.Spins,iSpin,3);
       end
-
+      
       if ~isfield(Sys,'DiffFrame'), Sys.DiffFrame = [0 0 0]; end  % TODO include frames in cardamom
-
-      [T,F,~,~,~] = magint(Sys,SpinOps,CenterField,0,0);
-
+      
+      [T,F,~,~,~] = magint(Sys,SpinOps,CenterField,false,false);
       F0 = F.F0*2*pi;  % Hz -> rad s^-1
       F2 = F.F2*2*pi;
-
       T0 = T.T0;
       T2 = T.T2;
-
+      
       % zeroth rank
       cacheTensors.Q0 = 0;
       for k = 1:numel(F0)
         cacheTensors.Q0 = cacheTensors.Q0 + conj(F0(k))*T0{k};
       end
       
-      cacheTensors.H0 = conj(F0(1))*T0{1};  % isotropic Zeeman interaction 
-                                            % for interaction frame transformation
-
+      % isotropic Zeeman interaction, for interaction frame transformation
+      cacheTensors.H0 = conj(F0(1))*T0{1};
+      
       % second rank (25 "RBOs")
       cacheTensors.Q2 = cell(5,5);
       for mp = 1:5
         for m = 1:5
-            cacheTensors.Q2{mp,m} = zeros(size(T2{1}));
-            for iInt = 1:size(F2,1)
-              cacheTensors.Q2{mp,m} = cacheTensors.Q2{mp,m} + conj(F2(iInt,mp))*T2{iInt,m};
-            end
+          cacheTensors.Q2{mp,m} = zeros(size(T2{1}));
+          for iInt = 1:size(F2,1)
+            cacheTensors.Q2{mp,m} = cacheTensors.Q2{mp,m} + conj(F2(iInt,mp))*T2{iInt,m};
+          end
         end
       end
-
+      
     end
     
     % Process Wigner D-matrices
     % ---------------------------------------------------------------------
-
     % time block averaging and sliding window processing
-    if isBlockAveraging
+    if doBlockAveraging
       if isempty(D2TrajMol)
         % if using an MD trajectory, it is best to process the molecular
         % dynamics once and store the result
@@ -364,19 +320,18 @@ switch Method
         % not being used
         D2TrajMol = wigD(Par.qTraj);
         D2Avg = zeros(5,5,Par.nBlocks);
-
+        
         % average the Wigner D-matrices over time blocks
         idx = 1:Par.BlockLength;
         for k = 1:Par.nBlocks
           D2Avg(:,:,k) = mean(D2TrajMol(:,:,:,idx),4);
           idx = idx + Par.BlockLength;
         end
-
+        
         % perform sliding window processing if using MD trajectory explicitly
         if useMD
           if isDirectfromMD
             D2TrajMol = zeros(5,5,nTraj,nSteps);
-
             for k = 1:nTraj
               idx = (1:nSteps) + (k-1)*Par.lag;
               D2TrajMol(:,:,k,:) = D2Avg(:,:,idx);
@@ -395,7 +350,7 @@ switch Method
       D2Traj = wigD(Par.qTraj);
     end
     
-    % check for new lab frame rotations
+    % Check for new lab frame rotations
     if ~isempty(Par.qLab)
       D2Lab = wigD(Par.qLab);
       D2Traj = multimatmult(D2Lab, D2Traj);
@@ -416,7 +371,7 @@ switch Method
       % propagation scheme the entire time
       if fullSteps>nSteps
         fullSteps = nSteps; 
-        truncate = 0;
+        truncate = false;
       else
 
         % approximate upper limit of correlation function integration based
@@ -456,37 +411,36 @@ switch Method
 
       end
 %       end
-
+      
+      D2avg = mean(D2Traj, 4);  % time average of trajectories of Wigner matrices
+      
     else
       % no approximation, use full propagator for all time steps
       fullSteps = nSteps;
-
+      
     end
-
-    D2avg = mean(D2Traj, 4);  % time average of trajectories of Wigner matrices
     
-    % calculate Hamiltonians and propagators
+    % Calculate Hamiltonians
     % ---------------------------------------------------------------------
-    
-    H = repmat(cacheTensors.Q0,[1,1,nTraj,fullSteps]);
     H0 = cacheTensors.H0;
-
-    % rotate second rank terms and add to Hamiltonian
+    H = repmat(cacheTensors.Q0,[1,1,nTraj,fullSteps]);
     for mp = 1:5
       for m = 1:5
         H = H + bsxfun(@times, D2Traj(m,mp,:,1:fullSteps), cacheTensors.Q2{mp,m});
       end
     end
     
+    % Calculate propagators
+    % ---------------------------------------------------------------------
+    algo = 'eig';
+    U0 = expm_(-1i*Dt*H0,algo);  % interaction frame transformation operator
     U = zeros(size(H));
-    for iStep=1:fullSteps
-      U0 = expm_fast1(-1i*Dt*H0);  % interaction frame transformation operator
-      for iTraj=1:nTraj
-%         U(:,:,iTraj,iStep) = U0*expeig(1i*Dt*H(:,:,iTraj,iStep));  % TODO speed this up!
-        U(:,:,iTraj,iStep) = U0*expm_fast1(1i*Dt*H(:,:,iTraj,iStep));
+    for iStep = 1:fullSteps
+      for iTraj = 1:nTraj
+        U(:,:,iTraj,iStep) = U0*expm_(1i*Dt*H(:,:,iTraj,iStep),algo);
       end
     end
-
+    
     if truncate
       % Prepare equilibrium propagators
       % -------------------------------------------------------------------
@@ -547,28 +501,16 @@ switch Method
 
     end
 
-    % Set up starting state of density matrix after pi/2 pulse
+    % Set up starting state of density matrix after pi/2 pulse, S_x
     % ---------------------------------------------------------------------
-
     Sim.fullSteps = fullSteps;
     rho = zeros(Sys.nStates,Sys.nStates,nTraj,nSteps);
-    
-    % initial state after pi/2 pulse is |S_x>|E_I>
-    if isfield(Sys, 'A')
-      % 1 electron + 1 nucleus
-      rho0 = sop(Sys.Spins,'xe');
-    else
-      % 1 electron only
-      rho0 = sop(Sys.S,'x');
-    end
-    
+    rho0 = sop(Sys.Spins,'x1');
     rho(:,:,:,1) = repmat(rho0,1,1,nTraj,1);
     
     % Propagate density matrix
     % ---------------------------------------------------------------------
-    
-    rho = propagate(rho, U, Method, Sim, Opt);
-    
+    rho = propagate(rho, U, PropagationMethod, Sim, Opt);
     if Liouville
       if strcmp(Opt.debug.EqProp,'time')
         rho = reshape(rho,[Sys.nStates,Sys.nStates,nTraj,nSteps]);
@@ -579,17 +521,8 @@ switch Method
     
     % Multiply density matrix result by S_+ detection operator
     % ---------------------------------------------------------------------
-    
-    % Only keep the m_S=\beta subspace part that contributes to 
-    %   tr(S_{+}\rho(t))
-    if isfield(Sys, 'A')
-      % 1 electron + 1 nucleus
-      projector = sop(Sys.Spins,'+e');
-    else
-      % 1 electron only
-      projector = sop(Sys.S,'+');
-    end
-    
+    % Only keep the m_S=\beta subspace part that contributes to tr(S_{+}\rho(t))
+    projector = sop(Sys.Spins,'+1');    
     if strcmp(Opt.debug.EqProp,'time')
       Sprho = multimatmult(repmat(projector,1,1,nTraj,nSteps),rho);
     elseif strcmp(Opt.debug.EqProp,'all')
@@ -598,11 +531,14 @@ switch Method
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   otherwise
-    error('Propagation method not recognized.')
+    error('Quantum propagation method Opt.Method=''%s'' not recognized.',PropagationMethod);
 end
 
 
 end
+%===============================================================================
+%===============================================================================
+%===============================================================================
 
 % Helper functions
 % -------------------------------------------------------------------------
@@ -613,7 +549,7 @@ fullSteps = Sim.fullSteps;
 nSteps = Sim.nSteps;
 nTraj = Sim.nTraj;
 truncate = Sim.truncate;
-Liouville = Sim.Liouville;
+%Liouville = Sim.Liouville;
 
 % Propagate density matrix
 % ---------------------------------------------------------------------
@@ -628,12 +564,13 @@ Liouville = Sim.Liouville;
 switch Method
   case 'Nitroxide'
     % subspace propagation only requires U, but not Udag
-    for iStep=2:fullSteps
-      rho(:,:,:,iStep) = multimatmult( U(:,:,:,iStep-1),...
-                              multimatmult( rho(:,:,:,iStep-1),...
-                                   U(:,:,:,iStep-1) ) );                  
+    for iStep = 2:fullSteps
+      rho(:,:,:,iStep) = ...
+        multimatmult( U(:,:,:,iStep-1),...
+        multimatmult( rho(:,:,:,iStep-1),...
+        U(:,:,:,iStep-1) ) );
     end
-
+    
   case 'ISTOs'
     
 %     if Liouville
@@ -645,11 +582,12 @@ switch Method
 %       end
 
 %     else % Hilbert space
-      Udag = conj(permute(U,[2,1,3,4]));
-      for iStep=2:fullSteps
-        rho(:,:,:,iStep) = multimatmult( U(:,:,:,iStep-1),...
-                                   multimatmult( rho(:,:,:,iStep-1),...
-                                         Udag(:,:,:,iStep-1) ) );                  
+      Uadj = conj(permute(U,[2,1,3,4])); % adjoint of propagator
+      for iStep = 2:fullSteps
+        rho(:,:,:,iStep) = ...
+          multimatmult( U(:,:,:,iStep-1),...
+          multimatmult( rho(:,:,:,iStep-1),...
+          Uadj(:,:,:,iStep-1) ) );
       end
 %     end
 end
@@ -684,234 +622,6 @@ if truncate
 
 end
 
-end
-
-function C = expeig(A)
-
-[V,D] = eig(A);
-
-C = V*diag(exp(diag(D)))*V';
-
-end
-
-function F = expm_fast1(A)
-%EXPM  Matrix exponential.
-%   EXPM(A) is the matrix exponential of A and is computed using
-%   a scaling and squaring algorithm with a Pade approximation.
-%
-%   Although it is not computed this way, if A has a full set
-%   of eigenvectors V with corresponding eigenvalues D then
-%   [V,D] = EIG(A) and EXPM(A) = V*diag(exp(diag(D)))/V.
-%
-%   EXP(A) computes the exponential of A element-by-element.
-%
-%   See also LOGM, SQRTM, FUNM.
-
-%   References:
-%   N. J. Higham, The scaling and squaring method for the matrix
-%      exponential revisited. SIAM J. Matrix Anal. Appl., 26(4), (2005),
-%      pp. 1179-1193.
-%   A. H. Al-Mohy and N. J. Higham, A new scaling and squaring algorithm
-%      for the matrix exponential, SIAM J. Matrix Anal. Appl., 31(3),
-%      (2009), pp. 970-989.
-%
-%   Nicholas J. Higham and Samuel D. Relton
-%   Copyright 1984-2015 The MathWorks, Inc.
-
-T = A;
-
-if isdiag(T) % Check if T is diagonal.
-  d = diag(T);
-  F = diag(exp(full(d)));
-  return;
-end
-
-% Compute exponential
-% Get scaling and Pade parameters.
-[s, m, T2, T4, T6] = expm_params(T);
-
-% Rescale the powers of T appropriately.
-if s ~= 0
-  T = T/(2.^s);
-  T2 = T2/2^(s*2);
-  T4 = T4/2^(s*4);
-  T6 = T6/2^(s*6);
-end
-
-% Evaluate the Pade approximant.
-switch m
-  case 3
-    c = [120, 60, 12, 1];
-  case 5
-    c = [30240, 15120, 3360, 420, 30, 1];
-  case 7
-    c = [17297280, 8648640, 1995840, 277200, 25200, 1512, 56, 1];
-  case 9
-    c = [17643225600, 8821612800, 2075673600, 302702400, 30270240, ...
-      2162160, 110880, 3960, 90, 1];
-  case 13
-    c = [64764752532480000, 32382376266240000, 7771770303897600, ...
-      1187353796428800,  129060195264000,   10559470521600, ...
-      670442572800,      33522128640,       1323241920,...
-      40840800,          960960,            16380,  182,  1];
-end
-I = eye(length(T));
-switch m
-  case {3, 5, 7, 9}
-    Tpowers = {[],T2,[],T4,[],T6};
-    strt = length(Tpowers) + 2;
-    for k = strt:2:m-1
-      Tpowers{k} = Tpowers{k-2}*Tpowers{2};
-    end
-    U = c(2)*I;
-    V = c(1)*I;
-    for j = m:-2:3
-      U = U + c(j+1)*Tpowers{j-1};
-      V = V + c(j)*Tpowers{j-1};
-    end
-    U = T*U;
-  case 13
-    U = T * (T6*(c(14)*T6 + c(12)*T4 + c(10)*T2) + c(8)*T6 + c(6)*T4 + c(4)*T2 + c(2)*I);
-    V = T6*(c(13)*T6 + c(11)*T4 + c(9)*T2) + c(7)*T6 + c(5)*T4 + c(3)*T2 + c(1)*I;
-end
-F = (V-U)\(2*U) + I;  %F = (-U+V)\(U+V);
-
-% Squaring phase.
-for k = 1:s
-  F = F*F;
-end
-end
-
-
-function t = ell(T, coeff, m_val)
-%ell Function needed to compute optimal parameters.
-scaledT = coeff.^(1/(2*m_val+1)) .* abs(T);
-alpha = normAm(scaledT,2*m_val+1)/norm(T,1);
-t = max(ceil(log2(2*alpha/eps(class(alpha)))/(2*m_val)),0);
-end
-
-function [s, m, T2, T4, T6] = expm_params(T)
-%expm_params Obtain scaling parameter and order of the Pade approximant.
-% Coefficients of backwards error function.
-coeff = [1/100800, 1/10059033600, 1/4487938430976000,...
-  1/5914384781877411840000, 1/113250775606021113483283660800000000];
-
-s = 0;
-% m_val is one of [3 5 7 9 13];
-% theta_m for m=1:13.
-theta = [%3.650024139523051e-008
-  %5.317232856892575e-004
-  1.495585217958292e-002  % m_vals = 3
-  %8.536352760102745e-002
-  2.539398330063230e-001  % m_vals = 5
-  %5.414660951208968e-001
-  9.504178996162932e-001  % m_vals = 7
-  %1.473163964234804e+000
-  2.097847961257068e+000  % m_vals = 9
-  %2.811644121620263e+000
-  %3.602330066265032e+000
-  %4.458935413036850e+000
-  5.371920351148152e+000];% m_vals = 13
-
-T2 = T*T;
-T4 = T2*T2;
-T6 = T2*T4;
-d4 = norm(T4,1)^(1/4);
-d6 = norm(T6,1)^(1/6);
-eta1 = max(d4, d6);
-if (eta1 <= theta(1) && ell(T, coeff(1), 3) == 0)
-  m = 3;
-  return;
-end
-if (eta1 <= theta(2) && ell(T, coeff(2), 5) == 0)
-  m = 5;
-  return;
-end
-
-isSmall = size(T,1) < 150; %Compute matrix power explicitly
-if isSmall
-  d8 = norm(T4*T4,1)^(1/8);
-else
-  d8 = normAm(T4, 2)^(1/8);
-end
-eta3 = max(d6, d8);
-if (eta3 <= theta(3) && ell(T, coeff(3), 7) == 0)
-  m = 7;
-  return;
-end
-if (eta3 <= theta(4) && ell(T, coeff(4), 9) == 0)
-  m = 9;
-  return;
-end
-if isSmall
-  d10 = norm(T4*T6,1)^(1/10);
-else
-  d10 = normAm(T2, 5)^(1/10);
-end
-eta4 = max(d8, d10);
-eta5 = min(eta3, eta4);
-s = max(ceil(log2(eta5/theta(5))), 0);
-s = s + ell(T/2^s, coeff(5), 13);
-if isinf(s)
-  % Overflow in ell subfunction. Revert to old estimate.
-  [t, s] = log2(norm(T,1)/theta(end));
-  s = s - (t == 0.5); % adjust s if normA/theta(end) is a power of 2.
-end
-m = 13;
-end
-
-function [c,mv] = normAm(A,m)
-%NORMAM   Estimate of 1-norm of power of matrix.
-%   NORMAM(A,M) estimates norm(A^m,1). If A has nonnegative elements
-%   the estimate is exact.
-%   [C, MV] = NORMAM(A,M) returns the estimate C and the number MV of
-%   matrix-vector products computed involving A or A^*.
-
-%   Reference:
-%   A. H. Al-Mohy and N. J. Higham, A New Scaling and Squaring Algorithm
-%      for the Matrix Exponential, SIAM J. Matrix Anal. Appl. 31(3):
-%      970-989, 2009.
-%
-%   Awad H. Al-Mohy and Nicholas J. Higham
-%   Copyright 2014-2015 The MathWorks, Inc.
-
-n = size(A,1);
-if n < 50 % Compute matrix power explicitly
-  mv = 0;
-  c = norm(matlab.internal.math.mpower.viaMtimes(A,m),1);
-elseif isreal(A) && all(A(:) >= 0)
-  % For positive matrices only.
-  e = ones(n,1,class(A));
-  for j=1:m
-    e = A'*e;
-  end
-  c = norm(e,inf);
-  mv = m;
-else
-  [c,~,~,it] = normest1(@afun_power);
-  mv = it(2)*2*m; % Since t = 2.
-end
-% End of normAm
-
-  function Z = afun_power(flag,X)
-    %afun_power  Function to evaluate matrix products needed by normest1.
-    if isequal(flag,'dim')
-      Z = n;
-    elseif isequal(flag,'real')
-      Z = isreal(A);
-    else
-      if isequal(flag,'notransp')
-        for i = 1:m
-          X = A*X;
-        end
-      elseif isequal(flag,'transp')
-        for i = 1:m
-          X = A'*X;
-        end
-      end
-      Z = X;
-    end
-  end
 end
 
 function D2 = wigD(q)
@@ -994,154 +704,4 @@ D2(5,4,:,:) = -2*Ast.^3.*Bst;
 % D2(5,5,:,:) = Ast.^4;
 D2(5,5,:,:) = AstSq.*AstSq;
 
-
 end
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Deprecated
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-%   case 'Resampling'
-%   
-%     g_tr = sum(g);
-%     
-%     % Process MD simulation data
-%     % ---------------------------------------------------------------------
-%     
-%     % Perform rotations on g- and A-tensors
-%     gTensor = tensortraj(g,RTraj,RTrajInv);
-% 
-%     ATensor = tensortraj(A,RTraj,RTrajInv)*1e6*2*pi; % MHz (s^-1) -> Hz (rad s^-1)
-%     
-%     if isfield(MD,'GlobalDiff')
-%       gTensor = multimatmult(RTrajGlobal, multimatmult(gTensor, RTrajGlobalInv, 'real'), 'real');
-%       ATensor = multimatmult(RTrajGlobal, multimatmult(ATensor, RTrajGlobalInv, 'real'), 'real');
-%     end
-%     
-%     GpTensor = gTensor/gfree - g_tr/3/gfree;
-%         
-%     rho = zeros(3,3,Par.nTraj,nSteps);
-%     rho(:,:,:,1) = repmat(eye(3),[1,1,Par.nTraj]);
-%     
-%     % Prepare propagators
-%     % ---------------------------------------------------------------------
-%     
-%     Gp_zz = GpTensor(3,3,:,:);
-% 
-%     % norm of expression in Eq. 24 in [1]
-%     a = sqrt(ATensor(1,3,:,:).*ATensor(1,3,:,:) ...
-%            + ATensor(2,3,:,:).*ATensor(2,3,:,:) ...
-%            + ATensor(3,3,:,:).*ATensor(3,3,:,:));
-% 
-%     % rotation angle and unit vector parallel to axis of rotation
-%     % refer to paragraph below Eq. 37 in [1]
-% %     theta = Gamma*dt*0.5*squeeze(a);
-%     theta = dt*0.5*squeeze(a);
-%     nx = squeeze(ATensor(1,3,:,:)./a);
-%     ny = squeeze(ATensor(2,3,:,:)./a);
-%     nz = squeeze(ATensor(3,3,:,:)./a);
-% 
-%     % Eqs. A1-A2 in [1]
-%     ct = cos(theta) - 1;
-%     st = -sin(theta);
-% 
-%     % matrix exponential of hyperfine part
-%     % Eqs. A1-A2 are used to construct Eq. 37 in [1]
-%     expadotI = zeros(3,3,size(Gp_zz,3),size(Gp_zz,4));
-%     expadotI(1,1,:,:) = 1 + ct.*(nz.*nz + 0.5*(nx.*nx + ny.*ny)) ...
-%                          + 1i*st.*nz;
-%     expadotI(1,2,:,:) = sqrt(0.5)*(st.*ny + ct.*nz.*nx) ...
-%                          + 1i*sqrt(0.5)*(st.*nx - ct.*nz.*ny);
-%     expadotI(1,3,:,:) = 0.5*ct.*(nx.*nx - ny.*ny) ... 
-%                          - 1i*ct.*nx.*ny;
-%     expadotI(2,1,:,:) = sqrt(0.5)*(-st.*ny + ct.*nz.*nx) ...
-%                          + 1i*sqrt(0.5)*(st.*nx + ct.*nz.*ny);
-%     expadotI(2,2,:,:) = 1 + ct.*(nx.*nx + ny.*ny);
-%     expadotI(2,3,:,:) = sqrt(0.5)*(st.*ny - ct.*nz.*nx) ...
-%                          + 1i*sqrt(0.5)*(st.*nx + ct.*nz.*ny);
-%     expadotI(3,1,:,:) = 0.5*ct.*(nx.*nx - ny.*ny) ...
-%                          + 1i*ct.*nx.*ny;
-%     expadotI(3,2,:,:) = sqrt(0.5)*(-st.*ny - ct.*nz.*nx) ...
-%                          + 1i*sqrt(0.5)*(st.*nx - ct.*nz.*ny);
-%     expadotI(3,3,:,:) = 1 + ct.*(nz.*nz + 0.5*(nx.*nx + ny.*ny))  ...
-%                          - 1i*st.*nz;
-%     
-%     
-%     % Calculate propagator, Eq. 35 in [1]
-%     U = bsxfun(@times, exp(-1i*dt*0.5*omega*Gp_zz), expadotI);
-%     
-%     
-%     % Propagate density matrix
-%     % ---------------------------------------------------------------------
-%     
-%     if nTraj>1
-%       for iStep=2:nSteps
-%         rho(:,:,:,iStep) = multimatmult(U(:,:,:,iStep-1),...
-%                                    multimatmult(rho(:,:,:,iStep-1), U(:,:,:,iStep-1),'complex'),...
-%                                    'complex');
-% 
-%         %  Trace of a product of matrices is the sum of entry-wise products
-%         %      rho_t(:,:,:,iStep) = U2(:,:,:,iStep-1).*rho_t(:,:,:,iStep-1);
-%       end
-%     else
-%       for iStep=2:nSteps
-%         rho(:,:,1,iStep) = U(:,:,1,iStep-1)*rho(:,:,1,iStep-1)*U(:,:,1,iStep-1);
-% 
-%         %  Trace of a product of matrices is the sum of entry-wise products
-%         %      rho_t(:,:,:,iStep) = U2(:,:,:,iStep-1).*rho_t(:,:,:,iStep-1);
-%       end
-%     end
-
-% else
-% % truncated trajectory behavior not being used, so use full propagation
-% % scheme for all time steps
-%   
-%   switch Method
-%     case 'Nitroxide'
-%       for iStep=2:nSteps
-%         rho(:,:,:,iStep) = multimatmult(U(:,:,:,iStep-1),...
-%                                    multimatmult(rho(:,:,:,iStep-1), U(:,:,:,iStep-1),'complex'),...
-%                                    'complex');
-%     
-%         %  Trace of a product of matrices is the sum of entry-wise products
-%         %      rho_t(:,:,:,iStep) = U2(:,:,:,iStep-1).*rho_t(:,:,:,iStep-1);
-%       end
-%       
-%     case 'ISTOs'
-%       if Liouville
-%         for iStep=2:nSteps
-%           for iTraj=1:nTraj
-%             rho(:,iTraj,iStep) = U(:,:,iTraj,iStep-1)*rho(:,iTraj,iStep-1);  
-%           end
-%         end
-% 
-%       else % Hilbert space
-%         for iStep=2:nSteps
-%           rho(:,:,:,iStep) = multimatmult(U(:,:,:,iStep-1),...
-%                                      multimatmult(rho(:,:,:,iStep-1),...
-%                                            Udag(:,:,:,iStep-1),'complex'),...
-%                                      'complex');                  
-%         end
-%       end
-%   end
-% 
-% end
-
-% Density Matrix Propagation
-%     if nTraj>1
-%       for iStep=2:nSteps
-%         rho_t(:,:,:,iStep) = multimatmult(U(:,:,:,iStep-1),...
-%                                    multimatmult(rho_t(:,:,:,iStep-1), U(:,:,:,iStep-1),'complex'),...
-%                                    'complex');
-%     
-%         %  Trace of a product of matrices is the sum of entry-wise products
-%         %      rho_t(:,:,:,iStep) = U2(:,:,:,iStep-1).*rho_t(:,:,:,iStep-1);
-%       end
-%     else
-%       for iStep=2:nSteps
-%         rho_t(:,:,1,iStep) = U(:,:,1,iStep-1)*rho_t(:,:,1,iStep-1)*U(:,:,1,iStep-1);
-% 
-%         %  Trace of a product of matrices is the sum of entry-wise products
-%         %      rho_t(:,:,:,iStep) = U2(:,:,:,iStep-1).*rho_t(:,:,:,iStep-1);
-%       end
-%     end

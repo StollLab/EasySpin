@@ -280,9 +280,9 @@ end
 % Check Sys
 % -------------------------------------------------------------------------
 
-if ~isfield(Sys,'Nucs')&&~strcmp(Opt.Method,'ISTOs')
+if ~isfield(Sys,'Nucs') && ~strcmp(Opt.Method,'ISTOs')
   Sys.Nucs = '14N';
-  logmsg(0,'-- List of nuclei Sys.Nucs not specified. Using Sys.Nucs=''14N'' for a nitroxide spin label.');
+  logmsg(1,'-- List of nuclei Sys.Nucs not specified. Using Sys.Nucs=''14N'' for a nitroxide spin label.');
 end
 
 [Sys,err] = validatespinsys(Sys);
@@ -488,7 +488,7 @@ end
 % default number of trajectories
 if ~isfield(Par,'nTraj')&&~strcmp(Par.Model,'MD-direct')
   Par.nTraj = 100; 
-  logmsg(0,'-- Number of trajectories Par.nTraj not given. Using %d trajectories.', Par.nTraj);
+  logmsg(1,'-- Number of trajectories Par.nTraj not given. Using %d trajectories.', Par.nTraj);
 end
 
 if isfield(Par,'t')
@@ -534,12 +534,12 @@ else
     error('The time step Par.dt must be specified when using an MD model.')
   end
   Par.Dt = Par.dt;
-  logmsg(0,'-- No time parameters given. Using time step of %0.5g s.', Par.dt);
+  logmsg(1,'-- No time parameters given. Using time step of %0.5g s.', Par.dt);
   if isfield(Par,'nSteps')
     nSteps = Par.nSteps;
   else
     nSteps = ceil(250e-9/Par.dt);
-    logmsg(0,'-- Number of time steps not given. Using %d steps.', nSteps);
+    logmsg(1,'-- Number of time steps not given. Using %d steps.', nSteps);
   end
   nStepsStoch = nSteps;
   nStepsQuant = nSteps;
@@ -733,7 +733,7 @@ if isfield(Par,'nOrients')
   nOrients = Par.nOrients;
 else
   nOrients = Par.nTraj;
-  logmsg(0,'-- Par.nOrients not specified. Using %d orientations.', nOrients);
+  logmsg(1,'-- Par.nOrients not specified. Using %d orientations.', nOrients);
 end
 
 Orients = [];
@@ -775,7 +775,7 @@ logmsg(1,'-- Method: %s -----------------------------------------', Opt.Method);
 
 % Run simulation
 % -------------------------------------------------------------------------
-clear cardamom_propagatedm
+clear cardamom_propagatedm % to clear persistent variables in function
 
 converged = 0;
 iter = 1;
