@@ -257,6 +257,7 @@ switch PropagationMethod
       U = bsxfun(@times, exp(-1i*Dt*0.5*omega*Gp_zz), expadotI);
     else
       U = exp(-1i*Dt*0.5*omega*Gp_zz);
+      U = reshape(U,[nTraj,nSteps]);
     end
     
     % Set up starting state of density matrix after pi/2 pulse, S_x
@@ -265,20 +266,20 @@ switch PropagationMethod
       rho = zeros(3,3,nTraj,nSteps);
       rho(:,:,:,1) = 0.5*repmat(eye(3),[1,1,nTraj]);
     else
-      rho = zeros(1,1,nTraj,nSteps);
-      rho(:,:,:,1) = 0.5;
+      rho = zeros(nTraj,nSteps);
+      rho(:,1) = 0.5;
     end
     
     % Propagate density matrix
     % ---------------------------------------------------------------------
     Sprho = propagate(rho,U,PropagationMethod,nSteps);
     
-    % Average over trajectories (3rd dimension) and remove singleton dimension
+    % Average over trajectories (3rd dimension)
     if strcmp(Opt.debug.EqProp,'all')
       Sprho = mean(Sprho,3);
       siz = size(Sprho);
       siz(3) = [];
-      Sprho = reshape(Sprho,siz);
+      Sprho = reshape(Sprho,siz); % remove 3rd dim which is now singleton
     end
     
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -404,12 +405,12 @@ switch PropagationMethod
     % ---------------------------------------------------------------------
     rho = propagate(rho,U,PropagationMethod,nSteps);
     
-    % Average over trajectories (3rd dimension) and remove singleton dimension
+    % Average over trajectories (3rd dimension)
     if strcmp(Opt.debug.EqProp,'all')
       rho = mean(rho,3);
       siz = size(rho);
       siz(3) = [];
-      rho = reshape(rho,siz);
+      rho = reshape(rho,siz); % remove 3rd dim which is now singleton
     end
     
     % Multiply density matrix result by S_+ detection operator
@@ -437,20 +438,26 @@ end
 % -------------------------------------------------------------------------
 
 function rho = propagate(rho,U,Method,nSteps)
-
 % Propagate density matrix
-% ---------------------------------------------------------------------
 
-% propagation using full Hamiltonian
 switch Method
   
   case 'fast'
+    
     % subspace propagation only requires U, but not U adjoint
-    for iStep = 2:nSteps
-      rho(:,:,:,iStep) = ...
-        multimatmult( U(:,:,:,iStep-1),...
-        multimatmult( rho(:,:,:,iStep-1),...
-        U(:,:,:,iStep-1) ) );
+    switch ndims(rho)
+      case 4 % S=1/2 plus one nucleus
+        for iStep = 2:nSteps
+          rho(:,:,:,iStep) = ...
+            multimatmult( U(:,:,:,iStep-1),...
+            multimatmult( rho(:,:,:,iStep-1),...
+            U(:,:,:,iStep-1) ) );
+        end
+      case 2 % special case of S=1/2 system, where propagator U is a scalar
+        for iStep = 2:nSteps
+          rho(:,iStep) = U(:,iStep-1).^2.*rho(:,iStep-1);
+        end
+        rho = reshape(rho,[1 1 size(rho)]);
     end
     
   case 'ISTOs'

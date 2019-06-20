@@ -283,7 +283,7 @@ if Sys.nNuclei>1, error('cardamom does not support more than one nucleus.'); end
 if isfield(Sys, 'lw')
   isBroadening = any(Sys.lw>0);
 else
-  isBroadening = 0;
+  isBroadening = false;
 end
 
 % Check Exp
