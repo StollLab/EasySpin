@@ -334,7 +334,7 @@ Determines how much information <code>cardamom</code> prints to the screen. If <
 
 <div class="optionfield"><code>Method</code></div>
 <div class="optiondescr">
-Determines the method with which the time-dependent  spin Hamiltonian is constructed and the spin density matrix propagated. If set to <code>'Nitroxide'</code> (default), <code>cardamom</code> will construct a <sup>14</sup>N Hamiltonian restricted to the electron spin S=-1/2 subspace and propagate it within this subspace, allowing for a very efficient analytical calculation of the propagator at each time step. If set to <code>'ISTOs'</code>, <code>cardamom</code> will construct a spin Hamiltonian using irreducible spherical tensor operators and calculate the full propagator using a matrix exponential, which is very general but much less efficient than the specialized <code>'Nitroxide'</code> method.
+Determines the method with which the time-dependent  spin Hamiltonian is constructed and the spin density matrix propagated. If set to <code>'fast'</code> (default), <code>cardamom</code> will construct a <sup>14</sup>N Hamiltonian restricted to the electron spin S=-1/2 subspace and propagate it within this subspace, allowing for a very efficient analytical calculation of the propagator at each time step. If set to <code>'ISTOs'</code>, <code>cardamom</code> will construct a spin Hamiltonian using irreducible spherical tensor operators and calculate the full propagator using a matrix exponential, which is very general but much less efficient than the specialized <code>'fast'</code> method.
 </div>
 
 <div class="optionfield"><code>FFTWindow</code></div>

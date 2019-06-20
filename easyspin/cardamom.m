@@ -152,9 +152,9 @@
 %     Verbosity      0: no display, 1: show info
 %
 %     Method         string
-%                    Nitroxide: propagate the density matrix using an 
+%                    fast: propagate the density matrix using an 
 %                      analytical expression for the matrix exponential in 
-%                      the m_S=-1/2 subspace (14N nitroxides only, faster)
+%                      the m_S=-1/2 subspace (S=1/2 with up to one nucleus)
 %                    ISTOs: propagate the density matrix using
 %                      irreducible spherical tensor operators (general, slower)
 %
@@ -212,10 +212,9 @@
 %                    simulation time axis (in s)
 
 %    Opt.debug       struct
-%                    various debugging options used for testing by
-%                    developers
+%                    various debugging options used for testing by developers
 %
-%                    EqProp: for computing the equilibrium propagator, 
+%            EqProp: for computing the equilibrium propagator, 
 %                    set to "time" (default) to only average over the time 
 %                    axis of the Hamiltonian, yielding an approximate 
 %                    propagator for each trajectory; set to "all" to 
@@ -274,11 +273,6 @@ end
 
 % Check Sys
 % -------------------------------------------------------------------------
-
-if ~isfield(Sys,'Nucs') && ~strcmp(Opt.Method,'ISTOs')
-  Sys.Nucs = '14N';
-  logmsg(1,'-- List of nuclei Sys.Nucs not specified. Using Sys.Nucs=''14N'' for a nitroxide spin label.');
-end
 
 [Sys,err] = validatespinsys(Sys);
 error(err);
@@ -608,8 +602,18 @@ logmsg(1,'  Spatial propagation:    %d steps of %g ns',nStepsStoch,dtStoch/1e-9)
 % Check Opt
 %-------------------------------------------------------------------------------
 
+fastMethodApplicable = Sys.nElectrons==1 && Sys.nNuclei<=1;
 if ~isfield(Opt,'Method')
-  Opt.Method = 'Nitroxide';
+  if fastMethodApplicable
+    Opt.Method = 'fast';
+  else
+    Opt.Method = 'ISTOs';
+  end
+end
+if strcmp(Opt.Method,'fast')
+  if ~fastMethodApplicable
+    error('Opt.Method = ''fast'' is not applicable for this spin system.');
+  end
 end
 
 if ~isfield(Opt,'FFTWindow')
@@ -629,18 +633,18 @@ end
 % Debugging options
 if ~isempty(Opt.debug)
   Opt.debug.EqProp = 'all';
+end
+
+if ~isfield(Opt.debug,'EqProp')
+  Opt.debug.EqProp = 'all';
 else
-  if ~isfield(Opt.debug,'EqProp')
-    Opt.debug.EqProp = 'all';
-  else
-    switch Opt.debug.EqProp
-      case 'time'
-        Opt.debug.EqProp = 'time';
-      case 'all'
-        Opt.debug.EqProp = 'all';
-      otherwise
-        error('Opt.debug.EqProp value not recognized.')
-    end
+  switch Opt.debug.EqProp
+    case 'time'
+      Opt.debug.EqProp = 'time';
+    case 'all'
+      Opt.debug.EqProp = 'all';
+    otherwise
+      error('Opt.debug.EqProp value not recognized.')
   end
 end
 
@@ -886,7 +890,7 @@ while ~converged
     Par.dt = dtStoch;
     Sprho = cardamom_propagatedm(Sys,Par,Opt,MD,omega0,CenterField);
     
-    % average over trajectories
+    % average over time
     if strcmp(Opt.debug.EqProp,'time')
       Sprho = squeeze(mean(Sprho,3));
     end
@@ -1001,8 +1005,8 @@ while ~converged
     spcAvg = spcNew;
     minsTot = floor(toc/60);
     if Opt.Verbosity
-      msg = sprintf('Done!\nTotal simulation time: %d:%2.0f\n',minsTot,mod(toc,60));
-      fprintf(msg);
+      msg = sprintf('Done!\nTotal simulation time: %0d:%02.0f\n',minsTot,mod(toc,60));
+     fprintf(msg);
     end
   end
 

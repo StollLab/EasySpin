@@ -1,5 +1,4 @@
-% cardamom_propagatedm Propagate the density matrix of a spin-1/2 14N
-%                      nitroxide using different methods from the literature.
+% cardamom_propagatedm Propagate the density matrix of a spin system.
 %
 %   Sprho = cardamom_propagatedm(Sys,Par,Opt,MD,omega,CenterField);
 %
@@ -19,7 +18,7 @@
 %                    center magnetic field
 %   Opt: optional settings
 %     Method         string
-%                    'Nitroxide': propagate using the m_s=-1/2 subspace
+%                    'fast': propagate using the m_s=-1/2 subspace
 %                    'ISTOs': propagate using correlation functions
 %   MD:
 %     RTraj          numeric, size = (3,3,nTraj,nSteps)
@@ -78,31 +77,31 @@ nSteps = Par.nSteps;
 % -------------------------------------------------------------------------
 
 switch PropagationMethod
-  case 'Nitroxide'  % see Ref [1]
-    
-    RTrajInv = permute(Par.RTraj,[2,1,3,4]);
-    RLabInv = permute(Par.RLab,[2,1,3,4]);
-    
+  case 'fast'  % see Ref [1]
+        
     if ~isfield(Sys,'g')
-      error('A g-tensor is required for the Nitroxide method.');
+      error('A g-tensor is required for the fast method.');
     end
     g = Sys.g;
     if ~isequal(size(g),[1,3])
       error('g-tensor must be a 3-vector.')
     end
 
-    if ~isfield(Sys, 'A')
-      error('An A-tensor is required for the Nitroxide method.');
-    end
-    A = Sys.A;
-    if ~isequal(size(A),[1,3])
-      error('A-tensor must be a 3-vector.')
+    includeHF = isfield(Sys,'A');
+    if includeHF
+      A = Sys.A;
+      if ~isequal(size(A),[1,3])
+        error('A-tensor must be a 3-vector.')
+      end
     end
     
+    RTrajInv = permute(Par.RTraj,[2,1,3,4]);
     if ~isHMMfromMD
       % Calculate time-dependent tensors from orientational trajectories
       gTensor = cardamom_tensortraj(g,Par.RTraj,RTrajInv);
-      ATensor = cardamom_tensortraj(A,Par.RTraj,RTrajInv)*1e6*2*pi; % MHz (s^-1) -> Hz (rad s^-1)
+      if includeHF
+        ATensor = cardamom_tensortraj(A,Par.RTraj,RTrajInv)*1e6*2*pi; % MHz (s^-1) -> Hz (rad s^-1)
+      end
       
     else
       % Calculate time-dependent tensors from state trajectories
@@ -112,36 +111,48 @@ switch PropagationMethod
       if isempty(gTensorState)
         % Perform MD-derived rotations on g- and A-tensors
         gTensorMD = cardamom_tensortraj(g,Par.RTraj,RTrajInv);
-        ATensorMD = cardamom_tensortraj(A,Par.RTraj,RTrajInv)*1e6*2*pi; % MHz (s^-1) -> Hz (rad s^-1)
+        if includeHF
+          ATensorMD = cardamom_tensortraj(A,Par.RTraj,RTrajInv)*1e6*2*pi; % MHz (s^-1) -> Hz (rad s^-1)
+        end
         
         nVitTraj = size(MD.viterbiTraj,1);
         gTensorState = zeros(3,3,MD.nStates,nVitTraj);
-        ATensorState = zeros(3,3,MD.nStates,nVitTraj);
+        if includeHF
+          ATensorState = zeros(3,3,MD.nStates,nVitTraj);
+        end
         
         % Average over time axis
         for iState = 1:MD.nStates
           for iTraj = 1:nVitTraj
             idxState = MD.viterbiTraj(iTraj,:) == iState;
             gTensorState(:,:,iState,iTraj) = squeeze(mean(gTensorMD(:,:,iTraj,idxState),4));
-            ATensorState(:,:,iState,iTraj) = squeeze(mean(ATensorMD(:,:,iTraj,idxState),4));
+            if includeHF
+              ATensorState(:,:,iState,iTraj) = squeeze(mean(ATensorMD(:,:,iTraj,idxState),4));
+            end
           end
         end
         
         % Average over trajectories
         gTensorState = mean(gTensorState,4,'omitnan');
-        ATensorState = mean(ATensorState,4,'omitnan');
+        if includeHF
+          ATensorState = mean(ATensorState,4,'omitnan');
+        end
       end
       
       % Calculate new time-dependent tensors from state trajectories
       % generated using optimized HMM parameters
       gTensor = zeros(3,3,nTraj,nSteps);
-      ATensor = zeros(3,3,nTraj,nSteps);
+      if includeHF
+        ATensor = zeros(3,3,nTraj,nSteps);
+      end
       
       for iState = 1:MD.nStates
         for iTraj = 1:nTraj
           idxState = Par.stateTraj(iTraj,:)==iState;
           gTensor(:,:,iTraj,idxState) = repmat(gTensorState(:,:,iState),[1,1,1,sum(idxState)]);
-          ATensor(:,:,iTraj,idxState) = repmat(ATensorState(:,:,iState),[1,1,1,sum(idxState)]);
+          if includeHF
+            ATensor(:,:,iTraj,idxState) = repmat(ATensorState(:,:,iState),[1,1,1,sum(idxState)]);
+          end
         end
       end
       
@@ -150,37 +161,50 @@ switch PropagationMethod
     % Time block averaging and sliding window processing of tensors
     if doBlockAveraging
       gTensorBlock = zeros(3,3,size(gTensor,3),Par.nBlocks);
-      ATensorBlock = zeros(3,3,size(ATensor,3),Par.nBlocks);
+      if includeHF
+        ATensorBlock = zeros(3,3,size(ATensor,3),Par.nBlocks);
+      end
 
       % Average the interaction tensors over time blocks
       idx = 1:Par.BlockLength;
       for k = 1:Par.nBlocks
         gTensorBlock(:,:,:,k) = mean(gTensor(:,:,:,idx),4);
-        ATensorBlock(:,:,:,k) = mean(ATensor(:,:,:,idx),4);
+        if includeHF
+          ATensorBlock(:,:,:,k) = mean(ATensor(:,:,:,idx),4);
+        end
         idx = idx + Par.BlockLength;
       end
 
       if useMD && isDirectfromMD && nTraj>1
         % Perform sliding window processing if using MD trajectory explicitly
         gTensor = zeros(3,3,nTraj,nSteps);
-        ATensor = zeros(3,3,nTraj,nSteps);
+        if includeHF
+          ATensor = zeros(3,3,nTraj,nSteps);
+        end
         for k = 1:nTraj
           idx = (1:nSteps) + (k-1)*Par.lag;
           gTensor(:,:,k,:) = gTensorBlock(:,:,idx);
-          ATensor(:,:,k,:) = ATensorBlock(:,:,idx);
+          if includeHF
+            ATensor(:,:,k,:) = ATensorBlock(:,:,idx);
+          end
         end
       else
         % No sliding windows for other methods, as the length of generated
         % trajectories is determined by length of FID
         gTensor = gTensorBlock;
-        ATensor = ATensorBlock;
+        if includeHF
+          ATensor = ATensorBlock;
+        end
       end
     end
     
     % Rotate tensors into lab frame explicitly
     if ~isempty(Par.RLab)
+      RLabInv = permute(Par.RLab,[2,1,3,4]);
       gTensor = multimatmult(Par.RLab, multimatmult(gTensor, RLabInv));
-      ATensor = multimatmult(Par.RLab, multimatmult(ATensor, RLabInv));
+      if includeHF
+        ATensor = multimatmult(Par.RLab, multimatmult(ATensor, RLabInv));
+      end
     end
     
     gIso = sum(g)/3;
@@ -191,54 +215,72 @@ switch PropagationMethod
     
     Gp_zz = GpTensor(3,3,:,:);
 
-    % Norm of expression in Eq. 24 in [1]
-    a = sqrt(ATensor(1,3,:,:).*ATensor(1,3,:,:) ...
-           + ATensor(2,3,:,:).*ATensor(2,3,:,:) ...
-           + ATensor(3,3,:,:).*ATensor(3,3,:,:));
-
-    % Rotation angle and unit vector parallel to axis of rotation
-    % refer to paragraph below Eq. 37 in [1]
-    theta = Dt*0.5*squeeze(a);
-    nx = squeeze(ATensor(1,3,:,:)./a);
-    ny = squeeze(ATensor(2,3,:,:)./a);
-    nz = squeeze(ATensor(3,3,:,:)./a);
+    if includeHF
+      % Norm of expression in Eq. 24 in [1]
+      a = sqrt(ATensor(1,3,:,:).*ATensor(1,3,:,:) ...
+        + ATensor(2,3,:,:).*ATensor(2,3,:,:) ...
+        + ATensor(3,3,:,:).*ATensor(3,3,:,:));
+      
+      % Rotation angle and unit vector parallel to axis of rotation
+      % refer to paragraph below Eq. 37 in [1]
+      theta = Dt*0.5*squeeze(a);
+      nx = squeeze(ATensor(1,3,:,:)./a);
+      ny = squeeze(ATensor(2,3,:,:)./a);
+      nz = squeeze(ATensor(3,3,:,:)./a);
+      
+      % Eqs. A1-A2 in [1]
+      ct = cos(theta) - 1;
+      st = -sin(theta);
+      
+      % Matrix exponential of hyperfine part
+      % Eqs. A1-A2 are used to construct Eq. 37 in [1]
+      expadotI = zeros(3,3,size(Gp_zz,3),size(Gp_zz,4));
+      expadotI(1,1,:,:) = 1 + ct.*(nz.*nz + 0.5*(nx.*nx + ny.*ny)) ...
+        + 1i*st.*nz;
+      expadotI(1,2,:,:) = sqrt(0.5)*(st.*ny + ct.*nz.*nx) ...
+        + 1i*sqrt(0.5)*(st.*nx - ct.*nz.*ny);
+      expadotI(1,3,:,:) = 0.5*ct.*(nx.*nx - ny.*ny) ...
+        - 1i*ct.*nx.*ny;
+      expadotI(2,1,:,:) = sqrt(0.5)*(-st.*ny + ct.*nz.*nx) ...
+        + 1i*sqrt(0.5)*(st.*nx + ct.*nz.*ny);
+      expadotI(2,2,:,:) = 1 + ct.*(nx.*nx + ny.*ny);
+      expadotI(2,3,:,:) = sqrt(0.5)*(st.*ny - ct.*nz.*nx) ...
+        + 1i*sqrt(0.5)*(st.*nx + ct.*nz.*ny);
+      expadotI(3,1,:,:) = 0.5*ct.*(nx.*nx - ny.*ny) ...
+        + 1i*ct.*nx.*ny;
+      expadotI(3,2,:,:) = sqrt(0.5)*(-st.*ny - ct.*nz.*nx) ...
+        + 1i*sqrt(0.5)*(st.*nx - ct.*nz.*ny);
+      expadotI(3,3,:,:) = 1 + ct.*(nz.*nz + 0.5*(nx.*nx + ny.*ny))  ...
+        - 1i*st.*nz;
+      
+      % Calculate propagator, Eq. 35 in [1]
+      U = bsxfun(@times, exp(-1i*Dt*0.5*omega*Gp_zz), expadotI);
+    else
+      U = exp(-1i*Dt*0.5*omega*Gp_zz);
+    end
     
-    % Eqs. A1-A2 in [1]
-    ct = cos(theta) - 1;
-    st = -sin(theta);
-    
-    % Matrix exponential of hyperfine part
-    % Eqs. A1-A2 are used to construct Eq. 37 in [1]
-    expadotI = zeros(3,3,size(Gp_zz,3),size(Gp_zz,4));
-    expadotI(1,1,:,:) = 1 + ct.*(nz.*nz + 0.5*(nx.*nx + ny.*ny)) ...
-                         + 1i*st.*nz;
-    expadotI(1,2,:,:) = sqrt(0.5)*(st.*ny + ct.*nz.*nx) ...
-                         + 1i*sqrt(0.5)*(st.*nx - ct.*nz.*ny);
-    expadotI(1,3,:,:) = 0.5*ct.*(nx.*nx - ny.*ny) ... 
-                         - 1i*ct.*nx.*ny;
-    expadotI(2,1,:,:) = sqrt(0.5)*(-st.*ny + ct.*nz.*nx) ...
-                         + 1i*sqrt(0.5)*(st.*nx + ct.*nz.*ny);
-    expadotI(2,2,:,:) = 1 + ct.*(nx.*nx + ny.*ny);
-    expadotI(2,3,:,:) = sqrt(0.5)*(st.*ny - ct.*nz.*nx) ...
-                         + 1i*sqrt(0.5)*(st.*nx + ct.*nz.*ny);
-    expadotI(3,1,:,:) = 0.5*ct.*(nx.*nx - ny.*ny) ...
-                         + 1i*ct.*nx.*ny;
-    expadotI(3,2,:,:) = sqrt(0.5)*(-st.*ny - ct.*nz.*nx) ...
-                         + 1i*sqrt(0.5)*(st.*nx - ct.*nz.*ny);
-    expadotI(3,3,:,:) = 1 + ct.*(nz.*nz + 0.5*(nx.*nx + ny.*ny))  ...
-                         - 1i*st.*nz;
-    
-    % Calculate propagator, Eq. 35 in [1]
-    U = bsxfun(@times, exp(-1i*Dt*0.5*omega*Gp_zz), expadotI);
+    % Set up starting state of density matrix after pi/2 pulse, S_x
+    % ---------------------------------------------------------------------
+    if includeHF
+      rho = zeros(3,3,nTraj,nSteps);
+      rho(:,:,:,1) = 0.5*repmat(eye(3),[1,1,nTraj]);
+    else
+      rho = zeros(1,1,nTraj,nSteps);
+      rho(:,:,:,1) = 0.5;
+    end
     
     % Propagate density matrix
     % ---------------------------------------------------------------------
+    Sprho = propagate(rho,U,PropagationMethod,nSteps);
     
-    rho = zeros(3,3,nTraj,nSteps);
-    rho(:,:,:,1) = 0.5*repmat(eye(3),[1,1,nTraj]);
-
-    Sprho = propagate(rho, U, PropagationMethod, nSteps, Opt);
-
+    % Average over trajectories (3rd dimension) and remove singleton dimension
+    if strcmp(Opt.debug.EqProp,'all')
+      Sprho = mean(Sprho,3);
+      siz = size(Sprho);
+      siz(3) = [];
+      Sprho = reshape(Sprho,siz);
+    end
+    
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   case 'ISTOs'  % see Ref [2]
     
@@ -360,7 +402,15 @@ switch PropagationMethod
     
     % Propagate density matrix
     % ---------------------------------------------------------------------
-    rho = propagate(rho, U, PropagationMethod, nSteps, Opt);
+    rho = propagate(rho,U,PropagationMethod,nSteps);
+    
+    % Average over trajectories (3rd dimension) and remove singleton dimension
+    if strcmp(Opt.debug.EqProp,'all')
+      rho = mean(rho,3);
+      siz = size(rho);
+      siz(3) = [];
+      rho = reshape(rho,siz);
+    end
     
     % Multiply density matrix result by S_+ detection operator
     % ---------------------------------------------------------------------
@@ -386,7 +436,7 @@ end
 % Helper functions
 % -------------------------------------------------------------------------
 
-function rho = propagate(rho, U, Method, nSteps, Opt)
+function rho = propagate(rho,U,Method,nSteps)
 
 % Propagate density matrix
 % ---------------------------------------------------------------------
@@ -394,7 +444,7 @@ function rho = propagate(rho, U, Method, nSteps, Opt)
 % propagation using full Hamiltonian
 switch Method
   
-  case 'Nitroxide'
+  case 'fast'
     % subspace propagation only requires U, but not U adjoint
     for iStep = 2:nSteps
       rho(:,:,:,iStep) = ...
@@ -412,10 +462,6 @@ switch Method
         multimatmult( rho(:,:,:,iStep-1),...
         Uadj(:,:,:,iStep-1) ) );
     end
-end
-
-if strcmp(Opt.debug.EqProp,'all')
-  rho = squeeze(mean(rho, 3));
 end
 
 end

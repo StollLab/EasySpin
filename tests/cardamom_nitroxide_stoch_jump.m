@@ -1,5 +1,5 @@
 function [err,data] = test(opt,olddata)
-% Regression test for cardamom using nitroxide method and a jump simulation
+% Regression test for cardamom using fast method and a jump simulation
 
 rng(1)
 
@@ -23,7 +23,7 @@ Par.Model = 'jump';
 Exp.mwFreq = 9.4;
 
 Opt.Verbosity = 0;
-Opt.Method = 'Nitroxide';
+Opt.Method = 'fast';
 
 [~,spc] = cardamom(Sys,Exp,Par,Opt);
 

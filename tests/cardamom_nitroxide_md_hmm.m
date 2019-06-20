@@ -41,7 +41,7 @@ Exp.mwFreq = 9.4;
 
 Opt.Verbosity = 0;
 Opt.FFTWindow = 1;
-Opt.Method = 'Nitroxide';
+Opt.Method = 'fast';
 Opt.nTrials = 2;
 
 [~, spc] = cardamom(Sys,Exp,Par,Opt,MD);
