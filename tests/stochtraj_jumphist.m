@@ -21,7 +21,7 @@ nB = sum(stateTraj==2);
 ratioMC = nA/nB;
 ratio = km/kp;
 
-err = abs(ratioMC/ratio-1)>0.001;
+err = abs(ratioMC/ratio-1)>0.02;
 
 if opt.Display
   histogram(stateTraj)
