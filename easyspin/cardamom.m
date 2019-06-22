@@ -535,56 +535,48 @@ if useMD
   
   % Determine if time block averaging is to be used
   if strcmp(LocalDynamicsModel,'MD-direct')
-    % check MD.dt
     if Par.Dt<MD.dt
       error('Par.Dt must be greater than MD.dt.')
     end
-    Par.isBlock = true;
+    Par.doBlockAvg = true;
   else
-    % check Par.Dt
-    if Par.dt<Par.Dt
-      Par.isBlock = true;
-    else
-      % same step size
-      Par.isBlock = false;
-    end
+    Par.doBlockAvg = Par.Dt>Par.dt;
   end
   
-  % find block properties for block averaging
-  if Par.isBlock
+  % Find block properties for block averaging
+  if Par.doBlockAvg
     if strcmp(LocalDynamicsModel,'MD-direct')
-      [Par.nBlocks,Par.BlockLength] = findblocks(Par.Dt, MD.dt, MD.nSteps);
+      Par.BlockLength = ceil(Par.Dt/MD.dt);
+      nBlocks = floor(MD.nSteps/Par.BlockLength);
     else
-      [Par.nBlocks,Par.BlockLength] = findblocks(Par.Dt, Par.dt, nStepsStoch);
+      Par.BlockLength = ceil(Par.Dt/Par.dt);
+      nBlocks = floor(nStepsStoch/Par.BlockLength);
     end
   end
   
-  % process single long trajectory into multiple short trajectories
+  % Process single long trajectory into multiple short trajectories
   if strcmp(LocalDynamicsModel,'MD-direct')
-%     Par.lag = ceil(3*MD.tauR/Par.Dt);  % use 2 ns lag between windows
     Par.lag = ceil(2e-9/Par.Dt);  % use 2 ns lag between windows
-    if Par.nSteps<Par.nBlocks
+    if Par.nSteps<nBlocks
       % Par.nSteps not changed from user input
-      Par.nTraj = floor((Par.nBlocks-Par.nSteps)/Par.lag) + 1;
+      Par.nTraj = floor((nBlocks-Par.nSteps)/Par.lag) + 1;
     else
-      Par.nSteps = Par.nBlocks;
+      Par.nSteps = nBlocks;
       Par.nTraj = 1;
     end
   end
   
 else
-  % no MD simulation trajectories provided, so perform stochastic dynamics
+  
+  % No MD simulation trajectories provided, so perform stochastic dynamics
   % simulations internally
   
-  % check for time coarse-graining (time block averaging)
-  if Par.dt<Par.Dt
-    Par.isBlock = true;
-    [Par.nBlocks,Par.BlockLength] = findblocks(Par.Dt, Par.dt, nStepsStoch);
-  else 
-    % same step size
-    Par.isBlock = false;
+  % Check for time coarse-graining (time block averaging)
+  Par.doBlockAvg = Par.Dt>Par.dt;
+  if Par.doBlockAvg
+    Par.BlockLength = ceil(Par.Dt/Par.dt);
   end
-    
+  
 end
 
 % default number of orientations
@@ -649,13 +641,13 @@ else
 end
 
 
-% Check model for local diffusion
+% Check local dynamics model
 %-------------------------------------------------------------------------------
 switch LocalDynamicsModel
   case 'diffusion'
     
     DiffLocal = Dynamics.Diff;
-  
+    
   case 'jump'
     
   case {'MD-direct','MD-HBD','MD-HMM'} % TODO process RTraj based on size of input
@@ -664,58 +656,47 @@ switch LocalDynamicsModel
       error('Par.nOrients must be specified for an MD-based model.')
     end
     
-%     if strcmp(Opt.Method, 'ISTOs')
-%       % this method uses quaternions, not rotation matrices, so convert
-%       % MD.RTraj to quaternions here before the simulation loop
     RTrajLocal = MD.RTraj;
-    qTrajLocal = rotmat2quat(MD.RTraj);
+    qTrajLocal = rotmat2quat(RTrajLocal);
     
-    if strcmp(LocalDynamicsModel,'MD-HBD')
-      M = size(MD.FrameTraj,4);
-
-      % calculate orienting potential energy function
-      qTemp = squeeze(rotmat2quat(MD.FrameTraj));
-      [phi,theta,psi] = quat2euler(qTemp,'active');
-      clear qTemp
-
-      phi = phi + 2*pi*(phi<0);
-      psi = psi + 2*pi*(psi<0);
-
-      nBins = 90;
-      phiBins = linspace(0, 2*pi, nBins);
-      thetaBins = linspace(0, pi, nBins/2);
-      psiBins = linspace(0, 2*pi, nBins);
-
-      [pdf, ~] = histcnd([phi(:),theta(:),psi(:)], ...
-                         {phiBins,thetaBins,psiBins});
-
-      pdf(end,:,:) = pdf(1,:,:);  % FIXME why does it truncate to zero in the phi direction?
-      pdf = smooth3(pdf,'gaussian');
-  %           pdf = smoothn(pdf);
-      %save('pdf.mat','pdf')
-      pdf(pdf<1e-14) = 1e-14;  % put a finite floor on histogram
-      isLocalPotential = 1;
-  %           Sys.Potential = -log(pdf);
-      LocalPotential = -log(pdf);
-          
-    end
-          
-    if strcmp(LocalDynamicsModel,'MD-HMM')
-
-      RTrajLocal = RTrajLocal(:,:,:,1:HMM.nLag:end);
-      qTrajLocal = rotmat2quat(RTrajLocal);
-
+    switch LocalDynamicsModel
+      case 'MD-HBD'
+        
+        % calculate orienting potential energy function
+        qTemp = squeeze(rotmat2quat(MD.FrameTraj));
+        [phi,theta,psi] = quat2euler(qTemp,'active');
+        clear qTemp
+        
+        phi = phi + 2*pi*(phi<0);
+        psi = psi + 2*pi*(psi<0);
+        
+        nBins = 90;
+        phiBins = linspace(0, 2*pi, nBins+1);
+        thetaBins = linspace(0, pi, nBins/2+1);
+        psiBins = linspace(0, 2*pi, nBins+1);
+        
+        pdf = histcnd([phi(:),theta(:),psi(:)],{phiBins,thetaBins,psiBins});
+        
+        pdf(end,:,:) = pdf(1,:,:);  % FIXME why does it truncate to zero in the phi direction?
+        pdf = smooth3(pdf,'gaussian');
+        pdf(pdf<1e-14) = 1e-14;  % put a finite floor on histogram
+        isLocalPotential = true;
+        LocalPotential = -log(pdf);
+        
+      case 'MD-HMM'
+        
+        RTrajLocal = RTrajLocal(:,:,:,1:HMM.nLag:end);
+        qTrajLocal = rotmat2quat(RTrajLocal);
+        
     end
     
-  % these variables could be huge and are no longer needed, so delete them now
-  MD = rmfield(MD, 'FrameTraj');
-  MD = rmfield(MD, 'RTraj');
-  if isfield(MD, 'FrameTrajwrtProt')   
-    MD = rmfield(MD, 'FrameTrajwrtProt');
-  end
-  if isfield(MD, 'RProtDiff')
-    MD = rmfield(MD, 'RProtDiff');
-  end
+    % Delete very large arrays that are no longer needed
+    fields = {'FrameTraj','RTraj','FrameTrajwrtProt','RProtDiff'};
+    for iField = 1:numel(fields)
+      if isfield(MD,fields{iField})
+        MD = rmfield(MD,fields{iField});
+      end
+    end
     
 end
 
@@ -1114,7 +1095,7 @@ reverseStr = repmat(sprintf('\b'), 1, length(msg));
 
 end
 
-function [nBlocks,BlockLength] = findblocks(Dt, dt, nSteps)
+function BlockLength = findblocks(Dt, dt)
 % time step of molecular simulation, dt, is usually much smaller than
 % the quantum propagation time step, Dt, so determine the size of the 
 % averaging block here (Dt/dt), then set nTraj and nSteps accordingly to 
@@ -1122,9 +1103,6 @@ function [nBlocks,BlockLength] = findblocks(Dt, dt, nSteps)
 
 % size of averaging blocks
 BlockLength = ceil(Dt/dt);
-
-% size of trajectory after averaging, i.e. coarse-grained trajectory length
-nBlocks = floor(nSteps/BlockLength);
 
 end
 

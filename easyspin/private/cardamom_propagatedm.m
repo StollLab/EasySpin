@@ -41,7 +41,7 @@
 function Sprho = cardamom_propagatedm(Sys, Par, Opt, MD, omega, CenterField)
 
 persistent cacheTensors
-persistent D2TrajMol
+persistent cacheD2Traj
 persistent gTensorState
 persistent ATensorState
 
@@ -51,14 +51,14 @@ persistent ATensorState
 PropagationMethod = Opt.Method;
 
 % Define a rotational dynamics time scale for integrating correlation functions
-if ~isempty(MD)
+useMD = ~isempty(MD);
+if useMD
   tauR = MD.tauR;
   isHMMfromMD = strcmp(Par.Model,'MD-HMM');
-  useMD = true;
   isDirectfromMD = strcmp(Par.Model,'MD-direct');
 else
-  useMD = false;
   isHMMfromMD = false;
+  isDirectfromMD = false;
   if isfield(Sys,'Diff')       % TODO make this work for jumps and ISTOs
     tauR = 1/6/mean(Sys.Diff);
   end
@@ -70,7 +70,7 @@ end
 
 Dt = Par.Dt;  % quantum propagation time step
 nTraj = Par.nTraj;
-doBlockAveraging = Par.isBlock;  % tensor time block averaging
+doBlockAveraging = Par.doBlockAvg;  % tensor time block averaging
 nSteps = Par.nSteps;
 
 % Simulation
@@ -160,33 +160,35 @@ switch PropagationMethod
     
     % Time block averaging and sliding window processing of tensors
     if doBlockAveraging
-      gTensorBlock = zeros(3,3,size(gTensor,3),Par.nBlocks);
-      if includeHF
-        ATensorBlock = zeros(3,3,size(ATensor,3),Par.nBlocks);
-      end
-
+      
       % Average the interaction tensors over time blocks
+      nBlocks = floor(size(gTensor,4)/Par.BlockLength);
+      gTensorBlock = zeros(3,3,size(gTensor,3),nBlocks);
+      if includeHF
+        ATensorBlock = zeros(3,3,size(ATensor,3),nBlocks);
+      end
       idx = 1:Par.BlockLength;
-      for k = 1:Par.nBlocks
-        gTensorBlock(:,:,:,k) = mean(gTensor(:,:,:,idx),4);
+      for iBlock = 1:nBlocks
+        gTensorBlock(:,:,:,iBlock) = mean(gTensor(:,:,:,idx),4);
         if includeHF
-          ATensorBlock(:,:,:,k) = mean(ATensor(:,:,:,idx),4);
+          ATensorBlock(:,:,:,iBlock) = mean(ATensor(:,:,:,idx),4);
         end
         idx = idx + Par.BlockLength;
       end
-
+      
+      % Perform sliding window processing if using MD trajectory explicitly
       if useMD && isDirectfromMD && nTraj>1
-        % Perform sliding window processing if using MD trajectory explicitly
         gTensor = zeros(3,3,nTraj,nSteps);
         if includeHF
           ATensor = zeros(3,3,nTraj,nSteps);
         end
-        for k = 1:nTraj
-          idx = (1:nSteps) + (k-1)*Par.lag;
-          gTensor(:,:,k,:) = gTensorBlock(:,:,idx);
+        idx = 1:nSteps;
+        for iTraj = 1:nTraj
+          gTensor(:,:,iTraj,:) = gTensorBlock(:,:,idx);
           if includeHF
-            ATensor(:,:,k,:) = ATensorBlock(:,:,idx);
+            ATensor(:,:,iTraj,:) = ATensorBlock(:,:,idx);
           end
+          idx = idx + Par.lag;
         end
       else
         % No sliding windows for other methods, as the length of generated
@@ -196,9 +198,11 @@ switch PropagationMethod
           ATensor = ATensorBlock;
         end
       end
+      
     end
     
-    % Rotate tensors into lab frame explicitly
+    % Apply lab frame rotation
+    % ---------------------------------------------------------------------
     if ~isempty(Par.RLab)
       RLabInv = permute(Par.RLab,[2,1,3,4]);
       gTensor = multimatmult(Par.RLab, multimatmult(gTensor, RLabInv));
@@ -206,13 +210,11 @@ switch PropagationMethod
         ATensor = multimatmult(Par.RLab, multimatmult(ATensor, RLabInv));
       end
     end
-    
-    gIso = sum(g)/3;
-    GpTensor = (gTensor - gIso)/gfree;
-    
+        
     % Prepare propagators
     % ---------------------------------------------------------------------
-    
+    gIso = sum(g)/3;
+    GpTensor = (gTensor - gIso)/gfree;    
     Gp_zz = GpTensor(3,3,:,:);
 
     if includeHF
@@ -327,48 +329,49 @@ switch PropagationMethod
       
     end
     
-    % Process Wigner D-matrices
-    % ---------------------------------------------------------------------
-    % time block averaging and sliding window processing
+    % D2 trajectories, incl. time block averaging and sliding window processing
+    % --------------------------------------------------------------------------
     if doBlockAveraging
-      if isempty(D2TrajMol)
-        % if using an MD trajectory, it is best to process the molecular
-        % dynamics once and store the result
-        % this variable will be set to empty later if an MD trajectory is
-        % not being used
-        D2TrajMol = wigD(Par.qTraj);
-        D2Avg = zeros(5,5,Par.nBlocks);
+      if ~isempty(cacheD2Traj) % use cached D2 trajectories if present
+        D2Traj = cacheD2Traj;
+      else % if not cached, process q trajectory to get D2 trajectories
         
-        % average the Wigner D-matrices over time blocks
+        D2Traj = wigD(Par.qTraj);
+        
+        % Average the Wigner D-matrices over time blocks
+        nBlocks = floor(size(D2Traj,4)/Par.BlockLength);
+        D2BlockAvg = zeros(5,5,nBlocks);
         idx = 1:Par.BlockLength;
-        for k = 1:Par.nBlocks
-          D2Avg(:,:,k) = mean(D2TrajMol(:,:,:,idx),4);
+        for iBlock = 1:nBlocks
+          D2BlockAvg(:,:,iBlock) = mean(D2Traj(:,:,:,idx),4);
           idx = idx + Par.BlockLength;
         end
         
-        % perform sliding window processing if using MD trajectory explicitly
-        if useMD
-          if isDirectfromMD
-            D2TrajMol = zeros(5,5,nTraj,nSteps);
-            for k = 1:nTraj
-              idx = (1:nSteps) + (k-1)*Par.lag;
-              D2TrajMol(:,:,k,:) = D2Avg(:,:,idx);
-            end
-          else
-            D2TrajMol = D2Avg;
+        % Perform sliding window processing if using MD trajectory explicitly
+        if useMD && isDirectfromMD && nTraj>1
+          D2Traj = zeros(5,5,nTraj,nSteps);
+          idx = 1:nSteps;
+          for iTraj = 1:nTraj
+            D2Traj(:,:,iTraj,:) = D2BlockAvg(:,:,idx);
+            idx = idx + Par.lag;
           end
+        else
+          % No sliding windows for other methods, as the length of generated
+          % trajectories is determined by length of FID
+          D2Traj = D2BlockAvg;
         end
-      end
-      D2Traj = D2TrajMol;
-      if ~useMD
-        % trajectories will continually be generated, so leave this empty
-        D2TrajMol = [];
+        
+        % Cache processed trajectory if using a MD trajectory
+        if useMD
+          cacheD2Traj = D2Traj;
+        end
       end
     else
       D2Traj = wigD(Par.qTraj);
     end
     
-    % Check for new lab frame rotations
+    % Apply lab frame rotation
+    % ---------------------------------------------------------------------
     if ~isempty(Par.qLab)
       D2Lab = wigD(Par.qLab);
       D2Traj = multimatmult(D2Lab, D2Traj);

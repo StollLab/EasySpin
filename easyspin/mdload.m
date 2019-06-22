@@ -94,7 +94,7 @@
 %
 %                    dihedrals   numeric array, size = (nDims,nTraj,nSteps)
 %                                dihedral angles of spin label side chain;
-%                                nDims=5 for R1, nDims=1 for TOAC
+%                                nDims=5 for R1, nDims=2 for TOAC
 %
 %   Supported formats are identified via the extension
 %   in 'TrajFile' and 'TopFile'. Extensions:

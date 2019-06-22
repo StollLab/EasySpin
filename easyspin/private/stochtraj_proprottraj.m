@@ -23,17 +23,8 @@ else
   interpGrad = Sim.interpGrad;
 end
 
-if ~isempty(lambda)
-  isEigenPot = 1;
-else
-  isEigenPot = 0;
-end
-
-if ~isempty(interpGrad)
-  isNumericPot = 1;
-else
-  isNumericPot = 0;
-end
+isEigenPot = ~isempty(lambda);
+isNumericPot = ~isempty(interpGrad);
 
 if iter>1
     % If propagation is being extended, initialize q from the last set
@@ -59,6 +50,7 @@ for iStep = startStep:nSteps
   
   currRandAngStep = randAngSteps(:,:,iStep);
   
+  % Calculate total torque
   if isEigenPot
     % use Wigner functions of quaternions to calculate torque
     torque = stochtraj_calcanistorque(LMK, lambda, qLast);
@@ -78,7 +70,7 @@ for iStep = startStep:nSteps
     AngStep = currRandAngStep;
   end
 
-  % Calculate size and normalized axis of angular step
+  % Calculate size and normalized axis vector of angular step
   theta = sqrt(sum(AngStep.^2, 1));
   ux = AngStep(1,:,:)./theta;
   uy = AngStep(2,:,:)./theta;
