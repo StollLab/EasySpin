@@ -158,12 +158,13 @@
 %                    ISTOs: propagate the density matrix using
 %                      irreducible spherical tensor operators (general, slower)
 %
-%    FFTWindow       1: use a Hamming window (default), 0: no window
+%     FFTWindow       1: use a Hamming window (default), 0: no window
 %
 %     nTrials        integer
 %                    number of initialization trials for k-means
 %                    clustering; used for the Markov method
 % 
+%     LagTime        lag time for sliding window processing
 %
 %
 %   MD: structure with molecular dynamics simulation parameters
@@ -263,7 +264,7 @@ LicErr = 'Could not determine license.';
 Link = 'epr@eth'; eschecker; error(LicErr); clear Link LicErr
 % --------License ------------------------------------------------
 
-global EasySpinLogLevel;
+global EasySpinLogLevel
 global reverseStr
 EasySpinLogLevel = Opt.Verbosity;
 
@@ -335,6 +336,7 @@ switch Par.Model
     error('Setting ''%s'' for Par.Model not recognized.', Par.Model);
 end
 LocalDynamicsModel = Par.Model;
+useMDdirect = strcmp(LocalDynamicsModel,'MD-direct');
 useMD = ~isempty(MD);
 
 % Check MD
@@ -466,131 +468,6 @@ else
   isLocalPotential = false;
 end
 
-% Check Par
-%-------------------------------------------------------------------------------
-
-% Supply defaults
-% default number of trajectories
-if ~isfield(Par,'nTraj') && ~strcmp(LocalDynamicsModel,'MD-direct')
-  Par.nTraj = 100; 
-end
-
-if isfield(Par,'t')
-  % time axis is given explicitly
-  t = Par.t;
-  tMax = max(t);
-  nStepsQuant = numel(t);
-  Par.Dt = t(2) - t(1);
-  Par.dt = Par.Dt;
-  nStepsStoch = round(tMax/Par.dt);
-  % check for linearly spaced time axis
-  absdev = abs(t/Par.Dt-(0:nStepsQuant-1));
-  if max(absdev)>1e-13
-    error('t does not appear to be linearly spaced.');
-  end
-  
-elseif isfield(Par,'nSteps') && isfield(Par,'dt')
-    % number of steps and time step are given
-    nStepsQuant = Par.nSteps;
-    if ~isfield(Par,'Dt')
-      Par.Dt = Par.dt;
-    end
-    if Par.Dt<Par.dt
-      error('The stochastic time step Par.dt must be less than or equal to Par.Dt.')
-    end
-    tMax = nStepsQuant*Par.Dt;
-    nStepsStoch = round(tMax/Par.dt);
-
-elseif isfield(Par,'nSteps') && isfield(Par,'tMax')
-  % number of steps and max time are given
-  tMax = Par.tMax;
-  nStepsQuant = Par.nSteps;
-  Par.Dt = tMax/Par.nSteps;
-  Par.dt = Par.Dt;
-  nStepsStoch = round(tMax/Par.dt);
-
-else
-  if isDiffSim
-    Par.dt = min(tcorr)/10;
-  elseif strcmp(LocalDynamicsModel,'jump') && ~isfield(Par,'dt')
-    error('The time step Par.dt must be specified when using an jump model.')
-  elseif strcmp(LocalDynamicsModel,'MD') && ~isfield(Par,'dt')
-    error('The time step Par.dt must be specified when using an MD model.')
-  end
-  Par.Dt = Par.dt;
-  if isfield(Par,'nSteps')
-    nSteps = Par.nSteps;
-  else
-    nSteps = ceil(250e-9/Par.dt);
-  end
-  nStepsStoch = nSteps;
-  nStepsQuant = nSteps;
-end
-
-dtQuant = Par.Dt;
-dtStoch = Par.dt;
-
-% Decide on a simulation model based on user input
-if useMD
-  
-  % Determine if time block averaging is to be used
-  if strcmp(LocalDynamicsModel,'MD-direct')
-    if Par.Dt<MD.dt
-      error('Par.Dt must be greater than MD.dt.')
-    end
-    Par.doBlockAvg = true;
-  else
-    Par.doBlockAvg = Par.Dt>Par.dt;
-  end
-  
-  % Find block properties for block averaging
-  if Par.doBlockAvg
-    if strcmp(LocalDynamicsModel,'MD-direct')
-      Par.BlockLength = ceil(Par.Dt/MD.dt);
-      nBlocks = floor(MD.nSteps/Par.BlockLength);
-    else
-      Par.BlockLength = ceil(Par.Dt/Par.dt);
-      nBlocks = floor(nStepsStoch/Par.BlockLength);
-    end
-  end
-  
-  % Process single long trajectory into multiple short trajectories
-  if strcmp(LocalDynamicsModel,'MD-direct')
-    Par.lag = ceil(2e-9/Par.Dt);  % use 2 ns lag between windows
-    if Par.nSteps<nBlocks
-      % Par.nSteps not changed from user input
-      Par.nTraj = floor((nBlocks-Par.nSteps)/Par.lag) + 1;
-    else
-      Par.nSteps = nBlocks;
-      Par.nTraj = 1;
-    end
-  end
-  
-else
-  
-  % No MD simulation trajectories provided, so perform stochastic dynamics
-  % simulations internally
-  
-  % Check for time coarse-graining (time block averaging)
-  Par.doBlockAvg = Par.Dt>Par.dt;
-  if Par.doBlockAvg
-    Par.BlockLength = ceil(Par.Dt/Par.dt);
-  end
-  
-end
-
-% default number of orientations
-if ~isfield(Par,'nOrients')
-  Par.nOrients = Par.nTraj;
-end
-
-logmsg(1,'Parameter settings:');
-logmsg(1,'  Local dynamics model:   ''%s''',LocalDynamicsModel);
-logmsg(1,'  Number of trajectories: %d',Par.nTraj);
-logmsg(1,'  Number of orientations: %d',Par.nOrients);
-logmsg(1,'  Quantum propagation:    %d steps of %g ns',nStepsQuant,dtQuant/1e-9);
-logmsg(1,'  Spatial propagation:    %d steps of %g ns',nStepsStoch,dtStoch/1e-9);
-
 % Check Opt
 %-------------------------------------------------------------------------------
 
@@ -622,6 +499,11 @@ if ~isfield(Opt,'ExpMethod')
   Opt.ExpMethod = 'eig';
 end
 
+% Lag time for sliding window processing (used in MD-direct only)
+if ~isfield(Opt,'LagTime')
+  Opt.LagTime = 2e-9;
+end
+
 % Debugging options
 if ~isempty(Opt.debug)
   Opt.debug.EqProp = 'all';
@@ -639,6 +521,109 @@ else
       error('Opt.debug.EqProp value not recognized.')
   end
 end
+
+% Check Par
+%-------------------------------------------------------------------------------
+
+% Set default number of trajectories
+if ~isfield(Par,'nTraj') && ~strcmp(LocalDynamicsModel,'MD-direct')
+  Par.nTraj = 100; 
+end
+
+if isfield(Par,'t')
+  % time axis is given explicitly
+  t = Par.t;
+  tMax = max(t);
+  nStepsQuant = numel(t);
+  Par.Dt = t(2) - t(1);
+  Par.dt = Par.Dt;
+  nStepsStoch = round(tMax/Par.dt);
+  % check for linearly spaced time axis
+  absdev = abs(t/Par.Dt-(0:nStepsQuant-1));
+  if max(absdev)>1e-13
+    error('t does not appear to be linearly spaced.');
+  end
+  
+elseif isfield(Par,'nSteps') && isfield(Par,'dt')
+  % number of steps and time step are given
+  nStepsQuant = Par.nSteps;
+  if ~isfield(Par,'Dt')
+    Par.Dt = Par.dt;
+  end
+  if Par.Dt<Par.dt
+    error('The stochastic time step Par.dt must be less than or equal to Par.Dt.')
+  end
+  tMax = nStepsQuant*Par.Dt;
+  nStepsStoch = round(tMax/Par.dt);
+
+elseif isfield(Par,'nSteps') && isfield(Par,'tMax')
+  % number of steps and max time are given
+  tMax = Par.tMax;
+  nStepsQuant = Par.nSteps;
+  Par.Dt = tMax/Par.nSteps;
+  Par.dt = Par.Dt;
+  nStepsStoch = round(tMax/Par.dt);
+
+else
+  if isDiffSim
+    Par.dt = min(tcorr)/10;
+  elseif strcmp(LocalDynamicsModel,'jump') && ~isfield(Par,'dt')
+    error('The time step Par.dt must be specified when using an jump model.')
+  elseif strcmp(LocalDynamicsModel,'MD') && ~isfield(Par,'dt')
+    error('The time step Par.dt must be specified when using an MD model.')
+  end
+  Par.Dt = Par.dt;
+  if isfield(Par,'nSteps')
+    nSteps = Par.nSteps;
+  else
+    nSteps = ceil(250e-9/Par.dt);
+  end
+  nStepsStoch = nSteps;
+  nStepsQuant = nSteps;
+end
+
+dtQuant = Par.Dt;
+dtStoch = Par.dt;
+
+if useMDdirect
+  if Par.Dt<MD.dt
+    error('Quantum time step (Par.Dt) cannot be smaller than MD time step (MD.dt).');
+  end
+end
+
+% Calculate block length for block averaging (done if block length > 1)
+if useMDdirect
+  traj_dt = MD.dt;
+else
+  traj_dt = Par.dt;
+end
+Par.BlockLength = ceil(Par.Dt/traj_dt);
+
+% Determine whether to process single long MD trajectory into multiple short
+% MD trajectories
+if useMDdirect
+  Par.lag = ceil(Opt.LagTime/Par.Dt);
+  nBlocks = floor(MD.nSteps/Par.BlockLength);
+  if Par.nSteps<nBlocks
+    % Par.nSteps not changed from user input
+    Par.nTraj = floor((nBlocks-Par.nSteps)/Par.lag) + 1;
+  else
+    Par.nSteps = nBlocks;
+    Par.nTraj = 1;
+  end
+end
+
+% Set default number of orientations
+if ~isfield(Par,'nOrients')
+  Par.nOrients = Par.nTraj; % TODO change to fixed value
+end
+
+logmsg(1,'Parameter settings:');
+logmsg(1,'  Local dynamics model:   ''%s''',LocalDynamicsModel);
+logmsg(1,'  Number of trajectories: %d',Par.nTraj);
+logmsg(1,'  Number of orientations: %d',Par.nOrients);
+logmsg(1,'  Quantum propagation:    %d steps of %g ns',nStepsQuant,dtQuant/1e-9);
+logmsg(1,'  Spatial propagation:    %d steps of %g ns',nStepsStoch,dtStoch/1e-9);
 
 
 % Check local dynamics model
@@ -996,7 +981,7 @@ end
 clear RTraj qTraj
 % Par = rmfield(Par,{'RTraj','qTraj'});
 
-if strcmp(LocalDynamicsModel, 'Molecular Dynamics')
+if strcmp(LocalDynamicsModel(1:2), 'MD')
   % these variables can take up a lot of memory and might prevent the user 
   % from implementing a fine enough grid for powder averaging 
   clear MD

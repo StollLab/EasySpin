@@ -70,7 +70,7 @@ end
 
 Dt = Par.Dt;  % quantum propagation time step
 nTraj = Par.nTraj;
-doBlockAveraging = Par.doBlockAvg;  % tensor time block averaging
+doBlockAveraging = Par.BlockLength>1;  % tensor time block averaging
 nSteps = Par.nSteps;
 
 % Simulation
@@ -78,7 +78,7 @@ nSteps = Par.nSteps;
 
 switch PropagationMethod
   case 'fast'  % see Ref [1]
-        
+    
     if ~isfield(Sys,'g')
       error('A g-tensor is required for the fast method.');
     end
@@ -86,7 +86,7 @@ switch PropagationMethod
     if ~isequal(size(g),[1,3])
       error('g-tensor must be a 3-vector.')
     end
-
+    
     includeHF = isfield(Sys,'A');
     if includeHF
       A = Sys.A;
@@ -97,6 +97,7 @@ switch PropagationMethod
     
     RTrajInv = permute(Par.RTraj,[2,1,3,4]);
     if ~isHMMfromMD
+      logmsg(1,'  calculating tensor trajectories from orientational trajectories');
       % Calculate time-dependent tensors from orientational trajectories
       gTensor = cardamom_tensortraj(g,Par.RTraj,RTrajInv);
       if includeHF
@@ -109,19 +110,20 @@ switch PropagationMethod
       % Calculate the average interaction tensors for each state using
       % MD-derived frame trajectories and Viterbi state trajectories
       if isempty(gTensorState)
+        logmsg(1,'  calculating tensor trajectories from orientational trajectories');
         % Perform MD-derived rotations on g- and A-tensors
         gTensorMD = cardamom_tensortraj(g,Par.RTraj,RTrajInv);
         if includeHF
           ATensorMD = cardamom_tensortraj(A,Par.RTraj,RTrajInv)*1e6*2*pi; % MHz (s^-1) -> Hz (rad s^-1)
         end
-        
+                
+        % Average over time axis
+        logmsg(1,'  calculating state averages of tensors');
         nVitTraj = size(MD.viterbiTraj,1);
         gTensorState = zeros(3,3,MD.nStates,nVitTraj);
         if includeHF
           ATensorState = zeros(3,3,MD.nStates,nVitTraj);
         end
-        
-        % Average over time axis
         for iState = 1:MD.nStates
           for iTraj = 1:nVitTraj
             idxState = MD.viterbiTraj(iTraj,:) == iState;
@@ -141,11 +143,11 @@ switch PropagationMethod
       
       % Calculate new time-dependent tensors from state trajectories
       % generated using optimized HMM parameters
+      logmsg(1,'  calculating tensor trajectories from state trajectories');
       gTensor = zeros(3,3,nTraj,nSteps);
       if includeHF
         ATensor = zeros(3,3,nTraj,nSteps);
-      end
-      
+      end      
       for iState = 1:MD.nStates
         for iTraj = 1:nTraj
           idxState = Par.stateTraj(iTraj,:)==iState;
@@ -160,6 +162,7 @@ switch PropagationMethod
     
     % Time block averaging and sliding window processing of tensors
     if doBlockAveraging
+      logmsg(1,'  time block averaging, block length %d',Par.BlockLength);
       
       % Average the interaction tensors over time blocks
       nBlocks = floor(size(gTensor,4)/Par.BlockLength);
@@ -177,6 +180,7 @@ switch PropagationMethod
       end
       
       % Perform sliding window processing if using MD trajectory explicitly
+      logmsg(1,'  sliding window, lag %d',Par.lag);
       if useMD && isDirectfromMD && nTraj>1
         gTensor = zeros(3,3,nTraj,nSteps);
         if includeHF
@@ -203,6 +207,7 @@ switch PropagationMethod
     
     % Apply lab frame rotation
     % ---------------------------------------------------------------------
+    logmsg(1,'  combine local with global orientation');
     if ~isempty(Par.RLab)
       RLabInv = permute(Par.RLab,[2,1,3,4]);
       gTensor = multimatmult(Par.RLab, multimatmult(gTensor, RLabInv));
@@ -274,6 +279,7 @@ switch PropagationMethod
     
     % Propagate density matrix
     % ---------------------------------------------------------------------
+    logmsg(1,'  propagate density matrix');
     Sprho = propagate(rho,U,PropagationMethod,nSteps);
     
     % Average over trajectories (3rd dimension)
