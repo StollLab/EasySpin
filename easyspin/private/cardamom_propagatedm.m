@@ -188,9 +188,9 @@ switch PropagationMethod
         end
         idx = 1:nSteps;
         for iTraj = 1:nTraj
-          gTensor(:,:,iTraj,:) = gTensorBlock(:,:,idx);
+          gTensor(:,:,iTraj,:) = gTensorBlock(:,:,:,idx);
           if includeHF
-            ATensor(:,:,iTraj,:) = ATensorBlock(:,:,idx);
+            ATensor(:,:,iTraj,:) = ATensorBlock(:,:,:,idx);
           end
           idx = idx + Par.lag;
         end
