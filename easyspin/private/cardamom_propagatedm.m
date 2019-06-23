@@ -394,11 +394,21 @@ switch PropagationMethod
     % Calculate propagators
     % ---------------------------------------------------------------------
     algo = 'eig';
-    U0 = expm_(-1i*Dt*H0,algo);  % interaction frame transformation operator
+    useSzonly = true;
+    if useSzonly
+      % filter to eliminate Sx and Sz terms from Hamiltonians
+      nStates = 2*Sys.Spins + 1;
+      I(1:nStates(1)) = {ones(prod(nStates)/nStates(1))};
+      SzFilter = blkdiag(I{:});
+    else
+      SzFilter = 1;
+    end
+    U0 = expm_(-1i*Dt*SzFilter.*H0,algo);  % interaction frame transformation operator
     U = zeros(size(H));
     for iStep = 1:nSteps
       for iTraj = 1:nTraj
-        U(:,:,iTraj,iStep) = U0*expm_(1i*Dt*H(:,:,iTraj,iStep),algo);
+        U_ = expm_(1i*Dt*SzFilter.*H(:,:,iTraj,iStep),algo);
+        U(:,:,iTraj,iStep) = U0*U_;
       end
     end
     
