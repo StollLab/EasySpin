@@ -283,12 +283,10 @@ switch PropagationMethod
     Sprho = propagate(rho,U,PropagationMethod,nSteps);
     
     % Average over trajectories (3rd dimension)
-    if strcmp(Opt.debug.EqProp,'all')
-      Sprho = mean(Sprho,3);
-      siz = size(Sprho);
-      siz(3) = [];
-      Sprho = reshape(Sprho,siz); % remove 3rd dim which is now singleton
-    end
+    Sprho = mean(Sprho,3);
+    siz = size(Sprho);
+    siz(3) = [];
+    Sprho = reshape(Sprho,siz); % remove 3rd dim which is now singleton
     
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   case 'ISTOs'  % see Ref [2]
@@ -415,22 +413,16 @@ switch PropagationMethod
     rho = propagate(rho,U,PropagationMethod,nSteps);
     
     % Average over trajectories (3rd dimension)
-    if strcmp(Opt.debug.EqProp,'all')
-      rho = mean(rho,3);
-      siz = size(rho);
-      siz(3) = [];
-      rho = reshape(rho,siz); % remove 3rd dim which is now singleton
-    end
+    rho = mean(rho,3);
+    siz = size(rho);
+    siz(3) = [];
+    rho = reshape(rho,siz); % remove 3rd dim which is now singleton
     
     % Multiply density matrix result by S_+ detection operator
     % ---------------------------------------------------------------------
     % Only keep the m_S=\beta subspace part that contributes to tr(S_{+}\rho(t))
     projector = sop(Sys.Spins,'+1');
-    if strcmp(Opt.debug.EqProp,'time')
-      Sprho = multimatmult(repmat(projector,1,1,nTraj,nSteps),rho);
-    elseif strcmp(Opt.debug.EqProp,'all')
-      Sprho = multimatmult(repmat(projector,1,1,nSteps),rho);
-    end
+    Sprho = multimatmult(repmat(projector,1,1,nSteps),rho);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   otherwise

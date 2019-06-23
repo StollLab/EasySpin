@@ -212,17 +212,6 @@
 %     t              numeric, size = (2*nSteps,1)
 %                    simulation time axis (in s)
 
-%    Opt.debug       struct
-%                    various debugging options used for testing by developers
-%
-%            EqProp: for computing the equilibrium propagator, 
-%                    set to "time" (default) to only average over the time 
-%                    axis of the Hamiltonian, yielding an approximate 
-%                    propagator for each trajectory; set to "all" to 
-%                    average over both time and trajectory axes, yielding a
-%                    single approximate propagator to be used on the
-%                    trajectory-averaged density matrix
-%
 %    Opt.ExpMethod   method for computing matrix exponential
 
 function varargout = cardamom(Sys,Exp,Par,Opt,MD)
@@ -267,10 +256,6 @@ Link = 'epr@eth'; eschecker; error(LicErr); clear Link LicErr
 global EasySpinLogLevel
 global reverseStr
 EasySpinLogLevel = Opt.Verbosity;
-
-if ~isfield(Opt,'debug')
-  Opt.debug = [];
-end
 
 % Check Sys
 % -------------------------------------------------------------------------
@@ -502,24 +487,6 @@ end
 % Lag time for sliding window processing (used in MD-direct only)
 if ~isfield(Opt,'LagTime')
   Opt.LagTime = 2e-9;
-end
-
-% Debugging options
-if ~isempty(Opt.debug)
-  Opt.debug.EqProp = 'all';
-end
-
-if ~isfield(Opt.debug,'EqProp')
-  Opt.debug.EqProp = 'all';
-else
-  switch Opt.debug.EqProp
-    case 'time'
-      Opt.debug.EqProp = 'time';
-    case 'all'
-      Opt.debug.EqProp = 'all';
-    otherwise
-      error('Opt.debug.EqProp value not recognized.')
-  end
 end
 
 % Check Par
@@ -855,11 +822,6 @@ while ~converged
     Par.Dt = dtQuant;
     Par.dt = dtStoch;
     Sprho = cardamom_propagatedm(Sys,Par,Opt,MD,omega0,CenterField);
-    
-    % average over time
-    if strcmp(Opt.debug.EqProp,'time')
-      Sprho = squeeze(mean(Sprho,3));
-    end
     
     iTDSignal{1,iOrient} = 0;
     % calculate the time-domain signal, i.e. the expectation value of S_{+}
