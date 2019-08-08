@@ -856,11 +856,11 @@ Sys.S = [1 1 1];        % three spins
 d12 = [0 0 1.4e4];      % units: MHz
 d23 = [0 0 2.1e4];
 d13 = [0 0 3.7e4];
-Sys.J = [d12;d13;d23];  % three interaction vectors, one per row
+Sys.dvec = [d12;d13;d23];  % three interaction vectors, one per row
 </pre>
 
 <p>
-You can use either <code>Sys.J</code> (together with <code>Sys.dvec</code> and <code>Sys.eeD</code> if needed) or <code>Sys.ee</code> (with <code>Sys.eeFrame</code>), but not both at the same time.
+You can use either <code>Sys.dvec</code> (together with <code>Sys.J</code> and <code>Sys.eeD</code> if needed) or <code>Sys.ee</code> (with <code>Sys.eeFrame</code>), but not both at the same time.
 </div>
 </div>
 
@@ -885,11 +885,11 @@ Sys.S = [3/2 3/2 3/2];    % three spins
 D12 = [-1 -1 2]*1.4e4;    % units: MHz
 D23 = [-1 -1 2]*2.1e4;
 D13 = [-1 -1 2]*3.7e4;
-Sys.J = [D12; D13; D23];  % three tensors
+Sys.eeD = [D12; D13; D23];  % three tensors
 </pre>
 
 <p>
-You can use either <code>Sys.J</code> (together with <code>Sys.dvec</code> and <code>Sys.eeD</code> if needed) or <code>Sys.ee</code> (with <code>Sys.eeFrame</code>), but not both at the same time.
+You can use either <code>Sys.eeD</code> (together with <code>Sys.J</code> and <code>Sys.dvec</code> if needed) or <code>Sys.ee</code> (with <code>Sys.eeFrame</code>), but not both at the same time.
 </div>
 </div>
 
