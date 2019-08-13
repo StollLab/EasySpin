@@ -2,15 +2,14 @@
 %
 %   MD = mdload(TrajFile,TopFile);
 %   MD = mdload(TrajFile,TopFile,Info);
-%   MD = mdload(TrajFile,TopFile,Info,OutOpt);
+%   MD = mdload(TrajFile,TopFile,Info,Opt);
 %
 %   Input:
 %     TrajFile  Name of trajectory output file from the MD simulation.
 %               Supported formats are identified via the extension
 %               in 'TrajFile' and 'TopFile'. Extensions:
 %
-%                    NAMD:   .DCD, .PSF
-%                    CHARMM: .DCD, .PSF
+%                    NAMD, X-PLOR, CHARMM:   .DCD, .PSF
 %
 %     TopFile   Name of topology input file used for the MD simulation.
 %
@@ -32,7 +31,8 @@
 %                    AtomNames  structure array (optional)
 %                               Contains the atom names used in the PSF to 
 %                               refer to the following atoms in the 
-%                               nitroxide spin label molecule model:
+%                               nitroxide spin label molecule model. The
+%                               defaults for R1 and TOAC are:
 %
 %                      R1:
 %                                              ON (ONname)
@@ -65,7 +65,7 @@
 %                             (Nname) N - CA (CAname)
 %
 %
-%     OutOpt    structure array containing the following fields
+%     Op  t    structure array containing the following fields
 %
 %               Verbosity 0: no display, 1: (default) show info
 %
@@ -98,7 +98,7 @@
 %                    nDihedrals=5 for R1, nDihedrals=2 for TOAC
 %
 
-function MD = mdload(TrajFile,TopFile,Info,OutOpt)
+function MD = mdload(TrajFile,TopFile,Info,Opt)
 
 switch nargin
   case 0
@@ -107,19 +107,19 @@ switch nargin
     error('At least two input arguments (trajecory file and structure file) are needed.');
   case 2
     Info = struct;
-    OutOpt = struct;
+    Opt = struct;
   case 3
-    OutOpt = struct;
+    Opt = struct;
   case 4
   otherwise
     error('No more than 4 input arguments are possible.')
 end
 
-if ~isfield(OutOpt,'Verbosity'), OutOpt.Verbosity = 1; end
-if ~isfield(OutOpt,'keepProtCA'), OutOpt.keepProtCA = false; end
+if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 1; end
+if ~isfield(Opt,'keepProtCA'), Opt.keepProtCA = false; end
 
 global EasySpinLogLevel;
-EasySpinLogLevel = OutOpt.Verbosity;
+EasySpinLogLevel = Opt.Verbosity;
 
 if ~isfield(Info,'ResName')
   Info.ResName = 'CYR1';
@@ -184,10 +184,6 @@ if ~ischar(TopFile)||regexp(TopFile,'\w+\.\w+','once')<1
   error('TopFile must be given as a character array, including the filename extension.')
 end
 
-% if numel(regexp(TopFile,'\.'))>1
-%   error('Only one period (".") can be included in TopFile as part of the filename extension. Remove the others.')
-% end
-
 if exist(TopFile,'file')
   [TopFilePath, TopFileName, TopFileExt] = fileparts(TopFile);
   TopFile = fullfile(TopFilePath, [TopFileName, TopFileExt]);
@@ -234,8 +230,8 @@ TrajFileExt = upper(TrajFileExt{1});
 TopFileExt = upper(TopFileExt);
 
 % check if file extensions are supported
-supportedTrajFileExts = {'.DCD'};
-supportedTopFileExts = {'.PSF'};
+supportedTrajFileExts = {'.DCD','.TRR'};
+supportedTopFileExts = {'.PSF','.GRO'};
 if ~any(strcmp(TrajFileExt,supportedTrajFileExts))
   error('The trajectory file extension "%s" is not supported.', TrajFileExt);
 end
@@ -248,28 +244,36 @@ end
 %-------------------------------------------------------------------------------
 logmsg(1,'-- extracting data from MD trajectory files -----------------------------------------');
 
-if OutOpt.Verbosity==1, tic; end
+if Opt.Verbosity==1, tic; end
+
+MD.nSteps = 0;
+MD.ProtCAxyz = [];
+MD.Labelxyz = [];
+MD.dt = [];
 
 % parse through list of trajectory output files
 ExtCombo = [TrajFileExt, ',', TopFileExt];
+updateuser(0);
 for iTrajFile = 1:nTrajFiles
+  logmsg(1,'trajectory %d',iTrajFile);
   
-  [temp,psf] = processMD(TrajFile{iTrajFile}, TopFile, SegName, ResName, ...
+  [Traj_,psf] = processMDfiles(TrajFile{iTrajFile}, TopFile, SegName, ResName, ...
     LabelName, AtomNames, ExtCombo);
   
-  if iTrajFile==1
-    MD = temp;
-  else
-    % combine trajectories through array concatenation
-    if MD.dt~=temp.dt
+  if ~isempty(MD.dt)
+    if MD.dt~=Traj_.dt
       error('Time steps of trajectory files %s and %s are not equal.',TrajFile{iTrajFile},TrajFile{iTrajFile-1})
     end
-    MD.nSteps = MD.nSteps + temp.nSteps;
-    MD.ProtCAxyz = cat(1, MD.ProtCAxyz, temp.ProtCAxyz);
-    MD.Labelxyz = cat(1, MD.Labelxyz, temp.Labelxyz);
   end
+  MD.dt = Traj_.dt;
+  
+  % combine trajectories through array concatenation
+  MD.ProtCAxyz = cat(1,MD.ProtCAxyz,Traj_.ProtCAxyz);
+  MD.Labelxyz = cat(1,MD.Labelxyz,Traj_.Labelxyz);
+  MD.nSteps = MD.nSteps + Traj_.nSteps;
+  
   % this could take a long time, so notify the user of progress
-  if OutOpt.Verbosity
+  if Opt.Verbosity
     updateuser(iTrajFile,nTrajFiles)
   end
 end
@@ -400,6 +404,7 @@ tic % toc is used in updateuser()
 firstFrameReference = true;
 if firstFrameReference
   refFrame = MD.ProtCAxyz(:,:,1);
+  updateuser(0);
   for iStep = 2:MD.nSteps
     
     thisFrame = MD.ProtCAxyz(:,:,iStep);
@@ -413,7 +418,7 @@ if firstFrameReference
     MD.RProtDiff(:,:,iStep) = R*MD.RProtDiff(:,:,iStep-1);
     qTraj(:,iStep) = quatmult(q, qTraj(:,iStep-1));
     
-    if OutOpt.Verbosity
+    if Opt.Verbosity
       updateuser(iStep, MD.nSteps);
     end
   end
@@ -439,7 +444,7 @@ else
 % end
 end
 
-if ~OutOpt.keepProtCA
+if ~Opt.keepProtCA
   % Remove field if not needed anymore, since it could be huge
   MD = rmfield(MD,'ProtCAxyz');
 end
@@ -484,7 +489,7 @@ if calcProtDiffTensor
 % end
 end
 
-if OutOpt.Verbosity
+if Opt.Verbosity
   logmsg(1,'Summary:');
   logmsg(1,'  Label: %s',LabelName);
   logmsg(1,'  Number of trajectories: %d',nTrajFiles);
@@ -496,27 +501,31 @@ end
 %===============================================================================
 
 
-function [Traj,structure] = processMD(TrajFile, TopFile, SegName, ResName, LabelName, AtomNames, ExtCombo)
+function [Traj,structure] = processMDfiles(TrajFile, TopFile, SegName, ResName, LabelName, AtomNames, ExtCombo)
 
 switch ExtCombo
   case '.DCD,.PSF'
     % obtain atom indices of nitroxide coordinate atoms
-    structure = md_readpsf(TopFile, SegName, ResName, LabelName, AtomNames); 
-    Traj = md_readdcd(TrajFile, structure.idx_ProteinLabel);
+    structure = md_readpsf(TopFile,SegName,ResName,LabelName,AtomNames); 
+    Traj = md_readdcd(TrajFile,structure.idx_ProteinLabel);
     % TODO perform consistency checks between topology and trajectory files
     
     Traj.ProtCAxyz = Traj.xyz(:,:,structure.idx_ProteinCA);  % protein alpha carbon atoms
     Traj.Labelxyz = Traj.xyz(:,:,structure.idx_SpinLabel);   % spin label atoms
-    Traj = rmfield(Traj, 'xyz');     % remove the rest
+    Traj = rmfield(Traj,'xyz');     % remove the rest
 
-  case '.GRO,.TRR'
-    structure = md_readgro(TopFile, SegName, ResName, LabelName, AtomNames); 
+  case '.TRR,.GRO'
+    structure = md_readgro(TopFile,ResName,LabelName,AtomNames); 
     Traj = md_readtrr(TrajFile);
     
+    Traj.ProtCAxyz = Traj.xyz(:,:,structure.idx_ProteinCA);  % protein alpha carbon atoms
+    Traj.Labelxyz = Traj.xyz(:,:,structure.idx_SpinLabel);   % spin label atoms
+    Traj = rmfield(Traj,'xyz');     % remove the rest
+    
   otherwise
-    error(['TrajFile type "%s" and TopFile "%s" type combination is either ',...
-          'not supported or not properly entered. Please see documentation.'], ...
-          TrajFileExt, TopFileExt)
+    error(['Trajectory and structure file type combination %s is either ',...
+          'not supported or not properly entered.'], ...
+          ExtCombo)
 end
 
 end
@@ -527,19 +536,19 @@ function updateuser(iter,totN)
 
 persistent reverseStr
 
-if isempty(reverseStr), reverseStr = ''; end
+if iter==0, reverseStr = ''; return; end
 
 avg_time = toc/iter;
 secs_left = (totN - iter)*avg_time;
 mins_left = floor(secs_left/60);
 
-msg1 = sprintf('Iteration: %d/%d\n', iter, totN);
+msg1 = sprintf('Iteration %d/%d  ', iter, totN);
 if avg_time<1.0
-  msg2 = sprintf('%2.1f it/s\n', 1/avg_time);
+  msg2 = sprintf('%2.1f it/s  ', 1/avg_time);
 else
-  msg2 = sprintf('%2.1f s/it\n', avg_time);
+  msg2 = sprintf('%2.1f s/it   ', avg_time);
 end
-msg3 = sprintf('Time left: %d:%2.0f\n', mins_left, mod(secs_left,60));
+msg3 = sprintf('estimated time left: %02d:%02d\n', mins_left, round(mod(secs_left,60)));
 msg = [msg1, msg2, msg3];
 
 fprintf([reverseStr, msg]);

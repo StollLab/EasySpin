@@ -133,10 +133,10 @@ switch LabelName
       error('One or more required atom names is missing. Please check documentation.')
     end
 end
-    
+
 
 % open the file
-FileID = fopen(FileName, 'r');
+FileID = fopen(FileName,'r');
 if FileID<1, error('File "%s" could not be opened.', FileName); end
 ensurefclose = onCleanup(@() fclose(FileID));
 
@@ -144,7 +144,7 @@ ensurefclose = onCleanup(@() fclose(FileID));
 % start with "PSF"
 line = fgetl(FileID);
 if ~ischar(line)||~strcmpi(line(1:3),'PSF')
-  error('File "%s" does not have proper PSF format. See documentation for details.', FileName)
+  error('File "%s" does not have proper PSF format.', FileName)
 end
 
 % initialization
@@ -218,12 +218,12 @@ while ~feof(FileID)
       % files, so convert to integer indices
       psf.idx_ProteinLabel = find(idx_ProteinLabel);
       
-      % generate logical arrays to filter for protein alpha carbon and spin
-      % label atoms
+      % generate logical arrays to filter for alpha carbons and spin label atoms
       psf.idx_ProteinCA = strcmpi(segmentNames,SegName) & strcmpi(atomNames,'CA');
       idx_SpinLabel = strcmpi(segmentNames,SegName) & strncmpi(residueNames,ResName,4);
       psf.idx_SpinLabel = idx_SpinLabel;
       
+      % locate spin label atoms
       findatomindex = @(name) strcmpi(atomNames(idx_SpinLabel),name);
       switch LabelName
         case 'R1'

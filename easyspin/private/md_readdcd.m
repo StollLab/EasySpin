@@ -55,10 +55,7 @@ fileSize = ftell(FileID);
 fseek(FileID, 0, 'bof');
 
 % check endianness of binary file
-% TODO can we just check machineformat and be done?
 [FileName, ~, machineformat] = fopen(FileID);
-
-TIMEFACTOR = 48.88821;  % used to convert internal time units to fs TODO this should be restricted to NAMD output
 
 % block 1
 % -------------------------------------------------------------------------
@@ -231,7 +228,14 @@ for iFrame = 1:nSnapShots
   Traj.xyz(iFrame, 3:3:end) = z(idx)';
 end
 
-Traj.dt = header.NSAVC*TIMEFACTOR*header.DELTA*1e-15;
+isNAMD = true;
+if isNAMD
+  timeunit = 48.88821; % NAMD internal time unit, in femtoseconds
+else
+  timeunit = 1; % femtoseconds
+end
+Traj.dt = header.NSAVC*header.DELTA*timeunit*1e-15; % femtoseconds -> seconds
+
 Traj.nSteps = nSnapShots;
 Traj.xyz = reshape(Traj.xyz, [Traj.nSteps, 3, numel(idx)]);
 

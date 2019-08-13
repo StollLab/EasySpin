@@ -35,8 +35,8 @@ Load protein and spin label data from molecular dynamics simulation trajectory o
 <div class="subtitle">Syntax</div>
 
 <pre class="matlab">
-MD = mdload(TrajFile, TopFile, Info);
-MD = mdload(TrajFile, TopFile, Info, OutOpt);
+MD = mdload(TrajFile,TopFile,Info);
+MD = mdload(TrajFile,TopFile,Info,Opt);
 </pre>
 
 <!-- ================================================================ -->
@@ -99,7 +99,7 @@ A structure containing the names of the spin label's individual atoms used by <c
 <div class="subtitle2">Input: Output options</div>
 
 <p>
-<code>OutOpt</code> is a structure containing options regarding the output of <code>mdload</code>. The field <code>Verbosity</code> controls whether or not <code>mdload</code> will display messages to the console regarding its progress. Since MD simulation trajectory output files can be quite large (several gigabytes), loading and processing their data can be time-consuming, and <code>Verbosity</code> is set to 1 by default.
+<code>Opt</code> is a structure containing options regarding the output of <code>mdload</code>. The field <code>Verbosity</code> controls whether or not <code>mdload</code> will display messages to the console regarding its progress. Since MD simulation trajectory output files can be quite large (several gigabytes), loading and processing their data can be time-consuming, and <code>Verbosity</code> is set to 1 by default.
 </p>
 
 
