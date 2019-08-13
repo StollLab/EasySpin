@@ -35,8 +35,8 @@ Load protein and spin label data from molecular dynamics simulation trajectory o
 <div class="subtitle">Syntax</div>
 
 <pre class="matlab">
-MD = mdload(TrajFile, AtomInfo);
-MD = mdload(TrajFile, AtomInfo, OutOpt);
+MD = mdload(TrajFile, TopFile, Info);
+MD = mdload(TrajFile, TopFile, Info, OutOpt);
 </pre>
 
 <!-- ================================================================ -->
@@ -52,7 +52,10 @@ This function loads spin label frame data with and without protein global rotati
 <code>TrajFile</code> is the trajectory filename or set of filenames to be loaded. If <code>TrajFile</code> is just a file name without a directory (e.g. <code>'TrajFile1.DCD'</code>), <code>mdload</code> looks for it in Matlab's current directory. <code>TrajFile</code> can also include the full path to the file (e.g. <code>C:\mydata\sample5\TrajFile1.DCD'</code>). For multiple trajectory files, <code>TrajFile</code> can be set to a cell array containing character arrays as entries (e.g. <code>{'TrajFile1.DCD','TrajFile2.DCD'}</code>).
 
 <p>
-Formats are identified by the extension of the file name specified in <code>TrajFile</code>. The following MD simulation programs, their default output trajectory file extensions, and their input topology file extensions are supported:
+<code>TopFile</code> is the name of the topology input file. Please specify the full path.
+
+<p>
+Formats are identified by the extension of the file name specified in <code>TrajFile</code> and <code>TopFile</code>. The following MD simulation programs, their default output trajectory file extensions, and their input topology file extensions are supported:
 </p>
 
 <table>
@@ -64,13 +67,8 @@ Formats are identified by the extension of the file name specified in <code>Traj
 <div class="subtitle2">Input: Topology information</div>
 
 <p>
-<code>AtomInfo</code> is a structure containing information regarding the structure and organization of the MD trajectory data.
+<code>Info</code> is a structure containing information regarding the structure and organization of the MD trajectory data.
 </p>
-
-<div class="optionfield"><code>TopFile</code></div>
-<div class="optiondescr">
-Name of the topology input file. Please specify the full path.
-</div>
 
 <div class="optionfield"><code>SegName</code></div>
 <div class="optiondescr">
@@ -144,26 +142,11 @@ To load and process a <code>DCD</code> trajectory file <code>myTraj.DCD</code> g
 </p>
 
 <pre class="matlab">
-AtomInfo.TopFile = 'myTop.PSF';
-
-AtomInfo.ResName = 'CYR1';
-
-AtomInfo.SegName = 'PROA';
-
-AtomInfo.AtomNames.ONname = 'ON';
-AtomInfo.AtomNames.NNname = 'NN';
-AtomInfo.AtomNames.C1name = 'C1';
-AtomInfo.AtomNames.C2name = 'C2';
-AtomInfo.AtomNames.C1Rname = 'C1R';
-AtomInfo.AtomNames.C2Rname = 'C2R';
-AtomInfo.AtomNames.C1Lname = 'C1L';
-AtomInfo.AtomNames.S1Lname = 'S1L';
-AtomInfo.AtomNames.SGname = 'SG';
-AtomInfo.AtomNames.CBname = 'CB';
-AtomInfo.AtomNames.CAname = 'CA';
-AtomInfo.AtomNames.Nname = 'N';
-
-MD = mdload('myTraj.DCD',AtomInfo);
+TrajFile = 'myTop.DCD';
+TopFile = 'myTop.PSF';
+Info.ResName = 'CYR1';
+Info.SegName = 'PROA';
+MD = mdload(TrajFile,TopFile,Info);
 </pre>
 
 <!-- ============================================================= -->

@@ -179,11 +179,12 @@ while ~feof(FileID)
     nLines = round(str2double(line{1}));
     section = line{2};
     
+    % NTITLE section
     if ~isempty(strfind(section,'NTITLE')) %#ok
-      % skip this section
       reachedNTITLE = true;
     end
     
+    % NATOM section
     if ~isempty(strfind(section,'NATOM'))  %#ok
       if ~reachedNTITLE
         error('Section ordering in "%s" is not standard. See documentation for proper formatting.', FileName)
@@ -191,7 +192,7 @@ while ~feof(FileID)
       reachedNATOM = true;
       psf.NATOM = nLines;
       
-      % read NATOM section
+      % read entire NATOM section
       FileContents = textscan(FileID, AtomFormat, nLines);
       segmentNames = FileContents(2);
       segmentNames = segmentNames{1};
@@ -201,6 +202,11 @@ while ~feof(FileID)
       atomNames = atomNames{1};
       mass = FileContents(8);
       psf.mass = mass{1};
+      
+      % pick first segment if not specified explicitly
+      if isempty(SegName)
+        SegName = segmentNames{1};
+      end
       
       % filter for atoms belonging to the protein and spin label
       idx_ProteinLabel = strcmpi(segmentNames,SegName);
