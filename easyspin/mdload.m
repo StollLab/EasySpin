@@ -9,7 +9,8 @@
 %               Supported formats are identified via the extension
 %               in 'TrajFile' and 'TopFile'. Extensions:
 %
-%                    NAMD, X-PLOR, CHARMM:   .DCD, .PSF
+%                 .DCD and .PSF:   NAMD, X-PLOR, CHARMM
+%                 .TRR and .GRO:   Gromacs
 %
 %     TopFile   Name of topology input file used for the MD simulation.
 %
