@@ -16,20 +16,22 @@
 %
 %     Info      structure array containing the following fields
 %
-%                    SegName    character array
+%         .SegName    character array
 %                               Name of segment in the topology file
 %                               assigned to the spin-labeled protein.
 %                               If empty, the first segment name is chosen.
+%                               This field is ignored for .TRR/.GRO, since
+%                               those do not contain segment names.
 %
-%                    ResName    character array
+%         .ResName    character array
 %                               Name of residue assigned to spin label side 
 %                               chain. If not give, 'CYR1' is assumed, which is
 %                               the default used by CHARMM-GUI for R1.
 %
-%                    LabelName  spin label name, 'R1' or 'TOAC'
+%         .LabelName  spin label name, 'R1' or 'TOAC'
 %                               If not given, it will be inferred from ResName
 %
-%                    AtomNames  structure array (optional)
+%         .AtomNames  structure array (optional)
 %                               Contains the atom names used in the PSF to 
 %                               refer to the following atoms in the 
 %                               nitroxide spin label molecule model. The
@@ -66,12 +68,13 @@
 %                             (Nname) N - CA (CAname)
 %
 %
-%     Op  t    structure array containing the following fields
+%     Opt    structure array containing the following fields
 %
-%               Verbosity 0: no display, 1: (default) show info
+%        .Verbosity    0: no display
+%                      1: (default) show info
 %
-%               keepProtCA  0: (default) delete protein alpha carbon coordinates
-%                           1: keep them
+%        .keepProtC A  0: (default) delete protein alpha carbon coordinates
+%                      1: keep them
 %
 %   Output:
 %     MD        structure array containing the following fields:
@@ -116,12 +119,14 @@ switch nargin
     error('No more than 4 input arguments are possible.')
 end
 
+% Supplement options
 if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 1; end
 if ~isfield(Opt,'keepProtCA'), Opt.keepProtCA = false; end
 
 global EasySpinLogLevel;
 EasySpinLogLevel = Opt.Verbosity;
 
+% Supplement residue name, assuming default name for R1 label
 if ~isfield(Info,'ResName')
   Info.ResName = 'CYR1';
 end
@@ -219,7 +224,7 @@ for k = 1:nTrajFiles
   TrajFile{k} = fullfile(TrajFilePath{k}, [TrajFileName{k}, TrajFileExt{k}]);
 end
 
-% make sure that all file extensions are identical
+% Make sure that all file extensions are identical
 if ~all(strcmp(TrajFileExt,TrajFileExt{1}))
   error('At least two of the TrajFile file extensions are not identical.')
 end
@@ -230,7 +235,7 @@ end
 TrajFileExt = upper(TrajFileExt{1});
 TopFileExt = upper(TopFileExt);
 
-% check if file extensions are supported
+% Check if file extensions are supported
 supportedTrajFileExts = {'.DCD','.TRR'};
 supportedTopFileExts = {'.PSF','.GRO'};
 if ~any(strcmp(TrajFileExt,supportedTrajFileExts))
@@ -252,7 +257,7 @@ MD.ProtCAxyz = [];
 MD.Labelxyz = [];
 MD.dt = [];
 
-% parse through list of trajectory output files
+% Parse through list of trajectory output files
 ExtCombo = [TrajFileExt, ',', TopFileExt];
 updateuser(0);
 for iTrajFile = 1:nTrajFiles
@@ -271,7 +276,7 @@ for iTrajFile = 1:nTrajFiles
   % combine trajectories through array concatenation
   MD.ProtCAxyz = cat(1,MD.ProtCAxyz,Traj_.ProtCAxyz);
   MD.Labelxyz = cat(1,MD.Labelxyz,Traj_.Labelxyz);
-  MD.nSteps = MD.nSteps + Traj_.nSteps;
+  MD.nSteps = MD.nSteps + Traj_.nFrames;
   
   % this could take a long time, so notify the user of progress
   if Opt.Verbosity

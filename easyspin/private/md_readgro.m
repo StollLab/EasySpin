@@ -4,6 +4,10 @@
 %
 % Input:
 %   grofile    filename, including .gro extension
+%
+% Output:
+%   data      structure with field containing all data read from the file
+
 
 function data = md_readgro(GroFile,ResName,LabelName,AtomNames)
 
@@ -16,11 +20,12 @@ if fh<0
   error('Could not open file ''%s''',GroFile);
 end
 
+% Read entire file
 allLines = textscan(fh,'%s','whitespace','','delimiter','\n');
 fclose(fh);
 allLines = allLines{1};
 
-data.title = allLines{1};
+title = allLines{1};
 nAtoms = sscanf(allLines{2},'%d');
 
 if numel(allLines)~=nAtoms+3
@@ -52,7 +57,7 @@ data.idx_ProteinCA = strcmpi(atomnames,'CA');
 idx_SpinLabel = strcmpi(resnames,ResName);
 data.idx_SpinLabel = idx_SpinLabel;
 
-% locate spin label atoms
+% Locate spin label atoms
 findatomindex = @(name) strcmpi(atomnames(idx_SpinLabel),name);
 switch LabelName
   case 'R1'
@@ -79,6 +84,8 @@ switch LabelName
     data.idx_N = findatomindex(AtomNames.Nname);
 end
 
+% Assemble output structure
+data.title = title;
 data.nAtoms = nAtoms;
 data.resnum = resnum;
 data.resname = resnames;

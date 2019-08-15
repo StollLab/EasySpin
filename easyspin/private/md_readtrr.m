@@ -1,9 +1,16 @@
-% md_readgro  Read MD trajectory file in Gromos87 .TRR format
+% md_readtrr  Read MD trajectory file in Gromos87 .TRR format
 %
-%   data = md_readtrr(FileName);
+%   Traj = md_readtrr(FileName);
 %
 % Input:
 %   FileNAme    name of trajectory file, including .trr extension
+%
+% Output:
+%   Traj        structure containing trajectory data
+%    .nAtoms    number of atoms
+%    .nFrames   number of frames
+%    .xyz       coordinates, 3D-array, size (nFrames,3,nAtoms)
+%    .dt        time step, in seconds
 
 function Traj = md_readtrr(trrfile)
 
@@ -11,14 +18,18 @@ if ~exist(trrfile,'file')
   error('File ''%s'' does not exist.',trrfile);
 end
 
-onCleanup(@()delete('xdata.binary'));
+c = onCleanup(@()delete('xdata.binary'));
 
+% Extract position data from TRR file to binary file
 trr2matlab(trrfile);
-d = readGmx2Matlab('xdata.binary');
 
-Traj.nSteps = d.num_frames;
-Traj.dt = d.time_step*1e-12;
-Traj.xyz = permute(d.trajectory,[3 2 1]); % -> (nSteps,3,nAtoms)
+% Read in binary file
+data = readGmx2Matlab('xdata.binary');
+
+Traj.xyz = data.xyz; % size = (nFrames,3,nAtoms)
+Traj.nAtoms = size(Traj.xyz,3);
+Traj.nFrames = size(Traj.xyz,1);
+Traj.dt = data.time_step*1e-12;
 
 end
 %===============================================================================
@@ -398,7 +409,7 @@ end
 %       pause(0.2);
 %     end
 %        - plot out every other frame of trajectory as a 3D figure
-function [coodData] = readGmx2Matlab(coordFile, start_frame, end_frame)
+function data = readGmx2Matlab(coordFile, startFrame, endFrame)
 
 logLevel = 0;
 
@@ -415,56 +426,60 @@ end
 % open file: read-only, big-endian
 file_ID = fopen(coordFile, 'r', 'b');
 % extract statistics about simulation
-coodData.num_atoms = fread(file_ID, 1, 'int32');
-coodData.num_frames = fread(file_ID, 1, 'int32');
-coodData.time_step = fread(file_ID, 1, 'single');
+data.num_atoms = fread(file_ID, 1, 'int32');
+data.num_frames = fread(file_ID, 1, 'int32');
+data.time_step = fread(file_ID, 1, 'single');
 
 % interpret input options
 if nargin == 3
-  if (end_frame > coodData.num_frames)
-    end_frame = coodData.num_frames;
+  if (endFrame > data.num_frames)
+    endFrame = data.num_frames;
   end
   
-  if (start_frame > end_frame)
+  if (startFrame > endFrame)
     if logLevel>0
       fprintf(['    starting frame %g is not in trajectory\n' ...
-        ' ...exiting\n'], start_frame);
+        ' ...exiting\n'], startFrame);
     end
     return;
   end
   
   if logLevel>0
-    fprintf('    beginning from %g frame \n', start_frame);
-    fprintf('    processing simulation until frame %g \n', end_frame);
+    fprintf('    beginning from %g frame \n', startFrame);
+    fprintf('    processing simulation until frame %g \n', endFrame);
   end
 elseif nargin == 2
-  end_frame = start_frame;
-  start_frame = 1;
-  if (end_frame > coodData.num_frames)
-    end_frame = coodData.num_frames;
+  endFrame = startFrame;
+  startFrame = 1;
+  if (endFrame > data.num_frames)
+    endFrame = data.num_frames;
   end
   if logLevel>0
-    fprintf('    processing simulation until frame %g \n', end_frame);
+    fprintf('    processing simulation until frame %g \n', endFrame);
   end
 else
   if logLevel>0
     fprintf('    processing all frames from simulation \n');
   end
-  start_frame = 1;
-  end_frame = coodData.num_frames;
+  startFrame = 1;
+  endFrame = data.num_frames;
 end
 
-% read in data
+% Read in data
+%-------------------------------------------------------------------------------
 % find first frame to read (3 axes * 4 bytes per floating point decimal)
-fseek(file_ID, (start_frame - 1)*12*coodData.num_atoms, 'cof');
-% stream in data, only stream in number of frames needed
-rawdata = fread(file_ID, [3 coodData.num_atoms*(end_frame - start_frame + 1)], 'single');
+idx = (startFrame-1)*12*data.num_atoms;
+fseek(file_ID,idx,0);
+% Read number of frames needed
+nFrames = endFrame - startFrame + 1;
+rawdata = fread(file_ID,[3 data.num_atoms*nFrames],'single');
 fclose(file_ID);
-% structure data as XYZ * atoms * frames 3D matrix
-coodData.trajectory = permute(reshape(rawdata,3,coodData.num_atoms,[]),[2 1 3]);
+% Rearrange data array to size (3,nAtoms,nFrames)
+rawdata = reshape(rawdata,3,data.num_atoms,[]); % size = (3,nAtoms,nFrames)
+data.xyz = permute(rawdata,[3 1 2]); % size = (nFrames,3,nAtoms)
 
 if logLevel>0
-  fprintf('Done reading file \n');
+  fprintf('Done reading file.\n');
 end
 
 end
