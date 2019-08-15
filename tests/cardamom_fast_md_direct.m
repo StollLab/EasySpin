@@ -29,8 +29,6 @@ Sys.g = [2.009, 2.006, 2.002];
 Sys.A = mt2mhz([6, 36]/10);
 Sys.lw = [0.1, 0.1];
 
-Par.nTraj = 100;
-
 Par.dt = 1.0e-9;
 Par.nSteps = ceil(T/Par.dt);
 Par.nOrients = 100;
@@ -52,6 +50,7 @@ if ~isempty(olddata)
   if opt.Display
     plot(B,spc,B,olddata.spc);
     legend('current','previous');
+    axis tight
   end
 else
   err = [];

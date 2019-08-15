@@ -12,38 +12,39 @@ if ~strcmpi(GroFile(end-3:end),'.GRO')
 end
 
 fh = fopen(GroFile);
-
 if fh<0
   error('Could not open file ''%s''',GroFile);
 end
 
 allLines = textscan(fh,'%s','whitespace','','delimiter','\n');
-allLines = allLines{1};
 fclose(fh);
+allLines = allLines{1};
 
 data.title = allLines{1};
-data.nAtoms = sscanf(allLines{2},'%d');
+nAtoms = sscanf(allLines{2},'%d');
 
-if numel(allLines)~=data.nAtoms+3
+if numel(allLines)~=nAtoms+3
   error('Number of lines in file ''%s'' appears incorrect.',GroFile);
 end
 
-resnum = zeros(1,data.nAtoms);
-resnames = cell(1,data.nAtoms);
-atomnames = cell(1,data.nAtoms);
-atomnumber = zeros(1,data.nAtoms);
-pos = zeros(data.nAtoms,3);
-vel = zeros(data.nAtoms,3);
-for k = 1:data.nAtoms
+resnum = zeros(1,nAtoms);
+resnames = cell(1,nAtoms);
+atomnames = cell(1,nAtoms);
+atomnumber = zeros(1,nAtoms);
+pos = zeros(nAtoms,3);
+vel = zeros(nAtoms,3);
+for k = 1:nAtoms
   L = allLines{k+2};
   resnum(k) = sscanf(L(1:5),'%d');
   resnames{k} = L(6:10);
   atomnames{k} = L(11:15);
   atomnumber(k) = sscanf(L(16:20),'%d');
   pos(k,:) = sscanf(L(21:44),'%f %f %f');
-  vel(k,:) = sscanf(L(45:68),'%f %f %f');
+  if length(L)>44
+    vel(k,:) = sscanf(L(45:68),'%f %f %f');
+  end
 end
-box = sscanf(allLines{data.nAtoms+3},'%f');
+box = sscanf(allLines{nAtoms+3},'%f');
 resnames = strtrim(resnames);
 atomnames = strtrim(atomnames);
 
@@ -78,6 +79,7 @@ switch LabelName
     data.idx_N = findatomindex(AtomNames.Nname);
 end
 
+data.nAtoms = nAtoms;
 data.resnum = resnum;
 data.resname = resnames;
 data.atomname = atomnames;

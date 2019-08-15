@@ -1,3 +1,10 @@
+% md_readgro  Read MD trajectory file in Gromos87 .TRR format
+%
+%   data = md_readtrr(FileName);
+%
+% Input:
+%   FileNAme    name of trajectory file, including .trr extension
+
 function Traj = md_readtrr(trrfile)
 
 if ~exist(trrfile,'file')
@@ -8,25 +15,26 @@ onCleanup(@()delete('xdata.binary'));
 
 trr2matlab(trrfile);
 d = readGmx2Matlab('xdata.binary');
+
 Traj.nSteps = d.num_frames;
 Traj.dt = d.time_step*1e-12;
 Traj.xyz = permute(d.trajectory,[3 2 1]); % -> (nSteps,3,nAtoms)
 
 end
+%===============================================================================
 
-
-% trr2matlab.m  
+% trr2matlab.m
 % by Evan Arthur, University of Michigan, October 2011
 % Matlab outputs trajectories in a relatively consistent format that is
-% fundamentally challanging and inefficient for Matlab to read directly. 
-% This program translates most trr files from recent versions of Gromacs  
+% fundamentally challanging and inefficient for Matlab to read directly.
+% This program translates most trr files from recent versions of Gromacs
 % into binary files that can be read quickly and efficiently into Matlab
-% via readGmx2Matlab.m. 
-% readGmx2Matlab.m is a sibling program that reads the output of 
-% this program. Currently only coordinates, velocities, and forces are 
-% output. If I get requests for other outputs (box dimensions, lambda 
-% parameters, etc) I'll fit it in. 
-% Requirements: 
+% via readGmx2Matlab.m.
+% readGmx2Matlab.m is a sibling program that reads the output of
+% this program. Currently only coordinates, velocities, and forces are
+% output. If I get requests for other outputs (box dimensions, lambda
+% parameters, etc) I'll fit it in.
+% Requirements:
 %    - Gromacs trr trajectory file (GMX trn format)
 %         tested on version 4.5 and later
 %    - readGmx2Matlab.m  (reads the output from this script)
@@ -34,7 +42,7 @@ end
 %    - Free Hard Disk: between 1 to 2 times the .trr you input.
 %         By default the entire trajectory is copied and reformatted. It
 %         takes the output, converts it into a usable format, and then it
-%         rewrites the output with useful information. Temp files are 
+%         rewrites the output with useful information. Temp files are
 %         removed after all calculations are done, so at most the
 %         trajectory is just duplicated in a cleaner format.
 % Limitations:
@@ -59,7 +67,7 @@ end
 %         read. 1 = every frame's statistics are output. 1000 = every 1000
 %         frames statistics are output
 % Outputs:
-%     - xyz data 
+%     - xyz data
 %         output either by default or if 'x' option is given
 %         default name is 'xdata.binary'
 %     - velocity data
@@ -76,40 +84,39 @@ end
 %           outputs all atomic coordinates and forces as files
 %           'xdata.binary' and 'fdata.binary' (velocity data is not output)
 %     trr2matlab ('traj.trr', 'x')
-%           outputs only atomic coordinates as file 'xdata.binary' 
+%           outputs only atomic coordinates as file 'xdata.binary'
 %           (velocity and force data are not output)
 %     trr2matlab ('traj.trr', 'f', 'proteinA')
-%           outputs only atomic forces as file 'proteinA_xdata.binary' 
+%           outputs only atomic forces as file 'proteinA_xdata.binary'
 %           (velocity and coordinates data are not output)
 %     trr2matlab ('traj.trr', 'x', 'single')
-%           outputs only atomic forces as file 'xdata.binary' 
+%           outputs only atomic forces as file 'xdata.binary'
 %           (velocity and force data are not output)
 %           forces single precision mode
 %     trr2matlab ('traj.trr', 'x', 10)
-%           outputs only atomic forces as file 'xdata.binary' 
+%           outputs only atomic forces as file 'xdata.binary'
 %           (velocity and force data are not output)
 %           outputs statistics of information in window every 10 frames
 % notes on Single/Double Precision:
 %     This program detects the precision of the trr file automatically. If
 %     the detection fails, write in the input 'single' or 'double'. The
 %     program outputs garbage or fails spectacularly when this is not done
-%     properly. 
-%     
+%     properly.
+%
 %     Since single precision exceeds the margin of error for most analyses,
 %     this program only outputs data as single-precision numbers. If I get
 %     requests for the excrutiatingly accurate double-precision output, I
 %     will put in an option for it.
-%     
-function trr2matlab( trajFile, varargin )
+%
+function trr2matlab(trajFile,varargin)
 
-% set file inputs and outputs
-tic;
+logLevel = 0;
+
 % check if input exists
 if exist(trajFile, 'file')
-    fprintf('Reading trajectory file %s... \n', trajFile);
+  logmsg(1,'Reading trajectory file %s... \n', trajFile);
 else
-    fprintf('Trajectory file not found, exiting program \n');
-    return;
+  error('Trajectory file %s not found.',trajFile);
 end
 
 % decide if output name was in input, and output frequency
@@ -119,22 +126,22 @@ outputF = 'fdata.binary';
 noX = varargin(~strcmp(varargin, 'x'));
 noV = noX(~strcmp(noX, 'v'));
 noF = noV(~strcmp(noV, 'f'));
-outputEveryIntFrames = 100; % default to outputting every 100 frames
+
+logEveryIntFrames = 100; % default to outputting every 100 frames
 for n = 1:numel(noF)
-    if isfloat(cell2mat(noF(n))) == true
-        outputEveryIntFrames = floor(cell2mat(noF(n)));
-    end
-    if ischar(cell2mat(noF(n))) == true
-        outputName = cell2mat(noF(n));
-        outputX = [outputName '_xdata.binary'];
-        outputV = [outputName '_vdata.binary'];
-        outputF = [outputName '_fdata.binary'];
-    end
+  if isfloat(cell2mat(noF(n))) == true
+    logEveryIntFrames = floor(cell2mat(noF(n)));
+  end
+  if ischar(cell2mat(noF(n))) == true
+    outputName = cell2mat(noF(n));
+    outputX = [outputName '_xdata.binary'];
+    outputV = [outputName '_vdata.binary'];
+    outputF = [outputName '_fdata.binary'];
+  end
 end
-if outputEveryIntFrames < 1
-    outputEveryIntFrames = 1;
+if logEveryIntFrames < 1
+  logEveryIntFrames = 1;
 end
-fprintf('outputting data every %g frames\n', outputEveryIntFrames);
 
 % decide which files to output with booleans
 writeX = any(strcmp(varargin,'x'));
@@ -143,39 +150,45 @@ writeF = any(strcmp(varargin,'f'));
 
 % by default, write coordinates only
 if writeX + writeV + writeF == 0
-    writeX = true;
-    writeV = false;
-    writeF = false;
+  writeX = true;
+  writeV = false;
+  writeF = false;
 end
 
 % determine single/double precision
 % user override
 if sum(strcmp(varargin, 'single')) > 0
-    fileType = 'single';
+  fileType = 'single';
 end
 if sum(strcmp(varargin, 'double')) > 0
-    fileType = 'double';
+  fileType = 'double';
 end
 
 % detect single/double
 if sum(strcmp(varargin, 'single')) + sum(strcmp(varargin, 'double')) == 0
-    
-    TRRfile = fopen(trajFile, 'r', 'b');
-    fseek(TRRfile, 0 ,'bof');
-    precisionTest = fread(TRRfile, [1 9], 'int32');
-    fclose(TRRfile);
-    
-    if precisionTest(9) == 36
-        fprintf('single precision detected\n');
-        fileType = 'single';
-    elseif precisionTest(9) == 72
-        fprintf('double precision detected\n');
-        fileType = 'double';
-    else
-        fprintf('no precision dectected, defaulting to single precision\n');
-        fileType = 'single';
+  
+  TRRfile = fopen(trajFile, 'r', 'b');
+  fseek(TRRfile, 0 ,'bof');
+  precisionTest = fread(TRRfile, [1 9], 'int32');
+  fclose(TRRfile);
+  
+  if precisionTest(9) == 36
+    if logLevel>0
+      fprintf('single precision detected\n');
     end
-    
+    fileType = 'single';
+  elseif precisionTest(9) == 72
+    if logLevel>0
+      fprintf('double precision detected\n');
+    end
+    fileType = 'double';
+  else
+    if logLevel>0
+      fprintf('no precision dectected, defaulting to single precision\n');
+    end
+    fileType = 'single';
+  end
+  
 end
 
 % parse binary from trr file
@@ -186,20 +199,20 @@ fseek(TRRfile, 0 ,'bof');
 system('rm -f tempx tempv tempf');
 %prepare output files
 WRITEfile_X = fopen('tempx', 'w', 'b');
-    fwrite(WRITEfile_X, 0, 'int32');
-    fwrite(WRITEfile_X, 0, 'int32');
-    fwrite(WRITEfile_X, 0, 'single');
+fwrite(WRITEfile_X, 0, 'int32');
+fwrite(WRITEfile_X, 0, 'int32');
+fwrite(WRITEfile_X, 0, 'single');
 WRITEfile_V = fopen('tempv', 'w', 'b');
-    fwrite(WRITEfile_V, 0, 'int32');
-    fwrite(WRITEfile_V, 0, 'int32');
-    fwrite(WRITEfile_V, 0, 'single');
+fwrite(WRITEfile_V, 0, 'int32');
+fwrite(WRITEfile_V, 0, 'int32');
+fwrite(WRITEfile_V, 0, 'single');
 WRITEfile_F = fopen('tempf', 'w', 'b');
-    fwrite(WRITEfile_F, 0, 'int32');
-    fwrite(WRITEfile_F, 0, 'int32');
-    fwrite(WRITEfile_F, 0, 'single');
+fwrite(WRITEfile_F, 0, 'int32');
+fwrite(WRITEfile_F, 0, 'int32');
+fwrite(WRITEfile_F, 0, 'single');
 
-% initialize local variables - throws error for traj > 800,000 frames
-maxNumFrames = 800000; % increase this if more than this # frames in sim!
+% initialize local variables
+maxNumFrames = 1e6;
 frame_num = 1;
 coord_frame = 1;
 coord_time = zeros([1, maxNumFrames]);
@@ -212,61 +225,61 @@ data_present_words = {'coordinate  ', 'velocity  ', 'force  '};
 % fix offset for end of file
 [~] = fread(TRRfile, [1], '*char');
 while ~feof(TRRfile)
-    
-    intro_words = fread(TRRfile, [1 51], '*char');
-    data_present = fread(TRRfile, [1 3], 'int32');
-    num_atoms = fread(TRRfile, 1, 'int32');
-    frame_step = fread(TRRfile, [1 2], 'int32');
-    frame_time = fread(TRRfile, 1, fileType);
-    box_params = fread(TRRfile, [1 10], fileType);
-    
-    % display statistics in periodic intervals
-    if ~mod(frame_num, outputEveryIntFrames) && 0
-      fprintf(['\nopening file "%s",\n        ...%s\n' ...
-        '    frame number %g contains %g atoms,\n'...
-        '    and is located at time step %u\n' ...
-        '    frame is set at %g ps from beginning of simulation\n' ...
-        '    box dimensions are %g by %g by %g nm\n' ...
-        '  %sdata present in this frame\n' ], ...
-        trajFile, intro_words(12:25), frame_num, num_atoms, frame_step(1), ...
-        frame_time, box_params(2), box_params(6), box_params(10), ...
-        cell2mat(data_present_words(data_present ~= 0)));
+  
+  intro_words = fread(TRRfile, [1 51], '*char');
+  data_present = fread(TRRfile, [1 3], 'int32');
+  num_atoms = fread(TRRfile, 1, 'int32');
+  frame_step = fread(TRRfile, [1 2], 'int32');
+  frame_time = fread(TRRfile, 1, fileType);
+  box_params = fread(TRRfile, [1 10], fileType);
+  
+  % display statistics in periodic intervals
+  if ~mod(frame_num, logEveryIntFrames) && 0
+    fprintf(['\nopening file "%s",\n        ...%s\n' ...
+      '    frame number %g contains %g atoms,\n'...
+      '    and is located at time step %u\n' ...
+      '    frame is set at %g ps from beginning of simulation\n' ...
+      '    box dimensions are %g by %g by %g nm\n' ...
+      '  %sdata present in this frame\n' ], ...
+      trajFile, intro_words(12:25), frame_num, num_atoms, frame_step(1), ...
+      frame_time, box_params(2), box_params(6), box_params(10), ...
+      cell2mat(data_present_words(data_present ~= 0)));
+  end
+  
+  % coordinate data
+  if data_present(1)
+    coord_frame = coord_frame + 1;
+    coord_time(frame_num) = frame_time;
+    coord_XYZ = fread(TRRfile, [1 (num_atoms * 3)], fileType);
+    if writeX
+      fwrite(WRITEfile_X, coord_XYZ, 'single');
     end
-     
-    % coordinate data
-    if data_present(1)        
-        coord_frame = coord_frame + 1;
-        coord_time(frame_num) = frame_time;
-        coord_XYZ = fread(TRRfile, [1 (num_atoms * 3)], fileType);
-        if writeX
-            fwrite(WRITEfile_X, coord_XYZ, 'single');
-        end
+  end
+  
+  % velocity data
+  if data_present(2)
+    veloc_frame = veloc_frame + 1;
+    veloc_time(frame_num) = frame_time;
+    velocity_XYZ = fread(TRRfile, [1 (num_atoms * 3)], fileType);
+    if writeV
+      fwrite(WRITEfile_V, velocity_XYZ, 'single');
     end
-    
-    % velocity data
-    if data_present(2)
-        veloc_frame = veloc_frame + 1;
-        veloc_time(frame_num) = frame_time;
-        velocity_XYZ = fread(TRRfile, [1 (num_atoms * 3)], fileType);
-        if writeV
-            fwrite(WRITEfile_V, velocity_XYZ, 'single');
-        end
+  end
+  
+  % force data
+  if data_present(3)
+    force_frame = force_frame + 1;
+    force_time(frame_num) = frame_time;
+    force_XYZ = fread(TRRfile, [1 (num_atoms * 3)], fileType);
+    if writeF == true
+      fwrite(WRITEfile_F, force_XYZ, 'single');
     end
-    
-    % force data
-    if data_present(3) 
-        force_frame = force_frame + 1;
-        force_time(frame_num) = frame_time;
-        force_XYZ = fread(TRRfile, [1 (num_atoms * 3)], fileType);
-        if writeF == true
-            fwrite(WRITEfile_F, force_XYZ, 'single');
-        end
-    end
-    
-    frame_num = frame_num + 1;
-    % fix offset for end of file
-    [~] = fread(TRRfile, [1], '*char');
-    
+  end
+  
+  frame_num = frame_num + 1;
+  % fix offset for end of file
+  [~] = fread(TRRfile, [1], '*char');
+  
 end
 fclose(TRRfile);
 
@@ -274,80 +287,80 @@ fclose(TRRfile);
 %-------------------------------------------------------------------------------
 % xyz coord output
 if writeX
-    fprintf('\ncorrecting intro binaries of xyz data %s\n', outputX);
-    
-    coord_frame = coord_frame - 1;
-    coord_increment = coord_time(2) - coord_time(1);
-    frewind(WRITEfile_X);
-    fwrite(WRITEfile_X, num_atoms, 'int32');
-    fwrite(WRITEfile_X, coord_frame, 'int32');
-    fwrite(WRITEfile_X, coord_increment, 'single');
-    fclose(WRITEfile_X);
-    movefile('tempx', outputX);
+  if logLevel>0
+    fprintf('correcting intro binaries of xyz data %s\n', outputX);
+  end
+  coord_frame = coord_frame - 1;
+  coord_increment = coord_time(2) - coord_time(1);
+  frewind(WRITEfile_X);
+  fwrite(WRITEfile_X, num_atoms, 'int32');
+  fwrite(WRITEfile_X, coord_frame, 'int32');
+  fwrite(WRITEfile_X, coord_increment, 'single');
+  fclose(WRITEfile_X);
+  movefile('tempx', outputX);
 else
-    fclose(WRITEfile_X);
-    delete('tempx');
+  fclose(WRITEfile_X);
+  delete('tempx');
 end
 
 % velocity output
 if writeV
-    fprintf('\ncorrecting intro binaries of velocity data %s\n', outputV);
-    
-    veloc_frame = veloc_frame - 1;
-    veloc_incriment = veloc_time(2) - veloc_time(1);
-    
-    frewind(WRITEfile_V);
-    fwrite(WRITEfile_V, num_atoms, 'int32');
-    fwrite(WRITEfile_V, veloc_frame, 'int32');
-    fwrite(WRITEfile_V, veloc_incriment, 'single');
-    
-    fclose(WRITEfile_V);
-    movefile('tempv', outputV);
+  if logLevel>0
+    fprintf('correcting intro binaries of velocity data %s\n', outputV);
+  end
+  veloc_frame = veloc_frame - 1;
+  veloc_increment = veloc_time(2) - veloc_time(1);
+  
+  frewind(WRITEfile_V);
+  fwrite(WRITEfile_V, num_atoms, 'int32');
+  fwrite(WRITEfile_V, veloc_frame, 'int32');
+  fwrite(WRITEfile_V, veloc_increment, 'single');
+  
+  fclose(WRITEfile_V);
+  movefile('tempv', outputV);
 else
-    fclose(WRITEfile_V);
-    delete('tempv');
+  fclose(WRITEfile_V);
+  delete('tempv');
 end
 
 % force output
 if writeF
-    fprintf('\ncorrecting intro binaries of force data %s\n', outputF);
-    
-    force_frame = force_frame - 1;
-    force_incriment = force_time(2) - force_time(1);
-    
-    frewind(WRITEfile_F);
-    fwrite(WRITEfile_F, num_atoms, 'int32');
-    fwrite(WRITEfile_F, force_frame, 'int32');
-    fwrite(WRITEfile_F, force_incriment, 'single');
-    
-    fclose(WRITEfile_F);
-    movefile('tempf', outputF);
+  if logLevel>0
+    fprintf('correcting intro binaries of force data %s\n', outputF);
+  end
+  force_frame = force_frame - 1;
+  force_increment = force_time(2) - force_time(1);
+  
+  frewind(WRITEfile_F);
+  fwrite(WRITEfile_F, num_atoms, 'int32');
+  fwrite(WRITEfile_F, force_frame, 'int32');
+  fwrite(WRITEfile_F, force_increment, 'single');
+  
+  fclose(WRITEfile_F);
+  movefile('tempf', outputF);
 else
-    fclose(WRITEfile_F);
-    delete('tempf');
+  fclose(WRITEfile_F);
+  delete('tempf');
 end
-
-timeSpent = toc;
-fprintf('\n%g seconds spent processing trajectory %s\n\n', timeSpent, trajFile);
 
 end
 
 
 
 
-% readGmx2Matlab.m  
+% readGmx2Matlab.m
 % by Evan Arthur, University of Michigan, October 2011
 % Matlab outputs trajectories in a relatively consistent format that is
-% fundamentally challanging and inefficient for Matlab to read directly. 
+% fundamentally challanging and inefficient for Matlab to read directly.
 % This program turns the output from trr2matlab.m into matricies for other
 % programs to read. These are by default in a ".binary format". The matrix
 % has introductory code, and the trajectory. There are options to read only
 % a small portion of the trajectory with a starting frame and ending frame
-% option. Skipping frames during the reading process (say, to read in every 
+% option. Skipping frames during the reading process (say, to read in every
 % other frame), is not implimented. If I get requests, I will add it.
-% Requirements: 
+% Requirements:
 %    - binary file from trr2matlab.m program
-%    - Free RAM: a little more than the size of the binaries being read. 
+%    - Free RAM: a little more than the size of the binaries being read.
 %         10,000 atoms * 3 axes * 1000 frames * 4 bytes = 160 mb (single precision)
 %    - Free Hard Disk: none
 % Inputs:
@@ -365,7 +378,7 @@ end
 %         this is output as "coodData.trajectory" in the file
 %         this is a 3D matrix is made of the trajectory with the format
 %           (atom number ; xyz value ; frame number)
-%     - information of trajectory 
+%     - information of trajectory
 %         coodData.num_atoms has number of atoms
 %         coodData.num_frames has number of frames
 %         coodData.time_step has the time increment between frames
@@ -387,19 +400,15 @@ end
 %        - plot out every other frame of trajectory as a 3D figure
 function [coodData] = readGmx2Matlab(coordFile, start_frame, end_frame)
 
+logLevel = 0;
+
 % catch if file can't be found
 if exist(coordFile, 'file')
+  if logLevel>0
     fprintf('Reading binary file %s... \n', coordFile);
+  end
 else
-    fprintf('\n    Trajectory file %s not found, exiting program\n', coordFile);
-    
-    % return null data if trajectory not found, then exit program
-    coodData.trajectory = 0;
-    coodData.num_atoms = 0;
-    coodData.num_frames = 0;
-    coodData.time_step = 0;
-    
-    return;
+  error('Trajectory file %s not found.', coordFile);
 end
 
 % read in introductory data (first 3 numbers in file)
@@ -412,29 +421,37 @@ coodData.time_step = fread(file_ID, 1, 'single');
 
 % interpret input options
 if nargin == 3
-    if (end_frame > coodData.num_frames)
-        end_frame = coodData.num_frames;
+  if (end_frame > coodData.num_frames)
+    end_frame = coodData.num_frames;
+  end
+  
+  if (start_frame > end_frame)
+    if logLevel>0
+      fprintf(['    starting frame %g is not in trajectory\n' ...
+        ' ...exiting\n'], start_frame);
     end
-    
-    if (start_frame > end_frame)
-        fprintf(['    starting frame %g is not in trajectory\n' ...
-                 ' ...exiting\n'], start_frame);
-        return;
-    end
-    
+    return;
+  end
+  
+  if logLevel>0
     fprintf('    beginning from %g frame \n', start_frame);
     fprintf('    processing simulation until frame %g \n', end_frame);
+  end
 elseif nargin == 2
-    end_frame = start_frame;
-    start_frame = 1;
-    if (end_frame > coodData.num_frames)
-        end_frame = coodData.num_frames;
-    end
-    fprintf('    processing simulation until frame %g \n', end_frame);
-else 
-    fprintf('    processing all frames from simulation \n');
-    start_frame = 1;
+  end_frame = start_frame;
+  start_frame = 1;
+  if (end_frame > coodData.num_frames)
     end_frame = coodData.num_frames;
+  end
+  if logLevel>0
+    fprintf('    processing simulation until frame %g \n', end_frame);
+  end
+else
+  if logLevel>0
+    fprintf('    processing all frames from simulation \n');
+  end
+  start_frame = 1;
+  end_frame = coodData.num_frames;
 end
 
 % read in data
@@ -445,8 +462,9 @@ rawdata = fread(file_ID, [3 coodData.num_atoms*(end_frame - start_frame + 1)], '
 fclose(file_ID);
 % structure data as XYZ * atoms * frames 3D matrix
 coodData.trajectory = permute(reshape(rawdata,3,coodData.num_atoms,[]),[2 1 3]);
-fprintf('Done reading file \n');
 
+if logLevel>0
+  fprintf('Done reading file \n');
 end
 
-
+end

@@ -491,7 +491,7 @@ end
 % Check Par
 %-------------------------------------------------------------------------------
 
-% Set default number of trajectories
+% Set default number of (stochastic) trajectories
 if ~isfield(Par,'nTraj') && ~strcmp(LocalDynamicsModel,'MD-direct')
   Par.nTraj = 100; 
 end
