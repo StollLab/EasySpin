@@ -4,21 +4,19 @@
 %
 % Inputs:
 %   Sys: stucture with system's dynamical parameters
-%     g              numeric, size = (1,3)
-%                    principal values of the g-tensor
-%     A              numeric, size = (1,3)
-%                    principal values of the A-tensor
+%     g              3-array, principal values of the g-tensor
+%     A              3-array, principal values of the A-tensor
 %   Par: structure with simulation parameters
-%     dt             double
-%                    rotational dynamics propagation time step (in seconds)
-%     Dt             double
-%                    spin dynamics propagation time step (in seconds)
+%     dt             rotational dynamics propagation time step (in seconds)
+%     Dt             spin dynamics propagation time step (in seconds)
+%     nSteps         number of steps
+%     BlockLength    block length for block averaging, no averaging if set to 1
+%     Model          'MD-HMM','MD-direct','MD-HBD','diffusion','jump'
+%     RTraj          rotation matrix trajectory
 %   Exp: experimental parameter settings
-%     B              double  TODO can this be replaced by a fieldsweep and then used to extract omega0?
-%                    center magnetic field
+%     B              center magnetic field
 %   Opt: optional settings
-%     Method         string
-%                    'fast': propagate using the m_s=-1/2 subspace
+%     Method         'fast': propagate using the m_s=-1/2 subspace
 %                    'ISTOs': propagate using correlation functions
 %   MD:
 %     RTraj          numeric, size = (3,3,nTraj,nSteps)

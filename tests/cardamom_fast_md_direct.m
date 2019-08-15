@@ -41,7 +41,7 @@ Exp.mwFreq = 9.4;
 Opt.Verbosity = 0;
 Opt.Method = 'fast';
 
-[~, spc] = cardamom(Sys,Exp,Par,Opt,MD);
+[B, spc] = cardamom(Sys,Exp,Par,Opt,MD);
 spc = spc/max(spc);
 
 
@@ -49,6 +49,10 @@ data.spc = spc;
 
 if ~isempty(olddata)
   err = any(abs(olddata.spc-spc)>1e-10);
+  if opt.Display
+    plot(B,spc,B,olddata.spc);
+    legend('current','previous');
+  end
 else
   err = [];
 end

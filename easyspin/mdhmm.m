@@ -3,9 +3,9 @@
 %   HMM = mdhmm(dihedrals,dt,nStates,nLag,Opt)
 %
 % Input:
-%   dihedrals     3D array of spin-label side chain dihedral angles
-%                   (nDims,nTrajectories,nSteps), in radians
-%   dt            MD time step, in s
+%   dihedrals     3D array trajectory of spin-label side chain dihedral angles
+%                   (nDihedrals,nTrajectories,nSteps), in radians
+%   dt            dihedral trajectory time step, in s
 %   nStates       number of desired states for the HMM
 %   nLag          desired lag time, as a integer multiple of the MD time step
 %   Opt           structure with options
@@ -48,10 +48,10 @@ if Opt.isSeeded
   Opt.nTrials = 1;
 end
 
-if abs(nLag-round(nLag))>1e-5 || nLag < 1
+if mod(nLag,1) || nLag < 1
   error('nLag must be an integer >= 1.');
 end
-nLag = round(nLag);
+
 HMM.nLag = nLag;
 HMM.dt = dt;
 HMM.tLag = nLag*dt;

@@ -6,10 +6,10 @@
 %   spc = cardamom(...)
 %   [B,spc] = cardamom(...)
 %   [B,spc,TDSignal,t] = cardamom(...)
-%
+%   
 %   Computes a CW-EPR spectrum of an S=1/2 spin label using stochastic or
 %   molecular dynamics trajectories.
-%
+%   
 %   Sys: stucture with system's dynamical parameters
 %
 %     tcorr          double or numeric vector, size = (1,3)
@@ -254,7 +254,6 @@ Link = 'epr@eth'; eschecker; error(LicErr); clear Link LicErr
 % --------License ------------------------------------------------
 
 global EasySpinLogLevel
-global reverseStr
 EasySpinLogLevel = Opt.Verbosity;
 
 % Check Sys
@@ -327,7 +326,7 @@ useMD = ~isempty(MD);
 % Check MD
 %-------------------------------------------------------------------------------
 if useMD
-  logmsg(1,'-- using MD simulation data -----------------------------------------');
+  logmsg(1,'  using MD trajectory data');
   
   if ~isfield(MD,'dt')
     error('The MD trajectory time step MD.dt must be given.')
@@ -486,7 +485,7 @@ end
 
 % Lag time for sliding window processing (used in MD-direct only)
 if ~isfield(Opt,'LagTime')
-  Opt.LagTime = 2e-9;
+  Opt.LagTime = 2e-9; % seconds
 end
 
 % Check Par
@@ -582,7 +581,7 @@ end
 
 % Set default number of orientations
 if ~isfield(Par,'nOrients')
-  Par.nOrients = Par.nTraj; % TODO change to fixed value
+  Par.nOrients = 100;
 end
 
 logmsg(1,'Parameter settings:');
@@ -653,70 +652,81 @@ switch LocalDynamicsModel
 end
 
 % Generate grids for powder averaging in the lab frame
-% -------------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 
-nOrients = Par.nOrients;
+nOrientations = Par.nOrients;
 Orients = [];
 if isfield(Par,'Orients')
   Orients = Par.Orients;
   if isvector(Orients)
     % assure that Orients is a column vector
     Orients = Orients(:);
-    if nOrients>1
+    if nOrientations>1
       % if only one orientation, then repeat it nOrients times
-      Orients = repmat(Orients,[1,nOrients]);
+      Orients = repmat(Orients,[1,nOrientations]);
     end
   end
 end
 
-% assign lab orientations for powder averaging
+% Set up orientational grid for powder averaging
 if ~isempty(Orients)
   gridPhi = Orients(1,:);
   gridTheta = Orients(2,:);
+  weight = ones(size(gridPhi));
+  weight = weight/sum(weight);
 else
   if checkConvergence
-    % generate Sobol sequence over a spiral grid
-    nOrients = ceil(nOrients/2);
+    % Generate Sobol sequence over a spiral grid
+    nOrientations = ceil(nOrientations/2);
     skip = 0;
-    gridPts = 2*cardamom_sobol_generate(1,nOrients,skip)-1;
-    gridPhi = sqrt(pi*nOrients)*asin(gridPts);
+    gridPts = 2*cardamom_sobol_generate(1,nOrientations,skip)-1;
+    gridPhi = sqrt(pi*nOrientations)*asin(gridPts);
     gridTheta = acos(gridPts);
+    weight = ones(size(gridPhi));
   else
-    % generate a spiral grid
-    gridPts = linspace(-1,1,nOrients);
-    gridPhi = sqrt(pi*nOrients)*asin(gridPts);
+    % Generate a spiral grid over the full sphere
+    gridPts = linspace(-1,1,nOrientations);
+    gridPhi = sqrt(pi*nOrientations)*asin(gridPts);
     gridTheta = acos(gridPts);
+    weight = ones(size(gridPhi));
+    weight = weight/sum(weight);
+    % Generate a triangular grid over the upper hemisphere (since EPR spectra
+    % are invariant under inversion)
+    %nKnots = ceil(sqrt(nOrientations));
+    %[gridPhi,gridTheta,weight] = sphgrid('Ci',nKnots);
+    %weight = weight/sum(weight);
   end
 end
 
 
 % Run simulation
-% -------------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 logmsg(1,'Quantum propagation method: ''%s''',Opt.Method);
 logmsg(1,'Running simulation');
 
 clear cardamom_propagatedm % to clear persistent variables in function
 
-converged = false;
 iter = 1;
 spcArray = [];
 nOrientsTot = 0;
 
 t = linspace(0, nStepsQuant*Par.Dt, nStepsQuant);
 
+converged = false;
 while ~converged
   tic
 
   % trajectories might differ in length, so we need cells for allocation
   TDSignal = {};
   tCell = [];
-  reverseStr = [];
 
   % temporary cells to store intermediate results
-  iTDSignal = cell(1,nOrients);
-  itCell = cell(1,nOrients);
+  iTDSignal = cell(1,nOrientations);
+  itCell = cell(1,nOrientations);
 
-  for iOrient = 1:nOrients
+  updateuser(0);
+  for iOrient = 1:nOrientations
+    logmsg(1,' Orientation %d/%d',iOrient,nOrientations);
     % Generate trajectory of local dynamics
     switch LocalDynamicsModel
       
@@ -744,7 +754,7 @@ while ~converged
       case 'MD-direct'
             
         % the MD trajectories are not changing, so RTraj and qTraj were
-        % processed earlier outside of the loop
+        % processed earlier outside of the orientation loop
             
       case 'MD-HBD'
             
@@ -803,8 +813,6 @@ while ~converged
     end
     
     % Combine global trajectories with starting orientations
-%     qLab = repmat(euler2quat(gridPhi(iOrient), gridTheta(iOrient), 0, 'active'),...
-%                   [1,Par.nTraj,nStepsQuant]);
     qLab = repmat(euler2quat(0, gridTheta(iOrient), gridPhi(iOrient), 'active'),...
                   [1,Par.nTraj,nStepsQuant]);
     if includeGlobalDynamics
@@ -817,25 +825,25 @@ while ~converged
       Par.RLab = quat2rotmat(qLab);
     end
     
-    % propagate the density matrix
+    % Propagate the density matrix
     Par.nSteps = nStepsQuant;
     Par.Dt = dtQuant;
     Par.dt = dtStoch;
     Sprho = cardamom_propagatedm(Sys,Par,Opt,MD,omega0,CenterField);
     
+    % Calculate the time-domain signal, i.e. the expectation value of S_{+}
     iTDSignal{1,iOrient} = 0;
-    % calculate the time-domain signal, i.e. the expectation value of S_{+}
     for k = 1:size(Sprho,1)
-      iTDSignal{1,iOrient} = iTDSignal{1,iOrient} + squeeze(Sprho(k,k,:));  % take traces TODO try to speed this up using equality tr(A*B)=sum(sum(A.*B))
+      iTDSignal{1,iOrient} = iTDSignal{1,iOrient} + squeeze(Sprho(k,k,:));
     end
     
+    iTDSignal{1,iOrient} = weight(iOrient)*iTDSignal{1,iOrient};
+    
     if Opt.Verbosity
-      updateuser(iOrient,nOrients)
+      updateuser(iOrient,nOrientations,false);
     end
     
     itCell{1,iOrient} = t.';
-    
-    iOrient = iOrient + 1;
     
   end
 
@@ -855,9 +863,6 @@ while ~converged
   end
 
   % zero padding for FFT to ensure sufficient B-field resolution (at most 0.1 G)
-  % expectval = cell2mat(cellfun(@(x) zeropad(x, maxlength), expectval, 'UniformOutput', false));
-  % tlong = (0:Par.dt:maxlength*Par.dt);
-
   Bres = 0.1; % G
   tReq = 1/(mt2mhz(Bres/10)*1e6); % mT -> s
 
@@ -897,7 +902,7 @@ while ~converged
       span = max(spcNew)-min(spcNew);
       rmsdNew = sqrt(mean((spcNew-spcLast).^2))/span;
       if rmsdNew<2e-2
-        converged = 1;
+        converged = true;
       elseif iter>2
         rmsdPctChange = abs(100*(rmsdNew-rmsdLast)/rmsdLast)
         converged = rmsdPctChange<50;
@@ -916,16 +921,16 @@ while ~converged
     end
     rmsdLast = rmsdNew;
     spcLast = spcNew;  % store for comparison after next iteration completes
-    nOrientsTot = nOrientsTot + nOrients;
+    nOrientsTot = nOrientsTot + nOrientations;
     skip = iter*nOrientsTot;  % seed Sobol sequence generator for next iteration
     
-    nOrients = nOrientsTot;
+    nOrientations = nOrientsTot;
     if ~isempty(Orients)
       gridPhi = repmat(Orients(1,:),[1,2^(iter-1)]);
       gridTheta = repmat(Orients(2,:),[1,2^(iter-1)]);
     else
-      gridPts = 2*cardamom_sobol_generate(1,nOrients,skip)-1;
-      gridPhi = sqrt(pi*nOrients)*asin(gridPts);
+      gridPts = 2*cardamom_sobol_generate(1,nOrientations,skip)-1;
+      gridPhi = sqrt(pi*nOrientations)*asin(gridPts);
       gridTheta = acos(gridPts);
     end
     iter = iter + 1;
@@ -972,7 +977,7 @@ TDSignal = mean(TDSignal, 2);
 TDSignal = TDSignal(1:Par.nSteps);
 
 % Final processing
-% -------------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 
 switch nargout
 case 0
@@ -987,7 +992,7 @@ case 0
     end
     axis tight
     ylabel('intensity (arb.u.)');
-    title(sprintf('%0.8g GHz, %d points',Exp.mwFreq,numel(xAxis)));
+    title(sprintf('%0.8g GHz',Exp.mwFreq));
   else
     if (xAxis(end)<1)
       plot(xAxis*1e3,spc);
@@ -998,7 +1003,7 @@ case 0
     end
     axis tight
     ylabel('intensity (arb.u.)');
-    title(sprintf('%0.8g mT, %d points',Exp.Field,numel(xAxis)));
+    title(sprintf('%0.8g mT',Exp.Field));
   end
 case 1
   varargout = {outspc};
@@ -1013,17 +1018,18 @@ end
 clear global EasySpinLogLevel
     
 end
+%===============================================================================
+
 
 % Helper functions
 % -------------------------------------------------------------------------
 
-function updateuser(iOrient,nOrient)
+function updateuser(iOrient,nOrient,reverse)
 % Update user on progress
 
-% persistent reverseStr
-global reverseStr
+persistent reverseStr
 
-% if isempty(reverseStr), reverseStr = []; end
+if iOrient==0, reverseStr = ''; return; end
 
 avgTime = toc/iOrient;
 secsLeft = (nOrient - iOrient)*avgTime;
@@ -1032,24 +1038,16 @@ minsLeft = floor(secsLeft/60);
 secsElap = toc;
 minsElap =  floor(secsElap/60);
 
-msg1 = sprintf('  Orientation:    %d/%d\n', iOrient, nOrient);
 msg3 = sprintf('  Time elapsed:   %02d:%02d:%02.0f (%g s/orientation)\n', floor(minsElap/60), mod(minsElap,60), mod(secsElap,60),avgTime);
 msg4 = sprintf('  Time remaining: %02d:%02d:%02.0f\n', floor(minsLeft/60), mod(minsLeft,60), mod(secsLeft,60));
-msg = [msg1, msg3, msg4];
+msg = [msg3, msg4];
 
-fprintf([reverseStr, msg]);
-reverseStr = repmat(sprintf('\b'), 1, length(msg));
-
+if reverse
+  fprintf([reverseStr, msg]);
+else
+  fprintf([msg]);  
 end
-
-function BlockLength = findblocks(Dt, dt)
-% time step of molecular simulation, dt, is usually much smaller than
-% the quantum propagation time step, Dt, so determine the size of the 
-% averaging block here (Dt/dt), then set nTraj and nSteps accordingly to 
-% number of blocks and the size of the block, respectively
-
-% size of averaging blocks
-BlockLength = ceil(Dt/dt);
+reverseStr = repmat(sprintf('\b'), 1, length(msg));
 
 end
 
