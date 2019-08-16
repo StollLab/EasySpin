@@ -21,20 +21,18 @@ MD.DiffGlobal = 6e6;
 % Calculate spectrum using cardamom
 % -------------------------------------------------------------------------
 
-T = 250e-9;
-
-Sys.Nucs = '14N';
-
-Sys.g = [2.009, 2.006, 2.002];
-Sys.A = mt2mhz([6, 36]/10);
-Sys.lw = [0.1, 0.1];
-
-Par.dt = 1.0e-9;
+T = 250e-9; % length of FID
+Par.dt = 1.0e-9; % increment for spin propagation
 Par.nSteps = ceil(T/Par.dt);
 Par.nOrients = 100;
 Par.Model = 'MD-direct';
 
 Exp.mwFreq = 9.4;
+
+Sys.Nucs = '14N';
+Sys.g = [2.009, 2.006, 2.002];
+Sys.A = mt2mhz([6, 36]/10);
+Sys.lw = [0.1, 0.1];
 
 Opt.Verbosity = 0;
 Opt.Method = 'fast';

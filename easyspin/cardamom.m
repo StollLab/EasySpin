@@ -1038,8 +1038,8 @@ minsLeft = floor(secsLeft/60);
 secsElap = toc;
 minsElap =  floor(secsElap/60);
 
-msg3 = sprintf('  Time elapsed:   %02d:%02d:%02.0f (%g s/orientation)\n', floor(minsElap/60), mod(minsElap,60), mod(secsElap,60),avgTime);
-msg4 = sprintf('  Time remaining: %02d:%02d:%02.0f\n', floor(minsLeft/60), mod(minsLeft,60), mod(secsLeft,60));
+msg3 = sprintf('  Time elapsed %02d:%02d:%02.0f (%g s/orientation)  ', floor(minsElap/60), mod(minsElap,60), mod(secsElap,60),avgTime);
+msg4 = sprintf('   remaining %02d:%02d:%02.0f\n', floor(minsLeft/60), mod(minsLeft,60), mod(secsLeft,60));
 msg = [msg3, msg4];
 
 if reverse

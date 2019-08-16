@@ -43,6 +43,13 @@ persistent cacheD2Traj
 persistent gTensorState
 persistent ATensorState
 
+if ~isfield(Opt,'Verbosity')
+  Opt.Verbosity = 0;
+end
+
+global EasySpinLogLevel
+EasySpinLogLevel = Opt.Verbosity;
+
 % Preprocessing
 % -------------------------------------------------------------------------
 
@@ -95,7 +102,7 @@ switch PropagationMethod
     
     RTrajInv = permute(Par.RTraj,[2,1,3,4]);
     if ~isHMMfromMD
-      logmsg(1,'  calculating tensor trajectories from orientational trajectories');
+      logmsg(2,'  calculating tensor trajectories from orientational trajectories');
       % Calculate time-dependent tensors from orientational trajectories
       gTensor = cardamom_tensortraj(g,Par.RTraj,RTrajInv);
       if includeHF
@@ -108,7 +115,7 @@ switch PropagationMethod
       % Calculate the average interaction tensors for each state using
       % MD-derived frame trajectories and Viterbi state trajectories
       if isempty(gTensorState)
-        logmsg(1,'  calculating tensor trajectories from orientational trajectories');
+        logmsg(2,'  calculating tensor trajectories from orientational trajectories');
         % Perform MD-derived rotations on g- and A-tensors
         gTensorMD = cardamom_tensortraj(g,Par.RTraj,RTrajInv);
         if includeHF
@@ -141,7 +148,7 @@ switch PropagationMethod
       
       % Calculate new time-dependent tensors from state trajectories
       % generated using optimized HMM parameters
-      logmsg(1,'  calculating tensor trajectories from state trajectories');
+      logmsg(2,'  calculating tensor trajectories from state trajectories');
       gTensor = zeros(3,3,nTraj,nSteps);
       if includeHF
         ATensor = zeros(3,3,nTraj,nSteps);
@@ -160,7 +167,7 @@ switch PropagationMethod
     
     % Time block averaging and sliding window processing of tensors
     if doBlockAveraging
-      logmsg(1,'  time block averaging, block length %d',Par.BlockLength);
+      logmsg(2,'  time block averaging, block length %d',Par.BlockLength);
       
       % Average the interaction tensors over time blocks
       nBlocks = floor(size(gTensor,4)/Par.BlockLength);
@@ -178,7 +185,7 @@ switch PropagationMethod
       end
       
       % Perform sliding window processing if using MD trajectory explicitly
-      logmsg(1,'  sliding window, lag %d',Par.lag);
+      logmsg(2,'  sliding window, lag %d',Par.lag);
       if useMD && isDirectfromMD && nTraj>1
         gTensor = zeros(3,3,nTraj,nSteps);
         if includeHF
@@ -205,7 +212,7 @@ switch PropagationMethod
     
     % Apply lab frame rotation
     % ---------------------------------------------------------------------
-    logmsg(1,'  combine local with global orientation');
+    logmsg(2,'  combine local with global orientation');
     if ~isempty(Par.RLab)
       RLabInv = permute(Par.RLab,[2,1,3,4]);
       gTensor = multimatmult(Par.RLab, multimatmult(gTensor, RLabInv));
@@ -277,7 +284,7 @@ switch PropagationMethod
     
     % Propagate density matrix
     % ---------------------------------------------------------------------
-    logmsg(1,'  propagate density matrix');
+    logmsg(2,'  propagate density matrix');
     Sprho = propagate(rho,U,PropagationMethod,nSteps);
     
     % Average over trajectories (3rd dimension)
