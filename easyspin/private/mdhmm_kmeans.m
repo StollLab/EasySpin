@@ -61,15 +61,17 @@ sumdist2 = zeros(1,nRepeats);
 implicitSingletonExpansion = ~verLessThan('matlab','9.1');
 
 for iRepeat = 1:nRepeats
+  
+  centroids = zeros(nClusters,nDims);
 
   % Initialize centroids and cluster indices
   if ~isempty(centroids0)
     nClusters0 = size(centroids0,1);
-    centroids(1:nClusters,:) = centroids0;
+    centroids(1:nClusters0,:) = centroids0;
     if nClusters0 < nClusters
       % generate additional clusters using random samples from data
       randidx = randperm(nPoints,nClusters-nClusters0);
-      centroids(nClusters:nClusters0,:) = data(randidx,:);
+      centroids(nClusters0+1:nClusters,:) = data(randidx,:);
     end
   else
 %     randidx = randperm(nPoints,nClusters);

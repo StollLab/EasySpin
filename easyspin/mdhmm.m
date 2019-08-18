@@ -48,7 +48,7 @@ if Opt.isSeeded
   Opt.nTrials = 1;
 end
 
-if mod(nLag,1) || nLag < 1
+if abs(round(nLag)-nLag)>1e-3 || nLag < 1
   error('nLag must be an integer >= 1.');
 end
 
@@ -152,6 +152,9 @@ if any(~visited)
   [HMM.TransProb,HMM.eqDistr] = estimatemarkovparameters(HMM.viterbiTraj);
 end
 HMM.nStates = length(HMM.eqDistr);
+if size(HMM.viterbiTraj, 1)==nTraj
+  HMM.viterbiTraj = HMM.viterbiTraj.';
+end
 
 % Calculate relaxation times for the TPM and time lag
 %-------------------------------------------------------------------------------
@@ -223,12 +226,12 @@ function [stateTraj,mu0,Sigma0] = initializehmm(dihedrals,chiStart,nStates,nRepe
 
 % if more than one trajectory, collapse 3rd dim (traj) onto 1st dim (time)
 if nTraj > 1
-  dihedrals = reshape(dihedrals,[],nDims);
-%   dihedralsTemp = dihedrals;
-%   dihedrals = [];
-%   for iTraj = 1:nTraj
-%     dihedrals = cat(1, dihedrals, dihedralsTemp(:,:,iTraj));
-%   end
+%   dihedrals = reshape(dihedrals,[],nDims);
+  dihedralsTemp = dihedrals;
+  dihedrals = [];
+  for iTraj = 1:nTraj
+    dihedrals = cat(1, dihedrals, dihedralsTemp(:,:,iTraj));
+  end
 end
 
 % Do k-means clustering

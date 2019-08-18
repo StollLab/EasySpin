@@ -185,8 +185,8 @@ switch PropagationMethod
       end
       
       % Perform sliding window processing if using MD trajectory explicitly
-      logmsg(2,'  sliding window, lag %d',Par.lag);
       if useMD && isDirectfromMD && nTraj>1
+        logmsg(2,'  sliding window, lag %d',Par.lag);
         gTensor = zeros(3,3,nTraj,nSteps);
         if includeHF
           ATensor = zeros(3,3,nTraj,nSteps);
