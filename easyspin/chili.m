@@ -609,6 +609,13 @@ if isfield(Opt,'LLKM') % silently support pre-6.0 field name
   Opt.LLMK = Opt.LLKM([1 2 4 3]);
   warning('Opt.LLKM is obsolete. Use Opt.LLMK instead. To convert LLKM to LLMK, swap the third and the fourth number.');
 end
+if numel(Opt.LLMK)~=4 || any(Opt.LLMK<0) || any(mod(Opt.LLMK,1))
+  error('Opt.LLMK must be a 4-element array with non-negative integers.');
+end
+maxL = max(Opt.LLMK(1:2));
+if any(Opt.LLMK(3:4)>maxL)
+  error('The maximum M and maximum K (third and fourth number in Opt.LLMK) must be not larger than the maximum L.');
+end
 Basis.LLMK = Opt.LLMK;
 
 if ~isfield(Opt,'jKmin'), Opt.jKmin = []; end
