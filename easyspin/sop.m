@@ -59,25 +59,32 @@ function varargout = sop(SpinSystem,varargin)
 %      ...
 %  |-J1  -J2  ...>
 
-if (nargin==0), help(mfilename); return; end
+if nargin==0, help(mfilename); return; end
 
+% Check first input
 if isstruct(SpinSystem)
   SpinVec = spinvec(SpinSystem);
 else
   SpinVec = SpinSystem;
 end
+if ~isnumeric(SpinVec) || ~isvector(SpinVec)
+  error('First input must be a 1D array of spin quantum numbers.');
+end
+if any(SpinVec<1/2) || any(mod(SpinVec,1/2)) || ~isreal(SpinVec)
+  error('First input must contain valid spin quantum numbers (1/2, 1, 3/2, etc).');
+end
 nSpins = numel(SpinVec);
 
-SparseOutput = strcmpi(varargin{end},'sparse');
+if nargin==1
+  error('Not enough input arguments - at least 2 are needed!');
+end
 
-if SparseOutput
+sparseOutput = strcmpi(varargin{end},'sparse');
+
+if sparseOutput
   OperatorSpec = varargin(1:end-1);
 else
   OperatorSpec = varargin(1:end);
-end
-
-if numel(OperatorSpec)==0
-  error('Not enough input arguments!');
 end
 
 NumericSyntax = ~ischar(varargin{1});
@@ -99,7 +106,7 @@ else
   if numel(OperatorSpec)>1
     
     for k = 1:numel(OperatorSpec)
-      if SparseOutput
+      if sparseOutput
         varargout{k} = sop(SpinVec,OperatorSpec{k},'sparse');
       else
         varargout{k} = sop(SpinVec,OperatorSpec{k});
@@ -266,9 +273,9 @@ else
 end
 
 % Initialize with identity operator for each spin
-Comps = repmat('e',1,nSpins);
+Components = repmat('e',1,nSpins);
 % Assign specified components for specified spins
-Comps(Spins) = Coords;
+Components(Spins) = Coords;
 
 % The starting null-spin space is one-dimensional
 ia = 1; % 1st (column) index
@@ -288,7 +295,7 @@ for iSpin = 1:nSpins
   
   % Component switchyard
   %----------------------------------------
-  switch Comps(iSpin)
+  switch Components(iSpin)
     case {'x',1} % x component
       if TselectiveOp
         ib = [Transitions{iSpin}(1); Transitions{iSpin}(2)];
@@ -397,7 +404,7 @@ end
 OperatorMatrix = sparse(ia,ja,sa,na,na);
 
 % Convert sparse to full matrix if required
-if ~SparseOutput
+if ~sparseOutput
   OperatorMatrix = full(OperatorMatrix);
 end
 
