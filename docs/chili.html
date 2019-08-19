@@ -113,7 +113,7 @@ Sys.tcorr = [5 4 1]*1e-9; % rhombic anisotropic diffusion
 <p>
 Instead of <code>tcorr</code>, <code>Diff</code> can be used, see below. The correlation time <code>tcorr</code> and the diffusion rate <code>Diff</code> are related by
 <pre class="matlab">
-tcorr = 1/(6*Diff);       % tcorr in s, Diff in s^-1
+tcorr = 1/(6*Diff);       % tcorr in s, Diff in rad^2 s^-1
 </pre>
 <br>
 </div>
@@ -186,10 +186,15 @@ Sys.Potential = [2 0 0 0.3; 2 0 2 -0.1];      % two coefficients
 </pre>
 
 <p>
-Since the overall potential must be real-valued, there is a symmetry relation between coefficients with the same L, |M| and |K|: &lambda;<sup>L</sup><sub>-M,-K</sub> = (-1)<sup>M-K</sup> (&lambda;<sup>L</sup><sub>M,K</sub>)<sup>*</sup>. Therefore, <code>chili</code> limits the input coefficients to: (1) those with positive K, (2) those with K=0 and positive M, (3) the one with M=K=0 which must be real-valued. All others are supplemented internally using the symmetry.
+Since the overall potential must be real-valued, there is a symmetry relation between coefficients with the same L, |M| and |K|: &lambda;<sup>L</sup><sub>-M,-K</sub> = (-1)<sup>M-K</sup> (&lambda;<sup>L</sup><sub>M,K</sub>)<sup>*</sup>. Therefore, <code>chili</code> limits the input coefficients to: (1) those with positive K, (2) those with K=0 and positive M, (3) the one with M=K=0 which must be real-valued. All others are supplemented internally using the symmetry relation.
+
+<p>
+To plot the orientational potential, use the function <a class="esf" href="oripotentialplot.html">oripotentialplot</a> by calling <code>oripotentialplot(Sys.Potential)</code>.
 
 <p>
 The frame of the orientational potential is assumed to be collinear with that of the rotational diffusion tensor (<code>Sys.DiffFrame</code>).
+</p>
+
 <p>
 The orientational symmetry of the potential reflects the symmetry of the paramagnetic molecule and the symmetry of the nanoenvironment in which it is tumbling:
 <ul>
@@ -197,6 +202,7 @@ The orientational symmetry of the potential reflects the symmetry of the paramag
 If the environment of cylindrically symmetric (e.g. in a uniaxial liquid crystal), then use a potential with M=0 terms.
 <li>If the tumbling paramagnetic molecules is cylindrically symmetric, use a potential with K=0 terms only.
 </ul>
+
 <p>
 <code>chili</code> simulation performance varies greatly with the type of potential. The simulations are fastest if all potential terms have M=K=0, they are fast if all terms are M=0 or if all terms are K=0, and they are very slow if any term has both M and K different from zero.
 </div>

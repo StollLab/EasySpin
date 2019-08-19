@@ -176,7 +176,7 @@ Sys.logtcorr = -7;   %  = log10(Sys.tcorr)   10^-7 s = 100 ns
 </pre>
 
 <p>
-or by specifying the principal value of the rotational diffusion tensor (in rad<sup>2</sup> s<sup>-1</sup>)
+or by specifying the principal value of the rotational diffusion tensor (in rad<sup>2</sup> s<sup>-1</sup>, or equivalently s<sup>-1</sup>)
 </p>
 
 <pre class="matlab">
@@ -195,7 +195,7 @@ Sys.logDiff = 9;   % = log10(Sys.Diff)   1e9 rad^2 s^-1 = 1 rad^2 ns^-1
 <code>Diff</code> and <code>tcorr</code> are related by
 
 <pre class="matlab">
-Diff = 1/6/tcorr;
+Diff = 1/6./tcorr;
 </pre>
 
 The input field <code>Diff</code> can be used to specify an axial rotational diffusion tensor, by giving a 2-element vector with first the perpendicular principal value (for rotation around the x and y axes) and then the parallel principal value (for rotation around the z axis):
