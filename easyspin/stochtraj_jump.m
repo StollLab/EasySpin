@@ -293,13 +293,6 @@ end
 
 % Simulation
 % -------------------------------------------------------------------------
-
-converged = false;
-
-% if checkConvergence=1, then we need to keep track of how many iterations have been 
-% completed (i.e. the number of instances of propagation in time by nSteps)
-iter = 1;
-
 logmsg(2,'-- Calculating stochastic trajectories -----------------------');
 
 nTraj = Par.nTraj;
@@ -307,24 +300,21 @@ nSteps = Par.nSteps;
 
 stateTraj = zeros(nTraj,nSteps);
 stateTraj(:,1) = StatesStart;
-u = rand(nTraj,nSteps);
 
+statesOnly = Opt.statesOnly;
 for iTraj = 1:nTraj
-  stateNew = stateTraj(iTraj,1);
+  u = rand(1,nSteps);
+  state = stateTraj(iTraj,1);
   for iStep = 2:nSteps
-    stateLast = stateNew;
-    uLast = u(iTraj,iStep-1);
-%     stateNew = find(cumulTPM(:,stateLast)>uLast,1);
-    stateNew = find(cumulTPM(stateLast,:)>uLast,1);
-    stateTraj(iTraj,iStep) = stateNew;
-    if ~Opt.statesOnly
-      qTraj(:,iTraj,iStep) = qStates(:,stateNew);
+    state = find(cumulTPM(state,:)>u(iStep-1),1);
+    stateTraj(iTraj,iStep) = state;
+    if ~statesOnly
+      qTraj(:,iTraj,iStep) = qStates(:,state);
     end
   end
 end
-totSteps = size(stateTraj,2);
 
-t = linspace(0, totSteps*Par.dt, totSteps).';
+t = linspace(0, nSteps*Par.dt, nSteps).';
 
 logmsg(2,'-- Propagation finished --------------------------------------');
 logmsg(2,'--------------------------------------------------------------');

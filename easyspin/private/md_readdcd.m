@@ -13,10 +13,11 @@
 %
 %
 %   Output:
-%     Traj           structure array
-%                    xyz: x,y,z coordinates of desired atoms in the trajectory
-%                    nSteps: total number of time steps in the trajectory
-%                    dt: size of the time step (in sec)
+%     Traj           structure with trajectory data
+%        .nAtoms     number of atoms
+%        .nFrames    total number of frames
+%        .xyz        x,y,z coordinates, 3D-array, (nFrames,3,nAtoms)
+%        .dt         time step, in seconds
 
 % current code is based on 'readdcd' in MDToolbox:
 %  https://github.com/ymatsunaga/mdtoolbox
@@ -55,10 +56,7 @@ fileSize = ftell(FileID);
 fseek(FileID, 0, 'bof');
 
 % check endianness of binary file
-% TODO can we just check machineformat and be done?
 [FileName, ~, machineformat] = fopen(FileID);
-
-TIMEFACTOR = 48.88821;  % used to convert internal time units to fs TODO this should be restricted to NAMD output
 
 % block 1
 % -------------------------------------------------------------------------
@@ -230,9 +228,17 @@ for iFrame = 1:nSnapShots
   Traj.xyz(iFrame, 2:3:end) = y(idx)';
   Traj.xyz(iFrame, 3:3:end) = z(idx)';
 end
+Traj.xyz = reshape(Traj.xyz, [nSnapShots, 3, numel(idx)]);
 
-Traj.dt = header.NSAVC*TIMEFACTOR*header.DELTA*1e-15;
-Traj.nSteps = nSnapShots;
-Traj.xyz = reshape(Traj.xyz, [Traj.nSteps, 3, numel(idx)]);
+isNAMD = true;
+if isNAMD
+  timeunit = 48.88821; % NAMD internal time unit, in femtoseconds
+else
+  timeunit = 1; % femtoseconds
+end
+Traj.dt = header.NSAVC*header.DELTA*timeunit*1e-15; % femtoseconds -> seconds
+
+Traj.nAtoms = header.NATOM;
+Traj.nFrames = nSnapShots;
 
 end

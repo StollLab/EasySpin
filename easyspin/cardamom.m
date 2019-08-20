@@ -5,11 +5,11 @@
 %   cardamom(Sys,Exp,Par,Opt,MD)
 %   spc = cardamom(...)
 %   [B,spc] = cardamom(...)
-%   [B,spc,ExpectVal,t] = cardamom(...)
-%
+%   [B,spc,TDSignal,t] = cardamom(...)
+%   
 %   Computes a CW-EPR spectrum of an S=1/2 spin label using stochastic or
 %   molecular dynamics trajectories.
-%
+%   
 %   Sys: stucture with system's dynamical parameters
 %
 %     tcorr          double or numeric vector, size = (1,3)
@@ -152,23 +152,19 @@
 %     Verbosity      0: no display, 1: show info
 %
 %     Method         string
-%                    Nitroxide: propagate the density matrix using an 
+%                    fast: propagate the density matrix using an 
 %                      analytical expression for the matrix exponential in 
-%                      the m_S=-1/2 subspace (14N nitroxides only, faster)
+%                      the m_S=-1/2 subspace (S=1/2 with up to one nucleus)
 %                    ISTOs: propagate the density matrix using
 %                      irreducible spherical tensor operators (general, slower)
 %
-%    FFTWindow       1: use a Hamming window (default), 0: no window
-%
-%    truncate        double
-%                    time point (in nanoseconds) at which to stop using 
-%                    full quantum dynamics propagator and begin using an
-%                    approximate propagator using correlation functions
+%     FFTWindow       1: use a Hamming window (default), 0: no window
 %
 %     nTrials        integer
 %                    number of initialization trials for k-means
 %                    clustering; used for the Markov method
 % 
+%     LagTime        lag time for sliding window processing
 %
 %
 %   MD: structure with molecular dynamics simulation parameters
@@ -210,25 +206,13 @@
 %     spc            numeric, size = (2*nSteps,1)
 %                    derivative EPR spectrum
 %
-%     ExpectVal      numeric, size = (2*nSteps,1)
-%                    expectation value of complex magnetization, 
-%                    \langle S_{+} \rangle
+%     TDSignal       numeric, size = (2*nSteps,1)
+%                    time-domain signal, <S_+>
 %
 %     t              numeric, size = (2*nSteps,1)
 %                    simulation time axis (in s)
 
-%    Opt.debug       struct
-%                    various debugging options used for testing by
-%                    developers
-%
-%                    EqProp: for computing the equilibrium propagator, 
-%                    set to "time" (default) to only average over the time 
-%                    axis of the Hamiltonian, yielding an approximate 
-%                    propagator for each trajectory; set to "all" to 
-%                    average over both time and trajectory axes, yielding a
-%                    single approximate propagator to be used on the
-%                    trajectory-averaged density matrix
-
+%    Opt.ExpMethod   method for computing matrix exponential
 
 function varargout = cardamom(Sys,Exp,Par,Opt,MD)
 
@@ -254,8 +238,8 @@ switch nargout
   case 0 % plotting
   case 1 % spc
   case 2 % B,spc
-  case 3 % B,spc,ExpectVal
-  case 4 % B,spc,ExpectVal,t
+  case 3 % B,spc,TDSignal
+  case 4 % B,spc,TDSignal,t
   otherwise
     error('Incorrect number of output arguments.');
 end
@@ -269,21 +253,11 @@ LicErr = 'Could not determine license.';
 Link = 'epr@eth'; eschecker; error(LicErr); clear Link LicErr
 % --------License ------------------------------------------------
 
-global EasySpinLogLevel;
-global reverseStr
+global EasySpinLogLevel
 EasySpinLogLevel = Opt.Verbosity;
-
-if ~isfield(Opt,'debug')
-  Opt.debug = [];
-end
 
 % Check Sys
 % -------------------------------------------------------------------------
-
-if ~isfield(Sys,'Nucs')
-  Sys.Nucs = '14N';
-  logmsg(0,'-- List of nuclei Sys.Nucs not specified. Using Sys.Nucs=''14N'' for a nitroxide spin label.');
-end
 
 [Sys,err] = validatespinsys(Sys);
 error(err);
@@ -294,7 +268,32 @@ if Sys.nNuclei>1, error('cardamom does not support more than one nucleus.'); end
 if isfield(Sys, 'lw')
   isBroadening = any(Sys.lw>0);
 else
-  isBroadening = 0;
+  isBroadening = false;
+end
+
+% Check Exp
+%-------------------------------------------------------------------------------
+
+logmsg(1,'Experimental settings:');
+[Exp,FieldSweep,CenterField,CenterFreq,Sweep] = validate_exp('cardamom',Sys,Exp);
+
+if FieldSweep
+  omega0 = 2*pi*Exp.mwFreq*1e9;  % GHz -> rad s^-1
+else
+  omega0 = 2*pi*CenterFreq*1e9;  % GHz -> rad s^-1
+end
+
+if isfield(Exp,'SampleOrientation')
+  SampleOrientation = Exp.SampleOrientation;
+else
+  SampleOrientation = [];
+end
+
+% set up horizontal sweep axis
+if FieldSweep
+  xAxis = linspace(Exp.Range(1),Exp.Range(2),Exp.nPoints);  % field axis, mT
+else
+  xAxis = linspace(Exp.mwRange(1),Exp.mwRange(2),Exp.nPoints);  % field axis, GHz
 end
 
 % Check local dynamics models
@@ -308,26 +307,26 @@ if ~ischar(Par.Model)
 end
 
 switch Par.Model
-  case 'diffusion'
-    
-  case 'jump'
+  case {'diffusion','jump'}
+    if ~isempty(MD)
+      error('For stochastic diffusion/jump model, do not provide an MD trajectory.');
+    end
     
   case {'MD-direct','MD-HBD','MD-HMM'}
     if isempty(MD)
-      error('For the model ''%s'', MD simulation information must be provided in the input argument ''MD''.',Par.Model)
+      error('For the model ''%s'', MD simulation information must be provided in the input argument ''MD''.',Par.Model);
     end
   otherwise
-    errmsg = sprintf('Setting ''%s'' for Par.Model not recognized.', Par.Model);
-    error(errmsg);
+    error('Setting ''%s'' for Par.Model not recognized.', Par.Model);
 end
+LocalDynamicsModel = Par.Model;
+useMDdirect = strcmp(LocalDynamicsModel,'MD-direct');
+useMD = ~isempty(MD);
 
 % Check MD
 %-------------------------------------------------------------------------------
-
-useMD = ~isempty(MD);
-
 if useMD
-  logmsg(1,'-- using MD simulation data -----------------------------------------');
+  logmsg(1,'  using MD trajectory data');
   
   if ~isfield(MD,'dt')
     error('The MD trajectory time step MD.dt must be given.')
@@ -370,9 +369,10 @@ if useMD
   clear RTrajInv
   
   % Build Markov state model
-  if strcmp(Par.Model,'MD-HMM')
+  if strcmp(LocalDynamicsModel,'MD-HMM')
+    logmsg(1,'Building HMM model');
     if isfield(MD,'HMM')
-      logmsg(1,'-- using provided HMM input parameters -----------------------------------------');
+      logmsg(1,'  using provided HMM parameters');
       
       HMM = MD.HMM;
       if ~isfield(HMM,'TransProb')
@@ -389,15 +389,15 @@ if useMD
       end
       
     else
-      logmsg(1,'-- building HMM -----------------------------------------');
+      logmsg(1,'  constructing HMM from MD');
 
       nLag = MD.tLag/MD.dt;
       HMM = mdhmm(MD.dihedrals,MD.dt,MD.nStates,nLag,Opt);
       
-      logmsg(1,'  ---- HMM done ---');
     end
     % provides HMM.transmat, HMM.eqdistr, HMM.viterbiTraj, etc
     MD.viterbiTraj = HMM.viterbiTraj.';
+    MD.nStates = HMM.nStates;
 
     % Set the Markov chain time step based on the (scaled) sampling lag time
     Par.dt = MD.tLag;
@@ -414,41 +414,13 @@ if useMD
 
 end
 
-% Check Exp
-%-------------------------------------------------------------------------------
-
-[Exp,FieldSweep,CenterField,CenterFreq,Sweep] = validate_exp('cardamom',Sys,Exp);
-
-% if ~FieldSweep
-%   error('cardamom does not support frequency sweeps.');  % TODO expand usage to include frequency sweep
-% end
-
-if FieldSweep
-  omega0 = 2*pi*Exp.mwFreq*1e9;  % GHz -> rad s^-1
-else
-  omega0 = 2*pi*CenterFreq*1e9;  % MHz -> rad s^-1
-end
-
-if isfield(Exp,'SampleOrientation')
-  SampleOrientation = Exp.SampleOrientation;
-else
-  SampleOrientation = [];
-end
-
-
-% set up horizontal sweep axis
-if FieldSweep
-  xAxis = linspace(Exp.Range(1),Exp.Range(2),Exp.nPoints);  % field axis, mT
-else
-  xAxis = linspace(Exp.mwRange(1),Exp.mwRange(2),Exp.nPoints);  % field axis, GHz
-end
 
 % Check dynamics and ordering
 %-------------------------------------------------------------------------------
 
 if useMD
-  isDiffSim = strcmp(Par.Model,'MD-HBD');
-elseif strcmp(Par.Model,'jump')
+  isDiffSim = strcmp(LocalDynamicsModel,'MD-HBD');
+elseif strcmp(LocalDynamicsModel,'jump')
   isDiffSim = false;
 else
   isDiffSim = true;
@@ -480,14 +452,48 @@ else
   isLocalPotential = false;
 end
 
+% Check Opt
+%-------------------------------------------------------------------------------
+
+fastMethodApplicable = Sys.nElectrons==1 && Sys.nNuclei<=1;
+if ~isfield(Opt,'Method')
+  if fastMethodApplicable
+    Opt.Method = 'fast';
+  else
+    Opt.Method = 'ISTOs';
+  end
+end
+if strcmp(Opt.Method,'fast')
+  if ~fastMethodApplicable
+    error('Opt.Method = ''fast'' is not applicable for this spin system.');
+  end
+end
+
+if ~isfield(Opt,'FFTWindow')
+  Opt.FFTWindow = true;
+end
+FFTWindow = Opt.FFTWindow;
+
+if ~isfield(Opt,'specCon')
+  Opt.specCon = false;
+end
+checkConvergence = Opt.specCon;
+
+if ~isfield(Opt,'ExpMethod')
+  Opt.ExpMethod = 'eig';
+end
+
+% Lag time for sliding window processing (used in MD-direct only)
+if ~isfield(Opt,'LagTime')
+  Opt.LagTime = 2e-9; % seconds
+end
+
 % Check Par
 %-------------------------------------------------------------------------------
 
-% Supply defaults
-% default number of trajectories
-if ~isfield(Par,'nTraj')&&~strcmp(Par.Model,'MD-direct')
+% Set default number of (stochastic) trajectories
+if ~isfield(Par,'nTraj') && ~strcmp(LocalDynamicsModel,'MD-direct')
   Par.nTraj = 100; 
-  logmsg(0,'-- Number of trajectories Par.nTraj not given. Using %d trajectories.', Par.nTraj);
 end
 
 if isfield(Par,'t')
@@ -505,16 +511,16 @@ if isfield(Par,'t')
   end
   
 elseif isfield(Par,'nSteps') && isfield(Par,'dt')
-    % number of steps and time step are given
-    nStepsQuant = Par.nSteps;
-    if ~isfield(Par,'Dt')
-      Par.Dt = Par.dt;
-    end
-    if Par.Dt<Par.dt
-      error('The stochastic time step Par.dt must be less than or equal to Par.Dt.')
-    end
-    tMax = nStepsQuant*Par.Dt;
-    nStepsStoch = round(tMax/Par.dt);
+  % number of steps and time step are given
+  nStepsQuant = Par.nSteps;
+  if ~isfield(Par,'Dt')
+    Par.Dt = Par.dt;
+  end
+  if Par.Dt<Par.dt
+    error('The stochastic time step Par.dt must be less than or equal to Par.Dt.')
+  end
+  tMax = nStepsQuant*Par.Dt;
+  nStepsStoch = round(tMax/Par.dt);
 
 elseif isfield(Par,'nSteps') && isfield(Par,'tMax')
   % number of steps and max time are given
@@ -527,18 +533,16 @@ elseif isfield(Par,'nSteps') && isfield(Par,'tMax')
 else
   if isDiffSim
     Par.dt = min(tcorr)/10;
-  elseif strcmp(Par.Model,'jump') && ~isfield(Par,'dt')
+  elseif strcmp(LocalDynamicsModel,'jump') && ~isfield(Par,'dt')
     error('The time step Par.dt must be specified when using an jump model.')
-  elseif strcmp(Par.Model,'MD') && ~isfield(Par,'dt')
+  elseif strcmp(LocalDynamicsModel,'MD') && ~isfield(Par,'dt')
     error('The time step Par.dt must be specified when using an MD model.')
   end
   Par.Dt = Par.dt;
-  logmsg(0,'-- No time parameters given. Using time step of %0.5g s.', Par.dt);
   if isfield(Par,'nSteps')
     nSteps = Par.nSteps;
   else
     nSteps = ceil(250e-9/Par.dt);
-    logmsg(0,'-- Number of time steps not given. Using %d steps.', nSteps);
   end
   nStepsStoch = nSteps;
   nStepsQuant = nSteps;
@@ -547,255 +551,182 @@ end
 dtQuant = Par.Dt;
 dtStoch = Par.dt;
 
-% Decide on a simulation model based on user input
-if useMD
-  
-  % Determine if time block averaging is to be used
-  if strcmp(Par.Model,'MD-direct')
-    % check MD.dt
-    if Par.Dt<MD.dt
-      error('Par.Dt must be greater than MD.dt.')
-    end
-    Par.isBlock = true;
+if useMDdirect
+  if Par.Dt<MD.dt
+    error('Quantum time step (Par.Dt) cannot be smaller than MD time step (MD.dt).');
+  end
+end
+
+% Calculate block length for block averaging (done if block length > 1)
+if useMDdirect
+  traj_dt = MD.dt;
+else
+  traj_dt = Par.dt;
+end
+Par.BlockLength = ceil(Par.Dt/traj_dt);
+
+% Determine whether to process single long MD trajectory into multiple short
+% MD trajectories
+if useMDdirect
+  Par.lag = ceil(Opt.LagTime/Par.Dt);
+  nBlocks = floor(MD.nSteps/Par.BlockLength);
+  if Par.nSteps<nBlocks
+    % Par.nSteps not changed from user input
+    Par.nTraj = floor((nBlocks-Par.nSteps)/Par.lag) + 1;
   else
-    % check Par.Dt
-    if Par.dt<Par.Dt
-      Par.isBlock = true;
-    else
-      % same step size
-      Par.isBlock = false;
-    end
-  end
-  
-  % find block properties for block averaging
-  if Par.isBlock
-    if strcmp(Par.Model,'MD-direct')
-      [Par.nBlocks,Par.BlockLength] = findblocks(Par.Dt, MD.dt, MD.nSteps);
-    else
-      [Par.nBlocks,Par.BlockLength] = findblocks(Par.Dt, Par.dt, nStepsStoch);
-    end
-  end
-  
-  % process single long trajectory into multiple short trajectories
-  if strcmp(Par.Model,'MD-direct')
-%     Par.lag = ceil(3*MD.tauR/Par.Dt);  % use 2 ns lag between windows
-    Par.lag = ceil(2e-9/Par.Dt);  % use 2 ns lag between windows
-    if Par.nSteps<Par.nBlocks
-      % Par.nSteps not changed from user input
-      Par.nTraj = floor((Par.nBlocks-Par.nSteps)/Par.lag) + 1;
-    else
-      Par.nSteps = Par.nBlocks;
-      Par.nTraj = 1;
-    end
-  end
-  
-else
-  % no MD simulation trajectories provided, so perform stochastic dynamics
-  % simulations internally
-  
-  % check for time coarse-graining (time block averaging)
-  if Par.dt<Par.Dt
-    Par.isBlock = true;
-    [Par.nBlocks,Par.BlockLength] = findblocks(Par.Dt, Par.dt, nStepsStoch);
-  else 
-    % same step size
-    Par.isBlock = false;
-  end
-    
-end
-
-LocalDynamicsModel = Par.Model;
-
-
-% Check Opt
-%-------------------------------------------------------------------------------
-
-if ~isfield(Opt,'Method')
-  Opt.Method = 'Nitroxide';
-end
-
-if ~isfield(Opt,'truncate')
-  Opt.truncate = 0;
-end
-
-if Opt.truncate && strcmp(Opt.Method,'Nitroxide')
-  error('Correlation function propagation is only available for ISTOs method.')
-end
-
-if isfield(Opt,'FFTWindow')
-  FFTWindow = Opt.FFTWindow;
-else
-  FFTWindow = 1;
-end
-
-if isfield(Opt,'specCon')
-  specCon = Opt.specCon;
-else
-  specCon = 0;
-end
-
-% Debugging options
-if ~isempty(Opt.debug)
-  Opt.debug.EqProp = 'all';
-else
-  if ~isfield(Opt.debug,'EqProp')
-    Opt.debug.EqProp = 'all';
-  else
-    switch Opt.debug.EqProp
-      case 'time'
-        Opt.debug.EqProp = 'time';
-      case 'all'
-        Opt.debug.EqProp = 'all';
-      otherwise
-        error('Opt.debug.EqProp value not recognized.')
-    end
+    Par.nSteps = nBlocks;
+    Par.nTraj = 1;
   end
 end
 
+% Set default number of orientations
+if ~isfield(Par,'nOrients')
+  Par.nOrients = 100;
+end
 
-% Check model for local diffusion
+logmsg(1,'Parameter settings:');
+logmsg(1,'  Local dynamics model:   ''%s''',LocalDynamicsModel);
+logmsg(1,'  Number of trajectories: %d',Par.nTraj);
+logmsg(1,'  Number of orientations: %d',Par.nOrients);
+logmsg(1,'  Quantum propagation:    %d steps of %g ns',nStepsQuant,dtQuant/1e-9);
+logmsg(1,'  Spatial propagation:    %d steps of %g ns',nStepsStoch,dtStoch/1e-9);
+
+
+% Check local dynamics model
 %-------------------------------------------------------------------------------
 switch LocalDynamicsModel
   case 'diffusion'
     
     DiffLocal = Dynamics.Diff;
-  
+    
   case 'jump'
     
   case {'MD-direct','MD-HBD','MD-HMM'} % TODO process RTraj based on size of input
     
     if ~isfield(Par,'nOrients')
-      error('nOrients must be specified for an MD model.')
+      error('Par.nOrients must be specified for an MD-based model.')
     end
     
-%     if strcmp(Opt.Method, 'ISTOs')
-%       % this method uses quaternions, not rotation matrices, so convert
-%       % MD.RTraj to quaternions here before the simulation loop
     RTrajLocal = MD.RTraj;
-    qTrajLocal = rotmat2quat(MD.RTraj);
+    qTrajLocal = rotmat2quat(RTrajLocal);
     
-    if strcmp(Par.Model,'MD-HBD')
-      M = size(MD.FrameTraj,4);
-
-      % calculate orienting potential energy function
-      qTemp = squeeze(rotmat2quat(MD.FrameTraj));
-      [phi,theta,psi] = quat2euler(qTemp,'active');
-      clear qTemp
-
-      phi = phi + 2*pi*(phi<0);
-      psi = psi + 2*pi*(psi<0);
-
-      nBins = 90;
-      phiBins = linspace(0, 2*pi, nBins);
-      thetaBins = linspace(0, pi, nBins/2);
-      psiBins = linspace(0, 2*pi, nBins);
-
-      [pdf, ~] = histcnd([phi(:),theta(:),psi(:)], ...
-                         {phiBins,thetaBins,psiBins});
-
-      pdf(end,:,:) = pdf(1,:,:);  % FIXME why does it truncate to zero in the phi direction?
-      pdf = smooth3(pdf,'gaussian');
-  %           pdf = smoothn(pdf);
-      %save('pdf.mat','pdf')
-      pdf(pdf<1e-14) = 1e-14;  % put a finite floor on histogram
-      isLocalPotential = 1;
-  %           Sys.Potential = -log(pdf);
-      LocalPotential = -log(pdf);
-          
-    end
-          
-    if strcmp(Par.Model,'MD-HMM')
-
-      RTrajLocal = RTrajLocal(:,:,:,1:HMM.nLag:end);
-      qTrajLocal = rotmat2quat(RTrajLocal);
-
+    switch LocalDynamicsModel
+      case 'MD-HBD'
+        
+        % calculate orienting potential energy function
+        qTemp = squeeze(rotmat2quat(MD.FrameTraj));
+        [phi,theta,psi] = quat2euler(qTemp,'active');
+        clear qTemp
+        
+        phi = phi + 2*pi*(phi<0);
+        psi = psi + 2*pi*(psi<0);
+        
+        nBins = 90;
+        phiBins = linspace(0, 2*pi, nBins+1);
+        thetaBins = linspace(0, pi, nBins/2+1);
+        psiBins = linspace(0, 2*pi, nBins+1);
+        
+        pdf = histcnd([phi(:),theta(:),psi(:)],{phiBins,thetaBins,psiBins});
+        
+        pdf(end,:,:) = pdf(1,:,:);  % FIXME why does it truncate to zero in the phi direction?
+        pdf = smooth3(pdf,'gaussian');
+        pdf(pdf<1e-14) = 1e-14;  % put a finite floor on histogram
+        isLocalPotential = true;
+        LocalPotential = -log(pdf);
+        
+      case 'MD-HMM'
+        
+        RTrajLocal = RTrajLocal(:,:,:,1:HMM.nLag:end);
+        qTrajLocal = rotmat2quat(RTrajLocal);
+        
     end
     
-  % these variables could be huge and are no longer needed, so delete them 
-  % now
-  MD = rmfield(MD, 'FrameTraj');
-  MD = rmfield(MD, 'RTraj');
-  if isfield(MD, 'FrameTrajwrtProt')   
-    MD = rmfield(MD, 'FrameTrajwrtProt');
-  end
-  if isfield(MD, 'RProtDiff')
-    MD = rmfield(MD, 'RProtDiff');
-  end
+    % Delete very large arrays that are no longer needed
+    fields = {'FrameTraj','RTraj','FrameTrajwrtProt','RProtDiff'};
+    for iField = 1:numel(fields)
+      if isfield(MD,fields{iField})
+        MD = rmfield(MD,fields{iField});
+      end
+    end
     
 end
 
 % Generate grids for powder averaging in the lab frame
-% -------------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 
-% default number of orientations
-if isfield(Par,'nOrients')
-  nOrients = Par.nOrients;
-else
-  nOrients = Par.nTraj;
-  logmsg(0,'-- Par.nOrients not specified. Using %d orientations.', nOrients);
-end
-
+nOrientations = Par.nOrients;
 Orients = [];
 if isfield(Par,'Orients')
   Orients = Par.Orients;
   if isvector(Orients)
     % assure that Orients is a column vector
     Orients = Orients(:);
-    if nOrients>1
+    if nOrientations>1
       % if only one orientation, then repeat it nOrients times
-      Orients = repmat(Orients,[1,nOrients]);
+      Orients = repmat(Orients,[1,nOrientations]);
     end
   end
 end
 
-% assign lab orientations for powder averaging
+% Set up orientational grid for powder averaging
 if ~isempty(Orients)
   gridPhi = Orients(1,:);
   gridTheta = Orients(2,:);
+  weight = ones(size(gridPhi));
+  weight = weight/sum(weight);
 else
-  if specCon
-    % generate Sobol sequence over a spiral grid
-    nOrients = ceil(nOrients/2);
+  if checkConvergence
+    % Generate Sobol sequence over a spiral grid
+    nOrientations = ceil(nOrientations/2);
     skip = 0;
-    gridPts = 2*cardamom_sobol_generate(1,nOrients,skip)-1;
-    gridPhi = sqrt(pi*nOrients)*asin(gridPts);
+    gridPts = 2*cardamom_sobol_generate(1,nOrientations,skip)-1;
+    gridPhi = sqrt(pi*nOrientations)*asin(gridPts);
     gridTheta = acos(gridPts);
+    weight = ones(size(gridPhi));
   else
-    % generate a spiral grid
-    gridPts = linspace(-1,1,nOrients);
-    gridPhi = sqrt(pi*nOrients)*asin(gridPts);
+    % Generate a spiral grid over the full sphere
+    gridPts = linspace(-1,1,nOrientations);
+    gridPhi = sqrt(pi*nOrientations)*asin(gridPts);
     gridTheta = acos(gridPts);
+    weight = ones(size(gridPhi));
+    weight = weight/sum(weight);
+    % Generate a triangular grid over the upper hemisphere (since EPR spectra
+    % are invariant under inversion)
+    %nKnots = ceil(sqrt(nOrientations));
+    %[gridPhi,gridTheta,weight] = sphgrid('Ci',nKnots);
+    %weight = weight/sum(weight);
   end
 end
 
-logmsg(1,'-- time domain simulation -----------------------------------------');
-logmsg(1,'-- Model: %s -----------------------------------------', LocalDynamicsModel);
-logmsg(1,'-- Method: %s -----------------------------------------', Opt.Method);
 
 % Run simulation
-% -------------------------------------------------------------------------
-clear cardamom_propagatedm
+%-------------------------------------------------------------------------------
+logmsg(1,'Quantum propagation method: ''%s''',Opt.Method);
+logmsg(1,'Running simulation');
 
-converged = 0;
+clear cardamom_propagatedm % to clear persistent variables in function
+
 iter = 1;
 spcArray = [];
 nOrientsTot = 0;
 
 t = linspace(0, nStepsQuant*Par.Dt, nStepsQuant);
 
+converged = false;
 while ~converged
   tic
 
   % trajectories might differ in length, so we need cells for allocation
-  ExpectVal = {};
+  TDSignal = {};
   tCell = [];
-  reverseStr = [];
 
   % temporary cells to store intermediate results
-  iExpectVal = cell(1,nOrients);
-  itCell = cell(1,nOrients);
+  iTDSignal = cell(1,nOrientations);
+  itCell = cell(1,nOrientations);
 
-  for iOrient = 1:nOrients
+  updateuser(0);
+  for iOrient = 1:nOrientations
+    logmsg(1,' Orientation %d/%d',iOrient,nOrientations);
     % Generate trajectory of local dynamics
     switch LocalDynamicsModel
       
@@ -823,7 +754,7 @@ while ~converged
       case 'MD-direct'
             
         % the MD trajectories are not changing, so RTraj and qTraj were
-        % processed earlier outside of the loop
+        % processed earlier outside of the orientation loop
             
       case 'MD-HBD'
             
@@ -846,7 +777,6 @@ while ~converged
         Sys.TransProb = HMM.TransProb;
         Par.dt = dtStoch;
         Par.nSteps = 2*nStepsStoch;
-%         Par.StatesStart = rejectionsample(HMM.eqDistr, Par.nTraj);
         CumulDist = cumsum(HMM.eqDistr)/sum(HMM.eqDistr);
         for k = 1:Par.nTraj
           Par.StatesStart(k) = find(CumulDist>rand(),1);
@@ -883,8 +813,6 @@ while ~converged
     end
     
     % Combine global trajectories with starting orientations
-%     qLab = repmat(euler2quat(gridPhi(iOrient), gridTheta(iOrient), 0, 'active'),...
-%                   [1,Par.nTraj,nStepsQuant]);
     qLab = repmat(euler2quat(0, gridTheta(iOrient), gridPhi(iOrient), 'active'),...
                   [1,Par.nTraj,nStepsQuant]);
     if includeGlobalDynamics
@@ -897,35 +825,30 @@ while ~converged
       Par.RLab = quat2rotmat(qLab);
     end
     
-    % propagate the density matrix
+    % Propagate the density matrix
     Par.nSteps = nStepsQuant;
     Par.Dt = dtQuant;
     Par.dt = dtStoch;
     Sprho = cardamom_propagatedm(Sys,Par,Opt,MD,omega0,CenterField);
     
-    % average over trajectories
-    if strcmp(Opt.debug.EqProp,'time')
-      Sprho = squeeze(mean(Sprho,3));
+    % Calculate the time-domain signal, i.e. the expectation value of S_{+}
+    iTDSignal{1,iOrient} = 0;
+    for k = 1:size(Sprho,1)
+      iTDSignal{1,iOrient} = iTDSignal{1,iOrient} + squeeze(Sprho(k,k,:));
     end
     
-    iExpectVal{1,iOrient} = 0;
-    % calculate the expectation value of S_{+}
-    for k = 1:size(Sprho,1)
-      iExpectVal{1,iOrient} = iExpectVal{1,iOrient} + squeeze(Sprho(k,k,:));  % take traces TODO try to speed this up using equality tr(A*B)=sum(sum(A.*B))
-    end
+    iTDSignal{1,iOrient} = weight(iOrient)*iTDSignal{1,iOrient};
     
     if Opt.Verbosity
-      updateuser(iOrient,nOrients)
+      updateuser(iOrient,nOrientations,false);
     end
     
     itCell{1,iOrient} = t.';
     
-    iOrient = iOrient + 1;
-    
   end
 
   % Store simulations at new starting orientations from each iteration
-  ExpectVal = cat(2, ExpectVal, iExpectVal);
+  TDSignal = cat(2, TDSignal, iTDSignal);
   tCell = cat(2, tCell, itCell);
 
   % Perform FFT
@@ -936,46 +859,42 @@ while ~converged
     hamming = cellfun(@(x) 0.54 + 0.46*cos(pi*x/max(x)), tCell, 'UniformOutput', false);
     hann = cellfun(@(x) 0.5*(1 + cos(pi*x/max(x))), tCell, 'UniformOutput', false);
     Window = hann;
-    ExpectVal = cellfun(@times, ExpectVal, Window, 'UniformOutput', false);
+    TDSignal = cellfun(@times, TDSignal, Window, 'UniformOutput', false);
   end
 
   % zero padding for FFT to ensure sufficient B-field resolution (at most 0.1 G)
-  % expectval = cell2mat(cellfun(@(x) zeropad(x, maxlength), expectval, 'UniformOutput', false));
-  % tlong = (0:Par.dt:maxlength*Par.dt);
-
   Bres = 0.1; % G
   tReq = 1/(mt2mhz(Bres/10)*1e6); % mT -> s
 
-  % if max(t)<treq
   tMax = max(cellfun(@(x) max(x), tCell));
   if tMax<tReq
     M = ceil(tReq/Par.Dt);
   else
     M = ceil(tMax/Par.Dt);
   end
-  ExpectVal = cell2mat(cellfun(@(x) zeropad(x, M), ExpectVal, 'UniformOutput', false));
+  TDSignal = cell2mat(cellfun(@(x) zeropad(x, M), TDSignal, 'UniformOutput', false));
   tLong = linspace(0, M*Par.Dt, M).';
 
   % convolute for linewidth broadening
   if isBroadening
     if Sys.lw(1)>0
       % Gaussian broadening
-      w = mt2mhz(Sys.lw(1))*1e6;  % FWHM in Hz
-      alpha = pi^2*w^2/(4*log(2));
-      ExpectVal = bsxfun(@times,exp(-alpha*tLong.^2),ExpectVal);
+      fwhm = mt2mhz(Sys.lw(1))*1e6;  % mT -> Hz
+      alpha = pi^2*fwhm^2/(4*log(2));
+      TDSignal = bsxfun(@times,exp(-alpha*tLong.^2),TDSignal);
     end
     if numel(Sys.lw)==2
       % Lorentzian broadening
       TL = Dynamics.T2; 
-      ExpectVal = bsxfun(@times,exp(-tLong/TL),ExpectVal);
+      TDSignal = bsxfun(@times,exp(-tLong/TL),TDSignal);
     end
   end
   
   % Multiply by t for differentiation and take the FFT
-  spcArray = cat(2, spcArray, imag(fftshift(fft(bsxfun(@times,ExpectVal,tLong), [], 1))));
+  spcArray = cat(2, spcArray, imag(fftshift(fft(bsxfun(@times,TDSignal,tLong), [], 1))));
   spcNew = mean(spcArray,2);
 
-  if specCon
+  if checkConvergence
     if iter==1
       spcLast = spcNew;
       rmsdNew = NaN;
@@ -983,7 +902,7 @@ while ~converged
       span = max(spcNew)-min(spcNew);
       rmsdNew = sqrt(mean((spcNew-spcLast).^2))/span;
       if rmsdNew<2e-2
-        converged = 1;
+        converged = true;
       elseif iter>2
         rmsdPctChange = abs(100*(rmsdNew-rmsdLast)/rmsdLast)
         converged = rmsdPctChange<50;
@@ -991,7 +910,7 @@ while ~converged
     end
 
   else
-    converged = 1;
+    converged = true;
   end
   
   if ~converged
@@ -1002,16 +921,16 @@ while ~converged
     end
     rmsdLast = rmsdNew;
     spcLast = spcNew;  % store for comparison after next iteration completes
-    nOrientsTot = nOrientsTot + nOrients;
+    nOrientsTot = nOrientsTot + nOrientations;
     skip = iter*nOrientsTot;  % seed Sobol sequence generator for next iteration
     
-    nOrients = nOrientsTot;
+    nOrientations = nOrientsTot;
     if ~isempty(Orients)
       gridPhi = repmat(Orients(1,:),[1,2^(iter-1)]);
       gridTheta = repmat(Orients(2,:),[1,2^(iter-1)]);
     else
-      gridPts = 2*cardamom_sobol_generate(1,nOrients,skip)-1;
-      gridPhi = sqrt(pi*nOrients)*asin(gridPts);
+      gridPts = 2*cardamom_sobol_generate(1,nOrientations,skip)-1;
+      gridPhi = sqrt(pi*nOrientations)*asin(gridPts);
       gridTheta = acos(gridPts);
     end
     iter = iter + 1;
@@ -1019,8 +938,8 @@ while ~converged
     spcAvg = spcNew;
     minsTot = floor(toc/60);
     if Opt.Verbosity
-      msg = sprintf('Done!\nTotal simulation time: %d:%2.0f\n',minsTot,mod(toc,60));
-      fprintf(msg);
+      msg = sprintf('Done!\nTotal simulation time: %0d:%02.0f\n',minsTot,mod(toc,60));
+     fprintf(msg);
     end
   end
 
@@ -1029,7 +948,7 @@ end
 clear RTraj qTraj
 % Par = rmfield(Par,{'RTraj','qTraj'});
 
-if strcmp(LocalDynamicsModel, 'Molecular Dynamics')
+if strcmp(LocalDynamicsModel(1:2), 'MD')
   % these variables can take up a lot of memory and might prevent the user 
   % from implementing a fine enough grid for powder averaging 
   clear MD
@@ -1053,14 +972,14 @@ else
   outspc = cumtrapz(xAxis(end:-1:1),outspc);  % frequency sweeps outputs the absorption
 end
 
-% average over trajectories for expectation value output
-ExpectVal = mean(ExpectVal, 2);
-ExpectVal = ExpectVal(1:Par.nSteps);
+% average over trajectories for time-domain signal output
+TDSignal = mean(TDSignal, 2);
+TDSignal = TDSignal(1:Par.nSteps);
 
 % Final processing
-% -------------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 
-switch (nargout)
+switch nargout
 case 0
   cla
   if FieldSweep  % TODO fix output plotting
@@ -1073,7 +992,7 @@ case 0
     end
     axis tight
     ylabel('intensity (arb.u.)');
-    title(sprintf('%0.8g GHz, %d points',Exp.mwFreq,numel(xAxis)));
+    title(sprintf('%0.8g GHz',Exp.mwFreq));
   else
     if (xAxis(end)<1)
       plot(xAxis*1e3,spc);
@@ -1084,32 +1003,33 @@ case 0
     end
     axis tight
     ylabel('intensity (arb.u.)');
-    title(sprintf('%0.8g mT, %d points',Exp.Field,numel(xAxis)));
+    title(sprintf('%0.8g mT',Exp.Field));
   end
 case 1
   varargout = {outspc};
 case 2
   varargout = {xAxis,outspc};
 case 3
-  varargout = {xAxis,outspc,ExpectVal};
+  varargout = {xAxis,outspc,TDSignal};
 case 4
-  varargout = {xAxis,outspc,ExpectVal,t};
+  varargout = {xAxis,outspc,TDSignal,t};
 end
 
 clear global EasySpinLogLevel
     
 end
+%===============================================================================
+
 
 % Helper functions
 % -------------------------------------------------------------------------
 
-function updateuser(iOrient,nOrient)
+function updateuser(iOrient,nOrient,reverse)
 % Update user on progress
 
-% persistent reverseStr
-global reverseStr
+persistent reverseStr
 
-% if isempty(reverseStr), reverseStr = []; end
+if iOrient==0, reverseStr = ''; return; end
 
 avgTime = toc/iOrient;
 secsLeft = (nOrient - iOrient)*avgTime;
@@ -1118,54 +1038,16 @@ minsLeft = floor(secsLeft/60);
 secsElap = toc;
 minsElap =  floor(secsElap/60);
 
-msg1 = sprintf('Lab orientation: %d/%d\n', iOrient, nOrient);
-if avgTime<1.0
-  msg2 = sprintf('%2.1f orientations/s\n', 1/avgTime);
+msg3 = sprintf('  Time elapsed %02d:%02d:%02.0f (%g s/orientation)  ', floor(minsElap/60), mod(minsElap,60), mod(secsElap,60),avgTime);
+msg4 = sprintf('   remaining %02d:%02d:%02.0f\n', floor(minsLeft/60), mod(minsLeft,60), mod(secsLeft,60));
+msg = [msg3, msg4];
+
+if reverse
+  fprintf([reverseStr, msg]);
 else
-  msg2 = sprintf('%2.1f s/orientation\n', avgTime);
+  fprintf([msg]);  
 end
-msg3 = sprintf('Time elapsed: %d:%d:%2.0f\n', floor(minsElap/60), mod(minsElap,60), mod(secsElap,60));
-msg4 = sprintf('Time remaining (predicted): %d:%d:%2.0f\n', floor(minsLeft/60), mod(minsLeft,60), mod(secsLeft,60));
-msg = [msg1, msg2, msg3, msg4];
-
-fprintf([reverseStr, msg]);
 reverseStr = repmat(sprintf('\b'), 1, length(msg));
-
-end
-
-function [nBlocks,BlockLength] = findblocks(Dt, dt, nSteps)
-% time step of molecular simulation, dt, is usually much smaller than
-% the quantum propagation time step, Dt, so determine the size of the 
-% averaging block here (Dt/dt), then set nTraj and nSteps accordingly to 
-% number of blocks and the size of the block, respectively
-
-% size of averaging blocks
-BlockLength = ceil(Dt/dt);
-
-% size of trajectory after averaging, i.e. coarse-grained trajectory length
-nBlocks = floor(nSteps/BlockLength);
-
-BlockLength = BlockLength;
-nBlocks = nBlocks;
-
-end
-
-function xSamples = rejectionsample(p, nSamples)
-
-maxX = numel(p);
-xGrid = 1:maxX;
-
-p_max = max(p(:));
-
-iSample = 1;
-xSamples = zeros(1,nSamples);
-while iSample <= nSamples
-  xProposal = randi(maxX);
-  if rand() < p(xProposal)/p_max
-    xSamples(1,iSample) = xGrid(xProposal);
-    iSample = iSample + 1;
-  end
-end
 
 end
 
@@ -1174,198 +1056,3 @@ function  y = zeropad(x, M)
   if iscolumn(x), y = [x; zeros(M-N, 1)]; end
   if isrow(x), y = [x, zeros(1, M-N)]; end
 end
-
-%-------------------------------------------------------------------------------
-%           %%%%%%%%%%%%
-%           
-%           bins = size(pdf, 1);
-% 
-%           abins = bins;  % use less points for easier heat map visualization
-%           bbins = bins/2;
-%           gbins = bins;
-%           
-%           alphaBins = linspace(-pi, pi, abins);
-%           betaBins = pi-acos(linspace(-1, 1, bbins));
-%           gammaBins = linspace(-pi, pi, gbins);
-%           
-%           for iTraj=1:Par.nTraj
-%             % use a "burn-in method" by taking last half of each trajectory
-%             [alpha, beta, gamma] = quat2euler(qTraj(:,iTraj,:),'active');
-%           %   [alpha, beta, gamma] = quat2euler(qTraj(:,iTraj,N:end));
-%             alpha = squeeze(alpha);
-%             beta = squeeze(beta);
-%             gamma = squeeze(gamma);
-% 
-%           %   q = squeeze(qTraj(:,iTraj,N:end));
-%           %   [alpha, beta, gamma] = quat2angle(permute(q,[2,1]), 'ZYZ');
-% 
-%             % calculate 3D histogram using function obtained from Mathworks File Exchange
-%             [Hist3D(:,:,:,iTraj),~] = histcnd([alpha,beta,gamma],...
-%                                               {alphaBins,betaBins,gammaBins});
-%           end
-%           
-%           hist_tauD100 = mean(Hist3D,4);
-%           save('hist_tauD100.mat', 'hist_tauD100')
-%           
-%           %%%%%%%%%%%%%
-
-% used for plotting PseudoPotFun on a sphere
-
-% %       pad = (PseudoPotFun(1,:,:) + PseudoPotFun(end,:,:))/2;
-%       
-%       pdf = smooth3(pdf, 'gaussian');
-% 
-%       yy = permute(mean(pdf, 3), [2, 1]);
-%       yy = yy/max(yy(:));
-%       yy(:,end) = yy(:,1);
-%       
-%       theta = linspace(0, pi, size(yy,1));                   % polar angle
-%       phi = linspace(0, 2*pi, size(yy,2));                   % azimuth angle
-%       
-%       [Phi, Theta] = meshgrid(phi, theta);
-%       r = 1.0;
-%       amplitude = 1.0;
-% %       rho = r + amplitude*yy;
-%       rho = yy;
-%       
-%       x = r.*sin(Theta).*cos(Phi);
-%       y = r.*sin(Theta).*sin(Phi);
-%       z = r.*cos(Theta);
-% 
-%       surf(x, y, z, rho, ...
-%            'edgecolor', 'none', ...
-%            'facecolor', 'interp');
-%       % title('$\ell=0, m=0$')
-% 
-% 
-% %       shading interp
-% 
-%       axis equal off      % set axis equal and remove axis
-%       view(90,30)         % set viewpoint
-%       set(gca,'CameraViewAngle',6);
-%       
-%       left = 0.5;
-%       bottom = 0.5;
-%       width = 4;     % Width in inches
-%       height = 4;    % Height in inches
-% 
-%       set(gcf,'PaperUnits','inches');
-%       set(gcf,'PaperSize', [8 8]);
-%       set(gcf,'PaperPosition',[left bottom width height]);
-%       set(gcf,'PaperPositionMode','Manual');
-%       
-%       print('ProbabilityDist', '-dpng', '-r300');
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-%           nBins = 50;
-%           
-%           Hist3D = zeros(nBins, nBins, nBins, Par.nTraj);
-% 
-%           % alphaBins = pi-2*acos(linspace(-1, 1, abins));
-%           alphaBins = linspace(-pi, pi, nBins);
-%           betaBins = pi-acos(linspace(-1, 1, nBins));
-% %           betaBins = linspace(0, pi, nBins);
-%           gammaBins = linspace(-pi, pi, nBins);
-%           
-% %           M = size(qTraj,3)/2;
-%           M = 1;
-%           
-% 
-%           for iTraj=1:Par.nTraj
-%             % use a "burn-in method" by taking last half of each trajectory
-% %             [alpha, beta, gamma] = quat2euler(qTraj(:,iTraj,M:end));
-%             [alpha, beta, gamma] = quat2euler(qTraj(:,iTraj,M:end), 'active');
-%             alpha = squeeze(alpha);
-%             beta = squeeze(beta);
-%             gamma = squeeze(gamma);
-% 
-% 
-%             % calculate 3D histogram using function obtained from Mathworks File Exchange
-%             [Hist3D(:,:,:,iTraj),~] = histcnd([alpha,beta,gamma],...
-%                                               {alphaBins,betaBins,gammaBins});
-%           end
-% 
-%           Hist3D = mean(Hist3D, 4);  % average over all trajectories
-%           Hist3D = Hist3D/trapz(Hist3D(:));  % normalize
-%           
-%           save('Hist3D.mat', 'Hist3D')
-%           
-%           M = 1;
-          
-%           figure(1)
-%           subplot(1,2,1)
-%           slice(alphaBins, ...
-%                 betaBins, ...
-%                 gammaBins, ...
-%                 permute(pdfDec, pidx), ...
-%                 0, pi/2, 0)
-%           xlabel('alpha')
-%           ylabel('beta')
-%           zlabel('gamma')
-%           colormap hsv
-%           
-%           subplot(1,2,2)
-%           slice(alphaBins, ...
-%                 betaBins, ...
-%                 gammaBins, ...
-%                 permute(Hist3D, pidx), ...
-%                 0, pi/2, 0)
-%           xlabel('alpha')
-%           ylabel('beta')
-%           zlabel('gamma')
-%           colormap hsv
-
-  %         N = 50;
-  %         Aedges = linspace(-pi/2, pi/2, N);
-  %         Bedges = pi-acos(linspace(-1, 1, N));
-  % 
-  %         for iTraj=1:Par.nTraj
-  %             [temp,~] = histcounts2(alpha(iTraj,:), beta(iTraj,:), Aedges, Bedges);
-  %             Hist2D(:,:,iTraj) = temp;
-  %             [temp2,~] = histcounts2(alpha(iTraj,:), beta(iTraj,:), Aedges, linspace(0,pi,N));
-  %             Hist2D2(:,:,iTraj) = temp2;
-  %           [temp,~] = histcnd([alpha(iTraj,:).',beta(iTraj,:).',gamma(iTraj,:).'],...
-  %                                         {PhiBins.',ThetaBins.',PsiBins.'});
-  %                                       
-  %           Hist3D(:,:,:,iTraj) = permute(temp, [2, 1, 3]);
-  %         end
-  %         
-  % % %       pad = (PseudoPotFun(1,:,:) + PseudoPotFun(end,:,:))/2;
-  %         HistAvg = mean(Hist3D, 4);
-  %         HistAvg(end,:,:) = HistAvg(1,:,:);
-  % 
-  % %         HistAvg = smooth3(HistAvg, 'gaussian');
-  % 
-  % %         yy = permute(mean(HistAvg, 3), [2, 1]);
-  %         yy = mean(HistAvg, 3);
-  %         yy = yy/max(yy(:));
-  %         yy(:,end) = yy(:,1);
-  % 
-  %         theta = linspace(0, pi, size(yy,1));                   % polar angle
-  %         phi = linspace(0, 2*pi, size(yy,2));                   % azimuth angle
-  % 
-  %         [Phi, Theta] = meshgrid(phi, theta);
-  %         radius = 1.0;
-  %         amplitude = 1.0;
-  %   %       rho = radius + amplitude*yy;
-  %         rho = yy;
-  % 
-  %         r = radius.*sin(Theta);    % convert to Cartesian coordinates
-  %         x = r.*cos(Phi);
-  %         y = r.*sin(Phi);
-  %         z = radius.*cos(Theta);
-  % 
-  %         surf(x, y, z, rho, ...
-  %              'edgecolor', 'none', ...
-  %              'facecolor', 'interp');
-  %         % title('$\ell=0, m=0$')
-  % 
-  % 
-  %   %       shading interp
-  % 
-  %         axis equal off      % set axis equal and remove axis
-  %         view(90,30)         % set viewpoint
-  %         set(gca,'CameraViewAngle',6);
-  %         
-  %         HistTot = HistTot + mean(Hist3D,4);

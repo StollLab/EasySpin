@@ -61,15 +61,17 @@ sumdist2 = zeros(1,nRepeats);
 implicitSingletonExpansion = ~verLessThan('matlab','9.1');
 
 for iRepeat = 1:nRepeats
+  
+  centroids = zeros(nClusters,nDims);
 
   % Initialize centroids and cluster indices
   if ~isempty(centroids0)
     nClusters0 = size(centroids0,1);
-    centroids(1:nClusters,:) = centroids0;
+    centroids(1:nClusters0,:) = centroids0;
     if nClusters0 < nClusters
       % generate additional clusters using random samples from data
       randidx = randperm(nPoints,nClusters-nClusters0);
-      centroids(nClusters:nClusters0,:) = data(randidx,:);
+      centroids(nClusters0+1:nClusters,:) = data(randidx,:);
     end
   else
 %     randidx = randperm(nPoints,nClusters);
@@ -84,19 +86,34 @@ for iRepeat = 1:nRepeats
 
     centroidsLast = centroids;
 
-    % calculate distances to centroids
-    distances2 = zeros(nPoints,nClusters);
-    for k = 1:nClusters
-      if implicitSingletonExpansion
-        differences = pi - abs(pi - abs(data-centroids(k,:))); % R2016b and later
-      else
-        differences = pi - abs(pi - abs(bsxfun(@minus,data,centroids(k,:)))); % pre-R2016b
+    if iIter==1
+      % check for centroids that have no data points assigned to them
+      allClustersAssigned = false;
+      clustersAssigned = false(1,nClusters);
+      
+      while ~allClustersAssigned
+        % calculate distances to centroids
+        distances2 = calcdistances(data, centroids, implicitSingletonExpansion);
+        % assignment step
+        [minDistances2, idxClusters] = min(distances2,[],2);
+        clustersAssigned(unique(idxClusters)) = true;
+        allClustersAssigned = all(clustersAssigned);
+        
+        if ~allClustersAssigned
+          % move the centroids that have no assigned data points
+          newCentroids = pi*(2*rand(sum(~clustersAssigned), nDims)-1);
+          centroids(~clustersAssigned, :) = newCentroids;
+        end
+        
       end
-      distances2(:,k) = sum(differences.^2, 2);
+      
+    else
+      % calculate distances to centroids
+      distances2 = calcdistances(data, centroids, implicitSingletonExpansion);
+      % assignment step
+      [minDistances2, idxClusters] = min(distances2,[],2);
+      
     end
-    
-    % assignment step
-    [minDistances2, idxClusters] = min(distances2,[],2);
 
     % update step
     for iCluster = 1:nClusters
@@ -136,25 +153,6 @@ end
 idxBest = idxClustersAll{iBest};
 centroidsBest = centroidsAll{iBest};
 
-% if ~isempty(centroids0)
-%   nRepeats = 1;
-%   if nRepeats > 1
-%     centroids0 = repmat(centroids0,[1,1,nRepeats]);
-%   end
-%   opts = statset('Display','final','MaxIter',nIters);
-%   [idxBest,centroidsBest] = kmeans(data,size(centroids0,1),...
-%                                   'Distance','sqeuclidean',...
-%                                   'Replicates',nRepeats,...
-%                                   'Start',centroids0,...
-%                                   'Options',opts);
-% else
-%   opts = statset('Display','final','MaxIter',nIters);
-%   [idxBest,centroidsBest] = kmeans(data,nClusters,...
-%                                   'Distance','sqeuclidean',...
-%                                   'Replicates',nRepeats,...
-%                                   'Options',opts);
-% end
-
 end
 
 % Helper functions
@@ -176,6 +174,24 @@ for k = 2:nSeeds
   D = min(D,sum(dist.^2,2));
   D = D./sum(D);
   centroids0(k,:) = data(find(rand<cumsum(D),1),:);
+end
+
+end
+
+function distances2 = calcdistances(data, centroids, implicitSingletonExpansion)
+
+nPoints = size(data, 1);
+nClusters = size(centroids, 1);
+
+distances2 = zeros(nPoints,nClusters);
+for k = 1:nClusters
+  if implicitSingletonExpansion
+    differences = pi - abs(pi - abs(data-centroids(k,:))); % R2016b and later
+  else
+    differences = pi - abs(pi - abs(bsxfun(@minus,data,centroids(k,:)))); % pre-R2016b
+  end
+  distances2(:,k) = sum(differences.^2, 2);
+
 end
 
 end

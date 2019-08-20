@@ -22,7 +22,7 @@ Exp.Field = 340;
 Exp.mwRange = [9.4, 9.8];
 
 Opt.Verbosity = 0;
-Opt.Method = 'Nitroxide';
+Opt.Method = 'fast';
 Opt.speccon = 1;
 
 [fcard,ycard] = cardamom(Sys,Exp,Par,Opt);
