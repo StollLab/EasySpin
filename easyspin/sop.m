@@ -87,7 +87,7 @@ else
   OperatorSpec = varargin(1:end);
 end
 
-NumericSyntax = ~ischar(varargin{1});
+NumericSyntax = isnumeric(varargin{1});
 
 if NumericSyntax
   
