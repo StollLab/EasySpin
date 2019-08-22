@@ -310,7 +310,7 @@ switch PropagationMethod
       
       if ~isfield(Sys,'DiffFrame'), Sys.DiffFrame = [0 0 0]; end  % TODO include frames in cardamom
       
-      [T,F,~,~,~] = magint(Sys,SpinOps,CenterField,false,false);
+      [T,F,~,~,~] = magint(Sys,SpinOps,CenterField,false,false,false);
       F0 = F.F0*2*pi;  % Hz -> rad s^-1
       F2 = F.F2*2*pi;
       T0 = T.T0;

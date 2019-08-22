@@ -90,7 +90,7 @@ Exp = adddefaults(Exp,DefaultParameters);
 if isnan(Exp.mwFreq), error('Parameters.mwFreq missing!'); end
 
 if (diff(Exp.Range)<=0) || any(~isfinite(Exp.Range)) || ...
-   any(~isreal(Exp.Range)) || any(Exp.Range<0) || (numel(Exp.Range)~=2)
+   ~isreal(Exp.Range) || any(Exp.Range<0) || (numel(Exp.Range)~=2)
   error('Parameters.Range is not valid!');
 end
 

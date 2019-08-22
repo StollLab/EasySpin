@@ -165,7 +165,7 @@ end
 if isfield(Exp,'SearchRange'), Exp.Range = Exp.SearchRange; end
 
 if isnan(Exp.Range), error('Experiment.Range/Exp.CenterSweep is missing!'); end
-if (diff(Exp.Range)<=0) || ~isfinite(Exp.Range) || ~isreal(Exp.Range) || any(Exp.Range<0)
+if any(diff(Exp.Range)<=0) || any(~isfinite(Exp.Range)) || ~isreal(Exp.Range) || any(Exp.Range<0)
   error('Exp.Range is not valid!');
 end
 
