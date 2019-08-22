@@ -105,8 +105,8 @@ switch program
         Exp.Range = max(Exp.Range,0);
       end
       if isfield(Exp,'Range') && all(~isnan(Exp.Range))
-        if (diff(Exp.Range)<=0) || any(~isfinite(Exp.Range)) || ...
-            any(~isreal(Exp.Range)) || any(Exp.Range<0)
+        if any(diff(Exp.Range)<=0) || any(~isfinite(Exp.Range)) || ...
+            ~isreal(Exp.Range) || any(Exp.Range<0)
           error('Exp.Range is not valid!');
         end
       end
@@ -117,7 +117,7 @@ switch program
       end
       if isfield(Exp,'mwRange') && all(~isnan(Exp.mwRange))
         if (diff(Exp.mwRange)<=0) || any(~isfinite(Exp.mwRange)) || ...
-            any(~isreal(Exp.mwRange)) || any(Exp.mwRange<0)
+            ~isreal(Exp.mwRange) || any(Exp.mwRange<0)
           error('Exp.mwRange is not valid!');
         end
       end

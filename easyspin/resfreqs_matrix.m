@@ -140,9 +140,6 @@ if isnan(Exp.Field)
   logmsg(1,'Exp.Field is missing, assuming 0.0 mT');
 end
 
-
-
-
 if ~isnan(Exp.CenterSweep)
   if ~isnan(Exp.Range)
     logmsg(1,'Using Experiment.CenterSweep and ignoring Experiment.Range.');
@@ -152,7 +149,7 @@ if ~isnan(Exp.CenterSweep)
 end
 
 if isnan(Exp.Range), Exp.Range = []; end
-if (diff(Exp.Range)<=0) || ~isfinite(Exp.Range) || ~isreal(Exp.Range) || any(Exp.Range<0)
+if any(diff(Exp.Range)<=0) || any(~isfinite(Exp.Range)) || ~isreal(Exp.Range) || any(Exp.Range<0)
   error('Exp.Range is not valid!');
 end
 
