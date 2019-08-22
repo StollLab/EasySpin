@@ -51,6 +51,7 @@ end
 if abs(round(nLag)-nLag)>1e-3 || nLag < 1
   error('nLag must be an integer >= 1.');
 end
+nLag = round(nLag);
 
 HMM.nLag = nLag;
 HMM.dt = dt;
