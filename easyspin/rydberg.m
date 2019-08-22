@@ -8,8 +8,7 @@
 
 function [Rinf,sigma] = rydberg
 
-% 2014 CODATA value
-% Concise form 	 10 973 731.568 508(65) m-1 
+% 2018 CODATA value
 
-Rinf = 10973731.568508;
-sigma =       0.000065;
+Rinf = 10973731.568160;
+sigma =       0.000021;

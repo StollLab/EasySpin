@@ -25,9 +25,17 @@ Exp.mwFreq = 9.4;
 Opt.Verbosity = 0;
 Opt.Method = 'ISTOs';
 
-[~,spc] = cardamom(Sys,Exp,Par,Opt);
+[B,spc] = cardamom(Sys,Exp,Par,Opt);
 
 data.spc = spc;
+
+if ~isempty(olddata)
+  if opt.Display
+    plot(B,spc,B,olddata.spc);
+    legend('new','old');
+    axis tight
+  end
+end
 
 if ~isempty(olddata)
   err = any(abs(olddata.spc-spc)>1e-10);

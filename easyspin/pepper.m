@@ -312,7 +312,7 @@ if FieldSweep
       minB = planck*(Exp.mwFreq*1e9 - hf)/bmagn/gmax/1e-3; % mT
       maxB = planck*(Exp.mwFreq*1e9 + hf)/bmagn/gmin/1e-3; % mT
       Center = (maxB+minB)/2; % mT
-      Sweep = maxB-minB; % mT
+      Sweep = maxB-minB+3*max(Sys.lw); % mT
       if Sweep==0, Sweep = 5*max(Sys.lw); end
       if Sweep==0, Sweep = 10; end
       Stretch = 1.25;

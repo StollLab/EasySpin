@@ -36,7 +36,7 @@ Par.nOrients = 200;
 Exp.mwFreq = 9.4;
 
 Opt.Verbosity = 1;
-Opt.Method = 'Nitroxide';
+Opt.Method = 'fast';
 
 [B, spc] = cardamom(Sys,Exp,Par,Opt,MD);
 

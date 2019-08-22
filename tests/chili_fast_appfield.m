@@ -23,7 +23,7 @@ data.y = y;
  
 % Check for consistency
 if ~isempty(olddata)
-  ok = areequal(y,olddata.y,1e-1);
+  ok = areequal(y/max(y),olddata.y/max(olddata.y),1e-5);
   err = ~ok;
 else
   err = [];
@@ -32,11 +32,11 @@ end
 if opt.Display
   if ~isempty(olddata)
     subplot(4,1,1:3);
-    plot(olddata.x,olddata.y,data.x,data.y);
+    plot(olddata.x,olddata.y/max(olddata.y),data.x,data.y/max(data.y));
     legend('old','new');
     legend boxoff
     subplot(4,1,4);
-    plot(data.x,data.y-olddata.y,'r');
+    plot(data.x,data.y/max(data.y)-olddata.y/max(olddata.y),'r');
     legend('new - old');
     legend boxoff
   end

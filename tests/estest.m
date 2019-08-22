@@ -76,11 +76,13 @@ OutcomeStrings = {'pass','failed','crashed','not tested'};
 
 for iTest = 1:numel(TestFileNames)
   
-  if Opt.Display
-    clf; drawnow;
-  end
-
   thisTest = TestFileNames{iTest}(1:end-2);
+
+  if Opt.Display
+    clf
+    set(gcf,'Name',thisTest);
+    drawnow
+  end
   
   % Load, or regenerate, comparison data
   olddata = [];

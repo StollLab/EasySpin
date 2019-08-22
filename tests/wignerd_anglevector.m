@@ -1,7 +1,7 @@
 function [err,data] = test(opt,olddata)
 
 %============================================================================
-% Check whether single-matrix-element call to wignerd() works with an array
+% Check whether single-matrix-element calls to wignerd() work with arrays
 % of angles.
 %============================================================================
 
@@ -13,10 +13,17 @@ alpha = rand(n1,n2)*2*pi;
 beta = rand(n1,n2)*pi;
 gamma = rand(n1,n2)*2*pi;
 
-J = 3; m1 = -2; m2 = 1;
-
-D = wignerd([J m1 m2],alpha,beta,gamma);
-
-err = size(D,1)~=n1 || size(D,2)~=n2;
+ok = [];
+idx = 0;
+for J = 0:0.5:5
+  for m1 = -J:J
+    for m2 = -J:J
+      D = wignerd([J m1 m2],alpha,beta,gamma);
+      idx = idx + 1;
+      ok(idx) = all(size(D)==[n1 n2]);
+    end
+  end
+end
+err = any(~ok);
 
 data = [];

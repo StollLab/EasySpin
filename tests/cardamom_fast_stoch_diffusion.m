@@ -21,7 +21,7 @@ Par.Model = 'diffusion';
 Exp.mwFreq = 9.4;
 
 Opt.Verbosity = 0;
-Opt.Method = 'Nitroxide';
+Opt.Method = 'fast';
 Opt.speccon = 1;
 
 [Bcard,ycard] = cardamom(Sys,Exp,Par,Opt);

@@ -27,18 +27,20 @@
 
 <div class="functitle">wignerd</div>
 
-Wigner D-matrix and D-function
+Wigner rotation matrices
 
 <!-- ============================================================= -->
 <div class="subtitle">Syntax</div>
 
-
 <pre class="matlab">
 D = wignerd(J,alpha,beta,gamma);
-D = wignerd(J,alpha,beta,gamma,'-');
-D = wignerd(J,alpha,beta,gamma,'+');
-d = wignerd(J,beta,...);
-Dm1m2 = wignerd(Jm1m2,...);
+D = wignerd(J,alpha,beta,gamma,phase);
+Dm1m2 = wignerd(Jm1m2,alpha,beta,gamma);
+Dm1m2 = wignerd(Jm1m2,alpha,beta,gamma,phase);
+d = wignerd(J,beta);
+d = wignerd(J,beta,phase);
+dm1m2 = wignerd(Jm1m2,beta);
+dm1m2 = wignerd(Jm1m2,beta,phase);
 </pre>
 
 <!-- ============================================================= -->
@@ -52,11 +54,11 @@ with matrix elements D<sup>J</sup><sub>m1,m2</sub>(&alpha;,&beta;,&gamma;) where
 <code>J</code> is a positive multiple of 1/2 (0, 1/2, 1, 3/2, 2, etc). If <code>J</code> is given as the first input argument, the function computes the full rotation matrix D<sup>J</sup>(&alpha;,&beta;,&gamma;). If <code>Jm1m2 = [J m1 m2]</code> is given instead, only the matrix element D<sup>J</sup><sub>m1,m2</sub>(&alpha;,&beta;,&gamma;) is calculated.
 
 <p>
-<code>alpha</code>, <code>beta</code>, and <code>gamma</code> are the three Euler angles. If the matrix is requested (using <code>J</code>), these have to be single values. If a matrix element is requested (via <code>Jm1m2</code>), these can be arrays. If <code>alpha</code> and <code>gamma</code> are zero, they can be omitted, and <code>wignerd</code> will return the Wigner little-d matrix or little-d function.
+<code>alpha</code>, <code>beta</code>, and <code>gamma</code> are the three Euler angles. If the matrix is requested (using <code>J</code>), these have to be single values. If a matrix element is requested (via <code>Jm1m2</code>), these can be arrays. If <code>alpha</code> and <code>gamma</code> are zero, they can be omitted, and <code>wignerd</code> will return the reduced Wigner rotation matrix or its element.
 </p>
 
 <p>
-The last optional argument, <code>'-'</code> or <code>'+'</code>, specifies the sign convention to use. The matrix elements are defined by
+The last optional argument, <code>phase</code>, specifies the sign convention to use. It can be <code>'-'</code> or <code>'+'</code>. The matrix elements are defined by
 </p>
 <div class="eqn">
 <img src="eqn/wignerd1.png" alt="[eqn]"><!--MATH
@@ -67,11 +69,11 @@ D^J_{m_1,m_2}(\alpha,\beta,\gamma) =
 -->
 </div>
 <p>
-The <code>'-'</code> convention (which is the default) uses the minus signs in the exponents and is used in the books by Brink and Satchler, Zare, Sakurai, Varshalovich, and others (see below for references). The <code>'+'</code> convention uses the plus signs in the exponents and is used in the book by Edmonds, among others.
+The <code>'-'</code> convention (which is the default) uses the minus signs in the exponents and is used in the books by Mehring, Brink and Satchler, Zare, Sakurai, Biedenharn and Louck, Varshalovich, and others (see below for references). The <code>'+'</code> convention uses the plus signs in the exponents and is used in the book by Edmonds, among others.
 </p>
 
 <p>
-If only the angle <code>beta</code> is given, <code>alpha</code>) and <code>gamma</code> are assumed to be zero, and the Wigner small-d matrix
+If only the angle <code>beta</code> is given, <code>alpha</code> and <code>gamma</code> are assumed to be zero, and the reduced rotation matrix element
 <div class="eqn">
 <img src="eqn/wignerd2.png" alt="[eqn]"><!--MATH
 \begin{equation*}
@@ -120,11 +122,11 @@ ans =
 <div class="subtitle">Algorithm</div>
 
 <p>
-To compute the full Wigner D-matrix, <code>wignerd</code> numerically computes the matrix exponentials using matrix representations for J<sub>z</sub> and J<sub>y</sub>. To compute a single element of the Wigner D-matrix (i.e. the Wigner D-function), <code>wignerd</code> calculates the little-d function using Jacobi polynomials, which in turn are calculated using a recurrence relationship.
+To compute the full Wigner D-matrix, <code>wignerd</code> numerically computes the matrix exponentials using matrix representations for J<sub>z</sub> and J<sub>y</sub>. To compute a single matrix element, <code>wignerd</code> calculates the reduced rotation matrix elements either from analytical expressions (for small J) or using Jacobi polynomials, which in turn are calculated using a recurrence relationship.
 </p>
 
 <p>
-Here are a few references that contain substantial theory about the Wigner D-functions.
+Here are a few references that contain substantial theory about the Wigner rotation matrices and their elements.
 <ul>
 <li>
 A.R. Edmonds, Angular Momentum in Quantum Mechanics, Princeton University Press, 1996.
@@ -138,6 +140,8 @@ D.A. Varshalovich, A.N. Moskalev, V.K. Khersonskii, Quantum Theory of Angular Mo
 R.N. Zare, Angular Momentum: Understanding Spatial Aspects in Chemistry and Physics, Wiley, 1988.
 <li>
 J.J. Sakurai, J. Napolitano, Modern Quantum Mechanics, 2nd ed., Addison-Wesley, 2011.
+<li>
+L.C. Biedenharn, J.D. Louck, Angular Momentum in Quantum Physics, Addison-Wesley, 1981.
 </ul>
 
 <!-- ============================================================= -->

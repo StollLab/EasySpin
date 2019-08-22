@@ -21,10 +21,16 @@ Opt.ExplicitFieldSweep = true;
 [x,y2] = chili(Sys,Exp,Opt);
 
 if opt.Display
+  subplot(2,1,1);
   plot(x,y1,x,y2);
   legend('approximate','explicit');
+  title('unscaled');
+  subplot(2,1,2);
+  plot(x,y1/max(y1),x,y2/max(y2));
+  legend('approximate','explicit');
+  title('scaled');
 end
 
-err = ~areequal(y1,y2,1e-3*max(y1));
+err = ~areequal(y1/max(y1),y2/max(y2),1e-3);
 
 data = [];

@@ -1,15 +1,13 @@
 % echarge  Elementary charge 
 %
 %   e = echarge
-%   [e,sigma] = echarge
 %
-%   Returns the elementary charge in SI units,
-%   coulomb. sigma is the standard uncertainty.
+%   Returns the elementary charge in SI units, in coulomb.
 
-function [e,sigma] = echarge
+function e = echarge
 
-% 2014 CODATA value
-% Concise form 	 1.602 176 6208(98) x 10-19 C
+% 2018 CODATA value
  
-e =     1.6021766208e-19;
-sigma = 0.0000000098e-19;
+e = 1.602176634e-19; % exact (as of 2019 SI redefinition)
+
+return

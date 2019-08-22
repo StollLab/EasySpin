@@ -163,12 +163,12 @@ if isUserPotFun
       error('At least one inf detected in PseudoPotFun.');
     end
   end
-
+  
   % Set up orientational grid
   if isnumeric(PseudoPotFun)
     nGrid = size(PseudoPotFun);
   else
-    nGrid = [101 51 101]; % 15 degree increments for each angle
+    nGrid = [91 44 91]; % 4 degree increments for each angle
   end
   alphaGrid = linspace(0,2*pi,nGrid(1));
   betaGrid = linspace(0,pi,nGrid(2)+2);
@@ -440,14 +440,11 @@ switch nargout
     plotTrajectories(Sim,RTraj);
   case 2  % Output rotation matrix trajectories
     varargout = {t, RTraj};
-
   case 3  % Output rotation matrix and quaternion trajectories
     varargout = {t, RTraj, qTraj};
-    
 end
 
 clear global EasySpinLogLevel
-
 
 end
 
