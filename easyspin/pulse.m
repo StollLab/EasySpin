@@ -735,7 +735,7 @@ else
   % ------------------------------------------------------------------- %
   % Calculate bandwidth compensation
   % ------------------------------------------------------------------- %
-  if BWCompensation
+  if BWCompensation && ~strcmp(FrequencyModulation,'none')
     
     % Variable-rate chirps with resonator bandwidth compensation, as
     % described in:
