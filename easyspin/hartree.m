@@ -8,10 +8,9 @@
 
 function [E,sigma] = hartree
 
-% 2014 CODATA value
-% Concise form 	 4.359 744 650(54) x 10-18 J
+% 2018 CODATA value
 
-E =     4.359744650e-18;
-sigma = 0.000000054e-18;
+E =     4.3597447222071e-18;
+sigma = 0.0000000000085e-18;
 
 return

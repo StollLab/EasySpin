@@ -5,7 +5,7 @@ function [err,data] = test(opt,olddata)
 %===========================================================================
 
 Sys.g = [2.01 2.003];
-Sys.tcorr = 1000e-9;
+Sys.tcorr = 1e-5;
 Sys.lw = 0.2;
 
 Exp.mwFreq = 9.5;
@@ -22,10 +22,16 @@ Opt.LLMK = [20 0 0 0];
 [x2,y2] = chili(Sys,Exp,Opt);
 
 if opt.Display
+  subplot(2,1,1);
   plot(x,y1,x2,y2);
   legend('pepper','chili');
+  title('unscaled');
+  subplot(2,1,2);
+  plot(x,y1/max(y1),x2,y2/max(y2));
+  legend('pepper','chili');
+  title('unscaled');
 end
 
-err = ~areequal(y1,y2,1e-1*max(y1)); % 10% tolerance limit
+err = ~areequal(y1/max(y1),y2/max(y2),0.02);
 
 data = [];

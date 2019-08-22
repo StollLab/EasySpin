@@ -1,4 +1,3 @@
-
 % Linear Prediction Singular Value Decomposition
 %
 %  predictedSpectrum = lpsvd(Spectrum, Time, Method, Order)
@@ -16,19 +15,32 @@
 %
 % methods:
 % 'kt' Based on:
-% Kumaresan R.;Tufts, D.W.; IEEE Trans. Acoust. Speech Signal ASSP-30 833 (1982)
+% Kumaresan, R.;Tufts, D.W.; IEEE Trans. Acoust. Speech Signal ASSP-30 833 (1982)
+%
 % 'ss'  state-space method:
 % Kung, S.Y.; Arun, K.S.; Bhaskar Rao, D.V.; J. Opt. Soc. Am. 73, 1799 (1983)
 % Barkhuijsen, H.; De Beer, R.; Van Ormondt, D.; J. Mag. Reson. 73, 553 (1987)
 %
-% Order - The number of sinusoides to attempt to fit to the data if no order 
-%         is provided it will be automatically estimated.           
+% 'tls' Hankel Total least squares method:
+% Van Huffel, S.;Chen, H.; Decanniere, C.; Van Hecke, P.; J. Mag. Reson.,
+% Series A 110, 228 (1994)
+%
+%
+% Order - The number of sinusoides to attempt to fit to the data if no order
+%         is provided it will be automatically estimated.
+%
 % Model Order estimated as per:
 % Wax, M.; Kailath, T.; IEEE Trans. Acoust. Speech Signal ASSP-39 387 (1985)
+% 'mdl'  minimum description length
+% 'aic' Akaike information protocol
+% however these methods are known to underestimate the number of components
+
+
+
 
 function [y,parameters] = lpsvd(data,time,method,order)
 
-% Check inputs
+% Check inputs+
 
 dim = size(data);
 
@@ -48,12 +60,17 @@ if nargin<3 || isempty(method)
   method = 'ss';
 end
 
+if nargin<4
+  order = 'mdl';
+else
+  m = order;
+end
 
-dat = data/max(real(data));
+dat = data/max(abs(data));
 N = length(data);
 
 % estimate L such that L > M(the number of sinusoidal signals)
-L = floor(0.65*N);
+L = floor(0.6*N);
 
 % generate the LxM Hankel matrix
 A = hankel(conj(dat(2:N-L+1)), conj(dat((N-L+1):N)));
@@ -62,25 +79,37 @@ A = hankel(conj(dat(2:N-L+1)), conj(dat((N-L+1):N)));
 S = diag(S);
 
 % determine the model order
-if nargin<4
-  M = length(S);
-  mdl = zeros(1,M);
-  for k = 0:M-1;
-    mdl(k+1) = N*((M-k)*log((sum(S(k+1:M))/(M-k))) - sum(log(S(k+1:M)))) ...
-      + k*(2*M-k)*log(N)/2;
+if ischar(order)
+  switch order
+    case 'aic'
+      M = length(S);
+      aic = zeros(1,M);
+      for k = 0:M-1;
+        aic(k+1) = 2*N*( (M-k)*log((sum(S(k+1:M))/(M-k))) - sum(log(S(k+1:M)))) ...
+          + 2*k*(2*M-k);
+      end
+      [dummy, m] = min(aic);
+      m = m - 1;
+    case 'mdl'
+      M = length(S);
+      mdl = zeros(1,M);
+      for k = 0:M-1;
+        mdl(k+1) = N*( (M-k)*log((sum(S(k+1:M))/(M-k))) - sum(log(S(k+1:M))))...
+          + k*(2*M-k)*log(N)/2;
+      end
+      [dummy, m] = min(mdl);
+      m = m - 1;
   end
-  [dummy, m] = min(mdl);
-  m = m - 1;
-else
-  m = order;
 end
+
 % truncate the singular values and eigenvectors to the model order
 Um = U(:,1:m);
 Sm = S(1:m);
 Vm = V(:,1:m);
 
 switch method
-  
+  % some optimization can still be done in calculating the signal poles,
+  % but for now we're going on the premise that processing power is cheap.
   case 'kt'
     
     h = -conj(dat(1:N-L));
@@ -102,6 +131,17 @@ switch method
     % diagonalize to yield the signal poles
     s = eig(Zp);
     
+  case 'tls'
+    % remove the top and bottom rows from Um
+    Umt = Um(2:end,:);
+    Umb = Um(1:end-1,:);
+    
+    % obtain the SVD of the augmented matrix
+    [dummy,dummy,Vu] = svd([Umb Umt],'econ');
+    
+    % calculate Zprime
+    Zp = -Vu(1:m,m+1:2*m)/Vu(m+1:2*m,m+1:2*m);
+    s = eig(Zp);
 end
 if isempty(s), error('No prediction coefficients calculated, algorithm failed to converge.');end
 % pull out the dampings and frequencies
@@ -124,7 +164,11 @@ damp = damp(I);
 y = exp(time(:)*(-damp' + 1i*2*pi*freq'));
 
 % Calculate their phase and amplitude
-a = (y'*y)\(y'*data(:));
+%a = (y'*y)\(y'*data(:));
+% using Cholesky decomposition in hopes of avoiding singular matrices on inversion
+R = chol(y'*y);
+a = R\(R'\(y'*data(:)));
+
 y = y*a;
 amp = abs(a);
 phase = imag(log(a./amp));
@@ -141,7 +185,7 @@ parameters.amplitude = amp;
 parameters.phase = phase;
 parameters.model = @(time) exp(time(:)*(-damp' + 1i*2*pi*freq')) * (amp .*exp(1i*phase));
 
-y= reshape(y,dim);
+y = reshape(y,dim);
 return
 
 

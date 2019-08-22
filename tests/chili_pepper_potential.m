@@ -24,9 +24,8 @@ Sys.Potential = [2 0 0 c200];
 Exp.Ordering = c200;
 [B,spc2] = pepper(Sys,Exp,Opt);
 
-scale = max(spc2);
-spc2 = spc2/scale;
-spc1 = spc1/scale;
+spc2 = spc2/max(spc2);
+spc1 = spc1/max(spc1);
 
 threshold = 0.15;
 err = ~areequal(spc1,spc2,threshold);

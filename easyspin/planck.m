@@ -1,15 +1,13 @@
 % planck  Planck constant 
 %
 %   h = planck
-%   [h,sigma] = planck
 %
 %   Returns the Planck constant in SI units, joule times second.
-%   sigma is the standard uncertainty.
 
-function [h,sigma] = planck
+function h = planck
 
-% 2014 CODATA recommended value
-% Concise form 	 6.626 070 040(81) x 10-34 J s
+% 2018 CODATA recommended value
 
-h =     6.626070040e-34;
-sigma = 0.000000081e-34;
+h = 6.62607015e-34; % exact, as of 2019 SI redefinition
+
+return

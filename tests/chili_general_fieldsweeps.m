@@ -25,6 +25,6 @@ if opt.Display
   legend('approximate','explicit');
 end
 
-err = ~areequal(y1,y2,1e-3*max(y1));
+err = ~areequal(y1/max(y1),y2/max(y2),0.01);
 
 data = [];

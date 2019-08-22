@@ -1,16 +1,13 @@
 % oripotentialplot     Plot orientational potential
 %
-%    oripotentialplot
 %    oripotentialplot(Potential)
 %
 %   Plots the orientational potential U(alpha,beta,gamma) specified in Potential.
-%   The potential is only plotted against alpha and beta; gamma is fixed at
-%   zero.
 %
 %   Input:
-%   Potential    array with L, M, K, and lambda values for the Wigner
-%                expansion representation of the potential:
-%                [L1 M1 K1 lambda; L2 M2 K2 lambda2; ...]
+%     Potential    array with L, M, K, and lambda values for the Wigner
+%                  expansion representation of the potential:
+%                  [L1 M1 K1 lambda; L2 M2 K2 lambda2; ...]
 %
 %   Example:
 %     Potential = [2 2 1 1.4];
@@ -18,71 +15,36 @@
 
 function oripotentialplot(Potential)
 
+if nargin==0
+  help(mfilename);
+  return
+end
+if nargin>1
+  error('Only one input argument allowed.');
+end
+
+% Check inputs
+%-------------------------------------------------------------------------------
+if ~isnumeric(Potential) || size(Potential,2)~=4
+  error('Potential must be a Nx4 array');
+end
+
 % Internal settings
 %-------------------------------------------------------------------------------
 PlotStyle = 2; % 1: rectangular, 2: on a sphere
 plotPopulation = false;
-defaultPotential = [2 0 0 2];
-%defaultPotential = [];
+plotAlphaBeta = true;
 
-generatePotential = nargin==0;
-
-if ~generatePotential
-  if size(Potential,2)~=4
-    error('Potential must be a Nx4 array');
-  end
-  
-  % Remove zero terms
-  Potential(Potential(:,4)==0,:) = [];
-  
-  Lp = Potential(:,1);
-  Mp = Potential(:,2);
-  Kp = Potential(:,3);
-  lam = Potential(:,4);
-end
-
-% Generate a random potential if none is given
+% Unpack potential and check potential parameters for compliance
 %-------------------------------------------------------------------------------
-if generatePotential
-  if ~isempty(defaultPotential)
-    Lp = defaultPotential(1);
-    Mp = defaultPotential(2);
-    Kp = defaultPotential(3);
-    lam = defaultPotential(4);
-  else
-    Lmax = 3;
-    Leven = false;
-    Mzero = false;
-    realLambda = true;
-    
-    p = 0;
-    if Leven, Lrange = 0:2:Lmax; else, Lrange = 0:Lmax; end
-    for L_ = Lrange
-      if Mzero, Mrange = 0; else, Mrange = -L_:L_; end
-      for M_ = Mrange
-        if M_<0, Kmin = 1; else, Kmin = 0; end
-        for K_ = Kmin:L_
-          p = p + 1;
-          if M_==0 && K_==0
-            lam(p) = 2*rand-1;
-          else
-            if realLambda
-              lam(p) = 2*rand-1;
-            else
-              lam(p) = complex(2*rand-1,2*rand-1);
-            end
-          end
-          Lp(p) = L_;
-          Mp(p) = M_;
-          Kp(p) = K_;
-        end
-      end
-    end
-  end
-end
+% Remove zero terms
+Potential(Potential(:,4)==0,:) = [];
 
-% Check potential parameters for compliance
-%-------------------------------------------------------------------------------
+Lp = Potential(:,1);
+Mp = Potential(:,2);
+Kp = Potential(:,3);
+lam = Potential(:,4);
+
 if ~isempty(lam)
   if any(Lp<0)
     error('L values of potential coefficients must be nonnegative.');
@@ -105,43 +67,78 @@ if ~isempty(lam)
   end
 end
 
+% Define potential energy and population function
+%-------------------------------------------------------------------------------
 kT = 2; % number is irrelevant
 PotentialFunction = @(a,b,c) -kT*LMKsum(a,b,c,lam,Lp,Mp,Kp);
-PopulationFunction =  @(a,b,c) exp(-PotentialFunction(a,b,c)/kT);
+PopulationFunction = @(a,b,c) exp(-PotentialFunction(a,b,c)/kT);
+
+normalizePopulation = true;
+if normalizePopulation
+  absTol = 1e-6;
+  if Mzero
+    Z = integral3(@(a,b,c)PopulationFunction(a,b,c).*sin(b),0,2*pi,0,pi,0,2*pi,'AbsTol',absTol);
+  else
+    Z = 2*pi*integral2(@(b,c)PopulationFunction(0,b,c).*sin(b),0,pi,0,2*pi,'AbsTol',absTol);
+  end
+  PopulationFunction = @(a,b,c) PopulationFunction(a,b,c)/Z;
+end
+
+% Set up UI components
+%--------------------------------------------------------------------------
+clf
+
+h = uicontrol('Style','pushbutton','Position',[5 5 50 20],'String','ab/bc',...
+  'Callback',@abbc_toggle,'ToolTip','Toggle between alpha/beta and beta/gamma display.');
+h = uicontrol('Style','pushbutton','Position',[60 5 50 20],'String','pot/pop',...
+  'Callback',@potpop_toggle,'ToolTip','Toggle between potential and equilibrium population.');
+
+% Plotting
+%--------------------------------------------------------------------------
 
 a = rand*2*pi;
 b = linspace(0,pi,51);
 c = linspace(0,2*pi,101);
 
-normalizePopulation = false;
-if normalizePopulation
-  absTol = 1e-6;
-  if Mzero
-    Pint = integral3(@(a,b,c)PopulationFunction(a,b,c).*sin(b),0,2*pi,0,pi,0,2*pi,'AbsTol',absTol);
-  else
-    Pint = 2*pi*integral2(@(b,c)PopulationFunction(a,b,c).*sin(b),0,pi,0,2*pi,'AbsTol',absTol);
-  end
-else
-  Pint = 1;
+% Display list of potential coefficients
+hAx = axes;
+axes('Position',[0 0 1 1],'HitTest','off');
+axis off
+str = sprintf('Potential coefficients (L,M,K):\n');
+for p = 1:numel(lam)
+  str = sprintf('%s (%d,%d,%d):  %+0.4f  %+0.4f\n',str,Lp(p),Mp(p),Kp(p),real(lam(p)),imag(lam(p)));
 end
+text(0.02,0.98,str,'VerticalAlignment','top','FontSize',9);
+axes(hAx);
 
+updatedisplay;
 
-% Plotting
-%--------------------------------------------------------------------------
-clf
+function updatedisplay
 
 if PlotStyle==1
-  [b_,a_] = meshgrid(b,a);
-  if plotPopulations
-    Pplot = 2*pi*PopulationFunction(a_,b_,c)/Pint;
-  else
-    Pplot = PotentialFunction(a_,b_,c)/kT;
-  end
   
-  pcolor(a*180/pi,b*180/pi,Pplot.');
+  if plotAlphaBeta
+    [b_,a_] = meshgrid(b,a);
+    if plotPopulations
+      Pplot = PopulationFunction(a_,b_,c);
+    else
+      Pplot = PotentialFunction(a_,b_,c)/kT;
+    end
+    pcolor(a*180/pi,b*180/pi,Pplot.');
+    ylabel('\beta / pi')
+    xlabel('\alpha / pi')
+  else
+    [b_,c_] = meshgrid(b,c);
+    if plotPopulations
+      Pplot = PopulationFunction(0,b_,c_);
+    else
+      Pplot = PotentialFunction(0,b_,c_)/kT;
+    end
+    pcolor(c*180/pi,b*180/pi,Pplot.');
+    ylabel('\gamma / pi')
+    xlabel('\alpha / pi')
+  end
   set(gca,'YDir','reverse');
-  ylabel('beta / pi')
-  xlabel('alpha / pi')
   shading flat
   colorbar
   title('Boltzmann population');
@@ -150,38 +147,48 @@ if PlotStyle==1
 elseif PlotStyle==2
   % Plot on a sphere, (alpha,beta)
   
-  nKnots = max(30,max(Lp)*2);
+  nKnots = max(40,max(Lp)*2);
   symmgroup = 'C1';
   Vectors = sphgrid(symmgroup,nKnots);
-  [alpha,beta] = vec2ang(Vectors);
-  if plotPopulation
-    Pplot = PopulationFunction(alpha,beta,0);
-    titlestr = 'Equilibrium population (alpha,beta,0)';
+  
+  if plotAlphaBeta
+    [alpha,beta] = vec2ang(Vectors);
+    if plotPopulation
+      Pplot = PopulationFunction(alpha,beta,0);
+      titlestr = 'Equilibrium population (\alpha,\beta,0)';
+    else
+      Pplot = PotentialFunction(alpha,beta,0)/kT;
+      titlestr = 'Potential(\alpha,\beta,0) / k_BT';
+    end
+    vec = ang2vec(alpha,beta).';
   else
-    Pplot = PotentialFunction(alpha,beta,0)/kT;
-    titlestr = 'Potential(alpha,beta,0) / kT';
+    [gamma,beta] = vec2ang(Vectors);
+    if plotPopulation
+      Pplot = PopulationFunction(0,beta,gamma);
+      titlestr = 'Equilibrium population (0,\beta,\gamma)';
+    else
+      Pplot = PotentialFunction(0,beta,gamma)/kT;
+      titlestr = 'Potential(0,\beta,\gamma) / k_BT';
+    end
+    vec = ang2vec(gamma,beta).';
   end
-  vec = ang2vec(alpha,beta).';
   tri = sphtri(symmgroup,nKnots);
-  
-  % Display list of potential coefficients
-  axes('Position',[0 0 1 1],'HitTest','off');
-  axis off
-  str = sprintf('Potential coefficients\n');
-  for p = 1:numel(lam)
-    str = sprintf('%s %d %d %d:  %f  %f\n',str,Lp(p),Mp(p),Kp(p),real(lam(p)),imag(lam(p)));
-  end
-  text(0.02,0.98,str,'VerticalAl','top','FontSize',9);
-  
-  axes
+    
   h = trisurf(tri,vec(:,1),vec(:,2),vec(:,3),Pplot);
-  h.FaceAlpha = 0.9;
+  h.FaceAlpha = 0.85;
   
   % Add xyz axes and labels
   v = 1.2; d = 0.1;
   line([0 0],[0 0],[-v v],'Color','k');
   line([0 0],[-v v],[0 0],'Color','k');
   line([-v v],[0 0],[0 0],'Color','k');
+  phi = linspace(0,2*pi);
+  x = cos(phi)*0.99;
+  y = sin(phi)*0.99;
+  z = zeros(size(phi));
+  line(x,y,z,'Color','k');
+  line(y,z,x,'Color','k');
+  line(z,x,y,'Color','k');
   text(v+d,0,0,'+x','VerticalAl','middle','Horizon','center');
   text(v+d,0,0,'+x','VerticalAl','middle','Horizon','center');
   text(0,v+d,0,'+y','VerticalAl','middle','Horizon','center');
@@ -190,7 +197,6 @@ elseif PlotStyle==2
   text(0,-v-d,0,'-y','VerticalAl','middle','Horizon','center');
   text(0,0,-v-d,'-z','VerticalAl','middle','Horizon','center');
     
-  view([115 22]);
   axis equal
   shading interp
   axis off
@@ -215,33 +221,33 @@ elseif PlotStyle==2
   
 end
 
-return
-
+end
 %===============================================================================
-% General orientational potential function (real-valued)
+% Function that calculates sum of LMK terms (real-valued)
 %===============================================================================
 function y = LMKsum(a,b,c,lam,Lp,Mp,Kp)
 y = 0;
 for p = 1:numel(lam)
+  if lam(p)==0, continue; end
   if Mp(p)==0 && Kp(p)==0
     y = y + lam(p)*wignerd([Lp(p) 0 0],a,b,c);
   else
-    y = y + lam(p)*wignerd([Lp(p) Mp(p) Kp(p)],a,b,c) + ...
-      (-1)^(Kp(p)-Mp(p))*lam(p)'*wignerd([Lp(p) -Mp(p) -Kp(p)],a,b,c);
+    ph = (-1)^(Kp(p)-Mp(p));
+    y = y + lam(p) *wignerd([Lp(p)  Mp(p)  Kp(p)],a,b,c) + ...
+         ph*lam(p)'*wignerd([Lp(p) -Mp(p) -Kp(p)],a,b,c);
   end
 end
 
-%{
-% General orientational potential function (real-valued)
-% (as implemented in startvec.m)
-function u = LMKsum2(a,b,c)
-u = 0;
-for p = 1:numel(lambda)
-  if lambda(p)==0, continue; end
-  if Kp(p)==0 && Mp(p)==0
-    u = u - wignerd([Lp(p) +Mp(p) +Kp(p)],b) * real(lambda(p));
-  else
-    u = u - 2*real(wignerd([Lp(p) +Mp(p) +Kp(p)],a,b,c) * lambda(p));
-  end
 end
-%}
+
+function abbc_toggle(hObject,event)
+plotAlphaBeta = ~plotAlphaBeta;
+updatedisplay();
+end
+
+function potpop_toggle(hObject,event)
+plotPopulation = ~plotPopulation;
+updatedisplay();
+end
+
+end

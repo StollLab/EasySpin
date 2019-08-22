@@ -7,7 +7,7 @@ function [err,data] = test(opt,olddata)
 
 rng_(15654,'twister');
 
-Jlist = [0.5 1 2 3 5 8];
+Jlist = [0:0.5:6 7:10 40];
 
 for iJ = 1:numel(Jlist)
   

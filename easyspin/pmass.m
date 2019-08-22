@@ -8,8 +8,7 @@
 
 function [mp,sigma] = pmass
 
-% 2014 CODATA value
-% Concise form 	 1.672 621 898(21) x 10-27 kg
+% 2018 CODATA value
 
-mp =    1.672621898e-27;
-sigma = 0.000000021e-27;
+mp =    1.67262192369e-27;
+sigma = 0.00000000051e-27;

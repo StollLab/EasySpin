@@ -274,27 +274,27 @@ if usePotential
     error('L and K values of potential coefficients do not satisfy -L<=K<=L.');
   end
   if any(abs(Potential.M)>Potential.L)
-    error('L and M values of potential coefficients do not satisfy -L<=K<=L.');
+    error('L and M values of potential coefficients do not satisfy -L<=M<=L.');
   end
   if any(Potential.K<0)
-    error('Only nonnegative values of K are allowed.');
+    error('Only nonnegative values of K are allowed. Terms with negative K required to render the potential real-valued are supplemented automatically.');
   end
   if any(Potential.M(Potential.K==0)<0)
-    error('For potential terms with K=0, M must be nonnegative.');
+    error('For potential terms with K=0, M must be nonnegative. Terms with negative M required to render the potential real-valued are supplemented automatically.');
   end
-  if ~isreal(Potential.lambda(Potential.K==0 & Potential.M==0))
+  zeroMK = Potential.K==0 & Potential.M==0;
+  if any(~isreal(Potential.lambda(zeroMK)))
     error('Potential coefficients for M=K=0 must be real-valued.');
   end
 end
 
-% Check for old-style potential (even L and K, zero M, real-valued lambda)
+% Check for old-style potential (L=2,4; M=0; K=0,2; real-valued lambda)
 if usePotential
-  Potential.evenL = all(mod(Potential.L,2)==0);
-  Potential.evenK = all(mod(Potential.K,2)==0);
-  Potential.zeroM = all(Potential.M==0);
-  Potential.oldStyle = ...
-    Potential.evenL && Potential.zeroM && Potential.evenK &&...
-    all(isreal(Potential.lambda));
+  oldStylePotential = ...
+     all(Potential.L==2 | Potential.L==4) && ...
+     all(Potential.M==0) && ...
+     all(Potential.K==0 | Potential.K==2) && ...
+     all(isreal(Potential.lambda));
 end
 
 % Experimental settings
@@ -533,6 +533,7 @@ if ~isfield(Opt,'Diagnostics'), Opt.Diagnostics = ''; end
 if ~isfield(Opt,'useLMKbasis'), Opt.useLMKbasis = false; end
 if ~isfield(Opt,'useStartvecSelectionRules'), Opt.useStartvecSelectionRules = true; end
 if ~isfield(Opt,'ExplicitFieldSweep'), Opt.ExplicitFieldSweep = false; end
+if ~isfield(Opt,'PeqTol'), Opt.PeqTol = []; end
 
 if ~ischar(Opt.Diagnostics) && ~isempty(Opt.Diagnostics) && ~isvarname(Opt.Diagnostics)
   error('If given, Opt.Diagnosics must be a valid Matlab variable name.');
@@ -546,7 +547,7 @@ end
 % Determine default method for constructing Liouvillian
 if ~isfield(Opt,'LiouvMethod') || isempty(Opt.LiouvMethod)
   if (Sys.nElectrons==1) && (Sys.S==1/2) && (Sys.nNuclei<=2) && ...
-      (~usePotential || Potential.oldStyle)
+      (~usePotential || oldStylePotential)
     Opt.LiouvMethod = 'fast';
   else
     Opt.LiouvMethod = 'general';
@@ -555,35 +556,21 @@ end
 
 [LiouvMethod,err] = parseoption(Opt,'LiouvMethod',{'fast','general'});
 error(err);
-generalLiouvillian = (LiouvMethod==2);
+generalLiouvillian = LiouvMethod==2;
 
-if ~generalLiouvillian
-  if (Sys.nElectrons>1) || (Sys.S~=1/2) || (Sys.nNuclei>2)
-    error('Opt.LiouvMethod=''fast'' does not work with this spin system.');
-  end
-  if usePotential && ~Potential.oldStyle
-    error('Opt.LiouvMethod=''fast'' does not work with this orientational potential.');
-  end
-else
+if generalLiouvillian
   if any(Sys.Exchange~=0)
     error('Opt.LiouvMethod=''general'' does not support spin exchange (Sys.Exchange).');
   end
-end
-
-% Organize potential if it is oldStyle and fast method is requested
-if usePotential && Potential.oldStyle && ~generalLiouvillian
-  LMK = [2 0 0; 2 0 2; 4 0 0; 4 0 2]; % standard terms and order for fast code
-  lambda = [0 0 0 0];
-  PotLMK = Sys.Potential(:,1:3);
-  n = size(PotLMK,1);
-  for p = 1:4
-    idx = find(all(PotLMK==repmat(LMK(p,:),n,1)));
-    if ~isempty(idx), lambda(p) = Sys.Potential(idx,4); end
+else
+  if (Sys.nElectrons>1) || (Sys.S~=1/2) || (Sys.nNuclei>2)
+    error('Opt.LiouvMethod=''fast'' does not work with this spin system.');
   end
-  Potential.lambda = lambda;
-  Potential.L = LMK(:,1);
-  Potential.M = LMK(:,2);
-  Potential.K = LMK(:,3);
+  if usePotential
+    if ~oldStylePotential
+      error('Opt.LiouvMethod=''fast'' does not work with this orientational potential.');
+    end
+  end
 end
 
 % Field sweep method
@@ -622,6 +609,13 @@ if isfield(Opt,'LLKM') % silently support pre-6.0 field name
   Opt.LLMK = Opt.LLKM([1 2 4 3]);
   warning('Opt.LLKM is obsolete. Use Opt.LLMK instead. To convert LLKM to LLMK, swap the third and the fourth number.');
 end
+if numel(Opt.LLMK)~=4 || any(Opt.LLMK<0) || any(mod(Opt.LLMK,1))
+  error('Opt.LLMK must be a 4-element array with non-negative integers.');
+end
+maxL = max(Opt.LLMK(1:2));
+if any(Opt.LLMK(3:4)>maxL)
+  error('The maximum M and maximum K (third and fourth number in Opt.LLMK) must be not larger than the maximum L.');
+end
 Basis.LLMK = Opt.LLMK;
 
 if ~isfield(Opt,'jKmin'), Opt.jKmin = []; end
@@ -635,8 +629,13 @@ Basis.pSmin = Opt.pSmin;
 
 % Maximum nuclear coherence order
 if ~isfield(Opt,'pImax'), Opt.pImax = []; end
-if Opt.pImax<0
-  error('Opt.pImax must be 0 or larger.');
+if ~isempty(Opt.pImax)
+  if numel(Opt.pImax)~=Sys.nNuclei && numel(Opt.pImax)~=1
+    error('Opt.pImax must contain either one entry for every nucleus or just a single number.');
+  end
+  if any(Opt.pImax<0)
+    error('Every element in Opt.pImax must be 0 or larger.');
+  end
 end
 Basis.pImax = Opt.pImax;
 
@@ -665,6 +664,7 @@ switch Opt.Solver
     error('Unknown method in Options.Solver. Must be ''L'', ''R'', ''C'', or ''\''.');
 end
 logmsg(1,'Solver: %s',SolverString);
+useLanczosSolver = Opt.Solver=='L';
 
 if ~generalLiouvillian
   % reallocation block size, used in chili_lm
@@ -708,8 +708,9 @@ else
 end
 
 % calculate ISTOs and symmetry properties
+includeNQI = false;
 [T,F,Sys,Symmetry,isFieldDep] = magint(Sys,SpinOps,CenterField,...
-                                       Opt.IncludeNZI,...
+                                       Opt.IncludeNZI,includeNQI,...
                                        explicitFieldSweep);
 
 if saveDiagnostics
@@ -798,7 +799,7 @@ Weights = 4*pi*Weights/sum(Weights);
 logmsg(1,'Setting up basis set...');
 logmsg(1,'  spatial basis: Leven max %d, Lodd max %d, Mmax %d, Kmax %d, deltaK %d, jKmin %+d',...
   Basis.LLMK(1),Basis.LLMK(2),Basis.LLMK(3),Basis.LLMK(4),Basis.deltaK,Basis.jKmin);
-logmsg(1,'  spin basis: pSmin %+d, pImax %d',Basis.pSmin,Basis.pImax);
+logmsg(1,'  spin basis: pSmin %+d, pImax %s',Basis.pSmin,num2str(Basis.pImax));
 logmsg(1,'  M-p symmetry: %d',Basis.MpSymm);
 
 if generalLiouvillian
@@ -876,26 +877,27 @@ end
 % Calculate diffusion operator matrix
 %-------------------------------------------------------------------------------
 % Pre-calculate diffusion operator Wigner expansion coefficient
-logmsg(1,'Calculating Wigner expansion coefficients for diffusion matrix');
-if all(Potential.M==0)
-  Potential.xlk = chili_xlk(Potential,Dynamics.Diff);
+% (needed for both Opt.Method='fast' and 'general')
+if usePotential
+  logmsg(1,'Calculating Wigner expansion coefficients for diffusion matrix');
+  XLMK = chili_xlmk(Potential,Dynamics.R);
 else
-  Potential.xlmk = chili_xlmk(Potential,Dynamics.Diff);
+  XLMK = {};
 end
 
 if generalLiouvillian
 
   logmsg(1,'Calculating the diffusion matrix');
   
-  % Calculate relaxation superoperator in spatial basis
-  if Opt.useLMKbasis
-    Gamma = diffsuperop_LMK(Basis,Dynamics.Diff,Potential);
-  else
-    Gamma = diffsuperop(Basis,Dynamics.Diff,Potential);
-  end
+  % Calculate diffusion superoperator in spatial basis
+  Gamma = diffsuperop(Basis,Dynamics.R,XLMK,Potential);
   % Expand to full product basis
   Gamma = spkroneye(Gamma,Sys.nStates^2);
   Gamma = Gamma(keep,keep); % prune
+  
+  maxerr = @(x) full(max(abs(x(:))));
+  imagerr = @(x) maxerr(imag(x))/maxerr(real(x));
+  logmsg(1,'  imag/real = %f',imagerr(Gamma));
   
 else
   
@@ -909,21 +911,49 @@ end
 %-------------------------------------------------------------------------------
 logmsg(1,'Computing starting vector...');
 if generalLiouvillian
-  % set up in full product basis, then prune
-  StartVector = startvec(Basis,Potential,SdetOp,Opt.useLMKbasis,Opt.useStartvecSelectionRules);
-  StartVector = StartVector(keep);
-  StartVector = StartVector/norm(StartVector);  
+  if ~isfield(Opt,'StartVec') || isempty(Opt.StartVec)
+    % Set up in full product basis, then prune
+    [StartVector,nInt] = startvec(Basis,Potential,SdetOp,Opt.useStartvecSelectionRules,Opt.PeqTol);
+    StartVector = StartVector(keep);
+  else
+    logmsg(1,'  using provided vector');
+    if numel(Opt.StartVec)==sum(keep)
+      StartVector = Opt.StartVec;
+      nInt = [];
+    else
+      error('Opt.StartVec must have %d elements.',sum(keep));
+    end
+  end
+  StartVector = StartVector/norm(StartVector);
 else
-  StartVector = chili_startingvector(Basis,Potential);
+  if usePotential
+    % Organize potential as expected by chili_startingvector
+    LMK = [2 0 0; 2 0 2; 4 0 0; 4 0 2]; % standard terms and order for fast code
+    PotLMK = [Potential.L Potential.M Potential.K];
+    lambda_shortlist = [0; 0; 0; 0];
+    for p = 1:4
+      [found,idx] = ismember(LMK(p,:),PotLMK,'rows');
+      if found, lambda_shortlist(p) = Potential.lambda(idx); end
+    end
+  else
+    lambda_shortlist = [];
+  end
+  StartVector = chili_startingvector(Basis,lambda_shortlist);
+  nInt = [];
 end
+
 if saveDiagnostics
   diagnostics.sv = StartVector;
 end
+
 BasisSize = size(StartVector,1);
 logmsg(1,'  vector size: %dx1',BasisSize);
 logmsg(1,'  non-zero elements: %d/%d (%0.2f%%)',...
   nnz(StartVector),BasisSize,100*nnz(StartVector)/BasisSize);
 logmsg(1,'  maxabs %g, norm %g',full(max(abs(StartVector))),norm(StartVector));
+if ~isempty(nInt)
+  logmsg(1,'  evaluated integrals: 1D %d, 2D %d, 3D %d',nInt(1),nInt(2),nInt(3));
+end
 
 % Loop over all orientations
 %===============================================================================
@@ -971,7 +1001,7 @@ for iOri = 1:nOrientations
   end
   
   if generalLiouvillian
-    if Opt.useLMKbasis
+    if Opt.useLMKbasis && useLanczosSolver
       TT = ksymmetrizer(Basis); % in spatial basis
       TT = kron(TT,eye(Sys.nStates^2)); % expand to full basis, incl. spin
       TT = TT(keep,keep); % prune
@@ -1039,8 +1069,16 @@ for iOri = 1:nOrientations
         end
       end
       Sys.DirTilt = Basis.DirTilt; % used in chili_lm
-      Dynamics.xlk = Potential.xlk; % used in chili_lm
-      Dynamics.maxL = size(Dynamics.xlk,1)-1; % maxmimum L in XLK ( = 2*L from potential)
+      
+      % Build xlk array needed by chili_lm (rearranged from XLMK)
+      maxL = numel(XLMK)-1; % maxmimum L in XLMK ( = 2*L from potential)
+      xlk = [];
+      for L_ = 0:maxL
+        xlk(L_+1,1:2*L_+1) = XLMK{L_+1}(L_+1,:);
+      end
+      Dynamics.xlk = xlk;
+      Dynamics.maxL = maxL;      
+      Dynamics.Diff = Dynamics.R;
       
       % Call mex function to get L matrix elements
       [r,c,Vals,nDim] = chili_lm(Sys,Basis.v,Dynamics,Opt.AllocationBlockSize);
@@ -1084,7 +1122,7 @@ for iOri = 1:nOrientations
     % Appy K-symmetrization if needed to obtain complex symmetric L for Lanczos
     % algorithm. L = i*H + Gamma is complex symmetric if both the imaginary
     % parts of H and Gamma are zero, i.e. if both H and Gamma are real-valued.
-    if generalLiouvillian && Opt.useLMKbasis
+    if generalLiouvillian && Opt.useLMKbasis && useLanczosSolver
       isComplexSymmetric = isreal(H);
       %maxerr = @(A)max(abs(A(:)));
       %imagerr = @(A)maxerr(imag(A))/maxerr(real(A));
@@ -1104,6 +1142,7 @@ for iOri = 1:nOrientations
       L = L/scale;
       omega = omega0/scale;
     else
+      scale = 1;
       omega = omega0;
     end
     
@@ -1134,6 +1173,13 @@ for iOri = 1:nOrientations
       switch Opt.Solver
         
         case 'L' % Lanczos method
+          if generalLiouvillian && usePotential
+            maxabs = @(a)max(abs(a));
+            isComplexSymmetric = maxabs(L-L.')/maxabs(L) < 1e-10;
+            if ~isComplexSymmetric
+              error('L is not complex symmetric - cannot use Lanczos method.');
+            end
+          end
           [alpha,beta,minerr] = chili_lanczos(L,StartVector,-1i*omega,Opt);
           minerr = minerr(end);
           if minerr<Opt.Threshold
@@ -1189,7 +1235,7 @@ for iOri = 1:nOrientations
     end
   end
   
-  spec = spec + thisspec*Weights(iOri);
+  spec = spec + thisspec*Weights(iOri)/scale;
   
 end % orientation loop
 
@@ -1424,10 +1470,6 @@ Basis.oddLmax = Basis.LLMK(2);
 Basis.Mmax = Basis.LLMK(3);
 Basis.Kmax = Basis.LLMK(4);
 
-if Basis.oddLmax > Basis.evenLmax
-  Basis.oddLmax = Basis.evenLmax-1;
-end
-
 % Set jKmin = +1 if tensorial coefficients are all real. This is the
 % case when all tensors (g and A) are collinear and tilted relative to
 % the diffusion tensor by the angles (0,beta,0).
@@ -1438,7 +1480,8 @@ if isempty(Basis.jKmin)
   end
 end
 
-% Use only even K if there is no magnetic or diffusion tilt.
+% Use only even K if there is no beta tilt (i.e. all +1 and -1 spherical
+% tensor components in the Hamiltonian are zero).
 if isempty(Basis.deltaK)
   if nobetatilts
     Basis.deltaK = 2;
@@ -1447,6 +1490,7 @@ if isempty(Basis.deltaK)
   end
 end
 
+%{
 % Use only even L values (oddLmax=0) and no K values (Kmax=0)
 % in case of axial magnetic tensors, axial potential, 
 % and no magnetic/diffusion tilt
@@ -1454,8 +1498,9 @@ if axialSystem && (Basis.deltaK==2) && (isempty(maxPotentialK) || (maxPotentialK
   Basis.oddLmax = 0;
   Basis.Kmax = 0;
 end
+%}
 
-% Spin basis parameters: pSmin, pImax
+% Spin basis truncation parameters: pSmin, pImax
 %-------------------------------------------------------------------------------
 
 % pSmin
@@ -1463,24 +1508,21 @@ if ~isfield(Basis,'pSmin') || isempty(Basis.pSmin)
   Basis.pSmin = 0;
 end
 
-% pImax
+% pImax (maximum nuclear coherence order, for each nucleus)
 if ~isfield(Basis,'pImax')
   Basis.pImax = [];
 end
 if nNuclei==0
   Basis.pImax = 0;
-elseif nNuclei==1
-  pImax = 2*I;
-  if isempty(Basis.pImax)
-    Basis.pImax = pImax;
-  end
-  Basis.pImax = min(Basis.pImax,pImax);
 else
-  pImax = 2*I;
   if isempty(Basis.pImax)
-    Basis.pImax = pImax;
+    Basis.pImax = 2*I;
   end
-  Basis.pImax = min(Basis.pImax,pImax);
+  Basis.pImax = min(Basis.pImax,2*I);
+end
+
+% Set fields for fast two-nuclei code
+if nNuclei==2
   Basis.pI1max = Basis.pImax(1);
   Basis.pI2max = Basis.pImax(2);
 end
@@ -1497,44 +1539,44 @@ return
 
 
 %===============================================================================
-function [Dyn,err] = processdynamics(D,FieldSweep)
+function [Dyn,err] = processdynamics(Dyn,FieldSweep)
 
-Dyn = D;
 err = '';
 
 % diffusion tensor, correlation time
 %-------------------------------------------------------------------------------
-% convert everything (tcorr, logcorr, logDiff) to Diff
+% convert everything (tcorr, logcorr, logDiff, Diff) to R
 if isfield(Dyn,'Diff')
   % Diff given
   if any(Dyn.Diff<0)
     error('Sys.Diff cannot be negative.');
   end
+  Dyn.R = Dyn.Diff;
 elseif isfield(Dyn,'logDiff')
-  Dyn.Diff = 10.^Dyn.logDiff;
+  Dyn.R = 10.^Dyn.logDiff;
 elseif isfield(Dyn,'tcorr')
-  Dyn.Diff = 1/6./Dyn.tcorr;
+  Dyn.R = 1/6./Dyn.tcorr;
 elseif isfield(Dyn,'logtcorr')
   if Dyn.logtcorr>=0, error('Sys.logtcorr must be negative.'); end
-  Dyn.Diff = 1/6./10.^Dyn.logtcorr;
+  Dyn.R = 1/6./10.^Dyn.logtcorr;
 else
   err = sprintf('You must specify a rotational correlation time or a diffusion tensor\n(Sys.tcorr, Sys.logtcorr, Sys.Diff or Sys.logDiff).');
   return
 end
 
 % check values
-if any(Dyn.Diff<0)
+if any(Dyn.R<0)
   error('Negative diffusion rate or correlation times are not possible.');
-elseif any(Dyn.Diff>1e12)
+elseif any(Dyn.R>1e12)
   fprintf('Diffusion rate very fast. Simulation might not converge.\n');
-elseif any(Dyn.Diff<1e3)
+elseif any(Dyn.R<1e3)
   fprintf('Diffusion rate very slow. Simulation might not converge.\n');
 end
 
 % expand to rhombic tensor
-switch numel(Dyn.Diff)
-  case 1, Dyn.Diff = Dyn.Diff([1 1 1]);
-  case 2, Dyn.Diff = Dyn.Diff([1 1 2]);
+switch numel(Dyn.R)
+  case 1, Dyn.R = Dyn.R([1 1 1]);
+  case 2, Dyn.R= Dyn.R([1 1 2]);
   case 3 % Diff already rhombic
   otherwise
     err = 'Sys.Diff must have 1, 2 or 3 elements (isotropic, axial, rhombic).';

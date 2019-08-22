@@ -48,7 +48,7 @@ Simulation of the effect of the resonator on a pulse or computation of pulse sha
 <div class="subtitle">Description</div>
 
 <p>
-This function simulates the effect of the resonator on the input signal shape or provides a signal compensated for the resonator transfer function that can be used to obtain the desired signal in the resonator.
+This function simulates the effect of the resonator on the input signal shape or provides a signal compensated for the resonator transfer function that can be used to obtain the desired signal in the resonator. 
 </p>
 
 <p>
@@ -68,6 +68,10 @@ Alternatively, the resonator center frequency (<code>nu0</code> in GHz) and the 
 
 <p>
 The output contains the time axis data (in microseconds) and the distorted or adapted signal.
+</p>
+
+<p>
+Compensation for resonator bandwidth limitations by sweep rate adaptation in frequency-swept pulses is implemented in <a class="esf" href="pulse.html">pulse</a> and activated by providing the resonator profile as <code>Par.FrequencyResponse = [nu; TransferFunction]</code> or by specifying the resonator center frequency and loaded Q-value in <code>Par.ResonatorFrequency</code> and <code>Par.ResonatorQL</code>, respectively, as well as the center microwave frequency in <code>Par.mwFreq</code> (see  <a class="esf" href="pulse.html">pulse</a> documentation for details).
 </p>
 
 <p>

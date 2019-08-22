@@ -29,7 +29,7 @@
 
 function levelsplot(Sys,varargin)
 
-if nargin==0, help(mfilename); end 
+if nargin==0, help(mfilename); return; end 
 
 % Default parameters
 Ori = 'z';
