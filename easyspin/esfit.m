@@ -151,12 +151,13 @@ else
   Exp.nPoints = numel(ExpSpec);
 end
 
-% For field sweeps, require manual field range
-%if strcmp(SimFunctionName,'pepper') || strcmp(SimFunctionName,'garlic')
-%  if ~isfield(Exp,'Range') && ~isfield(Exp,'CenterSweep')
-%    error('Please specify field range, either in Exp.Range or in Exp.CenterSweep.');
-%  end
-%end
+% For field and frequency sweeps, require manual field range (to prevent
+% users from comparing sim and exp spectra with different ranges)
+if strcmp(SimFunctionName,{'pepper','garlic','chili','salt'})
+  if ~any(isfield(Exp,{'Range','CenterSweep','mwRange','mwCenterSweep'}))
+    error('Please specify field or frequency range, in Exp.Range/Exp.mwRange or in Exp.CenterSweep/Exp.mwCenterSweep.');
+  end
+end
 
 FitData.Exp = Exp;
 
