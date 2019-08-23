@@ -58,10 +58,12 @@
 %     Orientations   numeric, size = (3,nStates)
 %                    Euler angles for each state's orientation
 %
-%     Sys.lw         double or numeric vector, size = (1,2)
-%                    vector with FWHM residual broadenings
+%     lw             double or numeric vector, size = (1,2)
+%                    vector with FWHM residual broadenings (in mT)
 %                         1 element:  GaussianFWHM
 %                         2 elements: [GaussianFWHM LorentzianFWHM]
+%     lwpp           peak-to-peak linewidths (mT), same format as lw
+%                    use either lw or lwpp
 %
 %
 %   Par: structure with simulation parameters
@@ -889,7 +891,7 @@ while ~converged
       alpha = pi^2*fwhm^2/(4*log(2));
       TDSignal = bsxfun(@times,exp(-alpha*tLong.^2),TDSignal);
     end
-    if numel(Sys.lw)==2
+    if numel(Sys.lw)==2 && Sys.lw(2)>0
       % Lorentzian broadening
       TL = Dynamics.T2; 
       TDSignal = bsxfun(@times,exp(-tLong/TL),TDSignal);
