@@ -1300,8 +1300,7 @@ if doPostConvolution
   spec_pc = spec_pc/sum(spec_pc);
   
   % Convolute SLE spectrum with isotropic spectrum
-  spec = conv(spec,spec_pc);
-  spec = spec(fix(numel(spec_pc)/2)+(1:Exp.nPoints));
+  spec = conv(spec,spec_pc,'same');
 end
 
 
