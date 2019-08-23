@@ -368,6 +368,12 @@ if useMD
   end
   clear RTrajInv
   
+  logmsg(1,'    label: %s',MD.LabelName);
+  logmsg(1,'    number of trajectories: %d',MD.nTraj);
+  logmsg(1,'    number of time steps: %d',MD.nSteps);
+  logmsg(1,'    size of time step: %g ps',MD.dt/1e-12);
+  logmsg(1,'    remove global diffusion: %d',MD.removeGlobal);
+  
   % Build Markov state model
   if strcmp(LocalDynamicsModel,'MD-HMM')
     logmsg(1,'Building HMM model');
