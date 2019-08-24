@@ -15,17 +15,17 @@ tScale = 2.5;  % diffusion constant of TIP3P model water molecules in MD
 MD = Traj;
 MD.dt = MD.dt*tScale;
 MD.removeGlobal = 0;
-
 MD.DiffGlobal = 6e6;
 
 % Calculate spectrum using cardamom
 % -------------------------------------------------------------------------
 
 T = 250e-9; % length of FID
-Par.dt = 1.0e-9; % increment for spin propagation
+Par.dt = 1.0e-9;
 Par.nSteps = ceil(T/Par.dt);
-Par.nOrients = 100;
+
 Par.Model = 'MD-direct';
+Par.nOrients = 100;
 
 Exp.mwFreq = 9.4;
 
@@ -40,18 +40,22 @@ Opt.Method = 'fast';
 [B, spc] = cardamom(Sys,Exp,Par,Opt,MD);
 spc = spc/max(spc);
 
-
 data.spc = spc;
 
 if ~isempty(olddata)
   err = any(abs(olddata.spc-spc)>1e-10);
-  if opt.Display
-    plot(B,spc,B,olddata.spc);
-    legend('current','previous');
-    axis tight
-  end
 else
   err = [];
+end
+
+if opt.Display
+  if ~isempty(olddata)
+    plot(B,spc,B,olddata.spc);
+    legend('current','previous');
+    legend boxoff
+    title(mfilename,'Interpreter','none');
+    axis tight
+  end
 end
 
 end
