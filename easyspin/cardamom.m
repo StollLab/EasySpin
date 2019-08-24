@@ -578,13 +578,11 @@ Par.BlockLength = ceil(Par.Dt/traj_dt);
 if useMDdirect
   Par.lag = ceil(Opt.LagTime/Par.Dt);
   nBlocks = floor(MD.nSteps/Par.BlockLength);
-  if Par.nSteps<nBlocks
-    % Par.nSteps not changed from user input
-    Par.nTraj = floor((nBlocks-Par.nSteps)/Par.lag) + 1;
-  else
-    Par.nSteps = nBlocks;
-    Par.nTraj = 1;
+  if nBlocks < Par.nSteps
+    error('MD trajectory is too short (%g ns) for the required FID length (%g ns.',...
+      MD.nSteps*MD.dt,Par.nSteps*Par.Dt);
   end
+  Par.nTraj = floor((nBlocks-Par.nSteps)/Par.lag) + 1;
 end
 
 % Set default number of orientations
