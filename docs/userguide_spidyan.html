@@ -56,7 +56,7 @@ This guide covers the following topics:
 Look at the list of <a href="examplesmain.html">examples</a> for more examples on how to use <a class="esf" href="spidyan.html">spidyan</a>.
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="calling">Running the simulation</a></div>
+<a name="calling"><div class="subtitle">Running the simulation</div></a>
 
 <p>
 A <a class="esf" href="spidyan.html">spidyan</a> script has the same layout as a <a class="esf" href="saffron.html">saffron</a> script. First a spin system is defined:
@@ -102,7 +102,7 @@ But keep in mind, an echo is a property of a distribution of spins with differen
 Since we called <a class="esf" href="spidyan.html">spidyan</a> with a single resonance frequency, no echo is to be expected.
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="inversion_pulses">Inversion pulses</a></div>
+<a name="inversion_pulses"><div class="subtitle">Inversion pulses</div></a>
 
 <p>
 This section is going to show three different inversion pulses and how to plot their effects on the spin.
@@ -241,7 +241,7 @@ This means, no matter how strong the amplitude of your pulse gets, the flip angl
 You can try this by removing <code>Par.Flip</code> from the pulse definitions, and instead using <code>Par.Amplitude</code>.
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="adiatbatic passage">3D plot of adiabatic passage</a></div>
+<a name="adiatbatic"><div class="subtitle">3D plot of adiabatic passage</div></a>
 
 <p>
 The aim of this example is to create a three-dimensional depiction of the spin trajectory during adiabatic passage.
@@ -324,7 +324,7 @@ Philipp Spindler, et al.<br>
 <em>eMagRes</em> 2016, DOI: <a target="_blank" href="http://dx.doi.org/10.1002/9780470034590.emrstm1520">10.1002/9780470034590.emrstm1520</a>
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="detection">Detection</a></div>
+<a name="detection"><div class="subtitle">Detection</div></a>
 
 <p>
 The use of the detection window <code>Exp.DetWindow</code> was already discussed in <a class="esf" href="userguide_saffron_thyme.html#detection_window">part II</a> of the guide on <a class="esf" href="saffron.html">saffron</a>.
@@ -398,7 +398,7 @@ Keep in mind, that detection not only requires a significant amount of computing
 Hence, if you run big simulation with a lot indirect dimensions and data points, you might want to think about reducing detection to a minimum for the sake of speed.
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="bulldozer">Enhancement of the central transition of a high-spin system</a></div>
+<a name="bulldozer"><div class="subtitle">Enhancement of the central transition of a high-spin system</div></a>
 
 <p>
 This example is going over the enhancement of the central transition of a <code>S = 3/2</code> system for a single spin packet.
@@ -481,7 +481,7 @@ Andrin Doll, et al.<br>
 <em>Phys. Chem. Chem. Phys.</em> 2015, DOI: <a target="_blank" href="http://dx.doi.org/10.1039/C4CP05893C">10.1039/C4CP05893C</a>
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="excitation_and_detection_operators">Selective excitation and detection operators</a></div>
+<a name="excitation_and_detection_operators"><div class="subtitle">Selective excitation and detection operators</div></a>
 
 <p>
 This example explores how spin selective excitation and detection operators are used.
@@ -569,7 +569,7 @@ Opt.ExcOperator = {Op};
 </pre>
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="rabi">Rabi oscillation</a></div>
+<a name="rabi"><div class="subtitle">Rabi oscillation</div></a>
 
 <p>
 This is example is going how to setup a rabi oscillation with <a class="esf" href="spidyan.html">spidyan</a> using indirect dimensions.
@@ -658,7 +658,7 @@ spidyan(Sys,Exp,Opt);
 </pre>
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="spinecho_nitroxide">Spin echo of a nitroxide</a></div>
+<a name="spinecho_nitroxide"><div class="subtitle">Spin echo of a nitroxide</div></a>
 
 <p>
 Per call <a class="esf" href="spidyan.html">spidyan</a> can process a signle pack. 
@@ -757,7 +757,7 @@ ylabel('Signal (arb.u.)')
 </pre>
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="spinecho_gaussian">Spin echo of a Gaussian line</a></div>
+<a name="spinecho_gaussian"><div class="subtitle">Spin echo of a Gaussian line</div></a>
 
 <p>
 If you are investigating spin dynamics, it is often not necessary to simulate entire spectra. 
@@ -832,7 +832,7 @@ Exp.DetFreq = 9.5; % GHz
 </pre>
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="tipsntricks">Tips and Tricks</a></div>
+<a name="tipsntricks"><div class="subtitle">Tips and Tricks</div></a>
 
 <p>
 If you are interested in the expectation values of <i>&Scirc;<sub>x</sub></i>, it is usually beneficial to use <i>&Scirc;</i><sub>+</sub> as the actual detection operator and then take the real part of the obtained signal.

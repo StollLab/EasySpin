@@ -60,7 +60,9 @@ To get the most out of the EasySpin fitting features, you should work through th
 </p>
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="esfit">The fitting function</a></div>
+<a name="esfit">
+<div class="subtitle">The fitting function</div>
+</a>
 
 <p>
 EasySpin's fitting function is <a class="esf" href="esfit.html">esfit</a> and can be called with up to seven parameters:
@@ -99,7 +101,7 @@ The following two parameters are optional
 The next few sections explain how to set up these input parameters so that <a class="esf" href="esfit.html">esfit</a> can be called.
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="load">Loading the experimental spectrum</a></div>
+<a name="load"><div class="subtitle">Loading the experimental spectrum</div></a>
 
 <p>
 Before you can fit parameters to your experimental spectrum, you have to import the experimental data into MATLAB. There are several ways to do this, depending in which format your data are stored in.
@@ -128,7 +130,7 @@ Often, experimental spectral data come in text files, containing two columns of 
 <code>textread</code> is a very flexible function that can accomodate many different text file formats. E.g. it can skip header lines if told to do so, it can accomodate comment lines, etc. See the MATLAB documentation for more details.
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="startsys">Start set of parameters</a></div>
+<a name="startsys"><div class="subtitle">Start set of parameters</div></a>
 
 <p>
 The fitting function needs to know with which parameter values to start looking for an optimal fit. These starting parameters are given as a spin system in the third input parameter to <code>esfit</code>. For example, if the spectrum is that of a simple S=1/2 with rhombic g and an isotropic linewidth, one would start with
@@ -143,7 +145,7 @@ Some algorithms use this set of parameters as the starting set, while others use
 </p>
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="vary">Parameter search range</a></div>
+<a name="vary"><div class="subtitle">Parameter search range</div></a>
 
 <p>
 Next, <code>esfit</code> has to be told which parameters of the spin system given in <code>Sys0</code> should be fitted (and which not), and by how much they can be varied during the least-squares fitting process.
@@ -176,7 +178,7 @@ It is advisable not to vary more than about 4 parameters at the same time, as th
 An important note for fitting slow-motion EPR spectra with <a class="esf" href="chili.html">chili</a>: Do not use <code>tcorr</code> or <code>Diff</code> for fitting the correlation time or the diffusion tensor, but rather the logarithmic forms <code>logtcorr</code> and <code>logDiff</code>.
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="params">Experimental parameters</a></div>
+<a name="params"><div class="subtitle">Experimental parameters</div></a>
 
 <p>
 Of course, the fitting function must also be provided with the experimental parameters for the spectral simulations. These are given as the fifth parameter, a structure <code>Exp</code>, which is directly forwarded to the simulation functions <a class="esf" href="pepper.html">pepper</a>, <a class="esf" href="garlic.html">garlic</a>, <a class="esf" href="chili.html">chili</a>, etc. For details, see the documentation of these functions.
@@ -195,7 +197,7 @@ Exp.Range = [200 400];  % mT
 The microwave frequency, the field range, and all other experimental parameters must correspond to the ones used in acquiring the spectral data.
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="run">Performing the least-squares fitting</a></div>
+<a name="run"><div class="subtitle">Performing the least-squares fitting</div></a>
 
 <p>
 Now we are all set to call the fitting function:
@@ -240,7 +242,7 @@ The possible settings in this last structure are the topic of the rest of this t
 
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="method">Fitting methods</a></div>
+<a name="method"><div class="subtitle">Fitting methods</div></a>
 
 <p>
 Beyond a good starting parameter set or search range, the performance of the fitting depends crucially on two things: the choice of the optimization algorithm, and the choice of the target function. Let's have a look at each of them in turn.
@@ -354,7 +356,7 @@ For some situations, e.g. for magnetization data, it is necessary not to scale a
 </p>
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="hybrid">Hybrid methods</a></div>
+<a name="hybrid"><div class="subtitle">Hybrid methods</div></a>
 
 <p>
 With EasySpin it is easily possible to perform so-called hybrid least-squares fittings, where one optimization algorithm is used to locate a potential minimum, and another one is used to refine the parameters at that minimum. The first of these two steps often employs algorithms that are able to locate minima globally and do not get stuck easily in a local minimum. The disadvantage of these methods is that they are often slow. The second step closes in on the minimum by using a much faster local method. There are two ways to perform such a two-stage fitting: using the UI, or writing your own code.
@@ -380,7 +382,7 @@ Sys2 = esfit('pepper',y,Sys1,Vary,Exp,[],FitOpt)
 Of course, you'll probably have to change some of the termination criteria for the two algorithms so that the genetic search narrows down a minimum only coarsely, and the local search can then much more efficiently finalize the fit by refining the parameters.
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="stop">Termination criteria</a></div>
+<a name="stop"><div class="subtitle">Termination criteria</div></a>
 
 <p>
 The simplest way to terminate a fitting is by pressing the Stop button on the UI. This will interrupt the optimization process whether the result has converged or not.
@@ -410,7 +412,8 @@ FitOpt.maxTime = 60*8;     % maximum time, in minutes
 
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="multicomp">Multiple components</a></div>
+<a name="multicomp"><div class="subtitle">Multiple components</div></a>
+
 <p>
 So far we have looked at the fitting of a spectrum with a single spectral component. EasySpin can perform least-squares fitting of spectra with multiple components. For each component, a system structure and a variation structure must be given. For example, this is how <code>esfit</code> is called for a two-component fit:
 </p>
@@ -434,7 +437,7 @@ Vary1.weight = 0.3;
 </pre>
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="customfunction">User-defined simulation functions</a></div>
+<a name="customfunction"><div class="subtitle">User-defined simulation functions</div></a>
 
 <p>
 Say you need to constrain the spin Hamiltonian values, e.g. two hyperfine tensors have to be equal. Or you want to fit a distance from which a hyperfine coupling is derived, instead of the hyperfine coupling directly. Or you want to fit the microwave phase, which is not defined in the spin system structure, but in the experimental parameters.

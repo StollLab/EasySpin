@@ -63,7 +63,9 @@ In the following, we go over the following topics:
 Look at the list of <a href="examplesmain.html">examples</a> for more examples on how to use <a class="esf" href="saffron.html">saffron</a>.
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="calling">Running the simulation</a></div>
+<a name="calling">
+<div class="subtitle">Running the simulation</div>
+</a>
 
 <p>
 To simulate a pulse EPR spectrum, use EasySpin's <a class="esf" href="saffron.html">saffron</a> function. Its usage conforms with the other simulation functions in EasySpin. You need to provide it with two input arguments. The first one collects information about the spin system, and the second one collects information about the pulse experiment. There is an optional third input argument that allows you to set some algorithmic parameters.
@@ -101,7 +103,9 @@ plot(tau,real(V),tau,imag(V));  % plotting real and imaginary part separately
 
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="exp">Experimental parameters</a></div>
+<a name="exp">
+<div class="subtitle">Experimental parameters</div>
+</a>
 
 <p>
 The most important parameters for a pulse EPR simulation are the magnetic field and the pulse experiment. The magnetic field is given in <code>Exp.Field</code>, in units of millitesla (mT):
@@ -167,7 +171,9 @@ Exp.nPoints = [200 100];  % for 2D experiments with unequal dimensions
 </pre>
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="orisel">Orientation selection</a></div>
+<a name="orisel">
+<div class="subtitle">Orientation selection</div>
+</a>
 
 <p>
 By default, all pulses are assumed to have infinite excitation bandwidth. This means that you will get a full powder spectrum, no matter what microwave frequency you are using. However, in practice, microwave pulse excitation bandwidths do not exceed 100 MHz or so. As a consequence, only spins within a subset of orientations in a powder sample are excited. This is referred to as orientation selection. Often, the limited excitation bandwidth also results in selective excitation of certain EPR transitions. This is termed transition selection.
@@ -190,7 +196,9 @@ Exp.mwFreq = 9.5;   % GHz
 Both <code>Exp.ExciteWidth</code> and <code>Exp.mwFreq</code> are necessary to obtain orientation selection. If your excitation bandwidth is narrow, and your magnetic field/microwave frequency settings are off-resonant relative to any EPR transition, you won't get any intensity in your pulse EPR spectrum.
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="userdef">Fast user-defined experiments</a></div>
+<a name="userdef">
+<div class="subtitle">Fast user-defined experiments</div>
+</a>
 
 <p>
 <a class="esf" href="saffron.html">saffron</a> allows you specify your own custom pulse sequence. For this, you need to provide full details about pulses, delays and incrementation. 
@@ -321,7 +329,9 @@ saffron(Sys,Exp);
 For more settings, such as coherence filters, see the reference page on <a class="esf" href="saffron.html">saffron</a>.
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="crystal">Single crystals</a></div>
+<a name="crystal">
+<div class="subtitle">Single crystals</div>
+</a>
 
 <p>
 By default, <a class="esf" href="saffron.html">saffron</a> simulates powder spectra. 
@@ -336,7 +346,9 @@ Exp.CrystalOrientation = [0 pi/2 0];    % single crystal, crystal z axis perpend
 For more details, see the pages on <a href="frames.html">frames</a> and <a href="crystalsim.html">crystal simulations</a>.
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="options">Options</a></div>
+<a name="options">
+<div class="subtitle">Options</div>
+</a>
 
 <p>
 <a class="esf" href="saffron.html">saffron</a> has a range of settings that can be used to adjust the level of theory and other aspects of the simulation. These are provided in the third input argument to saffron, usually called <code>Opt</code>. One of the most often neede parameters is <code>Opt.nKnots</code>, which specifies the resolution of the orientational grid used for powder simulations. The higher the number in <code>Opt.nKnots</code>, the finer the grid.
@@ -362,7 +374,9 @@ Opt.ProductRule = 1;    % use product rule approximation
 For other settings, included settings for data processing and display, see the reference page on <a class="esf" href="saffron.html">saffron</a>.
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="relaxation">Adding relaxation</a></div>
+<a name="relaxation">
+<div class="subtitle">Adding relaxation</div>
+</a>
 
 <p> 
 It is possible to add relaxation to pre-defined experimental sequences.
