@@ -541,9 +541,11 @@ if (Info.Selectivity>0)
   GridTooCoarse = (Opt.nKnots(1)/Opt.minEffKnots<Info.Selectivity);
   if GridTooCoarse && PowderSimulation
     fprintf('  ** Warning: Strong orientation selection ********************************\n');
-    fprintf('  Only %0.1f orientations in excitation window! Spectrum might be inaccurate.\n',Opt.nKnots(1)/Info.Selectivity);
-    fprintf('  Increase Opt.nKnots (currently %d) or increase\n',Opt.nKnots(1));
-    fprintf('  Exp.ExciteWidth (currently %g MHz).\n',Exp.ExciteWidth);
+    fprintf('  Only %0.1f orientations within excitation window.\n',Opt.nKnots(1)/Info.Selectivity);
+    fprintf('  Spectrum might be inaccurate!\n');
+    fprintf('  To remedy, do one (or both) of the following:\n');
+    fprintf('  - Increase Opt.nKnots (currently %d)\n',Opt.nKnots(1));
+    fprintf('  - Increase Exp.ExciteWidth (currently %g MHz)\n',Exp.ExciteWidth);
     fprintf('  *************************************************************************\n');
   end
 else
