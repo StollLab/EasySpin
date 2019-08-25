@@ -135,7 +135,7 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
   
   % Output and plotting
   switch (nargout)
-    case 0,
+    case 0
       cla
       plot(xAxis,spec);
       axis tight
@@ -172,6 +172,10 @@ end
 error(err);
 if Sys.MO_present, error('salt does not support general parameters!'); end
 if any(Sys.L(:)), error('salt does not support L!'); end
+
+if any(Sys.n>1)
+  error('salt does not support sets of equivalent nuclei (Sys.n>1).');
+end
 
 ConvolutionBroadening = any(Sys.lwEndor>0);
 
@@ -378,7 +382,7 @@ end
 if ~isempty(Opt.ThetaRange) && SuppliedOriWeights
   error('You cannot use ThetaRange and OriWeights simultaneously!');
 end
-if Opt.OriPreSelect & SuppliedOriWeights
+if any(Opt.OriPreSelect) && SuppliedOriWeights
   error('You cannot use OriPreSelect and supply OriWeights simultaneously!');
 end
 
@@ -414,7 +418,7 @@ if (Sys.nNuclei==0)
   spec = zeros(1,Exp.nPoints);
   Transitions = [];
   switch (nargout)
-    case 0,
+    case 0
       cla
       plot(xAxis,spec);
       axis tight
@@ -597,7 +601,7 @@ if (DoInterpolation)
   % out of Matlab's original spline() function, which is called many times.
   spparms('autommd',0);
   % Interpolation parameters. 1st char: g global, l linear. 2nd char: order.
-  if (nOctants==0), % axial symmetry: 1D interpolation
+  if (nOctants==0)  % axial symmetry: 1D interpolation
     if any(NaN_in_Pdat)
       InterpMode = {'L3','L3','L3'};
     else
@@ -826,7 +830,7 @@ else
     
     thisspec = thisspec*(2*pi); % powder integal over chi (0..2*pi)
     
-    if (SummedOutput),
+    if SummedOutput
       spec = spec + thisspec;
     else
       spec(iTrans,:) = thisspec;
@@ -834,7 +838,7 @@ else
     
   end % for iTrans
 
-  if (~DoProjection)
+  if ~DoProjection
     logmsg(1,'  Smoothness: overall %0.4g, worst %0.4g\n   (<0.5: probably bad, 0.5-3: ok, >3: overdone)',sumBroadenings/nBroadenings,minBroadening);
   end
   
@@ -916,7 +920,7 @@ if (ConvolutionBroadening)
   % Lorentzian broadening
   if (fwhmL>2*Exp.deltaX)
     logmsg(1,'  convoluting with Lorentzian, FWHM %g MHz, derivative %d',fwhmL,HarmonicL);
-    if min(size(spec))==1, fwhm = [fwhmL 0]; else fwhm = [0 fwhmL]; end
+    if min(size(spec))==1, fwhm = [fwhmL 0]; else, fwhm = [0 fwhmL]; end
     spec = convspec(spec,Exp.deltaX,fwhm,HarmonicL,0);
   else
     % Skip convolution, since it has no effect with such a narrow delta-like Lorentzian.
@@ -925,7 +929,7 @@ if (ConvolutionBroadening)
   % Gaussian broadening
   if (fwhmG>2*Exp.deltaX)
     logmsg(1,'  convoluting with Gaussian, FWHM %g MHz, derivative %d',fwhmG,HarmonicG);
-    if min(size(spec))==1, fwhm = [fwhmG 0]; else fwhm = [0 fwhmG]; end
+    if min(size(spec))==1, fwhm = [fwhmG 0]; else, fwhm = [0 fwhmG]; end
     spec = convspec(spec,Exp.deltaX,fwhm,HarmonicG,1);
   else
     % Skip convolution, since it has no effect with such a narrow delta-like Gaussian.
@@ -957,7 +961,7 @@ end
 % Assign output.
 %-----------------------------------------------------------------------
 switch (nargout)
-  case 0,
+  case 0
     cla
     plot(xAxis,spec);
     axis tight
