@@ -10,17 +10,13 @@
 %   Computes a CW-EPR spectrum of an S=1/2 spin label using stochastic or
 %   molecular dynamics trajectories.
 %   
-%   Sys: stucture with system's dynamical parameters
-%
+%   Sys: stucture with spin system's static and dynamical parameters
 %     tcorr          double or numeric vector, size = (1,3)
 %                    correlation time (in seconds)
-%
 %     logtcorr       double or numeric vector, size = (1,3)
 %                    log10 of rotational correlation time (in seconds)
-%
 %     Diff           double or numeric vector, size = (1,3)
 %                    diffusion rate (s^-1)
-%
 %     logDiff        double or numeric vector, size = (1,3)
 %                    log10 of diffusion rate (s^-1)
 %
@@ -29,9 +25,7 @@
 %
 %     DiffGlobal     double or numeric vector, size = (1,3)
 %                    global diffusion rate (s^-1)
-%
 %     Potential      defines an orienting potential using one of the following:
-%
 %                    a) set of LMKs and lambdas for an expansion in terms of
 %                       Wigner functions [L1 M1 K1 lambda1; L2 M2 K2 lambda2]
 %                       lambda can be real or complex
@@ -43,94 +37,64 @@
 %                       of the orientational potential for that orientation. The
 %                       function should be vectorized, i.e. work with arrays of
 %                       alpha, beta, and gamma.
-%
 %     TransRates     numeric, size = (nStates,nStates)
 %                    transition rate matrix describing inter-state dynamics
 %                    for kinetic Monte Carlo simulations
-%
 %     TransProb      numeric, size = (nStates,nStates)
 %                    transition probability matrix describing inter-state 
 %                    dynamics for kinetic Monte Carlo simulations, note
 %                    that a time step must be given to use Sys.TransProb
 %                    (alternative input to TransRates; ignored if TransRates
 %                    is given)
-%
 %     Orientations   numeric, size = (3,nStates)
 %                    Euler angles for each state's orientation
-%
-%     Sys.lw         double or numeric vector, size = (1,2)
-%                    vector with FWHM residual broadenings
+%     lw             double or numeric vector, size = (1,2)
+%                    vector with FWHM residual broadenings (in mT)
 %                         1 element:  GaussianFWHM
 %                         2 elements: [GaussianFWHM LorentzianFWHM]
-%
-%
-%   Par: structure with simulation parameters
-%     dt             double
-%                    rotational dynamics propagation time step (in seconds)
-%
-%     Dt             double
-%                    spin dynamics propagation time step (in seconds)
-%
-%     nSteps         integer
-%                    number of time steps per simulation
-%
-%     nTraj          integer
-%                    number of trajectories
-%
-%     OriStart       numeric, size = (3,1), (1,3), or (3,nTraj)
-%                    Euler angles for starting orientation(s)
-%
-%     nOrients       integer
-%                    number of lab-to-molecule orientations to loop over
-%
-%     Orients        numeric matrix, size = (2,nOrients)
-%                    (optional) (phi,theta) angles of lab-to-molecule 
-%                    orientations, if not given, these are chosen as points
-%                    on a spherical spiral grid
-%
-%     Model          string 
-%                    the model for spin label dynamics
-%                    'diffusion'
-%                    'jump'
-%                    'MD-direct': use molecular orientations in MD
-%                      trajectories directly as input for simulating the
-%                      spectrum
-%                    'MD-HBD': coarse grain the MD trajectories by using 
-%                      the Euler angle probability distribution (for 
-%                      pseudopotential) from the spin label's orientations 
-%                      to perform further stochastic rotational dynamics 
-%                      simulations
-%                    'MD-HMM': coarse grain the MD trajectories by using 
-%                      the spin label's side chain dihedral angles to build 
-%                      a hidden Markov model model to perform further 
-%                      stochastic jump dynamics simulations
-%
+%     lwpp           peak-to-peak linewidths (mT), same format as lw
+%                    use either lw or lwpp
 %
 %   Exp: experimental parameter settings
 %     mwFreq         double
 %                    microwave frequency, in GHz (for field sweeps)
+% %     Range          sweep range, [sweepmin sweepmax], in mT (for field sweep)
+% %     CenterSweep    sweep range, [center sweep], in mT (for field sweep)
+% %     nPoints        number of points
+% %     Harmonic       detection harmonic: 0, 1 (default), 2
+% %     ModAmp         peak-to-peak modulation amplitude, in mT (field sweeps only)
+% %     mwPhase        detection phase (0 = absorption, pi/2 = dispersion)
+% %     Temperature    temperature, in K
 %
-% %     Range          numeric vector, size = (1,2)
-% %                    sweep range, [sweepmin sweepmax], in mT (for field sweep)
-% %
-% %     CenterSweep    numeric vector, size = (1,2)
-% %                    sweep range, [center sweep], in mT (for field sweep)
-% % 
-% %     nPoints        integer
-% %                    number of points
-% % 
-% %     Harmonic       integer
-% %                    detection harmonic: 0, 1 (default), 2
-% % 
-% %     ModAmp         double
-% %                    peak-to-peak modulation amplitude, in mT (field sweeps only)
-% % 
-% %     mwPhase        double
-% %                    detection phase (0 = absorption, pi/2 = dispersion)
-% % 
-% %     Temperature    double
-% %                    temperature, in K
-%
+%   Par: structure with simulation parameters
+%     Model      the model for spin label dynamics
+%                'diffusion': Browniand rotation diffusion with given rotational
+%                   diffusion tensor and ordering potential
+%                'jump': Markovian jumps between a given set of discrete states
+%                'MD-direct': use molecular orientations in MD
+%                  trajectories directly as input for simulating the
+%                  spectrum
+%                'MD-HBD': coarse grain the MD trajectories by using 
+%                  the Euler angle probability distribution (for 
+%                  pseudopotential) from the spin label's orientations 
+%                  to perform further stochastic rotational dynamics 
+%                  simulations
+%                'MD-HMM': coarse grain the MD trajectories by using 
+%                  the spin label's side chain dihedral angles to build 
+%                  a hidden Markov model model to perform further 
+%                  stochastic jump dynamics simulations
+%     dt         rotational dynamics propagation time step (in seconds)
+%                (not used for 'MD-direct')
+%     Dt         spin dynamics propagation time step (in seconds)
+%     nSteps     number of time steps per simulation
+%     nTraj      number of trajectories
+%     OriStart   numeric, size = (3,1), (1,3), or (3,nTraj)
+%                Euler angles for starting orientation(s)
+%     nOrients   number of lab-to-molecule orientations to loop over
+%     Orients    numeric matrix, size = (2,nOrients)
+%                (optional) (phi,theta) angles of lab-to-molecule 
+%                orientations. If not given, these are chosen as points
+%                on a spherical spiral grid
 %
 %   Opt: simulation options
 %     chkCon         if equal to 1, after the first nSteps of the 
@@ -141,54 +105,38 @@
 %                    extended by either a length of time equal to the 
 %                    average of tcorr or by 20% more time steps, whichever 
 %                    is larger
-%
 %     specCon        if equal to 1, after the first nOrients of the FID
 %                    are calculated, both inter- and intra-FID convergence 
 %                    are checked using the Gelman-Rubin R statistic such 
 %                    that R<1.1, and if this condition is not satisfied, 
 %                    then nOrients will be increased by 20% to simulate
 %                    additional FIDs until R<1.1 is achieved
-%
 %     Verbosity      0: no display, 1: show info
-%
 %     Method         string
 %                    fast: propagate the density matrix using an 
 %                      analytical expression for the matrix exponential in 
 %                      the m_S=-1/2 subspace (S=1/2 with up to one nucleus)
 %                    ISTOs: propagate the density matrix using
 %                      irreducible spherical tensor operators (general, slower)
-%
 %     FFTWindow       1: use a Hamming window (default), 0: no window
-%
-%     nTrials        integer
-%                    number of initialization trials for k-means
+%     nTrials        number of initialization trials for k-means
 %                    clustering; used for the Markov method
-% 
-%     LagTime        lag time for sliding window processing
-%
+%     LagTime        lag time for sliding window processing (only used for
+%                    'MD-direct')
 %
 %   MD: structure with molecular dynamics simulation parameters
 %
-%     dt             double
-%                    time step (in s) for saving MD trajectory snapshots
-%
-%     tLag           double
-%                    time lag (in s) for sampling the MD trajectory to 
+%     dt             time step (in s) for saving MD trajectory snapshots
+%     tLag           time lag (in s) for sampling the MD trajectory to 
 %                    determine states and transitions, used for the hidden
 %                    Markov model
-%
 %     nStates        number of states in the hidden Markov model
-%
-%     DiffGlobal     double (optional)
-%                    Diffusion coefficient for isotropic global rotational
+%     DiffGlobal     diffusion coefficient for isotropic global rotational
 %                    diffusion (s^-1)
-% 
 %     removeGlobal   integer
 %                    1: (default) remove protein global diffusion
 %                    0: no removal (e.g. if protein is fixed)
-% 
 %     LabelName      name of spin label, 'R1' (default) or 'TOAC'
-%
 %     HMM            structure, output from 'mdhmm'
 %      .TransProb    transition probability matrix
 %      .eqDistr      equilibrium distribution vector
@@ -197,22 +145,13 @@
 %      .viterbiTraj  Viterbi state trajectory (most likely given the dihedrals)
 %      .tauRelax     relaxation times of HMM
 %      .logLik       log-likelihood of HMM during optimization
-%                    
 %
 %   Output:
-%     B              numeric, size = (2*nSteps,1) 
-%                    magnetic field (mT)
-%
-%     spc            numeric, size = (2*nSteps,1)
-%                    derivative EPR spectrum
-%
-%     TDSignal       numeric, size = (2*nSteps,1)
-%                    time-domain signal, <S_+>
-%
-%     t              numeric, size = (2*nSteps,1)
-%                    simulation time axis (in s)
+%     B              magnetic field vector (mT)
+%     spc            EPR spectrum
+%     TDSignal       FID time-domain signal
+%     t              time axis (in s)
 
-%    Opt.ExpMethod   method for computing matrix exponential
 
 function varargout = cardamom(Sys,Exp,Par,Opt,MD)
 
@@ -368,6 +307,12 @@ if useMD
   end
   clear RTrajInv
   
+  logmsg(1,'    label: %s',MD.LabelName);
+  logmsg(1,'    number of trajectories: %d',MD.nTraj);
+  logmsg(1,'    number of time steps: %d',MD.nSteps);
+  logmsg(1,'    size of time step: %g ps',MD.dt/1e-12);
+  logmsg(1,'    remove global diffusion: %d',MD.removeGlobal);
+  
   % Build Markov state model
   if strcmp(LocalDynamicsModel,'MD-HMM')
     logmsg(1,'Building HMM model');
@@ -455,7 +400,7 @@ end
 % Check Opt
 %-------------------------------------------------------------------------------
 
-fastMethodApplicable = Sys.nElectrons==1 && Sys.nNuclei<=1;
+fastMethodApplicable = Sys.nElectrons==1 && Sys.S==1/2 && Sys.nNuclei<=1;
 if ~isfield(Opt,'Method')
   if fastMethodApplicable
     Opt.Method = 'fast';
@@ -479,10 +424,6 @@ if ~isfield(Opt,'specCon')
 end
 checkConvergence = Opt.specCon;
 
-if ~isfield(Opt,'ExpMethod')
-  Opt.ExpMethod = 'eig';
-end
-
 % Lag time for sliding window processing (used in MD-direct only)
 if ~isfield(Opt,'LagTime')
   Opt.LagTime = 2e-9; % seconds
@@ -491,92 +432,71 @@ end
 % Check Par
 %-------------------------------------------------------------------------------
 
-% Set default number of (stochastic) trajectories
-if ~isfield(Par,'nTraj') && ~strcmp(LocalDynamicsModel,'MD-direct')
-  Par.nTraj = 100; 
+% Require Par.Dt
+if ~isfield(Par,'Dt')
+  error('Par.Dt (spin propagation time step) must be given.');
 end
 
-if isfield(Par,'t')
-  % time axis is given explicitly
-  t = Par.t;
-  tMax = max(t);
-  nStepsQuant = numel(t);
-  Par.Dt = t(2) - t(1);
-  Par.dt = Par.Dt;
-  nStepsStoch = round(tMax/Par.dt);
-  % check for linearly spaced time axis
-  absdev = abs(t/Par.Dt-(0:nStepsQuant-1));
-  if max(absdev)>1e-13
-    error('t does not appear to be linearly spaced.');
-  end
-  
-elseif isfield(Par,'nSteps') && isfield(Par,'dt')
-  % number of steps and time step are given
-  nStepsQuant = Par.nSteps;
-  if ~isfield(Par,'Dt')
-    Par.Dt = Par.dt;
+% Require and check Par.nSteps
+if ~isfield(Par,'nSteps')
+  error('Par.nSteps must be given.');
+end
+if ~isnumeric(Par.nSteps) || numel(Par.nSteps)~=1 || ~isreal(Par.nSteps) || ...
+    mod(Par.nSteps,1) || Par.nSteps<1
+  error('Par.nSteps must be a positive integer.');
+end
+
+% Check Par.dt
+if isfield(Par,'dt')
+  if useMDdirect
+    error('For MD-direct simulations, Par.dt is not allowed.');
   end
   if Par.Dt<Par.dt
     error('The stochastic time step Par.dt must be less than or equal to Par.Dt.')
-  end
-  tMax = nStepsQuant*Par.Dt;
-  nStepsStoch = round(tMax/Par.dt);
-
-elseif isfield(Par,'nSteps') && isfield(Par,'tMax')
-  % number of steps and max time are given
-  tMax = Par.tMax;
-  nStepsQuant = Par.nSteps;
-  Par.Dt = tMax/Par.nSteps;
-  Par.dt = Par.Dt;
-  nStepsStoch = round(tMax/Par.dt);
-
+  end  
 else
   if isDiffSim
     Par.dt = min(tcorr)/10;
-  elseif strcmp(LocalDynamicsModel,'jump') && ~isfield(Par,'dt')
-    error('The time step Par.dt must be specified when using an jump model.')
-  elseif strcmp(LocalDynamicsModel,'MD') && ~isfield(Par,'dt')
-    error('The time step Par.dt must be specified when using an MD model.')
-  end
-  Par.Dt = Par.dt;
-  if isfield(Par,'nSteps')
-    nSteps = Par.nSteps;
   else
-    nSteps = ceil(250e-9/Par.dt);
+    if useMDdirect
+      Par.dt = MD.dt;
+    else
+      error('The time step Par.dt must be specified when using an %s model.',LocalDynamicsModel);
+    end
   end
-  nStepsStoch = nSteps;
-  nStepsQuant = nSteps;
 end
 
+% Make sure Par.Dt is an (approx.) integer multiple of Par.dt
+r = Par.Dt/Par.dt;
+if abs(r-round(r))>1e-4 || r<1
+  error('The spin propagation time step (Par.Dt) must be a multiple of the trajectory time step (Par.dt or MD.dt).');
+end
+r = round(r);
+Par.dt = Par.Dt/r;
+Par.BlockLength = r; % used for block averaging
+
+nStepsQuant = Par.nSteps;
+nStepsStoch = nStepsQuant*round(Par.Dt/Par.dt);
 dtQuant = Par.Dt;
 dtStoch = Par.dt;
 
-if useMDdirect
-  if Par.Dt<MD.dt
-    error('Quantum time step (Par.Dt) cannot be smaller than MD time step (MD.dt).');
-  end
+% Set default number of (stochastic) trajectories
+if ~useMDdirect && ~isfield(Par,'nTraj')
+  Par.nTraj = 100; 
 end
-
-% Calculate block length for block averaging (done if block length > 1)
-if useMDdirect
-  traj_dt = MD.dt;
-else
-  traj_dt = Par.dt;
-end
-Par.BlockLength = ceil(Par.Dt/traj_dt);
 
 % Determine whether to process single long MD trajectory into multiple short
 % MD trajectories
 if useMDdirect
   Par.lag = ceil(Opt.LagTime/Par.Dt);
   nBlocks = floor(MD.nSteps/Par.BlockLength);
-  if Par.nSteps<nBlocks
-    % Par.nSteps not changed from user input
-    Par.nTraj = floor((nBlocks-Par.nSteps)/Par.lag) + 1;
-  else
-    Par.nSteps = nBlocks;
-    Par.nTraj = 1;
+  if nBlocks < Par.nSteps
+    error('MD trajectory is too short (%g ns) for the required FID length (%g ns.',...
+      MD.nSteps*MD.dt,Par.nSteps*Par.Dt);
   end
+  Par.nTraj = floor((nBlocks-Par.nSteps)/Par.lag) + 1;
+else
+  Par.lag = 0;
 end
 
 % Set default number of orientations
@@ -883,7 +803,7 @@ while ~converged
       alpha = pi^2*fwhm^2/(4*log(2));
       TDSignal = bsxfun(@times,exp(-alpha*tLong.^2),TDSignal);
     end
-    if numel(Sys.lw)==2
+    if numel(Sys.lw)==2 && Sys.lw(2)>0
       % Lorentzian broadening
       TL = Dynamics.T2; 
       TDSignal = bsxfun(@times,exp(-tLong/TL),TDSignal);

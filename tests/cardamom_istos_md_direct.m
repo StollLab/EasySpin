@@ -15,26 +15,23 @@ tScale = 2.5;  % diffusion constant of TIP3P model water molecules in MD
 MD = Traj;
 MD.dt = MD.dt*tScale;
 MD.removeGlobal = 0;
-
 MD.DiffGlobal = 6e6;
 
 % Calculate spectrum using cardamom
 % -------------------------------------------------------------------------
 
-T = 200e-9;
-
-Sys.Nucs = '14N';
-
 Sys.g = [2.009, 2.006, 2.002];
+Sys.Nucs = '14N';
 Sys.A = mt2mhz([6, 36]/10);
 Sys.lw = [0.1, 0.1];
 
-Par.nTraj = 100;
+T = 200e-9;
+Par.Dt = 2.0e-9;
+Par.nSteps = ceil(T/Par.Dt);
 
-Par.dt = 2.0e-9;
-Par.nSteps = ceil(T/Par.dt);
-Par.nOrients = 100;
 Par.Model = 'MD-direct';
+Par.nOrients = 100;
+Par.nTraj = 100;
 
 Exp.mwFreq = 9.4;
 
@@ -47,15 +44,16 @@ spc = spc/max(spc);
 data.spc = spc;
 
 if ~isempty(olddata)
-  plot(B,spc,B,olddata.spc);
-  legend('new','old');
-  axis tight
-end
-
-if ~isempty(olddata)
   err = any(abs(olddata.spc-spc)>1e-10);
 else
   err = [];
 end
 
+% Plotting
+if opt.Display
+  if ~isempty(olddata)
+    plot(B,spc,B,olddata.spc);
+    legend('new','old');
+    axis tight
+  end
 end

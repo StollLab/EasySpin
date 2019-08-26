@@ -7,7 +7,6 @@
 %     g              3-array, principal values of the g-tensor
 %     A              3-array, principal values of the A-tensor
 %   Par: structure with simulation parameters
-%     dt             rotational dynamics propagation time step (in seconds)
 %     Dt             spin dynamics propagation time step (in seconds)
 %     nSteps         number of steps
 %     BlockLength    block length for block averaging, no averaging if set to 1
@@ -38,10 +37,7 @@
 
 function Sprho = cardamom_propagatedm(Sys, Par, Opt, MD, omega, CenterField)
 
-persistent cacheTensors
-persistent cacheD2Traj
-persistent gTensorState
-persistent ATensorState
+persistent cacheTensors cacheD2Traj gTensorState ATensorState
 
 if ~isfield(Opt,'Verbosity')
   Opt.Verbosity = 0;
@@ -51,7 +47,7 @@ global EasySpinLogLevel
 EasySpinLogLevel = Opt.Verbosity;
 
 % Preprocessing
-% -------------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 
 PropagationMethod = Opt.Method;
 
@@ -73,13 +69,15 @@ if ~isfield(Par,'RTraj') && ~isfield(Par,'qTraj')
   error('Either Par.RTraj or Par.qTraj must be provided.')
 end
 
-Dt = Par.Dt;  % quantum propagation time step
+Dt = Par.Dt;  % spin dynamics propagation time step
+nSteps = Par.nSteps; % number of spin dynamics propagation steps
 nTraj = Par.nTraj;
+
 doBlockAveraging = Par.BlockLength>1;  % tensor time block averaging
-nSteps = Par.nSteps;
+doSlidingWindowProcessing = useMD && isDirectfromMD && Par.lag>0; % sliding window processing
 
 % Simulation
-% -------------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 
 switch PropagationMethod
   case 'fast'  % see Ref [1]
@@ -100,6 +98,8 @@ switch PropagationMethod
       end
     end
     
+    % Calculate tensor trajectories
+    %---------------------------------------------------------------------------
     RTrajInv = permute(Par.RTraj,[2,1,3,4]);
     if ~isHMMfromMD
       logmsg(2,'  calculating tensor trajectories from orientational trajectories');
@@ -165,11 +165,10 @@ switch PropagationMethod
       
     end
     
-    % Time block averaging and sliding window processing of tensors
+    % Average tensors over time blocks
+    %---------------------------------------------------------------------------
     if doBlockAveraging
       logmsg(2,'  time block averaging, block length %d',Par.BlockLength);
-      
-      % Average the interaction tensors over time blocks
       nBlocks = floor(size(gTensor,4)/Par.BlockLength);
       gTensorBlock = zeros(3,3,size(gTensor,3),nBlocks);
       if includeHF
@@ -183,36 +182,41 @@ switch PropagationMethod
         end
         idx = idx + Par.BlockLength;
       end
-      
-      % Perform sliding window processing if using MD trajectory explicitly
-      if useMD && isDirectfromMD && nTraj>1
-        logmsg(2,'  sliding window, lag %d',Par.lag);
-        gTensor = zeros(3,3,nTraj,nSteps);
-        if includeHF
-          ATensor = zeros(3,3,nTraj,nSteps);
-        end
-        idx = 1:nSteps;
-        for iTraj = 1:nTraj
-          gTensor(:,:,iTraj,:) = gTensorBlock(:,:,:,idx);
-          if includeHF
-            ATensor(:,:,iTraj,:) = ATensorBlock(:,:,:,idx);
-          end
-          idx = idx + Par.lag;
-        end
-      else
-        % No sliding windows for other methods, as the length of generated
-        % trajectories is determined by length of FID
-        gTensor = gTensorBlock;
-        if includeHF
-          ATensor = ATensorBlock;
-        end
+    else
+      logmsg(2,'  no time block averaging');
+      gTensorBlock = gTensor;
+      if includeHF
+        ATensorBlock = ATensor;
       end
-      
     end
     
-    % Apply lab frame rotation
-    % ---------------------------------------------------------------------
-    logmsg(2,'  combine local with global orientation');
+    % Sliding window processing
+    %---------------------------------------------------------------------------
+    if doSlidingWindowProcessing
+      logmsg(2,'  sliding window processing, increment %d',Par.lag);
+      gTensor = zeros(3,3,nTraj,nSteps);
+      if includeHF
+        ATensor = zeros(3,3,nTraj,nSteps);
+      end
+      idx = 1:nSteps;
+      for iTraj = 1:nTraj
+        gTensor(:,:,iTraj,:) = gTensorBlock(:,:,:,idx);
+        if includeHF
+          ATensor(:,:,iTraj,:) = ATensorBlock(:,:,:,idx);
+        end
+        idx = idx + Par.lag;
+      end
+    else
+      logmsg(2,'  no sliding window processing');
+      gTensor = gTensorBlock;
+      if includeHF
+        ATensor = ATensorBlock;
+      end
+    end
+    
+    % Combine local and global dynamics
+    %---------------------------------------------------------------------------
+    logmsg(2,'  combine local with global dynamics');
     if ~isempty(Par.RLab)
       RLabInv = permute(Par.RLab,[2,1,3,4]);
       gTensor = multimatmult(Par.RLab, multimatmult(gTensor, RLabInv));
@@ -220,9 +224,9 @@ switch PropagationMethod
         ATensor = multimatmult(Par.RLab, multimatmult(ATensor, RLabInv));
       end
     end
-        
+    
     % Prepare propagators
-    % ---------------------------------------------------------------------
+    %---------------------------------------------------------------------------
     gIso = sum(g)/3;
     GpTensor = (gTensor - gIso)/gfree;    
     Gp_zz = GpTensor(3,3,:,:);
@@ -273,7 +277,7 @@ switch PropagationMethod
     end
     
     % Set up starting state of density matrix after pi/2 pulse, S_x
-    % ---------------------------------------------------------------------
+    %---------------------------------------------------------------------------
     if includeHF
       rho = zeros(3,3,nTraj,nSteps);
       rho(:,:,:,1) = 0.5*repmat(eye(3),[1,1,nTraj]);
@@ -283,7 +287,7 @@ switch PropagationMethod
     end
     
     % Propagate density matrix
-    % ---------------------------------------------------------------------
+    %---------------------------------------------------------------------------
     logmsg(2,'  propagate density matrix');
     Sprho = propagate(rho,U,PropagationMethod,nSteps);
     
@@ -293,11 +297,11 @@ switch PropagationMethod
     siz(3) = [];
     Sprho = reshape(Sprho,siz); % remove 3rd dim which is now singleton
     
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   case 'ISTOs'  % see Ref [2]
     
-    % Calculate and store rotational basis operators
-    % ---------------------------------------------------------------------
+    % Calculate and cache rotational basis operators
+    %---------------------------------------------------------------------------
     if isempty(cacheTensors)
       % ISTOs in the lab frame and IST components in the principal frame 
       % are time-independent, so we only need to calculate them once
@@ -339,15 +343,15 @@ switch PropagationMethod
     end
     
     % D2 trajectories, incl. time block averaging and sliding window processing
-    % --------------------------------------------------------------------------
-    if doBlockAveraging
-      if ~isempty(cacheD2Traj) % use cached D2 trajectories if present
-        D2Traj = cacheD2Traj;
-      else % if not cached, process q trajectory to get D2 trajectories
-        
-        D2Traj = wigD(Par.qTraj);
-        
-        % Average the Wigner D-matrices over time blocks
+    %---------------------------------------------------------------------------
+    if ~isempty(cacheD2Traj) % use cached D2 trajectories if present
+      D2Traj = cacheD2Traj;
+    else % if not cached, process q trajectory to get D2 trajectories
+      
+      D2Traj = wigD(Par.qTraj);
+
+      % Average the Wigner D-matrices over time blocks
+      if doBlockAveraging
         nBlocks = floor(size(D2Traj,4)/Par.BlockLength);
         D2BlockAvg = zeros(5,5,nBlocks);
         idx = 1:Par.BlockLength;
@@ -355,39 +359,37 @@ switch PropagationMethod
           D2BlockAvg(:,:,iBlock) = mean(D2Traj(:,:,:,idx),4);
           idx = idx + Par.BlockLength;
         end
-        
-        % Perform sliding window processing if using MD trajectory explicitly
-        if useMD && isDirectfromMD && nTraj>1
-          D2Traj = zeros(5,5,nTraj,nSteps);
-          idx = 1:nSteps;
-          for iTraj = 1:nTraj
-            D2Traj(:,:,iTraj,:) = D2BlockAvg(:,:,idx);
-            idx = idx + Par.lag;
-          end
-        else
-          % No sliding windows for other methods, as the length of generated
-          % trajectories is determined by length of FID
-          D2Traj = D2BlockAvg;
-        end
-        
-        % Cache processed trajectory if using a MD trajectory
-        if useMD
-          cacheD2Traj = D2Traj;
-        end
+      else
+        D2BlockAvg = D2Traj;
       end
-    else
-      D2Traj = wigD(Par.qTraj);
+        
+      % Sliding window processing
+      if doSlidingWindowProcessing
+        D2Traj = zeros(5,5,nTraj,nSteps);
+        idx = 1:nSteps;
+        for iTraj = 1:nTraj
+          D2Traj(:,:,iTraj,:) = D2BlockAvg(:,:,idx);
+          idx = idx + Par.lag;
+        end
+      else
+        D2Traj = D2BlockAvg;
+      end
+        
+      % Cache processed trajectory if using a MD trajectory
+      if useMD
+        cacheD2Traj = D2Traj;
+      end
     end
     
-    % Apply lab frame rotation
-    % ---------------------------------------------------------------------
+    % Combine local and global dynamics
+    %---------------------------------------------------------------------------
     if ~isempty(Par.qLab)
       D2Lab = wigD(Par.qLab);
       D2Traj = multimatmult(D2Lab, D2Traj);
     end
         
     % Calculate Hamiltonians
-    % ---------------------------------------------------------------------
+    %---------------------------------------------------------------------------
     H0 = cacheTensors.H0;
     H = repmat(cacheTensors.Q0,[1,1,nTraj,nSteps]);
     for mp = 1:5
@@ -397,7 +399,7 @@ switch PropagationMethod
     end
     
     % Calculate propagators
-    % ---------------------------------------------------------------------
+    %---------------------------------------------------------------------------
     algo = 'eig';
     useSzonly = true;
     if useSzonly
@@ -418,13 +420,13 @@ switch PropagationMethod
     end
     
     % Set up starting state of density matrix after pi/2 pulse, S_x
-    % ---------------------------------------------------------------------
+    %---------------------------------------------------------------------------
     rho = zeros(Sys.nStates,Sys.nStates,nTraj,nSteps);
     rho0 = sop(Sys.Spins,'x1');
     rho(:,:,:,1) = repmat(rho0,1,1,nTraj,1);
     
     % Propagate density matrix
-    % ---------------------------------------------------------------------
+    %---------------------------------------------------------------------------
     rho = propagate(rho,U,PropagationMethod,nSteps);
     
     % Average over trajectories (3rd dimension)
@@ -434,12 +436,12 @@ switch PropagationMethod
     rho = reshape(rho,siz); % remove 3rd dim which is now singleton
     
     % Multiply density matrix result by S_+ detection operator
-    % ---------------------------------------------------------------------
+    %---------------------------------------------------------------------------
     % Only keep the m_S=\beta subspace part that contributes to tr(S_{+}\rho(t))
     projector = sop(Sys.Spins,'+1');
     Sprho = multimatmult(repmat(projector,1,1,nSteps),rho);
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   otherwise
     error('Quantum propagation method Opt.Method=''%s'' not recognized.',PropagationMethod);
 end
@@ -450,11 +452,10 @@ end
 %===============================================================================
 %===============================================================================
 
-% Helper functions
-% -------------------------------------------------------------------------
 
-function rho = propagate(rho,U,Method,nSteps)
+%-------------------------------------------------------------------------------
 % Propagate density matrix
+function rho = propagate(rho,U,Method,nSteps)
 
 switch Method
   
@@ -489,9 +490,10 @@ end
 
 end
 
-function D2 = wigD(q)
+%-------------------------------------------------------------------------------
 % calculate Wigner D-matrices of specified rank from quaternions for 
 % rotation of ISTOs
+function D2 = wigD(q)
 
 % nTraj = size(q,2);
 

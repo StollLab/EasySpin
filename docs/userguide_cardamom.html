@@ -281,40 +281,17 @@ Sys.Orientations = [   0,    0, 0;
 </pre>
 
 <p>
-The <code>lw</code> field has the same meaning 
-As for the other simulation functions
-<a class="esf" href="garlic.html">garlic</a> and
-<a class="esf" href="pepper.html">pepper</a>,
-the field <code>Sys.lw</code> can be used to specify
-a Gaussian and a Lorentzian broadening (FWHM, in mT)
+The fields <code>Sys.lwpp</code> and <code>Sys.lw</code> has the same meaning as for the other EPR simulation functions (<a class="esf" href="garlic.html">garlic</a>, <a class="esf" href="chili.html">chili</a>,
+<a class="esf" href="pepper.html">pepper</a>). You can use them to specify an additional convolution Gaussian and/or Lorentzian broadening in mT (<code>Sys.lwpp</code> for peak-to-peak, and <code>Sys.lw</code> for full width at half maximum).
 </p>
 
 <pre class="matlab">
-Sys.lw = [0.05 0.01];   % [GaussianFWHM, LorentzianFWHM] in mT
+Sys.lwpp = [0.05 0.01];   % [GaussianPP, LorentzianPP] in mT
 </pre>
 
 <p>
-For the reliability of the simulation algorithm we recommend to always use a small residual Lorentzian line width in <code>Sys.lw</code>
+For the reliability of the simulation algorithm we recommend to add a small residual Lorentzian broadening in <code>Sys.lwpp</code>.
 </p>
-
-<!--
-<code>cardamom</code> is also capable of simulating spectra including Heisenberg spin exchange. The effective exchange frequency (in MHz) is specified in <code>Sys.Exchange</code>, e.g.
-
-<pre class="matlab">
-Sys.Exchange = 100;     % 100 MHz
-</pre>
-
-<p>
-A short example of a nitroxide radical EPR spectrum with exchange narrowing is
-</p>
-
-<pre class="matlab">
-Nx = struct('g',[2.0088, 2.0061, 2.0027],'Nucs','14N','A',[16 16 86]);
-Nx.tcorr = 1e-7; Nx.lw = [0 0.1]; Nx.Exchange = 100;
-Exp = struct('mwFreq',9.5,'CenterSweep',[338, 10]);
-cardamom(Nx,Exp);
-</pre>
--->
 
 
 <!-- ============================================================= -->

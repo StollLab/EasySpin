@@ -14,7 +14,8 @@ Sys.B = 0.34;  % T
 Sys.lw = [0.0, 0.1];
 
 Par.dt = 1e-9;
-Par.nSteps = ceil(150e-9/Par.dt);
+Par.Dt = 1e-9;
+Par.nSteps = ceil(150e-9/Par.Dt);
 Par.nTraj = 50;
 Par.Model = 'diffusion';
 
