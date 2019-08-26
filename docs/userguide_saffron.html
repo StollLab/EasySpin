@@ -117,7 +117,7 @@ Exp.Field = 350;   % mT
 <p>
 There are two ways to specify the pulse experiment. You can either use one of the built-in ones, or you can define it fully yourself. 
 We will discuss user-defined experiments <a href="#userdef">further down</a>. 
-For a full list of supported built-in experiments and their parameters look <a class="esf" href="predefinedexperiments.html">here</a>.
+For a full list of supported built-in experiments and their parameters look <a href="predefinedexperiments.html">here</a>.
 You specify them in the field <code>Exp.Sequence</code>.
 
 <pre class="matlab">
@@ -379,12 +379,10 @@ For other settings, included settings for data processing and display, see the r
 </a>
 
 <p> 
-It is possible to add relaxation to pre-defined experimental sequences.
-In contrast to the slower <em>thyme</em> method, this relaxation is not directly included in the propagation. 
-Hence, it is not possible to use transition selective relaxation times and T<sub>1</sub> and T<sub>2</sub> have to be given as scalars in microseconds
+It is possible to add relaxation to pre-defined experimental sequences. For this, give scalar longitudinal and transverse relaxation time constants (T<sub>1</sub>, T<sub>2</sub>) in <code>Sys.T1</code> and <code>Sys.T2</code>. If either of the two fields is omitted or set to zero, it is ignored.
 
 <p>
-This example shows how to add decay to a two-pulse sequence:
+The following example shows how to add decay to a two-pulse sequence:
 
 <pre class="mlexample">
 Exp.Sequence = '2pESEEM';
@@ -395,12 +393,13 @@ Sys.Nucs = '14N';
 nuI = larmorfrq(Sys.Nucs,Exp.Field);
 Sys.A = 2*nuI;
 Sys.Q = [4*0.1*nuI, 0.6];
-Sys.T1 = 4; % adds T1
-Sys.T2 = 2; % adds T2
+Sys.T1 = 4; % adds longitudinal relaxation
+Sys.T2 = 2; % adds transverse relaxation (phase memory time)
 </pre>
 
 <p>
-If either of the two relaxation types is omitted or set to zero it is ignored.
+To include transiiton-selective relaxation times, the slower <em>thyme</em> method must be used (see corresponding <a href="userguide_saffron_thyme.html">user guide</a>).
+</p>
 
 <hr>
 </section>
