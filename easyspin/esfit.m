@@ -656,7 +656,12 @@ switch FitOpts.Startpoint
     if ~isempty(s)
       s = s{get(h,'Value')};
       ID = sscanf(s,'%d');
-      startx = FitData.FitSets(ID).bestx;
+      idx = find([FitData.FitSets.ID]==ID);
+      if ~isempty(idx)
+        startx = FitData.FitSets(idx).bestx;
+      else
+        error('Could not find selectet fit set.');
+      end
     else
       startx = zeros(FitData.nParameters,1);
     end
