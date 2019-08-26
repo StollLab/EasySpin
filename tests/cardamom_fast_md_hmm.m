@@ -27,7 +27,8 @@ Sys.lw = [0.1, 0.1];
 
 Par.dt = MD.tLag;
 T = 250e-9;
-Par.nSteps = ceil(T/Par.dt);
+Par.Dt = Par.dt;
+Par.nSteps = ceil(T/Par.Dt);
 
 Par.Model = 'MD-HMM';
 Par.nTraj = 100;
@@ -46,7 +47,7 @@ spc = spc/max(spc);
 data.spc = spc;
 
 if ~isempty(olddata)
-  err = any(abs(olddata.spc-spc)>1e-10);
+  err = any(abs(olddata.spc-spc)>1e-2);
 else
   err = [];
 end

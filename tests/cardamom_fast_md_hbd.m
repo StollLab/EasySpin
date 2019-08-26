@@ -5,7 +5,7 @@ function [err,data] = test(opt,olddata)
 rng(1)
 
 % Load pre-processed MD frame trajectory
-% -------------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 
 load('.\mdfiles\MTSSL_polyAla_traj.mat')
 
@@ -19,7 +19,7 @@ MD.removeGlobal = 0;
 MD.DiffGlobal = 6e6;
 
 % Calculate spectrum using cardamom
-% -------------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 Sys.g = [2.009, 2.006, 2.002];
 Sys.Nucs = '14N';
 Sys.A = mt2mhz([6, 36]/10);
@@ -28,6 +28,7 @@ Sys.lw = [0.1, 0.1];
 
 T = 250e-9;
 Par.dt = 0.5e-9;
+Par.Dt = Par.dt;
 Par.nSteps = ceil(T/Par.dt);
 
 Par.Model = 'MD-HBD';
@@ -37,12 +38,13 @@ Par.nTraj = 100;
 Exp.mwFreq = 9.4;
 
 Opt.Verbosity = 0;
-Opt.FFTWindow = 1;
 Opt.Method = 'fast';
 
 [B,spc] = cardamom(Sys,Exp,Par,Opt,MD);
 spc = spc/max(spc);
 
+% Regression testing
+%-------------------------------------------------------------------------------
 data.spc = spc;
 
 if ~isempty(olddata)
@@ -51,10 +53,13 @@ else
   err = [];
 end
 
+% Plotting
+%-------------------------------------------------------------------------------
 if opt.Display
   if ~isempty(olddata)
     plot(B,olddata.spc,B,data.spc);
     legend('old','new');
+    legend boxoff
     title(mfilename,'Interpreter','none');
     axis tight
   end

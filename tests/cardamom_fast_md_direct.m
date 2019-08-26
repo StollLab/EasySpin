@@ -21,8 +21,8 @@ MD.DiffGlobal = 6e6;
 % -------------------------------------------------------------------------
 
 T = 250e-9; % length of FID
-Par.dt = 1.0e-9;
-Par.nSteps = ceil(T/Par.dt);
+Par.Dt = 1.0e-9;
+Par.nSteps = ceil(T/Par.Dt);
 
 Par.Model = 'MD-direct';
 Par.nOrients = 100;

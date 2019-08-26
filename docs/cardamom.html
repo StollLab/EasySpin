@@ -28,7 +28,7 @@
 <div class="functitle">cardamom</div>
 
 <p>
-Simulation of slow motion CW-EPR spectra in the time domain.
+Simulation of slow-motion CW-EPR spectra from time-domain trajectories
 </p>
 
 <!-- =================================================================== -->
@@ -36,7 +36,7 @@ Simulation of slow motion CW-EPR spectra in the time domain.
 
 <pre class="matlab">
 [B,spc] = cardamom(Sys,Exp)
-[B,spc,ExpectVal,t] = cardamom(Sys,Exp)
+[B,spc,FID,t] = cardamom(Sys,Exp)
 [...] = cardamom(Sys,Exp,Par)
 [...] = cardamom(Sys,Exp,Par,Opt)
 [...] = cardamom(Sys,Exp,Par,Opt,MD)
@@ -55,10 +55,10 @@ to simulate the orientational trajectories required to calculate a cw EPR spectr
 <code>cardamom</code> accepts up to five input arguments
 
 <ul>
-<li><code>Sys</code>: dynamic properties
-<li><code>Exp</code>: experimental parameters
+<li><code>Sys</code>: static and dynamic properties of the spin system
+<li><code>Exp</code>: EPR experimental parameters
 <li><code>Par</code>: simulation parameters for quantum propagation
-<li><code>Opt</code>: simulation options
+<li><code>Opt</code>: other simulation options
 <li><code>MD</code>: molecular dynamics parameters
 </ul>
 
@@ -71,12 +71,12 @@ Up to four output arguments are returned:
 <ul>
 <li><code>B</code>: magnetic field axis, in mT
 <li><code>spc</code>: derivative of the CW-EPR absorption spectrum, arbitrary units
-<li><code>ExpectVal</code>: expectation value of the complex magnetization in the x-y plane, i.e. the free induction decay signal
+<li><code>TDSignal</code>: the time-domain signal, free induction decay (FID)
 <li><code>t</code>: time axis, in s
 </ul>
 
 <p>
-The first two output arguments <code>B</code> and <code>spc</code> are mandatory, whereas the last output argument pair <code>ExpectVal</code> and <code>t</code> is optional.
+The first two output arguments <code>B</code> and <code>spc</code> are mandatory, whereas the last output argument pair <code>TDSignal</code> and <code>t</code> is optional.
 </p>
 
 <!-- ============================================================= -->
@@ -97,7 +97,7 @@ A diffusion model of rotational motion can be used for local dynamics by declari
 For the timescale(s) of motion, one of the fields <code>tcorr</code>, <code>logtcorr</code>, <code>Diff</code> or <code>logDiff</code> should be given. If more than one of these is given, the first in the list <code>logtcorr</code>, <code>tcorr</code>, <code>logDiff</code>, <code>Diff</code> takes precedence over the other(s).
 </p>
 
-<div class="optionfield"><code>tcorr</code></div>
+<div class="optionfield"><code>Sys.tcorr</code></div>
 <div class="optiondescr">
 Rotational correlation time, in seconds.
 <ul>
@@ -118,13 +118,13 @@ Instead of <code>tcorr</code>, <code>Diff</code> can be used, see below. If <cod
 <br>
 </div>
 
-<div class="optionfield"><code>logtcorr</code></div>
+<div class="optionfield"><code>Sys.logtcorr</code></div>
 <div class="optiondescr">
 Base-10 logarithm of the correlation time, offering an alternative way to input the correlation time. If given, <code>tcorr</code>, <code>logDiff</code> and <code>Diff</code> are ignored.<br>
 Use this instead of <code>tcorr</code> for least-squares fitting with <a class="esf" href="esfit.html">esfit</a>.
 </div>
 
-<div class="optionfield"><code>Diff</code></div>
+<div class="optionfield"><code>Sys.Diff</code></div>
 <div class="optiondescr">
 Rotational diffusion rates (principal values of the rotational diffusion tensor), in second<sup>-1</sup>.
   <ul>
@@ -135,7 +135,7 @@ Rotational diffusion rates (principal values of the rotational diffusion tensor)
   <code>Diff</code> is ignored if <code>logtcorr</code>, <code>tcorr</code> or <code>logDiff</code> is given.
 </div>
   
-<div class="optionfield"><code>logDiff</code></div>
+<div class="optionfield"><code>Sys.logDiff</code></div>
 <div class="optiondescr">
 Base-10 logarithm of <code>Diff</code>. If given, <code>Diff</code> is ignored.
   <br>
@@ -208,12 +208,13 @@ Sys.Potential = U;
 <!-- ============================================================= -->
 
 <p>
-A jump model with a discrete number of orientational states can be used for local dynamics by declaring <code>Par.Model='jump'</code>. To dictate the inter- and intra-state dynamics, either <code>TransRates</code> or <code>TransProb</code> can be given, with the former taking precendence if both are given.
+A jump model with a discrete number of orientational states can be used for local dynamics by declaring <code>Par.Model='jump'</code>. To dictate the inter- and intra-state dynamics, either <code>TransRates</code> or <code>TransProb</code> can be given, with the former taking precedence if both are given.
 </p>
 
-<div class="optionfield"><code>TransRates</code></div>
+<div class="optionfield"><code>Sys.TransRates</code></div>
 <div class="optiondescr">
-Transition rate matrix of size (nStates,nStates), in seconds<sup>-1</sup>. The elements of <code>Sys.TransRates</code> must satisfy the following properties:
+<p>
+Transition rate matrix of size (nStates,nStates), with rates in seconds<sup>-1</sup>. The elements of <code>Sys.TransRates</code> must satisfy the following properties:
 <ul>
 <li> all diagonal elements must be non-positive
 <li> all off-diagonal elements must be non-negative
@@ -221,7 +222,7 @@ Transition rate matrix of size (nStates,nStates), in seconds<sup>-1</sup>. The e
 </ul>
 </div>
 
-<div class="optionfield"><code>TransProb</code></div>
+<div class="optionfield"><code>Sys.TransProb</code></div>
 <div class="optiondescr">
 Transition probability matrix of size (nStates,nStates). The elements of <code>Sys.TransProb</code> must satisfy the following properties:
 <ul>
@@ -230,7 +231,7 @@ Transition probability matrix of size (nStates,nStates). The elements of <code>S
 </ul>
 </div>
 
-<div class="optionfield"><code>Orientations</code></div>
+<div class="optionfield"><code>Sys.Orientations</code></div>
 <div class="optiondescr">
 An array of Euler angles representing the orientation of each state, size (nStates,1) or (1,nStates).
 </div>
@@ -253,55 +254,67 @@ There are three types of MD model that make use of MD trajectories in different 
 <!-- ============================================================= -->
 
 <p>
-<code>Par</code> is a structure containing the parameters for generating the stochastic orientational trajectories. The parameters can be categorized into three groups: Monte Carlo settings, trajectory settings, and model setting.
+<code>Par</code> is a structure containing the parameters for generating the stochastic orientational trajectories. The most important field is the model choice:
+</p>
+
+<div class="optionfield"><code>Par.Model</code></div>
+<div class="optiondescr">
 <p>
+Specifies the motional model to use. The following are available:
+<ul>
+<li><code>'MD-direct'</code>: simulate EPR spectrum directly from MD trajectory
+<li><code>'MD-HBD'</code>: simulate EPR spectrum using a hindered-Brownian-diffusion model fitted to the MD trajectory
+<li><code>'MD-HMM'</code>: simulate EPR spectrum using a Hidden Markov Model fitted to the MD trajectory
+<li><code>'diffusion'</code>: simulate EPR spectrum using a hindered-Brownian-diffusion model with given parameters
+<li><code>'jump'</code>: simulate EPR spectrum using a Markov model with given parameters
+</ul>
 <p>
-The Monte Carlo settings specify the parameters used to perform the time integration in the simulation. One can provide an array of time points <code>t</code> along which to integrate, a number of steps <code>nSteps</code> and a time step <code>dt</code>, or a number of steps <code>nSteps</code> and a total time for simulation <code>tmax</code>.
+If any of the MD-based models are used, an MD trajectory (processed via <a class="esf" href="mdload.html">mdload</a>) has to be provided in the fifth input, <code>MD</code>.
 
-<div class="optionfield"><code>t</code></div>
-<div class="optiondescr">
-An array of time points along which to integrate, in seconds. If this is provided, no other Monte Carlo settings need to be specified.
+</div>
 </div>
 
-<div class="optionfield"><code>nSteps</code></div>
+<p>
+Two additional mandatory parameters are the time step <code>Dt</code> and the number of steps <code>nSteps</code> to use for the calculation of the free-induction decay (FID):
+
+<div class="optionfield"><code>Par.Dt</code></div>
 <div class="optiondescr">
-The total number of time steps used to perform integration.
+<p>
+The time step of spin propagation (FID calculation), in seconds. For a nitroxide at X-band frequencies, a typical value is 1-2 ns. For higher fields and frequencies, it should be shortened.
 </div>
 
-<div class="optionfield"><code>dt</code></div>
+<div class="optionfield"><code>Par.nSteps</code></div>
 <div class="optiondescr">
-The time step of the integration, in seconds.
+<p>
+The number of time steps for the spin propagation (FID calculation). For a nitroxide at X-band frequencies, a reasonable value is 250. For other systems and/or at other fields/frequencies, the best number will be different.
 </div>
-
-<div class="optionfield"><code>tmax</code></div>
-<div class="optiondescr">
-The total time of the simulation, in seconds.
-</div>
-
 
 <p>
 Lastly, the trajectory settings are used to specify the starting orientations for the trajectories using triplets of Euler angles in <code>OriStart = [alpha;beta;gamma]</code>,
 which correspond to the Euler angles &alpha;, &beta;, and &gamma;; how many trajectories to simulate, <code>nTraj</code>; and a set of orientations in the lab frame for a powder-like summation, <code>Orients</code>.
 </p>
 
-<div class="optionfield"><code>OriStart</code></div>
+<div class="optionfield"><code>Par.OriStart</code></div>
 <div class="optiondescr">
+<p>
 The Euler angles corresponding to the starting orientations for trajectories, in radians.
 </div>
 
-<div class="optionfield"><code>nTraj</code></div>
+<div class="optionfield"><code>Par.nTraj</code></div>
 <div class="optiondescr">
+<p>
 The total number of trajectories to simulate.
 </div>
 
-<div class="optionfield"><code>Orients</code></div>
+<div class="optionfield"><code>Par.Orients</code></div>
 <div class="optiondescr">
+<p>
 Orientations of the system in the lab frame (powder-like summation).
 </div>
 
-<div class="optionfield"><code>nOrients</code></div>
+<div class="optionfield"><code>Par.nOrients</code></div>
 <div class="optiondescr">
-The total number of orientations in the lab frame.
+<p>The total number of orientations in the lab frame.
 </div>
 
 <p>
@@ -321,31 +334,32 @@ For the lab orientations <code>Orients</code>, if these are not specified but <c
 </p>
 
 
-<div class="optionfield"><code>specConvergence</code></div>
+<div class="optionfield"><code>Opt.Verbosity</code></div>
 <div class="optiondescr">
+<p>
+Determines how much information <code>cardamom</code> prints to the screen. If <code>Opt.Verbosity=0</code>, is is completely silent. <code>Opt.Verbosity=1</code> prints details about the progress of the computation.
+</div>
+
+<div class="optionfield"><code>Opt.Method</code></div>
+<div class="optiondescr">
+<p>
+Determines the method with which the time-dependent spin Hamiltonian is constructed and the spin density matrix propagated. The two possible values are <code>'fast'</code> and <code>'ISTO'</code>.
+<ul>
+<li>If set to <code>'fast'</code> (default for spin systems with S=1/2 and at most one nucleus), <code>cardamom</code> will construct a nuclear sub-Hamiltonian restricted to the electron spin S=-1/2 subspace and propagate it within this subspace, allowing for a very efficient analytical calculation of the propagator at each time step.
+<li>If set to <code>'ISTOs'</code>, <code>cardamom</code> will construct a spin Hamiltonian using irreducible spherical tensor operators and calculate the full propagator using a matrix exponential, which is very general but much less efficient than the specialized <code>'fast'</code> method.
+<ul>
+</div>
+
+<div class="optionfield"><code>Opt.specCon</code></div>
+<div class="optiondescr">
+<p>
 Termination tolerance for simulating spectra at different lab orientations. If true, <code>cardamom</code> will keep doubling the number of lab orientations in the spectral summation until the RMSD between the last sum and the new sum, say N vs. 2N orientations, changes by less than 10%.
 </div>
 
-<div class="optionfield"><code>Verbosity</code></div>
-<div class="optiondescr">
-0 (default), 1<br>
-Determines how much information <code>cardamom</code> prints to the screen. If <code>Opt.Verbosity=0</code>, is is completely silent. 1 prints details about the progress of the computation.
-</div>
-
-<div class="optionfield"><code>Method</code></div>
-<div class="optiondescr">
-Determines the method with which the time-dependent  spin Hamiltonian is constructed and the spin density matrix propagated. If set to <code>'fast'</code> (default), <code>cardamom</code> will construct a <sup>14</sup>N Hamiltonian restricted to the electron spin S=-1/2 subspace and propagate it within this subspace, allowing for a very efficient analytical calculation of the propagator at each time step. If set to <code>'ISTOs'</code>, <code>cardamom</code> will construct a spin Hamiltonian using irreducible spherical tensor operators and calculate the full propagator using a matrix exponential, which is very general but much less efficient than the specialized <code>'fast'</code> method.
-</div>
-
-<div class="optionfield"><code>FFTWindow</code></div>
+<div class="optionfield"><code>Opt.FFTWindow</code></div>
 <div class="optiondescr">
 If true (default), a windowing function is applied to the simulated FID prior to calculating the FFT to obtain the spectrum. If false, no windowing function is used.
 </div>
-
-<!-- <div class="optionfield"><code>truncate</code></div>
-<div class="optiondescr">
-Number of ns at which to begin using an ensemble-averaged propagator, which can save time when simulating a cw EPR spectrum. This option can only be used for the general method <code>Method='ISTOs</code>.
-</div> -->
 
 
 <!-- ============================================================= -->
@@ -356,38 +370,45 @@ Number of ns at which to begin using an ensemble-averaged propagator, which can 
 <code>MD</code> is a structure with properties and options regarding the usage of MD simulation trajectories to simulate an EPR spectrum.
 </p>
 
-<div class="optionfield"><code>dt</code></div>
+<div class="optionfield"><code>MD.dt</code></div>
 <div class="optiondescr">
+<p>
 Time step between snapshots in the MD simulation trajectory, in seconds. It could be necessary to rescale this if the model for the spin label's environment molecules does not yield the correct time scale for diffusion, e.g. TIP3P water, where the time step is often increased by a factor of 2.5.
 </div>
 
-<div class="optionfield"><code>RProtDiff</code></div>
+<div class="optionfield"><code>MD.RProtDiff</code></div>
 <div class="optiondescr">
+<p>
 An array of size 3x3x<code>nTraj</code>x<code>nSteps</code> containing the rotation matrices representing the global rotational diffusion of the protein.
 </div>
 
-<div class="optionfield"><code>FrameTraj</code></div>
+<div class="optionfield"><code>MD.FrameTraj</code></div>
 <div class="optiondescr">
+<p>
 An array of size 3x3x<code>nTraj</code>x<code>nSteps</code> containing the cartesian coordinates of the spin label tensor frame's x-, y-, and z-coordinate frame axis vectors with respect to the MD simulation box frame, in <span>&#8491;</span>.
 </div>
 
-<div class="optionfield"><code>FrameTrajwrtProt</code></div>
+<div class="optionfield"><code>MD.FrameTrajwrtProt</code></div>
 <div class="optiondescr">
+<p>
 Same as <code>FrameTraj</code>, but without global rotational diffusion of the host protein, in <span>&#8491;</span>.
 </div>
 
-<div class="optionfield"><code>removeGlobal</code></div>
+<div class="optionfield"><code>MD.removeGlobal</code></div>
 <div class="optiondescr">
+<p>
 If set to true (default), <code>cardamom</code> will use <code>FrameTrajwrtProt</code> to simulate a spectrum. If set to false, <code>FrameTraj</code> will be used instead.
 </div>
 
-<div class="optionfield"><code>DiffGlobal</code></div>
+<div class="optionfield"><code>MD.DiffGlobal</code></div>
 <div class="optiondescr">
+<p>
 Optional rotational diffusion coefficient for simulating stochastic isotropic global rotational diffusion, which will be coupled to the local diffusion obtained from the MD simulation trajectory.
 </div>
 
 <div class="optionfield"><code>HMM</code></div>
 <div class="optiondescr">
+<p>
 Optional HMM model parameters to be used when setting <code>Par.Model = 'MD-HMM'</code>. If used, please set it equal to the output argument from <code>mdhmm</code>.
 </div>
 
@@ -410,19 +431,23 @@ Exp.mwFreq = 9.4;             % microwave frequency, in GHz
 </pre>
 
 <p>
-To simulate a cw EPR spectrum using very slow motion trajectories, with an orientational potential with coefficient &lambda;<sup>2</sup><sub>0,0</sub> = 1.0 and a 250-ns long FID, enter
+To simulate a CW EPR spectrum using very slow hindered Brownian diffusion, with an orientational potential with coefficient &lambda;<sup>2</sup><sub>0,0</sub> = 1.0 and a 250-ns long FID, use
 </p>
 
 <pre class="matlab">
+clear
 Sys.g = [2.009, 2.006, 2.002];
+Sys.Nucs = '14N';
 Sys.A = mt2mhz([6,6,36]/10);    % hyperfine tensor, G -> MHz
-Sys.tcorr = 50e-9;  % 50 ns rotational correlation time
+Sys.tcorr = 50e-9;  % rotational correlation time, seconds
 Sys.Potential = [2, 0, 0, 1.0];
 
-Exp.mwFreq = 9.4;
+Exp.mwFreq = 9.4; % GHz
 
-Par.dt = 1e-9;
-Par.nSteps = ceil(250e-9/Par.dt);
+Par.Model = 'diffusion';
+Par.dt = 1e-9; % seconds
+Par.Dt = 1e-9; % seconds
+Par.nSteps = 250;
 Par.nTraj = 400;
 
 [B,spc] = cardamom(Sys,Exp,Par);
@@ -434,30 +459,18 @@ To simulate a cw EPR spectrum using an MD trajectory with a direct model (we ass
 
 <pre class="matlab">
 Sys.g = [2.009, 2.006, 2.002];
+Sys.Nucs = '14N';
 Sys.A = mt2mhz([6,6,36]/10);    % hyperfine tensor, G -> MHz
 
-Exp.mwFreq = 9.4;
+Exp.mwFreq = 9.4; % GHz
 
 Par.Model = 'MD-direct';
-Par.dt = 1e-9;
-Par.nSteps = ceil(250e-9/Par.dt);
+Par.Dt = 1e-9; % seconds
+Par.nSteps = 250;
 Par.nOrients = 400;
 
-[B,spc] = cardamom(Sys,Exp,Par,MD);
+[B,spc] = cardamom(Sys,Exp,Par,[],MD);
 </pre>
-
-<!--
-<!-- =================================================================== -->
-<!--
-<div class="subtitle">Algorithm</div>
-
-<p>
-<code>cardamom</code> solves 
-</p>
-<p>
-For full details of the methods used here, see: 
-</p>
--->
 
 <!-- =================================================================== -->
 <div class="subtitle">See also</div>
