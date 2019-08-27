@@ -350,8 +350,8 @@ if FitData.GUI
   hAx = axes('Parent',hFig,'Units','pixels','Position',[x0 y0 100 80],'Layer','top');
   h = plot(hAx,1,NaN,'.');
   set(h,'Tag','errorline','MarkerSize',5,'Color',[0.2 0.2 0.8]);
-  set(gca,'FontSize',7,'YScale','lin','XTick',[],'YAxisLoc','right','Layer','top');
-  title('log10(rmsd)','Color','k','FontSize',7,'FontWeight','normal');
+  set(gca,'FontSize',7,'YScale','lin','XTick',[],'YAxisLoc','right','Layer','top','YGrid','on');
+  title('log10(RMSD)','Color','k','FontSize',7,'FontWeight','normal');
     
   h = uicontrol('Style','text','Position',[x0+125 y0+64 205 16]);
   set(h,'FontSize',8,'String',' RMSD: -','ForegroundColor',[0 0 1],'Tooltip','Current best RMSD');
@@ -603,7 +603,7 @@ if FitData.GUI
   set(findobj('Tag','selectAllButton'),'Enable','off');
   set(findobj('Tag','selectNoneButton'),'Enable','off');
   set(findobj('Tag','selectInvButton'),'Enable','off');
-  set(getParameterTableHandle,'Enable','off');
+  set(findobj('Tag','ParameterTable'),'Enable','off');
 
   % Disable fitset list controls
   set(findobj('Tag','deleteSetButton'),'Enable','off');
@@ -638,7 +638,7 @@ end
 %FitData.bestspec = ones(1,numel(FitData.ExpSpec))*NaN;
 
 if FitData.GUI
-  data = get(getParameterTableHandle,'Data');
+  data = get(findobj('Tag','ParameterTable'),'Data');
   for iPar = 1:FitData.nParameters
     FitData.inactiveParams(iPar) = data{iPar,1}==0;
   end
@@ -652,9 +652,9 @@ switch FitOpts.Startpoint
     startx(FitData.inactiveParams) = 0;
   case 3 % selected fit set
     h = findobj('Tag','SetListBox');
-    s = get(h,'String');
+    s = h.String';
     if ~isempty(s)
-      s = s{get(h,'Value')};
+      s = s{h.Value};
       ID = sscanf(s,'%d');
       idx = find([FitData.FitSets.ID]==ID);
       if ~isempty(idx)
@@ -703,8 +703,8 @@ end
 if FitData.GUI
   
   % Remove current values from parameter table
-  hTable = getParameterTableHandle;
-  Data = get(hTable,'Data');
+  hTable = findobj('Tag','ParameterTable');
+  Data = hTable.Data;
   for p = 1:size(Data,1), Data{p,4} = '-'; end
   set(hTable,'Data',Data);
   
@@ -712,7 +712,7 @@ if FitData.GUI
   set(findobj('Tag','currsimdata'),'YData',NaN*ones(1,numel(FitData.ExpSpec)));
   hErrorLine = findobj('Tag','errorline');
   set(hErrorLine,'XData',1,'YData',NaN);
-  axis(get(hErrorLine,'Parent'),'tight');
+  axis(hErrorLine.Parent,'tight');
   drawnow
   set(findobj('Tag','logLine'),'String','');
 
@@ -740,7 +740,7 @@ if FitData.GUI
   set(findobj('Tag','selectAllButton'),'Enable','on');
   set(findobj('Tag','selectNoneButton'),'Enable','on');
   set(findobj('Tag','selectInvButton'),'Enable','on');
-  set(getParameterTableHandle,'Enable','on');
+  set(findobj('Tag','ParameterTable'),'Enable','on');
   
 end
 
@@ -764,7 +764,7 @@ BestSpec = out{FitData.OutArgument}; % pick last output argument
 BestSpecScaled = rescale(BestSpec,FitData.ExpSpecScaled,FitOpts.Scaling);
 BestSpec = rescale(BestSpec,FitData.ExpSpec,FitOpts.Scaling);
 
-Residuals = getResiduals(BestSpecScaled(:),FitData.ExpSpecScaled(:),FitOpts.TargetID);
+Residuals = calculateResiduals(BestSpecScaled(:),FitData.ExpSpecScaled(:),FitOpts.TargetID);
 Residuals = Residuals.'; % col -> row
 rmsd = sqrt(mean(Residuals.^2));
 
@@ -812,7 +812,7 @@ return
 %===============================================================================
 
 function resi = residuals_(x,ExpSpec,FitDat,FitOpt)
-[rms,resi] = assess(x,ExpSpec,FitDat,FitOpt);
+[~,resi] = assess(x,ExpSpec,FitDat,FitOpt);
 
 %===============================================================================
 function varargout = assess(x,ExpSpec,FitDat,FitOpt)
@@ -849,7 +849,7 @@ simspec = out{FitData.OutArgument}; % pick last output argument
 simspec = rescale(simspec,ExpSpec,FitOpt.Scaling);
 
 % Compute residuals ------------------------------
-residuals = getResiduals(simspec(:),ExpSpec(:),FitOpt.TargetID);
+residuals = calculateResiduals(simspec(:),ExpSpec(:),FitOpt.TargetID);
 rmsd = real(sqrt(mean(residuals.^2)));
 
 FitData.errorlist = [FitData.errorlist rmsd];
@@ -881,7 +881,7 @@ if FitData.GUI && (UserCommand~=99)
   if (UserCommand~=99)
     
     % current system set
-    hParamTable = getParameterTableHandle;
+    hParamTable = findobj('Tag','ParameterTable');
     data = get(hParamTable,'data');
     for p=1:numel(simvalues)
       olddata = striphtml(data{p,4});
@@ -903,7 +903,7 @@ if FitData.GUI && (UserCommand~=99)
     if isNewBest
       [str,values] = getSystems(BestSys,Vary);
       
-      str = sprintf(' RMSD: %g\n',(FitData.smallestError));
+      str = sprintf(' best RMSD: %g\n',(FitData.smallestError));
       hRmsText = findobj('Tag','RmsText');
       set(hRmsText,'String',str);
       
@@ -931,7 +931,7 @@ if FitData.GUI && (UserCommand~=99)
   if ~isempty(hErrorLine)
     n = min(100,numel(FitData.errorlist));
     set(hErrorLine,'XData',1:n,'YData',log10(FitData.errorlist(end-n+1:end)));
-    ax = get(hErrorLine,'Parent');
+    ax = hErrorLine.Parent;
     axis(ax,'tight');
     drawnow
   end
@@ -939,7 +939,7 @@ if FitData.GUI && (UserCommand~=99)
 end
 %-------------------------------------------------------------------
 
-if (UserCommand==2)
+if UserCommand==2
   UserCommand = 0;
   str = bestfitlist(BestSys,Vary);
   disp('--- current best fit parameters -------------')
@@ -1004,25 +1004,28 @@ p = 1;
 for s = 1:nSystems
   allFields = fieldnames(Vary{s});
   for iField = 1:numel(allFields)
-    fieldname = allFields{iField};
-    CenterValue = Sys{s}.(fieldname);
-    VaryValue = Vary{s}.(fieldname);
+    fieldName = allFields{iField};
+    CenterValue = Sys{s}.(fieldName);
+    VaryValue = Vary{s}.(fieldName);
     [idx1,idx2] = find(VaryValue);
     idx = sortrows([idx1(:) idx2(:)]);
-    singletonDims = sum(size(CenterValue)==1);
-    for iVal = 1:numel(idx1)
+    nValues = numel(idx1);
+    for iVal = 1:nValues
       parCenter(p) = CenterValue(idx(iVal,1),idx(iVal,2));
       parVary(p) = VaryValue(idx(iVal,1),idx(iVal,2));
       Indices = idx(iVal,:);
-      if singletonDims==1
-        parName_ = sprintf('(%d)',max(Indices));
-      elseif singletonDims==0
-        parName_ = sprintf('(%d,%d)',Indices(1),Indices(2));
+      if isvector(CenterValue)
+        idxString_ = sprintf('(%d)',max(Indices));
+      elseif ismatrix(CenterValue)
+        idxString_ = sprintf('(%d,%d)',Indices(1),Indices(2));
       else
-        parName_ = '';
+        idxString_ = '';
       end
-      parNames{p} = [fieldname parName_];
-      if (nSystems>1), parNames{p} = [char('A'-1+s) '.' parNames{p}]; end
+      parNames{p} = [fieldName idxString_];
+      if nSystems>1
+        sysID = char('A'-1+s);
+        parNames{p} = [sysID '.' parNames{p}];
+      end
       p = p + 1;
     end
   end
@@ -1101,7 +1104,7 @@ return
 
 
 %==========================================================================
-function residuals = getResiduals(A,B,mode)
+function residuals = calculateResiduals(A,B,mode)
 residuals = A - B;
 idxNaN = isnan(A) | isnan(B);
 residuals(idxNaN) = 0; % ignore NaNs in either A or B
@@ -1133,14 +1136,14 @@ end
 
 %==========================================================================
 function str = striphtml(str)
-html = 0;
+html = false;
 for k = 1:numel(str)
   if ~html
     rmv(k) = false;
-    if str(k)=='<', html = 1; rmv(k) = true; end
+    if str(k)=='<', html = true; rmv(k) = true; end
   else
     rmv(k) = true;
-    if str(k)=='>', html = 0; end
+    if str(k)=='>', html = false; end
   end
 end
 str(rmv) = [];
@@ -1186,10 +1189,10 @@ return
 function deleteSetButtonCallback(object,src,event)
 global FitData
 h = findobj('Tag','SetListBox');
-idx = get(h,'Value');
-str = get(h,'String');
+idx = h.Value;
+str = h.String;
 nSets = numel(str);
-if (nSets>0)
+if nSets>0
   ID = sscanf(str{idx},'%d');
   for k = numel(FitData.FitSets):-1:1
     if (FitData.FitSets(k).ID==ID)
@@ -1197,12 +1200,12 @@ if (nSets>0)
     end
   end
   if idx>length(FitData.FitSets), idx = length(FitData.FitSets); end
-  if (idx==0), idx = 1; end
-  set(h,'Value',idx);
+  if idx==0, idx = 1; end
+  h.Value = idx;
   refreshFitsetList(0);
 end
 
-str = get(h,'String');
+str = h.String';
 if isempty(str)
   set(findobj('Tag','deleteSetButton'),'Enable','off');
   set(findobj('Tag','exportSetButton'),'Enable','off');
@@ -1234,20 +1237,15 @@ return
 function displayFitSet
 global FitData
 h = findobj('Tag','SetListBox');
-idx = get(h,'Value');
-str = get(h,'String');
+idx = h.Value;
+str = h.String;
 if ~isempty(str)
   ID = sscanf(str{idx},'%d');
-
-  idx = 0;
-  for k=1:numel(FitData.FitSets)
-    if FitData.FitSets(k).ID==ID, idx = k; break; end
-  end
-  
-  if (idx>0)
-    fitset = FitData.FitSets(idx);
+  k = find([FitData.FitSets.ID]==ID);  
+  if k>0
+    fitset = FitData.FitSets(k);
     
-    h = getParameterTableHandle;
+    h = findobj('Tag','ParameterTable');
     data = get(h,'data');
     values = fitset.bestvalues;
     for p = 1:numel(values)
@@ -1261,8 +1259,8 @@ if ~isempty(str)
   end
 else
   h = findobj('Tag','bestsimdata');
-  set(h,'YData',get(h,'YData')*NaN);
-  drawnow;
+  set(h,'YData',h.YData*NaN);
+  drawnow
 end
 
 return
@@ -1273,12 +1271,12 @@ return
 function exportSetButtonCallback(object,src,event)
 global FitData
 h = findobj('Tag','SetListBox');
-v = get(h,'Value');
-s = get(h,'String');
+v = h.Value;
+s = h.String;
 ID = sscanf(s{v},'%d');
-for k=1:numel(FitData.FitSets), if FitData.FitSets(k).ID==ID, break; end, end
+idx = find([FitData.FitSets.ID]==ID);
 varname = sprintf('fit%d',ID);
-fitSet = rmfield(FitData.FitSets(k),'bestx');
+fitSet = rmfield(FitData.FitSets(idx),'bestx');
 assignin('base',varname,fitSet);
 fprintf('Fit set %d assigned to variable ''%s''.\n',ID,varname);
 evalin('base',varname);
@@ -1288,8 +1286,8 @@ return
 
 %==========================================================================
 function selectAllButtonCallback(object,src,event)
-h = getParameterTableHandle;
-d = get(h,'Data');
+h = findobj('Tag','ParameterTable');
+d = h.Data;
 d(:,1) = {true};
 set(h,'Data',d);
 return
@@ -1298,8 +1296,8 @@ return
 
 %==========================================================================
 function selectNoneButtonCallback(object,src,event)
-h = getParameterTableHandle;
-d = get(h,'Data');
+h = findobj('Tag','ParameterTable');
+d = h.Data;
 d(:,1) = {false};
 set(h,'Data',d);
 return
@@ -1308,8 +1306,8 @@ return
 
 %==========================================================================
 function selectInvButtonCallback(object,src,event)
-h = getParameterTableHandle;
-d = get(h,'Data');
+h = findobj('Tag','ParameterTable');
+d = h.Data;
 for k=1:size(d,1)
   d{k,1} = ~d{k,1};
 end
@@ -1321,10 +1319,8 @@ return
 %==========================================================================
 function sortIDSetButtonCallback(object,src,event)
 global FitData
-for k=1:numel(FitData.FitSets)
-  ID(k) = FitData.FitSets(k).ID;
-end
-[ID,idx] = sort(ID);
+ID = [FitData.FitSets.ID];
+[~,idx] = sort(ID);
 FitData.FitSets = FitData.FitSets(idx);
 refreshFitsetList(0);
 return
@@ -1335,7 +1331,7 @@ return
 function sortRMSDSetButtonCallback(object,src,event)
 global FitData
 rmsd = [FitData.FitSets.rmsd];
-[rmsd,idx] = sort(rmsd);
+[~,idx] = sort(rmsd);
 FitData.FitSets = FitData.FitSets(idx);
 refreshFitsetList(0);
 return
@@ -1344,7 +1340,7 @@ return
 
 %==========================================================================
 function refreshFitsetList(idx)
-global FitData FitOpts
+global FitData
 h = findobj('Tag','SetListBox');
 nSets = numel(FitData.FitSets);
 for k=1:nSets
@@ -1356,7 +1352,7 @@ set(h,'String',s);
 if (idx>0), set(h,'Value',idx); end
 if (idx==-1), set(h,'Value',numel(s)); end
 
-if nSets>0, state = 'on'; else state = 'off'; end
+if nSets>0, state = 'on'; else, state = 'off'; end
 set(findobj('Tag','deleteSetButton'),'Enable',state);
 set(findobj('Tag','exportSetButton'),'Enable',state);
 set(findobj('Tag','sortIDSetButton'),'Enable',state);
@@ -1378,24 +1374,6 @@ else
   FitData.FitSets(end+1) = FitData.currFitSet;
 end
 refreshFitsetList(-1);
-return
-%==========================================================================
-
-
-%==========================================================================
-function hTable = getParameterTableHandle
-% uitable was introduced in R2008a, undocumented in
-% R2007b, where property 'Tag' doesn't work
-
-%h = findobj('Tag','ParameterTable'); % works only for R2008a and later
-
-% for R2007b compatibility
-hFig = findobj('Tag','esfitFigure');
-if ishandle(hFig)
-  hTable = findobj(hFig,'Type','uitable');
-else
-  hTable = [];
-end
 return
 %==========================================================================
 
