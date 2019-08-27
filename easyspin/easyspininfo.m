@@ -55,7 +55,7 @@ end
 
 % If not, try to compile and check again
 if ~all(MexFilesPresent)
-  fprintf('\nEasySpin not yet compiled for this platform.\n\n');
+  fprintf('\nEasySpin not yet compiled for this platform (%d/%d files). Attempting to compile.\n\n',sum(MexFilesPresent),numel(MexFilesPresent));
   easyspincompile;
   for k = 1:numel(MexFiles)
     MexFilesPresent(k) = exist(MexFiles{k})==3;
@@ -95,6 +95,7 @@ if Diagnostics && Display
   fprintf('  System date:      %s\n',datestr(now));
   fprintf('  Temp dir:         %s\n',tempdir);
   fprintf('==================================================================\n');
+  
   % Check online for update
   %----------------------------------------------------------
   easyspinupdate(out);
@@ -164,7 +165,7 @@ if ~isempty(Shadowing)
   fprintf('    the Matlab path.\n\n');
 end
 
-if isempty(Shadowed) & isempty(Shadowing),
+if isempty(Shadowed) & isempty(Shadowing)
   if Display
     %fprintf('ok\n');
   end
