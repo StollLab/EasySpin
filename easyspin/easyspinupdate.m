@@ -176,7 +176,7 @@ if NewVersionAvailable || ForceUpdate
   
   % download from easyspin.org
   try
-    zipFile = websave(zipName,['http://easyspin.org/easyspin/test/' zipName]);
+    zipFile = websave(zipName,['http://easyspin.org/easyspin/' zipName]);
   catch
     delete([zipName '.html']); % if the file can not be downloaded, MATLAB 
                                % creates a file 'filename.html', this
