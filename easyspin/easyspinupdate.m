@@ -1,16 +1,36 @@
-% esupdate  Checks online for a new version and updateds if requested 
+% easyspinupdate  Checks online for a new version and updateds if requested 
 %
 % Possible calls:
-%   esupdate           checks for update and installs update
-%   esupdate('check')  only checks if there is a newer version available
-%   esupdate('stable') updates to the most recent version for the specified
-%                      release channel, available options are: 'stable',
-%                      'legacy', 'development'
-%   esupdate('5.2.22') installs the specified version of EasySpin, if the
-%                      version is not found online, an error message is
-%                      returned
+%   easyspinupdate           checks for update and installs update
+%   easyspinupdate('check')  only checks if there is a newer version available
+%   easyspinupdate('stable') updates to the most recent version for the specified
+%                            release channel, available options are: 'stable',
+%                            'legacy', 'development'
+%   easyspinupdate('5.2.22') installs the specified version of EasySpin, if the
+%                            version is not found online, an error message is
+%                            returned
 
 function varargout = easyspinupdate(varargin)
+
+if ispc
+  [isOffline,~] = system('ping -n 1 www.google.com');
+  [EasySpinOrgOffline,~] = system('ping -n 1 easyspin.org');
+elseif isunix
+  [isOffline,~] = system('ping -c 1 www.google.com');
+  [EasySpinOrgOffline,~] = system('ping -c 1 easyspin.org');
+end
+
+if isOffline
+  msg = 'You have to be connect to the internet to check for a new EasySpin version or to update.';
+  disp(msg)
+  return
+end
+
+if EasySpinOrgOffline
+  msg = '<a href="easyspin.org">easyspin.org</a> appears to be offline, please try again later.';
+  disp(msg)
+  return
+end
 
 % release channels that are kept tracked of on easyspin.org
 AllowedReleaseChannels = {'stable','development','legacy'};
@@ -23,7 +43,7 @@ NewVersionAvailable = false;
 % Get information from current install
 %--------------------------------------------------------------
 if nargin == 1 && isstruct(varargin{1})
-  % easyspininfo calls esupdate with required information already
+  % easyspininfo calls easyspinupdate with required information already
   installedES = varargin{1};
 else
   % obtains information from easyspininfo;
@@ -83,12 +103,18 @@ if ~UpdateToVersion
   else
     VersionInfo = VersionInfo{:};
   end
+  
 
   installedVersionNumber = getVersionNumber(VersionInfo);
+  
+  % Avoid updating if you are developing EasySpin and dont have a ReleaseID
+  if installedVersionNumber == 0
+    installedVersionNumber = Inf;
+  end
 
   % Get versions that are available online
   %----------------------------------------------------------
-  msg = 'Checking for a new version online';
+  msg = 'Checking for a new version...';
   disp(msg)
   VersionsFile = websave('versions.txt','http://easyspin.org/easyspin/versions.txt');
   fileID = fopen(VersionsFile,'r');
@@ -121,10 +147,14 @@ if ~UpdateToVersion
   
   if CheckVersion
     varargout = {NewVersionAvailable};
-    msg = ['A new EasySpin version (' OnlineVersions.(ReleaseChannel).String ') is available online.' newline];
-    msg = [msg 'Type and run "esupdate" to update.'];
+    if NewVersionAvailable
+      msg = ['A new EasySpin version (' OnlineVersions.(ReleaseChannel).String ') is available online.' newline];
+      msg = [msg 'Type and run "easyspinupdate" to update.'];
+    else
+      msg = ['You are using the most recent version of EasySpin.'];
+    end
     disp(msg);
-    % Terminate if esupdate was only called to check the version
+    % Terminate if easyspinupdate was only called to check the version
     return
   end
   

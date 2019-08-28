@@ -98,7 +98,20 @@ if Diagnostics && Display
   
   % Check online for update
   %----------------------------------------------------------
-  easyspinupdate(out);
+  if ispc
+    [isOffline,~] = system('ping -n 1 www.google.com');
+    [EasySpinOrgOffline,~] = system('ping -n 1 easyspin.org');
+  elseif isunix
+    [isOffline,~] = system('ping -c 1 www.google.com');
+    [EasySpinOrgOffline,~] = system('ping -c 1 easyspin.org');
+  end
+  
+  isOnline = ~isOffline;
+  EasySpinOrgOnline = ~EasySpinOrgOffline;
+  
+  if isOnline && EasySpinOrgOnline
+    easyspinupdate(out);
+  end
 end
 
 
@@ -162,7 +175,7 @@ if ~isempty(Shadowing)
   end
   fprintf('\n    EasySpin works properly only if you rename, move or remove these\n');
   fprintf('    functions. Alternatively, remove the corresponding directory from\n');
-  fprintf('    the Matlab path.\n\n');
+  fprintf('    the MATLAB path.\n\n');
 end
 
 if isempty(Shadowed) & isempty(Shadowing)
