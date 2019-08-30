@@ -21,13 +21,13 @@ esDate = '$ReleaseDate$'; % is replaced with actual date by build script
 esExpiryDate = '$ExpiryDate$'; % is replaced with actual date by build script
 esReleaseChannel = '$ReleaseChannel$'; % is replaced with release channel by build script
 
-
-
-out.ReleaseChannel = esReleaseChannel;
-out.Version = esVersion;
-out.Path = esPath;
+% Prepare output and arguments to call version checker with
+VersionInfo.ReleaseChannel = esReleaseChannel;
+VersionInfo.Version = esVersion;
+VersionInfo.Path = esPath;
 if (nargout>0)
-  varargout = {out};
+  varargout = {VersionInfo};
+  return
 end
 
 
@@ -98,19 +98,12 @@ if Diagnostics && Display
   
   % Check online for update
   %----------------------------------------------------------
-  if ispc
-    [isOffline,~] = system('ping -n 1 www.google.com');
-    [EasySpinOrgOffline,~] = system('ping -n 1 easyspin.org');
-  elseif isunix
-    [isOffline,~] = system('ping -c 1 www.google.com');
-    [EasySpinOrgOffline,~] = system('ping -c 1 easyspin.org');
-  end
-  
-  isOnline = ~isOffline;
-  EasySpinOrgOnline = ~EasySpinOrgOffline;
-  
-  if isOnline && EasySpinOrgOnline
-    easyspinupdate(out);
+  UpdateOpt.Silent = true;
+  [UpdateAvailable, NewerVersion] = easyspinversioncheck(VersionInfo,UpdateOpt);
+  if UpdateAvailable
+    msg = ['A new EasySpin version (' NewerVersion ') is available online.' newline];
+    msg = [msg 'Type and run "easyspinupdate" to update.'];
+    disp(msg)
   end
 end
 
