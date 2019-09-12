@@ -56,10 +56,10 @@ useMD = ~isempty(MD);
 if useMD
   tauR = MD.tauR;
   isHMMfromMD = strcmp(Par.Model,'MD-HMM');
-  isDirectfromMD = strcmp(Par.Model,'MD-direct');
+  isMDdirect = strcmp(Par.Model,'MD-direct');
 else
   isHMMfromMD = false;
-  isDirectfromMD = false;
+  isMDdirect = false;
   if isfield(Sys,'Diff')       % TODO make this work for jumps and ISTOs
     tauR = 1/6/mean(Sys.Diff);
   end
@@ -74,7 +74,8 @@ nSteps = Par.nSteps; % number of spin dynamics propagation steps
 nTraj = Par.nTraj;
 
 doBlockAveraging = Par.BlockLength>1;  % tensor time block averaging
-doSlidingWindowProcessing = useMD && isDirectfromMD && Par.lag>0; % sliding window processing
+doSlidingWindowProcessing = isMDdirect && Par.lag>0; % sliding window processing
+alternatingTrajDirection = false;
 
 % Simulation
 %-------------------------------------------------------------------------------
@@ -121,7 +122,7 @@ switch PropagationMethod
         if includeHF
           ATensorMD = cardamom_tensortraj(A,Par.RTraj,RTrajInv)*1e6*2*pi; % MHz (s^-1) -> Hz (rad s^-1)
         end
-                
+        
         % Average over time axis
         logmsg(1,'  calculating state averages of tensors');
         nVitTraj = size(MD.viterbiTraj,1);
@@ -165,32 +166,32 @@ switch PropagationMethod
       
     end
     
-    % Average tensors over time blocks
+    % Coarse-grain tensor trajectories by block averaging
     %---------------------------------------------------------------------------
     if doBlockAveraging
-      logmsg(2,'  time block averaging, block length %d',Par.BlockLength);
+      logmsg(2,'  coarse-graining with tensor averaging, block length %d frames',Par.BlockLength);
       nBlocks = floor(size(gTensor,4)/Par.BlockLength);
       gTensorBlock = zeros(3,3,size(gTensor,3),nBlocks);
       if includeHF
         ATensorBlock = zeros(3,3,size(ATensor,3),nBlocks);
       end
-      idx = 1:Par.BlockLength;
+      idxBlock = 1:Par.BlockLength;
       for iBlock = 1:nBlocks
-        gTensorBlock(:,:,:,iBlock) = mean(gTensor(:,:,:,idx),4);
+        gTensorBlock(:,:,:,iBlock) = mean(gTensor(:,:,:,idxBlock),4);
         if includeHF
-          ATensorBlock(:,:,:,iBlock) = mean(ATensor(:,:,:,idx),4);
+          ATensorBlock(:,:,:,iBlock) = mean(ATensor(:,:,:,idxBlock),4);
         end
-        idx = idx + Par.BlockLength;
+        idxBlock = idxBlock + Par.BlockLength;
       end
     else
-      logmsg(2,'  no time block averaging');
+      logmsg(2,'  no coarse-graining tensor averaging');
       gTensorBlock = gTensor;
       if includeHF
         ATensorBlock = ATensor;
       end
     end
     
-    % Sliding window processing
+    % Sliding window processing: generate multiple trajectories from single one
     %---------------------------------------------------------------------------
     if doSlidingWindowProcessing
       logmsg(2,'  sliding window processing, increment %d',Par.lag);
@@ -200,11 +201,14 @@ switch PropagationMethod
       end
       idx = 1:nSteps;
       for iTraj = 1:nTraj
-        gTensor(:,:,iTraj,:) = gTensorBlock(:,:,:,idx);
+        gTensor(:,:,iTraj,:) = gTensorBlock(:,:,1,idx);
         if includeHF
-          ATensor(:,:,iTraj,:) = ATensorBlock(:,:,:,idx);
+          ATensor(:,:,iTraj,:) = ATensorBlock(:,:,1,idx);
         end
         idx = idx + Par.lag;
+        if alternatingTrajDirection
+          idx = flip(idx);
+        end
       end
     else
       logmsg(2,'  no sliding window processing');
@@ -370,6 +374,9 @@ switch PropagationMethod
         for iTraj = 1:nTraj
           D2Traj(:,:,iTraj,:) = D2BlockAvg(:,:,idx);
           idx = idx + Par.lag;
+          if alternatingTrajDirection
+            idx = flip(idx);
+          end
         end
       else
         D2Traj = D2BlockAvg;
