@@ -70,13 +70,13 @@
 %     t              matrix, size = (nSteps,1) 
 %                    time points of the trajectory (in seconds)
 %
-%     RTraj          4D array, size = (3,3,nTraj,nSteps)
+%     RTraj          4D array, size = (3,3,nSteps,nTraj)
 %                    trajectories of rotation matrices
 %
-%     qTraj          3D array, size = (4,nTraj,nSteps)
+%     qTraj          3D array, size = (4,nSteps,nTraj)
 %                    trajectories of normalized quaternions
 %
-%     stateTraj      3D array, size = (nStates,nTraj,nSteps)
+%     stateTraj      3D array, size = (nStates,nSteps,nTraj)
 %                    trajectories of states
 
 function varargout = stochtraj_jump(Sys,Par,Opt)
@@ -284,9 +284,9 @@ end
 if ~Opt.statesOnly
   qStates = euler2quat(Orientations);
   % initialize quaternion trajectories and their starting orientations
-  qTraj = zeros(4,Par.nTraj,Par.nSteps);
+  qTraj = zeros(4,Par.nSteps,Par.nTraj);
   for iTraj = 1:Par.nTraj
-    qTraj(:,iTraj,1) = qStates(:,StatesStart(iTraj));
+    qTraj(:,1,iTraj) = qStates(:,StatesStart(iTraj));
   end
 end
  
@@ -298,18 +298,18 @@ logmsg(2,'-- Calculating stochastic trajectories -----------------------');
 nTraj = Par.nTraj;
 nSteps = Par.nSteps;
 
-stateTraj = zeros(nTraj,nSteps);
-stateTraj(:,1) = StatesStart;
+stateTraj = zeros(nSteps,nTraj);
+stateTraj(1,:) = StatesStart;
 
 statesOnly = Opt.statesOnly;
 for iTraj = 1:nTraj
   u = rand(1,nSteps);
-  state = stateTraj(iTraj,1);
+  state = stateTraj(1,iTraj);
   for iStep = 2:nSteps
     state = find(cumulTPM(state,:)>u(iStep-1),1);
-    stateTraj(iTraj,iStep) = state;
+    stateTraj(iStep,iTraj) = state;
     if ~statesOnly
-      qTraj(:,iTraj,iStep) = qStates(:,state);
+      qTraj(:,iStep,iTraj) = qStates(:,state);
     end
   end
 end
@@ -333,7 +333,7 @@ switch nargout
     for iTraj = 1:nPlotTraj
       subplot(nPlotTraj,1,iTraj)
       hold on
-      s = stateTraj(iTraj,:);
+      s = stateTraj(:,iTraj);
       
       hl = plot(t,s);
       set(hl,'Color',[1 1 1]*0.3);

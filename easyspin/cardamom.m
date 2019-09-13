@@ -126,6 +126,9 @@
 %
 %   MD: structure with molecular dynamics simulation parameters
 %
+%     FrameTraj      frame trajectories, size (3,3,nSteps,nTraj)
+%     FrameTrajwrtProtein frame trajecoties with respect to protein frame,
+%                    size (3,3,nSteps,nTraj)
 %     dt             time step (in s) for saving MD trajectory snapshots
 %     tLag           time lag (in s) for sampling the MD trajectory to 
 %                    determine states and transitions, used for the hidden
@@ -295,8 +298,8 @@ if useMD
   if size(MD.RTraj,1)~=3 || size(MD.RTraj,2)~=3
     error('Frame trajectory in MD must be of size (3,3,nTraj,nSteps).');
   end
-  MD.nTraj = size(MD.RTraj,3);  % number of trajectories
-  MD.nSteps = size(MD.RTraj,4); % number of time steps
+  MD.nTraj = size(MD.RTraj,4);  % number of trajectories
+  MD.nSteps = size(MD.RTraj,3); % number of time steps
   if MD.nTraj~=1
     error('Can only handle MD data with a single trajectory.');
   end
@@ -690,8 +693,8 @@ while ~converged
         Par.dt = dtStoch;
         [~, RTrajLocal, qTrajLocal] = stochtraj_diffusion(Sys,Par,Opt);
         if useLocalPotential
-          RTrajLocal = RTrajLocal(:,:,:,nStepsStoch+1:end);
-          qTrajLocal = qTrajLocal(:,:,nStepsStoch+1:end);
+          RTrajLocal = RTrajLocal(:,:,nStepsStoch+1:end,:);
+          qTrajLocal = qTrajLocal(:,nStepsStoch+1:end,:);
         end
         
       case 'MD-HMM'
@@ -718,7 +721,7 @@ while ~converged
     end
     
     qLab = euler2quat(0, gridTheta(iOri), gridPhi(iOri), 'active');
-    qLab = repmat(qLab, [1,Par.nTraj,nStepsQuant]);
+    qLab = repmat(qLab,[1,nStepsQuant,Par.nTraj]);
     
     % Generate trajectory of global dynamics with a time step equal to that 
     % of the quantum propagation (these rotations will be performed AFTER

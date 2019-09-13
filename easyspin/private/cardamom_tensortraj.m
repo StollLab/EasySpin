@@ -3,11 +3,11 @@
 %
 % Input:
 %   T          tensor, either 3-vector, or 3x3 matrix
-%   RTraj      trajectories of rotation matrices, size (3,3,nTraj,nSteps)
+%   RTraj      trajectories of rotation matrices, size (3,3,nSteps,nTraj)
 %   RTrajInv   trajectories of rotation matrix inverses
 %
 % Output:
-%   TTraj      tensor trajectories, size (3,3,nTraj,nSteps)
+%   TTraj      tensor trajectories, size (3,3,nSteps,nTraj)
 
 function TTraj = cardamom_tensortraj(T,RTraj,RTrajInv)
 
@@ -23,10 +23,10 @@ if size(RTraj,1)~=3 || size(RTraj,2)~=3
   error('Rotation matrix trajectory needs to have size 3x3xnTrajxnSteps.')
 end
 
-nTraj = size(RTraj,3);
-nSteps = size(RTraj,4);
+nTraj = size(RTraj,4);
+nSteps = size(RTraj,3);
 
 TTraj = multimatmult(RTraj, ...
-                     multimatmult(repmat(T,1,1,nTraj,nSteps), RTrajInv));
+                     multimatmult(repmat(T,1,1,nSteps,nTraj), RTrajInv));
 
 end

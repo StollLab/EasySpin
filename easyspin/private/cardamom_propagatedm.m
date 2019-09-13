@@ -133,9 +133,9 @@ switch PropagationMethod
         for iState = 1:MD.nStates
           for iTraj = 1:nVitTraj
             idxState = MD.viterbiTraj(iTraj,:) == iState;
-            gTensorState(:,:,iState,iTraj) = squeeze(mean(gTensorMD(:,:,iTraj,idxState),4));
+            gTensorState(:,:,iState,iTraj) = squeeze(mean(gTensorMD(:,:,idxState,iTraj),3));
             if includeHF
-              ATensorState(:,:,iState,iTraj) = squeeze(mean(ATensorMD(:,:,iTraj,idxState),4));
+              ATensorState(:,:,iState,iTraj) = squeeze(mean(ATensorMD(:,:,idxState,iTraj),3));
             end
           end
         end
@@ -150,16 +150,16 @@ switch PropagationMethod
       % Calculate new time-dependent tensors from state trajectories
       % generated using optimized HMM parameters
       logmsg(2,'  calculating tensor trajectories from state trajectories');
-      gTensor = zeros(3,3,nTraj,nSteps);
+      gTensor = zeros(3,3,nSteps,nTraj);
       if includeHF
-        ATensor = zeros(3,3,nTraj,nSteps);
+        ATensor = zeros(3,3,nSteps,nTraj);
       end      
       for iState = 1:MD.nStates
         for iTraj = 1:nTraj
           idxState = Par.stateTraj(iTraj,:)==iState;
-          gTensor(:,:,iTraj,idxState) = repmat(gTensorState(:,:,iState),[1,1,1,sum(idxState)]);
+          gTensor(:,:,idxState,iTraj) = repmat(gTensorState(:,:,iState),[1,1,sum(idxState),1]);
           if includeHF
-            ATensor(:,:,iTraj,idxState) = repmat(ATensorState(:,:,iState),[1,1,1,sum(idxState)]);
+            ATensor(:,:,idxState,iTraj) = repmat(ATensorState(:,:,iState),[1,1,sum(idxState),1]);
           end
         end
       end
@@ -170,16 +170,16 @@ switch PropagationMethod
     %---------------------------------------------------------------------------
     if doBlockAveraging
       logmsg(2,'  coarse-graining with tensor averaging, block length %d frames',Par.BlockLength);
-      nBlocks = floor(size(gTensor,4)/Par.BlockLength);
-      gTensorBlock = zeros(3,3,size(gTensor,3),nBlocks);
+      nBlocks = floor(size(gTensor,3)/Par.BlockLength);
+      gTensorBlock = zeros(3,3,nBlocks,size(gTensor,4));
       if includeHF
-        ATensorBlock = zeros(3,3,size(ATensor,3),nBlocks);
+        ATensorBlock = zeros(3,3,nBlocks,size(ATensor,4));
       end
       idxBlock = 1:Par.BlockLength;
       for iBlock = 1:nBlocks
-        gTensorBlock(:,:,:,iBlock) = mean(gTensor(:,:,:,idxBlock),4);
+        gTensorBlock(:,:,iBlock,:) = mean(gTensor(:,:,idxBlock,:),3);
         if includeHF
-          ATensorBlock(:,:,:,iBlock) = mean(ATensor(:,:,:,idxBlock),4);
+          ATensorBlock(:,:,iBlock,:) = mean(ATensor(:,:,idxBlock,:),3);
         end
         idxBlock = idxBlock + Par.BlockLength;
       end
@@ -195,15 +195,15 @@ switch PropagationMethod
     %---------------------------------------------------------------------------
     if doSlidingWindowProcessing
       logmsg(2,'  sliding window processing, increment %d',Par.lag);
-      gTensor = zeros(3,3,nTraj,nSteps);
+      gTensor = zeros(3,3,nSteps,nTraj);
       if includeHF
-        ATensor = zeros(3,3,nTraj,nSteps);
+        ATensor = zeros(3,3,nSteps,nTraj);
       end
       idx = 1:nSteps;
       for iTraj = 1:nTraj
-        gTensor(:,:,iTraj,:) = gTensorBlock(:,:,1,idx);
+        gTensor(:,:,:,iTraj) = gTensorBlock(:,:,idx,1);
         if includeHF
-          ATensor(:,:,iTraj,:) = ATensorBlock(:,:,1,idx);
+          ATensor(:,:,:,iTraj) = ATensorBlock(:,:,idx,1);
         end
         idx = idx + Par.lag;
         if alternatingTrajDirection
@@ -277,16 +277,16 @@ switch PropagationMethod
       U = bsxfun(@times, exp(-1i*Dt*0.5*omega*Gp_zz), expadotI);
     else
       U = exp(-1i*Dt*0.5*omega*Gp_zz);
-      U = reshape(U,[nTraj,nSteps]);
+      U = reshape(U,[nSteps,nTraj]);
     end
     
     % Set up starting state of density matrix after pi/2 pulse, S_x
     %---------------------------------------------------------------------------
     if includeHF
-      rho = zeros(3,3,nTraj,nSteps);
-      rho(:,:,:,1) = 0.5*repmat(eye(3),[1,1,nTraj]);
+      rho = zeros(3,3,nSteps,nTraj);
+      rho(:,:,1,:) = 0.5*repmat(eye(3),[1,1,nTraj]);
     else
-      rho = zeros(nTraj,nSteps);
+      rho = zeros(nSteps,nTraj);
       rho(:,1) = 0.5;
     end
     
@@ -295,11 +295,8 @@ switch PropagationMethod
     logmsg(2,'  propagate density matrix');
     Sprho = propagate(rho,U,PropagationMethod,nSteps);
     
-    % Average over trajectories (3rd dimension)
-    Sprho = mean(Sprho,3);
-    siz = size(Sprho);
-    siz(3) = [];
-    Sprho = reshape(Sprho,siz); % remove 3rd dim which is now singleton
+    % Average over trajectories (4th dimension)
+    Sprho = mean(Sprho,4);
     
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   case 'ISTOs'  % see Ref [2]
@@ -356,11 +353,11 @@ switch PropagationMethod
 
       % Average the Wigner D-matrices over time blocks
       if doBlockAveraging
-        nBlocks = floor(size(D2Traj,4)/Par.BlockLength);
+        nBlocks = floor(size(D2Traj,3)/Par.BlockLength);
         D2BlockAvg = zeros(5,5,nBlocks);
         idx = 1:Par.BlockLength;
         for iBlock = 1:nBlocks
-          D2BlockAvg(:,:,iBlock) = mean(D2Traj(:,:,:,idx),4);
+          D2BlockAvg(:,:,iBlock) = mean(D2Traj(:,:,idx,:),3);
           idx = idx + Par.BlockLength;
         end
       else
@@ -369,10 +366,10 @@ switch PropagationMethod
         
       % Sliding window processing
       if doSlidingWindowProcessing
-        D2Traj = zeros(5,5,nTraj,nSteps);
+        D2Traj = zeros(5,5,nSteps,nTraj);
         idx = 1:nSteps;
         for iTraj = 1:nTraj
-          D2Traj(:,:,iTraj,:) = D2BlockAvg(:,:,idx);
+          D2Traj(:,:,:,iTraj) = D2BlockAvg(:,:,idx);
           idx = idx + Par.lag;
           if alternatingTrajDirection
             idx = flip(idx);
@@ -381,7 +378,7 @@ switch PropagationMethod
       else
         D2Traj = D2BlockAvg;
       end
-        
+      
       % Cache processed trajectory if using a MD trajectory
       if useMD
         cacheD2Traj = D2Traj;
@@ -398,10 +395,10 @@ switch PropagationMethod
     % Calculate Hamiltonians
     %---------------------------------------------------------------------------
     H0 = cacheTensors.H0;
-    H = repmat(cacheTensors.Q0,[1,1,nTraj,nSteps]);
+    H = repmat(cacheTensors.Q0,[1,1,nSteps,nTraj]);
     for mp = 1:5
       for m = 1:5
-        H = H + bsxfun(@times, D2Traj(m,mp,:,1:nSteps), cacheTensors.Q2{mp,m});
+        H = H + bsxfun(@times, D2Traj(m,mp,1:nSteps,:), cacheTensors.Q2{mp,m});
       end
     end
     
@@ -421,26 +418,23 @@ switch PropagationMethod
     U = zeros(size(H));
     for iStep = 1:nSteps
       for iTraj = 1:nTraj
-        U_ = expm_(1i*Dt*SzFilter.*H(:,:,iTraj,iStep),algo);
-        U(:,:,iTraj,iStep) = U0*U_;
+        U_ = expm_(1i*Dt*SzFilter.*H(:,:,iStep,iTraj),algo);
+        U(:,:,iStep,iTraj) = U0*U_;
       end
     end
     
     % Set up starting state of density matrix after pi/2 pulse, S_x
     %---------------------------------------------------------------------------
-    rho = zeros(Sys.nStates,Sys.nStates,nTraj,nSteps);
+    rho = zeros(Sys.nStates,Sys.nStates,nSteps,nTraj);
     rho0 = sop(Sys.Spins,'x1');
-    rho(:,:,:,1) = repmat(rho0,1,1,nTraj,1);
+    rho(:,:,1,:) = repmat(rho0,[1,1,1,nTraj]);
     
     % Propagate density matrix
     %---------------------------------------------------------------------------
     rho = propagate(rho,U,PropagationMethod,nSteps);
     
-    % Average over trajectories (3rd dimension)
-    rho = mean(rho,3);
-    siz = size(rho);
-    siz(3) = [];
-    rho = reshape(rho,siz); % remove 3rd dim which is now singleton
+    % Average over trajectories (4th dimension)
+    rho = mean(rho,4);
     
     % Multiply density matrix result by S_+ detection operator
     %---------------------------------------------------------------------------
@@ -472,10 +466,10 @@ switch Method
     switch ndims(rho)
       case 4 % S=1/2 plus one nucleus
         for iStep = 2:nSteps
-          rho(:,:,:,iStep) = ...
-            multimatmult( U(:,:,:,iStep-1),...
-            multimatmult( rho(:,:,:,iStep-1),...
-            U(:,:,:,iStep-1) ) );
+          rho(:,:,iStep,:) = ...
+            multimatmult( U(:,:,iStep-1,:),...
+            multimatmult( rho(:,:,iStep-1,:),...
+            U(:,:,iStep-1,:) ) );
         end
       case 2 % special case of S=1/2 system, where propagator U is a scalar
         for iStep = 2:nSteps
@@ -488,10 +482,10 @@ switch Method
     
     Uadj = conj(permute(U,[2,1,3,4])); % adjoint of propagator
     for iStep = 2:nSteps
-      rho(:,:,:,iStep) = ...
-        multimatmult( U(:,:,:,iStep-1),...
-        multimatmult( rho(:,:,:,iStep-1),...
-        Uadj(:,:,:,iStep-1) ) );
+      rho(:,:,iStep,:) = ...
+        multimatmult( U(:,:,iStep-1,:),...
+        multimatmult( rho(:,:,iStep-1,:),...
+        Uadj(:,:,iStep-1,:) ) );
     end
 end
 
