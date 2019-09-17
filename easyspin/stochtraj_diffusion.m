@@ -87,10 +87,10 @@
 %     t              matrix, size = (nSteps,1) 
 %                    time points of the trajectory (in seconds)
 %
-%     RTraj          4D array, size = (3,3,nTraj,nSteps)
+%     RTraj          4D array, size = (3,3,nSteps,nTraj)
 %                    trajectories of rotation matrices
 %
-%     qTraj          3D array, size = (4,nTraj,nSteps)
+%     qTraj          3D array, size = (4,nSteps,nTraj)
 %                    trajectories of normalized quaternions
 
 function varargout = stochtraj_diffusion(Sys,Par,Opt)
@@ -425,8 +425,11 @@ while ~converged
 end
 totSteps = size(qTraj,3);
 
+qTraj = permute(qTraj,[1 3 2]); % -> (4,nSteps,nTraj)
+
 t = linspace(0, totSteps*Sim.dt, totSteps).';
 RTraj = quat2rotmat(qTraj);
+
 
 logmsg(2,'-- Propagation finished --------------------------------------');
 logmsg(2,'--------------------------------------------------------------');

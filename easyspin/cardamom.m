@@ -126,6 +126,9 @@
 %
 %   MD: structure with molecular dynamics simulation parameters
 %
+%     FrameTraj      frame trajectories, size (3,3,nSteps,nTraj)
+%     FrameTrajwrtProtein frame trajecoties with respect to protein frame,
+%                    size (3,3,nSteps,nTraj)
 %     dt             time step (in s) for saving MD trajectory snapshots
 %     tLag           time lag (in s) for sampling the MD trajectory to 
 %                    determine states and transitions, used for the hidden
@@ -295,8 +298,11 @@ if useMD
   if size(MD.RTraj,1)~=3 || size(MD.RTraj,2)~=3
     error('Frame trajectory in MD must be of size (3,3,nTraj,nSteps).');
   end
-  MD.nTraj = size(MD.RTraj,3);  % number of trajectories; assumed to be one for now
-  MD.nSteps = size(MD.RTraj,4); % number of time steps
+  MD.nTraj = size(MD.RTraj,4);  % number of trajectories
+  MD.nSteps = size(MD.RTraj,3); % number of time steps
+  if MD.nTraj~=1
+    error('Can only handle MD data with a single trajectory.');
+  end
     
   % Check for orthogonality of rotation matrices
   RTrajInv = permute(MD.RTraj,[2,1,3,4]);
@@ -391,10 +397,10 @@ if useMD
 end
 
 if isfield(Sys,'Potential')
-  isLocalPotential = true;
+  useLocalPotential = true;
   LocalPotential = Sys.Potential;
 else
-  isLocalPotential = false;
+  useLocalPotential = false;
 end
 
 % Check Opt
@@ -449,7 +455,7 @@ end
 % Check Par.dt
 if isfield(Par,'dt')
   if useMDdirect
-    error('For MD-direct simulations, Par.dt is not allowed.');
+    error('For MD-direct simulations, Par.dt is not allowed. The time step is taken from the MD input.');
   end
   if Par.Dt<Par.dt
     error('The stochastic time step Par.dt must be less than or equal to Par.Dt.')
@@ -551,7 +557,7 @@ switch LocalDynamicsModel
         pdf(end,:,:) = pdf(1,:,:);  % FIXME why does it truncate to zero in the phi direction?
         pdf = smooth3(pdf,'gaussian');
         pdf(pdf<1e-14) = 1e-14;  % put a finite floor on histogram
-        isLocalPotential = true;
+        useLocalPotential = true;
         LocalPotential = -log(pdf);
         
       case 'MD-HMM'
@@ -575,23 +581,18 @@ end
 %-------------------------------------------------------------------------------
 
 nOrientations = Par.nOrients;
-Orients = [];
+Orientations = [];
 if isfield(Par,'Orients')
-  Orients = Par.Orients;
-  if isvector(Orients)
-    % assure that Orients is a column vector
-    Orients = Orients(:);
-    if nOrientations>1
-      % if only one orientation, then repeat it nOrients times
-      Orients = repmat(Orients,[1,nOrientations]);
-    end
+  Orientations = Par.Orients;
+  if isvector(Orientations)
+    Orientations = repmat(Orientations(:),[1,nOrientations]);
   end
 end
 
 % Set up orientational grid for powder averaging
-if ~isempty(Orients)
-  gridPhi = Orients(1,:);
-  gridTheta = Orients(2,:);
+if ~isempty(Orientations)
+  gridPhi = Orientations(1,:);
+  gridTheta = Orientations(2,:);
   weight = ones(size(gridPhi));
   weight = weight/sum(weight);
 else
@@ -630,9 +631,11 @@ iter = 1;
 spcArray = [];
 nOrientsTot = 0;
 
-t = linspace(0, nStepsQuant*Par.Dt, nStepsQuant);
+t = linspace(0, nStepsQuant*Par.Dt, nStepsQuant).';
 
+includeGlobalDynamics = ~isempty(Dynamics.DiffGlobal);
 converged = false;
+spcLast = 0;
 while ~converged
   tic
 
@@ -645,8 +648,9 @@ while ~converged
   itCell = cell(1,nOrientations);
 
   updateuser(0);
-  for iOrient = 1:nOrientations
-    logmsg(1,' Orientation %d/%d',iOrient,nOrientations);
+  for iOri = 1:nOrientations
+    logmsg(1,' Orientation %d/%d',iOri,nOrientations);
+    
     % Generate trajectory of local dynamics
     switch LocalDynamicsModel
       
@@ -655,12 +659,12 @@ while ~converged
         Sys.Diff = Dynamics.Diff;
         Par.dt = dtStoch;
         Par.nSteps = nStepsStoch;
-        if isLocalPotential
+        if useLocalPotential
           Sys.Potential = LocalPotential;
           Par.nSteps = 2*nStepsStoch;
         end
         [~, RTrajLocal, qTrajLocal] = stochtraj_diffusion(Sys,Par,Opt);
-        if isLocalPotential
+        if useLocalPotential
           RTrajLocal = RTrajLocal(:,:,:,nStepsStoch+1:end);
           qTrajLocal = qTrajLocal(:,:,nStepsStoch+1:end);
         end
@@ -672,28 +676,29 @@ while ~converged
         [~, RTrajLocal, qTrajLocal] = stochtraj_jump(Sys,Par,Opt);
         
       case 'MD-direct'
-            
-        % the MD trajectories are not changing, so RTraj and qTraj were
-        % processed earlier outside of the orientation loop
-            
+        
+        % the MD trajectories are not changing with orientation,
+        % RTraj and qTraj were processed earlier outside of the
+        % orientation loop
+        
       case 'MD-HBD'
             
         Sys.Diff = DiffLocal;
         Par.nSteps = nStepsStoch;
 %             Sys.Potential = LocalPotential;
-        if isLocalPotential
+        if useLocalPotential
           Sys.Potential = LocalPotential;
           Par.nSteps = 2*nStepsStoch;
         end
         Par.dt = dtStoch;
         [~, RTrajLocal, qTrajLocal] = stochtraj_diffusion(Sys,Par,Opt);
-        if isLocalPotential
-          RTrajLocal = RTrajLocal(:,:,:,nStepsStoch+1:end);
-          qTrajLocal = qTrajLocal(:,:,nStepsStoch+1:end);
+        if useLocalPotential
+          RTrajLocal = RTrajLocal(:,:,nStepsStoch+1:end,:);
+          qTrajLocal = qTrajLocal(:,nStepsStoch+1:end,:);
         end
-
+        
       case 'MD-HMM'
-
+        
         Sys.TransProb = HMM.TransProb;
         Par.dt = dtStoch;
         Par.nSteps = 2*nStepsStoch;
@@ -715,14 +720,16 @@ while ~converged
       Par.RTraj = RTrajLocal;
     end
     
+    qLab = euler2quat(0, gridTheta(iOri), gridPhi(iOri), 'active');
+    qLab = repmat(qLab,[1,nStepsQuant,Par.nTraj]);
+    
     % Generate trajectory of global dynamics with a time step equal to that 
     % of the quantum propagation (these rotations will be performed AFTER
     % the time-dependent interaction tensors are calculated and possibly 
     % averaged)
-    includeGlobalDynamics = ~isempty(Dynamics.DiffGlobal);
     if includeGlobalDynamics
      Sys.Diff = Dynamics.DiffGlobal;
-     if isLocalPotential
+     if useLocalPotential
        Sys.Potential = [];
      elseif isGlobalPotential
        Sys.Potential = GlobalPotential;
@@ -730,15 +737,10 @@ while ~converged
      Par.dt = dtQuant;
      Par.nSteps = nStepsQuant;
      [~, ~, qTrajGlobal] = stochtraj_diffusion(Sys,Par,Opt);
-    end
-    
-    % Combine global trajectories with starting orientations
-    qLab = repmat(euler2quat(0, gridTheta(iOrient), gridPhi(iOrient), 'active'),...
-                  [1,Par.nTraj,nStepsQuant]);
-    if includeGlobalDynamics
+      % Combine global trajectories with starting orientations
       qLab = quatmult(qLab,qTrajGlobal);
     end
-    
+        
     if strcmp(Opt.Method,'ISTOs')
       Par.qLab = qLab;
     else
@@ -752,21 +754,20 @@ while ~converged
     Sprho = cardamom_propagatedm(Sys,Par,Opt,MD,omega0,CenterField);
     
     % Calculate the time-domain signal, i.e. the expectation value of S_{+}
-    iTDSignal{1,iOrient} = 0;
+    iTDSignal{1,iOri} = 0;
     for k = 1:size(Sprho,1)
-      iTDSignal{1,iOrient} = iTDSignal{1,iOrient} + squeeze(Sprho(k,k,:));
+      iTDSignal{1,iOri} = iTDSignal{1,iOri} + squeeze(Sprho(k,k,:));
     end
-    
-    iTDSignal{1,iOrient} = weight(iOrient)*iTDSignal{1,iOrient};
+    iTDSignal{1,iOri} = weight(iOri)*iTDSignal{1,iOri};
     
     if Opt.Verbosity
-      updateuser(iOrient,nOrientations,false);
+      updateuser(iOri,nOrientations,false);
     end
     
-    itCell{1,iOrient} = t.';
+    itCell{1,iOri} = t;
     
   end
-
+  
   % Store simulations at new starting orientations from each iteration
   TDSignal = cat(2, TDSignal, iTDSignal);
   tCell = cat(2, tCell, itCell);
@@ -813,22 +814,16 @@ while ~converged
   % Multiply by t for differentiation and take the FFT
   spcArray = cat(2, spcArray, imag(fftshift(fft(bsxfun(@times,TDSignal,tLong), [], 1))));
   spcNew = mean(spcArray,2);
-
+  
   if checkConvergence
-    if iter==1
-      spcLast = spcNew;
-      rmsdNew = NaN;
-    else
-      span = max(spcNew)-min(spcNew);
-      rmsdNew = sqrt(mean((spcNew-spcLast).^2))/span;
-      if rmsdNew<2e-2
-        converged = true;
-      elseif iter>2
-        rmsdPctChange = abs(100*(rmsdNew-rmsdLast)/rmsdLast)
-        converged = rmsdPctChange<50;
-      end
+    span = max(spcNew)-min(spcNew);
+    rmsdNew = sqrt(mean((spcNew-spcLast).^2))/span;
+    if rmsdNew<2e-2
+      converged = true;
+    elseif iter>2
+      rmsdRelativeChange = abs((rmsdNew-rmsdLast)/rmsdLast);
+      converged = rmsdRelativeChange<0.5;
     end
-
   else
     converged = true;
   end
@@ -845,9 +840,9 @@ while ~converged
     skip = iter*nOrientsTot;  % seed Sobol sequence generator for next iteration
     
     nOrientations = nOrientsTot;
-    if ~isempty(Orients)
-      gridPhi = repmat(Orients(1,:),[1,2^(iter-1)]);
-      gridTheta = repmat(Orients(2,:),[1,2^(iter-1)]);
+    if ~isempty(Orientations)
+      gridPhi = repmat(Orientations(1,:),[1,2^(iter-1)]);
+      gridTheta = repmat(Orientations(2,:),[1,2^(iter-1)]);
     else
       gridPts = 2*cardamom_sobol_generate(1,nOrientations,skip)-1;
       gridPhi = sqrt(pi*nOrientations)*asin(gridPts);
@@ -896,14 +891,13 @@ end
 TDSignal = mean(TDSignal, 2);
 TDSignal = TDSignal(1:Par.nSteps);
 
-% Final processing
+% Plotting, output
 %-------------------------------------------------------------------------------
-
 switch nargout
 case 0
   cla
-  if FieldSweep  % TODO fix output plotting
-    if (xAxis(end)<10000)
+  if FieldSweep
+    if xAxis(end)<10000
       plot(xAxis,outspc);
       xlabel('magnetic field (mT)');
     else
@@ -914,7 +908,7 @@ case 0
     ylabel('intensity (arb.u.)');
     title(sprintf('%0.8g GHz',Exp.mwFreq));
   else
-    if (xAxis(end)<1)
+    if xAxis(end)<1
       plot(xAxis*1e3,spc);
       xlabel('frequency (MHz)');
     else
