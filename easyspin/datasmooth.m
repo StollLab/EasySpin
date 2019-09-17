@@ -30,11 +30,11 @@
 
 function y_filtered = datasmooth(y,m,Method,PolyOrder,Derivative)
 
-if (nargin==0), help(mfilename); return; end
-
-if (nargin<3), Method = 'binom'; end
-if (nargin<4), PolyOrder = 2; end
-if (nargin<5), Derivative = 0; end
+if nargin==0, help(mfilename); return; end
+if nargin<2, m = 3; end
+if nargin<3, Method = 'binom'; end
+if nargin<4, PolyOrder = 2; end
+if nargin<5, Derivative = 0; end
 
 if ~isreal(m) || numel(m)~=1 || ~isfinite(m) || (m<0) || mod(m,1)
   error('m (second parameter) must be a positive integer!');
@@ -53,14 +53,14 @@ mRight = m;
 n = mLeft + mRight + 1;
 
 switch Method
-  case 'flat',
+  case 'flat'
     if (nargin<3) || (nargin>3), error('Wrong number of input arguments!'); end
     Weights = ones(1,n)/n;
-  case 'binom',
+  case 'binom'
     if (nargin<2) || (nargin>3), error('Wrong number of input arguments!'); end
     Weights = diag(flipud(pascal(n))).';
     Weights = Weights/2^(n-1);
-  case 'savgol',
+  case 'savgol'
     X = repmat((-mLeft:mRight).',1,PolyOrder+1).^repmat(0:PolyOrder,n,1);
     F = pinv(X);
     Weights = (-1)^Derivative*F(Derivative+1,:);
@@ -68,11 +68,9 @@ switch Method
     error('Unknown value for third argument!');
 end
 
-[r,c] = size(y);
-RowVec = (r==1);
+RowVec = isrow(y);
 if RowVec
   y = y.';
-  c = r;
 end
 
 % Enlarge vector(s) at beginning and end.

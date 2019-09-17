@@ -19,10 +19,10 @@
 
 function out = estest(TestName,params)
 
-% Check whether EasySpin is on the Matlab path
+% Check whether EasySpin is on the MATLAB path
 EasySpinPath = fileparts(which('easyspin'));
 if isempty(EasySpinPath)
-  error('EasySpin is not on the Matlab path!');
+  error('EasySpin is not on the MATLAB path!');
 end
 
 fid = 1; % output to command window
@@ -59,7 +59,7 @@ end
 TestFileNames = sort({FileList.name});
 
 fprintf(fid,'=======================================================================\n');
-fprintf(fid,'EasySpin test set                      %s\n(Matlab %s)\n',datestr(now),version);
+fprintf(fid,'EasySpin test set                      %s\n(MATLAB %s)\n',datestr(now),version);
 fprintf(fid,'EasySpin location: %s\n',EasySpinPath);
 fprintf(fid,'=======================================================================\n');
 fprintf(fid,'Display: %d, Regenerate: %d, Verbosity: %d\n',...

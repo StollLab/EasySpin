@@ -113,7 +113,7 @@ further down on this page.
 The structure <code>FitOpt</code> contains fitting options. The most important ones select the fitting algorithm and the function to use for computing the residuals:
 </p>
 
-<div class="optionfield"><code>Method</code></div>
+<div class="optionfield"><code>FitOpt.Method</code></div>
 <div class="optiondescr">
 A string indicating the least-squares fitting method to be used, consisting of up to two keywords.
 One keyword specifies the algorithm, and another one selects the way residuals are computed. Some examples:
@@ -150,7 +150,7 @@ the spectra can be transformed before computing the residuals.
 The default value is <code>'fcn'</code>. If there are many resolved lines, <code>'int'</code> gives better convergence.
 </div>
 
-<div class="optionfield"><code>Scaling</code></div>
+<div class="optionfield"><code>FitOpt.Scaling</code></div>
 <div class="optiondescr">
 This string specifies the scaling method. There are different ways a simulated spectrum can be scaled and shifted to overlap as much as possible with the experimental one during the fitting process. The possible values are:
 
@@ -180,18 +180,18 @@ To include corrections for a baseline in the experimental spectrum, use <code>'l
 <p>
 There are more options which are recognized by all fitting algorithms:
 
-<div class="optionfield"><code>maxTime</code></div>
+<div class="optionfield"><code>FitOpt.maxTime</code></div>
 <div class="optiondescr">
 Time, in minutes, after which <code>esfit</code> will terminate even if the fitting has not yet converged.
 </div>
 
-<div class="optionfield"><code>PrintLevel</code></div>
+<div class="optionfield"><code>FitOpt.PrintLevel</code></div>
 <div class="optiondescr">
 A number, 0 or 1. If set to 0, the fitting functions don't write anything to the command window. If set to 1 (default),
 they print information about the progress of the fitting.
 </div>
 
-<div class="optionfield"><code>OutArg</code></div>
+<div class="optionfield"><code>FitOpt.OutArg</code></div>
 <div class="optiondescr">
 This is an array with two numbers <code>[nArgOut useArg]</code> that tells <code>esfit</code> how to use the output arguments of the simulation function, which may only be required for advanced usage, e.g. when using a custom fitting function. <code>nArgOut</code> is the number of outputs provided by the function. <code>esfit</code> will call the function asking for this number of outputs. The second number, <code>useArg</code>, tells <code>esfit</code>  which of the output arguments actually contains the simulated data.
 <p>
@@ -209,55 +209,55 @@ Each of the available fitting algorithms can be fine-tuned using a set of parame
 Parameters for <span style="font-weight:bold;">Nelder/Mead downhill simplex</span>:
 </p>
 
-<div class="optionfield"><code>RandomStart</code></div>
+<div class="optionfield"><code>FitOpt.RandomStart</code></div>
 <div class="optiondescr">
 If set to 1, the starting point in the parameter space is chosen randomly, within the given limits set by <code>Vary</code>. If set to 0, which is the default value, the center of the parameter space is used as the starting point.
 </div>
 
-<div class="optionfield"><code>TolEdgeLength</code></div>
+<div class="optionfield"><code>FitOpt.TolEdgeLength</code></div>
 <div class="optiondescr">
 Termination tolerance for the length of the parameter step. This number refers to the rescaled fitting parameters, as described below under Algorithms.
 </div>
 
-<div class="optionfield"><code>TolFun</code></div>
+<div class="optionfield"><code>FitOpt.TolFun</code></div>
 <div class="optiondescr">
 Termination tolerance for error function value change.
 </div>
 
-<div class="optionfield"><code>SimplexPars</code></div>
+<div class="optionfield"><code>FitOpt.SimplexPars</code></div>
 <div class="optiondescr">
 An array of four elements <code>[rho chi psi sigma]</code>, where <code>rho</code> is the reflection coefficient, <code>chi</code> is the expansion coefficient, <code>psi</code> is the contraction coefficient, and <code>sigma</code> is the shrink coefficient. The default values are <code>[1,2,0.5,0.5]</code>.
 </div>
 
-<div class="optionfield"><code>delta</code></div>
+<div class="optionfield"><code>FitOpt.delta</code></div>
 <div class="optiondescr">
-Size parameter of the initial simplex. The default value is 0.1.
+Edge length of the initial simplex. The default value is 0.1.
 </div>
 
 <p>
 Parameters for <span style="font-weight:bold;">Levenberg-Marquardt</span>:
 
-<div class="optionfield"><code>RandomStart</code></div>
+<div class="optionfield"><code>FitOpt.RandomStart</code></div>
 <div class="optiondescr">
 If set to 1, the starting point in the parameter space is chosen randomly, within the given limits set by <code>Vary</code>. If set to 0, which is the default value, the center of the parameter space is used as the starting point.
 </div>
 
-<div class="optionfield"><code>TolStep</code></div>
+<div class="optionfield"><code>FitOpt.TolStep</code></div>
 <div class="optiondescr">
 Termination tolerance for the length of the parameter step. This number refers to the rescaled fitting parameters, as described above.
 </div>
 
-<div class="optionfield"><code>TolFun</code></div>
+<div class="optionfield"><code>FitOpt.TolFun</code></div>
 <div class="optiondescr">
 Termination tolerance for error function value change.
 </div>
 
-<div class="optionfield"><code>lambda</code></div>
+<div class="optionfield"><code>FitOpt.lambda</code></div>
 <div class="optiondescr">
 Starting value of Marquardt parameter &lambda;, default value is 0.001.
 </div>
 
-<div class="optionfield"><code>delta</code></div>
+<div class="optionfield"><code>FitOpt.delta</code></div>
 <div class="optiondescr">
 Step size for computing the finite-difference approximation of the Jacobian. Default is 1e-7.
 </div>
@@ -265,12 +265,12 @@ Step size for computing the finite-difference approximation of the Jacobian. Def
 <p>
 Parameters for <span style="font-weight:bold;">Monte Carlo</span>:
 
-<div class="optionfield"><code>nTrials</code></div>
+<div class="optionfield"><code>FitOpt.nTrials</code></div>
 <div class="optiondescr">
 Number of random trial simulations before termination.
 </div>
 
-<div class="optionfield"><code>TolFun</code></div>
+<div class="optionfield"><code>FitOpt.TolFun</code></div>
 <div class="optiondescr">
 Termination tolerance for error function value change.
 </div>
@@ -278,14 +278,14 @@ Termination tolerance for error function value change.
 <p>
 Parameters for the <span style="font-weight:bold;">genetic algorithm</span>:
 
-<div class="optionfield"><code>PopulationSize</code></div>
+<div class="optionfield"><code>FitOpt.PopulationSize</code></div>
 <div class="optiondescr">
 A number giving the size of the population, that is the number of parameter sets and simulations
 in one generation. The default value is 20, but for fittings with many parameters, this value
 should be increased.
 </div>
 
-<div class="optionfield"><code>maxGenerations</code></div>
+<div class="optionfield"><code>FitOpt.maxGenerations</code></div>
 <div class="optiondescr">
 A number specifying the maximum number of generations the algorithm should run. After this number
 has been reached, the algorithm terminates, no matter how good or bad the best fit so far is. The
@@ -296,7 +296,7 @@ are fitted, <code>maxGenerations</code> can be decreased.
 <p>
 Parameters for the <span style="font-weight:bold;">grid search<span>:
 
-<div class="optionfield"><code>GridSize</code></div>
+<div class="optionfield"><code>FitOpt.GridSize</code></div>
 <div class="optiondescr">
 A number or an array that specifies how many grid points there should be for each parameter. If one number is given, it is valid for all parameters. For example, let's
 assume that one g value and the linewidth are being fitted:
@@ -317,17 +317,17 @@ FitOpt.GridSize = [20 3]; % 10 points along g and 3 along lw, giving a total of 
 <p>
 Parameters for the <span style="font-weight:bold;">particle swarm</span>:
 
-<div class="optionfield"><code>nParticles</code></div>
+<div class="optionfield"><code>FitOpt.nParticles</code></div>
 <div class="optiondescr">
 Number of particles in the particle swarm.
 </div>
 
-<div class="optionfield"><code>TolFun</code></div>
+<div class="optionfield"><code>FitOpt.TolFun</code></div>
 <div class="optiondescr">
 Termination tolerance for error function value change.
 </div>
 
-<div class="optionfield"><code>SwarmParams</code></div>
+<div class="optionfield"><code>FitOpt.SwarmParams</code></div>
 <div class="optiondescr">
 A vector of four parameters for the algorithm, <code>[k w c1 c2]</code>. <code>k</code> is the velocity limit
 and determines how far a particle can move in an iteration (default 0.2). <code>w</code> is the inertial

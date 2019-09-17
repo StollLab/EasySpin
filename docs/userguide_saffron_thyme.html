@@ -64,7 +64,7 @@ In this guide, we are going to cover the following topics:
 </ul>
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="calling">Running the simulation</a></div>
+<a name="calling"><div class="subtitle">Running the simulation</div></a>
 Here is a quick example on how to run a manually defined two-pulse ESEEM with transient detection.
 The example below is the extension of what was shown at the end of this <a class="esf" href="userguide_saffron.html#userdef">section</a> in part I of the user guide.
 By now you should be familiar with how to set up a user-defined sequence so we are only going to discuss the additional fields:
@@ -179,6 +179,7 @@ Something to keep in mind: The entire detection window is used. This means, that
 <!-- ============================================================= -->
 <a name="frequency_modulated_pulses">
 <div class="subtitle">Frequency-modulated pulses</div>
+</a>
 
 <p>
 <a class="esf" href="saffron.html">saffron</a> not only supports monochromatic rectangular pulses, but works with all pulse shapes that are described in the <a class="esf" href="pulse.html">documentation</a> and the <a class="esf" href="userguide_shapedpulses.html">userguide</a> of pulse. 
@@ -245,6 +246,7 @@ Chirp180.Phase = pi;
 <!-- ============================================================= -->
 <a name="phase_cycling">
 <div class="subtitle">Changing pulse parameters with indirect dimensions</div>
+</a>
 
 <p> 
 In <a class="esf" href="userguide_saffron.html#userdef">part I</a> of the guide we discussed how to change delays in any dimension, so we are not going to cover it here again.
@@ -295,6 +297,7 @@ This gives you complete freedom with designing your experiment or running pulse 
 <!-- ============================================================= -->
 <a name="phase_cycling">
 <div class="subtitle">Phase cycling</div>
+</a>
 
 <p>
 <a class="esf" href="saffron.html">saffron</a> gives you a simple way to phase-cycle pulses with <code>Exp.PhaseCycle</code>.
@@ -360,6 +363,8 @@ Phase cycling in this form is not available for the <em>fast</em> method, but so
 <!-- ============================================================= -->
 <a name="relaxation_times">
 <div class="subtitle">Relaxation Times</div>
+</a>
+
 <p>
 The simplest way to use relaxation is to apply the same longitudinal and transverse relaxation times (in microseconds) to all transitions of the spin system.
 A 1.5 microseconds longitudinal relaxation time and a 0.5 microseconds transverse relaxation time can be assigned to all transitions in the system with
@@ -448,6 +453,7 @@ E.g. for two coupled (electron) spins with <i>S,</i> = 1/2, you get the followin
 <!-- ============================================================= -->
 <a name="tipsntricks">
 <div class="subtitle">Tips and Tricks</div>
+</a>
 
 <p>
 The detected signal corresponds to the expectation value of <i>&Scirc;</i><sub>-</sub>&rangle;.

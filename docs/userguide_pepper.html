@@ -57,7 +57,7 @@ There are the following advanced topics:
 </ul>
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="calling">Running the simulation</a></div>
+<a name="calling"><div class="subtitle">Running the simulation</div></a>
 
 <p>
 Solid-state cw EPR spectra of powders and single crystals are computed
@@ -111,7 +111,7 @@ Copy and paste the code above to your MATLAB command window to see the graph.
 </p>
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="spinsys">The spin system</a></div>
+<a name="spinsys"><div class="subtitle">The spin system</div></a>
 
 <p>
 The first input argument to <code>pepper</code> is a structure specifying
@@ -184,7 +184,7 @@ page about <a href="spinsystem.html">spin system structures</a> for details.
 </p>
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="broadenings">Broadenings</a></div>
+<a name="broadenings"><div class="subtitle">Broadenings</div></a>
 
 <p>
 No cw EPR spectrum is infinitely sharp. Lines are usually broadened due
@@ -263,7 +263,7 @@ sufficient.
 </p>
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="expparams">Basic experimental settings</a></div>
+<a name="expparams"><div class="subtitle">Basic experimental settings</div></a>
 
 <p>
 The second input argument, <code>Exp</code>, collects all experimental settings. Just as the spin system, <code>Exp</code> is a structure containing several fields.
@@ -332,7 +332,7 @@ function <a href="rcfilt.html">rcfilt</a> to the simulated spectrum.
 </p>
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="moreexpparams">More experimental settings</a></div>
+<a name="moreexpparams"><div class="subtitle">More experimental settings</div></a>
 
 <p>
 For more advanced spectral simulations, EasySpin offers more possibilities in the experimental parameter structure <code>Exp</code>.
@@ -373,7 +373,7 @@ Exp.mwPhase = 3*pi/180;          % 3 degrees dispersion admixed to absorption
 
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="crystals">Powders and crystals</a></div>
+<a name="crystals"><div class="subtitle">Powders and crystals</div></a>
 
 <p>
 If not specified otherwise, <code>pepper</code> computes a powder spectrum. But it is as well straightforward to simulate spectra for a single crystal. The orientation (or orientations if more than one) of the single crystal can be provided in the experiment structure field <code>Exp.CrystalOrientation</code>. This field should contain the tilt angles between <a href="frames.html">crystal and laboratory frame</a> (right-handed coordinate system with z along the static field and x along the microwave magnetic field), one set of three angles per row.
@@ -416,7 +416,7 @@ With the crystal symmetry given, <code>pepper</code> not only computes the spect
 
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="options">Simulation options</a></div>
+<a name="options"><div class="subtitle">Simulation options</div></a>
 
 <p>
 The third input argument to <code>pepper</code> contains simulation options.
@@ -492,7 +492,7 @@ on <a class="esf" href="pepper.html">pepper</a>.
 </p>
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="multicomponent">Multiple components</a></div>
+<a name="multicomponent"><div class="subtitle">Multiple components</div></a>
 
 <p>
 Often, an EPR spectrum shows a mixture of spin species.
@@ -526,7 +526,7 @@ to the number of components in a simulation.
 </p>
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="manynuclei">Systems with several nuclei</a></div>
+<a name="manynuclei"><div class="subtitle">Systems with several nuclei</div></a>
 
 <p>
 <code>pepper</code> uses matrix diagonalization as thed default method for simulating spectra. For systems with several nuclei this can be very time-consuming. To accelerate such computations, <code>pepper</code> provides first- and second-order perturbation theory as an alternative methods. The relevant simulation option that tells EasySpin about is <code>Opt.Method</code>.
@@ -564,7 +564,7 @@ plot(x,y1,'r',x,y2,'b');
 
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="nonequivpop">Non-equilibrium populations</a></div>
+<a name="nonequivpop"><div class="subtitle">Non-equilibrium populations</div></a>
 
 <p>
 <code>pepper</code> can handle both thermal equilibrium and non-equilibrium
@@ -620,7 +620,7 @@ pepper(Sys,Exp);
 </pre>
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="ordering">Partially ordered systems</a></div>
+<a name="ordering"><div class="subtitle">Partially ordered systems</div></a>
 
 <p>
 In powders and frozen solutions (disordered systems), paramagnetic molecules are randomly oriented
@@ -674,7 +674,7 @@ where the EasySpin function <a href="plegendre.html">plegendre</a> returns the a
 </p>
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="freqsweep">Frequency-swept spectra</a></div>
+<a name="freqsweep"><div class="subtitle">Frequency-swept spectra</div></a>
 
 <p>
 <code>pepper</code>, like the other cw EPR simulation functions <code>garlic</code>

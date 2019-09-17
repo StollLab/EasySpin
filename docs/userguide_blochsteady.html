@@ -45,7 +45,7 @@ This user guide contains the following topics:
 Keep in mind that <a class="esf" href="blochsteady.html">blochsteady</a> is a new function as of EasySpin 5, and it will likely change and expand in future releases.
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="calling">Time-domain cw EPR signal</a></div>
+<a name="calling"><div class="subtitle">Time-domain cw EPR signal</div></a>
 
 <p>
 EasySpin can calculate the periodic time-dependent response of a simple spin-1/2 to the excitation fields in a cw EPR experiment: an oscillating microwave field of amplitude B<sub>1</sub> perpendicular to the applied magnetic field B<sub>0</sub>, which is modulated with peak-to-peak amplitude B<sub>m</sub>.
@@ -93,7 +93,7 @@ plot(t,My,t,Mx);
 </pre>
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="options">Some options</a></div>
+<a name="options"><div class="subtitle">Some options</div></a>
 
 <p>
 In order to let you change some of the calculation settings, <a class="esf" href="blochsteady.html">blochsteady</a> can take one more input argument, a structure. In it, you can set the number of points you want to have in the time-domain signal:
@@ -112,7 +112,7 @@ Opt.Method = 'fft';  % alternative: 'td', which is slower
 </pre>
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="sweeps">Field sweeps</a></div>
+<a name="sweeps"><div class="subtitle">Field sweeps</div></a>
 
 <p>
 <a class="esf" href="blochsteady.html">blochsteady</a> does not have built-in capabilities for a field sweep. However, you can set one up using a <code>for</code> loop. Here is a brief example, using the same inputs as above:
@@ -135,7 +135,7 @@ ylabel('time (\mus)');
 </pre>
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="sweeps">Powders</a></div>
+<a name="powders"><div class="subtitle">Powders</div></a>
 
 You can use <a class="esf" href="blochsteady.html">blochsteady</a> to simulate rapid-scan spectra of powders. For spin systems with essentially isotropic g factors, there is a very compact way: First simulate the spectrum using <a class="esf" href="pepper.html">pepper</a>, and then use this to run a field sweep with <a class="esf" href="blcohsteady.html">blochsteady</a>.
 

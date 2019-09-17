@@ -42,14 +42,14 @@ This user guide contains the following sections:
 <li><a href = "#spinsys">Spin system</a></li>
 <li><a href = "#broadenings">Broadenings</a></li>
 <li><a href = "#expparams">Experimental settings</a></li>
-<li><a href = "#moreexpparams">Orientation selection</a></li>
+<li><a href = "#orisel">Orientation selection</a></li>
 <li><a href = "#crystals">Powders and crystals</a></li>
 <li><a href = "#options">Simulation options</a></li>
 <li><a href = "#options">Matrix diagonalization and perturbation theory</a></li>
 </ul>
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="calling">Invoking the simulation function salt</a></div>
+<a name="calling"><div class="subtitle">Invoking the simulation function salt</div></a>
 
 <p>
 Solid-state ENDOR spectra are computed
@@ -95,7 +95,7 @@ Copy and paste the code above to your MATLAB command window to see the graph.
 </p>
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="spinsys">The spin system</a></div>
+<a name="spinsys"><div class="subtitle">The spin system</div></a>
 
 <p>
 The first input argument to <code>salt</code> is a structure specifying
@@ -135,7 +135,7 @@ convolutional broadenings of the EPR spectrum (<code>lw</code> and <code>lwpp</c
 </p>
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="expparams">Basic experimental settings</a></div>
+<a name="expparams"><div class="subtitle">Basic experimental settings</div></a>
 
 <p>
 All experimental settings are given in the second input argument <code>Exp</code>,
@@ -215,7 +215,7 @@ selectivity of the ENDOR experiment. It is so important that we dedicate the
 next section to it.
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="oriselect">Orientation selection</a></div>
+<a name="oriselect"><div class="subtitle">Orientation selection</div></a>
 
 <p>
 In an ENDOR experiment of a disordered system, not all paramagnetic centers are excited.
@@ -263,7 +263,7 @@ if <code>ExciteWidth</code> is much smaller than <code>HStrain</code>.
 </pre>
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="crystals">Powders and crystals</a></div>
+<a name="crystals"><div class="subtitle">Powders and crystals</div></a>
 
 <p>
 If not specified otherwise, <code>salt</code> computes a powder spectrum. But it is as well straightforward to simulate spectra for a single crystal. The orientation (or orientations if more than one) of the single crystal can be provided in the experiment structure field <code>Exp.CrystalOrientation</code>. This field should contain the <a href="eulerangles.html">tilt angles</a> between <a href="frames.html">crystal and laboratory frame</a> (right-handed coordinate system with z along the static field and x along the microwave magnetic field), one set of three angles per row.
@@ -301,7 +301,7 @@ With the crystal symmetry given, <code>salt</code> not only computes the spectru
 </p>
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="options">Simulation options</a></div>
+<a name="options"><div class="subtitle">Simulation options</div></a>
 
 <p>
 The third input argument to <code>salt</code> contains simulation options.
@@ -377,7 +377,7 @@ There are more option fields available. For details, see the
 </p>
 
 <!-- ============================================================= -->
-<div class="subtitle"><a name="speedups">Matrix diagonalization and perturbation theory</a></div>
+<a name="speedups"><div class="subtitle">Matrix diagonalization and perturbation theory</div></a>
 
 <p>
 By default, EasySpin uses matrix diagonalization for computing ENDOR spectra.

@@ -230,6 +230,9 @@ if FastMotionRegime
       error('Cannot treat equivalent nuclei in fast-motion regime!\n Please rewrite spin system!');
     end
   end
+  if isfield(Sys,'Potential')
+    error('garlic cannot simulate fast-motion spectra with an orienting potential (Sys.Potential).');
+  end
 end
 
 ConvolutionBroadening = any(Sys.lw>0) || FastMotionRegime;
