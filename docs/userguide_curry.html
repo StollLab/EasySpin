@@ -28,7 +28,7 @@
 <div class="functitle">Calculating magnetic moment and magnetic susceptibility</div>
 
 <p>
-EasySpin can calculate magnetic moments and magnetic susceptibilities for arbitrary spin systems. Experimentally, these are obtained using a SQUID magnetometer. This user guide explains how to calculate these quantities.
+EasySpin can calculate magnetic moments and magnetic susceptibilities for arbitrary spin systems. Experimentally, these are typically obtained using a SQUID magnetometer. This user guide explains how to calculate these quantities.
 
 <p>
 The following topics are covered:
@@ -36,6 +36,7 @@ The following topics are covered:
 <li><a href="#calling">Running the calculation</a>
 <li><a href="#spins">The spin system</a>
 <li><a href="#exp">Experimental parameters</a>
+<li><a href="#output">Speciying the type of output</a>
 <li><a href="#units">Units and different representations of the susceptibility</a>
 <li><a href="#crystals">Single crystals</a>
 <li><a href="#options">Calculation options</a>
@@ -46,23 +47,24 @@ The following topics are covered:
 <a name="calling"><div class="subtitle">Running the calculation</div></a>	
 
 <p>
-To calculate magnetic moments and magnetic susceptibilities, you need to provide information on the sample (spin system) and the fields and temperatures used in the SQUID measurement. With these, you then call the function <a class="esf" href="curry.html">curry</a>. Depending on what quantity you want to calculate, you ask for a different number of outputs from <a class="esf" href="curry.html">curry</a>:
+To calculate magnetic moments and magnetic susceptibilities, you need to provide information on the sample (spin system) and the fields and temperatures used in the measurement. With these, you then call the function <a class="esf" href="curry.html">curry</a>. By default, it returns one or two outputs, but this can be customized:
 
 <pre class="matlab">
-muz = curry(Sys,Exp);
-[muz,chizz] = curry(Sys,Exp);
+muBM = curry(Sys,Exp);
+[muBM,chimol] = curry(Sys,Exp);
 </pre>
 
 <p>
-<code>Sys</code> contains the spin system, and <code>Exp</code> contains the experimental parameters. <code>muz</code> is the z component of the magnetic dipole moment, and <code>chizz</code> is the zz component of the magnetic susceptibility.
+<code>Sys</code> contains the spin system, and <code>Exp</code> contains the experimental parameters. <code>muBM</code> is the z component of the magnetic dipole moment in units of Bohr magnetons, and <code>chimol</code> is the zz component of the molar magnetic susceptibility. z indicates the direction along the external magnetic field.
 
 <p>
-Additionally, you can provide a third input argument, <code>Opt</code> that contains some calculation options and allow to customize the output. For example,
+Additionally, you can provide a third input argument, <code>Opt</code>, that is a structure containing calculation options such as which output to provide and with system of units (SI or CGS) to use. For example,
 
 <pre class="matlab">
-muz = curry(Sys,Exp,Opt);
+Opt.Units = 'CGS';           % use CGS-emu units
+Opt.Output = 'chimol';       % calculate molar magnetic susceptibility
+chimol = curry(Sys,Exp,Opt);
 </pre>
-
 
 <!-- ============================================================= -->
 <a name="spins"><div class="subtitle">The spin system</div></a>
@@ -77,7 +79,7 @@ Sys.J = -2*-10*29.98e3;   % MHz
 </pre>
 
 <p>
-Be mindful that EasySpin's isotropic electron-electron coupling term <code>Sys.J</code> uses the convention H = +J S<sub>1</sub>S<sub>2</sub>. Other conventions are often used in the literature. See <a href="hamiltonian.html#eei">here</a> for details.
+Be mindful that EasySpin's isotropic electron-electron coupling term <code>Sys.J</code> uses the convention +J S<sub>1</sub>S<sub>2</sub>. Other conventions are often used in the literature. See <a href="hamiltonian.html#eei">here</a> for details.
 
 <p>
 Also, EasySpin expects all couplings in units of MHz. Very often, exchange couplings are given in cm<sup>-1</sup>. To convert cm<sup>-1</sup> to MHz use
@@ -91,15 +93,15 @@ Sys.J = 5 * 29.98e3;   % all in one line
 </pre>
 
 <p>
-You can also give symmetric and antisymmetric coupling terms, in <code>Sys.dip</code> and <code>Sys.dvec</code>.
+You can also give antisymmetric and symmetric coupling terms, in <code>Sys.dvec</code> and <code>Sys.eeD</code>, for details see the page on <a href="spinsystem">spin system structures</a>.
 </p>
 
 <p>
 Often a term called temperature-independent paramagnetism (TIP or &chi;<sub>TIP</sub>) is included to model the magnetic susceptibility. It is simply added to &chi;<sub>zz</sub>.
 <pre class="matlab">
-TIP_cgs = 5e-4;             % value in cm^3 mol^-1
-TIP_si = TIP_cgs*4*pi*1e-6; % unit conversion from CGS to SIunits
-Sys.TIP = TIP_si;           % EasySpin expect TIP to be in SI units
+TIP_CGSemu = 5e-4;              % value in cm^3 mol^-1
+TIP_SI = TIP_CGSemu*4*pi*1e-6;  % conversion from CGS-emu to SI units
+Sys.TIP = TIP_SI;               % EasySpin expect TIP to be in SI units
 
 Sys.TIP = 5e-4*4*pi*1e-6;   % all in one line
 </pre>
@@ -129,21 +131,27 @@ For the magnetic field, use <code>Exp.Field</code> and provide the field values 
 
 <pre class="matlab">
 Exp.Field = 3000;       % 3000 mT = 3 T
-Exp.Field = 0:10:6000;  % 0 t 6T range
+Exp.Field = 0:10:6000;  % 0 to 6T range
 </pre>
 
 <p>
 If you give a single value for both the temperature and the field, <a class="esf" href="curry.html">curry</a> calculates single values for the outputs. If you provide a single value for one of the parameters and an array for the other, you get an array of results. For example, providing <code>Exp.Field = 1000;</code> and <code>Exp.Temperature = 4:300</code> will yield curves as a function of temperature. Finally, if you provide arrays for both field and temperature, <a class="esf" href="curry.html">curry</a> returns 2D arrays for the results.
 
 <p>
-Most SQUID measurement protocols do not use the same field and temperature steps for measurements of the magnetic moment and magnetic susceptibility. To simulate both in one call of curry, you can provide different field and temperature ranges for the two quantities.
+Most SQUID measurement protocols do not use the same field and temperature steps for measurements of the magnetic moment and magnetic susceptibility. To simulate this, call <a class="esf" href="curry.html">curry</a> twice:
 
 <pre class="matlab">
-Exp.chiTemperature = 4:300;    % large temperature range for magnetic susceptibilty
-Exp.chiField = [0, 500];       % two fields for magnetic susceptibilty 
+% calculate magnetic moment for a few temperature over full field range
+Exp.Temperature = [2,5,7,10];  % few temperatures (K)
+Exp.Field = 0:10:6000;         % full field range (mT)
+Opt.Output = 'muBM';
+muBM = curry(Sys,Exp,Opt)
 
-Exp.mTemperature = [2,5,7,10]; % few temperatures for magnetic moment
-Exp.mField = 0:10:6000;        % 0 t 6T range for magnetic moment
+% calculate magnetic susceptibility for a few temperature over full field range
+Exp.Temperature = 4:300;    % large temperature range (K)
+Exp.Field = [0, 500];       % two field values (mT)
+Opt.Output = 'chimol';
+chimol = curry(Sys,Exp,Opt)
 </pre>
 
 <p>
@@ -154,10 +162,48 @@ m4chi =  curry(Sys,Exp,Opt);          % magnetic moment at the field used in the
 chisim_cgs = m4chi*avogadro*bmagn*1e2./repmat(Exp.Field(:),1,numel(Exp.Temperature));
 chisim_si = (4*pi*1e-6) *chisim_cgs ; % convert to SI units
 </pre>
+
+<!-- ============================================================= -->
+<div class="subtitle" name="output">Specifying the type of output</div>
  
+<p>
+Several representations for magnetometry data and simulation exists. You can get all of them, or only those which are wanted, from <code>curry</code>:
+<pre class="matlab">
+Opt.Output = 'MvsBSI ChiSI ChiTSI 1overChiSI MuEffSI MvsBCGS ChiCGS ChiTCGS 1overChiCGS MuEffCGS';
+[MvsBSI, ChiSI, ChiTSI, OneOverChiSI, MuEffSI, MvsBCGS, ChiCGS, ChiTCGS, OneOverChiCGS, MuEffCGS] = curry(Sys,Exp,Opt);
+</pre>
+
+<p>
+The number of output arguments must match the number of keywords in <code>Output</code>. The quantity of the first keyword will be in the first output and so on. Be careful:
+
+<pre class="matlab">
+Opt.Output = 'chimol muBM';         % reverse order to the default
+[chizz1,muz1] = curry(Sys,Exp,Opt); % Opt.Output is given, output in reverse order to the default
+[muz2,chizz2] = curry(Sys,Exp);     % Opt.Output is omitted, Output in default order
+</pre>
+
+<p>
+Several ways to represent the magnetic suscpetibilty are used. Beside &chi;<sub>zz</sub> (where often the index is ommited), the product of temperature and suscpetibilty &chi;<sub>zz</sub>T and the inverse of the susceptibilty 1/&chi;<sub>zz</sub> are common. Also the effective magnetic moment &mu;<sub>eff</sub> is used. All of them contain the same information, however theire appearance is quite different. A free paramagnet is described by &chi;<sub>zz</sub> = C/T with Curie constant C and temperature T. Hence, &chi;<sub>zz</sub> approaches C at low temperatures and tend towards zero at high temperatures. In contrast 1/&chi;<sub>zz</sub> decrease linearly with decreasing temperature. &chi;<sub>zz</sub>T is simply a constant line at C. In the section <a href="#fitting">Least-squares fitting</a> we will discuss implications of that.
+
+<p>
+Note that <a class="esf" href="curry.html">curry</a> does not calculate volume or mass magnetic susceptibilities.
 
 <!-- ============================================================= -->
 <a name="units"><div class="subtitle">Units and different representations of the susceptibility</div></a>
+
+<p>
+In magnetometry, there are two systems of units in use, the modern SI system and the old CGS-emu system. <a class="esf" href="curry.html">curry</a> can return results in either of the two. By default, the SI system is used. You can specify the system of units directly in the options field <code>Opt.Units</code>.
+
+<pre class="matlab">
+Opt.Units = 'SI';     % use SI units
+out = curry(Sys,Exp,Opt);
+
+Opt.Units = 'CGS';    % use CGS-emu units
+out = curry(Sys,Exp,Opt);
+</pre>
+
+<p>
+The SI unit for the magnetic moment is J T<sup>-1</sup>, whereas its CGS-emu unit is erg G<sup>-1</sup>. 
 
 <p>
 <a class="esf" href="curry.html">curry</a> returns the calculated magnetic moments in what might be called "natural units". The numerical value returned by <a class="esf" href="curry.html">curry</a> can be taken either as the molecular magnetic moment &mu;<sub>z</sub> (magnetic moment per molecule) in units of Bohr magnetons (&mu;<sub>B</sub>), or as the molar magnetic moment &mu;<sub>mol,z</sub> (magnetic moment per mole) in "molar Bohr magnetons" (N<sub>A</sub>&mu;<sub>B</sub>). These two are numerically identical. For example, <code>muz = 0.53</code> means the molecular magnetic moment &mu;<sub>z</sub> is 0.53 &mu;<sub>B</sub> and the molar magnetic moment &mu;<sub>mol,z</sub> is 0.53 N<sub>A</sub>&mu;<sub>B</sub>.
@@ -166,25 +212,26 @@ chisim_si = (4*pi*1e-6) *chisim_cgs ; % convert to SI units
 The SI units for these two magnetic moment quantities are J T<sup>-1</sup> and J T<sup>-1</sup> mol<sup>-1</sup>. To convert from the natural units to the SI units, use EasySpin's functions for the Avogadro number (<a class="esf" href="avogadro.html">avogadro</a>) and the Bohr magneton (<a class="esf" href="bmagn.html">bmagn</a>):
 
 <pre class="matlab">
-muz_SI = muz*bmagn;              % molecular magnetic moment, natural units to SI units
-muzmol_SI = muz*avogadro*bmagn;  % molar magnetic moment, natural units to SI units
+muz_SI = muzBM*bmagn;          % molecular magnetic moment, natural units -> SI units
+muzmol_SI = muz_SI*avogadro    % molecular magnetic moment -> molar magnetic moment
 </pre>
 
 <p>
-The molar magnetic susceptibility &chi;<sub>zz</sub> is returned in SI units of m<sup>3</sup> mol<sup>-1</sup>. Often, the susceptibility is given in the old CGS units of cm<sup>3</sup> mol<sup>-1</sup>. To convert the SI susceptibility to the corresponding CGS quantity, use
+The single-particle (single-molecule, atomic) magnetic susceptibility has the SI unit m<sup>3</sup> mol<sup>-1</sup> and the CGS-emu unit cm<sup>3</sup> mol<sup>-1</sup>. The molar magnetic susceptibility has the SI unit m<sup>3</sup> mol<sup>-1</sup> and the CGS-emu unit cm<sup>3</sup> mol<sup>-1</sup>. To convert these susceptibilities between SI and CGS-emu, use
+
 <pre class="matlab">
-chizz_cgs = chizz_SI/(4*pi*1e-6);     % unit conversion from SI to CGS units
+chi_SI = chi_CGS*(4*pi*1e-6);        % conversion from CGS-emu to SI units
+chimol_SI = chimol_CGS*(4*pi*1e-6);  % conversion from CGS-emu to SI units
+
+chi_CGS = chi_SI/(4*pi*1e-6);        % conversion from SI to CGS-emu units
+chimol_CGS = chimol_SI/(4*pi*1e-6);  % conversion from SI to CGS-emu units
 </pre>
-
-<p>
-Several ways to represent the magnetic suscpetibilty are used. Beside &chi;<sub>zz</sub> (where often the index is ommited), the product of temperature and suscpetibilty &chi;<sub>zz</sub>T and the inverse of the susceptibilty 1/&chi;<sub>zz</sub> are common. Also the effective magnetic moment &mu;<sub>eff</sub> is used. All of them contain the same information, however theire appearance is quite different. A free paramagnet is described by &chi;<sub>zz</sub> = C/T with Curie constant C and temperature T. Hence, &chi;<sub>zz</sub> approaches C at low temperatures and tend towards zero at high temperatures. In contrast 1/&chi;<sub>zz</sub> decrease linearly with decreasing temperature. &chi;<sub>zz</sub>T is simply a constant line at C. In the section <a href="#fitting">Least-squares fitting</a> we will discuss implications of that.
-
 
 <!-- ============================================================= -->
 <a name="crystals"><div class="subtitle">Single crystals</div></a>
 
 <p>
-<code>curry</code> can also calculate magnetic moment and molar magnetic susceptibility of single crystals. For this, you need to provide three things: (a) the orientation of the crystal in the spectrometer in <code>Exp.CrystalOrientation</code>, (b) the space group of the crystal in <code>Exp.CrystalSymmetry</code>, and (c) the orientation of the molecular frame relative to the crystal frame in <code>Exp.MolFrame</code>. You can omit the latter two, in which case the space group is assumed to be P1, and the molecular frame is assumed to be aligne with the crystal frame.
+<code>curry</code> can also calculate magnetic moment and molar magnetic susceptibility of single crystals. For this, you need to provide three things: (a) the orientation of the crystal in the spectrometer in <code>Exp.CrystalOrientation</code>, (b) the space group of the crystal in <code>Exp.CrystalSymmetry</code>, and (c) the orientation of the molecular frame relative to the crystal frame in <code>Exp.MolFrame</code>. You can omit the latter two, in which case the space group is assumed to be P1, and the molecular frame is assumed to be aligned with the crystal frame.
 
 <p>
 For more information on the various frames and how to specify the relative orientations, see <a href="frames.html">here</a>.
@@ -216,37 +263,8 @@ Opt.nKnots = 31;   % 3&deg; increments
 A sufficient number of orientations is necessary to obtain correct data. If you are not sure whether you have enough orientations, increase <code>Opt.nKnots</code> until the calculated data do not change any more.
 
 <p>
-Of course, if the spin Hamiltonian is isotropic, you do not have to run a powder average. 
+Of course, if the spin Hamiltonian is isotropic, you do not have to run a powder average. <a class="esf" href="curry.html">curry</a> detects this situation automatically.
 </p>
-
-<p>
-In the section <a href="#units">Units and different representations of the susceptibility</a> it was found that several representations for magnetometry data and simulation exists. You can get all of them, or only those which are wanted, from <code>curry</code>:
-<pre class="matlab">
-Opt.Output = 'MvsBSI ChiSI ChiTSI 1overChiSI MuEffSI MvsBCGS ChiCGS ChiTCGS 1overChiCGS MuEffCGS';
-[MvsBSI, ChiSI, ChiTSI, OneOverChiSI, MuEffSI, MvsBCGS, ChiCGS, ChiTCGS, OneOverChiCGS, MuEffCGS] = curry(Sys,Exp,Opt);
-</pre>
-
-<p>
-Note, that the number of output arguments must match the number of keywords in <code>Output</code>. The quantity of the first keyword will be in the first output and so on. Be careful:
-<pre class="matlab">
-Opt.Output = 'ChiSI MvsBCGS';       % reverse order to the default
-[chizz1,muz1] = curry(Sys,Exp,Opt); % Opt.Output is given, output in reverse orde to the default
-[muz2,chizz2] = curry(Sys,Exp);     % Opt.Output is omitted, Output in default order
-</pre>
-
-<p>
-Adding the keyword <code>'OneColoumn'</code> to <code>Output</code> will reduce the output to a one-coloumn array. This is especially useful for <a href="#fitting">least-squares fitting</a>.
-<p>
-<pre class="matlab">
-Sys = struct('S',1,'D',5000); 
-Exp = struct('Temperature', [5,10], 'Field', [100,200,300]);
-Opt.Output = 'MvsB OneColoumn ChiTCGS';
-y = curry(Sys,Exp,Opt);
-</pre>
-The output <code>y</code> will have 6 entries:<p>
-<code> [MvsB(B = 100 mT, T = 5 K), MvsB(B = 200 mT, T = 5 K), MvsB(B = 300 mT, T = 5 K),MvsB(B = 100 mT, T = 10 K), MvsB(B = 200 mT, T = 10 K), MvsB(B = 300 mT, T = 10 K), ChiTCGS(B = 100 mT, T = 5 K), ChiTCGS(B = 200 mT, T = 5 K), ChiTCGS(B = 300 mT, T = 5 K), ChiTCGS(B = 100 mT, T = 10 K), ChiTCGS(B = 200 mT, T = 10 K), ChiTCGS(B = 300 mT, T = 10 K)]</code>
-<p>
-The order of <code>MvsB</code> and <code>ChiTCGS</code> is given by the order in <code>Output</code>.
 
 <!-- ============================================================= -->
 <a name="fitting"><div class="subtitle">Least-squares fitting</div></a>

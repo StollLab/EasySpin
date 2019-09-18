@@ -8,20 +8,19 @@ Sys.D = rand(1,2)* 10*30e3;
 Exp.Temperature = rand(randi_(50),1)*300;
 Exp.Field = rand(randi_(50),1)*1e4;
 
-Opt.Method = 'energies';
-me = curry(Sys,Exp,Opt);
+Opt.Method = 'partitionfunction';
+mu_e = curry(Sys,Exp,Opt);
 
 Opt.Method = 'operator';
-mo = curry(Sys,Exp,Opt);
+mu_o = curry(Sys,Exp,Opt);
 
 Exp.Field = 0;
-Opt.Method = 'energies';
-Opt.Output = 'chiTCGS';
-chite = curry(Sys,Exp,Opt);
+Opt.Method = 'partitionfunction';
+Opt.Output = 'chimolT';
+chiTe = curry(Sys,Exp,Opt);
 
 Opt.Method = 'operator';
-chito = curry(Sys,Exp,Opt);
+chiTo = curry(Sys,Exp,Opt);
 
-err = ~(areequal(me,mo,1e-4) && areequal(chite,chito,1e4));
+err = ~(areequal(mu_e,mu_o,1e-4) && areequal(chiTe,chiTo,1e4));
 data =[];
-
