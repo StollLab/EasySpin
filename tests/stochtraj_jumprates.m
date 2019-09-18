@@ -3,6 +3,8 @@ function [err,data] = test(opt,olddata)
 
 Par.nTraj = 500;
 
+rng_(1);
+
 kp = rand()*1e9; % rate constant for forward process A -> B
 km = rand()*1e9; % rate constant for reverse process B -> A
 Sys.TransRates = [-kp, +km; +kp, -km].';
@@ -39,7 +41,11 @@ rmsd = sqrt(mean(residuals(1:N).^2));
 err = rmsd > 1e-2 || isnan(rmsd);
 
 if opt.Display
-  plot(t(1:N), AutoCorrFFT(1:N), t(1:N), analytic(1:N))
+  x = t(1:N)/1e-6;
+  plot(x, AutoCorrFFT(1:N), x, analytic(1:N));
+  xlabel('time (\mus)');
+  legend('autocorr','analytical');
+  axis tight
 end
 
 data = [];
