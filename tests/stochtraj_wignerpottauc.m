@@ -22,15 +22,15 @@ Sys.Potential = [2, 0, 0, c20];
 
 VecTraj = squeeze(RTraj(:,3,:,:));
 
-AutoCorrFFT = runprivate('autocorrfft', VecTraj.^2, 3, 1, 1);
+AutoCorrFFT = runprivate('autocorrfft', VecTraj.^2, 2, 1, 1);
 
-AutoCorrFFT = squeeze(mean(AutoCorrFFT, 2));
+AutoCorrFFT = squeeze(mean(AutoCorrFFT, 3));
 
 N = round(nSteps/2);
 M = round(N/2);
 
 AutoCorrFFT = AutoCorrFFT-mean(AutoCorrFFT(M:N));
-y = AutoCorrFFT/max(AutoCorrFFT);
+y = AutoCorrFFT(:)/max(AutoCorrFFT);
 
 data.y = y;
 
@@ -39,5 +39,19 @@ if ~isempty(olddata)
 else
   err = [];
 end
+
+if opt.Display
+  x = t/1e-6;
+  subplot(4,1,1:3);
+  plot(x,y,x,olddata.y);
+  xlabel('time (\mus)')
+  axis tight
+  legend('current','previous');
+  subplot(4,1,4)
+  plot(x,y(:)-olddata.y(:));
+  axis tight
+  xlabel('time (\mus)')
+end
+
 
 end

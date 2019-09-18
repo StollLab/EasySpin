@@ -142,7 +142,6 @@ end
 if ~isfield(Opt,'SymmFrame')
   Opt.SymmFrame = []; % needed for p_symandgrid
 end
-end
 if ~isfield(Opt,'deltaB')
   Opt.deltaB = 1e-2; % T
 end

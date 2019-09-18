@@ -29,27 +29,27 @@ switch nargin
     % normalized output by default
     x = varargin{1};
     dim = [];
-    normalized = 1;
+    normalized = true;
     vector = 0;
-    centered = 1;
+    centered = true;
   case 2
     x = varargin{1};
     dim = varargin{2};
-    normalized = 1;
+    normalized = true;
     vector = 0;
-    centered = 1;
+    centered = true;
   case 3
     x = varargin{1};
     dim = varargin{2};
     normalized = varargin{3};
     vector = 0;
-    centered = 1;
+    centered = true;
   case 4
     x = varargin{1};
     dim = varargin{2};
     normalized = varargin{3};
     vector = varargin{4};
-    centered = 1;
+    centered = true;
   case 5
     x = varargin{1};
     dim = varargin{2};

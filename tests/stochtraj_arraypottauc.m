@@ -44,16 +44,16 @@ nSteps = Par.nSteps;
 
 VecTraj = squeeze(RTraj(:,3,:,:));
 
-AutoCorrFFT = runprivate('autocorrfft', VecTraj.^2, 3, 1, 1);
+AutoCorrFFT = runprivate('autocorrfft', VecTraj.^2, 2, 1, 1);
 
-AutoCorrFFT = squeeze(mean(AutoCorrFFT, 2));
+AutoCorrFFT = squeeze(mean(AutoCorrFFT, 3));
 
 N = round(nSteps/2);
 
 AutoCorrFFT = AutoCorrFFT-mean(AutoCorrFFT(N:end));
 AutoCorrFFT = AutoCorrFFT/max(AutoCorrFFT);
 
-analytic = exp(-(1/tcorr)*t);
+analytic = exp(-t/tcorr);
 
 [k, ~, yFit] = exponfit(t(1:N), AutoCorrFFT(1:N));
 tauR = 1/k;
@@ -61,12 +61,12 @@ tauR = 1/k;
 residuals = AutoCorrFFT(1:N) - yFit;
 rmsd = sqrt(mean(residuals.^2));
 
-if rmsd > 1e-2 || isnan(rmsd) || tcorr-tauR < 0
-  err = 1;
-  plot(t(1:N)/1e-6, AutoCorrFFT(1:N), t(1:N)/1e-6, analytic(1:N))
-  xlabel('t (\mu s)')
-else
-  err = 0;
+err = rmsd > 1e-2 || isnan(rmsd) || tcorr-tauR < 0;
+if opt.Display
+  x = t(1:N)/1e-6;
+  plot(x, AutoCorrFFT(1:N), x, analytic(1:N));
+  legend('autcorrFFT','analytical');
+  xlabel('t (\mus)')
 end
 
 data = [];

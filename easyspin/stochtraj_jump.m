@@ -76,7 +76,7 @@
 %     qTraj          3D array, size = (4,nSteps,nTraj)
 %                    trajectories of normalized quaternions
 %
-%     stateTraj      3D array, size = (nStates,nSteps,nTraj)
+%     stateTraj      2D array, size = (nSteps,nTraj)
 %                    trajectories of states
 
 function varargout = stochtraj_jump(Sys,Par,Opt)

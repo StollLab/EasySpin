@@ -36,7 +36,7 @@ muTrue = [   0,   0;
              -150,   0 ]/180*pi;
 
 for iTraj = 1:Par.nTraj
-  traj = stateTraj(iTraj,:);
+  traj = stateTraj(:,iTraj);
   for iStep = 1:Par.nSteps
     state = traj(iStep);
     testData(iStep,:,iTraj) = width*randn(1,2) + muTrue(state,:);

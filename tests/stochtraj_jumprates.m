@@ -23,24 +23,23 @@ nSteps = Par.nSteps;
 Opt.statesOnly = true;
 [t,stateTraj] = stochtraj_jump(Sys,Par,Opt);
 
-AutoCorrFFT = runprivate('autocorrfft', stateTraj, 2, 1, 1);
+AutoCorrFFT = runprivate('autocorrfft', stateTraj, 1, 1, 1);
+AutoCorrFFT = mean(AutoCorrFFT, 2);
 
 N = round(nSteps/2);
 
 AutoCorrFFT = AutoCorrFFT-mean(AutoCorrFFT(N:end));
 AutoCorrFFT = AutoCorrFFT/max(AutoCorrFFT);
 
-analytic = exp(-t.'/tau);
+analytic = exp(-t(:)/tau);
 
 residuals = AutoCorrFFT - analytic;
 rmsd = sqrt(mean(residuals(1:N).^2));
 
-if rmsd > 1e-2 || isnan(rmsd)
-  err = 1;
+err = rmsd > 1e-2 || isnan(rmsd);
+
+if opt.Display
   plot(t(1:N), AutoCorrFFT(1:N), t(1:N), analytic(1:N))
-else  
-%   plot(t(1:N), AutoCorrFFT(1:N), t(1:N), analytic(1:N))
-  err = 0;
 end
 
 data = [];
