@@ -19,10 +19,10 @@
 
 function out = estest(TestName,params)
 
-% Check whether EasySpin is on the Matlab path
+% Check whether EasySpin is on the MATLAB path
 EasySpinPath = fileparts(which('easyspin'));
 if isempty(EasySpinPath)
-  error('EasySpin is not on the Matlab path!');
+  error('EasySpin is not on the MATLAB path!');
 end
 
 fid = 1; % output to command window
@@ -59,7 +59,7 @@ end
 TestFileNames = sort({FileList.name});
 
 fprintf(fid,'=======================================================================\n');
-fprintf(fid,'EasySpin test set                      %s\n(Matlab %s)\n',datestr(now),version);
+fprintf(fid,'EasySpin test set                      %s\n(MATLAB %s)\n',datestr(now),version);
 fprintf(fid,'EasySpin location: %s\n',EasySpinPath);
 fprintf(fid,'=======================================================================\n');
 fprintf(fid,'Display: %d, Regenerate: %d, Verbosity: %d\n',...
@@ -76,34 +76,37 @@ OutcomeStrings = {'pass','failed','crashed','not tested'};
 
 for iTest = 1:numel(TestFileNames)
   
-  if (Opt.Display)
-    clf; drawnow;
-  end
-
   thisTest = TestFileNames{iTest}(1:end-2);
+
+  if Opt.Display
+    clf
+    set(gcf,'Name',thisTest);
+    drawnow
+  end
   
+  % Load, or regenerate, comparison data
   olddata = [];
   TestDataFile = ['data/' thisTest '.mat'];
   if exist(TestDataFile,'file')
     if Opt.Regenerate
       delete(TestDataFile);
+      olddata = [];
     else
       try
         olddata = load(TestDataFile,'data');
         olddata = olddata.data;
       catch
-        lasterr
-        olddata = [];
+        error('Could not load data for test ''%s''.',thisTest);
       end
     end
   end
-
-  lasterr('');
+  
+  % Run test, catch any errors
   tic
   try
     [err,data] = feval(thisTest,Opt,olddata);
-    if (Opt.Display)
-      if (iTest<numel(TestFileNames)), pause; end
+    if Opt.Display
+      if iTest<numel(TestFileNames), pause; end
     end
     % if test returns empty err, then treat it as not tested
     if isempty(err)
@@ -111,32 +114,28 @@ for iTest = 1:numel(TestFileNames)
     else
       err = any(err~=0);
     end
-  catch
+    errorInfo = [];
+    errorStr = '';
+  catch exception
     data = [];
     err = 2;
+    errorInfo = exception;
+    errorStr = getReport(errorInfo);
+    errorStr = ['    ' regexprep(errorStr,'\n','\n    ') char(10)];
   end
   time_used(iTest) = toc;
-  testError = lasterr;
   
-  saveTestData = ~isempty(data) && (isempty(olddata) || Opt.Regenerate);
-  
+  isRegressionTest = ~isempty(data);
+  saveTestData = isRegressionTest && isempty(olddata);  
   if saveTestData
-    if verLessThan('matlab','7')
-      save(TestDataFile,'data');
-    else
-      save(TestDataFile,'data','-V6');
-    end
+    save(TestDataFile,'data');
   end
-    
-  Results(iTest).err = double(err);
-  Results(iTest).name = thisTest;
-  Results(iTest).errmsg = testError;
-  if ~isempty(testError)
-    errStr = sprintf('%s\n',testError);
-  else
-    errStr = '';
-  end
-  resultStr = OutcomeStrings{Results(iTest).err+1};
+  
+  testResults(iTest).err = double(err);
+  testResults(iTest).name = thisTest;
+  testResults(iTest).errorData = errorInfo;
+  
+  outcomeStr = OutcomeStrings{testResults(iTest).err+1};
   
   if ~isempty(data)
     typeStr = 'regression';
@@ -149,17 +148,17 @@ for iTest = 1:numel(TestFileNames)
   else
     timeStr = [];
   end
-  
+
   str = sprintf('%-36s  %-12s%-8s%s\n%s',...
-       Results(iTest).name,typeStr,resultStr,timeStr,errStr);
+       testResults(iTest).name,typeStr,outcomeStr,timeStr,errorStr);
   str(str=='\') = '/';
   
-  Results(iTest).msg = str;
+  testResults(iTest).msg = str;
   
   fprintf(fid,str);
 end
 
-allErrors = [Results.err];
+allErrors = [testResults.err];
 
 % Display timings of slowest tests
 if displayTimings
@@ -168,15 +167,15 @@ if displayTimings
   fprintf(fid,'Slowest tests:\n');
   [time,iTest] = sort(time_used,'descend');
   for q = 1:min(10,numel(time))
-    fprintf(fid,'%-36s    %7.3f seconds\n',Results(iTest(q)).name,time(q));
+    fprintf(fid,'%-36s    %7.3f seconds\n',testResults(iTest(q)).name,time(q));
   end
 end
 
-% Display all tests that failed
+% Display all tests that failed or crashed
 if any(allErrors==1) || any(allErrors==2)
   fprintf(fid,'-----------------------------------------------------------------------\n');
   for iTest = find(allErrors)
-    fprintf(fid,Results(iTest).msg);
+    fprintf(fid,testResults(iTest).msg);
   end
 end
 
@@ -187,7 +186,7 @@ fprintf(fid,'-------------------------------------------------------------------
 
 % Return output if desired
 if nargout==1
-  out.Results = Results;
+  out.Results = testResults;
   out.outcomes = allErrors;
 end
 

@@ -8,13 +8,13 @@
 %   to fcn, which can be a string or a function handle.
 %
 %   Options:
+%     FitOpt.delta         edge length of initial simplex
 %     FitOpt.SimplexPars   [rho chi psi sigma]
 %                          rho ... reflection coefficient, default 1
 %                          chi ... expansion coefficient, default 2
 %                          psi ... contraction coefficient, default 0.5
 %                          sigma . reduction coefficient, defautlt 0.5
 %     FitOpt.maxTime       maximum time allowed, in minutes
-%     FitOpt.delta         edge length of initial simplex
 %
 %   Output:
 %     xmin  ... parameter vector with values of best fit
@@ -28,9 +28,9 @@ if (nargin==0), help(mfilename); return; end
 global UserCommand
 if isempty(UserCommand), UserCommand = NaN; end
 
-if (nargin<3), FitOpt = struct('ununsed',NaN); end
+if nargin<3, FitOpt = struct; end
 
-% Parameters for initial simplex
+% Edge length for initial simplex
 if ~isfield(FitOpt,'delta'), FitOpt.delta = 0.1; end
 delta = FitOpt.delta;
 
@@ -84,8 +84,8 @@ Procedure = 'initial simplex';
 iIteration = iIteration + 1;
 
 if FitOpt.PrintLevel
-  template = ' %4d:  %0.5e  %0.5e  %s';
-  str = sprintf(template,iIteration,fv(1),delta,Procedure);
+  logStringFormat = ' iteration %d: %s\n   value %0.5e\n   edge %0.5e';
+  str = sprintf(logStringFormat,iIteration,Procedure,fv(1),delta);
   FitOpt.IterationPrintFunction(str);
 end
 
@@ -100,7 +100,7 @@ while true
   % Check whether to stop the iteration loop
   %-----------------------------------------------------------
   elapsedTime = (cputime-startTime)/60;
-  if (elapsedTime>FitOpt.maxTime)
+  if elapsedTime>FitOpt.maxTime
     stopCode = 1;
     break
   end
@@ -184,9 +184,9 @@ while true
   
   iIteration = iIteration + 1;
   
-  if (FitOpt.PrintLevel)
+  if FitOpt.PrintLevel
     thisstep = max(max(abs(v(:,2:n+1)-v(:,ones(1,n)))));
-    str = sprintf(template,iIteration,fv(1),thisstep,Procedure);
+    str = sprintf(logStringFormat,iIteration,Procedure,fv(1),thisstep);
     FitOpt.IterationPrintFunction(str);
   end
 

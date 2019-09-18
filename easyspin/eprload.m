@@ -370,19 +370,29 @@ end
 
 % Construct abscissa vectors
 AxisNames = {'X','Y','Z'};
-for a=3:-1:1
-  if (Dimensions(a)<=1), continue; end
+for a = 3:-1:1
+  if Dimensions(a)<=1, continue; end
   AxisType = Parameters.([AxisNames{a} 'TYP']);
   if strcmp(AxisType,'IGD')
     % Nonlinear axis -> Try to read companion file (.XGF, .YGF, .ZGF)
-    fg = fopen([FullBaseName '.' AxisNames{a} 'GF'],'r',ByteOrder);
+    companionFileName = [FullBaseName '.' AxisNames{a} 'GF'];
+    % Determine data format form XFMT/YMFT/ZFMT
+    DataFormat = Parameters.([AxisNames{a} 'FMT']);
+    switch DataFormat
+      case 'D', sourceFormat = 'float64';
+      case 'F', sourceFormat = 'float32';
+      case 'I', sourceFormat = 'int32';
+      case 'S', sourceFormat = 'int16';
+      otherwise
+        error('Cannot read data format %s for companion file %s',DataFormat,companionFileName);
+    end
+    % Open and read companion file
+    fg = fopen(companionFileName,'r',ByteOrder);
     if fg>0
-      % Here we should check for the number format in
-      % XFMT/YFMT/ZFMT instead of assuming 'float64'.
-      Abscissa{a} = fread(fg,Dimensions(a),'float64',ByteOrder);
+      Abscissa{a} = fread(fg,Dimensions(a),sourceFormat,ByteOrder);
       fclose(fg);
     else
-      warning('Could not read companion file for nonlinear axis.');
+      warning('Could not read companion file %s for nonlinear axis. Assuming linear axis.',companionFileName);
       AxisType = 'IDX';
     end
   end
@@ -443,9 +453,8 @@ if ~isempty(Scaling)
         error('Cannot scale by receiver gain, since RCAG in the DSC file is missing.');
       end
       ReceiverGaindB = sscanf(Parameters.RCAG,'%f');
-      ReceiverGain = 10^(ReceiverGaindB/10);
+      ReceiverGain = 10^(ReceiverGaindB/20);
       % Xenon (according to Feb 2011 manual) uses 20*10^(RCAG/20)
-      % ReceiverGain = 20*10^(ReceiverGaindB/20);
       Data = Data/ReceiverGain;
     end
   end
@@ -779,27 +788,38 @@ Parameters = parseparams(Parameters);
 return
 %--------------------------------------------------
 
-%--------------------------------------------------
+%--------------------------------------------------------------------------
 function [Data, Abscissa, Parameters] = eprload_MagnettechBinary(FileName)
 %--------------------------------------------------------------------------
 %   Binary file format of older Magnettech spectrometers (MS400 and prior)
 %--------------------------------------------------------------------------
 
 hMagnettechFile = fopen(FileName,'r','ieee-le');
-if (hMagnettechFile<0)
+if hMagnettechFile<0
   error('Could not open Magnettech spectrometer file %s.',FileName);
 end
+
+% Check file size to determine whether this is a Magnettech data file
+% - File overhead is 64 bytes, located at end of file
+% - Each data point is 2 bytes
+% - MiniScope MS400 benchtop spectrometer data have 4096 points
+% - Data from other spectrometers (e.g MT500 L-band) can have 512,
+%   1024, 2048, or 4096 points.
+nPoints = [512 1024 2048 4096];
 fileinfo = dir(FileName);
-if (fileinfo.bytes~=8256)
+fileSize = fileinfo.bytes;
+idx = find(fileSize==2*nPoints+64);
+if isempty(idx)
   error('This file does not have the correct file size for a Magnettech SPE file.');
+else
+  nPoints = nPoints(idx);
 end
 
 % Read spectral data
-nPoints = 4096; % all files have the same number of points
 Data = fread(hMagnettechFile,nPoints,'int16');
 
 % Determine format version and other flags
-fseek(hMagnettechFile,8252,'bof');
+fseek(hMagnettechFile,fileSize-4,'bof');
 FileFlags = fread(hMagnettechFile,1,'uint8');
 mwFreqAvailable = bitand(FileFlags,1)~=0;
 oldSpeFormat = bitand(FileFlags,2)==0;
@@ -816,7 +836,7 @@ readfbs = @()fourbytesingle(fread(hMagnettechFile,2,'int16'));
 %end
 
 % Read parameters
-fseek(hMagnettechFile,8192,'bof');
+fseek(hMagnettechFile,2*nPoints,'bof');
 Parameters.B0_Field = readfbs()/10; % G -> mT
 Parameters.B0_Scan = readfbs()/10; % G -> mT
 Parameters.Modulation = readfbs()/10000; % mT
@@ -859,81 +879,144 @@ function [Data, Abscissa, Parameters] = eprload_MagnettechXML(FileName)
 %------------------------------------------------------------------
 %   XML file format of newer Magnettech spectrometers (MS5000)
 %------------------------------------------------------------------
-Document = xmlread(FileName);
-MainNode = Document.getFirstChild;
-if isempty(MainNode)
-  str = '';
-else
-  str = MainNode.getNodeName;
-end
-if ~strcmpi(str,'ESRXmlFile')
-  error('File %s is not a Magnettech xml file.',FileName);
-end
-
-% Read in all the data
-curveList = MainNode.getElementsByTagName('Curve');
-nCurves = curveList.getLength;
-
-% Use Java class for base64 decoding
-% (particular class depends on Matlab version)
+% Preparation for Base64 decoding: Use Java class depending on Matlab version
 if exist('org.apache.commons.codec.binary.Base64','class')
+  % seen on R2012b and R2017b
   base64 = org.apache.commons.codec.binary.Base64;
   oldJavaClass = false;
 elseif exist('org.apache.axis.encoding.Base64','class')
+  % seen on R2007b
   base64 = org.apache.axis.encoding.Base64; 
   oldJavaClass = true;
 else
-  error('No Base64 decoder available to read Magnettech XML data.');
+  error('No Java Base64 decoder available to read Magnettech XML data.');
 end
 
-for iCurve = 0:nCurves-1
-  curve_ = curveList.item(iCurve);
-  Mode = char(curve_.getAttribute('Mode'));
-  if ~strcmp(Mode,'Pre'), continue; end
-  Name = char(curve_.getAttribute('YType'));
-  XOffset = char(curve_.getAttribute('XOffset'));
-  XOffset = sscanf(XOffset,'%f');
-  XSlope = char(curve_.getAttribute('XSlope'));
-  XSlope = sscanf(XSlope,'%f');
-  x = char(curve_.getTextContent);
-  if isempty(x)
-    data = [];
-  else
+% Read XML file and convert to Matlab structure for easy access
+Document = xml2struct(FileName);
+
+% Assert it's an XML file from a Magnettech spectrometer
+if ~isfield(Document,'ESRXmlFile')
+  error('File %s is not a Magnettech xml file.',FileName);
+elseif ~isfield(Document.ESRXmlFile,'Data')
+  error('ESRXmlFile.Data node not found in xml file.');
+elseif ~isfield(Document.ESRXmlFile.Data,'Measurement')
+  error('ESRXmlFile.Data.Measurement node not found in xml file.');
+elseif ~isfield(Document.ESRXmlFile.Data.Measurement,'DataCurves')
+  error('ESRXmlFile.Data.Measurement.DataCurves node not found in xml file.');
+elseif ~isfield(Document.ESRXmlFile.Data.Measurement.DataCurves,'Curve')
+  error('No data. No <Curve> node found in xml file.');
+end
+
+% Add attributes from Measurement node to Paramater structure
+Data = Document.ESRXmlFile.Data;
+Measurement = Data.Measurement;
+Parameters = Measurement.Attributes;
+CurveList = Measurement.DataCurves.Curve;
+
+% Add all children Param nodes from Parameters node to Parameter structure
+% (if Recipe is present - it's absent for a dip sweep)
+if isfield(Measurement,'Recipe')
+  ParameterList = Measurement.Recipe.Parameters.Param;
+  for p = 1:numel(ParameterList)
+    PName = ParameterList{p}.Attributes.Name;
+    P_ = ParameterList{p}.Text;
+    Parameters.(PName) = P_;
+  end
+end
+
+% Determine what type of sweep this is (field sweep or other)
+if isfield(Measurement,'Recipe')
+  switch Measurement.Recipe.Attributes.Type
+    case 'single', xAxis = 'field';
+    case 'kinetic', xAxis = 'time';
+    case 'temperature', xAxis = 'field';
+    case 'goniometric', xAxis = 'field';
+    case 'modulationSweep', xAxis = 'field';
+    case 'powerSweep', xAxis = 'field';
+    case 'xRay', xAxis = 'field';
+    otherwise
+      error('Unknown Recipe.Type in the xml file.');
+  end
+  if isfield(Parameters,'BHoldEnabled')
+    if strcmp(Parameters.BHoldEnabled,'True')
+      xAxis = 'time';
+    end
+  end
+end
+
+% Get data (stored in a series of <Curve ...> </Curve> nodes under <DataCurves>)
+for iCurve = 1:numel(CurveList)
+  thisCurve = CurveList{iCurve};
+  Name = thisCurve.Attributes.YType;
+  Mode = thisCurve.Attributes.Mode;
+  
+  % Avoid duplicate names (e.g. BField can be stored twice in the same file, once
+  % with Mode='Raw' and once with Mode='Pre')
+  if strcmp(Name,'BField') && strcmp(Mode,'Raw')
+    Name = [Name '_' Mode];
+  end
+  
+  % Read curve data (if they are base64 encoded)
+  data = thisCurve.Text;
+  if ~isempty(data)
+    % Check whether it is base64 compression
+    if ~strcmp(thisCurve.Attributes.Compression,'Base64')
+      error('Data is not Base64 encoded. Cannot read file.');
+    end
     if ~oldJavaClass
-      x = typecast(int8(x),'uint8'); % typecast without changing the underlying data
-      bytestream_ = base64.decode(x); % decode
+      data = typecast(int8(data),'uint8'); % typecast without changing the underlying data
+      bytestream_ = base64.decode(data); % decode
       bytestream_(9:9:end) = []; % remove termination zeros
     else
-      bytestream_ = base64.decode(x); % decode
+      bytestream_ = base64.decode(data); % decode
     end
     data = typecast(bytestream_,'double'); % typecast without changing the underlying data
   end
   Curves.(Name).data = data;
-  Curves.(Name).t = XOffset + (0:numel(data)-1)*XSlope;
+  
+  % Horizontal axis (equal to time for most data types [except for Frequency[Raw],
+  % ADC_24bit[Raw])
+  XOffset = sscanf(thisCurve.Attributes.XOffset,'%f');
+  XSlope = sscanf(thisCurve.Attributes.XSlope,'%f');
+  Curves.(Name).x = XOffset + (0:numel(data)-1)*XSlope;
 end
 
-% Add attributes from Measurement node to Paramater structure
-MeasurementNode = MainNode.getElementsByTagName('Measurement');
-AttribList = MeasurementNode.item(0).getAttributes;
-for k=0:AttribList.getLength-1
-  PName = AttribList.item(k).getName;
-  PVal = AttribList.item(k).getTextContent;
-  PName = ['Measurement_' char(PName)];
-  Parameters.(char(PName)) = char(PVal);
+if isfield(Curves,'BField')
+  % Field sweeps, transients, and parameter sweeps
+  
+  switch xAxis
+    case 'field'
+      Abscissa = interp1(Curves.BField.x,Curves.BField.data,Curves.MW_Absorption.x);
+      Abscissa = Abscissa(:);
+      Data = Curves.MW_Absorption.data(:);
+      % Remove data outside desired field range
+      xmin = str2double(Parameters.Bfrom);
+      xmax = str2double(Parameters.Bto);
+      idx = Abscissa>=xmin & Abscissa<=xmax;
+      Abscissa = Abscissa(idx);
+      Data = Data(idx);
+    case 'time'
+      Abscissa = Curves.MW_Absorption.x(:);
+      Abscissa = Abscissa(:);
+      Data = Curves.MW_Absorption.data(:);
+    otherwise
+      error('Cannot construct abscissa for this measurement type');
+  end
+  
+elseif isfield(Curves,'Frequency')
+  % Capture of IQ raw data (dip sweep)
+  
+  Abscissa = Curves.Frequency.data(:);
+  Data = Curves.ADC_24bit.data(:);
+  
 end
 
-% Add all children Param nodes from Parameters node to Parameter structure
-ParameterList = MainNode.getElementsByTagName('Param');
-for k=0:ParameterList.getLength-1
-  PName = ParameterList.item(k).getAttribute('Name');
-  P_ = ParameterList.item(k).getTextContent;
-  Parameters.(char(PName)) = char(P_);
-end
-
-Abscissa = interp1(Curves.BField.t,Curves.BField.data,Curves.MW_Absorption.t);
-Abscissa = Abscissa(:);
-Data = Curves.MW_Absorption.data(:);
 Parameters = parseparams(Parameters);
+
+% Store all curves from the file in the parameters
+% (incl. sin and cos MW absorption data)
+Parameters.Curves = Curves;
 
 return
 %--------------------------------------------------

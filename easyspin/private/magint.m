@@ -1,12 +1,13 @@
-function [T,F,System,Symmetry,isFieldDep] = magint(System,SpinOps,CenterField,IncludeNuclearZeeman,explicitFieldSweep)
+function [T,F,System,Symmetry,isFieldDep] = magint(System,SpinOps,CenterField,...
+  includeNuclearZeeman,includeNuclearQuadrupole,explicitFieldSweep)
 % generate the irreducible spherical tensor components and, if using the
 % general Liouvillian method, their corresponding operators as well
 
 if isempty(SpinOps)
-  % no need to use spin operators for Freed code
-  generalLiouvillian = 0;
+  % no need to use spin operators for fast code
+  generalLiouvillian = false;
 else
-  generalLiouvillian = 1;
+  generalLiouvillian = true;
 end
 
 % Transformation from molecular frame to diffusion frame
@@ -25,12 +26,11 @@ nZFS = sum(System.S>1/2);
 nElPairs = nElSpins*(nElSpins-1)/2;
 nInteractions = nElZeeman + nHyperfine + nZFS + nElPairs;
 
-if IncludeNuclearZeeman
+if includeNuclearZeeman
   nInteractions = nInteractions + nNucSpins;
 end
 
-IncludeNuclearQuadrupole = false;
-if IncludeNuclearQuadrupole
+if includeNuclearQuadrupole
   nInteractions = nInteractions + nNucSpins;
 end
 
@@ -73,8 +73,8 @@ for iElSpin = 1:nElSpins
   [F0(iInt),F1(iInt,:),F2(iInt,:)] = istocoeff(g*bmagn/planck); % Hz
   isFieldDep(iInt) = true;
   if ~generalLiouvillian
-    % Generate custom fields for Freed method
-    if any(abs(F1(iInt,:))>1e-6)
+    % Generate custom fields for fast method
+    if any(abs(F1(iInt,:)/F0(iInt))>1e-9)
       error('g tensor must be symmetric for this method.');
     end
     % Set parameters for chili_liouvmatrix*
@@ -113,7 +113,7 @@ for iElSpin = 1:nElSpins
     [F0(iInt),F1(iInt,:),F2(iInt,:)] = istocoeff(A_);
     isFieldDep(iInt) = false;
     if ~generalLiouvillian
-      % Generate custom fields for Freed method
+      % Generate custom fields for fast method
       if (any(abs(F1(iInt,:))>1e-6))
         error('Hyperfine tensors must be symmetric for this method.');
       end
@@ -186,7 +186,7 @@ end
 % Nuclear Zeeman interaction terms (-muN*B*gn*I/h)
 %--------------------------------------------------------------------------
 if generalLiouvillian
-  if IncludeNuclearZeeman
+  if includeNuclearZeeman
     for iNucSpin = 1:nNucSpins
         I_ = SpinOps(nElSpins+iNucSpin,:);
         gn_ = System.gn(iNucSpin);
@@ -197,7 +197,7 @@ if generalLiouvillian
     end
   end
 else
-  if IncludeNuclearZeeman
+  if includeNuclearZeeman
     gn0 = zeros(nNucSpins,1);
     for iNucSpin = 1:nNucSpins
       gn0(iNucSpin) = istocoeff(System.gn(iNucSpin));
@@ -218,7 +218,7 @@ end
 
 % Nuclear electric quadrupole interaction terms
 %--------------------------------------------------------------------------
-if IncludeNuclearQuadrupole
+if includeNuclearQuadrupole
   for iNucSpin = 1:nNucSpins
     Q_ = System.Q(iNucSpin,:)*1e6; % MHz -> Hz
     if any(System.QFrame(iNucSpin,:))

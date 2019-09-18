@@ -50,52 +50,48 @@ Default.deriv = 0; % no derivative
 Default.phase = 0; % pure absorption
 
 switch nargin
-case 3,
-  deriv = Default.deriv;
-  alpha = Default.alpha;
-  phase = Default.phase;
-case 4,
-  alpha = Default.alpha;
-  phase = Default.phase;
-case 5,
-  phase = Default.phase;
-case 6,
-otherwise
-  error('Wrong number of input arguments!');
+  case 3
+    deriv = Default.deriv;
+    alpha = Default.alpha;
+    phase = Default.phase;
+  case 4
+    alpha = Default.alpha;
+    phase = Default.phase;
+  case 5
+    phase = Default.phase;
+  case 6
+  otherwise
+    error('Wrong number of input arguments.');
 end
 
 if any(isnan(spec(:)))
-  warning('spec contains NaN entries!');
+  warning('The input data array (spec) contains NaN entries.');
 end
 
 if all(deriv~=-1) && all(deriv~=0) && all(deriv~=1) && all(deriv~=2)
-  error('deriv must be 0, 1 or 2');
+  error('deriv must be 0, 1 or 2.');
 end
 
 if any(alpha<0) || any(alpha>1)
   error('alpha must satisfy 0 <= alpha <= 1.');
 end
 
-% Remove all singleton dimensions, eg
-% convert row vector to column vector.
-% The original array shape is restored at the end.
-
-n_original = size(spec);
-n = n_original;
-n(n==1) = []; % Remove singleton dimensions.
-n = [n ones(1,2-length(n))]; % Make sure n is at least 2-D
-spec = reshape(spec,n);
-nDims = length(n);
-
-% If we have a column vector, there is only one dimension!
-if n(end)==1,
-  nDims = nDims-1;
-  n(end)=[];
+% Remove all singleton dimensions. The original array shape is restored at the end.
+sz_original = size(spec);
+sz = sz_original;
+sz(sz==1) = [];
+if numel(sz)==1
+  spec = reshape(spec,[sz,1]);
+else
+  spec = reshape(spec,sz);
 end
+nDims = length(sz);
 
-if (nDims>2) && (numel(spec)>200^3),
+if (nDims>2) && (numel(spec)>200^3)
   warning('Very big data array! convspec might take very long!');
 end
+
+expandfull = @(in,n_)[in(:).' in(ones(1,n_-length(in)))];
 
 steps = expandfull(steps,nDims);
 fwhm = expandfull(fwhm,nDims);
@@ -103,13 +99,14 @@ deriv = expandfull(deriv,nDims);
 alpha = expandfull(alpha,nDims);
 phase = expandfull(phase,nDims);
 
-NN = 2*n + 1;
+NN = 2*sz + 1;       % extended range for each dimension
 mid = round(NN/2)+1; % range midpoint, for line center
 fwhm = fwhm./steps;  % line width in terms of x-axis increments
+steps(fwhm==0) = 1;
 
 % Determine ifft of line shape for each dimension
-for i = 1:nDims
-  Range{i} = 1:n(i);
+for i = nDims:-1:1
+  Range{i} = 1:sz(i);
   if fwhm(i)>0
     Line = lshape(1:NN(i),mid(i),fwhm(i),deriv(i),alpha(i),phase(i)).';
     LineDecay{i} = ifft(Line([mid(i):end 1:mid(i)-1]));
@@ -118,25 +115,16 @@ for i = 1:nDims
   end
 end
 
-% convolution with general outer product of line decays
+% Convolve with general outer product of line decays
 out = fftn(ifftn(spec,[NN 1]) .* xouter(LineDecay{:}));
+out = prod(NN)/prod(steps.^deriv) * out;
 
-% extract original range and reshape to original shape
-out = prod(NN)/ prod(steps.^deriv) * out(Range{:}) ;
-out = reshape(out,n_original);
+% Extract original range and reshape to original shape
+out = reshape(out(Range{:}),sz_original);
 
 % If the input was real, the output has to be, too.
 % Remove imaginary numerical noise.
 if isreal(spec), out = real(out); end
-
-return
-%=======================================================================
-
-
-%=======================================================================
-function out = expandfull(in,n)
-
-out = [in(:).' in(ones(1,n-length(in)))];
 
 return
 %=======================================================================
@@ -162,7 +150,7 @@ end
 
 nDims = length(varargin);
 
-for i=length(varargin):-1:1,
+for i=length(varargin):-1:1
   n(i) = numel(varargin{i});
 end
 
@@ -177,31 +165,4 @@ for i = 1:nDims
 end
 
 return
-%=======================================================================
-
-
-
-%=======================================================================
-% Testing code
-%=======================================================================
-a = zeros(1,100); a(40) = 1;
-w = convspec(a,1,5);
-size(w)
-plot(w); pause
-
-a = zeros(1,100); a(20) = 1;
-w = convspec(a,1,50);
-size(w)
-plot(w); pause
-
-
-a = zeros(128,64); a(19,50) = 1; a(10,20) = 2;
-w = convspec(a,1,[5 9]);
-w1 = convspec(a,1,[20 5]);
-size(w), size(w1)
-pcolor(w); pause
-
-a = zeros(32,16,8); a(5,5,5) = 1;
-w = convspec(a,1,3);
-size(w)
 %=======================================================================

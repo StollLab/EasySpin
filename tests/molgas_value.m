@@ -1,6 +1,6 @@
 function [err,data] = test(opt,olddata)
 
 a = molgas;
-b = 8.3144598;
+b = avogadro*boltzm;
 err = ~areequal(a,b);
 data = [];

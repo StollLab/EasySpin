@@ -9,14 +9,14 @@ Nitroxide.Nucs = '14N';
 Nitroxide.A = [20,20,85];
 Nitroxide.lw = 0.3;
 Nitroxide.tcorr = 1e-8;
-Nitroxide.lambda = 1;
+Nitroxide.Potential = [2 0 0 1];
 
 Experiment.mwFreq = 9.5;
 Experiment.CenterSweep = [338 20];
 
 Options.Verbosity = opt.Verbosity;
 
-[x,y] = chili(Nitroxide,Experiment,opt);
+[x,y] = chili(Nitroxide,Experiment,Options);
 
 y = y.'/max(abs(y));
 
@@ -30,7 +30,7 @@ if ~isempty(olddata)
     subplot(4,1,4);
     plot(x,data.y-olddata.y);
   end
-  ok = areequal(y,olddata.y,1e-4);
+  ok = areequal(y,olddata.y,1e-3);
   err = ~ok;
 else
   err = [];

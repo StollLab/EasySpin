@@ -159,7 +159,7 @@ if ~isfield(Exp,'Field'), err = 'Exp.Field is missing.'; end
 p_excitationgeometry;
 
 if isfield(Exp,'Temperature')
-  if numel(Exp.Temperature)~=1
+  if numel(Exp.Temperature)>1
     err = 'Exp.Temperature must be a single number.';
   end
   if isinf(Exp.Temperature)

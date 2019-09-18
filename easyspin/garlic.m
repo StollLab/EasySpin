@@ -114,7 +114,11 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
   if ~iscell(Sys), Sys = {Sys}; end
   
   nComponents = numel(Sys);
-  logmsg(1,'%d spin system(s)...');
+  if nComponents>1
+    logmsg(1,'  %d component spin systems...');
+  else
+    logmsg(1,'  single spin system');
+  end
   
   for c = 1:nComponents
     SysList{c} = isotopologues(Sys{c},Opt.IsoCutoff);
@@ -134,10 +138,15 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
   spec = 0;
   for iComponent = 1:nComponents
     for iIsotopologue = 1:nIsotopologues(iComponent)
+      
+      % Simulate single-isotopologue spectrum
       Sys_ = SysList{iComponent}(iIsotopologue);
       Sys_.singleiso = true;
       [xAxis,spec_,Transitions] = garlic(Sys_,Exp,Opt);
+      
+      % Accumulate spectra
       spec = spec + spec_*Sys_.weight;
+      
     end
   end
   
@@ -216,10 +225,13 @@ if FastMotionRegime
   if (Sys.tcorr<1e-13)
     error('Correlation time too small (%f seconds).',Sys.tcorr);
   end
-  if isfield(Sys,'n');
+  if isfield(Sys,'n')
     if any(Sys.n>1)
       error('Cannot treat equivalent nuclei in fast-motion regime!\n Please rewrite spin system!');
     end
+  end
+  if isfield(Sys,'Potential')
+    error('garlic cannot simulate fast-motion spectra with an orienting potential (Sys.Potential).');
   end
 end
 
@@ -406,7 +418,7 @@ end
 %-------------------------------------------------------------------------
 
 % Stretch factor for automatically detected field range
-if ~isfield(Opt,'Stretch');
+if ~isfield(Opt,'Stretch')
   Opt.Stretch = 0.25;
 end
 
@@ -467,9 +479,9 @@ end
 
 if (FastMotionRegime)
   if FieldSweep
-    FastMotionLw = fastmotion(Sys,CentralResonance,Sys.tcorr);
+    FastMotionLw = fastmotion(Sys,CentralResonance,Sys.tcorr,'field'); % mT
   else
-    FastMotionLw = fastmotion(Sys,Exp.Field,Sys.tcorr);
+    FastMotionLw = fastmotion(Sys,Exp.Field,Sys.tcorr,'freq')/1e3; % MHz -> GHz
   end
   if all(FastMotionLw==0)
     error('Linewidths resulting from fast-motion lindwidth parameters must be positive! Did you supply isotropic values only?');
@@ -694,15 +706,17 @@ end
 
 % Autoranging
 %--------------------------------------------------------------
-if (SweepAutoRange)
+if SweepAutoRange
   if FieldSweep
-    posrange = (posmax-posmin)*Opt.Stretch;
-    Exp.Range = [posmin,posmax] + [-1 1]*max(5*maxLw,posrange);
+    posrange = (posmax-posmin)*Opt.Stretch; % mT
+    minrange = 1; % mT
+    Exp.Range = [posmin,posmax] + [-1 1]*max([5*maxLw,posrange,minrange]);
     Exp.Range(1) = max(Exp.Range(1),0);
     logmsg(1,'  automatic field range from %g mT to %g mT',Exp.Range(1),Exp.Range(2));
   else
     posrange = (posmax-posmin)*Opt.Stretch; % Hz
-    Exp.mwRange = [posmin,posmax] + [-1 1]*max(5*maxLw/1e3,posrange);
+    minrange = 1e6; % Hz
+    Exp.mwRange = [posmin,posmax] + [-1 1]*max([5*maxLw/1e3,posrange,minrange]);
     Exp.mwRange(1) = max(Exp.mwRange(1),0);
     Exp.mwRange = Exp.mwRange/1e9; % Hz -> GHz
     logmsg(1,'  automatic frequency range from %g GHz to %g GHz',Exp.mwRange(1),Exp.mwRange(2));

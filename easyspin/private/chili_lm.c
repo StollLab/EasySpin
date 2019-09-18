@@ -68,12 +68,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   if (nrhs!=4) mexErrMsgTxt("4 input arguments expected.");
   if (nlhs!=4) mexErrMsgTxt("4 output arguments expected.");
 
-  nNuclei = (int)mxGetScalar(mxGetField(prhs[idxS],0,"nNuclei"));
-  if (nNuclei>2)
-    mexErrMsgTxt("chili_lm0123 works only for 0, 1 or 2 nuclear spins.");
-  
+  /* Parse spin system input structure */
   if (Display) mexPrintf("Parsing system structure...\n");
   idxS = 0;
+  nNuclei = (int)mxGetScalar(mxGetField(prhs[idxS],0,"nNuclei"));
+  if (nNuclei>2)
+    mexErrMsgTxt("chili_lm0123 works only for 0, 1 or 2 nuclear spins.");  
   Sys.EZI0 = mxGetScalar(mxGetField(prhs[idxS],0,"EZ0"));
   Sys.DirTilt = mxGetScalar(mxGetField(prhs[idxS],0,"DirTilt"));
   Sys.d2psi = mxGetPr(mxGetField(prhs[idxS],0,"d2psi"));
@@ -122,7 +122,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   idxD = 2;
   Diff.Exchange = mxGetScalar(mxGetField(prhs[idxD],0,"Exchange"));
   Diff.xlk = mxGetPr(mxGetField(prhs[idxD],0,"xlk"));
-  Diff.maxL = mxGetScalar(mxGetField(prhs[idxD],0,"maxL"));
+  Diff.maxL = (int)mxGetScalar(mxGetField(prhs[idxD],0,"maxL"));
   R = mxGetPr(mxGetField(prhs[idxD],0,"Diff"));
   Diff.Rxx = R[0];
   Diff.Ryy = R[1];
@@ -132,13 +132,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   allocationOptions = mxGetPr(prhs[3]);
   blockSize = (long)allocationOptions[0];
   if (Display) {
-    if (nNuclei==0)
-     nBasis = BasisSize0();
-    else if (nNuclei==1)
-      nBasis = BasisSize1();
-    else if (nNuclei==2)
-      nBasis = BasisSize2();
-    mexPrintf("  basis size: %d\n",nBasis);
     mexPrintf("  allocation block size: %d\n",blockSize);
   }
   

@@ -4,8 +4,9 @@ function [err,data] = test(opt,olddata)
 % Linewdiths of a nitroxide radical
 %======================================================
 
-System = struct('g',[2 2 2],'Nucs','14N');
-System.A = [1 1 1]*10;
+System.g = 2;
+System.Nucs = '14N';
+System.A = 10;
 System.Q = [-1 -1 2]*5;
 tcorr = 1e-10;
 field = 350;

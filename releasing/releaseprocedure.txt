@@ -1,10 +1,10 @@
-==========================================================================
-EasySpin release packaging and publishing procedure
-==========================================================================
+==================================================================
+EasySpin release packaging and publishing protocol
+==================================================================
 
-Things that should have been done before release packaging
--------------------------------------------------------------------
-- make sure as many of the known bugs as possible are fixed (see issue list on bitbucket)
+Things that should have been done before build&release
+------------------------------------------------------------------
+- fix all bugs (see issue list on bitbucket)
 - update release notes in docs/releases.html
 - update release notes in develdoc/changelog.txt
 - update incompatibility notes in docs/releases.html
@@ -13,6 +13,7 @@ Things that should have been done before release packaging
 Compilation
 ------------------------------------------------------------------
 - for bugfix release: switch to stable branch
+  for new release: switch to default branch
 - pull and merge all changes from remote repository
 - compile mex files on all platforms and put *.mex* into the private folder
 
@@ -21,7 +22,7 @@ Testing
 - run complete test suite (tests/estest) on all platforms available
 - run all examples
 
-Functions list
+Documentation
 ------------------------------------------------------------------
 %- run scripts/mkfunclist.pl to generate funclist.txt
 %- remove from funclist.txt the nonpublic functions
@@ -29,6 +30,8 @@ Functions list
 %   isotopologues, p_symandgrid, rescale, resfields_pert, runprivate)
 - add new functions to docs/funcsalphabet.html
 - add new functions to docs/funcscategory.html
+- recompile LaTeX source for formulas in documentation
+  (script scripts/mkformulas.pl, must be done on a Linux machine with LaTeX/dvips/pstoimg installed)
 
 Release tagging
 ------------------------------------------------------------------
@@ -38,15 +41,14 @@ Release tagging
   explicitly listed in esbuild.m (in source tree)
   (currently easyspininfo.m, eschecker.m)
 
+Build
+------------------------------------------------------------------
+Execute esbuild in Matlab 7.5 R2007b
+
 done by script esbuild:
 - set release tag in documentation
 - set release tag in easyspininfo
 - set release date in eschecker and easyspininfo
-
-Sources
-----------------------------------------
-
-done by script esbuild:
 - generate all p files using oldest supported Matlab on any platform
 - extract file help from all m files
 - set release info file
@@ -54,49 +56,30 @@ done by script esbuild:
 - delete all *.dll files
 - check all *.c files for absence of //
 - remove Mercurial folders and files
-
-Documentation
-----------------------------------------
-- recompile LaTeX source for formulas in documentation
-  (script scripts/mkformulas.pl, must be done on a Linux machine with LaTeX/dvips/pstoimg installed)
-
-done by script esbuild:
 - generate example index
 - generate doc
-
-
-Packaging
-=========================================================
-- execute esbuild in Matlab 7.5 R2007b (or earliest version supported/available)
-
-done by script esbuild:
 - zip all release files
 - zip entire development tree
 - archive zip and development file
 
-
-Release verification
-=========================================================
-- unpack and install
-- run full test suite on as many Matlab/OS platforms as possible
-
 Bitbucket update
-=========================================================
+------------------------------------------------------------------
 - Commit all changes, including edits to build script and release procedure
 - Tag changeset with new version number
-- Merge stable branch into default
+- If bugfix release: merge stable branch into default.
+  If new release: merge default branch into stable.
 
-Web site update
-=========================================================
+Deployment: Web site update
+------------------------------------------------------------------
 Update local website folder easyspin/website
-- update version.html: version number (needed for update check)
-- update index.html: version number
-- update download.html: version number and name of zip file
 - update references: include new publications, remove old ones from pubs subfolder
 - delete old easyspin-x.y.z.zip file
 - copy new release zip file into website folder
 - delete old documentation and examples subfolders
 - copy documentation and examples subfolders from new release into website folder
+- update version.html: version number (needed for update check)
+- update index.html: version number
+- update download.html: version number and name of zip file
 
 - zip website folder (e.g. website-x-y-z.zip) from outside folder
 
@@ -114,8 +97,8 @@ Update local website folder easyspin/website
 
 - check website, test download, check documentation, check examples
 
-Announce
-========================================================
+Deployment: Announce
+------------------------------------------------------------------
+- notify people that reported crucial bugs
 - major release: announce to email list
 - major and minor release: announce to forum
-- every release: notify people that reported crucial bugs

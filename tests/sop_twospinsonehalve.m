@@ -1,6 +1,6 @@
 function [err,data] = test(opt,olddata)
 
-% Test 3: some matrices for S=I=1/2
+% Test some matrices for S=I=1/2
 %======================================================
 s = [1/2 1/2];
 Op{1} = sop(s,'xx');
@@ -16,13 +16,9 @@ Op{4} = sop(s,'--');
 myOp{4} = [0 0 0 0; 0 0 0 0; 0 0 0 0; 1 0 0 0];
 
 for k = 1:numel(Op)
-  ok(k) = all(abs(myOp{k}(:)-Op{k}(:))<1e-10);
+  ok(k) = areequal(Op{k},myOp{k},1e-12);
 end
 
-if any(~ok)
-  err = 1;
-else
-  err = 0;
-end
+err = any(~ok);
 
 data = [];

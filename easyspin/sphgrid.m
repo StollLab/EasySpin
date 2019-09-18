@@ -35,27 +35,27 @@
 
 function varargout = sphgrid(Symmetry,nKnots,Options)
 
-if (nargin==0), help(mfilename); return; end
+if nargin==0, help(mfilename); return; end
 
-if (nargin<2) || (nargin>3), error('Wrong number of input arguments!'); end
+if nargin<2 || nargin>3, error('Wrong number of input arguments!'); end
 
 % Determine computation options
-%-------------------------------------------------------------
+%-------------------------------------------------------------------------------
 % Cartesian: return vectors instead of angles
 % explicitClosedPhi: force closed phi interval computation
 % ComputeWeights: compute weights or not
 
-if (nargin<3)
+if nargin<3
   Cartesian = 0;
   explicitClosedPhi = false;
 else
   Cartesian = any(strfind(Options,'c'));
   explicitClosedPhi = any(strfind(Options,'f'));
 end
-ComputeWeights = (nargout>2) | (Cartesian & (nargout==2));
+computeWeights = nargout>2 || (Cartesian && (nargout==2));
 
 % Initializations
-%-------------------------------------------------------------
+%-------------------------------------------------------------------------------
 
 % Determine maximum phi and open/closed interval from symmetry
 % specification.
@@ -65,13 +65,13 @@ if ischar(Symmetry)
   FullSphere = strcmp(Symmetry,'C1');
 else
   nOctants = Symmetry;
-  FullSphere = 0;
+  FullSphere = false;
   switch nOctants
     case {-1, 0}, maxPhi = 0;
     case 1, maxPhi = pi/2;
     case 2, maxPhi = pi;
     case 4, maxPhi = 2*pi;
-    case 8, maxPhi = 2*pi; FullSphere = 1;
+    case 8, maxPhi = 2*pi; FullSphere = true;
     otherwise
       error('Wrong number of octants, must be -1, 0, 1, 2, 4 or 8.');
   end
@@ -79,7 +79,7 @@ else
 end
 
 % Force open phi interval if input parameter is set.
-if (explicitClosedPhi)
+if explicitClosedPhi
   openPhi = 0;
 end
 
@@ -88,7 +88,7 @@ dtheta = (pi/2)/(nKnots-1);
 % Now we have maxPhi, openPhi, dtheta, nOctants and nKnots,
 % completely specifying the grid we want.
 
-if (nOctants>0) % if not Dinfh or O3 symmetry
+if nOctants > 0 % if not Dinfh or O3 symmetry
   
   % Initializations
   nOct = ceil(maxPhi/(pi/2));
@@ -97,13 +97,13 @@ if (nOctants>0) % if not Dinfh or O3 symmetry
   phi = zeros(1,nPoints);
   Weights = zeros(1,nPoints);
   
-  if (ComputeWeights)
+  if computeWeights
     sindth2 = sin(dtheta/2);
     w1 = 0.5 + openPhi/2;
   end
   
   % North pole
-  if ComputeWeights
+  if computeWeights
     Weights(1) = maxPhi*(1-cos(dtheta/2));
   end
   
@@ -113,7 +113,7 @@ if (nOctants>0) % if not Dinfh or O3 symmetry
     nPhi = nOct*(iSlice-1)+1;
     dPhi = maxPhi/(nPhi-1);
     idx = Start+(0:nPhi-1);
-    if ComputeWeights
+    if computeWeights
       Weights(idx) = 2*sin((iSlice-1)*dtheta)*sindth2*dPhi*...
         [w1 ones(1,nPhi-2) .5];
     end
@@ -128,34 +128,34 @@ if (nOctants>0) % if not Dinfh or O3 symmetry
   idx = Start+(0:nPhi-1);
   theta(idx) = pi/2;
   phi(idx) = linspace(0,maxPhi,nPhi);
-  if (ComputeWeights)
+  if (computeWeights)
     Weights(idx) = sindth2*dPhi*[w1 ones(1,nPhi-2) .5];
   end
   
   % Border removal
-  openRemove = cumsum(nOct*(1:nKnots-1)+1)+1;
-  if (openPhi)
+  if openPhi
+    openRemove = cumsum(nOct*(1:nKnots-1)+1)+1;
     phi(openRemove) = [];
     theta(openRemove) = [];
     Weights(openRemove) = [];
   end
   
   % Add lower hemisphere for C1
-  if (FullSphere)
+  if FullSphere
     idx = length(theta)-nPhi+openPhi:-1:1;
     phi = [phi phi(idx)];
     theta = [theta pi-theta(idx)];
-    if (ComputeWeights)
+    if (computeWeights)
       Weights(idx) = Weights(idx)/2; % half of real value
       Weights = [Weights Weights(idx)];
     end
   end
   
-  if (ComputeWeights)
-    Weights = 2*(4/nOct)*Weights;
+  if computeWeights
+    Weights = 2*(2*pi/maxPhi)*Weights;
   end
   
-elseif (nOctants==0) % Dinfh symmetry
+elseif nOctants==0 % Dinfh symmetry
   
   phi = zeros(1,nKnots);
   theta = linspace(0,pi/2,nKnots);
@@ -171,7 +171,7 @@ end
 
 
 % output
-%-------------------------------------------------------------
+%-------------------------------------------------------------------------------
 switch nargout
   case 1
     varargout = {ang2vec(phi,theta)};

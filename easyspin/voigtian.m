@@ -26,30 +26,40 @@ function [y1,y2] = voigtian(x,x0,fwhmGL,diff,phase)
 
 if nargin==0, help(mfilename); return; end
 
-if (nargin<3), error('Not enough input arguments!'); end
-if (nargin>5), error('Too many input arguments!'); end
+if nargin<3, error('Not enough input arguments!'); end
+if nargin>5, error('Too many input arguments!'); end
 
-if numel(fwhmGL)~=2
-  error('fwhm must contain 2 values!');
+if ~isnumeric(x0) || numel(x0)~=1
+  error('x0 (2nd input) must be a single number.');
 end
 
-if any(fwhmGL<0)
-  error('fwhm must be all positive');
+if ~isnumeric(fwhmGL) || numel(fwhmGL)~=2
+  error('fwhmGL (3rd input) must contain two numbers!');
+end
+
+if ~isreal(fwhmGL) || any(fwhmGL<0)
+  error('Both numbers in fwhmGL (3rd input) must be non-negative.');
 end
 
 if all(fwhmGL==0)
-  error('At least one value in fwhm must be nonzero.');
+  error('At least one value in fwhmGL (3rd input) must be nonzero.');
 end
 
-if (nargin<4), diff = 0; end
-if (nargin<5), phase = 0; end
+if nargin<4, diff = 0; end
+if nargin<5, phase = 0; end
 
-Quadrature = (nargout>1);
+calculateQuadrature = nargout>1;
 
 fwhmG = fwhmGL(1);
 fwhmL = fwhmGL(2);
+
+% For the convolution, one of the two lineshapes must be centered in range to
+% yield the correct final lineshape position
 x0center = x(ceil(numel(x)/2));
-if (fwhmG>fwhmL)
+
+% Use the wider lineshape to include position, phase, and derivative.
+% Use the narrower one for convolution only.
+if fwhmG>fwhmL
   diffG = diff;
   phaseG = phase;
   x0G = x0;
@@ -66,54 +76,44 @@ else
 end
 
 % Compute Gaussian and Lorentzian
-% One of the two lineshapes must be centered in range to yield
-% correct final lineshape position
-if Quadrature
-  if (fwhmG>0)
+if calculateQuadrature
+  if fwhmG>0
     [yG1,yG2] = gaussian(x,x0G,fwhmG,diffG,phaseG);
   end
-  if (fwhmL>0)
+  if fwhmL>0
     [yL1,yL2] = lorentzian(x,x0L,fwhmL,diffL,phaseL);
   end
 else
-  if (fwhmG>0)
+  if fwhmG>0
     yG1 = gaussian(x,x0G,fwhmG,diffG,phaseG);
     yG2 = [];
   end
-  if (fwhmL>0)
+  if fwhmL>0
     yL1 = lorentzian(x,x0L,fwhmL,diffL,phaseL);
     yL2 = [];
   end
 end
 
-DoConvolution = (fwhmL>0) && (fwhmG>0);
-if DoConvolution
+doConvolution = (fwhmL>0) && (fwhmG>0);
+if doConvolution
   
   % Convolution
-  y1 = conv(yG1,yL1);
-  if Quadrature
-    y2 = conv(yG2,yL2);
+  y1 = conv(yG1,yL1,'same');
+  if calculateQuadrature
+    y2 = conv(yG2,yL2,'same');
   end
-  
-  % Take central part
-  n = length(yG1);
-  m = ceil(n/2);
-  y1 = y1(m:end-n+m);
-  if Quadrature
-    y2 = y2(m:end-n+m);
-  end
-  
+    
   % Re-normalize
   dx = x(2)-x(1);
   y1 = y1*dx;
-  if Quadrature
+  if calculateQuadrature
     y2 = y2*dx;
   end
   
 else
   
   % Skip convolution in the case of a pure Gaussian or pure Lorentzian
-  if (fwhmL>0)
+  if fwhmL>0
     y1 = yL1;
     y2 = yL2;
   else

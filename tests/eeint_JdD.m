@@ -1,7 +1,7 @@
 function [err,data] = test(opt,olddata)
 
 %======================================================
-% Compare ee and J/dvec/eeD for a two-spin system
+% Compare ee and J/dip/dvec for a two-spin system
 %======================================================
 S = [1/2 1/2];
 g = [2 2];
@@ -17,12 +17,12 @@ Sys1.ee = J*eye(3) +  diag(D) + ...
   [0 d(3) -d(2); -d(3) 0 d(1); d(2) -d(1) 0];
 Hee1 = eeint(Sys1);
 
-% 2) J, dvec, eeD
+% 2) J, dip, dvec
 Sys2.S = S;
 Sys2.g = g;
 Sys2.J = J;
+Sys2.dip = D;
 Sys2.dvec = d;
-Sys2.eeD = D;
 Hee2 = eeint(Sys2);
 
 % The two Hamiltonians should be _numerically_ identical

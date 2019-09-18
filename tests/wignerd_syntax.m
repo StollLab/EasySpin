@@ -5,15 +5,29 @@ function [err,data] = test(opt,olddata)
 %======================================================
 
 J = 15/2;
-angles = rand(1,3)*pi;
-wignerd(J,angles);
-wignerd(J,angles,'+');
-wignerd(J,angles,'-');
+m1 = -7/2;
+m2 = 3/2;
+Jm1m2 = [J m1 m2];
 
+rng_(1,'twister');
+
+alpha = rand*2*pi;
 beta = rand*pi;
+gamma = rand*2*pi;
+
+wignerd(J,alpha,beta,gamma);
+wignerd(J,alpha,beta,gamma,'+');
+wignerd(J,alpha,beta,gamma,'-');
 wignerd(J,beta);
 wignerd(J,beta,'+');
 wignerd(J,beta,'-');
+wignerd(Jm1m2,alpha,beta,gamma);
+wignerd(Jm1m2,alpha,beta,gamma,'+');
+wignerd(Jm1m2,alpha,beta,gamma,'-');
+wignerd(Jm1m2,beta);
+wignerd(Jm1m2,beta,'+');
+wignerd(Jm1m2,beta,'-');
 
-err = 0;
+err = false;
+
 data = [];

@@ -717,9 +717,11 @@ if isfield(Sys,'D') && any(Sys.D(:)), return; end
 
 % (2) Not isotropic if any A, g or ee tensor is anisotropic
 if isfield(Sys,'A') && ~isempty(Sys.A)
-  A = Sys.A(:,1);
-  if any(Sys.A(:,2)~=A) || any(Sys.A(:,3)~=A)
-    return;
+  for j = 0:Sys.nElectrons-1
+    A = Sys.A(:,1+3*j);
+    if any(Sys.A(:,2+3*j)~=A) || any(Sys.A(:,3+3*j)~=A)
+      return;
+    end
   end
 end
 

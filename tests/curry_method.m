@@ -1,6 +1,5 @@
 function [err,data] = test(opt,olddata)
-
-rand('twister',5);
+rng_(5,'twister');
 
 Sys.S = randi_(6)/2;
 Sys.g = rand(1,3)*4;

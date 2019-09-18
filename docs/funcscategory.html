@@ -46,13 +46,22 @@
 <tr><td><a href="esfit.html">esfit</a></td><td>Least-squares fitting of EPR spectra</td></tr>
 <tr><td><a href="garlic.html">garlic</a></td><td>Isotropic and fast-motion cw EPR spectra</td></tr>
 <tr><td><a href="chili.html">chili</a></td><td>Slow-motion cw EPR spectra</td></tr>
+<tr><td><a href="cardamom.html">cardamom</a></td><td>Trajectory-based cw EPR spectra</td></tr>
 <tr><td><a href="pepper.html">pepper</a></td><td>Solid-state cw EPR spectra</td></tr>
 <tr><td><a href="saffron.html">saffron</a></td><td>Pulse EPR spectra</td></tr>
 <tr><td><a href="salt.html">salt</a></td><td>ENDOR spectra</td></tr>
+<tr><td><a href="spidyan.html">spidyan</a></td><td>Spin dynamics with aribtrary waveforms</td></tr>
 <tr><td><a href="curry.html">curry</a></td><td>Magnetometry data</td></tr>
 <tr><td><a href="blochsteady.html">blochsteady</a></td><td>Steady-state solutions of Bloch equations</td></tr>
 <tr><td><a href="nucfrq2d.html">nucfrq2d</a></td><td>Sketch of HYSCORE spectra</td>
-<tr><td><a href="esfit.html">esfit</a></td><td>Least-squares fitting of EPR spectra</td></tr>
+
+<tr><td>&nbsp;</td></tr>
+<tr><td colspan="2" class="grouptitle">Stochastic simulations</td></tr>
+
+<tr><td><a href="mdhmm.html">mdhmm</a></td><td>Build hidden Markov model from molecular-dynamics trajectories</td></tr>
+<tr><td><a href="mdload.html">mdload</a></td><td>Load molecular-dynamics trajectory from file</td></tr>
+<tr><td><a href="stochtraj_diffusion.html">stochtraj_diffusion</a></td><td>Simulate trajectories of rotational diffusion</td></tr>
+<tr><td><a href="stochtraj_jump.html">stochtraj_jump</a></td><td>Simulate trajectories of Markovian jumps</td></tr>
 
 <tr><td>&nbsp;</td></tr>
 <tr><td colspan="2" class="grouptitle">Utilities</td></tr>
@@ -65,7 +74,9 @@
 <tr><td><a href="pulse.html">pulse</a></td><td>Computes pulse functions for a series of amplitude- and phase-modulated pulses</td></tr>
 <tr><td><a href="exciteprofile.html">exciteprofile</a></td><td>Pulse excitation profile calculation</td></tr>
 <tr><td><a href="rfmixer.html">rfmixer</a></td><td>Digital up- and downconversion</td></tr>
+<tr><td><a href="resonator.html">resonator</a></td><td>Simulation of/compensation for the resonator transfer function.</td></tr>
 <tr><td><a href="resonatorfunc.html">resonatorfunc</a></td><td>Resonator voltage reflection coefficient</td></tr>
+<tr><td><a href="transmitter.html">transmitter</a></td><td>Simulation of/compensation for transmitter nonlinearity.</td></tr>
 <tr><td><a href="zfsframes.html">zfsframes</a></td><td>Zero-field splitting tensor frames analysis</td></tr>
 <tr><td>&nbsp;</td></tr>
 
@@ -88,6 +99,7 @@
 <tr><td><a href="exponfit.html">exponfit</a></td><td>Exponential fitting</td></tr>
 <tr><td><a href="fdaxis.html">fdaxis</a></td><td>Frequency domain axis for FFT</td></tr>
 <tr><td><a href="fieldmod.html">fieldmod</a></td><td>Field modulation of EPR absorption spectra</td></tr>
+<tr><td><a href="lpsvd.html">lpsvd</a></td><td>Performs LPSVD on a signal</td></tr>
 <tr><td><a href="rcfilt.html">rcfilt</a></td><td>RC filtering of EPR spectra</td></tr>
 <tr><td><a href="rescale.html">rescale</a></td><td>Rescale spectra</td></tr>
 <tr><td><a href="stackplot.html">stackplot</a></td><td>Stacked plot of 1D data</td></tr>
@@ -105,13 +117,24 @@
 <tr><td><a href="rotplane.html">rotplane</a></td><td>Set of vectors/orientations in a plane</td></tr>
 <tr><td><a href="vec2ang.html">vec2ang</a></td><td>Polar angles from cartesian unit vector</td></tr>
 
+<tr><td>&nbsp;</td><td></td></tr>
+<tr><td colspan="2" class="grouptitle">Quaternions</td></tr>
+
+<tr><td><a href="euler2quat.html">euler2quat</a></td><td>Converts a set of Euler angles to a unit quaternion</td></tr>
+<tr><td><a href="rotmat2quat.html">rotmat2quat</a></td><td>Converts a rotation matrix to a unit quaternion</td></tr>
+<tr><td><a href="quat2euler.html">quat2euler</a></td><td>Converts  a unit quaternion to a set of Euler angles</td></tr>
+<tr><td><a href="quat2rotmat.html">quat2rotmat</a></td><td>Converts  a unit quaternion to a rotation matrix</td></tr>
+<tr><td><a href="quatvecmult.html">quatvecmult</a></td><td>Rotates a vector using a unit quaternion</td></tr>
+<tr><td><a href="quatmult.html">quatmult</a></td><td>Performs quaternion multiplication between two quaternions</td></tr>
+<tr><td><a href="quatinv.html">quatinv</a></td><td>Calculates the inverse of a unit quaternion.</td></tr>
+
 <tr><td>&nbsp;</td></tr>
 <tr><td colspan="2" class="grouptitle">Line shapes and windows</td></tr>
 
 <tr><td><a href="apowin.html">apowin</a></td><td>Apodization windows.</td></tr>
 <tr><td><a href="convspec.html">convspec</a></td><td>Convolute spectrum with line shape</td></tr>
 <tr><td><a href="gaussian.html">gaussian</a></td><td>Gaussian line shape</td></tr>
-<tr><td><a href="hilberttrans.html">hilberttrans</a></td><td>Hilbert transform</td></tr>,
+<tr><td><a href="hilberttrans.html">hilberttrans</a></td><td>Hilbert transform</td></tr>
 <tr><td><a href="lorentzian.html">lorentzian</a></td><td>Lorentzian line shape<td></td></tr>
 <tr><td><a href="lshape.html">lshape</a></td><td>General line shape function</td></tr>
 <tr><td><a href="makespec.html">makespec</a></td><td>Construct spectrum from peak positions and amplitudes</td></tr>
@@ -171,7 +194,7 @@
 <tr><td><a href="spherharm.html">spherharm</a></td><td>Spherical harmonics</td></tr>
 <tr><td><a href="wigner3j.html">wigner3j</a></td><td>Wigner 3-j symbols</td></tr>
 <tr><td><a href="wigner6j.html">wigner6j</a></td><td>Wigner 6-j symbols</td></tr>
-<tr><td><a href="wignerd.html">wignerd</a></td><td>Wigner D-matrix</td></tr>
+<tr><td><a href="wignerd.html">wignerd</a></td><td>Wigner rotation matrices</td></tr>
 
 <tr><td>&nbsp;</td></tr>
 <tr><td colspan="2" class="grouptitle">Energy levels, resonances and propagations</td></tr>
@@ -191,6 +214,7 @@
 <tr><td>&nbsp;</td></tr>
 <tr><td colspan="2" class="grouptitle">Orientations</td></tr>
 
+<tr><td><a href="oripotentialplot.html">oripotentialplot</a></td><td>Plot orientational potential</td></tr>
 <tr><td><a href="sphgrid.html">sphgrid</a></td><td>Triangular orientational grids</td></tr>
 <tr><td><a href="sphrand.html">sphrand</a></td><td>Random orientational grids</td></tr>
 <tr><td><a href="sphtri.html">sphtri</a></td><td>Triangulation of orientational grids</td></tr>

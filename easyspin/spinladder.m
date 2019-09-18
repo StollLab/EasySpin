@@ -36,7 +36,7 @@ function varargout = spinladder(Sys,Temperature)
 switch (nargin)
   case 0, help(mfilename); return;
   case 1, Temperature = inf;
-  case 2, % everything ok
+  case 2 % everything ok
   otherwise
     error('One or two input arguments expected.');
 end
@@ -45,7 +45,7 @@ if ~isstruct(Sys)
   error('First input must be a spin system structure.');
 end
 
-if (numel(Sys.S)~=2)
+if numel(Sys.S)~=2
   error('Only systems with two electron spins are supported.');
 end
 
@@ -87,14 +87,21 @@ d12 = (1-cp)/2;
 %-------------------------------------------------------------
 
 % Bencini/Gatteschi p.50 Eq.(3.5)
-if numel(Sys.ee)==1
-  J = Sys.ee;
-elseif numel(Sys.ee)==3
-  J = mean(Sys.ee);
-elseif numel(Sys.ee)==9
-  J = mean(diag(Sys.ee));
-else
-  error('Sys.ee must have 1 or 3 elements.');
+full_ee = false;
+if isfield(Sys,'ee')
+  switch numel(Sys.ee)
+    case 1
+      J = Sys.ee;
+    case 3
+      J = mean(Sys.ee);
+    case 9
+      full_ee = true;
+      J = mean(diag(Sys.ee));
+    otherwise
+      error('Sys.ee must have 1 or 3 elements.');
+  end
+elseif isfield(Sys,'J')
+  J = Sys.J;
 end
 Energies = J/2*(S2-Sa2-Sb2);
 
@@ -139,30 +146,47 @@ elseif numel(Sys.D)==4
   D_(2,:) = [-1/3 -1/3 +2/3]*Sys.D(2,1) + [+1 -1 0]*Sys.D(2,2);
   Sys.D = D_;
 elseif numel(Sys.D)==6
-  % D principal values given;
+  % D principal values given
 end
 D1 = Sys.D(1,:);
 D2 = Sys.D(2,:);
 
-if numel(Sys.ee)==9
+if full_ee
   D12 = Sys.ee - J*eye(3);
   D1 = diag(D1);
   D2 = diag(D2);
 else
-  D12 = Sys.ee - J;
+  if isfield(Sys,'ee')
+    D12 = Sys.ee - J;
+  else
+    D12 = 0;
+  end
 end
 
 % Construct spin systems for manifolds
+% (based on Bencini/Gatteschi p.53 Eqs. (3.20)-(3.22))
 for iS = numel(S):-1:1
   Sys_ = Sys;
   Sys_.S = S(iS);
-  
-  % Bencini/Gatteschi p.53 Eqs. (3.20)-(3.22)
+    
+  % g tensors
   Sys_.g = c1(iS)*g1 + c2(iS)*g2;
+  
+  % Hyperfine couplings
   if nNuclei>0
     Sys_.A = c1(iS)*A1 + c2(iS)*A2;
   end
-  Sys_.D = d1(iS)*D1 + d2(iS)*D2 + d12(iS)*D12;
+  
+  % Zero-field splittings
+  if Sys_.S>1/2
+    Sys_.D = d1(iS)*D1 + d2(iS)*D2 + d12(iS)*D12;
+  else
+    if isfield(Sys_,'D'), Sys_ = rmfield(Sys_,'D'); end
+  end
+  
+  % remove fields containing coupling constants
+  if isfield(Sys_,'ee'), Sys_ = rmfield(Sys_,'ee'); end
+  if isfield(Sys_,'J'), Sys_ = rmfield(Sys_,'J'); end
   
   CoupledSystems{iS} = Sys_;
 end
@@ -187,15 +211,15 @@ end
 switch nargout
   case 0
     fprintf('S1 = %g, S2 = %g (total %d electronic states)\n',Sa,Sb,sum(2*Sys.S+1));
-    fprintf('%d manifolds:\n',numel(S));
+    fprintf('%d manifolds (highest to lowest energy):\n',numel(S));
     for iS = numel(Energies):-1:1
-      if Temperature~=inf,
-        popStr = sprintf(', population %0.3g/state, %0.3g total',...
+      if Temperature~=inf
+        popStr = sprintf('\n     population %0.3e/state, %0.3e total',...
           Populations(iS)/(2*CoupledSystems{iS}.S+1),Populations(iS));
       else
         popStr = '';
       end
-      fprintf('  S = %g (%d electronic states)\n     energy %g GHz%s\n',...
+      fprintf('  S = %g (%d electronic states)\n     energy %+g GHz%s\n',...
         CoupledSystems{iS}.S,2*CoupledSystems{iS}.S+1,Energies(iS)/1e3,popStr);
     end
   case 1

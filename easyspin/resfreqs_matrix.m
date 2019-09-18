@@ -140,9 +140,6 @@ if isnan(Exp.Field)
   logmsg(1,'Exp.Field is missing, assuming 0.0 mT');
 end
 
-
-
-
 if ~isnan(Exp.CenterSweep)
   if ~isnan(Exp.Range)
     logmsg(1,'Using Experiment.CenterSweep and ignoring Experiment.Range.');
@@ -152,7 +149,7 @@ if ~isnan(Exp.CenterSweep)
 end
 
 if isnan(Exp.Range), Exp.Range = []; end
-if (diff(Exp.Range)<=0) | ~isfinite(Exp.Range) | ~isreal(Exp.Range) | any(Exp.Range<0)
+if any(diff(Exp.Range)<=0) || any(~isfinite(Exp.Range)) || ~isreal(Exp.Range) || any(Exp.Range<0)
   error('Exp.Range is not valid!');
 end
 
@@ -168,6 +165,11 @@ if (ComputeNonEquiPops)
   if (numel(Exp.Temperature)~=nElectronStates)
     error('Exp.Temperature must either be a scalar or a %d-vector',nElectronStates);
   end
+    if ~isfield(System,'PopBasis')
+    PopBasis = 'Molecular';
+    else
+      PopBasis = System.PopBasis;
+    end
   ComputeBoltzmannPopulations = false;
 else
   if isinf(Exp.Temperature)
@@ -370,20 +372,26 @@ end
 % Spin-polarized systems: precompute zero-field energies, states, populations
 if (ComputeNonEquiPops)
   
-  % Vector of zero-field populations for the core system
-  ZFPopulations = Exp.Temperature(:);
-  ZFPopulations = ZFPopulations/sum(ZFPopulations);
   nElStates = prod(2*System.S+1);
-  ZFPopulations = kron(ZFPopulations,ones(nCore/nElStates,1));
-  
+  if (numel(Exp.Temperature) == nElectronStates)
+    % Vector of zero-field populations for the core system
+    ZFPopulations = Exp.Temperature(:);
+    if strcmp(PopBasis,'Molecular')
+      ZFPopulations = ZFPopulations/sum(ZFPopulations);
+    end
+    ZFPopulations = kron(ZFPopulations,ones(nCore/nElStates,1));
+  else
+    ZFPopulations = Exp.Temperature;%/sum(diag(Exp.Temperature));
+    ZFPopulations = kron(ZFPopulations,diag(ones(nCore/nElStates,1)));
+  end
   % Pre-compute zero-field energies and eigenstates
   if higherOrder
     [ZFStates,ZFEnergies] = eig(sham(CoreSys, zeros(1,3)));
   else
     [ZFStates,ZFEnergies] = eig(kF);
   end
-    [ZFEnergies,idx] = sort(real(diag(ZFEnergies)));
-    ZFStates = ZFStates(:,idx);
+  [ZFEnergies,idx] = sort(real(diag(ZFEnergies)));
+  ZFStates = ZFStates(:,idx);
   % Correct zero-field states for S=1 and axial D
   if (CoreSys.S==1)
     if (ZFEnergies(2)==ZFEnergies(3))
@@ -412,7 +420,7 @@ end
 UserTransitions = ~isempty(Opt.Transitions);
 if (UserTransitions)
   if ischar(Opt.Transitions)
-    if strcmp(Opt.Transitions,'all');
+    if strcmp(Opt.Transitions,'all')
       nSStates = prod(2*CoreSys.S+1)*prod(2*CoreSys.L+1);
       logmsg(1,'  using all %d transitions',nSStates*(nSStates-1)/2);
       [u,v] = find(triu(ones(nSStates),1));
@@ -666,16 +674,22 @@ for iOri = 1:nOrientations
       end
       
     elseif (ComputeNonEquiPops)
-      
-      % Compute level populations by projection from zero-field populations and states
-      for iState = 1:nCore
-        Populations(iState) = (abs(ZFStates'*Vs(:,iState)).^2).'*ZFPopulations;
+      switch PopBasis
+      	case 'Molecular'
+        % Compute level populations by projection from zero-field populations and states
+        for iState = 1:nCore
+          Populations(iState) = (abs(ZFStates'*Vs(:,iState)).^2).'*ZFPopulations;
+        end
+      case 'Spin'
+        for iState = 1:nCore
+          Populations(iState) = (abs(ZFPopulations.'*Vs(:,iState)).^2);
+        end  
       end
       Polarization = Populations(u) - Populations(v);
       if (nPerturbNuclei>0)
         Polarization = Polarization/prod(2*System.I+1);
       end
-      
+       
     else
       % no temperature given
       % same polarization for each electron transition
@@ -709,7 +723,7 @@ for iOri = 1:nOrientations
         LineWidth2 = LineWidth2 + abs(m(dHdAx))^2;
         LineWidth2 = LineWidth2 + abs(m(dHdAy))^2;
         LineWidth2 = LineWidth2 + abs(m(dHdAz))^2;
-      end;
+      end
       
       % g strain
       if UsegStrain
@@ -793,7 +807,7 @@ else
   logmsg(2,'  ## no intensities computed, no intensity post-selection');
 end
 
-if (EasySpinLogLevel>=2),
+if (EasySpinLogLevel>=2)
   partlyNaN = any(isnan(Pdat),2);
   nChopped = sum(partlyNaN);
   if (nChopped>0)
@@ -821,7 +835,7 @@ if numel(idxRmv)>0
   logmsg(2,'  ## removing %2d resonances (below threshold, out of range)',numel(idxRmv));
   Pdat(idxRmv,:) = [];
   Transitions(idxRmv,:)=[];
-  if (ComputeIntensities), Idat(idxRmv,:) = []; end;
+  if (ComputeIntensities), Idat(idxRmv,:) = []; end
   if (ComputeStrains), Wdat(idxRmv,:) = []; end
   if (nPerturbNuclei>0)
     for iiNuc = 1:nPerturbNuclei
@@ -851,11 +865,11 @@ end
 
 % Assert positive intensities, but only for thermal equilibrium populations
 if ComputeIntensities && (~ComputeNonEquiPops)
-  if any(TransitionRates<0),
+  if any(TransitionRates<0)
     logmsg(-inf,'*********** Negative intensity encountered in resfields!! Please report! **********');
   end
 end
-if any(Wdat(:)<0),
+if any(Wdat(:)<0)
   logmsg(-inf,'*********** Negative width encountered in resfields!! Please report! **************');
 end
 
@@ -937,6 +951,12 @@ if (nSites>1) && ~isfield(Opt,'peppercall')
   if ~isempty(Idat), Idat = reshape(Idat,siz); end
   if ~isempty(Wdat), Wdat = reshape(Wdat,siz); end
 end
+
+% Sort Output
+[Transitions, I] = sortrows(Transitions);
+Pdat = Pdat(I,:);
+if ~isempty(Idat), Idat = Idat(I,:); end
+if ~isempty(Wdat), Wdat = Wdat(I,:); end
 
 % Arrange the output.
 Output = {Pdat,Idat,Wdat,Transitions};

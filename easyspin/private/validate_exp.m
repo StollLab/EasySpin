@@ -3,7 +3,7 @@
 %   (Could be) Implemented to simplify and maintain consistency in code across programs.
 %
 
-function varargout = check_exp(program,Sys,Exp)
+function varargout = validate_exp(program,Sys,Exp)
 
 assert(ischar(program), 'Program name must be a string.')
 
@@ -105,8 +105,8 @@ switch program
         Exp.Range = max(Exp.Range,0);
       end
       if isfield(Exp,'Range') && all(~isnan(Exp.Range))
-        if (diff(Exp.Range)<=0) || any(~isfinite(Exp.Range)) || ...
-            any(~isreal(Exp.Range)) || any(Exp.Range<0)
+        if any(diff(Exp.Range)<=0) || any(~isfinite(Exp.Range)) || ...
+            ~isreal(Exp.Range) || any(Exp.Range<0)
           error('Exp.Range is not valid!');
         end
       end
@@ -117,7 +117,7 @@ switch program
       end
       if isfield(Exp,'mwRange') && all(~isnan(Exp.mwRange))
         if (diff(Exp.mwRange)<=0) || any(~isfinite(Exp.mwRange)) || ...
-            any(~isreal(Exp.mwRange)) || any(Exp.mwRange<0)
+            ~isreal(Exp.mwRange) || any(Exp.mwRange<0)
           error('Exp.mwRange is not valid!');
         end
       end
@@ -443,18 +443,18 @@ switch program
     % Determine whether to do a powder simulation
     if ~usePotential
       if isempty(Exp.Ordering) || all(Exp.Ordering==0)
-        logmsg(1,'  No ordering potential given, skipping powder simulation.');
+        logmsg(1,'  No orientational potential given, skipping powder simulation.');
         PowderSimulation = false;
       else
-      logmsg(1,'  Ordering potential given, doing powder simulation.');
+      logmsg(1,'  Orientational potential given, doing powder simulation.');
         PowderSimulation = true;
       end    
     else
       if ~isempty(Exp.CrystalOrientation)
-        logmsg(1,'  Ordering potential given, doing single-crystal simulation.');
+        logmsg(1,'  Orientational potential given, doing single-crystal simulation.');
         PowderSimulation = false;
       else
-        logmsg(1,'  Ordering potential given, doing powder simulation.');
+        logmsg(1,'  Orientational potential given, doing powder simulation.');
         PowderSimulation = true;
       end
     end
@@ -545,21 +545,22 @@ switch program
           end
         end
       end
-%     else
-%       if isfield(Exp,'mwCenterSweep')   TODO implement in cardamom
-%         if isfield(Exp,'mwRange')
-%           logmsg(0,'Using Exp.mwCenterSweep and ignoring Exp.mwRange.');
-%         end
-%       else
-%         if isfield(Exp,'mwRange')
-%           Exp.mwCenterSweep = [mean(Exp.mwRange) diff(Exp.mwRange)];
-%         else
-%           error('Either Exp.mwRange or Exp.mwCenterSweep need to be given.');
-%         end
-%       end
+    else
+      if isfield(Exp,'mwCenterSweep')   %TODO implement in cardamom
+        if isfield(Exp,'mwRange')
+          logmsg(0,'Using Exp.mwCenterSweep and ignoring Exp.mwRange.');
+        end
+      else
+        if isfield(Exp,'mwRange')
+          Exp.mwCenterSweep = [mean(Exp.mwRange) diff(Exp.mwRange)];
+        else
+          error('Either Exp.mwRange or Exp.mwCenterSweep need to be given.');
+        end
+      end
     end
 
     if FieldSweep
+      CenterFreq = [];
       CenterField = Exp.CenterSweep(1);
       Sweep = Exp.CenterSweep(2);
       Exp.Range = Exp.CenterSweep(1) + [-1 1]/2*Sweep;
@@ -658,23 +659,23 @@ switch program
 %     % Determine whether to do a powder simulation  TODO implement in cardamom
 %     if ~usePotential
 %       if isempty(Exp.Ordering) || all(Exp.Ordering==0)
-%         logmsg(1,'  No ordering potential given, skipping powder simulation.');
+%         logmsg(1,'  No orientational potential given, skipping powder simulation.');
 %         PowderSimulation = false;
 %       else
-%       logmsg(1,'  Ordering potential given, doing powder simulation.');
+%       logmsg(1,'  Orientational potential given, doing powder simulation.');
 %         PowderSimulation = true;
 %       end    
 %     else
 %       if ~isempty(Exp.CrystalOrientation)
-%         logmsg(1,'  Ordering potential given, doing single-crystal simulation.');
+%         logmsg(1,'  Orientational potential given, doing single-crystal simulation.');
 %         PowderSimulation = false;
 %       else
-%         logmsg(1,'  Ordering potential given, doing powder simulation.');
+%         logmsg(1,'  Orientational potential given, doing powder simulation.');
 %         PowderSimulation = true;
 %       end
 %     end
     
-    varargout = {Exp, CenterField};%, ParallelMode, UserSuppliedOrderingFcn, PowderSimulation};
+    varargout = {Exp, FieldSweep, CenterField, CenterFreq, Sweep};%, ParallelMode, UserSuppliedOrderingFcn, PowderSimulation};
 
   otherwise
     error('Program not recognized.')

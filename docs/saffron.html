@@ -40,23 +40,31 @@ saffron(Sys,Exp,Opt)
 y = saffron(...)
 [x,y] = saffron(...)
 [x,y,p] = saffron(...)
-[x1,x2,y,p] = saffron(...)
 </pre>
 
 <p>
-See also the <a href="examplesmain.html">examples</a> on how to use <code>saffron</code>.
+See also the <a href="examplesmain.html">examples</a> on how to use <code>saffron</code> and <a href="userguide_saffron.html">part I</a> and <a href="userguide_saffron_thyme.html">part II</a> of the userguide.
 
 <!-- ====================================================== -->
 <div class="subtitle">Description</div>
 
 <p>
 This function calculates pulse EPR (ESEEM and ENDOR) spectra of powder and single crystals.
+Two different simulations methods are available: a fast one that works with predefined experiment sequences and certain user defined ones (referred to as <em>fast</em>) and a much slower but completely general algorithm (referred to as <em>thyme</em>).
+For more details see <a href="#algorithms">here</a>.
 
 <p>
-The output contain the abscissa data in <code>x</code> (time in microseconds or frequency in MHz) and the simulated data in <code>y</code> (time domain trace or ENDOR spectrum). For 2D experiments such as HYSCORE, the two axes are returned in <code>x1</code> and <code>x2</code>. For ESEEM simulations, <code>p</code> contains the frequency abscissa (in MHz) in <code>p.f</code> and the spectrum obtained by Fourier transform from the time domain data in <code>p.fd</code>.
+The output contain the abscissa data in <code>x</code> and the simulated data in <code>y</code>. 
+For single-point detection simulations, <code>y</code> is a n-dimensional array, where n is the number of indirect dimensions.
+In case of transient detection, <code>y</code> is a n+1-dimensional array, where n is the number of indirect dimensions and the last dimension is the direct dimension.
+<code>x</code> is a vector, if <code>y</code> is one dimensional. 
+If <code>y</code> has more than one dimension, <code>x</code> becomes a cell array with the individual axes.
+In case of transient detection, the time axis of the transient is always the last element in <code>x</code>.
+For ESEEM simulations, <code>p</code> contains the frequency abscissa (in MHz) in <code>p.f</code> and the spectrum obtained by Fourier transform from the time domain data in <code>p.fd</code>.
 
 <p>
-If you don't request any output, <code>saffron</code> plots the simulated data.
+If you don't request any output, <code>saffron</code> plots the simulated data. 
+The data can not be plotted for simulations with three or more indirect dimensions with single point detection, or two or more indirect dimensions with transient detection.
 
 <p>
 The three input arguments to the function are
@@ -66,6 +74,8 @@ The three input arguments to the function are
 <li><code>Exp</code>: experimental parameters</li>
 <li><code>Opt</code>: simulation options</li>
 </ul>
+
+<div class="subtitle2">Input: Spin system</div>
 
 <p>
 <code>Sys</code> is a <a href="spinsystem.html">spin system structure</a>. Fields available in <code>Sys</code> include all needed for the construction of the spin Hamiltonian. Line broadening parameters used by other simulation functions (<code>lw</code>, <code>lwpp</code>, <code>gStrain</code>, etc.) are not recognized, except <code>HStrain</code>. <code>HStrain</code> is used in excitation window computations (see <code>Exp.ExciteWidth</code>) when orientation selection is wanted.
@@ -85,14 +95,36 @@ Sys.Q = [-1 -1 2]*0.1;
 <p>
 You can provide the transverse and longitudinal relaxation times in the spin system structure:
 
-<div class="optionfield"><code>T1T2</code></div>
+<div class="optionfield"><code>T1</code></div>
 <div class="optiondescr">
-An array <code>[T1 T2]</code> with two numbers, the longitudinal relaxation time constant T1 and the transverse relaxation time constant T2.
+Longitudinal relaxation time in microseconds.
+For simulations using <em>fast</em> the relaxation time has to be a scalar.
+Simulations that use the <em>thyme</em> method, it can be either a scalar or a matrix.
+If it is a scalar, the relaxation time is applied to all transitions. 
+Transition specific relaxation times can be provided in the form of a matrix.
+See section <a class="esf" href="spidyan.html#relaxation_times">Relaxation Times</a> in the documentation on <code>spidyan</code> for more details. 
+Relaxation times for transitions that are not defined (or 0) are automatically set to 10<sup>10</sup> microseconds.
 </div>
 
+<div class="optionfield"><code>T2</code></div>
+<div class="optiondescr">
+Transverse relaxation time in microseconds. 
+For simulations using <em>fast</em> the relaxation time has to be a scalar.
+Simulations that use the <em>thyme</em> method, it can be either a scalar or a matrix.
+If it is a scalar, the relaxation time is applied to all transitions. 
+Transition specific relaxation times can be provided in the form of a matrix.
+See section <a class="esf" href="spidyan.html#relaxation_times">Relaxation Times</a> in the documentation on <code>spidyan</code> for more details. 
+Relaxation times for transitions that are not defined (or 0) are automatically set to 10<sup>10</sup> microseconds.
+</div>
 
+<div class="subtitle2">Input: Experimental parameters</div>
 <p>
 <code>Exp</code> contains the experimental parameters, most importantly the magnetic field and the pulse sequence.
+Depending on what simulation method is used, different fields may be available or need to be provided.
+</p>
+
+<p>
+General fields:
 </p>
 
 <div class="optionfield"><code>Field</code></div>
@@ -102,86 +134,148 @@ Magnetic field (in mT) at which the experiment is performed.
 
 <div class="optionfield"><code>Sequence</code></div>
 <div class="optiondescr">
-Specifies the pulse sequence, <code>'2pESEEM'</code>, <code>'3pESEEM'</code>, <code>'4pESEEM'</code>, <code>'HYSCORE'</code>,
-or <code>'MimsENDOR'</code>.
-</div>
-
-<div class="optionfield"><code>nPoints</code></div>
-<div class="optiondescr">
-Number of points in the ESEEM time trace or in the ENDOR spectrum. If only one number is given and a two-dimensional experiment is simulated, the number is used in both dimensions. If you give two numbers, each refers to one dimension. E.g. <code>[31 256]</code> indicates 31 points in the first dimension and 256 points in the second dimension. If not given, default values are used.
-</div>
-
-<div class="optionfield"><code>dt</code></div>
-<div class="optiondescr">
-For ESEEM, time increment (dwell time), in microseconds. For 1D experiments, this should be  a single number. For 2D sequences, <code>dt</code> applies to both dimensions if it's only one number, alternatively one number for each dimension can be given, e.g. <code>dt = [0.024 0.008]</code>.
-</div>
-
-<div class="optionfield"><code>tau</code></div>
-<div class="optiondescr">
-For three-pulse ESEEM, four-pulse ESEEM, HYSCORE and Mims ENDOR, this gives the value of &tau;, in microseconds. For two-pulse ESEEM, it is the starting &tau; value.
-</div>
-
-<div class="optionfield"><code>T</code></div>
-<div class="optiondescr">
-For three-pulse ESEEM and four-pulse ESEEM, this gives the starting T value, in microseconds. For the other sequences, this value has no effect.
-</div>
-
-<div class="optionfield"><code>t1,t2</code></div>
-<div class="optiondescr">
-For HYSCORE, these give the starting values of t<sub>1</sub> and t<sub>2</sub>, in microseconds.
-</div>
-
-<div class="optionfield"><code>Range</code></div>
-<div class="optiondescr">
-Contains lower and upper limit of the frequency range for ENDOR. Values should be in MHz, e.g. <code>Exp.Range=[0 30]</code>.
-</div>
-
+Specifies the pulse sequence.
+Predefined experiments can be called with a string <code>'2pESEEM'</code>, <code>'3pESEEM'</code>, <code>'4pESEEM'</code>, <code>'HYSCORE'</code>,
+or <code>'MimsENDOR'</code>, see the page on <a href="predefinedexperiments.html">predefined experiments</a> for more.
 <p>
-For orientation selection, the following additional parameters are needed.
-</p>
+User-defined sequences have to be given as cell array. 
+For a pulse it is necessary to insert a structure containing the pulse defintion, free evolution events are declared with a scalar that corresponds to their lenght in microsecond:
+<pre class="matlab">
+P90.Type = 'rectangular';  	% Define Pulse, see examples for more details
+P90.tp = 0.032;		  	% Pulse Length in microseconds
+P90.Flip = pi/2;		% Flip angle of the pulse
+
+P180.Type = 'rectangular';  	% Define Pulse, see examples for more details
+P180.tp = 0.032;		% Pulse Length in microseconds
+P180.Flip = pi;		  	% Flip angle of the pulse
+
+Exp.Sequence = {P90 0.2 P180 0.4}; % Creates a two pulse (echo) sequence, with an inter-pulse 
+				   % delay of 0.2 microseconds and a final free-evolution period 
+				   % of 0.4 microseconds
+</pre>
+Ideal pulses as they can be used with the <em>fast</em> method are defined by providing only a flip angle:
+<pre class="matlab">
+% Ideal pulses
+P90.Flip = pi/2;		  	% Flip angle of the pulse
+
+P180.Flip = pi;		  		% Flip angle of the pulse
+
+Exp.Sequence = {P90 0.2 P180 0.4};
+</pre>
+The delays are defined to go from the end of one previous element in <code>Sequence</code> to the beginning of the next (unlike in Bruker spectrometers).
+</div>
 
 <div class="optionfield"><code>mwFreq</code></div>
 <div class="optiondescr">
-EPR spectrometer frequency in GHz. Needs only to be given if orientation selection is wanted.
-</div>
+EPR spectrometer frequency in GHz. 
+For the the <em>fast</em> method this needs only to be given if orientation selection is wanted.
+<p> 
+Required for the <em>thyme</em> method.
+All frequencies in the pulse definition (e.g. <code>Pulse.Frequency</code>) need to be defined relative to it:
+<pre class="matlab">
+Exp.mwFreq = 33.5;
 
-<div class="optionfield"><code>ExciteWidth</code></div>
-<div class="optiondescr">
-The microwave excitation bandwidth in MHz (responsible for orientation selection). The excitation profile is assumed to be Gaussian, and <code>ExciteWidth</code> is its FWHM. The default is infinity. To obtain the full excitation with for a given orientation, <code>ExciteWidth</code> is combined with <code>HStrain</code> from the spin system structure.
+Pulse.Frequency = [-250 250];  % 500 MHz sweep
+</pre>
 </div>
 
 <p>
-For user-defined pulse experiments, the following fields are
+Indirect dimensions:
+<h2 id="indirect_dimensions"></h2>
 </p>
 
-<div class="optionfield"><code>Flip</code></div>
+<div class="optionfield"><code>nPoints</code></div>
 <div class="optiondescr">
-List of pulse flip angles in multiples of 90&deg;, e.g. <code>[1 2]</code> for two-pulse ESEEM and <code>[1 1 2 1]</code> for HYSCORE.
+A vector that contains the number of points in each dimension, e. g. [10 150] corresponds to 10 points in the first and 150 points in the second dimension. 
+<pre class="matlab">
+Exp.nPoints = [10 150]; 	% 10 points along the first indirect dimension, 150 along the second
+</pre>
+If omitted for predefined experiments, default values are assumed, see <a class="esf" href="predefinedexperiments.html"> predefined experiments</a>.
 </div>
 
-<div class="optionfield"><code>tp</code></div>
+<div class="optionfield"><code>Dim1</code>, <code>Dim2</code>,... </div>
 <div class="optiondescr">
-List of pulse lengths, in microseconds. If not given, all pulses are assumed to be infinitely short (ideal). If given, <code>saffron</code> integrates the signal over a small offset distribution. See <code>Opt.nOffsets</code> and <code>Opt.lwOffset</code>. Some of the values in <code>tp</code> can be zero, in which case ideal pulses are used. E.g. <code>[0.200 0 0]</code> is a three-pulse sequence with one selective finite-length pulse followed by two ideal pulses.
-</div>
+<code>Dim1</code>, <code>Dim2</code>,... provide the fields that are to be changed along the indirect dimensions (field <code>nPoints</code>).  
+The first data point always uses the values defined initially in the experiment definition.
+All fields that appear in the pulse definition can be changed, e.g:
+<pre class="matlab">
+Exp.Dim1 = {'p2.Flip' pi/8};        % increments the flip angle of the second pulse by pi/8 each step
+</pre>
+For free evolution events only the length can be changed:
+<pre class="matlab">
+Exp.Dim1 = {'d3' -0.1};             % decrements the length of the third delay by 100 ns each step
+</pre>
+Several parameters can be changed in one dimension:
+<pre class="matlab">
+Exp.Dim1 = {'p2.Flip' pi/8; 'd3' -0.1}; 	% changes flip angle of pulse and duration of free evolution
+Exp.Dim1 = {'p2.Flip,p3.Flip' pi/8};  		% flip angles of 2nd and 3rd pulse are simultaneously stepped  
+</pre>
+For experiments that involve one or several moving pulses, the identifier <code>Position</code> can be used.
+This is only possible for pulses that are not the first or last event in the sequence. 
+Pulses are allowed to cross, but must not overlap.
+<pre class="matlab">
+Exp.Dim2 = {'p2.Position' 0.1};   % moves the second pulse 100 ns back each step in the 2nd dimension
+</pre>
+A list of increments can be used by providing vectors with the precomputed increments.
+All increments are always applied to the initial value of the field (as defined in the <code>Exp</code>) and are not related to each other.
+Hence, if the value in the experiment definition is desired as first data point of the indirect dimension, the fist element has to be zero:
+<pre class="matlab">
+Exp.nPoints = 4;
 
-<div class="optionfield"><code>Phase</code></div>
-<div class="optiondescr">
-List of pulse phases, in multiples of 90&deg;. Specifically, 0 is x, 1 is y, 2 is -x, 3 is -y.
-</div>
+% this
+Exp.Dim1 = {'d2' [0 0.1 0.2 0.3]};
+% is equal to: 
+Exp.Dim1 = {'d2' 0.1}; 
+</pre>
+Complete freedom is given when it comes to providing the list of increments.
+<pre class="matlab">
+Exp.nPoints = 5;
+Exp.Dim1 = {'d2' [0 0.1 0.3 0.65 -0.2]};   % increment of the second delay
+</pre>
+However, the program checks that changing lengths of events do not lead to overlapping pulses at any acquisition point.
+<p>
+A special case is the field <code>Par.Frequency</code> in the pulse definition of a frequency-swept or of a monochromatic pulse that is defined by identical initial and final frequency.
+If one value is provided in <code>Exp.DimX</code>, this is going to be added to both elements in the <code>Par.Frequency</code> field - the pulse is moved in the frequency domain:
+<pre class="matlab">
+Exp.Dim1 = {'p1.Frequency' 5};   % changes both elements in Par.Frequency by 5 MHz per step
+</pre>
+An equivalent input as the above is the following, where each the increment for each field in <code>Par.Frequency</code> is given:
+<pre class="matlab">
+Exp.Dim1 = {'p1.Frequency' [5 5]};   % changes both elements in Par.Frequency by 5 MHz per step
+</pre>
+This syntax can also be used to change the sweep width:
+<pre class="matlab">
+Exp.Dim1 = {'p1.Frequency' [-5 5]};   			% increases sweep width by 10 MHz each step
+Exp.Dim1 = {'p1.Frequency' [0 5]};    			% increment only the final frequency of the frequency sweep
+</pre>
+A list of increments can be provided as well, by using <code>';'</code> as separator:
+<pre class="matlab">
+Exp.Dim1 = {'p1.Frequency' [0 0; 10 10; 30 30; 80 80]};  % vector increment for shifting the frequency range of the pulse
+Exp.Dim1 = {'p1.Frequency' [0 0; -10 0; 0 30; -80 80]};  % vector increment changing the excitation range of the pulse
+</pre>
+<p>
+For other pulse parameters that are defined by a vector (e.g., the order of an asymmetric hyperbolic secant (HS) pulse <code>Pulse.n</code> or the list of relatives amplitudes of a Gaussian cascade <code>Pulse.A0</code>), selected elements can be incremented by adding an index to the field name:
+<pre class="matlab">
+Exp.Dim1 = {'p1.A0(3)' 0.1; 'p1.A0(4)' -0.1};   % changes relative amplitudes of the third and fourth pulse in a Gaussian cascade
+Exp.Dim1 = {'p1.n(2)' 2};    % increases order of the falling flank of a hyperbolic secant pulse by 2 each step
 
-<div class="optionfield"><code>t</code></div>
-<div class="optiondescr">
-List of initial delays, in microseconds. E.g. <code>[0.2 0.2]</code> for two-pulse ESEEM with starting &tau; of 200 ns, or similarly <code>[0.2 0.1 0.1 0.2]</code> for HYSCORE. The delays are defined to go from the end of one pulse to the beginning of the next (unlike in Bruker spectrometers).
-</div>
-
-<div class="optionfield"><code>Inc</code></div>
-<div class="optiondescr">
-Incrementation information for every inter-pulse delay. <code>0</code> indicates no incrementation, <code>1</code> increment along first dimension, <code>2</code> increment along second dimensions. Example: <code>[0 1 2 0]</code> for HYSCORE and <code>[1 1]</code> for two-pulse ESEEM.
-</div>
-
-<div class="optionfield"><code>Filter</code></div>
-<div class="optiondescr">
-Coherence filter, one character for each inter-pulse delay. <code>'+'</code> stands for electron coherence order +1, <code>'-'</code> for -1, <code>'a'</code> for 0 (alpha), <code>'b'</code> for 0 (beta), <code>'0'</code> for 0 (alpha or beta), <code>1</code> for +1 or -1, and <code>'.'</code> for anything. Examples: <code>'.ab.'</code> selects the coherence transfer pathways in HYSCORE that leads to alpha/beta cross peaks.
+% Also possible for 'Frequency'
+Exp.Dim1 = {'p1.Frequency(2)' 5};    % changes only the final frequency of the pulse
+Exp.Dim1 = {'p1.Frequency' [0 5]};   % identical to the above and not a list of increments!
+</pre>
+Adding an indirect dimension also allows for simultaneous phase cycling of two or more pulses (something that can not be achieved through the <code>Exp.PhaseCycle</code> structure):
+<pre class="matlab">
+Exp.nPoints = 4;
+Exp.Dim1 = {'p2.Phase,p3.Phase' pi/4};   % changes the phase of the 2nd and 3rd pulse by pi/4 each step
+</pre>
+In the above example, the output of <code>spidyan</code> will contain the individual transients from each phase cycling step and manual merging of the dimensions (with proper detection phase/sign) is required to obtain the phase-cycled signal.
+<p>
+This is an example for a two-dimensional experiment (e.g. for a two-pulse echo) to optimize two pulse parameters:
+<pre class="matlab">
+Exp.nPoints = [20 15];
+Exp.Dim1 = {'p1.Frequency,p2.Frequency' [-2.5 2.5]}; % increase excitation band by 5 MHz each step of both pulses
+Exp.Dim1 = {'p1.tp' 2; 'p2.tp' 1}; % us, step pulse lengths
+</pre>
 </div>
 
 <p>
@@ -216,14 +310,184 @@ When <code>CrystalSymmetry</code> is given, all symmetry-related sites in the cr
 </p>
 </div>
 
+
 <p>
-The fields in the structure <code>Opt</code> specify parameters for the simulation algorithm.
+The following fields can only be used with the <em>fast</em> algorithm
+</p>
+<a name="filter">
+
+<div class="optionfield"><code>ExciteWidth</code></div>
+<div class="optiondescr">
+The microwave excitation bandwidth in MHz (responsible for orientation selection). The excitation profile is assumed to be Gaussian, and <code>ExciteWidth</code> is its FWHM. The default is infinity. To obtain the full excitation with for a given orientation, <code>ExciteWidth</code> is combined with <code>HStrain</code> from the spin system structure.
+</div>
+
+<div class="optionfield"><code>Filter</code></div>
+<div class="optiondescr">
+Coherence filter, one character for each inter-pulse delay. <code>'+'</code> stands for electron coherence order +1, <code>'-'</code> for -1, <code>'a'</code> for 0 (alpha), <code>'b'</code> for 0 (beta), <code>'0'</code> for 0 (alpha or beta), <code>1</code> for +1 or -1, and <code>'.'</code> for anything. Examples: <code>'.ab.'</code> selects the coherence transfer pathways in HYSCORE that leads to alpha/beta cross peaks.
+</div>
+
+<p>
+The following fields can only be used with the <em>thyme</em> method:
+</p>
+
+<div class="optionfield"><code>PhaseCycle</code></div>
+<div class="optiondescr">
+Cell array that specifies the phase cycle, with one entry for each pulse. To cycle the phase of a pulse, provide an array with each phase step in a separate row. In each row the first element is the pulse phase angle (in radians), and the second element the detection phase (+1 or -1 or 1i or -1i).
+<pre class="matlab">
+PC2 = [0, +1; pi, -1];   % step 1: pulse phase angle = 0, detection phase = +1
+                         % step 2: pulse phase angle = pi, detection phase = -1
+
+Exp.PhaseCycle = {[0 +1] PC2};  % phase cycle only second pulse; use [0 1] for non-cycled pulses
+Exp.PhaseCycle = {[] PC2};      % alternative: [] for non-cycled pulses
+</pre>
+The phase cycle is built from the individual phase steps for each pulse in a nested fashion, where each pulse is cycled separately.
+
+To step more than one pulse simultaneously, use an additional indirect phase dimension to the experiment (see <code>Dim</code>).
+</div>
+
+<div class="optionfield"><code>mwPolarization</code></div>
+<div class="optiondescr">
+Optional, can be <code>'linear'</code> or <code>'circular'</code>, default is <code>'linear'</code>.
+If <code>mwPolarization</code> is <code>'circular'</code>, the excitation operator also uses the imaginary part of the waveform.
+The default excitation then becomes <code>real</code>(<code>IQ</code>) <i>&Scirc;<sub>x</sub></i> + <code>imag</code>(<code>IQ</code>) <i>&Scirc;<sub>y</sub></i>.
+<pre class="matlab">
+Exp.mwPolarization = 'circular';     % mwPolarziation set to circular for all pulses
+</pre>
+Keep in mind, that using <code>'circular'</code> does not allow <code>saffron</code> to use some of its speed up tricks and can lead to significantly longer simulation times.
+</div>
+
+<div class="optionfield"><code>DetWindow</code></div>
+<div class="optiondescr">
+The field <code>DetWindow</code> controls detection and is given in microseconds:
+The zero-time of the detection is taken as the end of the last element in <code>Exp.Sequence</code>.
+It only works with the <em>thyme</em> method.
+The detected signal corresponds to &langle;<i>&Scirc;</i><sub>-</sub>&rangle;, which means the real part corresponds to &langle;<i>&Scirc;</i><sub>x</sub>&rangle; and the imaginary part to &langle;-<i>&Scirc;</i><sub>y</sub>&rangle;.
+
+<p>
+<img src="img/detection_windows.png" width="600">
+</p>
+
+To do single point detection, it is sufficient to tell <code>DetWindow</code> the time of the detection point.
+E.g. to detect at the center of the echo after a two pulse experiment:
+<pre class="matlab">
+tau = 0.5
+Exp.Sequence = {pulse90 tau pulse180 tau};   	% a two-pulse echo
+
+Exp.DetWindow = 0;	% detect a single point at the end of the second delay (center of the echo)
+</pre>
+The detection position can be set to anywhere at the end of the sequence, as long as it does not overlap with a pulse:
+<pre class="matlab">
+Exp.DetWindow =  0.2;	% detect a single point 200 ns after the second delay
+Exp.DetWindow = -0.2;	% detect a single point 200 ns before the end of the second delay
+</pre>
+In order to detect a transient, <code>DetWindow</code> has to be provided with a start and end value:
+<pre class="matlab">
+tau = 0.5
+Exp.Sequence = {pulse90 tau pulse180 tau};   	% a two-pulse echo
+
+Exp.DetWindow = [-0.1 0.1];	% detect a from -100 ns to 100 ns centered around of the end of tau
+</pre>
+Of course, it is also possible to detect a transient anywhere after the last pulse, as long is it does not overlap with it:
+<pre class="matlab">
+Exp.DetWindow = [0 0.3];	% start detection at the end of the last event and detect for 300 ns
+Exp.DetWindow = [-0.3 -0.1];	% start detection 300 ns before the end of the last event and detect for 200 ns
+</pre>
+If you want to detect an FID or have a fixed experiment length (e.g. 3p ESEEM) you can also write:
+<pre class="matlab">
+Exp.Sequence = {pulse90 0.5 pulse90 0.8 pulse90};   	% a three-pulse ESEEM sequence (the last element is a pulse)
+
+Exp.DetWindow = 0.5;	% detect a single point after 500ns after the last pi/2 pulse (center of echo)
+
+Exp.DetWindow = [0.250 0.750] % detect a transient, centered around the echo
+
+Exp.DetWindow = [0 0.100]    % detect an FID after the last pulse
+</pre>
+</div>
+
+<div class="optionfield"><code>DetFreq</code></div>
+<div class="optiondescr">
+The signal is detected in the simulation frame and hence contains an oscillating component.
+By translating/shifting the frequency it is possible to center the signal around 0 (baseband) or any other desired frequency.
+The frequency shift has to given as absolute frequency :
+<pre class="matlab">
+Exp.DetFreq = 33.5; % shifts detected signal by -33.5 GHz
+</pre>
+If no <code>DetFreq</code> is provided, <code>Exp.mwFreq</code> is taken as frequency for down-conversion.
+</div>
+
+<div class="optionfield"><code>DetPhase</code></div>
+<div class="optiondescr">
+Phase of detection in radians, optional. 
+The default value is <code>0</code>.
+</div>
+
+<p>
+Bandwidth limiting effects of a resonator on a pulse can be incorporated in two ways:
+
+<p>
+The resonator profile is defined using the resonator center frequency <code>ResonatorFrequency</code> and the loaded Q-value <code>ResonatorQL</code>.
+The resonator frequency response is then computed from the ideal transfer function for an RLC series circuit) 
+
+<pre class="matlab">
+Exp.ResonatorFrequency = 33.5; 	% resonator center frequency in GHz
+Exp.ResonatorQL = 300;	  	% loaded Q-value
+</pre>
+
+<p>
+Or the transfer function in combination with the frequency axis are given with <code>FrequencyResponse</code>.
+
+<pre class="matlab">
+Exp.FrequencyResponse = [Frequency; TransferFunction] 	% transfer function and its correspond frequency axis
+</pre>
+
+<p>
+By setting <code>ResonatorMode</code> it is possible to compensate for the resonator. 
+Compensation aims to provide a waveform that excites spin packets in the resonator with constant critical adiabaticity if the originally specified waveform would lead to excitation with constant critical adiabaticity in the absence of a resonator (mainly for chirp and hyperbolic secant pulses).
+For more details see <a class="esf" href="pulse.html">pulse</a> and <a class="esf" href="resonator.html">resonator</a>.
+<p>
+<div class="optionfield"><code>ResonatorFrequency</code></div>
+<div class="optiondescr">
+Center frequency of resonator in GHz.
+</div>
+<div class="optionfield"><code>ResonatorQL</code></div>
+<div class="optiondescr">
+The loaded Q-value.
+</div>
+<div class="optionfield"><code>FrequencyResponse</code></div>
+<div class="optiondescr">
+This gives the frequency response of the resonator, in the form <code>Par.FrequencyResponse = [Frequency; TransferFunction]</code> with the (possibly experimental) resonator transfer function in <code>TransferFunction</code> and the corresponding frequency axis in <code>Frequency</code> (in GHz). 
+A complex transfer function input in <code>Par.FrequencyResponse</code> is used directly in the bandwidth compensation. 
+A real transfer function input is assumed to correspond to the magnitude response, and the associated phase response is estimated.
+
+<p>
+If <code>FrequencyResponse</code> is given, the alternative input fields <code>ResonatorFrequency</code> and <code>ResonatorQL</code> are ignored.
+</div>
+<div class="optionfield"><code>ResonatorMode</code></div>
+<div class="optiondescr">
+Optional, can be <code>'simulate'</code> or <code>'compensate'</code>. 
+By default the effect of the resonator on the signal is simulated.
+If set to <code>'compensate'</code> the pulse shape is adapted such that it compensates for the resonator profile by using a uniform critical adiabaticity criterion.
+</div>
+
+<div class="subtitle2">Input: Simulation options</div>
+<p>
+<code>Opt</code> contains additional simulation parameters.
 </p>
 
 <div class="optionfield"><code>nKnots</code></div>
 <div class="optiondescr">
 A number giving the number of orientations (knots) for which spectra are explicitly calculated. <code>nKnots</code> gives the number of orientations on quarter of a meridian, i.e. between &theta; = 0 and &theta; = 90&deg;. The default value is 31, corresponding to a 3&deg; spacing between orientations. For highly anisotropic spectra, esp. for HYSCORE, the value often has to be increased to 181 (0.5&deg; spacing) or beyond.
 </div>
+
+<div class="optionfield"><code>SimulationMode</code></div>
+<div class="optiondescr">
+Optional, allows to switch simulation method. Can be <code>'fast'</code> for the fast algorithm or <code>thyme</code> the general approach.
+By default <code>saffron</code> choses <code>fast</code> if possible. 
+</div>
+
+<p>
+The following options can only be used in combination with the <em>fast</em> algorithm:
+</p>
 
 <div class="optionfield"><code>TimeDomain</code></div>
 <div class="optiondescr">
@@ -244,10 +508,11 @@ Determines whether product rule is used or not (1 or 0). By default, it is not u
 <div class="optiondescr">
 Determines which method to use to simulate ENDOR spectra. There are three methods:
 <ul>
-<li><code>EndorMethod = 1</code>: This is the default method. It is a sum-over-transitions method that applies bandwidth-limited rf pi pulses (using single-transition operators in the eigenbasis of the nuclear sub-Hamiltonians) on each nuclear transition in turn. It is able to reproduce inter-nuclear cross suppression effects (implicit triple). All rf pulses are modelled as 180 degree pulses on all allowed nuclear transitions, independent of the nature of the nucleus.
-<li><code>EndorMethod = 2</code>: This is an alternative method. It uses a brute-force rf sweep approach: It loops over every frequency on the rf axis and calculates the echo amplitude using the same rf pulse operators as <code>EndorMethod=1</code>.
-<li><code>EndorMethod = -1</code>: This is the legacy method (default prior to version 5.0.20). For one nucleus, it is equivalent to <code>EndorMethod=1</code>. For multiple nuclei, it gives wrong results: With <code>ProductRule=1</code>, cross suppression effects are not modelled, and with <code>ProductRule=0</code>, peak positions are wrong.
+<li><code>EndorMethod = 0</code>: This is a sum-over-transitions method that emulates rf pulses by swapping populations of adjacent nuclear spin levels. For one nucleus, it is roughly equivalent to <code>EndorMethod=1</code>, but faster. For multiple nuclei, it gives wrong results: With <code>ProductRule=1</code>, cross suppression effects are not modeled, and with <code>ProductRule=0</code>, peak positions are wrong.
+<li><code>EndorMethod = 1</code>: This is a sum-over-transitions method that applies bandwidth-limited rf pi pulses (using single-transition operators in the eigenbasis of the nuclear sub-Hamiltonians) on each nuclear transition in turn. It is able to reproduce inter-nuclear cross suppression effects (implicit triple). All rf pulses are modeled as 180 degree pulses on all allowed nuclear transitions, independent of the nature of the nucleus.
+<li><code>EndorMethod = 2</code>: This is an alternative method. It uses a very slow brute-force rf sweep approach: It loops over every frequency on the rf axis and calculates the echo amplitude using the same rf pulse operators as <code>EndorMethod=1</code>.
 </ul>
+The default method is 0 for a single nucleus or multiple nuclei with product rule, otherwise it is 1.
 </div>
 
 <div class="optionfield"><code>nOffsets</code></div>
@@ -275,15 +540,54 @@ Apodization window used before FFT. See <a class="esf" href="apowin.html">apowin
 The factor by which the time domain signal array should be padded with zeros before FFT. E.g. with <code>ZeroFillFactor=4</code>, a 256-point array is padded to 1024 points.
 </div>
 
+<p>
+The following option can only be used with the general <em>thyme</em> algorithm:
+</p>
 
-<div class="subtitle">Algorithm</div>
+<div class="optionfield"><code>SimFreq</code></div>
+<div class="optiondescr">
+Optional, frequency of the (rotating) simulation frame in GHz. 
+If <code>SimFreq</code> is not provided, a suitable simulation frame is automatically selected.
+No matter the choice of the simulation frame, all other frequencies must still be given in the lab frame - the program handles all required frequency shifts.
+For example, for running a Q-band simulation without using the default simulation frame, but one that rotates at 30 GHz:
+<pre class="matlab">
+Exp.mwFreq = 34.4;	        % Set carrier frequency to 34.4 GHz
+Pulse.Frequency = [-50 50]; % Pulse with bandwidth of 100 MHz, sweeps from 34.35 to 34.45 GHz 
+
+Opt.SimFreq = 30;  	      % Changes into a rotating frame at 30 GHz
+</pre>
+To force a simulation in the labframe <code>SimFreq</code> has to be set to zero:
+<pre class="matlab">
+Opt.SimFreq = 0;  	      % Propagation in the labframe
+</pre>
+Changing the simulation frame allows for using a larger time step, which in turn can strongly reduce computation time.																											 																																										
+Keep in mind, that if a time step is provided with <code>Opt.IntTimeStep</code> it is not adapted automatically.
+To have the program adapt the time step to the simulation frequency, remove the field <code>Opt.IntTimeStep</code> .
+</div>
+
+<div class="optionfield"><code>IntTimeStep</code></div>
+<div class="optiondescr">
+Integration time step in microseconds, optional. 
+If no time step is provided, the program computes a suitable time step (taking into account the highest frequency that is being used for the pulse definition <code>Exp.Frequency</code>).
+Accurate results are obtained for an integration time step that corresponds to about 50 data points per oscillaton or 1/50th of the largest time step size to fulfill the Nyquist criterion.
+<p>
+User provided intgration time steps must at least fulfill the Nyquist criterion, or an error is thrown. 
+For integration time steps larger than the recommended ones, a warning is printed to the command line.
+</p>
+</div>
+
+<div class="subtitle">Algorithms</div>
+<h2 id="algorithms"></h2>
 
 <p>
-For both ESEEM and ENDOR, <code>saffron</code> uses matrix-based methods similar to those employed by Mims (1972) to compute frequencies and amplitudes of all peaks. With these peaks, a spectrum histogram is constructed, from which the time-domain signal is obtained by inverse Fourier transform.
+<b>The <em>fast</em> algorithm:</b>
+</p>
+<p>
+For both ESEEM and ENDOR, <code>saffron</code> can use matrix-based methods similar to those employed by Mims (1972) to compute frequencies and amplitudes of all peaks. With these peaks, a spectrum histogram is constructed, from which the time-domain signal is obtained by inverse Fourier transform.
 </p>
 
 <p>
-For the pre-defined sequences, <code>saffron</code> assumes ideal pulses with standard flip angles (two-pulse ESEEM: 90&deg;-180&deg;, three-pulse ESEEM 90&deg;-90&deg;-90&deg;, HYSCORE 90&deg;-90&deg;-180&deg;-90&deg;).
+For the pre-defined sequences, <code>saffron</code> assumes ideal pulses with standard flip angles (see <a class="esf" href="predefinedexperiments.html"> predefined experiments</a>).
 </p>
 
 <p>
@@ -299,14 +603,50 @@ To generate the spectrum from the time-domain signal, <code>saffron</code> perfo
 </p>
 
 <p>
-All the theory is described in
+All the theory is described in:
+</p>
 
-<ul>
-<li>Stefan Stoll, R. David Britt<br>
-<b>General and efficient simulation of pulse EPR spectra</b>
-<br>
+Stefan Stoll, R. David Britt<br>
+<b>General and efficient simulation of pulse EPR spectra</b><br>
 <em>Phys. Chem. Chem. Phys.</em> 2009, DOI: <a target="_blank" href="http://dx.doi.org/10.1039/b907277b">10.1039/b907277b</a>
+
+
+<p>
+For the following it is not possible to use the <em>fast</em> algorithm and <code>saffron</code> will fall back to the general, but much slower, <em>thyme</em> algorithm:
+</p>
+<ul>
+<li> Frequency-swept pulses
+<li> Transient detection with <code>Exp.DetWindow</code>
+<li> More than one electron spin
+<li> Incorporation of bandwidth limiting effects from the resonator and TWT
+<li> More than two indirect dimensions or an indirect dimension with a non-uniform increment (as defined <a href="#indirect_dimensions">here</a>).
+<li> Modification of a pulse parameter along any indirect dimension
 </ul>
+
+<p>
+<b>The <em>thyme</em> algorithm:</b>
+</p>
+
+<p>
+For the general method a step-wise time indepent Hamiltonian is assumed, which allows solution of the Liouville-von Neumann equation and evolution of the spin system with propagators.
+</p>
+
+<p>
+If no relaxation is requested, the problem is solved in Hilbert space.
+When relaxation is requested, the simulation is carried out in the Liouville space, which increases matrix sizes (and slows down the computation), but allows to incorporate any relaxation effects directly into the propagation.
+</p>
+
+<p>
+The algorithm is based on the now deprecated <code>SPIDYAN</code> software package.
+</p>
+
+<p>
+All the theory is described in:
+</p>
+
+Stephan Pribitzer, Andrin Doll, Gunnar Jeschke<br>
+<b>SPIDYAN, a MATLAB library for simulating pulse EPR experiments with arbitrary waveform excitation</b><br>
+<em>Journal of Magnetic Resonance</em> 2016, DOI: <a target="_blank" href="http://dx.doi.org/10.1016/j.jmr.2015.12.014">10.1016/j.jmr.2015.12.014</a>
 
 <div class="subtitle">See also</div>
 <p>

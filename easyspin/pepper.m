@@ -120,12 +120,16 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
   if ~iscell(Sys), Sys = {Sys}; end
   
   nComponents = numel(Sys);
-  logmsg(1,'%d spin system(s)...');
+  if nComponents>1
+    logmsg(1,'  %d component spin systems...');
+  else
+    logmsg(1,'  single spin system');
+  end
   
   for c = 1:nComponents
     SysList{c} = isotopologues(Sys{c},Opt.IsoCutoff);
     nIsotopologues(c) = numel(SysList{c});
-    logmsg(1,'  component %d: %d isotopologues',c,nIsotopologues(c));
+    logmsg(1,'    component %d: %d isotopologues',c,nIsotopologues(c));
   end
   
   if (sum(nIsotopologues)>1) && SweepAutoRange
@@ -137,26 +141,31 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
     error('Multiple components: Please specify sweep range manually using %s.',str);
   end
   
-  separateComponentOutput = (sum(nIsotopologues)>1) && ~summedOutput;
-  if separateComponentOutput
-    Opt.Output = 'summed';
+  PowderSimulation = ~isfield(Exp,'CrystalOrientation') || isempty(Exp.CrystalOrientation) || ...
+    (isfield(Exp,'Ordering') && ~isempty(Exp.Ordering));
+  appendSpectra = PowderSimulation && ~summedOutput;
+  if appendSpectra
     spec = [];
   else
     spec = 0;
   end
   
-  iSpc = 1;
+  % Loop over all components and isotopologues
   for iComponent = 1:nComponents
     for iIsotopologue = 1:nIsotopologues(iComponent)
+      
+      % Simulate single-isotopologue spectrum
       Sys_ = SysList{iComponent}(iIsotopologue);
       Sys_.singleiso = true;
       [xAxis,spec_,Transitions] = pepper(Sys_,Exp,Opt);
-      if separateComponentOutput
-        spec(iSpc,:) = spec_*Sys_.weight;
-        iSpc = iSpc + 1;
+      
+      % Accumulate or append spectra
+      if appendSpectra
+        spec = [spec; spec_*Sys_.weight];
       else
         spec = spec + spec_*Sys_.weight;
       end
+      
     end
   end
   
@@ -303,7 +312,7 @@ if FieldSweep
       minB = planck*(Exp.mwFreq*1e9 - hf)/bmagn/gmax/1e-3; % mT
       maxB = planck*(Exp.mwFreq*1e9 + hf)/bmagn/gmin/1e-3; % mT
       Center = (maxB+minB)/2; % mT
-      Sweep = maxB-minB; % mT
+      Sweep = maxB-minB+3*max(Sys.lw); % mT
       if Sweep==0, Sweep = 5*max(Sys.lw); end
       if Sweep==0, Sweep = 10; end
       Stretch = 1.25;
@@ -323,8 +332,8 @@ if FieldSweep
     Exp.Range = max(Exp.Range,0);
   end
   if isfield(Exp,'Range') && all(~isnan(Exp.Range))
-    if (diff(Exp.Range)<=0) || any(~isfinite(Exp.Range)) || ...
-        any(~isreal(Exp.Range)) || any(Exp.Range<0)
+    if any(diff(Exp.Range)<=0) || any(~isfinite(Exp.Range)) || ...
+        ~isreal(Exp.Range) || any(Exp.Range<0)
       error('Exp.Range is not valid!');
     end
   end
@@ -422,24 +431,24 @@ logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.Mode);
 if isfield(Exp,'Orientation') || isfield(Exp,'Orientations')
   error('Exp.Orientation and Exp.Orientations are obsolete (as of EasySpin 5), use Exp.CrystalOrientation instead.');
 end
-PowderSimulation = isempty(Exp.CrystalOrientation);
+PowderSimulation = ~isfield(Exp,'CrystalOrientation') || ...
+  isempty(Exp.CrystalOrientation) || ...
+  (isfield(Exp,'Ordering') && ~isempty(Exp.Ordering));
+%PowderSimulation = isempty(Exp.CrystalOrientation);
 Exp.PowderSimulation = PowderSimulation; % for communication with resf*
 
 % Partial ordering
 if ~isempty(Exp.Ordering)
-  if ~PowderSimulation
-    error('Partial ordering (Exp.Ordering) can only be used in a powder simulation.');
-  end
   if isnumeric(Exp.Ordering) && (numel(Exp.Ordering)==1) && isreal(Exp.Ordering)
-    UserSuppliedOrderingFcn = 0;
-    logmsg(1,'  partial order (built-in function, lambda = %g)',Exp.Ordering);
+    lambda = Exp.Ordering;
+    Exp.Ordering = @(phi,theta) exp(lambda*plegendre(2,0,cos(theta)));
+    logmsg(1,'  partial order (built-in function, lambda = %g)',lambda);
   elseif isa(Exp.Ordering,'function_handle')
-    UserSuppliedOrderingFcn = 1;
     logmsg(1,'  partial order (user-supplied function)');
   else
     error('Exp.Ordering must be a single number or a function handle.');
   end
-  if any(Sys.gStrain) || any(Sys.AStrain) || any(Sys.DStrain) || any(Sys.HStrain)
+  if StrainWidths
     error('Exp.Ordering and g/A/D/H strains cannot be used simultaneously.');
   end
 end
@@ -477,7 +486,7 @@ logmsg(1,msg);
 % Obsolete fields, pepper
 ObsoleteOptions = {'Convolution','Width'};
 for k = 1:numel(ObsoleteOptions)
-  if isfield(Opt,ObsoleteOptions{k}),
+  if isfield(Opt,ObsoleteOptions{k})
     error('Options.%s is obsolete. Please remove from code!',ObsoleteOptions{k});
   end
 end
@@ -589,7 +598,7 @@ if FieldSweep
     AnisotropicWidths = 0;
     if StrainWidths
       logmsg(-inf,'WARNING: Options.Method: eigenfields method -> strains are ignored!');
-      StrainWidths = 0;
+      StrainWidths = false;
     end
     
     Exp1 = Exp;
@@ -600,7 +609,7 @@ if FieldSweep
     [Pdat,Idat] = eigfields(Sys,Exp1,Opt);
     logmsg(2,'  -exiting eigfields-----------------------------------');
     Wdat = [];
-    Gdat = [];
+    %Gdat = [];
     Transitions = [];
     
     if (nOrientations==1)
@@ -608,7 +617,7 @@ if FieldSweep
       Idat = {Idat};
     end
     nReson = 0;
-    for k = 1:nOrientations,
+    for k = 1:nOrientations
       nReson = nReson + numel(Pdat{k});
     end
     logmsg(1,'  %d resonance in total (%g per orientation)',nReson,nReson/nOrientations);
@@ -633,7 +642,7 @@ if FieldSweep
     logmsg(2,'  -entering resfields*----------------------------------');
     switch Method
       case {2,6} % matrix diagonalization, hybrid
-        [Pdat,Idat,Wdat,Transitions,Gdat] = resfields(Sys,Exp1,Opt);
+        [Pdat,Idat,Wdat,Transitions] = resfields(Sys,Exp1,Opt);
       case {3,5} % 2nd-order perturbation theory
         Opt.PerturbOrder = 2;
         [Pdat,Idat,Wdat,Transitions,spec] = resfields_perturb(Sys,Exp1,Opt);
@@ -777,9 +786,9 @@ elseif (~BruteForceSum)
   
   % Determine methods: projection/summation, interpolation on/off
   %-----------------------------------------------------------------------
-  DoProjection = (~AnisotropicWidths) & (nOctants>=0);
+  DoProjection = (~AnisotropicWidths) && (nOctants>=0);
   
-  DoInterpolation = (Opt.nKnots(2)>1) & (nOctants>=0);
+  DoInterpolation = (Opt.nKnots(2)>1) && (nOctants>=0);
   
   % Preparations for projection
   %-----------------------------------------------------------------------
@@ -796,13 +805,13 @@ elseif (~BruteForceSum)
   
   % Preparations for interpolation
   %-----------------------------------------------------------------------
-  if (DoInterpolation)
+  if DoInterpolation
     % Set an option for the sparse tridiagonal matrix \ solver in global cubic
     % spline interpolation. This function needs some time, so it was taken
     % out of Matlab's original spline() function, which is called many times.
     spparms('autommd',0);
     % Interpolation parameters. 1st char: g global, l linear. 2nd char: order.
-    if (nOctants==0), % axial symmetry: 1D interpolation
+    if (nOctants==0) % axial symmetry: 1D interpolation
       if any(NaN_in_Pdat)
         InterpMode = {'L3','L3','L3'};
       else
@@ -922,8 +931,8 @@ elseif (~BruteForceSum)
     % Powder spectra: interpolation and accumulation/projection
     %=======================================================================
     Axial = (nOctants==0);
-    if (Axial)
-      if (DoInterpolation)
+    if Axial
+      if DoInterpolation
         [fphi,fthe] = sphgrid(Opt.Symmetry,nfKnots,'f');
       else
         fthe = Exp.theta;
@@ -931,15 +940,10 @@ elseif (~BruteForceSum)
       fSegWeights = -diff(cos(fthe))*4*pi; % sum is 4*pi
       if ~isempty(Exp.Ordering)
         centreTheta = (fthe(1:end-1)+fthe(2:end))/2;
-        if (UserSuppliedOrderingFcn)
-          OrderingWeights = feval(Exp.Ordering,zeros(1,numel(centreTheta)),centreTheta);
-          %OrderingWeights = Exp.Ordering(zeros(1,numel(centreTheta)),centreTheta);
-          if any(OrderingWeights)<0, error('User-supplied orientation distribution gives negative values!'); end
-          if max(OrderingWeights)==0, error('User-supplied orientation distribution is all-zero.'); end
-        else
-          U = -Exp.Ordering*plegendre(2,0,cos(centreTheta));
-          OrderingWeights = exp(-U);
-        end
+        centrePhi = zeros(1,numel(centreTheta));
+        OrderingWeights = Exp.Ordering(centrePhi,centreTheta);
+        if any(OrderingWeights)<0, error('User-supplied orientation distribution gives negative values!'); end
+        if all(OrderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end
         fSegWeights = fSegWeights(:).*OrderingWeights(:);
         fSegWeights = 4*pi/sum(fSegWeights)*fSegWeights;
       elseif ~isempty(Opt.ThetaRange)
@@ -950,7 +954,7 @@ elseif (~BruteForceSum)
       logmsg(1,'  total %d segments, %d transitions',numel(fthe)-1,nTransitions);
       
     else % nonaxial symmetry
-      if (DoInterpolation)
+      if DoInterpolation
         [fphi,fthe] = sphgrid(Opt.Symmetry,nfKnots,'f');
       else
         fthe = Exp.theta;
@@ -959,16 +963,10 @@ elseif (~BruteForceSum)
       [idxTri,Areas] = triangles(nOctants,nfKnots,ang2vec(fphi,fthe));
       if ~isempty(Exp.Ordering)
         centreTheta = mean(fthe(idxTri));
-        if (UserSuppliedOrderingFcn)
-          centrePhi = mean(fphi(idxTri));
-          OrderingWeights = feval(Exp.Ordering,centrePhi,centreTheta);
-          %OrderingWeights = Exp.Ordering(centrePhi,centreTheta);
-          if any(OrderingWeights)<0, error('User-supplied orientation distribution gives negative values!'); end
-          if max(OrderingWeights)==0, error('User-supplied orientation distribution is all-zero.'); end
-        else
-          U = -Exp.Ordering*plegendre(2,0,cos(centreTheta));
-          OrderingWeights = exp(-U);
-        end
+        centrePhi = mean(fphi(idxTri));
+        OrderingWeights = Exp.Ordering(centrePhi,centreTheta);
+        if any(OrderingWeights)<0, error('User-supplied orientation distribution gives negative values!'); end
+        if all(OrderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end
         Areas = Areas(:).*OrderingWeights(:);
         Areas = 4*pi/sum(Areas)*Areas;
       elseif ~isempty(Opt.ThetaRange)
@@ -992,8 +990,8 @@ elseif (~BruteForceSum)
       %------------------------------------------------------
       %LoopTransition = any(isnan(Pdat(iTrans,:)));
       LoopTransition = 0;
-      InterpolateThis = (DoInterpolation & ~LoopTransition);
-      if (InterpolateThis)
+      InterpolateThis = DoInterpolation && ~LoopTransition;
+      if InterpolateThis
         fPos = esintpol(Pdat(iTrans,:),Opt.InterpParams,Opt.nKnots(2),InterpMode{1},fphi,fthe);
         if (AnisotropicIntensities)
           fInt = esintpol(Idat(iTrans,:),Opt.InterpParams,Opt.nKnots(2),InterpMode{2},fphi,fthe);
@@ -1126,6 +1124,7 @@ if (FieldSweep) && (PowderSimulation)
   end
 end
 
+
 % Convolution with line shape.
 %-----------------------------------------------------------------------
 if (ConvolutionBroadening)
@@ -1179,7 +1178,7 @@ if (ConvolutionBroadening)
   % Convolution with Lorentzian
   if (fwhmL>2*Exp.deltaX)
     logmsg(1,'  convoluting with Lorentzian, FWHM %g %s, derivative %d',fwhmL,unitstr,HarmonicL);
-    if min(size(spec))==1, fwhm = [fwhmL 0]; else fwhm = [0 fwhmL]; end
+    if size(spec,1)>1, fwhm = [0 fwhmL]; else, fwhm = fwhmL; end
     spec = convspec(spec,Exp.deltaX,fwhm,HarmonicL,0,mwPhaseL);
   else
     % Skip convolution, since it has no effect with such a narrow delta-like Lorentzian.
@@ -1188,7 +1187,7 @@ if (ConvolutionBroadening)
   % Convolution with Gaussian
   if (fwhmG>2*Exp.deltaX)
     logmsg(1,'  convoluting with Gaussian, FWHM %g %s, derivative %d',fwhmG,unitstr,HarmonicG);
-    if min(size(spec))==1, fwhm = [fwhmG 0]; else fwhm = [0 fwhmG]; end
+    if size(spec,1)>1, fwhm = [0 fwhmG]; else, fwhm = fwhmG; end
     spec = convspec(spec,Exp.deltaX,fwhm,HarmonicG,1,mwPhaseG);
   else
     % Skip convolution, since it has no effect with such a narrow delta-like Gaussian.
@@ -1216,6 +1215,7 @@ else
 
 end
 
+
 % Field modulation
 %-----------------------------------------------------------------------
 if (FieldSweep)
@@ -1232,7 +1232,7 @@ end
 % Assign output.
 %-----------------------------------------------------------------------
 switch (nargout)
-  case 0,
+  case 0
   case 1, varargout = {spec};
   case 2, varargout = {xAxis,spec};
   case 3, varargout = {xAxis,spec,Transitions};

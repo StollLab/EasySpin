@@ -76,13 +76,23 @@ EasySpinLogLevel = Opt.Verbosity;
 FrequencyAutoRange = (~isfield(Exp,'Range') || isempty(Exp.Range)) && ...
   (~isfield(Exp,'CenterSweep') || isempty(Exp.CenterSweep));
 if ~isfield(Opt,'IsoCutoff'), Opt.IsoCutoff = 1e-4; end
+if ~isfield(Opt,'Output'), Opt.Output = 'summed'; end
+
+[Output,err] = parseoption(Opt,'Output',{'summed','separate'});
+error(err);
+summedOutput = Output==1;
+
 
 if ~isfield(Sys,'singleiso') || ~Sys.singleiso
 
   if ~iscell(Sys), Sys = {Sys}; end
   
   nComponents = numel(Sys);
-  logmsg(1,'%d spin system(s)...');
+  if nComponents>1
+    logmsg(1,'  %d component spin systems...');
+  else
+    logmsg(1,'  single spin system');
+  end
   
   for c = 1:nComponents
     SysList{c} = isotopologues(Sys{c},Opt.IsoCutoff);
@@ -94,20 +104,38 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
     error('Multiple components: Please specify frequency range manually using Exp.Range or Exp.CenterSweep.');
   end
   
-  spec = 0;
+  PowderSimulation = ~isfield(Exp,'CrystalOrientation') || ...
+    isempty(Exp.CrystalOrientation) || ...
+    (isfield(Exp,'Ordering') && ~isempty(Exp.Ordering));
+  appendSpectra = PowderSimulation && ~summedOutput;
+  if appendSpectra
+    spec = [];
+  else
+    spec = 0;
+  end
+  
+  % Loop over all components and isotopologues
   for iComponent = 1:nComponents
     for iIsotopologue = 1:nIsotopologues(iComponent)
+      
+      % Simulate single-isotopologue spectrum
       Sys_ = SysList{iComponent}(iIsotopologue);
       Sys_.singleiso = true;
       [xAxis,spec_,Transitions] = salt(Sys_,Exp,Opt);
-      spec = spec + spec_*Sys_.weight;
+      
+      % Accumulate or append spectra
+      if appendSpectra
+        spec = [spec; spec_*Sys_.weight];
+      else
+        spec = spec + spec_*Sys_.weight;
+      end
+      
     end
   end
-
   
   % Output and plotting
   switch (nargout)
-    case 0,
+    case 0
       cla
       plot(xAxis,spec);
       axis tight
@@ -144,6 +172,10 @@ end
 error(err);
 if Sys.MO_present, error('salt does not support general parameters!'); end
 if any(Sys.L(:)), error('salt does not support L!'); end
+
+if any(Sys.n>1)
+  error('salt does not support sets of equivalent nuclei (Sys.n>1).');
+end
 
 ConvolutionBroadening = any(Sys.lwEndor>0);
 
@@ -222,7 +254,7 @@ end
 if ~isnan(Exp.Range)
   if any(diff(Exp.Range)<=0) || ...
       any(~isfinite(Exp.Range)) || ...
-      any(~isreal(Exp.Range)) || ...
+      ~isreal(Exp.Range) || ...
       any(Exp.Range<0) || ...
       (numel(Exp.Range)~=2)
     error('Experiment.Range is not valid!');
@@ -238,7 +270,9 @@ end
 if isfield(Exp,'Orientation') || isfield(Exp,'Orientations')
   error('Exp.Orientation and Exp.Orientations are obsolete (as of EasySpin 5), use Exp.CrystalOrientation instead.');
 end
-PowderSimulation = isempty(Exp.CrystalOrientation);
+PowderSimulation = ~isfield(Exp,'CrystalOrientation') || ...
+  isempty(Exp.CrystalOrientation) || ...
+  (isfield(Exp,'Ordering') && ~isempty(Exp.Ordering));
 Exp.PowderSimulation = PowderSimulation;
 
 % Partial ordering
@@ -247,10 +281,10 @@ if ~isempty(Exp.Ordering)
     error('Partial ordering (Exp.Ordering) can only be used in a powder simulation.');
   end
   if isnumeric(Exp.Ordering) && (numel(Exp.Ordering)==1) && isreal(Exp.Ordering)
-    UserSuppliedOrderingFcn = 0;
-    logmsg(1,'  partial order (built-in function, lambda = %g)',Exp.Ordering);
+    lambda = Exp.Ordering;
+    Exp.Ordering = @(phi,theta) exp(lambda*plegendre(2,0,cos(theta)));
+    logmsg(1,'  partial order (built-in function, lambda = %g)',lambda);
   elseif isa(Exp.Ordering,'function_handle')
-    UserSuppliedOrderingFcn = 1;
     logmsg(1,'  partial order (user-supplied function)');
   else
     error('Exp.Ordering must be a single number or a function handle.');
@@ -348,7 +382,7 @@ end
 if ~isempty(Opt.ThetaRange) && SuppliedOriWeights
   error('You cannot use ThetaRange and OriWeights simultaneously!');
 end
-if Opt.OriPreSelect & SuppliedOriWeights
+if any(Opt.OriPreSelect) && SuppliedOriWeights
   error('You cannot use OriPreSelect and supply OriWeights simultaneously!');
 end
 
@@ -384,7 +418,7 @@ if (Sys.nNuclei==0)
   spec = zeros(1,Exp.nPoints);
   Transitions = [];
   switch (nargout)
-    case 0,
+    case 0
       cla
       plot(xAxis,spec);
       axis tight
@@ -507,9 +541,11 @@ if (Info.Selectivity>0)
   GridTooCoarse = (Opt.nKnots(1)/Opt.minEffKnots<Info.Selectivity);
   if GridTooCoarse && PowderSimulation
     fprintf('  ** Warning: Strong orientation selection ********************************\n');
-    fprintf('  Only %0.1f orientations in excitation window! Spectrum might be inaccurate.\n',Opt.nKnots(1)/Info.Selectivity);
-    fprintf('  Increase Opt.nKnots (currently %d) or increase\n',Opt.nKnots(1));
-    fprintf('  Exp.ExciteWidth (currently %g MHz).\n',Exp.ExciteWidth);
+    fprintf('  Only %0.1f orientations within excitation window.\n',Opt.nKnots(1)/Info.Selectivity);
+    fprintf('  Spectrum might be inaccurate!\n');
+    fprintf('  To remedy, do one (or both) of the following:\n');
+    fprintf('  - Increase Opt.nKnots (currently %d)\n',Opt.nKnots(1));
+    fprintf('  - Increase Exp.ExciteWidth (currently %g MHz)\n',Exp.ExciteWidth);
     fprintf('  *************************************************************************\n');
   end
 else
@@ -567,7 +603,7 @@ if (DoInterpolation)
   % out of Matlab's original spline() function, which is called many times.
   spparms('autommd',0);
   % Interpolation parameters. 1st char: g global, l linear. 2nd char: order.
-  if (nOctants==0), % axial symmetry: 1D interpolation
+  if (nOctants==0)  % axial symmetry: 1D interpolation
     if any(NaN_in_Pdat)
       InterpMode = {'L3','L3','L3'};
     else
@@ -682,15 +718,10 @@ else
     fSegWeights = -diff(cos(fthe))*4*pi; % sum is 4*pi
     if ~isempty(Exp.Ordering)
       centreTheta = (fthe(1:end-1)+fthe(2:end))/2;
-      if (UserSuppliedOrderingFcn)
-        OrderingWeights = feval(Exp.Ordering,zeros(1,numel(centreTheta)),centreTheta);
-        %OrderingWeights = Exp.Ordering(zeros(1,numel(centreTheta)),centreTheta);
-        if any(OrderingWeights)<0, error('User-supplied orientation distribution gives negative values!'); end
-        if max(OrderingWeights)==0, error('User-supplied orientation distribution is all-zero.'); end
-      else
-        U = -Exp.Ordering*plegendre(2,0,cos(centreTheta));
-        OrderingWeights = exp(-U);
-      end
+      centrePhi = zeros(1,numel(centreTheta));
+      OrderingWeights = Exp.Ordering(centrePhi,centreTheta);
+      if any(OrderingWeights)<0, error('User-supplied orientation distribution gives negative values!'); end
+      if all(OrderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end
       fSegWeights = fSegWeights(:).*OrderingWeights(:);
       fSegWeights = 4*pi/sum(fSegWeights)*fSegWeights;
     elseif ~isempty(Opt.ThetaRange)
@@ -710,16 +741,11 @@ else
     [idxTri,Areas] = triangles(nOctants,nfKnots,ang2vec(fphi,fthe));
     if ~isempty(Exp.Ordering)
       centreTheta = mean(fthe(idxTri));
-      if (UserSuppliedOrderingFcn)
-        centrePhi = mean(fphi(idxTri));
-        OrderingWeights = feval(Exp.Ordering,centrePhi,centreTheta);
-        %OrderingWeights = Exp.Ordering(centrePhi,centreTheta);
-        if any(OrderingWeights)<0, error('User-supplied orientation distribution gives negative values!'); end
-        if max(OrderingWeights)==0, error('User-supplied orientation distribution is all-zero.'); end
-      else
-        U = -Exp.Ordering*plegendre(2,0,cos(centreTheta));
-        OrderingWeights = exp(-U);
-      end
+      centrePhi = mean(fphi(idxTri));
+      %OrderingWeights = feval(Exp.Ordering,centrePhi,centreTheta);
+      OrderingWeights = Exp.Ordering(centrePhi,centreTheta);
+      if any(OrderingWeights)<0, error('User-supplied orientation distribution gives negative values!'); end
+      if max(OrderingWeights)==0, error('User-supplied orientation distribution is all-zero.'); end
       Areas = Areas(:).*OrderingWeights(:);
       Areas = 4*pi/sum(Areas)*Areas;
     elseif ~isempty(Opt.ThetaRange)
@@ -806,7 +832,7 @@ else
     
     thisspec = thisspec*(2*pi); % powder integal over chi (0..2*pi)
     
-    if (SummedOutput),
+    if SummedOutput
       spec = spec + thisspec;
     else
       spec(iTrans,:) = thisspec;
@@ -814,7 +840,7 @@ else
     
   end % for iTrans
 
-  if (~DoProjection)
+  if ~DoProjection
     logmsg(1,'  Smoothness: overall %0.4g, worst %0.4g\n   (<0.5: probably bad, 0.5-3: ok, >3: overdone)',sumBroadenings/nBroadenings,minBroadening);
   end
   
@@ -896,7 +922,7 @@ if (ConvolutionBroadening)
   % Lorentzian broadening
   if (fwhmL>2*Exp.deltaX)
     logmsg(1,'  convoluting with Lorentzian, FWHM %g MHz, derivative %d',fwhmL,HarmonicL);
-    if min(size(spec))==1, fwhm = [fwhmL 0]; else fwhm = [0 fwhmL]; end
+    if min(size(spec))==1, fwhm = [fwhmL 0]; else, fwhm = [0 fwhmL]; end
     spec = convspec(spec,Exp.deltaX,fwhm,HarmonicL,0);
   else
     % Skip convolution, since it has no effect with such a narrow delta-like Lorentzian.
@@ -905,7 +931,7 @@ if (ConvolutionBroadening)
   % Gaussian broadening
   if (fwhmG>2*Exp.deltaX)
     logmsg(1,'  convoluting with Gaussian, FWHM %g MHz, derivative %d',fwhmG,HarmonicG);
-    if min(size(spec))==1, fwhm = [fwhmG 0]; else fwhm = [0 fwhmG]; end
+    if min(size(spec))==1, fwhm = [fwhmG 0]; else, fwhm = [0 fwhmG]; end
     spec = convspec(spec,Exp.deltaX,fwhm,HarmonicG,1);
   else
     % Skip convolution, since it has no effect with such a narrow delta-like Gaussian.
@@ -937,7 +963,7 @@ end
 % Assign output.
 %-----------------------------------------------------------------------
 switch (nargout)
-  case 0,
+  case 0
     cla
     plot(xAxis,spec);
     axis tight

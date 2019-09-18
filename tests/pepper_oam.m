@@ -2,7 +2,7 @@ function [err,data] = test(opt,olddata)
 %orbital angular momenta can also be defined as spins, therefore the two
 %Hamiltonians should be identical
 
-rand('twister',5);
+rng_(5,'twister');
 
 % Build spin system with spin in Sys.S and orbital angular momenta in Sys.L
 n = 1;%randi_(2);

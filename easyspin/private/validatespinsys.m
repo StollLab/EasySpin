@@ -31,10 +31,14 @@ if ~isstruct(Sys) || (numel(Sys)~=1)
   return
 end
 
+% whether Sys is being reprocessed after removal of nuclei
+reprocessing = false;
 if isfield(Sys,'processed')
   if Sys.processed
     FullSys = Sys;
     return;
+  else
+    reprocessing = true;
   end
 end
 
@@ -49,7 +53,7 @@ end
 
 %-------- spellcheck fields (lower/upper case) ------------------
 correctFields = {'S','Nucs','Abund','n',...
-  'g','g_','D','ee','ee2','A','A_','Q',...
+  'g','g_','D','ee','J','dip','dvec','ee2','A','A_','Q',...
   'gFrame','DFrame','eeFrame','AFrame','QFrame',...
   'gStrain','HStrain','AStrain','DStrain',...
   'aF','B0','B2','B4','B6','B8','B10','B12',...
@@ -60,6 +64,9 @@ correctFields = {'S','Nucs','Abund','n',...
 givenFields = fieldnames(Sys);
 for f = 1:numel(givenFields)
   givField = givenFields{f};
+  if strcmp(givField,'ZeemanFreq')
+    error('Field Sys.ZeemanFreq can only be used in conjunction with the function spidyan.')
+  end
   idx = find(strcmpi(givField,correctFields));
   % check if there is a case-insensitive match
   if idx
@@ -77,7 +84,7 @@ for ind = find((strncmpi(givenFields,'Ham',3)))
   if isempty(ind), break; end
   field = givenFields{ind};
   if length(field)~= 6 
-    if str2num(field(4))+str2num(field(5))<10  
+    if str2double(field(4))+str2double(field(5))<10  
       error('Wrong length of Sys.%s entry, should be Hamxyz (with x,y,z integer numbers)',field);
     else
       if length(field)~= 7
@@ -279,19 +286,21 @@ end
 
 
 %---------- electron-electron ------------------------------------------
-Sys.fullee = false;
-if (nElectrons>1)
+if ~isfield(Sys,'fullee'), Sys.fullee = false; end
+if (nElectrons>1) && ~reprocessing
   
   eeMatrix = isfield(Sys,'ee');
-  JdD = isfield(Sys,'J') || isfield(Sys,'dvec') || isfield(Sys,'eeD');
+  JdD = (isfield(Sys,'J') && ~isempty(Sys.J)) || ...
+    (isfield(Sys,'dvec') && ~isempty(Sys.dvec)) || ...
+    (isfield(Sys,'dip') && ~isempty(Sys.dip));
   
   if ~eeMatrix && ~JdD
-    err = 'Spin system contains 2 or more electron spins, but coupling terms are missing (ee; or J, dvec, eeD)!';
+    err = 'Spin system contains 2 or more electron spins, but coupling terms are missing (ee; or J, dip, dvec)!';
     return
   end
   
   if eeMatrix && JdD
-    err = 'Both Sys.ee and (Sys.J,Sys.dvec,Sys.eeD) are given - use only one or the other!';
+    err = 'Both Sys.ee and (Sys.J,Sys.dip,Sys.dvec) are given - use only one or the other!';
     return
   end
   
@@ -330,45 +339,70 @@ if (nElectrons>1)
     end
     
   else
-    % Bilinear coupling defined via J, dvec and eeD
+    % Bilinear coupling defined via J, dip, and dvec
     %----------------------------------------------------------------------
     % J:    isotropic exchange +J*S1*S2
+    % dip:  dipolar coupling
+    %        - 1 value: axial component
+    %        - 2 values: axial and rhombic component
+    %        - 3 values: principal values of dipolar tensor
     % dvec: antisymmetric exchange dvec.(S1xS2)
-    % eeD:  dipolar coupling S1.diag(eeD).S2 or S1.eeD.S2
-    fullee = false;
     
     % Size check on list of isotropic exchange coupling constants
     if ~isfield(Sys,'J'), Sys.J = zeros(1,nPairs); end
-    err = sizecheck(Sys,'J',[1 nPairs]);
+    Sys.J = Sys.J(:);
+    err = sizecheck(Sys,'J',[nPairs 1]);
     if ~isempty(err), return; end
     
     % Size check on list of antisymmetric exchange vectors
     if ~isfield(Sys,'dvec'), Sys.dvec = zeros(nPairs,3); end
     err = sizecheck(Sys,'dvec',[nPairs,3]);
     if ~isempty(err), return; end
-    
+
     % Size check on dipolar tensor diagonals
-    if ~isfield(Sys,'eeD'), Sys.eeD = zeros(nPairs,3); end
-    err = sizecheck(Sys,'eeD',[nPairs,3]);
-    if ~isempty(err), return; end
-    
-    % Assert zero traces of dipolar tensors
-    if any(sum(Sys.eeD,2)/max(abs(Sys.eeD(:)))>1e-10)
-      err = 'Sys.eeD contains dipolar tensors with non-zero trace. Use Sys.J for this.';
+    if ~isfield(Sys,'dip'), Sys.dip = zeros(nPairs,3); end
+    if numel(Sys.dip)==nPairs
+      Sys.dip = Sys.dip(:);
     end
-    if ~isempty(err), return; end
+    if size(Sys.dip,1)~=nPairs
+      error('Sys.dip must contain %d rows, since there are %d unique pairs of electron spins.',nPairs,nPairs);
+    end
+
+    if isfield(Sys,'eeD')
+      error('Sys.eeD is obsolete. Use Sys.dip instead.');
+    end
     
-    % Combine (Sys.J,Sys.dvec,Sys.eeD) into full interaction matrix in Sys.ee
-    Sys.fullee = true;
-    idx = 1:3;
-    for iPair = 1:nPairs
-      J = Sys.J(iPair);
-      d = Sys.dvec(iPair,:);
-      ee = J*eye(3) + ...
-         [0 d(3) -d(2); -d(3) 0 d(1); d(2) -d(1) 0] + ...
-         diag(Sys.eeD(iPair,:));
-      Sys.ee(idx,:) = ee;
-      idx = idx + 3;
+    % Convert axial/rhombic components to principal values
+    switch size(Sys.dip,2)
+      case 1
+        Sys.dip = Sys.dip*[1 1 -2];
+      case 2
+        Sys.dip = Sys.dip(:,1)*[1 1 -2] + Sys.dip(:,2)*[+1 -1 0];
+      case 3
+        % Remove isotropic component to guarantee zero traces of dipolar tensors
+        Sys.dip = Sys.dip - repmat(mean(Sys.dip,2),1,3);
+      otherwise
+        error('Sys.dip must contain 1, 2, or 3 columns.');
+    end
+    
+    % Combine (Sys.J,Sys.dip,Sys.dvec) into full interaction matrix in Sys.ee
+    fullee = any(Sys.dvec(:)~=0);
+    Sys.fullee = fullee;
+    if fullee
+      idx = 1:3;
+      for iPair = 1:nPairs
+        J = Sys.J(iPair);
+        d = Sys.dvec(iPair,:);
+        ee = J*eye(3) + ...
+          [0 d(3) -d(2); -d(3) 0 d(1); d(2) -d(1) 0] + ...
+          diag(Sys.dip(iPair,:));
+        Sys.ee(idx,:) = ee;
+        idx = idx + 3;
+      end
+    else
+      for iPair = 1:nPairs
+        Sys.ee(iPair,:) = Sys.J(iPair) + Sys.dip(iPair,:);
+      end
     end
     
   end
@@ -642,43 +676,50 @@ if (nNuclei>0)
 
 end
 
-%------ Nuclear-nuclear couplings ---------------------------
+%------ Nuclear-nuclear couplings ----------------------------------------------
 Sys.fullnn = false;
-if (nNuclei>1)
+if nNuclei<2
+  
+  if isfield(Sys,'nn')
+    if ~isempty(Sys.nn) && any(Sys.nn(:)~=0)
+      error('Nuclear-nuclear couplings specified in Sys.nn, but fewer than two nuclei given.');
+    end
+  end
+  
+else
   
   % Bilinear coupling defined via Sys.nn
-  nnMatrix = isfield(Sys,'nn');
+  nNucPairs = nNuclei*(nNuclei-1)/2;
   
-  nPairs = nNuclei*(nNuclei-1)/2;
-  
-  if nnMatrix
+  if isfield(Sys,'nn') && ~isempty(Sys.nn) && any(Sys.nn(:))
     
     % Expand isotropic couplings into 3 equal principal values
-    if numel(Sys.nn)==nPairs
+    if numel(Sys.nn)==nNucPairs
       Sys.nn = Sys.nn(:)*[1 1 1];
     end
     
-    fullnn = issize(Sys.nn,[3*nPairs,3]);
-    if ~fullnn
-      err = sizecheck(Sys,'nn',[nPairs 3]);
+    % Size checks for Sys.nn
+    Sys.fullnn = issize(Sys.nn,[3*nNucPairs,3]);
+    if ~Sys.fullnn
+      err = sizecheck(Sys,'nn',[nNucPairs 3]);
       if ~isempty(err), return; end
     end
     
   else
-    Sys.nn = zeros(nPairs,3);
-    fullnn = false;
+    Sys.nn = zeros(nNucPairs,3);
+    Sys.nnFrame = zeros(nNucPairs,3);
+    Sys.fullnn = false;
   end
-  Sys.fullnn = fullnn;
   
-  % Check for eeFrame, and supplement or error if necessary
-  if fullnn
-    if isfield(Sys,'nnFrame')
+  % Check for nnFrame, supplement or error if necessary
+  if Sys.fullnn
+    if isfield(Sys,'nnFrame') && ~isempty(Sys.nnFrame)
       err = sprintf('Full matrices are specified in Sys.nn, so nnFrame is not allowed.');
       if ~isempty(err), return; end
     end
   else
-    if ~isfield(Sys,'nnFrame'), Sys.nnFrame = zeros(nPairs,3); end
-    err = sizecheck(Sys,'nnFrame',[nPairs 3]);
+    if ~isfield(Sys,'nnFrame'), Sys.nnFrame = zeros(nNucPairs,3); end
+    err = sizecheck(Sys,'nnFrame',[nNucPairs 3]);
     if ~isempty(err), return; end
   end
   
@@ -941,7 +982,7 @@ if isfield(Sys,'L') && ~isempty(Sys.L)
     return
   end
   if size(Sys.soc,1) ~= nElectrons
-    if size(Sys.soc)==[1,nElectrons]
+    if issize(Sys.soc,[1,nElectrons])
       Sys.soc = Sys.soc.';
     else
       err = 'Number of spin-orbit couplings must match number of spins!';

@@ -1,8 +1,8 @@
 % nnint  Nuclear-nuclear spin interaction Hamiltonian 
 %
-%   F = nnint(SpinSystem)
-%   F = nnint(SpinSystem,nSpins)
-%   F = nnint(SpinSystem,nSpins,'sparse')
+%   Hnn = nnint(SpinSystem)
+%   Hnn = nnint(SpinSystem,nucSpins)
+%   Hnn = nnint(SpinSystem,nucSpins,'sparse')
 %
 %   Returns the nuclear-nuclear spin interaction (NNI)
 %   Hamiltonian, in MHz.
@@ -10,16 +10,16 @@
 %   Input:
 %   - SpinSystem: Spin system structure. NNI
 %       parameters are in the nn and nnFrame fields.
-%   - nSpins: If given, specifies nuclear spins
-%       for which the NNI should be computed. If
-%       absent, all nuclei are included.
+%   - nucSpins: Indices of nuclear spins for which the NNI should be
+%       computed. E.g. [1 3] indicates the first and third nuclear spin.
+%       If nucspins is omitted or empty, all nuclei are included.
 %   - 'sparse': If given, the matrix is returned in sparse format.
-
+%
 %   Output:
-%   - F: Hamiltonian matrix containing the NNI for
-%       nuclear spins specified in eSpins.
+%   - Hnn: Hamiltonian matrix containing the NNI for nuclear spins specified
+%       in nucSpins.
 
-function F = nnint(System,Spins,opt)
+function Hnn = nnint(System,nucSpins,opt)
 
 if (nargin==0), help(mfilename); return; end
 
@@ -28,7 +28,7 @@ if (nargout<0), error('Not enough output arguments.'); end
 if (nargout>1), error('Too many output arguments.'); end
 
 if nargin<3, opt = ''; end
-if nargin<2, Spins = []; end
+if nargin<2, nucSpins = []; end
 if ~ischar(opt)
   error('Third input must be a string, ''sparse''.');
 end
@@ -41,33 +41,33 @@ sys = spinvec(System);
 n = prod(2*sys+1);
 
 % Special cases: only one nuclear spin, nn not given, or all zero
-F = sparse(n,n);
+Hnn = sparse(n,n);
 if System.nNuclei<2, return; end
 if ~any(System.nn(:)), return; end
 
-if isempty(Spins), Spins = 1:System.nNuclei; end
+if isempty(nucSpins), nucSpins = 1:System.nNuclei; end
 
 % Some error checking on the second input argument
-if numel(Spins)<2
+if numel(nucSpins)<2
   error('Spins (2nd argument) must contain at least 2 values!'); 
 end
-if any(Spins<1) || any(Spins>System.nNuclei)
+if any(nucSpins<1) || any(nucSpins>System.nNuclei)
   error('Spins (2nd argument) must contain values between 1 and %d!',System.nNuclei);
 end
-if numel(unique(Spins))~=numel(Spins)
+if numel(unique(nucSpins))~=numel(nucSpins)
   error('Spins (2nd argument) contains double entries!');
 end
 
-F = sparse(n,n);
+Hnn = sparse(n,n);
 
 % Compile list of wanted interactions
-Spins = sort(Spins);
-[idx1,idx2] = find(tril(ones(numel(Spins)),-1));
+nucSpins = sort(nucSpins);
+[idx1,idx2] = find(tril(ones(numel(nucSpins)),-1));
 idx = [idx2,idx1];
 
-Pairs = Spins(idx);
-nPairs = size(Pairs,1);
-Coupl = Pairs(:,1) + (Pairs(:,2)-1)*System.nNuclei;
+nucPairs = nucSpins(idx);
+nNucPairs = size(nucPairs,1);
+Coupl = nucPairs(:,1) + (nucPairs(:,2)-1)*System.nNuclei;
 
 % Compile list of all nuclear spin pairs
 [n2,n1] = find(tril(ones(System.nNuclei),-1));
@@ -79,9 +79,9 @@ if ~System.fullnn
 end
 
 % Bilinear coupling term I1*nn*I2
-%----------------------------------------------------------------
-for iPair = 1:nPairs
-  iCoupling = find(Coupl(iPair)==allPairsIdx);
+%-------------------------------------------------------------------------------
+for iNucPair = 1:nNucPairs
+  iCoupling = find(Coupl(iNucPair)==allPairsIdx);
   
   % Construct matrix representing coupling tensor
   if System.fullnn
@@ -94,17 +94,17 @@ for iPair = 1:nPairs
   
   % Sum up Hamiltonian terms
   for c1 = 1:3
-    so1 = sop(sys,System.nElectrons+Pairs(iPair,1),c1,'sparse');
+    so1 = sop(sys,System.nElectrons+nucPairs(iNucPair,1),c1,'sparse');
     for c2 = 1:3
-      so2 = sop(sys,System.nElectrons+Pairs(iPair,2),c2,'sparse');
-      F = F + so1*J(c1,c2)*so2;
+      so2 = sop(sys,System.nElectrons+nucPairs(iNucPair,2),c2,'sparse');
+      Hnn = Hnn + so1*J(c1,c2)*so2;
     end
   end
   
 end
 
-F = (F+F')/2; % Hermitianise
+Hnn = (Hnn+Hnn')/2; % Hermitianize
 
 if ~sparseResult
-  F = full(F); % sparse -> full
+  Hnn = full(Hnn); % sparse -> full
 end

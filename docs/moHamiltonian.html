@@ -30,7 +30,7 @@
 <p>
 The Hamiltonian for a single spin S and its interaction with the magnetic field 
 is in general a sum of terms with 
-<!--MATH
+<img src="eqn/moHamiltonian1.png" alt="[eqn]"><!--MATH
 $\left(\boldsymbol{B}\right)^{p_B}\cdot\left(\widehat{\boldsymbol{S}}\right)^{
 p_S}$
 -->
@@ -40,7 +40,7 @@ p_S}$
 <li> the same symmetry selection rules as for the crystal field applies and can be readily adopted.
 </ul>
 This general spin Hamiltonian can be written as:
-<!--MATH
+<img src="eqn/moHamiltonian2.png" alt="[eqn]"><!--MATH
 \begin{eqnarray}
  \nonumber\widehat{H} \left(\boldsymbol{B},\widehat{\boldsymbol{S}}\right)&=& \sum_{p_B 
 = 0}^{\infty} 
@@ -95,30 +95,30 @@ q_S = 0 \\
  \end{eqnarray}
 -->
 
-We used the <a href="stevensoperators.html">extended Stevens operators</a> <!--MATH
+We used the <a href="stevensoperators.html">extended Stevens operators</a> <img src="eqn/moHamiltonian3.png" alt="[eqn]"><!--MATH
 $\widehat{O}_{p_S}^{q_S}\left(\widehat{\boldsymbol{S}}\right)$
 -->
-. The magnetic field is expressed in spherical coordinates <!--MATH
+. The magnetic field is expressed in spherical coordinates <img src="eqn/moHamiltonian4.png" alt="[eqn]"><!--MATH
 $\boldsymbol{B} = \left( r_B, \theta_B, \phi_B\right)^\text{T}$
---> and <!--MATH
+--> and <img src="eqn/moHamiltonian5.png" alt="[eqn]"><!--MATH
 $Y_{p_B}^{q_B}\left(\theta_B,\phi_B\right)$
 --> denote the spherical harmonics.
 Prefactors A<sub>p<sub></sub></sub><sup>q<subS</sub></sup> and &alpha;<sub>p<sub>B</sub></sub> are tabulated in McGavin et al.
-<!--MATH  
+<img src="eqn/moHamiltonian6.png" alt="[eqn]"><!--MATH  
 $\begin{pmatrix}
   p_B & p_S & p \\
   q_B & q_S & -q
  \end{pmatrix}$ 
---> is a Wigner 3-j symbol.Wigner 3j symbols are zero unless q<sub>B</sub> + q<sub>S</sub> = q and <!--MATH
+--> is a Wigner 3-j symbol.Wigner 3j symbols are zero unless q<sub>B</sub> + q<sub>S</sub> = q and <img src="eqn/moHamiltonian7.png" alt="[eqn]"><!--MATH
 $\left|p_B-p_S\right| \leq p \leq p_B + p_S$
--->. The parameters describing the spin system are the <!--MATH
+-->. The parameters describing the spin system are the <img src="eqn/moHamiltonian8.png" alt="[eqn]"><!--MATH
 $C_{p,q}^{p_B,p_S}$
 -->. They are given in units of Energy (Magnetic Field)<sup>p<sub>B</sub></sup>, which correspond in Easyspin to MHz (mT)<sup>p<sub>B</sub></sup>.
 The allowed coefficients have p an even integer numbers between |p<sub>B</sub>-p<sub>S</sub>| and p<sub>B</sub>+p<sub>S</sub> and q integer number between -p and +p. 
 For example for p<sub>B</sub> = 1 and p<sub>S</sub> = 3 
 the 
 following coefficients are allowed: 
-<!--MATH
+<img src="eqn/moHamiltonian9.png" alt="[eqn]"><!--MATH
 \begin{eqnarray}
  &C_{2,2}^{p_B = 1,p_S = 3},& C_{2,1}^{p_B = 
 1,p_S = 3},C_{2,0}^{p_B = 1,p_S = 3},C_{2,-1}^{p_B = 1,p_S = 3},C_{2,-2}^{p_B = 
@@ -131,20 +131,20 @@ C_{4,-1}^{p_B = 1,p_S = 3}, C_{4,-2}^{p_B = 1,p_S = 3},C_{4,-3}^{p_B = 1,p_S =
 \end{eqnarray}
 -->
 <p>
-Next we will derive the coefficients <!--MATH $C_{p,q}^{p_B,p_S}$ --> for Hamiltonian's 
+Next we will derive the coefficients <img src="eqn/moHamiltonian10.png" alt="[eqn]"><!--MATH $C_{p,q}^{p_B,p_S}$ --> for Hamiltonian's 
 widely used in spin physics.
 <!-- ============================================================= -->
 <div class="subtitle"><a name="l">Electron Zeeman Interaction</a></div>
 The commonly used Zeeman Hamiltonian is linear in B and S. Usually it is sufficient to describe the interaction with the external magnetic field.
-<!--MATH
+<img src="eqn/moHamiltonian11.png" alt="[eqn]"><!--MATH
 $
  \widehat{H}_\text{Zeeman} \left(\boldsymbol{B},\widehat{\boldsymbol{S}}\right) 
 = \mu_\text{B} 
 \boldsymbol{B}\boldsymbol{g}\widehat{\boldsymbol{S}} \label{eq:zeeman}
 $ -->
 with symmetric g matrix and the Bohr magneton &mu;<sub>B</sub>. We can construct now the 
-<!--MATH $C_{p,q}^{p_B = 1,p_S = 1}$ --> as:
-<!--MATH
+<img src="eqn/moHamiltonian12.png" alt="[eqn]"><!--MATH $C_{p,q}^{p_B = 1,p_S = 1}$ --> as:
+<img src="eqn/moHamiltonian13.png" alt="[eqn]"><!--MATH
  \begin{eqnarray}
  \nonumber C_{0,0}^{p_B = 1,p_S = 1} &=& 
  -\frac{\mu_\text{B}}{\sqrt{3}}\left(g_{xx}+g_{yy}+g_{zz}\right) \\
@@ -161,7 +161,7 @@ with symmetric g matrix and the Bohr magneton &mu;<sub>B</sub>. We can construct
 <!-- ============================================================= -->
 <div class="subtitle"><a name="l">Zero-Field Hamiltonian</a></div>
 The zero-field terms in the spin Hamiltonian are commonly expressed as:
-<!--MATH
+<img src="eqn/moHamiltonian14.png" alt="[eqn]"><!--MATH
 $ \widehat{H}_\text{zero-field} \left(\widehat{\boldsymbol{S}}\right)= \sum_{p_S 
 = 
 2}^{2S} \sum_{q_S = - p_S}^{ps} B_{p_S}^{q_S}\cdot 
@@ -171,7 +171,7 @@ However, the most common form which is quadratic in S
 and 
 consider 
 the diagonal terms in a trace-free representation is:
-<!--MATH
+<img src="eqn/moHamiltonian15.png" alt="[eqn]"><!--MATH
 \begin{eqnarray}
  \nonumber \widehat{H}_\text{DE} \left(\widehat{\boldsymbol{S}}\right) &=&
  D \left(\widehat{S}_z^2-\frac{1}{3}\widehat{\boldsymbol{S}}^2\right) + E 
@@ -181,12 +181,12 @@ the diagonal terms in a trace-free representation is:
 \end{eqnarray}
 -->
 The corresponding coefficients should now be transformed to the 
-<!--MATH 
+<img src="eqn/moHamiltonian16.png" alt="[eqn]"><!--MATH 
 $C_{p_S,q}^{p_B = 0,p_S}$ 
 --> 
 (only p = p<sub>S</sub> is allowed for p<sub>B</sub> = 0). With 
 &zeta;<sub>0</sub><sup>0</sup> = 1 and 
-<!--MATH
+<img src="eqn/moHamiltonian17.png" alt="[eqn]"><!--MATH
  $\begin{pmatrix}
   0 & p_S & p_S \\
   0 & q_S & -q_S
@@ -194,11 +194,11 @@ $C_{p_S,q}^{p_B = 0,p_S}$
 --> 
 for even p<sub>S</sub> it 
 is straightforward to transform the coefficients:
-<!--MATH
+<img src="eqn/moHamiltonian18.png" alt="[eqn]"><!--MATH
 $ C_{p_S,q_S}^{p_B = 0,p_S} = A_{p_S}^{q_S} \cdot B_{p_S}^{q_S}.$
 -->
 D and E in H<sub>DE</sub> are converted to 
-<!--MATH
+<img src="eqn/moHamiltonian19.png" alt="[eqn]"><!--MATH
 \begin{eqnarray}
 \nonumber C_{2,0}^{0,2} &=&\frac{\sqrt{6}}{3} D \\
 \nonumber C_{2,2}^{0,2} &=& \sqrt{2} E

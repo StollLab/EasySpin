@@ -140,7 +140,8 @@ if ~isfield(Opt,'Symmetry')
   Opt.Symmetry = []; % needed for p_symandgrid
 end
 if ~isfield(Opt,'SymmFrame')
-  Opt.SymmFrame = eye(3);  % needed for p_symandgrid
+  Opt.SymmFrame = []; % needed for p_symandgrid
+end
 end
 if ~isfield(Opt,'deltaB')
   Opt.deltaB = 1e-2; % T

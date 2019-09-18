@@ -128,7 +128,7 @@ global UserCommand;
 if isempty(UserCommand), UserCommand = NaN; end
 
 iIteration = 0;
-while (~stop)
+while ~stop
   
   iIteration = iIteration + 1;
   
@@ -139,7 +139,7 @@ while (~stop)
   norm_h = norm(h);
 
   if FitOpt.PrintLevel
-    str = sprintf(' %4d:   %5d  %0.5e    %0.5e    %0.5e',iIteration,nEvals,sqrt(F*2),norm_g,norm_h);
+    str = sprintf(' iteration %d:\n    value %0.5f\n    gradient %0.5f\n    step %0.5f',iIteration,sqrt(F*2),norm_g,norm_h);
     FitOpt.IterationPrintFunction(str);
   end
   
