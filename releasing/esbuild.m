@@ -14,22 +14,22 @@ function esbuild
 %     compatible manner.
 %   PATCH: Increment for every bugfix release.
 % Roughly follow guidelines of semantic versioning, see http://semver.org/
-ReleaseID = '5.2.1'; % major.minor.patch
-ReleaseChannel = 'stable'; % release channel, used for automatic updates
+ReleaseID = '%ReleaseID%'; % major.minor.patch
+ReleaseChannel = '%ReleaseChannel%'; % release channel, used for automatic updates
 
 % Expiry date of release, see eschecker.m
-% ExpiryDate = '31-Dec-2018';
-[Year, Month, Day] = datevec(now);
-ExpiryDate = datestr(datenum(Year,Month+6,1)-1);
+% Months to add:
+MonthsToExpiry = %Months; % Will be replaced by build.pl
 
+[Year, Month, Day] = datevec(now);
+ExpiryDate = datestr(datenum(Year,Month+MonthsToExpiry+1,1)-1);
 
 % Cutoff date for date checking, see eschecker.m
 HorizonDate = datestr(datenum(Year+4,12,31));
 
 % Folders
-baseDir = '.';
-SourceDir = ['./easyspin-temp/'];
-ZipDestDir = ['./easyspin-builds/'];
+SourceDir = ['%SourceDir%'];
+ZipDestDir = ['%ZipDestDir%'];
 
 %========================================================================
 

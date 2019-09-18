@@ -8,7 +8,11 @@ use Cwd; # to get working directory
 my $WorkingDir = getcwd; # get current working directory
 
 # variables imported from config.pl
-our ($SourceDir, $BuildsDir, $TempRepoDir, $StableMajorVersion, $DefaultMajorVersion, $KeyForStableVersion, $KeyForDefaultVersion, $KeyForDeveloperVersion, $KeyForExperimentalVersion, @VersionCutoff, $esbuild, $KeyBitBucket);
+our ($SourceDir, $BuildsDir, $TempRepoDir); # directories
+our ($StableMajorVersion,  $KeyForStableVersion, $MonthsToExpireStable); # settings for the stable versions
+our ($DefaultMajorVersion, $KeyForDefaultVersion, $MonthsToExpireDefault); # settings for the default versions
+our ($KeyForDeveloperVersion, $KeyForExperimentalVersion, $MonthsToExpireDeveloper); # settings for the experimental versions
+our (@VersionCutoff, $esbuild, $KeyBitBucket); # some other settings
 
 require './config.pl'; # load the configuration file
 
@@ -231,37 +235,46 @@ foreach (@TagsToBuild) {
 
     # ---------------------------------------------------------------------------------
     # Update variables in esbuild.m 
-    my $matchReleaseID = "ReleaseID(.*?); \% major.minor.patch"; # pattern to find ReleaseID 
-    my $replaceReleaseID = "ReleaseID = \'".$thisBuild."\'; \% major.minor.patch"; # Update ReleaseID
+    my $matchReleaseID = '%ReleaseID%'; # pattern to find ReleaseID 
+    my $replaceReleaseID = "$thisBuild"; # Update ReleaseID
     
 
     my $ReleaseChannel;
+    my $MonthsToExpire;
+
     if ($thisBuildID[0]) {
         if ($thisBuildID[3]) {
             $ReleaseChannel = $KeyForDeveloperVersion;
+            $MonthsToExpire = $MonthsToExpireDeveloper;
         }
         elsif ($thisBuildID[0] eq $StableMajorVersion) {
             $ReleaseChannel = $KeyForStableVersion;
+            $MonthsToExpire = $MonthsToExpireStable;
         }
         elsif ($thisBuildID[0] eq $DefaultMajorVersion) {
             $ReleaseChannel = $KeyForDefaultVersion;
+            $MonthsToExpire = $MonthsToExpireDefault;
         }
     }
     else {
         # if tag does not follow semantic versioning, e.g. easyspin-evolve.zip
         $ReleaseChannel = $KeyForExperimentalVersion;
+        $MonthsToExpire = $MonthsToExpireDeveloper;
     }
 
-    my $matchReleaseChannel = "ReleaseChannel = (.*?);"; # pattern to find ReleaseID 
-    my $replaceReleaseChannel = "ReleaseChannel = '$ReleaseChannel';"; # Update ReleaseID
+    my $matchReleaseChannel = '%ReleaseChannel%';
+    my $replaceReleaseChannel = "$ReleaseChannel";
 
-    my $matchSourceDir = "SourceDir = (.*?);";
-    my $replaceSourceDir = "SourceDir = ['$TempRepoDir'];";
+    my $matchExpiry = '%Months';
+    my $replaceExpiry = "$MonthsToExpire";
 
-    my $matchZipDestDir = "ZipDestDir = (.*?);";
-    my $replaceZipDestDir = "ZipDestDir = ['$BuildsDir'];";
+    my $matchSourceDir = '%SourceDir%';
+    my $replaceSourceDir = "$TempRepoDir";
 
-    my $esbuildNew = $esbuild.'new';
+    my $matchZipDestDir = '%ZipDestDir%';
+    my $replaceZipDestDir = "$BuildsDir";
+
+    my $esbuildNew = "local$esbuild";
 
     print("Updating esbuild.m\n");
     open(my $Input,'<'.$esbuild) or die("Cannot open $esbuild!");
@@ -269,6 +282,7 @@ foreach (@TagsToBuild) {
     while (<$Input>) {
         $_ =~ s/$matchReleaseID/$replaceReleaseID/g;
         $_ =~ s/$matchReleaseChannel/$replaceReleaseChannel/g;
+        $_ =~ s/$matchExpiry/$replaceExpiry/g;
         $_ =~ s/$matchSourceDir/$replaceSourceDir/g;
         $_ =~ s/$matchZipDestDir/$replaceZipDestDir/g;
         print $Output $_;    
@@ -277,16 +291,15 @@ foreach (@TagsToBuild) {
     close($Input) or die("Cannot close $_!");
     close($Output) or die("Cannot close $_!");
 
-    system('mv '.$esbuildNew.' '.$esbuild);
-
     # ---------------------------------------------------------------------------------
     # Call Matlab to run esbuild.m
     my $MatlabOptions = '-nosplash -nodesktop -nodisplay';
-    my $MatlabTarget = qq(-r "run('$esbuild');exit;");
+    my $MatlabTarget = qq(-r "run('$esbuildNew');exit;");
 
     print("Triggering Matlab build \n");
     system('matlab '.$MatlabOptions." ".$MatlabTarget);
 
+    system("rm $esbuildNew");
     # ---------------------------------------------------------------------------------
     # Translate semantic version, compare to NewestVersions and decide wether it needs to be uploaded
 
