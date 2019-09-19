@@ -104,6 +104,13 @@ mid = round(NN/2)+1; % range midpoint, for line center
 fwhm = fwhm./steps;  % line width in terms of x-axis increments
 steps(fwhm==0) = 1;
 
+% Error if linewidth for first-derivative convolution is too small
+if any(fwhm<1 & fwhm>0 & deriv==1)
+  error(['The linewidth is smaller (%gx) than the increment. ' ...
+    'The convolution with such a narrow derivative lineshape does not work. ' ...
+    'Either increase linewidth or increase axis resolution.'],min(fwhm(fwhm~=0)));
+end
+
 % Determine ifft of line shape for each dimension
 for i = nDims:-1:1
   Range{i} = 1:sz(i);

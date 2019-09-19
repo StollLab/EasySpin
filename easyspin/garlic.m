@@ -892,18 +892,31 @@ if (ConvolutionBroadening)
   end
   
   % Convolution with Lorentzian
-  if (fwhmL>2*dxFine)
-    logmsg(1,'Convoluting with Lorentzian (FWHM %g %s, derivative %d)...',fwhmL,unitstr,HarmonicL);
-    spec = convspec(spec,dxFine,fwhmL,HarmonicL,0,mwPhaseL);
-  else
-    % Skip convolution, since it has no effect with such a narrow delta-like Lorentzian.
+  if fwhmL~=0
+    if fwhmL>2*dxFine
+      logmsg(1,'Convoluting with Lorentzian (FWHM %g %s, derivative %d)...',fwhmL,unitstr,HarmonicL);
+      spec = convspec(spec,dxFine,fwhmL,HarmonicL,0,mwPhaseL);
+    else
+      if HarmonicL==0
+        % Skip convolution, since it has no effect with such a narrow delta-like Lorentzian.
+      else
+        error('Lorentzian linewidth is smaller than increment - cannot perform convolution.');
+      end
+    end
   end
+  
   % Convolution with Gaussian
-  if (fwhmG>2*dxFine)
-    logmsg(1,'Convoluting with Gaussian (FWHM %g %s, derivative %d)...',fwhmG,unitstr,HarmonicG);
-    spec = convspec(spec,dxFine,fwhmG,HarmonicG,1,mwPhaseG);
-  else
-    % Skip convolution, since it has no effect with such a narrow delta-like Gaussian.
+  if fwhmG~=0
+    if fwhmG>2*dxFine
+      logmsg(1,'Convoluting with Gaussian (FWHM %g %s, derivative %d)...',fwhmG,unitstr,HarmonicG);
+      spec = convspec(spec,dxFine,fwhmG,HarmonicG,1,mwPhaseG);
+    else
+      if HarmonicG==0
+        % Skip convolution, since it has no effect with such a narrow delta-like Gaussian.
+      else
+        error('Gaussian linewidth is smaller than increment - cannot perform convolution.');
+      end
+    end
   end
   
 end

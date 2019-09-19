@@ -920,21 +920,33 @@ if (ConvolutionBroadening)
   end
 
   % Lorentzian broadening
-  if (fwhmL>2*Exp.deltaX)
-    logmsg(1,'  convoluting with Lorentzian, FWHM %g MHz, derivative %d',fwhmL,HarmonicL);
-    if min(size(spec))==1, fwhm = [fwhmL 0]; else, fwhm = [0 fwhmL]; end
-    spec = convspec(spec,Exp.deltaX,fwhm,HarmonicL,0);
-  else
-    % Skip convolution, since it has no effect with such a narrow delta-like Lorentzian.
+  if fwhmL~=0
+    if fwhmL>2*Exp.deltaX
+      logmsg(1,'  convoluting with Lorentzian, FWHM %g MHz, derivative %d',fwhmL,HarmonicL);
+      if min(size(spec))==1, fwhm = [fwhmL 0]; else, fwhm = [0 fwhmL]; end
+      spec = convspec(spec,Exp.deltaX,fwhm,HarmonicL,0);
+    else
+      if HarmonicL==0
+        % Skip convolution, since it has no effect with such a narrow delta-like Lorentzian.
+      else
+        error('Lorentzian linewidth is smaller than increment - cannot perform convolution.');
+      end
+    end
   end
   
   % Gaussian broadening
-  if (fwhmG>2*Exp.deltaX)
-    logmsg(1,'  convoluting with Gaussian, FWHM %g MHz, derivative %d',fwhmG,HarmonicG);
-    if min(size(spec))==1, fwhm = [fwhmG 0]; else, fwhm = [0 fwhmG]; end
-    spec = convspec(spec,Exp.deltaX,fwhm,HarmonicG,1);
-  else
-    % Skip convolution, since it has no effect with such a narrow delta-like Gaussian.
+  if fwhmG~=0
+    if fwhmG>2*Exp.deltaX
+      logmsg(1,'  convoluting with Gaussian, FWHM %g MHz, derivative %d',fwhmG,HarmonicG);
+      if min(size(spec))==1, fwhm = [fwhmG 0]; else, fwhm = [0 fwhmG]; end
+      spec = convspec(spec,Exp.deltaX,fwhm,HarmonicG,1);
+    else
+      if HarmonicG==0
+        % Skip convolution, since it has no effect with such a narrow delta-like Gaussian.
+      else
+        error('Gaussian linewidth is smaller than increment - cannot perform convolution.');
+      end
+    end
   end
 
   % Remove padding
