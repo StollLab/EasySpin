@@ -24,7 +24,7 @@
 %                 outputs of the simulation function and iOut is the index
 %                 of the output argument to use for fitting
 
-function varargout = esfit(SimFunctionName,ExpSpec,Sys0,Vary,Exp,SimOpt,FitOpt)
+function varargout = esfit(SimFunction,ExpSpec,Sys0,Vary,Exp,SimOpt,FitOpt)
 
 if (nargin==0), help(mfilename); return; end
 
@@ -49,19 +49,19 @@ FitData.currFitSet = [];
 
 % Simulation function
 %--------------------------------------------------------------------
-switch class(SimFunctionName)
+switch class(SimFunction)
   case 'char'
     % Simulation function is given as a character array
-    FitData.SimFcnName = SimFunctionName;
-    FitData.SimFcn = str2func(SimFunctionName);
+    FitData.SimFcnName = SimFunction;
+    FitData.SimFcn = str2func(SimFunction);
     if ~any(exist(FitData.SimFcnName)==[2 3 5 6])
       error('First input parameter must be a valid function name or function handle.');
     end
   case 'function_handle'
     % Simulation function is given as a function handle
-    fdata = functions(SimFunctionName);
+    fdata = functions(SimFunction);
     FitData.SimFcnName = fdata.function;
-    FitData.SimFcn = SimFunctionName;
+    FitData.SimFcn = SimFunction;
     if ~strcmpi(fdata.type,'anonymous') && ~strcmpi(fdata.type,'scopedfunction')
       if ~any(exist(FitData.SimFcnName) == [2 3 5 6])
         error('First input parameter must be a valid function name or function handle.');
@@ -153,7 +153,7 @@ end
 
 % For field and frequency sweeps, require manual field range (to prevent
 % users from comparing sim and exp spectra with different ranges)
-if strcmp(SimFunctionName,{'pepper','garlic','chili','salt'})
+if strcmp(SimFunction,{'pepper','garlic','chili','salt'})
   if ~any(isfield(Exp,{'Range','CenterSweep','mwRange','mwCenterSweep'}))
     error('Please specify field or frequency range, in Exp.Range/Exp.mwRange or in Exp.CenterSweep/Exp.mwCenterSweep.');
   end
@@ -364,7 +364,7 @@ if FitData.GUI
   
   % Parameter table
   %-----------------------------------------------------------------
-  columnname = {'','Name','best','current','center','vary'};
+  columnname = {'','Name','best','current','lower','upper'};
   columnformat = {'logical','char','char','char','char','char'};
   colEditable = [true false false false true true];
   [FitData.parNames,FitData.CenterVals,FitData.VaryVals] = getParamList(Sys0,Vary);
@@ -373,8 +373,12 @@ if FitData.GUI
     data{p,2} = FitData.parNames{p};
     data{p,3} = '-';
     data{p,4} = '-';
-    data{p,5} = sprintf('%0.6g',FitData.CenterVals(p));
-    data{p,6} = sprintf('%0.6g',FitData.VaryVals(p));
+    p0 = FitData.CenterVals(p);
+    dp = FitData.VaryVals(p);
+    lower = p0-dp;
+    upper = p0+dp;
+    data{p,5} = sprintf('%0.6g',lower);
+    data{p,6} = sprintf('%0.6g',upper);
   end
   x0 = 660; y0 = 400; dx = 80;
   % uitable was introduced in R2008a, undocumented in
@@ -878,16 +882,16 @@ if FitData.GUI && (UserCommand~=99)
   drawnow
   
   % update numbers parameter table
-  if (UserCommand~=99)
+  if UserCommand~=99
     
-    % current system set
+    % update column with current parameter values
     hParamTable = findobj('Tag','ParameterTable');
     data = get(hParamTable,'data');
-    for p=1:numel(simvalues)
+    for p = 1:numel(simvalues)
       olddata = striphtml(data{p,4});
       newdata = sprintf('%0.6f',simvalues(p));
       idx = 1;
-      while (idx<=length(olddata)) && (idx<=length(newdata))
+      while idx<=length(olddata) && idx<=length(newdata)
         if olddata(idx)~=newdata(idx), break; end
         idx = idx + 1;
       end
@@ -899,7 +903,7 @@ if FitData.GUI && (UserCommand~=99)
       end
     end
     
-    % current system set is new best
+    % update column with best values if current parameter set is new best
     if isNewBest
       [str,values] = getSystems(BestSys,Vary);
       
@@ -907,11 +911,11 @@ if FitData.GUI && (UserCommand~=99)
       hRmsText = findobj('Tag','RmsText');
       set(hRmsText,'String',str);
       
-      for p=1:numel(values)
+      for p = 1:numel(values)
         olddata = striphtml(data{p,3});
         newdata = sprintf('%0.6g',values(p));
         idx = 1;
-        while (idx<=length(olddata)) && (idx<=length(newdata))
+        while idx<=length(olddata) && idx<=length(newdata)
           if olddata(idx)~=newdata(idx), break; end
           idx = idx + 1;
         end
@@ -1244,14 +1248,15 @@ if ~isempty(str)
   k = find([FitData.FitSets.ID]==ID);  
   if k>0
     fitset = FitData.FitSets(k);
-    
-    h = findobj('Tag','ParameterTable');
-    data = get(h,'data');
     values = fitset.bestvalues;
+    
+    % Set column with best-fit parameter values
+    hTable = findobj('Tag','ParameterTable');
+    data = get(hTable,'data');
     for p = 1:numel(values)
       data{p,3} = sprintf('%0.6g',values(p));
     end
-    set(h,'Data',data);
+    set(hTable,'Data',data);
     
     h = findobj('Tag','bestsimdata');
     set(h,'YData',fitset.fitSpec);
@@ -1382,16 +1387,36 @@ return
 function tableEditCallback(hTable,callbackData)
 global FitData
 
+hTable = callbackData.Source;
+
 % Get row and column index of edited table cell
 ridx = callbackData.Indices(1);
 cidx = callbackData.Indices(2);
 
-% Return unless it's the center or the vary column
+% Return unless it's the last two columns
+if cidx<5, return; end
+
+% Revert if user-entered string does not cleanly convert to a scalar.
+newval = str2num(callbackData.EditData);
+if isempty(newval) || numel(newval)~=1
+  hTable.Data{ridx,cidx} = callbackData.PreviousData;
+  warning('Input is not a number.');
+  return
+end
+
+% Get lower and upper bounds of interval from table
 if cidx==5
-  struName = 'Sys0';
+  lower = newval;
+  upper = str2num(hTable.Data{ridx,6});
 elseif cidx==6
-  struName = 'Vary';
-else
+  lower = str2num(hTable.Data{ridx,5});
+  upper = newval;
+end
+
+% Revert if lower bound would be above upper bound
+if lower>upper
+  warning('Lower bound is above upper bound.');
+  hTable.Data{ridx,cidx} = callbackData.PreviousData;
   return
 end
 
@@ -1399,26 +1424,16 @@ end
 % and determine system index
 parName = hTable.Data{ridx,2};
 if FitData.nSystems>1
+  parName = parName(3:end); % disregard 'A.' etc.
   iSys = parName(1)-64; % 'A' -> 1, 'B' -> 2, etc
-  parName = parName(3:end);
 else
   iSys = 1;
 end
 
-% Revert edit if user-entered data does not cleanly convert to a scalar,
-% assert non-negativity for vary range
-numval = str2num(callbackData.EditData);
-if numel(numval)~=1 || ((numval<0) && (cidx==6))
-  hTable.Data{ridx,cidx} = callbackData.PreviousData;
-  return
-end
-
-% Modify appropriate field in FitData.Sys0 or FitData.Vary
-stru = sprintf('FitData.%s{%d}.%s',struName,iSys,parName);
-try
-  eval([stru '=' callbackData.EditData ';']);
-catch
-  hTable.Data{ridx,cidx} = callbackData.PreviousData;
-end
+% Update appropriate field in FitData.Sys0 and FitData.Vary
+center = (lower+upper)/2;
+vary = (upper-lower)/2;
+eval(sprintf('FitData.Sys0{%d}.%s = %g;',iSys,parName,center));
+eval(sprintf('FitData.Vary{%d}.%s = %g;',iSys,parName,vary));
 
 return
