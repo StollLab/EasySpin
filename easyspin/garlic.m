@@ -537,6 +537,7 @@ for iNucGrp = 1:Sys.nNuclei
   nLines = (2*I_all(iNucGrp)+1)^n_all(iNucGrp);
   nFSpins = numel(nn);
   aiso = a_all(iNucGrp); % Joule
+  aiso = abs(aiso);
   
   Positions = [];
   Intensities = [];
