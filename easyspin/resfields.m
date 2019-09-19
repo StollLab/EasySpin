@@ -108,10 +108,6 @@ if any(System.gStrain(:)) || any(System.AStrain(:))
   end
 end
 
-if any(System.DStrain(:)) && any(System.DFrame(:))
-  error('D strain cannot be used with tilted D tensors.');
-end
-
 if any( strncmp(fieldnames(System),'Ham',3))
   higherOrder = 1;
 else
