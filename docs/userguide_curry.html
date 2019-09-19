@@ -346,7 +346,7 @@ Opt.Output = 'ChiTCGs MvsB OneColoumn';
 FitOpt.Scaling = 'none';
 
 % Let's go and hope for the best!
-esfit('curry',fitdata,Sys,Vary,Exp,Opt,FitOpt);
+esfit(@curry,fitdata,Sys,Vary,Exp,Opt,FitOpt);
 </pre>
 
 <p>

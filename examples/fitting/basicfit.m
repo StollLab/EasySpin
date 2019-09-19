@@ -34,7 +34,7 @@ SimOpt.Method = 'perturb';
 % Finally, we specify the fitting algorithm and what should be fitted.
 FitOpt.Method = 'simplex int'; % simplex algorithm, integrals of spectra
 
-esfit('pepper',spc,Sys0,Vary,Exp,SimOpt,FitOpt);
+esfit(@pepper,spc,Sys0,Vary,Exp,SimOpt,FitOpt);
 
 % If the fitting algorithm doesn't find the correct minimum, you can change
 % the algorithm, target function, and starting point in the UI. For example,

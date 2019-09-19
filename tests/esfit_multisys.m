@@ -19,7 +19,7 @@ Vary2.g = [0.02 0.02];
 Opt = struct;
 FitOpt.PrintLevel = 0;
 FitOpt.Method = 'levmar fcn';
-[dummy,spcfit,resid] = esfit('pepper',spc,{Sys1,Sys2},{Vary1,Vary2},Exp,Opt,FitOpt);
+[dummy,spcfit,resid] = esfit(@pepper,spc,{Sys1,Sys2},{Vary1,Vary2},Exp,Opt,FitOpt);
 
 err = false;
 

@@ -30,7 +30,7 @@ SimOpt.Method = 'perturb';
 % 'fcn' ends up in wrong minima much more often than 'int'.
 
 FitOpt.Method = 'simplex fcn';
-esfit('pepper',y,Sys0,Vary,Exp,SimOpt,FitOpt);
+esfit(@pepper,y,Sys0,Vary,Exp,SimOpt,FitOpt);
 
 FitOpt.Method = 'simplex int';
-esfit('pepper',y,Sys0,Vary,Exp,SimOpt,FitOpt);
+esfit(@pepper,y,Sys0,Vary,Exp,SimOpt,FitOpt);

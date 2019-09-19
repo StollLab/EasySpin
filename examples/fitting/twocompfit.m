@@ -35,4 +35,4 @@ Vary2.weight = 0.3;
 % Calling the fitting function
 SimOpt.Method = 'perturb';
 FitOpt.Method = 'simplex int'; % simplex algorithm, integrals of spectra
-esfit('pepper',spc,{Sys1,Sys2},{Vary1,Vary2},Exp,SimOpt,FitOpt);
+esfit(@pepper,spc,{Sys1,Sys2},{Vary1,Vary2},Exp,SimOpt,FitOpt);

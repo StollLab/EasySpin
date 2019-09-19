@@ -48,12 +48,12 @@ FitOpt.Scaling = 'none';
 
 % fit chiT and mag seperately
 ChiOpt.Output = 'ChiTCGs OneColoumn'; 
-bestsysChi = esfit('curry',ChiTData(:),FitSys,Vary,Exp,ChiOpt,FitOpt);
+bestsysChi = esfit(@curry,ChiTData(:),FitSys,Vary,Exp,ChiOpt,FitOpt);
 ChiOptData.Output = 'ChiTCGs';
 ChiTSim = curry(bestsysChi,Exp,ChiOptData);
 
 MOpt.Output = 'MvsB OneColoumn'; 
-bestsysM = esfit('curry',ChiTData(:),FitSys,Vary,Exp,ChiOpt,FitOpt);
+bestsysM = esfit(@curry,ChiTData(:),FitSys,Vary,Exp,ChiOpt,FitOpt);
 MOptData.Output = 'MvsB';
 MvsBSim = curry(bestsysM,Exp,MOptData);
 figure(2)
@@ -82,7 +82,7 @@ Opt.Output = 'ChiTCGs MvsB OneColoumn';
 FitOpt.Scaling = 'none';
 
 % Let's go and hope for the best!
-[bestsys,bestspc] = esfit('curry',fitdata,FitSys,Vary,Exp,Opt,FitOpt);
+[bestsys,bestspc] = esfit(@curry,fitdata,FitSys,Vary,Exp,Opt,FitOpt);
 
 [ChiTSim,MvsBSim] = curry(bestsys,Exp,OptData);
 figure(3)
@@ -104,7 +104,7 @@ FitSys2.D = -10*clight*1e-4;
 FitSys2.g = 2.0;
 
 % Let's go and hope for the better!
-[bestsys2,bestspc2] = esfit('curry',fitdata,FitSys2,Vary,Exp,Opt,FitOpt);
+[bestsys2,bestspc2] = esfit(@curry,fitdata,FitSys2,Vary,Exp,Opt,FitOpt);
 
 [ChiTSim2,MvsBSim2] = curry(bestsys2,Exp,OptData);
 figure(4)

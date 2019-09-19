@@ -6,8 +6,8 @@
 %   bestsys = esfit(...)
 %   [bestsys,bestspc] = esfit(...)
 %
-%     simfunc     simulation function name ('pepper', 'garlic', 'salt', ...
-%                   'chili', or custom function), or function handle
+%     simfunc     simulation function handle (@pepper, @garlic, @salt, ...
+%                   @chili, or user-defined function)
 %     expspc      experimental spectrum, a vector of data points
 %     Sys0        starting values for spin system parameters
 %     Vary        allowed variation of parameters
@@ -33,9 +33,9 @@ LicErr = 'Could not determine license.';
 Link = 'epr@eth'; eschecker; error(LicErr); clear Link LicErr
 % --------License ------------------------------------------------
 
-if (nargin<5), error('Not enough inputs.'); end
-if (nargin<6), SimOpt = struct('unused',NaN); end
-if (nargin<7), FitOpt = struct('unused',NaN); end
+if nargin<5, error('Not enough inputs.'); end
+if nargin<6, SimOpt = struct('unused',NaN); end
+if nargin<7, FitOpt = struct('unused',NaN); end
 
 if isempty(FitOpt), FitOpt = struct('unused',NaN); end
 if ~isstruct(FitOpt)
@@ -49,27 +49,12 @@ FitData.currFitSet = [];
 
 % Simulation function
 %--------------------------------------------------------------------
-switch class(SimFunction)
-  case 'char'
-    % Simulation function is given as a character array
-    FitData.SimFcnName = SimFunction;
-    FitData.SimFcn = str2func(SimFunction);
-    if ~any(exist(FitData.SimFcnName)==[2 3 5 6])
-      error('First input parameter must be a valid function name or function handle.');
-    end
-  case 'function_handle'
-    % Simulation function is given as a function handle
-    fdata = functions(SimFunction);
-    FitData.SimFcnName = fdata.function;
-    FitData.SimFcn = SimFunction;
-    if ~strcmpi(fdata.type,'anonymous') && ~strcmpi(fdata.type,'scopedfunction')
-      if ~any(exist(FitData.SimFcnName) == [2 3 5 6])
-        error('First input parameter must be a valid function name or function handle.');
-      end
-    end
-  otherwise
-    error('First parameter must be simulation function name.');
+if ~isa(SimFunction,'function_handle')
+  error('The simulation function (1st input) must be a function handle.');
 end
+FitData.SimFcnName = func2str(SimFunction);
+FitData.SimFcn = SimFunction;
+
 FitData.lastSetID = 0;
 
 % System structure

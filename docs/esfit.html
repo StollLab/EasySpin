@@ -35,9 +35,9 @@ Least-squares fitting of EPR spectra, single and multiple components.
 <div class="subtitle">Syntax</div>
 
 <pre class="matlab">
-esfit(SimFnc,expSpc,Sys0,Vary,Exp);
-esfit(SimFnc,expSpc,Sys0,Vary,Exp,SimOpt);
-esfit(SimFnc,expSpc,Sys0,Vary,Exp,SimOpt,FitOpt);
+esfit(SimFcn,expSpc,Sys0,Vary,Exp);
+esfit(SimFcn,expSpc,Sys0,Vary,Exp,SimOpt);
+esfit(SimFcn,expSpc,Sys0,Vary,Exp,SimOpt,FitOpt);
 BestSys = esfit(...)
 [BestSys,BestSpc] = esfit(...)
 </pre>
@@ -78,8 +78,8 @@ The input parameters are the following:
 
 <ul>
 <li>
-<code>SimFnc</code> is the name of the simulation function: <code>'garlic'</code>, <code>'pepper'</code>,
-<code>'chili'</code>, <code>'saffron'</code>, <code>'salt'</code>, or a user-supplied custom function that makes use of one or more of these. Instead of a string (<code>'pepper</code>), it is also possible to provide a function handle (<code>@pepper</code>).
+<code>SimFcn</code> is the function handle of a simulation function: <code>@garlic</code>, <code>@pepper</code>,
+<code>@chili</code>, <code>@saffron</code>, <code>@salt</code>, or a user-supplied custom function that makes use of one or more of these.
 <li>
 <code>expSpc</code> is a 1D array containing the experimental spectral data, which can be one data set or several data sets that have been concatenated (in the latter case, a custom simulation function would need to be defined for fitting).
 <li>
@@ -376,7 +376,7 @@ Exp.mwFreq = 9.5;
 Sys0.g = [2.1 2.2]
 Sys0.lwpp = 0.1;
 Vary.g = [0.05 0.02];
-esfit('pepper',expspc,Sys0,Vary,Exp);
+esfit(@pepper,expspc,Sys0,Vary,Exp);
 </pre>
 
 <p>

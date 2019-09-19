@@ -25,11 +25,11 @@ FitOpt.Method = 'simplex int';
 FitOpt.PrintLevel = 0;
 
 FitOpt.Scaling = 'minmax';
-f1 = esfit('pepper',y,Sys0,Vary,Exp,[],FitOpt);
+f1 = esfit(@pepper,y,Sys0,Vary,Exp,[],FitOpt);
 FitOpt.Scaling = 'maxabs';
-f2 = esfit('pepper',y,Sys0,Vary,Exp,[],FitOpt);
+f2 = esfit(@pepper,y,Sys0,Vary,Exp,[],FitOpt);
 FitOpt.Scaling = 'lsq1';
-f3 = esfit('pepper',y,Sys0,Vary,Exp,[],FitOpt);
+f3 = esfit(@pepper,y,Sys0,Vary,Exp,[],FitOpt);
 
 % If you run this code several times, you will find that
 % 'lsq' seems to be the best method.

@@ -69,9 +69,9 @@ EasySpin's fitting function is <a class="esf" href="esfit.html">esfit</a> and ca
 </p>
 
 <pre class="matlab">
-esfit('pepper',spc,Sys0,Vary,Exp)
-esfit('pepper',spc,Sys0,Vary,Exp,SimOpt)
-esfit('pepper',spc,Sys0,Vary,Exp,SimOpt,FitOpt)
+esfit(@pepper,spc,Sys0,Vary,Exp)
+esfit(@pepper,spc,Sys0,Vary,Exp,SimOpt)
+esfit(@pepper,spc,Sys0,Vary,Exp,SimOpt,FitOpt)
 </pre>
 
 Here is what the various parameters mean:
@@ -203,7 +203,7 @@ The microwave frequency, the field range, and all other experimental parameters 
 Now we are all set to call the fitting function:
 
 <pre class="matlab">
-esfit('pepper',spc,Sys0,Vary,Exp);
+esfit(@pepper,spc,Sys0,Vary,Exp);
 </pre>
 
 <p>
@@ -216,7 +216,7 @@ The least-squares fitting is started, and a figure window pops up that contains 
 This GUI is what you probably want, but if you prefer to run <code>esfit</code> on the command line only, then call it requesting outputs:
 
 <pre class="matlab">
-bestSys = esfit('pepper',spc,Sys0,Vary,Exp);
+bestSys = esfit(@pepper,spc,Sys0,Vary,Exp);
 </pre>
 
 <p>
@@ -227,14 +227,14 @@ If you want to pass settings to the simulation function, collect them in an addi
 sixth parameter:
 
 <pre class="matlab">
-esfit('pepper',spc,Sys0,Vary,Exp,SimOpt);
+esfit(@pepper,spc,Sys0,Vary,Exp,SimOpt);
 </pre>
 
 <p>
 It is possible to provide a structure with settings for the fitting function. If we call this structure <code>FitOpt</code>, the syntax is
 
 <pre class="matlab">
-esfit('pepper',spc,Sys0,Vary,Exp,SimOpt,FitOpt);
+esfit(@pepper,spc,Sys0,Vary,Exp,SimOpt,FitOpt);
 </pre>
 
 <p>
@@ -287,7 +287,7 @@ and then supply this option structure as the seventh parameter to the fitting fu
 </p>
 
 <pre class="matlab">
-esfit('pepper',spc,Sys0,Vary,Exp,[],FitOpt);
+esfit(@pepper,spc,Sys0,Vary,Exp,[],FitOpt);
 </pre>
 
 <p>
@@ -344,7 +344,7 @@ Vary.g = 0.002; Vary.lw = 0.4;
 FitOpt.Scaling = 'maxabs';
 
 % start fitting
-esfit('pepper',y,Sys,Vary,Exp,[],FitOpt);
+esfit(@pepper,y,Sys,Vary,Exp,[],FitOpt);
 </pre>
 
 <p>
@@ -371,11 +371,11 @@ Alternatively, you can write code that does two- or multistage fitting. Let's lo
 <pre class="matlab">
 % first stage: genetic algorithm
 FitOpt.Method = 'genetic fcn';
-Sys1 = esfit('pepper',y,Sys0,Vary,Exp,[],FitOpt);
+Sys1 = esfit(@pepper,y,Sys0,Vary,Exp,[],FitOpt);
 
 % second stage: Levenberg/Marquardt
 FitOpt.Method = 'levmar int';
-Sys2 = esfit('pepper',y,Sys1,Vary,Exp,[],FitOpt)
+Sys2 = esfit(@pepper,y,Sys1,Vary,Exp,[],FitOpt)
 </pre>
 
 <p>
@@ -419,7 +419,7 @@ So far we have looked at the fitting of a spectrum with a single spectral compon
 </p>
 
 <pre class="matlab">
-esfit('pepper',spc,{Sys1,Sys2},{Vary1,Vary2},Exp,SimOpt,FitOpt);
+esfit(@pepper,spc,{Sys1,Sys2},{Vary1,Vary2},Exp,SimOpt,FitOpt);
 </pre>
 
 Each spin system (<code>Sys1</code> and <code>Sys2</code>) contains the magnetic parameters, and the corresponding variation structure (<code>Vary1</code> for <code>Sys1</code>, and <code>Vary2</code> for <code>Sys2</code>) contains the parameters to be varied.
@@ -473,7 +473,7 @@ With this function, <code>esfit</code> should be called in the following way (as
 Sys.A = [2 3 5];
 Sys.lwpp = 0.1;
 Vary.A = [1 1 3];
-esfit('mymy',data,Sys,Vary,Exp);
+esfit(@mymy,data,Sys,Vary,Exp);
 </pre>
 
 <p>
@@ -491,7 +491,7 @@ and call it as follows:
 <pre class="matlab">
 Sys.mwPhase = 0;
 Vary.mwPhase = 20*pi/180;    % 20 degrees
-esfit('mymy',data,Sys,Vary,Exp);
+esfit(@mymy,data,Sys,Vary,Exp);
 </pre>
 
 <p>
