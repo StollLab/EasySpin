@@ -4,21 +4,22 @@
 %   ynew = rescale(y,yref,mode2)
 %   [ynew, scalefactors] = rescale(...)
 %
-%   Shifts and rescales the data vector y. If given, ynew serves
-%   as the reference. The rescaled y is returned in ynew.
+%   Shifts and rescales the data vector y. If given, yref serves
+%   as the reference. The rescaled y is returned in ynew. scalefactors
+%   includes a list of scale factors that were applied to y to give ynew.
 %
-%   y and yref need to be 1D vectors.
+%   y and yref must be 1D vectors.
 %
 % Inputs:
 %   mode1:
-%     'minmax'  shifts and scales to minimum 0 and maximum 1
-%     'maxabs'  scales to maximum abs 1, no shift
+%     'minmax'  shifts and scales so that minimum is 0 and maximum is 1
+%     'maxabs'  scales such that maximum magnitude is 1, no shift
 %     'none'    no scaling
 %
 %   mode2:
-%     'minmax'  shifts&scales so that minimum and maximum of y
+%     'minmax'  shifts and scales so that minimum and maximum of ynew
 %               fit the minimum and maximum of yref
-%     'maxabs'  scales y so that maximum absolute values of y fits yref
+%     'maxabs'  scales y so that maximum absolute values of ynew fits yref
 %     'lsq'     least-squares fit of a*y to yref
 %     'lsq0'    least-squares fit of a*y+b to yref
 %     'lsq1'    least-squares fit of a*y+b+c*x to yref
@@ -26,8 +27,7 @@
 %     'lsq3'    least-squares fit of a*y+b+c*x+d*x^2+e*x^3 to yref
 %     'none'    no scaling
 %
-%   Positive scaling is enforced, i.e. no inverting 
-%   of the rescaled data  
+%   Positive scaling is enforced, i.e. the rescaled data is never inverted.
 %
 % Output:
 %   ynew          the new rescaled y vector
@@ -35,7 +35,7 @@
 
 function varargout = rescale(varargin)
 
-switch (nargin)
+switch nargin
   case 0
     help(mfilename);
     return
@@ -59,16 +59,21 @@ switch (nargin)
 end    
 
 % Make sure y is a vector
-N = numel(y);
-if (length(y)~=N)
+if ~isvector(y)
   error('y must be a row or column vector. rescale() does not work on 2D arrays.');
 end
 isRowVector = size(y,1)==1;
 
 % Make sure yref is a vector
-if (length(yref)~=numel(yref))
-  error('yref must be a row or column vector. rescale() does not work on 2D arrays.');
+if ~isempty(yref) && ~isvector(yref)
+  if isnumeric(yref)
+    error('yref must be a row or column vector.');
+  else
+    error('Second input of three must be the reference vector.');
+  end
 end
+
+N = numel(y);
 
 if isempty(yref)
   
@@ -87,10 +92,9 @@ if isempty(yref)
       mi = 0;
       ma = 1;
       scalefactor(1) = (ma-mi)/(max(y)-min(y));
-      scalefactor(2) = mi -(ma-mi)/(max(y)-min(y))*min(y);
+      scalefactor(2) = mi - scalefactor(1)*min(y);
       D = [y ones(N,1)];
       ynew = D*scalefactor.';
-      %ynew = mi + (ma-mi)/(max(y)-min(y))*(y-min(y));
     case 2 % maxabs
       scalefactor = 1/max(abs(y));
       ynew = y*scalefactor;
@@ -159,10 +163,13 @@ else
       ynew = y;
       scalefactor = 1;
   end
+  
+  % Make sure signal is not inverted
   if real(scalefactor(1))<0 && ModeID>3
     scalefactor(1) = abs(scalefactor(1));
     ynew = D*scalefactor;
   end
+  
 end
 
 % Preserve row layout
