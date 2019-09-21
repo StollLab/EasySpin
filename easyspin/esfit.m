@@ -366,8 +366,6 @@ if FitData.GUI
     data{p,6} = sprintf('%0.6g',upper);
   end
   x0 = 660; y0 = 400; dx = 80;
-  % uitable was introduced in R2008a, undocumented in
-  % R2007b, where property 'Tag' doesn't work
   uitable('Tag','ParameterTable',...
     'FontSize',8,...
     'Position',[x0 y0 330 150],...
@@ -639,9 +637,9 @@ switch FitOpts.Startpoint
   case 2 % random
     startx = 2*rand(FitData.nParameters,1) - 1;
     startx(FitData.inactiveParams) = 0;
-  case 3 % selected fit set
+  case 3 % selected parameter set
     h = findobj('Tag','SetListBox');
-    s = h.String';
+    s = h.String;
     if ~isempty(s)
       s = s{h.Value};
       ID = sscanf(s,'%d');
@@ -649,7 +647,7 @@ switch FitOpts.Startpoint
       if ~isempty(idx)
         startx = FitData.FitSets(idx).bestx;
       else
-        error('Could not find selectet fit set.');
+        error('Could not locate selected parameter set.');
       end
     else
       startx = zeros(FitData.nParameters,1);
@@ -659,7 +657,6 @@ FitData.startx = startx;
 
 x0_ = startx;
 x0_(FitData.inactiveParams) = [];
-nParameters_ = numel(x0_);
 
 bestx = startx;
 if strcmp(FitOpts.Scaling, 'none')
@@ -670,7 +667,8 @@ end
 
 funArgs = {fitspc,FitData,FitOpts};  % input args for assess and residuals_
 
-if (nParameters_>0)
+nParameters_ = numel(x0_);
+if nParameters_>0
   switch FitOpts.MethodID
     case 1 % Nelder/Mead simplex
       bestx0_ = esfit_simplex(@assess,x0_,FitOpts,funArgs{:});

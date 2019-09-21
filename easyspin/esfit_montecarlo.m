@@ -9,8 +9,6 @@ if ~isfield(FitOpt,'IterationPrintFunction') || ...
   FitOpt.IterationPrintFunction = @iterationprint;
 end
 
-logPrint = FitOpt.PrintLevel;
-
 global UserCommand
 if isempty(UserCommand), UserCommand = NaN; end
 
