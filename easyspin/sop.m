@@ -264,8 +264,8 @@ else
       end
     end
     
-    if (any(SpinVec(Coords=='a')~=1/2)) || ...
-       (any(SpinVec(Coords=='b')~=1/2))
+    if any(SpinVec(Coords=='a')~=1/2) || ...
+       any(SpinVec(Coords=='b')~=1/2)
       error('''a'' and ''b'' work only for spin-1/2.');
     end
     
@@ -277,16 +277,13 @@ Components = repmat('e',1,nSpins);
 % Assign specified components for specified spins
 Components(Spins) = Coords;
 
-% The starting null-spin space is one-dimensional
-ia = 1; % 1st (column) index
-ja = 1; % 2nd (row) index
-sa = 1; % value
-na = 1; % dimension
+% Set starting operator matrix
+OperatorMatrix = sparse(1);
 
 % Run over all spins
 for iSpin = 1:nSpins
   I = SpinVec(iSpin);
-  if (I<=0), continue; end
+  if I<=0, continue; end
   
   n = 2*I+1;
   
@@ -298,110 +295,88 @@ for iSpin = 1:nSpins
   switch Components(iSpin)
     case {'x',1} % x component
       if TselectiveOp
-        ib = [Transitions{iSpin}(1); Transitions{iSpin}(2)];
-        jb = [Transitions{iSpin}(2); Transitions{iSpin}(1)];
-        sb = [0.5; 0.5];
+        r = [Transitions{iSpin}(1); Transitions{iSpin}(2)];
+        c = [Transitions{iSpin}(2); Transitions{iSpin}(1)];
+        val = [0.5; 0.5];
       else
-        m = (1:n-1).';
-        ib = [m; m+1];
-        jb = [m+1; m];
-        Dia = 1/2*sqrt(m.*m(end:-1:1));
-        sb = [Dia; Dia];
+        m = 1:n-1;
+        r = [m; m+1];
+        c = [m+1; m];
+        dia = 1/2*sqrt(m.*m(end:-1:1));
+        val = [dia; dia];
       end
     case {'y',2} % y component
       if TselectiveOp
-        ib = [Transitions{iSpin}(1); Transitions{iSpin}(2)];
-        jb = [Transitions{iSpin}(2); Transitions{iSpin}(1)];
-        sb = [-0.5i; 0.5i];
+        r = [Transitions{iSpin}(1); Transitions{iSpin}(2)];
+        c = [Transitions{iSpin}(2); Transitions{iSpin}(1)];
+        val = [-0.5i; 0.5i];
       else
-        m = (1:n-1).';
-        Dia = -0.5i*sqrt(m.*m(end:-1:1));
-        ib = [m; m+1];
-        jb = [m+1; m];
-        sb = [Dia; -Dia];
+        m = 1:n-1;
+        dia = -0.5i*sqrt(m.*m(end:-1:1));
+        r = [m; m+1];
+        c = [m+1; m];
+        val = [dia; -dia];
       end
     case {'z',3} % z component
       if TselectiveOp
-        ib = [Transitions{iSpin}(1); Transitions{iSpin}(2)];
-        jb = [Transitions{iSpin}(1); Transitions{iSpin}(2)];
-        sb = [0.5; -0.5];
+        r = [Transitions{iSpin}(1); Transitions{iSpin}(2)];
+        c = [Transitions{iSpin}(1); Transitions{iSpin}(2)];
+        val = [0.5; -0.5];
       else
-        m = (1:n).';
-        ib = m;
-        jb = m;
-        sb = I+1-m;
+        m = 1:n;
+        r = m;
+        c = m;
+        val = I+1-m;
       end
     case {'+',4} % up shift
       if TselectiveOp
-        ib = Transitions{iSpin}(1);
-        jb = Transitions{iSpin}(2);
-        sb = 1;
+        r = Transitions{iSpin}(1);
+        c = Transitions{iSpin}(2);
+        val = 1;
       else
-        m = (1:n-1).';
-        ib = m;
-        jb = m+1;
-        sb = sqrt(m.*m(end:-1:1));
+        m = 1:n-1;
+        r = m;
+        c = m+1;
+        val = sqrt(m.*m(end:-1:1));
       end
     case {'-',5} % down shift
       if TselectiveOp
-        ib = Transitions{iSpin}(2);
-        jb = Transitions{iSpin}(1);
-        sb = 1;
+        r = Transitions{iSpin}(2);
+        c = Transitions{iSpin}(1);
+        val = 1;
       else
-        m = (1:n-1).';
-        ib = m+1;
-        jb = m;
-        sb = sqrt(m.*m(end:-1:1));
+        m = 1:n-1;
+        r = m+1;
+        c = m;
+        val = sqrt(m.*m(end:-1:1));
       end
     case 'a' % alpha, for spin-1/2 only
-      ib = 1;
-      jb = 1;
-      sb = 1;
+      r = 1;
+      c = 1;
+      val = 1;
     case 'b' % beta, for spin-1/2 only
-      ib = 2;
-      jb = 2;
-      sb = 1;
+      r = 2;
+      c = 2;
+      val = 1;
     case {'e',0} % identity
       if TselectiveOp
-        ib = Transitions{iSpin}(1);
-        jb = Transitions{iSpin}(1);
-        sb = 1;
+        r = Transitions{iSpin}(1);
+        c = Transitions{iSpin}(1);
+        val = 1;
       else
-        m = (1:n).';
-        ib = m;
-        jb = m;
-        sb = ones(n,1);
+        m = 1:n;
+        r = m;
+        c = m;
+        val = ones(n,1);
       end
     otherwise
       error('Unknown operator specification.');
   end
   
-  % Kronecker product in sparse form operates only on values and indices.
-  %-----------------------------------------------------------------------------
-  % expansion vectors for new indices and values
-  ka = ones(size(sa));
-  kb = ones(size(sb));
+  M_ = sparse(r,c,val,n,n);
+  OperatorMatrix = kron(OperatorMatrix,M_);
   
-  % new column indices
-  t = n*(ia-1).';
-  ia = t(kb,:) + ib(:,ka);
-  ia = ia(:);
-  
-  % new row indices
-  t = n*(ja-1).';
-  ja = t(kb,:) + jb(:,ka);
-  ja = ja(:);
-  
-  % new values
-  sa = sb*sa.';
-  sa = sa(:);
-  
-  % new dimension
-  na = na*n;
 end
-
-% construct sparse matrix
-OperatorMatrix = sparse(ia,ja,sa,na,na);
 
 % Convert sparse to full matrix if required
 if ~sparseOutput
