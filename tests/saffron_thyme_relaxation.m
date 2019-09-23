@@ -37,15 +37,16 @@ data.y = y;
 
 if (opt.Display)
   if ~isempty(olddata)
-    subplot(3,1,[1 2]);
-    plot(x,real(y),'r',x,real(olddata.y),'b');
+    h1 = subplot(3,1,[1 2]);
+    plot(x,real(y),x,real(olddata.y));
     axis tight
     legend('new','old');
     title(mfilename);
-    subplot(3,1,3);
+    h2 = subplot(3,1,3);
     plot(x,real(olddata.y-y));
     axis tight
     xlabel('time [us]');
+    linkaxes([h1 h2],'x')
   end
 end
 
