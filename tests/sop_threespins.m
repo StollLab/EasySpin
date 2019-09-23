@@ -18,7 +18,7 @@ Op{4} = sop(s,'x3y1');
 myOp{4} = kron3(s,'y','e','x');
 
 for k = 1:numel(Op)
-  ok(k) = areequal(Op{k},myOp{k},1e-10);
+  ok(k) = areequal(Op{k},myOp{k},1e-10,'abs');
 end
 
 err = any(~ok);

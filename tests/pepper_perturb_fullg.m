@@ -19,5 +19,5 @@ if opt.Display
   plot(x0,y0,x1,y1,x2,y2);
 end
 
-err = ~areequal(y0,y1,5e-3) || ~areequal(y0,y2,5e-3);
+err = ~areequal(y0,y1,5e-3,'abs') || ~areequal(y0,y2,5e-3,'abs');
 data = [];

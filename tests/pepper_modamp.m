@@ -12,8 +12,7 @@ data.x = x;
 data.y = y;
 
 if ~isempty(olddata)
-  delta = 1e-6*max(abs(olddata.y));
-  err = ~areequal(y,olddata.y,delta);
+  err = ~areequal(y,olddata.y,1e-6,'rel');
 else
   err = [];
 end

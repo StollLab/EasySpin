@@ -47,5 +47,5 @@ if opt.Display
   legend('residuals');
 end
 
-err = ~areequal(y_both,y1+y2,1e-5*max(y_both));
+err = ~areequal(y_both,y1+y2,1e-5*max(y_both),'abs');
 data = [];

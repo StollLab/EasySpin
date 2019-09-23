@@ -26,6 +26,6 @@ pop = pop/sum(pop);
 [E0,idx] = sort(E0);
 pop = pop(idx);
 
-err = ~areequal(weights,pop,1e-10);
+err = ~areequal(weights,pop,1e-10,'abs');
 
 data = [];

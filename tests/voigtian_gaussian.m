@@ -11,6 +11,6 @@ fwhm = [0.1 0];
 y1 = voigtian(x,x0,fwhm);
 y2 = gaussian(x,x0,fwhm(1));
 
-err = ~areequal(y1,y2,1e-8);
+err = ~areequal(y1,y2,1e-8,'abs');
 
 data = [];

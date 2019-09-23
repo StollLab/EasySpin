@@ -23,7 +23,7 @@ if opt.Display
 end
 
 if ~isempty(olddata)
-  ok = areequal(data.chi_SI,olddata.chi_SI,max(data.chi_SI)*1e-3);
+  ok = areequal(data.chi_SI,olddata.chi_SI,max(data.chi_SI)*1e-3,'abs');
   err = ~ok;
 else
   err = [];

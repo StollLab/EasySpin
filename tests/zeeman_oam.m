@@ -21,5 +21,5 @@ end
 H1 = zfield(PureSpin);
 H2 = crystalfield(Sys);
 
-err = ~areequal(H1,H2,1e-10);
+err = ~areequal(H1,H2,1e-10,'abs');
 data = [];

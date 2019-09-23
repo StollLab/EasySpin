@@ -17,7 +17,7 @@ Options.Method = 'td';
 Options.Method = 'fft';
 [t2,My2] = blochsteady(g,T1,T2,deltaB0,B1,Bm,fm,Options);
 
-err = ~areequal(My1,My2,1e-10);
+err = ~areequal(My1,My2,1e-10,'abs');
 data = [];
 
 if (opt.Display)

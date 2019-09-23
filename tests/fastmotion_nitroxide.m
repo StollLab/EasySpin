@@ -19,7 +19,7 @@ if ~isempty(olddata)
     lw
     olddata.lw
   end
-  ok = areequal(lw,olddata.lw,1e-4) & areequal(mI,olddata.mI);
+  ok = areequal(lw,olddata.lw,1e-4,'rel') & areequal(mI,olddata.mI);
   err = ~ok;
 else
   err = [];

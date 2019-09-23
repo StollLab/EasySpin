@@ -13,6 +13,4 @@ Sys.g = diag(g);
 [x2,y2] = chili(Sys,Exp);
 
 data = [];
-err = ~areequal(y1,y2,1e-2);
-
-
+err = ~areequal(y1,y2,1e-2,'abs');

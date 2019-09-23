@@ -8,5 +8,5 @@ tx = (0:N-1)*dT;
 fx1 = fdaxis(dT,N);
 fx2 = fdaxis(tx);
 fx3 = fdaxis(tx + rand);
-err = ~areequal(fx1,fx2);
+err = ~areequal(fx1,fx2,1e-10,'abs');
 data = [];

@@ -8,7 +8,7 @@ rho = 2*pi/3;
 R = rotaxi2mat(n,rho);
 z = [0;0;1];
 y = [0;1;0];
-ok = areequal(R*z,y,1e-7);
+ok = areequal(R*z,y,1e-7,'abs');
 
 err = any(~ok);
 data = [];

@@ -9,8 +9,7 @@ data.x = x;
 data.y = y;
 
 if ~isempty(olddata)
-  maxy = max(abs(y));
-  err = ~areequal(x,olddata.x) | ~areequal(y,olddata.y,maxy*1e-4);
+  err = ~areequal(x,olddata.x,1e-10,'rel') || ~areequal(y,olddata.y,1e-4,'rel');
 else
   err = [];
 end

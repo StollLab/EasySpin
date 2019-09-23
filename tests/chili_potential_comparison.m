@@ -24,7 +24,7 @@ for p = 1:4
   Opt.LiouvMethod = 'general';
   [B,y2] = chili(Sys,Exp,Opt);
   
-  err(p) = ~areequal(y1,y2,1e-6*max(abs(y1)));
+  err(p) = ~areequal(y1,y2,1e-6,'rel');
   
   if opt.Display
     subplot(4,1,p);

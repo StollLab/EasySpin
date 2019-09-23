@@ -17,7 +17,7 @@ Opt.Rescale = true;
 Opt.Rescale = false;
 [x,y2] = chili(Sys,Exp,Opt);
 
-err = ~areequal(y1,y2,1e-10*max(y1));
+err = ~areequal(y1,y2,1e-10,'rel');
 data = [];
 
 if opt.Display

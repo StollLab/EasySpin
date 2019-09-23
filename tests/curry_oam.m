@@ -46,5 +46,6 @@ Exp.Field = rand(1,50)*100;
 [m1,chi1] = curry(Sys,Exp);
 [m2,chi2] = curry(PureSpin,Exp);
 
-err = ~((areequal(m1,m2)+areequal(chi1,chi2))==2);
+thr = 1e-6;
+err = ~areequal(m1,m2,thr,'rel') || ~areequal(chi1,chi2,thr,'rel');
 data = [];

@@ -19,7 +19,7 @@ for k=1:10
   Exp.Mode = [0 -a];
   [dum,i1] = resfreqs_matrix(Sys,Exp,Opt);
   
-  err1(k) = ~areequal(i0,i1,1e-8);
+  err1(k) = ~areequal(i0,i1,1e-8,'abs');
 end
 
 err = any(err1);

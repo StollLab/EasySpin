@@ -10,7 +10,7 @@ for k = 1:size(Angles,1)
   R1 = erot(Angles(k,:));
   [n,phi] = rotmat2axi(R1);
   R2 = rotaxi2mat(n,phi);
-  ok(k) = areequal(R1,R2,1e-8);
+  ok(k) = areequal(R1,R2,1e-8,'abs');
 end
 
 err = any(~ok);

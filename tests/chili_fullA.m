@@ -28,4 +28,4 @@ Sys.A = diag(A);
 
 data = [];
 thr = 1e-3;
-err = ~areequal(y1,y2,thr) || ~areequal(y1,y3,thr) || ~areequal(y1,y4,thr);
+err = ~areequal(y1,y2,thr,'abs') || ~areequal(y1,y3,thr,'abs') || ~areequal(y1,y4,thr,'abs');

@@ -21,5 +21,5 @@ for k = 1:numel(x0)
   z2 = z2 + amp(k)*gaussian(x,x0(k),w);
 end
 
-err =  ~all(size(z1)==size(z2)) || ~areequal(z1,z2);
+err =  ~all(size(z1)==size(z2)) || ~areequal(z1,z2,1e-10,'rel');
 data = [];

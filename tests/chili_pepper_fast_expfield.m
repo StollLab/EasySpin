@@ -32,6 +32,6 @@ if opt.Display
   title('unscaled');
 end
 
-err = ~areequal(y1/max(y1),y2/max(y2),0.02);
+err = ~areequal(y1/max(y1),y2/max(y2),0.02,'abs');
 
 data = [];

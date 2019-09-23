@@ -36,6 +36,6 @@ data.y = y;
 if isempty(olddata)
   err = [];
 else
-  ok = areequal(olddata.y,y);
+  ok = areequal(olddata.y,y,1e-10,'rel');
   err = ~ok;
 end

@@ -30,4 +30,4 @@ end
 
 data = [];
 
-err = (size(y1,1)~=1) | (size(y2,1)~=4) | ~areequal(y1/max(y1),sum(y2)/max(y1),1e-4);
+err = (size(y1,1)~=1) | (size(y2,1)~=4) | ~areequal(y1/max(y1),sum(y2)/max(y1),1e-4,'abs');

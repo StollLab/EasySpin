@@ -31,8 +31,8 @@ test2 = spidyan(Sys,Exp_);
 
 
 %% Comparison
-if any([~areequal(reference,-squeeze(test1(1,:,:)),1e-4) ...
-    ~areequal(reference,-test2{2},1e-4)])
+if any([~areequal(reference,-squeeze(test1(1,:,:)),1e-4,'abs') ...
+    ~areequal(reference,-test2{2},1e-4,'abs')])
   err = true;
 else
   err = false;

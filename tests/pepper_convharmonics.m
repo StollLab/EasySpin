@@ -8,7 +8,7 @@ Exp.mwFreq = 9.5;
 
 lwppG = 0.1; lwppL = 0.1;
 
-isfirstharmonic = @(s)areequal(max(s),-min(s),1e-3);
+isfirstharmonic = @(s)areequal(max(s),-min(s),1e-3,'abs');
 
 % Gaussian only
 Sys.lwpp = lwppG;

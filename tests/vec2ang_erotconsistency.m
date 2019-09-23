@@ -11,5 +11,5 @@ for k=1:N
   R = erot(phi(k),theta(k),0);
   [p(k),t(k)] = vec2ang(R(3,:).');
 end
-err = ~areequal(phi,p) | ~areequal(theta,t);
+err = ~areequal(phi,p,1e-12,'abs') || ~areequal(theta,t,1e-12,'abs');
 data = [];

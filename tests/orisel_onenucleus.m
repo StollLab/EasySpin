@@ -12,7 +12,7 @@ w = orisel(Sys,Exp,Opt);
 data.w = w;
 
 if ~isempty(olddata)
-  err = ~areequal(olddata.w/max(olddata.w),w/max(w),1e-5);
+  err = ~areequal(olddata.w/max(olddata.w),w/max(w),1e-5,'abs');
 else
   err = [];
 end

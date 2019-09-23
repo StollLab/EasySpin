@@ -13,7 +13,7 @@ for k = 1:numel(Sys)
   op = repmat('x',1,numel(Spins));
   Op1 = sop(Sys{k},op);
   Op2 = sop(Spins,op);
-  ok(k) = areequal(Op1,Op2,1e-12);
+  ok(k) = areequal(Op1,Op2,1e-12,'abs');
 end
 
 err = ~ok;

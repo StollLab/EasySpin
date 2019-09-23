@@ -11,5 +11,5 @@ lw = fastmotion(Sys,Field,tcorr);
 
 lw_correct = 0.41832353;
 
-err = ~areequal(lw,lw_correct,1e-5);
+err = ~areequal(lw,lw_correct,1e-5,'rel');
 data = [];

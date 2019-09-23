@@ -13,6 +13,6 @@ Sys.ee = J;
 S  = abs(S1-S2):S1+S2;
 E0 = J/2*(S.*(S+1)-S1*(S1+1)-S2*(S2+1));
 
-err = ~areequal(E,E0,J*1e-10);
+err = ~areequal(E,E0,J*1e-10,'abs');
 
 data = [];

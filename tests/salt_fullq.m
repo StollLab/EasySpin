@@ -40,6 +40,6 @@ if opt.Display
   legend boxoff
 end
 
-err = ~areequal(y1/max(y1),y2/max(y2),1e-3);
+err = ~areequal(y1/max(y1),y2/max(y2),1e-3,'rel');
 
 data = [];

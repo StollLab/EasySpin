@@ -33,6 +33,6 @@ data.b = b;
 if isempty(olddata)
   err = [];
 else
-  ok = areequal(olddata.b/max(olddata.b(:)),b/max(b(:)),1e-6);
+  ok = areequal(olddata.b/max(olddata.b(:)),b/max(b(:)),1e-6,'abs');
   err = ~ok;
 end

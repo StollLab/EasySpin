@@ -33,5 +33,5 @@ if (opt.Display)
   xlabel('magnetic field (mT)');
 end
 
-err = ~areequal(y1,y2,max(y2)*0.001);
+err = ~areequal(y1,y2,1e-3,'rel');
 data = [];

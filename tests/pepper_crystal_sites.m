@@ -27,5 +27,5 @@ if opt.Display
   legend('all sites at once','each site separately');
 end
 
-err = ~areequal(y0,y1);
+err = ~areequal(y0,y1,1e-10,'rel');
 data = [];

@@ -15,7 +15,7 @@ yf = ewrls(dataarray,p,lambda,0,delta,'f');
 yb = ewrls(dataarray(end:-1:1,:),p,lambda,0,delta,'b');
 yb = yb(end:-1:1);
 
-err = ~areequal(yf,yb,1e-7);
+err = ~areequal(yf,yb,1e-7,'rel');
 
 if opt.Display
   subplot(2,1,1);

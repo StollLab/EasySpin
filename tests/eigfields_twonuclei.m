@@ -23,7 +23,7 @@ end
 
 if ~isempty(olddata)
   thr = 1e-4;
-  err = ~areequal(olddata.B,B,thr) | ~areequal(olddata.A,A,thr);
+  err = ~areequal(olddata.B,B,thr,'rel') | ~areequal(olddata.A,A,thr,'rel');
 else
   err = [];
 end

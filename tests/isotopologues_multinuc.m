@@ -13,7 +13,7 @@ ab0 = [a11^2*a21^2, a11^2*a21*a22*2, 2*a11^2*a22, 2*a11*a12*a21^2, ...
   4*a11*a12*a21*a22, 2*a11*a12*a22^2, a12^2*a21^2, 2*a12^2*a21*a22, a12^2*a22^2];
 
 Iso = isotopologues(Sys,0);
-err = areequal(ab0,[Iso.weight],1e-7);
+err = areequal(ab0,[Iso.weight],1e-7,'abs');
 
 data = [];
 

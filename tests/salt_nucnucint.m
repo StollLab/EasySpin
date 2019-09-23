@@ -27,7 +27,7 @@ data.nu = nu;
 data.spc = spc;
 
 if ~isempty(olddata)
-  err = ~areequal(olddata.spc,spc,1e-5);
+  err = ~areequal(olddata.spc,spc,1e-5,'abs');
 else
   err = [];
 end

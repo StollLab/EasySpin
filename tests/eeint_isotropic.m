@@ -14,7 +14,7 @@ Sys2.ee = ee(:)*[1 1 1];
 H1 = eeint(Sys1);
 H2 = eeint(Sys2);
 
-ok = areequal(H1,H2);
+ok = areequal(H1,H2,1e-10,'abs');
 err = ~ok;
 
 data = [];

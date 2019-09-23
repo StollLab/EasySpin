@@ -40,8 +40,8 @@ Exp.DetSequence = [1 1];
 data.signalcomplex = signalcomplex;
 
 if ~isempty(olddata)
-  err = [~areequal(out1.FinalState,out2.FinalState,1e-4) ...
-    ~areequal(signalcomplex,olddata.signalcomplex,1e-4)];
+  err = [~areequal(out1.FinalState,out2.FinalState,1e-4,'abs') ...
+    ~areequal(signalcomplex,olddata.signalcomplex,1e-4,'abs')];
 else
   err = [];
 end

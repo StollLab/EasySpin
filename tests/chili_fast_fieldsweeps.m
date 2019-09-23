@@ -31,6 +31,6 @@ if opt.Display
   title('scaled');
 end
 
-err = ~areequal(y1/max(y1),y2/max(y2),1e-3);
+err = ~areequal(y1/max(y1),y2/max(y2),1e-3,'abs');
 
 data = [];

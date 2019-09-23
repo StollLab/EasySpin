@@ -47,12 +47,13 @@ for k = 1:2
   
 end
 
-suberr(1) = ~areequal(Mx(1,:),M1(1,:),1e-12);
-suberr(2) = ~areequal(Mx(2,:),M2(1,:),1e-12);
-suberr(3) = ~areequal(My(1,:),M1(2,:),1e-12);
-suberr(4) = ~areequal(My(2,:),M2(2,:),1e-12);
-suberr(5) = ~areequal(Mz(1,:),M1(3,:),1e-12);
-suberr(6) = ~areequal(Mz(2,:),M2(3,:),1e-12);
+thr = 1e-12;
+suberr(1) = ~areequal(Mx(1,:),M1(1,:),thr,'rel');
+suberr(2) = ~areequal(Mx(2,:),M2(1,:),thr,'rel');
+suberr(3) = ~areequal(My(1,:),M1(2,:),thr,'rel');
+suberr(4) = ~areequal(My(2,:),M2(2,:),thr,'rel');
+suberr(5) = ~areequal(Mz(1,:),M1(3,:),thr,'rel');
+suberr(6) = ~areequal(Mz(2,:),M2(3,:),thr,'rel');
 
 err(1) = any(suberr);
 
@@ -97,7 +98,7 @@ for i = 1:numel(offsets)
   
 end
   
-err(2) = ~areequal(Mz,Mag(3,:),0.5e-1);
+err(2) = ~areequal(Mz,Mag(3,:),5e-2,'rel');
 
 % 1st order sech/tanh with frequency offset
 clear Params Mx My Mz
@@ -150,7 +151,7 @@ for i = 1:numel(offsets)
   
 end
 
-err(3) = ~areequal(Mz,Mag(3,:),1e-3);
+err(3) = ~areequal(Mz,Mag(3,:),1e-3,'rel');
 
 err = any(err);
 

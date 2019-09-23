@@ -23,7 +23,7 @@ Exp.CrystalOrientation = ori2;
 spc2 = pepper(Sys,Exp,Opt);
 
 ok(1) = size(spc3,1)==2;
-ok(2) = areequal([spc1;spc2],spc3,1e-10);
+ok(2) = areequal([spc1;spc2],spc3,1e-10,'abs');
 
 if opt.Display
   plot(B,spc3-[spc1;spc2]);

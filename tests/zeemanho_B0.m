@@ -42,7 +42,7 @@ H = zfield(Sys2);
 
 % test
 threshold = 1e-6;
-err = ~areequal(H,Hz,threshold);
+err = ~areequal(H,Hz,threshold,'abs');
 data =[];
 
 

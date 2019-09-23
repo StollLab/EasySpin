@@ -21,7 +21,7 @@ if ~isempty(olddata)
     legend boxoff
     title(sprintf('MAD = %g',max(abs(data.y/max(data.y)-olddata.y/max(olddata.y)))));
   end
-  ok = areequal(data.y/max(data.y),olddata.y/max(olddata.y),5e-4);
+  ok = areequal(data.y/max(data.y),olddata.y/max(olddata.y),5e-4,'abs');
   err = ~ok;
 else
   err = [];

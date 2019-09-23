@@ -22,7 +22,7 @@ data.ProcessedSignal2 = ProcessedSignal2;
 
 
 if ~isempty(olddata)
-  err = [~isequal(ProcessedSignal1,ProcessedSignal1_) ~areequal(ProcessedSignal1,olddata.ProcessedSignal1,1e-4) ~areequal(ProcessedSignal2,olddata.ProcessedSignal2,1e-4)];
+  err = [~isequal(ProcessedSignal1,ProcessedSignal1_) ~areequal(ProcessedSignal1,olddata.ProcessedSignal1,1e-4,'abs') ~areequal(ProcessedSignal2,olddata.ProcessedSignal2,1e-4,'abs')];
 else
   err = [];
 end

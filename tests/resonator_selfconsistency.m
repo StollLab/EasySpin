@@ -26,7 +26,7 @@ x0 = 0;
 x = fminsearch(fitfunc,x0);
 IQtest = interp1(ttest+x,IQtest,tpulse,'spline',0);
 
-suberr(1) = ~areequal(IQtest(2:end-1),IQ(2:end-1),0.01*max(IQ));
+suberr(1) = ~areequal(IQtest(2:end-1),IQ(2:end-1),0.01*max(IQ),'abs');
 
 
 % Rectangular pulse shifted from resonator center
@@ -54,7 +54,7 @@ x0 = 0;
 x = fminsearch(fitfunc,x0);
 IQtest = interp1(ttest+x,IQtest,tpulse,'spline',0);
 
-suberr(2) = ~areequal(IQtest(2:end-1),IQ(2:end-1),0.01*max(IQ));
+suberr(2) = ~areequal(IQtest(2:end-1),IQ(2:end-1),0.01*max(IQ),'abs');
 
 
 % Gaussian pulse off resonance
@@ -83,7 +83,7 @@ x0 = 0;
 x = fminsearch(fitfunc,x0);
 IQtest = interp1(ttest+x,IQtest,tpulse,'spline',0);
 
-suberr(3) = ~areequal(IQtest,IQ,0.01*max(IQ));
+suberr(3) = ~areequal(IQtest,IQ,0.01*max(IQ),'abs');
 
 % Sech/tanh pulse shifted from resonator frequency
 %--------------------------------------------------------------------------
@@ -113,7 +113,7 @@ x0 = 0;
 x = fminsearch(fitfunc,x0);
 IQtest = interp1(ttest+x,IQtest,tpulse,'spline');
 
-suberr(4) = ~areequal(IQtest,IQ,0.01*max(IQ));
+suberr(4) = ~areequal(IQtest,IQ,0.01*max(IQ),'abs');
 
 err = any(suberr);
 

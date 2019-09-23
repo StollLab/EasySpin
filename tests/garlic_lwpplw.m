@@ -12,6 +12,6 @@ Sys.lw = [lwG lwL]; Sys.lwpp = [0 0];
 Sys.lw = [0 0]; Sys.lwpp = [lwG/sqrt(2*log(2)), lwL/sqrt(3)];
 [x2,y2] = garlic(Sys,Exp);
 
-err = ~areequal(y1,y2);
+err = ~areequal(y1,y2,1e-10,'rel');
 
 data = [];

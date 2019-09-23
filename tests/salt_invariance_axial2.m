@@ -52,6 +52,6 @@ else
   rms = sqrt(mean(dy,2));
   ok = all(rms<0.01);
   % Regression test
-  ok = ok & areequal(olddata.y,y,1e-5);
+  ok = ok & areequal(olddata.y,y,1e-5,'abs');
   err = ~ok;
 end

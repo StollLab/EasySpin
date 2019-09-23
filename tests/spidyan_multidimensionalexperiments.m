@@ -46,9 +46,9 @@ data.t2 = t2;
 data.signal2 = signal2;
 
 if ~isempty(olddata)
-  err = ~areequal(signal1,olddata.signal1,1e-4);
+  err = ~areequal(signal1,olddata.signal1,1e-4,'abs');
   for i = 1 : length(signal2)
-    err(i+1) = ~areequal(signal2{i},olddata.signal2{i},1e-4);
+    err(i+1) = ~areequal(signal2{i},olddata.signal2{i},1e-4,'abs');
   end
 else
   err = [];

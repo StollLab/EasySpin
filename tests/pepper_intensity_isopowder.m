@@ -20,4 +20,4 @@ Int2 = Int2*(8*pi^2);
 
 data = [];
 
-err = ~areequal(Int,Int2,1e-4);
+err = ~areequal(Int,Int2,1e-4,'abs');

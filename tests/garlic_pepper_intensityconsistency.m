@@ -16,7 +16,7 @@ Exp.Harmonic = 0;
 
 maxyp = max(yp);
 
-ok = areequal(max(yg)/maxyp,1,1e-3);
+ok = areequal(max(yg)/maxyp,1,1e-3,'abs');
 
 err = ~ok;
 data = [];

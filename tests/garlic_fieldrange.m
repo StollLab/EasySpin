@@ -1,6 +1,6 @@
 function [err,data] = test(opt,olddata)
 
-% Correct behaviour of Exp.CenterField and Exp.Range
+% Correct behavior of Exp.CenterField and Exp.Range
 %-----------------------------------------------------
 
 Sys = struct('g',2,'Nucs','1H','lw',[0,0.01],'A',50);
@@ -17,6 +17,6 @@ Exp = struct('mwFreq',mw);
 Exp.Range = [min(x0) max(x0)];
 [x2,y2] = garlic(Sys,Exp);
 
-err = ~areequal(x0,x1) | ~areequal(x0,x2);
+err = ~areequal(x0,x1,1e-10,'rel') | ~areequal(x0,x2,1e-10,'rel');
 
 data = [];

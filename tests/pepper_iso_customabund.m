@@ -35,7 +35,7 @@ end
 data.y = y;
 
 if ~isempty(olddata)
-  err = ~areequal(y/max(y),olddata.y/max(olddata.y),1e-5);
+  err = ~areequal(y/max(y),olddata.y/max(olddata.y),1e-5,'abs');
 else
   err = [];
 end

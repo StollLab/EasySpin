@@ -16,7 +16,7 @@ Sys2.weight = 1.567;
 
 y_sum = y1 + y2 + y3;
 
-err = ~areequal(y,y_sum,max(abs(y))*1e-8);
+err = ~areequal(y,y_sum,1e-8,'rel');
 
 if (opt.Display)
   plot(x,y_sum,x,y,x,y_sum-y,'r');

@@ -27,6 +27,6 @@ end
 H1 = eeint(PureSpin);
 H2 = soint(Sys);
 
-err = ~areequal(H1,H2,1e-10);
+err = ~areequal(H1,H2,1e-10,'abs');
 data = [];
 

@@ -20,7 +20,7 @@ end
 if isempty(olddata)
   err = [];
 else
-  err = ~areequal(spec,olddata.spec,1e-10);
+  err = ~areequal(spec,olddata.spec,1e-10,'abs');
 end
 
 data.spec = spec;

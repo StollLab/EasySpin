@@ -22,6 +22,6 @@ if opt.Display
   title('Residuals');
 end
 
-err = ~areequal(yFit,yFit2,1e-10);
+err = ~areequal(yFit,yFit2,1e-10,'rel');
 
 data = [];

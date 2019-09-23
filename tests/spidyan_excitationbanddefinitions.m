@@ -38,11 +38,6 @@ Exp.Sequence = {Pulse 0.5 Pulse};
 
 [~, ~, out2] = spidyan(Sys,Exp);
 
-if ~areequal(out1.FinalState,out2.FinalState,1e-4)
-  err = 1;
-else
-  err = 0;
-end
+err = ~areequal(out1.FinalState,out2.FinalState,1e-4,'abs');
 
 data = [];
-

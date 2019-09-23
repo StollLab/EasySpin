@@ -19,7 +19,7 @@ Sys2.A = kron(aiso,[1 1 1]);
 H1 = hfine(Sys1);
 H2 = hfine(Sys2);
 
-ok = areequal(H1,H2);
+ok = areequal(H1,H2,1e-10,'rel');
 err = ~ok;
 
 data = [];

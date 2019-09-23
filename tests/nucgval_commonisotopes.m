@@ -12,5 +12,5 @@ if (opt.Display)
   ngn-gn
 end
 
-err = ~areequal(ngn,gn,1e-4);
+err = ~areequal(ngn,gn,1e-4,'rel');
 data = [];

@@ -22,6 +22,6 @@ if isempty(olddata)
 else
   idxp = ~isnan(p);
   idxi = ~isnan(i);  
-  ok = areequal(p(idxp),data.p(idxp),1e-4) & areequal(i(idxi),data.i(idxi),1e-4);
+  ok = areequal(p(idxp),data.p(idxp),1e-4,'abs') & areequal(i(idxi),data.i(idxi),1e-4,'abs');
   err = ~ok;
 end

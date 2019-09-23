@@ -25,7 +25,7 @@ if ~isempty(olddata)
     plot(xx,data.y,xx,olddata.y,'.');
     legend('new','old');
   end
-  ok = areequal(y,olddata.y,1e-4);
+  ok = areequal(y,olddata.y,1e-4,'abs');
   err = ~ok;
 else
   err = [];

@@ -24,7 +24,7 @@ data.y = y;
 
 % Check for consistency
 if ~isempty(olddata)
-  ok = areequal(y/max(y),olddata.y/max(olddata.y),1e-1);
+  ok = areequal(y/max(y),olddata.y/max(olddata.y),1e-1,'abs');
   err = ~ok;
 else
   err = [];

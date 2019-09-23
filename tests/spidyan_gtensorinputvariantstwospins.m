@@ -38,11 +38,7 @@ Sys.g = diag([gfree gfree gfree]);
 Sys.g = repmat(Sys.g, [2 1]);
 [~, signal4] = spidyan(Sys,Exp,Opt);
 
-if any([~isequal(signal1,signal2) ~isequal(signal1,signal3) ~isequal(signal1,signal4)])
-  err = 1;
-else
-  err = 0;
-end
+err = any([~isequal(signal1,signal2) ~isequal(signal1,signal3) ~isequal(signal1,signal4)]);
 
 data = [];
 

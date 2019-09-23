@@ -35,7 +35,7 @@ end
 
 if ~isempty(olddata)
   thr = 1e-5;
-  ok = areequal(olddata.chix,chix,thr) && areequal(olddata.chiz,chiz,thr);
+  ok = areequal(olddata.chix,chix,thr,'abs') && areequal(olddata.chiz,chiz,thr,'abs');
   err = ~ok;
 else
   err = [];

@@ -29,5 +29,5 @@ z2 = convspec(z2,1,[fwhmx 0]);
 z3 = convspec(data,1,[fwhmx 0]);
 z3 = convspec(z3,1,[0 fwhmy]);
 
-err =  ~areequal(z1,z2) || ~areequal(z1,z3);
+err =  ~areequal(z1,z2,1e-10,'rel') || ~areequal(z1,z3,1e-10,'rel');
 data = [];

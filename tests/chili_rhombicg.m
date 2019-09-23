@@ -27,6 +27,6 @@ Opt.LiouvMethod = 'general';
 y2 = rescale(y2,y1,'maxabs');
 
 data = [];
-err = ~areequal(y1,y2,1e-2);
+err = ~areequal(y1,y2,1e-2,'abs');
 
 

@@ -8,5 +8,5 @@ N = 532;
 fx1 = fdaxis(dT,N);
 fx2 = linspace(-N/2,N/2-1,N)*(1/N/dT);
 
-err = ~areequal(fx1,fx2);
+err = ~areequal(fx1,fx2,1e-10,'abs');
 data = [];

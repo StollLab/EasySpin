@@ -12,5 +12,5 @@ P1 = P1;
 
 P2 = stev(S,4,0);
 
-err = ~areequal(P1,P2);
+err = ~areequal(P1,P2,1e-10,'rel');
 data = [];

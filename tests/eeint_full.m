@@ -16,7 +16,7 @@ Sys2.ee = [diag(ee1);diag(ee2);diag(ee3)];
 H1 = eeint(Sys1);
 H2 = eeint(Sys2);
 
-ok = areequal(H1,H2);
+ok = areequal(H1,H2,1e-10,'abs');
 err = ~ok;
 
 data = [];

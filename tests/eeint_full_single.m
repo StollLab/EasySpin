@@ -20,7 +20,9 @@ H2_12 = eeint(Sys2,[1 2]);
 H1_23 = eeint(Sys1,[2 3]);
 H2_23 = eeint(Sys2,[2 3]);
 
-ok = areequal(H1_12,H2_12) & areequal(H1_13,H2_13) & areequal(H1_23,H2_23);
+ok = areequal(H1_12,H2_12,1e-10,'abs') && ...
+     areequal(H1_13,H2_13,1e-10,'abs') && ...
+     areequal(H1_23,H2_23,1e-10,'abs');
 err = ~ok;
 
 data = [];

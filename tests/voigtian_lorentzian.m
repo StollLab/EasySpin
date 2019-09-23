@@ -11,6 +11,6 @@ fwhm = [0 0.1];
 y1 = voigtian(x,x0,fwhm);
 y2 = lorentzian(x,x0,fwhm(2));
 
-err = ~areequal(y1,y2,1e-8);
+err = ~areequal(y1,y2,1e-8,'abs');
 
 data = [];

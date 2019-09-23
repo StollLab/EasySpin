@@ -20,5 +20,5 @@ if opt.Display
   legend('matrix','perturb2');
 end
 
-err = ~areequal(y0,y1,5e-3);
+err = ~areequal(y0,y1,5e-3,'abs');
 data = [];

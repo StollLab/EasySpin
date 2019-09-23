@@ -30,7 +30,7 @@ if ~isempty(olddata)
     subplot(4,1,4);
     plot(x,data.y-olddata.y);
   end
-  ok = areequal(y,olddata.y,1e-3);
+  ok = areequal(y,olddata.y,1e-3,'abs');
   err = ~ok;
 else
   err = [];

@@ -45,7 +45,7 @@ for p = 1:numel(pSmin)
     end
 
     % Determine whether spectra are identical
-    err(idx) = ~areequal(y_fast,y_general,1e-6*max(y_fast));
+    err(idx) = ~areequal(y_fast,y_general,1e-6,'rel');
 
   end
 end

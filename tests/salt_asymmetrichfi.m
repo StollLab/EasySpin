@@ -9,14 +9,13 @@ Ex = struct('Range',[10 18],'Field',326.5,...
 Si = struct('Threshold',1e-5,'nKnots',[20 5],'Intensity','on',...
   'Enhancement','off','Verbosity',opt.Verbosity);
 
-%Sy.AFrame = pi/180*[0 57 34];
 Sy.A = diag(Sy.A);
 [a,b1] = salt(Sy,Ex,Si);
 Sy.A(1,2) = 5;
 Sy.A(2,1) = -5;
 [a,b2] = salt(Sy,Ex,Si);
 
-if (opt.Display)
+if opt.Display
   subplot(3,1,[1 2]);
   plot(a,b1,'b',a,b2,'r');
   title('Tilted tensors, Ci symmetry');
@@ -34,6 +33,6 @@ data.b2 = b2;
 if isempty(olddata)
   err = [];
 else
-  ok = areequal(olddata.b1,b1) & areequal(olddata.b2,b2);
+  ok = areequal(olddata.b1,b1,1e-10,'rel') && areequal(olddata.b2,b2,1e-10,'rel');
   err = ~ok;
 end

@@ -24,7 +24,7 @@ if opt.Display
   legend boxoff
 end
 
-err = ~areequal(y0,y2,5e-3);
+err = ~areequal(y0,y2,5e-3,'abs');
 
 data = [];
 

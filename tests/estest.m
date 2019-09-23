@@ -2,7 +2,7 @@
 %
 %   Usage:
 %     estest            run all tests
-%     estest adsf       run all tests whose name starts with asdf
+%     estest asdf       run all tests whose name starts with asdf
 %     estest asdf d     run all tests whose name starts with asdf and
 %                       display results
 %     estest asdf r     evaluate all tests whose name starts with asdf and
@@ -76,17 +76,17 @@ OutcomeStrings = {'pass','failed','crashed','not tested'};
 
 for iTest = 1:numel(TestFileNames)
   
-  thisTest = TestFileNames{iTest}(1:end-2);
+  thisTestName = TestFileNames{iTest}(1:end-2);
 
   if Opt.Display
     clf
-    set(gcf,'Name',thisTest);
+    set(gcf,'Name',thisTestName);
     drawnow
   end
   
   % Load, or regenerate, comparison data
   olddata = [];
-  TestDataFile = ['data/' thisTest '.mat'];
+  TestDataFile = ['data/' thisTestName '.mat'];
   if exist(TestDataFile,'file')
     if Opt.Regenerate
       delete(TestDataFile);
@@ -96,15 +96,16 @@ for iTest = 1:numel(TestFileNames)
         olddata = load(TestDataFile,'data');
         olddata = olddata.data;
       catch
-        error('Could not load data for test ''%s''.',thisTest);
+        error('Could not load data for test ''%s''.',thisTestName);
       end
     end
   end
   
   % Run test, catch any errors
+  testFcn = str2func(thisTestName);
   tic
   try
-    [err,data] = feval(thisTest,Opt,olddata);
+    [err,data] = testFcn(Opt,olddata);
     if Opt.Display
       if iTest<numel(TestFileNames), pause; end
     end
@@ -132,7 +133,7 @@ for iTest = 1:numel(TestFileNames)
   end
   
   testResults(iTest).err = double(err);
-  testResults(iTest).name = thisTest;
+  testResults(iTest).name = thisTestName;
   testResults(iTest).errorData = errorInfo;
   
   outcomeStr = OutcomeStrings{testResults(iTest).err+1};
@@ -149,7 +150,7 @@ for iTest = 1:numel(TestFileNames)
     timeStr = [];
   end
 
-  str = sprintf('%-36s  %-12s%-8s%s\n%s',...
+  str = sprintf('%-45s  %-12s%-8s%s\n%s',...
        testResults(iTest).name,typeStr,outcomeStr,timeStr,errorStr);
   str(str=='\') = '/';
   

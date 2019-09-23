@@ -23,7 +23,7 @@ dx = x(2)-x(1);
 int1 = sum(y1)*dx;
 int2 = sum(y2)*dx;
 
-err = ~areequal(int1,int2,1e-3*int1);
+err = ~areequal(int1,int2,1e-3,'rel');
 data = [];
 
 if opt.Display

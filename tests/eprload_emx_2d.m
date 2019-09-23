@@ -25,15 +25,15 @@ for iFile = 1:numel(Files)
   XXWI = ax{1}(end)-XXLB;
   XYLB = ax{2}(1);
   XYWI = ax{2}(end)-XYLB;
-  if ~areequal(XX{iFile}(1),XXLB,1e-4) || ...
-     ~areequal(XX{iFile}(2),XXWI,1e-4)
+  if ~areequal(XX{iFile}(1),XXLB,1e-4,'rel') || ...
+     ~areequal(XX{iFile}(2),XXWI,1e-4,'rel')
     disp([' ' Files{iFile}]);
     fprintf('   x read:      %0.9f %0.9f\n',XXLB,XXWI);
     fprintf('   x should be: %0.9f %0.9f\n',XX{iFile}(1),XX{iFile},2);
     ax_err(iFile) = 1;
   end
-  if ~areequal(XY{iFile}(1),XYLB,1e-4) || ...
-     ~areequal(XY{iFile}(2),XYWI,1e-4)
+  if ~areequal(XY{iFile}(1),XYLB,1e-4,'rel') || ...
+     ~areequal(XY{iFile}(2),XYWI,1e-4,'rel')
     disp([' ' Files{iFile}]);
     fprintf('   x read:      %0.9f %0.9f\n',XYLB,XYWI);
     fprintf('   x should be: %0.9f %0.9f\n',XY{iFile}(1),XY{iFile},2);

@@ -13,7 +13,7 @@ Exp.mwRange = [9 10]; % GHz
 data.y = y;
 
 if ~isempty(olddata)
-  err = ~areequal(y/max(y),olddata.y/max(olddata.y),1e-4);
+  err = ~areequal(y/max(y),olddata.y/max(olddata.y),1e-4,'abs');
 else
   err = [];
 end

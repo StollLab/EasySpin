@@ -29,8 +29,7 @@ end
 data.spc = spc;
 
 if ~isempty(olddata)
-  e = 1e-3*max(abs(spc));
-  err = ~areequal(spc,olddata.spc,e);
+  err = ~areequal(spc,olddata.spc,1e-3,'rel');
 else
   err = [];
 end

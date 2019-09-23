@@ -36,9 +36,9 @@ end
 
 if ~isempty(olddata)
   thr = 1e-4*max(data.mueff1);
-  ok(1) = areequal(olddata.mueff1,data.mueff1,thr);
-  ok(2) = areequal(olddata.mueff2,data.mueff2,thr);
-  ok(3) = areequal(olddata.mueff3,data.mueff3,thr);
+  ok(1) = areequal(olddata.mueff1,data.mueff1,thr,'abs');
+  ok(2) = areequal(olddata.mueff2,data.mueff2,thr,'abs');
+  ok(3) = areequal(olddata.mueff3,data.mueff3,thr,'abs');
   err = any(~ok);
 else
   err = [];

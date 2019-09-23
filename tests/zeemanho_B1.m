@@ -42,7 +42,7 @@ end
 % test
 threshold = 1e-8;
 for n = 4:-1:1
-  errl(n) = ~areequal(H{n},Hz{n},threshold);
+  errl(n) = ~areequal(H{n},Hz{n},threshold,'abs');
 end
 err = any(errl);
 data =[];

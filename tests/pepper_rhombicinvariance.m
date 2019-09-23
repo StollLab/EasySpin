@@ -15,7 +15,7 @@ end
 
 y = y/max(y(:));
 thr = 0.005;
-err = ~areequal(y(1,:),y(2,:),thr) | ~areequal(y(2,:),y(3,:),thr);
+err = ~areequal(y(1,:),y(2,:),thr,'abs') | ~areequal(y(2,:),y(3,:),thr,'abs');
 
 if (opt.Display)
   plot(x,y);

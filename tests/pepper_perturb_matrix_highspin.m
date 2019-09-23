@@ -24,5 +24,5 @@ if opt.Display
   legend('matrix','perturb2');
 end
 
-err = ~areequal(y0,y1,0.01*max(y0));
+err = ~areequal(y0,y1,0.01,'rel');
 data = [];

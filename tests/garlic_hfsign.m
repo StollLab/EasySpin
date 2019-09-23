@@ -26,7 +26,7 @@ Sys.lwpp = 0.1;
 Sys.A = -A; [B,spcB1] = garlic(Sys,Exp2,Opt);
 Sys.A = +A; [B,spcB2] = garlic(Sys,Exp2,Opt);
 
-err = ~areequal(spcnu1,spcnu2,1e-3) || ~areequal(spcB1,spcB2,1e-3);
+err = ~areequal(spcnu1,spcnu2,1e-3,'rel') || ~areequal(spcB1,spcB2,1e-3,'rel');
 
 if opt.Display
   subplot(2,1,1)

@@ -17,6 +17,6 @@ IQ0 = A;
 
 [t,IQ] = pulse(Params);
 
-err = ~areequal(IQ0,IQ,1e-12);
+err = ~areequal(IQ0,IQ,1e-12,'abs');
 
 data = [];

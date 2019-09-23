@@ -18,6 +18,6 @@ if (opt.Display)
   legend('lshape','manual sum');
 end
 
-err = ~areequal(yA,yB);
+err = ~areequal(yA,yB,1e-10,'rel');
 data = [];
 

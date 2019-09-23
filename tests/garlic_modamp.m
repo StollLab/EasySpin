@@ -11,7 +11,7 @@ data.x = x;
 data.y = y;
 
 if ~isempty(olddata)
-  err = ~areequal(x,olddata.x) | ~areequal(y,olddata.y);
+  err = ~areequal(x,olddata.x,1e-10,'rel') || ~areequal(y,olddata.y,1e-10,'rel');
 else
   err = [];
 end

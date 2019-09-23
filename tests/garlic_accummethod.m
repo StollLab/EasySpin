@@ -27,6 +27,6 @@ if opt.Display
 end
 
 thr = 2e-2;
-err = ~areequal(y0,y1,thr*max(y0)) || ~areequal(y0,y2,thr*max(y0));
+err = ~areequal(y0,y1,thr,'rel') || ~areequal(y0,y2,thr,'rel');
 
 data = [];

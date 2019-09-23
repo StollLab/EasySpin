@@ -16,7 +16,7 @@ data.s = s;
 if ~isempty(olddata)
   ok = 1;
   for k=1:numel(s)
-    ok = ok & areequal(s{k},olddata.s{k},1e-6);
+    ok = ok & areequal(s{k},olddata.s{k},1e-6,'abs');
   end
   err = ~ok;
 else

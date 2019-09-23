@@ -25,5 +25,5 @@ for k = 1:numel(x0)
   z2(:,c) = z2(:,c) + amp(k)*gaussian((1:N).',x0(k),fwhm);
 end
 
-err =  ~areequal(z1,z2);
+err =  ~areequal(z1,z2,1e-10,'rel');
 data = [];

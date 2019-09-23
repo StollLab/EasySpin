@@ -17,7 +17,7 @@ end
 data.yy = yy;
 
 if ~isempty(olddata)
-  ok = areequal(yy,olddata.yy);
+  ok = areequal(yy,olddata.yy,1e-10,'rel');
   err = ~ok;
 else
   err = [];

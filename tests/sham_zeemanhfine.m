@@ -10,5 +10,5 @@ G = B(1)*Gx + B(2)*Gy + B(3)*Gz;
 G = G/norm(B);
 [F1,G1] = sham(Sys,B);
 
-err = ~areequal(F1+norm(B)*G1,F+norm(B)*G);
+err = ~areequal(F1+norm(B)*G1,F+norm(B)*G,1e-10,'rel');
 data = [];

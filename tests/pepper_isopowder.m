@@ -30,6 +30,6 @@ if opt.Display
   legend boxoff
 end
 
-thresh = 1e-2*max(y0);
-err = ~areequal(y0,y1,thresh) || ~areequal(y0,y2,thresh);
+thresh = 1e-2;
+err = ~areequal(y0,y1,thresh,'rel') || ~areequal(y0,y2,thresh,'rel');
 data = [];

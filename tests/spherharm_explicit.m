@@ -12,7 +12,7 @@ for L = 0:2
   for M = -L:L
     Y = explicitY(L,M,theta,phi);
     Z = spherharm(L,M,theta,phi);
-    err(q) = ~areequal(Y,Z,1e-10);
+    err(q) = ~areequal(Y,Z,1e-10,'abs');
     q = q + 1;
   end
 end

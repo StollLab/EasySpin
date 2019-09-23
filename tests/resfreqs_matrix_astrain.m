@@ -17,8 +17,8 @@ Opt.Threshold = 1e-3;
 
 I = nucspin(Sys.Nucs);
 mI = I:-1:-I;
-Wdat0 = Sys.AStrain*abs(mI);
+Wdat0 = Sys.AStrain*abs(mI(:));
 
-err = ~areequal(Wdat,Wdat0,1e-2);
+err = ~areequal(Wdat,Wdat0,1e-2,'abs');
 
 data = [];

@@ -35,7 +35,7 @@ end
 data.y = y;
 
 if ~isempty(olddata)
-  err = ~areequal(y,olddata.y,1e-4);
+  err = ~areequal(y,olddata.y,1e-4,'abs');
 else
   err = [];
 end

@@ -46,7 +46,7 @@ Exp.Dim2 = {'p1.Flip' pi/3};
 data.x2 = x2;
 data.y2 = y2;
 
-if (opt.Display)
+if opt.Display
   if ~isempty(olddata)
     subplot(3,1,[1 2]);
     plot(x1',real(y1)','r',x1',real(olddata.y1)','b');
@@ -61,8 +61,7 @@ if (opt.Display)
 end
 
 if ~isempty(olddata)
-  err = any([~areequal(y1,olddata.y1,1e-4) ~areequal(y2,olddata.y2,1e-4)]);
+  err = ~areequal(y1,olddata.y1,1e-4,'abs') || ~areequal(y2,olddata.y2,1e-4,'abs');
 else
   err = [];
 end
-

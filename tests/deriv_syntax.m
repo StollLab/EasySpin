@@ -7,5 +7,5 @@ y = rand(1,N);
 x = 1:N;
 a = deriv(y);
 b = deriv(x,y);
-err = ~areequal(a,b);
+err = ~areequal(a,b,1e-10,'abs');
 data = [];

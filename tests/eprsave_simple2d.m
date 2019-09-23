@@ -18,6 +18,7 @@ eprsave(fn,{x,y},data);
 
 delete([fn '.*']);
 
-err = ~areequal(x,x0{1},1e-5) || ~areequal(y,x0{2},1e-5) || ~areequal(data,data0,1e-5);
+thr = 1e-5;
+err = ~areequal(x,x0{1},thr,'rel') || ~areequal(y,x0{2},thr,'rel') || ~areequal(data,data0,thr,'rel');
 
 data = [];
