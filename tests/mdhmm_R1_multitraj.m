@@ -24,8 +24,6 @@ nLag = tLag/MD.dt;
 
 nStates = 20;
 
-% Parameters 
-
 Opt.nTrials = 2;
 Opt.Verbosity = 0;
 
@@ -36,15 +34,24 @@ HMM = mdhmm(MD.dihedrals,MD.dt,nStates,nLag,Opt);
 
 data.TransProb = HMM.TransProb;
 data.eqDistr = HMM.eqDistr;
-HMM.stateTraj = HMM.viterbiTraj;
 data.stateTraj = HMM.stateTraj;
+HMM.stateTraj = HMM.viterbiTraj;
 
 if ~isempty(olddata)
-  err = any(any(abs(olddata.TransProb-HMM.TransProb)>1e-10)) ...
-       || any(abs(olddata.eqDistr-HMM.eqDistr)>1e-10) ...
-       || any(abs(olddata.stateTraj(:)-HMM.stateTraj(:))>1e-10);
+  err = ~areequal(olddata.TransProb,HMM.TransProb,1e-3,'abs') || ...
+        ~areequal(olddata.eqDistr,HMM.eqDistr,1e-3,'abs') || ...
+        ~areequal(olddata.stateTraj,HMM.stateTraj);
 else
   err = [];
+end
+
+if opt.Display
+  maxTP = max(abs(HMM.TransProb(:)));
+  errTP = max(abs(olddata.TransProb(:)-HMM.TransProb(:)));
+  fprintf('  TransProb: max %g   err %g\n',maxTP,errTP);
+  maxPeq = max(abs(HMM.eqDistr(:)));
+  errPeq = max(abs(olddata.eqDistr(:)-HMM.eqDistr(:)));
+  fprintf('  eqDistr: max %g   err %g\n',maxPeq,errPeq);
 end
 
 end
