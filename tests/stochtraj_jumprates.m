@@ -25,8 +25,7 @@ nSteps = Par.nSteps;
 Opt.statesOnly = true;
 [t,stateTraj] = stochtraj_jump(Sys,Par,Opt);
 
-AutoCorrFFT = runprivate('autocorrfft', stateTraj, 1, 1, 1);
-AutoCorrFFT = mean(AutoCorrFFT, 2);
+AutoCorrFFT = runprivate('autocorrfft', stateTraj.', 2, 1, 1).';
 
 N = round(nSteps/2);
 
