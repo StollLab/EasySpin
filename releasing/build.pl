@@ -12,7 +12,7 @@ our ($SourceDir, $BuildsDir, $TempRepoDir); # directories
 our ($StableMajorVersion,  $KeyForStableVersion, $MonthsToExpireStable); # settings for the stable versions
 our ($DefaultMajorVersion, $KeyForDefaultVersion, $MonthsToExpireDefault); # settings for the default versions
 our ($KeyForDeveloperVersion, $KeyForExperimentalVersion, $MonthsToExpireDeveloper); # settings for the experimental versions
-our (@VersionCutoff, $esbuild, $KeyBitBucket); # some other settings
+our (@VersionCutoff, $esbuild, $KeyGitHub); # some other settings
 
 require './config.pl'; # load the configuration file
 
@@ -49,14 +49,14 @@ else {
 
 # ---------------------------------------------------------------------------------
 # set up build environment
-system("ssh-add $KeyBitBucket"); # private key to log into bitbucket, needs to be adapted specific user
+system(qq(ssh-add $KeyGitHub)); # private key to log into bitbucket, needs to be adapted to specific user
 
 # delete and reinitialize temporary directory of EasySpin if a previous build crashed
 if (-e "$TempRepoDir") {
-    system("rm -r $TempRepoDir");
+    system("rm -rf $TempRepoDir");
 }
 system("mkdir $TempRepoDir");
-system(qq(hg clone ssh://hg\@bitbucket.org/sstoll/easyspin $TempRepoDir));
+system(qq(git clone git\@github.com:StollLab/EasySpin.git $TempRepoDir));
 
 # create the directory where builds are stored if not already available
 unless (-e "$BuildsDir") {
@@ -67,21 +67,13 @@ unless (-e "$BuildsDir") {
 system("rm -rf /tmp/easyspin*");
 
 
-
-# update hg configuration file to include the purge extension, which is needed to cleanly update to a different commint
-my $LinesToAdd = qq([extensions]\npurge = );
-
-open(my $hgConf, '>>', "$TempRepoDir.hg/hgrc") or die "Could not open hg config File!";
-say $hgConf $LinesToAdd;
-close $hgConf;
-
 # -----------------------------------------------------------------
 # process tag
 my @TagsToBuild = ();
 
 my @NewestVersion = (0, 0, 0);  # (stable, default, dev)
 
-my $callTags = qq(hg tags -R $TempRepoDir); # read tagfile
+my $callTags = qq(git --git-dir=$TempRepoDir/.git tag); # read tagfile
 my @TagFile = `$callTags`;
 
 # compute the numeric value of the cutoff version
@@ -201,7 +193,7 @@ else {
     push @TagsToBuild, $cmdLineArgument;
 }
 
-print("The following versions will be built: @TagsToBuild \n");
+print("The following versions will now be built: @TagsToBuild \n");
 
 # ---------------------------------------------------------------------------------
 # Processes all the TagsToBuild
@@ -215,10 +207,10 @@ foreach (@TagsToBuild) {
     print "Building $thisBuild \n";
 
     # clean cloned repo
-    system('hg purge -R '.$TempRepoDir);
+    system("git --git-dir=$TempRepoDir/.git --work-tree=$TempRepoDir clean -f");
 
     # update to tag that is being built
-    system("hg update $thisBuild -R $TempRepoDir -C");
+    system("git --git-dir=$TempRepoDir/.git --work-tree=$TempRepoDir checkout $thisBuild ");
 
     # ---------------------------------------------------------------------------------
     # Update html file that contains the examples
@@ -338,7 +330,7 @@ foreach (@TagsToBuild) {
 # ---------------------------------------------------------------------------------
 # Clean up temporary EasySpin directories
 if (-e "$TempRepoDir") {
-    system("rm -r $TempRepoDir");
+    system("rm -rf $TempRepoDir");
 }
 
 # ---------------------------------------------------------------------------------
