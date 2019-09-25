@@ -342,14 +342,14 @@ if useMD
     else
       logmsg(1,'  constructing HMM from MD');
 
-      nLag = MD.tLag/MD.dt;
+      nLag = round(MD.tLag/MD.dt);
       HMM = mdhmm(MD.dihedrals,MD.dt,MD.nStates,nLag,Opt);
       
     end
     % provides HMM.transmat, HMM.eqdistr, HMM.viterbiTraj, etc
     MD.viterbiTraj = HMM.viterbiTraj.';
     MD.nStates = HMM.nStates;
-
+    
     % Set the Markov chain time step based on the (scaled) sampling lag time
     Par.dt = MD.tLag;
   end
@@ -362,7 +362,7 @@ if useMD
   tauR = mean(tauR);
   DiffLocal = 1/6/tauR;
   MD.tauR = tauR;  
-
+  
 end
 
 
@@ -562,7 +562,8 @@ switch LocalDynamicsModel
         
       case 'MD-HMM'
         
-        RTrajLocal = RTrajLocal(:,:,:,1:HMM.nLag:end);
+        offset = 1;
+        RTrajLocal = RTrajLocal(:,:,:,offset:HMM.nLag:end);
         qTrajLocal = rotmat2quat(RTrajLocal);
         
     end

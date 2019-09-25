@@ -20,7 +20,7 @@ MD.FrameTrajwrtProt = cat(3, MD.FrameTrajwrtProt(:,:,:,1:MD.nSteps), MD.FrameTra
 MD.dihedrals = cat(2, MD.dihedrals(:,:,1:MD.nSteps), MD.dihedrals(:,:,MD.nSteps+1:end));
 
 tLag = 100e-12*tScale;
-nLag = tLag/MD.dt;
+nLag = round(tLag/MD.dt);
 
 nStates = 20;
 

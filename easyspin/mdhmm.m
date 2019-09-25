@@ -6,11 +6,11 @@
 %   dihedrals     3D array trajectory of spin-label side chain dihedral angles
 %                   (nDihedrals,nTrajectories,nSteps), in radians
 %   dt            dihedral trajectory time step, in s
-%   nStates       number of desired states for the HMM
-%   nLag          desired lag time, as a integer multiple of the MD time step
+%   nStates       desired number of states for the HMM
+%   nLag          desired lag step (number of MD time steps)
 %   Opt           structure with options
 %     .Verbosity  print to command window if > 0
-%     .isSeeded   whether to use systematic seeds for the centroids in k-means
+%     .isSeeded   whether to use rotamer seeds for the centroids in k-means
 %     .nTrials    number of trials in k-means clustering (if not seeded)
 %
 % Output:
@@ -24,58 +24,62 @@
 
 function HMM = mdhmm(dihedrals,dt,nStates,nLag,Opt)
 
+if nargin<3
+  error('nStates (3rd input) needs to be given.');
+end
+if nargin<4
+  error('nLag (4th input) needs to be given.');
+end
+
 if nargin<5, Opt = struct; end
 
 if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 1; end
+
+if numel(nLag)~=1 || mod(nLag,1)~=0 || nLag<1
+  error('nLag must be a positive integer.');
+end
+
+% Assure all dihedrals are in the interval [-pi,pi]
+% This is required for the calculation of angular distances.
+if any(abs(dihedrals(:))>pi)
+  error('Some dihedral angles are outside the interval [-pi,pi].');
+end
 
 global EasySpinLogLevel
 EasySpinLogLevel = Opt.Verbosity;
 
 logmsg(1,'-- HMM model building ----------------------------------');
-% Reorder from (nDihedrals,nTraj,nSteps) to (nDihedrals,nSteps,nTraj)
+% Reshape from (nDihedrals,nTraj,nSteps) to (nDihedrals,nSteps,nTraj)
 dihedrals = permute(dihedrals,[1,3,2]);
 
 nDihedrals = size(dihedrals,1);
 nSteps = size(dihedrals,2);
 nTraj = size(dihedrals,3);
-logmsg(1,'  data: %d dihedrals; %d steps; %d trajectories',nDihedrals,nSteps,nTraj);
+logmsg(1,'  %d dihedrals; %d time steps; %d trajectories',nDihedrals,nSteps,nTraj);
 
 if ~isfield(Opt,'isSeeded')
   Opt.isSeeded = false;
 end
 
 if ~isfield(Opt,'nTrials')
-  Opt.nTrials = 10;
+  if Opt.isSeeded
+    Opt.nTrials = 1;
+  else
+    Opt.nTrials = 10;
+  end
 end
-if Opt.isSeeded
-  Opt.nTrials = 1;
-end
-
-if abs(round(nLag)-nLag)>1e-3 || nLag < 1
-  error('nLag must be an integer >= 1.');
-end
-nLag = round(nLag);
-
-HMM.nLag = nLag;
-HMM.dt = dt;
-HMM.tLag = nLag*dt;
-HMM.nStates = nStates;
 
 % Use k-means clustering etc to get initial estimates of HMM parameters
 %-------------------------------------------------------------------------------
 logmsg(1,'  clustering into %d clusters using k-means (%d repeats)',nStates,Opt.nTrials);
 
 % Set up initial cluster centroids if wanted
-chiStart = [];
 if Opt.isSeeded
-  logmsg(1,'    using systematic seeds');
+  logmsg(1,'    using rotamer seeds');
   
   if nDihedrals==5
-    % Theoretical values
+    % Theoretical dihedral values for rotamers (in degrees)
     chi = {[-60,60,180],[-60,60,180],[-90,90],[-60,60,180],[-90,90]};
-    
-    % Convert from degrees to radians
-    chi = cellfun(@(x)x*pi/180,chi, 'UniformOutput', false);
     
     % Create array with all combinations
     idx = cellfun(@(a)1:numel(a),chi,'UniformOutput',false);
@@ -84,12 +88,24 @@ if Opt.isSeeded
     for k = numel(chi):-1:1
       chiStart(:,k) = reshape(chi{k}(idx{k}),[],1);
     end
+    chiStart = chiStart*pi/180; % degrees -> radians
+    
+    % Set number of states, and number of trials
+    if nStates~=size(chiStart,1)
+      warning('Changing the number of states from %d to %d.',nStates,size(chiStart,1));
+      nStates = size(chiStart,1);
+    end
+    if Opt.nTrials~=1
+      warning('Changing the number of trials from %d to 1.',Opt.nTrials);
+      Opt.nTrials = 1;
+    end
 
   else
     error('No systematic seed available for spin labels other than R1.');
   end
 else
   logmsg(1,'    using random seeds');
+  chiStart = [];
 end
 
 % Perform k-means clustering, return centroids mu0 and spreads Sigma0
@@ -113,13 +129,17 @@ if Opt.Verbosity >= 1
   end
 end
 
-logmsg(1,'  estimation of transition probability matrix and initial distribution');
-
-% Downsample dihedrals trajectory to the desired lag time
-dihedrals = dihedrals(:,1:nLag:end,:);
-stateTraj = stateTraj(1:nLag:end,:);
+% Downsample dihedrals trajectories
+%-------------------------------------------------------------------------------
+offset = 1;
+dihedrals = dihedrals(:,offset:nLag:end,:);
+stateTraj = stateTraj(offset:nLag:end,:);
+logmsg(1,'  downsampling: offset %d, nLag %d -> %d time steps',...
+  offset,nLag,size(stateTraj,1));
 
 % Estimate transition probability matrix and initial distribution
+%-------------------------------------------------------------------------------
+logmsg(1,'  estimation of transition probability matrix and initial distribution');
 [TransProb0,eqDistr0] = estimatemarkovparameters(stateTraj);
 initDistr0 = eqDistr0;
 
@@ -150,6 +170,11 @@ if any(~visited)
   [HMM.TransProb,HMM.eqDistr] = estimatemarkovparameters(HMM.viterbiTraj);
 end
 HMM.nStates = length(HMM.eqDistr);
+
+HMM.nLag = nLag;
+HMM.dt = dt;
+HMM.tLag = nLag*dt;
+
 
 % Calculate relaxation times for the TPM and time lag
 %-------------------------------------------------------------------------------

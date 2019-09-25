@@ -14,7 +14,7 @@ MD = Traj;
 MD.dt = MD.dt*tScale;
 
 tLag = 100e-12*tScale;
-nLag = tLag/MD.dt;
+nLag = round(tLag/MD.dt);
 
 nStates = 20;
 
