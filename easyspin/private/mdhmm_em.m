@@ -5,7 +5,7 @@
 %     mdhmm_em(data, initDistr, TransProb, mu, Sigma, verbosity)
 %
 %
-%     data           numeric matrix, size = (nPoints,nDims,nTraj)
+%     data           numeric matrix, size = (nDims,nSteps,nTraj)
 %                    input data
 %
 %     initdistr      numeric vector, size = (1,nStates)

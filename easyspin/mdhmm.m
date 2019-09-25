@@ -32,10 +32,13 @@ global EasySpinLogLevel
 EasySpinLogLevel = Opt.Verbosity;
 
 logmsg(1,'-- HMM model building ----------------------------------');
-nDims = size(dihedrals,1);
-nTraj = size(dihedrals,2);
-nSteps = size(dihedrals,3);
-logmsg(1,'  data: %d dihedrals; %d steps; %d trajectories',nDims,nSteps,nTraj);
+% Reorder from (nDihedrals,nTraj,nSteps) to (nDihedrals,nSteps,nTraj)
+dihedrals = permute(dihedrals,[1,3,2]);
+
+nDihedrals = size(dihedrals,1);
+nSteps = size(dihedrals,2);
+nTraj = size(dihedrals,3);
+logmsg(1,'  data: %d dihedrals; %d steps; %d trajectories',nDihedrals,nSteps,nTraj);
 
 if ~isfield(Opt,'isSeeded')
   Opt.isSeeded = false;
@@ -65,10 +68,9 @@ logmsg(1,'  clustering into %d clusters using k-means (%d repeats)',nStates,Opt.
 % Set up initial cluster centroids if wanted
 chiStart = [];
 if Opt.isSeeded
-  logmsg(1,'    using provided seeds');
+  logmsg(1,'    using systematic seeds');
   
-  nDims = size(dihedrals,1);
-  if nDims==5
+  if nDihedrals==5
     % Theoretical values
     chi = {[-60,60,180],[-60,60,180],[-90,90],[-60,60,180],[-90,90]};
     
@@ -83,14 +85,12 @@ if Opt.isSeeded
       chiStart(:,k) = reshape(chi{k}(idx{k}),[],1);
     end
 
+  else
+    error('No systematic seed available for spin labels other than R1.');
   end
 else
   logmsg(1,'    using random seeds');
 end
-
-% Reorder from (nDims,nTraj,nSteps) to (nSteps,nDims,nTraj),
-% for input to clustering function.
-dihedrals = permute(dihedrals,[3,1,2]);
 
 % Perform k-means clustering, return centroids mu0 and spreads Sigma0
 [stateTraj,mu0,Sigma0] = ...
@@ -116,15 +116,12 @@ end
 logmsg(1,'  estimation of transition probability matrix and initial distribution');
 
 % Downsample dihedrals trajectory to the desired lag time
-dihedrals = dihedrals(1:nLag:end,:,:);
+dihedrals = dihedrals(:,1:nLag:end,:);
 stateTraj = stateTraj(1:nLag:end,:);
 
 % Estimate transition probability matrix and initial distribution
 [TransProb0,eqDistr0] = estimatemarkovparameters(stateTraj);
 initDistr0 = eqDistr0;
-
-% Reorder (nSteps,nDims,nTraj) to (nDims,nSteps,nTraj), for EM function
-dihedrals = permute(dihedrals,[2,1,3]);
 
 % Optimize HMM parameters
 %-------------------------------------------------------------------------------
@@ -140,22 +137,19 @@ HMM.logLik = logLik(end);
 logmsg(1,'  Viterbi state trajectories calculation');
 HMM.viterbiTraj = viterbitrajectory(dihedrals,HMM.TransProb,HMM.eqDistr,HMM.mu,HMM.Sigma);
 
-% Eliminate states not visited in Viterbi trajectory
+% Identify and eliminate states not visited in Viterbi trajectory
 %-------------------------------------------------------------------------------
 visited = false(1,nStates);
 visited(unique(HMM.viterbiTraj)) = true;
 if any(~visited)
   logmsg(1,'  Eliminating %d unvisited states from model',sum(~visited));
   newStateNumbers = cumsum(visited);
-  HMM.viterbiTraj = newStateNumbers(HMM.viterbiTraj).';
+  HMM.viterbiTraj = newStateNumbers(HMM.viterbiTraj);
   HMM.mu = HMM.mu(:,visited);
   HMM.Sigma = HMM.Sigma(:,:,visited);
   [HMM.TransProb,HMM.eqDistr] = estimatemarkovparameters(HMM.viterbiTraj);
 end
 HMM.nStates = length(HMM.eqDistr);
-if size(HMM.viterbiTraj, 1)==nTraj
-  HMM.viterbiTraj = HMM.viterbiTraj.';
-end
 
 % Calculate relaxation times for the TPM and time lag
 %-------------------------------------------------------------------------------
@@ -177,11 +171,11 @@ end
 % Helper functions
 %-------------------------------------------------------------------------------
 function vTraj = viterbitrajectory(dihedrals,transmat,eqdistr,mu,Sigma)
+% dihedrals: (nDihedrals,nSteps,nTraj)
 nStates = size(transmat,1);
 [~,nSteps,nTraj] = size(dihedrals);
 vTraj = zeros(nSteps,nTraj);
 for iTraj = 1:nTraj
-  %[obslikelihood, ~] = mixgauss_prob(dihedrals(:,:,iTraj), mu, Sigma);
   obs = dihedrals(:,:,iTraj);
   obslikelihood = zeros(nStates,nSteps);
   for iState = 1:nStates
@@ -223,32 +217,24 @@ end
 %===============================================================================
 function [stateTraj,mu0,Sigma0] = initializehmm(dihedrals,chiStart,nStates,nRepeats,verbosity)
 
-[nSteps,nDims,nTraj] = size(dihedrals);
+[nDihedrals,nSteps,nTraj] = size(dihedrals);
 
-% if more than one trajectory, collapse 3rd dim (traj) onto 1st dim (time)
-if nTraj > 1
-%   dihedrals = reshape(dihedrals,[],nDims);
-  dihedralsTemp = dihedrals;
-  dihedrals = [];
-  for iTraj = 1:nTraj
-    dihedrals = cat(1, dihedrals, dihedralsTemp(:,:,iTraj));
-  end
-end
+% Concatenate trajectories in time
+dihedrals = reshape(permute(dihedrals,[2 3 1]),[nSteps*nTraj,nDihedrals]);
 
 % Do k-means clustering
 [stateTraj,centroids] = ...
   mdhmm_kmeans(dihedrals, nStates, nRepeats, chiStart, verbosity);
 
-% initialize the means and covariance matrices for the HMM
+% Initialize the means and covariance matrices for the HMM
 mu0 = centroids.';
-Sigma0 = zeros(nDims,nDims,nStates);
+Sigma0 = zeros(nDihedrals,nDihedrals,nStates);
 for iState = 1:nStates
   idxState = stateTraj==iState;
   Sigma0(:,:,iState) = cov_pbc(dihedrals(idxState,:), mu0(:,iState).');
-%   Sigma0(:,:,iState) = cov(dihedrals(idxState,:));
 end
 
-% Undo collapsing onto first dim for multiple trajectories
+% Un-concatenate multiple trajectories
 stateTraj = reshape(stateTraj,[nSteps,nTraj]);
 
 end

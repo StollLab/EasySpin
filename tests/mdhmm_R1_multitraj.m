@@ -34,12 +34,12 @@ HMM = mdhmm(MD.dihedrals,MD.dt,nStates,nLag,Opt);
 
 data.TransProb = HMM.TransProb;
 data.eqDistr = HMM.eqDistr;
-data.stateTraj = HMM.stateTraj;
 HMM.stateTraj = HMM.viterbiTraj;
+data.stateTraj = HMM.stateTraj;
 
 if ~isempty(olddata)
   err = ~areequal(olddata.TransProb,HMM.TransProb,1e-3,'abs') || ...
-        ~areequal(olddata.eqDistr,HMM.eqDistr,1e-3,'abs') || ...
+        ~areequal(olddata.eqDistr,HMM.eqDistr,2e-3,'abs') || ...
         ~areequal(olddata.stateTraj,HMM.stateTraj);
 else
   err = [];
