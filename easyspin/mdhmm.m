@@ -5,7 +5,7 @@
 % Input:
 %   dihedrals     3D array trajectory of spin-label side chain dihedral angles
 %                   (nDihedrals,nTrajectories,nSteps), in radians
-%   dt            dihedral trajectory time step, in s
+%   dt            dihedral trajectory time step, in arbitrary time units
 %   nStates       desired number of states for the HMM
 %   nLag          desired lag step (number of MD time steps)
 %   Opt           structure with options
@@ -20,21 +20,33 @@
 %    .mu            center vectors of states
 %    .Sigma         covariance matrices of states
 %    .viterbiTraj   Viterbi state trajectory (most likely given the dihedrals)
-%    .tauRelax      relaxation times of HMM
+%    .tauRelax      relaxation times of HMM, in same time units as dt
+%    .tLag          lag time, in same time units as dt
 
 function HMM = mdhmm(dihedrals,dt,nStates,nLag,Opt)
 
+if nargin==0
+  help(mfilename);
+  return
+end
+
+if nargin<2
+  error('dt (2nd input) must be given.');
+end
 if nargin<3
-  error('nStates (3rd input) needs to be given.');
+  error('nStates (3rd input) must be given.');
 end
 if nargin<4
-  error('nLag (4th input) needs to be given.');
+  error('nLag (4th input) must be given.');
 end
 
 if nargin<5, Opt = struct; end
 
 if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 1; end
 
+if numel(nStates)~=1 || mod(nStates,1)~=0 || nStates<1
+  error('nStates must be a positive integer.');
+end
 if numel(nLag)~=1 || mod(nLag,1)~=0 || nLag<1
   error('nLag must be a positive integer.');
 end
@@ -44,18 +56,11 @@ end
 if any(abs(dihedrals(:))>pi)
   error('Some dihedral angles are outside the interval [-pi,pi].');
 end
-
-global EasySpinLogLevel
-EasySpinLogLevel = Opt.Verbosity;
-
-logmsg(1,'-- HMM model building ----------------------------------');
 % Reshape from (nDihedrals,nTraj,nSteps) to (nDihedrals,nSteps,nTraj)
 dihedrals = permute(dihedrals,[1,3,2]);
 
-nDihedrals = size(dihedrals,1);
-nSteps = size(dihedrals,2);
-nTraj = size(dihedrals,3);
-logmsg(1,'  %d dihedrals; %d time steps; %d trajectories',nDihedrals,nSteps,nTraj);
+global EasySpinLogLevel
+EasySpinLogLevel = Opt.Verbosity;
 
 if ~isfield(Opt,'isSeeded')
   Opt.isSeeded = false;
@@ -68,6 +73,13 @@ if ~isfield(Opt,'nTrials')
     Opt.nTrials = 10;
   end
 end
+
+logmsg(1,'-- HMM model building ----------------------------------');
+
+nDihedrals = size(dihedrals,1);
+nSteps = size(dihedrals,2);
+nTraj = size(dihedrals,3);
+logmsg(1,'  %d dihedrals; %d time steps; %d trajectories',nDihedrals,nSteps,nTraj);
 
 % Use k-means clustering etc to get initial estimates of HMM parameters
 %-------------------------------------------------------------------------------
@@ -108,7 +120,7 @@ else
   chiStart = [];
 end
 
-% Perform k-means clustering, return centroids mu0 and spreads Sigma0
+% Perform k-means clustering, return state trajectory, centroids mu0 and spreads Sigma0
 [stateTraj,mu0,Sigma0] = ...
   initializehmm(dihedrals,chiStart,nStates,Opt.nTrials,Opt.Verbosity);
 
@@ -129,11 +141,12 @@ if Opt.Verbosity >= 1
   end
 end
 
-% Downsample dihedrals trajectories
+% Downsample dihedrals and state trajectories
 %-------------------------------------------------------------------------------
 offset = 1;
-dihedrals = dihedrals(:,offset:nLag:end,:);
-stateTraj = stateTraj(offset:nLag:end,:);
+idx = offset:nLag:nSteps;
+dihedrals = dihedrals(:,idx,:);
+stateTraj = stateTraj(idx,:);
 logmsg(1,'  downsampling: offset %d, nLag %d -> %d time steps',...
   offset,nLag,size(stateTraj,1));
 
@@ -265,23 +278,27 @@ stateTraj = reshape(stateTraj,[nSteps,nTraj]);
 end
 
 %===============================================================================
-function [tpmat,distr] = estimatemarkovparameters(stateTraj)
+function [tpmat,distr] = estimatemarkovparameters(stateTraj,tau)
 % Estimate transition probability matrix and initial probability distribution
 % from a set of state trajectories.
 % Input:
 %    stateTraj  array (nSteps,nTraj) of state indices (1..nStates)
+%    tau        number of time steps for which to determine count matrix
 % Output:
 %    tpmat      transition probability matrix (nStates,nStates)
 %    distr      initial probability density (nStates,1)
 
+% Time step for which to determine the count matrix
+if nargin<2
+  tau = 1;
+end
+
 % Determine count matrix N
 %-------------------------------------------------------------------------------
-% N(i,j) = number of times X(t)==i and X(t+tau)==j along all the trajectories
+% N(i,j) = number of times stateTraj(t)==i and stateTraj(t+tau)==j along all
+% the trajectories
 nStates = max(stateTraj(:));
 N = sparse(nStates,nStates);
-
-% Time step for which to determine the count matrix
-tau = 1;
 
 % Calculate (and accumulate) count matrix N
 nTraj = size(stateTraj,2);
@@ -405,13 +422,18 @@ end
 
 
 %===============================================================================
-function [TPM, pi_i, x] = msmtransitionmatrix(N, maxiteration)
-% msmtransitionmatrix
+function [TPM, pi_i] = msmtransitionmatrix(N, maxIter)
 % estimate transition probability matrix TPM from count matrix N
 %
-% Syntax
 % [TPM, pi_i] = msmtransitionmatrix(N);
 % [TPM, pi_i] = msmtransitionmatrix(N, maxiteration);
+%
+% Input:
+%    N        count matrix (nStates x nStates)
+%    maxIter  maximum number of iterations
+% Output:
+%    TPM      estimated transition probability matrix
+%    pi_i     equilibrium distribution
 %
 % Description
 % this routines uses the reversible maximum likelihood estimator
@@ -419,23 +441,22 @@ function [TPM, pi_i, x] = msmtransitionmatrix(N, maxiteration)
 % Adapted from Yasuhiro Matsunaga's mdtoolbox
 % 
 
-if ~exist('maxiteration', 'var')
-  maxiteration = 1000;
+if ~exist('maxIter', 'var')
+  maxIter = 1000;
 end
 
-% setup
 nStates = size(N, 1);
 
 N_sym = N + N.'; % symmetrize count matrix
 x = N_sym;
 
 N_i = sum(N, 2);
-x_i = sum(x, 2);
+%x_i = sum(x, 2);
 
 % optimization by L-BFGS-B
 fcn = @(x) myfunc_column(x, N, N_i, nStates);
 opts.x0 = x(:);
-opts.maxIts = maxiteration;
+opts.maxIts = maxIter;
 opts.maxTotalIts = 50000;
 %opts.factr = 1e5;
 %opts.pgtol = 1e-7;
@@ -448,6 +469,7 @@ TPM = bsxfun(@rdivide,x,x_i);
 TPM(isnan(TPM)) = 0;
 pi_i = x_i./sum(x_i);
 
+end
 
 %-------------------------------------------------------------------------------
 function [f, g] = myfunc_column(x, c, c_i, nStates)
@@ -475,7 +497,5 @@ index = ((x > (10*eps)) & (x' > (10*eps)));
 g(~index) = 0;
 g(isnan(g)) = 0;
 g = -g;
-
-end
 
 end

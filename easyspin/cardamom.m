@@ -686,7 +686,6 @@ while ~converged
             
         Sys.Diff = DiffLocal;
         Par.nSteps = nStepsStoch;
-%             Sys.Potential = LocalPotential;
         if useLocalPotential
           Sys.Potential = LocalPotential;
           Par.nSteps = 2*nStepsStoch;

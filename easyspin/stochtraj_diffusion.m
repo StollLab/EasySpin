@@ -151,16 +151,18 @@ isUserPotFun = ndims(Sys.Potential)==3 || isa(Sys.Potential,'function_handle');
 
 if isUserPotFun
   
-  % Get potential function
-  PseudoPotFun = Sys.Potential;
-  
   % Check potential function
+  PseudoPotFun = Sys.Potential;
   if isnumeric(PseudoPotFun)
     if any(isnan(PseudoPotFun(:)))
-      error('NaN detected in PseudoPotFun.');
+      error('NaN detected in Sys.Potential.');
     end
     if any(isinf(PseudoPotFun(:)))
-      error('At least one inf detected in PseudoPotFun.');
+      error('Inf detected in Sys.Potential.');
+    end
+  else
+    if nargin(PseudoPotFun)~=3
+      error('The function provided in Sys.Potential must accept 3 inputs.');
     end
   end
   
@@ -168,10 +170,10 @@ if isUserPotFun
   if isnumeric(PseudoPotFun)
     nGrid = size(PseudoPotFun);
   else
-    nGrid = [91 44 91]; % 4 degree increments for each angle
+    nGrid = [91 46 91]; % 4 degree increments for each angle
   end
   alphaGrid = linspace(0,2*pi,nGrid(1));
-  betaGrid = linspace(0,pi,nGrid(2)+2);
+  betaGrid = linspace(0,pi,nGrid(2));
   betaGrid = betaGrid(2:end-1); % avoid poles
   gammaGrid = linspace(0,2*pi,nGrid(3));
   
