@@ -48,18 +48,15 @@ data.y2 = y2;
 
 if opt.Display
   if ~isempty(olddata)
-    h1 = subplot(3,1,[1 2]);
-    hold on
-    plot(x1{2},real(y1(1,:)))
-    plot(x1{2},real(olddata.y1(1,:)));
-    legend('new','old');
+    subplot(3,1,[1 2]);
+    plot(x1',real(y1)','r',x1',real(olddata.y1)','b');
     axis tight
+    legend('new','old');
     title(mfilename);
-    h2 = subplot(3,1,3);
-    plot(x1{2},real(olddata.y1(1,:)-y1(1,:)));
+    subplot(3,1,3);
+    plot(x1',real(olddata.y1-y1)');
     axis tight
     xlabel('time [us]');
-    linkaxes([h1, h2],'x')
   end
 end
 
