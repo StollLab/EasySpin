@@ -38,7 +38,7 @@ Exp.CrystalOrientation = angles;
 
 if (opt.Display)
     clf
-    plot(x1,real(y1),'r',x2,real(y2),'b');
+    plot(x1,real(y1),x2,real(y2));
     legend({'external rotation' 'roation with saffron'})
     axis tight
     ylabel('Signal')

@@ -46,7 +46,7 @@ data.signal3 = signal3;
 
 if ~isempty(olddata)
   err = [~areequal(signal1,olddata.signal1,1e-4,'abs') ...
-    ~areequal(signal3,olddata.signal3,1e-4,'abs') ~isequal(signal1,signal2,1e-4,'abs')];
+    ~areequal(signal3,olddata.signal3,1e-4,'abs') ~areequal(signal1,signal2,1e-4,'abs')];
 else
   err = [];
 end

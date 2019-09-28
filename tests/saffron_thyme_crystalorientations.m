@@ -38,7 +38,7 @@ data.x2 = x2;
 data.y2 = y2;
 
 if ~isempty(olddata)
-  err = ~areequal(y1,olddata.y1,1e-4,'abs') || ~areequal(y2,olddata.y2,1e-4,'abs');
+  err = ~areequal(y1,olddata.y1,1e-3,'abs') || ~areequal(y2,olddata.y2,1e-3,'abs');
 else
   err = [];
 end

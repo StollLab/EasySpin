@@ -241,7 +241,7 @@ This means, no matter how strong the amplitude of your pulse gets, the flip angl
 You can try this by removing <code>Par.Flip</code> from the pulse definitions, and instead using <code>Par.Amplitude</code>.
 
 <!-- ============================================================= -->
-<a name="adiatbatic"><div class="subtitle">3D plot of adiabatic passage</div></a>
+<a name="adiabatic"><div class="subtitle">3D plot of adiabatic passage</div></a>
 
 <p>
 The aim of this example is to create a three-dimensional depiction of the spin trajectory during adiabatic passage.
@@ -305,6 +305,7 @@ plot3(real(Signal(:,2)),imag(Signal(:,2)),real(Signal(:,1)));
 xlabel('< S_x >')
 ylabel('< S_y>')
 zlabel('< S_z>')
+grid on
 </pre>
 
 <p>
