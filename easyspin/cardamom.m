@@ -16,9 +16,9 @@
 %     logtcorr       double or numeric vector, size = (1,3)
 %                    log10 of rotational correlation time (in seconds)
 %     Diff           double or numeric vector, size = (1,3)
-%                    diffusion rate (s^-1)
+%                    diffusion rate (rad^2 s^-1)
 %     logDiff        double or numeric vector, size = (1,3)
-%                    log10 of diffusion rate (s^-1)
+%                    log10 of diffusion rate (rad^2 s^-1)
 %
 %         All fields can have 1 (isotropic), 2 (axial) or 3 (rhombic) elements.
 %         Precedence: logtcorr > tcorr > logDiff > Diff.
@@ -283,21 +283,36 @@ if useMD
   end
   
   if ~isfield(MD,'FrameTraj')
-    error('The spin label frame trajectory MD.FrameTraj must be given.')
+    error('The spin label frame trajectory MD.FrameTraj must be given.');
+  end
+  if size(MD.FrameTraj,1)~=3 || size(MD.FrameTraj,2)~=3
+    error('Frame trajectory in MD must be of size (3,3,nSteps,nTraj).');
+  end
+  
+  % Swap last two dimensions if size (...,nTraj,nSteps) is given, to get
+  % size (...,nSteps,nTraj)
+  dimsSwapped = size(MD.FrameTraj,3)<size(MD.FrameTraj,4);
+  if dimsSwapped
+    perm34 = @(x)permute(x,[1 2 4 3]);
+    MD.FrameTraj = perm34(MD.FrameTraj);
+    MD.FrameTrajwrtProt = perm34(MD.FrameTrajwrtProt);
+    MD.dihedrals = perm34(MD.dihedrals);
+  end
+  
+  if ~isfield(MD,'FrameTrajwrtProt')
+    error('The spin label frame trajectory MD.FrameTrajwrtProt must be given.');
   end
   
   if ~isfield(MD,'removeGlobal')
     MD.removeGlobal = true;
-  end  
+  end
+  
   if MD.removeGlobal
     MD.RTraj = MD.FrameTrajwrtProt;
   else
     MD.RTraj = MD.FrameTraj;
   end
   
-  if size(MD.RTraj,1)~=3 || size(MD.RTraj,2)~=3
-    error('Frame trajectory in MD must be of size (3,3,nTraj,nSteps).');
-  end
   MD.nTraj = size(MD.RTraj,4);  % number of trajectories
   MD.nSteps = size(MD.RTraj,3); % number of time steps
   if MD.nTraj~=1
@@ -377,7 +392,6 @@ else
   isDiffSim = true;
 end
 
-% FieldSweep = true;
 Dynamics = validate_dynord('cardamom',Sys,FieldSweep,isDiffSim);
 
 if isDiffSim
@@ -388,13 +402,8 @@ end
 
 if useMD
   Dynamics.DiffGlobal = MD.DiffGlobal;
-  if isfield(MD, 'Potential')
-    isGlobalPotential = true;
-    GlobalPotential = MD.Potential;  % TODO fully implement this in Dynamics-checking and documentation
-  else
-    isGlobalPotential = false;
-  end
 end
+includeGlobalDynamics = ~isempty(Dynamics.DiffGlobal);
 
 if isfield(Sys,'Potential')
   useLocalPotential = true;
@@ -459,7 +468,7 @@ if isfield(Par,'dt')
   end
   if Par.Dt<Par.dt
     error('The stochastic time step Par.dt must be less than or equal to Par.Dt.')
-  end  
+  end
 else
   if isDiffSim
     Par.dt = min(tcorr)/10;
@@ -512,10 +521,16 @@ end
 
 logmsg(1,'Parameter settings:');
 logmsg(1,'  Local dynamics model:   ''%s''',LocalDynamicsModel);
-logmsg(1,'  Number of trajectories: %d',Par.nTraj);
+if includeGlobalDynamics
+  logmsg(1,'  Global correlation time:  %g rad^2/us',Dynamics.DiffGlobal/1e6);
+else
+  logmsg(1,'  Global correlation time:  none');
+end  
 logmsg(1,'  Number of orientations: %d',Par.nOrients);
-logmsg(1,'  Quantum propagation:    %d steps of %g ns',nStepsQuant,dtQuant/1e-9);
-logmsg(1,'  Spatial propagation:    %d steps of %g ns',nStepsStoch,dtStoch/1e-9);
+logmsg(1,'  Number of trajectories: %d',Par.nTraj);
+logmsg(1,'  Quantum propagation:    %d steps of %g ns (%g ns total)',nStepsQuant,dtQuant/1e-9,nStepsQuant*dtQuant/1e-9);
+logmsg(1,'  Spatial propagation:    %d steps of %g ns (%g ns total)',nStepsStoch,dtStoch/1e-9,nStepsStoch*dtStoch/1e-9);
+logmsg(1,'  Lag time:               %g MD steps',Par.lag);
 
 
 % Check local dynamics model
@@ -632,23 +647,21 @@ nOrientsTot = 0;
 
 t = linspace(0, nStepsQuant*Par.Dt, nStepsQuant).';
 
-includeGlobalDynamics = ~isempty(Dynamics.DiffGlobal);
 converged = false;
 spcLast = 0;
 while ~converged
   tic
-
+  
   % trajectories might differ in length, so we need cells for allocation
   TDSignal = {};
   tCell = [];
-
+  
   % temporary cells to store intermediate results
   iTDSignal = cell(1,nOrientations);
   itCell = cell(1,nOrientations);
-
+  
   updateuser(0);
   for iOri = 1:nOrientations
-    logmsg(1,' Orientation %d/%d',iOri,nOrientations);
     
     % Generate trajectory of local dynamics
     switch LocalDynamicsModel
@@ -681,7 +694,7 @@ while ~converged
         % orientation loop
         
       case 'MD-HBD'
-            
+        
         Sys.Diff = DiffLocal;
         Par.nSteps = nStepsStoch;
         if useLocalPotential
@@ -726,19 +739,14 @@ while ~converged
     % the time-dependent interaction tensors are calculated and possibly 
     % averaged)
     if includeGlobalDynamics
-     Sys.Diff = Dynamics.DiffGlobal;
-     if useLocalPotential
-       Sys.Potential = [];
-     elseif isGlobalPotential
-       Sys.Potential = GlobalPotential;
-     end
-     Par.dt = dtQuant;
-     Par.nSteps = nStepsQuant;
-     [~, ~, qTrajGlobal] = stochtraj_diffusion(Sys,Par,Opt);
+      Sys_.Diff = Dynamics.DiffGlobal;
+      Par.dt = dtQuant;
+      Par.nSteps = nStepsQuant;
+      [~, ~, qTrajGlobal] = stochtraj_diffusion(Sys_,Par,Opt);
       % Combine global trajectories with starting orientations
       qLab = quatmult(qLab,qTrajGlobal);
     end
-        
+    
     if strcmp(Opt.Method,'ISTOs')
       Par.qLab = qLab;
     else
@@ -759,7 +767,7 @@ while ~converged
     iTDSignal{1,iOri} = weight(iOri)*iTDSignal{1,iOri};
     
     if Opt.Verbosity
-      updateuser(iOri,nOrientations,false);
+      updateuser(iOri,nOrientations,true);
     end
     
     itCell{1,iOri} = t;
@@ -804,7 +812,7 @@ while ~converged
     end
     if numel(Sys.lw)==2 && Sys.lw(2)>0
       % Lorentzian broadening
-      TL = Dynamics.T2; 
+      TL = Dynamics.T2;
       TDSignal = bsxfun(@times,exp(-tLong/TL),TDSignal);
     end
   end
@@ -941,24 +949,28 @@ function updateuser(iOrient,nOrient,reverse)
 
 persistent reverseStr
 
-if iOrient==0, reverseStr = ''; return; end
+if iOrient==0
+  reverseStr = '';
+  return
+end
 
-avgTime = toc/iOrient;
+secsElapsed = toc;
+minsElapsed =  floor(secsElapsed/60);
+avgTime = secsElapsed/iOrient;
 secsLeft = (nOrient - iOrient)*avgTime;
 minsLeft = floor(secsLeft/60);
 
-secsElap = toc;
-minsElap =  floor(secsElap/60);
-
-msg3 = sprintf('  Time elapsed %02d:%02d:%02.0f (%g s/orientation)  ', floor(minsElap/60), mod(minsElap,60), mod(secsElap,60),avgTime);
+msg2 = sprintf('  Orientation %d/%d:\n',iOrient,nOrient); 
+msg3 = sprintf('   Time elapsed %02d:%02d:%02.0f (%0.3g s/orientation)\n', floor(minsElapsed/60), mod(minsElapsed,60), mod(secsElapsed,60),avgTime);
 msg4 = sprintf('   remaining %02d:%02d:%02.0f\n', floor(minsLeft/60), mod(minsLeft,60), mod(secsLeft,60));
-msg = [msg3, msg4];
+msg = [msg2 msg3 msg4];
 
 if reverse
-  fprintf([reverseStr, msg]);
+  fprintf([reverseStr msg]);
 else
-  fprintf([msg]);  
+  fprintf(msg);
 end
+
 reverseStr = repmat(sprintf('\b'), 1, length(msg));
 
 end

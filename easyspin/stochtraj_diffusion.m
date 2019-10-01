@@ -142,7 +142,7 @@ EasySpinLogLevel = Opt.Verbosity;
 [Dynamics,Sim] = validate_dynord('stochtraj_diffusion',Sys);
 Sim.Diff = Dynamics.Diff;
 
-tcorr = 1/6/mean(Dynamics.Diff);
+tcorr = 1/6./Dynamics.Diff;
 
 % Supplement fields
 if ~isfield(Sys,'Potential'), Sys.Potential = []; end
@@ -168,7 +168,7 @@ if isUserPotFun
   
   % Set up orientational grid
   if isnumeric(PseudoPotFun)
-    nGrid = size(PseudoPotFun);
+    nGrid = size(PseudoPotFun) + [0 2 0];
   else
     nGrid = [91 46 91]; % 4 degree increments for each angle
   end

@@ -178,11 +178,11 @@ if isfield(Dyn,'lw')
   else
     LorentzFWHM = 0;
   end
-  if (LorentzFWHM~=0)
+  if LorentzFWHM~=0
     % Lorentzian T2 from FWHM in freq domain 1/T2 = pi*FWHM
     Dyn.T2 = 1/LorentzFWHM/pi;
   else
-    Dyn.T2 = inf;
+    Dyn.T2 = Inf;
   end
 end
 

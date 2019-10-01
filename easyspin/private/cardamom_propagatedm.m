@@ -50,6 +50,18 @@ EasySpinLogLevel = Opt.Verbosity;
 %-------------------------------------------------------------------------------
 
 PropagationMethod = Opt.Method;
+switch PropagationMethod
+  case 'fast'
+    if ~isfield(Par,'RTraj')
+      error('Par.RTraj must be provided.');
+    end
+  case 'ISTOs'
+    if ~isfield(Par,'qTraj')
+      error('Par.qTraj must be provided.');
+    end
+  otherwise
+    error('Unknown propagation method ''%s''.',PropagationMethod);
+end
 
 % Define a rotational dynamics time scale for integrating correlation functions
 useMD = ~isempty(MD);
@@ -65,9 +77,6 @@ else
   end
 end
 
-if ~isfield(Par,'RTraj') && ~isfield(Par,'qTraj')
-  error('Either Par.RTraj or Par.qTraj must be provided.')
-end
 
 Dt = Par.Dt;  % spin dynamics propagation time step
 nSteps = Par.nSteps; % number of spin dynamics propagation steps
@@ -98,7 +107,7 @@ switch PropagationMethod
         error('A-tensor must be a 3-vector.')
       end
     end
-    
+        
     % Calculate tensor trajectories
     %---------------------------------------------------------------------------
     RTrajInv = permute(Par.RTraj,[2,1,3,4]);
