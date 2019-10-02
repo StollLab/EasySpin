@@ -757,8 +757,58 @@ for iPoints = 1 : nPoints
     % The indexing uses AcquisitionIndex, which provides the current
     % position in the array
     if ~StoreInCellArray
-      TimeArray(AcquisitionIndex{:},:) = t;
-      SignalArray(AcquisitionIndex{:},:,:) = Signal;
+      if length(t) > 1 && size(TimeArray,ndims(TimeArray)) ~= length(t)      
+        % double check that the most recent trace has the same length as
+        % all the others before
+        % in very rare cases it can happen that the total detection time
+        % between different acquistions is identical, but the total number
+        % of points changes. This is due to the fact, that if the length of
+        % an event is changed along one of the indirect dimensions, this
+        % change might not scale with the time step (think of it as the
+        % least common denominator). An extreme example would be:
+        % 1st Acquisition: tau1 = 0.5 us, tau2 = 0.5 us, dt = 0.2 us
+        %                  total detection time = 0.5 + 0.5 = 1 us
+        %                  total number of data points = 2 + 2 = 4
+        % 2nd Acquisition: tau1 = 0.4 us, tau2 = 0.6 us, dt = 0.2 us
+        %                  total detection time = 0.4 + 0.6 = 1 us
+        %                  total number of data points = 2 + 3 = 5
+        % These are usually very minor numerical differences (not
+        % necessesarily errors) that come from the time discretization step
+        % and are not expected to affect the simulation (especially since
+        % the time step is usually very small compared to any time
+        % increment along an indirect dimension).
+        StoreInCellArray = true;
+        
+        % Create cell arrays for output
+        if length(IndirectDimensions) == 1
+          % if no or only one Indirect Dimensions are requesteted, the
+          % output structure is created here, to avoid creating square
+          % cell arrays
+          NewSignalArray = cell(1,IndirectDimensions{:});
+          NewTimeArray = cell(1,IndirectDimensions{:});
+        else
+          NewSignalArray = cell(IndirectDimensions{:});
+          NewTimeArray = cell(IndirectDimensions{:});
+        end
+        
+        for jSignal = 1 : iPoints-1
+          position = cell(ndims(IndirectDimensions),1);
+          [position{:}] = ind2sub(cell2mat(IndirectDimensions),jSignal);
+          NewSignalArray{position} = SignalArray(position{:},:,:);
+          NewTimeArray{position} = TimeArray(position{:},:);
+        end
+        
+        NewSignalArray{AcquisitionIndex{:}} = Signal;
+        NewTimeArray{AcquisitionIndex{:}} = t;
+        
+        SignalArray = NewSignalArray;
+        TimeArray = NewTimeArray;
+                
+      else
+        
+        TimeArray(AcquisitionIndex{:},:) = t;
+        SignalArray(AcquisitionIndex{:},:,:) = Signal;
+      end
     else
       SignalArray{AcquisitionIndex{:}} = Signal;
       TimeArray{AcquisitionIndex{:}} = t;
