@@ -21,11 +21,11 @@
 
 function Hnn = nnint(System,nucSpins,opt)
 
-if (nargin==0), help(mfilename); return; end
+if nargin==0, help(mfilename); return; end
 
-if (nargin<1) || (nargin>3), error('Wrong number of input arguments!'); end
-if (nargout<0), error('Not enough output arguments.'); end
-if (nargout>1), error('Too many output arguments.'); end
+if nargin<1 || nargin>3, error('Wrong number of input arguments!'); end
+if nargout<0, error('Not enough output arguments.'); end
+if nargout>1, error('Too many output arguments.'); end
 
 if nargin<3, opt = ''; end
 if nargin<2, nucSpins = []; end
@@ -40,10 +40,15 @@ error(err);
 sys = spinvec(System);
 n = prod(2*sys+1);
 
-% Special cases: only one nuclear spin, nn not given, or all zero
 Hnn = sparse(n,n);
-if System.nNuclei<2, return; end
-if ~any(System.nn(:)), return; end
+
+% Special cases: only one nuclear spin, nn not given, or all zero
+if System.nNuclei<2 || ~any(System.nn(:))
+  if ~sparseResult
+    Hnn = full(Hnn);
+  end
+  return
+end
 
 if isempty(nucSpins), nucSpins = 1:System.nNuclei; end
 

@@ -34,24 +34,24 @@
 
 function varargout = zeeman(SpinSystem,varargin)
 
-if (nargin==0), help(mfilename); return; end
+if nargin==0, help(mfilename); return; end
 
-if (nargout==2) || (nargout>3), error('Wrong number of output arguments!'); end
+if nargout==2 || nargout>3, error('Wrong number of output arguments!'); end
 singleOutput = nargout<2;
 
 if singleOutput
-  if (nargin<1) || (nargin>4), error('Wrong number of input arguments!'); end
+  if nargin<1 || nargin>4, error('Wrong number of input arguments!'); end
   if nargin<2
     error('Field vector (second input, in mT) is missing.')
   else
-    Field = varargin{1};
+    B0 = varargin{1};
   end
-  if (nargin<3), Spins = []; else Spins = varargin{2}; end
-  if (nargin<4), opt = ''; else opt = varargin{3}; end
+  if nargin<3, Spins = []; else, Spins = varargin{2}; end
+  if nargin<4, opt = ''; else, opt = varargin{3}; end
 else
-  Field = [];
-  if (nargin<2), Spins = []; else Spins = varargin{1}; end
-  if (nargin<3), opt = ''; else opt = varargin{2}; end
+  B0 = [];
+  if nargin<2, Spins = []; else, Spins = varargin{1}; end
+  if nargin<3, opt = ''; else, opt = varargin{2}; end
 end
 
 if ~ischar(opt)
@@ -69,7 +69,14 @@ SpinVec = Sys.Spins;
 % No 'Spins' specified -> use all
 if isempty(Spins), Spins = 1:numel(SpinVec); end
 
-% Validate second argument (Spins)
+% Validate field if given
+if ~isempty(B0)
+  if numel(B0)~=3
+    error('Magnetic field vector (2nd input) must be a 3-element array.');
+  end
+end
+
+% Validate third argument (Spins)
 if any(Spins<1) || any(Spins>length(SpinVec))
   error('Spin indices (2nd input argument) invalid!');
 end
@@ -91,7 +98,7 @@ lFactor = -bmagn/(planck*1e9)*Sys.orf;
 % Loop over all spins selected
 for idx = 1:numel(Spins)
   iSpin = Spins(idx);
-  if (iSpin<=nElectrons),  % If it's an electron...
+  if iSpin<=nElectrons   % If it's an electron...
     if Sys.fullg
       g = elFactor((iSpin-1)*3+(1:3),:);
     else
@@ -101,7 +108,7 @@ for idx = 1:numel(Spins)
     R_M2g = erot(Sys.gFrame(iSpin,:)); % mol frame -> g frame
     R_g2M = R_M2g.'; % g frame -> mol frame
     g = R_g2M*g*R_g2M.';
-    % Build EZI Hamiltonian in MHz/mT
+    % Build electon Zeeman Hamiltonian in MHz/mT
     for k = 1:3
       Sk = sop(SpinVec,iSpin,k,'sparse');
       ZxM = ZxM + g(1,k)*Sk;
@@ -110,15 +117,15 @@ for idx = 1:numel(Spins)
     end
   elseif iSpin<=nEN
     % Nuclei, gn always isotropic
-    % Build NZI Hamiltonian in MHz/mT
+    % Build nuclear Zeeman Hamiltonian in MHz/mT
     pre = nucFactor(iSpin-nElectrons);
     pre = pre * Sys.gnscale(iSpin-nElectrons);
     ZxM = ZxM + pre*sop(SpinVec,iSpin,1,'sparse');
     ZyM = ZyM + pre*sop(SpinVec,iSpin,2,'sparse');
     ZzM = ZzM + pre*sop(SpinVec,iSpin,3,'sparse');
   else
-    % orbital angular momentum, isotrpic
-    % Build OAM (normal) ZI Hamiltonian in MHz/mT
+    % orbital angular momentum, isotropic
+    % Build orbital Zeeman Hamiltonian in MHz/mT
     pre = lFactor(iSpin-nEN);
     ZxM = ZxM + pre*sop(SpinVec,iSpin,1,'sparse');
     ZyM = ZyM + pre*sop(SpinVec,iSpin,2,'sparse');
@@ -126,7 +133,7 @@ for idx = 1:numel(Spins)
   end
 end
 
-if isempty(Field)
+if isempty(B0)
   if ~sparseResult
     ZxM = full(ZxM);
     ZyM = full(ZyM);
@@ -134,7 +141,7 @@ if isempty(Field)
   end
   varargout = {ZxM, ZyM, ZzM};
 else
-  H = ZxM*Field(1) + ZyM*Field(2) + ZzM*Field(3);
+  H = ZxM*B0(1) + ZyM*B0(2) + ZzM*B0(3);
   if ~sparseResult
     H = full(H);
   end

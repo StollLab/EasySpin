@@ -12,10 +12,10 @@
 
 function F = hfine(System,Spins,opt)
 
-if (nargin==0), help(mfilename); return; end
+if nargin==0, help(mfilename); return; end
 
-if (nargin<2), Spins = []; end
-if (nargin<3), opt = ''; end
+if nargin<2, Spins = []; end
+if nargin<3, opt = ''; end
 if ~ischar(opt)
   error('Third input must be a string, ''sparse''.');
 end
@@ -31,12 +31,12 @@ nStates = Sys.nStates;
 nElectrons = Sys.nElectrons;
 nNuclei = Sys.nNuclei;
 
-
 F = sparse(nStates,nStates); % sparse zero matrix
 
-if (nNuclei==0)
+% Special case: no nuclei present, so no hyperfine
+if nNuclei==0
   if ~sparseResult
-    F = full(F); % convert sparse to full
+    F = full(F);
   end
   return
 end
@@ -56,12 +56,12 @@ else
   ElSpins(ElSpins>nElectrons) = []; % remove nuclear spins
 end
 
-if (numel(NucSpins)<1) || (numel(ElSpins)<1)
+if numel(NucSpins)<1 || numel(ElSpins)<1
   error('At least one electron and one nuclear spin must be specified!');
 end
 
 
-FullAMatrix = size(System.A,1)>nNuclei;
+fullAMatrix = size(System.A,1)>nNuclei;
 
 % Generate Hamiltonian for hyperfine interaction.
 for edx = 1:length(ElSpins)
@@ -71,7 +71,7 @@ for edx = 1:length(ElSpins)
     nSp = NucSpins(ndx);
     if Sys.I(nSp-nElectrons)<=0, continue; end
     % Construct full hyperfine matrix.
-    if FullAMatrix
+    if fullAMatrix
       A = Sys.A((nSp-nElectrons-1)*3+(1:3),idx);
     else
       A = diag(Sys.A(nSp-nElectrons,idx));
