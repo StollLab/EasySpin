@@ -624,7 +624,10 @@ Basis.jKmin = Opt.jKmin;
 if ~isfield(Opt,'deltaK'), Opt.deltaK = []; end
 Basis.deltaK = Opt.deltaK;
 
-if ~isfield(Opt,'pSmin'), Opt.pSmin = 0; end
+if ~isfield(Opt,'pSmin'), Opt.pSmin = -1; end
+if numel(Opt.pSmin)~=1 || abs(Opt.pSmin)~=1
+  error('Opt.pSmin must be either +1 or -1.');
+end
 Basis.pSmin = Opt.pSmin;
 
 % Maximum nuclear coherence order

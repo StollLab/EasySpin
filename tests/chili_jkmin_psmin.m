@@ -18,7 +18,7 @@ Opt.pqOrder = true;
 Opt.LLMK = [6 3 2 2];
 
 jKmin = [-1 1];
-pSmin = [-1 0 1];
+pSmin = [-1 1];
 
 % Simulate spectra using all combinations of jKmin and pSmin
 %-------------------------------------------------------------------------------
