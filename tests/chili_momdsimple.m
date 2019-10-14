@@ -15,6 +15,7 @@ Experiment.mwFreq = 9.5;
 Experiment.CenterSweep = [338 20];
 
 Options.Verbosity = opt.Verbosity;
+Options.nKnots = 5;
 
 [x,y] = chili(Nitroxide,Experiment,Options);
 

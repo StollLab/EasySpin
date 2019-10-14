@@ -496,7 +496,7 @@ if ~usePotential
     logmsg(1,'  No orientational potential given, skipping powder simulation.');
     PowderSimulation = false;
   else
-  logmsg(1,'  Orientational potential given, doing powder simulation.');
+    logmsg(1,'  Orientational potential given, doing powder simulation.');
     PowderSimulation = true;
   end    
 else
@@ -515,7 +515,7 @@ if isempty(Opt), Opt = struct; end
 
 % Documented
 if ~isfield(Opt,'LLMK'), Opt.LLMK = [14 7 2 6]; end
-if ~isfield(Opt,'nKnots'), Opt.nKnots = [5 0]; end
+if ~isfield(Opt,'nKnots'), Opt.nKnots = [19 0]; end
 if ~isfield(Opt,'LiouvMethod'), Opt.LiouvMethod = ''; end
 if ~isfield(Opt,'PostConvNucs'), Opt.PostConvNucs = ''; end
 % Opt.Verbosity
@@ -598,7 +598,7 @@ if any(Sys.n~=1)
   error('chili cannot handle systems with nuclei with Sys.n > 1 only if these nuclei are treated using post-convolution (Opt.PostConvNucs).');
 end
 
-if numel(Opt.nKnots)<1, Opt.nKnots(1) = 5; end
+if numel(Opt.nKnots)<1, Opt.nKnots(1) = 19; end
 if numel(Opt.nKnots)<2, Opt.nKnots(2) = 0; end
 if Opt.nKnots(2)~=0
   error('chili cannot interpolate orientations. Set Opt.nKnots(2) to zero.');

@@ -16,6 +16,7 @@ Sys.Potential = [2 0 0 1; 2 0 2 1; 4 0 0 1; 4 0 2 1];
 
 Opt.pqOrder = true;
 Opt.LLMK = [6 3 2 2];
+Opt.nKnots = 5;
 
 jKmin = [-1 1];
 pSmin = [-1 1];
@@ -38,8 +39,9 @@ for p = 1:numel(pSmin)
     
     % Plotting
     if opt.Display
-      subplot(3,2,idx);
+      subplot(2,2,idx);
       plot(B,y_fast,B,y_general);
+      axis tight
       legend('fast','general');
       title(sprintf('jKmin = %d, pSmin = %d',Opt.jKmin,Opt.pSmin));
     end
