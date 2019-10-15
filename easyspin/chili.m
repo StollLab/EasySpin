@@ -271,13 +271,13 @@ if usePotential
     error('L values of potential coefficients must be nonnegative.');
   end
   if any(abs(Potential.K)>Potential.L)
-    error('L and K values of potential coefficients do not satisfy -L<=K<=L.');
+    error('L and K values of potential coefficients do not satisfy |K|<=L.');
   end
   if any(abs(Potential.M)>Potential.L)
-    error('L and M values of potential coefficients do not satisfy -L<=M<=L.');
+    error('L and M values of potential coefficients do not satisfy |M|<=L.');
   end
   if any(Potential.K<0)
-    error('Only nonnegative values of K are allowed. Terms with negative K required to render the potential real-valued are supplemented automatically.');
+    error('Only potential terms with nonnegative values of K are allowed. Terms with negative K required to render the potential real-valued are supplemented automatically.');
   end
   if any(Potential.M(Potential.K==0)<0)
     error('For potential terms with K=0, M must be nonnegative. Terms with negative M required to render the potential real-valued are supplemented automatically.');
@@ -882,7 +882,7 @@ end
 % Pre-calculate diffusion operator Wigner expansion coefficient
 % (needed for both Opt.Method='fast' and 'general')
 if usePotential
-  logmsg(1,'Calculating Wigner expansion coefficients for diffusion matrix');
+  logmsg(1,'Calculating Wigner expansion coefficients for potential-dependent part of diffusion matrix');
   XLMK = chili_xlmk(Potential,Dynamics.R);
 else
   XLMK = {};
@@ -1390,27 +1390,24 @@ if FieldSweep
   if Exp.ModAmp>0
     logmsg(1,'  applying field modulation');
     outspec = fieldmod(xAxis,outspec,Exp.ModAmp,Exp.ModHarmonic);
-  else
-    if Exp.DerivHarmonic>0
-      logmsg(1,'  harmonic %d: using differentiation',Exp.DerivHarmonic);
-      dx = xAxis(2)-xAxis(1);
-      for h = 1:Exp.DerivHarmonic
-        dspec = diff(outspec,[],2)/dx;
-        outspec = (dspec(:,[1 1:end]) + dspec(:,[1:end end]))/2;
-      end
-    end
   end
-else
-  % frequency sweeps: not available
 end
 
+if Exp.DerivHarmonic>0
+  logmsg(1,'  harmonic %d: using differentiation',Exp.DerivHarmonic);
+  dx = xAxis(2)-xAxis(1);
+  for h = 1:Exp.DerivHarmonic
+    dspec = diff(outspec,[],2)/dx;
+    outspec = (dspec(:,[1 1:end]) + dspec(:,[1:end end]))/2;
+  end
+end
 
 
 %===============================================================================
 %  Final processing
 %===============================================================================
 
-switch (nargout)
+switch nargout
 case 0
   cla
   if FieldSweep
