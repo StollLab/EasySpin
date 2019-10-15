@@ -794,8 +794,8 @@ for iPoints = 1 : nPoints
         for jSignal = 1 : iPoints-1
           position = cell(ndims(IndirectDimensions),1);
           [position{:}] = ind2sub(cell2mat(IndirectDimensions),jSignal);
-          NewSignalArray{position} = SignalArray(position{:},:,:);
-          NewTimeArray{position} = TimeArray(position{:},:);
+          NewSignalArray{position{:}} = SignalArray(position{:},:,:);
+          NewTimeArray{position{:}} = TimeArray(position{:},:);
         end
         
         NewSignalArray{AcquisitionIndex{:}} = Signal;
