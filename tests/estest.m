@@ -9,6 +9,8 @@
 %                       recalculate and store regression data
 %     estest asdf t     evaluate all tests whose name starts with asdf and
 %                       report timings
+%     estest asdf l     evaluate all tests whose name starts with asdf and
+%                       report all lines of code not covered by the tests
 %
 %   Either the command syntax as above or the function syntax, e.g.
 %   estest('asdf','t'), can be used.
@@ -74,6 +76,14 @@ fprintf(fid,'-------------------------------------------------------------------
 
 OutcomeStrings = {'pass','failed','crashed','not tested'};
 
+%get path to Easyspin functions folder
+path = fileparts(which('estest'));
+path = path(1:end-length('\tests'));
+
+%list all the functions, including private
+Files = dir(fullfile(path,'easyspin','*.m'));
+ExecutedLines = repmat({[]},length(Files),1);
+
 for iTest = 1:numel(TestFileNames)
   
   thisTestName = TestFileNames{iTest}(1:end-2);
@@ -103,6 +113,10 @@ for iTest = 1:numel(TestFileNames)
   
   % Run test, catch any errors
   testFcn = str2func(thisTestName);
+    
+  %Clear and start profiling code run by tests
+  profile clear
+  profile on
   tic
   try
     [err,data] = testFcn(Opt,olddata);
@@ -125,6 +139,29 @@ for iTest = 1:numel(TestFileNames)
     errorStr = ['    ' regexprep(errorStr,'\n','\n    ') char(10)];
   end
   time_used(iTest) = toc;
+  
+   %retrieve profiler summary
+  p = profile('info');
+  %and turn it off
+  profile off
+  
+  %Make list of all profiled function calls
+  ExecutedFcns = [{p.FunctionTable(:).CompleteName}];
+  %Analyze code coverage of each API function
+  for n = 1:length(Files)
+      FcnName = Files(n).name;
+      pos = find(contains(ExecutedFcns,FcnName));
+      if ~isempty(pos)
+          %initialize containers
+          for i=1:length(pos)
+              %get executed lines in profiler
+              tmp = p.FunctionTable(pos(i)).ExecutedLines;
+              container = ExecutedLines{n};
+              container(end+1:end+length(tmp(:, 1))) = tmp(:, 1);
+              ExecutedLines{n} = container;
+          end
+      end
+  end
   
   isRegressionTest = ~isempty(data);
   saveTestData = isRegressionTest && isempty(olddata);  
@@ -159,6 +196,54 @@ for iTest = 1:numel(TestFileNames)
   fprintf(fid,str);
 end
 
+
+
+fprintf(fid,'-----------------------------------------------------------------------\n');
+fprintf(fid,'Code Coverage Analysis \n');
+fprintf(fid,'-----------------------------------------------------------------------\n');
+
+TotalCovered = 0;
+TotalRunnable = 0;
+%Analyze code coverage of each API function
+for n = 1:length(Files)
+    FcnName = Files(n).name;
+    Path = Files(n).folder;
+    RunnableLines = callstats('file_lines',fullfile(Path,FcnName));
+    if isempty(RunnableLines)
+        RunnableLines = 0;
+    end
+    TotalRunnable = TotalRunnable + length(unique(RunnableLines));
+    Executed = unique(ExecutedLines{n});
+    Covered = length(Executed);
+    TotalCovered = TotalCovered + Covered;
+    Runnable = length(unique(RunnableLines));
+    Code = fileread(FcnName);
+    if params =='l'
+        Missed = RunnableLines;
+       for k=1:length(Executed)
+           Missed(RunnableLines==Executed(k)) = NaN;
+       end
+       Missed(isnan(Missed)) = [];
+    end
+    %Account for unreachable end-statements or lines
+    MissedEnds = length(strfind(Code,'error')) + length(strfind(Code,'return')) ...
+        + length(strfind(Code,'break')) + length(strfind(Code,'fprintf')) + length(strfind(Code,'plot'));
+    if Runnable - Covered <= MissedEnds
+        Covered = Runnable;
+        Missed = [];
+    end
+    Coverage = 100*Covered/Runnable;
+    %Print to console
+    if (~isempty(TestName) && Coverage~=0) || isempty(TestName)
+        if params =='l'
+            fprintf('%-20s%-18s%3.2f%% %18s  %s \n',FcnName,' ',Coverage,'Lines missing:',mat2str(Missed))
+        else
+            fprintf('%-20s%-18s%3.2f%%\n',FcnName,' ',Coverage)
+        end
+    end
+end
+TotalCoverage = TotalCovered/TotalRunnable*100;
+
 allErrors = [testResults.err];
 
 % Display timings of slowest tests
@@ -183,6 +268,9 @@ end
 fprintf(fid,'-----------------------------------------------------------------------\n');
 msg = sprintf('%d passes, %d failures, %d crashes\n',sum(allErrors==0),sum(allErrors==1),sum(allErrors==2));
 fprintf(fid,msg);
+if isempty(TestName)
+    fprintf('Total code coverage: %3.2f%%\n',TotalCoverage)
+end
 fprintf(fid,'-----------------------------------------------------------------------\n');
 
 % Return output if desired
