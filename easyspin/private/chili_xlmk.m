@@ -29,10 +29,12 @@ Mpot = Potential.M(:);
 Kpot = Potential.K(:);
 lambda = Potential.lambda(:);
 rmv = lambda==0;
-Lpot(rmv) = [];
-Mpot(rmv) = [];
-Kpot(rmv) = [];
-lambda(rmv) = [];
+if any(rmv)
+  Lpot(rmv) = [];
+  Mpot(rmv) = [];
+  Kpot(rmv) = [];
+  lambda(rmv) = [];
+end
 
 % Add terms needed to render potential real-valued
 %-------------------------------------------------------------------------------

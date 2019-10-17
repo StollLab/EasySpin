@@ -253,10 +253,12 @@ if ~isempty(Sys.Potential)
   Potential.K = Sys.Potential(:,3);
   Potential.lambda = Sys.Potential(:,4);
   rmv = Potential.lambda==0;
-  Potential.L(rmv) = [];
-  Potential.M(rmv) = [];
-  Potential.K(rmv) = [];
-  Potential.lambda(rmv) = [];
+  if any(rmv)
+    Potential.L(rmv) = [];
+    Potential.M(rmv) = [];
+    Potential.K(rmv) = [];
+    Potential.lambda(rmv) = [];
+  end
 else
   Potential.L = [];
   Potential.M = [];
@@ -916,8 +918,13 @@ logmsg(1,'Computing starting vector...');
 if generalLiouvillian
   if ~isfield(Opt,'StartVec') || isempty(Opt.StartVec)
     % Set up in full product basis, then prune
-    [StartVector,nInt] = startvec(Basis,Potential,SdetOp,Opt.useStartvecSelectionRules,Opt.PeqTol);
+    [StartVector,normPeqVec,nInt] = startvec(Basis,Potential,SdetOp,Opt.useStartvecSelectionRules,Opt.PeqTol);
     StartVector = StartVector(keep);
+    logmsg('  numerical integrals: %d 1D, %d 2D, % 3D',nInt(1),nInt(2),nInt(3));
+    logmsg('  norm of Peq vector: %g',normPeqVec);
+    if normPeqVec<0.99
+      warning('The norm of the equilibrium population vector is %g. The basis might be too small.',normPeqVec)
+    end
   else
     logmsg(1,'  using provided vector');
     if numel(Opt.StartVec)==sum(keep)
