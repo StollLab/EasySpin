@@ -253,6 +253,7 @@ if ~isempty(Sys.Potential)
   Potential.K = Sys.Potential(:,3);
   Potential.lambda = Sys.Potential(:,4);
   rmv = Potential.lambda==0;
+  rmv = rmv | (Potential.L==0 & Potential.M==0 & Potential.K==0);
   if any(rmv)
     Potential.L(rmv) = [];
     Potential.M(rmv) = [];

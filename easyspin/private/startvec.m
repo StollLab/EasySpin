@@ -1,6 +1,6 @@
 % startvec calculates the starting vector in the given basis (basis), including
-% the orientational potential (Potential) and the spin operator in SopH (either S+
-% or Sx).
+% the orientational potential (Potential) and the spin operator in SopH (either
+% S+ or Sx).
 
 function [StartingVector,normPeq,nIntegrals] = startvec(basis,Potential,SopH,useSelectionRules,PeqTolerances)
 
@@ -33,8 +33,9 @@ if any(~isreal(lambda(zeroMK)))
   error('Potential coefficients for M=K=0 must be real-valued.');
 end
 
-% Remove zero entries
+% Remove zero entries and constant offset
 rmv = lambda==0;
+rmv = rmv | (Lp==0 & Mp==0 & Kp==0);
 if any(rmv)
   lambda(rmv) = [];
   Lp(rmv) = [];
@@ -82,29 +83,19 @@ int_ab = @(f) integral2(f,0,2*pi,0,pi,'AbsTol',PeqIntAbsTol,'RelTol',PeqIntRelTo
 int_bc = @(f) integral2(f,0,pi,0,2*pi,'AbsTol',PeqIntAbsTol,'RelTol',PeqIntRelTol);
 int_abc = @(f) integral3(f,0,2*pi,0,pi,0,2*pi,'AbsTol',PeqIntAbsTol,'RelTol',PeqIntRelTol);
 
-% Calculate partition sum Z
-calculateZ = true;
-if calculateZ
-  if useSelectionRules
-    if zeroMp && zeroKp
-      f = @(b) exp(-U(0,b,0)) .* sin(b);
-      Z = (2*pi)^2 * int_b(f);
-    elseif zeroMp && ~zeroKp
-      f = @(b,c) exp(-U(0,b,c)) .* sin(b);
-      Z = (2*pi) * int_bc(f);
-    elseif ~zeroMp && zeroKp
-      f = @(a,b) exp(-U(a,b,0)) .* sin(b);
-      Z = (2*pi) * int_ab(f);
-    else
-      f = @(a,b,c) exp(-U(a,b,c)) .* sin(b);
-      Z = int_abc(f);
-    end
-  else
-    f = @(a,b,c) exp(-U(a,b,c)) .* sin(b);
-    Z = int_abc(f);
-  end
+% Calculate partition sum Z such that Peq = exp(-U)/Z
+if zeroMp && zeroKp
+  Z = (2*pi)^2 * int_b(@(b) exp(-U(0,b,0)).*sin(b));
+  nIntegrals = nIntegrals + [1 0 0];
+elseif zeroMp && ~zeroKp
+  Z = (2*pi) * int_bc(@(b,c) exp(-U(0,b,c)).*sin(b));
+  nIntegrals = nIntegrals + [0 1 0];
+elseif ~zeroMp && zeroKp
+  Z = (2*pi) * int_ab(@(a,b) exp(-U(a,b,0)).*sin(b));
+  nIntegrals = nIntegrals + [0 1 0];
 else
-  Z = 1;
+  Z = int_abc(@(a,b,c) exp(-U(a,b,c)).*sin(b));
+  nIntegrals = nIntegrals + [0 0 1];
 end
 sqrtZ = sqrt(Z);
 
@@ -152,6 +143,7 @@ for b = 1:numel(sqrtPeq)
     Int = int_abc(f);
     nIntegrals = nIntegrals + [0 0 1];
   end
+  Int = real(Int); % to remove small numeric errors in imaginary parts
   
   Int = sqrt((2*L_+1)/(8*pi^2)) * Int;
   if jKbasis
@@ -164,12 +156,12 @@ for b = 1:numel(sqrtPeq)
   end
   
 end
-sqrtPeq = real(sqrtPeq); % to remove small numeric errors in imaginary parts
+
+% Norm-squared of Peq is 1 in infinite-basis limit, < 1 for a truncated basis.
 normPeq = norm(sqrtPeq)^2;
 
-% form starting vector in direct product basis
-StartingVector = kron(sqrtPeq,SopH(:));
-StartingVector = StartingVector/norm(StartingVector);
+% Form starting vector in direct product basis
+StartingVector = kron(sqrtPeq,SopH(:)/norm(SopH(:)));
 StartingVector = sparse(StartingVector);
 
   % General orientational potential function (real-valued)
