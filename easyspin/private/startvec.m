@@ -4,6 +4,16 @@
 
 function [StartingVector,normPeq,nIntegrals] = startvec(basis,Potential,SopH,useSelectionRules,PeqTolerances)
 
+% Settings
+if nargin<5, useSelectionRules = true; end
+if nargin<6, PeqTolerances = []; end
+if isempty(PeqTolerances)
+  PeqTolerances = [1e-8 1e-6 1e-6];
+end
+PeqIntThreshold = PeqTolerances(1);
+PeqIntAbsTol = PeqTolerances(2);
+PeqIntRelTol = PeqTolerances(3);
+
 lambda = Potential.lambda;
 Lp = Potential.L;
 Mp = Potential.M;
@@ -36,16 +46,6 @@ end
 nIntegrals = [0 0 0];
 
 jKbasis = isfield(basis,'jK') && ~isempty(basis.jK) && any(basis.jK);
-
-% Settings
-if nargin<5, useSelectionRules = true; end
-if nargin<6, PeqTolerances = []; end
-if isempty(PeqTolerances)
-  PeqTolerances = [1e-8 1e-6 1e-6];
-end
-PeqIntThreshold = PeqTolerances(1);
-PeqIntAbsTol = PeqTolerances(2);
-PeqIntRelTol = PeqTolerances(3);
 
 L = basis.L;
 M = basis.M;
@@ -164,16 +164,13 @@ for b = 1:numel(sqrtPeq)
   end
   
 end
+sqrtPeq = real(sqrtPeq); % to remove small numeric errors in imaginary parts
 normPeq = norm(sqrtPeq)^2;
 
 % form starting vector in direct product basis
 StartingVector = kron(sqrtPeq,SopH(:));
 StartingVector = StartingVector/norm(StartingVector);
 StartingVector = sparse(StartingVector);
-
-if ~isreal(StartingVector)
-  error('Starting vector must be real-valued.');
-end
 
   % General orientational potential function (real-valued)
   % (assumes nonnegative K, and nonnegative M for K=0, and real lambda for
