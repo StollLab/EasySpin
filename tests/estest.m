@@ -41,6 +41,7 @@ Opt.Regenerate = any(params=='r');
 Opt.Verbosity = Opt.Display;
 
 displayTimings = any(params=='t');
+runCodeCoverageAnalysis = any(params=='l');
 
 if Opt.Display && displayTimings
   error('Cannot plot test results and report timings at the same time.');
@@ -82,7 +83,7 @@ path = path(1:end-length('\tests'));
 
 %list all the functions, including private
 Files = dir(fullfile(path,'easyspin','*.m'));
-ExecutedLines = repmat({[]},length(Files),1);
+executedLines = repmat({[]},length(Files),1);
 
 for iTest = 1:numel(TestFileNames)
   
@@ -110,13 +111,15 @@ for iTest = 1:numel(TestFileNames)
       end
     end
   end
+    
+  % Clear and start profiler
+  if runCodeCoverageAnalysis
+    profile clear
+    profile on
+  end
   
   % Run test, catch any errors
   testFcn = str2func(thisTestName);
-    
-  %Clear and start profiling code run by tests
-  profile clear
-  profile on
   tic
   try
     [err,data] = testFcn(Opt,olddata);
@@ -136,31 +139,32 @@ for iTest = 1:numel(TestFileNames)
     err = 2;
     errorInfo = exception;
     errorStr = getReport(errorInfo);
-    errorStr = ['    ' regexprep(errorStr,'\n','\n    ') char(10)];
+    errorStr = ['    ' regexprep(errorStr,'\n','\n    ') newline];
   end
   time_used(iTest) = toc;
   
-   %retrieve profiler summary
-  p = profile('info');
-  %and turn it off
-  profile off
-  
-  %Make list of all profiled function calls
-  ExecutedFcns = [{p.FunctionTable(:).CompleteName}];
-  %Analyze code coverage of each API function
-  for n = 1:length(Files)
+  % Retrieve profiler summary and turn profiler off
+  if runCodeCoverageAnalysis
+    p = profile('info');
+    profile off
+    
+    % Make list of all profiled function calls
+    executedFcns = {p.FunctionTable(:).CompleteName};
+    % Analyze code coverage of each API function
+    for n = 1:length(Files)
       FcnName = Files(n).name;
-      pos = find(contains(ExecutedFcns,FcnName));
+      pos = find(contains(executedFcns,FcnName));
       if ~isempty(pos)
-          %initialize containers
-          for i=1:length(pos)
-              %get executed lines in profiler
-              tmp = p.FunctionTable(pos(i)).ExecutedLines;
-              container = ExecutedLines{n};
-              container(end+1:end+length(tmp(:, 1))) = tmp(:, 1);
-              ExecutedLines{n} = container;
-          end
+        % initialize containers
+        for i = 1:length(pos)
+          % get executed lines in profiler
+          tmp = p.FunctionTable(pos(i)).ExecutedLines;
+          container = executedLines{n};
+          container(end+1:end+length(tmp(:, 1))) = tmp(:, 1);
+          executedLines{n} = container;
+        end
       end
+    end
   end
   
   isRegressionTest = ~isempty(data);
@@ -196,53 +200,54 @@ for iTest = 1:numel(TestFileNames)
   fprintf(fid,str);
 end
 
-
-
-fprintf(fid,'-----------------------------------------------------------------------\n');
-fprintf(fid,'Code Coverage Analysis \n');
-fprintf(fid,'-----------------------------------------------------------------------\n');
-
-TotalCovered = 0;
-TotalRunnable = 0;
-%Analyze code coverage of each API function
-for n = 1:length(Files)
+% Display results of code coverage analysis
+if runCodeCoverageAnalysis
+  
+  fprintf(fid,'-----------------------------------------------------------------------\n');
+  fprintf(fid,'Code Coverage Analysis \n');
+  fprintf(fid,'-----------------------------------------------------------------------\n');
+  
+  TotalCovered = 0;
+  TotalRunnable = 0;
+  % Analyze code coverage of each function
+  for n = 1:length(Files)
     FcnName = Files(n).name;
     Path = Files(n).folder;
     RunnableLines = callstats('file_lines',fullfile(Path,FcnName));
     if isempty(RunnableLines)
-        RunnableLines = 0;
+      RunnableLines = 0;
     end
     TotalRunnable = TotalRunnable + length(unique(RunnableLines));
-    Executed = unique(ExecutedLines{n});
+    Executed = unique(executedLines{n});
     Covered = length(Executed);
     TotalCovered = TotalCovered + Covered;
     Runnable = length(unique(RunnableLines));
     Code = fileread(FcnName);
     if params =='l'
-        Missed = RunnableLines;
-       for k=1:length(Executed)
-           Missed(RunnableLines==Executed(k)) = NaN;
-       end
-       Missed(isnan(Missed)) = [];
+      Missed = RunnableLines;
+      for k=1:length(Executed)
+        Missed(RunnableLines==Executed(k)) = NaN;
+      end
+      Missed(isnan(Missed)) = [];
     end
-    %Account for unreachable end-statements or lines
+    % Account for unreachable end-statements or lines
     MissedEnds = length(strfind(Code,'error')) + length(strfind(Code,'return')) ...
-        + length(strfind(Code,'break')) + length(strfind(Code,'fprintf')) + length(strfind(Code,'plot'));
+      + length(strfind(Code,'break')) + length(strfind(Code,'fprintf')) + length(strfind(Code,'plot'));
     if Runnable - Covered <= MissedEnds
-        Covered = Runnable;
-        Missed = [];
+      Covered = Runnable;
+      Missed = [];
     end
     Coverage = 100*Covered/Runnable;
-    %Print to console
+    % Print to command window
     if (~isempty(TestName) && Coverage~=0) || isempty(TestName)
-        if params =='l'
-            fprintf('%-20s%-18s%3.2f%% %18s  %s \n',FcnName,' ',Coverage,'Lines missing:',mat2str(Missed))
-        else
-            fprintf('%-20s%-18s%3.2f%%\n',FcnName,' ',Coverage)
-        end
+        fprintf('%-20s%-18s%5.1f%% %18s  %s\n',FcnName,' ',Coverage,'Lines missing:',mat2str(Missed))
     end
+  end
+  TotalCoverage = TotalCovered/TotalRunnable*100;
+  if isempty(TestName)
+    fprintf('Total code coverage: %3.2f%%\n',TotalCoverage)
+  end
 end
-TotalCoverage = TotalCovered/TotalRunnable*100;
 
 allErrors = [testResults.err];
 
@@ -268,9 +273,6 @@ end
 fprintf(fid,'-----------------------------------------------------------------------\n');
 msg = sprintf('%d passes, %d failures, %d crashes\n',sum(allErrors==0),sum(allErrors==1),sum(allErrors==2));
 fprintf(fid,msg);
-if isempty(TestName)
-    fprintf('Total code coverage: %3.2f%%\n',TotalCoverage)
-end
 fprintf(fid,'-----------------------------------------------------------------------\n');
 
 % Return output if desired
