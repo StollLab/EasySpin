@@ -180,17 +180,6 @@ if any(Sys.HStrain(:)) || any(Sys.gStrain(:)) || any(Sys.AStrain(:)) || any(Sys.
   error('chili does not support strains (HStrain, gStrain, AStrain, DStrain).');
 end
 
-if Sys.fullg
-  idx = 1:3;
-  for iElectron = 1:Sys.nElectrons
-    mean_g(iElectron) = mean(eig(Sys.g(idx,:)));
-    idx = idx + 3;
-  end
-  mT2MHz_giso = mt2mhz(1,mean(mean_g));
-else
-  mT2MHz_giso = mt2mhz(1,mean(mean(Sys.g)));
-end
-
 % Convolution with Gaussian only. Lorentzian broadening is 
 % included in the slow-motion simulation via T2.
 ConvolutionBroadening = any(Sys.lw(1)>0);
@@ -399,15 +388,15 @@ end
 
 if FieldSweep
   CenterField = Exp.CenterSweep(1);
-  Sweep = Exp.CenterSweep(2);
-  Exp.Range = Exp.CenterSweep(1) + [-1 1]/2*Sweep;
+  SweepWidth = Exp.CenterSweep(2);
+  Exp.Range = Exp.CenterSweep(1) + [-1 1]/2*SweepWidth;
   if any(Exp.Range<0) || diff(Exp.Range)<=0
     error('Invalid sweep range! Check Exp.CenterSweep or Exp.Range.');
   end
 else
   CenterFreq = Exp.mwCenterSweep(1);
-  Sweep = Exp.mwCenterSweep(2);
-  Exp.mwRange = Exp.mwCenterSweep(1) + [-1 1]/2*Sweep;
+  SweepWidth = Exp.mwCenterSweep(2);
+  Exp.mwRange = Exp.mwCenterSweep(1) + [-1 1]/2*SweepWidth;
   CenterField = Exp.Field;
   if any(Exp.mwRange<0) || diff(Exp.mwRange)<=0
     error('Invalid sweep range! Check Exp.mwCenterSweep or Exp.mwRange.');
@@ -416,10 +405,10 @@ end
 
 if FieldSweep
   logmsg(1,'  field range (mT): min %g, max %g, center %g, width %g',...
-    Exp.Range(1),Exp.Range(2),CenterField,Sweep);
+    Exp.Range(1),Exp.Range(2),CenterField,SweepWidth);
 else
   logmsg(1,'  frequency range (GHz): min %g, max %g, center %g, width %g',...
-    Exp.mwRange(1),Exp.mwRange(2),CenterFreq,Sweep);
+    Exp.mwRange(1),Exp.mwRange(2),CenterFreq,SweepWidth);
 end
 
 % Detection harmonic
@@ -739,20 +728,26 @@ error(err);
 
 Basis = processbasis(Basis,max(Potential.K),Sys.I,Symmetry);
 
-% Set up horizontal sweep axis
-% (nu is used internally, xAxis is used for user output)
-if FieldSweep
-  FreqSweep = Sweep*mT2MHz_giso*1e6; % mT -> Hz
-  nu = Exp.mwFreq*1e9 - linspace(-1,1,Exp.nPoints)*FreqSweep/2;  % Hz
-  xAxis = linspace(Exp.Range(1),Exp.Range(2),Exp.nPoints);  % field axis, mT
-  dB = xAxis(2)-xAxis(1); % field axis increment, mT
-  dnu = mt2mhz(dB,mean(Sys.g))/1e3; % equivalent frequency axis increment, GHz
+% Set up frequency axis
+%-------------------------------------------------------------------------------
+% Set reference g value (for frequency-to-field conversion)
+if Sys.fullg
+  idx = 1:3;
+  for iElectron = 1:Sys.nElectrons
+    mean_g(iElectron) = mean(eig(Sys.g(idx,:)));
+    idx = idx + 3;
+  end
+  gavg = mean(mean_g);
 else
-  nu = linspace(Exp.mwRange(1),Exp.mwRange(2),Exp.nPoints)*1e9;  % Hz
-  xAxis = nu/1e9; % frequency axis, GHz
-  dnu = xAxis(2)-xAxis(1); % frequency axis increment, GHz
-  dB = mhz2mt(dnu*1e3,mean(Sys.g)); % equivalent field axis increment, mT
+  gavg = mean(mean(Sys.g));
 end
+if FieldSweep
+  FreqSweep = mt2mhz(SweepWidth,gavg)/1e3; % mT -> GHz
+  nuRange = Exp.mwFreq - [-1 1]*FreqSweep/2; % GHz
+else
+  nuRange = Exp.mwRange;
+end
+nu = linspace(nuRange(1),nuRange(2),Exp.nPoints)*1e9; % Hz
 
 
 % Set up list of orientations
@@ -1005,8 +1000,12 @@ for iOri = 1:nOrientations
     BSweep = linspace(min(Exp.Range),max(Exp.Range),Exp.nPoints)/1e3; % mT -> T
     omega0 = complex(2*pi*Exp.mwFreq*1e9,1/Dynamics.T2); % GHz -> rad s^-1 (angular frequency)
   else
-    Bcalc = CenterField;
-    %Bcalc = mhz2mt(Exp.mwFreq*1e3,mean(mean(Sys.g)));
+    if FieldSweep
+      Bcalc = mhz2mt(Exp.mwFreq*1e3,gavg);
+      Bcalc = CenterField;
+    else
+      Bcalc = CenterField;
+    end
     BSweep = Bcalc/1e3; % mT -> T
     omega0 = complex(2*pi*nu,1/Dynamics.T2); % Hz -> rad s^-1 (angular frequency)
   end
@@ -1256,7 +1255,14 @@ spec = spec/2; % since chili uses normalized Sx and pepper uses unnormalized Sx
 % (works only for S=1/2)
 
 if FrequencySweep
-  spec = spec*(dB/dnu)*mt2mhz(1,mean(Sys.g)); % scale by g*Beta/h factor for freq sweep
+  spec = spec*1e3;
+end
+
+% Set x axis
+if FieldSweep
+  xAxis = linspace(Exp.Range(1),Exp.Range(2),Exp.nPoints);  % field axis, mT
+else
+  xAxis = nu/1e9; % frequency axis, GHz
 end
 
 % Save structure with internal data to workspace for diagnostics
@@ -1352,7 +1358,7 @@ if isfinite(Exp.Temperature)
   if FieldSweep
      DeltaE = planck*Exp.mwFreq*1e9; % joule
   else
-     DeltaE = bmagn*mean(Sys.g)*Exp.Field*1e-3; % joule
+     DeltaE = bmagn*gavg*Exp.Field*1e-3; % joule
   end
   e = exp(-DeltaE/boltzm/Exp.Temperature);
   Population = [1 e];
