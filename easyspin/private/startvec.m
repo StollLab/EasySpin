@@ -118,11 +118,11 @@ for b = 1:numel(sqrtPeq)
       if jKbasis && jK_~=1, continue; end
       if zeroKp
         if K_~=0, continue; end
-        f = @(b) wignerd([L_ 0 0],b) .* exp(-U(0,b,0)/2)/sqrtZ .* sin(b);
+        f = @(b) wignerd([L_ 0 0],b) .* exp(-U(0,b,0)/2) .* sin(b);
         Int = (2*pi)^2 * int_b(f);
         nIntegrals = nIntegrals + [1 0 0];
       else
-        f = @(b,c) cos(K_*c) .* wignerd([L_ 0 K_],b) .* exp(-U(0,b,c)/2)/sqrtZ .* sin(b);
+        f = @(b,c) cos(K_*c) .* wignerd([L_ 0 K_],b) .* exp(-U(0,b,c)/2) .* sin(b);
         Int = (2*pi) * int_bc(f);
         nIntegrals = nIntegrals + [0 1 0];
       end
@@ -130,22 +130,22 @@ for b = 1:numel(sqrtPeq)
       if K_~=0, continue; end
       if evenLp && mod(L_,2)~=0, continue; end
       if evenMp && mod(M_,2)~=0, continue; end
-      f = @(a,b) cos(M_*a) .* wignerd([L_ M_ 0],b) .* exp(-U(a,b,0)/2)/sqrtZ .* sin(b);
+      f = @(a,b) cos(M_*a) .* wignerd([L_ M_ 0],b) .* exp(-U(a,b,0)/2) .* sin(b);
       Int = (2*pi) * int_ab(f);
       nIntegrals = nIntegrals + [0 1 0];
     else
-      f = @(a,b,c) conj(wignerd([L_ M_ K_],a,b,c)) .* exp(-U(a,b,c)/2)/sqrtZ .* sin(b);
+      f = @(a,b,c) conj(wignerd([L_ M_ K_],a,b,c)) .* exp(-U(a,b,c)/2) .* sin(b);
       Int = int_abc(f);
       nIntegrals = nIntegrals + [0 0 1];
     end
   else
-    f = @(a,b,c) conj(wignerd([L_ M_ K_],a,b,c)) .* exp(-U(a,b,c)/2)/sqrtZ .* sin(b);
+    f = @(a,b,c) conj(wignerd([L_ M_ K_],a,b,c)) .* exp(-U(a,b,c)/2) .* sin(b);
     Int = int_abc(f);
     nIntegrals = nIntegrals + [0 0 1];
   end
   Int = real(Int); % to remove small numeric errors in imaginary parts
   
-  Int = sqrt((2*L_+1)/(8*pi^2)) * Int;
+  Int = sqrt((2*L_+1)/(8*pi^2))/sqrtZ * Int;
   if jKbasis
     Int = sqrt(2/(1 + (K_==0))) * Int;
   end
