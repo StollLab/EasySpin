@@ -1,23 +1,52 @@
-% startvec calculates the starting vector in the given basis (basis), including
-% the orientational potential (Potential) and the spin operator in SopH (either
-% S+ or Sx).
+% Calculates the vector representation of sqrt(Peq) in a LMK or LMKjK basis
+% under an orientational potential.
+%
+% Inputs:
+%   basis      orientational basis (structure with
+%                fields L, M, K, and possibly jK)
+%   Potential  orientational potential parameters (structure with fields
+%                L, M, K, and lambda; or n x 4 array)
+%   Opt        structure with options
+%     .useSelectionRules
+%     .PeqTolerances
+%
+% Outputs:
+%   sqrtPeq    vector representation of sqrt(Peq)
+%   nIntegrals number of evaluated 1D/2D/3D integrals
 
-function [StartingVector,normPeq,nIntegrals] = startvec(basis,Potential,SopH,useSelectionRules,PeqTolerances)
+function [sqrtPeq,nIntegrals] = chili_eqpopvec(basis,Potential,Opt)
 
-% Settings
-if nargin<5, useSelectionRules = true; end
-if nargin<6, PeqTolerances = []; end
-if isempty(PeqTolerances)
-  PeqTolerances = [1e-8 1e-6 1e-6];
+% Parse options
+if nargin<3
+  Opt = struct;
 end
+if ~isfield(Opt,'useSelectionRules')
+  Opt.useSelectionRules = true;
+end
+if ~isfield(Opt,'PeqTolerances') || isempty(Opt.PeqTolerances)
+  Opt.PeqTolerances = [1e-6 1e-4 1e-4];
+end
+useSelectionRules = Opt.useSelectionRules;
+PeqTolerances = Opt.PeqTolerances;
 PeqIntThreshold = PeqTolerances(1);
 PeqIntAbsTol = PeqTolerances(2);
 PeqIntRelTol = PeqTolerances(3);
 
-lambda = Potential.lambda;
-Lp = Potential.L;
-Mp = Potential.M;
-Kp = Potential.K;
+% Parse potential
+if isstruct(Potential)
+  Lp = Potential.L;
+  Mp = Potential.M;
+  Kp = Potential.K;
+  lambda = Potential.lambda;
+else
+  if size(Potential,2)~=4
+    error('Potential must have four columns (L, M, K, lambda)');
+  end
+  Lp = Potential(:,1);
+  Mp = Potential(:,2);
+  Kp = Potential(:,3);
+  lambda = Potential(:,4);
+end
 
 % Assure that potential contains only terms with nonnegative K, and nonnegative M
 % for K=0. The other terms needed to render the potential real-valued are
@@ -48,6 +77,7 @@ nIntegrals = [0 0 0];
 
 jKbasis = isfield(basis,'jK') && ~isempty(basis.jK) && any(basis.jK);
 
+% Parse basis
 L = basis.L;
 M = basis.M;
 K = basis.K;
@@ -64,9 +94,6 @@ if ~any(lambda)
   end
   sqrtPeq = zeros(nOriBasis,1);
   sqrtPeq(idx0) = 1;
-  normPeq = 1;
-  StartingVector = kron(sqrtPeq,SopH(:)/norm(SopH(:)));
-  StartingVector = sparse(StartingVector);
   return
 end
 
@@ -83,7 +110,7 @@ int_ab = @(f) integral2(f,0,2*pi,0,pi,'AbsTol',PeqIntAbsTol,'RelTol',PeqIntRelTo
 int_bc = @(f) integral2(f,0,pi,0,2*pi,'AbsTol',PeqIntAbsTol,'RelTol',PeqIntRelTol);
 int_abc = @(f) integral3(f,0,2*pi,0,pi,0,2*pi,'AbsTol',PeqIntAbsTol,'RelTol',PeqIntRelTol);
 
-% Calculate partition sum Z such that Peq = exp(-U)/Z
+% Calculate partition sum Z for Peq = exp(-U)/Z
 if zeroMp && zeroKp
   Z = (2*pi)^2 * int_b(@(b) exp(-U(0,b,0)).*sin(b));
   nIntegrals = nIntegrals + [1 0 0];
@@ -118,11 +145,11 @@ for b = 1:numel(sqrtPeq)
       if jKbasis && jK_~=1, continue; end
       if zeroKp
         if K_~=0, continue; end
-        f = @(b) wignerd([L_ 0 0],b) .* exp(-U(0,b,0)/2) .* sin(b);
+        f = @(b) wignerd([L_ 0 0],b) .* exp(-U(0,b,0)/2)/sqrtZ .* sin(b);
         Int = (2*pi)^2 * int_b(f);
         nIntegrals = nIntegrals + [1 0 0];
       else
-        f = @(b,c) cos(K_*c) .* wignerd([L_ 0 K_],b) .* exp(-U(0,b,c)/2) .* sin(b);
+        f = @(b,c) cos(K_*c) .* wignerd([L_ 0 K_],b) .* exp(-U(0,b,c)/2)/sqrtZ .* sin(b);
         Int = (2*pi) * int_bc(f);
         nIntegrals = nIntegrals + [0 1 0];
       end
@@ -130,22 +157,27 @@ for b = 1:numel(sqrtPeq)
       if K_~=0, continue; end
       if evenLp && mod(L_,2)~=0, continue; end
       if evenMp && mod(M_,2)~=0, continue; end
-      f = @(a,b) cos(M_*a) .* wignerd([L_ M_ 0],b) .* exp(-U(a,b,0)/2) .* sin(b);
+      f = @(a,b) cos(M_*a) .* wignerd([L_ M_ 0],b) .* exp(-U(a,b,0)/2)/sqrtZ .* sin(b);
       Int = (2*pi) * int_ab(f);
       nIntegrals = nIntegrals + [0 1 0];
     else
-      f = @(a,b,c) conj(wignerd([L_ M_ K_],a,b,c)) .* exp(-U(a,b,c)/2) .* sin(b);
+      f = @(a,b,c) conj(wignerd([L_ M_ K_],a,b,c)) .* exp(-U(a,b,c)/2)/sqrtZ .* sin(b);
       Int = int_abc(f);
       nIntegrals = nIntegrals + [0 0 1];
     end
   else
-    f = @(a,b,c) conj(wignerd([L_ M_ K_],a,b,c)) .* exp(-U(a,b,c)/2) .* sin(b);
+    f = @(a,b,c) conj(wignerd([L_ M_ K_],a,b,c)) .* exp(-U(a,b,c)/2)/sqrtZ .* sin(b);
     Int = int_abc(f);
     nIntegrals = nIntegrals + [0 0 1];
   end
-  Int = real(Int); % to remove small numeric errors in imaginary parts
   
-  Int = sqrt((2*L_+1)/(8*pi^2))/sqrtZ * Int;
+  % Remove numerical noise in imaginary part
+  if abs(imag(Int)/real(Int))<1e-5
+    Int = real(Int);
+  end
+  
+  % Combine with prefactor
+  Int = sqrt((2*L_+1)/(8*pi^2)) * Int;
   if jKbasis
     Int = sqrt(2/(1 + (K_==0))) * Int;
   end
@@ -156,13 +188,6 @@ for b = 1:numel(sqrtPeq)
   end
   
 end
-
-% Norm-squared of Peq is 1 in infinite-basis limit, < 1 for a truncated basis.
-normPeq = norm(sqrtPeq)^2;
-
-% Form starting vector in direct product basis
-StartingVector = kron(sqrtPeq,SopH(:)/norm(SopH(:)));
-StartingVector = sparse(StartingVector);
 
   % General orientational potential function (real-valued)
   % (assumes nonnegative K, and nonnegative M for K=0, and real lambda for

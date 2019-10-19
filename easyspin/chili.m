@@ -907,16 +907,21 @@ else
 end
 
 
-  
 % Starting vector
 %-------------------------------------------------------------------------------
-logmsg(1,'Computing starting vector...');
+logmsg(1,'Calculating starting vector...');
 if generalLiouvillian
   if ~isfield(Opt,'StartVec') || isempty(Opt.StartVec)
+    % Calculate sqrt(Peq) vector
+    Opt_.useSelectionRules = Opt.useStartvecSelectionRules;
+    Opt_.PeqTolerances = Opt.PeqTol;
+    [sqrtPeq,nInt] = chili_eqpopvec(Basis,Potential,Opt_);
     % Set up in full product basis, then prune
-    [StartVector,normPeqVec,nInt] = startvec(Basis,Potential,SdetOp,Opt.useStartvecSelectionRules,Opt.PeqTol);
+    StartVector = kron(sqrtPeq,SdetOp(:)/norm(SdetOp(:)));
+    StartVector = sparse(StartVector);
     StartVector = StartVector(keep);
     logmsg('  numerical integrals: %d 1D, %d 2D, % 3D',nInt(1),nInt(2),nInt(3));
+    normPeqVec = norm(sqrtPeq)^2;
     logmsg('  norm of Peq vector: %g',normPeqVec);
     if normPeqVec<0.99
       warning('The norm of the equilibrium population vector in this truncated basis is %g. It should be close to 1. The basis might be too small.',normPeqVec)
