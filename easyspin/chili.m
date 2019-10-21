@@ -918,7 +918,6 @@ if generalLiouvillian
     [sqrtPeq,nInt] = chili_eqpopvec(Basis,Potential,Opt_);
     % Set up in full product basis, then prune
     StartVector = kron(sqrtPeq,SdetOp(:)/norm(SdetOp(:)));
-    StartVector = sparse(StartVector);
     StartVector = StartVector(keep);
     logmsg('  numerical integrals: %d 1D, %d 2D, % 3D',nInt(1),nInt(2),nInt(3));
     normPeqVec = norm(sqrtPeq)^2;

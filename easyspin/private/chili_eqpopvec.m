@@ -187,6 +187,8 @@ for b = 1:numel(sqrtPeq)
     sqrtPeq(b) = Int;
   end
   
+  sqrtPeq = sparse(sqrtPeq);
+  
 end
 
   % General orientational potential function (real-valued)
