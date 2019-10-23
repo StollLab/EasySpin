@@ -728,7 +728,7 @@ error(err);
 
 Basis = processbasis(Basis,max(Potential.K),Sys.I,Symmetry);
 
-% Set up frequency axis
+% Set up g values, field/fields, and frequency/frequencies
 %-------------------------------------------------------------------------------
 % Set reference g value (for frequency-to-field conversion)
 if Sys.fullg
@@ -741,13 +741,37 @@ if Sys.fullg
 else
   gavg = mean(mean(Sys.g));
 end
+
+% Set field and frequency axes and values
 if FieldSweep
-  FreqSweep = mt2mhz(SweepWidth,gavg)/1e3; % mT -> GHz
-  nuRange = Exp.mwFreq - [-1 1]*FreqSweep/2; % GHz
-else
-  nuRange = Exp.mwRange;
+  if explicitFieldSweep
+    B0 = linspace(min(Exp.Range),max(Exp.Range),Exp.nPoints); % mT
+    nu = Exp.mwFreq; % GHz
+  else % frequency sweep converted to field sweep
+    B0 = CenterField; % mT
+    Method = 2;
+    switch Method
+      case 1 % exact for pure g anisotropy
+        B_ = linspace(min(Exp.Range),max(Exp.Range),Exp.nPoints); % mT
+        nu = Exp.mwFreq*B0./B_; % GHz
+      case 2 % exact for isotropic g
+        FreqSweep = mt2mhz(SweepWidth,gavg)/1e3; % -> GHz
+        nu = Exp.mwFreq - linspace(-1,1,Exp.nPoints)*FreqSweep/2; % GHz
+    end
+  end
+else % frequency sweep
+  B0 = CenterField; % mT
+  nu = linspace(Exp.mwRange(1),Exp.mwRange(2),Exp.nPoints); % GHz
 end
-nu = linspace(nuRange(1),nuRange(2),Exp.nPoints)*1e9; % Hz
+B0 = B0/1e3; % mT -> T
+omega0 = complex(2*pi*nu*1e9,1/Dynamics.T2); % GHz -> rad s^-1 (angular frequency)
+
+% Set x axis
+if FieldSweep
+  xAxis = linspace(Exp.Range(1),Exp.Range(2),Exp.nPoints);  % field axis, mT
+else
+  xAxis = nu; % frequency axis, GHz
+end
 
 
 % Set up list of orientations
@@ -999,21 +1023,7 @@ for iOri = 1:nOrientations
   % Liouvillian matrix
   %-----------------------------------------------------------------------------
   logmsg(1,'Computing Liouvillian matrix...');
-  
-  if explicitFieldSweep
-    BSweep = linspace(min(Exp.Range),max(Exp.Range),Exp.nPoints)/1e3; % mT -> T
-    omega0 = complex(2*pi*Exp.mwFreq*1e9,1/Dynamics.T2); % GHz -> rad s^-1 (angular frequency)
-  else
-    if FieldSweep
-      Bcalc = mhz2mt(Exp.mwFreq*1e3,gavg);
-      Bcalc = CenterField;
-    else
-      Bcalc = CenterField;
-    end
-    BSweep = Bcalc/1e3; % mT -> T
-    omega0 = complex(2*pi*nu,1/Dynamics.T2); % Hz -> rad s^-1 (angular frequency)
-  end
-  
+    
   if generalLiouvillian
     if Opt.useLMKbasis && useLanczosSolver
       TT = ksymmetrizer(Basis); % in spatial basis
@@ -1070,15 +1080,15 @@ for iOri = 1:nOrientations
     end
   end
   
-  for iB = 1:numel(BSweep)
+  for iB = 1:numel(B0)
     
     if ~generalLiouvillian
       if explicitFieldSweep
-        Sys.EZ0 = EZ0_*BSweep(iB);
-        Sys.EZ2 = EZ2_*BSweep(iB);
+        Sys.EZ0 = EZ0_*B0(iB);
+        Sys.EZ2 = EZ2_*B0(iB);
         if isfield(Sys,'NZ0')
           for iNuc = 1:numel(Sys.NZ0)
-            Sys.NZ0(iNuc) = NZ0_(iNuc)*BSweep(iB);
+            Sys.NZ0(iNuc) = NZ0_(iNuc)*B0(iB);
           end
         end
       end
@@ -1113,7 +1123,7 @@ for iOri = 1:nOrientations
     else
       
       if explicitFieldSweep
-        H = BSweep(iB)*HB + HG;
+        H = B0(iB)*HB + HG;
       end
       L = 2i*pi*H + Gamma;  % Hamiltonian: Hz -> rad s^-1
       nDim = size(L,1);
@@ -1260,13 +1270,6 @@ spec = spec/2; % since chili uses normalized Sx and pepper uses unnormalized Sx
 
 if FrequencySweep
   spec = spec*1e3;
-end
-
-% Set x axis
-if FieldSweep
-  xAxis = linspace(Exp.Range(1),Exp.Range(2),Exp.nPoints);  % field axis, mT
-else
-  xAxis = nu/1e9; % frequency axis, GHz
 end
 
 % Save structure with internal data to workspace for diagnostics
