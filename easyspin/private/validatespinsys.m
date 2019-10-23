@@ -1026,6 +1026,18 @@ if isfield(Sys,'L') && ~isempty(Sys.L)
     Sys.(fieldname) = CFk; 
   end  
 else
+  if isfield(Sys,'orf') && ~isempty(Sys.orf)
+    error('Sys.orf is given, but Sys.L is missing. Specify Sys.L.');
+  end
+  if isfield(Sys,'soc') && ~isempty(Sys.soc)
+    error('Sys.soc is given, but Sys.L is missing. Specify Sys.L.');
+  end
+  for k = 1:12
+    fn = sprintf('CF%d',k);
+    if isfield(Sys,fn) && ~isempty(Sys.(fn))
+      error('Sys.%s is given, but Sys.L is missing. Specify Sys.L.',fn);
+    end
+  end
   Sys.L = [];
   Sys.orf = [];
 end
