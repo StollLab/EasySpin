@@ -1024,7 +1024,7 @@ if isfield(Sys,'L') && ~isempty(Sys.L)
         ' instead of ', num2str(2*k+1),' coloumns.'];
     end
     Sys.(fieldname) = CFk; 
-  end  
+  end
 else
   if isfield(Sys,'orf') && ~isempty(Sys.orf)
     error('Sys.orf is given, but Sys.L is missing. Specify Sys.L.');
@@ -1041,17 +1041,14 @@ else
   Sys.L = [];
   Sys.orf = [];
 end
-  
-  
-
-
+Sys.nL = numel(Sys.L);
 
 %--------------------------------------------------------------------------
 Sys.Spins = [Sys.S(:); Sys.I(:); Sys.L(:)].';
 Sys.nStates = hsdim(Sys.Spins);
 
 FullSys = Sys;
-FullSys.processed = 1;
+FullSys.processed = true;
 
 return
 %@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@

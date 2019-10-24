@@ -120,7 +120,7 @@ The following groups of parameters can be specified in the spin system structure
 <li><a href = "#B">Higher-order operators</a></li>
 <li><a href = "#ee">Electron-electron spin-spin couplings</a></li>
 <li><a href = "#nn">Nuclear-nuclear spin-spin couplings</a></li>
-<li><a href = "#soi">Spin-orbit interaction</a></li>
+<li><a href = "#soi">Orbital angular momenta and spin-orbit interaction</a></li>
 <li><a href = "#Ham">General Paramters for Spin Hamiltonian expanded in Magnetic Field and Electron Spin</a></li>
 <li><a href = "#lw">Broadenings</a></li>
 </ul>
@@ -1092,18 +1092,28 @@ This is fully analogous to <code>eeFrame</code> (see above). Check out the page 
 </div>
 
 
-<div class="subtitle"><a name="soi">Spin-orbit interaction</a></div>
-For each electron spin an orbital angular momentum can be defined in the field <code>L</code>. It is described by the crystal field splitting, the orbital reduction factor and the spin-orbit coupling. Currently, spin-orbit interaction is supported by the simulation functions <a class="esf" href="pepper.html">pepper</a> (solid-state EPR)and <a class="esf" href="curry.html">curry</a>. 
-<p> Please cite Joscha and friends <em>Journal of unsolved questions</em>, <b>2020</b>, 87, 92-109 when using spin-orbit interaction.
+<div class="subtitle"><a name="soi">Orbital angular momenta and spin-orbit interaction</a></div>
+Each electron spin in the spin system can be coupled to an orbital angular momentum, with the assocaited quantum number defined in the field <code>L</code>. Spin-orbit coupling is specified via the fields <code>soc</code> (coupling strength) and <code>orf</code> (orbital reduction factor). Orbital angular momenta are supported by the simulation functions <a class="esf" href="pepper.html">pepper</a> (solid-state EPR) and <a class="esf" href="curry.html">curry</a> (magnetometry).
+
 <p>
 <div class="optionfield"><code>L</code></div>
 <div class="optiondescr">
-Defines the orbital angular momenta to which the electron spins should be coupled. <code>L</code> is an optional field. If given it need to have the same number of entries as <code>S</code> and the entries have to be positive integer or 0. Examples:
+Gives the quantum numbers for orbital angular momenta to which the electron spins are coupled. <code>L</code> is an optional field. If given, it must have the same number of entries as <code>S</code> and the entries have to be nonnegative integers. The kth orbital angular momentum is coupled to the kth spin angular momentum. Examples:
+
 <pre class="matlab">
-Sys = struct('S',[1/2 1/2], 'L',[2,2]); % two spin-1/2, each associated to L = 2
-Sys = struct('S',[1/2 3/2], 'L',[0,1]); % one spin-1/2 without L and a spin 3/2 with L = 1
-Sys = struct('S',1, 'L',3);             % one spin 1 associated to a L = 3
+% one spin 1 associated to a L = 3
+Sys.S = 1;
+Sys.L = 3;
+
+% two spin-1/2, each associated to L = 2
+Sys.S = [1/2 1/2];
+Sys.L = [2 2];
+
+% one spin-1/2 without L and a spin 3/2 with L = 1
+Sys.S = [1/2 3/2];
+Sys.L = [0 1];
 </pre>
+
 </div>
 <div class="optionfield"><code>CF0, CF2, CF4, CF6, CF8, CF10, CF12</code></div>
 <div class="optiondescr">
@@ -1158,27 +1168,29 @@ Sys.CF2 = CF2.';
 
 <div class="optionfield"><code>orf</code></div>  
 <div class="optiondescr">
-Orbital reduction factor entering in the Zeeman Hamiltonian and the spin-orbit interaction for each orbital angular momentum. <code>orf</code> is an optional field, if omitted it is assumed as 1 for all orbital angular momenta. The number of elements in <code>orf</code> has to match the number of elements in <code>L</code>.
+Orbital reduction factors (orf) entering in the Zeeman Hamiltonian and the spin-orbit interaction, one for each orbital angular momentum in <code>L</code>. <code>orf</code> is an optional field, if omitted it is assumed equal to 1 for all orbital angular momenta. The number of elements in <code>orf</code> must match the number of elements in <code>L</code>.
 
 <pre class="matlab">
-Sys.orf = 3/2;          % orf of a single effective l =1 as calculated by Lines for octahedral Co(II)
-Sys.orf = [0.97, 0.93]; % orf for two orbital angular momenta
+Sys.orf = 3/2;          % orf for a single orbital angular momentum
+Sys.orf = [0.97 0.93];  % orf for two orbital angular momenta
 </pre>
 </div>
 
 <div class="optionfield"><code>soc</code></div>  
 <div class="optiondescr">
-Spin-orbit coupling in MHz. It can also contain higher orders of the spin-orbit coupling, as sometimes used for heavier elements. Each electron spin can only be coupled to one orbital angular momentum. If more than one electron is present, the first row contain the coupling between the first electron spin and the first orbital angular momentum and so on. Examples:
+Spin-orbit coupling constants, in MHz. It can also contain higher orders of the spin-orbit coupling, as sometimes used for heavier elements. Each electron spin can only be coupled to one orbital angular momentum. If more than one electron is present, the first row contain the coupling between the first electron spin and the first orbital angular momentum and so on. Examples:
 <pre class="matlab">
-% three electron spins, with linear soc parameter of 170, 250 cm-1 and 0:
+% three electron spins, with linear soc parameter of 170, 250 cm^-1 and 0:
 Sys.soc = [170; 250; 0]*clight*1e-4;
-% as above, plus the first spin has a cubic soc parameter of 10 cm-1:
+% as above, plus the first spin has a cubic soc parameter of 10 cm-^1:
 Sys.soc = [170 0, 10; 250, 0, 0; 0, 0, 0]*clight*1e-4; 
 
-Sys = struct('S',[1/2 1], 'L',[2,1]); % two electron spin with S =1/2 and 1 and L = 2 and 1
+% two electron spin with S =1/2 and 1 and L = 2 and 1
+Sys.S = [1/2 1];
+Sys.L = [2 1];
 Sys.soc = [200; 100]*clight*1e-4; 
-% linear soc parameter between S = 1/2 and L = 2 is 200 cm-1
-% linear soc parameter between S = 1 and L = 1 is 100 cm-1
+% linear soc of 200 cm-1 between S = 1/2 and L = 2 
+% linear soc of 100 cm-1 parameter between S = 1 and L = 1
 </pre>  
 </div>
 

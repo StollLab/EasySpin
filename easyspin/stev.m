@@ -128,7 +128,7 @@ if mod(k,1) || (k<0) || (k>kmax) || ~isreal(k)
   error('k too large. Maximum supported k is %d.',kmax);
 end
 if (k>2*S)
-  error('k must not be larger than 2*S (%d with S=%g).',2*S,S);
+  error('Stevens operator with k=%d given. k must not be larger than 2*S (%d with S=%g).',k,2*S,S);
 end
 if mod(q,1) || abs(q)>k || ~isreal(q)
   error('q must be an integer between -k and k (%d and %d).',-k,k);
