@@ -107,7 +107,7 @@ unless ($ARGV[0]) {
         my $NumericVersion = 100000*$BuildID[0]+1000*$BuildID[1]+$BuildID[2];
         
         if ($BuildID[3]){ # check if the currently processed tag is a developer NumericVersion
-            my @DevVersion = ($BuildID[3] =~ m/-?([a-z]+).*(\d+)/);
+            my @DevVersion = ($BuildID[3] =~ m/-?([a-z]+).*?(\d{1,3})/);
             # read whether tag is alpha beta or dev
             if ($DevVersion[0] eq 'alpha') {
                 $NumericVersion = $NumericVersion + 0.2 
@@ -121,7 +121,7 @@ unless ($ARGV[0]) {
 
             # in case the tag also contains a numeric value, eg. dev.3, alpha1
             if ($DevVersion[1]) {
-                $NumericVersion = $NumericVersion + 0.01*$DevVersion[1];
+                $NumericVersion = $NumericVersion + 0.0001*$DevVersion[1];
             }
 
             # Update NewestVersion if necessary
@@ -288,7 +288,7 @@ foreach (@TagsToBuild) {
     my $MatlabOptions = '-nosplash -nodesktop -nodisplay';
     my $MatlabTarget = qq(-r "run('$esbuildNew');exit;");
 
-    print("Triggering Matlab build \n");
+    print("Triggering MATLAB build \n");
     system('matlab '.$MatlabOptions." ".$MatlabTarget);
 
     system("rm $esbuildNew");
@@ -308,7 +308,7 @@ foreach (@TagsToBuild) {
             $NumericVersion = $NumericVersion + 0.1
         }
         if ($thisBuildID[4]) {
-            $NumericVersion = $NumericVersion + 0.01*$thisBuildID[4];
+            $NumericVersion = $NumericVersion + 0.0001*$thisBuildID[4];
         }
     }
 
