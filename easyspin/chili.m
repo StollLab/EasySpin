@@ -749,14 +749,13 @@ if FieldSweep
     nu = Exp.mwFreq; % GHz
   else % frequency sweep converted to field sweep
     B0 = CenterField; % mT
+    B_ = linspace(min(Exp.Range),max(Exp.Range),Exp.nPoints); % mT
     Method = 2;
     switch Method
       case 1 % exact for pure g anisotropy
-        B_ = linspace(min(Exp.Range),max(Exp.Range),Exp.nPoints); % mT
         nu = Exp.mwFreq*B0./B_; % GHz
       case 2 % exact for isotropic g
-        FreqSweep = mt2mhz(SweepWidth,gavg)/1e3; % -> GHz
-        nu = Exp.mwFreq - linspace(-1,1,Exp.nPoints)*FreqSweep/2; % GHz
+        nu = Exp.mwFreq - mt2mhz(B_-B0,gavg)/1e3; % GHz
     end
   end
 else % frequency sweep
