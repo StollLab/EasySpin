@@ -98,7 +98,8 @@ lFactor = -bmagn/(planck*1e9)*Sys.orf;
 % Loop over all spins selected
 for idx = 1:numel(Spins)
   iSpin = Spins(idx);
-  if iSpin<=nElectrons   % If it's an electron...
+  if iSpin<=nElectrons
+    % If it's an electron...
     if Sys.fullg
       g = elFactor((iSpin-1)*3+(1:3),:);
     else
@@ -124,7 +125,7 @@ for idx = 1:numel(Spins)
     ZyM = ZyM + pre*sop(SpinVec,iSpin,2,'sparse');
     ZzM = ZzM + pre*sop(SpinVec,iSpin,3,'sparse');
   else
-    % orbital angular momentum, isotropic
+    % Orbital angular momenta, isotropic
     % Build orbital Zeeman Hamiltonian in MHz/mT
     pre = lFactor(iSpin-nEN);
     ZxM = ZxM + pre*sop(SpinVec,iSpin,1,'sparse');

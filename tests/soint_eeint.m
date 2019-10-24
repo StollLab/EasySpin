@@ -1,32 +1,41 @@
 function [err,data] = test(opt,olddata)
-%orbital angular momenta can also be defined as spins, therefore the two
-%Hamiltonians should be identical
-n = randi_(3);
-Sys.S = randi_(3,1,n)/2;
-Sys.L = randi_(2,1,n);
-Sys.soc = rand(n,2);
-Sys.orf = rand(n,1);
-lenS = length(Sys.S);
 
+% Spin-orbit coupling between spins and orbital angular momenta can also be
+% defined via electron-electron couplings between pure spins. The Hamiltonians
+% constructed for these two cases must be identical.
 
-if n>1, Sys.ee = zeros(nchoosek(lenS,2),1);end
-PureSpin.S = [Sys.S,Sys.L];
+rng_(3);
+nSpins = randi_(3);
+S = randi_(3,1,nSpins)/2;
+L = randi_(2,1,nSpins);
+soc = rand(nSpins,2);
+orf = rand(nSpins,1);
 
-%distribute soc over ee and ee2
-len = 2*lenS;
-k = nchoosek(1:len,2);
-eelen = nchoosek(len,2);
-PureSpin.ee = zeros(eelen,1);
-PureSpin.ee2 = zeros(eelen,1);
-for m=1:lenS
-  x = logical((k(:,1)==m).*(k(:,2)==m+lenS));
-  PureSpin.ee(x) = Sys.orf(m)*Sys.soc(m,1);
-  PureSpin.ee2(x) = Sys.orf(m)*Sys.orf(m)*Sys.soc(m,2);
+% System containing S and L
+SysSL.S = S;
+SysSL.L = L;
+SysSL.soc = soc;
+SysSL.orf = orf;
+if nSpins>1
+  SysSL.ee = zeros(nchoosek(nSpins,2),1);
 end
 
-H1 = eeint(PureSpin);
-H2 = soint(Sys);
+% System containing only spins
+SysPureSpin.S = [S L];
+len = 2*nSpins;
+k = nchoosek(1:len,2);
+eelen = nchoosek(len,2);
+SysPureSpin.ee = zeros(eelen,1);
+SysPureSpin.ee2 = zeros(eelen,1);
+for m = 1:nSpins
+  idx = (k(:,1)==m) & (k(:,2)==m+nSpins);
+  SysPureSpin.ee(idx) = orf(m)*soc(m,1);
+  SysPureSpin.ee2(idx) = orf(m)^2*soc(m,2);
+end
+
+% Calculate Hamiltonians
+H1 = eeint(SysPureSpin);
+H2 = soint(SysSL);
 
 err = ~areequal(H1,H2,1e-10,'abs');
 data = [];
-
