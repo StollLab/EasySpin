@@ -15,9 +15,10 @@ Exp.Range = [337 339];
 
 Opt.LiouvMethod = 'general';
 
+Opt.FieldSweepMethod = 'approxlin';
 [x,y1] = chili(Sys,Exp,Opt);
 
-Opt.ExplicitFieldSweep = true;
+Opt.FieldSweepMethod = 'explicit';
 [x,y2] = chili(Sys,Exp,Opt);
 
 if opt.Display

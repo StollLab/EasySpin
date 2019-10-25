@@ -14,7 +14,7 @@ Exp.Range = [332 345];
 Exp.Harmonic = 0;
 
 Opt.LiouvMethod = 'general';
-Opt.ExplicitFieldSweep = true;
+Opt.FieldSweepMethod = 'explicit';
 Opt.LLMK = [8 0 2 2];
 
 [x,y] = chili(Sys,Exp,Opt);

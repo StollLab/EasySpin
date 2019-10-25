@@ -524,7 +524,7 @@ if ~isfield(Opt,'SymmFrame'), Opt.SymmFrame = []; end
 if ~isfield(Opt,'Diagnostics'), Opt.Diagnostics = ''; end
 if ~isfield(Opt,'useLMKbasis'), Opt.useLMKbasis = false; end
 if ~isfield(Opt,'useStartvecSelectionRules'), Opt.useStartvecSelectionRules = true; end
-if ~isfield(Opt,'ExplicitFieldSweep'), Opt.ExplicitFieldSweep = false; end
+if ~isfield(Opt,'FieldSweepMethod'), Opt.FieldSweepMethod = []; end
 if ~isfield(Opt,'PeqTol'), Opt.PeqTol = []; end
 
 if ~ischar(Opt.Diagnostics) && ~isempty(Opt.Diagnostics) && ~isvarname(Opt.Diagnostics)
@@ -564,9 +564,6 @@ else
     end
   end
 end
-
-% Field sweep method
-explicitFieldSweep = Opt.ExplicitFieldSweep;
 
 % Post-convolution nuclei
 doPostConvolution = ~isempty(Opt.PostConvNucs);
@@ -661,8 +658,24 @@ end
 logmsg(1,'Solver: %s',SolverString);
 useLanczosSolver = Opt.Solver=='L';
 
+
+% Field sweep method: set default
+if FieldSweep
+  if isempty(Opt.FieldSweepMethod)
+    if useLanczosSolver
+      Opt.FieldSweepMethod = 'approxlin';
+    else
+      Opt.FieldSweepMethod = 'explicit';
+    end
+  end
+  [~,err] = parseoption(Opt,'FieldSweepMethod',{'explicit','approxinv','approxlin'});
+  error(err);
+end
+explicitFieldSweep = strcmp(Opt.FieldSweepMethod,'explicit');
+
+
+% Set reallocation block size, used in chili_lm
 if ~generalLiouvillian
-  % reallocation block size, used in chili_lm
   blockSize = 1e6;
   minBlockSize = 1e3;
   if ~isfield(Opt,'AllocationBlockSize')
@@ -725,12 +738,12 @@ error(err);
 
 % Basis
 %-------------------------------------------------------------------------------
-
 Basis = processbasis(Basis,max(Potential.K),Sys.I,Symmetry);
 
-% Set up g values, field/fields, and frequency/frequencies
+
+% Set up g values
 %-------------------------------------------------------------------------------
-% Set reference g value (for frequency-to-field conversion)
+% Set reference g value (for frequency-to-field conversion and Boltzmann)
 if Sys.fullg
   idx = 1:3;
   for iElectron = 1:Sys.nElectrons
@@ -743,27 +756,31 @@ else
 end
 
 % Set field and frequency axes and values
+%-------------------------------------------------------------------------------
+% Determine B0 and nu based on sweep domain and method
 if FieldSweep
-  if explicitFieldSweep
-    B0 = linspace(min(Exp.Range),max(Exp.Range),Exp.nPoints); % mT
-    nu = Exp.mwFreq; % GHz
-  else % frequency sweep converted to field sweep
-    B0 = CenterField; % mT
-    B_ = linspace(min(Exp.Range),max(Exp.Range),Exp.nPoints); % mT
-    Method = 2;
-    switch Method
-      case 1 % exact for pure g anisotropy
-        nu = Exp.mwFreq*B0./B_; % GHz
-      case 2 % exact for isotropic g
-        nu = Exp.mwFreq - mt2mhz(B_-B0,gavg)/1e3; % GHz
-    end
+  B_ = linspace(Exp.Range(1),Exp.Range(2),Exp.nPoints);
+  switch Opt.FieldSweepMethod
+    case 'explicit'
+      B0 = B_;
+      nu = Exp.mwFreq;
+    case 'approxinv'
+      B0 = CenterField;
+      nu = Exp.mwFreq*B0./B_;
+    case 'approxlin'
+      B0 = CenterField;
+      nu = Exp.mwFreq - mt2mhz(B_-B0,gavg)/1e3; % GHz
+    otherwise
+      error('Unknown setting ''%s'' in Opt.FieldSweepMethod.',Opt.FieldSweepMethod);
   end
 else % frequency sweep
-  B0 = CenterField; % mT
-  nu = linspace(Exp.mwRange(1),Exp.mwRange(2),Exp.nPoints); % GHz
+  B0 = CenterField;
+  nu = linspace(Exp.mwRange(1),Exp.mwRange(2),Exp.nPoints);
 end
+
+% Adjust units
 B0 = B0/1e3; % mT -> T
-omega0 = complex(2*pi*nu*1e9,1/Dynamics.T2); % GHz -> rad s^-1 (angular frequency)
+omega0 = complex(2*pi*nu*1e9,1/Dynamics.T2); % GHz -> rad s^-1
 
 % Set x axis
 if FieldSweep

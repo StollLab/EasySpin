@@ -16,7 +16,7 @@ Exp.Range = [337 339.5];
 [x,y1] = pepper(Sys,Exp);
 
 Opt.LiouvMethod = 'fast';
-Opt.ExplicitFieldSweep = true;
+Opt.FieldSweepMethod = 'explicit';
 Opt.LLMK = [20 0 0 0];
 
 [x2,y2] = chili(Sys,Exp,Opt);

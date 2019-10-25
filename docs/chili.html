@@ -259,6 +259,11 @@ Number of orientations used in a powder simulation. Default is 5. Increase this 
 This specifies which method is use to construct the Liouville matrix (i.e. the Hamiltonian and the relaxation superoperator). The two possible values are <code>'fast'</code> and <code>'general'</code>. The fast method is very fast, but limited to one electron spin with S=1/2 coupled to up to two nuclei and to orientational potentials with even L&le;4, zero M, even K &le;2, and real coefficients. On the other hand, the general method works for any spin system and any form of potential, but is significantly slower. By default, <code>chili</code> uses the fast method if applicable and falls back to the general method otherwise.
 </div>
 
+<div class="optionfield"><code>FieldSweepMethod</code></div>
+<div class="optiondescr">
+Specifies how to calculate the field sweep. There are three possible settings: <code>'explicit'</code>, <code>'approxinv'</code>, and <code>'approxlin'</code>. <code>'explicit`</code> indicates that the spectral intensity should be calculated separately and explicitly for each field value. This is the accurate method. In many cases, using <code>'approxlin'<code> or <code>'approxinv'</code> results in much faster simulations. For these settings, a frequency-swept spectrum is calculated first and then converted to the field domain. This procedure is only approximate. <code>'approxinv'</code> works best if the g anisotropy dominates the spectrum, in all other cases (e.g. dominant hyperfine or zero-field splittings), <code>'approxlin'</code> is preferable.
+</div>
+
 <div class="optionfield"><code>PostConvNucs</code></div>
 <div class="optiondescr">
 This specifies which nuclei should be excluded from the Stochastic Liouville equation (SLE) simulation and only included in the final spectrum perturbationally, via post-convolution of the SLE-simulated spectrum with an isotropic stick spectrum of the nuclei marked for post-convolution. E.g. If <code>Sys.Nucs = '14N,1H,1H,1H'</code> and <code>Opt.PostConvNucs = [2 3 4]</code>, the only the nitrogen is used in the SLE simulation, and all the protons are included via post-convolution.
