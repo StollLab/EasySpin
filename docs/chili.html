@@ -261,7 +261,7 @@ This specifies which method is use to construct the Liouville matrix (i.e. the H
 
 <div class="optionfield"><code>FieldSweepMethod</code></div>
 <div class="optiondescr">
-Specifies how to calculate the field sweep. There are three possible settings: <code>'explicit'</code>, <code>'approxinv'</code>, and <code>'approxlin'</code>. <code>'explicit`</code> indicates that the spectral intensity should be calculated separately and explicitly for each field value. This is the accurate method. In many cases, using <code>'approxlin'<code> or <code>'approxinv'</code> results in much faster simulations. For these settings, a frequency-swept spectrum is calculated first and then converted to the field domain. This procedure is only approximate. <code>'approxinv'</code> works best if the g anisotropy dominates the spectrum, in all other cases (e.g. dominant hyperfine or zero-field splittings), <code>'approxlin'</code> is preferable.
+Specifies how to calculate the field sweep. There are three possible settings: <code>'explicit'</code>, <code>'approxinv'</code>, and <code>'approxlin'</code>. <code>'explicit`</code> indicates that the spectral intensity should be calculated separately and explicitly for each field value. This is the accurate method. In many cases, using <code>'approxlin'</code> or <code>'approxinv'</code> results in much faster simulations. For these settings, a frequency-swept spectrum is calculated first and then converted to the field domain. This procedure is only approximate. <code>'approxinv'</code> works best if the g anisotropy dominates the spectrum, in all other cases (e.g. dominant hyperfine or zero-field splittings), <code>'approxlin'</code> is preferable.
 </div>
 
 <div class="optionfield"><code>PostConvNucs</code></div>

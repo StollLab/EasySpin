@@ -2,13 +2,11 @@
 %
 %   [x,T0,T1] = conjgrad(A,b,shift);
 %
-%   Solves A*x = b using the conjugate gradient
-%   algorithm. Computes the Lanczos tridiagonal
-%   matrix of A using the starting vector b. The
-%   diagonal is returned in T0, the upper
-%   diagonal in T1.
+%   Solves A*x = b using the conjugate gradient algorithm. Computes the Lanczos
+%   tridiagonal matrix of A using the starting vector b. The diagonal is
+%   returned in T0, the upper diagonal in T1.
 
-function [x,T0,T1,err,StepsDone] = conjgrad(A,b,shift);
+function [x,T0,T1,err,StepsDone] = chili_conjgrad(A,b,shift)
 
 d = b;
 x = 0;
@@ -21,7 +19,7 @@ iStep = 1;
 
 MaxSteps = length(b);
 Tolerance = 1e-8;
-while 1
+while true
   
   if (iStep>1)
     rr_old = rr;
@@ -59,7 +57,7 @@ StepsDone = iStep;
 % T is the Lanczos tridiagonal matrix, alpha and beta
 % are quantities from the conjugate gradient algorithm.
 
-if (nargout>1)
+if nargout>1
   for k = 2:StepsDone
     t1 = sqrt(bb(k))/aa(k-1);
     T1(k-1) = t1*sign(real(t1));
