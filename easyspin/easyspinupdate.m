@@ -19,17 +19,17 @@ if nargin == 0
     easyspinupdate(OnlineVersion);
   end
   return
-else
-  if all(isstrprop(OnlineVersion,'alpha'))
-    InstalledVersion = easyspininfo;
-    UpdateOpt.Branch = OnlineVersion;
-    UpdateOpt.Silent = true;
-    [~, OnlineVersion] = easyspinversioncheck(InstalledVersion,UpdateOpt);
-    if isempty(OnlineVersion)
-      msg = [UpdateOpt.Branch ' is not a valid branch name.'];
-      disp(msg)
-      return
-    end
+end
+
+if all(isstrprop(OnlineVersion,'alpha'))
+  InstalledVersion = easyspininfo;
+  UpdateOpt.Branch = OnlineVersion;
+  UpdateOpt.Silent = true;
+  [~, OnlineVersion] = easyspinversioncheck(InstalledVersion,UpdateOpt);
+  if isempty(OnlineVersion)
+    msg = [UpdateOpt.Branch ' is not a valid branch name.'];
+    disp(msg)
+    return
   end
 end
 
@@ -96,16 +96,16 @@ delete(zipFile);
 
 % ---------------------------------------------------------------
 % Add to Path and clean up
-NewESPath = [Destination 'easyspin-' VersionToGet filesep 'easyspin' filesep];
+newESPath = [Destination 'easyspin-' VersionToGet filesep 'easyspin' filesep];
 
-if isfolder(NewESPath)
-  addpath(NewESPath);
+if isfolder(newESPath)
+  addpath(newESPath);
   savepath
-  msg = ['EasySpin was succesfully installed to ' newline NewESPath newline 'and added to the MATLAB search paths.' newline];
+  msg = ['EasySpin was succesfully installed to ' newline newESPath newline 'and added to the MATLAB search paths.' newline];
   msg = [msg 'You may remove your old EasySpin installation (' OldPath ') from the MATLAB search paths and delete the folder from your system.']; 
   disp(msg);
 else
-  errMsg = ['EasySpin was succecsfully downloaded to ' newline NewESPath newline];
+  errMsg = ['EasySpin was succecsfully downloaded to ' newline newESPath newline];
   errMsg = [errMsg 'But adding it to the path failed. Please do so manually.'];
-  error(errMsg)
+  error(errMsg);
 end

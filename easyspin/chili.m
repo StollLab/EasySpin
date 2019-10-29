@@ -59,7 +59,12 @@ function varargout = chili(Sys,Exp,Opt)
 
 if nargin==0, help(mfilename); return; end
 
+% Check expiry date
+error(eschecker);
+
+% Check Matlab version
 error(chkmlver);
+
 if nargin<2 || nargin>3, error('Wrong number of input arguments!'); end
 if nargout<0, error('Not enough output arguments.'); end
 if nargout>2, error('Too many output arguments.'); end
@@ -69,11 +74,6 @@ if nargin<3, Opt = struct; end
 if ~isfield(Opt,'Verbosity')
   Opt.Verbosity = 0; % print level
 end
-
-% --------License --------------------------------------------------------------
-LicErr = 'Could not determine license.';
-Link = 'epr@eth'; eschecker; error(LicErr); clear Link LicErr
-% --------License --------------------------------------------------------------
 
 global EasySpinLogLevel
 EasySpinLogLevel = Opt.Verbosity;

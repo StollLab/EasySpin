@@ -17,21 +17,19 @@
 
 function varargout = saffron(Sys,Exp,Opt)
 for i = 1 % header - nothing to see here %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  if (nargin==0), help(mfilename); return; end
+  if nargin==0, help(mfilename); return; end
+  
+  % Check expiry date
+  error(eschecker);
+  
+  % Check Matlab version
+  error(chkmlver);
   
   % Get time for performance report at the end.
   StartTime = clock;
   
   % Input argument scanning, get display level and prompt
   %=======================================================================
-  % Check Matlab version
-  VersionErrorStr = chkmlver;
-  error(VersionErrorStr);
-  
-  % --------License ------------------------------------------------
-  LicErr = 'Could not determine license.';
-  Link = 'epr@eth'; eschecker; error(LicErr); clear Link LicErr
-  % --------License ------------------------------------------------
   
   % Guard against wrong number of input or output arguments.
   if (nargin<2) || (nargin>3), error('Wrong number of input arguments!'); end

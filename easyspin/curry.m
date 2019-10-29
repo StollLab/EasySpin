@@ -49,11 +49,17 @@
 
 function varargout = curry(Sys,Exp,Opt)
 
-if (nargin==0), help(mfilename); return; end
+if nargin==0, help(mfilename); return; end
 
-if (nargin<2), Exp = struct; end
-if (nargin<3), Opt = struct; end
-if (nargin>3)
+% Check expiry date
+error(eschecker);
+
+% Check Matlab version
+error(chkmlver);
+
+if nargin<2, Exp = struct; end
+if nargin<3, Opt = struct; end
+if nargin>3
   error('Up to three input arguments are possible. You gave %d.',nargin);
 end
 

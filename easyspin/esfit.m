@@ -26,16 +26,17 @@
 
 function varargout = esfit(SimFunctionName,ExpSpec,Sys0,Vary,Exp,SimOpt,FitOpt)
 
-if (nargin==0), help(mfilename); return; end
+if nargin==0, help(mfilename); return; end
 
-% --------License ------------------------------------------------
-LicErr = 'Could not determine license.';
-Link = 'epr@eth'; eschecker; error(LicErr); clear Link LicErr
-% --------License ------------------------------------------------
+% Check expiry date
+error(eschecker);
 
-if (nargin<5), error('Not enough inputs.'); end
-if (nargin<6), SimOpt = struct('unused',NaN); end
-if (nargin<7), FitOpt = struct('unused',NaN); end
+% Check Matlab version
+error(chkmlver);
+
+if nargin<5, error('Not enough inputs.'); end
+if nargin<6, SimOpt = struct('unused',NaN); end
+if nargin<7, FitOpt = struct('unused',NaN); end
 
 if isempty(FitOpt), FitOpt = struct('unused',NaN); end
 if ~isstruct(FitOpt)

@@ -1,4 +1,4 @@
-% salt  ENDOR spectra simulation 
+% salt  ENDOR spectra simulation
 %
 %   salt(Sys,Exp)
 %   salt(Sys,Exp,Opt)
@@ -31,26 +31,24 @@
 
 function varargout = salt(Sys,Exp,Opt)
 
-if (nargin==0), help(mfilename); return; end
+if nargin==0, help(mfilename); return; end
 
-% Get time for performance prompt at the end.
-StartTime = clock;
+% Check expiry date
+error(eschecker);
 
 % Check Matlab version.
 error(chkmlver);
 
-% --------License ------------------------------------------------
-LicErr = 'Could not determine license.';
-Link = 'epr@eth'; eschecker; error(LicErr); clear Link LicErr
-% --------License ------------------------------------------------
+% Get time for performance prompt at the end.
+StartTime = clock;
 
 % Check the number of input and output arguments.
-if (nargin<2) || (nargin>3), error('Wrong number of input arguments!'); end
-if (nargout<0), error('Not enough output arguments.'); end
-if (nargout>3), error('Too many output arguments.'); end
+if nargin<2 || nargin>3, error('Wrong number of input arguments!'); end
+if nargout<0, error('Not enough output arguments.'); end
+if nargout>3, error('Too many output arguments.'); end
 
 % Supplement empty options structure if not given.
-if (nargin<3), Opt = struct('unused',NaN); end
+if nargin<3, Opt = struct('unused',NaN); end
 if isempty(Opt), Opt = struct('unused',NaN); end
 
 if ~isstruct(Sys) && ~iscell(Sys)

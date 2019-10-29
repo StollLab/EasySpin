@@ -158,12 +158,18 @@
 
 function varargout = cardamom(Sys,Exp,Par,Opt,MD)
 
+if nargin==0, help(mfilename); return; end
+
+% Check expiry date
+error(eschecker);
+
+% Check Matlab version
+error(chkmlver);
+
 % Preprocessing
 % -------------------------------------------------------------------------
 
 switch nargin
-  case 0
-    help(mfilename); return;
   case 3 % Opt and MD not specified, initialize them
     Opt = [];
     MD = [];
@@ -174,7 +180,6 @@ switch nargin
     error('Incorrect number of input arguments.')
 end
 
-error(chkmlver);
 
 switch nargout
   case 0 % plotting
@@ -190,10 +195,6 @@ if ~isfield(Opt,'Verbosity')
   Opt.Verbosity = 0; % Log level
 end
 
-% --------License ------------------------------------------------
-LicErr = 'Could not determine license.';
-Link = 'epr@eth'; eschecker; error(LicErr); clear Link LicErr
-% --------License ------------------------------------------------
 
 global EasySpinLogLevel
 EasySpinLogLevel = Opt.Verbosity;
