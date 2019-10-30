@@ -230,8 +230,8 @@ if isfield(Sys,'lambda') && ~isempty(Sys.lambda)
     str = [str sprintf('%d %d %d %g',LMK(p,1),LMK(p,2),LMK(p,3),lam(p))];
     if p~=numel(lam), str = [str '; ']; end
   end
-  str = [str '];    % L M K lambda'];
-  error(sprintf('\n  Sys.lambda is obsolete.\n  Use the following instead:\n\n%s\n',str));
+  str = [str ']'];
+  error('\n  Sys.lambda is obsolete.\n  Use the following instead:\n\n%s;    % L M K lambda\n',str);
 end
 
 % Extract and organize information about potential
@@ -639,15 +639,31 @@ if ~isfield(Opt,'MpSymm')
 end
 Basis.MpSymm = Opt.MpSymm;
 
-explicitFieldSweep = strcmp(Opt.FieldSweepMethod,'explicit');
 
-if ~isfield(Opt,'Solver') || isempty(Opt.Solver)
-  if explicitFieldSweep
+% Field sweep and linear solver
+%-------------------------------------------------------------------------------
+logmsg(1,'Methods:');
+
+% Field sweep method: set default
+if FieldSweep
+  if isempty(Opt.FieldSweepMethod)
+    Opt.FieldSweepMethod = 'approxlin';
+  end
+  [~,err] = parseoption(Opt,'FieldSweepMethod',{'explicit','approxinv','approxlin'});
+  error(err);
+end
+explicitFieldSweep = FieldSweep && strcmp(Opt.FieldSweepMethod,'explicit');
+logmsg(1,'  Field sweep method: %s',Opt.FieldSweepMethod);
+
+% Set solver if not given
+if isempty(Opt.Solver)
+  if strcmp(Opt.FieldSweepMethod,'explicit')
     Opt.Solver = '\';
   else
     Opt.Solver = 'L';
   end
 end
+useLanczosSolver = Opt.Solver=='L';
 
 if explicitFieldSweep && Opt.Solver~='\'
   error('For an explicit field sweep, use Opt.Solver=''\''.');
@@ -661,7 +677,7 @@ switch Opt.Solver
       SolverString = 'Lanczos tridiagonalization, right-to-left continued fraction evaluation';
     end
   case '\'
-    SolverString = 'backslash linear';
+    SolverString = 'backslash';
   case 'E'
     SolverString = 'eigenvalue method, sum of Lorentzians';
   case 'C'
@@ -671,25 +687,11 @@ switch Opt.Solver
   otherwise
     error('Unknown method in Options.Solver. Must be ''L'', ''\'', ''E'', ''C'', or ''B''.');
 end
-logmsg(1,'Solver: %s',SolverString);
-useLanczosSolver = Opt.Solver=='L';
+logmsg(1,'  Solver: %d = %s',Opt.Solver,SolverString);
 
 
-% Field sweep method: set default
-if FieldSweep
-  if isempty(Opt.FieldSweepMethod)
-    if useLanczosSolver
-      Opt.FieldSweepMethod = 'approxlin';
-    else
-      Opt.FieldSweepMethod = 'explicit';
-    end
-  end
-  [~,err] = parseoption(Opt,'FieldSweepMethod',{'explicit','approxinv','approxlin'});
-  error(err);
-end
-
-
-% Set reallocation block size, used in chili_lm
+% Set allocation block size, used in chili_lm
+%-------------------------------------------------------------------------------
 if ~generalLiouvillian
   blockSize = 1e6;
   minBlockSize = 1e3;
@@ -706,24 +708,22 @@ end
 % Precalculate spin operator matrices
 %-------------------------------------------------------------------------------
 if generalLiouvillian
-  logmsg(1,'  using general Liouvillian code');
+  logmsg(1,'  Liouvillian construction: general code');
   
   % calculate spin operators
-  logmsg(1,'  setting up spin operators');
   for iSpin = 1:numel(Sys.Spins)
     SpinOps{iSpin,1} = sop(Sys.Spins,iSpin,1,'sparse'); % Sx
     SpinOps{iSpin,2} = sop(Sys.Spins,iSpin,2,'sparse'); % Sy
     SpinOps{iSpin,3} = sop(Sys.Spins,iSpin,3,'sparse'); % Sz
   end
 
-  logmsg(1,'  setting up detection operator');
   SdetOp = sparse(0);
   for e = 1:Sys.nElectrons
     SdetOp = SdetOp + SpinOps{e,1}; % Sx
   end
   
 else
-  logmsg(1,'  using fast S=1/2 Liouvillian code');
+  logmsg(1,'  Liouvillian construction: fast S=1/2 code');
   % no need to calculate spin operators for the fast code
   SpinOps = [];
 end
@@ -852,11 +852,12 @@ Weights = 4*pi*Weights/sum(Weights);
 
 % Basis set preparations
 %-------------------------------------------------------------------------------
-logmsg(1,'Setting up basis set...');
-logmsg(1,'  spatial basis: Leven max %d, Lodd max %d, Mmax %d, Kmax %d, deltaK %d, jKmin %+d',...
+logmsg(1,'Basis set:');
+logmsg(1,'  truncation settings:');
+logmsg(1,'    orientational: Leven max %d, Lodd max %d, Mmax %d, Kmax %d, deltaK %d, jKmin %+d',...
   Basis.LLMK(1),Basis.LLMK(2),Basis.LLMK(3),Basis.LLMK(4),Basis.deltaK,Basis.jKmin);
-logmsg(1,'  spin basis: pSmin %+d, pImax %s',Basis.pSmin,num2str(Basis.pImax));
-logmsg(1,'  M-p symmetry: %d',Basis.MpSymm);
+logmsg(1,'    spin: pSmin %+d, pImax %s',Basis.pSmin,num2str(Basis.pImax));
+logmsg(1,'    M-p symmetry: %d',Basis.MpSymm);
 
 if generalLiouvillian
   
@@ -868,12 +869,16 @@ if generalLiouvillian
   end
   nOriBasis = numel(Basis.L);
   nSpinBasis = Sys.nStates^2;
-  logmsg(1,'  complete product basis size: %d (%d spatial, %d spin)',...
-    nOriBasis*nSpinBasis,nOriBasis,nSpinBasis);
+  logmsg(1,'  orientational basis: %d functions',nOriBasis);
   
   % Get (p,q) quantum numbers for transitions, and index vector for reordering
   % basis states from m1-m2 order (standard) to p-q order (used in fast code)
   [idxpq,pq] = pqorder(Sys.Spins);
+  % Reorder detection operator if needed
+  SdetOp = SdetOp(:);
+  if Opt.pqOrder
+    SdetOp = SdetOp(idxpq);
+  end
   
   % Removing unwanted spin functions (in mm ordering)
   keep = true;
@@ -890,10 +895,11 @@ if generalLiouvillian
   if Opt.pqOrder
     keep = keep(idxpq);
   end
+  logmsg(1,'  spin basis: %d functions (%0.1f%% of %d)',...
+    sum(keep),sum(keep)/nSpinBasis*100,nSpinBasis);
   keep = repmat(keep,nOriBasis,1);
-  logmsg(1,'  pruning spin basis: keeping %0.2f%% of %d functions',sum(keep)/numel(keep)*100,nSpinBasis);
   
-  % Apply M=p-1 symmetry (Meirovitch Eq. (A47))
+  % Apply M=p-1 symmetry (Meirovitch J.Chem.Phys. 77(7), 3915-3938, Eq. (A47))
   if Opt.MpSymm
     M = Basis.M;
     psum = sum(pq(:,1:2:end),2);
@@ -901,19 +907,13 @@ if generalLiouvillian
     keep = keep & keep_Mp(:);
     logmsg(1,'  applying M-p symmetry: keeping %d of %d functions',sum(keep),numel(keep));
   end
-  
-  % Reorder detection operator if needed
-  SdetOp = SdetOp(:);
-  if Opt.pqOrder
-    SdetOp = SdetOp(idxpq);
-  end
-  
-  logmsg(1,'  final basis size: %d (%f%% of %d)',sum(keep),100*sum(keep)/nOriBasis/nSpinBasis,nOriBasis*nSpinBasis);
+
+  logmsg(1,'  total basis size: %d functions',sum(keep));
   
 else
   
   Basis = chili_basisbuild(Basis,Sys);
-  logmsg(1,'  basis size: %d',numel(Basis.L));
+  logmsg(1,'  total basis size: %d functions',numel(Basis.L));
   
 end
 if saveDiagnostics
@@ -924,7 +924,7 @@ end
 %-------------------------------------------------------------------------------
 if generalLiouvillian
   
-  logmsg(1,'Precalculating 3j symbols');
+  logmsg(1,'Precalculating 3j symbols...');
   computeRankOne = any(F.F1(:)~=0);
   [jjj0,jjj1,jjj2] = jjjsymbol(Basis.LLMK(1),Basis.LLMK(2),computeRankOne);
   
@@ -1033,7 +1033,7 @@ end
 spec = 0;
 for iOri = 1:nOrientations
   
-  logmsg(1,'orientation %d of %d: phi = %gdeg, theta = %gdeg (weight %g)',...
+  logmsg(1,'Orientation %d/%d: phi = %gdeg, theta = %gdeg (weight %g)',...
     iOri,nOrientations,phi(iOri)*180/pi,theta(iOri)*180/pi,Weights(iOri));
 
   % Liouvillian matrix
@@ -1181,14 +1181,14 @@ for iOri = 1:nOrientations
     % are real-valued.
     if generalLiouvillian && Opt.useLMKbasis && useLanczosSolver
       isComplexSymmetric = isreal(H);
-      maxerr = @(A)max(abs(A(:)));
-      imagerr = @(A)maxerr(imag(A))/maxerr(real(A));
+      %maxerr = @(A)max(abs(A(:)));
+      %imagerr = @(A)maxerr(imag(A))/maxerr(real(A));
       %Himag = imagerr(H)
       %Gimag = imagerr(Gamma)
       if ~isComplexSymmetric
         L = TT'*L*TT;
-        ksymmHimag = imagerr(TT'*H*TT);
-        ksymmHimag = imagerr(TT'*Gamma*TT);
+        %ksymmHimag = imagerr(TT'*H*TT);
+        %ksymmHimag = imagerr(TT'*Gamma*TT);
         StartVector = TT'*StartVector;
       end
     end
@@ -1349,7 +1349,6 @@ if doPostConvolution
   spec_pc = garlic(pcSys,pcExp);
   spec_pc = spec_pc/sum(spec_pc);
   
-  global EasySpinLogLevel
   EasySpinLogLevel = Opt.Verbosity; % re-set it, since garlic clears it
   
   % Convolute SLE spectrum with isotropic spectrum
