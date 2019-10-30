@@ -19,6 +19,8 @@ function logmsg(varargin)
 % Connect to global variable
 global EasySpinLogLevel
 
+if isempty(EasySpinLogLevel), return; end
+
 MsgLevel = varargin{1};
 
 if numel(MsgLevel)~=1 || ~isnumeric(MsgLevel) || mod(MsgLevel,1)~=0 || MsgLevel<0

@@ -82,9 +82,8 @@ if ~isfield(Opt,'Verbosity')
   Opt.Verbosity = 0; % Log level
 end
 
-global EasySpinLogLevel;
+global EasySpinLogLevel
 EasySpinLogLevel = Opt.Verbosity;
-
 
 
 %==================================================================

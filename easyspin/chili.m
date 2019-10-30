@@ -1347,6 +1347,9 @@ if doPostConvolution
   spec_pc = garlic(pcSys,pcExp);
   spec_pc = spec_pc/sum(spec_pc);
   
+  global EasySpinLogLevel
+  EasySpinLogLevel = Opt.Verbosity; % re-set it, since garlic clears it
+  
   % Convolute SLE spectrum with isotropic spectrum
   spec = conv(spec,spec_pc,'same');
 end
