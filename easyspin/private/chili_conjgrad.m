@@ -6,7 +6,7 @@
 %   tridiagonal matrix of A using the starting vector b. The diagonal is
 %   returned in T0, the upper diagonal in T1.
 
-function [x,T0,T1,err,StepsDone] = chili_conjgrad(A,b,shift)
+function [x,T0,T1,err,stepsDone] = chili_conjgrad(A,b,shift)
 
 d = b;
 x = 0;
@@ -17,11 +17,11 @@ beta = 0;
 
 iStep = 1;
 
-MaxSteps = length(b);
+maxSteps = length(b);
 Tolerance = 1e-8;
 while true
   
-  if (iStep>1)
+  if iStep>1
     rr_old = rr;
     rr = r.'*r;
     beta = rr/rr_old;
@@ -34,16 +34,17 @@ while true
   aa(iStep) = alpha;
 
   err = sum(abs(r));
-  if (err<Tolerance), break; end
+  if err<Tolerance, break; end
 
   x = x + alpha*d;
   r = r - alpha*q;
   
-  if (iStep==MaxSteps), break; end
+  if iStep==maxSteps, break; end
   
   iStep = iStep + 1;
 end
-StepsDone = iStep;
+stepsDone = iStep;
+err = full(err);
 
 %-------------------------------------------------------
 % Compute tridiagonal Lanczos matrix from CG scalars
@@ -58,7 +59,7 @@ StepsDone = iStep;
 % are quantities from the conjugate gradient algorithm.
 
 if nargout>1
-  for k = 2:StepsDone
+  for k = 2:stepsDone
     t1 = sqrt(bb(k))/aa(k-1);
     T1(k-1) = t1*sign(real(t1));
     %T1(k-1) = t1;
@@ -66,5 +67,5 @@ if nargout>1
   end
   T0(1) = 1/aa(1);
   T0 = T0 - shift;
-  T1(StepsDone) = 0;
+  T1(stepsDone) = 0;
 end

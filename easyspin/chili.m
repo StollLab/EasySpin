@@ -658,16 +658,16 @@ switch Opt.Solver
     else
       SolverString = 'Lanczos tridiagonalization, right-to-left continued fraction evaluation';
     end
-  case 'C'
-    SolverString = 'conjugate gradients tridiagonalization, right-to-left continued fraction evaluation';
-  case 'R'
-    SolverString = 'biconjugate gradients, stabilized';
   case '\'
     SolverString = 'backslash linear';
   case 'E'
     SolverString = 'eigenvalue method, sum of Lorentzians';
+  case 'C'
+    SolverString = 'conjugate gradients tridiagonalization, right-to-left continued fraction evaluation';
+  case 'B'
+    SolverString = 'biconjugate gradients, stabilized';
   otherwise
-    error('Unknown method in Options.Solver. Must be ''L'', ''R'', ''C'', or ''\''.');
+    error('Unknown method in Options.Solver. Must be ''L'', ''\'', ''E'', ''C'', or ''B''.');
 end
 logmsg(1,'Solver: %s',SolverString);
 useLanczosSolver = Opt.Solver=='L';
@@ -1237,24 +1237,6 @@ for iOri = 1:nOrientations
             Opt.Threshold,BasisSize,Opt.LLMK');
         end
         
-      case 'C' % conjugate gradients
-        CGshift = 1e-6 + 1e-6i;
-        [~,alpha,beta,err,StepsDone] = chili_conjgrad(L,StartVector,CGshift);
-        
-        logmsg(1,'  step %d/%d: CG converged to within %g',...
-          StepsDone,BasisSize,err);
-        
-        thisspec = chili_contfracspec(-1i*omega,alpha,beta);
-        
-      case 'R' % bi-conjugate gradients stabilized
-        I = speye(size(L));
-        rho0 = StartVector;
-        for iOmega = 1:numel(omega)
-          Q = L - 1i*omega(iOmega)*I;
-          u = bicgstab(Q,rho0,Opt.Threshold,nDim);
-          thisspec(iOmega) = rho0'*u;
-        end
-        
       case '\' % MATLAB backslash solver for sparse linear system
         
         I = speye(size(L));
@@ -1280,6 +1262,22 @@ for iOri = 1:nOrientations
         for iPeak = 1:numel(Amplitude)
           thisspec = thisspec + Amplitude(iPeak)./(Lam(iPeak)-1i*omega);
         end
+        
+      case 'B' % bi-conjugate gradients stabilized
+        I = speye(size(L));
+        rho0 = StartVector;
+        for iOmega = 1:numel(omega)
+          Q = L - 1i*omega(iOmega)*I;
+          [u,~] = bicgstab(Q,rho0,Opt.Threshold,nDim);
+          thisspec(iOmega) = rho0'*u;
+        end
+        
+      case 'C' % conjugate gradients
+        CGshift = 1e-6 + 1e-6i;
+        [~,alpha,beta,err,stepsDone] = chili_conjgrad(L,StartVector,CGshift);        
+        logmsg(0,'  step %d/%d: CG converged to within %g',...
+          stepsDone,BasisSize,err);
+        thisspec = chili_contfracspec(-1i*omega,alpha,beta);
         
     end
     

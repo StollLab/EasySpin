@@ -271,6 +271,11 @@ This specifies which nuclei should be excluded from the Stochastic Liouville equ
 Post-convolution is useful for including the effect of nuclei with small hyperfine couplings in spin systems with many nuclei that are too large to be handled by the SLE solver. Nuclei with large hyperfine couplings should never be treated via post-convolution. Only nuclei should be treated by post-convolution for which the hyperfine couplings (and anisotropies) are small enough to put them in the fast-motion regime, close to the isotropic limit, for the given rotational correlation time in <code>Sys.tcorr</code> etc.
 </div>
 
+<div class="optionfield"><code>Solver</code></div>
+<div class="optiondescr">
+Specifies the linear solver to use. Possible values are <code>'L'</code> (Lanczos tridiagonalization with continued-fraction expansion), <code>'\'</code> (MATLAB's backslash solver), <code>'E'</code> (via eigenvalues), <code>'B'</code> (biconjugate gradient stabilized method), and <code>'C'</code> (conjugate gradient tridiagonalization with continued-fraction expansion).
+</div>
+
 <div class="optionfield"><code>Verbosity</code></div>
 <div class="optiondescr">
 0 (default), 1<br>

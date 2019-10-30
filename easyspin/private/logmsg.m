@@ -22,8 +22,8 @@ global EasySpinLogLevel
 MsgLevel = varargin{1};
 
 % Display if message level below zero or below loglevel.
-if (MsgLevel<0) | (MsgLevel<=EasySpinLogLevel)
-  if (nargin>1)
+if MsgLevel<0 || MsgLevel<=EasySpinLogLevel
+  if nargin>1
     fprintf(varargin{2:end});
     fprintf('\n');
   else
