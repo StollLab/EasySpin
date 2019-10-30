@@ -1,10 +1,14 @@
-function [err,data] = test(opt,olddata)
+function err = test(opt,olddata)
 
-% Test whether linefunction is normalized
+% Test whether Gaussian linefunction is normalized
 %======================================================
-x = linspace(-100,100,1e3); x0 = 34; w = 20;
-y = gaussian(x,x0,w);
-Area = trapz(x,y);
+x0 = 340;
+fwhm = 20;
+f = @(x) gaussian(x,x0,fwhm);
 
-err = (abs(Area-1)>1e-10) | any(y<=0);
-data = [];
+n = 3;
+xmin = x0-n*fwhm;
+xmax = x0+n*fwhm;
+Area = integral(f,xmin,xmax);
+
+err = abs(Area-1) > 1e-10;
