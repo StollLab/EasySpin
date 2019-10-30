@@ -1275,7 +1275,7 @@ for iOri = 1:nOrientations
       case 'C' % conjugate gradients
         CGshift = 1e-6 + 1e-6i;
         [~,alpha,beta,err,stepsDone] = chili_conjgrad(L,StartVector,CGshift);        
-        logmsg(0,'  step %d/%d: CG converged to within %g',...
+        logmsg(1,'  step %d/%d: CG converged to within %g',...
           stepsDone,BasisSize,err);
         thisspec = chili_contfracspec(-1i*omega,alpha,beta);
         

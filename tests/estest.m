@@ -120,9 +120,15 @@ for iTest = 1:numel(TestFileNames)
   
   % Run test, catch any errors
   testFcn = str2func(thisTestName);
+  nArgs = nargout(testFcn);
   tic
   try
-    [err,data] = testFcn(Opt,olddata);
+    if nArgs==1
+      err = testFcn(Opt);
+      data = [];
+    else
+      [err,data] = testFcn(Opt,olddata);
+    end
     if Opt.Display
       if iTest<numel(TestFileNames), pause; end
     end
