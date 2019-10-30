@@ -972,9 +972,9 @@ if generalLiouvillian
     % Set up in full product basis, then prune
     StartVector = kron(sqrtPeq,SdetOp(:)/norm(SdetOp(:)));
     StartVector = StartVector(keep);
-    logmsg('  numerical integrals: %d 1D, %d 2D, % 3D',nInt(1),nInt(2),nInt(3));
+    logmsg(1,'  numerical integrals: %d 1D, %d 2D, % 3D',nInt(1),nInt(2),nInt(3));
     normPeqVec = norm(sqrtPeq)^2;
-    logmsg('  norm of Peq vector: %g',normPeqVec);
+    logmsg(1,'  norm of Peq vector: %g',normPeqVec);
     if normPeqVec<0.99
       warning('The norm of the equilibrium population vector in this truncated basis is %g. It should be close to 1. The basis might be too small.',normPeqVec)
     end

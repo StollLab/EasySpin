@@ -21,6 +21,10 @@ global EasySpinLogLevel
 
 MsgLevel = varargin{1};
 
+if numel(MsgLevel)~=1 || ~isnumeric(MsgLevel) || mod(MsgLevel,1)~=0 || MsgLevel<0
+  error('The first input to logmsg must be a non-negative integer.');
+end
+
 % Display if message level below zero or below loglevel.
 if MsgLevel<0 || MsgLevel<=EasySpinLogLevel
   if nargin>1

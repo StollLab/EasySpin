@@ -993,7 +993,7 @@ end
 %-----------------------------------------------------------------------
 [Hours,Minutes,Seconds] = elapsedtime(StartTime,clock);
 msg = sprintf('cpu time %dh%dm%0.2fs',Hours,Minutes,Seconds);
-logmsg(0.5,msg);
+logmsg(1,msg);
 
 logmsg(1,'=end=salt=========%s=================\n',datestr(now));
 
