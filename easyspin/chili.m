@@ -43,9 +43,11 @@
 %
 %   Opt: simulation options
 %      LLMK           basis set parameters, [evenLmax oddLmax Mmax Kmax]
+%      pSmin          electron spin basis setting, -1 or +1
+%      pImax          maximum nuclear coherence order for basis
+%      nKnots         number of knots for powder simulation
 %      PostConvNucs   nuclei to include perturbationally via post-convolution
 %      Verbosity      0: no display, 1: show info
-%      nKnots         number of knots for powder simulation
 %      Symmetry       symmetry to use for powder simulation
 %
 %   Output:

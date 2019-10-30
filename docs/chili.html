@@ -49,7 +49,7 @@ See also the <a href="userguide_chili.html">user guide</a> on how to use <code>c
 <div class="subtitle">Description</div>
 
 <p>
-<code>chili</code> computes cw EPR spectra in the slow-motional regime. The simulation is based on solving the Stochastic Liouville equation in a basis of rotational eigenfunctions. It uses rotational Brownian diffusion to model the rotational tumbling of the spin system. <code>chili</code> supports arbitrary spin systems.
+<code>chili</code> computes cw EPR spectra in the slow-motional regime. It uses rotational Brownian diffusion to model the rotational tumbling of the spin system. The simulation is based on solving the Stochastic Liouville equation in a basis of rotational eigenfunctions. <code>chili</code> supports arbitrary spin systems.
 </p>
 
 <p>
@@ -234,7 +234,7 @@ The experiment structure <code>Exp</code> contains all parameters relating to th
 <div class="optiondescr">
 4-element vector <code>[evenLmax oddLmax Mmax Kmax]</code><br>
 Specifies the rotational basis size by giving the maximum values for, in that order, even L, odd L, M, and K. The maximum values for M and K must be less than or equal to the maximum value of L.<br>
-If this field is not specified, <code>chili</code> uses a default basis. This is adequate only for a few cases. In general, the basis needs to be larger for slower motions and can be smaller for faster motions. It is strongly advised to increase these four numbers until the simulated spectrum is converged.
+If this field is not specified, <code>chili</code> uses a default basis. This is adequate only for a few cases. In general, the basis needs to be larger for slower motions and can be smaller for faster motions. It is strongly advised to increase these four numbers until the simulated spectrum is converged. One approach is to start from <code>[2 0 0 0]</code> and increase each of the four number in turn, run the simulation, and see if the spectrum is converged.
 </div>
 
 <div class="optionfield"><code>pSmin</code></div>
@@ -251,7 +251,7 @@ Determines for each nucleus the maximum nuclear coherence order |&Delta;m<sub>I<
 
 <div class="optionfield"><code>nKnots</code></div>
 <div class="optiondescr">
-Number of orientations used in a powder simulation. Default is 5. Increase this value if the orientational potential coefficients <code>Sys.Potential</code> are large.
+Number of orientations used in a powder simulation (i.e. if the protein or other director does not have a single orientation, but is orientationally disordered). Unless <code>Exp.CrystalOrientation</code> is set, a powder simulation is performed. The default value for <code>nKnots</code> is 19. Increase this value if the orientational potential coefficients in <code>Sys.Potential</code> are large.
 </div>
 
 <div class="optionfield"><code>LiouvMethod</code></div>
@@ -273,7 +273,21 @@ Post-convolution is useful for including the effect of nuclei with small hyperfi
 
 <div class="optionfield"><code>Solver</code></div>
 <div class="optiondescr">
-Specifies the linear solver to use. Possible values are <code>'L'</code> (Lanczos tridiagonalization with continued-fraction expansion), <code>'\'</code> (MATLAB's backslash solver), <code>'E'</code> (via eigenvalues), <code>'B'</code> (biconjugate gradient stabilized method), and <code>'C'</code> (conjugate gradient tridiagonalization with continued-fraction expansion).
+<code>'L'</code>,
+<code>'\'</code>,
+<code>'E'</code>,
+<code>'B'</code>, or
+<code>'C'</code>
+<br>
+Optionally, specifies the linear solver to use. Possible values are <code>'L'</code> (Lanczos tridiagonalization with continued-fraction expansion), <code>'\'</code> (MATLAB's backslash solver), <code>'E'</code> (via eigenvalues), <code>'B'</code> (biconjugate gradient stabilized method), and <code>'C'</code> (conjugate gradient tridiagonalization with continued-fraction expansion). If not given, a solver is selected automatically.
+</div>
+
+<div class="optionfield"><code>Symmetry</code>
+</div>
+<div class="optiondescr">
+<code>'Dinfh'</code> (default), <code>'D2h'</code>, <code>'C2h'</code> or <code>'Ci'</code>
+<br>
+Determines the symmetry used for a powder simulation. Based on this the set of orientations for which spectra are computed is chosen. <code>'Dinfh'</code> corresponds to a line from &theta;=0&deg; to &theta=90&deg; (with &phi;=0&deg;), <code>'D2h'</code> to one octant, <code>'C2h'</code> to two octants, and <code>'Ci'</code> to one hemisphere (four octants). The default <code>'Dinfh'</code> is correct only for high-symmetry spin systems in high-symmetry potentials. In general, it is advised to run a simulation with <code>Ci</code>, which is slower, but correct for any situation.
 </div>
 
 <div class="optionfield"><code>Verbosity</code></div>
