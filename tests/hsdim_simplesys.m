@@ -1,8 +1,11 @@
-function [err,data] = test(opt,olddata)
+function err = test(opt,olddata)
 
-% Test 1: spin system
+% Spin system with electrons only
 %================================================================
-Sys = struct('S',1,'g',[3 4 5]);
-v = hsdim(Sys);
-err = (v~=3);
-data = [];
+Sys = struct('S',[1 3/2],'g',[3 4 5; 2 2 2],'J',100);
+
+N = hsdim(Sys);
+
+Nref = prod(2*Sys.S+1);
+
+err = ~(N==Nref);
