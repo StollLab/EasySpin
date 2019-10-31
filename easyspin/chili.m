@@ -1221,7 +1221,7 @@ for iOri = 1:nOrientations
       
       case 'L' % Lanczos method
         if generalLiouvillian && usePotential
-          maxabs = @(a)max(abs(a));
+          maxabs = @(a)max(abs(a(:)));
           isComplexSymmetric = maxabs(L-L.')/maxabs(L) < 1e-10;
           if ~isComplexSymmetric
             error('L is not complex symmetric - cannot use Lanczos method.');
