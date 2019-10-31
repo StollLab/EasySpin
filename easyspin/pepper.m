@@ -76,7 +76,7 @@ if (nargin<3), Opt = struct('unused',NaN); end
 if isempty(Opt), Opt = struct('unused',NaN); end
 
 if ~isstruct(Sys) && ~iscell(Sys)
-  error('Sys must be a structure or a list of structures!');
+  error('Sys must be a structure or a cell array of structures!');
 end
 if ~isstruct(Exp)
   error('Exp must be a structure!');

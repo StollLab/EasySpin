@@ -1,5 +1,5 @@
 % saffron    Simulate pulse EPR spectra
-
+%
 %     S = saffron(Sys,Exp,Opt)
 %     [x,S] = saffron(Sys,Exp,Opt)
 %     [x,S,out] = saffron(Sys,Exp,Opt)
@@ -16,90 +16,86 @@
 %       out     ... structure with FFT of ESEEM signal
 
 function varargout = saffron(Sys,Exp,Opt)
-for i = 1 % header - nothing to see here %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  if nargin==0, help(mfilename); return; end
-  
-  % Check expiry date
-  error(eschecker);
-  
-  % Check Matlab version
-  error(chkmlver);
-  
-  % Get time for performance report at the end.
-  StartTime = clock;
-  
-  % Input argument scanning, get display level and prompt
-  %=======================================================================
-  
-  % Guard against wrong number of input or output arguments.
-  if (nargin<2) || (nargin>3), error('Wrong number of input arguments!'); end
-  if (nargout<0), error('Not enough output arguments.'); end
-  if (nargout>3), error('Too many output arguments.'); end
-  
-  % Initialize options structure to zero if not given.
-  if (nargin<3), Opt = struct('unused',NaN); end
-  if isempty(Opt), Opt = struct('unused',NaN); end
-  
-  
-  if ~isstruct(Exp)
-    error('Second input argument (Exp) must be a structure!');
+
+if nargin==0, help(mfilename); return; end
+
+% Check expiry date
+error(eschecker);
+
+% Check Matlab version
+error(chkmlver);
+
+% Get time for performance report at the end.
+StartTime = clock;
+
+% Input argument scanning, get display level and prompt
+%=======================================================================
+
+% Guard against wrong number of input or output arguments.
+if nargin<2 || nargin>3, error('Wrong number of input arguments!'); end
+if nargout<0, error('Not enough output arguments.'); end
+if nargout>3, error('Too many output arguments.'); end
+
+% Initialize options structure if not given.
+if nargin<3, Opt = struct; end
+if isempty(Opt), Opt = struct; end
+
+if ~isstruct(Sys)
+  if iscell(Sys)
+    error('First input argument (Sys) must be a structure. saffron does not support multiple components.');
+  else
+    error('First input argument (Sys) must be a structure.');
   end
-  if ~isstruct(Opt)
-    error('Third input argument (Opt) must be a structure!');
-  end
-  
-  % User defined primary output for time dependent simulations
-  if ~isfield(Opt,'Output'), Opt.Output = 'Time'; end
-  
-  if ~isfield(Opt,'Ordinate') Opt.Ordinate = 'Complex'; end
-  
-  % A global variable sets the level of log display. The global variable
-  % is used in logmsg(), which does the log display.
-  if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 0; end
-  global EasySpinLogLevel
-  EasySpinLogLevel = Opt.Verbosity;
-  
+end
+if ~isstruct(Exp)
+  error('Second input argument (Exp) must be a structure.');
+end
+if ~isstruct(Opt)
+  error('Third input argument (Opt) must be a structure.');
 end
 
+% User defined primary output for time dependent simulations
+if ~isfield(Opt,'Output'), Opt.Output = 'Time'; end
+if ~isfield(Opt,'Ordinate'), Opt.Ordinate = 'Complex'; end
+if ~isfield(Opt,'SimulationMode'), Opt.SimulationMode = ''; end
 
-% validate the input - and make a decision about the propagation method
+% A global variable sets the level of log display. The global variable
+% is used in logmsg(), which does the log display.
+if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 0; end
+global EasySpinLogLevel
+EasySpinLogLevel = Opt.Verbosity;
 
-if ~isfield(Opt,'SimulationMode')
-  Opt.SimulationMode = 'fast';
-end
-
-if iscell(Sys)
-  error('Sys input with more than one component not yet supported.')
-end
-
-% validation of the spin system needs to be done first:
+% Validation of the spin system
 [SysVal,err] = validatespinsys(Sys);
 error(err);
+if SysVal.MO_present, error('saffron does not support general parameters.'); end
+if any(SysVal.L(:)), error('saffron does not support L.'); end
 
-if SysVal.MO_present, error('saffron does not support general parameters!'); end
-if any(SysVal.L(:)), error('saffron does not support L!'); end
-
-if (SysVal.nElectrons>1)
-  Opt.SimulationMode = 'thyme';
+% Determine simulation mode ('fast' or 'thyme')
+if isempty(Opt.SimulationMode)
+  Opt.SimulationMode = 'fast';
+  if SysVal.nElectrons>1
+    Opt.SimulationMode = 'thyme';
+  end
+  if isfield(SysVal,'n') && any(SysVal.n~=1)
+    Opt.SimulationMode = 'thyme';
+  end
+  if isfield(SysVal,'nn') && any(SysVal.nn(:)~=0)
+    Opt.SimulationMode = 'thyme';
+  end
 end
-
-if isfield(SysVal,'n') && any(SysVal.n~=1)
-  Opt.SimulationMode = 'thyme';
-end
-
-if isfield(SysVal,'nn') && any(SysVal.nn(:)~=0)
-  Opt.SimulationMode = 'thyme';
-end
+[~,err] = parseoption(Opt,'SimulationMode',{'fast','thyme'});
+error(err);
 
 if isfield(Opt,'Relaxation') && length(Opt.Relaxation) > 1
-  error('Opt.Relaxation has to be a boolean.')
+  error('Opt.Relaxation has to true or false.')
 elseif ~isfield(Opt,'Relaxation') && (isfield(Sys,'T1') || isfield(Sys,'T2'))
   Opt.Relaxation = true;
 elseif ~isfield(Opt,'Relaxation')
   Opt.Relaxation = false;
 end
 
-% error on spidyan specific fields
+% Error on spidyan specific fields
 ForbiddenSysFields = {'initState','eqState'};
 if any(isfield(Sys,ForbiddenSysFields))
   error('Sys.initState and Sys.eqState are specific to spidyan and can not be used with saffron. Please remove them.')
@@ -125,11 +121,9 @@ end
 
 DefaultExp.Temperature = [];
 DefaultExp.Ordering = [];
-
 DefaultExp.CrystalOrientation = [];
 DefaultExp.CrystalSymmetry = '';
 DefaultExp.MolFrame = [];
-
 Exp = adddefaults(Exp,DefaultExp);
 
 % Field
@@ -144,7 +138,7 @@ end
 
 % Powder vs. crystal simulation
 if isfield(Exp,'Orientation') || isfield(Exp,'Orientations')
-  error('Exp.Orientation and Exp.Orientations are obsolete (as of EasySpin 5), use Exp.CrystalOrientation instead.');
+  error('Exp.Orientation and Exp.Orientations are obsolete (as of EasySpin 5). Use Exp.CrystalOrientation instead.');
 end
 PowderSimulation = isempty(Exp.CrystalOrientation);
 Exp.PowderSimulation = PowderSimulation;
@@ -159,11 +153,11 @@ if ~isfield(Opt,'nKnots'), Opt.nKnots = 30+1; end
 if numel(Opt.nKnots)>1
   error('Only one number allowed in Opt.nKnots. saffron does not support interpolation.');
 end
-if (Opt.nKnots<7)
+if Opt.nKnots<7
   error('Opt.nKnots must be at least 7. You gave %d.',Opt.nKnots);
 end
 
-% set up orientation loop:
+% set up orientation loop
 if ~isfield(Exp,'OriWeights')
   [Exp,Opt] = p_symandgrid(Sys,Exp,Opt);
 end
@@ -206,8 +200,7 @@ if strcmp(Opt.SimulationMode,'fast')
     
     [Opt.Ordinate,err] = parseoption(Opt,'Ordinate',{'Complex','Real','Absolute'});
     error(err);
-    
-    
+        
     if ~iscell(Sys), Sys = {Sys}; end
     
     nComponents = numel(Sys);
