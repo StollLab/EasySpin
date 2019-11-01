@@ -83,7 +83,10 @@ EasySpinLogLevel = Opt.Verbosity;
 %===============================================================================
 % Loop over components and isotopologues
 %===============================================================================
-logmsg(1,'-- slow motion regime simulation ----------------------------------');
+singleIso = isstruct(Sys) && isfield(Sys,'singleiso') && Sys.singleiso;
+if ~singleIso
+  logmsg(1,'-- slow motion regime simulation ----------------------------------');
+end
 
 FrequencySweep = ~isfield(Exp,'mwFreq') && isfield(Exp,'Field');
 
@@ -101,7 +104,7 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
   if ~iscell(Sys), Sys = {Sys}; end
   
   nComponents = numel(Sys);
-  logmsg(1,'%d component(s)');
+  logmsg(1,'%d component(s)',nComponents);
   
   % Determine isotopologues for each components
   for c = 1:nComponents
@@ -110,7 +113,7 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
     logmsg(1,'  component %d: %d isotopologues',c,nIsotopologues(c));
   end
   
-  if (sum(nIsotopologues)>1) && SweepAutoRange
+  if sum(nIsotopologues)>1 && SweepAutoRange
     if FrequencySweep
       str = 'Exp.mwRange or Exp.mwCenterSweep';
     else
@@ -314,6 +317,8 @@ if ~isnan(Exp.Temperature)
   end
 end
 
+logmsg(1,'Experiment:');
+
 % Microwave frequency
 if ~isfield(Exp,'mwFreq')
   if ~isfield(Exp,'Field')
@@ -463,6 +468,8 @@ if ParallelMode
   error('chili does not support parallel-mode spectra.');
 end
 
+logmsg(1,'  %d points',Exp.nPoints);
+
 % Complain if fields only valid in pepper() are given
 if isfield(Exp,'Orientations')
   warning('Exp.Orientations is obsolete. Use Exp.CrystalOrientations instead.');
@@ -487,18 +494,18 @@ end
 % Determine whether to do a powder simulation
 if ~usePotential
   if isempty(Exp.Ordering) || all(Exp.Ordering==0)
-    logmsg(1,'  No orientational potential given, skipping powder simulation.');
+    logmsg(1,'  no orientational potential given, skipping powder simulation');
     PowderSimulation = false;
   else
-    logmsg(1,'  Orientational potential given, doing powder simulation.');
+    logmsg(1,'  orientational potential given, doing powder simulation');
     PowderSimulation = true;
   end    
 else
   if ~isempty(Exp.CrystalOrientation)
-    logmsg(1,'  Orientational potential given, doing single-crystal simulation.');
+    logmsg(1,'  orientational potential given, doing single-crystal simulation');
     PowderSimulation = false;
   else
-    logmsg(1,'  Orientational potential given, doing powder simulation.');
+    logmsg(1,'  orientational potential given, doing powder simulation');
     PowderSimulation = true;
   end
 end
@@ -653,7 +660,7 @@ if FieldSweep
   error(err);
 end
 explicitFieldSweep = FieldSweep && strcmp(Opt.FieldSweepMethod,'explicit');
-logmsg(1,'  Field sweep method: %s',Opt.FieldSweepMethod);
+logmsg(1,'  field sweep method: %s',Opt.FieldSweepMethod);
 
 % Set solver if not given
 if isempty(Opt.Solver)
@@ -687,7 +694,7 @@ switch Opt.Solver
   otherwise
     error('Unknown method in Options.Solver. Must be ''L'', ''\'', ''E'', ''C'', or ''B''.');
 end
-logmsg(1,'  Solver: %d = %s',Opt.Solver,SolverString);
+logmsg(1,'  solver: %s = %s',Opt.Solver,SolverString);
 
 
 % Set allocation block size, used in chili_lm
@@ -708,7 +715,7 @@ end
 % Precalculate spin operator matrices
 %-------------------------------------------------------------------------------
 if generalLiouvillian
-  logmsg(1,'  Liouvillian construction: general code');
+  logmsg(1,'  construction of Liouvillian: general code');
   
   % calculate spin operators
   for iSpin = 1:numel(Sys.Spins)
@@ -924,7 +931,8 @@ end
 %-------------------------------------------------------------------------------
 if generalLiouvillian
   
-  logmsg(1,'Precalculating 3j symbols...');
+  logmsg(1,'Precalculating 3j symbols up to Leven=%d and Lodd=%d...',...
+    Basis.LLMK(1),Basis.LLMK(2));
   computeRankOne = any(F.F1(:)~=0);
   [jjj0,jjj1,jjj2] = jjjsymbol(Basis.LLMK(1),Basis.LLMK(2),computeRankOne);
   
@@ -974,7 +982,6 @@ if generalLiouvillian
     % Set up in full product basis, then prune
     StartVector = kron(sqrtPeq,SdetOp(:)/norm(SdetOp(:)));
     StartVector = StartVector(keep);
-    logmsg(1,'  numerical integrals: %d 1D, %d 2D, % 3D',nInt(1),nInt(2),nInt(3));
     normPeqVec = norm(sqrtPeq)^2;
     logmsg(1,'  norm of Peq vector: %g',normPeqVec);
     if normPeqVec<0.99

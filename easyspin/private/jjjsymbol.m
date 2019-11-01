@@ -9,7 +9,7 @@
 
 function [jjj0,jjj1,jjj2] = jjjsymbol(evenLmax,oddLmax,computeRank1)
 
-L = [0:2:evenLmax 1:2:oddLmax];
+L = sort([0:2:evenLmax 1:2:oddLmax]);
 nBasis = (max(L)+1)^2;
 
 % Use cached results from previous runs if possible

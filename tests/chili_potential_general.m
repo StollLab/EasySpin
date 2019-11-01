@@ -12,7 +12,8 @@ Exp.mwRange = [9.4 9.9];
 Exp.nPoints = 200;
 Exp.CrystalOrientation = [0 0 0];
 
-Opt.LLMK = [6 0 2 2];
+Opt.LLMK = [4 0 2 2];
+Opt.pSmin = 1;
 
 lam = +2;
 LMKlam = [0 0 0 0; 2 0 0 lam; 2 1 0 lam; 2 0 1 lam; 2 1 1 lam];
