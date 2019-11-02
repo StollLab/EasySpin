@@ -603,9 +603,12 @@ if Opt.nKnots(2)~=0
 end
 
 % Basis settings
-if isfield(Opt,'LLKM') % silently support pre-6.0 field name
-  Opt.LLMK = Opt.LLKM([1 2 4 3]);
-  warning('Opt.LLKM is obsolete. Use Opt.LLMK instead. To convert LLKM to LLMK, swap the third and the fourth number.');
+if isfield(Opt,'LLKM') % error if pre-6.0 field name is given
+  LLKM = Opt.LLKM;
+  error(['Opt.LLKM is obsolete. Use Opt.LLMK instead. Note that M and K are swapped.\n' ...
+    'To convert Opt.LLKM to Opt.LLMK, swap the third and the fourth number.\n' ...
+    'In the current case, use\n' ...
+    '  Opt.LLMK = [%d %d %d %d];'],LLKM(1),LLKM(2),LLKM(4),LLKM(3));
 end
 if numel(Opt.LLMK)~=4 || any(Opt.LLMK<0) || any(mod(Opt.LLMK,1))
   error('Opt.LLMK must be a 4-element array with non-negative integers.');
