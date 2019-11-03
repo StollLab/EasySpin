@@ -478,37 +478,37 @@ if isfield(Exp,'CrystalSymmetry')
   warning('Exp.CrystalSymmetry is not used by chili.');
 end
 
-% Partial ordering
+% Ordering of director frame (partial ordering)
 if ~isempty(Exp.Ordering)
-  if isnumeric(Exp.Ordering) && (numel(Exp.Ordering)==1) && isreal(Exp.Ordering)
+  if isnumeric(Exp.Ordering) && numel(Exp.Ordering)==1 && isreal(Exp.Ordering)
     lam = Exp.Ordering;
-    Exp.Ordering = @(phi,theta) exp(lam*plegendre(2,0,cos(theta)));
-    logmsg(1,'  partial order (built-in function, coefficient = %g)',lam);
+    if lam~=0
+      Exp.Ordering = @(phi,theta) exp(lam*plegendre(2,0,cos(theta)));
+      logmsg(1,'  director ordering: built-in function, coefficient = %g',lam);
+    else
+      Exp.Ordering = [];
+      logmsg(1,'  director ordering: none');
+    end
   elseif isa(Exp.Ordering,'function_handle')
-    logmsg(1,'  partial order (user-supplied function)');
+    if nargin(Exp.Ordering)<2
+      error('The function in Exp.Ordering must accept two inputs.');
+    end
+    if nargout(Exp.Ordering)<1
+      error('The function in Exp.Ordering must provide one output.');
+    end
+    logmsg(1,'  director ordering: user-supplied function)');
   else
     error('Exp.Ordering must be a single number or a function handle.');
   end
+else
+  logmsg(1,'  director ordering: none');
 end
+useDirectorOrdering = ~isempty(Exp.Ordering);
 
 % Determine whether to do a powder simulation
-if ~usePotential
-  if isempty(Exp.Ordering) || all(Exp.Ordering==0)
-    logmsg(1,'  no orientational potential given, skipping powder simulation');
-    PowderSimulation = false;
-  else
-    logmsg(1,'  orientational potential given, doing powder simulation');
-    PowderSimulation = true;
-  end    
-else
-  if ~isempty(Exp.CrystalOrientation)
-    logmsg(1,'  orientational potential given, doing single-crystal simulation');
-    PowderSimulation = false;
-  else
-    logmsg(1,'  orientational potential given, doing powder simulation');
-    PowderSimulation = true;
-  end
-end
+% (without potential, no powder sim is necessary - it's identical to a
+% single-orientation sim)
+PowderSimulation = isempty(Exp.CrystalOrientation) && usePotential;
 
 % Options
 %-------------------------------------------------------------------------------
@@ -516,25 +516,29 @@ if isempty(Opt), Opt = struct; end
 
 % Documented
 if ~isfield(Opt,'LLMK'), Opt.LLMK = [14 7 2 6]; end
+if ~isfield(Opt,'pSmin'), Opt.pSmin = -1; end
+if ~isfield(Opt,'pImax'), Opt.pImax = []; end
 if ~isfield(Opt,'nKnots'), Opt.nKnots = [19 0]; end
 if ~isfield(Opt,'LiouvMethod'), Opt.LiouvMethod = ''; end
-if ~isfield(Opt,'PostConvNucs'), Opt.PostConvNucs = ''; end
 if ~isfield(Opt,'FieldSweepMethod'), Opt.FieldSweepMethod = []; end
+if ~isfield(Opt,'PostConvNucs'), Opt.PostConvNucs = ''; end
+if ~isfield(Opt,'Solver'), Opt.Solver = ''; end
+if ~isfield(Opt,'Symmetry'), Opt.Symmetry = 'Dinfh'; end
 % Opt.Verbosity
 
 % Undocumented
-if ~isfield(Opt,'Solver'), Opt.Solver = ''; end
 if ~isfield(Opt,'Rescale'), Opt.Rescale = true; end
 if ~isfield(Opt,'Threshold'), Opt.Threshold = 1e-6; end
 if ~isfield(Opt,'Lentz'), Opt.Lentz = true; end
 if ~isfield(Opt,'IncludeNZI'), Opt.IncludeNZI = true; end
 if ~isfield(Opt,'pqOrder'), Opt.pqOrder = false; end
-if ~isfield(Opt,'Symmetry'), Opt.Symmetry = 'Dinfh'; end
 if ~isfield(Opt,'SymmFrame'), Opt.SymmFrame = []; end
 if ~isfield(Opt,'Diagnostics'), Opt.Diagnostics = ''; end
 if ~isfield(Opt,'useLMKbasis'), Opt.useLMKbasis = false; end
 if ~isfield(Opt,'useStartvecSelectionRules'), Opt.useStartvecSelectionRules = true; end
 if ~isfield(Opt,'PeqTol'), Opt.PeqTol = []; end
+if ~isfield(Opt,'jKmin'), Opt.jKmin = []; end
+if ~isfield(Opt,'deltaK'), Opt.deltaK = []; end
 
 if ~ischar(Opt.Diagnostics) && ~isempty(Opt.Diagnostics) && ~isvarname(Opt.Diagnostics)
   error('If given, Opt.Diagnosics must be a valid Matlab variable name.');
@@ -618,21 +622,16 @@ if any(Opt.LLMK(3:4)>maxL)
   error('The maximum M and maximum K (third and fourth number in Opt.LLMK) must be not larger than the maximum L.');
 end
 Basis.LLMK = Opt.LLMK;
-
-if ~isfield(Opt,'jKmin'), Opt.jKmin = []; end
 Basis.jKmin = Opt.jKmin;
-
-if ~isfield(Opt,'deltaK'), Opt.deltaK = []; end
 Basis.deltaK = Opt.deltaK;
 
-if ~isfield(Opt,'pSmin'), Opt.pSmin = -1; end
-if numel(Opt.pSmin)~=1 || abs(Opt.pSmin)~=1
+% pSmin (for high-field approximation)
+if numel(Opt.pSmin)~=1 || ~isreal(Opt.pSmin) || abs(Opt.pSmin)~=1
   error('Opt.pSmin must be either +1 or -1.');
 end
 Basis.pSmin = Opt.pSmin;
 
-% Maximum nuclear coherence order
-if ~isfield(Opt,'pImax'), Opt.pImax = []; end
+% pImax (maximum nuclear coherence order)
 if ~isempty(Opt.pImax)
   if numel(Opt.pImax)~=Sys.nNuclei && numel(Opt.pImax)~=1
     error('Opt.pImax must contain either one entry for every nucleus or just a single number.');
@@ -847,7 +846,7 @@ nOrientations = numel(phi);
 Basis.DirTilt = any(theta~=0);
 
 % Partial ordering for protein/macromolecule
-if ~isempty(Exp.Ordering)
+if useDirectorOrdering
   OrderingWeights = Exp.Ordering(phi,theta);
   if any(OrderingWeights)<0, error('User-supplied orientation distribution gives negative values!'); end
   if all(OrderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end
@@ -1241,7 +1240,7 @@ for iOri = 1:nOrientations
         minerr = minerr(end);
         if minerr<Opt.Threshold
           thisspec = chili_contfracspec(-1i*omega,alpha,beta);
-          logmsg(1,'  converged to within %g at iteration %d/%d',...
+          logmsg(2,'  converged to within %g at iteration %d/%d',...
             Opt.Threshold,numel(alpha),BasisSize);
         else
           thisspec = ones(size(omega));
@@ -1570,15 +1569,7 @@ end
 % Spin basis truncation parameters: pSmin, pImax
 %-------------------------------------------------------------------------------
 
-% pSmin
-if ~isfield(Basis,'pSmin') || isempty(Basis.pSmin)
-  Basis.pSmin = 0;
-end
-
 % pImax (maximum nuclear coherence order, for each nucleus)
-if ~isfield(Basis,'pImax')
-  Basis.pImax = [];
-end
 if nNuclei==0
   Basis.pImax = 0;
 else
