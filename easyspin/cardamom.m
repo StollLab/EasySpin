@@ -56,19 +56,18 @@
 %                    use either lw or lwpp
 %
 %   Exp: experimental parameter settings
-%     mwFreq         double
-%                    microwave frequency, in GHz (for field sweeps)
-% %     Range          sweep range, [sweepmin sweepmax], in mT (for field sweep)
-% %     CenterSweep    sweep range, [center sweep], in mT (for field sweep)
-% %     nPoints        number of points
-% %     Harmonic       detection harmonic: 0, 1 (default), 2
-% %     ModAmp         peak-to-peak modulation amplitude, in mT (field sweeps only)
-% %     mwPhase        detection phase (0 = absorption, pi/2 = dispersion)
-% %     Temperature    temperature, in K
+%     mwFreq         microwave frequency, in GHz (for field sweeps)
+%     Range          sweep range, [sweepmin sweepmax], in mT (for field sweep)
+%     CenterSweep    sweep range, [center sweep], in mT (for field sweep)
+%     nPoints        number of points
+%     Harmonic       detection harmonic: 0, 1 (default), 2
+%     ModAmp         peak-to-peak modulation amplitude, in mT (field sweeps only)
+%     mwPhase        detection phase (0 = absorption, pi/2 = dispersion)
+%     Temperature    temperature, in K
 %
 %   Par: structure with simulation parameters
-%     Model      the model for spin label dynamics
-%                'diffusion': Browniand rotation diffusion with given rotational
+%     Model      model for spin label dynamics
+%                'diffusion': Brownian rotation diffusion with given rotational
 %                   diffusion tensor and ordering potential
 %                'jump': Markovian jumps between a given set of discrete states
 %                'MD-direct': use molecular orientations in MD
@@ -91,7 +90,7 @@
 %     OriStart   numeric, size = (3,1), (1,3), or (3,nTraj)
 %                Euler angles for starting orientation(s)
 %     nOrients   number of lab-to-molecule orientations to loop over
-%     Orients    numeric matrix, size = (2,nOrients)
+%     Orients    numeric matrix, size = (nOrients,2)
 %                (optional) (phi,theta) angles of lab-to-molecule 
 %                orientations. If not given, these are chosen as points
 %                on a spherical spiral grid
@@ -168,18 +167,14 @@ error(chkmlver);
 
 % Preprocessing
 % -------------------------------------------------------------------------
-
-switch nargin
-  case 3 % Opt and MD not specified, initialize them
-    Opt = [];
-    MD = [];
-  case 4 % MD not specified
-    MD = [];
-  case 5 % Sys, Par, Exp, Opt, MD specified
-  otherwise
-    error('Incorrect number of input arguments.')
+if nargin<3
+  error('At least 3 inputs (Sys,Exp,Par) are required.');
 end
-
+if nargin>5
+  error('At most 5 inputs (Sys,Exp,Par,Opt,MD) are possible.');
+end
+if nargin<4, Opt = struct; end
+if nargin<5, MD = []; end
 
 switch nargout
   case 0 % plotting
@@ -226,23 +221,10 @@ else
   omega0 = 2*pi*CenterFreq*1e9;  % GHz -> rad s^-1
 end
 
-if isfield(Exp,'SampleOrientation')
-  SampleOrientation = Exp.SampleOrientation;
-else
-  SampleOrientation = [];
-end
-
-% set up horizontal sweep axis
-if FieldSweep
-  xAxis = linspace(Exp.Range(1),Exp.Range(2),Exp.nPoints);  % field axis, mT
-else
-  xAxis = linspace(Exp.mwRange(1),Exp.mwRange(2),Exp.nPoints);  % field axis, GHz
-end
-
 % Check local dynamics models
 %-------------------------------------------------------------------------------
 if ~isfield(Par,'Model')
-  error('Please specify a simulation model using Par.Model.')
+  error('Please specify a simulation model in Par.Model.')
 end
 
 if ~ischar(Par.Model)
@@ -385,13 +367,8 @@ end
 % Check dynamics and ordering
 %-------------------------------------------------------------------------------
 
-if useMD
-  isDiffSim = strcmp(LocalDynamicsModel,'MD-HBD');
-elseif strcmp(LocalDynamicsModel,'jump')
-  isDiffSim = false;
-else
-  isDiffSim = true;
-end
+isDiffSim = (useMD && strcmp(LocalDynamicsModel,'MD-HBD')) || ...
+   strcmp(LocalDynamicsModel,'diffusion');
 
 Dynamics = validate_dynord('cardamom',Sys,FieldSweep,isDiffSim);
 
@@ -606,8 +583,8 @@ end
 
 % Set up orientational grid for powder averaging
 if ~isempty(Orientations)
-  gridPhi = Orientations(1,:);
-  gridTheta = Orientations(2,:);
+  gridPhi = Orientations(:,1);
+  gridTheta = Orientations(:,2);
   weight = ones(size(gridPhi));
   weight = weight/sum(weight);
 else
@@ -653,7 +630,7 @@ spcLast = 0;
 while ~converged
   tic
   
-  % trajectories might differ in length, so we need cells for allocation
+  % store signals from trajectories in cell array
   TDSignal = {};
   tCell = [];
   
@@ -848,8 +825,8 @@ while ~converged
     
     nOrientations = nOrientsTot;
     if ~isempty(Orientations)
-      gridPhi = repmat(Orientations(1,:),[1,2^(iter-1)]);
-      gridTheta = repmat(Orientations(2,:),[1,2^(iter-1)]);
+      gridPhi = repmat(Orientations(:,1),[2^(iter-1),1]);
+      gridTheta = repmat(Orientations(:,2),[2^(iter-1),1]);
     else
       gridPts = 2*cardamom_sobol_generate(1,nOrientations,skip)-1;
       gridPhi = sqrt(pi*nOrientations)*asin(gridPts);
@@ -885,12 +862,19 @@ else
   fftAxis = freq/1e9+mt2mhz(Exp.Field,mean(Sys.g))/1e3;  % GHz
 end
 
+% set up horizontal sweep axis
+if FieldSweep
+  xAxis = linspace(Exp.Range(1),Exp.Range(2),Exp.nPoints);  % field axis, mT
+else
+  xAxis = linspace(Exp.mwRange(1),Exp.mwRange(2),Exp.nPoints);  % field axis, GHz
+end
+
 % interpolate over horizontal sweep range
 if FieldSweep
   outspc = interp1(fftAxis, spcAvg, xAxis);
 else
   spcAvg = spcAvg(end:-1:1);   % reverse the axis for frequency sweep
-  outspc = interp1(fftAxis, spcAvg, xAxis);
+  outspc = interp1(fftAxis,spcAvg,xAxis,'makima',0);
   outspc = cumtrapz(xAxis(end:-1:1),outspc);  % frequency sweeps outputs the absorption
 end
 
@@ -916,10 +900,10 @@ case 0
     title(sprintf('%0.8g GHz',Exp.mwFreq));
   else
     if xAxis(end)<1
-      plot(xAxis*1e3,spc);
+      plot(xAxis*1e3,outspc);
       xlabel('frequency (MHz)');
     else
-      plot(xAxis,spc);
+      plot(xAxis,outspc);
       xlabel('frequency (GHz)');
     end
     axis tight
