@@ -486,7 +486,7 @@ end
 
 % ------------------- Hyperfine couplings -------------------------
 Sys.fullA = 0;
-if (nNuclei>0)
+if nNuclei>0
   
   if ~isfield(Sys,'A') && ~isfield(Sys,'A_')
     err = sprintf('No hyperfine tensors A given for the %d electron spins and %d nuclei in the system!',nElectrons, nNuclei);
@@ -547,6 +547,9 @@ if (nNuclei>0)
   else
 
     % Cartesian representation  [Ax Ay Az]
+    if ~isnumeric(Sys.A)
+      error('Sys.A must be a numeric array.');
+    end
     
     if issize(Sys.A,[3*nNuclei,3*nElectrons])
       % Full A matrices
