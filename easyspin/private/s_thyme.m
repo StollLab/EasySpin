@@ -792,24 +792,48 @@ for iPoints = 1 : nPoints
         end
         
         for jSignal = 1 : iPoints-1
-          position = cell(ndims(IndirectDimensions),1);
-          [position{:}] = ind2sub(cell2mat(IndirectDimensions),jSignal);
-          NewSignalArray{position{:}} = SignalArray(position{:},:,:);
-          NewTimeArray{position{:}} = TimeArray(position{:},:);
+          % get index for position of jSignal in the output cell array
+          indexID = cell(length(IndirectDimensions),1); 
+          [indexID{:}] = ind2sub(cell2mat(IndirectDimensions),jSignal);
+
+          % assign jSignal to cell array, remove singleton dimensions
+          NewSignalArray{indexID{:}} = squeeze(SignalArray(indexID{:},:,:));
+          
+          % If only one detection operator is used, the squeeze above also
+          % rotates the signal vector and we have to reverse the rotation.
+          if length(Det) == 1
+            NewSignalArray{indexID{:}} = NewSignalArray{indexID{:}}.';
+          end
+          
+          % For the time axis, two cases need to be considered as well. If
+          % there is only one indirect dimension, the time vector can be
+          % taken as is
+          if length(IndirectDimensions) == 1
+            NewTimeArray{indexID{:}} = TimeArray(indexID{:},:);
+          else
+            % if there are more than one indirect dimensions, a squeeze has
+            % to be applied and the vector needs to be rotated.
+            NewTimeArray{indexID{:}} = squeeze(TimeArray(indexID{:},:)).';
+          end
         end
         
+        % store the signal and time axis of the most recent acquisition 
+        % point (the one where the length of the transient changed)
         NewSignalArray{AcquisitionIndex{:}} = Signal;
         NewTimeArray{AcquisitionIndex{:}} = t;
         
+        % Copy signal and time axes arrays over
         SignalArray = NewSignalArray;
         TimeArray = NewTimeArray;
                 
-      else
-        
+      else 
+        % Storing in vector array (transients have identical number of
+        % points)
         TimeArray(AcquisitionIndex{:},:) = t;
         SignalArray(AcquisitionIndex{:},:,:) = Signal;
       end
     else
+      % Storing in cell array (transients have different number of points)
       SignalArray{AcquisitionIndex{:}} = Signal;
       TimeArray{AcquisitionIndex{:}} = t;
     end
@@ -825,7 +849,7 @@ for iPoints = 1 : nPoints
   end
   %--------------------------------------------------------------------
   % Incremeant the index for the Vary structure by 1
-  %--------------------------------------------------------------------
+  %-------------------- ------------------------------------------------
   
   if ~isempty(Vary)
     for d = nDimensions:-1:1
