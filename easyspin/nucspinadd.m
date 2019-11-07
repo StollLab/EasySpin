@@ -75,7 +75,6 @@ end
 % Determine number of nuclei
 if isfield(Sys,'Nucs')
   Nucs = nucstring2list(Sys.Nucs);
-  I = nucspin(Nucs);
   nNuclei = numel(Nucs);
 else
   nNuclei = 0;
@@ -116,6 +115,7 @@ end
 
 % Append Q and QFrame
 if isfield(Sys,'Q') || any(Q(:)~=0)
+  I = nucspin(Nucs);
   NewSys.Q = appendtensor(NewSys.Q,NewSys.QFrame,Q,QFrame,nNuclei,'Q',I);
   fullQ = numel(Q)==9 || size(NewSys.Q,1)==3*nNuclei;
   if ~fullQ
@@ -206,15 +206,7 @@ elseif size(T0,2)==3
 end
 fullT0 = nT0==9;
 
-if size(T,1)==3*nNuclei
-  nT = 9;
-elseif numel(T)==nNuclei
-  nT = 1;
-elseif size(T,2)==2
-  nT = 2;
-elseif size(T,2)==3
-  nT = 3;
-end
+nT = numel(T);
 fullT = nT==9;
 
 if Atensor

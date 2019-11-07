@@ -39,9 +39,6 @@ NewSys = nucspinadd(Sys,Nuc,A)
 NewSys = nucspinadd(Sys,Nuc,A,AFrame)
 NewSys = nucspinadd(Sys,Nuc,A,AFrame,Q)
 NewSys = nucspinadd(Sys,Nuc,A,AFrame,Q,QFrame)
-
-NewSys = nucspinadd(Sys,Nuc,Afull)
-NewSys = nucspinadd(Sys,Nuc,Afull,Qfull)
 </pre>
 
 
@@ -49,29 +46,19 @@ NewSys = nucspinadd(Sys,Nuc,Afull,Qfull)
 <div class="subtitle">Description</div>
 
 <p>
-This function adds the isotope specified in <code>Nuc</code> to the
-spin system structure given in <code>Sys</code>. <code>A</code> is
-a vector containing the hyperfine principal values, <code>Q</code>
-contains the quadrupole principal values. <code>AFrame</code> and <code>QFrame</code>
-contain the Euler tilt angles for the respective tensors. See the page on
-<a href="spinsystem.html">spin system structures</a>.
+This function adds the nucleus specified in <code>Nuc</code> to the spin system structure given in <code>Sys</code> and returns the spin system structure with this additional nucleus. <code>A</code> is an array containing the isotropic hyperfine coupling, the hyperfine principal values, or the full hyperfine tensor. Similarly, <code>Q</code>
+contains the quadrupole principal values or the full quadrupole tensor. <code>AFrame</code> and <code>QFrame</code> contain the Euler tilt angles for the respective tensors. See the page on <a href="spinsystem.html">spin system structures</a> for details on how to specify <code>A</code>, <code>Q</code>, <code>AFrame</code>, and <code>QFrame</code>.
 </p>
 
 <p>
 If any of <code>AFrame</code>, <code>Q</code> or <code>QFrame</code> is missing or set to <code>[]</code>, it is set to <code>[0 0 0]</code>.
 </p>
 
-<p>
-Alternatively, full 3x3 hyperfine and quadrupole matrices can be given
-in <code>Afull</code> and <code>Qfull</code>, respectively.
-</p>
-
 <!-- ====================================================== -->
 <div class="subtitle">Examples</div>
 
 <p>
-The following two lines defines a system of an
-electron spin coupled to a Cu and a N nucleus.
+The following two lines defines a system of an electron spin coupled to a <sup>63</sup>Cu and a <sup>14</sup>N nucleus.
 </p>
 
 <pre class="matlab">
