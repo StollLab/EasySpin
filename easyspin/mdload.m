@@ -215,7 +215,7 @@ TrajFilePath = cell(nTrajFiles,1);
 TrajFileName = cell(nTrajFiles,1);
 TrajFileExt = cell(nTrajFiles,1);
 for k = 1:nTrajFiles
-  if ~exist(TrajFile{k},'File')
+  if ~exist(TrajFile{k},'file')
     error('TrajFile "%s" could not be found.', TrajFile{k})
   end
   [TrajFilePath{k}, TrajFileName{k}, TrajFileExt{k}] = fileparts(TrajFile{k});

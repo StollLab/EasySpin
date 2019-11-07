@@ -874,7 +874,7 @@ if FieldSweep
   outspc = interp1(fftAxis, spcAvg, xAxis);
 else
   spcAvg = spcAvg(end:-1:1);   % reverse the axis for frequency sweep
-  outspc = interp1(fftAxis,spcAvg,xAxis,'makima',0);
+  outspc = interp1(fftAxis,spcAvg,xAxis,'spline',0);
   outspc = cumtrapz(xAxis(end:-1:1),outspc);  % frequency sweeps outputs the absorption
 end
 
