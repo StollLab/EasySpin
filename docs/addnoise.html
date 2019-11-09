@@ -36,7 +36,6 @@ Adds noise to a signal.
 
 
 <pre class="matlab">
-yn = addnoise(y,SNR)
 yn = addnoise(y,SNR,NoiseModel)
 </pre>
 
@@ -54,7 +53,7 @@ The signal amplitude is estimated from the difference of the maximum and the min
 <p>
 The model for the noise is given in <code>NoiseModel</code>. Possible values are:
 <ul>
-<li><code>'f'</code>, a simple 1/f noise model (the default),
+<li><code>'f'</code>, a simple 1/f noise model,
 <li><code>'u'</code> a uniform distribution,
 <li><code>'n'</code>, a normal (Gaussian) distribution.
 </ul>
@@ -74,7 +73,7 @@ Here is how to add noise to a Lorentzian line:
 <pre class="matlab">
 x = linspace(-1,1,1001);
 y = lorentzian(x,0,0.3);
-yn = addnoise(y,20);
+yn = addnoise(y,20,'n');
 </pre>
 
 

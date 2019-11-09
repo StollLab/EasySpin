@@ -20,8 +20,8 @@ OptData.Output = 'ChiTCGs MvsB';
 
 % generate 'data' and add a bit of noise
 [ChiTD,MvsBD] = curry(DataSys,Exp,OptData);
-ChiTData = addnoise(ChiTD,30);
-MvsBData = addnoise(MvsBD,30);
+ChiTData = addnoise(ChiTD,30,'n');
+MvsBData = addnoise(MvsBD,30,'n');
 
 figure(1)
 subplot(2,1,1)

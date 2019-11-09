@@ -1,15 +1,14 @@
-function [err,data] = test(opt,olddata)
+function err = test(opt)
 
 %======================================================
-% Adding noise to data
+% Test syntax of addnoise
 %======================================================
 
 x = linspace(-1,1,10001);
 y = gaussian(x,0,0.3);
 
-yn = addnoise(y,10);
+yn = addnoise(y,10,'f');
 yn = addnoise(y,10,'u');
 yn = addnoise(y,10,'n');
 
-data = [];
-err = 0;
+err = false;

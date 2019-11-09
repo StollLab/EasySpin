@@ -336,7 +336,7 @@ A simple mock example of this would be
 Sys.g = 2; Sys.lw = 2;
 Exp.mwFreq = 9.5; Exp.Range = [335 345];
 [x,y] = pepper(Sys,Exp);
-y = 3*addnoise(y,2);
+y = 3*addnoise(y,2,'n');
 
 % define parameters and settings for fitting the noisy data
 Sys.g = 2.001; Sys.lw = 1.8;
