@@ -26,14 +26,28 @@
 
 function varargout = blochsteady(g,T1,T2,deltaB0,B1,ModAmp,ModFreq,Options)
 
-if (nargin==0), help(mfilename); return; end
+if nargin==0, help(mfilename); return; end
 
-if (nargin<8), Options = struct; end
-if isempty(Options), Options = struct; end
+switch nargin
+  case 1, error('Second input (T1) is missing.');
+  case 2, error('Third input (T2) is missing.');
+  case 3, error('Fourth input (deltaB0) is missing.');
+  case 4, error('Fifth input (B1) is missing.');
+  case 5, error('Sixth input (ModAmp) is missing.');
+  case 6, error('Seventh input (ModFreq) is missing.');
+  case 7, Options = struct;
+  case 8 % ok
+  otherwise, error('Too many input arguments.');
+end
+
+if ~isstruct(Options)
+  error('Eighth input (Options) must be a structure.');
+end
 
 if ~isfield(Options,'Verbosity'), Options.Verbosity = 0; end
 global EasySpinLogLevel
 EasySpinLogLevel = Options.Verbosity;
+
 
 logmsg(1,['=begin=blochsteady======' datestr(now) '=================']);
 
@@ -44,20 +58,7 @@ if ~isfield(Options,'Method')
   Options.Method = 'fft';
 end
 
-if ~isfield(Options,'Verbosity'), Options.Verbosity = 1; end
-
-onlyAbsorption = (nargout==2);
-
-%{
-  % Set of test values
-  g = gfree;       % g value
-  T1 = 20;         % longitudinal relaxation time, us
-  T2 = 1;          % transverse relaxation time, us
-  deltaB0 = 0.1;   % field offset, in mT
-  B1 = 0.02;       % microwave field, in mT
-  ModAmp = 0.5;    % peak-to-peak field modulation amplitude, in mT
-  ModFreq = 50;    % field modulation frequency, in kHz
-%}
+onlyAbsorption = nargout==2;
 
 % Unit conversions
 T1 = T1*1e-6; % us -> s
@@ -92,9 +93,9 @@ if numel(deltaB0)~=1
 end
 
 M0 = 1;  % equilibrium magnetization
-gamma = bmagn/(planck/(2*pi))*g; % gyromagnetic ratio
+gamma = bmagn/hbar*g; % gyromagnetic ratio
 
-logmsg(1,'Determination of maximum Fourier order');
+logmsg(1,'Determination of maximum Fourier order (kmax)');
 if ~isfield(Options,'kmax') || isempty(Options.kmax)
   % Estimator for maximum relevant Fourier order
   % (1) based on maximum field offset
@@ -125,12 +126,12 @@ end
 
 
 % Solve Bloch equation for steady-state in frequency domain
-%-----------------------------------------------------------
-% derived by Andrew Ho, December 2013, January 2014.
+%-------------------------------------------------------------------------------
+% derived by Andrew Ho, December 2013 and January 2014
 
 logmsg(1,'Frequency-domain steady-state solution');
 logmsg(1,'  Set up diagonals');
-omegam = 2*pi*ModFreq; % modulation frequency
+omegam = 2*pi*ModFreq; % modulation angular frequency, rad/s
 
 A = 1i*(-kmax-1:kmax+1).'*omegam;
 B = gamma*deltaB0;
@@ -147,10 +148,9 @@ c4 = -B*D*(tau2(q) + tau2(q+1));
 c5 = -D^2*tau2(q+1);
 d  = -C*M0*tau1(kmax+2)/T1;
 
+% Assemble pentadiagonal coefficient matrix and RHS vector and solve sparse
+% linear system of equations X*Z = Y to get the Fourier coefficients Z = Mky
 logmsg(1,'  Assemble sparse pentadiagonal matrix');
-% Assemble pentadiagonal coefficient matrix and RHS vector
-% and solve sparse linear system of equations X*Z = Y to
-% get the Fourier coefficients Z = Mky
 nRows = 2*kmax+1;
 X = spdiags([c1 c2 c3 c4 c5],[0 1 2 3 4],nRows,nRows+4);
 X = X(:,3:end-2);
@@ -158,10 +158,11 @@ Y = sparse(nRows,1);
 Y(kmax+1) = d;
 
 logmsg(1,'  Solve sparse linear system for y Fourier coefficients');
+logmsg(1,'    matrix size: %d x %d',size(X,1),size(X,2));
 Z = X\Y;
 
-logmsg(1,'  Calculate x and z Fourier coefficients');
 % Calculate Mkx and Mkz from Mky
+logmsg(1,'  Calculate x and z Fourier coefficients');
 temp = zeros(2*kmax-1,1);
 temp(kmax) = 1;
 q = 2:2*kmax;
@@ -171,15 +172,15 @@ if ~onlyAbsorption
   Mkz = tau1(q).*(-C*Z(q) + M0*temp/T1);
 end
 
-% Sparse-to-full conversion, since ifft does not support sparse
+% Sparse-to-full conversion (since ifft does not support sparse)
 Mky = full(Mky);
 if ~onlyAbsorption
   Mkx = full(Mkx);
   Mkz = full(Mkz);
 end
 
-% compute time evolution of components
-%-----------------------------------------------------------
+% Compute time evolution of components
+%-------------------------------------------------------------------------------
 logmsg(1,'Calculation of time-domain signal.');
 tmax = 1/ModFreq; % modulation period
 
