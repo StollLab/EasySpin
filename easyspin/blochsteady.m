@@ -167,8 +167,8 @@ temp(kmax) = 1;
 q = 2:2*kmax;
 Mky = Z(q);
 if ~onlyAbsorption
-  Mkx = tau2(q).*(B*Z(q) + D*Z(q-1) + D*Z(q+1));
-  Mkz = tau1(q).*(-C*Z(q) + M0*temp/T1);
+  Mkx = tau2(q+1).*(B*Z(q) + D*Z(q-1) + D*Z(q+1));
+  Mkz = tau1(q+1).*(-C*Z(q) + M0*temp/T1);
 end
 
 % Sparse-to-full conversion, since ifft does not support sparse
