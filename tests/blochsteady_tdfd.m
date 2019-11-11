@@ -21,7 +21,10 @@ err = ~areequal(My1,My2,1e-10,'abs');
 data = [];
 
 if (opt.Display)
-  plot(t1/1e-6,My1,'.-',t2/1e-6,My2);
+  plot(t1,My1,'.',t2,My2);
   xlabel('time (\mus)');
-  axis tight;
+  axis tight
+  legend('td','fft');
+  legend boxoff
+  grid on
 end
