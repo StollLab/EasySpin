@@ -166,7 +166,7 @@ set to 1/2.
 
 <div class="optionfield"><code>Nucs</code></div>
 <div class="optiondescr">
-A string containing a comma-separated list of nuclear isotopes specifying the nuclear spins in 
+A character array containing a comma-separated list of nuclear isotopes specifying the nuclear spins in 
 the spin system. An arbitrary number of nuclei can be specified.
 
 <pre class="matlab">
@@ -177,7 +177,7 @@ Sys.Nucs = '59Co,14N,14N';    % a 59Co and two 14N nuclei
 
 <p>
 If there are no nuclear spins in the system, don't specify this field or set it
-to <code>''</code> (an empty string). Nuclei can be added and removed one at a
+to <code>''</code> (an empty character array). Nuclei can be added and removed one at a
 time using <a class="esf" href="nucspinadd.html">nucspinadd</a> and <a class="esf" href="nucspinrmv.html">nucspinrmv</a>.</p>
 
 <p>

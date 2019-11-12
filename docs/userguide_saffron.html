@@ -258,8 +258,8 @@ How to change pulse parameters or run experiments with more than two indirect di
 
 <p>
 For this, use the field <code>Exp.Dim1</code> for a one-dimensional experiment or <code>Exp.Dim1</code> and <code>Exp.Dim2</code> for a two-dimensional experiment. 
-Each entry first has a string, that identifies the delay you want to change, which is followed by the size of the increment for each step in microseconds.
-For delays, the string has to have the form <code>'dx'</code> where <code>d</code> stands for 'delay' and <code>x</code> for a number that corresponds to the index of the delay, e.g. <code>'d1'</code> is the first delay in <code>Exp.Sequence</code>.
+Each entry first has a character array that identifies the delay you want to change, which is followed by the size of the increment for each step in microseconds.
+For delays, the character array has to have the form <code>'dx'</code> where <code>d</code> stands for 'delay' and <code>x</code> for a number that corresponds to the index of the delay, e.g. <code>'d1'</code> is the first delay in <code>Exp.Sequence</code>.
 Here are a few examples:
 
 <pre class="matlab">

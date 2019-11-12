@@ -36,8 +36,8 @@ Save 1D spectral data in Bruker BES<sup>3</sup>T format.
 
 <pre class="matlab">
 eprsave(FileName,x,data)
-eprsave(FileName,x,data,TitleString)
-eprsave(FileName,x,data,TitleString,mwFreq)
+eprsave(FileName,x,data,Title)
+eprsave(FileName,x,data,Title,mwFreq)
 </pre>
 
 <!-- ================================================================ -->
@@ -53,7 +53,7 @@ This function saves one- or two-dimensional data given by <code>x</code> (abscis
 </p>
 
 <p>
-Any text in the optional <code>TitleString</code> will be stored along the data and read by the Bruker software as the <em>display title</em> of the dataset.
+Any character array provided in the optional <code>Title</code> will be stored along the data and read by the Bruker software as the <em>display title</em> of the dataset.
 </p>
 
 <p>

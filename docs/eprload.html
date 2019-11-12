@@ -65,7 +65,7 @@ If the spectrum is two-dimensional, then <code>x</code> contains both axes. <cod
 </p>
 
 <p>
-All string fields in <code>Params</code> containing numbers are converted to numbers. E.g., <code>Params.XPTS='1024'</code> is converted to <code>Params.XPTS=1024</code>. In addition, <code>'True'</code> is converted to 1, and <code>'False'</code> is converted to 0.
+All fields in <code>Params</code> are converted to numbers if possible. E.g., <code>Params.XPTS='1024'</code> is converted to <code>Params.XPTS=1024</code>. In addition, <code>'True'</code> is converted to 1, and <code>'False'</code> is converted to 0.
 </p>
 
 <p>
@@ -107,7 +107,7 @@ Note that BES<sup>3</sup>T files stored in ASCII format cannot be read by <code>
 </p>
 
 <p>
-<code>Scaling</code> is a string of one-letter codes that instructs <code>eprload</code> to scale the spectral data. The codes are:
+<code>Scaling</code> is a character array of one-letter codes that instructs <code>eprload</code> to scale the spectral data. The codes are:
 
 <ul>
 <li><code>'n'</code>: divide by the number of scans

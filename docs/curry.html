@@ -184,7 +184,7 @@ The structure <code>Opt</code> collects computational parameters. <code>Opt</cod
 
 <div class="optionfield"><code>Units</code></div>
 <div class="optiondescr">
-String that specifies the system of units in which the results are returned. Two values are possible:
+Specifies the system of units in which the results are returned. Two values are possible:
 
 <ul>
 <li><code>'SI'</code> returns all outputs in SI units (joule, tesla, etc.). This is the default.
@@ -200,7 +200,7 @@ Opt.Units = 'CGS';      % use CGS-emu system of units
 
 <div class="optionfield"><code>Output</code></div>
 <div class="optiondescr">
-String containing a list of keywords that specify the output <code>curry</code> should provide. Keywords should be separated by blanks. The number and order of the outputs corresponds to the number and order of the keywords in <code>Opt.Output</code>. The following keywords are available:
+Contains a list of keywords that specify the output <code>curry</code> should provide. Keywords should be separated by blanks. The number and order of the outputs corresponds to the number and order of the keywords in <code>Opt.Output</code>. The following keywords are available:
 <p>
 <ul>
 <li><code>'mu'</code>: single-center magnetic moment (SI unit: J T<sup>-1</sup>; CGS-emu unit: erg G<sup>-1</sup>)
@@ -248,7 +248,7 @@ Opt.nKnots = 31;       % 3&deg; increments
 
 <div class="optionfield"><code>Method</code></div>
 <div class="optiondescr">
-String specifying the calculation method used by <code>curry</code>, either <code>'operator'</code> or <code>'partitionfunction'</code>.
+Specifies the calculation method used by <code>curry</code>, either <code>'operator'</code> or <code>'partitionfunction'</code>.
 
 The two methods give essentially the same results within numerical accuracy. <code>'operator'</code> is the default and the method described in Algorithm is used. <code>'partitionfunction'</code> is slightly faster for large spin systems, but can be slower for smaller spin systems. In this method, magnetic moments and susceptibilities are obtained as first and second numerical derivative of the thermodynamic free energy (via the natural logarithm of the partition function).
 </div>
