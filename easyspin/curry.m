@@ -145,8 +145,9 @@ if ~isfield(Opt,'SymmFrame')
   Opt.SymmFrame = []; % needed for p_symandgrid
 end
 if ~isfield(Opt,'deltaB')
-  Opt.deltaB = 1e-2; % T
+  Opt.deltaB = 1; % mT
 end
+dB = Opt.deltaB*1e-3; % mT -> T
 
 % Parse output quantity list in Opt.Output
 if ~isfield(Opt,'Output')
@@ -257,7 +258,6 @@ Exp.PowderSimulation = doPowderSimulation; % for communication with p_*
 Exp.OriWeights = Exp.OriWeights/4/pi;
 
 beta = 1./T/boltzm;
-dB = Opt.deltaB;
 
 % Initialize output arrays
 muz = zeros(nFields,nTemperatures);
