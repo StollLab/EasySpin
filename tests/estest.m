@@ -120,13 +120,19 @@ for iTest = 1:numel(TestFileNames)
   
   % Run test, catch any errors
   testFcn = str2func(thisTestName);
-  nArgs = nargout(testFcn);
+  nArgsOut = nargout(testFcn);
+  nArgsIn = nargin(testFcn);
   tic
   try
-    if nArgs==1
-      err = testFcn(Opt);
+    if nArgsOut==1
+      if nArgsIn==0
+        err = testFcn();
+      else
+        err = testFcn(Opt);
+      end
       data = [];
     else
+      if nArgsIn<2, error('2 inputs are needed.'); end
       [err,data] = testFcn(Opt,olddata);
     end
     if Opt.Display

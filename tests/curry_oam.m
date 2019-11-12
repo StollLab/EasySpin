@@ -1,51 +1,50 @@
-function [err,data] = test(opt,olddata)
-%orbital angular momenta can also be defined as spins, therefore the 
-%results should be identical for the two cases
-rng_(5,'twister');
-n = randi_(2);
-Sys.S = randi_(3,1,n)/2;
-Sys.g = rand(3*n,3);
-Sys.L = randi_(2,1,n);
-Sys.soc = rand(n,2)*1000;
-Sys.orf = rand(n,1);
-lenS = length(Sys.S);
-if n>1, Sys.ee = zeros(nchoosek(lenS,2),1);end
+function err = test()
 
-PureSpin.S = [Sys.S,Sys.L];
-%build array of g matrices:
-PureSpin.g = [Sys.g;zeros(3*n,3)];
-for k=1:n
-  PureSpin.g(3*(n+k-1)+1:3*(n+k),:) = -diag(Sys.orf(k)*ones(1,3));
+% orbital angular momenta can also be defined as spins, therefore the 
+% results should be identical for the two cases
+rng_(5,'twister');
+n = 1;
+SysSL.S = 1/2;
+SysSL.g = diag([2 2.1 2.2]);
+SysSL.L = 1;
+SysSL.soc = rand(1,2)*1000;
+SysSL.orf = rand;
+lenS = length(SysSL.S);
+
+PureSpin.S = [SysSL.S,SysSL.L];
+% build array of g matrices
+PureSpin.g = [SysSL.g;zeros(3*n,3)];
+for k = 1:n
+  g_orb = -diag(SysSL.orf(k)*ones(1,3));
+  PureSpin.g(3*(n+k-1)+1:3*(n+k),:) = g_orb;
 end
 
-%distribute soc over ee and ee2
+% distribute soc over ee and ee2
 len = 2*lenS;
 k = nchoosek(1:len,2);
 eelen = nchoosek(len,2);
 PureSpin.ee = zeros(eelen,1);
 PureSpin.ee2 = zeros(eelen,1);
-for m=1:lenS
-  x = logical((k(:,1)==m).*(k(:,2)==m+lenS));
-  PureSpin.ee(x) = Sys.orf(m)*Sys.soc(m,1);
-  PureSpin.ee2(x) = Sys.orf(m)*Sys.orf(m)*Sys.soc(m,2);
+for m = 1:lenS
+  x = (k(:,1)==m) & (k(:,2)==m+lenS);
+  PureSpin.ee(x) = SysSL.orf(m)*SysSL.soc(m,1);
+  PureSpin.ee2(x) = SysSL.orf(m)*SysSL.orf(m)*SysSL.soc(m,2);
 end
 
-%build Zero-Field splitting part
-for k=2:2:8
+% build zero-field splitting part
+for k = 2:2:8
   lfieldname = sprintf('CF%d',k);
   sfieldname = sprintf('B%d',k);
-  Sys.(sfieldname) = rand(n,2*k+1).*repmat(((k/2)<=Sys.S).',1,2*k+1);
-  Sys.(lfieldname) = rand(n,2*k+1).*repmat(((k/2)<=Sys.L).',1,2*k+1);
-  PureSpin.(sfieldname) = [Sys.(sfieldname);Sys.(lfieldname)];
+  SysSL.(sfieldname) = rand(n,2*k+1).*repmat(((k/2)<=SysSL.S).',1,2*k+1);
+  SysSL.(lfieldname) = rand(n,2*k+1).*repmat(((k/2)<=SysSL.L).',1,2*k+1);
+  PureSpin.(sfieldname) = [SysSL.(sfieldname);SysSL.(lfieldname)];
 end
 
-%create random experiment
-Exp.Temperature = rand(1,50)*100;
-Exp.Field = rand(1,50)*100;
+Exp.Temperature = [0.5 1 2 4 10 20 50 100 200 500];
+Exp.Field = [1 10 100 1000 10000];
 
-[m1,chi1] = curry(Sys,Exp);
+[m1,chi1] = curry(SysSL,Exp);
 [m2,chi2] = curry(PureSpin,Exp);
 
 thr = 1e-6;
 err = ~areequal(m1,m2,thr,'rel') || ~areequal(chi1,chi2,thr,'rel');
-data = [];

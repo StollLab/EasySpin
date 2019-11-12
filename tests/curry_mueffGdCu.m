@@ -10,12 +10,15 @@ T = 0:0.1:125; % K
 
 Exp.Temperature = T;
 
+Opt.Output = 'mueff';
+Opt.deltaB = 0.00001;
+
 Exp.Field = 10; % mT
-mueff1 = curry(Sys,Exp,'mueff');
+mueff1 = curry(Sys,Exp,Opt);
 Exp.Field = 100; % mT
-mueff2 = curry(Sys,Exp,'mueff');
+mueff2 = curry(Sys,Exp,Opt);
 Exp.Field = 1000; % mT
-mueff3 = curry(Sys,Exp,'mueff');
+mueff3 = curry(Sys,Exp,Opt);
 
 data.mueff1 = mueff1;
 data.mueff2 = mueff2;
@@ -23,7 +26,7 @@ data.mueff3 = mueff3;
 
 if opt.Display
   plot(T,mueff1,T,mueff2,T,mueff3,...
-    T,olddata.mueff1,'--',T,olddata.mueff2,'--',T,olddata.mueff3,'--');
+    T,olddata.mueff1,'.',T,olddata.mueff2,'.',T,olddata.mueff3,'.');
   axis tight
   set(gca,'XTick',0:25:125);
   ylim([0 9]);

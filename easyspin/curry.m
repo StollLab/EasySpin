@@ -64,11 +64,7 @@ if nargin>3
 end
 
 if ~isstruct(Opt)
-  if ischar(Opt)
-    Opt = struct('Output',Opt);
-  else
-    error('Opt (third input argument) must be a structure or a string.');
-  end
+  error('Opt (third input argument) must be a structure or a string.');
 end
 
 if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 0; end
@@ -170,7 +166,7 @@ logmsg(1,'  output: %s',Opt.Output);
 calculateMu = (nargout==0);
 calculateChi = (nargout==0) || (nargout>1);
 calculateMuVec = false;
-keywords = strread(Opt.Output,'%s');
+keywords = strread(Opt.Output,'%s'); %#ok
 for k = 1:numel(keywords)
   switch keywords{k}
     case 'mu', calculateMu = true;
@@ -257,7 +253,7 @@ Exp.PowderSimulation = doPowderSimulation; % for communication with p_*
 
 % Process crystal orientations, crystal symmetry, and frame transforms
 % This sets Orientations, nOrientations, nSites and AverageOverChi
-[Orientations,nOrientations,nSites,AvgOverChi] = p_crystalorientations(Exp,Opt);
+[Orientations,nOrientations,~,~] = p_crystalorientations(Exp,Opt);
 Exp.OriWeights = Exp.OriWeights/4/pi;
 
 beta = 1./T/boltzm;
@@ -317,8 +313,7 @@ for iOri = 1:nOrientations
       if calculateChi
         
         % Solve eigenproblem at slightly higher field
-        dB = sqrt(eps)*max(B(iB),2); % determine optimal field step
-        B_ = B(iB) + dB; dB = B_ - B(iB); % eliminate roundoff error in dB
+        B_ = B(iB) + dB;
         [V,E] = eig(H0 - B_*muOpzL);
         E = diag(E); % J
         populations = exp(-(E-E(1))*beta);
@@ -341,8 +336,6 @@ for iOri = 1:nOrientations
       %-------------------------------------------------------------------------
       lnZ = @(E,Emin) log(sum(exp(-(E-Emin)*beta),1)); % log of partition function
       
-      dB = eps^(1/4)*max(B(iB),2);
-      B_ = B(iB) + dB; dB = B_ - B(iB); % eliminate roundoff error in dB
       E1 = eig(H0 - (B(iB)-dB)*muOpzL);
       E3 = eig(H0 - (B(iB)+dB)*muOpzL);
       Emin = min([E1;E3]);

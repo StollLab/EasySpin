@@ -5,9 +5,9 @@ Sys.S = randi_(6)/2;
 Sys.g = rand(1,3)*4;
 Sys.D = rand(1,2)* 10*30e3;
 
-T = 1:10:300;
+T = 1:10:100;
 Exp.Temperature = T;
-Exp.Field = 0:100:500;
+Exp.Field = 0:100:300;
 nFields = length(Exp.Field);
 
 keywords = {'mu', 'mumol', 'muBM', 'chimol', 'chimolT', '1/chimol', 'mueff'};
