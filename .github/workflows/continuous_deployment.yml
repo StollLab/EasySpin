@@ -1,0 +1,20 @@
+name: CD
+on: [create]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    name: Trigger build and publish
+
+    steps:
+    - name: Set up SSH and trigger build
+      run: |
+        mkdir -p "$HOME/.ssh"
+        echo "${{ secrets.SSH_key }}" > "$HOME/.ssh/build_key"
+        ssh-keyscan -t rsa "${{ secrets.host }}" > "$HOME/.ssh/known_hosts"
+        chmod 600 "$HOME/.ssh/build_key" "$HOME/.ssh/known_hosts"
+
+        eval $(ssh-agent)
+        ssh-add "$HOME/.ssh/build_key"
+        ssh "${{ secrets.user }}"@"${{ secrets.host }}" "source ~/.bash_profile; cd esbuildsys; perl build.pl;"
