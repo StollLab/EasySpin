@@ -35,10 +35,10 @@ error(eschecker);
 error(chkmlver);
 
 if nargin<5, error('Not enough inputs.'); end
-if nargin<6, SimOpt = struct('unused',NaN); end
-if nargin<7, FitOpt = struct('unused',NaN); end
+if nargin<6, SimOpt = struct; end
+if nargin<7, FitOpt = struct; end
 
-if isempty(FitOpt), FitOpt = struct('unused',NaN); end
+if isempty(FitOpt), FitOpt = struct; end
 if ~isstruct(FitOpt)
   error('FitOpt (7th input argument of esfit) must be a structure.');
 end

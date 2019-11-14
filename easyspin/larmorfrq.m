@@ -22,18 +22,18 @@
 
 function LarmFreq = larmorfrq(Nucs,Fields)
 
-if (nargin==0)
+if nargin==0
   help(mfilename);
-  return;
+  return
 end
 
-if (nargin<2) || (nargin>2), error('Wrong number of input arguments!'); end
-if (nargout<0), error('Not enough output arguments.'); end
-if (nargout>1), error('Too many output arguments.'); end
+if nargin<2 || nargin>2, error('Wrong number of input arguments!'); end
+if nargout<0, error('Not enough output arguments.'); end
+if nargout>1, error('Too many output arguments.'); end
 
-if isempty(Nucs) | isempty(Fields)
+if isempty(Nucs) || isempty(Fields)
   LarmFreq = [];
-  return;
+  return
 end
 
 if iscell(Nucs)

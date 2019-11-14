@@ -20,7 +20,7 @@
 
 function varargout = rotplane(n,chi,nChi)
 
-if (nargin==0), help(mfilename); return; end
+if nargin==0, help(mfilename); return; end
 
 switch nargin
   case 1, error('Second input argument (chi) is missing.');
@@ -54,11 +54,11 @@ v = x*cos(chi) + Sign*y*sin(chi);
 %----------------------------------
 
 switch nargout
-  case 0,
+  case 0
     varargout = {v};
-  case 1,
+  case 1
     varargout = {v};
-  case 2,
+  case 2
     [phi,theta] = vec2ang(v);
     varargout = {phi,theta};
 end

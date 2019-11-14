@@ -34,10 +34,10 @@
 function U2C = cgmatrix(S1,S2)
 
 switch nargin
-  case 0,
+  case 0
     help(mfilename);
-    return;
-  case 2,
+    return
+  case 2
   otherwise
     error('Wrong number of input parameters. cgmatrix needs two inputs: S1 and S2.');
 end

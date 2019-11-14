@@ -20,8 +20,8 @@ function R = rotaxi2mat(n,rho)
 
 if nargin==0, help(mfilename); return; end
 
-if ~isreal(rho) | numel(rho)~=1
-  error('phi must be a real number!');
+if ~isreal(rho) || numel(rho)~=1
+  error('Second input (angle rho) must be a real number!');
 end
 
 if ~isreal(n)
@@ -29,18 +29,18 @@ if ~isreal(n)
 end
 
 switch numel(n)
-case 1,
-  switch n
-  case 1, n = [1;0;0];
-  case 2, n = [0;1;0];
-  case 3, n = [0;0;1];
+  case 1
+    switch n
+      case 1, n = [1;0;0];
+      case 2, n = [0;1;0];
+      case 3, n = [0;0;1];
+      otherwise
+        error('Rotation axis shortcut is invalid!');
+    end
+  case 3
+    n = n/norm(n);
   otherwise
-    error('Rotation axis shortcut is invalid!');
-  end
-case 3,
-  n = n/norm(n);
-otherwise
-  error('Rotation axis must be a vector or a scalar shortcut!');
+    error('Rotation axis must be a vector or a scalar shortcut!');
 end
 
 N = zeros(3,3);
@@ -51,9 +51,7 @@ N([8 3 4]) = n;
 N = N - N.';
 
 R = eye(3) + N*sin(rho) + N^2*(1-cos(rho));
-
-% Alternative:
-%R = expm(phi*N);
+%R = expm(phi*N); % alternative
 
 % Remove numerical errors for entries with 0, +1 and -1
 thresh = 1e-10;

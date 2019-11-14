@@ -15,30 +15,35 @@
 
 function varargout = ang2vec(phi,theta)
 
-if (nargin==0), help(mfilename); return; end
+if nargin==0, help(mfilename); return; end
+
+if nargout==2 || nargout>3
+  error('One or three output arguments are required.');
+end
 
 nphi = numel(phi);
 ntheta = numel(theta);
 
-if (nphi~=1) && (ntheta~=1) && (nphi~=ntheta)
+if nphi~=1 && ntheta~=1 && nphi~=ntheta
   error('phi and theta must have the same number of elements!');
 end
 
-if (nphi==1)
+if nphi==1
   phi = phi(ones(1,ntheta));
-elseif (ntheta==1)
+elseif ntheta==1
   theta = theta(ones(1,nphi));
 end
 
 % Convert both angles to row vectors.
-p = phi(:).';
-t = theta(:).';
+phi = phi(:).';
+theta = theta(:).';
 
 % Compute cartesian column vectors.
-sintheta = sin(t);
-x = sintheta.*cos(p);
-y = sintheta.*sin(p);
-z = cos(t);
+sintheta = sin(theta);
+x = sintheta.*cos(phi);
+y = sintheta.*sin(phi);
+z = cos(theta);
+
 switch nargout
 case 1
   varargout = {[x;y;z]};

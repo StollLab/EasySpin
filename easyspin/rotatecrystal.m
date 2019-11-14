@@ -28,7 +28,7 @@
 
 function out = rotatecrystal(angCrystalOrientation,nRot,rho)
 
-if (nargin==0),
+if nargin==0
   help(mfilename);
 end
 

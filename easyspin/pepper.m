@@ -65,15 +65,15 @@ StartTime = clock;
 % Input argument scanning, get display level and prompt
 %=======================================================================
 % Guard against wrong number of input or output arguments.
-if (nargin<1), error('Please supply a spin system as first parameter.'); end
-if (nargin<2), error('Please supply experimental parameters as second input argument.'); end
-if (nargin>3), error('Too many input arguments, the maximum is three.'); end
+if nargin<1, error('Please supply a spin system as first parameter.'); end
+if nargin<2, error('Please supply experimental parameters as second input argument.'); end
+if nargin>3, error('Too many input arguments, the maximum is three.'); end
 
 if (nargout>4), error('Too many output arguments.'); end
 
 % Initialize options structure to zero if not given.
-if (nargin<3), Opt = struct('unused',NaN); end
-if isempty(Opt), Opt = struct('unused',NaN); end
+if nargin<3, Opt = struct; end
+if isempty(Opt), Opt = struct; end
 
 if ~isstruct(Sys) && ~iscell(Sys)
   error('Sys must be a structure or a cell array of structures!');

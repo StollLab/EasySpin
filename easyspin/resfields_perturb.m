@@ -43,7 +43,7 @@ error(chkmlver);
 % Check number of input arguments.
 switch (nargin)
   case 0, help(mfilename); return;
-  case 2, Opt = struct('unused',NaN);
+  case 2, Opt = struct;
   case 3,
   otherwise
     error('Use two or three inputs: refields_perturb(Sys,Exp) or refields_perturb(Sys,Exp,Opt)!');
@@ -306,7 +306,7 @@ for iOri = nOrientations:-1:1
     end
   end
 
-  % Compute Aasa-Vänngård 1/g factor (frequency-to-field conversion factor)
+  % Compute Aasa-Vï¿½nngï¿½rd 1/g factor (frequency-to-field conversion factor)
   dBdE = (planck/bmagn*1e9)/geff(iOri);
   
   % Combine all factors into overall line intensity
@@ -542,7 +542,7 @@ else
 end
 
 % Reshape arrays in the case of crystals with site splitting
-if (nSites>1) && ~isfield(Opt,'peppercall')
+if nSites>1 && ~isfield(Opt,'peppercall')
   siz = [nTransitions*nSites, numel(B)/nTransitions/nSites];
   B = reshape(B,siz);
   if ~isempty(Int), Int = reshape(Int,siz); end

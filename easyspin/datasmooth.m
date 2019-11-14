@@ -25,6 +25,7 @@
 %   If dif>0, a derivative of y is computed at the same time. E.g.
 %   if dif=3, y is denoised and its third derivative is returned.
 %
+%   If the smoothing filter is omitted, 'binom' is the default.
 %   If p is omitted, 2 is the default.
 %   If dif is omitted, 0 is the default.
 
@@ -39,11 +40,11 @@ if nargin<5, Derivative = 0; end
 if ~isreal(m) || numel(m)~=1 || ~isfinite(m) || (m<0) || mod(m,1)
   error('m (second parameter) must be a positive integer!');
 end
-if (m==0), y_filtered = y; return; end
-if (PolyOrder<Derivative)
+if m==0, y_filtered = y; return; end
+if PolyOrder<Derivative
   error('Polynomial order must not be smaller than the derivative index!');
 end
-if (PolyOrder<1) || mod(PolyOrder,1) || (numel(PolyOrder)~=1)
+if PolyOrder<1 || mod(PolyOrder,1) || numel(PolyOrder)~=1
   error('Polynomial order p must be a positive integer!');
 end
 

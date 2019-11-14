@@ -14,11 +14,11 @@
 
 function NewSys = nucspinrmv(Sys,rmvidx)
 
-if (nargin==0), help(mfilename); return; end
+if nargin==0, help(mfilename); return; end
 
 NewSys = Sys;
 
-if (nargin<2), return; end
+if nargin<2, return; end
 if isempty(rmvidx), return; end
 
 if isfield(Sys,'nn') && ~isempty(Sys.nn) && any(Sys.nn(:)~=0)

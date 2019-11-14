@@ -30,20 +30,26 @@
 
 function varargout = endorfrq(Sys,Exp,Opt)
 
-if (nargin==0), help(mfilename); return; end
+if nargin==0, help(mfilename); return; end
 
 error(chkmlver);
-if (nargin<2) || (nargin>3), error('Wrong number of input arguments!'); end
-if (nargout<0), error('Not enough output arguments.'); end
-if (nargout>4), error('Too many output arguments.'); end
+if nargin<2 || nargin>3, error('Wrong number of input arguments!'); end
+if nargout<0, error('Not enough output arguments.'); end
+if nargout>4, error('Too many output arguments.'); end
 
-if (nargin<3), Opt = struct('unused',NaN); end
-if isempty(Opt), Opt = struct('unused',NaN); end
+if nargin<3, Opt = struct; end
+if isempty(Opt), Opt = struct; end
 
-if ~(isstruct(Sys) && isstruct(Exp) && isstruct(Opt))
-  error('Sys, Par and Opt must be structures!');
-end
-
+  if ~isstruct(Sys)
+    error('First input argument (Sys) must be a structure!');
+  end
+  if ~isstruct(Exp)
+    error('Second input argument (Exp) must be a structure!');
+  end
+  if ~isstruct(Opt)
+    error('Third input argument (Opt) must be a structure!');
+  end
+  
 % A global variable sets the level of log display. The global variable
 % is used in logmsg(), which does the log display.
 if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 0; end
@@ -51,7 +57,7 @@ global EasySpinLogLevel;
 EasySpinLogLevel = Opt.Verbosity;
 
 % Initialize optional output structure
-Info = struct('unused',[]);
+Info = struct;
 
 % Process spin system.
 %---------------------------------------------------------------------

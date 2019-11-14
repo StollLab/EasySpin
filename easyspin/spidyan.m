@@ -39,8 +39,8 @@ if nargout<0, error('Not enough output arguments.'); end
 if nargout>3, error('Too many output arguments.'); end
 
 % Initialize options structure to zero if not given.
-if nargin<3, Opt = struct('unused',NaN); end
-if isempty(Opt), Opt = struct('unused',NaN); end
+if nargin<3, Opt = struct; end
+if isempty(Opt), Opt = struct; end
 
 if ~isstruct(Sys)
   error('First input argument (Sys) must be a structure!');
@@ -51,7 +51,6 @@ end
 if ~isstruct(Opt)
   error('Third input argument (Opt) must be a structure!');
 end
-% 
 
 % A global variable sets the level of log display. The global variable
 % is used in logmsg(), which does the log display.

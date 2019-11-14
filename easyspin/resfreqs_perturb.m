@@ -40,9 +40,9 @@ function varargout = resfreqs_perturb(Sys,Exp,Opt)
 error(chkmlver);
 
 % Check number of input arguments.
-switch (nargin)
+switch nargin
   case 0, help(mfilename); return;
-  case 2, Opt = struct('unused',NaN);
+  case 2, Opt = struct;
   case 3,
   otherwise
     error('Use two or three inputs: refields_perturb(Sys,Exp) or refields_perturb(Sys,Exp,Opt)!');

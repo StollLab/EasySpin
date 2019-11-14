@@ -23,20 +23,20 @@
 
 function [phi,theta] = vec2ang(v)
 
-if (nargin==0), help(mfilename); return; end
+if nargin==0, help(mfilename); return; end
 
 % Flip array if it is obviously a list of row vectors.
-if (size(v,1)~=3) & (size(v,2)==3)
+if size(v,1)~=3 && size(v,2)==3
   v = v.';
 end
 
 % Error if the input array has not the correct form.
-if (size(v,1)~=3)
+if size(v,1)~=3
   error('At least one dimension of the input array must be 3.');
 end
 
 % Error if the input array doesn't contain real numbers.
-if ~isnumeric(v) | ~isreal(v)
+if ~isnumeric(v) || ~isreal(v)
   error('Argument must contain real numbers!');
 end
 
@@ -47,7 +47,7 @@ theta = pi/2 - atan2(v(3,:),sqrt(v(1,:).^2+v(2,:).^2));
 
 switch nargout
   case {0,1}, phi = [phi; theta];
-  case 2, 
+  case 2 % phi and theta separate
 end
 
 return

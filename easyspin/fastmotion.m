@@ -39,9 +39,9 @@
 
 function [lw,mI,coeffs] = fastmotion(System,Field,tau20,domain)
 
-if (nargin==0), help(mfilename); return; end
+if nargin==0, help(mfilename); return; end
 
-if (nargin==0)
+if nargin==0
   % Di-t-butyl nitroxide
   System.Nucs = '14N';
   System.g = [2.0088 2.0064 2.0027];
@@ -89,7 +89,7 @@ if nNucs>0
   end
 end
 
-if (tau20<1e-14)
+if tau20<1e-14
   error('Correlation time too small!');
 end
 
@@ -149,7 +149,7 @@ else
   AA = 0;
   gA = 0;
 end
-gg = cc^2 * g1.'*g1;
+gg = cc^2 * (g1.'*g1);
 PP = sum(System.Q.^2,2).' * (1e6 *(2*pi))^2;
 
 % g and A contributions

@@ -48,8 +48,8 @@ if nargout<0, error('Not enough output arguments.'); end
 if nargout>3, error('Too many output arguments.'); end
 
 % Supplement empty options structure if not given.
-if nargin<3, Opt = struct('unused',NaN); end
-if isempty(Opt), Opt = struct('unused',NaN); end
+if nargin<3, Opt = struct; end
+if isempty(Opt), Opt = struct; end
 
 if ~isstruct(Sys) && ~iscell(Sys)
   error('Sys must be a structure or a list of structures!');

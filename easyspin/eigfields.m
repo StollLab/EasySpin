@@ -27,7 +27,7 @@
 
 function varargout = eigfields(SpinSystem, Exp, Opt)
 
-if (nargin==0), help(mfilename); return; end
+if nargin==0, help(mfilename); return; end
 
 % Uses generalised Liouville space eigenvalue problem
 % formulation by Belford et al.
@@ -41,15 +41,17 @@ error(chkmlver);
 
 % Add empty Options structure if not specified.
 switch nargin
-case 3
-case 2, Opt = [];
-otherwise, error('Incorrect number of inputs!');
+  case 3
+  case 2
+    Opt = [];
+  otherwise
+    error('Incorrect number of inputs!');
 end
 
 if nargout>2, error('Incorrect number of outputs.'); end
 
 if isempty(Opt)
-  Opt = struct('unused',NaN);
+  Opt = struct;
 end
 
 if ~(isstruct(SpinSystem) && isstruct(Exp) && isstruct(Opt))
