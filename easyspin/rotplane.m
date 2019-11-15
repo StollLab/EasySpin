@@ -25,10 +25,14 @@ function varargout = rotplane(n,chi,nChi)
 if nargin==0, help(mfilename); return; end
 
 switch nargin
-  case 1, error('Second input argument (chi) is missing.');
-  case 2, % nothing to be done
-  case 3, chi = linspace(chi(1),chi(end),nChi);
-  otherwise, error('Needs 2 or 3 input parameters.');
+  case 1
+    error('Second input argument (chi) is missing.');
+  case 2
+    % nothing to be done
+  case 3
+    chi = linspace(chi(1),chi(end),nChi);
+  otherwise
+    error('Needs 2 or 3 input parameters.');
 end
 
 if ischar(n)
