@@ -1,14 +1,13 @@
-function [err,data] = test(opt,olddata)
+function err = test()
 
-% Test 3: alpha gamma degeneracy
+% alpha gamma degeneracy
 %=========================================================
-R0 = erot(pi/2,0,0);
-R1 = erot(0,0,pi/2);
-R2 = erot(pi/4,0,pi/4);
+phi = pi/7;
+R0 = erot(phi,0,0);
+R1 = erot(0,0,phi);
+R2 = erot(phi/2,0,phi/2);
 
-clear ok;
-ok(1) = all(abs(R0(:)-R1(:))<1e-10);
-ok(2) = all(abs(R0(:)-R2(:))<1e-10);
+thr = 1e-10;
+ok = areequal(R0,R1,thr,'abs') && areequal(R0,R2,thr,'abs');
 
 err = any(~ok);
-data =[];

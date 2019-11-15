@@ -450,9 +450,9 @@ nOctants = Opt.nOctants;
 % spectrum.
 
 Opt.DoPreSelection = PowderSimulation & Opt.OriPreSelect & ...
-  (Opt.OriThreshold>0) & isempty(Opt.OriWeights);
+  Opt.OriThreshold>0 & isempty(Opt.OriWeights);
 
-if (Opt.DoPreSelection)
+if Opt.DoPreSelection
   logmsg(1,'  computing orientations which fall into excitation window');
   OriSys = anisosubsys(Sys);
   OriExp = Exp;
@@ -477,7 +477,6 @@ logmsg(1,'-resonances--------------------------------------------');
 MethodName = {'  method: matrix diagonalization','  method: perturbation theory'};
 logmsg(1,MethodName{Method});
 logmsg(2,'  -endorfrq start-----------------------------------');
-Opt.saltcall = true;
 switch Method
   case 1, [Pdat,Idat,Transitions,Info] = endorfrq(Sys,Exp,Opt);
   case 2, [Pdat,Idat,Transitions,Info] = endorfrq_perturb(Sys,Exp,Opt);

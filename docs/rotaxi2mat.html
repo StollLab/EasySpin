@@ -42,22 +42,18 @@ R = rotaxi2mat(n,rho);
 <div class="subtitle">Description</div>
 
 <p>
-A given rotation can be represented either by a 3x3 <a href="eulerangles.html">rotation matrix</a>
-<code>R</code> or by a rotation axis <code>n</code>
-(3-element column vector) plus a rotation angle <code>rho</code>
-around <code>n</code>.
+A given rotation can be represented either by a 3x3 <a href="eulerangles.html">rotation matrix</a> <code>R</code> or by a rotation axis <code>n</code> (3-element column vector) plus a rotation angle <code>rho</code> around <code>n</code>.
 </p>
 
 <p>
-<code>rotaxi2mat</code> converts <code>R</code> to <code>n</code> and
-<code>rho</code> describing the same rotation.
+<code>rotaxi2mat</code> converts <code>R</code> to <code>n</code> and <code>rho</code> describing the same rotation.
 </p>
 
-
+<p>
+<code>n</code> must be a 3-element vector, not necessarily normalized. Alternatively, <code>n</code> can be one of the following letter abbreviations: <code>'x'</code> (<code>[1;0;0]</code>), <code>'y'</code> (<code>[0;1;0]</code>), <code>'z'</code> (<code>[0;0;1]</code>), <code>'xy'</code> (<code>[1;1;0]</code>), <code>'xz'</code> (<code>[1;0;1]</code>), or <code>'xyz'</code> (<code>[1;1;1]</code>).
 
 <p>
-<code>n</code> must be a 3-element vector, not necessarily normalized.
-<code>rho</code> is a number giving the angle in radians, not degrees.
+</p><code>rho</code> is a number giving the angle in radians, not degrees.
 </p>
 
 
@@ -71,7 +67,7 @@ the associated rotation matrix only contains zeros and ones.
 </p>
 
 <pre class="matlab">
-rho = 2*pi/3;
+rho = 2*pi/3;                % radians
 rotaxis = [1; 1; 1];
 R = rotaxi2mat(rotaxis,rho)
 </pre>
@@ -86,7 +82,7 @@ R =
 </pre>
 
 <p>
-The associated Euler angles are
+The associated <a href="eulerangles.html">Euler angles</a> are
 </p>
 
 <pre class="matlab">
@@ -100,9 +96,7 @@ ans =
 </pre>
 
 <p>
-The rotation can thus be obtained by first rotating by 90 degrees
-around the y axis, followed by a rotation by 90 degrees around the
-resulting z axis.
+The rotation can thus be obtained by first rotating by 90 degrees around the y axis, followed by a rotation by 90 degrees around the resulting z axis.
 </p>
 
 <!-- ============================================================= -->

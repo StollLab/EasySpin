@@ -523,7 +523,9 @@ else
 end
 
 % Reshape arrays in the case of crystals with site splitting
-if (nSites>1) && ~isfield(Opt,'peppercall')
+d = dbstack;
+pepperCall = numel(d)>2 && strcmp(d(2).name,'pepper');
+if (nSites>1) && ~pepperCall
   siz = [nTransitions*nSites, numel(nu)/nTransitions/nSites];
   nu = reshape(nu,siz);
   if ~isempty(Int), Int = reshape(Int,siz); end

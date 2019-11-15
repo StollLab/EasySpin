@@ -7,7 +7,7 @@
 
 function X = randi_(varargin)
 
-if verLessThan('matlab','7.12')
+if verLessThan('matlab','7.12') % R2011a
   switch nargin
     case 1
       imax = varargin{1};

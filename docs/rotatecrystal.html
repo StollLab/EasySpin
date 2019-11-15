@@ -50,7 +50,7 @@ CrystalOri = rotatecrystal(CrystalOriStart,nRotL,rho)
 </p>
 
 <p>
-<code>nRotL</code> is the lab-fixed axis of rotation, expressed in lab coordinates. For example, the vector <code>nRotL = [1;0;0]</code> indicates the rotaiton axis is xL, the x axis of the <a href="frames.html">lab frame</a>. In general, the vector <code>nRotL = [a;b;c]</code> means that the lab-fixed rotation axis is <code>a*xL+b*yL+c*zL</code>, where xL, yL and zL are the unit vectors of the <a href="frames.html">lab frame</a>. <code>nRotL</code> does not have to be normalized.
+<code>nRotL</code> is the lab-fixed axis of rotation, expressed in lab coordinates. For example, the vector <code>nRotL = [1;0;0]</code> indicates the rotation axis is xL, the x axis of the <a href="frames.html">lab frame</a>. In general, the vector <code>nRotL = [a;b;c]</code> means that the lab-fixed rotation axis is <code>a*xL+b*yL+c*zL</code>, where xL, yL and zL are the unit vectors of the <a href="frames.html">lab frame</a>. <code>nRotL</code> does not have to be normalized.
 </p>
 
 <p>
@@ -75,10 +75,10 @@ Sys.g = [2.0 2.1 2.2];
 Sys.lwpp = 1;
 Exp.mwFreq = 9.5;
 Exp.Range = [300 400];
-xL = [1;0;0];                  % lab x axis
-rho = 20*pi/180;               % rotation angle
-cori0 = [40 65 0]*pi/180;      % initial crystal orientation
-cori = rotatecrystal(cori0,xL,rho);
+xL = [1;0;0];                       % lab x axis
+rho = 20*pi/180;                    % rotation angle (radians)
+cori0 = [40 65 0]*pi/180;           % initial crystal orientation
+cori = rotatecrystal(cori0,xL,rho); % crystal orientation after rotation
 Exp.CrystalOrientation = cori;
 pepper(Sys,Exp);
 </pre>

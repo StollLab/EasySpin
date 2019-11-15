@@ -7,7 +7,9 @@
 %     Computes vectors in a plane perpendicular to
 %     a given direction n.
 %
-%     n      3-element vector specifying the rotation axis
+%     n      rotation axis, either 3-element vector, or shortcut
+%              'x','y','z','xy','xz','yz','xyz',
+%              '-x','-y','-z','-xy','-xz','-yz','-xyz'
 %     chi    array of plane angles, in radians
 %     chi12  [chi1 chi2], start and end angle
 %            in plane, in radians
@@ -29,29 +31,32 @@ switch nargin
   otherwise, error('Needs 2 or 3 input parameters.');
 end
 
-% Define a plane by giving a direction normal to it
-% a the number of vectors to compute
+if ischar(n)
+  n = letter2vec(n);
+else
+  if numel(n)~=3
+    error('n must be a 3-element vector or a shortcut such as ''x'', ''y'', etc.');
+  end
+end
+
 z = n(:);
 
-if numel(z)~=3, error('n must be a 3-element vector.'); end
 normz = norm(z);
-if (normz==0)
+if normz==0
   error('n must be a vector with nonzero length.');
 end
 
 Sign = -1;
 
-%----------------------------------
 z = z(:)/normz;
 y = [-z(2); z(1); 0];
-if (norm(y)<eps)
+if norm(y)<eps
   y = [0; 1; 0];
 else
   y = y/norm(y);
 end
 x = cross(y,z);
 v = x*cos(chi) + Sign*y*sin(chi);
-%----------------------------------
 
 switch nargout
   case 0
