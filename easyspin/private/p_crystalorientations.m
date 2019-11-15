@@ -21,10 +21,24 @@ Outputs:
 
 % Exp.PowderSimulation is set only if this function is called from an EasySpin
 % function that does a powder simulation (pepper, salt, saffron, curry, etc).
-if ~isfield(Exp,'PowderSimulation')
-  PowderSimulation = false;
-else
-  PowderSimulation = Exp.PowderSimulation;
+PowderSimulation = isfield(Exp,'PowderSimulation') && Exp.PowderSimulation;
+
+% If sample rotation is requested, prepare rotation matrices
+rotateSample = isfield(Exp,'SampleRotation') && ~isempty(Exp.SampleRotation);
+if rotateSample
+  if isnumeric(Exp.SampleRotation)
+    rho = Exp.SampleRotation;
+    nRot = [1;0;0]; % lab x axis (xL_L) as default
+  elseif iscell(Exp.SampleRotation) && numel(Exp.SampleRotation)==2
+    rho = Exp.SampleRotation{1};
+    nRot = Exp.SampleRotation{2};
+  else
+    error('Exp.SampleRotation must be of the form {nL,rho}.');
+  end
+  if numel(rho)~=1
+    error('Exp.SampleRotation can accommodate only one rotation angle.');
+  end
+  R_sample = rotaxi2mat(nRot,rho).'; % transpose because it's an active rotation
 end
 
 if ~PowderSimulation
@@ -97,7 +111,15 @@ if ~PowderSimulation
   else
     R_CL = {eye(3)};
   end
+  
   nOrientations = numel(R_CL);
+  
+  % Apply sample rotation
+  if rotateSample
+    for iR = 1:numel(R_CL)
+      R_CL{iR} = R_sample*R_CL{iR};
+    end
+  end  
   
   % Generate list of lab frame orientations, represented in the
   % various site molecular frames
@@ -145,6 +167,10 @@ else
   
   % For powder simulations, always average over the third angle.
   averageOverChi = true;
+  
+  % Apply sample rotations(s)
+  % Exp.SampleOrientation is disregarded for the purpose of grid construction.
+  % (but needs to be taken into account if Exp.Ordering is anisotropic.)
   
   % Exp.CrystalSymmetry and Exp.MolFrame are disregarded, since they have
   % no effect on the powder spectrum.

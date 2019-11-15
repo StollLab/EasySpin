@@ -253,7 +253,6 @@ Exp.PowderSimulation = doPowderSimulation; % for communication with p_*
 [Exp,Opt] = p_symandgrid(Sys,Exp,Opt);
 
 % Process crystal orientations, crystal symmetry, and frame transforms
-% This sets Orientations, nOrientations, nSites and AverageOverChi
 [Orientations,nOrientations,~,~] = p_crystalorientations(Exp,Opt);
 Exp.OriWeights = Exp.OriWeights/4/pi;
 

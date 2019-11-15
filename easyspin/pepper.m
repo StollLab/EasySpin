@@ -648,7 +648,7 @@ if FieldSweep
     logmsg(2,'  -exiting resfields*-----------------------------------');
         
     if isempty(Wdat)
-      anisotropicWidths = 0;
+      anisotropicWidths = false;
     else
       anisotropicWidths = max(Wdat(:))>0;
     end

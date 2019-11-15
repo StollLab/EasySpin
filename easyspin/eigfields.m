@@ -107,7 +107,6 @@ end
 mwFreq = Exp.mwFreq*1e3;
 
 % Process crystal orientations, crystal symmetry, and frame transforms
-% This sets Orientations, nOrientations, nSites and AverageOverChi
 [Orientations,nOrientations,~,averageOverChi] = p_crystalorientations(Exp,Opt);
 
 

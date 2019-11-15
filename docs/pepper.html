@@ -165,6 +165,21 @@ When <code>CrystalSymmetry</code> is given, all symmetry-related sites in the cr
 
 </div>
 
+<div class="optionfield"><code>SampleRotation</code></div>
+<div class="optiondescr">
+Specifies the sample rotation as <code>{rho,nRot_L}</code>. <code>rho</code> is the rotation angle (in radians) around a lab-fixed axis <code>nRot_L</code>>. The axis is in lab-frame coordinates, and <code>nRot_L</code> does not have to be normalized.
+
+<pre class="matlab">
+rho = pi/4;
+Exp.SampleRotation = {rho,[0;1;0]};       % rotation around lab y axis (yL)
+Exp.SampleRotation = {rho,'z'};           % rotation around lab z axis (zL)
+Exp.SampleRotation = {rho,'x'};           % rotation around lab x axis (xL)
+Exp.SampleRotation = rho;                 % xL is the default if no axis is supplied
+</pre>
+
+</div>
+
+
 <div class="optionfield"><code>MolFrame</code></div>
 <div class="optiondescr">
 The three <a href="eulerangles.html">Euler angles</a>, in radians, for the transformation of the <a href="frames.html">crystal frame</a> to the <a href="frames.html">molecular frame</a>. Use this field when specifying a crystal containing spin systems that are tilted with respect to the crystal frame. E.g. <code>Param.MolFrame=[0,pi/4,0]</code> tilts the x and z axis of the spin system's molecular frame (xM, zM), relative to the crystal frame (xC,yC,zC).

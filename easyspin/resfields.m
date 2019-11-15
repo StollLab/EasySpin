@@ -169,7 +169,6 @@ if ~isfield(Opt,'Sites'), Opt.Sites = []; end
 
 
 % Process crystal orientations, crystal symmetry, and frame transforms
-% This sets Orientations, nOrientations, nSites and averageOverChi
 [Orientations,nOrientations,nSites,averageOverChi] = p_crystalorientations(Exp,Opt);
 
 % Options parsing and setting.
