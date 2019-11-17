@@ -165,7 +165,7 @@ switch PropagationMethod
       end      
       for iState = 1:MD.nStates
         for iTraj = 1:nTraj
-          idxState = Par.stateTraj(iTraj,:)==iState;
+          idxState = Par.stateTraj(:,iTraj)==iState;
           gTensor(:,:,idxState,iTraj) = repmat(gTensorState(:,:,iState),[1,1,sum(idxState),1]);
           if includeHF
             ATensor(:,:,idxState,iTraj) = repmat(ATensorState(:,:,iState),[1,1,sum(idxState),1]);
