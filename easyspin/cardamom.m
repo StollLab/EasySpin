@@ -554,7 +554,7 @@ switch LocalDynamicsModel
       case 'MD-HMM'
         
         offset = 1;
-        RTrajLocal = RTrajLocal(:,:,:,offset:HMM.nLag:end);
+        RTrajLocal = RTrajLocal(:,:,offset:HMM.nLag:end,:);
         qTrajLocal = rotmat2quat(RTrajLocal);
         
     end
@@ -697,7 +697,7 @@ while ~converged
         end
         Opt.statesOnly = true;
         [~, stateTraj] = stochtraj_jump(Sys,Par,Opt);
-        stateTraj = stateTraj(:,nStepsStoch+1:end);
+        stateTraj = stateTraj(nStepsStoch+1:end,:);
 
         Par.stateTraj = stateTraj;
         
