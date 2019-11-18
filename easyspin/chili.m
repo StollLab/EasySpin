@@ -515,7 +515,13 @@ PowderSimulation = isempty(Exp.CrystalOrientation) && usePotential;
 if isempty(Opt), Opt = struct; end
 
 % Documented
-if ~isfield(Opt,'LLMK'), Opt.LLMK = [14 7 2 6]; end
+if ~isfield(Opt,'LLMK')
+  if usePotential
+    error('Please provide basis set information (Opt.LLMK etc).');
+  else
+    Opt.LLMK = [14 7 2 6];
+  end
+end
 if ~isfield(Opt,'pSmin'), Opt.pSmin = -1; end
 if ~isfield(Opt,'pImax'), Opt.pImax = []; end
 if ~isfield(Opt,'nKnots'), Opt.nKnots = [19 0]; end
@@ -538,7 +544,11 @@ if ~isfield(Opt,'useLMKbasis'), Opt.useLMKbasis = false; end
 if ~isfield(Opt,'useStartvecSelectionRules'), Opt.useStartvecSelectionRules = true; end
 if ~isfield(Opt,'PeqTol'), Opt.PeqTol = []; end
 if ~isfield(Opt,'jKmin'), Opt.jKmin = []; end
-if ~isfield(Opt,'deltaK'), Opt.deltaK = []; end
+if ~isfield(Opt,'evenK'), Opt.evenK = []; end
+
+if isfield(Opt,'deltaK')
+  error('Opt.deltaK is obsolete. Use Opt.evenK instead.');
+end
 
 if ~ischar(Opt.Diagnostics) && ~isempty(Opt.Diagnostics) && ~isvarname(Opt.Diagnostics)
   error('If given, Opt.Diagnosics must be a valid Matlab variable name.');
@@ -607,6 +617,7 @@ if Opt.nKnots(2)~=0
 end
 
 % Basis settings
+%-------------------------------------------------------------------------------
 if isfield(Opt,'LLKM') % error if pre-6.0 field name is given
   LLKM = Opt.LLKM;
   error(['Opt.LLKM is obsolete. Use Opt.LLMK instead. Note that M and K are swapped.\n' ...
@@ -623,7 +634,7 @@ if any(Opt.LLMK(3:4)>maxL)
 end
 Basis.LLMK = Opt.LLMK;
 Basis.jKmin = Opt.jKmin;
-Basis.deltaK = Opt.deltaK;
+Basis.evenK = Opt.evenK;
 
 % pSmin (for high-field approximation)
 if numel(Opt.pSmin)~=1 || ~isreal(Opt.pSmin) || abs(Opt.pSmin)~=1
@@ -848,7 +859,7 @@ Basis.DirTilt = any(theta~=0);
 % Partial ordering for protein/macromolecule
 if useDirectorOrdering
   OrderingWeights = Exp.Ordering(phi,theta);
-  if any(OrderingWeights)<0, error('User-supplied orientation distribution gives negative values!'); end
+  if any(OrderingWeights<0), error('User-supplied orientation distribution gives negative values!'); end
   if all(OrderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end
   logmsg(2,'  orientational potential');
 else
@@ -863,8 +874,8 @@ Weights = 4*pi*Weights/sum(Weights);
 %-------------------------------------------------------------------------------
 logmsg(1,'Basis set:');
 logmsg(1,'  truncation settings:');
-logmsg(1,'    orientational: Leven max %d, Lodd max %d, Mmax %d, Kmax %d, deltaK %d, jKmin %+d',...
-  Basis.LLMK(1),Basis.LLMK(2),Basis.LLMK(3),Basis.LLMK(4),Basis.deltaK,Basis.jKmin);
+logmsg(1,'    orientational: Leven max %d, Lodd max %d, Mmax %d, Kmax %d, evenK %d, jKmin %+d',...
+  Basis.LLMK(1),Basis.LLMK(2),Basis.LLMK(3),Basis.LLMK(4),Basis.evenK,Basis.jKmin);
 logmsg(1,'    spin: pSmin %+d, pImax %s',Basis.pSmin,num2str(Basis.pImax));
 logmsg(1,'    M-p symmetry: %d',Basis.MpSymm);
 
@@ -1303,6 +1314,10 @@ spec = spec/(4*pi); % scale by powder average factor of 4pi
 spec = spec/2; % since chili uses normalized Sx and pepper uses unnormalized Sx
 % (works only for S=1/2)
 
+if Opt.pSmin==1
+  spec = spec/2;
+end
+
 if FrequencySweep
   spec = spec*1e3;
 end
@@ -1520,16 +1535,15 @@ return
 
 
 %===============================================================================
-function Basis = processbasis(Bas,maxPotentialK,I,Symmetry)
+function Basis = processbasis(Basis,maxPotentialK,I,Symmetry)
 
-Basis = Bas;
 nNuclei = numel(I);
 
 nobetatilts = Symmetry.nobetatilts;
 tensorsCollinear = Symmetry.tensorsCollinear;
 axialSystem = Symmetry.axialSystem;
 
-% Spatial basis parameters: evenLmax oddLmax Kmax Mmax jKmin deltaK
+% Spatial basis parameters: evenLmax oddLmax Kmax Mmax jKmin evenK
 %-------------------------------------------------------------------------------
 Basis.evenLmax = Basis.LLMK(1);
 Basis.oddLmax = Basis.LLMK(2);
@@ -1548,19 +1562,15 @@ end
 
 % Use only even K if there is no beta tilt (i.e. all +1 and -1 spherical
 % tensor components in the Hamiltonian are zero).
-if isempty(Basis.deltaK)
-  if nobetatilts
-    Basis.deltaK = 2;
-  else
-    Basis.deltaK = 1;
-  end
+if isempty(Basis.evenK)
+  Basis.evenK = nobetatilts;
 end
 
 %{
 % Use only even L values (oddLmax=0) and no K values (Kmax=0)
 % in case of axial magnetic tensors, axial potential, 
 % and no magnetic/diffusion tilt
-if axialSystem && (Basis.deltaK==2) && (isempty(maxPotentialK) || (maxPotentialK==0))
+if axialSystem && Basis.evenK && (isempty(maxPotentialK) || (maxPotentialK==0))
   Basis.oddLmax = 0;
   Basis.Kmax = 0;
 end
@@ -1585,11 +1595,12 @@ if nNuclei==2
   Basis.pI2max = Basis.pImax(2);
 end
 
-% Assemble final output array of basis set parameters
+% Assemble output array of basis set parameters for chili_lm
 %-------------------------------------------------------------------------------
+deltaK = Basis.evenK+1;
 Basis.v = [...
   Basis.evenLmax Basis.oddLmax Basis.Kmax Basis.Mmax, ...
-  Basis.jKmin Basis.pSmin Basis.deltaK ...
+  Basis.jKmin Basis.pSmin deltaK ...
   Basis.MpSymm ...
   Basis.pImax];
 

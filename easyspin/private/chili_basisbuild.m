@@ -1,6 +1,6 @@
 % Build basis with basis functions and ordering as used in the Freed program
 % (S = 1/2 and zero, one, or two nuclei).
-function Basis = chili_basiscount(Basis,Sys)
+function Basis = chili_basisbuild(Basis,Sys)
 
 DirTilt = Basis.DirTilt;
 
@@ -9,7 +9,7 @@ oddLmax = Basis.oddLmax;
 
 jKmin = Basis.jKmin;
 Kmax = Basis.Kmax;
-deltaK = Basis.deltaK;
+deltaK = Basis.evenK+1;
 
 Mmax = Basis.Mmax;
 
