@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function err = test(opt)
 
 %============================================================================
 % Intensity match for rigid limit chili and pepper frequency sweep (general)
@@ -30,6 +30,4 @@ if opt.Display
   legend('pepper','chili');
 end
 
-err = ~areequal(y1/max(y1),y2/max(y2),0.01,'abs');
-
-data = [];
+err = ~areequal(y1,y2,0.02,'rel');

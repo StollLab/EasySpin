@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function err = test(opt,olddata)
 
 %================================================================================
 % Intensity match for rigid limit chili and pepper approximate B sweep (general)
@@ -16,6 +16,7 @@ Exp.Range = [337 339.5];
 [x,y1] = pepper(Sys,Exp);
 
 Opt.LiouvMethod = 'general';
+Opt.FieldSweepMethod = 'approxinv';
 Opt.LLMK = [20 0 0 0];
 
 [x2,y2] = chili(Sys,Exp,Opt);
@@ -31,6 +32,4 @@ if opt.Display
   title('scaled');
 end
 
-err = ~areequal(y1/max(y1),y2/max(y2),0.01,'abs');
-
-data = [];
+err = ~areequal(y1,y2,0.02,'rel');

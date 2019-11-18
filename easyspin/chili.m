@@ -43,7 +43,8 @@
 %
 %   Opt: simulation options
 %      LLMK           basis set parameters, [evenLmax oddLmax Mmax Kmax]
-%      pSmin          electron spin basis setting, -1 or +1
+%      evenK          whether to use only even K values (true/false(
+%      highField      whether to use the high-field approximation (true/false)  
 %      pImax          maximum nuclear coherence order for basis
 %      nKnots         number of knots for powder simulation
 %      PostConvNucs   nuclei to include perturbationally via post-convolution
@@ -522,7 +523,7 @@ if ~isfield(Opt,'LLMK')
     Opt.LLMK = [14 7 2 6];
   end
 end
-if ~isfield(Opt,'pSmin'), Opt.pSmin = -1; end
+if ~isfield(Opt,'highField'), Opt.highField = false; end
 if ~isfield(Opt,'pImax'), Opt.pImax = []; end
 if ~isfield(Opt,'nKnots'), Opt.nKnots = [19 0]; end
 if ~isfield(Opt,'LiouvMethod'), Opt.LiouvMethod = ''; end
@@ -578,7 +579,7 @@ if generalLiouvillian
     error('Opt.LiouvMethod=''general'' does not support spin exchange (Sys.Exchange).');
   end
 else
-  if (Sys.nElectrons>1) || (Sys.S~=1/2) || (Sys.nNuclei>2)
+  if Sys.nElectrons>1 || Sys.S~=1/2 || Sys.nNuclei>2
     error('Opt.LiouvMethod=''fast'' does not work with this spin system.');
   end
   if usePotential
@@ -636,11 +637,15 @@ Basis.LLMK = Opt.LLMK;
 Basis.jKmin = Opt.jKmin;
 Basis.evenK = Opt.evenK;
 
-% pSmin (for high-field approximation)
-if numel(Opt.pSmin)~=1 || ~isreal(Opt.pSmin) || abs(Opt.pSmin)~=1
-  error('Opt.pSmin must be either +1 or -1.');
+% high-field approximation
+if isfield(Opt,'pSmin')
+  error('Opt.pSmin is not supported - use Opt.highField instead.');
 end
-Basis.pSmin = Opt.pSmin;
+if Opt.highField
+  Basis.pSmin = +1;
+else
+  Basis.pSmin = -1;
+end
 
 % pImax (maximum nuclear coherence order)
 if ~isempty(Opt.pImax)
@@ -1305,16 +1310,18 @@ for iOri = 1:nOrientations
     
   end % field loop
   
-  spec = spec + thisspec*Weights(iOri)/scale;
+  spec = spec + thisspec*Weights(iOri);
   
 end % orientation loop
 
-% Rescale to match rigid limit chili intensities to pepper intensities
-spec = spec/(4*pi); % scale by powder average factor of 4pi
+spec = spec/scale;
+
+% Rescale to match rigid-limit chili intensities to pepper intensities
+spec = spec*1e10;
 spec = spec/2; % since chili uses normalized Sx and pepper uses unnormalized Sx
 % (works only for S=1/2)
 
-if Opt.pSmin==1
+if Opt.highField
   spec = spec/2;
 end
 
@@ -1383,7 +1390,9 @@ end
 %===============================================================================
 % Basis set analysis
 %===============================================================================
-Opt.BasisAnalysis = false;
+if ~isfield(Opt,'BasisAnalysis')
+  Opt.BasisAnalysis = false;
+end
 if Opt.BasisAnalysis
   logmsg(1,'-------------------------------------------------------------------');
   logmsg(1,'Basis set analysis');

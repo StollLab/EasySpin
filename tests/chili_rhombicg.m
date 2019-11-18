@@ -14,7 +14,7 @@ Exp.Harmonic = 0;
 Opt.LLMK = [6 0 4 4];
 Opt.Verbosity = 0;
 Opt.MpSymm = false;
-Opt.pSmin = -1;
+Opt.highField = false;
 Opt.jKmin = -1;
 Opt.evenK = false;
 
@@ -27,5 +27,3 @@ Opt.LiouvMethod = 'general';
 y2 = rescale(y2,y1,'maxabs');
 
 err = ~areequal(y1,y2,1e-2,'abs');
-
-

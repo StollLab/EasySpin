@@ -1,7 +1,7 @@
-function [err,data] = test(opt,olddata)
+function err = test(opt)
 
 %==============================================================================
-% Intensity match for rigid limit chili and pepper approximate B sweep (fast)
+% Intensity match for rigid-limit chili and pepper approximate B sweep (fast)
 %==============================================================================
 
 Sys.g = [2.01 2.003];
@@ -12,25 +12,23 @@ Exp.mwFreq = 9.5;
 Exp.Harmonic = 0;
 Exp.Range = [337 339.5];
 
-
 [x,y1] = pepper(Sys,Exp);
 
 Opt.LiouvMethod = 'fast';
+Opt.FieldSweepMethod = 'approxinv';
 Opt.LLMK = [20 0 0 0];
 
 [x2,y2] = chili(Sys,Exp,Opt);
 
 if opt.Display
-  subplot(2,1,1)
+  subplot(2,1,1);
   plot(x,y1,x2,y2);
   legend('pepper','chili');
   title('unscaled');
-  subplot(2,1,2)
+  subplot(2,1,2);
   plot(x,y1/max(y1),x2,y2/max(y2));
   legend('pepper','chili');
   title('scaled');
 end
 
-err = ~areequal(y1/max(y1),y2/max(y2),0.01,'abs');
-
-data = [];
+err = ~areequal(y1,y2,0.02,'rel');

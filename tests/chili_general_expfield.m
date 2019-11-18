@@ -16,7 +16,7 @@ Exp.Harmonic = 0;
 Opt.LiouvMethod = 'general';
 Opt.FieldSweepMethod = 'explicit';
 Opt.LLMK = [6 0 0 2];
-Opt.pSmin = 1;
+Opt.highField = false;
 
 [x,y] = chili(Sys,Exp,Opt);
 

@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function err = test(opt)
 
 %=============================================================================
 % Intensity match for rigid limit chili and pepper explicit B sweep (general)
@@ -11,7 +11,7 @@ Sys.lw = 0.2;
 Exp.mwFreq = 9.5;
 Exp.Harmonic = 0;
 Exp.Range = [337 339.5];
-
+Exp.nPoints = 500;
 
 [x,y1] = pepper(Sys,Exp);
 
@@ -32,6 +32,4 @@ if opt.Display
   title('scaled');
 end
 
-err = ~areequal(y1/max(y1),y2/max(y2),0.02,'abs');
-
-data = [];
+err = ~areequal(y1,y2,0.02,'rel');

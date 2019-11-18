@@ -227,7 +227,7 @@ The experiment structure <code>Exp</code> contains all parameters relating to th
 <div class="subtitle2">Input: Simulation options</div>
 
 <p>
-<code>Opt</code>, the options structure, collects all settings relating to the algorithm used and the behavior of the function. The most important settings are <code>LLMK</code>, <code>pSmin</code>, <code>pImax</code>, and <code>nKnots</code>, since they determine the basis size and the number of orientations for powder averaging. If any of these settings is too small, the spectrum will not be converged.
+<code>Opt</code>, the options structure, collects all settings relating to the algorithm used and the behavior of the function. The most important settings are <code>LLMK</code>, <code>highField</code>, <code>pImax</code>, and <code>nKnots</code>, since they determine the basis size and the number of orientations for powder averaging. If any of these settings is too small, the spectrum will not be converged.
 </p>
 
 <div class="optionfield"><code>LLMK</code></div>
@@ -237,10 +237,10 @@ Specifies the rotational basis size by giving the maximum values for, in that or
 If this field is not specified, <code>chili</code> uses a default basis. This is adequate only for a few cases. In general, the basis needs to be larger for slower motions and can be smaller for faster motions. It is strongly advised to increase these four numbers until the simulated spectrum is converged. One approach is to start from <code>[2 0 0 0]</code> and increase each of the four number in turn, run the simulation, and see if the spectrum is converged.
 </div>
 
-<div class="optionfield"><code>pSmin</code></div>
+<div class="optionfield"><code>highField</code></div>
 <div class="optiondescr">
 -1 (default) or +1<br>
-Determines which electron spin transitions to include in the spin basis. If set to -1 (includes all transitions with p<sub>S</sub> = |m<sub>S</sub>'-m<sub>S</sub>''|) = -1 and +1. This leads to the largest basis, and is applicable in all cases. In certain situations, one can get away with setting <code>pSmin</code> to +1. This indicates that only transitions with p<sub>S</sub> = +1 are included. Setting <code>pSmin=+1</code> will speed up simulations, but can result in incorrect spectra under certain circumstances. It is important to always check such simulations against <code>pSmin=-1</code>.
+Determines which electron spin transitions to include in the spin basis. If set to <code>false</code>, includes all transitions with p<sub>S</sub> = m<sub>S</sub>'-m<sub>S</sub>'' = -1 and +1. This is applicable in all cases. In certain situations, one can get away with setting <code>highField</code> to <code>true</code>. This indicates the high-field approximation, and that only transitions with p<sub>S</sub> = +1 are included. This reduces the basis and speeds up simulations, but can result in incorrect spectra under certain circumstances. It is important to always check such simulations against <code>highField=false</code>.
 </div>
 
 <div class="optionfield"><code>pImax</code></div>
