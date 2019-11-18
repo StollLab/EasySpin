@@ -249,6 +249,11 @@ vector, one element per nucleus<br>
 Determines for each nucleus the maximum nuclear coherence order |&Delta;m<sub>I</sub>| to include in the spin basis. 0 corresponds to only allowed EPR transitions, 1 includes additionally forbidden EPR transitions with |&Delta;m<sub>I</sub>|=1, etc. By default, all possible orders are included. By reducing <code>pImax</code>, the spin basis is truncated, and the calculation runs faster. For nitroxides, truncation to <code>Opt.pImax=1</code> often works and can yield spectra fairly close to the correct one. Truncation to <code>Opt.pImax=0</code> rarely works and is generally not advisable.
 </div>
 
+<div class="optionfield"><code>pImaxall</code></div>
+<div class="optiondescr">
+Gives the maximum total nuclear coherence order (summed over all nuclei) to include in the spin basis. This truncation is applied in addition to the one given in <code>Opt.pImax</code>.
+</div>
+
 <div class="optionfield"><code>nKnots</code></div>
 <div class="optiondescr">
 Number of orientations used in a powder simulation (i.e. if the protein or other director does not have a single orientation, but is orientationally disordered). Unless <code>Exp.CrystalOrientation</code> is set, a powder simulation is performed. The default value for <code>nKnots</code> is 19. Increase this value if the orientational potential coefficients in <code>Sys.Potential</code> are large.

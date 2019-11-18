@@ -525,6 +525,7 @@ if ~isfield(Opt,'LLMK')
 end
 if ~isfield(Opt,'highField'), Opt.highField = false; end
 if ~isfield(Opt,'pImax'), Opt.pImax = []; end
+if ~isfield(Opt,'pImaxall'), Opt.pImaxall = []; end
 if ~isfield(Opt,'nKnots'), Opt.nKnots = [19 0]; end
 if ~isfield(Opt,'LiouvMethod'), Opt.LiouvMethod = ''; end
 if ~isfield(Opt,'FieldSweepMethod'), Opt.FieldSweepMethod = []; end
@@ -650,13 +651,19 @@ end
 % pImax (maximum nuclear coherence order)
 if ~isempty(Opt.pImax)
   if numel(Opt.pImax)~=Sys.nNuclei && numel(Opt.pImax)~=1
-    error('Opt.pImax must contain either one entry for every nucleus or just a single number.');
+    error('Opt.pImax must contain one entry for every nucleus or just a single number.');
   end
   if any(Opt.pImax<0)
     error('Every element in Opt.pImax must be 0 or larger.');
   end
 end
 Basis.pImax = Opt.pImax;
+if ~isempty(Opt.pImaxall)
+  if numel(Opt.pImaxall)~=1
+    error('Opt.pImaxall must be a single non-negative number.');
+  end
+end
+Basis.pImaxall = Opt.pImaxall;
 
 % M-pS-pI symmetry (see Meirovitch J.Chem.Phys. 77 3915 (1982), eq. (A47))
 if ~isfield(Opt,'MpSymm')
@@ -881,7 +888,7 @@ logmsg(1,'Basis set:');
 logmsg(1,'  truncation settings:');
 logmsg(1,'    orientational: Leven max %d, Lodd max %d, Mmax %d, Kmax %d, evenK %d, jKmin %+d',...
   Basis.LLMK(1),Basis.LLMK(2),Basis.LLMK(3),Basis.LLMK(4),Basis.evenK,Basis.jKmin);
-logmsg(1,'    spin: pSmin %+d, pImax %s',Basis.pSmin,num2str(Basis.pImax));
+logmsg(1,'    spin: pSmin %+d, pImax %s, pImaxall %d',Basis.pSmin,num2str(Basis.pImax),Basis.pImaxall);
 logmsg(1,'    M-p symmetry: %d',Basis.MpSymm);
 
 if generalLiouvillian
@@ -912,11 +919,15 @@ if generalLiouvillian
     pS = pq(:,2*ie-1);
     keep = keep & (pS>=Basis.pSmin);
   end
-  % (2) keep only transitions with |pI|<=pImax, for each nucleus
+  % (2a) keep only transitions with |pI|<=pImax, for each nucleus
+  % (2b) keep only transitions with sum(pI)<=pImaxall
+  pIsum = 0;
   for in = 1:Sys.nNuclei
     pI = pq(:,2*Sys.nElectrons+2*in-1);
+    pIsum = pIsum + pI;
     keep = keep & (abs(pI)<=Basis.pImax(in));
   end
+  keep = keep & (abs(pIsum)<=Basis.pImaxall);
   if Opt.pqOrder
     keep = keep(idxpq);
   end
@@ -1585,17 +1596,22 @@ if axialSystem && Basis.evenK && (isempty(maxPotentialK) || (maxPotentialK==0))
 end
 %}
 
-% Spin basis truncation parameters: pSmin, pImax
+% Spin basis truncation parameters: pSmin, pImax, pImaxall
 %-------------------------------------------------------------------------------
 
 % pImax (maximum nuclear coherence order, for each nucleus)
 if nNuclei==0
   Basis.pImax = 0;
+  Basis.pImaxall = 0;
 else
   if isempty(Basis.pImax)
     Basis.pImax = 2*I;
   end
   Basis.pImax = min(Basis.pImax,2*I);
+  if isempty(Basis.pImaxall)
+    Basis.pImaxall = sum(Basis.pImax);
+  end
+  Basis.pImaxall = min(Basis.pImaxall,sum(2*I));
 end
 
 % Set fields for fast two-nuclei code
