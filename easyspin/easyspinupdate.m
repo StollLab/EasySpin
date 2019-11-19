@@ -98,7 +98,7 @@ delete(zipFile);
 % Add to Path and clean up
 newESPath = [Destination 'easyspin-' VersionToGet filesep 'easyspin' filesep];
 
-if isfolder(newESPath)
+if exist(newESPath,'dir')
   addpath(newESPath);
   savepath
   msg = ['EasySpin was succesfully installed to ' newline newESPath newline 'and added to the MATLAB search paths.' newline];
