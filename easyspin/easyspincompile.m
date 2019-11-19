@@ -29,6 +29,16 @@ mexoptions = {mexoptions,'-silent'};
 fprintf('  mex extension: %s, %d-bit\n',mexext,nBits);
 
 
+% Determine mex configuration
+%-------------------------------------------------------------------------------
+cc = mex.getCompilerConfigurations('C','Installed');
+if numel(cc)==0
+  error('MEX is not configured for C. Run mex -setup C.');
+else
+  fprintf('  mex C compiler: %s\n',cc(1).Name); 
+end
+
+
 % Get list of *.c files
 %-------------------------------------------------------------------------------
 SourceFiles = dir('*.c');
