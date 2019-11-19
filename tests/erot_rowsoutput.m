@@ -1,11 +1,11 @@
-function [err,data] = test(opt,olddata)
+function err = test()
 
 % Comparison of two output modes: full matrix vs. rows
 %======================================================
-a = rand(1,3);
+a = [1.2 0.654 0.912334]*pi;
+
 R1 = erot(a);
 [x,y,z] = erot(a,'rows');
 R2 = [x y z].';
-err = any(R1(:)~=R2(:));
 
-data = [];
+err = ~areequal(R1,R2);

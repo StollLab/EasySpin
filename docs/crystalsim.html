@@ -47,6 +47,7 @@ Everything below is applicable to all solid-state simulation functions: <a class
 
 <p>
 Let's start with a simple spin system and a simple cw-EPR experiment. The following simulates the powder spectrum
+</p>
 
 <pre class="matlab">
 clear
@@ -59,6 +60,7 @@ pepper(Sys,Exp);
 
 <p>
 In order to simulate a crystal spectrum, you need to include three additional pieces of information: (1) the symmetry of the crystal, (2) the orientation of the molecule or paramagnetic center within the crystal, (3) the orientation of the crystal in the spectrometer.
+</p>
 
 <ol>
 <li>
@@ -82,10 +84,12 @@ pepper(Sys,Exp);
 <p>
 In space group P21/c, there are four sites per unit cell. Two each are magnetically equivalent, so one expects a maximum of two lines in the spectrum. With the settings as above, you will always see only a single line in the spectrum, no matter how you align the crystal in the lab.
 The reason is that the g tensor frame is collinear with the crystal frame, so all four sites have the same EPR spectrum.
+</p>
 
 <p>
 In order to see two lines, you need to have a tilt between the g tensor frame and the crystal frame. This can be set either in <code>Exp.MolFrame</code> or in <code>Sys.gFrame</code>. The first will tilt the molecular frame of the spin center, and thereby tilt all tensors of the molecule, relative to the crystal. The second will only tilt the g tensor frame (and not other tensors of the spin center) relative to the molecular frame.
 (Refer to the reference page on <a href="frames.html">frames</a> for details.)
+</p>
 
 <pre class="matlab">
 Exp.MolFrame = [20 40 10]*pi/180;
@@ -97,10 +101,12 @@ pepper(Sys,Exp);
 <div class="subtitle"><a <a name="frames">Crystal rotations</a></div>
 
 <p>
-In order to simulate a series of spectra that result from the rotation of a crystal in the spectrometer, you can make use of the function <a class="esf" href="rotatecrystal.html">rotatecrystal</a>, which implements the crystal rotation.
+In order to simulate a series of spectra that result from the rotation of a crystal in the spectrometer, use the field <code>Exp.SampleRotation</code>, which implements the sample rotation.
+</p>
 
 <p>
 Let's start with a spin system and an initial crystal orientation
+</p>
 
 <pre class="matlab">
 clear
@@ -110,64 +116,67 @@ Exp.mwFreq = 9.5;
 Exp.Range = [300 350];
 Exp.CrystalSymmetry = 130;
 Exp.MolFrame = [10 60 -34]*pi/180;    % molecular frame tilted within crystal
-cori0 = [0 40 0]*pi/180;              % initial crystal orientation in lab frame
-Exp.CrystalOrientation = cori0;
+Exp.CrystalOrientation = [0 40 0]*pi/180; % initial crystal orientation in lab frame
 pepper(Sys,Exp);
 </pre>
 
 <p>
-This will give the spectrum for the initial crystal orientation. Now use <a class="esf" href="rotatecrystal.html">rotatecrystal</a> to calculate new <a href="eulerangles.html">Euler angles</a> of the rotated crystal. You need to supply the rotation axis (in lab coordinates) and the rotation angle. Then, use the results in <code>Exp.CrystalOrientation</code>
+This will give the spectrum for the initial crystal orientation. Now add the rotation axis (in lab coordinates) and the rotation angle (in radians) in <code>Exp.SampleRotation</code>:
+</p>
 
 <pre class="matlab">
-nRot_L = [1;0;0];                         % rotation axis = x axis of lab frame
-rho = 10*pi/180;                          % rotation angle
-cori = rotatecrystal(cori0,nRot_L,rho);   % rotate crystal by rho around nRot
-Exp.CrystalOrientation = cori;
+rho = deg2rad(10);                        % sample rotation angle (radians)
+nRot_L = [1;0;0];                         % sample rotation axis = x axis of lab frame
+Exp.SampleRotation = {rho,nRot_L};
 pepper(Sys,Exp);
 </pre>
 
 <p>
-This will give the spectrum of the crystal rotated by <code>rho</code> around the rotation axis <code>nL</code> starting from its initial orientation given in <code>cori0</code>.
+This will give the spectrum of the crystal rotated by <code>rho</code> around the rotation axis <code>nRot_L</code> starting from its initial orientation given in <code>Exp.CrystalOrientation</code>.
 </p>
 
 <p>
-You can simulate a series of crystal spectra that result from successive small-step rotations around the same rotation axis in one go. Just start with an array of <code>rho</code> angles and generate a series of <a href="eulerangles">Euler angle sets</a> using <a class="esf" href="rotatecrystal.html">rotatecrystal</a>.
-
+To rotate an EPR sample tube in a common setup with horizontal static field (permanent or electrmagnet) and vertical microwave magnetic field (as in cavity or dielectric resonators), the rotation axis is the laboratory x axis (<code>nRot_L=[1;0;0]</code> or <code>nRot_L='x'</code>). Since this is so common, for this case you can omit the axis definition. The following three forms are fully equivalent:
+</p>
+   
 <pre class="matlab">
-cori0 = [0 40 0];          % initial crystal orientation
-nL = [1;0;0];              % rotation axis along lab x axis
-rho = (0:15:180)*pi/180;   % 15 degree increments
-cori = rotatecrystal(cori0,nL,rho);
-</pre>
-
-<code>cori</code> now contains one row of <a href="eulerangles.html">Euler angles</a> for each crystal orientation. Next, set <code>Exp.CrystalOrientation</code> and simulate all spectra in one go. Make sure to ask EasySpin to return them separately, via <code>Opt.Output</code>. You can plot them using <a class="esf" href="stackplot.html">stackplot</a>.
-
-<pre class="matlab">
-Exp.CrystalOrientation = cori;   % setting a series of crystal orientations
-Opt.Output = 'separate';         % request each crystal spectrum separately
-[x,y] = pepper(Sys,Exp,Opt);
-stackplot(x,y);
+Exp.SampleRotation = {rho,[1;0;0]};   % most general form
+Exp.SampleRotation = {rho,'x'};       % shorthand notation for rotation axis
+Exp.SampleRotation = rho;             % implies that the rotation axis is 'x'
 </pre>
 
 <p>
-Remember, the key in using this functionality successfully is a clear understanding of the <a href="frames.html">frames</a> used by EasySpin, and how to specify their relative orientations using <a href="eulerangles.html">Euler angles</a>.
+You can simulate a series of crystal spectra that result from successive small-step rotations around the same rotation axis using a loop:
 </p>
+
+<pre class="matlab">
+rho = deg2rad(0:15:180);             % 15 degree increments
+for k = 1:numel(rho)
+  Exp.SampleRotation = rho(k);
+  [B,spc(:,k)] = pepper(Sys,Exp);
+end
+stackplot(B,spc);
+</pre>
 
 <div class="subtitle"><a <a name="frames">Site-selective simulations</a></div>
 
 <p>
 In a crystal simulation, EasySpin will first determine the number of magnetically equivalent sites in the crystal from the symmetry given in <code>Exp.CrystalSymmetry</code>. Then, it will simulate the EPR spectra of all sites and sum them up to obtain the overall crystal spectrum.
+</p>
 
 <p>
 Occasionally, it is useful to look at the EPR spectra of the single sites separately. You can tell EasySpin to simulate only a specific subset of sites (e.g. just one) by specifying the site index in <code>Opt.Sites</code>. This field should contain a list of site indices. The number of sites depends on the space group given in <code>Exp.CrystalSymmetry</code>. E.g. the following set limits a crystal simulation to site 3 of the 4 magnetically distinct sites in crystal of space group no. 47.
+</p>
 
 <pre class="matlab">
 Exp.CrystalSymmetry = 47;  % space group Pmmm
 Opt.Sites = [1 3];         % simulate only site 3
 </pre>
 
+<p>
 If <code>Opt.Sites</code> is empty or not given, all sites are included.  In powder simulations, <code>Opt.Sites</code> is ignored.
 </td></tr>
+</p>
 
 <hr>
 </section>

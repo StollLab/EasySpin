@@ -118,7 +118,6 @@ end
 
 
 % Process crystal orientations, crystal symmetry, and frame transforms
-% This sets Orientations, nOrientations, nSites and AverageOverChi
 [Orientations,nOrientations,nSites,AverageOverChi] = p_crystalorientations(Exp,Opt);
 
 %-----------------------------------------------------------------------
@@ -571,7 +570,9 @@ end
 Info.Selectivity = Selectivity;
 
 % Reshape arrays in the case of crystals with site splitting
-if (nSites>1) && ~isfield(Opt,'saltcall')
+d = dbstack;
+saltCall = numel(d)>2 && strcmp(d(2).name,'salt');
+if nSites>1 && ~saltCall
   siz = [nTransitions*nSites, numel(Pdat)/nTransitions/nSites];
   Pdat = reshape(Pdat,siz);
   if ~isempty(Idat), Idat = reshape(Idat,siz); end

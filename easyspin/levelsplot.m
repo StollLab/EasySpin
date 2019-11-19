@@ -97,17 +97,8 @@ end
 
 % Convert string in Ori input to angles
 if ischar(Ori)
-  switch Ori
-    case 'x',   Ori = [0, pi/2];
-    case 'y',   Ori = [pi/2, pi/2];
-    case 'z',   Ori = [0, 0];
-    case 'xy',  Ori = [pi/4 pi/2];
-    case 'xz',  Ori = [0 pi/4];
-    case 'yz',  Ori = [pi/2 pi/4];
-    case 'xyz', Ori = [pi/4 acos(1/sqrt(3))];
-    otherwise
-      error('Unknown value ''%s'' for orientation (2nd input argument).',Ori);
-  end
+  n = letter2vec(Ori);
+  Ori = vec2ang(n);
 end
 
 if (numel(Ori)==2)

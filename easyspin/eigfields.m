@@ -54,7 +54,7 @@ if isempty(Opt)
   Opt = struct;
 end
 
-if ~(isstruct(SpinSystem) && isstruct(Exp) && isstruct(Opt))
+if ~isstruct(SpinSystem) || ~isstruct(Exp) || ~isstruct(Opt)
   error('SpinSystem, Parameters and Options must be structures!');
 end
 
@@ -107,23 +107,22 @@ end
 mwFreq = Exp.mwFreq*1e3;
 
 % Process crystal orientations, crystal symmetry, and frame transforms
-% This sets Orientations, nOrientations, nSites and AverageOverChi
-[Orientations,nOrientations,nSites,AverageOverChi] = p_crystalorientations(Exp,Opt);
+[Orientations,nOrientations,~,averageOverChi] = p_crystalorientations(Exp,Opt);
 
 
 % Process options structure.
 %===================================================================
-DefaultOptions.Freq2Field = 1;
+DefaultOptions.Freq2Field = true;
 DefaultOptions.Threshold = 0;
 DefaultOptions.RejectionRatio = 1e-8; % UNDOCUMENTED!
 
 Opt = adddefaults(Opt,DefaultOptions);
 
-if (Opt.Freq2Field~=1)&&(Opt.Freq2Field~=0)
+if (Opt.Freq2Field~=1) && (Opt.Freq2Field~=0)
   error('Options.Freq2Field incorrect!');
 end
 
-computeFreq2Field = (1==Opt.Freq2Field);
+computeFreq2Field = Opt.Freq2Field;
 
 if ~isnumeric(Opt.Threshold) || numel(Opt.Threshold)~=1 || Opt.Threshold<0
   error('Opt.Threshold must be a single nonnegative number.');
@@ -215,14 +214,14 @@ for iOri = 1:nOrientations
       idx = ones(1,length(EigenFields{iOri}));
       if (ParallelMode)
         vGzL = zLab(1)*vGx + zLab(2)*vGy + zLab(3)*vGz;
-        if (AverageOverChi)
+        if averageOverChi
           TransitionRate = abs(sum(vGzL(:,idx).*Vecs)).^2;
         else
           TransitionRate = abs(sum(vGzL(:,idx).*Vecs)).^2;
         end
       else
         vGxL = xLab(1)*vGx + xLab(2)*vGy + xLab(3)*vGz;
-        if (AverageOverChi)
+        if averageOverChi
           vGyL = yLab(1)*vGx + yLab(2)*vGy + yLab(3)*vGz;
           % Calculate transition rate using <v|A|u> = trace(A|u><v|)
           TransitionRate = (abs(sum(vGxL(:,idx).*Vecs)).^2 + abs(sum(vGyL(:,idx).*Vecs)).^2)/2;
@@ -260,7 +259,7 @@ for iOri = 1:nOrientations
     end
   else
     
-    if (SimpleEigenproblem)
+    if SimpleEigenproblem
       Fields = eig(BB);
       Fields = sort(1./Fields);
     else
@@ -279,7 +278,7 @@ for iOri = 1:nOrientations
 end
 
 % One orientation: simple array instead of 1x1 cell array as output!
-if (nOrientations==1)
+if nOrientations==1
   EigenFields = EigenFields{1};
   Intensities = Intensities{1};
 end
@@ -296,36 +295,3 @@ warning(OldWarningState);
 return
 %=======================================================================
 %=======================================================================
-
-
-%=======================================================================
-% supplementary functions
-%=======================================================================
-function B = eyekron(A,n)
-% A version of kron(eye(n),A) without multiplications. Esp. for big
-% matrices this gives a significant performance boost.
-% Equivalent to kron(eye(length(A)),A) or kron(eye(n),A).
-if nargin==1, n = length(A); end
-[r,c] = size(A);
-B = zeros(r*n,c*n);
-Rows = 1:r; Cols = 1:c;
-for k = 1:n
-  B(Rows,Cols) = A;
-  Rows = Rows + r; Cols = Cols + c;
-end
-return
-
-
-function B = kroneye(A,n)
-% A version of kron(A,eye(n)) without multiplications. Esp. for big
-% matrices this gives a significant performance boost.
-% Equivalent to kron(A,eye(length(A))) or kron(A,eye(n)).
-if nargin==1, n = length(A); end
-[r,c] = size(A);
-B = zeros(r*n,c*n);
-Rows = 0:n:(r-1)*n; Cols = 0:n:(c-1)*n;
-for k = 1:n
-  Rows = Rows + 1; Cols = Cols + 1;
-  B(Rows,Cols) = A;
-end
-return

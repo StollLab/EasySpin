@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function err = test()
 
 % The S field in the spin system structure is optional.
 % Default is 1/2.
@@ -6,7 +6,6 @@ function [err,data] = test(opt,olddata)
 Sys = struct('g',[2 2 2.2],'lw',3);
 Exp = struct('mwFreq',9.5,'Range',[280 350]);
 
-y = pepper(Sys,Exp);
+[~] = pepper(Sys,Exp);
 
-err = 0;
-data = [];
+err = false;

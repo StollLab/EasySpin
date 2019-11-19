@@ -56,7 +56,8 @@ end
 FileList = dir(FileMask);
 
 if numel(FileList)==0
-  error('No test functions matching the pattern %s',FileMask);
+  fprintf('No test functions matching the pattern %s\n',FileMask);
+  return
 end
 
 TestFileNames = sort({FileList.name});

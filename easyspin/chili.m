@@ -985,7 +985,7 @@ if generalLiouvillian
   % Calculate diffusion superoperator in spatial basis
   Gamma = diffsuperop(Basis,Dynamics.R,XLMK,Potential);
   % Expand to full product basis
-  Gamma = spkroneye(Gamma,Sys.nStates^2);
+  Gamma = kroneye(Gamma,Sys.nStates^2);
   Gamma = Gamma(keep,keep); % prune
   
   maxerr = @(x) full(max(abs(x(:))));

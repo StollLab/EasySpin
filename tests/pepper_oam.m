@@ -1,11 +1,11 @@
-function [err,data] = test(opt,olddata)
+function err = test()
 %orbital angular momenta can also be defined as spins, therefore the two
 %Hamiltonians should be identical
 
 rng_(5,'twister');
 
 % Build spin system with spin in Sys.S and orbital angular momenta in Sys.L
-n = 1;%randi_(2);
+n = 1;
 SysSL.S = randi_(3,1,n)/2;
 SysSL.g = rand(3*n,3);
 SysSL.L = randi_(2,1,n);
@@ -55,12 +55,12 @@ fd2 = pepper(SysS,FDExp);
 err = ~areequal(fd1,fd2,1e-10,'abs');
 
 % Build field-sweep experimet based on FD sim, always a transition in spectral window 
-[ignore, ind] = max(fd1);
+[~, ind] = max(fd1);
 Exp.mwFreq = nu(ind);
 Exp.CenterSweep = FDExp.Field*[1 0.5];
 Exp.Temperature = FDExp.Temperature;
 
-Opt = struct();
+Opt = struct;
 
 s1 = pepper(SysSL,Exp,Opt);
 s2 = pepper(SysS,Exp,Opt);
@@ -83,5 +83,3 @@ err = err || ~areequal(fd3,fd4,1e-6,'abs');
 s3 = pepper(SysSL,Exp,Opt);
 s4 = pepper(SysS,Exp,Opt);
 err = err || ~areequal(s3,s4,1e-6,'abs');
-
-data = [];

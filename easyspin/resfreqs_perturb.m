@@ -176,7 +176,6 @@ end
 
 
 % Process crystal orientations, crystal symmetry, and frame transforms
-% This sets Orientations, nOrientations, nSites and AverageOverChi
 [Orientations,nOrientations,nSites,AverageOverChi] = p_crystalorientations(Exp,Opt);
 
 
@@ -523,7 +522,9 @@ else
 end
 
 % Reshape arrays in the case of crystals with site splitting
-if (nSites>1) && ~isfield(Opt,'peppercall')
+d = dbstack;
+pepperCall = numel(d)>2 && strcmp(d(2).name,'pepper');
+if (nSites>1) && ~pepperCall
   siz = [nTransitions*nSites, numel(nu)/nTransitions/nSites];
   nu = reshape(nu,siz);
   if ~isempty(Int), Int = reshape(Int,siz); end

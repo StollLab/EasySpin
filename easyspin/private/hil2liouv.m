@@ -2,7 +2,7 @@
 
 function [HL] = hil2liouv(H)
 
-kronkron = @(A) speyekron(length(A),A)-spkroneye(A.',length(A));
+kronkron = @(A) eyekron(length(A),A) - kroneye(A.',length(A));
 
 if ~iscell(H)
   
