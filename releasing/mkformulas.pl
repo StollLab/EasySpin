@@ -22,7 +22,14 @@ if (-e "$tempdir") {
 
 system("mkdir $tempdir");
 
-$templatefile = "$TempRepoDir/scripts/template.tex";
+if (-e "$TempRepoDir/scripts/") {
+    # this catches the legacy version from before releasing and scripts folders where merged
+    $templatefile = "$TempRepoDir/scripts/template.tex";
+}
+else {
+    # this should be the default behavior, after merge of releasing and scripts folder
+    $templatefile = "$TempRepoDir/releasing/template.tex";
+}
 
 $latexoptions = '--interaction=batchmode --output-directory=./latextemp/';
 

@@ -214,8 +214,16 @@ foreach (@TagsToBuild) {
 
     # ---------------------------------------------------------------------------------
     # Update html file that contains the examples
-    chdir($TempRepoDir.'scripts/');
-
+    
+    if (-e "$TempRepoDir/scripts/") {
+        # this catches the legacy version from before releasing and scripts folders where merged
+        chdir($TempRepoDir.'scripts/');
+    }
+    else {
+        # this should be the default behavior, after merge of releasing and scripts folder
+        chdir($TempRepoDir.'releasing/');
+    }
+    
     system('perl mkexamples.pl');
 
     chdir($WorkingDir);

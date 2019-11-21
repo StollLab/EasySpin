@@ -12,7 +12,7 @@ chdir('../easyspin');
 map { s/\.m//} @files;
 
 # Generate file with function list
-open(D,'>../scripts/funclist.txt');
+open(D,'>../releasing/funclist.txt');
 $string = join("\n",@files);
 print D $string;
 
