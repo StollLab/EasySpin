@@ -75,9 +75,9 @@ $n_equations = scalar(@latexcode);
 
 
 if ($n_equations>0) {
-  print "=====================================================\n";
-  print "  ".$htmlfile.":  ".$n_equations." latex expressions\n";
-  print "=====================================================\n";
+  # print "=====================================================\n";
+  # print "  ".$htmlfile.":  ".$n_equations." latex expressions\n";
+  # print "=====================================================\n";
   
   $latex = join("\n\\newpage\n",@latexcode);
 
@@ -94,7 +94,7 @@ if ($n_equations>0) {
   # generate math graphics files
   #---------------------------------------------------------------
   # system("latex $latexoptions $tempdir$tmpfile.tex");
-  system("latex $latexoptions $tmpfile.tex");
+  system("latex $latexoptions $tmpfile.tex >/dev/null");
   
   system("dvips  $dvipsoptions -o $tempdir$tmpfile.ps $tempdir$tmpfile.dvi");
 
