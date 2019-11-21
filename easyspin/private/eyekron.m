@@ -25,7 +25,7 @@ switch nargin
     A = varargin{2};
 end
 
-if ~issparse(A)
+if issparse(A)
   
   [mb,nb] = size(A);
   ia = (1:nI).';
