@@ -102,7 +102,7 @@ if Diagnostics && Display
   UpdateOpt.Silent = true;
   [UpdateAvailable, NewerVersion] = easyspinversioncheck(VersionInfo,UpdateOpt);
   if UpdateAvailable
-    msg = ['A new EasySpin version (' NewerVersion ') is available online.' newline];
+    msg = ['\n   A new EasySpin version (' NewerVersion ') is available online.' newline];
     msg = [msg 'Type and run "easyspinupdate" to update.'];
     disp(msg)
   end
@@ -116,7 +116,7 @@ OnSearchPath = strfind(upper([path pathsep]),upper([esPath pathsep]));
 
 if isempty(OnSearchPath)
   if Display
-    fprintf('The EasySpin folder is not in MATLAB''s search path. Please add it.\n\n');
+    fprintf('\n  The EasySpin folder is not in MATLAB''s search path. Please add it.\n');
   end
 end
 
@@ -153,24 +153,24 @@ end
 %-------------------------------------------------------------------------------
 Shadowed = {}; % don't list ...
 if ~isempty(Shadowed)
-  fprintf('\n\n    EasySpin functions shadow the following functions\n');
+  fprintf('\n  EasySpin functions shadow the following functions\n');
   for k=1:length(Shadowed)
     fprintf('    > %s\n',Shadowed{k});
   end
-  fprintf('    If these functions should work, either move or rename them.');
-  fprintf('\n    Otherwise remove them from MATLAB''s search path or remove them.');
+  fprintf('  If these functions should work, either move or rename them.');
+  fprintf('\n  Otherwise remove them from MATLAB''s search path or remove them.');
 end
 
 % List files that shadow EasySpin's functionality.
 %-------------------------------------------------------------------------------
 if ~isempty(Shadowing)
-  fprintf('\n   The following functions shadow EasySpin functions with the same name\n');
+  fprintf('\n  The following functions shadow EasySpin functions with the same name\n');
   for k=1:length(Shadowing)
     fprintf('    > %s\n',Shadowing{k});
   end
-  fprintf('\n    EasySpin works properly only if you rename, move or remove these\n');
-  fprintf('    functions. Alternatively, remove the corresponding directory from\n');
-  fprintf('    the MATLAB path.\n\n');
+  fprintf('\n  EasySpin works properly only if you rename, move or remove these\n');
+  fprintf('  functions. Alternatively, remove the corresponding directory from\n');
+  fprintf('  the MATLAB path.\n');
 end
 
 if isempty(Shadowed) && isempty(Shadowing)
