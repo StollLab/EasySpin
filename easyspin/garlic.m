@@ -107,6 +107,11 @@ else
   end
 end
 
+if ~isfield(Opt,'Output'), Opt.Output = 'summed'; end
+[Output,err] = parseoption(Opt,'Output',{'summed','separate'});
+error(err);
+summedOutput = Output==1;
+
 if ~isfield(Sys,'singleiso') || ~Sys.singleiso
   
   if ~iscell(Sys), Sys = {Sys}; end
@@ -124,7 +129,7 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
     logmsg(1,'  component %d: %d isotopologues',c,nIsotopologues(c));
   end
   
-  if (sum(nIsotopologues)>1) && SweepAutoRange
+  if sum(nIsotopologues)>1 && SweepAutoRange
     if FrequencySweep
       str = 'Exp.mwRange or Exp.mwCenterSweep';
     else
@@ -133,7 +138,16 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
     error('Multiple components: Please specify sweep range manually using %s.',str);
   end
   
-  spec = 0;
+  separateSpectra = ~summedOutput && ...
+    (nComponents>1 || sum(nIsotopologues)>1);
+  if separateSpectra
+    spec = [];
+    Opt.Output = 'summed'; % summed spectrum for each isotopologue
+  else
+    spec = 0;
+  end
+  
+  % Loop over all components and isotopologues
   for iComponent = 1:nComponents
     for iIsotopologue = 1:nIsotopologues(iComponent)
       
@@ -142,8 +156,12 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
       Sys_.singleiso = true;
       [xAxis,spec_,Transitions] = garlic(Sys_,Exp,Opt);
       
-      % Accumulate spectra
-      spec = spec + spec_*Sys_.weight;
+      % Accumulate or append spectra
+      if separateSpectra
+        spec = [spec; spec_*Sys_.weight];
+      else
+        spec = spec + spec_*Sys_.weight;
+      end
       
     end
   end
