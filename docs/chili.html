@@ -233,8 +233,8 @@ The experiment structure <code>Exp</code> contains all parameters relating to th
 <div class="optionfield"><code>LLMK</code></div>
 <div class="optiondescr">
 4-element vector <code>[evenLmax oddLmax Mmax Kmax]</code><br>
-Specifies the rotational basis size by giving the maximum values for, in that order, even L, odd L, M, and K. The maximum values for M and K must be less than or equal to the maximum value of L.<br>
-If this field is not specified, <code>chili</code> uses a default basis. This is adequate only for a few cases. In general, the basis needs to be larger for slower motions and can be smaller for faster motions. It is strongly advised to increase these four numbers until the simulated spectrum is converged. One approach is to start from <code>[2 0 0 0]</code> and increase each of the four number in turn, run the simulation, and see if the spectrum is converged.
+Specifies the rotational basis size by giving the maximum values for, in that order, even L, odd L, M, and K. All four numbers must be non-negative. The maximum values for M and K must be less than or equal to the maximum value of L. The larger the numbers, the larger the rotational basis.<br>
+If this field is not specified, <code>chili</code> uses a default basis. This is adequate only for common X-band spectra of nitroxides. In general, the basis needs to be larger for slower motions and can be smaller for faster motions. It is strongly advised to increase these four numbers until the simulated spectrum is converged. One approach is to start from <code>[2 0 0 0]</code> and increase each of the four numbers in turn, run the simulation, and see if the spectrum changes. Once the spectrum doesn't change anymore, the basis is sufficiently large.
 </div>
 
 <div class="optionfield"><code>highField</code></div>
