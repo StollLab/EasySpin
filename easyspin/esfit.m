@@ -26,18 +26,38 @@
 
 function varargout = esfit(SimFunction,ExpSpec,Sys0,Vary,Exp,SimOpt,FitOpt)
 
-if (nargin==0), help(mfilename); return; end
+if nargin==1 && isnumeric(SimFunction) && SimFunction==1
+  SimFunction = @pepper;
+  Sys0.g = [1.9 1.97 2.1];
+  Sys0.lwpp = 3;
+  
+  Exp.mwFreq = 9.5;
+  Exp.Range = [300 380];
+  
+  [B,spc] = pepper(Sys0,Exp);
+  ExpSpec = 15*addnoise(spc,50,'n');
+  
+  Sys0.g = Sys0.g + (rand(1,3)-0.5)*0.02;
+  
+  Vary.g = [1 1 1]*0.04;
+  Vary.lwpp = 0.9*Sys0.lwpp;
+  
+  SimOpt = struct;
+  
+end
+
+if nargin==0, help(mfilename); return; end
 
 % --------License ------------------------------------------------
 LicErr = 'Could not determine license.';
 Link = 'epr@eth'; eschecker; error(LicErr); clear Link LicErr
 % --------License ------------------------------------------------
 
-if nargin<5, error('Not enough inputs.'); end
-if nargin<6, SimOpt = struct('unused',NaN); end
-if nargin<7, FitOpt = struct('unused',NaN); end
+%if nargin<5, error('Not enough inputs.'); end
+if nargin<6, SimOpt = struct; end
+if nargin<7, FitOpt = struct; end
 
-if isempty(FitOpt), FitOpt = struct('unused',NaN); end
+if isempty(FitOpt), FitOpt = struct; end
 if ~isstruct(FitOpt)
   error('FitOpt (7th input argument of esfit) must be a structure.');
 end
@@ -58,7 +78,7 @@ FitData.SimFcn = SimFunction;
 FitData.lastSetID = 0;
 
 % System structure
-%--------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 if ~iscell(Sys0), Sys0 = {Sys0}; end
 nSystems = numel(Sys0);
 for s = 1:nSystems
@@ -67,7 +87,7 @@ end
 FitData.nSystems = nSystems;
 
 % Experimental spectrum
-%--------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 if isstruct(ExpSpec) || ~isnumeric(ExpSpec)
   error('Second parameter must be experimental data.');
 end
@@ -76,7 +96,7 @@ FitData.ExpSpec = ExpSpec;
 FitData.ExpSpecScaled = rescale(ExpSpec,'maxabs');
 
 % Vary structure
-%--------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 % Make sure user provides one Vary structure for each Sys
 if ~iscell(Vary), Vary = {Vary}; end
 if numel(Vary)~=nSystems
@@ -111,7 +131,7 @@ for s = 1:nSystems
   clear Fields
 end
 
-% count parameters and save indices into parameter vector for each system
+% Count parameters and save indices into parameter vector for each system
 for iSys = 1:nSystems
   [dummy,dummy,v_] = getParameters(Vary{iSys});
   VaryVals(iSys) = numel(v_);
@@ -126,7 +146,7 @@ end
 FitData.Vary = Vary;
 
 % Experimental parameters
-%--------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 if isfield(Exp,'nPoints')
   if Exp.nPoints~=numel(ExpSpec)
     error('Exp.nPoints is %d, but the spectral data vector is %d long.',...
@@ -148,7 +168,7 @@ FitData.Exp = Exp;
 
 
 % Fitting options
-%======================================================================
+%===============================================================================
 if ~isfield(FitOpt,'OutArg')
   FitData.nOutArguments = abs(nargout(FitData.SimFcn));
   FitData.OutArgument = FitData.nOutArguments;
@@ -241,9 +261,9 @@ if isempty(FitOpt.ScalingID)
   error('Unknown ''%s'' in FitOpt.Scaling.',FitOpt.Scaling);
 end
 
-%------------------------------------------------------
-if ~isfield(FitOpt,'Plot'), FitOpt.Plot = 1; end
-if (nargout>0), FitData.GUI = 0; else, FitData.GUI = 1; end
+%-------------------------------------------------------------------------------
+if ~isfield(FitOpt,'Plot'), FitOpt.Plot = true; end
+if nargout>0, FitData.GUI = false; else, FitData.GUI = true; end
 
 if ~isfield(FitOpt,'PrintLevel'), FitOpt.PrintLevel = 1; end
 
@@ -275,14 +295,14 @@ FitData.SimOpt = SimOpt;
 FitOpt.IterationPrintFunction = @iterationprint;
 FitOpts = FitOpt;
 
-%=====================================================================
+%===============================================================================
 % Setup UI
-%=====================================================================
+%===============================================================================
 if FitData.GUI
   clc
   
   % main figure
-  %------------------------------------------------------------------
+  %-----------------------------------------------------------------------------
   hFig = findobj('Tag','esfitFigure');
   if isempty(hFig)
     hFig = figure('Tag','esfitFigure','WindowStyle','normal');
@@ -414,7 +434,7 @@ if FitData.GUI
   set(h,'String',FitData.SimFcnName);
 
   % popup menus
-  %-----------------------------------------------------------------
+  %-----------------------------------------------------------------------------
   x0 = 660; dx = 60; y0 = 290; dy = 24;
   uicontrol(hFig,'Style','text',...
     'String','Method',...
@@ -759,7 +779,7 @@ rmsd = sqrt(mean(Residuals.^2));
 %===============================================================================
 if ~FitData.GUI
   
-  if FitOpts.PrintLevel && (UserCommand~=99)
+  if FitOpts.PrintLevel && UserCommand~=99
     disp('---------------------------------------------------------');
     disp('Best-fit parameters:');
     str = bestfitlist(FinalSys,FitData.Vary);
@@ -1073,7 +1093,7 @@ end
 nParameters = p-1;
 
 for p = 1:nParameters
-  if (nSystems>1) && ((p==1) || Component(p-1)~=Component(p))
+  if nSystems>1 && (p==1 || Component(p-1)~=Component(p))
     str = [str sprintf('component %s\n',char('A'-1+Component(p)))];
   end
   if singletonDims(p)==2
@@ -1085,28 +1105,28 @@ for p = 1:nParameters
   end
 end
 
-if (nargout==0), fprintf(str); end
+if nargout==0, fprintf(str); end
 return
 %==========================================================================
 
 
 %==========================================================================
 function residuals = calculateResiduals(A,B,mode)
-residuals = A - B;
-idxNaN = isnan(A) | isnan(B);
-residuals(idxNaN) = 0; % ignore NaNs in either A or B
 switch mode
   case 1 % fcn
-    % nothing to do
+    fcn = @(x) x;
   case 2 % int
-    residuals = cumsum(residuals);
+    fcn = @(x) cumsum(x);
   case 3 % iint
-    residuals = cumsum(cumsum(residuals));
+    fcn = @(x) cumsum(cumsum(x));
   case 4 % fft
-    residuals = abs(fft(residuals));
+    fcn = @(x) abs(fft(x));
   case 5 % diff
-    residuals = deriv(residuals);
+    fcn = @(x) deriv(x);
 end
+residuals = fcn(A) - fcn(B);
+idxNaN = isnan(A) | isnan(B);
+residuals(idxNaN) = 0; % ignore NaNs in either A or B
 return
 %==========================================================================
 
