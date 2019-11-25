@@ -84,7 +84,11 @@ else
 end
 
 if ~ischar(NucList)
-  error('List of nuclei must be a string (e.g. ''Cu,Cl,H,H'').');
+  if SysInput
+    error('List of nuclei in Sys.Nucs must be a string (e.g. ''Cu,Cl,H,H'').');
+  else
+    error('List of nuclei must be a string (e.g. ''Cu,Cl,H,H'').');
+  end
 end
 
 
@@ -145,7 +149,11 @@ if isempty(nEquiv)
   nEquiv = ones(1,nNucs);
 end
 if numel(nEquiv)~=nNucs
-  error('%d nuclei given, but %d elements in nEqui.',nNucs,numel(nEquiv));
+  if SysInput
+    error('%d nuclei given in Sys.Nucs, but %d numbers in Sys.n.',nNucs,numel(nEquiv));
+  else
+    error('%d nuclei given, but %d numbers in nEquiv.',nNucs,numel(nEquiv));
+  end
 end
 
 Nucs = cell(1,nNucs);
@@ -290,7 +298,7 @@ for iNuc = 1:nNucs
     % (a) find most abundant isotope with I>=1/2 for gn reference
     abundances_(Groups(iNuc).I<1/2) = -1;
     [mx,idx] = max(abundances_);
-    if (mx>0)
+    if mx>0
       gnref = gn(idx);
     else
       gnref = [];
@@ -298,7 +306,7 @@ for iNuc = 1:nNucs
     % (b) find most abundant isotope with I>=1 for Q reference
     abundances_(Groups(iNuc).I<1) = -1;
     [mx,idx] = max(abundances_);
-    if (mx>0)
+    if mx>0
       qmref = qm(idx);
     else
       qmref = [];
@@ -408,7 +416,7 @@ for iNuc = 1:nNucs
       Nucs_ = [Nucs_ Groups(iNuc).Isotopes(iIso)];
       equ_ = [equ_ kvec(im,iIso)];
     end
-    if (abu_==0)
+    if abu_==0
       error('Abundance underflow. - Cannot handle nEquiv=%d for nucleus #%d.',...
         nEquiv(iNuc),iNuc);
     end
@@ -565,7 +573,7 @@ end
 
 % Output
 %===============================================================================
-if (nargout==0)
+if nargout==0
   
   % Determine longest isotope string
   strlen = 0;
@@ -666,7 +674,7 @@ while j>0
   idx = idx + 1;
   
   % move right if possible
-  if (j<k) && v(j)>0
+  if j<k && v(j)>0
     % push one right
     v(j) = v(j)-1;
     v(j+1) = v(j+1)+1;
@@ -720,11 +728,11 @@ IsoListAbund = [];
 
 nIsotopologues = 0;
 iNuc = 1;
-while (iNuc>=1)
+while iNuc>=1
   
   % if last nucleus done, add to list (if above threshold), and go back to
   % previous nucleus
-  if (iNuc>nNucs)
+  if iNuc>nNucs
     if abundance(nNucs)>absAbundanceThreshold
       nIsotopologues = nIsotopologues + 1;
       IsoListIdx(nIsotopologues,:) = iIso;
