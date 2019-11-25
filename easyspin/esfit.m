@@ -423,6 +423,14 @@ if FitData.GUI
     'HorizontalAlign','left',...
     'BackgroundColor',get(gcf,'Color'),...
     'Position',[x0 y0+170 dx 20]);
+  uicontrol(hFig,'Style','text','Tag','statusText',...
+    'String','',...
+    'Tooltip','status',...
+    'FontWeight','bold',...
+    'ForegroundColor','r',...
+    'HorizontalAlign','right',...
+    'BackgroundColor',get(gcf,'Color'),...
+    'Position',[x0+270 y0+170 60 20]);
   h = uicontrol(hFig,'Style','text',...
     'String','tbd',...
     'ForeGroundColor','b',...
@@ -687,6 +695,15 @@ end
 
 funArgs = {fitspc,FitData,FitOpts};  % input args for assess and residuals_
 
+if FitData.GUI
+  h = findobj('Tag','statusText');
+  if ~strcmp(h.String,'running')
+    set(h,'String','running');
+    drawnow
+  end
+end
+
+
 nParameters_ = numel(x0_);
 if nParameters_>0
   switch FitOpts.MethodID
@@ -705,6 +722,10 @@ if nParameters_>0
       bestx0_ = esfit_swarm(@assess,nParameters_,FitOpts,funArgs{:});
   end
   bestx(~FitData.inactiveParams) = bestx0_;
+end
+
+if FitData.GUI
+  set(findobj('Tag','statusText'),'String','');
 end
 
 if FitData.GUI
@@ -839,15 +860,20 @@ Vary = FitDat.Vary;
 Exp = FitDat.Exp;
 SimOpt = FitDat.SimOpt;
 
+
 % Simulate spectra ------------------------------------------
 inactive = FitData.inactiveParams;
 x_all = FitData.startx;
 x_all(~inactive) = x;
 [SimSystems,simvalues] = getSystems(Sys0,Vary,x_all);
-if numel(SimSystems)==1
-  [out{1:FitData.nOutArguments}] = FitData.SimFcn(SimSystems{1},Exp,SimOpt);
-else
-  [out{1:FitData.nOutArguments}] = FitData.SimFcn(SimSystems,Exp,SimOpt);
+try
+  if numel(SimSystems)==1
+    [out{1:FitData.nOutArguments}] = FitData.SimFcn(SimSystems{1},Exp,SimOpt);
+  else
+    [out{1:FitData.nOutArguments}] = FitData.SimFcn(SimSystems,Exp,SimOpt);
+  end
+catch
+
 end
 % (SimSystems{s}.weight is taken into account in the simulation function)
 simspec = out{FitData.OutArgument}; % pick last output argument
