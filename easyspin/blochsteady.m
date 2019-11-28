@@ -180,7 +180,7 @@ end
 % Compute time evolution of components
 %-------------------------------------------------------------------------------
 logmsg(1,'Calculation of time-domain signal.');
-tmax = 1/ModFreq; % modulation period
+tPeriod = 1/ModFreq; % modulation period
 
 % number of points in time domain
 nPoints = Options.nPoints;
@@ -188,7 +188,7 @@ if isempty(nPoints)
   nPoints = 2*kmax-1;
 end
 
-t = linspace(0,tmax,nPoints+1).';
+t = linspace(0,tPeriod,nPoints+1).';
 t(end) = [];
 
 switch Options.Method
@@ -232,7 +232,7 @@ switch Options.Method
         Mz = n*real(ifft(ifftshift(Zk),'symmetric'));
       end
       if nPoints<n
-        tt = linspace(0,tmax,n+1);
+        tt = linspace(0,tPeriod,n+1);
         tt(end) = [];
         My = interp1(tt,My,t);
         if ~onlyAbsorption
