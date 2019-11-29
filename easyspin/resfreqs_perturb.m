@@ -79,6 +79,9 @@ end
 if isfield(Sys,'nn') && any(Sys.nn(:)~=0)
   err = 'Perturbation theory not available for nuclear-nuclear couplings (Sys.nn).';
 end
+if isfield(Sys,'Pop') && any(Sys.Pop(:))
+  err = 'Sys.Pop is not supported by resfreqs_perturb.';
+end
 error(err);
 
 
@@ -117,7 +120,7 @@ end
 
 % Guard against zero hyperfine couplings
 % (otherwise inv(A) gives error further down)
-if (nNuclei>0)
+if nNuclei>0
   if ~Sys.fullA
     if any(Sys.A(:)==0)
       error('All hyperfine coupling constants must be non-zero.');

@@ -146,11 +146,11 @@ end
 p_excitationgeometry;
 
 % Temperature, non-equilibrium populations
-computeNonEquiPops = numel(Exp.Temperature)>1;
+computeNonEquiPops = isfield(System,'Pop') && ~isempty(System.Pop);
 if computeNonEquiPops
   nElectronStates = prod(2*System.S+1);
-  if length(Exp.Temperature)~=nElectronStates
-    error('Exp.Temperature must either be a scalar or a %d-vector',nElectronStates);
+  if numel(System.Pop)~=nElectronStates
+    error('Sys.Pop must have %d elements.',nElectronStates);
   end
   if ~isfield(System,'PopBasis')
     PopBasis = 'Molecular';
@@ -158,7 +158,12 @@ if computeNonEquiPops
     PopBasis = System.PopBasis;
   end
   computeBoltzmannPopulations = false;
+elseif isempty(Exp.Temperature)
+  computeBoltzmannPopulations = false;
 else
+  if numel(Exp.Temperature)~=1
+    error('If given, Exp.Temperature must be a single number.');
+  end
   if isinf(Exp.Temperature)
     error('If given, Exp.Temperature must be a finite value.');
   end
@@ -403,20 +408,20 @@ end
 % Spin-polarized systems: precompute zero-field energies, states, populations
 if computeNonEquiPops
   
+  Pop = System.Pop;
   nElStates = prod(2*System.S+1);
-  if numel(Exp.Temperature) == nElectronStates
+  if numel(Pop) == nElectronStates
     % Vector of zero-field populations for the core system
-    ZFPopulations = Exp.Temperature(:);
+    ZFPopulations = Pop(:);
     if strcmp(PopBasis,'Molecular')
       ZFPopulations = ZFPopulations/sum(ZFPopulations);
     end
     ZFPopulations = kron(ZFPopulations,ones(nCore/nElStates,1));
   else
-    ZFPopulations = Exp.Temperature;%/sum(diag(Exp.Temperature));    
+    ZFPopulations = Pop;%/sum(diag(Pop));    
     ZFPopulations = kron(ZFPopulations,diag(ones(nCore/nElStates,1)));
   end
-  
-  
+    
   % Pre-compute zero-field energies and eigenstates
   if higherOrder
     [ZFStates,ZFEnergies] =  eig(sham(CoreSys, zeros(1,3)));
@@ -1150,14 +1155,13 @@ for iOri = 1:nOrientations
           elseif computeNonEquiPops
             switch PopBasis
               case 'Molecular'
-              PopulationU = (abs(ZFStates'*U).^2).'*ZFPopulations; % lower level
-              PopulationV = (abs(ZFStates'*V).^2).'*ZFPopulations; % upper level
-              Polarization = PopulationU - PopulationV;
+                PopulationU = (abs(ZFStates'*U).^2).'*ZFPopulations; % lower level
+                PopulationV = (abs(ZFStates'*V).^2).'*ZFPopulations; % upper level
               case 'Spin'
-              PopulationU = abs(ZFPopulations.'*U).^2; % lower level
-              PopulationV = abs(ZFPopulations.'*V).^2; % upper level              
-              Polarization = PopulationU - PopulationV;
+                PopulationU = abs(ZFPopulations.'*U).^2; % lower level
+                PopulationV = abs(ZFPopulations.'*V).^2; % upper level
             end
+            Polarization = PopulationU - PopulationV;
           else
             % no temperature given
             Polarization = 1; % same polarization for each electron transition

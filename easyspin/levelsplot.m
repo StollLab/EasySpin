@@ -184,8 +184,9 @@ if computeResonances
   Exp = struct('mwFreq',mwFreq,'Range',B([1 end]));
   Exp.CrystalOrientation = [phi theta chi];
   [resonFields,tp,w,Transitions] = resfields(Sys,Exp,Opt); %#ok<ASGLU>
+  tp = abs(tp); % to cover emissive transitions (in spin-polarized systems)
   if ~isempty(resonFields)
-    if (nElectrons==1)
+    if nElectrons==1
       % one electron spin: normalize amplitudes
       %n = ang2vec(phi,theta);
       %geff = norm(diag(Sys.g)*n);
