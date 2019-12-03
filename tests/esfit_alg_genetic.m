@@ -24,7 +24,7 @@ FitOpt.maxGenerations = 30;
 
 FitOpt.Method = [fitAlg ' ' dataMethod];
 
-[sysFit,spcFit] = esfit('pepper',spc,Sys,Vary,Exp,[],FitOpt);
+[sysFit,spcFit] = esfit(@pepper,spc,Sys,Vary,Exp,[],FitOpt);
 rmsd = sqrt(mean((spc-spcFit).^2));
 err = any(rmsd/max(spc)>0.01);
 

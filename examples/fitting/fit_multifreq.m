@@ -64,4 +64,4 @@ SNR = 20;
 y = addnoise(y,SNR,'n');
 
 % Perform Fitting
-esfit('chili_multifreq', y, Sys, Vary, Exp, SimOpt, FitOpt)
+esfit(@chili_multifreq, y, Sys, Vary, Exp, SimOpt, FitOpt)

@@ -30,7 +30,7 @@ rmsd = zeros(1,nMethods);
 
 for iMethod=1:nMethods
   FitOpt.Method = [fitAlg, dataMethod{iMethod}];
-  [dummy,dummy,resid] = esfit('pepper',spc,Sys,Vary,Exp,Opt,FitOpt);
+  [dummy,dummy,resid] = esfit(@pepper,spc,Sys,Vary,Exp,Opt,FitOpt);
   rmsd(iMethod) = sqrt(mean(resid.^2));
 end
 

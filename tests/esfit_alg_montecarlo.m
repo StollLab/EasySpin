@@ -24,7 +24,7 @@ FitOpt.PrintLevel = 0;
 FitOpt.nTrials = 300;
 
 FitOpt.Method = [fitAlg ' ' dataMethod];
-[dummy,dummy,resid] = esfit('pepper',spc,Sys,Vary,Exp,Opt,FitOpt);
+[dummy,dummy,resid] = esfit(@pepper,spc,Sys,Vary,Exp,Opt,FitOpt);
 rmsd = sqrt(mean(resid.^2));
 
 err = any(rmsd>0.005);

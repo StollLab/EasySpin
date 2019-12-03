@@ -32,4 +32,4 @@ Vary.g = [1 1 1]*0.02;
 % (plotted in green).
 SimOpt.Method = 'perturb';
 FitOpt.Method = 'genetic int';
-a = esfit('pepper',y,Sys0,Vary,Exp,SimOpt,FitOpt);
+a = esfit(@pepper,y,Sys0,Vary,Exp,SimOpt,FitOpt);
