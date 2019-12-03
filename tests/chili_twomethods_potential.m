@@ -23,5 +23,5 @@ if opt.Display
   plot(x,(y-y2)/scale);
 end
 
-err = ~areequal(y,y2,1e-5*max(y));
+err = ~areequal(y,y2,1e-5,'rel');
 data = [];

@@ -37,20 +37,22 @@ data.y = y;
 
 if (opt.Display)
   if ~isempty(olddata)
-    subplot(3,1,[1 2]);
-    plot(x,real(y),'r',x,real(olddata.y),'b');
+    p1 = subplot(3,1,[1 2]);
+    plot(x,real(y),x,real(olddata.y));
     axis tight
     legend('new','old');
     title(mfilename);
-    subplot(3,1,3);
+    p2 = subplot(3,1,3);
     plot(x,real(olddata.y-y));
     axis tight
     xlabel('time [us]');
+    title('old - new')
+    linkaxes([p1,p2],'x')
   end
 end
 
 if ~isempty(olddata)
-  err = ~areequal(y,olddata.y,1e-4);
+  err = ~areequal(y,olddata.y,1e-3,'abs');
 else
   err = [];
 end

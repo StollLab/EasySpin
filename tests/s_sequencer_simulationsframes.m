@@ -25,12 +25,7 @@ Exp.mwFreq = 0;
 
 [Events2, Vary2] = runprivate('s_sequencer',Exp,Opt);
 
-
-if any([~areequal(Events1{1}.IQ,Events2{1}.IQ,1e-9) ~areequal(Events1{3}.IQ,Events2{3}.IQ,1e-9)])
-  err = 1;
-else
-  err = 0;
-end
+err = any([~areequal(Events1{1}.IQ,Events2{1}.IQ,1e-9,'abs') ~areequal(Events1{3}.IQ,Events2{3}.IQ,1e-9,'abs')]);
 
 data = [];
 

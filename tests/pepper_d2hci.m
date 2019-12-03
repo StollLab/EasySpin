@@ -15,8 +15,7 @@ for k = 1:length(Symmetry)
   [x,y(k,:)] = pepper(Sys,Exp,Opt);
 end
 
-err = 5e-3*max(y(1,:));
-err = ~areequal(y(1,:),y(2,:),err);
+err = ~areequal(y(1,:),y(2,:),5e-3,'rel');
 
 data = [];
 

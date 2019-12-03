@@ -72,7 +72,7 @@
 function [t,signal] = resonator(t0,signal0,mwFreq,varargin)
 
 % Input argument check
-% ----------------------------------------------------------------------- %
+% -----------------------------------------------------------------------
 if nargin==0
   help(mfilename);
   return
@@ -132,9 +132,9 @@ if (~isfield(Opt,'alpha') || isempty(Opt.alpha))
   Opt.alpha = 0.6;
 end
 
-% --------------------------------------------------------------------- %
+% ---------------------------------------------------------------------
 % Simulation or compensation for the resonator
-% --------------------------------------------------------------------- %
+% ---------------------------------------------------------------------
   
 % Pulse Fourier transform
 dt = (t0(2)-t0(1))/4;
@@ -147,14 +147,14 @@ f_ = fdaxis(dt,numel(FT));
 
 % Extract pulse frequency response
 if isreal(signal0) && mwFreq==0
-  [dummy,ind0] = min(abs(f_));
+  [~,ind0] = min(abs(f_));
   intg = cumtrapz(abs(FT(ind0:end)));
-  [dummy,indmax] = min(abs(intg-0.5*max(intg)));
+  [~,indmax] = min(abs(intg-0.5*max(intg)));
   indmax = ind0+indmax;
   indbw = find(abs(FT(indmax:end))>0.01*max(abs(FT)),1,'last');
 else
   intg = cumtrapz(abs(FT));
-  [dummy,indmax] = min(abs(intg-0.5*max(intg)));
+  [~,indmax] = min(abs(intg-0.5*max(intg)));
   indbw = find(abs(FT(indmax:end))>0.01*max(abs(FT)),1,'last');
 end
 startind = indmax-Opt.N*indbw;
@@ -195,7 +195,7 @@ switch option
   case 'simulate'
     % Start of the pulse determined by input signal
     endind = find(abs(signal_)>(Opt.CutoffFactor*max(abs(signal_))),1,'last');
-    [dummy,startind] = min(abs(t_+t0(end)/2));
+    [~,startind] = min(abs(t_+t0(end)/2));
     t_ = t_(startind:endind)-t_(startind);
     signal_ = signal_(startind:endind);
   case 'compensate'
@@ -234,7 +234,7 @@ end
 end
 
 % Transfer function calculation
-% ----------------------------------------------------------------------- %
+% -----------------------------------------------------------------------
 function [f,H] = transferfunction(type,varargin)
 % Calculate resonator transfer function for a given center frequency
 % and loaded Q-value (type = 'ideal') or by extrapolation from an
@@ -351,4 +351,3 @@ H = H/max(real(H));
 f = f*1e3; % GHz to MHz
 
 end
-

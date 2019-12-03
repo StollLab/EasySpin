@@ -41,7 +41,7 @@ Exp.mwPolarization = 'circular';
 [~, signal2] = spidyan(Sys,Exp,Opt);
 
 if ~isempty(olddata)
-  err = [~areequal(signal1,olddata.signal1,1e-4) ~areequal(signal1,signal2,1e-4)];
+  err = ~areequal(signal1,olddata.signal1,1e-4,'abs') || ~areequal(signal1,signal2,1e-4,'abs');
 else
   err = [];
 end

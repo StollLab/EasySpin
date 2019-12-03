@@ -49,20 +49,22 @@
 
 function varargout = curry(Sys,Exp,Opt)
 
-if (nargin==0), help(mfilename); return; end
+if nargin==0, help(mfilename); return; end
 
-if (nargin<2), Exp = struct; end
-if (nargin<3), Opt = struct; end
-if (nargin>3)
+% Check expiry date
+error(eschecker);
+
+% Check Matlab version
+error(chkmlver);
+
+if nargin<2, Exp = struct; end
+if nargin<3, Opt = struct; end
+if nargin>3
   error('Up to three input arguments are possible. You gave %d.',nargin);
 end
 
 if ~isstruct(Opt)
-  if ischar(Opt)
-    Opt = struct('Output',Opt);
-  else
-    error('Opt (third input argument) must be a structure or a string.');
-  end
+  error('Opt (third input argument) must be a structure or a string.');
 end
 
 if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 0; end
@@ -143,8 +145,9 @@ if ~isfield(Opt,'SymmFrame')
   Opt.SymmFrame = []; % needed for p_symandgrid
 end
 if ~isfield(Opt,'deltaB')
-  Opt.deltaB = 1e-2; % T
+  Opt.deltaB = 1; % mT
 end
+dB = Opt.deltaB*1e-3; % mT -> T
 
 % Parse output quantity list in Opt.Output
 if ~isfield(Opt,'Output')
@@ -164,7 +167,7 @@ logmsg(1,'  output: %s',Opt.Output);
 calculateMu = (nargout==0);
 calculateChi = (nargout==0) || (nargout>1);
 calculateMuVec = false;
-keywords = strread(Opt.Output,'%s');
+keywords = strread(Opt.Output,'%s'); %#ok
 for k = 1:numel(keywords)
   switch keywords{k}
     case 'mu', calculateMu = true;
@@ -250,12 +253,10 @@ Exp.PowderSimulation = doPowderSimulation; % for communication with p_*
 [Exp,Opt] = p_symandgrid(Sys,Exp,Opt);
 
 % Process crystal orientations, crystal symmetry, and frame transforms
-% This sets Orientations, nOrientations, nSites and AverageOverChi
-[Orientations,nOrientations,nSites,AvgOverChi] = p_crystalorientations(Exp,Opt);
+[Orientations,nOrientations,~,~] = p_crystalorientations(Exp,Opt);
 Exp.OriWeights = Exp.OriWeights/4/pi;
 
 beta = 1./T/boltzm;
-dB = Opt.deltaB;
 
 % Initialize output arrays
 muz = zeros(nFields,nTemperatures);
@@ -311,8 +312,7 @@ for iOri = 1:nOrientations
       if calculateChi
         
         % Solve eigenproblem at slightly higher field
-        dB = sqrt(eps)*max(B(iB),2); % determine optimal field step
-        B_ = B(iB) + dB; dB = B_ - B(iB); % eliminate roundoff error in dB
+        B_ = B(iB) + dB;
         [V,E] = eig(H0 - B_*muOpzL);
         E = diag(E); % J
         populations = exp(-(E-E(1))*beta);
@@ -335,8 +335,6 @@ for iOri = 1:nOrientations
       %-------------------------------------------------------------------------
       lnZ = @(E,Emin) log(sum(exp(-(E-Emin)*beta),1)); % log of partition function
       
-      dB = eps^(1/4)*max(B(iB),2);
-      B_ = B(iB) + dB; dB = B_ - B(iB); % eliminate roundoff error in dB
       E1 = eig(H0 - (B(iB)-dB)*muOpzL);
       E3 = eig(H0 - (B(iB)+dB)*muOpzL);
       Emin = min([E1;E3]);

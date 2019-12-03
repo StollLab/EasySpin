@@ -17,7 +17,7 @@ Opt.LiouvMethod = 'fast';
 
 [x,y1] = chili(Sys,Exp,Opt);
 
-Opt.ExplicitFieldSweep = true;
+Opt.FieldSweepMethod = 'explicit';
 [x,y2] = chili(Sys,Exp,Opt);
 
 if opt.Display
@@ -31,6 +31,6 @@ if opt.Display
   title('scaled');
 end
 
-err = ~areequal(y1/max(y1),y2/max(y2),1e-3);
+err = ~areequal(y1/max(y1),y2/max(y2),1e-3,'abs');
 
 data = [];

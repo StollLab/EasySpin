@@ -16,7 +16,9 @@ for k = 1:numel(Qlist)
   Sys.Nucs = 'Cu';
   Sys.Q = Q_63Cu;
   Iso = isotopologues(Sys);
-  err = err || ~areequal(Iso(1).Q,Q_63Cu) || ~areequal(Iso(2).Q,Q_65Cu);
+  err = err || ...
+    ~areequal(Iso(1).Q,Q_63Cu,1e-10,'rel') || ...
+    ~areequal(Iso(2).Q,Q_65Cu,1e-10,'rel');
 end
 
 data = [];

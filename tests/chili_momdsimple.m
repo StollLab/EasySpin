@@ -15,6 +15,8 @@ Experiment.mwFreq = 9.5;
 Experiment.CenterSweep = [338 20];
 
 Options.Verbosity = opt.Verbosity;
+Options.nKnots = 5;
+Options.LLMK = [8 0 2 2];
 
 [x,y] = chili(Nitroxide,Experiment,Options);
 
@@ -30,7 +32,7 @@ if ~isempty(olddata)
     subplot(4,1,4);
     plot(x,data.y-olddata.y);
   end
-  ok = areequal(y,olddata.y,1e-3);
+  ok = areequal(y,olddata.y,1e-3,'abs');
   err = ~ok;
 else
   err = [];

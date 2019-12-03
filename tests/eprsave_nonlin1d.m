@@ -8,12 +8,13 @@ fn = tempname;
 
 N = 1001;
 x = linspace(300,400,N).^2;
-y = rand(1,N);
+x = x(:);
+y = rand(N,1);
 eprsave(fn,x,y);
 [xo,yo] = eprload(fn);
 delete([fn '.*']);
 
-err = ~areequal(x,xo,1e-5) || ~areequal(y,yo,1e-5);
+err = ~areequal(x,xo,1e-5,'rel') || ~areequal(y,yo,1e-5,'rel');
 
 data = [];
 

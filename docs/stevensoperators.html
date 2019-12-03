@@ -59,24 +59,19 @@ $$
 
 <p>
 where each of the operators <img src="eqn/stevensoperators5.png" alt="[eqn]"><!--MATH$\Op{O}_k^q$--> is hermitian, and the associated coefficients
-<img src="eqn/stevensoperators6.png" alt="[eqn]"><!--MATH$B_k^q$--> are always real. 
+<img src="eqn/stevensoperators6.png" alt="[eqn]"><!--MATH$B_k^q$--> are always real-valued. 
 </p>
 
 <p>
-In contrast to spherical tensor operators (analogous to p<sub>+</sub>, p<sub>0</sub>, and p<sub>-</sub> orbitals),
-these operators are tesseral (analogous to p<sub>x</sub>, p<sub>y</sub> and p<sub>z</sub>). Positive k corresponds to cosine
-tesseral components, and negative k corresponds to sine tesseral components.
+In contrast to spherical tensor operators (analogous to p<sub>+</sub>, p<sub>0</sub>, and p<sub>-</sub> orbitals), these operators are tesseral (analogous to p<sub>x</sub>, p<sub>y</sub> and p<sub>z</sub>). Positive k corresponds to cosine tesseral components, and negative k corresponds to sine tesseral components.
 </p>
 
 <p>
-Care should
-be exercised when using literature values for the coefficients, since conventions for the normalization
-and the phase of these operators vary. Also, many papers contain substantial amounts of typos.
+Be careful when using literature values for the coefficients, since conventions for the normalization and the phase of these operators vary widely. Also, many papers contain substantial amounts of typos.
 </p>
 
 <p>
-In <i>EasySpin</i>, matrix representations of the extended Stevens operators are provided by the function
-<a class="esf" href="stev.html">stev</a> and can be used in all simulation functions.
+In <i>EasySpin</i>, matrix representations of the extended Stevens operators are provided by the function <a class="esf" href="stev.html">stev</a> and can be used in most simulation functions.
 </p>
 
 <div class="subtitle">Relation to conventional parameters</div>
@@ -158,13 +153,7 @@ $$
 <div class="subtitle">Polynomial expressions</div>
 
 <p>
-The following table lists the most common Stevens operators
-in terms of polynomials in S<sub>+</sub>, S<sub>-</sub> and S<sub>z</sub>.
-A more general list of extended Stevens operators (including odd k)
-can be found in Altshuler/Kozyrev. Abragram/Bleaney contains
-only a partial, but compatible list. Ryabov (1999) has devised a formula
-for computing Stevens operator polynomials for arbitrary 0&lt;=k and
--k&lt;=q&lt;=k.
+The following table lists the most common Stevens operators in terms of polynomials in S<sub>+</sub>, S<sub>-</sub> and S<sub>z</sub>. A more general list of extended Stevens operators (including odd k) can be found in Altshuler/Kozyrev. Abragram/Bleaney contains only a partial, but compatible list. Ryabov (1999) gives a formula for computing Stevens operator polynomials for arbitrary 0&lt;=k and -k&lt;=q&lt;=k.
 </p>
 
 <pre class="eqn">
@@ -212,7 +201,7 @@ $k$ & $q$ & $O_k^q$\\
 <div class="subtitle">References</div>
 
 <p>
-Here are the most important references for extended Stevens operators
+Here are the most important references for extended Stevens operators:
 </p>
 
 <ul>
@@ -227,8 +216,7 @@ Dover (1986), Appendix B, Table 16, p. 863.
 </ul>
 
 <p>
-Note that there are typos and mistakes both in Altshuler/Kozyrev and in Abragam/Bleaney,
-as discussed by Rudowicz (2004).
+Note that there are typos and mistakes both in Altshuler/Kozyrev and in Abragam/Bleaney, as discussed by Rudowicz (2004).
 </p>
 
 <hr>

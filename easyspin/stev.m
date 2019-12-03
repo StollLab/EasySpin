@@ -4,25 +4,25 @@
 %   Op = stev(S,k,q,iSpin)
 %   Op = stev(S,k,q,iSpin,'sparse')
 %
-%   Constructs extended Stevens operator matrices for
-%   0<=k<=2*S and -k<=q<=k for the spin S.
+%   Constructs extended Stevens operator matrices for 0<=k<=2*S and -k<=q<=k
+%   for the spin S.
 %
-%   If S is a vector representing the spins of a
-%   spin system, Op is computed for the spin number
-%   iSpin (e.g. the second if iSpin==2) in the state
-%   space of the full spin system. If iSpin is omitted,
-%   iSpin is set to 1.
+%   k is the order of the operator, and q is the component. q<0 correspond to
+%   the sin tesseral components O_k^q(s), and q>0 to the cos tesseral components
+%   O_k^q(c).
 %
-%   All k values from 0 to 12 are supported. The
-%   most common ones are 2, 4 and 6.
+%   If S is a vector representing the spins of a spin system, Op is computed for
+%   the spin number iSpin (e.g. the second if iSpin==2) in the state space of
+%   the full spin system. If iSpin is omitted, iSpin is set to 1.
 %
-%   The extended Stevens operators are tesseral (as
-%   opposed to spherical) tensor operators and are
-%   therefore all Hermitian.
+%   All k values from 0 to 12 are supported. The most common ones are 2, 4 and 6.
+%
+%   The extended Stevens operators are tesseral (as opposed to spherical) tensor
+%   operators and are therefore all Hermitian.
 %
 %   Input:
 %   - S: spin quantum number, or vector thereof
-%   - k,q: indices specifying O_k^q
+%   - k,q: indices specifying O_k^|q|(c) for q>0 and O_k^|q|(s) for q<0
 %   - iSpin: index of the spin in the spin vector for
 %       which the operator matrix should be computed
 %
@@ -30,10 +30,9 @@
 %   - Op: extended Stevens operator matrix
 %
 %   Examples:
-%    To obtain O_4^2 for a spin 5/2, type
+%    To obtain O_4^2(c) for a spin 5/2, type
 %       stev(5/2,4,2)
-%    To obtain O_6^5 for the second spin in a spin
-%    system with two spins-3/2, type
+%    To obtain O_6^5(c) for the second spin in a spin system with two spins-3/2, type
 %       stev([3/2 3/2],6,5)
 
 % Abbreviations:
@@ -45,6 +44,7 @@
 %   eqns. 1, 2, 21, 22
 % References
 %  I.D.Ryabov, J.Magn.Reson. 140, 141-145 (1999)
+%     https://doi.org/10.1006/jmre.1999.1783
 %  C. Rudowicz, C.Y.Chung, J.Phys.:Condens.Matter 16, 1-23 (2004)
 %
 % Consistent with
@@ -59,14 +59,16 @@
 
 function Op = stev(Spins,k,q,iSpin,Sparse)
 
-if (nargin==0), help(mfilename); return; end
+if nargin==0, help(mfilename); return; end
 
-if (nargin<3) || (nargin>5), error('Wrong number of input arguments!'); end
+if nargin<3 || nargin>5
+  error('Wrong number of input arguments!');
+end
 
-if (nargin<4)
+if nargin<4
   iSpin = 1;
 end
-if (nargin<5)
+if nargin<5
   Sparse = '';
 end
 
@@ -88,10 +90,10 @@ end
 
 
 % Initialization of prefactors
-%-------------------------------------------------
+%-------------------------------------------------------------------------------
 % Computed in Mathematica using expression from
-% Ryabov, J.Magn.Reson. 140, 141-145 (1999)
-persistent F;
+%   Ryabov, J.Magn.Reson. 140, 141-145 (1999)
+persistent F
 if isempty(F)
   F(13,1:13) = [1916006400 958003200 958003200 31933440 3991680 1995840 31680 15840 1584 264 24 12 1];
   F(12,1:12) = [319334400 79833600 79833600 13305600 2661120 23760 7920 1320 1320 22 22 1];
@@ -109,8 +111,8 @@ if isempty(F)
 end
 
 % Checks on input parameters S, k and q
-%-------------------------------------------------
-if (iSpin<0) || (iSpin>numel(Spins))
+%-------------------------------------------------------------------------------
+if iSpin<0 || iSpin>numel(Spins)
   error('iSpin = %d is out of range. It should be between 1 and %d',iSpin,numel(Spins));
 end
 
@@ -124,46 +126,49 @@ kmax = size(F,1)-1;
 if numel(k)~=1 || numel(q)~=1
   error('k and q must be single numbers.');
 end
-if mod(k,1) || (k<0) || (k>kmax) || ~isreal(k)
+if mod(k,1) || k<0 || ~isreal(k)
+  error('k must be a non-negative integer.');
+end
+if k>kmax
   error('k too large. Maximum supported k is %d.',kmax);
 end
-if (k>2*S)
-  error('k must not be larger than 2*S (%d with S=%g).',2*S,S);
+if k>2*S
+  error('Stevens operator with k=%d given. k must not be larger than 2*S (%d with S=%g).',k,2*S,S);
 end
 if mod(q,1) || abs(q)>k || ~isreal(q)
   error('q must be an integer between -k and k (%d and %d).',-k,k);
 end
 
 % Computation of operator matrix
-%-------------------------------------------------
-% Compute component of STO using Racah's commutation
-% rule, but leaving out scaling and normalization
-% constants. This is possible since they are divided
-% out again by the Stevens prefactors c (see below).
-% (Ryabov, Eq.[1])
-Jp = sop(Spins,iSpin,4,'sparse');
-Jm = sop(Spins,iSpin,5,'sparse');
+%-------------------------------------------------------------------------------
+% Compute STP component T^k_q using Racah's commutation rule, but leaving out
+% scaling and normalization constants. This is possible since they are divided
+% out again by the Stevens prefactors c (see below). (Ryabov, Eq.[1])
+Jp = sop(Spins,iSpin,4,'sparse'); % J_+
+Jm = sop(Spins,iSpin,5,'sparse'); % J_-
 T = Jp^k;  % T(k,k)
 for qq = k-1:-1:abs(q)
   T = Jm*T - T*Jm;
 end
 
-% Linear combination coefficient for the ESO.
-% alpha as defined by Ryabov (1999).
-alpha = 1;
-if mod(q,2) && ~mod(k,2)  % for even k and odd q
-  alpha = 1/2;
+% Linear combination coefficient for the ESO. alpha as defined by Ryabov, Eq.[22].
+if mod(k,2) % odd k
+  alpha = 1;
+else % even k
+  if mod(q,2) % odd q
+    alpha = 1/2;
+  else % even q
+    alpha = 1;
+  end
 end
-c = alpha/F(k+1,abs(q)+1); % already without N_kq
+c = alpha/F(k+1,abs(q)+1); % Ryabov Eq.[22], without N_kq
 
-% The sign of the original normalization constant has
-% to be retained.
+% The sign of the original normalization constant has to be retained.
 c = (-1)^(k-q)*c;
 
-% Simple construction formulae for ESOs: construction
-% of cosine and sine tesseral operators from STOs.
-% (Ryabov, eq.21)
-if (q>=0)
+% Simple construction formulae for ESOs: construction of cosine and sine
+% tesseral operators from STOs. (Ryabov, Eq.[21])
+if q>=0
   Op = c/2 *(T + T'); % cosine tesseral operator
 else
   Op = c/2i*(T - T'); % sine tesseral operator

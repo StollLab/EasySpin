@@ -23,5 +23,5 @@ if (opt.Display)
   plot(x1,y1,x2,y2);
 end
 
-err = ~areequal(y1,y2,1e-3*max(y1));
+err = ~areequal(y1,y2,1e-3,'rel');
 data=[];

@@ -14,7 +14,7 @@ Sys2.weight = 1.734;
 
 y_sum = y1 + y2;
 
-err = ~areequal(y,y_sum);
+err = ~areequal(y,y_sum,1e-10,'rel');
 
 if (opt.Display)
   plot(x,y_sum,x,y);

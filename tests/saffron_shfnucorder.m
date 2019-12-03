@@ -47,5 +47,5 @@ end
 
 data = [];
 
-ok = areequal(y1,y2,max(y1)*1e-6);
+ok = areequal(y1,y2,max(y1)*1e-6,'abs');
 err = ~ok;

@@ -38,7 +38,7 @@ data.signal = signal;
 
 if ~isempty(olddata)
   for i = 1 : length(signal)
-    err(i) = ~areequal(signal{i},olddata.signal{i},1e-4);
+    err(i) = ~areequal(signal{i},olddata.signal{i},1e-4,'abs');
   end
 else
   err = [];

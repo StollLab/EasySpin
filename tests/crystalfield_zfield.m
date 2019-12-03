@@ -20,5 +20,5 @@ end
 H_S = zfield(SysS);
 H_SL = crystalfield(SysSL);
 
-err = ~areequal(H_S,H_SL,1e-10);
+err = ~areequal(H_S,H_SL,1e-10,'abs');
 data = [];

@@ -50,6 +50,18 @@ EasySpinLogLevel = Opt.Verbosity;
 %-------------------------------------------------------------------------------
 
 PropagationMethod = Opt.Method;
+switch PropagationMethod
+  case 'fast'
+    if ~isfield(Par,'RTraj')
+      error('Par.RTraj must be provided.');
+    end
+  case 'ISTOs'
+    if ~isfield(Par,'qTraj')
+      error('Par.qTraj must be provided.');
+    end
+  otherwise
+    error('Unknown propagation method ''%s''.',PropagationMethod);
+end
 
 % Define a rotational dynamics time scale for integrating correlation functions
 useMD = ~isempty(MD);
@@ -65,9 +77,6 @@ else
   end
 end
 
-if ~isfield(Par,'RTraj') && ~isfield(Par,'qTraj')
-  error('Either Par.RTraj or Par.qTraj must be provided.')
-end
 
 Dt = Par.Dt;  % spin dynamics propagation time step
 nSteps = Par.nSteps; % number of spin dynamics propagation steps
@@ -98,7 +107,7 @@ switch PropagationMethod
         error('A-tensor must be a 3-vector.')
       end
     end
-    
+        
     % Calculate tensor trajectories
     %---------------------------------------------------------------------------
     RTrajInv = permute(Par.RTraj,[2,1,3,4]);
@@ -156,7 +165,7 @@ switch PropagationMethod
       end      
       for iState = 1:MD.nStates
         for iTraj = 1:nTraj
-          idxState = Par.stateTraj(iTraj,:)==iState;
+          idxState = Par.stateTraj(:,iTraj)==iState;
           gTensor(:,:,idxState,iTraj) = repmat(gTensorState(:,:,iState),[1,1,sum(idxState),1]);
           if includeHF
             ATensor(:,:,idxState,iTraj) = repmat(ATensorState(:,:,iState),[1,1,sum(idxState),1]);
@@ -277,7 +286,6 @@ switch PropagationMethod
       U = bsxfun(@times, exp(-1i*Dt*0.5*omega*Gp_zz), expadotI);
     else
       U = exp(-1i*Dt*0.5*omega*Gp_zz);
-      U = reshape(U,[nSteps,nTraj]);
     end
     
     % Set up starting state of density matrix after pi/2 pulse, S_x
@@ -286,14 +294,14 @@ switch PropagationMethod
       rho = zeros(3,3,nSteps,nTraj);
       rho(:,:,1,:) = 0.5*repmat(eye(3),[1,1,nTraj]);
     else
-      rho = zeros(nSteps,nTraj);
-      rho(:,1) = 0.5;
+      rho = zeros(1,1,nSteps,nTraj);
+      rho(:,:,1,:) = 0.5;
     end
     
     % Propagate density matrix
     %---------------------------------------------------------------------------
     logmsg(2,'  propagate density matrix');
-    Sprho = propagate(rho,U,PropagationMethod,nSteps);
+    Sprho = propagate(rho,U,nSteps,PropagationMethod);
     
     % Average over trajectories (4th dimension)
     Sprho = mean(Sprho,4);
@@ -354,10 +362,10 @@ switch PropagationMethod
       % Average the Wigner D-matrices over time blocks
       if doBlockAveraging
         nBlocks = floor(size(D2Traj,3)/Par.BlockLength);
-        D2BlockAvg = zeros(5,5,nBlocks);
+        D2BlockAvg = zeros(5,5,nBlocks,size(D2Traj,4));
         idx = 1:Par.BlockLength;
         for iBlock = 1:nBlocks
-          D2BlockAvg(:,:,iBlock) = mean(D2Traj(:,:,idx,:),3);
+          D2BlockAvg(:,:,iBlock,:) = mean(D2Traj(:,:,idx,:),3);
           idx = idx + Par.BlockLength;
         end
       else
@@ -369,7 +377,7 @@ switch PropagationMethod
         D2Traj = zeros(5,5,nSteps,nTraj);
         idx = 1:nSteps;
         for iTraj = 1:nTraj
-          D2Traj(:,:,:,iTraj) = D2BlockAvg(:,:,idx);
+          D2Traj(:,:,:,iTraj) = D2BlockAvg(:,:,idx,1);
           idx = idx + Par.lag;
           if alternatingTrajDirection
             idx = flip(idx);
@@ -431,7 +439,7 @@ switch PropagationMethod
     
     % Propagate density matrix
     %---------------------------------------------------------------------------
-    rho = propagate(rho,U,PropagationMethod,nSteps);
+    rho = propagate(rho,U,nSteps,PropagationMethod);
     
     % Average over trajectories (4th dimension)
     rho = mean(rho,4);
@@ -456,26 +464,23 @@ end
 
 %-------------------------------------------------------------------------------
 % Propagate density matrix
-function rho = propagate(rho,U,Method,nSteps)
+function rho = propagate(rho,U,nSteps,Method)
 
 switch Method
   
   case 'fast'
-    
     % subspace propagation only requires U, but not U adjoint
-    switch ndims(rho)
-      case 4 % S=1/2 plus one nucleus
-        for iStep = 2:nSteps
-          rho(:,:,iStep,:) = ...
-            multimatmult( U(:,:,iStep-1,:),...
-            multimatmult( rho(:,:,iStep-1,:),...
-            U(:,:,iStep-1,:) ) );
-        end
-      case 2 % special case of S=1/2 system, where propagator U is a scalar
-        for iStep = 2:nSteps
-          rho(:,iStep) = U(:,iStep-1).^2.*rho(:,iStep-1);
-        end
-        rho = reshape(rho,[1 1 size(rho)]);
+    if size(rho,1)==1 % S=1/2 without nuclei
+      for iStep = 2:nSteps
+        rho(1,1,iStep,:) = U(1,1,iStep-1,:).^2.*rho(1,1,iStep-1,:);
+      end
+    else
+      for iStep = 2:nSteps
+        rho(:,:,iStep,:) = ...
+          multimatmult( U(:,:,iStep-1,:),...
+          multimatmult( rho(:,:,iStep-1,:),...
+          U(:,:,iStep-1,:) ) );
+      end
     end
     
   case 'ISTOs'
@@ -487,6 +492,7 @@ switch Method
         multimatmult( rho(:,:,iStep-1,:),...
         Uadj(:,:,iStep-1,:) ) );
     end
+    
 end
 
 end

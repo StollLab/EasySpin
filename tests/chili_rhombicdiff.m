@@ -23,7 +23,7 @@ if ~isempty(olddata)
   if opt.Display
     plot(data.x,data.y,'r',data.x,olddata.y,'g');
   end
-  ok = areequal(y,olddata.y,1e-3);
+  ok = areequal(y,olddata.y,1e-3,'abs');
   err = ~ok;
 else
   err = [];

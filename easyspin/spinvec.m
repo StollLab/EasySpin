@@ -8,7 +8,7 @@
 
 function vec = spinvec(System)
 
-if (nargin==0), help(mfilename); return; end
+if nargin==0, help(mfilename); return; end
 
 [Sys,err] = validatespinsys(System);
 error(err);

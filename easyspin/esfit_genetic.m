@@ -14,12 +14,12 @@
 
 function bestx = esfit_genetic(funfcn,nParams,FitOpt,varargin)
 
-if (nargin==0), help(mfilename); return; end
+if nargin==0, help(mfilename); return; end
 
 global UserCommand;
 if isempty(UserCommand), UserCommand = NaN; end
 
-if (nargin<3), FitOpt = struct('unused',NaN); end
+if nargin<3, FitOpt = struct; end
 
 if ~isfield(FitOpt,'PopulationSize'), FitOpt.PopulationSize = 20; end
 if ~isfield(FitOpt,'maxGenerations'), FitOpt.maxGenerations = 10000; end

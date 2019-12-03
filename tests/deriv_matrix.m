@@ -4,5 +4,5 @@ function [err,data] = test(opt,olddata)
 %================================================================
 y = rand(100,5);
 a = deriv(y);
-err = ~areequal(size(a),size(y));
+err = ~areequal(size(a),size(y),0);
 data = [];

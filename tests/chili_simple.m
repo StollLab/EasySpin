@@ -28,7 +28,7 @@ if ~isempty(olddata)
     subplot(3,1,3);
     plot(data.x,data.y-olddata.y);
   end
-  ok = areequal(y,olddata.y,1e-4);
+  ok = areequal(y,olddata.y,1e-4,'abs');
   err = ~ok;
 else
   err = [];

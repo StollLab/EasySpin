@@ -1,19 +1,22 @@
 % EXPM_    Matrix exponential, using multiple algorithms
 %
+%  C = expm_(A)
 %  C = expm_(A,algo)
 %
 %  Input:
 %    A     matrix to exponentiate
 %    algo  algorithm to use:
-%          'orig'   Matlab built-in
+%          'orig'   Matlab built-in (default)
 %          'eig'    using eigenvalues and eigenvectors
-%          'fast'   a stripped-down faster version of Matlab's built-in
+%          'fast'   a stripped-down Matlab's built-in, faster than the original
 %
 %  Output:
 %    C     matrix eponential expm(A)
 
 function C = expm_(A,algo)
+
 if nargin<2, algo = 'orig'; end
+
 switch algo
   case 'orig'
     C = expm(A);
@@ -23,6 +26,7 @@ switch algo
     [V,D] = eig(A);
     C = V*diag(exp(diag(D)))*V';
 end
+
 end
 
 function F = expm_fast1(A)

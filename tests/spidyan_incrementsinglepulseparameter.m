@@ -39,11 +39,6 @@ Exp.Dim1 = {'p1.n(2)' [0 -3 -6]};
 
 [~, signal2] = spidyan(Sys,Exp,Opt);
 
-
-if ~areequal(signal1,signal2,1e-4)
-  err = 1;
-else
-  err = 0;
-end
+err = ~areequal(signal1,signal2,1e-4,'abs');
 
 data = [];

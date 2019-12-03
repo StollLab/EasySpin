@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function err = test(opt,olddata)
 
 %==========================================================================
 % Intensity match for rigid limit chili and pepper frequency sweep (fast)
@@ -15,7 +15,7 @@ Exp.mwRange = [9.49 9.555];
 [x,y1] = pepper(Sys,Exp);
 
 Opt.LiouvMethod = 'fast';
-Opt.LLMK = [20 0 0 0];
+Opt.LLMK = [30 0 0 0];
 
 [x,y2] = chili(Sys,Exp,Opt);
 
@@ -26,10 +26,8 @@ if opt.Display
   legend('pepper','chili');
   subplot(2,1,2)
   plot(x,y1/max(y1),x,y2/max(y2));
-  title('unscaled')
+  title('scaled')
   legend('pepper','chili');
 end
 
-err = ~areequal(y1/max(y1),y2/max(y2),0.01);
-
-data = [];
+err = ~areequal(y1,y2,0.02,'rel');

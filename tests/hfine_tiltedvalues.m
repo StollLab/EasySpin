@@ -17,5 +17,5 @@ for k=1:3
 end
 H1 = hfine(Sys);
 
-err = ~areequal(HFI,H1);
+err = ~areequal(HFI,H1,1e-10,'rel');
 data = [];

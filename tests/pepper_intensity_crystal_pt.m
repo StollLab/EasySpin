@@ -34,4 +34,4 @@ Int2 = pre*TP*dBdE*(8*pi^2);
 
 data = [];
 
-err = ~areequal(Int1,Int2,1e-3);
+err = ~areequal(Int1,Int2,1e-3,'abs');

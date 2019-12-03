@@ -19,6 +19,6 @@ end
 
 %[a;val].'
 
-err = ~areequal(a,val);
+err = ~areequal(a,val,1e-12,'abs');
 
 data = [];

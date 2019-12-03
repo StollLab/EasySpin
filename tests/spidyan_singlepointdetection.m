@@ -37,8 +37,8 @@ Exp.DetOperator = {'+1' 'z1'};
 data.sig3 = sig3;
 
 if ~isempty(olddata)
-  err = [~areequal(sig,sigexpected,1e-4) ~areequal(sig2,olddata.sig2,1e-4)...
-    ~areequal(sig3,olddata.sig3,1e-4)];
+  err = [~areequal(sig,sigexpected,1e-4,'abs') ~areequal(sig2,olddata.sig2,1e-4,'abs')...
+    ~areequal(sig3,olddata.sig3,1e-4,'abs')];
 else
   err = [];
 end

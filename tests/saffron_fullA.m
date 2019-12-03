@@ -36,5 +36,5 @@ end
 
 data = [];
 
-ok = areequal(y1,y2);
+ok = areequal(y1,y2,1e-10,'rel');
 err = ~ok;

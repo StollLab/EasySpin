@@ -26,7 +26,7 @@ if opt.Display
 end
 
 % Compare
-err = ~areequal(y0,y2) || ~areequal(y1,y3);
+err = ~areequal(y0,y2,1e-10,'rel') || ~areequal(y1,y3,1e-10,'rel');
 
 data =[];
 

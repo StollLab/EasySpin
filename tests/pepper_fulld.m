@@ -23,6 +23,6 @@ if opt.Display
   legend boxoff
 end
 
-err = ~areequal(y1,y2);
+err = ~areequal(y1,y2,1e-10,'rel');
 data = [];
 

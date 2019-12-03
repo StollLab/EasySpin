@@ -23,9 +23,8 @@ end
 
 data.y1 = y1;
 
-if ~isempty(olddata);
-  e = 1e-3*max(abs(y1(:)));
-  err = ~areequal(y1,olddata.y1,e);
+if ~isempty(olddata)
+  err = ~areequal(y1,olddata.y1,1e-3,'rel');
 else
   err = [];
 end

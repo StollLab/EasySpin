@@ -27,7 +27,7 @@ for iJ = 1:numel(Jlist)
     end
   end
   
-  err(iJ) = ~areequal(D1,D2,1e-13);
+  err(iJ) = ~areequal(D1,D2,1e-13,'abs');
   
 end
 

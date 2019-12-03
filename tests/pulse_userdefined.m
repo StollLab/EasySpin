@@ -38,6 +38,6 @@ Params_.TimeStep = Params.TimeStep;
 
 [t_,IQ_] = pulse(Params_);
 
-err = ~areequal(IQ,IQ_,1e-12);
+err = ~areequal(IQ,IQ_,1e-12,'abs');
 
 data = [];

@@ -18,6 +18,6 @@ m = ceil(n/2);
 y2 = y2(m:end-n+m);
 y2 = y2*(x(2)-x(1));
 
-err = ~areequal(y1,y2,1e-4);
+err = ~areequal(y1,y2,1e-4,'abs');
 
 data = [];

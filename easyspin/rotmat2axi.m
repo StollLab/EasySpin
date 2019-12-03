@@ -14,16 +14,16 @@
 
 function [n,rho] = rotmat2axi(R)
 
-if (nargin==0), help(mfilename); return; end
+if nargin==0, help(mfilename); return; end
 
-if ~isnumeric(R) | ~isreal(R) | any(size(R)~=[3 3])
+if ~isnumeric(R) || ~isreal(R) || any(size(R)~=[3 3])
   error('R must be a 3x3 real matrix');
 end
 
 % trace(R) corresponds to (cos(beta) + 1) * (cos(alpha+gamma) - 1)
 
 if trace(R)==3
-  % no rotation, phi==0
+  % no rotation, rho==0
   rho = 0;
   n = [0;0;1];
 else

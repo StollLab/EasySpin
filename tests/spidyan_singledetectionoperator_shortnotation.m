@@ -20,11 +20,7 @@ Exp.DetOperator = {'z1'};
 Exp.DetOperator = [1/2 0; 0 -1/2];
 [sig3] = spidyan(Sys,Exp);
 
-if any([~isequal(sig1,sig2) ~isequal(sig1,sig3)])
-  err = 1;
-else
-  err = 0;
-end
+err = any([~isequal(sig1,sig2) ~isequal(sig1,sig3)]);
 
 data = [];
 

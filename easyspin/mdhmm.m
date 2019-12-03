@@ -5,12 +5,12 @@
 % Input:
 %   dihedrals     3D array trajectory of spin-label side chain dihedral angles
 %                   (nDihedrals,nTrajectories,nSteps), in radians
-%   dt            dihedral trajectory time step, in s
-%   nStates       number of desired states for the HMM
-%   nLag          desired lag time, as a integer multiple of the MD time step
+%   dt            dihedral trajectory time step, in arbitrary time units
+%   nStates       desired number of states for the HMM
+%   nLag          desired lag step (number of MD time steps)
 %   Opt           structure with options
 %     .Verbosity  print to command window if > 0
-%     .isSeeded   whether to use systematic seeds for the centroids in k-means
+%     .isSeeded   whether to use rotamer seeds for the centroids in k-means
 %     .nTrials    number of trials in k-means clustering (if not seeded)
 %
 % Output:
@@ -20,60 +20,78 @@
 %    .mu            center vectors of states
 %    .Sigma         covariance matrices of states
 %    .viterbiTraj   Viterbi state trajectory (most likely given the dihedrals)
-%    .tauRelax      relaxation times of HMM
+%    .tauRelax      relaxation times of HMM, in same time units as dt
+%    .tLag          lag time, in same time units as dt
 
 function HMM = mdhmm(dihedrals,dt,nStates,nLag,Opt)
+
+if nargin==0
+  help(mfilename);
+  return
+end
+
+if nargin<2
+  error('dt (2nd input) must be given.');
+end
+if nargin<3
+  error('nStates (3rd input) must be given.');
+end
+if nargin<4
+  error('nLag (4th input) must be given.');
+end
 
 if nargin<5, Opt = struct; end
 
 if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 1; end
 
+if numel(nStates)~=1 || mod(nStates,1)~=0 || nStates<1
+  error('nStates must be a positive integer.');
+end
+if numel(nLag)~=1 || mod(nLag,1)~=0 || nLag<1
+  error('nLag must be a positive integer.');
+end
+
+% Assure all dihedrals are in the interval [-pi,pi]
+% This is required for the calculation of angular distances.
+if any(abs(dihedrals(:))>pi)
+  error('Some dihedral angles are outside the interval [-pi,pi].');
+end
+% Reshape from (nDihedrals,nTraj,nSteps) to (nDihedrals,nSteps,nTraj)
+dihedrals = permute(dihedrals,[1,3,2]);
+
 global EasySpinLogLevel
 EasySpinLogLevel = Opt.Verbosity;
-
-logmsg(1,'-- HMM model building ----------------------------------');
-nDims = size(dihedrals,1);
-nTraj = size(dihedrals,2);
-nSteps = size(dihedrals,3);
-logmsg(1,'  data: %d dihedrals; %d steps; %d trajectories',nDims,nSteps,nTraj);
 
 if ~isfield(Opt,'isSeeded')
   Opt.isSeeded = false;
 end
 
 if ~isfield(Opt,'nTrials')
-  Opt.nTrials = 10;
-end
-if Opt.isSeeded
-  Opt.nTrials = 1;
+  if Opt.isSeeded
+    Opt.nTrials = 1;
+  else
+    Opt.nTrials = 10;
+  end
 end
 
-if abs(round(nLag)-nLag)>1e-3 || nLag < 1
-  error('nLag must be an integer >= 1.');
-end
-nLag = round(nLag);
+logmsg(1,'-- HMM model building ----------------------------------');
 
-HMM.nLag = nLag;
-HMM.dt = dt;
-HMM.tLag = nLag*dt;
-HMM.nStates = nStates;
+nDihedrals = size(dihedrals,1);
+nSteps = size(dihedrals,2);
+nTraj = size(dihedrals,3);
+logmsg(1,'  %d dihedrals; %d time steps; %d trajectories',nDihedrals,nSteps,nTraj);
 
 % Use k-means clustering etc to get initial estimates of HMM parameters
 %-------------------------------------------------------------------------------
 logmsg(1,'  clustering into %d clusters using k-means (%d repeats)',nStates,Opt.nTrials);
 
 % Set up initial cluster centroids if wanted
-chiStart = [];
 if Opt.isSeeded
-  logmsg(1,'    using provided seeds');
+  logmsg(1,'    using rotamer seeds');
   
-  nDims = size(dihedrals,1);
-  if nDims==5
-    % Theoretical values
+  if nDihedrals==5
+    % Theoretical dihedral values for rotamers (in degrees)
     chi = {[-60,60,180],[-60,60,180],[-90,90],[-60,60,180],[-90,90]};
-    
-    % Convert from degrees to radians
-    chi = cellfun(@(x)x*pi/180,chi, 'UniformOutput', false);
     
     % Create array with all combinations
     idx = cellfun(@(a)1:numel(a),chi,'UniformOutput',false);
@@ -82,17 +100,27 @@ if Opt.isSeeded
     for k = numel(chi):-1:1
       chiStart(:,k) = reshape(chi{k}(idx{k}),[],1);
     end
+    chiStart = chiStart*pi/180; % degrees -> radians
+    
+    % Set number of states, and number of trials
+    if nStates~=size(chiStart,1)
+      warning('Changing the number of states from %d to %d.',nStates,size(chiStart,1));
+      nStates = size(chiStart,1);
+    end
+    if Opt.nTrials~=1
+      warning('Changing the number of trials from %d to 1.',Opt.nTrials);
+      Opt.nTrials = 1;
+    end
 
+  else
+    error('No systematic seed available for spin labels other than R1.');
   end
 else
   logmsg(1,'    using random seeds');
+  chiStart = [];
 end
 
-% Reorder from (nDims,nTraj,nSteps) to (nSteps,nDims,nTraj),
-% for input to clustering function.
-dihedrals = permute(dihedrals,[3,1,2]);
-
-% Perform k-means clustering, return centroids mu0 and spreads Sigma0
+% Perform k-means clustering, return state trajectory, centroids mu0 and spreads Sigma0
 [stateTraj,mu0,Sigma0] = ...
   initializehmm(dihedrals,chiStart,nStates,Opt.nTrials,Opt.Verbosity);
 
@@ -113,18 +141,20 @@ if Opt.Verbosity >= 1
   end
 end
 
-logmsg(1,'  estimation of transition probability matrix and initial distribution');
-
-% Downsample dihedrals trajectory to the desired lag time
-dihedrals = dihedrals(1:nLag:end,:,:);
-stateTraj = stateTraj(1:nLag:end,:);
+% Downsample dihedrals and state trajectories
+%-------------------------------------------------------------------------------
+offset = 1;
+idx = offset:nLag:nSteps;
+dihedrals = dihedrals(:,idx,:);
+stateTraj = stateTraj(idx,:);
+logmsg(1,'  downsampling: offset %d, nLag %d -> %d time steps',...
+  offset,nLag,size(stateTraj,1));
 
 % Estimate transition probability matrix and initial distribution
+%-------------------------------------------------------------------------------
+logmsg(1,'  estimation of transition probability matrix and initial distribution');
 [TransProb0,eqDistr0] = estimatemarkovparameters(stateTraj);
 initDistr0 = eqDistr0;
-
-% Reorder (nSteps,nDims,nTraj) to (nDims,nSteps,nTraj), for EM function
-dihedrals = permute(dihedrals,[2,1,3]);
 
 % Optimize HMM parameters
 %-------------------------------------------------------------------------------
@@ -140,22 +170,24 @@ HMM.logLik = logLik(end);
 logmsg(1,'  Viterbi state trajectories calculation');
 HMM.viterbiTraj = viterbitrajectory(dihedrals,HMM.TransProb,HMM.eqDistr,HMM.mu,HMM.Sigma);
 
-% Eliminate states not visited in Viterbi trajectory
+% Identify and eliminate states not visited in Viterbi trajectory
 %-------------------------------------------------------------------------------
 visited = false(1,nStates);
 visited(unique(HMM.viterbiTraj)) = true;
 if any(~visited)
   logmsg(1,'  Eliminating %d unvisited states from model',sum(~visited));
   newStateNumbers = cumsum(visited);
-  HMM.viterbiTraj = newStateNumbers(HMM.viterbiTraj).';
+  HMM.viterbiTraj = newStateNumbers(HMM.viterbiTraj);
   HMM.mu = HMM.mu(:,visited);
   HMM.Sigma = HMM.Sigma(:,:,visited);
   [HMM.TransProb,HMM.eqDistr] = estimatemarkovparameters(HMM.viterbiTraj);
 end
 HMM.nStates = length(HMM.eqDistr);
-if size(HMM.viterbiTraj, 1)==nTraj
-  HMM.viterbiTraj = HMM.viterbiTraj.';
-end
+
+HMM.nLag = nLag;
+HMM.dt = dt;
+HMM.tLag = nLag*dt;
+
 
 % Calculate relaxation times for the TPM and time lag
 %-------------------------------------------------------------------------------
@@ -177,11 +209,11 @@ end
 % Helper functions
 %-------------------------------------------------------------------------------
 function vTraj = viterbitrajectory(dihedrals,transmat,eqdistr,mu,Sigma)
+% dihedrals: (nDihedrals,nSteps,nTraj)
 nStates = size(transmat,1);
 [~,nSteps,nTraj] = size(dihedrals);
 vTraj = zeros(nSteps,nTraj);
 for iTraj = 1:nTraj
-  %[obslikelihood, ~] = mixgauss_prob(dihedrals(:,:,iTraj), mu, Sigma);
   obs = dihedrals(:,:,iTraj);
   obslikelihood = zeros(nStates,nSteps);
   for iState = 1:nStates
@@ -223,54 +255,50 @@ end
 %===============================================================================
 function [stateTraj,mu0,Sigma0] = initializehmm(dihedrals,chiStart,nStates,nRepeats,verbosity)
 
-[nSteps,nDims,nTraj] = size(dihedrals);
+[nDihedrals,nSteps,nTraj] = size(dihedrals);
 
-% if more than one trajectory, collapse 3rd dim (traj) onto 1st dim (time)
-if nTraj > 1
-%   dihedrals = reshape(dihedrals,[],nDims);
-  dihedralsTemp = dihedrals;
-  dihedrals = [];
-  for iTraj = 1:nTraj
-    dihedrals = cat(1, dihedrals, dihedralsTemp(:,:,iTraj));
-  end
-end
+% Concatenate trajectories in time
+dihedrals = reshape(permute(dihedrals,[2 3 1]),[nSteps*nTraj,nDihedrals]);
 
 % Do k-means clustering
 [stateTraj,centroids] = ...
   mdhmm_kmeans(dihedrals, nStates, nRepeats, chiStart, verbosity);
 
-% initialize the means and covariance matrices for the HMM
+% Initialize the means and covariance matrices for the HMM
 mu0 = centroids.';
-Sigma0 = zeros(nDims,nDims,nStates);
+Sigma0 = zeros(nDihedrals,nDihedrals,nStates);
 for iState = 1:nStates
   idxState = stateTraj==iState;
   Sigma0(:,:,iState) = cov_pbc(dihedrals(idxState,:), mu0(:,iState).');
-%   Sigma0(:,:,iState) = cov(dihedrals(idxState,:));
 end
 
-% Undo collapsing onto first dim for multiple trajectories
+% Un-concatenate multiple trajectories
 stateTraj = reshape(stateTraj,[nSteps,nTraj]);
 
 end
 
 %===============================================================================
-function [tpmat,distr] = estimatemarkovparameters(stateTraj)
+function [tpmat,distr] = estimatemarkovparameters(stateTraj,tau)
 % Estimate transition probability matrix and initial probability distribution
 % from a set of state trajectories.
 % Input:
 %    stateTraj  array (nSteps,nTraj) of state indices (1..nStates)
+%    tau        number of time steps for which to determine count matrix
 % Output:
 %    tpmat      transition probability matrix (nStates,nStates)
 %    distr      initial probability density (nStates,1)
 
+% Time step for which to determine the count matrix
+if nargin<2
+  tau = 1;
+end
+
 % Determine count matrix N
 %-------------------------------------------------------------------------------
-% N(i,j) = number of times X(t)==i and X(t+tau)==j along all the trajectories
+% N(i,j) = number of times stateTraj(t)==i and stateTraj(t+tau)==j along all
+% the trajectories
 nStates = max(stateTraj(:));
 N = sparse(nStates,nStates);
-
-% Time step for which to determine the count matrix
-tau = 1;
 
 % Calculate (and accumulate) count matrix N
 nTraj = size(stateTraj,2);
@@ -394,13 +422,18 @@ end
 
 
 %===============================================================================
-function [TPM, pi_i, x] = msmtransitionmatrix(N, maxiteration)
-% msmtransitionmatrix
+function [TPM, pi_i] = msmtransitionmatrix(N, maxIter)
 % estimate transition probability matrix TPM from count matrix N
 %
-% Syntax
 % [TPM, pi_i] = msmtransitionmatrix(N);
 % [TPM, pi_i] = msmtransitionmatrix(N, maxiteration);
+%
+% Input:
+%    N        count matrix (nStates x nStates)
+%    maxIter  maximum number of iterations
+% Output:
+%    TPM      estimated transition probability matrix
+%    pi_i     equilibrium distribution
 %
 % Description
 % this routines uses the reversible maximum likelihood estimator
@@ -408,23 +441,22 @@ function [TPM, pi_i, x] = msmtransitionmatrix(N, maxiteration)
 % Adapted from Yasuhiro Matsunaga's mdtoolbox
 % 
 
-if ~exist('maxiteration', 'var')
-  maxiteration = 1000;
+if ~exist('maxIter', 'var')
+  maxIter = 1000;
 end
 
-% setup
 nStates = size(N, 1);
 
 N_sym = N + N.'; % symmetrize count matrix
 x = N_sym;
 
 N_i = sum(N, 2);
-x_i = sum(x, 2);
+%x_i = sum(x, 2);
 
 % optimization by L-BFGS-B
 fcn = @(x) myfunc_column(x, N, N_i, nStates);
 opts.x0 = x(:);
-opts.maxIts = maxiteration;
+opts.maxIts = maxIter;
 opts.maxTotalIts = 50000;
 %opts.factr = 1e5;
 %opts.pgtol = 1e-7;
@@ -437,6 +469,7 @@ TPM = bsxfun(@rdivide,x,x_i);
 TPM(isnan(TPM)) = 0;
 pi_i = x_i./sum(x_i);
 
+end
 
 %-------------------------------------------------------------------------------
 function [f, g] = myfunc_column(x, c, c_i, nStates)
@@ -464,7 +497,5 @@ index = ((x > (10*eps)) & (x' > (10*eps)));
 g(~index) = 0;
 g(isnan(g)) = 0;
 g = -g;
-
-end
 
 end

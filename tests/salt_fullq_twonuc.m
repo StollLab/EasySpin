@@ -44,6 +44,6 @@ if opt.Display
 end
 
 
-err = ~areequal(y1,y2,3e-3*max(y1));
+err = ~areequal(y1,y2,3e-3,'rel');
 
 data = [];

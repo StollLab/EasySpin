@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function err = test(opt,olddata)
 
 %=============================================================
 % Simple simulation with full g and A tensors (2 nuclei)
@@ -11,22 +11,25 @@ Sys.tcorr = 4e-9;
 Exp.mwFreq = 9.8;
 Exp.Range = [344 354];
 
+Opt.LLMK = [8 0 2 2];
+
 Sys.g = g;
 Sys.A = [A1;A2];
-[x1,y1] = chili(Sys,Exp);
+[x1,y1] = chili(Sys,Exp,Opt);
 
 Sys.g = diag(g);
 Sys.A = [A1; A2];
-[x2,y2] = chili(Sys,Exp);
+[x2,y2] = chili(Sys,Exp,Opt);
 
 Sys.g = g;
 Sys.A = [diag(A1); diag(A2)];
-[x3,y3] = chili(Sys,Exp);
+[x3,y3] = chili(Sys,Exp,Opt);
 
 Sys.g = diag(g);
 Sys.A = [diag(A1); diag(A2)];
-[x4,y4] = chili(Sys,Exp);
+[x4,y4] = chili(Sys,Exp,Opt);
 
-data = [];
 thr = 1e-3;
-err = ~areequal(y1,y2,thr) || ~areequal(y1,y3,thr) || ~areequal(y1,y4,thr);
+err = ~areequal(y1,y2,thr,'abs') || ...
+      ~areequal(y1,y3,thr,'abs') || ...
+      ~areequal(y1,y4,thr,'abs');

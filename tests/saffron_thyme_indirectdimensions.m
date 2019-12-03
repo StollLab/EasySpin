@@ -46,23 +46,24 @@ Exp.Dim2 = {'p1.Flip' pi/3};
 data.x2 = x2;
 data.y2 = y2;
 
-if (opt.Display)
+if opt.Display
   if ~isempty(olddata)
-    subplot(3,1,[1 2]);
-    plot(x1',real(y1)','r',x1',real(olddata.y1)','b');
+    p1 = subplot(3,1,[1 2]);
+    plot(x1{2},real(y1(1,:)),x1{2},real(olddata.y1(1,:)));
     axis tight
     legend('new','old');
     title(mfilename);
-    subplot(3,1,3);
-    plot(x1',real(olddata.y1-y1)');
+    p2 = subplot(3,1,3);
+    plot(x1{2},real(olddata.y1(1,:)-y1(1,:)));
     axis tight
     xlabel('time [us]');
+    title('old - new')
+    linkaxes([p1,p2],'x')
   end
 end
 
 if ~isempty(olddata)
-  err = any([~areequal(y1,olddata.y1,1e-4) ~areequal(y2,olddata.y2,1e-4)]);
+  err = ~areequal(y1,olddata.y1,1e-3,'abs') || ~areequal(y2,olddata.y2,1e-3,'abs');
 else
   err = [];
 end
-

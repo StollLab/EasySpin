@@ -16,6 +16,6 @@ delete([fn '.*']);
 
 mwFreqLoaded = p.MWFQ/1e9;
 
-err = ~areequal(mwFreq,mwFreqLoaded,1e-9);
+err = ~areequal(mwFreq,mwFreqLoaded,1e-9,'abs');
 
 data = [];

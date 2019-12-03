@@ -8,5 +8,5 @@ N = 345;
 fx1 = fdaxis(dT,N);
 fx2 = (-floor(N/2):floor(N/2))*(1/N/dT);
 
-err = ~areequal(fx1,fx2);
+err = ~areequal(fx1,fx2,1e-10,'abs');
 data = [];

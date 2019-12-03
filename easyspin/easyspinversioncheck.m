@@ -42,6 +42,24 @@ if nargin == 2
   end
 end
 
+% Check if MATLAB has write access to working directory
+%--------------------------------------------------------------
+fileName = '.\tmpeasyspinupdatetest.txt';
+[fid,errmsg] = fopen(fileName, 'w');
+if ~isempty(errmsg)
+  if messages
+    error('MATLAB can not write to the working directory. Please change your working directory and try again.');
+  else
+    fprintf('\n  MATLAB does not have write access to the current working directory.')
+    fprintf('\n  For optimal performance, please switch to writeable working directory. \n');
+    varargout = {0 []};
+    return
+  end
+else
+    fclose(fid);
+    delete(fileName);
+end
+
 % First check if computer is online and easyspin.org reachable
 %--------------------------------------------------------------
 if ~testing

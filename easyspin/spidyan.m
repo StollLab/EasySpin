@@ -20,29 +20,27 @@
 
 function varargout = spidyan(Sys,Exp,Opt) 
 
-if (nargin==0), help(mfilename); return; end
+if nargin==0, help(mfilename); return; end
+
+% Check expiry date
+error(eschecker);
+
+% Check Matlab version
+error(chkmlver);
 
 StartTime = clock;
 
 % Input argument scanning, get display level and prompt
 %=======================================================================
-% Check Matlab version
-VersionErrorStr = chkmlver;
-error(VersionErrorStr);
-
-% --------License ------------------------------------------------
-LicErr = 'Could not determine license.';
-Link = 'epr@eth'; eschecker; error(LicErr); clear Link LicErr
-% --------License ------------------------------------------------
 
 % Guard against wrong number of input or output arguments.
-if (nargin<2) || (nargin>3), error('Wrong number of input arguments!'); end
-if (nargout<0), error('Not enough output arguments.'); end
-if (nargout>3), error('Too many output arguments.'); end
+if nargin<2 || nargin>3, error('Wrong number of input arguments!'); end
+if nargout<0, error('Not enough output arguments.'); end
+if nargout>3, error('Too many output arguments.'); end
 
 % Initialize options structure to zero if not given.
-if (nargin<3), Opt = struct('unused',NaN); end
-if isempty(Opt), Opt = struct('unused',NaN); end
+if nargin<3, Opt = struct; end
+if isempty(Opt), Opt = struct; end
 
 if ~isstruct(Sys)
   error('First input argument (Sys) must be a structure!');
@@ -53,7 +51,6 @@ end
 if ~isstruct(Opt)
   error('Third input argument (Opt) must be a structure!');
 end
-% 
 
 % A global variable sets the level of log display. The global variable
 % is used in logmsg(), which does the log display.

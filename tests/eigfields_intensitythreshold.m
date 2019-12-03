@@ -16,6 +16,6 @@ Op.Threshold = 0.001;
 [Pos1,Int] = eigfields(Sys,Exp,Op);
 Pos2 = eigfields(Sys,Exp,Op);
 
-err = ~areequal(Pos1,Pos2);
+err = ~areequal(Pos1,Pos2,1e-10,'abs');
 
 data = [];

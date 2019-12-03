@@ -22,6 +22,6 @@ if opt.Display
   legend('matrix','perturb2');
 end
 
-err = ~areequal(b,a,.01*max(a));
+err = ~areequal(b,a,0.01,'rel');
 
 data = [];

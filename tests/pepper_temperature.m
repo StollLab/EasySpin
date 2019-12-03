@@ -29,8 +29,7 @@ end
 data.y = y;
 
 if ~isempty(olddata)
-  e = 1e-3*max(abs(y(:)));
-  err = ~areequal(y,olddata.y,e);
+  err = ~areequal(y,olddata.y,1e-3,'rel');
 else
   err = [];
 end

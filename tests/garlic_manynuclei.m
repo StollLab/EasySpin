@@ -12,7 +12,7 @@ data.x = x;
 data.y = y;
 
 if ~isempty(olddata)
-  ok = areequal(x,olddata.x) & areequal(y,olddata.y);
+  ok = areequal(x,olddata.x,1e-10,'rel') && areequal(y,olddata.y,1e-10,'rel');
   err = ~ok;
 else
   err = [];

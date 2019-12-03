@@ -40,9 +40,9 @@ function varargout = resfreqs_perturb(Sys,Exp,Opt)
 error(chkmlver);
 
 % Check number of input arguments.
-switch (nargin)
+switch nargin
   case 0, help(mfilename); return;
-  case 2, Opt = struct('unused',NaN);
+  case 2, Opt = struct;
   case 3,
   otherwise
     error('Use two or three inputs: refields_perturb(Sys,Exp) or refields_perturb(Sys,Exp,Opt)!');
@@ -78,6 +78,9 @@ if any(strncmp(fieldnames(Sys),'Ham',3))
 end
 if isfield(Sys,'nn') && any(Sys.nn(:)~=0)
   err = 'Perturbation theory not available for nuclear-nuclear couplings (Sys.nn).';
+end
+if isfield(Sys,'Pop') && any(Sys.Pop(:))
+  err = 'Sys.Pop is not supported by resfreqs_perturb.';
 end
 error(err);
 
@@ -117,7 +120,7 @@ end
 
 % Guard against zero hyperfine couplings
 % (otherwise inv(A) gives error further down)
-if (nNuclei>0)
+if nNuclei>0
   if ~Sys.fullA
     if any(Sys.A(:)==0)
       error('All hyperfine coupling constants must be non-zero.');
@@ -176,7 +179,6 @@ end
 
 
 % Process crystal orientations, crystal symmetry, and frame transforms
-% This sets Orientations, nOrientations, nSites and AverageOverChi
 [Orientations,nOrientations,nSites,AverageOverChi] = p_crystalorientations(Exp,Opt);
 
 
@@ -523,7 +525,9 @@ else
 end
 
 % Reshape arrays in the case of crystals with site splitting
-if (nSites>1) && ~isfield(Opt,'peppercall')
+d = dbstack;
+pepperCall = numel(d)>2 && strcmp(d(2).name,'pepper');
+if (nSites>1) && ~pepperCall
   siz = [nTransitions*nSites, numel(nu)/nTransitions/nSites];
   nu = reshape(nu,siz);
   if ~isempty(Int), Int = reshape(Int,siz); end

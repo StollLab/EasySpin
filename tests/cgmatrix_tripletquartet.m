@@ -8,7 +8,7 @@ U2C = cgmatrix(1,3/2);
 data.U2C = U2C;
 
 if ~isempty(olddata)
-  err = ~areequal(data.U2C,olddata.U2C,1e-10);
+  err = ~areequal(data.U2C,olddata.U2C,1e-10,'abs');
 else
   err = [];
 end

@@ -16,7 +16,7 @@ Op{4} = sop(s,'--');
 myOp{4} = [0 0 0 0; 0 0 0 0; 0 0 0 0; 1 0 0 0];
 
 for k = 1:numel(Op)
-  ok(k) = areequal(Op{k},myOp{k},1e-12);
+  ok(k) = areequal(Op{k},myOp{k},1e-12,'abs');
 end
 
 err = any(~ok);

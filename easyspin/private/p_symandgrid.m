@@ -4,7 +4,7 @@ function [Exp,Opt] = p_symandgrid(Sys,Exp,Opt)
 %==========================================================================
 logmsg(1,'-orientations------------------------------------------');
 
-if (Exp.PowderSimulation)
+if Exp.PowderSimulation
   
   logmsg(1,'  powder sample (randomly oriented centers)');
   
@@ -12,7 +12,8 @@ if (Exp.PowderSimulation)
     
     msg = 'automatic determination of symmetry group and frame';
     [Opt.Symmetry,Opt.SymmFrame] = symm(Sys);
-    if (numel(Exp.Temperature)>1) && strcmp(Opt.Symmetry,'Dinfh')
+    nonEquiPops = isfield(Sys,'Pop') && ~isempty(Sys.Pop);
+    if nonEquiPops && strcmp(Opt.Symmetry,'Dinfh')
       logmsg(1,'  Hamiltonian symmetry is axial, non-equilibrium populations\n   -> reduction to rhombic');
       Opt.Symmetry = 'D2h';
     end
@@ -57,7 +58,7 @@ if (Exp.PowderSimulation)
   
   % Transform vector to reference frame representation and convert to polar angles.
   [Exp.phi,Exp.theta] = vec2ang(Opt.SymmFrame*Vecs);
-  clear Vecs;
+  clear Vecs
   Exp.CrystalOrientation = [Exp.phi;Exp.theta].';
   nOrientations = numel(Exp.phi);
   
@@ -76,19 +77,18 @@ if (Exp.PowderSimulation)
   
 else % no powder simulation
 
-  % Transpose Exp.CrystalOrientation if necessary to have
-  % one row per orientation
+  % Transpose Exp.CrystalOrientation if necessary to have one row per orientation
   transpose = false;
   nC1 = size(Exp.CrystalOrientation,1);
   nC2 = size(Exp.CrystalOrientation,2);
-  if (nC2==2) || (nC2==3)
+  if nC2==2 || nC2==3
     % all fine
   else
-    if (nC1==2) || (nC1==3)
+    if nC1==2 || nC1==3
       transpose = true;
     else
-    error('Exp.CrystalOrientation must be a Nx3 or Nx2 array, yours is %dx%d.',...
-      nC1,nC2);
+      error('Exp.CrystalOrientation must be a Nx3 or Nx2 array, yours is %dx%d.',...
+        nC1,nC2);
     end
   end
   if transpose, Exp.CrystalOrientation = Exp.CrystalOrientation.'; end
@@ -99,7 +99,7 @@ else % no powder simulation
   
   Exp.OriWeights = ones(1,nOrientations)*4*pi; % for consistency with powder sims (factor from integral over phi and theta)
   
-  if (nOrientations==1)
+  if nOrientations==1
     logmsg(1,'  crystal sample');
   else
     logmsg(1,'  crystal sample with %d user-specified orientations',nOrientations);

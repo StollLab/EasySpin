@@ -18,8 +18,8 @@ for k = 1:numel(components)
     sopOp2 = sop(S,ops2);
     correctOp = zeros(2*S+1);
     correctOp(L,L) = 1;
-    ok(idx) = areequal(sopOp1,correctOp,threshold);
-    ok(idx+1) = areequal(sopOp2,correctOp,threshold);
+    ok(idx) = areequal(sopOp1,correctOp,threshold,'abs');
+    ok(idx+1) = areequal(sopOp2,correctOp,threshold,'abs');
     idx = idx+2;
   end
 end
@@ -38,7 +38,7 @@ for k = 1:numel(components)
         case '+', correctOp(L1,L2) = 1;
         case '-', correctOp(L2,L1) = 1;
       end
-      ok(idx) = areequal(sopOp,correctOp,threshold);
+      ok(idx) = areequal(sopOp,correctOp,threshold,'abs');
       idx = idx + 1;
     end
   end

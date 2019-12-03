@@ -18,6 +18,6 @@ fcenter = mwFreq*1e3;
 phi_lo = 2*pi*((fcenter-fsweep/2)*tOut+(k/2)*tOut.^2);
 signal_lo = exp(1i*phi_lo);
 
-err = ~areequal(signal_lo,signal_out,1e-12);
+err = ~areequal(signal_lo,signal_out,1e-12,'abs');
 
 data = [];

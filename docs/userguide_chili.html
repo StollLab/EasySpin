@@ -118,7 +118,7 @@ The first line defines the g tensor of the spin system via its three principal v
 </p>
 
 <p>
-The field <code>Sys.Nucs</code> contains a string giving all the magnetic nuclei in the <a href="spinsystem.html">spin system</a>, a nitrogen-14 in the above example. Use a comma-separated list of isotope labels to give more than one nucleus. E.g., <code>Sys.Nucs = '14N,1H,1H'</code> specifies one nitrogen and two different protons. See the <a href="#multinuc">section on multi-nuclear systems</a> about details of the slow-motion simulation in that case.
+The field <code>Sys.Nucs</code> contains a character array giving all the magnetic nuclei in the <a href="spinsystem.html">spin system</a>, a nitrogen-14 in the above example. Use a comma-separated list of isotope labels to give more than one nucleus. E.g., <code>Sys.Nucs = '14N,1H,1H'</code> specifies one nitrogen and two different protons. See the <a href="#multinuc">section on multi-nuclear systems</a> about details of the slow-motion simulation in that case.
 </p>
 
 <p>
@@ -390,7 +390,7 @@ The third input structure, <code>Opt</code>, collects parameters related to the 
 </p>
 
 <p>
-The most important field in this structure is <code>Opt.LLMK</code>. It contains 4 numbers that determine the number of orientational basis functions used in the simulation. These basis functions determine how accurately the rotational motion is simulated. <code>chili</code> uses preset values which typically work ok for X-band nitroxide spectra in the fast and intermediate motion regime without ordering. However, in the presence of ordering, for slower motions, for other spin systems, and for other spectrometer frequencies, the default settings of <code>Opt.LLMK</code> are too small. In that case, the four values in <code>Opt.LLMK</code> have to be increased, e.g.
+The most important field in this structure is <code>Opt.LLMK</code>. It contains 4 numbers that determine the number N of orientational basis functions used in the simulation - the larger the numbers in <code>LLMK</code> the larger is N. N determines how accurately the rotational motion is modelled: The larger N, the more accurate the simulation. Typically, the spectrum converges as a function of N. <code>chili</code> uses preset values in <code>Opt.LLMK</code> which typically work well for X-band nitroxide spectra in the fast and intermediate motion regime without ordering. However, in the presence of ordering, for slow motions, for other spin systems, and for other spectrometer frequencies, the default settings of <code>Opt.LLMK</code> are too small. In that case, the four values in <code>Opt.LLMK</code> have to be increased, e.g.
 </p>
 
 <pre class="matlab">
@@ -398,7 +398,11 @@ Opt.LLMK  = [24 20 10 10];  % moderately high values
 </pre>
 
 <p>
-All numbers must be positive. The first number is the maximum even L, the second is the maximum odd L, and the third and fourth number are the maximum M and K, respectively. The latter two numbers must be smaller than the maximum L.
+All numbers must be positive or zero. The first number is the maximum even L, the second is the maximum odd L, and the third and fourth number are the maximum M and K, respectively. The latter two numbers cannot be larger than the maximum L.
+</p>
+
+<p>
+One approach to optimize the basis size is to start from <code>[2 0 0 0]</code> and increase each of the four numbers in turn, run the simulation, and see if the spectrum changes. Once the spectrum doesn't change anymore, the basis size large enough. If your spin system or rotational parameters change, you need to test the basis size again for convergence.
 </p>
 
 <p>

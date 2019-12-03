@@ -15,6 +15,6 @@ echo = amplitude.*modulation;
 
 [tOut,signalOut] = rfmixer(t,echo,mwFreq,'IQdemod');
 
-err = ~areequal(amplitude,real(signalOut),1e-7);
+err = ~areequal(amplitude,real(signalOut),1e-7,'abs');
 
 data = [];

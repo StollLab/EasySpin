@@ -1,59 +1,58 @@
-% rotaxi2mat   Compute rotation matrix from axis and angle
+% rotaxi2mat   Compute rotation matrix from rotation axis and rotation angle
 %
 %    R = rotaxi2mat(n,rho)
 %
-%    Generates the matrix representing the rotation
-%    around the axis given by the 3-element vector n
-%    by the angle rho (in radians).
+%    Generates the matrix representing the rotation around the axis given by
+%    the 3-element vector n by the angle rho (in radians). n does not have to
+%    be normalized.
 %
-%    There are three shortcuts for x, y, and z axis:
-%      n=1 implies n=[1;0;0]
-%      n=2 means   n=[0;1;0]
-%      n=3 gives   n=[0;0;1].
+%    There are shortcuts for a few specific directions of the rotation axis:
+%      n='x' implies n=[1;0;0]
+%      n='y'         n=[0;1;0]
+%      n='z'         n=[0;0;1]
+%      n='xy'        n=[1;1;0]
+%      n='xz'        n=[1;0;1]
+%      n='yz'        n=[0;1;1]
+%      n='xyz'       n=[1;1;1]
 %
 %    Example:
-%      % A rotation by 2*pi/3 around the axis [1;1;1]
+%      % A rotation by 2*pi/3 (120 degrees) around the axis [1;1;1]
 %      % permutes the x, y and z axes.
-%      R = rotaxi2mat([1;1;1],2*pi/3)
+%      R = rotaxi2mat('xyz',2*pi/3)
 
 function R = rotaxi2mat(n,rho)
 
 if nargin==0, help(mfilename); return; end
 
-if ~isreal(rho) | numel(rho)~=1
-  error('phi must be a real number!');
+if nargin<2
+  error('Provide a second input argument (rotation angle rho).')
 end
 
-if ~isreal(n)
-  error('Rotation axis vector n must have real elements!');
+if ~isreal(rho) || numel(rho)~=1
+  error('Second input (angle rho) must be a real number.');
 end
 
-switch numel(n)
-case 1,
-  switch n
-  case 1, n = [1;0;0];
-  case 2, n = [0;1;0];
-  case 3, n = [0;0;1];
-  otherwise
-    error('Rotation axis shortcut is invalid!');
+if ischar(n)
+  n = letter2vec(n);
+else
+  if numel(n)~=3 || ~isreal(n)
+    error('Rotation axis must be a 3-element vector or a shortcut such as ''x'', ''y'', etc.');
   end
-case 3,
-  n = n/norm(n);
-otherwise
-  error('Rotation axis must be a vector or a scalar shortcut!');
 end
+
+n = n/norm(n);
 
 N = zeros(3,3);
 
-% N_{ij} = -e_{ijk} n_k, e_{ijk} = +1 if ijk even permutation of 123,
-% -1 if odd permutation, and 0 otherwise (if two indices are equal)
+% N_{ij} = -e_{ijk} n_k, with
+%                / +1 if ijk is an even permutation of 123
+%      e_{ijk} = | -1 if ijk is an odd permutation of 123
+%                \  0 otherwise (if two indices are equal)
 N([8 3 4]) = n;
 N = N - N.';
 
 R = eye(3) + N*sin(rho) + N^2*(1-cos(rho));
-
-% Alternative:
-%R = expm(phi*N);
+%R = expm(phi*N); % alternative
 
 % Remove numerical errors for entries with 0, +1 and -1
 thresh = 1e-10;

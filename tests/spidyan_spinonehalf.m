@@ -41,7 +41,7 @@ Exp.DetEvents = [0 0 0];
 [~, ~, out2] = spidyan(Sys,Exp,Opt);
 
 if ~isempty(olddata)
-  err = [~areequal(out1.FinalState,out2.FinalState,1e-4) ~areequal(signal,olddata.signal,1e-4)];
+  err = [~areequal(out1.FinalState,out2.FinalState,1e-4,'abs') ~areequal(signal,olddata.signal,1e-4,'abs')];
 else
   err = [];
 end

@@ -5,7 +5,7 @@ function [err,data] = test(opt,olddata)
 %  Syntax 1:  'eex'
 %  Syntax 2:  'x3'
 
-testfun = @(spins,syntax1,syntax2) areequal(sop(spins,syntax1),sop(spins,syntax2),1e-10);
+testfun = @(spins,syntax1,syntax2) areequal(sop(spins,syntax1),sop(spins,syntax2),1e-10,'abs');
 
 ok = true;
 ok = ok && testfun(1,'x','x1');

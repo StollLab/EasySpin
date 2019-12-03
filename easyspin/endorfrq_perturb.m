@@ -10,9 +10,9 @@ function varargout = endorfrq_perturb(Sys,Exp,Opt)
 error(chkmlver);
 
 % Check number of input arguments.
-switch (nargin)
+switch nargin
   case 2, Opt = struct;
-  case 3,
+  case 3
   otherwise
     error('Incorrect number of inputs!');
 end
@@ -114,7 +114,7 @@ if isfield(Exp,'Mode')
   end
 end
 if isfield(Exp,'Temperature')
-  if (Exp.Temperature<inf)
+  if Exp.Temperature<inf
     err = 'ENDOR temperature effects are not supported with perturbation theory. Use matrix diagonalization.';
   end
 end
@@ -129,8 +129,7 @@ if ~isfield(Opt,'Sites')
 end
 
 % Process crystal orientations, crystal symmetry, and frame transforms
-% This sets Orientations, nOrientations, nSites and AverageOverChi
-[Orientations,nOrientations,nSites,AverageOverChi] = p_crystalorientations(Exp,Opt);
+[Orientations,nOrientations,~,AverageOverChi] = p_crystalorientations(Exp,Opt);
 
 
 % Options
@@ -148,12 +147,12 @@ if secondOrder
 else
   logmsg(1,'  1st order perturbation theory');
 end
-if (Opt.PerturbOrder~=1)&&(Opt.PerturbOrder~=2)
+if Opt.PerturbOrder~=1 && Opt.PerturbOrder~=2
   error('Opt.PerturbOrder must be either 1 or 2.');
 end
 
 if ~isfield(Opt,'Enhancement'), Opt.Enhancement = 0; end
-if (Opt.Enhancement)
+if Opt.Enhancement
   logmsg(1,'  skipping hyperfine enhancement.');
 end
 logmsg(1,'  hyperfine enhancement: off.');
@@ -186,7 +185,7 @@ states = allcombinations(mI{:});
 
 % Initialize parameters for orientation selectivity determination.
 % Selectivity = (maxEPRfreq-minEPRfreq)/minExWidth
-if (OrientationSelection)
+if OrientationSelection
   maxEPRfreq = -inf;
   minEPRfreq = inf;
   minExWidth = inf;
@@ -194,7 +193,7 @@ end
 
 % Loop over all orientations
 for iOri = nOrientations:-1:1
-  [h1x,h1y,h] = erot(Orientations(iOri,:),'rows');
+  [~,~,h] = erot(Orientations(iOri,:),'rows');
   
   % zero-order energy: electron Zeeman term only
   geff = norm(g*h);
@@ -307,7 +306,7 @@ for iOri = nOrientations:-1:1
 
   
   % Orientation selection ----------------------------------
-  if (OrientationSelection)
+  if OrientationSelection
     
     % compute EPR transition frequencies
     for imS = 1:2*S+1
@@ -324,9 +323,9 @@ for iOri = nOrientations:-1:1
     exciteFactor = exp(-2/lw2*offsetFreq.^2);
 
     % collect statistics
-    if (min(EPRfreq(:))<minEPRfreq), minEPRfreq = min(EPRfreq(:)); end
-    if (max(EPRfreq(:))>maxEPRfreq), maxEPRfreq = max(EPRfreq(:)); end
-    if (lw2<minExWidth^2), minExWidth = sqrt(lw2); end
+    if min(EPRfreq(:))<minEPRfreq, minEPRfreq = min(EPRfreq(:)); end
+    if max(EPRfreq(:))>maxEPRfreq, maxEPRfreq = max(EPRfreq(:)); end
+    if lw2<minExWidth^2, minExWidth = sqrt(lw2); end
 
     % for each ENDOR transition, combine excitation factors of
     % EPR transitions that share a level with the ENDOR transition
@@ -343,7 +342,7 @@ for iOri = nOrientations:-1:1
 end % for iOri = ...
 
 % Compute selectivity.
-if (OrientationSelection)
+if OrientationSelection
   Selectivity = (maxEPRfreq-minEPRfreq)/minExWidth;
   logmsg(2,'  limited excitation width, selectivity %g',Selectivity);
 else
@@ -371,7 +370,7 @@ for iNuc = Opt.Nuclei
   newIntensities = pre(:)/nNucStates(iNuc);
   newIntensities = repmat(newIntensities,1,nOrientations);
   % array size now: (2*I(iNuc)) x nOrientations
-  if (OrientationSelection)
+  if OrientationSelection
     newIntensities = newIntensities.*totalWeight{iNuc}.';
   end
   idx = 1:2*I(iNuc); idx = repmat(idx,2*S+1,1); idx = idx(:);
@@ -392,7 +391,7 @@ varargout = Output(1:max(nargout,1));
 
 function Combs = allcombinations(varargin)
 
-if (nargin==0), Combs = []; return; end
+if nargin==0, Combs = []; return; end
 
 idxonly = 1;
 if idxonly

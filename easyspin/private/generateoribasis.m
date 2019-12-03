@@ -8,7 +8,7 @@
 %    .oddLmax  maximum odd L
 %    .Kmax     maximum K
 %    .Mmax     maximum M
-%    .deltaK   step size for K (1 or 2) (optional; default 1)
+%    .evenK    whether to use only even K (default: false)
 %    .jKmin    minimum jK (-1 or 1) (optional; default -1)
 %   basistype  string specifying type of basis set
 %              'LjKKM','LMK','LMKjK'
@@ -37,12 +37,13 @@ else
   Basis.jKmin = -1;
 end
 
-if isfield(Basis,'deltaK')
-  if Basis.deltaK~=1 && Basis.deltaK~=2
-    error('Basis.deltaK must be either 1 or 2.');
-  end
-else
-  Basis.deltaK = 1;
+if ~isfield(Basis,'evenK')
+  Basis.evenK = false;
+end
+
+% Make sure Kmax is even
+if Basis.evenK
+  Basis.Kmax = floor(Basis.Kmax/2)*2;
 end
 
 switch basistype
@@ -66,18 +67,18 @@ Kmax = Basis.Kmax;
 Mmax = Basis.Mmax;
 
 jKmin = Basis.jKmin;
-deltaK = Basis.deltaK;
-iBasis = 1;
+deltaK = Basis.evenK+1;
+iBasis = 0;
 for L = Basis.Llist
   if mod(L,2)==0, Lparity = +1; else, Lparity = -1; end
   for jK = jKmin:2:1
     Kmx = min(L,Kmax);
     for K = 0:deltaK:Kmx
-      if (K==0) && (Lparity~=jK), continue; end
+      if K==0 && (Lparity~=jK), continue; end
       Mmx = min(L,Mmax);
       for M = -Mmx:1:Mmx
-        basisList(iBasis,:) = [L jK K M];
         iBasis = iBasis + 1;
+        basisList(iBasis,:) = [L jK K M];
       end % M
     end % K
   end % jK
@@ -99,8 +100,8 @@ Kmax = Basis.Kmax;
 Mmax = Basis.Mmax;
 
 jKmin = Basis.jKmin;
-deltaK = Basis.deltaK;
-iBasis = 1;
+deltaK = Basis.evenK+1;
+iBasis = 0;
 for L = Basis.Llist
   Mmx = min(L,Mmax);
   for M = -Mmx:1:Mmx
@@ -108,8 +109,8 @@ for L = Basis.Llist
     for K = -Kmx:deltaK:Kmx
       if (K==0), jK = (-1)^L; else, jK= sign(K); end
       if jK<jKmin, continue; end
-      basisList(iBasis,:) = [L M abs(K) jK];
       iBasis = iBasis + 1;
+      basisList(iBasis,:) = [L M abs(K) jK];
     end % K
   end % M
 end % L
@@ -131,15 +132,15 @@ function BasisNew = generatebasis_LMK(Basis)
 Kmax = Basis.Kmax;
 Mmax = Basis.Mmax;
 
-deltaK = Basis.deltaK;
-iBasis = 1;
+deltaK = Basis.evenK+1;
+iBasis = 0;
 for L = Basis.Llist
   Mmx = min(L,Mmax);
   for M = -Mmx:1:Mmx
     Kmx = min(L,Kmax);
     for K = -Kmx:deltaK:Kmx
-      basisList(iBasis,:) = [L M K];
       iBasis = iBasis + 1;
+      basisList(iBasis,:) = [L M K];
     end % K
   end % M
 end % L

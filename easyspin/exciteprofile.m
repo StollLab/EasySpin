@@ -36,7 +36,8 @@ switch nargin
 end
 
 if numel(t)~=numel(IQ)
-  error('The number of points of the time axis and pulse shape function do not match.');
+  error('The number of points of the time axis (%d) and the number of points in the pulse shape function IQ (%d) do not match.',...
+    numel(t),numel(IQ));
 end
 
 plotResults = (nargout==0);
@@ -239,7 +240,7 @@ switch nargout
   case 2 % [offsets,Mag] = exciteprofile(...)
     varargout = {offsets,Mag};
   otherwise
-    error('The function pulse() needs 2 output arguments.')
+    error('Two output arguments are required.')
 end
 
 end

@@ -78,9 +78,25 @@ The input arguments to <code>pulse</code> are <code>Par</code>, a structure cont
 Pulse length, in microseconds.
 </div>
 
-<div class="optionfield"><code>TimeStep</code></div>
+<div class="optionfield"><code>Type</code></div>
 <div class="optiondescr">
-Time step for the definition of the waveform, in microseconds. If not given, it is automatically determined based on the Nyquist sampling criterion and the input pulse parameters.
+Pulse shape name in a character array structured as <code>'AM/FM'</code> (or just <code>'AM'</code>), where AM refers to the amplitude modulation function and FM to the frequency modulation function.
+<p>
+The available amplitude modulation functions are <code>'rectangular'</code>, <code>'gaussian'</code>, <code>'sinc'</code>, <code>'halfsin'</code>, <code>'quartersin'</code>, <code>'sech'</code>, <code>'WURST'</code>, <code>'GaussianCascade'</code>, <code>'FourierSeries'</code>. Different AM functions can be multiplied by concatenating the keywords as <code>'AM1*AM2/FM'</code>. The default is <code>'rectangular'</code>.
+
+<p>
+The available options for frequency modulation are <code>'none'</code>, <code>'linear'</code>, <code>'tanh'</code>, <code>'uniformQ'</code>. If only an AM keyword is given, the FM function is set to <code>'none'</code>.
+</p>
+
+Here are a few examples:
+<pre class="matlab">
+Par.Type = 'sech/tanh';     % hyperbolic-secant pulse
+Par.Type = 'WURST/linear';  % linear chirp pulse with WURST amplitude envelope
+Par.Type = 'gaussian';      % constant-frequency gaussian-amplitude pulse
+</pre>
+
+<p>
+Additional parameters are required to fully specify the various AM and FM functions, see <a href = "#pulsepars">below</a>.
 </div>
 
 <div class="optionfield"><code>Flip</code></div>
@@ -119,28 +135,12 @@ Par.Frequency = [50 20];  % down-sweep
 Overall pulse phase, in radians, <i>e.g.</i> <code>0</code> for +x, <code>pi/2</code> for +y, etc. If not given, it defaults to 0.
 </div>
 
-<div class="optionfield"><code>Type</code></div>
+<div class="optionfield"><code>TimeStep</code></div>
 <div class="optiondescr">
-Pulse shape name in a string structured as <code>'AM/FM'</code> (or just <code>'AM'</code>), where AM refers to the amplitude modulation function and FM to the frequency modulation function.
-<p>
-The available amplitude modulation functions are <code>'rectangular'</code>, <code>'gaussian'</code>, <code>'sinc'</code>, <code>'halfsin'</code>, <code>'quartersin'</code>, <code>'sech'</code>, <code>'WURST'</code>, <code>'GaussianCascade'</code>, <code>'FourierSeries'</code>. Different AM functions can be multiplied by concatenating the keywords as <code>'AM1*AM2/FM'</code>. The default is <code>'rectangular'</code>.
-
-<p>
-The available options for frequency modulation are <code>'none'</code>, <code>'linear'</code>, <code>'tanh'</code>, <code>'uniformQ'</code>. If only an AM keyword is given, the FM function is set to <code>'none'</code>.
-</p>
-
-Here are a few examples:
-<pre class="matlab">
-Par.Type = 'sech/tanh';     % hyperbolic-secant pulse
-Par.Type = 'WURST/linear';  % linear chirp pulse with WURST amplitude envelope
-Par.Type = 'gaussian';      % constant-frequency gaussian-amplitude pulse
-</pre>
-
-<p>
-Additional parameters are required to fully specify the various AM and FM functions, see below.
+Time step for the definition of the waveform, in microseconds. If not given, it is automatically determined based on the Nyquist sampling criterion and the input pulse parameters.
 </div>
 
-<div class="optionfield">Pulse shape parameters</div>
+<a name="pulsepars"></a><div class="optionfield"><code>Pulse shape parameters</code></div>
 <div class="optiondescr">
 <p>
 Depending on the AM function, additional fields need to be specified:

@@ -14,7 +14,7 @@ MD = Traj;
 MD.dt = MD.dt*tScale;
 
 tLag = 100e-12*tScale;
-nLag = tLag/MD.dt;
+nLag = round(tLag/MD.dt);
 
 nStates = 20;
 
@@ -34,9 +34,9 @@ HMM.stateTraj = HMM.viterbiTraj;
 data.stateTraj = HMM.stateTraj;
 
 if ~isempty(olddata)
-  err = any(any(abs(olddata.TransProb-HMM.TransProb)>1e-10)) ...
-       || any(abs(olddata.eqDistr-HMM.eqDistr)>1e-10) ...
-       || any(abs(olddata.stateTraj-HMM.stateTraj)>1e-10);
+  err = ~areequal(olddata.TransProb,HMM.TransProb,1e-3,'abs') || ...
+        ~areequal(olddata.eqDistr,HMM.eqDistr,1e-3,'abs') || ...
+        ~areequal(olddata.stateTraj,HMM.stateTraj);
 else
   err = [];
 end

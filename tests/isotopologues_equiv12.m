@@ -23,7 +23,7 @@ for k = 1:numel(isoList)
   w0(k) = w0(k)*factorial(n1(k)+n2(k))/factorial(n1(k))/factorial(n2(k));
 end
 
-ok = ok && areequal([isoList.weight],w0);
+ok = ok && areequal([isoList.weight],w0,1e-10,'rel');
 
 %{
 % Calculate A and Q scaling factor

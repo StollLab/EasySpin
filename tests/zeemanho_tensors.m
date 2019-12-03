@@ -63,6 +63,6 @@ end
 threshold = 1e-4;
 err = false;
 for n = 1:4
- err = err || ~areequal(H{n},Ht1{n},threshold) || ~areequal(H{n},Ht2{n},threshold);
+ err = err || ~areequal(H{n},Ht1{n},threshold,'abs') || ~areequal(H{n},Ht2{n},threshold,'abs');
 end
 data =[];

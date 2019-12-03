@@ -67,7 +67,7 @@ The representation of the operators is in terms of product Zeeman basis states |
 <code>Spins</code> is a vector containing the spin quantum numbers (for example <code>[1/2 1</code>) or, alternatively, a <a href="spinsystem.html">spin system structure</a>.
 
 <p>
-<code>Comps</code> is a string specifying the particular spin operator. There are several different ways to do this:
+<code>Comps</code> is a character array specifying the particular spin operator. There are several different ways to do this:
 
 <ol>
 <li><b>One component for each spin</b>: Give one operator component for each spin in <code>Spins</code>. Elements of <code>Comps</code> can be <code>'e'</code> (identity), <code>'x'</code> (S<sub>x</sub>), <code>'y'</code> (S<sub>y</sub>), <code>'z'</code> (S<sub>z</sub>), <code>'+'</code> (S<sub>+</sub>) or <code>'-'</code> (S<sub>-</sub>). For spin-1/2, <code>'a'</code> and <code>'b'</code> correspond to S<sub>&alpha;</sub> and S<sub>&beta;</sub>. The order in <code>Comps</code> corresponds to the order in <code>Spins</code>.
@@ -84,7 +84,7 @@ For example, for a single spin, <code>'x(1|3)'</code> indicates an Sx operator c
 </ol>
 
 <p>
-If more than one operator string is given (<code>Comps1</code>, <code>Comps1</code>, etc), <code>sop</code> computes all operators at the same time. Of course, there must be a corresponding number of output arguments.
+If more than one operator is provided (<code>Comps1</code>, <code>Comps1</code>, etc), <code>sop</code> computes all operators at the same time. Of course, there must be a corresponding number of output arguments.
 </p>
 
 <p>

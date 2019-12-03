@@ -45,7 +45,7 @@ w = apowin(Type,nPoints,alpha)
 <p>
 <code>apowin</code> returns an apodization window with <code>nPoints</code>
 point in the column vector <code>w</code>.
-<code>WindowType</code> is a string specifying the window type.
+<code>WindowType</code> is a character array specifying the window type.
 The available types are listed in the following table.
 </p>
 
@@ -65,7 +65,7 @@ The available types are listed in the following table.
 
 <p>
 The returned window is symmetric. If a <code>'+'</code> is appended
-to the three-letter type string, only the right part of the
+to the three-letter type, only the right part of the
 symmetric window function (<img src="eqn/apowin12.png" alt="[eqn]"><!--MATH $0 \le x \le 1$ -->) is returned.
 If a <code>'-'</code> is appended, the left part (<img src="eqn/apowin13.png" alt="[eqn]"><!--MATH $-1 \le x \le 0$-->) is
 returned. E.g., <code>'exp+'</code> thus specifies an exponential decay.

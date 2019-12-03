@@ -19,17 +19,17 @@ if nargin == 0
     easyspinupdate(OnlineVersion);
   end
   return
-else
-  if all(isstrprop(OnlineVersion,'alpha'))
-    InstalledVersion = easyspininfo;
-    UpdateOpt.Branch = OnlineVersion;
-    UpdateOpt.Silent = true;
-    [~, OnlineVersion] = easyspinversioncheck(InstalledVersion,UpdateOpt);
-    if isempty(OnlineVersion)
-      msg = [UpdateOpt.Branch ' is not a valid branch name.'];
-      disp(msg)
-      return
-    end
+end
+
+if all(isstrprop(OnlineVersion,'alpha'))
+  InstalledVersion = easyspininfo;
+  UpdateOpt.Branch = OnlineVersion;
+  UpdateOpt.Silent = true;
+  [~, OnlineVersion] = easyspinversioncheck(InstalledVersion,UpdateOpt);
+  if isempty(OnlineVersion)
+    msg = [UpdateOpt.Branch ' is not a valid branch name.'];
+    disp(msg)
+    return
   end
 end
 
@@ -69,19 +69,38 @@ Path = strsplit(InstallationPath,filesep);
 InstallationPath = join(Path(1:end-2),filesep);
 InstallationPath = InstallationPath{1};
 
+% Before downloading, check if the previous installation is in a write
+% protected directory
+fileName = join([InstallationPath "easyspininstalltest.txt"],filesep);
+[fid,errmsg] = fopen(fileName, 'w');
+if ~isempty(errmsg) 
+    error(['The EasySpin installation directory (' InstallationPath ') appears to be write protected. Please move EasySpin to a different directory and retry update or manually install the new EasySpin version.']);
+else
+    fclose(fid);
+    delete(fileName);
+end
+
 OldPath = join(Path(1:end-1),filesep);
 OldPath = OldPath{1};
 
 disp(['Downloading EasySpin version (' VersionToGet ')']);
 zipName = ['easyspin-' VersionToGet '.zip'];
 
+% set time out to 60 seconds
+options = weboptions('Timeout',60);
+
 % download from easyspin.org
 try
-  zipFile = websave(zipName,['http://easyspin.org/easyspin/' zipName]);
+  zipFile = websave(zipName,['http://easyspin.org/easyspin/' zipName],options);
 catch
-  delete([zipName '.html']); % if the file can not be downloaded, MATLAB
-  % creates a file 'filename.html', this removes the file
-  errMsg = ['The file ' zipName ' was not found on easyspin.org.'];
+  if exist([zipName '.html'], 'file') == 2
+    % if the file can not be downloaded, MATLAB
+    % creates a file 'filename.html', this removes the file
+    delete([zipName '.html']); 
+    errMsg = ['The file ' zipName ' was not found on easyspin.org.'];
+  else
+    errMsg = ['It appears the connection has timed out. Please try again.'];
+  end
   error(errMsg);
 end
 
@@ -96,16 +115,16 @@ delete(zipFile);
 
 % ---------------------------------------------------------------
 % Add to Path and clean up
-NewESPath = [Destination 'easyspin-' VersionToGet filesep 'easyspin' filesep];
+newESPath = [Destination 'easyspin-' VersionToGet filesep 'easyspin' filesep];
 
-if isfolder(NewESPath)
-  addpath(NewESPath);
+if exist(newESPath,'dir')
+  addpath(newESPath);
   savepath
-  msg = ['EasySpin was succesfully installed to ' newline NewESPath newline 'and added to the MATLAB search paths.' newline];
-  msg = [msg 'You may remove your old EasySpin installation (' OldPath ') from the MATLAB search paths and delete the folder from your system.']; 
+  msg = ['EasySpin was succesfully installed to ' newline newESPath newline 'and added to the MATLAB search paths.' newline];
+  msg = [msg 'For optimal perfomance, your should remove EasySpin installation (' OldPath ') from the MATLAB search paths and delete the folder from your system.']; 
   disp(msg);
 else
-  errMsg = ['EasySpin was succecsfully downloaded to ' newline NewESPath newline];
+  errMsg = ['EasySpin was succecsfully downloaded to ' newline newESPath newline];
   errMsg = [errMsg 'But adding it to the path failed. Please do so manually.'];
-  error(errMsg)
+  error(errMsg);
 end

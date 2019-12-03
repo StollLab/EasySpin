@@ -29,7 +29,7 @@ data.x1 = x1;
 data.y1 = y1;
 
 if ~isempty(olddata)
-  err = any([~areequal(x1,olddata.x1,1e-4) ~areequal(y1,olddata.y1,1e-4)]);
+  err = ~areequal(x1,olddata.x1,1e-4,'abs') || ~areequal(y1,olddata.y1,1e-4,'abs');
 else
   err = [];
 end

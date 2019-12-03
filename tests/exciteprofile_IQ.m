@@ -46,8 +46,8 @@ for i = 1:numel(exprofile.offsets)
   
 end
 
-err(1) = ~areequal(v1*I,real(IQ),1e-12);
-err(2) = ~areequal(Mz,exprofile.Mz,1e-12);
+err(1) = ~areequal(v1*I,real(IQ),1e-12,'rel');
+err(2) = ~areequal(Mz,exprofile.Mz,1e-12,'rel');
 
 err = any(err);
 

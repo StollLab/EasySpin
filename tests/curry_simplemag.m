@@ -24,7 +24,7 @@ if opt.Display
 end
 
 if ~isempty(olddata)
-  ok = areequal(data.m,olddata.m,1e-3);
+  ok = areequal(data.m,olddata.m,1e-3,'abs');
   err = ~ok;
 else
   err = [];

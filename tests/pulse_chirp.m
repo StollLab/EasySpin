@@ -24,7 +24,7 @@ IQ0 = Amplitude*exp(2i*pi*(phi+mean(Params.Frequency)*t0));
 
 [t,IQ] = pulse(Params);
 
-err(1) = ~areequal(IQ0,IQ,1e-12);
+err(1) = ~areequal(IQ0,IQ,1e-12,'abs');
 
 % Quartersin weighted chirp
 clear Params
@@ -54,9 +54,9 @@ IQ0 = Params.Amplitude*A.*exp(2i*pi*phi);
 
 [t,IQ,modulation] = pulse(Params);
 
-suberr(1) = ~areequal(IQ0,IQ,1e-12);
-suberr(2) = ~areequal(Params.Amplitude*A,modulation.A,1e-12);
-suberr(3) = ~areequal(f,modulation.freq,1e-12);
+suberr(1) = ~areequal(IQ0,IQ,1e-12,'abs');
+suberr(2) = ~areequal(Params.Amplitude*A,modulation.A,1e-12,'abs');
+suberr(3) = ~areequal(f,modulation.freq,1e-12,'abs');
 
 err(2) = any(suberr);
 
@@ -84,9 +84,9 @@ IQ0 = Params.Amplitude*A.*exp(2i*pi*phi);
 
 [t,IQ,modulation] = pulse(Params);
 
-suberr(1) = ~areequal(IQ0,IQ,1e-12);
-suberr(2) = ~areequal(Params.Amplitude*A,modulation.A,1e-12);
-suberr(3) = ~areequal(f,modulation.freq,1e-12);
+suberr(1) = ~areequal(IQ0,IQ,1e-12,'abs');
+suberr(2) = ~areequal(Params.Amplitude*A,modulation.A,1e-12,'abs');
+suberr(3) = ~areequal(f,modulation.freq,1e-12,'abs');
 
 err(3) = any(suberr);
 

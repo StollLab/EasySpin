@@ -25,6 +25,6 @@ Sys = rmfield(Sys,'J');
 Sys.ee = [200 200 200];
 [B,spc2] = pepper(Sys,Exp,Opt);
 
-err = ~areequal(spc1,spc2,1e-4);
+err = ~areequal(spc1,spc2,1e-4,'rel');
 
 data = [];

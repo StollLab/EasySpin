@@ -21,7 +21,7 @@ H3 = zfield(Sys);
 
 % test
 threshold = 1e-7;
-err(1) = ~areequal(H1,H2,threshold);
-err(2) = ~areequal(H1,H3,threshold);
+err(1) = ~areequal(H1,H2,threshold,'abs');
+err(2) = ~areequal(H1,H3,threshold,'abs');
 
 data = [];

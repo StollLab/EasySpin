@@ -24,4 +24,4 @@ if opt.Display
 end
 data = [];
 
-err = ~areequal(y0,y1,2e-2*max(y0));
+err = ~areequal(y0,y1,2e-2,'rel');

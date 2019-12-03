@@ -31,7 +31,7 @@ y = saffron(Sys,Exp,Opt);
 data.y = y;
 
 if ~isempty(olddata)
-  err = any([~areequal(y,olddata.y,1e-4)]);
+  err = ~areequal(y,olddata.y,1e-4,'abs');
 else
   err = [];
 end

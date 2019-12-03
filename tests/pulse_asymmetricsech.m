@@ -31,10 +31,10 @@ IQ0 = A.*exp(2i*pi*phi);
 
 [t,IQ,modulation] = pulse(Params);
 
-suberr(1) = ~areequal(IQ0,IQ,1e-11);
-suberr(2) = ~areequal(A,modulation.A,1e-12);
-suberr(3) = ~areequal(f,modulation.freq,1e-12);
-suberr(4) = ~areequal(2*pi*phi,modulation.phase,1e-12);
+suberr(1) = ~areequal(IQ0,IQ,1e-11,'abs');
+suberr(2) = ~areequal(A,modulation.A,1e-12,'abs');
+suberr(3) = ~areequal(f,modulation.freq,1e-12,'abs');
+suberr(4) = ~areequal(2*pi*phi,modulation.phase,1e-12,'abs');
 
 err = any(suberr);
 

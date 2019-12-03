@@ -1,10 +1,9 @@
-function [err,data] = test(opt,olddata)
+function err = test()
 
-% Test 1: syntax
+% Test two input syntax versions
 %======================================================
-a = rand(1,3);
+a = [1 2 3]/1.2343;
 R1 = erot(a);
 R2 = erot(a(1),a(2),a(3));
-err = any(R1(:)~=R2(:));
 
-data = [];
+err = ~areequal(R1,R2);

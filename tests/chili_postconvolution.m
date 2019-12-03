@@ -12,6 +12,8 @@ Exp.mwFreq = 9.5;
 Exp.Range = [330 338];
 Exp.nPoints = 1e4;
 
+Opt.LLMK = [6 0 2 2];
+
 Opt.PostConvNucs = [];
 [x,y1] = chili(Sys,Exp,Opt);
 Opt.PostConvNucs = 2;

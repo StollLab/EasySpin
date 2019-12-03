@@ -21,5 +21,5 @@ d2(2,3) = -d2(2,1);
 d2(1,2) = -d2(2,1);
 d2(2,2) = cos(beta);
 
-err = ~areequal(d1,d2,1e-10);
+err = ~areequal(d1,d2,1e-10,'abs');
 data = [];

@@ -16,5 +16,5 @@ d2(2,2) = d2(1,1);
 d2(1,2) = -sin(beta/2);
 d2(2,1) = -d2(1,2);
 
-err = ~areequal(d1,d2,1e-10);
+err = ~areequal(d1,d2,1e-10,'abs');
 data = [];

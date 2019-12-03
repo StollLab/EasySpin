@@ -20,6 +20,6 @@ Exp = struct('mwFreq',mw);
 Exp.Range = [min(x0) max(x0)];
 [x2,y2] = pepper(Sys,Exp);
 
-err = ~areequal(x0,x1) | ~areequal(x0,x2);
+err = ~areequal(x0,x1,1e-10,'rel') || ~areequal(x0,x2,1e-10,'rel');
 
 data = [];

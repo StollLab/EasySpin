@@ -27,7 +27,7 @@ IQ0 = A/max(A);
 
 [t,IQ] = pulse(Params);
 
-err(1) = ~areequal(IQ0,IQ,1e-12);
+err(1) = ~areequal(IQ0,IQ,1e-12,'abs');
 
 % I-BURP 2
 Params.tp = 0.700; % us
@@ -52,7 +52,7 @@ IQ0 = A/max(A);
 
 [t,IQ] = pulse(Params);
 
-err(2) = ~areequal(IQ0,IQ,1e-12);
+err(2) = ~areequal(IQ0,IQ,1e-12,'abs');
 
 % SNOB i2
 Params.tp = 0.200; % us
@@ -77,7 +77,7 @@ IQ0 = A/max(A);
 
 [t,IQ] = pulse(Params);
 
-err(3) = ~areequal(IQ0,IQ,1e-12);
+err(3) = ~areequal(IQ0,IQ,1e-12,'abs');
 
 % SNOB i3
 Params.tp = 0.200; % us
@@ -102,7 +102,7 @@ IQ0 = A/max(A);
 
 [t,IQ] = pulse(Params);
 
-err(4) = ~areequal(IQ0,IQ,1e-12);
+err(4) = ~areequal(IQ0,IQ,1e-12,'abs');
 
 % User-defined (SLURP-1, T2/T = 2)
 Params.tp = 2.000; % us
@@ -131,7 +131,7 @@ Params.Bn = Bn;
 
 [t,IQ] = pulse(Params);
 
-err(5) = ~areequal(IQ0,IQ,1e-12);
+err(5) = ~areequal(IQ0,IQ,1e-12,'abs');
 
 err = any(err);
 

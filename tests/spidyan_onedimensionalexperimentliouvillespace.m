@@ -37,7 +37,7 @@ data.t = t;
 data.signal = signal;
 
 if ~isempty(olddata)
-  err = ~areequal(signal,olddata.signal,1e-4);
+  err = ~areequal(signal,olddata.signal,1e-4,'abs');
 else
   err = [];
 end

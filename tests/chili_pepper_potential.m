@@ -28,7 +28,7 @@ spc2 = spc2/max(spc2);
 spc1 = spc1/max(spc1);
 
 threshold = 0.15;
-err = ~areequal(spc1,spc2,threshold);
+err = ~areequal(spc1,spc2,threshold,'abs');
 data = [];
 
 if opt.Display

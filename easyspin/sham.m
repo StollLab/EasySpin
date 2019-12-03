@@ -1,24 +1,25 @@
 % sham  Spin Hamiltonian 
 %
 %   [F,Gx,Gy,Gz] = sham(sys)
-%   H = sham(sys, B)
-%   ... = sham(sys, B,'sparse')
+%   H = sham(sys,B)
+%   ... = sham(sys,B,'sparse')
 %
 %   Constructs a spin Hamiltonian.
 %
 %   Input:
 %   - 'sys': spin system specification structure
 %   - 'B': 1x3 vector specifying the magnetic field [mT]
-%   - 'sparse': if present, sparse instead of full matrices are returned
+%   - 'sparse': if given, sparse instead of full matrices are returned
 %
 %   Output:
 %   - 'H': complete spin Hamiltonian [MHz]
-%   - 'F',Gx','Gy','Gz' ([MHz] and [MHz/mT])
-%      H = F + B(1)*Gx + B(2)*Gy + B(3)*Gz
+%   - 'F','Gx','Gy','Gz' ([MHz] and [MHz/mT])
+%          spin Hamiltonian components such that
+%           H = F + B(1)*Gx + B(2)*Gy + B(3)*Gz
 
 function varargout = sham(SpinSystem,B0,opt)
 
-if (nargin==0), help(mfilename); return; end
+if nargin==0, help(mfilename); return; end
 
 if nargin<2, B0 = []; end
 if nargin<3, opt = ''; end
@@ -30,6 +31,11 @@ sparseResult = strcmp(opt,'sparse');
 [Sys,err] = validatespinsys(SpinSystem);
 error(err);
 
+if ~isempty(B0)
+  if numel(B0)~=3
+    error('Magnetic field vector must be 3-element array!');
+  end
+end
 
 sysfields = fieldnames(Sys);
 highest = 0;
@@ -97,9 +103,6 @@ if higherOrder
         end
     end
   else
-    if numel(B0)~=3
-      error('Magnetic field must be 3-element vector!');
-    end
     if norm(B0)>0
       nB0 = B0/norm(B0);
     else

@@ -16,7 +16,7 @@ data.lw = lw;
 data.mI = mI;
 
 if ~isempty(olddata)
-  ok = areequal(lw,olddata.lw,1e-6) & areequal(mI,olddata.mI);
+  ok = areequal(lw,olddata.lw,1e-6,'rel') & areequal(mI,olddata.mI);
   err = ~ok;
 else
   err = [];

@@ -24,7 +24,7 @@ if opt.Display
 end
 
 % Compare
-err = ~areequal(ydisp1,ydisp1_,1e-3);
+err = ~areequal(ydisp1,ydisp1_,1e-3,'abs');
 
 data =[];
 

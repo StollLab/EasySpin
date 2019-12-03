@@ -8,6 +8,6 @@ y = rand(1,N);
 y_ = rescale(y,'minmax');
 
 thr = 1e-12;
-err = ~areequal(min(y_),0,thr) || ~areequal(max(y_),1,thr);
+err = ~areequal(min(y_),0) || ~areequal(max(y_),1,thr,'abs');
 
 data = [];

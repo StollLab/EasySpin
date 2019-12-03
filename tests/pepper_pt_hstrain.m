@@ -21,5 +21,5 @@ if (opt.Display)
   plot(x,y1-y0);
 end
 
-err = ~areequal(y0,y1,1e-5*max(y0));
+err = ~areequal(y0,y1,1e-5,'rel');
 data=[];

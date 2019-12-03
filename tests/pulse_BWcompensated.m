@@ -36,7 +36,7 @@ profile = profile/max(profile);
 check = profile.*IQ2_ft;
 check = check/max(check);
 
-err(1) = ~areequal(std(IQ1_ft(abs(f)<0.6*Params.Frequency(2))),std(check(abs(f)<0.6*Params.Frequency(2))),1e-2);
+err(1) = ~areequal(std(IQ1_ft(abs(f)<0.6*Params.Frequency(2))),std(check(abs(f)<0.6*Params.Frequency(2))),1e-2,'abs');
 
 % Calculation
 t0 = 0:Params.TimeStep:Params.tp;
@@ -68,8 +68,8 @@ A_adapted = A;%interp1(f,A,f_adapted,'pchip');
 IQ0 = A.*exp(1i*phi);
 IQ0_adapted = A_adapted.*exp(1i*phi_adapted);
 
-err(2) = ~areequal(IQ0,IQ1,1e-12);
-err(3) = ~areequal(IQ0_adapted,IQ2,1e-3);
+err(2) = ~areequal(IQ0,IQ1,1e-12,'abs');
+err(3) = ~areequal(IQ0_adapted,IQ2,1e-3,'abs');
 
 
 % Sech/tanh and bandwidth-compensated sech/tanh
@@ -105,7 +105,7 @@ profile = profile/max(profile);
 check = profile.*IQ2_ft;
 check = check/max(check);
 
-err(4) = ~areequal(std(IQ1_ft(abs(f)<0.6*Params.Frequency(2))),std(check(abs(f)<0.6*Params.Frequency(2))),1e-2);
+err(4) = ~areequal(std(IQ1_ft(abs(f)<0.6*Params.Frequency(2))),std(check(abs(f)<0.6*Params.Frequency(2))),1e-2,'abs');
 
 % Calculation
 t0 = 0:Params.TimeStep:Params.tp;
@@ -135,8 +135,8 @@ A_adapted = interp1(f,A,f_adapted,'pchip');
 IQ0 = A.*exp(1i*phi);
 IQ0_adapted = A_adapted.*exp(1i*phi_adapted);
 
-err(5) = ~areequal(IQ0,IQ1,1e-11);
-err(6) = ~areequal(IQ0_adapted,IQ2,1e-11);
+err(5) = ~areequal(IQ0,IQ1,1e-11,'abs');
+err(6) = ~areequal(IQ0_adapted,IQ2,1e-11,'abs');
 
 err = any(err);
 

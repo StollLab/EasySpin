@@ -1,11 +1,14 @@
-function [err,data] = test(opt,olddata)
+function err = test(opt,olddata)
 
 % Test whether Lorentzian line function is normalized
 %======================================================
-x0 = 34; fwhm = 2;
-x = x0 + linspace(-100,100,1e5);
-y = lorentzian(x,x0,fwhm);
-Integral = trapz(x,y);
+x0 = 340;
+fwhm = 20;
+f = @(x) lorentzian(x,x0,fwhm);
 
-err = abs(Integral-1) > 1e-2;
-data = [];
+n = 10;
+xmin = x0 - n*fwhm;
+xmax = x0 + n*fwhm;
+Area = integral(f,xmin,xmax);
+
+err = abs(Area-1) > 4e-2;

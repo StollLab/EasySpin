@@ -34,7 +34,7 @@ for k = 1:3
     end
   end
   
-  err = err || ~areequal(H0,H,1e-10);
+  err = err || ~areequal(H0,H,1e-10,'abs');
 end
 
 data = [];

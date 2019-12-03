@@ -92,15 +92,13 @@ For simulating a multi-component mixture, <code>Sys</code> should be a cell arra
 
 <div class="optionfield"><code>Temperature</code></div>
 <div class="optiondescr">
-This field specifies populations for the states of the spin system, either directly or via a temperature.
 <p>
-<em>Thermal equilibrium:</em><br>
-<code>Temperature</code> is the temperature of the spin system in the EPR experiment, in kelvin. E.g., <code>Exp.Temperature = 298</code> corresponds to room temperature. If given, populations are computed for all energy levels assuming thermal (Boltzmann) equilibrium, and the population differences between two levels are included in the line intensities of the corresponding EPR transition. If not given (or set to <code>NaN</code>), the populations are not calculated, and all transitions are assumed to have equal population difference of 1.
+This field specifies the temperature of the spin system in the EPR experiment, in kelvin. E.g., <code>Exp.Temperature = 298</code> corresponds to room temperature. If given, populations are computed for all energy levels assuming thermal (Boltzmann) equilibrium, and the population differences between two levels are included in the line intensities of the corresponding EPR transition. If not given (or set to <code>NaN</code>), the populations are not calculated, and all transitions are assumed to have equal population difference of 1.
+</p>
+
 <p>
-<em>Non-equilibrium populations:</em><br>
-<code>Temperature</code> can also be used to specify non-equilibrium populations. For a spin system with <code>N</code> electron states (e.g. 4 for a biradical, 3 for a triplet state), it must be a vector with <code>N</code> elements giving the populations of the zero-field electron states, from lowest to highest in energy.
-<br>
-E.g., if <code>Exp.Temperature = [0.85 0.95 1.2]</code> for an S=1 system, the population of the lowest-energy zero-field state has a population of 0.85, the middle one has 0.95, and the highest-energy zero-field state has a population of 1.2. If there are coupled nuclei, the populations of all nuclear sublevels within each electron spin manifold are assumed to be equal.
+To specify non-equilibrium populations, use the spin system field <code>Sys.Pop</code>. See the <a href="spinpolarization.html">user guide on spin polarization</a>.
+</p>
 </div>
 
 
@@ -164,6 +162,21 @@ When <code>CrystalSymmetry</code> is given, all symmetry-related sites in the cr
 </p>
 
 </div>
+
+<div class="optionfield"><code>SampleRotation</code></div>
+<div class="optiondescr">
+Specifies the sample rotation as <code>{rho,nRot_L}</code>. <code>rho</code> is the rotation angle (in radians) around a lab-fixed axis <code>nRot_L</code>>. The axis is in lab-frame coordinates, and <code>nRot_L</code> does not have to be normalized.
+
+<pre class="matlab">
+rho = pi/4;
+Exp.SampleRotation = {rho,[0;1;0]};       % rotation around lab y axis (yL)
+Exp.SampleRotation = {rho,'z'};           % rotation around lab z axis (zL)
+Exp.SampleRotation = {rho,'x'};           % rotation around lab x axis (xL)
+Exp.SampleRotation = rho;                 % xL is the default if no axis is supplied
+</pre>
+
+</div>
+
 
 <div class="optionfield"><code>MolFrame</code></div>
 <div class="optiondescr">

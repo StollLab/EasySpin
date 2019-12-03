@@ -9,7 +9,7 @@ ok = true;
 for J = 0:0.5:6
   d = wignerd(J,beta);
   d0 = eye(2*J+1);
-  ok = ok && areequal(d,d0,1e-16);
+  ok = ok && areequal(d,d0,1e-16,'abs');
 end
 err = ~ok;
 

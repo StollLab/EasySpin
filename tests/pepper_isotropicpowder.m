@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function err = test(opt)
 
 %=======================================================================
 % Simulation of isotropic powder spectrum
@@ -13,7 +13,7 @@ Opt.Output = 'summed';
 Opt.Output = 'separate';
 [x,y2] = pepper(Sys,Exp,Opt);
 
-if (opt.Display)
+if opt.Display
   subplot(3,1,1);
   plot(x,y1);
   xlabel('magnetic field [mT]');
@@ -28,6 +28,4 @@ if (opt.Display)
   title('Difference');
 end
 
-data = [];
-
-err = (size(y1,1)~=1) | (size(y2,1)~=4) | ~areequal(y1/max(y1),sum(y2)/max(y1),1e-4);
+err = (size(y1,1)~=1) | (size(y2,1)~=4) | ~areequal(y1/max(y1),sum(y2)/max(y1),1e-4,'abs');

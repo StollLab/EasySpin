@@ -13,7 +13,7 @@ Exp.Range = [336 341];
 Exp.Harmonic = 0;
 
 Opt.LiouvMethod = 'fast';
-Opt.ExplicitFieldSweep = true;
+Opt.FieldSweepMethod = 'explicit';
 Opt.LLMK = [4 0 2 2];
 
 [x,y] = chili(Sys,Exp,Opt);
@@ -23,7 +23,7 @@ data.y = y;
 
 % Check for consistency
 if ~isempty(olddata)
-  ok = areequal(y/max(y),olddata.y/max(olddata.y),1e-3);
+  ok = areequal(y/max(y),olddata.y/max(olddata.y),1e-3,'abs');
   err = ~ok;
 else
   err = [];

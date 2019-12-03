@@ -9,5 +9,5 @@ Opt.Method = 'matrix';
 Opt.Method = 'perturb';
 [x,y2] = pepper(Sys,Exp);
 
-err = ~areequal(y1/max(y1),y2/max(y2),1e-4);
+err = ~areequal(y1/max(y1),y2/max(y2),1e-4,'abs');
 data = [];

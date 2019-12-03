@@ -5,7 +5,7 @@ warning('off','MATLAB:oldPfileVersion');
 disp('EasySpin compilation');
 
 % Determine directory containing mex source files
-%-----------------------------------------------------
+%-------------------------------------------------------------------------------
 esPath = fileparts(which(mfilename));
 mexDirectory = [esPath filesep 'private'];
 disp(['  directory: ' mexDirectory]);
@@ -16,40 +16,53 @@ olddir = pwd;
 cd(mexDirectory);
 
 
-% List of *.c files
-%-----------------------------------------------------
-SourceFiles = dir('*.c');
-
-
-
 % Determine architecture and set mex options
-%-----------------------------------------------------
-if strcmp(mexext,'mexa64') || strcmp(mexext,'mexw64') || strcmp(mexext,'mexmaci64');
+%-------------------------------------------------------------------------------
+if strcmp(mexext,'mexa64') || strcmp(mexext,'mexw64') || strcmp(mexext,'mexmaci64')
   nBits = 64;
   mexoptions = '-Dbit64';
 else
   nBits = 32;
   mexoptions = '-Dbit32';
 end
+mexoptions = {mexoptions,'-silent'};
 fprintf('  mex extension: %s, %d-bit\n',mexext,nBits);
 
 
-% Compile and link mex files
-%-----------------------------------------------------
-fprintf('  compiling..');
-try
-  for f = 1:numel(SourceFiles)
-    fprintf('.');
-    mex(mexoptions,SourceFiles(f).name);
-  end
-  disp('done.');
-catch
-  % Restore old directory
-  disp('failed.');
-  cd(olddir);
+% Determine mex configuration
+%-------------------------------------------------------------------------------
+cc = mex.getCompilerConfigurations('C','Installed');
+if numel(cc)==0
+  error('MEX is not configured for C. Run mex -setup C.');
+else
+  fprintf('  mex C compiler: %s\n',cc(1).Name); 
 end
 
-% A hack that was needed at the EasySpin workshop at Cornell 2007,
-% no idea why. Needed when the C compiler for mex files was not
-% configured.
+
+% Get list of *.c files
+%-------------------------------------------------------------------------------
+SourceFiles = dir('*.c');
+nFiles = numel(SourceFiles);
+
+
+% Compile and link mex files
+%-------------------------------------------------------------------------------
+fprintf('  compiling %d c-files...\n',nFiles);
+for f = 1:nFiles
+  fprintf('  (%d/%d) %-25s ',f,nFiles,SourceFiles(f).name);
+  try
+    mex(SourceFiles(f).name,mexoptions{:});
+    fprintf('  complete\n');
+    ok(f) = true;
+  catch
+    fprintf('  failed\n');
+    disp(lasterr);
+    ok(f) = false;
+  end
+end
+
+cd(olddir);
+
+% A hack that was needed at the EasySpin workshop at Cornell 2007, no idea why.
+% it works. Needed when the C compiler for mex files was not configured.
 clear functions

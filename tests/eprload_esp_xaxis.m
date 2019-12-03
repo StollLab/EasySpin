@@ -55,7 +55,7 @@ for iFile = 1:numel(Files)
   end
   [xax,data] = eprload([BaseDir Files{iFile}]);
   xax0 = Abscissa{iFile};
-  if ~areequal(xax(1),xax0(1),1e-4) || ~areequal(xax(end),xax0(2),1e-4)
+  if ~areequal(xax(1),xax0(1),1e-4,'rel') || ~areequal(xax(end),xax0(2),1e-4,'rel')
     disp([' ' Files{iFile}]);
     fprintf('   read:      %0.9f %0.9f\n',xax([1 end]));
     fprintf('   should be: %0.9f %0.9f\n',xax0);

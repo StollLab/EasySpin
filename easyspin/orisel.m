@@ -29,11 +29,11 @@
 
 function varargout = orisel(Sys,Params,Options)
 
-if (nargin==0), help(mfilename); return; end
+if nargin==0, help(mfilename); return; end
 
 error(chkmlver);
 
-if (nargin<3), Options = struct('unused',NaN); end
+if nargin<3, Options = struct; end
 
 % Process spin system.
 %----------------------------------------------------------------------
@@ -95,10 +95,12 @@ end
 
 [nAngles,nOrientations] = size(Orientations);
 switch nAngles
-case 2, Orientations(3,end) = 0;
-case 3, % don't do anything
-otherwise
-  error('Orientations array has wrong size, should be 2xn or 3xn.');
+  case 2
+    Orientations(3,end) = 0;
+  case 3
+    % don't do anything
+  otherwise
+    error('Orientations array has wrong size, should be 2xn or 3xn.');
 end
 
 
@@ -113,7 +115,7 @@ uv = find(triu(ones(N),1));
 Transitions = [u,v];
 nTransitions = numel(u);
 
-% Pre-allocate
+% Pre-calculate
 fac = 1/sqrt(2*log(2));
 
 if isfinite(Params.ExciteWidth)
@@ -155,13 +157,7 @@ else
 
 end
 
-if isempty(Options.Symmetry)
-  %fprintf('orisel: symmetry %s, %d knots, %d orientations\n',Options.Symmetry,Options.nKnots,nOrientations);
-else
-  fprintf('orisel: symmetry %s, %d knots, %d orientations\n',Options.Symmetry,Options.nKnots,nOrientations);
-end
-
-if (Options.Display)
+if Options.Display
   if isempty(Params.Orientations)
     if strcmp(SymmGroup,'Dinfh')
       plot(theta*180/pi,sum(Weights,2));
@@ -184,38 +180,9 @@ if (Options.Display)
   end
 end
 
-switch (nargout)
-case 1, varargout = {sum(Weights,2)};
-case 2, varargout = {Weights,Transitions};
+switch nargout
+  case 1, varargout = {sum(Weights,2)};
+  case 2, varargout = {Weights,Transitions};
 end
 
 return
-
-% test code
-%=================================================================
-function test
-
-Sys = struct('S',1/2,'g',[2 2 2.2],'HStrain',[1 1 1]*100);
-Exp = struct('mwFreq',9,'Field',295,'ExciteWidth',500);
-Opt = struct('nKnots',91,'Display',1);
-orisel(Sys,Exp,Opt);
-
-Sys = struct('S',1/2,'g',[2 2.1 2.2],'HStrain',[1 1 1]*100);
-Exp = struct('mwFreq',9,'Field',310,'ExciteWidth',20);
-Opt = struct('nKnots',61,'Display',1);
-orisel(Sys,Exp,Opt);
-
-Sys = struct('S',1/2,'g',[2 2 2.2],'HStrain',[1 1 1]*100);
-Exp = struct('mwFreq',9,'Field',295,'ExciteWidth',500,...
-  'Orientations',[zeros(1,10);linspace(0,pi/2,10)]);
-w = orisel(Sys,Exp);
-plot(w);
-
-
-Sys = struct('S',1/2,'g',[2 2.1 2.2],'HStrain',[1 1 1]*100);
-Sys = nucspinadd(Sys,'63Cu',[200 200 500]);
-Exp = struct('mwFreq',9,'Field',310,'ExciteWidth',20);
-Opt = struct('nKnots',61,'Display',1);
-orisel(Sys,Exp,Opt);
-
-%=================================================================

@@ -36,9 +36,8 @@ data.y2 = y2;
 if isempty(olddata)
   err = [];
 else
-  e = max([y1 y2])*1e-6;
   ok = ...
-    areequal(y1,olddata.y1,e) & ...
-    areequal(y2,olddata.y2,e);
+    areequal(y1,olddata.y1,1e-6,'rel') & ...
+    areequal(y2,olddata.y2,1e-6,'rel');
   err = ~ok;
 end

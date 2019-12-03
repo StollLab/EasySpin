@@ -21,6 +21,6 @@ Sys.lwpp = 2;
 spc0 = spc0/max(spc0);
 spc1 = spc1/max(spc1);
 
-err = areequal(spc0,spc1,1e-3);
+err = areequal(spc0,spc1,1e-3,'abs');
 
 data = [];

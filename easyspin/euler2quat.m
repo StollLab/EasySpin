@@ -6,17 +6,11 @@
 %  Input:
 %     Angles         numeric array, size = (3,...)
 %                    the rows correspond to first, second and third Euler
-%                    angle(s) (alpha, beta, and gamma, respectively), in
-%                    radians
-%
-%      OR
-%
+%                    angle(s) (alpha, beta, and gamma, respectively), in radians
 %     alpha          double or numeric array, size = (1,...)
 %                    first Euler angle(s), in radians
-%
 %     beta           double or numeric array, size = (1,...)
 %                    second Euler angle(s), in radians
-%
 %     gamma          double or numeric array, size = (1,...)
 %                    third Euler angle(s), in radians
 %
@@ -26,9 +20,9 @@
 
 function q = euler2quat(varargin)
 
-if (nargin==0), help(mfilename); return; end
+if nargin==0, help(mfilename); return; end
 
-switch (nargin)
+switch nargin
   case {1,2}  % 3-vector or 3x... shaped array
     angles = varargin{1};
     if isvector(angles)
@@ -89,7 +83,7 @@ switch lower(option)
     beta = -beta;
     gamma = -temp;
   case 'active'
-    % Do nothing
+    % do nothing
   otherwise
     error('Last argument must be a string, either ''passive'' or ''active''.')
 end

@@ -10,7 +10,7 @@ Par.CrystalOrientation = [0 0 0];
 p = endorfrq(Sys,Par);
 p = sort(p);
 
-p0 = [8.902652857 20.902652857];
+p0 = [8.902652857; 20.902652857];
 
-err = ~areequal(p,p0,1e-6);
+err = ~areequal(p,p0,1e-6,'rel');
 data = [];

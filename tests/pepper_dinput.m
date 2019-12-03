@@ -17,6 +17,6 @@ Exp.Range = [333 345];
 spc1 = pepper(Sys1,Exp);
 spc2 = pepper(Sys2,Exp);
 
-err = ~areequal(spc1,spc2);
+err = ~areequal(spc1,spc2,1e-10,'rel');
 
 data = [];

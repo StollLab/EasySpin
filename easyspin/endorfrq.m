@@ -30,20 +30,26 @@
 
 function varargout = endorfrq(Sys,Exp,Opt)
 
-if (nargin==0), help(mfilename); return; end
+if nargin==0, help(mfilename); return; end
 
 error(chkmlver);
-if (nargin<2) || (nargin>3), error('Wrong number of input arguments!'); end
-if (nargout<0), error('Not enough output arguments.'); end
-if (nargout>4), error('Too many output arguments.'); end
+if nargin<2 || nargin>3, error('Wrong number of input arguments!'); end
+if nargout<0, error('Not enough output arguments.'); end
+if nargout>4, error('Too many output arguments.'); end
 
-if (nargin<3), Opt = struct('unused',NaN); end
-if isempty(Opt), Opt = struct('unused',NaN); end
+if nargin<3, Opt = struct; end
+if isempty(Opt), Opt = struct; end
 
-if ~(isstruct(Sys) && isstruct(Exp) && isstruct(Opt))
-  error('Sys, Par and Opt must be structures!');
-end
-
+  if ~isstruct(Sys)
+    error('First input argument (Sys) must be a structure!');
+  end
+  if ~isstruct(Exp)
+    error('Second input argument (Exp) must be a structure!');
+  end
+  if ~isstruct(Opt)
+    error('Third input argument (Opt) must be a structure!');
+  end
+  
 % A global variable sets the level of log display. The global variable
 % is used in logmsg(), which does the log display.
 if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 0; end
@@ -51,7 +57,7 @@ global EasySpinLogLevel;
 EasySpinLogLevel = Opt.Verbosity;
 
 % Initialize optional output structure
-Info = struct('unused',[]);
+Info = struct;
 
 % Process spin system.
 %---------------------------------------------------------------------
@@ -85,21 +91,18 @@ Exp = adddefaults(Exp,DefaultExp);
 
 mwFreq = Exp.mwFreq*1e3; % GHz -> MHz
 
-nPop = numel(Exp.Temperature);
-if (nPop>1)
-  %error('Non-equilibrium populations not supported.');
-  ComputeBoltzmann = 0;
-  ComputeNonEquiPops = 1;
+computeNonEquiPops = isfield(Sys,'Pop') && ~isempty(Sys.Pop);
+if computeNonEquiPops
+  computeBoltzmann = false;
   nElectronStates = prod(2*Sys.S+1);
-  if (nPop~=nElectronStates)
+  if nPop~=nElectronStates
     error('Params.Temperature must either be a scalar or a %d-vector',nElectronStates);
   end
 else
   if isinf(Exp.Temperature)
     error('If given, Params.Temperature must be a finite value.');
   end
-  ComputeNonEquiPops = 0;
-  ComputeBoltzmann = ~isnan(Exp.Temperature);
+  computeBoltzmann = ~isnan(Exp.Temperature);
 end
 
 if isfield(Exp,'ExciteWidth')
@@ -112,7 +115,6 @@ end
 
 
 % Process crystal orientations, crystal symmetry, and frame transforms
-% This sets Orientations, nOrientations, nSites and AverageOverChi
 [Orientations,nOrientations,nSites,AverageOverChi] = p_crystalorientations(Exp,Opt);
 
 %-----------------------------------------------------------------------
@@ -177,21 +179,20 @@ end
 % The first and only compilation of the full Hamiltonian.
 [F,GxM,GyM,GzM] = sham(Sys);
 
-% Population vector
-if (ComputeNonEquiPops)
-  ZeroFieldPops = Exp.Temperature(:);
-  ZeroFieldPops = ZeroFieldPops/sum(ZeroFieldPops);
-  ZeroFieldPops = kron(ZeroFieldPops,ones(prod(Sys.I*2+1),1));
-end
 
 % For polarized systems, pre-compute ZF eigenstates.
-if (ComputeNonEquiPops)
+if computeNonEquiPops
+  
+  ZFPopulations = Sys.Pop(:);
+  ZFPopulations = ZFPopulations/sum(ZFPopulations);
+  ZFPopulations = kron(ZFPopulations,ones(prod(Sys.I*2+1),1));
+  
   [ZFStates,ZFEnergies] = eig(F);
   [ZFEnergies,idx] = sort(real(diag(ZFEnergies)));
   ZFStates = ZFStates(:,idx);
   % Correct zero-field states for S=1 and axial D
-  if 0&&(Sys.S==1)
-    if (ZFEnergies(2)==ZFEnergies(3))
+  if Sys.S==1
+    if ZFEnergies(2)==ZFEnergies(3)
       logmsg(1,'  >>>> manual zero-field states (D>0)');
       v1 = ZFStates(:,2);
       v2 = ZFStates(:,3);
@@ -358,12 +359,12 @@ logmsg(1,msg);
 % Preallocations.
 Pdat = ones(nTransitions,nOrientations)*NaN;
 Idat = [];
-if (ComputeIntensities), Idat = zeros(nTransitions,nOrientations); end
+if ComputeIntensities, Idat = zeros(nTransitions,nOrientations); end
 
 % Other preparations.
-if (ComputeIntensities)
+if ComputeIntensities
   % Set detection operators for intensity computations.
-  if (EnhancementSwitch)
+  if EnhancementSwitch
     % Zeeman interaction including electronic Zeeman interaction,
     % includes implicitely hyperfine enhancement
     %DxM = GxM; DyM = GyM; DzM = GzM;
@@ -374,7 +375,7 @@ if (ComputeIntensities)
   end
   [DxM,DyM,DzM] = zeeman(Sys,Nuc);
   
-  if (OrientationSelection)
+  if OrientationSelection
     % Electron Zeeman interaction operators for EPR transition
     % rate computation
     [ExM,EyM,EzM] = zeeman(Sys,1);
@@ -383,7 +384,7 @@ if (ComputeIntensities)
   end
   
   % Prefactor used for computing the Boltzmann population distribution.
-  if (ComputeBoltzmann)
+  if computeBoltzmann
     BoltzmannPreFactor = -1e6*planck/boltzm/Exp.Temperature;
   end
 end
@@ -498,11 +499,11 @@ for iOri = 1:nOrientations
       
       % Compute polarization if temperature or zero-field populations are given.
       Populations = [];
-      if (ComputeBoltzmann)
+      if computeBoltzmann
         Populations = exp(BoltzmannPreFactor*(E0-E0(1)));
         %Polarization = (Populations(u) - Populations(v))/sum(Populations);
-      elseif (ComputeNonEquiPops)
-        Populations = (abs(ZFStates'*Vs).^2).'*ZeroFieldPops; % lower level
+      elseif computeNonEquiPops
+        Populations = (abs(ZFStates'*Vs).^2).'*ZFPopulations; % lower level
         %Polarization = PopulationU - PopulationV;
       end
       if isempty(Populations)
@@ -537,7 +538,7 @@ for iOri = 1:nOrientations
     end % if OrientationSelection else
         
     % Compute polarization if temperature or zero-field populations are given.
-    if (ComputeBoltzmann)
+    if (computeBoltzmann)
       Populations = exp(BoltzmannPreFactor*(E0-E0(1)));
       NuclearPolarization = (Populations(u) - Populations(v))/sum(Populations);
     else
@@ -565,7 +566,9 @@ end
 Info.Selectivity = Selectivity;
 
 % Reshape arrays in the case of crystals with site splitting
-if (nSites>1) && ~isfield(Opt,'saltcall')
+d = dbstack;
+saltCall = numel(d)>2 && strcmp(d(2).name,'salt');
+if nSites>1 && ~saltCall
   siz = [nTransitions*nSites, numel(Pdat)/nTransitions/nSites];
   Pdat = reshape(Pdat,siz);
   if ~isempty(Idat), Idat = reshape(Idat,siz); end

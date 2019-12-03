@@ -4,7 +4,7 @@ function [varargout] = s_sequencer(Exp,Opt)
 logmsg(1,'-validating pulse sequence-----------------------------');
 
 % Validate the input and select a propagation engine
-predefinedExperiment = ischar(Exp.Sequence);
+predefinedExperiment = isfield(Exp,'Sequence') && ischar(Exp.Sequence);
 
 message = []; % initialize message that explains the choice of simulation algorithm - 'fast' or 'general'
 

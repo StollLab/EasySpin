@@ -85,11 +85,7 @@ Exp5.Sequence{1} = PulseIQ;
 
 [signal5] = spidyan(Sys,Exp5,Opt);
 
-if any([~areequal(signal1,signal2,1e-4) ~areequal(signal3{2,4},signal4{2,4},1e-4) ~isequal(signal5,signal4)])
-  err = 1;
-else
-  err = 0;
-end
+err = any([~areequal(signal1,signal2,1e-4,'abs') ~areequal(signal3{2,4},signal4{2,4},1e-4,'abs') ~isequal(signal5,signal4)]);
 
 data = [];
 

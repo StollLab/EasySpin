@@ -10,13 +10,12 @@ Exp.Field = 330;
 Exp.mwRange = [9.1 9.4];
 
 [x,y] = garlic(Sys,Exp);
-ymax = max(y);
 
 data.x = x;
 data.y = y;
 
 if ~isempty(olddata)
-  ok = areequal(olddata.y,data.y,ymax*1e-5);
+  ok = areequal(olddata.y,data.y,1e-5,'rel');
   err = ~ok;
 else
   err = [];

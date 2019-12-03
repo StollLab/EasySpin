@@ -14,6 +14,6 @@ field = 350; % mT
 [lw_mT,mI] = fastmotion(System,field,tcorr,'field');
 [lw_MHz,mI] = fastmotion(System,field,tcorr,'freq');
 
-err = ~areequal(lw_mT,mhz2mt(lw_MHz,g0),1e-10);
+err = ~areequal(lw_mT,mhz2mt(lw_MHz,g0),1e-10,'rel');
 
 data = [];

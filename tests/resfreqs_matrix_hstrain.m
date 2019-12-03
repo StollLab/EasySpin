@@ -16,7 +16,7 @@ y = y/max(y);
 data.y = y;
 
 if ~isempty(olddata)
-  err = ~areequal(y,olddata.y,1e-3);
+  err = ~areequal(y,olddata.y,1e-3,'abs');
 else
   err = [];
 end

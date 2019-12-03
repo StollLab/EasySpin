@@ -19,8 +19,8 @@ yc = yc*(p.SPTP*1000);
 yT = yT/p.STMP;
 
 % All spectra must be identical
-e = max(abs(y))*1e-8;
-ok = [areequal(y,yc,e), areequal(y,yG,e) areequal(y,yP,e) areequal(y,yT,e)];
+thr = 1e-8;
+ok = [areequal(y,yc,thr,'rel') areequal(y,yG,thr,'rel') areequal(y,yP,thr,'rel') areequal(y,yT,thr,'rel')];
 err = any(~ok);
 
 if opt.Display

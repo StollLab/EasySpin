@@ -39,10 +39,7 @@ H = sparse(Sys.nStates,Sys.nStates);
 Spins = Sys.Spins;
 
 for iSpin = idxElectrons
-  
-  % S < 1: no zero-field interaction possible
-  if Spins(iSpin)<1, continue; end
-  
+    
   % Quadratic term S*D*S
   %----------------------------------------------------------
   % Prepare full 3x3 D matrix
@@ -80,8 +77,8 @@ for iSpin = idxElectrons
 
   if isfield(Sys,'aF') && any(Sys.aF(:))
     % work only for first electron spin
-    if (iSpin~=1)
-      continue;
+    if iSpin~=1
+      continue
     end
     % not available if D frame is tilted (would necessitate rotation
     % of the a and F terms which is not implemented).

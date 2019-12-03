@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function err = test()
 
 %=======================================================
 % Compare S=1/2 code and general code for rhombic g system
@@ -13,10 +13,10 @@ Exp.Harmonic = 0;
 
 Opt.LLMK = [6 0 4 4];
 Opt.Verbosity = 0;
-Opt.MeirovitchSymm = false;
-Opt.pSmin = -1;
+Opt.MpSymm = false;
+Opt.highField = false;
 Opt.jKmin = -1;
-Opt.deltaK = 1;
+Opt.evenK = false;
 
 Opt.LiouvMethod = 'fast';
 [x1,y1] = chili(Sys,Exp,Opt);
@@ -26,7 +26,4 @@ Opt.LiouvMethod = 'general';
 
 y2 = rescale(y2,y1,'maxabs');
 
-data = [];
-err = ~areequal(y1,y2,1e-2);
-
-
+err = ~areequal(y1,y2,1e-2,'abs');

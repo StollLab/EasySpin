@@ -45,8 +45,8 @@ data.s2 = s2;
 %% Comparison
 
 if ~isempty(olddata)
-  err = [~areequal(s1_detectionphase,-s1_nodetectionphase,1e-4) ... % comparison of Test1
-         ~areequal(s2,olddata.s2,1e-4) ~areequal(s2(:,2),-s2(:,3),1e-4)]; % test 2
+  err = [~areequal(s1_detectionphase,-s1_nodetectionphase,1e-4,'abs') ... % comparison of Test1
+         ~areequal(s2,olddata.s2,1e-4,'abs') ~areequal(s2(:,2),-s2(:,3),1e-4,'abs')]; % test 2
 else
   err = [];
 end

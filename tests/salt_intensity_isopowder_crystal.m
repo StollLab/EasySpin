@@ -22,4 +22,4 @@ Int2 = sum(y2)*(x(2)-x(1));
 
 data = [];
 
-err = ~areequal(Int1,Int2,1e-8);
+err = ~areequal(Int1,Int2,1e-8,'abs');

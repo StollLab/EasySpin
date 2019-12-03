@@ -1,4 +1,8 @@
-function out = sitetransforms(ID,vec)
+% sitetransforms   Rotation matrices for space groups
+%
+%   R = sitetransforms(ID)
+%   vrot = sitetransforms(ID,vec);
+%
 % Provides sets of rotation matrices of the rotation point group belonging
 % to the space group given in ID. The rotation matrices are used to transform
 % tensors between different equivalent sites.
@@ -10,11 +14,20 @@ function out = sitetransforms(ID,vec)
 %         - Space group number
 %   vec   vector to transform (optional)
 % Output:
-%   out   either cell array of active rotation matrices
+%   R     cell array of active rotation matrices
 %         such that vrot = R{k}*vec is the actively rotated vector vec
-%         or an array with vrot for each R{k}, if vec is given
+%   vrot  array with vrot for each R{k}
 
-if (nargin==0), help(mfilename); return; end
+function out = sitetransforms(ID,vec)
+
+if nargin==0, help(mfilename); return; end
+
+transformVector = nargin==2;
+if transformVector
+  if numel(vec)~=3
+    error('Vector (2nd argument) must have 3 elements.');
+  end
+end
 
 persistent SpaceGroupNames SpaceGroupNo SpaceGroupNotes
 if isempty(SpaceGroupNames)
@@ -115,10 +128,10 @@ C3zp = [-1/2 -sqrt(3)/2 0; +sqrt(3)/2 -1/2 0; 0 0 +1]; % C3+ around zC
 C3zm = [-1/2 +sqrt(3)/2 0; -sqrt(3)/2 -1/2 0; 0 0 +1]; % C3- around zC
 
 switch LaueClass
-  case 1, % #1-2, triclinic, C1 (C1, Ci=S2)
+  case 1 % #1-2, triclinic, C1 (C1, Ci=S2)
     % Axis convention: None. xC, yC, zC are arbitrary.
     R{1} = E;
-  case 2, % #3-15, monoclinic, C2 (C2, Cs=C1h, C2h)
+  case 2 % #3-15, monoclinic, C2 (C2, Cs=C1h, C2h)
     % Axis conventions:
     % (1) Point group given: zC along unique two-fold axis
     % (2) Short HM space group symbol given: yC along two-fold axis
@@ -131,19 +144,19 @@ switch LaueClass
       otherwise
         error('Unknown unique axis for this monoclinic space group or crystallographic point group.');
     end
-  case 3, % #16-74, orthorhombic, D2 (D2, C2v, D2h)
+  case 3 % #16-74, orthorhombic, D2 (D2, C2v, D2h)
     % Axis conventions: xC, yC, zC along two-fold axes
     R{1} = E;
     R{2} = C2z;
     R{3} = C2x;
     R{4} = C2y;
-  case 4, % #75-88, tetragonal, C4 (C4, S4, C4h)
+  case 4 % #75-88, tetragonal, C4 (C4, S4, C4h)
     % Axis convention: zC along four-fold axis, xC and yC arbitrary
     R{1} = E;
     R{2} = C2z;
     R{3} = C4zp;
     R{4} = C4zm;
-  case 5, % #89-142, tetragonal, D4 (D4, C4v, D2d, D4h)
+  case 5 % #89-142, tetragonal, D4 (D4, C4v, D2d, D4h)
     % Axis convention: zC along four-fold axis, xC along one of the two-fold axes
     R{1} = E;
     R{2} = C2z;
@@ -153,12 +166,12 @@ switch LaueClass
     R{6} = C2y;
     R{7} = C2xy1;
     R{8} = C2xy2;
-  case 6, % #143-148, trigonal, C3 (C3, C3i=S6)
+  case 6 % #143-148, trigonal, C3 (C3, C3i=S6)
     % Axis convention: zC along three-fold axis, xC and yC arbitrary
     R{1} = E;
     R{2} = C3zp;
     R{3} = C3zm;
-  case 7, % #149-167, trigonal, D3 (D3, C3v, D3d)
+  case 7 % #149-167, trigonal, D3 (D3, C3v, D3d)
     % Axis convention: zC along three-fold axis, xC along one of the two-fold axes
     R{1} = E;
     R{2} = C3zp;
@@ -166,7 +179,7 @@ switch LaueClass
     R{4} = C2x;
     R{5} = [-1/2 +sqrt(3)/2 0; +sqrt(3)/2 +1/2 0; 0 0 -1];  % C2 (1,+sqrt(3),0)
     R{6} = [-1/2 -sqrt(3)/2 0; -sqrt(3)/2 +1/2 0; 0 0 -1];  % C2 (1,-sqrt(3),0)
-  case 8, % #168-176, hexagonal, C6 (C6, C3h, C6h)
+  case 8 % #168-176, hexagonal, C6 (C6, C3h, C6h)
     % Axis convention: zC along six-fold axis, xC and yC arbitrary
     R{1} = E;
     R{2} = C2z;
@@ -174,7 +187,7 @@ switch LaueClass
     R{4} = C3zm;
     R{5} = [+1/2 -sqrt(3)/2 0; +sqrt(3)/2 +1/2 0; 0 0 +1];  % C6+ z
     R{6} = [+1/2 +sqrt(3)/2 0; -sqrt(3)/2 +1/2 0; 0 0 +1];  % C6- z
-  case 9, % #177-194, hexagonal, D6 (D6, C6v, D3h, D6h)
+  case 9 % #177-194, hexagonal, D6 (D6, C6v, D3h, D6h)
     % Axis convention: zC along six-fold axis, xC along one of the two-fold axes
     R{1} = E;
     R{2} = C2z;
@@ -188,7 +201,7 @@ switch LaueClass
     R{10}= [-1/2 -sqrt(3)/2 0; -sqrt(3)/2 +1/2 0; 0 0 -1];  % C2 (1,-sqrt(3),0)
     R{11}= [+1/2 +sqrt(3)/2 0; +sqrt(3)/2 -1/2 0; 0 0 -1];  % C2 (sqrt(3),+1,0)
     R{12}= [+1/2 -sqrt(3)/2 0; -sqrt(3)/2 -1/2 0; 0 0 -1];  % C2 (sqrt(3),-1,0)
-  case 10, % #195-206, cubic, T (T, Th)
+  case 10 % #195-206, cubic, T (T, Th)
     % Axis convention: xC, yC and zC along the three two-fold axes
     R{1} = E;
     R{2} = C2z;
@@ -202,7 +215,7 @@ switch LaueClass
     R{10}= [0 -1 0; 0 0 -1; +1 0 0];  % C3- (-1,+1,-1)
     R{11}= [0 0 -1; +1 0 0; 0 -1 0];  % C3+ (-1,-1,+1)
     R{12}= [0 +1 0; 0 0 -1; -1 0 0];  % C3- (-1,-1,+1)
-  case 11, % #207-230, cubic, O (O, Td, Oh)
+  case 11 % #207-230, cubic, O (O, Td, Oh)
     % Axis convention: xC, yC and zC along the three four-fold axes
     R{1} = E;
     R{2} = C2z;
@@ -230,17 +243,14 @@ switch LaueClass
     R{24}= [-1 0 0; 0 0 -1; 0 -1 0];  % C2 (0,1,-1)
 end
 
-if (nargin==1)
-  % Return the set of rotation matrices
-  out = R;
-elseif (nargin==2)
-  if numel(vec)~=3
-    error('Vector (2nd argument) must have 3 elements.');
-  end
+if transformVector
   % Apply site transformations to input vector and
   % return an array of transformed vectors
   for iR = 1:numel(R)
     vecrot(:,iR) = R{iR}*vec(:);
   end
   out = vecrot;
+else
+  % Return the set of rotation matrices
+  out = R;
 end

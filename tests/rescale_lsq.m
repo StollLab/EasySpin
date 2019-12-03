@@ -22,11 +22,11 @@ y1_ = rescale(y1,yr,'lsq1');
 y2_ = rescale(y2,yr,'lsq2');
 y3_ = rescale(y3,yr,'lsq3');
 
-ok(1) = areequal(ys_,yr,thr);
-ok(2) = areequal(y0_,yr,thr);
-ok(3) = areequal(y1_,yr,thr);
-ok(4) = areequal(y2_,yr,thr);
-ok(5) = areequal(y3_,yr,thr);
+ok(1) = areequal(ys_,yr,thr,'abs');
+ok(2) = areequal(y0_,yr,thr,'abs');
+ok(3) = areequal(y1_,yr,thr,'abs');
+ok(4) = areequal(y2_,yr,thr,'abs');
+ok(5) = areequal(y3_,yr,thr,'abs');
 
 err = any(~ok);
 

@@ -2,7 +2,7 @@ function [err,data] = test(opt,olddata)
 
 %===============================================================================
 % Test whether fast and general code are internally and among them consistent
-% with basis set truncations using Opt.jKmin and Opt.pSmin.
+% with basis set truncations using Opt.jKmin and Opt.highField.
 %===============================================================================
 
 % Set up experiments, system, options
@@ -16,18 +16,19 @@ Sys.Potential = [2 0 0 1; 2 0 2 1; 4 0 0 1; 4 0 2 1];
 
 Opt.pqOrder = true;
 Opt.LLMK = [6 3 2 2];
+Opt.nKnots = 5;
 
 jKmin = [-1 1];
-pSmin = [-1 0 1];
+highField = [true false];
 
-% Simulate spectra using all combinations of jKmin and pSmin
+% Simulate spectra using all combinations of jKmin and highField
 %-------------------------------------------------------------------------------
 err = false;
 idx = 0;
-for p = 1:numel(pSmin)
+for p = 1:numel(highField)
   for j = 1:numel(jKmin)
     Opt.jKmin = jKmin(j);
-    Opt.pSmin = pSmin(p);
+    Opt.highField = highField(p);
     
     idx = idx+1;
     Opt.LiouvMethod = 'fast';
@@ -38,14 +39,15 @@ for p = 1:numel(pSmin)
     
     % Plotting
     if opt.Display
-      subplot(3,2,idx);
+      subplot(2,2,idx);
       plot(B,y_fast,B,y_general);
+      axis tight
       legend('fast','general');
-      title(sprintf('jKmin = %d, pSmin = %d',Opt.jKmin,Opt.pSmin));
+      title(sprintf('jKmin = %d, highField = %d',Opt.jKmin,Opt.highField));
     end
 
     % Determine whether spectra are identical
-    err(idx) = ~areequal(y_fast,y_general,1e-6*max(y_fast));
+    err(idx) = ~areequal(y_fast,y_general,1e-4,'rel');
 
   end
 end

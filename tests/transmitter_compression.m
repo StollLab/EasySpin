@@ -26,6 +26,6 @@ IQ_compressed = transmitter(InputAmplitude*IQ/max(IQ),Ain,Aout,'simulate');
 % Compare output amplitude with amplitude expected based on the defined
 % transmitter gain curve
 [ignore,ind] = min(abs(Ain-InputAmplitude));
-err = ~areequal(max(abs(IQ_compressed)),Aout(ind),1e-11);
+err = ~areequal(max(abs(IQ_compressed)),Aout(ind),1e-11,'abs');
 
 data = [];

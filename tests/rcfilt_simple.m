@@ -16,7 +16,7 @@ data.yy = yy;
 if ~isempty(olddata)
   ok = 1;
   for k = 1:numel(yy)
-    ok = ok & areequal(yy{k},olddata.yy{k});
+    ok = ok && areequal(yy{k},olddata.yy{k},1e-10,'rel');
   end
   err = ~ok;
 else

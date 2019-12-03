@@ -24,9 +24,9 @@ data.ProcessedSignal2 = ProcessedSignal2;
 
 
 if ~isempty(olddata)
-  err = ~areequal(ProcessedSignal1{1},olddata.ProcessedSignal1{1},1e-4);
+  err = ~areequal(ProcessedSignal1{1},olddata.ProcessedSignal1{1},1e-4,'abs');
   for i = 1 : length(ProcessedSignal2)
-    err(i+1) = ~areequal(ProcessedSignal2{i},olddata.ProcessedSignal2{i},1e-4);
+    err(i+1) = ~areequal(ProcessedSignal2{i},olddata.ProcessedSignal2{i},1e-4,'abs');
   end
 else
   err = [];

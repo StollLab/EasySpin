@@ -22,5 +22,5 @@ chiTe = curry(Sys,Exp,Opt);
 Opt.Method = 'operator';
 chiTo = curry(Sys,Exp,Opt);
 
-err = ~(areequal(mu_e,mu_o,1e-4) && areequal(chiTe,chiTo,1e4));
+err = ~areequal(mu_e,mu_o,1e-4,'abs') || ~areequal(chiTe,chiTo,1e4,'abs');
 data =[];

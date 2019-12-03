@@ -38,13 +38,16 @@ if ~exist('centroids0','var'), centroids0 = []; end
 if ~exist('verbosity','var'), verbosity = 0; end
 
 maxIterations = 500;
-centroidsChangeThreshold = 1e-4;
+centroidsChangeThreshold = 1e-4; % radians
 
 [nPoints, nDims] = size(data);
 
 if ~isempty(centroids0)
-  if size(centroids0,2) ~= nDims || size(centroids0,1) > nClusters
-    error('centroids0 must have at most nClusters rows and have exactly nDims columns.')
+  if size(centroids0,2) ~= nDims
+    error('centroids0 must have exactly %d columns.',nDims)
+  end
+  if size(centroids0,1) > nClusters
+    error('centroids0 must have at most %d rows.',nClusters)
   end
   nRepeats = 1;
 end
@@ -117,11 +120,11 @@ for iRepeat = 1:nRepeats
 
     % update step
     for iCluster = 1:nClusters
-%       centroids(iCluster,:) = mean(data(idxClusters==iCluster,:), 1);
-      centroids(iCluster,:) = calc_centroids_pbc(data(idxClusters==iCluster,:),2*pi);
+      centroids(iCluster,:) = calc_centroids_pbc(data(idxClusters==iCluster,:));
     end
     
-    centroidsChange = centroids - centroidsLast;
+    centroidsChange = dist_pbc(centroids,centroidsLast);
+    %disp([iRepeat iIter max(abs(centroidsChange(:)))]);
     
     if iIter > 1
       if max(abs(centroidsChange(:))) < centroidsChangeThreshold, break, end
@@ -170,7 +173,7 @@ D = inf(nPoints,1);
 centroids0 = zeros(nSeeds,nDims);
 centroids0(1,:) = data(ceil(nPoints*rand),:);
 for k = 2:nSeeds
-  dist = dist_pbc(data-centroids0(k-1,:), 2*pi);
+  dist = dist_pbc(data,centroids0(k-1,:));
   D = min(D,sum(dist.^2,2));
   D = D./sum(D);
   centroids0(k,:) = data(find(rand<cumsum(D),1),:);
@@ -196,23 +199,12 @@ end
 
 end
 
-function dist = dist_pbc(dist,W)
-
-w = W/2;
-
-% dist = w - abs(pi - abs(dist));
-
-dist = w - abs(w - abs(dist));
-
-% idx1 = dist > w;
-% idx2 = dist < -w;
-% 
-% dist(idx1) = dist(idx1) - W;
-% dist(idx2) = dist(idx2) + W;
-
+function dist = dist_pbc(x1,x2)
+% Distance between two angles x1 and x2, taking circular nature into account
+dist = pi - abs(pi - abs(x1-x2));
 end
 
-function centroids = calc_centroids_pbc(x,W)
+function centroids = calc_centroids_pbc(x)
 % Calculate centroid coordinates while accounting for periodic boundary
 % conditions
 

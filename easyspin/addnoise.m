@@ -1,12 +1,12 @@
 % addnoise   Add noise to a signal
 %
-%   yn = addnoise(y,SNR)
 %   yn = addnoise(y,SNR,'f')
 %   yn = addnoise(y,SNR,'n')
 %   yn = addnoise(y,SNR,'u')
 %
-%   Adds noise to y to give yn with signal-to-noise ratio SNR.
-%   'f': 1/f noise (default)
+%   Adds noise to y to give yn with signal-to-noise ratio SNR. The type of
+%   noise is specified as third input:
+%   'f': 1/f noise
 %   'n': normal (Gaussian) distribution
 %   'u': uniform distribution
 %
@@ -16,14 +16,19 @@
 %   Example:
 %     x = linspace(-1,1,1001);
 %     y = lorentzian(x,0,0.3,1);
-%     yn = addnoise(y,20);
+%     yn = addnoise(y,20,'n');
 %     plot(x,yn);
 
 function yn = addnoise(y,SNR,noisemodel)
 
 if nargin==0, help(mfilename); return; end
 
-if nargin<3, noisemodel = 'f'; end
+if nargin<2
+  error('Second input must be the desired signal-to-noise ratio (SNR).');
+end
+if nargin<3
+  error('Third input must be the desired noise type (''f'', ''n'', or ''u'').');
+end
 
 if numel(SNR)~=1 || SNR<=0
   error('The second input, the signal-to-noise ratio (SNR), must be a positive number.');

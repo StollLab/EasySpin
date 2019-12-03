@@ -65,6 +65,6 @@ field = rand(1,3)*1e3;
 E1 = eig(sham(PureSpin,field));
 E2 = eig(sham(Sys,field));
 
-err = ~all([areequal(H1,H2,1e-10),areequal(GX1,GX2,1e-10),...
-  areequal(GY1,GY2,1e-10),areequal(GZ1,GZ2,1e-10),areequal(E1,E2,1e-6)]);
+err = ~all([areequal(H1,H2,1e-10,'abs'),areequal(GX1,GX2,1e-10,'abs'),...
+  areequal(GY1,GY2,1e-10,'abs'),areequal(GZ1,GZ2,1e-10,'abs'),areequal(E1,E2,1e-6,'abs')]);
 data = [];

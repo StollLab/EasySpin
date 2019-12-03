@@ -24,4 +24,4 @@ end
 
 data = [];
 
-err = ~areequal(y1/max(y1),y2/max(y2),1e-5);
+err = ~areequal(y1/max(y1),y2/max(y2),1e-5,'abs');

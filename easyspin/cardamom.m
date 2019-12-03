@@ -16,9 +16,9 @@
 %     logtcorr       double or numeric vector, size = (1,3)
 %                    log10 of rotational correlation time (in seconds)
 %     Diff           double or numeric vector, size = (1,3)
-%                    diffusion rate (s^-1)
+%                    diffusion rate (rad^2 s^-1)
 %     logDiff        double or numeric vector, size = (1,3)
-%                    log10 of diffusion rate (s^-1)
+%                    log10 of diffusion rate (rad^2 s^-1)
 %
 %         All fields can have 1 (isotropic), 2 (axial) or 3 (rhombic) elements.
 %         Precedence: logtcorr > tcorr > logDiff > Diff.
@@ -56,19 +56,18 @@
 %                    use either lw or lwpp
 %
 %   Exp: experimental parameter settings
-%     mwFreq         double
-%                    microwave frequency, in GHz (for field sweeps)
-% %     Range          sweep range, [sweepmin sweepmax], in mT (for field sweep)
-% %     CenterSweep    sweep range, [center sweep], in mT (for field sweep)
-% %     nPoints        number of points
-% %     Harmonic       detection harmonic: 0, 1 (default), 2
-% %     ModAmp         peak-to-peak modulation amplitude, in mT (field sweeps only)
-% %     mwPhase        detection phase (0 = absorption, pi/2 = dispersion)
-% %     Temperature    temperature, in K
+%     mwFreq         microwave frequency, in GHz (for field sweeps)
+%     Range          sweep range, [sweepmin sweepmax], in mT (for field sweep)
+%     CenterSweep    sweep range, [center sweep], in mT (for field sweep)
+%     nPoints        number of points
+%     Harmonic       detection harmonic: 0, 1 (default), 2
+%     ModAmp         peak-to-peak modulation amplitude, in mT (field sweeps only)
+%     mwPhase        detection phase (0 = absorption, pi/2 = dispersion)
+%     Temperature    temperature, in K
 %
 %   Par: structure with simulation parameters
-%     Model      the model for spin label dynamics
-%                'diffusion': Browniand rotation diffusion with given rotational
+%     Model      model for spin label dynamics
+%                'diffusion': Brownian rotation diffusion with given rotational
 %                   diffusion tensor and ordering potential
 %                'jump': Markovian jumps between a given set of discrete states
 %                'MD-direct': use molecular orientations in MD
@@ -91,7 +90,7 @@
 %     OriStart   numeric, size = (3,1), (1,3), or (3,nTraj)
 %                Euler angles for starting orientation(s)
 %     nOrients   number of lab-to-molecule orientations to loop over
-%     Orients    numeric matrix, size = (2,nOrients)
+%     Orients    numeric matrix, size = (nOrients,2)
 %                (optional) (phi,theta) angles of lab-to-molecule 
 %                orientations. If not given, these are chosen as points
 %                on a spherical spiral grid
@@ -158,23 +157,24 @@
 
 function varargout = cardamom(Sys,Exp,Par,Opt,MD)
 
+if nargin==0, help(mfilename); return; end
+
+% Check expiry date
+error(eschecker);
+
+% Check Matlab version
+error(chkmlver);
+
 % Preprocessing
 % -------------------------------------------------------------------------
-
-switch nargin
-  case 0
-    help(mfilename); return;
-  case 3 % Opt and MD not specified, initialize them
-    Opt = [];
-    MD = [];
-  case 4 % MD not specified
-    MD = [];
-  case 5 % Sys, Par, Exp, Opt, MD specified
-  otherwise
-    error('Incorrect number of input arguments.')
+if nargin<3
+  error('At least 3 inputs (Sys,Exp,Par) are required.');
 end
-
-error(chkmlver);
+if nargin>5
+  error('At most 5 inputs (Sys,Exp,Par,Opt,MD) are possible.');
+end
+if nargin<4, Opt = struct; end
+if nargin<5, MD = []; end
 
 switch nargout
   case 0 % plotting
@@ -190,10 +190,6 @@ if ~isfield(Opt,'Verbosity')
   Opt.Verbosity = 0; % Log level
 end
 
-% --------License ------------------------------------------------
-LicErr = 'Could not determine license.';
-Link = 'epr@eth'; eschecker; error(LicErr); clear Link LicErr
-% --------License ------------------------------------------------
 
 global EasySpinLogLevel
 EasySpinLogLevel = Opt.Verbosity;
@@ -225,23 +221,10 @@ else
   omega0 = 2*pi*CenterFreq*1e9;  % GHz -> rad s^-1
 end
 
-if isfield(Exp,'SampleOrientation')
-  SampleOrientation = Exp.SampleOrientation;
-else
-  SampleOrientation = [];
-end
-
-% set up horizontal sweep axis
-if FieldSweep
-  xAxis = linspace(Exp.Range(1),Exp.Range(2),Exp.nPoints);  % field axis, mT
-else
-  xAxis = linspace(Exp.mwRange(1),Exp.mwRange(2),Exp.nPoints);  % field axis, GHz
-end
-
 % Check local dynamics models
 %-------------------------------------------------------------------------------
 if ~isfield(Par,'Model')
-  error('Please specify a simulation model using Par.Model.')
+  error('Please specify a simulation model in Par.Model.')
 end
 
 if ~ischar(Par.Model)
@@ -283,21 +266,36 @@ if useMD
   end
   
   if ~isfield(MD,'FrameTraj')
-    error('The spin label frame trajectory MD.FrameTraj must be given.')
+    error('The spin label frame trajectory MD.FrameTraj must be given.');
+  end
+  if size(MD.FrameTraj,1)~=3 || size(MD.FrameTraj,2)~=3
+    error('Frame trajectory in MD must be of size (3,3,nSteps,nTraj).');
+  end
+  
+  % Swap last two dimensions if size (...,nTraj,nSteps) is given, to get
+  % size (...,nSteps,nTraj)
+  dimsSwapped = size(MD.FrameTraj,3)<size(MD.FrameTraj,4);
+  if dimsSwapped
+    perm34 = @(x)permute(x,[1 2 4 3]);
+    MD.FrameTraj = perm34(MD.FrameTraj);
+    MD.FrameTrajwrtProt = perm34(MD.FrameTrajwrtProt);
+    MD.dihedrals = perm34(MD.dihedrals);
+  end
+  
+  if ~isfield(MD,'FrameTrajwrtProt')
+    error('The spin label frame trajectory MD.FrameTrajwrtProt must be given.');
   end
   
   if ~isfield(MD,'removeGlobal')
     MD.removeGlobal = true;
-  end  
+  end
+  
   if MD.removeGlobal
     MD.RTraj = MD.FrameTrajwrtProt;
   else
     MD.RTraj = MD.FrameTraj;
   end
   
-  if size(MD.RTraj,1)~=3 || size(MD.RTraj,2)~=3
-    error('Frame trajectory in MD must be of size (3,3,nTraj,nSteps).');
-  end
   MD.nTraj = size(MD.RTraj,4);  % number of trajectories
   MD.nSteps = size(MD.RTraj,3); % number of time steps
   if MD.nTraj~=1
@@ -342,14 +340,14 @@ if useMD
     else
       logmsg(1,'  constructing HMM from MD');
 
-      nLag = MD.tLag/MD.dt;
+      nLag = round(MD.tLag/MD.dt);
       HMM = mdhmm(MD.dihedrals,MD.dt,MD.nStates,nLag,Opt);
       
     end
     % provides HMM.transmat, HMM.eqdistr, HMM.viterbiTraj, etc
     MD.viterbiTraj = HMM.viterbiTraj.';
     MD.nStates = HMM.nStates;
-
+    
     % Set the Markov chain time step based on the (scaled) sampling lag time
     Par.dt = MD.tLag;
   end
@@ -362,22 +360,16 @@ if useMD
   tauR = mean(tauR);
   DiffLocal = 1/6/tauR;
   MD.tauR = tauR;  
-
+  
 end
 
 
 % Check dynamics and ordering
 %-------------------------------------------------------------------------------
 
-if useMD
-  isDiffSim = strcmp(LocalDynamicsModel,'MD-HBD');
-elseif strcmp(LocalDynamicsModel,'jump')
-  isDiffSim = false;
-else
-  isDiffSim = true;
-end
+isDiffSim = (useMD && strcmp(LocalDynamicsModel,'MD-HBD')) || ...
+   strcmp(LocalDynamicsModel,'diffusion');
 
-% FieldSweep = true;
 Dynamics = validate_dynord('cardamom',Sys,FieldSweep,isDiffSim);
 
 if isDiffSim
@@ -388,13 +380,8 @@ end
 
 if useMD
   Dynamics.DiffGlobal = MD.DiffGlobal;
-  if isfield(MD, 'Potential')
-    isGlobalPotential = true;
-    GlobalPotential = MD.Potential;  % TODO fully implement this in Dynamics-checking and documentation
-  else
-    isGlobalPotential = false;
-  end
 end
+includeGlobalDynamics = ~isempty(Dynamics.DiffGlobal);
 
 if isfield(Sys,'Potential')
   useLocalPotential = true;
@@ -459,7 +446,7 @@ if isfield(Par,'dt')
   end
   if Par.Dt<Par.dt
     error('The stochastic time step Par.dt must be less than or equal to Par.Dt.')
-  end  
+  end
 else
   if isDiffSim
     Par.dt = min(tcorr)/10;
@@ -512,10 +499,16 @@ end
 
 logmsg(1,'Parameter settings:');
 logmsg(1,'  Local dynamics model:   ''%s''',LocalDynamicsModel);
-logmsg(1,'  Number of trajectories: %d',Par.nTraj);
+if includeGlobalDynamics
+  logmsg(1,'  Global correlation time:  %g rad^2/us',Dynamics.DiffGlobal/1e6);
+else
+  logmsg(1,'  Global correlation time:  none');
+end  
 logmsg(1,'  Number of orientations: %d',Par.nOrients);
-logmsg(1,'  Quantum propagation:    %d steps of %g ns',nStepsQuant,dtQuant/1e-9);
-logmsg(1,'  Spatial propagation:    %d steps of %g ns',nStepsStoch,dtStoch/1e-9);
+logmsg(1,'  Number of trajectories: %d',Par.nTraj);
+logmsg(1,'  Quantum propagation:    %d steps of %g ns (%g ns total)',nStepsQuant,dtQuant/1e-9,nStepsQuant*dtQuant/1e-9);
+logmsg(1,'  Spatial propagation:    %d steps of %g ns (%g ns total)',nStepsStoch,dtStoch/1e-9,nStepsStoch*dtStoch/1e-9);
+logmsg(1,'  Lag time:               %g MD steps',Par.lag);
 
 
 % Check local dynamics model
@@ -548,13 +541,11 @@ switch LocalDynamicsModel
         psi = psi + 2*pi*(psi<0);
         
         nBins = 90;
-        phiBins = linspace(0, 2*pi, nBins+1);
-        thetaBins = linspace(0, pi, nBins/2+1);
-        psiBins = linspace(0, 2*pi, nBins+1);
+        phiEdges = linspace(0, 2*pi, nBins+1);
+        thetaEdges = linspace(0, pi, nBins/2+1);
+        psiEdges = linspace(0, 2*pi, nBins+1);
         
-        pdf = histcnd([phi(:),theta(:),psi(:)],{phiBins,thetaBins,psiBins});
-        
-        pdf(end,:,:) = pdf(1,:,:);  % FIXME why does it truncate to zero in the phi direction?
+        pdf = histcountsn([phi(:),theta(:),psi(:)],{phiEdges,thetaEdges,psiEdges});
         pdf = smooth3(pdf,'gaussian');
         pdf(pdf<1e-14) = 1e-14;  % put a finite floor on histogram
         useLocalPotential = true;
@@ -562,7 +553,8 @@ switch LocalDynamicsModel
         
       case 'MD-HMM'
         
-        RTrajLocal = RTrajLocal(:,:,:,1:HMM.nLag:end);
+        offset = 1;
+        RTrajLocal = RTrajLocal(:,:,offset:HMM.nLag:end,:);
         qTrajLocal = rotmat2quat(RTrajLocal);
         
     end
@@ -591,8 +583,8 @@ end
 
 % Set up orientational grid for powder averaging
 if ~isempty(Orientations)
-  gridPhi = Orientations(1,:);
-  gridTheta = Orientations(2,:);
+  gridPhi = Orientations(:,1);
+  gridTheta = Orientations(:,2);
   weight = ones(size(gridPhi));
   weight = weight/sum(weight);
 else
@@ -633,23 +625,21 @@ nOrientsTot = 0;
 
 t = linspace(0, nStepsQuant*Par.Dt, nStepsQuant).';
 
-includeGlobalDynamics = ~isempty(Dynamics.DiffGlobal);
 converged = false;
 spcLast = 0;
 while ~converged
   tic
-
-  % trajectories might differ in length, so we need cells for allocation
+  
+  % store signals from trajectories in cell array
   TDSignal = {};
   tCell = [];
-
+  
   % temporary cells to store intermediate results
   iTDSignal = cell(1,nOrientations);
   itCell = cell(1,nOrientations);
-
+  
   updateuser(0);
   for iOri = 1:nOrientations
-    logmsg(1,' Orientation %d/%d',iOri,nOrientations);
     
     % Generate trajectory of local dynamics
     switch LocalDynamicsModel
@@ -682,10 +672,9 @@ while ~converged
         % orientation loop
         
       case 'MD-HBD'
-            
+        
         Sys.Diff = DiffLocal;
         Par.nSteps = nStepsStoch;
-%             Sys.Potential = LocalPotential;
         if useLocalPotential
           Sys.Potential = LocalPotential;
           Par.nSteps = 2*nStepsStoch;
@@ -708,7 +697,7 @@ while ~converged
         end
         Opt.statesOnly = true;
         [~, stateTraj] = stochtraj_jump(Sys,Par,Opt);
-        stateTraj = stateTraj(:,nStepsStoch+1:end);
+        stateTraj = stateTraj(nStepsStoch+1:end,:);
 
         Par.stateTraj = stateTraj;
         
@@ -728,19 +717,14 @@ while ~converged
     % the time-dependent interaction tensors are calculated and possibly 
     % averaged)
     if includeGlobalDynamics
-     Sys.Diff = Dynamics.DiffGlobal;
-     if useLocalPotential
-       Sys.Potential = [];
-     elseif isGlobalPotential
-       Sys.Potential = GlobalPotential;
-     end
-     Par.dt = dtQuant;
-     Par.nSteps = nStepsQuant;
-     [~, ~, qTrajGlobal] = stochtraj_diffusion(Sys,Par,Opt);
+      Sys_.Diff = Dynamics.DiffGlobal;
+      Par.dt = dtQuant;
+      Par.nSteps = nStepsQuant;
+      [~, ~, qTrajGlobal] = stochtraj_diffusion(Sys_,Par,Opt);
       % Combine global trajectories with starting orientations
       qLab = quatmult(qLab,qTrajGlobal);
     end
-        
+    
     if strcmp(Opt.Method,'ISTOs')
       Par.qLab = qLab;
     else
@@ -761,7 +745,7 @@ while ~converged
     iTDSignal{1,iOri} = weight(iOri)*iTDSignal{1,iOri};
     
     if Opt.Verbosity
-      updateuser(iOri,nOrientations,false);
+      updateuser(iOri,nOrientations,true);
     end
     
     itCell{1,iOri} = t;
@@ -806,7 +790,7 @@ while ~converged
     end
     if numel(Sys.lw)==2 && Sys.lw(2)>0
       % Lorentzian broadening
-      TL = Dynamics.T2; 
+      TL = Dynamics.T2;
       TDSignal = bsxfun(@times,exp(-tLong/TL),TDSignal);
     end
   end
@@ -841,8 +825,8 @@ while ~converged
     
     nOrientations = nOrientsTot;
     if ~isempty(Orientations)
-      gridPhi = repmat(Orientations(1,:),[1,2^(iter-1)]);
-      gridTheta = repmat(Orientations(2,:),[1,2^(iter-1)]);
+      gridPhi = repmat(Orientations(:,1),[2^(iter-1),1]);
+      gridTheta = repmat(Orientations(:,2),[2^(iter-1),1]);
     else
       gridPts = 2*cardamom_sobol_generate(1,nOrientations,skip)-1;
       gridPhi = sqrt(pi*nOrientations)*asin(gridPts);
@@ -878,12 +862,19 @@ else
   fftAxis = freq/1e9+mt2mhz(Exp.Field,mean(Sys.g))/1e3;  % GHz
 end
 
+% set up horizontal sweep axis
+if FieldSweep
+  xAxis = linspace(Exp.Range(1),Exp.Range(2),Exp.nPoints);  % field axis, mT
+else
+  xAxis = linspace(Exp.mwRange(1),Exp.mwRange(2),Exp.nPoints);  % field axis, GHz
+end
+
 % interpolate over horizontal sweep range
 if FieldSweep
   outspc = interp1(fftAxis, spcAvg, xAxis);
 else
   spcAvg = spcAvg(end:-1:1);   % reverse the axis for frequency sweep
-  outspc = interp1(fftAxis, spcAvg, xAxis);
+  outspc = interp1(fftAxis,spcAvg,xAxis,'spline',0);
   outspc = cumtrapz(xAxis(end:-1:1),outspc);  % frequency sweeps outputs the absorption
 end
 
@@ -909,10 +900,10 @@ case 0
     title(sprintf('%0.8g GHz',Exp.mwFreq));
   else
     if xAxis(end)<1
-      plot(xAxis*1e3,spc);
+      plot(xAxis*1e3,outspc);
       xlabel('frequency (MHz)');
     else
-      plot(xAxis,spc);
+      plot(xAxis,outspc);
       xlabel('frequency (GHz)');
     end
     axis tight
@@ -943,24 +934,28 @@ function updateuser(iOrient,nOrient,reverse)
 
 persistent reverseStr
 
-if iOrient==0, reverseStr = ''; return; end
+if iOrient==0
+  reverseStr = '';
+  return
+end
 
-avgTime = toc/iOrient;
+secsElapsed = toc;
+minsElapsed =  floor(secsElapsed/60);
+avgTime = secsElapsed/iOrient;
 secsLeft = (nOrient - iOrient)*avgTime;
 minsLeft = floor(secsLeft/60);
 
-secsElap = toc;
-minsElap =  floor(secsElap/60);
-
-msg3 = sprintf('  Time elapsed %02d:%02d:%02.0f (%g s/orientation)  ', floor(minsElap/60), mod(minsElap,60), mod(secsElap,60),avgTime);
+msg2 = sprintf('  Orientation %d/%d:\n',iOrient,nOrient); 
+msg3 = sprintf('   Time elapsed %02d:%02d:%02.0f (%0.3g s/orientation)\n', floor(minsElapsed/60), mod(minsElapsed,60), mod(secsElapsed,60),avgTime);
 msg4 = sprintf('   remaining %02d:%02d:%02.0f\n', floor(minsLeft/60), mod(minsLeft,60), mod(secsLeft,60));
-msg = [msg3, msg4];
+msg = [msg2 msg3 msg4];
 
 if reverse
-  fprintf([reverseStr, msg]);
+  fprintf([reverseStr msg]);
 else
-  fprintf([msg]);  
+  fprintf(msg);
 end
+
 reverseStr = repmat(sprintf('\b'), 1, length(msg));
 
 end

@@ -1,28 +1,32 @@
-% spectra from single crystal rotation
+% single-crystal spectra with sample rotation
 %================================================================
 
 clear, clf
 
-% Spin parameters
-Sys.g = [2 2.1 2.2];
-Sys.gFrame = [10 20 30]*pi/180;
-Sys.lwpp = [0.2];
+% Substitutional nitrogen center (P1) in diamond
+P1.g = 2.0024;
+P1.Nucs = '14N';
+P1.A = [81 114];             % MHz
+P1.lwpp = 0.03;              % mT
 
 % Experimental parameters
-Exp.mwFreq = 9.8;
-Exp.Range = [310 360];
-Exp.CrystalSymmetry = 'P212121';
+Exp.mwFreq = 9.5;            % GHz
+Exp.CenterSweep = [339 10];  % mT
 
-% Generate orientations in a single rotation plane
-rotN = [1 1 0];  % rotation axis
-N = 31;
-[phi,theta] = rotplane(rotN,[0 pi],N);
-chi = zeros(N,1);
-Exp.CrystalOrientation = [phi(:) theta(:) chi];
+% P1 and crystal orientation, crystal symmetry
+ma = 54.736;                                % magic angle (deg)
+Exp.MolFrame = [45 ma 0]*pi/180;            % mol. frame ori. of P1 in crystal
+Exp.CrystalOrientation = [0 ma 0]*pi/180;   % crystal ori. in spectrometer
+Exp.CrystalSymmetry = 'Fd-3m';              % space group of diamond (#227)
 
-% Simulate spectra
-Opt.Output = 'separate';  % make sure spectra are not added up
-[B,spc] = pepper(Sys,Exp,Opt);
+% Sample rotation axis and angle
+nRot = 'x';                  % = x-axis of lab frame (xL)
+rho = deg2rad(0:10:180);     % rotate in steps over 180 degrees (half turn)
 
-% plotting
-stackplot(B,spc);
+for k = 1:numel(rho)
+  Exp.SampleRotation = {rho(k),nRot};
+  [B,spc(k,:)] = pepper(P1,Exp);
+end
+
+stackplot(B,spc,3);
+xlabel('magnetic field (mT)');

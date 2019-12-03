@@ -9,7 +9,7 @@ yr = rand(1,N)-0.5;
 y_ = rescale(y,yr,'maxabs');
 
 thr = 1e-12;
-ok = areequal(max(abs(y_)),max(abs(yr)),thr);
+ok = areequal(max(abs(y_)),max(abs(yr)),thr,'abs');
 ok = ok && sign(y(1))==sign(y_(1));
 err = ~ok;
 

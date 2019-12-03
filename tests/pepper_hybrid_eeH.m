@@ -28,4 +28,4 @@ end
 
 data = [];
 
-err = ~areequal(y1,y2,0.02*max(y1));
+err = ~areequal(y1,y2,0.02,'rel');

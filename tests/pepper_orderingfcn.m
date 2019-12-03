@@ -28,12 +28,12 @@ if opt.Display
 end
 
 data = [];
-err = ~areequal(spc0,spc1);
+err = ~areequal(spc0,spc1,1e-10,'rel');
 
 function w = ord_ones(phi,theta)
 w = ones(size(phi));
-return;
+return
 
 function w = ord_gaussian(phi,theta)
 w = gaussian(theta,0,pi/8);
-return;
+return

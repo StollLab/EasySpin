@@ -44,8 +44,8 @@ Opt.Relaxation = 1;
 data.signal2 = signal2;
 
 if ~isempty(olddata)
-  err = [~areequal(signal1,olddata.signal1,1e-4) ...
-    ~areequal(signal2,olddata.signal2,1e-4)];
+  err = ~areequal(signal1,olddata.signal1,1e-4,'abs') || ...
+        ~areequal(signal2,olddata.signal2,1e-4,'abs');
 else
   err = [];
 end

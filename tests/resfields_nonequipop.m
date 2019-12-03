@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function err = test(opt,olddata)
 
 % Test correct sign of emission/absorption for non-Boltzmann populations
 % Low-field line must be in emission, the high-field line in absorption
@@ -9,18 +9,22 @@ Sys.D = 100*clight/1e6*[-D/3 + E, -D/3 - E, 2*D/3];
 
 Exp = struct('mwFreq',9.67739,'nPoints',426,'Range',[260 430]);
 Exp.Harmonic = 0;
-Exp.Temperature = [1 0 0];
+pop = [1 0 0];
+Sys.Pop = pop;
+
 Exp.CrystalOrientation = [0 0 0];
+[Bpara,Apara] = resfields(Sys,Exp);
+[Bpara,idx] = sort(Bpara);
+Apara = Apara(idx);
 
-[B,A] = resfields(Sys,Exp);
+Exp.CrystalOrientation = [0 pi/2 0];
+[Bperp,Aperp] = resfields(Sys,Exp);
+[Bperp,idx] = sort(Bperp);
+Aperp = Aperp(idx);
 
-[B,idx] = sort(B);
-A = A(idx);
-
-data = [];
-
-if numel(B)==2
-  err = (A(1)<=0) | (A(2)>=0);
+if numel(Bperp)==2 && numel(Bpara)==2
+  ok = Apara(1)>0 && Apara(2)<0 && Aperp(1)>0 && Aperp(2)<0;
+  err = ~ok;
 else
-  err = 1;
+  err = true;
 end

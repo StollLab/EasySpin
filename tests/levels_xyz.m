@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function err = test(opt,olddata)
 
 % Shorthands 'x', 'y', 'z' for orientations
 
@@ -12,5 +12,4 @@ Eyz = levels(Sys,'yz',B);
 Exz = levels(Sys,'xz',B);
 Exyz = levels(Sys,'xyz',B);
 
-err = 0;
-data = [];
+err = false;

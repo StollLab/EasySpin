@@ -21,7 +21,7 @@ IQ0 = A.*f;
 
 IQ0 = interp1(t0,IQ0,t,'spline');
 
-err(1) = ~areequal(IQ0,IQ,1e-12);
+err(1) = ~areequal(IQ0,IQ,1e-12,'abs');
 
 % Gaussian pulse with truncation
 clear Params
@@ -41,7 +41,7 @@ Params.Amplitude = 1;
 
 [t,IQ] = pulse(Params);
 
-err(2) = ~areequal(IQ0,IQ,1e-12);
+err(2) = ~areequal(IQ0,IQ,1e-12,'abs');
 
 err = any(err);
 

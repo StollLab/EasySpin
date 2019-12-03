@@ -31,8 +31,8 @@ H3 = zfield(Sys3);
 
 % Compare all Hamiltonians
 threshold = 1e-7;
-err(1) = ~areequal(H0,H1,threshold);
-err(2) = ~areequal(H0,H2,threshold);
-err(3) = ~areequal(H0,H3,threshold);
+err(1) = ~areequal(H0,H1,threshold,'abs');
+err(2) = ~areequal(H0,H2,threshold,'abs');
+err(3) = ~areequal(H0,H3,threshold,'abs');
 
 data = [];

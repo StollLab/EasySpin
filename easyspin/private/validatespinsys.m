@@ -486,7 +486,7 @@ end
 
 % ------------------- Hyperfine couplings -------------------------
 Sys.fullA = 0;
-if (nNuclei>0)
+if nNuclei>0
   
   if ~isfield(Sys,'A') && ~isfield(Sys,'A_')
     err = sprintf('No hyperfine tensors A given for the %d electron spins and %d nuclei in the system!',nElectrons, nNuclei);
@@ -547,6 +547,9 @@ if (nNuclei>0)
   else
 
     % Cartesian representation  [Ax Ay Az]
+    if ~isnumeric(Sys.A)
+      error('Sys.A must be a numeric array.');
+    end
     
     if issize(Sys.A,[3*nNuclei,3*nElectrons])
       % Full A matrices
@@ -885,23 +888,19 @@ end
 %  err = sprintf('Sys.gStrain and Sys.HStrain affect the spectrum in the same way. Use only one of the two.');
 %end
 
+% Population vector
+%=========================================================================================
+if isfield(Sys,'Pop');
+else
+  Sys.Pop = [];
+end
+
 % Diffusion tensor
 %=========================================================================================
 % Euler angles for diffusion tensor
-if isfield(Sys,'Diffpa')
-  err = sizecheck(Sys,'Diffpa',[1 3]);
-  disp('***********************************************************************');
-  disp('**   Sys.Diffpa is obsolete. Please use Sys.DiffFrame instead.       **');
-  disp('**   Here is how to convert:                                         **');
-  disp('**   If you had                                                      **');
-  disp('**      Sys.Diffpa = [10 -20 56]*pi/180                              **');
-  disp('**   then use                                                        **');
-  disp('**      Sys.DiffFrame = [-56 20 -10]*pi/180                          **');
-  disp('**   Change the signs of all three angles, and reverse the order.    **');
-  disp('**   For more help, check the documentation on coordinate frames.    **');
-  disp('***********************************************************************');
+if isfield(Sys,'DiffFrame')
+  err = sizecheck(Sys,'DiffFrame',[1 3]);
   if ~isempty(err); return; end
-  Sys.DiffFrame = -Sys.Diffpa(:,[3 2 1]);
 end
 
 % Multiple Order Hamiltonian
@@ -1024,22 +1023,31 @@ if isfield(Sys,'L') && ~isempty(Sys.L)
         ' instead of ', num2str(2*k+1),' coloumns.'];
     end
     Sys.(fieldname) = CFk; 
-  end  
+  end
 else
+  if isfield(Sys,'orf') && ~isempty(Sys.orf)
+    error('Sys.orf is given, but Sys.L is missing. Specify Sys.L.');
+  end
+  if isfield(Sys,'soc') && ~isempty(Sys.soc)
+    error('Sys.soc is given, but Sys.L is missing. Specify Sys.L.');
+  end
+  for k = 1:12
+    fn = sprintf('CF%d',k);
+    if isfield(Sys,fn) && ~isempty(Sys.(fn))
+      error('Sys.%s is given, but Sys.L is missing. Specify Sys.L.',fn);
+    end
+  end
   Sys.L = [];
   Sys.orf = [];
 end
-  
-  
-
-
+Sys.nL = numel(Sys.L);
 
 %--------------------------------------------------------------------------
 Sys.Spins = [Sys.S(:); Sys.I(:); Sys.L(:)].';
 Sys.nStates = hsdim(Sys.Spins);
 
 FullSys = Sys;
-FullSys.processed = 1;
+FullSys.processed = true;
 
 return
 %@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@

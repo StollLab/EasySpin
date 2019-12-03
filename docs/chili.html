@@ -49,7 +49,7 @@ See also the <a href="userguide_chili.html">user guide</a> on how to use <code>c
 <div class="subtitle">Description</div>
 
 <p>
-<code>chili</code> computes cw EPR spectra in the slow-motional regime. The simulation is based on solving the Stochastic Liouville equation in a basis of rotational eigenfunctions. It uses rotational Brownian diffusion to model the rotational tumbling of the spin system. <code>chili</code> supports arbitrary spin systems.
+<code>chili</code> computes cw EPR spectra in the slow-motional regime. It uses rotational Brownian diffusion to model the rotational tumbling of the spin system. The simulation is based on solving the Stochastic Liouville equation in a basis of rotational eigenfunctions. <code>chili</code> supports arbitrary spin systems.
 </p>
 
 <p>
@@ -227,20 +227,20 @@ The experiment structure <code>Exp</code> contains all parameters relating to th
 <div class="subtitle2">Input: Simulation options</div>
 
 <p>
-<code>Opt</code>, the options structure, collects all settings relating to the algorithm used and the behavior of the function. The most important settings are:
+<code>Opt</code>, the options structure, collects all settings relating to the algorithm used and the behavior of the function. The most important settings are <code>LLMK</code>, <code>highField</code>, <code>pImax</code>, and <code>nKnots</code>, since they determine the basis size and the number of orientations for powder averaging. If any of these settings is too small, the spectrum will not be converged.
 </p>
-
-<div class="optionfield"><code>Verbosity</code></div>
-<div class="optiondescr">
-0 (default), 1<br>
-Determines how much information <code>chili</code> prints to the command window. If <code>Opt.Verbosity=0</code>, is is completely silent. 1 prints details about the progress of the computation.
-</div>
 
 <div class="optionfield"><code>LLMK</code></div>
 <div class="optiondescr">
 4-element vector <code>[evenLmax oddLmax Mmax Kmax]</code><br>
-Specifies the rotational basis size by giving the maximum values for, in that order, even L, odd L, M and K. The maximum values for M and K must be less than or equal to the maximum value of L.<br>
-If this field is not specified, <code>chili</code> uses a default basis. This is adequate only for a few cases. In general, the basis needs to be larger for slower motions and can be smaller for faster motions. It is strongly advised to increase these four numbers until the simulated spectrum is converged.
+Specifies the rotational basis size by giving the maximum values for, in that order, even L, odd L, M, and K. All four numbers must be non-negative. The maximum values for M and K must be less than or equal to the maximum value of L. The larger the numbers, the larger the rotational basis.<br>
+If this field is not specified, <code>chili</code> uses a default basis. This is adequate only for common X-band spectra of nitroxides. In general, the basis needs to be larger for slower motions and can be smaller for faster motions. It is strongly advised to increase these four numbers until the simulated spectrum is converged. One approach is to start from <code>[2 0 0 0]</code> and increase each of the four numbers in turn, run the simulation, and see if the spectrum changes. Once the spectrum doesn't change anymore, the basis is sufficiently large.
+</div>
+
+<div class="optionfield"><code>highField</code></div>
+<div class="optiondescr">
+-1 (default) or +1<br>
+Determines which electron spin transitions to include in the spin basis. If set to <code>false</code>, includes all transitions with p<sub>S</sub> = m<sub>S</sub>'-m<sub>S</sub>'' = -1 and +1. This is applicable in all cases. In certain situations, one can get away with setting <code>highField</code> to <code>true</code>. This indicates the high-field approximation, and that only transitions with p<sub>S</sub> = +1 are included. This reduces the basis and speeds up simulations, but can result in incorrect spectra under certain circumstances. It is important to always check such simulations against <code>highField=false</code>.
 </div>
 
 <div class="optionfield"><code>pImax</code></div>
@@ -249,14 +249,24 @@ vector, one element per nucleus<br>
 Determines for each nucleus the maximum nuclear coherence order |&Delta;m<sub>I</sub>| to include in the spin basis. 0 corresponds to only allowed EPR transitions, 1 includes additionally forbidden EPR transitions with |&Delta;m<sub>I</sub>|=1, etc. By default, all possible orders are included. By reducing <code>pImax</code>, the spin basis is truncated, and the calculation runs faster. For nitroxides, truncation to <code>Opt.pImax=1</code> often works and can yield spectra fairly close to the correct one. Truncation to <code>Opt.pImax=0</code> rarely works and is generally not advisable.
 </div>
 
+<div class="optionfield"><code>pImaxall</code></div>
+<div class="optiondescr">
+Gives the maximum total nuclear coherence order (summed over all nuclei) to include in the spin basis. This truncation is applied in addition to the one given in <code>Opt.pImax</code>.
+</div>
+
 <div class="optionfield"><code>nKnots</code></div>
 <div class="optiondescr">
-Number of orientations used in a powder simulation. Default is 5. Increase this value if the orientational potential coefficients <code>Sys.Potential</code> are large.
+Number of orientations used in a powder simulation (i.e. if the protein or other director does not have a single orientation, but is orientationally disordered). Unless <code>Exp.CrystalOrientation</code> is set, a powder simulation is performed. The default value for <code>nKnots</code> is 19. Increase this value if the orientational potential coefficients in <code>Sys.Potential</code> are large.
 </div>
 
 <div class="optionfield"><code>LiouvMethod</code></div>
 <div class="optiondescr">
 This specifies which method is use to construct the Liouville matrix (i.e. the Hamiltonian and the relaxation superoperator). The two possible values are <code>'fast'</code> and <code>'general'</code>. The fast method is very fast, but limited to one electron spin with S=1/2 coupled to up to two nuclei and to orientational potentials with even L&le;4, zero M, even K &le;2, and real coefficients. On the other hand, the general method works for any spin system and any form of potential, but is significantly slower. By default, <code>chili</code> uses the fast method if applicable and falls back to the general method otherwise.
+</div>
+
+<div class="optionfield"><code>FieldSweepMethod</code></div>
+<div class="optiondescr">
+Specifies how to calculate the field sweep. There are three possible settings: <code>'explicit'</code>, <code>'approxinv'</code>, and <code>'approxlin'</code>. <code>'explicit`</code> indicates that the spectral intensity should be calculated separately and explicitly for each field value. This is the accurate method. In many cases, using <code>'approxlin'</code> or <code>'approxinv'</code> results in much faster simulations. For these settings, a frequency-swept spectrum is calculated first and then converted to the field domain. This procedure is only approximate. <code>'approxinv'</code> works best if the g anisotropy dominates the spectrum, in all other cases (e.g. dominant hyperfine or zero-field splittings), <code>'approxlin'</code> is preferable.
 </div>
 
 <div class="optionfield"><code>PostConvNucs</code></div>
@@ -265,6 +275,32 @@ This specifies which nuclei should be excluded from the Stochastic Liouville equ
 <p>
 Post-convolution is useful for including the effect of nuclei with small hyperfine couplings in spin systems with many nuclei that are too large to be handled by the SLE solver. Nuclei with large hyperfine couplings should never be treated via post-convolution. Only nuclei should be treated by post-convolution for which the hyperfine couplings (and anisotropies) are small enough to put them in the fast-motion regime, close to the isotropic limit, for the given rotational correlation time in <code>Sys.tcorr</code> etc.
 </div>
+
+<div class="optionfield"><code>Solver</code></div>
+<div class="optiondescr">
+<code>'L'</code>,
+<code>'\'</code>,
+<code>'E'</code>,
+<code>'B'</code>, or
+<code>'C'</code>
+<br>
+Optionally, specifies the linear solver to use. Possible values are <code>'L'</code> (Lanczos tridiagonalization with continued-fraction expansion), <code>'\'</code> (MATLAB's backslash solver), <code>'E'</code> (via eigenvalues), <code>'B'</code> (biconjugate gradient stabilized method), and <code>'C'</code> (conjugate gradient tridiagonalization with continued-fraction expansion). If not given, a solver is selected automatically.
+</div>
+
+<div class="optionfield"><code>Symmetry</code>
+</div>
+<div class="optiondescr">
+<code>'Dinfh'</code> (default), <code>'D2h'</code>, <code>'C2h'</code> or <code>'Ci'</code>
+<br>
+Determines the symmetry used for a powder simulation. Based on this the set of orientations for which spectra are computed is chosen. <code>'Dinfh'</code> corresponds to a line from &theta;=0&deg; to &theta=90&deg; (with &phi;=0&deg;), <code>'D2h'</code> to one octant, <code>'C2h'</code> to two octants, and <code>'Ci'</code> to one hemisphere (four octants). The default <code>'Dinfh'</code> is correct only for high-symmetry spin systems in high-symmetry potentials. In general, it is advised to run a simulation with <code>Ci</code>, which is slower, but correct for any situation.
+</div>
+
+<div class="optionfield"><code>Verbosity</code></div>
+<div class="optiondescr">
+0 (default), 1<br>
+Determines how much information <code>chili</code> prints to the command window. If <code>Opt.Verbosity=0</code>, is is completely silent. 1 prints details about the progress of the computation.
+</div>
+
 
 <!-- =================================================================== -->
 <div class="subtitle">Example</div>

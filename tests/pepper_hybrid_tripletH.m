@@ -24,4 +24,4 @@ end
 
 data = [];
 
-err = ~areequal(yMatrix,yHybrid,0.02*max(yMatrix));
+err = ~areequal(yMatrix,yHybrid,0.02,'rel');

@@ -17,7 +17,7 @@ Exp.Range = [343 348];
 data.y = y;
 
 if ~isempty(olddata)
-  ok = areequal(y,olddata.y,1e-7);
+  ok = areequal(y,olddata.y,1e-7,'rel');
   err = ~ok;
 else
   err = [];

@@ -17,7 +17,8 @@ yT = yT/p.TE;
 
 % all spectra must be identical
 e = max(abs(y))*1e-8;
-ok = [areequal(y,yn,e), areequal(y,yG,e) areequal(y,yP,e) areequal(y,yT,e)];
+thr = 1e-8;
+ok = [areequal(y,yn,thr,'rel') areequal(y,yG,thr,'rel') areequal(y,yP,thr,'rel') areequal(y,yT,thr,'rel')];
 err = any(~ok);
 
 if opt.Display

@@ -36,10 +36,6 @@ Exp.Dim1 = {'p1.Frequency(1)' [0 -0.05 -0.1]};
 
 [~, signal3] = spidyan(Sys,Exp);
 
-if any([~areequal(signal1,signal2,1e-4) ~areequal(signal1,signal3,1e-4)])
-  err = 1;
-else
-  err = 0;
-end
+err = ~areequal(signal1,signal2,1e-4,'abs') || ~areequal(signal1,signal3,1e-4,'abs');
 
 data = [];

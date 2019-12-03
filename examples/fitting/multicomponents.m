@@ -15,7 +15,7 @@ Exp.Range = [300 350];
 y1 = pepper(Sys1,Exp);
 y2 = pepper(Sys2,Exp);
 y = y1 + y2;
-y = addnoise(y,40);
+y = addnoise(y,40,'n');
 
 Vary1.g = [0.1 0.1];
 Vary2.g = [0.1 0.1];

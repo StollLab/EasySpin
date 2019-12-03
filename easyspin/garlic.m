@@ -12,15 +12,15 @@
 %     g            isotropic g factor or 3 principal values of g
 %     Nucs         string with comma-separated list of isotopes
 %     n            vector of number of equivalent nuclei (default all 1)
-%     A            vector of hyperfine couplings [MHz]
-%     lw           vector with FWHM line widths [mT]
+%     A            vector of hyperfine couplings (MHz)
+%     lw           vector with FWHM line widths (mT)
 %                   1 element:  GaussianFWHM
 %                   2 elements: [GaussianFWHM LorentzianFWHM]
-%     lwpp         peak-to-peak line widths [mT], same format as Sys.lw
+%     lwpp         peak-to-peak line widths (mT), same format as Sys.lw
 %
-%     tcorr        correlation time for fast-motion linewidths [s]
+%     tcorr        correlation time for fast-motion linewidths (s)
 %                  If omitted or zero, the isotropic spectrum is computed.
-%     logtcorr     log10 of the correlation time for fast-motion linewidths [s]
+%     logtcorr     log10 of the correlation time for fast-motion linewidths (s)
 %                  If logtcorr is given, tcorr is ignored.
 %
 %   Exp:  experimental parameter settings
@@ -49,8 +49,8 @@
 %                     between 0 and 1, default 1e-6
 %
 %   Output
-%     B                magnetic field axis [mT]
-%     spec             spectrum [arbitrary units]
+%     B                magnetic field axis (mT)
+%     spec             spectrum (arbitrary units)
 %
 %     If no output parameter is specified, the simulated spectrum
 %     is plotted.
@@ -58,16 +58,22 @@
 function varargout = garlic(Sys,Exp,Opt)
 
 varargout = cell(1,nargout);
-if (nargin==0), help(mfilename); return; end
+if nargin==0, help(mfilename); return; end
 
-switch (nargin)
+% Check expiry date
+error(eschecker);
+
+% Check Matlab version.
+error(chkmlver);
+
+switch nargin
   case 1, error('Experimental parameters (2nd input) are missing!');
   case 2, Opt = [];
   case 3
 otherwise, error('Wrong number of input parameters!');
 end
 
-switch (nargout)
+switch nargout
 case {0,1,2,3}
 otherwise, error('Wrong number of output parameters!');
 end
@@ -76,16 +82,8 @@ if ~isfield(Opt,'Verbosity')
   Opt.Verbosity = 0; % Log level
 end
 
-global EasySpinLogLevel;
+global EasySpinLogLevel
 EasySpinLogLevel = Opt.Verbosity;
-
-% Check Matlab version.
-error(chkmlver);
-
-% --------License ------------------------------------------------
-LicErr = 'Could not determine license.';
-Link = 'epr@eth'; eschecker; error(LicErr); clear Link LicErr
-% --------License ------------------------------------------------
 
 
 %==================================================================
@@ -109,6 +107,11 @@ else
   end
 end
 
+if ~isfield(Opt,'Output'), Opt.Output = 'summed'; end
+[Output,err] = parseoption(Opt,'Output',{'summed','separate'});
+error(err);
+summedOutput = Output==1;
+
 if ~isfield(Sys,'singleiso') || ~Sys.singleiso
   
   if ~iscell(Sys), Sys = {Sys}; end
@@ -126,7 +129,7 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
     logmsg(1,'  component %d: %d isotopologues',c,nIsotopologues(c));
   end
   
-  if (sum(nIsotopologues)>1) && SweepAutoRange
+  if sum(nIsotopologues)>1 && SweepAutoRange
     if FrequencySweep
       str = 'Exp.mwRange or Exp.mwCenterSweep';
     else
@@ -135,7 +138,16 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
     error('Multiple components: Please specify sweep range manually using %s.',str);
   end
   
-  spec = 0;
+  separateSpectra = ~summedOutput && ...
+    (nComponents>1 || sum(nIsotopologues)>1);
+  if separateSpectra
+    spec = [];
+    Opt.Output = 'summed'; % summed spectrum for each isotopologue
+  else
+    spec = 0;
+  end
+  
+  % Loop over all components and isotopologues
   for iComponent = 1:nComponents
     for iIsotopologue = 1:nIsotopologues(iComponent)
       
@@ -144,8 +156,12 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
       Sys_.singleiso = true;
       [xAxis,spec_,Transitions] = garlic(Sys_,Exp,Opt);
       
-      % Accumulate spectra
-      spec = spec + spec_*Sys_.weight;
+      % Accumulate or append spectra
+      if separateSpectra
+        spec = [spec; spec_*Sys_.weight];
+      else
+        spec = spec + spec_*Sys_.weight;
+      end
       
     end
   end

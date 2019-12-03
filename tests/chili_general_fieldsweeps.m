@@ -15,9 +15,10 @@ Exp.Range = [337 339];
 
 Opt.LiouvMethod = 'general';
 
+Opt.FieldSweepMethod = 'approxlin';
 [x,y1] = chili(Sys,Exp,Opt);
 
-Opt.ExplicitFieldSweep = true;
+Opt.FieldSweepMethod = 'explicit';
 [x,y2] = chili(Sys,Exp,Opt);
 
 if opt.Display
@@ -25,6 +26,6 @@ if opt.Display
   legend('approximate','explicit');
 end
 
-err = ~areequal(y1/max(y1),y2/max(y2),0.01);
+err = ~areequal(y1/max(y1),y2/max(y2),0.01,'abs');
 
 data = [];

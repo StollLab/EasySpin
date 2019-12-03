@@ -40,8 +40,8 @@ H = sham(Sys2,[0,0,0]);
 
 % test
 threshold = 1e-6;
-err = ~areequal(H,Hz,threshold);
-data =[];
+err = ~areequal(H,Hz,threshold,'abs');
+data = [];
 
 
 

@@ -24,6 +24,6 @@ spec6 = pepper(Sys3,Exp,Opt);
 integrals1 = [trapz(cumtrapz(spec1)) trapz(cumtrapz(spec2)) trapz(cumtrapz(spec3))]/trapz(cumtrapz(spec1));
 integrals2 = [trapz(cumtrapz(spec4)) trapz(cumtrapz(spec5)) trapz(cumtrapz(spec6))]/trapz(cumtrapz(spec4));
 
-err = ~areequal(integrals1,[1 1 1],1e-6) |~areequal(integrals2,[1 1 1],1e-6);
+err = ~areequal(integrals1,[1 1 1],1e-6,'abs') |~areequal(integrals2,[1 1 1],1e-6,'abs');
 
 data = [];
