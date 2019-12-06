@@ -7,22 +7,16 @@ my $WorkingDir = getcwd; # get current working directory
 
 $isWindows = "$^O" eq "MSWin32";
 
-if (isWindows) {
-    $filesep = "\\";
-}
-else {
-    $filesep = "\/";
-}
-
 $TempRepoDir = "..";
 
+# store all the paths that are needed to properly create the documentation
 $sourcedir = File::Spec->catdir($TempRepoDir, "docs");
 $targetdir = File::Spec->catdir($TempRepoDir, "documentation");
 $pngdir    = File::Spec->catdir($targetdir, "eqn");
 $scriptdir = File::Spec->catdir($TempRepoDir, "scripts");
 $tempdir   = File::Spec->catdir(".", "latextemp");
 
-
+# check if documentation folder already exists and delete if yes
 if (-e "$targetdir") {
   if ($isWindows) {
     system("rmdir /s /q $targetdir ");
@@ -32,6 +26,7 @@ if (-e "$targetdir") {
   }
 }
 
+# delete the temporary latex directory if it exists
 if (-e "$tempdir") {
   if ($isWindows) {
     system("rmdir /s /q $tempdir ");
@@ -41,13 +36,15 @@ if (-e "$tempdir") {
   }  
 }
 
+# copy doc source to documentation and delete html templates folder
+$htmltemplatedir = File::Spec->catdir($targetdir, "templates");
 if ($isWindows) {
-    system("xcopy /E $sourcedir $targetdir\\ > NUL");
-    system("rmdir /s /q $targetdir\\templates ");
+    system("xcopy /E $sourcedir $targetdir\\ > NUL"); # double slash \\ is required so that Windows understand it is a directory
+    system("rmdir /s /q $htmltemplatedir ");
   }
 else{
     system("cp -r $sourcedir $targetdir");
-    system("rm -R $targetdir/templates");
+    system("rm -R $htmltemplatedir");
 }
 
 system("mkdir $pngdir");
@@ -62,6 +59,7 @@ else {
     $templatefile = File::Spec->catfile($TempRepoDir, "releasing", "template.tex");
 }
 
+# set up options for latex and related commands
 $latexoptions = "--interaction=batchmode --output-directory=$tempdir";
 
 $dvipsoptions = '-q';
