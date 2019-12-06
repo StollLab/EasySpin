@@ -214,7 +214,6 @@ foreach (@TagsToBuild) {
 
     # ---------------------------------------------------------------------------------
     # Update html file that contains the examples
-    
     if (-e "$TempRepoDir/scripts/") {
         # this catches the legacy version from before releasing and scripts folders where merged
         chdir($TempRepoDir.'scripts/');
@@ -224,14 +223,15 @@ foreach (@TagsToBuild) {
         chdir($TempRepoDir.'releasing/');
     }
     
+    print "Creating list with examples. \n";
     system('perl mkexamples.pl');
 
     chdir($WorkingDir);
 
     # ---------------------------------------------------------------------------------
     # Build .svg NumericVersions of formulae in the html documentation and replace the AvailableTags in html Files
-    print "Converting LaTeX markup in documentation to svg and modifying html Files. \n";
-    system("perl mkformulas.pl");
+    print "Building documentation. \n";
+    system("perl docbuilder.pl");
 
     # ---------------------------------------------------------------------------------
     # Update variables in esbuild.m 

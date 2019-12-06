@@ -7,7 +7,19 @@ my $WorkingDir = getcwd; # get current working directory
 
 $isWindows = "$^O" eq "MSWin32";
 
-$TempRepoDir = "..";
+$configfile = File::Spec->catfile(".", "config.pl");
+
+if (-e $configfile){
+  # if the config.pl file is found in the working directory, the location of the easyspin folder is obtained from it
+  # this is usually the case for the automatic build system
+  our $TempRepoDir; 
+  require './config.pl'; # load the configuration file
+  print("yes \n");
+}
+else {
+  # if the documentation is locally build, the builder assumes to be run from the releasing subdirectory
+  $TempRepoDir = "..";
+}
 
 # store all the paths that are needed to properly create the documentation
 $sourcedir = File::Spec->catdir($TempRepoDir, "docsrc");
@@ -16,8 +28,15 @@ $pngdir    = File::Spec->catdir($targetdir, "eqn");
 $scriptdir = File::Spec->catdir($TempRepoDir, "scripts");
 $tempdir   = File::Spec->catdir(".", "latextemp");
 
+print("$sourcedir \n");
+if (not -e $sourcedir) {
+  print("docsrc not found \n");
+  print("$sourcedir \n");
+  $sourcedir = File::Spec->catdir($TempRepoDir, "docs");
+}
+
 # check if documentation folder already exists and delete if yes
-if (-e "$targetdir") {
+if (-e $targetdir) {
   if ($isWindows) {
     system("rmdir /s /q $targetdir ");
   }
@@ -27,7 +46,7 @@ if (-e "$targetdir") {
 }
 
 # delete the temporary latex directory if it exists
-if (-e "$tempdir") {
+if (-e $tempdir) {
   if ($isWindows) {
     system("rmdir /s /q $tempdir ");
   }
