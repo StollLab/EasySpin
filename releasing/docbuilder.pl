@@ -1,44 +1,72 @@
 $noparams = ($#ARGV+1==0);  
 
 use Cwd; # to get working directory
+use File::Spec::Functions;
+
 my $WorkingDir = getcwd; # get current working directory
 
-$TempRepoDir = "../";
+$isWindows = "$^O" eq "MSWin32";
 
-$sourcedir = "../docs";
-$targetdir = "../documentation";
-$pngdir = $targetdir.'/eqn';
-$tempdir = "./latextemp/";
+if (isWindows) {
+    $filesep = "\\";
+}
+else {
+    $filesep = "\/";
+}
+
+$TempRepoDir = "..";
+
+$sourcedir = File::Spec->catdir($TempRepoDir, "docs");
+$targetdir = File::Spec->catdir($TempRepoDir, "documentation");
+$pngdir    = File::Spec->catdir($targetdir, "eqn");
+$scriptdir = File::Spec->catdir($TempRepoDir, "scripts");
+$tempdir   = File::Spec->catdir(".", "latextemp");
+
 
 if (-e "$targetdir") {
+  if ($isWindows) {
+    system("rmdir /s /q $targetdir ");
+  }
+  else{
     system("rm -R $targetdir");
+  }
 }
-
-system("cp -r $sourcedir $targetdir");
-system("rm -R $targetdir/templates");
-
-system("mkdir $pngdir");
 
 if (-e "$tempdir") {
+  if ($isWindows) {
+    system("rmdir /s /q $tempdir ");
+  }
+  else {
     system("rm -R $tempdir");
+  }  
 }
 
+if ($isWindows) {
+    system("xcopy /E $sourcedir $targetdir\\ > NUL");
+    system("rmdir /s /q $targetdir\\templates ");
+  }
+else{
+    system("cp -r $sourcedir $targetdir");
+    system("rm -R $targetdir/templates");
+}
+
+system("mkdir $pngdir");
 system("mkdir $tempdir");
 
-if (-e "$TempRepoDir/scripts/") {
+if (-e $scriptdir) {
     # this catches the legacy version from before releasing and scripts folders where merged
-    $templatefile = "$TempRepoDir/scripts/template.tex";
+    $templatefile = File::Spec->catfile($TempRepoDir, "scripts", "template.tex");
 }
 else {
     # this should be the default behavior, after merge of releasing and scripts folder
-    $templatefile = "$TempRepoDir/releasing/template.tex";
+    $templatefile = File::Spec->catfile($TempRepoDir, "releasing", "template.tex");
 }
 
-$latexoptions = '--interaction=batchmode --output-directory=./latextemp/';
+$latexoptions = "--interaction=batchmode --output-directory=$tempdir";
 
 $dvipsoptions = '-q';
-$pstoimgoptions = '-antialias -scale=1.45 -quiet -multipage -crop=a -out=';
-
+$pstoimgoptions = '-antialias -scale=1.45 -quiet -multipage -crop=a';
+$dvipngoptions = "-q* -T tight -D 150 -o";
 
 $templateposition = '%formulaposition';
 
@@ -53,85 +81,111 @@ else {
   #print @names;
 }
 
-
 foreach $htmlfile (@names) {
 
-# read in LaTeX template file
-#---------------------------------------------------------------
-open templatefile or die("Can't open $templatefile: $!\n");
-$templ = join('',<templatefile>);
-close templatefile or die("Can't close $templatefile: $!\n");
+    # read in LaTeX template file
+    #---------------------------------------------------------------
+    open templatefile or die("Can't open $templatefile: $!\n");
+    $templ = join('',<templatefile>);
+    close templatefile or die("Can't close $templatefile: $!\n");
 
-# read in HTML file
-#---------------------------------------------------------------
-$file = $sourcedir.'/'.$htmlfile;
-open file or die("Cannot open $file!");
-$html = join('',<file>);
-close file;
-# print $html;
+    # read in HTML file
+    #---------------------------------------------------------------
+    $file = File::Spec->catfile($sourcedir, $htmlfile);
+    open file or die("Cannot open $file!");
+    $html = join('',<file>);
+    close file;
+    # print $html;
 
-# remove image tags from HTML file
-#---------------------------------------------------------------
-$imgkey = '<img[^\n]*?"\[eqn\]">';
-$html =~ s/$imgkey//sg;
+    # remove image tags from HTML file
+    #---------------------------------------------------------------
+    $imgkey = '<img[^\n]*?"\[eqn\]">';
+    $html =~ s/$imgkey//sg;
 
-# extract latex snippets from HTML file and write to LaTeX file
-#---------------------------------------------------------------
-@latexcode = $html =~ /<\!--MATH(.*?)-->/sg;
-$n_equations = scalar(@latexcode);
-
-
-if ($n_equations>0) {
-  print "=====================================================\n";
-  print "  ".$htmlfile.":  ".$n_equations." latex expressions\n";
-  print "=====================================================\n";
-  
-  $latex = join("\n\\newpage\n",@latexcode);
-
-  $tmp = $templ;
-  $tmp =~ s/$templateposition/$latex/;
-
-  $tmpfile = $htmlfile;
-  $tmpfile =~ s/\.html//;
-  open(HANDLE,"> $tempdir$tmpfile.tex") or die ("Could not open $tmpfile!");
-  print HANDLE $tmp;
-  close(HANDLE) or die("Could not close $tmpfile!");
+    # extract latex snippets from HTML file and write to LaTeX file
+    #---------------------------------------------------------------
+    @latexcode = $html =~ /<\!--MATH(.*?)-->/sg;
+    $n_equations = scalar(@latexcode);
 
 
-  # generate math graphics files
-  #---------------------------------------------------------------
-#   system("latex $latexoptions $tempdir$tmpfile.tex");
-  system("latex $latexoptions $tmpfile.tex >/dev/null");
-  
-  system("dvips  $dvipsoptions -o $tempdir$tmpfile.ps $tempdir$tmpfile.dvi");
+    if ($n_equations>0) {
+      print "=====================================================\n";
+      print "  ".$htmlfile.":  ".$n_equations." latex expressions\n";
+      print "=====================================================\n";
+      
+      $latex = join("\n\\newpage\n",@latexcode);
 
-  chdir($tempdir);
-  system("pstoimg $pstoimgoptions$tmpfile  $tmpfile.ps");
-  # rename all image files to remove _ and leading zeros (e.g. myfile_01.png -> myfile1.png)
-  
-  system('rename s/_0/_/ *.png');
-  system('rename s/_// *.png');
-  
-  chdir($WorkingDir);
-  
-  # move all image files
-  system("mv  $tempdir$tmpfile*.png $pngdir");
-  # remove all temporary files
-  system("rm $tempdir$tmpfile.*");
-  
-  # insert <img> tags into HTML file
-  #---------------------------------------------------------------
-  $html =~ s/<!--MATH/<!--IMG--><!--MATH/g;
-  for ($k=1; $k<=$n_equations; $k++) {
-    $imgtag = '<img src="eqn/'.$tmpfile.$k.'.png" alt="[eqn]">';
-    $html =~ s/<\!--IMG-->/$imgtag/s;
-  }
-  open(HANDLE,'>'.$file) or die("Cannot open $file!");
-  print HANDLE $html;
-  close(HANDLE) or die("Cannot close $file!");
-}
+      $tmp = $templ;
+      $tmp =~ s/$templateposition/$latex/;
+
+      $tmpfile = $htmlfile;
+      $tmpfile =~ s/\.html//;
+      $htmlpng = $tmpfile;
+      $tmpfile = File::Spec->catfile($tempdir, $tmpfile);
+
+      $tmptex = join(".",$tmpfile,"tex");
+      $tmpps  = join(".",$tmpfile,"ps");
+      $tmpdvi = join(".",$tmpfile,"dvi");
+
+      open(HANDLE,"> $tmptex") or die ("Could not open $tmptex!");
+      print HANDLE $tmp;
+      close(HANDLE) or die("Could not close $tmptex!");
+
+      # generate math graphics files
+      #---------------------------------------------------------------
+      if ($isWindows) {
+        system("latex $latexoptions $tmptex > NUL");
+      }
+      else {
+        system("latex $latexoptions $tmptex >/dev/null");
+      }
+        
+      if ($isWindows){
+        $target = join("",$tmpfile,"%d.png");
+        system("dvipng $dvipngoptions$target $tmpdvi > NUL");
+      }
+      else {
+        system("dvips  $dvipsoptions -o $tmpps $tmpdvi");
+        
+        system("pstoimg $pstoimgoptions $tmpps");
+
+        chdir($tempdir);
+        # # rename all image files to remove _ and leading zeros (e.g. myfile_01.png -> myfile1.png)
+        system('rename s/_0/_/ *.png');
+        system('rename s/_// *.png');
+
+        chdir($WorkingDir);
+      }
+      
+      # move all images and remove temporary files
+      if ($isWindows){
+        system("move $tmpfile*.png $pngdir > NUL");
+        system("del $tmpfile.*");
+
+      }
+      else {
+        system("mv $tmpfile*.png $pngdir");
+        system("rm $tmpfile.*");
+      }
+
+      # insert <img> tags into HTML file
+      # ---------------------------------------------------------------
+      $html =~ s/<!--MATH/<!--IMG--><!--MATH/g;
+      for ($k=1; $k<=$n_equations; $k++) {
+          $imgtag = '<img src="eqn/'.$htmlpng.$k.'.png" alt="[eqn]">';
+          $html =~ s/<\!--IMG-->/$imgtag/s;
+      }
+      open(HANDLE,'>'.$file) or die("Cannot open $file!");
+      print HANDLE $html;
+      close(HANDLE) or die("Cannot close $file!");
+    }
 }
 
 if (-e "$tempdir") {
+  if ($isWindows) {
+    system("rmdir /s /q $tempdir ");
+  }
+  else {
     system("rm -R $tempdir");
+  }  
 }
