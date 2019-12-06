@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>sham</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">sham</div>
+
+<p>
+Constructs spin Hamiltonian operators.
+</p>
+
+<!-- ====================================================== -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+[F,Gx,Gy,Gz] = sham(Sys)
+H = sham(Sys,B)
+... = sham(Sys,B,'sparse')
+</pre>
+
+<!-- ====================================================== -->
+<div class="subtitle">Description</div>
+
+<p>
+This function returns the <a href="hamiltonian.html">spin Hamiltonian</a> or its components. <code>Sys</code> is the structure defining the spin system, the optional <code>B</code> is the 3-element external magnetic field vector (in mT) in the molecular frame of the spin system.
+</p>
+
+<p>
+If no magnetic field is given, <code>sham</code> returns the four Hamiltonian components <code>F</code>, <code>Gx</code>, <code>Gy</code> and <code>Gz</code>. <code>F</code> is the Hamiltonian containing all field-independent interactions, and the other three matrices are the components of the Zeeman interaction Hamiltonian for the three principal directions of the molecular frame of the spin system (see <a class="esf" href="zeeman.html">zeeman</a>).
+</p>
+
+<p>
+If a magnetic field <code>B</code> is given, <code>sham</code> returns the overall Hamiltonian <code>H</code>.
+</p>
+
+<p>
+<code>F</code> and <code>H</code> are in MHz, the components <code>Gx</code>, <code>Gy</code> and <code>Gz</code> are in MHz/mT.
+</p>
+
+<p>
+The general form of the spin Hamiltonian and the terms contained in it are explained in the section about the <a class="esf" href="spinsystem.html">spin system structure</a>.
+</p>
+
+<p>
+If <code>'sparse'</code> is given as third argument, the Hamiltonian matrix is returned in sparse format instead of full format.
+</p>
+
+<!-- ====================================================== -->
+<div class="subtitle">Examples</div>
+
+<p>
+The Hamiltonian of a simple S=I=1/2 system is
+</p>
+
+<pre class="matlab">
+g = [2 2 2]; A = [1 1 2]*100; B = [0 0 340];
+Sy = struct('S',.5,'g',g,'Nucs','1H','A',A);
+H = sham(Sy,B)
+</pre>
+<pre class="mloutput">
+H =
+   1.0e+03 *
+    4.8015         0         0         0
+         0    4.7160    0.0500         0
+         0    0.0500   -4.8160         0
+         0         0         0   -4.7015
+</pre>
+
+<p>
+To get its eigenvalues in GHz and their associated eigenvectors, use
+</p>
+
+<pre class="matlab">
+[V,E] = eig(H); E = diag(E).'/1e3, V
+</pre>
+
+<pre class="mloutput">
+E =
+   -4.8162   -4.7015    4.7162    4.8015
+
+V =
+         0         0         0    1.0000
+   -0.0052         0   -1.0000         0
+    1.0000         0   -0.0052         0
+         0    1.0000         0         0
+</pre>
+
+<!-- ====================================================== -->
+<div class="subtitle">See also</div>
+
+<p>
+<a class="esf" href="eeint.html">eeint</a>,
+<a class="esf" href="hfine.html">hfine</a>,
+<a class="esf" href="nnint.html">nnint</a>,
+<a class="esf" href="nquad.html">nquad</a>,
+<a class="esf" href="zeeman.html">zeeman</a>,
+<a class="esf" href="zfield.html">zfield</a>
+</p>
+
+</section>
+
+<footer></footer>
+
+</section>
+
+<footer></footer>
+
+</body>
+</html>

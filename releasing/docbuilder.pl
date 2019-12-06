@@ -10,7 +10,7 @@ $isWindows = "$^O" eq "MSWin32";
 $TempRepoDir = "..";
 
 # store all the paths that are needed to properly create the documentation
-$sourcedir = File::Spec->catdir($TempRepoDir, "docs");
+$sourcedir = File::Spec->catdir($TempRepoDir, "docsrc");
 $targetdir = File::Spec->catdir($TempRepoDir, "documentation");
 $pngdir    = File::Spec->catdir($targetdir, "eqn");
 $scriptdir = File::Spec->catdir($TempRepoDir, "scripts");

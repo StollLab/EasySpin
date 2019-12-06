@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>Data import and export</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<h1>Data import and export</h1>
+
+<p>
+In order to integrate EasySpin into your research workflow, you need to be able to import experimental data into EasySpin for analysis and simulation, and then possibly export simulated data for further processing or plotting with other applications such as Origin, IgorPro, Excel, and Bruker Xepr.
+
+<p>
+Here, we look at how you can get your data in and out of EasySpin/Matlab.
+
+<!-- --------------------------------------------------------------------- -->
+<div class="subtitle">Importing data</div>
+
+<p>
+To import experimental EPR spectral data acquired on commerical spectrometers, use the <a class="esf" href="eprload.html">eprload</a> function. <code>eprload</code>
+supports a variety of file formats, including those used by Bruker, Active Spectrum, magnettech, Adani and JEOL spectrometers. (Thanks to all these vendors for sharing their file format specification with EasySpin!).
+
+<ul>
+<li>
+<p>
+Data from modern Bruker spectrometers are stored in the BES3T format, in two separate files, a data file with extension DTA and a description
+file with extension DSC. You can load both by calling <code>easyspin</code> with either. You can even leave the extension out. The following three statements
+are all equivalent:
+
+<pre class="matlab">
+[B,spc] = eprload('mydata.DTA');       % Bruker BES3T
+[B,spc] = eprload('mydata.DSC');       % Bruker BES3T
+[B,spc] = eprload('mydata');           % Bruker BES3T
+</pre>
+
+<li>
+If you have data from a older or a smaller Bruker spectrometer, then your data are stored in a set of two files: *.spc for the spectral data, and *.par for the parameters. These data can be loaded by <code>eprload</code> using
+
+<pre class="matlab">
+[B,spc] = eprload('myolddata.spc');    % Bruker SPC/PAR
+</pre>
+
+<li>
+Files from Active Spectrum, magnettech, Adani and JEOL spectrometers can be imported with <a class="esf" href="eprload.html">eprload</a> as well:
+
+<pre class = "matlab">
+[B,spc] = eprload('myspectrum.esr');   % Active Spectrum
+[B,spc] = eprload('myspectrum.dat');   % Adani
+[B,spc] = eprload('myspectrum.spe');   % magnettech, old binary format
+[B,spc] = eprload('myspectrum.xml');   % magnettech, new XML format
+[B,spc] = eprload('myspectrum');       % JEOL
+</pre>
+
+<li>
+For data that are stored in text format in columns, use the function <code>textread</code>.
+For two columns:
+
+<pre class="matlab">
+[B,spc] = textread('mydata.txt','%f %f');
+</pre>
+
+Often, such text files contain a header, a series of lines at the beginning that contain
+parameter information. These can be skipped using
+
+<pre class="matlab">
+[B,spc] = textread('mydata.txt','%f %f','headerlines',17);
+</pre>
+
+</ul>
+
+<!-- --------------------------------------------------------------------- -->
+<div class="subtitle">Exporting data</div>
+
+<p>
+There are several ways to export data from EasySpin and Matlab in file formats that can be read by other applications.
+
+<ul>
+<li>
+<p>
+If you want to use Bruker spectrometer software to look at the data, export the data in Bruker BES3T
+format using <code>eprsave</code>
+
+<pre class="matlab">
+eprsave('myfile',B,spc);
+</pre>
+
+<p>
+This will store the magnetic field vector <code>B</code> and the spectral vector
+<code>spc</code> in the files <code>myfile.DSC</code> and <code>myfile.DTA</code>.
+It is also possible to set the title of the data (as displayed in the Bruker software), using a
+fourth input:
+
+<pre class="matlab">
+eprsave('myfile',B,spc,'EasySpin simulation');
+</pre>
+
+<li>
+<p>
+If you want to save the data in a two-column text format, with the first column containing
+the magnetic field and the second column containing the spectral intensity, use
+
+<pre class="matlab">
+data = [B(:) spc(:)];
+save('myfile.txt','data','-ascii');
+</pre>
+
+<li>
+<p>
+Data can also be exported to Microsoft Excel format. Here is how it works:
+
+<pre class="matlab">
+data = [B(:) spc(:)];
+xlswrite('myfile',data);
+</pre>
+</ul>
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+</html>

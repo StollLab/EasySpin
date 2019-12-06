@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>equivsplit</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">equivsplit</div>
+
+<p>
+Splitting pattern of equivalent spins.
+</p>
+
+<!-- ============================================================= -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+Ampl = equivsplit(I,n)
+</pre>
+
+<!-- ============================================================= -->
+<div class="subtitle">Description</div>
+
+<p>
+Computes the line intensity pattern of an EPR
+spectrum due to an S=1/2 and n nuclear spins
+with quantum number I. First-order perturbations
+are assumed.
+</p>
+   
+<!-- ============================================================= -->
+<div class="subtitle">Examples</div>
+
+<p>
+Five spins-1/2 give a first-order splitting pattern given by
+</p>
+
+<pre class="matlab">
+Ampl = equivsplit(1/2,5)
+</pre>
+
+<pre class="mloutput">
+Ampl =
+     1     5    10    10     5     1
+</pre>
+
+<p>
+The 5 spins-1/2 give rise to 6 lines with intensity ration 1:5:10:10:5:1.
+</p>
+
+<!-- ============================================================= -->
+<div class="subtitle">Algorithm</div>
+
+<p>
+5 spins-1/2 give rise to a first-order splitting
+pattern <code>Ampl = [1 5 10 10 5 1]</code> according to the Pascal triangle
+</p>
+
+<pre>
+               1              0 spins
+             1   1            1 spin-1/2
+           1   2   1          2 spins-1/2
+         1   3   3   1        3 spins-1/2
+       1   4   6   4   1      4 spins-1/2
+     1   5  10  10   5   1    5 spins-1/2
+</pre>
+
+<p>
+Any number in a given column is the sum of its two closest neighbors in the
+preceding row.
+</p>
+
+<p>
+For spin with S>1/2, a generalized Pascal triangle is used. E.g. for spin-1
+</p>
+
+<pre>
+             1                0 spins
+          1  1  1             1 spin-1
+       1  2  3  2  1          2 spins-1
+    1  3  6  7  6  3  1       3 spins-1
+</pre>
+
+<p>
+In general, for a spin S, any number in a given column is the sum of its
+2S+1 closest neighbors in the preceding row.
+</p>
+
+<!-- ============================================================= -->
+<div class="subtitle">See also</div>
+
+<p>
+<a class="esf" href="equivcouple.html">equivcouple</a>,
+<a class="esf" href="garlic.html">garlic</a>
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+</html>

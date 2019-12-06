@@ -1,0 +1,1245 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>Spin system</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<h1>The spin system</h1>
+
+<p>
+The central concept for spectral simulations with EasySpin is the <em>spin system</em>. It collects all information about the spins in the sample and how they are coupled. In EasySpin, a spin system is represented by a MATLAB structure (the <em>spin system structure</em>) that contains a series of fields holding this information.
+</p>
+
+<p>
+The spin system structure contains all information about the spin system and its
+<a href="hamiltonian.html">spin Hamiltonian</a>. Its fields
+specify spin quantum numbers, interaction parameters,
+matrices and tensors, relative orientation angles for these matrices
+and tensors as well as details about broadenings.
+</p>
+
+<p>
+The
+<a href="hamiltonian.html">spin Hamiltonian</a> is set up in frequency units (MHz, not angular
+frequencies), so all the energy parameters of the Hamiltonian have to
+be given in MHz as well. Hence, for example, the field
+<code>A</code> represents in fact the diagonal of the hyperfine coupling
+tensor divided by the Planck constant, A/h, and not of A.
+Remember that all angles are in <em>radians</em>, not in degrees.
+</p>
+
+<p>
+Spin system structures are used by many EasySpin functions, among them the simulation functions
+<a class="esf" href="chili.html">chili</a> (slow-motion EPR),
+<a class="esf" href="garlic.html">garlic</a> (isotropic EPR),
+<a class="esf" href="pepper.html">pepper</a> (solid-state EPR),
+<a class="esf" href="salt.html">salt</a> (ENDOR)
+<a class="esf" href="saffron.html">saffron</a> (pulse EPR), and
+<a class="esf" href="curry.html">curry</a> (magnetometry).
+</p>
+
+<div class="subtitle">A few examples</div>
+
+<p>
+Before we give a full list of possible fields, here are a couple of examples of spin system definitions.
+There are two equivalent ways.
+</p>
+
+<pre class="matlab">
+Sys.S = 1/2;
+Sys.g = [1.9 2.0 2.1];
+Sys.lw = 0.7;            % mT
+</pre>
+
+<pre class="matlab">
+Sys = struct('S',1/2,'g',[1.9 2.0 2.1],'lw',0.7);
+</pre>
+
+<p>
+Nuclei can be added to a spin system either using a set of fields (<code>Nucs</code>, <code>A</code>)
+or using the function <a class="esf" href="nucspinadd.html">nucspinadd</a>.
+</p>
+
+<pre class="matlab">
+Sys.S = 1/2;
+Sys.g = [2 2.1 2.2];
+Sys.Nucs = '63Cu';
+Sys.A = [50 50 460];  % MHz
+</pre>
+
+It is more convenient to use <a class="esf" href="nucspinadd.html">nucspinadd</a>:
+
+<pre class="matlab">
+Sys = struct('S',1/2,'g',[2 2.1 2.2]);
+Sys = nucspinadd(Sys,'63Cu',[50 50 460]);
+</pre>
+
+<p>
+A high-spin Mn<sup>2+</sup> system with zero-field splitting is
+</p>
+
+<pre class="matlab">
+Sys = struct('S',5/2,'g',2,'Nucs','55Mn');
+Sys.A = -240;   % MHz
+Sys.D = 120;    % MHz
+</pre>
+
+<div class="subtitle">Spin system parameters</div>
+
+<p>
+The following groups of parameters can be specified in the spin system structure:
+</p>
+
+<ul>
+<li><a href = "#S">Spins</a></li>
+<li><a href = "#g">g values</a></li>
+<li><a href = "#A">Hyperfine couplings</a></li>
+<li><a href = "#Q">Nuclear quadrupole couplings</a></li>
+<li><a href = "#D">Zero-field splittings</a></li>
+<li><a href = "#B">Higher-order operators</a></li>
+<li><a href = "#ee">Electron-electron spin-spin couplings</a></li>
+<li><a href = "#nn">Nuclear-nuclear spin-spin couplings</a></li>
+<li><a href = "#soi">Orbital angular momenta and spin-orbit interaction</a></li>
+<li><a href = "#Ham">General Paramters for Spin Hamiltonian expanded in Magnetic Field and Electron Spin</a></li>
+<li><a href = "#lw">Broadenings</a></li>
+</ul>
+
+<p>
+All interaction
+matrices and tensors can have arbitrary orientations with respect
+to a molecule-fixed frame of reference (the so-called molecular frame).
+</p>
+
+<p>
+Below we list and describe all possible spin system structure fields containing
+<a href="hamiltonian.html">spin Hamiltonian</a>
+parameters.
+</p>
+
+<div class="subtitle"><a name="S">The spins</a></div>
+
+<p>
+The two fields <code>S</code> and <code>Nucs</code>
+are used to specify the electron and nuclear spins constituting the
+spin system. Both are optional. If <code>S</code> is not given,
+<code>S=1/2</code> is assumed. If <code>Nucs</code> is not specified,
+<code>Nucs=''</code> is used.
+</p>
+
+<div class="optionfield"><code>S</code></div>
+<div class="optiondescr">
+Gives the electron spin quantum number(s). An arbitrary number of electron
+spins can be specified. Examples:
+<pre class="matlab">
+Sys.S = 1/2;            % one electron spin with S=1/2
+Sys.S = 5/2;            % an S=5/2 spin
+Sys.S = [1/2, 1/2];     % two S=1/2 spins
+Sys.S = [1, 1, 1/2];    % two S=1 spins and one S=1/2 spin
+</pre>
+
+<p>
+If <code>S</code> is not given, it is automatically
+set to 1/2.
+
+</div>
+
+<div class="optionfield"><code>Nucs</code></div>
+<div class="optiondescr">
+A character array containing a comma-separated list of nuclear isotopes specifying the nuclear spins in 
+the spin system. An arbitrary number of nuclei can be specified.
+
+<pre class="matlab">
+Sys.Nucs = '1H';              % one hydrogen
+Sys.Nucs = '63Cu';            % a 63Cu nucleus
+Sys.Nucs = '59Co,14N,14N';    % a 59Co and two 14N nuclei
+</pre>
+
+<p>
+If there are no nuclear spins in the system, don't specify this field or set it
+to <code>''</code> (an empty character array). Nuclei can be added and removed one at a
+time using <a class="esf" href="nucspinadd.html">nucspinadd</a> and <a class="esf" href="nucspinrmv.html">nucspinrmv</a>.</p>
+
+<p>
+If not a single isotope, but a natural-abundance mixture of isotopes is needed, just omit
+the mass number. You can also freely mix single isotopes and natural-abundance mixtures in one spin system.
+
+<pre class="matlab">
+Sys.Nucs = 'Cu';          % natural-abundance mixture of 69% 63Cu and 31% 65Cu
+Sys.Nucs = 'Cu,14N';      % same as above, plus a pure 14N
+Sys.Nucs = 'F,C';         % 100% 19F, plus a mixture of 99% 12C and 1% 13C
+</pre>
+
+<p>
+EasySpin will automatically simulate the spectra of all possible isotopologues
+(isotopes combinations) and combine them with the appropriate weights. Hyperfine constants and quadrupole couplings
+are automatically converted between isotopes. The values given by you in the spin system are
+taken to apply for the most abundant isotope with an appropriate spin (e.g. 63Cu in the case of Cu,
+1H for H, 14N of N, 119Sn for Sn).
+
+<p>
+It is also possible to give custom/enriched isotope mixtures by explicitly giving a list of
+the mass numbers of all isotopes in parentheses in <code>Nucs</code>. Additionally, the
+abundances should be given in <code>Abund</code>.
+In the simplest case of one atom, this would be
+
+<pre class="matlab">
+Sys.Nucs = '(12,13)C';     % for a mixture of 12C and 13C
+Sys.Abund = [0.3 0.7];     % 30% of 12C, the rest 13C
+
+Sys.Nucs = '(1,2)H';       % for a mixture of protons and deuterons
+Sys.Abund = [0.05 0.95];   % 95% deuterium
+</pre>
+
+<p>In the case of multiple atoms, <code>Abund</code> should be a cell array with a list of
+abundances for each atom. For example
+</p>
+
+<pre class="matlab">
+Sys.Nucs = '63Cu,(32,33)S';    % 63Cu with enriched 33S
+Sys.Abund = {1,[0.1,0.9]];     % 100% 63Cu, 10% 32S and 90% 33S
+</pre>
+
+<p>
+Custom and natural abundance mixtures and single isotopes can be all used at the same time.
+Any entry for a natural-abundance atom or for a single isotope in <code>Abund</code> is ignored.
+</p>
+
+<pre class="matlab">
+Sys.Nucs = 'Cu,(32,33)S,1H'; % natural Cu with enriched 33S and a pure 1H
+Sys.Abund = {1,[0.1,0.9],1}; % one way
+Sys.Abund = {[],[0.1,0.9],[]}; % another way, yieldig the same result
+</pre>
+
+</div>
+
+<div class="optionfield"><code>Abund</code></div>
+<div class="optiondescr">
+Specify abundances for custom isotope mixtures. See <code>Nucs</code> above.
+</div>
+
+<div class="optionfield"><code>n</code></div>
+<div class="optiondescr">
+Vector of number of equivalent nuclei, e.g.
+<pre class="matlab">
+Sys.Nucs = '1H,13C';  % one class of 1H and one class of 13C
+Sys.n = [2 3];        % 2 protons and 3 carbon-13 spins
+</pre>
+<code>Sys.n</code> can be omitted if all nuclei in <code>Sys.Nucs</code> occur only once.
+
+<p>
+Important: <code>pepper</code> does currently not support <code>Sys.n</code>. If you have multiple equivalent nuclei, you have to enter each separately.
+</div>
+
+<div class="subtitle"><a name="g">The g values</a></div>
+
+<p>
+The g matrices/tensors for all electron spins in the system are supplied in two fields:
+
+<ul>
+<li>
+<code>g</code> contains either the 3 principal values of the g tensors, or alternatively the full g tensors.
+<li>
+<code>gFrame</code> contains the Euler angles specifying the orientations of the g tensors relative to the molecular frame.
+</ul>
+
+<p>See also the reference page on the <a href="hamiltonian.html#ezi">Electron Zeeman interaction</a>.
+</p>
+
+<div class="optionfield"><code>g</code></div>
+<div class="optiondescr">
+Depending on whether the g tensors are rhombic, axial or isotropic, there are different ways you can input the principal values:
+
+<ul>
+<li>
+<p>
+Rhombic: Each row contains the three principal values of the g tensor of one electron spin. 
+</p>
+
+<pre class="matlab">
+Sys.g = [2 2.05 2.3];                % rhombic g, for one electron spin
+Sys.g = [2 2.1 2.3; 1.9 1.95 2.01];  % rhombic g, for two electron spins
+</pre>
+
+<li>
+<p>
+Axial: For axial g tensors, only two values are needed. The first value is the one perpendicular to the unique axis, and the second is the one parallel to it. 
+</p>
+
+<pre class="matlab">
+Sys.g = [2.25 2.03];                % axial g, for one electron spin
+                                    % = [2.25 2.25 2.03]
+Sys.g = [2.25 2.03; 1.99 1.98];     % axial g, for two electron spins
+                                    % = [2.25 2.25 2.03; 1.99 1.99 1.98]
+</pre>
+
+<li>
+<p>
+Isotropic: If g is isotropic, it is sufficient to give its isotropic value once.
+</p>
+
+<pre class="matlab">
+Sys.g = 2.005;                      % isotropic g, for one electron spin
+                                    % = [2.005 2.005 2.005]
+Sys.g = [2.0023; 2.0025];           % isotropic g, for two electron spins
+                                    % = [2.0023 2.0023 2.0023; 2.0025 2.0025 2.0025]
+</pre>
+
+<li>
+<p>
+No value: If no values are given, EasySpin assumes isotropic g values of 2.002319... (see <a href="gfree.html">gfree</a>) for all electron spins.
+</p>
+</ul>
+
+<p>When the principal values of g are given in <code>g</code>, the orientation
+of the g tensor can be specified by Euler angles in <code>gFrame</code>, see below.
+</p>
+
+<p>
+As an alternative, it is also possible to give the full 3x3 g tensor in <code>g</code>.
+For example
+</p>
+
+<pre class="matlab">
+% full g tensor for one electron spin
+Sys.g = [ 2.003397   -0.000431   -0.000004;...
+         -0.000416    2.003032   -0.000006;...
+         -0.000014    0.000013    2.002237];
+
+% full g tensors for two electron spins
+Sys.g = [2 0 0; 0 2 0; 0 0 2; 2.1 0 0; 0 2.1 0, 0 0 2.1];
+</pre>
+
+<p>
+If you give full g tensors, the Euler angles in <code>gFrame</code> are ignored.
+</p>
+
+</div>
+
+<div class="optionfield"><code>gFrame</code></div>
+<div class="optiondescr">
+Each row of this array specifies the orientation of the g tensor frame in the molecular frame (see the page on <a href="frames.html">frames</a>). Each row contains the three <a href="eulerangles.html">Euler angles</a> (in radians) for the rotation that transforms the molecular frame to the g tensor frame. If not specified, <code>gFrame</code> is assumed to be all-zero, that is, the g tensors of all electron spins are aligned with the molecular frame.
+
+<pre class="matlab">
+Sys.gFrame = [0 10 0]*pi/180;                % one electron spin
+Sys.gFrame = [0 10 0; 23 -45 67]*pi/180;     % two electron spins
+Sys.gFrame = [0 0 0; 0 pi/4 0; 0 -pi/4 0];   % three electron spins
+</pre>
+
+<p>
+With these angles, EasySpin can transform a g tensor from its diagonal eigenframe representation to the molecular frame representation. Here is an explicit example how this is done:
+
+<pre class="matlab">
+gpv = [2.1 1.97 2.04];       % principal values
+gFrame = [10 34 -2]*pi/180;  % Euler angles, in radians
+
+R_M2g = erot(gFrame)         % transformation matrix
+g_g = diag(gpv)              % g in the g frame
+g_M = R_M2g.'*g_g*R_M2g      % g in molecular frame
+</pre>
+
+<p>
+which gives the following output
+
+<pre class="mloutput">
+R_M2g =
+    0.8220    0.1095   -0.5589
+   -0.1450    0.9892   -0.0195
+    0.5507    0.0971    0.8290
+g_g =
+    2.1000         0         0
+         0    1.9700         0
+         0         0    2.0400
+g_M =
+    2.0791    0.0154   -0.0278
+    0.0154    1.9722   -0.0023
+   -0.0278   -0.0023    2.0587
+</pre>
+
+<p>
+The rows of the transformation matrix <code>R_M2g</code> correspond to the g tensor principal axes in molecular frame coordinates. The columns, on the other hand, correspond to the molecular axes in g frame coordinates. See the page on <a href="frames.html">frames</a> for more details.
+
+<p>
+If a 3x3 transformation matrix <code>Rg</code> is given, e.g. from literature, then the corresponding Euler angles can be obtained by
+
+<pre class="matlab">
+gFrame = eulang(Rg);
+</pre>
+
+</div>
+
+<div class="optionfield"><code>gpa</code></div>
+<div class="optiondescr">
+This was the way of specifying Euler angles prior to EasySpin 5 and has been superseded by <code>gFrame</code>. To convert old <code>gpa</code> values to <code>gFrame</code>, invert the order and flip the sign of the three Euler angles.
+
+<pre class="matlab">
+gpa =    [34  78 -12]*pi/180;    % old form, obsolete
+gFrame = [12 -78 -34]*pi/180;    % new form
+</pre>
+
+</div>
+&nbsp;<br>
+
+<div class="subtitle"><a name="A">Hyperfine couplings</a></div>
+
+<p>
+For each electron-nucleus pair, a hyperfine coupling tensor
+can be specified. The following fields are used.
+</p>
+
+<div class="optionfield"><code>A</code></div>
+<div class="optiondescr">
+Principal values of the <a href="hamiltonian.html#hfi">hyperfine interaction</a> matrices A/h,
+in MHz. Each row contains the principal values of the A tensors of one
+nucleus. <code>A(k,:)</code> refers to nuclear spin <code>k</code>.
+The orientations of the A matrices are given in <code>AFrame</code>.
+
+<pre class="matlab">
+Sys.A = [-6 12 23];            % 1 electron and 1 nucleus
+Sys.A = [10 10 -20; 30 40 50]; % 1 electron and 2 nuclei
+</pre>
+
+<p>For axial and isotropic hyperfine tensors, the notation can be shortened,
+just as in the case of the g tensor.
+
+<pre class="matlab">
+Sys.A = [4 10];       % = [4 4 10]  (axial, 1 electron and 1 nucleus)
+Sys.A = 34;           % = [34 34 34] (isotropic, 1 electron and 1 nucleus)
+Sys.A = [4 10; 1 2];  % = [4 4 10; 1 1 2]  (axial, 1 electron and 2 nucleui)
+Sys.A = [7; 3];        % = [7 7 7; 3 3 3] (isotropic, 1 electron and 2 nuclei)
+</pre>
+
+<p>
+If the system contains more than one electron spin, each row
+contains the principal values of the hyperfine couplings to
+all electron spins, listed one after the other.
+</p>
+
+<pre class="matlab">
+Sys.A = [10 10 -20 30 40 50];                % 2 electrons and 1 nucleus
+Sys.A = [10 10 -20 30 40 50; 1 1 -2 3 4 5];  % 2 electrons and 2 nuclei
+</pre>
+
+<p>
+It is possible to specify full A matrices in <code>A</code>. The 3x3 matrices
+have to be combined like the 1x3 vectors used when only principal values are
+defined: For different electrons, put the 3x3 matrices side by side,
+for different nuclei, on top of each other. If full matrices are given in <code>A</code>,
+<code>AFrame</code> is ignored.
+
+<pre class="matlab">
+Sys.A = [5 0 0; 0 5 0; 0 0 5]                          % 1 electron and 1 nucleus
+Sys.A = [[5 0 0; 0 5 0; 0 0 5]; [10 0 0; 0 10 0; 0 0 10]]     % 1 electron and 2 nuclei
+Sys.A = [[5 0 0; 0 5 0; 0 0 5], [10 0 0; 0 10 0; 0 0 10]]     % 2 electrons and 1 nucleus
+</pre>
+
+</div>
+
+<div class="optionfield"><code>A_</code></div>
+<div class="optiondescr">
+Spherical form of the hyperfine matrix, in terms of its isotropic, axial and rhombic components.
+The units are MHz. <code>A</code> and <code>A_</code> cannot be used at the same time.
+
+<pre class="matlab">
+Sys.A_ = 2;         % isotropic component only
+Sys.A_ = [2 3]      % isotropic and axial component
+Sys.A_ = [2 3 0.4]  % isotropic, axial and rhombic component
+</pre>
+
+The cartesian form (as used in <code>A</code>) and the spherical form (as used in <code>A_</code>) are related by
+
+<pre class="matlab">
+% spherical -> cartesian
+A(1) = A_(1)-A_(2)-A_(3);
+A(2) = A_(1)-A_(2)+A_(3);
+A(3) = A_(1)+2*A_(2)
+
+% cartesian -> spherical
+A_(1) = mean(A);
+A_(2) = (2*A(3)-A(1)-A(2))/6;
+A_(3) = (-A(1)+A(2))/2;
+</pre>
+
+or if you prefer more compact notation
+<pre class="matlab">
+A = A_*[1 1 1; -1 -1 2; -1 +1 0];   % spherical -> cartesian
+A_ = A*[2 -1 -3; 2 -1 3; 2 2 0]/6;  % cartesian -> spherical
+</pre>
+
+For more than one nucleus and more than one electron spin, the array structure is analogous to <code>A</code>.
+
+</div>
+
+<div class="optionfield"><code>AFrame</code></div>
+<div class="optiondescr">
+Array of <a href="eulerangles.html">Euler angles</a> giving the orientations of the various A matrices in the molecular frame, as described above for <code>gFrame</code>. If <code>AFrame</code> is not specified, it is assumed to be all-zero, that is, all tensors are aligned with the molecular frame. See also <a class="esf" href="erot.html">erot</a>.
+
+Each row of <code>AFrame</code> contains the three Euler angles for one nucleus.
+<pre class="matlab">
+Sys.AFrame = [0 20 0]*pi/180;  % one electron spin, one nucleus
+Sys.AFrame = [0 0 0; 0 10 90; 12 -30 34]*pi/180 % one electron spin, three nuclei
+</pre>
+
+<p>
+If there are two or more electron spins, each nucleus has two or more hyperfine tensors, and
+consequently each row should contain two or more sets of Euler angles.
+<pre class="matlab">
+Sys.AFrame = [0 20 0, 13 -30 80]*pi/180;               % 2 electrons, 1 nucleus
+Sys.AFrame = [0 20 0, 0 0 0; 0 10 0, 0 30 50]*pi/180;  % 2 electrons, 2 nuclei
+</pre>
+
+<p>
+Here is how principal values and angles can be converted to a full matrix:
+
+<pre class="matlab">
+Apv = [4 9 13];                   % principal values, MHz
+AFrame = [10 45 -30]*pi/180;      % Euler angles
+A_A = diag(Apv);                  % full matrix in A frame
+R = erot(AFrame);                 % transformation matrix
+A_M = R.'*A_A*R;                  % full matrix in molecular frame
+</pre>
+
+<p>
+See the page on <a href="frames.html">frames</a> for more details.
+
+</div>
+
+&nbsp;<br>
+
+<div class="subtitle"><a name="Q">Nuclear quadrupole couplings</a></div>
+
+
+<p>
+For each nucleus spin, a <a href="hamiltonian.html#nqi">nuclear quadrupole</a> coupling tensor Q can be given,
+using the fields <code>Q</code> (for the parameters e<sup>2</sup>qQ/h and &eta;, the principal values, or the full matrix) and <code>QFrame</code> (for the orientation).
+</p>
+
+<div class="optionfield"><code>Q</code></div>
+<div class="optiondescr">
+Array containing the quadrupole tensors Q/h for all nuclei, in MHz. There are several possible ways to specify the tensors.
+
+<ul>
+<li>
+For axial Q tensors: Specify e<sup>2</sup>Qq/h for each nucleus
+
+<pre class="matlab">
+Sys.Q = 0.7            % one nucleus, eeQq/h = 0.7 MHz
+Sys.Q = [0.7, 1.2]     % same for two nuclei
+</pre>
+
+<li>
+For rhombic Q tensors: Specify e<sup>2</sup>Qq/h and &eta; for each nucleus, one row with two numbers.
+
+<pre class="matlab">
+Sys.Q = [1.2 0.29]         % one nucleus, eeQq/h = 1.2 MHz and eta = 0.29
+Sys.Q = [1.2 0.29; 0.1 0]  % same with a second nucleus (second row)
+</pre>
+
+<li>
+For all Q tensors: specify three principal values of the Q tensor, again one row per nucleus.
+<pre class="matlab">
+Sys.Q = [-1 -1 2]                % one nucleus, Qxx = -1, Qyy = -1, Qzz = +2 MHz
+Sys.Q = [-1 -1 2; 0.2 0.3 -0.5]  % same for two nuclei
+</pre>
+
+<li>
+You can also give the full 3x3 Q tensor for each nucleus.
+<pre class="matlab">
+Sys.Q = [-1 0 0; 0 -1 0; 0 0 2]*0.1;   % for one nucleus, diagonal
+Sys.Q = [0.125 -0.6495 -1.299; -0.6495 -0.625 0.75; -1.299 0.75 0.5]; % general, one nucleus
+Q1 = [-0.9 0 0; 0 -1.1 0; 0 0 2]*0.15;
+Q2 = [-0.7 0 0; 0 -1.3 0; 0 0 2]*0.31;
+Sys.Q = [Q1; Q2]; % for two nuclei
+</pre>
+</ul>
+
+<p>
+Here is an example of how to convert from e<sup>2</sup>Qq/h and &eta; to the three principal Q values:
+
+<pre class="matlab">
+eeQqh = 1;     % MHz
+eta = 0.2;     % unitless
+
+I = 1;         % nuclear spin must be known!
+Q = eeQqh/(4*I*(2*I-1)) * [-1+eta, -1-eta, 2]
+</pre>
+
+
+<p>
+And here is a demonstration of how to conver from the three principal values of Q to e<sup>2</sup>Qq/h and &eta;:
+
+<pre class="matlab">
+Q = [-0.5 -1.0 1.5]       % MHz
+I = 1;                    % nuclear spin must be known!
+
+eeQqh = 2*I*(2*I-1)*Q(3)  % MHz
+eta = (Q(1)-Q(2))/Q(3)    % unitless
+</pre>
+
+<p>
+See also the reference page on the <a href="hamiltonian.html#nqi">nuclear quadrupole interaction</a>.
+</p>
+
+</div>
+
+<div class="optionfield"><code>QFrame</code></div>
+<div class="optiondescr">
+<a href="eulerangles.html">Euler angles</a> (in radians) describing the orientations of the Q tensors in the molecular frame, analogous to <code>gFrame</code> and <code>AFrame</code>. <code>QFrame</code> should include one row of three angles for each nucleus. The angles are in units of radians, not degrees.
+</p>
+
+<pre class="matlab">
+Sys.QFrame = [0 pi/4 0];                    % one nucleus
+Sys.QFrame = [30 45 0; 10 -30 0]*pi/180;    % two nuclei
+</pre>
+
+<p>
+Here is how principal values and angles can be converted to a full matrix:
+
+<pre class="matlab">
+Qpv = [-0.9 -1.1 2]*0.125;        % principal values, MHz
+QFrame = [10 45 -30]*pi/180;      % Euler angles
+R = erot(QFrame);                 % transformation matrix
+Q_Q = diag(Qpv);                  % full matrix in Q frame
+Q_M = R.'*Q_Q*R;                  % full matrix in molecular frame
+</pre>
+
+<p>
+See the page on <a href="frames.html">frames</a> for more details.
+
+</div>
+&nbsp;<br>
+
+<div class="subtitle"><a name="D">Zero-field splittings</a></div>
+
+<p>
+For each electron spin, a zero-field splitting can be specified in the fields <code>D</code> and <code>DFrame</code>. See also the reference page on the <a href="hamiltonian.html#zfi">zero-field interaction</a>.
+</p>
+
+<div class="optionfield"><code>D</code></div>
+<div class="optiondescr">
+<code>D</code> gives the <a href="hamiltonian.html#zfi">zero-field splitting tensors</a> for the electron spins in the spin system. It should be in units of MHz (1 cm<sup>-1</sup> = 29979 MHz). It can be specified in several different ways.
+</p>
+
+<ul>
+<li>
+<p>
+Axial: If the zero-field splitting tensor is axial, give the D value for each electron spin.
+The orientation of the tensor can be specified in the field <code>DFrame</code> (see below).
+</p>
+
+<pre class="matlab">
+Sys.D = [200];            % 1 electron spin, D = 200 MHz
+Sys.D = [200 -340];       % 2 electron spins, 	D value each, in MHz
+Sys.D = [200 -340 1100];  % 3 electron spins, D value each, in MHz
+</pre>
+
+<li>
+<p>
+Rhombic: For a zero-field splitting tensor with rhombic asymmetry, give both the D and the E
+value for each electron spin. The orientation of the tensor can be specified in the field <code>DFrame</code> (see below).
+</p>
+
+<pre class="matlab">
+Sys.D = [200 10];            % 1 electron spin, D = 200 MHz and E = 10 MHz
+Sys.D = [200 10; 340 90];    % 2 electron spins, D and E value for each spin
+</pre>
+
+<li>
+<p>
+Principal values: For both axial and rhombic symmetry, you can give the three principal values of
+the D tensor. The orientation of the tensor can be specified in the field <code>DFrame</code> (see below).
+</p>
+
+<pre class="matlab">
+Sys.D = [-100 -100 200];               % 1 electron spin, Dx = Dy = -100 MHz, Dz = 200 MHz
+Sys.D = [-150 -50 200; 450 350 -800];  % 2 electron spins
+</pre>
+
+Here is how the principal values can be computed from D and E
+
+<pre class="matlab">
+D = 120; E = 15;                     % D and E parameters, in MHz
+Sys.D = [-1,-1,2]/3*D + [1,-1,0]*E     % conversion to D principal values
+</pre>
+
+<p>
+It is possible to provide a non-traceless D tensor.
+</p>
+
+<li>
+<p>
+Full matrix: You can also specify the full D matrix for each electron spin. E.g. for one electron spin
+</p>
+
+<pre class="matlab">
+Sys.D =  [-33.8  -24.1 -122.1; -24.1 -91.2 44.4; -122.1 44.4 125];
+</pre>
+
+<p>
+It is possible to provide a non-traceless D tensor.
+</p>
+
+</ul>
+
+<p>
+Include zeros for any electron spin with S = 1/2. 
+</p>
+
+</div>
+
+<div class="optionfield"><code>DFrame</code></div>
+<div class="optiondescr">
+nx3 array of <a href="eulerangles.html">Euler angles</a> describing the orientation of the D tensors, completely analogous to <code>gFrame</code> and <code>QFrame</code>. If absent, it is assumed to be all zeros.
+</p>
+
+<p>
+Internally, EasySpin uses the following procedure to compute the full D tensor in the molecular frame from the given principal values and the Euler angles
+</p>
+
+<pre class="matlab">
+Dvals = [-25 -55 80];        % principal values
+DFrame = [10 20 0]*pi/180;   % tilt angles
+D_D = diag(Dvals);           % full D tensor in its eigenframe
+
+R = erot(DFrame);            % rotation matrix
+D_M = R.'*diag(Dvals)*R;     % full D tensor in molecular frame
+</pre>
+
+<p>
+See the page on <a href="frames.html">frames</a> for more details.
+</p>
+</div>
+&nbsp;<br>
+
+<div class="subtitle"><a name="B">High-order zero-field splittings</a></div>
+
+<p>
+EasySpin supports a series of <a href="stevensoperators.html">high-order electron spin operators</a> in the spin Hamiltonian.
+</p>
+
+<div class="optionfield"><code>aF</code></div>
+<div class="optiondescr">
+Values, in MHz, of the fourth-order parameters a and F used in cubic systems of S=5/2 ions like Fe(III) and Mn(II). For their definition, see the reference page on <a href="stevensoperators.html">high-order operators</a>.
+
+<pre class="matlab">
+Sys.aF = [10 -3];   % in MHz
+</pre>
+
+<p>
+The operators of both a and F are defined in terms the molecular reference frame, which is assumed to coincide the four-fold symmetry axes of the cubic system.
+</p>
+<p>
+This can be changed by setting <code>Sys.aFFrame</code>. If <code>Sys.aFFrame=3</code>, the operator corresponding to a is calculated assuming the reference system coincides with a three-fold symmetry axis of the cubic system. By default, <code>Sys.aFFrame=4</code>. As an alternative to <code>aF</code>, e.g. for different orientations of the reference frame, the more general high-order parameters <code>B4</code> can be used (see below).
+</p>
+
+</div>
+
+<div class="optionfield"><code>B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12</code></div>
+<div class="optiondescr">
+The coefficients B(k,q) for the <a href="stevensoperators.html">extended Stevens operators</a> of the electron spin (see also the function <a class="esf" href="stev.html">stev</a>). All coefficients should be real, and are understood in units of MHz. The number in the field name indicates the order k of the operator. E.g. B2 is for k = 2, and B4 is k = 4. If any of these fields is not given, it is treated as zero.
+
+<p>
+Each field that is given should contain a row vector of 2k+1 parameters, in order of decreasing q, running from +k to -k. For example:
+
+<pre class="matlab">
+Sys.B2 = [0 0 560 0 0];          % B(2,q) with q = +2,+1,0,-1,-2
+Sys.B4 = [0 132 0 0 0 0 0 0 0];  % B(4,q) with q = +4,+3,+2,+1,0,-1,-2,-3,-4
+</pre>
+The only nonzero elements in the above examples are therefore B(2,0) and B(4,+3).
+
+<p>
+In the common case that only the q=0 element is needed for a given k, it can be given alone in an abbreviated syntax valid for any k.
+
+<pre class="matlab">
+Sys.B2 = [0 0 99 0 0];  % B(2,0) only, full form
+Sys.B2 = 99;            % equivalent abbreviated form
+
+Sys.B4 = [0 0 0 0 -8700 0 0 0 0];  % B(4,0) only, full form
+Sys.B4 = -8700;                    % equivalent abbreviated form
+</pre>
+
+<p>
+If more than one electron spin is present, specify one row of 2k+1 elements for each electron spin. The first row is for the first electron spin, etc.
+
+<pre class="matlab">
+Sys.S = [5/2 2];     % two spins
+B20a = 100;          % for the first spin
+B20b = -98;          % for the second spin
+Sys.B2 = [0 0 B20a 0 0; 0 0 B20b 0 0]; % two rows: one row per spin
+Sys.B2 = [B20a; B20b];                 % abbreviated form for two spins: two rows as well
+</pre>
+
+<p>
+Currently, it is not possible to include tilt angles for the principal frames of these high-order interaction tensors. All of them are assumed to be collinear with the molecular frame. By changing the molecular frame, i.e. by tilting all other tensors (g, A, etc), this limitation can be partially circumvented. Still, all the high-order interactions are collinear. Alternatively, you can use <code>wignerd</code> to compute a Wigner rotation matrix that can be used to tilt the tensors explicitly.
+</p>
+
+<pre class="matlab">
+angles = rand(1,3)*pi;   % Euler tilt angles, in radians
+B2 = [3 4 5 0 2];        % B(2,q) tensor components
+R = wignerd(2,angles);   % rotation matrix for rank-2 tensor
+B2 = R*B2;               % rotated tensor
+Sys.B2 = B2.';
+</pre>
+
+</div>
+
+<div class="subtitle"><a name="ee">Electron-electron spin-spin couplings</a></div>
+
+<p>
+For each pair of electron spins, a <a href="hamiltonian.html#eei">bilinear coupling matrix</a> (composed of isotropic, anisotropic, and antisymmetric terms) can be given. You can enter it in one of several ways:
+<ul>
+<li>Give the isotropic, symmetric, and antisymemtric parts separately in <code>Sys.J</code>, <code>Sys.dip</code>, and <code>Sys.dvec</code>.
+<li>Give the principal values of the coupling matrix in <code>Sys.ee</code> (with <code>Sys.eeFrame</code>).
+<li>Give the total coupling matrix in <code>Sys.ee</code>.
+</ul>
+
+<p>
+Except for the last option, give the orientation of the interaction matrices in <code>Sys.eeFrame</code>.
+</p>
+
+<p>
+In addition, it is also possible to specify an isotropic biquadratic exchange coupling for each electron spin pair in <code>Sys.ee2</code>. This is a type of coupling that is very rare.
+</p>
+
+<div class="optionfield"><code>J</code></div>
+<div class="optiondescr">
+<em>
+1xN array of real
+</em>
+<p>
+List of isotropic exchange coupling constants (in MHz), one for each pair of electron spins. The associated <a href="hamiltonian.html#eei">spin Hamiltonian</a> is +J S<sub>1</sub>S<sub>2</sub> (not -2J S<sub>1</sub>S<sub>2</sub>). Here is an example for a two-spin system:
+
+<pre class="matlab">
+Sys.S = [3/2 3/2];  % two electron spins
+Sys.J = J12;        % coupling constant, in MHz
+</pre>
+
+<p>
+For more than two spins, the pairs are ordered lexicographically, for example for a 4-spin system 1-2, 1-3, 1-4, 2-3, 2-4, 3-4.
+
+<pre class="matlab">
+Sys.S = [1/2 1/2 1/2 1/2];          % four spins
+Sys.J = [J12 J13 J14 J23 J24 J34];  % six coupling constants, in MHz
+</pre>
+
+<p>
+To convert from the more traditional unit cm<sup>-1</sup> to MHz, use
+<pre class="matlab">
+J_MHz = J_cm*30e3;            % cm^-1 to MHz conversion, approximate
+J_MHz = J_cm*100*clight/1e6;  % cm^-1 to MHz conversion, exact
+</pre>
+
+<p>
+You can use either <code>Sys.J</code> (together with <code>Sys.dip</code> and <code>Sys.dvec</code> if needed) or <code>Sys.ee</code> (with <code>Sys.eeFrame</code>), but not both at the same time.
+</div>
+</div>
+
+
+<div class="optionfield"><code>dip</code></div>
+<div class="optiondescr">
+<em>
+Nx1, Nx2, or Nx3 array of real
+</em>
+<p>
+List of values that describe the symmetric part of the coupling between two electron spins (dipolar interaction), in units of MHz. Each row corresponds to one electron-electron pair. It can contain 1, 2, or 3 numbers.
+</p>
+
+<ul>
+<li>1 number: This gives the axial dipolar coupling.
+<li>2 numbers: The first is the axial dipolar coupling, and the second one is the rhombic dipolar coupling.
+<li>3 numbers: They give the three principal values of the symmetric dipolar interaction tensor. The trace of a dipolar tensor is zero.
+</ul>
+
+Here are a few examples:
+<pre class="matlab">
+Sys.S = [1/2 1/2];    % two spins
+
+% The following two inputs give the same axial dipolar tensor
+Sys.dip = 23;          % axial dipolar coupling, MHz
+Sys.dip = 23*[1 1 -2]; % principal values of axial dipolar coupling tensor, MHz
+
+% The following two inputs give the same rhombic dipolar tensor
+Sys.dip = [23 3];                    % axial and rhombic dipolar coupling, MHz
+Sys.dip = 23*[1 1 -2] + 3*[1 -1 0];  % principal values of axial dipolar coupling tensor, MHz
+</pre>
+
+<p>
+The axial and rhombic couplings and the principal values of the dipolar tensor are related via
+</p>
+
+<pre class="matlab">
+% axial and rhombic -> principal values
+dip_pv = dip_axial*[1 1 -2] + dip_rhombic*[1 -1 0];
+
+% principal values -> axial and rhombic
+dip_rhombic = (dip_pv(1)-dip_pv(2))/2
+dip_axial = ((dip_pv(1)+dip_pv(2))/2-dip_pv(3))/3
+</pre>
+
+<p>
+For more than two spins, specify the couplings for electron pairs in lexicographic order, for example 1-2, 1-3, 2-3 for a three-spin system.
+
+<pre class="matlab">
+Sys.S = [3/2 3/2 3/2];    % three spins
+dip12 = 1.4e4;    % units: MHz
+dip23 = 2.1e4;
+dip13 = 3.7e4;
+Sys.dip = [dip12; dip13; dip23];  % three tensors
+</pre>
+
+<p>
+To specify the orientation of the dipolar tensor, use <code>Sys.eeFrame</code>.
+
+<p>
+You can use either <code>Sys.dip</code> (together with <code>Sys.J</code> and <code>Sys.dvec</code> if needed) or <code>Sys.ee</code>, but not both at the same time.
+</p>
+
+</div>
+</div>
+
+<div class="optionfield"><code>dvec</code></div>
+<div class="optiondescr">
+<em>
+Nx3 array of real
+</em>
+<p>
+List of vectors (one per row, in units of MHz) that describe the antisymmetric part of the coupling between two electron spins (Dzyaloshinskii-Moriya interaction). The associated <a href="hamiltonian.html#eei">spin Hamiltonian</a> is d<sub>12</sub>.(S<sub>1</sub>xS<sub>2</sub>), where d<sub>12</sub> is the interaction vector. 
+
+<pre class="matlab">
+Sys.S = [1/2 1/2];    % two spins
+d12 = [dx dy dz];     % units: MHz
+Sys.dvec = d12;       % one interaction vector
+</pre>
+
+<p>
+For more than two spins, the vectors are ordered in lexicographic order, for example 1-2, 1-3, 2-3 for a three-spin system.
+
+<pre class="matlab">
+Sys.S = [1 1 1];        % three spins
+d12 = [0 0 1.4e4];      % units: MHz
+d23 = [0 0 2.1e4];
+d13 = [0 0 3.7e4];
+Sys.dvec = [d12;d13;d23];  % three interaction vectors, one per row
+</pre>
+
+<p>
+You can use either <code>Sys.J</code> (together with <code>Sys.dip</code> and <code>Sys.dvec</code> if needed) or <code>Sys.ee</code> (with <code>Sys.eeFrame</code>), but not both at the same time.
+</div>
+</div>
+
+<div class="optionfield"><code>ee</code></div>
+<div class="optiondescr">
+<em>
+Nx3 or 3Nx3 array of real
+</em>
+<p>
+Principal value of the <a href="hamiltonian.html#eei">electron-electron interaction</a> matrices, in MHz.
+Each row corresponds to the diagonal of an interaction matrix (in its eigenframe). For two electron spins, <code>ee</code> contains one row only. 
+
+<pre class="matlab">
+Sys.S = [1/2 1/2];     % two electron spins
+Sys.ee = [50 50 100];  % principal values of one coupling matrix, MHz
+</pre>
+
+<p>
+For more than two electron spins, the pairs are lexicographically ordered according to the indices of the electron spins involved. If n is the number of electron spins, there are N = n(n-1)/2 rows. For example, for 4 spins there are 6 rows with the principal values for the interaction of spins 1-2, 1-3, 1-4, 2-3, 2-4, 3-4, in this order.
+
+<pre class="matlab">
+Sys.S = [1/2 1/2 1/2];        % three spins
+ee12 = [50 50 100];
+ee13 = [10 10 -30];
+ee14 = [10 10 -30];
+ee23 = [0 0 0];
+ee24 = [0 0 0];
+ee34 = [80 80 80];
+Sys.ee = [ee12; ee13; ee14; ee23; ee24; ee34];  % 6 coupling matrices, MHz
+</pre>
+
+<p>
+If only isotropic couplings are needed, use <code>Sys.J</code> (see above).
+
+<p>
+It is also possible to specify the full 3x3 interaction matrices instead of the 3 principal values and 3 Euler angles. These matrices combine the isotropic, antisymmetric and symmetric parts of the interaction. For a 2-electron system, <code>ee</code> is a single 3x3 array.
+
+<pre class="matlab">
+Sys.S = [1/2 1/2];                   % two spins
+Sys.ee = [50 0 0;0 50 0; 0 0 100];   % one coupling matrix, MHz
+</pre>
+
+<p>
+For more electrons, the 3x3 matrices are stacked on top of each other, to give a 3Nx3 array.
+
+<pre>
+Sys.S = [1/2 1/2 1/2];                   % three spins
+ee12 = [50 0 0; 0 50 0; 0 0 100];
+ee13 = diag([10 10 -30]);
+ee23 = zeros(3);
+Sys.ee = [ee12; ee13; ee23];             % three coupling matrices
+</pre>
+
+<p>
+Note that you can use either <code>Sys.ee</code> or <code>Sys.J</code> (together with <code>Sys.dip</code> and <code>Sys.dvec</code> if needed), but not both at the same time.
+
+</div>
+
+
+<div class="optionfield"><code>eeFrame</code></div>
+<div class="optiondescr">
+Nx3 array containing the <a href="eulerangles.html">Euler angles</a> describing the orientation of the electron-electron interaction matrices (specified in <code>ee</code>) in the molecular frame. Each row contains the Euler angles for the corresponding row in <code>ee</code>.
+
+<p>
+This is fully analogous to <code>AFrame</code> (see above). Check out the page on <a href="frames.html">frames</a> for more details on frames.
+
+</div>
+
+<div class="optionfield"><code>ee2</code></div>
+<div class="optiondescr">
+Contains the isotropic biquadratic exchange coupling, in MHz, for each pair of electron spins. The spin pairs are ordered as in <code>ee</code>.
+
+<pre class="matlab">
+Sys.S = [3/2 3/2];          % two electron spins
+Sys.ee2 = 130;              % one biquadratic coupling 1-2
+
+Sys.S = [3/2 3/2 3/2];      % three electron spins
+Sys.ee2 = [130 150 190];    % couplings 1-2, 1-3, 2-3
+
+Sys.S = [1 1 1 1];               % four electron spins
+Sys.ee2 = [130 0 130 130 0 130]; % couplings 1-2, 1-3, 1-4, 2-3, 2-4, 3-4
+</pre>
+
+<p>
+EasySpin defines the biquadratic exchange term in the spin Hamiltonian as +j(S1.S2)<sup>2</sup>, with a plus sign. In the literature, it is sometimes defined with a negative sign, so be careful when using literature values.
+
+</div>
+
+
+<div class="subtitle"><a name="nn">Nuclear-nuclear spin-spin couplings</a></div>
+
+<p>
+For each pair of nuclear spins, a bilinear coupling matrix (composed of isotropic, anisotropic, and antisymmetric terms) can be given. This term is specified in the field <code>Sys.nn</code>, with the orientation in <code>Sys.nnFrame</code>.
+
+<p>
+In practice, this term is essentially always too small to be of any relevance for EPR or ENDOR spectra. EasySpin provides it so its effects on spectra can be explored.
+
+<div class="optionfield"><code>nn</code></div>
+<div class="optiondescr">
+<em>
+Nx3 or 3Nx3 array of real
+</em>
+<p>
+Principal values of the nuclear-nuclear interaction matrices, or full interaction matrices, in MHz. For providing principal values, each row contains the three principal values of one interaction matrix. For two nuclear spins, <code>nn</code> contains one row only. 
+
+<pre class="matlab">
+Sys.Nucs = '1H,1H';        % two nuclear spins
+Sys.nn = [10 20 30]*1e-6;  % principal values of coupling matrix between spins 1 and 2, MHz
+</pre>
+
+<p>
+For more than two nuclear spins, the pairs are lexicographically ordered according to the indices of the nuclear spins involved. If n is the number of nuclear spins, there are N = n(n-1)/2 rows. For example, for 4 spins there are 6 rows with the principal values for the interaction of spins 1-2, 1-3, 1-4, 2-3, 2-4, 3-4, in this order.
+
+<pre class="matlab">
+Sys.Nucs = '1H,1H,19F';        % three spins
+nn12 = [50 50 100]*1e-6;
+nn13 = [10 10 -30]*1e-6;
+nn14 = [10 10 -30]*1e-6;
+nn23 = [0 0 0];
+nn24 = [0 0 0];
+nn34 = [80 80 80]*1e-6;
+Sys.nn = [nn12; nn13; nn14; nn23; nn24; nn34];  % 6 coupling matrices, MHz
+</pre>
+
+<p>
+If the principal values are given, the orientation of the interaction matrices can be specified via Euler angles in the field <code>nnFrame</code> (see below).
+
+<p>
+It is also possible to specify the full 3x3 interaction matrices instead of the 3 principal values and 3 Euler angles. For two nuclei, <code>nn</code> is a single 3x3 array.
+
+<pre class="matlab">
+Sys.Nucs = '1H,1H';                       % two nuclear spins
+Sys.nn = [50 0 0;0 50 0; 0 0 100]*1e-6;   % one coupling matrix, MHz
+</pre>
+
+<p>
+For more nuclei, the 3x3 matrices are stacked on top of each other, to give a 3Nx3 array.
+
+<pre>
+Sys.S = '1H,1H,1H';                   % three spins
+nn12 = [50 0 0; 0 50 0; 0 0 100]*1e-6;
+nn13 = diag([10 10 -30])*1e-6;
+nn23 = zeros(3);
+Sys.nn = [nn12; nn13; nn23];          % three coupling matrices, MHz
+</pre>
+
+</div>
+
+<div class="optionfield"><code>nnFrame</code></div>
+<div class="optiondescr">
+<em>
+Nx3 array of real
+</em>
+<p>
+Array containing the <a href="eulerangles.html">Euler angles</a> describing the orientation of the nuclear-nuclear interaction matrices (specified in <code>nn</code>) in the molecular frame. Each row contains the three Euler angles for the corresponding row in <code>nn</code>.
+
+<p>
+This is fully analogous to <code>eeFrame</code> (see above). Check out the page on <a href="frames.html">frames</a> for more details on frames.
+
+</div>
+
+
+<div class="subtitle"><a name="soi">Orbital angular momenta and spin-orbit interaction</a></div>
+Each electron spin in the spin system can be coupled to an orbital angular momentum, with the assocaited quantum number defined in the field <code>L</code>. Spin-orbit coupling is specified via the fields <code>soc</code> (coupling strength) and <code>orf</code> (orbital reduction factor). Orbital angular momenta are supported by the simulation functions <a class="esf" href="pepper.html">pepper</a> (solid-state EPR) and <a class="esf" href="curry.html">curry</a> (magnetometry).
+
+<p>
+<div class="optionfield"><code>L</code></div>
+<div class="optiondescr">
+Gives the quantum numbers for orbital angular momenta to which the electron spins are coupled. <code>L</code> is an optional field. If given, it must have the same number of entries as <code>S</code> and the entries have to be nonnegative integers. The kth orbital angular momentum is coupled to the kth spin angular momentum. Examples:
+
+<pre class="matlab">
+% one spin 1 associated to a L = 3
+Sys.S = 1;
+Sys.L = 3;
+
+% two spin-1/2, each associated to L = 2
+Sys.S = [1/2 1/2];
+Sys.L = [2 2];
+
+% one spin-1/2 without L and a spin 3/2 with L = 1
+Sys.S = [1/2 3/2];
+Sys.L = [0 1];
+</pre>
+
+</div>
+<div class="optionfield"><code>CF0, CF2, CF4, CF6, CF8, CF10, CF12</code></div>
+<div class="optiondescr">
+The crystal field of the orbital angular momentum L is in EasySpin described by the coefficients CF(k,q) for the <a href="stevensoperators.html">extended Stevens operators</a> (see also the function <a class="esf" href="stev.html">stev</a>). They are analog to the coefficients B(k,q) for the electron spin (see <a href = "#B">Higher-order operators</a>), but acting on the orbital angular momentum.
+All coefficients should be real, and are understood in units of MHz. The number in the field name indicates the order k of the operator. E.g. <code>CF2</code> is for k = 2, and <code>CF4</code> is k = 4. If any of these fields is not given, it is treated as zero. <code>L</code> must be given, otherwise the CF are ignored.
+
+<p>
+Each field that is given should contain a row vector of 2k+1 parameters, in order of decreasing q, running from +k to -k. For example:
+
+<pre class="matlab">
+Sys.CF2 = [0 0 560 0 0];          % CF(2,q) with q = +2,+1,0,-1,-2
+Sys.CF4 = [0 132 0 0 0 0 0 0 0];  % CF(4,q) with q = +4,+3,+2,+1,0,-1,-2,-3,-4
+</pre>
+The only nonzero elements in the above examples are therefore CF(2,0) and CF(4,+3).
+
+<p>
+In the common case that only the q=0 element is needed for a given k, it can be given alone in an abbreviated syntax valid for any k.
+
+<pre class="matlab">
+Sys.CF2 = [0 0 99 0 0];  % CF(2,0) only, full form
+Sys.CF2 = 99;            % equivalent abbreviated form
+
+Sys.CF4 = [0 0 0 0 -8700 0 0 0 0];  % CF(4,0) only, full form
+Sys.CF4 = -8700;                    % equivalent abbreviated form
+</pre>
+
+<p>
+If more than one electron spin (and therefore more than one orbital angular moment) is present, specify one row of 2k+1 elements for each orbital angular moment. The first row is for the first orbital angular moment, etc.
+
+<pre class="matlab">
+Sys.S = [5/2 2];     % two spins
+Sys.L = [1 2];       % with two orbital angular momenta
+CF20a = 100;          % for the first orbital angular moment
+CF20b = -98;          % for the second orbital angular moment
+Sys.CF2 = [0 0 CF20a 0 0; 0 0 CF20b 0 0]; % two rows: one row per orbital angular moment
+Sys.CF2 = [CF20a; CF20b];                 % abbreviated form for two orbital angular moment, two rows as well
+</pre>
+
+<p>
+Currently, it is not possible to include tilt angles for the principal frames of these crystal field interaction tensors. All of them are assumed to be collinear with the molecular frame. By changing the molecular frame, i.e. by tilting all other tensors (g, A, etc), this limitation can be partially circumvented. Still, all the crystal-field interactions are collinear. Alternatively, you can use <code>wignerd</code> to compute a Wigner rotation matrix that can be used to tilt the tensors explicitly.
+</p>
+
+<pre class="matlab">
+angles = rand(1,3)*pi;   % Euler tilt angles, in radians
+CF2 = [3 4 5 0 2];        % CF(2,q) tensor components
+R = wignerd(2,angles);   % rotation matrix for rank-2 tensor
+CF2 = R*CF2;               % rotated tensor
+Sys.CF2 = CF2.';
+</pre>
+
+</div>
+
+<div class="optionfield"><code>orf</code></div>  
+<div class="optiondescr">
+Orbital reduction factors (orf) entering in the Zeeman Hamiltonian and the spin-orbit interaction, one for each orbital angular momentum in <code>L</code>. <code>orf</code> is an optional field, if omitted it is assumed equal to 1 for all orbital angular momenta. The number of elements in <code>orf</code> must match the number of elements in <code>L</code>.
+
+<pre class="matlab">
+Sys.orf = 3/2;          % orf for a single orbital angular momentum
+Sys.orf = [0.97 0.93];  % orf for two orbital angular momenta
+</pre>
+</div>
+
+<div class="optionfield"><code>soc</code></div>  
+<div class="optiondescr">
+Spin-orbit coupling constants, in MHz. It can also contain higher orders of the spin-orbit coupling, as sometimes used for heavier elements. Each electron spin can only be coupled to one orbital angular momentum. If more than one electron is present, the first row contain the coupling between the first electron spin and the first orbital angular momentum and so on. Examples:
+<pre class="matlab">
+% three electron spins, with linear soc parameter of 170, 250 cm^-1 and 0:
+Sys.soc = [170; 250; 0]*clight*1e-4;
+% as above, plus the first spin has a cubic soc parameter of 10 cm-^1:
+Sys.soc = [170 0, 10; 250, 0, 0; 0, 0, 0]*clight*1e-4; 
+
+% two electron spin with S =1/2 and 1 and L = 2 and 1
+Sys.S = [1/2 1];
+Sys.L = [2 1];
+Sys.soc = [200; 100]*clight*1e-4; 
+% linear soc of 200 cm-1 between S = 1/2 and L = 2 
+% linear soc of 100 cm-1 parameter between S = 1 and L = 1
+</pre>  
+</div>
+
+<div class="subtitle"><a name="Ham">General Parameters for Spin Hamiltonian expanded in Magnetic Field and Electron Spin</a></div>
+<p>
+The Spin-Hamiltonian is in general a polynom of the magnetic field and the spin operator. This general expansion is implemented for electron spins (not for nuclei). Currently, general parameter are supported by the simulation functions <a class="esf" href="pepper.html">pepper</a> (solid-state EPR)and <a class="esf" href="curry.html">curry</a>. The coefficients can be provided in the following way:
+<div class="optionfield"><code>Ham</code></div>  
+<div class="optiondescr">
+The coefficients C(p<sub>B</sub>, p<sub>S</sub>, p, q) should be real and in units of MHz (mT)<sup>-p<sub>B</sub></sup>.The p<sub>B</sub>, p<sub>S</sub>, p are integrated in the field name in this order. If any of these fields are not given, they are treated as zero.
+Each field that is given should contain a row vector of 2p+1 parameters, in order of decreasing q, running from +p to -p. For example: 
+<pre class="matlab">
+Sys.Ham134 = [0 0 36 0 0 0 12 0 0 0]; % pB = 1, pS = 3, p = 4, q = +4,+3,+2,+1,0,-1,-2,-3,-4
+</pre></p>
+<pre class="matlab">
+%convert the more common D and E:
+Sys.Ham022 = [sqrt(2)*E 0 sqrt(2/3)*D 0 0];
+%convert an isotropic g value:
+Sys.Ham110 = -bmagn/planck*1e-9*sqrt(3)*g;
+</pre>
+</div>
+
+
+<div class="subtitle"><a name="lw">Line broadenings and strains</a></div>
+
+<p>
+There is a number of fields by which line broadenings can be specified. <code>lw</code> and <code>lwEndor</code> are line widths (FWHM) which are used for convolution of the simulated spectrum. All others are so-called strains and describe Gaussian distributions in the associated spin Hamiltonian parameters.
+</p>
+
+<p>
+For a full documentation of the line broadening fields in the spin system structure, see the <a href="broadenings.html">page on line broadenings</a>.
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+</html>

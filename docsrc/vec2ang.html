@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>vec2ang</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">vec2ang</div>
+
+<p>
+Cartesian vector to polar angles conversion.
+</p>
+
+<!-- ============================================================= -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+[phi,theta] = vec2ang(Vecs)
+angles = vec2ang(Vecs)
+</pre>
+
+<!-- ============================================================= -->
+<div class="subtitle">Description</div>
+
+<p>
+This function converts 3D cartesian coordinates to polar angles. Given one or
+more cartesian vectors in <code>Vecs</code>, <code>vec2ang</code> returns
+the corresponding polar angles <code>phi</code> and <code>theta</code>,
+both in radians.
+</p>
+
+<p>
+<code>phi</code> denotes the counterclockwise angle between the x axis
+and the projection of a vector onto the xy plane (azimuth),
+<code>theta</code> is the angle between a vector and the z axis
+(polar angle, colatitude, elevation complement).
+</p>
+
+<p>
+If only one output argument is requested, an array <code>angles</code> is
+returned that contains the <code>phi</code> values in the first row and the
+<code>theta</code> values in the second row.
+</p>
+
+<p>
+<code>Vecs</code> can be a 3xN array (list of column vectors) or an Mx3 array
+(list of row vectors). If it is a 3x3 array, the vectors are assumed to be
+along <em>columns</em>.
+</p>
+
+<p>
+The vectors in <code>Vecs</code> don't have to be normalized.
+</p>
+
+<!-- ============================================================= -->
+<div class="subtitle">Examples</div>
+
+<p>
+A set of vectors with linearly increasing z coordinate gives polar
+angles where <code>theta</code> is not linearly decreasing.
+</p>
+
+<pre class="matlab">
+v = ones(3,6);
+v(3,:) = linspace(0,9,6);
+[ph,th] = vec2ang(v);
+th*180/pi
+</pre>
+<pre class="mloutput">
+ans =
+   90.0000   38.1558   21.4467   14.6757   11.1125    8.9301
+</pre>
+
+<!-- ============================================================= -->
+<div class="subtitle">See also</div>
+
+<p>
+<a class="esf" href="ang2vec.html">ang2vec</a>,
+<a class="esf" href="erot.html">erot</a>,
+<a class="esf" href="eulang.html">eulang</a>
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+</html>

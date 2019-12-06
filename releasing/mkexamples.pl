@@ -25,7 +25,7 @@ $Description{'varia'} = 'Other examples';
 $Description{'fitting'} = 'Least-squares fitting';
 $Description{'magnetometry'} = 'Magnetometry';
 
-open(D,'>../docs/examplesmain.html');
+open(D,'>../docsrc/examplesmain.html');
 
 print D  <<QQQ;
 <!DOCTYPE html>
