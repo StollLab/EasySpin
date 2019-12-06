@@ -19,13 +19,20 @@ If you are on Windows:
 * Make sure it was correctly added to the search path by running `pdftex -version`. If you get an error message, add the directory that contains the LaTex files to the search path.
 
 If you are on a Unix system:
-* Install perl with `sudo apt-get install perl`
-* Install LaTeX with `sudo apt-get install texlive-latex-extra` and `sudo apt-get install latex2html`
+* Install perl with 
+    ```bash
+    sudo apt-get install perl
+    ```
+* Install LaTeX with 
+    ```bash
+    sudo apt-get install texlive-latex-extra
+    sudo apt-get install latex2html
+    ```
 
 ## Building the documentation
 Once you have made sure, that you have working versions of perl and LaTeX, open a terminal *in* the `releasing` folder.
 Then run:
-```
+```bash
 perl docbuilder.pl
 ```
 This will create the compiled version of the EasySpin documentation in the `documentation` folder. 

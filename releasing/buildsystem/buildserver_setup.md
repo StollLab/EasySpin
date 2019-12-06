@@ -2,22 +2,22 @@
 
 ## 1. Install and set up `perl`:
 
-```
+```bash
 sudo apt-get install perl
 ```
 
 Install packages:
-```
+```bash
 apt-get install libgmp-dev
 sudo cpan Net::SSH::Perl
 ```
 
 If building failes with `"Could not make: unknown error"` the `make` command might be missing. Install it with 
-```
+```bash
 sudo apt-get install build-essential
 ```
 If it still does not install, force the install even if dependencies are missing or not passing all tests: 
-```
+```bash
 sudo cpan install -f Net::SSH::Perl
 ```
  
@@ -63,32 +63,32 @@ Add the following to `~/.bash_profile`, if `.bash_profile` does not exist, just 
 	ssh-add ~/.ssh/github_rsa
 	```
 	If you get an error message, it might be necessary to change read write permissions:
-	```
+	```bash
 	chmod 600 ~/.ssh/hostmonster_rsa
 	chmod 600 ~/.ssh/github_rsa
 	```
 		
 	
 ## 3. Install TexLive
-```
+```bash
 sudo apt-get install texlive-latex-extra
 sudo apt-get install latex2html
 ```
 
 ## 4. Have MATLAB installed and verify that you can run it
-```
+```bash
 matlab -help
 ```
 
 ## 5. Install and setup up git
-```
+```bash
 sudo apt-get install git
 ```
 	
 
 ## 6. Setup the buildsys
 1. create a directory of your choosing. e.g. 
-	```
+	```bash
 	mkdir ~/esbuildsys
 	```
 2. copy the files `config.pl`, `build.pl`, `publish.pl`, `esbuild.m` and `docbuilder.pl` from the EasySpin repository into the folder that you just created.
@@ -98,12 +98,12 @@ sudo apt-get install git
 # How to build and publish EasySpin versions
 ## Packaging - `build.pl`
 - Build all EasySpin versions that are not in the `easyspin-builds` directory and upload the most recent versions for each release channel with
-	```
+	```bash
 	perl build.pl
 	```
 
 - Build a specific tag
-	```
+	```bash
 	perl build.pl 5.3.1
 	```
 	This only builds the specified EasySpin version, but does not upload anything.
@@ -115,7 +115,7 @@ By default, the automatic build system (which gets triggered through Github Acti
 
 - The corresponding easyspin-TAG.zip file must be in the build directory (specified with config.pl)
 - This example uploads the 5.2.22 version: 
-	```
+	```bash
 	perl publish.pl 5.2.22
 	```
 If you want to change the release channel, this can be specified in `config.pl`, e.g.:
@@ -132,7 +132,7 @@ Development versions _need_ to end with `alpha`/`beta`/`dev` and a number, e.g: 
 They are all interpreted as belonging to the development channel and everything that is tagged with development is updated on the website, regardless of the major version.
 
 To upload 6.0.0-dev.18, you would type :
-```
+```bash
 perl publish.pl 6.0.0-dev.18
 ```
 
@@ -142,6 +142,6 @@ In such a case (when no semantic versioning is available) the releasechannel for
 
 The corresponding packaged EasySpin (`easyspin-evolve.zip`) _must_ be present in the build directory!
 Upload with:
-	```
+	```bash
 	perl publish.pl evolve
 	```
