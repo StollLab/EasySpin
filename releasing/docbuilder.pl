@@ -14,7 +14,6 @@ if (-e $configfile){
   # this is usually the case for the automatic build system
   our $TempRepoDir; 
   require './config.pl'; # load the configuration file
-  print("yes \n");
 }
 else {
   # if the documentation is locally build, the builder assumes to be run from the releasing subdirectory
@@ -23,25 +22,29 @@ else {
 
 # store all the paths that are needed to properly create the documentation
 $sourcedir = File::Spec->catdir($TempRepoDir, "docsrc");
-$targetdir = File::Spec->catdir($TempRepoDir, "documentation");
-$pngdir    = File::Spec->catdir($targetdir, "eqn");
-$scriptdir = File::Spec->catdir($TempRepoDir, "scripts");
+$documentationdir = File::Spec->catdir($TempRepoDir, "documentation");
+$pngdir    = File::Spec->catdir($documentationdir, "eqn");
+$scriptdir = File::Spec->catdir($TempRepoDir, "releasing");
 $tempdir   = File::Spec->catdir(".", "latextemp");
 
-print("$sourcedir \n");
+# older versions of easyspin had a slightly different folder layout, which needs to be adjusted for
 if (not -e $sourcedir) {
-  print("docsrc not found \n");
-  print("$sourcedir \n");
   $sourcedir = File::Spec->catdir($TempRepoDir, "docs");
 }
+if (not -e $scriptdir) {
+  $scriptdir = File::Spec->catdir($TempRepoDir, "scripts");
+}
+
+# set path to LaTex template file
+$templatefile = File::Spec->catfile($scriptdir, "template.tex");
 
 # check if documentation folder already exists and delete if yes
-if (-e $targetdir) {
+if (-e $documentationdir) {
   if ($isWindows) {
-    system("rmdir /s /q $targetdir ");
+    system("rmdir /s /q $documentationdir ");
   }
   else{
-    system("rm -R $targetdir");
+    system("rm -R $documentationdir");
   }
 }
 
@@ -56,27 +59,18 @@ if (-e $tempdir) {
 }
 
 # copy doc source to documentation and delete html templates folder
-$htmltemplatedir = File::Spec->catdir($targetdir, "templates");
+$htmltemplatedir = File::Spec->catdir($documentationdir, "templates");
 if ($isWindows) {
-    system("xcopy /E $sourcedir $targetdir\\ > NUL"); # double slash \\ is required so that Windows understand it is a directory
+    system("xcopy /E $sourcedir $documentationdir\\ > NUL"); # double slash \\ is required so that Windows understand it is a directory
     system("rmdir /s /q $htmltemplatedir ");
   }
 else{
-    system("cp -r $sourcedir $targetdir");
+    system("cp -r $sourcedir $documentationdir");
     system("rm -R $htmltemplatedir");
 }
 
 system("mkdir $pngdir");
 system("mkdir $tempdir");
-
-if (-e $scriptdir) {
-    # this catches the legacy version from before releasing and scripts folders where merged
-    $templatefile = File::Spec->catfile($TempRepoDir, "scripts", "template.tex");
-}
-else {
-    # this should be the default behavior, after merge of releasing and scripts folder
-    $templatefile = File::Spec->catfile($TempRepoDir, "releasing", "template.tex");
-}
 
 # set up options for latex and related commands
 $latexoptions = "--interaction=batchmode --output-directory=$tempdir";
