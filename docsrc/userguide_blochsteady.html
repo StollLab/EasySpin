@@ -25,10 +25,10 @@
 
 <section>
 
-<div class="functitle">Rapid scan: Steady-state solution of the Bloch equations</div>
+<div class="functitle">Rapid scan EPR</div>
 
 <p>
-This user guide explains how to calculate steady-state solutions of the Bloch equations for a spin-1/2 in the presence of field modulation, using EasySpin's function <a class="esf" href="blochsteady.html">blochsteady</a>. This forms the basis of Rapid-Scan EPR.
+This user guide explains how to simulate rapid-scan EPR signals using EasySpin's function <a class="esf" href="blochsteady.html">blochsteady</a>. It also shows how to use <a class="esf" href="rapidscan2spc.html">rapidscan2spc</a> to convert a rapid-scan time domain signal into its corresponding EPR spectrum.
 </p>
 
 <p>
@@ -39,10 +39,8 @@ This user guide contains the following topics:
 <li><a href = "#options">Some options</a></li>
 <li><a href = "#sweeps">Field sweeps</a></li>
 <li><a href = "#powders">Powder averages</a></li>
+<li><a href = "#deconv">Converting rapid-scan signal to spectrum</a></li>
 </ul>
-
-<p>
-Keep in mind that <a class="esf" href="blochsteady.html">blochsteady</a> is a new function as of EasySpin 5, and it will likely change and expand in future releases.
 
 <!-- ============================================================= -->
 <a name="calling"><div class="subtitle">Time-domain cw EPR signal</div></a>
@@ -96,7 +94,7 @@ plot(t,My,t,Mx);
 <a name="options"><div class="subtitle">Some options</div></a>
 
 <p>
-In order to let you change some of the calculation settings, <a class="esf" href="blochsteady.html">blochsteady</a> can take one more input argument, a structure. In it, you can set the number of points you want to have in the time-domain signal:
+<a class="esf" href="blochsteady.html">blochsteady</a> can take one more input argument, a structure. In it, you can set the number of points you want to have in the time-domain signal:
 
 <pre class="matlab">
 Opt.nPoints = 1000;   % number of points
@@ -115,7 +113,7 @@ Opt.Method = 'fft';  % alternative: 'td', which is slower
 <a name="sweeps"><div class="subtitle">Field sweeps</div></a>
 
 <p>
-<a class="esf" href="blochsteady.html">blochsteady</a> does not have built-in capabilities for a field sweep. However, you can set one up using a <code>for</code> loop. Here is a brief example, using the same inputs as above:
+<a class="esf" href="blochsteady.html">blochsteady</a> does not have built-in capabilities for a field sweep. You can set one up using a <code>for</code> loop. Here is a brief example, using the same inputs as above:
 
 <pre class="matlab">
 deltaB0 = linspace(-1,1)*2;  % range of field offsets, mT
@@ -137,7 +135,7 @@ ylabel('time (\mus)');
 <!-- ============================================================= -->
 <a name="powders"><div class="subtitle">Powders</div></a>
 
-You can use <a class="esf" href="blochsteady.html">blochsteady</a> to simulate rapid-scan spectra of powders. For spin systems with essentially isotropic g factors, there is a very compact way: First simulate the spectrum using <a class="esf" href="pepper.html">pepper</a>, and then use this to run a field sweep with <a class="esf" href="blcohsteady.html">blochsteady</a>.
+You can use <a class="esf" href="blochsteady.html">blochsteady</a> to simulate rapid-scan spectra of powders. For spin systems with essentially isotropic g factors, there is a very compact way: First simulate the spectrum using <a class="esf" href="pepper.html">pepper</a>, and then use this to run a field sweep with <a class="esf" href="blochsteady.html">blochsteady</a>.
 
 <p>
 Let's take a nitroxide as an example. First, simulate the powder spectrum, without field modulation
@@ -186,6 +184,27 @@ Finally, we can plot the result:
 plot(t,spc_rs);
 xlabel('time (\mus)');
 </pre>
+
+
+<!-- ============================================================= -->
+<a name="powders"><div class="subtitle">Powders</div></a>
+
+<p>
+To convert an experimental or simulated rapid-scan time domain signal to its corresponding spectrum, use the function <a class="esf" href="rapidscan2spc.html">rapidscan2spc</a>. Here is a simple example.
+</p>
+
+<pre class="matlab">
+Mxy = -Mx + 1i*My;     % dispersion and absorption
+ModAmp = 1;            % modulation amplitude, in mT
+ModFreq = 50;          % modulation frequency, in kHz
+g = 2;                 % g value for frequency/field conversions
+[B,spc] = rapidscan2spc(Mxy,ModAmp,ModFreq,g);
+plot(B,spc);
+</pre>
+
+<p>
+The input time domain signal must contain both the dispersion (real part) and the absorption (imaginary part) for this to work.
+</p>
 
 <hr>
 
