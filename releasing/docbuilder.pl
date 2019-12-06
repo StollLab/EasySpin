@@ -24,19 +24,17 @@ else {
 $sourcedir = File::Spec->catdir($TempRepoDir, "docsrc");
 $documentationdir = File::Spec->catdir($TempRepoDir, "documentation");
 $pngdir    = File::Spec->catdir($documentationdir, "eqn");
-$scriptdir = File::Spec->catdir($TempRepoDir, "releasing");
+
 $tempdir   = File::Spec->catdir(".", "latextemp");
 
 # older versions of easyspin had a slightly different folder layout, which needs to be adjusted for
 if (not -e $sourcedir) {
   $sourcedir = File::Spec->catdir($TempRepoDir, "docs");
 }
-if (not -e $scriptdir) {
-  $scriptdir = File::Spec->catdir($TempRepoDir, "scripts");
+$templatefile = File::Spec->catfile($TempRepoDir, "releasing","template.tex");
+if (not -e $templatefile) {
+  $templatefile = File::Spec->catfile($TempRepoDir, "scripts","template.tex");
 }
-
-# set path to LaTex template file
-$templatefile = File::Spec->catfile($scriptdir, "template.tex");
 
 # check if documentation folder already exists and delete if yes
 if (-e $documentationdir) {
