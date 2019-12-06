@@ -25,14 +25,14 @@ sudo cpan install -f Net::SSH::Perl
 ## 2. Set up SSH authentication
 
 1. Make sure `ssh` is installed
-	```
+	```bash
 	sudo apt-get install ssh 
 	```
 2. Copy key files `hostmonster_rsa` and `github_rsa` (need to create one for user) to: `~/.ssh/`.
 
 3. Set the ssh agent up to run automatically when somebody logs in. 
 Add the following to `~/.bash_profile`, if `.bash_profile` does not exist, just create a new one:
- 	```
+ 	```bash
 	SSH_ENV="$HOME/.ssh/environment"
 
 	function start_agent {
@@ -58,7 +58,7 @@ Add the following to `~/.bash_profile`, if `.bash_profile` does not exist, just 
 			
    Now every time you login you should get a message that the SSH agent is being initialised (additionally the Github action builder also loads the `bash_profile` to make sure everything worked)
 4. To verify that the keyfiles work, load them with 
-	```
+	```bash
 	ssh-add ~/.ssh/hostmonster_rsa
 	ssh-add ~/.ssh/github_rsa
 	```
