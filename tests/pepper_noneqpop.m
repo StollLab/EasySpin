@@ -8,15 +8,15 @@ Sys = struct('S',1,'g',2,'lw',0.3,'D',300);
 Exp = struct('mwFreq',9.5,'Range',[325 355],'Harmonic',0);
 
 % User-specified population vector
-Exp.Temperature = [0.85 1 0.95];
+Sys.Pop = [0.85 1 0.95];
 
 % Simulation options
-Opt = [];
+Opt = struct;
 
 [x,spc] = pepper(Sys,Exp,Opt);
 
 
-if (opt.Display)
+if opt.Display
   if isempty(olddata)
     plot(x,spc);
   else

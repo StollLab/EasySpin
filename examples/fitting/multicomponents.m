@@ -20,4 +20,4 @@ y = addnoise(y,40,'n');
 Vary1.g = [0.1 0.1];
 Vary2.g = [0.1 0.1];
 
-esfit('pepper',y,{Sys1,Sys2},{Vary1,Vary2},Exp);
+esfit(@pepper,y,{Sys1,Sys2},{Vary1,Vary2},Exp);

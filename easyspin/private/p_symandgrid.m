@@ -12,7 +12,8 @@ if Exp.PowderSimulation
     
     msg = 'automatic determination of symmetry group and frame';
     [Opt.Symmetry,Opt.SymmFrame] = symm(Sys);
-    if (numel(Exp.Temperature)>1) && strcmp(Opt.Symmetry,'Dinfh')
+    nonEquiPops = isfield(Sys,'Pop') && ~isempty(Sys.Pop);
+    if nonEquiPops && strcmp(Opt.Symmetry,'Dinfh')
       logmsg(1,'  Hamiltonian symmetry is axial, non-equilibrium populations\n   -> reduction to rhombic');
       Opt.Symmetry = 'D2h';
     end

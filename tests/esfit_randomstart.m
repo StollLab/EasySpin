@@ -14,7 +14,7 @@ rng_(123);
 FitOpt.RandomStart = 1;
 FitOpt.PrintLevel = 0;
 
-[spcfit,dummy,residuals] = esfit('pepper',spc,Sys,Vary,Exp,[],FitOpt);
+[spcfit,dummy,residuals] = esfit(@pepper,spc,Sys,Vary,Exp,[],FitOpt);
 
 rmsd = sqrt(sum(residuals.^2));
 

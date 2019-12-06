@@ -91,21 +91,18 @@ Exp = adddefaults(Exp,DefaultExp);
 
 mwFreq = Exp.mwFreq*1e3; % GHz -> MHz
 
-nPop = numel(Exp.Temperature);
-if (nPop>1)
-  %error('Non-equilibrium populations not supported.');
-  ComputeBoltzmann = 0;
-  ComputeNonEquiPops = 1;
+computeNonEquiPops = isfield(Sys,'Pop') && ~isempty(Sys.Pop);
+if computeNonEquiPops
+  computeBoltzmann = false;
   nElectronStates = prod(2*Sys.S+1);
-  if (nPop~=nElectronStates)
+  if nPop~=nElectronStates
     error('Params.Temperature must either be a scalar or a %d-vector',nElectronStates);
   end
 else
   if isinf(Exp.Temperature)
     error('If given, Params.Temperature must be a finite value.');
   end
-  ComputeNonEquiPops = 0;
-  ComputeBoltzmann = ~isnan(Exp.Temperature);
+  computeBoltzmann = ~isnan(Exp.Temperature);
 end
 
 if isfield(Exp,'ExciteWidth')
@@ -182,21 +179,20 @@ end
 % The first and only compilation of the full Hamiltonian.
 [F,GxM,GyM,GzM] = sham(Sys);
 
-% Population vector
-if (ComputeNonEquiPops)
-  ZeroFieldPops = Exp.Temperature(:);
-  ZeroFieldPops = ZeroFieldPops/sum(ZeroFieldPops);
-  ZeroFieldPops = kron(ZeroFieldPops,ones(prod(Sys.I*2+1),1));
-end
 
 % For polarized systems, pre-compute ZF eigenstates.
-if (ComputeNonEquiPops)
+if computeNonEquiPops
+  
+  ZFPopulations = Sys.Pop(:);
+  ZFPopulations = ZFPopulations/sum(ZFPopulations);
+  ZFPopulations = kron(ZFPopulations,ones(prod(Sys.I*2+1),1));
+  
   [ZFStates,ZFEnergies] = eig(F);
   [ZFEnergies,idx] = sort(real(diag(ZFEnergies)));
   ZFStates = ZFStates(:,idx);
   % Correct zero-field states for S=1 and axial D
-  if 0&&(Sys.S==1)
-    if (ZFEnergies(2)==ZFEnergies(3))
+  if Sys.S==1
+    if ZFEnergies(2)==ZFEnergies(3)
       logmsg(1,'  >>>> manual zero-field states (D>0)');
       v1 = ZFStates(:,2);
       v2 = ZFStates(:,3);
@@ -363,12 +359,12 @@ logmsg(1,msg);
 % Preallocations.
 Pdat = ones(nTransitions,nOrientations)*NaN;
 Idat = [];
-if (ComputeIntensities), Idat = zeros(nTransitions,nOrientations); end
+if ComputeIntensities, Idat = zeros(nTransitions,nOrientations); end
 
 % Other preparations.
-if (ComputeIntensities)
+if ComputeIntensities
   % Set detection operators for intensity computations.
-  if (EnhancementSwitch)
+  if EnhancementSwitch
     % Zeeman interaction including electronic Zeeman interaction,
     % includes implicitely hyperfine enhancement
     %DxM = GxM; DyM = GyM; DzM = GzM;
@@ -379,7 +375,7 @@ if (ComputeIntensities)
   end
   [DxM,DyM,DzM] = zeeman(Sys,Nuc);
   
-  if (OrientationSelection)
+  if OrientationSelection
     % Electron Zeeman interaction operators for EPR transition
     % rate computation
     [ExM,EyM,EzM] = zeeman(Sys,1);
@@ -388,7 +384,7 @@ if (ComputeIntensities)
   end
   
   % Prefactor used for computing the Boltzmann population distribution.
-  if (ComputeBoltzmann)
+  if computeBoltzmann
     BoltzmannPreFactor = -1e6*planck/boltzm/Exp.Temperature;
   end
 end
@@ -503,11 +499,11 @@ for iOri = 1:nOrientations
       
       % Compute polarization if temperature or zero-field populations are given.
       Populations = [];
-      if (ComputeBoltzmann)
+      if computeBoltzmann
         Populations = exp(BoltzmannPreFactor*(E0-E0(1)));
         %Polarization = (Populations(u) - Populations(v))/sum(Populations);
-      elseif (ComputeNonEquiPops)
-        Populations = (abs(ZFStates'*Vs).^2).'*ZeroFieldPops; % lower level
+      elseif computeNonEquiPops
+        Populations = (abs(ZFStates'*Vs).^2).'*ZFPopulations; % lower level
         %Polarization = PopulationU - PopulationV;
       end
       if isempty(Populations)
@@ -542,7 +538,7 @@ for iOri = 1:nOrientations
     end % if OrientationSelection else
         
     % Compute polarization if temperature or zero-field populations are given.
-    if (ComputeBoltzmann)
+    if (computeBoltzmann)
       Populations = exp(BoltzmannPreFactor*(E0-E0(1)));
       NuclearPolarization = (Populations(u) - Populations(v))/sum(Populations);
     else

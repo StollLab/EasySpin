@@ -26,4 +26,4 @@ Sys.A = [12 8.5 2.6 2.4];
 Vary.A = [2 2 1 1];
 
 FitOpt.Method = 'genetic int';
-BestSys = esfit('garlic',ya,Sys,Vary,Exp,[],FitOpt);
+BestSys = esfit(@garlic,ya,Sys,Vary,Exp,[],FitOpt);

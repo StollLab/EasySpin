@@ -140,9 +140,11 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
   
   PowderSimulation = ~isfield(Exp,'CrystalOrientation') || isempty(Exp.CrystalOrientation) || ...
     (isfield(Exp,'Ordering') && ~isempty(Exp.Ordering));
-  appendSpectra = PowderSimulation && ~summedOutput;
-  if appendSpectra
+  separateSpectra = ~summedOutput && ...
+    (nComponents>1 || sum(nIsotopologues)>1);
+  if separateSpectra
     spec = [];
+    Opt.Output = 'summed'; % summed spectrum for each isotopologue
   else
     spec = 0;
   end
@@ -157,7 +159,7 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
       [xAxis,spec_,Transitions] = pepper(Sys_,Exp,Opt);
       
       % Accumulate or append spectra
-      if appendSpectra
+      if separateSpectra
         spec = [spec; spec_*Sys_.weight];
       else
         spec = spec + spec_*Sys_.weight;
@@ -451,19 +453,18 @@ if ~isempty(Exp.Ordering)
 end
 
 % Temperature and non-equilibrium populations
-NonEquiPops = false;
-if isfinite(Exp.Temperature)
-  if numel(Exp.Temperature)==1
-    msg = sprintf('  temperature %g K',Exp.Temperature);
-  else
-    msg = '  user-specified non-equilibrium populations';
-    NonEquiPops = true;
-    if max(Exp.Temperature)==min(Exp.Temperature)
-      error('Populations in Exp.Temperature cannot be all equal!');
-    end
+nonEquiPops = isfield(Sys,'Pop') && ~isempty(Sys.Pop);
+if nonEquiPops
+  msg = '  user-specified non-equilibrium populations';
+  if max(Sys.Pop)==min(Sys.Pop)
+    error('Populations in Sys.Pop cannot be all equal!');
   end
 else
-  msg = '  no temperature';
+  if isfinite(Exp.Temperature)
+    msg = sprintf('  temperature %g K',Exp.Temperature);
+  else
+    msg = '  no temperature';
+  end
 end
 logmsg(1,msg);
 %=======================================================================
@@ -646,7 +647,7 @@ if FieldSweep
         [Pdat,Idat,Wdat,Transitions,spec] = resfields_perturb(Sys,Exp1,Opt);
     end
     logmsg(2,'  -exiting resfields*-----------------------------------');
-        
+    
     if isempty(Wdat)
       anisotropicWidths = false;
     else
@@ -1001,7 +1002,7 @@ elseif ~BruteForceSum
       end
       
       msg1 = '';
-      if ~NonEquiPops && any(fInt(:)<0), msg1 = 'intensities'; end
+      if ~nonEquiPops && any(fInt(:)<0), msg1 = 'intensities'; end
       if any(fWid(:)<0), msg1 = 'widths'; end
       if ~isempty(msg1)
         error('Negative %s encountered! Please report!',msg1);

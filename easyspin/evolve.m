@@ -28,6 +28,7 @@
 %       [1 1 2]       2p-ESEEM etc. with echo transient
 %       [1 -1 2]      3p-DEER, 4p-DEER etc. with echo transient
 %       [1 2 1]       2D 3p-ESEEM
+%       [1 1 2 2]     2D refocused 2p-echo
 %       [1 2 2 1]     2D CP
 %       [1 2 -2 1]    2D PEANUT
 %       [1 1 -1 -1 2] SIFTER with echo transient
@@ -332,6 +333,30 @@ elseif isequal(IncScheme,[1 2 1])
       MixY = UUX_.*MixY; % equivalent to UX*MixY*UX
     end
     Mix1 = UY*Mix1;
+  end
+  
+elseif isequal(IncScheme,[1 1 2 2])
+  
+  UUX_ = diagUX*diagUX.';
+  UUY_ = diagUY*diagUY.';
+  Mix2 = Mix{2};
+  Uy3y = Mix{3};
+  for iy = 1:n(2)
+    Uy3y2 = Uy3y*Mix2;
+    Ux1x = Mix{1};
+    for ix = 1:n(1)
+      P = Uy3y2*Ux1x;
+      FinalDensity = P*Density*P';
+      if nDetectors==1
+        Signal(ix,iy) = Detector*FinalDensity(:);
+      else
+        for iDet = 1:nDetectors
+          Signal{iDet}(ix,iy) = Detector{iDet}*FinalDensity(:);
+        end
+      end
+      Ux1x = UUX_.*Ux1x; % equivalent to UX*Ux1x*UX
+    end
+    Uy3y = UUY_.*Uy3y; % equivalent to UY*Uy3y*UY
   end
   
 elseif isequal(IncScheme,[1 2 2 1])

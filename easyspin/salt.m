@@ -74,12 +74,11 @@ EasySpinLogLevel = Opt.Verbosity;
 FrequencyAutoRange = (~isfield(Exp,'Range') || isempty(Exp.Range)) && ...
   (~isfield(Exp,'CenterSweep') || isempty(Exp.CenterSweep));
 if ~isfield(Opt,'IsoCutoff'), Opt.IsoCutoff = 1e-4; end
-if ~isfield(Opt,'Output'), Opt.Output = 'summed'; end
 
+if ~isfield(Opt,'Output'), Opt.Output = 'summed'; end
 [Output,err] = parseoption(Opt,'Output',{'summed','separate'});
 error(err);
 summedOutput = Output==1;
-
 
 if ~isfield(Sys,'singleiso') || ~Sys.singleiso
 
@@ -105,9 +104,11 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
   PowderSimulation = ~isfield(Exp,'CrystalOrientation') || ...
     isempty(Exp.CrystalOrientation) || ...
     (isfield(Exp,'Ordering') && ~isempty(Exp.Ordering));
-  appendSpectra = PowderSimulation && ~summedOutput;
-  if appendSpectra
+  separateSpectra = ~summedOutput && ...
+    (nComponents>1 || sum(nIsotopologues)>1);
+  if separateSpectra
     spec = [];
+    Opt.Output = 'summed'; % summed spectrum for each isotopologue
   else
     spec = 0;
   end
@@ -122,7 +123,7 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
       [xAxis,spec_,Transitions] = salt(Sys_,Exp,Opt);
       
       % Accumulate or append spectra
-      if appendSpectra
+      if separateSpectra
         spec = [spec; spec_*Sys_.weight];
       else
         spec = spec + spec_*Sys_.weight;
@@ -132,7 +133,7 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
   end
   
   % Output and plotting
-  switch (nargout)
+  switch nargout
     case 0
       cla
       plot(xAxis,spec);
