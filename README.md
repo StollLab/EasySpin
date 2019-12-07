@@ -16,8 +16,11 @@ EasySpin is a MATLAB-based toolbox for the simulation and analysis of Electron P
 The EasySpin source code is organized as follows:
 
     easyspin/      source code for EasySpin's toolbox functions
-    docs/          source code for the documentation
+    docsrc/        source code for the documentation
     examples/      collection of EasySpin example scripts
     releasing/     build scripts etc.
-    scripts/       other scripts
     tests/         unit tests for EasySpin
+
+## Documentation
+
+A local copy of the documentation can be built with a perl script `docbuilder.pl`. For more information see the [documentation](/releasing/howto_documentation.md) in the `releasing` subfolder.

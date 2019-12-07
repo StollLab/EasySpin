@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>quatmult</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">quatmult</div>
+
+<p>
+Perform quaternion multiplication.
+</p>
+
+<!-- ============================================================= -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+q3 = quatmult(q1,q2)
+</pre>
+
+<!-- ============================================================= -->
+<div class="subtitle">Description</div>
+
+<p>
+Perform lefthand quaternion multiplication of <code>q2</code> by <code>q1</code>, i.e. "<code>q1</code> times <code>q2</code>". The input quaternions(s) are given as 4xN arrays. The resulting quaternion(s) are returned as 4xN arrays.
+</p>
+
+<p>
+Just as matrix multiplication between rotation matrices combines sequential rotations, quaternion multiplication between unit quaternions also combines sequential rotations.
+</p>
+
+<p>
+Note that <code>quatmult</code> is vectorized and will accept arrays of unit quaternions of size 4xNxMx... with an arbitrary number of dimenions, in which case the resulting quaternions will be returned as an array of size 4xNxMx... .
+</p>
+
+<!-- ============================================================= -->
+<div class="subtitle">Examples</div>
+
+<p>
+Taking two arbitrary quaternions and normalizing the results, we perform quaternion multiplication
+</p>
+
+<pre class="matlab">
+q1 = [0.1; 0.438; -0.879; 0.699];
+q1 = q1./sqrt(sum(q1.^2));
+q2 = [0.46; -0.984; -0.324; 0.167];
+q2 = q2./sqrt(sum(q2.^2));
+q3 = quatmult(q1,q2)
+</pre>
+<pre class="mloutput">
+q3 =
+    0.0545
+    0.1319
+   -0.8642
+   -0.4824
+</pre>
+
+<p>
+To show that quaternion multiplication between unit quaternions equates to combining sequential rotations, we first rotate an arbitrary unit vector <code>vec</code> using <code>q3</code>. Then, we rotate <code>vec</code> first using <code>q2</code> and second using <code>q1</code>. Finally, we compare the results of the two methods.
+</p>
+
+<pre class="matlab">
+vec = [0.3; 0.9; -0.4];
+vec = vec./sqrt(sum(vec.^2));
+quatvecmult(q3,vec)
+quatvecmult(q1, quatvecmult(q2,vec))
+</pre>
+<pre class="mloutput">
+ans =
+   -0.3468
+    0.0367
+    0.9372
+ans =
+   -0.3468
+    0.0367
+    0.9372
+</pre>
+
+
+<!-- ============================================================= -->
+<div class="subtitle">See also</div>
+
+<p>
+<a class="esf" href="quat2rotmat.html">rotmat2quat</a>,
+<a class="esf" href="quat2euler.html">quat2euler</a>,
+<a class="esf" href="rotmat2quat.html">rotmat2quat</a>,
+<a class="esf" href="euler2quat.html">euler2quat</a>,
+<a class="esf" href="quatvecmult.html">quatvecmult</a>,
+<a class="esf" href="quatinv.html">quatinv</a>
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+</html>

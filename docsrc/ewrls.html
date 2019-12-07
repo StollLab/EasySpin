@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>ewrls</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">ewrls</div>
+
+<p>
+Recursive least square adaptive filtered average.
+</p>
+
+<!-- =========================================================== -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+y = ewrls(data,p,lambda)
+y = ewrls(data,p,lambda,nPreAvg)
+y = ewrls(data,p,lambda,nPreAvg,delta)
+y = ewrls(data,p,lambda,nPreAvg,delta,dir)
+ewrls(...)
+</pre>
+
+<!-- =========================================================== -->
+<div class="subtitle">Description</div>
+
+<p>
+This function computes a filtered average of the input data, using an adaptive filter
+method called exponentially weighted recursive least squares (RLS or EWRLS) filtering.
+
+<p>
+It takes an 2D input array <code>data</code> containing the spectral data. Each column
+should represent one scan, and there should be multiple scans. It returns the filtered average in <code>y</code>.
+
+<p>
+The filter contains two parameters: The filter length <code>p</code> is typically in the range 5-50 and
+deterimes how many consequtive points are used to predict the next point. The memory factor <code>lambda</code>
+is a positive number slighty smaller than 1 (typically 0.9-0.99) and determines the memory of the filter,
+larger <code>lambda</code> values corresponding to longer memory.
+
+<p>
+The parameter <code>nPreAvg</code> determines how many scans are used to estimate a target signal. This
+number should be smaller than the number of scans in the data array, or it can be zero. If it is zero, all
+the scans are used. This is the preferred setting, and also the default.
+
+<p>
+<code>delta</code> is the regularization parameter and is used to initialize the matrix P in the
+recursive least squares algorithm. Usually, there is no need to set this value.
+
+<p>
+<code>dir</code> determines the direction the filter is applied. <code>'f'</code> is the forward direction,
+<code>'b'</code> is the backward direction, and <code>'fb'</code> computes an average of the forward and
+the backward direction. This is the default.
+
+
+<!-- =========================================================== -->
+<div class="subtitle">Examples</div>
+
+<p>
+Let's generate some dummy data
+</p>
+
+<pre class="matlab">
+nScans = 100;
+nPoints = 1001;
+t = linspace(-1,1,nPoints);
+signal = gaussian(t,0.2,0.3,1) + gaussian(t,-0.2,0.15,1)/2;
+signal = signal(:)/max(signal);
+for k = 1:nScans
+  datamatrix(:,k) = addnoise(signal,2,'n');
+end
+</pre>
+
+<p>
+Now let's compute a filtered average using <code>ewrls</code>, and have the
+function plot the result:
+</p>
+
+<pre class="matlab">
+p = 20; % filter length
+lambda = 0.96; % memory factor
+nPreAverage = 0;
+delta = 100; % regularization parameter
+ewrls(datamatrix,p,lambda,nPreAverage,delta,'fb');
+</pre>
+
+<!-- =========================================================== -->
+<div class="subtitle">References</div>
+
+The method implemented in <code>ewrl</code> is described in
+
+<ul>
+<li>
+C.J. Cochrane, P.M. Lenahan, <a href="http://dx.doi.org/10.1016/j.jmr.2008.08.004">Real time exponentially weighted recursive least squares adaptive signal
+averaging for enhancing the sensitivity of continuous wave magnetic resonance</a>, J. Magn. Reson. 195 (2008), 17-22.
+<li>
+C.J. Cochrane, P.M. Lenahan,
+Adaptive Signal Averaging Technique that Reduces the Acquisition Time of Continuous Wave Magnetic Resonance Experiments,
+EPR Newsletter 19/4 (2010), 10-11.
+<li>
+C.G. Brinton, D.J. Hirsh, <a href="http://dx.doi.org/10.1063/1.3293381">Note: Sensitivity enhancement in continuous-wave electron paramagnetic
+resonance: Adaptive signal averaging versus a moving average</a>, Rev. Sci. Instr. 81 (2010), 026102.
+</ul>
+
+<!-- =========================================================== -->
+<div class="subtitle">See also</div>
+
+<p>
+<a class="esf" href="addnoise.html">addnoise</a>
+<a class="esf" href="rcfilt.html">rcfilt</a>
+<a class="esf" href="datasmooth.html">datasmooth</a>
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+</html>

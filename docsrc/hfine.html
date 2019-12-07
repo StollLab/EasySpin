@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>hfine</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">hfine</div>
+
+<p>
+Hyperfine interaction Hamiltonian.
+</p>
+
+<!-- ====================================================== -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+F = hfine(System)
+F = hfine(System,Spins)
+F = hfine(System,Spins,'sparse')
+</pre>
+
+<!-- ====================================================== -->
+<div class="subtitle">Description</div>
+
+<p>
+<code>hfine</code> constructs the hyperfine interaction part of the spin
+Hamiltonian of spin system <code>System</code>, that is
+</p>
+
+<pre class="eqn">
+<img src="eqn/hfine1.png" alt="[eqn]"><!--MATH
+\begin{equation*}
+\Op{H}_\mr{HF}
+=
+\sum_k
+\sum_q
+\opvc{S}_k^\trp \mx{A}_{kq}\opvc{I}_q
+\quad.
+\end{equation*}
+-->
+</pre>
+
+<p>
+The operator matrix <code>F</code> is in units of MHz. If <code>Spins</code> is
+specified, it is used as an index into <code>System</code> for selecting
+spins. <code>Spins = 1</code> is the first electron, follow by the other electrons,
+if present, and the nuclei. E.g. for a system with 3 electrons and 2 nuclei,
+<code>[2 4 5]</code> indicates the hyperfine interactions of the electron 2 with both nuclei.
+</p>
+
+<p>
+If <code>'sparse'</code> is given as third argument, the Hamiltonian matrix is returned in sparse format
+instead of full format.
+</p>
+
+<!-- ====================================================== -->
+<div class="subtitle">Examples</div>
+
+<p>
+For a two-spin system <code>AB</code>
+</p>
+
+<pre class="matlab">
+AB = struct('S',1/2,'Nucs','23Na','g',[2 2 2],'A',[230 210 200]);
+AB.AFrame = [23 45 67]*pi/180;
+</pre>
+
+<p>
+with a hyperfine coupling matrix tilted with respect to the standard
+molecular frame, the eigenvalues of the hyperfine Hamiltonian are
+</p>
+
+<pre class="matlab">
+E = eig(hfine(AB))
+</pre>
+
+<pre class="mloutput">
+E =
+ -270.1785
+ -267.8967
+ -262.5431
+  146.7712
+  150.1785
+  157.8967
+  172.5431
+  173.2288
+</pre>
+
+<p>
+Obviously the slight anisotropy in A causes the states of the combined
+spin S+I to split in zero field.
+</p>
+
+<!-- ====================================================== -->
+<div class="subtitle">See also</div>
+
+<p>
+<a class="esf" href="eeint.html">eeint</a>,
+<a class="esf" href="nnint.html">nnint</a>,
+<a class="esf" href="nquad.html">nquad</a>,
+<a class="esf" href="sham.html">sham</a>,
+<a class="esf" href="zeeman.html">zeeman</a>,
+<a class="esf" href="zfield.html">zfield</a>
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+
+</html>

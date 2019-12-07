@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>fdaxis</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">fdaxis</div>
+
+<p>
+Generate frequency-domain abscissa for FFT data.
+</p>
+
+<!-- ====================================================== -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+xf = fdaxis(dT,N)
+xf = fdaxis(xt)
+</pre>
+
+<!-- ====================================================== -->
+<div class="subtitle">Description</div>
+
+<p>
+This function returns a vector <code>xf</code> of the frequencies of the FFT
+of a <code>N</code>-point time-domain signal with time step <code>dT</code>.
+<code>dT</code>
+can have any unit, the unit of <code>xf</code> is simply its inverse. So for
+<code>dT</code> in &mu;s, <code>xf</code> is in plain MHz (or Mc in old
+notation), not in angular frequency units.
+</p>
+
+<p>
+In its second call form, the function takes the full time-domain
+abscissa as input parameter. E.g., <code>xt = (0:10)*0.1</code> corresponds to
+<code>dT = 0.1</code> and <code>N = 11</code>.
+</p>
+
+<p>
+The DC component of the FFT abscissa <code>xf</code> is always in the centre.
+The output of MATLAB's <code>fft</code> returns the DC component as the first
+element. So be sure that you either apply <code>fftshift</code> to your data
+after <code>fft</code> or to <code>xf</code> in order to get correct results.
+</p>
+
+<!-- ====================================================== -->
+<div class="subtitle">Examples</div>
+
+<p>
+For a 512-point signal <code>tdata</code> sampled with time increments
+of 8 ns, the frequency domain abscissa in MHz is
+</p>
+
+<pre class="matlab">
+N = 512; dT = 0.008; % dT is in microseconds
+xf = fdaxis(dT,N); % xf is in MHz
+</pre>
+
+<p>
+The correct plot of the magnitude FFT of <code>tdata</code> is
+</p>
+
+<pre class="matlab">
+tdata = rand(1,N); % a signal with very low SNR ...
+fdata = abs(fft(tdata));
+plot(xf,fftshift(fdata)); % use of fftshift
+xlabel('frequency [MHz]');
+</pre>
+
+<!-- ====================================================== -->
+<div class="subtitle">Algorithm</div>
+
+<p>
+The discrete frequencies in the frequency-domain abscissa are
+<img src="eqn/fdaxis1.png" alt="[eqn]"><!--MATH $\Delta{}f = (2N\mr{d}T)^{-1}$ --> apart.
+The vector always contains
+the frequency zero, but the start and end frequencies depend on
+whether N is odd or even.
+</p>
+
+<pre class="eqn">
+<img src="eqn/fdaxis2.png" alt="[eqn]"><!--MATH
+\begin{align*}
+\mr{odd}\,N:\qquad&[-(N-1)\Delta{}f,(N-1)\Delta{}f]\\
+\mr{even}\,N:\qquad&[-N\Delta{}f,(N-2)\Delta{}f]
+\end{align*}
+-->
+</pre>
+
+<p>
+If N is odd, there is the same number of negative and positive
+discrete frequencies, and the Nyquist frequency
+<img src="eqn/fdaxis3.png" alt="[eqn]"><!--MATH $(2\mr{d}T)^{-1}$ --> itself is not contained. If N is
+even, the
+negative Nyquist frequency is the first element of the vector, and it
+contains one more negative frequency than positive ones (always
+excluding zero).
+</p>
+
+<!-- ====================================================== -->
+<div class="subtitle">See also</div>
+
+<p>
+<a class="esf" href="ctafft.html">ctafft</a>,
+<a class="esf" href="evolve.html">evolve</a>
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+</html>
