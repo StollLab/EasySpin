@@ -52,7 +52,7 @@ fprintf('Building EasySpin %s.\n',BuildID);
 
 fprintf('Checking for source folders...');
 
-Dirs = {'docs','easyspin','examples'};
+Dirs = {'easyspin','examples'};
 for k = 1:numel(Dirs)
   if ~exist([SourceDir filesep Dirs{k}],'dir')
     error('Could not find EasySpin source subdirectories.');
@@ -187,7 +187,7 @@ mkdir(BuildFolder,'documentation');
 fprintf(' ok\n');
 
 fprintf('  copying files...');
-DocSrcDir = [SourceDir filesep 'docs'];
+DocSrcDir = [SourceDir filesep 'documentation'];
 copyfile(DocSrcDir,DocFolder);
 fprintf(' ok\n');
 
