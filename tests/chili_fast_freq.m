@@ -35,7 +35,7 @@ if opt.Display
     legend('old','new','rescaled new');
     legend boxoff
     subplot(4,1,4);
-    plot(data.x,data.y-olddata.y,'r');
+    plot(data.x,y/max(y)-olddata.y/max(olddata.y),'r');
     legend('new - old');
     legend boxoff
   end

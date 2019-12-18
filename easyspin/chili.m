@@ -1285,12 +1285,10 @@ for iOri = 1:nOrientations
             error('L is not complex symmetric - cannot use Lanczos method.');
           end
         end
-        [alpha,beta,minerr] = chili_lanczos(L,StartVector,-1i*omega,Opt);
-        minerr = minerr(end);
-        if minerr<Opt.Threshold
-          thisspec = chili_contfracspec(-1i*omega,alpha,beta);
+        [thisspec,dspec] = chili_lanczos(L,StartVector,-1i*omega,Opt);
+        if dspec(end)<Opt.Threshold
           logmsg(2,'  converged to within %g at iteration %d/%d',...
-            Opt.Threshold,numel(alpha),BasisSize);
+            Opt.Threshold,numel(dspec),BasisSize);
         else
           thisspec = ones(size(omega));
           logmsg(0,'  Tridiagonalization did not converge to within %g after %d steps!\n  Increase Options.LLMK (current settings [%d,%d,%d,%d])',...
