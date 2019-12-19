@@ -29,7 +29,7 @@ beta = zeros(1,N);
 specchange = NaN(1,N);
 oldspec = inf;
 
-% Initialie continued-fraction evaluations
+% Initialize continued-fraction evaluations
 errorRecomputationInterval = min(10,ceil(N/20));
 useLentzMethod = Opt.Lentz;
 if useLentzMethod
@@ -45,18 +45,17 @@ end
 
 % Lanczos iterations
 q = b/sqrt(b.'*b); % important: pseudonorm/rectanorm b.'*b instead of b'*b
-y = 0;
+bq = 0;
 for k = 1:N
   
   % Lanczos step
-  y = A*q + y;
+  y = A*q;
   alpha(k) = q.'*y; 
-  y = y - alpha(k)*q;
+  y = y - alpha(k)*q - bq;
   beta(k) = sqrt(y.'*y);
   
-  qtemp = q;
+  bq = beta(k)*q;
   q = y/beta(k);
-  y = -beta(k)*qtemp;
 
   % Continued fraction: next convergent
   if useLentzMethod
