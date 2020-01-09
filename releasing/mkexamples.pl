@@ -76,7 +76,7 @@ foreach $category (@allcategories) {
   
   @files = sort(grep(/\.m$/,@files));
 
-  print D '<b>'.$Description{$category}.'</b>';
+  print D '<a name="'.$Description{$category}.'"><b>'.$Description{$category}.'</b></a>';
   print D "<table width=100%>\n";
 
   @col = ('ffffff', 'f3f3f3');
