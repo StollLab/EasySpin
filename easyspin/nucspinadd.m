@@ -83,7 +83,7 @@ end
 % Initialize output structure
 NewSys = Sys;
 if ~isfield(NewSys,'AFrame'), NewSys.AFrame = []; end
-if ~isfield(NewSys,'Q'), NewSys.Q = zeros(1,nNuclei); end
+if ~isfield(NewSys,'Q'), NewSys.Q = zeros(nNuclei,3); end
 if ~isfield(NewSys,'QFrame'), NewSys.QFrame = []; end
 iNuc = nNuclei + 1;
 
