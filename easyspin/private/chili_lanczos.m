@@ -1,6 +1,6 @@
 % chili_lanczos   Computes spectrum via Lanczos tridiagonalization
 %
-% [spec,specchange] = chili_lanczos(A,b,z,Opt)
+% [spec,converged,specchange] = chili_lanczos(A,b,z,Opt)
 %
 % Inputs:
 %   A           complex symmetrix square NxN matrix
@@ -14,13 +14,14 @@
 %
 % Outputs:
 %   spec        calculated spectrum
+%   converged   whether spectrum is converged or not
 %   specchange  array if iteration-to-iteration spectral changes
 
 % The modified Lentz method is implemented from
 %    W. H. Press et al, Numerical Recipes in C, 2nd edition
 %    section 5.2, p.171
 
-function [spec,specchange] = chili_lanczos(A,b,z,Opt)
+function [spec,converged,specchange] = chili_lanczos(A,b,z,Opt)
 
 N = length(b);
 alpha = zeros(1,N);
@@ -42,6 +43,8 @@ else
   % typical spectral length for performance reasons
   zTest = linspace(z(1),z(end),201);
 end
+
+converged = false;
 
 % Lanczos iterations
 q = b/sqrt(b.'*b); % important: pseudonorm/rectanorm b.'*b instead of b'*b
@@ -77,18 +80,21 @@ for k = 1:N
     spec = specold.*Delta;
     if ~mod(k,errorRecomputationInterval)
       specchange(k) = norm(Delta-1,inf);
-      if specchange(k)<Opt.Threshold, break; end
+      converged = specchange(k)<Opt.Threshold;
+      %fprintf('%3d: %g\n',k,specchange(k));
     end
   else
     if ~mod(k,errorRecomputationInterval)
       spec = chili_contfracspec(zTest,alpha,beta,k);
       respec = real(spec);
       specchange(k) = max(abs(respec-oldspec))/max(respec);
-      if specchange(k)<Opt.Threshold, break; end
+      converged = specchange(k)<Opt.Threshold;
       oldspec = respec;
     end
   end
-
+  
+  if converged, break; end
+  
   if beta(k)==0
     specchange(k) = 0;
     break
@@ -98,5 +104,6 @@ end
 
 % Organize output
 specchange = specchange(1:k);
+specchange(isnan(specchange)) = [];
 
 return

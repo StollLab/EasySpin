@@ -1285,8 +1285,8 @@ for iOri = 1:nOrientations
             error('L is not complex symmetric - cannot use Lanczos method.');
           end
         end
-        [thisspec,dspec] = chili_lanczos(L,StartVector,-1i*omega,Opt);
-        if dspec(end)<Opt.Threshold
+        [thisspec,converged,dspec] = chili_lanczos(L,StartVector,-1i*omega,Opt);
+        if converged
           logmsg(2,'  converged to within %g at iteration %d/%d',...
             Opt.Threshold,numel(dspec),BasisSize);
         else
