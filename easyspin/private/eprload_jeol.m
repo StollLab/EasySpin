@@ -1,27 +1,26 @@
 %  eprload_jeol       Reads in data from JEOL files
 %
-%  [Abscissa,Data,Parameters] = eprload_jeol(FileName)
+%  [Data,Abscissa,Parameters] = eprload_jeol(FileName)
 %
 %  JEOL file formats for JES-FA and JES-X3 are supported.
-%  This implementation is based on official documentation
-%  provided by JEOL.
+%  This implementation is based on official documentation provided by JEOL.
 %
 %  Input:
 %    FileName    file name of JEOL data file
 %
 %  Output:
-%    Abscissa    vector of horizontal axis values
 %    Data        1D or 2D data, real or complex
+%    Abscissa    vector of horizontal axis values
 %    Parameters  structure containing all parameters
 %                extracted from file
 %
 %  The file format is (C) 2015 by JEOL RESONANCE INC.
 %  The implementation is (C) 2015 Stefan Stoll
 
-function [Abscissa,Data,Parameters] = eprload_jeol(FileName)
+function [Data,Abscissa,Parameters] = eprload_jeol(FileName)
 
 h = fopen(FileName,'r','ieee-le');
-if (h<0), error('Could not open %s.',FileName); end
+if h<0, error('Could not open %s.',FileName); end
 
 % [A] HEADER block (0x0000-0x00143, dataicon 0x00144-0x01143)
 %====================================================================
