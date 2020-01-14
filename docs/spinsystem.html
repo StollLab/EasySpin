@@ -874,7 +874,7 @@ List of vectors (one per row, in units of MHz) that describe the symmetric part 
 
 <pre class="matlab">
 Sys.S = [1 3/2];           % two spins
-Sys.eeD = [-1 -1 2]*140;   % principal value of dipolar coupling tensor, MHz
+Sys.eeD = [1 1 -2]*140;   % principal value of dipolar coupling tensor, MHz
 </pre>
 
 <p>
@@ -882,9 +882,9 @@ For more than two spins, the vectors are ordered in lexicographic order, for exa
 
 <pre class="matlab">
 Sys.S = [3/2 3/2 3/2];    % three spins
-D12 = [-1 -1 2]*1.4e4;    % units: MHz
-D23 = [-1 -1 2]*2.1e4;
-D13 = [-1 -1 2]*3.7e4;
+D12 = [1 1 -2]*1.4e4;    % units: MHz
+D23 = [1 1 -2]*2.1e4;
+D13 = [1 1 -2]*3.7e4;
 Sys.eeD = [D12; D13; D23];  % three tensors
 </pre>
 
@@ -904,7 +904,7 @@ Each row corresponds to the diagonal of an interaction matrix (in its eigenframe
 
 <pre class="matlab">
 Sys.S = [1/2 1/2];     % two electron spins
-Sys.ee = [50 50 100];  % principal values of one coupling matrix, MHz
+Sys.ee = [100 100 40];  % principal values of one coupling matrix, MHz
 </pre>
 
 <p>
@@ -912,7 +912,7 @@ For more than two electron spins, the pairs are lexicographically ordered accord
 
 <pre class="matlab">
 Sys.S = [1/2 1/2 1/2];        % three spins
-ee12 = [50 50 100];
+ee12 = [100 100 40];
 ee13 = [10 10 -30];
 ee14 = [10 10 -30];
 ee23 = [0 0 0];
@@ -929,7 +929,7 @@ It is also possible to specify the full 3x3 interaction matrices instead of the 
 
 <pre class="matlab">
 Sys.S = [1/2 1/2];                   % two spins
-Sys.ee = [50 0 0;0 50 0; 0 0 100];   % one coupling matrix, MHz
+Sys.ee = [100 0 0;0 100 0; 0 0 40];  % one coupling matrix, MHz
 </pre>
 
 <p>
@@ -937,7 +937,7 @@ For more electrons, the 3x3 matrices are stacked on top of each other, to give a
 
 <pre>
 Sys.S = [1/2 1/2 1/2];                   % three spins
-ee12 = [50 0 0; 0 50 0; 0 0 100];
+ee12 = [100 0 0; 0 100 0; 0 0 40];
 ee13 = diag([10 10 -30]);
 ee23 = zeros(3);
 Sys.ee = [ee12; ee13; ee23];             % three coupling matrices
