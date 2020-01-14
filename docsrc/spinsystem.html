@@ -959,7 +959,7 @@ Each row corresponds to the diagonal of an interaction matrix (in its eigenframe
 
 <pre class="matlab">
 Sys.S = [1/2 1/2];     % two electron spins
-Sys.ee = [50 50 100];  % principal values of one coupling matrix, MHz
+Sys.ee = [80 80 20];  % principal values of one coupling matrix, MHz
 </pre>
 
 <p>
@@ -967,7 +967,7 @@ For more than two electron spins, the pairs are lexicographically ordered accord
 
 <pre class="matlab">
 Sys.S = [1/2 1/2 1/2];        % three spins
-ee12 = [50 50 100];
+ee12 = [80 80 20];
 ee13 = [10 10 -30];
 ee14 = [10 10 -30];
 ee23 = [0 0 0];
@@ -984,7 +984,7 @@ It is also possible to specify the full 3x3 interaction matrices instead of the 
 
 <pre class="matlab">
 Sys.S = [1/2 1/2];                   % two spins
-Sys.ee = [50 0 0;0 50 0; 0 0 100];   % one coupling matrix, MHz
+Sys.ee = [80 0 0;0 80 0; 0 0 20];   % one coupling matrix, MHz
 </pre>
 
 <p>
@@ -992,7 +992,7 @@ For more electrons, the 3x3 matrices are stacked on top of each other, to give a
 
 <pre>
 Sys.S = [1/2 1/2 1/2];                   % three spins
-ee12 = [50 0 0; 0 50 0; 0 0 100];
+ee12 = [80 0 0; 0 80 0; 0 0 20];
 ee13 = diag([10 10 -30]);
 ee23 = zeros(3);
 Sys.ee = [ee12; ee13; ee23];             % three coupling matrices
