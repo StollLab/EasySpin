@@ -42,6 +42,7 @@ $ReleaseID$
 <li><a class="esf" href="wignerd.html">wignerd</a> can evaluate single matrix elements for an array of Euler angle sets.
 <li><a class="esf" href="oripotentialplot">oripotentialplot</a> plots orientational potentials, as used by <a class="esf" href="chili.html">chili</a> and <a class="esf" href="cardamom.html">cardamom</a>.
 <li><a class="esf" href="pepper.html">pepper</a> and <a class="esf" href="salt.html">salt</a> now support spin systems with nuclear-nuclear couplings, given via the spin system field <code>Sys.nn</code>.
+<li><a class="esf" href="diptensor.html">diptensor</a> calculates dipolar coupling tensors.</li>
 </ul>
 
 <p>Major bug fixes</p>
@@ -58,6 +59,7 @@ $ReleaseID$
 <li><a class="esf" href="chili.html">chili</a>: The input field name and syntax for orienting potentials has changed. Instead of <code>Sys.lambda</code>, use <code>Sys.Potential</code>. The new input syntax allows the specification of general orientational potentials.
 <li><a class="esf" href="wignerd.html">wignerd</a> input syntax has changed. Instead of providing all three Euler angles in a single array <code>angles</code>, supply them separately as <code>alpha</code>, <code>beta</code>, and <code>gamma</code>.
 <li>The input syntax for dipolar couplings between electron spins has changed. Instead of <code>Sys.eeD</code>, use the new field <code>Sys.dip</code>.
+<li>The function <code>rotatecrystal</code> has been removed. Use <code>Exp.SampleRotation</code> instead.</li>
 <li>The oldest supported Matlab version is now R2014b (8.4).
 </ul>
 
