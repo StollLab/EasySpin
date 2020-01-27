@@ -68,8 +68,20 @@ FitData.currFitSet = [];
 % Simulation function
 %--------------------------------------------------------------------
 if ~isa(SimFunction,'function_handle')
-  error('The simulation function (1st input) must be a function handle.');
+  str = 'The simulation function (1st input) must be a function handle (with @).';
+  if ischar(SimFunction)
+    error('%s\nUse esfit(@%s,...) instead of esfit(''%s'',...).',str,SimFunction,SimFunction);
+  else
+    error('%s\nFor example, to use the function pepper(...), use esfit(@pepper,...).',str);
+  end
 end
+
+try
+  nargin(SimFunction);
+catch
+  error('The function given as 1st input cannot be found.');
+end
+
 FitData.SimFcnName = func2str(SimFunction);
 FitData.SimFcn = SimFunction;
 
