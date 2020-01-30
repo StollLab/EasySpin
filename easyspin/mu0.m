@@ -7,6 +7,6 @@
 
 function m = mu0
 
-m = 4*pi*1e-7;
+m = 1.25663706212e-6;
 
 return
