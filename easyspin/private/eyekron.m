@@ -1,10 +1,9 @@
 % eyekron Kronecker product with identity matrix
 %
 %   K = eyekron(A)
-%   K = eyekron(nI,A);
+%   K = eyekron(nI,A)
 %
-%   Calculates kron(eye(nI),A) without multiplications. This is signficantly
-%   faster for large matrices.
+%   Calculates kron(eye(nI),A).
 %
 %   If nI is not given, it is set equal to the dimension of A, which must be
 %   square in that case.
@@ -12,6 +11,8 @@
 %   The function works for both full and sparse matrices.
 
 function K = eyekron(varargin)
+
+manualMethod = false;
 
 switch nargin
   case 1
@@ -23,7 +24,24 @@ switch nargin
   case 2
     nI = varargin{1};
     A = varargin{2};
+  case 3
+    nI = varargin{1};
+    A = varargin{2};
+    manualMethod = varargin{3};
 end
+
+if ~isscalar(nI)
+  error('First input (nI) must be square');
+end
+
+if manualMethod
+  K = manualeyekron(nI,A);
+else
+  if issparse(A), I = speye(nI); else, I = eye(nI); end
+  K = kron(I,A);
+end
+
+function K = manualeyekron(nI,A)
 
 if issparse(A)
   
@@ -48,6 +66,5 @@ else
   end
   
 end
-
 
 return

@@ -136,6 +136,7 @@ for iTest = 1:numel(TestFileNames)
       if nArgsIn<2, error('2 inputs are needed.'); end
       [err,data] = testFcn(Opt,olddata);
     end
+    if issparse(err), err = full(err); end
     if Opt.Display
       if iTest<numel(TestFileNames), pause; end
     end
