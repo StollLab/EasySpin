@@ -120,20 +120,26 @@ else
       ynew = scalefactor*y;
     case 5 % lsq0
       D = [y ones(N,1)];
-      params = D(notnan_both,:)\yref(notnan_both);
-      ynew = D*params;
+      scalefactor = D(notnan_both,:)\yref(notnan_both);
+      ynew = D*scalefactor;
     case 6 % lsq1
       x = (1:N).'/N;
       D = [y ones(N,1) x];
-      params = D(notnan_both,:)\yref(notnan_both);
-      ynew = D*params;
+      scalefactor = D(notnan_both,:)\yref(notnan_both);
+      ynew = D*scalefactor;
     case 7 % lsq2
       x = (1:N).'/N;
       D = [y ones(N,1) x x.^2];
-      params = D(notnan_both,:)\yref(notnan_both);
-      ynew = D*params;
+      scalefactor = D(notnan_both,:)\yref(notnan_both);
+      ynew = D*scalefactor;
     case 8 % no scaling
       ynew = y;
+  end
+  
+  % Make sure signal is not inverted
+  if real(scalefactor(1))<0 && ModeID>3
+    scalefactor(1) = abs(scalefactor(1));
+    ynew = D*scalefactor;
   end
   
 end
