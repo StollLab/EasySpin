@@ -159,30 +159,11 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
   % Output and plotting
   switch nargout
     case 0
-      cla
-      if FrequencySweep
-        if xAxis(end)<1
-          plot(xAxis*1e3,spec);
-          xlabel('frequency (MHz)');
-        else
-          plot(xAxis,spec);
-          xlabel('frequency (GHz)');
-        end
-        title(sprintf('%0.8g mT',Exp.Field));
-      else
-        if xAxis(end)<10000
-          plot(xAxis,spec);
-          xlabel('magnetic field (mT)');
-        else
-          plot(xAxis/1e3,spec);
-          xlabel('magnetic field (T)');
-        end
-        title(sprintf('%0.8g GHz',Exp.mwFreq));
-      end
-      axis tight
-      ylabel('intensity (arb.u.)');
-    case 1, varargout = {spec};
-    case 2, varargout = {xAxis,spec};
+      plotresults(xAxis,spec,Exp,FrequencySweep);
+    case 1
+      varargout = {spec};
+    case 2
+      varargout = {xAxis,spec};
   end
   return
 end
@@ -1530,35 +1511,12 @@ end
 %===============================================================================
 
 switch nargout
-case 0
-  cla
-  if FieldSweep
-    if xAxis(end)<10000
-      plot(xAxis,outspec);
-      xlabel('magnetic field (mT)');
-    else
-      plot(xAxis/1e3,outspec);
-      xlabel('magnetic field (T)');
-    end
-    axis tight
-    ylabel('intensity (arb.u.)');
-    title(sprintf('%0.8g GHz, %d points',Exp.mwFreq,numel(xAxis)));
-  else
-    if xAxis(end)<1
-      plot(xAxis*1e3,spec);
-      xlabel('frequency (MHz)');
-    else
-      plot(xAxis,spec);
-      xlabel('frequency (GHz)');
-    end
-    axis tight
-    ylabel('intensity (arb.u.)');
-    title(sprintf('%0.8g mT, %d points',Exp.Field,numel(xAxis)));
-  end
-case 1
-  varargout = {outspec};
-case 2
-  varargout = {xAxis,outspec};
+  case 0
+    plotresults(xAxis,outspec,Exp,~FieldSweep);
+  case 1
+    varargout = {outspec};
+  case 2
+    varargout = {xAxis,outspec};
 end
 %===============================================================================
 
@@ -1716,5 +1674,34 @@ if isfield(Dyn,'lw')
     Dyn.T2 = inf;
   end
 end
+
+return
+
+
+%===============================================================================
+function plotresults(xAxis,spec,Exp,FrequencySweep)
+
+cla
+if FrequencySweep
+  if xAxis(end)<1
+    plot(xAxis*1e3,spec);
+    xlabel('frequency (MHz)');
+  else
+    plot(xAxis,spec);
+    xlabel('frequency (GHz)');
+  end
+  title(sprintf('%0.8g mT',Exp.Field));
+else
+  if xAxis(end)<10000
+    plot(xAxis,spec);
+    xlabel('magnetic field (mT)');
+  else
+    plot(xAxis/1e3,spec);
+    xlabel('magnetic field (T)');
+  end
+  title(sprintf('%0.8g GHz',Exp.mwFreq));
+end
+axis tight
+ylabel('intensity (arb.u.)');
 
 return
