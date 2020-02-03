@@ -10,7 +10,7 @@
 %
 % Inputs:
 %   spin1  type of first spin: 'e', '1H', '14N', etc.
-%   spin2  type of first spin: 'e', '1H', '14N', etc.
+%   spin2  type of second spin: 'e', '1H', '14N', etc.
 %   rvec   3-element vector pointing from spin1 to spin2, in nm
 %
 % Outputs:
@@ -75,3 +75,6 @@ N = 3*(n*n') - eye(3);
 pre = (mu0/4/pi)*r^-3*mug(1)*mug(2);
 T = -pre*N; % J
 T = T/planck/1e6; % J -> MHz
+
+return
+
