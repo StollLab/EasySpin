@@ -43,7 +43,7 @@
 %
 %   Opt: simulation options
 %      LLMK           basis set parameters, [evenLmax oddLmax Mmax Kmax]
-%      evenK          whether to use only even K values (true/false(
+%      evenK          whether to use only even K values (true/false)
 %      highField      whether to use the high-field approximation (true/false)  
 %      pImax          maximum nuclear coherence order for basis
 %      nKnots         number of knots for powder simulation
