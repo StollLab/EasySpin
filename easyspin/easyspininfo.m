@@ -112,13 +112,13 @@ end
 
 % Determine whether EasySpin's directory is on the search path
 %-------------------------------------------------------------------------------
-OnSearchPath = strfind(upper([path pathsep]),upper([esPath pathsep]));
-
-if isempty(OnSearchPath)
+onSearchPath = contains(upper([path pathsep]),upper([esPath pathsep]));
+if ~onSearchPath
   if Display
     fprintf('\n  The EasySpin folder is not in MATLAB''s search path. Please add it.\n');
   end
 end
+
 
 % Check for name conflicts
 %-------------------------------------------------------------------------------
@@ -131,13 +131,19 @@ for iFunction = 1:length(AllFiles.m)
   if ~isempty(strfind(AllFiles.m{iFunction},'Contents')); continue; end
   Instances = which(AllFiles.m{iFunction},'-all');
 
-  % Remove MATLAB class methods. They are only called for objects of their class.
+  % Remove MATLAB class methods.
+  % Class methods are only called for objects of their class.
+  % Private functions are only called from functions in the parent folder.
+  classMethodID = [filesep '@'];
+  privateFunctionID = [filesep 'private' filesep];
   for k = numel(Instances):-1:1
-    if strfind(Instances{k},[filesep '@'])
-        Instances(k) = [];
+    isClassMethod = contains(Instances{k},classMethodID);
+    isPrivateFunction = contains(Instances{k},privateFunctionID);
+    if isClassMethod || isPrivateFunction
+      Instances(k) = [];
     end
   end
-
+  
   if numel(Instances)>1
     FirstPath = fileparts(Instances{1});
     if strcmp(FirstPath,esPath)
@@ -146,13 +152,14 @@ for iFunction = 1:length(AllFiles.m)
       Shadowing = [Shadowing; Instances(1)];
     end
   end
+  
 end
 
 
 % List files that are shadowed by EasySpin.
 %-------------------------------------------------------------------------------
-Shadowed = {}; % don't list ...
-if ~isempty(Shadowed)
+listShadowed = false; % don't list ...
+if listShadowed && ~isempty(Shadowed)
   fprintf('\n  EasySpin functions shadow the following functions\n');
   for k=1:length(Shadowed)
     fprintf('    > %s\n',Shadowed{k});
@@ -160,6 +167,7 @@ if ~isempty(Shadowed)
   fprintf('  If these functions should work, either move or rename them.');
   fprintf('\n  Otherwise remove them from MATLAB''s search path or remove them.');
 end
+
 
 % List files that shadow EasySpin's functionality.
 %-------------------------------------------------------------------------------
