@@ -883,7 +883,8 @@ try
     [out{1:FitData.nOutArguments}] = FitData.SimFcn(SimSystems,Exp,SimOpt);
   end
 catch
-
+  % TBD: better error recovery; error display in GUI
+  error(lasterr);
 end
 % (SimSystems{s}.weight is taken into account in the simulation function)
 simspec = out{FitData.OutArgument}; % pick last output argument
