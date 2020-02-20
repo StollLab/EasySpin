@@ -13,7 +13,7 @@ EasySpin is a MATLAB-based toolbox for the simulation and analysis of Electron P
 
 ## Contributions
 
-Before contributing to EasySpin, please read the [contributing guide](./contributing.md).
+Before contributing to EasySpin, please read the [contributing guide](/CONTRIBUTING.md).
 
 ## Source Code Organization
 
