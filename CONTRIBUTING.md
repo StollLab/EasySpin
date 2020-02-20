@@ -1,7 +1,7 @@
 # Contributing
 
 Please always look at this file *before* contributing to EasySpin.
-In this document you can find the [contributing](#Acceptable-contributions) and [coding](#coding-style)  guidelines, how to come up with good [commit messages and branch names](#Commit-messages-and-branc-names) as well as all the steps necessary to set up your own [development environment](#Forking-EasySpin) and [creating pull requests](#Creating-a-pull-request). 
+In this document you can find the [contributing](#Acceptable-contributions) and [coding](#coding-style)  guidelines, how to come up with good [commit messages and branch names](#Commit-messages-and-branch-names) as well as all the steps necessary to set up your own [development environment](#Forking-EasySpin) and [creating pull requests](#Creating-a-pull-request). 
 
 ## Acceptable contributions
 
@@ -53,7 +53,7 @@ This guide assumes you have a basic understanding of `git` and know how to make 
     - in the popup menu select `Track remote branch` and then `upstream/master`
     - you now can pull updates from the EasySpin repository - time to get working on your code!
 5. Create a new local branch
-    - give it a good descriptive name (see the [examples](#Commit-messages-and-branc-names))
+    - give it a good descriptive name (see the [examples](#Commit-messages-and-branch-names))
 6. Start coding away and creating commits to that branch
 7. Once you have made a commit, you can push that commit to your forked repository
 
@@ -78,7 +78,7 @@ This guide assumes you have a basic understanding of `git` and know how to make 
     git branch --set-upstream-to=upstream/master master
     ```
 5. Create a new local branch
-    - give it a good descriptive name (see the [examples](#Commit-messages-and-branc-names))
+    - give it a good descriptive name (see the [examples](#Commit-messages-and-branch-names))
         ```git
         git checkout -b yourgood/branchname
         ```
