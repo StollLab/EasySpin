@@ -1,6 +1,7 @@
 # Contributing
 
 Please always look at this file *before* contributing to EasySpin.
+
 In this document you can find the [contributing](#Acceptable-contributions) and [coding](#coding-style)  guidelines, how to come up with good [commit messages and branch names](#Commit-messages-and-branch-names) as well as all the steps necessary to set up your own [development environment](#Forking-EasySpin) and [creating pull requests](#Creating-a-pull-request). 
 
 ## Acceptable contributions
@@ -116,7 +117,3 @@ This guide assumes you have a basic understanding of `git` and know how to make 
 3. Once you are at a point where you think your contribution is ready to be merged into EasySpin, you can remove the `WIP` from the title and request a repository maintainer to review and merge your PR
     - PRs will only be merged if they pass all the tests
     - it is always a good idea to pull updates from EasySpin to your local master branch and to include these in your branch via rebase or a merge
-
-
-
-
