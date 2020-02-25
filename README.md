@@ -11,6 +11,10 @@ EasySpin is a MATLAB-based toolbox for the simulation and analysis of Electron P
 - **Discussion forum:** <http://easyspin.org/forum/>
 - **Source code:** <https://github.com/StollLab/easyspin>
 
+## Contributions
+
+Before contributing to EasySpin, please read the [contributing guide](/CONTRIBUTING.md).
+
 ## Source Code Organization
 
 The EasySpin source code is organized as follows:
