@@ -1,8 +1,5 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-% Test 1
-%================================================================
 Sys = struct('S',1,'g',[3 4 5]);
 v = spinvec(Sys);
-err = (v~=1);
-data = [];
+ok = (v==1);

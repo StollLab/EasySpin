@@ -1,13 +1,5 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-% Test 3: a previous bug
-%======================================================
-Isotopes = {'159Tb'};
-Spins = [3/2];
+% Test a former bug
 
-for k = 1:numel(Isotopes)
-  ok = nucspin(Isotopes{k})==Spins(k);
-end
-
-err = any(~ok);
-data = [];
+ok = nucspin('159Tb')==3/2;

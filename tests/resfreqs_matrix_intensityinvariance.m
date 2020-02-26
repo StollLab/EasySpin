@@ -1,4 +1,4 @@
-function err = test(opt)
+function ok = test(opt)
 
 % Total transition intensity should be independent of orientation of k
 % vector relative to B0, no matter what the crystal orientation and the
@@ -22,4 +22,4 @@ end
 
 Intensity = abs(sum(Intensity));
 
-err = min(Intensity)/max(Intensity) < 0.99999;
+ok = min(Intensity)/max(Intensity) > 0.99999;

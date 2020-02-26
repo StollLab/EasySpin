@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % Verify projective approximation for various
 % values of relative spectral broadening
@@ -19,5 +19,4 @@ if (opt.Display)
   title('Various relative broadenings, anisotropic');
 end
 
-err = 0;
-data = [];
+ok = true;

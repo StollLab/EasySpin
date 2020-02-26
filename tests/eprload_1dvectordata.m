@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 BaseDir = 'eprfiles/';
 Files{1} = [BaseDir 'calib_10dB_RT_9370-9440mT_lin_1G.DTA'];
@@ -38,6 +38,4 @@ for iFile = 1:numel(Files)
   end
 end
 
-err = any(readerr);
-
-data = [];
+ok = ~any(readerr);

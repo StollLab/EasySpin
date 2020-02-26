@@ -1,8 +1,7 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
+% explicit comparison
 
-% Test 2  explicit comparison 2
-%================================================
 Sys = struct('S',[1/2],'Nucs','1H','g',[2 2 3]);
 Sys.A = rand(1,3);
 Sys.AFrame = rand(1,3)*2*pi;
@@ -17,5 +16,4 @@ for k=1:3
 end
 H1 = hfine(Sys);
 
-err = ~areequal(HFI,H1,1e-10,'rel');
-data = [];
+ok = areequal(HFI,H1,1e-10,'rel');

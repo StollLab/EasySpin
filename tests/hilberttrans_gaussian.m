@@ -1,7 +1,7 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Check whether the Gaussian line width is correct
-%-----------------------------------------------------
+
 x0 = 0;
 w = 0.1;
 x = linspace(-1,1,10000)*2;
@@ -13,6 +13,4 @@ height1 = max(imag(y_h)) - min(imag(y_h));
 height2 = max(ydisp)-min(ydisp);
 
 % Compare
-err = abs(height1-height2)>1e-2;
-
-data =[];
+ok = areequal(height1,height2,1e-2,'rel');

@@ -1,8 +1,5 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 a = mu0;
-b = 4*pi*1e-7;
-
-err = abs(a-b)/a>1e-10;
-
-data = [];
+b = 1.25663706212e-6;
+ok= areequal(a,b,1e-10,'rel');

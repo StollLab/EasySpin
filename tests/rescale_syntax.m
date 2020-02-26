@@ -1,8 +1,7 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-%====================================================
 % syntax check
-%====================================================
+
 y = zeros(1,100);
 y(1) = -1;
 y(2) = 2;
@@ -32,5 +31,4 @@ y_ = rescale(y,z,'none');
 [y_,factors] = rescale(y,z,'lsq2');
 [y_,factors] = rescale(y,z, 'none');
 
-err = 0;
-data =[];
+ok = true;

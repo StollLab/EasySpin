@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 Sys.S = 1/2;
 Sys.g = 1.898468237763169;
@@ -38,7 +38,7 @@ data.x2 = x2;
 data.y2 = y2;
 
 if ~isempty(olddata)
-  err = ~areequal(y1,olddata.y1,1e-3,'abs') || ~areequal(y2,olddata.y2,1e-3,'abs');
+  ok = areequal(y1,olddata.y1,1e-3,'abs') && areequal(y2,olddata.y2,1e-3,'abs');
 else
-  err = [];
+  ok = [];
 end

@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % Si,Si natural abundance mixture, full A tensor specification
 Sys.Nucs = 'Si,Si';
@@ -22,6 +22,4 @@ if (opt.Display)
   title('pepper: Si+Si natural abundance mixture');
 end
 
-data = [];
-
-err = ~areequal(y1/max(y1),y2/max(y2),1e-5,'abs');
+ok = areequal(y1/max(y1),y2/max(y2),1e-5,'abs');

@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Spin-orbit coupling between spins and orbital angular momenta can also be
 % defined via electron-electron couplings between pure spins. The Hamiltonians
@@ -37,5 +37,4 @@ end
 H1 = eeint(SysPureSpin);
 H2 = soint(SysSL);
 
-err = ~areequal(H1,H2,1e-10,'abs');
-data = [];
+ok = areequal(H1,H2,1e-10,'abs');

@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Multiple spin operators, syntax check
 
@@ -11,7 +11,5 @@ Sz_ = sop(S,'z');
 Sp_ = sop(S,'+');
 
 thr = 1e-12;
-err = ~areequal(Sx,Sx_,thr,'abs') || ~areequal(Sy,Sy_,thr,'abs') || ...
-  ~areequal(Sz,Sz_,thr,'abs') || ~areequal(Sp,Sp_,thr,'abs');
-
-data = [];
+ok = areequal(Sx,Sx_,thr,'abs') && areequal(Sy,Sy_,thr,'abs') && ...
+  areequal(Sz,Sz_,thr,'abs') && areequal(Sp,Sp_,thr,'abs');

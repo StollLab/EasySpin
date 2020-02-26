@@ -1,7 +1,6 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Comparison of spherharm to explicit expressions
-%=======================================================
 
 N = 100;
 theta = linspace(0,pi,N);
@@ -12,13 +11,12 @@ for L = 0:2
   for M = -L:L
     Y = explicitY(L,M,theta,phi);
     Z = spherharm(L,M,theta,phi);
-    err(q) = ~areequal(Y,Z,1e-10,'abs');
+    ok(q) = areequal(Y,Z,1e-10,'abs');
     q = q + 1;
   end
 end
 
-err = any(err);
-data = [];
+ok = all(ok);
 
 return
 
@@ -27,17 +25,17 @@ function v = explicitY(L,M,theta,phi)
 v = inf;
 
 switch L
-case 0,
+case 0
   switch M
   case 0, v = 1/2/sqrt(pi)*ones(size(theta));
   end
-case 1,
+case 1
   switch M
   case -1, v = +1/2*sqrt(3/2/pi)*sin(theta).*exp(-1i*phi);
   case 0,  v = 1/2*sqrt(3/pi)*cos(theta);
   case 1,  v = -1/2*sqrt(3/2/pi)*sin(theta).*exp(+1i*phi);
   end
-case 2,
+case 2
   switch M
   case -2, v = 1/4*sqrt(15/2/pi)*sin(theta).^2.*exp(-2i*phi);
   case -1, v = +1/2*sqrt(15/2/pi)*cos(theta).*sin(theta).*exp(-1i*phi);

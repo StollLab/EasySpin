@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % S=I=1/2 case
 
@@ -12,5 +12,4 @@ p = sort(p);
 
 p0 = [201.7178877473234; 202.1865545783891; 202.5381346934415; 203.0065404415702];
    
-err = any(abs(p-p0)>1e-4);
-data = [];
+ok = all(abs(p-p0)<1e-4);

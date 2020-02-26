@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % Make sure pepper returns orientations separately with Opt.Output = 'separate'
 % in a crystal simulation
@@ -29,6 +29,3 @@ if opt.Display
   plot(B,spc3-[spc1;spc2]);
   xlabel('magnetic field (mT)');
 end
-
-err = ~ok;
-data = [];

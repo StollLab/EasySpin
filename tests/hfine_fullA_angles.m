@@ -1,8 +1,6 @@
-function [err,data] = test(opt,olddata)
-
+function ok = test()
 
 % full hyperfine matrices with Euler angles
-%================================================
 
 Sys.S = 1/2;
 Sys.Nucs = '1H,14N';
@@ -24,6 +22,4 @@ H2 = hfine(Sys);
 
 deviation = max(abs(H1(:)-H2(:)))/max(abs(H1(:)));
 
-
-err = deviation>1e-7;
-data = [];
+ok = deviation<1e-7;

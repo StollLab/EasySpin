@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % Comparison of axial and orthorhombic spectra
 % with interpolation on and off (same total number
@@ -17,7 +17,7 @@ Opt.Symmetry = 'Dinfh';
 Opt.nKnots = [n1 k1]; [x,y3] = pepper(Sys,Exp,Opt);
 Opt.nKnots = [n2 k2]; [x,y4] = pepper(Sys,Exp,Opt);
 
-err = 0;
+ok = true;
 
 if (opt.Display)
   title('Test 7: Interpolation on/off');
@@ -26,5 +26,3 @@ if (opt.Display)
   subplot(2,1,2); plot(x,y3/max(y3),x,y4/max(y4));
   legend('on','off','Location','BestOutSide');
 end
-
-data = [];

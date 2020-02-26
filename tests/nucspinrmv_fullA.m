@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 Sys.Nucs = '1H,15N,13C';
 A1 = rand(3)*10;
@@ -15,5 +15,4 @@ nucspinrmv(Sys,[1 3]);
 nucspinrmv(Sys,[2 3]);
 nucspinrmv(Sys,[1 2 3]);
 
-err = 0;
-data = [];
+ok = true;

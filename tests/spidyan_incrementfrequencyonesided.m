@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % System ------------------------
 Sys.S = 1/2;
@@ -36,6 +36,4 @@ Exp.Dim1 = {'p1.Frequency(1)' [0 -0.05 -0.1]};
 
 [~, signal3] = spidyan(Sys,Exp);
 
-err = ~areequal(signal1,signal2,1e-4,'abs') || ~areequal(signal1,signal3,1e-4,'abs');
-
-data = [];
+ok = areequal(signal1,signal2,1e-4,'abs') && areequal(signal1,signal3,1e-4,'abs');

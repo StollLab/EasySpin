@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 J = 10e3;
 Temp = 10;
@@ -26,6 +26,4 @@ pop = pop/sum(pop);
 [E0,idx] = sort(E0);
 pop = pop(idx);
 
-err = ~areequal(weights,pop,1e-10,'abs');
-
-data = [];
+ok = areequal(weights,pop,1e-10,'abs');

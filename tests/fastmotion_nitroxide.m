@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 %======================================================
 % Linewdiths of a nitroxide radical
@@ -20,7 +20,6 @@ if ~isempty(olddata)
     olddata.lw
   end
   ok = areequal(lw,olddata.lw,1e-4,'rel') & areequal(mI,olddata.mI);
-  err = ~ok;
 else
-  err = [];
+  ok = [];
 end

@@ -1,8 +1,7 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
-%=======================================================
 % Simple test of post-convolution vs full treatment
-%=======================================================
+
 Sys.g = [2.08 2.006 2.002];
 Sys.Nucs = '14N,1H';
 Sys.A = [20 20 100; 5 5 8];
@@ -34,6 +33,4 @@ end
 % Calculate maximum relative difference
 mrd = max(abs(y2(:)-y1(:)))/max(abs(y1(:)));
 
-err = mrd>0.02;
-
-data = [];
+ok = mrd<=0.02;

@@ -1,4 +1,5 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
+
 % Check that stochtraj_calcanistorque agrees with analytical D-matrix elements from 
 % tables for L = 1,2 in Sezer, et al., J.Chem.Phys. 128, 165106 (2008)
 % or calculated in Mathematica
@@ -56,7 +57,7 @@ errl100val = abs(...
                  runprivate('stochtraj_calcanistorque',LMK,lambda,q) ...
                  -numtorque...
                 );
-errl100 = errl100val>tol;
+okl100 = errl100val<tol;
 
 % Test lambda^1_0,1
 % -------------------------------------------------------------------------
@@ -74,7 +75,7 @@ errl10p1val = abs(...
                   runprivate('stochtraj_calcanistorque',LMK,lambda,q)-...
                   2*numtorque...
                  );
-errl10p1 = errl10p1val>tol;
+okl10p1 = errl10p1val<tol;
 
 % Test lambda^1_1,0
 % -------------------------------------------------------------------------
@@ -94,7 +95,7 @@ errl1p10val = abs(...
                   2*numtorque...
                   );
 
-errl1p10 = errl1p10val>tol;
+okl1p10 = errl1p10val<tol;
 
 % Test lambda^1_1,1
 % -------------------------------------------------------------------------
@@ -113,7 +114,7 @@ errl1p1p1val = abs(...
                    2*numtorque...
                   );
 
-errl1p1p1 = errl1p1p1val>tol;
+okl1p1p1 = errl1p1p1val<tol;
 
 % Test lambda^1_-1,1
 % -------------------------------------------------------------------------
@@ -132,7 +133,7 @@ errl1m1p1val = abs(...
                    2*numtorque...
                   );
 
-errl1m1p1 = errl1m1p1val>tol;
+okl1m1p1 = errl1m1p1val<tol;
 
 % Test lambda^2_0,0
 % -------------------------------------------------------------------------
@@ -150,7 +151,7 @@ errl200val = abs(...
                  runprivate('stochtraj_calcanistorque',LMK,lambda,q)-...
                  numtorque...
                 );
-errl200 = errl200val>tol;
+okl200 = errl200val<tol;
 
 % Test lambda^2_0,1
 % -------------------------------------------------------------------------
@@ -169,7 +170,7 @@ errl20p1val = abs(...
                   2*numtorque...
                  );
 
-errl20p1 = errl20p1val>tol;
+okl20p1 = errl20p1val<tol;
 
 % Test lambda^2_0,2
 % -------------------------------------------------------------------------
@@ -188,17 +189,11 @@ errl20p2val = abs(...
                   2*numtorque...
                  );
 
-errl20p2 = errl20p2val>tol;
+okl20p2 = errl20p2val<tol;
 
 % Check for differences between numerical and analytic results
 % -------------------------------------------------------------------------
 
-err = any(errl100(:))||any(errl200(:)) ...
-      ||any(errl10p1(:))||any(errl20p1(:))||any(errl20p2(:)) ...
-      ||any(errl1p10(:))||any(errl1p1p1(:))||any(errl1m1p1(:));
-
-data = [];
-
-
-
-end
+ok = all(okl100(:)) && all(okl200(:)) && ...
+     all(okl10p1(:)) && all(okl20p1(:)) && all(okl20p2(:)) && ...
+     all(okl1p10(:)) && all(okl1p1p1(:)) && all(okl1m1p1(:));

@@ -1,7 +1,6 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % Read Magnettech spectrometer files (new XML format)
-%-------------------------------------------------
 
 BaseDir = 'eprfiles/magnettech/';
 
@@ -13,9 +12,8 @@ fullFileName = [BaseDir FileName];
 ok = isfield(pars,'Curves') && ...
   isfield(pars.Curves,'MW_AbsorptionSinus') &&...
   isfield(pars.Curves,'MW_AbsorptionCosinus');
-err = ~ok;
 
-if (opt.Display)
+if opt.Display
   s = pars.Curves.MW_AbsorptionSinus;
   c = pars.Curves.MW_AbsorptionCosinus;
   a = pars.Curves.MW_Absorption;
@@ -25,4 +23,3 @@ if (opt.Display)
   legend boxoff
 end
 
-data = [];

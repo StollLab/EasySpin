@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % A powder spectrum must be independent of
 % whether D/E or the D diagonal is used to
@@ -17,6 +17,4 @@ Exp.Range = [333 345];
 spc1 = pepper(Sys1,Exp);
 spc2 = pepper(Sys2,Exp);
 
-err = ~areequal(spc1,spc2,1e-10,'rel');
-
-data = [];
+ok = areequal(spc1,spc2,1e-10,'rel');

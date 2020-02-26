@@ -1,12 +1,10 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % Read Magnettech spectrometer files (new XML format)
-%-------------------------------------------------
 
 BaseDir = 'eprfiles/magnettech/';
 
 Files{1} = 'Mangan_Ausgangslage.xml';
-
 
 for iFile = 1:numel(Files)
   thisFile = Files{iFile};
@@ -27,12 +25,10 @@ for iFile = 1:numel(Files)
       disp([  '   ' Files(iFile).name]);
     end
   end
-  if (opt.Display)
+  if opt.Display
     plot(x,data);
     pause
   end
 end
 
-err = readerr;
-
-data = [];
+ok = ~readerr;

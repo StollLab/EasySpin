@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 % Crystal with Th symmetry and rhombic g
 
@@ -36,7 +36,7 @@ end
 data.y = y;
 
 if ~isempty(olddata)
-  err = ~areequal(y,olddata.y,1e-4,'abs');
+  ok = areequal(y,olddata.y,1e-4,'abs');
 else
-  err = [];
+  ok = [];
 end

@@ -1,4 +1,5 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
+
 rng_(5,'twister');
 
 Sys.S = randi_(6)/2;
@@ -22,5 +23,4 @@ chiTe = curry(Sys,Exp,Opt);
 Opt.Method = 'operator';
 chiTo = curry(Sys,Exp,Opt);
 
-err = ~areequal(mu_e,mu_o,1e-4,'abs') || ~areequal(chiTe,chiTo,1e4,'abs');
-data =[];
+ok = areequal(mu_e,mu_o,1e-4,'abs') && areequal(chiTe,chiTo,1e4,'abs');

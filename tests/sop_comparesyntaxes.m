@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Compare the two different character-based syntaxes 
 %
@@ -14,7 +14,3 @@ ok = ok && testfun([1/2 1],'xy','x1y2');
 ok = ok && testfun([1/2 1],'e+','+2');
 ok = ok && testfun([1/2 1 1/2],'ezz','z2z3');
 ok = ok && testfun([1/2 1 1/2],'ezz','z3z2');
-
-err = ~ok;
-
-data = [];

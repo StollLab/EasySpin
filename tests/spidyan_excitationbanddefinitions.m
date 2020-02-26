@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Tests if both ways of inputting excitation bands work/give the same
 % result
@@ -38,6 +38,4 @@ Exp.Sequence = {Pulse 0.5 Pulse};
 
 [~, ~, out2] = spidyan(Sys,Exp);
 
-err = ~areequal(out1.FinalState,out2.FinalState,1e-4,'abs');
-
-data = [];
+ok = areequal(out1.FinalState,out2.FinalState,1e-4,'abs');

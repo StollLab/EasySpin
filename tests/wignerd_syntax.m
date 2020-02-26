@@ -1,8 +1,4 @@
-function [err,data] = test(opt,olddata)
-
-%======================================================
-% wignerd syntax
-%======================================================
+function ok = test()
 
 J = 15/2;
 m1 = -7/2;
@@ -28,6 +24,4 @@ wignerd(Jm1m2,beta);
 wignerd(Jm1m2,beta,'+');
 wignerd(Jm1m2,beta,'-');
 
-err = false;
-
-data = [];
+ok = true;

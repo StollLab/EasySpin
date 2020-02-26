@@ -1,4 +1,5 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
+
 % Check for agreement using resonator() with pulses at baseband or with 
 % pulses already at the microwave frequency
 %--------------------------------------------------------------------------
@@ -46,7 +47,7 @@ x0 = [0 mean(angle(IQsimmw_))];
 x = fminsearch(fitfunc,x0);
 IQsimmw_interp = splineinterp(x(1))*exp(-1i*x(2));
 
-suberr(1) = ~areequal(IQsim,IQsimmw_interp,0.05*max(IQsim),'abs');
+ok(1) = areequal(IQsim,IQsimmw_interp,0.05*max(IQsim),'abs');
 
 % Downconvert data at mwFreq
 [tcompmw_,IQcompmw_] = rfmixer(tcompmw,IQcompmw,mwFreq,'IQdemod');
@@ -58,7 +59,7 @@ x0 = [-0.0005 mean(angle(IQcompmw_))];
 x = fminsearch(fitfunc,x0);
 IQcompmw_interp = splineinterp(x(1))*exp(-1i*x(2));
 
-suberr(2) = ~areequal(IQcomp,IQcompmw_interp,0.1,'rel');
+ok(2) = areequal(IQcomp,IQcompmw_interp,0.1,'rel');
 
 % Sech/tanh at resonant frequency
 %--------------------------------------------------------------------------
@@ -103,7 +104,7 @@ x0 = [0 0.1];
 x = fminsearch(fitfunc,x0);
 IQsimmw_interp = splineinterp(x(1))*exp(-1i*x(2));
 
-suberr(3) = ~areequal(IQsim,IQsimmw_interp,0.05*max(IQsim),'abs');
+ok(3) = areequal(IQsim,IQsimmw_interp,0.05*max(IQsim),'abs');
 
 % Downconvert data at mwFreq
 [tcompmw_,IQcompmw_] = rfmixer(tcompmw,IQcompmw,mwFreq,'IQdemod');
@@ -115,7 +116,7 @@ x0 = [0 -0.96];
 x = fminsearch(fitfunc,x0);
 IQcompmw_interp = splineinterp(x(1))*exp(-1i*x(2));
 
-suberr(4) = ~areequal(IQcomp,IQcompmw_interp,0.1*max(IQcomp),'abs');
+ok(4) = areequal(IQcomp,IQcompmw_interp,0.1*max(IQcomp),'abs');
 
 % Quartersin off-resonance
 %--------------------------------------------------------------------------
@@ -160,7 +161,7 @@ x0 = [0.005 0];
 x = fminsearch(fitfunc,x0);
 IQsimmw_interp = splineinterp(x(1))*exp(-1i*x(2));
 
-suberr(5) = ~areequal(IQsim,IQsimmw_interp,0.05*max(abs(IQsim)),'abs');
+ok(5) = areequal(IQsim,IQsimmw_interp,0.05*max(abs(IQsim)),'abs');
 
 % Downconvert data at mwFreq
 [tcompmw_,IQcompmw_] = rfmixer(tcompmw,IQcompmw,mwFreq,'IQdemod');
@@ -172,8 +173,4 @@ x0 = [0 0];
 x = fminsearch(fitfunc,x0);
 IQcompmw_interp = splineinterp(x(1))*exp(-1i*x(2));
 
-suberr(6) = ~areequal(IQcomp,IQcompmw_interp,0.1*max(abs(IQcomp)),'abs');
-
-err = any(suberr);
-
-data = [];
+ok(6) = areequal(IQcomp,IQcompmw_interp,0.1*max(abs(IQcomp)),'abs');

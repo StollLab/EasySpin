@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 orig_state = warning;
 warning('off','all');
@@ -49,12 +49,7 @@ for i = 1:3
   [~,IQs{i}] = pulse(Pulse);
 end
 
-if any([~isequal(IQs,Seq1IQs) ~isequal(IQs,Seq2IQs)])
-  err = 1;
-else
-  err = 0;
-end
-
-data = [];
+ok(1) = isequal(IQs,Seq1IQs);
+ok(2) = isequal(IQs,Seq2IQs);
 
 warning(orig_state);

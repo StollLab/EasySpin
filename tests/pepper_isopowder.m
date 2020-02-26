@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % Compare powder simulation of isotropic system to crystal simulation
 
@@ -31,5 +31,4 @@ if opt.Display
 end
 
 thresh = 1e-2;
-err = ~areequal(y0,y1,thresh,'rel') || ~areequal(y0,y2,thresh,'rel');
-data = [];
+ok = areequal(y0,y1,thresh,'rel') && areequal(y0,y2,thresh,'rel');

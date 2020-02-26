@@ -1,7 +1,6 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-% Test 2: Zero derivative at center
-%======================================================
+% Zero derivative at center
+
 a = lorentzian(0,0,1.234,1);
-err = abs(a)>1e-15;
-data = [];
+ok = abs(a)<1e-15;

@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % Test whether simulated spectrum is invariant with respect to sign
 % of hyperfine coupling.
@@ -26,7 +26,7 @@ Sys.lwpp = 0.1;
 Sys.A = -A; [B,spcB1] = garlic(Sys,Exp2,Opt);
 Sys.A = +A; [B,spcB2] = garlic(Sys,Exp2,Opt);
 
-err = ~areequal(spcnu1,spcnu2,1e-3,'rel') || ~areequal(spcB1,spcB2,1e-3,'rel');
+ok = areequal(spcnu1,spcnu2,1e-3,'rel') && areequal(spcB1,spcB2,1e-3,'rel');
 
 if opt.Display
   subplot(2,1,1)
@@ -40,5 +40,3 @@ if opt.Display
   legend boxoff
   title('field sweep');
 end
-
-data = [];

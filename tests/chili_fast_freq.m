@@ -1,8 +1,6 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
-%=======================================================
 % Frequency-sweep doublet, fast method
-%=======================================================
 
 Sys.g = [2.01 2];
 Sys.Nucs = '14N';
@@ -22,9 +20,8 @@ data.y = y;
 % Check for consistency
 if ~isempty(olddata)
   ok = areequal(y/max(y),olddata.y/max(olddata.y),1e-2,'abs');
-  err = ~ok;
 else
-  err = [];
+  ok = [];
 end
 
 if opt.Display

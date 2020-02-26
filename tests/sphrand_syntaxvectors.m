@@ -1,8 +1,6 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-% Test 1: Calling syntax: vectors
-%=======================================================
 N = 400;
 v = sphrand(N);
-err = any(size(v)~=[3 N]);
-data = [];
+ok = all(size(v)==[3 N]);
+

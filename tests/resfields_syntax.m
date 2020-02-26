@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % calling syntax
 
@@ -17,5 +17,4 @@ p = resfields(Sys,Exp,Opt);
 Opt = struct('Verbosity',0);
 p = resfields(Sys,Exp,Opt);
 
-err = 0;
-data = [];
+ok = true;

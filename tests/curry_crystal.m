@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 % Check single-crystal calculation of magnetic susceptibility
 % (reproduces Kahn, Molecular Magnetism, p. 19, Figure 2.4 top)
@@ -36,7 +36,6 @@ end
 if ~isempty(olddata)
   thr = 1e-5;
   ok = areequal(olddata.chix,chix,thr,'abs') && areequal(olddata.chiz,chiz,thr,'abs');
-  err = ~ok;
 else
-  err = [];
+  ok = [];
 end

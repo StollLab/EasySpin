@@ -1,4 +1,5 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
+
 % Direct test on means and transmats for multivariate Gaussian HMM 
 % expectation maximization function in 2D for periodic boundary conditions
 
@@ -81,8 +82,6 @@ testDataWrapped = permute(testDataWrapped,[2,1,3]);
 % Compare
 % -------------------------------------------------------------------------
 
-err = 0;
-
 % Assignment of output state indices might not correspond to input state
 % indices, so check which ordering gives the best agreement and re-assign
 % indices accordingly
@@ -108,12 +107,7 @@ TransProbChange = abs(Sys.TransProb - TransProb1)./TransProb1;
 muThreshold = 5/180*pi;
 tranProbThreshold = 0.5;
 
-if    (max(muDiff(:)) > muThreshold) ...
-   || (max(TransProbChange(:)) > tranProbThreshold)
-  err = 1;
-end
-
-data = [];
+ok = (max(muDiff(:)) < muThreshold) && (max(TransProbChange(:)) < tranProbThreshold);
 
 if opt.Display
   

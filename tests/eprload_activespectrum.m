@@ -1,7 +1,7 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % Read Active Spectrum spectrometer files
-%-------------------------------------------------
+
 BaseDir = 'eprfiles/';
 
 Files{1} = '10uM_TEMPOL_CAP_SQ__140828_122013.ESR';
@@ -31,6 +31,4 @@ for iFile = 1:numel(Files)
   end
 end
 
-err = readerr;
-
-data = [];
+ok = ~readerr;

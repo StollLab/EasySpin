@@ -1,8 +1,7 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-%-------------------------------------------------------------
 % Make sure 2nd-order PT is always better than 1st-order PT
-%-------------------------------------------------------------
+
 clear
 Exp.Field = 350;
 
@@ -31,6 +30,4 @@ for iA = 1:2
   end
 end
 
-err = any(~ok(:));
-
-data = [];
+ok = all(ok(:));

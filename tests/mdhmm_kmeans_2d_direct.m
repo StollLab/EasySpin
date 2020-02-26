@@ -1,4 +1,5 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
+
 % Direct test on cluster indices for k-means clustering function in 2D for 
 % Gaussian clusters and periodic boundary conditions
 
@@ -51,8 +52,7 @@ for k = 1:nClusters
   idx_ = idxBest(clusteridx == k);
   ok(k) = all(idx_==idx_(1));
 end
-err = any(~ok);
-data = [];
+ok = all(ok);
 
 % Plot if wanted
 if opt.Display
@@ -69,6 +69,3 @@ if opt.Display
 end
 
 end
-
-
-

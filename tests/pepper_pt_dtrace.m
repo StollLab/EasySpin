@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % compare spectra traceless D and non-traceless D
 
@@ -23,5 +23,4 @@ if (opt.Display)
   plot(x1,y1,x2,y2);
 end
 
-err = ~areequal(y1,y2,1e-3,'rel');
-data=[];
+ok = areequal(y1,y2,1e-3,'rel');

@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 % Rotational invariance
 
@@ -39,11 +39,10 @@ data.b1 = b1;
 data.b2 = b2;
 
 if isempty(olddata)
-  err = [];
+  ok = [];
 else
   thr = max(b0)*1e-4;
-  ok = areequal(olddata.b0,b0,thr,'abs') & ...
-       areequal(olddata.b1,b1,thr,'abs') & ...
+  ok = areequal(olddata.b0,b0,thr,'abs') && ...
+       areequal(olddata.b1,b1,thr,'abs') && ...
        areequal(olddata.b2,b2,thr,'abs');
-  err = ~ok;
 end

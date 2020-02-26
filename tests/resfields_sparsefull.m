@@ -1,4 +1,4 @@
-function [err,data] = resfields_sparsefull(opt,olddata)
+function ok = test()
 
 % sparse vs full matrics
 
@@ -17,5 +17,4 @@ Opt.SparseMode = false;
 [B2,I2] = resfields(Sys,Exp,Opt);
 data2 = [B2,I2];
 
-err = any(abs(data1(:)-data2(:))>1e-2);
-data = [];
+ok = all(abs(data1(:)-data2(:))<1e-2);

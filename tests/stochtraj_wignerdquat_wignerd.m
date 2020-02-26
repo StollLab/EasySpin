@@ -1,9 +1,7 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-%-------------------------------------------------------------------------------
 % Assert that wignerd() and stochtraj_wignerdquat() and euler2quat() are
 % consistent.
-%-------------------------------------------------------------------------------
 
 rng(1);
 a = rand*2*pi;
@@ -27,8 +25,4 @@ end
 
 D2 = D2';
 
-err = max(abs(D1(:)-D2(:))) > 1e-15;
-
-data = [];
-
-end
+ok = areequal(D1,D2,1e-15,'abs');

@@ -1,4 +1,5 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
+
 % Check that supplying a pseudopotential energy function to stochtraj  
 % generates a proper rotational correlation time
 
@@ -61,14 +62,13 @@ tauR = 1/k;
 residuals = AutoCorrFFT(1:N) - yFit;
 rmsd = sqrt(mean(residuals.^2));
 
-err = rmsd > 1e-2 || isnan(rmsd) || tcorr-tauR < 0;
+ok = rmsd < 1e-2 && ~isnan(rmsd) && tcorr-tauR >= 0;
+
 if opt.Display
   x = t(1:N)/1e-6;
   plot(x, AutoCorrFFT(1:N), x, analytic(1:N));
   legend('autcorrFFT','analytical');
   xlabel('t (\mus)')
 end
-
-data = [];
 
 end

@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 % Excitation profile checks
   
@@ -32,12 +32,11 @@ data.b2 = b2;
 data.b3 = b3;
 
 if isempty(olddata)
-  err = [];
+  ok = [];
 else
   e = 1e-6;
   ok = ...
-    areequal(b1,olddata.b1,e,'rel') & ...
-    areequal(b2,olddata.b2,e,'rel') & ...
+    areequal(b1,olddata.b1,e,'rel') && ...
+    areequal(b2,olddata.b2,e,'rel') && ...
     areequal(b3,olddata.b3,e,'rel');
-  err = ~ok;
 end

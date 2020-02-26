@@ -1,8 +1,6 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-%======================================================
 % Comparison of wignerd output with explicit expression
-%======================================================
 
 beta = rand*pi;
 
@@ -29,5 +27,4 @@ d2(3,3) = d2(2,2);
 d2(2,3) = sin(beta/2)*(3*sin(beta/2)^2-2);
 d2(3,2) = -d2(2,3); % wrong in Zare 1st printing, correct in 2nd
 
-err = ~areequal(d1,d2,1e-10,'abs');
-data = [];
+ok = areequal(d1,d2,1e-10,'abs');

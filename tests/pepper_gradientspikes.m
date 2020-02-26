@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % Check for gradient smoothing spikes
 
@@ -16,5 +16,4 @@ if (opt.Display)
   title('Absence of gradient smoothing spikes');
 end
 
-err = max(y1)>max(y2);
-data = [];
+ok = max(y1)<=max(y2);

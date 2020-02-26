@@ -1,8 +1,7 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 v = rand(3,10);
 [p,t] = vec2ang(v);
 a = vec2ang(v);
 
-err = any(a~=[p;t]);
-data = [];
+ok = all(a==[p;t]);

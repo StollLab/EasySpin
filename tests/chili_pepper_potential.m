@@ -1,9 +1,7 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
-%===============================================================================
 % Compare rigid-limit simulation with orientational potential
 % using chili and pepper
-%===============================================================================
 
 Sys.g = [2 2.2];
 Sys.logtcorr = -6;
@@ -28,8 +26,7 @@ spc2 = spc2/max(spc2);
 spc1 = spc1/max(spc1);
 
 threshold = 0.15;
-err = ~areequal(spc1,spc2,threshold,'abs');
-data = [];
+ok = areequal(spc1,spc2,threshold,'abs');
 
 if opt.Display
   subplot(3,1,[1,2])

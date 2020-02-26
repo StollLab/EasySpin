@@ -1,7 +1,6 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Check whether the Lorentzian line width is correct
-%-----------------------------------------------------
 
 fwhm = 1.2; % full width at half maximum
 
@@ -21,7 +20,6 @@ y2 = y; y2(x<x0) = 0.5;
 fwhm_est = x(idx2)-x(idx1);
 
 % Compare
-err = abs(fwhm_est-fwhm)>1e-4;
+ok = areequal(fwhm_est,fwhm,1e-4,'abs');
 
-data =[];
 

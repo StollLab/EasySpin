@@ -1,8 +1,7 @@
-function err = test()
+function ok = test()
 
-%======================================================
 % rotaxi2mat should the exact inverse of rotmat2axi
-%======================================================
+
 randi_(44);
 
 Angles = [0 0 0; 1 0 0; 0 1 0; 0 0 1; 1 1 0; 1 0 1; 0 1 1; ...
@@ -15,5 +14,3 @@ for k = 1:size(Angles,1)
   R2 = rotaxi2mat(n,phi);
   ok(k) = areequal(R1,R2,1e-8,'abs');
 end
-
-err = any(~ok);

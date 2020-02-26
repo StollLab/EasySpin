@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % Check that supplying a pseudopotential energy function to stochtraj_diffusion 
 % generates a proper distribution of orientations.
@@ -82,7 +82,7 @@ pdf = pdf.*sin(betaBins)/sum(pdf(:));
 
 rmsd = calc_rmsd(pdf, Hist3D);
 
-err = rmsd>0.3||any(isnan(Hist3D(:)));
+ok = rmsd<0.3 && all(~isnan(Hist3D(:)));
 % error if numerical result does not match analytical result
 
 if opt.Display
@@ -110,8 +110,6 @@ if opt.Display
   title('PDF from potential')
   colormap hsv
 end
-
-data = [];
 
 
 % Helper function to compare numerical result with analytic expression

@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % Rhombic symmetry invariance
 
@@ -15,7 +15,7 @@ end
 
 y = y/max(y(:));
 thr = 0.005;
-err = ~areequal(y(1,:),y(2,:),thr,'abs') | ~areequal(y(2,:),y(3,:),thr,'abs');
+ok = areequal(y(1,:),y(2,:),thr,'abs') && areequal(y(2,:),y(3,:),thr,'abs');
 
 if (opt.Display)
   plot(x,y);
@@ -23,5 +23,3 @@ if (opt.Display)
   legend(Symmetry{:});
   xlabel('magnetic field [mT]');
 end
-
-data = [];

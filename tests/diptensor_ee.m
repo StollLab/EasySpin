@@ -1,4 +1,4 @@
-function err = diptensor_ee(opt)
+function ok = diptensor_ee(opt)
 
 % Test whether diptensor gives the correct result for two electrons
 
@@ -11,4 +11,4 @@ r = norm(rvec);
 Tperp0 = (mu0/4/pi)*r^-3*(bmagn*gfree)^2; % J
 Tperp0 = Tperp0/planck/1e6; % J -> MHz
 
-err = ~areequal(Tperp,Tperp0,1e-10,'rel');
+ok = areequal(Tperp,Tperp0,1e-10,'rel');

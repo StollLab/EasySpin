@@ -1,19 +1,16 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 %======================================================
-% 2D data sets
+% Check whether returned 2D array size is correct
 %======================================================
 
-SNR = 20;
-
+rng(1);
 y = rand(14,1653);
 
-model = 'fun';
-for k=1:3
-  y_ = addnoise(y,SNR,model(k));
+SNR = 20;
+noisemodel = {'f','u','n'};
+
+for k = 1:3
+  y_ = addnoise(y,SNR,noisemodel{k});
   ok(k) = all(size(y_)==size(y));
 end
-
-err = any(~ok);
-
-data = [];

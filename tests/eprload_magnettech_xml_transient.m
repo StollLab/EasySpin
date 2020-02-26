@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Read Magnettech spectrometer files (new XML format)
 %-------------------------------------------------
@@ -10,7 +10,3 @@ fileName = [BaseDir Files{1}];
 [x,y,p] = eprload(fileName);
 
 ok = x(1)==0.022 && x(end)==9.976;
-
-err = ~ok;
-
-data = [];

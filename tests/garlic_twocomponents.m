@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 Sys1 = struct('g',2,'Nucs','1H','lw',[0,0.1],'A',20);
 Sys2 = struct('g',2,'Nucs','14N','lw',[0,0.03],'A',34);
@@ -14,10 +14,8 @@ Sys2.weight = 1.567;
 
 y_sum = y1 + y2;
 
-err = ~areequal(y,y_sum,1e-10,'rel');
+ok = areequal(y,y_sum,1e-10,'rel');
 
-if (opt.Display)
+if opt.Display
   plot(x,y_sum,x,y);
 end
-
-data = [];

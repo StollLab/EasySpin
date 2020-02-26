@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % g strain comparison for Method='matrix' and Method='perturb'
 
@@ -9,5 +9,5 @@ Opt.Method = 'matrix';
 Opt.Method = 'perturb';
 [x,y2] = pepper(Sys,Exp);
 
-err = ~areequal(y1/max(y1),y2/max(y2),1e-4,'abs');
-data = [];
+ok = areequal(y1/max(y1),y2/max(y2),1e-4,'abs');
+

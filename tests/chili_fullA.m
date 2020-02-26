@@ -1,8 +1,7 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-%=============================================================
 % Simple simulation with full g and A tensors (1  nucleus)
-%=============================================================
+
 g = [2.008 2.006 2.002];
 A = [20 20 85];
 Sys.Nucs = '15N';
@@ -26,6 +25,5 @@ Sys.g = diag(g);
 Sys.A = diag(A);
 [x4,y4] = chili(Sys,Exp);
 
-data = [];
 thr = 1e-3;
-err = ~areequal(y1,y2,thr,'abs') || ~areequal(y1,y3,thr,'abs') || ~areequal(y1,y4,thr,'abs');
+ok = areequal(y1,y2,thr,'abs') && areequal(y1,y3,thr,'abs') && areequal(y1,y4,thr,'abs');

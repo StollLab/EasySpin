@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 Sys.S = 3/2;
 Sys.D = 300;
@@ -24,5 +24,4 @@ if opt.Display
   legend('matrix','perturb2');
 end
 
-err = ~areequal(y0,y1,0.01,'rel');
-data = [];
+ok = areequal(y0,y1,0.01,'rel');

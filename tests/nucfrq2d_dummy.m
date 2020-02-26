@@ -1,6 +1,5 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-err = 0;
-data = [];
+ok = true;
 
 

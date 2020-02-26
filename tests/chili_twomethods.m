@@ -1,8 +1,6 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
-%=======================================================
 % Comparison fast and general code for Liouvillian
-%=======================================================
 
 Sys.g = [2.008 2.0061 2.0027];
 Sys.Nucs = '14N';
@@ -22,6 +20,4 @@ if opt.Display
   legend('fast','general');
 end
 
-err = ~areequal(y1,y2,1e-3,'rel');
-
-data = [];
+ok = areequal(y1,y2,1e-3,'rel');

@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Orbital angular momenta can also be defined as spins, therefore the two
 % Hamiltonians should be identical.
@@ -31,5 +31,4 @@ end
 H1 = zfield(PureSpin);
 H2 = crystalfield(SysSL);
 
-err = ~areequal(H1,H2,1e-10,'abs');
-data = [];
+ok = areequal(H1,H2,1e-10,'abs');

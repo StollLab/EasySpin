@@ -1,7 +1,7 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % various non-zero values
-%======================================================
+
 Jj(1,:) = [3 3 2 3/2 1/2 5/2];  val(1) = +sqrt(3/35)/2;
 Jj(2,:) = [5/2,2,1/2,2,5/2,1];  val(2) = +sqrt(7)/15;
 Jj(3,:) = [5/2,3,1/2,3,5/2,1];  val(3) = -sqrt(10)/21;
@@ -17,8 +17,4 @@ for k = 1:numel(val)
   a(k) = wigner6j(Jj(k,:));
 end
 
-%[a;val].'
-
-err = ~areequal(a,val,1e-12,'abs');
-
-data = [];
+ok = areequal(a,val,1e-12,'abs');

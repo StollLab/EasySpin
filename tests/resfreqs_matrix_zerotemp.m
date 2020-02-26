@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Test transition selection for resfreqs_matrix
 
@@ -10,5 +10,4 @@ Exp.Temperature = 0;
 
 [nu, int] = resfreqs_matrix(Sys,Exp);
 
-err = numel(nu)~=1;
-data = [];
+ok = numel(nu)==1;

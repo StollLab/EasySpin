@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % Check Gaussian dispersion lineshape against explicit expression
 %=================================================================
@@ -26,9 +26,7 @@ if opt.Display
 end
 
 % Compare
-err = ~areequal(y0,y2,1e-10,'rel') || ~areequal(y1,y3,1e-10,'rel');
-
-data =[];
+ok = areequal(y0,y2,1e-10,'rel') && areequal(y1,y3,1e-10,'rel');
 
 function y = dawsonF(x)
 y = real(sqrt(pi)/2i*(faddeeva_(x,38)-exp(-x.^2)));

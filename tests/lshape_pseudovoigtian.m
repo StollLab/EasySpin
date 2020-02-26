@@ -1,7 +1,7 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % Pseudo-Voigtian
-%======================================================
+
 x = linspace(-200,200,1e4); x0 = 34;
 wG = 20; wL = 15;
 dif = 0;
@@ -18,6 +18,4 @@ if (opt.Display)
   legend('lshape','manual sum');
 end
 
-err = ~areequal(yA,yB,1e-10,'rel');
-data = [];
-
+ok = areequal(yA,yB,1e-10,'rel');

@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Test 1: syntax
 %======================================================
@@ -10,5 +10,5 @@ y = 3*exp(-x);
 [k,c] = exponfit(x,y,1);
 [k,c] = exponfit(x,y,1,'noconst');
 
-err = 0;
-data = [];
+ok = true;
+

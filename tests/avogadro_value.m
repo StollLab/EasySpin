@@ -1,7 +1,5 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-a = avogadro;
-b = 6.02214076e23;
-err = abs(a-b)/b > 1e-10;
-
-data = [];
+val = avogadro;
+ref = 6.02214076e23;
+ok = areequal(val,ref,1e-10,'rel');

@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 %===============================================================================
 % eigfields should use Opt.Threshold to screen transitions
@@ -16,6 +16,5 @@ Op.Threshold = 0.001;
 [Pos1,Int] = eigfields(Sys,Exp,Op);
 Pos2 = eigfields(Sys,Exp,Op);
 
-err = ~areequal(Pos1,Pos2,1e-10,'abs');
+ok = areequal(Pos1,Pos2,1e-10,'abs');
 
-data = [];

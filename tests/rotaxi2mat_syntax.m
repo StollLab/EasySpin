@@ -1,7 +1,6 @@
-function err = test()
+function ok = test()
 
 % Syntax checks
-%===============================================================================
 phi = 6*pi/7;
 
 % Explicit rotation axis vector
@@ -18,4 +17,4 @@ R = rotaxi2mat('xz',phi);
 R = rotaxi2mat('yz',phi);
 R = rotaxi2mat('xyz',phi);
 
-err = false;
+ok = true;

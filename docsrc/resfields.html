@@ -257,7 +257,7 @@ Sys = struct('S',.5,'g',[2.3,2.3,2],...
 'Nucs','1H,1H','A',[10 10 500; 10 10 500]);
 Param = struct('mwFreq',9.5,'Range',[200 400]);
 [p,t] = sphgrid('Dinfh',201);
-Param.CrystalOrientation = [p;t];
+Param.CrystalOrientation = [p;t].'';
 x = resfields(Sys,Param);
 </pre>
 

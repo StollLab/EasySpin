@@ -1,8 +1,6 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
-%=======================================================
 % Explicit field-sweep triplet, general solver
-%=======================================================
 
 Sys.S = 1;
 Sys.g = [2.01 2.005 2.002];
@@ -26,9 +24,8 @@ data.y = y;
 % Check for consistency
 if ~isempty(olddata)
   ok = areequal(y/max(y),olddata.y/max(olddata.y),1e-1,'abs');
-  err = ~ok;
 else
-  err = [];
+  ok = [];
 end
 
 if opt.Display

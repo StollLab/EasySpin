@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % Correct behavior of Exp.CenterField and Exp.Range
 %-----------------------------------------------------
@@ -21,6 +21,4 @@ Exp.Range = [min(x0) max(x0)];
 [x2,y2] = chili(Sys,Exp);
 
 thr = 1e-12;
-err = ~areequal(x0,x1,thr,'rel') || ~areequal(x0,x2,thr,'rel');
-
-data = [];
+ok = areequal(x0,x1,thr,'rel') || ~areequal(x0,x2,thr,'rel');

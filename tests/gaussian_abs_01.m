@@ -1,7 +1,7 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % Check integrated Gaussian against explicit expression
-%======================================================
+
 x0 = 3; fwhm = 2;
 x = linspace(-3,6,1001);
 
@@ -14,6 +14,4 @@ if opt.Display
   plot(x,y1,x,y1_,'r')
 end
 
-err = any(abs(y1-y1_)>1e-3);
-
-data =[];
+ok = areequal(y1,y1_,1e-3,'rel');

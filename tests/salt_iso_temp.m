@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % Assure that intensities contain temperature
 % dependence when running an isotropic system
@@ -23,5 +23,4 @@ if opt.Display
   plot(x,y1);
 end
 
-data = [];
-err = ~(all(diff(S)<0));
+ok = all(diff(S)<0);

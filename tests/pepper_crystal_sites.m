@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % Simulate individual crystal sites
 
@@ -27,5 +27,4 @@ if opt.Display
   legend('all sites at once','each site separately');
 end
 
-err = ~areequal(y0,y1,1e-10,'rel');
-data = [];
+ok = areequal(y0,y1,1e-10,'rel');

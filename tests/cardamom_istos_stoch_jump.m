@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 % Regression test for cardamom using ISTOs method and a jump simulation
 
 rng(1)
@@ -31,9 +31,9 @@ Opt.Method = 'ISTOs';
 data.spc = spc;
 
 if ~isempty(olddata)
-  err = any(abs(olddata.spc-spc)>1e-10);
+  ok = areequal(olddata.spc,spc,1e-10,'abs');
 else
-  err = [];
+  ok = [];
 end
 
 % Plotting

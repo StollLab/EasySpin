@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Assure that running esfit with multiple, sequential algorithms is 
 % successful and yields a good fit for a custom function that generates a 
@@ -11,7 +11,7 @@ N = 50;
 
 rng_(1)
 
-err = false;
+ok = false;
 
 FitOpt.PrintLevel = 0;
 
@@ -75,9 +75,7 @@ xfit = transformVars(xfit, Vary);
 sd = (data - gaussfunc(grids, xfit)).^2;
 rmsd = real(sqrt(mean(sd(:))));
 
-err = rmsd>0.5;
-
-data = [];
+ok = rmsd<=0.5;
 
 end
 

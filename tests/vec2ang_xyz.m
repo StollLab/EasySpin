@@ -1,8 +1,6 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-%======================================================
 % Principal axes x, y and z
-%======================================================
 
 thr = 1e-12;
 
@@ -14,6 +12,3 @@ ok(2) = areequal([p t],[pi/2 pi/2],thr,'abs');
 
 [p,t] = vec2ang([1;0;0]);
 ok(3) = areequal([p t],[0 pi/2],thr,'abs');
-
-err = any(~ok);
-data = [];

@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % Test whether correlated g/A strain + H strain work equally
 % with matrix diagonalization and perturbation theory
@@ -24,7 +24,4 @@ if opt.Display
   legend boxoff
 end
 
-err = ~areequal(y0,y2,5e-3,'abs');
-
-data = [];
-
+ok = areequal(y0,y2,5e-3,'abs');

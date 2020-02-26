@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % garlic: Test auto ranging for frequency sweeps
 
@@ -11,7 +11,4 @@ Exp.Field = 340;
 
 [nu,y] = garlic(Sys,Exp);
 
-ok = (min(nu)<max(nu));
-
-err = ~ok;
-data = [];
+ok = min(nu)<max(nu);

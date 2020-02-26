@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 Exp.Sequence = '3pESEEM';
 Exp.Field = 324.9;
@@ -33,8 +33,7 @@ data.y = y;
 data.x = x;
 
 if isempty(olddata)
-  err = [];
+  ok = [];
 else
   ok = areequal(olddata.y,y,1e-10,'rel');
-  err = ~ok;
 end

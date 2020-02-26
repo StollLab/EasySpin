@@ -1,9 +1,8 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-%======================================================
 % expansion of isotropic hfc
 % system with 1 electron and 3 nuclei
-%======================================================
+
 aiso = [100 121 37];
 
 Sys1.Nucs = '1H,1H,1H';
@@ -16,6 +15,3 @@ H1 = hfine(Sys1);
 H2 = hfine(Sys2);
 
 ok = areequal(H1,H2,1e-10,'rel');
-err = ~ok;
-
-data = [];

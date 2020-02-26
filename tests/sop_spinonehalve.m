@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Check matrices of all spin operators for S=1/2
 
@@ -19,8 +19,3 @@ myOp{8} = [0 0; 0 1];
 for k = 1:numel(Op)
   ok(k) = areequal(Op{k},myOp{k},1e-12,'abs');
 end
-
-err = any(~ok);
-
-data = [];
-

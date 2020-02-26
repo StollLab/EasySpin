@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % System ------------------------
 Sys.ZeemanFreq = 33.500;
@@ -20,7 +20,4 @@ Exp.DetOperator = {'z1'};
 Exp.DetOperator = [1/2 0; 0 -1/2];
 [sig3] = spidyan(Sys,Exp);
 
-err = any([~isequal(sig1,sig2) ~isequal(sig1,sig3)]);
-
-data = [];
-
+ok = isequal(sig1,sig2) && isequal(sig1,sig3);

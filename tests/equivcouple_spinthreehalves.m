@@ -1,7 +1,7 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Multiple spins-3/2
-%======================================================
+
 test(1).n = 2;
 test(1).F = [3 2 1 0];
 test(1).N = [1 1 1 1];
@@ -25,6 +25,3 @@ for q=1:numel(test)
   dim = (2*S+1)^test(q).n;
   ok(q) = ok(q) && (sum((2*F+1).*N)==dim);
 end
-
-err = any(~ok);
-data = [];

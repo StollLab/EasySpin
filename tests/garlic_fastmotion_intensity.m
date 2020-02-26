@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % Test intensity of garlic w tcorr against garlic with lw
 %-------------------------------------------------------------
@@ -23,8 +23,7 @@ dx = x(2)-x(1);
 int1 = sum(y1)*dx;
 int2 = sum(y2)*dx;
 
-err = ~areequal(int1,int2,1e-3,'rel');
-data = [];
+ok = areequal(int1,int2,1e-3,'rel');
 
 if opt.Display
   [int1 int2]

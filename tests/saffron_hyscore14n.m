@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 Sys.Nucs = '14N';
 %Sys.A = [-1 -1 2]*2+1.3; Sys.Q = [-1 -1 2]*0.3;
@@ -33,8 +33,7 @@ end
 data.y = y;
 
 if isempty(olddata)
-  err = [];
+  ok = [];
 else
   ok = areequal(olddata.y,y,1e-10,'rel');
-  err = ~ok;
 end

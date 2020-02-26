@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % ThetaRange option
 
@@ -20,5 +20,4 @@ if (opt.Display)
   title('Orientation selection via Opt.ThetaRange');
 end
 
-err = 0;
-data = [];
+ok = true;

@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 Sys.Nucs = '14N';
 Sys.A = [-1 -1 2]*0.5+0.8;
@@ -31,7 +31,7 @@ y = saffron(Sys,Exp,Opt);
 data.y = y;
 
 if ~isempty(olddata)
-  err = ~areequal(y,olddata.y,1e-4,'abs');
+  ok = areequal(y,olddata.y,1e-4,'abs');
 else
-  err = [];
+  ok = [];
 end

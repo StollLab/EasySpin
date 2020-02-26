@@ -1,9 +1,7 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-%==================================================================
 % Test a and F terms against explicit formulae and stev
-%==================================================================
-% Abragam/Bleaney p. 437
+% (Abragam/Bleaney p. 437)
 
 S = 5/2;
 [Sx,Sy,Sz,Sp,Sm] = sop(S,'x','y','z','+','-');
@@ -25,7 +23,7 @@ H2 = zfield(Sys);
 D = H1-H0; err(1) = any(abs(D(:))>1e-6);
 D = H2-H0; err(2) = any(abs(D(:))>1e-6);
 %}
-err(1:2) = 0;
+ok(1:2) = true;
 
 % (2) F term
 %-----------------------------------------------------------------
@@ -35,7 +33,5 @@ H0 = stev(S,4,0)/180;
 H1 = (35*Sz^4-30*n*Sz^2+25*Sz^2-(6*n-3*n^2)*eS)/180;
 H2 = zfield(Sys);
 
-D = H1-H0; err(3) = any(abs(D(:))>1e-6);
-D = H2-H0; err(4) = any(abs(D(:))>1e-6);
-
-data = [];
+ok(3) = areequal(H0,H1,1e-6,'abs');
+ok(4) = areequal(H0,H2,1e-6,'abs');

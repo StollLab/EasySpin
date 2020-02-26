@@ -1,4 +1,4 @@
-function err = test(opt)
+function ok = test(opt)
 
 % Test whether double integral is independent of the number of hyperfine lines
 
@@ -30,7 +30,7 @@ int2 = sum(spc2)*dB;
 int3 = sum(spc3)*dB;
 int4 = sum(spc4)*dB;
 
-err = ~areequal(int2,int3,0.01,'rel') || ~areequal(int3,int4,0.01,'rel');
+ok = areequal(int2,int3,0.01,'rel') && areequal(int3,int4,0.01,'rel');
 
 if opt.Display
   plot(B,spc2,B,spc3,B,spc4);

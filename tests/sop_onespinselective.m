@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Check all single-transition matrices for a single spin with S>1/2
 %-------------------------------------------------------------------------------
@@ -43,7 +43,3 @@ for k = 1:numel(components)
     end
   end
 end
-
-err = any(~ok);
-
-data = [];

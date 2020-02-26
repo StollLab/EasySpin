@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 % S=3/2 regression test
 
@@ -19,12 +19,11 @@ data.p = p;
 data.i = i;
 
 if isempty(olddata)
-  err = [];
+  ok = [];
 else
   idxp = ~isnan(p);
   idxi = ~isnan(i);
   thr = 1e-4;
   ok = areequal(p(idxp),olddata.p(idxp),thr,'abs') && ...
        areequal(i(idxi),olddata.i(idxi),thr,'abs');
-  err = ~ok;
 end

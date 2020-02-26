@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % this test asserts the output is correctly returned for the various cases
 % where the length of the transient (in points) changes due to events
@@ -64,15 +64,5 @@ Exp4.DetOperator = {'z1' 'z1'};
 TimeAxisChanged(4) = any([~iscell(TimeAxis4), size(TimeAxis4) ~= [3 2], size(TimeAxis4{1}) ~= [1,165790], size(TimeAxis4{3}) ~= [1,165789]]);
 SignalChanged(4) = any([~iscell(Signal4), size(Signal4) ~= [3 2], size(Signal4{1}) ~= [165790,2], size(Signal4{3}) ~= [165789,2]]);
 
-
-OutputChanged = any([TimeAxisChanged SignalChanged]);
-
-
-if OutputChanged
-  err = 1;
-else
-  err = 0;
-end
-
-data = [];
-
+ok(1) = all(~TimeAxisChanged);
+ok(2) = all(~SignalChanged);

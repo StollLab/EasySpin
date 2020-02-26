@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Compute Clebsch-Gordan matrix
 % for transformation from uncoupled to coupled representation.
@@ -9,32 +9,6 @@ clear
 j1 = 5; j2 = j1;
 
 N = (2*j1+1)*(2*j2+1);
-
-%{
-[m1,m2] = meshgrid(j1:-1:-j1,j2:-1:-j2);
-m12 = sortrows([-m1(:)-m2(:) m1(:) m2(:)]);
-m1 = m12(:,2);
-m2 = m12(:,3);
-
-k = 1;
-for j_=j1+j2:-1:abs(j1-j2)
-  for m_=j_:-1:-j_
-    j(k) = j_;
-    m(k) = m_;
-    k = k+1;
-  end
-end
-jm = sortrows([-m(:) m(:) j(:)]);
-m = jm(:,2);
-j = jm(:,3);
-
-CG = zeros(N);
-for r = 1:N
-  for c = 1:N
-    CG(r,c) = clebschgordan(j1,j2,j(r),m1(c),m2(c),m(r));
-  end
-end
-%}
 
 CG = [];
 for m = j1+j2:-1:-(j1+j2)  
@@ -55,7 +29,4 @@ end
 Id = CG'*CG;
 
 deviation = abs(Id-eye(N));
-err = any(deviation(:)>1e-13);
-
-data = [];
-
+ok = all(deviation(:)<1e-13);

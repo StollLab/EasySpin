@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % Read Bruker DTA/DSC files containing AWG data
 % (DSC files are unusually large)
@@ -33,6 +33,4 @@ for iFile = 1:numel(Files)
   end
 end
 
-err = readerr;
-
-data = [];
+ok = ~readerr;

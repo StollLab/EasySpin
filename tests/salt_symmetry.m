@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 % Symmetry test
   
@@ -31,8 +31,7 @@ end
 data.b = b;
 
 if isempty(olddata)
-  err = [];
+  ok = [];
 else
   ok = areequal(olddata.b/max(olddata.b(:)),b/max(b(:)),1e-6,'abs');
-  err = ~ok;
 end

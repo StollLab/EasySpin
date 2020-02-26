@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % Comparison of one systems with two very weakly coupled
 % g-strain-broadened spins with the sum of their indiviual
@@ -47,5 +47,4 @@ if opt.Display
   legend('residuals');
 end
 
-err = ~areequal(y_both,y1+y2,1e-5*max(y_both),'abs');
-data = [];
+ok = areequal(y_both,y1+y2,1e-5*max(y_both),'abs');

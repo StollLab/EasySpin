@@ -1,7 +1,6 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-% Read Magnettech files containing 2D sweeps (field + other parameter
-%-------------------------------------------------
+% Read Magnettech files containing 2D sweeps (field + other parameter)
 
 BaseDir = 'eprfiles/magnettech/';
 
@@ -14,7 +13,3 @@ for iFile = 1:numel(Files)
   [x,data,pars] = eprload(fullFileName);
   ok(iFile) = true;
 end
-
-err = any(~ok);
-
-data = [];

@@ -1,4 +1,4 @@
-function err = diptensor_en(opt)
+function ok = diptensor_en()
 
 % Test whether diptensor gives correct results for hyperfine coupling tensors.
 
@@ -15,7 +15,6 @@ for k = 1:numel(Isotopes)
   Tperp0 = -(mu0/4/pi)*r^-3*bmagn*gfree*nmagn*gn; % J
   Tperp0 = Tperp0/planck/1e6; % J -> MHz
   
-  err(k) = ~areequal(Tperp,Tperp0,1e-10,'rel');
+  ok(k) = areequal(Tperp,Tperp0,1e-10,'rel');
     
 end
-err = any(err);

@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 Exp.Sequence = '2pESEEM';
 Exp.mwFreq = 9.5;
@@ -34,8 +34,8 @@ if (opt.Display)
 end
 
 if ~isempty(olddata)
-  err = ~areequal(y,olddata.y,1e-4,'abs');
+  ok = areequal(y,olddata.y,1e-4,'abs');
 else
-  err = [];
+  ok = [];
 end
 

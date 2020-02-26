@@ -1,4 +1,5 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
+
 rng_(5,'twister');
 
 Sys.S = randi_(6)/2;
@@ -65,6 +66,4 @@ for k = 1:numel(keywords)
   
 end
 
-err = err > 1e-12;
-
-data = [];
+ok = err < 1e-12;

@@ -1,7 +1,6 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Assert that sop can handle spin systems as first input
-%-------------------------------------------------------
 
 Sys{1}.S = 1/2;
 Sys{2}.S = [3/2 1]; Sys{2}.ee = 1;
@@ -15,7 +14,3 @@ for k = 1:numel(Sys)
   Op2 = sop(Spins,op);
   ok(k) = areequal(Op1,Op2,1e-12,'abs');
 end
-
-err = ~ok;
-
-data = [];

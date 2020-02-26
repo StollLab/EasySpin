@@ -1,7 +1,7 @@
-function err = test(opt,olddata)
+function ok = test()
 
 % Test whether Lorentzian line function is normalized
-%======================================================
+
 x0 = 340;
 fwhm = 20;
 f = @(x) lorentzian(x,x0,fwhm);
@@ -11,4 +11,4 @@ xmin = x0 - n*fwhm;
 xmax = x0 + n*fwhm;
 Area = integral(f,xmin,xmax);
 
-err = abs(Area-1) > 4e-2;
+ok = areequal(Area,1,4e-2,'abs');

@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Assure that running esfit and pepper using grid algorithm is successful 
 % and yields a good fit.
@@ -22,9 +22,7 @@ FitOpt.PrintLevel = 0;
 FitOpt.nParticles = 30;
 
 FitOpt.Method = [fitAlg ' ' dataMethod];
-[dummy,dummy,resid] = esfit(@pepper,spc,Sys,Vary,Exp,[],FitOpt);
+[~,~,resid] = esfit(@pepper,spc,Sys,Vary,Exp,[],FitOpt);
 rmsd = sqrt(mean(resid.^2));
 
-err = any(rmsd>1e-4);
-
-data = [];
+ok = rmsd<1e-4;

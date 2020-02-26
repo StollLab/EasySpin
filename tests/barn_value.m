@@ -1,7 +1,5 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 TestValue = barn;
 RealValue = 1e-28;
-err = ~areequal(TestValue,RealValue,0,'rel');
-
-data = [];
+ok = areequal(TestValue,RealValue,0,'rel');

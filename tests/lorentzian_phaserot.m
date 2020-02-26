@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 fwhm = 1.1; % full width at half maximum
 
@@ -10,7 +10,5 @@ x = x0 + linspace(-1.7343,1.99,N)*fwhm*2;
 [y3,y4] = lorentzian(x,x0,fwhm,0,pi/2);
 
 % Compare
-err = abs(y2-y3)>1e-4;
-
-data =[];
+ok = areequal(y2,y3,1e-4,'abs');
 

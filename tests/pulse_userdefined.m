@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Compare pulse() internal and user-defined sech/tanh
 %--------------------------------------------------------------------------
@@ -38,6 +38,4 @@ Params_.TimeStep = Params.TimeStep;
 
 [t_,IQ_] = pulse(Params_);
 
-err = ~areequal(IQ,IQ_,1e-12,'abs');
-
-data = [];
+ok = areequal(IQ,IQ_,1e-12,'abs');

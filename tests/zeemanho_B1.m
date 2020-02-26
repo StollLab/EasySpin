@@ -1,8 +1,8 @@
-function [err,data] = test(opt,olddata)
-%==================================================================
+function ok = test()
+
 % Test whether the 1th order in B of zeemanho is identical to the usual
 % Zeeman Hamiltonian
-%==================================================================
+
 rng_(5,'twister');
 
 Sys.S = ceil(rand*20)/2;
@@ -42,9 +42,5 @@ end
 % test
 threshold = 1e-8;
 for n = 4:-1:1
-  errl(n) = ~areequal(H{n},Hz{n},threshold,'abs');
+  ok(n) = areequal(H{n},Hz{n},threshold,'abs');
 end
-err = any(errl);
-data =[];
-
-

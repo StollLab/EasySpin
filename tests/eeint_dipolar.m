@@ -1,8 +1,7 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-%======================================================
 % Compare ee and J/dip/dvec for a two-spin system
-%======================================================
+
 S = [1/2 1/2];
 g = [2 2];
 
@@ -28,6 +27,4 @@ Sys3.dip = d*[1 1 -2] + r*[1 -1 0];
 Hee3 = eeint(Sys3);
 
 % The Hamiltonians should be _numerically_ identical
-err = any(Hee1(:)~=Hee2(:)) || any(Hee1(:)~=Hee3(:));
-
-data = [];
+ok = all(Hee1(:)==Hee2(:)) && all(Hee1(:)==Hee3(:));

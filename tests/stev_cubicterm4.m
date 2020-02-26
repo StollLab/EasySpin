@@ -1,7 +1,6 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-% Test 3: compare two expressions for 4th-order cubic term
-%============================================================
+% Compare two expressions for 4th-order cubic term
 S = 5/2;
 
 [E,Sx,Sy,Sz] = sop(S,'e','x','y','z');
@@ -12,5 +11,5 @@ P1 = P1/6;
 P2 = stev(S,4,0) + 5*stev(S,4,4);
 P2 = P2/120;
 
-err = ~areequal(P1,P2,1e-10,'rel');
-data = [];
+ok = areequal(P1,P2,1e-10,'rel');
+

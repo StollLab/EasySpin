@@ -1,7 +1,7 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
-% Test 3: Check against formula
-%======================================================
+% Check derivative against explicit expression
+
 x0 = 3; fwhm = 2;
 x = linspace(-3,6,100);
 y = gaussian(x,x0,fwhm,0);
@@ -16,6 +16,4 @@ if opt.Display
   legend boxoff
 end
 
-err = any(abs(y-y0)./y>1e-10);
-
-data =[];
+ok = areequal(y,y0,1e-10,'rel');

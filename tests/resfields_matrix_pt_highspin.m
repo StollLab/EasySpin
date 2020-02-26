@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % For a high-spin system, compare line positions and intensities
 % as obtained by matrix diagonalization and by perturbation theory.
@@ -18,7 +18,5 @@ Exp.CrystalOrientation = [pi/4 pi/4 0];
 [Ba,idx] = sort(Ba); Ia = Ia(idx);
 [Bb,idx] = sort(Bb); Ib = Ib(idx);
 
-err(1) = any(abs(Ba-Bb)>0.0001);
-err(2) = any(abs(Ia-Ib)>0.05);
-
-data = [];
+ok(1) = all(abs(Ba-Bb)<0.0001);
+ok(2) = all(abs(Ia-Ib)<0.05);

@@ -1,7 +1,6 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Read Magnettech spectrometer files (new XML format)
-%-------------------------------------------------
 
 BaseDir = 'eprfiles/magnettech/';
 
@@ -11,6 +10,4 @@ thisFileName = [BaseDir Files{1}];
 
 [x,data] = eprload(thisFileName);
 
-err = any(isnan(x)) || any(isnan(data));
-
-data = [];
+ok = ~any(isnan(x)) && ~any(isnan(data));

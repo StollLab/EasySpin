@@ -1,6 +1,6 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 a = emass;
 b = 9.1093837015e-31;
-err = abs(a-b)/b > 1e-12;
-data = [];
+
+ok = areequal(a,b,1e-12,'rel');

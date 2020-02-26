@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 % Susceptibility of a simple coupled spin dimer
 
@@ -24,7 +24,6 @@ end
 
 if ~isempty(olddata)
   ok = areequal(data.chi_SI,olddata.chi_SI,max(data.chi_SI)*1e-3,'abs');
-  err = ~ok;
 else
-  err = [];
+  ok = [];
 end

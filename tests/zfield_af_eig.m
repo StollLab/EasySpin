@@ -1,10 +1,7 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-%==================================================================
-% Test zero-field energies of a and F terms against
-% explicit equations
-%==================================================================
-% Bleaney/Trenam, Proc Roy Soc A, 223, 1-14 (1954)
+% Test zero-field energies of a and F terms against explicit equations
+% (Bleaney/Trenam, Proc Roy Soc A, 223, 1-14 (1954))
 
 
 Sys.S = 5/2;
@@ -21,5 +18,4 @@ e2(2) = D/3 - (a-F)/2 + sqrt((18*D+a-F)^2+80*a^2)/6;
 e2(3) = -2*D/3 + (a-F);
 e2 = sort(e2.');
 
-err = any(abs(e2-e1)>1e-8);
-data = [];
+ok = areequal(e1,e2,1e08,'abs');

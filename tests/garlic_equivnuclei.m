@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 %=======================================================
 % Make sure that '1H' and n=3 is the same as '1H,1H,1H'
@@ -24,6 +24,4 @@ for nEquivNuclei = 1:10
   area1(nEquivNuclei) = sum(Spc1);
   area2(nEquivNuclei) = sum(Spc2);
 end
-
-data = [];
-err = isequal(area1,area2,1e-4);
+ok = areequal(area1,area2,1e-4,'rel');

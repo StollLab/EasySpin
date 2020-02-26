@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 % Basic frequency sweep with pepper
 clear Sys Exp
@@ -12,9 +12,9 @@ Exp.Field = 340; % mT
 integral = sum(y)*(x(2)-x(1));
 
 if ~isempty(olddata)
-  err = max(abs(integral-olddata.integral)/integral)>1e-5;
+  ok = max(abs(integral-olddata.integral)/integral)<1e-5;
 else
-  err = [];
+  ok = [];
 end
 
 if opt.Display

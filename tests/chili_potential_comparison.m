@@ -1,8 +1,6 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
-%===============================================================================
 % Compare fast and general code with various potentials
-%===============================================================================
 
 Sys.g = [2.05 2.00];
 Sys.logDiff = 7;
@@ -25,7 +23,7 @@ for p = 1:4
   Opt.LiouvMethod = 'general';
   [nu,y_general] = chili(Sys,Exp,Opt);
   
-  err(p) = ~areequal(y_fast,y_general,1e-4,'rel');
+  ok(p) = areequal(y_fast,y_general,1e-4,'rel');
   
   if opt.Display
     subplot(4,1,p);
@@ -36,6 +34,3 @@ for p = 1:4
   end
   
 end
-
-err = any(err);
-data = [];

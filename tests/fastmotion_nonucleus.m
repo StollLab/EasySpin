@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Linewdiths of hypothetical system without nuclear spins
 %======================================================
@@ -11,5 +11,4 @@ lw = fastmotion(Sys,Field,tcorr);
 
 lw_correct = 0.41832353;
 
-err = ~areequal(lw,lw_correct,1e-5,'rel');
-data = [];
+ok = areequal(lw,lw_correct,1e-5,'rel');

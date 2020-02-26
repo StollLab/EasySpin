@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 J = 50*30e3;
 
@@ -14,6 +14,4 @@ F = spinladder(Sys);
 Sys.D = [20 30 40; 10 30 50];
 F = spinladder(Sys);
 
-err = 0;
-
-data = [];
+ok = true;

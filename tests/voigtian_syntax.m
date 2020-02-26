@@ -1,7 +1,4 @@
-function [err,data] = test(opt,olddata)
-
-% Test 1: Calligng syntax
-%-----------------------------------------------
+function ok = test()
 
 x = linspace(0,1,1002);
 x0 = 0.4;
@@ -12,5 +9,4 @@ y = voigtian(x,x0,fwhm,0);
 y = voigtian(x,x0,fwhm,1);
 y = voigtian(x,x0,fwhm,2);
 
-err = 0;
-data = [];
+ok = true;

@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 % Regression test for Gaussian lineshape
 %-----------------------------------------------------
@@ -28,7 +28,6 @@ if ~isempty(olddata)
   ok(2) = areequal(data.yd0,olddata.yd0);
   ok(3) = areequal(data.ya1,olddata.ya1);
   ok(4) = areequal(data.yd1,olddata.yd1);
-  err = any(~ok);
 else
-  err = [];
+  ok = [];
 end

@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % Assure that running esfit and pepper using genetic algorithm is successful 
 % and yields a good fit.
@@ -26,7 +26,7 @@ FitOpt.Method = [fitAlg ' ' dataMethod];
 
 [sysFit,spcFit] = esfit(@pepper,spc,Sys,Vary,Exp,[],FitOpt);
 rmsd = sqrt(mean((spc-spcFit).^2));
-err = any(rmsd/max(spc)>0.01);
+ok = all(rmsd/max(spc)<=0.01);
 
 if opt.Display
   subplot(4,1,[1 2 3]);
@@ -37,5 +37,3 @@ if opt.Display
   subplot(4,1,4);
   plot(nu,spc-spcFit);
 end
-
-data = [];

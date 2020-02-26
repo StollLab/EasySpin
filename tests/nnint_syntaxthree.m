@@ -1,8 +1,7 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-%======================================================
 % Syntax check, three nuclear spins
-%======================================================
+
 Sys.Nucs = '1H,13C,15N';
 Sys.A = [10 20 30];
 
@@ -27,5 +26,4 @@ H = nnint(Sys,[1 2]);
 H = nnint(Sys,[1 3]);
 H = nnint(Sys,[2 3]);
 
-err = false;
-data = [];
+ok = true;

@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 % Spin System
 Sys.S = 1/2;
@@ -51,8 +51,8 @@ if (opt.Display)
 end
 
 if ~isempty(olddata)
-  err = ~areequal(y,olddata.y,1e-3,'abs');
+  ok = areequal(y,olddata.y,1e-3,'abs');
 else
-  err = [];
+  ok = [];
 end
 

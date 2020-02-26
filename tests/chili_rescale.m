@@ -1,8 +1,6 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
-%=======================================================
 % Explicit field-sweep doublet, fast method
-%=======================================================
 
 Sys.S = 1/2;
 Sys.g = [2.01 2.005 2.002];
@@ -17,8 +15,7 @@ Opt.Rescale = true;
 Opt.Rescale = false;
 [x,y2] = chili(Sys,Exp,Opt);
 
-err = ~areequal(y1,y2,1e-10,'rel');
-data = [];
+ok = areequal(y1,y2,1e-10,'rel');
 
 if opt.Display
   plot(x,y1,x,y2);

@@ -1,4 +1,5 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
+
 % Regression test for expectation maximization for GHMM function
 
 rng(1)
@@ -88,10 +89,10 @@ data.eqDistr = eqDistr1;
 
 
 if ~isempty(olddata)
-  err = any(any(abs(olddata.TransProb-TransProb1)>1e-10)) ...
-       || any(abs(olddata.eqDistr-eqDistr1)>1e-10);
+  ok = all(abs(olddata.TransProb(:)-TransProb1(:))<1e-10) ...
+       && all(abs(olddata.eqDistr-eqDistr1)<1e-10);
 else
-  err = [];
+  ok = [];
 end
 
 if opt.Display

@@ -1,8 +1,7 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
-%=======================================================
 % Simple isotropic simulations
-%=======================================================
+
 Sys.g = [2.008 2.0061 2.0027];
 Sys.Nucs = '14N';
 Sys.A = [16 16 86];
@@ -29,7 +28,6 @@ if ~isempty(olddata)
     plot(data.x,data.y-olddata.y);
   end
   ok = areequal(y,olddata.y,1e-4,'abs');
-  err = ~ok;
 else
-  err = [];
+  ok = [];
 end

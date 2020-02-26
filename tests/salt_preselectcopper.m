@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % OriPreSelect option, axial g, 63Cu and 1H
 
@@ -17,5 +17,4 @@ if (opt.Display)
 end
 
 RelativeError = abs(y0(:)-y1(:))/max(y0(:));
-err = any(RelativeError>0.1);
-data = [];
+ok = all(RelativeError<0.1);

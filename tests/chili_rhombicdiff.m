@@ -1,8 +1,6 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
-%=======================================================
 % Rhombic diffusion tensor
-%=======================================================
 
 Sys = struct('g',[2.1 2.0 1.9],'lw',1);
 Exp = struct('mwFreq',9.5,'CenterSweep',[340 100]);
@@ -24,7 +22,6 @@ if ~isempty(olddata)
     plot(data.x,data.y,'r',data.x,olddata.y,'g');
   end
   ok = areequal(y,olddata.y,1e-3,'abs');
-  err = ~ok;
 else
-  err = [];
+  ok = [];
 end

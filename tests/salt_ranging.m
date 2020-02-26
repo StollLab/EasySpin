@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Manual and automatic rf ranging for ENDOR perturbation theory
 
@@ -25,6 +25,4 @@ Opt.Method = 'matrix';
 [x,y] = salt(Sys,Exp2,Opt);
 [x,y] = salt(Sys,Exp3,Opt);
 
-
-err = 0;
-data = [];
+ok = true;

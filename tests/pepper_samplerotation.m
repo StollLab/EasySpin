@@ -1,4 +1,4 @@
-function err = test(opt)
+function ok = test(opt)
 
 % Test whether rotation via Exp.SampleRotation gives the same results as
 % rotation via rotateframe().
@@ -26,7 +26,7 @@ Exp.CrystalOrientation = cori;
 Exp.SampleRotation = {rho,nL};
 [B,spc3] = pepper(Sys,Exp);
 
-err = ~areequal(spc2,spc3,1e-10,'rel');
+ok = areequal(spc2,spc3,1e-10,'rel');
 
 if opt.Display
   plot(B,spc2,B,spc3)

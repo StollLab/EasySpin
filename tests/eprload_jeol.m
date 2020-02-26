@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 %-------------------------------------------------
 % Read JEOL files
@@ -26,7 +26,7 @@ for iFile = 1:numel(Files)
     end
   end
   
-  if (opt.Display)
+  if opt.Display
     subplot(2,1,1);
     plot(x,real(data));
     subplot(2,1,2);
@@ -35,6 +35,4 @@ for iFile = 1:numel(Files)
   end
 end
 
-err = readerr;
-
-data = [];
+ok = ~readerr;

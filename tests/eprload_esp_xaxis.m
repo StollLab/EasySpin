@@ -1,7 +1,4 @@
-function [err,data] = eprload_esp_xaxis(opt,olddata)
-
-data = [];
-err = [];
+function ok = eprload_esp_xaxis(opt)
 
 BaseDir = 'eprfiles/';
 
@@ -63,6 +60,4 @@ for iFile = 1:numel(Files)
   end
 end
 
-err = xax_err;
-
-data = [];
+ok = ~xax_err;

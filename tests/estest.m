@@ -1,4 +1,4 @@
-% estest    Testing engine for EasySpin
+% estest    Unit testing engine for EasySpin
 %
 %   Usage:
 %     estest            run all tests
@@ -70,7 +70,7 @@ fprintf(fid,'Display: %d, Regenerate: %d, Verbosity: %d\n',...
   Opt.Display,Opt.Regenerate, Opt.Verbosity);
 fprintf(fid,'-----------------------------------------------------------------------\n');
 
-% Codes for test outcomes:
+% test outcome codes:
 %    0   test passed
 %   +1   test failed
 %   +2   test crashed
@@ -123,39 +123,44 @@ for iTest = 1:numel(TestFileNames)
   testFcn = str2func(thisTestName);
   nArgsOut = nargout(testFcn);
   nArgsIn = nargin(testFcn);
+  usesStoredData = nArgsOut==2;
+  data = [];
   tic
   try
-    if nArgsOut==1
-      if nArgsIn==0
-        err = testFcn();
-      else
-        err = testFcn(Opt);
-      end
-      data = [];
-    else
+    if usesStoredData
       if nArgsIn<2, error('2 inputs are needed.'); end
-      [err,data] = testFcn(Opt,olddata);
-    end
-    if issparse(err), err = full(err); end
-    if Opt.Display
-      if iTest<numel(TestFileNames), pause; end
-    end
-    % if test returns empty err, then treat it as not tested
-    if isempty(err)
-      err = 3; % not tested
+      [ok,data] = testFcn(Opt,olddata);
     else
-      err = any(err~=0);
+      if nArgsIn==0
+        ok = testFcn();
+      else
+        ok = testFcn(Opt);
+      end
+    end
+    if isempty(ok)
+      testOutcome = 3; % not tested
+    else
+      ok = all(ok);
+      if ok
+        testOutcome = 0; % test passed
+      else
+        testOutcome = 1; % test failed
+      end
     end
     errorInfo = [];
     errorStr = '';
   catch exception
     data = [];
-    err = 2;
+    testOutcome = 2; % test crashed
     errorInfo = exception;
     errorStr = getReport(errorInfo);
     errorStr = ['    ' regexprep(errorStr,'\n','\n    ') newline];
   end
   time_used(iTest) = toc;
+
+  if Opt.Display
+    if iTest<numel(TestFileNames), pause; end
+  end  
   
   % Retrieve profiler summary and turn profiler off
   if runCodeCoverageAnalysis
@@ -181,17 +186,16 @@ for iTest = 1:numel(TestFileNames)
     end
   end
   
-  isRegressionTest = ~isempty(data);
-  saveTestData = isRegressionTest && isempty(olddata);  
+  saveTestData = usesStoredData && isempty(olddata);  
   if saveTestData
     save(TestDataFile,'data');
   end
   
-  testResults(iTest).err = double(err);
+  testResults(iTest).outcome = testOutcome;
   testResults(iTest).name = thisTestName;
   testResults(iTest).errorData = errorInfo;
   
-  outcomeStr = OutcomeStrings{testResults(iTest).err+1};
+  outcomeStr = OutcomeStrings{testResults(iTest).outcome+1};
   
   if ~isempty(data)
     typeStr = 'regression';
@@ -202,14 +206,22 @@ for iTest = 1:numel(TestFileNames)
   if displayTimings
     timeStr = sprintf('%0.3f seconds',time_used(iTest));
   else
-    timeStr = [];
+    timeStr = '';
   end
 
+  nameStr = testResults(iTest).name;
   str = sprintf('%-45s  %-12s%-8s%s\n%s',...
-       testResults(iTest).name,typeStr,outcomeStr,timeStr,errorStr);
+       nameStr,typeStr,outcomeStr,timeStr,errorStr);
   str(str=='\') = '/';
   
+  nBlanks = max(45-length(nameStr),0);
+  nameStrLink = sprintf('<a href="matlab: edit %s">%s</a>%s',nameStr,nameStr,repmat(' ',1,nBlanks));
+  strLink = sprintf('%s  %-12s%-8s%s\n%s',...
+       nameStrLink,typeStr,outcomeStr,timeStr,errorStr);
+  strLink(strLink=='\') = '/';
+  
   testResults(iTest).msg = str;
+  testResults(iTest).msgLink = strLink;
   
   fprintf(fid,str);
 end
@@ -263,7 +275,7 @@ if runCodeCoverageAnalysis
   end
 end
 
-allErrors = [testResults.err];
+allOutcomes = [testResults.outcome];
 
 % Display timings of slowest tests
 if displayTimings
@@ -277,22 +289,25 @@ if displayTimings
 end
 
 % Display all tests that failed or crashed
-if any(allErrors==1) || any(allErrors==2)
+if any(allOutcomes==1) || any(allOutcomes==2)
   fprintf(fid,'-----------------------------------------------------------------------\n');
-  for iTest = find(allErrors)
-    fprintf(fid,testResults(iTest).msg);
+  for iTest = find(allOutcomes)
+    fprintf(fid,testResults(iTest).msgLink);
   end
 end
 
+nPasses = sum(allOutcomes==0);
+nFailures = sum(allOutcomes==1);
+nCrashes = sum(allOutcomes==2);
 fprintf(fid,'-----------------------------------------------------------------------\n');
-msg = sprintf('%d passes, %d failures, %d crashes\n',sum(allErrors==0),sum(allErrors==1),sum(allErrors==2));
+msg = sprintf('%d passes, %d failures, %d crashes\n',nPasses,nFailures,nCrashes);
 fprintf(fid,msg);
 fprintf(fid,'-----------------------------------------------------------------------\n');
 
 % Return output if desired
 if nargout==1
   out.Results = testResults;
-  out.outcomes = allErrors;
+  out.outcomes = allOutcomes;
 end
 
 return

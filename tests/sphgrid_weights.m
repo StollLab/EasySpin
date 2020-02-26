@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Verify that weights always add up to 4*pi
 
@@ -13,6 +13,4 @@ for g = 1:numel(SymmGroups)
 end
 wsum = wsum/(4*pi);
 
-err = any(abs(wsum-1)>1e-10);
-
-data = [];
+ok = all(abs(wsum-1)<1e-10);

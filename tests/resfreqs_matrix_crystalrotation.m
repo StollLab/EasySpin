@@ -1,4 +1,4 @@
-function err = test()
+function ok = test()
 
 % Check whether transition intensity follows crystal rotation
 
@@ -16,4 +16,4 @@ Exp.CrystalOrientation = [a 0 0];
 Exp.Mode = [0 -a];
 [~,i1] = resfreqs_matrix(Sys,Exp,Opt);
 
-err = ~areequal(i0,i1,1e-8,'abs');
+ok = areequal(i0,i1,1e-8,'abs');

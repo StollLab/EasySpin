@@ -1,8 +1,6 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
-%=======================================================
 % simple MOMD simulation
-%=======================================================
 
 Nitroxide.g = [2.008,2.006,2.003];
 Nitroxide.Nucs = '14N';
@@ -33,7 +31,6 @@ if ~isempty(olddata)
     plot(x,data.y-olddata.y);
   end
   ok = areequal(y,olddata.y,1e-3,'abs');
-  err = ~ok;
 else
-  err = [];
+  ok = [];
 end

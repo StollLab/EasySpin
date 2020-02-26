@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Compare integrated intensity of a powder spectrum of an
 % isotropic-g spin system with explicit expressions
@@ -18,6 +18,4 @@ dBdE = (planck/bmagn)*1e9/mean(Sys.g);
 Int2 = Rate*dBdE;
 Int2 = Int2*(8*pi^2);
 
-data = [];
-
-err = ~areequal(Int,Int2,1e-4,'abs');
+ok = areequal(Int,Int2,1e-4,'abs');

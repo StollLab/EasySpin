@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Compare pulse() output pulse shapes with mathematical expressions
 %--------------------------------------------------------------------------
@@ -21,7 +21,7 @@ IQ0 = A.*f;
 
 IQ0 = interp1(t0,IQ0,t,'spline');
 
-err(1) = ~areequal(IQ0,IQ,1e-12,'abs');
+ok(1) = areequal(IQ0,IQ,1e-12,'abs');
 
 % Gaussian pulse with truncation
 clear Params
@@ -41,8 +41,4 @@ Params.Amplitude = 1;
 
 [t,IQ] = pulse(Params);
 
-err(2) = ~areequal(IQ0,IQ,1e-12,'abs');
-
-err = any(err);
-
-data = [];
+ok(2) = areequal(IQ0,IQ,1e-12,'abs');

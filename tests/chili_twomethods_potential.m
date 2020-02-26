@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 Sys.g = [2 2.05 2.1];
 Sys.tcorr = 1e-9;
@@ -23,5 +23,4 @@ if opt.Display
   plot(x,(y-y2)/scale);
 end
 
-err = ~areequal(y,y2,1e-5,'rel');
-data = [];
+ok = areequal(y,y2,1e-5,'rel');

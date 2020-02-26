@@ -1,8 +1,6 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-a = amu;
-b = 1.66053906660e-27;
+amu_val = amu;
+amu_ref = 1.66053906660e-27;
 
-err = abs(a-b)/b > 1e-12;
-
-data = [];
+ok = areequal(amu_val,amu_ref,1e-12,'rel');

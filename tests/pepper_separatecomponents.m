@@ -1,4 +1,4 @@
-function err = test(opt,olddata)
+function ok = test(opt)
 
 % For a multi-component or multi-isotopologue powder simulation, return
 % transitions for all components separately if Opt.Output='separate'
@@ -18,8 +18,8 @@ Opt.Output = 'separate';
 Opt.Output = 'summed';
 [B,spc2] = pepper(Sys,Exp,Opt);
 
-err1 = size(spc1,1)~=2;
-err1 = err1 || max(abs(sum(spc1,1)-spc2))/max(abs(spc2))>1e-10;
+ok1 = size(spc1,1)==2;
+ok1 = ok1 && max(abs(sum(spc1,1)-spc2))/max(abs(spc2))<1e-10;
 
 if opt.Display
   subplot(2,1,1);
@@ -41,12 +41,12 @@ Opt.Output = 'separate';
 Opt.Output = 'summed';
 [B,spc2] = pepper({Sys1,Sys2},Exp,Opt);
 
-err2 = size(spc1,1)~=2;
-err2 = err2 || max(abs(sum(spc1,1)-spc2))/max(abs(spc2))>1e-10;
+ok2 = size(spc1,1)==2;
+ok2 = ok2 && max(abs(sum(spc1,1)-spc2))/max(abs(spc2))<1e-10;
 
 if opt.Display
   subplot(2,1,2);
   plot(B,spc1,B,spc2);
 end
 
-err = err1 || err2;
+ok = ok1 && ok2;

@@ -1,4 +1,5 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
+
 % Check that using stochtraj_jump generates proper state residence times
 
 Par.nTraj = 500;
@@ -37,7 +38,7 @@ analytic = exp(-t(:)/tau);
 residuals = AutoCorrFFT - analytic;
 rmsd = sqrt(mean(residuals(1:N).^2));
 
-err = rmsd > 1e-2 || isnan(rmsd);
+ok = rmsd < 1e-2 && ~isnan(rmsd);
 
 if opt.Display
   x = t(1:N)/1e-6;
@@ -45,8 +46,4 @@ if opt.Display
   xlabel('time (\mus)');
   legend('autocorr','analytical');
   axis tight
-end
-
-data = [];
-
 end

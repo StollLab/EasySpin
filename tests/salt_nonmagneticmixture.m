@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 % Test whether salt() can handle systems
 % with a mixture of magnetic and non-magnetic isotopes
@@ -18,9 +18,9 @@ if opt.Display
 end
 
 if isempty(olddata)
-  err = [];
+  ok = [];
 else
-  err = ~areequal(spec,olddata.spec,1e-10,'abs');
+  ok = areequal(spec,olddata.spec,1e-10,'abs');
 end
 
 data.spec = spec;

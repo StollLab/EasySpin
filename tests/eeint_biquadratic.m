@@ -1,8 +1,7 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-%======================================================
 % isotropic biquadratic exchange
-%======================================================
+
 j = 10;
 maxS = 3;
 
@@ -27,7 +26,3 @@ for S1 = 0.5:0.5:maxS
     iPair = iPair + 1;
   end
 end
-
-err = any(~ok);
-
-data = [];

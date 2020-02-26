@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % Check Gaussian dispersion explicit 1st deriv vs numerical deriv.
 %=================================================================
@@ -11,8 +11,8 @@ fwhm = gamma*sqrt(2*log(2));
 x = linspace(-3,6,1001);
 
 % Call gaussian() to get lineshapes
-[dum,ydisp0] = gaussian(x,x0,fwhm,0);
-[dum,ydisp1] = gaussian(x,x0,fwhm,1);
+[~,ydisp0] = gaussian(x,x0,fwhm,0);
+[~,ydisp1] = gaussian(x,x0,fwhm,1);
 
 ydisp1_ = deriv(x,ydisp0);
 
@@ -24,7 +24,5 @@ if opt.Display
 end
 
 % Compare
-err = ~areequal(ydisp1,ydisp1_,1e-3,'abs');
-
-data =[];
+ok = areequal(ydisp1,ydisp1_,1e-3,'abs');
 

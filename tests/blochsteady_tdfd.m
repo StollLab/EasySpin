@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % Compare time-domain and frequency-domain methods
 %-------------------------------------------------------
@@ -17,8 +17,7 @@ Options.Method = 'td';
 Options.Method = 'fft';
 [t2,My2] = blochsteady(g,T1,T2,deltaB0,B1,Bm,fm,Options);
 
-err = ~areequal(My1,My2,1e-10,'abs');
-data = [];
+ok = areequal(My1,My2,1e-10,'abs');
 
 if (opt.Display)
   plot(t1,My1,'.',t2,My2);

@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 %=================================================================
 % Test the use of multiple detection operators with evolve
@@ -38,13 +38,11 @@ sigz = real(sigz);
 
 t = (0:N-1)*dt;
 
-err = 0;
+ok = true;
 
-if (opt.Display)
+if opt.Display
   subplot(1,1,1);
   plot(t,sigx,'r',t,sigy,'g',t,sigz,'b');
   axis tight
   xlabel('tau (us)');
 end
-
-data = [];

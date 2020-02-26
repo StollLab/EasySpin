@@ -1,7 +1,7 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 %=======================================================
-% Test 1: various modulation amplitudes
+% Test various modulation amplitudes
 %=======================================================
 x = linspace(-10,10,1e3);
 y = lorentzian(x,0,1);
@@ -10,7 +10,7 @@ for k = 1:numel(ModAmpl)
   yy(k,:) = fieldmod(x,y,ModAmpl(k),1);
 end
 
-if (opt.Display)
+if opt.Display
   plot(x,yy);
   pause;
 end
@@ -19,7 +19,6 @@ data.yy = yy;
 
 if ~isempty(olddata)
   ok = areequal(yy,olddata.yy,1e-10,'abs');
-  err = ~ok;
 else
-  err = [];
+  ok = [];
 end

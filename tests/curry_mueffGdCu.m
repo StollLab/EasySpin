@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 % Test calculation of effective magnetic moment for a Gd(III)-Cu(II) complex.
 % This reproduces Fig. 1 from Hatscher et al, Pure Appl. Chem. 77, 497 (2005).
@@ -42,7 +42,6 @@ if ~isempty(olddata)
   ok(1) = areequal(olddata.mueff1,data.mueff1,thr,'abs');
   ok(2) = areequal(olddata.mueff2,data.mueff2,thr,'abs');
   ok(3) = areequal(olddata.mueff3,data.mueff3,thr,'abs');
-  err = any(~ok);
 else
-  err = [];
+  ok = [];
 end

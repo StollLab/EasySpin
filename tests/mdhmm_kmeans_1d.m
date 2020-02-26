@@ -1,8 +1,6 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
-%======================================================
 % Test k-means clustering on 1D angular data
-%======================================================
 
 rng(1);
 
@@ -40,8 +38,7 @@ for k = 1:nClusters
   idx_ = idx_km(clusteridx == k);
   ok(k) = all(idx_==idx_(1));
 end
-err = any(~ok);
-data = [];
+ok = all(ok);
 
 % Plot if wanted
 if opt.Display

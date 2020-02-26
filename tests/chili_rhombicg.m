@@ -1,8 +1,6 @@
-function err = test()
+function ok = test()
 
-%=======================================================
 % Compare S=1/2 code and general code for rhombic g system
-%=======================================================
 
 Sys.g = [2.06 2.03 2.0];
 Sys.tcorr = 10e-9;
@@ -26,4 +24,4 @@ Opt.LiouvMethod = 'general';
 
 y2 = rescale(y2,y1,'maxabs');
 
-err = ~areequal(y1,y2,1e-2,'abs');
+ok = areequal(y1,y2,1e-2,'abs');

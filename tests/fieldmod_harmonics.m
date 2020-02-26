@@ -1,7 +1,7 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 %=======================================================
-% Test 2: various modulation harmonics
+% Test various modulation harmonics
 %=======================================================
 x = linspace(-10,10,1e3);
 y = gaussian(x,-2,1);
@@ -18,7 +18,6 @@ data.yy = yy;
 
 if ~isempty(olddata)
   ok = areequal(yy,olddata.yy,1e-10,'rel');
-  err = ~ok;
 else
-  err = [];
+  ok = [];
 end

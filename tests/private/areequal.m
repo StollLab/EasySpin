@@ -16,7 +16,7 @@ if nargin<4
   if threshold==0
     mode = 'abs';
   else
-    error('Mode (4th input) required.');
+    error('Mode (4th input) required, must be either ''rel'' (relative) or ''abs'' (absolute).');
   end
 end
 

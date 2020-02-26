@@ -1,8 +1,7 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-%==================================================================
 % Test D (2 variants) and B2 terms against explicit formula
-%==================================================================
+
 S = 1;
 Sys1.S = S;
 Sys1.g = 2;
@@ -31,8 +30,6 @@ H3 = zfield(Sys3);
 
 % Compare all Hamiltonians
 threshold = 1e-7;
-err(1) = ~areequal(H0,H1,threshold,'abs');
-err(2) = ~areequal(H0,H2,threshold,'abs');
-err(3) = ~areequal(H0,H3,threshold,'abs');
-
-data = [];
+ok(1) = areequal(H0,H1,threshold,'abs');
+ok(2) = areequal(H0,H2,threshold,'abs');
+ok(3) = areequal(H0,H3,threshold,'abs');

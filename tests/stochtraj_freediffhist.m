@@ -1,4 +1,5 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
+
 % Check that using stochtraj_diffusion with free diffusion generates a proper 
 % distribution of orientations
 
@@ -37,13 +38,8 @@ BoltzDist = BoltzDist.*sin(bins)./BoltzInt;
 residuals = ThetaHist - BoltzDist;
 rmsd = sqrt(mean(residuals.^2));
 
-if rmsd > 1e-2
-  err = 1;
+ok = rmsd<1e-2;
+
+if opt.Display
   plot(bins, ThetaHist, bins, BoltzDist)
-else  
-  err = 0;
-end
-
-data = [];
-
 end

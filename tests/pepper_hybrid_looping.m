@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Hybrid method with looping transitions
 % make sure pepper is not crashing
@@ -22,5 +22,4 @@ Exp.Temperature = 6;
 Opt.Method = 'hybrid';
 [x,y] = pepper(Sys,Exp,Opt);
 
-data = [];
-err = 0;
+ok = true;

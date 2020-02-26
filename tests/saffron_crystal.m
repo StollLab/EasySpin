@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Assure saffron doesn't crash when asked to simulate spectra for
 % a crystal with space group with multiple sites per unit cell.
@@ -20,5 +20,4 @@ Exp2.nPoints = 256;
 Opt.Verbosity = 0;
 [x,y] = saffron(Sys,Exp2,Opt);
 
-data = [];
-err = false;
+ok = true;

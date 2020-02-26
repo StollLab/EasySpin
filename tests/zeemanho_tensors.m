@@ -1,8 +1,7 @@
-function [err,data] = test(opt,olddata)
-%==================================================================
+function ok = test()
+
 % Test whether the tensor output of zeemanho is identical to the full
 % matrix output
-%==================================================================
 
 rng_(5,'twister'); % seed randon number generator
 
@@ -61,8 +60,6 @@ end
 
 % test
 threshold = 1e-4;
-err = false;
 for n = 1:4
- err = err || ~areequal(H{n},Ht1{n},threshold,'abs') || ~areequal(H{n},Ht2{n},threshold,'abs');
+ ok(n) = areequal(H{n},Ht1{n},threshold,'abs') && areequal(H{n},Ht2{n},threshold,'abs');
 end
-data =[];

@@ -1,4 +1,5 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
+
 % Check that using stochtraj_diffusion with with convergence-checking works
 % properly
 
@@ -26,7 +27,7 @@ ThetaHist = zeros(nBins, nTraj);
 N = round(nSteps/2);
 
 for iTraj = 1:nTraj
-  [alpha,beta,gamma] = quat2euler(qTraj(:,iTraj,N:end),'active');
+  [alpha,beta,gamma] = quat2euler(qTraj(:,N:end,iTraj),'active');
   ThetaHist(:,iTraj) = hist(squeeze(beta), bins);
 end
 
@@ -37,17 +38,8 @@ BoltzDist = exp(c20*(1.5*cos(bins).^2 - 0.5));
 BoltzInt = sum(BoltzDist.*sin(bins));
 BoltzDist = BoltzDist.*sin(bins)./BoltzInt;
 
-residuals = ThetaHist - BoltzDist;
-rmsd = sqrt(mean(residuals.^2));
+ok = areequal(ThetaHist,BoltzDist,0.15,'rel');
 
-
-if rmsd > 1e-2
-  err = 1;
-  plot(bins, ThetaHist, 'r', bins, BoltzDist, 'k')
-else  
-  err = 0;
-end
-
-data = [];
-
+if opt.Display
+  plot(bins, ThetaHist, 'ro', bins, BoltzDist, 'k')
 end

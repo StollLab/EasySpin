@@ -1,4 +1,4 @@
-function err = test()
+function ok = test()
 
 % The S field in the spin system structure is optional.
 % Default is 1/2.
@@ -8,4 +8,4 @@ Exp = struct('mwFreq',9.5,'Range',[280 350]);
 
 [~] = pepper(Sys,Exp);
 
-err = false;
+ok = true;

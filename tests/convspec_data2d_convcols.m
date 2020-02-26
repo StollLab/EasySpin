@@ -1,7 +1,7 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Test convolution of columns in 2D data
-%========================================================
+
 N = 101;
 M = 10;
 data = zeros(N,M);
@@ -25,5 +25,4 @@ for k = 1:numel(x0)
   z2(:,c) = z2(:,c) + amp(k)*gaussian((1:N).',x0(k),fwhm);
 end
 
-err =  ~areequal(z1,z2,1e-10,'rel');
-data = [];
+ok = areequal(z1,z2,1e-10,'rel');

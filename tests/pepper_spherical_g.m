@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % Spherical syntax for Sys.g
 
@@ -24,5 +24,4 @@ if opt.Display
   title(mfilename);
 end
 
-err = ~areequal(y1,y2,1e-6,'rel');
-data = [];
+ok = areequal(y1,y2,1e-6,'rel');

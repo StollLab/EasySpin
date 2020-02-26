@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Check excitation profile of a user-defined composite pulse
 %--------------------------------------------------------------------------
@@ -46,9 +46,5 @@ for i = 1:numel(exprofile.offsets)
   
 end
 
-err(1) = ~areequal(v1*I,real(IQ),1e-12,'rel');
-err(2) = ~areequal(Mz,exprofile.Mz,1e-12,'rel');
-
-err = any(err);
-
-data = [];
+ok(1) = areequal(v1*I,real(IQ),1e-12,'rel');
+ok(2) = areequal(Mz,exprofile.Mz,1e-12,'rel');

@@ -1,7 +1,8 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Interface test
-%-------------------------------------------------------
+
+rng(2);
 y = rand(1,500);
 m = 5;
 yy = datasmooth(y,m);
@@ -11,5 +12,4 @@ yy = datasmooth(y,m,'flat');
 yy = datasmooth(y,m,'savgol',3);
 yy = datasmooth(y,m,'savgol',3,1);
 
-err = 0;
-data = [];
+ok = true;

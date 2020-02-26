@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 Sys.ZeemanFreq = 9.5;
 
@@ -8,7 +8,7 @@ p.tp = 0.02;
 Exp.Sequence = {p 0.5};
 Exp.mwFreq = 9.5;
 
-%% Test 1 - comparison for default detection operator
+% Test 1 - comparison for default detection operator
 s1_nodetectionphase = spidyan(Sys,Exp);
 
 Exp_ = Exp;
@@ -30,7 +30,7 @@ if (opt.Display)
     xlabel('data points direct dimension');
 end
 
-%% Test 2 - several detection operators
+% Test 2 - several detection operators
 
 Exp_ = Exp;
 
@@ -42,12 +42,12 @@ s2 = spidyan(Sys,Exp_);
 
 data.s2 = s2;
 
-%% Comparison
+% Comparison
 
 if ~isempty(olddata)
-  err = [~areequal(s1_detectionphase,-s1_nodetectionphase,1e-4,'abs') ... % comparison of Test1
-         ~areequal(s2,olddata.s2,1e-4,'abs') ~areequal(s2(:,2),-s2(:,3),1e-4,'abs')]; % test 2
+  ok = areequal(s1_detectionphase,-s1_nodetectionphase,1e-4,'abs') && ... % comparison of Test1
+        areequal(s2,olddata.s2,1e-4,'abs') && areequal(s2(:,2),-s2(:,3),1e-4,'abs'); % test 2
 else
-  err = [];
+  ok = [];
 end
 

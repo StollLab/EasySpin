@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 %===============================================================================
 % Make sure nuclear-nuclear splitting appears in ENDOR spectrum
@@ -27,8 +27,8 @@ data.nu = nu;
 data.spc = spc;
 
 if ~isempty(olddata)
-  err = ~areequal(olddata.spc,spc,1e-5,'abs');
+  ok = areequal(olddata.spc,spc,1e-5,'abs');
 else
-  err = [];
+  ok = [];
 end
 

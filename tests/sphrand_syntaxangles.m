@@ -1,8 +1,5 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-% Test 2: Calling syntax: phi, theta
-%=======================================================
 N = 1000;
 [p,t] = sphrand(N);
-err = (numel(p)~=N) | (numel(t)~=N);
-data = [];
+ok = numel(p)==N && numel(t)==N;

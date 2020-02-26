@@ -1,7 +1,7 @@
-function err = test(opt,olddata)
+function ok = test()
 
 % spin system with nuclei
-%================================================================
+
 Sys.S = 1/2;
 Sys.g = [2 3 4];
 Sys.Nucs = '14N';
@@ -11,4 +11,4 @@ N = hsdim(Sys);
 
 Nref = 6;
 
-err = ~(N==Nref);
+ok = (N==Nref);

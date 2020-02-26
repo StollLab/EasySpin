@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 S = [1/2 1/2];
 g = [2 2.1 2.2];
@@ -30,5 +30,4 @@ for k = 1:2
   err(k) = max(abs(eig(H1)-eig(H2)));
 end
 
-err = any(err>1e-10);
-data = [];
+ok = all(err<1e-10);

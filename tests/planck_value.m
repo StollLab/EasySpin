@@ -1,6 +1,6 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-a = planck;
-b = 6.62607015e-34;
-err = abs(a-b)/a>1e-9;
-data = [];
+h = planck;
+href = 6.62607015e-34; % CODATA 2018 / SI 2019 value; exact
+
+ok = areequal(h,href,1e-9,'rel');

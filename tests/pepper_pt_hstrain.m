@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % Compare HStrain-broadened spectra for 'matrix' and 'perturb' methods
 
@@ -14,12 +14,11 @@ Opt.Method = 'matrix';
 Opt.Method = 'perturb';
 [x,y1] = pepper(Sys,Exp,Opt);
 
-if (opt.Display)
+if opt.Display
   subplot(2,1,1)
   plot(x,y0,x,y1,'r');
   subplot(2,1,2)
   plot(x,y1-y0);
 end
 
-err = ~areequal(y0,y1,1e-5,'rel');
-data=[];
+ok = areequal(y0,y1,1e-5,'rel');

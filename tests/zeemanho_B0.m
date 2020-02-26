@@ -1,8 +1,7 @@
-function [err,data] = test(opt,olddata)
-%==================================================================
+function ok = test()
+
 % Test whether the 0th order in B of zeemanho is identical (Except the
 % known prefactors to results using the Stevens operators
-%==================================================================
 
 rng_(5,'twister');
 
@@ -42,8 +41,4 @@ H = zfield(Sys2);
 
 % test
 threshold = 1e-6;
-err = ~areequal(H,Hz,threshold,'abs');
-data =[];
-
-
-
+ok = areequal(H,Hz,threshold,'abs');

@@ -1,8 +1,6 @@
-function [err,data] = test(opt,olddata)
-
+function ok = test()
 
 % full hyperfine matrices
-%================================================
 
 % 1 electron, 2 nuclei
 Sys.S = 1/2;
@@ -30,5 +28,4 @@ Sys.Nucs = '12C';
 Sys.A = rand(3,3);
 H4 = hfine(Sys);
 
-err = 0;
-data = [];
+ok = true;

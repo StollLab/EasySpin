@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % Checks whether product-rule simulations are independent
 % of the order of the nuclei in Sys.Nucs.
@@ -45,7 +45,4 @@ if (opt.Display)
   axis tight
 end
 
-data = [];
-
 ok = areequal(y1,y2,max(y1)*1e-6,'abs');
-err = ~ok;

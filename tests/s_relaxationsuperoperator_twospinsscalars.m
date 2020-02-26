@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 DefRelTime = 1e10;
 
@@ -57,11 +57,5 @@ end
 
 [Gamma3] = runprivate('s_relaxationsuperoperator',Sys);
 
-if any([~isequal(RefGamma1,Gamma1) ~isequal(RefGamma2,Gamma2) ~isequal(RefGamma3,Gamma3)])
-  err = 1;
-else
-  err = 0;
-end
-
-data = [];
+ok = all([isequal(RefGamma1,Gamma1) isequal(RefGamma2,Gamma2) isequal(RefGamma3,Gamma3)]);
 

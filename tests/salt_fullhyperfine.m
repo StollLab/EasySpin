@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Test whether salt supports full hyperfine matrices
 
@@ -11,7 +11,4 @@ Opt.Method = 'perturb2';
 Opt.Method = 'perturb1';
 [x,y] = salt(Sys,Exp,Opt);
 
-
-
-data = [];
-err = 0;
+ok = true;

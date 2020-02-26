@@ -1,8 +1,7 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-% Test 1: N isotopes
-%======================================================
+% Nitrogen isotopes
+
 w1 = nucabund('14N,15N');
 w2 = [0.99632 0.00368];
-err = ~areequal(w1,w2,1e-10,'rel');
-data = [];
+ok = areequal(w1,w2,1e-10,'rel');

@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % garlic: Test auto ranging for frequency sweeps
 
@@ -17,6 +17,3 @@ Exp.Harmonic = 0;
 maxyp = max(yp);
 
 ok = areequal(max(yg)/maxyp,1,1e-3,'abs');
-
-err = ~ok;
-data = [];

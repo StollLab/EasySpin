@@ -1,7 +1,5 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 a = clight;
 b = 299792458;
-err = a~=b;
-
-data = [];
+ok = a==b;

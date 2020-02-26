@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Two crystals with Th symmetry and rhombic g
 
@@ -18,5 +18,4 @@ Sys.gFrame = gFrame;
 Exp.MolFrame = [0 0 0];
 [x,y] = pepper(Sys,Exp);
 
-err = false;
-data = [];
+ok = true;

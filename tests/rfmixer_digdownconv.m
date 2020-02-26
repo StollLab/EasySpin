@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Check rfmixer() digital downconversion
 %--------------------------------------------------------------------------
@@ -15,6 +15,4 @@ echo = amplitude.*modulation;
 
 [tOut,signalOut] = rfmixer(t,echo,mwFreq,'IQdemod');
 
-err = ~areequal(amplitude,real(signalOut),1e-7,'abs');
-
-data = [];
+ok = areequal(amplitude,real(signalOut),1e-7,'abs');

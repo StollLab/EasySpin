@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 angles = [pi/2 pi/4 0];
 
@@ -45,6 +45,4 @@ if (opt.Display)
     xlabel('time [us]');
 end
 
-err = ~isequal(y1, y2);
-
-data = [];
+ok = isequal(y1, y2);

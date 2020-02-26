@@ -1,8 +1,7 @@
-function [err,data] = chili_magnetictilt(opt,olddata)
+function ok = chili_magnetictilt(opt)
 
-%=======================================================
 % Invariance of spectrum when tilting A w.r.t. isotropic g
-%=======================================================
+
 Sys.g = 2.0088;
 Sys.Nucs = '14N';
 Sys.A = [17 17 90];
@@ -24,5 +23,4 @@ if opt.Display
   legend('no tilt','tilt');
 end
 
-err = ~areequal(y0,y1,2e-3,'abs');
-data = [];
+ok = areequal(y0,y1,2e-3,'abs');

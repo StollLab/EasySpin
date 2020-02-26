@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Check whether the Gaussian line width is correct
 %-----------------------------------------------------
@@ -15,13 +15,11 @@ y = gaussian(x,x0,fwhm,0);
 y = y/max(y);
 y = abs(y-0.5);
 y1 = y; y1(x>x0) = 0.5;
-[dum,idx1] = min(y1);
+[~,idx1] = min(y1);
 y2 = y; y2(x<x0) = 0.5;
-[dum,idx2] = min(y2);
+[~,idx2] = min(y2);
 fwhm_est = x(idx2)-x(idx1);
 
 % Compare
-err = abs(fwhm_est-fwhm)>1e-4;
-
-data =[];
+ok = areequal(fwhm_est,fwhm,1e-4,'rel');
 

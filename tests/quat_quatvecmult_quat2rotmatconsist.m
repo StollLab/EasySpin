@@ -1,4 +1,5 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
+
 % Check that rotating vectors by quaternions is equivalent to using
 % rotation matrices
 
@@ -23,12 +24,4 @@ end
 % Compare methods of rotating vectors
 diff = vrot - quatvecmult(q,v);
 
-if any(abs(diff(:)) > 1e-10)
-  err = 1;
-else  
-  err = 0;
-end
-
-data = [];
-
-end
+ok = all(abs(diff(:)) < 1e-10);

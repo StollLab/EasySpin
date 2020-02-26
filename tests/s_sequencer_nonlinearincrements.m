@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 Pulse.Type = 'quartersin/linear';
 Pulse.trise = 0.015; % us
@@ -41,11 +41,5 @@ Exp.Dim1 = {'p2.Position', [0 0.2 0.4]};
 [~, Vary4] = runprivate('s_sequencer',Exp,Opt);
 
 
-if any([~isequal(Vary1,Vary2) ~isequal(Vary3,Vary4)])
-  err = 1;
-else
-  err = 0;
-end
-
-data = [];
-
+ok(1) = isequal(Vary1,Vary2);
+ok(2) = isequal(Vary3,Vary4);

@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 %=======================================================
 % Fast motional regime: specifying the correlation time
@@ -19,12 +19,11 @@ data.y = y;
 
 if ~isempty(olddata)
   ok = areequal(x,olddata.x,1e-10,'abs') & areequal(y,olddata.y,1e-6,'rel');
-  err = ~ok;
 else
-  err = [];
+  ok = [];
 end
 
-if (opt.Display)
+if opt.Display
   subplot(2,1,1);
   plot(olddata.x,olddata.y,'k',x,data.y,'r');
   xlabel('magnetic field [mT]'); axis tight

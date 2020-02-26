@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Compare rfmixer() upconversion results with mathematical expression
 %--------------------------------------------------------------------------
@@ -27,10 +27,6 @@ signal_usb2 = cos(2*pi*(f+mwFreq*1e3)*tOut);
 
 signal_lsb2 = cos(2*pi*(f-mwFreq*1e3)*tOut);
 
-err(1) = ~areequal(signal_dsb1,signal_dsb2,1e-6,'abs');
-err(2) = ~areequal(signal_usb1,signal_usb2,1e-2,'abs');
-err(3) = ~areequal(signal_lsb1,signal_lsb2,1e-2,'abs');
-
-err = any(err);
-
-data = [];
+ok(1) = areequal(signal_dsb1,signal_dsb2,1e-6,'abs');
+ok(2) = areequal(signal_usb1,signal_usb2,1e-2,'abs');
+ok(3) = areequal(signal_lsb1,signal_lsb2,1e-2,'abs');

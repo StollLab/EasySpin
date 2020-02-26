@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 %====================================================
 % orisel with C2h symmetry
@@ -21,14 +21,13 @@ Options.OriWeights = orisel(System,Experiment,Options);
 
 [phi,theta] = sphgrid(Symmetry,nKnots);
 
-data = [];
-err = numel(Options.OriWeights)~=numel(phi);
+ok = numel(Options.OriWeights)==numel(phi);
 
 if opt.Display
   fprintf('  Number of orientations from orisel: %d\n  Number from sphgrid: %d\n',...
     numel(Options.OriWeights), numel(phi));
 end
 
-if isempty(err)
+if isempty(ok)
   [x,y] = salt(System,Experiment,Options);
 end

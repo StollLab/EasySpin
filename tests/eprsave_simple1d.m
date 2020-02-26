@@ -1,8 +1,6 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-%======================================================
 % Save and load 1D dataset with linear X axis
-%======================================================
 
 fn = tempname;
 
@@ -13,7 +11,4 @@ eprsave(fn,x,y);
 [xo,yo] = eprload(fn);
 delete([fn '.*']);
 
-err = ~areequal(x,xo,1e-5,'rel') || ~areequal(y,yo,1e-5,'rel');
-
-data = [];
-
+ok = areequal(x,xo,1e-5,'rel') && areequal(y,yo,1e-5,'rel');

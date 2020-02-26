@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 orig_state = warning;
 warning('off','all');
@@ -46,12 +46,12 @@ data.t2 = t2;
 data.signal2 = signal2;
 
 if ~isempty(olddata)
-  err = ~areequal(signal1,olddata.signal1,1e-4,'abs');
+  ok = areequal(signal1,olddata.signal1,1e-4,'abs');
   for i = 1 : length(signal2)
-    err(i+1) = ~areequal(signal2{i},olddata.signal2{i},1e-4,'abs');
+    ok(i+1) = areequal(signal2{i},olddata.signal2{i},1e-4,'abs');
   end
 else
-  err = [];
+  ok = [];
 end
 
 warning(orig_state);

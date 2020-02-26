@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % test ful gmatrix spec with perturbation theory
 Sys.g = [2 4 6];
@@ -20,5 +20,4 @@ if opt.Display
   legend('matrix','perturb2');
 end
 
-err = ~areequal(y0,y1,5e-3,'abs');
-data = [];
+ok = areequal(y0,y1,5e-3,'abs');

@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Expansion of a single angle to a vector
 
@@ -10,6 +10,4 @@ V = ang2vec(phi,theta);
 [x,y,z] = ang2vec(phi,theta);
 V1 = [x;y;z];
 
-err = any(V(:)~=V1(:));
-
-data = [];
+ok = all(V(:)==V1(:));

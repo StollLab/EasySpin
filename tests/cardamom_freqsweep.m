@@ -1,4 +1,5 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
+
 % Check results of cardamom frequency sweep against chili
 
 rng(1)
@@ -42,12 +43,9 @@ ychili = ychili/max(ychili);
 
 rmsd = sqrt(mean((ycard-ychili).^2))/(max(ychili)-min(ychili));
 
-if rmsd < 0.1
-  err = 0;
-else
-  err = 1;
-  figure
+ok = rmsd<0.1;
 
+if opt.Display
   plot(fcard, ycard, fchili, ychili)
   ylim([-1.1,1.1])
   ylabel('Im(FFT(M_{+}(t)))')
@@ -55,7 +53,5 @@ else
   legend('cardamom','chili')
   hold off
 end
-
-data = [];
 
 end

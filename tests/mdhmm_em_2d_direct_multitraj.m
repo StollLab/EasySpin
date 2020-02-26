@@ -1,4 +1,5 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
+
 % Direct test for multivariate Gaussian HMM expectation maximization 
 % function using multiple trajectories
 
@@ -95,8 +96,6 @@ testDataWrapped = permute(testDataWrapped,[2,1,3]);
 % Compare
 % -------------------------------------------------------------------------
 
-err = 0;
-
 % Assignment of output state indices might not correspond to input state
 % indices, so check which ordering gives the best agreement and re-assign
 % indices accordingly
@@ -122,12 +121,7 @@ transmatChange = abs(Sys.TransProb - TransProb1)./TransProb1;
 muThreshold = 5/180*pi;
 transmatThreshold = 0.5;
 
-if    (max(muDiff(:)) > muThreshold) ...
-   || (max(transmatChange(:)) > transmatThreshold)
-  err = 1;
-end
-
-data = [];
+ok = (max(muDiff(:)) < muThreshold) && (max(transmatChange(:)) < transmatThreshold);
 
 if opt.Display
   

@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 Sys.lwpp = 0.5;
 Exp.mwFreq = 9.7;
@@ -11,9 +11,9 @@ data.x = x;
 data.y = y;
 
 if ~isempty(olddata)
-  err = ~areequal(x,olddata.x,1e-10,'rel') || ~areequal(y,olddata.y,1e-10,'rel');
+  ok = areequal(x,olddata.x,1e-10,'rel') && areequal(y,olddata.y,1e-10,'rel');
 else
-  err = [];
+  ok = [];
 end
 
 if (opt.Display)

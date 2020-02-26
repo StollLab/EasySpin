@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 Sys.S = [1/2 1];
 Sys.g = [2 3.5];
@@ -14,7 +14,3 @@ F2 = F{2};
 ok = ok && F1.S==0.5 && F2.S==1.5;
 ok = ok && F1.g==4 && F2.g==3;
 ok = ok && all(F2.D==[77 -55 -22]);
-
-err = ~ok;
-
-data = [];

@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 % Crystal with D2h symmetry and rhombic g
 % several orientations
@@ -34,7 +34,7 @@ end
 data.y = y;
 
 if ~isempty(olddata)
-  err = ~areequal(y/max(y),olddata.y/max(olddata.y),1e-4,'abs');
+  ok = areequal(y/max(y),olddata.y/max(olddata.y),1e-4,'abs');
 else
-  err = [];
+  ok = [];
 end

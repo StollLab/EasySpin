@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Check all matrices for S=1
 
@@ -16,8 +16,4 @@ myOp{6} = [0 0 0; 1 0 0; 0 1 0]*sqrt(2);
 for k = 1:numel(Op)
   ok(k) = areequal(Op{k},myOp{k},1e-12,'abs');
 end
-
-err = any(~ok);
-
-data = [];
 

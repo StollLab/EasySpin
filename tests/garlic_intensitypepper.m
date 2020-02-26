@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 %=======================================================
 % garlic should give the same integral intensity as pepper
@@ -19,6 +19,4 @@ dx = x(2)-x(1);
 integral_garlic = sum(y1)*dx;
 integral_pepper = sum(y2)*dx;
 
-err = abs(integral_garlic-integral_pepper)>0.001;
-
-data = [];
+ok = areequal(integral_garlic,integral_pepper,0.001,'abs');

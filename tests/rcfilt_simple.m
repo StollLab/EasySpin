@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 %=======================================================
 % Simple signals
@@ -18,7 +18,6 @@ if ~isempty(olddata)
   for k = 1:numel(yy)
     ok = ok && areequal(yy{k},olddata.yy{k},1e-10,'rel');
   end
-  err = ~ok;
 else
-  err = [];
+  ok = [];
 end

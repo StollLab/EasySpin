@@ -1,11 +1,8 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-%==================================================================
 % Test whether the different input format for D work
-%==================================================================
 
 % one electron, E == 0
-%------------------------------------------------------------------
 Sys.S = 3/2;
 
 D = 100*rand;
@@ -19,7 +16,5 @@ H3 = zfield(Sys);
 
 % test
 threshold = 1e-7;
-err(1) = ~areequal(H1,H2,threshold,'abs');
-err(2) = ~areequal(H1,H3,threshold,'abs');
-
-data = [];
+ok(1) = areequal(H1,H2,threshold,'abs');
+ok(2) = areequal(H1,H3,threshold,'abs');

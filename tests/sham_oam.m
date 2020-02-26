@@ -1,6 +1,8 @@
-function [err,data] = test(opt,olddata)
-%orbital angular momenta can also be defined as spins, therefore the two
-%Hamiltonians should be identical
+function ok = test()
+
+% Orbital angular momenta can also be defined as spins, therefore the two
+% Hamiltonians should be identical
+
 rng_(5,'twister');
 
 n = 3;%randi_(2);
@@ -19,13 +21,13 @@ if n>1
 end
 
 PureSpin.S = [Sys.S,Sys.L];
-%build array of g matrices:
+% build array of g matrices:
 PureSpin.g = [Sys.g;zeros(3*n,3)];
 for k=1:n
   PureSpin.g(3*(n+k-1)+1:3*(n+k),:) = -diag(Sys.orf(k)*ones(1,3));
 end
 
-%distribute soc over ee and ee2
+% distribute soc over ee and ee2
 len = 2*lenS;
 k = nchoosek(1:len,2);
 eelen = nchoosek(len,2);
@@ -42,7 +44,7 @@ for m=1:lenS
   end
 end
 
-%build Zero-Field splitting part
+% build Zero-Field splitting part
 for k=2:2:8
   lfieldname = sprintf('CF%d',k);
   sfieldname = sprintf('B%d',k);
@@ -65,6 +67,5 @@ field = rand(1,3)*1e3;
 E1 = eig(sham(PureSpin,field));
 E2 = eig(sham(Sys,field));
 
-err = ~all([areequal(H1,H2,1e-10,'abs'),areequal(GX1,GX2,1e-10,'abs'),...
-  areequal(GY1,GY2,1e-10,'abs'),areequal(GZ1,GZ2,1e-10,'abs'),areequal(E1,E2,1e-6,'abs')]);
-data = [];
+ok = areequal(H1,H2,1e-10,'abs') && areequal(GX1,GX2,1e-10,'abs') && ...
+  areequal(GY1,GY2,1e-10,'abs') && areequal(GZ1,GZ2,1e-10,'abs') && areequal(E1,E2,1e-6,'abs');

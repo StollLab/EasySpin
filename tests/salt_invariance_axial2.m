@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 % Axial system, symmetry invariance
 
@@ -41,7 +41,7 @@ end
 data.y = y;
 
 if isempty(olddata)
-  err = [];
+  ok = [];
 else
   % Direct test
   ymean = mean(y);
@@ -53,5 +53,4 @@ else
   ok = all(rms<0.01);
   % Regression test
   ok = ok & areequal(olddata.y,y,1e-5,'abs');
-  err = ~ok;
 end

@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Test whether Opt.Output = 'separate' works with all spectrum
 % construction methods.
@@ -22,6 +22,5 @@ y0s = sum(y0);
 y1s = sum(y1);
 y2s = sum(y2);
 
-err = false;
-data = [];
+ok = true;
 

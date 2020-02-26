@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % Test whether fitting procedure is independent of x axis scaling
 %-------------------------------------------------------------------------------
@@ -22,6 +22,4 @@ if opt.Display
   title('Residuals');
 end
 
-err = ~areequal(yFit,yFit2,1e-10,'rel');
-
-data = [];
+ok = areequal(yFit,yFit2,1e-10,'rel');

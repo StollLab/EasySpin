@@ -1,7 +1,7 @@
-function [err,data] = test(opt,olddata)
-% Test 2: correct phase
-%================================================================
+function ok = test()
+
 y = 1:100;
 a = deriv(y);
-err = any(a<=0);
-data=[];
+
+ok = all(a>0);
+

@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 %======================================================
 % Linewidths of hypothetical system with two 14N
@@ -17,9 +17,8 @@ data.mI = mI;
 
 if ~isempty(olddata)
   ok = areequal(lw,olddata.lw,1e-6,'rel') & areequal(mI,olddata.mI);
-  err = ~ok;
 else
-  err = [];
+  ok = [];
 end
 
 if opt.Display

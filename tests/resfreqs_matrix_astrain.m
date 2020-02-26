@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Check whether resfreqs_matrix handles AStrain correctly.
 
@@ -19,6 +19,4 @@ I = nucspin(Sys.Nucs);
 mI = I:-1:-I;
 Wdat0 = Sys.AStrain*abs(mI(:));
 
-err = ~areequal(Wdat,Wdat0,1e-2,'abs');
-
-data = [];
+ok = areequal(Wdat,Wdat0,1e-2,'abs');

@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 orig_state = warning;
 warning('off','all');
@@ -63,8 +63,7 @@ Exp3.Sequence{1} = IQPulse2;
 
 [signal3] = spidyan(Sys,Exp3,Opt);
 
-err = any([~areequal(signal1,signal2,1e-4,'abs') ~areequal(signal1,signal3,1e-4,'abs')]);
+ok = areequal(signal1,signal2,1e-4,'abs') && areequal(signal1,signal3,1e-4,'abs');
 
-data = [];
 warning(orig_state);
 

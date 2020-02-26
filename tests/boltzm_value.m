@@ -1,7 +1,6 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 a = boltzm;
 b = 1.380649e-23;
-err = abs(a-b)/b > 1e-10;
+ok = areequal(a,b,1e-10,'rel');
 
-data = [];

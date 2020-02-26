@@ -1,7 +1,6 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Assert that sop returns sparse matrices when asked for
-%-------------------------------------------------------
 
 Spins = [1/2 1];
 Comp1 = '+z';
@@ -20,7 +19,3 @@ ok(1) = ~issparse(A) && issparse(B) && areequal(A,B,1e-12,'abs');
 ok(2) = ~issparse(A1) && ~issparse(A2) && ...
          issparse(B1) && issparse(B2) && ...
          areequal(A1,B1,1e-12,'abs') && areequal(A2,B2,1e-12,'abs');
-
-err = ~ok;
-
-data = [];

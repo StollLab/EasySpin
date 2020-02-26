@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 %===============================================================================
 % Test whether fast and general code are internally and among them consistent
@@ -23,7 +23,7 @@ highField = [true false];
 
 % Simulate spectra using all combinations of jKmin and highField
 %-------------------------------------------------------------------------------
-err = false;
+ok = false;
 idx = 0;
 for p = 1:numel(highField)
   for j = 1:numel(jKmin)
@@ -47,10 +47,7 @@ for p = 1:numel(highField)
     end
 
     % Determine whether spectra are identical
-    err(idx) = ~areequal(y_fast,y_general,1e-4,'rel');
+    ok(idx) = areequal(y_fast,y_general,1e-4,'rel');
 
   end
 end
-err = any(err);
-
-data = [];

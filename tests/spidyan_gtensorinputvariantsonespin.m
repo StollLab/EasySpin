@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % System ------------------------
 Sys.S = [1/2];
@@ -35,7 +35,5 @@ Sys.g = [gfree gfree gfree];
 Sys.g = diag([gfree gfree gfree]);
 [~, signal4] = spidyan(Sys,Exp,Opt);
 
-err = any([~isequal(signal1,signal2) ~isequal(signal1,signal3) ~isequal(signal1,signal4)]);
-
-data = [];
+ok = all([isequal(signal1,signal2) isequal(signal1,signal3) isequal(signal1,signal4)]);
 

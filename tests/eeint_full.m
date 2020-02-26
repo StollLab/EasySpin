@@ -1,8 +1,7 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-%======================================================
 % 3 electron spins, check full vs simple
-%======================================================
+
 Sys.S = [1/2 1/2 1/2];
 ee1 = [1 1 1];
 ee2 = [2 2 2];
@@ -17,6 +16,3 @@ H1 = eeint(Sys1);
 H2 = eeint(Sys2);
 
 ok = areequal(H1,H2,1e-10,'abs');
-err = ~ok;
-
-data = [];

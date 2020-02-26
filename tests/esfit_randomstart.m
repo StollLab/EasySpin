@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % Test whether FitOpt.RandomStart works
 
@@ -14,15 +14,13 @@ rng_(123);
 FitOpt.RandomStart = 1;
 FitOpt.PrintLevel = 0;
 
-[spcfit,dummy,residuals] = esfit(@pepper,spc,Sys,Vary,Exp,[],FitOpt);
+[spcfit,~,residuals] = esfit(@pepper,spc,Sys,Vary,Exp,[],FitOpt);
 
 rmsd = sqrt(sum(residuals.^2));
 
-err = rmsd>0.01;
+ok = rmsd<0.01;
 
 if opt.Display
   plot(B,spc,B,spcfit);
   legend('exp','fit');
 end
-
-data = [];

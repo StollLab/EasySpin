@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % test full gmatrix spec with perturbation theory
 Sys.g = [2 0 0; 0 2.05 0; 0 0 2.1];
@@ -19,5 +19,4 @@ if opt.Display
   plot(x0,y0,x1,y1,x2,y2);
 end
 
-err = ~areequal(y0,y1,5e-3,'abs') || ~areequal(y0,y2,5e-3,'abs');
-data = [];
+ok = areequal(y0,y1,5e-3,'abs') && areequal(y0,y2,5e-3,'abs');

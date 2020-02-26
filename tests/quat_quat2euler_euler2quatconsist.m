@@ -1,4 +1,5 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
+
 % Check that quat2euler and euler2quat are consistent
 
 N = 5;
@@ -63,8 +64,5 @@ qp = euler2quat(alpha, beta, gamma);
 diffqEq = q - qp;
 
 % Check for consistency
-err = any(abs(diffEqE(:))>1e-10)||any(abs(diffqEq(:))>1e-10);
-
-data = [];
-
-end
+thr = 1e-10;
+ok = all(abs(diffEqE(:))<thr) && all(abs(diffqEq(:))<thr);

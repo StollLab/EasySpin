@@ -1,4 +1,4 @@
-function [err,data] = rs2spc_basic(opt,olddata)
+function [ok,data] = rs2spc_basic(opt,olddata)
 
 % Simulate rapid-scan signal
 g = 2;
@@ -18,7 +18,7 @@ M = -Mx + 1i*My;
 data.spc = spc;
 
 if ~isempty(olddata)
-  err = ~areequal(data.spc,olddata.spc,1e-6,'rel');
+  ok = areequal(data.spc,olddata.spc,1e-6,'rel');
 else
-  err = [];
+  ok = [];
 end

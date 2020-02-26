@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 %====================================================
 % check whether rescale works with vectors of different size
@@ -14,5 +14,4 @@ z2(5) = 10;
 y_ = rescale(y,z1,'minmax');
 y_ = rescale(y,z2,'minmax');
 
-err = 0;
-data =[];
+ok = true;

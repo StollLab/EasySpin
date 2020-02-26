@@ -1,8 +1,6 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-%======================================================
 % Comparison of wignerd output with explicit expression
-%======================================================
 
 beta = rand*pi;
 
@@ -38,5 +36,4 @@ d2(3,2) = -d2(2,3);
 d2(4,3) = -d2(2,3);
 d2(3,3) = 1/2*(3*cos(beta)^2-1);
 
-err = ~areequal(d1,d2,1e-10,'abs');
-data = [];
+ok = areequal(d1,d2,1e-10,'abs');

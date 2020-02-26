@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 orig_state = warning;
 warning('off','all');
@@ -41,9 +41,9 @@ Exp.DetEvents = [0 0 0];
 [~, ~, out2] = spidyan(Sys,Exp,Opt);
 
 if ~isempty(olddata)
-  err = [~areequal(out1.FinalState,out2.FinalState,1e-4,'abs') ~areequal(signal,olddata.signal,1e-4,'abs')];
+  ok = [areequal(out1.FinalState,out2.FinalState,1e-4,'abs') areequal(signal,olddata.signal,1e-4,'abs')];
 else
-  err = [];
+  ok = [];
 end
 
 warning(orig_state);

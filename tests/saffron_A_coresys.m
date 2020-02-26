@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Check for a fixed bug, where saffron crashed if Sys.A_ was given
 % and ExciteWidth triggered the removal of a nucleus for coreSys.
@@ -19,6 +19,4 @@ Exp.ExciteWidth = 50;
 
 [x,y] = saffron(Sys,Exp);
 
-data = [];
-
-err = false;
+ok = true;

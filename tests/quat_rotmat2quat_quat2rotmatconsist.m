@@ -1,4 +1,5 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
+
 % Check that rotmat2quat and quat2rotmat yield identical results
 
 % Generate random axis-angle representation
@@ -29,12 +30,4 @@ matOut = quat2rotmat(q);
 diff = abs(matOut-matIn);
 
 % Check for consistency
-if any(diff(:)>1e-14)
-  err = 1;
-else  
-  err = 0;
-end
-
-data = [];
-
-end
+ok = all(diff(:)<1e-14);

@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 Sys.S = 1;
 Sys.g = 2;
@@ -22,6 +22,4 @@ if (opt.Display)
   legend('matrix','hybrid');
 end
 
-data = [];
-
-err = ~areequal(yMatrix,yHybrid,0.02,'rel');
+ok = areequal(yMatrix,yHybrid,0.02,'rel');

@@ -1,7 +1,5 @@
-function err = test()
+function ok = test()
 
-% Test 2: special cases
-%=======================================================
 R0{1} = [0 0 -1; 0 1 0; 1 0 0];
 R1{1} = erot(0,pi/2,0);
 
@@ -20,5 +18,3 @@ R1{5} = erot(pi/2,0,0);
 for k = 1:numel(R0)
   ok(k) = areequal(R0{k},R1{k},1e-10,'abs');
 end
-
-err = any(~ok);

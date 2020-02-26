@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 % Regression test: Powder, axial system, isotropic lw
 
@@ -26,7 +26,7 @@ end
 data.spc = spc;
 
 if ~isempty(olddata)
-  err = ~areequal(spc,olddata.spc,1e-4,'rel');
+  ok = areequal(spc,olddata.spc,1e-4,'rel');
 else
-  err = [];
+  ok = [];
 end

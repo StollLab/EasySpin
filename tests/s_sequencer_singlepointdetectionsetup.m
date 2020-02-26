@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 Pulse.Flip = pi;
 Pulse.tp = 0.03;
@@ -68,13 +68,9 @@ Exp10.DetSequence = [0 0 0 0 1];
 
 [Events10] = runprivate('s_sequencer',Exp10,Opt);
 
-if any([~isequal(Events1,Events2) ~isequal(Events1,Events3) ...
-     ~isequal(Events4,Events5) ~isequal(Events4,Events6) ...
-     ~isequal(Events7,Events8) ~isequal(Events9,Events10)])
-  err = 1;
-else
-  err = 0;
-end
-
-data = [];
-
+ok(1) = isequal(Events1,Events2);
+ok(2) = isequal(Events1,Events3);
+ok(3) = isequal(Events4,Events5);
+ok(4) = isequal(Events4,Events6);
+ok(5) = isequal(Events7,Events8);
+ok(6) = isequal(Events9,Events10);

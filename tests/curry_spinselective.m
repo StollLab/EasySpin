@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 % Test spin-selective magnetic moments
 
@@ -25,7 +25,5 @@ if ~isempty(olddata)
   ok(1) = areequal(data.mu1,olddata.mu1,thr,'abs');
   ok(2) = areequal(data.mu2,olddata.mu2,thr,'abs');
 else
-  ok = false;
+  ok = [];
 end
-
-err = ~ok;

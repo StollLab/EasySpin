@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 %{
 The following information is contained in the versions.txt file that is 
 found in the data subfolder of the testing directory and called by
@@ -175,10 +175,4 @@ end
 % -------------------------------------------------------------
 % Validation
 
-if any(Errors)
-  err = true;
-else
-  err = false;
-end
-
-data = [];
+ok = ~any(Errors);

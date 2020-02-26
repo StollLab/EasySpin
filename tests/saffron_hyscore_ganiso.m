@@ -1,4 +1,4 @@
-function [err,data] = saffron_hyscore_ganiso(opt,olddata)
+function [ok,data] = saffron_hyscore_ganiso(opt,olddata)
 
 Sys.g = [2 6];
 Sys.Nucs = '1H';
@@ -34,8 +34,7 @@ end
 data.y = y;
 
 if isempty(olddata)
-  err = [];
+  ok = [];
 else
   ok = areequal(olddata.y,y,1e-10,'rel');
-  err = ~ok;
 end

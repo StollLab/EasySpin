@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 orig_state = warning;
 warning('off','all');
@@ -86,14 +86,8 @@ end
 
 % -------------------------------------------------------------------------
 
-if any([~isequal(IQs,Seq1IQs) ~isequal(IQs,Seq2IQs1) ~isequal(IQs,Seq2IQs2)...
-    ~isequal(Vary2,Vary2_) ~isequal(IQs3{3},Seq3IQs{3})])
-  err = 1;
-else
-  err = 0;
-end
-
-data = [];
+ok = [isequal(IQs,Seq1IQs) isequal(IQs,Seq2IQs1) isequal(IQs,Seq2IQs2)...
+    isequal(Vary2,Vary2_) isequal(IQs3{3},Seq3IQs{3})];
 
 plot = false; 
 

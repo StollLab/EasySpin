@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Syntax test
 
@@ -10,6 +10,5 @@ beta = 2;
 G = resonatorfunc(nu,nu0,Qu,beta);
 G = resonatorfunc([],nu0,Qu,beta);
 
-err = false;
-data = [];
+ok = true;
 

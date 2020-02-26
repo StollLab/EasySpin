@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Assure that running esfit and pepper using Simplex algorithm is
 % successful and yields a good fit.
@@ -20,9 +20,7 @@ Vary.g = [0.02 0.02];
 FitOpt.PrintLevel = 0;
 
 FitOpt.Method = [fitAlg ' ' dataMethod];
-[dummy,dummy,resid] = esfit(@pepper,spc,Sys,Vary,Exp,[],FitOpt);
+[~,~,resid] = esfit(@pepper,spc,Sys,Vary,Exp,[],FitOpt);
 rmsd = sqrt(mean(resid.^2));
 
-err = any(rmsd>1e-10);
-
-data = [];
+ok = rmsd<1e-10;

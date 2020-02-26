@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % Crystal with Th symmetry and rhombic g
 
@@ -33,5 +33,4 @@ if (opt.Display)
   xlabel('magnetic field (mT)');
 end
 
-err = ~areequal(y1,y2,1e-3,'rel');
-data = [];
+ok = areequal(y1,y2,1e-3,'rel');

@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 Pulse.Type = 'rectangular';
 Pulse.tp = 0.1;
@@ -40,17 +40,14 @@ Exp.Dim1 = {'p1.Frequency(1),p1.Frequency(2)' 0.05};
 
 [~, Vary4] = runprivate('s_sequencer',Exp,Opt);
 
-% Fourth Syntax -----------------------------
+% Fifth Syntax -----------------------------
 Exp.Frequency = 1000* [0 0];
 Exp.Dim1 = {'p1.Frequency(1)' 0.05;
            'p1.Frequency(2)' 0.05};
 
 [~, Vary5] = runprivate('s_sequencer',Exp,Opt);
 
-if any([~isequal(Vary1,Vary2) ~isequal(Vary1,Vary3) ~isequal(Vary1,Vary4) ~isequal(Vary1,Vary5)])
-  err = 1;
-else
-  err = 0;
-end
-
-data = [];
+ok(1) = isequal(Vary1,Vary2);
+ok(2) = isequal(Vary1,Vary3);
+ok(3) = isequal(Vary1,Vary4);
+ok(4) = isequal(Vary1,Vary5);

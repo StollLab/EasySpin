@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 Sys.tcorr = 10*rand()*1e-9;
 Par.dt = 0.1e-9;
@@ -7,6 +7,4 @@ Par.nTraj = 1;
 
 [t, RTraj] = stochtraj_diffusion(Sys,Par);
 
-err = false;
-
-data = [];
+ok = true;

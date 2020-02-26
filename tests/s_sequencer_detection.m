@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 Pulse.Type = 'quartersin/linear';
 Pulse.trise = 0.015; % us
@@ -57,13 +57,6 @@ Opt.DetEvents = [1 1 0 0];
 [Events8] = runprivate('s_sequencer',Exp,Opt);
 
 
-if any([~isequal(Events1,Events2) ~isequal(Events3,Events4) ...
-    ~isequal(Events3,Events4) ~isequal(Events3,Events5) ...
-    ~isequal(Events3,Events6) ~isequal(Events7,Events8)])
-  err = 1;
-else
-  err = 0;
-end
-
-data = [];
-
+ok = all([isequal(Events1,Events2) isequal(Events3,Events4) ...
+     isequal(Events3,Events4) isequal(Events3,Events5) ...
+     isequal(Events3,Events6) isequal(Events7,Events8)]);

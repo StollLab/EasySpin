@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 %=======================================================================
 % Powder, orthorhombic system, isotropic lw
@@ -24,8 +24,8 @@ end
 data.y1 = y1;
 
 if ~isempty(olddata)
-  err = ~areequal(y1,olddata.y1,1e-3,'rel');
+  ok = areequal(y1,olddata.y1,1e-3,'rel');
 else
-  err = [];
+  ok = [];
 end
 

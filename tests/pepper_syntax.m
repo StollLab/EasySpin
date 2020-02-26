@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Calling syntax
 
@@ -14,5 +14,4 @@ y = pepper(Sys,Exp,Opt);
 [x,y,tr] = pepper(Sys,Exp,Opt);
 x = pepper(Sys,Exp,[]); % empty options structure
 
-err = 0;
-data = [];
+ok = true;

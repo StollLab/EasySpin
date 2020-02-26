@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Syntax check
 
@@ -11,5 +11,4 @@ for g = 1:numel(SymmGroup)
   [p,t,w] = sphgrid(SymmGroup{g},nKnots);
 end
 
-err = false;
-data = [];
+ok = true;

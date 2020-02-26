@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 EventLengths1 = [10 50 10 50 10 50];
 PulseList = [1 0 1 0 1 0 1];
@@ -14,12 +14,5 @@ Sequence2 = [1 2 5 6 3 4];
 CorrectEventLengths = [10 30 10 10 10 30];
 
 
-if any([~isequal(EventLengths1,NewEventLengths1) ~isequal(Sequence1,NewSequence1) ...
-    ~isequal(CorrectEventLengths,NewEventLengths2) ~isequal(Sequence2,NewSequence2)])
-  err = 1;
-else
-  err = 0;
-end
-
-data = [];
-
+ok = all([isequal(EventLengths1,NewEventLengths1) isequal(Sequence1,NewSequence1) ...
+    isequal(CorrectEventLengths,NewEventLengths2) isequal(Sequence2,NewSequence2)]);

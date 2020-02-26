@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 Sys.g = 1.75;
 Sys.Nucs = '1H';
@@ -34,10 +34,9 @@ data.y1 = y1;
 data.y2 = y2;
 
 if isempty(olddata)
-  err = [];
+  ok = [];
 else
   ok = ...
-    areequal(y1,olddata.y1,1e-6,'rel') & ...
+    areequal(y1,olddata.y1,1e-6,'rel') && ...
     areequal(y2,olddata.y2,1e-6,'rel');
-  err = ~ok;
 end

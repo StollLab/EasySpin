@@ -1,8 +1,6 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-%======================================================
-% Test 6: cell array of isotopes
-%======================================================
+% cell array of isotopes
+
 nu = larmorfrq({'1H','14N'},300);
-err = (numel(nu)~=2);
-data = [];
+ok = numel(nu)==2;

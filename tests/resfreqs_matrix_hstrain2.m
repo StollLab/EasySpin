@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Check whether resfreqs_matrix handles HStrain correctly.
 
@@ -15,8 +15,5 @@ for k=1:5
   Exp.CrystalOrientation = [ang(1) ang(2) 0];
   [dum,dum,Wdat] = resfreqs_matrix(Sys,Exp);
   Wdat0 = sqrt(z(:).^2.'*Sys.HStrain(:).^2);
-  err(k) = ~areequal(Wdat,Wdat0,1e-4,'abs');
+  ok(k) = areequal(Wdat,Wdat0,1e-4,'abs');
 end
-
-err = any(err);
-data = [];

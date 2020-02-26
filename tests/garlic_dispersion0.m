@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 % garlic: dispersion spectrum, zeroth harmonic
 
@@ -14,10 +14,10 @@ data.x = x;
 data.y = y;
 
 if ~isempty(olddata)
-  err = ~areequal(x,olddata.x,1e-10,'abs') || ...
-        ~areequal(y,olddata.y,1e-4,'rel');
+  ok = areequal(x,olddata.x,1e-10,'abs') && ...
+       areequal(y,olddata.y,1e-4,'rel');
 else
-  err = [];
+  ok = [];
 end
 
 if (opt.Display)

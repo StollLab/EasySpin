@@ -1,4 +1,5 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
+
 % Compare transmitter() amplitude compression simulation and amplitude 
 % nonlinearity compensation (self-consistency check)
 %--------------------------------------------------------------------------
@@ -45,7 +46,7 @@ total_signal_compensated = transmitter(total_signal*nu1_out/max(amplitudes),Ain,
 
 % Compare individually compensated signals with compensated sequence
 total_signal_combined = [signal1_compensated zeros(1,0.200/Params1.TimeStep) signal2_compensated];
-suberr(1) = ~areequal(total_signal_compensated,total_signal_combined,1e-6,'abs');
+ok(1) = areequal(total_signal_compensated,total_signal_combined,1e-6,'abs');
 
 
 % Effect of transmitter on compensated pulses
@@ -61,13 +62,9 @@ total_signal_check = transmitter(total_signal_compensated,Ain,Aout,'simulate');
 
 % Compare individually compensated signals with compensated sequence
 total_signal_combined = [signal1_check zeros(1,0.200/Params1.TimeStep) signal2_check];
-suberr(2) = ~areequal(total_signal_check,total_signal_combined,1e-6,'abs');
+ok(2) = areequal(total_signal_check,total_signal_combined,1e-6,'abs');
 
 % Compare compensated and compressed pulse shapes with original pulse shapes
 scalefactor = nu1_out/amplitudes(2);
-suberr(3) = ~areequal(signal1_check,scalefactor*signal1,1e-6,'abs');
-suberr(4) = ~areequal(signal2_check,scalefactor*signal2,1e-6,'abs');
-
-err = any(suberr);
-
-data = [];
+ok(3) = areequal(signal1_check,scalefactor*signal1,1e-6,'abs');
+ok(4) = areequal(signal2_check,scalefactor*signal2,1e-6,'abs');

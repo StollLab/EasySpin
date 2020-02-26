@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 % Regression test for MD trajectory-based simulation of EPR spectrum using
 % cardamom and MSM method for nitroxides
 
@@ -55,9 +55,9 @@ spc = spc/max(spc);
 data.spc = spc;
 
 if ~isempty(olddata)
-  err = any(abs(olddata.spc-spc)>1e-2);
+  ok = areequal(olddata.spc,spc,1e-2,'abs');
 else
-  err = [];
+  ok = [];
 end
 
 if opt.Display

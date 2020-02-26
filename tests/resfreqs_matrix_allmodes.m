@@ -1,6 +1,5 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-clear Sys Exp
 Sys.S = 1;
 Sys.D = -3*30e3*[1 0.01];
 
@@ -24,6 +23,4 @@ for k = 1:numel(mwPolarization)
   end
 end
 
-err = 0;
-
-data = [];
+ok = true;

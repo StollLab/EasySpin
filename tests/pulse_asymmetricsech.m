@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Compare pulse() output pulse shapes with mathematical expressions
 %--------------------------------------------------------------------------
@@ -31,11 +31,7 @@ IQ0 = A.*exp(2i*pi*phi);
 
 [t,IQ,modulation] = pulse(Params);
 
-suberr(1) = ~areequal(IQ0,IQ,1e-11,'abs');
-suberr(2) = ~areequal(A,modulation.A,1e-12,'abs');
-suberr(3) = ~areequal(f,modulation.freq,1e-12,'abs');
-suberr(4) = ~areequal(2*pi*phi,modulation.phase,1e-12,'abs');
-
-err = any(suberr);
-
-data = [];
+ok(1) = areequal(IQ0,IQ,1e-11,'abs');
+ok(2) = areequal(A,modulation.A,1e-12,'abs');
+ok(3) = areequal(f,modulation.freq,1e-12,'abs');
+ok(4) = areequal(2*pi*phi,modulation.phase,1e-12,'abs');

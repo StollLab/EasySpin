@@ -1,4 +1,4 @@
-function [err,data] = pepper_pt_ga1(opt,olddata)
+function [ok,data] = pepper_pt_ga1(opt,olddata)
 
 % g strain
 
@@ -34,7 +34,7 @@ end
 data.y = y;
 
 if ~isempty(olddata)
-  err = ~areequal(y,olddata.y,1e-4,'abs');
+  ok = areequal(y,olddata.y,1e-4,'abs');
 else
-  err = [];
+  ok = [];
 end

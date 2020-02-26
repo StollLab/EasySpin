@@ -1,8 +1,7 @@
-function [err,data] = test(opt,olddata)
-%==================================================================
+function ok = test()
+
 % Test whether the 0th order in B of zeemanho is identical (Except the
 % known prefactors to results using the Stevens operators
-%==================================================================
 
 %Table of conversion factors for Stevens operator
 Alm(8,:) = [24*sqrt(1430),2*sqrt(1430),4*sqrt(143/7),2*sqrt(78/7), ...
@@ -40,8 +39,4 @@ H = sham(Sys2,[0,0,0]);
 
 % test
 threshold = 1e-6;
-err = ~areequal(H,Hz,threshold,'abs');
-data = [];
-
-
-
+ok = areequal(H,Hz,threshold,'abs');

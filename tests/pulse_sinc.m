@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Compare pulse() output pulse shapes with mathematical expressions
 %--------------------------------------------------------------------------
@@ -17,6 +17,4 @@ IQ0 = A;
 
 [t,IQ] = pulse(Params);
 
-err = ~areequal(IQ0,IQ,1e-12,'abs');
-
-data = [];
+ok = areequal(IQ0,IQ,1e-12,'abs');

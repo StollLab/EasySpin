@@ -1,9 +1,7 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-%======================================================
 % 3x S=1/2, full ee tensors given
-%======================================================
-% Just should not crash, as it did in version 2.6.0
+% (Just should not crash, as it did in version 2.6.0)
 
 Sys = struct('S',[1/2 1/2 1/2],'g',[2 2 2]);
 
@@ -18,11 +16,6 @@ ee13 = [-J2 dz2 0; -dz2 -J2 0; 0 0 -J2];
 EE = [ee12;ee13;ee23]; % three coupling matrices
 Sys.ee=EE*100*clight/1e6; % conversion cm^-1 -> MHz
 
-data = [];
+G= symm(Sys);
 
-try
-  G = symm(Sys);
-  err = 0;
-catch
-  err = 1;
-end
+ok = true;

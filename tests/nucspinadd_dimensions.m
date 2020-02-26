@@ -1,7 +1,7 @@
-function err = test(opt,olddata)
+function ok = test()
 
-% Test 2: check matrix dimensions
-%====================================================
+% check matrix dimensions
+
 A = [1 1 1];
 AFrame = [2 3 4];
 Q = [-1 0 1];
@@ -16,8 +16,7 @@ if all(Sys.A(end,:)==A) && ...
    all(Sys.AFrame(end,:)==AFrame) && ...
    all(Sys.QFrame(end,:)==QFrame) && ...
    strcmp(Sys.Nucs(end-1:end),'1H')
-  err = false;
+  ok = true;
 else
-  err = true;
+  ok = false;
 end
-

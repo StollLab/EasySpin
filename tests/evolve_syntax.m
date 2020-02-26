@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 herm = @(A)A+A';
 randherm = @(n) herm(complex(rand(n),rand(n)));
@@ -30,6 +30,4 @@ td = evolve(Sig,D,H,n,dt,[1 2 -2 1],{M,M,M});
 td = evolve(Sig,D,H,n,dt,[1 1 -1 -1 2],{M,M,M,M});
 td = evolve(Sig,D,H,n,dt,[1 -1 -1 1 2],{M,M,M,M});
 
-err = 0;
-
-data = [];
+ok = true;

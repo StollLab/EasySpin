@@ -1,14 +1,12 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-%======================================================
 % Linear baseline correction of linear data
-%======================================================
 
 N = 1023;
+rng(3434);
 data = rand(N,N);
 
-[c,baseline] = basecorr(data,2,0);
+[~,baseline] = basecorr(data,2,0);
 mean2 = mean(data,2);
 
-err = any(abs(mean2-baseline(:,1))>1e-10);
-data = [];
+ok = areequal(mean2,baseline(:,1),1e-10,'abs');

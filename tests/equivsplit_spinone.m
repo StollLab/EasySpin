@@ -1,7 +1,7 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-% Test 2: S=1
-%======================================================
+% S=1
+
 Q{1} = [1 1 1];
 Q{2} = [1 2 3 2 1];
 Q{3} = [1 3 6 7 6 3 1];
@@ -12,6 +12,3 @@ for n = 1:numel(Q)
   q = equivsplit(1,n);
   ok(n) = all(q==Q{n});
 end
-
-err = any(~ok);
-data = [];

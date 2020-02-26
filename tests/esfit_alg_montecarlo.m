@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Assure that running esfit and pepper using Monte Carlo algorithm is 
 % successful and yields a good fit using bounds determined by seeded rng 
@@ -24,9 +24,7 @@ FitOpt.PrintLevel = 0;
 FitOpt.nTrials = 300;
 
 FitOpt.Method = [fitAlg ' ' dataMethod];
-[dummy,dummy,resid] = esfit(@pepper,spc,Sys,Vary,Exp,Opt,FitOpt);
+[~,~,resid] = esfit(@pepper,spc,Sys,Vary,Exp,Opt,FitOpt);
 rmsd = sqrt(mean(resid.^2));
 
-err = any(rmsd>0.005);
-
-data = [];
+ok = rmsd<0.005;

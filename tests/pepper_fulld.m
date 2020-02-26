@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 %=======================================================================
 % Different D tensor inputs: ful vs. D only
@@ -23,6 +23,5 @@ if opt.Display
   legend boxoff
 end
 
-err = ~areequal(y1,y2,1e-10,'rel');
-data = [];
+ok = areequal(y1,y2,1e-10,'rel');
 

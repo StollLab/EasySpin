@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 %=======================================================================
 % Partially oriented system with axial spin parameters
@@ -27,8 +27,7 @@ if opt.Display
   legend boxoff
 end
 
-data = [];
-err = ~areequal(spc0,spc1,1e-10,'rel');
+ok = areequal(spc0,spc1,1e-10,'rel');
 
 function w = ord_ones(phi,theta)
 w = ones(size(phi));

@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Compare pulse() output pulse shapes with mathematical expressions
 %--------------------------------------------------------------------------
@@ -28,7 +28,7 @@ IQ0 = A/max(A);
 
 [t,IQ] = pulse(Params);
 
-err(1) = ~areequal(IQ0,IQ,1e-12,'abs');
+ok(1) = areequal(IQ0,IQ,1e-12,'abs');
 
 % Q3
 clear Params
@@ -54,7 +54,7 @@ IQ0 = A/max(A);
 
 [t,IQ] = pulse(Params);
 
-err(2) = ~areequal(IQ0,IQ,1e-12,'abs');
+ok(2) = areequal(IQ0,IQ,1e-12,'abs');
 
 % User-defined
 clear Params
@@ -80,8 +80,4 @@ Params.FWHM = FWHM/Params.tp;
 
 [t,IQ] = pulse(Params);
 
-err(3) = ~areequal(IQ0,IQ,1e-12,'abs');
-
-err = any(err);
-
-data = [];
+ok(3) = areequal(IQ0,IQ,1e-12,'abs');

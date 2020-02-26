@@ -1,8 +1,6 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-%===============================================================================
 % check whether rescale works with various least-square fitting option
-%===============================================================================
 
 thr = 1e-12;
 
@@ -27,7 +25,3 @@ ok(2) = areequal(y0_,yr,thr,'abs');
 ok(3) = areequal(y1_,yr,thr,'abs');
 ok(4) = areequal(y2_,yr,thr,'abs');
 ok(5) = areequal(y3_,yr,thr,'abs');
-
-err = any(~ok);
-
-data = [];

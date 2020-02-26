@@ -1,7 +1,7 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Syntax tests
-%====================================================
+
 Sys.S = 1/2;
 Sys.g = [2 3 4];
 phi = 0.4564;
@@ -28,6 +28,4 @@ E = levels(Sys,phi,theta,B);
 [E,V] = levels(Sys,[phi theta],B);
 [E,V] = levels(Sys,phi,theta,B);
 
-
-err = 0;
-data = [];
+ok = true;

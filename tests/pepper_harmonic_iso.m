@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 %=======================================================================
 % Harmonic setting vs. derivate/integral afterwards
@@ -35,6 +35,4 @@ end
 
 spread = max(y1)-min(y1);
 tolerance = 1e-4;
-err =  any(abs(y0-y1)/spread>tolerance) | any(abs(y2-y1)/spread>tolerance);
-
-data = [];
+ok = all(abs(y0-y1)/spread<tolerance) && all(abs(y2-y1)/spread<tolerance);

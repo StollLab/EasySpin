@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Compare pulse() output pulse shapes with mathematical expressions
 %--------------------------------------------------------------------------
@@ -54,11 +54,11 @@ IQ0 = Params.Amplitude*A.*exp(2i*pi*phi);
 
 [t,IQ,modulation] = pulse(Params);
 
-suberr(1) = ~areequal(IQ0,IQ,1e-12,'abs');
-suberr(2) = ~areequal(Params.Amplitude*A,modulation.A,1e-12,'abs');
-suberr(3) = ~areequal(f,modulation.freq,1e-12,'abs');
+ok(1) = ~areequal(IQ0,IQ,1e-12,'abs');
+ok(2) = ~areequal(Params.Amplitude*A,modulation.A,1e-12,'abs');
+ok(3) = ~areequal(f,modulation.freq,1e-12,'abs');
 
-err(2) = any(suberr);
+err(2) = any(ok);
 
 % Halfsin weighted chirp
 clear Params
@@ -84,12 +84,6 @@ IQ0 = Params.Amplitude*A.*exp(2i*pi*phi);
 
 [t,IQ,modulation] = pulse(Params);
 
-suberr(1) = ~areequal(IQ0,IQ,1e-12,'abs');
-suberr(2) = ~areequal(Params.Amplitude*A,modulation.A,1e-12,'abs');
-suberr(3) = ~areequal(f,modulation.freq,1e-12,'abs');
-
-err(3) = any(suberr);
-
-err = any(err);
-
-data = [];
+ok(1) = areequal(IQ0,IQ,1e-12,'abs');
+ok(2) = areequal(Params.Amplitude*A,modulation.A,1e-12,'abs');
+ok(3) = areequal(f,modulation.freq,1e-12,'abs');

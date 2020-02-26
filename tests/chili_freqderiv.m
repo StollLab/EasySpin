@@ -1,8 +1,5 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
-%=======================================================
-% 
-%=======================================================
 Sys.S = 1;
 Sys.g = [2.01 2.005 2.002];
 Sys.D = 500;
@@ -21,6 +18,10 @@ Sys.lwpp = 2;
 spc0 = spc0/max(spc0);
 spc1 = spc1/max(spc1);
 
-err = areequal(spc0,spc1,1e-3,'abs');
+ok = areequal(spc0,spc1,1e-2,'abs');
 
-data = [];
+if opt.Display
+  plot(B,spc0,'.',B,spc1);
+  legend('without lwpp','with lwpp');
+  axis tight
+end

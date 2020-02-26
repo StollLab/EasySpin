@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 % Rotational invariance
       
@@ -24,7 +24,7 @@ end
 data.y = y;
 
 if isempty(olddata)
-  err = [];
+  ok = [];
 else
   % Direct test for invariance
   ymean = mean(y);
@@ -36,5 +36,4 @@ else
   ok = all(rms<0.01);
   % Regression test
   ok = ok && areequal(data.y,y,1e-10,'rel');
-  err = ~ok;
 end

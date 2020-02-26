@@ -1,7 +1,7 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % Read Adani spectrometer files
-%-------------------------------------------------
+
 BaseDir = 'eprfiles/adani/';
 
 Files{1} = 'pyrelen-2mT5mmAugstaak300sek.dat';
@@ -32,6 +32,4 @@ for iFile = 1:numel(Files)
   end
 end
 
-err = readerr;
-
-data = [];
+ok = ~readerr;

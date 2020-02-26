@@ -1,8 +1,6 @@
-function err = test(opt,olddata)
+function ok = test(opt)
 
-%================================================================================
 % Intensity match for rigid limit chili and pepper approximate B sweep (general)
-%================================================================================
 
 Sys.g = [2.01 2.003];
 Sys.tcorr = 1e-5;
@@ -32,4 +30,4 @@ if opt.Display
   title('scaled');
 end
 
-err = ~areequal(y1,y2,0.02,'rel');
+ok = areequal(y1,y2,0.02,'rel');

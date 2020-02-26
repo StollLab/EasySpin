@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Principal axes
 
@@ -9,6 +9,4 @@ y0 = [0;1;0];
 z = ang2vec(0,0);
 z0 = [0;0;1];
 
-err = ~areequal([x y z],[x0 y0 z0],1e-10,'abs');
-
-data = [];
+ok = areequal([x y z],[x0 y0 z0],1e-10,'abs');

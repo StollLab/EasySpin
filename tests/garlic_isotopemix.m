@@ -1,14 +1,17 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-%=======================================================
-% Isotope mixtures: spectrum should integrate to 1
-%=======================================================
-Sys.Nucs = 'B';
-Sys.A = 10;
+% Isotope mixtures: stick spectrum integral should be independent of mixture
+
 Exp.mwFreq = 9.668;
 Exp.CenterSweep = [345 2];
 Exp.Harmonic = 0;
-[x,y]=garlic(Sys,Exp);
 
-err = isequal(sum(y),1,1e-6);
-data = [];
+Sys1.Nucs = 'B';
+Sys1.A = 10;
+[x,y1] = garlic(Sys1,Exp);
+
+Sys1.Nucs = '11B';
+Sys1.A = 10;
+[x,y2] = garlic(Sys1,Exp);
+
+ok = areequal(sum(y1),sum(y2),1e-6,'rel');

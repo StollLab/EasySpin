@@ -1,8 +1,6 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
-%================================================================
 % Compare approximate and explicit field-swept spectra (general)
-%================================================================
 
 Sys.g = [2.01 2.003];
 Sys.lw = 0.1;
@@ -26,6 +24,4 @@ if opt.Display
   legend('approximate','explicit');
 end
 
-err = ~areequal(y1/max(y1),y2/max(y2),0.01,'abs');
-
-data = [];
+ok = areequal(y1/max(y1),y2/max(y2),0.01,'abs');

@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 Pulse.Type = 'quartersin/linear';
 Pulse.trise = 0.015; % us
@@ -25,7 +25,5 @@ Exp.mwFreq = 0;
 
 [Events2, Vary2] = runprivate('s_sequencer',Exp,Opt);
 
-err = any([~areequal(Events1{1}.IQ,Events2{1}.IQ,1e-9,'abs') ~areequal(Events1{3}.IQ,Events2{3}.IQ,1e-9,'abs')]);
-
-data = [];
-
+ok(1) = areequal(Events1{1}.IQ,Events2{1}.IQ,1e-9,'abs');
+ok(2) = areequal(Events1{3}.IQ,Events2{3}.IQ,1e-9,'abs');

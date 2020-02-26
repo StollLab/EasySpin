@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % Compare molar susceptibility calculated with curry() against Curie law
 
@@ -23,6 +23,5 @@ if opt.Display
   legend boxoff
 end
 
-err = ~areequal(chimol_curie,chimol_curry,1e-10,'abs');
+ok = areequal(chimol_curie,chimol_curry,1e-10,'abs');
 
-data = [];

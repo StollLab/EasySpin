@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Isotopologues with isotope-specific rescaling of hyperfine couplings
 %-------------------------------------------------------------------------------
@@ -11,6 +11,3 @@ Sys.A = A_1H;
 Iso = isotopologues(Sys);
 
 ok = Iso(1).A == A_1H && Iso(2).A == A_2H;
-
-err = ~ok;
-data = [];

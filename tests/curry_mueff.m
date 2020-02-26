@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Make sure the "effective magnetic moment" is correct.
 % SI: mueff = sqrt(3*k*T*chi_mol/NA/muB^2/mu0)
@@ -19,10 +19,7 @@ mueff_CGS = curry(Sys,Exp,Opt);
 
 mueff_explicit = Sys.g*sqrt(Sys.S*(Sys.S+1)); % valid only for high-T limit
 
-thr1 = 1e-12;
+thr1 = 1e-9;
 thr2 = 1e-6;
 ok = areequal(mueff_SI,mueff_CGS,thr1,'abs') && ...
      areequal(mueff_SI,mueff_explicit,thr2,'abs');
-err = ~ok;
-
-data = [];

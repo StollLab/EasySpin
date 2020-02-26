@@ -1,11 +1,9 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-% Test 1: syntax
-%================================================================
 N = 654;
 y = rand(1,N);
 x = 1:N;
 a = deriv(y);
 b = deriv(x,y);
-err = ~areequal(a,b,1e-10,'abs');
-data = [];
+
+ok = areequal(a,b,1e-10,'abs');

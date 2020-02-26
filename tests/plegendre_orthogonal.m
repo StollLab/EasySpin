@@ -1,15 +1,13 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Test whether associated Legendre polynomials are orthogonal
-%============================================================
 
 thr = 1e-8;
-v = quad(@integrand1,-1,1,thr);
+
+integrand1 = @(z) plegendre(6,2,z).*plegendre(6,2,z);
+v = integral(integrand1,-1,1,'AbsTol',thr);
 n = 6; m = 2;
 v0 = 2/(2*n+1) * factorial(n+m)/factorial(n-m);
-err = abs(v-v0)>10*thr;
 
-data = [];
+ok = abs(v-v0)<10*thr;
 
-function z = integrand1(z)
-z = plegendre(6,2,z).*plegendre(6,2,z);

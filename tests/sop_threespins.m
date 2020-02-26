@@ -1,7 +1,7 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Test syntax for three spins
-%======================================================
+
 kron3 = @(s,A,B,C)kron(kron(sop(s(1),A),sop(s(2),B)),sop(s(3),C));
 
 s = [3/2 1/2 1];
@@ -20,7 +20,3 @@ myOp{4} = kron3(s,'y','e','x');
 for k = 1:numel(Op)
   ok(k) = areequal(Op{k},myOp{k},1e-10,'abs');
 end
-
-err = any(~ok);
-
-data = [];

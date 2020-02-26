@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 %=======================================================
 % Many nuclei
@@ -13,12 +13,11 @@ data.y = y;
 
 if ~isempty(olddata)
   ok = areequal(x,olddata.x,1e-10,'rel') && areequal(y,olddata.y,1e-10,'rel');
-  err = ~ok;
 else
-  err = [];
+  ok = [];
 end
 
-if (opt.Display)
+if opt.Display
   if ~isempty(olddata)
     subplot(3,1,[1 2]);
     plot(olddata.x,olddata.y,'g',data.x,data.y,'r');

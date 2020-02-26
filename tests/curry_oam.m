@@ -1,7 +1,8 @@
-function err = test()
+function ok = test()
 
 % orbital angular momenta can also be defined as spins, therefore the 
 % results should be identical for the two cases
+
 rng_(5,'twister');
 n = 1;
 SysSL.S = 1/2;
@@ -47,4 +48,4 @@ Exp.Field = [1 10 100 1000 10000];
 [m2,chi2] = curry(PureSpin,Exp);
 
 thr = 1e-6;
-err = ~areequal(m1,m2,thr,'rel') || ~areequal(chi1,chi2,thr,'rel');
+ok = areequal(m1,m2,thr,'rel') && areequal(chi1,chi2,thr,'rel');

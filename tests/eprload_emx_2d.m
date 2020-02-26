@@ -1,7 +1,6 @@
-function [err,data] = eprload_esp_xaxis(opt,olddata)
+function ok = test(opt)
 
-data = [];
-err = [];
+ok = [];
 
 BaseDir = 'eprfiles/';
 
@@ -20,7 +19,7 @@ XY{2} = [44 -36]; %XYLB/XYWI
 ax_err = zeros(1,numel(Files));
 for iFile = 1:numel(Files)
   if (opt.Display), disp(Files{iFile}); end
-  [ax,data] = eprload([BaseDir Files{iFile}]);
+  [ax,ok] = eprload([BaseDir Files{iFile}]);
   XXLB = ax{1}(1);
   XXWI = ax{1}(end)-XXLB;
   XYLB = ax{2}(1);
@@ -41,6 +40,4 @@ for iFile = 1:numel(Files)
   end
 end
 
-err = ax_err;
-
-data = [];
+ok = ~ax_err;

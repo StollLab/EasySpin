@@ -1,10 +1,9 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-% Test 2: output
-%================================================================
 N = 2345;
 y = rand(1,N);
 x = 1:N;
 a = deriv(x,y);
-err = numel(a)~=numel(y);
-data = [];
+
+ok = numel(a)==numel(y);
+

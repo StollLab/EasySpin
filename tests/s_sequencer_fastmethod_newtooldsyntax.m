@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 tau = 0.01;
 
@@ -29,11 +29,4 @@ Opt.SimulationMode = 'fast';
 
 ProcessedExp = rmfield(ProcessedExp,'Processed');
 
-if any([~isequal(RefExp,ProcessedExp)])
-  err = 1;
-else
-  err = 0;
-end
-
-data = [];
-
+ok = all([isequal(RefExp,ProcessedExp)]);

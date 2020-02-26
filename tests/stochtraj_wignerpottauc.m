@@ -1,4 +1,5 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
+
 % Check that using stochtraj_diffusion with anisotropic diffusion generates a
 % proper rotational correlation timez
 
@@ -35,9 +36,9 @@ y = AutoCorrFFT(:)/max(AutoCorrFFT);
 data.y = y;
 
 if ~isempty(olddata)
-  err = any(abs(olddata.y-y)>1e-10);
+  ok = areequal(olddata.y,y,1e-10,'abs');
 else
-  err = [];
+  ok = [];
 end
 
 if opt.Display

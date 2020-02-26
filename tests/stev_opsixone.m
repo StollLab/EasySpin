@@ -1,7 +1,7 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-% Test 3: explicit formula for O_6^1 and many S values
-%============================================================
+% TExplicit formula for O_6^1 and many S values
+
 kk = [6 4]; qq = [1 3];
 for ii = 1:numel(kk)
   k = kk(ii);
@@ -17,8 +17,7 @@ for ii = 1:numel(kk)
     b = Sp^q + Sm^q;
     Op0 = (a*b + b*a)/4;
     Op1 = stev(S,k,q);
-    err = any(abs(Op0(:)-Op1(:))>1e-6);
-    if (err), break; end
+    ok = all(abs(Op0(:)-Op1(:))<1e-6);
+    if (~ok), break; end
   end
 end
-data = [];

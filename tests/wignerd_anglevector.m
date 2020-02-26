@@ -1,9 +1,7 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-%============================================================================
 % Check whether single-matrix-element calls to wignerd() work with arrays
 % of angles.
-%============================================================================
 
 rng_(62323,'twister');
 n1 = 3;
@@ -24,6 +22,4 @@ for J = 0:0.5:5
     end
   end
 end
-err = any(~ok);
-
-data = [];
+ok = all(ok);

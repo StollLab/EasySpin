@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 %======================================================
 % Two-pulse ESEEM
@@ -33,9 +33,9 @@ ttd = td - mean(td);
 ttd = apowin('ham',N).*ttd;
 fd = fftshift(abs(fft(ttd)));
 
-err = 0;
+ok = true;
 
-if (opt.Display)
+if opt.Display
   subplot(2,2,1);
   plot(t,real(td),'r');
   axis tight
@@ -50,5 +50,3 @@ if (opt.Display)
   xlim([0 inf]);
   xlabel('frequency (MHz)');
 end
-
-data = [];

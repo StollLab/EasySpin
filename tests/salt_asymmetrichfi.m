@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 % Tests if asymmetric A tensor work
 
@@ -31,8 +31,7 @@ data.b1 = b1;
 data.b2 = b2;
 
 if isempty(olddata)
-  err = [];
+  ok = [];
 else
   ok = areequal(olddata.b1,b1,1e-10,'rel') && areequal(olddata.b2,b2,1e-10,'rel');
-  err = ~ok;
 end

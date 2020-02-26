@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 Pulse.Type = 'quartersin/linear';
 Pulse.trise = 0.015; % us
@@ -27,11 +27,4 @@ Exp.mwPolarization = 'circular';
 [Events2] = runprivate('s_sequencer',Exp,Opt);
 
 
-if isequal(Events1,Events2)
-  err = 1;
-else
-  err = 0;
-end
-
-data = [];
-
+ok = ~isequal(Events1,Events2);

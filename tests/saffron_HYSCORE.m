@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 % the original data sets to compare to where created with the old saffron
 
@@ -56,11 +56,10 @@ data.x2 = x2;
 data.y2 = y2;
 
 if ~isempty(olddata)
-  err = ~areequal(x1{1},olddata.x1,1e-4,'abs') || ...
-        ~areequal(y1,olddata.y1,1e-4,'abs') || ...
-        ~areequal(x2{1},olddata.x2,1e-4,'abs') || ...
-		~areequal(y2,olddata.y2,1e-4,'abs');
+  ok = areequal(x1{1},olddata.x1,1e-4,'abs') && ...
+       areequal(y1,olddata.y1,1e-4,'abs') && ...
+       areequal(x2{1},olddata.x2,1e-4,'abs') && ...
+		   areequal(y2,olddata.y2,1e-4,'abs');
 else
-  err = [];
+  ok = [];
 end
-

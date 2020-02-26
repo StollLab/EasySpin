@@ -1,7 +1,6 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Test whether isotopologue() included given Sys.weight
-%-------------------------------------------------------------------------------
 
 w = 0.8;
 
@@ -13,6 +12,4 @@ Sys.weight = 0.1;
 
 Iso = isotopologues(Sys);
 
-err = Iso(1).weight~=w*Sys.weight || Iso(2).weight~=(1-w)*Sys.weight;
-
-data = [];
+ok = Iso(1).weight==w*Sys.weight && Iso(2).weight==(1-w)*Sys.weight;

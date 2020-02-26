@@ -1,4 +1,4 @@
-function err = test(opt)
+function ok = test()
 
 % Test all combinations of tensor specifications (isotropic, axial, rhombic, full)
 %-------------------------------------------------------------------------------
@@ -38,4 +38,4 @@ for i1 = 1:numel(A1)
   end
 end
 
-err = any(~ok(:));
+ok = all(ok(:));

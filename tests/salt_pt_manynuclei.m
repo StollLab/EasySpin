@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % Crash test of perturbation theory with many high-spin nuclei
 
@@ -23,6 +23,4 @@ if opt.Display
   plot(rf,spcLsgM);
 end
 
-err = 0;
-
-data = [];
+ok = true;

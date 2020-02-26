@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 % Magnetization of a simple coupled spin dimer
 
@@ -25,7 +25,6 @@ end
 
 if ~isempty(olddata)
   ok = areequal(data.m,olddata.m,1e-3,'abs');
-  err = ~ok;
 else
-  err = [];
+  ok = [];
 end

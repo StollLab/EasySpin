@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % temperature effects perturbation <-> matrix diagonalization
 
@@ -22,6 +22,5 @@ if opt.Display
   legend('matrix','perturb');
   legend boxoff
 end
-data = [];
 
-err = ~areequal(y0,y1,2e-2,'rel');
+ok = areequal(y0,y1,2e-2,'rel');

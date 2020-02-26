@@ -1,4 +1,4 @@
-function err = test(opt,olddata)
+function ok = test()
 
 % Check whether resfreqs_matrix returns the microwave frequency if
 % supplied with resonance fields determined by resfreqs.
@@ -20,5 +20,3 @@ for iB = 1:numel(B)
   nu(iB) = resfreqs_matrix(Sys,Exp2,Opt)/1e3;
 end
 ok = all(nu-Exp1.mwFreq<1e-6);
-
-err = any(~ok);

@@ -1,8 +1,7 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-%======================================================
 % tilted quadrupole tensor
-%======================================================
+
 Sys = struct('S',1/2,'g',[2 2 2],'Nucs','2H','A',[1 2 3]);
 Sys.Q = [-1.5 -0.5 2];
 Sys.QFrame = [30 50 80]*pi/180;
@@ -22,5 +21,4 @@ for k=1:3
   end
 end
 
-err = any(abs(HQ(:)-HQ1(:))>1e-10);
-data = [];
+ok = areequal(HQ,HQ1,1e-10,'abs');

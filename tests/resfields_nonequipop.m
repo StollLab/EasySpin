@@ -1,7 +1,8 @@
-function err = test(opt,olddata)
+function ok = test()
 
 % Test correct sign of emission/absorption for non-Boltzmann populations
 % Low-field line must be in emission, the high-field line in absorption
+
 Sys.S = 1;
 Sys.g = [2 2 2];
 D = 0.06; E = 0;
@@ -24,7 +25,6 @@ Aperp = Aperp(idx);
 
 if numel(Bperp)==2 && numel(Bpara)==2
   ok = Apara(1)>0 && Apara(2)<0 && Aperp(1)>0 && Aperp(2)<0;
-  err = ~ok;
 else
-  err = true;
+  ok = false;
 end

@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % Make sure pepper calculates stick absorption spectrum when no
 % line broadening is specified.
@@ -19,5 +19,4 @@ if opt.Display
   legend boxoff
 end
 
-err = ~areequal(y1,y2,1e-6,'rel');
-data = [];
+ok = areequal(y1,y2,1e-6,'rel');

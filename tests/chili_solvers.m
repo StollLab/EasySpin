@@ -1,8 +1,7 @@
-function err = test(opt)
+function ok = test(opt)
 
-%=======================================================
 % Compare all solvers
-%=======================================================
+
 Sys.g = [2 2 2.1];
 Sys.tcorr = 1e-9;
 
@@ -27,4 +26,4 @@ end
 % Assort that all spectra are close
 spread = max(max(spc)-min(spc))/max(spc(:));
 
-err = spread>1e-3;
+ok = spread<1e-3;

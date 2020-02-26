@@ -1,8 +1,6 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
-%=======================================================
 % lambda200 potential simulation
-%=======================================================
 
 Nx.Nucs = '14N';
 Nx.g = [2.009 2.006 2.002];
@@ -34,7 +32,6 @@ if ~isempty(olddata)
     plot(x,data.y-olddata.y);
   end
   ok = areequal(y,olddata.y,1e-3,'rel');
-  err = ~ok;
 else
-  err = [];
+  ok = [];
 end

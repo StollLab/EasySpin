@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Compare integrated intensity of a powder spectrum and crystal
 % spectrum for an isotropic-g spin system
@@ -18,6 +18,4 @@ Exp.CrystalOrientation = rand(1,3)*2*pi;
 [x,y2] = pepper(Sys,Exp);
 Int2 = sum(y2)*(x(2)-x(1));
 
-data = [];
-
-err = ~areequal(Int1,Int2,1e-4,'abs');
+ok = areequal(Int1,Int2,1e-4,'abs');

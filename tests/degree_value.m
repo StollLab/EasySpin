@@ -1,5 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 d = degree;
-err = ~areequal(d,pi/180,0,'abs');
-data = [];
+ok = areequal(d,pi/180,0,'abs');

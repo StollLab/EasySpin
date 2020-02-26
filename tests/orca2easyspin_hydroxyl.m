@@ -1,7 +1,7 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % Read binary ORCA property files
-%-------------------------------------------------
+
 BaseDir = 'orca/';
 
 Files{1} = 'hydroxyl_g';
@@ -35,5 +35,4 @@ for iFile = 1:numel(Files)
   end
 end
 
-err = readerr;
-data = [];
+ok = ~readerr;

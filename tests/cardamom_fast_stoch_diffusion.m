@@ -1,4 +1,5 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
+
 % Check results of cardamom against chili
 
 rng(1)
@@ -32,7 +33,7 @@ ycard = ycard/max(ycard);
 ychili = ychili/max(ychili);
 
 rmsd = sqrt(mean((ycard-ychili).^2));
-err = rmsd>0.05;
+ok = rmsd<=0.05;
 
 if opt.Display
   plot(Bcard, ycard, Bchili, ychili)
@@ -42,7 +43,5 @@ if opt.Display
   legend('cardamom','chili')
   hold off
 end
-
-data = [];
 
 end

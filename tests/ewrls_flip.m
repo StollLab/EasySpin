@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 %=======================================================
 % Test foward and backward filtering
@@ -15,7 +15,7 @@ yf = ewrls(dataarray,p,lambda,0,delta,'f');
 yb = ewrls(dataarray(end:-1:1,:),p,lambda,0,delta,'b');
 yb = yb(end:-1:1);
 
-err = ~areequal(yf,yb,1e-7,'rel');
+ok = areequal(yf,yb,1e-7,'rel');
 
 if opt.Display
   subplot(2,1,1);
@@ -25,5 +25,3 @@ if opt.Display
   plot(1:nPoints,yb-yf);
   legend('backward-forward'); legend boxoff
 end
-
-data = [];

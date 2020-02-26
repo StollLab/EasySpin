@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % Make sure that garlic doesn't crash if there are out-of-range transitions.
 % This was a bug in 5.0.16.
@@ -29,5 +29,4 @@ if opt.Display
   plot(x,y);
 end
 
-err = false;
-data = [];
+ok = true;

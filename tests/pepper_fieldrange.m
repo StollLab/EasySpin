@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Correct behaviour of Exp.CenterField and Exp.Range
 %-----------------------------------------------------
@@ -20,6 +20,4 @@ Exp = struct('mwFreq',mw);
 Exp.Range = [min(x0) max(x0)];
 [x2,y2] = pepper(Sys,Exp);
 
-err = ~areequal(x0,x1,1e-10,'rel') || ~areequal(x0,x2,1e-10,'rel');
-
-data = [];
+ok = areequal(x0,x1,1e-10,'rel') && areequal(x0,x2,1e-10,'rel');

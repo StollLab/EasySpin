@@ -1,8 +1,7 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
-%=======================================================
 % Assert that mw phasing is working in chili
-%=======================================================
+
 Sys.g = [2.01 2.00];
 Sys.tcorr = 1e-9;
 Exp.mwFreq = 9.8;
@@ -22,7 +21,6 @@ if ~isempty(olddata)
     title(sprintf('MAD = %g',max(abs(data.y/max(data.y)-olddata.y/max(olddata.y)))));
   end
   ok = areequal(data.y/max(data.y),olddata.y/max(olddata.y),5e-4,'abs');
-  err = ~ok;
 else
-  err = [];
+  ok = [];
 end

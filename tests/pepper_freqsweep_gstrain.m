@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 % Frequency sweep with pepper, g strain
 clear Sys Exp
@@ -13,7 +13,7 @@ Exp.mwRange = [9 10]; % GHz
 data.y = y;
 
 if ~isempty(olddata)
-  err = ~areequal(y/max(y),olddata.y/max(olddata.y),1e-4,'abs');
+  ok = areequal(y/max(y),olddata.y/max(olddata.y),1e-4,'abs');
 else
-  err = [];
+  ok = [];
 end

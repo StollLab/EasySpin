@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % D2h vs Ci computation
 
@@ -15,11 +15,9 @@ for k = 1:length(Symmetry)
   [x,y(k,:)] = pepper(Sys,Exp,Opt);
 end
 
-err = ~areequal(y(1,:),y(2,:),5e-3,'rel');
+ok = areequal(y(1,:),y(2,:),5e-3,'rel');
 
-data = [];
-
-if (opt.Display)
+if opt.Display
   title('D2h, C2h, Ci computation (D2h is incorrect)');
   plot(x,y);
   legend(Symmetry{:});

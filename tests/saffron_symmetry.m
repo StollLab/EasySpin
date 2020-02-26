@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % Check whether symmetry is correctly handled
 
@@ -16,12 +16,11 @@ Sys.AFrame = [0 0 0];
 Sys.AFrame = [167 -78 -47]*pi/180;
 [x,y2] = saffron(Sys,Exp);
 
-if (opt.Display)
+if opt.Display
   xlabel('time [us]');
   plot(x,real(y1),'r',x,real(y2),'b');
   legend('non tilted','tilted');
   title(mfilename)
 end
 
-data = [];
-err = isequal(y1,y2);
+ok = areequal(y1,y2,1e-3,'rel');

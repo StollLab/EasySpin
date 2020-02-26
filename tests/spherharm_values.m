@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 % Regression test on values
 %=======================================================
@@ -13,8 +13,8 @@ end
 data.v = v;
 
 if ~isempty(olddata)
-  err = any(abs(olddata.v-v)>1e-10);
+  ok = all(abs(olddata.v-v)<1e-10);
 else
-  err = [];
+  ok = [];
 end
 

@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Check flip angle to amplitude conversion for the pulse() function
 %--------------------------------------------------------------------------
@@ -30,7 +30,7 @@ Params(6).tp = 0.300; % us
 offsets = 0;
 
 tol = 1e-12;
-suberr = zeros(1,numel(Params));
+ok = zeros(1,numel(Params));
 for i = 1:numel(Params)
   Params(i).Flip = pi/2;
   [t,IQ] = pulse(Params(i));
@@ -39,13 +39,13 @@ for i = 1:numel(Params)
   [t,IQ] = pulse(Params(i));
   [offsets,M180] = exciteprofile(t,IQ,offsets);
   if M90(3)<tol && (M180(3)>(-1-tol) && M180(3)<(-1+tol))  
-    suberr(i) = 0;
+    ok(i) = 0;
   else
-    suberr(i) = 1;
+    ok(i) = 1;
   end
 end
 
-err(1) = any(suberr);
+err(1) = any(ok);
 
 % Amplitude and frequency modulated pulses
 clear Params
@@ -80,7 +80,6 @@ Params(6).Frequency = [-125 125]; % MHz
 offsets = 0;
 
 tol = 1e-2;
-suberr = zeros(1,numel(Params));
 for i = 1:numel(Params)
   Params(i).Flip = pi/2;
   [t,IQ] = pulse(Params(i));  
@@ -88,15 +87,5 @@ for i = 1:numel(Params)
   Params(i).Flip = pi;
   [t,IQ] = pulse(Params(i));
   [offsets,M90] = exciteprofile(t,IQ,offsets);
-  if M90(3)<tol && (M180(3)>(-1-tol) && M180(3)<(-1+tol))  
-    suberr(i) = 0;
-  else
-    suberr(i) = 1;
-  end
+  ok(i) =  M90(3)<tol && (M180(3)>(-1-tol) && M180(3)<(-1+tol));
 end
-
-err(2) = any(suberr);
-
-err = any(err);
-
-data = [];

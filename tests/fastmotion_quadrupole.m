@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 %======================================================
 % Linewdiths of a nitroxide radical
@@ -14,5 +14,4 @@ field = 350;
 [lw,mI] = fastmotion(System,field,tcorr);
 
 lw0 = [0.001010068477786; 0.000673378985191; 0.001010068477786];
-err = ~areequal(lw,lw0,1e-8,'abs');
-data = [];
+ok = areequal(lw,lw0,1e-8,'abs');

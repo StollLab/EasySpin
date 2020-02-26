@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 % Regression test: Two coupled electrons, two D strains
 %------------------------------------------------------
@@ -33,7 +33,7 @@ end
 data.spc = spc;
 
 if ~isempty(olddata)
-  err = ~areequal(spc,olddata.spc,1e-3,'rel');
+  ok = areequal(spc,olddata.spc,1e-3,'rel');
 else
-  err = [];
+  ok = [];
 end

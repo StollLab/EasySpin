@@ -1,10 +1,6 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-%-------------------------------------------------------------
-% Test: Syntax
-%-------------------------------------------------------------
 zfsframes(1,2,4);
 zfsframes([1 2 4]);
 
-err = 0;
-data = [];
+ok = true;

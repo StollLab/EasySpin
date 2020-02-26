@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % full Q tensor
 
@@ -40,6 +40,4 @@ if opt.Display
   legend boxoff
 end
 
-err = ~areequal(y1/max(y1),y2/max(y2),1e-3,'rel');
-
-data = [];
+ok = areequal(y1/max(y1),y2/max(y2),1e-3,'rel');

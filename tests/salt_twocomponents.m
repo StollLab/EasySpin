@@ -1,5 +1,4 @@
-function [err,data] = test(opt,olddata)
-
+function ok = test(opt)
 
 Sys1.Nucs = '1H';
 Sys1.A = [2 2 5];
@@ -22,10 +21,8 @@ Opt = struct;
 
 y_sum = y1 + y2;
 
-err = ~areequal(y,y_sum,1e-10,'rel');
+ok = areequal(y,y_sum,1e-10,'rel');
 
-if (opt.Display)
+if opt.Display
   plot(x,y_sum,x,y);
 end
-
-data = [];

@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 %======================================================
 % Syntax
@@ -14,5 +14,4 @@ lw = fastmotion(System,field,tcorr);
 [lw,mI] = fastmotion(System,field,tcorr);
 [lw,mI,coeffs] = fastmotion(System,field,tcorr);
 
-err = false;
-data = [];
+ok = true;

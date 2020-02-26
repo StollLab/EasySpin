@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 BaseDir = 'mdfiles/';
 SimpleFile = [BaseDir, 'A10R1_polyAla'];
@@ -31,7 +31,7 @@ thr = 1e-10;
 
 if ~isempty(olddata)
   for iFile = 1:nTests
-    err(iFile) = false;
+    ok(iFile) = true;
     data = mdload(Files{iFile,1}, Files{iFile,2}, AtomInfo, OutOpt);
 %     if any(~structfun(@(x) areequal(isnan(x),0), Traj))
 %       readerr(iFile) = true;
@@ -42,14 +42,14 @@ if ~isempty(olddata)
        ~areequal(data.FrameTrajwrtProt, olddata.FrameTrajwrtProt,thr,'abs') || ...
        ~areequal(data.dihedrals, olddata.dihedrals,thr,'abs') || ...
        ~areequal(data.RProtDiff, olddata.RProtDiff,thr,'abs')
-      err(iFile) = true;
+      ok(iFile) = false;
       fprintf('   Loaded trajectories did not match reference trajectories for:\n   "%s" and "%s".\n',...
               Files{iFile,1},Files{iFile,2})
     end
   end
-  err = any(err);
+  ok = all(ok);
 else
-  err = [];  
+  ok = [];
 end
 
 end

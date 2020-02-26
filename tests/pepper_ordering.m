@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 %=======================================================================
 % Partially oriented system with axial spin parameters
@@ -34,7 +34,7 @@ end
 data.spc = spc;
 
 if ~isempty(olddata)
-  err = ~areequal(spc/max(spc),olddata.spc/max(olddata.spc),1e-4,'abs');
+  ok = areequal(spc/max(spc),olddata.spc/max(olddata.spc),1e-4,'abs');
 else
-  err = [];
+  ok = [];
 end

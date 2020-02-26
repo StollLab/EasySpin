@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 Sys = struct('g',[2.008 2.0061 2.0027],'Nucs','14N','A',[16 16 86]);
 Sys.lw = 0.1;
@@ -20,11 +20,9 @@ Sys2.weight = 1;
 
 y_sum = y1 + y2;
 
-err = ~areequal(y,y_sum,1e-10,'rel');
+ok = areequal(y,y_sum,1e-10,'rel');
 
-if (opt.Display)
+if opt.Display
   plot(x,y_sum,x,y);
   legend('separate/added','multi');
 end
-
-data = [];

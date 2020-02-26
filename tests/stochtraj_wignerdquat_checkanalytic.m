@@ -1,6 +1,6 @@
-function [err,data] = test(opt,olddata)
-% Check that wignerdquat agrees with analytical results from tables for
-% L = 1,2
+function ok = test()
+
+% Check that wignerdquat agrees with analytical results from tables for L = 1,2
 
 len = 5;
 
@@ -104,6 +104,4 @@ for M=-L:L
     err2(3-M,3-K,:) = abs(runprivate('stochtraj_wignerdquat',L,M,K,q)-reshape(D2(3-M,3-K,:),[1,len]));
   end
 end
-err = any(abs(err1(:))>1e-15)||any(abs(err2(:))>1e-15);
-
-data = [];
+ok = all(abs(err1(:))<1e-15) && all(abs(err2(:))<1e-15);

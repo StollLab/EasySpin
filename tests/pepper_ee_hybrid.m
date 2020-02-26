@@ -1,8 +1,6 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-%=======================================================================
 % Check interaction between ee/J and hybrid
-%=======================================================================
 
 clear
 Sys.S = [0.5,0.5];
@@ -25,6 +23,4 @@ Sys = rmfield(Sys,'J');
 Sys.ee = [200 200 200];
 [B,spc2] = pepper(Sys,Exp,Opt);
 
-err = ~areequal(spc1,spc2,1e-4,'rel');
-
-data = [];
+ok = areequal(spc1,spc2,1e-4,'rel');

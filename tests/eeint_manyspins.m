@@ -1,8 +1,6 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-%======================================================
 % Test for correct ordering of spin pairs
-%======================================================
 
 % Generate spin system with 3 coupled spins
 N = 3;
@@ -33,5 +31,4 @@ H2 = eeint(Sys2);
 % Determine whether there are elements that are different
 valdiff = setdiff(H1(:),H2(:));
 
-err = ~isempty(valdiff);
-data = [];
+ok = isempty(valdiff);

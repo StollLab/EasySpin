@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 BaseDir = 'eprfiles/';
 
@@ -41,6 +41,4 @@ for iFile = 1:numel(Files)
   end
 end
 
-err = readerr;
-
-data = [];
+ok = ~readerr;

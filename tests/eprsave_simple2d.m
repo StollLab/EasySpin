@@ -1,8 +1,6 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-%======================================================
 % Save and load 2D dataset with linear X and Y axes
-%======================================================
 
 fn = tempname;
 
@@ -19,6 +17,4 @@ eprsave(fn,{x,y},data);
 delete([fn '.*']);
 
 thr = 1e-5;
-err = ~areequal(x,x0{1},thr,'rel') || ~areequal(y,x0{2},thr,'rel') || ~areequal(data,data0,thr,'rel');
-
-data = [];
+ok = areequal(x,x0{1},thr,'rel') && areequal(y,x0{2},thr,'rel') && areequal(data,data0,thr,'rel');

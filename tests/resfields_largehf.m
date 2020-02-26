@@ -1,4 +1,4 @@
-function [err,data] = resfields_largehf(opt,olddata)
+function ok = resfields_largehf()
 
 % very large hfc
 
@@ -12,5 +12,4 @@ Opt.Method='matrix';
 B=sort(resfields(Sys,Exp));
 B0=[158.667; 334.560];
 
-err = any(abs(B-B0)>1e-2);
-data = [];
+ok = all(abs(B-B0)<1e-2);

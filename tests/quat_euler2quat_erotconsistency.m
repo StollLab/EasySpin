@@ -1,7 +1,6 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % consistency with erot()
-%======================================================
 
 alpha = pi*(2*rand-1);
 beta = pi*rand;
@@ -23,10 +22,5 @@ diffq = vecp - R_erot*vec;
 
 diffR = R - R_erot;
 
-err1 = any(abs(diffq(:))>1e-10);
-
-err2 = any(abs(diffR(:))>1e-10);
-
-err = err1 + err2;
-
-data = [];
+ok(1) = any(abs(diffq(:))<1e-10);
+ok(2) = any(abs(diffR(:))<1e-10);

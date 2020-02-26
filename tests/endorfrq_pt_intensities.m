@@ -1,9 +1,7 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-%-------------------------------------------------------------
 % Compare intensites between matrix diagonalization and
 % perturbation theory
-%-------------------------------------------------------------
 
 OptMD.Method='matrix';
 OptMD.Output='separate';
@@ -27,6 +25,4 @@ Endor.CrystalOrientation = [0 0 0];
 [PosST,IntST]=endorfrq_perturb(MnBsp,Endor,OptST);
 [PosST,idx] = sort(PosST); IntST = IntST(idx);
 
-err = any(abs(IntMD./IntST)-1>1e-3);
-
-data = [];
+ok = areequal(IntMD,IntST,1e-3,'rel');

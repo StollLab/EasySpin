@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 % Check whether resfreqs_matrix handlex gStrain correctly.
 
@@ -20,8 +20,8 @@ end
 data.y = y;
 
 if ~isempty(olddata)
-  err = ~areequal(y,olddata.y,1e-3,'abs');
+  ok = areequal(y,olddata.y,1e-3,'abs');
 else
-  err = [];
+  ok = [];
 end
 

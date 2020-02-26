@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % simple fits with and without offset
 %======================================================
@@ -10,5 +10,4 @@ y = 7*exp(-10*x) + 2*exp(-1*x) + 0.2*rand(size(x));
 [k,c] = exponfit(x,y,2);
 [K,C] = exponfit(x,y,2,'noconst');
 
-err = 0;
-data = [];
+ok = true;

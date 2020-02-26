@@ -1,7 +1,7 @@
-function err = test(opt)
+function ok = test()
 
 %======================================================
-% Test syntax of addnoise
+% Make sure syntax of addnoise works as documented
 %======================================================
 
 x = linspace(-1,1,10001);
@@ -11,4 +11,4 @@ yn = addnoise(y,10,'f');
 yn = addnoise(y,10,'u');
 yn = addnoise(y,10,'n');
 
-err = false;
+ok = true;

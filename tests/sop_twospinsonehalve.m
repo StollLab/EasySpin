@@ -1,7 +1,7 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Test some matrices for S=I=1/2
-%======================================================
+
 s = [1/2 1/2];
 Op{1} = sop(s,'xx');
 myOp{1} = [0 0 0 1; 0 0 1 0; 0 1 0 0; 1 0 0 0]/4;
@@ -18,7 +18,3 @@ myOp{4} = [0 0 0 0; 0 0 0 0; 0 0 0 0; 1 0 0 0];
 for k = 1:numel(Op)
   ok(k) = areequal(Op{k},myOp{k},1e-12,'abs');
 end
-
-err = any(~ok);
-
-data = [];

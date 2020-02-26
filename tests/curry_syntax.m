@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Syntax check
 
@@ -15,6 +15,4 @@ m = curry(Sys,Exp);
 m = curry(Sys,Exp,Opt);
 [m,chi] = curry(Sys,Exp,Opt);
 
-
-data = [];
-err = false;
+ok = true;

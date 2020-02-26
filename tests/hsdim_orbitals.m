@@ -1,7 +1,6 @@
-function err = test(opt,olddata)
+function ok = test()
 
 % system with orbital angular momenta
-%================================================================
 
 Sys.S = 3/2;
 Sys.Nucs = '1H';
@@ -17,4 +16,4 @@ L = Sys.L;
 
 Nref = prod(2*[S I L]+1);
 
-err = ~(N==Nref);
+ok = (N==Nref);

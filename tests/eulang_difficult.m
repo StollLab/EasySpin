@@ -1,7 +1,6 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Difficult test case
-%======================================================
 
 gv = [
    0.00006080549145  -0.08505970942061  -0.99637585385033
@@ -10,6 +9,4 @@ gv = [
 
 R = gv*gv';
 a = eulang(R);
-err = any(abs(a)>1e-8);
-
-data = [];
+ok = all(abs(a)<1e-8);

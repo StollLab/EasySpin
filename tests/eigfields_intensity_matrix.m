@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 %=======================================================
 % eigfields should give the same integral intensity as matrix diagonalization
@@ -25,7 +25,7 @@ dx = x(2)-x(1);
 integral_matrix = sum(y1)*dx;
 integral_eigfields = sum(y2)*dx;
 
-err(1) = abs(integral_matrix-integral_eigfields)>0.001;
+ok(1) = areequal(integral_matrix,integral_eigfields,0.001,'abs');
 
 % single crystal
 Exp.CrystalOrientation = rand(1,3)*pi;
@@ -38,8 +38,4 @@ dx = x(2)-x(1);
 integral_matrix = sum(y1)*dx;
 integral_eigfields = sum(y2)*dx;
 
-err(2) = abs(integral_matrix-integral_eigfields)>0.001;
-
-err = any(err);
-
-data = [];
+ok(2) = areequal(integral_matrix,integral_eigfields,0.001,'abs');

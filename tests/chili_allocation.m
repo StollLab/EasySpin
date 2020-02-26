@@ -1,8 +1,7 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-%=======================================================
 % Test memory reallocation in chili_lm
-%=======================================================
+
 Sys.g = [2.01 2.02 2.03];
 Sys.tcorr = 1e-8;
 Sys.lw = 0.1;
@@ -24,6 +23,4 @@ Sys.A = [10 10 20; 10 10 20];
 Opt.AllocationBlockSize = 5e4;
 [B,spc] = chili(Sys,Exp,Opt);
 
-
-err = 0;
-data = [];
+ok = true;

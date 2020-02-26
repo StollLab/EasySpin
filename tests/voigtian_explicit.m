@@ -1,7 +1,6 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Test voigtian against explitic construction
-%-----------------------------------------------
 
 n = 2001;
 x = linspace(-1,2,n);
@@ -18,6 +17,4 @@ m = ceil(n/2);
 y2 = y2(m:end-n+m);
 y2 = y2*(x(2)-x(1));
 
-err = ~areequal(y1,y2,1e-4,'abs');
-
-data = [];
+ok = areequal(y1,y2,1e-4,'abs');

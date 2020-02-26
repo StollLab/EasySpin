@@ -1,4 +1,5 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
+
 % Check the simulation of the effect of the resonator on a rectangular
 % pulse by comparing the Q values estimated from the rise and fall
 % times of the simulated pulse with the Q values used for the resonator
@@ -38,7 +39,7 @@ for iq = 1:2:2*numel(QL)
   
 end
 
-err(1) = any(suberr);
+ok(1) = ~any(suberr);
 
 % Resonator profile given as input
 %--------------------------------------------------------------------------
@@ -80,7 +81,7 @@ for iq = 1:2:2*numel(QLvalues)
   
 end
 
-err(2) = any(suberr);
+ok(2) = ~any(suberr);
 
 % Transfer function given as input
 %--------------------------------------------------------------------------
@@ -122,9 +123,4 @@ for iq = 1:2:2*numel(QLvalues)
   
 end
 
-err(3) = any(suberr);
-
-err = any(err);
-
-data = [];
-
+ok(3) = ~any(suberr);

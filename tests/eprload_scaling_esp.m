@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 file = 'eprfiles/100416_wt60min.spc';
 
@@ -19,10 +19,7 @@ yT = yT/p.TE;
 e = max(abs(y))*1e-8;
 thr = 1e-8;
 ok = [areequal(y,yn,thr,'rel') areequal(y,yG,thr,'rel') areequal(y,yP,thr,'rel') areequal(y,yT,thr,'rel')];
-err = any(~ok);
 
 if opt.Display
   plot(x,y,x,yn,x,yG,x,yP,x,yT);
 end
-
-data = [];

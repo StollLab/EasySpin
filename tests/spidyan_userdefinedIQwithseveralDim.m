@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 orig_state = warning;
 warning('off','all');
@@ -111,9 +111,7 @@ Exp4.Sequence{3} = PulseIQ;
 
 [signal4] = spidyan(Sys,Exp4,Opt);
 
-err = any([~areequal(signal1{2},signal2{2},1e-4,'abs') ~areequal(signal1{5},signal2{5},1e-4,'abs')...
-    ~areequal(signal3{2},signal4{2},1e-4,'abs') ~areequal(signal3{5},signal4{5},1e-4,'abs') ]);
-
-data = [];
+ok = areequal(signal1{2},signal2{2},1e-4,'abs') && areequal(signal1{5},signal2{5},1e-4,'abs') &&...
+     areequal(signal3{2},signal4{2},1e-4,'abs') && areequal(signal3{5},signal4{5},1e-4,'abs');
 
 warning(orig_state);

@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 Sys.S = 1/2;
 Sys.g = [2.00906 2.0062 2.0023];
@@ -52,8 +52,8 @@ if (opt.Display)
 end
 
 if ~isempty(olddata)
-  err = ~areequal(y,olddata.y,1e-3,'abs');
+  ok = areequal(y,olddata.y,1e-3,'abs');
 else
-  err = [];
+  ok = [];
 end
 

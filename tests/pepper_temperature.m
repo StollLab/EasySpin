@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 % Temperature dependence
 
@@ -29,7 +29,7 @@ end
 data.y = y;
 
 if ~isempty(olddata)
-  err = ~areequal(y,olddata.y,1e-3,'rel');
+  ok = areequal(y,olddata.y,1e-3,'rel');
 else
-  err = [];
+  ok = [];
 end

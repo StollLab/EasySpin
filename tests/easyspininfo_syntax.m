@@ -1,8 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-%---------------------------------------------------
-% Test 1: Calling syntax
-%---------------------------------------------------
 a = easyspininfo;
-err = 0;
-data = [];
+ok = true;

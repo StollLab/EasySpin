@@ -1,8 +1,6 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
-%=======================================================
-% Test 2: S=1/2 + 1H + 14N
-%=======================================================
+% Test: S=1/2 + 1H + 14N
 
 Sys = struct('S',1/2,'g',[2 2 2.3],'Nucs','14N,1H','A',[1 1 1;1 1 1]*20);
 Exp = struct('mwFreq',9.5,'Range',[200 400]);
@@ -23,8 +21,7 @@ end
 
 if ~isempty(olddata)
   thr = 1e-4;
-  err = ~areequal(olddata.B,B,thr,'rel') | ~areequal(olddata.A,A,thr,'rel');
+  ok = areequal(olddata.B,B,thr,'rel') && areequal(olddata.A,A,thr,'rel');
 else
-  err = [];
+  ok = [];
 end
-

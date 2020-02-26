@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Check excitation profiles calculated by exciteprofile()
 %--------------------------------------------------------------------------
@@ -48,14 +48,14 @@ for k = 1:2
 end
 
 thr = 1e-12;
-suberr(1) = ~areequal(Mx(1,:),M1(1,:),thr,'rel');
-suberr(2) = ~areequal(Mx(2,:),M2(1,:),thr,'rel');
-suberr(3) = ~areequal(My(1,:),M1(2,:),thr,'rel');
-suberr(4) = ~areequal(My(2,:),M2(2,:),thr,'rel');
-suberr(5) = ~areequal(Mz(1,:),M1(3,:),thr,'rel');
-suberr(6) = ~areequal(Mz(2,:),M2(3,:),thr,'rel');
+subok(1) = areequal(Mx(1,:),M1(1,:),thr,'rel');
+subok(2) = areequal(Mx(2,:),M2(1,:),thr,'rel');
+subok(3) = areequal(My(1,:),M1(2,:),thr,'rel');
+subok(4) = areequal(My(2,:),M2(2,:),thr,'rel');
+subok(5) = areequal(Mz(1,:),M1(3,:),thr,'rel');
+subok(6) = areequal(Mz(2,:),M2(3,:),thr,'rel');
 
-err(1) = any(suberr);
+ok(1) = all(subok);
 
 % Sinc pulse
 clear Params Mx My Mz
@@ -98,7 +98,7 @@ for i = 1:numel(offsets)
   
 end
   
-err(2) = ~areequal(Mz,Mag(3,:),5e-2,'rel');
+ok(2) = areequal(Mz,Mag(3,:),5e-2,'rel');
 
 % 1st order sech/tanh with frequency offset
 clear Params Mx My Mz
@@ -151,8 +151,4 @@ for i = 1:numel(offsets)
   
 end
 
-err(3) = ~areequal(Mz,Mag(3,:),1e-3,'rel');
-
-err = any(err);
-
-data = [];
+ok(3) = areequal(Mz,Mag(3,:),1e-3,'rel');

@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 Sys.lwpp = 0.5;
 Sys.g = [2 2.02];
@@ -12,9 +12,9 @@ data.x = x;
 data.y = y;
 
 if ~isempty(olddata)
-  err = ~areequal(y,olddata.y,1e-6,'rel');
+  ok = areequal(y,olddata.y,1e-6,'rel');
 else
-  err = [];
+  ok = [];
 end
 
 if (opt.Display)

@@ -1,8 +1,6 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-%==================================================================
 % Test Bkq terms
-%==================================================================
 
 B4a = rand(1,9);
 B4b = rand(1,9);
@@ -24,5 +22,4 @@ for iq = 1:numel(q)
   end
 end
 
-err = max(abs(Op1(:)-Op2(:)))>1e-10;
-data = [];
+ok = areequal(Op1,Op2,1e-10,'abs');

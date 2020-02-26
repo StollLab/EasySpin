@@ -1,8 +1,6 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
-%===============================================================================
 % Test different types of potentials (M=K=0, M=0, K=0, both nonzero)
-%===============================================================================
 
 Sys.g = [2.05 2.00];
 Sys.logDiff = 7;
@@ -35,5 +33,5 @@ if opt.Display
   end
 end
 
-err = false;
-data = [];
+ok = true;
+

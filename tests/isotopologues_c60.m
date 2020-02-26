@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Isotopologues of C60 with natural-abundance carbon
 %-------------------------------------------------------------------------------
@@ -23,6 +23,3 @@ ok = ok && ...
   areequal(calculatedWeights(1),ab_c12^n,precision,'abs') && ...
   areequal(calculatedWeights(2),ab_c12^(n-1)*ab_c13*60,precision,'abs') && ...
   areequal(calculatedWeights(3),ab_c12^(n-2)*ab_c13^2*60*59/2,precision,'abs');
-  
-err = ~ok;
-data = [];

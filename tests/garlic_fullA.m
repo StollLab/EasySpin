@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 Afull = [6 3 2; 2 5 2; 4 3 10]*10;
 Aeig = eig(Afull).';
@@ -17,7 +17,6 @@ Sys.A = Aeig;
 Sys.A = Aiso;
 [x3,y3] = garlic(Sys,Exp);
 
-err = ~isequal(y1,y2) || ~isequal(y2,y3);
-data = [];
+ok = areequal(y1,y2) && areequal(y2,y3);
 
 

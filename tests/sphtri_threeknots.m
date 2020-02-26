@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 tri = sphtri('D2h',3);
 tri0 = [           
@@ -7,5 +7,4 @@ tri0 = [
            3           5           6
            2           3           5
            ];
-err = any(tri(:)~=tri0(:));
-data = [];
+ok = any(tri(:)==tri0(:));

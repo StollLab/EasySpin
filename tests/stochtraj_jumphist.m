@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % Check that stochtraj_jump generates proper state probability distribution
 
@@ -21,10 +21,8 @@ nB = sum(stateTraj==2);
 ratioMC = nA/nB;
 ratio = km/kp;
 
-err = abs(ratioMC/ratio-1)>0.02;
+ok = abs(ratioMC/ratio-1)<0.02;
 
 if opt.Display
   histogram(stateTraj)
 end
-
-data = [];

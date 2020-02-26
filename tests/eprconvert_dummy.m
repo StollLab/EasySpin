@@ -1,5 +1,5 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-% no test....
-err = 0;
-data = [];
+% no test for GUI
+
+ok = true;

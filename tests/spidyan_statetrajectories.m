@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 % System ------------------------
 Sys.S = 1/2;
@@ -34,13 +34,16 @@ Opt.StateTrajectories = [1 1 1];
 
 data.sigmas2 = out2.StateTrajectories;
 
-% Three elements in the StateTrajectories are tested, the 1st, last and
-% ntest:
-ntest = round(length(data.sigmas1));
-
 if ~isempty(olddata)
-  err(1) = any(~areequal(out1.StateTrajectories{1},olddata.sigmas1{1},1e-10,'abs') && ~areequal(out1.StateTrajectories{ntest},olddata.sigmas1{ntest},1e-10,'abs') && ~areequal(out1.StateTrajectories{end},olddata.sigmas1{end},1e-10,'abs'));
-  err(2) = any(~areequal(out2.StateTrajectories{1},olddata.sigmas2{1},1e-10,'abs') && ~areequal(out2.StateTrajectories{ntest},olddata.sigmas2{ntest},1e-10,'abs') && ~areequal(out2.StateTrajectories{end},olddata.sigmas2{end},1e-10,'abs'));
+  % Three elements in the StateTrajectories are tested.
+  N = numel(olddata.sigmas1);
+  idx = [1 round(N/2) N];
+  ok(1) = true;
+  ok(2) = true;
+  for k = 1:numel(idx)
+    ok(1) = ok(1) && areequal(out1.StateTrajectories{idx(k)},olddata.sigmas1{idx(k)},1e-10,'abs');
+    ok(2) = ok(2) && areequal(out2.StateTrajectories{idx(k)},olddata.sigmas2{idx(k)},1e-10,'abs');
+  end
 else
-  err = [];
+  ok = [];
 end

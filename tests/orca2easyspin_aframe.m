@@ -1,7 +1,7 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Verify that orca2easyspin reads in AFrame correctly
-%----------------------------------------------------
+
 S = orca2easyspin('orca/Pr_EPR.prop');
 
 AFrame = [  -0.662542598650786   0.342303276412723   0.437403931852169;...
@@ -13,6 +13,4 @@ AFrame = [  -0.662542598650786   0.342303276412723   0.437403931852169;...
    0.133761321249301   1.923345926558176   1.191784064037771];
 
  
-err = ~areequal(S.AFrame,AFrame,1e-10,'abs');
-
-data = [];
+ok = areequal(S.AFrame,AFrame,1e-10,'abs');

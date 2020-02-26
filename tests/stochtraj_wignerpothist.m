@@ -1,4 +1,5 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
+
 % Check that using stochtraj_diffusion with an anisotropic orienting 
 % potential generates a proper distribution of orientations by 
 % (1) calculating a histogram of Euler angles for each trajectory, and
@@ -49,13 +50,11 @@ for j = 1:size(LMK,1)
   rmsd = calc_rmsd(Sys.Potential(1,4),Sys.Potential(1,1:3),Hist3D,...
                    Agrid,Bgrid,Ggrid);
   
-  err = rmsd>5e-3||any(isnan(Hist3D(:)));
+  ok = rmsd<5e-3 && all(~isnan(Hist3D(:)));
   % numerical result does not match analytical result
-  if err, break; end
+  if ~ok, break; end
   
 end
-
-data = [];
 
 end
 

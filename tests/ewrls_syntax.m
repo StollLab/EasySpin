@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 %=======================================================
 % Syntax tests
@@ -20,5 +20,4 @@ y = ewrls(dataarray,p,lambda,0,delta,'f');
 y = ewrls(dataarray,p,lambda,0,delta,'b');
 y = ewrls(dataarray,p,lambda,0,delta,'fb');
 
-err = 0;
-data = [];
+ok = true;

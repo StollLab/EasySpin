@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 ab63 = nucabund('63Cu');
 ab65 = nucabund('65Cu');
@@ -46,6 +46,3 @@ isoList = isotopologues('(63,65)Cu,(1,2)H',[1,1],{[0.5 0.5],[0.9 0.1]});
 w = extractweights(isoList);
 w0 = [0.45 0.05 0.45 0.05];
 ok = ok && areequal(w,w0,thr,'abs');
-
-err = ~ok;
-data = [];

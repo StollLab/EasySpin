@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % Susceptibility of a simple coupled spin dimer
 
@@ -15,11 +15,9 @@ chi1 = curry(Sys,Exp,Opt);
 Opt.Method = 'partitionfunction';
 chi2 = curry(Sys,Exp,Opt);
 
-err = ~areequal(chi1,chi2,1e-3,'rel');
+ok = areequal(chi1,chi2,1e-3,'rel');
 
 if opt.Display
   plot(Exp.Temperature,chi1,Exp.Temperature,chi2);
   legend('operator','partitionfunction');
 end
-
-data = [];

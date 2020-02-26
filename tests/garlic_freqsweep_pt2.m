@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 Sys.g = 2;
 Sys.Nucs = '1H';
@@ -17,9 +17,8 @@ data.y = y;
 
 if ~isempty(olddata)
   ok = areequal(olddata.y,data.y,1e-5,'rel');
-  err = ~ok;
 else
-  err = [];
+  ok = [];
 end
 
 

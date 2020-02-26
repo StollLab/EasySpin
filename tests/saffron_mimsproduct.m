@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 sys.Nucs = '1H,1H';
 sys.A = [3 0.5];
@@ -28,5 +28,4 @@ if (opt.Display)
   xlabel('Frequency /MHz')
 end
 
-err = sum(abs(y0-y1)) > 1e-12;
- data = [];
+ok = sum(abs(y0-y1)) < 1e-12;

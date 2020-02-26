@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % Frequency sweeps: Hybrid vs. full matrix diagonalization
 %--------------------------------------------------------------
@@ -27,6 +27,4 @@ if (opt.Display)
   legend('matrix','hybrid');
 end
 
-data = [];
-
-err = ~areequal(y1,y2,0.02,'rel');
+ok = areequal(y1,y2,0.02,'rel');

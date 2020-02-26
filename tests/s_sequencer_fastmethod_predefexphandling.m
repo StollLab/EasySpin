@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % This definition of Exp should return the experiment structure for the old saffron
 % syntax, named RefExp
@@ -38,11 +38,4 @@ Opt.ZeroFillFactor = 4;
 
 ProcessedExp2 = rmfield(ProcessedExp2,'Processed');
 
-if any([~isequal(RefExp,ProcessedExp1) ~isequal(RefExp2,ProcessedExp2) ~isequal(Opt,ProcessedOpt)])
-  err = 1;
-else
-  err = 0;
-end
-
-data = [];
-
+ok = all([isequal(RefExp,ProcessedExp1) isequal(RefExp2,ProcessedExp2) isequal(Opt,ProcessedOpt)]);

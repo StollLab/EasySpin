@@ -1,8 +1,5 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-%======================================================
-% Test 3: 3 electron spins, check values
-%======================================================
 Sys = struct('S',[1/2 1/2 1/2],'g',[2 2 2; 2.1 2.1 2.1; 2.2 2.2 2.2]);
 Sys.ee = [1 1 1; 2 2 2; 3 3 3];
 
@@ -29,6 +26,3 @@ thr = 1e-10;
 ok = areequal(H0_12,H1_12,thr,'abs') && ...
      areequal(H0_13,H1_13,thr,'abs') && ...
      areequal(H0_23,H1_23,thr,'abs');
-err = ~ok;
-
-data = [];

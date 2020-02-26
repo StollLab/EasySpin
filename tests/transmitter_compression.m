@@ -1,4 +1,5 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
+
 % Check amplitude for simulation of transmitter nonlinearity in 
 % transmitter()
 %--------------------------------------------------------------------------
@@ -25,7 +26,5 @@ IQ_compressed = transmitter(InputAmplitude*IQ/max(IQ),Ain,Aout,'simulate');
 
 % Compare output amplitude with amplitude expected based on the defined
 % transmitter gain curve
-[ignore,ind] = min(abs(Ain-InputAmplitude));
-err = ~areequal(max(abs(IQ_compressed)),Aout(ind),1e-11,'abs');
-
-data = [];
+[~,ind] = min(abs(Ain-InputAmplitude));
+ok = areequal(max(abs(IQ_compressed)),Aout(ind),1e-11,'abs');

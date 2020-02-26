@@ -1,8 +1,7 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-%====================================================
 % non negative check
-%====================================================
+
 y = ones(1,100);
 y(1) = -1;
 y(2) = 2;
@@ -13,5 +12,4 @@ z = -2*y;
 [y_,lsq1] = rescale(y,z,'lsq1');
 [y_,lsq2] = rescale(y,z,'lsq2');
 scale = [lsq(1) lsq0(1) lsq1(1) lsq2(1)];
-err = any(scale<0);
-data =[];
+ok = all(scale>=0);

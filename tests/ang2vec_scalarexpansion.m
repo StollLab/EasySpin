@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Expansion of a single angle to a vector
 
@@ -8,6 +8,4 @@ n = ang2vec(rand(1,N),rand);
 n = ang2vec(rand,rand(N,1));
 n = ang2vec(rand(N,1),rand);
 
-err = 0;
-
-data = [];
+ok = true;

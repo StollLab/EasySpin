@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Compare time-domain and frequency-domain methods
 %-------------------------------------------------------
@@ -18,5 +18,4 @@ Options.Method = 'fft';
 [t1,My] = blochsteady(g,T1,T2,deltaB0,B1,Bm,fm,Options);
 [t1,Mx,My,Mz] = blochsteady(g,T1,T2,deltaB0,B1,Bm,fm,Options);
 
-err = false;
-data = [];
+ok = true;

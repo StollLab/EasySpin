@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % Test whether salt() can handle single-isotope systems
 % with a non-magnetic nucleus
@@ -16,6 +16,4 @@ if opt.Display
   plot(rf,spec);
 end
 
-err = any(spec(:)~=0);
-
-data = [];
+ok = all(spec(:)==0);

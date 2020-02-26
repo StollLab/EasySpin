@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % I=1/2 powder spectrum, transitions partly out of range
 
@@ -12,5 +12,4 @@ if (opt.Display)
   title('I=1/2 powder spectrum ,transitions partly out of range');
 end
 
-err = 0;
-data = [];
+ok = true;

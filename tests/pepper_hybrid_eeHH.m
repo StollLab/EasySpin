@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 Sys.S = [3/2 1/2];
 Sys.g = [2 2];
@@ -15,7 +15,7 @@ Exp.CrystalOrientation = [0 pi/4 0];
 Exp.Temperature = 40;
 Exp.Harmonic = 0;
 
-err = 0;
+ok = true;
 
 for S = 1/2:1/2:5/2
   Sys.S(2) = S;
@@ -23,8 +23,6 @@ for S = 1/2:1/2:5/2
   [x,y1] = pepper(Sys,Exp,Opt);
   Opt.Method = 'hybrid';
   [x,y2] = pepper(Sys,Exp,Opt);
-  err = err || ~areequal(y1,y2,0.05,'rel');
+  ok = ok && areequal(y1,y2,0.05,'rel');
 end
-
-data = [];
 

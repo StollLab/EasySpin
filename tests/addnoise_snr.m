@@ -1,8 +1,6 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-%======================================================
 % Make sure the SNR is as defined
-%======================================================
 
 signal_amplitude = 123;
 SNR = 20;
@@ -17,6 +15,4 @@ yn = addnoise(y,SNR,'n'); yn(1) = [];
 noise_stddev = [std(yf) std(yu) std(yn)];
 SNReff = signal_amplitude./noise_stddev;
 
-err = abs(SNReff/SNR-1)>0.05;
-
-data = [];
+ok = areequal(SNReff,SNR*[1 1 1],0.05,'rel');

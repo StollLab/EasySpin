@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % An axial spectrum should be independent of
 % the region of orientational integration.
@@ -29,6 +29,4 @@ for k = 1:numel(Symmetry)
   dy(k) = max(abs(y(k,:) - y(end,:)));
 end
 
-err = max(dy)>0.005;
-
-data = [];
+ok = max(dy)<0.005;

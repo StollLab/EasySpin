@@ -1,21 +1,21 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 %======================================================
 % Make sure addnoise works for column and row vectors without crashing
 %======================================================
 
-y = rand(100,1);
+rng(454);
+
+ycol = rand(100,1);
 SNR = 10;
 
-yf = addnoise(y,SNR,'f');
-yn = addnoise(y,SNR,'f');
-yu = addnoise(y,SNR,'f');
+yf = addnoise(ycol,SNR,'f');
+yn = addnoise(ycol,SNR,'n');
+yu = addnoise(ycol,SNR,'u');
 
-y = rand(1,100);
-yf = addnoise(y,SNR,'f');
-yn = addnoise(y,SNR,'f');
-yu = addnoise(y,SNR,'f');
+yrow = ycol.';
+yf = addnoise(yrow,SNR,'f');
+yn = addnoise(yrow,SNR,'n');
+yu = addnoise(yrow,SNR,'u');
 
-err = false;
-
-data = [];
+ok = true;

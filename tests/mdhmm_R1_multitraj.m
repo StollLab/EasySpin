@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 % Regression test for HMM building function for R1
 
 rng(1)
@@ -38,11 +38,11 @@ HMM.stateTraj = HMM.viterbiTraj;
 data.stateTraj = HMM.stateTraj;
 
 if ~isempty(olddata)
-  err = ~areequal(olddata.TransProb,HMM.TransProb,1e-3,'abs') || ...
-        ~areequal(olddata.eqDistr,HMM.eqDistr,2e-3,'abs') || ...
-        ~areequal(olddata.stateTraj,HMM.stateTraj);
+  ok = areequal(olddata.TransProb,HMM.TransProb,1e-3,'abs') && ...
+       areequal(olddata.eqDistr,HMM.eqDistr,2e-3,'abs') && ...
+       areequal(olddata.stateTraj,HMM.stateTraj);
 else
-  err = [];
+  ok = [];
 end
 
 if opt.Display

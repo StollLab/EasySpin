@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % Test scaling functionality for BES3T files (.DTA/.DSC)
 
@@ -21,12 +21,9 @@ yT = yT/p.STMP;
 % All spectra must be identical
 thr = 1e-8;
 ok = [areequal(y,yc,thr,'rel') areequal(y,yG,thr,'rel') areequal(y,yP,thr,'rel') areequal(y,yT,thr,'rel')];
-err = any(~ok);
 
 if opt.Display
   plot(x,y,x,yc,x,yG,x,yP);
   legend('data','conversion time','gain','power');
   legend boxoff
 end
-
-data = [];

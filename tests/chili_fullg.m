@@ -1,8 +1,7 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-%=======================================================
 % Simple simulation with full g tensor
-%=======================================================
+
 g = [2 2.005 2.02];
 Sys.g = g;
 Sys.tcorr = 4e-9;
@@ -12,5 +11,4 @@ Exp.Range = [344 354];
 Sys.g = diag(g);
 [x2,y2] = chili(Sys,Exp);
 
-data = [];
-err = ~areequal(y1,y2,1e-2,'abs');
+ok = areequal(y1,y2,1e-2,'abs');

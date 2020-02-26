@@ -1,8 +1,6 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-%===============================================================================
 % Check nuclear-nuclear Hamiltonian against explicit calculation
-%===============================================================================
 
 Sys.Nucs = '1H,13C';
 Sys.A = [10 3];
@@ -14,7 +12,7 @@ nn{1} = 3;
 nn{2} = [4 6 7];
 nn{3} = [1 2 3; 4 5 6; 7 8 9];
 
-err = false;
+ok = true;
 for k = 1:3
   Sys.nn = nn{k};
   H0 = nnint(Sys);
@@ -34,7 +32,7 @@ for k = 1:3
     end
   end
   
-  err = err || ~areequal(H0,H,1e-10,'abs');
+  ok = ok && areequal(H0,H,1e-10,'abs');
 end
 
 data = [];

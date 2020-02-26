@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Assure that running esfit and pepper using grid algorithm is successful 
 % and yields a good fit.
@@ -28,14 +28,10 @@ err = false;
 
 rmsd = zeros(1,nMethods);
 
-for iMethod=1:nMethods
+for iMethod = 1:nMethods
   FitOpt.Method = [fitAlg, dataMethod{iMethod}];
-  [dummy,dummy,resid] = esfit(@pepper,spc,Sys,Vary,Exp,Opt,FitOpt);
+  [~,~,resid] = esfit(@pepper,spc,Sys,Vary,Exp,Opt,FitOpt);
   rmsd(iMethod) = sqrt(mean(resid.^2));
 end
 
-if any(rmsd>1e-10)
-  err = true;
-end
-
-data = [];
+ok = rmsd<1e-10;

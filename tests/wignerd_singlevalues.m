@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 %============================================================================
 % Compare D matrix calculated with a single call to wignerd() to D matrix
@@ -27,8 +27,6 @@ for iJ = 1:numel(Jlist)
     end
   end
   
-  err(iJ) = ~areequal(D1,D2,1e-13,'abs');
+  ok(iJ) = areequal(D1,D2,1e-13,'abs');
   
 end
-
-data = [];

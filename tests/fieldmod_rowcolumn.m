@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 %=======================================================
 % Make sure fieldmod takes row and column vectors
@@ -11,5 +11,4 @@ y2 = fieldmod(x,y.',dx);
 y3 = fieldmod(x.',y,dx);
 y4 = fieldmod(x.',y.',dx);
 
-err = 0;
-data = [];
+ok = true;

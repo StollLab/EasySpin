@@ -1,8 +1,6 @@
-function [err,data] = test(opt,olddata)
-
+function ok = test()
 
 % full g matrices with Euler angles
-%================================================
 
 B = rand(1,3)*340;
 
@@ -23,8 +21,4 @@ Sys.g = gr;
 Sys.gFrame = [0 0 0];
 H2 = zeeman(Sys,B);
 
-deviation = max(abs(H1(:)-H2(:)))/max(abs(H1(:)));
-
-
-err = deviation>1e-7;
-data = [];
+ok = areequal(H1,H2,1e-7,'rel');

@@ -1,4 +1,5 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
+
 % Regression test for k-means clustering function
 
 rng(1)
@@ -45,9 +46,7 @@ centroids0 = [];
 data.centroidsBest = centroidsBest;
 
 if ~isempty(olddata)
-  err = any(abs(olddata.centroidsBest-centroidsBest)>1e-10);
+  ok = all(abs(olddata.centroidsBest-centroidsBest)<1e-10);
 else
-  err = [];
-end
-
+  ok = [];
 end

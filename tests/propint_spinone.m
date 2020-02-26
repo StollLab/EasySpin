@@ -1,7 +1,5 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-% Test 2: 
-%======================================================
 Sz = sop(1,'z');
 Sy = sop(1,'y'); % S=1 system
 mwFreq = 10e3;
@@ -12,5 +10,4 @@ Ur = [
    0.7071 + 0.0004i   0.0000 - 0.0000i  -0.7071 + 0.0004i
    0.5000 + 0.0000i   0.7071 - 0.0004i   0.5000 - 0.0006i
 ];
-err = ~areequal(U,Ur,1e-4,'abs');
-data = [];
+ok = areequal(U,Ur,1e-4,'abs');

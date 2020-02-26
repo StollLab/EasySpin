@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Weights must add up to 4*pi
 
@@ -9,5 +9,4 @@ for k=1:numel(Sy)
   Integral(k) = sum(w);
 end
 
-err = any(abs(Integral/(4*pi)-1)>1e-4);
-data = [];
+ok = all(abs(Integral/(4*pi)-1)<1e-4);

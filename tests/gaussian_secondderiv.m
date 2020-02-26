@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % Check against explicit expression
 %======================================================
@@ -21,6 +21,4 @@ if opt.Display
   legend boxoff
 end
 
-err = any(abs((y-y0)./y)>1e-10);
-
-data =[];
+ok = areequal(y,y0,1e-10,'rel');

@@ -1,8 +1,7 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
-%======================================================
 % Syntax test, 2 nuclei
-%======================================================
+
 Sys.Nucs = '1H,13C';
 Sys.A = [10 3];
 
@@ -30,5 +29,4 @@ nnint(Sys,[1 2]);
 H = nnint(Sys);
 H = nnint(Sys,[1 2]);
 
-err = false;
-data = [];
+ok = true;

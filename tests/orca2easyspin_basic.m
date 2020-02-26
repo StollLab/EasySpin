@@ -1,7 +1,7 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % Read binary ORCA property files
-%-------------------------------------------------
+
 BaseDir = 'orca/';
 
 Files{1} = 'tp051512_opt';
@@ -26,11 +26,10 @@ for iFile = 1:numel(Files)
     readerr(iFile) = true;
     disp([  '   error reading ' Files(iFile).name]);
   end
-  if (opt.Display)
+  if opt.Display
     Sys
     pause
   end
 end
 
-err = readerr;
-data = [];
+ok = ~readerr;

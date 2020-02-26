@@ -1,7 +1,5 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % 14N value
-%======================================================
-q = nucqmom('14N');
-err = (q~=0.02044);
-data = [];
+
+ok = nucqmom('14N')==0.02044;

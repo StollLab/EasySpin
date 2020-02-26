@@ -1,4 +1,4 @@
-function [err,data] = test(options,olddata)
+function [ok,data] = test(options,olddata)
 
 g = gfree;       % g value
 T1 = 20;         % longitudinal relaxation time, us
@@ -19,9 +19,8 @@ if ~isempty(olddata)
   ok = areequal(data.Mx,olddata.Mx,thr,'rel') && ...
        areequal(data.My,olddata.My,thr,'rel') && ...
        areequal(data.Mz,olddata.Mz,thr,'rel');
-  err = ~ok;
 else
-  err = [];
+  ok = [];
 end
 
 if options.Display

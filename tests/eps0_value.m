@@ -1,8 +1,6 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt,olddata)
 
-a = eps0;
-b = 8.854187817620391e-12; % = 1/mu0/clight^2
+eps0_val = eps0;
+eps0_ref = 8.8541878128e-12; % = 1/mu0/clight^2
 
-err = abs(a-b)/a>1e-10;
-
-data = [];
+ok = areequal(eps0_val,eps0_ref,1e-10,'rel');

@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 % Regression test: correlated D strain
 
@@ -36,9 +36,9 @@ data.ym = ym;
 
 if ~isempty(olddata)
   m = max([y0 yp ym]);
-  err = ~areequal(y0,olddata.y0,m*0.01,'abs');
-  err = err || ~areequal(yp,olddata.yp,m*0.01,'abs');
-  err = err || ~areequal(ym,olddata.ym,m*0.01,'abs');
+  ok = areequal(y0,olddata.y0,m*0.01,'abs');
+  ok = ok && areequal(yp,olddata.yp,m*0.01,'abs');
+  ok = ok && areequal(ym,olddata.ym,m*0.01,'abs');
 else
-  err = [];
+  ok = [];
 end

@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % Test whether all accumulation method in Opt.AccumMethod yield the
 % same result.
@@ -27,6 +27,4 @@ if opt.Display
 end
 
 thr = 2e-2;
-err = ~areequal(y0,y1,thr,'rel') || ~areequal(y0,y2,thr,'rel');
-
-data = [];
+ok = areequal(y0,y1,thr,'rel') && areequal(y0,y2,thr,'rel');

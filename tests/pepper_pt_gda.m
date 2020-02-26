@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata)
 
 % g strain
 
@@ -35,7 +35,7 @@ end
 data.y = y;
 
 if ~isempty(olddata)
-  err = ~areequal(y,olddata.y,0.2,'abs');
+  ok = areequal(y,olddata.y,0.2,'abs');
 else
-  err = [];
+  ok = [];
 end

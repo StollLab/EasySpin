@@ -1,7 +1,6 @@
-function err = test()
+function ok = test()
 
 % Check for presence of all mex files for all platforms
-%===============================================================================
 
 olddir = pwd;
 cd('../easyspin/private/');
@@ -27,9 +26,9 @@ for k = 1:nFiles
 end
 cd(olddir);
 
-err = nMissing~=0;
+ok = nMissing==0;
 
-if err
+if ~ok
   errormsg = [sprintf('  %d mex files are missing:\n',nMissing) errormsg];
   error(errormsg);
 end

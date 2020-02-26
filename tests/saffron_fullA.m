@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % saffron support for full hyperfine matrices
 
@@ -34,7 +34,4 @@ if (opt.Display)
   title(mfilename)
 end
 
-data = [];
-
 ok = areequal(y1,y2,1e-10,'rel');
-err = ~ok;

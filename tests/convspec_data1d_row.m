@@ -1,7 +1,7 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Test 1D convolution of 1D row data
-%========================================================
+
 N = 601;
 x = 1:N;
 data = zeros(1,N);
@@ -21,5 +21,4 @@ for k = 1:numel(x0)
   z2 = z2 + amp(k)*gaussian(x,x0(k),w);
 end
 
-err =  ~all(size(z1)==size(z2)) || ~areequal(z1,z2,1e-10,'rel');
-data = [];
+ok =  areequal(z1,z2,1e-10,'rel');

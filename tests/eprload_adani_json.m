@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % Read Adani spectrometer files
 %-------------------------------------------------------------------------------
@@ -7,8 +7,7 @@ function [err,data] = test(opt,olddata)
 % Skip test if Matlab version is older than R2016b
 % Before that, the Matlab-internal JSON parser does not work.
 if verLessThan('matlab','9.1')
-  err = false;
-  data = [];
+  ok = false;
   return
 end
 
@@ -36,13 +35,11 @@ for iFile = 1:numel(Files)
     end
   end
   
-  if (opt.Display)
+  if opt.Display
     plot(x,data);
     pause
   end
   
 end
 
-err = readerr;
-
-data = [];
+ok = ~readerr;

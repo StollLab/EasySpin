@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test(opt)
 
 % Assure that esfit runs.
 
@@ -16,19 +16,13 @@ Vary.g = [0.02 0.02];
 Opt = struct;
 FitOpt.PrintLevel = 0;
 FitOpt.Method = 'levmar fcn';
-[dummy,spcfit,resid] = esfit(@pepper,spc,Sys,Vary,Exp,Opt,FitOpt);
-
-err = false;
+[~,spcfit,resid] = esfit(@pepper,spc,Sys,Vary,Exp,Opt,FitOpt);
 
 rmsd = sqrt(mean(resid.^2));
 
-if rmsd>3e-2
-  err = 1;
-end
+ok = rmsd<3e-2;
 
 if opt.Display
   plot(nu,spc,nu,spcfit);
   legend('exp','fit');
 end
-
-data = [];

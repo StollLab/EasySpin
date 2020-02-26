@@ -1,7 +1,7 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Test for some randomly selected parameters
-%======================================================
+
 a(1) = wigner3j(11/2,5,9/2,7/2,-3,-1/2);
 b(1) = 3/2/sqrt(286);
 a(2) = wigner3j(2,2,2,1,0,-1);
@@ -21,9 +21,4 @@ b(8) = sqrt(14/143)/3;
 a(9) = wigner3j(4,4,4,3,1,-4);
 b(9) = -sqrt(35/143)/3;
 
-%[a;b].'
-
-ok = abs(a-b)<1e-6;
-err = any(~ok);
-
-data = [];
+ok = areequal(a,b,1e-6,'abs');

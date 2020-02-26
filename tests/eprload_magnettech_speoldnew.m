@@ -1,4 +1,4 @@
-function [err,data] = test(opt,olddata)
+function ok = test()
 
 % Compare the two slightly different version of the SPE
 % binary format from Magnettech spectrometers
@@ -9,6 +9,4 @@ function [err,data] = test(opt,olddata)
 
 ok = areequal(par1.B0_Field,par2.B0_Field,1e-3,'rel');
 ok = ok && areequal(par1.B0_Scan,par2.B0_Scan,1e-3,'rel');
-err = ~ok;
 
-data = [];
