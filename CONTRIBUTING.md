@@ -36,15 +36,14 @@ This guide assumes you have a basic understanding of `git` and know how to make 
 1. Fork the EasySpin repo
     - go to https://github.com/StollLab/EasySpin
     - find the `Fork` button in the top right corner and click on it
-    <p align="center">
-    <img width="700" src="docsrc/img/contributing-forking.jpg">
-    </p>
-    - this creates a copy of EasySpin for your GitHub account (e.g. `yourusername/EasySpin`) 
+        <p align="center">
+        <img width="700" src="docsrc/img/contributing-forking.jpg">
+        </p>
+    - this creates a copy of EasySpin for your GitHub account (`yourusername/EasySpin`) 
 2. Clone the new repository with your git tool of choice
     <p align="center">
     <img width="300" src="docsrc/img/contributing-cloning.jpg">
     </p>
-
 
 #### The following instructions show you how to create a pull request using *SourceTree*:
 
@@ -58,50 +57,49 @@ This guide assumes you have a basic understanding of `git` and know how to make 
     - find and click the `Settings` button in the top right corner of the tab in SourceTree
     - add a new remote:
         - Remote name: upstream
-        - URL/path: https://github.com/StollLab/EasySpin
-        <p align="center">
-        <img width="400" src="docsrc/img/contributing-add_easyspin_remote.jpg">
-        </p>
+        - URL/Path: https://github.com/StollLab/EasySpin
+            <p align="center">
+            <img width="400" src="docsrc/img/contributing-add_easyspin_remote.jpg">
+            </p>
     - you should now have two remote repository paths
-4. Link the `EasySpin/master` branch to your local `master` branch
-    - fetch from all repositories via the `Fetch` button
-    <p align="center">
-    <img width="600" src="docsrc/img/contributing-fetch.jpg">
-    </p>
-    - right click your master branch
-    - in the popup menu select `Track remote branch` and then `upstream/master`
-    <p align="center">
-    <img width="500" src="docsrc/img/contributing-tracking.png">
-    </p>
+4. Have your local `master` track `EasySpin/master`
+    - first, fetch from all repositories via the `Fetch` button
+        <p align="center">
+        <img width="600" src="docsrc/img/contributing-fetch.jpg">
+        </p>
+    - right click your master branch and in the popup menu select `Track remote branch` and then `upstream/master`
+        <p align="center">
+        <img width="500" src="docsrc/img/contributing-tracking.png">
+        </p>
     - you now can pull updates from the EasySpin repository - time to get working on your code!
 5. Create a new local branch
     - give it a good descriptive name (see the [examples](#Commit-messages-and-branch-names))
-6. Start coding away and creating commits to that branch
+6. Start coding and creating commits to that branch
 7. Once you have made a commit, you can push that commit to your forked repository
+8. Make a [pull request](#Creating-a-pull-request) from your branch to the EasySpin repository to get your contribution reviewed
 
 #### If you prefer the CLI of `git`, this is how you fork EasySpin:
 1. Fork the EasySpin repo
 2. Clone your fork to your computer
-    - first navigate to the folder where you want to create a copy of EasySpin
-    - make sure to use the adress from *your* EasySpin repository
-        ```git
-        git clone git@github.com:yourusername/EasySpin.git
-        ```
+    ```git
+    git clone git@github.com:yourusername/EasySpin.git
+    ```
+     - make sure to use the adress from *your* EasySpin repository
 3. Stay up-to-date by addding the original EasySpin repository (the upstream repository) as a remote
     ```git
     git remote add upstream git@github.com:StollLab/EasySpin.git
     git fetch upstream
     ```
-4. Have your local master branch track the EasySpin/master branch
+4. Have your local master branch track the `EasySpin/master` branch
     ```git
     git branch --set-upstream-to=upstream/master master
     ```
 5. Create a new local branch
+    ```git
+    git checkout -b yourgood/branchname
+    ```
     - give it a good descriptive name (see the [examples](#Commit-messages-and-branch-names))
-        ```git
-        git checkout -b yourgood/branchname
-        ```
-6. Start coding away and creating commits to that branch
+6. Start coding and creating commits to that branch
 7. Once you have made a commit, you can push to your forked repository
     ```git
     git push origin yourgood/branchname
@@ -114,6 +112,7 @@ This guide assumes you have a basic understanding of `git` and know how to make 
     ```git
     git push
     ```
+8. Make a [pull request](#Creating-a-pull-request) from your branch to the EasySpin repository to get your contribution reviewed
 
 ## Keeping your EasySpin fork up-to-date
 If you just forked your EasySpin, your fork will be up-to-date with the source repository (which we called upstream before). 
@@ -131,14 +130,14 @@ Fortunately, it is very easy to incorporate those into your fork.
     </p>
     - now your local `master` branch is up to date
 3. Let's make sure that your forked repository on GitHub is aware of those changes as well and push to it
-    - make sure you push to `origin`(your repository) and not to `upstream` (the EasySpin repo)
-    <p align="center">
-    <img width="350" src="docsrc/img/contributing-syncing3.png">
-    </p>
+        - make sure you push to `origin`(your repository) and not to `upstream` (the EasySpin repo)
+        <p align="center">
+        <img width="350" src="docsrc/img/contributing-syncing3.png">
+        </p>
 4. Now checkout the branch you were working on and merge the `master` branch into it
-    <p align="center">
-    <img width="270" src="docsrc/img/contributing-syncing4.png">
-    </p>
+        <p align="center">
+        <img width="270" src="docsrc/img/contributing-syncing4.png">
+        </p>
     - if everything went well, there won't be any merge-conflicts and you now have the newest version of EasySpin to continue working with!
 
 
@@ -166,9 +165,9 @@ Fortunately, it is very easy to incorporate those into your fork.
     - if you do this within an hour of pushing a commit, there will be a button for that on the front page. If you can't find it, you have to click on the `Pull requests` tab and create a `New pull request`
     - Start the name of the pull request with `WIP:` to let everyone know that it is work in progress and that your code is not yet ready to be merged
     - Make sure the pull request is comparing across forks, it should look something like this:
-    <p align="center">
-    <img width="600" src="docsrc/img/contributing-new_PR.jpg">
-    </p>
+        <p align="center">
+        <img width="600" src="docsrc/img/contributing-new_PR.jpg">
+        </p>
     - use the following settings:
         - Source repository: StollLab/EasySpin
         - base: master
