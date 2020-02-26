@@ -1,4 +1,4 @@
-function ok = test(opt,olddata)
+function ok = test()
 
 eps0_val = eps0;
 eps0_ref = 8.8541878128e-12; % = 1/mu0/clight^2

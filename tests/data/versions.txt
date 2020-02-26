@@ -1,3 +1,0 @@
-stable:5.2.25
-default:7.1.2-alpha.3
-development:6.0.0-dev.8

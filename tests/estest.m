@@ -123,7 +123,7 @@ for iTest = 1:numel(TestFileNames)
   testFcn = str2func(thisTestName);
   nArgsOut = nargout(testFcn);
   nArgsIn = nargin(testFcn);
-  usesStoredData = nArgsOut==2;
+  usesStoredData = nArgsIn==2 && nArgsOut==2;
   data = [];
   tic
   try
@@ -186,7 +186,7 @@ for iTest = 1:numel(TestFileNames)
     end
   end
   
-  saveTestData = usesStoredData && isempty(olddata);  
+  saveTestData = usesStoredData && Opt.Regenerate;
   if saveTestData
     save(TestDataFile,'data');
   end
