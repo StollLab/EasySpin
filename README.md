@@ -4,6 +4,8 @@
 
 EasySpin is a MATLAB-based toolbox for the simulation and analysis of Electron Paramagnetic Resonance (EPR) spectra as well as magnetometry data. The homepage of EasySpin is at [easyspin.org](http://easyspin.org). This is the GitHub repository of EasySpin's source code, including tests, documentation source, and build scripts.
 
+To get a tested and packaged version of EasySpin, download it from [easyspin.org](http://easyspin.org).
+
 ## Resources
 
 - **Homepage:** <http://easyspin.org>
@@ -24,6 +26,8 @@ The EasySpin source code is organized as follows:
     examples/      collection of EasySpin example scripts
     releasing/     build scripts etc.
     tests/         unit tests for EasySpin
+
+For information on EasySpin's test systems, see [here](/TESTING.md).
 
 ## Documentation
 
