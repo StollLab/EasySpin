@@ -1,36 +1,59 @@
 # Contributing
 
-Please always look at this file *before* contributing to EasySpin.
+Please read this carefully *before* contributing to EasySpin.
 
-In this document you can find the [contributing](#Acceptable-contributions) and [coding](#coding-style)  guidelines, how to come up with good [commit messages and branch names](#Commit-messages-and-branch-names) as well as all the steps necessary to set up your own [development environment](#Forking-EasySpin), [staying up-to-date](#Keeping-your-EasySpin-fork-up-to-date) and [creating pull requests](#Creating-a-pull-request). 
+To contribute bug reports and feature suggestions, open an issue on EasySpin's [list of issue](https://github.com/StollLab/EasySpin/issues). To contribute code to EasySpin, create a fork and then a [pull request (PR)](https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/about-pull-requests).
+
+This document provides guidelines for [contributing](#Acceptable-contributions), [coding style](#coding-style), and [commit messages and branch names](#Commit-messages-and-branch-names). It also describes how to [fork EasySpin](#Forking-EasySpin), [stay up-to-date](#Keeping-your-EasySpin-fork-up-to-date) and [create pull requests](#Creating-a-pull-request).
+
+The overall goal of EasySpin is to provide a user-friendly framework of analyzing and simulating spectra in EPR spectroscopy. Support is limited to most standard EPR experiments. Also, the analysis of data form pulse dipolar EPR spectroscopy (DEER, etc) is expressely excluded, since that's its own big field with dedicated software.
 
 ## Acceptable contributions
 
 The following contributions are accepted:
 
-- fix bugs for existing functions
-- enhance the API or implementation of an existing function
-- adds a function that is only slightly modified from a StackOverflow answer
-- is tested
+- documentation fixes
+- bug fixes for existing functions
+- interface or implementation improvements of an existing function
+- additional tests for exiting functions
 
-In the case of adding a new function or feature:
+We do not accept:
 
-- NOT break any previously existing features and functions
-- all tests must pass
-- new tests must be added
-- documentation must be added
+- new functions or features that have not been previously discussed in an issue
+- changes to the API of existing functions that have not been previously discussed in an issue
+- tiny code refactors and "beauty" edits
+
+Propose and discuss any new functionality first in an [issue](https://github.com/StollLab/EasySpin/issues). If it's decided there that the feature is worthwhile, the following guidelines should be followed:
+
+- Do not break any previously existing features and functions
+- All tests must pass
+- New tests must be added
+- Documentation must be added
+- Examples must be added
 
 ## Coding style
 
+Currently, there are no formal coding style guidelines. Check out the existing code base to get an idea of how to write code. A few principles are worth mentioning:
+
+- The main criterion for code is readability. Don't sacrifice that for performance. Prefer simple over complicated data structures. Avoid crytpic code.
+- Write code such that it runs in MATLAB R2016b. Don't use more recent MATLAB features.
+- Use 2-space indents, instead of 4-space indents. This is because some EasySpin functions are deeply nested.
+- Use variable names that are explicit, but not too long. USe camelCase instead of snake_case.
+- Add a judicious amount of white space and empty line to make the code readable.
+- Include references (incl. DOI and equation number) when using equations from the scientific literature.
+- Write tests that are as simple as possible. Write as many tests as needed to cover all the execution paths through a function.
+
 ## Commit messages and branch names
+
+Use descriptive and specific commit messages and branch names. If a commit relates to an issue, include the issue number in the commit message. Do not combine two different lines of work into one commit.
 
 ## Forking EasySpin
 
-You're going to need a few things set up correctly in order to be able to contribute to EasySpin.
+You will need a few things set up correctly in order to be able to contribute to EasySpin.
 
-First of all, you are going to need a GitHub account (if you don't already have one).
+First of all, you need a GitHub account (if you don't already have one).
 Then, you will need to know the basics of working with `git`.
-If you are new to using version control software, it might be easier to use one of the graphical interfaces like [SourceTree](https://www.sourcetreeapp.com/) or [GitHub desktop](https://desktop.github.com/).
+If you are new to using version control software, use one of the GUI clients like [SourceTree](https://www.sourcetreeapp.com/) or [GitHub desktop](https://desktop.github.com/).
 This guide assumes you have a basic understanding of `git` and know how to make a commit and create local branches.
 
 1. Fork the EasySpin repo
@@ -160,6 +183,7 @@ Fortunately, it is very easy to incorporate those into your fork.
 
 
 ## Creating a pull request
+
 1. Create a pull request
     - go to the github website of your forked repository
     - if you do this within an hour of pushing a commit, there will be a button for that on the front page. If you can't find it, you have to click on the `Pull requests` tab and create a `New pull request`
