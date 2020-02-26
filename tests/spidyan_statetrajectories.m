@@ -30,7 +30,7 @@ data.sigmas1 = out1.StateTrajectories;
 
 % State Trajectories ---------------------------
 Opt.StateTrajectories = [1 1 1];
-[~, ~, out2] = spidyan(Sys,Exp,Opt);
+[x, y, out2] = spidyan(Sys,Exp,Opt);
 
 data.sigmas2 = out2.StateTrajectories;
 
