@@ -40,12 +40,8 @@ if nargout>3, error('Too many output arguments.'); end
 if nargin<3, Opt = struct; end
 if isempty(Opt), Opt = struct; end
 
-if ~isstruct(Sys)
-  if iscell(Sys)
-    error('First input argument (Sys) must be a structure. saffron does not support multiple components.');
-  else
-    error('First input argument (Sys) must be a structure.');
-  end
+if iscell(Sys) && iscell(Exp.Sequence)
+  error('Multiple components are by saffron only supported for predefined sequences.');
 end
 if ~isstruct(Exp)
   error('Second input argument (Exp) must be a structure.');
@@ -65,24 +61,28 @@ if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 0; end
 global EasySpinLogLevel
 EasySpinLogLevel = Opt.Verbosity;
 
-% Validation of the spin system
-[SysVal,err] = validatespinsys(Sys);
-error(err);
-if SysVal.MO_present, error('saffron does not support general parameters.'); end
-if any(SysVal.L(:)), error('saffron does not support L.'); end
-
-% Determine simulation mode ('fast' or 'thyme')
-if isempty(Opt.SimulationMode)
+% Validation of the spin system - skipped for more than one component
+if iscell(Sys)
   Opt.SimulationMode = 'fast';
-  if SysVal.nElectrons>1
-    Opt.SimulationMode = 'thyme';
-  end
-  if isfield(SysVal,'n') && any(SysVal.n~=1)
-    Opt.SimulationMode = 'thyme';
-  end
-  if isfield(SysVal,'nn') && any(SysVal.nn(:)~=0)
-    Opt.SimulationMode = 'thyme';
-  end
+else
+  [SysVal,err] = validatespinsys(Sys);
+  error(err);
+  
+  if SysVal.MO_present, error('saffron does not support general parameters.'); end
+  if any(SysVal.L(:)), error('saffron does not support L.'); end
+  % Determine simulation mode ('fast' or 'thyme')
+  if isempty(Opt.SimulationMode)
+    Opt.SimulationMode = 'fast';
+    if SysVal.nElectrons>1
+      Opt.SimulationMode = 'thyme';
+    end
+    if isfield(SysVal,'n') && any(SysVal.n~=1)
+      Opt.SimulationMode = 'thyme';
+    end
+    if isfield(SysVal,'nn') && any(SysVal.nn(:)~=0)
+      Opt.SimulationMode = 'thyme';
+    end
+  end 
 end
 [~,err] = parseoption(Opt,'SimulationMode',{'fast','thyme'});
 error(err);
@@ -157,14 +157,17 @@ if Opt.nKnots<7
   error('Opt.nKnots must be at least 7. You gave %d.',Opt.nKnots);
 end
 
-% set up orientation loop
-if ~isfield(Exp,'OriWeights')
-  [Exp,Opt] = p_symandgrid(Sys,Exp,Opt);
-end
-
-[Orientations,nOrientations,nSites] = p_crystalorientations(Exp,Opt);
-if numel(Exp.OriWeights)~=nOrientations
-  Exp.OriWeights = repmat(Exp.OriWeights,1,nSites);
+% set up orientation loop (only do this when saffron is called for a single
+% component - could be in the nested call)
+if ~iscell(Sys)
+  if ~isfield(Exp,'OriWeights')
+    [Exp,Opt] = p_symandgrid(Sys,Exp,Opt);
+  end
+  
+  [Orientations,nOrientations,nSites] = p_crystalorientations(Exp,Opt);
+  if numel(Exp.OriWeights)~=nOrientations
+    Exp.OriWeights = repmat(Exp.OriWeights,1,nSites);
+  end
 end
 
 if isfield(Exp,'nPoints')
@@ -870,11 +873,11 @@ if strcmp(Opt.SimulationMode,'fast')
   switch Opt.EndorMethod
     case 0, logmsg(1,'using population swaps of adjacent nuclear sublevels');
     case 1, logmsg(1,'using bandwidth-filtered Iy pi pulse, sum over transitions');
-  case 2, logmsg(1,'using bandwidth-filtered Iy pi pulse, full RF sweep');
+    case 2, logmsg(1,'using bandwidth-filtered Iy pi pulse, full RF sweep');
     otherwise, error('Unknown setting for Opt.EndorMethod. Must be 0, 1, or 2.');
-end
-if Opt.EndorMethod==0 && numel(shfNuclei)>1 && ~Opt.ProductRule
-  error('Opt.EndorMethod=0 gives incorrect results for multiple nuclei.')
+  end
+  if Opt.EndorMethod==0 && numel(shfNuclei)>1 && ~Opt.ProductRule
+    error('Opt.EndorMethod=0 gives incorrect results for multiple nuclei.')
   end
   
   
