@@ -1,4 +1,5 @@
 function [ok,data] = test(opt,olddata)
+
 % Regression test for MD trajectory-based simulation of EPR spectrum using
 % cardamom and fast method
 
@@ -22,7 +23,7 @@ tScale = 2.5;  % diffusion constant of TIP3P model water molecules in MD
                % simulations is ~2.5x too high, so we scale the time axis
 
 MD.tScale = tScale;
-MD.removeGlobal = 0;
+MD.removeGlobal = false;
 
 MD.DiffGlobal = 6e6;
 
@@ -56,7 +57,7 @@ spc = spc/max(spc);
 data.spc = spc;
 
 if ~isempty(olddata)
-  ok = areequal(olddata.spc,spc,1e-10,'abs');
+  ok = areequal(olddata.spc,spc,5e-2,'abs');
 else
   ok = [];
 end
