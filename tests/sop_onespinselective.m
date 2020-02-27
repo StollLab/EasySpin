@@ -1,7 +1,7 @@
 function ok = test()
 
 % Check all single-transition matrices for a single spin with S>1/2
-%-------------------------------------------------------------------------------
+
 S = 3/2;
 components = 'xyz+-';
 nLevels = 2*S+1;

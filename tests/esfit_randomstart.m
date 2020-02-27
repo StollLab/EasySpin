@@ -10,7 +10,7 @@ Exp.Range = [300 380];
 
 Vary.lw = 2;
 
-rng_(123);
+rng(123);
 FitOpt.RandomStart = 1;
 FitOpt.PrintLevel = 0;
 

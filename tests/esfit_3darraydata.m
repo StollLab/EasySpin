@@ -9,7 +9,7 @@ FitOpt.nTrials = 200;
 % number of grid points in each direction
 N = 50;
 
-rng_(1)
+rng(1)
 
 ok = false;
 

@@ -14,7 +14,7 @@ Exp.mwRange = [9.5 10.5];
 Exp.nPoints = 500;
 
 [nu,spc] = pepper(Sys,Exp);
-rng_(1,'twister')
+rng(1)
 %data = addnoise(spc,50,'u');
 
 Vary.g = [0 0.02]; 

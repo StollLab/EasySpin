@@ -38,7 +38,6 @@ for k = 1:nClusters
   idx_ = idx_km(clusteridx == k);
   ok(k) = all(idx_==idx_(1));
 end
-ok = all(ok);
 
 % Plot if wanted
 if opt.Display

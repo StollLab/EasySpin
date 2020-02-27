@@ -1,13 +1,13 @@
 function ok = test()
 
-rng_(5,'twister');
+rng(5);
 
-Sys.S = randi_(6)/2;
+Sys.S = randi(6)/2;
 Sys.g = rand(1,3)*4;
 Sys.D = rand(1,2)* 10*30e3;
 
-Exp.Temperature = rand(randi_(50),1)*300;
-Exp.Field = rand(randi_(50),1)*1e4;
+Exp.Temperature = rand(randi(50),1)*300;
+Exp.Field = rand(randi(50),1)*1e4;
 
 Opt.Method = 'partitionfunction';
 mu_e = curry(Sys,Exp,Opt);

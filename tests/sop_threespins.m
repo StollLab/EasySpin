@@ -1,6 +1,6 @@
 function ok = test()
 
-% Test syntax for three spins
+% Test syntax for three spins and some selected operators
 
 kron3 = @(s,A,B,C)kron(kron(sop(s(1),A),sop(s(2),B)),sop(s(3),C));
 

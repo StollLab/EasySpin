@@ -3,7 +3,7 @@ function ok = test(opt)
 % Check that supplying a pseudopotential energy function to stochtraj_diffusion 
 % generates a proper distribution of orientations.
 
-rng_(1)
+rng(1)
 
 % generate Euler angle grids
 N = 70;

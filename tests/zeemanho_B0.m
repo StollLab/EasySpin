@@ -3,7 +3,7 @@ function ok = test()
 % Test whether the 0th order in B of zeemanho is identical (Except the
 % known prefactors to results using the Stevens operators
 
-rng_(5,'twister');
+rng(5);
 
 %Table of conversion factors for Stevens operator
 Alm(8,:) = [24*sqrt(1430),2*sqrt(1430),4*sqrt(143/7),2*sqrt(78/7), ...

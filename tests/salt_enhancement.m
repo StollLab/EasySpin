@@ -19,7 +19,8 @@ Si.Intensity = 'off';
 Si.Enhancement = 'off';
 [a,b3] = salt(Sy,Ex,Si);
 
-if (opt.Display)
+if opt.Display
+  renorm = @(y)rescale(y,'maxabs');
   subplot(3,1,[1 2]);
   plot(a,renorm(b1),'b',a,renorm(b2),'r',a,renorm(b3),'g');
   axis tight

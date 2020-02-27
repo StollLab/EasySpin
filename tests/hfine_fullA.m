@@ -1,6 +1,7 @@
 function ok = test()
 
-% full hyperfine matrices
+% full hyperfine matrices, syntax check
+rng(972);
 
 % 1 electron, 2 nuclei
 Sys.S = 1/2;

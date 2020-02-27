@@ -2,13 +2,13 @@ function ok = test()
 %orbital angular momenta can also be defined as spins, therefore the two
 %Hamiltonians should be identical
 
-rng_(5,'twister');
+rng(5);
 
 % Build spin system with spin in Sys.S and orbital angular momenta in Sys.L
 n = 1;
-SysSL.S = randi_(3,1,n)/2;
+SysSL.S = randi(3,1,n)/2;
 SysSL.g = rand(3*n,3);
-SysSL.L = randi_(2,1,n);
+SysSL.L = randi(2,1,n);
 SysSL.soc = rand(n,2)*1000;
 SysSL.orf = rand(n,1);
 nSpins = length(SysSL.S);

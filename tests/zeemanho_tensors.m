@@ -3,7 +3,7 @@ function ok = test()
 % Test whether the tensor output of zeemanho is identical to the full
 % matrix output
 
-rng_(5,'twister'); % seed randon number generator
+rng(5); % seed randon number generator
 
 Sys.S = 9/2;
 

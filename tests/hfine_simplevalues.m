@@ -1,8 +1,11 @@
 function ok = test()
 
-% explicit comparison
+% explicit comparison of hyperfine Hamiltonian
 
-Sys = struct('S',[1/2],'Nucs','1H','g',[2 2 3],'A',[10 12 -44]);
+Sys.S = 1/2;
+Sys.Nucs = '1H';
+Sys.A = [10 12 -44];
+Sys.g = 2;
 
 H0 = [-11 0 0 -0.5; 0 11 5.5 0; 0 5.5 11 0; -0.5 0 0 -11];
 H1 = hfine(Sys);

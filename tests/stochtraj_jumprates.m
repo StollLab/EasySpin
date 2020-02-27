@@ -4,7 +4,7 @@ function ok = test(opt)
 
 Par.nTraj = 500;
 
-rng_(1);
+rng(1);
 
 kp = rand()*1e9; % rate constant for forward process A -> B
 km = rand()*1e9; % rate constant for reverse process B -> A

@@ -4,10 +4,10 @@ function ok = test()
 % defined via electron-electron couplings between pure spins. The Hamiltonians
 % constructed for these two cases must be identical.
 
-rng_(3);
-nSpins = randi_(3);
-S = randi_(3,1,nSpins)/2;
-L = randi_(2,1,nSpins);
+rng(3);
+nSpins = randi(3);
+S = randi(3,1,nSpins)/2;
+L = randi(2,1,nSpins);
 soc = rand(nSpins,2);
 orf = rand(nSpins,1);
 

@@ -1,6 +1,6 @@
 function ok = test()
 
-% Test for some randomly selected parameters
+% Test for some randomly selected parameter combinations
 
 a(1) = wigner3j(11/2,5,9/2,7/2,-3,-1/2);
 b(1) = 3/2/sqrt(286);

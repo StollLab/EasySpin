@@ -11,7 +11,7 @@ Exp.Field = 350;
 Exp.mwRange = [9.5 10.5];
 
 [nu,spc] = pepper({Sys1,Sys2},Exp);
-rng_(1,'twister')
+rng(1)
 spc = addnoise(spc,80,'u');
 
 Vary1.g = [0.02 0.02]; 

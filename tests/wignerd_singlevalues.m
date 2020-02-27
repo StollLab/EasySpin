@@ -1,11 +1,9 @@
 function ok = test()
 
-%============================================================================
 % Compare D matrix calculated with a single call to wignerd() to D matrix
 % compiled from single-element calls to wignerd()
-%============================================================================
 
-rng_(15654,'twister');
+rng(15654);
 
 Jlist = [0:0.5:6 7:10 40];
 

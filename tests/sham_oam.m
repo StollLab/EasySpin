@@ -3,12 +3,12 @@ function ok = test()
 % Orbital angular momenta can also be defined as spins, therefore the two
 % Hamiltonians should be identical
 
-rng_(5,'twister');
+rng(5,'twister');
 
-n = 3;%randi_(2);
-Sys.S = 1/2*ones(1,3);%randi_(3,1,n)/2;
+n = 3;%randi(2);
+Sys.S = 1/2*ones(1,3);%randi(3,1,n)/2;
 Sys.g = rand(3*n,3);
-Sys.L = 1*ones(1,3);%randi_(2,1,n);
+Sys.L = 1*ones(1,3);%randi(2,1,n);
 Sys.soc = rand(n,2)*1000;
 Sys.orf = rand(n,1);
 lenS = length(Sys.S);

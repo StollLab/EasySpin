@@ -1,7 +1,6 @@
 function ok = test()
 
-% Compare pulse() output pulse shapes with mathematical expressions
-%--------------------------------------------------------------------------
+% Compare pulse() output pulse shape with explicit expressions
 
 % Sinc pulse
 Params.tp = 0.200; % us
@@ -9,12 +8,13 @@ Params.Type = 'sinc';
 Params.zerocross = 0.034; % us
 Params.TimeStep = 0.001; % us
 Params.Amplitude = 1;
-
-t0 = 0:Params.TimeStep:Params.tp;
-A = sin((2*pi*(t0-Params.tp/2))/Params.zerocross)./((2*pi*(t0-Params.tp/2))/Params.zerocross);
-A(t0==Params.tp/2) = 1;
-IQ0 = A;
-
 [t,IQ] = pulse(Params);
 
-ok = areequal(IQ0,IQ,1e-12,'abs');
+t0 = 0:Params.TimeStep:Params.tp;
+dt = t0-Params.tp/2;
+x = 2*pi*dt/Params.zerocross;
+A = sin(x)./x;
+A(dt==0) = 1;
+IQref = A;
+
+ok = areequal(IQ,IQref,1e-12,'abs');

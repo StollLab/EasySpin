@@ -2,7 +2,7 @@ function ok = test(opt)
 
 % Check that stochtraj_jump generates proper state probability distribution
 
-rng_(1);
+rng(1);
 
 kp = 3e9; % rate constant for forward process A -> B
 km = 1e9; % rate constant for reverse process B -> A

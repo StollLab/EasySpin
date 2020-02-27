@@ -3,7 +3,7 @@ function ok = test()
 % orbital angular momenta can also be defined as spins, therefore the 
 % results should be identical for the two cases
 
-rng_(5,'twister');
+rng(5);
 n = 1;
 SysSL.S = 1/2;
 SysSL.g = diag([2 2.1 2.2]);

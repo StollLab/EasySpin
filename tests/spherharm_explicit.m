@@ -8,15 +8,14 @@ phi = linspace(2*pi,N);
 
 q = 1;
 for L = 0:2
+  ok(q) = true;
   for M = -L:L
     Y = explicitY(L,M,theta,phi);
     Z = spherharm(L,M,theta,phi);
-    ok(q) = areequal(Y,Z,1e-10,'abs');
-    q = q + 1;
+    ok(q) = ok(q) && areequal(Y,Z,1e-10,'abs');
   end
+  q = q + 1;
 end
-
-ok = all(ok);
 
 return
 

@@ -1,6 +1,6 @@
 function ok = test()
 
-% Check all matrices for S=1
+% Check some transition-selective operators for a two-spin system
 
 Spins = [1/2 1];
 ops = {'x(1|2)1' '+(1|2),e(1)' 'x,z' 'z2,x1' ...

@@ -3,7 +3,7 @@ function ok = test(opt)
 % Check that using stochtraj_diffusion with free diffusion generates a proper
 % rotational correlation time.
 
-rng_(1);
+rng(1);
 
 Sys.tcorr = 10e-9;
 Par.dt = Sys.tcorr/10;

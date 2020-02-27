@@ -3,7 +3,7 @@ function ok = test(opt)
 % Check that using stochtraj_diffusion with free diffusion generates a proper 
 % distribution of orientations
 
-rng_(1);
+rng(1);
 Sys.tcorr = 10*rand()*1e-9;
 Par.dt = Sys.tcorr/10;
 Par.nSteps = ceil(200*Sys.tcorr/Par.dt);

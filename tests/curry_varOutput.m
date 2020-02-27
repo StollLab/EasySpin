@@ -1,8 +1,8 @@
 function ok = test()
 
-rng_(5,'twister');
+rng(5);
 
-Sys.S = randi_(6)/2;
+Sys.S = randi(6)/2;
 Sys.g = rand(1,3)*4;
 Sys.D = rand(1,2)* 10*30e3;
 

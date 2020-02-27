@@ -78,11 +78,11 @@ fprintf(fid,'-------------------------------------------------------------------
 
 OutcomeStrings = {'pass','failed','crashed','not tested'};
 
-%get path to Easyspin functions folder
+% Get path to Easyspin functions folder
 path = fileparts(which('estest'));
 path = path(1:end-length('\tests'));
 
-%list all the functions, including private
+% List all the functions, including private
 Files = dir(fullfile(path,'easyspin','*.m'));
 executedLines = repmat({[]},length(Files),1);
 
@@ -96,23 +96,23 @@ for iTest = 1:numel(TestFileNames)
     drawnow
   end
   
-  % Load, or regenerate, comparison data
-  olddata = [];
+  % Load, or regenerate, reference data
+  refdata = [];
   TestDataFile = ['data/' thisTestName '.mat'];
   if exist(TestDataFile,'file')
     if Opt.Regenerate
       delete(TestDataFile);
-      olddata = [];
+      refdata = [];
     else
       try
-        olddata = load(TestDataFile,'data');
-        olddata = olddata.data;
+        refdata = load(TestDataFile,'data');
+        refdata = refdata.data;
       catch
         error('Could not load data for test ''%s''.',thisTestName);
       end
     end
   end
-    
+  
   % Clear and start profiler
   if runCodeCoverageAnalysis
     profile clear
@@ -124,24 +124,24 @@ for iTest = 1:numel(TestFileNames)
   nArgsOut = nargout(testFcn);
   nArgsIn = nargin(testFcn);
   usesStoredData = nArgsIn==2 && nArgsOut==2;
-  data = [];
   tic
   try
     if usesStoredData
       if nArgsIn<2, error('2 inputs are needed.'); end
-      [ok,data] = testFcn(Opt,olddata);
+      [ok,data] = testFcn(Opt,refdata);
     else
       if nArgsIn==0
         ok = testFcn();
+        data = [];
       else
         ok = testFcn(Opt);
+        data = [];
       end
     end
     if isempty(ok)
       testOutcome = 3; % not tested
     else
-      ok = all(ok);
-      if ok
+      if all(ok)
         testOutcome = 0; % test passed
       else
         testOutcome = 1; % test failed
@@ -196,6 +196,10 @@ for iTest = 1:numel(TestFileNames)
   testResults(iTest).errorData = errorInfo;
   
   outcomeStr = OutcomeStrings{testResults(iTest).outcome+1};
+  
+  if ~all(ok) && ~displayTimings
+    outcomeStr = [outcomeStr '  ' num2str(find(~ok))];
+  end
   
   if ~isempty(data)
     typeStr = 'regression';
