@@ -1,1 +1,2 @@
-**/*.m linguist-language=MATLAB
+easyspin/*.m linguist-language=MATLAB
+tests/*.m linguist-language=MATLAB
