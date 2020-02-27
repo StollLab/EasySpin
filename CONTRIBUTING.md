@@ -27,7 +27,7 @@ Propose and discuss any new functionality first in an [issue](https://github.com
 
 - Do not break any previously existing features and functions
 - All tests must pass
-- New tests must be added
+- New tests must be added (see [here](/tests/TESTING.md) on how to write tests)
 - Documentation must be added
 - Examples must be added
 

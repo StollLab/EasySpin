@@ -15,7 +15,7 @@ To get a tested and packaged version of EasySpin, download it from [easyspin.org
 
 ## Contributions
 
-Before contributing to EasySpin, please read the [contributing guide](/CONTRIBUTING.md).
+Before contributing to EasySpin, please read the [contributing](/CONTRIBUTING.md) and [testing](/tests/TESTING.md) guides.
 
 ## Source Code Organization
 
