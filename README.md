@@ -31,4 +31,4 @@ For information on EasySpin's test systems, see [here](/TESTING.md).
 
 ## Documentation
 
-A local copy of the documentation can be built with a perl script `docbuilder.pl`. For more information see the [documentation](/releasing/howto_documentation.md) in the `releasing` subfolder.
+A local copy of the documentation can be built with a perl script `docbuilder.pl`. For more information see the [documentation](/releasing/DOCUMENTATION.md) in the `releasing` subfolder.
