@@ -10,4 +10,4 @@ V = ang2vec(phi,theta);
 [x,y,z] = ang2vec(phi,theta);
 V1 = [x;y;z];
 
-ok = all(V(:)==V1(:));
+ok = areequal(V,V1);

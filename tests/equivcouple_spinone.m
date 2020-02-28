@@ -23,9 +23,9 @@ test(5).F = [6 5 4 3 2 1 0];
 test(5).N = [1 5 15 29 40 36 15];
 
 S = 1;
-for q=1:numel(test)
+for q = 1:numel(test)
   [F,N] = equivcouple(S,test(q).n);
   ok(q) = all(F==test(q).F) & all(N==test(q).N);
   dim = (2*S+1)^test(q).n;
-  ok(q) = ok(q) && (sum((2*F+1).*N)==dim);
+  ok(q) = ok(q) && sum((2*F+1).*N)==dim;
 end

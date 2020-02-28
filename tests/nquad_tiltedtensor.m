@@ -15,8 +15,8 @@ R = erot(Sys.QFrame);
 QTens = R.'*diag(Sys.Q)*R;
 
 HQ1 = 0;
-for k=1:3
-  for q=1:3
+for k = 1:3
+  for q = 1:3
     HQ1 = HQ1 + QTens(k,q)*I{k}*I{q};
   end
 end

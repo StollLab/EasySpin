@@ -18,7 +18,7 @@ for ii = 1:numel(kk)
     if q>0, c = 1/2; else, c = 1/2i; end
     Op0 = c*(a*b + b*a)/2;
     Op1 = stev(S,k,q);
-    ok = all(abs(Op0(:)-Op1(:))<1e-6);
-    if (~ok), break; end
+    ok = areequal(Op0,Op1,1e-6,'abs');
+    if ~ok, break; end
   end
 end

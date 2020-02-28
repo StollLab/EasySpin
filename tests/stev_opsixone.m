@@ -17,7 +17,7 @@ for ii = 1:numel(kk)
     b = Sp^q + Sm^q;
     Op0 = (a*b + b*a)/4;
     Op1 = stev(S,k,q);
-    ok = all(abs(Op0(:)-Op1(:))<1e-6);
-    if (~ok), break; end
+    ok = areequal(Op0,Op1,1e-6,'abs');
+    if ~ok, break; end
   end
 end

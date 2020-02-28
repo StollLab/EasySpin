@@ -1,6 +1,6 @@
 function ok = test()
 
-% Simple case 1 nucleus
+% spin-1 nucleus
 
 Sys = struct('S',1/2,'g',2,'Nucs','2H','A',[1 2 3]);
 Sys.Q = [4 6 8];

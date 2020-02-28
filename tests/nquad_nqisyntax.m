@@ -19,4 +19,5 @@ H = nquad(Sys);
 Ha2 = H(1:3,1:3);
 Hb2 = [1 0 eta ; 0 -2 0; eta 0 1]*eeqQ/(4*I*(2*I-1));
 
-ok = areequal(Ha1,Hb1,1e-8,'abs') && areequal(Ha2,Hb2,1e-8,'abs');
+thr = 1e-8;
+ok = areequal(Ha1,Hb1,thr,'abs') && areequal(Ha2,Hb2,thr,'abs');

@@ -10,5 +10,5 @@ Op{3} = [0 a 0; a 0 a; 0 a 0];
 q = -1:1;
 for iq = 1:numel(q)
   Opp = stev(1,1,q(iq));
-  ok(iq) = all(abs(Opp(:)-Op{iq}(:))<1e-10);
+  ok(iq) = areequal(Opp,Op{iq},1e-10,'abs');
 end

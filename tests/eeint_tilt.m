@@ -27,7 +27,5 @@ for k = 1:2
   H1 = sham(SysA,B);
   H2 = sham(SysB,R.'*B);
   
-  err(k) = max(abs(eig(H1)-eig(H2)));
+  ok(k) = areequal(eig(H1),eig(H2),1e-10,'abs');
 end
-
-ok = all(err<1e-10);

@@ -12,7 +12,6 @@ nn{1} = 3;
 nn{2} = [4 6 7];
 nn{3} = [1 2 3; 4 5 6; 7 8 9];
 
-ok = true;
 for k = 1:3
   Sys.nn = nn{k};
   H0 = nnint(Sys);
@@ -32,7 +31,6 @@ for k = 1:3
     end
   end
   
-  ok = ok && areequal(H0,H,1e-10,'abs');
+  ok(k) = areequal(H0,H,1e-10,'abs');
+  
 end
-
-data = [];

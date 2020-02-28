@@ -27,6 +27,4 @@ end
 
 % Check orthogonality of Clebsch-Gordan matrix
 Id = CG'*CG;
-
-deviation = abs(Id-eye(N));
-ok = all(deviation(:)<1e-13);
+ok = areequal(Id,eye(N),1e-13,'abs');

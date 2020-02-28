@@ -1,8 +1,7 @@
 function ok = test()
 
-%=======================================================
 % Make sure fieldmod takes row and column vectors
-%=======================================================
+
 x = linspace(-10,10,1e3);
 y = gaussian(x,-2,1);
 dx = x(2)-x(1);

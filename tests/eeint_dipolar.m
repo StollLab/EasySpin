@@ -27,4 +27,4 @@ Sys3.dip = d*[1 1 -2] + r*[1 -1 0];
 Hee3 = eeint(Sys3);
 
 % The Hamiltonians should be _numerically_ identical
-ok = all(Hee1(:)==Hee2(:)) && all(Hee1(:)==Hee3(:));
+ok = areequal(Hee1,Hee2) && areequal(Hee1,Hee3);

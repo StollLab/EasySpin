@@ -1,7 +1,6 @@
 function ok = test()
 
 % Test for odd N
-%------------------------------------------------
 dT = rand;
 
 N = 345;
