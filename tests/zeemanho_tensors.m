@@ -1,16 +1,15 @@
 function ok = test()
 
-% Test whether the tensor output of zeemanho is identical to the full
-% matrix output
+% Test whether the tensor output of zeemanho is identical to the full matrix output
 
-rng(5); % seed randon number generator
+rng(5);
 
-Sys.S = 9/2;
+Sys.S = 5/2;
 
 for lB = 0:3
-  for lS = 1:8
+  for lS = 1:4
     if mod((lB+lS),2) == 0
-      for l = abs(lB-lS): (lB+lS)
+      for l = abs(lB-lS):(lB+lS)
         str = ['Ham',num2str([lB,lS,l],'%i%i%i')];
         Sys.(str) = [];
       end

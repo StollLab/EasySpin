@@ -1,4 +1,4 @@
-function ok = diptensor_ee(opt)
+function ok = diptensor_ee()
 
 % Test whether diptensor gives the correct result for two electrons
 
