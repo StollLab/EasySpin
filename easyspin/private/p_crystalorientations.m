@@ -8,6 +8,7 @@ function [Orientations,nOrientations,nSites,averageOverChi] = p_crystalorientati
 Inputs:
   Exp.PowderSimulation:   true/false (defined if coming from pepper/salt/saffron/curry)
   Exp.CrystalOrientation: set by pepper/salt/saffron for powders, by user for cystals
+  Exp.SampleRotation      rotation of the sample in the lab frame
   Exp.CrystalSymmetry:    space group, only used for crystal simulations
   Exp.MolFrame:           molecular frame orientation in crystal frame, only used for crystal sims
   Opt.Sites:              list of sites to include, e.g. [1 3] in a 4-site group
@@ -33,7 +34,7 @@ if rotateSample
     rho = Exp.SampleRotation{1};
     nRot = Exp.SampleRotation{2};
   else
-    error('Exp.SampleRotation must be of the form {nL,rho}.');
+    error('Exp.SampleRotation must be of the form {rho,nL}, with the rotation angle rho and the lab-frame rotation axis nL.');
   end
   if numel(rho)~=1
     error('Exp.SampleRotation can accommodate only one rotation angle.');
@@ -119,7 +120,7 @@ if ~PowderSimulation
     for iR = 1:numel(R_CL)
       R_CL{iR} = R_sample*R_CL{iR};
     end
-  end  
+  end
   
   % Generate list of lab frame orientations, represented in the
   % various site molecular frames

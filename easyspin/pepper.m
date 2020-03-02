@@ -27,6 +27,7 @@
 %      ModAmp              peak-to-peak modulation amplitude, in mT (field sweeps only)
 %      mwPhase             detection phase (0 = absorption, pi/2 = dispersion)
 %      Temperature         temperature, in K
+%      SampleRotation      3-element array of Euler angles (in radians) for sample orientation
 %      CrystalOrientation  nx3 array of Euler angles (in radians) for crystal orientations
 %      CrystalSymmetry     crystal symmetry (space group etc.)
 %      MolFrame            Euler angles (in radians) for molecular frame orientation
