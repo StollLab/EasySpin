@@ -62,8 +62,8 @@ otherwise
 end
 
 % Check number of output arguments
-if (nargout<0), error('Not enough output arguments.'); end
-if (nargout>0), error('Too many output arguments.'); end
+if nargout<0, error('Not enough output arguments.'); end
+if nargout>0, error('Too many output arguments.'); end
 
 % Check input parameters
 if isstruct(Ori)
@@ -72,7 +72,7 @@ end
 if isstruct(B)
   error('Third input argument (B) wrong: can''t be a structure.');
 end
-if numel(mwFreq)~=1
+if ~isnumeric(mwFreq) || numel(mwFreq)~=1 || ~isreal(mwFreq)
   error('Fourth input argument (mwFreq) must be a single number.');
 end
 

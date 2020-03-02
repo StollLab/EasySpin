@@ -1,5 +1,6 @@
 % levels  Energy levels of a spin system 
 %
+%   En = levels(SpinSystem)
 %   En = levels(SpinSystem,Ori,B)
 %   En = levels(SpinSystem,phi,theta,B)
 %   [En,Ve] = levels(...);
@@ -9,13 +10,12 @@
 %   Input:
 %   - SpinSystem: spin system specification structure
 %   - phi,theta: vectors of orientation angles of
-%     magnetic field (in radians)
+%     magnetic field (in radians); assumed zero if not given
 %   - Ori: orientations of the field in the molecular frame
 %       a) nx2 array of Euler angles (phi,theta), or
 %       b) nx3 array of Euler angles (phi,theta,chi), or
-%       c) 'x', 'y', 'z', 'xy', 'xz', 'yz', 'xyz' for
-%          special directions
-%   - B: vector of magnetic field magnitudes (mT)
+%       c) 'x', 'y', 'z', 'xy', 'xz', 'yz', 'xyz' for special directions
+%   - B: array of magnetic field magnitudes (mT), assumed 0 if not given
 %
 %   Output:
 %   - En: array containing all energy eigenvalues (in MHz), sorted,
@@ -26,38 +26,46 @@
 
 function [Energies,Vectors] = levels(varargin)
 
-error(chkmlver); % Error if Matlab too old.
+error(chkmlver); % Error if MATLAB is too old.
 
 switch nargin
-case 0
-  help(mfilename); return;
-case 2
-  error('Third input argument (magnetic field range) is missing.');
-case 3
-  OriList = true;
-  [SpinSystem,Ori,MagnField] = deal(varargin{:});
-  if ischar(Ori)
-    n = letter2vec(Ori);
-    Ori = vec2ang(n).';
-  end
-case 4
-  OriList = false;
-  [SpinSystem,phi,theta,MagnField] = deal(varargin{:});
-otherwise
-  error('Wrong number of input arguments!')
+  case 0
+    help(mfilename);
+    return;
+  case 1
+    SpinSystem = varargin{1};
+    phi = 0;
+    theta = 0;
+    MagnField = 0;
+    OriList = false;
+  case 2
+    error('Third input argument (magnetic field range) is missing.');
+  case 3
+    OriList = true;
+    [SpinSystem,Ori,MagnField] = deal(varargin{:});
+    if ischar(Ori)
+      n = letter2vec(Ori);
+      Ori = vec2ang(n).';
+    end
+  case 4
+    OriList = false;
+    [SpinSystem,phi,theta,MagnField] = deal(varargin{:});
+  otherwise
+    error('Wrong number of input arguments!')
 end
 
 nFieldPoints = 200;
 switch numel(MagnField)
   case 1
-    MagnField = [0 MagnField];
-    MagnField = linspace(MagnField(1),MagnField(2),nFieldPoints);
+    if MagnField>0
+      MagnField = [0 MagnField];
+      MagnField = linspace(MagnField(1),MagnField(2),nFieldPoints);
+    end
   case 2
     MagnField = linspace(MagnField(1),MagnField(2),nFieldPoints);
   otherwise
     % vector of magnetic field values given
 end
-
 
 switch nargout
 case 0, computeVectors = false;
@@ -70,7 +78,7 @@ end
 [Sys,err] = validatespinsys(SpinSystem);
 error(err);
 
-[F,Gx,Gy,Gz] = sham(Sys);
+[F,GxM,GyM,GzM] = sham(Sys);
 
 if OriList
 
@@ -80,7 +88,7 @@ if OriList
   elseif size(Ori,2)==3
     % ok
   else
-    error('Ori must be a string (''x'',''y'',''z'',''xy'',''xz'',''yz'',''xyz''), a two-element array ([phi theta]) or a three-element array [phi theta chi].');
+    error('Ori must be a string (''x'',''y'',''z'',''xy'',''xz'',''yz'',''xyz''), a Nx2 array ([phi theta]) or a Nx3 array [phi theta chi].');
   end
   nOri = size(Ori,1);
   
@@ -91,16 +99,17 @@ if OriList
   end
   
   % Loop over all parameter combinations
-  v = ang2vec(Ori(:,1),Ori(:,2));
+  zL = ang2vec(Ori(:,1),Ori(:,2)); % z direction in lab frame
   for iOri = 1:nOri
-    G = v(1,iOri)*Gx + v(2,iOri)*Gy + v(3,iOri)*Gz;
+    G = zL(1,iOri)*GxM + zL(2,iOri)*GyM + zL(3,iOri)*GzM;
     for iField = 1:length(MagnField)
       H = F + MagnField(iField)*G;
       if computeVectors
         [V_,E] = eig(H);
         E = diag(E);
         [E,idx] = sort(E);
-        Vectors(iOri,iField,:,:) = V_(:,idx);
+        V_ = V_(:,idx);
+        Vectors(iOri,iField,:,:) = V_;
       else
         E = eig(H);
         E = sort(E);
@@ -125,9 +134,9 @@ else
   
   % Loop over all parameter combinations
   for iphi = 1:length(phi)
-    Gplane = cosphi(iphi)*Gx + sinphi(iphi)*Gy;
+    GxyM = cosphi(iphi)*GxM + sinphi(iphi)*GyM;
     for itheta = 1:length(theta)
-      G = sintheta(itheta)*Gplane + costheta(itheta)*Gz;
+      G = sintheta(itheta)*GxyM + costheta(itheta)*GzM;
       for iField = 1:length(MagnField)
         if computeVectors
           [Vectors(iphi,itheta,iField,:,:),E] = eig(F + MagnField(iField)*G);
