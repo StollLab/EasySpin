@@ -1376,7 +1376,7 @@ if nPerturbNuclei>0
   logmsg(1,'  transition post-selection on perturbation nuclei');
 
   % Remove low-intensity lines from splittings
-  for iiNuc = 1:nPerturbNuclei
+  for iiNuc = nPerturbNuclei:-1:1
     % sum over transitions and orientations
     TotalIntensity = squeeze(sum(sum(pIdatN{iiNuc},1),2));
     idxRmv = TotalIntensity<max(TotalIntensity)*Opt.HybridIntThreshold;
@@ -1414,19 +1414,20 @@ if nPerturbNuclei>0
 end
 
 % Combine resonance data with perturbation nuclei
-%---------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 if nPerturbNuclei>0
   nSubTransitions = size(pPdat,3); % transitions per core system level pair
-  nTotalTrans = nTransitions*nSubTransitions;
-  Pdat = reshape(permute(repmat(Pdat,[1,1,nSubTransitions]) +pPdat,[1 3 2]),nTotalTrans,nOrientations);
-  Idat = reshape(permute(repmat(Idat,[1,1,nSubTransitions]).*pIdat,[1 3 2]),nTotalTrans,nOrientations);
-  if numel(Gdat)>0
-    Gdat = reshape(permute(repmat(Gdat,[1,1,nSubTransitions]),[1 3 2]),nTotalTrans,nOrientations);
-  end
+  expand = @(x) repmat(x,[1,1,nSubTransitions]);
+  rearrange = @(x) reshape(permute(x,[1 3 2]),nTransitions*nSubTransitions,[]);
+  Pdat = rearrange(expand(Pdat)+pPdat);
+  Idat = rearrange(expand(Idat).*pIdat);
   if numel(Wdat)>0
-    Wdat = reshape(permute(repmat(Wdat,[1,1,nSubTransitions]),[1 3 2]),nTotalTrans,nOrientations);
+    Wdat = rearrange(expand(Wdat));
   end
-  Transitions = reshape(permute(repmat(Transitions,[1 1 nSubTransitions]),[1 3 2]),nTotalTrans,2);
+  if numel(Gdat)>0
+    Gdat = rearrange(expand(Gdat));
+  end
+  Transitions = rearrange(expand(Transitions));
   clear pPdat pIdat
 end
 

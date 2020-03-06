@@ -100,7 +100,7 @@ if (numel(Sys.gAStrainCorr)~=1) || ~isnumeric(Sys.gAStrainCorr) || ...
 end
 Sys.gAStrainCorr = sign(Sys.gAStrainCorr);
 
-if (Sys.nElectrons>1)
+if Sys.nElectrons>1
   if any(Sys.gStrain(:)) || any(Sys.AStrain(:))
     error('Cannot use D or g/A strain in spin system with more than one electron spin.');
   end
@@ -237,8 +237,8 @@ if any(~isreal(t_)) || numel(t_)>2 || any(t_<0) || any(t_>=1)
 end
 
 StrainsPresent = any([Sys.HStrain(:); Sys.DStrain(:); Sys.gStrain(:); Sys.AStrain(:)]);
-ComputeStrains = StrainsPresent && (nargout>2);
-ComputeIntensities = ((nargout>1) & Opt.Intensity);
+computeStrains = StrainsPresent && (nargout>2);
+computeIntensities = ((nargout>1) & Opt.Intensity);
 
 
 % Preparing kernel and perturbing system Hamiltonians.
@@ -254,7 +254,7 @@ end
 
 % :KLUDGE: Add some fuzz to the hyperfine couplings to avoid degeneracies
 % if several (equivalent) nuclei are specified.
-if (Sys.nNuclei>1)
+if Sys.nNuclei>1
   Sys.A = Sys.A.*(1 + Opt.FuzzLevel*rand(size(Sys.A)));
 end
 
@@ -321,7 +321,7 @@ if (CoreSys.nNuclei>=1) && Opt.Hybrid
       Hzeem(iiNuc).z = prefactor*sop(I,1,3);
       % Nuclear quadrupole interaction
       Hquad{iiNuc} = 0;
-      if (I>=1)
+      if I>=1
         Q = [0 0 0];
         R = eye(3);
         if isfield(Sys,'Q'), Q = Sys.Q(iNuc,:); end
@@ -357,7 +357,7 @@ if higherOrder
   nFull = hsdim(Sys);
   nSHFNucStates = nFull/nCore;
 else
-  if (Opt.Sparse)
+  if Opt.Sparse
     [kF,kGxM,kGyM,kGzM] = sham(CoreSys,[],'sparse');
     nLevels = length(kF);
   else
@@ -416,7 +416,7 @@ if computeNonEquiPops
       v2 = ZFStates(:,3);
       ZFStates(:,2) = (v1-v2)/sqrt(2);
       ZFStates(:,3) = (v1+v2)/sqrt(2);
-    elseif (ZFEnergies(2)==ZFEnergies(1))
+    elseif ZFEnergies(2)==ZFEnergies(1)
       logmsg(1,'  >>>> manual zero-field states (D<0)');
       v1 = ZFStates(:,1);
       v2 = ZFStates(:,2);
@@ -434,7 +434,7 @@ end
 %=======================================================================
 
 UserTransitions = ~isempty(Opt.Transitions);
-if (UserTransitions)
+if UserTransitions
   if ischar(Opt.Transitions)
     if strcmp(Opt.Transitions,'all')
       nSStates = prod(2*CoreSys.S+1)*prod(2*CoreSys.L+1);
@@ -481,7 +481,7 @@ logmsg(1,'  %d transitions pre-selected',nTransitions);
 % Line width preparations
 %=======================================================================
 logmsg(1,'- Broadenings');
-if (ComputeStrains)
+if computeStrains
   logmsg(1,'  using strains');
   
   % D strain
@@ -564,21 +564,21 @@ logstr = '';
 % Calculate transition rates over all orientations (fixed field!).
 Pdat = zeros(nTransitions,nOrientations);
 
-if (ComputeIntensities)
+if computeIntensities
   Idat = zeros(nTransitions,nOrientations);
 else
   Idat = [];
 end
 
-if (ComputeStrains)
+if computeStrains
   Wdat = zeros(nTransitions,nOrientations);
 else
   Wdat = [];
 end
 
 for iOri = 1:nOrientations
-  if (EasySpinLogLevel>=1)
-    if (iOri>1)
+  if EasySpinLogLevel>=1
+    if iOri>1
       remainingTime = (cputime-startTime)/(iOri-1)*(nOrientations-iOri+1);
       backspace = repmat(sprintf('\b'),1,numel(logstr));
       hours = fix(remainingTime/3600);
@@ -589,7 +589,7 @@ for iOri = 1:nOrientations
       if EasySpinLogLevel==1, fprintf(backspace); end
       fprintf(logstr);
     else
-      if (nOrientations>1)
+      if nOrientations>1
         logstr = sprintf('  1/%d orientations, remaining time unknown\n',nOrientations);
         fprintf(logstr);
       end
@@ -634,7 +634,7 @@ for iOri = 1:nOrientations
   Pdat(:,iOri) = E(v) - E(u);
   
   % Calculate intensities if requested
-  if (ComputeIntensities)
+  if computeIntensities
         
     % Compute quantum-mechanical transition rate
     for iTrans = nTransitions:-1:1
@@ -642,21 +642,21 @@ for iOri = 1:nOrientations
       U = Vs(:,u(iTrans)); % lower-energy state (u)
       V = Vs(:,v(iTrans)); % higher-energy state (v, Ev>Eu)
       mu = [V'*kGxL*U; V'*kGyL*U; V'*kGzL*U]; % magnetic transition dipole moment
-      if (AverageOverChi)
-        if (linearpolarizedMode)
+      if AverageOverChi
+        if linearpolarizedMode
           TransitionRate = ((1-xi1^2)*norm(mu)^2+(3*xi1^2-1)*abs(nB0.'*mu)^2)/2;
-        elseif (unpolarizedMode)
+        elseif unpolarizedMode
           TransitionRate = ((1+xik^2)*norm(mu)^2-(3*xik^2-1)*abs(nB0.'*mu)^2)/4;
-        elseif (circpolarizedMode)
+        elseif circpolarizedMode
           TransitionRate = ((1+xik^2)*norm(mu)^2-(3*xik^2-1)*abs(nB0.'*mu)^2)/2 - ...
             circSense*xik*(nB0.'*cross(1i*mu,conj(mu)));
         end
       else
-        if (linearpolarizedMode)
+        if linearpolarizedMode
           TransitionRate = abs(nB1.'*mu)^2;
-        elseif (unpolarizedMode)
+        elseif unpolarizedMode
           TransitionRate = (norm(mu)^2-abs(nk.'*mu)^2)/2;
-        elseif (circpolarizedMode)
+        elseif circpolarizedMode
           TransitionRate = (norm(mu)^2-abs(nk.'*mu)^2) - ...
             circSense*(nk.'*cross(1i*mu,conj(mu)));
         end
@@ -670,7 +670,7 @@ for iOri = 1:nOrientations
     
     
     % Compute polarizations if temperature is given.
-    if (computeBoltzmannPopulations)
+    if computeBoltzmannPopulations
       
       Populations = ones(nCore,1);
       
@@ -678,14 +678,14 @@ for iOri = 1:nOrientations
       BoltzmannPreFactor = -1e6*planck/boltzm/Exp.Temperature; % MHz^-1
       for iState = 1:nCore
         dE = E(iState) - E(1);
-        if (dE<1e-10), dE = 0; end % assure we recognize degenerate state even if numerically non-degenerate
+        if dE<1e-10, dE = 0; end % assure we recognize degenerate state even if numerically non-degenerate
         Populations(iState) = exp(BoltzmannPreFactor*dE);
       end
       Populations(isnan(Populations)) = 1;
       Populations = Populations/sum(Populations);
       
       Polarization = Populations(u) - Populations(v);
-      if (nPerturbNuclei>0)
+      if nPerturbNuclei>0
         Polarization = Polarization/prod(2*Sys.I+1);
       end
       
@@ -702,7 +702,7 @@ for iOri = 1:nOrientations
         end  
       end
       Polarization = Populations(u) - Populations(v);
-      if (nPerturbNuclei>0)
+      if nPerturbNuclei>0
         Polarization = Polarization/prod(2*Sys.I+1);
       end
        
@@ -718,7 +718,7 @@ for iOri = 1:nOrientations
   
   % Calculate width if requested.
   %--------------------------------------------------
-  if (ComputeStrains)
+  if computeStrains
     LineWidthSquared = CoreSys.HStrain.^2*zLab.^2;
     for iTrans = 1:nTransitions
       m = @(Op)Vs(:,v(iTrans))'*Op*Vs(:,v(iTrans)) - Vs(:,u(iTrans))'*Op*Vs(:,u(iTrans));
@@ -752,7 +752,7 @@ for iOri = 1:nOrientations
   
   % First-order approximation for nuclei
   %-------------------------------------------------------
-  if (nPerturbNuclei>0)
+  if nPerturbNuclei>0
     for iTrans = 1 :nTransitions
       U = Vs(:,u(iTrans));
       V = Vs(:,v(iTrans));
@@ -805,7 +805,7 @@ logmsg(2,'  ## %2d resonances total from %d level pairs',size(Pdat,1),nTransitio
 %-----------------------------------------------------------------------
 
 idxWeakResonances = [];
-if ComputeIntensities && ~UserTransitions
+if computeIntensities && ~UserTransitions
   if numel(Opt.Threshold)==1
     PostSelectionThreshold = Opt.Threshold(1);
   else
@@ -823,10 +823,10 @@ else
   logmsg(2,'  ## no intensities computed, no intensity post-selection');
 end
 
-if (EasySpinLogLevel>=2)
+if EasySpinLogLevel>=2
   partlyNaN = any(isnan(Pdat),2);
   nChopped = sum(partlyNaN);
-  if (nChopped>0)
+  if nChopped>0
     logmsg(2,'  ## %2d transitions partly out of range',nChopped);
   end
   logmsg(2,'  ## %2d transitions fully in range',nTransitions-sum(partlyNaN));
@@ -851,9 +851,9 @@ if numel(idxRmv)>0
   logmsg(2,'  ## removing %2d resonances (below threshold, out of range)',numel(idxRmv));
   Pdat(idxRmv,:) = [];
   Transitions(idxRmv,:)=[];
-  if (ComputeIntensities), Idat(idxRmv,:) = []; end
-  if (ComputeStrains), Wdat(idxRmv,:) = []; end
-  if (nPerturbNuclei>0)
+  if computeIntensities, Idat(idxRmv,:) = []; end
+  if computeStrains, Wdat(idxRmv,:) = []; end
+  if nPerturbNuclei>0
     for iiNuc = 1:nPerturbNuclei
       pPdatN{iiNuc}(idxRmv,:,:) = [];
       pIdatN{iiNuc}(idxRmv,:,:) = [];
@@ -866,7 +866,7 @@ logmsg(2,'  ## %2d resonances left',nTransitions);
 
 logmsg(1,'  %d significant transitions with resonances in range',nTransitions);
 
-if (nTransitions==0)
+if nTransitions==0
   if ~isempty(Exp.Range)
     fprintf(['WARNING: No resonance frequencies at %g mT between %g and %g GHz.\n'...
       '         Check field value and spectrometer frequency range.\n'],...
@@ -880,7 +880,7 @@ if (nTransitions==0)
 end
 
 % Assert positive intensities, but only for thermal equilibrium populations
-if ComputeIntensities && (~computeNonEquiPops)
+if computeIntensities && (~computeNonEquiPops)
   if any(TransitionRates<0)
     logmsg(-inf,'*********** Negative intensity encountered in resfields!! Please report! **********');
   end
@@ -892,7 +892,7 @@ end
 
 % Transition post-selection for perturbational nuclei
 %---------------------------------------------------------------------
-if (nPerturbNuclei>0)
+if nPerturbNuclei>0
   logmsg(1,'  transition post-selection on perturbation nuclei');
   
   % Remove low-intensity lines from splittings
@@ -908,7 +908,7 @@ end
 
 % Compute combined total shifts and amplitudes
 %---------------------------------------------------------------------
-if (nPerturbNuclei>0)
+if nPerturbNuclei>0
   logmsg(1,'  combining shifts from perturbational nuclei');
   
   % Prepare index matrices for line combinations
@@ -934,29 +934,30 @@ if (nPerturbNuclei>0)
 end
 
 % Combine resonance data with perturbation nuclei
-%---------------------------------------------------------------------
-if (nPerturbNuclei>0)
-  nSubTransitions = size(pPdat,3); % transitions per electronic level pair
-  nTotalTrans = nTransitions*nSubTransitions;
-  Pdat = reshape(permute(repmat(Pdat,[1,1,nSubTransitions]) +pPdat,[1 3 2]),nTotalTrans,nOrientations);
-  Idat = reshape(permute(repmat(Idat,[1,1,nSubTransitions]).*pIdat,[1 3 2]),nTotalTrans,nOrientations);
-  if(ComputeStrains)
+%-------------------------------------------------------------------------------
+if nPerturbNuclei>0
+  nSubTransitions = size(pPdat,3); % transitions per core system level pair
+  expand = @(x) repmat(x,[1,1,nSubTransitions]);
+  rearrange = @(x) reshape(permute(x,[1 3 2]),nTransitions*nSubTransitions,[]);
+  Pdat = rearrange(expand(Pdat)+pPdat);
+  Idat = rearrange(expand(Idat).*pIdat);
+  if computeStrains
     if numel(Wdat)>0
-      Wdat = reshape(permute(repmat(Wdat,[1,1,nSubTransitions]),[1 3 2]),nTotalTrans,nOrientations);
+      Wdat = rearrange(expand(Wdat));
     end
   end
-  Transitions = reshape(permute(repmat(Transitions,[1 1 nSubTransitions]),[1 3 2]),nTotalTrans,2);
+  Transitions = rearrange(expand(Transitions));
   clear pPdat pIdat
 end
 
 
 % Resonance data summary
-%---------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 logmsg(2,'  ## resonances min %g MHz, max %g MHz',min(Pdat(:)),max(Pdat(:)));
-if (ComputeIntensities)
+if computeIntensities
   logmsg(2,'  ## amplitudes min %g, max %g',min(Idat(:)),max(Idat(:)));
 end
-if (ComputeStrains && numel(Wdat)>0)
+if computeStrains && numel(Wdat)>0
   logmsg(2,'  ## widths min %g mT, max %g mT',min(Wdat(:)),max(Wdat(:)));
 end
 

@@ -112,7 +112,7 @@ nTransitions = 2*S; % number of allowed transitions for one electron spin
 
 I = Sys.I;
 nNuclei = Sys.nNuclei;
-if (nNuclei>0)
+if nNuclei>0
   nNucStates = 2*I+1;
 else
   nNucStates = 1;
@@ -224,7 +224,7 @@ immediateBinning = Opt.ImmediateBinning;
 
 if immediateBinning
 else
-  if (nNuclei>0)
+  if nNuclei>0
     idxn = allcombinations(idxn{:});
   else
     idxn = 1;
@@ -271,23 +271,23 @@ for iOri = nOrientations:-1:1
   %----------------------------------------------------------------
 
   % Compute quantum-mechanical transition rate
-  if (AverageOverChi)
-    if (linearpolarizedMode)
+  if AverageOverChi
+    if linearpolarizedMode
       TransitionRate(:,iOri) = c2/2*(1-xi1^2)*(trgg-norm(g*u)^2);
-    elseif (unpolarizedMode)
+    elseif unpolarizedMode
       TransitionRate(:,iOri) = c2/4*(1+xik^2)*(trgg-norm(g*u)^2);
-    elseif (circpolarizedMode)
+    elseif circpolarizedMode
       TransitionRate(:,iOri) = c2/2*(1+xik^2)*(trgg-norm(g*u)^2) + ...
         circSense*2*c2*xik^2*det(g)/norm(g.'*n0);
     end
   else
-    if (linearpolarizedMode)
+    if linearpolarizedMode
       nB1_ = R.'*nB1; % transform to molecular frame representation
       TransitionRate(:,iOri) = c2*norm(cross(g.'*nB1_,u))^2;
-    elseif (unpolarizedMode)
+    elseif unpolarizedMode
       nk_ = R.'*nk; % transform to molecular frame representation
       TransitionRate(:,iOri) = c2/2*(trgg-norm(g*u)^2-norm(cross(g.'*nk_,u))^2);
-    elseif (circpolarizedMode)
+    elseif circpolarizedMode
       nk_ = R.'*nk; % transform to molecular frame representation
       TransitionRate(:,iOri) = c2*(trgg-norm(g*u)^2-norm(cross(g.'*nk_,u))^2) + ...
         circSense*2*c2*det(g)*xik/norm(g.'*n0);
@@ -316,7 +316,7 @@ for iOri = nOrientations:-1:1
     else
       dE1D = 0;
     end
-    if (nNuclei>0)
+    if nNuclei>0
       for iNuc = 1:nNuclei
         K = A{iNuc}*u;
         nK = norm(K);
@@ -342,7 +342,7 @@ for iOri = nOrientations:-1:1
       else
         dE2DA = 0;
       end
-      if (nNuclei>0)
+      if nNuclei>0
         for n = 1:nNuclei
           k_ = k(:,n);
           Ak = A{n}.'*k_;
@@ -545,7 +545,7 @@ return
 
 function Combs = allcombinations(varargin)
 
-if (nargin==0), Combs = []; return; end
+if nargin==0, Combs = []; return; end
 
 Combs = varargin{1}(:);
 nCombs = numel(Combs);
