@@ -150,6 +150,7 @@ for iTest = 1:numel(TestFileNames)
     errorInfo = [];
     errorStr = '';
   catch exception
+    ok = false;
     data = [];
     testOutcome = 2; % test crashed
     errorInfo = exception;
