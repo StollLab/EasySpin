@@ -556,22 +556,3 @@ Output = {B,Int,Wid,Transitions,spec};
 varargout = Output(1:max(nargout,1));
 
 return
-
-%==================================================================
-
-function Combs = allcombinations(varargin)
-
-if (nargin==0), Combs = []; return; end
-
-Combs = varargin{1}(:);
-nCombs = numel(Combs);
-
-for iArg = 2:nargin
-  New = varargin{iArg}(:);
-  nNew = numel(New);
-  [idxNew,idxCombs] = find(ones(nNew,nCombs));
-  Combs = [Combs(idxCombs(:),:), New(idxNew(:))];
-  nCombs = nCombs*nNew;
-end
-
-return

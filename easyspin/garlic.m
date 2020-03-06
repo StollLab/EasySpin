@@ -750,8 +750,8 @@ end
 %--------------------------------------------------------------
 logmsg(1,'Combining line shifts and line multiplicities...');
 if (nPeaks>1)
-  Positions = allcombinations(Shifts,'+') + CentralResonance;
-  Intensities = allcombinations(Amplitudes,'*');
+  Positions = allcombinations(Shifts{:},'+') + CentralResonance;
+  Intensities = allcombinations(Amplitudes{:},'*');
 else
   Positions = CentralResonance;
   Intensities = 1;
@@ -974,31 +974,6 @@ return
 %===================================================================
 %===================================================================
 %===================================================================
-function Result = allcombinations(Elements,combineFcn)
-
-nGroups = numel(Elements);
-nElements = cellfun(@(g)numel(g),Elements);
-
-n1 = prod(nElements);
-n2 = 1;
-if combineFcn=='+'
-  fcn = @plus;
-  Result = 0;
-elseif combineFcn=='*'
-  fcn = @times;
-  Result = 1;
-end
-
-for g = 1:nGroups
-  n1 = n1/nElements(g);
-  R_ = repmat(Elements{g},n1,n2);
-  Result = fcn(Result,R_(:));
-  n2 = n2*nElements(g);
-end
-
-return
-
-%=========================================================
 function Spectrum = constructstickspectrum(Positions,Amplitudes,Range,nPoints)
 
 % Convert positions to indices into spectral vector (1...nPoints)

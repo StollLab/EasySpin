@@ -181,7 +181,7 @@ if highSpin
   trDD = trace(D^2);
 end
 
-states = allcombinations(mI{:});
+states = allcombinations(mI{:},'i');
 
 % Initialize parameters for orientation selectivity determination.
 % Selectivity = (maxEPRfreq-minEPRfreq)/minExWidth
@@ -388,29 +388,5 @@ EndorIntensities = EndorIntensities*prod(2*Sys.I+1);
 Transitions = [];
 Output = {EndorFreqs,EndorIntensities,Transitions,Info};
 varargout = Output(1:max(nargout,1));
-
-function Combs = allcombinations(varargin)
-
-if nargin==0, Combs = []; return; end
-
-idxonly = 1;
-if idxonly
-  Combs = (1:numel(varargin{1})).';
-else
-  Combs = varargin{1}(:);
-end
-nCombs = numel(Combs);
-
-for iArg = 2:nargin
-  New = varargin{iArg}(:);
-  nNew = numel(New);
-  [idxNew,idxCombs] = find(ones(nNew,nCombs));
-  if idxonly
-    Combs = [Combs(idxCombs(:),:), idxNew(:)];
-  else
-    Combs = [Combs(idxCombs(:),:), New(idxNew(:))];
-  end
-  nCombs = nCombs*nNew;
-end
 
 return
