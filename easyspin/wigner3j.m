@@ -14,7 +14,7 @@
 %   Definitions for alternative input forms
 %   a)  jm1 = [j1 m2], jm2 = [j2 m2], jm3 = [j3 m3]
 %   b)  jjj = [j1 j2 j3], mmm = [m1 m2 m3]
-%   c)  jjjmmm = [j1 j2 j3 m1 m2 m3]
+%   c)  jjjmmm = [j1 j2 j3; m1 m2 m3]
 
 function value = wigner3j(varargin)
 
@@ -22,36 +22,45 @@ if nargin==0, help(mfilename); return; end
 
 % Parse input
 %---------------------------------------------------
-Method = [];
-switch nargin
-  case 7
-    [j1,j2,j3,m1,m2,m3,Method] = deal(varargin{:});
+if ischar(varargin{end})
+  Method = varargin{end};
+  inputs = varargin(1:end-1);
+else
+  Method = '';
+  inputs = varargin;
+end
+
+switch numel(inputs)
   case 6
-    [j1,j2,j3,m1,m2,m3] = deal(varargin{:});
+    [j1,j2,j3,m1,m2,m3] = deal(inputs{:});
   case 3
-    [jm1,jm2,jm3] = deal(varargin{:});
+    [jm1,jm2,jm3] = deal(inputs{:});
     j1 = jm1(1); m1 = jm1(2);
     j2 = jm2(1); m2 = jm2(2);
     j3 = jm3(1); m3 = jm3(2);
   case 2
-    [j,m] = deal(varargin{:});
+    [j,m] = deal(inputs{:});
     j1 = j(1); j2 = j(2); j3 = j(3);
     m1 = m(1); m2 = m(2); m3 = m(3);
   case 1
-    j = varargin{1};
+    jm = inputs{1};
+    if ~all(size(jm)==[2 3])
+      error('If all J and M are supplied in an array, the array must be 2x3.');
+    end
+    j = jm(1,:);
+    m = jm(2,:);
     j1 = j(1); j2 = j(2); j3 = j(3);
-    m1 = j(4); m2 = j(5); m3 = j(6);
+    m1 = m(1); m2 = m(2); m3 = m(3);
   otherwise
     error('Wrong number of parameters!');
 end
 
 if isempty(Method)
-  Method = 1;
+  Method = 'f+';
   if max([j1 j2 j3])>20
-    Method = 2;
+    Method = 'b+';
   end
 end
-
 
 isint = @(x) x==floor(x);
 istriangle = @(a,b,c) (a+b>=c) && (b+c>=a) && (c+a>=b);
@@ -97,58 +106,34 @@ if m1==0 && m2==0 && m3==0 && mod(j1+j2+j3,2)
 end
 
 % Nonzero value: computation
-%--------------------------------------------------
+%-------------------------------------------------------------------------------
 
-% Value for all zeros
+% Value for [0 0 0; 0 0 0]
 if all(jjjmmm==0)
   value = 1;
   return
 end
 
-% Use fast explicit expressions for any j == 2
-useFastExpressions = Method>0;
+% Use fast explicit expressions if any j<=2
+useFastExpressions = any(Method=='+');
 if useFastExpressions
-  if j2==2
+  if j1<=2 || j2<=2 || j3<=2
     value = fastwigner(j1,j2,j3,m1,m2,m3);
-    return
-  end
-  if j3==2
-    value = fastwigner(j2,j3,j1,m2,m3,m1);
-    return
-  end
-  if j1==2
-    value = fastwigner(j3,j1,j2,m3,m1,m2);
     return
   end
 end
 
-% Values for [j1,j2,j3;0 0 0]
-if m1==0 && m2==0 && m3==0
-  J = j1+j2+j3;
-  if mod(J,2)
-    value = 0;
-    return
-  end
-  % Values for [4 4 4; 0 0 0] and [4 4 0; 0 0 0] and [4 0 4; 0 0 0]
-  if j1==4
-    if j2==4 && j3==4
-      value = sqrt(18/1001);
-      return
-    elseif j2==4 && j3==0
-      value = 1/3;
-      return
-    elseif j2==0 && j3==4
-      value = 1/3;
-      return
-    end
-  else
-    % General routine for [j1,j2,j3;0 0 0]
+% Values for [j1 j2 j3; 0 0 0]
+if useFastExpressions
+  if m1==0 && m2==0 && m3==0
+    % General routine for [j1 j2 j3; 0 0 0]
     % see Tuzun, Burkhardt, Secrest
     % Accurate computation of individual and tables of 3-j and 6-j symbols
     % Computer Physics Communications 112, 112-148 (1998)
     % https://doi.org/10.1016/S0010-4655(98)00065-4
     % p.115, Eq.(12) (typo in Eq.(13))
-    % The formula from Edmonds p.125 is more prone to overflow errors.
+    % The expression from Edmonds p.125 is more prone to overflow errors.
+    J = j1+j2+j3;
     if J<100000
       CBA = sort([-j1+j2+j3,j1-j2+j3,j1+j2-j3]);
       C = CBA(1); B = CBA(2); A = CBA(3);
@@ -166,7 +151,7 @@ if m1==0 && m2==0 && m3==0
 end
 
 % General computation
-%==================================================================
+%===============================================================================
 % Formula from Eq. (1)
 % Lai and Chiu, Computer Physics Communications 61 (1990) 350-360
 % https://doi.org/10.1016/0010-4655(90)90049-7
@@ -176,55 +161,56 @@ binoln = @(n,k)facln(n)-facln(k)-facln(n-k); % Logarithm of binomial coefficient
 
 tmin = max([0,j1-j3+m2,j2-j3-m1]);
 tmax = min([j1+j2-j3,j1-m1,j2+m2]);
-switch abs(Method)
-  case 1
-    % prefactor: logarithmic
-    % sum: each term logarithmic
-    v = facln(j1+m1) + facln(j1-m1) + facln(j2+m2) + facln(j2-m2) + ...
-      facln(j3+m3) + facln(j3-m3) - facln(j1+j2+j3+1) - ...
-      facln(j1+j2-j3) - facln(j1-j2+j3) - facln(-j1+j2+j3);
-    binsum = 0;
-    for t = tmin:tmax
-      p = binoln(j1+j2-j3,t) + binoln(j1-j2+j3,j1-m1-t) + binoln(-j1+j2+j3,j2+m2-t);
-      p = (-1)^t*exp(p+v/2);
-      binsum = binsum + p;
-    end
-    value = (-1)^(j1-j2-m3)*binsum;
+if any(Method=='f')
+  % prefactor: logarithmic
+  % sum: each term logarithmic
+  v = facln(j1+m1) + facln(j1-m1) + facln(j2+m2) + facln(j2-m2) + ...
+    facln(j3+m3) + facln(j3-m3) - facln(j1+j2+j3+1) - ...
+    facln(j1+j2-j3) - facln(j1-j2+j3) - facln(-j1+j2+j3);
+  binsum = 0;
+  for t = tmin:tmax
+    p = binoln(j1+j2-j3,t) + binoln(j1-j2+j3,j1-m1-t) + binoln(-j1+j2+j3,j2+m2-t);
+    p = (-1)^t*exp(p+v/2);
+    binsum = binsum + p;
+  end
+  value = (-1)^(j1-j2-m3)*binsum;
 
-  case 2
-    % prefactor: logarithmic
-    % sum: binomials, using Java class BigInteger/BigDecimal
-    
-    % binomial sum
-    t = tmin;
-    p = binom_bi(j1+j2-j3,t);
-    p = p.multiply(binom_bi( j1-j2+j3,j1-m1-t));
-    p = p.multiply(binom_bi(-j1+j2+j3,j2+m2-t));
-    p = p.multiply(bi((-1)^t));
-    binsum = p;
-    for t = tmin+1:tmax
-      q1 = (j1+j2-j3-t+1)*(j1-m1-t+1)*(j2+m2-t+1);
-      q2 = t*(-j2+j3+m1+t)*(-j1+j3-m2+t);
-      p = p.multiply(bi(q1));
-      p = p.divide(bi(q2));
-      p = p.multiply(bi(-1));
-      binsum = binsum.add(p);
-    end
-    n = length(binsum.toString)-1; % 10-base exponent
-    % don't merge the following three lines - Matlab 7.5 throws an error
-    b = java.math.BigDecimal(binsum).movePointLeft(n).doubleValue;
-    %b = b.movePointLeft(n);
-    %b = b.doubleValue;
-    
-    prefactor_ln = ...
-      facln(j1+m1) + facln(j1-m1) + facln(j2+m2) + facln(j2-m2) + ...
-      facln(j3+m3) + facln(j3-m3) - facln(j1+j2+j3+1) - ...
-      facln(j1+j2-j3) - facln(j1-j2+j3) - facln(-j1+j2+j3);
-    
-    value = (-1)^(j1-j2-m3)*exp(prefactor_ln/2+n*log(10))*b;
-    
-  otherwise
-    error('Unknown computation method.');
+elseif any(Method=='b')
+  % prefactor: logarithmic
+  % sum: binomials, using Java class BigInteger/BigDecimal
+  
+  % binomial sum
+  t = tmin;
+  p = binom_bi(j1+j2-j3,t);
+  p = p.multiply(binom_bi( j1-j2+j3,j1-m1-t));
+  p = p.multiply(binom_bi(-j1+j2+j3,j2+m2-t));
+  p = p.multiply(bi((-1)^t));
+  binsum = p;
+  for t = tmin+1:tmax
+    q1 = (j1+j2-j3-t+1)*(j1-m1-t+1)*(j2+m2-t+1);
+    q2 = t*(-j2+j3+m1+t)*(-j1+j3-m2+t);
+    p = p.multiply(bi(q1));
+    p = p.divide(bi(q2));
+    p = p.multiply(bi(-1));
+    binsum = binsum.add(p);
+  end
+  n = length(binsum.toString)-1; % 10-base exponent
+  % don't merge the following three lines - Matlab 7.5 throws an error
+  b = java.math.BigDecimal(binsum).movePointLeft(n).doubleValue;
+  %b = b.movePointLeft(n);
+  %b = b.doubleValue;
+  
+  prefactor_ln = ...
+    facln(j1+m1) + facln(j1-m1) + facln(j2+m2) + facln(j2-m2) + ...
+    facln(j3+m3) + facln(j3-m3) - facln(j1+j2+j3+1) - ...
+    facln(j1+j2-j3) - facln(j1-j2+j3) - facln(-j1+j2+j3);
+  
+  value = (-1)^(j1-j2-m3)*exp(prefactor_ln/2+n*log(10))*b;
+  
+else
+  
+  error('Unknown computation method.');
+  
 end
 
 return
@@ -248,118 +234,132 @@ for q = 1:k
 end
 
 %-------------------------------------------------------------------------------
-function w3j = fastwigner(j1,j2,j3,m1,m2,m3)
+function val = fastwigner(j1,j2,j3,m1,m2,m3)
+% Implements explicit expressions for min([j1 j2 j3])<=2.
 % Expressions taken from
-% A.R.Edmonds, Angular Momentum, Princeton University Press, 1957
-% Table 2, p.125-127
+%   A.R.Edmonds, Angular Momentum, Princeton University Press, 1957
+%   Table 2, p.125-127
 
-%----------------------------------------------------------------------
-% Permute variables if necessary to get m2 => 0 and j1 <= j3;
-% Keep track of phase
-%----------------------------------------------------------------------
+phase = 1; % to keep track of overall sign
 
-if mod(j1+j2+j3,2)==0
-  parity = 1;
+parity = (-1)^(j1+j2+j3);
+
+% If needed, swap j3/m3 with j1/m1 or j2/m2 to get j3<=2
+if j1<=2
+  k = j3; j3 = j1; j1 = k;
+  k = m3; m3 = m1; m1 = k;
+  phase = phase*parity;
+elseif j2<=2
+  k = j3; j3 = j2; j2 = k;
+  k = m3; m3 = m2; m2 = k;
+  phase = phase*parity;
+elseif j3<=2
+  % ok
 else
-  parity = -1;
+  error('At least one J must be <=2.');
 end
 
-if m2<0
+if mod(j3,1)
+  error('j3 must be an integer.')
+end
+
+% If needed, invert all m to get m3>=0
+if m3<0
   m1 = -m1;
   m2 = -m2;
   m3 = -m3;
-  phase = parity;
-else
-  phase = 1;
-end
-
-if j1>j3
-  k = j1; j1 = j3; j3 = k;
-  k = m1; m1 = m3; m3 = k;
   phase = phase*parity;
 end
 
-if mod(j1-m3,2)~=0
-  phase = -phase;
+% If needed, swap j1/m1 and j2/m2 to get j1>=j2
+if j1<j2
+  k = j1; j1 = j2; j2 = k;
+  k = m1; m1 = m2; m2 = k;
+  phase = phase*parity;
 end
 
-%----------------------------------------------------------------------
 % Calculate Wigner 3-j symbols
-%----------------------------------------------------------------------
+J = j2;
+M = m1;
+JmM = J - M;
+JpM = J + M;
+jdelta = j1-j2;
+x = j1 + j2 - 1;
 
-jdelta = j3-j1;
-x = 2*j1 - 1 + jdelta;
-y = j1 - m3;
-z = j1 + m3;
+phase = phase*(-1)^(J-M);
 
-if j2==0
+if j3==0
 
-  w3j = 1/sqrt(2*j1+1);
+  val = 1/sqrt(2*j1+1);
 
-elseif j2==2
+elseif j3==2
 
   tmp2 = x*(x+1)*(x+2)*(x+3)*(x+4);
-  if m2==0
+  if m3==0
     if jdelta==0
-      tmp1 = 2*(3*m3*m3-j1*(j1+1));
-      w3j = tmp1/sqrt(tmp2);
+      val = 2*(3*M^2-J*(J+1))/sqrt(tmp2);
     elseif jdelta==1
-      tmp1  = 6*(z+1)*(y+1);
-      w3j = -2*m3*sqrt(tmp1/tmp2);
+      tmp1  = 6*(JpM+1)*(JmM+1);
+      val = -2*M*sqrt(tmp1/tmp2);
     else
-      tmp1 = 6*(z+2)*(z+1)*(y+2)*(y+1);
-      w3j = sqrt(tmp1/tmp2);
+      tmp1 = 6*(JpM+2)*(JpM+1)*(JmM+2)*(JmM+1);
+      val = sqrt(tmp1/tmp2);
     end
-  elseif m2==1
+  elseif m3==1
     if jdelta==0
-      tmp1 = 6*(z+1)*y;
-      w3j = (2*m3+1)*sqrt(tmp1/tmp2);
+      tmp1 = 6*(JpM+1)*JmM;
+      val = (1+2*M)*sqrt(tmp1/tmp2);
     elseif jdelta==1
-      tmp1 = y*(y+1);
-      w3j = -(2*j1+4*m3+4)*sqrt(tmp1/tmp2);
+      tmp1 = (JmM+1)*JmM;
+      val = -2*(J+2*M+2)*sqrt(tmp1/tmp2);
     else
-      tmp1 = (z+2)*y*(y+1)*(y+2);
-      w3j = 2*sqrt(tmp1/tmp2);
+      tmp1 = (JpM+2)*(JmM+2)*(JmM+1)*JmM;
+      val = 2*sqrt(tmp1/tmp2);
     end
   else
     if jdelta==0
-      tmp1 = 6*(y-1)*y*(z+1)*(z+2);
-      w3j = sqrt(tmp1/tmp2);
+      tmp1 = 6*(JmM-1)*JmM*(JpM+1)*(JpM+2);
+      val = sqrt(tmp1/tmp2);
     elseif jdelta==1
-      tmp1 = (y-1)*y*(y+1)*(z+2);
-      w3j = -2*sqrt(tmp1/tmp2);
+      tmp1 = (JmM-1)*JmM*(JmM+1)*(JpM+2);
+      val = -2*sqrt(tmp1/tmp2);
     else
-      tmp1 = (y-1)*y*(y+1)*(y+2);
-      w3j = sqrt(tmp1/tmp2);
+      tmp1 = (JmM-1)*JmM*(JmM+1)*(JmM+2);
+      val = sqrt(tmp1/tmp2);
+    end
+  end
+
+elseif j3==1
+
+  if m3==0 && jdelta==0
+    tmp2 = J*(J+1)*(x+2);
+  else
+    tmp2 = (x+1)*(x+2)*(x+3);
+  end
+  if m3==0
+    if jdelta==0
+      val = M/sqrt(tmp2);
+    else % jdelta==1
+      tmp1 = (JmM+1)*(JpM+1)*2;
+      val = -sqrt(tmp1/tmp2);
+    end
+  else % m3==1
+    if jdelta==0
+      tmp1 = JmM*(JpM+1)*2;
+      val = sqrt(tmp1/tmp2);
+    else % jdelta==1
+      tmp1 = JmM*(JmM+1);
+      val = -sqrt(tmp1/tmp2);
     end
   end
 
 else
-
-  if m2==0 && jdelta==0
-    tmp2 = j1*(j1+1)*(x+2);
-  else
-    tmp2 = (x+1)*(x+2)*(x+3);
-  end
-  if m2==0
-    if jdelta==0
-      w3j = m3/sqrt(tmp2);
-    else
-      tmp1 = 2*(y+1)*(z+1);
-      w3j = -sqrt(tmp1/tmp2);
-    end
-  else
-    if jdelta==0
-      tmp1 = 2*y*(z+1);
-      w3j = sqrt(tmp1/tmp2);
-    else
-      tmp1 = y*(y+1);
-      w3j = -sqrt(tmp1/tmp2);
-    end
-  end
-
+  
+  error('j3 must be 0, 1, or 2.');
+  
 end
 
-w3j = w3j*phase;
+% Apply overall phase
+val = val*phase;
 
 return
