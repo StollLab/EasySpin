@@ -208,7 +208,7 @@ DefaultOptions.HybridCoreNuclei = [];
 
 % undocumented fields
 DefaultOptions.nTRKnots = 3;
-DefaultOptions.FuzzLevel = 1e-7;
+DefaultOptions.FuzzLevel = 1e-10;
 DefaultOptions.Freq2Field = 1;
 DefaultOptions.maxSegments = 2000;
 DefaultOptions.ModellingAccuracy = 2e-6;
@@ -266,12 +266,6 @@ if Opt.Sparse
   logmsg(1,'  using sparse matrices');
 else
   logmsg(1,'  using full matrices');
-end
-
-% :KLUDGE: Add some fuzz to the hyperfine couplings to avoid degeneracies
-% if several (equivalent) nuclei are specified.
-if System.nNuclei>1
-  System.A = System.A.*(1 + Opt.FuzzLevel*rand(size(System.A)));
 end
 
 CoreSys = System;
@@ -382,6 +376,7 @@ end
 if higherOrder
   nCore = hsdim(CoreSys);
   nLevels = hsdim(CoreSys);
+  % spin Hamiltonian is calculated later
 else
   if Opt.Sparse
     [kF,kGxM,kGyM,kGzM] = sham(CoreSys,[],'sparse');
@@ -395,6 +390,18 @@ end
 nFull = hsdim(System);
 nSHFNucStates = nFull/nCore;
 
+% Add slight numerical noise to non-zero elements in the Hamiltonian to break
+% possible degeneracies. Apply if there are more than one electrons or nuclei.
+% This is a very crude workaround to prevent numerical issues due to degeneracies.
+% It probably adds noise in a lot of situations where it is not necessary.
+if Opt.FuzzLevel>0 && ~higherOrder && (CoreSys.nNuclei>1 || CoreSys.nElectrons>1)
+  noise = 2*rand(size(kF))-1;
+  noise = 1+Opt.FuzzLevel*(noise+noise.')/2; % make sure it's Hermitian
+  kF = kF.*noise;
+  kGxM = kGxM.*noise;
+  kGyM = kGyM.*noise;
+  kGzM = kGzM.*noise;
+end
 
 if nPerturbNuclei>0
   logmsg(1,'  core system with %d spins and %d states',numel(spinvec(CoreSys)),nCore);
@@ -424,7 +431,7 @@ if computeNonEquiPops
     
   % Pre-compute zero-field energies and eigenstates
   if higherOrder
-    [ZFStates,ZFEnergies] =  eig(sham(CoreSys, zeros(1,3)));
+    [ZFStates,ZFEnergies] =  eig(sham(CoreSys,zeros(1,3)));
   else
     if Opt.Sparse
       [ZFStates,ZFEnergies] = eigs(kF,length(kF));
@@ -453,7 +460,8 @@ if computeNonEquiPops
   
 else
   if higherOrder
-    ZFEnergies =  sort(real(eig(sham(CoreSys, zeros(1,3)))));
+    ZFEnergies = eig(sham(CoreSys,zeros(1,3)));
+    ZFEnergies = sort(real(ZFEnergies));
   else
     if issparse(kF)
       ZFEnergies(1) = eigs(kF,1,-2*max(abs(kF(:))));
@@ -558,11 +566,11 @@ else % Automatic pre-selection
     % Detector operator for transition selection.
     if higherOrder
       if Opt.Sparse
-       g1 = zeemanho(CoreSys,[],'sparse',1);
-       [g0{1},g0{2},g0{3}] = zeeman(CoreSys,[],'sparse');
+        g1 = zeemanho(CoreSys,[],'sparse',1);
+        [g0{1},g0{2},g0{3}] = zeeman(CoreSys,[],'sparse');
       else
-       g1 = zeemanho(CoreSys,[],[],'',1);
-       [g0{1},g0{2},g0{3}] = zeeman(CoreSys,[],'');
+        g1 = zeemanho(CoreSys,[],[],'',1);
+        [g0{1},g0{2},g0{3}] = zeeman(CoreSys,[],'');
       end
       ExM = g1{1}{1}+g0{1};
       EyM = g1{1}{2}+g0{2};

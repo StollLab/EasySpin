@@ -206,7 +206,7 @@ DefaultOptions.HybridNuclei = [];
 
 % undocumented fields
 DefaultOptions.nTRKnots = 3;
-DefaultOptions.FuzzLevel = 1e-7;
+DefaultOptions.FuzzLevel = 1e-10;
 DefaultOptions.MaxKnots = 2000;
 DefaultOptions.RediagLimit = 0.95;
 
@@ -250,12 +250,6 @@ if Opt.Sparse
   logmsg(1,'  using sparse matrices');
 else
   logmsg(1,'  using full matrices');
-end
-
-% :KLUDGE: Add some fuzz to the hyperfine couplings to avoid degeneracies
-% if several (equivalent) nuclei are specified.
-if Sys.nNuclei>1
-  Sys.A = Sys.A.*(1 + Opt.FuzzLevel*rand(size(Sys.A)));
 end
 
 CoreSys = Sys;
@@ -367,6 +361,19 @@ else
   nCore = length(kF);
   nFull = hsdim(Sys);
   nSHFNucStates = nFull/nCore;
+end
+
+% Add slight numerical noise to non-zero elements in the Hamiltonian to break
+% possible degeneracies. Apply if there are more than one electrons or nuclei.
+% This is a very crude workaround to prevent numerical issues due to degeneracies.
+% It probably adds noise in a lot of situations where it is not necessary.
+if Opt.FuzzLevel>0 && ~higherOrder && (CoreSys.nNuclei>1 || CoreSys.nElectrons>1)
+  noise = 2*rand(size(kF))-1;
+  noise = 1+Opt.FuzzLevel*(noise+noise.')/2; % make sure it's Hermitian
+  kF = kF.*noise;
+  kGxM = kGxM.*noise;
+  kGyM = kGyM.*noise;
+  kGzM = kGzM.*noise;
 end
 
 if nPerturbNuclei>0
