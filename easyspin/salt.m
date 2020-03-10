@@ -169,8 +169,8 @@ end
 
 [Sys,err] = validatespinsys(Sys);
 error(err);
-if Sys.MO_present, error('salt does not support general parameters!'); end
-if any(Sys.L(:)), error('salt does not support L!'); end
+if Sys.MO_present, error('salt does not support Sys.Ham* parameters.'); end
+if any(Sys.L(:)), error('salt does not support Sys.L.'); end
 
 if any(Sys.n>1)
   error('salt does not support sets of equivalent nuclei (Sys.n>1).');

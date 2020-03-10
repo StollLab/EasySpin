@@ -68,8 +68,8 @@ else
   [SysVal,err] = validatespinsys(Sys);
   error(err);
   
-  if SysVal.MO_present, error('saffron does not support general parameters.'); end
-  if any(SysVal.L(:)), error('saffron does not support L.'); end
+  if SysVal.MO_present, error('saffron does not support Sys.Ham* parameters.'); end
+  if any(SysVal.L(:)), error('saffron does not support Sys.L.'); end
   % Determine simulation mode ('fast' or 'thyme')
   if isempty(Opt.SimulationMode)
     Opt.SimulationMode = 'fast';

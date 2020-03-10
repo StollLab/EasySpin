@@ -52,7 +52,7 @@ FDExp.Field = rand *1e3;
 % Compare S&L with S-only spin system
 [nu,fd1] = pepper(SysSL,FDExp);
 fd2 = pepper(SysS,FDExp);
-ok = areequal(fd1,fd2,1e-10,'abs');
+ok(1) = areequal(fd1,fd2,1e-8,'abs');
 
 % Build field-sweep experimet based on FD sim, always a transition in spectral window 
 [~, ind] = max(fd1);
@@ -64,7 +64,7 @@ Opt = struct;
 
 s1 = pepper(SysSL,Exp,Opt);
 s2 = pepper(SysS,Exp,Opt);
-ok = ok && areequal(s1,s2,1e-10,'abs');
+ok(2) = areequal(s1,s2,1e-10,'abs');
 
 % Test with an added nucleus
 %-------------------------------------------------------------------------------
@@ -77,9 +77,9 @@ Opt.Method = 'hybrid';
 % Frequency sweep
 fd3 = pepper(SysSL,FDExp,Opt);
 fd4 = pepper(SysS,FDExp,Opt);
-ok = ok && areequal(fd3,fd4,1e-6,'abs');
+ok(3) = areequal(fd3,fd4,1e-6,'abs');
 
 % Field sweep
 s3 = pepper(SysSL,Exp,Opt);
 s4 = pepper(SysS,Exp,Opt);
-ok = ok && areequal(s3,s4,1e-6,'abs');
+ok(4) = areequal(s3,s4,1e-6,'abs');
