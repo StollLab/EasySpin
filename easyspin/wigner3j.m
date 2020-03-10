@@ -66,27 +66,34 @@ isint = @(x) x==floor(x);
 istriangle = @(a,b,c) (a+b>=c) && (b+c>=a) && (c+a>=b);
 
 % Reject nonphysical parameters
-%--------------------------------------------------
+%-------------------------------------------------------------------------------
 jjjmmm = [j1 j2 j3 m1 m2 m3];
 if any(~isint(2*jjjmmm))
-  error('Nonphysical parameters. All parameters should be integers or half-integers.');
+  error('Nonphysical parameters. All parameters must be integers or half-integers.');
 end
 
-if any([j1 j2 j3]<0)
-  error('Nonphysical parameters. All j should satisfy j>=0');
+if j1<0
+  error('Nonphysical parameter. j1 must satisfy j1>=0.');
+end
+if j2<0
+  error('Nonphysical parameter. j2 must satisfy j2>=0.');
+end
+if j3<0
+  error('Nonphysical parameter. j3 must satisfy j3>=0.');
 end
 
-if abs(m1)>j1 || abs(m2)>j2 || abs(m3)>j3
-  error('Nonphysical parameters. m should be one of -j,-j+1,...,j-1,j.');
+if ~isint(j1-m1)
+  error('Nonphysical parameter. m1 must be one of -j1,-j1+1,...,j1-1,j1.');
 end
-
-if ~isint(j1-m1) || ~isint(j2-m2) || ~isint(j3-m3)
-  error('Nonphysical parameters. m should be one of -j,-j+1,...,j-1,j.');
+if ~isint(j2-m2)
+  error('Nonphysical parameter. m2 must be one of -j2,-j2+1,...,j2-1,j2.');
 end
-
+if ~isint(j3-m3)
+  error('Nonphysical parameter. m3 must be one of -j3,-j3+1,...,j3-1,j3.');
+end
 
 % Check for zero conditions
-%--------------------------------------------------
+%-------------------------------------------------------------------------------
 % (i) The ms must add up to zero.
 if m1+m2+m3~=0
   value = 0;
@@ -259,10 +266,6 @@ else
   error('At least one J must be <=2.');
 end
 
-if mod(j3,1)
-  error('j3 must be an integer.')
-end
-
 % If needed, invert all m to get m3>=0
 if m3<0
   m1 = -m1;
@@ -291,7 +294,7 @@ phase = phase*(-1)^(J-M);
 if j3==0
 
   val = 1/sqrt(2*j1+1);
-
+    
 elseif j3==2
 
   tmp2 = x*(x+1)*(x+2)*(x+3)*(x+4);
@@ -312,22 +315,26 @@ elseif j3==2
     elseif jdelta==1
       tmp1 = (JmM+1)*JmM;
       val = -2*(J+2*M+2)*sqrt(tmp1/tmp2);
-    else
+    else % jdelta==2
       tmp1 = (JpM+2)*(JmM+2)*(JmM+1)*JmM;
       val = 2*sqrt(tmp1/tmp2);
     end
-  else
+  else % jdelta==2
     if jdelta==0
       tmp1 = 6*(JmM-1)*JmM*(JpM+1)*(JpM+2);
       val = sqrt(tmp1/tmp2);
     elseif jdelta==1
       tmp1 = (JmM-1)*JmM*(JmM+1)*(JpM+2);
       val = -2*sqrt(tmp1/tmp2);
-    else
+    else % jdelta==2
       tmp1 = (JmM-1)*JmM*(JmM+1)*(JmM+2);
       val = sqrt(tmp1/tmp2);
     end
   end
+
+elseif j3==1/2
+
+  val = -1i*sqrt((JmM+1/2)/(2*J+2)/(2*J+1));
 
 elseif j3==1
 
@@ -352,10 +359,26 @@ elseif j3==1
       val = -sqrt(tmp1/tmp2);
     end
   end
-
+  
+elseif j3==3/2
+  
+  if m3==3/2
+    if jdelta==3/2
+      val = 1i*sqrt((JmM-1/2)*(JmM+1/2)*(JmM+3/2)/(2*J+4)/(2*J+3)/(2*J+2)/(2*J+1));
+    else % jdelta==1/2
+      val = -1i*sqrt(3*(JmM-1/2)*(JmM+1/2)*(JpM+3/2)/(2*J+3)/(2*J+2)/(2*J+1)/(2*J));
+    end
+  else % m3==1/2
+    if jdelta==3/2
+      val = 1i*sqrt(3*(JmM+1/2)*(JmM+3/2)*(JpM+3/2)/(2*J+4)/(2*J+3)/(2*J+2)/(2*J+1));
+    else % jdelta==1/2
+      val = -1i*sqrt((JmM+1/2)/(2*J+3)/(2*J+2)/(2*J+1)/(2*J))*(J+3*M+3/2);
+    end
+  end
+  
 else
   
-  error('j3 must be 0, 1, or 2.');
+  error('j3 must be 0, 1/2, 1, 3/2, or 2.');
   
 end
 

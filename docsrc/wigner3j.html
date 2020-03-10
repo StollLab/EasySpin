@@ -47,6 +47,7 @@ v = wigner3j(jjjmmm)
 <p>
 <code>wigner3j</code> returns the value of the 3-j symbol
 </p>
+
 <div class="eqn">
 <img src="eqn/wigner3j1.png" alt="[eqn]"><!--MATH
 \begin{equation*}
@@ -62,48 +63,51 @@ m_1 & m_2 & m_3
 The six parameters can be specified separately or in groups.
 In the three-argument form, <code>wigner3j</code> takes <code>jm1 = [j1 m1]</code>, <code>jm2 = [j2 m2]</code>
 and <code>jm3 = [j3 m3]</code>. If two arguments are given, it takes <code>jjj = [j1 j2 j3]</code> and
-<code>mmm = [m1 m2 m3]</code>. If one argument is give, it takes <code>jjjmmm = [j1 j2 j3 m1 m2 m3]</code>.
+<code>mmm = [m1 m2 m3]</code>. If one argument is give, it takes the 2x3 array <code>jjjmmm = [j1 j2 j3; m1 m2 m3]</code>.
 </p>
 
 <p>
-<code>wigner3j</code> returns accurate values as long as the maximum j is not
-larger than about 300.
+<code>wigner3j</code> returns accurate values for j values as large as several thousand.
 </p>
 
 <!-- ============================================================= -->
 <div class="subtitle">Examples</div>
 
 <pre class="matlab">
-wigner3j([1 1 0],[0 0 0])
+wigner3j([1 1 0; 0 0 0])
 </pre>
 <pre class="mloutput">
 ans =
-   -0.5774
+   -0.57735
 </pre>
 <pre class="matlab">
-wigner3j([1 1 2],[0 0 0])
+wigner3j([4 2 4; -2 -1 3])
 </pre>
 <pre class="mloutput">
 ans =
-    0.3651
+    0.19462
 </pre>
 
 <!-- ============================================================= -->
 <div class="subtitle">Algorithm</div>
 
 <p>
-For small values of the input parameters, <code>wigner3j</code> uses specific
-expressions. For larger values, a general expression containing an alternating
-sum of binomial coefficients is used.
+If any of the three j values is less or equal to 2, <code>wigner3j</code> uses explicit expressions. For larger values, a general expression containing an alternating
+sum of binomial coefficients is used. For j values large than about 20, high-precisions arithmetic is used internally.
 </p>
 
+<p>
+<code>wigner3j</code> implements expressions from
+</p>
 <ul>
+<li>
+E. R. Edmonds, Angular Momentum, Princeton University Press, 1957
 <li>
 Shan-Tao Lai, Ying-Nan Chiu, Computer Physics Communications 61, 350-360 (1990)
 <li>
-Robert E. Tuzun, Paul Burkhardt, Don Secrest, Computer Physics Communications 112, 112-148 (1998)
-<li>
 Liqiang Wei, Computer Physics Communications 120, 222-230 (1999)
+<li>
+Robert E. Tuzun, Paul Burkhardt, Don Secrest, Computer Physics Communications 112, 112-148 (1998)
 </ul>
 
 <!-- ============================================================= -->
