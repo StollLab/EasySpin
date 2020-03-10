@@ -387,16 +387,9 @@ If a 3x3 transformation matrix <code>Rg</code> is given, e.g. from literature, t
 gFrame = eulang(Rg);
 </pre>
 
-</div>
-
-<div class="optionfield"><code>gpa</code></div>
-<div class="optiondescr">
-This was the way of specifying Euler angles prior to EasySpin 5 and has been superseded by <code>gFrame</code>. To convert old <code>gpa</code> values to <code>gFrame</code>, invert the order and flip the sign of the three Euler angles.
-
-<pre class="matlab">
-gpa =    [34  78 -12]*pi/180;    % old form, obsolete
-gFrame = [12 -78 -34]*pi/180;    % new form
-</pre>
+<p>
+Prior to EasySpin 5, the field <code>gpa</code> was used instead of <code>gFrame</code>.
+To convert old <code>gpa</code> values to <code>gFrame</code>, invert the order and flip the sign of the three Euler angles.
 
 </div>
 &nbsp;<br>
@@ -523,6 +516,11 @@ A_M = R.'*A_A*R;                  % full matrix in molecular frame
 <p>
 See the page on <a href="frames.html">frames</a> for more details.
 
+<p>
+Prior to EasySpin 5, the field <code>Apa</code> was used instead of <code>AFrame</code>.
+To convert old <code>Apa</code> values to <code>AFrame</code>, invert the order and flip the sign of the three Euler angles.
+
+
 </div>
 
 &nbsp;<br>
@@ -627,6 +625,11 @@ Q_M = R.'*Q_Q*R;                  % full matrix in molecular frame
 <p>
 See the page on <a href="frames.html">frames</a> for more details.
 
+<p>
+Prior to EasySpin 5, the field <code>Qpa</code> was used instead of <code>QFrame</code>.
+To convert old <code>Qpa</code> values to <code>QFrame</code>, invert the order and flip the sign of the three Euler angles.
+    
+
 </div>
 &nbsp;<br>
 
@@ -729,6 +732,12 @@ D_M = R.'*diag(Dvals)*R;     % full D tensor in molecular frame
 <p>
 See the page on <a href="frames.html">frames</a> for more details.
 </p>
+
+<p>
+Prior to EasySpin 5, the field <code>Dpa</code> was used instead of <code>DFrame</code>.
+To convert old <code>Dpa</code> values to <code>DFrame</code>, invert the order and flip the sign of the three Euler angles.
+    
+
 </div>
 &nbsp;<br>
 
@@ -1010,6 +1019,11 @@ Nx3 array containing the <a href="eulerangles.html">Euler angles</a> describing 
 
 <p>
 This is fully analogous to <code>AFrame</code> (see above). Check out the page on <a href="frames.html">frames</a> for more details on frames.
+
+<p>
+Prior to EasySpin 5, the field <code>eepa</code> was used instead of <code>eeFrame</code>.
+To convert old <code>eepa</code> values to <code>eeFrame</code>, invert the order and flip the sign of the three Euler angles.
+    
 
 </div>
 

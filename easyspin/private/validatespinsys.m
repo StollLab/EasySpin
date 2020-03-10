@@ -174,21 +174,8 @@ else
 end
 
 % Euler angles for g tensor(s)
-if isfield(Sys,'gpa')
-  err = sizecheck(Sys,'gpa',[nElectrons 3]);
-  disp('***********************************************************************');
-  disp('**   Sys.gpa is obsolete. Please use Sys.gFrame instead.             **');
-  disp('**   Here is how to convert:                                         **');
-  disp('**   If you had                                                      **');
-  disp('**      Sys.gpa = [10 -20 56]*pi/180                                 **');
-  disp('**   then use                                                        **');
-  disp('**      Sys.gFrame = [-56 20 -10]*pi/180                             **');
-  disp('**   Change the signs of all three angles, and reverse the order.    **');
-  disp('**   For more help, check the documentation on coordinate frames.    **');
-  disp('***********************************************************************');
-  if ~isempty(err); return; end
-  Sys.gFrame = -Sys.gpa(:,[3 2 1]);
-end
+error(pa_obsolete_message(Sys,'gpa','gFrame'));
+
 if ~isfield(Sys,'gFrame') || isempty(Sys.gFrame)
   Sys.gFrame = zeros(nElectrons,3);
 end
@@ -220,21 +207,7 @@ else
 end
 
 % Euler angles for D tensor(s)
-if isfield(Sys,'Dpa')
-  err = sizecheck(Sys,'Dpa',[nElectrons 3]);
-  disp('***********************************************************************');
-  disp('**   Sys.Dpa is obsolete. Please use Sys.DFrame instead.             **');
-  disp('**   Here is how to convert:                                         **');
-  disp('**   If you had                                                      **');
-  disp('**      Sys.Dpa = [10 -20 56]*pi/180                                 **');
-  disp('**   then use                                                        **');
-  disp('**      Sys.DFrame = [-56 20 -10]*pi/180                             **');
-  disp('**   Change the signs of all three angles, and reverse the order.    **');
-  disp('**   For more help, check the documentation on coordinate frames.    **');
-  disp('***********************************************************************');
-  if ~isempty(err); return; end
-  Sys.DFrame = -Sys.Dpa(:,[3 2 1]);
-end
+error(pa_obsolete_message(Sys,'Dpa','DFrame'));
 if ~isfield(Sys,'DFrame') || isempty(Sys.DFrame)
   Sys.DFrame = zeros(nElectrons,3);
 end
@@ -322,21 +295,7 @@ if (nElectrons>1) && ~reprocessing
       if ~isempty(err), return; end
     end
     
-    if isfield(Sys,'eepa')
-      err = sizecheck(Sys,'eepa',[nPairs 3]);
-      disp('*********************************************************************');
-      disp('**   Sys.eepa is obsolete. Please use Sys.eeFrame instead.         **');
-      disp('**   Here is how to convert:                                       **');
-      disp('**   If you had                                                    **');
-      disp('**      Sys.eepa = [10 -20 56]*pi/180                              **');
-      disp('**   then use                                                      **');
-      disp('**      Sys.eeFrame = [-56 20 -10]*pi/180                          **');
-      disp('**   Change the signs of all three angles, and reverse the order.  **');
-      disp('**   For more help, check the documentation on coordinate frames.  **');
-      disp('*********************************************************************');
-      if ~isempty(err); return; end
-      Sys.eeFrame = -Sys.eepa(:,[3 2 1]);
-    end
+    error(pa_obsolete_message(Sys,'eepa','eeFrame'));
     
   else
     % Bilinear coupling defined via J, dip, and dvec
@@ -582,22 +541,7 @@ if nNuclei>0
   end
   
   % Euler angles for A tensor(s)
-  if isfield(Sys,'Apa')
-    err = sizecheck(Sys,'Apa',[nNuclei,3*nElectrons]);
-    disp('*********************************************************************');
-    disp('**   Sys.Apa is obsolete. Please use Sys.AFrame instead.           **');
-    disp('**   Here is how to convert:                                       **');
-    disp('**   If you had                                                    **');
-    disp('**      Sys.Apa = [10 -20 56]*pi/180                               **');
-    disp('**   then use                                                      **');
-    disp('**      Sys.AFrame = [-56 20 -10]*pi/180                           **');
-    disp('**   Change the signs of all three angles, and reverse the order.  **');
-    disp('**   For more help, check the documentation on coordinate frames.  **');
-    disp('*********************************************************************');
-    if ~isempty(err); return; end
-    idx = reshape(flipud(reshape(idx,3,[])),1,[]);
-    Sys.AFrame = -Sys.Apa(:,idx);
-  end
+  error(pa_obsolete_message(Sys,'Apa','AFrame'));
   if ~isfield(Sys,'AFrame') || isempty(Sys.AFrame)
     Sys.AFrame = zeros(nNuclei,3*nElectrons);
   end
@@ -656,21 +600,7 @@ if (nNuclei>0)
   end
 
   % Euler angles for Q tensor(s)
-  if isfield(Sys,'Qpa')
-    err = sizecheck(Sys,'Qpa',[nNuclei 3]);
-    disp('*********************************************************************');
-    disp('**   Sys.Qpa is obsolete. Please use Sys.QFrame instead.           **');
-    disp('**   Here is how to convert:                                       **');
-    disp('**   If you had                                                    **');
-    disp('**      Sys.Qpa = [10 -20 56]*pi/180                               **');
-    disp('**   then use                                                      **');
-    disp('**      Sys.QFrame = [-56 20 -10]*pi/180                           **');
-    disp('**   Change the signs of all three angles, and reverse the order.  **');
-    disp('**   For more help, check the documentation on coordinate frames.  **');
-    disp('*********************************************************************');
-    if ~isempty(err); return; end
-    Sys.QFrame = -Sys.Qpa(:,[3 2 1]);
-  end
+  error(pa_obsolete_message(Sys,'Qpa','QFrame'));
   if ~isfield(Sys,'QFrame') || isempty(Sys.QFrame)
     Sys.QFrame = zeros(nNuclei,3);
   end
@@ -1068,3 +998,11 @@ else
   msg = sprintf('Spin system field %s has wrong size for the given spins.',FieldName);
 end
 return
+
+%------------------
+function err = pa_obsolete_message(Sys,pa,Frame)
+if isfield(Sys,pa)
+  err = sprintf('Obsolete field Sys.%s. Use Sys.%s instead.',pa,Frame);
+else
+  err = '';
+end
