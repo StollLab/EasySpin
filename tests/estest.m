@@ -248,12 +248,17 @@ if runCodeCoverageAnalysis
     if isempty(RunnableLines)
       RunnableLines = 0;
     end
-    TotalRunnable = TotalRunnable + length(unique(RunnableLines));
     Executed = unique(executedLines{n});
     Covered = length(Executed);
     TotalCovered = TotalCovered + Covered;
     Runnable = length(unique(RunnableLines));
     Code = fileread(FcnName);
+    % Account for lines missed by callstats
+    if Covered > Runnable
+        TotalRunnable = TotalRunnable + Covered;
+    else
+        TotalRunnable = TotalRunnable + Runnable;
+    end
     if params =='l'
       Missed = RunnableLines;
       for k=1:length(Executed)
