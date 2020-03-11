@@ -125,20 +125,26 @@ DefaultExp.MolFrame = [];
 
 Exp = adddefaults(Exp,DefaultExp);
 
-if isnan(Exp.mwFreq), error('Experiment.mwFreq is missing!'); end
+if isnan(Exp.mwFreq), error('Exp.mwFreq is missing!'); end
 mwFreq = Exp.mwFreq*1e3; % GHz -> MHz
 
 if ~isnan(Exp.CenterSweep)
   if ~isnan(Exp.Range)
-    %logmsg(0,'Using Experiment.CenterSweep and ignoring Experiment.Range.');
+    %logmsg(0,'Using Exp.CenterSweep and ignoring Exp.Range.');
   end
   Exp.Range = Exp.CenterSweep(1) + [-1 1]*Exp.CenterSweep(2)/2;
-  Exp.Range = max(Exp.Range,0);
+  if Exp.Range(1)<0
+    error('Lower field limit from Exp.CenterSweep cannt be negative.');
+  end
 end
 
-if isnan(Exp.Range), error('Experiment.Range/Exp.CenterSweep is missing!'); end
-if any(diff(Exp.Range)<=0) || any(~isfinite(Exp.Range)) || ~isreal(Exp.Range) || any(Exp.Range<0)
+if isnan(Exp.Range), error('Exp.Range/Exp.CenterSweep is missing!'); end
+if any(diff(Exp.Range)<=0) || any(~isfinite(Exp.Range)) || ...
+    ~isreal(Exp.Range)
   error('Exp.Range is not valid!');
+end
+if any(Exp.Range<0)
+  error('Negative magnetic fields in Exp.Range are not possible.');
 end
 
 
@@ -1118,6 +1124,10 @@ for iOri = 1:nOrientations
             %dBdE = dB(s)/abs(Diff1(iReson));
             %dBdE2 = dB(s)^2/abs(Diff2(iReson)); % second derivative
             %dBdE/dBdEold-1
+            % Guard against d(Ev-Eu)/dB==0
+            if dBdE>1e5
+              error('1/g factor diverges because d(Ev-Eu)/dB is almost zero for transition between levels u=%d and v=%d.',uv(1),uv(2));
+            end
           else
             dBdE = 1;
           end

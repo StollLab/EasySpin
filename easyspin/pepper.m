@@ -276,7 +276,7 @@ if FieldSweep
   end
   logmsg(1,'  field sweep, mw frequency %0.8g GHz',Exp.mwFreq);
 else
-  if numel(Exp.Field)~=1 || any(Exp.Field<0) || ~isreal(Exp.Field)
+  if numel(Exp.Field)~=1 || ~isreal(Exp.Field)
     error('Uninterpretable magnetic field in Exp.Field.');
   end
   logmsg(1,'  frequency sweep, magnetic field %0.8g mT',Exp.Field);
@@ -329,12 +329,17 @@ end
 if FieldSweep
   if ~isnan(Exp.CenterSweep)
     Exp.Range = Exp.CenterSweep(1) + [-1 1]*Exp.CenterSweep(2)/2;
-    Exp.Range = max(Exp.Range,0);
+    if Exp.Range(1)<0
+      error('Lower field limit from Exp.CenterSweep cannt be negative.');
+    end
   end
   if isfield(Exp,'Range') && all(~isnan(Exp.Range))
     if any(diff(Exp.Range)<=0) || any(~isfinite(Exp.Range)) || ...
-        ~isreal(Exp.Range) || any(Exp.Range<0)
+        ~isreal(Exp.Range)
       error('Exp.Range is not valid!');
+    end
+    if any(Exp.Range<0)
+      error('Negative magnetic fields in Exp.Range are not possible.');
     end
   end
 else
@@ -344,8 +349,11 @@ else
   end
   if isfield(Exp,'mwRange') && all(~isnan(Exp.mwRange))
     if diff(Exp.mwRange)<=0 || any(~isfinite(Exp.mwRange)) || ...
-        any(~isreal(Exp.mwRange)) || any(Exp.mwRange<0)
+        any(~isreal(Exp.mwRange))
       error('Exp.mwRange is not valid!');
+    end
+    if any(Exp.mwRange<0)
+      error('Exp.mwRange cannot be negative.');
     end
   end
 end
