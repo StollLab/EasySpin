@@ -800,16 +800,7 @@ Sys.B2 = [B20a; B20b];                 % abbreviated form for two spins: two row
 </pre>
 
 <p>
-Currently, it is not possible to include tilt angles for the principal frames of these high-order interaction tensors. All of them are assumed to be collinear with the molecular frame. By changing the molecular frame, i.e. by tilting all other tensors (g, A, etc), this limitation can be partially circumvented. Still, all the high-order interactions are collinear. Alternatively, you can use <code>wignerd</code> to compute a Wigner rotation matrix that can be used to tilt the tensors explicitly.
-</p>
-
-<pre class="matlab">
-angles = rand(1,3)*pi;   % Euler tilt angles, in radians
-B2 = [3 4 5 0 2];        % B(2,q) tensor components
-R = wignerd(2,angles);   % rotation matrix for rank-2 tensor
-B2 = R*B2;               % rotated tensor
-Sys.B2 = B2.';
-</pre>
+Currently, it is not possible to include tilt angles for the principal frames of these high-order interaction tensors. All of them are assumed to be collinear with the molecular frame. By changing the molecular frame, i.e. by tilting all other tensors (g, A, etc), this limitation can be partially circumvented. Still, all the high-order interactions are collinear.
 
 </div>
 
