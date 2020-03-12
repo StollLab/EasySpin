@@ -37,6 +37,7 @@ Extended Stevens operators.
 <pre class="matlab">
 Op = stev(S,k,q)
 Op = stev(S,k,q,iSpin)
+Op = stev(S,k,q,iSpin,'sparse')
 </pre>
 
 <!-- ====================================================== -->
@@ -47,7 +48,7 @@ This function computes the <a href="stevensoperators.html">extended Stevens oper
 </p>
 
 <p>
-The parameters <code>k</code> and <code>q</code> specify the operator component <img src="eqn/stev1.png" alt="[eqn]"><!--MATH$O_k^q$-->. Allowed values are <code>0&lt;=k&lt;=2S</code> and <code>q=-k,...,k</code>. <code>k</code> is the order of the operator, and <code>q</code> is the component. Positive and negative <code>q</code> correspond to cosine and sine components, respectively. The function supports <code>k</code> values between 0 and 12.
+The parameters <code>k</code> and <code>q</code> specify the operator component <img src="eqn/stev1.png" alt="[eqn]"><!--MATH$O_k^q$-->. Allowed values are <code>0&lt;=k&lt;=2S</code> and <code>q=-k,...,k</code>. <code>k</code> is the rank of the operator, and <code>q</code> is the component. Positive and negative <code>q</code> correspond to cosine and sine components, respectively. The function supports <code>k</code> values between 0 and 12.
 </p>
 
 <p>
