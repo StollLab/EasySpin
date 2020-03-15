@@ -16,12 +16,14 @@ The following contributions are accepted:
 - bug fixes for existing functions
 - interface or implementation improvements of an existing function
 - additional tests for exiting functions
+- significant performance improvements
 
 We do not accept:
 
 - new functions or features that have not been previously discussed in an issue
 - changes to the API of existing functions that have not been previously discussed in an issue
 - tiny code refactors and "beauty" edits
+- very small performance improvements
 
 Propose and discuss any new functionality first in an [issue](https://github.com/StollLab/EasySpin/issues). If it's decided there that the feature is worthwhile, the following guidelines should be followed:
 
