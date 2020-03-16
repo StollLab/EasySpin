@@ -1,21 +1,31 @@
 % sham  Spin Hamiltonian 
 %
-%   [F,Gx,Gy,Gz] = sham(sys)
-%   H = sham(sys,B)
-%   ... = sham(sys,B,'sparse')
+%   [F,GxM,GyM,GzM] = sham(Sys)
+%   [F,GzL] = sham(Sys,B0)
+%   H = sham(Sys,B0)
+%   H = sham(Sys)
+%   __ = sham(__,'sparse')
 %
-%   Constructs a spin Hamiltonian.
+%   Constructs the spin Hamiltonian, or its field-independent and field-
+%   dependent components, for the spin system Sys.
 %
 %   Input:
-%   - 'sys': spin system specification structure
-%   - 'B': 1x3 vector specifying the magnetic field [mT]
-%   - 'sparse': if given, sparse instead of full matrices are returned
+%     sys       spin system specification structure
+%     B0        vector specifying the static magnetic field (in mT) in the
+%               molecular frame (e.g. [350 0 0] is along the molecular x axis)
+%     'sparse'  if given, sparse instead of full matrices are returned
 %
 %   Output:
-%   - 'H': complete spin Hamiltonian [MHz]
-%   - 'F','Gx','Gy','Gz' ([MHz] and [MHz/mT])
-%          spin Hamiltonian components such that
-%           H = F + B(1)*Gx + B(2)*Gy + B(3)*Gz
+%     H            complete spin Hamiltonian (MHz)
+%     F            field-independent part of spin Hamiltonian (MHz)
+%     GxM,GyM,GzM  field-dependent spin Hamiltonian components (MHz/mT)
+%                  x, y, z axes of molecular frame
+%     GzL          field-dependent spin Hamiltonian (MHz/mT), with field
+%                  along z axis of lab frame
+%
+%   The spin Hamiltonian components are defined such that
+%           GzL = (B0(1)*GxM+B0(2)*GyM+B0(3)*GzM)/norm(B0)
+%           H = F + norm(B0)*GzL
 
 function varargout = sham(SpinSystem,B0,opt)
 
@@ -26,54 +36,54 @@ if nargin<3, opt = ''; end
 if ~ischar(opt)
   error('Third argument must be a string, ''sparse''.');
 end
-sparseResult = strcmp(opt,'sparse');
+sparseMatrices = strcmp(opt,'sparse');
 
 [Sys,err] = validatespinsys(SpinSystem);
 error(err);
 
 if ~isempty(B0)
-  if numel(B0)~=3
+  if ~isnumeric(B0) || numel(B0)~=3 || ~isreal(B0)
     error('Magnetic field vector must be 3-element array!');
   end
 end
+
+
+% Field-independent interactions: ZFI, NQI, HFI, EEI, NNI
+% Zeeman interaction: EZI, NZI
+if sparseMatrices
+  sp = 'sparse';
+else
+  sp = 'full';
+end
+
+F = zfield(Sys,[],sp) + eeint(Sys,[],sp) + ...
+    hfine(Sys,[],sp)  + nquad(Sys,[],sp) + nnint(Sys,[],sp) + ...
+    soint(Sys,[],sp)  + crystalfield(Sys,[],sp);
+[GxM,GyM,GzM] = zeeman(Sys,[],sp);
+
 
 sysfields = fieldnames(Sys);
 highest = 0;
 higherOrder = false;
 higherzeeman = strncmp(sysfields,'Ham',3).';
 if any(higherzeeman) 
-  for n=find(higherzeeman)
+  for n = find(higherzeeman)
     if any(Sys.(sysfields{n}))
       higherOrder = true;
-      order = str2num(sysfields{n}(4));
+      order = str2double(sysfields{n}(4));
       if order > highest && order < 4, highest = order;end
     end
   end
 end
 
-
-
-% Field-independent interactions: ZFI, NQI, HFI, EEI, NNI
-% Zeeman interaction: EZI, NZI
-if sparseResult
-  F = zfield(Sys,[],'sparse') + eeint(Sys,[],'sparse') +...
-    hfine(Sys,[],'sparse') + nquad(Sys,[],'sparse') + nnint(Sys,[],'sparse') + ...
-    soint(Sys,[],'sparse') + crystalfield(Sys,[],'sparse');
-  [GxM,GyM,GzM] = zeeman(Sys,[],'sparse');
-else
-  F = zfield(Sys) + nquad(Sys) + hfine(Sys) + nnint(Sys) + eeint(Sys) + ...
-    soint(Sys)+ crystalfield(Sys);
-  [GxM,GyM,GzM] = zeeman(Sys);
-end
-
-
-if higherOrder
-  if isempty(B0)
-    %full tensors up to the highest used orer will be provided
+if isempty(B0)
+  
+  if higherOrder
+    % full tensors up to the highest used orer will be provided
     zHo = zeemanho(Sys,[],opt);
     switch highest
       case 0
-        if (nargout==4)
+        if nargout==4
           varargout = {F+zHo,GxM,GyM,GzM};
         elseif nargout==1
           varargout{1} = {F+zHo,GxM,GyM,GzM};
@@ -81,7 +91,7 @@ if higherOrder
           error('1 or 4 output arguments expected!');
         end
       case 1
-        if (nargout==4)
+        if nargout==4
           varargout = {F+zHo{1},GxM+zHo{2}{1},GyM+zHo{2}{2},GzM+zHo{2}{3}};
         elseif nargout==1
           varargout{1} = {F+zHo{1},GxM+zHo{2}{1},GyM+zHo{2}{2},GzM+zHo{2}{3}};
@@ -94,67 +104,67 @@ if higherOrder
         for k = 3:-1:1
           zHo{2}{k} = zHo{2}{k}+Gn{k};
         end
-        if(nargout==highest+1)
-          varargout =zHo;
+        if nargout==highest+1
+          varargout = zHo;
         elseif nargout==1
-          varargout{1}=zHo;
+          varargout{1} = zHo;
         else
           error('Wrong number of output arguments!');
         end
     end
   else
-    if norm(B0)>0
-      nB0 = B0/norm(B0);
-    else
-      nB0 = [0 0 0];
-    end
-    GzL = nB0(1)*GxM + nB0(2)*GyM + nB0(3)*GzM;    
-    if (nargout==1) || (nargout==0)
-      varargout = {F + norm(B0)*GzL + zeemanho(Sys,B0,[],opt)};
-    elseif nargout==2 && highest<2
-      zHo = zeemanho(Sys,[],opt);
-      if highest == 1 
-        GzL = GzL + nB0(1)*zHo{2}{1} + nB0(2)*zHo{2}{2} + nB0(3)*zHo{2}{3};
-        F = F + zHo{1};
-      else
-        F = F +zHo;
-      end
-      varargout = {F,GzL};
-    else
-      error('Wrong number of output arguments!');
-    end
-  end
-else
-  % arrange the output
-  if isempty(B0)
     
-    if (nargout==4)
+    if nargout==4
       varargout = {F,GxM,GyM,GzM};
     elseif nargout==1
-      varargout{1} = {F,GxM,GyM,GzM};
+      varargout{1} = {{F,GxM,GyM,GzM}};
     else
       error('1 or 4 output arguments expected!');
     end
-    
+  end
+  
+  return
+  
+end
+
+
+if higherOrder
+  % ~isempty(B0) && higherOrder
+  if norm(B0)>0
+    nB0 = B0/norm(B0);
   else
-    
-    if numel(B0)~=3
-      error('Magnetic field must be 3-element vector!');
-    end
-    if norm(B0)>0
-      nB0 = B0/norm(B0);
+    nB0 = [0 0 0];
+  end
+  GzL = nB0(1)*GxM + nB0(2)*GyM + nB0(3)*GzM;
+  if nargout==1 || nargout==0
+    varargout = {F + norm(B0)*GzL + zeemanho(Sys,B0,[],opt)};
+  elseif nargout==2 && highest<2
+    zHo = zeemanho(Sys,[],opt);
+    if highest == 1
+      GzL = GzL + nB0(1)*zHo{2}{1} + nB0(2)*zHo{2}{2} + nB0(3)*zHo{2}{3};
+      F = F + zHo{1};
     else
-      nB0 = [0 0 0];
+      F = F +zHo;
     end
-    GzL = nB0(1)*GxM + nB0(2)*GyM + nB0(3)*GzM;
-    if (nargout==1) || (nargout==0)
-      varargout = {F + norm(B0)*GzL};
-    elseif nargout==2
-      varargout = {F,GzL};
-    else
-      error('Wrong number of output arguments!');
-    end
-    
+    varargout = {F,GzL};
+  else
+    error('Wrong number of output arguments!');
+  end
+else
+  % ~isempty(B0) && ~higherOrder
+  if norm(B0)>0
+    nB0 = B0/norm(B0);
+  else
+    nB0 = [0 0 0];
+  end
+  GzL = nB0(1)*GxM + nB0(2)*GyM + nB0(3)*GzM;
+  if nargout==1 || nargout==0
+    varargout = {F + norm(B0)*GzL};
+  elseif nargout==2
+    varargout = {F,GzL};
+  else
+    error('Wrong number of output arguments!');
   end
 end
+
 return

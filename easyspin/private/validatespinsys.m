@@ -61,7 +61,8 @@ givenFields = fieldnames(Sys);
 for f = 1:numel(givenFields)
   givField = givenFields{f};
   if strcmp(givField,'ZeemanFreq')
-    error('Field Sys.ZeemanFreq can only be used in conjunction with the function spidyan.')
+    err = 'Field Sys.ZeemanFreq can only be used in conjunction with the function spidyan.';
+    return
   end
   idx = find(strcmpi(givField,correctFields));
   % check if there is a case-insensitive match
@@ -81,16 +82,19 @@ for ind = find((strncmpi(givenFields,'Ham',3)))
   field = givenFields{ind};
   if length(field)~= 6 
     if str2double(field(4))+str2double(field(5))<10  
-      error('Wrong length of Sys.%s entry, should be Hamxyz (with x,y,z integer numbers)',field);
+      err = sprintf('Wrong length of Sys.%s entry, should be Hamxyz (with x,y,z integer numbers)',field);
+      return
     else
       if length(field)~= 7
-        error('Wrong length of Sys.%s entry, should be Hamxyz (with x,y,z integer numbers)',field);
+        err = sprintf('Wrong length of Sys.%s entry, should be Hamxyz (with x,y,z integer numbers)',field);
+        return
       end
     end
   end
   if ~strncmp(field,'Ham',3)
       % Wrong capitalization
-      error('Fix capitalization: Sys.%s should be Sys.%s',field,['Ham', field(4:end)]);
+      err = sprintf('Fix capitalization: Sys.%s should be Sys.%s',field,['Ham', field(4:end)]);
+      return
   end
 end
 
@@ -232,7 +236,13 @@ else
   Sys.aF = [0 0];
 end
 
+if isfield(Sys,'BFrame') && ~reprocessing
+  err = sprintf('Sys.BFrame is not supported. Use Sys.B1Frame, Sys.B2Fame, etc instead.',k);
+  return
+end
+
 % B1, B2, B3, etc.
+Sys.B = [];
 D_present = any(Sys.D(:));
 aF_present = any(Sys.aF(:));
 for k = 1:12
@@ -263,8 +273,21 @@ for k = 1:12
     return
   end
   
+  if any(~isreal(Bk))
+    err = sprintf('Field Sys.%s contains complex numbers. Only real ones are possible',fieldname);
+    return
+  end
+  
   Sys.(fieldname) = Bk;
-
+  Sys.B{k} = Bk;
+  
+  fieldname = sprintf('B%dFrame',k);
+  if isfield(Sys,fieldname) && any(Sys.(fieldname)~=0)
+    Sys.BFrame{k} = Sys.(fieldname);
+  else
+    Sys.BFrame{k} = [0 0 0];
+  end
+    
 end
 
 

@@ -766,10 +766,11 @@ This can be changed by setting <code>Sys.aFFrame</code>. If <code>Sys.aFFrame=3<
 
 <div class="optionfield"><code>B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12</code></div>
 <div class="optiondescr">
-The coefficients B(k,q) for the <a href="stevensoperators.html">extended Stevens operators</a> of the electron spin (see also the function <a class="esf" href="stev.html">stev</a>). All coefficients should be real, and are understood in units of MHz. The number in the field name indicates the order k of the operator. E.g. B2 is for k = 2, and B4 is k = 4. If any of these fields is not given, it is treated as zero.
+The coefficients B(k,q) for the <a href="stevensoperators.html">extended Stevens operators</a> of the electron spin (see also the function <a class="esf" href="stev.html">stev</a>). All coefficients must be real-valued, and are understood in units of MHz. The number in the field name indicates the rank k of the tensor operator. E.g. B2 is for k = 2, and B4 is k = 4. If any of these fields is not given, it is treated as zero.
 
 <p>
 Each field that is given should contain a row vector of 2k+1 parameters, in order of decreasing q, running from +k to -k. For example:
+</p>
 
 <pre class="matlab">
 Sys.B2 = [0 0 560 0 0];          % B(2,q) with q = +2,+1,0,-1,-2
@@ -778,7 +779,12 @@ Sys.B4 = [0 132 0 0 0 0 0 0 0];  % B(4,q) with q = +4,+3,+2,+1,0,-1,-2,-3,-4
 The only nonzero elements in the above examples are therefore B(2,0) and B(4,+3).
 
 <p>
-In the common case that only the q=0 element is needed for a given k, it can be given alone in an abbreviated syntax valid for any k.
+Positive (and zero) q correspond to to the cosine tesseral operators, and negative q correspond to the sine tesseral operators.
+</p>
+
+<p>
+In the common case that only the q=0 element is needed for a given k, it can be given alone in an abbreviated syntax.
+</p>
 
 <pre class="matlab">
 Sys.B2 = [0 0 99 0 0];  % B(2,0) only, full form
@@ -790,6 +796,7 @@ Sys.B4 = -8700;                    % equivalent abbreviated form
 
 <p>
 If more than one electron spin is present, specify one row of 2k+1 elements for each electron spin. The first row is for the first electron spin, etc.
+</p>
 
 <pre class="matlab">
 Sys.S = [5/2 2];     % two spins
@@ -800,9 +807,30 @@ Sys.B2 = [B20a; B20b];                 % abbreviated form for two spins: two row
 </pre>
 
 <p>
-Currently, it is not possible to include tilt angles for the principal frames of these high-order interaction tensors. All of them are assumed to be collinear with the molecular frame. By changing the molecular frame, i.e. by tilting all other tensors (g, A, etc), this limitation can be partially circumvented. Still, all the high-order interactions are collinear.
+To include tilt angles for <code>Sys.B1</code>, <code>Sys.B2</code>, etc, use the fields <code>Sys.B1Frame</code>, <code>Sys.B2Frame</code>, etc. See below.
+</p>
 
 </div>
+
+<div class="optionfield"><code>B1Frame, B2Frame, ..., B12Frame</code></div>
+<div class="optiondescr">
+3-element arrays containing the <a href="eulerangles.html">Euler angles</a> describing the orientation of the tensors specified in <code>B1</code>, <code>B2</code>, etc. (see above) in the molecular frame. Use <code>B1Frame</code> for the rank-1 tensor in <code>B1</code>, <code>B2Frame</code> for the rank-2 tensor in <code>B2</code>, and so forth.
+
+<p>
+These fields are fully analogous to <code>AFrame</code> (see above). See the page on <a href="frames.html">frames</a> for more details on frames.
+</p>
+
+<p>
+Here is an example for rank 2:
+</p>
+
+<pre class="matlab">
+Sys.B2 = [0 30 100 0 0];   % in MHz
+Sys.B2Frame = [0 pi/3 0];  % in radians
+</pre>
+
+</div>
+
 
 <a name="ee"><div class="subtitle">Electron-electron spin-spin couplings</div></a>
 
@@ -1010,11 +1038,12 @@ Nx3 array containing the <a href="eulerangles.html">Euler angles</a> describing 
 
 <p>
 This is fully analogous to <code>AFrame</code> (see above). Check out the page on <a href="frames.html">frames</a> for more details on frames.
+</p>
 
 <p>
 Prior to EasySpin 5, the field <code>eepa</code> was used instead of <code>eeFrame</code>.
 To convert old <code>eepa</code> values to <code>eeFrame</code>, invert the order and flip the sign of the three Euler angles.
-    
+</p>    
 
 </div>
 

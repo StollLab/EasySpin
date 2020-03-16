@@ -177,6 +177,10 @@ else
   Op = c/2i*(T - T'); % sine tesseral operator
 end
 
+% Clean small numerical errors
+idx = abs(Op)<1e-14 & Op~=0;
+Op(idx) = 0;
+
 if ~useSparseMatrices
   Op = full(Op);
 end

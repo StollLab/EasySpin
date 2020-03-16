@@ -1,7 +1,7 @@
-% symm  Determines spin Hamiltonian symmetry 
+% symm  Determine spin Hamiltonian symmetry 
 %
-%   Group = symm(Sys)
-%   [Group,R] = symm(Sys)
+%   PGroup = symm(Sys)
+%   [PGroup,R] = symm(Sys)
 %
 %   Determines the point group of the Hamiltonian
 %   of a spin sytem together with its symmetry frame.
@@ -10,17 +10,16 @@
 %   - Sys: Spin system specification structure
 %
 %   Output:
-%   - Group: Schoenfliess point group symbol, one of
-%     'Ci','C2h','D2h','C4h','D4h','S6','D3d',
-%     'C6h','D6h','Th','Oh',Dinfh','O3'.
+%   - PGroup: Schoenfliess point group symbol, one of
+%     'Ci','C2h','D2h','C4h','D4h','S6','D3d','C6h','D6h','Th','Oh',Dinfh','O3'.
 %   - R: Rotation matrix containing the axes of the
 %     symmetry frame along columns.
 
-function [Group,RMatrix] = symm(Sys,varargin)
+function [PGroup,RMatrix] = symm(Sys,varargin)
 
-if (nargin==0), help(mfilename); return; end
+if nargin==0, help(mfilename); return; end
 
-if (nargin>1)
+if nargin>1
   options = varargin{end};
   DebugMode = strfind(options,'debug');
 else
@@ -32,42 +31,33 @@ error(err);
 sysfields = fieldnames(Sys);
 
 
+highOrderTermsPresent = ~isempty(Sys.B);
 
-HighOrderTermsPresent = false;
-HigherZeemanPresent = false;
-
-stevens = strncmp(sysfields,'B',1).';
-if any(stevens)
-  for n=find(stevens)
-    if any(Sys.(sysfields{n})(:)), HighOrderTermsPresent = true; end
-  end
-end
-higherzeeman = strncmp(sysfields,'Ham',3).';
-if any(higherzeeman) 
-  for n=find(higherzeeman)
+higherZeemanPresent = false;
+higherzeemanFields = strncmp(sysfields,'Ham',3).';
+if any(higherzeemanFields) 
+  for n = find(higherzeemanFields)
     if any(Sys.(sysfields{n})(:))
-        HighOrderTermsPresent = true;
-        HigherZeemanPresent = true;
+        highOrderTermsPresent = true;
+        higherZeemanPresent = true;
     end
   end
 end
-if isfield(Sys,'aF') && any(Sys.aF(:)), HighOrderTermsPresent = true; end
+if isfield(Sys,'aF') && any(Sys.aF(:)), highOrderTermsPresent = true; end
 
+CrystalFieldPresent = false;
 cf = strncmp(sysfields,'CF',2).';
 if any(cf)
-  for n=find(cf)
+  for n = find(cf)
     if any(Sys.(sysfields{n})(:))
       CrystalFieldPresent = true;
-      HighOrderTermsPresent = true;
-    else
-      CrystalFieldPresent = false;
+      highOrderTermsPresent = true;
     end
   end
 end
 
-
 if DebugMode
-  if HighOrderTermsPresent
+  if highOrderTermsPresent
     fprintf('High-order terms present!\n');
   else
     fprintf('No high-order terms present!\n');
@@ -82,12 +72,12 @@ fullee = Sys.fullee;
 
 FullTensorsGiven = any([fullg fullA fullD fullee fullQ]);
 
-if ~FullTensorsGiven && ~HighOrderTermsPresent
+if ~FullTensorsGiven && ~highOrderTermsPresent
   if DebugMode
     fprintf('Check whether isotropic...\n')
   end  
   if isisotropic(Sys)
-    Group = 'O3';
+    PGroup = 'O3';
     RMatrix = eye(3);
     return;
   end
@@ -96,7 +86,7 @@ end
 % :TODO:
 EquivalentSpins = 0;
 
-DoQMAnalysis = HighOrderTermsPresent | FullTensorsGiven | EquivalentSpins;
+DoQMAnalysis = highOrderTermsPresent | FullTensorsGiven | EquivalentSpins;
 
 % Geometrical analysis is flawed: doesn't work for
 % CF3 radical. This has molecular symmetry C3v, should give
@@ -115,9 +105,9 @@ if DebugMode
 end
 
 if DoQMAnalysis
-  [Group, RMatrix] = symm_full(Sys,HigherZeemanPresent,DebugMode);
+  [PGroup, RMatrix] = symm_full(Sys,higherZeemanPresent,DebugMode);
 else
-  [Group, RMatrix] = symm_geom(Sys,DebugMode);
+  [PGroup, RMatrix] = symm_geom(Sys,DebugMode);
 end
 
 return
@@ -143,7 +133,7 @@ pa = [0 0 0]; % the (first) g frame itself
 if isfield(Sys,'gFrame'), pa = [pa; Sys.gFrame]; end
 if isfield(Sys,'eeFrame'), pa = [pa; Sys.eeFrame]; end
 if isfield(Sys,'DFrame'), pa = [pa; Sys.DFrame]; end
-if isfield(Sys,'AFrame'),
+if isfield(Sys,'AFrame')
   % make sure it works for more than 1 electron spin
   for k = 0:3:size(Sys.AFrame,2)-1
     pa = [pa; Sys.AFrame(:,k+(1:3))];
@@ -152,7 +142,7 @@ end
 if isfield(Sys,'QFrame'), pa = [pa; Sys.QFrame]; end
 
 % Remove duplicates. Avoid sorting
-[dummy,ii] = unique(pa,'rows');
+[~,ii] = unique(pa,'rows');
 pa = pa(sort(ii),:);
 %--------------------------------------------------
 
@@ -191,7 +181,7 @@ if (~LockedFrame)
   %Rots(:,:,Invert) = -Rots(:,:,Invert);
 
   % Remove duplicate frames. Avoid sorting.
-  [dummy,idx] = unique(reshape(Rots,9,nFrames).','rows');
+  [~,idx] = unique(reshape(Rots,9,nFrames).','rows');
   Rots = Rots(:,:,sort(idx));
   nFrames = size(Rots,3);
 else
@@ -267,10 +257,12 @@ for iFrame = 1:nFrames % loop over all potential frames
 
   switch C4*2+C3
   case 0 % none: Ci, C2h, D2h
-    if HigherZeemanPresent, C2z = eqeig(eA,eig(sham(Sys,B(:,12))));
-    else C2z = eqeig(eA,eig(F+B(1,12)*Gx+B(2,12)*Gy+B(3,12)*Gz));
+    if HigherZeemanPresent
+      C2z = eqeig(eA,eig(sham(Sys,B(:,12))));
+    else
+      C2z = eqeig(eA,eig(F+B(1,12)*Gx+B(2,12)*Gy+B(3,12)*Gz));
     end
-    if ~C2z,
+    if ~C2z
       pg = 1; % Ci
     else % D2h, C2h
       if HigherZeemanPresent, sigmaxz = eqeig(eA,eig(sham(Sys,B(:,11))));
@@ -324,16 +316,18 @@ for iFrame = 1:nFrames % loop over all potential frames
         C3d = eqeig(eig(F+B(2,10)*Gx+B(3,10)*Gy+B(1,10)*Gz),...
                   eig(F+B(1,10)*Gx+B(2,10)*Gy+B(3,10)*Gz));
       end
-      if C3d, pg = 11; else pg = 5; end
+      if C3d, pg = 11; else, pg = 5; end
     else
       pg = 4;
     end
     
   case 3 % C3 and C4 axes: Dinfh,O3
-    if HigherZeemanPresent, Cinfx = eqeig(eC,eig(sham(Sys,B(:,4))));
-    else Cinfx = eqeig(eC,eig(F+B(1,4)*Gx+B(2,4)*Gy+B(3,4)*Gz));
+    if HigherZeemanPresent
+      Cinfx = eqeig(eC,eig(sham(Sys,B(:,4))));
+    else
+      Cinfx = eqeig(eC,eig(F+B(1,4)*Gx+B(2,4)*Gy+B(3,4)*Gz));
     end
-    if Cinfx, pg=13; else pg=12; end
+    if Cinfx, pg=13; else, pg=12; end
     
   end  % switch
   
@@ -478,7 +472,7 @@ SymFrame = eye(3);
 if DebugMode, fprintf('  O3 as starting symmetry\n'); end
 for iTens = 1:numel(Sym)
   [Grp,SymFrame] = combinesymms(Grp,SymFrame,Sym(iTens),Ax{iTens});
-  if DebugMode,
+  if DebugMode
     fprintf('   + %s (%s) = %s\n',Groups{Sym(iTens)+1},Name{iTens},Groups{Grp+1});
   end
 end
@@ -494,13 +488,13 @@ O3 = 0; Dinfh = 1; D2h = 2;
 nValueEqualities = sum(diff(sort(PrincipalValues))==0);
 
 switch nValueEqualities
-case 0,
+case 0
   SymGroup = D2h;
   zAxis = 3;
-case 2,
+case 2
   SymGroup = O3;
   zAxis = 3;
-case 1,
+case 1
   SymGroup = Dinfh;
   if (PrincipalValues(2)==PrincipalValues(3))
     zAxis = 1;
@@ -614,7 +608,7 @@ elseif (Sym1==D2h) && (Sym2==Dinfh)
     TotalRot = Rot1;
   elseif any(z2Angles>PerpLimit) % z in a D2h sigma plane
     TotalSym = C2h;
-    [Angle,newzidx] = max(z2Angles);
+    [~,newzidx] = max(z2Angles);
     idx = [2 3 1 2 3];
     TotalRot = Rot1(:,idx(newzidx+(0:2)));
   else
@@ -662,7 +656,7 @@ elseif (Sym1==D2h) && (Sym2==D2h)
     % find collinear axes
     %[minAngles,minidx2] = min(allAngles);
     [minAngles] = min(allAngles);
-    [Angle,newzidx1] = min(minAngles);
+    [~,newzidx1] = min(minAngles);
     %newzidx2 = minidx2(newzidx1);
     % Axes newzidx2 of frame 2 and newzidx1 of frame 1 are collinear
     idx = [2 3 1 2 3];
@@ -696,7 +690,7 @@ end % Combination case switchyard
 
 return
 
-%========================================================
+%===============================================================================
 function iso = isisotropic(Sys)
 
 iso = 0;
