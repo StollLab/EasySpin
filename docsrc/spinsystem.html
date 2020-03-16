@@ -810,6 +810,20 @@ Sys.B2 = [B20a; B20b];                 % abbreviated form for two spins: two row
 To include tilt angles for <code>Sys.B1</code>, <code>Sys.B2</code>, etc, use the fields <code>Sys.B1Frame</code>, <code>Sys.B2Frame</code>, etc. See below.
 </p>
 
+<p>
+Both <code>Sys.B2</code> and <code>Sys.D</code> provide parameters for the rank-2 zero-field splitting term in the spin Hamiltonian. Therefore, only one of the two can be used. The two spin systems <code>Sys1</code> and <code>Sys2</code> in the following example give identical Hamiltonians:
+</p>
+
+<pre class="matlab">
+D = 1000; % MHz
+E = D*0.2; % MHz
+ang = [pi/3 pi/7 pi/11]; % tilt angles
+Sys1.D = [D E];
+Sys1.DFrame = ang;
+Sys2.B2 = [E 0 D/3 0 0]; 
+Sys2.B2Frame = ang;
+</pre>
+
 </div>
 
 <div class="optionfield"><code>B1Frame, B2Frame, ..., B12Frame</code></div>
