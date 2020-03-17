@@ -50,6 +50,7 @@ This guide covers the following topics:
 <li><a href = "#rabi">Rabi oscillation</a></li>
 <li><a href = "#spinecho_nitroxide">Spin echo of a nitroxide</a></li>
 <li><a href = "#spinecho_gaussian">Spin echo of a Gaussian line</a></li>
+<li><a href = "#simultaneousirradiation">Simultaneous irradiation at two frequencies</a></li>
 <li><a href = "#tipsntricks">Tips and Tricks</a></li>
 </ul>
 
@@ -833,7 +834,46 @@ Exp.DetFreq = 9.5; % GHz
 </pre>
 
 <!-- ============================================================= -->
-<a name="tipsntricks"><div class="subtitle">Tips and Tricks</div></a>
+<a name="simultaneousirradiation"><div class="subtitle">Simultaneous irradiation at two frequencies</div></a>
+
+<p>
+Simultaneous irradiation (e.g. cross-polarization or decoupling) at two different frequencies is not implemented at this point, but can still be achieved:
+The trick is to use <code>Exp.mwPolarization </code> in combination with custom excitation operators. 
+This allows us to assign the real part of the wave to an excitation operator that acts on one spin or subset of spins (frequency) and the imaginary part to a second spin or subset of spins (frequency).
+Look at the following example:
+
+<pre class="matlab">
+  CombinedPulses.IQ = real(mwPulse) + imag(rfPulse);
+  CombinedPulses.t = t_mwPulse);
+
+  Opt.ExcOperator{1} = sop([1/2 1/2],'xe') + 1i*sop([1/2 1/2],'ex');
+  
+  Exp.mwPolarization = 'circular'; 
+  
+  Exp.Sequence = {CombinedPulses};
+  
+  spidyan(Sys,Exp,Opt)
+</pre>
+
+Here, we are working with a two-spin system <math>S = 1/2</math> and <math>I = 1/2</math> (you can tell that by the way we are calling <code>sop</code> when creating the excitation operator).
+We created two wave forms using <code>pulse</code> (not shown) <code>mwPulse</code> and <code>rfPulse</code> that we then stored in the <code>IQ</code> field of the <code>CombindePulses</code> structure - the microwave pulse in the real part and the rf pulse as the imaginary part.
+The corresponding time axis is saved to <code>CombinedPulses.t</code> (both pulses must have the same length and time step).
+</p>
+<p>
+In the next step we assign spin selective operators: The electron spin is to get excited only real part of the pulse and the nucleus by the imaginary part.
+With <code>Exp.mwPolarization = 'circular'</code> we are letting <code>spidyan</code> (or <code>saffron</code>) know that it should expect a wave form that contains a real and an imaginary part.
+</p>
+<p>
+If the above code is now run, the simulation will use the real part of the wave form to propagate the electron spin and the imaginary part to propagate the nucleus, as if we were irradiating the spin system with two pulses at different frequencies at the same time.
+</p>
+
+
+
+
+
+
+<!-- ============================================================= -->
+<a name="tipsntricks"><div class="subtitle">Tips and tricks</div></a>
 
 <p>
 If you are interested in the expectation values of <i>&Scirc;<sub>x</sub></i>, it is usually beneficial to use <i>&Scirc;</i><sub>+</sub> as the actual detection operator and then take the real part of the obtained signal.
