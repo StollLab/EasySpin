@@ -90,25 +90,21 @@ for iSpin = idxElectrons
       end
     end
     S = Spins(1);
-    n = S*(S+1);
-    Sz = sop(Spins,[1,3],'sparse');
-    O40 = (35*Sz^4-30*n*Sz^2+25*Sz^2-(6*n-3*n^2)*speye(length(Sz)));
+    O40 = stev(S,[4 0]);
     F = Sys.aF(2);
-    if (F~=0)
+    if F~=0
       H = H + (F/180)*O40;
     end
     a = Sys.aF(1);
     if a~=0
-      Sp = sop(Spins,[1,4],'sparse');
-      Sm = sop(Spins,[1,5],'sparse');
       if ~isfield(Sys,'aFFrame'), Sys.aFFrame = 4; end
-      if (Sys.aFFrame==3)
+      if Sys.aFFrame==3
         % along threefold axis (see Abragam/Bleaney p.142, p.437)
-        O43 = (Sz*(Sp^3+Sm^3)+(Sp^3+Sm^3)*Sz)/2;
-        H = H - 2/3*(a/120)*(O40 + 10*sqrt(2)*O43);
-      elseif (Sys.aFFrame==4)
+        O43 = stev(S,[4 3]);
+        H = H - 2/3*(a/120)*(O40 + 20*sqrt(2)*O43);
+      elseif Sys.aFFrame==4
         % along fourfold (tetragonal) axis (used by some)
-        O44 = (Sp^4+Sm^4)/2;
+        O44 = stev(S,[4 4]);
         H = H + (a/120)*(O40 + 5*O44);
       else
         error('Unknown Sys.aFFrame value. Use 3 for trigonal and 4 for tetragonal (collinear with D).');
