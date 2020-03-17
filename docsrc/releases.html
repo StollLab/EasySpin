@@ -41,10 +41,11 @@ $ReleaseID$
 <li>A set of new functions provides support for basic manipulations with quaternions: <a href="euler2quat.html">euler2quat</a>, <a class="esf" href="rotmat2quat.html">rotmat2quat</a>, <a class="esf" href="quat2euler.html">quat2euler</a>, <a class="esf" href="quat2rotmat.html">quat2rotmat</a>, <a class="esf" href="quatvecmult.html">quatvecmult</a>, <a class="esf" href="quatmult.html">quatmult</a>, <a class="esf" href="quatinv.html">quatinv</a>.
 <li><a class="esf" href="wignerd.html">wignerd</a> can evaluate single matrix elements for an array of Euler angle sets.
 <li><a class="esf" href="oripotentialplot">oripotentialplot</a> plots orientational potentials, as used by <a class="esf" href="chili.html">chili</a> and <a class="esf" href="cardamom.html">cardamom</a>.
-<li><a class="esf" href="pepper.html">pepper</a> and <a class="esf" href="salt.html">salt</a> now support spin systems with nuclear-nuclear couplings, given via the spin system field <code>Sys.nn</code>.
+<li><a class="esf" href="pepper.html">pepper</a> and <a class="esf" href="salt.html">salt</a> now support spin systems with nucleus-nucleus couplings, given via the spin system field <code>Sys.nn</code>.
 <li><a class="esf" href="diptensor.html">diptensor</a> calculates dipolar coupling tensors.</li>
 <li><a class="esf" href="isto.html">isto</a> provides matrix representations of irreducible spherical tensor operators.</li>
 <li><a class="esf" href="spinsystem.html">Spin systems</a> now support tilted Stevens tensor operators via fields such as <code>Sys.B2Frame</code></li>
+<li><a class="esf" href="spinsystem.html">Spin systems</a> now support nuclear chemical shielding tensor via the fields <code>Sys.sigma</code> and <code>Sys.sigmaFrame</code>.</li>
 </ul>
 
 <p>Major bug fixes</p>
@@ -76,7 +77,7 @@ $ReleaseID$
 <li>The new function <a class="esf" href="transmitter.html">transmitter</a> allows to simulate or compensate pulses for the effect of amplifier nonlinearity.
 <li>All simulation functions now support multi-isotopologue systems (e.g. natural-abundance isotope mixtures) with equivalent nuclei (given in <code>Sys.n</code>).
 <li><a class="esf" href="eprload.html">eprload</a> supports new EPR data formats (Adani, Magnettech).
-<li><a href="spinsystem.html">Spin systems</a> can have nuclear-nuclear couplings (<code>Sys.nn</code> and <code>Sys.nnFrame</code>), and they are incorporated into the spin Hamiltonian (via the new function <a class="esf" href="nnint.html">nnint</a>).
+<li><a href="spinsystem.html">Spin systems</a> can have nucleus-nucleus couplings (<code>Sys.nn</code> and <code>Sys.nnFrame</code>), and they are incorporated into the spin Hamiltonian (via the new function <a class="esf" href="nnint.html">nnint</a>).
 <li><code>levelsplot</code> can now plot energies also in reciprocal centimeters (wavenumbers) or electron-volts.
 </ul>
 

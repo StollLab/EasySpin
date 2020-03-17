@@ -92,45 +92,65 @@ ZyM = sparse(nStates,nStates);
 ZzM = sparse(nStates,nStates);
 
 elFactor = bmagn/(planck*1e9)*Sys.g;
-nucFactor = -nmagn/(planck*1e9)*Sys.gn;
-lFactor = -bmagn/(planck*1e9)*Sys.orf;
+nucFactor = -nmagn/(planck*1e9)*Sys.gn.*Sys.gnscale;
+orbFactor = -bmagn/(planck*1e9)*Sys.orf;
 
-% Loop over all spins selected
-for idx = 1:numel(Spins)
-  iSpin = Spins(idx);
-  if iSpin<=nElectrons
-    % If it's an electron...
+% Loop over all angular momenta (electron spins, nuclear spins, orbitals) selected
+for i = Spins
+  if i<=nElectrons
+    
+    % Electron spin
     if Sys.fullg
-      g = elFactor((iSpin-1)*3+(1:3),:);
+      g = elFactor((i-1)*3+(1:3),:);
     else
-      g = diag(elFactor(iSpin,:));
+      g = diag(elFactor(i,:));
     end
     % Transform g matrix to molecular frame
-    R_M2g = erot(Sys.gFrame(iSpin,:)); % mol frame -> g frame
+    R_M2g = erot(Sys.gFrame(i,:)); % mol frame -> g frame
     R_g2M = R_M2g.'; % g frame -> mol frame
     g = R_g2M*g*R_g2M.';
     % Build electon Zeeman Hamiltonian in MHz/mT
     for k = 1:3
-      Sk = sop(SpinVec,[iSpin,k],'sparse');
+      Sk = sop(SpinVec,[i,k],'sparse');
       ZxM = ZxM + g(1,k)*Sk;
       ZyM = ZyM + g(2,k)*Sk;
       ZzM = ZzM + g(3,k)*Sk;
     end
-  elseif iSpin<=nEN
-    % Nuclei, gn always isotropic
+    
+  elseif i<=nEN
+    
+    % Nuclei, with isotropic gn and chemical shielding (CS) tensor sigma
+    iNuc = i-nElectrons;
+    if Sys.fullsigma
+      sigma = Sys.sigma((iNuc-1)*3+(1:3),:);
+    else
+      sigma = diag(Sys.sigma(iNuc,:));
+    end
+    % Transform CS tensor to molecular frame
+    ang = Sys.sigmaFrame(iNuc,:);
+    if any(ang)
+      R_M2CS = erot(ang); % mol frame -> CS frame
+      R_CS2M = R_M2CS.'; % CS frame -> mol frame
+      sigma = R_CS2M*sigma*R_CS2M.';
+    end
     % Build nuclear Zeeman Hamiltonian in MHz/mT
-    pre = nucFactor(iSpin-nElectrons);
-    pre = pre * Sys.gnscale(iSpin-nElectrons);
-    ZxM = ZxM + pre*sop(SpinVec,[iSpin,1],'sparse');
-    ZyM = ZyM + pre*sop(SpinVec,[iSpin,2],'sparse');
-    ZzM = ZzM + pre*sop(SpinVec,[iSpin,3],'sparse');
+    pre = nucFactor(iNuc);
+    for k = 1:3
+      Ik = sop(SpinVec,[i,k],'sparse');
+      ZxM = ZxM + pre*sigma(1,k)*Ik;
+      ZyM = ZyM + pre*sigma(2,k)*Ik;
+      ZzM = ZzM + pre*sigma(3,k)*Ik;
+    end
+    
   else
+    
     % Orbital angular momenta, isotropic
     % Build orbital Zeeman Hamiltonian in MHz/mT
-    pre = lFactor(iSpin-nEN);
-    ZxM = ZxM + pre*sop(SpinVec,[iSpin,1],'sparse');
-    ZyM = ZyM + pre*sop(SpinVec,[iSpin,2],'sparse');
-    ZzM = ZzM + pre*sop(SpinVec,[iSpin,3],'sparse');
+    pre = orbFactor(i-nEN);
+    ZxM = ZxM + pre*sop(SpinVec,[i,1],'sparse');
+    ZyM = ZyM + pre*sop(SpinVec,[i,2],'sparse');
+    ZzM = ZzM + pre*sop(SpinVec,[i,3],'sparse');
+    
   end
 end
 

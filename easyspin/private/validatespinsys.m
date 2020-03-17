@@ -478,6 +478,41 @@ else
 end
 
 
+% Chemical shielding tensor (Sys.sigma, Sys.sigmaFrame)
+%-------------------------------------------------------------------------------
+if isfield(Sys,'sigma')
+    
+  Sys.fullsigma = issize(Sys.sigma,[3*nNuclei 3]);
+  if Sys.fullsigma
+    % full CS tensors
+  elseif numel(Sys.sigma)==nNuclei
+    % isotropic CS tensors
+    Sys.sigma = Sys.sigma(:)*[1 1 1];
+  elseif issize(Sys.sigma,[nNuclei 2])
+    % axial tensors
+    Sys.sigma = Sys.sigma(:,[1 1 2]);
+  elseif issize(Sys.sigma,[nNuclei 3])
+    % orthorhombic tensors
+  else
+    err = 'Sys.sigma has wrong size.';
+    return
+  end
+
+else
+  
+  % Supplement Sys.sigma
+  Sys.fullsigma = false;
+  Sys.sigma = ones(nNuclei,3);
+  
+end
+
+if ~isfield(Sys,'sigmaFrame') || isempty(Sys.sigmaFrame)
+  Sys.sigmaFrame = zeros(nNuclei,3);
+end
+err = sizecheck(Sys,'sigmaFrame',[nNuclei 3]);
+if ~isempty(err); return; end
+
+
 % Hyperfine couplings (Sys.A, Sys.A_, Sys.AFrame)
 %-------------------------------------------------------------------------------
 Sys.fullA = false;

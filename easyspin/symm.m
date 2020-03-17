@@ -69,10 +69,12 @@ fullA = Sys.fullA;
 fullQ = Sys.fullQ;
 fullD = Sys.fullD;
 fullee = Sys.fullee;
+fullnn = Sys.fullnn;
+fullsigma = Sys.fullsigma;
 
-FullTensorsGiven = any([fullg fullA fullD fullee fullQ]);
+fullTensorsGiven = any([fullg fullA fullD fullee fullQ fullsigma fullnn]);
 
-if ~FullTensorsGiven && ~highOrderTermsPresent
+if ~fullTensorsGiven && ~highOrderTermsPresent
   if DebugMode
     fprintf('Check whether isotropic...\n')
   end  
@@ -86,7 +88,7 @@ end
 % :TODO:
 EquivalentSpins = 0;
 
-DoQMAnalysis = highOrderTermsPresent | FullTensorsGiven | EquivalentSpins;
+doQMAnalysis = highOrderTermsPresent | fullTensorsGiven | EquivalentSpins;
 
 % Geometrical analysis is flawed: doesn't work for
 % CF3 radical. This has molecular symmetry C3v, should give
@@ -97,14 +99,14 @@ DoQMAnalysis = highOrderTermsPresent | FullTensorsGiven | EquivalentSpins;
 % angle: returns Ci, since doesn't find common rotation axis.
 
 if DebugMode
-  if DoQMAnalysis
+  if doQMAnalysis
     fprintf('Quantum mechanical symmetry analysis...\n'); 
   else
     fprintf('Geometric symmetry analysis...\n');
   end
 end
 
-if DoQMAnalysis
+if doQMAnalysis
   [PGroup, RMatrix] = symm_full(Sys,higherZeemanPresent,DebugMode);
 else
   [PGroup, RMatrix] = symm_geom(Sys,DebugMode);
@@ -410,43 +412,63 @@ end
 Sys = validatespinsys(Sys);
 nElectrons = Sys.nElectrons;
 nNuclei = Sys.nNuclei;
-nCouplings = nElectrons*(nElectrons-1)/2;
+nElCouplings = nElectrons*(nElectrons-1)/2;
+nNucCouplings = nNuclei*(nNuclei-1)/2;
 
 % Determine symmetries of all tensors in spin system
-%-----------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 Sym = [];
 Ax = {};
 Name = {};
 
+% Electron Zeeman interaction
 for iE = 1:nElectrons
-  % Electron Zeeman interaction
   [Sym(end+1),Ax{end+1}] = tensorsymmetry(Sys.g(iE,:),Sys.gFrame(iE,:));
   Name{end+1} = sprintf('g%d',iE);
-  % Zero Field interaction
+end
+
+% Zero-field interaction
+for iE = 1:nElectrons
   if Sys.S(iE)>1/2
     [Sym(end+1),Ax{end+1}] = tensorsymmetry(Sys.D(iE,:),Sys.DFrame(iE,:));
     Name{end+1} = sprintf('D%d',iE);
   end
-  % Electron-Electron Interaction
-  for iC = 1:nCouplings
-    [Sym(end+1),Ax{end+1}] = tensorsymmetry(Sys.ee(iC,:),Sys.eeFrame(iC,:));
-    Name{end+1} = sprintf('ee%d',iC);
-  end
 end
 
+% Electron-electron interaction
+for iC = 1:nElCouplings
+  [Sym(end+1),Ax{end+1}] = tensorsymmetry(Sys.ee(iC,:),Sys.eeFrame(iC,:));
+  Name{end+1} = sprintf('ee%d',iC);
+end
+
+% Nuclear Zeeman interaction
 for iN = 1:nNuclei
-  % Hyperfine Interaction
+  [Sym(end+1),Ax{end+1}] = tensorsymmetry(Sys.sigma(iN,:),Sys.sigmaFrame(iN,:));
+  Name{end+1} = sprintf('sigma%d',iE);
+end
+
+% Hyperfine interaction
+for iN = 1:nNuclei
   eidx = 1:3;
   for iE = 1:nElectrons
     [Sym(end+1),Ax{end+1}] = tensorsymmetry(Sys.A(iN,eidx),Sys.AFrame(iN,eidx));
     Name{end+1} = sprintf('A%d%d',iE,iN);
     eidx = eidx + 3;
   end
-  % Nuclear Quadrupole Interaction
+end
+
+% Nuclear quadrupole interaction
+for iN = 1:nNuclei
   if Sys.I(iN)>1/2
     [Sym(end+1),Ax{end+1}] = tensorsymmetry(Sys.Q(iN,:),Sys.QFrame(iN,:));
     Name{end+1} = sprintf('Q%d',iN);
   end
+end
+
+% Nucleus-nucleus interaction
+for iC = 1:nNucCouplings
+  [Sym(end+1),Ax{end+1}] = tensorsymmetry(Sys.nn(iC,:),Sys.nnFrame(iC,:));
+  Name{end+1} = sprintf('nn%d',iC);
 end
 
 if DebugMode
@@ -454,7 +476,7 @@ if DebugMode
 end
 
 % Remove isotropic tensors
-isotropic = (Sym==0);
+isotropic = Sym==0;
 Sym(isotropic) = [];
 Ax(isotropic) = [];
 Name(isotropic) = [];
@@ -480,7 +502,7 @@ SymGrp = Groups{Grp+1};
 
 return
 
-%-------------------------------
+%-------------------------------------------------------------------------------
 function [SymGroup,SymFrame] = tensorsymmetry(PrincipalValues,EulerAngles)
 
 O3 = 0; Dinfh = 1; D2h = 2;
@@ -693,15 +715,6 @@ return
 %===============================================================================
 function iso = isisotropic(Sys)
 
-iso = 0;
-
-%Sys = validatespinsys(Sys);
-
-% (1) Not isotropic if Q, D or any high-order term is present
-
-if isfield(Sys,'Q') && any(Sys.Q(:)), return; end
-if isfield(Sys,'D') && any(Sys.D(:)), return; end
-
 % fn = fieldnames(Sys);
 % HighOrderTerm = strncmp(fn,'B',1);
 % for k = 1:numel(fn)
@@ -709,30 +722,18 @@ if isfield(Sys,'D') && any(Sys.D(:)), return; end
 % end
 % if any(HighOrderTerm), return; end
 
-% (2) Not isotropic if any A, g or ee tensor is anisotropic
-if isfield(Sys,'A') && ~isempty(Sys.A)
-  for j = 0:Sys.nElectrons-1
-    A = Sys.A(:,1+3*j);
-    if any(Sys.A(:,2+3*j)~=A) || any(Sys.A(:,3+3*j)~=A)
-      return;
-    end
+isiso = @(T) isfield(Sys,T) && any(any(diff(Sys.(T),[],2)));
+
+iso = isiso('g') && isiso('D') && isiso('ee') && ...
+      isiso('Q') && ...
+      isiso('sigma') && isiso('nn');
+
+if iso && isfield(Sys,'A')
+  eidx = 1:3;
+  for e = 1:Sys.nElectrons
+    iso = iso && any(diff(Sys.A(:,eidx),[],2));
+    eidx = eidx + 3;
   end
 end
-
-if isfield(Sys,'g')
-  g = Sys.g(:,1);
-  if any(Sys.g(:,2)~=g) || any(Sys.g(:,3)~=g)
-    return;
-  end
-end
-
-if isfield(Sys,'ee')
-  ee = Sys.ee(:,1);
-  if any(Sys.ee(:,2)~=ee) || any(Sys.ee(:,3)~=ee)
-    return;
-  end
-end
-
-iso = 1;
 
 return
