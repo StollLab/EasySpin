@@ -12,10 +12,14 @@ Sys.D = D;
 Sys.aF = [a F];
 Sys.aFFrame = 3;
 
-e1 = eig(zfield(Sys)); e1 = e1(1:2:6);
-e2(1) = D/3 - (a-F)/2 - sqrt((18*D+a-F)^2+80*a^2)/6;
-e2(2) = D/3 - (a-F)/2 + sqrt((18*D+a-F)^2+80*a^2)/6;
-e2(3) = -2*D/3 + (a-F);
-e2 = sort(e2.');
+% Numerical energies
+E1 = eig(zfield(Sys));
+E1 = E1(1:2:6);
 
-ok = areequal(e1,e2,1e08,'abs');
+% Analytical energies
+E2(1) = D/3 - (a-F)/2 - sqrt((18*D+a-F)^2+80*a^2)/6;
+E2(2) = D/3 - (a-F)/2 + sqrt((18*D+a-F)^2+80*a^2)/6;
+E2(3) = -2*D/3 + (a-F);
+E2 = sort(E2.');
+
+ok = areequal(E1,E2,1e-8,'abs');
