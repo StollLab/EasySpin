@@ -73,7 +73,7 @@ for iOAM = idxOAM
     
     q = k:-1:-k;
     for iq = find(CFk(iOAM,:)~=0)
-      H = H + CFk(iOAM,iq)*stev(Sys.Spins,k,q(iq),iOAM+offset);
+      H = H + CFk(iOAM,iq)*stev(Sys.Spins,[k,q(iq),iOAM+offset]);
     end
     
   end % for all tensor ranks

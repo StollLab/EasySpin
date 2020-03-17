@@ -319,6 +319,7 @@ if CoreSys.nNuclei>=1 && Opt.Hybrid
   for iiNuc = nPerturbNuclei:-1:1
     iNuc = idx(iiNuc);
     I = System.I(iNuc);
+    [Ix,Iy,Iz] = sop(I,'x','y','z');
     nPerturbTransitions(iiNuc) = (2*I+1)^2;
     
     % Hyperfine interaction
@@ -334,17 +335,17 @@ if CoreSys.nNuclei>=1 && Opt.Hybrid
         end
         A = R_A2M*diag(A)*R_A2M.';
       end
-      Hhfi(iElectron,iiNuc).x = A(1,1)*sop(I,1,1) + A(1,2)*sop(I,1,2) + A(1,3)*sop(I,1,3);
-      Hhfi(iElectron,iiNuc).y = A(2,1)*sop(I,1,1) + A(2,2)*sop(I,1,2) + A(2,3)*sop(I,1,3);
-      Hhfi(iElectron,iiNuc).z = A(3,1)*sop(I,1,1) + A(3,2)*sop(I,1,2) + A(3,3)*sop(I,1,3);
+      Hhfi(iElectron,iiNuc).x = A(1,1)*Ix + A(1,2)*Iy + A(1,3)*Iz;
+      Hhfi(iElectron,iiNuc).y = A(2,1)*Ix + A(2,2)*Iy + A(2,3)*Iz;
+      Hhfi(iElectron,iiNuc).z = A(3,1)*Ix + A(3,2)*Iy + A(3,3)*Iz;
     end
     
     if ~Opt.HybridOnlyHFI
       % Nuclear Zeeman interaction
       prefactor = -nmagn/planck/1e9*System.gn(iNuc);
-      Hzeem(iiNuc).x = prefactor*sop(I,1,1);
-      Hzeem(iiNuc).y = prefactor*sop(I,1,2);
-      Hzeem(iiNuc).z = prefactor*sop(I,1,3);
+      Hzeem(iiNuc).x = prefactor*Ix;
+      Hzeem(iiNuc).y = prefactor*Iy;
+      Hzeem(iiNuc).z = prefactor*Iz;
       % Nuclear quadrupole interaction
       Hquad{iiNuc} = 0;
       if I>=1
@@ -357,9 +358,10 @@ if CoreSys.nNuclei>=1 && Opt.Hybrid
           R_Q2M = erot(System.QFrame(iNuc,:)).'; % Q frame -> molecular frame
         end
         Q = R_Q2M*diag(Q)*R_Q2M.';
-        for c1=1:3
-          for c2=1:3
-            Hquad{iiNuc} = Hquad{iiNuc} + Q(c1,c2)*sop(I,1,c1)*sop(I,1,c2);
+        Ivec = {Ix,Iy,Iz};
+        for c1 = 1:3
+          for c2 = 1:3
+            Hquad{iiNuc} = Hquad{iiNuc} + Q(c1,c2)*Ivec{c1}*Ivec{c2};
           end
         end
       end
@@ -369,9 +371,9 @@ if CoreSys.nNuclei>=1 && Opt.Hybrid
   
   % Components of S vectors for computing <u|S|u>
   for iEl = System.nElectrons:-1:1
-    S(iEl).x = sop(CoreSys,iEl,1);
-    S(iEl).y = sop(CoreSys,iEl,2);
-    S(iEl).z = sop(CoreSys,iEl,3);
+    S(iEl).x = sop(CoreSys,[iEl,1]);
+    S(iEl).y = sop(CoreSys,[iEl,2]);
+    S(iEl).z = sop(CoreSys,[iEl,3]);
   end
 
 else
@@ -710,9 +712,9 @@ if computeStrains
     if ~simplegStrain
       logmsg(1,'  multiple g strains present');
       for iEl = 1:CoreSys.nElectrons
-        kSxM{iEl} = sop(CoreSys,iEl,1);
-        kSyM{iEl} = sop(CoreSys,iEl,2);
-        kSzM{iEl} = sop(CoreSys,iEl,3);
+        kSxM{iEl} = sop(CoreSys,[iEl,1]);
+        kSyM{iEl} = sop(CoreSys,[iEl,2]);
+        kSzM{iEl} = sop(CoreSys,[iEl,3]);
       end
     end
   else
@@ -735,7 +737,7 @@ if computeStrains
     [E,idx] = sort(real(diag(E)));
     Vs = Vs(:,idx);
     % Calculate effective mI of nucleus 1 for all eigenstates.
-    mI = real(diag(Vs'*sop(CoreSys,2,3)*Vs));
+    mI = real(diag(Vs'*sop(CoreSys,[2,3])*Vs));
     mITr = mean(mI(Transitions),2);
     % compute A strain array
     AStrainMatrix = reshape(mITr(:,ones(1,9)).',[3,3,nTransitions]).*...

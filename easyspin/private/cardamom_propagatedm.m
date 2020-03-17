@@ -316,9 +316,9 @@ switch PropagationMethod
       % are time-independent, so we only need to calculate them once
       
       for iSpin = 1:numel(Sys.Spins)
-        SpinOps{iSpin,1} = sop(Sys.Spins,iSpin,1);
-        SpinOps{iSpin,2} = sop(Sys.Spins,iSpin,2);
-        SpinOps{iSpin,3} = sop(Sys.Spins,iSpin,3);
+        SpinOps{iSpin,1} = sop(Sys.Spins,[iSpin,1]);
+        SpinOps{iSpin,2} = sop(Sys.Spins,[iSpin,2]);
+        SpinOps{iSpin,3} = sop(Sys.Spins,[iSpin,3]);
       end
       
       if ~isfield(Sys,'DiffFrame'), Sys.DiffFrame = [0 0 0]; end  % TODO include frames in cardamom

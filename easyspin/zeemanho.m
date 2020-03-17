@@ -207,7 +207,7 @@ else  % full Hamiltonian is provided
   if ~ischar(opt)
     error('Last input must be a string, ''sparse''.');
   end
-  sparseResult = strcmp(opt,'sparse');
+  sparseResult = opt;
     
   % Validate spin system
   [Sys,err] = validatespinsys(SpinSystem);
@@ -312,13 +312,13 @@ else  % full Hamiltonian is provided
                 mS = m-mB;% Wigner3j is ~= 0 for m = mB+mS
                 if -lS<=mS && mS<=lS
                   if mS == 0
-                    TlSmS = stev(SpinVec, lS,mS, iSpin,sparseResult)/Alm(lS,abs(mS)+1);
+                    TlSmS = stev(SpinVec,[lS,mS,iSpin],sparseResult)/Alm(lS,abs(mS)+1);
                   elseif mS > 0
                     TlSmS = (-1)^mS/(Alm(lS,mS+1)*sqrt(2))*...
-                      (stev(SpinVec, lS,mS, iSpin,sparseResult)+1i*stev(SpinVec, lS,-mS, iSpin,sparseResult));
+                      (stev(SpinVec,[lS,mS,iSpin],sparseResult)+1i*stev(SpinVec,[lS,-mS,iSpin],sparseResult));
                   else
                     TlSmS = 1/(Alm(lS,abs(mS)+1)*sqrt(2))*...
-                      (stev(SpinVec, lS,-mS, iSpin,sparseResult)-1i*stev(SpinVec, lS,mS, iSpin,sparseResult));
+                      (stev(SpinVec,[lS,-mS,iSpin],sparseResult)-1i*stev(SpinVec,[lS,mS,iSpin],sparseResult));
                   end
                   hZ = hZ + alBlSlm(iq)*pre*wigner3j(lB,lS,l,mB,mS,-m)*...
                     TlBmB(lB-mB+1)*TlSmS;

@@ -18,7 +18,7 @@ k = 4;
 q = k:-1:-k;
 for iq = 1:numel(q)
   for iSpin = 1:2
-    Op2 = Op2 + Sys.B4(iSpin,iq)*stev(Sys.S,k,q(iq),iSpin);
+    Op2 = Op2 + Sys.B4(iSpin,iq)*stev(Sys.S,[k,q(iq),iSpin]);
   end
 end
 

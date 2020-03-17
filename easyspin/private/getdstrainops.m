@@ -26,9 +26,9 @@ for iEl = 1:Sys.nElectrons
   end
   
   % Construct Zeeman operators in molecular frame
-  SxM_ = sop(Sys,iEl,1);
-  SyM_ = sop(Sys,iEl,2);
-  SzM_ = sop(Sys,iEl,3);
+  SxM_ = sop(Sys,[iEl,1]);
+  SyM_ = sop(Sys,[iEl,2]);
+  SzM_ = sop(Sys,[iEl,3]);
   
   % Construct Zeeman operators in D frame, and square
   if any(Sys.DFrame(iEl,:))

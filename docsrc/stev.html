@@ -35,9 +35,9 @@ Extended Stevens operators.
 <div class="subtitle">Syntax</div>
 
 <pre class="matlab">
-Op = stev(S,k,q)
-Op = stev(S,k,q,iSpin)
-Op = stev(S,k,q,iSpin,'sparse')
+Op = stev(S,[k,q])
+Op = stev(S,[k,q,iSpin])
+Op = stev(__,'sparse')
 </pre>
 
 <!-- ====================================================== -->
@@ -62,7 +62,7 @@ The cosine tesseral operator component <img src="eqn/stev2.png" alt="[eqn]"><!--
 </p>
 
 <pre class="matlab">
-stev(2,4,2)
+stev(2,[4,2])
 </pre>
 
 <pre class="mloutput">

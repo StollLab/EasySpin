@@ -920,11 +920,11 @@ if strcmp(Opt.SimulationMode,'fast')
   %=====================================================================
   
   logmsg(1,'setting up electronic Hamiltonian...');
-  if (TwoElectronManifolds)
+  if TwoElectronManifolds
     % not needed, S=1/2 electronic Hamiltonian can be solved analytically
   else
     coreSys = nucspinrmv(Sys,shfNuclei);
-    coreSys.processed = 0;
+    coreSys.processed = false;
     coreSys.lw = 0;
     if isfield(coreSys,'A_')
       coreSys = rmfield(coreSys,'A');
@@ -932,9 +932,9 @@ if strcmp(Opt.SimulationMode,'fast')
     % Operators for constructing Hamiltonian
     [F,Gx,Gy,Gz] = sham(coreSys);
     % Operators for computing <i|S|i>
-    Sx = sop(coreSys,1,1); % works only for one electron spin
-    Sy = sop(coreSys,1,2);
-    Sz = sop(coreSys,1,3);
+    Sx = sop(coreSys,[1,1]); % works only for one electron spin
+    Sy = sop(coreSys,[1,2]);
+    Sz = sop(coreSys,[1,3]);
   end
   %=====================================================================
   
@@ -965,13 +965,13 @@ if strcmp(Opt.SimulationMode,'fast')
     for iiNuc = 1:numel(shfNuclei) % only shf nuclei
       % Spin operators -------------------------------------------------
       if Opt.ProductRule
-        Ix = sop(I(iiNuc),1,1);
-        Iy = sop(I(iiNuc),1,2);
-        Iz = sop(I(iiNuc),1,3);
+        Ix = sop(I(iiNuc),[1,1]);
+        Iy = sop(I(iiNuc),[1,2]);
+        Iz = sop(I(iiNuc),[1,3]);
       else
-        Ix = sop(I,iiNuc,1);
-        Iy = sop(I,iiNuc,2);
-        Iz = sop(I,iiNuc,3);
+        Ix = sop(I,[iiNuc,1]);
+        Iy = sop(I,[iiNuc,2]);
+        Iz = sop(I,[iiNuc,3]);
       end
       iNuc = shfNuclei(iiNuc);
       % Store operators for building RF pulse

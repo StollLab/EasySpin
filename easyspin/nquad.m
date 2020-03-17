@@ -65,7 +65,7 @@ for iNuc = Nuclei
   
   % Construct NQI term of spin hamiltonian.
   for k = 1:3
-    I{k} = sop(spvc,nElectrons+iNuc,k,'sparse');
+    I{k} = sop(spvc,[nElectrons+iNuc,k],'sparse');
   end
   for k = 1:3
     for q = 1:3

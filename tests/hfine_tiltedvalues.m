@@ -9,9 +9,9 @@ Sys.AFrame = rand(1,3)*2*pi;
 R = erot(Sys.AFrame);
 A = R'*diag(Sys.A)*R;
 HFI = 0;
-for k=1:3
-  for q=1:3
-    HFI = HFI + A(k,q)*sop(Sys,[1 2],[k q]);
+for c1 = 1:3
+  for c2 = 1:3
+    HFI = HFI + A(c1,c2)*sop(Sys,[1 c1; 2 c2]);
   end
 end
 H1 = hfine(Sys);

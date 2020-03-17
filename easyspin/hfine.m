@@ -80,9 +80,9 @@ for edx = 1:length(ElSpins)
     R_A2M = R_M2A.'; % A frame -> mol frame
     A = R_A2M*A*R_A2M.';
     % Construct hyperfine Hamiltonian.
-    for k = 1:3
-      for q = 1:3
-        F = F + A(k,q)*sop(SpinVec,[eSp,nSp],[k,q],'sparse');
+    for c1 = 1:3
+      for c2 = 1:3
+        F = F + A(c1,c2)*sop(SpinVec,[eSp c1; nSp c2],'sparse');
       end
     end
   end % for all specified nuclei

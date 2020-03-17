@@ -1,51 +1,40 @@
 % sop  Spin operator matrices
 %
-%   SpinOp = sop(SpinSystem, Comps)
-%   [SpinOp1,SpinOp2,...] = sop(SpinSystem,Comps1,Comps2,...)
+%   Op = sop(SpinSystem, Comps)
+%   [Op1,Op2,...] = sop(SpinSystem,Comps1,Comps2,...)
 %   ... = sop(...,'sparse')
 %
-%   Spin operator matrix of the spin system
-%   SpinSystem in the standard |mS,mI,...>
-%   representation.
+%   Spin operator matrix of the spin system SpinSystem in the standard
+%   |mS,mI,...> representation.
 %
-%   If more than one component is given, a matrix
-%   is computed for each component.
+%   If more than one component is given, a matrix is computed for each component.
 %
 %   Input:
-%   - SpinSystem: vector of spin quantum numbers
-%     or a spin system specification structure
-%   - Comps: string specifying the operator, with several syntaxes
-%      - specify component 'e','x','y','z','+','-' for each spin, indicating
-%        E,Sx,Sy,Sz,S+,S-
-%      - specify component and spin index, e.g. 'x2,z3'
-%      - specify transition after component, e.g. 'x(1|3)' or 'x(1|3)2,z3' or
-%        '+(1|2)1,e(3)2'
+%    SpinSystem  vector of spin quantum numbers
+%                 or a spin system specification structure
+%    Comps       (a) string specifying the operator, in several possible ways:                 
+%                    - specify component 'e','x','y','z','+','-' for each spin,
+%                      indicating E,Sx,Sy,Sz,S+,S-
+%                    - specify component and spin index, e.g. 'x2,z3'
+%                    - specify transition after component, e.g. 'x(1|3)' or
+%                      'x(1|3)2,z3' or '+(1|2)1,e(3)2'
+%                (b) numeric array, with each row giving [i c], with spin index
+%                    i and component index c (c=1 is 'x', 2 is 'y', 3 is 'z',
+%                    4 is '+', 5 is '-', 0 is 'e');
 %
 %   Output:
-%   - SpinOp: operator matrix as requested
+%    Op          spin operator matrix as requested
 %
 %   Examples:
-%     SxIy = sop([1/2 1],'xy')    % returns SxIy for a S=1/2, I=1 system.
+%     SxIy = sop([1/2 1],'xy')    % returns SxIy for a S=1/2, I=1 system
 %
-%     SeIp = sop([1/2 1/2],'e+')  % returns SeI+ for a S=I=1/2 system.
+%     SeIp = sop([1/2 1/2],'e+')  % returns SeI+ for a S=I=1/2 system
 %
-%     [Sx,Sy,Sz] = sop(1/2,'x','y','z')  % computes three matrices in one call.
+%     [Sx,Sy,Sz] = sop(1/2,'x','y','z')  % computes three matrices in one call
 %
 %     Sxc = sop(5/2,'x(3|4)') % Sx on central transition -1/2<->+1/2
 
 function varargout = sop(SpinSystem,varargin)
-
-% Undocumented numeric syntax:
-%   sop(sys,spins,comps)
-%     spins: list of indices into sys
-%     comps: 1=x, 2=y, 3=z, 4=+, 5=-, all others=e
-%
-% Example:
-%    numeric sytnax: sop([1/2 1],2,1) equivalent to
-%    string syntax:  sop([1/2 1],'xe')
-%
-%   DO NOT REMOVE THE HANDLING OF THE NUMERIC SYNTAX!!!!
-%   MANY FUNCTIONS RELY ON IT, e.g. zeeman, internal, stev, hfine, resfields
 
 % For the spin system J1,J2,J3... the
 % order of the spin states of the basis is
@@ -79,25 +68,31 @@ if nargin==1
   error('Not enough input arguments - at least 2 are needed!');
 end
 
-sparseOutput = strcmpi(varargin{end},'sparse');
+sparseOutput = ischar(varargin{end}) && strcmpi(varargin{end},'sparse');
 
 if sparseOutput
   OperatorSpec = varargin(1:end-1);
 else
-  OperatorSpec = varargin(1:end);
+  OperatorSpec = varargin;
 end
 
-NumericSyntax = isnumeric(varargin{1});
-
-if NumericSyntax
+if isnumeric(OperatorSpec{1})
   
-  if numel(varargin)<2 || numel(varargin)>3
-    error('Three or four inputs are required for the numeric syntax.')
+  % Operator specification is a numeric array
+  
+  if numel(OperatorSpec)~=1
+    error('Incorrect number of input arguments.')
   end
-  Spins = varargin{1};
-  Coords = varargin{2};
+  a = OperatorSpec{1};
+  if size(a,2)~=2
+    error('For numeric input, the array specifying spins and components must be Nx2.');
+  end
+  Spins = a(:,1);
+  Coords = a(:,2);
   
 else
+  
+  % Operator specification is a character array
   
   if nargout~=numel(OperatorSpec) && nargout>0
     error('sop: Number of output arguments (%d) and number of requested operator matrices (%d) do not match.',nargout,numel(OperatorSpec));
@@ -278,7 +273,7 @@ Components = repmat('e',1,nSpins);
 Components(Spins) = Coords;
 
 % Set starting operator matrix
-OperatorMatrix = sparse(1);
+Op = sparse(1);
 
 % Run over all spins
 for iSpin = 1:nSpins
@@ -374,15 +369,15 @@ for iSpin = 1:nSpins
   end
   
   M_ = sparse(r,c,val,n,n);
-  OperatorMatrix = kron(OperatorMatrix,M_);
+  Op = kron(Op,M_);
   
 end
 
 % Convert sparse to full matrix if required
 if ~sparseOutput
-  OperatorMatrix = full(OperatorMatrix);
+  Op = full(Op);
 end
 
-varargout = {OperatorMatrix};
+varargout = {Op};
 
 return

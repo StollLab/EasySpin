@@ -11,6 +11,6 @@ S = 1;
 k = 1;
 q = -k:k;
 for iq = 1:numel(q)
-  Opp = stev(S,k,q(iq));
+  Opp = stev(S,[k,q(iq)]);
   ok(iq) = areequal(Opp,Op{iq},1e-10,'abs');
 end

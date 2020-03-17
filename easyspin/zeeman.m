@@ -111,7 +111,7 @@ for idx = 1:numel(Spins)
     g = R_g2M*g*R_g2M.';
     % Build electon Zeeman Hamiltonian in MHz/mT
     for k = 1:3
-      Sk = sop(SpinVec,iSpin,k,'sparse');
+      Sk = sop(SpinVec,[iSpin,k],'sparse');
       ZxM = ZxM + g(1,k)*Sk;
       ZyM = ZyM + g(2,k)*Sk;
       ZzM = ZzM + g(3,k)*Sk;
@@ -121,16 +121,16 @@ for idx = 1:numel(Spins)
     % Build nuclear Zeeman Hamiltonian in MHz/mT
     pre = nucFactor(iSpin-nElectrons);
     pre = pre * Sys.gnscale(iSpin-nElectrons);
-    ZxM = ZxM + pre*sop(SpinVec,iSpin,1,'sparse');
-    ZyM = ZyM + pre*sop(SpinVec,iSpin,2,'sparse');
-    ZzM = ZzM + pre*sop(SpinVec,iSpin,3,'sparse');
+    ZxM = ZxM + pre*sop(SpinVec,[iSpin,1],'sparse');
+    ZyM = ZyM + pre*sop(SpinVec,[iSpin,2],'sparse');
+    ZzM = ZzM + pre*sop(SpinVec,[iSpin,3],'sparse');
   else
     % Orbital angular momenta, isotropic
     % Build orbital Zeeman Hamiltonian in MHz/mT
     pre = lFactor(iSpin-nEN);
-    ZxM = ZxM + pre*sop(SpinVec,iSpin,1,'sparse');
-    ZyM = ZyM + pre*sop(SpinVec,iSpin,2,'sparse');
-    ZzM = ZzM + pre*sop(SpinVec,iSpin,3,'sparse');
+    ZxM = ZxM + pre*sop(SpinVec,[iSpin,1],'sparse');
+    ZyM = ZyM + pre*sop(SpinVec,[iSpin,2],'sparse');
+    ZzM = ZzM + pre*sop(SpinVec,[iSpin,3],'sparse');
   end
 end
 

@@ -16,7 +16,7 @@ for k = 1:12
   O = cell(n,1);
   for q = -k:k
     T{k+1-q} = isto(S,[k q]);
-    O{k+1-q} = stev(S,k,q);
+    O{k+1-q} = stev(S,[k,q]);
   end
   
   % Apply transformation to get O from T

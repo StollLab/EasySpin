@@ -7,9 +7,9 @@ Spins = [3/2 3 5/2 3/2];
 iSpin = 2;
 k = 4;
 q = +3;
-Op = stev(Spins,k,q,iSpin,'sparse');
+Op = stev(Spins,[k,q,iSpin],'sparse');
 
-Op0 = stev(Spins(iSpin),k,q);
+Op0 = stev(Spins(iSpin),[k,q]);
 n = 2*Spins+1;
 npre = prod(n(1:iSpin-1));
 npost = prod(n(iSpin+1:end));

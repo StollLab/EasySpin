@@ -98,10 +98,12 @@ for iNucPair = 1:nNucPairs
   end
   
   % Sum up Hamiltonian terms
+  spin1 = System.nElectrons+nucPairs(iNucPair,1);
+  spin2 = System.nElectrons+nucPairs(iNucPair,2);
   for c1 = 1:3
-    so1 = sop(sys,System.nElectrons+nucPairs(iNucPair,1),c1,'sparse');
+    so1 = sop(sys,[spin1,c1],'sparse');
     for c2 = 1:3
-      so2 = sop(sys,System.nElectrons+nucPairs(iNucPair,2),c2,'sparse');
+      so2 = sop(sys,[spin2,c2],'sparse');
       Hnn = Hnn + so1*J(c1,c2)*so2;
     end
   end

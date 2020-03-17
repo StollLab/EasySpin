@@ -57,7 +57,7 @@ for iSpin = idxElectrons
     end
     % Construct spin operator matrices
     for c = 3:-1:1
-      Sxyz{c} = sop(Spins,iSpin,c,'sparse');
+      Sxyz{c} = sop(Spins,[iSpin,c],'sparse');
     end
     % Construct SDS term
     for c1 = 1:3
@@ -91,7 +91,7 @@ for iSpin = idxElectrons
     end
     S = Spins(1);
     n = S*(S+1);
-    Sz = sop(Spins,1,3,'sparse');
+    Sz = sop(Spins,[1,3],'sparse');
     O40 = (35*Sz^4-30*n*Sz^2+25*Sz^2-(6*n-3*n^2)*speye(length(Sz)));
     F = Sys.aF(2);
     if (F~=0)
@@ -99,8 +99,8 @@ for iSpin = idxElectrons
     end
     a = Sys.aF(1);
     if a~=0
-      Sp = sop(Spins,1,4,'sparse');
-      Sm = sop(Spins,1,5,'sparse');
+      Sp = sop(Spins,[1,4],'sparse');
+      Sm = sop(Spins,[1,5],'sparse');
       if ~isfield(Sys,'aFFrame'), Sys.aFFrame = 4; end
       if (Sys.aFFrame==3)
         % along threefold axis (see Abragam/Bleaney p.142, p.437)
@@ -154,7 +154,7 @@ for iSpin = idxElectrons
     % Build Hamiltonian
     q = k:-1:-k;
     for iq = find(Bk_M(iSpin,:)~=0)
-      H = H + Bk_M(iSpin,iq)*stev(Spins,k,q(iq),iSpin,'sparse');
+      H = H + Bk_M(iSpin,iq)*stev(Spins,[k,q(iq),iSpin],'sparse');
     end
     
   end % for all tensor ranks

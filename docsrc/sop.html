@@ -67,20 +67,30 @@ The representation of the operators is in terms of product Zeeman basis states |
 <code>Spins</code> is a vector containing the spin quantum numbers (for example <code>[1/2 1</code>) or, alternatively, a <a href="spinsystem.html">spin system structure</a>.
 
 <p>
-<code>Comps</code> is a character array specifying the particular spin operator. There are several different ways to do this:
+<code>Comps</code> is a character or numeric array specifying the particular spin operator. There are several different ways to do this:
 
 <ol>
 <li><b>One component for each spin</b>: Give one operator component for each spin in <code>Spins</code>. Elements of <code>Comps</code> can be <code>'e'</code> (identity), <code>'x'</code> (S<sub>x</sub>), <code>'y'</code> (S<sub>y</sub>), <code>'z'</code> (S<sub>z</sub>), <code>'+'</code> (S<sub>+</sub>) or <code>'-'</code> (S<sub>-</sub>). For spin-1/2, <code>'a'</code> and <code>'b'</code> correspond to S<sub>&alpha;</sub> and S<sub>&beta;</sub>. The order in <code>Comps</code> corresponds to the order in <code>Spins</code>.
 <p>
 For example, for a spin system with one spin-1/2 and one spin-1 (<code>Spins = [1/2 1]</code>), <code>Comps = 'xe'</code> would give S<sub>1x</sub>, <code>Comps = 'ex'</code> gives S<sub>2x</sub>, and <code>Comps = 'xy'</code> gives S<sub>1x</sub>S<sub>2y</sub>.
+</p>
+</li>
 
 <li><b>Component plus spin index</b>: Give a list of components, each followed by the index of the spin.
 <p>
 For example, for a 3-spin system with <code>Spins = [1/2 1/2 1/2]</code>, <code>Comps = 'x2'</code> gives S<sub>2x</sub>, <code>Comps = 'z1y3'</code> gives S<sub>1z</sub>S<sub>3y</sub>, and <code>Comps = 'z1+2-3'</code> gives S<sub>1z</sub>S<sub>2+</sub>S<sub>3-</sub>. If indices are present, the order of the entries is irrelevant: <code>'z1y3'</code> and <code>'y3z1'</code> are identical. Optionally, you can use commas to separate the components: <code>'z1y3'</code> and <code>'z1,y3'</code> give the same result.
+</p>
+</li>
 
 <li><b>Component and transition (and index)</b>: For transition-selective operators, specify the pair of levels after the component in the form <code>(level1|level2)</code>, optionally followed by the spin index. The level indices refer to the standard descending m order, so level 1 corresponds to m = S, level 2 to m = S-1, etc.
 <p>
 For example, for a single spin, <code>'x(1|3)'</code> indicates an Sx operator connecting levels 1 and 3. <code>'e(2|2)'</code> (or <code>'e(2)'</code>) indicates a matrix with a single non-zero element at (2,2), corresponding to the population of level 2. For more than one spin, commas are required, and spin indices are necessary if you don't give a component for each spin. For example, <code>'+(1|3),z'</code> for a 2-spin system gives an S<sub>+</sub> operator that connects levels 1 and 3 of spin 1, times an S<sub>z</sub> operator for spin two. <code>'y(1|4)1,x(2|3)3'</code> for a 3-spin system indicates an S<sub>y</sub> operator connecting levels 1 and 4 of the first spin, times an S<sub>x</sub> operator connecting levels 2 and 3 of the third spin.
+</p>
+</li>
+
+<li><b>Spin index and component code</b>: Give an Nx2 array, where each row contains a spin index and a letter code for the component, where 0 corresponds to <code>'e'</code>, 1 is <code>'x'</code>, 2 is <code>'y'</code>, 3 is <code>'z'</code>, 4 is <code>'+'</code>, and 5 is <code>'-'</code>. For example <code>[1 3; 2 4]</code> indicates <code>'z'</code> for the first spin and <code>'+'</code> for the second spin (and thus equivalent to <code>'x+'</code> if this is a two-spin system, or <code>'x1+2'</code>.) This numeric syntax is a bit bulkier than the character-based ones above, but can be useful in loops. 
+</li>
+
 </ol>
 
 <p>
@@ -124,6 +134,18 @@ SzIx =
     0.2500         0         0         0
          0         0         0   -0.2500
          0         0   -0.2500         0
+</pre>
+<pre class="matlab">
+Ip = sop([1/2 1],[2 4])
+</pre>
+<pre class="mloutput">
+     Ip =
+     0       1.4142            0            0            0            0
+     0            0       1.4142            0            0            0
+     0            0            0            0            0            0
+     0            0            0            0       1.4142            0
+     0            0            0            0            0       1.4142
+     0            0            0            0            0            0
 </pre>
 <pre class="matlab">
 S1zI3p = sop([1/2 1/2 1/2],'z1+3')

@@ -747,9 +747,9 @@ if generalLiouvillian
   
   % calculate spin operators
   for iSpin = 1:numel(Sys.Spins)
-    SpinOps{iSpin,1} = sop(Sys.Spins,iSpin,1,'sparse'); % Sx
-    SpinOps{iSpin,2} = sop(Sys.Spins,iSpin,2,'sparse'); % Sy
-    SpinOps{iSpin,3} = sop(Sys.Spins,iSpin,3,'sparse'); % Sz
+    SpinOps{iSpin,1} = sop(Sys.Spins,[iSpin,1],'sparse'); % Sx
+    SpinOps{iSpin,2} = sop(Sys.Spins,[iSpin,2],'sparse'); % Sy
+    SpinOps{iSpin,3} = sop(Sys.Spins,[iSpin,3],'sparse'); % Sz
   end
 
   SdetOp = sparse(0);

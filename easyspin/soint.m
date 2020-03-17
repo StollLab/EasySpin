@@ -60,7 +60,7 @@ if numel(unique(Spins))~=numel(Spins)
 end
 
 
-% Spin-orbit coupling terms sop*S(k)*L(k)
+% Spin-orbit coupling terms soc*S(k)*L(k)
 %----------------------------------------------------------------
 shift = System.nElectrons + System.nNuclei;
 for k = 1:length(Spins)
@@ -72,7 +72,7 @@ for k = 1:length(Spins)
   % Build S*L operator matrix
   SL = sparse(System.nStates,System.nStates);
   for c1 = 1:3
-    SL = SL + sop(System,[iSpin,iSpin+shift],c1,'sparse');
+    SL = SL + sop(System,[iSpin c1; iSpin+shift c1],'sparse');
   end
   
   % Add SOC terms to Hamiltonian

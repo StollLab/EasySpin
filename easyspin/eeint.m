@@ -99,9 +99,9 @@ for iPair = 1:nPairs
   
   % Sum up Hamiltonian terms
   for c1 = 1:3
-    so1 = sop(sys,Pairs(iPair,1),c1,'sparse');
+    so1 = sop(sys,[Pairs(iPair,1),c1],'sparse');
     for c2 = 1:3
-      so2 = sop(sys,Pairs(iPair,2),c2,'sparse');
+      so2 = sop(sys,[Pairs(iPair,2),c2],'sparse');
       F = F + so1*J(c1,c2)*so2;
     end
   end
@@ -111,7 +111,7 @@ for iPair = 1:nPairs
   if System.ee2(iCoupling)==0, continue; end
   F2 = 0;
   for c = 1:3
-    F2 = F2 + sop(sys,Pairs(iPair,:),c,'sparse');
+    F2 = F2 + sop(sys,[Pairs(iPair,1),c;Pairs(iPair,2),c],'sparse');
   end
   F = F + System.ee2(iCoupling)*F2^2;
 end

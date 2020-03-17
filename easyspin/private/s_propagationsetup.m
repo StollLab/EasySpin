@@ -64,11 +64,11 @@ totSpinOps = cell(1,3);
 for iSpin = 1:numel(Sys.S)
   if iSpin == 1
     for i = 1:3
-      totSpinOps{i} = sop(Sys.Spins,iSpin,i);
+      totSpinOps{i} = sop(Sys.Spins,[iSpin,i]);
     end
   else
     for i = 1:3
-      totSpinOps{i} = totSpinOps{i} + sop(Sys.Spins,iSpin,i);
+      totSpinOps{i} = totSpinOps{i} + sop(Sys.Spins,[iSpin,i]);
     end
   end
 end

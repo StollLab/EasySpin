@@ -1,8 +1,8 @@
 % stev  Extended Stevens spin operator matrices
 %
-%   Op = stev(S,k,q)
-%   Op = stev(S,k,q,iSpin)
-%   Op = stev(S,k,q,iSpin,'sparse')
+%   Op = stev(S,[k,q])
+%   Op = stev(S,[k,q,iSpin])
+%   Op = stev(__,'sparse')
 %
 %   Constructs extended Stevens operator matrices of rank k and component q
 %   for spin S. Rank and component must satisfy 0<=k<=2*S and -k<=q<=k.
@@ -20,18 +20,19 @@
 %
 %   Input:
 %   - S: spin quantum number, or vector thereof
-%   - k,q: indices specifying O_k^|q|(c) for q>0 and O_k^|q|(s) for q<0
+%   - k,q: indices specifying O_k^|q|(c) for q>=0 and O_k^|q|(s) for q<0
 %   - iSpin: index of the spin in the spin vector for
 %       which the operator matrix should be computed
+%   - 'sparse': if given, return matrix in sparse and not in full format
 %
 %   Output:
 %   - Op: extended Stevens operator matrix
 %
 %   Examples:
 %    Get O_4^2(c) for a spin 5/2:
-%       stev(5/2,4,2)
+%       stev(5/2,[4,2])
 %    Get O_6^5(c) for the second spin in a spin system with two spins-3/2:
-%       stev([3/2 3/2],6,5)
+%       stev([3/2 3/2],[6,5,2])
 
 % Abbreviations:
 %   ESO   extended Stevens operator
@@ -55,44 +56,21 @@
 %   St. Stoll, PhD thesis, ETH Zurich, 2003
 %   C.Rudowicz, Magn.Reson.Rev. 13, 1-87 (1987)
 
-function Op = stev(Spins,k,q,iSpin,Sparse)
+function Op = stev(Spins,Comps,Sparse)
 
 if nargin==0, help(mfilename); return; end
 
-if nargin<3 || nargin>5
-  error('Wrong number of input arguments!');
-end
-
-if nargin<4
-  iSpin = [];
-end
-if nargin<5
-  Sparse = '';
-end
-
-if isstruct(Spins)
-  Spins = spinvec(Spins);
-end
-if isempty(iSpin)
-  if numel(Spins)>1
-    error('In the case of multiple spins, provide iSpin (4th input).');
-  else
-    iSpin = 1;
-  end
-end
-
-if ischar(Sparse)
-  useSparseMatrices = strcmp(Sparse,'sparse');
-else
-  if isempty(Sparse)
+switch nargin
+  case 2
     useSparseMatrices = false;
-  elseif ~islogical(Sparse)
-    error('Input argument Sparse must be either true/false or ''sparse''!');
-  else
-    useSparseMatrices = Sparse;
-  end
+  case 3
+    if ~ischar(Sparse)
+      error('Third input argument must be a character array (''sparse'').');
+    end
+    useSparseMatrices = strcmp(Sparse,'sparse');
+  otherwise
+    error('Wrong number of input arguments!');
 end
-
 
 % Initialization of prefactors
 %-------------------------------------------------------------------------------
@@ -119,9 +97,26 @@ end
 
 % Checks on input parameters S, k and q
 %-------------------------------------------------------------------------------
+if isstruct(Spins)
+  Spins = spinvec(Spins);
+end
 if ~isnumeric(Spins) || any(mod(2*Spins,1)) || any(~isreal(Spins)) || any(Spins<0)
   error('S must contain positive multiples of 1/2.');
 end
+
+if ~isnumeric(Comps) || ~isreal(Comps) || size(Comps,1)~=1
+  error('Second input must be a 1x2 or 1x3 array.');
+end
+if size(Comps,2)==2
+  if numel(Spins)>1
+    error('For a system with more than one spin, provide the desired spin index in iSpins.');
+  end
+  Comps(3) = 1;
+end
+k = Comps(1);
+q = Comps(2);
+iSpin = Comps(3);
+
 if iSpin<0 || iSpin>numel(Spins)
   error('iSpin = %d is out of range. It should be between 1 and %d',iSpin,numel(Spins));
 end
@@ -148,8 +143,8 @@ end
 % Compute STO component T^k_|q| using Racah's commutation rule, but leaving out
 % scaling and normalization constants. This is possible since they are divided
 % out again by the Stevens prefactors c (see below). (Ryabov, Eq.[1])
-Jp = sop(Spins,iSpin,4,'sparse'); % J_+
-Jm = sop(Spins,iSpin,5,'sparse'); % J_-
+Jp = sop(Spins,[iSpin,4],'sparse'); % J_+
+Jm = sop(Spins,[iSpin,5],'sparse'); % J_-
 T = Jp^k;  % T^k_k
 for qq = k-1:-1:abs(q)
   T = Jm*T - T*Jm;
