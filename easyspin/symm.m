@@ -43,7 +43,6 @@ if any(higherzeemanFields)
     end
   end
 end
-if isfield(Sys,'aF') && any(Sys.aF(:)), highOrderTermsPresent = true; end
 
 CrystalFieldPresent = false;
 cf = strncmp(sysfields,'CF',2).';

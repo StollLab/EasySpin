@@ -45,7 +45,7 @@ end
 %-------------------------------------------------------------------------------
 correctFields = {'S','Nucs','Abund','n',...
   'g','g_','gFrame','gStrain',...
-  'D','DFrame','DStrain','aF',...
+  'D','DFrame','DStrain',...
   'ee','J','dip','dvec','ee2','eeFrame',...
   'A','A_','AFrame','AStrain',...
   'Q','QFrame',...
@@ -226,25 +226,20 @@ err = sizecheck(Sys,'DFrame',[nElectrons 3]);
 if ~isempty(err); return; end
 
 
-% High-order zero-field terms (Sys.aF, Sys.B*)
+% High-order zero-field terms (Sys.B*)
 %-------------------------------------------------------------------------------
 
-if isfield(Sys,'aF')
-  err = sizecheck(Sys,'aF',[1 2]);
-  if ~isempty(err), return; end
-else
-  Sys.aF = [0 0];
+if isfield(Sys,'aF') || isfield(Sys,'aFFrame')
+  error('Sys.aF and Sys.aFFrame are no longer supported. Use Sys.B4 and Sys.B4Frame instead.');
 end
-
 if isfield(Sys,'BFrame') && ~reprocessing
-  err = sprintf('Sys.BFrame is not supported. Use Sys.B1Frame, Sys.B2Fame, etc instead.',k);
+  err = 'Sys.BFrame is not supported. Use Sys.B1Frame, Sys.B2Fame, etc instead.';
   return
 end
 
 % B1, B2, B3, etc.
 Sys.B = [];
 D_present = any(Sys.D(:));
-aF_present = any(Sys.aF(:));
 for k = 1:12
   fieldname = sprintf('B%d',k);
   if ~isfield(Sys,fieldname), continue; end
@@ -252,10 +247,6 @@ for k = 1:12
   
   if k==2 && any(Bk(:)) && D_present
     err = 'Cannot use Sys.D and Sys.B2 simultaneously. Remove one of them.';
-    return
-  end
-  if k==4 && any(Bk(:)) && aF_present
-    err = 'Cannot use Sys.aF and Sys.B4 simultaneously. Remove one of them.';
     return
   end
   
@@ -950,15 +941,11 @@ if any(strncmp('Ham',fieldnames(Sys),3))
   if any(field(:))
     Sys.MO_present = true;
     
-    % check for D, aF, and Bk
+    % check for D and Bk
     lB0 = field(1,:,:);
     if any(lB0(:))
       if D_present && field(1,3,1)
         err = 'Cannot use Sys.D and Sys.Ham022 simultaneously. Remove one of them.';
-        return
-      end
-      if aF_present && field(1,5,1)
-        err = 'Cannot use Sys.aF and Sys.Ham044 simultaneously. Remove one of them.';
         return
       end
       if any(squeeze(field(1,:,1)).*isfield(Sys,Bstr))

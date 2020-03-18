@@ -76,40 +76,10 @@ for iSpin = idxElectrons
   % Doetschman/McCool, Chem.Phys. 8, 1-16 (1975)
   % Scullane, J.Magn.Reson. 47, 383-397 (1982)
   % Jain/Lehmann, phys.stat.sol.(b) 159, 495-544 (1990)
-
-  if isfield(Sys,'aF') && any(Sys.aF(:))
-    % work only for first electron spin
-    if iSpin~=1
-      continue
-    end
-    % not available if D frame is tilted (would necessitate rotation
-    % of the a and F terms which is not implemented).
-    if isfield(Sys,'DFrame')
-      if ~isempty(Sys.DFrame) && any(Sys.DFrame(:))
-        error('It''s not possible to use Sys.aF with a tilted D frame (Sys.DFrame).');
-      end
-    end
-    S = Spins(1);
-    O40 = stev(S,[4 0]);
-    F = Sys.aF(2);
-    if F~=0
-      H = H + (F/180)*O40;
-    end
-    a = Sys.aF(1);
-    if a~=0
-      if ~isfield(Sys,'aFFrame'), Sys.aFFrame = 4; end
-      if Sys.aFFrame==3
-        % along threefold axis (see Abragam/Bleaney p.142, p.437)
-        O43 = stev(S,[4 3]);
-        H = H - 2/3*(a/120)*(O40 + 20*sqrt(2)*O43);
-      elseif Sys.aFFrame==4
-        % along fourfold (tetragonal) axis (used by some)
-        O44 = stev(S,[4 4]);
-        H = H + (a/120)*(O40 + 5*O44);
-      else
-        error('Unknown Sys.aFFrame value. Use 3 for trigonal and 4 for tetragonal (collinear with D).');
-      end
-    end
+  
+  % These terms are no longer supported.
+  if isfield(Sys,'aF')
+    error('Sys.aF is no longer supported. Use Sys.B4 and Sys.B4Frame instead.');
   end
 
   % High-order terms in extended Stevens operator format
@@ -119,16 +89,14 @@ for iSpin = idxElectrons
   %   B1Frame, B2Frame, B3Frame, ...
   %   BFrame
   
-  % If D and aF are used, skip corresponding Stevens operator terms
+  % If D is used, skip corresponding Stevens operator terms
   D_present = any(Sys.D(iSpin,:));
-  aF_present = any(Sys.aF(:));
   
   % Run over all ranks k
   for k = 1:numel(Sys.B)
     Bk = Sys.B{k};
     if isempty(Bk), continue; end
     if D_present && k==2, continue; end
-    if aF_present && k==4, continue; end
     if all(Bk==0), continue; end
     
     % Apply transformation if non-zero tilt angles are given

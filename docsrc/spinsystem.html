@@ -719,23 +719,6 @@ To convert old <code>Dpa</code> values to <code>DFrame</code>, invert the order 
 EasySpin supports a series of <a href="stevensoperators.html">high-order electron spin operators</a> in the spin Hamiltonian.
 </p>
 
-<div class="optionfield"><code>aF</code></div>
-<div class="optiondescr">
-Values, in MHz, of the fourth-order parameters a and F used in cubic systems of S=5/2 ions like Fe(III) and Mn(II). For their definition, see the reference page on <a href="stevensoperators.html">high-order operators</a>.
-
-<pre class="matlab">
-Sys.aF = [10 -3];   % in MHz
-</pre>
-
-<p>
-The operators of both a and F are defined in terms the molecular reference frame, which is assumed to coincide the four-fold symmetry axes of the cubic system.
-</p>
-<p>
-This can be changed by setting <code>Sys.aFFrame</code>. If <code>Sys.aFFrame=3</code>, the operator corresponding to a is calculated assuming the reference system coincides with a three-fold symmetry axis of the cubic system. By default, <code>Sys.aFFrame=4</code>. As an alternative to <code>aF</code>, e.g. for different orientations of the reference frame, the more general high-order parameters <code>B4</code> can be used (see below).
-</p>
-
-</div>
-
 <div class="optionfield"><code>B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12</code></div>
 <div class="optiondescr">
 The coefficients B(k,q) for the <a href="stevensoperators.html">extended Stevens operators</a> of the electron spin (see also the function <a class="esf" href="stev.html">stev</a>). All coefficients must be real-valued, and are understood in units of MHz. The number in the field name indicates the rank k of the tensor operator. E.g. B2 is for k = 2, and B4 is k = 4. If any of these fields is not given, it is treated as zero.
@@ -795,6 +778,10 @@ Sys1.DFrame = ang;
 Sys2.B2 = [E 0 D/3 0 0]; 
 Sys2.B2Frame = ang;
 </pre>
+
+<p>
+In the special case of high-spin 3d<sup>5</sup> ions such as Fe(III), Mn(II), and Cr(I) in axially distorted cubic enviroments, the fourth-order terms are often written in terms of the traditional a and F parameters instead of B<sub>4</sub>. For their definition, see the reference page on <a href="stevensoperators.html">high-order operators</a>. EasySpin versions prior to 6 had a dedicated field <code>Sys.aF</code> for these. Since EasySpin 6, this is no longer supported. Instead, the fourth-order terms should be specified using <code>Sys.B4</code> and <code>Sys.B4Frame</code>. Pay attention that the frames for the a and the F term are different.
+</p>
 
 </div>
 
