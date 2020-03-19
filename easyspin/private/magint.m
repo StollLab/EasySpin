@@ -70,7 +70,7 @@ for iElSpin = 1:nElSpins
   if generalLiouvillian
     [T0{iInt},T1(iInt,:),T2(iInt,:)] = istotensor(B0,SpinOps(iElSpin,:));
   end
-  [F0(iInt),F1(iInt,:),F2(iInt,:)] = istocoeff(g*bmagn/planck); % Hz
+  [F0(iInt),F1(iInt,:),F2(iInt,:)] = tensor_cart2sph(g*bmagn/planck); % Hz
   isFieldDep(iInt) = true;
   if ~generalLiouvillian
     % Generate custom fields for fast method
@@ -110,7 +110,7 @@ for iElSpin = 1:nElSpins
       I_ = SpinOps(nElSpins+iNucSpin,:);
       [T0{iInt},T1(iInt,:),T2(iInt,:)] = istotensor(S_,I_);
     end
-    [F0(iInt),F1(iInt,:),F2(iInt,:)] = istocoeff(A_);
+    [F0(iInt),F1(iInt,:),F2(iInt,:)] = tensor_cart2sph(A_);
     isFieldDep(iInt) = false;
     if ~generalLiouvillian
       % Generate custom fields for fast method
@@ -149,7 +149,7 @@ if (nZFS>0)
       S_ = SpinOps(iSpin,:);
       [T0{iInt},T1(iInt,:),T2(iInt,:)] = istotensor(S_,S_);
     end
-    [F0(iInt),F1(iInt,:),F2(iInt,:)] = istocoeff(D_);
+    [F0(iInt),F1(iInt,:),F2(iInt,:)] = tensor_cart2sph(D_);
     isFieldDep(iInt) = false;
     iInt = iInt + 1;
   end
@@ -175,7 +175,7 @@ if nElSpins>1
       if generalLiouvillian
         [T0{iInt},T1(iInt,:),T2(iInt,:)] = istotensor(SpinOps(iEl1,:),SpinOps(iEl2,:));
       end
-      [F0(iInt),F1(iInt,:),F2(iInt,:)] = istocoeff(J_*1e6); % MHz -> Hz
+      [F0(iInt),F1(iInt,:),F2(iInt,:)] = tensor_cart2sph(J_*1e6); % MHz -> Hz
       isFieldDep(iInt) = false;
       iInt = iInt + 1;
       iCoupling = iCoupling + 1;
@@ -191,7 +191,7 @@ if generalLiouvillian
         I_ = SpinOps(nElSpins+iNucSpin,:);
         gn_ = System.gn(iNucSpin);
         [T0{iInt},T1(iInt,:),T2(iInt,:)] = istotensor(B0,I_);
-        [F0(iInt),F1(iInt,:),F2(iInt,:)] = istocoeff(-gn_*nmagn/planck);
+        [F0(iInt),F1(iInt,:),F2(iInt,:)] = tensor_cart2sph(-gn_*nmagn/planck);
         isFieldDep(iInt) = true;
         iInt = iInt + 1;
     end
@@ -200,7 +200,7 @@ else
   if includeNuclearZeeman
     gn0 = zeros(nNucSpins,1);
     for iNucSpin = 1:nNucSpins
-      gn0(iNucSpin) = istocoeff(System.gn(iNucSpin));
+      gn0(iNucSpin) = tensor_cart2sph(System.gn(iNucSpin));
       System.NZ0(iNucSpin) = nmagn*B0{3}*gn0(iNucSpin)/planck*2*pi; % -> angular freq.
     end
   else
@@ -230,7 +230,7 @@ if includeNuclearQuadrupole
       I_ = SpinOps(nElSpins+iNucSpin,:);
       [T0{iInt},T1(iInt,:),T2(iInt,:)] = istotensor(I_,I_);
     end
-    [F0(iInt),F1(iInt,:),F2(iInt,:)] = istocoeff(Q_);
+    [F0(iInt),F1(iInt,:),F2(iInt,:)] = tensor_cart2sph(Q_);
     isFieldDep(iInt) = false;
     iInt = iInt + 1;
   end

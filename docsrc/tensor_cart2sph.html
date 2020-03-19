@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>tensor_cart2sph</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">tensor_cart2sph</div>
+
+<p>
+Convert rank-2 cartesian tensor to spherical tensors
+</p>
+
+<!-- ====================================================== -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+[T0,T1,T2] = tensor_cart2sph(Tc)
+</pre>
+
+<!-- ====================================================== -->
+<div class="subtitle">Description</div>
+
+<p>
+This function takes as input <code>Tc</code> a rank-2 cartesian tensor represented by a 3x3 matrix. It returns the corresponding rank-0, rank-1, and rank-2 irreducible spherical tensors in <code>T0</code> (a scalar), <code>T1</code> (a 3x1 array), and <code>T2</code> (a 5x1 array).
+</p>
+
+<!-- ====================================================== -->
+<div class="subtitle">Examples</div>
+
+<p>
+Calculate the spherical tensors corresponding to a rhombig g matrix:
+</p>
+
+<pre class="matlab">
+g = diag([2 2.1 2.4]);
+[g0,g1,g2] = tensor_cart2sph(g)
+</pre>
+
+<pre class="mloutput">
+g0 =
+    -3.7528
+g1 =
+   0
+   0
+   0
+g2 =
+      -0.05
+          0
+    0.28577
+          0
+      -0.05    
+</pre>
+
+<!-- ====================================================== -->
+<div class="subtitle">See also</div>
+
+<p>
+<a class="esf" href="isto.html">isto</a>,
+<a class="esf" href="tensor_sph2cart.html">tensor_sph2cart</a>
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+
+</html>

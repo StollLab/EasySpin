@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>tensor_sph2cart</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">tensor_sph2cart</div>
+
+<p>
+Convert spherical tensors to rank-2 cartesian tensor
+</p>
+
+<!-- ====================================================== -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+Tc = tensor_cart2sph(T0,T1,T2)
+</pre>
+
+<!-- ====================================================== -->
+<div class="subtitle">Description</div>
+
+<p>
+This function takes as input three irreducible spherical tensors <code>T0</code> (a scalar), <code>T1</code> (a 3-element array), and <code>T2</code> (a 5-element array). It returns the corresponding rank-2 cartesian tensor represented by a 3x3 matrix in <code>Tc</code>.
+</p>
+
+<!-- ====================================================== -->
+<div class="subtitle">Examples</div>
+
+<p>
+Calculate the cartesian hyperfine tensor from the corresponding rank-0, -1, and -2 spherical tensors:
+</p>
+
+<pre class="matlab">
+A0 = 10;
+A1 = [0;0;0];
+A2 = [3;0;12;0;3];
+A = tensor_sph2cart(A0,A1,A2)
+</pre>
+
+<pre class="mloutput">
+A =
+      -7.6725            0            0
+            0      -13.672            0
+            0            0       4.0245
+</pre>
+
+<!-- ====================================================== -->
+<div class="subtitle">See also</div>
+
+<p>
+<a class="esf" href="isto.html">isto</a>,
+<a class="esf" href="tensor_cart2sph.html">tensor_cart2sph</a>
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+
+</html>
