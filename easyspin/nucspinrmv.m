@@ -41,6 +41,46 @@ else
   NewSys.Nucs = Nucs;
 end
 
+% chemical shift tensor and angles -----------------------
+if ~isfield(NewSys,'fullsigma')
+  if isfield(NewSys,'sigma')
+    fullsigma = size(NewSys.sigma,1)==3*nNuclei;
+  else
+    fullsigma = false;
+  end
+else
+  fullsigma = NewSys.fullsigma;
+end
+
+if ~fullsigma
+  F = {'sigma','sigmaFrame'};
+  for k = 1:2
+    Field = F{k};
+    if isfield(NewSys,Field)
+      v = NewSys.(Field);
+      v(rmvidx,:) = [];
+      if isempty(v)
+        NewSys = rmfield(NewSys,Field);
+      else
+        NewSys.(Field) = v;
+      end
+    end
+  end
+else
+  v = NewSys.sigma;
+  for iNuc = numel(rmvidx):-1:1
+    v((rmvidx(iNuc)-1)*3+(1:3),:) = [];
+  end
+  if isempty(v)
+    NewSys = rmfield(NewSys,'sigma');
+  else
+    NewSys.sigma = v;
+  end
+  if isfield(NewSys,'sigmaFrame')
+    NewSys = rmfield(NewSys,'sigmaFrame');
+  end
+end
+
 % multiplicities ---------------------------------------
 if isfield(NewSys,'n')
   n = NewSys.n;
@@ -66,7 +106,7 @@ end
 
 if ~fullA
   F = {'A','AFrame','A_'};
-  for k=1:numel(F)
+  for k = 1:numel(F)
     Field = F{k};
     if isfield(NewSys,Field)
       v = NewSys.(Field);
@@ -129,8 +169,8 @@ else
   else
     NewSys.Q = v;
   end
-  if isfield(NewSys,'AFrame')
-    NewSys = rmfield(NewSys,'AFrame');
+  if isfield(NewSys,'QFrame')
+    NewSys = rmfield(NewSys,'QFrame');
   end
 end
 
