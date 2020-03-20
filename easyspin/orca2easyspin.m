@@ -24,9 +24,15 @@
 
 function Sys = orca2easyspin(propfilename,HyperfineCutoff)
 
-if (nargin==0)&&(nargout==0), help(mfilename); return; end
+if nargin==0 && nargout==0, help(mfilename); return; end
 
-if (nargin==1), HyperfineCutoff = 0; end
+if nargin==1, HyperfineCutoff = 0; end
+
+% Whether or not to use least-squares fitting for
+% rotation matrix -> Euler angle conversion using eulang()
+skipFitting = true;
+
+DebugMode = false;
 
 Sys = [];
 
@@ -39,37 +45,34 @@ terminateID = -1; % property ID value that indicates end of file
 maxPropertyID = 53;
 
 % Get base name of filename and compose .prop filename
-%----------------------------------------------------------------
-[pf_path,pf_name,pf_ext] = fileparts(propfilename);
+%-------------------------------------------------------------------------------
+[pf_path,pf_name,~] = fileparts(propfilename);
 propfilename = fullfile(pf_path,[pf_name '.prop']);
 
 % Determine correct machine format (little-endian vs. big-endian)
-%----------------------------------------------------------------
+%-------------------------------------------------------------------------------
 MachineFormat = 'l'; % little-endian
 [f,errmsg] = fopen(propfilename,'r',MachineFormat);
-if (f<0)
+if f<0
   error('Could not open file %s: %s',propfilename,errmsg);
 end
 firstPropertyID = fread(f,1,PropertyIDtype);
 fclose(f);
 
 % quit if property file is empty (4 bytes, all 0xFF)
-if (firstPropertyID==terminateID)
+if firstPropertyID==terminateID
   return
 end
 
-if (firstPropertyID>maxPropertyID)
+if firstPropertyID>maxPropertyID
   % Clearly, if the read ID is outside the valid range, the original
   % MachineFormat guess was wrong. Try the other one.
   MachineFormat = 'b'; % big-endian
 end
 
-% Whether or not to use least-squares fitting for
-% rotation matrix -> Euler angle conversion using eulang()
-skipFitting = true;
 
 % Read in all EPR-relevant properties
-%--------------------------------------------------------------
+%-------------------------------------------------------------------------------
 f = fopen(propfilename,'r',MachineFormat);
 
 S = [];
@@ -90,9 +93,13 @@ while ~feof(f)
   
   PropertyID = fread(f,1,PropertyIDtype);
   
-  if (PropertyID==terminateID), break; end
+  if DebugMode
+    fprintf('%2d - %s\n',PropertyID,propertystring(PropertyID)); %#ok<UNRCH>
+  end
   
-  if (PropertyID<0) || (PropertyID>maxPropertyID)
+  if PropertyID==terminateID, break; end
+  
+  if PropertyID<0 || PropertyID>maxPropertyID
     error('Unknown property encountered (PropertyID = %d)',PropertyID);
   end
   
@@ -126,9 +133,14 @@ while ~feof(f)
     % g matrix -----------------------------------------
     case {5, 14, 23, 30, 27}
       gpv = data(1:3).';
-      R = reshape(data(4:12),3,3);
-      %g = R*diag(gpv)*R.';
-      gFrame = eulang(R.',skipFitting);
+      if all(gpv==0)
+        warning('Property entry with ID %d (%s) is all zero.',PropertyID,propertystring(PropertyID));
+        gFrame = [0 0 0];
+      else
+        R = reshape(data(4:12),3,3);
+        %g = R*diag(gpv)*R.';
+        gFrame = eulang(R.',skipFitting);
+      end
       
     % D tensor -----------------------------------------
     case {4, 13, 22, 29, 36}
@@ -146,10 +158,10 @@ while ~feof(f)
       %aiso = data(2,:);
       for iNuc=1:numel(AnucIdx)
         idx = AnucIdx(iNuc);
-        Apv(idx,1:3) = data(3:5,iNuc).';
+        Apv(idx,1:3) = data(3:5,iNuc).'; %#ok<AGROW>
         R = reshape(data(6:14,iNuc),3,3);
         %A = R*diag(Apv)*R.';
-        AFrame(idx,1:3) = eulang(R.',skipFitting).';
+        AFrame(idx,1:3) = eulang(R.',skipFitting).'; %#ok<AGROW>
       end
     
     % EFG tensors ----------------------------------------
@@ -166,8 +178,8 @@ while ~feof(f)
     % Spin densities at nuclei -------------------------
     case 9
       nucIdx = data(1,:) + 1; % ORCA is 0-based, MATLAB is 1-based
-      rho0(nucIdx) = data(2,:); % atomic units (a0^-3)
-      rho0(nucIdx) = rho0(nucIdx)*(bohrrad/1e-10)^3; % conversion to Angstrom^-3
+      rho0_ = data(2,:); % atomic units (a0^-3)
+      rho0(nucIdx) = rho0_*(bohrrad/1e-10)^3; %#ok<AGROW> % conversion to angstrom^-3 
       
     otherwise
       % skip other properties (dipole moment, polarizability, etc)
@@ -178,7 +190,7 @@ fclose(f);
 nAtoms = numel(Atoms);
 
 % Compile spin system
-%---------------------------------------------------------------
+%-------------------------------------------------------------------------------
 if isempty(S)
   % spin is not provided by the prop file
 else
@@ -212,7 +224,7 @@ if anyQuadrupole
   Qpv = zeros(size(efg));
 end
 
-if (nAtoms>0)
+if nAtoms>0
   
   % Convert electric field gradient to Q tensor principal values
   if anyQuadrupole
@@ -257,7 +269,7 @@ if (nAtoms>0)
   NucStr = [];
   for iAtom = 1:nAtoms
     if ~hfkeep(iAtom), continue; end
-    NucStr = [NucStr ',' elementno2symbol(Atoms(iAtom))];
+    NucStr = [NucStr ',' elementno2symbol(Atoms(iAtom))]; %#ok<AGROW>
   end
   if ~isempty(NucStr)
     NucStr(1) = [];
@@ -275,5 +287,71 @@ if (nAtoms>0)
     Sys.Q = Qpv(hfkeep,:);
     Sys.QFrame = efgFrame(hfkeep,:);
   end
+  
+end
+%===============================================================================
+
+
+% Based on char *PropertyID definition in qcpropfl.h from ORCA source code
+% (unclear which version...)
+function s = propertystring(ID)
+switch ID
+  case  0, s = 'SCF_DIP';
+  case  1, s = 'SCF_POL';
+  case  2, s = 'SCF_ABS';
+  case  3, s = 'SCF_CD';
+  case  4, s = 'SCF_D';
+  case  5, s = 'SCF_G';
+  case  6, s = 'SCF_A';
+  case  7, s = 'SCF_Q';
+  case  8, s = 'SCF_SHIFT';
+  case  9, s = 'SCF_RHO_0';
+  
+  case 10, s = 'MRCI_DIP';
+  case 11, s = 'MRCI_ABS';
+  case 12, s = 'MRCI_CD';
+  case 13, s = 'MRCI_D';
+  case 14, s = 'MRCI_G';
+  case 15, s = 'MRCI_A';
+  case 16, s = 'MRCI_Q';
+  
+  case 17, s = 'XYZ';
+  case 18, s = 'ATNO';
+  
+  case 19, s = 'CASSCF_DIP';
+  case 20, s = 'CASSCF_ABS';
+  case 21, s = 'CASSCF_CD';
+  case 22, s = 'CASSCF_D';
+  case 23, s = 'CASSCF_G';
+  case 24, s = 'CASSCF_A';
+  case 25, s = 'CASSCF_Q';
+  
+  case 26, s = 'NEVPT2_DIP';
+  case 27, s = 'NEVPT2_ABS';
+  case 28, s = 'NEVPT2_CD';
+  case 29, s = 'NEVPT2_D';
+  case 30, s = 'NEVPT2_G';
+  case 31, s = 'NEVPT2_A';
+  case 32, s = 'NEVPT2_Q';
+  
+  case 33, s = 'CASSCFCUSTOME_DIP';
+  case 34, s = 'CASSCFCUSTOME_ABS';
+  case 35, s = 'CASSCFCUSTOME_CD';
+  case 36, s = 'CASSCFCUSTOME_D';
+  case 37, s = 'CASSCFCUSTOME_G';
+  case 38, s = 'CASSCFCUSTOME_A';
+  case 39, s = 'CASSCFCUSTOME_Q';
+
+  case 40, s = 'QDNEVPT2_DIP';
+  case 41, s = 'QDNEVPT2_ABS';
+  case 42, s = 'QDNEVPT2_CD';
+  case 43, s = 'QDNEVPT2_D';
+  case 44, s = 'QDNEVPT2_G';
+  case 45, s = 'QDNEVPT2_A';
+  case 46, s = 'QDNEVPT2_Q';
+  
+  case -1, s = 'termination';
+  
+  otherwise, s = 'unknown';
   
 end
