@@ -85,13 +85,23 @@ end
 if isfield(NewSys,'n')
   n = NewSys.n;
   n(rmvidx) = [];
-  if isempty(Nucs)
+  if isempty(n)
     NewSys = rmfield(NewSys,'n');
   else
     NewSys.n = n;
   end
 end
 
+% gn scale ---------------------------------------
+if isfield(NewSys,'gnscale')
+  gnscale = NewSys.gnscale;
+  gnscale(rmvidx) = [];
+  if isempty(gnscale)
+    NewSys = rmfield(NewSys,'gnscale');
+  else
+    NewSys.gnscale = gnscale;
+  end
+end
 
 % hyperfine ---------------------------------------
 if ~isfield(NewSys,'fullA')

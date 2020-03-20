@@ -465,7 +465,11 @@ if isfield(Sys,'gnscale')
     if ~isempty(err), return; end
   end
 else
-  Sys.gnscale = ones(1,nNuclei);
+  if nNuclei>0
+    Sys.gnscale = ones(1,nNuclei);
+  else
+    Sys.gnscale = [];
+  end
 end
 
 
