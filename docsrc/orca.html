@@ -31,7 +31,7 @@
 <a href="http://orcaforum.kofo.mpg.de/" target="_blank">ORCA</a> is a quantum chemistry program that can calculate molecular EPR properties such as the g tensor, A tensors, electric field gradients, and D tensors.
 
 <p>
-Here, we show how you can import these ORCA-calculated tensors from ORCA output files into EasySpin, using the function <a class="esf" href="orca2easyspin.html">orca2easysin</a>.
+Here, we show how you can import these ORCA-calculated tensors from ORCA output files into EasySpin, using the function <a class="esf" href="orca2easyspin.html">orca2easyspin</a>.
 
 <!-- --------------------------------------------------------------------- -->
 <div class="subtitle">Calculating EPR properties using ORCA</div>
@@ -73,7 +73,7 @@ This will generate a long output text file <code>hydroxyl.oof</code>. Additional
 <div class="subtitle">Importing the results of the ORCA calculation</div>
 
 <p>
-You can now use EasySpin's function <a class="esf" href="orca2easyspin.html">orca2easysin</a> to read the ORCA output and generate a spin system structure for you. EasySpin will not parse through the long text output file, but will directly read the binary propery file <code>hydroxyl.prop</code>. Here is how it works:
+You can now use EasySpin's function <a class="esf" href="orca2easyspin.html">orca2easyspin</a> to read the ORCA output and generate a spin system structure for you. EasySpin will not parse through the long text output file, but will directly read the binary propery file <code>hydroxyl.prop</code>. Here is how it works:
 
 <pre class="matlab">
 Sys = orca2easyspin('hydroxyl.prop')
