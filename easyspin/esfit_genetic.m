@@ -28,9 +28,9 @@ if ~isfield(FitOpt,'EliteCount')
 end
 if ~isfield(FitOpt,'PrintLevel'), FitOpt.PrintLevel = 0; end
 if ~isfield(FitOpt,'Range'); FitOpt.Range = 1; end
-if ~isfield(FitOpt,'TolFun'); FitOpt.TolFun = 0; end
+if ~isfield(FitOpt,'TolFun'); FitOpt.TolFun = 1e-5; end
 
-if (FitOpt.PrintLevel)
+if FitOpt.PrintLevel
   fprintf('  %d parameters, range %g to %g\n',nParams,-FitOpt.Range,FitOpt.Range);
   fprintf('  population %d, elite %d\n',FitOpt.PopulationSize,FitOpt.EliteCount);
   fprintf('  %d generations\n',FitOpt.maxGenerations);
@@ -42,8 +42,7 @@ stopCode = 0;
 Population = FitOpt.Range*(2*rand(FitOpt.PopulationSize,nParams) - 1);
 
 BestScore = inf;
-bestx = Population(1,:)*0;
-
+bestx = zeros(size(Population(1,:)));
 
 % Score initial population
 if FitOpt.PrintLevel
@@ -56,7 +55,7 @@ for k = 1:FitOpt.PopulationSize
     bestx = Population(k,:);
     BestScore = Scores(k);
   end
-  if (UserCommand==1), stopCode = 3; break; end
+  if UserCommand==1, stopCode = 3; break; end
 end
 [Scores,idx] = sort(Scores);
 Population = Population(idx,:);
@@ -64,27 +63,27 @@ Fitness = Scores(end) - Scores;
 
 g = 1; % generation index
 
-while 1
+while true
   
   if stopCode, break; end
 
-  if (min(Scores)<BestScore), BestScore = min(Scores); end
+  if min(Scores)<BestScore, BestScore = min(Scores); end
   
   if FitOpt.PrintLevel
     str = sprintf('gen %5d:  min %g   mean %g',g,min(Scores),mean(Scores));
     FitOpt.IterationPrintFunction(str);
   end
   
-  if (g>=FitOpt.maxGenerations), stopCode = 1; break; end
-  if (BestScore<FitOpt.TolFun), stopCode = 2; break; end
-  if (UserCommand==1), stopCode = 3; break; end
+  if g>=FitOpt.maxGenerations, stopCode = 1; break; end
+  if BestScore<FitOpt.TolFun, stopCode = 2; break; end
+  if UserCommand==1, stopCode = 3; break; end
   
   % (1) Selection
   %-----------------------------------------------
   RouletteWheel = [0 cumsum(Fitness)/sum(Fitness)];
   %Balls = rand(1,FitOpt.PopulationSize);
   Balls = (0.5+(0:FitOpt.PopulationSize-1))/FitOpt.PopulationSize;
-  for k=1:FitOpt.PopulationSize
+  for k = 1:FitOpt.PopulationSize
     ParentsIdx(k) = sum(Balls(k)>RouletteWheel);
   end
 
@@ -94,7 +93,7 @@ while 1
   r = ParentsIdx(fix(FitOpt.PopulationSize*r+1));
   d = 0.1;
   a = rand(1,FitOpt.PopulationSize)*(1+2*d)-d;
-  for k=1:FitOpt.PopulationSize
+  for k = 1:FitOpt.PopulationSize
     Offspring(k,:) = a(k)*Population(r(1,k),:) + (1-a(k))*Population(r(2,k));
   end
   
@@ -102,7 +101,7 @@ while 1
   %-----------------------------------------------
   InitialVariance = 0.3*2*FitOpt.Range;
   Variance = InitialVariance*(1-g/FitOpt.maxGenerations);
-  if (Variance<0), Variance = 0; end
+  if Variance<0, Variance = 0; end
   for k=1:FitOpt.PopulationSize
     Offspring(k,:) = Offspring(k,:) + randn(1,nParams)*Variance;
   end
@@ -111,13 +110,13 @@ while 1
   
   % (4) Reinsertion
   %-----------------------------------------------
-
+  
   % Score offspring
   for k = 1:FitOpt.PopulationSize
     offScores(k) = feval(funfcn,Offspring(k,:),varargin{:});
-    if (UserCommand==1), stopCode = 3; break; end
+    if UserCommand==1, stopCode = 3; break; end
   end
-  if (stopCode==3), break; end
+  if stopCode==3, break; end
   [offScores,idx] = sort(offScores);
   Offspring = Offspring(idx,:);
 
@@ -137,7 +136,7 @@ while 1
 end
 
 if FitOpt.PrintLevel>1
-  switch (stopCode)
+  switch stopCode
     case 1, msg = sprintf('Maximum number of generations (%d) reached.',FitOpt.maxGenerations);
     case 2, msg = sprintf('Error below threshold %g.',FitOpt.TolFun);
     case 3, msg = sprintf('Stopped by user.');

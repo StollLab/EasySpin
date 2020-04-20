@@ -23,7 +23,7 @@
 
 function [x,info] = esfit_simplex(errfcn,x0,FitOpt,varargin)
 
-if (nargin==0), help(mfilename); return; end
+if nargin==0, help(mfilename); return; end
 
 global UserCommand
 if isempty(UserCommand), UserCommand = NaN; end
@@ -47,7 +47,7 @@ if ~isfield(FitOpt,'TolFun'), FitOpt.TolFun = 1e-4; end
 if ~isfield(FitOpt,'PrintLevel'), FitOpt.PrintLevel = 1; end
 
 if ~isfield(FitOpt,'IterationPrintFunction') || ...
-  isempty(FitOpt.IterationPrintFunction)
+    isempty(FitOpt.IterationPrintFunction)
   FitOpt.IterationPrintFunction = @(str)str;
 end
 
@@ -58,7 +58,7 @@ constrain = @(x)max(min(x,+1),-1); unconstrain = @(x)x;
 iIteration = 0;
 startTime = cputime;
 
-if (FitOpt.PrintLevel)
+if FitOpt.PrintLevel
   FitOpt.IterationPrintFunction('initial simplex...');
 end
 
@@ -77,8 +77,9 @@ for iVertex = 1:nVertices
   fv(iVertex) = errfcn(x,varargin{:});
 end
 
-% sort so v(1,:) is the best vertex
-[fv,idx] = sort(fv); v = v(:,idx);
+% Sort so v(1,:) is the best vertex
+[fv,idx] = sort(fv);
+v = v(:,idx);
 
 Procedure = 'initial simplex';
 iIteration = iIteration + 1;
@@ -104,16 +105,17 @@ while true
     stopCode = 1;
     break
   end
-  if (UserCommand==1 || UserCommand==4 || UserCommand==99)
+  if UserCommand==1 || UserCommand==4 || UserCommand==99
     stopCode = 2;
     break
   end
-  if (max(abs(fv(1)-fv(2:n+1))) <= FitOpt.TolFun) && ...
-     (max(max(abs(v(:,2:n+1)-v(:,ones(1,n))))) <= FitOpt.TolEdgeLength)
+  largestValDiff = max(abs(fv(1)-fv(2:n+1)));
+  longestEdgeLength = max(max(abs(v(:,2:n+1)-v(:,1))));
+  if largestValDiff<=FitOpt.TolFun && longestEdgeLength<=FitOpt.TolEdgeLength
     stopCode = 3;
     break
   end
-
+  
   xbar = mean(v(:,1:end-1),2); % average of the n best points
   
   % Calculate reflection point
@@ -199,8 +201,8 @@ info.F = fv(:,1);
 info.nIterations = iIteration;
 info.elapsedTime = elapsedTime;
 
-if (FitOpt.PrintLevel>1)
-  switch (stopCode)
+if FitOpt.PrintLevel>1
+  switch stopCode
     case 1, msg = sprintf('Time limit of %f minutes reached.',FitOpt.maxTime);
     case 2, msg = sprintf('Stopped by user.');
     case 3, msg = sprintf('Converged (edge length < %g and all errors < %g).',FitOpt.TolEdgeLength,FitOpt.TolFun);

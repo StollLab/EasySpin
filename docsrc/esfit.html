@@ -247,11 +247,6 @@ If set to 1, the starting point in the parameter space is chosen randomly, withi
 Termination tolerance for the length of the parameter step. This number refers to the rescaled fitting parameters, as described above.
 </div>
 
-<div class="optionfield"><code>FitOpt.TolFun</code></div>
-<div class="optiondescr">
-Termination tolerance for error function value change.
-</div>
-
 <div class="optionfield"><code>FitOpt.lambda</code></div>
 <div class="optiondescr">
 Starting value of Marquardt parameter &lambda;, default value is 0.001.
@@ -272,7 +267,7 @@ Number of random trial simulations before termination.
 
 <div class="optionfield"><code>FitOpt.TolFun</code></div>
 <div class="optiondescr">
-Termination tolerance for error function value change.
+Termination tolerance for error function value.
 </div>
 
 <p>
@@ -291,6 +286,11 @@ A number specifying the maximum number of generations the algorithm should run. 
 has been reached, the algorithm terminates, no matter how good or bad the best fit so far is. The
 default value is 40, but has to be increased for fittings with many parameters. If only very few parameters
 are fitted, <code>maxGenerations</code> can be decreased.
+</div>
+
+<div class="optionfield"><code>FitOpt.TolFun</code></div>
+<div class="optiondescr">
+Termination tolerance for error function value.
 </div>
 
 <p>
@@ -314,6 +314,12 @@ FitOpt.GridSize = [20 3]; % 10 points along g and 3 along lw, giving a total of 
 
 </div>
 
+<div class="optionfield"><code>FitOpt.TolFun</code></div>
+<div class="optiondescr">
+Termination tolerance for error function value.
+</div>
+
+
 <p>
 Parameters for the <span style="font-weight:bold;">particle swarm</span>:
 
@@ -324,7 +330,7 @@ Number of particles in the particle swarm.
 
 <div class="optionfield"><code>FitOpt.TolFun</code></div>
 <div class="optiondescr">
-Termination tolerance for error function value change.
+Termination tolerance for error function value.
 </div>
 
 <div class="optionfield"><code>FitOpt.SwarmParams</code></div>

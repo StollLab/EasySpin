@@ -3,6 +3,10 @@ function [bestx,info] = esfit_grid(funfcn,nParameters,FitOpt,varargin)
 global UserCommand
 if isempty(UserCommand), UserCommand = NaN; end
 
+if ~isfield(FitOpt,'TolFun'), FitOpt.TolFun = 1e-5; end
+if ~isfield(FitOpt,'GridSize'), FitOpt.GridSize = 7; end
+if ~isfield(FitOpt,'RandomizeGrid'), FitOpt.RandomizeGrid = true; end
+
 GridSize = FitOpt.GridSize;
 if numel(GridSize)==1
   GridSize = GridSize*ones(1,nParameters);
@@ -32,7 +36,6 @@ X = cell(1,nParameters);
 for k=1:nParameters, X{k} = X{k}(:); end
 X = [X{end:-1:1}];
 
-FitOpt.RandomizeGrid = 1;
 if FitOpt.RandomizeGrid, X = X(randperm(nGridPoints),:); end
 
 minerror = inf;
@@ -46,8 +49,10 @@ end
 
 stopCode = 0;
 for k = 1:nGridPoints
+  
   thiserror = feval(funfcn,X(k,:),varargin{:});
-  if (thiserror<minerror)
+  
+  if thiserror<minerror
     minerror = thiserror;
     bestx = X(k,:);
     if FitOpt.PrintLevel
@@ -55,18 +60,17 @@ for k = 1:nGridPoints
       FitOpt.IterationPrintFunction(str);
     end
   end
-  if FitOpt.Plot
-    if (UserCommand==3)
-    end
-  end
+  
   elapsedTime = (cputime-startTime)/60;
-  if (elapsedTime>FitOpt.maxTime), stopCode = 1; break; end
-  if (UserCommand==1), stopCode = 2; break; end
-  if (thiserror<FitOpt.TolFun), stopCode = 3; break; end
-
+  if elapsedTime>FitOpt.maxTime, stopCode = 1; end
+  if UserCommand==1, stopCode = 2; end
+  if thiserror<FitOpt.TolFun, stopCode = 3; end
+  
+  if stopCode, break; end
+  
 end
 
-switch (stopCode)
+switch stopCode
   case 0, msg = 'Terminated: all grid points searched.';
   case 1, msg = sprintf('Terminated: Time limit of %f minutes reached.',FitOpt.maxTime);
   case 2, msg = 'Terminated: Stopped by user.';
@@ -74,3 +78,5 @@ switch (stopCode)
 end
 
 if FitOpt.PrintLevel>1, disp(msg); end
+
+return

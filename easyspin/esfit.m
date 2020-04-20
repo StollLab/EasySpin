@@ -298,7 +298,7 @@ if (FitData.nParameters>FitOpt.maxParameters)
   error('Cannot fit more than %d parameters simultaneously.',...
     FitOpt.maxParameters);
 end
-FitData.inactiveParams = logical(zeros(1,FitData.nParameters));
+FitData.inactiveParams = false(1,FitData.nParameters);
 
 FitData.Sys0 = Sys0;
 FitData.SimOpt = SimOpt;
@@ -718,18 +718,18 @@ nParameters_ = numel(x0_);
 if nParameters_>0
   switch FitOpts.MethodID
     case 1 % Nelder/Mead simplex
-      bestx0_ = esfit_simplex(@assess,x0_,FitOpts,funArgs{:});
+      bestx0_ = esfit_simplex(@rmsd_,x0_,FitOpts,funArgs{:});
     case 2 % Levenberg/Marquardt
       FitOpts.Gradient = FitOpts.TolFun;
       bestx0_ = esfit_levmar(@residuals_,x0_,FitOpts,funArgs{:});
     case 3 % Monte Carlo
-      bestx0_ = esfit_montecarlo(@assess,nParameters_,FitOpts,funArgs{:});
+      bestx0_ = esfit_montecarlo(@rmsd_,nParameters_,FitOpts,funArgs{:});
     case 4 % Genetic
-      bestx0_ = esfit_genetic(@assess,nParameters_,FitOpts,funArgs{:});
+      bestx0_ = esfit_genetic(@rmsd_,nParameters_,FitOpts,funArgs{:});
     case 5 % Grid search
-      bestx0_ = esfit_grid(@assess,nParameters_,FitOpts,funArgs{:});
+      bestx0_ = esfit_grid(@rmsd_,nParameters_,FitOpts,funArgs{:});
     case 6 % Particle swarm
-      bestx0_ = esfit_swarm(@assess,nParameters_,FitOpts,funArgs{:});
+      bestx0_ = esfit_swarm(@rmsd_,nParameters_,FitOpts,funArgs{:});
   end
   bestx(~FitData.inactiveParams) = bestx0_;
 end
@@ -850,10 +850,10 @@ return
 %===============================================================================
 
 function resi = residuals_(x,ExpSpec,FitDat,FitOpt)
-[~,resi] = assess(x,ExpSpec,FitDat,FitOpt);
+[~,resi] = rmsd_(x,ExpSpec,FitDat,FitOpt);
 
 %===============================================================================
-function varargout = assess(x,ExpSpec,FitDat,FitOpt)
+function varargout = rmsd_(x,ExpSpec,FitDat,FitOpt)
 
 global UserCommand FitData FitOpts
 persistent BestSys;

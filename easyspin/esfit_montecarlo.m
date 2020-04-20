@@ -22,7 +22,7 @@ for k = 1:FitOpt.nTrials
   X = 2*rand(nParameters,1) - 1;
   thiserror = feval(funfcn,X,varargin{:});
   
-  if (thiserror<minerror)
+  if thiserror<minerror
     minerror = thiserror;
     bestx = X;
     if FitOpt.PrintLevel
@@ -32,14 +32,16 @@ for k = 1:FitOpt.nTrials
   end
     
   elapsedTime = (cputime-startTime)/60;
-  if (elapsedTime>FitOpt.maxTime), stopCode = 1; break; end
-  if (UserCommand==1), stopCode = 2; break; end
-  if (thiserror<FitOpt.TolFun), stopCode = 3; break; end
-
+  if elapsedTime>FitOpt.maxTime, stopCode = 1; end
+  if UserCommand==1, stopCode = 2; end
+  if thiserror<FitOpt.TolFun, stopCode = 3; end
+  
+  if stopCode, break; end
+  
 end
 
 if FitOpt.PrintLevel>1
-  switch (stopCode)
+  switch stopCode
     case 0, msg = 'Terminated: maximum number of trials reached.';
     case 1, msg = sprintf('Terminated: Time limit of %f minutes reached.',FitOpt.maxTime);
     case 2, msg = 'Terminated: Stopped by user.';

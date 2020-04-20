@@ -48,9 +48,9 @@
 
 function  [x,info] = esfit_levmar(funfcn, x0, FitOpt, varargin)
 
-if (nargin==0), help(mfilename); return; end
-if (nargin<2), error('Need at least 2 arguments!'); end
-if (nargin<3),  FitOpt = []; end
+if nargin==0, help(mfilename); return; end
+if nargin<2, error('Need at least 2 arguments!'); end
+if nargin<3,  FitOpt = []; end
 
 % lambda = starting value of Marquardt parameter
 if ~isfield(FitOpt,'lambda'), FitOpt.lambda = 1e-3; end
@@ -66,7 +66,7 @@ delta = FitOpt.delta;
 if ~isfield(FitOpt,'PrintLevel'), FitOpt.PrintLevel = 1; end
 if ~isfield(FitOpt,'maxTime'), FitOpt.maxTime = inf; end
 if ~isfield(FitOpt,'IterationPrintFunction') || ...
-  isempty(FitOpt.IterationPrintFunction)
+    isempty(FitOpt.IterationPrintFunction)
   FitOpt.IterationPrintFunction = @(str)str;
 end
 
@@ -80,7 +80,7 @@ nEvals = 0;
 % Check starting point
 x0 = x0(:);
 n = numel(x0);
-if  any(~isreal(x0)) || any(isnan(x0)) || any(isinf(x0)) 
+if any(~isreal(x0)) || any(isnan(x0)) || any(isinf(x0)) 
   error('x0 must be real and finite.');
 end
 if any(abs(x0)>1)
@@ -88,31 +88,31 @@ if any(abs(x0)>1)
 end
 x = x0(:); 
 
-stop = 0;
+stopCode = 0;
 
-if (~stop)
-  [stop,F,f] = funeval(funfcn,x,varargin{:});
+if ~stopCode
+  [stopCode,F,f] = funeval(funfcn,x,varargin{:});
   nEvals = nEvals + 1;
-  if (~stop)
+  if ~stopCode
     % Jacobian
-    [stop,Je] = JacobianEstimate(funfcn,x,f,delta,varargin{:});
+    [stopCode,Je] = JacobianEstimate(funfcn,x,f,delta,varargin{:});
     nEvals = nEvals + n;
     % Check gradient and J'*J
-    if (~stop)
+    if ~stopCode
       g = Je'*f;
       norm_g = norm(g,inf);
       A = Je'*Je;
       if  isinf(norm_g) || isinf(norm(A(:),inf))
-        stop = -5;
+        stopCode = -5;
       end
     end
   end
 end
 
-if (stop)
+if stopCode
   info.F = F;
   info.norm_g = norm_g;
-  info.stop = stop;
+  info.stop = stopCode;
   info.nEvals = nEvals;
   return
 end
@@ -128,11 +128,14 @@ global UserCommand;
 if isempty(UserCommand), UserCommand = NaN; end
 
 iIteration = 0;
-while ~stop
+while ~stopCode
   
   iIteration = iIteration + 1;
   
-  if  (norm_g<=FitOpt.Gradient), stop = 1; break; end
+  if norm_g<=FitOpt.Gradient
+    stopCode = 1;
+    break;
+  end
   
   % Levenberg-Marquardt: Compute step and new damping factor
   [h,mu] = ComputeLMStep(A,g,mu);
@@ -143,25 +146,27 @@ while ~stop
     FitOpt.IterationPrintFunction(str);
   end
   
-  %if norm_h<=Opt.TolStep, stop = 2; break; end
-  if norm_h<=FitOpt.TolStep*(FitOpt.TolStep + norm(x)), stop = 2; break; end
-
+  if norm_h<=FitOpt.TolStep*(FitOpt.TolStep + norm(x))
+    stopCode = 2;
+    break;
+  end
+  
   xnew = x + h;
   xnew = min(max(xnew,-1),+1); % apply bounds
   
-  [stop,Fnew,fnew] = funeval(funfcn,xnew,varargin{:});
+  [stopCode,Fnew,fnew] = funeval(funfcn,xnew,varargin{:});
   nEvals = nEvals+1;
-  if (stop), break; end
+  if stopCode, break; end
 
   % Update Jacobian estimate Je
   j = mod(j,n) + 1;
   gamma = 0.8;
-  if (abs(h(j))<gamma*norm_h)  % recompute with finite differences
+  if abs(h(j))<gamma*norm_h  % recompute with finite differences
     xu = x;
     xu(j) = x(j) + delta;
-    [stop,Fu,fu] = funeval(funfcn,xu,varargin{:});
+    [stopCode,~,fu] = funeval(funfcn,xu,varargin{:});
     nEvals = nEvals+1;
-    if (~stop)
+    if ~stopCode
       hu = xu - x;
       Je = Je + ((fu-f-Je*hu)/(hu'*hu))*hu';
     end
@@ -172,15 +177,15 @@ while ~stop
   rho = (F-Fnew)/(0.5*(h'*(mu*h-g)));
   
   % Do step
-  if (rho>0)
+  if rho>0
     x = xnew;
     F = Fnew;
     f = fnew;
   end
   
   % Update damping factor mu
-  if (rho>0)
-    mu = mu * max(1/3,1-(2*rho-1)^3);
+  if rho>0
+    mu = mu*max(1/3,1-(2*rho-1)^3);
     nu = 2;
   else
     mu = mu*nu;
@@ -191,20 +196,20 @@ while ~stop
   norm_g = norm(g,inf);
   A = Je'*Je;
   
-  if  isinf(norm_g) || isinf(norm(A(:),inf)), stop = -5; break; end
-  if (UserCommand==1 || UserCommand==4 || UserCommand==99), stop = 4; break; end
-  elapsedTime =  (cputime-startTime)/60;
-  if (elapsedTime>FitOpt.maxTime), stop = 3; break; end
+  if isinf(norm_g) || isinf(norm(A(:),inf)), stopCode = -5; break; end
+  if UserCommand==1 || UserCommand==4 || UserCommand==99, stopCode = 4; break; end
+  elapsedTime = (cputime-startTime)/60;
+  if elapsedTime>FitOpt.maxTime, stopCode = 3; break; end
 
 end
 
-if (stop<0)
+if stopCode<0
   FitOpt.lambda = NaN;
 else
   FitOpt.lambda = mu/max(diag(A));
 end
 
-switch (stop)
+switch stopCode
   case 1, msg = sprintf('Gradient below threshold of %g',FitOpt.Gradient);
   case 2, msg = sprintf('Parameter step below threshold of %g',FitOpt.TolStep);
   case 3, msg = sprintf('Time limit of %f minutes reached',FitOpt.maxTime);
@@ -215,13 +220,12 @@ if FitOpt.PrintLevel>1
   fprintf('Terminated: %s\n',msg);
 end
 
-%info = [F norm_g norm_h Opt.lambda iIteration-1 stop nEvals];
 info.F = F;
 info.norm_g = norm_g;
 info.norm_h = norm_h;
 info.lambda = FitOpt.lambda;
 info.nIter = iIteration-1;
-info.stop = stop;
+info.stop = stopCode;
 info.nEvals = nEvals;
 info.msg = msg;
 
@@ -277,11 +281,10 @@ end
 h = R\(R'\(-g));
 
 %======================================================================
-function  [err,F,f] = funeval(funfcn,x,varargin)
-%funeval  Check Matlab function which is called by a 
-% nonlinear least squares solver.
+function  [errCode,F,f] = funeval(funfcn,x,varargin)
+%funeval  Check Matlab function which is called by a nonlinear least squares solver.
 
-err = 0;
+errCode = 0;
 
 f = funfcn(x,varargin{:});
 f = f(:);
@@ -301,4 +304,4 @@ end
 % Objective function
 F = f'*f;
 
-if isinf(F), err = -5; end
+if isinf(F), errCode = -5; end
