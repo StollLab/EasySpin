@@ -5,7 +5,9 @@
 %   esfit(simfunc,expspc,Sys0,Vary,Exp,SimOpt,FitOpt)
 %   bestsys = esfit(...)
 %   [bestsys,bestspc] = esfit(...)
+%   [bestsys,bestspc,residuals] = esfit(...)
 %
+% Input:
 %     simfunc     simulation function handle (@pepper, @garlic, @salt, ...
 %                   @chili, or user-defined function)
 %     expspc      experimental spectrum, a vector of data points
@@ -23,6 +25,10 @@
 %        OutArg   two numbers [nOut iOut], where nOut is the number of
 %                 outputs of the simulation function and iOut is the index
 %                 of the output argument to use for fitting
+% Output:
+%     bestsys     spin system with fitted parameters
+%     bestspc     fitted simulated spectrum
+%     residuals   residuals between fitted and experimental spectrum (vector)
 
 function varargout = esfit(SimFunction,ExpSpec,Sys0,Vary,Exp,SimOpt,FitOpt)
 
@@ -34,7 +40,7 @@ if nargin==1 && isnumeric(SimFunction) && SimFunction==1
   Exp.mwFreq = 9.5;
   Exp.Range = [300 380];
   
-  [B,spc] = pepper(Sys0,Exp);
+  [~,spc] = pepper(Sys0,Exp);
   ExpSpec = 15*addnoise(spc,50,'n');
   
   Sys0.g = Sys0.g + (rand(1,3)-0.5)*0.02;
@@ -110,7 +116,7 @@ FitData.ExpSpecScaled = rescale(ExpSpec,'maxabs');
 % Make sure user provides one Vary structure for each Sys
 if ~iscell(Vary), Vary = {Vary}; end
 if numel(Vary)~=nSystems
-  error(sprintf('%d spin systems given, but %d vary structure.\n Give %d vary structures.',nSystems,numel(Vary),nSystems));
+  error('%d spin systems given, but %d vary structure.\n Give %d vary structures.',nSystems,numel(Vary),nSystems);
 end
 for iSys = 1:nSystems
   if ~isstruct(Vary{iSys}), Vary{iSys} = struct; end
@@ -133,7 +139,7 @@ for s = 1:nSystems
   Fields = fieldnames(Vary{s});
   for k = 1:numel(Fields)
     if ~isfield(Sys0{s},Fields{k})
-      error(sprintf('Field %s is given in Vary, but not in Sys0. Remove from Vary or add to Sys0.',Fields{k}));
+      error('Field %s is given in Vary, but not in Sys0. Remove from Vary or add to Sys0.',Fields{k});
     elseif numel(Sys0{s}.(Fields{k})) < numel(Vary{s}.(Fields{k}))
       error(['Field ' Fields{k} ' has more elements in Vary than in Sys0.']);
     end
@@ -143,13 +149,13 @@ end
 
 % Count parameters and save indices into parameter vector for each system
 for iSys = 1:nSystems
-  [dummy,dummy,v_] = getParameters(Vary{iSys});
+  [~,~,v_] = getParameters(Vary{iSys});
   VaryVals(iSys) = numel(v_);
 end
 FitData.xidx = cumsum([1 VaryVals]);
 FitData.nParameters = sum(VaryVals);
 
-if (FitData.nParameters==0)
+if FitData.nParameters==0
   error('No variable parameters to fit.');
 end
 
@@ -294,7 +300,7 @@ if ~isfield(FitOpt,'GridSize'), FitOpt.GridSize = 7; end
 if ~isfield(FitOpt,'PlotStretchFactor'), FitOpt.PlotStretchFactor = 0.05; end
 if ~isfield(FitOpt,'maxGridPoints'), FitOpt.maxGridPoints = 1e5; end
 if ~isfield(FitOpt,'maxParameters'), FitOpt.maxParameters = 30; end
-if (FitData.nParameters>FitOpt.maxParameters)
+if FitData.nParameters>FitOpt.maxParameters
   error('Cannot fit more than %d parameters simultaneously.',...
     FitOpt.maxParameters);
 end
@@ -383,6 +389,7 @@ if FitData.GUI
   columnformat = {'logical','char','char','char','char','char'};
   colEditable = [true false false false true true];
   [FitData.parNames,FitData.CenterVals,FitData.VaryVals] = getParamList(Sys0,Vary);
+  data = cell(numel(FitData.parNames),6);
   for p = 1:numel(FitData.parNames)
     data{p,1} = true;
     data{p,2} = FitData.parNames{p};
@@ -506,7 +513,7 @@ if FitData.GUI
     'BackgroundColor','w',...
     'Tooltip','Starting point for fit',...
     'Position',[x0+dx y0 150 20]);
-  if (FitOpts.Startpoint==2), set(h,'Value',2); end
+  if FitOpts.Startpoint==2, set(h,'Value',2); end
   
   % Start/Stop buttons
   %-----------------------------------------------------------------
@@ -578,15 +585,15 @@ end
 
 % Run fitting routine
 %------------------------------------------------------------
-if (~FitData.GUI)
+if ~FitData.GUI
   [BestSys,BestSpec,Residuals] = runFitting;
 end
 
 % Arrange outputs
 %------------------------------------------------------------
 if ~FitData.GUI
-  if (nSystems==1), BestSys = BestSys{1}; end
-  switch (nargout)
+  if nSystems==1, BestSys = BestSys{1}; end
+  switch nargout
     case 0, varargout = {BestSys};
     case 1, varargout = {BestSys};
     case 2, varargout = {BestSys,BestSpec};
@@ -602,7 +609,7 @@ clear global UserCommand
 %===================================================================
 %===================================================================
 
-function [FinalSys,BestSpec,Residuals] = runFitting(object,src,event)
+function [FinalSys,BestSpec,Residuals] = runFitting(~,~,~)
 
 global FitOpts FitData UserCommand
 
@@ -855,7 +862,7 @@ function resi = residuals_(x,ExpSpec,FitDat,FitOpt)
 %===============================================================================
 function varargout = rmsd_(x,ExpSpec,FitDat,FitOpt)
 
-global UserCommand FitData FitOpts
+global UserCommand FitData
 persistent BestSys;
 
 if ~isfield(FitData,'smallestError') || isempty(FitData.smallestError)
@@ -947,7 +954,7 @@ if FitData.GUI && UserCommand~=99
     
     % update column with best values if current parameter set is new best
     if isNewBest
-      [str,values] = getSystems(BestSys,Vary);
+      [~,values] = getSystems(BestSys,Vary);
       
       str = sprintf(' best RMSD: %g\n',(FitData.smallestError));
       hRmsText = findobj('Tag','RmsText');
@@ -1020,7 +1027,7 @@ for iSys = 1:numel(Sys0)
   thisSys = Sys0{iSys};
   
   pidx = FitData.xidx(iSys):FitData.xidx(iSys+1)-1;
-  if (nargin<3)
+  if nargin<3
     Shifts = zeros(numel(VaryVals),1);
   else
     Shifts = x(pidx).*VaryVals(:);
@@ -1183,7 +1190,7 @@ end
 %==========================================================================
 function str = striphtml(str)
 html = false;
-for k = 1:numel(str)
+for k = numel(str):-1:1
   if ~html
     rmv(k) = false;
     if str(k)=='<', html = true; rmv(k) = true; end
@@ -1199,7 +1206,7 @@ return
 
 %==========================================================================
 function plotFittingResult
-if (FitOpt.Plot) && (UserCommand~=99)
+if FitOpt.Plot && UserCommand~=99
   close(hFig); clf
   
   subplot(4,1,4);
@@ -1241,7 +1248,7 @@ nSets = numel(str);
 if nSets>0
   ID = sscanf(str{idx},'%d');
   for k = numel(FitData.FitSets):-1:1
-    if (FitData.FitSets(k).ID==ID)
+    if FitData.FitSets(k).ID==ID
       FitData.FitSets(k) = [];
     end
   end
@@ -1396,8 +1403,8 @@ for k=1:nSets
 end
 if nSets==0, s = {}; end
 set(h,'String',s);
-if (idx>0), set(h,'Value',idx); end
-if (idx==-1), set(h,'Value',numel(s)); end
+if idx>0, set(h,'Value',idx); end
+if idx==-1, set(h,'Value',numel(s)); end
 
 if nSets>0, state = 'on'; else, state = 'off'; end
 set(findobj('Tag','deleteSetButton'),'Enable',state);

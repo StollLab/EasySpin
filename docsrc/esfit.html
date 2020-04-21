@@ -40,6 +40,7 @@ esfit(SimFcn,expSpc,Sys0,Vary,Exp,SimOpt);
 esfit(SimFcn,expSpc,Sys0,Vary,Exp,SimOpt,FitOpt);
 BestSys = esfit(...)
 [BestSys,BestSpc] = esfit(...)
+[BestSys,BestSpc,residuals] = esfit(...)
 </pre>
 
 <p>
@@ -64,12 +65,14 @@ parameters can be excluded from the fit, and multiple fit sets can be stored.
 </p>
 
 <p>
-If the user interface is not desired, then <code>esfit</code> should be called with one or two output arguments:
+If the user interface is not desired, then <code>esfit</code> should be called with one, two, or three output arguments:
 <ul>
 <li>
 <code>BestSys</code> contains the spin system parameters of the best fit.
 <li>
 <code>BestSpc</code> contains the simulated spectrum that gives the best fit.
+<li>
+<code>Residuals</code> contains the vector of residuals between the simulated and the experimental spectrum.
 </ul>
 
 
