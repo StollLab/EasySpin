@@ -1,4 +1,4 @@
-function [bestx,info] = esfit_montecarlo(funfcn,nParameters,FitOpt,varargin)
+function [bestx,info] = esfit_montecarlo(funfcn,nParams,FitOpt,varargin)
 
 if ~isfield(FitOpt,'nTrials'); FitOpt.nTrials = 20000; end
 if ~isfield(FitOpt,'PrintLevel'); FitOpt.PrintLevel = 1; end
@@ -12,21 +12,27 @@ end
 global UserCommand
 if isempty(UserCommand), UserCommand = NaN; end
 
-minerror = inf;
-bestx = zeros(nParameters,1);
+lb = -ones(nParams,1);
+ub = +ones(nParams,1);
+if any(lb>ub)
+  error('Lower bounds must not be greater than upper bounds.');
+end
+
+Fmin = inf;
+bestx = zeros(nParams,1);
 startTime = cputime;
   
 stopCode = 0;
-for k = 1:FitOpt.nTrials
+for iTrial = 1:FitOpt.nTrials
   
-  X = 2*rand(nParameters,1) - 1;
-  thiserror = feval(funfcn,X,varargin{:});
+  X = lb + (ub-lb).*rand(nParams,1);
+  F = feval(funfcn,X,varargin{:});
   
-  if thiserror<minerror
-    minerror = thiserror;
+  if F<Fmin
+    Fmin = F;
     bestx = X;
     if FitOpt.PrintLevel
-      str = sprintf('%d:   error %0.5e  best so far',k,thiserror);
+      str = sprintf('%d:   error %0.5e  best so far',iTrial,F);
       FitOpt.IterationPrintFunction(str);
     end
   end
@@ -34,7 +40,7 @@ for k = 1:FitOpt.nTrials
   elapsedTime = (cputime-startTime)/60;
   if elapsedTime>FitOpt.maxTime, stopCode = 1; end
   if UserCommand==1, stopCode = 2; end
-  if thiserror<FitOpt.TolFun, stopCode = 3; end
+  if F<FitOpt.TolFun, stopCode = 3; end
   
   if stopCode, break; end
   
@@ -49,6 +55,9 @@ if FitOpt.PrintLevel>1
   end
   disp(msg);
 end
+
+info.nTrials = iTrial;
+info.elapsedTime = elapsedTime;
 
 end
 

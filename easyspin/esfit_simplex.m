@@ -51,9 +51,26 @@ if ~isfield(FitOpt,'IterationPrintFunction') || ...
   FitOpt.IterationPrintFunction = @(str)str;
 end
 
+nParams = numel(x0);
+ub = +ones(nParams,1);
+lb = -ones(nParams,1);
+if any(lb>ub)
+  error('Lower bounds must not be greater than upper bounds.');
+end
+
+% Check starting point
+if any(~isreal(x0)) || any(isnan(x0)) || any(isinf(x0)) 
+  error('x0 must be real and finite.');
+end
+if any(x0<lb) || any(x0>ub)
+  error('Some elements in x0 are out of bounds.');
+end
+
+
+constrain = @(x)max(min(x,ub),lb);
 %constrain = @(x)sin(x*pi/2); unconstrain = @(x)acos(x)*2/pi;
-constrain = @(x)max(min(x,+1),-1); unconstrain = @(x)x;
-%constrain = @(x)x; unconstrain = constrain;
+unconstrain = @(x)x;
+
 
 iIteration = 0;
 startTime = cputime;
@@ -63,11 +80,10 @@ if FitOpt.PrintLevel
 end
 
 % Set up a initial simplex near the initial guess.
-n = numel(x0);
-nVertices = n+1;
+nParams = numel(x0);
+nVertices = nParams+1;
 v = repmat(x0(:),1,nVertices);
-v(n+1:n+1:end) = v(n+1:n+1:end) + delta;
-%v = v - repmat(mean(v,2),1,n+1); % center
+v(nParams+1:nParams+1:end) = v(nParams+1:nParams+1:end) + delta.*(ub-lb).';
 
 info.simplex_initial = v;
 
@@ -109,8 +125,8 @@ while true
     stopCode = 2;
     break
   end
-  largestValDiff = max(abs(fv(1)-fv(2:n+1)));
-  longestEdgeLength = max(max(abs(v(:,2:n+1)-v(:,1))));
+  largestValDiff = max(abs(fv(1)-fv(2:nParams+1)));
+  longestEdgeLength = max(max(abs(v(:,2:nParams+1)-v(:,1))));
   if largestValDiff<=FitOpt.TolFun && longestEdgeLength<=FitOpt.TolEdgeLength
     stopCode = 3;
     break
@@ -138,7 +154,7 @@ while true
       v(:,end) = xr;
       fv(:,end) = fr;
     end
-  elseif fr<fv(:,n) % reflection point is better than second worst vertex
+  elseif fr<fv(:,nParams) % reflection point is better than second worst vertex
     Procedure = 'reflection';
     v(:,end) = xr;
     fv(:,end) = fr;
@@ -187,7 +203,7 @@ while true
   iIteration = iIteration + 1;
   
   if FitOpt.PrintLevel
-    thisstep = max(max(abs(v(:,2:n+1)-v(:,ones(1,n)))));
+    thisstep = max(max(abs(v(:,2:nParams+1)-v(:,ones(1,nParams)))));
     str = sprintf(logStringFormat,iIteration,Procedure,fv(1),thisstep);
     FitOpt.IterationPrintFunction(str);
   end

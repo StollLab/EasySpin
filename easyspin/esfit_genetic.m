@@ -16,7 +16,7 @@ function bestx = esfit_genetic(funfcn,nParams,FitOpt,varargin)
 
 if nargin==0, help(mfilename); return; end
 
-global UserCommand;
+global UserCommand
 if isempty(UserCommand), UserCommand = NaN; end
 
 if nargin<3, FitOpt = struct; end
@@ -38,8 +38,14 @@ end
 
 stopCode = 0;
 
+ub = +ones(nParams,1);
+lb = -ones(nParams,1);
+if any(lb>ub)
+  error('Lower bounds must not be greater than upper bounds.');
+end
+
 % Generate initial population
-Population = FitOpt.Range*(2*rand(FitOpt.PopulationSize,nParams) - 1);
+Population = lb + (ub-lb).*rand(FitOpt.PopulationSize,nParams);
 
 BestScore = inf;
 bestx = zeros(size(Population(1,:)));

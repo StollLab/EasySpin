@@ -43,8 +43,9 @@
 
 % Method:
 % Approximate Gauss-Newton with Levenberg-Marquardt damping and 
-% successive updating of Jacobian approximation. Search range
-% bounded to -1...+1.
+% successive updating of Jacobian approximation.
+
+% Search range bounded to -1...+1.
 
 function  [x,info] = esfit_levmar(funfcn, x0, FitOpt, varargin)
 
@@ -77,14 +78,21 @@ F = NaN;
 norm_g = NaN;
 nEvals = 0;
 
+nParams = numel(x0);
+lb = -ones(nParams,1);
+ub = +ones(nParams,1);
+if any(lb>ub)
+  error('Lower bounds must not be greater than upper bounds.');
+end
+
 % Check starting point
 x0 = x0(:);
 n = numel(x0);
 if any(~isreal(x0)) || any(isnan(x0)) || any(isinf(x0)) 
   error('x0 must be real and finite.');
 end
-if any(abs(x0)>1)
- error('All elements in x0 must be between -1 and +1.');
+if any(x0<lb) || any(x0>ub)
+  error('Some elements in x0 are out of bounds.');
 end
 x = x0(:); 
 
@@ -124,7 +132,7 @@ nu = 2;
 norm_h = 0;
 j = 0;  % direction of last update
 
-global UserCommand;
+global UserCommand
 if isempty(UserCommand), UserCommand = NaN; end
 
 iIteration = 0;
@@ -152,7 +160,7 @@ while ~stopCode
   end
   
   xnew = x + h;
-  xnew = min(max(xnew,-1),+1); % apply bounds
+  xnew = min(max(xnew,lb),ub); % apply bounds
   
   [stopCode,Fnew,fnew] = funeval(funfcn,xnew,varargin{:});
   nEvals = nEvals+1;

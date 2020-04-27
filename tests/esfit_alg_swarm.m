@@ -1,7 +1,9 @@
 function ok = test()
 
-% Assure that running esfit and pepper using grid algorithm is successful 
-% and yields a good fit.
+% Assure that running esfit and pepper using particle swarm optimization
+% algorithm is successful and yields a good fit.
+
+rng(20672);
 
 fitAlg = 'swarm';
 dataMethod = 'fcn';
@@ -13,16 +15,14 @@ Exp.Field = 350;
 Exp.mwRange = [9.5 10.5];
 
 spc = pepper(Sys,Exp);
-%rng(1)
-%data = addnoise(spc,50,'u');
 
 Vary.g = [0.02 0.02]; 
 
 FitOpt.PrintLevel = 0;
-FitOpt.nParticles = 30;
+FitOpt.nParticles = 10;
 
 FitOpt.Method = [fitAlg ' ' dataMethod];
-[~,~,resid] = esfit(@pepper,spc,Sys,Vary,Exp,[],FitOpt);
-rmsd = sqrt(mean(resid.^2));
+[~,~,residuals] = esfit(@pepper,spc,Sys,Vary,Exp,[],FitOpt);
+rmsd = sqrt(mean(residuals.^2));
 
 ok = rmsd<1e-4;
