@@ -8,7 +8,7 @@ Files{1} = 'tp051512_opt';
 Files{2} = 'dioxygen_g';
 Files{3} = 'nx4me';
 
-hfCutoff = 1;
+hfCutoff = 1; % MHz
 
 for iFile = 1:numel(Files)
   thisFile = Files{iFile};
@@ -17,8 +17,8 @@ for iFile = 1:numel(Files)
   end
   clear data pars;
   thisFileName = [BaseDir thisFile];
- 
-  Sys = orca2easyspin(thisFileName);
+  
+  [~] = orca2easyspin(thisFileName);
   Sys = orca2easyspin(thisFileName,hfCutoff);
   
   readerr(iFile) = false;

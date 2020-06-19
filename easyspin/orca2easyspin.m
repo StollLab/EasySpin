@@ -154,10 +154,10 @@ while ~feof(f)
       
     % A matrices ---------------------------------------
     case {6, 15, 24, 31, 38}
-      AnucIdx = data(1,:)+1;
+      nucIdx = data(1,:)+1;
       %aiso = data(2,:);
-      for iNuc=1:numel(AnucIdx)
-        idx = AnucIdx(iNuc);
+      for iNuc=1:numel(nucIdx)
+        idx = nucIdx(iNuc);
         Apv(idx,1:3) = data(3:5,iNuc).'; %#ok<AGROW>
         R = reshape(data(6:14,iNuc),3,3);
         %A = R*diag(Apv)*R.';
@@ -198,6 +198,7 @@ else
 end
 if ~isempty(xyz)
   Sys.xyz = xyz;
+  Sys.Atoms = Atoms;
 end
 if ~isempty(Charge)
   Sys.Charge = Charge;
@@ -267,14 +268,19 @@ if nAtoms>0
   
   % Build Sys.Nucs
   NucStr = [];
+  keepidx = 1:nAtoms;
   for iAtom = 1:nAtoms
-    if ~hfkeep(iAtom), continue; end
+    if ~hfkeep(iAtom)
+        keepidx(iAtom) = false;
+        continue
+    end
     NucStr = [NucStr ',' elementno2symbol(Atoms(iAtom))]; %#ok<AGROW>
   end
   if ~isempty(NucStr)
     NucStr(1) = [];
   end
   Sys.Nucs = NucStr;
+  Sys.NucsIdx = find(keepidx);
   
   % Build Sys.A and Sys.AFrame
   if anyHyperfine
