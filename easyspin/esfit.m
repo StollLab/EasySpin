@@ -745,7 +745,7 @@ end
 
 if UserCommand==2
     UserCommand = 0;
-    str = printparlist(pfit,fitdat);
+    str = printparlist(pfit,fitdat.pinfo);
     disp('--- current best fit parameters -------------')
     fprintf(str);
     disp('---------------------------------------------')
@@ -760,11 +760,11 @@ end
 
 %===============================================================================
 % Print parameters.
-function str = printparlist(pfit,fitdata)
-nParams = fitdata.nParameters;
+function str = printparlist(par,pinfo)
+nParams = numel(par);
 str = '';
 for p = 1:nParams
-    str = sprintf('%s%s:  %g\n',str,fitdata.pinfo(p).Name,pfit(p));
+    str = sprintf('%s%s:  %g\n',str,pinfo(p).Name,par(p));
 end
 
 if nargout==0, fprintf(str); end
@@ -822,19 +822,19 @@ end
 
 %===============================================================================
 function deleteSetButtonCallback(~,~)
-global FitData
+global fitdat
 h = findobj('Tag','SetListBox');
 idx = h.Value;
 str = h.String;
 nSets = numel(str);
 if nSets>0
     ID = sscanf(str{idx},'%d');
-    for k = numel(FitData.FitSets):-1:1
-        if FitData.FitSets(k).ID==ID
-            FitData.FitSets(k) = [];
+    for k = numel(fitdat.FitSets):-1:1
+        if fitdat.FitSets(k).ID==ID
+            fitdat.FitSets(k) = [];
         end
     end
-    if idx>length(FitData.FitSets), idx = length(FitData.FitSets); end
+    if idx>length(fitdat.FitSets), idx = length(fitdat.FitSets); end
     if idx==0, idx = 1; end
     h.Value = idx;
     refreshFitsetList(0);
