@@ -81,6 +81,10 @@ The three input arguments to the function are
 <code>Sys</code> is a <a href="spinsystem.html">spin system structure</a>. Fields available in <code>Sys</code> include all needed for the construction of the spin Hamiltonian. Line broadening parameters used by other simulation functions (<code>lw</code>, <code>lwpp</code>, <code>gStrain</code>, etc.) are not recognized, except <code>HStrain</code>. <code>HStrain</code> is used in excitation window computations (see <code>Exp.ExciteWidth</code>) when orientation selection is wanted.
 
 <p>
+For ENDOR simulations, <code>saffron</code> utilizes the field <code>Sys.lwEndor</code> to apply a convolutional broadening to the simulated ENDOR spectrum. See <a href="broadenings.html">line width parameters</a> for details.
+</p>
+
+<p>
 <code>saffron</code> supports any spin system with one electron spin (arbitrary S) and any number of nuclei.
 
 <p>
