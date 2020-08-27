@@ -165,7 +165,7 @@ When <code>CrystalSymmetry</code> is given, all symmetry-related sites in the cr
 
 <div class="optionfield"><code>SampleRotation</code></div>
 <div class="optiondescr">
-Specifies the sample rotation as <code>{rho,nRot_L}</code>. <code>rho</code> is the rotation angle (in radians) around a lab-fixed axis <code>nRot_L</code>>. The axis is in lab-frame coordinates, and <code>nRot_L</code> does not have to be normalized.
+Specifies the sample rotation as <code>{rho,nRot_L}</code>. <code>rho</code> is the rotation angle (in radians) around an axis <code>nRot_L</code> fixed in the <a href="frames.html">laboratory frame</a>. The axis is represented in lab-frame coordinates, and it does not need to be normalized. If <code>SampleOrientation</code> is not given, no sample rotation is included (i.e. <code>rho = 0</code>).
 
 <pre class="matlab">
 rho = pi/4;
@@ -191,13 +191,14 @@ The three <a href="eulerangles.html">Euler angles</a>, in radians, for the trans
 If a number is given in this field, it specifies the orientational distribution of the paramagnetic molecules in the sample. If not given or set to zero, the distribution is isotropic, i.e. all orientations occur with the same probability.
 
 <p>
-If it is given, the orientational distribution is non-isotropic and computed according to the formula P(&theta;) = exp(-U(&theta;)) with U(&theta;) = -&lambda;(3 cos<sup>2</sup>&theta; - 1)/2), where &theta; is the angle between the molecular z axis and the static magnetic field, and &lambda; is the number specified in <code>Exp.Ordering</code>.
+If a number is given, the orientational distribution is non-isotropic and computed according to the formula P(&theta;) = exp(-U(&theta;)) with U(&theta;) = -&lambda;(3 cos<sup>2</sup>&theta; - 1)/2), where &theta; is the angle between the molecular z axis and the static magnetic field, and &lambda; is the number specified in <code>Exp.Ordering</code>.
 
 <p>
 Typical values for &lambda; are between about -10 and +10. For negative values, the orientational distribution function P(&theta;) is maximum at &theta; = 90&deg; (preferential orientation in the molecular xy plane), for positive values at &theta; = 0&deg; and &theta; = 180&deg; (preferential alignment along the molecular z axis). The larger the magnitude of &lambda;, the sharper the distributions.
 
 <p>
 To plot a distribution depending on &lambda;, use
+</p>
 
 <pre class="matlab">
 lambda = 5;
@@ -216,11 +217,31 @@ Exp.Ordering = @(phi,theta) gaussian(theta,0,15/180*pi);
 </pre>
 
 <p>
-Of course, the function can also be written and stored in a separate file, e.g. <code>myori.m</code>. Then use <code>Exp.Ordering = @myori</code>.
+If the function cannot be written as a singe line, define a separate function and provide it via its function handle. For example, here is a function <code>oridist</code> defining a von Mises-Fisher distribution
+</p>
+   
+<pre class="matlab">
+function P = oridist(phi,theta)
+phi0 = 0;
+theta0 = pi/4;
+kappa = 10;
+mu = ang2vec(phi0,theta0);
+x = ang2vec(phi(:),theta(:));
+P = kappa/(4*pi)/sinh(kappa)*exp(kappa*mu'*x);
+P = reshape(P,size(theta));
+end
+</pre>
+
+<p>
+Include this in the simulation via <code>Exp.Ordering = @oridist</code>.
 </p>
 
 <p>
-When using a custom orientational distribution, make sure that the symmetry used in the simulation corresponds to the symmetry of the distribution. If the distribution is very narrow, increase the number of knots in the options structure.
+When providing a function for <code>Exp.Ordering</code>, make sure that the symmetry used in the simulation is the same or lower than the symmetry of the distribution. In cases of doubt, set <code>Opt.Symmetry='C1'</code>. This gives correct results.
+</p>
+
+<p>
+If the custom distribution provided via <code>Exp.Ordering</code> is very narrow, increase the number of knots in <code>Opt.nKnots</code>.
 </p>
 
 </div>
