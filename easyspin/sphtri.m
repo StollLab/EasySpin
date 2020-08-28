@@ -1,15 +1,18 @@
-% sphtri  Triangulation of standard grid
+% sphtri  Triangulation of standard EasySpin spherical grid
 %
 %   tri = sphtri(Symmetry,n)
 %
-%   Computes the triangulation of the standard
-%   EasySpin grid with n knots along a quarter
-%   of a meridian for point group Symmetry.
-%   tri is a Nx3 matrix containing indices
-%   into the grid vector.
-%   The triangulation of point groups with open
-%   phi intervals (C4h,C6h,S6,C2h) is done after
-%   closing the phi interval.
+%   Computes the triangulation of the standard EasySpin spherical grid.
+%
+%   Inputs:
+%     n        .. number of knots along a quarter of a meridian
+%     Symmetry .. point group
+%
+%   Outputs:
+%     tri      .. Nx3 matrix containing indices into the grid vector.
+%
+%   The triangulation of point groups with open phi intervals (C4h,C6h,S6,C2h)
+%   is done after closing the phi interval.
 
 % Undocumented:
 %   tri = sphtri(nOctants,n)
@@ -23,15 +26,15 @@
 
 function Triangulation = sphtri(Symmetry,nKnots,Options)
 
-if (nargin==0), help(mfilename); return; end
+if nargin==0, help(mfilename); return; end
 
-if (nargin<3), Options = ''; end
+if nargin<3, Options = ''; end
 
-if (nKnots<2)
+if nKnots<2
   error('Cannot compute triangulation with n<2.');
 end
 
-DebugMode = 0;
+DebugMode = false;
 
 if ~ischar(Options)
   error('Third input argument must be a string.');
@@ -57,7 +60,7 @@ switch (Symmetry)
     error('Symmetry not supported!');
 end
 
-% Setup, keep, and use database of previously computed triangulations.
+% Cache previously computed triangulations.
 persistent triknown
 if ~isempty(triknown)
   idx = find((triknown.nKnots==nKnots) & ...
@@ -83,7 +86,7 @@ if DebugMode
   disp('sphtri: compute.');
 end
 
-switch (SymmID)
+switch SymmID
 
   case 1 %'D6h','D4h','Oh','D3d','Th','D2h',... % closed phi interval
       %'C4h','C6h'} % open phi interval
@@ -95,7 +98,8 @@ switch (SymmID)
     Triangulation = [[1:nKnots*(nKnots-1)/2; a; a+1],[b; 2*(b+1)-k; b+1]].';
 
   case 2 %'Ci' % 4 octants
-    if (explicitClosedPhi)
+    % Same number of triangles 4*(nKnots-1)^2 for both open and closed grid!
+    if explicitClosedPhi
       [phx,thx] = sphgrid('Ci',nKnots,'f');
       phx = phx(:); thx = thx(:);
       q = 1/2;
@@ -146,20 +150,3 @@ triknown.SymmID(n) = SymmID;
 triknown.explicitClosedPhi(n) = explicitClosedPhi;
 
 return
-
-% Testing area
-%==================================================
-
-nKnots = 15;
-Symmetry = {'D6h','D4h','Oh','D3d','Th','D2h',...
-  'C4h','C6h','S6','C2h','Ci','C1'};
-full = 'xxxxxxffffxx';
-
-for k = 1:length(Symmetry)
-  x = sphgrid(Symmetry{k},nKnots,full(k));
-  tri = sphtri(Symmetry{k},nKnots);
-  trisurf(tri,x(1,:),x(2,:),x(3,:),1);
-  title(Symmetry{k});
-  pause
-end
-close

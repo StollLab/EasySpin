@@ -321,25 +321,6 @@ separately. <code>'summed'</code> means that only one total
 spectrum is returned.
 </div>
 
-<div class="optionfield"><code>ThetaRange</code></div>
-<div class="optiondescr">
-<em>2-element vector</em> (default: not given)<br>
-This option allows <code>salt</code> to be used similar to older powder
-ENDOR spectrum computation programs. There it was possible to include
-effects of orientation selection and limited excitation bandwidths by
-manually specifying the range of orientations to be included in the
-"powder" spectrum. <code>ThetaRange</code> specifies the lower and
-upper limit of &theta; (angle between the z axis of the molecular frame
-and the external static magnetic field) for the orientations in the powder
-simulation. So if <code>ThetaRange = [10 20]*180/pi</code>,
- only orientations in the segment with &theta; between
-10&deg; and 20&deg; are included in the spectrum.
-<br>
-If <code>Opt.Symmetry</code> is not explicitely given, it is set to <code>'Ci'</code>.
-<code>Opt.ThetaRange</code> cannot be used together with <code>Exp.Ordering</code> or 
-<code>Exp.Orientations</code>.
-</div>
-
 <p>
 The following options are only available for matrix diagonalization (<code>Opt.Method='matrix'</code>),
 but not for perturbation theory (<code>Opt.Method='perturb1'</code> or <code>'perturb2'</code>).

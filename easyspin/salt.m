@@ -20,8 +20,7 @@
 %       Ordering      coefficient for non-isotropic orientational distribution
 %   - Opt: simulation options
 %       Transitions, Threshold, Symmetry
-%       nKnots, Intensity, Enhancement, Output
-%       ThetaRange, Sites
+%       nKnots, Intensity, Enhancement, Output, Sites
 %
 %   Output:
 %   - rf:     the radiofrequency axis, in MHz
@@ -350,7 +349,6 @@ end
 DefaultOpt.Symmetry = 'auto';
 DefaultOpt.SymmFrame = [];
 DefaultOpt.Output = 'summed';
-DefaultOpt.ThetaRange = [];
 
 % Undocumented fields
 DefaultOpt.nTRKnots = 4; % endorfrq
@@ -377,9 +375,6 @@ SummedOutput = (1==parseoption(Opt,'Output',{'summed','separate'}));
 SuppliedOriWeights = ~isempty(Opt.OriWeights);
 if SuppliedOriWeights
   Opt.OriWeights = Opt.OriWeights(:).';
-end
-if ~isempty(Opt.ThetaRange) && SuppliedOriWeights
-  error('You cannot use ThetaRange and OriWeights simultaneously!');
 end
 if any(Opt.OriPreSelect) && SuppliedOriWeights
   error('You cannot use OriPreSelect and supply OriWeights simultaneously!');
@@ -722,10 +717,6 @@ else
       if all(OrderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end
       fSegWeights = fSegWeights(:).*OrderingWeights(:);
       fSegWeights = 4*pi/sum(fSegWeights)*fSegWeights;
-    elseif ~isempty(Opt.ThetaRange)
-      centreTheta = (fthe(1:end-1)+fthe(2:end))/2;
-      idx = (centreTheta<Opt.ThetaRange(1)) | (centreTheta>Opt.ThetaRange(2));
-      fSegWeights(idx) = 0;
     end
     logmsg(1,'  total %d segments, %d transitions',numel(fthe)-1,nTransitions);
     
@@ -746,10 +737,6 @@ else
       if max(OrderingWeights)==0, error('User-supplied orientation distribution is all-zero.'); end
       Areas = Areas(:).*OrderingWeights(:);
       Areas = 4*pi/sum(Areas)*Areas;
-    elseif ~isempty(Opt.ThetaRange)
-      centreTheta = mean(fthe(idxTri));
-      idx = (centreTheta<Opt.ThetaRange(1)) | (centreTheta>Opt.ThetaRange(2));
-      Areas(idx) = 0;
     end
     logmsg(1,'  total %d triangles (%d orientations), %d transitions',size(idxTri,2),numel(fthe),nTransitions);
   end
