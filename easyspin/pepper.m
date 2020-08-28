@@ -139,8 +139,6 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
     error('Multiple components: Please specify sweep range manually using %s.',str);
   end
   
-  PowderSimulation = ~isfield(Exp,'CrystalOrientation') || isempty(Exp.CrystalOrientation) || ...
-    (isfield(Exp,'Ordering') && ~isempty(Exp.Ordering));
   separateSpectra = ~summedOutput && ...
     (nComponents>1 || sum(nIsotopologues)>1);
   if separateSpectra
@@ -227,7 +225,7 @@ StrainWidths = any([Sys.HStrain(:); Sys.DStrain(:); Sys.gStrain(:); Sys.AStrain(
 ConvolutionBroadening = any(Sys.lw>0);
 
 logmsg(1,'  system with %d spin(s) and %d states',numel(spinvec(Sys)),hsdim(Sys));
-if StrainWidths, logmsg(1,'  widths for Gaussian strains given'); end
+if StrainWidths, logmsg(1,'  strain widths given'); end
 %=======================================================================
 
 
@@ -442,7 +440,6 @@ end
 PowderSimulation = ~isfield(Exp,'CrystalOrientation') || ...
   isempty(Exp.CrystalOrientation) || ...
   (isfield(Exp,'Ordering') && ~isempty(Exp.Ordering));
-%PowderSimulation = isempty(Exp.CrystalOrientation);
 Exp.PowderSimulation = PowderSimulation; % for communication with resf*
 
 % Partial ordering
@@ -450,14 +447,17 @@ if ~isempty(Exp.Ordering)
   if isnumeric(Exp.Ordering) && (numel(Exp.Ordering)==1) && isreal(Exp.Ordering)
     lambda = Exp.Ordering;
     Exp.Ordering = @(phi,theta) exp(lambda*plegendre(2,0,cos(theta)));
-    logmsg(1,'  partial order (built-in function, lambda = %g)',lambda);
+    logmsg(1,'  partial ordering (built-in function, lambda = %g)',lambda);
   elseif isa(Exp.Ordering,'function_handle')
-    logmsg(1,'  partial order (user-supplied function)');
+    logmsg(1,'  partial ordering (user-supplied function)');
+    if nargin(Exp.Ordering)<2
+      logmsg(1,'  User-supplied function in Exp.Ordering must take 2 inputs.');
+    end
+    if nargout(Exp.Ordering)<1
+      logmsg(1,'  User-supplied function in Exp.Ordering must provide 1 output.');
+    end
   else
-    error('Exp.Ordering must be a single number or a function handle.');
-  end
-  if StrainWidths
-    error('Exp.Ordering and g/A/D/H strains cannot be used simultaneously.');
+    error('Exp.Ordering must be either a single number or a function handle.');
   end
 end
 
@@ -805,7 +805,8 @@ elseif ~BruteForceSum
     wT = xT/2.5; %<1e-8 at borders for Harmonic = -1
     Template = gaussian(0:2*xT-1,xT,wT,-1);
   end
-  Text = {'single-crystal','isotropic','axial','nonaxial D2h','nonaxial C2h','','nonaxial Ci'};
+  Text = {'single-crystal','isotropic','axial','nonaxial D2h','nonaxial C2h',...
+    '','nonaxial Ci','','','','full sphere'};
   logmsg(1,'  %s, %s case',msg,Text{nOctants+3});
   
   % Preparations for interpolation
@@ -1029,14 +1030,14 @@ elseif ~BruteForceSum
       else % do summation
         if Axial
           fPosC = (fPos(1:end-1) + fPos(2:end))/2;
-          fIntC = fSegWeights.*(fInt(1:end-1) + fInt(2:end))/2;
+          fIntC = fSegWeights(:).'.*(fInt(1:end-1) + fInt(2:end))/2;
           fSpread = abs(fPos(1:end-1) - fPos(2:end));
           fWidM  = (fWid(1:end-1) + fWid(2:end))/2;
           c1 = 1.57246; c2 = 18.6348;
         else
           fPosSorted = sort(fPos(idxTri),1);
           fPosC = mean(fPosSorted,1);
-          fIntC = Areas.*mean(fInt(idxTri),1);
+          fIntC = Areas(:).'.*mean(fInt(idxTri),1);
           fSpread = fPosSorted(3,:) - fPosSorted(1,:);
           fWidM = mean(fWid(idxTri),1);
           c1 = 2.8269; c2 = 42.6843;
