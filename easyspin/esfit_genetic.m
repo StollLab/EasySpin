@@ -38,8 +38,8 @@ end
 
 stopCode = 0;
 
-ub = +ones(nParams,1);
-lb = -ones(nParams,1);
+ub = +1*ones(1,nParams);
+lb = -1*ones(1,nParams);
 if any(lb>ub)
   error('Lower bounds must not be greater than upper bounds.');
 end
