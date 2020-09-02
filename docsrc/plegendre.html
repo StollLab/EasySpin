@@ -28,47 +28,43 @@
 <div class="functitle">plegendre</div>
 
 <p>
-Legendre polynomials and Associated Legendre polynomials.
+Legendre polynomials and associated Legendre polynomials.
 </p>
 
 <!-- ============================================================= -->
 <div class="subtitle">Syntax</div>
 
 <pre class="matlab">
-v = plegendre(L,x)
-v = plegendre(L,M,x)
+v = plegendre(L,z)
+v = plegendre(L,M,z)
+v = plegendre(L,M,z,CSphase)
 </pre>
 
 <!-- ============================================================= -->
 <div class="subtitle">Description</div>
 
 <p>
-With two input arguments, <code>plegendre</code> returns the value(s) of the Legendre
-polynomal of degree L (with L &ge; 0).
-With three input arguments, the value(s) of the associated Legendre polynomal of
-degree L (with L &ge; 0) and order M (with |M| &le; L) are returned.
+With two input arguments, <code>plegendre</code> returns the value(s) of the Legendre polynomal of degree L (with L &ge; 0).
 </p>
 
 <p>
-<code>x</code> must satisfy -1&le; x &le; +1 and can be a scalar or an array.
+With three or four input arguments, <code>plegendre</code> calculates the value(s) of the associated Legendre polynomal of degree L (with L &ge; 0) and order M (with -L &le; M &le; L).
 </p>
 
 <p>
-<code>plegendre</code> does not include the Condon-Shortley phase (-1)<sup>M</sup>.
+<code>z</code> are the values for which to evaluate the polynomial. <code>z</code> must satisfy -1&le; z &le; +1 and can be a scalar or an array.
 </p>
+
+<p>
+The optional input <code>CSphase</code> (<code>true</code> or <code>false</code>) specifies whether the Condon-Shortley phase (-1)<sup>M</sup> should be included (<code>true</code>) or not (<code>false</code>). The default is <code>true</code>.
+</p>
+   
 
 <!-- ============================================================= -->
 <div class="subtitle">Algorithm</div>
 
 <p>
-<code>plegendre</code> is using recurrence relations to compute the
-values, as described e.g. in Press et al, Numerical Recipes in C++ (2002).
-
-Note that contrary to that reference, but in line with most others,
-the Condon-Shortley phase factor (-1)<sup>M</sup> is not included in <code>plegendre</code>.
-It is included in the spherical harmonics computed by
-<a class="esf" href="spherharm.html">spherharm</a>.
-
+<code>plegendre</code> uses recurrence relations to compute the values, as described e.g. in Press et al, Numerical Recipes in C++ (2002).
 
 <!-- ============================================================= -->
 <div class="subtitle">See also</div>

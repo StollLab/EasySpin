@@ -107,13 +107,69 @@ The rows and columns of R have simple geometric meaning:
 </p>
 
 <ul>
-<li> The <b>rows</b> of R are the representations of A, B and C in the
-xyz frame. E.g. the first row of R is the vector representation of A in
-the xyz coordinate system.
+<li> The <b>rows</b> of R are the representations of the vectors A, B and C in the xyz frame. E.g. the first row of R is the representation of A in
+the xyz coordinate system, etc.
+<div class="eqn">
+  <img src="eqn/eulerangles2.png" alt="[eqn]"><!--MATH
+  \begin{equation*}
+    R =
+    \begin{pmatrix}
+    \boldsymbol{A}^\mathrm{T}_{xyz}\\
+    \boldsymbol{B}^\mathrm{T}_{xyz}\\
+    \boldsymbol{C}^\mathrm{T}_{xyz}
+    \end{pmatrix}
+    =
+    \begin{pmatrix}
+    A_x & A_y & A_z\\
+    B_x & B_y & B_z\\
+    C_x & C_y & C_z
+    \end{pmatrix}
+  \end{equation*}
+  -->
+</div>
+  
+
 <li>
-The <b>columns</b> of R contain the vector representations of x, y and z in the ABC system.
-E.g., the third column of R gives the vector z represented by its ABC coordinates.
+The <b>columns</b> of R contain the vector representations of x, y and z in the ABC system. E.g., the first column of R gives the vector x represented by its ABC coordinates.
 </ul>
+
+<div class="eqn">
+  <img src="eqn/eulerangles2.png" alt="[eqn]"><!--MATH
+  \begin{equation*}
+    R =
+    \begin{pmatrix}
+    \boldsymbol{x}_{ABC},
+    \boldsymbol{y}_{ABC},
+    \boldsymbol{z}_{ABC}
+    \end{pmatrix}
+    =
+    \begin{pmatrix}
+    x_A & y_A & z_A\\
+    x_B & y_B & z_B\\
+    x_C & y_C & z_C\\
+    \end{pmatrix}
+  \end{equation*}
+  -->
+</div>
+
+<p>
+More generally, each of the elements or R is the scalar product of one of the ABC vectors onto one of the xyz vectors. Taking the acos of that product gives the angle between the two respective axes. Therefore, R is sometimes also called a direction cosine matrix (DCM).
+</p>
+
+<div class="eqn">
+  <img src="eqn/eulerangles2.png" alt="[eqn]"><!--MATH
+  \begin{equation*}
+    \newcommand{\scapr}[2]{\boldsymbol{#1}\cdot\boldsymbol{#2}}
+    R =
+    \begin{pmatrix}
+    \scapr{x}{A} & \scapr{y}{A} & \scapr{z}{A}\\
+    \scapr{x}{B} & \scapr{y}{B} & \scapr{z}{B}\\
+    \scapr{x}{C} & \scapr{y}{C} & \scapr{z}{C}
+    \end{pmatrix}
+  \end{equation*}
+  -->
+</div>
+
 
 <p>
 The same rotation matrix is obtained, if the rotations are carried out in reverse order around other axes: First by &gamma; around the z

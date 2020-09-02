@@ -35,42 +35,36 @@ Spherical harmonics, tesseral harmonics.
 <div class="subtitle">Syntax</div>
 
 <pre class="matlab">
-v = spherharm(L,M,theta,phi)
-v = spherharm(L,M,theta,phi,'c')
-v = spherharm(L,M,theta,phi,'s')
+y = spherharm(L,M,theta,phi)
+y = spherharm(L,M,theta,phi,'r')
 </pre>
 
 <!-- ============================================================= -->
 <div class="subtitle">Description</div>
 
 <p>
-<code>spherharm</code> returns the value of the normalised spherical harmonic
+<code>spherharm</code> returns the value of the normalized spherical harmonic
 <img src="eqn/spherharm1.png" alt="[eqn]"><!--MATH
 \begin{equation*}
 Y_{L,M}(\theta,\phi)
 \end{equation*}
 -->
-with non-negative integer L and |M| &le; L. The Condon-Shortley phase convention
-is used.
+with non-negative integer L and |M| &le; L. The Condon-Shortley phase (-1)<sup>M</sup> is included.
 </p>
 
 <p>
-<code>theta</code> and <code>phi</code> are scalars or alternatively
-array of the same size.
+<code>theta</code> is the angle down from the z axis (colatitude), and <code>phi</code> is the counterclockwise angle off the x axis in the xy plane (longitude). Both angles are in radians. <code>theta</code> and <code>phi</code> can be scalars or alternatively arrays of the same size.
 </p>
 
 <p>
-If <code>'c'</code> or <code>'s'</code> are given, real linear combinations
-of the spherical harmonics (so-called tesseral harmonics) are returned. For
-the expressions, see below.
+If <code>'r'</code>, real-valued spherical harmonics are evaluated. These are linear combinations of the complex-valued spherical harmonics. Their signs are defined such that they give nonnegative values near <code>theta=0</code> and <code>phi=0</code> for all <code>L</code> and <code>M</code>. For the expressions, see below. Real-valued spherical harmonics are also called tesseral harmonics, those with <code>L==M</code> are called sectorial harmonics, and those with <code>M=0</code> are called zonal harmonics.
 </p>
 
 <!-- ============================================================= -->
 <div class="subtitle">Examples</div>
 
 <p>
-The following code plots the dependence on <code>theta</code> of
-the axial spherical harmonics with L = 7 and M = 0.
+Plot the dependence on <code>theta</code> of the axial spherical harmonics with L = 7 and M = 0:
 </p>
 
 <pre class="matlab">
@@ -80,12 +74,26 @@ v = spherharm(7,0,theta,phi);
 plot(theta,v);
 </pre>
 
+<p>
+Plot a real-values spherical harmonic as a color map over the unit sphere:
+</p>
+
+<pre class="matlab">
+L = 4;
+M = 2;
+[x,y,z] = sphere(100);
+[phi,theta] = vec2ang(x,y,z);
+Y = spherharm(L,M,theta,phi,'r');
+surf(x,y,z,Y);
+axis equal tight
+shading interp
+</pre>
+
 <!-- ============================================================= -->
 <div class="subtitle">Algorithm</div>
 
 <p>
-<code>spherharm</code> computes the complex-valued spherical harmonics according to
-the expression
+<code>spherharm</code> computes the complex-valued spherical harmonics according to the expression
 </p>
 
 <div class="eqn">
@@ -101,19 +109,17 @@ P_L^M(\cos\theta)
 </div>
 
 <p>
-with the Condon-Shortley phase factor <img src="eqn/spherharm3.png" alt="[eqn]"><!--MATH $(-1)^M$-->
-and the associated Legendre polynomial <img src="eqn/spherharm4.png" alt="[eqn]"><!--MATH $P_L^M(z)$--> computed
-by <a class="esf" href="plegendre.html">plegendre</a>.
+with the Condon-Shortley phase factor <img src="eqn/spherharm3.png" alt="[eqn]"><!--MATH $(-1)^M$--> and the associated Legendre polynomial <img src="eqn/spherharm4.png" alt="[eqn]"><!--MATH $P_L^M(z)$--> computed by <a class="esf" href="plegendre.html">plegendre</a>. In this expression, the associated Legendre polynomial itself does not include the Condon-Shortley phase.
 </p>
 
 <p>
-If <code>'c'</code> or <code>'s'</code> are specified, real-valued combinations of spherical harmonics, so-called
-tesseral harmonics, are computed. For <code>'c'</code>,
+The real-valued spherical harmonicsare computed as follows. For M&gt;0
 </p>
+
 <div class="eqn">
 <img src="eqn/spherharm5.png" alt="[eqn]"><!--MATH
 \begin{equation*}
-Y^\mr{c}_{L,M}(\theta,\phi) =
+Y_{L,M}(\theta,\phi) =
 \sqrt{2}
 \sqrt{\frac{(2L+1)}{4\pi}\frac{(L-M)!}{(L+M)!}}
 P_L^M(\cos\theta)
@@ -122,29 +128,29 @@ P_L^M(\cos\theta)
 -->
 </div>
 
+   
 <p>
-and for <code>'s'</code>,
+(without the first factor for M=0), and for M&lt;0
 </p>
 
 <div class="eqn">
 <img src="eqn/spherharm6.png" alt="[eqn]"><!--MATH
 \begin{equation*}
-Y^\mr{s}_{L,M}(\theta,\phi) =
+Y_{L,M}(\theta,\phi) =
 \sqrt{2}
-\sqrt{\frac{(2L+1)}{4\pi}\frac{(L-M)!}{(L+M)!}}
-P_L^M(\cos\theta)
+\sqrt{\frac{(2L+1)}{4\pi}\frac{(L-|M|)!}{(L+|M|)!}}
+P_L^{|M|}(\cos\theta)
 \sin(|M|\phi)
 \end{equation*}
 -->
 </div>
 
 <p>
-These expressions do not include the Condon-Shortley phase. Only positive <code>M</code> values are allowed.
-Instance of sets of tesseral harmonics are the three p orbitals or the five d orbitals commonly used in chemistry.
+These expressions do not include the Condon-Shortley phase, also not in the associated Legendre polynomials.
 </p>
 
 <p>
-The spherical and tesseral harmonics defined by the above expression are orthonormal.
+Both the set of complex spherical harmonics and the set of real-valued spherical harmonics defined by the above expressions are orthonormal sets.
 </p>
 
 <!-- ============================================================= -->
