@@ -35,60 +35,61 @@ Cartesian vector to polar angles conversion.
 <div class="subtitle">Syntax</div>
 
 <pre class="matlab">
-[phi,theta] = vec2ang(Vecs)
-angles = vec2ang(Vecs)
+[phi,theta] = vec2ang(v)
+angles = vec2ang(v)
+___ = vec2ang(x,y,z)
 </pre>
 
 <!-- ============================================================= -->
 <div class="subtitle">Description</div>
 
 <p>
-This function converts 3D cartesian coordinates to polar angles. Given one or
-more cartesian vectors in <code>Vecs</code>, <code>vec2ang</code> returns
-the corresponding polar angles <code>phi</code> and <code>theta</code>,
-both in radians.
+This function converts 3D cartesian coordinates to polar angles.
 </p>
 
 <p>
-<code>phi</code> denotes the counterclockwise angle between the x axis
-and the projection of a vector onto the xy plane (azimuth),
-<code>theta</code> is the angle between a vector and the z axis
-(polar angle, colatitude, elevation complement).
+<code>v</code> is a 3-by-N array where each column represents one cartesian vector. It can also be a Mx3 array (list of row vectors). If it is a 3x3 array, the vectors are assumed to be along <em>columns</em>.
 </p>
 
 <p>
-If only one output argument is requested, an array <code>angles</code> is
-returned that contains the <code>phi</code> values in the first row and the
-<code>theta</code> values in the second row.
+Alternatively, <code>v</Code> accepts short letter abbreviations to indicate one from a set of standard directions: <code>'x'</code>, <code>'y'</code>, <code>'z'</code>, <code>'xy'</code>, <code>'xz'</code>, <code>'yz'</code>, <code>'xyz'</code>, and combinations of these with a leading <code>'-'</code>, such as <code>'-z'</code>.
 </p>
 
 <p>
-<code>Vecs</code> can be a 3xN array (list of column vectors) or an Mx3 array
-(list of row vectors). If it is a 3x3 array, the vectors are assumed to be
-along <em>columns</em>.
+Instead of providing an array of vectors in <code>'v'</code>, one can use <code>x</code>, <code>y</code>, and <code>z</code> to specify the three components of the vector or vectors separately.
 </p>
 
 <p>
-The vectors in <code>Vecs</code> don't have to be normalized.
+The vectors in <code>v</code> (or <code>x</code>, <code>y</code>, <code>z</code>) don't have to be normalized.
 </p>
+
+<p>
+The output <code>phi</code> denotes the counterclockwise angle between the x axis and the projection of a vector onto the xy plane (azimuth), and <code>theta</code> is the angle from the z axis down to the vector (polar angle, colatitude, inclination, elevation complement).
+</p>
+
+<p>
+If only one output argument is requested, an array <code>angles</code> is returned that contains the <code>phi</code> values in the first row and the <code>theta</code> values in the second row.
+</p>
+
 
 <!-- ============================================================= -->
 <div class="subtitle">Examples</div>
 
 <p>
-A set of vectors with linearly increasing z coordinate gives polar
-angles where <code>theta</code> is not linearly decreasing.
+Convert a list of 5 unnormalized column vectors to angles:
 </p>
 
 <pre class="matlab">
-v = ones(3,6);
-v(3,:) = linspace(0,9,6);
+v = rand(3,5);
 [ph,th] = vec2ang(v);
 th*180/pi
+ph*180/pi
 </pre>
 <pre class="mloutput">
 ans =
-   90.0000   38.1558   21.4467   14.6757   11.1125    8.9301
+   71.233       86.793       33.626       65.537       28.961
+ans =
+   59.228       26.317       43.952        25.13       9.5241
 </pre>
 
 <!-- ============================================================= -->
