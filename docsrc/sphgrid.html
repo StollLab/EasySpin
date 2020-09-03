@@ -34,34 +34,23 @@ Generates spherical grids including solid angles.
 <div class="subtitle">Syntax</div>
 
 <pre class="matlab">
-vecs = sphgrid(Symmetry,nKnots)
-[vecs,Weights] = sphgrid(Symmetry,nKnots,'c')
-[phi,theta] = sphgrid(Symmetry,nKnots)
-[phi,theta,Weights] = sphgrid(Symmetry,nKnots)
+grid = sphgrid(Symmetry,nKnots)
+[grid,tri] = sphgrid(Symmetry,nKnots)
 </pre>
 
 <!-- ====================================================== -->
 <div class="subtitle">Description</div>
 
 <p>
-<code>sphgrid</code> generates triangular grids of orientations over parts of
-the unit sphere and returns the grid knots and the solid angle of the
-Voronoi cells associated with the knots (orientations).
+<code>sphgrid</code> generates triangular grids of orientations over parts of the unit sphere and returns the grid knots and the solid angle of the Voronoi cells associated with the knots (orientations).
 </p>
 
 <p>
-<code>Symmetry</code> specifies the symmetry for which the grid is to be
-generated. The higher the symmetry, the smaller can the needed sphere
-surface be, since rotational and reflectional symmetry makes parts of
-the surface redundant for EPR calculations.
+<code>Symmetry</code> specifies the symmetry for which the grid is to be generated. The higher the symmetry, the smaller can the needed sphere surface be, since rotational and reflectional symmetry makes parts of the surface redundant for EPR calculations.
 </p>
 
 <p>
-Since all spectra in EPR are invariant with respect to inversion of
-the system, only centrosymmetric point groups are supported. For each
-point group, <code>sphgrid</code> returns a grid only over its unique surface.
-The following table lists the possible values for <code>Symmetry</code>
-together with the unique surface boundaries.
+Since all spectra in EPR are invariant with respect to inversion of the system, only centrosymmetric point groups are supported. For each point group, <code>sphgrid</code> returns a grid only over its unique surface. The following table lists the possible values for <code>Symmetry</code> together with the unique surface boundaries.
 </p>
 
 <pre class="eqn">
@@ -103,20 +92,18 @@ depends on the range of &phi;. Roughly, <code>nKnots</code> are taken for
 each quarter of the equator.
 
 <p>
-<code>vecs</code> is a 3xn array containing the orientations as column
-vectors. <code>phi</code> and <code>theta</code> are the polar angles in
-radians. <code>Weights</code> is a vector giving the solid angle of the
-surface patch that can be attributed to each knot, i.e. the
-(spherical) area of the Voronoi cell. The sum of all weight is
-normalised to 4&pi;.
+The output <code>grid</code> is a structure with the fields <code>vecs</code>, <code>phi</code>, <code>theta</code>, and <code>weights</code>.
+<code>vecs</code> is a 3xn array containing the orientations as column vectors.
+<code>phi</code> and <code>theta</code> are the polar angles in radians.
+<code>weights</code> is a vector giving the solid angle of the surface patch that can be attributed to each knot, i.e. the (spherical) area of the Voronoi cell. The sum of all weight is normalised to 4&pi;.
 
 <div class="subtitle">Examples</div>
 
 <p>
 A three-point grid over an octant gives
 <pre class="matlab">
-[phi,theta,W] = sphgrid('D2h',4,'c');
-[phi; theta]*180/pi, W
+grid = sphgrid('D2h',4,'c');
+[grid.phi; grid.theta]*180/pi, grid.weights
 </pre>
 <pre class="mloutput">
 ans =
@@ -128,7 +115,7 @@ ans =
          0   30.0000   60.0000   90.0000
    90.0000   90.0000   90.0000   90.0000
 
-W =
+ans =
   Columns 1 through 6
     0.4282    1.6262    1.6262    1.4083    2.8167    1.4083
 
@@ -137,9 +124,7 @@ W =
 </pre>
 
 <p>
-and hence really the ten knots expected for a triangular grid. The
-weights of knots on the unique surface boundary are smaller than those
-of knots within the surface.
+and hence really the ten knots expected for a triangular grid. The weights of knots on the unique surface boundary are smaller than those of knots within the surface.
 </p>
 
 <p>
@@ -148,17 +133,15 @@ To plot a spherical grid over the upper hemisphere, use
 
 <pre class="matlab">
 nKnots = 10;
-v = sphgrid('Ci',nKnots);
-tri = sphtri('Ci',nKnots);
-trisurf(tri,v(1,:),v(2,:),v(3,:));
+[grid,tri] = sphgrid('Ci',nKnots);
+v = grid.vecs;
+trisurf(tri.idx,v(1,:),v(2,:),v(3,:));
 </pre>
 
 <div class="subtitle">See also</div>
 
 <p>
-<a class="esf" href="sphrand.html">sphrand</a>,
-<a class="esf" href="sphtri.html">sphtri</a>
-
+<a class="esf" href="sphrand.html">sphrand</a>
 <hr>
 </section>
 

@@ -559,7 +559,10 @@ else % Automatic pre-selection
       % Set a coarse grid, independent of the Hamiltonian symmetry
       logmsg(1,'  selection threshold %g',Opt.Threshold(1));
       logmsg(2,'  ## (selection threshold %g, %d knots)',Opt.Threshold(1),Opt.nTRKnots);
-      [phi,theta,TRWeights] = sphgrid('D2h',Opt.nTRKnots);
+      grid = sphgrid('D2h',Opt.nTRKnots);
+      phi = grid.phi;
+      theta = grid.theta;
+      TRWeights = grid.weights;
     else % single orientation
       phi = Orientations(1);
       theta = Orientations(2);

@@ -606,7 +606,10 @@ else
     % Generate a triangular grid over the upper hemisphere (since EPR spectra
     % are invariant under inversion)
     %nKnots = ceil(sqrt(nOrientations));
-    %[gridPhi,gridTheta,weight] = sphgrid('Ci',nKnots);
+    %grid = sphgrid('Ci',nKnots);
+    %gridPhi = grid.phi;
+    %gridTheta = grid.theta;
+    %weight = grid.weights;
     %weight = weight/sum(weight);
   end
 end

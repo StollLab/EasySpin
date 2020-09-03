@@ -4,11 +4,13 @@ function ok = test()
 
 SymmGroup = {'D2h','C2h','Ci','Dinfh'};
 nKnots = 10;
+ok = true;
 for g = 1:numel(SymmGroup)
-  v = sphgrid(SymmGroup{g},nKnots);
-  [v,w] = sphgrid(SymmGroup{g},nKnots,'c');
-  [p,t] = sphgrid(SymmGroup{g},nKnots);
-  [p,t,w] = sphgrid(SymmGroup{g},nKnots);
+  grid = sphgrid(SymmGroup{g},nKnots);
+  ok(g) = isfield(grid,'phi') && ...
+          isfield(grid,'theta') && ...
+          isfield(grid,'vecs') && ...
+          isfield(grid,'weights');
 end
 
-ok = true;
+ok = all(ok);

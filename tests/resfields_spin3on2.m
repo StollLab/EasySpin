@@ -5,9 +5,9 @@ function [ok,data] = test(opt,olddata)
 Sys = struct('S',3/2,'g',[2 2 2],'D',[-1 -1 2]*3e3);
 Exp = struct('mwFreq',9.5,'Range',[0 2000]);
 
-[phi,theta] = sphgrid('Dinfh',31);
+grid = sphgrid('Dinfh',31);
 chi = zeros(size(phi));
-Exp.CrystalOrientation = [phi(:) theta(:) chi(:)];
+Exp.CrystalOrientation = [grid.phi(:) grid.theta(:) chi(:)];
 
 [p,i] = resfields(Sys,Exp);
 

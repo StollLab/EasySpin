@@ -18,7 +18,8 @@ Exp.Field = 324.9; % mT
 nKnots = 20; 
 
 Symmetry = symm(Sys);
-[phi,theta,Weights] = sphgrid(Symmetry,nKnots);
+grid = sphgrid(Symmetry,nKnots);
+nOrientations = numel(grid.weights);
 
 % eperiment setup
 Chirp90.Type = 'quartersin/linear'; 
@@ -48,20 +49,20 @@ Exp.DetFreq = 9.1; % GHz
 
 
 Signal = 0; % initialize Signal
-for iOrientation = 1 : numel(Weights)
+for iOrientation = 1 : nOrientations
   
   Sys_ = Sys; % create temporary copy of Sys
   
-  R = erot(phi(iOrientation),theta(iOrientation),0); % rotation matrix
+  R = erot(grid.phi(iOrientation),grid.theta(iOrientation),0); % rotation matrix
   
   Sys_.g = R'*Sys_.g*R; % rotate Sys.g
   Sys_.A = R'*Sys_.A*R; % rotate Sys.A
   
   [t, signal_] = spidyan(Sys_,Exp);
   
-  Signal = Signal + signal_*Weights(iOrientation); % sum up signals
+  Signal = Signal + signal_*grid.weights(iOrientation); % sum up signals
   
-  progress = [num2str(iOrientation/numel(Weights)*100,'%.2f'),' %'];
+  progress = [num2str(iOrientation/nOrientations*100,'%.2f'),' %'];
   disp(progress)
   
 end

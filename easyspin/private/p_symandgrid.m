@@ -48,7 +48,10 @@ if Exp.PowderSimulation
   end
   
   % Get orientations for the knots, molecular frame.
-  [Vecs,Exp.OriWeights] = sphgrid(Opt.Symmetry,Opt.nKnots(1),'cf');
+  [grid,tri] = sphgrid(Opt.Symmetry,Opt.nKnots(1));
+  Vecs = grid.vecs;
+  Exp.OriWeights = grid.weights;
+  Exp.tri = tri;
   
   % Transform vector to reference frame representation and convert to polar angles.
   [Exp.phi,Exp.theta] = vec2ang(Opt.SymmFrame*Vecs);

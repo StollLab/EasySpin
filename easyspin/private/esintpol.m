@@ -2,10 +2,8 @@
 %
 %   yi = esintpol(y,Sym,Factor,Opt)
 % 
-%   y:            Data, in row vectors. Matrices get
-%                 interpolated along rows.
-%   Sym:          [nKnots, periodic, nOctants]
-%                 as computed by symparam()
+%   y:            Data, in row vectors. Matrices get interpolated along rows.
+%   Sym:          [nKnots, periodic, nOctants], as computed by symparam()
 %   Opt:         'g3' (default),'l3','l1'
 
 function yi = esintpol(y,Symmetry,Factor,Options,phi,the)
@@ -14,14 +12,14 @@ function yi = esintpol(y,Symmetry,Factor,Options,phi,the)
 %if Factor==1, error('Interpolation factor must be bigger than 1!'); end
 %if Factor==1, yi=y; end
 
-% set default or user-defined parameters
-if (nargin<4) | isempty(Options)
+% Set default or user-defined parameters
+if nargin<4 || isempty(Options)
   Options = 'G3';
 end
 
 % parse parameters
-Global = (upper(Options(1)) == 'G');
-Cubic = (Options(2) == '3');
+Global = upper(Options(1)) == 'G';
+Cubic = Options(2) == '3';
 
 % List of unique phi intervals as set by sphgrid(),
 % octant numbers and end conditions (p is periodic,
@@ -54,14 +52,14 @@ else
   nOctants = Symmetry(3);
 end
  
-if (nOctants>0)&(nargin<3)
+if nOctants>0 && nargin<3
   error('Not enough input parameters!');
 end
 
 % Compute number of slices
-if (nOctants>0)
+if nOctants>0
   nExpectedData = nKnots*(nKnots-1)/2*nOctants + 1;
-  if (~periodic)
+  if ~periodic
     nExpectedData = nExpectedData + nKnots - 1;
   end
 else % Dinfh
@@ -74,14 +72,14 @@ if nExpectedData~=length(y)
 end
 
 % If interpolation points are not given, compute them.
-if (nargin<5)
-  if (nOctants<4), full = 'f'; else full = []; end
-  [phi,the] = sphgrid(Symmetry,(nKnots-1)*Factor+1,full);
-  phi = phi.';
-  the = the.';
+if nargin<5
+  if nOctants<4, closedPhi = 'f'; else, closedPhi = []; end
+  grid = sphgrid(Symmetry,(nKnots-1)*Factor+1,closedPhi);
+  phi = grid.phi.';
+  the = grid.the.';
 end
 
-switch (nOctants)
+switch nOctants
 case 0, % Dinfh
   %============================================================
   % Dinfh
@@ -142,12 +140,12 @@ otherwise
   iphi = 1 + nOctants*(nKnots-1) * (phi/phi(end));
   ithe = 1 + (nKnots-1) * (the/the(end));
   
-  if (~Cubic)
+  if ~Cubic
     yi = interp2(z,iphi,ithe,'*linear');
   elseif Global
     yi = esspline2d(z,ithe,iphi);
   else
-    error(sprintf('Local cubic interpolator for %d (oct) not available!',nOctants));
+    error('Local cubic interpolator for %d (oct) not available!',nOctants);
   end
   
 end
@@ -156,7 +154,7 @@ return
 
 
 %----------------------------------------------------------
-function z = rectify(y,nr,nOctants,periodic,linear);
+function z = rectify(y,nr,nOctants,periodic,linear)
 %----------------------------------------------------------
 %
 %  y(iKnots) --> interpolation along
@@ -201,18 +199,17 @@ end
 
 return
 
-%---------------------------------------------------------------
+%-------------------------------------------------------------------------------
 function yy = fastlinearinterp1d(y,xx)
-%---------------------------------------------------------------
-% Lienarly interpolates 1D vector y defined over 1:length(y)
-% at values xx.
+%-------------------------------------------------------------------------------
+% Lienarly interpolates 1D vector y defined over 1:length(y) at values xx.
 k = min(max(1+floor(xx-1),1),length(y)-1);
 yy = y(k) + (xx-k).*(y(k+1)-y(k));
 return
 
 
 % esintpol test area
-%=========================================================================
+%===============================================================================
 
 % Dinfh symmetry
 
@@ -237,7 +234,9 @@ opt.Order = 3;
 % y = [1 2 3 3 3.5 4]; % D2h
 y = [1 1 2 1 2 3 4];
 for k = 1:10
-  [p,t] = sphgrid(Symmetry,2*k+1);
+  grid = sphgrid(Symmetry,2*k+1);
+  p = grid.phi;
+  t = grid.theta;
   yy = esintpol(y,Symmetry,k,opt,p,t);
   showdata(yy,Symmetry,2*k+1);
   pause
@@ -254,7 +253,9 @@ y = [1 1 1 2 1 2 3];
 n = 4;
 for k = 1:10
   kk = (n-1)*k+1;
-  [p,t] = sphgrid(Symmetry,kk);
+  grid = sphgrid(Symmetry,kk);
+  p = grid.phi;
+  t = grid.theta;
   yy = esintpol(y,Symmetry,k,opt,p,t);
   showdata(yy,Symmetry,kk);
   pause

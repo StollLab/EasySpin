@@ -65,6 +65,8 @@ $ReleaseID$
 <li><a class="esf" href="wignerd.html">wignerd</a> input syntax has changed. Instead of providing all three Euler angles in a single array <code>angles</code>, supply them separately as <code>alpha</code>, <code>beta</code>, and <code>gamma</code>.
 <li>The input syntax for dipolar couplings between electron spins has changed. Instead of <code>Sys.eeD</code>, use the new field <code>Sys.dip</code>.
 <li>The function <code>rotatecrystal</code> has been removed. Use <code>Exp.SampleRotation</code> instead.</li>
+<li><a class="esf" href="sphgrid.html">sphgrid</a> now returns angles, vectors, and weights together in a structure.</li>
+<li>The function <code>sphtri</code> has been removed; it's functionality is now incorporated into <a class="esf" href="sphgrid.html">sphgrid</a>.</li>
 <li>The oldest supported Matlab version is now R2014b (8.4).
 </ul>
 

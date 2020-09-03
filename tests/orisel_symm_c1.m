@@ -19,7 +19,8 @@ Symmetry = 'C1';
 Options = struct('Verbosity',0,'nKnots',nKnots,'Symmetry',Symmetry);
 Options.OriWeights = orisel(System,Experiment,Options);
 
-[phi,theta] = sphgrid(Symmetry,nKnots);
+grid = sphgrid(Symmetry,nKnots);
+phi = grid.phi;
 
 ok = numel(Options.OriWeights)==numel(phi);
 

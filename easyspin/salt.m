@@ -704,7 +704,9 @@ else
   Axial = (nOctants==0);
   if Axial
     if DoInterpolation
-      [fphi,fthe] = sphgrid(Opt.Symmetry,nfKnots,'f');
+      grid = sphgrid(Opt.Symmetry,nfKnots,'f');
+      fthe = grid.theta;
+      fphi = grid.phi;
     else
       fthe = Exp.theta;
     end
@@ -722,12 +724,16 @@ else
     
   else % nonaxial symmetry
     if DoInterpolation
-      [fphi,fthe] = sphgrid(Opt.Symmetry,nfKnots,'f');
+      [grid,tri] = sphgrid(Opt.Symmetry,nfKnots,'f');
+      fphi = grid.phi;
+      fthe = grid.theta;
     else
+      tri = Exp.tri;
       fthe = Exp.theta;
       fphi = Exp.phi;
     end
-    [idxTri,Areas] = triangles(nOctants,nfKnots,ang2vec(fphi,fthe));
+    idxTri = tri.idx;
+    Areas = tri.areas;
     if ~isempty(Exp.Ordering)
       centreTheta = mean(fthe(idxTri));
       centrePhi = mean(fphi(idxTri));

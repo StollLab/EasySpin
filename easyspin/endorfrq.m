@@ -244,7 +244,10 @@ if isempty(Opt.Transitions)
   
   % Set a coarse grid, independent of the effective symmetry of
   % the Hamiltonian.
-  [phi,theta,TRWeights] = sphgrid('D2h',Opt.nTRKnots);
+  grid = sphgrid('D2h',Opt.nTRKnots);
+  phi = grid.phi;
+  theta = grid.theta;
+  TRWeights = grid.TRWeights;
   
   % pre-compute trigonometric functions
   st = sin(theta); sp = sin(phi);

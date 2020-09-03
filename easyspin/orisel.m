@@ -83,12 +83,13 @@ else
   end
   SymmGroup = Options.Symmetry;
   if Options.Display
-    % no open phi intervals, since sphtri only works for closed ones
+    % no open phi intervals, since triangulation only works for closed ones
     gridopt = 'f'; 
   else
-    gridopt = 'c';
+    gridopt = '';
   end
-  Vectors = sphgrid(SymmGroup,Options.nKnots,gridopt);
+  [grid,tri] = sphgrid(SymmGroup,Options.nKnots,gridopt);
+  Vectors = grid.vecs;
   [phi,theta] = vec2ang(SymmFrame*Vectors);
   Orientations = [phi; theta];
 end
@@ -164,8 +165,7 @@ if Options.Display
       xlabel('theta [deg]');
       ylabel('weights [a.u.]');
     else
-      tri = sphtri(SymmGroup,Options.nKnots);
-      trisurf(tri,vec(:,1),vec(:,2),vec(:,3),sum(Weights,2));
+      trisurf(tri.idx,vec(:,1),vec(:,2),vec(:,3),sum(Weights,2));
       view([130 40]);
       c = caxis; c(1) = 0; caxis(c);
       shading flat
