@@ -174,7 +174,7 @@ if computeNonEquiPops
   if ~isfield(Sys,'PopBasis')
     PopBasis = 'Molecular';
   else
-    PopBasis = System.PopBasis;
+    PopBasis = Sys.PopBasis;
   end
   computeBoltzmannPopulations = false;
 elseif isempty(Exp.Temperature)
