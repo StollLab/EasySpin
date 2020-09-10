@@ -732,7 +732,7 @@ else
       fthe = Exp.theta;
       fphi = Exp.phi;
     end
-    idxTri = tri.idx;
+    idxTri = tri.idx.;
     Areas = tri.areas;
     if ~isempty(Exp.Ordering)
       centreTheta = mean(fthe(idxTri));

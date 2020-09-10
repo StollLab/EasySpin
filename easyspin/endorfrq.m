@@ -63,7 +63,7 @@ Info = struct;
 %---------------------------------------------------------------------
 [Sys,err] = validatespinsys(Sys);
 error(err);
-if (Sys.nNuclei==0),
+if Sys.nNuclei==0
   error('The system doesn''t contain any nuclei.');
 end
 
@@ -125,7 +125,7 @@ end
 % Obsolete fields
 ObsoleteOptions = {'nTransitions'};
 for k = 1:numel(ObsoleteOptions)
-  if isfield(Opt,ObsoleteOptions{k}),
+  if isfield(Opt,ObsoleteOptions{k})
     error('Options.%s is obsolete. Please remove from code!',ObsoleteOptions{k});
   end
 end
@@ -247,7 +247,7 @@ if isempty(Opt.Transitions)
   grid = sphgrid('D2h',Opt.nTRKnots);
   phi = grid.phi;
   theta = grid.theta;
-  TRWeights = grid.TRWeights;
+  TRWeights = grid.weights;
   
   % pre-compute trigonometric functions
   st = sin(theta); sp = sin(phi);
@@ -286,7 +286,7 @@ if isempty(Opt.Transitions)
   clear Vs E EE sGpM sGxM sGyM sGzM st ct sp cp TRWeights idx;
   
   % Remove transitions completely out of range.
-  if ~isempty(Exp.Range) & ~isnan(Exp.Range),
+  if ~isempty(Exp.Range) & ~isnan(Exp.Range)
     TransitionRates((maxE<Exp.Range(1))|(minE>Exp.Range(2))) = 0;
   end
   clear maxE minE;
@@ -307,7 +307,7 @@ if isempty(Opt.Transitions)
   nTransitions = sum(TransitionRates>Opt.Threshold*max(TransitionRates));
   
   % Sort TransitionRates in descending order!
-  [unused,idx] = sort(-TransitionRates);
+  [~,idx] = sort(-TransitionRates);
   % Select most intense transitions.
   Transitions = Transitions(idx(1:nTransitions),:);
   clear idx unused TransitionRates;

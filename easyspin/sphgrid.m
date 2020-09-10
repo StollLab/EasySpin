@@ -223,7 +223,7 @@ if calculateTriangulation
       thx = grid.theta(:);
       phx2 = max(phx)/2;
       phx = phx2 + (phx-phx2).*(1-thx/500); % make fully convex
-      Tri = delaunayn(thx.*cos(phx), thx.*sin(phx));
+      Tri = delaunay(thx.*cos(phx), thx.*sin(phx));
       
     case {'Dinfh','O3'}
       Tri = [];
