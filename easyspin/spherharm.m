@@ -1,133 +1,93 @@
-% spherharm    Spherical and tesseral harmonics
+% spherharm    Complex- and real-valued spherical harmonics
 %
 %   y = spherharm(L,M,theta,phi)
-%   y = spherharm(L,M,theta,phi,'c')
-%   y = spherharm(L,M,theta,phi,'s')
+%   y = spherharm(L,M,theta,phi,'r')
 %
-%   Computes spherical harmonic Y_L,M(theta,phi)
-%   with L>=0 and |M|<L. theta and phi can be
-%   scalars or arrays (of the same size). If they
-%   are arrays, the spherical harmonic is computed
-%   element-by-element.
+%   Computes spherical harmonic Y_L,M(theta,phi) with L>=0 and -L<=M<=L.
 %
-%   If the options 'c' or 's' are included, real spherical
-%   harmonics called tesseral harmonics (corresponding to
-%   the commonly used orbitals in chemistry) are returned.
-%   'c' specifies the function containing cos(m*phi), and
-%   's' specifies the function containing sin(m*phi).
-%   For the tesseral harmonics, M  is restricted
-%   to non-negative values. For M=0, the 'c' and the 's'
-%   tesseral harmonic and the spherical harmonic are identical.
+%   theta is the angle down from the z axis (colatitude), and phi is the
+%   counterclockwise angle off the x axis in the xy plane (longitude).
+%   theta and phi can be scalars or arrays (of the same size). Both angles
+%   are assumed to be in units of radians.
 %
-%   The spherical harmonics include the Condon-Shortley
-%   phase convention. The tesseral harmonics ('c' and 's')
-%   do not include it.
+%   If the option 'r' is included, the real-valued spherical harmonics
+%   are returned, using cos(M*phi) for M>=0, and sin(abs(M)*phi) for M<0.
+%
+%   The complex-valued spherical harmonics evaluated by spherharm() include the
+%   Condon-Shortley phase (-1)^M.
+%
+%   The sign of the real-valued harmonics is defined such that they give
+%   nonnegative values near theta=0 and phi=0 for all L and M.
+
+% The real-valued spherical harmonics are defined according to
+%   M. A. Blanco, M. Flóres, M. Bermejo
+%   Evaluation of the rotation matrices in the basis of real spherical harmonics
+%   Journal of Molecular Structure (Theochem) 419 (1997) 19–27
+%   https://doi.org/10.1016/S0166-1280(97)00185-1
+%   Table 1
+% See also
+%   C.D.H. Chisholm
+%   Group theoretical techniques in quantum chemistry
+%   Academic Press, 1976
 
 function y = spherharm(L,M,theta,phi,Type)
 
-switch (nargin)
-case 0, help(mfilename); return;
-case 4, Type = 'e';
-case 5, % Type given
-otherwise, error('Wrong number of parameters!');
+if nargin==0, help(mfilename); return; end
+
+if nargin<4
+  error('At least four inputs are required: L, M, theta, phi.');
 end
 
-if (numel(L)~=1) || (L<0) || mod(L,1)
-  error('For spherical harmonics, L needs to be a non-negative integer (0, 1, 2, etc).');
+if nargin>5
+  error('At most five inputs are allowed: L, M, theta, phi, ''r''.');
 end
 
-if (numel(M)~=1) || abs(M)>L || mod(M,1)
-  error('For spherical harmonics, M needs to be an integer between -L and L.');
+if nargin<5, Type = 'c'; end
+
+if numel(L)~=1 || L<0 || mod(L,1)
+  error('L (first input) must be a non-negative integer (0, 1, 2, etc).');
 end
 
-if numel(Type)~=1 || ~ischar(Type)
-  error('Type must be ''c'' or ''s''.');
+if numel(M)~=1 || abs(M)>L || mod(M,1)
+  error('M (second input) must be an integer between -L and L.');
 end
 
-if strfind(Type,'cs')
-  if (M<0)
-    error('For tesseral harmonics, M must be non-negative.');
+if numel(theta)~=numel(phi)
+  error('theta and phi (3rd and 4th input) must have the same size.');
+end
+if ~isreal(theta)
+  error('theta (3rd input) must be real-valued.')
+end
+if ~isreal(phi)
+  error('phi (4th input) must be real-valued.')
+end
+
+if numel(Type)~=1 || ~ischar(Type) || ~any(Type=='rc')
+  error('If given, fourth input must be ''r'' or ''c''.');
+end
+realHarmonics = Type=='r';
+
+if realHarmonics
+  % do not use CS phase, to make all explicit expressions unsigned
+  N = normfactor(L,abs(M));
+  P = plegendre(L,abs(M),cos(theta),false);
+  if M>0
+    y = sqrt(2) * N * P.* cos(M*phi);
+  elseif M<0
+    y = sqrt(2) * N * P.* sin(abs(M)*phi);
+  else
+    y = N * P;
   end
+else
+  y = normfactor(L,M) * plegendre(L,M,cos(theta),true) .* exp(1i*M*phi);
 end
 
-% Normalisation factor
-p = prod(L-abs(M)+1:L+abs(M));
-if (M>0), p = 1/p; end
-NormFactor = sqrt((2*L+1)/(4*pi)*p);
-
-y = NormFactor * plegendre(L,M,cos(theta));
-
-switch (Type)
-case 'e', y = (-1)^M  * exp(1i*M*phi) .* y; % Condon-Shortley phase
-case 'c', y = sqrt(2) * cos(M*phi) .* y;
-case 's', y = sqrt(2) * sin(M*phi) .* y;
-otherwise
-  error('Wrong string parameter! Must be ''c'' or ''s''.');
 end
+%===============================================================================
 
-return
-%========================================================
-
-function test
-
-[x,y,z] = sphere(181);
-[phi,the] = vec2ang([x(:) y(:) z(:)].');
-
-for N = 0:20
-  for M = 0:N
-
-    val = spherharm(N,M,the,phi,'c');
-    val = reshape(val,size(x));
-    V = val;
-
-    clf; colormap(flipud(jet(256)));
-    %colormap gray
-    
-    subplot(1,2,1); surf(x,y,z,V);
-    axis equal, shading interp
-    title(sprintf('%d,%d',N,M));
-    xlabel('x'); ylabel('y'); zlabel('z');
-
-    subplot(1,2,2);
-    h=surf(x.*abs(V),y.*abs(V),z.*abs(V),V);
-    axis equal, shading interp
-    light, lighting phong
-    set(h,'Ambient',0.7);
-    xlabel('x'); ylabel('y'); zlabel('z');
-    colorbar
-    pause;
-  end
-end
-
-
-
-function test2
-
-[x,y,z] = sphere(181);
-[phi,the] = vec2ang([x(:) y(:) z(:)].');
-
-for N = 0:20
-  for M = -N:N
-
-    val = spherharm(N,M,the,phi);
-    val = reshape(val,size(x));
-    V = val;
-
-    clf; colormap(flipud(jet(256)));
-    %colormap gray
-    
-    subplot(1,2,1); surf(x,y,z,angle(V));
-    axis equal, shading interp
-    title(sprintf('%d,%d',N,M));
-    xlabel('x'); ylabel('y'); zlabel('z');
-
-    subplot(1,2,2);
-    h=surf(x.*abs(V),y.*abs(V),z.*abs(V),abs(V));
-    axis equal, shading interp
-    light, lighting phong
-    set(h,'Ambient',0.7);
-    xlabel('x'); ylabel('y'); zlabel('z');
-    colorbar
-    pause;
-  end
+function N = normfactor(L,M)
+% Calculate normalization factor
+  p = prod(L-abs(M)+1:L+abs(M));
+  if M>0, p = 1/p; end
+  N = sqrt((2*L+1)/(4*pi)*p);
 end

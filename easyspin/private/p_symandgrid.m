@@ -17,13 +17,7 @@ if Exp.PowderSimulation
       logmsg(1,'  Hamiltonian symmetry is axial, non-equilibrium populations\n   -> reduction to rhombic');
       Opt.Symmetry = 'D2h';
     end
-    if isfield(Opt,'ThetaRange')
-      if ~isempty(Opt.ThetaRange)
-        Opt.Symmetry = 'Ci';
-        Opt.SymmFrame = eye(3);
-      end
-    end
-
+  
   else
 
     msg = 'user-specified symmetry group';
@@ -46,7 +40,7 @@ if Exp.PowderSimulation
   
   
   % Display symmetry group and frame.
-  if (TiltedFrame), msgg = 'tilted'; else msgg = 'non-tilted'; end
+  if (TiltedFrame), msgg = 'tilted'; else, msgg = 'non-tilted'; end
   logmsg(1,'  %s, %s frame',Opt.Symmetry,msgg);
   if (TiltedFrame)
     str = '  symmetry frame orientation in reference frame (Euler angles, deg):\n    [%s]';
@@ -63,7 +57,7 @@ if Exp.PowderSimulation
   nOrientations = numel(Exp.phi);
   
   % Display information on orientational grid
-  switch (Opt.nOctants)
+  switch Opt.nOctants
     case -1, str = '  region: north pole (single point)';
     case 0,  str = '  region: a quarter of a meridian';
     otherwise, str = sprintf('  region: %d octant(s) of the upper hemisphere',Opt.nOctants);

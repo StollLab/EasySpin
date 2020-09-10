@@ -6,19 +6,19 @@ function [Triangulation,Areas] = triangles(nOctants,nKnots,Vecs)
 % Triangulation  3xn uint32 array   triangle index array
 % Areas          1xn double array   triangle areas
 
-if (size(Vecs,1)~=3)
+if size(Vecs,1)~=3
   error('Vector array must have 3 rows!');
 end
 
 % Determine triangulation
 Triangulation = sphtri(nOctants,nKnots,'f').';
 
-if (size(Triangulation,1)~=3)
+if size(Triangulation,1)~=3
   error('Triangulation array must have 3 rows!');
 end
 
 nVertices = size(Vecs,2);
-if (nVertices~=max(Triangulation(:)))
+if nVertices~=max(Triangulation(:))
   error('Number of vertices and maximum triangulation index do not match!');
 end
 

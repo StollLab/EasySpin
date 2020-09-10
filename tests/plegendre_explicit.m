@@ -1,18 +1,20 @@
 function ok = test()
 
-% Compare plegendre results to explicit expressions
+% Compare plegendre results to explicit values for high orders and degrees
 
-x = 2*rand(1,100)-1;
-x2 = x.^2;
 
-y0 = plegendre(5,3,x);
-y1 = 105/2*(1-x2).^(3/2).*(9*x2-1);
-ok(1) = areequal(y0,y1,1e-10,'abs');
+z = 0.5;
 
-y0 = plegendre(3,1,x);
-y1 = 3/2*sqrt(1-x2).*(5*x2-1);
-ok(2) = areequal(y0,y1,1e-10,'abs');
+LMv{1} = [ 20  20 18885699937951659488891840625/1048576];
+LMv{2} = [ 20   0 -13292650571/274877906944];
+LMv{3} = [ 20 -15 87*sqrt(3)/9579719357370466304000];
+LMv{4} = [ 50  37 1853318841809971940630282714923990859835038514493129854992285458090457724609375*sqrt(3)/1152921504606846976];
+LMv{5} = [100   0 -12156089785196001806874186292824521378088532801403826041323/200867255532373784442745261542645325315275374222849104412672];
 
-y0 = plegendre(9,2,x);
-y1 = -495/16*(x-1).*x.*(x+1).*(221*x2.^3 -273*x2.^2 +91*x2-7);
-ok(3) = areequal(y0,y1,1e-10,'abs');
+for k = 1:numel(LMv)
+  L = LMv{k}(1);
+  M = LMv{k}(2);
+  v = LMv{k}(3);
+  P_ = plegendre(L,M,z,true);
+  ok(k) = areequal(P_,v,1e-13,'rel');
+end

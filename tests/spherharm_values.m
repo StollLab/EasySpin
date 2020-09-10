@@ -1,20 +1,25 @@
-function [ok,data] = test(opt,olddata)
+function ok = test(opt,olddata)
 
-% Regression test on values
-%=======================================================
+% Test against a few explicit values
+%===============================================================================
+% (Values calculated with Mathematica, N[SphericalHarmonic[L,M,1,1],20]
 
-L = [1 1 2 2 2  3 4  5 20];
-m = [0 1 -1 0 2 2 1 -3 -7];
+theta = 1;
+phi = 1;
+LMv{1} = [0   0  0.28209479177387814347];
+LMv{2} = [1   0  0.26399306383411281647];
+LMv{3} = [1   1 -0.15707847054880640358 - 0.24463522340968865265i];
+LMv{4} = [1  -1  0.15707847054880640358 - 0.24463522340968865265i];
+LMv{5} = [5   3  0.33207247946604928435 - 0.04733578399798942633i];
+LMv{6} = [5   2  0.033517004385052071163 - 0.073235990678449910012i];
+LMv{7} = [5  -1 -0.18891130930803538738 + 0.29421193239100584540i];
+LMv{8} = [12 12  0.060222396339278114615 - 0.038293008640122826225i];
 
-for k = 1:numel(L)
-  v(k) = spherharm(L(k),m(k),1,1);
+for k = 1:numel(LMv)
+  L = LMv{k}(1);
+  M = LMv{k}(2);
+  vref(k) = LMv{k}(3);
+  v(k) = spherharm(L,M,theta,phi);
 end
 
-data.v = v;
-
-if ~isempty(olddata)
-  ok = all(abs(olddata.v-v)<1e-10);
-else
-  ok = [];
-end
-
+ok = areequal(v,vref,1e-10,'rel');
