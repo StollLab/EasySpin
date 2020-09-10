@@ -75,10 +75,6 @@ unconstrain = @(x)x;
 iIteration = 0;
 startTime = cputime;
 
-if FitOpt.PrintLevel
-  FitOpt.IterationPrintFunction('initial simplex...');
-end
-
 % Set up a initial simplex near the initial guess.
 nParams = numel(x0);
 nVertices = nParams+1;
@@ -101,8 +97,8 @@ Procedure = 'initial simplex';
 iIteration = iIteration + 1;
 
 if FitOpt.PrintLevel
-  logStringFormat = ' iteration %d: %s\n   value %0.5e\n   edge %0.5e';
-  str = sprintf(logStringFormat,iIteration,Procedure,fv(1),delta);
+  logStringFormat = ' iteration %3d: value %0.5e   edge %0.5e   %s';
+  str = sprintf(logStringFormat,iIteration,fv(1),delta,Procedure);
   FitOpt.IterationPrintFunction(str);
 end
 
@@ -204,7 +200,7 @@ while true
   
   if FitOpt.PrintLevel
     thisstep = max(max(abs(v(:,2:nParams+1)-v(:,ones(1,nParams)))));
-    str = sprintf(logStringFormat,iIteration,Procedure,fv(1),thisstep);
+    str = sprintf(logStringFormat,iIteration,fv(1),thisstep,Procedure);
     FitOpt.IterationPrintFunction(str);
   end
 

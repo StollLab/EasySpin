@@ -12,7 +12,7 @@
 %     simfunc     simulation function handle (@pepper, @garlic, @salt, ...
 %                   @chili, or user-defined function)
 %     p0          starting input parameters
-%                   for EasySpin-style functions: {Sys,Exp,Opt}
+%                   for EasySpin-style functions: {Sys0,Exp0,Opt0}
 %                   for other functions: vector
 %     vary        allowed variation of parameters
 %                   for EasySpin-style functions: {vSys,vExp,vOpt}
@@ -142,35 +142,36 @@ EasySpinSimFunction = any(strcmp(fitdat.SimFcnName,{'pepper','garlic','chili','s
 % Starting parameters
 %-------------------------------------------------------------------------------
 argspar.validargs(p0)
-
 if ~iscell(p0), p0 = {p0}; end
 
-% Supplement weights to spin structures for EasySpin sim functions
+% Supplement weights to spin structures for EasySpin simulation functions
 if EasySpinSimFunction
-    if iscell(p0{1})
-        nSystems = numel(p0{1});
-        for s = 1:nSystems
-            if ~isfield(p0{1}{s},'weight'), p0{1}{s}.weight = 1; end
-        end
+  if iscell(p0{1})
+    nSystems = numel(p0{1});
+    for s = 1:nSystems
+      if ~isfield(p0{1}{s},'weight'), p0{1}{s}.weight = 1; end
     end
+  end
 end
 
-% Determine parameter intervals, from p0, vary, or lower/upper bounds
+% Determine parameter intervals, either from p0 and pvary, or from lower/upper bounds
 %-------------------------------------------------------------------------------
 if varyProvided
-    pinfo = argspar.getparaminfo(pvary);
-    argspar.checkparcompatibility(pinfo,p0);
-    pvec_0 = argspar.getparamvalues(p0,pinfo);
-    pvec_vary = argspar.getparamvalues(pvary,pinfo);
-    pvec_lb = pvec_0 - pvec_vary;
-    pvec_ub = pvec_0 + pvec_vary;
+  % use p0 and pvary
+  pinfo = argspar.getparaminfo(pvary);
+  argspar.checkparcompatibility(pinfo,p0);
+  pvec_0 = argspar.getparamvalues(p0,pinfo);
+  pvec_vary = argspar.getparamvalues(pvary,pinfo);
+  pvec_lb = pvec_0 - pvec_vary;
+  pvec_ub = pvec_0 + pvec_vary;
 else
-    pinfo = argspar.getparaminfo(lb);
-    argspar.checkparcompatibility(pinfo,p0);
-    argspar.checkparcompatibility(pinfo,ub);
-    pvec_0 = argspar.getparamvalues(p0,pinfo);
-    pvec_lb = argspar.getparamvalues(lb,pinfo);
-    pvec_ub = argspar.getparamvalues(ub,pinfo);
+  % use lower and upper bounds
+  pinfo = argspar.getparaminfo(lb);
+  argspar.checkparcompatibility(pinfo,p0);
+  argspar.checkparcompatibility(pinfo,ub);
+  pvec_0 = argspar.getparamvalues(p0,pinfo);
+  pvec_lb = argspar.getparamvalues(lb,pinfo);
+  pvec_ub = argspar.getparamvalues(ub,pinfo);
 end
 fitdat.args = p0;
 fitdat.pinfo = pinfo;
@@ -433,26 +434,26 @@ x0_ = x_start(active);
 nPars_ = numel(x0_);
 bestx = x_start;
 if nPars_>0
-    residualfun = @(x)residuals_(x,data_,fitda,fitda.FitOpts);
-    rmsdfun = @(x)rmsd_(x,data_,fitda,fitda.FitOpts);
+    residualfun_x = @(x)residuals_(x,data_,fitda,fitda.FitOpts);
+    rmsdfun_x = @(x)rmsd_(x,data_,fitda,fitda.FitOpts);
     switch fitda.FitOpts.MethodID
         case 1 % Nelder/Mead simplex
-            xfit_ = esfit_simplex(rmsdfun,x0_,fitda.FitOpts);
+            xfit_ = esfit_simplex(rmsdfun_x,x0_,fitda.FitOpts);
         case 2 % Levenberg/Marquardt
             fitda.FitOpts.Gradient = fitda.FitOpts.TolFun;
-            xfit_ = esfit_levmar(residualfun,x0_,fitda.FitOpts);
+            xfit_ = esfit_levmar(residualfun_x,x0_,fitda.FitOpts);
         case 3 % Monte Carlo
-            xfit_ = esfit_montecarlo(rmsdfun,nPars_,fitda.FitOpts);
+            xfit_ = esfit_montecarlo(rmsdfun_x,nPars_,fitda.FitOpts);
         case 4 % Genetic
-            xfit_ = esfit_genetic(rmsdfun,nPars_,fitda.FitOpts);
+            xfit_ = esfit_genetic(rmsdfun_x,nPars_,fitda.FitOpts);
         case 5 % Grid search
-            xfit_ = esfit_grid(rmsdfun,nPars_,fitda.FitOpts);
+            xfit_ = esfit_grid(rmsdfun_x,nPars_,fitda.FitOpts);
         case 6 % Particle swarm
-            xfit_ = esfit_swarm(rmsdfun,nPars_,fitda.FitOpts);
-        case 7 % lsqnonlin from optimization toolbox
+            xfit_ = esfit_swarm(rmsdfun_x,nPars_,fitda.FitOpts);
+        case 7 % lsqnonlin from Optimization Toolbox
             lb = -ones(size(x0_));
             ub = +ones(size(x0_));
-            xfit_ = lsqnonlin(residualfun,x0_,lb,ub);
+            xfit_ = lsqnonlin(residualfun_x,x0_,lb,ub);
     end
     bestx(active) = xfit_;
 end
@@ -477,10 +478,23 @@ Residuals = calculateResiduals(BestSpecScaled(:),fitda.ExpSpecScaled(:),fitda.Fi
 Residuals = Residuals.'; % col -> row
 rmsd = sqrt(mean(Residuals.^2));
 
+% Calculate Jacobian and parameter covariance matrix
+%-------------------------------------------------------------------------------
+calcParamUncertainty = true;
+if calcParamUncertainty
+  disp('Calculating Jacobian...');
+  J = jacobianest(residualfun_x,bestx);
+  disp('Calculating parameter covariance matrix...');
+  covmatrix = hccm(J,Residuals,'HC1')
+  % covmatrix needs to rescaled from x to p
+end
+
+% Report
+%-------------------------------------------------------------------------------
 if fitda.FitOpts.PrintLevel && UserCommand~=99
     disp('---------------------------------------------------------');
     disp('Best-fit parameters:');
-    str = printparlist(pfit,fitda);
+    str = printparlist(pfit,fitda.pinfo);
     fprintf(str);
     fprintf('Residuals of best fit:\n    rmsd  %g\n',rmsd);
     disp('=========================================================');

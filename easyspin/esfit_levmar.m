@@ -71,6 +71,9 @@ if ~isfield(FitOpt,'IterationPrintFunction') || ...
   FitOpt.IterationPrintFunction = @(str)str;
 end
 
+funfcn = @(x) funfcn(x,varargin{:});
+
+
 startTime = cputime;
 
 % Check parameters and function call
@@ -98,12 +101,13 @@ x = x0(:);
 
 stopCode = 0;
 
+
 if ~stopCode
-  [stopCode,F,f] = funeval(funfcn,x,varargin{:});
+  [stopCode,F,f] = funeval(funfcn,x);
   nEvals = nEvals + 1;
   if ~stopCode
     % Jacobian
-    [stopCode,Je] = JacobianEstimate(funfcn,x,f,delta,varargin{:});
+    [Je,stopCode] = JacobianEstimate(funfcn,x,f,delta);
     nEvals = nEvals + n;
     % Check gradient and J'*J
     if ~stopCode
@@ -120,6 +124,7 @@ end
 if stopCode
   info.F = F;
   info.norm_g = norm_g;
+  info.Je = Je;
   info.stop = stopCode;
   info.nEvals = nEvals;
   return
@@ -146,7 +151,7 @@ while ~stopCode
   end
   
   % Levenberg-Marquardt: Compute step and new damping factor
-  [h,mu] = ComputeLMStep(A,g,mu);
+  [h,mu] = computeLMStep(A,g,mu);
   norm_h = norm(h);
 
   if FitOpt.PrintLevel
@@ -162,7 +167,7 @@ while ~stopCode
   xnew = x + h;
   xnew = min(max(xnew,lb),ub); % apply bounds
   
-  [stopCode,Fnew,fnew] = funeval(funfcn,xnew,varargin{:});
+  [stopCode,Fnew,fnew] = funeval(funfcn,xnew);
   nEvals = nEvals+1;
   if stopCode, break; end
 
@@ -172,7 +177,7 @@ while ~stopCode
   if abs(h(j))<gamma*norm_h  % recompute with finite differences
     xu = x;
     xu(j) = x(j) + delta;
-    [stopCode,~,fu] = funeval(funfcn,xu,varargin{:});
+    [stopCode,~,fu] = funeval(funfcn,xu);
     nEvals = nEvals+1;
     if ~stopCode
       hu = xu - x;
@@ -231,6 +236,7 @@ end
 info.F = F;
 info.norm_g = norm_g;
 info.norm_h = norm_h;
+info.Je = Je;
 info.lambda = FitOpt.lambda;
 info.nIter = iIteration-1;
 info.stop = stopCode;
@@ -243,7 +249,7 @@ return
 
 
 %======================================================================
-function  [err, J] = JacobianEstimate(funfcn,x0,f0,delta,varargin)
+function  [J,err] = JacobianEstimate(funfcn,x0,f0,delta)
 % Compute approximate Jacobian using finite differences
 % Jacobian:
 %    dy1/dx1    dy1/dx2   ...
@@ -256,7 +262,7 @@ J = zeros(numel(f0),nVariables);
 for ix = 1:nVariables
   x1 = x0;
   x1(ix) = x0(ix) + delta;
-  f1 = funfcn(x1,varargin{:});
+  f1 = funfcn(x1);
   f1 = f1(:);
   J(:,ix) = (f1-f0)/delta;
 end
@@ -270,7 +276,7 @@ end
 
 
 %======================================================================
-function [h,mu] = ComputeLMStep(A,g,mu)
+function [h,mu] = computeLMStep(A,g,mu)
 % Solve (A+mu*1)*h = -g, scaling mu if needed; using Cholesky factorization
 
 notPosDef = true;
@@ -289,12 +295,12 @@ end
 h = R\(R'\(-g));
 
 %======================================================================
-function  [errCode,F,f] = funeval(funfcn,x,varargin)
+function  [errCode,F,f] = funeval(funfcn,x)
 %funeval  Check Matlab function which is called by a nonlinear least squares solver.
 
 errCode = 0;
 
-f = funfcn(x,varargin{:});
+f = funfcn(x);
 f = f(:);
 
 if any(isnan(f))
