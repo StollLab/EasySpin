@@ -86,13 +86,13 @@ end
 [p,Name,FileExtension] = fileparts(FileName);
 FullBaseName = fullfile(p,Name);
 
-if isempty(FileExtension)
-  if exist([FullBaseName '.dta'],'file'), FileExtension = '.dta'; end
-  if exist([FullBaseName '.DTA'],'file'), FileExtension = '.DTA'; end
-  if exist([FullBaseName '.spc'],'file'), FileExtension = '.spc'; end
+if isempty(FileExtension) || length(FileExtension) < 2
+  if exist(join([FullBaseName '.dta'],''),'file'), FileExtension = '.dta'; end
+  if exist(join([FullBaseName '.DTA'],''),'file'), FileExtension = '.DTA'; end
+  if exist(join([FullBaseName '.spc'],''),'file'), FileExtension = '.spc'; end
 end
 
-FileName = [FullBaseName FileExtension];
+FileName = join([FullBaseName FileExtension],'');
 LocationType = exist(FileName,'file');
 if any(LocationType==[0 1 5 8]) % not a file/directory
   error('The file or directory %s does not exist!',FileName);

@@ -201,7 +201,7 @@ if ~TwoD && ny>1, ny = 1; end
 % Read data file.
 nz = 1;
 Dimensions = [nx ny nz];
-Data = getmatrix([FullBaseName,SpcExtension],Dimensions,NumberFormat,Endian,isComplex);
+Data = getmatrix(join([FullBaseName,SpcExtension],''),Dimensions,NumberFormat,Endian,isComplex);
 
 % Convert to a row vector in the case of 1D dataset
 if ny==1, Data = Data(:).'; end
@@ -281,6 +281,8 @@ function [Parameters,err] = eprload_readPARfile(PARFileName)
 
 Parameters = [];
 err = [];
+
+PARFileName = join(PARFileName,'');
 
 if exist(PARFileName,'file')
   fh = fopen(PARFileName);
