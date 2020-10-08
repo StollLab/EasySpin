@@ -370,6 +370,17 @@ end
 isDiffSim = (useMD && strcmp(LocalDynamicsModel,'MD-HBD')) || ...
    strcmp(LocalDynamicsModel,'diffusion');
 
+dynamInfoGiven = ( isfield(Sys,'tcorr') || isfield(Sys,'Diff') ...
+                   || isfield(Sys,'logtcorr') || isfield(Sys,'logDiff') );
+if useMD && strcmp(LocalDynamicsModel,'MD-HBD') && ~dynamInfoGiven
+  % estimate rotational diffusion tensor
+  % currently only supports a single MD trajectory
+  % TODO: make this work for multiple MD trajectories
+  stopFitT = floor(MD.nSteps/2)*MD.dt;
+  [Sys.Diff, ~, ~] = runprivate('cardamom_estimatedifftensor',...
+                                squeeze(MD.FrameTraj), MD.dt, stopFitT);
+end
+
 Dynamics = validate_dynord('cardamom',Sys,FieldSweep,isDiffSim);
 
 if isDiffSim
@@ -583,8 +594,8 @@ end
 
 % Set up orientational grid for powder averaging
 if ~isempty(Orientations)
-  gridPhi = Orientations(:,1);
-  gridTheta = Orientations(:,2);
+  gridPhi = Orientations(1,:);
+  gridTheta = Orientations(2,:);
   weight = ones(size(gridPhi));
   weight = weight/sum(weight);
 else
