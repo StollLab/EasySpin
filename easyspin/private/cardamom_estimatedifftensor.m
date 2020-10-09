@@ -4,35 +4,40 @@
 %  [Diff,msadp,tLag] = cardamom_estimatedifftensor(RTraj_L, t);
 %
 %  Input:
-%      RTraj          numeric, size = (3,3,nTraj,nSteps)
+%      RTraj          numeric, size = (3,3,nSteps)
 %                     rotation matrices in the lab frame
 %      dt             double
 %                     time step
 %      stopFitT       double
-%                     time value at which to stop the fit
+%                     time value at which to stop the fit, depending on the
+%                     timescales of the MD and EPR simulations
 %
 %  Output:
 %      Diff           numeric, size = (3,3)
 %                     rotational diffusion tensor
-%      msadp          numeric, size
-%                     mean-square angular displacement in the
-%                     molecule-fixed frame
+%      msadp          numeric, size = (3,round(end/2))
+%                     mean square angular displacement in the body-fixed
+%                     frame
 %      tLag           double
 %                     time lag
 
 % Implemented from
-%    G. Chevrot, et al., J. Chem. Phys. 139, 154110 (2013)
-%    http://dx.doi.org/10.1063/1.4823996
+%    [1] G. Chevrot, et al., J. Chem. Phys. 139, 154110 (2013)
+%        http://dx.doi.org/10.1063/1.4823996
+%    [2] V. Calandrini, et al., Collection SFN 12, 201 (2011)
+%        	https://doi.org/10.1051/sfn/201112010
 
-function [Diff, msadp, tLag] = cardamom_estimatedifftensor(RTraj_L, dt, stopFitT)
 
-nSteps = length(RTraj_L);
+function [Diff, msadp, tLag] = cardamom_estimatedifftensor(RTraj, dt, stopFitT)
 
-% rotate into the molecule-fixed frame
-RAlign = RTraj_L(:,:,1);
+nSteps = length(RTraj);
+
+% orient the trajectory such that the tensor of inertia is diagonal at the
+% first time point (part of Step 1 in Sec. IIIB of Ref. 1)
+RAlign = RTraj(:,:,1);
 RTrajp = zeros(3,3,nSteps);
 for iStep = 1:nSteps
-  RTrajp(:,:,iStep) = RTraj_L(:,:,iStep)*RAlign.';
+  RTrajp(:,:,iStep) = RTraj(:,:,iStep)*RAlign.';
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -46,7 +51,7 @@ end
 
 % convert to quaternions
 qRot = rotmat2quat(RRot);
-qRot = cat(2, [1;0;0;0], qRot);
+qRot = cat(2, [1;0;0;0], qRot);  % first time point is the identity
 
 % ensure that the quaternion first component, which is associated with the
 % angular part of the axis-angle formulation, is always positive, thereby
@@ -54,17 +59,18 @@ qRot = cat(2, [1;0;0;0], qRot);
 idx = qRot(1,:) < 0;
 qRot(:,idx) = -qRot(:,idx);
 
-% calculate Cartesian angular velocity components in the molecule-fixed
-% frame
+% calculate Cartesian angular velocity components in the body-fixed frame
 wp = q2wp(qRot, dt);
 
-% calculate angular displacement in the molecule-fixed frame
+% calculate angular displacement in the body-fixed frame
 t = dt*(0:length(wp)-1);
-Deltawp = cumtrapz(t, wp, 2);  % Eq. 32
+Deltawp = cumtrapz(t, wp, 2);  % Eq. 32 of Ref. 1
 
 % calculate mean square angular displacement
 msadp = msd_fft(Deltawp);
-msadp = msadp(:, 1:round(end/2));
+msadp = msadp(:, 1:round(end/2));  % statistics for the latter half of the
+                                   % MSAD are poor, so only keep the first
+                                   % half
 
 
 % estimate the eigenvalues of the rotational diffusion tensor using
@@ -84,7 +90,7 @@ end
 
 function w = q2w(qTraj, dt)
 % Convert quaternion trajectory to angular velocity in the lab frame
-% See Eq. 29 of reference
+% See Eq. 29 of Ref. 1
 
 dq = diff(qTraj, 1, 2)/dt;
 
@@ -109,7 +115,7 @@ end
 function wp = q2wp(qTraj, dt)
 % Convert quaternion trajectory to angular velocity in the molecule-fixed
 % frame
-% See Eq. 30 of reference
+% See Eq. 30 of Ref. 1
 
 dq = diff(qTraj, 1, 2)/dt;
 
@@ -133,6 +139,7 @@ end
 
 function msd = msd_fft(x)
 % calculate the mean square displacement using the FFT
+% see Sec. 4.2 in Ref. 2
 
 if iscolumn(x)
   x = x.';
@@ -145,8 +152,6 @@ D = zeros(nComps, N+1);
 D(:,2:end) = x.^2;
 
 
-% D = D.sum(axis=1)
-% D = np.append(D,0)
 S2 = runprivate('autocorrfft', x, 2, 0, 0, 0);
 
 Q = 2*sum(D, 2);
