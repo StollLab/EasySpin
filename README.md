@@ -27,8 +27,6 @@ The EasySpin source code is organized as follows:
     releasing/     build scripts etc.
     tests/         unit tests for EasySpin
 
-For information on EasySpin's test systems, see [here](/TESTING.md).
-
 ## Documentation
 
 A local copy of the documentation can be built with a perl script `docbuilder.pl`. For more information see the [documentation](/releasing/DOCUMENTATION.md) in the `releasing` subfolder.
