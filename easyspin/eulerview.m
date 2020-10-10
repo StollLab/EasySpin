@@ -76,6 +76,29 @@ uicontrol('Style','popupmenu','Tag','labelpopupmenu',...
   'String',labelStrings,...
   'callback',@eulerview_labelpopupmenu);
 
+uicontrol('Style','text','Position',[x0,y0+90,50,15],...
+  'String','ellipsoid','HorizontalA','left',...
+  'Background','w','ForegroundColor','k');
+uicontrol('Style','checkbox','Tag','tensorcheck',...
+  'Position',[x0+50 y0+90 120 15],...
+  'Value',showTensor,...
+  'Background','w',...
+  'callback',@eulerview_toggletensor);
+
+
+xR0 = x0+20;
+yR0 = y0+110;
+dx = 50;
+dy = 20;
+for a = 1:3
+    for b = 1:3
+        hAngle(a,b) = uicontrol(...
+            'Style','text',...
+            'HorizontalAl','right',...
+            'Position',[xR0+(a-1)*dx,yR0+(3-b)*dy,dx,dy]);
+    end
+end
+set(hAngle,'Background','w','ForegroundColor','k');
 
 % Plotting
 %------------------------------------------------------------------
@@ -149,6 +172,15 @@ updateplot;
     % Names of the start and end frame
     setaxislabels();
     
+    % Angles between all axis pairs
+    angles = acos(R)*180/pi;
+    for a = 1:3
+        for b = 1:3
+            hAngle(a,b).String = sprintf('%5.1f',angles(a,b));
+        end
+    end
+    
+    
     % Set tensor ellipsoid orientation
     settensor();
     if showTensor
@@ -203,6 +235,13 @@ updateplot;
     updateplot;
   end
 
+  function eulerview_toggletensor(~,~)
+    h = findobj('Tag','tensorcheck');
+    showTensor = h.Value;
+    calculateframes;
+    updateplot;
+  end
+  
   function calculateframes
     [xA,yA,zA] = erot([0 0 0]*pi/180,'rows');
     [x1,y1, ~] = erot([alpha 0 0]*pi/180,'rows');
@@ -247,5 +286,7 @@ updateplot;
     h = findobj('Tag','tensor');
     set(h,'XData',x_,'YData',y_,'ZData',z_);
   end
+
+
 
 end

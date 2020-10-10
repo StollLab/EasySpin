@@ -316,7 +316,7 @@ if FieldSweep
       Stretch = 1.25;
       Exp.CenterSweep = [Center, Stretch*Sweep];
     else
-      error('Cannot automatically determine field range.\nPlease given either Exp.CenterSweep or Exp.Range.');
+      error(sprintf('Cannot automatically determine field range.\nPlease provide either Exp.CenterSweep or Exp.Range.'));
     end
   end
 else

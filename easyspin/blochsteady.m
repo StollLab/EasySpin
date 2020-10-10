@@ -262,7 +262,8 @@ switch Options.Method
     error('Unknown method.');
 end
 
-addLastPoint = false;
+% Add last point if plotting
+addLastPoint = nargout==0;
 if addLastPoint
   t(end+1) = 1/ModFreq;
   My(end+1) = My(1);
