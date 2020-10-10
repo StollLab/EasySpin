@@ -376,9 +376,11 @@ if useMD && strcmp(LocalDynamicsModel,'MD-HBD') && ~dynamInfoGiven
   % estimate rotational diffusion tensor
   % currently only supports a single MD trajectory
   % TODO: make this work for multiple MD trajectories
+  logmsg(1,'Sys.Diff not specified, estimating from MD trajectory data')
   stopFitT = floor(MD.nSteps/2)*MD.dt;
   [Sys.Diff, ~, ~] = runprivate('cardamom_estimatedifftensor',...
                                 squeeze(MD.FrameTraj), MD.dt, stopFitT);
+  logmsg(1,'Estimated Sys.Diff eigenvalues:  (%g, %g, %g) rad^2/us',Sys.Diff/1e6);
 end
 
 Dynamics = validate_dynord('cardamom',Sys,FieldSweep,isDiffSim);
@@ -386,7 +388,6 @@ Dynamics = validate_dynord('cardamom',Sys,FieldSweep,isDiffSim);
 if isDiffSim
   DiffLocal = Dynamics.Diff;
   Sys.Diff = DiffLocal;
-  tcorr = 1./6./DiffLocal;
 end
 
 if useMD
@@ -456,18 +457,13 @@ if isfield(Par,'dt')
     error('For MD-direct simulations, Par.dt is not allowed. The time step is taken from the MD input.');
   end
   if Par.Dt<Par.dt
-    error('The stochastic time step Par.dt must be less than or equal to Par.Dt.')
+    error('The spatial dynamics time step Par.dt must be less than or equal to the spin dynamics time step Par.Dt.')
   end
 else
-  if isDiffSim
-    Par.dt = min(tcorr)/10;
-  else
-    if useMDdirect
-      Par.dt = MD.dt;
-    else
-      error('The time step Par.dt must be specified when using an %s model.',LocalDynamicsModel);
-    end
+  if ~useMDdirect
+    error('The spatial dynamics time step Par.dt must be specified when using an %s model.',LocalDynamicsModel);
   end
+  Par.dt = MD.dt;
 end
 
 % Make sure Par.Dt is an (approx.) integer multiple of Par.dt
