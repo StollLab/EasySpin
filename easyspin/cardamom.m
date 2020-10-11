@@ -82,9 +82,9 @@
 %                  the spin label's side chain dihedral angles to build 
 %                  a hidden Markov model model to perform further 
 %                  stochastic jump dynamics simulations
-%     dt         rotational dynamics propagation time step (in seconds)
+%     dtSpatial  spatial dynamics propagation time step (in seconds)
 %                (not used for 'MD-direct')
-%     Dt         spin dynamics propagation time step (in seconds)
+%     dtSpin     spin dynamics propagation time step (in seconds)
 %     nSteps     number of time steps per simulation
 %     nTraj      number of trajectories
 %     OriStart   numeric, size = (3,1), (1,3), or (3,nTraj)
@@ -349,7 +349,7 @@ if useMD
     MD.nStates = HMM.nStates;
     
     % Set the Markov chain time step based on the (scaled) sampling lag time
-    Par.dt = MD.tLag;
+    Par.dtSpatial = MD.tLag;
   end
   
   % Estimate rotational diffusion time constant (used in the density propagation)
@@ -370,12 +370,24 @@ end
 isDiffSim = (useMD && strcmp(LocalDynamicsModel,'MD-HBD')) || ...
    strcmp(LocalDynamicsModel,'diffusion');
 
+dynamInfoGiven = ( isfield(Sys,'tcorr') || isfield(Sys,'Diff') ...
+                   || isfield(Sys,'logtcorr') || isfield(Sys,'logDiff') );
+if useMD && strcmp(LocalDynamicsModel,'MD-HBD') && ~dynamInfoGiven
+  % estimate rotational diffusion tensor
+  % currently only supports a single MD trajectory
+  % TODO: make this work for multiple MD trajectories
+  logmsg(1,'Sys.Diff not specified, estimating from MD trajectory data')
+  stopFitT = floor(MD.nSteps/2)*MD.dt;
+  [Sys.Diff, ~, ~] = runprivate('cardamom_estimatedifftensor',...
+                                squeeze(MD.FrameTraj), MD.dt, stopFitT);
+  logmsg(1,'Estimated Sys.Diff eigenvalues:  (%g, %g, %g) rad^2/us',Sys.Diff/1e6);
+end
+
 Dynamics = validate_dynord('cardamom',Sys,FieldSweep,isDiffSim);
 
 if isDiffSim
   DiffLocal = Dynamics.Diff;
   Sys.Diff = DiffLocal;
-  tcorr = 1./6./DiffLocal;
 end
 
 if useMD
@@ -425,9 +437,9 @@ end
 % Check Par
 %-------------------------------------------------------------------------------
 
-% Require Par.Dt
-if ~isfield(Par,'Dt')
-  error('Par.Dt (spin propagation time step) must be given.');
+% Require Par.dtSpin
+if ~isfield(Par,'dtSpin')
+  error('Par.dtSpin (spin propagation time step) must be given.');
 end
 
 % Require and check Par.nSteps
@@ -439,39 +451,34 @@ if ~isnumeric(Par.nSteps) || numel(Par.nSteps)~=1 || ~isreal(Par.nSteps) || ...
   error('Par.nSteps must be a positive integer.');
 end
 
-% Check Par.dt
-if isfield(Par,'dt')
+% Check Par.dtSpatial
+if isfield(Par,'dtSpatial')
   if useMDdirect
-    error('For MD-direct simulations, Par.dt is not allowed. The time step is taken from the MD input.');
+    error('For MD-direct simulations, Par.dtSpatial is not allowed. The time step is taken from the MD input.');
   end
-  if Par.Dt<Par.dt
-    error('The stochastic time step Par.dt must be less than or equal to Par.Dt.')
+  if Par.dtSpin<Par.dtSpatial
+    error('The spatial dynamics time step Par.dtSpatial must be less than or equal to the spin dynamics time step Par.dtSpin.')
   end
 else
-  if isDiffSim
-    Par.dt = min(tcorr)/10;
-  else
-    if useMDdirect
-      Par.dt = MD.dt;
-    else
-      error('The time step Par.dt must be specified when using an %s model.',LocalDynamicsModel);
-    end
+  if ~useMDdirect
+    error('The spatial dynamics time step Par.dtSpatial must be specified when using an %s model.',LocalDynamicsModel);
   end
+  Par.dtSpatial = MD.dt;
 end
 
-% Make sure Par.Dt is an (approx.) integer multiple of Par.dt
-r = Par.Dt/Par.dt;
+% Make sure Par.dtSpin is an (approx.) integer multiple of Par.dtSpatial
+r = Par.dtSpin/Par.dtSpatial;
 if abs(r-round(r))>1e-4 || r<1
-  error('The spin propagation time step (Par.Dt) must be a multiple of the trajectory time step (Par.dt or MD.dt).');
+  error('The spin propagation time step (Par.dtSpin) must be a multiple of the trajectory time step (Par.dtSpatial or MD.dt).');
 end
 r = round(r);
-Par.dt = Par.Dt/r;
+Par.dtSpatial = Par.dtSpin/r;
 Par.BlockLength = r; % used for block averaging
 
-nStepsQuant = Par.nSteps;
-nStepsStoch = nStepsQuant*round(Par.Dt/Par.dt);
-dtQuant = Par.Dt;
-dtStoch = Par.dt;
+nStepsSpin = Par.nSteps;
+nStepsSpatial = nStepsSpin*round(Par.dtSpin/Par.dtSpatial);
+dtSpin = Par.dtSpin;
+dtSpatial = Par.dtSpatial;
 
 % Set default number of (stochastic) trajectories
 if ~useMDdirect && ~isfield(Par,'nTraj')
@@ -481,11 +488,11 @@ end
 % Determine whether to process single long MD trajectory into multiple short
 % MD trajectories
 if useMDdirect
-  Par.lag = ceil(Opt.LagTime/Par.Dt);
+  Par.lag = ceil(Opt.LagTime/Par.dtSpin);
   nBlocks = floor(MD.nSteps/Par.BlockLength);
   if nBlocks < Par.nSteps
     error('MD trajectory is too short (%g ns) for the required FID length (%g ns.',...
-      MD.nSteps*MD.dt,Par.nSteps*Par.Dt);
+      MD.nSteps*MD.dt,Par.nSteps*Par.dtSpin);
   end
   Par.nTraj = floor((nBlocks-Par.nSteps)/Par.lag) + 1;
 else
@@ -506,8 +513,8 @@ else
 end  
 logmsg(1,'  Number of orientations: %d',Par.nOrients);
 logmsg(1,'  Number of trajectories: %d',Par.nTraj);
-logmsg(1,'  Quantum propagation:    %d steps of %g ns (%g ns total)',nStepsQuant,dtQuant/1e-9,nStepsQuant*dtQuant/1e-9);
-logmsg(1,'  Spatial propagation:    %d steps of %g ns (%g ns total)',nStepsStoch,dtStoch/1e-9,nStepsStoch*dtStoch/1e-9);
+logmsg(1,'  Spin propagation:       %d steps of %g ns (%g ns total)',nStepsSpin,dtSpin/1e-9,nStepsSpin*dtSpin/1e-9);
+logmsg(1,'  Spatial propagation:    %d steps of %g ns (%g ns total)',nStepsSpatial,dtSpatial/1e-9,nStepsSpatial*dtSpatial/1e-9);
 logmsg(1,'  Lag time:               %g MD steps',Par.lag);
 
 
@@ -583,8 +590,8 @@ end
 
 % Set up orientational grid for powder averaging
 if ~isempty(Orientations)
-  gridPhi = Orientations(:,1);
-  gridTheta = Orientations(:,2);
+  gridPhi = Orientations(1,:);
+  gridTheta = Orientations(2,:);
   weight = ones(size(gridPhi));
   weight = weight/sum(weight);
 else
@@ -623,7 +630,7 @@ iter = 1;
 spcArray = [];
 nOrientsTot = 0;
 
-t = linspace(0, nStepsQuant*Par.Dt, nStepsQuant).';
+t = linspace(0, nStepsSpin*Par.dtSpin, nStepsSpin).';
 
 converged = false;
 spcLast = 0;
@@ -647,22 +654,22 @@ while ~converged
       case 'diffusion'
         
         Sys.Diff = Dynamics.Diff;
-        Par.dt = dtStoch;
-        Par.nSteps = nStepsStoch;
+        Par.dt = dtSpatial;
+        Par.nSteps = nStepsSpatial;
         if useLocalPotential
           Sys.Potential = LocalPotential;
-          Par.nSteps = 2*nStepsStoch;
+          Par.nSteps = 2*nStepsSpatial;
         end
         [~, RTrajLocal, qTrajLocal] = stochtraj_diffusion(Sys,Par,Opt);
         if useLocalPotential
-          RTrajLocal = RTrajLocal(:,:,:,nStepsStoch+1:end);
-          qTrajLocal = qTrajLocal(:,:,nStepsStoch+1:end);
+          RTrajLocal = RTrajLocal(:,:,nStepsSpatial+1:end,:);
+          qTrajLocal = qTrajLocal(:,:,nStepsSpatial+1:end,:);
         end
         
       case 'jump'
         
-        Par.dt = dtStoch;
-        Par.nSteps = nStepsStoch;
+        Par.dt = dtSpatial;
+        Par.nSteps = nStepsSpatial;
         [~, RTrajLocal, qTrajLocal] = stochtraj_jump(Sys,Par,Opt);
         
       case 'MD-direct'
@@ -674,30 +681,30 @@ while ~converged
       case 'MD-HBD'
         
         Sys.Diff = DiffLocal;
-        Par.nSteps = nStepsStoch;
+        Par.nSteps = nStepsSpatial;
         if useLocalPotential
           Sys.Potential = LocalPotential;
-          Par.nSteps = 2*nStepsStoch;
+          Par.nSteps = 2*nStepsSpatial;
         end
-        Par.dt = dtStoch;
+        Par.dt = dtSpatial;
         [~, RTrajLocal, qTrajLocal] = stochtraj_diffusion(Sys,Par,Opt);
         if useLocalPotential
-          RTrajLocal = RTrajLocal(:,:,nStepsStoch+1:end,:);
-          qTrajLocal = qTrajLocal(:,nStepsStoch+1:end,:);
+          RTrajLocal = RTrajLocal(:,:,nStepsSpatial+1:end,:);
+          qTrajLocal = qTrajLocal(:,nStepsSpatial+1:end,:);
         end
         
       case 'MD-HMM'
         
         Sys.TransProb = HMM.TransProb;
-        Par.dt = dtStoch;
-        Par.nSteps = 2*nStepsStoch;
+        Par.dt = dtSpatial;
+        Par.nSteps = 2*nStepsSpatial;
         CumulDist = cumsum(HMM.eqDistr)/sum(HMM.eqDistr);
         for k = 1:Par.nTraj
           Par.StatesStart(k) = find(CumulDist>rand(),1);
         end
         Opt.statesOnly = true;
         [~, stateTraj] = stochtraj_jump(Sys,Par,Opt);
-        stateTraj = stateTraj(nStepsStoch+1:end,:);
+        stateTraj = stateTraj(nStepsSpatial+1:end,:);
 
         Par.stateTraj = stateTraj;
         
@@ -710,16 +717,16 @@ while ~converged
     end
     
     qLab = euler2quat(0, gridTheta(iOri), gridPhi(iOri), 'active');
-    qLab = repmat(qLab,[1,nStepsQuant,Par.nTraj]);
+    qLab = repmat(qLab,[1,nStepsSpin,Par.nTraj]);
     
     % Generate trajectory of global dynamics with a time step equal to that 
-    % of the quantum propagation (these rotations will be performed AFTER
+    % of the spin propagation (these rotations will be performed AFTER
     % the time-dependent interaction tensors are calculated and possibly 
     % averaged)
     if includeGlobalDynamics
       Sys_.Diff = Dynamics.DiffGlobal;
-      Par.dt = dtQuant;
-      Par.nSteps = nStepsQuant;
+      Par.dt = dtSpin;
+      Par.nSteps = nStepsSpin;
       [~, ~, qTrajGlobal] = stochtraj_diffusion(Sys_,Par,Opt);
       % Combine global trajectories with starting orientations
       qLab = quatmult(qLab,qTrajGlobal);
@@ -732,9 +739,9 @@ while ~converged
     end
     
     % Propagate the density matrix
-    Par.nSteps = nStepsQuant;
-    Par.Dt = dtQuant;
-    Par.dt = dtStoch;
+    Par.nSteps = nStepsSpin;
+    Par.dtSpin = dtSpin;
+    Par.dtSpatial = dtSpatial;
     Sprho = cardamom_propagatedm(Sys,Par,Opt,MD,omega0,CenterField);
     
     % Calculate the time-domain signal, i.e. the expectation value of S_{+}
@@ -773,12 +780,12 @@ while ~converged
 
   tMax = max(cellfun(@(x) max(x), tCell));
   if tMax<tReq
-    M = ceil(tReq/Par.Dt);
+    M = ceil(tReq/Par.dtSpin);
   else
-    M = ceil(tMax/Par.Dt);
+    M = ceil(tMax/Par.dtSpin);
   end
   TDSignal = cell2mat(cellfun(@(x) zeropad(x, M), TDSignal, 'UniformOutput', false));
-  tLong = linspace(0, M*Par.Dt, M).';
+  tLong = linspace(0, M*Par.dtSpin, M).';
 
   % convolute for linewidth broadening
   if isBroadening
@@ -853,7 +860,7 @@ if strcmp(LocalDynamicsModel(1:2), 'MD')
   clear MD
 end
 
-freq = 1/(Par.Dt*M)*(-M/2:M/2-1);  % TODO check for consistency between FieldSweep and FFT window/resolution
+freq = 1/(Par.dtSpin*M)*(-M/2:M/2-1);  % TODO check for consistency between FieldSweep and FFT window/resolution
 
 % center the spectrum around the isotropic component of the g-tensor
 if FieldSweep
