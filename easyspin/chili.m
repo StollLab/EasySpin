@@ -521,7 +521,7 @@ if isempty(Opt), Opt = struct; end
 % Documented
 if ~isfield(Opt,'LLMK')
   if usePotential
-    error('Please provide basis set information (Opt.LLMK etc).');
+    error('Sys.Potential is given. Please provide basis set information (Opt.LLMK etc).');
   else
     Opt.LLMK = [14 7 2 6];
   end
@@ -630,12 +630,21 @@ if isfield(Opt,'LLKM') % error if pre-6.0 field name is given
     'In the current case, use\n' ...
     '  Opt.LLMK = [%d %d %d %d];'],LLKM(1),LLKM(2),LLKM(4),LLKM(3));
 end
-if numel(Opt.LLMK)~=4 || any(Opt.LLMK<0) || any(mod(Opt.LLMK,1))
+if ~isnumeric(Opt.LLMK) || numel(Opt.LLMK)~=4 || any(Opt.LLMK<0) || any(mod(Opt.LLMK,1))
   error('Opt.LLMK must be a 4-element array with non-negative integers.');
 end
+if mod(Opt.LLMK(1),2)
+  error('Opt.LLMK(1) must be an even number.');
+end
+if Opt.LLMK(2)>0 && ~mod(Opt.LLMK(2),2)
+  error('Opt.LLMK(2) must be an odd integer.');
+end
 maxL = max(Opt.LLMK(1:2));
-if any(Opt.LLMK(3:4)>maxL)
-  error('The maximum M and maximum K (third and fourth number in Opt.LLMK) must be not larger than the maximum L.');
+if any(Opt.LLMK(3)>maxL)
+  error('Opt.LLMK(3)=%d, but must be smaller or equal to the maximum L (%d).',Opt.LLMK(3),maxL);
+end
+if any(Opt.LLMK(4)>maxL)
+  error('Opt.LLMK(4)=%d, but must be smaller or equal to the maximum L (%d).',Opt.LLMK(4),maxL);
 end
 Basis.LLMK = Opt.LLMK;
 Basis.jKmin = Opt.jKmin;

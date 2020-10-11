@@ -10,7 +10,7 @@
 %                  [L1 M1 K1 lambda; L2 M2 K2 lambda2; ...]
 %
 %   Example:
-%     Potential = [2 2 1 1.4];
+%     Potential = [2 2 1 1.4]; % L=2, M=2, K=1, lambda=1.4
 %     oripotentialplot(Potential);
 
 function oripotentialplot(Potential)
@@ -140,7 +140,8 @@ if PlotStyle==1
   end
   set(gca,'YDir','reverse');
   shading flat
-  colorbar
+  c = colorbar;
+  c.Label.String = 'energy (kB*T)';
   title('Boltzmann population');
   set(gca,'XTick',0:45:360,'YTick',0:30:180);
   
@@ -207,13 +208,15 @@ elseif PlotStyle==2
   if plotPopulation
     m = colormap('gray(256)');
     colormap(flipud(m));
-    colorbar
+    c = colorbar;
+    c.Label.String = 'energy (kB*T)';
     cl = get(gca,'CLim');
     cl(1) = 0;
     set(gca,'CLim',cl);
   else
     colormap('parula(256)');
-    colorbar
+    c = colorbar;
+    c.Label.String = 'population density';
     cl = get(gca,'CLim');
     set(gca,'CLim',cl);
   end
