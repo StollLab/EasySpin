@@ -1,14 +1,51 @@
-function eulerview()
-% A function that displays an Euler rotation, including the two coordinate
-% frames, the two xy planes, and the line of nodes.
+% rotview    Display rotation between two frame
+%
+%    rotview()
+%    rotview([a b c])
+%    rotview(a,b,c)
+%    rotview(R)
+%
+% Plots two frames and allows adjustment of their relative orientation.
+% Euler angles and angles between axis pairs are shown. If inputs are
+% given, they are used as the starting Euler angles.
+%
+% Input:
+%    a, b, c:    Euler angles alpha, beta, and gamma (in radians)
+%    R:          rotation matrix, 3x3
+%
+
+function rotview(varargin)
 
 % Parameters
 %------------------------------------------------------------------
 % Three Euler angles, in degrees
 % for R = erot([alpha beta gamma]*pi/180);
-alpha = 30;
-beta = 20;
-gamma = 40;
+switch nargin
+  case 1
+    if all(size(varargin{1})==[3 3])
+      R = varargin{1};
+      [alpha,beta,gamma] = eulang(R);
+      alpha = alpha*180/pi;
+      beta = beta*180/pi;
+      gamma = gamma*180/pi;
+    elseif numel(varargin{1})==3
+      angles_in = varargin{1}*180/pi; % rad -> deg
+      alpha = angles_in(1);
+      beta = angles_in(2);
+      gamma = angles_in(3);
+    else
+      error('For one input argument, it must be a 3x3 rotation matrix or a 3-element vector of Euler angles.');
+    end
+  case 3
+    alpha = varargin{1}*180/pi;
+    beta = varargin{2}*180/pi;
+    gamma = varargin{3}*180/pi;
+  otherwise
+    alpha = 30;
+    beta = 20;
+    gamma = 40;
+end
+
 showTensor = true;
 
 % Initialize quantities derived from the Euler angles
@@ -23,7 +60,7 @@ calculateframes();
 %------------------------------------------------------------------
 hFig = figure(443123);
 clf(hFig)
-set(hFig,'Name','Euler angles viewer [EasySpin]',...
+set(hFig,'Name','Rotation viewer [EasySpin]',...
   'NumberTitle','off',...
   'WindowStyle','normal',...
   'MenuBar','none',...
@@ -36,7 +73,7 @@ y0 = 10;
 uicontrol('Style','slider','Tag','alphaslider',...
   'Position',[x0+50 y0 120 15],...
   'Min',0,'Max',360,'Value',alpha,'SliderStep',[1 10]/360,...
-  'callback',@eulerview_alphaslider);
+  'callback',@rotview_alphaslider);
 uicontrol('Style','text','Position',[x0,y0,50,15],...
   'String','alpha (deg)','HorizontalA','left',...
   'Background','w','ForegroundColor','k');
@@ -47,7 +84,7 @@ uicontrol('Style','edit','Tag','alphatext',...
 uicontrol('Style','slider','Tag','betaslider',...
   'Position',[x0+50 y0+20 120 15],...
   'Min',0,'Max',180,'Value',beta,'SliderStep',[1 10]/180,...
-  'callback',@eulerview_betaslider);
+  'callback',@rotview_betaslider);
 uicontrol('Style','text','Position',[x0,y0+20,50,15],...
   'String','beta (deg)','HorizontalA','left',...
   'Background','w','ForegroundColor','k');
@@ -58,7 +95,7 @@ uicontrol('Style','edit','Tag','betatext',...
 uicontrol('Style','slider','Tag','gammaslider',...
   'Position',[x0+50 y0+40 120 15],...
   'Min',0,'Max',360,'Value',gamma,'SliderStep',[1 10]/360,...
-  'callback',@eulerview_gammaslider);
+  'callback',@rotview_gammaslider);
 uicontrol('Style','text','Position',[x0,y0+40,50,15],...
   'String','gamma (deg)','HorizontalA','left',...
   'Background','w','ForegroundColor','k');
@@ -74,8 +111,31 @@ uicontrol('Style','text','Position',[x0,y0+65,50,15],...
 uicontrol('Style','popupmenu','Tag','labelpopupmenu',...
   'Position',[x0+50 y0+70 120 15],...
   'String',labelStrings,...
-  'callback',@eulerview_labelpopupmenu);
+  'callback',@rotview_labelpopupmenu);
 
+uicontrol('Style','text','Position',[x0,y0+90,50,15],...
+  'String','ellipsoid','HorizontalA','left',...
+  'Background','w','ForegroundColor','k');
+uicontrol('Style','checkbox','Tag','tensorcheck',...
+  'Position',[x0+50 y0+90 120 15],...
+  'Value',showTensor,...
+  'Background','w',...
+  'callback',@rotview_toggletensor);
+
+
+xR0 = x0+20;
+yR0 = y0+110;
+dx = 50;
+dy = 20;
+for a = 1:3
+    for b = 1:3
+        hAngle(a,b) = uicontrol(...
+            'Style','text',...
+            'HorizontalAl','right',...
+            'Position',[xR0+(a-1)*dx,yR0+(3-b)*dy,dx,dy]);
+    end
+end
+set(hAngle,'Background','w','ForegroundColor','k');
 
 % Plotting
 %------------------------------------------------------------------
@@ -149,6 +209,15 @@ updateplot;
     % Names of the start and end frame
     setaxislabels();
     
+    % Angles between all axis pairs
+    angles = acos(R)*180/pi;
+    for a = 1:3
+        for b = 1:3
+            hAngle(a,b).String = sprintf('%5.1f',angles(a,b));
+        end
+    end
+    
+    
     % Set tensor ellipsoid orientation
     settensor();
     if showTensor
@@ -171,7 +240,7 @@ updateplot;
     set(pB,'XData',xyBplane(1,:),'YData',xyBplane(2,:),'ZData',xyBplane(3,:));
   end
 
-  function eulerview_alphaslider(~,~)
+  function rotview_alphaslider(~,~)
     h = findobj('Tag','alphaslider');
     val = get(h,'Value');
     alpha = val;
@@ -179,7 +248,7 @@ updateplot;
     updateplot;
   end
 
-  function eulerview_betaslider(~,~)
+  function rotview_betaslider(~,~)
     h = findobj('Tag','betaslider');
     val = get(h,'Value');
     beta = val;
@@ -187,7 +256,7 @@ updateplot;
     updateplot;
   end
 
-  function eulerview_labelpopupmenu(~,~)
+  function rotview_labelpopupmenu(~,~)
     h = findobj('Tag','labelpopupmenu');
     val = get(h,'Value');
     labelID = val;
@@ -195,7 +264,7 @@ updateplot;
     updateplot;
   end
 
-  function eulerview_gammaslider(~,~)
+  function rotview_gammaslider(~,~)
     h = findobj('Tag','gammaslider');
     val = get(h,'Value');
     gamma = val;
@@ -203,6 +272,13 @@ updateplot;
     updateplot;
   end
 
+  function rotview_toggletensor(~,~)
+    h = findobj('Tag','tensorcheck');
+    showTensor = h.Value;
+    calculateframes;
+    updateplot;
+  end
+  
   function calculateframes
     [xA,yA,zA] = erot([0 0 0]*pi/180,'rows');
     [x1,y1, ~] = erot([alpha 0 0]*pi/180,'rows');
@@ -247,5 +323,7 @@ updateplot;
     h = findobj('Tag','tensor');
     set(h,'XData',x_,'YData',y_,'ZData',z_);
   end
+
+
 
 end

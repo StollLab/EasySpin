@@ -365,6 +365,9 @@ DefaultOpt.PaddingMultiplier = 3; % for padding before convolution
 % Supplement the user-supplied structure with the defaults
 Opt = adddefaults(Opt,DefaultOpt);
 if numel(Opt.nKnots)<2, Opt.nKnots(2) = DefaultOpt.nKnots(2); end
+if Opt.nKnots(1)<2
+  error('Opt.nKnots(1) must be 2 or larger.');
+end
 
 % Parse and process options with string values.
 %IntensitySwitch = parseoption(Opt,'Intensity',{'off','on'}) - 1;

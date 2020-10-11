@@ -142,7 +142,7 @@ if (numel(Abscissa)==1)
 end
 
 % Read data matrix.
-Data = getmatrix(join([FullBaseName,SpcExtension],''),Dimensions,NumberFormat,ByteOrder,isComplex);
+Data = getmatrix([FullBaseName,SpcExtension],Dimensions,NumberFormat,ByteOrder,isComplex);
 
 % Scale spectrum/spectra
 if ~isempty(Scaling)
@@ -243,8 +243,6 @@ function [Parameters,err] = readDSCfile(DSCFileName)
 
 Parameters = [];
 err = [];
-
-DSCFileName = join(DSCFileName,'');
 
 if exist(DSCFileName,'file')
   fh = fopen(DSCFileName);

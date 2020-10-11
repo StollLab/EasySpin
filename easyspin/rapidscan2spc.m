@@ -6,10 +6,11 @@
 % field-swept EPR spectrum.
 %
 % Inputs:
-%   rsSignal time-domain quadrature signal (Mx+1i*My) over one period of
-%            rapid-scan modulation (vector)
-%   rsAmp    rapid scan amplitude (in mT)
-%   rsFreq   rapid scan frequency (in kHz)
+%   rsSignal time-domain rapid-scan signal (My+1i*Mx) over one period of
+%            the field modulation (vector); My is the absorption, and Mx
+%            is the dispersion
+%   rsAmp    peak-to-peak modulation amplitude (in mT)
+%   rsFreq   modulation frequency (in kHz)
 %   g        (optional) g value, needed for field-domain rapid scan.
 %            If omitted, g = 2.0023193 is assumed.
 %
@@ -109,7 +110,7 @@ if nargout==0
   grid on
   xlabel('time (us)');
   title('time-domain signal');
-  legend('dispersion','absorption');
+  legend('absorption','dispersion');
   legend boxoff
   
   subplot(2,1,2);
@@ -117,5 +118,7 @@ if nargout==0
   grid on
   xlabel('field offset (mT)');
   title('spectrum');
+  legend('absorption','dispersion');
+  legend boxoff
 
 end
