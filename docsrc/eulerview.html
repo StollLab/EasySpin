@@ -36,13 +36,19 @@ Visual interface for Euler angles and rotations.
 
 <pre class="matlab">
 eulerview
+eulerview(angles)
+eulerview(alpha,beta,gamma)
 </pre>
 
 <!-- ================================================================ -->
 <div class="subtitle">Description</div>
 
 <p>
-This graphical interface provides an interactive display of Euler angles and their associated frame rotations. EasySpin's standard <a href="frames.html">frame definitions</a> are included.
+This GUI provides an interactive display of Euler angles and their associated frame rotations. EasySpin's standard <a href="frames.html">frame definitions</a> are included.
+</p>
+
+<p>
+Euler angles can varied in the GUI. Provide initial values either via one 3-element input <code>angles = [alpha,beta,gamma]</code>, or three separate inputs <code>alpha</code>, <code>beta</code>, and <code>gamma</code>. The angles must be in radians.
 </p>
 
 <div align="center">

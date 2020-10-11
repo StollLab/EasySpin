@@ -1,14 +1,39 @@
-function eulerview()
-% A function that displays an Euler rotation, including the two coordinate
-% frames, the two xy planes, and the line of nodes.
+% eulerview    Display rotation between two frame
+%
+%    eulerview()
+%    eulerview([a b c])
+%    eulerview(a,b,c)
+%
+% Plots two frames and allows adjustment of their relative orientation.
+% Euler angles and angles between axis pairs are shown. If inputs are
+% given, they are used as the starting Euler angles.
+%
+% Input:
+%    a, b, c:    Euler angles alpha, beta, and gamma (in radians)
+%
+
+function eulerview(varargin)
 
 % Parameters
 %------------------------------------------------------------------
 % Three Euler angles, in degrees
 % for R = erot([alpha beta gamma]*pi/180);
-alpha = 30;
-beta = 20;
-gamma = 40;
+switch nargin
+  case 1
+    angles_in = varargin{1}*180/pi; % rad -> deg
+    alpha = angles_in(1);
+    beta = angles_in(2);
+    gamma = angles_in(3);
+  case 3
+    alpha = varargin{1}*180/pi;
+    beta = varargin{2}*180/pi;
+    gamma = varargin{3}*180/pi;
+  otherwise
+    alpha = 30;
+    beta = 20;
+    gamma = 40;
+end
+
 showTensor = true;
 
 % Initialize quantities derived from the Euler angles
