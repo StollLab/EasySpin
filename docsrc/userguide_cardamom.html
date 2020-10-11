@@ -99,7 +99,7 @@ Doing a simulation only requires a few lines of code. A simple example is
 Sys = struct('g',[2.008,2.006,2.003],'Nucs','14N','A',[20,20,85]);
 Sys.tcorr = 4e-8;
 Exp = struct('mwFreq',9.5);
-Par = struct('dt',2e-9,'nSteps',100,'nTraj'400);
+Par = struct('dtSpin',2e-9,'dtSpatial',2e-9,'nSteps',100,'nTraj'400);
 cardamom(Sys,Exp,Par);
 </pre>
 
@@ -433,8 +433,39 @@ Exp.mwPhase = 3*pi/180;          % 3 degrees dispersion admixed to absorption
 <div class="subtitle"><a name="simparams">Time axis and grid parameters</a></div>
 
 <p>
+Since <code>cardamom</code> calculates cw EPR spectra by first simulating spin dynamics in the time domain, one must specify the parameters associated with time integration. This includes the spatial dynamics time step <code>Par.dtSpatial</code> associated with molecular motion, e.g. rotational diffusion of a spin label:
+</p>
+
+<pre class="matlab">
+Par.dtStoch = 1e-9; % spatial propagation
+</pre>
+
+<p>
+Additionally, the spin dynamics time step <code>Par.dtSpin</code> and number of steps <code>Par.nSteps</code> are required to simulate the FID:
+</p>
+
+<pre class="matlab">
+Par.dtSpin = 1e-9;  % spin propagation
+Par.nSteps = 300;
+</pre>
+
+<p>
+Finally, it is necessary to specify the dynamics model type for the simulation (see the <a class="esf" href="cardamom.html">technical documentation</a> for the full range of options):
+</p>
+
+<pre class="matlab">
+Par.Model = 'diffusion'; % simulate stochastic rotational diffusion
+</pre>
+
+<p>
+Regarding orientational grid information, <code>cardamom</code> will try to determine the best parameters to simulate a cw EPR spectrum. However, depending on the desired model, sometimes it is necessary tell <code>cardamom</code> how the orientational grids should be handled.
+</p>
+
+<!--
+<p>
 Save for the jump model, which requires a simulation time step <code>Par.dt</code> to be declared, <code>cardamom</code> will try to determine the best parameters to simulate a cw EPR spectrum. However, depending on the desired model, sometimes it is necessary tell <code>cardamom</code> specify how the time axis and orientational grids should be handled.
 </p>
+-->
 
 <!-- ============================================================= -->
 <div class="subtitle"><a name="momd">Powder vs single orientation vs global diffusion</a></div>

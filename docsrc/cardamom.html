@@ -275,9 +275,15 @@ If any of the MD-based models are used, an MD trajectory (processed via <a class
 </div>
 
 <p>
-Two additional mandatory parameters are the time step <code>Dt</code> and the number of steps <code>nSteps</code> to use for the calculation of the free-induction decay (FID):
+Three additional mandatory parameters are the spatial dynamics time step <code>dtSpatial</code>, the spin dynamics time step <code>dtSpin</code>, and the number of steps <code>nSteps</code> to use for the calculation of the free-induction decay (FID):
 
-<div class="optionfield"><code>Par.Dt</code></div>
+<div class="optionfield"><code>Par.dtSpatial</code></div>
+<div class="optiondescr">
+<p>
+The time step of spatial propagation (rotational dynamics), in seconds. The value of this parameter depends on the motional dynamics of the system, typically &le;1 ns.
+</div>
+
+<div class="optionfield"><code>Par.dtSpin</code></div>
 <div class="optiondescr">
 <p>
 The time step of spin propagation (FID calculation), in seconds. For a nitroxide at X-band frequencies, a typical value is 1-2 ns. For higher fields and frequencies, it should be shortened.
@@ -421,13 +427,20 @@ To simulate a cw EPR spectrum of an <sup>14</sup>N nitroxide spin label with a r
 </p>
 
 <pre class="matlab">
+clear
 Sys.g = [2.009, 2.006, 2.002];
+Sys.Nucs = '14N';
 Sys.A = mt2mhz([6,6,36]/10);    % hyperfine tensor, G -> MHz
 Sys.tcorr = 5e-9;               % 5 ns rotational correlation time
 
-Exp.mwFreq = 9.4;             % microwave frequency, in GHz
+Exp.mwFreq = 9.4;               % microwave frequency, in GHz
 
-[B,spc] = cardamom(Sys,Exp);
+Par.Model = 'diffusion';        % rotational diffusion model
+Par.dtSpatial = 1e-9;           % spatial propagation time step, in s
+Par.dtSpin = 1e-9;              % spin propagation time step, in s
+Par.nSteps = 250;               % number of spin propagation time steps
+
+[B,spc] = cardamom(Sys,Exp,Par);
 </pre>
 
 <p>
@@ -445,8 +458,8 @@ Sys.Potential = [2, 0, 0, 1.0];
 Exp.mwFreq = 9.4; % GHz
 
 Par.Model = 'diffusion';
-Par.dt = 1e-9; % seconds
-Par.Dt = 1e-9; % seconds
+Par.dtSpatial = 1e-9; % seconds
+Par.dtSpin = 1e-9; % seconds
 Par.nSteps = 250;
 Par.nTraj = 400;
 
@@ -458,6 +471,7 @@ To simulate a cw EPR spectrum using an MD trajectory with a direct model (we ass
 </p>
 
 <pre class="matlab">
+clear
 Sys.g = [2.009, 2.006, 2.002];
 Sys.Nucs = '14N';
 Sys.A = mt2mhz([6,6,36]/10);    % hyperfine tensor, G -> MHz
@@ -465,7 +479,7 @@ Sys.A = mt2mhz([6,6,36]/10);    % hyperfine tensor, G -> MHz
 Exp.mwFreq = 9.4; % GHz
 
 Par.Model = 'MD-direct';
-Par.Dt = 1e-9; % seconds
+Par.dtSpin = 1e-9; % seconds, Par.dtSpatial is not needed for MD-direct
 Par.nSteps = 250;
 Par.nOrients = 400;
 
