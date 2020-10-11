@@ -316,7 +316,7 @@ if FieldSweep
       Stretch = 1.25;
       Exp.CenterSweep = [Center, Stretch*Sweep];
     else
-      error('Cannot automatically determine field range.\nPlease given either Exp.CenterSweep or Exp.Range.');
+      error(sprintf('Cannot automatically determine field range.\nPlease provide either Exp.CenterSweep or Exp.Range.'));
     end
   end
 else
@@ -1182,7 +1182,7 @@ if ConvolutionBroadening
       if HarmonicL==0
         % Skip convolution, since it has no effect with such a narrow delta-like Lorentzian.
       else
-        error('Lorentzian linewidth is smaller than increment - cannot perform convolution.');
+        error(sprintf('Lorentzian linewidth is smaller than increment - cannot perform convolution.\nIncrease linewidth, or increase number of points, or narrow sweep range.'));
       end
     end
   end
@@ -1197,7 +1197,7 @@ if ConvolutionBroadening
       if HarmonicG==0
         % Skip convolution, since it has no effect with such a narrow delta-like Gaussian.
       else
-        error('Gaussian linewidth is smaller than increment - cannot perform convolution.');
+        error(sprintf('Gaussian linewidth is smaller than increment - cannot perform convolution.\nIncrease linewidth, or increase number of points, or narrow sweep range.'));
       end
     end
   end

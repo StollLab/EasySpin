@@ -58,6 +58,10 @@ end
 if nargin<1, FileName = pwd; end
 if nargin<2, Scaling = ''; end
 
+% Convert string to char array
+if isstring(FileName)
+  FileName = char(FileName);
+end
 LocationType = exist(FileName,'file');
 
 if LocationType==7 % a directory
@@ -86,7 +90,7 @@ end
 [p,Name,FileExtension] = fileparts(FileName);
 FullBaseName = fullfile(p,Name);
 
-if isempty(FileExtension)
+if isempty(FileExtension) || length(FileExtension) < 2
   if exist([FullBaseName '.dta'],'file'), FileExtension = '.dta'; end
   if exist([FullBaseName '.DTA'],'file'), FileExtension = '.DTA'; end
   if exist([FullBaseName '.spc'],'file'), FileExtension = '.spc'; end

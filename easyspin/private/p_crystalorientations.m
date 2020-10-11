@@ -37,7 +37,7 @@ if rotateSample
     error('Exp.SampleRotation must be of the form {rho,nL}, with the rotation angle rho and the lab-frame rotation axis nL.');
   end
   if numel(rho)~=1
-    error('Exp.SampleRotation can accommodate only one rotation angle.');
+    error('Exp.SampleRotation: the first element must the rotation angle rho.');
   end
   R_sample = rotaxi2mat(nRot,rho).'; % transpose because it's an active rotation
 end
