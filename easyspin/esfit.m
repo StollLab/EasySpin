@@ -842,6 +842,7 @@ else
   newFitSet.bestvalues = bestvalues;
   TargetKey = {'fcn','int','iint','diff','fft'};
   newFitSet.Target = TargetKey{FitOpts.TargetID};
+  newFitSet.Scaling = FitOpts.Scaling;
   if numel(FinalSys)==1
     newFitSet.Sys = FinalSys{1};
   else
