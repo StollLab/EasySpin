@@ -24,10 +24,11 @@ end
 
 % Comparison
 if ~isempty(olddata)
-  ok(1) = areequal(data.ya0,olddata.ya0);
-  ok(2) = areequal(data.yd0,olddata.yd0);
-  ok(3) = areequal(data.ya1,olddata.ya1);
-  ok(4) = areequal(data.yd1,olddata.yd1);
+  thr = 1e-10;
+  ok(1) = areequal(data.ya0,olddata.ya0,thr,'rel');
+  ok(2) = areequal(data.yd0,olddata.yd0,thr,'rel');
+  ok(3) = areequal(data.ya1,olddata.ya1,thr,'rel');
+  ok(4) = areequal(data.yd1,olddata.yd1,thr,'rel');
 else
   ok = [];
 end
