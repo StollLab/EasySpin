@@ -324,7 +324,7 @@ if strcmp(Opt.SimulationMode,'fast')
           ExperimentNames = {'2pESEEM','3pESEEM','4pESEEM','HYSCORE','MimsENDOR'};
           plotQuadratureSignal = ~PredefinedExperiment && ~isreal(out.td);
           if plotQuadratureSignal
-            h = plot(x1,real(out.td),x1,imag(out.td));
+            plot(x1,real(out.td),x1,imag(out.td));
             legend('Re','Im');
             legend boxoff
           else
@@ -337,7 +337,7 @@ if strcmp(Opt.SimulationMode,'fast')
           ylim(yl+[-1 1]*diff(yl)*0.1);
           
           if PredefinedExperiment
-            ExperimentID = strmatch(Exp.Sequence,ExperimentNames);
+            ExperimentID = find(strcmp(Exp.Sequence,ExperimentNames));
             xlb = {'\tau (\mus)','\tau+T (\mus)','T (\mus)','...','frequency (MHz)'};
             xlabel(xlb{ExperimentID});
             ylabel('echo amplitude');
@@ -483,7 +483,7 @@ if strcmp(Opt.SimulationMode,'fast')
     end
     
     ExperimentNames = {'2pESEEM','3pESEEM','4pESEEM','HYSCORE','MimsENDOR'};
-    ExperimentID = strmatch(Exp.Sequence,ExperimentNames);
+    ExperimentID = find(strcmp(Exp.Sequence,ExperimentNames));
     if isempty(ExperimentID)
       error('Exp.Sequence ''%s'' not recognized.',Exp.Sequence);
     end
@@ -518,7 +518,7 @@ if strcmp(Opt.SimulationMode,'fast')
         error('Exp.tau is missing.');
       end
     end
-    if (ExperimentID>1) && all(Exp.tau==0)
+    if ExperimentID>1 && all(Exp.tau==0)
       error('Exp.tau must be larger than 0.');
     end
     
@@ -590,7 +590,7 @@ if strcmp(Opt.SimulationMode,'fast')
     if isENDOR
       Exp.nPoints = 1001;
     else
-      if (nDimensions==1)
+      if nDimensions==1
         Exp.nPoints = 512;
       else
         Exp.nPoints = [1 1]*256;
@@ -631,7 +631,7 @@ if strcmp(Opt.SimulationMode,'fast')
     % Validate incrementation scheme: assert all delays are nonnegative
     for iInterval = 1:nIntervals
       iDim = abs(Exp.Inc(iInterval));
-      if (iDim==0)  % delay is kept constant
+      if iDim==0  % delay is kept constant
         t_range = Exp.t(iInterval)*[1 1];
       else % delay is incremented/decremented
         t_range = Exp.t(iInterval) + sign(Exp.Inc(iInterval))*(Exp.nPoints(iDim)-1)*Exp.dt(iDim);
@@ -653,7 +653,7 @@ if strcmp(Opt.SimulationMode,'fast')
       pathwayList = sf_pathways(Exp);
     end
     nPathways = size(pathwayList,1);
-    if (nPathways==0)
+    if nPathways==0
       error('Sorry, no focused echo with this sequence and timings.');
     end
     
@@ -666,7 +666,7 @@ if strcmp(Opt.SimulationMode,'fast')
       if ~ischar(Exp.Filter)
         error('Exp.Filter must be a string containing ''0'', ''1'', ''a'', ''b'', ''+'', ''-'' and/or ''.''.');
       end
-      if (numel(Exp.Filter)~=nIntervals)
+      if numel(Exp.Filter)~=nIntervals
         error('Exp.Filter must have %d elements instead of the given %d elements.',nIntervals,numel(Exp.Filter));
       end
       for iInt = 1:nIntervals
@@ -685,7 +685,7 @@ if strcmp(Opt.SimulationMode,'fast')
         pathwayList = pathwayList(keep,:);
       end
       nPathways = size(pathwayList,1);
-      if (nPathways==0)
+      if nPathways==0
         error('Exp.Filter is too restrictive: no echo at detection point left after applying the filter.');
       end
     else
@@ -738,7 +738,7 @@ if strcmp(Opt.SimulationMode,'fast')
     idxIncL = idxFreeL(:,Exp.Inc~=0);
     idxIncR = idxFreeR(:,Exp.Inc~=0);
     
-    if (EasySpinLogLevel>0)
+    if EasySpinLogLevel>0
       logmsg(1,'  Pathways and prefactors:');
       Str = 'ab+-';
       for iPathway = 1:nPathways
@@ -792,7 +792,7 @@ if strcmp(Opt.SimulationMode,'fast')
         if numel(Exp.t2)>1
           error('Exp.t2 must a single positive number, in units of us.');
         end
-        if (Exp.t1~=Exp.t2)
+        if Exp.t1~=Exp.t2
           fprintf('Exp.t1 and Exp.t2 are not identical, so the resulting spectrum might be asymmetric.\n');
         end
     end
@@ -800,7 +800,7 @@ if strcmp(Opt.SimulationMode,'fast')
   
   
   OrientationSelection = isfield(Exp,'mwFreq');
-  if (OrientationSelection)
+  if OrientationSelection
     logmsg(1,'Microwave frequency given: orientation selection is on.');
     if ~isfield(Exp,'ExciteWidth')
       error('Orientation selection: Exp.ExciteWidth (in MHz) missing. It should be about the inverse of the first pulse length (100MHz for 10ns). If you don''t want orientation selection, set it to a very large number (1e6) or remove the microwave frequency.');
@@ -856,48 +856,49 @@ if strcmp(Opt.SimulationMode,'fast')
   
   % ProductRule: determines whether product rule is used or not
   if ~isfield(Opt,'ProductRule'), Opt.ProductRule = 0; end
-  if (Sys.nNuclei==1), Opt.ProductRule = 0; end
-  %if (isENDOR), Opt.ProductRule = 1; end
+  if Sys.nNuclei==1, Opt.ProductRule = 0; end
+  %if isENDOR, Opt.ProductRule = 1; end
   
   % EndorMethod: how to simulate the effect of the RF pulse in ENDOR
-  if ~isfield(Opt,'EndorMethod')
-    % 0 = sum-over-transitions, adjacent level population swap (wrong for >1 nucleus)
-    % 1 = sum-over-transitions, bandwidth-filtered Iy pi pulse on all nuclei
-    % 2 = frequency sweep, bandwidth-filtered Iy pi pulse on all nuclei
-    if numel(shfNuclei)==1 || Opt.ProductRule
-      Opt.EndorMethod = 0;
-    else
-      Opt.EndorMethod = 1;
+  if isENDOR
+    if ~isfield(Opt,'EndorMethod')
+      % 0 = sum-over-transitions, adjacent level population swap (wrong for >1 nucleus)
+      % 1 = sum-over-transitions, bandwidth-filtered Iy pi pulse on all nuclei
+      % 2 = frequency sweep, bandwidth-filtered Iy pi pulse on all nuclei
+      if numel(shfNuclei)==1 || Opt.ProductRule
+        Opt.EndorMethod = 0;
+      else
+        Opt.EndorMethod = 1;
+      end
+    end
+    switch Opt.EndorMethod
+      case 0, logmsg(1,'using population swaps of adjacent nuclear sublevels');
+      case 1, logmsg(1,'using bandwidth-filtered Iy pi pulse, sum over transitions');
+      case 2, logmsg(1,'using bandwidth-filtered Iy pi pulse, full RF sweep');
+      otherwise, error('Unknown setting for Opt.EndorMethod. Must be 0, 1, or 2.');
+    end
+    if Opt.EndorMethod==0 && numel(shfNuclei)>1 && ~Opt.ProductRule
+      error('Opt.EndorMethod=0 gives incorrect results for multiple nuclei.')
     end
   end
-  switch Opt.EndorMethod
-    case 0, logmsg(1,'using population swaps of adjacent nuclear sublevels');
-    case 1, logmsg(1,'using bandwidth-filtered Iy pi pulse, sum over transitions');
-    case 2, logmsg(1,'using bandwidth-filtered Iy pi pulse, full RF sweep');
-    otherwise, error('Unknown setting for Opt.EndorMethod. Must be 0, 1, or 2.');
-  end
-  if Opt.EndorMethod==0 && numel(shfNuclei)>1 && ~Opt.ProductRule
-    error('Opt.EndorMethod=0 gives incorrect results for multiple nuclei.')
-  end
-  
   
   % Expansion factor: determines size of spectral buffer
   if ~isfield(Opt,'Expand')
-    if (nDimensions==1), Opt.Expand = 4; else, Opt.Expand = 2; end
+    if nDimensions==1, Opt.Expand = 4; else, Opt.Expand = 2; end
   end
   maxExpand = 8;
-  if (numel(Opt.Expand)~=1) || (Opt.Expand<0) || (Opt.Expand>maxExpand) || rem(Opt.Expand,1)
+  if numel(Opt.Expand)~=1 || Opt.Expand<0 || Opt.Expand>maxExpand || rem(Opt.Expand,1)
     error('Opt.Expand must be an integer between 0 and %d.',maxExpand);
   end
     
-  if (any(realPulse) && Opt.ProductRule)
+  if any(realPulse) && Opt.ProductRule
     error('saffron: Cannot apply product rule and real pulses at the same time.');
   end
   
   if ~isfield(Opt,'OriThreshold'), Opt.OriThreshold = 0.005; end
   
   if ~isfield(Opt,'Window')
-    if (nDimensions==1), Opt.Window = 'ham+'; else Opt.Window = 'ham+'; end
+    if nDimensions==1, Opt.Window = 'ham+'; else, Opt.Window = 'ham+'; end
   end
   
   if ~isfield(Opt,'ZeroFillFactor')
@@ -1023,7 +1024,7 @@ if strcmp(Opt.SimulationMode,'fast')
       
       % Nuclear quadrupole ---------------------------------------------
       Hnq_ = 0;
-      if (Sys.I(iNuc)>=1)
+      if Sys.I(iNuc)>=1
         if Sys.fullQ
           Q = Sys.Q((iNuc-1)*3+(1:3),:);
         else
@@ -1108,7 +1109,7 @@ if strcmp(Opt.SimulationMode,'fast')
         logmsg(1,'  %d points, expand x%d -> %d points',Exp.nPoints,ExpansionFactor,nPointsF);
       end
       % allocate array(s)
-      if (nDimensions==1), siz = [1, nPointsF]; else siz = nPointsF; end
+      if nDimensions==1, siz = [1, nPointsF]; else siz = nPointsF; end
       if Opt.ProductRule
         for iP = 1:nPathways
           for iS = 1:nSubSpaces
@@ -1157,7 +1158,7 @@ if strcmp(Opt.SimulationMode,'fast')
     Opt.nOffsets = 1;
   end
   
-  if (TwoElectronManifolds)
+  if TwoElectronManifolds
     g = Sys.g;
     if ~Sys.fullg
       Rg = erot(Sys.gFrame).'; % g frame -> molecular frame
@@ -1171,19 +1172,19 @@ if strcmp(Opt.SimulationMode,'fast')
     
     % Get magnetic field orientation
     %------------------------------------------------------------------
-    [xLab_M,yLab_M,zLab_M] = erot(Orientations(iOri,:),'rows');
+    [~,yLab_M,zLab_M] = erot(Orientations(iOri,:),'rows');
     % xLab_M, yLab_M, zLab_M represented in the molecular frame
     
     % Compute electronic Hamiltonian, energies and <S>
     %------------------------------------------------------------------
-    if (TwoElectronManifolds)
+    if TwoElectronManifolds
       
-      if (OrientationSelection)
+      if OrientationSelection
         OriSelWeight = gOriSelWeight(iOri);
       else
         OriSelWeight = 1;
       end
-      if (OriSelWeight<Opt.OriThreshold)
+      if OriSelWeight<Opt.OriThreshold
         nSkippedOrientations = nSkippedOrientations + 1;
         continue
       end
@@ -1208,7 +1209,7 @@ if strcmp(Opt.SimulationMode,'fast')
       SyLab = abs(eV'*SyLab*eV);
       maxSyy = max(SyLab(:));
       
-      if (OrientationSelection)
+      if OrientationSelection
         dE = bsxfun(@minus,eE,eE.') - Exp.mwFreq*1e3; % MHz
         excitationAmplitude = exp(-(dE/Exp.ExciteWidth).^2);
         SyLab = SyLab.*excitationAmplitude;
@@ -1236,7 +1237,7 @@ if strcmp(Opt.SimulationMode,'fast')
       Transitions = [u,v];
       nTransitions = size(Transitions,1);
       
-      if (nTransitions==0)
+      if nTransitions==0
         nSkippedOrientations = nSkippedOrientations + 1;
         continue
       end
@@ -1363,16 +1364,16 @@ if strcmp(Opt.SimulationMode,'fast')
                 
                 % Free evolution propagator
                 t = Exp.t(iInt);
-                if (t>0)
-                  if (idxFreeL(iPathway,iInt)==1), E = Ea; else, E = Eb; end
+                if t>0
+                  if idxFreeL(iPathway,iInt)==1, E = Ea; else, E = Eb; end
                   Left = diag(exp(-2i*pi*E*t)) * Left;
-                  if (idxFreeR(iPathway,iInt)==1), E = Ea; else, E = Eb; end
+                  if idxFreeR(iPathway,iInt)==1, E = Ea; else, E = Eb; end
                   Right = Right * diag(exp(+2i*pi*E*t));
                 end
                 
                 % Conclude block and start next one
                 if increments(iInt)~=0
-                  if (iBlock==0)
+                  if iBlock==0
                     G = Left*Right;
                     if numel(G)==1
                       G = G*eyeN;
@@ -1439,7 +1440,7 @@ if strcmp(Opt.SimulationMode,'fast')
                 G2 = Mt*G_; D2 = Mt*D_;
                 
                 % Evolve density matrices after second pi/2 pulse
-                if (Exp.T~=0)
+                if Exp.T~=0
                   q_ = exp(-2i*pi*Ea*Exp.T); G1 = (q_*q_').*G1;
                   q_ = exp(-2i*pi*Eb*Exp.T); G2 = (q_*q_').*G2;
                 end
@@ -1566,11 +1567,11 @@ if strcmp(Opt.SimulationMode,'fast')
                 Tl1 = Mt; Tr1 = M;
                 Tl2 = M; Tr2 = Mt;
                 
-                if (Exp.t1~=0)
+                if Exp.t1~=0
                   q_ = exp(-2i*pi*Exp.t1*Ea); G1 = (q_*q_').*G1;
                   q_ = exp(-2i*pi*Exp.t1*Eb); G2 = (q_*q_').*G2;
                 end
-                if (Exp.t2~=0)
+                if Exp.t2~=0
                   q_ = exp(+2i*pi*Exp.t2*Eb); D1 = (q_*q_').*D1;
                   q_ = exp(+2i*pi*Exp.t2*Ea); D2 = (q_*q_').*D2;
                 end
@@ -1610,7 +1611,7 @@ if strcmp(Opt.SimulationMode,'fast')
                 Tl1 = Mt; Tr1 = M;
                 Tl2 = M; Tr2 = Mt;
                 
-                if (Exp.T~=0)
+                if Exp.T~=0
                   q_ = exp(-2i*pi*Exp.T*Ea); G1 = (q_*q_').*G1;
                   q_ = exp(-2i*pi*Exp.T*Eb); G2 = (q_*q_').*G2;
                   q_ = exp(+2i*pi*Exp.T*Eb); D1 = (q_*q_').*D1;
@@ -1650,7 +1651,7 @@ if strcmp(Opt.SimulationMode,'fast')
                 G1 = G_*Mt; D1 = D_*Mt;
                 G2 = Mt*G_; D2 = Mt*D_;
                 
-                if (Exp.T~=0)
+                if Exp.T~=0
                   q_ = exp(-2i*pi*Exp.T*Ea); G1 = (q_*q_').*G1;
                   q_ = exp(-2i*pi*Exp.T*Eb); G2 = (q_*q_').*G2;
                 end
@@ -1684,7 +1685,7 @@ if strcmp(Opt.SimulationMode,'fast')
                 D = M;
                 T1left = Mt;
                 T1right = Mt;
-                if (Exp.tau>0)
+                if Exp.tau>0
                   Q_ = exp(-2i*pi*Exp.tau*Ea)*exp(-2i*pi*Exp.tau*Eb)';
                   G = Q_.*G;
                   D = conj(Q_).*D;
@@ -1723,7 +1724,7 @@ if strcmp(Opt.SimulationMode,'fast')
                 thistd = pathwaytd{iPathway,iSpace};
               else
                 pathwaybuff = complex(pathwaybuffRe{iPathway,iSpace},pathwaybuffIm{iPathway,iSpace});
-                if (nDimensions==1)
+                if nDimensions==1
                   thistd = ifft(pathwaybuff)*nPointsF;
                   thistd = thistd(1:Exp.nPoints);
                 else
@@ -1783,7 +1784,7 @@ if strcmp(Opt.SimulationMode,'fast')
       else
         logmsg(1,'Postprocessing...');
         buff = complex(buffRe,buffIm);
-        if (nDimensions==1)
+        if nDimensions==1
           td = ifft(buff)*numel(buff);
           td = td(1:Exp.nPoints);
         else
@@ -1827,7 +1828,6 @@ if strcmp(Opt.SimulationMode,'fast')
       case 4 % HYSCORE
         t1 = (0:Exp.nPoints(1)-1)*Exp.dt(1) + Exp.t1;
         t2 = (0:Exp.nPoints(2)-1)*Exp.dt(2) + Exp.t2;
-        t = {t1,t2};
       case 5 % Mims ENDOR
         t1 = (0:Exp.nPoints-1)*Exp.dt;
     end
@@ -1873,7 +1873,7 @@ if strcmp(Opt.SimulationMode,'fast')
         if DataProcessing
           
           % Decay correction
-          if (DecayAdded)
+          if DecayAdded
             [kk,cc,tdfit] = exponfit(t1,td,1);
             tdx = td - tdfit;
           else
@@ -1898,7 +1898,7 @@ if strcmp(Opt.SimulationMode,'fast')
         
       case 2
         if DataProcessing
-          if (DecayAdded)
+          if DecayAdded
             tdx = basecorr(td,[1 2],[2 2]);
           else
             tdx = basecorr(td,[1 2],[0 0]);
@@ -1920,7 +1920,7 @@ if strcmp(Opt.SimulationMode,'fast')
     
     % Collect output structure
     if DataProcessing
-      if (nDimensions==2), out.f1 = f1; out.f2 = f2; else out.f = f1; end
+      if nDimensions==2, out.f1 = f1; out.f2 = f2; else, out.f = f1; end
       out.fd = fd;
     else
       out = [];
@@ -1949,8 +1949,8 @@ if strcmp(Opt.SimulationMode,'fast')
   else
     switch nargout
       case 1, varargout = {td};
-      case 2, if (nDimensions==2), varargout = {{t1,t2},td}; else, varargout = {t1,td}; end
-      case 3, if (nDimensions==2), varargout = {{t1,t2},td,out}; else, varargout = {t1,td,out}; end
+      case 2, if nDimensions==2, varargout = {{t1,t2},td}; else, varargout = {t1,td}; end
+      case 3, if nDimensions==2, varargout = {{t1,t2},td,out}; else, varargout = {t1,td,out}; end
     end
   end
   
@@ -2136,9 +2136,9 @@ end
 % Report performance
 %===============================================================
 [Hours,Minutes,Seconds] = elapsedtime(StartTime,clock);
-if (Hours>0)
+if Hours>0
   msg = sprintf('saffron took %dh%dm%0.3fs',Hours,Minutes,Seconds);
-elseif (Minutes>0)
+elseif Minutes>0
   msg = sprintf('saffron took %dm%0.3fs',Minutes,Seconds);
 else
   msg = sprintf('saffron took %0.3fs',Seconds);
@@ -2160,7 +2160,7 @@ return
 %=======================================================================
 % is faster for (128*4, 128*8, 128*16; 256*4, 256*8; 512*4, 512*8)
 function td = ifft2dpartial(spc,N,usePartialIFFT)
-if (usePartialIFFT)
+if usePartialIFFT
   % IFFT along one dim, pick 1:N, IFFT along the other, pick 1:N
   td = ifft(spc,[],1);
   td = ifft(td(1:N(1),:),[],2);
@@ -2313,7 +2313,7 @@ FreeL = PropL(idx);
 FreeR = PropR(idx);
 
 % Display formula
-if (Display)
+if Display
   decode = 'ab+-';
   ecode = 'AB';
   for i = 1:size(ctp,1)
