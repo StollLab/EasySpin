@@ -560,10 +560,6 @@ if ~ischar(Opt.Diagnostics) && ~isempty(Opt.Diagnostics) && ~isvarname(Opt.Diagn
 end
 saveDiagnostics = ~isempty(Opt.Diagnostics);
 
-if isfield(Opt,'Method')
-  error('Opt.Method is not supported. Use Opt.LiouvMethod instead.');
-end
-
 % Determine default method for constructing Liouvillian
 if ~isfield(Opt,'LiouvMethod') || isempty(Opt.LiouvMethod)
   if (Sys.nElectrons==1) && (Sys.S==1/2) && (Sys.nNuclei<=2) && ...
@@ -982,7 +978,7 @@ end
 % Calculate diffusion operator matrix
 %-------------------------------------------------------------------------------
 % Pre-calculate diffusion operator Wigner expansion coefficient
-% (needed for both Opt.Method='fast' and 'general')
+% (needed for both Opt.LiouvMethod='fast' and 'general')
 if usePotential
   logmsg(1,'Calculating Wigner expansion coefficients for potential-dependent part of diffusion matrix');
   XLMK = chili_xlmk(Potential,Dynamics.R);
