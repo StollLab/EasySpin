@@ -167,14 +167,17 @@ chisim_si = (4*pi*1e-6) *chisim_cgs ; % convert to SI units
 <div class="subtitle" name="output">Specifying the type of output</div>
  
 <p>
-Several representations for magnetometry data and simulation exists. You can get all of them, or only those which are wanted, from <code>curry</code>:
+<code>curry</code> can calculate a variety of quantities related to magnetic susceptility and magnetic moment. Use <code>Opt.Output</code> to determine what <code>curry</code> should calculate. One or more keywords are possible. A few examples are
+
 <pre class="matlab">
-Opt.Output = 'MvsBSI ChiSI ChiTSI 1overChiSI MuEffSI MvsBCGS ChiCGS ChiTCGS 1overChiCGS MuEffCGS';
-[MvsBSI, ChiSI, ChiTSI, OneOverChiSI, MuEffSI, MvsBCGS, ChiCGS, ChiTCGS, OneOverChiCGS, MuEffCGS] = curry(Sys,Exp,Opt);
+Opt.Output = 'muBM';           % single-center magnetic moment in units of Bohr magnetons
+Opt.Output = 'chimol';         % molar magnetic susceptibility
+Opt.Output = 'chimolT';        % molar magnetic susceptibility times temperature
+Opt.Output = 'muBM chimolT';   % calculate the two quantities
 </pre>
 
 <p>
-The number of output arguments must match the number of keywords in <code>Output</code>. The quantity of the first keyword will be in the first output and so on. Be careful:
+The number of output arguments of <code>curry</code>must match the number of keywords in <code>Output</code>. The quantity of the first keyword will be in the first output and so on. Be careful:
 
 <pre class="matlab">
 Opt.Output = 'chimol muBM';         % reverse order to the default
@@ -309,7 +312,7 @@ For most spin systems it is not recommended to fit &chi;<sub>zz</sub>. Instead &
 Sys1 = struct('S', 2, 'g', [2.1 1.9], 'D',clight*1e-4); % spin 2 with D of 1 cm-1 and axial g
 Sys2 = struct('S', 2, 'g', 1.9, 'D',clight*1e-4);       % spin 2 with D of 1 cm-1 and isotropic g
 
-Exp.Temperature =1:300;
+Exp.Temperature = 1:300;
 Opt.Output = 'ChiTCGs ChiCGS';
 [chizzT1,chizz1] = curry(Sys1,Exp,Opt);
 [chizzT2,chizz2] = curry(Sys2,Exp,Opt);
@@ -338,10 +341,10 @@ Exp.chiField =[100,500];
 Exp.mTemperature =[2,5,10];
 Exp.mField =0:100:7000;
 
-% set output to ChiT and MvsB in 1-coloumn array
+% Det output to ChiT and MvsB in 1-coloumn array
 Opt.Output = 'ChiTCGs MvsB OneColoumn'; 
 
-% no scaling! Assuming correct diamagnetic corrections and 
+% No scaling! Assuming correct diamagnetic corrections and 
 % sample weight measure the absolute value contain valuable information!
 FitOpt.Scaling = 'none';
 
