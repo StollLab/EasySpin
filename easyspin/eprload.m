@@ -1470,7 +1470,11 @@ nPoints = numel(data.Values(1).Values);
 nPhases = numel(data.Values(1).Values(1).Points);
 
 % Read 1D or 2D data
-phase0 = data.Phase;
+if isfield(data,'Phase')
+  phase0 = data.Phase;
+else
+  phase0 = 0;
+end
 s = sin(2*pi*(0:nPhases-1).'/nPhases + phase0);
 spc = zeros(nPoints,nSpectra);
 for iSpectrum = 1:nSpectra
