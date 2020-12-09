@@ -2330,25 +2330,25 @@ end
 
 function [Sys] = rotatesystem(Sys,angles)
 
-rotatable = {'g' 'A' 'Q' 'D' 'ee' 'nn'};
+R_L2M = erot(angles).'; % lab frame -> molecular frame
 
-fields2rotate = rotatable(isfield(Sys,rotatable));
+tensors = {'g', 'A', 'Q', 'D', 'ee', 'nn'};
+tensors2rotate = tensors(isfield(Sys,tensors));
 
-for iField = 1 : numel(fields2rotate)
+for t = 1 : numel(tensors2rotate)
   
-  field_ = [fields2rotate{iField} 'Frame'];
+  tFrame_ = [tensors2rotate{t} 'Frame'];
   
-  nRows = size(Sys.(field_),1);
-  nCol = size(Sys.(field_),2)/3;
+  ang = Sys.(tFrame_);
   
-  for iRow = 1 : nRows
-    for iCol = 1 : nCol
-      R0 = erot(Sys.(field_)(iRow,3*(iCol-1)+1:3*iCol));
-      R1 = erot(angles);
-      
-      Sys.(field_)(iRow,3*(iCol-1)+1:3*iCol) = eulang(R0*R1);
+  for iRow = 1 : size(ang,1)
+    for iCol = 1 : size(ang,2)/3
+      colidx = 3*(iCol-1)+1:3*iCol;
+      R_M2T = erot(ang(iRow,colidx)); % molecular frame -> tensor frame
+      ang(iRow,colidx) = eulang(R_M2T*R_L2M);
     end
   end
   
+  Sys.(tFrame_) = ang;
+  
 end
-
