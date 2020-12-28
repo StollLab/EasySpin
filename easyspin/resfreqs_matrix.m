@@ -190,7 +190,7 @@ if ~isfield(Opt,'Sites'), Opt.Sites = []; end
 DefaultOptions.Transitions = [];
 DefaultOptions.Threshold = 1e-4;
 DefaultOptions.Hybrid = 0;
-DefaultOptions.HybridNuclei = [];
+DefaultOptions.HybridCoreNuclei = [];
 
 % undocumented fields
 DefaultOptions.nTRKnots = 3;
@@ -256,15 +256,14 @@ if (CoreSys.nNuclei>=1) && Opt.Hybrid
   
   Nucs = nucstring2list(CoreSys.Nucs);
   
-  if any(Opt.HybridNuclei>CoreSys.nNuclei)
-    error('Opt.HybridNuclei is incorrect!');
+  if any(Opt.HybridCoreNuclei>CoreSys.nNuclei)
+    error('Opt.HybridCoreNuclei is incorrect!');
   end
   perturbNuclei = ones(1,CoreSys.nNuclei);
-  perturbNuclei(Opt.HybridNuclei) = 0;
+  perturbNuclei(Opt.HybridCoreNuclei) = 0;
   
   idx = find(perturbNuclei);
   % :TODO: Allow 1st-order PT only if (2nd-order) error smaller than field increment.
-  idx = find(idx);
   nPerturbNuclei = numel(idx);
   str1 = sprintf('%d ',idx);
   if isempty(str1), str1 = 'none'; end
