@@ -4,7 +4,7 @@ function [varargout] = s_sequencer(Exp,Opt)
 logmsg(1,'-validating pulse sequence-----------------------------');
 
 % Validate the input and select a propagation engine
-predefinedExperiment = isfield(Exp,'Sequence') && ischar(Exp.Sequence);
+predefinedExperiment = isfield(Exp,'Sequence') && (ischar(Exp.Sequence) || isstring(Exp.Sequence));
 
 message = []; % initialize message that explains the choice of simulation algorithm - 'fast' or 'general'
 
@@ -315,7 +315,7 @@ if isfield(Exp,'DetWindow')
 elseif isfield(Exp,'DetSequence')
   % setting up detection in case of Exp.DetSequence
   logmsg(1,'  setting up detection:');
-  if ischar(Exp.DetSequence)
+  if ischar(Exp.DetSequence) || isstring(Exp.DetSequence)
     % parsing strings
     if strcmp(Exp.DetSequence,'last')
       Exp.DetSequence = zeros(1,length(Exp.Sequence));
@@ -560,7 +560,7 @@ Pulses = cell(1,nPulses);
 iPulse = 1;
 
 if isfield(Exp,'mwPolarization')
-  if ~ischar(Exp.mwPolarization)
+  if ~ischar(Exp.mwPolarization) && ~isstring(Exp.mwPolarization)
     error('Exp.mwPolarization has to be ''linear'' or ''circular''.')
   end
 end
