@@ -15,8 +15,8 @@ Sys.lw = [0.0, 0.1]; % mT
 
 Exp.mwFreq = 9.4;
 
-Par.dt = 1e-9; % s
-Par.Dt = Par.dt;
+Par.dtSpatial = 1e-9; % s
+Par.dtSpin = Par.dtSpatial;
 Par.nSteps = 150;
 Par.nTraj = 50;
 Par.Model = 'diffusion';

@@ -36,9 +36,9 @@ Sys.tcorr = 2e-9;
 Sys.lw = [0.1, 0.1];
 
 T = 250e-9;
-Par.dt = 0.5e-9;
-Par.Dt = Par.dt;
-Par.nSteps = ceil(T/Par.dt);
+Par.dtSpatial = 0.5e-9;
+Par.dtSpin = Par.dtSpatial;
+Par.nSteps = ceil(T/Par.dtSpin);
 
 Par.Model = 'MD-HBD';
 Par.nOrients = 100;

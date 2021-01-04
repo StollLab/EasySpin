@@ -17,9 +17,10 @@ Sys.lw = [0.0, 0.1];
 Exp.mwFreq = 9.4;
 
 Par.nTraj = 200;
-Par.dt = 2e-9;
+Par.dtSpatial = 2e-9; % dwell time, s
+Par.dtSpin = 2e-9;
 Par.Model = 'jump';
-Par.nSteps = ceil(200e-9/Par.dt);
+Par.nSteps = ceil(200e-9/Par.dtSpin);
 Par.nOrients = 400;
 
 Opt.Verbosity = 1;

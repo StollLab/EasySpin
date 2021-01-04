@@ -5,72 +5,61 @@
 
 clear, clf
 
-% Define the Th system. It contains high-order spin term!
-b = -2527.53/60; c = -24.84/1260;
+% Define the Tb Hamiltonian. It contains high-order spin terms.
+b = -2527.53/60;
 B40 = b; B44 = 5*b;
+c = -24.84/1260;
 B60 = c; B64 = -21*c;
 Tb.S = 7/2;
 Tb.g = 2.0136;
-Tb.B4 = [B44 0 0 0 B40];
-Tb.B6 = [0 0 B64 0 0 0 B60];
+Tb.B4 =     [B44 0 0 0 B40 0 0 0 0];
+Tb.B6 = [0 0 B64 0 0 0 B60 0 0 0 0 0 0];
 
-% Computer the energy level diagram using EasySpin's level() function
-N = 200;
-maxB = 2500;
-extB = linspace(0,maxB,N); % mT
-E = levels(Tb,0,0,extB)/1e3;
+% Compute the energy level diagram using EasySpin's levels() function
+B0max = 2500;
+B0 = linspace(0,B0max,200); % mT
+E = levels(Tb,'z',B0)/1e3;
 
 % Plot the energy level diagram
-h = plot(extB,E,'k');
-set(h,'LineWidth',2);
-xlabel('magnetic field [mT]');
-ylabel('energy [GHz]');
+h = plot(B0/1e3,E,'k');
+set(h,'LineWidth',1.5);
+xlabel('magnetic field (T)');
+ylabel('energy (GHz)');
 
-Params.Range = [0 maxB];
-Params.CrystalOrientation = [0 0 0]; % crystal orientation in spectrometer
+Exp.Range = [0 B0max];
+Exp.CrystalOrientation = [0 0 0]; % crystal orientation in spectrometer
 
-% Avoid screen flickering
-%set(gcf,'DoubleBuffer','on');
-
-% Define a set of microwave frequencies
-mwFreq = 10.^linspace(1,2.7,301);
+% Define a set of microwave frequencies (log scale)
+mwFreq = 10.^linspace(1,2.7,601); % GHz
 
 % Loop over all frequencies
-for iFreq = 1:length(mwFreq);
-  Params.mwFreq = mwFreq(iFreq); % GHz
+for iFreq = 1:numel(mwFreq)
+  Exp.mwFreq = mwFreq(iFreq); % GHz
   
-  % Compute the resonance fields using EasySpins's eigfields() function
-  resB = eigfields(Tb,Params);
-  
-  % Convert eigenfields to indices
-  idxB = 1 + (resB-extB(1))/(extB(2)-extB(1));
+  % Compute the resonance fields using EasySpins's eigfields()
+  resB = eigfields(Tb,Exp);
   
   % Delete old transition lines
   delete(findobj('Tag','resonance'));
 
   % Locate resonant transitions and plot transition lines
-  NN = size(E,2);
   % Loop over all resonance fields
-  for k= 1:length(idxB)
-    % Determine all energies for a resonance field
-    % (linear interpolation)
-    d = rem(idxB(k),1);
-    idx = fix(idxB(k));
-    Ei = E(idx,:)*(1-d) + E(idx+1,:)*d;
+  for k = 1:numel(resB)
+    % Determine all energies for a resonance field (linear interpolation)
+    E_ = interp1(B0,E,resB(k));
     
-    % Find the two levels u and v which are resonant
-    EE = repmat(Ei,NN,1);
-    EE = triu(EE-EE');
-    EE = triu(EE-EE')-Params.mwFreq;
-    [dum,tr] = min(abs(EE(:)));
-    [u,v] = ind2sub([NN,NN],tr);
+    % Calculate the offsets of all transitions from mwFreq
+    deltaE = E_ - E_.'; % transition energies
+    Eoffset = deltaE - Exp.mwFreq;
     
-    % Plot lines, label them with tag (for deletion)
-    line([resB(k) resB(k)], Ei([u v]),'Color','r','Tag','resonance');
+    % Find the two levels u and v which are closest to resonant
+    [~,tr] = min(abs(Eoffset(:)));
+    [u,v] = ind2sub(size(Eoffset),tr);
+    
+    % Plot lines, tag them (for deletion in next iteration)
+    line([resB(k) resB(k)]/1e3, E_([u v]),'Color','r','Tag','resonance');
   end
   
-  % Redraw.
+  % Redraw
   drawnow
 end
-
-% end

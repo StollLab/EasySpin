@@ -30,8 +30,8 @@ MD.DiffGlobal = 6e6;
 % -------------------------------------------------------------------------
 
 T = 250e-9; % length of FID
-Par.Dt = 1.0e-9;
-Par.nSteps = ceil(T/Par.Dt);
+Par.dtSpin = 1.0e-9;
+Par.nSteps = ceil(T/Par.dtSpin);
 
 Par.Model = 'MD-direct';
 Par.nOrients = 100;

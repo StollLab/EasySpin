@@ -6,17 +6,25 @@
 %  [t,Mx,My,Mz] = blochsteady(...)
 %
 %  Computes periodic steady-state solution of the Bloch equations
-%  for a single spin-1/2 in the presence of field modulation.
+%  for a single spin-1/2 in the presence of a sinusoidal field modulation.
 %
 %  Inputs:
 %    g        g value of the electron spin (S = 1/2)
-%    T1       longitudinal relaxation time, us
-%    T2       transverse relaxation time, us
+%    T1       longitudinal relaxation time constant, us
+%    T2       transverse relaxation time constant, us
 %
 %    DeltaB0  offset from resonance field, mT
 %    B1       microwave field amplitude, mT
-%    ModAmp   peak-to-peak field modulation amplitude, mT
+%    ModAmp   peak-to-peak modulation field amplitude, mT
 %    ModFreq  modulation frequency, kHz
+%
+%    Options  calculation options
+%      .Verbosity   whether to print information (0 or 1; 0 default)
+%      .nPoints     number of points, chosen automatically by default
+%      .kmax        highest Fourier order, chosen automatically by default
+%      .Method      calculation method for time-domain signal
+%                   'td'   explicit evolution in time-domain
+%                   'fft'  using inverse Fourier transform (default)
 %
 %  Outputs:
 %    t        time axis, us
@@ -48,7 +56,6 @@ if ~isfield(Options,'Verbosity'), Options.Verbosity = 0; end
 global EasySpinLogLevel
 EasySpinLogLevel = Options.Verbosity;
 
-
 logmsg(1,['=begin=blochsteady======' datestr(now) '=================']);
 
 if ~isfield(Options,'nPoints')
@@ -74,23 +81,24 @@ M0 = 1;  % equilibrium magnetization
 gamma = bmagn/hbar*g; % gyromagnetic ratio
 
 % Some range checks
-if numel(T1)~=1 || (T1<=0)
-  error('T2 must be a single nonnegative number.');
+if numel(T1)~=1 || T1<=0
+  error('T2 must be a single positive number.');
 end
-if numel(T2)~=1 || (T2<=0)
-  error('T2 must be a single nonnegative number.');
+if numel(T2)~=1 || T2<=0
+  error('T2 must be a single positive number.');
 end
-if (T2>T1)
+if T2>T1
   error('T2 cannot be larger than T1.');
 end
-if numel(B1)~=1 || (B1<=0)
-  error('The microwave field amplitude B1 must be a single nonnegative number.');
+
+if numel(B1)~=1 || B1<=0
+  error('The microwave field amplitude B1 must be a single positive number.');
 end
-if numel(ModFreq)~=1 || (ModFreq<=0)
-  error('The modulation frequency ModFreq must be a single nonnegative number.');
+if numel(ModFreq)~=1 || ModFreq<=0
+  error('The modulation frequency ModFreq must be a single positive number.');
 end
-if numel(ModAmp)~=1 || (ModAmp<=0)
-  error('The modulation amplitude ModAmp must be a single nonnegative number.');
+if numel(ModAmp)~=1 || ModAmp<=0
+  error('The modulation amplitude ModAmp must be a single positive number.');
 end
 if numel(DeltaB0)~=1
   error('The field offset must be a single number.');
@@ -127,7 +135,7 @@ end
 
 
 % Solve Bloch equation for steady-state in frequency domain
-%-------------------------------------------------------------------------------
+%--------------------------------------------------------------------------
 logmsg(1,'Frequency-domain steady-state solution');
 logmsg(1,'  Set up diagonals');
 k = (-kmax-1:kmax+1).'; % use max order kmax+1 to evaluate all terms
@@ -178,7 +186,7 @@ if ~onlyAbsorption
 end
 
 % Compute time evolution of components
-%-------------------------------------------------------------------------------
+%--------------------------------------------------------------------------
 logmsg(1,'Calculation of time-domain signal.');
 tPeriod = 1/ModFreq; % modulation period
 
@@ -254,7 +262,8 @@ switch Options.Method
     error('Unknown method.');
 end
 
-addLastPoint = false;
+% Add last point if plotting
+addLastPoint = nargout==0;
 if addLastPoint
   t(end+1) = 1/ModFreq;
   My(end+1) = My(1);
@@ -267,7 +276,7 @@ end
 t = t/1e-6;    % seconds -> microseconds, for output and plotting
 
 % Graphical rendering
-%-----------------------------------------------------------
+%--------------------------------------------------------------------------
 switch nargout
   case 2
     varargout = {t,My};
@@ -276,19 +285,28 @@ switch nargout
   case 7
     varargout = {t,Mx,My,Mz,Xk,Yk,Zk};
   case 0
-    subplot(2,1,1);
+    tx1 = acos(-DeltaB0*2/ModAmp)/omegam*1e6;
+    tx2 = t(end)-tx1;
+    reflineColor = [1 1 1]*0.7;
+    subplot(3,1,[1 2]);
     plot(t,My);
-    axis tight;
-    xlabel('time (\mus)');
-    ylabel('absorption');
-    title('Steady-state time-domain signal over one modulation period');
+    axis tight
+    xlabel('time (µs)');
+    ylabel('absorption signal');
+    title(sprintf('ModAmp = %g mT, ModFreq =  %g kHz, B_1 = %g mT',...
+        ModAmp*1e3,ModFreq/1e3,B1*1e3));
+    xline(tx1,'Color',reflineColor);
+    xline(tx2,'Color',reflineColor);
     
-    subplot(2,1,2);
-    plot(t,Mx);
-    axis tight;
-    xlabel('time (\mus)');
-    ylabel('dispersion');
-
+    subplot(3,1,3);
+    Bmod = ModAmp/2*1e3*cos(omegam*t*1e-6);
+    plot(t,Bmod);
+    yline(-DeltaB0*1e3,'Color',reflineColor);
+    xline(tx1,'Color',reflineColor);
+    xline(tx2,'Color',reflineColor);
+    axis tight
+    xlabel('time (µs)');
+    ylabel('modulation field (mT)');
 end
 
 logmsg(1,'=end=blochsteady========%s=================\n',datestr(now));

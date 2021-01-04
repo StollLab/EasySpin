@@ -20,10 +20,10 @@ Exp.mwFreq = 9.4;
 dt = Sys.tcorr/10;      % use a smaller time step to ensure that each 
                         % trajectory "feels" the orientational 
                         % restriction
-Par.Dt = dt;
-Par.dt = dt;
+Par.dtSpatial = dt;
+Par.dtSpin = 2e-9;
 
-Par.nSteps = ceil(200e-9/Par.dt);
+Par.nSteps = ceil(200e-9/Par.dtSpin);
 
 Par.Model = 'diffusion';
 Par.nTraj = 200;
@@ -39,6 +39,7 @@ ycard = spc/max(spc);
   
 % Simulate using chili (stochastic Liouville equation)
 
+Opt.LLMK = [4 0 2 2];
 Opt.nKnots = 15;
 
 [Bchili,spc] = chili(Sys, Exp, Opt);

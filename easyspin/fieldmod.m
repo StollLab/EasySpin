@@ -37,22 +37,22 @@
 
 function varargout = fieldmod(x,y,ModAmpl,Harmonic)
 
-if (nargin==0), help(mfilename); return; end
+if nargin==0, help(mfilename); return; end
 
 Display = (nargout==0);
 
-if (nargin<3) || (nargin>4), error('Wrong number of input arguments!'); end
-if (nargout<0), error('Not enough output arguments.'); end
-if (nargout>1), error('Too many output arguments.'); end
+if nargin<3 || nargin>4, error('Wrong number of input arguments!'); end
+if nargout<0, error('Not enough output arguments.'); end
+if nargout>1, error('Too many output arguments.'); end
 
 % Supplement arguments and check range.
-if (nargin<4), Harmonic = 1; end
-if numel(Harmonic)~=1 || (Harmonic<0) || ~isreal(Harmonic) || mod(Harmonic,1)
+if nargin<4, Harmonic = 1; end
+if numel(Harmonic)~=1 || Harmonic<0 || ~isreal(Harmonic) || mod(Harmonic,1)
   error('Harmonic must be a positive integer (1, 2, 3, etc)!');
 end
 
 % Check ModAmpl
-if (ModAmpl<=0)
+if ModAmpl<=0
   error('Modulation amplitude (3rd argument) must be positive.');
 end
 
@@ -94,17 +94,20 @@ end
 yModInPhase = real(yMod);
 %yModOutOfPhase = imag(yMod);
 
-if (Display)
-  subplot(3,1,1);
+if Display
+  clf
+  subplot(2,1,1);
   plot(x,y);
+  xlim([min(x) max(x)]);
   title('Original spectrum');
-  subplot(3,1,[2 3]);
+  subplot(2,1,2);
   plot(x,yModInPhase);
-  xlabel('magnetic field [mT]');
+  xlim([min(x) max(x)]);
+  xlabel('magnetic field (mT)');
   title(sprintf('Modulated spectrum, harmonic %d, modulation amplitude %g mT',Harmonic,ModAmpl));
 end
 
-if (nargout==1)
+if nargout==1
   varargout = {yModInPhase};
 end
 
