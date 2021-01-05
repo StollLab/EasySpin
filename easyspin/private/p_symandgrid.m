@@ -34,9 +34,9 @@ if Exp.PowderSimulation
   
   
   % Convert symmetry to octant number.
-  [maxPhi,Opt.openPhi,Opt.nOctants] = symparam(Opt.Symmetry);
-  Opt.openPhi = 0;
-  Opt.InterpParams = [Opt.nKnots(1),Opt.openPhi,Opt.nOctants];
+  [maxPhi,Opt.closedPhi,Opt.nOctants] = symparam(Opt.Symmetry);
+  Opt.closedPhi = true;
+  Opt.InterpParams = [Opt.nKnots(1),Opt.closedPhi,Opt.nOctants];
   
   
   % Display symmetry group and frame.

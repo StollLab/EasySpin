@@ -84,7 +84,7 @@ else
   SymmGroup = Options.Symmetry;
   if Options.Display
     % no open phi intervals, since triangulation only works for closed ones
-    gridopt = 'f'; 
+    gridopt = 'c'; 
   else
     gridopt = '';
   end

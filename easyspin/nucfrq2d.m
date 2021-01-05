@@ -67,7 +67,7 @@ nfreq = nnz(BetaMask);
 thisSymm = symm(sys);
 [grid,tri] = sphgrid(thisSymm,Options.nKnots);
 x = grid.vecs;
-[maxPhi,openPhi,nOct] = symparam(thisSymm);
+[maxPhi,closedPhi,nOct] = symparam(thisSymm);
 nOri = size(x,2);
 
 % Initialize to zero.

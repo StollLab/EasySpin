@@ -707,7 +707,7 @@ else
   Axial = (nOctants==0);
   if Axial
     if DoInterpolation
-      grid = sphgrid(Opt.Symmetry,nfKnots,'f');
+      grid = sphgrid(Opt.Symmetry,nfKnots,'c');
       fthe = grid.theta;
       fphi = grid.phi;
     else
@@ -727,7 +727,7 @@ else
     
   else % nonaxial symmetry
     if DoInterpolation
-      [grid,tri] = sphgrid(Opt.Symmetry,nfKnots,'f');
+      [grid,tri] = sphgrid(Opt.Symmetry,nfKnots,'c');
       fphi = grid.phi;
       fthe = grid.theta;
     else

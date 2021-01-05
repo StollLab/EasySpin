@@ -853,7 +853,7 @@ if PowderSimulation
     theta = 0;
     GridWeights = 4*pi;
   else
-    grid = sphgrid(Opt.Symmetry,Opt.nKnots(1),'f');
+    grid = sphgrid(Opt.Symmetry,Opt.nKnots(1),'c');
     Vecs = grid.vecs;
     GridWeights = grid.weights;
     % Transform vector to reference frame representation and convert to polar angles.

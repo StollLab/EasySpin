@@ -1,26 +1,46 @@
-% symparam  Get symmetry group parameters [EasySpin/private]
+% symparam  Get symmetry group parameters
 %
-%   maxPhi = symparam(GroupName)
-%   [maxPhi,openPhi] = symparam(GroupName)
-%   [maxPhi,openPhi,nOctants] = symparam(GroupName)
+%   maxPhi = symparam(PointGroup)
+%   [maxPhi,closedPhi] = symparam(PointGroup)
+%   [maxPhi,closedPhi,nOctants] = symparam(PointGroup)
 %
-%   GroupName: The Schoenfliess name of a centrosymmetric group
-%   maxPhi: the maximum phi of the unique spherical surface
-%   openPhi: open or closed phi interval?
-%   nOctants: how many octants sphgrid uses for this group
+% Inputs:
+%   PointGroup: the Schoenfliess name of a centrosymmetric group or C1
+%
+% Outputs:
+%   maxPhi:    the maximum phi of the unique spherical surface
+%   closedPhi:   open or closed phi interval?
+%   nOctants:  how many octants sphgrid uses for this group
 
-function varargout = symparam(SymGroup)
+% Group  maxPhi   nOctants   closedPhi
+% C1     2*pi     8          false
+% Ci     2*pi     4          false
+% C2h    pi       2          false
+% S6     2*pi/3   2          false   (could also work with 1 octant)
+% C4h    pi/2     1          false
+% C6h    pi/3     1          false
+% D2h    pi/2     1          true
+% Th     pi/2     1          true
+% D3d    pi/3     1          true
+% D4h    pi/4     1          true
+% Oh     pi/4     1          true
+% D6h    pi/6     1          true
+% Dinfh  0        0          true
+% O3     0        -1         true
+
+function varargout = symparam(PointGroup)
 
 maxPhi = [2 2 1 2/3 1/2 1/3 1/2 1/2 1/3 1/4 1/4 1/6 0 0]*pi;
 nOctants = [8 4 2 2 1 1 1 1 1 1 1 1 0 -1];
-openPhi = [1 1 1 1 1 1 0 0 0 0 0 0 0 0];
+closedPhi = [false false false false false false true true true true ...
+           true true true true];
 Groups = {'C1','Ci','C2h','S6','C4h','C6h','D2h','Th',...
-          'D3d','D4h','Oh','D6h','Dinfh','O3'};
-
-idx = find(strcmp(SymGroup,Groups));
+          'D3d','D4h','Oh','D6h','Dinfh','O3'};        
+        
+idx = find(strcmp(PointGroup,Groups));
 if isempty(idx)
-  error('Unsupported symmetry group %s!',SymGroup);
+  error('Unsupported symmetry group %s!',PointGroup);
 else
-  varargout = {maxPhi(idx),openPhi(idx),nOctants(idx)};
+  varargout = {maxPhi(idx),closedPhi(idx),nOctants(idx)};
   varargout = varargout(1:nargout);
 end

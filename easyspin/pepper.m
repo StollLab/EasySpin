@@ -938,7 +938,7 @@ elseif ~BruteForceSum
     Axial = (nOctants==0);
     if Axial
       if doInterpolation
-        grid = sphgrid(Opt.Symmetry,nfKnots,'f');
+        grid = sphgrid(Opt.Symmetry,nfKnots,'c');
         fphi = grid.phi;
         fthe = grid.theta;
       else

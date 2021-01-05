@@ -48,7 +48,7 @@ if ischar(Symmetry)
 else
   % maxPhi = Symmetry(1); %not needed
   nKnots = Symmetry(1);
-  periodic = Symmetry(2);
+  periodic = ~Symmetry(2);
   nOctants = Symmetry(3);
 end
  
@@ -73,7 +73,7 @@ end
 
 % If interpolation points are not given, compute them.
 if nargin<5
-  if nOctants<4, closedPhi = 'f'; else, closedPhi = []; end
+  if nOctants<4, closedPhi = 'c'; else, closedPhi = []; end
   grid = sphgrid(Symmetry,(nKnots-1)*Factor+1,closedPhi);
   phi = grid.phi.';
   the = grid.the.';
