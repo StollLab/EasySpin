@@ -74,7 +74,7 @@ else
     case 4, maxPhi = 2*pi;
     case 8, maxPhi = 2*pi;
     otherwise
-      error('Wrong number of octants, must be -1, 0, 1, 2, 4 or 8.');
+      error('Wrong number of octants, must be -1, 0, 1, 2, 4, or 8.');
   end
   closedPhi = false;
 end
@@ -83,7 +83,7 @@ end
 if explicitClosedPhi
   % Disallow closed phi interval for Ci and C1
   if nOctants==4 || nOctants==8
-    error('Cannot use closed phi interval for this symmetry (%d octants).',nOctants);
+    %error('Cannot use closed phi interval for this symmetry (%d octants).',nOctants);
   end
   closedPhi = true;
 end

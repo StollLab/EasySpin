@@ -572,11 +572,8 @@ if ~BruteForceSum
 
 % Determine methods: projection/summation, interpolation on/off
 %-----------------------------------------------------------------------
-DoProjection = (~AnisotropicWidths) & (nOctants>=0);
-%DoProjection = DoProjection & ~GridTooCoarse & ~skippedOris & ~openPhi;
-
-DoInterpolation = (Opt.nKnots(2)>1) & (nOctants>=0);
-%DoInterpolation = DoInterpolation & ~skippedOris & ~GridTooCoarse;
+DoProjection = ~AnisotropicWidths && nOctants>=0;
+DoInterpolation = Opt.nKnots(2)>1 && nOctants>=0;
 
 % Preparations for projection
 %-----------------------------------------------------------------------
@@ -762,12 +759,12 @@ else
     % Interpolation
     %------------------------------------------------------
     if DoInterpolation
-      fPos = esintpol(Pdat(iTrans,:),Opt.InterpParams,Opt.nKnots(2),InterpMode{1},fphi,fthe);
+      fPos = esintpol(Pdat(iTrans,:),Opt.GridParams,Opt.nKnots(2),InterpMode{1},fphi,fthe);
       if AnisotropicIntensities
-        fInt = esintpol(Idat(iTrans,:),Opt.InterpParams,Opt.nKnots(2),InterpMode{2},fphi,fthe);
+        fInt = esintpol(Idat(iTrans,:),Opt.GridParams,Opt.nKnots(2),InterpMode{2},fphi,fthe);
       end
       if AnisotropicWidths
-        fWid = esintpol(Wdat(iTrans,:),Opt.InterpParams,Opt.nKnots(2),InterpMode{3},fphi,fthe);
+        fWid = esintpol(Wdat(iTrans,:),Opt.GridParams,Opt.nKnots(2),InterpMode{3},fphi,fthe);
       end
     else
       fPos = Pdat(iTrans,:);

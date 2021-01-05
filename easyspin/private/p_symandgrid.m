@@ -30,19 +30,19 @@ if Exp.PowderSimulation
   end
   logmsg(1,'  %s',msg);
 
-  TiltedFrame = (sum(diag(Opt.SymmFrame))~=3);
+  TiltedFrame = sum(diag(Opt.SymmFrame))~=3;
   
   
   % Convert symmetry to octant number.
-  [maxPhi,Opt.closedPhi,Opt.nOctants] = symparam(Opt.Symmetry);
-  Opt.closedPhi = true;
-  Opt.InterpParams = [Opt.nKnots(1),Opt.closedPhi,Opt.nOctants];
+  [~,Opt.closedPhi,Opt.nOctants] = symparam(Opt.Symmetry);
+  %Opt.closedPhi = true;
+  Opt.GridParams = [Opt.nKnots(1),Opt.closedPhi,Opt.nOctants];
   
   
   % Display symmetry group and frame.
-  if (TiltedFrame), msgg = 'tilted'; else, msgg = 'non-tilted'; end
+  if TiltedFrame, msgg = 'tilted'; else, msgg = 'non-tilted'; end
   logmsg(1,'  %s, %s frame',Opt.Symmetry,msgg);
-  if (TiltedFrame)
+  if TiltedFrame
     str = '  symmetry frame orientation in reference frame (Euler angles, deg):\n    [%s]';
     logmsg(1,str,sprintf('%0.3f ',eulang(Opt.SymmFrame,1)*180/pi));
   end
@@ -91,10 +91,11 @@ else % no powder simulation
   if transpose, Exp.CrystalOrientation = Exp.CrystalOrientation.'; end
   nOrientations = size(Exp.CrystalOrientation,1);
 
-  Opt.openPhi = 1;
+  Opt.closedPhi = false;
   Opt.nOctants = -2;
   
-  Exp.OriWeights = ones(1,nOrientations)*4*pi; % for consistency with powder sims (factor from integral over phi and theta)
+  Exp.OriWeights = ones(1,nOrientations)*4*pi;
+  % for consistency with powder sims (factor from integral over phi and theta)
   
   if nOrientations==1
     logmsg(1,'  crystal sample');

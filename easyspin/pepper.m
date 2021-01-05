@@ -601,10 +601,9 @@ if FieldSweep
     
     % Eigenfield equation
     %------------------------------------------------------------------------
-    anisotropicWidths = 0;
+    anisotropicWidths = false;
     if StrainWidths
       logmsg(-inf,'WARNING: Options.Method: eigenfields method -> strains are ignored!');
-      StrainWidths = false;
     end
     
     Exp1 = Exp;
@@ -995,12 +994,12 @@ elseif ~BruteForceSum
       LoopTransition = 0;
       InterpolateThis = doInterpolation && ~LoopTransition;
       if InterpolateThis
-        fPos = esintpol(Pdat(iTrans,:),Opt.InterpParams,Opt.nKnots(2),InterpMode{1},fphi,fthe);
+        fPos = esintpol(Pdat(iTrans,:),Opt.GridParams,Opt.nKnots(2),InterpMode{1},fphi,fthe);
         if anisotropicIntensities
-          fInt = esintpol(Idat(iTrans,:),Opt.InterpParams,Opt.nKnots(2),InterpMode{2},fphi,fthe);
+          fInt = esintpol(Idat(iTrans,:),Opt.GridParams,Opt.nKnots(2),InterpMode{2},fphi,fthe);
         end
         if anisotropicWidths
-          fWid = esintpol(Wdat(iTrans,:),Opt.InterpParams,Opt.nKnots(2),InterpMode{3},fphi,fthe);
+          fWid = esintpol(Wdat(iTrans,:),Opt.GridParams,Opt.nKnots(2),InterpMode{3},fphi,fthe);
         end
       else
         fPos = Pdat(iTrans,:);

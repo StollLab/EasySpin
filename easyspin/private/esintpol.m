@@ -3,7 +3,7 @@
 %   yi = esintpol(y,Sym,Factor,Opt)
 % 
 %   y:            Data, in row vectors. Matrices get interpolated along rows.
-%   Sym:          [nKnots, periodic, nOctants], as computed by symparam()
+%   Sym:          [nKnots, closedPhi, nOctants], as computed by symparam()
 %   Opt:         'g3' (default),'l3','l1'
 
 function yi = esintpol(y,Symmetry,Factor,Options,phi,the)
@@ -58,7 +58,12 @@ end
 
 % Compute number of slices
 if nOctants>0
-  nExpectedData = nKnots*(nKnots-1)/2*nOctants + 1;
+  if nOctants==8
+    nExpectedData = nKnots*(nKnots-1)/2*4 +1; % upper hemisphere + equator
+    nExpectedData = nExpectedData + (nKnots-1)*(nKnots-2)/2*4 + 1; % lower hemisphere
+  else
+    nExpectedData = nKnots*(nKnots-1)/2*nOctants + 1;
+  end
   if ~periodic
     nExpectedData = nExpectedData + nKnots - 1;
   end
@@ -80,7 +85,7 @@ if nargin<5
 end
 
 switch nOctants
-case 0, % Dinfh
+case 0 % Dinfh
   %============================================================
   % Dinfh
   %============================================================

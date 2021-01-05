@@ -1,6 +1,6 @@
 function ok = test(opt)
 
-% D2h vs Ci computation
+% Simulations using D2h vs Ci vs C2h
 
 % Define spin system with C2h symmetry
 Sys.g = [1.9,2,2.3];
