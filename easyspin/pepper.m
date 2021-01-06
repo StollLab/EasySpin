@@ -789,9 +789,9 @@ elseif ~BruteForceSum
   
   % Determine methods: projection/summation, interpolation on/off
   %-----------------------------------------------------------------------
-  doProjection = (~anisotropicWidths) && (nOctants>=0);
+  doProjection = ~anisotropicWidths && nOctants>=0;
   
-  doInterpolation = (Opt.nKnots(2)>1) && (nOctants>=0);
+  doInterpolation = Opt.nKnots(2)>1 && nOctants>=0;
   
   % Preparations for projection
   %-----------------------------------------------------------------------
@@ -932,12 +932,13 @@ elseif ~BruteForceSum
   else
     
     %=======================================================================
-    % Powder spectra: interpolation and accumulation/projection
+    % Anisotropic powder spectra: interpolation and accumulation/projection
     %=======================================================================
-    Axial = (nOctants==0);
+    Axial = nOctants==0;
     if Axial
       if doInterpolation
-        grid = sphgrid(Opt.Symmetry,nfKnots,'c');
+        % set up fine interpolation grid
+        grid = sphgrid(0,nfKnots);
         fphi = grid.phi;
         fthe = grid.theta;
       else
@@ -957,7 +958,8 @@ elseif ~BruteForceSum
       
     else % nonaxial symmetry
       if doInterpolation
-        [grid,tri] = sphgrid(Opt.Symmetry,nfKnots,'');
+        % set up fine interpolation grid
+        [grid,tri] = sphgrid(Opt.Symmetry,nfKnots);
         fphi = grid.phi;
         fthe = grid.theta;
       else
@@ -991,15 +993,15 @@ elseif ~BruteForceSum
       % Interpolation
       %------------------------------------------------------
       %LoopTransition = any(isnan(Pdat(iTrans,:)));
-      LoopTransition = 0;
-      InterpolateThis = doInterpolation && ~LoopTransition;
-      if InterpolateThis
-        fPos = esintpol(Pdat(iTrans,:),Opt.GridParams,Opt.nKnots(2),InterpMode{1},fphi,fthe);
+      LoopTransition = false;
+      interpolateThis = doInterpolation && ~LoopTransition;
+      if interpolateThis
+        fPos = esintpol(Pdat(iTrans,:),Opt.GridParams,Opt.nKnots(2),fphi,fthe,InterpMode{1});
         if anisotropicIntensities
-          fInt = esintpol(Idat(iTrans,:),Opt.GridParams,Opt.nKnots(2),InterpMode{2},fphi,fthe);
+          fInt = esintpol(Idat(iTrans,:),Opt.GridParams,Opt.nKnots(2),fphi,fthe,InterpMode{2});
         end
         if anisotropicWidths
-          fWid = esintpol(Wdat(iTrans,:),Opt.GridParams,Opt.nKnots(2),InterpMode{3},fphi,fthe);
+          fWid = esintpol(Wdat(iTrans,:),Opt.GridParams,Opt.nKnots(2),fphi,fthe,InterpMode{3});
         end
       else
         fPos = Pdat(iTrans,:);
@@ -1016,7 +1018,8 @@ elseif ~BruteForceSum
       
       % Summation or projection
       %------------------------------------------------------
-      if doProjection && ~LoopTransition
+      projectThis = doProjection && ~LoopTransition;
+      if projectThis
         if Axial
           thisspec = projectzones(fPos,fInt,fSegWeights,xAxis);
         else

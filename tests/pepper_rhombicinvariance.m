@@ -5,7 +5,7 @@ function ok = test(opt)
 Sys = struct('S',.5,'g',[1.9,2,2.3]);
 Exp = struct('Range',[285 365],'mwFreq',9.5,'nPoints',1054,'Harmonic',0);
 Opt = struct('nKnots',[20 2]);
-Symmetry = {'Ci','D2h','C2h'};
+Symmetry = {'D2h','Ci','C1','C2h'};
 Sys.lw = 1;
 
 for k = 1:length(Symmetry)
@@ -15,9 +15,11 @@ end
 
 y = y/max(y(:));
 thr = 0.005;
-ok = areequal(y(1,:),y(2,:),thr,'abs') && areequal(y(2,:),y(3,:),thr,'abs');
+ok(1) = areequal(y(2,:),y(1,:),thr,'abs');
+ok(2) = areequal(y(3,:),y(1,:),thr,'abs');
+ok(3) = areequal(y(4,:),y(1,:),thr,'abs');
 
-if (opt.Display)
+if opt.Display
   plot(x,y);
   title('Test 9: Rhombic symmetry invariance');
   legend(Symmetry{:});

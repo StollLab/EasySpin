@@ -64,7 +64,7 @@ calculateTriangulation = nargout>1;
 
 % Determine maximum phi and open/closed interval from symmetry specification.
 if ischar(Symmetry)
-  [maxPhi,closedPhi,nOctants] = symparam(Symmetry);
+  [maxPhi,closedPhi,nOctants] = gridparam(Symmetry);
 else
   nOctants = Symmetry;
   switch nOctants
@@ -194,7 +194,7 @@ if calculateTriangulation && ~isempty(Tri)
   Areas = Areas/sum(Areas) * 4*pi;
   
   if ~isreal(Areas)
-    error('Complex triangle areas encountered! (symmetry %s, nKnots %d)!',Symmetry,nKnots);
+    error('Complex triangle areas encountered! (symmetry %s, nKnots %d, option %s)!',Symmetry,nKnots,Options);
   end
   
 else

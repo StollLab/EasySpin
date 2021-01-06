@@ -5,7 +5,7 @@ function [ok,data] = test(opt,olddata)
 %=======================================================================
 Sys = struct('S',1/2,'g',[2 2.1 2.2],'lw',1);
 Exp = struct('mwFreq',9.5,'Range',[300 350]);
-Opt = struct('Verbosity',opt.Display);
+Opt = struct();
 [x,y1] = pepper(Sys,Exp,Opt);
 
 if (opt.Display)

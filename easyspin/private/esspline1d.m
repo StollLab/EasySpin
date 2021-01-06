@@ -60,7 +60,7 @@ if (n==2) % Two points
     c = [(diff(dy2)).' ([2 -1]*dy2).' zeros(1,nDims).' y(1,:).'];
   end
   
-elseif (n==3) & (EndCon==0) % Three points
+elseif (n==3) && (EndCon==0) % Three points
   % The interpolant is a parabola.
  
   y(2:3,:) = dy;
@@ -138,7 +138,7 @@ else
   if (nDims>1) % replicate xs and index in case pp is vector-valued
     xs = reshape(xs(ones(nDims,1),:),nDims*nn,1);
     index = nDims*index;
-    temp = [-nDims:-1].';
+    temp = (-nDims:-1).';
     index = reshape(1 + index(ones(nDims,1),:) + temp(:,ones(1,nn)), nDims*nn, 1 );
   else
     xs = xs(:);

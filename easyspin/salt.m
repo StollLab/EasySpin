@@ -724,7 +724,7 @@ else
     
   else % nonaxial symmetry
     if DoInterpolation
-      [grid,tri] = sphgrid(Opt.Symmetry,nfKnots,'c');
+      [grid,tri] = sphgrid(Opt.Symmetry,nfKnots);
       fphi = grid.phi;
       fthe = grid.theta;
     else
@@ -732,7 +732,7 @@ else
       fthe = Exp.theta;
       fphi = Exp.phi;
     end
-    idxTri = tri.idx.;
+    idxTri = tri.idx.';
     Areas = tri.areas;
     if ~isempty(Exp.Ordering)
       centreTheta = mean(fthe(idxTri));
@@ -759,12 +759,12 @@ else
     % Interpolation
     %------------------------------------------------------
     if DoInterpolation
-      fPos = esintpol(Pdat(iTrans,:),Opt.GridParams,Opt.nKnots(2),InterpMode{1},fphi,fthe);
+      fPos = esintpol(Pdat(iTrans,:),Opt.GridParams,Opt.nKnots(2),fphi,fthe,InterpMode{1});
       if AnisotropicIntensities
-        fInt = esintpol(Idat(iTrans,:),Opt.GridParams,Opt.nKnots(2),InterpMode{2},fphi,fthe);
+        fInt = esintpol(Idat(iTrans,:),Opt.GridParams,Opt.nKnots(2),fphi,fthe,InterpMode{2});
       end
       if AnisotropicWidths
-        fWid = esintpol(Wdat(iTrans,:),Opt.GridParams,Opt.nKnots(2),InterpMode{3},fphi,fthe);
+        fWid = esintpol(Wdat(iTrans,:),Opt.GridParams,Opt.nKnots(2),fphi,fthe,InterpMode{3});
       end
     else
       fPos = Pdat(iTrans,:);

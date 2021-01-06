@@ -1,25 +1,27 @@
 % esintpol  Interpolates data of a given symmetry. 
 %
-%   yi = esintpol(y,Sym,Factor,Opt)
-% 
+%   yi = esintpol(y,gridParams,Factor,phi,the,InterpType)
+%   
 %   y:            Data, in row vectors. Matrices get interpolated along rows.
-%   Sym:          [nKnots, closedPhi, nOctants], as computed by symparam()
-%   Opt:         'g3' (default),'l3','l1'
+%   gridParams:   [nKnots, closedPhi, nOctants, maxPhi], as provided by gridparam()
+%   Factor:       interpolation factor (only used for Dinfh)
+%   InterpType:   interpolation type, 'G3' (default),'L3','L1'
+%   phi,theta:    interpolation points
 
-function yi = esintpol(y,Symmetry,Factor,Options,phi,the)
+function yi = esintpol(y,gridParams,Factor,phi,the,InterpType)
 
-% special case
-%if Factor==1, error('Interpolation factor must be bigger than 1!'); end
-%if Factor==1, yi=y; end
+if nargin<5 || nargin>6
+  error('5 or 6 input arguments ar required.')
+end
 
 % Set default or user-defined parameters
-if nargin<4 || isempty(Options)
-  Options = 'G3';
+if nargin<6 || isempty(InterpType)
+  InterpType = 'G3';
 end
 
 % parse parameters
-Global = upper(Options(1)) == 'G';
-Cubic = Options(2) == '3';
+globalInterpolation = upper(InterpType(1)) == 'G';
+cubicInterpolation = InterpType(2) == '3';
 
 % List of unique phi intervals as set by sphgrid(),
 % octant numbers and end conditions (p is periodic,
@@ -43,13 +45,14 @@ Cubic = Options(2) == '3';
 % Convert symmetry to octant number and boundary condition
 % flag, error if invalid point group is encountered.
 
-if ischar(Symmetry)
+if ischar(gridParams)
   error('Don''t supply symmetry string!');
 else
   % maxPhi = Symmetry(1); %not needed
-  nKnots = Symmetry(1);
-  periodic = ~Symmetry(2);
-  nOctants = Symmetry(3);
+  nKnots = gridParams(1);
+  periodic = ~gridParams(2);
+  nOctants = gridParams(3);
+  maxPhi = gridParams(4);
 end
  
 if nOctants>0 && nargin<3
@@ -76,14 +79,6 @@ if nExpectedData~=length(y)
   error('Wrong number of points. Not a valid data set!');
 end
 
-% If interpolation points are not given, compute them.
-if nargin<5
-  if nOctants<4, closedPhi = 'c'; else, closedPhi = []; end
-  grid = sphgrid(Symmetry,(nKnots-1)*Factor+1,closedPhi);
-  phi = grid.phi.';
-  the = grid.the.';
-end
-
 switch nOctants
 case 0 % Dinfh
   %============================================================
@@ -95,10 +90,10 @@ case 0 % Dinfh
   %============================================================
   [m,n] = size(y);
   
-  if (~Cubic) % linear interpolation
+  if ~cubicInterpolation % linear interpolation
     yi = interp1(y.',1:1/Factor:n);
     
-  elseif (Global) % global cubic interpolation
+  elseif globalInterpolation % global cubic interpolation
     yi = esspline1d(y,1,1:1/Factor:n);
     
   else % local cubic interpolation
@@ -108,19 +103,19 @@ case 0 % Dinfh
     % coefficient matrix for Hermite interpolation
     H = [2 -2 1 1; -3 3 -2 -1; 0 0 1 0; 1 0 0 0];
     
-    Estimator = 2;
+    Estimator = 'FC';
     % run over all row vectors in y
     for r = 1:m
       switch Estimator
-      case 1 % simple slope average
-        Tangents = [0 (y(r,3:end)-y(r,1:end-2))/2 0];
-      case 2 % Fritsch-Carlson monotone slopes
-        del = diff(y(r,:));
-        k = find(sign(del(1:n-2)).*sign(del(2:n-1))>0);
-        dmax = max(abs(del(k)), abs(del(k+1)));
-        dmin = min(abs(del(k)), abs(del(k+1)));
-        Tangents = zeros(1,n);
-        Tangents(k+1) = 2*dmin.*dmax./(del(k)+del(k+1));
+        case 'avg' % simple slope average
+          Tangents = [0 (y(r,3:end)-y(r,1:end-2))/2 0];
+        case 'FC' % Fritsch-Carlson monotone slopes
+          del = diff(y(r,:));
+          k = find(sign(del(1:n-2)).*sign(del(2:n-1))>0);
+          dmax = max(abs(del(k)), abs(del(k+1)));
+          dmin = min(abs(del(k)), abs(del(k+1)));
+          Tangents = zeros(1,n);
+          Tangents(k+1) = 2*dmin.*dmax./(del(k)+del(k+1));
       end
       
       % control vectors for all intervals
@@ -138,16 +133,21 @@ case 0 % Dinfh
 otherwise
   
   % Convert triangular to rectangular grid.
-  z = rectify(y,nKnots,nOctants,periodic,~Cubic);
+  z = rectify(y,nKnots,nOctants,periodic,cubicInterpolation);
   
   % Attention: max(iphi) and max(ithe) must be integers, otherwise
   % interp2 returns NaNs.
-  iphi = 1 + nOctants*(nKnots-1) * (phi/phi(end));
-  ithe = 1 + (nKnots-1) * (the/the(end));
+  if nOctants<8
+    iphi = 1 + nOctants*(nKnots-1) * (phi/maxPhi);
+    ithe = 1 + (nKnots-1) * (the/(pi/2));
+  else
+    iphi = 1 + 4*(nKnots-1) * (phi/maxPhi);
+    ithe = 1 + 2*(nKnots-1) * (the/pi);
+  end
   
-  if ~Cubic
-    yi = interp2(z,iphi,ithe,'*linear');
-  elseif Global
+  if ~cubicInterpolation
+    yi = interp2(z,iphi,ithe,'linear');
+  elseif globalInterpolation
     yi = esspline2d(z,ithe,iphi);
   else
     error('Local cubic interpolator for %d (oct) not available!',nOctants);
@@ -158,112 +158,102 @@ end
 return
 
 
-%----------------------------------------------------------
-function z = rectify(y,nr,nOctants,periodic,linear)
-%----------------------------------------------------------
+%--------------------------------------------------------------------------
+function z = rectify(y,nKnots,nOctants,periodic,cubicInterp)
+%--------------------------------------------------------------------------
 %
 %  y(iKnots) --> interpolation along
 %                constant theta  --> z(theta,phi)
 %
-% Converts triangularly gridded data y to rectangular z.
-% nr is the number of theta slices, periodic is a flag
-% telling if data are periodic or not. nOctants gives the number
-% of octants the triangular grid covers (see sphgrid).
+% Converts triangularly gridded data y to a rectangular grid z.
+%
+% nKnots    number of knots between north pole and equator
+% periodic  flag telling if data are periodic or not
+% nOctants  number of octants the triangular grid covers (see sphgrid)
+%
 % theta is the the first index z(theta,phi).
 
-nc = nOctants*(nr-1) + 1 - periodic;
-pos = 2;
-len = nOctants + 1 - periodic;
-if periodic
-  z = zeros(nr,nc+1);
-  z(1,:) = y(1);
-  for i = 2:nr-1
-    if linear
-      z(i,:) = fastlinearinterp1d(y([pos:pos+len-1 pos]),linspace(1,len,nc+1));
-    else
-      z(i,:) = esspline1d(y([pos:pos+len-1 pos]),2,nc+1);
-    end
-    pos = pos + len;
-    len = len + nOctants;
-  end
-  z(nr,:) = y([pos:end pos]);
+fullSphere = nOctants==8;
+
+% nr = number of rows (theta) in output array
+% nc = number of columns (phi) in output array (includes end point)
+% dlen = change in number of points from one theta row to the next
+if fullSphere
+  nr = 2*nKnots-1;
+  nc = 4*(nKnots-1) + 1;
+  dlen = 4;
 else
-  z = zeros(nr,nc);
-  z(1,:) = y(1);
-  for i = 2:nr-1
-    if linear
-      z(i,:) = fastlinearinterp1d(y(pos:pos+len-1),linspace(1,len,nc));
+  nr = nKnots;
+  nc = nOctants*(nKnots-1) + 1;
+  dlen = nOctants;
+end
+
+z = zeros(nr,nc);
+
+% add north pole
+z(1,:) = y(1);
+
+% process rest of upper hemisphere
+idx = 2;
+len = dlen + 1 - periodic;
+for ir = 2:nKnots-1
+  if cubicInterp
+    if periodic
+      z(ir,:) = esspline1d(y([idx:idx+len-1 idx]),2,nc);
     else
-      z(i,:) = esspline1d(y(pos:pos+len-1),1,nc);
+      z(ir,:) = esspline1d(y(idx:idx+len-1),1,nc);
     end
-    pos = pos + len;
-    len = len + nOctants;
+  else
+    if periodic
+      z(ir,:) = fastlinearinterp1d(y([idx:idx+len-1 idx]),linspace(1,len,nc));
+    else
+      z(ir,:) = fastlinearinterp1d(y(idx:idx+len-1),linspace(1,len,nc));
+    end
   end
-  z(nr,:) = y(pos:end);
+  idx = idx + len;
+  len = len + dlen;
+end
+
+% add equator (no interpolation needed)
+if periodic
+  z(nKnots,:) = y([idx:idx+len-1 idx]);
+else
+  z(nKnots,:) = y(idx:idx+len-1);
+end
+
+% process lower hemisphere
+if fullSphere
+  idx = idx + len;
+  len = len - dlen;
+  for ir = nKnots+1:2*nKnots-2
+    if cubicInterp
+      if periodic
+        z(ir,:) = esspline1d(y([idx:idx+len-1 idx]),2,nc);
+      else
+        z(ir,:) = esspline1d(y(idx:idx+len-1),1,nc);
+      end
+    else
+      if periodic
+        z(ir,:) = fastlinearinterp1d(y([idx:idx+len-1 idx]),linspace(1,len,nc));
+      else
+        z(ir,:) = fastlinearinterp1d(y(idx:idx+len-1),linspace(1,len,nc));
+      end
+    end
+    idx = idx + len;
+    len = len - dlen;
+  end
+  
+  % add south pole
+  z(2*nKnots-1,:) = y(idx);
 end
 
 return
 
-%-------------------------------------------------------------------------------
+%--------------------------------------------------------------------------
 function yy = fastlinearinterp1d(y,xx)
-%-------------------------------------------------------------------------------
-% Lienarly interpolates 1D vector y defined over 1:length(y) at values xx.
+%--------------------------------------------------------------------------
+% Linearly interpolates 1D vector y defined over 1:length(y) at values xx.
 k = min(max(1+floor(xx-1),1),length(y)-1);
 yy = y(k) + (xx-k).*(y(k+1)-y(k));
 return
-
-
-% esintpol test area
-%===============================================================================
-
-% Dinfh symmetry
-
-opt.Scope = 'local';
-opt.Order = 3;
-the = linspace(0,pi/2,10);
-y = [sin(the).^2; cos(the).^2+.1];
-for k = 1:10
-  yy = esintpol(y,'Dinfh',k);
-  fthe = linspace(0,pi/2,length(yy));
-  plot(fthe,yy,'.-b',the,y,'or');
-  pause
-end
-close
-
-% C2h symmetry
-
-Symmetry = 'C2h';
-
-opt.Scope = 'global';
-opt.Order = 3;
-% y = [1 2 3 3 3.5 4]; % D2h
-y = [1 1 2 1 2 3 4];
-for k = 1:10
-  grid = sphgrid(Symmetry,2*k+1);
-  p = grid.phi;
-  t = grid.theta;
-  yy = esintpol(y,Symmetry,k,opt,p,t);
-  showdata(yy,Symmetry,2*k+1);
-  pause
-end
-close
-
-% C4h symmetry
-
-Symmetry = 'C4h';
-
-opt.Scope = 'global';
-opt.Order = 3;
-y = [1 1 1 2 1 2 3];
-n = 4;
-for k = 1:10
-  kk = (n-1)*k+1;
-  grid = sphgrid(Symmetry,kk);
-  p = grid.phi;
-  t = grid.theta;
-  yy = esintpol(y,Symmetry,k,opt,p,t);
-  showdata(yy,Symmetry,kk);
-  pause
-end
-close
 
