@@ -3,10 +3,27 @@
 %   yi = gridinterp(y,gridParams,phi,the,InterpType)
 %   
 % Inputs:
-%   y             Data, in row vectors. Matrices get interpolated along rows.
-%   gridParams    [nKnots, closedPhi, nOctants, maxPhi], as provided by gridparam()
-%   InterpType    interpolation type, 'G3' (default),'L3','L1'
-%   phi,theta     interpolation points
+%   y            data, in row vectors. Matrices get interpolated along rows.
+%   gridParams   [nOrientations, nKnots, closedPhi, nOctants, maxPhi]
+%   InterpType   interpolation type, 'G3' (default),'L3','L1'
+%   phi,theta    interpolation points
+
+% List of unique phi intervals as set by sphgrid(), octant numbers and end
+% conditions (p is periodic, z is zero endslopes).
+
+% Ci      4p   [0,2*pi)
+% C2h     2p   [0,pi)
+% S6      2p   [0,2*pi/3)
+% C4h     1p   [0,pi/2)
+% C6h     1p   [0,pi/3)
+% D2h     1z   [0,pi/2]
+% Th      1z   [0,pi/2]
+% D3d     1z   [0,pi/3]
+% D4h     1z   [0,pi/4]
+% Oh      1z   [0,pi/4]
+% D6h     1z   [0,pi/6]
+% Dinfh   0     0
+% O3     -1     0
 
 function yi = gridinterp(y,gridParams,phi,the,InterpType)
 
@@ -19,65 +36,28 @@ if nargin<5 || isempty(InterpType)
   InterpType = 'G3';
 end
 
-% parse parameters
+% Parse parameters
 globalInterpolation = upper(InterpType(1)) == 'G';
 cubicInterpolation = InterpType(2) == '3';
 
-% List of unique phi intervals as set by sphgrid(),
-% octant numbers and end conditions (p is periodic,
-% z is zero endslopes).
-
-% Ci      4p   [0,2*pi)
-% C2h     2p   [0,pi)
-% S6      2p   [0,2*pi/3)
-% C4h     1p   [0,pi/2)
-% C6h     1p   [0,pi/3)
-
-% D2h     1z   [0,pi/2]
-% Th      1z   [0,pi/2]
-% D3d     1z   [0,pi/3]
-% D4h     1z   [0,pi/4]
-% Oh      1z   [0,pi/4]
-% D6h     1z   [0,pi/6]
-% Dinfh   0     0
-% O3     -1     0
-
 % Extract grid parameters
-if ischar(gridParams)
-  error('Don''t supply symmetry string!');
-else
-  nKnots = gridParams(1);
-  periodic = ~gridParams(2);
-  nOctants = gridParams(3);
-  maxPhi = gridParams(4);
-end
+nOrientations = gridParams(1);
+nKnots = gridParams(2);
+periodic = ~gridParams(3);
+nOctants = gridParams(4);
+maxPhi = gridParams(5);
  
 if nOctants>0 && nargin<3
   error('Not enough input parameters!');
 end
 
-% Compute number of slices
-if nOctants>0
-  if nOctants==8
-    nExpectedPoint = nKnots*(nKnots-1)/2*4 +1; % upper hemisphere + equator
-    nExpectedPoint = nExpectedPoint + (nKnots-1)*(nKnots-2)/2*4 + 1; % lower hemisphere
-  else
-    nExpectedPoint = nKnots*(nKnots-1)/2*nOctants + 1;
-  end
-  if ~periodic
-    nExpectedPoint = nExpectedPoint + nKnots - 1;
-  end
-else % Dinfh
-  nExpectedPoint = nKnots;
-end
-
-% If number of slices is not an integer, throw error.
-if nExpectedPoint~=length(y)
+% Make sure data has expected number of orientations
+if length(y)~=nOrientations
   error('Wrong number of points. Not a valid data set!');
 end
 
 switch nOctants
-case 0 % Dinfh
+case 0
   %============================================================
   % Dinfh
   %============================================================
@@ -125,12 +105,11 @@ case 0 % Dinfh
       yi(r,:) = [yii(:).' y(r,n)];
     end
   end
-  %============================================================
-  %============================================================
-  %============================================================
   
 otherwise
-  
+  %============================================================
+  % nOctants >=1 (D2h, etc)
+  %============================================================
   % Convert triangular to rectangular grid.
   z = rectify(y,nKnots,nOctants,periodic,cubicInterpolation);
   
@@ -189,10 +168,10 @@ end
 
 z = zeros(nr,nc);
 
-% add north pole
+% Add north pole
 z(1,:) = y(1);
 
-% process rest of upper hemisphere
+% Process rest of upper hemisphere
 idx = 2;
 len = dlen + 1 - periodic;
 for ir = 2:nKnots-1
@@ -213,14 +192,14 @@ for ir = 2:nKnots-1
   len = len + dlen;
 end
 
-% add equator (no interpolation needed)
+% Add equator (no interpolation needed)
 if periodic
   z(nKnots,:) = y([idx:idx+len-1 idx]);
 else
   z(nKnots,:) = y(idx:idx+len-1);
 end
 
-% process lower hemisphere
+% Process lower hemisphere
 if fullSphere
   idx = idx + len;
   len = len - dlen;
@@ -255,4 +234,3 @@ function yy = fastlinearinterp1d(y,xx)
 k = min(max(1+floor(xx-1),1),length(y)-1);
 yy = y(k) + (xx-k).*(y(k+1)-y(k));
 return
-

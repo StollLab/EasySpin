@@ -29,16 +29,9 @@ if Exp.PowderSimulation
     end
   end
   logmsg(1,'  %s',msg);
-
+  
   TiltedFrame = sum(diag(Opt.SymmFrame))~=3;
-  
-  
-  % Convert symmetry to octant number.
-  [maxPhi,Opt.closedPhi,Opt.nOctants] = gridparam(Opt.Symmetry);
-  %Opt.closedPhi = true;
-  Opt.GridParams = [Opt.nKnots(1),Opt.closedPhi,Opt.nOctants,maxPhi];
-  
-  
+    
   % Display symmetry group and frame.
   if TiltedFrame, msgg = 'tilted'; else, msgg = 'non-tilted'; end
   logmsg(1,'  %s, %s frame',Opt.Symmetry,msgg);
@@ -47,6 +40,9 @@ if Exp.PowderSimulation
     logmsg(1,str,sprintf('%0.3f ',eulang(Opt.SymmFrame,1)*180/pi));
   end
   
+  % Convert symmetry to octant number.
+  [maxPhi,closedPhi,Opt.nOctants] = gridparam(Opt.Symmetry);
+
   % Get orientations for the knots, molecular frame.
   [grid,tri] = sphgrid(Opt.Symmetry,Opt.nKnots(1));
   Vecs = grid.vecs;
@@ -59,6 +55,9 @@ if Exp.PowderSimulation
   Exp.CrystalOrientation = [Exp.phi;Exp.theta].';
   nOrientations = numel(Exp.phi);
   
+  %closedPhi = true;
+  Opt.GridParams = [nOrientations,Opt.nKnots(1),closedPhi,Opt.nOctants,maxPhi];
+
   % Display information on orientational grid
   switch Opt.nOctants
     case -1, str = '  region: north pole (single point)';
@@ -91,7 +90,6 @@ else % no powder simulation
   if transpose, Exp.CrystalOrientation = Exp.CrystalOrientation.'; end
   nOrientations = size(Exp.CrystalOrientation,1);
 
-  Opt.closedPhi = false;
   Opt.nOctants = -2;
   
   Exp.OriWeights = ones(1,nOrientations)*4*pi;
