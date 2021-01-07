@@ -996,12 +996,12 @@ elseif ~BruteForceSum
       LoopTransition = false;
       interpolateThis = doInterpolation && ~LoopTransition;
       if interpolateThis
-        fPos = esintpol(Pdat(iTrans,:),Opt.GridParams,Opt.nKnots(2),fphi,fthe,InterpMode{1});
+        fPos = gridinterp(Pdat(iTrans,:),Opt.GridParams,fphi,fthe,InterpMode{1});
         if anisotropicIntensities
-          fInt = esintpol(Idat(iTrans,:),Opt.GridParams,Opt.nKnots(2),fphi,fthe,InterpMode{2});
+          fInt = gridinterp(Idat(iTrans,:),Opt.GridParams,fphi,fthe,InterpMode{2});
         end
         if anisotropicWidths
-          fWid = esintpol(Wdat(iTrans,:),Opt.GridParams,Opt.nKnots(2),fphi,fthe,InterpMode{3});
+          fWid = gridinterp(Wdat(iTrans,:),Opt.GridParams,fphi,fthe,InterpMode{3});
         end
       else
         fPos = Pdat(iTrans,:);

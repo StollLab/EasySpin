@@ -1,21 +1,21 @@
-% esintpol  Interpolates data of a given symmetry. 
+% gridinterp  Interpolates spherical-grid data
 %
-%   yi = esintpol(y,gridParams,Factor,phi,the,InterpType)
+%   yi = gridinterp(y,gridParams,phi,the,InterpType)
 %   
-%   y:            Data, in row vectors. Matrices get interpolated along rows.
-%   gridParams:   [nKnots, closedPhi, nOctants, maxPhi], as provided by gridparam()
-%   Factor:       interpolation factor (only used for Dinfh)
-%   InterpType:   interpolation type, 'G3' (default),'L3','L1'
-%   phi,theta:    interpolation points
+% Inputs:
+%   y             Data, in row vectors. Matrices get interpolated along rows.
+%   gridParams    [nKnots, closedPhi, nOctants, maxPhi], as provided by gridparam()
+%   InterpType    interpolation type, 'G3' (default),'L3','L1'
+%   phi,theta     interpolation points
 
-function yi = esintpol(y,gridParams,Factor,phi,the,InterpType)
+function yi = gridinterp(y,gridParams,phi,the,InterpType)
 
-if nargin<5 || nargin>6
-  error('5 or 6 input arguments ar required.')
+if nargin<4 || nargin>5
+  error('4 or 5 input arguments ar required.')
 end
 
 % Set default or user-defined parameters
-if nargin<6 || isempty(InterpType)
+if nargin<5 || isempty(InterpType)
   InterpType = 'G3';
 end
 
@@ -42,13 +42,10 @@ cubicInterpolation = InterpType(2) == '3';
 % Dinfh   0     0
 % O3     -1     0
 
-% Convert symmetry to octant number and boundary condition
-% flag, error if invalid point group is encountered.
-
+% Extract grid parameters
 if ischar(gridParams)
   error('Don''t supply symmetry string!');
 else
-  % maxPhi = Symmetry(1); %not needed
   nKnots = gridParams(1);
   periodic = ~gridParams(2);
   nOctants = gridParams(3);
@@ -62,20 +59,20 @@ end
 % Compute number of slices
 if nOctants>0
   if nOctants==8
-    nExpectedData = nKnots*(nKnots-1)/2*4 +1; % upper hemisphere + equator
-    nExpectedData = nExpectedData + (nKnots-1)*(nKnots-2)/2*4 + 1; % lower hemisphere
+    nExpectedPoint = nKnots*(nKnots-1)/2*4 +1; % upper hemisphere + equator
+    nExpectedPoint = nExpectedPoint + (nKnots-1)*(nKnots-2)/2*4 + 1; % lower hemisphere
   else
-    nExpectedData = nKnots*(nKnots-1)/2*nOctants + 1;
+    nExpectedPoint = nKnots*(nKnots-1)/2*nOctants + 1;
   end
   if ~periodic
-    nExpectedData = nExpectedData + nKnots - 1;
+    nExpectedPoint = nExpectedPoint + nKnots - 1;
   end
 else % Dinfh
-  nExpectedData = nKnots;
+  nExpectedPoint = nKnots;
 end
 
 % If number of slices is not an integer, throw error.
-if nExpectedData~=length(y)
+if nExpectedPoint~=length(y)
   error('Wrong number of points. Not a valid data set!');
 end
 
@@ -89,12 +86,14 @@ case 0 % Dinfh
   % Slope estimators: simple and Fritsch-Carlson
   %============================================================
   [m,n] = size(y);
+  Factor = (numel(phi)-1)/(n-1);
+  iphi = 1:1/Factor:n;
   
   if ~cubicInterpolation % linear interpolation
-    yi = interp1(y.',1:1/Factor:n);
+    yi = interp1(y.',iphi);
     
   elseif globalInterpolation % global cubic interpolation
-    yi = esspline1d(y,1,1:1/Factor:n);
+    yi = esspline1d(y,1,iphi);
     
   else % local cubic interpolation
     % prepare [x^3 x^2 x 1] for each point

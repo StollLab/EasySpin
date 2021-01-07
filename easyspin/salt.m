@@ -759,12 +759,12 @@ else
     % Interpolation
     %------------------------------------------------------
     if DoInterpolation
-      fPos = esintpol(Pdat(iTrans,:),Opt.GridParams,Opt.nKnots(2),fphi,fthe,InterpMode{1});
+      fPos = gridinterp(Pdat(iTrans,:),Opt.GridParams,fphi,fthe,InterpMode{1});
       if AnisotropicIntensities
-        fInt = esintpol(Idat(iTrans,:),Opt.GridParams,Opt.nKnots(2),fphi,fthe,InterpMode{2});
+        fInt = gridinterp(Idat(iTrans,:),Opt.GridParams,fphi,fthe,InterpMode{2});
       end
       if AnisotropicWidths
-        fWid = esintpol(Wdat(iTrans,:),Opt.GridParams,Opt.nKnots(2),fphi,fthe,InterpMode{3});
+        fWid = gridinterp(Wdat(iTrans,:),Opt.GridParams,fphi,fthe,InterpMode{3});
       end
     else
       fPos = Pdat(iTrans,:);
