@@ -502,7 +502,7 @@ if ~isempty(Exp.Ordering)
     if nargin(Exp.Ordering)<2
       error('The function in Exp.Ordering must accept two inputs.');
     end
-    logmsg(1,'  director ordering: user-supplied function)');
+    logmsg(1,'  director ordering: user-supplied function');
   else
     error('Exp.Ordering must be a single number or a function handle.');
   end
@@ -514,7 +514,8 @@ useDirectorOrdering = ~isempty(Exp.Ordering);
 % Determine whether to do a powder simulation
 % (without potential, no powder sim is necessary - it's identical to a
 % single-orientation sim)
-PowderSimulation = isempty(Exp.CrystalOrientation) && usePotential;
+PowderSimulation = (isempty(Exp.CrystalOrientation) && usePotential) || ...
+  useDirectorOrdering;
 
 % Options
 %-------------------------------------------------------------------------------
@@ -795,7 +796,7 @@ error(err);
 
 % Basis
 %-------------------------------------------------------------------------------
-Basis = processbasis(Basis,max(Potential.K),Sys.I,Symmetry);
+Basis = processbasis(Basis,Sys.I,Symmetry);
 
 
 % Set up g values
@@ -857,11 +858,10 @@ if PowderSimulation
   else
     [Vecs,GridWeights] = sphgrid(Opt.Symmetry,Opt.nKnots(1),'cf');
     % Transform vector to reference frame representation and convert to polar angles.
-    if isempty(Opt.SymmFrame)
-      [phi,theta] = vec2ang(Vecs);
-    else
-      [phi,theta] = vec2ang(Opt.SymmFrame*Vecs);
+    if ~isempty(Opt.SymmFrame)
+      Vecs = Opt.SymmFrame*Vecs;
     end
+    [phi,theta] = vec2ang(Vecs);
   end
   logmsg(1,'  powder simulation with %d orientations',numel(phi));
 else
@@ -889,8 +889,8 @@ else
 end
 
 Weights = GridWeights.*OrderingWeights;
-Weights = 4*pi*Weights/sum(Weights);
-
+Weights = 4*pi*Weights/sum(Weights); % normalize to sum  = 4*pi
+Weights
 
 % Basis set preparations
 %-------------------------------------------------------------------------------
@@ -1468,8 +1468,8 @@ if fwhmG>0 && ConvolutionBroadening
     fwhmG = fwhmG/1e3; % MHz -> GHz
   end
   dx = xAxis(2) - xAxis(1);
-  AlwaysConvolve = true;
-  if AlwaysConvolve%(fwhmG/dx>2)
+  alwaysConvolve = true;
+  if alwaysConvolve %(fwhmG/dx>2)
     logmsg(1,'Convoluting with Gaussian (FWHM %g %s)...',fwhmG,unitstr);
     spec = convspec(spec,dx,fwhmG,Exp.ConvHarmonic,1);
     Exp.ConvHarmonic = 0;
@@ -1540,7 +1540,7 @@ return
 
 
 %===============================================================================
-function Basis = processbasis(Basis,maxPotentialK,I,Symmetry)
+function Basis = processbasis(Basis,I,Symmetry)
 
 nNuclei = numel(I);
 
