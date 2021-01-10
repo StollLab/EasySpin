@@ -75,7 +75,7 @@ if nargout>2, error('Too many output arguments.'); end
 
 if nargin<3, Opt = struct; end
 
-if ~isstruct(Sys) || ~isstruct(Exp) || ~isstruct(Opt)
+if (~isstruct(Sys) && ~iscell(Sys)) || ~isstruct(Exp) || ~isstruct(Opt)
   error('Sys, Exp, and Opt must be structures.')
 end
 
@@ -890,7 +890,6 @@ end
 
 Weights = GridWeights.*OrderingWeights;
 Weights = 4*pi*Weights/sum(Weights); % normalize to sum  = 4*pi
-Weights
 
 % Basis set preparations
 %-------------------------------------------------------------------------------
