@@ -40,6 +40,7 @@
 %      ModAmp         peak-to-peak modulation amplitude, in mT (field sweeps only)
 %      mwPhase        detection phase (0 = absorption, pi/2 = dispersion)
 %      Temperature    temperature, in K
+%      Ordering       orientational distribution function
 %
 %   Opt: simulation options
 %      LLMK           basis set parameters, [evenLmax oddLmax Mmax Kmax]
@@ -73,6 +74,10 @@ if nargout<0, error('Not enough output arguments.'); end
 if nargout>2, error('Too many output arguments.'); end
 
 if nargin<3, Opt = struct; end
+
+if ~isstruct(Sys) || ~isstruct(Exp) || ~isstruct(Opt)
+  error('Sys, Exp, and Opt must be structures.')
+end
 
 if ~isfield(Opt,'Verbosity')
   Opt.Verbosity = 0; % print level
@@ -496,9 +501,6 @@ if ~isempty(Exp.Ordering)
   elseif isa(Exp.Ordering,'function_handle')
     if nargin(Exp.Ordering)<2
       error('The function in Exp.Ordering must accept two inputs.');
-    end
-    if nargout(Exp.Ordering)<1
-      error('The function in Exp.Ordering must provide one output.');
     end
     logmsg(1,'  director ordering: user-supplied function)');
   else

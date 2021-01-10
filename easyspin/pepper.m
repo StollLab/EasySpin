@@ -453,9 +453,6 @@ if ~isempty(Exp.Ordering)
     if nargin(Exp.Ordering)<2
       logmsg(1,'  User-supplied function in Exp.Ordering must take 2 inputs.');
     end
-    if nargout(Exp.Ordering)<1
-      logmsg(1,'  User-supplied function in Exp.Ordering must provide 1 output.');
-    end
   else
     error('Exp.Ordering must be either a single number or a function handle.');
   end

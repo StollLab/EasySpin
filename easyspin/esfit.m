@@ -54,6 +54,13 @@ end
 
 if nargin==0, help(mfilename); return; end
 
+if nargin<5
+  error('Not enough input arguments. At least 5 are required.')
+end
+if nargin>7
+  error('Too many input arguments. No more than 7 are accepted.')
+end
+
 % Check expiry date
 error(eschecker);
 
