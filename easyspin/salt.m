@@ -346,7 +346,7 @@ if Method==2
 else
   DefaultOpt.GridSize = [31 3];
 end
-DefaultOpt.GridSymmetry = 'auto';
+DefaultOpt.GridSymmetry = '';
 DefaultOpt.GridFrame = [];
 DefaultOpt.Output = 'summed';
 
@@ -398,10 +398,6 @@ end
 
 if isfield(Opt,'LineShape')
   error('Options.LineShape is obsolete. Use System.lwEndor instead.');
-end
-
-if strcmpi(Opt.GridSymmetry,'auto')
-  Opt.GridSymmetry = [];
 end
 
 %==========================================================================

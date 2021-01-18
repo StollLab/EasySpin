@@ -499,7 +499,7 @@ end
 
 % Documented fields, pepper
 DefaultOpt.Verbosity = 0;
-DefaultOpt.GridSymmetry = 'auto';
+DefaultOpt.GridSymmetry = '';
 DefaultOpt.GridFrame = [];
 DefaultOpt.Output = 'summed';
 DefaultOpt.Method = 'matrix'; % 'matrix', 'eig', 'perturb1', 'perturb2'='perturb' 
@@ -557,10 +557,6 @@ end
 % Parse string options.
 anisotropicIntensities = parseoption(Opt,'Intensity',{'off','on'}) - 1;
 Opt.Intensity = anisotropicIntensities;
-
-if strcmp(Opt.GridSymmetry,'auto')
-  Opt.GridSymmetry = [];
-end
 
 [Exp,Opt] = p_symandgrid(Sys,Exp,Opt);
 nOrientations = size(Exp.CrystalOrientation,1);

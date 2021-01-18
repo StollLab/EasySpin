@@ -60,7 +60,7 @@ if Exp.PowderSimulation
   Opt.GridParams = [nOrientations,Opt.GridSize(1),grid.closedPhi,Opt.nOctants,grid.maxPhi];
 
   % Display information about orientational grid
-  switch Opt.nOctants
+  switch grid.nOctants
     case -1, str = 'north pole (single point)';
     case 0, str = 'a quarter of a meridian';
     case 4, str = 'upper hemisphere';
