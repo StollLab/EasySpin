@@ -4,12 +4,12 @@ function ok = test(opt)
 
 Sys = struct('S',.5,'g',[1.9,2,2.3]);
 Exp = struct('Range',[285 365],'mwFreq',9.5,'nPoints',1054,'Harmonic',0);
-Opt = struct('nKnots',[20 2]);
+Opt = struct('GridSize',[20 2]);
 Symmetry = {'D2h','Ci','C1','C2h'};
 Sys.lw = 1;
 
 for k = 1:length(Symmetry)
-  Opt.Symmetry = Symmetry{k};
+  Opt.GridSymmetry = Symmetry{k};
   [x,y(k,:)] = pepper(Sys,Exp,Opt);    
 end
 

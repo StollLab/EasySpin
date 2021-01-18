@@ -20,7 +20,7 @@
 %       Ordering      coefficient for non-isotropic orientational distribution
 %   - Opt: simulation options
 %       Transitions, Threshold, Symmetry
-%       nKnots, Intensity, Enhancement, Output, Sites
+%       GridSize, Intensity, Enhancement, Output, Sites
 %
 %   Output:
 %   - rf:     the radiofrequency axis, in MHz
@@ -342,12 +342,12 @@ end
 %DefaultOpt.Sites = []; % endorfrq
 % Documented fields, salt
 if Method==2
-  DefaultOpt.nKnots = [61 0];
+  DefaultOpt.GridSize = [61 0];
 else
-  DefaultOpt.nKnots = [31 3];
+  DefaultOpt.GridSize = [31 3];
 end
-DefaultOpt.Symmetry = 'auto';
-DefaultOpt.SymmFrame = [];
+DefaultOpt.GridSymmetry = 'auto';
+DefaultOpt.GridFrame = [];
 DefaultOpt.Output = 'summed';
 
 % Undocumented fields
@@ -364,9 +364,9 @@ DefaultOpt.PaddingMultiplier = 3; % for padding before convolution
 
 % Supplement the user-supplied structure with the defaults
 Opt = adddefaults(Opt,DefaultOpt);
-if numel(Opt.nKnots)<2, Opt.nKnots(2) = DefaultOpt.nKnots(2); end
-if Opt.nKnots(1)<2
-  error('Opt.nKnots(1) must be 2 or larger.');
+if numel(Opt.GridSize)<2, Opt.GridSize(2) = DefaultOpt.GridSize(2); end
+if Opt.GridSize(1)<2
+  error('Opt.GridSize(1) must be 2 or larger.');
 end
 
 % Parse and process options with string values.
@@ -393,15 +393,15 @@ if isfield(Opt,'Width')
 end
 
 if isfield(Opt,'nSpline')
-  error('Options.nSpline is obsolete. Use a second number in Options.nKnots instead, e.g. Options.nKnots = [19 5] for Options.nSpline = 5.');
+  error('Options.nSpline is obsolete. Use a second number in Options.GridSize instead, e.g. Options.GridSize = [19 5] for Options.nSpline = 5.');
 end
 
 if isfield(Opt,'LineShape')
   error('Options.LineShape is obsolete. Use System.lwEndor instead.');
 end
 
-if strcmpi(Opt.Symmetry,'auto')
-  Opt.Symmetry = [];
+if strcmpi(Opt.GridSymmetry,'auto')
+  Opt.GridSymmetry = [];
 end
 
 %==========================================================================
@@ -534,13 +534,13 @@ xAxis = Exp.Range(1) + (0:Exp.nPoints-1)*Exp.deltaX;
 
 if Info.Selectivity>0
   logmsg(1,'  orientation selection: %g (<1 very weak, 1 weak, 10 strong, >10 very strong)',Info.Selectivity);
-  GridTooCoarse = (Opt.nKnots(1)/Opt.minEffKnots<Info.Selectivity);
+  GridTooCoarse = (Opt.GridSize(1)/Opt.minEffKnots<Info.Selectivity);
   if GridTooCoarse && PowderSimulation
     fprintf('  ** Warning: Strong orientation selection ********************************\n');
-    fprintf('  Only %0.1f orientations within excitation window.\n',Opt.nKnots(1)/Info.Selectivity);
+    fprintf('  Only %0.1f orientations within excitation window.\n',Opt.GridSize(1)/Info.Selectivity);
     fprintf('  Spectrum might be inaccurate!\n');
     fprintf('  To remedy, do one (or both) of the following:\n');
-    fprintf('  - Increase Opt.nKnots (currently %d)\n',Opt.nKnots(1));
+    fprintf('  - Increase Opt.GridSize (currently %d)\n',Opt.GridSize(1));
     fprintf('  - Increase Exp.ExciteWidth (currently %g MHz)\n',Exp.ExciteWidth);
     fprintf('  *************************************************************************\n');
   end
@@ -563,7 +563,7 @@ logmsg(1,'-absorption spectrum construction----------------------');
 
 NaN_in_Pdat = any(isnan(Pdat),2);
 if any(NaN_in_Pdat)
-  Opt.nKnots(2) = 1;
+  Opt.GridSize(2) = 1;
 end
 
 BruteForceSum = 0;
@@ -573,7 +573,7 @@ if ~BruteForceSum
 % Determine methods: projection/summation, interpolation on/off
 %-----------------------------------------------------------------------
 DoProjection = ~AnisotropicWidths && nOctants>=0;
-DoInterpolation = Opt.nKnots(2)>1 && nOctants>=0;
+DoInterpolation = Opt.GridSize(2)>1 && nOctants>=0;
 
 % Preparations for projection
 %-----------------------------------------------------------------------
@@ -609,12 +609,12 @@ if DoInterpolation
       InterpMode = {'G3','L1','L1'};
     end
   end
-  msg = sprintf('  interpolation (factor %d, method %s/%s/%s)',Opt.nKnots(2),InterpMode{1},InterpMode{2},InterpMode{3});
+  msg = sprintf('  interpolation (factor %d, method %s/%s/%s)',Opt.GridSize(2),InterpMode{1},InterpMode{2},InterpMode{3});
 else
-  Opt.nKnots(2) = 1;
+  Opt.GridSize(2) = 1;
   msg = '  interpolation off';
 end
-nfKnots = (Opt.nKnots(1)-1)*Opt.nKnots(2) + 1;
+nfKnots = (Opt.GridSize(1)-1)*Opt.GridSize(2) + 1;
 logmsg(1,msg);
 
 % Pre-allocation of spectral array.
@@ -704,7 +704,7 @@ else
   Axial = (nOctants==0);
   if Axial
     if DoInterpolation
-      grid = sphgrid(Opt.Symmetry,nfKnots,'c');
+      grid = sphgrid(Opt.GridSymmetry,nfKnots,'c');
       fthe = grid.theta;
       fphi = grid.phi;
     else
@@ -724,7 +724,7 @@ else
     
   else % nonaxial symmetry
     if DoInterpolation
-      [grid,tri] = sphgrid(Opt.Symmetry,nfKnots);
+      [grid,tri] = sphgrid(Opt.GridSymmetry,nfKnots);
       fphi = grid.phi;
       fthe = grid.theta;
     else

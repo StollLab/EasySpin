@@ -32,7 +32,7 @@
 %                  The default is 'muBM chimol'.
 %        Units     'SI' (for SI units, default) or 'CGS' (for CGS-emu units)
 %        Method    calculation method, 'operator' (default) or 'energies'
-%        nKnots    number of knots for powder average
+%        GridSize  grid size for powder average
 %        Spins     electron spin indices, for spin-selective calculation
 %
 %
@@ -134,15 +134,15 @@ end
 % Options
 %-------------------------------------------------------------------------------
 logmsg(1,'Options');
-if ~isfield(Opt,'nKnots')
-  Opt.nKnots = 10;
+if ~isfield(Opt,'GridSize')
+  Opt.GridSize = 10;
 end
-logmsg(1,'  number of knots: %d',Opt.nKnots);
-if ~isfield(Opt,'Symmetry')
-  Opt.Symmetry = []; % needed for p_symandgrid
+logmsg(1,'  number of knots: %d',Opt.GridSize);
+if ~isfield(Opt,'GridSymmetry')
+  Opt.GridSymmetry = []; % needed for p_symandgrid
 end
-if ~isfield(Opt,'SymmFrame')
-  Opt.SymmFrame = []; % needed for p_symandgrid
+if ~isfield(Opt,'GridFrame')
+  Opt.GridFrame = []; % needed for p_symandgrid
 end
 if ~isfield(Opt,'deltaB')
   Opt.deltaB = 1; % mT

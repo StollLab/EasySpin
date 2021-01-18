@@ -5,7 +5,7 @@ function ok = test(opt)
 
 Sys = struct('S',1/2,'g',[2 2.4 3]);
 Exp = struct('mwFreq',9.5,'Range',[200 400],'Harmonic',0);
-Opt = struct('Verbosity',opt.Verbosity,'nKnots',[19 3],'Method','perturb');
+Opt = struct('Verbosity',opt.Verbosity,'GridSize',[19 3],'Method','perturb');
 Exp.nPoints = 1e4;
 
 lw = [1 3 10 30 100 300];

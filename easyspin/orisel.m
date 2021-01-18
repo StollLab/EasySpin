@@ -15,8 +15,8 @@
 %      ExciteWidth   FWHM excitation bandwidth [MHz]
 %      Orientations  [phi;theta]
 %   - Opt    options structure
-%      nKnots       number of knots
-%      Symmetry     point group: C1, Ci, D2h, or Dinfh
+%      GridSize      grid dsize
+%      GridSymmetry   grid symmetry: C1, Ci, D2h, or Dinfh
 %
 %   Output:
 %   - Weights   vector of selectivity weights, one per orientation
@@ -63,8 +63,8 @@ mwFreq = Params.mwFreq*1e3; % GHz -> MHz
 
 % Process Options
 %-----------------------------------------------------------------------
-DefaultOptions.nKnots = 46; % same as in salt and nucfrq2d
-DefaultOptions.Symmetry = '';
+DefaultOptions.GridSize = 46; % same as in salt and nucfrq2d
+DefaultOptions.GridSymmetry = '';
 DefaultOptions.Display = (nargout==0);
 
 DefaultOptions.AveragedIntensity = true;
@@ -76,21 +76,21 @@ if ~isempty(Params.Orientations)
   phi = Orientations(1,:);
   theta = Orientations(2,:);
 else
-  if isempty(Options.Symmetry)
-    [Options.Symmetry,SymmFrame] = symm(Sys);
+  if isempty(Options.GridSymmetry)
+    [Options.GridSymmetry,GridFrame] = symm(Sys);
   else
-    SymmFrame = eye(3);
+    GridFrame = eye(3);
   end
-  SymmGroup = Options.Symmetry;
+  SymmGroup = Options.GridSymmetry;
   if Options.Display
     % no open phi intervals, since triangulation only works for closed ones
     gridopt = 'c'; 
   else
     gridopt = '';
   end
-  [grid,tri] = sphgrid(SymmGroup,Options.nKnots,gridopt);
+  [grid,tri] = sphgrid(SymmGroup,Options.GridSize,gridopt);
   Vectors = grid.vecs;
-  [phi,theta] = vec2ang(SymmFrame*Vectors);
+  [phi,theta] = vec2ang(GridFrame*Vectors);
   Orientations = [phi; theta];
 end
 

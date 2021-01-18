@@ -46,7 +46,7 @@
 %      evenK          whether to use only even K values (true/false)
 %      highField      whether to use the high-field approximation (true/false)  
 %      pImax          maximum nuclear coherence order for basis
-%      nKnots         number of knots for powder simulation
+%      GridSize       grid size for powder simulation
 %      PostConvNucs   nuclei to include perturbationally via post-convolution
 %      Verbosity      0: no display, 1: show info
 %      Symmetry       symmetry to use for powder simulation
@@ -529,12 +529,12 @@ end
 if ~isfield(Opt,'highField'), Opt.highField = false; end
 if ~isfield(Opt,'pImax'), Opt.pImax = []; end
 if ~isfield(Opt,'pImaxall'), Opt.pImaxall = []; end
-if ~isfield(Opt,'nKnots'), Opt.nKnots = [19 0]; end
+if ~isfield(Opt,'GridSize'), Opt.GridSize = [19 0]; end
 if ~isfield(Opt,'LiouvMethod'), Opt.LiouvMethod = ''; end
 if ~isfield(Opt,'FieldSweepMethod'), Opt.FieldSweepMethod = []; end
 if ~isfield(Opt,'PostConvNucs'), Opt.PostConvNucs = ''; end
 if ~isfield(Opt,'Solver'), Opt.Solver = ''; end
-if ~isfield(Opt,'Symmetry'), Opt.Symmetry = 'Dinfh'; end
+if ~isfield(Opt,'GridSymmetry'), Opt.GridSymmetry = 'Dinfh'; end
 % Opt.Verbosity
 
 % Undocumented
@@ -543,7 +543,7 @@ if ~isfield(Opt,'Threshold'), Opt.Threshold = 1e-6; end
 if ~isfield(Opt,'Lentz'), Opt.Lentz = true; end
 if ~isfield(Opt,'IncludeNZI'), Opt.IncludeNZI = true; end
 if ~isfield(Opt,'pqOrder'), Opt.pqOrder = false; end
-if ~isfield(Opt,'SymmFrame'), Opt.SymmFrame = []; end
+if ~isfield(Opt,'GridFrame'), Opt.GridFrame = []; end
 if ~isfield(Opt,'Diagnostics'), Opt.Diagnostics = ''; end
 if ~isfield(Opt,'useLMKbasis'), Opt.useLMKbasis = false; end
 if ~isfield(Opt,'useStartvecSelectionRules'), Opt.useStartvecSelectionRules = true; end
@@ -611,10 +611,10 @@ if any(Sys.n~=1)
   error('chili cannot handle systems with nuclei with Sys.n > 1 only if these nuclei are treated using post-convolution (Opt.PostConvNucs).');
 end
 
-if numel(Opt.nKnots)<1, Opt.nKnots(1) = 19; end
-if numel(Opt.nKnots)<2, Opt.nKnots(2) = 0; end
-if Opt.nKnots(2)~=0
-  error('chili cannot interpolate orientations. Set Opt.nKnots(2) to zero.');
+if numel(Opt.GridSize)<1, Opt.GridSize(1) = 19; end
+if numel(Opt.GridSize)<2, Opt.GridSize(2) = 0; end
+if Opt.GridSize(2)~=0
+  error('chili cannot interpolate orientations. Set Opt.GridSize(2) to zero.');
 end
 
 % Basis settings
@@ -848,19 +848,19 @@ end
 % Set up list of orientations
 %===============================================================================
 if PowderSimulation
-  if Opt.nKnots(1)==1
+  if Opt.GridSize(1)==1
     phi = 0;
     theta = 0;
     GridWeights = 4*pi;
   else
-    grid = sphgrid(Opt.Symmetry,Opt.nKnots(1),'c');
+    grid = sphgrid(Opt.GridSymmetry,Opt.GridSize(1),'c');
     Vecs = grid.vecs;
     GridWeights = grid.weights;
     % Transform vector to reference frame representation and convert to polar angles.
-    if isempty(Opt.SymmFrame)
+    if isempty(Opt.GridFrame)
       [phi,theta] = vec2ang(Vecs);
     else
-      [phi,theta] = vec2ang(Opt.SymmFrame*Vecs);
+      [phi,theta] = vec2ang(Opt.GridFrame*Vecs);
     end
   end
   logmsg(1,'  powder simulation with %d orientations',numel(phi));

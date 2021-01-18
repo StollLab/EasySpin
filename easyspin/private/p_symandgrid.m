@@ -1,6 +1,6 @@
 function [Exp,Opt] = p_symandgrid(Sys,Exp,Opt)
 %==========================================================================
-% Symmetry determination and orientational grid.
+% Symmetry determination and orientational grid
 %==========================================================================
 logmsg(1,'-orientations------------------------------------------');
 
@@ -8,88 +8,85 @@ if Exp.PowderSimulation
   
   logmsg(1,'  powder sample (randomly oriented centers)');
   
-  if isempty(Opt.Symmetry)
+  if isempty(Opt.GridSymmetry)
     
     msg = 'automatic determination of symmetry group and frame';
-    [Opt.Symmetry,Opt.SymmFrame] = symm(Sys);
+    [Opt.GridSymmetry,Opt.GridFrame] = symm(Sys);
     nonEquiPops = isfield(Sys,'Pop') && ~isempty(Sys.Pop);
-    if nonEquiPops && strcmp(Opt.Symmetry,'Dinfh')
+    if nonEquiPops && strcmp(Opt.GridSymmetry,'Dinfh')
       logmsg(1,'  Hamiltonian symmetry is axial, non-equilibrium populations\n   -> reduction to rhombic');
-      Opt.Symmetry = 'D2h';
+      Opt.GridSymmetry = 'D2h';
     end
   
   else
 
     msg = 'user-specified symmetry group';
-    if isempty(Opt.SymmFrame)
-      Opt.SymmFrame = eye(3);
-      msg = [msg ', fixed symmetry frame'];
+    if isempty(Opt.GridFrame)
+      Opt.GridFrame = eye(3);
     else
       msg = [msg ' and symmetry frame'];
     end
   end
   logmsg(1,'  %s',msg);
   
-  TiltedFrame = sum(diag(Opt.SymmFrame))~=3;
+  tiltedFrame = sum(diag(Opt.GridFrame))~=3; % test for eye(3)
     
-  % Display symmetry group and frame.
-  if TiltedFrame, msgg = 'tilted'; else, msgg = 'non-tilted'; end
-  logmsg(1,'  %s, %s frame',Opt.Symmetry,msgg);
-  if TiltedFrame
-    str = '  symmetry frame orientation in reference frame (Euler angles, deg):\n    [%s]';
-    logmsg(1,str,sprintf('%0.3f ',eulang(Opt.SymmFrame,1)*180/pi));
+  % Display grid symmetry group and frame.
+  if tiltedFrame
+    msgg = 'tilted';
+  else
+    msgg = 'non-tilted';
+  end
+  logmsg(1,'  grid symmetry: %s, %s frame',Opt.GridSymmetry,msgg);
+  if tiltedFrame
+    str = '  grid frame orientation in reference frame (Euler angles, deg):\n    [%s]';
+    logmsg(1,str,sprintf('%0.3f ',eulang(Opt.GridFrame,1)*180/pi));
   end
   
-  % Convert symmetry to octant number.
-  [maxPhi,closedPhi,Opt.nOctants] = gridparam(Opt.Symmetry);
-
   % Get orientations for the knots, molecular frame.
-  [grid,tri] = sphgrid(Opt.Symmetry,Opt.nKnots(1));
+  [grid,tri] = sphgrid(Opt.GridSymmetry,Opt.GridSize(1));
   Vecs = grid.vecs;
+  Opt.nOctants = grid.nOctants;
   Exp.OriWeights = grid.weights;
   Exp.tri = tri;
   
   % Transform vector to reference frame representation and convert to polar angles.
-  [Exp.phi,Exp.theta] = vec2ang(Opt.SymmFrame*Vecs);
+  [Exp.phi,Exp.theta] = vec2ang(Opt.GridFrame*Vecs);
   clear Vecs
   Exp.CrystalOrientation = [Exp.phi;Exp.theta].';
   nOrientations = numel(Exp.phi);
   
   %closedPhi = true;
-  Opt.GridParams = [nOrientations,Opt.nKnots(1),closedPhi,Opt.nOctants,maxPhi];
+  Opt.GridParams = [nOrientations,Opt.GridSize(1),grid.closedPhi,Opt.nOctants,grid.maxPhi];
 
-  % Display information on orientational grid
+  % Display information about orientational grid
   switch Opt.nOctants
-    case -1, str = '  region: north pole (single point)';
-    case 0,  str = '  region: a quarter of a meridian';
-    otherwise, str = sprintf('  region: %d octant(s) of the upper hemisphere',Opt.nOctants);
+    case -1, str = 'north pole (single point)';
+    case 0, str = 'a quarter of a meridian';
+    case 4, str = 'upper hemisphere';
+    case 2, str = 'half of upper hemisphere';
+    case 8, str = 'full sphere';
+    case 1, str = sprintf('%d octant of the upper hemisphere, maxPhi = %g*pi',Opt.nOctants,grid.maxPhi/pi);
+    otherwise
+      error('Unsupported number %d of grid octants.',Opt.nOctants);
   end
-  logmsg(1,str);
-  if Opt.nOctants==-1
-    logmsg(1,'  1 orientation (1 knot)');
+  logmsg(1,['  integration region: ' str]);
+  if nOrientations==1
+    logmsg(1,'  1 orientation (GridSize = %d)',Opt.GridSize(1));
   else
-    logmsg(1,'  %d orientations (%d knots)',nOrientations,Opt.nKnots(1));
+    logmsg(1,'  %d orientations (GridSize = %d)',nOrientations,Opt.GridSize(1));
   end
   
 else % no powder simulation
-
-  % Transpose Exp.CrystalOrientation if necessary to have one row per orientation
-  transpose = false;
-  nC1 = size(Exp.CrystalOrientation,1);
-  nC2 = size(Exp.CrystalOrientation,2);
-  if nC2==2 || nC2==3
-    % all fine
-  else
-    if nC1==2 || nC1==3
-      transpose = true;
-    else
-      error('Exp.CrystalOrientation must be a Nx3 or Nx2 array, yours is %dx%d.',...
+  
+  % Check Exp.CrystalOrientation
+  [nC1,nC2] = size(Exp.CrystalOrientation);
+  if nC2~=2 && nC2~=3
+    error('Exp.CrystalOrientation must be a Nx3 or Nx2 array, yours is %dx%d.',...
         nC1,nC2);
-    end
   end
-  if transpose, Exp.CrystalOrientation = Exp.CrystalOrientation.'; end
   nOrientations = size(Exp.CrystalOrientation,1);
-
+  
   Opt.nOctants = -2;
   
   Exp.OriWeights = ones(1,nOrientations)*4*pi;

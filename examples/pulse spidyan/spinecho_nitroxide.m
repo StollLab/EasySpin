@@ -15,10 +15,10 @@ Exp.Field = 324.9; % mT
 % pepper(Sys,Exp) % You can use pepper to see the spectrum and to make sure
 % you set your pulses correctly
 
-nKnots = 20; 
+GridSize = 20; 
 
 Symmetry = symm(Sys);
-grid = sphgrid(Symmetry,nKnots);
+grid = sphgrid(Symmetry,GridSize);
 nOrientations = numel(grid.weights);
 
 % eperiment setup

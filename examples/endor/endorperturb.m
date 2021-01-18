@@ -25,7 +25,7 @@ Exp.mwFreq = 9.5;
 Exp.ExciteWidth = 100;
 
 % Simulation options
-Opt.nKnots = [31 0]; % higher orientational resolution
+Opt.GridSize = [31 0]; % higher orientational resolution
 
 % (1) matrix diagonalization: slow
 Opt.Method = 'matrix';

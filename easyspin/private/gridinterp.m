@@ -4,7 +4,7 @@
 %   
 % Inputs:
 %   y            data, in row vectors. Matrices get interpolated along rows.
-%   gridParams   [nOrientations, nKnots, closedPhi, nOctants, maxPhi]
+%   gridParams   [nOrientations, GridSize, closedPhi, nOctants, maxPhi]
 %   InterpType   interpolation type, 'G3' (default),'L3','L1'
 %   phi,theta    interpolation points
 
@@ -42,7 +42,7 @@ cubicInterpolation = InterpType(2) == '3';
 
 % Extract grid parameters
 nOrientations = gridParams(1);
-nKnots = gridParams(2);
+GridSize = gridParams(2);
 periodic = ~gridParams(3);
 nOctants = gridParams(4);
 maxPhi = gridParams(5);
@@ -111,16 +111,16 @@ otherwise
   % nOctants >=1 (D2h, etc)
   %============================================================
   % Convert triangular to rectangular grid.
-  z = rectify(y,nKnots,nOctants,periodic,cubicInterpolation);
+  z = rectify(y,GridSize,nOctants,periodic,cubicInterpolation);
   
   % Attention: max(iphi) and max(ithe) must be integers, otherwise
   % interp2 returns NaNs.
   if nOctants<8
-    iphi = 1 + nOctants*(nKnots-1) * (phi/maxPhi);
-    ithe = 1 + (nKnots-1) * (the/(pi/2));
+    iphi = 1 + nOctants*(GridSize-1) * (phi/maxPhi);
+    ithe = 1 + (GridSize-1) * (the/(pi/2));
   else
-    iphi = 1 + 4*(nKnots-1) * (phi/maxPhi);
-    ithe = 1 + 2*(nKnots-1) * (the/pi);
+    iphi = 1 + 4*(GridSize-1) * (phi/maxPhi);
+    ithe = 1 + 2*(GridSize-1) * (the/pi);
   end
   
   if ~cubicInterpolation
@@ -137,7 +137,7 @@ return
 
 
 %--------------------------------------------------------------------------
-function z = rectify(y,nKnots,nOctants,periodic,cubicInterp)
+function z = rectify(y,GridSize,nOctants,periodic,cubicInterp)
 %--------------------------------------------------------------------------
 %
 %  y(iKnots) --> interpolation along
@@ -145,7 +145,7 @@ function z = rectify(y,nKnots,nOctants,periodic,cubicInterp)
 %
 % Converts triangularly gridded data y to a rectangular grid z.
 %
-% nKnots    number of knots between north pole and equator
+% GridSize    number of knots between north pole and equator
 % periodic  flag telling if data are periodic or not
 % nOctants  number of octants the triangular grid covers (see sphgrid)
 %
@@ -157,12 +157,12 @@ fullSphere = nOctants==8;
 % nc = number of columns (phi) in output array (includes end point)
 % dlen = change in number of points from one theta row to the next
 if fullSphere
-  nr = 2*nKnots-1;
-  nc = 4*(nKnots-1) + 1;
+  nr = 2*GridSize-1;
+  nc = 4*(GridSize-1) + 1;
   dlen = 4;
 else
-  nr = nKnots;
-  nc = nOctants*(nKnots-1) + 1;
+  nr = GridSize;
+  nc = nOctants*(GridSize-1) + 1;
   dlen = nOctants;
 end
 
@@ -174,7 +174,7 @@ z(1,:) = y(1);
 % Process rest of upper hemisphere
 idx = 2;
 len = dlen + 1 - periodic;
-for ir = 2:nKnots-1
+for ir = 2:GridSize-1
   if cubicInterp
     if periodic
       z(ir,:) = esspline1d(y([idx:idx+len-1 idx]),2,nc);
@@ -194,16 +194,16 @@ end
 
 % Add equator (no interpolation needed)
 if periodic
-  z(nKnots,:) = y([idx:idx+len-1 idx]);
+  z(GridSize,:) = y([idx:idx+len-1 idx]);
 else
-  z(nKnots,:) = y(idx:idx+len-1);
+  z(GridSize,:) = y(idx:idx+len-1);
 end
 
 % Process lower hemisphere
 if fullSphere
   idx = idx + len;
   len = len - dlen;
-  for ir = nKnots+1:2*nKnots-2
+  for ir = GridSize+1:2*GridSize-2
     if cubicInterp
       if periodic
         z(ir,:) = esspline1d(y([idx:idx+len-1 idx]),2,nc);
@@ -222,7 +222,7 @@ if fullSphere
   end
   
   % add south pole
-  z(2*nKnots-1,:) = y(idx);
+  z(2*GridSize-1,:) = y(idx);
 end
 
 return

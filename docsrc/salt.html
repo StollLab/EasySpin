@@ -256,7 +256,7 @@ By default, all nuclei are included in the simulation.
 Determines how much information <code>salt</code> prints to the screen. If <code>Opt.Verbosity=0</code>, <code>salt</code> is completely silent. 1 logs relevant information, 2 gives more details.
 </div>
 
-<div class="optionfield"><code>nKnots</code></div>
+<div class="optionfield"><code>GridSize</code></div>
 <div class="optiondescr">
 <code>[N1]</code> or <code>[N1 N2]</code>
 <br>
@@ -277,9 +277,9 @@ are rarely necessary. If <code>N2</code> is not given, a default value is used.
 </ul>
 
 <pre class="matlab">
-Opt.nKnots = 91;       % 1&deg; increments, no interpolation
-Opt.nKnots = [46 0];   % 2&deg; increments, no interpolation
-Opt.nKnots = [31 6];   % 3&deg; increments, 6-fold interpolation (giving 0.5&deg; increments)
+Opt.GridSize = 91;       % 1&deg; increments, no interpolation
+Opt.GridSize = [46 0];   % 2&deg; increments, no interpolation
+Opt.GridSize = [31 6];   % 3&deg; increments, 6-fold interpolation (giving 0.5&deg; increments)
 </pre>
 </div>
 
@@ -299,13 +299,13 @@ In powder simulations, <code>Opt.Sites</code> is ignored.
 
 </div>
 
-<div class="optionfield"><code>Symmetry</code></div>
+<div class="optionfield"><code>GridSymmetry</code></div>
 <div class="optiondescr">
 <code>'auto'</code> (default), <code>'Dinfh'</code>, <code>'D2h'</code>,
 <code>'C2h'</code> or <code>'Ci'</code>
 <br>
-Determines the symmetry used for the powder simulation. Based on this the set of orientations for which spectra are computed is chosen. <code>'Dinfh'</code> corresponds to a line from &theta;=0&deg; to &theta=90&deg; (with &phi;=0&deg;), <code>'D2h'</code> to one octant, <code>'C2h'</code> to two octants, and <code>'Ci'</code> to one hemisphere (four octants).
-<code>auto</code> is the default, meaning that <code>pepper</code> determines the correct symmetry automatically from the given spin system. With any other setting, <code>pepper</code> is forced into using the specified symmetry, even if it is incorrect for the spin system.
+Determines the grid symmetry used for the powder simulation. <code>'Dinfh'</code> corresponds to a line from &theta;=0&deg; to &theta=90&deg; (with &phi;=0&deg;), <code>'D2h'</code> to one octant, <code>'C2h'</code> to two octants, and <code>'Ci'</code> to one hemisphere (four octants).
+<code>auto</code> is the default, meaning that <code>pepper</code> determines the appropriate grid symmetry automatically from the given spin system. With any other setting, <code>pepper</code> is forced into using the specified symmetry, even if it is incorrect for the spin system.
 See also <a class="esf" href="symm.html">symm</a>.
 </div>
 

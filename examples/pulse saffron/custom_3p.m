@@ -20,6 +20,6 @@ Exp.Sequence = {p90 tau p90 0.06 p90 tau};
 Exp.nPoints = 512;
 Exp.Dim1 = {'d2', 0.005}; % mus
 
-Opt.nKnots = 50;
+Opt.GridSize = 50;
 
 saffron(Sys,Exp,Opt);

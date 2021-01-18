@@ -29,7 +29,7 @@ Exp.Dim1 = {'d2', 0.005}; % increment of second delay by 5 ns per step
 Exp.PhaseCycle{1} = [0, 1; pi, -1];  % [+(+x)-(-x)]  phase cycle
 Exp.PhaseCycle{3} = [0, 1; pi, -1];  % [+(+x)-(-x)]  phase cycle
 
-Opt.nKnots = 100;
+Opt.GridSize = 100;
 Opt.Verbosity = true; 
 
 saffron(Sys,Exp,Opt);

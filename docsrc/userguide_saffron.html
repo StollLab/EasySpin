@@ -352,17 +352,17 @@ For more details, see the pages on <a href="frames.html">frames</a> and <a href=
 </a>
 
 <p>
-<a class="esf" href="saffron.html">saffron</a> has a range of settings that can be used to adjust the level of theory and other aspects of the simulation. These are provided in the third input argument to saffron, usually called <code>Opt</code>. One of the most often neede parameters is <code>Opt.nKnots</code>, which specifies the resolution of the orientational grid used for powder simulations. The higher the number in <code>Opt.nKnots</code>, the finer the grid.
+<a class="esf" href="saffron.html">saffron</a> has a range of settings that can be used to adjust the level of theory and other aspects of the simulation. These are provided in the third input argument to saffron, usually called <code>Opt</code>. One of the most often neede parameters is <code>Opt.GridSize</code>, which specifies the resolution of the orientational grid used for powder simulations. The higher the number in <code>Opt.GridSize</code>, the finer the grid.
 
 <pre class="mlexample">
-Opt.nKnots = 19;   % 5&deg; increments
-Opt.nKnots = 31;   % 3&deg; increments
-Opt.nKnots = 46;   % 2&deg; increments
-Opt.nKnots = 91;   % 1&deg; increments
+Opt.GridSize = 19;   % 5&deg; increments
+Opt.GridSize = 31;   % 3&deg; increments
+Opt.GridSize = 46;   % 2&deg; increments
+Opt.GridSize = 91;   % 1&deg; increments
 </pre>
 
 <p>
-By default, EasySpin uses a mid-range resolution. For systems with very anisotopic tensors, it is often necessary to manually increase <code>Opt.nKnots</code> to get fully converged spectra.
+By default, EasySpin uses a mid-range resolution. For systems with very anisotopic tensors, it is often necessary to manually increase <code>Opt.GridSize</code> to get fully converged spectra.
 
 <p>
 Another useful setting concerns the "product rule". This rule states that ESEEM traces from a spin system with multiple nuclei can be approximated as sums of products of the ESEEM traces from single-nucleus subsystems. Using the product rule is an approximation (except for ideal pulses), but can substantially speed up simulations for multi-nuclear systems. By default, it is not used. To activate it, use

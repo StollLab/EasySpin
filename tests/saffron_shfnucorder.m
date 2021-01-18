@@ -14,7 +14,7 @@ Exp.T = 0.080; % us
 Exp.nPoints = 500;
 Exp.CrystalOrientation = [1.1234 2.534 0.5];
 
-Opt.nKnots = 101;
+Opt.GridSize = 101;
 Opt.TimeDomain = 1;
 Opt.ProductRule = 1;
 

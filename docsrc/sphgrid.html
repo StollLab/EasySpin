@@ -35,8 +35,8 @@ Generates spherical grids including solid angles.
 <div class="subtitle">Syntax</div>
 
 <pre class="matlab">
-grid = sphgrid(Symmetry,nKnots)
-[grid,tri] = sphgrid(Symmetry,nKnots)
+grid = sphgrid(Symmetry,GridSize)
+[grid,tri] = sphgrid(Symmetry,GridSize)
 </pre>
 
 <!-- ====================================================== -->
@@ -47,7 +47,7 @@ grid = sphgrid(Symmetry,nKnots)
 </p>
 
 <p>
-<code>Symmetry</code> specifies the symmetry for which the grid is to be generated. The higher the symmetry, the smaller can the needed sphere surface be, since rotational and reflectional symmetry makes parts of the surface redundant for EPR calculations.
+<code>Symmetry</code> specifies the symmetry of the grid. The higher the symmetry, the smaller can the needed sphere surface be, since rotational and reflectional symmetry makes parts of the surface redundant for EPR calculations.
 </p>
 
 <p>
@@ -87,9 +87,9 @@ Note that some unique surfaces have open &phi; borders. This is
 treated correctly by <code>sphgrid</code>. There are never knots on open
 borders.
 
-<code>nKnots</code> determines the number of knots on the quarter meridian
+<code>GridSize</code> determines the number of knots on the quarter meridian
 &theta; = [0, &pi;/2], &phi;=0. The number of knots along the equator
-depends on the range of &phi;. Roughly, <code>nKnots</code> are taken for
+depends on the range of &phi;. Roughly, <code>GridSize</code> are taken for
 each quarter of the equator.
 
 <p>
@@ -133,8 +133,7 @@ To plot a spherical grid over the upper hemisphere, use
 </p>
 
 <pre class="matlab">
-nKnots = 10;
-[grid,tri] = sphgrid('Ci',nKnots);
+[grid,tri] = sphgrid('Ci',10);
 v = grid.vecs;
 trisurf(tri.idx,v(1,:),v(2,:),v(3,:));
 </pre>

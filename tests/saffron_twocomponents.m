@@ -53,7 +53,7 @@ if ~isempty(olddata)
   Exp2.DetWindow = [-0.1 0.1];
   Exp2.DetPhase = 0;
   
-  Opt.nKnots = 7;
+  Opt.GridSize = 7;
   Opt.SimulationMode = 'thyme';
   
   try

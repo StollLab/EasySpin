@@ -17,7 +17,7 @@ Sys.Nucs = '1H';
 Sys.A = [1 6]; % MHz
 Sys.g = [2 2.2];
 
-Opt.nKnots = 91;
+Opt.GridSize = 91;
 
 Fields = 300:2:350;
 

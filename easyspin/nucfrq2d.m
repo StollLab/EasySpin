@@ -38,7 +38,7 @@ if isfield(sys,'S')
 end
 
 %====================================
-Options.nKnots = 31;
+Options.GridSize = 31;
 Options.nPoints = 100;
 Options.expand = 1.1;
 Options.baColor = [1 0 0]*0.6;
@@ -65,9 +65,11 @@ nfreq = nnz(BetaMask);
 
 % Set up orientational grid and triangulation.
 thisSymm = symm(sys);
-[grid,tri] = sphgrid(thisSymm,Options.nKnots);
+[grid,tri] = sphgrid(thisSymm,Options.GridSize);
 x = grid.vecs;
-[maxPhi,closedPhi,nOct] = gridparam(thisSymm);
+maxPhi = grid.maxPhi;
+closedPhi = grid.closePhi;
+nOct = grid.nOctants;
 nOri = size(x,2);
 
 % Initialize to zero.

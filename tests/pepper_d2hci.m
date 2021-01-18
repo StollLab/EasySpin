@@ -14,11 +14,11 @@ if ~strcmp(SysPg,'C2h')
 end
 
 Exp = struct('Range',[285 365],'mwFreq',9.5,'nPoints',2e3,'Harmonic',0);
-Opt = struct('nKnots',[20 4],'Method','perturb');
+Opt = struct('GridSize',[20 4],'Method','perturb');
 GridSymmetry = {'Ci','C2h','D2h'};
 
 for k = 1:length(GridSymmetry)
-  Opt.Symmetry = GridSymmetry{k};
+  Opt.GridSymmetry = GridSymmetry{k};
   [x,y(k,:)] = pepper(Sys,Exp,Opt);
 end
 

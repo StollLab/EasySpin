@@ -22,15 +22,15 @@ gridsize('Oh') = f; % 1 octant, closed
 gridsize('Th') = f; % 1 octant, closed
 gridsize('D3d') = f; % 1 octant, closed
 
-nKnots = 12;
+GridSize = 12;
 
 pg = keys(gridsize);
 for idx = 1:length(gridsize)
   pg_ = pg{idx};
-  grid = sphgrid(pg_,nKnots);
+  grid = sphgrid(pg_,GridSize);
   n = numel(grid.weights);
   fun = gridsize(pg_);
-  n0 = fun(nKnots);
+  n0 = fun(GridSize);
   ok(idx) = n==n0;
   if opt.Display
     fprintf('%5s:  %d  %d\n',pg_,n,n0);

@@ -11,7 +11,7 @@ Exp.Field = 326.5;
 Exp.Range = [10 20];
 
 Opt.Threshold = 1e-5;
-Opt.nKnots = [30 5];
+Opt.GridSize = [30 5];
 Opt.Verbosity = opt.Verbosity;
 
 [rf,b0] = salt(Sys,Exp,Opt);

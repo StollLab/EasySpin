@@ -24,6 +24,6 @@ Opt.Method = 'perturb1';
 % - keep transitions separate
 Opt.Output = 'separate';
 % - high orientational resolution, no interpolation
-Opt.nKnots = [61 0];
+Opt.GridSize = [61 0];
 
 salt(Sys,Exp,Opt);

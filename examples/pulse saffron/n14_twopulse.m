@@ -18,6 +18,6 @@ nuI = larmorfrq(Sys.Nucs,Exp.Field); % MHz
 Sys.A = 2*nuI;                       % MHz
 Sys.Q = [4*0.1*nuI, 0.6];            % MHz
 
-Opt.nKnots = 91;
+Opt.GridSize = 91;
 
 saffron(Sys,Exp,Opt);

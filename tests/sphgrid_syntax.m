@@ -3,9 +3,9 @@ function ok = test()
 % Syntax check
 
 SymmGroup = {'D2h','C2h','Ci','Dinfh'};
-nKnots = 10;
+GridSize = 10;
 for g = 1:numel(SymmGroup)
-  [grid,tri] = sphgrid(SymmGroup{g},nKnots);
+  [grid,tri] = sphgrid(SymmGroup{g},GridSize);
   ok(g) = isfield(grid,'phi') && ...
           isfield(grid,'theta') && ...
           isfield(grid,'vecs') && ...

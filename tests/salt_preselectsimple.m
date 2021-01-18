@@ -7,7 +7,7 @@ Sy.lwEndor = 0.02;
 Ex = struct('Range',[8 18],'mwFreq',9.5,'ExciteWidth',100);
 g = linspace(min(Sy.g),max(Sy.g),10);
 Fields = Ex.mwFreq*1e9*planck/bmagn./g*1e3;
-Op = struct('Verbosity',opt.Verbosity,'nKnots',61);
+Op = struct('Verbosity',opt.Verbosity,'GridSize',61);
 
 for iField = 1:numel(Fields)
   Ex.Field = Fields(iField);

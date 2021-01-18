@@ -143,18 +143,18 @@ end
 PowderSimulation = isempty(Exp.CrystalOrientation);
 Exp.PowderSimulation = PowderSimulation;
 
-if ~isfield(Opt,'Symmetry'), Opt.Symmetry = []; end
-if ~isfield(Opt,'SymmFrame'), Opt.SymmFrame = []; end
+if ~isfield(Opt,'GridSymmetry'), Opt.GridSymmetry = []; end
+if ~isfield(Opt,'GridFrame'), Opt.GridFrame = []; end
 if ~isfield(Opt,'Transitions'), Opt.Transitions = []; end
 if ~isfield(Opt,'Sites'), Opt.Sites = []; end
 
 % Number of knots: determines number of orientations
-if ~isfield(Opt,'nKnots'), Opt.nKnots = 30+1; end
-if numel(Opt.nKnots)>1
-  error('Only one number allowed in Opt.nKnots. saffron does not support interpolation.');
+if ~isfield(Opt,'GridSize'), Opt.GridSize = 30+1; end
+if numel(Opt.GridSize)>1
+  error('Only one number allowed in Opt.GridSize. saffron does not support interpolation.');
 end
-if Opt.nKnots<7
-  error('Opt.nKnots must be at least 7. You gave %d.',Opt.nKnots);
+if Opt.GridSize<7
+  error('Opt.GridSize must be at least 7. You gave %d.',Opt.GridSize);
 end
 
 % set up orientation loop (only do this when saffron is called for a single

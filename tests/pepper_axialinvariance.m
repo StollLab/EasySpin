@@ -11,13 +11,13 @@ Exp.Range = [285 365];
 Exp.Harmonic = 0;
 
 Opt.Method = 'perturb1';
-Opt.nKnots = [19 5];
+Opt.GridSize = [19 5];
 
 Symmetry = {'Dinfh','D6h','D4h','Oh','D3d','Th','D2h',...
     'C4h','C6h','S6','C2h','Ci','C1'};
 
 for k = 1:numel(Symmetry)
-  Opt.Symmetry = Symmetry{k};
+  Opt.GridSymmetry = Symmetry{k};
   [x,y(k,:)] = pepper(Sys,Exp,Opt);
 end
 

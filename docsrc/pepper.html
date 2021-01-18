@@ -238,11 +238,11 @@ Include this in the simulation via <code>Exp.Ordering = @oridist</code>.
 </p>
 
 <p>
-When providing a function for <code>Exp.Ordering</code>, make sure that the symmetry used in the simulation is the same or lower than the symmetry of the distribution. In cases of doubt, set <code>Opt.Symmetry='C1'</code>. This gives correct results.
+When providing a function for <code>Exp.Ordering</code>, make sure that the symmetry used in the simulation is the same or lower than the symmetry of the distribution. In cases of doubt, set <code>Opt.GridSymmetry='C1'</code>. This gives correct results.
 </p>
 
 <p>
-If the custom distribution provided via <code>Exp.Ordering</code> is very narrow, increase the number of knots in <code>Opt.nKnots</code>.
+If the custom distribution provided via <code>Exp.Ordering</code> is very narrow, increase the number of knots in <code>Opt.GridSize</code>.
 </p>
 
 </div>
@@ -303,7 +303,7 @@ For crystal simulations, <code>'separate'</code> means something different: If g
 Determines how much information <code>pepper</code> prints to the command window. If <code>Opt.Verbosity=0</code>, <code>pepper</code> is silent. 1 logs relevant information, 2 gives more details.
 </div>
 
-<div class="optionfield"><code>nKnots</code>, <code>[N1]</code> or <code>[N1 N2]</code></div>
+<div class="optionfield"><code>GridSize</code>, <code>[N1]</code> or <code>[N1 N2]</code></div>
 <div class="optiondescr">Determines the number of orientations (knots) in a powder simulation for which spectra are calculated.
 <ul>
 <li>
@@ -313,9 +313,9 @@ Determines how much information <code>pepper</code> prints to the command window
 </ul>
 
 <pre class="matlab">
-Opt.nKnots = 91;       % 1&deg; increments, no interpolation
-Opt.nKnots = [46 0];   % 2&deg; increments, no interpolation
-Opt.nKnots = [31 6];   % 3&deg; increments, 6-fold interpolation (giving 0.5&deg; increments)
+Opt.GridSize = 91;       % 1&deg; increments, no interpolation
+Opt.GridSize = [46 0];   % 2&deg; increments, no interpolation
+Opt.GridSize = [31 6];   % 3&deg; increments, 6-fold interpolation (giving 0.5&deg; increments)
 </pre>
 </div>
 
@@ -346,10 +346,10 @@ In powder simulations, <code>Opt.Sites</code> is ignored.
 Specifies the threshold for <code>pepper</code>'s transition pre-selection. Any transition with an estimated relative average amplitude less than this number is not included in the calculation. The relative average amplitude of the strongest transition is 1, the default is <code>1e-4</code>. The pre-selection is an approximate procedure, and it might miss transitions for complicated spin systems. In these cases, setting it to zero will include all transitions in the computation.
 </div>
 
-<div class="optionfield"><code>Symmetry</code>, <code>'auto'</code> (default), <code>'Dinfh'</code>, <code>'D2h'</code>, <code>'C2h'</code> or <code>'Ci'</code>
+<div class="optionfield"><code>GridSymmetry</code>, <code>'auto'</code> (default), <code>'Dinfh'</code>, <code>'D2h'</code>, <code>'C2h'</code> or <code>'Ci'</code>
 </div>
 <div class="optiondescr">
-Determines the symmetry used for the powder simulation. Based on this the set of orientations for which spectra are computed is chosen. <code>'Dinfh'</code> corresponds to a line from &theta;=0&deg; to &theta=90&deg; (with &phi;=0&deg;), <code>'D2h'</code> to one octant, <code>'C2h'</code> to two octants, and <code>'Ci'</code> to one hemisphere (four octants). <code>auto</code> is the default, meaning that <code>pepper</code> determines the correct symmetry automatically from the given spin system. With any other setting, <code>pepper</code> is forced to use the specified symmetry, even if it is not optimal or incorrect for the spin system. See also <a class="esf" href="symm.html">symm</a>.
+Determines the symmetry of the orientational grid used for the powder simulation. <code>'Dinfh'</code> corresponds to a line from &theta;=0&deg; to &theta;=90&deg; (with &phi;=0&deg;), <code>'D2h'</code> to one octant, <code>'C2h'</code> to two octants, <code>'Ci'</code> to one hemisphere (four octants), and <code>'C1'</code> to the full sphere. <code>auto</code> is the default, meaning that <code>pepper</code> determines the required grid symmetry automatically from the spin system parameters. With any other setting, <code>pepper</code> will use the specified grid symmetry, even if it is not optimal or incorrect for the spin system. See also <a class="esf" href="symm.html">symm</a>.
 </div>
 
 <div class="optionfield"><code>Intensity</code>, 
@@ -419,10 +419,10 @@ Although quite robust and general, <code>pepper</code> still has some limitation
 
 <ul>
 <li>
-In the case of looping resonance fields, interpolation is not possible. If the spectrum is coarse, increase <code>Opt.nKnots</code>.
+In the case of looping resonance fields, interpolation is not possible. If the spectrum is coarse, increase <code>Opt.GridSize</code>.
 </li>
 <li>
-In the case of looping resonance fields, there might appear bumps around the coalescence points in the spectrum. To get rid of them, increase the line widths or <code>Opt.nKnots</code>.
+In the case of looping resonance fields, there might appear bumps around the coalescence points in the spectrum. To get rid of them, increase the line widths or <code>Opt.GridSize</code>.
 </li>
 </ul>
 

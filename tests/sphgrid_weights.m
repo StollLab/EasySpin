@@ -2,13 +2,13 @@ function ok = test()
 
 % Verify that weights always add up to 4*pi
 
-nKnots = 10;
+GridSize = 10;
 
 SymmGroups = {'C1','Ci','C2h','S6','C4h','C6h','D2h','Th',...
   'D3d','D4h','Oh','D6h','Dinfh','O3'};
 
 for g = 1:numel(SymmGroups)
-  grid = sphgrid(SymmGroups{g},nKnots);
+  grid = sphgrid(SymmGroups{g},GridSize);
   wsum(g) = sum(grid.weights);
 end
 

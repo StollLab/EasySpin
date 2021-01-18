@@ -3,9 +3,9 @@ function [ok,data] = test(opt,olddata)
 % Regression test
 
 Groups = {'D2h','C2h','Dinfh','Ci'};
-nKnots = [30 10 40 12];
+GridSize = [30 10 40 12];
 for g = 1:numel(Groups)
-  grid = sphgrid(Groups{g},nKnots(g));
+  grid = sphgrid(Groups{g},GridSize(g));
   v{g} = grid.vecs;
 end
 

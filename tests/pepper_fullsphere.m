@@ -9,13 +9,13 @@ Exp.mwFreq = 9.5;
 Exp.Harmonic = 0;
 Exp.Range = [305 345];
 
-Opt.nKnots = [10 2];
+Opt.GridSize = [10 2];
 
-Opt.Symmetry = 'D2h';
+Opt.GridSymmetry = 'D2h';
 [B,spc0] = pepper(Sys,Exp,Opt);
-Opt.Symmetry = 'Ci';
+Opt.GridSymmetry = 'Ci';
 [B,spc1] = pepper(Sys,Exp,Opt);
-Opt.Symmetry = 'C1';
+Opt.GridSymmetry = 'C1';
 [B,spc2] = pepper(Sys,Exp,Opt);
 
 scale = max(spc0);

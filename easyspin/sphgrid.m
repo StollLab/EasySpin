@@ -1,21 +1,21 @@
 % sphgrid  Spherical grid
 %
-%   grid = sphgrid(Symmetry,nKnots)
-%   [grid,tri] = sphgrid(Symmetry,nKnots)
+%   grid = sphgrid(GridSymmetry,GridSize)
+%   [grid,tri] = sphgrid(GridSymmetry,GridSize)
 %
 %   Returns a set of unique orientations together with
 %   the covered solid angle by each, for a given symmetry.
 %
 %   Input:
-%   - Symmetry: the point group in Schoenflies notation
+%   - Symmetry:   the desired point group of the grid n Schoenflies notation
 %                  ('Ci', 'Dinfh', 'C2h', etc.)
-%               only centrosymmetric point groups and C1 are supported.
-%   - nKnots:   number of knots along a quarter of a meridian, at least 2
+%                 only centrosymmetric point groups and C1 are supported.
+%   - GridSize:   number of knots along a quarter of a meridian, at least 2
 %
 %   Output:
 %   - grid: a structure with fields
-%      .Symmetry     input symmetry
-%      .nKnots       input number of knots
+%      .GridSymmetry input grid symmetry
+%      .GridSize     input grid size
 %      .phi,.theta:  m-element arrays of polar angles, in radians
 %      .vecs:        3xm array of orientations (unit column vectors)
 %      .weights:     m-element array of associated weights, sum is 4*pi
@@ -41,7 +41,7 @@
 
 % grid.weights are approximate, tri.areas are accurate
 
-function [grid,tri] = sphgrid(Symmetry,nKnots,Options)
+function [grid,tri] = sphgrid(Symmetry,GridSize,Options)
 
 if nargin==0, help(mfilename); return; end
 
@@ -88,17 +88,17 @@ if explicitClosedPhi
   closedPhi = true;
 end
 
-% Now we have maxPhi, closedPhi, nOctants and nKnots.
+% Now we have maxPhi, closedPhi, nOctants and GridSize.
 % These parameters fully specify the requested grid.
 
 % Calculate grid vectors and weights
 %--------------------------------------------------------------------------
-[phi,theta,Weights] = sphgrid_(nOctants,maxPhi,nKnots,closedPhi);
+[phi,theta,Weights] = sphgrid_(nOctants,maxPhi,GridSize,closedPhi);
 vecs = ang2vec(phi,theta);
 
 % Store in output structure
-grid.Symmetry = Symmetry;
-grid.nKnots = nKnots;
+grid.GridSymmetry = Symmetry;
+grid.GridSize = GridSize;
 
 grid.closedPhi = closedPhi;
 grid.nOctants = nOctants;
@@ -122,11 +122,11 @@ if calculateTriangulation
     case 1 % 'D6h','D4h','Oh','D3d','Th','D2h'; 'C4h','C6h'; 1 octant
       if closedPhi % 'D6h','D4h','Oh','D3d','Th','D2h'; closed phi
         % coding idea of David Goodmanson, comp.soft-sys.matlab
-        a = 1:nKnots*(nKnots+1)/2;
-        a((2:nKnots+1).*(1:nKnots)/2) = [];
-        k = 1:(nKnots-1)*(nKnots-2)/2;
+        a = 1:GridSize*(GridSize+1)/2;
+        a((2:GridSize+1).*(1:GridSize)/2) = [];
+        k = 1:(GridSize-1)*(GridSize-2)/2;
         b = a(k);
-        Tri = [[1:nKnots*(nKnots-1)/2; a; a+1],[b; 2*(b+1)-k; b+1]].';
+        Tri = [[1:GridSize*(GridSize-1)/2; a; a+1],[b; 2*(b+1)-k; b+1]].';
       else % 'C4h','C6h'; open phi
         phx = grid.phi*4;
         thx = grid.theta;
@@ -144,13 +144,13 @@ if calculateTriangulation
       Tri = delaunay(thx.*cos(phx),thx.*sin(phx));
       
     case 8 % 'C1'; 8 octants, open phi
-      [phx,thx] = sphgrid_(4,2*pi,nKnots,false);
+      [phx,thx] = sphgrid_(4,2*pi,GridSize,false);
       phx = phx(:);
       thx = thx(:);
       triUpper = delaunay(thx.*cos(phx), thx.*sin(phx));
-      nTotal = 4*nKnots^2 - 8*nKnots + 6; % total number of knots for full sphere
+      nTotal = 4*GridSize^2 - 8*GridSize + 6; % total number of knots for full sphere
       triLower = nTotal + 1 - triUpper;
-      nEquator = 4*(nKnots-1); % number of knots on equator
+      nEquator = 4*(GridSize-1); % number of knots on equator
       idxEquator = triUpper > numel(thx)-nEquator;
       triLower(idxEquator) = triUpper(idxEquator);
       Tri = [triUpper; triLower];
@@ -194,7 +194,7 @@ if calculateTriangulation && ~isempty(Tri)
   Areas = Areas/sum(Areas) * 4*pi;
   
   if ~isreal(Areas)
-    error('Complex triangle areas encountered! (symmetry %s, nKnots %d, option %s)!',Symmetry,nKnots,Options);
+    error('Complex triangle areas encountered! (GridSymm %s, GridSize %d, option %s)!',Symmetry,GridSize,Options);
   end
   
 else
@@ -225,8 +225,15 @@ end
 
 end
 
-function [phi,theta,Weights] = sphgrid_(nOctants,maxPhi,nKnots,closedPhi)
-dtheta = (pi/2)/(nKnots-1);
+% Construct spherical grid over (phi,theta) based on input parameters:
+% - nOctants: number of "octants"; for each increment in theta, nOctants
+%   additional points are added along phi; special cases: nOctants=0 and
+%   nOctants=-1
+% - maxPhi: largest value of phi (radians)
+% - GridSize: number of orientations between theta=0 and theta=pi/2
+% - closedPhi: set to true if grid point at maxPhi should be included
+function [phi,theta,Weights] = sphgrid_(nOctants,maxPhi,GridSize,closedPhi)
+dtheta = (pi/2)/(GridSize-1); % angular increment along theta
 if nOctants > 0 % if not Dinfh or O3 symmetry
   
   % Initializations
@@ -236,11 +243,10 @@ if nOctants > 0 % if not Dinfh or O3 symmetry
   else
     nOct = nOctants;
   end
-  nPoints = nKnots + nOct*nKnots*(nKnots-1)/2;
-  
-  phi = zeros(1,nPoints);
-  theta = zeros(1,nPoints);
-  Weights = zeros(1,nPoints);
+  nOrientations = GridSize + nOct*GridSize*(GridSize-1)/2;  
+  phi = zeros(1,nOrientations);
+  theta = zeros(1,nOrientations);
+  Weights = zeros(1,nOrientations);
   
   sindth2 = sin(dtheta/2);
   w1 = 0.5;
@@ -253,7 +259,7 @@ if nOctants > 0 % if not Dinfh or O3 symmetry
   
   % All but equatorial slice
   Start = 2;
-  for iSlice = 2:nKnots-1
+  for iSlice = 2:GridSize-1
     nPhi = nOct*(iSlice-1)+1;
     dPhi = maxPhi/(nPhi-1);
     idx = Start+(0:nPhi-1);
@@ -265,16 +271,16 @@ if nOctants > 0 % if not Dinfh or O3 symmetry
   end
   
   % Equatorial slice
-  nPhi = nOct*(nKnots-1)+1;
+  nPhi = nOct*(GridSize-1)+1;
   dPhi = maxPhi/(nPhi-1);
   idx = Start + (0:nPhi-1);
   phi(idx) = linspace(0,maxPhi,nPhi);
   theta(idx) = pi/2;
-  Weights(idx) = sindth2*dPhi*[w1 ones(1,nPhi-2) .5];
+  Weights(idx) = sindth2*dPhi*[w1 ones(1,nPhi-2) 0.5];
   
   % Border removal
   if ~closedPhi
-    rmv = cumsum(nOct*(1:nKnots-1)+1)+1;
+    rmv = cumsum(nOct*(1:GridSize-1)+1)+1;
     phi(rmv) = [];
     theta(rmv) = [];
     Weights(rmv) = [];
@@ -289,19 +295,23 @@ if nOctants > 0 % if not Dinfh or O3 symmetry
     Weights = [Weights Weights(idx)];
   end
   
-  Weights = 2*(2*pi/maxPhi)*Weights;
+  Weights = 2*(2*pi/maxPhi)*Weights; % sum = 4*pi
   
 elseif nOctants==0 % Dinfh symmetry (quarter of meridian in xz plane)
   
-  phi = zeros(1,nKnots);
-  theta = linspace(0,pi/2,nKnots);
-  Weights = -2*(2*pi)*diff(cos([0 dtheta/2:dtheta:pi/2 pi/2]));
+  phi = zeros(1,GridSize);
+  theta = linspace(0,pi/2,GridSize);
+  Weights = -2*(2*pi)*diff(cos([0 dtheta/2:dtheta:pi/2 pi/2])); % sum = 4*pi
   
-else % O3 symmetry (z orientation only)
+elseif nOctants==-1 % O3 symmetry (z orientation only)
   
   phi = 0;
   theta = 0;
   Weights = 4*pi;
+  
+else
+  
+  error('Unsupported value %d for nOctants.',nOctants);
   
 end
 end
