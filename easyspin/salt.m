@@ -784,14 +784,14 @@ else
     % Summation or projection
     %------------------------------------------------------
     if doProjection
-      if Axial
+      if axialGrid
         thisspec = projectzones(fPos,fInt,fSegWeights,xAxis);
       else
         thisspec = projecttriangles(idxTri,Areas,fPos,fInt,xAxis);
       end
       % minBroadening = ?
     else
-      if Axial
+      if axialGrid
         fPosC = (fPos(1:end-1) + fPos(2:end))/2;
         fIntC = fSegWeights.*(fInt(1:end-1) + fInt(2:end))/2;
         fSpread = abs(fPos(1:end-1) - fPos(2:end));

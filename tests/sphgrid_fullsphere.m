@@ -1,4 +1,4 @@
-function ok = test(opt)
+function ok = test()
 
 % Explicitly check very small grid over full sphere
 
@@ -16,4 +16,4 @@ ok(2) = areequal(theta,grid.theta,1e-8,'abs');
 ok(3) = areequal(vecs,grid.vecs,1e-8,'abs');
 ok(4) = areequal(weights,grid.weights,1e-4,'abs');
 ok(5) = all(idx(:)==tri.idx(:));
-ok(6) = areequal(areas,tri.areas,1e-8,'abs');
+ok(6) = areequal(areas(:),tri.areas(:),1e-8,'abs');
