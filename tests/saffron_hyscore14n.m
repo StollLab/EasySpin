@@ -11,7 +11,7 @@ Exp.tau = 0.001;
 Exp.dt = 0.1;
 Exp.nPoints = 200;
 
-Opt.nKnots = 181;
+Opt.GridSize = 181;
 Opt.Expand = 3;
 
 Opt.Verbosity = 0;

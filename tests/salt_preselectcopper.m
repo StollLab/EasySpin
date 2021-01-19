@@ -7,7 +7,7 @@ Sy = struct('S',1/2,'g',[2 2 2.2],'Nucs','63Cu,1H',...
 Sy.lwEndor = 0.02;
 Ex = struct('Range',[10 20],'mwFreq',9.5,'ExciteWidth',50);
 Ex.Field = Ex.mwFreq*1e9*planck/bmagn/2.05*1e3;
-Op = struct('Verbosity',opt.Verbosity,'nKnots',91);
+Op = struct('Verbosity',opt.Verbosity,'GridSize',91);
 
 Op.OriPreSelect = 0; [x,y0] = salt(Sy,Ex,Op);
 Op.OriPreSelect = 1; [x,y1] = salt(Sy,Ex,Op);

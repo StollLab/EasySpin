@@ -7,7 +7,7 @@ function ok = test(opt)
 
 Sys = struct('S',1/2,'g',[2 2 2.3]);
 Exp = struct('mwFreq',9.7979,'Range',[290 360],'nPoints',10000);
-Opt = struct('Verbosity',0,'nKnots',[30 1]);
+Opt = struct('Verbosity',0,'GridSize',[30 1]);
 
 Sys.lw = 2; % Gaussian broadening
 

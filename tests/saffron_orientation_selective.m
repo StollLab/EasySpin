@@ -12,7 +12,7 @@ Sys.Nucs = '1H';
 Sys.A = [1 6];
 Sys.g = [2 2.2];
 
-Opt.nKnots = 91;
+Opt.GridSize = 91;
 
 [x,y] = saffron(Sys,Exp,Opt);
 

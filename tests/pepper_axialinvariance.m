@@ -1,32 +1,45 @@
 function ok = test(opt)
 
-% An axial spectrum should be independent of
-% the region of orientational integration.
+% A powder spectrum of an spin system with axial g tensor should be
+% independent of the region of orientational integration.
 
-Sys = struct('S',.5,'g',[1.9,2.3]);
-Exp = struct('Range',[285 365],'mwFreq',9.5,'nPoints',1024,'Harmonic',0);
-Opt = struct('nKnots',[19 5],'Method','perturb1');
-Symmetry = {'Dinfh','D6h','D4h','Oh','D3d','Th','D2h',...
-    'C4h','C6h','S6','C2h','Ci'};
+Sys.g = [1.9,2.3]; % axial g tensor
 Sys.lw = 1;
 
+Exp.mwFreq = 9.5;
+Exp.Range = [285 365];
+Exp.Harmonic = 0;
+
+Opt.Method = 'perturb1';
+Opt.GridSize = [19 5];
+
+Symmetry = {'Dinfh','D6h','D4h','Oh','D3d','Th','D2h',...
+    'C4h','C6h','S6','C2h','Ci','C1'};
+
 for k = 1:numel(Symmetry)
-  Opt.Symmetry = Symmetry{k};
+  Opt.GridSymmetry = Symmetry{k};
   [x,y(k,:)] = pepper(Sys,Exp,Opt);
-  dy(k) = max(y(k,:) - y(1,:));
 end
 
-y = y/max(y(:));
+yref = y(1,:);   % spectrum with Dinfh grid is reference
 
-if (opt.Display)
+scale = max(yref);
+yref = yref/scale;
+y = y/scale;
+
+for k = 1:numel(Symmetry)
+  ok(k) = max(abs(y(k,:)-yref))<0.003;
+end
+
+if opt.Display
+  subplot(3,1,[1 2]);
   plot(x,y);
   title('Axial symmetry invariance');
   xlabel('magnetic field [mT]');
   ylabel('normalized amplitude');
+  legend(Symmetry{:});
+  subplot(3,1,3);
+  yref = y(1,:);
+  plot(x,y-yref);
 end
 
-for k = 1:numel(Symmetry)
-  dy(k) = max(abs(y(k,:) - y(end,:)));
-end
-
-ok = max(dy)<0.005;

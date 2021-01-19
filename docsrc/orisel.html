@@ -119,22 +119,22 @@ If not specified, it is assumed to be zero.
 <div class="optionfield"><code>Orientations</code></div>
 <div class="optiondescr">
 2xn vector <code>[phi theta]</code> giving the polar angles that define the orientations. This is an optional field. If not given, orientations
-are computed internally using <a class="esf" href="sphgrid.html">sphgrid</a> with the values of <code>Symemtry</code> and <code>nKnots</code> given in the <code>Options</code> structure.
+are computed internally using <a class="esf" href="sphgrid.html">sphgrid</a> with the values of <code>Symemtry</code> and <code>GridSize</code> given in the <code>Options</code> structure.
 </div>
 
 <p>
 <code>Opt</code> is a structure containing optional settings
 </p>
 
-<div class="optionfield"><code>nKnots</code></div>
+<div class="optionfield"><code>GridSize</code></div>
 <div class="optiondescr">
 Number of orientations, as in <a class="esf" href="pepper.html">pepper</a> (optional, default 46)
 </div>
 
-<div class="optionfield"><code>Symmetry</code></div>
+<div class="optionfield"><code>GridSymmetry</code></div>
 <div class="optiondescr">
-Point-group symmetry of the spin Hamiltonian, as in <a class="esf" href="pepper.html">pepper</a>. If not given, the symmetry is
-determined automatically (see <a class="esf" href="symm.html">symm</a>).
+Point-group symmetry of the orientational grid, as in <a class="esf" href="pepper.html">pepper</a>. If not given, the grid symmetry is
+determined automatically from the spin system (see <a class="esf" href="symm.html">symm</a>).
 </div>
 
 <p>
@@ -172,11 +172,11 @@ orisel(Sys,Exp);
 
 <p>
 If the full orientational sphere should be plotted, set the
-symmetry manually to <code>C1</code>
+grid symmetry manually to <code>C1</code>
 </p>
 
 <pre class="matlab">
-Opt = struct('Symmetry','C1');
+Opt = struct('GridSymmetry','C1');
 orisel(Sys,Exp,Opt);
 </pre>
 

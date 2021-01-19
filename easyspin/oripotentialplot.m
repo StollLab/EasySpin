@@ -150,9 +150,9 @@ switch PlotStyle
   case 'sphere'
     % Plot on a sphere, (alpha,beta)
 
-    nKnots = max(40,max(Lp)*2);
+    GridSize = max(40,max(Lp)*2);
     symmgroup = 'C1';
-    Vectors = sphgrid(symmgroup,nKnots);
+    Vectors = sphgrid(symmgroup,GridSize);
 
     if plotAlphaBeta
       [alpha,beta] = vec2ang(Vectors);
@@ -175,7 +175,7 @@ switch PlotStyle
       end
       vec = ang2vec(gamma,beta).';
     end
-    tri = sphtri(symmgroup,nKnots);
+    tri = sphtri(symmgroup,GridSize);
 
     h = trisurf(tri,vec(:,1),vec(:,2),vec(:,3),Pplot);
     h.FaceAlpha = 0.85;

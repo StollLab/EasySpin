@@ -13,11 +13,11 @@ Exp.mwRange = [9.2 11];
 Exp.nPoints = 50000;
 
 % (1) Powder averaging (zone projection)
-Opt.Symmetry = 'Dinfh';
+Opt.GridSymmetry = 'Dinfh';
 [x,y2] = pepper(Sys,Exp,Opt);
 
 % (2) Powder averaging (triangle projection)
-Opt.Symmetry = 'Ci'; 
+Opt.GridSymmetry = 'Ci'; 
 [x,y1] = pepper(Sys,Exp,Opt);
 
 % (3) Single-crystal (accumulation using template copy)

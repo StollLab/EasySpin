@@ -255,16 +255,16 @@ Exp.CrystalOrientation = [pi/2 pi/2 0]; % magnetic field along crystal y axis
 <a name="options"><div class="subtitle">Calculation options</div></a>
 
 <p>
-Without information about a crystal (<code>Exp.CrystalOrientation</code>, <code>Exp.CrystalSymmetry</code>), <a class="esf" href="curry.html">curry</a> assumes the sample is a powder and performs a powder average. The powder average involves evaluating many orientations of the paramagnetic center with respect to the magnetic field, and then averaging them. To adjust the number of orientations included in the powder average, use <code>Opt.nKnots</code>. The higher the number, the more orientations are included.
+Without information about a crystal (<code>Exp.CrystalOrientation</code>, <code>Exp.CrystalSymmetry</code>), <a class="esf" href="curry.html">curry</a> assumes the sample is a powder and performs a powder average. The powder average involves evaluating many orientations of the paramagnetic center with respect to the magnetic field, and then averaging them. To adjust the number of orientations included in the powder average, use <code>Opt.GridSize</code>. The higher the number, the more orientations are included.
 
 <pre class="matlab">
-Opt.nKnots = 10;   % 10&deg; increments
-Opt.nKnots = 19;   % 5&deg; increments
-Opt.nKnots = 31;   % 3&deg; increments
+Opt.GridSize = 10;   % 10&deg; increments
+Opt.GridSize = 19;   % 5&deg; increments
+Opt.GridSize = 31;   % 3&deg; increments
 </pre>  
 
 <p>
-A sufficient number of orientations is necessary to obtain correct data. If you are not sure whether you have enough orientations, increase <code>Opt.nKnots</code> until the calculated data do not change any more.
+A sufficient number of orientations is necessary to obtain correct data. If you are not sure whether you have enough orientations, increase <code>Opt.GridSize</code> until the calculated data do not change any more.
 
 <p>
 Of course, if the spin Hamiltonian is isotropic, you do not have to run a powder average. <a class="esf" href="curry.html">curry</a> detects this situation automatically.

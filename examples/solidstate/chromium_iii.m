@@ -6,7 +6,7 @@ clear, clf, clc
 Exp.mwFreq = 34;
 Exp.Range = [900 1550];
 Exp.nPoints = 4096;
-Opt.nKnots = [46 1];
+Opt.GridSize = [46 1];
 Opt.Verbosity = 1;
 
 % system without magnetic Cr nucleus

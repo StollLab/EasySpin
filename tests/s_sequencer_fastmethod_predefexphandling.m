@@ -23,7 +23,7 @@ RefExp2.ExciteWidth = 200;
 RefExp2.CrystalOrientation = [0 pi/2 0];  
 RefExp2.CrystalSymmetry = 'C2h';
 
-Opt.nKnots = 20;
+Opt.GridSize = 20;
 Opt.TimeDomain = 0;
 Opt.Expand = 2;
 Opt.ProductRule = 1;

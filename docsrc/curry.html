@@ -240,15 +240,15 @@ Determines the field increment (in mT) used for calculating numerical derivative
 Determines how much information is printed to the command window. If set to 0, <code>curry</code> is silent. 1 logs relevant information, 2 gives more details.
 </div>
 
-<div class="optionfield"><code>nKnots</code></div>
+<div class="optionfield"><code>GridSize</code></div>
 <div class="optiondescr">
 Determines the number of orientations (knots) in a powder for which moment and susceptibility are calculated.
 
-<code>nKnots</code> gives the number of orientations between &theta;=0&deg; and &theta;=90&deg; for which data are calculated. Common values for <code>N1</code> are between 10 (10&deg; increments) and 91 (1&deg; increments). The larger the anisotropy of the spin Hamiltonian, the higher <code>N1</code> must be to yield accurate values.
+<code>GridSize</code> gives the number of orientations between &theta;=0&deg; and &theta;=90&deg; for which data are calculated. Common values for <code>N1</code> are between 10 (10&deg; increments) and 91 (1&deg; increments). The larger the anisotropy of the spin Hamiltonian, the higher <code>N1</code> must be to yield accurate values.
 
 <pre class="matlab">
-Opt.nKnots = 91;       % 1&deg; increments
-Opt.nKnots = 31;       % 3&deg; increments
+Opt.GridSize = 91;       % 1&deg; increments
+Opt.GridSize = 31;       % 3&deg; increments
 </pre>
 </div>
 

@@ -16,7 +16,7 @@ Sys.Potential = [2 0 0 1; 2 0 2 1; 4 0 0 1; 4 0 2 1];
 
 Opt.pqOrder = true;
 Opt.LLMK = [6 3 2 2];
-Opt.nKnots = 5;
+Opt.GridSize = 5;
 
 jKmin = [-1 1];
 highField = [true false];

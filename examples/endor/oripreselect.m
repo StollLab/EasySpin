@@ -21,7 +21,7 @@ Exp.mwFreq = 9.5;
 Exp.ExciteWidth = 50;
 
 % Simulation options
-Opt.nKnots = [61 0];
+Opt.GridSize = [61 0];
 
 % (1) no orientation pre-selection: slow
 Opt.OriPreSelect = 0;

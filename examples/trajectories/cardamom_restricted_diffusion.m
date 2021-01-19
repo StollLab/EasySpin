@@ -40,7 +40,7 @@ ycard = spc/max(spc);
 % Simulate using chili (stochastic Liouville equation)
 
 Opt.LLMK = [4 0 2 2];
-Opt.nKnots = 15;
+Opt.GridSize = 15;
 
 [Bchili,spc] = chili(Sys, Exp, Opt);
 ychili = spc/max(spc);

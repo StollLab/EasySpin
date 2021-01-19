@@ -20,7 +20,7 @@ EndorExp.Range = larmorfrq('1H',B0) + [-1 1]*10; % MHz
 EndorExp.mwFreq = 9.5;
 EndorExp.ExciteWidth = 50;
 
-Opt.nKnots = 41;
+Opt.GridSize = 41;
 Opt.Nuclei = 2;   % simulate only ENDOR of second nucleus, i.e., 1H
 
 % (1) no orientation pre-selection: slow

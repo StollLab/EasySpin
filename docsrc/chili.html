@@ -228,7 +228,7 @@ The experiment structure <code>Exp</code> contains all parameters relating to th
 <div class="subtitle2">Input: Simulation options</div>
 
 <p>
-<code>Opt</code>, the options structure, collects all settings relating to the algorithm used and the behavior of the function. The most important settings are <code>LLMK</code>, <code>highField</code>, <code>pImax</code>, and <code>nKnots</code>, since they determine the basis size and the number of orientations for powder averaging. If any of these settings is too small, the spectrum will not be converged.
+<code>Opt</code>, the options structure, collects all settings relating to the algorithm used and the behavior of the function. The most important settings are <code>LLMK</code>, <code>highField</code>, <code>pImax</code>, and <code>GridSize</code>, since they determine the basis size and the number of orientations for powder averaging. If any of these settings is too small, the spectrum will not be converged.
 </p>
 
 <div class="optionfield"><code>LLMK</code></div>
@@ -255,9 +255,17 @@ Determines for each nucleus the maximum nuclear coherence order |&Delta;m<sub>I<
 Gives the maximum total nuclear coherence order (summed over all nuclei) to include in the spin basis. This truncation is applied in addition to the one given in <code>Opt.pImax</code>.
 </div>
 
-<div class="optionfield"><code>nKnots</code></div>
+<div class="optionfield"><code>GridSize</code></div>
 <div class="optiondescr">
-Number of orientations used in a powder simulation (i.e. if the protein or other director does not have a single orientation, but is orientationally disordered). Unless <code>Exp.CrystalOrientation</code> is set, a powder simulation is performed. The default value for <code>nKnots</code> is 19. Increase this value if the orientational potential coefficients in <code>Sys.Potential</code> are large.
+Size of orientational grid used in a powder simulation (i.e. if the protein or other director does not have a single orientation, but is orientationally disordered). Unless <code>Exp.CrystalOrientation</code> is set, a powder simulation is performed. The default value for <code>GridSize</code> is 19. Increase this value if the orientational potential coefficients in <code>Sys.Potential</code> are large.
+</div>
+
+<div class="optionfield"><code>GridSymmetry</code>
+</div>
+<div class="optiondescr">
+<code>'Dinfh'</code> (default), <code>'D2h'</code>, <code>'C2h'</code> or <code>'Ci'</code>
+<br>
+Determines the symmetry of the orientational grid for powder simulations. <code>'Dinfh'</code> corresponds to a line from &theta;=0&deg; to &theta=90&deg; (with &phi;=0&deg;), <code>'D2h'</code> to one octant, <code>'C2h'</code> to two octants, and <code>'Ci'</code> to one hemisphere (four octants). The default <code>'Dinfh'</code> is correct only for high-symmetry spin systems in high-symmetry potentials. In general, it is advised to run a simulation with <code>Ci</code>, which is slower, but correct for any situation.
 </div>
 
 <div class="optionfield"><code>LiouvMethod</code></div>
@@ -286,14 +294,6 @@ Post-convolution is useful for including the effect of nuclei with small hyperfi
 <code>'C'</code>
 <br>
 Optionally, specifies the linear solver to use. Possible values are <code>'L'</code> (Lanczos tridiagonalization with continued-fraction expansion), <code>'\'</code> (MATLAB's backslash solver), <code>'E'</code> (via eigenvalues), <code>'B'</code> (biconjugate gradient stabilized method), and <code>'C'</code> (conjugate gradient tridiagonalization with continued-fraction expansion). If not given, a solver is selected automatically.
-</div>
-
-<div class="optionfield"><code>Symmetry</code>
-</div>
-<div class="optiondescr">
-<code>'Dinfh'</code> (default), <code>'D2h'</code>, <code>'C2h'</code> or <code>'Ci'</code>
-<br>
-Determines the symmetry used for a powder simulation. Based on this the set of orientations for which spectra are computed is chosen. <code>'Dinfh'</code> corresponds to a line from &theta;=0&deg; to &theta=90&deg; (with &phi;=0&deg;), <code>'D2h'</code> to one octant, <code>'C2h'</code> to two octants, and <code>'Ci'</code> to one hemisphere (four octants). The default <code>'Dinfh'</code> is correct only for high-symmetry spin systems in high-symmetry potentials. In general, it is advised to run a simulation with <code>Ci</code>, which is slower, but correct for any situation.
 </div>
 
 <div class="optionfield"><code>Verbosity</code></div>

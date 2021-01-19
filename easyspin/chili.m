@@ -40,14 +40,13 @@
 %      ModAmp         peak-to-peak modulation amplitude, in mT (field sweeps only)
 %      mwPhase        detection phase (0 = absorption, pi/2 = dispersion)
 %      Temperature    temperature, in K
-%      Ordering       orientational distribution function
 %
 %   Opt: simulation options
 %      LLMK           basis set parameters, [evenLmax oddLmax Mmax Kmax]
 %      evenK          whether to use only even K values (true/false)
 %      highField      whether to use the high-field approximation (true/false)  
 %      pImax          maximum nuclear coherence order for basis
-%      nKnots         number of knots for powder simulation
+%      GridSize       grid size for powder simulation
 %      PostConvNucs   nuclei to include perturbationally via post-convolution
 %      Verbosity      0: no display, 1: show info
 %      Symmetry       symmetry to use for powder simulation
@@ -74,10 +73,6 @@ if nargout<0, error('Not enough output arguments.'); end
 if nargout>2, error('Too many output arguments.'); end
 
 if nargin<3, Opt = struct; end
-
-if (~isstruct(Sys) && ~iscell(Sys)) || ~isstruct(Exp) || ~isstruct(Opt)
-  error('Sys, Exp, and Opt must be structures.')
-end
 
 if ~isfield(Opt,'Verbosity')
   Opt.Verbosity = 0; % print level
@@ -502,7 +497,10 @@ if ~isempty(Exp.Ordering)
     if nargin(Exp.Ordering)<2
       error('The function in Exp.Ordering must accept two inputs.');
     end
-    logmsg(1,'  director ordering: user-supplied function');
+    if nargout(Exp.Ordering)<1
+      error('The function in Exp.Ordering must provide one output.');
+    end
+    logmsg(1,'  director ordering: user-supplied function)');
   else
     error('Exp.Ordering must be a single number or a function handle.');
   end
@@ -514,8 +512,7 @@ useDirectorOrdering = ~isempty(Exp.Ordering);
 % Determine whether to do a powder simulation
 % (without potential, no powder sim is necessary - it's identical to a
 % single-orientation sim)
-PowderSimulation = (isempty(Exp.CrystalOrientation) && usePotential) || ...
-  useDirectorOrdering;
+PowderSimulation = isempty(Exp.CrystalOrientation) && usePotential;
 
 % Options
 %-------------------------------------------------------------------------------
@@ -532,12 +529,12 @@ end
 if ~isfield(Opt,'highField'), Opt.highField = false; end
 if ~isfield(Opt,'pImax'), Opt.pImax = []; end
 if ~isfield(Opt,'pImaxall'), Opt.pImaxall = []; end
-if ~isfield(Opt,'nKnots'), Opt.nKnots = [19 0]; end
+if ~isfield(Opt,'GridSize'), Opt.GridSize = [19 0]; end
 if ~isfield(Opt,'LiouvMethod'), Opt.LiouvMethod = ''; end
 if ~isfield(Opt,'FieldSweepMethod'), Opt.FieldSweepMethod = []; end
 if ~isfield(Opt,'PostConvNucs'), Opt.PostConvNucs = ''; end
 if ~isfield(Opt,'Solver'), Opt.Solver = ''; end
-if ~isfield(Opt,'Symmetry'), Opt.Symmetry = 'Dinfh'; end
+if ~isfield(Opt,'GridSymmetry'), Opt.GridSymmetry = 'Dinfh'; end
 % Opt.Verbosity
 
 % Undocumented
@@ -546,7 +543,7 @@ if ~isfield(Opt,'Threshold'), Opt.Threshold = 1e-6; end
 if ~isfield(Opt,'Lentz'), Opt.Lentz = true; end
 if ~isfield(Opt,'IncludeNZI'), Opt.IncludeNZI = true; end
 if ~isfield(Opt,'pqOrder'), Opt.pqOrder = false; end
-if ~isfield(Opt,'SymmFrame'), Opt.SymmFrame = []; end
+if ~isfield(Opt,'GridFrame'), Opt.GridFrame = []; end
 if ~isfield(Opt,'Diagnostics'), Opt.Diagnostics = ''; end
 if ~isfield(Opt,'useLMKbasis'), Opt.useLMKbasis = false; end
 if ~isfield(Opt,'useStartvecSelectionRules'), Opt.useStartvecSelectionRules = true; end
@@ -614,10 +611,10 @@ if any(Sys.n~=1)
   error('chili cannot handle systems with nuclei with Sys.n > 1 only if these nuclei are treated using post-convolution (Opt.PostConvNucs).');
 end
 
-if numel(Opt.nKnots)<1, Opt.nKnots(1) = 19; end
-if numel(Opt.nKnots)<2, Opt.nKnots(2) = 0; end
-if Opt.nKnots(2)~=0
-  error('chili cannot interpolate orientations. Set Opt.nKnots(2) to zero.');
+if numel(Opt.GridSize)<1, Opt.GridSize(1) = 19; end
+if numel(Opt.GridSize)<2, Opt.GridSize(2) = 0; end
+if Opt.GridSize(2)~=0
+  error('chili cannot interpolate orientations. Set Opt.GridSize(2) to zero.');
 end
 
 % Basis settings
@@ -796,7 +793,7 @@ error(err);
 
 % Basis
 %-------------------------------------------------------------------------------
-Basis = processbasis(Basis,Sys.I,Symmetry);
+Basis = processbasis(Basis,max(Potential.K),Sys.I,Symmetry);
 
 
 % Set up g values
@@ -851,17 +848,20 @@ end
 % Set up list of orientations
 %===============================================================================
 if PowderSimulation
-  if Opt.nKnots(1)==1
+  if Opt.GridSize(1)==1
     phi = 0;
     theta = 0;
     GridWeights = 4*pi;
   else
-    [Vecs,GridWeights] = sphgrid(Opt.Symmetry,Opt.nKnots(1),'cf');
+    grid = sphgrid(Opt.GridSymmetry,Opt.GridSize(1));
+    Vecs = grid.vecs;
+    GridWeights = grid.weights;
     % Transform vector to reference frame representation and convert to polar angles.
-    if ~isempty(Opt.SymmFrame)
-      Vecs = Opt.SymmFrame*Vecs;
+    if isempty(Opt.GridFrame)
+      [phi,theta] = vec2ang(Vecs);
+    else
+      [phi,theta] = vec2ang(Opt.GridFrame*Vecs);
     end
-    [phi,theta] = vec2ang(Vecs);
   end
   logmsg(1,'  powder simulation with %d orientations',numel(phi));
 else
@@ -889,7 +889,8 @@ else
 end
 
 Weights = GridWeights.*OrderingWeights;
-Weights = 4*pi*Weights/sum(Weights); % normalize to sum  = 4*pi
+Weights = 4*pi*Weights/sum(Weights);
+
 
 % Basis set preparations
 %-------------------------------------------------------------------------------
@@ -1023,7 +1024,7 @@ if generalLiouvillian
     normPeqVec = norm(sqrtPeq)^2;
     logmsg(1,'  norm of Peq vector: %g',normPeqVec);
     if normPeqVec<0.99
-      warning('The norm of the equilibrium population vector in this truncated basis is %g. It should be close to 1. The basis might be too small.',normPeqVec)
+      fprintf('The norm of the equilibrium population vector in this truncated basis is %g. It should be close to 1. The basis might be too small.',normPeqVec);
     end
   else
     logmsg(1,'  using provided vector');
@@ -1467,8 +1468,8 @@ if fwhmG>0 && ConvolutionBroadening
     fwhmG = fwhmG/1e3; % MHz -> GHz
   end
   dx = xAxis(2) - xAxis(1);
-  alwaysConvolve = true;
-  if alwaysConvolve %(fwhmG/dx>2)
+  AlwaysConvolve = true;
+  if AlwaysConvolve%(fwhmG/dx>2)
     logmsg(1,'Convoluting with Gaussian (FWHM %g %s)...',fwhmG,unitstr);
     spec = convspec(spec,dx,fwhmG,Exp.ConvHarmonic,1);
     Exp.ConvHarmonic = 0;
@@ -1539,7 +1540,7 @@ return
 
 
 %===============================================================================
-function Basis = processbasis(Basis,I,Symmetry)
+function Basis = processbasis(Basis,maxPotentialK,I,Symmetry)
 
 nNuclei = numel(I);
 

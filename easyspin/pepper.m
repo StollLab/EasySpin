@@ -38,9 +38,9 @@
 %      Method              'matrix', 'perturb1', 'perturb2'='perturb'
 %      Output              'summed', 'separate'
 %      Verbosity           0, 1, 2
-%      nKnots              N1, [N1 Ninterp]
+%      GridSize            grid size;  N1, [N1 Ninterp]
 %      Transitions, Threshold
-%      Symmetry, SymmFrame,
+%      Symmetry, GridFrame,
 %      Intensity, Freq2Field, Sites
 %
 %   Output:
@@ -434,12 +434,7 @@ end
 logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.Mode);
 
 % Powder vs. crystal simulation
-if isfield(Exp,'Orientation') || isfield(Exp,'Orientations')
-  error('Exp.Orientation and Exp.Orientations are obsolete (as of EasySpin 5), use Exp.CrystalOrientation instead.');
-end
-PowderSimulation = ~isfield(Exp,'CrystalOrientation') || ...
-  isempty(Exp.CrystalOrientation) || ...
-  (isfield(Exp,'Ordering') && ~isempty(Exp.Ordering));
+PowderSimulation = isempty(Exp.CrystalOrientation);
 Exp.PowderSimulation = PowderSimulation; % for communication with resf*
 
 % Partial ordering
@@ -496,7 +491,7 @@ for k = 1:numel(ObsoleteOptions)
 end
 
 if isfield(Opt,'nSpline')
-  error('Options.nSpline is obsolete. Use a second number in Options.nKnots instead, e.g. Options.nKnots = [19 5] for Options.nSpline = 5.');
+  error('Options.nSpline is obsolete. Use a second number in Options.GridSize instead, e.g. Options.GridSize = [19 5] for Options.nSpline = 5.');
 end
 if isfield(Opt,'Perturb')
   error('Options.Perturb is obsolete. Use Opt.Method=''perturb'' or Opt.Method=''hybrid'' instead.');
@@ -504,8 +499,8 @@ end
 
 % Documented fields, pepper
 DefaultOpt.Verbosity = 0;
-DefaultOpt.Symmetry = 'auto';
-DefaultOpt.SymmFrame = [];
+DefaultOpt.GridSymmetry = '';
+DefaultOpt.GridFrame = [];
 DefaultOpt.Output = 'summed';
 DefaultOpt.Method = 'matrix'; % 'matrix', 'eig', 'perturb1', 'perturb2'='perturb' 
 
@@ -513,15 +508,15 @@ DefaultOpt.Method = 'matrix'; % 'matrix', 'eig', 'perturb1', 'perturb2'='perturb
 %DefaultOpt.nTRKnots = 3; % resfields
 %DefaultOpt.Weak = []; % resfields
 DefaultOpt.Smoothing = 2;
-DefaultOpt.nKnotsMinimum = 10;
+DefaultOpt.GridSizeMinimum = 10;
 DefaultOpt.Debug = 0;
 DefaultOpt.Intensity = 'on';
 DefaultOpt.BruteForce = 0;
 DefaultOpt.ImmediateBinning = 0;
 DefaultOpt.PaddingMultiplier = 3; % for padding before convolution
 
-nKnotsMatrix = [19 4];
-nKnotsPerturb = [19 4];
+GridSizeMatrix = [19 4];
+GridSizePerturb = [19 4];
 
 Opt = adddefaults(Opt,DefaultOpt);
 
@@ -540,22 +535,22 @@ if Opt.ImmediateBinning && ~usePerturbationTheory
   error('Opt.ImmediateBinning works only with perturbation theory.');
 end
 
-if ~isfield(Opt,'nKnots')
+if ~isfield(Opt,'GridSize')
   if usePerturbationTheory
-    Opt.nKnots = nKnotsPerturb;
+    Opt.GridSize = GridSizePerturb;
   else
-    Opt.nKnots = nKnotsMatrix;
+    Opt.GridSize = GridSizeMatrix;
   end
 end
 
-if Opt.nKnots(1)<Opt.nKnotsMinimum
-  error('Options.nKnots must not be less than %d. Please adjust!',Opt.nKnotsMinimum);
+if Opt.GridSize(1)<Opt.GridSizeMinimum
+  error('Options.GridSize must not be less than %d. Please adjust!',Opt.GridSizeMinimum);
 end
-if numel(Opt.nKnots)<2
+if numel(Opt.GridSize)<2
   if usePerturbationTheory
-    Opt.nKnots(2) = nKnotsPerturb(2);
+    Opt.GridSize(2) = GridSizePerturb(2);
   else
-    Opt.nKnots(2) = nKnotsMatrix(2);
+    Opt.GridSize(2) = GridSizeMatrix(2);
   end
 end
 
@@ -563,13 +558,8 @@ end
 anisotropicIntensities = parseoption(Opt,'Intensity',{'off','on'}) - 1;
 Opt.Intensity = anisotropicIntensities;
 
-if strcmp(Opt.Symmetry,'auto')
-  Opt.Symmetry = [];
-end
-
 [Exp,Opt] = p_symandgrid(Sys,Exp,Opt);
 nOrientations = size(Exp.CrystalOrientation,1);
-nOctants = Opt.nOctants;
 
 %=======================================================================
 %=======================================================================
@@ -598,10 +588,9 @@ if FieldSweep
     
     % Eigenfield equation
     %------------------------------------------------------------------------
-    anisotropicWidths = 0;
+    anisotropicWidths = false;
     if StrainWidths
       logmsg(-inf,'WARNING: Options.Method: eigenfields method -> strains are ignored!');
-      StrainWidths = false;
     end
     
     Exp1 = Exp;
@@ -766,18 +755,20 @@ Exp.deltaX = xAxis(2)-xAxis(1);
 
 %=======================================================================
 %=======================================================================
-%               INTERPOLATION AND SPECTRUM CONSTRUCTION
+%    SPECTRUM CONSTRUCTION (incl. INTERPOLATION and PROJECTION)
 %=======================================================================
 %=======================================================================
 % The position/amplitude/width data from above are
 %     (1) interpolated to get more of them, and then
 %     (2) projected to obtain the spectrum
 % The interpolation and projection algorithms depend
-% on the symmetry of the data.
+% on the symmetry of the grid.
 
 logmsg(1,'-absorption spectrum construction----------------------');
 
 BruteForceSum = useEigenFields | Opt.BruteForce;
+axialGrid = Opt.nOctants==0;
+usingGrid = Opt.nOctants>=0;
 
 if Opt.ImmediateBinning
 
@@ -787,9 +778,8 @@ elseif ~BruteForceSum
   
   % Determine methods: projection/summation, interpolation on/off
   %-----------------------------------------------------------------------
-  doProjection = (~anisotropicWidths) && (nOctants>=0);
-  
-  doInterpolation = (Opt.nKnots(2)>1) && (nOctants>=0);
+  doProjection = ~anisotropicWidths && usingGrid;
+  doInterpolation = Opt.GridSize(2)>1 && usingGrid;
   
   % Preparations for projection
   %-----------------------------------------------------------------------
@@ -801,9 +791,7 @@ elseif ~BruteForceSum
     wT = xT/2.5; %<1e-8 at borders for Harmonic = -1
     Template = gaussian(0:2*xT-1,xT,wT,-1);
   end
-  Text = {'single-crystal','isotropic','axial','nonaxial D2h','nonaxial C2h',...
-    '','nonaxial Ci','','','','full sphere'};
-  logmsg(1,'  %s, %s case',msg,Text{nOctants+3});
+  logmsg(1,'  %s',msg);
   
   % Preparations for interpolation
   %-----------------------------------------------------------------------
@@ -813,7 +801,7 @@ elseif ~BruteForceSum
     % out of Matlab's original spline() function, which is called many times.
     spparms('autommd',0);
     % Interpolation parameters. 1st char: g global, l linear. 2nd char: order.
-    if nOctants==0 % axial symmetry: 1D interpolation
+    if axialGrid % axial symmetry: 1D interpolation
       if any(NaN_in_Pdat)
         InterpMode = {'L3','L3','L3'};
       else
@@ -826,12 +814,12 @@ elseif ~BruteForceSum
         InterpMode = {'G3','L1','L1'};
       end
     end
-    msg = sprintf('  interpolation (factor %d, method %s/%s/%s)',Opt.nKnots(2),InterpMode{1},InterpMode{2},InterpMode{3});
+    msg = sprintf('  interpolation (factor %d, method %s/%s/%s)',Opt.GridSize(2),InterpMode{1},InterpMode{2},InterpMode{3});
   else
-    Opt.nKnots(2) = 1;
+    Opt.GridSize(2) = 1;
     msg = '  interpolation off';
   end
-  nfKnots = (Opt.nKnots(1)-1)*Opt.nKnots(2) + 1;
+  nfKnots = (Opt.GridSize(1)-1)*Opt.GridSize(2) + 1;
   logmsg(1,msg);
   
   % Pre-allocation of spectral array.
@@ -848,21 +836,7 @@ elseif ~BruteForceSum
     msg = 'separate';
   end
   spec = zeros(nRows,Exp.nPoints);
-  logmsg(1,'  spectrum array size: %dx%d (%s)',size(spec,1),size(spec,2),msg);
-  
-  
-  %  DefaultOpt.SmoothingAlpha = 1.2;
-  %  if nOctants>=0
-  %    msg = [msg ' with gradient smoothing'];
-  %    % Gradient-weighted line broadening for smoothing out simulation noise
-  %    % (XSophe: mosaic misorientation model, Weihe: the best invention since sliced bread)
-  %    nKnots(2) = max(Opt.nKnots(2),1);
-  %    SmoothingPrefactor = (pi/2)/((Opt.nKnots(1)-1)*nKnots(2))*Opt.SmoothingAlpha;
-  %    if isempty(Wdat), Wdat = 0; end
-  %    Wdat = sqrt(Wdat.^2 + Gdat.^2*SmoothingPrefactor^2);
-  %    AnisotropicWidths = 1;
-  %  end
-  
+  logmsg(1,'  spectrum array size: %dx%d (%s)',size(spec,1),size(spec,2),msg);  
   
   % Spectrum construction
   %-----------------------------------------------------------------------
@@ -898,8 +872,8 @@ elseif ~BruteForceSum
         end
       end
     end
-        
-  elseif nOctants==-1
+    
+  elseif ~usingGrid
     
     %=======================================================================
     % Isotropic powder spectra
@@ -930,12 +904,14 @@ elseif ~BruteForceSum
   else
     
     %=======================================================================
-    % Powder spectra: interpolation and accumulation/projection
+    % Anisotropic powder spectra: interpolation and accumulation/projection
     %=======================================================================
-    Axial = (nOctants==0);
-    if Axial
+    if axialGrid
       if doInterpolation
-        [fphi,fthe] = sphgrid(Opt.Symmetry,nfKnots,'f');
+        % set up fine interpolation grid
+        grid = sphgrid(0,nfKnots);
+        fphi = grid.phi;
+        fthe = grid.theta;
       else
         fthe = Exp.theta;
       end
@@ -951,14 +927,19 @@ elseif ~BruteForceSum
       end
       logmsg(1,'  total %d segments, %d transitions',numel(fthe)-1,nTransitions);
       
-    else % nonaxial symmetry
+    else % nonaxial grid symmetry
       if doInterpolation
-        [fphi,fthe] = sphgrid(Opt.Symmetry,nfKnots,'f');
+        % set up fine interpolation grid
+        [grid,tri] = sphgrid(Opt.GridSymmetry,nfKnots);
+        fphi = grid.phi;
+        fthe = grid.theta;
       else
+        tri = Exp.tri;
         fthe = Exp.theta;
         fphi = Exp.phi;
       end
-      [idxTri,Areas] = triangles(nOctants,nfKnots,ang2vec(fphi,fthe));
+      idxTri = tri.idx.';
+      Areas = tri.areas;
       if ~isempty(Exp.Ordering)
         centreTheta = mean(fthe(idxTri));
         centrePhi = mean(fphi(idxTri));
@@ -983,15 +964,15 @@ elseif ~BruteForceSum
       % Interpolation
       %------------------------------------------------------
       %LoopTransition = any(isnan(Pdat(iTrans,:)));
-      LoopTransition = 0;
-      InterpolateThis = doInterpolation && ~LoopTransition;
-      if InterpolateThis
-        fPos = esintpol(Pdat(iTrans,:),Opt.InterpParams,Opt.nKnots(2),InterpMode{1},fphi,fthe);
+      LoopTransition = false;
+      interpolateThis = doInterpolation && ~LoopTransition;
+      if interpolateThis
+        fPos = gridinterp(Pdat(iTrans,:),Opt.GridParams,fphi,fthe,InterpMode{1});
         if anisotropicIntensities
-          fInt = esintpol(Idat(iTrans,:),Opt.InterpParams,Opt.nKnots(2),InterpMode{2},fphi,fthe);
+          fInt = gridinterp(Idat(iTrans,:),Opt.GridParams,fphi,fthe,InterpMode{2});
         end
         if anisotropicWidths
-          fWid = esintpol(Wdat(iTrans,:),Opt.InterpParams,Opt.nKnots(2),InterpMode{3},fphi,fthe);
+          fWid = gridinterp(Wdat(iTrans,:),Opt.GridParams,fphi,fthe,InterpMode{3});
         end
       else
         fPos = Pdat(iTrans,:);
@@ -1008,15 +989,16 @@ elseif ~BruteForceSum
       
       % Summation or projection
       %------------------------------------------------------
-      if doProjection && ~LoopTransition
-        if Axial
+      projectThis = doProjection && ~LoopTransition;
+      if projectThis
+        if axialGrid
           thisspec = projectzones(fPos,fInt,fSegWeights,xAxis);
         else
           thisspec = projecttriangles(idxTri,Areas,fPos,fInt,xAxis);
         end
         % minBroadening = ?
       else % do summation
-        if Axial
+        if axialGrid
           fPosC = (fPos(1:end-1) + fPos(2:end))/2;
           fIntC = fSegWeights(:).'.*(fInt(1:end-1) + fInt(2:end))/2;
           fSpread = abs(fPos(1:end-1) - fPos(2:end));

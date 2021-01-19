@@ -38,7 +38,7 @@ if isfield(sys,'S')
 end
 
 %====================================
-Options.nKnots = 31;
+Options.GridSize = 31;
 Options.nPoints = 100;
 Options.expand = 1.1;
 Options.baColor = [1 0 0]*0.6;
@@ -65,9 +65,11 @@ nfreq = nnz(BetaMask);
 
 % Set up orientational grid and triangulation.
 thisSymm = symm(sys);
-x = sphgrid(thisSymm,Options.nKnots);
-[maxPhi,openPhi,nOct] = symparam(thisSymm);
-if nOct>0, tri = sphtri(nOct,Options.nKnots); end
+[grid,tri] = sphgrid(thisSymm,Options.GridSize);
+x = grid.vecs;
+maxPhi = grid.maxPhi;
+closedPhi = grid.closePhi;
+nOct = grid.nOctants;
 nOri = size(x,2);
 
 % Initialize to zero.
@@ -157,14 +159,14 @@ else
   z = zeros(1,nOri);
   for i1 = 1:nfreq
     for i2 = 1:nfreq
-      trisurf(tri,FreqsBeta(:,i1),FreqsAlpha(:,i2),z,'EdgeColor',baColor,'FaceColor',baColor);
-      trisurf(tri,-FreqsBeta(:,i1),FreqsAlpha(:,i2),z,'EdgeColor',baColor,'FaceColor',baColor);
+      trisurf(tri.idx,FreqsBeta(:,i1),FreqsAlpha(:,i2),z,'EdgeColor',baColor,'FaceColor',baColor);
+      trisurf(tri.idx,-FreqsBeta(:,i1),FreqsAlpha(:,i2),z,'EdgeColor',baColor,'FaceColor',baColor);
     end
   end
   for i1 = 1:nfreq
     for i2 = 1:nfreq
-      trisurf(tri,FreqsAlpha(:,i1),FreqsBeta(:,i2),z,'EdgeColor',abColor,'FaceColor',abColor);
-      trisurf(tri,-FreqsAlpha(:,i1),FreqsBeta(:,i2),z,'EdgeColor',abColor,'FaceColor',abColor);
+      trisurf(tri.idx,FreqsAlpha(:,i1),FreqsBeta(:,i2),z,'EdgeColor',abColor,'FaceColor',abColor);
+      trisurf(tri.idx,-FreqsAlpha(:,i1),FreqsBeta(:,i2),z,'EdgeColor',abColor,'FaceColor',abColor);
     end
   end
 end

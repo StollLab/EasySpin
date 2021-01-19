@@ -10,12 +10,12 @@ Opt = struct('Verbosity',opt.Verbosity);
 
 n1 = 19; k1 = 5;
 n2 = (n1-1)*k1 + 1; k2 = 1;
-Opt.Symmetry ='D2h';
-Opt.nKnots = [n1 k1]; [x,y1] = pepper(Sys,Exp,Opt);
-Opt.nKnots = [n2 k2]; [x,y2] = pepper(Sys,Exp,Opt);
-Opt.Symmetry = 'Dinfh';
-Opt.nKnots = [n1 k1]; [x,y3] = pepper(Sys,Exp,Opt);
-Opt.nKnots = [n2 k2]; [x,y4] = pepper(Sys,Exp,Opt);
+Opt.GridSymmetry ='D2h';
+Opt.GridSize = [n1 k1]; [x,y1] = pepper(Sys,Exp,Opt);
+Opt.GridSize = [n2 k2]; [x,y2] = pepper(Sys,Exp,Opt);
+Opt.GridSymmetry = 'Dinfh';
+Opt.GridSize = [n1 k1]; [x,y3] = pepper(Sys,Exp,Opt);
+Opt.GridSize = [n2 k2]; [x,y4] = pepper(Sys,Exp,Opt);
 
 ok = true;
 

@@ -14,7 +14,7 @@ Exp.nPoints = 512;
 
 Opt.LLMK = [10 5 2 2];
 Opt.Verbosity = 0;
-Opt.nKnots = 1;
+Opt.GridSize = 1;
 Nx.Potential = [2 0 0 +1];
 
 [x,y] = chili(Nx,Exp,Opt);

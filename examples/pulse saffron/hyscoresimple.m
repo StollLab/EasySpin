@@ -16,6 +16,6 @@ Exp.dt = 0.120;      % us
 Exp.nPoints = 256;
 
 % Increase number of orientations to get smooth powder average
-Opt.nKnots = 300;    % 300 orientations over 90 degrees = 0.3 degrees
+Opt.GridSize = 300;    % 300 orientations over 90 degrees = 0.3 degrees
 
 saffron(Sys,Exp,Opt);
