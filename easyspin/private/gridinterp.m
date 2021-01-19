@@ -1,14 +1,16 @@
 % gridinterp  Interpolates spherical-grid data
 %
-%   yi = gridinterp(y,gridParams,phi,the,InterpType)
+%   yi = gridinterp(y,gridParams,phi,theta,InterpType)
 %   
 % Inputs:
 %   y            data, in row vectors. Matrices get interpolated along rows.
 %   gridParams   [nOrientations, GridSize, closedPhi, nOctants, maxPhi]
+%   phi,theta    grid points for interpolation
 %   InterpType   interpolation type, 'G3' (default),'L3','L1'
-%   phi,theta    interpolation points
+% Outputs:
+%   yi           y interpolated over interpolation points
 
-% List of unique phi intervals as set by sphgrid(), octant numbers and end
+% List of unique phi intervals as set by sphgrid(), octant numbers, and end
 % conditions (p is periodic, z is zero endslopes).
 
 % Ci      4p   [0,2*pi)
@@ -25,7 +27,7 @@
 % Dinfh   0     0
 % O3     -1     0
 
-function yi = gridinterp(y,gridParams,phi,the,InterpType)
+function yi = gridinterp(y,gridParams,phi,theta,InterpType)
 
 if nargin<4 || nargin>5
   error('4 or 5 input arguments ar required.')
@@ -117,10 +119,10 @@ otherwise
   % interp2 returns NaNs.
   if nOctants<8
     iphi = 1 + nOctants*(GridSize-1) * (phi/maxPhi);
-    ithe = 1 + (GridSize-1) * (the/(pi/2));
+    ithe = 1 + (GridSize-1) * (theta/(pi/2));
   else
     iphi = 1 + 4*(GridSize-1) * (phi/maxPhi);
-    ithe = 1 + 2*(GridSize-1) * (the/pi);
+    ithe = 1 + 2*(GridSize-1) * (theta/pi);
   end
   
   if ~cubicInterpolation

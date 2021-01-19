@@ -432,7 +432,6 @@ end
 
 [Exp,Opt] = p_symandgrid(Sys,Exp,Opt);
 nOrientations = size(Exp.CrystalOrientation,1);
-nOctants = Opt.nOctants;
 
 
 %==========================================================================
@@ -546,7 +545,7 @@ end
 
 %=======================================================================
 %=======================================================================
-%               INTERPOLATION AND SPECTRUM CONSTRUCTION
+%    SPECTRUM CONSTRUCTION (incl. INTERPOLATION and PROJECTION)
 %=======================================================================
 %=======================================================================
 % The position/amplitude/width data from above are
@@ -562,18 +561,20 @@ if any(NaN_in_Pdat)
   Opt.GridSize(2) = 1;
 end
 
-BruteForceSum = 0;
+BruteForceSum = false;
+axialGrid = Opt.nOctants==0;
+usingGrid = Opt.nOctants>=0;
 
 if ~BruteForceSum
 
 % Determine methods: projection/summation, interpolation on/off
 %-----------------------------------------------------------------------
-DoProjection = ~AnisotropicWidths && nOctants>=0;
-DoInterpolation = Opt.GridSize(2)>1 && nOctants>=0;
+doProjection = ~AnisotropicWidths && usingGrid;
+doInterpolation = Opt.GridSize(2)>1 && usingGrid;
 
 % Preparations for projection
 %-----------------------------------------------------------------------
-if DoProjection
+if doProjection
   msg = 'triangle/segment projection';
 else
   msg = 'summation';
@@ -581,18 +582,17 @@ else
   Template.lw = Template.x/2.5; %<1e-8 at borders for Harmonic = -1
   Template.y = gaussian(0:2*Template.x-1,Template.x,Template.lw,-1);
 end
-Text = {'single-crystal','isotropic','axial','nonaxial D2h','nonaxial C2h','','nonaxial Ci'};
-logmsg(1,'  %s, %s case',msg,Text{nOctants+3});
+logmsg(1,'  %s',msg);
 
 % Preparations for interpolation
 %-----------------------------------------------------------------------
-if DoInterpolation
+if doInterpolation
   % Set an option for the sparse tridiagonal matrix \ solver in global cubic
   % spline interpolation. This function needs some time, so it was taken
   % out of Matlab's original spline() function, which is called many times.
   spparms('autommd',0);
   % Interpolation parameters. 1st char: g global, l linear. 2nd char: order.
-  if nOctants==0  % axial symmetry: 1D interpolation
+  if axialGrid  % axial symmetry: 1D interpolation
     if any(NaN_in_Pdat)
       InterpMode = {'L3','L3','L3'};
     else
@@ -664,7 +664,7 @@ if ~PowderSimulation
     end
   end
   
-elseif nOctants==-1
+elseif ~usingGrid
 
   %=======================================================================
   % Isotropic powder spectra
@@ -697,10 +697,9 @@ else
   %=======================================================================
   % Powder spectra: interpolation and accumulation/projection
   %=======================================================================
-  Axial = (nOctants==0);
-  if Axial
-    if DoInterpolation
-      grid = sphgrid(Opt.GridSymmetry,nfKnots,'c');
+  if axialGrid
+    if doInterpolation
+      grid = sphgrid(Opt.GridSymmetry,nfKnots);
       fthe = grid.theta;
       fphi = grid.phi;
     else
@@ -719,7 +718,7 @@ else
     logmsg(1,'  total %d segments, %d transitions',numel(fthe)-1,nTransitions);
     
   else % nonaxial symmetry
-    if DoInterpolation
+    if doInterpolation
       [grid,tri] = sphgrid(Opt.GridSymmetry,nfKnots);
       fphi = grid.phi;
       fthe = grid.theta;
@@ -754,7 +753,7 @@ else
     
     % Interpolation
     %------------------------------------------------------
-    if DoInterpolation
+    if doInterpolation
       fPos = gridinterp(Pdat(iTrans,:),Opt.GridParams,fphi,fthe,InterpMode{1});
       if AnisotropicIntensities
         fInt = gridinterp(Idat(iTrans,:),Opt.GridParams,fphi,fthe,InterpMode{2});
@@ -784,7 +783,7 @@ else
     
     % Summation or projection
     %------------------------------------------------------
-    if DoProjection
+    if doProjection
       if Axial
         thisspec = projectzones(fPos,fInt,fSegWeights,xAxis);
       else
@@ -827,7 +826,7 @@ else
     
   end % for iTrans
 
-  if ~DoProjection
+  if ~doProjection
     logmsg(1,'  Smoothness: overall %0.4g, worst %0.4g\n   (<0.5: probably bad, 0.5-3: ok, >3: overdone)',sumBroadenings/nBroadenings,minBroadening);
   end
   

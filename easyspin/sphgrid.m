@@ -97,7 +97,8 @@ end
 vecs = ang2vec(phi,theta);
 
 % Store in output structure
-grid.GridSymmetry = Symmetry;
+%--------------------------------------------------------------------------
+grid.Symmetry = Symmetry;
 grid.GridSize = GridSize;
 
 grid.closedPhi = closedPhi;

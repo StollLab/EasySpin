@@ -560,7 +560,6 @@ Opt.Intensity = anisotropicIntensities;
 
 [Exp,Opt] = p_symandgrid(Sys,Exp,Opt);
 nOrientations = size(Exp.CrystalOrientation,1);
-nOctants = Opt.nOctants;
 
 %=======================================================================
 %=======================================================================
@@ -768,6 +767,8 @@ Exp.deltaX = xAxis(2)-xAxis(1);
 logmsg(1,'-absorption spectrum construction----------------------');
 
 BruteForceSum = useEigenFields | Opt.BruteForce;
+axialGrid = Opt.nOctants==0;
+usingGrid = Opt.nOctants>=0;
 
 if Opt.ImmediateBinning
 
@@ -777,9 +778,8 @@ elseif ~BruteForceSum
   
   % Determine methods: projection/summation, interpolation on/off
   %-----------------------------------------------------------------------
-  doProjection = ~anisotropicWidths && nOctants>=0;
-  
-  doInterpolation = Opt.GridSize(2)>1 && nOctants>=0;
+  doProjection = ~anisotropicWidths && usingGrid;
+  doInterpolation = Opt.GridSize(2)>1 && usingGrid;
   
   % Preparations for projection
   %-----------------------------------------------------------------------
@@ -791,9 +791,7 @@ elseif ~BruteForceSum
     wT = xT/2.5; %<1e-8 at borders for Harmonic = -1
     Template = gaussian(0:2*xT-1,xT,wT,-1);
   end
-  Text = {'single-crystal','isotropic','axial','nonaxial D2h','nonaxial C2h',...
-    '','nonaxial Ci','','','','full sphere'};
-  logmsg(1,'  %s, %s case',msg,Text{nOctants+3});
+  logmsg(1,'  %s',msg);
   
   % Preparations for interpolation
   %-----------------------------------------------------------------------
@@ -803,7 +801,7 @@ elseif ~BruteForceSum
     % out of Matlab's original spline() function, which is called many times.
     spparms('autommd',0);
     % Interpolation parameters. 1st char: g global, l linear. 2nd char: order.
-    if nOctants==0 % axial symmetry: 1D interpolation
+    if axialGrid % axial symmetry: 1D interpolation
       if any(NaN_in_Pdat)
         InterpMode = {'L3','L3','L3'};
       else
@@ -838,21 +836,7 @@ elseif ~BruteForceSum
     msg = 'separate';
   end
   spec = zeros(nRows,Exp.nPoints);
-  logmsg(1,'  spectrum array size: %dx%d (%s)',size(spec,1),size(spec,2),msg);
-  
-  
-  %  DefaultOpt.SmoothingAlpha = 1.2;
-  %  if nOctants>=0
-  %    msg = [msg ' with gradient smoothing'];
-  %    % Gradient-weighted line broadening for smoothing out simulation noise
-  %    % (XSophe: mosaic misorientation model, Weihe: the best invention since sliced bread)
-  %    GridSize(2) = max(Opt.GridSize(2),1);
-  %    SmoothingPrefactor = (pi/2)/((Opt.GridSize(1)-1)*GridSize(2))*Opt.SmoothingAlpha;
-  %    if isempty(Wdat), Wdat = 0; end
-  %    Wdat = sqrt(Wdat.^2 + Gdat.^2*SmoothingPrefactor^2);
-  %    AnisotropicWidths = 1;
-  %  end
-  
+  logmsg(1,'  spectrum array size: %dx%d (%s)',size(spec,1),size(spec,2),msg);  
   
   % Spectrum construction
   %-----------------------------------------------------------------------
@@ -888,8 +872,8 @@ elseif ~BruteForceSum
         end
       end
     end
-        
-  elseif nOctants==-1
+    
+  elseif ~usingGrid
     
     %=======================================================================
     % Isotropic powder spectra
@@ -922,8 +906,7 @@ elseif ~BruteForceSum
     %=======================================================================
     % Anisotropic powder spectra: interpolation and accumulation/projection
     %=======================================================================
-    Axial = nOctants==0;
-    if Axial
+    if axialGrid
       if doInterpolation
         % set up fine interpolation grid
         grid = sphgrid(0,nfKnots);
@@ -944,7 +927,7 @@ elseif ~BruteForceSum
       end
       logmsg(1,'  total %d segments, %d transitions',numel(fthe)-1,nTransitions);
       
-    else % nonaxial symmetry
+    else % nonaxial grid symmetry
       if doInterpolation
         % set up fine interpolation grid
         [grid,tri] = sphgrid(Opt.GridSymmetry,nfKnots);
@@ -1008,14 +991,14 @@ elseif ~BruteForceSum
       %------------------------------------------------------
       projectThis = doProjection && ~LoopTransition;
       if projectThis
-        if Axial
+        if axialGrid
           thisspec = projectzones(fPos,fInt,fSegWeights,xAxis);
         else
           thisspec = projecttriangles(idxTri,Areas,fPos,fInt,xAxis);
         end
         % minBroadening = ?
       else % do summation
-        if Axial
+        if axialGrid
           fPosC = (fPos(1:end-1) + fPos(2:end))/2;
           fIntC = fSegWeights(:).'.*(fInt(1:end-1) + fInt(2:end))/2;
           fSpread = abs(fPos(1:end-1) - fPos(2:end));

@@ -19,7 +19,7 @@ Symmetry = 'D2h';
 Options = struct('Verbosity',0,'GridSize',GridSize,'GridSymmetry',Symmetry);
 Options.OriWeights = orisel(System,Experiment,Options);
 
-grid = sphgrid(Symmetry,GridSize,'f');
+grid = sphgrid(Symmetry,GridSize);
 phi = grid.phi;
 
 ok = numel(Options.OriWeights)==numel(phi);

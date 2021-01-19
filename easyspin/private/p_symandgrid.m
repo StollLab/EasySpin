@@ -10,7 +10,7 @@ if Exp.PowderSimulation
   
   if isempty(Opt.GridSymmetry)
     
-    msg = 'automatic determination of symmetry group and frame';
+    msg = 'automatic determination of grid symmetry and orientation';
     [Opt.GridSymmetry,Opt.GridFrame] = symm(Sys);
     nonEquiPops = isfield(Sys,'Pop') && ~isempty(Sys.Pop);
     if nonEquiPops && strcmp(Opt.GridSymmetry,'Dinfh')
@@ -19,12 +19,12 @@ if Exp.PowderSimulation
     end
   
   else
-
-    msg = 'user-specified symmetry group';
+    
+    msg = 'user-specified grid symmetry';
     if isempty(Opt.GridFrame)
       Opt.GridFrame = eye(3);
     else
-      msg = [msg ' and symmetry frame'];
+      msg = [msg ' and grid frame orientation'];
     end
   end
   logmsg(1,'  %s',msg);
@@ -37,9 +37,9 @@ if Exp.PowderSimulation
   else
     msgg = 'non-tilted';
   end
-  logmsg(1,'  grid symmetry: %s, %s frame',Opt.GridSymmetry,msgg);
+  logmsg(1,'  grid: symmetry %s, frame %s',Opt.GridSymmetry,msgg);
   if tiltedFrame
-    str = '  grid frame orientation in reference frame (Euler angles, deg):\n    [%s]';
+    str = '  grid frame orientation in molecular frame (Euler angles, deg):\n    [%s]';
     logmsg(1,str,sprintf('%0.3f ',eulang(Opt.GridFrame,1)*180/pi));
   end
   
