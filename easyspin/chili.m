@@ -1024,7 +1024,7 @@ if generalLiouvillian
     normPeqVec = norm(sqrtPeq)^2;
     logmsg(1,'  norm of Peq vector: %g',normPeqVec);
     if normPeqVec<0.99
-      warning('The norm of the equilibrium population vector in this truncated basis is %g. It should be close to 1. The basis might be too small.',normPeqVec)
+      fprintf('The norm of the equilibrium population vector in this truncated basis is %g. It should be close to 1. The basis might be too small.',normPeqVec);
     end
   else
     logmsg(1,'  using provided vector');

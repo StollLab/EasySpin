@@ -13,7 +13,7 @@ Sy.AFrame = pi/180*[0 -30 0];
 Sy.QFrame = pi/180*[0 45 0];
 [a,b,tr] = salt(Sy,Ex,Si);
 
-if (opt.Display)
+if opt.Display
   if ~isempty(olddata)
     subplot(3,1,[1 2]);
     plot(a,olddata.b,'k',a,b,'r');

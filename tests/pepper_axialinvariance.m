@@ -28,14 +28,18 @@ yref = yref/scale;
 y = y/scale;
 
 for k = 1:numel(Symmetry)
-  ok(k) = max(abs(y(k,:)-yref))<0.02;
+  ok(k) = max(abs(y(k,:)-yref))<0.003;
 end
 
 if opt.Display
+  subplot(3,1,[1 2]);
   plot(x,y);
   title('Axial symmetry invariance');
   xlabel('magnetic field [mT]');
   ylabel('normalized amplitude');
   legend(Symmetry{:});
+  subplot(3,1,3);
+  yref = y(1,:);
+  plot(x,y-yref);
 end
 

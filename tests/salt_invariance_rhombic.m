@@ -20,7 +20,7 @@ Sys.AFrame = pi/180*[-34 19 -45];
 Sys.AFrame = pi/180*[55 -72 -5];
 [rf,b2] = salt(Sys,Exp,Opt);
 
-if (opt.Display)
+if opt.Display
   subplot(3,1,[1 2]);
   plot(rf,b0,'b',rf,b1,'r',rf,b2,'g');
   title('Rotation invariance, rhombic A');

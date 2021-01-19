@@ -14,7 +14,7 @@ for k = 1:length(Symmetry)
 end
 
 spc = spc/max(spc(:));
-thr = 0.06;
+thr = 1e-3;
 ok(1) = areequal(spc(2,:),spc(1,:),thr,'abs');
 ok(2) = areequal(spc(3,:),spc(1,:),thr,'abs');
 ok(3) = areequal(spc(4,:),spc(1,:),thr,'abs');

@@ -139,7 +139,7 @@ if calculateTriangulation
         vecsx = ang2vec(phx,thx);
         Areas = triangleareas(Tri,vecsx);
         rmv = numel(phi)+1:numel(phx);
-        rpl = rmv - (1:GridSize-1);
+        rpl = (0:GridSize-2).*(1:GridSize-1)/2+2;
         for k = 1:numel(rmv)
           Tri(Tri==rmv(k))=rpl(k);
         end
@@ -154,7 +154,7 @@ if calculateTriangulation
       vecsx = ang2vec(phx,thx);
       Areas = triangleareas(Tri,vecsx);
       rmv = numel(phi)+1:numel(phx);
-      rpl = rmv-2*(1:GridSize-1);
+      rpl = (0:GridSize-2).^2+(0:GridSize-2)+2;
       for k = 1:numel(rmv)
         Tri(Tri==rmv(k))=rpl(k);
       end
@@ -182,6 +182,9 @@ if calculateTriangulation
       error('Triangulation for this symmetry not supported!');
   end
   
+  rmv = Areas==0;
+  Tri(rmv,:) = [];
+  Areas(rmv) = [];
   Tri = sort(Tri,2);
   Tri = uint32(Tri);
   
