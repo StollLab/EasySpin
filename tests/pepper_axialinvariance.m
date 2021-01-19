@@ -28,7 +28,7 @@ yref = yref/scale;
 y = y/scale;
 
 for k = 1:numel(Symmetry)
-  ok(k) = max(abs(y(k,:)-yref))<0.01;
+  ok(k) = max(abs(y(k,:)-yref))<0.02;
 end
 
 if opt.Display

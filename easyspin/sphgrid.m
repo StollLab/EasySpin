@@ -119,6 +119,7 @@ if calculateTriangulation
     
     case {0,-1} % 'Dinfh','O3'
       Tri = [];
+      Areas = [];
       
     case 1 % 'D6h','D4h','Oh','D3d','Th','D2h'; 'C4h','C6h'; 1 octant
       if closedPhi % 'D6h','D4h','Oh','D3d','Th','D2h'; closed phi
@@ -128,21 +129,41 @@ if calculateTriangulation
         k = 1:(GridSize-1)*(GridSize-2)/2;
         b = a(k);
         Tri = [[1:GridSize*(GridSize-1)/2; a; a+1],[b; 2*(b+1)-k; b+1]].';
+        Areas = triangleareas(Tri,vecs);
       else % 'C4h','C6h'; open phi
-        phx = grid.phi*4;
-        thx = grid.theta;
-        Tri = delaunay(thx.*cos(phx), thx.*sin(phx));
+        phx = [phi maxPhi*ones(1,GridSize-1)];
+        thx = [theta pi/2*(1:GridSize-1)/(GridSize-1)];
+        x = thx.*cos(phx);
+        y = thx.*sin(phx);
+        Tri = delaunay(x,y);
+        vecsx = ang2vec(phx,thx);
+        Areas = triangleareas(Tri,vecsx);
+        rmv = numel(phi)+1:numel(phx);
+        rpl = rmv - (1:GridSize-1);
+        for k = 1:numel(rmv)
+          Tri(Tri==rmv(k))=rpl(k);
+        end
       end
       
     case 2 % 'C2h','S6'; 2 octants, open phi
-      phx = grid.phi*2;
-      thx = grid.theta;
-      Tri = delaunay(thx.*cos(phx), thx.*sin(phx));      
+      phx = [phi maxPhi*ones(1,GridSize-1)];
+      thx = [theta pi/2*(1:GridSize-1)/(GridSize-1)];
+      x = thx.*cos(phx);
+      y = thx.*sin(phx);
+      Tri = delaunay(x,y);
+      vecsx = ang2vec(phx,thx);
+      Areas = triangleareas(Tri,vecsx);
+      rmv = numel(phi)+1:numel(phx);
+      rpl = rmv-2*(1:GridSize-1);
+      for k = 1:numel(rmv)
+        Tri(Tri==rmv(k))=rpl(k);
+      end
       
     case 4  % 'Ci'; 4 octants, open phi
       phx = grid.phi;
       thx = grid.theta;
       Tri = delaunay(thx.*cos(phx),thx.*sin(phx));
+      Areas = triangleareas(Tri,vecs);
       
     case 8 % 'C1'; 8 octants, open phi
       [phx,thx] = sphgrid_(4,2*pi,GridSize,false);
@@ -155,6 +176,7 @@ if calculateTriangulation
       idxEquator = triUpper > numel(thx)-nEquator;
       triLower(idxEquator) = triUpper(idxEquator);
       Tri = [triUpper; triLower];
+      Areas = triangleareas(Tri,vecs);
     
     otherwise
       error('Triangulation for this symmetry not supported!');
@@ -166,45 +188,21 @@ if calculateTriangulation
 else
   
   Tri = [];
-  
-end
-
-% Store in output structure
-tri.idx = Tri;
-
-
-% Compute areas of spherical triangles
-%--------------------------------------------------------------------------
-if calculateTriangulation && ~isempty(Tri)
-  
-  % Vertex vectors
-  x1 = vecs(:,Tri(:,1).');
-  x2 = vecs(:,Tri(:,2).');
-  x3 = vecs(:,Tri(:,3).');
-  
-  % Edge arc lengths
-  a1 = acos(sum(x2.*x3));
-  a2 = acos(sum(x3.*x1));
-  a3 = acos(sum(x1.*x2));
-  
-  % Formula of d'Huilier
-  s = (a1+a2+a3)/2; % triangle perimeter half
-  Areas = 4*atan(sqrt(tan(s/2).*tan((s-a1)/2).*tan((s-a2)/2).*tan((s-a3)/2)));
-  
-  % Normalize to sum 4*pi
-  Areas = Areas/sum(Areas) * 4*pi;
-  
-  if ~isreal(Areas)
-    error('Complex triangle areas encountered! (GridSymm %s, GridSize %d, option %s)!',Symmetry,GridSize,Options);
-  end
-  
-else
-  
   Areas = [];
   
 end
 
+% Normalize areas
+if ~isempty(Areas)
+  if ~isreal(Areas)
+    error('Complex triangle areas encountered! (GridSymm %s, GridSize %d, option %s)!',Symmetry,GridSize,Options);
+  end
+  % Normalize to sum 4*pi
+  Areas = Areas/sum(Areas) * 4*pi;
+end
+
 % Store in output structure
+tri.idx = Tri;
 tri.areas = Areas;
 
 
@@ -316,3 +314,23 @@ else
   
 end
 end
+
+function A = triangleareas(Tri,vecs)
+
+% Vertex vectors
+x1 = vecs(:,Tri(:,1).');
+x2 = vecs(:,Tri(:,2).');
+x3 = vecs(:,Tri(:,3).');
+
+% Edge arc lengths
+a1 = acos(sum(x2.*x3));
+a2 = acos(sum(x3.*x1));
+a3 = acos(sum(x1.*x2));
+
+% Formula of d'Huilier
+s = (a1+a2+a3)/2; % triangle perimeter half
+x = sqrt(tan(s/2).*tan((s-a1)/2).*tan((s-a2)/2).*tan((s-a3)/2)).';
+x = real(x);
+A = 4*atan(x);
+end
+
