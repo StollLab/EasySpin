@@ -40,7 +40,7 @@ if (nargin==0)
 end
 %}
 
-if ndims(data)==2
+if ndims(data)==2 %#ok
   TwoDimData = min(size(data))>1;
 else
   error('Cannot save data with more than 2 dimensions.')
@@ -140,16 +140,18 @@ else
   GaugeFileExt = {'.GF1','.GF2','.GF3'};
 end
 
+deviationFromLinear = @(d) max(diff(d(:)))/min(diff(d(:)));
+linThreshold = 1e-5;
+isLinearAxis = @(d) abs(deviationFromLinear(d)-1)<linThreshold;
+isLinearX = isLinearAxis(x);
+
 % Determine if X axis is linear
-DeviationFromLinear = abs(x(:) - linspace(x(1),x(end),numel(x)).');
-isLinearX = max(DeviationFromLinear)/abs(x(end)-x(1))<0.001;
-if ~isLinearX, XType = 'IGD'; else XType = 'IDX'; end
+if ~isLinearX, XType = 'IGD'; else, XType = 'IDX'; end
 
 % Determine if Y axis is linear
 if TwoDimData
-  DeviationFromLinear = abs(y(:) - linspace(y(1),y(end),numel(y)).');
-  isLinearY = max(DeviationFromLinear)/abs(y(end)-y(1))<0.001;
-  if ~isLinearY, YType = 'IGD'; else YType = 'IDX'; end
+  isLinearY = isLinearAxis(y);
+  if ~isLinearY, YType = 'IGD'; else, YType = 'IDX'; end
 else
   YType = 'NODATA';
 end
