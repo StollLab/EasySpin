@@ -4,12 +4,17 @@ function ok = test()
 
 fn = tempname;
 
-N = 1001;
-x = linspace(300,400,N).^2;
+% Generate non-linear axis and 1D data
+N = 11;
+x = linspace(1,5,N).^2;
 x = x(:);
-y = rand(N,1);
-eprsave(fn,x,y);
-[xo,yo] = eprload(fn);
+data = rand(N,1);
+
+% Save date
+eprsave(fn,x,data);
+
+% Load data
+[x_,data_] = eprload(fn);
 delete([fn '.*']);
 
-ok = areequal(x,xo,1e-5,'rel') && areequal(y,yo,1e-5,'rel');
+ok = areequal(x,x_,1e-5,'rel') && areequal(data,data_,1e-5,'rel');
