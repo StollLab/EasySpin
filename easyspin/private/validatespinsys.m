@@ -260,12 +260,12 @@ for k = 1:12
   elseif size(Bk,2)==2*k+1
     % full form
   else
-    err = sprintf('Field Sys.%s has %d instead of %d columns.',fieldname,size(Bk,2),2*k+1);
+    err = sprintf('Field Sys.%s has %d columns, but %d are required.',fieldname,size(Bk,2),2*k+1);
     return
   end
   
   if any(~isreal(Bk))
-    err = sprintf('Field Sys.%s contains complex numbers. Only real ones are possible',fieldname);
+    err = sprintf('Field Sys.%s contains complex numbers. Only real ones are.',fieldname);
     return
   end
   

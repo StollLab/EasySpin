@@ -417,11 +417,15 @@ if doPlot
     end
     
     clf
+    
+    % magnetic moment, z component
     subplot(2,2,1)
     plot(x,muz_SI/bmagn); % SI and CGS-emu value are numerically identical
     ylabel('\mu_z/\mu_B,  \mu_{mol,z}/(N_A\mu_B)')
     axis tight
+    grid on
     
+    % molar magnetic moment, z component
     subplot(2,2,2)
     if useCGSunits
       plot(x,muz_CGS*avogadro);
@@ -431,7 +435,9 @@ if doPlot
       ylabel('\mu_{mol,z}  (J T^{-1} mol^{-1})')
     end
     axis tight
+    grid on
     
+    % molar magnetic susceptibility, zz component
     subplot(2,2,3)
     if useCGSunits
       plot(x,chizz_CGS*avogadro);
@@ -440,7 +446,10 @@ if doPlot
       plot(x,chizz_SI*avogadro);
       ylabel('\chi_{mol,zz}  (m^3 mol^{-1})');
     end
+    axis tight
+    grid on
     
+    % molar magnetic susceptibility, zz component, times temperature
     subplot(2,2,4)
     if useCGSunits
       plot(x,chizz_CGS*avogadro.*T);
@@ -449,6 +458,8 @@ if doPlot
       plot(x,chizz_SI*avogadro.*T);
       ylabel('\chi_{mol,zz}T  (K m^3 mol^{-1})');
     end
+    axis tight
+    grid on
     
     for i = 1:4
       subplot(2,2,i);
@@ -559,14 +570,14 @@ if useCGSunits
   if calculateChi, chizz = chizz_CGS; end
   muB = bmagn/1e-3; % Bohr magneton in CGS-emu units (erg/G = abA cm^2)
   kB = boltzm/1e-7; % Boltzmann constant in CGS units (erg/K)
-  c = 3*kB/muB^2; % needed for 'mueff'
+  c = 3*kB/muB^2; % conversion factor needed for 'mueff'
 else
   if calculateMu, muz = muz_SI; end
   if calculateMuVec, mux = mux_SI; muy = muy_SI; end
   if calculateChi, chizz = chizz_SI; end
   muB = bmagn; % Bohr magneton in SI units (J/T = A m^2)
   kB = boltzm; % Boltmann constant in SI units (J/K)
-  c = 3*kB/muB^2/mu0; % needed for 'mueff'
+  c = 3*kB/muB^2/mu0; % conversion factor needed for 'mueff'
 end
 
 % Calculate and assign outputs
@@ -580,7 +591,7 @@ for n = numel(keywords):-1:1
     case 'muBM'
       outval = muz/muB;
     case 'muvec'
-      outval = [mux muy muz].';
+      outval = [mux; muy; muz];
     case 'chi'
       outval = chizz;
     case 'chimol'

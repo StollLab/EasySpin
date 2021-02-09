@@ -67,7 +67,7 @@ There are up to two default output arguments (in the absence of <code>Opt.Output
 To convert the molar magnetic moment to SI units (J T<sup>-1</sup> mol<sup>-1</sup>), use
 
 <pre class="matlab">
-mumol_SI = muBM*avogadro*bmagn;   % unit conversion to J T^-1 mol^-1
+mumol_SI = muBM*bmagn*avogadro;   % unit conversion to J T^-1 mol^-1
 </pre>
 </div>
 
@@ -180,7 +180,7 @@ The three <a href="eulerangles.html">Euler angles</a>, in radians, for the trans
 <div class="subtitle2">Input: Calculation options</div>
 
 <p>
-The structure <code>Opt</code> collects computational parameters. <code>Opt</code> need not be specified, in which case default values for all fields are used. The field names and their possible values are as follows.
+The structure <code>Opt</code> collects computational parameters. <code>Opt</code> is optional. If not given, default values for all fields are used. The field names and their possible values are as follows.
 </p>
 
 <div class="optionfield"><code>Units</code></div>
@@ -242,13 +242,14 @@ Determines how much information is printed to the command window. If set to 0, <
 
 <div class="optionfield"><code>GridSize</code></div>
 <div class="optiondescr">
-Determines the number of orientations (knots) in a powder for which moment and susceptibility are calculated.
+Determines the number of orientations in a powder for which moment and susceptibility are calculated.
 
-<code>GridSize</code> gives the number of orientations between &theta;=0&deg; and &theta;=90&deg; for which data are calculated. Common values for <code>N1</code> are between 10 (10&deg; increments) and 91 (1&deg; increments). The larger the anisotropy of the spin Hamiltonian, the higher <code>N1</code> must be to yield accurate values.
+<code>GridSize</code> gives the number of orientations between &theta;=0&deg; and &theta;=90&deg; for which data are calculated. Common values for <code>GridSize</code> are between 10 (10&deg; increments) and 91 (1&deg; increments). The larger the anisotropy of the spin Hamiltonian, the higher <code>GridSize</code> must be to yield accurate values.
 
 <pre class="matlab">
-Opt.GridSize = 91;       % 1&deg; increments
+Opt.GridSize = 19;       % 5&deg; increments
 Opt.GridSize = 31;       % 3&deg; increments
+Opt.GridSize = 91;       % 1&deg; increments
 </pre>
 </div>
 
