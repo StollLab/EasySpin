@@ -441,7 +441,7 @@ Exp.PowderSimulation = PowderSimulation; % for communication with resf*
 if ~isempty(Exp.Ordering)
   if isnumeric(Exp.Ordering) && (numel(Exp.Ordering)==1) && isreal(Exp.Ordering)
     lambda = Exp.Ordering;
-    Exp.Ordering = @(phi,theta) exp(lambda*plegendre(2,0,cos(theta)));
+    Exp.Ordering = @(phi,theta) exp(lambda*plegendre(2,0,cos(theta))).*ones(size(phi));
     logmsg(1,'  partial ordering (built-in function, lambda = %g)',lambda);
   elseif isa(Exp.Ordering,'function_handle')
     logmsg(1,'  partial ordering (user-supplied function)');
@@ -490,6 +490,9 @@ for k = 1:numel(ObsoleteOptions)
   end
 end
 
+if isfield(Opt,'Symmetry')
+  error('Options.Symmetry is obsolete. Use Options.GridSymmetry instead, e.g. Options.GridSymmetry = ''D2h''.');
+end
 if isfield(Opt,'nSpline')
   error('Options.nSpline is obsolete. Use a second number in Options.GridSize instead, e.g. Options.GridSize = [19 5] for Options.nSpline = 5.');
 end
@@ -560,6 +563,11 @@ Opt.Intensity = anisotropicIntensities;
 
 [Exp,Opt] = p_symandgrid(Sys,Exp,Opt);
 nOrientations = size(Exp.CrystalOrientation,1);
+
+% Fold orientational distribution function into grid region.
+if ~isempty(Exp.Ordering)
+  orifun = foldoridist(Exp.Ordering,Opt.GridSymmetry);
+end
 
 %=======================================================================
 %=======================================================================
@@ -919,8 +927,8 @@ elseif ~BruteForceSum
       if ~isempty(Exp.Ordering)
         centreTheta = (fthe(1:end-1)+fthe(2:end))/2;
         centrePhi = zeros(1,numel(centreTheta));
-        OrderingWeights = Exp.Ordering(centrePhi,centreTheta);
-        if any(OrderingWeights<0), error('User-supplied orientation distribution gives negative values!'); end
+        OrderingWeights = orifun(centrePhi,centreTheta);
+        if any(OrderingWeights<0), error('User-supplied orientation distribution gives negative values.'); end
         if all(OrderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end
         fSegWeights = fSegWeights(:).*OrderingWeights(:);
         fSegWeights = 4*pi/sum(fSegWeights)*fSegWeights;
@@ -943,7 +951,7 @@ elseif ~BruteForceSum
       if ~isempty(Exp.Ordering)
         centreTheta = mean(fthe(idxTri));
         centrePhi = mean(fphi(idxTri));
-        OrderingWeights = Exp.Ordering(centrePhi,centreTheta);
+        OrderingWeights = orifun(centrePhi,centreTheta);
         if any(OrderingWeights<0), error('User-supplied orientation distribution gives negative values!'); end
         if all(OrderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end
         Areas = Areas(:).*OrderingWeights(:);

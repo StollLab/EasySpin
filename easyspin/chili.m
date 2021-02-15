@@ -487,7 +487,7 @@ if ~isempty(Exp.Ordering)
   if isnumeric(Exp.Ordering) && numel(Exp.Ordering)==1 && isreal(Exp.Ordering)
     lam = Exp.Ordering;
     if lam~=0
-      Exp.Ordering = @(phi,theta) exp(lam*plegendre(2,0,cos(theta)));
+      Exp.Ordering = @(phi,theta) exp(lam*plegendre(2,0,cos(theta))).*ones(size(phi));
       logmsg(1,'  director ordering: built-in function, coefficient = %g',lam);
     else
       Exp.Ordering = [];
@@ -880,7 +880,8 @@ Basis.DirTilt = any(theta~=0);
 
 % Partial ordering for protein/macromolecule
 if useDirectorOrdering
-  OrderingWeights = Exp.Ordering(phi,theta);
+  orifun = foldoridist(Exp.Ordering,Opt.GridSymmetry);
+  OrderingWeights = orifun(phi,theta);
   if any(OrderingWeights<0), error('User-supplied orientation distribution gives negative values!'); end
   if all(OrderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end
   logmsg(2,'  orientational potential');

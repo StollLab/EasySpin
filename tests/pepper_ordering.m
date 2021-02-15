@@ -15,7 +15,7 @@ for k = 1:numel(lambda)
   [x,spc(k+1,:)] = pepper(Sys,Exp,Opt);
 end
 
-if (opt.Display)
+if opt.Display
   if ~isempty(olddata)
     subplot(3,1,1);
     plot(x,spc); title('current');
@@ -25,8 +25,8 @@ if (opt.Display)
     plot(x,olddata.spc-spc); title('difference');
   else
     plot(x,spc);
-    xlabel('magnetic field [mT]');
-    ylabel('intensity [a.u.]');
+    xlabel('magnetic field (mT)');
+    ylabel('intensity (arb.u.)');
     title('pepper: non-isotropic orientational distribution, axial system');
   end
 end

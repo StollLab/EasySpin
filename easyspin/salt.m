@@ -280,7 +280,7 @@ if ~isempty(Exp.Ordering)
   end
   if isnumeric(Exp.Ordering) && (numel(Exp.Ordering)==1) && isreal(Exp.Ordering)
     lambda = Exp.Ordering;
-    Exp.Ordering = @(phi,theta) exp(lambda*plegendre(2,0,cos(theta)));
+    Exp.Ordering = @(phi,theta) exp(lambda*plegendre(2,0,cos(theta))).*ones(size(phi));
     logmsg(1,'  partial order (built-in function, lambda = %g)',lambda);
   elseif isa(Exp.Ordering,'function_handle')
     logmsg(1,'  partial order (user-supplied function)');
@@ -432,6 +432,11 @@ end
 
 [Exp,Opt] = p_symandgrid(Sys,Exp,Opt);
 nOrientations = size(Exp.CrystalOrientation,1);
+
+% Fold orientational distribution function into grid region.
+if ~isempty(Exp.Ordering)
+  orifun = foldoridist(Exp.Ordering,Opt.GridSymmetry);
+end
 
 
 %==========================================================================
@@ -709,8 +714,8 @@ else
     if ~isempty(Exp.Ordering)
       centreTheta = (fthe(1:end-1)+fthe(2:end))/2;
       centrePhi = zeros(1,numel(centreTheta));
-      OrderingWeights = Exp.Ordering(centrePhi,centreTheta);
-      if any(OrderingWeights)<0, error('User-supplied orientation distribution gives negative values!'); end
+      OrderingWeights = orifun(centrePhi,centreTheta);
+      if any(OrderingWeights<0), error('User-supplied orientation distribution gives negative values.'); end
       if all(OrderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end
       fSegWeights = fSegWeights(:).*OrderingWeights(:);
       fSegWeights = 4*pi/sum(fSegWeights)*fSegWeights;
@@ -732,9 +737,8 @@ else
     if ~isempty(Exp.Ordering)
       centreTheta = mean(fthe(idxTri));
       centrePhi = mean(fphi(idxTri));
-      %OrderingWeights = feval(Exp.Ordering,centrePhi,centreTheta);
-      OrderingWeights = Exp.Ordering(centrePhi,centreTheta);
-      if any(OrderingWeights)<0, error('User-supplied orientation distribution gives negative values!'); end
+      OrderingWeights = orifun(centrePhi,centreTheta);
+      if any(OrderingWeights<0), error('User-supplied orientation distribution gives negative values.'); end
       if max(OrderingWeights)==0, error('User-supplied orientation distribution is all-zero.'); end
       Areas = Areas(:).*OrderingWeights(:);
       Areas = 4*pi/sum(Areas)*Areas;
