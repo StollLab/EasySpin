@@ -7,7 +7,7 @@
 %     g              3-array, principal values of the g-tensor
 %     A              3-array, principal values of the A-tensor
 %   Par: structure with simulation parameters
-%     Dt             spin dynamics propagation time step (in seconds)
+%     dtSpin         spin dynamics propagation time step (in seconds)
 %     nSteps         number of steps
 %     BlockLength    block length for block averaging, no averaging if set to 1
 %     Model          'MD-HMM','MD-direct','MD-HBD','diffusion','jump'
@@ -78,7 +78,7 @@ else
 end
 
 
-Dt = Par.Dt;  % spin dynamics propagation time step
+dtSpin = Par.dtSpin;  % spin dynamics propagation time step
 nSteps = Par.nSteps; % number of spin dynamics propagation steps
 nTraj = Par.nTraj;
 
@@ -252,7 +252,7 @@ switch PropagationMethod
       
       % Rotation angle and unit vector parallel to axis of rotation
       % refer to paragraph below Eq. 37 in [1]
-      theta = Dt*0.5*squeeze(a);
+      theta = dtSpin*0.5*squeeze(a);
       nx = squeeze(ATensor(1,3,:,:)./a);
       ny = squeeze(ATensor(2,3,:,:)./a);
       nz = squeeze(ATensor(3,3,:,:)./a);
@@ -283,9 +283,9 @@ switch PropagationMethod
         - 1i*st.*nz;
       
       % Calculate propagator, Eq. 35 in [1]
-      U = bsxfun(@times, exp(-1i*Dt*0.5*omega*Gp_zz), expadotI);
+      U = bsxfun(@times, exp(-1i*dtSpin*0.5*omega*Gp_zz), expadotI);
     else
-      U = exp(-1i*Dt*0.5*omega*Gp_zz);
+      U = exp(-1i*dtSpin*0.5*omega*Gp_zz);
     end
     
     % Set up starting state of density matrix after pi/2 pulse, S_x
@@ -422,11 +422,11 @@ switch PropagationMethod
     else
       SzFilter = 1;
     end
-    U0 = expm_(-1i*Dt*SzFilter.*H0,algo);  % interaction frame transformation operator
+    U0 = expm_(-1i*dtSpin*SzFilter.*H0,algo);  % interaction frame transformation operator
     U = zeros(size(H));
     for iStep = 1:nSteps
       for iTraj = 1:nTraj
-        U_ = expm_(1i*Dt*SzFilter.*H(:,:,iStep,iTraj),algo);
+        U_ = expm_(1i*dtSpin*SzFilter.*H(:,:,iStep,iTraj),algo);
         U(:,:,iStep,iTraj) = U0*U_;
       end
     end

@@ -3,12 +3,13 @@ function ok = test()
 % Syntax check
 
 SymmGroup = {'D2h','C2h','Ci','Dinfh'};
-nKnots = 10;
+GridSize = 10;
 for g = 1:numel(SymmGroup)
-  v = sphgrid(SymmGroup{g},nKnots);
-  [v,w] = sphgrid(SymmGroup{g},nKnots,'c');
-  [p,t] = sphgrid(SymmGroup{g},nKnots);
-  [p,t,w] = sphgrid(SymmGroup{g},nKnots);
+  [grid,tri] = sphgrid(SymmGroup{g},GridSize);
+  ok(g) = isfield(grid,'phi') && ...
+          isfield(grid,'theta') && ...
+          isfield(grid,'vecs') && ...
+          isfield(grid,'weights') && ...
+          isfield(tri,'idx') && ...
+          isfield(tri,'areas');
 end
-
-ok = true;

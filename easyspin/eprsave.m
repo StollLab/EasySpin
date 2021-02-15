@@ -21,29 +21,15 @@
 
 function eprsave(filename,x,data,TitleString,mwFreq)
 
-if (nargin==0); help(mfilename); return; end
+if nargin==0, help(mfilename); return; end
 
-if (nargin<4), TitleString = ''; end
-if (nargin<5), mwFreq = NaN; end
+if nargin<4, TitleString = ''; end
+if nargin<5, mwFreq = NaN; end
 
-%{
-if (nargin==0)
-  x = 1:100;
-  y = gaussian(x,mean(x),(max(x)-min(x))/5);
-  x = x.^2;
-  %x = rand(10);
-  y = y + 1i*linspace(0,max(y),numel(x));
-  filename = 'test6nonlin';
-  titlestring = 'EasySpin test example';
-  plot(x,real(y),'b',x,imag(y),'r');
-  axis tight
-end
-%}
-
-if ndims(data)==2
+if ismatrix(data)
   TwoDimData = min(size(data))>1;
 else
-  error('Cannot save data with more than 2 dimensions.')
+  error('Cannot save data with more than 2 dimensions.');
 end
 
 if TwoDimData
@@ -62,7 +48,7 @@ complexData = ~isreal(data);
 
 BES3TVersion = 1.2;
 
-if (BES3TVersion<1.2)
+if BES3TVersion<1.2
   error('Cannot save in BES3T format versions older than 1.2.');
 end
 
@@ -80,20 +66,20 @@ ByteOrder = 'ieee-be'; % big-endian is default for XEPR (Linux)
 %-----------------------------------------------------------
 DTAfilename = [filename '.DTA'];
 fDTA = fopen(DTAfilename,'w',ByteOrder);
-if (fDTA<1), error('Unable to open data file %s',DTAfilename); end
+if fDTA<1, error('Unable to open data file %s',DTAfilename); end
 datalist = data(:);
 if complexData
   datalist = [real(datalist) imag(datalist)].';
 end
 fwrite(fDTA,datalist(:),NumberFormat,0,ByteOrder);
 CloseStatus = fclose(fDTA);
-if (CloseStatus<0), error('Unable to close data file %s',DTAfilename); end
+if CloseStatus<0, error('Unable to close data file %s',DTAfilename); end
 
 % Save parameters in DSC file
 %-----------------------------------------------------------
 DSCfilename = [filename '.DSC'];
 fDSC = fopen(DSCfilename,'w',ByteOrder);
-if (fDSC<1), error('Unable to open description file %s',DSCfilename); end
+if fDSC<1, error('Unable to open description file %s',DSCfilename); end
 writedsckeyval = @(key,val)fprintf(fDSC,[key '\t' val '\n']);
 writedsc = @(val)fprintf(fDSC,[val '\n']);
 
@@ -141,22 +127,24 @@ else
 end
 
 % Determine if X axis is linear
-DeviationFromLinear = abs(x(:) - linspace(x(1),x(end),numel(x)).');
-isLinearX = max(DeviationFromLinear)/abs(x(end)-x(1))<0.001;
-if ~isLinearX, XType = 'IGD'; else XType = 'IDX'; end
+deviationFromLinear = @(d) max(diff(d(:)))/min(diff(d(:)));
+linThreshold = 1e-5;
+isLinearAxis = @(d) abs(deviationFromLinear(d)-1)<linThreshold;
+
+isLinearX = isLinearAxis(x);
+if ~isLinearX, XType = 'IGD'; else, XType = 'IDX'; end
 
 % Determine if Y axis is linear
 if TwoDimData
-  DeviationFromLinear = abs(y(:) - linspace(y(1),y(end),numel(y)).');
-  isLinearY = max(DeviationFromLinear)/abs(y(end)-y(1))<0.001;
-  if ~isLinearY, YType = 'IGD'; else YType = 'IDX'; end
+  isLinearY = isLinearAxis(y);
+  if ~isLinearY, YType = 'IGD'; else, YType = 'IDX'; end
 else
   YType = 'NODATA';
 end
 
 ZType = 'NODATA';
 
-% Write companion file for X axis if necessary
+% Write companion index-gauge file for X axis if necessary
 if ~isLinearX
   fGF = fopen([filename GaugeFileExt{1}],'w',ByteOrder);
   fwrite(fGF,x(:),'float64',0,ByteOrder);
@@ -168,7 +156,7 @@ if ~isLinearX
   end
 end
 
-% Write companion file for Y axis if necessary
+% Write companion index-gauge file for Y axis if necessary
 if TwoDimData && ~isLinearY
   fGF = fopen([filename GaugeFileExt{2}],'w',ByteOrder);
   fwrite(fGF,y(:),'float64',0,ByteOrder);
@@ -181,7 +169,7 @@ if TwoDimData && ~isLinearY
 end
 
 % Write X/Y/Z axis types
-if (BES3TVersion<2.0)
+if BES3TVersion<2.0
   writedsckeyval('XTYP',XType);
   writedsckeyval('YTYP',YType);
   writedsckeyval('ZTYP',ZType);
@@ -235,4 +223,7 @@ if ~isnan(mwFreq)
 end
 
 CloseStatus = fclose(fDSC);
-if (CloseStatus<0), error('Unable to close data file %s',DSCfilename); end
+if CloseStatus<0
+  error('Unable to close data file %s',DSCfilename);
+end
+

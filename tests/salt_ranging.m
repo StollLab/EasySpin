@@ -13,7 +13,7 @@ Exp1 = Exp;
 Exp2 = Exp; Exp2.Range = [10 50];
 Exp3 = Exp; Exp3.CenterSweep = [30 50];
 
-Opt.nKnots = [12 0];
+Opt.GridSize = [12 0];
 
 Opt.Method = 'perturb';
 [x,y] = salt(Sys,Exp1,Opt);

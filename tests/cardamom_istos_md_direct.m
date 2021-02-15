@@ -35,8 +35,8 @@ Sys.A = mt2mhz([6, 36]/10);
 Sys.lw = [0.1, 0.1];
 
 T = 200e-9;
-Par.Dt = 2.0e-9;
-Par.nSteps = ceil(T/Par.Dt);
+Par.dtSpin = 2.0e-9;
+Par.nSteps = ceil(T/Par.dtSpin);
 
 Par.Model = 'MD-direct';
 Par.nOrients = 100;

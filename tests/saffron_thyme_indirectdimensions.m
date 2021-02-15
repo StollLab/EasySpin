@@ -29,7 +29,7 @@ Exp.DetPhase = 0;
 Exp.nPoints = 2;
 Exp.Dim1 = {'d1,d2' 0.5};
 
-Opt.nKnots = 7;
+Opt.GridSize = 7;
 Opt.SimulationMode = 'thyme';
 
 [x1, y1] = saffron(Sys,Exp,Opt);

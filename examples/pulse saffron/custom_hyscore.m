@@ -26,7 +26,7 @@ Exp.nPoints = [101 101]; % data points
 Exp.Dim1 = {'d2' dt}; % increment in dimension 1, mus
 Exp.Dim2 = {'d3' dt}; % increment in dimension 2, mus
 
-Opt.nKnots = 91;
+Opt.GridSize = 91;
 Opt.nOffsets = 30;
 Opt.lwOffset = 100; % MHz
 

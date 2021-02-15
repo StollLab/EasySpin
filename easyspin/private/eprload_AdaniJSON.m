@@ -1,5 +1,3 @@
-
-%-------------------------------------------------------------------------------
 function [Data,Abscissa,Parameters] = eprload_AdaniJSON(FileName)
 %--------------------------------------------------------------------------
 % JSON format of Adani spectrometers SPINSCAN etc. (e-Spinoza software)
@@ -15,7 +13,7 @@ end
 
 % Read JSON string from file
 fid = fopen(FileName);
-if (fid<0)
+if fid<0
   error('Could not open %s.',FileName);
 end
 jsonstring = textscan(fid,'%s');
@@ -36,7 +34,11 @@ nPoints = numel(data.Values(1).Values);
 nPhases = numel(data.Values(1).Values(1).Points);
 
 % Read 1D or 2D data
-phase0 = data.Phase;
+if isfield(data,'Phase')
+  phase0 = data.Phase;
+else
+  phase0 = 0;
+end
 s = sin(2*pi*(0:nPhases-1).'/nPhases + phase0);
 spc = zeros(nPoints,nSpectra);
 for iSpectrum = 1:nSpectra

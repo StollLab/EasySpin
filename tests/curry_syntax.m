@@ -8,7 +8,7 @@ Sys.g = 2;
 Exp.Temperature = 1;
 Exp.Field = 7000;
 
-Opt.nKnots = 8;
+Opt.GridSize = 8;
 
 m = curry(Sys,Exp);
 [m,chi] = curry(Sys,Exp);

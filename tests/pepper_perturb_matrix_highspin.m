@@ -11,7 +11,7 @@ Sys.lw = 1;
 Exp.mwFreq = 9.5;
 Exp.Range = [250 380];
 Exp.Harmonic = 0;
-Opt.nKnots=91;
+Opt.GridSize=91;
 
 Opt.Method = 'matrix';
 [x0,y0]=pepper(Sys,Exp,Opt);

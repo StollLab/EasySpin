@@ -10,7 +10,7 @@ Exp.tau = 0.001;
 Exp.dt = 0.01;
 Exp.nPoints = 200;
 
-Opt.nKnots = 181;
+Opt.GridSize = 181;
 Opt.Verbosity = 0;
 
 y = saffron(Sys,Exp,Opt);

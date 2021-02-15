@@ -14,7 +14,7 @@ tau = 0.08;
 t1 = 0.1;
 t2 = 0.1;
 
-Opt.nKnots = 20;
+Opt.GridSize = 20;
 
 %--- Tests
 

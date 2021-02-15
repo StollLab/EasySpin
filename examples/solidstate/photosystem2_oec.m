@@ -25,7 +25,7 @@ Sys = nucspinadd(Sys,'55Mn',AMn4);
 Exp.CenterSweep = [340 250];
 Exp.mwFreq = 9.5;
 
-SimOpt.nKnots = 25;
+SimOpt.GridSize = 25;
 SimOpt.Method ='perturb';
 
 pepper(Sys, Exp, SimOpt);

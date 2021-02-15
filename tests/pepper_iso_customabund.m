@@ -13,7 +13,7 @@ Exp.mwFreq = 9.5;
 Exp.Range = [280 350];
 Exp.nPoints = 1e4;
 
-Opt.nKnots = 61;
+Opt.GridSize = 61;
 Opt.Method = 'perturb';
 [x,y] = pepper(Sys,Exp,Opt);
 

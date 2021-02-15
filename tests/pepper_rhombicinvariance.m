@@ -2,24 +2,30 @@ function ok = test(opt)
 
 % Rhombic symmetry invariance
 
-Sys = struct('S',.5,'g',[1.9,2,2.3]);
+Sys = struct('S',0.5,'g',[1.9,2,2.3]);
 Exp = struct('Range',[285 365],'mwFreq',9.5,'nPoints',1054,'Harmonic',0);
-Opt = struct('nKnots',[20 2]);
-Symmetry = {'Ci','D2h','C2h'};
+Opt = struct('GridSize',[20 0]);
+Symmetry = {'D2h','Ci','C1','C2h'};
 Sys.lw = 1;
 
 for k = 1:length(Symmetry)
-  Opt.Symmetry = Symmetry{k};
-  [x,y(k,:)] = pepper(Sys,Exp,Opt);    
+  Opt.GridSymmetry = Symmetry{k};
+  [B,spc(k,:)] = pepper(Sys,Exp,Opt);    
 end
 
-y = y/max(y(:));
-thr = 0.005;
-ok = areequal(y(1,:),y(2,:),thr,'abs') && areequal(y(2,:),y(3,:),thr,'abs');
+spc = spc/max(spc(:));
+thr = 1e-3;
+ok(1) = areequal(spc(2,:),spc(1,:),thr,'abs');
+ok(2) = areequal(spc(3,:),spc(1,:),thr,'abs');
+ok(3) = areequal(spc(4,:),spc(1,:),thr,'abs');
 
-if (opt.Display)
-  plot(x,y);
-  title('Test 9: Rhombic symmetry invariance');
+if opt.Display
+  subplot(3,1,[1 2]);
+  plot(B,spc);
+  title('Rhombic symmetry invariance');
   legend(Symmetry{:});
   xlabel('magnetic field [mT]');
+  subplot(3,1,3);
+  plot(B,spc(2,:)-spc(1,:),B,spc(3,:)-spc(1,:),B,spc(4,:)-spc(1,:));
+  legend(Symmetry{2:end});
 end

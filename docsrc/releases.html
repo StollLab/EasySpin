@@ -19,6 +19,7 @@
 <li><a href="index.html">Documentation</a>
 <li><a href="references.html">Publications</a>
 <li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/academy" target="_blank">Academy</a>
 <li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
 </ul>
 </header>
@@ -66,6 +67,8 @@ $ReleaseID$
 <li><a class="esf" href="wignerd.html">wignerd</a> input syntax has changed. Instead of providing all three Euler angles in a single array <code>angles</code>, supply them separately as <code>alpha</code>, <code>beta</code>, and <code>gamma</code>.
 <li>The input syntax for dipolar couplings between electron spins has changed. Instead of <code>Sys.eeD</code>, use the new field <code>Sys.dip</code>.
 <li>The function <code>rotatecrystal</code> has been removed. Use <code>Exp.SampleRotation</code> instead.</li>
+<li><a class="esf" href="sphgrid.html">sphgrid</a> now returns angles, vectors, and weights together in a structure.</li>
+<li>The function <code>sphtri</code> has been removed; it's functionality is now incorporated into <a class="esf" href="sphgrid.html">sphgrid</a>.</li>
 <li>The oldest supported Matlab version is now R2014b (8.4).
 </ul>
 
@@ -451,8 +454,8 @@ and <a class="esf" href="salt.html">salt</a>. Only the space group of the crysta
 <ul>
 <li>Fundamental constants are updated from the CODATA 2002 to the CODATA 2006 recommended set.
 <li>The order of outputs of <a class="esf" href="eprload.html">eprload</a> has changed.
-<li><code>Opt.nSpline</code> is merged with <code>Opt.nKnots</code>. E.g. instead of setting <code>Opt.nKnots=19</code>
-and <code>Opt.nSpline=4</code>, one now sets <code>Opt.nKnots=[19 4]</code>.
+<li><code>Opt.nSpline</code> is merged with <code>Opt.GridSize</code>. E.g. instead of setting <code>Opt.GridSize=19</code>
+and <code>Opt.nSpline=4</code>, one now sets <code>Opt.GridSize=[19 4]</code>.
 </ul>
 
 <p>

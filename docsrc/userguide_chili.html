@@ -19,6 +19,7 @@
 <li><a href="index.html">Documentation</a>
 <li><a href="references.html">Publications</a>
 <li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/academy" target="_blank">Academy</a>
 <li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
 </ul>
 </header>
@@ -377,10 +378,10 @@ The summation of slow-motion spectra over all possible orientations of an immobi
 </p>
 
 <p>
-When <code>chili</code> performs an orientational average, it takes the number of orientations to include from <code>Opt.nKnots</code>. Often, <code>Opt.nKnots</code> does not have to be changed from its default setting, but if the spectrum does not appear to be smooth, <code>Opt.nKnots</code> can be increased. Larger values of <code>Opt.nKnots</code> increases the simulation time. It might also be necessary to change the symmetry in <code>Opt.Symmetry</code> (to e.g. <code>'D2h'</code> or <code>'Ci'</code>).
+When <code>chili</code> performs an orientational average, it takes the number of orientations to include from <code>Opt.GridSize</code>. Often, <code>Opt.GridSize</code> does not have to be changed from its default setting, but if the spectrum does not appear to be smooth, <code>Opt.GridSize</code> can be increased. Larger values of <code>Opt.GridSize</code> increases the simulation time. It might also be necessary to change the grid symmetry in <code>Opt.GridSymmetry</code> (to e.g. <code>'D2h'</code> or <code>'Ci'</code>).
 </p>
 
-<p><a class="esf" href="chili.html">chili<a> is not able to automatically determine values of <code>Opt.nKnots</code> and <code>Opt.Symmetry</code> that yield a converged spectrum. It is therefore important to increase <code>Opt.nKnots</code> until the spectrum doesn't change anymore, and to initially use the most general symmetry setting <code>Opt.Symmetry = 'Ci'</code> to assure a correct and converged spectrum.
+<p><a class="esf" href="chili.html">chili<a> is not able to automatically determine values of <code>Opt.GridSize</code> and <code>Opt.GridSymmetry</code> that yield a converged spectrum. It is therefore important to increase <code>Opt.GridSize</code> until the spectrum doesn't change anymore, and to initially use the most general symmetry setting <code>Opt.GridSymmetry = 'Ci'</code> to assure a correct and converged spectrum.
 
 <!-- ============================================================= -->
 <a name="algorithm"><div class="subtitle">Simulation parameters</div></a>

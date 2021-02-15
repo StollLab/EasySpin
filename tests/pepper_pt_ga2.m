@@ -12,7 +12,7 @@ Exp.CenterSweep = [330 100];
 Exp.Harmonic = 1;
 
 Opt.Method = 'perturb';
-Opt.nKnots = 31;
+Opt.GridSize = 31;
 [x,y] = pepper(Sys,Exp,Opt);
 
 if (opt.Display)

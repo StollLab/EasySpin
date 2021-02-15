@@ -6,8 +6,9 @@ Sy = struct('S',1/2,'Nucs','1H','g',[2.2 2.1 2],...
   'A',2*[-1.2,-0.8,2],'lwEndor',[0,0.01]);
 Ex = struct('Range',[10 18],'Field',326.5,...
   'nPoints',2^12,'mwFreq',9.7);
-Si = struct('Threshold',1e-5,'nKnots',[20 5],'Intensity','on',...
+Si = struct('Threshold',1e-5,'GridSize',[20 5],'Intensity','on',...
   'Enhancement','off','Verbosity',opt.Verbosity);
+Si.GridSymmetry = 'Ci';
 
 Sy.A = diag(Sy.A);
 [a,b1] = salt(Sy,Ex,Si);
@@ -17,13 +18,13 @@ Sy.A(2,1) = -5;
 
 if opt.Display
   subplot(3,1,[1 2]);
-  plot(a,b1,'b',a,b2,'r');
+  plot(a,b1,'b',a,b2,'r',a,olddata.b1,'b.',a,olddata.b2,'r.');
   title('Tilted tensors, Ci symmetry');
-  legend('symmetric A','asymmetric A');
+  legend('symmetric A','asymmetric A','symmetric A, old','asymmetric A, old');
   xlabel('frequency [MHz]');
   if ~isempty(olddata)
     subplot(3,1,3);
-    plot(a,b1-olddata.b1,'b',a,b2-olddata.b2,'r');
+    plot(a,b1-olddata.b1,'b.',a,b2-olddata.b2,'r.');
   end
 end
 

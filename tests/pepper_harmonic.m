@@ -7,7 +7,7 @@ function ok = test(opt)
 
 Sys = struct('S',1/2,'g',[2 2.15 2.3],'gStrain',[0.03 0.005 0.02]);
 Exp = struct('mwFreq',9.7979,'Range',[290 360],'nPoints',10000);
-Opt = struct('Verbosity',0,'nKnots',[30 1],'Method','perturb1');
+Opt = struct('Verbosity',0,'GridSize',[30 1],'Method','perturb1');
 
 Exp.Harmonic = 0;
 [x,y0] = pepper(Sys,Exp,Opt);
