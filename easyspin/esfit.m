@@ -1,28 +1,29 @@
 % esfit   Least-squares fitting for EPR data
 %
-%   esfit(data,func,p0,vary)
-%   esfit(data,func,p0,lb,ub)
+%   esfit(data,fcn,p0,vary)
+%   esfit(data,fcn,p0,lb,ub)
 %   esfit(___,FitOpt)
-%   pfit = esfit(...)
-%   [pfit,datafit] = esfit(...)
-%   [pfit,datafit,residuals] = esfit(...)
+%
+%   pfit = esfit(___)
+%   [pfit,datafit] = esfit(___)
+%   [pfit,datafit,residuals] = esfit(___)
 %
 % Input:
 %     data        experimental data, a vector of data points
-%     func        simulation/model function handle (@pepper, @garlic, ...
+%     fcn         simulation/model function handle (@pepper, @garlic, ...
 %                   @salt, @chili, or user-defined function)
 %     p0          starting input parameters
-%                   for EasySpin-style functions: {Sys0,Exp0,Opt0}
-%                   for other functions: vector
+%                   EasySpin-style functions: {Sys0,Exp0} or {Sys0,Exp0,Opt0}
+%                   other functions: vector
 %     vary        allowed variation of parameters
-%                   for EasySpin-style functions: {vSys,vExp,vOpt}
-%                   for other functions: vector
+%                   EasySpin-style functions: {vSys} or {vSys,vExp} or {vSys,vExp,vOpt}
+%                   other functions: vector
 %     lb          lower bounds of parameters
-%                   for EasySpin-style functions: {lbSys,lbExp,lbOpt}
-%                   for other functions: vector
+%                   EasySpin-style functions: {lbSys,lbExp} or {lbSys,lbExp,lbOpt}
+%                   other functions: vector
 %     ub          upper bounds of parameters
-%                   for EasySpin-style functions: {ubSys,ubExp,ubOpt}
-%                   for other functions: vector
+%                   EasySpin-style functions: {ubSys,ubExp} or {ubSys,ubExp,ubOpt}
+%                   other functions: vector
 %     FitOpt      options for the fitting algorithms
 %        .Method  string containing kewords for
 %           -algorithm: 'simplex','levmar','montecarlo','genetic','grid','swarm'
@@ -37,7 +38,7 @@
 %     datafit     fitted data (vector)
 %     residuals   residuals between fitted and experimental data (vector)
 
-function varargout = esfit(data,modelFunction,p0,varargin)
+function varargout = esfit(data,fcn,p0,varargin)
 
 %if nargin==0, help(mfilename); return; end
 
@@ -73,6 +74,13 @@ end
 % Check expiry date
 error(eschecker);
 
+if nargin<4
+  error('At least 3 inputs are required (data, fcn, p0, pvary).');
+end
+if nargin>6
+  error('At most 6 inputs are accepted.');
+end
+
 % Parse argument list
 varyProvided = true;
 switch nargin
@@ -94,8 +102,6 @@ switch nargin
     lb = varargin{1};
     ub = varargin{2};
     FitOpt = varargin{3};
-  otherwise
-    error('esfit takes 4, 5, or 6 input arguments. You provided %d',nargin);
 end
 
 if isempty(FitOpt)
@@ -125,48 +131,37 @@ fitdat.ExpSpecScaled = rescale(data,'maxabs');
 
 % Model function
 %-------------------------------------------------------------------------------
-if ~isa(modelFunction,'function_handle')
+if ~isa(fcn,'function_handle')
   str = 'The simulation/model function (2nd input) must be a function handle (with @).';
-  if ischar(modelFunction)
-    error('%s\nUse esfit(data,@%s,...) instead of esfit(data,''%s'',...).',str,modelFunction,modelFunction);
+  if ischar(fcn)
+    error('%s\nUse esfit(data,@%s,...) instead of esfit(data,''%s'',...).',str,fcn,fcn);
   else
     error('%s\nFor example, to use the function pepper(...), use esfit(data,@pepper,...).',str);
   end
 end
 try
-  nargin(modelFunction);
+  nargin(fcn);
 catch
   error('The simulation/model function given as second input cannot be found.');
 end
 
-fitdat.fcn = modelFunction;
-fitdat.fcnName = func2str(modelFunction);
+fitdat.fcn = fcn;
+fitdat.fcnName = func2str(fcn);
 
 fitdat.lastSetID = 0;
 
-EasySpinFunction = any(strcmp(fitdat.fcnName,{'pepper','garlic','chili','salt'}));
+EasySpinFunction = any(strcmp(fitdat.fcnName,{'pepper','garlic','chili','salt','curry'}));
 
-% Starting parameters
+
+% Parameters
 %-------------------------------------------------------------------------------
-argspar.validargs(p0);
 structureInputs = iscell(p0);
-if ~iscell(p0), p0 = {p0}; end
-
-% Supplement weights to spin structures for EasySpin simulation functions
-if EasySpinFunction
-  if iscell(p0{1})
-    nSystems = numel(p0{1});
-    for s = 1:nSystems
-      if ~isfield(p0{1}{s},'weight')
-        p0{1}{s}.weight = 1;
-      end
-    end
-  end
-end
+fitdat.structureInputs = structureInputs;
 
 % Determine parameter intervals, either from p0 and pvary, or from lower/upper bounds
-%-------------------------------------------------------------------------------
 if structureInputs
+  argspar.validargs(p0);
+  fitdat.nSystems = numel(p0{1});
   if varyProvided
     % use p0 and pvary
     pinfo = argspar.getparaminfo(pvary);
@@ -194,6 +189,9 @@ else
     pvec_0 = p0;
     pvec_lb = lb;
     pvec_ub = ub;
+  end
+  for k = numel(p0):-1:1
+    pinfo(k).Name = sprintf('p(%d)',k);
   end
 end
 
@@ -234,18 +232,17 @@ end
 % Fitting options
 %===============================================================================
 if ~isfield(FitOpt,'OutArg')
-    fitdat.nOutArguments = abs(nargout(fitdat.fcn));
-    fitdat.OutArgument = fitdat.nOutArguments;
+  fitdat.nOutArguments = abs(nargout(fitdat.fcn));
+  fitdat.OutArgument = fitdat.nOutArguments;
 else
-    if numel(FitOpt.OutArg)~=2
-        error('FitOpt.OutArg must contain two values [nOut iOut]');
-    end
-    if FitOpt.OutArg(2)>FitOpt.OutArg(1)
-        error('FitOpt.OutArg: second number cannot be larger than first one.');
-    end
-    fitdat.nOutArguments = FitOpt.OutArg(1);
-    fitdat.OutArgument = FitOpt.OutArg(2);
-    
+  if numel(FitOpt.OutArg)~=2
+    error('FitOpt.OutArg must contain two values [nOut iOut]');
+  end
+  if FitOpt.OutArg(2)>FitOpt.OutArg(1)
+    error('FitOpt.OutArg: second number cannot be larger than first one.');
+  end
+  fitdat.nOutArguments = FitOpt.OutArg(1);
+  fitdat.OutArgument = FitOpt.OutArg(2);  
 end
 
 if ~isfield(FitOpt,'Scaling'), FitOpt.Scaling = 'lsq0'; end
@@ -254,35 +251,35 @@ if ~isfield(FitOpt,'Method'), FitOpt.Method = ''; end
 FitOpt.MethodID = 1; % simplex
 FitOpt.TargetID = 1; % function as is
 if EasySpinFunction
-    if isfield(p0{2},'Harmonic') && p0{2}.Harmonic>0
-        FitOpt.TargetID = 2; % integral
-    else
-        if strcmp(fitdat.fcnName,'pepper') || strcmp(fitdat.fcnName,'garlic')
-            FitOpt.TargetID = 2; % integral
-        end
+  if isfield(p0{2},'Harmonic') && p0{2}.Harmonic>0
+    FitOpt.TargetID = 2; % integral
+  else
+    if strcmp(fitdat.fcnName,'pepper') || strcmp(fitdat.fcnName,'garlic')
+      FitOpt.TargetID = 2; % integral
     end
+  end
 end
 
 keywords = strread(FitOpt.Method,'%s'); %#ok<DSTRRD>
 for k = 1:numel(keywords)
-    switch keywords{k}
-        case 'simplex',    FitOpt.MethodID = 1;
-        case 'levmar',     FitOpt.MethodID = 2;
-        case 'montecarlo', FitOpt.MethodID = 3;
-        case 'genetic',    FitOpt.MethodID = 4;
-        case 'grid',       FitOpt.MethodID = 5;
-        case 'swarm',      FitOpt.MethodID = 6;
-        case 'lsqnonlin',  FitOpt.MethodID = 7;
-            
-        case 'fcn',        FitOpt.TargetID = 1;
-        case 'int',        FitOpt.TargetID = 2;
-        case 'iint',       FitOpt.TargetID = 3;
-        case 'dint',       FitOpt.TargetID = 3;
-        case 'diff',       FitOpt.TargetID = 4;
-        case 'fft',        FitOpt.TargetID = 5;
-        otherwise
-            error('Unknown ''%s'' in FitOpt.Method.',keywords{k});
-    end
+  switch keywords{k}
+    case 'simplex',    FitOpt.MethodID = 1;
+    case 'levmar',     FitOpt.MethodID = 2;
+    case 'montecarlo', FitOpt.MethodID = 3;
+    case 'genetic',    FitOpt.MethodID = 4;
+    case 'grid',       FitOpt.MethodID = 5;
+    case 'swarm',      FitOpt.MethodID = 6;
+    case 'lsqnonlin',  FitOpt.MethodID = 7;
+      
+    case 'fcn',        FitOpt.TargetID = 1;
+    case 'int',        FitOpt.TargetID = 2;
+    case 'iint',       FitOpt.TargetID = 3;
+    case 'dint',       FitOpt.TargetID = 3;
+    case 'diff',       FitOpt.TargetID = 4;
+    case 'fft',        FitOpt.TargetID = 5;
+    otherwise
+      error('Unknown ''%s'' in FitOpt.Method.',keywords{k});
+  end
 end
 
 MethodNames{1} = 'Nelder/Mead simplex';
@@ -357,19 +354,25 @@ fitdat.FitOpts = FitOpt;
 
 % Setup UI and quit if in GUI mode
 if fitdat.GUI
-    setupGUI(data);
-    return
+  setupGUI(data);
+  return
 end
 
 % Run least-squares fitting if not in GUI mode
-[fit_args,fit_sim,fit_residuals] = runFitting(fitdat);
+[fit_args,fit_sim,fit_residuals,~,fit_par] = runFitting();
+
+if fitdat.structureInputs
+  fit_p = fit_args;
+else
+  fit_p = fit_par;
+end
 
 % Arrange outputs
 switch nargout
-    case 0, varargout = {fit_args};
-    case 1, varargout = {fit_args};
-    case 2, varargout = {fit_args,fit_sim};
-    case 3, varargout = {fit_args,fit_sim,fit_residuals};
+  case 0, varargout = {fit_p};
+  case 1, varargout = {fit_p};
+  case 2, varargout = {fit_p,fit_sim};
+  case 3, varargout = {fit_p,fit_sim,fit_residuals};
 end
 
 clear global UserCommand
@@ -384,42 +387,42 @@ end
 %===============================================================================
 % Run fitting algorithm
 %===============================================================================
-function [argsfit,BestSpec,Residuals,BestSpecScaled,xfit] = runFitting(fitda)
+function [argsfit,fitSpec,Residuals,fitSpecScaled,xfit] = runFitting()
 
-global UserCommand
+global UserCommand fitdat
 UserCommand = 0;
 
-if fitda.FitOpts.PrintLevel
-    disp('-- esfit ------------------------------------------------');
-    fprintf('Function name:            %s\n',fitda.fcnName);
-    fprintf('Number of parameters:     %d\n',fitda.nParameters);
-    fprintf('Number of datasets:       %d\n',fitda.nSpectra);
-    fprintf('Minimization method:      %s\n',fitda.MethodNames{fitda.FitOpts.MethodID});
-    fprintf('Residuals computed from:  %s\n',fitda.TargetNames{fitda.FitOpts.TargetID});
-    fprintf('Scaling mode:             %s\n',fitda.FitOpts.Scaling);
-    disp('---------------------------------------------------------');
+if fitdat.FitOpts.PrintLevel
+  fprintf('-- esfit ------------------------------------------------\n');
+  fprintf('Function name:            %s\n',fitdat.fcnName);
+  fprintf('Number of parameters:     %d\n',fitdat.nParameters);
+  fprintf('Number of datasets:       %d\n',fitdat.nSpectra);
+  fprintf('Minimization method:      %s\n',fitdat.MethodNames{fitdat.FitOpts.MethodID});
+  fprintf('Residuals computed from:  %s\n',fitdat.TargetNames{fitdat.FitOpts.TargetID});
+  fprintf('Scaling mode:             %s\n',fitdat.FitOpts.Scaling);
+  fprintf('---------------------------------------------------------\n');
 end
 
 % Set starting point
 %-------------------------------------------------------------------------------
-lb = fitda.pvec_lb;
-ub = fitda.pvec_ub;
+lb = fitdat.pvec_lb;
+ub = fitdat.pvec_ub;
 x_center = (lb+ub)/2;
-switch fitda.FitOpts.Startpoint
+switch fitdat.FitOpts.Startpoint
   case 1 % center of range
     x_start = x_center;
   case 2 % random
-    x_start = lb + rand(fitda.nParameters,1).*(ub-lb);
-    x_start(fitda.inactiveParams) = x_center(fitda.inactiveParams);
+    x_start = lb + rand(fitdat.nParameters,1).*(ub-lb);
+    x_start(fitdat.inactiveParams) = x_center(fitdat.inactiveParams);
   case 3 % selected parameter set
     h = findobj('Tag','SetListBox');
     s = h.String;
     if ~isempty(s)
       s = s{h.Value};
       ID = sscanf(s,'%d');
-      idx = find([fitda.FitSets.ID]==ID);
+      idx = find([fitdat.FitSets.ID]==ID);
       if ~isempty(idx)
-        x_start = fitda.FitSets(idx).bestx;
+        x_start = fitdat.FitSets(idx).bestx;
       else
         error('Could not locate selected parameter set.');
       end
@@ -427,60 +430,66 @@ switch fitda.FitOpts.Startpoint
       error('No saved parameter set yet.');
     end
 end
-fitda.x_start = x_start;
+fitdat.x_start = x_start;
 
-if strcmp(fitda.FitOpts.Scaling,'none')
-    data_ = fitda.ExpSpec;
+if strcmp(fitdat.FitOpts.Scaling,'none')
+    data_ = fitdat.ExpSpec;
 else
-    data_ = fitda.ExpSpecScaled;
+    data_ = fitdat.ExpSpecScaled;
 end
 
-% Run minimizer, using only active parameters
+% Run minimization over space of active parameters
 %-------------------------------------------------------------------------------
 xfit = x_start;
-active = ~fitda.inactiveParams;
+active = ~fitdat.inactiveParams;
+fitOpts = fitdat.FitOpts;
 if sum(active)>0
-    residualfun_x = @(x)residuals_(x,data_,fitda,fitda.FitOpts);
-    rmsdfun_x = @(x)rmsd_(x,data_,fitda,fitda.FitOpts);
-    x0a = x_start(active);
-    lba = lb(active);
-    uba = ub(active);
-    switch fitda.FitOpts.MethodID
-        case 1 % Nelder/Mead simplex
-            xfita = esfit_simplex(rmsdfun_x,x0a,lba,uba,fitda.FitOpts);
-        case 2 % Levenberg/Marquardt
-            fitda.FitOpts.Gradient = fitda.FitOpts.TolFun;
-            xfita = esfit_levmar(residualfun_x,x0a,lba,uba,fitda.FitOpts);
-        case 3 % Monte Carlo
-            xfita = esfit_montecarlo(rmsdfun_x,lba,uba,fitda.FitOpts);
-        case 4 % Genetic
-            xfita = esfit_genetic(rmsdfun_x,lba,uba,fitda.FitOpts);
-        case 5 % Grid search
-            xfita = esfit_grid(rmsdfun_x,lba,uba,fitda.FitOpts);
-        case 6 % Particle swarm
-            xfita = esfit_swarm(rmsdfun_x,lba,uba,fitda.FitOpts);
-        case 7 % lsqnonlin from Optimization Toolbox
-            xfita = lsqnonlin(residualfun_x,x0a,lba,uba);
-    end
-    xfit(active) = xfita;
+  residualfun = @(x)residuals_(x,data_,fitdat,fitOpts);
+  rmsdfun = @(x)rmsd_(x,data_,fitdat,fitOpts);
+  x0_a = x_start(active);
+  lb_a = lb(active);
+  ub_a = ub(active);
+  switch fitOpts.MethodID
+    case 1 % Nelder/Mead simplex
+      xfit_a = esfit_simplex(rmsdfun,x0_a,lb_a,ub_a,fitOpts);
+    case 2 % Levenberg/Marquardt
+      fitOpts.Gradient = fitOpts.TolFun;
+      xfit_a = esfit_levmar(residualfun,x0_a,lb_a,ub_a,fitOpts);
+    case 3 % Monte Carlo
+      xfit_a = esfit_montecarlo(rmsdfun,lb_a,ub_a,fitOpts);
+    case 4 % Genetic
+      xfit_a = esfit_genetic(rmsdfun,lb_a,ub_a,fitOpts);
+    case 5 % Grid search
+      xfit_a = esfit_grid(rmsdfun,lb_a,ub_a,fitOpts);
+    case 6 % Particle swarm
+      xfit_a = esfit_swarm(rmsdfun,lb_a,ub_a,fitOpts);
+    case 7 % lsqnonlin from Optimization Toolbox
+      xfit_a = lsqnonlin(residualfun,x0_a,lb_a,ub_a);
+  end
+  xfit(active) = xfit_a;
 end
 
 % Finish up
 %-------------------------------------------------------------------------------
 
 % Collect best-fit parameters, arguments
-argsfit = fitda.p2args(xfit);
 
-% Simulate best-fit data
-% (SimSystems{s}.weight is taken into account in the simulation function)
-[out{1:fitda.nOutArguments}] = fitda.fcn(argsfit{:});
-BestSpec = out{fitda.OutArgument}; % pick last output argument
+% Simulate model fit
+if fitdat.structureInputs
+  argsfit = fitdat.p2args(xfit);
+  [out{1:fitdat.nOutArguments}] = fitdat.fcn(argsfit{:});
+else
+  argsfit = [];
+  [out{1:fitdat.nOutArguments}] = fitdat.fcn(xfit);
+end
 
-BestSpecScaled = rescale(BestSpec,fitda.ExpSpecScaled,fitda.FitOpts.Scaling);
-BestSpec =       rescale(BestSpec,fitda.ExpSpec,fitda.FitOpts.Scaling);
+fitSpec = out{fitdat.OutArgument}; % pick last output argument
+
+fitSpecScaled = rescale(fitSpec,fitdat.ExpSpecScaled,fitdat.FitOpts.Scaling);
+fitSpec =       rescale(fitSpec,fitdat.ExpSpec,      fitdat.FitOpts.Scaling);
 
 % Calculate residuals and rmsd
-Residuals = calculateResiduals(BestSpecScaled(:),fitda.ExpSpecScaled(:),fitda.FitOpts.TargetID);
+Residuals = calculateResiduals(fitSpecScaled(:),fitdat.ExpSpecScaled(:),fitdat.FitOpts.TargetID);
 Residuals = Residuals.'; % col -> row
 rmsd = sqrt(mean(Residuals.^2));
 
@@ -489,7 +498,7 @@ rmsd = sqrt(mean(Residuals.^2));
 calcParamUncertainty = false;
 if calcParamUncertainty
   disp('Calculating Jacobian...');
-  J = jacobianest(residualfun_x,xfit);
+  J = jacobianest(residualfun,xfit);
   disp('Calculating parameter covariance matrix...');
   covmatrix = hccm(J,Residuals,'HC1');
   diag(covmatrix)
@@ -497,17 +506,17 @@ end
 
 % Report
 %-------------------------------------------------------------------------------
-if fitda.FitOpts.PrintLevel && UserCommand~=99
-    disp('---------------------------------------------------------');
-    disp('Best-fit parameter values:');
-    str = printparlist(xfit,fitda.pinfo);
-    fprintf(str);
-    fprintf('Quality of fit:\n');
-    fprintf('   ssr         %g\n',sum(Residuals.^2));
-    fprintf('   rmsd        %g\n',rmsd);
-    fprintf('   noise std   %g (estimated from residuals)\n',std(Residuals));
-    fprintf('   chi^2       %g (using noise std estimate; upper limit)\n',rmsd^2/var(Residuals));
-    disp('=========================================================');
+if fitdat.FitOpts.PrintLevel && UserCommand~=99
+  disp('---------------------------------------------------------');
+  disp('Best-fit parameter values:');
+  str = printparlist(xfit,fitdat.pinfo);
+  fprintf(str);
+  fprintf('Quality of fit:\n');
+  fprintf('   ssr         %g\n',sum(Residuals.^2));
+  fprintf('   rmsd        %g\n',rmsd);
+  fprintf('   noise std   %g (estimated from residuals)\n',std(Residuals));
+  fprintf('   chi^2       %g (using noise std estimate; upper limit)\n',rmsd^2/var(Residuals));
+  disp('=========================================================');
 end
 
 end
@@ -560,13 +569,13 @@ end
 % Change GUI status
 h = findobj('Tag','statusText');
 if ~strcmp(h.String,'running')
-    set(h,'String','running');
-    drawnow
+  set(h,'String','running');
+  drawnow
 end
 
 % Run fitting
 %-------------------------------------------------------------------------------
-[argsfit,BestSpec,Residuals,BestSpecScaled,bestx] = runFitting(fitdat);
+[argsfit,BestSpec,Residuals,BestSpecScaled,bestx] = runFitting();
 rmsd = sqrt(mean(Residuals.^2));
 
 % GUI update
@@ -663,11 +672,19 @@ x_all = FitInfo.x_start;
 active = ~FitInfo.inactiveParams;
 x_all(active) = x;
 par = x_all;
-args = FitInfo.p2args(par);
-try
+if FitInfo.structureInputs
+  args = FitInfo.p2args(par);
+  try
     [out{1:FitInfo.nOutArguments}] = FitInfo.fcn(args{:});
-catch ME
+  catch ME
     error('\nThe model simulation function raised the following error:\n  %s\n',ME.message);
+  end
+else
+  try
+    [out{1:FitInfo.nOutArguments}] = FitInfo.fcn(par);
+  catch ME
+    error('\nThe model simulation function raised the following error:\n  %s\n',ME.message);
+  end
 end
 simdata = out{FitInfo.OutArgument}; % pick appropriate output argument
 
@@ -893,15 +910,15 @@ end
 
 %===============================================================================
 function displayFitSet
-global FitData
+global FitResults
 h = findobj('Tag','SetListBox');
 idx = h.Value;
 str = h.String;
 if ~isempty(str)
     ID = sscanf(str{idx},'%d');
-    k = find([FitData.FitSets.ID]==ID);
+    k = find([FitResults.FitSets.ID]==ID);
     if k>0
-        fitset = FitData.FitSets(k);
+        fitset = FitResults.FitSets(k);
         values = fitset.bestx;
         
         % Set column with best-fit parameter values
@@ -928,13 +945,13 @@ end
 
 %===============================================================================
 function exportSetButtonCallback(~,~)
-global FitData
+global FitResults
 h = findobj('Tag','SetListBox');
 v = h.Value;
 s = h.String;
 ID = sscanf(s{v},'%d');
-idx = [FitData.FitSets.ID]==ID;
-fitSet = rmfield(FitData.FitSets(idx),'bestx');
+idx = [FitResults.FitSets.ID]==ID;
+fitSet = rmfield(FitResults.FitSets(idx),'bestx');
 varname = sprintf('fit%d',ID);
 assignin('base',varname,fitSet);
 fprintf('Fit set %d assigned to variable ''%s''.\n',ID,varname);
@@ -977,10 +994,10 @@ end
 
 %===============================================================================
 function sortIDSetButtonCallback(~,~)
-global FitData
-ID = [FitData.FitSets.ID];
+global FitResults
+ID = [FitResults.FitSets.ID];
 [~,idx] = sort(ID);
-FitData.FitSets = FitData.FitSets(idx);
+FitResults.FitSets = FitResults.FitSets(idx);
 refreshFitsetList(0);
 end
 %===============================================================================
@@ -988,10 +1005,10 @@ end
 
 %===============================================================================
 function sortRMSDSetButtonCallback(~,~)
-global FitData
-rmsd = [FitData.FitSets.rmsd];
+global FitResults
+rmsd = [FitResults.FitSets.rmsd];
 [~,idx] = sort(rmsd);
-FitData.FitSets = FitData.FitSets(idx);
+FitResults.FitSets = FitResults.FitSets(idx);
 refreshFitsetList(0);
 end
 %===============================================================================
@@ -999,13 +1016,13 @@ end
 
 %===============================================================================
 function refreshFitsetList(idx)
-global FitData
+global FitResults
 h = findobj('Tag','SetListBox');
-nSets = numel(FitData.FitSets);
+nSets = numel(FitResults.FitSets);
 s = cell(1,nSets);
 for k = 1:nSets
     s{k} = sprintf('%d. rmsd %g (%s)',...
-        FitData.FitSets(k).ID,FitData.FitSets(k).rmsd,FitData.FitSets(k).Target);
+        FitResults.FitSets(k).ID,FitResults.FitSets(k).rmsd,FitResults.FitSets(k).Target);
 end
 set(h,'String',s);
 if idx>0, set(h,'Value',idx); end
@@ -1024,13 +1041,13 @@ end
 
 %===============================================================================
 function saveFitsetCallback(~,~)
-global FitData
-FitData.lastSetID = FitData.lastSetID+1;
-FitData.currFitSet.ID = FitData.lastSetID;
-if ~isfield(FitData,'FitSets') || isempty(FitData.FitSets)
-    FitData.FitSets(1) = FitData.currFitSet;
+global FitResults
+FitResults.lastSetID = FitResults.lastSetID+1;
+FitResults.currFitSet.ID = FitResults.lastSetID;
+if ~isfield(FitResults,'FitSets') || isempty(FitResults.FitSets)
+    FitResults.FitSets(1) = FitResults.currFitSet;
 else
-    FitData.FitSets(end+1) = FitData.currFitSet;
+    FitResults.FitSets(end+1) = FitResults.currFitSet;
 end
 refreshFitsetList(-1);
 end
@@ -1039,7 +1056,7 @@ end
 
 %===============================================================================
 function tableCellEditCallback(~,callbackData)
-global FitData
+global fitdat
 
 hTable = callbackData.Source;
 
@@ -1077,7 +1094,7 @@ end
 % Get parameter string (e.g. 'g(1)', or 'B.g(2)' for more than 1 system)
 % and determine system index
 parName = hTable.Data{ridx,2};
-if FitData.nSystems>1
+if fitdat.nSystems>1
     parName = parName(3:end); % disregard 'A.' etc.
     iSys = parName(1)-64; % 'A' -> 1, 'B' -> 2, etc
 else

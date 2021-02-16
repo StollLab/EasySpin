@@ -56,15 +56,19 @@ if ~isfield(FitOpt,'IterationPrintFunction') || ...
   FitOpt.IterationPrintFunction = @(str)str;
 end
 
+x0 = x0(:);
 lb = lb(:);
 ub = ub(:);
-if numel(lb)~=numel(ub)
-  error('Arrays for lower and upper bound must have the same number of elements.');
+if numel(lb)~=numel(x0)
+  error('Lower-bounds array must have the same number of elements as x0.');
+end
+if numel(ub)~=numel(x0)
+  error('Upper-bounds array must have the same number of elements as x0.');
 end
 if any(lb>ub)
   error('Lower bounds must not be greater than upper bounds.');
 end
-nParams = numel(lb);
+nParams = numel(x0);
 
 % Check starting point
 if any(~isreal(x0)) || any(isnan(x0)) || any(isinf(x0)) 
@@ -81,7 +85,6 @@ iIteration = 0;
 startTime = cputime;
 
 % Set up a initial simplex near the initial guess.
-nParams = numel(x0);
 nVertices = nParams+1;
 v = repmat(x0(:),1,nVertices);
 v(nParams+1:nParams+1:end) = v(nParams+1:nParams+1:end) + delta.*(ub-lb).';
@@ -89,7 +92,7 @@ v(nParams+1:nParams+1:end) = v(nParams+1:nParams+1:end) + delta.*(ub-lb).';
 info.simplex_initial = v;
 
 % Evaluate function at vertices of the simplex
-for iVertex = 1:nVertices
+for iVertex = nVertices:-1:1
   x = constrain(v(:,iVertex));
   fv(iVertex) = fcn(x);
 end
