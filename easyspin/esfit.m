@@ -1,7 +1,7 @@
-% esfit   Least-squares fitting for EPR spectral simulations
+% esfit   Least-squares fitting for EPR data
 %
-%   esfit(data,simfunc,p0,vary)
-%   esfit(data,simfunc,p0,lb,ub)
+%   esfit(data,func,p0,vary)
+%   esfit(data,func,p0,lb,ub)
 %   esfit(___,FitOpt)
 %   pfit = esfit(...)
 %   [pfit,datafit] = esfit(...)
@@ -9,8 +9,8 @@
 %
 % Input:
 %     data        experimental data, a vector of data points
-%     simfunc     simulation function handle (@pepper, @garlic, @salt, ...
-%                   @chili, or user-defined function)
+%     func        simulation/model function handle (@pepper, @garlic, ...
+%                   @salt, @chili, or user-defined function)
 %     p0          starting input parameters
 %                   for EasySpin-style functions: {Sys0,Exp0,Opt0}
 %                   for other functions: vector
@@ -24,12 +24,12 @@
 %                   for EasySpin-style functions: {ubSys,ubExp,ubOpt}
 %                   for other functions: vector
 %     FitOpt      options for the fitting algorithms
-%        Method   string containing kewords for
-%          -algorithm: 'simplex','levmar','montecarlo','genetic','grid','swarm'
-%          -target function: 'fcn', 'int', 'dint', 'diff', 'fft'
-%        Scaling  string with scaling method keyword
-%          'maxabs' (default), 'minmax', 'lsq', 'lsq0','lsq1','lsq2','none'
-%        OutArg   two numbers [nOut iOut], where nOut is the number of
+%        .Method  string containing kewords for
+%           -algorithm: 'simplex','levmar','montecarlo','genetic','grid','swarm'
+%           -target function: 'fcn', 'int', 'dint', 'diff', 'fft'
+%        .Scaling string with scaling method keyword
+%           'maxabs' (default), 'minmax', 'lsq', 'lsq0','lsq1','lsq2','none'
+%        .OutArg  two numbers [nOut iOut], where nOut is the number of
 %                 outputs of the simulation function and iOut is the index
 %                 of the output argument to use for fitting
 % Output:
@@ -37,7 +37,7 @@
 %     datafit     fitted data (vector)
 %     residuals   residuals between fitted and experimental data (vector)
 
-function varargout = esfit(data,SimFunction,p0,varargin)
+function varargout = esfit(data,modelFunction,p0,varargin)
 
 %if nargin==0, help(mfilename); return; end
 
@@ -48,20 +48,25 @@ if nargin==0
     Exp.mwFreq = 9.5;
     Exp.Range = [330 350];
     [B,spc] = pepper(Sys,Exp);
-    spc = rand*addnoise(spc,40,'n');
+    rng(123415);
+    Ampl = 100;%exp(randn*3);
+    spc = Ampl*addnoise(spc,40,'n');
     
-    Sys.g = 2.003;
-    Sys.lwpp = [0 0.7];
+    Sys0.g = 2.003;
+    Sys0.lwpp = [0 0.7];
     vSys.g = 0.01;
     vSys.lwpp = [0 0.2];
     
     Opt = struct;
     FitOpt = struct;
-    FitOpt.Method = 'levmar fcn';
-    FitOpt.PrintLevel = 0;
-    [pfit,sim] = esfit(spc,@pepper,{Sys,Exp,Opt},{vSys},FitOpt);
+    FitOpt.Method = 'simplex fcn';
+    FitOpt.PrintLevel = 2;
+    [pfit,sim] = esfit(spc,@pepper,{Sys0,Exp,Opt},{vSys},FitOpt);
     
+    subplot(2,1,1)
     plot(B,spc,B,sim);
+    subplot(2,1,2)
+    plot(B,spc-sim);
     return
 end
 
@@ -71,31 +76,33 @@ error(eschecker);
 % Parse argument list
 varyProvided = true;
 switch nargin
-    case 4
-        pvary = varargin{1};
-        FitOpt = struct;
-    case 5
-        if isstruct(varargin{2})
-            pvary = varargin{1};
-            FitOpt = varargin{2};
-        else
-            varyProvided = false;
-            lb = varargin{1};
-            ub = varargin{2};
-            FitOpt = struct;
-        end
-    case 6
-        varyProvided = false;
-        lb = varargin{1};
-        ub = varargin{2};
-        FitOpt = varargin{3};
-    otherwise
-        error('esfit takes 4, 5, or 6 input arguments.You provided %d',nargin);
+  case 4
+    pvary = varargin{1};
+    FitOpt = struct;
+  case 5
+    if isstruct(varargin{2})
+      pvary = varargin{1};
+      FitOpt = varargin{2};
+    else
+      varyProvided = false;
+      lb = varargin{1};
+      ub = varargin{2};
+      FitOpt = struct;
+    end
+  case 6
+    varyProvided = false;
+    lb = varargin{1};
+    ub = varargin{2};
+    FitOpt = varargin{3};
+  otherwise
+    error('esfit takes 4, 5, or 6 input arguments. You provided %d',nargin);
 end
 
-if isempty(FitOpt), FitOpt = struct; end
+if isempty(FitOpt)
+  FitOpt = struct;
+end
 if ~isstruct(FitOpt)
-    error('FitOpt (last input argument) must be a structure.');
+  error('FitOpt (last input argument) must be a structure.');
 end
 
 % Set up global structure for data sharing among local functions
@@ -109,70 +116,87 @@ argspar = esfit_argsparams();
 % Experimental data
 %-------------------------------------------------------------------------------
 if isstruct(data) || ~isnumeric(data)
-    error('First argument must be experimental data.');
+    error('First argument must be numeric experimental data.');
 end
 fitdat.nSpectra = 1;
 fitdat.ExpSpec = data;
 fitdat.ExpSpecScaled = rescale(data,'maxabs');
 
 
-% Simulation function
+% Model function
 %-------------------------------------------------------------------------------
-if ~isa(SimFunction,'function_handle')
-    str = 'The simulation function (2nd input) must be a function handle (with @).';
-    if ischar(SimFunction)
-        error('%s\nUse esfit(data,@%s,...) instead of esfit(data,''%s'',...).',str,SimFunction,SimFunction);
-    else
-        error('%s\nFor example, to use the function pepper(...), use esfit(data,@pepper,...).',str);
-    end
+if ~isa(modelFunction,'function_handle')
+  str = 'The simulation/model function (2nd input) must be a function handle (with @).';
+  if ischar(modelFunction)
+    error('%s\nUse esfit(data,@%s,...) instead of esfit(data,''%s'',...).',str,modelFunction,modelFunction);
+  else
+    error('%s\nFor example, to use the function pepper(...), use esfit(data,@pepper,...).',str);
+  end
 end
 try
-    nargin(SimFunction);
+  nargin(modelFunction);
 catch
-    error('The function given as 1st input cannot be found.');
+  error('The simulation/model function given as second input cannot be found.');
 end
 
-fitdat.SimFcnName = func2str(SimFunction);
-fitdat.SimFcn = SimFunction;
+fitdat.fcn = modelFunction;
+fitdat.fcnName = func2str(modelFunction);
 
 fitdat.lastSetID = 0;
 
-EasySpinSimFunction = any(strcmp(fitdat.SimFcnName,{'pepper','garlic','chili','salt'}));
+EasySpinFunction = any(strcmp(fitdat.fcnName,{'pepper','garlic','chili','salt'}));
 
 % Starting parameters
 %-------------------------------------------------------------------------------
-argspar.validargs(p0)
+argspar.validargs(p0);
+structureInputs = iscell(p0);
 if ~iscell(p0), p0 = {p0}; end
 
 % Supplement weights to spin structures for EasySpin simulation functions
-if EasySpinSimFunction
+if EasySpinFunction
   if iscell(p0{1})
     nSystems = numel(p0{1});
     for s = 1:nSystems
-      if ~isfield(p0{1}{s},'weight'), p0{1}{s}.weight = 1; end
+      if ~isfield(p0{1}{s},'weight')
+        p0{1}{s}.weight = 1;
+      end
     end
   end
 end
 
 % Determine parameter intervals, either from p0 and pvary, or from lower/upper bounds
 %-------------------------------------------------------------------------------
-if varyProvided
-  % use p0 and pvary
-  pinfo = argspar.getparaminfo(pvary);
-  argspar.checkparcompatibility(pinfo,p0);
-  pvec_0 = argspar.getparamvalues(p0,pinfo);
-  pvec_vary = argspar.getparamvalues(pvary,pinfo);
-  pvec_lb = pvec_0 - pvec_vary;
-  pvec_ub = pvec_0 + pvec_vary;
+if structureInputs
+  if varyProvided
+    % use p0 and pvary
+    pinfo = argspar.getparaminfo(pvary);
+    argspar.checkparcompatibility(pinfo,p0);
+    pvec_0 = argspar.getparamvalues(p0,pinfo);
+    pvec_vary = argspar.getparamvalues(pvary,pinfo);
+    pvec_lb = pvec_0 - pvec_vary;
+    pvec_ub = pvec_0 + pvec_vary;
+  else
+    % use lower and upper bounds
+    pinfo = argspar.getparaminfo(lb);
+    argspar.checkparcompatibility(pinfo,p0);
+    argspar.checkparcompatibility(pinfo,ub);
+    pvec_0 = argspar.getparamvalues(p0,pinfo);
+    pvec_lb = argspar.getparamvalues(lb,pinfo);
+    pvec_ub = argspar.getparamvalues(ub,pinfo);
+  end
 else
-  % use lower and upper bounds
-  pinfo = argspar.getparaminfo(lb);
-  argspar.checkparcompatibility(pinfo,p0);
-  argspar.checkparcompatibility(pinfo,ub);
-  pvec_0 = argspar.getparamvalues(p0,pinfo);
-  pvec_lb = argspar.getparamvalues(lb,pinfo);
-  pvec_ub = argspar.getparamvalues(ub,pinfo);
+  if varyProvided
+    pvec_0 = p0;
+    pvec_vary = pvary;
+    pvec_lb = pvec_0 - pvec_vary;
+    pvec_ub = pvec_0 + pvec_vary;
+  else
+    pvec_0 = p0;
+    pvec_lb = lb;
+    pvec_ub = ub;
+  end
 end
+
 fitdat.args = p0;
 fitdat.pinfo = pinfo;
 fitdat.pvec_0 = pvec_0;
@@ -183,51 +207,34 @@ if fitdat.nParameters==0
     error('No variable parameters to fit.');
 end
 fitdat.inactiveParams = false(numel(pvec_0),1);
-fitdat.x2p = @(x)pvec_lb + (x+1)/2.*(pvec_ub-pvec_lb);
 fitdat.p2args = @(pars) argspar.setparamvalues(p0,pinfo,pars);
-
-%{
-% Make sure users are fitting with the logarithm of Diff or tcorr
-if EasySpinSimFunction
-    for s = 1:nSystems
-        if (isfield(Vary{s},'tcorr') && ~isfield(Vary{s},'logtcorr')) ||...
-                (~isfield(Sys0{s},'logtcorr') && isfield(Vary{s},'logtcorr'))
-            error('For least-squares fitting, use logtcorr instead of tcorr both in Sys and Vary.');
-        end
-        if (isfield(Vary{s},'Diff') && ~isfield(Vary{s},'logDiff')) ||...
-                (~isfield(Sys0{s},'logDiff') && isfield(Vary{s},'logDiff'))
-            error('For least-squares fitting, use logDiff instead of Diff both in Sys and Vary.');
-        end
-    end
-end
-%}
 
 
 % Experimental parameters (for EasySpin functions)
 %-------------------------------------------------------------------------------
-if EasySpinSimFunction
-    % Set Exp.nPoints
-    if isfield(p0{2},'nPoints')
-        if p0{2}.nPoints~=numel(data)
-            error('Exp.nPoints is %d, but the spectral data vector is %d long.',...
-                p0{2}.nPoints,numel(data));
-        end
-    else
-        p0{2}.nPoints = numel(data);
+if EasySpinFunction
+  % Set Exp.nPoints
+  if isfield(p0{2},'nPoints')
+    if p0{2}.nPoints~=numel(data)
+      error('Exp.nPoints is %d, but the spectral data vector is %d long.',...
+        p0{2}.nPoints,numel(data));
     end
-    
-    % For field and frequency sweeps, require manual field range (to prevent
-    % users from comparing sim and exp spectra with different ranges)
-    if ~any(isfield(p0{2},{'Range','CenterSweep','mwRange','mwCenterSweep'}))
-        error('Please specify field or frequency range, in Exp.Range/Exp.mwRange or in Exp.CenterSweep/Exp.mwCenterSweep.');
-    end
+  else
+    p0{2}.nPoints = numel(data);
+  end
+  
+  % For field and frequency sweeps, require manual field range (to prevent
+  % users from comparing sim and exp spectra with different ranges)
+  if ~any(isfield(p0{2},{'Range','CenterSweep','mwRange','mwCenterSweep'}))
+    error('Please specify field or frequency range, in Exp.Range/Exp.mwRange or in Exp.CenterSweep/Exp.mwCenterSweep.');
+  end
 end
 
 
 % Fitting options
 %===============================================================================
 if ~isfield(FitOpt,'OutArg')
-    fitdat.nOutArguments = abs(nargout(fitdat.SimFcn));
+    fitdat.nOutArguments = abs(nargout(fitdat.fcn));
     fitdat.OutArgument = fitdat.nOutArguments;
 else
     if numel(FitOpt.OutArg)~=2
@@ -246,11 +253,11 @@ if ~isfield(FitOpt,'Scaling'), FitOpt.Scaling = 'lsq0'; end
 if ~isfield(FitOpt,'Method'), FitOpt.Method = ''; end
 FitOpt.MethodID = 1; % simplex
 FitOpt.TargetID = 1; % function as is
-if EasySpinSimFunction
+if EasySpinFunction
     if isfield(p0{2},'Harmonic') && p0{2}.Harmonic>0
         FitOpt.TargetID = 2; % integral
     else
-        if strcmp(fitdat.SimFcnName,'pepper') || strcmp(fitdat.SimFcnName,'garlic')
+        if strcmp(fitdat.fcnName,'pepper') || strcmp(fitdat.fcnName,'garlic')
             FitOpt.TargetID = 2; % integral
         end
     end
@@ -322,7 +329,7 @@ if isempty(FitOpt.ScalingID)
     error('Unknown ''%s'' in FitOpt.Scaling.',FitOpt.Scaling);
 end
 
-if nargout>0, fitdat.GUI = false; else, fitdat.GUI = true; end
+fitdat.GUI = nargout==0;
 
 if ~isfield(FitOpt,'PrintLevel'), FitOpt.PrintLevel = 1; end
 if ~isfield(FitOpt,'nTrials'), FitOpt.nTrials = 20000; end
@@ -377,14 +384,14 @@ end
 %===============================================================================
 % Run fitting algorithm
 %===============================================================================
-function [argsfit,BestSpec,Residuals] = runFitting(fitda)
+function [argsfit,BestSpec,Residuals,BestSpecScaled,xfit] = runFitting(fitda)
 
 global UserCommand
 UserCommand = 0;
 
 if fitda.FitOpts.PrintLevel
     disp('-- esfit ------------------------------------------------');
-    fprintf('Model function name:      %s\n',fitda.SimFcnName);
+    fprintf('Function name:            %s\n',fitda.fcnName);
     fprintf('Number of parameters:     %d\n',fitda.nParameters);
     fprintf('Number of datasets:       %d\n',fitda.nSpectra);
     fprintf('Minimization method:      %s\n',fitda.MethodNames{fitda.FitOpts.MethodID});
@@ -395,30 +402,32 @@ end
 
 % Set starting point
 %-------------------------------------------------------------------------------
+lb = fitda.pvec_lb;
+ub = fitda.pvec_ub;
+x_center = (lb+ub)/2;
 switch fitda.FitOpts.Startpoint
-    case 1 % center of range
-        x_start = zeros(fitda.nParameters,1);
-    case 2 % random
-        x_start = 2*rand(fitda.nParameters,1) - 1;
-        x_start(fitda.inactiveParams) = 0;
-    case 3 % selected parameter set
-        h = findobj('Tag','SetListBox');
-        s = h.String;
-        if ~isempty(s)
-            s = s{h.Value};
-            ID = sscanf(s,'%d');
-            idx = find([fitda.FitSets.ID]==ID);
-            if ~isempty(idx)
-                x_start = fitda.FitSets(idx).bestx;
-            else
-                error('Could not locate selected parameter set.');
-            end
-        else
-            x_start = zeros(fitda.nParameters,1);
-        end
+  case 1 % center of range
+    x_start = x_center;
+  case 2 % random
+    x_start = lb + rand(fitda.nParameters,1).*(ub-lb);
+    x_start(fitda.inactiveParams) = x_center(fitda.inactiveParams);
+  case 3 % selected parameter set
+    h = findobj('Tag','SetListBox');
+    s = h.String;
+    if ~isempty(s)
+      s = s{h.Value};
+      ID = sscanf(s,'%d');
+      idx = find([fitda.FitSets.ID]==ID);
+      if ~isempty(idx)
+        x_start = fitda.FitSets(idx).bestx;
+      else
+        error('Could not locate selected parameter set.');
+      end
+    else
+      error('No saved parameter set yet.');
+    end
 end
 fitda.x_start = x_start;
-
 
 if strcmp(fitda.FitOpts.Scaling,'none')
     data_ = fitda.ExpSpec;
@@ -426,48 +435,45 @@ else
     data_ = fitda.ExpSpecScaled;
 end
 
-
 % Run minimizer, using only active parameters
 %-------------------------------------------------------------------------------
+xfit = x_start;
 active = ~fitda.inactiveParams;
-x0_ = x_start(active);
-nPars_ = numel(x0_);
-bestx = x_start;
-if nPars_>0
+if sum(active)>0
     residualfun_x = @(x)residuals_(x,data_,fitda,fitda.FitOpts);
     rmsdfun_x = @(x)rmsd_(x,data_,fitda,fitda.FitOpts);
+    x0a = x_start(active);
+    lba = lb(active);
+    uba = ub(active);
     switch fitda.FitOpts.MethodID
         case 1 % Nelder/Mead simplex
-            xfit_ = esfit_simplex(rmsdfun_x,x0_,fitda.FitOpts);
+            xfita = esfit_simplex(rmsdfun_x,x0a,lba,uba,fitda.FitOpts);
         case 2 % Levenberg/Marquardt
             fitda.FitOpts.Gradient = fitda.FitOpts.TolFun;
-            xfit_ = esfit_levmar(residualfun_x,x0_,fitda.FitOpts);
+            xfita = esfit_levmar(residualfun_x,x0a,lba,uba,fitda.FitOpts);
         case 3 % Monte Carlo
-            xfit_ = esfit_montecarlo(rmsdfun_x,nPars_,fitda.FitOpts);
+            xfita = esfit_montecarlo(rmsdfun_x,lba,uba,fitda.FitOpts);
         case 4 % Genetic
-            xfit_ = esfit_genetic(rmsdfun_x,nPars_,fitda.FitOpts);
+            xfita = esfit_genetic(rmsdfun_x,lba,uba,fitda.FitOpts);
         case 5 % Grid search
-            xfit_ = esfit_grid(rmsdfun_x,nPars_,fitda.FitOpts);
+            xfita = esfit_grid(rmsdfun_x,lba,uba,fitda.FitOpts);
         case 6 % Particle swarm
-            xfit_ = esfit_swarm(rmsdfun_x,nPars_,fitda.FitOpts);
+            xfita = esfit_swarm(rmsdfun_x,lba,uba,fitda.FitOpts);
         case 7 % lsqnonlin from Optimization Toolbox
-            lb = -ones(size(x0_));
-            ub = +ones(size(x0_));
-            xfit_ = lsqnonlin(residualfun_x,x0_,lb,ub);
+            xfita = lsqnonlin(residualfun_x,x0a,lba,uba);
     end
-    bestx(active) = xfit_;
+    xfit(active) = xfita;
 end
 
 % Finish up
 %-------------------------------------------------------------------------------
 
 % Collect best-fit parameters, arguments
-pfit = fitda.x2p(bestx);
-argsfit = fitda.p2args(pfit);
+argsfit = fitda.p2args(xfit);
 
 % Simulate best-fit data
 % (SimSystems{s}.weight is taken into account in the simulation function)
-[out{1:fitda.nOutArguments}] = fitda.SimFcn(argsfit{:});
+[out{1:fitda.nOutArguments}] = fitda.fcn(argsfit{:});
 BestSpec = out{fitda.OutArgument}; % pick last output argument
 
 BestSpecScaled = rescale(BestSpec,fitda.ExpSpecScaled,fitda.FitOpts.Scaling);
@@ -480,23 +486,27 @@ rmsd = sqrt(mean(Residuals.^2));
 
 % Calculate Jacobian and parameter covariance matrix
 %-------------------------------------------------------------------------------
-calcParamUncertainty = true;
+calcParamUncertainty = false;
 if calcParamUncertainty
   disp('Calculating Jacobian...');
-  J = jacobianest(residualfun_x,bestx);
+  J = jacobianest(residualfun_x,xfit);
   disp('Calculating parameter covariance matrix...');
-  covmatrix = hccm(J,Residuals,'HC1')
-  % covmatrix needs to rescaled from x to p
+  covmatrix = hccm(J,Residuals,'HC1');
+  diag(covmatrix)
 end
 
 % Report
 %-------------------------------------------------------------------------------
 if fitda.FitOpts.PrintLevel && UserCommand~=99
     disp('---------------------------------------------------------');
-    disp('Best-fit parameters:');
-    str = printparlist(pfit,fitda.pinfo);
+    disp('Best-fit parameter values:');
+    str = printparlist(xfit,fitda.pinfo);
     fprintf(str);
-    fprintf('Residuals of best fit:\n    rmsd  %g\n',rmsd);
+    fprintf('Quality of fit:\n');
+    fprintf('   ssr         %g\n',sum(Residuals.^2));
+    fprintf('   rmsd        %g\n',rmsd);
+    fprintf('   noise std   %g (estimated from residuals)\n',std(Residuals));
+    fprintf('   chi^2       %g (using noise std estimate; upper limit)\n',rmsd^2/var(Residuals));
     disp('=========================================================');
 end
 
@@ -556,7 +566,7 @@ end
 
 % Run fitting
 %-------------------------------------------------------------------------------
-[argsfit,BestSpec,Residuals] = runFitting(fitdat);
+[argsfit,BestSpec,Residuals,BestSpecScaled,bestx] = runFitting(fitdat);
 rmsd = sqrt(mean(Residuals.^2));
 
 % GUI update
@@ -615,7 +625,7 @@ else
 end
 newFitSet.residuals = Residuals;
 newFitSet.bestx = bestx;
-newFitSet.bestvalues = bestvalues;
+%newFitSet.bestvalues = bestvalues;
 TargetKey = {'fcn','int','iint','diff','fft'};
 newFitSet.Target = TargetKey{fitdat.FitOpts.TargetID};
 if numel(argsfit)==1
@@ -648,15 +658,14 @@ if ~isfield(FitInfo,'errorlist')
     FitInfo.errorlist = [];
 end
 
-
 % Evaluate model function-------------------------------------------------------
 x_all = FitInfo.x_start;
 active = ~FitInfo.inactiveParams;
 x_all(active) = x;
-par = FitInfo.x2p(x_all);
+par = x_all;
 args = FitInfo.p2args(par);
 try
-    [out{1:FitInfo.nOutArguments}] = FitInfo.SimFcn(args{:});
+    [out{1:FitInfo.nOutArguments}] = FitInfo.fcn(args{:});
 catch ME
     error('\nThe model simulation function raised the following error:\n  %s\n',ME.message);
 end
@@ -676,7 +685,6 @@ if isNewBest
     FitInfo.smallestError = rmsd;
     FitInfo.bestspec = simdata;
     FitInfo.bestpar = par;
-    BestSys = args;
 end
 
 % Update GUI
@@ -777,8 +785,9 @@ end
 function str = printparlist(par,pinfo)
 nParams = numel(par);
 str = '';
+maxNameLength = max(arrayfun(@(x)length(x.Name),pinfo));
 for p = 1:nParams
-    str = sprintf('%s%s:  %g\n',str,pinfo(p).Name,par(p));
+    str = sprintf('%s   %s:  %g\n',str,pad(pinfo(p).Name,maxNameLength),par(p));
 end
 
 if nargout==0, fprintf(str); end
@@ -893,7 +902,7 @@ if ~isempty(str)
     k = find([FitData.FitSets.ID]==ID);
     if k>0
         fitset = FitData.FitSets(k);
-        values = fitset.bestvalues;
+        values = fitset.bestx;
         
         % Set column with best-fit parameter values
         hTable = findobj('Tag','ParameterTable');
@@ -1218,7 +1227,7 @@ uicontrol(hFig,'Style','text','Tag','statusText',...
     'BackgroundColor',get(gcf,'Color'),...
     'Position',[x0+270 y0+170 60 20]);
 uicontrol(hFig,'Style','text',...
-    'String',fitdat.SimFcnName,...
+    'String',fitdat.fcnName,...
     'ForeGroundColor','b',...
     'Tooltip',sprintf('using output no. %d of %d',fitdat.nOutArguments,fitdat.OutArgument),...
     'HorizontalAlign','left',...

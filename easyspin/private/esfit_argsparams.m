@@ -67,7 +67,7 @@ for a = 1:nArgs
                 if ~noCell
                     cellName = sprintf('{%d}',c);
                 end
-                Name = sprintf("arg%1d%s.%s%s",a,cellName,allFields{iField},idxName);
+                Name = sprintf('arg%1d%s.%s%s',a,cellName,allFields{iField},idxName);
                 parinfo(p).Name = Name;
                 
                 p = p + 1;
@@ -184,21 +184,27 @@ end
 %===============================================================================
 function validargs(args)
 
-if ~iscell(args) || ~isvector(args)
-    error('args must be a row or column cell array.');
-end
-for a = 1:numel(args)
+if iscell(args)
+  for a = 1:numel(args)
     args_ = args{a};
     if ~iscell(args_) && ~isstruct(args_)
-        error('args{%d} must be a cell array or structure array.',a);
+      error('args{%d} must be a cell array or structure array.',a);
     end
     if ~iscell(args_)
-        args_ = {args_};
+      args_ = {args_};
     end
     for c = 1:numel(args_)
-        if ~isstruct(args_{c})
-            error('args{%d}{%d} must be a structure.',a,c);
-        end
+      if ~isstruct(args_{c})
+        error('args{%d}{%d} must be a structure.',a,c);
+      end
     end
+  end
+elseif isvector(args)
+  if min(size(args))>1
+    error('Parameter vector must be a row or column array.');
+  end
+else
+  error('args must be a one-dimensional cell array or a numeric array.');
 end
+
 end

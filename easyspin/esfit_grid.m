@@ -1,4 +1,4 @@
-function [bestx,info] = esfit_grid(funfcn,nParams,FitOpt,varargin)
+function [bestx,info] = esfit_grid(fcn,lb,ub,FitOpt)
 
 global UserCommand
 if isempty(UserCommand), UserCommand = NaN; end
@@ -7,6 +7,16 @@ if ~isfield(FitOpt,'TolFun'), FitOpt.TolFun = 1e-5; end
 if ~isfield(FitOpt,'GridSize'), FitOpt.GridSize = 7; end
 if ~isfield(FitOpt,'RandomizeGrid'), FitOpt.RandomizeGrid = true; end
 
+lb = lb(:);
+ub = ub(:);
+if numel(lb)~=numel(ub)
+  error('Arrays for lower and upper bound must have the same number of elements.');
+end
+if any(lb>ub)
+  error('Lower bounds must not be greater than upper bounds.');
+end
+nParams = numel(lb);
+
 GridSize = FitOpt.GridSize;
 if numel(GridSize)==1
   GridSize = GridSize*ones(1,nParams);
@@ -14,7 +24,7 @@ end
 if numel(GridSize)~=nParams
   error('FitOpt.GridSize must have as many elements as there are fitting parameters.');
 end
-if any(GridSize<1)
+if any(GridSize<2)
   error('At least one grid point per parameter is needed.');
 end
 
@@ -24,19 +34,17 @@ if nGridPoints>FitOpt.maxGridPoints
 end
 
 for p = 1:nParams
-  if GridSize(p)==1
-    grid{p} = 0;
-  else
-    grid{p} = linspace(-1,1,GridSize(p));
-  end
+  grid{p} = linspace(lb(p),ub(p),GridSize(p));
 end
 
 X = cell(1,nParams);
 [X{:}] = ndgrid(grid{:});
 for k=1:nParams, X{k} = X{k}(:); end
-X = [X{end:-1:1}];
+X = [X{:}];
 
-if FitOpt.RandomizeGrid, X = X(randperm(nGridPoints),:); end
+if FitOpt.RandomizeGrid
+  X = X(randperm(nGridPoints),:);
+end
 
 minF = inf;
 bestx = zeros(nParams,1);
@@ -50,7 +58,7 @@ end
 stopCode = 0;
 for k = 1:nGridPoints
   
-  F = feval(funfcn,X(k,:),varargin{:});
+  F = fcn(X(k,:));
   
   if F<minF
     minF = F;

@@ -1,29 +1,28 @@
 %esfit_levmar  Levenberg-Marquardt nonlinear least squares fitting
 %
-%   xfit = esfit_levmar(funfcn,x0)
-%   [xfit,Info] = esfit_levmar(funfcn,x0)
-%   ... = esfit_levmar(funfcn,x0,Opt)
-%   ... = esfit_levmar(funfcn,x0,Opt,p1,p2,...)
+%   xfit = esfit_levmar(funfcn,x0,lb,ub)
+%   ... = esfit_levmar(funfcn,x0,lb,ub,Opt)
+%   [xfit,Info] = ...
 %
 %   Find  xm = argmin{F(x)} , where  x = [x_1, ..., x_n]  and
 %   F(x) = sum(f_i(x)^2)/2. The functions  f_i(x) (i=1,...,m)
 %   must be given by a Matlab function with declaration
 %              function  f = funfcn(x,p1,p2,...)
-%   p1,p2,... are parameters of the function and can be of any type and size.
-%
 %   The parameter search range is restricted to -1...+1 along each
 %   dimension.
 %
 % Input
 %   funfcn Handle to the function.
-%   x0     Starting vector in parameter space
-%   Opt    Options structure
-%            lambda    starting value of Marquardt parameter
-%            Gradient  termination threshold for gradient
-%            TolStep   termination threshold for step
-%            maxTime   termination threshold for time
-%            delta     step width for Jacobian approximation
-%   p1,p2,... are passed directly to the function funfcn.    
+%   x0     starting vector in parameter space
+%   lb     lower bounds of parameters
+%   ub     upper bounds of parameters
+%   FitOpt structure with algorithm parameters
+%            .lambda    starting value of Marquardt parameter
+%            .Gradient  termination threshold for gradient
+%            .TolStep   termination threshold for step
+%            .maxTime   termination threshold for time
+%            .delta     step width for Jacobian approximation
+%            .PrintLevel print detail level
 %
 % Output
 %   xfit    Converged vector in parameter space
@@ -45,13 +44,11 @@
 % Approximate Gauss-Newton with Levenberg-Marquardt damping and 
 % successive updating of Jacobian approximation.
 
-% Search range bounded to -1...+1.
-
-function  [x,info] = esfit_levmar(funfcn, x0, FitOpt, varargin)
+function [x,info] = esfit_levmar(fcn,x0,lb,ub,FitOpt)
 
 if nargin==0, help(mfilename); return; end
 if nargin<2, error('Need at least 2 arguments!'); end
-if nargin<3,  FitOpt = []; end
+if nargin<3, FitOpt = []; end
 
 % lambda = starting value of Marquardt parameter
 if ~isfield(FitOpt,'lambda'), FitOpt.lambda = 1e-3; end
@@ -71,9 +68,6 @@ if ~isfield(FitOpt,'IterationPrintFunction') || ...
   FitOpt.IterationPrintFunction = @(str)str;
 end
 
-funfcn = @(x) funfcn(x,varargin{:});
-
-
 startTime = cputime;
 
 % Check parameters and function call
@@ -81,9 +75,11 @@ F = NaN;
 norm_g = NaN;
 nEvals = 0;
 
-nParams = numel(x0);
-lb = -ones(nParams,1);
-ub = +ones(nParams,1);
+lb = lb(:);
+ub = ub(:);
+if numel(lb)~=numel(ub)
+  error('Arrays for lower and upper bound must have the same number of elements.');
+end
 if any(lb>ub)
   error('Lower bounds must not be greater than upper bounds.');
 end
@@ -103,11 +99,11 @@ stopCode = 0;
 
 
 if ~stopCode
-  [stopCode,F,f] = funeval(funfcn,x);
+  [stopCode,F,f] = funeval(fcn,x);
   nEvals = nEvals + 1;
   if ~stopCode
     % Jacobian
-    [Je,stopCode] = JacobianEstimate(funfcn,x,f,delta);
+    [Je,stopCode] = JacobianEstimate(fcn,x,f,delta);
     nEvals = nEvals + n;
     % Check gradient and J'*J
     if ~stopCode
@@ -155,19 +151,19 @@ while ~stopCode
   norm_h = norm(h);
 
   if FitOpt.PrintLevel
-    str = sprintf(' iteration %d:\n    value %0.5f\n    gradient %0.5f\n    step %0.5f',iIteration,sqrt(F*2),norm_g,norm_h);
+    str = sprintf(' iteration %4d:  value %0.5e    gradient %0.5e    step %0.5e',iIteration,sqrt(F*2),norm_g,norm_h);
     FitOpt.IterationPrintFunction(str);
   end
   
   if norm_h<=FitOpt.TolStep*(FitOpt.TolStep + norm(x))
     stopCode = 2;
-    break;
+    break
   end
   
   xnew = x + h;
   xnew = min(max(xnew,lb),ub); % apply bounds
   
-  [stopCode,Fnew,fnew] = funeval(funfcn,xnew);
+  [stopCode,Fnew,fnew] = funeval(fcn,xnew);
   nEvals = nEvals+1;
   if stopCode, break; end
 
@@ -177,7 +173,7 @@ while ~stopCode
   if abs(h(j))<gamma*norm_h  % recompute with finite differences
     xu = x;
     xu(j) = x(j) + delta;
-    [stopCode,~,fu] = funeval(funfcn,xu);
+    [stopCode,~,fu] = funeval(fcn,xu);
     nEvals = nEvals+1;
     if ~stopCode
       hu = xu - x;
