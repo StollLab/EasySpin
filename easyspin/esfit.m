@@ -44,14 +44,14 @@ function varargout = esfit(data,fcn,p0,varargin)
 
 if nargin==0
     
-    Sys.g = 2;
+    Sys.g = 2.00123;
     Sys.lwpp = [0 0.8];
     Exp.mwFreq = 9.5;
     Exp.Range = [330 350];
     [B,spc] = pepper(Sys,Exp);
     rng(123415);
     Ampl = 100;%exp(randn*3);
-    spc = Ampl*addnoise(spc,40,'n');
+    spc = Ampl*addnoise(spc,10,'n');
     
     Sys0.g = 2.003;
     Sys0.lwpp = [0 0.7];
@@ -495,21 +495,33 @@ rmsd = sqrt(mean(Residuals.^2));
 
 % Calculate Jacobian and parameter covariance matrix
 %-------------------------------------------------------------------------------
-calcParamUncertainty = false;
+calcParamUncertainty = true;
 if calcParamUncertainty
   disp('Calculating Jacobian...');
   J = jacobianest(residualfun,xfit);
   disp('Calculating parameter covariance matrix...');
   covmatrix = hccm(J,Residuals,'HC1');
-  diag(covmatrix)
+  Q = diag(diag(covmatrix).^(-1/2));
+  corrmatrix = Q*covmatrix*Q
+  
+  norm_icdf = @(p)-sqrt(2)*erfcinv(2*p); % inverse of standard normal cdf
+  ci = @(pctl)norm_icdf(1/2+pctl/2)*sqrt(diag(covmatrix));
+else
+  ci = @(pctl)[];
 end
 
 % Report
 %-------------------------------------------------------------------------------
 if fitdat.FitOpts.PrintLevel && UserCommand~=99
   disp('---------------------------------------------------------');
-  disp('Best-fit parameter values:');
-  str = printparlist(xfit,fitdat.pinfo);
+  pctl = 0.95;
+  ci95 = xfit + ci(pctl)*[-1 1];
+  if isempty(ci95)
+    disp('Best-fit parameter values without confidence intervals:');
+  else
+    fprintf('Best-fit parameter values incl. %d%% confidence intervals:\n',100*pctl);
+  end
+  str = printparlist(xfit,fitdat.pinfo,ci95);
   fprintf(str);
   fprintf('Quality of fit:\n');
   fprintf('   ssr         %g\n',sum(Residuals.^2));
@@ -799,12 +811,19 @@ end
 
 %===============================================================================
 % Print parameters.
-function str = printparlist(par,pinfo)
+function str = printparlist(par,pinfo,pci)
 nParams = numel(par);
 str = '';
 maxNameLength = max(arrayfun(@(x)length(x.Name),pinfo));
-for p = 1:nParams
+if nargin==3 && ~isempty(pci)
+  for p = 1:nParams
+    str = sprintf('%s   %s:  %g  (%g - %g)\n',str,pad(pinfo(p).Name,...
+      maxNameLength),par(p),pci(p,1),pci(p,2));
+  end
+else
+  for p = 1:nParams
     str = sprintf('%s   %s:  %g\n',str,pad(pinfo(p).Name,maxNameLength),par(p));
+  end
 end
 
 if nargout==0, fprintf(str); end
