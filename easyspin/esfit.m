@@ -38,9 +38,7 @@
 %     datafit     fitted data (vector)
 %     residuals   residuals between fitted and experimental data (vector)
 
-function varargout = esfit(data,fcn,p0,varargin)
-
-%if nargin==0, help(mfilename); return; end
+function result = esfit(data,fcn,p0,varargin)
 
 if nargin==0
     
@@ -62,14 +60,16 @@ if nargin==0
     FitOpt = struct;
     FitOpt.Method = 'simplex fcn';
     FitOpt.PrintLevel = 2;
-    [pfit,sim] = esfit(spc,@pepper,{Sys0,Exp,Opt},{vSys},FitOpt);
+    fit = esfit(spc,@pepper,{Sys0,Exp,Opt},{vSys},FitOpt)
     
     subplot(2,1,1)
-    plot(B,spc,B,sim);
+    plot(B,spc,B,fit.sim);
     subplot(2,1,2)
-    plot(B,spc-sim);
+    plot(B,spc-fit.sim);
     return
 end
+
+if nargin==0, help(mfilename); return; end
 
 % Check expiry date
 error(eschecker);
@@ -359,21 +359,17 @@ if fitdat.GUI
 end
 
 % Run least-squares fitting if not in GUI mode
-[fit_args,fit_sim,fit_residuals,~,fit_par] = runFitting();
+%[fit_args,fit_sim,fit_residuals,~,fit_par] = runFitting();
+out = runFitting();
 
-if fitdat.structureInputs
-  fit_p = fit_args;
-else
-  fit_p = fit_par;
-end
-
-% Arrange outputs
-switch nargout
-  case 0, varargout = {fit_p};
-  case 1, varargout = {fit_p};
-  case 2, varargout = {fit_p,fit_sim};
-  case 3, varargout = {fit_p,fit_sim,fit_residuals};
-end
+% Collect result output structure
+result.afit = out.argsfit;
+result.pfit = out.pfit;
+result.sim = out.fitSpec;
+result.residuals = out.Residuals;
+result.simscaled = out.fitSpecScaled;
+result.ci95 = out.ci95;
+result.corrmatrix = out.corrmatrix;
 
 clear global UserCommand
 
@@ -387,7 +383,7 @@ end
 %===============================================================================
 % Run fitting algorithm
 %===============================================================================
-function [argsfit,fitSpec,Residuals,fitSpecScaled,xfit] = runFitting()
+function result = runFitting()
 
 global UserCommand fitdat
 UserCommand = 0;
@@ -541,6 +537,14 @@ if fitdat.FitOpts.PrintLevel && UserCommand~=99
   disp('=========================================================');
 end
 
+result.argsfit = argsfit;
+result.fitSpec = fitSpec;
+result.Residuals = Residuals;
+result.fitSpecScaled = fitSpecScaled;
+result.pfit = xfit;
+result.ci95 = xfit + ci(0.95)*[-1 1];
+result.corrmatrix = corrmatrix;
+
 end
 
 %===============================================================================
@@ -597,7 +601,21 @@ end
 
 % Run fitting
 %-------------------------------------------------------------------------------
-[argsfit,BestSpec,Residuals,BestSpecScaled,bestx] = runFitting();
+%[argsfit,BestSpec,Residuals,BestSpecScaled,bestx] = runFitting();
+out = runFitting();
+argsfit = out.argsfit;
+BestSpec = out.fitSpec;
+BestSpecScaled = out.fitSpecScaled;
+bestx = out.pfit;
+
+out.argsfit = argsfit;
+out.fitSpec = fitSpec;
+out.Residuals = Residuals;
+out.fitSpecScaled = fitSpecScaled;
+out.pfit = xfit;
+
+
+
 rmsd = sqrt(mean(Residuals.^2));
 
 % GUI update
