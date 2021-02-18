@@ -152,7 +152,8 @@ switch PlotStyle
 
     GridSize = max(40,max(Lp)*2);
     symmgroup = 'C1';
-    Vectors = sphgrid(symmgroup,GridSize);
+    [Grid,tri] = sphgrid(symmgroup,GridSize);
+    Vectors = Grid.vecs;
 
     if plotAlphaBeta
       [alpha,beta] = vec2ang(Vectors);
@@ -175,9 +176,8 @@ switch PlotStyle
       end
       vec = ang2vec(gamma,beta).';
     end
-    tri = sphtri(symmgroup,GridSize);
 
-    h = trisurf(tri,vec(:,1),vec(:,2),vec(:,3),Pplot);
+    h = trisurf(tri.idx,vec(:,1),vec(:,2),vec(:,3),Pplot);
     h.FaceAlpha = 0.85;
 
     % Add xyz axes and labels
