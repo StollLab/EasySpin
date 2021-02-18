@@ -366,7 +366,7 @@ out = runFitting();
 result.afit = out.argsfit;
 result.pfit = out.pfit;
 result.sim = out.fitSpec;
-result.residuals = out.Residuals;
+result.residuals = out.residuals;
 result.simscaled = out.fitSpecScaled;
 result.ci95 = out.ci95;
 result.corrmatrix = out.corrmatrix;
@@ -403,13 +403,13 @@ end
 %-------------------------------------------------------------------------------
 lb = fitdat.pvec_lb;
 ub = fitdat.pvec_ub;
-x_center = (lb+ub)/2;
+p_center = (lb+ub)/2;
 switch fitdat.FitOpts.Startpoint
   case 1 % center of range
-    x_start = x_center;
+    p_start = p_center;
   case 2 % random
-    x_start = lb + rand(fitdat.nParameters,1).*(ub-lb);
-    x_start(fitdat.inactiveParams) = x_center(fitdat.inactiveParams);
+    p_start = lb + rand(fitdat.nParameters,1).*(ub-lb);
+    p_start(fitdat.inactiveParams) = p_center(fitdat.inactiveParams);
   case 3 % selected parameter set
     h = findobj('Tag','SetListBox');
     s = h.String;
@@ -418,7 +418,7 @@ switch fitdat.FitOpts.Startpoint
       ID = sscanf(s,'%d');
       idx = find([fitdat.FitSets.ID]==ID);
       if ~isempty(idx)
-        x_start = fitdat.FitSets(idx).bestx;
+        p_start = fitdat.FitSets(idx).bestx;
       else
         error('Could not locate selected parameter set.');
       end
@@ -426,7 +426,7 @@ switch fitdat.FitOpts.Startpoint
       error('No saved parameter set yet.');
     end
 end
-fitdat.x_start = x_start;
+fitdat.p_start = p_start;
 
 if strcmp(fitdat.FitOpts.Scaling,'none')
     data_ = fitdat.ExpSpec;
@@ -436,47 +436,45 @@ end
 
 % Run minimization over space of active parameters
 %-------------------------------------------------------------------------------
-xfit = x_start;
+pfit = p_start;
 active = ~fitdat.inactiveParams;
 fitOpts = fitdat.FitOpts;
 if sum(active)>0
   residualfun = @(x)residuals_(x,data_,fitdat,fitOpts);
   rmsdfun = @(x)rmsd_(x,data_,fitdat,fitOpts);
-  x0_a = x_start(active);
+  p0_a = p_start(active);
   lb_a = lb(active);
   ub_a = ub(active);
   switch fitOpts.MethodID
     case 1 % Nelder/Mead simplex
-      xfit_a = esfit_simplex(rmsdfun,x0_a,lb_a,ub_a,fitOpts);
+      pfit_a = esfit_simplex(rmsdfun,p0_a,lb_a,ub_a,fitOpts);
     case 2 % Levenberg/Marquardt
       fitOpts.Gradient = fitOpts.TolFun;
-      xfit_a = esfit_levmar(residualfun,x0_a,lb_a,ub_a,fitOpts);
+      pfit_a = esfit_levmar(residualfun,p0_a,lb_a,ub_a,fitOpts);
     case 3 % Monte Carlo
-      xfit_a = esfit_montecarlo(rmsdfun,lb_a,ub_a,fitOpts);
+      pfit_a = esfit_montecarlo(rmsdfun,lb_a,ub_a,fitOpts);
     case 4 % Genetic
-      xfit_a = esfit_genetic(rmsdfun,lb_a,ub_a,fitOpts);
+      pfit_a = esfit_genetic(rmsdfun,lb_a,ub_a,fitOpts);
     case 5 % Grid search
-      xfit_a = esfit_grid(rmsdfun,lb_a,ub_a,fitOpts);
+      pfit_a = esfit_grid(rmsdfun,lb_a,ub_a,fitOpts);
     case 6 % Particle swarm
-      xfit_a = esfit_swarm(rmsdfun,lb_a,ub_a,fitOpts);
+      pfit_a = esfit_swarm(rmsdfun,lb_a,ub_a,fitOpts);
     case 7 % lsqnonlin from Optimization Toolbox
-      xfit_a = lsqnonlin(residualfun,x0_a,lb_a,ub_a);
+      pfit_a = lsqnonlin(residualfun,p0_a,lb_a,ub_a);
   end
-  xfit(active) = xfit_a;
+  pfit(active) = pfit_a;
 end
 
 % Finish up
 %-------------------------------------------------------------------------------
 
-% Collect best-fit parameters, arguments
-
 % Simulate model fit
 if fitdat.structureInputs
-  argsfit = fitdat.p2args(xfit);
+  argsfit = fitdat.p2args(pfit);
   [out{1:fitdat.nOutArguments}] = fitdat.fcn(argsfit{:});
 else
   argsfit = [];
-  [out{1:fitdat.nOutArguments}] = fitdat.fcn(xfit);
+  [out{1:fitdat.nOutArguments}] = fitdat.fcn(pfit);
 end
 
 fitSpec = out{fitdat.OutArgument}; % pick last output argument
@@ -485,18 +483,18 @@ fitSpecScaled = rescale(fitSpec,fitdat.ExpSpecScaled,fitdat.FitOpts.Scaling);
 fitSpec =       rescale(fitSpec,fitdat.ExpSpec,      fitdat.FitOpts.Scaling);
 
 % Calculate residuals and rmsd
-Residuals = calculateResiduals(fitSpecScaled(:),fitdat.ExpSpecScaled(:),fitdat.FitOpts.TargetID);
-Residuals = Residuals.'; % col -> row
-rmsd = sqrt(mean(Residuals.^2));
+residuals = calculateResiduals(fitSpecScaled(:),fitdat.ExpSpecScaled(:),fitdat.FitOpts.TargetID);
+residuals = residuals.'; % col -> row
+rmsd = sqrt(mean(residuals.^2));
 
 % Calculate Jacobian and parameter covariance matrix
 %-------------------------------------------------------------------------------
 calcParamUncertainty = true;
 if calcParamUncertainty
   disp('Calculating Jacobian...');
-  J = jacobianest(residualfun,xfit);
+  J = jacobianest(residualfun,pfit);
   disp('Calculating parameter covariance matrix...');
-  covmatrix = hccm(J,Residuals,'HC1');
+  covmatrix = hccm(J,residuals,'HC1');
   
   % Calculate correlation matrix
   Q = diag(diag(covmatrix).^(-1/2));
@@ -514,18 +512,18 @@ end
 if fitdat.FitOpts.PrintLevel && UserCommand~=99
   disp('---------------------------------------------------------');
   fprintf('Goodness of fit:\n');
-  fprintf('   ssr             %g\n',sum(Residuals.^2));
+  fprintf('   ssr             %g\n',sum(residuals.^2));
   fprintf('   rmsd            %g\n',rmsd);
-  fprintf('   noise std       %g (estimated from residuals)\n',std(Residuals));
-  fprintf('   chi^2           %g (using noise std estimate; upper limit)\n',rmsd^2/var(Residuals));
+  fprintf('   noise std       %g (estimated from residuals)\n',std(residuals));
+  fprintf('   chi^2           %g (using noise std estimate; upper limit)\n',rmsd^2/var(residuals));
   pctl = 0.95;
-  ci95 = xfit + ci(pctl)*[-1 1];
+  ci95 = pfit + ci(pctl)*[-1 1];
   if isempty(ci95)
     disp('Best-fit parameter values without confidence intervals:');
   else
     fprintf('Best-fit parameter values (%d%% confidence intervals):\n',100*pctl);
   end
-  str = printparlist(xfit,fitdat.pinfo,ci95);
+  str = printparlist(pfit,fitdat.pinfo,ci95);
   fprintf(str);
   if ~isempty(corrmatrix)
     fprintf('Correlation matrix:\n');
@@ -539,10 +537,10 @@ end
 
 result.argsfit = argsfit;
 result.fitSpec = fitSpec;
-result.Residuals = Residuals;
+result.residuals = residuals;
 result.fitSpecScaled = fitSpecScaled;
-result.pfit = xfit;
-result.ci95 = xfit + ci(0.95)*[-1 1];
+result.pfit = pfit;
+result.ci95 = pfit + ci(0.95)*[-1 1];
 result.corrmatrix = corrmatrix;
 
 end
@@ -601,8 +599,8 @@ end
 
 % Run fitting
 %-------------------------------------------------------------------------------
-%[argsfit,BestSpec,Residuals,BestSpecScaled,bestx] = runFitting();
 out = runFitting();
+
 argsfit = out.argsfit;
 BestSpec = out.fitSpec;
 BestSpecScaled = out.fitSpecScaled;
@@ -610,13 +608,11 @@ bestx = out.pfit;
 
 out.argsfit = argsfit;
 out.fitSpec = fitSpec;
-out.Residuals = Residuals;
+out.residuals = residuals;
 out.fitSpecScaled = fitSpecScaled;
 out.pfit = xfit;
 
-
-
-rmsd = sqrt(mean(Residuals.^2));
+rmsd = sqrt(mean(residuals.^2));
 
 % GUI update
 %-------------------------------------------------------------------------------
@@ -672,7 +668,7 @@ else
     newFitSet.fitSpec = BestSpecScaled;
     newFitSet.expSpec = fitdat.ExpSpecScaled;
 end
-newFitSet.residuals = Residuals;
+newFitSet.residuals = residuals;
 newFitSet.bestx = bestx;
 %newFitSet.bestvalues = bestvalues;
 TargetKey = {'fcn','int','iint','diff','fft'};
@@ -689,14 +685,14 @@ end
 
 
 %===============================================================================
-function resi = residuals_(x,ExpSpec,FitData,FitOpt)
-[~,resi] = rmsd_(x,ExpSpec,FitData,FitOpt);
+function rmsd = rmsd_(x,ExpSpec,FitData,FitOpt)
+[~,rmsd] = residuals_(x,ExpSpec,FitData,FitOpt);
 end
 %===============================================================================
 
 
 %===============================================================================
-function varargout = rmsd_(x,expdata,FitInfo,FitOpt)
+function varargout = residuals_(x,expdata,FitInfo,FitOpt)
 
 global UserCommand
 
@@ -708,10 +704,10 @@ if ~isfield(FitInfo,'errorlist')
 end
 
 % Evaluate model function-------------------------------------------------------
-x_all = FitInfo.x_start;
+p_all = FitInfo.p_start;
 active = ~FitInfo.inactiveParams;
-x_all(active) = x;
-par = x_all;
+p_all(active) = x;
+par = p_all;
 if FitInfo.structureInputs
   args = FitInfo.p2args(par);
   try
@@ -830,7 +826,7 @@ if UserCommand==2
     disp('---------------------------------------------')
 end
 
-out = {rmsd,residuals,simdata};
+out = {residuals,rmsd,simdata};
 varargout = out(1:nargout);
 
 end
