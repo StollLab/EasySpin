@@ -45,18 +45,18 @@ function varargout = esfit(data,fcn,p0,varargin)
 if nargin==0
     
     Sys.g = 2.00123;
-    Sys.lwpp = [0 0.8];
+    Sys.lwpp = [0.0 0.8];
     Exp.mwFreq = 9.5;
     Exp.Range = [330 350];
     [B,spc] = pepper(Sys,Exp);
     rng(123415);
     Ampl = 100;%exp(randn*3);
-    spc = Ampl*addnoise(spc,10,'n');
+    spc = Ampl*addnoise(spc,50,'n');
     
     Sys0.g = 2.003;
-    Sys0.lwpp = [0 0.7];
+    Sys0.lwpp = [0.0 0.7];
     vSys.g = 0.01;
-    vSys.lwpp = [0 0.2];
+    vSys.lwpp = [0.0 0.25];
     
     Opt = struct;
     FitOpt = struct;
@@ -501,12 +501,15 @@ if calcParamUncertainty
   J = jacobianest(residualfun,xfit);
   disp('Calculating parameter covariance matrix...');
   covmatrix = hccm(J,Residuals,'HC1');
+  
+  % Calculate correlation matrix
   Q = diag(diag(covmatrix).^(-1/2));
-  corrmatrix = Q*covmatrix*Q
+  corrmatrix = Q*covmatrix*Q;
   
   norm_icdf = @(p)-sqrt(2)*erfcinv(2*p); % inverse of standard normal cdf
   ci = @(pctl)norm_icdf(1/2+pctl/2)*sqrt(diag(covmatrix));
 else
+  corrmatrix = [];
   ci = @(pctl)[];
 end
 
@@ -514,20 +517,27 @@ end
 %-------------------------------------------------------------------------------
 if fitdat.FitOpts.PrintLevel && UserCommand~=99
   disp('---------------------------------------------------------');
+  fprintf('Goodness of fit:\n');
+  fprintf('   ssr             %g\n',sum(Residuals.^2));
+  fprintf('   rmsd            %g\n',rmsd);
+  fprintf('   noise std       %g (estimated from residuals)\n',std(Residuals));
+  fprintf('   chi^2           %g (using noise std estimate; upper limit)\n',rmsd^2/var(Residuals));
   pctl = 0.95;
   ci95 = xfit + ci(pctl)*[-1 1];
   if isempty(ci95)
     disp('Best-fit parameter values without confidence intervals:');
   else
-    fprintf('Best-fit parameter values incl. %d%% confidence intervals:\n',100*pctl);
+    fprintf('Best-fit parameter values (%d%% confidence intervals):\n',100*pctl);
   end
   str = printparlist(xfit,fitdat.pinfo,ci95);
   fprintf(str);
-  fprintf('Quality of fit:\n');
-  fprintf('   ssr         %g\n',sum(Residuals.^2));
-  fprintf('   rmsd        %g\n',rmsd);
-  fprintf('   noise std   %g (estimated from residuals)\n',std(Residuals));
-  fprintf('   chi^2       %g (using noise std estimate; upper limit)\n',rmsd^2/var(Residuals));
+  if ~isempty(corrmatrix)
+    fprintf('Correlation matrix:\n');
+    disp(corrmatrix);
+    if any(reshape(triu(abs(corrmatrix),1),1,[])>0.9)
+      disp('    WARNING! Stong correlations between parameters.');
+    end
+  end
   disp('=========================================================');
 end
 
@@ -817,12 +827,12 @@ str = '';
 maxNameLength = max(arrayfun(@(x)length(x.Name),pinfo));
 if nargin==3 && ~isempty(pci)
   for p = 1:nParams
-    str = sprintf('%s   %s:  %g  (%g - %g)\n',str,pad(pinfo(p).Name,...
+    str = sprintf('%s   %s  %g  (%g - %g)\n',str,pad(pinfo(p).Name,...
       maxNameLength),par(p),pci(p,1),pci(p,2));
   end
 else
   for p = 1:nParams
-    str = sprintf('%s   %s:  %g\n',str,pad(pinfo(p).Name,maxNameLength),par(p));
+    str = sprintf('%s   %s  %g\n',str,pad(pinfo(p).Name,maxNameLength),par(p));
   end
 end
 
