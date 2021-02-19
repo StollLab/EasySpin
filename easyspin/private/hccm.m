@@ -52,8 +52,9 @@ else
     V = [];
 end
 
+pinvJTJ = pinv(J.'*J);
 % Hat matrix
-H = J*pinv(J.'*J)*J.';
+H = J*pinvJTJ*J.';
 % Get leverage
 h = diag(H);
 % Number of parameters
@@ -100,6 +101,6 @@ if isempty(V)
 end
 
 % Heteroscedasticity Consistent Covariance Matrix (HCCM) estimator
-C = pinv(J.'*J)*J.'*V*J*pinv(J.'*J);
+C = pinvJTJ*J.'*V*J*pinvJTJ;
 
 end

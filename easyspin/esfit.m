@@ -49,7 +49,7 @@ if nargin==0
     [B,spc] = pepper(Sys,Exp);
     rng(123415);
     Ampl = 100;%exp(randn*3);
-    spc = Ampl*addnoise(spc,50,'n');
+    spc = Ampl*addnoise(spc,500,'n');
     
     Sys0.g = 2.003;
     Sys0.lwpp = [0.0 0.7];
@@ -194,6 +194,11 @@ else
     pinfo(k).Name = sprintf('p(%d)',k);
   end
 end
+
+% Assure all parameter vectors are column vectors
+pvec_0 = pvec_0(:);
+pvec_lb = pvec_lb(:);
+pvec_ub = pvec_ub(:);
 
 fitdat.args = p0;
 fitdat.pinfo = pinfo;
@@ -363,7 +368,9 @@ end
 out = runFitting();
 
 % Collect result output structure
-result.afit = out.argsfit;
+if structureInputs
+  result.afit = out.argsfit;
+end
 result.pfit = out.pfit;
 result.sim = out.fitSpec;
 result.residuals = out.residuals;
@@ -487,24 +494,30 @@ residuals = calculateResiduals(fitSpecScaled(:),fitdat.ExpSpecScaled(:),fitdat.F
 residuals = residuals.'; % col -> row
 rmsd = sqrt(mean(residuals.^2));
 
-% Calculate Jacobian and parameter covariance matrix
+% Calculate parameter confidence intervals and correlation matrix
 %-------------------------------------------------------------------------------
-calcParamUncertainty = true;
-if calcParamUncertainty
-  disp('Calculating Jacobian...');
-  J = jacobianest(residualfun,pfit);
-  disp('Calculating parameter covariance matrix...');
+disp('Calculating parameter uncertainties...');
+disp('  Estimating Jacobian...');
+maxRelStep = min((ub-pfit),(pfit-lb))./pfit;
+J = jacobianest(residualfun,pfit,maxRelStep);
+if any(isnan(J(:)))
+  disp('  NaN elements in Jacobian, cannot calculate parameter uncertainties.');
+  corrmatrix = [];
+  ci = @(pctl)[];
+  UQdone = false;
+else
+  disp('  Calculating parameter covariance matrix...');
+  pinv(J.'*J)
   covmatrix = hccm(J,residuals,'HC1');
   
   % Calculate correlation matrix
+  disp('  Calculating parameter correlation matrix...');
   Q = diag(diag(covmatrix).^(-1/2));
   corrmatrix = Q*covmatrix*Q;
   
   norm_icdf = @(p)-sqrt(2)*erfcinv(2*p); % inverse of standard normal cdf
   ci = @(pctl)norm_icdf(1/2+pctl/2)*sqrt(diag(covmatrix));
-else
-  corrmatrix = [];
-  ci = @(pctl)[];
+  UQdone = true;
 end
 
 % Report
@@ -516,12 +529,13 @@ if fitdat.FitOpts.PrintLevel && UserCommand~=99
   fprintf('   rmsd            %g\n',rmsd);
   fprintf('   noise std       %g (estimated from residuals)\n',std(residuals));
   fprintf('   chi^2           %g (using noise std estimate; upper limit)\n',rmsd^2/var(residuals));
-  pctl = 0.95;
-  ci95 = pfit + ci(pctl)*[-1 1];
-  if isempty(ci95)
-    disp('Best-fit parameter values without confidence intervals:');
-  else
+  if UQdone
+    pctl = 0.95;
+    ci95 = pfit + ci(pctl)*[-1 1];
     fprintf('Best-fit parameter values (%d%% confidence intervals):\n',100*pctl);
+  else
+    disp('Best-fit parameter values without confidence intervals:');
+    ci95 = [];
   end
   str = printparlist(pfit,fitdat.pinfo,ci95);
   fprintf(str);
@@ -535,12 +549,14 @@ if fitdat.FitOpts.PrintLevel && UserCommand~=99
   disp('=========================================================');
 end
 
+% Assemble output
+%-------------------------------------------------------------------------------
 result.argsfit = argsfit;
 result.fitSpec = fitSpec;
 result.residuals = residuals;
 result.fitSpecScaled = fitSpecScaled;
 result.pfit = pfit;
-result.ci95 = pfit + ci(0.95)*[-1 1];
+result.ci95 = ci95;
 result.corrmatrix = corrmatrix;
 
 end
@@ -607,9 +623,8 @@ BestSpecScaled = out.fitSpecScaled;
 bestx = out.pfit;
 
 out.argsfit = argsfit;
-out.fitSpec = fitSpec;
-out.residuals = residuals;
-out.fitSpecScaled = fitSpecScaled;
+out.fitSpec = BestSpec;
+out.fitSpecScaled = BestSpecScaled;
 out.pfit = xfit;
 
 rmsd = sqrt(mean(residuals.^2));

@@ -1,5 +1,5 @@
 
-function [jac,err] = jacobianest(fun,x0)
+function [jac,err] = jacobianest(fun,x0,MaxRelStep)
 % jacobianest: estimate of the Jacobian matrix of a vector valued function of n variables
 % usage: [jac,err] = jacobianest(fun,x0)
 %
@@ -67,8 +67,11 @@ function [jac,err] = jacobianest(fun,x0)
 % Release: 1.0
 % Release date: 3/6/2007
 
-MaxStep = 0.02;
+if nargin<3
+  MaxRelStep = 0.01;
+end
 StepRatio = 2 + 1e-7;
+nSteps = 10;
 
 % was a string supplied?
 if ischar(fun)
@@ -77,6 +80,9 @@ end
 
 % get the length of x0 for the size of jac
 nx = numel(x0);
+if numel(MaxRelStep)==1
+  MaxRelStep = MaxRelStep*ones(1,nx);
+end
 
 % evaluate fun at the center point
 f0 = fun(x0);
@@ -88,13 +94,14 @@ if n==0
   err = jac;
   return
 end
-relativedelta = MaxStep*StepRatio.^(0:-1:-10);
-nsteps = length(relativedelta);
+steps = StepRatio.^(0:-1:-nSteps);
+nsteps = length(steps);
 
 % total number of derivatives we will need to take
 jac = zeros(n,nx);
 err = jac;
 for i = 1:nx % loop over all variables
+  relativedelta = MaxRelStep(i)*steps;
   x0_i = x0(i);
   if x0_i ~= 0
     delta = x0_i*relativedelta;
