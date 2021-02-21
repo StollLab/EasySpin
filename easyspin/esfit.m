@@ -29,7 +29,7 @@
 %           -algorithm: 'simplex','levmar','montecarlo','genetic','grid','swarm'
 %           -target function: 'fcn', 'int', 'dint', 'diff', 'fft'
 %        .Scaling string with scaling method keyword
-%           'maxabs' (default), 'minmax', 'lsq', 'lsq0','lsq1','lsq2','none'
+%           'maxabs' (default), 'lsq', 'lsq0','lsq1','lsq2','none'
 %        .OutArg  two numbers [nOut iOut], where nOut is the number of
 %                 outputs of the simulation function and iOut is the index
 %                 of the output argument to use for fitting
@@ -310,22 +310,20 @@ TargetNames{4} = 'derivative';
 TargetNames{5} = 'Fourier transform';
 fitdat.TargetNames = TargetNames;
 
-ScalingNames{1} = 'scale & shift (min/max)';
-ScalingNames{2} = 'scale only (max abs)';
-ScalingNames{3} = 'scale only (lsq)';
-ScalingNames{4} = 'scale & shift (lsq0)';
-ScalingNames{5} = 'scale & linear baseline (lsq1)';
-ScalingNames{6} = 'scale & quad. baseline (lsq2)';
-ScalingNames{7} = 'no scaling';
+ScalingNames{1} = 'scale only (max abs)';
+ScalingNames{2} = 'scale only (lsq)';
+ScalingNames{3} = 'scale & shift (lsq0)';
+ScalingNames{4} = 'scale & linear baseline (lsq1)';
+ScalingNames{5} = 'scale & quad. baseline (lsq2)';
+ScalingNames{6} = 'no scaling';
 fitdat.ScalingNames = ScalingNames;
 
-ScalingString{1} = 'minmax';
-ScalingString{2} = 'maxabs';
-ScalingString{3} = 'lsq';
-ScalingString{4} = 'lsq0';
-ScalingString{5} = 'lsq1';
-ScalingString{6} = 'lsq2';
-ScalingString{7} = 'none';
+ScalingString{1} = 'maxabs';
+ScalingString{2} = 'lsq';
+ScalingString{3} = 'lsq0';
+ScalingString{4} = 'lsq1';
+ScalingString{5} = 'lsq2';
+ScalingString{6} = 'none';
 fitdat.ScalingString = ScalingString;
 
 StartpointNames{1} = 'center of range';
