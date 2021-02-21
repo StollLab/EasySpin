@@ -36,12 +36,10 @@ Least-squares fitting of EPR spectra, single and multiple components.
 <div class="subtitle">Syntax</div>
 
 <pre class="matlab">
-esfit(SimFcn,expSpc,Sys0,Vary,Exp);
-esfit(SimFcn,expSpc,Sys0,Vary,Exp,SimOpt);
-esfit(SimFcn,expSpc,Sys0,Vary,Exp,SimOpt,FitOpt);
-BestSys = esfit(...)
-[BestSys,BestSpc] = esfit(...)
-[BestSys,BestSpc,residuals] = esfit(...)
+esfit(expSpec,SimFcn,p0,vary)
+esfit(expSpec,SimFcn,p0,lb,ub)
+esfit(___,FitOpt)
+fit = esfit(___)
 </pre>
 
 <p>
@@ -66,15 +64,47 @@ parameters can be excluded from the fit, and multiple fit sets can be stored.
 </p>
 
 <p>
-If the user interface is not desired, then <code>esfit</code> should be called with one, two, or three output arguments:
-<ul>
-<li>
-<code>BestSys</code> contains the spin system parameters of the best fit.
-<li>
-<code>BestSpc</code> contains the simulated spectrum that gives the best fit.
-<li>
-<code>Residuals</code> contains the vector of residuals between the simulated and the experimental spectrum.
-</ul>
+If <code>esfit</code> is called with one output, a structure <code>fit</code> containing the fit results is returned.
+
+<div class="optionfield"><code>pfit</code></div>
+<div class="optiondescr">
+Array of fitted parameter values
+</div>
+
+<div class="optionfield"><code>afit</code></div>
+<div class="optiondescr">
+EasySpin-style structures containing the fitted parameters (if using EasySpin-style functions)
+</div>
+
+<div class="optionfield"><code>residuals</code></div>
+<div class="optiondescr">
+The residuals vector
+</div>
+
+<div class="optionfield"><code>rmsd</code></div>
+<div class="optiondescr">
+The root-mean-square deviation between the data and the fitted model.
+</div>
+
+<div class="optionfield"><code>corr</code></div>
+<div class="optiondescr">
+The correlation matrix (1 on the diagonal, correlation coefficients between -1 and +1 everywhere else)
+</div>
+
+<div class="optionfield"><code>cov</code></div>
+<div class="optiondescr">
+The covariance matrix
+</div>
+
+<div class="optionfield"><code>sim</code></div>
+<div class="optiondescr">
+The simulated spectrum as returned by the simulation function
+</div>
+
+<div class="optionfield"><code>simscaled</code></div>
+<div class="optiondescr">
+The simulated spectrum as returned by the simulation function, scaled to fit the experiemntal spectrum
+</div>
 
 
 <p>
@@ -132,7 +162,7 @@ The keywords for choosing one of the available algorithms are
 
 <ul>
 <li><code>'simplex'</code>: Nelder-Mead simplex algorithm (unconstrained)
-<li><code>'levmar'</code>: Levenberg/Marquardt (unconstrained)
+<li><code>'levmar'</code>: Levenberg-Marquardt (unconstrained)
 <li><code>'montecarlo'</code>: Monte Carlo random search (constrained)
 <li><code>'genetic'</code>: Genetic algorithm (constrained)
 <li><code>'grid'</code>: Systematic grid search (constrained)
@@ -210,7 +240,7 @@ Each of the available fitting algorithms can be fine-tuned using a set of parame
 </p>
 
 <p>
-Parameters for <span style="font-weight:bold;">Nelder/Mead downhill simplex</span>:
+Parameters for <span style="font-weight:bold;">Nelder-Mead downhill simplex</span>:
 </p>
 
 <div class="optionfield"><code>FitOpt.RandomStart</code></div>
@@ -383,7 +413,7 @@ Spalek et al, J.Chem.Inf.Model 2005, 45, 18-29.
 
 <p>
 Here is a very simple example. Let's assume the experimental data are stored in <code>expspc</code>.
-Then the following code performs a least-squares fitting using the Nelder/Mead downhill simplex algorithm.
+Then the following code performs a least-squares fitting using the Nelder-Mead downhill simplex algorithm.
 </p>
 
 <pre class="matlab">
@@ -391,7 +421,7 @@ Exp.mwFreq = 9.5;
 Sys0.g = [2.1 2.2]
 Sys0.lwpp = 0.1;
 Vary.g = [0.05 0.02];
-esfit(@pepper,expspc,Sys0,Vary,Exp);
+esfit(expspec,@pepper,{Sys0,Exp},Vary);
 </pre>
 
 <p>

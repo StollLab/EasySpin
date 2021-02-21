@@ -11,7 +11,7 @@
 % Input:
 %     data        experimental data, a vector of data points
 %     fcn         simulation/model function handle (@pepper, @garlic, ...
-%                   @salt, @chili, or user-defined function)
+%                   @salt, @chili, or handle to user-defined function)
 %     p0          starting input parameters
 %                   EasySpin-style functions: {Sys0,Exp0} or {Sys0,Exp0,Opt0}
 %                   other functions: vector
@@ -34,9 +34,15 @@
 %                 outputs of the simulation function and iOut is the index
 %                 of the output argument to use for fitting
 % Output:
-%     pfit        fitted parameters
-%     datafit     fitted data (vector)
-%     residuals   residuals between fitted and experimental data (vector)
+%     fit           structure with fitting results
+%       .pfit       fitted parameter vector
+%       .argsfit    fitter input arguments (if EasySpin-style)
+%       .sim        simulated data
+%       .simscaled  simulated data, scaled to the experimental ones
+%       .ci95       95% confidence intervals for all parameters
+%       .corr       correlation matrix for all parameters
+%       .cov        covariance matrix for all parameters
+%
 
 function result = esfit(data,fcn,p0,varargin)
 
@@ -48,8 +54,8 @@ if nargin==0
     Exp.Range = [330 350];
     [B,spc] = pepper(Sys,Exp);
     rng(123415);
-    Ampl = 100;%exp(randn*3);
-    spc = Ampl*addnoise(spc,500,'n');
+    Ampl = 100;
+    spc = Ampl*addnoise(spc,50,'n');
     
     Sys0.g = 2.003;
     Sys0.lwpp = [0.0 0.7];
@@ -58,7 +64,8 @@ if nargin==0
     
     Opt = struct;
     FitOpt = struct;
-    FitOpt.Method = 'simplex fcn';
+    FitOpt.Method = 'levmar fcn';
+    FitOpt.TolFun = 1e-6;
     FitOpt.PrintLevel = 2;
     fit = esfit(spc,@pepper,{Sys0,Exp,Opt},{vSys},FitOpt)
     
@@ -287,8 +294,8 @@ for k = 1:numel(keywords)
   end
 end
 
-MethodNames{1} = 'Nelder/Mead simplex';
-MethodNames{2} = 'Levenberg/Marquardt';
+MethodNames{1} = 'Nelder-Mead simplex';
+MethodNames{2} = 'Levenberg-Marquardt';
 MethodNames{3} = 'Monte Carlo';
 MethodNames{4} = 'genetic algorithm';
 MethodNames{5} = 'grid search';
@@ -372,11 +379,13 @@ if structureInputs
   result.afit = out.argsfit;
 end
 result.pfit = out.pfit;
-result.sim = out.fitSpec;
-result.residuals = out.residuals;
-result.simscaled = out.fitSpecScaled;
+result.rmsd = out.rmsd;
 result.ci95 = out.ci95;
-result.corrmatrix = out.corrmatrix;
+result.corr = out.corr;
+result.cov = out.cov;
+result.residuals = out.residuals;
+result.sim = out.fitSpec;
+result.simscaled = out.fitSpecScaled;
 
 clear global UserCommand
 
@@ -453,9 +462,9 @@ if sum(active)>0
   lb_a = lb(active);
   ub_a = ub(active);
   switch fitOpts.MethodID
-    case 1 % Nelder/Mead simplex
+    case 1 % Nelder-Mead simplex
       pfit_a = esfit_simplex(rmsdfun,p0_a,lb_a,ub_a,fitOpts);
-    case 2 % Levenberg/Marquardt
+    case 2 % Levenberg-Marquardt
       fitOpts.Gradient = fitOpts.TolFun;
       pfit_a = esfit_levmar(residualfun,p0_a,lb_a,ub_a,fitOpts);
     case 3 % Monte Carlo
@@ -502,6 +511,7 @@ maxRelStep = min((ub-pfit),(pfit-lb))./pfit;
 J = jacobianest(residualfun,pfit,maxRelStep);
 if any(isnan(J(:)))
   disp('  NaN elements in Jacobian, cannot calculate parameter uncertainties.');
+  covmatrix = [];
   corrmatrix = [];
   ci = @(pctl)[];
   UQdone = false;
@@ -542,7 +552,15 @@ if fitdat.FitOpts.PrintLevel && UserCommand~=99
   if ~isempty(corrmatrix)
     fprintf('Correlation matrix:\n');
     disp(corrmatrix);
-    if any(reshape(triu(abs(corrmatrix),1),1,[])>0.9)
+    triuCorr = triu(abs(corrmatrix),1);
+    fprintf('Strongest correlations:\n');
+    [~,idx] = sort(triuCorr(:),'descend');
+    [i1,i2] = ind2sub(size(corrmatrix),idx);
+    np = numel(pfit);
+    for k = 1:min(5,(np-1)*np/2)
+      fprintf('    p(%d)-p(%d):    %g\n',i1(k),i2(k),corrmatrix(i1(k),i2(k)));
+    end
+    if any(reshape(triuCorr,1,[])>0.8)
       disp('    WARNING! Stong correlations between parameters.');
     end
   end
@@ -557,7 +575,9 @@ result.residuals = residuals;
 result.fitSpecScaled = fitSpecScaled;
 result.pfit = pfit;
 result.ci95 = ci95;
-result.corrmatrix = corrmatrix;
+result.cov = covmatrix;
+result.corr = corrmatrix;
+result.rmsd = rmsd;
 
 end
 

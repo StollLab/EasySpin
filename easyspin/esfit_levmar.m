@@ -93,7 +93,20 @@ end
 if any(x0<lb) || any(x0>ub)
   error('Some elements in x0 are out of bounds.');
 end
-x = x0(:); 
+
+% Transform to (-1,1) interval
+transformParams = false;
+if transformParams
+  transform = @(x) 2*(x-lb)./(ub-lb)-1;
+  untransform = @(x) lb + (ub-lb).*(x/2+1/2);
+  x0 = transform(x0);
+  ub = transform(ub);
+  lb = transform(lb);
+  fcn = @(x)fcn(untransform(x));
+end
+
+
+x = x0(:);
 
 stopCode = 0;
 
@@ -146,10 +159,10 @@ while ~stopCode
     break;
   end
   
-  % Levenberg-Marquardt: Compute step and new damping factor
+  % Compute step and new damping factor
   [h,mu] = computeLMStep(A,g,mu);
   norm_h = norm(h);
-
+  
   if FitOpt.PrintLevel
     str = sprintf(' iteration %4d:  value %0.5e    gradient %0.5e    step %0.5e',iIteration,sqrt(F*2),norm_g,norm_h);
     FitOpt.IterationPrintFunction(str);
@@ -227,6 +240,10 @@ end
 
 if FitOpt.PrintLevel>1
   fprintf('Terminated: %s\n',msg);
+end
+
+if transformParams
+  x = untransform(x);
 end
 
 info.F = F;

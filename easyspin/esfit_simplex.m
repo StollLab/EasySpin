@@ -78,6 +78,17 @@ if any(x0<lb) || any(x0>ub)
   error('Some elements in x0 are out of bounds.');
 end
 
+% Transform to (-1,1) interval
+transformParams = false;
+if transformParams
+  transform = @(x) 2*(x-lb)./(ub-lb)-1;
+  untransform = @(x) lb + (ub-lb).*(x/2+1/2);
+  x0 = transform(x0);
+  ub = transform(ub);
+  lb = transform(lb);
+  fcn = @(x)fcn(untransform(x));
+end
+
 constrain = @(x)max(min(x,ub),lb); unconstrain = @(x)x;
 %constrain = @(x)sin(x*pi/2); unconstrain = @(x)acos(x)*2/pi;
 
@@ -214,8 +225,12 @@ while true
 
 end
 
-x = v(:,1);
-x = unconstrain(x);
+if transformParams
+  x = unconstrain(untransform(v(:,1)));
+else
+  x = unconstrain(v(:,1));
+end
+
 info.simplex_final = v;
 info.F = fv(:,1);
 info.nIterations = iIteration;
