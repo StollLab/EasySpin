@@ -55,7 +55,7 @@ if nargin==0
     [B,spc] = pepper(Sys,Exp);
     rng(123415);
     Ampl = 100;
-    spc = Ampl*addnoise(spc,50,'n');
+    spc = Ampl*addnoise(spc,1,'n');
     
     Sys0.g = 2.003;
     Sys0.lwpp = [0.0 0.7];
@@ -67,7 +67,7 @@ if nargin==0
     FitOpt.Method = 'levmar fcn';
     FitOpt.TolFun = 1e-6;
     FitOpt.PrintLevel = 2;
-    fit = esfit(spc,@pepper,{Sys0,Exp,Opt},{vSys},FitOpt)
+    fit = esfit(spc,@pepper,{Sys0,Exp,Opt},{vSys},FitOpt);
     
     subplot(2,1,1)
     plot(B,spc,B,fit.sim);
@@ -515,7 +515,6 @@ if any(isnan(J(:)))
   UQdone = false;
 else
   disp('  Calculating parameter covariance matrix...');
-  pinv(J.'*J)
   covmatrix = hccm(J,residuals,'HC1');
   
   % Calculate correlation matrix
@@ -633,19 +632,14 @@ end
 
 % Run fitting
 %-------------------------------------------------------------------------------
-out = runFitting();
+fit = runFitting();
 
-argsfit = out.argsfit;
-BestSpec = out.fitSpec;
-BestSpecScaled = out.fitSpecScaled;
-bestx = out.pfit;
-
-out.argsfit = argsfit;
-out.fitSpec = BestSpec;
-out.fitSpecScaled = BestSpecScaled;
-out.pfit = xfit;
-
-rmsd = sqrt(mean(residuals.^2));
+argsfit = fit.argsfit;
+BestSpec = fit.fitSpec;
+BestSpecScaled = fit.fitSpecScaled;
+bestx = fit.pfit;
+residuals = fit.residuals;
+rmsd = fit.rmsd;
 
 % GUI update
 %-------------------------------------------------------------------------------
@@ -867,23 +861,36 @@ end
 
 
 %===============================================================================
-% Print parameters.
+% Print parameters, and their uncertainties if availabe.
 function str = printparlist(par,pinfo,pci)
+
+% Round to least-significant digit plus 2 for printing
+err = (pci(:,2)-pci(:,1))/2;
+lsd = floor(log10(err)); % lowest significant digit 
+nDigits = 1; % number of digits to print beyond lowest-significant digit
+rndabs = @(x,n) round(x.*10.^-(lsd-nDigits)).*10.^(lsd-nDigits);
+pci = rndabs(pci);
+par = rndabs(par);
+err = rndabs(err);
+
+% Print parameters
 nParams = numel(par);
-str = '';
 maxNameLength = max(arrayfun(@(x)length(x.Name),pinfo));
-if nargin==3 && ~isempty(pci)
-  for p = 1:nParams
-    str = sprintf('%s   %s  %g  (%g - %g)\n',str,pad(pinfo(p).Name,...
-      maxNameLength),par(p),pci(p,1),pci(p,2));
-  end
-else
-  for p = 1:nParams
-    str = sprintf('%s   %s  %g\n',str,pad(pinfo(p).Name,maxNameLength),par(p));
+printUncertainties = nargin==3 && ~isempty(pci);
+str = '';
+for p = 1:nParams
+  pname = pad(pinfo(p).Name,maxNameLength);
+  if printUncertainties
+    str = sprintf('%s   %s  %g ± %g  (%g - %g)\n',str,pname,par(p),err(p),pci(p,1),pci(p,2));
+  else
+    str = sprintf('%s   %s  %g\n',str,pname,par(p));
   end
 end
 
-if nargout==0, fprintf(str); end
+if nargout==0
+  fprintf(str);
+end
+
 end
 %===============================================================================
 
