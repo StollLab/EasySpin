@@ -50,8 +50,8 @@ elseif detError>softLimit
   fprintf('eulang: The output of eulang() is probably inaccurate!\n');
 end
 
-% Analytical expressions
-%---------------------------------------------------
+% Calculate Euler angles using analytical expressions
+%-------------------------------------------------------------------------------
 % Degenerate cases:  R(3,3) = cos(beta) = +-1 -> beta=n*pi. In these
 % cases, alpha and gamma are not distinguishable. We collect the entire
 % z rotation angle in alpha and set gamma to zero.
@@ -69,28 +69,36 @@ else
   beta = atan2(sqrt(RotMatrix(3,1)^2+RotMatrix(3,2)^2),RotMatrix(3,3));
   gamma = atan2(RotMatrix(2,3),-RotMatrix(1,3));
 end
-if alpha<0, alpha = alpha + 2*pi; end
-if gamma<0, gamma = gamma + 2*pi; end
-Angles = [alpha,beta,gamma];
+
+% Assure alpha and gamma are positive (unless numerically close to zero).
+%-------------------------------------------------------------------------------
+thr = -1e-8;
+if alpha<thr, alpha = alpha + 2*pi; end
+if gamma<thr, gamma = gamma + 2*pi; end
+
+% Assure beta is positive
+%-------------------------------------------------------------------------------
+if beta<0
+  beta = -beta;
+  if alpha<0
+    alpha = alpha + pi;
+    gamma = gamma + pi;
+  else
+    alpha = alpha - pi;
+    gamma = gamma - pi;
+  end
+end
+
+Angles = [alpha, beta, gamma];
 
 % Refinement by least-squares fitting
-%--------------------------------------------------
+%-------------------------------------------------------------------------------
 if ~skipFitting
   fitOptions = optimset('TolX',0.0001);
   RotErrorFunction = @(ang) norm(erot(ang)-RotMatrix);
   Angles = fminsearch(RotErrorFunction,Angles,fitOptions);
 end
 
-% Ranging
-%--------------------------------------------------
-% Adjust Euler angles so that beta>=0
-if Angles(2)<0
-  if Angles(1)<0
-    Angles = [Angles(1)+pi, -Angles(2), Angles(3)+pi];
-  else
-    Angles = [Angles(1)-pi, -Angles(2), Angles(3)-pi];
-  end
-end
 
 switch nargout
   case 0
