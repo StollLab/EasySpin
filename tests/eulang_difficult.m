@@ -8,5 +8,6 @@ gv = [
    0.99999987552710   0.00049860301059   0.00001846136337];
 
 R = gv*gv';
-a = eulang(R);
-ok = all(abs(a)<1e-8);
+angles = eulang(R);
+
+ok = all(abs(angles)<1e-12);
