@@ -37,8 +37,8 @@
 %     fit           structure with fitting results
 %       .pfit       fitted parameter vector
 %       .argsfit    fitter input arguments (if EasySpin-style)
-%       .sim        simulated data
-%       .simscaled  simulated data, scaled to the experimental ones
+%       .fitraw     simulated data, as returned by the simulation/model function
+%       .fit        simulated data, scaled to the experimental ones
 %       .ci95       95% confidence intervals for all parameters
 %       .corr       correlation matrix for all parameters
 %       .cov        covariance matrix for all parameters
@@ -55,7 +55,7 @@ if nargin==0
     [B,spc] = pepper(Sys,Exp);
     rng(123415);
     Ampl = 100;
-    spc = Ampl*addnoise(spc,1,'n');
+    spc = Ampl*addnoise(spc,30,'n');
     
     Sys0.g = 2.003;
     Sys0.lwpp = [0.0 0.7];
@@ -64,15 +64,15 @@ if nargin==0
     
     Opt = struct;
     FitOpt = struct;
-    FitOpt.Method = 'levmar fcn';
+    FitOpt.Method = 'simplex fcn';
     FitOpt.TolFun = 1e-6;
     FitOpt.PrintLevel = 2;
-    fit = esfit(spc,@pepper,{Sys0,Exp,Opt},{vSys},FitOpt);
+    result = esfit(spc,@pepper,{Sys0,Exp,Opt},{vSys},FitOpt);
     
     subplot(2,1,1)
-    plot(B,spc,B,fit.sim);
+    plot(B,spc,B,result.fit);
     subplot(2,1,2)
-    plot(B,spc-fit.sim);
+    plot(B,spc-result.fit);
     return
 end
 
@@ -82,7 +82,7 @@ if nargin==0, help(mfilename); return; end
 error(eschecker);
 
 if nargin<4
-  error('At least 3 inputs are required (data, fcn, p0, pvary).');
+  error('At least 4 inputs are required (data, fcn, p0, pvary).');
 end
 if nargin>6
   error('At most 6 inputs are accepted.');
@@ -131,15 +131,16 @@ argspar = esfit_argsparams();
 if isstruct(data) || ~isnumeric(data)
     error('First argument must be numeric experimental data.');
 end
-fitdat.nSpectra = 1;
-fitdat.ExpSpec = data;
-fitdat.ExpSpecScaled = rescale(data,'maxabs');
+fitdat.nDatasets = 1;
+fitdat.data = data;
 
+fitdat.scale = max(abs(data(:)));
+fitdat.dataScaled = data/fitdat.scale;
 
 % Model function
 %-------------------------------------------------------------------------------
 if ~isa(fcn,'function_handle')
-  str = 'The simulation/model function (2nd input) must be a function handle (with @).';
+  str = 'The simulation/model function (2nd input) must be a function handle.';
   if ischar(fcn)
     error('%s\nUse esfit(data,@%s,...) instead of esfit(data,''%s'',...).',str,fcn,fcn);
   else
@@ -226,7 +227,7 @@ if EasySpinFunction
   % Set Exp.nPoints
   if isfield(p0{2},'nPoints')
     if p0{2}.nPoints~=numel(data)
-      error('Exp.nPoints is %d, but the spectral data vector is %d long.',...
+      error('Exp.nPoints is %d, but the data vector has %d elements.',...
         p0{2}.nPoints,numel(data));
     end
   else
@@ -362,28 +363,16 @@ end
 FitOpt.IterationPrintFunction = @iterationprint;
 fitdat.FitOpts = FitOpt;
 
-% Setup UI and quit if in GUI mode
+% Setup GUI and quit if in GUI mode
+%-------------------------------------------------------------------------------
 if fitdat.GUI
   setupGUI(data);
   return
 end
 
 % Run least-squares fitting if not in GUI mode
-%[fit_args,fit_sim,fit_residuals,~,fit_par] = runFitting();
-out = runFitting();
-
-% Collect result output structure
-if structureInputs
-  result.afit = out.argsfit;
-end
-result.pfit = out.pfit;
-result.rmsd = out.rmsd;
-result.ci95 = out.ci95;
-result.corr = out.corr;
-result.cov = out.cov;
-result.residuals = out.residuals;
-result.sim = out.fitSpec;
-result.simscaled = out.fitSpecScaled;
+%-------------------------------------------------------------------------------
+result = runFitting();
 
 clear global UserCommand
 
@@ -406,7 +395,7 @@ if fitdat.FitOpts.PrintLevel
   fprintf('-- esfit ------------------------------------------------\n');
   fprintf('Function name:            %s\n',fitdat.fcnName);
   fprintf('Number of parameters:     %d\n',fitdat.nParameters);
-  fprintf('Number of datasets:       %d\n',fitdat.nSpectra);
+  fprintf('Number of datasets:       %d\n',fitdat.nDatasets);
   fprintf('Minimization method:      %s\n',fitdat.MethodNames{fitdat.FitOpts.MethodID});
   fprintf('Residuals computed from:  %s\n',fitdat.TargetNames{fitdat.FitOpts.TargetID});
   fprintf('Scaling mode:             %s\n',fitdat.FitOpts.Scaling);
@@ -442,11 +431,7 @@ switch fitdat.FitOpts.Startpoint
 end
 fitdat.p_start = p_start;
 
-if strcmp(fitdat.FitOpts.Scaling,'none')
-    data_ = fitdat.ExpSpec;
-else
-    data_ = fitdat.ExpSpecScaled;
-end
+data_ = fitdat.dataScaled;
 
 % Run minimization over space of active parameters
 %-------------------------------------------------------------------------------
@@ -491,13 +476,12 @@ else
   [out{1:fitdat.nOutArguments}] = fitdat.fcn(pfit);
 end
 
-fitSpec = out{fitdat.OutArgument}; % pick last output argument
+fitraw = out{fitdat.OutArgument}; % pick last output argument
 
-fitSpecScaled = rescale(fitSpec,fitdat.ExpSpecScaled,fitdat.FitOpts.Scaling);
-fitSpec =       rescale(fitSpec,fitdat.ExpSpec,      fitdat.FitOpts.Scaling);
+fit = rescale(fitraw,fitdat.data,fitdat.FitOpts.Scaling);
 
 % Calculate residuals and rmsd
-residuals = calculateResiduals(fitSpecScaled(:),fitdat.ExpSpecScaled(:),fitdat.FitOpts.TargetID);
+residuals = calculateResiduals(fit(:),fitdat.data(:),fitdat.FitOpts.TargetID);
 residuals = residuals.'; % col -> row
 rmsd = sqrt(mean(residuals.^2));
 
@@ -538,7 +522,7 @@ if fitdat.FitOpts.PrintLevel && UserCommand~=99
   fprintf('   chi^2           %g (using noise std estimate; upper limit)\n',rmsd^2/var(residuals));
   if UQdone
     pctl = 0.95;
-    ci95 = pfit + ci(pctl)*[-1 1];
+    ci95 = pfit + ci(pctl)*[-1 1]/std(residuals);
     fprintf('Best-fit parameter values (%d%% confidence intervals):\n',100*pctl);
   else
     disp('Best-fit parameter values without confidence intervals:');
@@ -567,9 +551,9 @@ end
 % Assemble output
 %-------------------------------------------------------------------------------
 result.argsfit = argsfit;
-result.fitSpec = fitSpec;
+result.fit = fit;
+result.fitraw = fitraw;
 result.residuals = residuals;
-result.fitSpecScaled = fitSpecScaled;
 result.pfit = pfit;
 result.ci95 = ci95;
 result.cov = covmatrix;
@@ -585,9 +569,8 @@ global fitdat UserCommand
 
 UserCommand = 0;
 
-% Update UI, pull settings from UI
+% Update GUI
 %-------------------------------------------------------------------------------
-
 % Hide Start button, show Stop button
 set(findobj('Tag','StopButton'),'Visible','on');
 set(findobj('Tag','StartButton'),'Visible','off');
@@ -611,6 +594,15 @@ set(findobj('Tag','exportSetButton'),'Enable','off');
 set(findobj('Tag','sortIDSetButton'),'Enable','off');
 set(findobj('Tag','sortRMSDSetButton'),'Enable','off');
 
+% Change GUI status
+h = findobj('Tag','statusText');
+if ~strcmp(h.String,'running')
+  set(h,'String','running');
+  drawnow
+end
+
+% Pull settings from UI
+%-------------------------------------------------------------------------------
 % Determine selected method, target, and scaling
 fitdat.FitOpts.MethodID = get(findobj('Tag','MethodMenu'),'Value');
 fitdat.FitOpts.TargetID = get(findobj('Tag','TargetMenu'),'Value');
@@ -623,25 +615,15 @@ for iPar = 1:fitdat.nParameters
     fitdat.inactiveParams(iPar) = data{iPar,1}==0;
 end
 
-% Change GUI status
-h = findobj('Tag','statusText');
-if ~strcmp(h.String,'running')
-  set(h,'String','running');
-  drawnow
-end
-
 % Run fitting
 %-------------------------------------------------------------------------------
-fit = runFitting();
+result = runFitting();
 
-argsfit = fit.argsfit;
-BestSpec = fit.fitSpec;
-BestSpecScaled = fit.fitSpecScaled;
-bestx = fit.pfit;
-residuals = fit.residuals;
-rmsd = fit.rmsd;
+% Save result to fit set list
+fitdat.currFitSet = result;
 
-% GUI update
+
+% Update GUI with fit results
 %-------------------------------------------------------------------------------
 
 set(findobj('Tag','statusText'),'String','');
@@ -653,7 +635,7 @@ for p = 1:size(Data,1), Data{p,4} = '-'; end
 set(hTable,'Data',Data);
 
 % Hide current sim plot in data axes
-set(findobj('Tag','currsimdata'),'YData',NaN*ones(1,numel(fitdat.ExpSpec)));
+set(findobj('Tag','currsimdata'),'YData',NaN*ones(1,numel(fitdat.data)));
 hErrorLine = findobj('Tag','errorline');
 set(hErrorLine,'XData',1,'YData',NaN);
 axis(hErrorLine.Parent,'tight');
@@ -686,34 +668,13 @@ set(findobj('Tag','selectNoneButton'),'Enable','on');
 set(findobj('Tag','selectInvButton'),'Enable','on');
 set(findobj('Tag','ParameterTable'),'Enable','on');
 
-% Save current set to set list
-newFitSet.rmsd = rmsd;
-if strcmp(fitdat.FitOpts.Scaling,'none')
-    newFitSet.fitSpec = BestSpec;
-    newFitSet.expSpec = fitdat.ExpSpec;
-else
-    newFitSet.fitSpec = BestSpecScaled;
-    newFitSet.expSpec = fitdat.ExpSpecScaled;
-end
-newFitSet.residuals = residuals;
-newFitSet.bestx = bestx;
-%newFitSet.bestvalues = bestvalues;
-TargetKey = {'fcn','int','iint','diff','fft'};
-newFitSet.Target = TargetKey{fitdat.FitOpts.TargetID};
-if numel(argsfit)==1
-    newFitSet.Sys = argsfit{1};
-else
-    newFitSet.Sys = argsfit;
-end
-fitdat.currFitSet = newFitSet;
-
 end
 %===============================================================================
 
 
 %===============================================================================
-function rmsd = rmsd_(x,ExpSpec,FitData,FitOpt)
-[~,rmsd] = residuals_(x,ExpSpec,FitData,FitOpt);
+function rmsd = rmsd_(x,data,FitInfo,FitOpt)
+[~,rmsd] = residuals_(x,data,FitInfo,FitOpt);
 end
 %===============================================================================
 
@@ -751,7 +712,7 @@ else
 end
 simdata = out{FitInfo.OutArgument}; % pick appropriate output argument
 
-% Scale simulated spectrum to experimental spectrum ----------------------------
+% Scale simulated data to experimental data ------------------------------------
 simdata = rescale(simdata,expdata,FitOpt.Scaling);
 
 % Compute residuals ------------------------------------------------------------
@@ -763,7 +724,7 @@ isNewBest = rmsd<FitInfo.smallestError;
 
 if isNewBest
     FitInfo.smallestError = rmsd;
-    FitInfo.bestspec = simdata;
+    FitInfo.bestfit = simdata;
     FitInfo.bestpar = par;
 end
 
@@ -774,11 +735,11 @@ if FitInfo.GUI && UserCommand~=99
     % update plot
     x = 1:numel(expdata);
     set(findobj('Tag','expdata'),'XData',x,'YData',expdata);
-    set(findobj('Tag','bestsimdata'),'XData',x,'YData',real(FitInfo.bestspec));
+    set(findobj('Tag','bestsimdata'),'XData',x,'YData',real(FitInfo.bestfit));
     set(findobj('Tag','currsimdata'),'XData',x,'YData',real(simdata));
     
     % readjust vertical range
-    dispData = [expdata(:); real(FitInfo.bestspec(:)); real(simdata(:))];
+    dispData = [expdata(:); real(FitInfo.bestfit(:)); real(simdata(:))];
     maxy = max(dispData);
     miny = min(dispData);
     YLimits = [miny maxy] + [-1 1]*FitOpt.PlotStretchFactor*(maxy-miny);
@@ -864,11 +825,14 @@ end
 % Print parameters, and their uncertainties if availabe.
 function str = printparlist(par,pinfo,pci)
 
-% Round to least-significant digit plus 2 for printing
+% Determine least-significant digit
 err = (pci(:,2)-pci(:,1))/2;
 lsd = floor(log10(err)); % lowest significant digit 
-nDigits = 1; % number of digits to print beyond lowest-significant digit
-rndabs = @(x,n) round(x.*10.^-(lsd-nDigits)).*10.^(lsd-nDigits);
+
+% Round to least-significant digit plus one
+nAddDigits = 1; % number of digits to print beyond lowest-significant digit
+nDigits = lsd-nAddDigits;
+rndabs = @(x) round(x.*10.^-nDigits).*10.^nDigits;
 pci = rndabs(pci);
 par = rndabs(par);
 err = rndabs(err);
@@ -1013,7 +977,7 @@ if ~isempty(str)
         set(hTable,'Data',data);
         
         h = findobj('Tag','bestsimdata');
-        set(h,'YData',fitset.fitSpec);
+        set(h,'YData',fitset.fit);
         drawnow
     end
 else
@@ -1228,7 +1192,7 @@ excludedRegions = [];
 hAx = axes('Parent',hFig,'Units','pixels',...
     'Position',[10 10 640 580],'FontSize',8,'Layer','top');
 NaNdata = ones(1,numel(data))*NaN;
-dispData = fitdat.ExpSpecScaled;
+dispData = fitdat.dataScaled;
 maxy = max(dispData); miny = min(dispData);
 YLimits = [miny maxy] + [-1 1]*FitOpt.PlotStretchFactor*(maxy-miny);
 for r = 1:size(excludedRegions,1)
