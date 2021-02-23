@@ -1,6 +1,8 @@
 function ok = test()
 
-% Difficult test case
+% Difficult test case: R numerically very close to identity
+% This should give all-zero angles.
+% Specifically, alpha and gamma should be close to zero, and not close to 2*pi.
 
 gv = [
    0.00006080549145  -0.08505970942061  -0.99637585385033
@@ -8,5 +10,6 @@ gv = [
    0.99999987552710   0.00049860301059   0.00001846136337];
 
 R = gv*gv';
-a = eulang(R);
-ok = all(abs(a)<1e-8);
+angles = eulang(R);
+
+ok = areequal(angles,[0 0 0],1e-12,'abs');

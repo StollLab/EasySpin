@@ -4,20 +4,27 @@
 %   v = clebschgordan(jm1,jm2,jm)
 %   v = clebschgordan(j,m)
 %
-%   Returns the Clebsch-Gordan coefficient
+%   Returns the Clebsch-Gordan coefficient, also called vector coupling
+%   coefficient
 %
 %      (j1,j2,m1,m2|j1,j2,j,m)
 %
+%   involved in the coupling of two angular momenta j1 and j2 to
+%   resultant angular momemtum j.
+%
+%   j1,j2,m1,m2 are the quantum number for the uncoupled representation,
+%   and j1,j2,j,m are the quantum numbers for the coupled representation.
+%
 %   Definitons for alternative input forms
-%   a)  jm1 = [j1 m1] jm2 = [j2 m2], jm = [j m]
+%   a)  jm1 = [j1 m1], jm2 = [j2 m2], jm = [j m]
 %   b)  j = [j1 j2 j], m = [m1 m2 m]
 
 function value = clebschgordan(varargin)
 
-if (nargin==0), help(mfilename); return; end
+if nargin==0, help(mfilename); return; end
 
-% Parse input
-switch (nargin)
+% Parse input arguments
+switch nargin
   case 6
     [j1,j2,j,m1,m2,m] = deal(varargin{:});
   case 3
@@ -34,6 +41,7 @@ switch (nargin)
 end
 
 % Compute coefficient via 3-j symbol
+% see e.g. Brink & Satchler, Angular Momentum, 3rd ed., p. 39, eq. (3.3)
 value = (-1)^(j1-j2+m) * sqrt(2*j+1) * wigner3j(j1,j2,j,m1,m2,-m);
 
 return
