@@ -83,20 +83,13 @@ Value & Point group & \multicolumn{2}{c}{Unique surface} \\
 </pre>
 
 <p>
-Note that some unique surfaces have open &phi; borders. This is
-treated correctly by <code>sphgrid</code>. There are never knots on open
-borders.
-
-<code>GridSize</code> determines the number of knots on the quarter meridian
-&theta; = [0, &pi;/2], &phi;=0. The number of knots along the equator
-depends on the range of &phi;. Roughly, <code>GridSize</code> are taken for
-each quarter of the equator.
+Note that some unique surfaces have open &phi; borders. This is treated correctly by <code>sphgrid</code>. There are never knots on open borders.
 
 <p>
-The output <code>grid</code> is a structure with the fields <code>vecs</code>, <code>phi</code>, <code>theta</code>, and <code>weights</code>.
-<code>vecs</code> is a 3xn array containing the orientations as column vectors.
-<code>phi</code> and <code>theta</code> are the polar angles in radians.
-<code>weights</code> is a vector giving the solid angle of the surface patch that can be attributed to each knot, i.e. the (spherical) area of the Voronoi cell. The sum of all weight is normalised to 4&pi;.
+<code>GridSize</code> specifies the number of knots on the quarter meridian &theta; = [0, &pi;/2], &phi;=0, i.e. from the North pole to the equator. The number of knots along the equator depends on the range of &phi;. Roughly, <code>GridSize</code> knots are taken for each quarter of the equator.
+
+<p>
+The output <code>grid</code> is a structure with the fields <code>vecs</code>, <code>phi</code>, <code>theta</code>, and <code>weights</code>. <code>vecs</code> is a 3xn array containing the orientations as column vectors. <code>phi</code> and <code>theta</code> are the polar angles in radians. <code>weights</code> is a vector giving the solid angle of the surface patch that can be attributed to each knot, i.e. the (spherical) area of the Voronoi cell. The sum of all weight is normalised to 4&pi;.
 
 <div class="subtitle">Examples</div>
 
