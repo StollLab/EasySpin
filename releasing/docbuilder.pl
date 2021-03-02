@@ -39,7 +39,7 @@ if (not -e $templatefile) {
 # check if documentation folder already exists and delete if yes
 if (-e $documentationdir) {
   if ($isWindows) {
-    system("rmdir /s /q $documentationdir ");
+    system("rd /s /q $documentationdir ");
   }
   else{
     system("rm -R $documentationdir");
@@ -49,7 +49,7 @@ if (-e $documentationdir) {
 # delete the temporary latex directory if it exists
 if (-e $tempdir) {
   if ($isWindows) {
-    system("rmdir /s /q $tempdir ");
+    system("rd /s /q $tempdir ");
   }
   else {
     system("rm -R $tempdir");
@@ -60,7 +60,7 @@ if (-e $tempdir) {
 $htmltemplatedir = File::Spec->catdir($documentationdir, "templates");
 if ($isWindows) {
     system("xcopy /E $sourcedir $documentationdir\\ > NUL"); # double slash \\ is required so that Windows understand it is a directory
-    system("rmdir /s /q $htmltemplatedir ");
+    system("rd /s /q $htmltemplatedir ");
   }
 else{
     system("cp -r $sourcedir $documentationdir");
@@ -118,9 +118,7 @@ foreach $htmlfile (@names) {
 
 
     if ($n_equations>0) {
-      print "=====================================================\n";
       print "  ".$htmlfile.":  ".$n_equations." latex expressions\n";
-      print "=====================================================\n";
       
       $latex = join("\n\\newpage\n",@latexcode);
 
@@ -192,7 +190,7 @@ foreach $htmlfile (@names) {
 
 if (-e "$tempdir") {
   if ($isWindows) {
-    system("rmdir /s /q $tempdir ");
+    system("rd /s /q $tempdir ");
   }
   else {
     system("rm -R $tempdir");
