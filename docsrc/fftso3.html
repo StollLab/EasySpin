@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>fftso3</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/academy" target="_blank">Academy</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">fftso3</div>
+
+<p>
+Fast Fourier transform over the rotation group SO(3).
+</p>
+
+<!-- ============================================================= -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+c = fftso3(fcn,Lmax)
+c = fftso3(fcn,Lmax,nrm)
+</pre>
+
+<!-- ============================================================= -->
+<div class="subtitle">Description</div>
+
+<p>
+<code>fftso3</code> takes the function specified by the function handle <code>fcn</code> and calculates its Fourier coefficients over the space of rotations.
+</p>
+
+<p>
+<code>fcn</code> is a function handle for a function <code>fcn(alpha,beta,gamma</code> defined over the three <a href="eulerangles.html">Euler angles</a> <code>alpha</code>, <code>beta</code>, and <code>gamma</code>, in radians.
+</p>
+    
+<p>
+The Fourier expansion is in terms of Wigner functions
+</p>
+
+<div class="eqn">
+    <img src="eqn/fftso31.png" alt="[eqn]"><!--MATH
+    \begin{equation*}
+      f(\alpha,\beta,\gamma) =
+      \sum_{L=0}^\infty
+      \sum_{M=-L}^{L}
+      \sum_{K=-L}^{L}
+      f^L_{MK}
+      D^L_{MK}(\alpha,\beta,\gamma)
+    \end{equation*}
+    -->
+</div>
+
+<p>
+<code>Lmax</code> is the maxmium value of L.
+</p>
+
+<p>
+<code>nrm</code> is optional and can be <code>false</code> (default) or <code>true</code>. If <code>true</code>, the normalized Wigner functions are used in the above expansion instead of the standard un-normalized Wigner functions.
+</p>
+
+
+<p>
+<code>c</code> is a cell array with <code>Lmax</code> elements. <code>c{L+1}</code> contains the (2L+1)x(2L+1) matrix of coefficients for a given L, with both M and K in ascending order. In other words, <img src="eqn/fftso32.png" alt="[eqn]"><!--MATH$f^L_{MK}$--> is given by <code>c{L+1}(L+1+M,L+1+K)</code>.
+</p>
+
+<!-- ============================================================= -->
+<div class="subtitle">Examples</div>
+
+<p>
+Here is a simple example that takes a Wigner function and returns the Fourier transform. Since the function is a single Wigner function, only a single coefficient is non-zero.
+</p>
+
+<pre class="matlab">
+f = @(a,b,c)132*wignerd([1 1 -1],a,b,c);
+c = fftso3(f,2)
+c{2}
+</pre>
+<pre class="mloutput">
+ans =
+    0.0000 + 0.0000i   0.0000 + 0.0000i   0.0000 + 0.0000i
+    0.0000 + 0.0000i   0.0000 + 0.0000i   0.0000 + 0.0000i
+   10.0000 - 0.0000i   0.0000 + 0.0000i   0.0000 + 0.0000i
+</pre>
+
+
+<!-- ============================================================= -->
+<div class="subtitle">Algorithm</div>
+
+<p>
+See Kostelec & Rockmore, FFTs on the Rotation Group, J. Fourier Anal. Appl., 2008, 14, 145-179.
+</p>
+
+<!-- ============================================================= -->
+<div class="subtitle">See also</div>
+
+<p>
+<a class="esf" href="erot.html">erot</a>,
+<a class="esf" href="eulang.html">eulang</a>,
+<a class="esf" href="wignerd.html">wignerd</a>
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+</html>
