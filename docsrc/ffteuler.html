@@ -7,7 +7,7 @@
    <link rel="stylesheet" href="highlight/matlab.css">
    <script src="highlight/highlight.pack.js"></script>
    <script>hljs.initHighlightingOnLoad();</script>
-   <title>fftso3</title>
+   <title>ffteuler</title>
 </head>
 
 <body>
@@ -26,7 +26,7 @@
 
 <section>
 
-<div class="functitle">fftso3</div>
+<div class="functitle">ffteuler</div>
 
 <p>
 Fast Fourier transform over the rotation group SO(3).
@@ -36,27 +36,28 @@ Fast Fourier transform over the rotation group SO(3).
 <div class="subtitle">Syntax</div>
 
 <pre class="matlab">
-c = fftso3(fcn,Lmax)
-c = fftso3(fcn,Lmax,nrm)
+c = ffteuler(fcn,Lmax)
+[LMK,vals] = ffteuler(fcn,Lmax)
+[c,LMK,vals] = ffteuler(fcn,Lmax)
 </pre>
 
 <!-- ============================================================= -->
 <div class="subtitle">Description</div>
 
 <p>
-<code>fftso3</code> takes the function specified by the function handle <code>fcn</code> and calculates its Fourier coefficients over the space of rotations.
+<code>ffteuler</code> takes the function specified by the function handle <code>fcn</code> and calculates its Fourier coefficients over the space of rotations.
 </p>
 
 <p>
-<code>fcn</code> is a function handle for a function <code>fcn(alpha,beta,gamma</code> defined over the three <a href="eulerangles.html">Euler angles</a> <code>alpha</code>, <code>beta</code>, and <code>gamma</code>, in radians.
+<code>fcn</code> is a function handle for a function <code>fcn(alpha,beta,gamma)</code> defined over the three <a href="eulerangles.html">Euler angles</a> <code>alpha</code>, <code>beta</code>, and <code>gamma</code>, in radians. <code>fcn</code> should be able to handle array inputs for <code>alpha</code> and <code>gamma</code>.
 </p>
-    
+
 <p>
 The Fourier expansion is in terms of Wigner functions
 </p>
 
 <div class="eqn">
-    <img src="eqn/fftso31.png" alt="[eqn]"><!--MATH
+    <img src="eqn/ffteuler1.png" alt="[eqn]"><!--MATH
     \begin{equation*}
       f(\alpha,\beta,\gamma) =
       \sum_{L=0}^\infty
@@ -73,13 +74,13 @@ The Fourier expansion is in terms of Wigner functions
 </p>
 
 <p>
-<code>nrm</code> is optional and can be <code>false</code> (default) or <code>true</code>. If <code>true</code>, the normalized Wigner functions are used in the above expansion instead of the standard un-normalized Wigner functions.
+<code>c</code> is a cell array with <code>Lmax</code> elements. <code>c{L+1}</code> contains the (2L+1)x(2L+1) matrix of coefficients for a given L, with both M and K in ascending order. In other words, <img src="eqn/ffteuler2.png" alt="[eqn]"><!--MATH$f^L_{MK}$--> is given by <code>c{L+1}(L+1+M,L+1+K)</code>.
 </p>
-
 
 <p>
-<code>c</code> is a cell array with <code>Lmax</code> elements. <code>c{L+1}</code> contains the (2L+1)x(2L+1) matrix of coefficients for a given L, with both M and K in ascending order. In other words, <img src="eqn/fftso32.png" alt="[eqn]"><!--MATH$f^L_{MK}$--> is given by <code>c{L+1}(L+1+M,L+1+K)</code>.
+<code>LMK</code> is a list of (L,M,K) triplets of the coefficients with non-zero values, with one triplet per row. <code>vals</code> is the corresponding list of values.
 </p>
+  
 
 <!-- ============================================================= -->
 <div class="subtitle">Examples</div>
@@ -89,8 +90,8 @@ Here is a simple example that takes a Wigner function and returns the Fourier tr
 </p>
 
 <pre class="matlab">
-f = @(a,b,c)132*wignerd([1 1 -1],a,b,c);
-c = fftso3(f,2)
+f = @(a,b,c)10*wignerd([1 1 -1],a,b,c);
+c = ffteuler(f,2);
 c{2}
 </pre>
 <pre class="mloutput">
@@ -105,7 +106,7 @@ ans =
 <div class="subtitle">Algorithm</div>
 
 <p>
-See Kostelec & Rockmore, FFTs on the Rotation Group, J. Fourier Anal. Appl., 2008, 14, 145-179.
+See Kostelec & Rockmore, FFTs on the Rotation Group, J. Fourier Anal. Appl., 2008, 14, 145-179, <a href="https://doi.org/10.1007/s00041-008-9013-5">https://doi.org/10.1007/s00041-008-9013-5</a>.
 </p>
 
 <!-- ============================================================= -->

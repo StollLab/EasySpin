@@ -5,7 +5,7 @@ f = @(a,b,c)exp(-0.2*wignerd([2 1 1],a,b,c)-0.4*wignerd([1 0 -1],a,b,c));
 
 % Calculate FFT
 Lmax = 12;
-c = fftso3(f,Lmax);
+c = ffteuler(f,Lmax);
 
 % Pick random orientation
 rng(252);
