@@ -54,31 +54,34 @@ alpha = 2*pi*k/(2*B); % radians
 beta = pi*(2*k+1)/(4*B); % radians
 gamma = 2*pi*k/(2*B); % radians
 [alpha,gamma] = ndgrid(alpha,gamma); % 2D array for function evaluations
+nbeta = numel(beta);
 
 % Calculate 2D inverse FFT along alpha and gamma, one for each beta
-S = cell(1,2*B);
-for j = 0:2*B-1
-  f = fcn(alpha,beta(j+1),gamma); % evaluate function over (alpha,gamma) grid
+S = cell(1,nbeta);
+for j = 1:nbeta
+  f = fcn(alpha,beta(j),gamma); % evaluate function over (alpha,gamma) grid
   S_ = (2*B)^2*ifft2(f); % remove the prefactor included by ifft2()
   S_ = fftshift(S_); % reorder to M1,M2 = -B, -B+1, ..., 0, ..., B-1
-  S{j+1} = S_;
+  S{j} = S_;
 end
 
 % Calculate beta weights
 q = 0:B-1; % summation index
-for j = 2*B-1:-1:0
-  wB(j+1) = 2*pi/B^2 * sin(beta(j+1)) * sum(sin((2*q+1)*beta(j+1))./(2*q+1));
+wB = zeros(1,nbeta);
+for j = 1:nbeta
+  wB(j) = 2*pi/B^2 * sin(beta(j)) * sum(sin((2*q+1)*beta(j))./(2*q+1));
 end
 
 % Calculate Wigner d-function values for all L and beta, with matrix exponential
-d = cell(Lmax+1,2*B);
+d = cell(Lmax+1,nbeta);
 for L = 0:Lmax
   v = sqrt((1:2*L).*(2*L:-1:1))/2i; % off-diagonals of Jy matrix
   Jy = diag(v,-1) - diag(v,1); % Jy matrix (M1,M2 = -Lmax,-Lmax+1,...,Lmax)
-  [U,~] = eig(Jy);
-  for j = 0:2*B-1
-    e = exp(-1i*beta(j+1)*(-L:L));
-    d{L+1,j+1} = (U .* e) * U'; % equivalent to U*diag(e)*U'
+  [U,LL] = eig(Jy);
+  LL = diag(LL).'; % equal to -L:L
+  for j = 1:nbeta
+    e = exp(-1i*beta(j)*LL);
+    d{L+1,j} = (U .* e) * U'; % equivalent to U*diag(e)*U'
   end
 end
 
@@ -87,8 +90,8 @@ c = cell(Lmax+1,1);
 for L = 0:Lmax
   c_ = zeros(2*L+1);
   idx = (Lmax+2)+(-L:L); % to access the range M,K = -L:L
-  for j = 0:2*B-1 % run over all beta values
-    c_ = c_ + wB(j+1)*d{L+1,j+1}.*S{j+1}(idx,idx);
+  for j = 1:nbeta % run over all beta values
+    c_ = c_ + wB(j)*d{L+1,j}.*S{j}(idx,idx);
   end
   c{L+1} = (2*L+1)/(8*pi*B)*c_;
 end
@@ -115,7 +118,6 @@ if returnList
       vals = [vals; vals_];
     end
   end
-else
 end
 
 % Organize output
