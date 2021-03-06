@@ -113,7 +113,7 @@ if returnList
   LMK = [];
   vals = [];
   for L = 0:Lmax
-    [idxM,idxK,vals_] = find(c{L+1});
+    [idxK,idxM,vals_] = find(c{L+1}.'); % transpose to assure lexicographic order of L,M,K
     nNonzero = numel(vals_);
     if nNonzero>0
       LMK = [LMK; repmat(L,nNonzero,1) idxM-L-1 idxK-L-1];
