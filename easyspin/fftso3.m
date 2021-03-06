@@ -1,8 +1,8 @@
-% ffteuler   Fast Fourier transform over the rotation group SO(3)
+% fftso3   Fast Fourier transform over the rotation group SO(3)
 %
-%   c = ffteuler(fcn,Lmax)
-%   [LMK,vals] = ffteuler(fcn,Lmax)
-%   [c,LMK,vals] = ffteuler(fcn,Lmax)
+%   c = fftso3(fcn,Lmax)
+%   [LMK,vals] = fftso3(fcn,Lmax)
+%   [c,LMK,vals] = fftso3(fcn,Lmax)
 %
 % Takes the function fcn(alpha,beta,gamma) defined over the Euler angles
 % 0<=alpha<2*pi, 0<=beta<=pi, 0<=gamma<2*pi and calculates the coefficients
@@ -36,7 +36,7 @@
 %    arXiv:1808.00896 [cs.DC]
 %    https://arxiv.org/abs/1808.00896
 
-function varargout = ffteuler(fcn,Lmax)
+function varargout = fftso3(fcn,Lmax)
 
 if nargin==0
   help(mfilename);
@@ -49,11 +49,13 @@ end
 B = Lmax+1; % bandwidth (0 <=L < B)
 
 % Set up sampling grid over (alpha,beta,gamma)
-k = 0:2*B-1;
-alpha = 2*pi*k/(2*B); % radians
-beta = pi*(2*k+1)/(4*B); % radians
-gamma = 2*pi*k/(2*B); % radians
+k = 0:2*B-2;
+alpha = 2*pi*k/(2*B-1); % radians
+gamma = 2*pi*k/(2*B-1); % radians
 [alpha,gamma] = ndgrid(alpha,gamma); % 2D array for function evaluations
+
+k = 0:2*B-1;
+beta = pi*(2*k+1)/(4*B); % radians
 nbeta = numel(beta);
 
 % Calculate 2D inverse FFT along alpha and gamma, one for each beta
@@ -89,7 +91,7 @@ end
 c = cell(Lmax+1,1);
 for L = 0:Lmax
   c_ = zeros(2*L+1);
-  idx = (Lmax+2)+(-L:L); % to access the range M,K = -L:L
+  idx = (Lmax+1)+(-L:L); % to access the range M,K = -L:L
   for j = 1:nbeta % run over all beta values
     c_ = c_ + wB(j)*d{L+1,j}.*S{j}(idx,idx);
   end

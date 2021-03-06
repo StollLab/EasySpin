@@ -13,7 +13,7 @@ for L = 0:Lmax
       
       f = @(a,b,c) A*wignerd([L M K],a,b,c);
       
-      [LMK,A_] = ffteuler(f,Lmax);
+      [LMK,A_] = fftso3(f,Lmax);
       
       idx = idx + 1;
       ok(idx) = all(LMK==[L M K]) && areequal(A_,A,1e-10,'abs');
