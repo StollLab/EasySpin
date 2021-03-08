@@ -21,12 +21,12 @@ In order to build the documentation you need to have perl and latex installed.
 #### Unix system:
 * Install perl with 
     ```bash
-    sudo apt-get install perl
+    sudo apt install perl
     ```
 * Install LaTeX with 
     ```bash
-    sudo apt-get install texlive-latex-extra
-    sudo apt-get install latex2html
+    sudo apt install texlive-latex-extra
+    sudo apt install latex2html
     ```
 
 ## Building the documentation

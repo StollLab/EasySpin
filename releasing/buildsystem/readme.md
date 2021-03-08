@@ -104,8 +104,13 @@ sudo apt install git
 
 - Build a specific tag
 	```bash
-	perl build.pl 5.3.1
+	perl build.pl v6.0.0-dev.30
 	```
+	or 
+	```bash
+	perl build.pl 6.0.0-dev.29
+	```
+	for tags that use the deprecated semantic versioning.
 	This only builds the specified EasySpin version, but does not upload anything.
 		
 ## Uploading to easyspin.org - `publish.pl`
