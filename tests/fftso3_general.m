@@ -17,7 +17,7 @@ for L = 0:Lmax
     end
   end
 end
-f = @(a,b,c)fcn(LMK,vals,a,b,c);
+f = @(a,b,c)wignersum(LMK,vals,a,b,c);
 
 % Calculate Fourier transform
 [LMK_,vals_] = fftso3(f,Lmax);
@@ -26,7 +26,7 @@ ok = areequal(vals,vals_,1e-10,'abs') && areequal(LMK,LMK_);
 
 end
 
-function y = fcn(LMK,v,a,b,c)
+function y = wignersum(LMK,v,a,b,c)
 y = 0;
 for q = 1:numel(v)
   y = y + v(q)*wignerd(LMK(q,:),a,b,c);
