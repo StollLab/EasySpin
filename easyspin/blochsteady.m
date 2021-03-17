@@ -59,7 +59,7 @@ EasySpinLogLevel = Options.Verbosity;
 logmsg(1,['=begin=blochsteady======' datestr(now) '=================']);
 
 if ~isfield(Options,'nPoints')
-  Options.nPoints = 1000;
+  Options.nPoints = [];
 end
 if ~isfield(Options,'Method')
   Options.Method = 'fft';
