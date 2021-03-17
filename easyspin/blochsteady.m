@@ -124,7 +124,7 @@ if ~isfield(Options,'kmax') || isempty(Options.kmax)
   
   % Combine (1) and (2)
   minkmax = 20;
-  kmax = min(kmax,thresholdorder);
+  kmax = max(kmax,thresholdorder);
   kmax = max(kmax,minkmax); % at least 20
   logmsg(1,'  smaller of the two, but at least %d: %d',minkmax,kmax);
   
