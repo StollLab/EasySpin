@@ -3,18 +3,18 @@
 ## 1. Install and set up `perl`:
 
 ```bash
-sudo apt-get install perl
+sudo apt install perl
 ```
 
 Install packages:
 ```bash
-apt-get install libgmp-dev
+sudo apt install libgmp-dev
 sudo cpan Net::SSH::Perl
 ```
 
 If building failes with `"Could not make: unknown error"` the `make` command might be missing. Install it with 
 ```bash
-sudo apt-get install build-essential
+sudo apt install build-essential
 ```
 If it still does not install, force the install even if dependencies are missing or not passing all tests: 
 ```bash
@@ -26,7 +26,7 @@ sudo cpan install -f Net::SSH::Perl
 
 1. Make sure `ssh` is installed
 	```bash
-	sudo apt-get install ssh 
+	sudo apt install ssh 
 	```
 2. Copy key files `hostmonster_rsa` and `github_rsa` (need to create one for user) to: `~/.ssh/`.
 
@@ -71,8 +71,8 @@ Add the following to `~/.bash_profile`, if `.bash_profile` does not exist, just 
 	
 ## 3. Install TexLive
 ```bash
-sudo apt-get install texlive-latex-extra
-sudo apt-get install latex2html
+sudo apt install texlive-latex-extra
+sudo apt install latex2html
 ```
 
 ## 4. Have MATLAB installed and verify that you can run it
@@ -82,7 +82,7 @@ matlab -help
 
 ## 5. Install and setup up git
 ```bash
-sudo apt-get install git
+sudo apt install git
 ```
 	
 
@@ -104,8 +104,13 @@ sudo apt-get install git
 
 - Build a specific tag
 	```bash
-	perl build.pl 5.3.1
+	perl build.pl v6.0.0-dev.30
 	```
+	or 
+	```bash
+	perl build.pl 6.0.0-dev.29
+	```
+	for tags that use the deprecated semantic versioning.
 	This only builds the specified EasySpin version, but does not upload anything.
 		
 ## Uploading to easyspin.org - `publish.pl`

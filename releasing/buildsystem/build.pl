@@ -86,7 +86,7 @@ unless ($ARGV[0]) {
 
     # process the hg AvailableTags File and grab the NumericVersion numbers, including the dev NumericVersions, but not 'tip'
     foreach (@TagFile) {
-        my @BuildID = ($_ =~ m/(\d+)\.(\d+)\.(\d+)(.*?)\s/);
+        my @BuildID = ($_ =~ m/v?(\d+)\.(\d+)\.(\d+)(.*?)\s/);
 
         if (@BuildID and $BuildID[0]){
             my $NumericVersion = 100000*$BuildID[0]+1000*$BuildID[1]+$BuildID[2];
@@ -103,7 +103,7 @@ unless ($ARGV[0]) {
 
     # scan through all the AvailableTags, and compare them to the NewestVersions
     foreach (@AvailableTags) {
-        my @BuildID = ($_ =~ m/(\d+).(\d+).(\d+)(.*)/); # match major, minor, patch and everything that follows
+        my @BuildID = ($_ =~ m/v?(\d+).(\d+).(\d+)(.*)/); # match major, minor, patch and everything that follows
         my $NumericVersion = 100000*$BuildID[0]+1000*$BuildID[1]+$BuildID[2];
         
         if ($BuildID[3]){ # check if the currently processed tag is a developer NumericVersion
@@ -145,7 +145,7 @@ unless ($ARGV[0]) {
 
     my $zipFiles = '';
     for my $File (@AvailableBuilds) {
-        my @BuildID = ($File =~ m/(\d+).(\d+).(\d+)(.*).zip/);
+        my @BuildID = ($File =~ m/v?(\d+).(\d+).(\d+)(.*).zip/);
         if (@BuildID){
             my $ID = "$BuildID[0].$BuildID[1].$BuildID[2]$BuildID[3],";
             $zipFiles = join( "", $zipFiles, $ID);
@@ -167,7 +167,7 @@ else {
     my $TagExists = 0;
 
     # try to match the commandline argument against the semantic versioning
-    my @SemanticBuildID = ($cmdLineArgument =~ m/(\d+)\.(\d+)\.(\d+)(.*?)/);
+    my @SemanticBuildID = ($cmdLineArgument =~ m/v?(\d+)\.(\d+)\.(\d+)(.*?)/);
 
     # if argument corresponds to semantic versioning, make sure version is newer than cutoff version
     if (@SemanticBuildID){
@@ -193,11 +193,16 @@ else {
     push @TagsToBuild, $cmdLineArgument;
 }
 
-print("The following versions will now be built: @TagsToBuild \n");
+if (@TagsToBuild == 0) {
+    print("No new versions to build. \n");
+}
+else {
+    print("The following versions will now be built: @TagsToBuild \n");
+}
 
 # ---------------------------------------------------------------------------------
 # Processes all the TagsToBuild
-my $MatchPattern = '(\d+).(\d+).(\d+)-?([a-z]+)?[-.]?(\d+)?';
+my $MatchPattern = 'v?(\d+).(\d+).(\d+)-?([a-z]+)?[-.]?(\d+)?';
 
 # loop over all tags that should be built
 foreach (@TagsToBuild) {
