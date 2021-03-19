@@ -50,7 +50,7 @@ end
 % Generate initial population
 Population = lb+ (ub-lb).*rand(FitOpt.PopulationSize,nParams);
 
-BestScore = inf;
+bestScore = inf;
 bestx = zeros(size(Population(1,:)));
 
 % Score initial population
@@ -60,9 +60,9 @@ end
 Scores = ones(1,FitOpt.PopulationSize)*inf;
 for k = 1:FitOpt.PopulationSize
   Scores(k) = feval(fcn,Population(k,:));
-  if Scores(k)<BestScore
+  if Scores(k)<bestScore
     bestx = Population(k,:);
-    BestScore = Scores(k);
+    bestScore = Scores(k);
   end
   if UserCommand==1, stopCode = 3; break; end
 end
@@ -76,7 +76,7 @@ while true
   
   if stopCode, break; end
 
-  if min(Scores)<BestScore, BestScore = min(Scores); end
+  if min(Scores)<bestScore, bestScore = min(Scores); end
   
   if FitOpt.PrintLevel
     str = sprintf('gen %5d:  min %g   mean %g',g,min(Scores),mean(Scores));
@@ -84,7 +84,7 @@ while true
   end
   
   if g>=FitOpt.maxGenerations, stopCode = 1; break; end
-  if BestScore<FitOpt.TolFun, stopCode = 2; break; end
+  if bestScore<FitOpt.TolFun, stopCode = 2; break; end
   if UserCommand==1, stopCode = 3; break; end
   
   % (1) Selection
@@ -111,11 +111,11 @@ while true
   InitialVariance = 0.3*(ub-lb);
   Variance = InitialVariance*(1-g/FitOpt.maxGenerations);
   if Variance<0, Variance = 0; end
-  for k=1:FitOpt.PopulationSize
-    Offspring(k,:) = Offspring(k,:) + randn(1,nParams)*Variance;
+  Offspring = Offspring + randn(FitOpt.PopulationSize,nParams).*Variance;
+  for p = 1:nParams
+    Offspring(Offspring(:,p)<lb,p) = lb(p);
+    Offspring(Offspring(:,p)>ub,p) = ub(p);
   end
-  Offspring(Offspring<lb) = lb;
-  Offspring(Offspring>ub) = ub;
   
   % (4) Reinsertion
   %-----------------------------------------------
@@ -135,8 +135,8 @@ while true
 
   [Scores,idx] = sort(Scores);
   Population = Population(idx,:);
-  if Scores(1)<BestScore
-    BestScore = Scores(1);
+  if Scores(1)<bestScore
+    bestScore = Scores(1);
     bestx = Population(1,:);
   end
   Fitness = Scores(end) - Scores;

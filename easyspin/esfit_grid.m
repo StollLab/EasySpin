@@ -64,7 +64,7 @@ for k = 1:nGridPoints
     minF = F;
     bestx = X(k,:);
     if FitOpt.PrintLevel
-      str = sprintf('  Point %4d:   error %0.5e  best so far',k,F);
+      str = sprintf('  Point %4d/%d:   error %0.5e  best so far',k,nGridPoints,F);
       FitOpt.IterationPrintFunction(str);
     end
   end

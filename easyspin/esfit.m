@@ -39,6 +39,7 @@
 %       .argsfit    fitter input arguments (if EasySpin-style)
 %       .fitraw     simulated data, as returned by the simulation/model function
 %       .fit        simulated data, scaled to the experimental ones
+%       .scale      scale factor
 %       .ci95       95% confidence intervals for all parameters
 %       .corr       correlation matrix for all parameters
 %       .cov        covariance matrix for all parameters
@@ -133,9 +134,6 @@ if isstruct(data) || ~isnumeric(data)
 end
 fitdat.nDatasets = 1;
 fitdat.data = data;
-
-fitdat.scale = max(abs(data(:)));
-fitdat.dataScaled = data/fitdat.scale;
 
 % Model function
 %-------------------------------------------------------------------------------
@@ -258,7 +256,7 @@ else
   fitdat.OutArgument = FitOpt.OutArg(2);  
 end
 
-if ~isfield(FitOpt,'Scaling'), FitOpt.Scaling = 'lsq0'; end
+if ~isfield(FitOpt,'Scaling'), FitOpt.Scaling = 'lsq'; end
 
 if ~isfield(FitOpt,'Method'), FitOpt.Method = ''; end
 FitOpt.MethodID = 1; % simplex
@@ -431,7 +429,7 @@ switch fitdat.FitOpts.Startpoint
 end
 fitdat.p_start = p_start;
 
-data_ = fitdat.dataScaled;
+data_ = fitdat.data;
 
 % Run minimization over space of active parameters
 %-------------------------------------------------------------------------------
@@ -464,10 +462,8 @@ if sum(active)>0
   pfit(active) = pfit_a;
 end
 
-% Finish up
-%-------------------------------------------------------------------------------
-
 % Simulate model fit
+%-------------------------------------------------------------------------------
 if fitdat.structureInputs
   argsfit = fitdat.p2args(pfit);
   [out{1:fitdat.nOutArguments}] = fitdat.fcn(argsfit{:});
@@ -477,38 +473,45 @@ else
 end
 
 fitraw = out{fitdat.OutArgument}; % pick last output argument
+fitraw = reshape(fitraw,size(fitdat.data));
 
-fit = rescale(fitraw,fitdat.data,fitdat.FitOpts.Scaling);
+[fit,scale] = rescale(fitraw,fitdat.data,fitdat.FitOpts.Scaling);
 
-% Calculate residuals and rmsd
+% Calculate metrics for goodness of fit
+%-------------------------------------------------------------------------------
 residuals = calculateResiduals(fit(:),fitdat.data(:),fitdat.FitOpts.TargetID);
 residuals = residuals.'; % col -> row
-rmsd = sqrt(mean(residuals.^2));
+ssr = sum(residuals.^2); % sum of squared residuals
+rmsd = sqrt(mean(residuals.^2)); % root-mean-square deviation
 
-% Calculate parameter confidence intervals and correlation matrix
+% Calculate parameter uncertainties
 %-------------------------------------------------------------------------------
 disp('Calculating parameter uncertainties...');
 disp('  Estimating Jacobian...');
 maxRelStep = min((ub-pfit),(pfit-lb))./pfit;
-J = jacobianest(residualfun,pfit,maxRelStep);
-if any(isnan(J(:)))
-  disp('  NaN elements in Jacobian, cannot calculate parameter uncertainties.');
-  covmatrix = [];
-  corrmatrix = [];
-  ci = @(pctl)[];
-  UQdone = false;
-else
+J = jacobianest(residualfun,pfit);
+if ~any(isnan(J(:)))
   disp('  Calculating parameter covariance matrix...');
+
+  % Calculate covariance matrix
   covmatrix = hccm(J,residuals,'HC1');
   
+  % Calculate confidence intervals
+  norm_icdf = @(p)-sqrt(2)*erfcinv(2*p); % inverse of standard normal cdf
+  ci = @(pctl)norm_icdf(1/2+pctl/2)*sqrt(diag(covmatrix));
+  pctl = 0.95;
+  ci95 = pfit + ci(pctl)*[-1 1];
+
   % Calculate correlation matrix
   disp('  Calculating parameter correlation matrix...');
   Q = diag(diag(covmatrix).^(-1/2));
   corrmatrix = Q*covmatrix*Q;
-  
-  norm_icdf = @(p)-sqrt(2)*erfcinv(2*p); % inverse of standard normal cdf
-  ci = @(pctl)norm_icdf(1/2+pctl/2)*sqrt(diag(covmatrix));
-  UQdone = true;
+else
+  disp('  NaN elements in Jacobian, cannot calculate parameter uncertainties.');
+  covmatrix = [];
+  corrmatrix = [];
+  ci = @(pctl)[];
+  ci95 = [];
 end
 
 % Report
@@ -516,17 +519,14 @@ end
 if fitdat.FitOpts.PrintLevel && UserCommand~=99
   disp('---------------------------------------------------------');
   fprintf('Goodness of fit:\n');
-  fprintf('   ssr             %g\n',sum(residuals.^2));
+  fprintf('   ssr             %g\n',ssr);
   fprintf('   rmsd            %g\n',rmsd);
   fprintf('   noise std       %g (estimated from residuals)\n',std(residuals));
   fprintf('   chi^2           %g (using noise std estimate; upper limit)\n',rmsd^2/var(residuals));
-  if UQdone
-    pctl = 0.95;
-    ci95 = pfit + ci(pctl)*[-1 1]/std(residuals);
+  if ~isempty(covmatrix)
     fprintf('Best-fit parameter values (%d%% confidence intervals):\n',100*pctl);
   else
     disp('Best-fit parameter values without confidence intervals:');
-    ci95 = [];
   end
   str = printparlist(pfit,fitdat.pinfo,ci95);
   fprintf(str);
@@ -552,6 +552,7 @@ end
 %-------------------------------------------------------------------------------
 result.argsfit = argsfit;
 result.fit = fit;
+result.scale = scale;
 result.fitraw = fitraw;
 result.residuals = residuals;
 result.pfit = pfit;
@@ -559,6 +560,7 @@ result.ci95 = ci95;
 result.cov = covmatrix;
 result.corr = corrmatrix;
 result.rmsd = rmsd;
+result.ssr = ssr;
 
 end
 
@@ -680,22 +682,15 @@ end
 
 
 %===============================================================================
-function varargout = residuals_(x,expdata,FitInfo,FitOpt)
+function [residuals,rmsd,simdata,simscale] = residuals_(x,expdata,FitInfo,FitOpt)
 
-global UserCommand
-
-if ~isfield(FitInfo,'smallestError') || isempty(FitInfo.smallestError)
-    FitInfo.smallestError = inf;
-end
-if ~isfield(FitInfo,'errorlist')
-    FitInfo.errorlist = [];
-end
-
-% Evaluate model function-------------------------------------------------------
+% Assemble full parameter vector ------------------------------------------------
 p_all = FitInfo.p_start;
 active = ~FitInfo.inactiveParams;
 p_all(active) = x;
 par = p_all;
+
+% Evaluate model function  ------------------------------------------------------
 if FitInfo.structureInputs
   args = FitInfo.p2args(par);
   try
@@ -712,12 +707,19 @@ else
 end
 simdata = out{FitInfo.OutArgument}; % pick appropriate output argument
 
-% Scale simulated data to experimental data ------------------------------------
-simdata = rescale(simdata,expdata,FitOpt.Scaling);
+[simdata,simscale] = rescale(simdata(:),expdata(:),FitOpt.Scaling);
 
 % Compute residuals ------------------------------------------------------------
 residuals = calculateResiduals(simdata(:),expdata(:),FitOpt.TargetID);
 rmsd = real(sqrt(mean(residuals.^2)));
+
+% Keep track of errors ---------------------------------------------------------
+if ~isfield(FitInfo,'smallestError') || isempty(FitInfo.smallestError)
+    FitInfo.smallestError = inf;
+end
+if ~isfield(FitInfo,'errorlist')
+    FitInfo.errorlist = [];
+end
 
 FitInfo.errorlist = [FitInfo.errorlist rmsd];
 isNewBest = rmsd<FitInfo.smallestError;
@@ -730,6 +732,7 @@ end
 
 % Update GUI
 %-------------------------------------------------------------------------------
+global UserCommand
 if FitInfo.GUI && UserCommand~=99
     
     % update plot
@@ -814,9 +817,6 @@ if UserCommand==2
     disp('---------------------------------------------')
 end
 
-out = {residuals,rmsd,simdata};
-varargout = out(1:nargout);
-
 end
 %===============================================================================
 
@@ -827,11 +827,12 @@ function str = printparlist(par,pinfo,pci)
 
 % Determine least-significant digit
 err = (pci(:,2)-pci(:,1))/2;
-lsd = floor(log10(err)); % lowest significant digit 
+lsd = floor(log10(err)); % lowest significant digit
+lsd = max(lsd,log10(par)-4); % catch cases where err==0
 
 % Round to least-significant digit plus one
 nAddDigits = 1; % number of digits to print beyond lowest-significant digit
-nDigits = lsd-nAddDigits;
+nDigits = lsd - nAddDigits;
 rndabs = @(x) round(x.*10.^-nDigits).*10.^nDigits;
 pci = rndabs(pci);
 par = rndabs(par);
@@ -1192,7 +1193,7 @@ excludedRegions = [];
 hAx = axes('Parent',hFig,'Units','pixels',...
     'Position',[10 10 640 580],'FontSize',8,'Layer','top');
 NaNdata = ones(1,numel(data))*NaN;
-dispData = fitdat.dataScaled;
+dispData = fitdat.data;
 maxy = max(dispData); miny = min(dispData);
 YLimits = [miny maxy] + [-1 1]*FitOpt.PlotStretchFactor*(maxy-miny);
 for r = 1:size(excludedRegions,1)
