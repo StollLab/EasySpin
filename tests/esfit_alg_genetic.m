@@ -24,13 +24,14 @@ FitOpt.maxGenerations = 30;
 
 FitOpt.Method = [fitAlg ' ' dataMethod];
 
-[sysFit,spcFit] = esfit(@pepper,spc,Sys,Vary,Exp,[],FitOpt);
-rmsd = sqrt(mean((spc-spcFit).^2));
-ok = all(rmsd/max(spc)<=0.01);
+result = esfit(spc,@pepper,{Sys,Exp},{Vary},FitOpt);
+rmsd = result.rmsd/max(result.fit);
+
+ok = rmsd<0.01;
 
 if opt.Display
   subplot(4,1,[1 2 3]);
-  plot(nu,spc,nu,spcFit);
+  plot(nu,spc,nu,result.fit);
   xlabel('\nu (GHz)');
   legend('sim','fit');
   legend boxoff
