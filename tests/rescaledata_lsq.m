@@ -14,11 +14,11 @@ y1 = y0 + 1.2*x;
 y2 = y1 - 2.1*x.^2;
 y3 = y2 + 0.7*x.^3;
 
-ys_ = rescale(ys,yr,'lsq');
-y0_ = rescale(y0,yr,'lsq0');
-y1_ = rescale(y1,yr,'lsq1');
-y2_ = rescale(y2,yr,'lsq2');
-y3_ = rescale(y3,yr,'lsq3');
+ys_ = rescaledata(ys,yr,'lsq');
+y0_ = rescaledata(y0,yr,'lsq0');
+y1_ = rescaledata(y1,yr,'lsq1');
+y2_ = rescaledata(y2,yr,'lsq2');
+y3_ = rescaledata(y3,yr,'lsq3');
 
 ok(1) = areequal(ys_,yr,thr,'abs');
 ok(2) = areequal(y0_,yr,thr,'abs');

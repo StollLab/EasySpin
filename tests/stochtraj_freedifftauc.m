@@ -19,7 +19,7 @@ AutoCorrFFT = mean(AutoCorrFFT, 3);
 
 
 analytic = exp(-(1/Sys.tcorr)*t);
-AutoCorrFFT = rescale(AutoCorrFFT,analytic,'lsq0');
+AutoCorrFFT = rescaledata(AutoCorrFFT,analytic,'lsq0');
 AutoCorrFFT = AutoCorrFFT(:);
 
 N = round(Par.nSteps/2);

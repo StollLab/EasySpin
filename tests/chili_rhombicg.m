@@ -22,6 +22,6 @@ Opt.LiouvMethod = 'fast';
 Opt.LiouvMethod = 'general';
 [x2,y2] = chili(Sys,Exp,Opt);
 
-y2 = rescale(y2,y1,'maxabs');
+y2 = rescaledata(y2,y1,'maxabs');
 
 ok = areequal(y1,y2,1e-2,'abs');

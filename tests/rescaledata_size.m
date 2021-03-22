@@ -11,7 +11,7 @@ z1(5) = 10;
 z2 = zeros(90,1);
 z2(5) = 10;
 
-y_ = rescale(y,z1,'minmax');
-y_ = rescale(y,z2,'minmax');
+y_ = rescaledata(y,z1,'minmax');
+y_ = rescaledata(y,z2,'minmax');
 
 ok = true;

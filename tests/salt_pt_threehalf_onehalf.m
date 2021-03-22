@@ -16,7 +16,7 @@ Opt.Method='matrix';
 [x,a]=salt(Sys,Exp,Opt);
 Opt.Method='perturb2';
 [x,b]=salt(Sys,Exp,Opt);
-b=rescale(b,a,'minmax');
+b=rescaledata(b,a,'minmax');
 if opt.Display
   plot(x,a,'k',x,b,'r');
   legend('matrix','perturb2');
