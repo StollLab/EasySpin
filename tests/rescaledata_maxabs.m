@@ -5,7 +5,7 @@ function ok = test()
 N = 100;
 y = rand(1,N)-0.9;
 yr = rand(1,N)-0.5;
-y_ = rescale(y,yr,'maxabs');
+y_ = rescaledata(y,yr,'maxabs');
 
 thr = 1e-12;
 ok = areequal(max(abs(y_)),max(abs(yr)),thr,'abs');

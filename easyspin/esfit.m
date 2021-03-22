@@ -116,7 +116,7 @@ if isstruct(ExpSpec) || ~isnumeric(ExpSpec)
 end
 FitData.nSpectra = 1;
 FitData.ExpSpec = ExpSpec;
-FitData.ExpSpecScaled = rescale(ExpSpec,'maxabs');
+FitData.ExpSpecScaled = rescaledata(ExpSpec,'maxabs');
 
 % Vary structure
 %-------------------------------------------------------------------------------
@@ -813,8 +813,8 @@ end
 
 % (SimSystems{s}.weight is taken into account in the simulation function)
 BestSpec = out{FitData.OutArgument}; % pick last output argument
-BestSpecScaled = rescale(BestSpec,FitData.ExpSpecScaled,FitOpts.Scaling);
-BestSpec = rescale(BestSpec,FitData.ExpSpec,FitOpts.Scaling);
+BestSpecScaled = rescaledata(BestSpec,FitData.ExpSpecScaled,FitOpts.Scaling);
+BestSpec = rescaledata(BestSpec,FitData.ExpSpec,FitOpts.Scaling);
 
 Residuals = calculateResiduals(BestSpecScaled(:),FitData.ExpSpecScaled(:),FitOpts.TargetID);
 Residuals = Residuals.'; % col -> row
@@ -905,7 +905,7 @@ end
 simspec = out{FitData.OutArgument}; % pick last output argument
 
 % Scale simulated spectrum to experimental spectrum ----------
-simspec = rescale(simspec,ExpSpec,FitOpt.Scaling);
+simspec = rescaledata(simspec,ExpSpec,FitOpt.Scaling);
 
 % Compute residuals ------------------------------
 residuals = calculateResiduals(simspec(:),ExpSpec(:),FitOpt.TargetID);
