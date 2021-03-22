@@ -7,14 +7,14 @@
 %   Potential  orientational potential parameters (structure with fields
 %                L, M, K, and lambda; or n x 4 array)
 %   Opt        structure with options
-%     .useSelectionRules
 %     .PeqTolerances
 %
 % Outputs:
 %   sqrtPeq    vector representation of sqrt(Peq)
-%   nIntegrals number of evaluated 1D/2D/3D integrals
 
-function [sqrtPeq,nIntegrals] = chili_eqpopvec2(basis,Potential,Opt)
+function [sqrtPeq,nIntegrals] = chili_eqpopvec_fast(basis,Potential,Opt)
+
+nIntegrals = [];
 
 % Parse options
 if nargin<3
@@ -26,7 +26,6 @@ end
 if ~isfield(Opt,'PeqTolerances') || isempty(Opt.PeqTolerances)
   Opt.PeqTolerances = [1e-6 1e-4 1e-4];
 end
-useSelectionRules = Opt.useSelectionRules;
 PeqTolerances = Opt.PeqTolerances;
 PeqIntThreshold = PeqTolerances(1);
 PeqIntAbsTol = PeqTolerances(2);
@@ -73,9 +72,6 @@ if any(rmv)
   Mp(rmv) = [];
   Kp(rmv) = [];
 end
-
-% Counter for the number of numerical 1D, 2D, and 3D integrals evaluated.
-nIntegrals = [0 0 0];
 
 jKbasis = isfield(basis,'jK') && ~isempty(basis.jK) && any(basis.jK);
 
