@@ -16,6 +16,9 @@ function [bestx,info] = esfit_montecarlo(fcn,lb,ub,FitOpt)
 if nargin<3
   error('At least 3 inputs expected (function, lb, ub).');
 end
+if nargin<4
+  FitOpt = struct;
+end
 
 if ~isfield(FitOpt,'nTrials'); FitOpt.nTrials = 20000; end
 if ~isfield(FitOpt,'PrintLevel'); FitOpt.PrintLevel = 1; end

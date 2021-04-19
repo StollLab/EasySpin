@@ -486,15 +486,21 @@ rmsd = sqrt(mean(residuals.^2)); % root-mean-square deviation
 
 % Calculate parameter uncertainties
 %-------------------------------------------------------------------------------
-disp('Calculating parameter uncertainties...');
-disp('  Estimating Jacobian...');
+printLevel = fitdat.FitOpts.PrintLevel;
+if printLevel
+  disp('Calculating parameter uncertainties...');
+  disp('  Estimating Jacobian...');
+end
 maxRelStep = min((ub-pfit),(pfit-lb))./pfit;
 J = jacobianest(residualfun,pfit);
 if ~any(isnan(J(:)))
-  disp('  Calculating parameter covariance matrix...');
+  if printLevel
+    disp('  Calculating parameter covariance matrix...');
+  end
 
-  % Calculate covariance matrix
+  % Calculate covariance matrix and standard deviations
   covmatrix = hccm(J,residuals,'HC1');
+  pstd = sqrt(diag(covmatrix));
   
   % Calculate confidence intervals
   norm_icdf = @(p)-sqrt(2)*erfcinv(2*p); % inverse of standard normal cdf
@@ -503,12 +509,17 @@ if ~any(isnan(J(:)))
   ci95 = pfit + ci(pctl)*[-1 1];
 
   % Calculate correlation matrix
-  disp('  Calculating parameter correlation matrix...');
+  if printLevel
+    disp('  Calculating parameter correlation matrix...');
+  end
   Q = diag(diag(covmatrix).^(-1/2));
   corrmatrix = Q*covmatrix*Q;
 else
-  disp('  NaN elements in Jacobian, cannot calculate parameter uncertainties.');
+  if printLevel
+    disp('  NaN elements in Jacobian, cannot calculate parameter uncertainties.');
+  end
   covmatrix = [];
+  pstd = [];
   corrmatrix = [];
   ci = @(pctl)[];
   ci95 = [];
@@ -556,6 +567,7 @@ result.scale = scale;
 result.fitraw = fitraw;
 result.residuals = residuals;
 result.pfit = pfit;
+result.pstd = pstd;
 result.ci95 = ci95;
 result.cov = covmatrix;
 result.corr = corrmatrix;
