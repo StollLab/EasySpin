@@ -475,7 +475,7 @@ end
 fitraw = out{fitdat.OutArgument}; % pick last output argument
 fitraw = reshape(fitraw,size(fitdat.data));
 
-[fit,scale] = rescale(fitraw,fitdat.data,fitdat.FitOpts.Scaling);
+[fit,scale] = rescaledata(fitraw,fitdat.data,fitdat.FitOpts.Scaling);
 
 % Calculate metrics for goodness of fit
 %-------------------------------------------------------------------------------
@@ -707,7 +707,7 @@ else
 end
 simdata = out{FitInfo.OutArgument}; % pick appropriate output argument
 
-[simdata,simscale] = rescale(simdata(:),expdata(:),FitOpt.Scaling);
+[simdata,simscale] = rescaledata(simdata(:),expdata(:),FitOpt.Scaling);
 
 % Compute residuals ------------------------------------------------------------
 residuals = calculateResiduals(simdata(:),expdata(:),FitOpt.TargetID);
