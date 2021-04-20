@@ -534,13 +534,8 @@ if fitdat.FitOpts.PrintLevel && UserCommand~=99
   fprintf('   rmsd            %g\n',rmsd);
   fprintf('   noise std       %g (estimated from residuals)\n',std(residuals));
   fprintf('   chi^2           %g (using noise std estimate; upper limit)\n',rmsd^2/var(residuals));
-  if ~isempty(covmatrix)
-    fprintf('Best-fit parameter values (%d%% confidence intervals):\n',100*pctl);
-  else
-    disp('Best-fit parameter values without confidence intervals:');
-  end
-  str = printparlist(pfit,fitdat.pinfo,ci95);
-  fprintf(str);
+  fprintf('Parameters:\n');
+  printparlist(pfit,fitdat.pinfo,pstd,ci95);
   if ~isempty(corrmatrix)
     fprintf('Correlation matrix:\n');
     disp(corrmatrix);
@@ -835,10 +830,37 @@ end
 
 %===============================================================================
 % Print parameters, and their uncertainties if availabe.
-function str = printparlist(par,pinfo,pci)
+function str = printparlist(par,pinfo,pstd,pci95)
+
+nParams = numel(par);
+
+maxNameLength = max(arrayfun(@(x)length(x.Name),pinfo));
+indent = '   ';
+
+printUncertainties = nargin>2 && ~isempty(pstd);
+if printUncertainties
+  str = [indent sprintf('name%svalue        standard deviation        95%% confidence interval',repmat(' ',1,max(maxNameLength-4,0)+2))];
+  for p = 1:nParams
+    pname = pad(pinfo(p).Name,maxNameLength);
+    str_ = sprintf('%s  %-#12.7g %-#12.7g (%6.3f %%)   %-#12.7g - %-#12.7g',pname,par(p),pstd(p),pstd(p)/par(p)*100,pci95(p,1),pci95(p,2));
+    str = [str newline indent str_];
+  end
+else
+  str = [indent sprintf('name%svalue',repmat(' ',1,max(maxNameLength-4,0)+2))];
+  for p = 1:nParams
+    pname = pad(pinfo(p).Name,maxNameLength);
+    str_ = sprintf('%s  %-#12.7g',pname,par(p));
+    str = [str newline indent str_];
+  end
+end
+
+if nargout==0
+  disp(str);
+end
+
+return
 
 % Determine least-significant digit
-err = (pci(:,2)-pci(:,1))/2;
 lsd = floor(log10(err)); % lowest significant digit
 lsd = max(lsd,log10(par)-4); % catch cases where err==0
 
@@ -846,19 +868,16 @@ lsd = max(lsd,log10(par)-4); % catch cases where err==0
 nAddDigits = 1; % number of digits to print beyond lowest-significant digit
 nDigits = lsd - nAddDigits;
 rndabs = @(x) round(x.*10.^-nDigits).*10.^nDigits;
-pci = rndabs(pci);
+pci95 = rndabs(pci95);
 par = rndabs(par);
 err = rndabs(err);
 
 % Print parameters
-nParams = numel(par);
-maxNameLength = max(arrayfun(@(x)length(x.Name),pinfo));
-printUncertainties = nargin==3 && ~isempty(pci);
 str = '';
 for p = 1:nParams
   pname = pad(pinfo(p).Name,maxNameLength);
   if printUncertainties
-    str = sprintf('%s   %s  %g ± %g  (%g - %g)\n',str,pname,par(p),err(p),pci(p,1),pci(p,2));
+    str = sprintf('%s   %s  %g ± %g  (%g - %g)\n',str,pname,par(p),err(p),pci95(p,1),pci95(p,2));
   else
     str = sprintf('%s   %s  %g\n',str,pname,par(p));
   end
