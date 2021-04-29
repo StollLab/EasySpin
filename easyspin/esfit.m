@@ -12,7 +12,7 @@
 %     data        experimental data, a vector of data points
 %     fcn         simulation/model function handle (@pepper, @garlic, ...
 %                   @salt, @chili, or handle to user-defined function)
-%     p0          starting input parameters
+%     p0          starting values for parameters
 %                   EasySpin-style functions: {Sys0,Exp0} or {Sys0,Exp0,Opt0}
 %                   other functions: vector
 %     vary        allowed variation of parameters
@@ -29,7 +29,7 @@
 %           -algorithm: 'simplex','levmar','montecarlo','genetic','grid','swarm'
 %           -target function: 'fcn', 'int', 'dint', 'diff', 'fft'
 %        .Scaling string with scaling method keyword
-%           'maxabs' (default), 'lsq', 'lsq0','lsq1','lsq2','none'
+%           'maxabs', 'lsq' (default), 'lsq0', 'lsq1', 'lsq2', 'none'
 %        .OutArg  two numbers [nOut iOut], where nOut is the number of
 %                 outputs of the simulation function and iOut is the index
 %                 of the output argument to use for fitting
@@ -68,6 +68,7 @@ if nargin==0
     FitOpt.Method = 'simplex fcn';
     FitOpt.TolFun = 1e-6;
     FitOpt.PrintLevel = 2;
+    
     result = esfit(spc,@pepper,{Sys0,Exp,Opt},{vSys},FitOpt);
     
     subplot(2,1,1)
@@ -90,13 +91,14 @@ if nargin>6
 end
 
 % Parse argument list
-varyProvided = true;
 switch nargin
   case 4
+    varyProvided = true;
     pvary = varargin{1};
     FitOpt = struct;
   case 5
     if isstruct(varargin{2})
+      varyProvided = true;
       pvary = varargin{1};
       FitOpt = varargin{2};
     else
@@ -110,6 +112,8 @@ switch nargin
     lb = varargin{1};
     ub = varargin{2};
     FitOpt = varargin{3};
+  otherwise
+    error('esfit requires 4, 5, or 6 input arguments.');
 end
 
 if isempty(FitOpt)
@@ -122,6 +126,8 @@ end
 % Set up global structure for data sharing among local functions
 global fitdat
 fitdat.currFitSet = [];
+global UserCommand
+UserCommand = 0;
 
 % Load utility functions
 argspar = esfit_argsparams();
@@ -129,8 +135,8 @@ argspar = esfit_argsparams();
 
 % Experimental data
 %-------------------------------------------------------------------------------
-if isstruct(data) || ~isnumeric(data)
-    error('First argument must be numeric experimental data.');
+if isstruct(data) || ~isnumeric(data) || ~isvector(data)
+    error('First argument must be numeric experimental data in the form of a vector.');
 end
 fitdat.nDatasets = 1;
 fitdat.data = data;
@@ -156,6 +162,7 @@ fitdat.fcnName = func2str(fcn);
 
 fitdat.lastSetID = 0;
 
+% Determine if the model is an EasySpin simulation function
 EasySpinFunction = any(strcmp(fitdat.fcnName,{'pepper','garlic','chili','salt','curry'}));
 
 
@@ -206,16 +213,32 @@ pvec_0 = pvec_0(:);
 pvec_lb = pvec_lb(:);
 pvec_ub = pvec_ub(:);
 
+% Assure parameter vectors are valid
+idx = pvec_lb>pvec_ub;
+if any(idx)
+  error('Parameter #%d upper bound cannot be smaller than lower bound.',find(idx,1));
+end
+idx = pvec_0<pvec_lb;
+if any(idx)
+  error('Parameter #%d start value is smaller than lower bound.',find(idx,1));
+end
+idx = pvec_0>pvec_ub;
+if any(idx)
+  error('Parameter #%d start value is larger than upper bound.',find(idx,1));
+end
+
 fitdat.args = p0;
 fitdat.pinfo = pinfo;
 fitdat.pvec_0 = pvec_0;
 fitdat.pvec_lb = pvec_lb;
 fitdat.pvec_ub = pvec_ub;
+
 fitdat.nParameters = numel(pvec_0);
-if fitdat.nParameters==0
+fitdat.fixedParams = false(1,numel(pvec_0));
+if fitdat.nParameters-sum(fitdat.fixedParams)==0
     error('No variable parameters to fit.');
 end
-fitdat.inactiveParams = false(numel(pvec_0),1);
+
 fitdat.p2args = @(pars) argspar.setparamvalues(p0,pinfo,pars);
 
 
@@ -310,10 +333,10 @@ TargetNames{5} = 'Fourier transform';
 fitdat.TargetNames = TargetNames;
 
 ScalingNames{1} = 'scale only (max abs)';
-ScalingNames{2} = 'scale only (lsq)';
-ScalingNames{3} = 'scale & shift (lsq0)';
-ScalingNames{4} = 'scale & linear baseline (lsq1)';
-ScalingNames{5} = 'scale & quad. baseline (lsq2)';
+ScalingNames{2} = 'fit scale only (lsq)';
+ScalingNames{3} = 'fit scale & const. baseline (lsq0)';
+ScalingNames{4} = 'fit scale & linear baseline (lsq1)';
+ScalingNames{5} = 'fit scale & quad. baseline (lsq2)';
 ScalingNames{6} = 'no scaling';
 fitdat.ScalingNames = ScalingNames;
 
@@ -361,16 +384,59 @@ end
 FitOpt.IterationPrintFunction = @iterationprint;
 fitdat.FitOpts = FitOpt;
 
-% Setup GUI and quit if in GUI mode
+% Setup GUI and return if in GUI mode
 %-------------------------------------------------------------------------------
 if fitdat.GUI
   setupGUI(data);
   return
 end
 
-% Run least-squares fitting if not in GUI mode
+% Report
+%-------------------------------------------------------------------------------
+if fitdat.FitOpts.PrintLevel
+  fprintf('-- esfit ------------------------------------------------\n');
+  fprintf('Function name:            %s\n',fitdat.fcnName);
+  fprintf('Number of parameters:     %d\n',fitdat.nParameters);
+  fprintf('Number of datasets:       %d\n',fitdat.nDatasets);
+  fprintf('Minimization method:      %s\n',fitdat.MethodNames{fitdat.FitOpts.MethodID});
+  fprintf('Residuals computed from:  %s\n',fitdat.TargetNames{fitdat.FitOpts.TargetID});
+  fprintf('Scaling mode:             %s\n',fitdat.FitOpts.Scaling);
+  fprintf('---------------------------------------------------------\n');
+end
+
+% Run least-squares fitting
 %-------------------------------------------------------------------------------
 result = runFitting();
+
+% Report
+%-------------------------------------------------------------------------------
+if fitdat.FitOpts.PrintLevel && UserCommand~=99
+  disp('---------------------------------------------------------');
+  fprintf('Goodness of fit:\n');
+  fprintf('   ssr             %g\n',result.ssr);
+  fprintf('   rmsd            %g\n',result.rmsd);
+  fprintf('   noise std       %g (estimated from residuals)\n',std(result.residuals));
+  fprintf('   chi^2           %g (using noise std estimate; upper limit)\n',result.rmsd^2/var(result.residuals));
+  fprintf('Parameters:\n');
+  printparlist(result.pfit,fitdat.pinfo,result.pstd,result.ci95);
+  if ~isempty(result.corr)
+    fprintf('Correlation matrix:\n');
+    Sigma = result.corr;
+    disp(Sigma);
+    triuCorr = triu(abs(Sigma),1);
+    fprintf('Strongest correlations:\n');
+    [~,idx] = sort(triuCorr(:),'descend');
+    [i1,i2] = ind2sub(size(Sigma),idx);
+    np = numel(result.pfit);
+    for k = 1:min(5,(np-1)*np/2)
+      fprintf('    p(%d)-p(%d):    %g\n',i1(k),i2(k),Sigma(i1(k),i2(k)));
+    end
+    if any(reshape(triuCorr,1,[])>0.8)
+      disp('    WARNING! Stong correlations between parameters.');
+    end
+  end
+  disp('=========================================================');
+end
 
 clear global UserCommand
 
@@ -386,31 +452,19 @@ end
 %===============================================================================
 function result = runFitting()
 
-global UserCommand fitdat
-UserCommand = 0;
-
-if fitdat.FitOpts.PrintLevel
-  fprintf('-- esfit ------------------------------------------------\n');
-  fprintf('Function name:            %s\n',fitdat.fcnName);
-  fprintf('Number of parameters:     %d\n',fitdat.nParameters);
-  fprintf('Number of datasets:       %d\n',fitdat.nDatasets);
-  fprintf('Minimization method:      %s\n',fitdat.MethodNames{fitdat.FitOpts.MethodID});
-  fprintf('Residuals computed from:  %s\n',fitdat.TargetNames{fitdat.FitOpts.TargetID});
-  fprintf('Scaling mode:             %s\n',fitdat.FitOpts.Scaling);
-  fprintf('---------------------------------------------------------\n');
-end
+global fitdat
 
 % Set starting point
 %-------------------------------------------------------------------------------
 lb = fitdat.pvec_lb;
 ub = fitdat.pvec_ub;
-p_center = (lb+ub)/2;
+p0 = fitdat.pvec_0;
 switch fitdat.FitOpts.Startpoint
-  case 1 % center of range
-    p_start = p_center;
+  case 1 % provided start value
+    p_start = p0;
   case 2 % random
     p_start = lb + rand(fitdat.nParameters,1).*(ub-lb);
-    p_start(fitdat.inactiveParams) = p_center(fitdat.inactiveParams);
+    p_start(fitdat.fixedParams) = p0(fitdat.fixedParams);
   case 3 % selected parameter set
     h = findobj('Tag','SetListBox');
     s = h.String;
@@ -434,14 +488,14 @@ data_ = fitdat.data;
 % Run minimization over space of active parameters
 %-------------------------------------------------------------------------------
 pfit = p_start;
-active = ~fitdat.inactiveParams;
+activeParams = ~fitdat.fixedParams;
 fitOpts = fitdat.FitOpts;
-if sum(active)>0
-  residualfun = @(x)residuals_(x,data_,fitdat,fitOpts);
-  rmsdfun = @(x)rmsd_(x,data_,fitdat,fitOpts);
-  p0_a = p_start(active);
-  lb_a = lb(active);
-  ub_a = ub(active);
+if sum(activeParams)>0
+  residualfun = @(x)residuals_(x,data_,fitOpts);
+  rmsdfun = @(x)rmsd_(x,data_,fitOpts);
+  p0_a = p_start(activeParams);
+  lb_a = lb(activeParams);
+  ub_a = ub(activeParams);
   switch fitOpts.MethodID
     case 1 % Nelder-Mead simplex
       pfit_a = esfit_simplex(rmsdfun,p0_a,lb_a,ub_a,fitOpts);
@@ -459,7 +513,7 @@ if sum(active)>0
     case 7 % lsqnonlin from Optimization Toolbox
       pfit_a = lsqnonlin(residualfun,p0_a,lb_a,ub_a);
   end
-  pfit(active) = pfit_a;
+  pfit(activeParams) = pfit_a;
 end
 
 % Simulate model fit
@@ -472,7 +526,7 @@ else
   [out{1:fitdat.nOutArguments}] = fitdat.fcn(pfit);
 end
 
-fitraw = out{fitdat.OutArgument}; % pick last output argument
+fitraw = out{fitdat.OutArgument}; % pick relevant output argument
 fitraw = reshape(fitraw,size(fitdat.data));
 
 [fit,scale] = rescaledata(fitraw,fitdat.data,fitdat.FitOpts.Scaling);
@@ -521,37 +575,7 @@ else
   covmatrix = [];
   pstd = [];
   corrmatrix = [];
-  ci = @(pctl)[];
   ci95 = [];
-end
-
-% Report
-%-------------------------------------------------------------------------------
-if fitdat.FitOpts.PrintLevel && UserCommand~=99
-  disp('---------------------------------------------------------');
-  fprintf('Goodness of fit:\n');
-  fprintf('   ssr             %g\n',ssr);
-  fprintf('   rmsd            %g\n',rmsd);
-  fprintf('   noise std       %g (estimated from residuals)\n',std(residuals));
-  fprintf('   chi^2           %g (using noise std estimate; upper limit)\n',rmsd^2/var(residuals));
-  fprintf('Parameters:\n');
-  printparlist(pfit,fitdat.pinfo,pstd,ci95);
-  if ~isempty(corrmatrix)
-    fprintf('Correlation matrix:\n');
-    disp(corrmatrix);
-    triuCorr = triu(abs(corrmatrix),1);
-    fprintf('Strongest correlations:\n');
-    [~,idx] = sort(triuCorr(:),'descend');
-    [i1,i2] = ind2sub(size(corrmatrix),idx);
-    np = numel(pfit);
-    for k = 1:min(5,(np-1)*np/2)
-      fprintf('    p(%d)-p(%d):    %g\n',i1(k),i2(k),corrmatrix(i1(k),i2(k)));
-    end
-    if any(reshape(triuCorr,1,[])>0.8)
-      disp('    WARNING! Stong correlations between parameters.');
-    end
-  end
-  disp('=========================================================');
 end
 
 % Assemble output
@@ -571,148 +595,42 @@ result.ssr = ssr;
 
 end
 
+
+
 %===============================================================================
-function startButton_cb(~,~)
-
-global fitdat UserCommand
-
-UserCommand = 0;
-
-% Update GUI
-%-------------------------------------------------------------------------------
-% Hide Start button, show Stop button
-set(findobj('Tag','StopButton'),'Visible','on');
-set(findobj('Tag','StartButton'),'Visible','off');
-set(findobj('Tag','SaveButton'),'Enable','off');
-
-% Disable listboxes
-set(findobj('Tag','MethodMenu'),'Enable','off');
-set(findobj('Tag','TargetMenu'),'Enable','off');
-set(findobj('Tag','ScalingMenu'),'Enable','off');
-set(findobj('Tag','StartpointMenu'),'Enable','off');
-
-% Disable parameter table
-set(findobj('Tag','selectAllButton'),'Enable','off');
-set(findobj('Tag','selectNoneButton'),'Enable','off');
-set(findobj('Tag','selectInvButton'),'Enable','off');
-set(findobj('Tag','ParameterTable'),'Enable','off');
-
-% Disable fitset list controls
-set(findobj('Tag','deleteSetButton'),'Enable','off');
-set(findobj('Tag','exportSetButton'),'Enable','off');
-set(findobj('Tag','sortIDSetButton'),'Enable','off');
-set(findobj('Tag','sortRMSDSetButton'),'Enable','off');
-
-% Change GUI status
-h = findobj('Tag','statusText');
-if ~strcmp(h.String,'running')
-  set(h,'String','running');
-  drawnow
-end
-
-% Pull settings from UI
-%-------------------------------------------------------------------------------
-% Determine selected method, target, and scaling
-fitdat.FitOpts.MethodID = get(findobj('Tag','MethodMenu'),'Value');
-fitdat.FitOpts.TargetID = get(findobj('Tag','TargetMenu'),'Value');
-fitdat.FitOpts.Scaling = fitdat.ScalingString{get(findobj('Tag','ScalingMenu'),'Value')};
-fitdat.FitOpts.Startpoint = get(findobj('Tag','StartpointMenu'),'Value');
-
-% Get inactive parameters
-data = get(findobj('Tag','ParameterTable'),'Data');
-for iPar = 1:fitdat.nParameters
-    fitdat.inactiveParams(iPar) = data{iPar,1}==0;
-end
-
-% Run fitting
-%-------------------------------------------------------------------------------
-result = runFitting();
-
-% Save result to fit set list
-fitdat.currFitSet = result;
-
-
-% Update GUI with fit results
-%-------------------------------------------------------------------------------
-
-set(findobj('Tag','statusText'),'String','');
-
-% Remove current values from parameter table
-hTable = findobj('Tag','ParameterTable');
-Data = hTable.Data;
-for p = 1:size(Data,1), Data{p,4} = '-'; end
-set(hTable,'Data',Data);
-
-% Hide current sim plot in data axes
-set(findobj('Tag','currsimdata'),'YData',NaN*ones(1,numel(fitdat.data)));
-hErrorLine = findobj('Tag','errorline');
-set(hErrorLine,'XData',1,'YData',NaN);
-axis(hErrorLine.Parent,'tight');
-drawnow
-set(findobj('Tag','logLine'),'String','');
-
-% Reactivate UI components
-set(findobj('Tag','SaveButton'),'Enable','on');
-
-if isfield(fitdat,'FitSets') && numel(fitdat.FitSets)>0
-    set(findobj('Tag','deleteSetButton'),'Enable','on');
-    set(findobj('Tag','exportSetButton'),'Enable','on');
-    set(findobj('Tag','sortIDSetButton'),'Enable','on');
-    set(findobj('Tag','sortRMSDSetButton'),'Enable','on');
-end
-
-% Hide stop button, show start button
-set(findobj('Tag','StopButton'),'Visible','off');
-set(findobj('Tag','StartButton'),'Visible','on');
-
-% Re-enable listboxes
-set(findobj('Tag','MethodMenu'),'Enable','on');
-set(findobj('Tag','TargetMenu'),'Enable','on');
-set(findobj('Tag','ScalingMenu'),'Enable','on');
-set(findobj('Tag','StartpointMenu'),'Enable','on');
-
-% Re-enable parameter table and its selection controls
-set(findobj('Tag','selectAllButton'),'Enable','on');
-set(findobj('Tag','selectNoneButton'),'Enable','on');
-set(findobj('Tag','selectInvButton'),'Enable','on');
-set(findobj('Tag','ParameterTable'),'Enable','on');
-
+function rmsd = rmsd_(x,data,FitOpt)
+[~,rmsd] = residuals_(x,data,FitOpt);
 end
 %===============================================================================
 
 
 %===============================================================================
-function rmsd = rmsd_(x,data,FitInfo,FitOpt)
-[~,rmsd] = residuals_(x,data,FitInfo,FitOpt);
-end
-%===============================================================================
+function [residuals,rmsd,simdata,simscale] = residuals_(x,expdata,FitOpt)
 
-
-%===============================================================================
-function [residuals,rmsd,simdata,simscale] = residuals_(x,expdata,FitInfo,FitOpt)
+global fitdat
 
 % Assemble full parameter vector ------------------------------------------------
-p_all = FitInfo.p_start;
-active = ~FitInfo.inactiveParams;
+p_all = fitdat.p_start;
+active = ~fitdat.fixedParams;
 p_all(active) = x;
 par = p_all;
 
 % Evaluate model function  ------------------------------------------------------
-if FitInfo.structureInputs
-  args = FitInfo.p2args(par);
+if fitdat.structureInputs
+  args = fitdat.p2args(par);
   try
-    [out{1:FitInfo.nOutArguments}] = FitInfo.fcn(args{:});
+    [out{1:fitdat.nOutArguments}] = fitdat.fcn(args{:});
   catch ME
     error('\nThe model simulation function raised the following error:\n  %s\n',ME.message);
   end
 else
   try
-    [out{1:FitInfo.nOutArguments}] = FitInfo.fcn(par);
+    [out{1:fitdat.nOutArguments}] = fitdat.fcn(par);
   catch ME
     error('\nThe model simulation function raised the following error:\n  %s\n',ME.message);
   end
 end
-simdata = out{FitInfo.OutArgument}; % pick appropriate output argument
+simdata = out{fitdat.OutArgument}; % pick appropriate output argument
 
 [simdata,simscale] = rescaledata(simdata(:),expdata(:),FitOpt.Scaling);
 
@@ -721,35 +639,35 @@ residuals = calculateResiduals(simdata(:),expdata(:),FitOpt.TargetID);
 rmsd = real(sqrt(mean(residuals.^2)));
 
 % Keep track of errors ---------------------------------------------------------
-if ~isfield(FitInfo,'smallestError') || isempty(FitInfo.smallestError)
-    FitInfo.smallestError = inf;
+if ~isfield(fitdat,'smallestError') || isempty(fitdat.smallestError)
+    fitdat.smallestError = inf;
 end
-if ~isfield(FitInfo,'errorlist')
-    FitInfo.errorlist = [];
+if ~isfield(fitdat,'errorlist')
+    fitdat.errorlist = [];
 end
 
-FitInfo.errorlist = [FitInfo.errorlist rmsd];
-isNewBest = rmsd<FitInfo.smallestError;
+fitdat.errorlist = [fitdat.errorlist rmsd];
+isNewBest = rmsd<fitdat.smallestError;
 
 if isNewBest
-    FitInfo.smallestError = rmsd;
-    FitInfo.bestfit = simdata;
-    FitInfo.bestpar = par;
+    fitdat.smallestError = rmsd;
+    fitdat.bestfit = simdata;
+    fitdat.bestpar = par;
 end
 
 % Update GUI
 %-------------------------------------------------------------------------------
 global UserCommand
-if FitInfo.GUI && UserCommand~=99
+if fitdat.GUI && UserCommand~=99
     
     % update plot
     x = 1:numel(expdata);
     set(findobj('Tag','expdata'),'XData',x,'YData',expdata);
-    set(findobj('Tag','bestsimdata'),'XData',x,'YData',real(FitInfo.bestfit));
+    set(findobj('Tag','bestsimdata'),'XData',x,'YData',real(fitdat.bestfit));
     set(findobj('Tag','currsimdata'),'XData',x,'YData',real(simdata));
     
     % readjust vertical range
-    dispData = [expdata(:); real(FitInfo.bestfit(:)); real(simdata(:))];
+    dispData = [expdata(:); real(fitdat.bestfit(:)); real(simdata(:))];
     maxy = max(dispData);
     miny = min(dispData);
     YLimits = [miny maxy] + [-1 1]*FitOpt.PlotStretchFactor*(maxy-miny);
@@ -781,7 +699,7 @@ if FitInfo.GUI && UserCommand~=99
         % update column with best values if current parameter set is new best
         if isNewBest
             
-            str = sprintf(' best RMSD: %g\n',(FitInfo.smallestError));
+            str = sprintf(' best RMSD: %g\n',(fitdat.smallestError));
             hRmsText = findobj('Tag','RmsText');
             set(hRmsText,'String',str);
             
@@ -807,8 +725,8 @@ if FitInfo.GUI && UserCommand~=99
     
     hErrorLine = findobj('Tag','errorline');
     if ~isempty(hErrorLine)
-        n = min(100,numel(FitInfo.errorlist));
-        set(hErrorLine,'XData',1:n,'YData',log10(FitInfo.errorlist(end-n+1:end)));
+        n = min(100,numel(fitdat.errorlist));
+        set(hErrorLine,'XData',1:n,'YData',log10(fitdat.errorlist(end-n+1:end)));
         ax = hErrorLine.Parent;
         axis(ax,'tight');
         drawnow
@@ -909,6 +827,116 @@ idxNaN = isnan(A) | isnan(B);
 residuals(idxNaN) = 0; % ignore residual if A or B is NaN
 end
 %===============================================================================
+
+%===============================================================================
+function startButtonCallback(~,~)
+
+global fitdat UserCommand
+
+UserCommand = 0;
+
+% Update GUI
+%-------------------------------------------------------------------------------
+% Hide Start button, show Stop button
+set(findobj('Tag','StopButton'),'Visible','on');
+set(findobj('Tag','StartButton'),'Visible','off');
+set(findobj('Tag','SaveButton'),'Enable','off');
+
+% Disable listboxes
+set(findobj('Tag','MethodMenu'),'Enable','off');
+set(findobj('Tag','TargetMenu'),'Enable','off');
+set(findobj('Tag','ScalingMenu'),'Enable','off');
+set(findobj('Tag','StartpointMenu'),'Enable','off');
+
+% Disable parameter table
+set(findobj('Tag','selectAllButton'),'Enable','off');
+set(findobj('Tag','selectNoneButton'),'Enable','off');
+set(findobj('Tag','selectInvButton'),'Enable','off');
+set(findobj('Tag','ParameterTable'),'Enable','off');
+
+% Disable fitset list controls
+set(findobj('Tag','deleteSetButton'),'Enable','off');
+set(findobj('Tag','exportSetButton'),'Enable','off');
+set(findobj('Tag','sortIDSetButton'),'Enable','off');
+set(findobj('Tag','sortRMSDSetButton'),'Enable','off');
+
+% Change GUI status
+h = findobj('Tag','statusText');
+if ~strcmp(h.String,'running')
+  set(h,'String','running');
+  drawnow
+end
+
+% Pull settings from UI
+%-------------------------------------------------------------------------------
+% Determine selected method, target, and scaling
+fitdat.FitOpts.MethodID = get(findobj('Tag','MethodMenu'),'Value');
+fitdat.FitOpts.TargetID = get(findobj('Tag','TargetMenu'),'Value');
+fitdat.FitOpts.Scaling = fitdat.ScalingString{get(findobj('Tag','ScalingMenu'),'Value')};
+fitdat.FitOpts.Startpoint = get(findobj('Tag','StartpointMenu'),'Value');
+
+% Get fixed parameters
+data = get(findobj('Tag','ParameterTable'),'Data');
+for iPar = 1:fitdat.nParameters
+  fitdat.fixedParams(iPar) = data{iPar,1}==0;
+end
+
+% Run fitting
+%-------------------------------------------------------------------------------
+result = runFitting();
+
+% Save result to fit set list
+fitdat.currFitSet = result;
+
+
+% Update GUI with fit results
+%-------------------------------------------------------------------------------
+
+set(findobj('Tag','statusText'),'String','');
+
+% Remove current values from parameter table
+hTable = findobj('Tag','ParameterTable');
+Data = hTable.Data;
+for p = 1:size(Data,1), Data{p,4} = '-'; end
+set(hTable,'Data',Data);
+
+% Hide current sim plot in data axes
+set(findobj('Tag','currsimdata'),'YData',NaN*ones(1,numel(fitdat.data)));
+hErrorLine = findobj('Tag','errorline');
+set(hErrorLine,'XData',1,'YData',NaN);
+axis(hErrorLine.Parent,'tight');
+drawnow
+set(findobj('Tag','logLine'),'String','');
+
+% Reactivate UI components
+set(findobj('Tag','SaveButton'),'Enable','on');
+
+if isfield(fitdat,'FitSets') && numel(fitdat.FitSets)>0
+    set(findobj('Tag','deleteSetButton'),'Enable','on');
+    set(findobj('Tag','exportSetButton'),'Enable','on');
+    set(findobj('Tag','sortIDSetButton'),'Enable','on');
+    set(findobj('Tag','sortRMSDSetButton'),'Enable','on');
+end
+
+% Hide stop button, show start button
+set(findobj('Tag','StopButton'),'Visible','off');
+set(findobj('Tag','StartButton'),'Visible','on');
+
+% Re-enable listboxes
+set(findobj('Tag','MethodMenu'),'Enable','on');
+set(findobj('Tag','TargetMenu'),'Enable','on');
+set(findobj('Tag','ScalingMenu'),'Enable','on');
+set(findobj('Tag','StartpointMenu'),'Enable','on');
+
+% Re-enable parameter table and its selection controls
+set(findobj('Tag','selectAllButton'),'Enable','on');
+set(findobj('Tag','selectNoneButton'),'Enable','on');
+set(findobj('Tag','selectInvButton'),'Enable','on');
+set(findobj('Tag','ParameterTable'),'Enable','on');
+
+end
+%===============================================================================
+
 
 %===============================================================================
 function iterationprint(str)
@@ -1394,7 +1422,7 @@ pos1 = [x0+220 y0-3    110 30];
 uicontrol(hFig,'Style','pushbutton',...
     'Tag','StartButton',...
     'String','Start',...
-    'Callback',@startButton_cb,...
+    'Callback',@startButtonCallback,...
     'Visible','on',...
     'Tooltip','Start fitting',...
     'Position',pos);
