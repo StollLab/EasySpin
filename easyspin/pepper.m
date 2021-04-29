@@ -490,6 +490,9 @@ for k = 1:numel(ObsoleteOptions)
   end
 end
 
+if isfield(Opt,'nKnots')
+  error('Options.nKnots is obsolete. Use Options.GridSize instead, e.g. Options.GridSize = 91.');
+end
 if isfield(Opt,'Symmetry')
   error('Options.Symmetry is obsolete. Use Options.GridSymmetry instead, e.g. Options.GridSymmetry = ''D2h''.');
 end

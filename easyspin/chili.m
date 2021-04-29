@@ -537,6 +537,11 @@ if ~isfield(Opt,'Solver'), Opt.Solver = ''; end
 if ~isfield(Opt,'GridSymmetry'), Opt.GridSymmetry = 'Dinfh'; end
 % Opt.Verbosity
 
+% Obsolete options
+if isfield(Opt,'nKnots')
+  error('Options.nKnots is obsolete. Use Options.GridSize instead, e.g. Options.GridSize = 91.');
+end
+
 % Undocumented
 if ~isfield(Opt,'Rescale'), Opt.Rescale = true; end
 if ~isfield(Opt,'Threshold'), Opt.Threshold = 1e-6; end
