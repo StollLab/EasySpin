@@ -20,10 +20,9 @@ chi = zeros(N,1);
 Exp.CrystalOrientation = [phi(:) theta(:) chi];
 
 % Simulate spectra
-Opt.Output = 'separate';  % make sure spectra are not added up
-Bres = resfields(Sys,Exp,Opt);
+Bres = resfields(Sys,Exp);
 
 % plotting
 plot(Bres,theta*180/pi);
 xlabel('magnetic field (mT)');
-ylabel('theta (°)');
+ylabel('\theta (°)');
