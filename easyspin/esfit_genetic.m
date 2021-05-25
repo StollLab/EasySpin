@@ -1,18 +1,17 @@
 % esfit_genetic   Genetic algorithm for least-squares fitting
 %
-%    x = esfit_genetic(funfcn,nParams,FitOpt,varargin)
+%    x = esfit_genetic(fcn,nParams,FitOpt,varargin)
 %
-%    funfcn ... scalar function to minimize
-%    nParams ... number of parameters
-%    FitOpt ... options
-%       PopulationSize   number of individuals per generation
-%       EliteCount       number of elite individuals
-%       Range            parameter range (from -Range to +Range)
-%       maxGenerations   maximum number of generations
-%       PrintLevel          1, if progress information should be printed
-%       TolFun           error threshold below which fitting stops
+%    fcn      ... scalar function to minimize
+%    nParams  ... number of parameters
+%    FitOpt   ... options
+%       .PopulationSize   number of individuals per generation
+%       .EliteCount       number of elite individuals
+%       .maxGenerations   maximum number of generations
+%       .PrintLevel       1, if progress information should be printed
+%       .TolFun           error threshold below which fitting stops
 
-function bestx = esfit_genetic(funfcn,nParams,FitOpt,varargin)
+function bestx = esfit_genetic(fcn,lb,ub,FitOpt)
 
 if nargin==0, help(mfilename); return; end
 
@@ -30,24 +29,28 @@ if ~isfield(FitOpt,'PrintLevel'), FitOpt.PrintLevel = 0; end
 if ~isfield(FitOpt,'Range'); FitOpt.Range = 1; end
 if ~isfield(FitOpt,'TolFun'); FitOpt.TolFun = 1e-5; end
 
+stopCode = 0;
+
+lb = lb(:).';
+ub = ub(:).';
+if numel(lb)~=numel(ub)
+  error('Arrays for lower and upper bound must have the same number of elements.');
+end
+if any(lb>ub)
+  error('Lower bounds must not be greater than upper bounds.');
+end
+nParams = numel(lb);
+
 if FitOpt.PrintLevel
   fprintf('  %d parameters, range %g to %g\n',nParams,-FitOpt.Range,FitOpt.Range);
   fprintf('  population %d, elite %d\n',FitOpt.PopulationSize,FitOpt.EliteCount);
   fprintf('  %d generations\n',FitOpt.maxGenerations);
 end
 
-stopCode = 0;
-
-ub = +1*ones(1,nParams);
-lb = -1*ones(1,nParams);
-if any(lb>ub)
-  error('Lower bounds must not be greater than upper bounds.');
-end
-
 % Generate initial population
-Population = lb + (ub-lb).*rand(FitOpt.PopulationSize,nParams);
+Population = lb+ (ub-lb).*rand(FitOpt.PopulationSize,nParams);
 
-BestScore = inf;
+bestScore = inf;
 bestx = zeros(size(Population(1,:)));
 
 % Score initial population
@@ -56,10 +59,10 @@ if FitOpt.PrintLevel
 end
 Scores = ones(1,FitOpt.PopulationSize)*inf;
 for k = 1:FitOpt.PopulationSize
-  Scores(k) = feval(funfcn,Population(k,:),varargin{:});
-  if Scores(k)<BestScore
+  Scores(k) = feval(fcn,Population(k,:));
+  if Scores(k)<bestScore
     bestx = Population(k,:);
-    BestScore = Scores(k);
+    bestScore = Scores(k);
   end
   if UserCommand==1, stopCode = 3; break; end
 end
@@ -73,7 +76,7 @@ while true
   
   if stopCode, break; end
 
-  if min(Scores)<BestScore, BestScore = min(Scores); end
+  if min(Scores)<bestScore, bestScore = min(Scores); end
   
   if FitOpt.PrintLevel
     str = sprintf('gen %5d:  min %g   mean %g',g,min(Scores),mean(Scores));
@@ -81,7 +84,7 @@ while true
   end
   
   if g>=FitOpt.maxGenerations, stopCode = 1; break; end
-  if BestScore<FitOpt.TolFun, stopCode = 2; break; end
+  if bestScore<FitOpt.TolFun, stopCode = 2; break; end
   if UserCommand==1, stopCode = 3; break; end
   
   % (1) Selection
@@ -105,21 +108,21 @@ while true
   
   % (3) Mutation
   %-----------------------------------------------
-  InitialVariance = 0.3*2*FitOpt.Range;
+  InitialVariance = 0.3*(ub-lb);
   Variance = InitialVariance*(1-g/FitOpt.maxGenerations);
   if Variance<0, Variance = 0; end
-  for k=1:FitOpt.PopulationSize
-    Offspring(k,:) = Offspring(k,:) + randn(1,nParams)*Variance;
+  Offspring = Offspring + randn(FitOpt.PopulationSize,nParams).*Variance;
+  for p = 1:nParams
+    Offspring(Offspring(:,p)<lb,p) = lb(p);
+    Offspring(Offspring(:,p)>ub,p) = ub(p);
   end
-  Offspring(Offspring<-FitOpt.Range) = -FitOpt.Range;
-  Offspring(Offspring>+FitOpt.Range) = +FitOpt.Range;
   
   % (4) Reinsertion
   %-----------------------------------------------
   
   % Score offspring
   for k = 1:FitOpt.PopulationSize
-    offScores(k) = feval(funfcn,Offspring(k,:),varargin{:});
+    offScores(k) = feval(fcn,Offspring(k,:));
     if UserCommand==1, stopCode = 3; break; end
   end
   if stopCode==3, break; end
@@ -132,8 +135,8 @@ while true
 
   [Scores,idx] = sort(Scores);
   Population = Population(idx,:);
-  if Scores(1)<BestScore
-    BestScore = Scores(1);
+  if Scores(1)<bestScore
+    bestScore = Scores(1);
     bestx = Population(1,:);
   end
   Fitness = Scores(end) - Scores;

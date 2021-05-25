@@ -1,27 +1,32 @@
 %esfit_simplex    Nelder/Mead downhill simplex minimization algorithm
 %
-%   xmin = esfit_simplex(fcn,x0,FitOpt,...)
+%   xmin = esfit_simplex(fcn,x0,lb,ub,FitOpt)
 %   [xmin,info] = ...
 %
 %   Tries to minimize fcn(x), starting at x0. FitOpt are options for
 %   the minimization algorithm. Any additional parameters are passed
 %   to fcn, which can be a string or a function handle.
 %
-%   Options:
-%     FitOpt.delta         edge length of initial simplex
-%     FitOpt.SimplexPars   [rho chi psi sigma]
-%                          rho ... reflection coefficient, default 1
-%                          chi ... expansion coefficient, default 2
-%                          psi ... contraction coefficient, default 0.5
-%                          sigma . reduction coefficient, defautlt 0.5
-%     FitOpt.maxTime       maximum time allowed, in minutes
+%   Input:
+%     fcn      ... function to minimize, f(x), where is an array of parameters
+%     x0       ... initial parameter values
+%     lb       ... lower bounds for parameters
+%     ub       ... upper bounds for parameters
+%     FitOpt   ... structure with options
+%       .delta         edge length of initial simplex
+%       .SimplexPars   [rho chi psi sigma]
+%          rho ...     reflection coefficient, default 1
+%          chi ...     expansion coefficient, default 2
+%          psi ...     contraction coefficient, default 0.5
+%          sigma .     reduction coefficient, defautlt 0.5
+%       .maxTime       maximum time allowed, in minutes
 %
 %   Output:
 %     xmin  ... parameter vector with values of best fit
 %     info  ... structure with additional information (initial simplex,
 %               last simplex, number of iterations, time elapsed)
 
-function [x,info] = esfit_simplex(errfcn,x0,FitOpt,varargin)
+function [x,info] = esfit_simplex(fcn,x0,lb,ub,FitOpt)
 
 if nargin==0, help(mfilename); return; end
 
@@ -51,12 +56,19 @@ if ~isfield(FitOpt,'IterationPrintFunction') || ...
   FitOpt.IterationPrintFunction = @(str)str;
 end
 
-nParams = numel(x0);
-ub = +ones(nParams,1);
-lb = -ones(nParams,1);
+x0 = x0(:);
+lb = lb(:);
+ub = ub(:);
+if numel(lb)~=numel(x0)
+  error('Lower-bounds array must have the same number of elements as x0.');
+end
+if numel(ub)~=numel(x0)
+  error('Upper-bounds array must have the same number of elements as x0.');
+end
 if any(lb>ub)
   error('Lower bounds must not be greater than upper bounds.');
 end
+nParams = numel(x0);
 
 % Check starting point
 if any(~isreal(x0)) || any(isnan(x0)) || any(isinf(x0)) 
@@ -66,31 +78,34 @@ if any(x0<lb) || any(x0>ub)
   error('Some elements in x0 are out of bounds.');
 end
 
+% Transform to (-1,1) interval
+transformParams = false;
+if transformParams
+  transform = @(x) 2*(x-lb)./(ub-lb)-1;
+  untransform = @(x) lb + (ub-lb).*(x/2+1/2);
+  x0 = transform(x0);
+  ub = transform(ub);
+  lb = transform(lb);
+  fcn = @(x)fcn(untransform(x));
+end
 
-constrain = @(x)max(min(x,ub),lb);
+constrain = @(x)max(min(x,ub),lb); unconstrain = @(x)x;
 %constrain = @(x)sin(x*pi/2); unconstrain = @(x)acos(x)*2/pi;
-unconstrain = @(x)x;
-
 
 iIteration = 0;
 startTime = cputime;
 
-if FitOpt.PrintLevel
-  FitOpt.IterationPrintFunction('initial simplex...');
-end
-
 % Set up a initial simplex near the initial guess.
-nParams = numel(x0);
 nVertices = nParams+1;
 v = repmat(x0(:),1,nVertices);
 v(nParams+1:nParams+1:end) = v(nParams+1:nParams+1:end) + delta.*(ub-lb).';
 
 info.simplex_initial = v;
 
-% Evaluate vertices of the simplex
-for iVertex = 1:nVertices
+% Evaluate function at vertices of the simplex
+for iVertex = nVertices:-1:1
   x = constrain(v(:,iVertex));
-  fv(iVertex) = errfcn(x,varargin{:});
+  fv(iVertex) = fcn(x);
 end
 
 % Sort so v(1,:) is the best vertex
@@ -100,9 +115,9 @@ v = v(:,idx);
 Procedure = 'initial simplex';
 iIteration = iIteration + 1;
 
-if FitOpt.PrintLevel
-  logStringFormat = ' iteration %d: %s\n   value %0.5e\n   edge %0.5e';
-  str = sprintf(logStringFormat,iIteration,Procedure,fv(1),delta);
+if FitOpt.PrintLevel>0
+  logStringFormat = ' iteration %3d: value %0.5e   edge %0.5e   %s';
+  str = sprintf(logStringFormat,iIteration,fv(1),delta,Procedure);
   FitOpt.IterationPrintFunction(str);
 end
 
@@ -137,14 +152,14 @@ while true
   % Calculate reflection point
   xr = xbar + rho*(xbar-v(:,end));
   xr = constrain(xr);
-  fr = errfcn(xr,varargin{:});
+  fr = fcn(xr);
 
   doReduction = false;
   if fr<fv(:,1) % reflection point is better than best vertex
     % Calculate expansion point
     xe = xbar + rho*chi*(xbar - v(:,end));
     xe = constrain(xe);
-    fe = errfcn(xe,varargin{:});
+    fe = fcn(xe);
     if fe<fr
       Procedure = 'expansion';
       v(:,end) = xe;
@@ -163,7 +178,7 @@ while true
     %xco = (1+psi*rho)*xbar - psi*rho*v(:,end);
     xco = xbar + psi*rho*(xbar-v(:,end));
     xco = constrain(xco);
-    fco = errfcn(xco,varargin{:});
+    fco = fcn(xco);
     if fco<=fr
       Procedure = 'contraction outside';
       v(:,end) = xco;
@@ -176,7 +191,7 @@ while true
     %xci = (1-psi)*xbar + psi*v(:,end);
     xci = xbar - psi*(xbar-v(:,end));
     xci = constrain(xci);
-    fci = errfcn(xci,varargin{:});
+    fci = fcn(xci);
     if fci<fv(:,end)
       Procedure = 'contraction inside';
       v(:,end) = xci;
@@ -191,7 +206,7 @@ while true
     for iVertex = 2:nVertices
       xshr = v(:,1) + sigma*(v(:,iVertex)-v(:,1));
       xshr = constrain(xshr);
-      fv(:,iVertex) = errfcn(xshr,varargin{:});
+      fv(:,iVertex) = fcn(xshr);
       v(:,iVertex) = xshr;
     end
   end
@@ -202,22 +217,26 @@ while true
   
   iIteration = iIteration + 1;
   
-  if FitOpt.PrintLevel
+  if FitOpt.PrintLevel>0
     thisstep = max(max(abs(v(:,2:nParams+1)-v(:,ones(1,nParams)))));
-    str = sprintf(logStringFormat,iIteration,Procedure,fv(1),thisstep);
+    str = sprintf(logStringFormat,iIteration,fv(1),thisstep,Procedure);
     FitOpt.IterationPrintFunction(str);
   end
 
 end
 
-x = v(:,1);
-x = unconstrain(x);
+if transformParams
+  x = unconstrain(untransform(v(:,1)));
+else
+  x = unconstrain(v(:,1));
+end
+
 info.simplex_final = v;
 info.F = fv(:,1);
 info.nIterations = iIteration;
 info.elapsedTime = elapsedTime;
 
-if FitOpt.PrintLevel>1
+if FitOpt.PrintLevel>0
   switch stopCode
     case 1, msg = sprintf('Time limit of %f minutes reached.',FitOpt.maxTime);
     case 2, msg = sprintf('Stopped by user.');

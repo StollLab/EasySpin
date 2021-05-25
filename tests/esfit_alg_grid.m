@@ -17,21 +17,18 @@ Exp.mwRange = [9.5 10.5];
 
 [nu,spc] = pepper(Sys,Exp);
 rng(1)
-data = addnoise(spc,50,'u');
 
 Vary.g = [0.02 0.02]; 
 Opt = struct;
 
 FitOpt.PrintLevel = 0;
 
-err = false;
-
 rmsd = zeros(1,nMethods);
 
 for iMethod = 1:nMethods
   FitOpt.Method = [fitAlg, dataMethod{iMethod}];
-  [~,~,resid] = esfit(@pepper,spc,Sys,Vary,Exp,Opt,FitOpt);
-  rmsd(iMethod) = sqrt(mean(resid.^2));
+  result = esfit(spc,@pepper,{Sys,Exp,Opt},{Vary},FitOpt);
+  rmsd(iMethod) = result.rmsd/max(result.fit);
 end
 
 ok = rmsd<1e-10;

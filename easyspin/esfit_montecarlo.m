@@ -1,4 +1,24 @@
-function [bestx,info] = esfit_montecarlo(funfcn,nParams,FitOpt,varargin)
+% esfit_montecarl   Monte Carlo algorithm for least-squares fitting
+%
+%    x = esfit_montecarlo(fcn,lb,ub,FitOpt)
+%
+%    fcn ...  scalar function to minimize, f(x), where x is an array
+%    lb   ... lower bounds for x
+%    ub   ... upper bounds for x
+%    FitOpt ... options
+%       nTrials       number of trials
+%       maxTime       maximum time to run, in minutes
+%       PrintLevel    1, if progress information should be printed
+%       TolFun        error threshold below which fitting stops
+
+function [bestx,info] = esfit_montecarlo(fcn,lb,ub,FitOpt)
+
+if nargin<3
+  error('At least 3 inputs expected (function, lb, ub).');
+end
+if nargin<4
+  FitOpt = struct;
+end
 
 if ~isfield(FitOpt,'nTrials'); FitOpt.nTrials = 20000; end
 if ~isfield(FitOpt,'PrintLevel'); FitOpt.PrintLevel = 1; end
@@ -12,11 +32,15 @@ end
 global UserCommand
 if isempty(UserCommand), UserCommand = NaN; end
 
-lb = -ones(nParams,1);
-ub = +ones(nParams,1);
+lb = lb(:);
+ub = ub(:);
+if numel(lb)~=numel(ub)
+  error('Arrays for lower and upper bound must have the same number of elements.');
+end
 if any(lb>ub)
   error('Lower bounds must not be greater than upper bounds.');
 end
+nParams = numel(lb);
 
 Fmin = inf;
 bestx = zeros(nParams,1);
@@ -26,7 +50,7 @@ stopCode = 0;
 for iTrial = 1:FitOpt.nTrials
   
   X = lb + (ub-lb).*rand(nParams,1);
-  F = feval(funfcn,X,varargin{:});
+  F = fcn(X);
   
   if F<Fmin
     Fmin = F;

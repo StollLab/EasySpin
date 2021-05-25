@@ -82,7 +82,7 @@ if isempty(yref)
 
   ModeID = find(strcmp(Mode,{'minmax','maxabs','none'}));
   if isempty(ModeID)
-    error('Unknown scaling mode ''%s''',Mode);
+    error('Unsupported scaling mode ''%s''',Mode);
   end
   
   y = y(:);
