@@ -20,6 +20,6 @@ Exp.mwFreq = 9.05;      % GHz
 Exp.Range = [250 350];  % mT
 
 Opt.Method = 'perturb';
-Opt.nKnots = [61 0];
+Opt.GridSize = [61 0];
 
 pepper(Sys,Exp,Opt);

@@ -9,18 +9,20 @@ Sys.lw = [0 10];
 
 Exp.Field = 334;
 Exp.mwRange = [9 11];
-Exp.CrystalOrientation = [0 0 0];
 
 Opt.LLMK = [100 0 0 0];
 Opt.Verbosity = 0;
+Opt.GridSymmetry = 'Dinfh';
 
 c200 = 3;
 
+Exp.Ordering = c200;
+[B,spc2] = pepper(Sys,Exp,Opt);
+
+Exp.CrystalOrientation = [0 0 0];
 Sys.Potential = [2 0 0 c200];
 [B,spc1] = chili(Sys,Exp,Opt);
 
-Exp.Ordering = c200;
-[B,spc2] = pepper(Sys,Exp,Opt);
 
 spc2 = spc2/max(spc2);
 spc1 = spc1/max(spc1);
@@ -34,6 +36,6 @@ if opt.Display
   legend('chili','pepper');
   subplot(3,1,3)
   plot(B,spc1-spc2);
-  line(xlim,threshold*[1 1],'Color','r');
-  line(xlim,-threshold*[1 1],'Color','r');
+  yline(threshold,'Color','r','LineStyle','--');
+  yline(-threshold,'Color','r','LineStyle','--');
 end

@@ -10,7 +10,7 @@
 %                  [L1 M1 K1 lambda; L2 M2 K2 lambda2; ...]
 %
 %   Example:
-%     Potential = [2 2 1 1.4];
+%     Potential = [2 2 1 1.4]; % L=2, M=2, K=1, lambda=1.4
 %     oripotentialplot(Potential);
 
 function oripotentialplot(Potential)
@@ -19,6 +19,7 @@ if nargin==0
   help(mfilename);
   return
 end
+
 if nargin>1
   error('Only one input argument allowed.');
 end
@@ -31,7 +32,7 @@ end
 
 % Internal settings
 %-------------------------------------------------------------------------------
-PlotStyle = 2; % 1: rectangular, 2: on a sphere
+PlotStyle = 'sphere'; % 'rectangle', 'sphere'
 plotPopulation = false;
 plotAlphaBeta = true;
 
@@ -115,110 +116,117 @@ updatedisplay;
 
 function updatedisplay
 
-if PlotStyle==1
+switch PlotStyle
+  case 'rectangle'
   
-  if plotAlphaBeta
-    [b_,a_] = meshgrid(b,a);
-    if plotPopulations
-      Pplot = PopulationFunction(a_,b_,c);
+    if plotAlphaBeta
+      [b_,a_] = meshgrid(b,a);
+      if plotPopulation
+        Pplot = PopulationFunction(a_,b_,c);
+      else
+        Pplot = PotentialFunction(a_,b_,c)/kT;
+      end
+      pcolor(a*180/pi,b*180/pi,Pplot.');
+      ylabel('\beta / pi')
+      xlabel('\alpha / pi')
     else
-      Pplot = PotentialFunction(a_,b_,c)/kT;
+      [b_,c_] = meshgrid(b,c);
+      if plotPopulations
+        Pplot = PopulationFunction(0,b_,c_);
+      else
+        Pplot = PotentialFunction(0,b_,c_)/kT;
+      end
+      pcolor(c*180/pi,b*180/pi,Pplot.');
+      ylabel('\gamma / pi')
+      xlabel('\alpha / pi')
     end
-    pcolor(a*180/pi,b*180/pi,Pplot.');
-    ylabel('\beta / pi')
-    xlabel('\alpha / pi')
-  else
-    [b_,c_] = meshgrid(b,c);
-    if plotPopulations
-      Pplot = PopulationFunction(0,b_,c_);
+    set(gca,'YDir','reverse');
+    shading flat
+    c = colorbar;
+    c.Label.String = 'energy (kB*T)';
+    title('Boltzmann population');
+    set(gca,'XTick',0:45:360,'YTick',0:30:180);
+
+  case 'sphere'
+    % Plot on a sphere, (alpha,beta)
+
+    GridSize = max(40,max(Lp)*2);
+    symmgroup = 'C1';
+    [Grid,tri] = sphgrid(symmgroup,GridSize);
+    Vectors = Grid.vecs;
+
+    if plotAlphaBeta
+      [alpha,beta] = vec2ang(Vectors);
+      if plotPopulation
+        Pplot = PopulationFunction(alpha,beta,0);
+        titlestr = 'Equilibrium population density (\alpha,\beta,0)';
+      else
+        Pplot = PotentialFunction(alpha,beta,0)/kT;
+        titlestr = 'Potential energy (\alpha,\beta,0)';
+      end
+      vec = ang2vec(alpha,beta).';
     else
-      Pplot = PotentialFunction(0,b_,c_)/kT;
+      [gamma,beta] = vec2ang(Vectors);
+      if plotPopulation
+        Pplot = PopulationFunction(0,beta,gamma);
+        titlestr = 'Equilibrium population density (0,\beta,\gamma)';
+      else
+        Pplot = PotentialFunction(0,beta,gamma)/kT;
+        titlestr = 'Potential energy (0,\beta,\gamma)';
+      end
+      vec = ang2vec(gamma,beta).';
     end
-    pcolor(c*180/pi,b*180/pi,Pplot.');
-    ylabel('\gamma / pi')
-    xlabel('\alpha / pi')
-  end
-  set(gca,'YDir','reverse');
-  shading flat
-  colorbar
-  title('Boltzmann population');
-  set(gca,'XTick',0:45:360,'YTick',0:30:180);
-  
-elseif PlotStyle==2
-  % Plot on a sphere, (alpha,beta)
-  
-  nKnots = max(40,max(Lp)*2);
-  symmgroup = 'C1';
-  Vectors = sphgrid(symmgroup,nKnots);
-  
-  if plotAlphaBeta
-    [alpha,beta] = vec2ang(Vectors);
+
+    h = trisurf(tri.idx,vec(:,1),vec(:,2),vec(:,3),Pplot);
+    h.FaceAlpha = 0.85;
+
+    % Add xyz axes and labels
+    v = 1.2; d = 0.1;
+    line([0 0],[0 0],[-v v],'Color','k');
+    line([0 0],[-v v],[0 0],'Color','k');
+    line([-v v],[0 0],[0 0],'Color','k');
+    phi = linspace(0,2*pi);
+    x = cos(phi)*0.99;
+    y = sin(phi)*0.99;
+    z = zeros(size(phi));
+    line(x,y,z,'Color','k');
+    line(y,z,x,'Color','k');
+    line(z,x,y,'Color','k');
+    text(v+d,0,0,'+x','VerticalAl','middle','Horizon','center');
+    text(v+d,0,0,'+x','VerticalAl','middle','Horizon','center');
+    text(0,v+d,0,'+y','VerticalAl','middle','Horizon','center');
+    text(0,0,v+d,'+z','VerticalAl','middle','Horizon','center');
+    text(-v-d,0,0,'-x','VerticalAl','middle','Horizon','center');
+    text(0,-v-d,0,'-y','VerticalAl','middle','Horizon','center');
+    text(0,0,-v-d,'-z','VerticalAl','middle','Horizon','center');
+
+    axis equal
+    shading interp
+    axis off
+    axis tight
+    set(gca,'PlotBoxAspectRatioMode','manual');
+    set(gca,'DataAspectRatioMode','manual');
+    title(titlestr);
     if plotPopulation
-      Pplot = PopulationFunction(alpha,beta,0);
-      titlestr = 'Equilibrium population (\alpha,\beta,0)';
+      m = colormap('gray(256)');
+      colormap(flipud(m));
+      c = colorbar;
+      c.Label.String = 'equilibrium population density (rad^{-3})';
+      cl = get(gca,'CLim');
+      cl(1) = 0;
+      set(gca,'CLim',cl);
     else
-      Pplot = PotentialFunction(alpha,beta,0)/kT;
-      titlestr = 'Potential(\alpha,\beta,0) / k_BT';
+      colormap('parula(256)');
+      c = colorbar;
+      c.Label.String = 'potential energy ({\itk}_B{\itT})';
+      cl = get(gca,'CLim');
+      set(gca,'CLim',cl);
     end
-    vec = ang2vec(alpha,beta).';
-  else
-    [gamma,beta] = vec2ang(Vectors);
-    if plotPopulation
-      Pplot = PopulationFunction(0,beta,gamma);
-      titlestr = 'Equilibrium population (0,\beta,\gamma)';
-    else
-      Pplot = PotentialFunction(0,beta,gamma)/kT;
-      titlestr = 'Potential(0,\beta,\gamma) / k_BT';
-    end
-    vec = ang2vec(gamma,beta).';
-  end
-  tri = sphtri(symmgroup,nKnots);
+  
+  otherwise
     
-  h = trisurf(tri,vec(:,1),vec(:,2),vec(:,3),Pplot);
-  h.FaceAlpha = 0.85;
-  
-  % Add xyz axes and labels
-  v = 1.2; d = 0.1;
-  line([0 0],[0 0],[-v v],'Color','k');
-  line([0 0],[-v v],[0 0],'Color','k');
-  line([-v v],[0 0],[0 0],'Color','k');
-  phi = linspace(0,2*pi);
-  x = cos(phi)*0.99;
-  y = sin(phi)*0.99;
-  z = zeros(size(phi));
-  line(x,y,z,'Color','k');
-  line(y,z,x,'Color','k');
-  line(z,x,y,'Color','k');
-  text(v+d,0,0,'+x','VerticalAl','middle','Horizon','center');
-  text(v+d,0,0,'+x','VerticalAl','middle','Horizon','center');
-  text(0,v+d,0,'+y','VerticalAl','middle','Horizon','center');
-  text(0,0,v+d,'+z','VerticalAl','middle','Horizon','center');
-  text(-v-d,0,0,'-x','VerticalAl','middle','Horizon','center');
-  text(0,-v-d,0,'-y','VerticalAl','middle','Horizon','center');
-  text(0,0,-v-d,'-z','VerticalAl','middle','Horizon','center');
-    
-  axis equal
-  shading interp
-  axis off
-  axis tight
-  set(gca,'PlotBoxAspectRatioMode','manual');
-  set(gca,'DataAspectRatioMode','manual');
-  title(titlestr);
-  if plotPopulation
-    m = colormap('gray(256)');
-    colormap(flipud(m));
-    colorbar
-    cl = get(gca,'CLim');
-    cl(1) = 0;
-    set(gca,'CLim',cl);
-  else
-    colormap('parula(256)');
-    colorbar
-    cl = get(gca,'CLim');
-    set(gca,'CLim',cl);
-  end
-  
-  
+    error('Unknown value ''%s'' for PlotStyle.',PlotStyle);
+
 end
 
 end

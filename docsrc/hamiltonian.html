@@ -19,6 +19,7 @@
 <li><a href="index.html">Documentation</a>
 <li><a href="references.html">Publications</a>
 <li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/academy" target="_blank">Academy</a>
 <li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
 </ul>
 </header>
@@ -38,23 +39,23 @@ $$
 \Op{H} =
 \sum_i
 \left[
-\Op{H}_\mr{EZI}(i) +
-\Op{H}_\mr{ZFI}(i)
+\Op{H}_\mr{EZ}(i) +
+\Op{H}_\mr{ZF}(i)
 \right]
 +
 \sum_k
 \left[
-\Op{H}_\mr{NZI}(i) +
-\Op{H}_\mr{NQI}(i)
+\Op{H}_\mr{NZ}(i) +
+\Op{H}_\mr{NQ}(i)
 \right]
 +
 \sum_{i}
 \sum_{j>i}
-\Op{H}_\mr{EEI}(i,j)
+\Op{H}_\mr{EE}(i,j)
 +
 \sum_{i}
 \sum_{k}
-\Op{H}_\mr{HFI}(i,k)
+\Op{H}_\mr{HF}(i,k)
 $$
 -->
 </div>
@@ -64,12 +65,12 @@ with the following terms
 <p>
 
 <ul>
-<li>H<sub>EZI</sub>(i): <a href="#ezi">Electron Zeeman Interaction</a> (EZI) of electron spin i</li>
-<li>H<sub>ZFI</sub>(i): <a href="#zfi">Zero-Field Interaction</a> (ZFI) of electron spin i</li>
-<li>H<sub>NZI</sub>(k): <a href="#nzi">Nuclear Zeeman Interaction</a> (NZI) of nuclear spin k</li>
-<li>H<sub>NQI</sub>(k): <a href="#nqi">Nuclear Quadrupole Interaction</a> (NQI) of nuclear spin k</li>
-<li>H<sub>EEI</sub>(i,j): <a href="#eei">Electron-Electron Interaction</a> (EEI) between electron spins i and j</li>
-<li>H<sub>HFI</sub>(i,k): <a href="#hfi">Hyperfine Interaction</a> (HFI) between electron spin i and nuclear spin k</li>
+<li>H<sub>EZ</sub>(i): <a href="#ezi">Electron Zeeman Interaction</a> of electron spin i</li>
+<li>H<sub>ZF</sub>(i): <a href="#zfi">Zero-Field Interaction</a> of electron spin i</li>
+<li>H<sub>NZ</sub>(k): <a href="#nzi">Nuclear Zeeman Interaction</a> of nuclear spin k</li>
+<li>H<sub>NQ</sub>(k): <a href="#nqi">Nuclear Quadrupole Interaction</a> of nuclear spin k</li>
+<li>H<sub>EE</sub>(i,j): <a href="#eei">Electron-Electron Interaction</a> between electron spins i and j</li>
+<li>H<sub>HF</sub>(i,k): <a href="#hfi">Hyperfine Interaction</a> between electron spin i and nuclear spin k</li>
 </ul>
 
 <p>
@@ -101,14 +102,14 @@ with the operators
 <img src="eqn/hamiltonian3.png" alt="[eqn]"><!--MATH
 $$
 \Op{F} =
-\Op{H}_\mr{NQI} +
-\Op{H}_\mr{ZFI} +
-\Op{H}_\mr{EEI} +
-\Op{H}_\mr{HFI}
+\Op{H}_\mr{NQ} +
+\Op{H}_\mr{ZF} +
+\Op{H}_\mr{EE} +
+\Op{H}_\mr{HF}
 \qquad
 \vc{B}^\trp\opvc{G} =
-\Op{H}_\mr{EZI} +
-\Op{H}_\mr{NZI}
+\Op{H}_\mr{EZ} +
+\Op{H}_\mr{NZ}
 $$
 -->
 </div>
@@ -123,7 +124,7 @@ and the external magnetic field is
 <div class="eqn">
 <img src="eqn/hamiltonian4.png" alt="[eqn]"><!--MATH
 $$
-\Op{H}_\mr{EZI} =
+\Op{H}_\mr{EZ} =
 \mu_\mr{B}\vc{B}^\trp \mx{g} \opvc{S}
 =
 \mu_\mr{B}
@@ -243,7 +244,7 @@ the external magnetic field is
 <div class="eqn">
 <img src="eqn/hamiltonian18.png" alt="[eqn]"><!--MATH
 $$
-\Op{H}_\mr{NZI}
+\Op{H}_\mr{NZ}
 =
 -\mu_\mr{n}
 g_\mr{n}
@@ -265,13 +266,13 @@ In EPR, chemical shifts and the chemical shift anisotropy are neglected.
 <div class="subtitle"><a name="zfi">Zero-Field Interaction</a></div>
 
 <p>
-For a spin S &gt; 1/2, the energy term describing the zero-field interaction (ZFI) is
+For a spin S &gt; 1/2, the energy term describing the zero-field interaction (ZF) is
 </p>
 
 <div class="eqn">
 <img src="eqn/hamiltonian19.png" alt="[eqn]"><!--MATH
 $$
-\Op{H}_\mr{ZFI}/h
+\Op{H}_\mr{ZF}/h
 =
 \opvc{S}^\trp \mx{D} \opvc{S}
 =
@@ -306,7 +307,7 @@ In its eigenframe, the D tensor is diagonal, and the zero-field spin Hamiltonian
 <div class="eqn">
 <img src="eqn/hamiltonian21.png" alt="[eqn]"><!--MATH
 $$
-\Op{H}_\mr{ZFI}/h
+\Op{H}_\mr{ZF}/h
 =
 D_x\Op{S}_\mr{x}^2 +
 D_y\Op{S}_\mr{y}^2 +
@@ -368,7 +369,7 @@ The hyperfine interaction term is
 <div class="eqn">
 <img src="eqn/hamiltonian25.png" alt="[eqn]"><!--MATH
 $$
-\Op{H}_\mr{HFI}/h
+\Op{H}_\mr{HF}/h
 =
 \opvc{S}^\trp\mx{A}\opvc{I}
 =
@@ -487,7 +488,7 @@ The general term describing the interactions between two electrons is
 <div class="eqn">
 <img src="eqn/hamiltonian40.png" alt="[eqn]"><!--MATH
 $$
-\Op{H}_\mr{EEI}/h
+\Op{H}_\mr{EE}/h
 =
 \opvc{S}_1^\trp\mx{J}\opvc{S}_2
 =
@@ -517,7 +518,7 @@ The tensor <img src="eqn/hamiltonian41.png" alt="[eqn]"><!--MATH$\mx{J}$--> desc
 electron spins and includes the isotropic, antisymmetric and symmetric interactions.
 
 <p>
-For the isotropic exchange interaction, several conflicting conventions are in use in the literature:
+For the isotropic exchange interaction, several inconsistent conventions are in use in the literature:
 
 <div class="eqn">
 <img src="eqn/hamiltonian42.png" alt="[eqn]"><!--MATH
@@ -542,13 +543,13 @@ EasySpin uses the first one in this list. Therefore, when using values from the 
 
 <p>
 Nuclei with spin I>1/2 have an electric quadrupole moment that can interact with the local electric field gradient at the nucleus.
-The SH term describing this nuclear quadrupole interaction is
+The term in the spin Hamiltonian describing this nuclear quadrupole interaction is
 </p>
 
 <div class="eqn">
 <img src="eqn/hamiltonian43.png" alt="[eqn]"><!--MATH
 $$
-\Op{H}_\mr{NQI}/h
+\Op{H}_\mr{NQ}/h
 =
 \opvc{I}^\trp\mx{Q}\opvc{I}
 =
@@ -596,16 +597,16 @@ $$
 where <img src="eqn/hamiltonian46.png" alt="[eqn]"><!--MATH$Q_1$-->, <img src="eqn/hamiltonian47.png" alt="[eqn]"><!--MATH$Q_2$--> and
 <img src="eqn/hamiltonian48.png" alt="[eqn]"><!--MATH$Q_3$--> are the
 three principal values. One common convention is to choose the eigenframe such that the three values
-are ordered |Q<sub>1</sub>| &le; |Q<sub>2</sub>|  &lt; |Q<sub>3</sub>|.
+are ordered according to <img src="eqn/hamiltonian49.png" alt="[eqn]"><!--MATH$|Q_1|\le|Q_2|\le|Q_3|$-->.
 </p>
 
 <p>
-<img src="eqn/hamiltonian49.png" alt="[eqn]"><!--MATH$\mx{Q}$-->
+<img src="eqn/hamiltonian50.png" alt="[eqn]"><!--MATH$\mx{Q}$-->
  is traceless, which means
 </p>
 
 <div class="eqn">
-<img src="eqn/hamiltonian50.png" alt="[eqn]"><!--MATH
+<img src="eqn/hamiltonian51.png" alt="[eqn]"><!--MATH
 $$
 Q_\mr{xx}+Q_\mr{yy}+Q_\mr{zz}
 =
@@ -617,16 +618,11 @@ $$
 </div>
 
 <p>
-The relations between the diagonal
-matrix and the usual parameters
-<img src="eqn/hamiltonian51.png" alt="[eqn]"><!--MATH$e^2Qq/h$-->
-and
-<img src="eqn/hamiltonian52.png" alt="[eqn]"><!--MATH$\eta$-->
-are
+Instead of the principal values <img src="eqn/hamiltonian52.png" alt="[eqn]"><!--MATH$Q_1$-->, <img src="eqn/hamiltonian53.png" alt="[eqn]"><!--MATH$Q_2$-->, and <img src="eqn/hamiltonian54.png" alt="[eqn]"><!--MATH$Q_3$-->, it is common to encounter the conventional parameters <img src="eqn/hamiltonian55.png" alt="[eqn]"><!--MATH$e^2Qq/h$--> and <img src="eqn/hamiltonian56.png" alt="[eqn]"><!--MATH$\eta$-->, related to the principal values via
 </p>
 
 <div class="eqn">
-<img src="eqn/hamiltonian53.png" alt="[eqn]"><!--MATH
+<img src="eqn/hamiltonian57.png" alt="[eqn]"><!--MATH
 $$
 \mx{Q} = 
 \begin{pmatrix}
@@ -646,7 +642,7 @@ $$
 </div>
 
 <div class="eqn">
-<img src="eqn/hamiltonian54.png" alt="[eqn]"><!--MATH
+<img src="eqn/hamiltonian58.png" alt="[eqn]"><!--MATH
 $$
 e^2Qq/h = 2I(2I-1)Q_3
 \qquad
@@ -655,12 +651,28 @@ $$
 -->
 </div>
 
+<p>
 With the ordering convention above, e<sup>2</sup>Qq/h can be positive or negative, and &eta; is between 0 and 1.
-<img src="eqn/hamiltonian55.png" alt="[eqn]"><!--MATH$eq$--> is the largest-magnitude component of the
-EFG (electric field gradient) at the
-nucleus. The atomic unit of the EFG is E<sub>h</sub>/e/a<sub>0</sub><sup>2</sup>, and its SI unit is V/m<sup>2</sup>.
-<img src="eqn/hamiltonian56.png" alt="[eqn]"><!--MATH$Q$--> is the electric quadrupole moment of the nucleus, its SI unit is m<sup>2</sup>.
+
+<p>
+<img src="eqn/hamiltonian59.png" alt="[eqn]"><!--MATH$eq$--> is the largest-magnitude component of the
+EFG (electric field gradient) tensor at the
+nucleus. The EFG tensor is the matrix of all second derivatives of the electrostatic potential. The atomic unit of the EFG is E<sub>h</sub>/e/a<sub>0</sub><sup>2</sup>, and its SI unit is V/m<sup>2</sup>. Occasionally, V/Å<sup>2</sup> is used.
+<img src="eqn/hamiltonian60.png" alt="[eqn]"><!--MATH$Q$--> is the electric quadrupole moment of the nucleus, its SI unit is m<sup>2</sup>.
 It is usually given in barn (1 barn = 10<sup>-28</sup> m<sup>2</sup> = 10<sup>-24</sup> cm<sup>2</sup>).
+
+<p>
+The nuclear quadrupole tensor is related to the EFG tensor <img src="eqn/hamiltonian61.png" alt="[eqn]"><!--MATH$\mx{V}$--> via
+
+<div class="eqn">
+<img src="eqn/hamiltonian62.png" alt="[eqn]"><!--MATH
+$$
+\mx{Q}
+=
+\frac{1}{h}\frac{eQ}{2I(2I-1)}\mx{V}
+$$
+-->
+</div>
 
 <hr>
 </section>

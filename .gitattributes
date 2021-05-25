@@ -1,2 +1,4 @@
 easyspin/*.m linguist-language=MATLAB
 tests/*.m linguist-language=MATLAB
+easyspin/private/*.inc linguist-language=C
+docsrc/* linguist-documentation 

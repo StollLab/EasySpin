@@ -36,6 +36,6 @@ Exp.Field = 324.9; % mT
 Exp.DetWindow = [-0.02 0.02]; % us
 Exp.DetPhase = pi; % rad, for proper phasing of the signal
 
-Opt.nKnots = 20;
+Opt.GridSize = 20;
 
 saffron(Sys,Exp,Opt);

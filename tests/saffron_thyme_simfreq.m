@@ -27,7 +27,7 @@ Exp.Sequence = {Chirp90 0.25 Chirp180 0.25};
 Exp.DetWindow = [-0.05 0.05] + Chirp180.tp;
 Exp.DetPhase = 0;
 
-Opt.nKnots = 7;
+Opt.GridSize = 7;
 % Opt.SimulationMode = 'thyme';
 Opt.SimFreq = 15;
 

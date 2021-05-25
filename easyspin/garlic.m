@@ -171,7 +171,7 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
     case 0
       cla
       if FrequencySweep
-        if (xAxis(end)<1)
+        if xAxis(end)<1
           plot(xAxis*1e3,spec);
           xlabel('frequency (MHz)');
         else
@@ -180,7 +180,7 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
         end
         title(sprintf('%0.8g mT',Exp.Field));
       else
-        if (xAxis(end)<10000)
+        if xAxis(end)<10000
           plot(xAxis,spec);
           xlabel('magnetic field (mT)');
         else
@@ -199,7 +199,7 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
 end
 %==================================================================
 
-if (EasySpinLogLevel>=1)
+if EasySpinLogLevel>=1
   logmsg(1,['=begin=garlic=====' datestr(now) '=================']);
 end
 
@@ -214,7 +214,7 @@ if any(Sys.L(:)), error('salt does not support Sys.L!'); end
 
 if (Sys.nElectrons~=1) || (isfield(Sys,'L') && any(Sys.L))
   error('Only systems with one electron spin S=1/2 are supported.');
-elseif (Sys.S~=1/2)
+elseif Sys.S~=1/2
   error('Only systems with electron spin S=1/2 are supported.');
 end
 if isfield(Sys,'Exchange') && (Sys.Exchange~=0)
@@ -229,16 +229,16 @@ if ~isfield(Sys,'tcorr'), Sys.tcorr = 0; end
 
 FastMotionRegime = ~isempty(Sys.tcorr) && (Sys.tcorr~=0);
 if FastMotionRegime
-  if (~isreal(Sys.tcorr))
+  if ~isreal(Sys.tcorr)
     error('Problem with System.tcorr: must be a number!');
   end
-  if (numel(Sys.tcorr)~=1)
+  if numel(Sys.tcorr)~=1
     error('Problem with System.tcorr: must be a single number!');
   end
-  if (Sys.tcorr<=0)
+  if Sys.tcorr<=0
     error('Problem with System.tcorr: must be positive!');
   end
-  if (Sys.tcorr<1e-13)
+  if Sys.tcorr<1e-13
     error('Correlation time too small (%f seconds).',Sys.tcorr);
   end
   if isfield(Sys,'n')
@@ -387,10 +387,10 @@ end
 if any(Exp.ModAmp<0) || any(isnan(Exp.ModAmp)) || numel(Exp.ModAmp)~=1
   error('Exp.ModAmp must be either a single positive number or zero.');
 end
-if (Exp.ModAmp>0)
+if Exp.ModAmp>0
   if FieldSweep
     logmsg(1,'  field modulation, amplitude %g mT',Exp.ModAmp);
-    if (Exp.Harmonic<1)
+    if Exp.Harmonic<1
       error('With field modulation (Exp.ModAmp), Exp.Harmonic=0 does not work.');
     end
     Exp.ModHarmonic = Exp.Harmonic;
@@ -493,7 +493,7 @@ else
   CentralResonance = bmagn*giso*Exp.Field*1e-3/planck; % Hz
 end
 
-if (FastMotionRegime)
+if FastMotionRegime
   if FieldSweep
     FastMotionLw = fastmotion(Sys,CentralResonance,Sys.tcorr,'field'); % mT
   else
@@ -506,7 +506,7 @@ if (FastMotionRegime)
   end
 end
 
-if (Sys.nNuclei>0)
+if Sys.nNuclei>0
   I_all = Sys.I;
   gn = Sys.gn;
   if ~Sys.fullA
@@ -543,7 +543,7 @@ Amplitudes = cell(1,Sys.nNuclei);
 
 for iNucGrp = 1:Sys.nNuclei
   
-  if (n_all(iNucGrp)==0)
+  if n_all(iNucGrp)==0
     Shifts{iNucGrp} = 0;
     Amplitudes{iNucGrp} = 1;
     continue
@@ -562,7 +562,7 @@ for iNucGrp = 1:Sys.nNuclei
     
     % Field sweep
     %-------------------------------------------------------------------
-    if (PerturbOrder==0)
+    if PerturbOrder==0
       logmsg(1,'  Breit-Rabi solver, accuracy %g',Opt.Accuracy);
       maxIterationsDone = -1;
       
@@ -571,7 +571,7 @@ for iNucGrp = 1:Sys.nNuclei
       gammae = giso*bmagn;
       h = planck;
       for iF = 1:nFSpins
-        if (nn(iF)==0), continue; end
+        if nn(iF)==0, continue; end
         I = I_this(iF);
         mI = -I:I;
         B_ = 0;
@@ -585,13 +585,13 @@ for iNucGrp = 1:Sys.nNuclei
           if ~isreal(Bnew)
             error('Hyperfine coupling too large compared to microwave frequency. Cannot compute resonance field positions. Use pepper() instead.');
           end
-          if (B_~=0), RelChangeB = 1 - Bnew./B_; end
+          if B_~=0, RelChangeB = 1 - Bnew./B_; end
           B_ = Bnew;
           gamman = gn(iNucGrp)*nmagn; % re-include NZI
           if abs(RelChangeB)<Opt.Accuracy, break; end
         end
-        if (iter>maxIterationsDone), maxIterationsDone = iter; end
-        if (iter==Opt.MaxIterations)
+        if iter>maxIterationsDone, maxIterationsDone = iter; end
+        if iter==Opt.MaxIterations
           error(sprintf('Breit-Rabi solver didn''t converge after %d iterations!',iter));
         end
         Positions = [Positions B_];
@@ -626,12 +626,12 @@ for iNucGrp = 1:Sys.nNuclei
           Bb = -c(2)/c(1); % first-order as start guess
           dB = Bb;
           for iter = 1:Opt.MaxIterations
-            if (abs(dB/Bb)<Opt.Accuracy), break; end
+            if abs(dB/Bb)<Opt.Accuracy, break; end
             dB = polyval(c,Bb)/polyval(dc,Bb);
             Bb = Bb - dB;
           end
-          if (iter>maxIterationsDone), maxIterationsDone = iter; end
-          if (iter==Opt.MaxIterations)
+          if iter>maxIterationsDone, maxIterationsDone = iter; end
+          if iter==Opt.MaxIterations
             error('Newton-Raphson has convergence problem!');
           end
           Positions(end+1) = Bb; % T
@@ -647,7 +647,7 @@ for iNucGrp = 1:Sys.nNuclei
     
     % Frequency sweep
     %-------------------------------------------------------------------
-    if (PerturbOrder==0)
+    if PerturbOrder==0
       logmsg(1,'  Breit-Rabi formula');
       
       % Breit-Rabi formula, J. A. Weil, J. Magn. Reson. 4, 394-399 (1971), [1]
@@ -655,7 +655,7 @@ for iNucGrp = 1:Sys.nNuclei
       gebB = giso*bmagn*B_;
       gnbB = gn(iNucGrp)*nmagn*B_;
       for iF = 1:nFSpins
-        if (nn(iF)==0), continue; end
+        if nn(iF)==0, continue; end
         I = I_this(iF);
         mI = -I:I;
         alpha = (gebB+gnbB)/aiso/(I+1/2);
@@ -711,7 +711,7 @@ end
 logmsg(1,'  total %d lines',nPeaks);
 
 
-if (FastMotionRegime)
+if FastMotionRegime
   % Add Lorentzian
   LorentzianLw = FastMotionLw + Sys.lw(2);
   Sys.lw(2) = 0;
@@ -749,7 +749,7 @@ end
 % Combining shifts and intensities
 %--------------------------------------------------------------
 logmsg(1,'Combining line shifts and line multiplicities...');
-if (nPeaks>1)
+if nPeaks>1
   Positions = allcombinations(Shifts{:},'+') + CentralResonance;
   Intensities = allcombinations(Amplitudes{:},'*');
 else
@@ -814,10 +814,10 @@ switch Opt.AccumMethod
     
     logmsg(1,'Constructing spectrum using Lorentzian lineshape template...');
   
-    if (maxLw==0)
+    if LorentzianLw==0
       error('Cannot use templated linshape accumulation with zero linewidth.');
     end
-    if (Exp.mwPhase~=0)
+    if Exp.mwPhase~=0
       error('Cannot use templated linshape accumulation with non-zero Exp.mwPhase.');
     end
     
@@ -840,6 +840,9 @@ switch Opt.AccumMethod
     % Accumulate spectrum by explicit evaluation of lineshape function
     
     logmsg(1,'Constructing spectrum with explicit Lorentzian lineshapes...');
+    if LorentzianLw==0
+      error('Cannot use axplicit accumulation with zero Lorentzian linewidth.');
+    end
     
     dxFine = min(xAxis(2)-xAxis(1),min(LorentzianLw)/5);
     nPointsFine = round((SweepRange(2)-SweepRange(1))/dxFine+1);
@@ -884,11 +887,11 @@ end
 
 % (2) Convolutional broadening
 %-------------------------------------------------------------------
-if (ConvolutionBroadening)
+if ConvolutionBroadening
   
   fwhmL = LorentzianLw;
   fwhmG = Sys.lw(1);
-  if (fwhmL>0)
+  if fwhmL>0
     HarmonicL = Exp.ConvHarmonic;
     mwPhaseL = Exp.mwPhase;
     HarmonicG = 0;
@@ -946,7 +949,7 @@ end
 % (3) Field modulation
 %-------------------------------------------------------------------
 if FieldSweep
-  if (Exp.ModAmp>0)
+  if Exp.ModAmp>0
     logmsg(1,'Applying field modulation (%g mT amplitude)...',Exp.ModAmp);
     spec = fieldmod(xAxis,spec,Exp.ModAmp,Exp.ModHarmonic);
   else
@@ -958,7 +961,7 @@ end
 
 %===================================================================
 
-switch (nargout)
+switch nargout
   case 1, varargout = {spec};
   case 2, varargout = {xAxis,spec};
   case 3, varargout = {xAxis,spec,Positions};

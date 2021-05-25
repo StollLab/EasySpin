@@ -19,6 +19,7 @@
 <li><a href="index.html">Documentation</a>
 <li><a href="references.html">Publications</a>
 <li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/academy" target="_blank">Academy</a>
 <li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
 </ul>
 </header>
@@ -464,8 +465,8 @@ Keep this in mind, if you need &langle;<i>&Scirc;</i><sub>y</sub>&rangle;.
 In some simulations you may observe echoes in your timetrace that should not be there.
 Besides physical reasons (incomplete phase cycling, different refocusing conditions,...), such artifact echoes can arise from an aliasing effect if the spectrum is insufficiently sampled (not enough orientations are used).
 This can easily be checked: By increasing the number of samples from your distribution the artifact echoes should move, spread further apart or vanish, while physical echos stay in place. 
-The number of orientations that are being used for the simulation can be controlled with <code>Opt.nKnots</code>.
-By default <a class="esf" href="saffron.html">saffron</a> assumes <code>Opt.nKnots = 31</code>.
+The number of orientations that are being used for the simulation can be controlled with <code>Opt.GridSize</code>.
+By default <a class="esf" href="saffron.html">saffron</a> assumes <code>Opt.GridSize = 31</code>.
 
 <p>
 For simulations using the <em>thyme</em> method, <a class="esf" href="saffron.html">saffron</a> usually changes into a simulation frame that rotates slower than the labframe.

@@ -14,9 +14,9 @@ Sys.tcorr = 100e-9;
 Sys.B = 0.34;  % T
 Sys.lw = [0.0, 0.1];
 
-Par.dt = 3e-9;
-Par.Dt = 3e-9;
-Par.nSteps = ceil(100e-9/Par.Dt);
+Par.dtSpatial = 3e-9;
+Par.dtSpin = 3e-9;
+Par.nSteps = ceil(100e-9/Par.dtSpin);
 Par.nTraj = 50;
 Par.Model = 'diffusion';
 

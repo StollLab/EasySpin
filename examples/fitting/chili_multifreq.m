@@ -28,6 +28,6 @@ yQref = Sys.dataQ;
 
 % rescale each spectrum individually here since, internally, esfit will
 % rescale the concatenated output y
-y = [rescale(yX,yXref,'lsq'), rescale(yQ,yQref,'lsq')];
+y = [rescaledata(yX,yXref,'lsq'), rescaledata(yQ,yQref,'lsq')];
 
 return

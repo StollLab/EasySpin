@@ -2,15 +2,14 @@ function ok = test()
 
 % Verify that weights always add up to 4*pi
 
-nKnots = 10;
+GridSize = 10;
 
 SymmGroups = {'C1','Ci','C2h','S6','C4h','C6h','D2h','Th',...
   'D3d','D4h','Oh','D6h','Dinfh','O3'};
 
 for g = 1:numel(SymmGroups)
-  [Vecs,w_] = sphgrid(SymmGroups{g},nKnots,'c');
-  wsum(g) = sum(w_);
+  grid = sphgrid(SymmGroups{g},GridSize);
+  wsum(g) = sum(grid.weights);
 end
-wsum = wsum/(4*pi);
 
-ok = all(abs(wsum-1)<1e-10);
+ok = areequal(wsum,4*pi*ones(size(wsum)),1e-10,'rel');

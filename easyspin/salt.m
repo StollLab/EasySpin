@@ -20,7 +20,7 @@
 %       Ordering      coefficient for non-isotropic orientational distribution
 %   - Opt: simulation options
 %       Transitions, Threshold, Symmetry
-%       nKnots, Intensity, Enhancement, Output, Sites
+%       GridSize, Intensity, Enhancement, Output, Sites
 %
 %   Output:
 %   - rf:     the radiofrequency axis, in MHz
@@ -280,7 +280,7 @@ if ~isempty(Exp.Ordering)
   end
   if isnumeric(Exp.Ordering) && (numel(Exp.Ordering)==1) && isreal(Exp.Ordering)
     lambda = Exp.Ordering;
-    Exp.Ordering = @(phi,theta) exp(lambda*plegendre(2,0,cos(theta)));
+    Exp.Ordering = @(phi,theta) exp(lambda*plegendre(2,0,cos(theta))).*ones(size(phi));
     logmsg(1,'  partial order (built-in function, lambda = %g)',lambda);
   elseif isa(Exp.Ordering,'function_handle')
     logmsg(1,'  partial order (user-supplied function)');
@@ -342,12 +342,12 @@ end
 %DefaultOpt.Sites = []; % endorfrq
 % Documented fields, salt
 if Method==2
-  DefaultOpt.nKnots = [61 0];
+  DefaultOpt.GridSize = [61 0];
 else
-  DefaultOpt.nKnots = [31 3];
+  DefaultOpt.GridSize = [31 3];
 end
-DefaultOpt.Symmetry = 'auto';
-DefaultOpt.SymmFrame = [];
+DefaultOpt.GridSymmetry = '';
+DefaultOpt.GridFrame = [];
 DefaultOpt.Output = 'summed';
 
 % Undocumented fields
@@ -364,7 +364,10 @@ DefaultOpt.PaddingMultiplier = 3; % for padding before convolution
 
 % Supplement the user-supplied structure with the defaults
 Opt = adddefaults(Opt,DefaultOpt);
-if numel(Opt.nKnots)<2, Opt.nKnots(2) = DefaultOpt.nKnots(2); end
+if numel(Opt.GridSize)<2, Opt.GridSize(2) = DefaultOpt.GridSize(2); end
+if Opt.GridSize(1)<2
+  error('Opt.GridSize(1) must be 2 or larger.');
+end
 
 % Parse and process options with string values.
 %IntensitySwitch = parseoption(Opt,'Intensity',{'off','on'}) - 1;
@@ -381,6 +384,10 @@ if any(Opt.OriPreSelect) && SuppliedOriWeights
 end
 
 % Error if obsolete option is specified
+if isfield(Opt,'nKnots')
+  error('Options.nKnots is obsolete. Use Options.GridSize instead, e.g. Options.GridSize = 91.');
+end
+
 if isfield(Opt,'Convolution')
   error('Options.Convolution is obsolete! Please remove from code!');
 end
@@ -390,15 +397,11 @@ if isfield(Opt,'Width')
 end
 
 if isfield(Opt,'nSpline')
-  error('Options.nSpline is obsolete. Use a second number in Options.nKnots instead, e.g. Options.nKnots = [19 5] for Options.nSpline = 5.');
+  error('Options.nSpline is obsolete. Use a second number in Options.GridSize instead, e.g. Options.GridSize = [19 5] for Options.nSpline = 5.');
 end
 
 if isfield(Opt,'LineShape')
   error('Options.LineShape is obsolete. Use System.lwEndor instead.');
-end
-
-if strcmpi(Opt.Symmetry,'auto')
-  Opt.Symmetry = [];
 end
 
 %==========================================================================
@@ -433,7 +436,11 @@ end
 
 [Exp,Opt] = p_symandgrid(Sys,Exp,Opt);
 nOrientations = size(Exp.CrystalOrientation,1);
-nOctants = Opt.nOctants;
+
+% Fold orientational distribution function into grid region.
+if ~isempty(Exp.Ordering)
+  orifun = foldoridist(Exp.Ordering,Opt.GridSymmetry);
+end
 
 
 %==========================================================================
@@ -531,13 +538,13 @@ xAxis = Exp.Range(1) + (0:Exp.nPoints-1)*Exp.deltaX;
 
 if Info.Selectivity>0
   logmsg(1,'  orientation selection: %g (<1 very weak, 1 weak, 10 strong, >10 very strong)',Info.Selectivity);
-  GridTooCoarse = (Opt.nKnots(1)/Opt.minEffKnots<Info.Selectivity);
+  GridTooCoarse = (Opt.GridSize(1)/Opt.minEffKnots<Info.Selectivity);
   if GridTooCoarse && PowderSimulation
     fprintf('  ** Warning: Strong orientation selection ********************************\n');
-    fprintf('  Only %0.1f orientations within excitation window.\n',Opt.nKnots(1)/Info.Selectivity);
+    fprintf('  Only %0.1f orientations within excitation window.\n',Opt.GridSize(1)/Info.Selectivity);
     fprintf('  Spectrum might be inaccurate!\n');
     fprintf('  To remedy, do one (or both) of the following:\n');
-    fprintf('  - Increase Opt.nKnots (currently %d)\n',Opt.nKnots(1));
+    fprintf('  - Increase Opt.GridSize (currently %d)\n',Opt.GridSize(1));
     fprintf('  - Increase Exp.ExciteWidth (currently %g MHz)\n',Exp.ExciteWidth);
     fprintf('  *************************************************************************\n');
   end
@@ -547,7 +554,7 @@ end
 
 %=======================================================================
 %=======================================================================
-%               INTERPOLATION AND SPECTRUM CONSTRUCTION
+%    SPECTRUM CONSTRUCTION (incl. INTERPOLATION and PROJECTION)
 %=======================================================================
 %=======================================================================
 % The position/amplitude/width data from above are
@@ -560,24 +567,23 @@ logmsg(1,'-absorption spectrum construction----------------------');
 
 NaN_in_Pdat = any(isnan(Pdat),2);
 if any(NaN_in_Pdat)
-  Opt.nKnots(2) = 1;
+  Opt.GridSize(2) = 1;
 end
 
-BruteForceSum = 0;
+BruteForceSum = false;
+axialGrid = Opt.nOctants==0;
+usingGrid = Opt.nOctants>=0;
 
 if ~BruteForceSum
 
 % Determine methods: projection/summation, interpolation on/off
 %-----------------------------------------------------------------------
-DoProjection = (~AnisotropicWidths) & (nOctants>=0);
-%DoProjection = DoProjection & ~GridTooCoarse & ~skippedOris & ~openPhi;
-
-DoInterpolation = (Opt.nKnots(2)>1) & (nOctants>=0);
-%DoInterpolation = DoInterpolation & ~skippedOris & ~GridTooCoarse;
+doProjection = ~AnisotropicWidths && usingGrid;
+doInterpolation = Opt.GridSize(2)>1 && usingGrid;
 
 % Preparations for projection
 %-----------------------------------------------------------------------
-if DoProjection
+if doProjection
   msg = 'triangle/segment projection';
 else
   msg = 'summation';
@@ -585,18 +591,17 @@ else
   Template.lw = Template.x/2.5; %<1e-8 at borders for Harmonic = -1
   Template.y = gaussian(0:2*Template.x-1,Template.x,Template.lw,-1);
 end
-Text = {'single-crystal','isotropic','axial','nonaxial D2h','nonaxial C2h','','nonaxial Ci'};
-logmsg(1,'  %s, %s case',msg,Text{nOctants+3});
+logmsg(1,'  %s',msg);
 
 % Preparations for interpolation
 %-----------------------------------------------------------------------
-if DoInterpolation
+if doInterpolation
   % Set an option for the sparse tridiagonal matrix \ solver in global cubic
   % spline interpolation. This function needs some time, so it was taken
   % out of Matlab's original spline() function, which is called many times.
   spparms('autommd',0);
   % Interpolation parameters. 1st char: g global, l linear. 2nd char: order.
-  if nOctants==0  % axial symmetry: 1D interpolation
+  if axialGrid  % axial symmetry: 1D interpolation
     if any(NaN_in_Pdat)
       InterpMode = {'L3','L3','L3'};
     else
@@ -609,12 +614,12 @@ if DoInterpolation
       InterpMode = {'G3','L1','L1'};
     end
   end
-  msg = sprintf('  interpolation (factor %d, method %s/%s/%s)',Opt.nKnots(2),InterpMode{1},InterpMode{2},InterpMode{3});
+  msg = sprintf('  interpolation (factor %d, method %s/%s/%s)',Opt.GridSize(2),InterpMode{1},InterpMode{2},InterpMode{3});
 else
-  Opt.nKnots(2) = 1;
+  Opt.GridSize(2) = 1;
   msg = '  interpolation off';
 end
-nfKnots = (Opt.nKnots(1)-1)*Opt.nKnots(2) + 1;
+nfKnots = (Opt.GridSize(1)-1)*Opt.GridSize(2) + 1;
 logmsg(1,msg);
 
 % Pre-allocation of spectral array.
@@ -668,7 +673,7 @@ if ~PowderSimulation
     end
   end
   
-elseif nOctants==-1
+elseif ~usingGrid
 
   %=======================================================================
   % Isotropic powder spectra
@@ -701,10 +706,11 @@ else
   %=======================================================================
   % Powder spectra: interpolation and accumulation/projection
   %=======================================================================
-  Axial = (nOctants==0);
-  if Axial
-    if DoInterpolation
-      [fphi,fthe] = sphgrid(Opt.Symmetry,nfKnots,'f');
+  if axialGrid
+    if doInterpolation
+      grid = sphgrid(Opt.GridSymmetry,nfKnots);
+      fthe = grid.theta;
+      fphi = grid.phi;
     else
       fthe = Exp.theta;
     end
@@ -712,8 +718,8 @@ else
     if ~isempty(Exp.Ordering)
       centreTheta = (fthe(1:end-1)+fthe(2:end))/2;
       centrePhi = zeros(1,numel(centreTheta));
-      OrderingWeights = Exp.Ordering(centrePhi,centreTheta);
-      if any(OrderingWeights)<0, error('User-supplied orientation distribution gives negative values!'); end
+      OrderingWeights = orifun(centrePhi,centreTheta);
+      if any(OrderingWeights<0), error('User-supplied orientation distribution gives negative values.'); end
       if all(OrderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end
       fSegWeights = fSegWeights(:).*OrderingWeights(:);
       fSegWeights = 4*pi/sum(fSegWeights)*fSegWeights;
@@ -721,19 +727,22 @@ else
     logmsg(1,'  total %d segments, %d transitions',numel(fthe)-1,nTransitions);
     
   else % nonaxial symmetry
-    if DoInterpolation
-      [fphi,fthe] = sphgrid(Opt.Symmetry,nfKnots,'f');
+    if doInterpolation
+      [grid,tri] = sphgrid(Opt.GridSymmetry,nfKnots);
+      fphi = grid.phi;
+      fthe = grid.theta;
     else
+      tri = Exp.tri;
       fthe = Exp.theta;
       fphi = Exp.phi;
     end
-    [idxTri,Areas] = triangles(nOctants,nfKnots,ang2vec(fphi,fthe));
+    idxTri = tri.idx.';
+    Areas = tri.areas;
     if ~isempty(Exp.Ordering)
       centreTheta = mean(fthe(idxTri));
       centrePhi = mean(fphi(idxTri));
-      %OrderingWeights = feval(Exp.Ordering,centrePhi,centreTheta);
-      OrderingWeights = Exp.Ordering(centrePhi,centreTheta);
-      if any(OrderingWeights)<0, error('User-supplied orientation distribution gives negative values!'); end
+      OrderingWeights = orifun(centrePhi,centreTheta);
+      if any(OrderingWeights<0), error('User-supplied orientation distribution gives negative values.'); end
       if max(OrderingWeights)==0, error('User-supplied orientation distribution is all-zero.'); end
       Areas = Areas(:).*OrderingWeights(:);
       Areas = 4*pi/sum(Areas)*Areas;
@@ -752,13 +761,13 @@ else
     
     % Interpolation
     %------------------------------------------------------
-    if DoInterpolation
-      fPos = esintpol(Pdat(iTrans,:),Opt.InterpParams,Opt.nKnots(2),InterpMode{1},fphi,fthe);
+    if doInterpolation
+      fPos = gridinterp(Pdat(iTrans,:),Opt.GridParams,fphi,fthe,InterpMode{1});
       if AnisotropicIntensities
-        fInt = esintpol(Idat(iTrans,:),Opt.InterpParams,Opt.nKnots(2),InterpMode{2},fphi,fthe);
+        fInt = gridinterp(Idat(iTrans,:),Opt.GridParams,fphi,fthe,InterpMode{2});
       end
       if AnisotropicWidths
-        fWid = esintpol(Wdat(iTrans,:),Opt.InterpParams,Opt.nKnots(2),InterpMode{3},fphi,fthe);
+        fWid = gridinterp(Wdat(iTrans,:),Opt.GridParams,fphi,fthe,InterpMode{3});
       end
     else
       fPos = Pdat(iTrans,:);
@@ -782,15 +791,15 @@ else
     
     % Summation or projection
     %------------------------------------------------------
-    if DoProjection
-      if Axial
+    if doProjection
+      if axialGrid
         thisspec = projectzones(fPos,fInt,fSegWeights,xAxis);
       else
         thisspec = projecttriangles(idxTri,Areas,fPos,fInt,xAxis);
       end
       % minBroadening = ?
     else
-      if Axial
+      if axialGrid
         fPosC = (fPos(1:end-1) + fPos(2:end))/2;
         fIntC = fSegWeights.*(fInt(1:end-1) + fInt(2:end))/2;
         fSpread = abs(fPos(1:end-1) - fPos(2:end));
@@ -825,7 +834,7 @@ else
     
   end % for iTrans
 
-  if ~DoProjection
+  if ~doProjection
     logmsg(1,'  Smoothness: overall %0.4g, worst %0.4g\n   (<0.5: probably bad, 0.5-3: ok, >3: overdone)',sumBroadenings/nBroadenings,minBroadening);
   end
   

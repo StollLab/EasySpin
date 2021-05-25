@@ -7,7 +7,7 @@
    <link rel="stylesheet" href="highlight/matlab.css">
    <script src="highlight/highlight.pack.js"></script>
    <script>hljs.initHighlightingOnLoad();</script>
-   <title>rescale</title>
+   <title>rescaledata</title>
 </head>
 
 <body>
@@ -19,13 +19,14 @@
 <li><a href="index.html">Documentation</a>
 <li><a href="references.html">Publications</a>
 <li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/academy" target="_blank">Academy</a>
 <li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
 </ul>
 </header>
 
 <section>
 
-<div class="functitle">rescale</div>
+<div class="functitle">rescaledata</div>
 
 <p>
 Rescale data, including least-squares baseline fits.
@@ -35,9 +36,9 @@ Rescale data, including least-squares baseline fits.
 <div class="subtitle">Syntax</div>
 
 <pre class="matlab">
-y_ = rescale(y,yref,mode)
-y_ = rescale(y,mode)
-[y_,scalefactors] = rescale(...)
+y_ = rescaledata(y,yref,mode)
+y_ = rescaledata(y,mode)
+[y_,scalefactors] = rescaledata(...)
 </pre>
 
 <!-- ====================================================== -->
@@ -96,9 +97,9 @@ The noisy signal can be rescaled in various ways to fit the noise-free one:
 </p>
 
 <pre class="matlab">
-y2 = rescale(yn,y1,'minmax');
-y3 = rescale(yn,y1,'lsq0');
-y4 = rescale(yn,y1,'lsq1');
+y2 = rescaledata(yn,y1,'minmax');
+y3 = rescaledata(yn,y1,'lsq0');
+y4 = rescaledata(yn,y1,'lsq1');
 plot(x,y1,x,y2,x,y3,x,y4);
 legend('input','minmax','lsq0','lsq1');
 </pre>

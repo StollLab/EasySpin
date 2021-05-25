@@ -33,10 +33,10 @@ Sys.Nucs = '14N';
 Sys.A = mt2mhz([6, 36]/10);
 Sys.lw = [0.1, 0.1];
 
-Par.dt = MD.tLag;
+Par.dtSpatial = MD.tLag;
 T = 250e-9;
-Par.Dt = Par.dt;
-Par.nSteps = ceil(T/Par.Dt);
+Par.dtSpin = Par.dtSpatial;
+Par.nSteps = ceil(T/Par.dtSpin);
 
 Par.Model = 'MD-HMM';
 Par.nTraj = 100;

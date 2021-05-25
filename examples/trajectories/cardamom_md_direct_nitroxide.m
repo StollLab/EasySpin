@@ -28,8 +28,8 @@ Sys.A = mt2mhz([6, 36]/10);
 Sys.lw = [0, 0.1];
 
 Par.nTraj = 100;
-Par.dt = 1.0e-9;
-Par.nSteps = ceil(250e-9/Par.dt);  % number of time steps in FID
+Par.dtSpin = 1.0e-9;
+Par.nSteps = ceil(250e-9/Par.dtSpin);  % number of time steps in FID
 Par.Model = 'MD-direct';
 Par.nOrients = 200;
 

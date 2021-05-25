@@ -16,8 +16,8 @@ Exp.mwFreq = 9.4;
 % Parameters for cardamom
 Par.Model = 'diffusion';
 Par.nTraj = 200;
-Par.Dt = 1e-9; % dwell time, s
-Par.dt = 1e-9;
+Par.dtSpin = 1e-9;
+Par.dtSpatial = 1e-9;
 Par.nSteps = 230;
 
 Opt.Verbosity = 1;

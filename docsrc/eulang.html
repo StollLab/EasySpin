@@ -19,6 +19,7 @@
 <li><a href="index.html">Documentation</a>
 <li><a href="references.html">Publications</a>
 <li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/academy" target="_blank">Academy</a>
 <li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
 </ul>
 </header>
@@ -43,42 +44,26 @@ Angles = eulang(Rp)
 <div class="subtitle">Description</div>
 
 <p>
-Given a <a href="eulerangles.html">rotation matrix</a>
-<code>Rp</code>, the function <code>eulang</code> computes the
-<a href="eulerangles.html">Euler angles</a>
-defining the same rotation and returns them
-separately or as a 3-element vector <code>Angles = [alpha, beta, gamma]</code>.
-The angles are in radians.</p>
-
-<p>
-For details about Euler angles and rotation matrices,
-see the page on <a href="eulerangles.html">relative orientations</a>.
+Given a <a href="eulerangles.html">rotation matrix</a> <code>Rp</code>, the function <code>eulang</code> computes the <a href="eulerangles.html">Euler angles</a> defining the same rotation and returns them separately or as a 3-element vector <code>Angles = [alpha, beta, gamma]</code>. The angles are in radians.
 </p>
 
 <p>
-The rotation matrix must be a 3x3 real matrix with determinant +1 to within
-0.1, otherwise the function errors. For smaller deviations, a warning is issued.
+For details about Euler angles and rotation matrices, see the page on <a href="eulerangles.html">relative orientations</a>.
 </p>
 
 <p>
-Since (&alpha;,&beta;,&gamma;) and (&alpha;+/-&pi;,-&beta;,&gamma;+/-&pi;)
-describe the same rotation, there is more than one set of Euler angles
-that give the same rotation matrix. <code>eulang</code> returns the one with positive
-&beta;.
-In the special cases &beta;=0 and &beta;=&pi;, the
-rotation axes for &alpha; and &gamma; coincide, and the
-two angles cannot be distinguished. In this case <code>eulang</code> sets
-&gamma; to zero and describes the entire z rotation by 
-&alpha;.
+The rotation matrix must be a 3x3 real matrix with determinant +1 to within 0.1, otherwise the function errors. For smaller deviations, a warning is issued.
+</p>
+
+<p>
+Since (&alpha;,&beta;,&gamma;) and (&alpha;+/-&pi;,-&beta;,&gamma;+/-&pi;) describe the same rotation, there is more than one set of Euler angles that give the same rotation matrix. <code>eulang</code> returns the one with positive &beta;. In the special cases &beta;=0 and &beta;=&pi;, the rotation axes for &alpha; and &gamma; coincide, and the two angles cannot be distinguished. In this case <code>eulang</code> sets &gamma; to zero and describes the entire z rotation by  &alpha;.
 </p>
 
 <!-- ============================================================= -->
 <div class="subtitle">Algorithm</div>
 
 <p>
-<code>eulang</code> detemines the Euler angles by least-squares fitting,
-starting from angles analytically extracted from a few
-elements of the given rotation matrix.
+<code>eulang</code> detemines the Euler angles by least-squares fitting, starting from angles analytically extracted from a few elements of the given rotation matrix.
 </p>
 
 <!-- ============================================================= -->
@@ -101,8 +86,7 @@ R =
 </pre>
 
 <p>
-Now, feeding this rotation matrix into <code>eulang</code>,
-we get back the three original angles.
+Now, feeding this rotation matrix into <code>eulang</code>, we get back the three original angles.
 </p>
 
 <pre class="matlab">

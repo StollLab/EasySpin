@@ -19,6 +19,7 @@
 <li><a href="index.html">Documentation</a>
 <li><a href="references.html">Publications</a>
 <li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/academy" target="_blank">Academy</a>
 <li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
 </ul>
 </header>
@@ -48,6 +49,7 @@ $ReleaseID$
 <li><a class="esf" href="spinsystem.html">Spin systems</a> now support nuclear chemical shielding tensor via the fields <code>Sys.sigma</code> and <code>Sys.sigmaFrame</code>.</li>
 <li>The field <code>Sys.aF</code> in <a class="esf" href="spinsystem.html">spin systems</a> is no longer supported. Use <code>Sys.B4</code> and <code>Sys.B4Frame</code> instead.</li>
 <li>Interconvert between spherical and cartesian tensors with the new functions <a class="esf" href="tensor_cart2sph.html">tensor_cart2sph</a> and <a class="esf" href="tensor_sph2cart.html">tensor_sph2cart</a>.</li>
+<li><a class="esf" href="rotview.html">rotview</a> provides a graphical interface to visualize and explore Euler angles and their associated rotations.</li>
 </ul>
 
 <p>Major bug fixes</p>
@@ -60,11 +62,15 @@ $ReleaseID$
 
 <p>Incompatible changes</p>
 <ul>
+<li>The function <code>rescale</code> has been renamed to </code><a class="esf" href="rescaledata.html">rescaledata</a> to avoid conflict with an identically named MATLAB function.
 <li><a class="esf" href="chili.html">saffron</a>: The input syntax has changed significantly. See the <a href="saffron.html">reference page</a>, the <a href="userguide_saffron.html">user guide</a>, and the <a href="examplesmain.html">examples</a>.
 <li><a class="esf" href="chili.html">chili</a>: The input field name and syntax for orienting potentials has changed. Instead of <code>Sys.lambda</code>, use <code>Sys.Potential</code>. The new input syntax allows the specification of general orientational potentials.
 <li><a class="esf" href="wignerd.html">wignerd</a> input syntax has changed. Instead of providing all three Euler angles in a single array <code>angles</code>, supply them separately as <code>alpha</code>, <code>beta</code>, and <code>gamma</code>.
 <li>The input syntax for dipolar couplings between electron spins has changed. Instead of <code>Sys.eeD</code>, use the new field <code>Sys.dip</code>.
 <li>The function <code>rotatecrystal</code> has been removed. Use <code>Exp.SampleRotation</code> instead.</li>
+<li><a class="esf" href="sphgrid.html">sphgrid</a> now returns angles, vectors, and weights together in a structure.</li>
+<li>The function <code>sphtri</code> has been removed; it's functionality is now incorporated into <a class="esf" href="sphgrid.html">sphgrid</a>.</li>
+<li>The option name to specify powder averages has changed. Instead of <code>Opt.nKnots</code>, use the new field <code>Opt.GridSize</code>.</li>
 <li>The oldest supported Matlab version is now R2014b (8.4).
 </ul>
 
@@ -450,8 +456,8 @@ and <a class="esf" href="salt.html">salt</a>. Only the space group of the crysta
 <ul>
 <li>Fundamental constants are updated from the CODATA 2002 to the CODATA 2006 recommended set.
 <li>The order of outputs of <a class="esf" href="eprload.html">eprload</a> has changed.
-<li><code>Opt.nSpline</code> is merged with <code>Opt.nKnots</code>. E.g. instead of setting <code>Opt.nKnots=19</code>
-and <code>Opt.nSpline=4</code>, one now sets <code>Opt.nKnots=[19 4]</code>.
+<li><code>Opt.nSpline</code> is merged with <code>Opt.GridSize</code>. E.g. instead of setting <code>Opt.GridSize=19</code>
+and <code>Opt.nSpline=4</code>, one now sets <code>Opt.GridSize=[19 4]</code>.
 </ul>
 
 <p>

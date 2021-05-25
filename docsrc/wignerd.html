@@ -19,6 +19,7 @@
 <li><a href="index.html">Documentation</a>
 <li><a href="references.html">Publications</a>
 <li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/academy" target="_blank">Academy</a>
 <li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
 </ul>
 </header>
@@ -27,7 +28,7 @@
 
 <div class="functitle">wignerd</div>
 
-Wigner rotation matrices
+Wigner rotation matrices, Wigner functions
 
 <!-- ============================================================= -->
 <div class="subtitle">Syntax</div>
@@ -48,7 +49,7 @@ dm1m2 = wignerd(Jm1m2,beta,phase);
 
 <p>
 <code>wignerd</code> computes the (2J+1)x(2J+1) Wigner rotation matrix D<sup>J</sup>(&alpha;,&beta;,&gamma;)
-with matrix elements D<sup>J</sup><sub>m1,m2</sub>(&alpha;,&beta;,&gamma;) where m<sub>1</sub> and m<sub>2</sub> run from J to -J.
+with matrix elements, also called Wigner functions, D<sup>J</sup><sub>m1,m2</sub>(&alpha;,&beta;,&gamma;) where m<sub>1</sub> and m<sub>2</sub> run from J to -J.
 
 <p>
 <code>J</code> is a positive multiple of 1/2 (0, 1/2, 1, 3/2, 2, etc). If <code>J</code> is given as the first input argument, the function computes the full rotation matrix D<sup>J</sup>(&alpha;,&beta;,&gamma;). If <code>Jm1m2 = [J m1 m2]</code> is given instead, only the matrix element D<sup>J</sup><sub>m1,m2</sub>(&alpha;,&beta;,&gamma;) is calculated.
@@ -64,7 +65,7 @@ The last optional argument, <code>phase</code>, specifies the sign convention to
 <img src="eqn/wignerd1.png" alt="[eqn]"><!--MATH
 \begin{equation*}
 D^J_{m_1,m_2}(\alpha,\beta,\gamma) = 
-<J,m_1|\mr{e}^{\pm\ii\alpha J_z} \mr{e}^{\pm\ii\beta J_y} \mr{e}^{\pm\ii\gamma J_z}|J,m_2>
+\langle J,m_1|\mr{e}^{\pm\ii\alpha J_z} \mr{e}^{\pm\ii\beta J_y} \mr{e}^{\pm\ii\gamma J_z}|J,m_2\rangle
 \end{equation*}
 -->
 </div>
@@ -77,8 +78,8 @@ If only the angle <code>beta</code> is given, <code>alpha</code> and <code>gamma
 <div class="eqn">
 <img src="eqn/wignerd2.png" alt="[eqn]"><!--MATH
 \begin{equation*}
-d^J_{m_1,m_2} = 
-<J,m_1|\mr{e}^{\pm\ii\alpha J_y}|J,m_2>
+d^J_{m_1,m_2}(\beta) = 
+\langle J,m_1|\mr{e}^{\pm\ii\beta J_y}|J,m_2\rangle
 \end{equation*}
 -->
 </div>

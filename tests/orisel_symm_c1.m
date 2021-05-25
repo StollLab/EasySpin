@@ -12,14 +12,15 @@ System = struct('S',1/2,'g',[2.1 2.111 2.219],'Nucs','13C','A',[0.3 19.68 24.2],
 Experiment = struct('Range',[-1 1]*5+13.3,'mwFreq',9.5,'ExciteWidth',50);
 Experiment.Field = 310;
 
-nKnots = 5;
+GridSize = 5;
 Symmetry = 'C1';
 
 % ENDOR simulation options
-Options = struct('Verbosity',0,'nKnots',nKnots,'Symmetry',Symmetry);
+Options = struct('Verbosity',0,'GridSize',GridSize,'GridSymmetry',Symmetry);
 Options.OriWeights = orisel(System,Experiment,Options);
 
-[phi,theta] = sphgrid(Symmetry,nKnots);
+grid = sphgrid(Symmetry,GridSize);
+phi = grid.phi;
 
 ok = numel(Options.OriWeights)==numel(phi);
 

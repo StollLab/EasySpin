@@ -4,9 +4,8 @@ function ok = test()
 % for transformation from uncoupled to coupled representation.
 % See Richard N. Zare, Angular Momentum, p.45
 
-clear
-%j1 = 3; j2 = 3;
-j1 = 5; j2 = j1;
+j1 = 5;
+j2 = j1;
 
 N = (2*j1+1)*(2*j2+1);
 

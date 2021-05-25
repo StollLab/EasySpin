@@ -46,7 +46,7 @@
 %      evenK          whether to use only even K values (true/false)
 %      highField      whether to use the high-field approximation (true/false)  
 %      pImax          maximum nuclear coherence order for basis
-%      nKnots         number of knots for powder simulation
+%      GridSize       grid size for powder simulation
 %      PostConvNucs   nuclei to include perturbationally via post-convolution
 %      Verbosity      0: no display, 1: show info
 %      Symmetry       symmetry to use for powder simulation
@@ -487,7 +487,7 @@ if ~isempty(Exp.Ordering)
   if isnumeric(Exp.Ordering) && numel(Exp.Ordering)==1 && isreal(Exp.Ordering)
     lam = Exp.Ordering;
     if lam~=0
-      Exp.Ordering = @(phi,theta) exp(lam*plegendre(2,0,cos(theta)));
+      Exp.Ordering = @(phi,theta) exp(lam*plegendre(2,0,cos(theta))).*ones(size(phi));
       logmsg(1,'  director ordering: built-in function, coefficient = %g',lam);
     else
       Exp.Ordering = [];
@@ -521,7 +521,7 @@ if isempty(Opt), Opt = struct; end
 % Documented
 if ~isfield(Opt,'LLMK')
   if usePotential
-    error('Please provide basis set information (Opt.LLMK etc).');
+    error('Sys.Potential is given. Please provide basis set information (Opt.LLMK etc).');
   else
     Opt.LLMK = [14 7 2 6];
   end
@@ -529,13 +529,18 @@ end
 if ~isfield(Opt,'highField'), Opt.highField = false; end
 if ~isfield(Opt,'pImax'), Opt.pImax = []; end
 if ~isfield(Opt,'pImaxall'), Opt.pImaxall = []; end
-if ~isfield(Opt,'nKnots'), Opt.nKnots = [19 0]; end
+if ~isfield(Opt,'GridSize'), Opt.GridSize = [19 0]; end
 if ~isfield(Opt,'LiouvMethod'), Opt.LiouvMethod = ''; end
 if ~isfield(Opt,'FieldSweepMethod'), Opt.FieldSweepMethod = []; end
 if ~isfield(Opt,'PostConvNucs'), Opt.PostConvNucs = ''; end
 if ~isfield(Opt,'Solver'), Opt.Solver = ''; end
-if ~isfield(Opt,'Symmetry'), Opt.Symmetry = 'Dinfh'; end
+if ~isfield(Opt,'GridSymmetry'), Opt.GridSymmetry = 'Dinfh'; end
 % Opt.Verbosity
+
+% Obsolete options
+if isfield(Opt,'nKnots')
+  error('Options.nKnots is obsolete. Use Options.GridSize instead, e.g. Options.GridSize = 91.');
+end
 
 % Undocumented
 if ~isfield(Opt,'Rescale'), Opt.Rescale = true; end
@@ -543,7 +548,7 @@ if ~isfield(Opt,'Threshold'), Opt.Threshold = 1e-6; end
 if ~isfield(Opt,'Lentz'), Opt.Lentz = true; end
 if ~isfield(Opt,'IncludeNZI'), Opt.IncludeNZI = true; end
 if ~isfield(Opt,'pqOrder'), Opt.pqOrder = false; end
-if ~isfield(Opt,'SymmFrame'), Opt.SymmFrame = []; end
+if ~isfield(Opt,'GridFrame'), Opt.GridFrame = []; end
 if ~isfield(Opt,'Diagnostics'), Opt.Diagnostics = ''; end
 if ~isfield(Opt,'useLMKbasis'), Opt.useLMKbasis = false; end
 if ~isfield(Opt,'useStartvecSelectionRules'), Opt.useStartvecSelectionRules = true; end
@@ -559,10 +564,6 @@ if ~ischar(Opt.Diagnostics) && ~isempty(Opt.Diagnostics) && ~isvarname(Opt.Diagn
   error('If given, Opt.Diagnosics must be a valid Matlab variable name.');
 end
 saveDiagnostics = ~isempty(Opt.Diagnostics);
-
-if isfield(Opt,'Method')
-  error('Opt.Method is not supported. Use Opt.LiouvMethod instead.');
-end
 
 % Determine default method for constructing Liouvillian
 if ~isfield(Opt,'LiouvMethod') || isempty(Opt.LiouvMethod)
@@ -615,10 +616,10 @@ if any(Sys.n~=1)
   error('chili cannot handle systems with nuclei with Sys.n > 1 only if these nuclei are treated using post-convolution (Opt.PostConvNucs).');
 end
 
-if numel(Opt.nKnots)<1, Opt.nKnots(1) = 19; end
-if numel(Opt.nKnots)<2, Opt.nKnots(2) = 0; end
-if Opt.nKnots(2)~=0
-  error('chili cannot interpolate orientations. Set Opt.nKnots(2) to zero.');
+if numel(Opt.GridSize)<1, Opt.GridSize(1) = 19; end
+if numel(Opt.GridSize)<2, Opt.GridSize(2) = 0; end
+if Opt.GridSize(2)~=0
+  error('chili cannot interpolate orientations. Set Opt.GridSize(2) to zero.');
 end
 
 % Basis settings
@@ -630,12 +631,21 @@ if isfield(Opt,'LLKM') % error if pre-6.0 field name is given
     'In the current case, use\n' ...
     '  Opt.LLMK = [%d %d %d %d];'],LLKM(1),LLKM(2),LLKM(4),LLKM(3));
 end
-if numel(Opt.LLMK)~=4 || any(Opt.LLMK<0) || any(mod(Opt.LLMK,1))
+if ~isnumeric(Opt.LLMK) || numel(Opt.LLMK)~=4 || any(Opt.LLMK<0) || any(mod(Opt.LLMK,1))
   error('Opt.LLMK must be a 4-element array with non-negative integers.');
 end
+if mod(Opt.LLMK(1),2)
+  error('Opt.LLMK(1) must be an even number.');
+end
+if Opt.LLMK(2)>0 && ~mod(Opt.LLMK(2),2)
+  error('Opt.LLMK(2) must be an odd integer.');
+end
 maxL = max(Opt.LLMK(1:2));
-if any(Opt.LLMK(3:4)>maxL)
-  error('The maximum M and maximum K (third and fourth number in Opt.LLMK) must be not larger than the maximum L.');
+if any(Opt.LLMK(3)>maxL)
+  error('Opt.LLMK(3)=%d, but must be smaller or equal to the maximum L (%d).',Opt.LLMK(3),maxL);
+end
+if any(Opt.LLMK(4)>maxL)
+  error('Opt.LLMK(4)=%d, but must be smaller or equal to the maximum L (%d).',Opt.LLMK(4),maxL);
 end
 Basis.LLMK = Opt.LLMK;
 Basis.jKmin = Opt.jKmin;
@@ -843,17 +853,19 @@ end
 % Set up list of orientations
 %===============================================================================
 if PowderSimulation
-  if Opt.nKnots(1)==1
+  if Opt.GridSize(1)==1
     phi = 0;
     theta = 0;
     GridWeights = 4*pi;
   else
-    [Vecs,GridWeights] = sphgrid(Opt.Symmetry,Opt.nKnots(1),'cf');
+    grid = sphgrid(Opt.GridSymmetry,Opt.GridSize(1));
+    Vecs = grid.vecs;
+    GridWeights = grid.weights;
     % Transform vector to reference frame representation and convert to polar angles.
-    if isempty(Opt.SymmFrame)
+    if isempty(Opt.GridFrame)
       [phi,theta] = vec2ang(Vecs);
     else
-      [phi,theta] = vec2ang(Opt.SymmFrame*Vecs);
+      [phi,theta] = vec2ang(Opt.GridFrame*Vecs);
     end
   end
   logmsg(1,'  powder simulation with %d orientations',numel(phi));
@@ -873,7 +885,8 @@ Basis.DirTilt = any(theta~=0);
 
 % Partial ordering for protein/macromolecule
 if useDirectorOrdering
-  OrderingWeights = Exp.Ordering(phi,theta);
+  orifun = foldoridist(Exp.Ordering,Opt.GridSymmetry);
+  OrderingWeights = orifun(phi,theta);
   if any(OrderingWeights<0), error('User-supplied orientation distribution gives negative values!'); end
   if all(OrderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end
   logmsg(2,'  orientational potential');
@@ -973,7 +986,7 @@ end
 % Calculate diffusion operator matrix
 %-------------------------------------------------------------------------------
 % Pre-calculate diffusion operator Wigner expansion coefficient
-% (needed for both Opt.Method='fast' and 'general')
+% (needed for both Opt.LiouvMethod='fast' and 'general')
 if usePotential
   logmsg(1,'Calculating Wigner expansion coefficients for potential-dependent part of diffusion matrix');
   XLMK = chili_xlmk(Potential,Dynamics.R);
@@ -1017,7 +1030,7 @@ if generalLiouvillian
     normPeqVec = norm(sqrtPeq)^2;
     logmsg(1,'  norm of Peq vector: %g',normPeqVec);
     if normPeqVec<0.99
-      warning('The norm of the equilibrium population vector in this truncated basis is %g. It should be close to 1. The basis might be too small.',normPeqVec)
+      fprintf('The norm of the equilibrium population vector in this truncated basis is %g. It should be close to 1. The basis might be too small.',normPeqVec);
     end
   else
     logmsg(1,'  using provided vector');

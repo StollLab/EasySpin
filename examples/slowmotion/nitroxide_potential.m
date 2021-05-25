@@ -23,7 +23,8 @@ Nitroxide.Potential = []; % no potential
 [B,spc0] = chili(Nitroxide,Experiment);
 
 Nitroxide.Potential = [2 0 0 1.2]; % lambda_(2,0,0) = +1.2 (in units of kB*T)
-[B,spc1] = chili(Nitroxide,Experiment);
+Options.LLMK = [4 0 2 2]; % basis set information
+[B,spc1] = chili(Nitroxide,Experiment, Options);
 
 
 % Plotting

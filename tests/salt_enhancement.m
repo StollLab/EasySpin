@@ -5,7 +5,7 @@ function [ok,data] = test(opt,olddata)
 Sy = struct('Nucs','14N','g',[2.25 2.25 2],...
   'A',[44,49,54],'Q',[1 1 -2]*0.84,'HStrain',[1 1 1]*100,'lwEndor',0);
 Ex = struct('Range',[16 65],'Field',326.5,'nPoints',2001,'mwFreq',9.7);
-Si = struct('Threshold',1e-4,'nKnots',[31 12],'Verbosity',opt.Verbosity);
+Si = struct('Threshold',1e-4,'GridSize',[31 12],'Verbosity',opt.Verbosity);
 
 Si.Intensity = 'on';
 Si.Enhancement = 'on';
@@ -20,7 +20,7 @@ Si.Enhancement = 'off';
 [a,b3] = salt(Sy,Ex,Si);
 
 if opt.Display
-  renorm = @(y)rescale(y,'maxabs');
+  renorm = @(y)rescaledata(y,'maxabs');
   subplot(3,1,[1 2]);
   plot(a,renorm(b1),'b',a,renorm(b2),'r',a,renorm(b3),'g');
   axis tight

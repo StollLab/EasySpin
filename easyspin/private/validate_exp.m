@@ -1,4 +1,4 @@
-% check_exp    Process experimental settings.
+% validate_exp    Process experimental settings.
 %
 %   (Could be) Implemented to simplify and maintain consistency in code across programs.
 %

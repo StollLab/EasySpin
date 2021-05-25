@@ -22,7 +22,7 @@ Experiment.Field = 310;
 
 % ENDOR simulation options
 Options.Verbosity = 1;
-Options.nKnots = 91;
+Options.GridSize = 91;
 Options.Nuclei = 2;   % compute only 1H ENDOR
 
 % ======= The important line ==============

@@ -19,6 +19,7 @@
 <li><a href="index.html">Documentation</a>
 <li><a href="references.html">Publications</a>
 <li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/academy" target="_blank">Academy</a>
 <li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
 </ul>
 </header>
@@ -440,35 +441,35 @@ relevant only for debugging.
 </p>
 
 <p>
-Another useful option is <code>nKnots</code>, which determines how many
+Another useful option is <code>GridSize</code>, which determines how many
 orientations <code>pepper</code> will include in the simulation of a powder
 spectrum. If this value is too low, the spectrum shape contains ripples.
-<code>nKnots</code> is the number of orientations between the z axis and
+<code>GridSize</code> is the number of orientations between the z axis and
 the x axis (between theta = 0 and theta = 90 degrees).
 </p>
 
 <pre class="matlab">
-Options.nKnots = 31; % corresponds to 3-degree increments
+Options.GridSize = 31; % corresponds to 3-degree increments
 </pre>
 
 <p>
-The higher <code>nKnots</code>, the finer the orientational grid.
+The higher <code>GridSize</code>, the finer the orientational grid.
 The default value of 19 (5-degree increments) is appropriate for most systems.
 A value larger than 181 (0.5-degree increments) is rarely needed.
 </p>
 
 <p>
 After having computed the spectrum for a number of orientations specified
-by <code>nKnots</code>, the simulation function interpolates these spectra for
+by <code>GridSize</code>, the simulation function interpolates these spectra for
 additional orientations before summing up all spectra. This interpolative
-refinement can be configured with a second number in <code>nKnots</code>.
-<code>nKnots = [19 4]</code> means that <code>pepper</code> interpolates
+refinement can be configured with a second number in <code>GridSize</code>.
+<code>GridSize = [19 4]</code> means that <code>pepper</code> interpolates
 additional 4 spectra between two adjacent orientations evaluated.
 </p>
 
 <pre class="matlab">
-Options.nKnots = [19 10];  % massive interpolation
-Options.nKnots = [19 0];   % no interpolation
+Options.GridSize = [19 10];  % massive interpolation
+Options.GridSize = [19 0];   % no interpolation
 </pre>
 
 <p>

@@ -1,8 +1,8 @@
-% rescale     Rescaling of one data vector so that it fits a second
+% rescaledata    Rescaling of one data vector so that it fits a second
 %
-%   ynew = rescale(y,mode1)
-%   ynew = rescale(y,yref,mode2)
-%   [ynew, scalefactors] = rescale(...)
+%   ynew = rescaledata(y,mode1)
+%   ynew = rescaledata(y,yref,mode2)
+%   [ynew, scalefactors] = rescaledata(...)
 %
 %   Shifts and rescales the data vector y. If given, yref serves
 %   as the reference. The rescaled y is returned in ynew. scalefactors
@@ -33,7 +33,7 @@
 %   ynew          the new rescaled y vector
 %   scalefactors  the scaling factors and polynomial coefficients
 
-function varargout = rescale(varargin)
+function varargout = rescaledata(varargin)
 
 switch nargin
   case 0
@@ -60,7 +60,7 @@ end
 
 % Make sure y is a vector
 if ~isvector(y)
-  error('y must be a row or column vector. rescale() does not work on 2D arrays.');
+  error('y must be a row or column vector. rescaledata() does not work on 2D arrays.');
 end
 isRowVector = size(y,1)==1;
 

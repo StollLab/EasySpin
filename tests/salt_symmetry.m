@@ -5,15 +5,15 @@ function [ok,data] = test(opt,olddata)
 Sy = struct('S',1/2,'Nucs','14N','g',[2.3 2.3 2],...
   'A',[44,49,54],'Q',-1*[-1,-1,2],'lwEndor',0);
 Ex = struct('Range',[17 31],'Field',326.5,'nPoints',2^10,'mwFreq',9.7);
-Si = struct('Threshold',1e-5,'nKnots',[20 5],'Intensity','on',...
+Si = struct('Threshold',1e-5,'GridSize',[20 5],'Intensity','on',...
   'Enhancement','off','Verbosity',opt.Verbosity,...
-  'Symmetry','Ci','Output','separate');
+  'GridSymmetry','Ci','Output','separate');
 
 Sy.AFrame = pi/180*[0 -30 0];
 Sy.QFrame = pi/180*[0 45 0];
 [a,b,tr] = salt(Sy,Ex,Si);
 
-if (opt.Display)
+if opt.Display
   if ~isempty(olddata)
     subplot(3,1,[1 2]);
     plot(a,olddata.b,'k',a,b,'r');

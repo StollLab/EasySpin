@@ -13,7 +13,7 @@ tau = 0.1;
 nPoints = 120;
 Field = 350;
 
-Opt.nKnots = 20;
+Opt.GridSize = 20;
 
 %--- Tests
 

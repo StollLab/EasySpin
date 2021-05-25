@@ -15,7 +15,7 @@ Exp.Field = 315;
 Exp.Range = [8 19];
 
 % Set high orientational resolution for the simulation
-Opt.nKnots = 91;
+Opt.GridSize = 91;
 
 % Now we loop over a set of different excitation widths
 % to demonstrate the effect on the ENDOR spectra.

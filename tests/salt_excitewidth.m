@@ -5,7 +5,7 @@ function [ok,data] = test(opt,olddata)
 Sy = struct('S',1/2,'Nucs','14N','g',[2.2 2.2 2],...
   'A',[4,4,5],'Q',-0.84*[-1,-1,2],'HStrain',[1 1 1]*1,'lwEndor',0.1);
 Ex = struct('Range',[0 35],'Field',3394,'nPoints',2^12,'mwFreq',95);
-Si = struct('Threshold',1e-4,'nKnots',50,'Intensity','on');
+Si = struct('Threshold',1e-4,'GridSize',50,'Intensity','on');
 Si.Verbosity = opt.Verbosity;
 
 [a,b1] = salt(Sy,Ex,Si);
@@ -15,7 +15,7 @@ Ex.mwFreq = 104.51;
 [a,b3] = salt(Sy,Ex,Si);
 
 if opt.Display
-  renorm = @(y)rescale(y,'maxabs');
+  renorm = @(y)rescaledata(y,'maxabs');
   subplot(3,1,[1 2]);
   h = plot(a,renorm(b1),'b',a,renorm(b2),'r',a,renorm(b3),'g');
   set(h(1),'LineWidth',2);

@@ -54,6 +54,13 @@ end
 
 if nargin==0, help(mfilename); return; end
 
+if nargin<5
+  error('Not enough input arguments. At least 5 are required.')
+end
+if nargin>7
+  error('Too many input arguments. No more than 7 are accepted.')
+end
+
 % Check expiry date
 error(eschecker);
 
@@ -109,7 +116,7 @@ if isstruct(ExpSpec) || ~isnumeric(ExpSpec)
 end
 FitData.nSpectra = 1;
 FitData.ExpSpec = ExpSpec;
-FitData.ExpSpecScaled = rescale(ExpSpec,'maxabs');
+FitData.ExpSpecScaled = rescaledata(ExpSpec,'maxabs');
 
 % Vary structure
 %-------------------------------------------------------------------------------
@@ -806,8 +813,8 @@ end
 
 % (SimSystems{s}.weight is taken into account in the simulation function)
 BestSpec = out{FitData.OutArgument}; % pick last output argument
-BestSpecScaled = rescale(BestSpec,FitData.ExpSpecScaled,FitOpts.Scaling);
-BestSpec = rescale(BestSpec,FitData.ExpSpec,FitOpts.Scaling);
+BestSpecScaled = rescaledata(BestSpec,FitData.ExpSpecScaled,FitOpts.Scaling);
+BestSpec = rescaledata(BestSpec,FitData.ExpSpec,FitOpts.Scaling);
 
 Residuals = calculateResiduals(BestSpecScaled(:),FitData.ExpSpecScaled(:),FitOpts.TargetID);
 Residuals = Residuals.'; % col -> row
@@ -842,6 +849,7 @@ else
   newFitSet.bestvalues = bestvalues;
   TargetKey = {'fcn','int','iint','diff','fft'};
   newFitSet.Target = TargetKey{FitOpts.TargetID};
+  newFitSet.Scaling = FitOpts.Scaling;
   if numel(FinalSys)==1
     newFitSet.Sys = FinalSys{1};
   else
@@ -897,7 +905,7 @@ end
 simspec = out{FitData.OutArgument}; % pick last output argument
 
 % Scale simulated spectrum to experimental spectrum ----------
-simspec = rescale(simspec,ExpSpec,FitOpt.Scaling);
+simspec = rescaledata(simspec,ExpSpec,FitOpt.Scaling);
 
 % Compute residuals ------------------------------
 residuals = calculateResiduals(simspec(:),ExpSpec(:),FitOpt.TargetID);
