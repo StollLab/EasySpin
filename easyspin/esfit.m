@@ -168,7 +168,7 @@ EasySpinFunction = any(strcmp(fitdat.fcnName,{'pepper','garlic','chili','salt','
 
 % Parameters
 %-------------------------------------------------------------------------------
-structureInputs = iscell(p0);
+structureInputs = iscell(p0) || isstruct(p0);
 fitdat.structureInputs = structureInputs;
 
 % Determine parameter intervals, either from p0 and pvary, or from lower/upper bounds

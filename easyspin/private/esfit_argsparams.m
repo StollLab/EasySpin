@@ -142,7 +142,7 @@ for p = 1:nParams
     arg_ = args{a};
     if iscell(arg_)
         if c>numel(arg_)
-            error('Paramter %d: Not enough cell entries in argument %d.',p,a);
+            error('Parameter %d: Not enough cell entries in argument %d.',p,a);
         end
         arg_ = arg_{c};
     end
@@ -153,7 +153,7 @@ for p = 1:nParams
         error('Parameter %d: Field .%s is missing in input %d.',p,f,a);
     end
     if i>numel(arg_.(f))
-        error('Parameter %d: Field .%s doesn''t have enough elements.',p,f);
+        error('Parameter %d: Field .%s doesn''t have enough elements - at least %d expected.',p,f,i);
     end
     
 end
