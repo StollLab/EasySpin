@@ -57,7 +57,7 @@ end
 if ~ischar(opt)
   error('Last input must be a string, ''sparse''.');
 end
-sparseResult = strcmp(opt,'sparse');
+useSparseMatrices = strcmp(opt,'sparse');
 
 % Validate spin system
 [Sys,err] = validatespinsys(SpinSystem);
@@ -155,7 +155,7 @@ for i = Spins
 end
 
 if isempty(B0)
-  if ~sparseResult
+  if ~useSparseMatrices
     ZxM = full(ZxM);
     ZyM = full(ZyM);
     ZzM = full(ZzM);
@@ -163,7 +163,7 @@ if isempty(B0)
   varargout = {ZxM, ZyM, ZzM};
 else
   H = ZxM*B0(1) + ZyM*B0(2) + ZzM*B0(3);
-  if ~sparseResult
+  if ~useSparseMatrices
     H = full(H);
   end
   varargout = {H};
