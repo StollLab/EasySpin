@@ -134,6 +134,7 @@ else
       ynew = D*scalefactor;
     case 8 % no scaling
       ynew = y;
+      scalefactor = 1;
   end
   
   % Make sure signal is not inverted
