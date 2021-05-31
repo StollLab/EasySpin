@@ -16,8 +16,8 @@ PureSpin.S = [SysSL.S,SysSL.L];
 % build array of g matrices
 PureSpin.g = [SysSL.g;zeros(3*n,3)];
 for k = 1:n
-  g_orb = -diag(SysSL.orf(k)*ones(1,3));
-  PureSpin.g(3*(n+k-1)+1:3*(n+k),:) = g_orb;
+  gL = diag(SysSL.orf(k)*ones(1,3));
+  PureSpin.g(3*(n+k-1)+1:3*(n+k),:) = gL;
 end
 
 % distribute soc over ee and ee2

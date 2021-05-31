@@ -37,11 +37,11 @@ Zeeman interaction Hamiltonian and its components.
 
 <pre class="matlab">
 H = zeeman(SpinSystem, B)
-H = zeeman(SpinSystem, B, Spins)
-H = zeeman(SpinSystem, B, Spins, 'sparse')
+H = zeeman(SpinSystem, B, idx)
+H = zeeman(SpinSystem, B, idx, 'sparse')
 [Zx, Zy, Zz] = zeeman(SpinSystem)
-[Zx, Zy, Zz] = zeeman(SpinSystem, Spins)
-[Zx, Zy, Zz] = zeeman(SpinSystem, Spins, 'sparse')
+[Zx, Zy, Zz] = zeeman(SpinSystem, idx)
+[Zx, Zy, Zz] = zeeman(SpinSystem, idx, 'sparse')
 </pre>
 
 <!-- ============================================================= -->
@@ -51,16 +51,16 @@ H = zeeman(SpinSystem, B, Spins, 'sparse')
 <code>zeeman</code> calculates the Zeeman interaction Hamiltonian for the spin system given in <code>SpinSystem</code>.
 
 <p>
-<code>SpinSystem</code> is a spin system structure, defining spins and g
-values. If <code>Spins</code> is given, only a part of the spins of the system
-is included in the operators. <code>Spins</code> must then be a row vector of
-indices specifying which spins should be included. For a system with n
-electron spins, a number between 1 and n indicates electron spins,
-and n+1 and above specify nuclear spins, if present.
+<code>SpinSystem</code> is a spin system structure, defining electron spins, nuclear spins and orbital angular momenta as well as and their g values.
+</p>
+          
+<p>
+If <code>idx</code> is omitted, all electron and nuclear spins as well as all orbital angular momenta defined in the spin system are included in the operators. If <code>idx</code> is given, only a part of the spins of the system is included. <code>idx</code> must then be a vector of indices specifying which spins should be included. For a system with n electron spins and k nuclear spins, a number between 1 and n indicates an electron spin (from <code>Sys.S</code>), and a number between n+1 and n+k specifies a nuclear spin, if present (from <code>Sys.Nucs</code>). Orbital angular momemta given in <code>Sys.L</code> are included by including numbers above n+k in <code>idx</code>.
 </p>
 
 <p>
 If a magnetic field vector (in mT) is given in <code>B</code>, the actual Hamiltonian is returned
+</p>
 
 <pre class="eqn">
 <img src="eqn/zeeman1.png" alt="[eqn]"><!--MATH
@@ -70,14 +70,14 @@ If a magnetic field vector (in mT) is given in <code>B</code>, the actual Hamilt
 \left(
 \sum_k \mu_\mr{B}\mx{g}_k\opvc{S}_k -
 \sum_l \mu_\mr{N}g_{\mr{n},l}\opvc{I}_l
+\sum_m \mu_\mr{B}g_{\mr{L},m}\opvc{L}_m +
 \right)
 \end{equation*}
 -->
 </pre>
 
 <p>
-If no magnetic field is given, the function returns the three operators involved in constructing the Zeeman interaction Hamiltonian.
-These three operators <code>Zx</code>, <code>Zy</code> and <code>Zz</code> are the cartesian components of the vector derivative
+If no magnetic field is given, the function returns the three operators involved in constructing the Zeeman interaction Hamiltonian. These three operators <code>Zx</code>, <code>Zy</code> and <code>Zz</code> are the cartesian components of the vector derivative
 <img src="eqn/zeeman2.png" alt="[eqn]"><!--MATH$\opvc{Z} = \partial\Op{H}/\partial{\vc{B}}$-->,
 i.e.
 </p>
@@ -100,7 +100,7 @@ q = \mr{x, y, z}
 </pre>
 
 <p>
-and have to be multiplied by the respective B field components and summed up to get the complete Zeeman interaction Hamiltonian
+They correspond to the negative of the magnetic moment components. To get the complete Zeeman interaction Hamiltonian, they have to be multiplied by the respective B field components and summed up.
 </p>
 
 <pre class="eqn">
@@ -116,10 +116,10 @@ B_\mr{z}\Op{Z}_\mr{z}
 -->
 </pre>
 
-
 <p>
 If <code>'sparse'</code> is given as third argument, results are returned in sparse format instead of full format.
 </p>
+
 <p>
 All quantities are formulated in the molecular frame, i.e. x refers to the x axis of the molecular frame etc. The three component operators are in units of MHz/mT, and the overall operator is in units of MHz.
 </p>
@@ -138,6 +138,7 @@ ABC = struct('S',1/2,'g',[2.1 2.1 2],'Nucs','14N','A',[1 1 1]);
 
 <p>
 the full Zeeman Hamiltonian (electron and nucleus) for a given magnetic field along the molecular x axis is
+</p>
 
 <pre class="matlab">
 B = [340;0;0];
@@ -156,11 +157,12 @@ H =
 </pre>
 
 <p>
-For the same spin system, the Zeeman interaction Hamiltonian's x component of the 14N nucleus is
+For the same spin system, the Zeeman interaction Hamiltonian's x component of the <sup>14</sup>N nucleus is
 </p>
 
 <pre class="matlab">
-[Zx,Zy,Zz] = zeeman(ABC,2); Zx
+idx = 2;   % 14N is the second spin
+[Zx,Zy,Zz] = zeeman(ABC,idx); Zx
 </pre>
 
 <pre class="mloutput">

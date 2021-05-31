@@ -1,12 +1,11 @@
-
 % zeeman  Zeeman interaction Hamiltonian 
 %
 %   H = zeeman(SpinSystem, B)
-%   H = zeeman(SpinSystem, B, Spins)
-%   H = zeeman(SpinSystem, B, Spins, 'sparse')
+%   H = zeeman(SpinSystem, B, idx)
+%   H = zeeman(SpinSystem, B, idx, 'sparse')
 %   [Zx, Zy, Zz] = zeeman(SpinSystem)
-%   [Zx, Zy, Zz] = zeeman(SpinSystem, Spins)
-%   [Zx, Zy, Zz] = zeeman(SpinSystem, Spins, 'sparse')
+%   [Zx, Zy, Zz] = zeeman(SpinSystem, idx)
+%   [Zx, Zy, Zz] = zeeman(SpinSystem, idx, 'sparse')
 %
 %   Returns the Zeeman interaction Hamiltonian for
 %   the spins 'Spins' of the spin system 'SpinSystem'.
@@ -14,20 +13,20 @@
 %   Input:
 %   - SpinSystem: Spin system structure.
 %   - B: Magnetic field vector, in millitesla.
-%   - Spins: Vector of spin numbers. For one electron spin: 1
-%     is the electron, >=2 are the nuclei. For two electron
-%     spins: 1 and 2 electrons, >=3 nuclei, etc. If Spins is
-%     omitted, all spins are included. If also orbital angular momenta
-%     are defined, they follow after the nuclei. Two electrons, three
-%     nuclei and 2 orbital angular momenta: 1 and 2 are electrons, 
-%     3,4, and 5 are nuclei, 6 and 7 are orbital angular momenta. 
+%   - idx: Vector of indices for spins/orbital angular momenta to include.
+%     For one electron spin: 1 is the electron, >=2 are the nuclei. For two
+%     electron spins: 1 and 2 electrons, >=3 nuclei, etc. If also orbital
+%     angular momenta are defined, they follow after the nuclei. If idx is
+%     omitted, all spins and orbital angular momenta are included.
+%     Two electron spins, three nuclei and 2 orbital angular momenta: 1 and 2
+%     are electrons, 3,4, and 5 are nuclei, 6 and 7 are orbital angular momenta. 
 %   - 'sparse': If given, results returned in sparse format.
 %
 %   Output:
 %   - Zx, Zy, Zz: components of the Zeeman interaction Hamiltonian
-%     for the selected spins as defined by Hi=d(H)/d(B_i)
+%     for the selected spins and orbital angular momenta as defined by Hi=d(H)/d(B_i)
 %     i=x,y,z where B_i are the cartesian components of
-%     the external field. Units are MHz/mT = 1e9 Hz/T. To get the
+%     the external field. Units are MHz/mT = GHz/T. To get the
 %     full Hamiltonian, use H = Zx*B(1)+Zy*B(2)+Zz*B(3), where B is
 %     the magnetic field in mT.
 %   - H: the Hamiltonian of the Zeeman interaction.
@@ -46,11 +45,11 @@ if singleOutput
   else
     B0 = varargin{1};
   end
-  if nargin<3, Spins = []; else, Spins = varargin{2}; end
+  if nargin<3, idx = []; else, idx = varargin{2}; end
   if nargin<4, opt = ''; else, opt = varargin{3}; end
 else
   B0 = [];
-  if nargin<2, Spins = []; else, Spins = varargin{1}; end
+  if nargin<2, idx = []; else, idx = varargin{1}; end
   if nargin<3, opt = ''; else, opt = varargin{2}; end
 end
 
@@ -63,40 +62,42 @@ useSparseMatrices = strcmp(opt,'sparse');
 [Sys,err] = validatespinsys(SpinSystem);
 error(err);
 
-% Vector of spin quantum numbers
-SpinVec = Sys.Spins;
+% Vector of angular momemtum quantum numbers (e-spin S, n-spin I, e-orbital L)
+QuantumNumbers = Sys.Spins;
 
-% No 'Spins' specified -> use all
-if isempty(Spins), Spins = 1:numel(SpinVec); end
+% No 'idx' specified -> use all
+if isempty(idx), idx = 1:numel(QuantumNumbers); end
 
-% Validate field if given
+% Validate magnetic field if given
 if ~isempty(B0)
   if numel(B0)~=3
     error('Magnetic field vector (2nd input) must be a 3-element array.');
   end
 end
 
-% Validate third argument (Spins)
-if any(Spins<1) || any(Spins>length(SpinVec))
-  error('Spin indices (2nd input argument) invalid!');
+% Validate third argument (idx)
+if any(idx<1) || any(idx>length(QuantumNumbers))
+  error('Indices (2nd input argument) invalid!');
 end
 
-% Get number of electrons, nuclei and states
+% Get number of electron spins, nuclear spins, and orrbital angular momenta
 nElectrons = Sys.nElectrons;
-nEN = Sys.nNuclei + nElectrons;
+nNuclei = Sys.nNuclei;
 nStates = Sys.nStates;
 
-% Initialize Zeeman interaction components to zero
+% Initialize Zeeman interaction component matrices to zero
 ZxM = sparse(nStates,nStates);
 ZyM = sparse(nStates,nStates);
 ZzM = sparse(nStates,nStates);
 
-elFactor = bmagn/(planck*1e9)*Sys.g;
+% Complete prefactors, in MHz/mT
+elFactor = +bmagn/(planck*1e9)*Sys.g;
+orbFactor = +bmagn/(planck*1e9)*Sys.orf;
 nucFactor = -nmagn/(planck*1e9)*Sys.gn.*Sys.gnscale;
-orbFactor = -bmagn/(planck*1e9)*Sys.orf;
 
 % Loop over all angular momenta (electron spins, nuclear spins, orbitals) selected
-for i = Spins
+for i = idx
+  
   if i<=nElectrons
     
     % Electron spin
@@ -111,13 +112,13 @@ for i = Spins
     g = R_g2M*g*R_g2M.';
     % Build electon Zeeman Hamiltonian in MHz/mT
     for k = 1:3
-      Sk = sop(SpinVec,[i,k],'sparse');
+      Sk = sop(QuantumNumbers,[i,k],'sparse');
       ZxM = ZxM + g(1,k)*Sk;
       ZyM = ZyM + g(2,k)*Sk;
       ZzM = ZzM + g(3,k)*Sk;
     end
     
-  elseif i<=nEN
+  elseif i<=nElectrons+nNuclei
     
     % Nuclei, with isotropic gn and chemical shielding (CS) tensor sigma
     iNuc = i-nElectrons;
@@ -136,7 +137,7 @@ for i = Spins
     % Build nuclear Zeeman Hamiltonian in MHz/mT
     pre = nucFactor(iNuc);
     for k = 1:3
-      Ik = sop(SpinVec,[i,k],'sparse');
+      Ik = sop(QuantumNumbers,[i,k],'sparse');
       ZxM = ZxM + pre*sigma(1,k)*Ik;
       ZyM = ZyM + pre*sigma(2,k)*Ik;
       ZzM = ZzM + pre*sigma(3,k)*Ik;
@@ -146,10 +147,10 @@ for i = Spins
     
     % Orbital angular momenta, isotropic
     % Build orbital Zeeman Hamiltonian in MHz/mT
-    pre = orbFactor(i-nEN);
-    ZxM = ZxM + pre*sop(SpinVec,[i,1],'sparse');
-    ZyM = ZyM + pre*sop(SpinVec,[i,2],'sparse');
-    ZzM = ZzM + pre*sop(SpinVec,[i,3],'sparse');
+    pre = orbFactor(i-nElectrons-nNuclei);
+    ZxM = ZxM + pre*sop(QuantumNumbers,[i,1],'sparse');
+    ZyM = ZyM + pre*sop(QuantumNumbers,[i,2],'sparse');
+    ZzM = ZzM + pre*sop(QuantumNumbers,[i,3],'sparse');
     
   end
 end

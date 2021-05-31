@@ -21,7 +21,8 @@ SysS.S = [SysSL.S,SysSL.L];
 % Build array of g matrices:
 SysS.g = [SysSL.g;zeros(3*n,3)];
 for k = 1:n
-  SysS.g(3*(n+k-1)+1:3*(n+k),:) = -diag(SysSL.orf(k)*ones(1,3));
+  gL = diag(SysSL.orf(k)*ones(1,3));
+  SysS.g(3*(n+k-1)+1:3*(n+k),:) = gL;
 end
 
 % Distribute soc over ee and ee2
