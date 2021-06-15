@@ -906,9 +906,9 @@ if ConvolutionBroadening
   if FieldSweep
     unitstr = 'mT';
   else
-    unitstr = 'MHz';
     fwhmL = fwhmL/1e3; % MHz -> GHz
     fwhmG = fwhmG/1e3; % MHz -> GHz
+    unitstr = 'GHz';
   end
   
   % Convolution with Lorentzian
@@ -920,7 +920,7 @@ if ConvolutionBroadening
       if HarmonicL==0
         % Skip convolution, since it has no effect with such a narrow delta-like Lorentzian.
       else
-        error('Lorentzian linewidth is smaller than increment - cannot perform convolution.');
+        error('Lorentzian linewidth (FWHM %g %s) is smaller than 2 increments (2x%g = %g %s) - cannot do convolution.\nIncrease linewidth or decrease increment.',fwhmL,unitstr,dxFine,2*dxFine,unitstr);
       end
     end
   end
@@ -934,7 +934,7 @@ if ConvolutionBroadening
       if HarmonicG==0
         % Skip convolution, since it has no effect with such a narrow delta-like Gaussian.
       else
-        error('Gaussian linewidth is smaller than increment - cannot perform convolution.');
+        error('Gaussian linewidth (FWHM %g %s) is smaller than 2 increments (2x%g = %g %s) - cannot do convolution.\nIncrease linewidth or decrease increment.',fwhmG,unitstr,dxFine,2*dxFine,unitstr);
       end
     end
   end

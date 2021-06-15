@@ -1132,9 +1132,9 @@ if ConvolutionBroadening
   if FieldSweep
     unitstr = 'mT';
   else
-    unitstr = 'MHz';
     fwhmG = fwhmG/1e3; % MHz -> GHz
     fwhmL = fwhmL/1e3; % MHz -> GHz
+    unitstr = 'GHz';
   end
   
   % Add padding to left and right of spectral range to reduce convolution artifacts
@@ -1172,7 +1172,7 @@ if ConvolutionBroadening
       if HarmonicL==0
         % Skip convolution, since it has no effect with such a narrow delta-like Lorentzian.
       else
-        error(sprintf('Lorentzian linewidth is smaller than increment - cannot perform convolution.\nIncrease linewidth, or increase number of points, or narrow sweep range.'));
+        error('Lorentzian linewidth (FWHM %g %s) is smaller than 2 increments (2x%g = %g %s) - cannot do convolution.\nIncrease linewidth or decrease increment.',fwhmL,unitstr,Exp.deltaX,2*Exp.deltaX,unitstr);
       end
     end
   end
@@ -1187,7 +1187,7 @@ if ConvolutionBroadening
       if HarmonicG==0
         % Skip convolution, since it has no effect with such a narrow delta-like Gaussian.
       else
-        error(sprintf('Gaussian linewidth is smaller than increment - cannot perform convolution.\nIncrease linewidth, or increase number of points, or narrow sweep range.'));
+        error('Gaussian linewidth (FWHM %g %s) is smaller than 2 increments (2x%g = %g %s) - cannot do convolution.\nIncrease linewidth or decrease increment.',fwhmG,unitstr,Exp.deltaX,2*Exp.deltaX,unitstr);
       end
     end
   end
