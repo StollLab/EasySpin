@@ -52,7 +52,7 @@ else {
 }
 
 # ---------------------------------------------------------------------------------
-# add key to hostmojster to keychain
+# add key to hostmonster to keychain
 system("ssh-add $KeyWebserver"); # private key to log into hostmonster.com
 
 
@@ -63,18 +63,6 @@ if (-e "$UploadDir") {
 }
 
 system("mkdir $UploadDir");
-
-# ---------------------------------------------------------------------------------
-# look for zip file with the provided tag
-my $zipFileName = 'easyspin-'.$Build.'.zip';
-
-if (-e "$BuildsDir$zipFileName") {
-    print("Copying $zipFileName to upload directory. \n");
-    system('cp '.$BuildsDir.$zipFileName.' '.$UploadDir.$zipFileName);
-}
-else {
-    die("$zipFileName does not exist in $BuildsDir \n");
-}
 
 # ---------------------------------------------------------------------------------
 # determin the releasechannel
@@ -97,6 +85,36 @@ if ($BuildID[0]) {
 else {
     # if tag does not follow semantic versioning, e.g. easyspin-evolve.zip
     $ReleaseChannel = $KeyForExperimentalVersion;
+}
+
+my $ZipBuild;
+
+if ($BuildID[0]) {
+    my $vMatchPattern = 'v(.*)';
+    my @ShortTag = ($Build =~ m/$vMatchPattern/);
+    if (@ShortTag[0]) {
+        $ZipBuild = $Build;
+        $Build = @ShortTag[0];
+    }
+    else {
+        $ZipBuild = $Build;
+    }
+}
+else {
+    $ZipBuild = $Build;
+}
+
+# ---------------------------------------------------------------------------------
+# look for zip file with the provided tag
+my $zipFileName = 'easyspin-'.$ZipBuild.'.zip';
+my $NewzipFileName = 'easyspin-'.$Build.'.zip';
+
+if (-e "$BuildsDir$zipFileName") {
+    print("Copying $zipFileName to upload directory. \n");
+    system('cp '.$BuildsDir.$zipFileName.' '.$UploadDir.$NewzipFileName);
+}
+else {
+    die("$zipFileName does not exist in $BuildsDir \n");
 }
 
 # ---------------------------------------------------------------------------------
@@ -161,8 +179,8 @@ if ($ReleaseChannel eq $ChannelForDocumentation) {
 
     my $changeDir = "cd ".$ServerDir." \n";
     my $rmFolders = "rm -rf ./documentation ./examples \n";
-    my $unzipDoc = qq(unzip -qq $zipFileName 'easyspin-$Build/documentation/*' -d ./tmp/ \n);
-    my $unzipExamples = qq(unzip -qq $zipFileName 'easyspin-$Build/examples/*' -d ./tmp/ \n);
+    my $unzipDoc = qq(unzip -qq $NewzipFileName 'easyspin-$Build/documentation/*' -d ./tmp/ \n);
+    my $unzipExamples = qq(unzip -qq $NewzipFileName 'easyspin-$Build/examples/*' -d ./tmp/ \n);
     my $moveFiles = qq(cp -r ./tmp/easyspin-$Build/* ./ \n);
     my $rmTempDir = qq(rm -r ./tmp \n);
 
