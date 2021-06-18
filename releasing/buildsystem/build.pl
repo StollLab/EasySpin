@@ -86,14 +86,14 @@ unless ($ARGV[0]) {
 
     # process the hg AvailableTags File and grab the NumericVersion numbers, including the dev NumericVersions, but not 'tip'
     foreach (@TagFile) {
-        my @BuildID = ($_ =~ m/v?(\d+)\.(\d+)\.(\d+)(.*?)\s/);
+        my @vBuildID = ($_ =~ m/(v?)(\d+)\.(\d+)\.(\d+)(.*?)\s/);
 
-        if (@BuildID and $BuildID[0]){
-            my $NumericVersion = 100000*$BuildID[0]+1000*$BuildID[1]+$BuildID[2];
+        if (@vBuildID and $vBuildID[1]){
+            my $NumericVersion = 100000*$vBuildID[1]+1000*$vBuildID[2]+$vBuildID[3];
 
             if ($NumericVersion >= $NumericCutoff) {
-            my $ID = "$BuildID[0].$BuildID[1].$BuildID[2]$BuildID[3]";
-            push @AvailableTags,$ID;
+                my $ID = "$vBuildID[0]$vBuildID[1].$vBuildID[2].$vBuildID[3]$vBuildID[4]";
+                push @AvailableTags,$ID;
             }
 
         }
@@ -145,9 +145,9 @@ unless ($ARGV[0]) {
 
     my $zipFiles = '';
     for my $File (@AvailableBuilds) {
-        my @BuildID = ($File =~ m/v?(\d+).(\d+).(\d+)(.*).zip/);
+        my @BuildID = ($File =~ m/(v?)(\d+).(\d+).(\d+)(.*).zip/);
         if (@BuildID){
-            my $ID = "$BuildID[0].$BuildID[1].$BuildID[2]$BuildID[3],";
+            my $ID = "$BuildID[0]$BuildID[1].$BuildID[2].$BuildID[3]$BuildID[4],";
             $zipFiles = join( "", $zipFiles, $ID);
         }
     }
@@ -202,7 +202,7 @@ else {
 
 # ---------------------------------------------------------------------------------
 # Processes all the TagsToBuild
-my $MatchPattern = 'v?(\d+).(\d+).(\d+)-?([a-z]+)?[-.]?(\d+)?';
+my $MatchPattern = '(v?)(\d+).(\d+).(\d+)-?([a-z]+)?[-.]?(\d+)?';
 
 # loop over all tags that should be built
 foreach (@TagsToBuild) {
@@ -241,22 +241,43 @@ foreach (@TagsToBuild) {
     # ---------------------------------------------------------------------------------
     # Update variables in esbuild.m 
     my $matchReleaseID = '%ReleaseID%'; # pattern to find ReleaseID 
-    my $replaceReleaseID = "$thisBuild"; # Update ReleaseID
+    my $matchvsyntax = '%v_syntax%'; # pattern to find ReleaseID 
+
+    my $vMatchPattern = '(v)(\d+.\d+.*)';
+    my $MATLABtag;
+    my $vSyntaxtag;
     
+    my @ShortTag = ($thisBuild =~ m/$vMatchPattern/);
+    if (@ShortTag[0]) {
+        $vSyntaxtag = "true";
+    }
+    else {
+        $vSyntaxtag = "false";
+    }
+
+    if (@ShortTag[1]) {
+         $MATLABtag = @ShortTag[1];
+    }
+    else {
+        $MATLABtag = $thisBuild;
+    }
+    
+    my $replaceReleaseID = "$MATLABtag"; # Update ReleaseID
+      
 
     my $ReleaseChannel;
     my $MonthsToExpire;
 
-    if ($thisBuildID[0]) {
-        if ($thisBuildID[3]) {
+    if ($thisBuildID[1]) {
+        if ($thisBuildID[4]) {
             $ReleaseChannel = $KeyForDeveloperVersion;
             $MonthsToExpire = $MonthsToExpireDeveloper;
         }
-        elsif ($thisBuildID[0] eq $StableMajorVersion) {
+        elsif ($thisBuildID[1] eq $StableMajorVersion) {
             $ReleaseChannel = $KeyForStableVersion;
             $MonthsToExpire = $MonthsToExpireStable;
         }
-        elsif ($thisBuildID[0] eq $DefaultMajorVersion) {
+        elsif ($thisBuildID[1] eq $DefaultMajorVersion) {
             $ReleaseChannel = $KeyForDefaultVersion;
             $MonthsToExpire = $MonthsToExpireDefault;
         }
@@ -286,6 +307,7 @@ foreach (@TagsToBuild) {
     open(my $Output,'>'.$esbuildNew) or die("Cannot open $esbuildNew!");
     while (<$Input>) {
         $_ =~ s/$matchReleaseID/$replaceReleaseID/g;
+        $_ =~ s/$matchvsyntax/$vSyntaxtag/g;
         $_ =~ s/$matchReleaseChannel/$replaceReleaseChannel/g;
         $_ =~ s/$matchExpiry/$replaceExpiry/g;
         $_ =~ s/$matchSourceDir/$replaceSourceDir/g;
@@ -308,22 +330,22 @@ foreach (@TagsToBuild) {
 
     # ---------------------------------------------------------------------------------
     # Decide wether to upload version, the first conditional checks if the build version follows semantic versioning or if not (e.g. easyspin-evolve)
-    if ($thisBuildID[0]) {
+    if ($thisBuildID[1]) {
         # Translate semantic version, compare to NewestVersions and decide wether it needs to be uploaded
-        my $NumericVersion = 100000*$thisBuildID[0]+1000*$thisBuildID[1]+$thisBuildID[2];
+        my $NumericVersion = 100000*$thisBuildID[1]+1000*$thisBuildID[2]+$thisBuildID[3];
 
-        if ($thisBuildID[3]){ # check if is an developer NumericVersion
-            if ($thisBuildID[3] eq 'alpha') {
+        if ($thisBuildID[4]){ # check if is an developer NumericVersion
+            if ($thisBuildID[4] eq 'alpha') {
                 $NumericVersion = $NumericVersion + 0.2 
             }
-            elsif ($thisBuildID[3] eq 'beta') {
+            elsif ($thisBuildID[4] eq 'beta') {
                 $NumericVersion = $NumericVersion + 0.3
             }
-            elsif ($thisBuildID[3] eq 'dev') {
+            elsif ($thisBuildID[4] eq 'dev') {
                 $NumericVersion = $NumericVersion + 0.1
             }
-            if ($thisBuildID[4]) {
-                $NumericVersion = $NumericVersion + 0.0001*$thisBuildID[4];
+            if ($thisBuildID[5]) {
+                $NumericVersion = $NumericVersion + 0.0001*$thisBuildID[5];
             }
         }
 
