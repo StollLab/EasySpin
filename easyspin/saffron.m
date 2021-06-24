@@ -1682,7 +1682,7 @@ for iOri = 1:nOrientations
                 thistd = ifft(pathwaybuff)*nPointsF;
                 thistd = thistd(1:Exp.nPoints);
               else
-                thistd = ifft2dpartial(pathwaybuff,Exp.nPoints,Opt.PartialIFFT);
+                thistd = ifft2dpartial(pathwaybuff,Exp.nPoints,Opt.PartialIFFT)*prod(nPointsF);
                 %thistd = thistd;
               end
             end
