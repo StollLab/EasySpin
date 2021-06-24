@@ -1732,7 +1732,7 @@ if strcmp(Opt.SimulationMode,'fast')
                   thistd = ifft(pathwaybuff)*nPointsF;
                   thistd = thistd(1:Exp.nPoints);
                 else
-                  thistd = ifft2dpartial(pathwaybuff,Exp.nPoints,Opt.PartialIFFT);
+                  thistd = ifft2dpartial(pathwaybuff,Exp.nPoints,Opt.PartialIFFT)*prod(nPointsF);
                   %thistd = thistd;
                 end
               end
