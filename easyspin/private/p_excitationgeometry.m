@@ -99,20 +99,21 @@ end
 % all vectors are in lab frame coordinates
 nB0 = [0; 0; 1]; % unit vector along B0, in lab coordinates
 
-%{
 % Transformation from (nx,ny,nB0) lab frame to (nB1,*,nk) frame
+% (1) using erot()
+%{
 R = erot(-pi/2,-k_tilt,alpha_pol);
-nB1 = R(1,:).'; % unit vector along B1, in lab coordinates
 nk = R(3,:).'; % unit vector along wave vector k, in lab coordinates
+nB1 = R(1,:).'; % unit vector along B1, in lab coordinates
 %}
-
+% (2) manual
 sk = sin(k_tilt);
 ck = cos(k_tilt);
-nk = [0; sk; ck]; % unit vector along B1, in lab coordinates
-
+nk = [0; sk; ck]; % unit vector along wave vector k, in lab coordinates
 ca = cos(alpha_pol);
-nB1 = [sin(alpha_pol); -ca*ck; ca*sk]; % unit vector along wave vector k, in lab coordinates
+sa = sin(alpha_pol);
+nB1 = [sa; -ca*ck; ca*sk]; % unit vector along mw field vector B1, in lab coordinates
 
 % projections of k and B1 unit vectors onto B0 direction
-xi1 = nB1.'*nB0;
 xik = nk.'*nB0;
+xi1 = nB1.'*nB0;
