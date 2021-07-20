@@ -7,13 +7,13 @@
 %   from spin system Sys at external magnetic field magnitude B0
 %   (in mT) and plots the result.
 %
-%   alpha-beta correlations are in green, beta-alpha correlations
-%   are in red.
+%   alpha-beta correlations are in green, beta-alpha correlations are in red.
 %
 %   Only S=1/2 systems are supported.
 %
-%   tauvec (in us) specifies a vector of tau values.
-%   If tauvec is given, a colored background indicating peak
+%   tau (in µs) specifies a vector of tau values.
+%
+%   If tau is given, a colored background indicating peak
 %   suppression regions (blind spots) is shown. White indicates
 %   no suppression, the darker the gray the stronger the suppression.
 %
@@ -21,36 +21,35 @@
 %
 %      Sys = struct('Nucs','1H','g',[2 2 2]);
 %      Sys.A = 3 + [-1 -1 2]*5;
-%      nucfrq2d(Sys,350,0.120);   % 350 mT, 120 ns
+%      nucfrq2d(Sys,350,0.120);   % field 350 mT, tau 120 ns
 
-function nucfrq2d(sys,B0,tau);
+function nucfrq2d(sys,B0,tau)
 
-if (nargin==0), help(mfilename); return; end
-if (nargin<2) || (nargin>3), error('Wrong number of input arguments!'); end
-if (nargout<0), error('Not enough output arguments.'); end
-if (nargout>0), error('Too many output arguments.'); end
+if nargin==0, help(mfilename); return; end
+if nargin<2 || nargin>3, error('Wrong number of input arguments!'); end
+if nargout<0, error('Not enough output arguments.'); end
+if nargout>0, error('Too many output arguments.'); end
 
 % Check limitations.
 if isfield(sys,'S')
-  if (sys.S>1/2)
-    error('S>1/2 not possible!');
+  if sys.S>1/2
+    error('Systems with S>1/2 are not supported.');
   end
 end
 
-%====================================
+% Internal options, mostly for plotting
+%===============================================================================
 Options.GridSize = 31;
 Options.nPoints = 100;
 Options.expand = 1.1;
 Options.baColor = [1 0 0]*0.6;
 Options.abColor = [0 1 0]*0.6;
 Options.QuadraticAxes = 0;
-%====================================
+%===============================================================================
 
-if (nargin<3), tau = 0; end
-%tau = tau/1e3;
+if nargin<3, tau = 0; end
 
-ComputeBlindSpots = (all(tau>0));
-ComputeBlindSpots = ComputeBlindSpots & ~Options.QuadraticAxes;
+computeBlindSpots = all(tau>0) & ~Options.QuadraticAxes;
 
 % Construct spin Hamiltonian and get state space dimension.
 [F,Gx,Gy,Gz] = sham(sys);
@@ -67,8 +66,6 @@ nfreq = nnz(BetaMask);
 thisSymm = symm(sys);
 [grid,tri] = sphgrid(thisSymm,Options.GridSize);
 x = grid.vecs;
-maxPhi = grid.maxPhi;
-closedPhi = grid.closePhi;
 nOct = grid.nOctants;
 nOri = size(x,2);
 
@@ -87,9 +84,6 @@ for k = 1:nOri
   FreqsBeta(k,:) = EE(BetaMask).';
 end
 
-%FreqsBeta = FreqsAlpha;
-%FreqsAlpha = FreqsBeta;
-
 if Options.QuadraticAxes
   FreqsAlpha = FreqsAlpha.^2;
   FreqsBeta = FreqsBeta.^2;
@@ -98,8 +92,8 @@ end
 % Get maximum transition frequency, for plotting.
 maxFrq = max(max(FreqsAlpha(:)),max(FreqsBeta(:)));
 
-% Compute blind spot amplitude modulation
-if ComputeBlindSpots
+% Compute blind spot amplitude modulation.
+if computeBlindSpots
   nPoints = 2*Options.nPoints+1;
   freq = Options.expand*maxFrq*linspace(-1,1,nPoints);
   Modulation = zeros(nPoints,nPoints);
@@ -111,22 +105,22 @@ if ComputeBlindSpots
 end
 
 % Do the correlation plot
-%================================================================
+%===============================================================================
 
-clf;
+clf
 
-if (ComputeBlindSpots)
-  if (Options.QuadraticAxes)
+if computeBlindSpots
+  if Options.QuadraticAxes
     pcolor(freq.^2,freq.^2,Modulation);
   else
     pcolor(freq,freq,Modulation);
   end
   ColMap = gray(128);
   colormap(ColMap(65:end,:))
-  shading interp;
+  shading interp
 end
 
-hold on;
+hold on
 
 % Diagonals and axes
 line([0 0; 1 -1]*Options.expand*maxFrq,[0 0; 1 1]*Options.expand*maxFrq,'Color','k');
@@ -135,12 +129,12 @@ line([0 0],[0 1]*Options.expand*maxFrq,'Color','k');
 % Antidiagonals at Larmor frequencies
 LarmorFreqs = nmagn*B0*nucgval(sys.Nucs)/planck/1e9;
 for k = 1:numel(LarmorFreqs)
-  line([-2 0 2]*LarmorFreqs(k),[0 2 0]*LarmorFreqs(k),'Color','k','LineStyle',':');
+  line([-2 0 2]*LarmorFreqs(k),[0 2 0]*LarmorFreqs(k),'Color','k','LineStyle','--');
 end
 
 baColor = Options.baColor;
 abColor = Options.abColor;
-if (nOct<1)
+if nOct<1
   % Axial case
   for i1 = 1:nfreq
     for i2 = 1:nfreq
@@ -176,34 +170,12 @@ box on
 axis(Options.expand*maxFrq*[-1 1 0 1]);
 hold off
 if Options.QuadraticAxes
-  xlabel('\nu_1^2 [MHz^2]');
-  ylabel('\nu_2^2 [MHz^2]');
+  xlabel('\nu_1^2 (MHz^2)');
+  ylabel('\nu_2^2 (MHz^2)');
 else
-  xlabel('\nu_1 [MHz]');
-  ylabel('{\nu_2} [MHz]');
+  xlabel('\nu_1 (MHz)');
+  ylabel('\nu_2 (MHz)');
 end
-
-tauString = sprintf('%gns, ',tau*1e3);
-tauString = tauString(1:end-2);
-%text(maxFrq/2,0,tauString,'Color','white','HorizontalAlignment','center','VerticalAlignment','bottom');
+set(gca,'Layer','top');
 
 return
-
-% testing section
-%=============================================================
-
-S = struct('S',1/2,'g',[2 2 2],'Nucs','1H','A',[0 0 0],'Q',[-1.3 -0.7 2]*1.2);
-field = 350;
-aiso = 2;
-T = [0:.02:1 1.05:.05:4 4.1:.1:8 8.2:.2:10 10.5:.5:15];
-for iT = 1:length(T);
-  S.A = aiso + [-1 0 1]*T(iT);
-  nucfrq2d(S,field);
-  %title(sprintf('T = %f, aiso = %f, Q = 1.2, wI = 1.6',T(iT),mean(aiso)));
-  drawnow
-end
-
-
-S = struct('S',1/2,'g',[2 2 2],'Nucs','1H','A',[-1 0 1]*5 + 4);
-field = 350;
-nucfrq2d(S,field);
