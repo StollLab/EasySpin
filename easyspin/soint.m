@@ -4,8 +4,7 @@
 %   H = soint(SpinSystem,Spins)
 %   H = soint(SpinSystem,Spins,'sparse')
 %
-%   Returns the spin orbit interaction (SOI)
-%   Hamiltonian, in MHz.
+%   Returns the spin orbit interaction (SOI) Hamiltonian, in MHz.
 %
 %   Input:
 %   - SpinSystem: Spin system structure. SOI

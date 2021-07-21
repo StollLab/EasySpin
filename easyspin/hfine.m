@@ -19,7 +19,7 @@ if nargin<3, opt = ''; end
 if ~ischar(opt)
   error('Third input must be a string, ''sparse''.');
 end
-sparseResult = strcmp(opt,'sparse');
+useSparseMatrices = strcmp(opt,'sparse');
 
 % Validate spin system.
 [Sys,err] = validatespinsys(System);
@@ -35,7 +35,7 @@ F = sparse(nStates,nStates); % sparse zero matrix
 
 % Special case: no nuclei present, so no hyperfine
 if nNuclei==0
-  if ~sparseResult
+  if ~useSparseMatrices
     F = full(F);
   end
   return
@@ -89,7 +89,7 @@ for edx = 1:length(ElSpins)
 end % for all specified electrons
 
 F = (F+F')/2; % hermitianise, e.g. guards against small imaginary remainders on the diagonal
-if ~sparseResult
+if ~useSparseMatrices
   F = full(F); % convert sparse to full
 end
 

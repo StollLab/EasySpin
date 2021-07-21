@@ -20,6 +20,10 @@ if nargin<4
   end
 end
 
+if ischar(threshold)
+  error('Threshold (3rd input) must be a scalar.');
+end
+
 if ~ischar(mode)
   error('Mode (4th input) must be ''abs'' or ''rel''.');
 end

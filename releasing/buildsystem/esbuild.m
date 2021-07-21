@@ -15,6 +15,7 @@ function esbuild
 %   PATCH: Increment for every bugfix release.
 % Roughly follow guidelines of semantic versioning, see http://semver.org/
 ReleaseID = '%ReleaseID%'; % major.minor.patch
+v_syntax = %v_syntax%; % version tag with v or not (used for creating zip file)
 ReleaseChannel = '%ReleaseChannel%'; % release channel, used for automatic updates
 
 % Expiry date of release, see eschecker.m
@@ -207,7 +208,11 @@ disp('Packaging');
 % package for public release
 if ZipDestDir(end)==filesep, ZipDestDir(end) = []; end
 % zipFile = [ZipDestDir filesep 'easyspin-' BuildID '.zip'];
-zipFileShort = [ZipDestDir filesep 'easyspin-' ReleaseID '.zip'];
+if v_syntax
+  zipFileShort = [ZipDestDir filesep 'easyspin-v' ReleaseID '.zip'];
+else
+  zipFileShort = [ZipDestDir filesep 'easyspin-' ReleaseID '.zip'];
+end
 
 % fprintf('  packing zip file %s...',zipFile);
 % if exist(zipFile,'file')

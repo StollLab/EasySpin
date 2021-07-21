@@ -24,7 +24,7 @@ PureSpin.S = [Sys.S,Sys.L];
 % build array of g matrices:
 PureSpin.g = [Sys.g;zeros(3*n,3)];
 for k=1:n
-  PureSpin.g(3*(n+k-1)+1:3*(n+k),:) = -diag(Sys.orf(k)*ones(1,3));
+  PureSpin.g(3*(n+k-1)+1:3*(n+k),:) = diag(Sys.orf(k)*ones(1,3));
 end
 
 % distribute soc over ee and ee2
@@ -67,5 +67,8 @@ field = rand(1,3)*1e3;
 E1 = eig(sham(PureSpin,field));
 E2 = eig(sham(Sys,field));
 
-ok = areequal(H1,H2,1e-10,'abs') && areequal(GX1,GX2,1e-10,'abs') && ...
-  areequal(GY1,GY2,1e-10,'abs') && areequal(GZ1,GZ2,1e-10,'abs') && areequal(E1,E2,1e-6,'abs');
+ok(1) = areequal(H1,H2,1e-10,'abs');
+ok(2) = areequal(GX1,GX2,1e-10,'abs');
+ok(3) = areequal(GY1,GY2,1e-10,'abs');
+ok(4) = areequal(GZ1,GZ2,1e-10,'abs');
+ok(5) = areequal(E1,E2,1e-6,'abs');
