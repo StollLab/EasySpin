@@ -172,9 +172,14 @@ if computeNonEquiPops
     error('Sys.Pop must have %d elements.',nElectronStates);
   end
   if ~isfield(Sys,'PopBasis')
-    PopBasis = 'Molecular';
+    PopBasis = 'zerofield';
   else
     PopBasis = Sys.PopBasis;
+  end
+  if strcmp(PopBasis,'zerofield')
+  elseif strcmp(PopBasis,'eigenbasis')
+  else
+    error('Sys.PopBasis must be either ''zerofield'' or ''eigenbasis''.');
   end
   computeBoltzmannPopulations = false;
 elseif isempty(Exp.Temperature)
@@ -393,7 +398,7 @@ if computeNonEquiPops
   if numel(Pop) == nElectronStates
     % Vector of zero-field populations for the core system
     ZFPopulations = Pop(:);
-    if strcmp(PopBasis,'Molecular')
+    if strcmp(PopBasis,'zerofield')
       ZFPopulations = ZFPopulations/sum(ZFPopulations);
     end
     ZFPopulations = kron(ZFPopulations,ones(nCore/nElStates,1));
@@ -697,12 +702,12 @@ for iOri = 1:nOrientations
       
     elseif computeNonEquiPops
       switch PopBasis
-      	case 'Molecular'
+      	case 'zerofield'
         % Compute level populations by projection from zero-field populations and states
         for iState = 1:nCore
           Populations(iState) = (abs(ZFStates'*Vs(:,iState)).^2).'*ZFPopulations;
         end
-      case 'Spin'
+      case 'eigenbasis'
         for iState = 1:nCore
           Populations(iState) = (abs(ZFPopulations.'*Vs(:,iState)).^2);
         end  

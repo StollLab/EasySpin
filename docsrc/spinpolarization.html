@@ -112,11 +112,11 @@ plot(B,spc)
 <div class="subtitle"><a <a name="radpairs">Spin-correlated radical pairs</a></div>
 
 <p>
-To simulate the EPR spectrum of a spin correlated radical pair, or any similarly coupled and polarized spin system EasySpin needs to be provided with a state vector from which the populations are mapped. This state vector is provided through the field <code>Sys.Pop</code>, and to differentiate the polarization mechanism the field <code>Sys.PopBasis = 'Spin'</code> needs to be included.      
+To simulate the EPR spectrum of a spin correlated radical pair, or any similarly coupled and polarized spin system EasySpin needs to be provided with a state vector from which the populations are mapped. This state vector is provided through the field <code>Sys.Pop</code>, and to differentiate the polarization mechanism the field <code>Sys.PopBasis = 'eigenbasis'</code> needs to be included.      
 </p>
 
 <p>
-With the inclusion of <code>Sys.Pop</code> and <code>Sys.PopBasis = 'Spin'</code>, the eigenstates will be populated based on the overlap of their eigenvectors and the provided state vector. For example, a singlet born radical pair would use the state vector provided by <code>Sys.Pop = sqrt(2)*[0 1 -1 0]</code>. It is important to remember that EasySpin by default works in the uncoupled basis, so state vectors written in the coupled basis must be rotated appropriately.
+With the inclusion of <code>Sys.Pop</code> and <code>Sys.PopBasis = 'eigenbasis'</code>, the eigenstates will be populated based on the overlap of their eigenvectors and the provided state vector. For example, a singlet born radical pair would use the state vector provided by <code>Sys.Pop = sqrt(2)*[0 1 -1 0]</code>. It is important to remember that EasySpin by default works in the uncoupled basis, so state vectors written in the coupled basis must be rotated appropriately.
 </p>
 
 </p>
@@ -132,7 +132,7 @@ Sys.J = -2; % MHz
 Sys.lwpp = 0.02; % mT
  
 Sys.Pop = sqrt(2)*[0 1 -1 0]; % singlet state
-Sys.PopBasis = 'Spin';
+Sys.PopBasis = 'eigenbasis';
  
 Exp.CenterSweep = [338.7 1];
 Exp.mwFreq = 9.5;

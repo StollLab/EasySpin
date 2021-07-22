@@ -38,11 +38,11 @@ r = r*U2C;
 % pass this vector into Sys.Pop. If this is left empty ES will default to Boltzmann    
 Sys.Pop = r;
 
-% We need to tell ES how to use the population vector. The default is 'Molecular' 
+% We need to tell ES how to use the population vector. The default is 'zdrofield' 
 % which is the previous behavior, and calculated the population of the levels
-% based on the 'molecular' or zero field Hamiltonian. Changing the Sys.PopBasis
-% to 'Spin' results in population as described above. 
-Sys.PopBasis = 'Spin';
+% based on the  zero field Hamiltonian. Changing the Sys.PopBasis
+% to 'eigenbasis' results in population as described above. 
+Sys.PopBasis = 'eigenbasis';
 
 Opt = [];
 Opt.Output = 'separate';

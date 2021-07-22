@@ -1306,19 +1306,22 @@ For a full documentation of the line broadening fields in the spin system struct
 <a name="pop"><div class="subtitle">Non-equilibrium populations</div></a>
 
 <p>
-Specify non-equilibrium populations in <code>Sys.Pop</code>. For a spin system with <code>N</code> electron states (e.g. 4 for a biradical, 3 for a triplet state), it must be a vector with <code>N</code> elements giving the populations of the zero-field electron states, from lowest to highest in energy.
+Specify non-equilibrium populations in <code>Sys.Pop</code>. For a spin system with <code>N</code> electron states (e.g. 4 for a biradical, 3 for a triplet state), it must be a vector with <code>N</code> elements. EasySpin will utilize this vector in one of two ways specified through <code>Sys.PopBasis</code>, with possible values: <code>'zerofield'</code> (default), <code>'eigenbasis'</code>. 
 </p>
 
-<p>
-E.g., if <code>Sys.Pop = [0.85 0.95 1.2]</code> for a triplet system (S=1), the population of the lowest-energy zero-field state has a population of 0.85, the middle one has 0.95, and the highest-energy zero-field state has a population of 1.2. If there are coupled nuclei, the populations of all nuclear sublevels within each electron spin manifold are assumed to be equal.
-</p>
+<ul>
+<li>
+<code>'zerofield'</code> - The populations in <code>Sys.Pop</code> are applied to the <em>zero-field states</em> in increasing energy order. 
+<li>
+<code>'eigenbasis'</code> - The overlap of the state vector provided in <code>Sys.Pop</code> and the eigenvectors of the full spin Hamiltonian are used to determine the population of the states.  
+</ul>
 
 <p>
 If <code>Sys.Pop</code> is given, the temperature specified in <code>Exp.Temperature</code> is ignored.
 </p>
 
 <p>
-For examples of spin-polarized systems (ISC triplets, recombination triplets), see the <a href="spinpolarization.html">user guide on spin-polarized systems</a>.
+For examples of spin-polarized systems (ISC triplets, recombination triplets, radical pairs), see the <a href="spinpolarization.html">user guide on spin-polarized systems</a>.
 </p>
 
 <hr>

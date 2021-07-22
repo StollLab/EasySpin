@@ -163,10 +163,10 @@ if computeNonEquiPops
   else
     PopBasis = System.PopBasis;
   end
-  if strcmp(PopBasis,'zerofield')
-  elseif strcmp(PopBasis,'eigenbasis')
+  if strcmp(PopBasis,'perpendicular')
+  elseif strcmp(PopBasis,'parallel')
   else
-    error('Sys.PopBasis must be either ''zerofield'' or ''eigenbasis''.');
+    error('Exp.'PopBasis' must be either ''perpendicular'' or ''parallel''.');
   end
   computeBoltzmannPopulations = false;
 elseif isempty(Exp.Temperature)
