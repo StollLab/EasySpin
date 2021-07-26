@@ -112,40 +112,9 @@ plot(B,spc)
 <div class="subtitle"><a <a name="radpairs">Spin-correlated radical pairs</a></div>
 
 <p>
-To simulate the EPR spectrum of a spin correlated radical pair, or any similarly coupled and polarized spin system EasySpin needs to be provided with a state vector from which the populations are mapped. This state vector is provided through the field <code>Sys.Pop</code>, and to differentiate the polarization mechanism the field <code>Sys.PopBasis = 'Spin'</code> needs to be included.      
+Currently, EasySpin does not have built-in capabilities for simulating EPR spectra from spin-correlated radical pairs.
 </p>
 
-<p>
-With the inclusion of <code>Sys.Pop</code> and <code>Sys.PopBasis = 'Spin'</code>, the eigenstates will be populated based on the overlap of their eigenvectors and the provided state vector. For example, a singlet born radical pair would use the state vector provided by <code>Sys.Pop = sqrt(2)*[0 1 -1 0]</code>. It is important to remember that EasySpin by default works in the uncoupled basis, so state vectors written in the coupled basis must be rotated appropriately.
-</p>
-
-</p>
-Here is a basic example of an isotropic singlet born radical pair
-<p>
-
-<pre class="matlab">
-clear
- 
-Sys.S = [1/2 1/2];
-Sys.g = [2.005 2.003];   
-Sys.J = -2; % MHz
-Sys.lwpp = 0.02; % mT
- 
-Sys.Pop = sqrt(2)*[0 1 -1 0]; % singlet state
-Sys.PopBasis = 'Spin';
- 
-Exp.CenterSweep = [338.7 1];
-Exp.mwFreq = 9.5;
-Exp.nPoints = 4096;
-Exp.Harmonic = 0;
- 
-pepper(Sys,Exp);
-</pre>
-<p>
-EasySpin can handle polarized spin sytems of higher multiplicity as well, such triplet pairs.
-</p>
-<p>
-One final note, this implemention, as is fairly standard in the photosynthetic literature, ignores contributions from coherences.     
 <p>&nbsp;
 
 <hr>
