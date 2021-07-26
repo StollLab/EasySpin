@@ -45,7 +45,7 @@ end
 %-------------------------------------------------------------------------------
 correctFields = {'S','Nucs','Abund','n',...
   'g','g_','gFrame','gStrain',...
-  'D','D_','DFrame','DStrain',...
+  'D','DFrame','DStrain',...
   'ee','J','dip','dvec','ee2','eeFrame',...
   'A','A_','AFrame','AStrain',...
   'Q','QFrame',...
@@ -191,15 +191,14 @@ err = sizecheck(Sys,'gFrame',[nElectrons 3]);
 if ~isempty(err); return; end
 
 
-% Zero-field splittings (Sys.D, Sys.D_, Sys.DFrame)
+% Zero-field splittings (Sys.D, Sys.DFrame)
 %-------------------------------------------------------------------------------
-if isfield(Sys,'D') && isfield(Sys,'D_')
-	err = sprintf('Zero-field splitting given in both Sys.D and Sys.D_. Please remove one of them.');
-	if ~isempty(err), return; end
-end
 
-
-if isfield(Sys,'D')
+% Supplement partial or missing D
+if ~isfield(Sys,'D')
+  Sys.D = zeros(nElectrons,3);
+  Sys.fullD = false;
+else
   Sys.fullD = issize(Sys.D,[3*nElectrons 3]);
   if Sys.fullD
     % full D tensors
@@ -215,21 +214,6 @@ if isfield(Sys,'D')
     err = ('Sys.D has wrong size.');
     return
   end
-elseif isfield(Sys,'D_')
-  Sys.fullD = false;
-  if issize(Sys.D_,[nElectrons 2])
-    % convert to D and E
-    D = Sys.D_(:,1);
-    E = D.*Sys.D_(:,2);
-    Sys.D = D*[-1/3,-1/3,+2/3] + E*[+1,-1,0];
-  else
-    err = ('Sys.D_ has wrong size.');
-    return
-  end  
-else
-  % Supplement partial or missing D
-  Sys.D = zeros(nElectrons,3);
-  Sys.fullD = false;
 end
 
 % Euler angles for D tensor(s)
