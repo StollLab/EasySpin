@@ -43,10 +43,7 @@ Ampl = equivsplit(I,n)
 <div class="subtitle">Description</div>
 
 <p>
-Computes the line intensity pattern of an EPR
-spectrum due to an S=1/2 and n nuclear spins
-with quantum number I. First-order perturbations
-are assumed.
+Computes the line intensity pattern of an EPR spectrum due to an electron spin-1/2 coupled to n equivalent nuclear spins with quantum number I. First-order perturbations are assumed.
 </p>
    
 <!-- ============================================================= -->
@@ -66,7 +63,7 @@ Ampl =
 </pre>
 
 <p>
-The 5 spins-1/2 give rise to 6 lines with intensity ration 1:5:10:10:5:1.
+The 5 spins-1/2 give rise to 6 lines with intensity ratio 1:5:10:10:5:1.
 </p>
 
 <!-- ============================================================= -->
@@ -105,6 +102,10 @@ For spin with S>1/2, a generalized Pascal triangle is used. E.g. for spin-1
 <p>
 In general, for a spin S, any number in a given column is the sum of its
 2S+1 closest neighbors in the preceding row.
+</p>
+
+<p>
+The splitting pattern is calculated by (n-1)-fold convolution of a (2I+1)-element vector of ones.
 </p>
 
 <!-- ============================================================= -->
