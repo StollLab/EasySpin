@@ -259,7 +259,7 @@ Termination tolerance for error function value change.
 
 <div class="optionfield"><code>FitOpt.SimplexPars</code></div>
 <div class="optiondescr">
-An array of four elements <code>[rho chi psi sigma]</code>, where <code>rho</code> is the reflection coefficient, <code>chi</code> is the expansion coefficient, <code>psi</code> is the contraction coefficient, and <code>sigma</code> is the shrink coefficient. The default values are <code>[1,2,0.5,0.5]</code>.
+An array of four elements <code>[rho chi psi sigma]</code>, where <code>rho</code> is the reflection coefficient, <code>chi</code> is the expansion coefficient, <code>psi</code> is the contraction coefficient, and <code>sigma</code> is the shrink coefficient. The default values are <code>[1,2,0.5,0.5]</code> for one- and two-dimensional problems (n=1 and 2), and <code>[1,1+2/n,0.75-1/(2*n),1-1/n</code> for higher dimensions (n>2).
 </div>
 
 <div class="optionfield"><code>FitOpt.delta</code></div>

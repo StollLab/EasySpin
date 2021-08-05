@@ -1,4 +1,4 @@
-%esfit_simplex    Nelder/Mead downhill simplex minimization algorithm
+%esfit_simplex    Nelder/Mead simplex minimization algorithm
 %
 %   xmin = esfit_simplex(fcn,x0,lb,ub,FitOpt)
 %   [xmin,info] = ...
@@ -14,11 +14,13 @@
 %     ub       ... upper bounds for parameters
 %     FitOpt   ... structure with options
 %       .delta         edge length of initial simplex
-%       .SimplexPars   [rho chi psi sigma]
-%          rho ...     reflection coefficient, default 1
-%          chi ...     expansion coefficient, default 2
-%          psi ...     contraction coefficient, default 0.5
-%          sigma .     reduction coefficient, defautlt 0.5
+%       .SimplexPars   [rho, chi, psi, sigma]
+%          rho ...     reflection coefficient
+%          chi ...     expansion coefficient
+%          psi ...     contraction coefficient
+%          sigma .     reduction coefficient
+%          The default is [1,2,1/2,1/2] for one- and two-dimensional
+%          problems, and adaptive for higher dimensions.
 %       .maxTime       maximum time allowed, in minutes
 %
 %   Output:
@@ -41,7 +43,17 @@ delta = FitOpt.delta;
 
 % Nelder/Mead algorithm parameters
 if ~isfield(FitOpt,'maxTime'), FitOpt.maxTime = inf; end
-if ~isfield(FitOpt,'SimplexPars'), FitOpt.SimplexPars = [1 2 0.5 0.5]; end
+if ~isfield(FitOpt,'SimplexPars')
+  FitOpt.SimplexPars = [1, 2, 0.5, 0.5];
+  n = numel(x0);
+  if n>2
+    % Use adaptive parameters
+    % see F. Gao, L. Han, Comput. Optim. Anal. 2010
+    % https://doi.org/10.1007/s10589-010-9329-3 
+    FitOpt.SimplexPars = [1, 1+2/n, 0.75-1/(2*n), 1-1/n];
+  end
+end
+
 rho = FitOpt.SimplexPars(1); % reflection coefficient
 chi = FitOpt.SimplexPars(2); % expansion coefficient
 psi = FitOpt.SimplexPars(3); % contraction coefficient

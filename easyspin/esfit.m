@@ -87,7 +87,7 @@ if nargin<4
   error('At least 4 inputs are required (data, fcn, p0, pvary).');
 end
 if nargin>6
-  error('At most 6 inputs are accepted.');
+  error('At most 6 inputs are accepted (data, fcn, p0, lb, up, FitOpt).');
 end
 
 % Parse argument list
