@@ -14,15 +14,15 @@
 
 function Hnq = nquad(SpinSystem,Nuclei,Options)
 
-if (nargin==0), help(mfilename); return; end
+if nargin==0, help(mfilename); return; end
 
-if (nargin<2), Nuclei = []; end
-if (nargin<3), Options = ''; end
+if nargin<2, Nuclei = []; end
+if nargin<3, Options = ''; end
 if ~ischar(Options)
   error('Third input must be a string, ''sparse''.');
 end
 
-sparseOutput = strcmp(Options,'sparse');
+useSparseMatrices = strcmp(Options,'sparse');
 
 [Sys,err] = validatespinsys(SpinSystem);
 error(err);
@@ -77,7 +77,7 @@ end % for all nuclear spins specified
 
 Hnq = (Hnq+Hnq')/2; % Hermitianize
 
-if ~sparseOutput
+if ~useSparseMatrices
   Hnq = full(Hnq);
 end
 

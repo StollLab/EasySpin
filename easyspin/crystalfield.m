@@ -1,13 +1,13 @@
 % crystalfield  Crystal-field Hamiltonian for the orbital angular momentu,
 %
-%   F = zfield(SpinSystem)
-%   F = zfield(SpinSystem,OAMs)
-%   F = zfield(SpinSystem,OAMs,'sparse')
+%   F = crystalfield(SpinSystem)
+%   F = crystalfield(SpinSystem,OAMs)
+%   F = crystalfield(SpinSystem,OAMs,'sparse')
 %
-%   Returns the crystal-field
-%   Hamiltonian [MHz] of the system SpinSystem.
+%   Returns the crystal-field Hamiltonian (in MHz) of the system
+%   SpinSystem.
 %
-%   If the vector OAMs is given, the Crystal-field of only the
+%   If the vector OAMs is given, the crystal field of only the
 %   specified orbital angular momentums is returned (1 is the first, 2 the
 %   second, etc). Otherwise, all orbital angular momentums are included.
 %
@@ -15,23 +15,23 @@
 
 function H = crystalfield(SpinSystem,idxOAM,opt)
 
-if (nargin==0), help(mfilename); return; end
+if nargin==0, help(mfilename); return; end
 
 [Sys,err] = validatespinsys(SpinSystem);
 error(err);
 
-if (nargin<2), idxOAM = []; end
-if (nargin<3), opt = ''; end
+if nargin<2, idxOAM = []; end
+if nargin<3, opt = ''; end
 if ~ischar(opt)
   error('Third input must be a string, ''sparse''.');
 end
-sparseResult = strcmp(opt,'sparse');
+useSparseMatrices = strcmp(opt,'sparse');
 
 if isempty(idxOAM)
   idxOAM = 1:Sys.nElectrons;
 end
 
-if any(idxOAM>Sys.nElectrons) || any(idxOAM<1),
+if any(idxOAM>Sys.nElectrons) || any(idxOAM<1)
   error('OAM index/indices (2nd argument) out of range!');
 end
 
@@ -41,7 +41,7 @@ H = sparse(Sys.nStates,Sys.nStates);
 offset = Sys.nElectrons+Sys.nNuclei;
 % if no orbital angular momentum is defined, H remains all zero  
 if numel(Sys.Spins)==offset
-  if ~sparseResult
+  if ~useSparseMatrices
     H = full(H);
   end
   return;
@@ -81,7 +81,7 @@ for iOAM = idxOAM
 end % for all electron spins specified
 
 H = (H+H')/2; % Hermitianise
-if ~sparseResult
+if ~useSparseMatrices
   H = full(H);
 end
 

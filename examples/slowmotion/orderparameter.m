@@ -1,49 +1,67 @@
-% Calculate order parameter S(2,0)
+% Calculate order parameter S(2,0,0)
 %===============================================================================
 
-% This example shows calculates an order parameter S(2,0) given an orientation
-% potential coefficient (lambda_200 or C_200, i.e. L = 2, M = 0, and K = 0).
+% This example calculates the order parameter S(2,0,0) from the orientational
+% potential coefficient for L = 2, M = 0, and K = 0 (as used in Sys.Potential
+% when simulating slow-motion spectra using chili()).
+
+% To get the order parameter S_(2,0), we need to compute the integral
+%
+%     S_(2,0) = <Y20> = \int_0^pi P(theta) Y20(theta) sin(theta) dtheta
+%
+% where Y20 is the orientational basis function with L=2, M=0, K=0; P(theta) is
+% the orientational distribution given by
+%
+%     P(theta) = exp(-U(theta)/kT)/Z
+%
+% and Z is the integral
+%
+%     Z = \int_0^pi P(theta) sin(theta) dtheta
 
 clear, clc, clf
 
 % Set up orienational potential and population functions
 %-------------------------------------------------------------------------------
 
-% orientation potential coefficient and basis function
-lambda20 = 2; % coefficient, unitless (multiples of kT)
-Y20 = @(theta) (3*cos(theta).^2-1)*sqrt(5/pi)/4; % the associated orientational function
+% orientational potential coefficient for L=2, M=K=0;
+% unitless (multiple of kT)
+lambda200 = 2.1;
 
-% set up the potential and the resulting probability distribution
+% associated orientational basis function
+Y20 = @(theta) (3*cos(theta).^2-1)*sqrt(5/pi)/4; % spherical harmonic (2,0)
+D200 = Y20;  % Wigner D-function (2,0,0) is equal to spherical harmonic (2,0)
+
+% orientational potential energy function
 T = 293; % temperature, K
-kT = boltzm*293; % J
-U = @(theta) -kT*lambda20*Y20(theta); % potential energy function
-Z = integral(@(theta)exp(-U(theta)/kT).*sin(theta),0,pi/2); % partition function
-P = @(theta) exp(-U(theta)/kT)/Z; % probability distribution (normalized)
+kT = boltzm*T; % J
+U = @(theta) -kT*lambda200*D200(theta);
 
-% Calculation of ordering parameter for L=2, K=0
+% partition function
+Z = integral(@(theta)exp(-U(theta)/kT).*sin(theta),0,pi/2);
+
+% normalized orientational distribution function
+P = @(theta) exp(-U(theta)/kT)/Z;
+
+% Calculate the order parameter
 %-------------------------------------------------------------------------------
-% To get order parameter S_(2,0), compute the integral
-%                   \int_0^pi P(theta) Y20(theta) sin(theta) dtheta
-% S_(2,0) = <Y20> = -----------------------------------------------
-%                          \int_0^pi P(theta) sin(theta) dtheta
-%
-% The denominator integral is Z, and we already included it in P.
-
-S20 = integral(@(theta)P(theta).*Y20(theta).*sin(theta),0,pi/2);
+f = @(theta)P(theta).*D200(theta).*sin(theta);
+S20 = integral(f,0,pi/2);
 
 
 % Plotting
 %-------------------------------------------------------------------------------
-theta = linspace(0,pi/2,1001); % radians
+theta = linspace(0,pi/2,181); % radians
 
 subplot(2,1,1)
 plot(theta*180/pi,P(theta));
 xlabel('\theta (deg)');
 ylabel('probability density');
 ylim([0 max(P(theta))]);
-title(sprintf('\\lambda_{20} = %g    S_{20} = %g',lambda20,S20));
+title(sprintf('\\lambda_{2,0,0} = %g kT    S_{2,0,0} = %g',lambda200,S20));
+grid on
 
 subplot(2,1,2)
 plot(theta*180/pi,U(theta)/echarge);
 xlabel('\theta (deg)');
 ylabel('potential energy (eV)');
+grid on

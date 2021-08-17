@@ -60,7 +60,7 @@
 %
 % Available pulse modulation functions:
 %   - Amplitude modulation: rectangular, gaussian, sinc, halfsin, quartersin,
-%                           sech, WURST, Gaussian pulse cascades (G3, Q3, 
+%                           sech, WURST, Gaussian pulse cascades (G3, G4, Q3, Q5
 %                           custom coefficients using 'GaussianCascade', see
 %                           private/GaussianCascadeCoefficients.txt for 
 %                           details), Fourier-series pulses (I-BURP 1/2,
@@ -367,7 +367,7 @@ else
           error('Pulseshape.nwurst must be a nonnegative integer (1,2,...).');
         end
         
-      case {'gaussiancascade','g3','q3'}
+      case {'gaussiancascade','g3','g4','q3','q5'}
         
         if ~(isfield(Par,'A0') && isfield(Par,'x0') && isfield(Par,'FWHM'))
           
@@ -563,7 +563,7 @@ else
           A0 = A0.*sech(Par.beta*2^(n-1)*(ti0/Par.tp).^n);
         case 'wurst'
           A0 = A0.*(1 - abs(sin(pi*ti0/Par.tp)).^Par.nwurst);
-        case {'gaussiancascade','g3','q3'}
+        case {'gaussiancascade','g3','g4','q3','q5'}
           A0 = zeros(1,numel(t0));
           for j = 1:numel(Par.A0)
             A0 = A0 + Par.A0(j)*exp(-(4*log(2)/(Par.FWHM(j)*Par.tp)^2)*(t0-Par.x0(j)*Par.tp).^2);
@@ -670,7 +670,7 @@ else
         
         A = 1 - abs(sin(pi*ti/Par.tp)).^Par.nwurst;
         
-      case {'gaussiancascade','g3','q3'}
+      case {'gaussiancascade','g3','g4','q3','q5'}
         
         A = zeros(1,numel(t));
         for j = 1:numel(Par.A0)

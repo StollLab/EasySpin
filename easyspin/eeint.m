@@ -21,18 +21,18 @@
 
 function F = eeint(System,Spins,opt)
 
-if (nargin==0), help(mfilename); return; end
+if nargin==0, help(mfilename); return; end
 
-if (nargin<1) || (nargin>3), error('Wrong number of input arguments!'); end
-if (nargout<0), error('Not enough output arguments.'); end
-if (nargout>1), error('Too many output arguments.'); end
+if nargin<1 || nargin>3, error('Wrong number of input arguments!'); end
+if nargout<0, error('Not enough output arguments.'); end
+if nargout>1, error('Too many output arguments.'); end
 
 if nargin<3, opt = ''; end
 if nargin<2, Spins = []; end
 if ~ischar(opt)
   error('Third input must be a string, ''sparse''.');
 end
-sparseResult = strcmp(opt,'sparse');
+useSparseMatrices = strcmp(opt,'sparse');
 
 [System,err] = validatespinsys(System);
 error(err);
@@ -117,6 +117,6 @@ for iPair = 1:nPairs
 end
 
 F = (F+F')/2; % Hermitianise
-if ~sparseResult
+if ~useSparseMatrices
   F = full(F); % sparse -> full
 end

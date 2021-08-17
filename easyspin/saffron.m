@@ -148,6 +148,10 @@ if ~isfield(Opt,'GridFrame'), Opt.GridFrame = []; end
 if ~isfield(Opt,'Transitions'), Opt.Transitions = []; end
 if ~isfield(Opt,'Sites'), Opt.Sites = []; end
 
+if isfield(Opt,'nKnots')
+  error('Options.nKnots is obsolete. Use Options.GridSize instead, e.g. Options.GridSize = 91.');
+end
+  
 % Number of knots: determines number of orientations
 if ~isfield(Opt,'GridSize'), Opt.GridSize = 30+1; end
 if numel(Opt.GridSize)>1
@@ -1728,7 +1732,7 @@ if strcmp(Opt.SimulationMode,'fast')
                   thistd = ifft(pathwaybuff)*nPointsF;
                   thistd = thistd(1:Exp.nPoints);
                 else
-                  thistd = ifft2dpartial(pathwaybuff,Exp.nPoints,Opt.PartialIFFT);
+                  thistd = ifft2dpartial(pathwaybuff,Exp.nPoints,Opt.PartialIFFT)*prod(nPointsF);
                   %thistd = thistd;
                 end
               end

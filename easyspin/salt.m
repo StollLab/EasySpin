@@ -384,6 +384,10 @@ if any(Opt.OriPreSelect) && SuppliedOriWeights
 end
 
 % Error if obsolete option is specified
+if isfield(Opt,'nKnots')
+  error('Options.nKnots is obsolete. Use Options.GridSize instead, e.g. Options.GridSize = 91.');
+end
+
 if isfield(Opt,'Convolution')
   error('Options.Convolution is obsolete! Please remove from code!');
 end

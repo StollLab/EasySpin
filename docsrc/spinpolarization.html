@@ -103,7 +103,7 @@ Opt.Output = 'separate';         % separate transitions!
 
 <pre class="matlab">
 Popul = [0 1 0];                                 % vector of populations
-Pola = [Popul(2)-Popul(1), Popul(3)-Popul(2)];   % polarizations
+Pola = [Popul(1)-Popul(2), Popul(2)-Popul(3)];   % polarizations
 spc = Pola(1)*spcsep(1,:) + Pola(2)*spcsep(2,:); % polarized spectrum
 plot(B,spc)
 </pre>

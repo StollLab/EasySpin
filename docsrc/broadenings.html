@@ -204,9 +204,12 @@ Widths (FWHM) in MHz of the Gaussian distributions of the scalar parameters D an
 
 <p>
 The distributions in D and in E are treated as uncorrelated, unless <code>DStrainCorr</code> is provided.
+</p>
 
 <p>If the spin system contains more than one electron spin, <code>DStrain</code> should contain one row for each electron spin.
 </p>
+
+<p>If the distribution is very broad, or if there is no resonance field with the central value of <code>D</code>, but for other values in the distribution, <code>DStrain</code> will give incorrect results, and <a href="#explicit">explicit averaging</a> as described below must be used.</p>
 
 <p>
 Examples:

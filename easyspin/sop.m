@@ -59,8 +59,8 @@ end
 if ~isnumeric(SpinVec) || ~isvector(SpinVec)
   error('First input must be a 1D array of spin quantum numbers.');
 end
-if any(SpinVec<1/2) || any(mod(SpinVec,1/2)) || ~isreal(SpinVec)
-  error('First input must contain valid spin quantum numbers (1/2, 1, 3/2, etc).');
+if any(SpinVec<0) || any(mod(SpinVec,1/2)) || ~isreal(SpinVec)
+  error('First input must contain valid spin quantum numbers (0, 1/2, 1, 3/2, etc).');
 end
 nSpins = numel(SpinVec);
 
@@ -68,9 +68,9 @@ if nargin==1
   error('Not enough input arguments - at least 2 are needed!');
 end
 
-sparseOutput = ischar(varargin{end}) && strcmpi(varargin{end},'sparse');
+useSparseMatrices = ischar(varargin{end}) && strcmpi(varargin{end},'sparse');
 
-if sparseOutput
+if useSparseMatrices
   OperatorSpec = varargin(1:end-1);
 else
   OperatorSpec = varargin;
@@ -101,7 +101,7 @@ else
   if numel(OperatorSpec)>1
     
     for k = 1:numel(OperatorSpec)
-      if sparseOutput
+      if useSparseMatrices
         varargout{k} = sop(SpinVec,OperatorSpec{k},'sparse');
       else
         varargout{k} = sop(SpinVec,OperatorSpec{k});
@@ -374,7 +374,7 @@ for iSpin = 1:nSpins
 end
 
 % Convert sparse to full matrix if required
-if ~sparseOutput
+if ~useSparseMatrices
   Op = full(Op);
 end
 

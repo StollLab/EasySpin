@@ -1490,15 +1490,17 @@ if nSites>1 && ~pepperCall
   if ~isempty(Gdat), Gdat = reshape(Gdat,siz); end
 end
 
-% Sort Output
-[Transitions, I] = sortrows(Transitions);
-Pdat = Pdat(I,:);
-if ~isempty(Idat), Idat = Idat(I,:); end
-if ~isempty(Wdat), Wdat = Wdat(I,:); end
-if ~isempty(Gdat), Gdat = Gdat(I,:); end
+% Sort transitions lexicograpically (unless there is more than one site)
+if nSites==1
+  [Transitions, I] = sortrows(Transitions);
+  Pdat = Pdat(I,:);
+  if ~isempty(Idat), Idat = Idat(I,:); end
+  if ~isempty(Wdat), Wdat = Wdat(I,:); end
+  if ~isempty(Gdat), Gdat = Gdat(I,:); end
+end
 
 % Arrange the output.
 Output = {Pdat,Idat,Wdat,Transitions,Gdat};
 varargout = Output(1:max(nargout,1));
 
-return
+end
