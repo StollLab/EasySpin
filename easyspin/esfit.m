@@ -250,10 +250,6 @@ if fitdat.nParameters-sum(fitdat.fixedParams)==0
     error('No variable parameters to fit.');
 end
 
-if structureInputs
-  fitdat.p2args = @(pars) argspar.setparamvalues(p0,pinfo,pars);
-end
-
 
 % Experimental parameters (for EasySpin functions)
 %-------------------------------------------------------------------------------
@@ -273,6 +269,11 @@ if EasySpinFunction
   if ~any(isfield(p0{2},{'Range','CenterSweep','mwRange','mwCenterSweep'}))
     error('Please specify field or frequency range, in Exp.Range/Exp.mwRange or in Exp.CenterSweep/Exp.mwCenterSweep.');
   end
+end
+
+
+if structureInputs
+  fitdat.p2args = @(pars) argspar.setparamvalues(p0,pinfo,pars);
 end
 
 
@@ -414,7 +415,7 @@ if fitdat.Opts.PrintLevel
   fprintf('Number of datasets:       %d\n',fitdat.nDatasets);
   fprintf('Minimization algorithm:   %s\n',fitdat.AlgorithmNames{fitdat.Opts.AlgorithmID});
   fprintf('Residuals computed from:  %s\n',fitdat.TargetNames{fitdat.Opts.TargetID});
-  fprintf('Ignore scale:             %d\n',fitdat.Opts.AutoScale);
+  fprintf('Autoscaling:              %d\n',fitdat.Opts.AutoScale);
   fprintf('---------------------------------------------------------\n');
 end
 
@@ -436,7 +437,7 @@ if fitdat.Opts.PrintLevel && UserCommand~=99
   end
   fprintf('Parameters:\n');
   printparlist(result.pfit,fitdat.pinfo,result.pstd,result.ci95);
-  if ~isempty(result.corr)
+  if ~isempty(result.corr) && numel(result.pfit)>1
     fprintf('Correlation matrix:\n');
     Sigma = result.corr;
     disp(Sigma);
@@ -470,6 +471,10 @@ end
 function result = runFitting()
 
 global fitdat
+nParameters = numel(fitdat.pvec_0);
+data_ = fitdat.data;
+fixedParams = fitdat.fixedParams;
+activeParams = ~fixedParams;
 
 % Set starting point
 %-------------------------------------------------------------------------------
@@ -480,8 +485,8 @@ switch fitdat.Opts.Startpoint
   case 1 % provided start value
     p_start = p0;
   case 2 % random
-    p_start = lb + rand(fitdat.nParameters,1).*(ub-lb);
-    p_start(fitdat.fixedParams) = p0(fitdat.fixedParams);
+    p_start = lb + rand(nParameters,1).*(ub-lb);
+    p_start(fixedParams) = p0(fixedParams);
   case 3 % selected parameter set
     if fitdat.GUI
       h = findobj('Tag','SetListBox');
@@ -504,12 +509,9 @@ switch fitdat.Opts.Startpoint
 end
 fitdat.p_start = p_start;
 
-data_ = fitdat.data;
-
 % Run minimization over space of active parameters
 %-------------------------------------------------------------------------------
 pfit = p_start;
-activeParams = ~fitdat.fixedParams;
 fitOpt = fitdat.Opts;
 if sum(activeParams)>0
   residualfun = @(x)residuals_(x,data_,fitOpt);
