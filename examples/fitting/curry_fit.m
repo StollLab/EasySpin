@@ -44,7 +44,7 @@ Vary.g = 0.5;
 
 % no scaling! Assuming correct diamagnetic corrections and 
 % sample weight measure the absolute value contain valuable information!
-FitOpt.Scaling = 'none';
+FitOpt.AutoScale = 0;
 
 % fit chiT and mag seperately
 ChiOpt.Output = 'ChiTCGs OneColoumn'; 
@@ -79,7 +79,7 @@ Opt.Output = 'ChiTCGs MvsB OneColoumn';
 
 % no scaling! Assuming correct diamagnetic corrections and 
 % sample weight measure the absolute value contain valuable information!
-FitOpt.Scaling = 'none';
+FitOpt.AutoScale = 0;
 
 % Let's go and hope for the best!
 [bestsys,bestspc] = esfit(@curry,fitdata,FitSys,Vary,Exp,Opt,FitOpt);

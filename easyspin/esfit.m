@@ -1,8 +1,8 @@
-% esfit   Least-squares fitting for EPR data
+% esfit   Least-squares fitting for EPR and other data
 %
 %   esfit(data,fcn,p0,vary)
 %   esfit(data,fcn,p0,lb,ub)
-%   esfit(___,FitOpt)
+%   esfit(___,Opt)
 %
 %   pfit = esfit(___)
 %   [pfit,datafit] = esfit(___)
@@ -12,6 +12,8 @@
 %     data        experimental data, a vector of data points
 %     fcn         simulation/model function handle (@pepper, @garlic, ...
 %                   @salt, @chili, or handle to user-defined function)
+%                   a suer-defined fcn should take a parameter vector p and
+%                   return simulated data datasim: datasim = fcn(p)
 %     p0          starting values for parameters
 %                   EasySpin-style functions: {Sys0,Exp0} or {Sys0,Exp0,Opt0}
 %                   other functions: vector
@@ -24,12 +26,11 @@
 %     ub          upper bounds of parameters
 %                   EasySpin-style functions: {ubSys,ubExp} or {ubSys,ubExp,ubOpt}
 %                   other functions: vector
-%     FitOpt      options for the fitting algorithms
+%     Opt         options for esfit
 %        .Method  string containing kewords for
 %           -algorithm: 'simplex','levmar','montecarlo','genetic','grid','swarm'
 %           -target function: 'fcn', 'int', 'dint', 'diff', 'fft'
-%        .Scaling string with scaling method keyword
-%           'maxabs', 'lsq' (default), 'lsq0', 'lsq1', 'lsq2', 'none'
+%        .AutoScale either 1 (on) or 0 (off); default 1
 %        .OutArg  two numbers [nOut iOut], where nOut is the number of
 %                 outputs of the simulation function and iOut is the index
 %                 of the output argument to use for fitting
@@ -64,12 +65,12 @@ if nargin==0
     vSys.lwpp = [0.0 0.25];
     
     Opt = struct;
-    FitOpt = struct;
-    FitOpt.Method = 'simplex fcn';
-    FitOpt.TolFun = 1e-6;
-    FitOpt.PrintLevel = 2;
+    Opt = struct;
+    Opt.Method = 'simplex fcn';
+    Opt.TolFun = 1e-6;
+    Opt.PrintLevel = 2;
     
-    result = esfit(spc,@pepper,{Sys0,Exp,Opt},{vSys},FitOpt);
+    result = esfit(spc,@pepper,{Sys0,Exp,Opt},{vSys},Opt);
     
     subplot(2,1,1)
     plot(B,spc,B,result.fit);
@@ -87,7 +88,7 @@ if nargin<4
   error('At least 4 inputs are required (data, fcn, p0, pvary).');
 end
 if nargin>6
-  error('At most 6 inputs are accepted (data, fcn, p0, lb, up, FitOpt).');
+  error('At most 6 inputs are accepted (data, fcn, p0, lb, up, Opt).');
 end
 
 % Parse argument list
@@ -95,37 +96,39 @@ switch nargin
   case 4
     varyProvided = true;
     pvary = varargin{1};
-    FitOpt = struct;
+    Opt = struct;
   case 5
     if isstruct(varargin{2})
       varyProvided = true;
       pvary = varargin{1};
-      FitOpt = varargin{2};
+      Opt = varargin{2};
     else
       varyProvided = false;
       lb = varargin{1};
       ub = varargin{2};
-      FitOpt = struct;
+      Opt = struct;
     end
   case 6
     varyProvided = false;
     lb = varargin{1};
     ub = varargin{2};
-    FitOpt = varargin{3};
+    Opt = varargin{3};
   otherwise
     error('esfit requires 4, 5, or 6 input arguments.');
 end
 
-if isempty(FitOpt)
-  FitOpt = struct;
+if isempty(Opt)
+  Opt = struct;
 end
-if ~isstruct(FitOpt)
-  error('FitOpt (last input argument) must be a structure.');
+if ~isstruct(Opt)
+  error('Opt (last input argument) must be a structure.');
 end
 
 % Set up global structure for data sharing among local functions
 global fitdat
+fitdat = [];
 fitdat.currFitSet = [];
+
 global UserCommand
 UserCommand = 0;
 
@@ -162,7 +165,7 @@ fitdat.fcnName = func2str(fcn);
 
 fitdat.lastSetID = 0;
 
-% Determine if the model is an EasySpin simulation function
+% Determine if the model function is an EasySpin simulation function
 EasySpinFunction = any(strcmp(fitdat.fcnName,{'pepper','garlic','chili','salt','curry'}));
 
 
@@ -176,7 +179,7 @@ if structureInputs
   argspar.validargs(p0);
   fitdat.nSystems = numel(p0{1});
   if varyProvided
-    % use p0 and pvary
+    % use p0 and pvary to determine lower and upper bounds
     pinfo = argspar.getparaminfo(pvary);
     argspar.checkparcompatibility(pinfo,p0);
     pvec_0 = argspar.getparamvalues(p0,pinfo);
@@ -184,7 +187,7 @@ if structureInputs
     pvec_lb = pvec_0 - pvec_vary;
     pvec_ub = pvec_0 + pvec_vary;
   else
-    % use lower and upper bounds
+    % use provided lower and upper bounds
     pinfo = argspar.getparaminfo(lb);
     argspar.checkparcompatibility(pinfo,p0);
     argspar.checkparcompatibility(pinfo,ub);
@@ -203,28 +206,36 @@ else
     pvec_lb = lb;
     pvec_ub = ub;
   end
+  % Autogenerate parameter names
   for k = numel(p0):-1:1
     pinfo(k).Name = sprintf('p(%d)',k);
   end
 end
 
-% Assure all parameter vectors are column vectors
+% Convert all parameter vectors to column vectors
 pvec_0 = pvec_0(:);
 pvec_lb = pvec_lb(:);
 pvec_ub = pvec_ub(:);
 
-% Assure parameter vectors are valid
+% Assert parameter vectors and parameters bounds are valid
+nParams = numel(pvec_0);
+if numel(pvec_lb)~=nParams
+  error('Vector of lower bounds has %d elements, but %d are expected.',numel(pvec_lb),nParams);
+end
+if numel(pvec_ub)~=nParams
+  error('Vector of upper bounds has %d elements, but %d are expected.',numel(pvec_lb),nParams);
+end
 idx = pvec_lb>pvec_ub;
 if any(idx)
-  error('Parameter #%d upper bound cannot be smaller than lower bound.',find(idx,1));
+  error('Parameter #%d: upper bound cannot be smaller than lower bound.',find(idx,1));
 end
 idx = pvec_0<pvec_lb;
 if any(idx)
-  error('Parameter #%d start value is smaller than lower bound.',find(idx,1));
+  error('Parameter #%d: start value is smaller than lower bound.',find(idx,1));
 end
 idx = pvec_0>pvec_ub;
 if any(idx)
-  error('Parameter #%d start value is larger than upper bound.',find(idx,1));
+  error('Parameter #%d: start value is larger than upper bound.',find(idx,1));
 end
 
 fitdat.args = p0;
@@ -239,7 +250,9 @@ if fitdat.nParameters-sum(fitdat.fixedParams)==0
     error('No variable parameters to fit.');
 end
 
-fitdat.p2args = @(pars) argspar.setparamvalues(p0,pinfo,pars);
+if structureInputs
+  fitdat.p2args = @(pars) argspar.setparamvalues(p0,pinfo,pars);
+end
 
 
 % Experimental parameters (for EasySpin functions)
@@ -263,67 +276,67 @@ if EasySpinFunction
 end
 
 
-% Fitting options
+% Options
 %===============================================================================
-if ~isfield(FitOpt,'OutArg')
+if isfield(Opt,'Scaling')
+  error('Fitting option Opt.Scaling has been replaced by Opt.AutoScale.');
+end
+
+if ~isfield(Opt,'OutArg')
   fitdat.nOutArguments = abs(nargout(fitdat.fcn));
   fitdat.OutArgument = fitdat.nOutArguments;
 else
-  if numel(FitOpt.OutArg)~=2
-    error('FitOpt.OutArg must contain two values [nOut iOut]');
+  if numel(Opt.OutArg)~=2
+    error('Opt.OutArg must contain two values [nOut iOut]');
   end
-  if FitOpt.OutArg(2)>FitOpt.OutArg(1)
-    error('FitOpt.OutArg: second number cannot be larger than first one.');
+  if Opt.OutArg(2)>Opt.OutArg(1)
+    error('Opt.OutArg: second number cannot be larger than first one.');
   end
-  fitdat.nOutArguments = FitOpt.OutArg(1);
-  fitdat.OutArgument = FitOpt.OutArg(2);  
+  fitdat.nOutArguments = Opt.OutArg(1);
+  fitdat.OutArgument = Opt.OutArg(2);  
 end
 
-if ~isfield(FitOpt,'Scaling'), FitOpt.Scaling = 'lsq'; end
-
-if ~isfield(FitOpt,'Method'), FitOpt.Method = ''; end
-FitOpt.MethodID = 1; % simplex
-FitOpt.TargetID = 1; % function as is
+if ~isfield(Opt,'Method'), Opt.Method = 'simplex fcn'; end
 if EasySpinFunction
   if isfield(p0{2},'Harmonic') && p0{2}.Harmonic>0
-    FitOpt.TargetID = 2; % integral
+    Opt.TargetID = 2; % integral
   else
     if strcmp(fitdat.fcnName,'pepper') || strcmp(fitdat.fcnName,'garlic')
-      FitOpt.TargetID = 2; % integral
+      Opt.TargetID = 2; % integral
     end
   end
 end
 
-keywords = strread(FitOpt.Method,'%s'); %#ok<DSTRRD>
+keywords = strread(Opt.Method,'%s'); %#ok<DSTRRD>
 for k = 1:numel(keywords)
   switch keywords{k}
-    case 'simplex',    FitOpt.MethodID = 1;
-    case 'levmar',     FitOpt.MethodID = 2;
-    case 'montecarlo', FitOpt.MethodID = 3;
-    case 'genetic',    FitOpt.MethodID = 4;
-    case 'grid',       FitOpt.MethodID = 5;
-    case 'swarm',      FitOpt.MethodID = 6;
-    case 'lsqnonlin',  FitOpt.MethodID = 7;
+    case 'simplex',    Opt.AlgorithmID = 1;
+    case 'levmar',     Opt.AlgorithmID = 2;
+    case 'montecarlo', Opt.AlgorithmID = 3;
+    case 'genetic',    Opt.AlgorithmID = 4;
+    case 'grid',       Opt.AlgorithmID = 5;
+    case 'swarm',      Opt.AlgorithmID = 6;
+    case 'lsqnonlin',  Opt.AlgorithmID = 7;
       
-    case 'fcn',        FitOpt.TargetID = 1;
-    case 'int',        FitOpt.TargetID = 2;
-    case 'iint',       FitOpt.TargetID = 3;
-    case 'dint',       FitOpt.TargetID = 3;
-    case 'diff',       FitOpt.TargetID = 4;
-    case 'fft',        FitOpt.TargetID = 5;
+    case 'fcn',        Opt.TargetID = 1;
+    case 'int',        Opt.TargetID = 2;
+    case 'iint',       Opt.TargetID = 3;
+    case 'dint',       Opt.TargetID = 3;
+    case 'diff',       Opt.TargetID = 4;
+    case 'fft',        Opt.TargetID = 5;
     otherwise
-      error('Unknown ''%s'' in FitOpt.Method.',keywords{k});
+      error('Unknown ''%s'' in Opt.Method.',keywords{k});
   end
 end
 
-MethodNames{1} = 'Nelder-Mead simplex';
-MethodNames{2} = 'Levenberg-Marquardt';
-MethodNames{3} = 'Monte Carlo';
-MethodNames{4} = 'genetic algorithm';
-MethodNames{5} = 'grid search';
-MethodNames{6} = 'particle swarm';
-MethodNames{7} = 'lsqnonlin';
-fitdat.MethodNames = MethodNames;
+AlgorithmNames{1} = 'Nelder-Mead simplex';
+AlgorithmNames{2} = 'Levenberg-Marquardt';
+AlgorithmNames{3} = 'Monte Carlo';
+AlgorithmNames{4} = 'genetic algorithm';
+AlgorithmNames{5} = 'grid search';
+AlgorithmNames{6} = 'particle swarm';
+AlgorithmNames{7} = 'lsqnonlin';
+fitdat.AlgorithmNames = AlgorithmNames;
 
 TargetNames{1} = 'data as is';
 TargetNames{2} = 'integral';
@@ -332,57 +345,58 @@ TargetNames{4} = 'derivative';
 TargetNames{5} = 'Fourier transform';
 fitdat.TargetNames = TargetNames;
 
-ScalingNames{1} = 'scale only (max abs)';
-ScalingNames{2} = 'fit scale only (lsq)';
-ScalingNames{3} = 'fit scale & const. baseline (lsq0)';
-ScalingNames{4} = 'fit scale & linear baseline (lsq1)';
-ScalingNames{5} = 'fit scale & quad. baseline (lsq2)';
-ScalingNames{6} = 'no scaling';
-fitdat.ScalingNames = ScalingNames;
-
-ScalingString{1} = 'maxabs';
-ScalingString{2} = 'lsq';
-ScalingString{3} = 'lsq0';
-ScalingString{4} = 'lsq1';
-ScalingString{5} = 'lsq2';
-ScalingString{6} = 'none';
-fitdat.ScalingString = ScalingString;
+% Scale fitting
+if ~isfield(Opt,'AutoScale')
+  Opt.AutoScale = 1;
+end
+switch Opt.AutoScale
+  case 0, AutoScale = 0;
+  case 1, AutoScale = 1;
+  otherwise, error('Unknown setting for Opt.AutoScale - possible values are 0 and 1.');
+end
+fitdat.AutoScale = AutoScale;
+fitdat.AutoScaleSettings = {1, 0};
+fitdat.AutoScaleStrings = {'on', 'off'};
 
 StartpointNames{1} = 'center of range';
 StartpointNames{2} = 'random within range';
 StartpointNames{3} = 'selected parameter set';
 fitdat.StartpointNames = StartpointNames;
 
-FitOpt.ScalingID = find(strcmp(FitOpt.Scaling,ScalingString));
-if isempty(FitOpt.ScalingID)
-    error('Unknown ''%s'' in FitOpt.Scaling.',FitOpt.Scaling);
-end
-
 fitdat.GUI = nargout==0;
 
-if ~isfield(FitOpt,'PrintLevel'), FitOpt.PrintLevel = 1; end
-if ~isfield(FitOpt,'nTrials'), FitOpt.nTrials = 20000; end
-if ~isfield(FitOpt,'TolFun'), FitOpt.TolFun = 1e-4; end
-if ~isfield(FitOpt,'TolStep'), FitOpt.TolStep = 1e-6; end
-if ~isfield(FitOpt,'maxTime'), FitOpt.maxTime = inf; end
-if isfield(FitOpt,'RandomStart') && FitOpt.RandomStart
-    FitOpt.Startpoint = 2; % random start point
+if ~isfield(Opt,'PrintLevel'), Opt.PrintLevel = 1; end
+
+if ~isfield(Opt,'nTrials'), Opt.nTrials = 20000; end
+if ~isfield(Opt,'TolFun'), Opt.TolFun = 1e-4; end
+if ~isfield(Opt,'TolStep'), Opt.TolStep = 1e-6; end
+if ~isfield(Opt,'maxTime'), Opt.maxTime = inf; end
+if isfield(Opt,'RandomStart') && Opt.RandomStart
+    Opt.Startpoint = 2; % random start point
 else
-    FitOpt.Startpoint = 1; % start point at center of range
+    Opt.Startpoint = 1; % start point at center of range
 end
 
-if ~isfield(FitOpt,'GridSize'), FitOpt.GridSize = 7; end
+if ~isfield(Opt,'GridSize'), Opt.GridSize = 7; end
+
+% x axis for plotting
+if ~isfield(Opt,'x')
+  Opt.x = 1:numel(fitdat.data);
+end
 
 % Internal parameters
-if ~isfield(FitOpt,'PlotStretchFactor'), FitOpt.PlotStretchFactor = 0.05; end
-if ~isfield(FitOpt,'maxGridPoints'), FitOpt.maxGridPoints = 1e5; end
-if ~isfield(FitOpt,'maxParameters'), FitOpt.maxParameters = 30; end
-if fitdat.nParameters>FitOpt.maxParameters
+if ~isfield(Opt,'PlotStretchFactor'), Opt.PlotStretchFactor = 0.05; end
+if ~isfield(Opt,'maxGridPoints'), Opt.maxGridPoints = 1e5; end
+if ~isfield(Opt,'maxParameters'), Opt.maxParameters = 30; end
+
+if fitdat.nParameters>Opt.maxParameters
     error('Cannot fit more than %d parameters simultaneously.',...
-        FitOpt.maxParameters);
+        Opt.maxParameters);
 end
-FitOpt.IterationPrintFunction = @iterationprint;
-fitdat.FitOpts = FitOpt;
+Opt.IterationPrintFunction = @iterationprint;
+
+fitdat.Opts = Opt;
+
 
 % Setup GUI and return if in GUI mode
 %-------------------------------------------------------------------------------
@@ -391,16 +405,16 @@ if fitdat.GUI
   return
 end
 
-% Report
+% Report parsed inputs
 %-------------------------------------------------------------------------------
-if fitdat.FitOpts.PrintLevel
+if fitdat.Opts.PrintLevel
   fprintf('-- esfit ------------------------------------------------\n');
   fprintf('Function name:            %s\n',fitdat.fcnName);
   fprintf('Number of parameters:     %d\n',fitdat.nParameters);
   fprintf('Number of datasets:       %d\n',fitdat.nDatasets);
-  fprintf('Minimization method:      %s\n',fitdat.MethodNames{fitdat.FitOpts.MethodID});
-  fprintf('Residuals computed from:  %s\n',fitdat.TargetNames{fitdat.FitOpts.TargetID});
-  fprintf('Scaling mode:             %s\n',fitdat.FitOpts.Scaling);
+  fprintf('Minimization algorithm:   %s\n',fitdat.AlgorithmNames{fitdat.Opts.AlgorithmID});
+  fprintf('Residuals computed from:  %s\n',fitdat.TargetNames{fitdat.Opts.TargetID});
+  fprintf('Ignore scale:             %d\n',fitdat.Opts.AutoScale);
   fprintf('---------------------------------------------------------\n');
 end
 
@@ -408,15 +422,18 @@ end
 %-------------------------------------------------------------------------------
 result = runFitting();
 
-% Report
+% Report fit results
 %-------------------------------------------------------------------------------
-if fitdat.FitOpts.PrintLevel && UserCommand~=99
+if fitdat.Opts.PrintLevel && UserCommand~=99
   disp('---------------------------------------------------------');
   fprintf('Goodness of fit:\n');
   fprintf('   ssr             %g\n',result.ssr);
   fprintf('   rmsd            %g\n',result.rmsd);
   fprintf('   noise std       %g (estimated from residuals)\n',std(result.residuals));
   fprintf('   chi^2           %g (using noise std estimate; upper limit)\n',result.rmsd^2/var(result.residuals));
+  if Opt.AutoScale
+    fprintf('Fitted scale:       %g\n',result.scale);
+  end
   fprintf('Parameters:\n');
   printparlist(result.pfit,fitdat.pinfo,result.pstd,result.ci95);
   if ~isempty(result.corr)
@@ -432,7 +449,7 @@ if fitdat.FitOpts.PrintLevel && UserCommand~=99
       fprintf('    p(%d)-p(%d):    %g\n',i1(k),i2(k),Sigma(i1(k),i2(k)));
     end
     if any(reshape(triuCorr,1,[])>0.8)
-      disp('    WARNING! Stong correlations between parameters.');
+      disp('    WARNING! Strong correlations between parameters.');
     end
   end
   disp('=========================================================');
@@ -459,26 +476,30 @@ global fitdat
 lb = fitdat.pvec_lb;
 ub = fitdat.pvec_ub;
 p0 = fitdat.pvec_0;
-switch fitdat.FitOpts.Startpoint
+switch fitdat.Opts.Startpoint
   case 1 % provided start value
     p_start = p0;
   case 2 % random
     p_start = lb + rand(fitdat.nParameters,1).*(ub-lb);
     p_start(fitdat.fixedParams) = p0(fitdat.fixedParams);
   case 3 % selected parameter set
-    h = findobj('Tag','SetListBox');
-    s = h.String;
-    if ~isempty(s)
-      s = s{h.Value};
-      ID = sscanf(s,'%d');
-      idx = find([fitdat.FitSets.ID]==ID);
-      if ~isempty(idx)
-        p_start = fitdat.FitSets(idx).bestx;
+    if fitdat.GUI
+      h = findobj('Tag','SetListBox');
+      s = h.String;
+      if ~isempty(s)
+        s = s{h.Value};
+        ID = sscanf(s,'%d');
+        idx = find([fitdat.FitSets.ID]==ID);
+        if ~isempty(idx)
+          p_start = fitdat.FitSets(idx).bestx;
+        else
+          error('Could not locate selected parameter set.');
+        end
       else
-        error('Could not locate selected parameter set.');
+        error('No saved parameter set yet.');
       end
     else
-      error('No saved parameter set yet.');
+        error('Setting can only be used in GUI mode.');
     end
 end
 fitdat.p_start = p_start;
@@ -489,27 +510,27 @@ data_ = fitdat.data;
 %-------------------------------------------------------------------------------
 pfit = p_start;
 activeParams = ~fitdat.fixedParams;
-fitOpts = fitdat.FitOpts;
+fitOpt = fitdat.Opts;
 if sum(activeParams)>0
-  residualfun = @(x)residuals_(x,data_,fitOpts);
-  rmsdfun = @(x)rmsd_(x,data_,fitOpts);
+  residualfun = @(x)residuals_(x,data_,fitOpt);
+  rmsdfun = @(x)rmsd_(x,data_,fitOpt);
   p0_a = p_start(activeParams);
   lb_a = lb(activeParams);
   ub_a = ub(activeParams);
-  switch fitOpts.MethodID
+  switch fitOpt.AlgorithmID
     case 1 % Nelder-Mead simplex
-      pfit_a = esfit_simplex(rmsdfun,p0_a,lb_a,ub_a,fitOpts);
+      pfit_a = esfit_simplex(rmsdfun,p0_a,lb_a,ub_a,fitOpt);
     case 2 % Levenberg-Marquardt
-      fitOpts.Gradient = fitOpts.TolFun;
-      pfit_a = esfit_levmar(residualfun,p0_a,lb_a,ub_a,fitOpts);
+      fitOpt.Gradient = fitOpt.TolFun;
+      pfit_a = esfit_levmar(residualfun,p0_a,lb_a,ub_a,fitOpt);
     case 3 % Monte Carlo
-      pfit_a = esfit_montecarlo(rmsdfun,lb_a,ub_a,fitOpts);
+      pfit_a = esfit_montecarlo(rmsdfun,lb_a,ub_a,fitOpt);
     case 4 % Genetic
-      pfit_a = esfit_genetic(rmsdfun,lb_a,ub_a,fitOpts);
+      pfit_a = esfit_genetic(rmsdfun,lb_a,ub_a,fitOpt);
     case 5 % Grid search
-      pfit_a = esfit_grid(rmsdfun,lb_a,ub_a,fitOpts);
+      pfit_a = esfit_grid(rmsdfun,lb_a,ub_a,fitOpt);
     case 6 % Particle swarm
-      pfit_a = esfit_swarm(rmsdfun,lb_a,ub_a,fitOpts);
+      pfit_a = esfit_swarm(rmsdfun,lb_a,ub_a,fitOpt);
     case 7 % lsqnonlin from Optimization Toolbox
       pfit_a = lsqnonlin(residualfun,p0_a,lb_a,ub_a);
   end
@@ -518,6 +539,7 @@ end
 
 % Simulate model fit
 %-------------------------------------------------------------------------------
+% (This should not be necessary; fitraw should be returned by the optimization functions!)
 if fitdat.structureInputs
   argsfit = fitdat.p2args(pfit);
   [out{1:fitdat.nOutArguments}] = fitdat.fcn(argsfit{:});
@@ -525,27 +547,33 @@ else
   argsfit = [];
   [out{1:fitdat.nOutArguments}] = fitdat.fcn(pfit);
 end
-
 fitraw = out{fitdat.OutArgument}; % pick relevant output argument
 fitraw = reshape(fitraw,size(fitdat.data));
 
-[fit,scale] = rescaledata(fitraw,fitdat.data,fitdat.FitOpts.Scaling);
+% Rescale fitted model
+if fitOpt.AutoScale
+  [fit,scale] = rescaledata(fitraw,fitdat.data,'lsq');
+else
+  fit = fitraw;
+  scale = 1;
+end
 
 % Calculate metrics for goodness of fit
 %-------------------------------------------------------------------------------
-residuals = calculateResiduals(fit(:),fitdat.data(:),fitdat.FitOpts.TargetID);
+residuals = calculateResiduals(fit(:),fitdat.data(:),fitdat.Opts.TargetID);
 residuals = residuals.'; % col -> row
-ssr = sum(residuals.^2); % sum of squared residuals
+ssr = sum(abs(residuals).^2); % sum of squared residuals
 rmsd = sqrt(mean(residuals.^2)); % root-mean-square deviation
 
 % Calculate parameter uncertainties
 %-------------------------------------------------------------------------------
-printLevel = fitdat.FitOpts.PrintLevel;
+printLevel = fitdat.Opts.PrintLevel;
 if printLevel
   disp('Calculating parameter uncertainties...');
   disp('  Estimating Jacobian...');
 end
-maxRelStep = min((ub-pfit),(pfit-lb))./pfit;
+%maxRelStep = min((ub-pfit),(pfit-lb))./pfit;
+residualfun = @(x)residuals_(x,data_,fitOpt,false);
 J = jacobianest(residualfun,pfit);
 if ~any(isnan(J(:)))
   if printLevel
@@ -598,24 +626,25 @@ end
 
 
 %===============================================================================
-function rmsd = rmsd_(x,data,FitOpt)
-[~,rmsd] = residuals_(x,data,FitOpt);
+function rmsd = rmsd_(x,data,Opt)
+[~,rmsd] = residuals_(x,data,Opt);
 end
 %===============================================================================
 
 
 %===============================================================================
-function [residuals,rmsd,simdata,simscale] = residuals_(x,expdata,FitOpt)
+function [residuals,rmsd,simdata,simscale] = residuals_(x,expdata,Opt,updateGUI)
 
 global fitdat
+if nargin<4, updateGUI = true; end
 
-% Assemble full parameter vector ------------------------------------------------
+% Assemble full parameter vector -----------------------------------------------
 p_all = fitdat.p_start;
 active = ~fitdat.fixedParams;
 p_all(active) = x;
 par = p_all;
 
-% Evaluate model function  ------------------------------------------------------
+% Evaluate model function ------------------------------------------------------
 if fitdat.structureInputs
   args = fitdat.p2args(par);
   try
@@ -632,37 +661,43 @@ else
 end
 simdata = out{fitdat.OutArgument}; % pick appropriate output argument
 
-[simdata,simscale] = rescaledata(simdata(:),expdata(:),FitOpt.Scaling);
+% Rescale simulated data if scale should be ignored
+if Opt.AutoScale
+  [simdata,simscale] = rescaledata(simdata(:),expdata(:),'lsq');
+else
+  simdata = simdata(:);
+  simscale = 1;
+end
 
 % Compute residuals ------------------------------------------------------------
-residuals = calculateResiduals(simdata(:),expdata(:),FitOpt.TargetID);
-rmsd = real(sqrt(mean(residuals.^2)));
+residuals = calculateResiduals(simdata(:),expdata(:),Opt.TargetID);
+rmsd = sqrt(mean(abs(residuals).^2));
 
 % Keep track of errors ---------------------------------------------------------
 if ~isfield(fitdat,'smallestError') || isempty(fitdat.smallestError)
-    fitdat.smallestError = inf;
+  fitdat.smallestError = inf;
 end
 if ~isfield(fitdat,'errorlist')
-    fitdat.errorlist = [];
+  fitdat.errorlist = [];
 end
 
 fitdat.errorlist = [fitdat.errorlist rmsd];
-isNewBest = rmsd<fitdat.smallestError;
 
+isNewBest = rmsd<fitdat.smallestError;
 if isNewBest
-    fitdat.smallestError = rmsd;
-    fitdat.bestfit = simdata;
-    fitdat.bestpar = par;
+  fitdat.smallestError = rmsd;
+  fitdat.bestfit = simdata;
+  fitdat.bestpar = par;
 end
 
 % Update GUI
 %-------------------------------------------------------------------------------
 global UserCommand
-if fitdat.GUI && UserCommand~=99
+if fitdat.GUI && UserCommand~=99 && updateGUI
     
     % update plot
-    x = 1:numel(expdata);
-    set(findobj('Tag','expdata'),'XData',x,'YData',expdata);
+    x = fitdat.Opts.x(:);
+    set(findobj('Tag','expdata'),'XData',x,'YData',expdata(:));
     set(findobj('Tag','bestsimdata'),'XData',x,'YData',real(fitdat.bestfit));
     set(findobj('Tag','currsimdata'),'XData',x,'YData',real(simdata));
     
@@ -670,7 +705,7 @@ if fitdat.GUI && UserCommand~=99
     dispData = [expdata(:); real(fitdat.bestfit(:)); real(simdata(:))];
     maxy = max(dispData);
     miny = min(dispData);
-    YLimits = [miny maxy] + [-1 1]*FitOpt.PlotStretchFactor*(maxy-miny);
+    YLimits = [miny maxy] + [-1 1]*Opt.PlotStretchFactor*(maxy-miny);
     set(findobj('Tag','dataaxes'),'YLim',YLimits);
     drawnow
     
@@ -843,9 +878,9 @@ set(findobj('Tag','StartButton'),'Visible','off');
 set(findobj('Tag','SaveButton'),'Enable','off');
 
 % Disable listboxes
-set(findobj('Tag','MethodMenu'),'Enable','off');
+set(findobj('Tag','AlgorithMenu'),'Enable','off');
 set(findobj('Tag','TargetMenu'),'Enable','off');
-set(findobj('Tag','ScalingMenu'),'Enable','off');
+set(findobj('Tag','AutoScaleMenu'),'Enable','off');
 set(findobj('Tag','StartpointMenu'),'Enable','off');
 
 % Disable parameter table
@@ -869,11 +904,11 @@ end
 
 % Pull settings from UI
 %-------------------------------------------------------------------------------
-% Determine selected method, target, and scaling
-fitdat.FitOpts.MethodID = get(findobj('Tag','MethodMenu'),'Value');
-fitdat.FitOpts.TargetID = get(findobj('Tag','TargetMenu'),'Value');
-fitdat.FitOpts.Scaling = fitdat.ScalingString{get(findobj('Tag','ScalingMenu'),'Value')};
-fitdat.FitOpts.Startpoint = get(findobj('Tag','StartpointMenu'),'Value');
+% Determine selected method, target, autoscaling, start point
+fitdat.Opts.AlgorithmID = get(findobj('Tag','AlgorithMenu'),'Value');
+fitdat.Opts.TargetID = get(findobj('Tag','TargetMenu'),'Value');
+fitdat.Opts.AutoScale = fitdat.AutoScaleSettings{get(findobj('Tag','AutoScaleMenu'),'Value')};
+fitdat.Opts.Startpoint = get(findobj('Tag','StartpointMenu'),'Value');
 
 % Get fixed parameters
 data = get(findobj('Tag','ParameterTable'),'Data');
@@ -923,9 +958,9 @@ set(findobj('Tag','StopButton'),'Visible','off');
 set(findobj('Tag','StartButton'),'Visible','on');
 
 % Re-enable listboxes
-set(findobj('Tag','MethodMenu'),'Enable','on');
+set(findobj('Tag','AlgorithMenu'),'Enable','on');
 set(findobj('Tag','TargetMenu'),'Enable','on');
-set(findobj('Tag','ScalingMenu'),'Enable','on');
+set(findobj('Tag','AutoScaleMenu'),'Enable','on');
 set(findobj('Tag','StartpointMenu'),'Enable','on');
 
 % Re-enable parameter table and its selection controls
@@ -1222,19 +1257,19 @@ end
 function setupGUI(data)
 
 global fitdat
-FitOpt = fitdat.FitOpts;
+Opt = fitdat.Opts;
 
-% main figure
+% Main figure
 %---------------------------------------------------------------------------
 hFig = findobj('Tag','esfitFigure');
 if isempty(hFig)
-    hFig = figure('Tag','esfitFigure','WindowStyle','normal');
+  hFig = figure('Tag','esfitFigure','WindowStyle','normal');
 else
-    figure(hFig);
-    clf(hFig);
+  figure(hFig);
+  clf(hFig);
 end
 
-sz = [1000 600]; % figure size
+sz = [1200 600]; % figure size
 screensize = get(0,'ScreenSize');
 xpos = ceil((screensize(3)-sz(1))/2); % center the figure on the screen horizontally
 ypos = ceil((screensize(4)-sz(2))/2); % center the figure on the screen vertically
@@ -1245,36 +1280,42 @@ set(hFig,'Name','EasySpin Least-Squares Fitting','NumberTitle','off');
 set(hFig,'CloseRequestFcn',...
     'global UserCommand; UserCommand = 99; drawnow; delete(gcf);');
 
-% axes
+% Axes
 %---------------------------------------------------------------------------
 excludedRegions = [];
 % data display
 hAx = axes('Parent',hFig,'Units','pixels',...
-    'Position',[10 10 640 580],'FontSize',8,'Layer','top');
+    'Position',[30 30 810 560],'FontSize',8,'Layer','top');
+x0 = 860; % Start of display to the right of the axes
+
 NaNdata = ones(1,numel(data))*NaN;
 dispData = fitdat.data;
-maxy = max(dispData); miny = min(dispData);
-YLimits = [miny maxy] + [-1 1]*FitOpt.PlotStretchFactor*(maxy-miny);
+maxy = max(dispData);
+miny = min(dispData);
+YLimits = [miny maxy] + [-1 1]*Opt.PlotStretchFactor*(maxy-miny);
+minx = min(fitdat.Opts.x);
+maxx = max(fitdat.Opts.x);
 for r = 1:size(excludedRegions,1)
-    h = patch(excludedRegions(r,[1 2 2 1]),YLimits([1 1 2 2]),[1 1 1]*0.8);
-    set(h,'EdgeColor','none');
+  h = patch(excludedRegions(r,[1 2 2 1]),YLimits([1 1 2 2]),[1 1 1]*0.8);
+  set(h,'EdgeColor','none');
 end
 x = 1:numel(data);
-h(1) = line(x,NaNdata,'Color','k','Marker','.');
+h(1) = line(x,NaNdata,'Color','k','Marker','.','LineStyle','none');
 h(2) = line(x,NaNdata,'Color',[0 0.6 0]);
 h(3) = line(x,NaNdata,'Color','r');
-set(h(1),'Tag','expdata','XData',1:numel(dispData),'YData',dispData);
+set(h(1),'Tag','expdata','XData',fitdat.Opts.x,'YData',dispData);
 set(h(2),'Tag','bestsimdata');
 set(h(3),'Tag','currsimdata');
-set(hAx,'XLim',[1 numel(dispData)]);
-set(hAx,'YLim',YLimits);
-set(hAx,'Tag', 'dataaxes');
-set(hAx,'XTick',[],'YTick',[]);
+hAx.XLim = [minx maxx];
+hAx.YLim = YLimits;
+hAx.Tag = 'dataaxes';
+grid(hAx,'on');
+%set(hAx,'XTick',[],'YTick',[]);
 box on
 
 % iteration and rms error displays
 %-----------------------------------------------------------------
-x0 = 660; y0 = 160;
+y0 = 160;
 hAx = axes('Parent',hFig,'Units','pixels','Position',[x0 y0 100 80],'Layer','top');
 h = plot(hAx,1,NaN,'.');
 set(h,'Tag','errorline','MarkerSize',5,'Color',[0.2 0.2 0.8]);
@@ -1297,14 +1338,14 @@ columnformat = {'logical','char','char','char','char','char'};
 colEditable = [true false false false true true];
 data = cell(numel(fitdat.pinfo),6);
 for p = 1:numel(fitdat.pinfo)
-    data{p,1} = true;
-    data{p,2} = char(fitdat.pinfo(p).Name);
-    data{p,3} = '-';
-    data{p,4} = '-';
-    data{p,5} = sprintf('%0.6g',fitdat.pvec_lb(p));
-    data{p,6} = sprintf('%0.6g',fitdat.pvec_ub(p));
+  data{p,1} = true;
+  data{p,2} = char(fitdat.pinfo(p).Name);
+  data{p,3} = '-';
+  data{p,4} = '-';
+  data{p,5} = sprintf('%0.6g',fitdat.pvec_lb(p));
+  data{p,6} = sprintf('%0.6g',fitdat.pvec_ub(p));
 end
-x0 = 660; y0 = 400; dx = 80;
+y0 = 400; dx = 80;
 uitable('Tag','ParameterTable',...
     'FontSize',8,...
     'Position',[x0 y0 330 150],...
@@ -1360,17 +1401,17 @@ uicontrol(hFig,'Style','text',...
 
 % popup menus
 %---------------------------------------------------------------------------
-x0 = 660; dx = 60; y0 = 290; dy = 24;
+dx = 60; y0 = 290; dy = 24;
 uicontrol(hFig,'Style','text',...
-    'String','Method',...
+    'String','Algorithm',...
     'FontWeight','bold',...
     'HorizontalAlign','left',...
     'BackgroundColor',get(gcf,'Color'),...
     'Position',[x0 y0+3*dy-4 dx 20]);
 uicontrol(hFig,'Style','popupmenu',...
-    'Tag','MethodMenu',...
-    'String',fitdat.MethodNames,...
-    'Value',FitOpt.MethodID,...
+    'Tag','AlgorithMenu',...
+    'String',fitdat.AlgorithmNames,...
+    'Value',Opt.AlgorithmID,...
     'BackgroundColor','w',...
     'Tooltip','Fitting algorithm',...
     'Position',[x0+dx y0+3*dy 150 20]);
@@ -1383,22 +1424,22 @@ uicontrol(hFig,'Style','text',...
 uicontrol(hFig,'Style','popupmenu',...
     'Tag','TargetMenu',...
     'String',fitdat.TargetNames,...
-    'Value',FitOpt.TargetID,...
+    'Value',Opt.TargetID,...
     'BackgroundColor','w',...
     'Tooltip','Target function',...
     'Position',[x0+dx y0+2*dy 150 20]);
 uicontrol(hFig,'Style','text',...
-    'String','Scaling',...
+    'String','AutoScale',...
     'FontWeight','bold',...
     'HorizontalAlign','left',...
     'BackgroundColor',get(gcf,'Color'),...
     'Position',[x0 y0+dy-4 dx 20]);
 uicontrol(hFig,'Style','popupmenu',...
-    'Tag','ScalingMenu',...
-    'String',fitdat.ScalingNames,...
-    'Value',FitOpt.ScalingID,...
+    'Tag','AutoScaleMenu',...
+    'String',fitdat.AutoScaleStrings,...
+    'Value',find(cellfun(@(x)x==fitdat.AutoScale,fitdat.AutoScaleSettings),1),...
     'BackgroundColor','w',...
-    'Tooltip','Scaling mode',...
+    'Tooltip','Autoscaling',...
     'Position',[x0+dx y0+dy 150 20]);
 uicontrol(hFig,'Style','text',...
     'String','Startpoint',...
@@ -1413,7 +1454,7 @@ h = uicontrol(hFig,'Style','popupmenu',...
     'BackgroundColor','w',...
     'Tooltip','Starting point for fit',...
     'Position',[x0+dx y0 150 20]);
-if fitdat.FitOpts.Startpoint==2, set(h,'Value',2); end
+if fitdat.Opts.Startpoint==2, set(h,'Value',2); end
 
 % Start/Stop buttons
 %---------------------------------------------------------------------------
@@ -1443,7 +1484,7 @@ uicontrol(hFig,'Style','pushbutton',...
 
 % Fitset list
 %---------------------------------------------------------------------------
-x0 = 660; y0 = 10;
+y0 = 10;
 uicontrol('Style','text','Tag','SetListTitle',...
     'Position',[x0 y0+100 230 20],...
     'BackgroundColor',get(gcf,'Color'),...

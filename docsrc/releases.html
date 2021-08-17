@@ -34,6 +34,7 @@ $ReleaseID$
 
 <p>Major new features</p>
 <ul>
+<li>Major overhaul of <a class="esf" href="esfit.html">esfit</a>, including calculation of parameter uncertainties.</li>
 <li><a class="esf" href="cardamom.html">cardamom</a> can simulate dynamic cw EPR spectra from stochastic trajectories, molecular dynamics (MD) trajectories, and Markov-state jump models.
 <li><a class="esf" href="stochtraj_diffusion.html">stochtraj_diffusion</a> and <a class="esf" href="stochtraj_jump.html">stochtraj_jump</a> calculate stochastic rotational trajectories for Brownian diffusion and discrete jump models.
 <li><a class="esf" href="chili.html">chili</a> supports arbitrary spin systems as well as general orientational potentials (for hindered diffusion).
@@ -62,6 +63,8 @@ $ReleaseID$
 
 <p>Incompatible changes</p>
 <ul>
+<li>The interface of <a class="esf">esfit</a> has changed completely. Refer to the <a class="esf">esfit</a>" documentation for details.
+<li>The <code>Scaling</code> option of </code><a class="esf" href="esfit.html">esfit</a> has been removed. Use <code>FitOpt.AutoScale</code> instead.
 <li>The function <code>rescale</code> has been renamed to </code><a class="esf" href="rescaledata.html">rescaledata</a> to avoid conflict with an identically named MATLAB function.
 <li><a class="esf" href="chili.html">saffron</a>: The input syntax has changed significantly. See the <a href="saffron.html">reference page</a>, the <a href="userguide_saffron.html">user guide</a>, and the <a href="examplesmain.html">examples</a>.
 <li><a class="esf" href="chili.html">chili</a>: The input field name and syntax for orienting potentials has changed. Instead of <code>Sys.lambda</code>, use <code>Sys.Potential</code>. The new input syntax allows the specification of general orientational potentials.
