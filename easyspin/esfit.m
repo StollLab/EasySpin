@@ -141,7 +141,6 @@ argspar = esfit_argsparams();
 if isstruct(data) || ~isnumeric(data) || ~isvector(data)
     error('First argument must be numeric experimental data in the form of a vector.');
 end
-fitdat.nDatasets = 1;
 fitdat.data = data;
 
 % Model function
@@ -297,7 +296,9 @@ else
   fitdat.OutArgument = Opt.OutArg(2);  
 end
 
-if ~isfield(Opt,'Method'), Opt.Method = 'simplex fcn'; end
+if ~isfield(Opt,'Method')
+  Opt.Method = 'simplex fcn';
+end
 if EasySpinFunction
   if isfield(p0{2},'Harmonic') && p0{2}.Harmonic>0
     Opt.TargetID = 2; % integral
@@ -410,9 +411,9 @@ end
 %-------------------------------------------------------------------------------
 if fitdat.Opts.PrintLevel
   fprintf('-- esfit ------------------------------------------------\n');
-  fprintf('Function name:            %s\n',fitdat.fcnName);
+  fprintf('Number of datapoints:     %d\n',numel(fitdat.data));
+  fprintf('Model function name:      %s\n',fitdat.fcnName);
   fprintf('Number of parameters:     %d\n',fitdat.nParameters);
-  fprintf('Number of datasets:       %d\n',fitdat.nDatasets);
   fprintf('Minimization algorithm:   %s\n',fitdat.AlgorithmNames{fitdat.Opts.AlgorithmID});
   fprintf('Residuals computed from:  %s\n',fitdat.TargetNames{fitdat.Opts.TargetID});
   fprintf('Autoscaling:              %d\n',fitdat.Opts.AutoScale);
