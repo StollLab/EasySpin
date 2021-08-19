@@ -1,6 +1,6 @@
 function ok = test()
 
-% Multiple spins-3/2
+% S=1/2 with multiple nuclear spins-3/2
 
 test(1).n = 2;
 test(1).F = [3 2 1 0];

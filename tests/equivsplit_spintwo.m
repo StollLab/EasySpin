@@ -1,6 +1,6 @@
 function ok = test()
 
-% Multiple spins-2
+% S=1/2 with multiple nuclear spins-2
 
 Q{1} = [1 1 1 1 1];
 Q{2} = [1 2 3 4 5 4 3 2 1];
@@ -10,5 +10,5 @@ Q{5} = [1 5 15 35 70 121 185 255 320 365 381 365 320 255 185 121 70 35 15 5 1];
 
 for n = 1:numel(Q)
   q = equivsplit(2,n);
-  ok(n) = all(q==Q{n});
+  ok(n) = numel(q)==numel(Q{n}) && all(q==Q{n});
 end
