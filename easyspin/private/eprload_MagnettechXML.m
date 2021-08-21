@@ -78,7 +78,7 @@ for iCurve = 1:numel(CurveList)
   % Avoid duplicate names (e.g. BField can be stored twice in the same file, once
   % with Mode='Raw' and once with Mode='Pre')
   if strcmp(Name,'BField') && strcmp(Mode,'Raw')
-    Name = [Name '_' Mode];
+    Name = [Name '_' Mode];  %#ok
   end
   
   % Read curve data (if they are base64 encoded)

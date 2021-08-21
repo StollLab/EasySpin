@@ -74,7 +74,7 @@ switch program
           hf = sum(I.*Amax)*1e6; % MHz -> Hz
           if Sys.fullg
             for k = 1:Sys.nElectrons
-              g(:,k) = eig(Sys.g((1:3)+(k-1)*3,:));
+              g(:,k) = eig(Sys.g((1:3)+(k-1)*3,:));  %#ok
             end
             g = g(:);
           else

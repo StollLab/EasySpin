@@ -12,3 +12,5 @@ function [mu,sigma] = bmagn
 
 mu =    9.2740100783e-24;
 sigma = 0.0000000028e-24;
+
+return

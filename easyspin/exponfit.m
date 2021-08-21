@@ -79,7 +79,7 @@ for iCol = 1:nCols
   if (nExponents==2), kStart = [.8;1.3]*kStart; end
   
   % Do the separable nonlinear least squares fitting.
-  [k(:,iCol),c_,info] = mexpfit2(x,ySlice,kStart,Options);
+  [k(:,iCol),c_,~] = mexpfit2(x,ySlice,kStart,Options);
   if ~IncludeOffset
     c(1,iCol) = 0;
     c(2:end,iCol) = c_;
@@ -190,7 +190,7 @@ MinGradNorm = Options(2);
 MaxFunEvals = Options(4);
 
 %  Initial values
-[Differences,Jacobian,c] = func(x,tData,yData,IncludeOffset);
+[Differences,Jacobian,~] = func(x,tData,yData,IncludeOffset);
 A = Jacobian'*Jacobian;
 Gradient = Jacobian'*Differences;
 F = (Differences'*Differences)/2;
@@ -245,7 +245,7 @@ while ~StopCriterion
     nFunEvals = nFunEvals + 1;   
     newF = (NewDifferences'*NewDifferences)/2;
     dF = F - newF;
-    if  (dL > 0) & (dF > 0)
+    if  (dL > 0) && (dF > 0)
       mok = mok + 1;
       mu = mu * max(1/3, 1 - (2*dF/dL - 1)^3);   nu = 2;
       x = xnew;   F = newF;
@@ -257,7 +257,7 @@ while ~StopCriterion
     else  % Marquardt fail
       mu = mu*nu;
       nu = 2*nu;
-      if  (mok>n) & (nu>8)
+      if  (mok>n) && (nu>8)
         StopCriterion = 5;
       end
     end
@@ -276,7 +276,7 @@ if  Trace
 else
   X = x;
 end
-[r,Jacobian,c] = func(x, tData, yData, IncludeOffset);
+[r,~,c] = func(x, tData, yData, IncludeOffset);
 F = .5*dot(r,r);   
 if IncludeOffset
   c = c([n+1 1:n]);

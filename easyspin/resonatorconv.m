@@ -31,7 +31,7 @@
 %    J. Magn. Reson. 230, 27-39 (2013). (DOI: 10.1016/j.jmr.2013.01.002)
 %
 %  Input:
-%   - t0                   = time axis for the input signal (in µs)
+%   - t0                   = time axis for the input signal (in ï¿½s)
 %   - signal0              = input signal vector
 %   - mwFreq               = microwave frequency for the input signal
 %                            in GHz
@@ -45,14 +45,14 @@
 %        Opt.CutoffFactor     = cutoff factor for truncation of the impulse 
 %                               response function (used for resonator simulation) 
 %                               (default:1/1000)
-%        Opt.TimeStep         = time step in µs (if it is not provided the
+%        Opt.TimeStep         = time step in ï¿½s (if it is not provided the
 %                               ideal time step is estimated based on the 
 %                               Nyquist condition with an oversampling factor)
 %        Opt.OverSampleFactor = oversampling factor for the determination of the 
 %                               time step (default: 10)
 %
 %  Output:
-%   - t         = time axis for the output signal (in µs)
+%   - t         = time axis for the output signal (in ï¿½s)
 %   - signal    = signal modified by the resonator transfer function or
 %                 compensated for the resonator transfer function
 %
@@ -177,11 +177,11 @@ function [f,H] = transferfunction(type,varargin)
 % See:
 % 1. Doll, A., Pribitzer, S., Tschaggelar, R., Jeschke, G.,
 %    Adiabatic and fast passage ultra-wideband inversion in
-%    pulsed EPR. J. Magn. Reson. 230, 27–39 (2013).
+%    pulsed EPR. J. Magn. Reson. 230, 27ï¿½39 (2013).
 %    http://dx.doi.org/10.1016/j.jmr.2013.01.002
 % 2. Pribitzer, S., Doll, A. & Jeschke, G. SPIDYAN, a MATLAB library
 %    for simulating pulse EPR experiments with arbitrary waveform
-%    excitation. J. Magn. Reson. 263, 45–54 (2016). 
+%    excitation. J. Magn. Reson. 263, 45ï¿½54 (2016). 
 %    http://dx.doi.org/10.1016/j.jmr.2015.12.014
 
 % Ideal transfer function (RLC series circuit)
@@ -291,7 +291,7 @@ function [t,h] = impulseresponse(f,H,mwFreq,Opt)
 
 % Frequency shift
 if mwFreq~=0
-  [dummy,ind] = min(abs(f-mwFreq));
+  [~,ind] = min(abs(f-mwFreq));
   n = min([numel(f)-ind ind-1]);
   f = f(ind-n:ind+n)-mwFreq;
   H = H(ind-n:ind+n).*apowin('gau',numel(f),0.5).';
@@ -309,7 +309,7 @@ t = t(round(numel(h0)/2)+1:end);
 
 % Truncation
 ind = find(fliplr(abs(h))>(Opt.CutoffFactor*max(abs(h))),1);
-t = t(1:end-ind+1)*1e-3; % µss
+t = t(1:end-ind+1)*1e-3; % ï¿½ss
 h = h(1:end-ind+1);
 
 end

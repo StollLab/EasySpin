@@ -2,15 +2,15 @@
 %==========================================================================
 clear, clf
 
-% Construct a dummy time-domain signal containing some frequency components
+% Construct a time-domain signal containing some frequency components
 dt = 0.01; tmax = 3; t = 0:dt:tmax;
 Freq = [22 35 40 56 76];
 Ampl = [0.1 1 1 1 1];
 decay = [4 1 0.7 1 0.5]*0.05;
 td = zeros(1,length(t));
 td0 = 0;
-for i = 1:length(Freq),
-  td0 = td0 + Ampl(i)*exp(2*pi*j*Freq(i)*t).*exp(-t/decay(i));
+for i = 1:length(Freq)
+  td0 = td0 + Ampl(i)*exp(2i*pi*Freq(i)*t).*exp(-t/decay(i));
 end
 
 % Various Fourier transforms of the signal

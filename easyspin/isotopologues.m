@@ -115,7 +115,7 @@ end
 global IsotopeList % initialized by nucdata()
 if isempty(IsotopeList)
   % if not initialized yet, call nucdata()
-  dummy = nucdata('1H');  %#ok<NASGU>
+  [~] = nucdata('1H');
 end
 
 customMixtures = any(NucList=='(');

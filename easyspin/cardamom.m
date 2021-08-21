@@ -213,7 +213,7 @@ end
 %-------------------------------------------------------------------------------
 
 logmsg(1,'Experimental settings:');
-[Exp,FieldSweep,CenterField,CenterFreq,Sweep] = validate_exp('cardamom',Sys,Exp);
+[Exp,FieldSweep,CenterField,CenterFreq,~] = validate_exp('cardamom',Sys,Exp);
 
 if FieldSweep
   omega0 = 2*pi*Exp.mwFreq*1e9;  % GHz -> rad s^-1
@@ -771,7 +771,7 @@ while ~converged
 
   % windowing
   if FFTWindow
-    hamming = cellfun(@(x) 0.54 + 0.46*cos(pi*x/max(x)), tCell, 'UniformOutput', false);
+    %hamming = cellfun(@(x) 0.54 + 0.46*cos(pi*x/max(x)), tCell, 'UniformOutput', false);
     hann = cellfun(@(x) 0.5*(1 + cos(pi*x/max(x))), tCell, 'UniformOutput', false);
     Window = hann;
     TDSignal = cellfun(@times, TDSignal, Window, 'UniformOutput', false);
