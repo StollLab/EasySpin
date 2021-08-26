@@ -13,7 +13,7 @@ OrigSimulationMode = Opt.SimulationMode;
 saffronSpecificFieldsExp = {'ExciteWidth','Filter'};
 saffronSpecificFieldsOpt = {'TimeDomain','Expand','ProductRule',...
   'EndorMethod','nOffsets','lwOffset','logplot','Window','ZeroFillFactor'};
-generalFields = {'mwFreq','Field','CrystalOrientation','CrystalSymmetry','ExciteWidth','Filter'};
+generalFields = {'mwFreq','Field','CrystalOrientation','CrystalSymmetry'};
 
 % Check a few general fields if the fast algorithm can be run at all
 if isfield(Exp,'DetWindow')
@@ -202,7 +202,11 @@ if strcmp(Opt.SimulationMode,'thyme')
 end
 
 if strcmp(Opt.SimulationMode,'fast')
-   
+  for iField = 1 : length(saffronSpecificFieldsExp)
+    if isfield(Exp,saffronSpecificFieldsExp{iField})
+      Exp_oldSyntax.(saffronSpecificFieldsExp{iField}) = Exp.(saffronSpecificFieldsExp{iField});
+    end
+  end
   Exp_oldSyntax.Processed = true;
   varargout{1} = [];
   varargout{2} = [];
