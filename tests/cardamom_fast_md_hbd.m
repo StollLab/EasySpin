@@ -8,7 +8,7 @@ rng(1)
 % Load pre-processed MD frame trajectory
 %-------------------------------------------------------------------------------
 
-load('.\mdfiles\MTSSL_polyAla_traj.mat')
+load(['.' filesep 'mdfiles' filesep 'MTSSL_polyAla_traj.mat'])
 MD = Traj;
 
 % Correct array sizes such that nTraj is last dimension
