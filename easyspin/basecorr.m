@@ -22,15 +22,16 @@ function varargout = basecorr(Spectrum,Dimension,Order)
 
 Defaults.maxOrder = 6;
 
-if (nargin==0), help(mfilename); return; end
-
 switch nargin
   case 0
-    help(mfilename); return;
+    help(mfilename);
+    return;
   case 1
     Dimension = 1;
-    if size(Spectrum,1)==1, Dimension = 2; end
-      Order = 1;
+    if size(Spectrum,1)==1
+      Dimension = 2;
+    end
+    Order = 1;
   case 2
     Order = 1;
   case 3

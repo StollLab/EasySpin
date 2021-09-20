@@ -390,6 +390,10 @@ if isfield(Opt,'nKnots')
   error('Options.nKnots is obsolete. Use Options.GridSize instead, e.g. Options.GridSize = 91.');
 end
 
+if isfield(Opt,'Symmetry')
+  error('Options.Symmetry is obsolete. Use Options.GridSymmetry instead, e.g. Options.GridSymmetry = ''D2h''.');
+end
+
 if isfield(Opt,'Convolution')
   error('Options.Convolution is obsolete! Please remove from code!');
 end

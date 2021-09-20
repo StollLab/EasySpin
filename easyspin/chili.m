@@ -541,6 +541,9 @@ if ~isfield(Opt,'GridSymmetry'), Opt.GridSymmetry = 'Dinfh'; end
 if isfield(Opt,'nKnots')
   error('Options.nKnots is obsolete. Use Options.GridSize instead, e.g. Options.GridSize = 91.');
 end
+if isfield(Opt,'Symmetry')
+  error('Options.Symmetry is obsolete. Use Options.GridSymmetry instead, e.g. Options.GridSymmetry = ''D2h''.');
+end
 
 % Undocumented
 if ~isfield(Opt,'Rescale'), Opt.Rescale = true; end
@@ -857,6 +860,7 @@ if PowderSimulation
     phi = 0;
     theta = 0;
     GridWeights = 4*pi;
+    Opt.GridSymmetry = 'O3';
   else
     grid = sphgrid(Opt.GridSymmetry,Opt.GridSize(1));
     Vecs = grid.vecs;
@@ -868,7 +872,7 @@ if PowderSimulation
       [phi,theta] = vec2ang(Opt.GridFrame*Vecs);
     end
   end
-  logmsg(1,'  powder simulation with %d orientations',numel(phi));
+  logmsg(1,'  powder simulation with %d orientations, grid symmetry %s (director frame relative to lab frame)',numel(phi),Opt.GridSymmetry);
 else
   if ~isempty(Exp.CrystalOrientation)
     phi = Exp.CrystalOrientation(1);
