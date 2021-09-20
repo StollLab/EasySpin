@@ -289,7 +289,7 @@ while ~feof(TRRfile)
   
   frame_num = frame_num + 1;
   % fix offset for end of file
-  [~] = fread(TRRfile, [1], '*char');
+  [~] = fread(TRRfile, 1, '*char');
   
 end
 fclose(TRRfile);

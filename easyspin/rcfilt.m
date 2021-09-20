@@ -39,18 +39,22 @@ if (SampTime<=0), err = 'Sampling time must be positive!'; end
 if all(~strcmp(UpDown,{'up','down','dn'})), err = 'Specify either ''up'' or ''down''.'; end
 error(err);
 
-[m n] = size(y);
+[m, n] = size(y);
 RowVector = (m==1)&(n>1);
-if (RowVector), y = y.'; end
+if RowVector, y = y.'; end
 N = size(y,1);
 
 Invert = any(strcmp(UpDown,{'down','dn'}));
 if (Invert), y = y(end:-1:1,:); end
 
 % Apply low-pass RC filter
-if TimeConstant==0, e = 0; else e = exp(-SampTime/TimeConstant); end
+if TimeConstant==0
+  e = 0;
+else
+  e = exp(-SampTime/TimeConstant);
+end
 for iCol = 1:size(y,2)
-  yFiltered(:,iCol) = filter(1-e,[1 -e],y(:,iCol));
+  yFiltered(:,iCol) = filter(1-e,[1 -e],y(:,iCol));  %#ok
 end
 
 if (Invert)
@@ -62,14 +66,14 @@ if (RowVector)
   yFiltered  = yFiltered.';
 end
 
-switch (nargout)
+switch nargout
   case 0
     plot(1:N,y,'b',1:N,yFiltered,'g');
     legend('raw','filtered');
     xlabel('data point #');
     ylabel('value');
     title('Effect of RC filter on data');
-    varargout = [];
+    varargout = {};
   case 1
     varargout = {yFiltered};
   otherwise

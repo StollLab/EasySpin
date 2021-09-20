@@ -247,7 +247,7 @@ if transformVector
   % Apply site transformations to input vector and
   % return an array of transformed vectors
   for iR = 1:numel(R)
-    vecrot(:,iR) = R{iR}*vec(:);
+    vecrot(:,iR) = R{iR}*vec(:);  %#ok
   end
   out = vecrot;
 else

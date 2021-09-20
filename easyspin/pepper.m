@@ -125,8 +125,8 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
   end
   
   for c = 1:nComponents
-    SysList{c} = isotopologues(Sys{c},Opt.IsoCutoff);
-    nIsotopologues(c) = numel(SysList{c});
+    SysList{c} = isotopologues(Sys{c},Opt.IsoCutoff);  %#ok
+    nIsotopologues(c) = numel(SysList{c});  %#ok
     logmsg(1,'    component %d: %d isotopologues',c,nIsotopologues(c));
   end
   
@@ -159,7 +159,7 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
       
       % Accumulate or append spectra
       if separateSpectra
-        spec = [spec; spec_*Sys_.weight];
+        spec = [spec; spec_*Sys_.weight];  %#ok
       else
         spec = spec + spec_*Sys_.weight;
       end
@@ -299,7 +299,7 @@ if FieldSweep
       hf = sum(I.*Amax)*1e6; % MHz -> Hz
       if Sys.fullg
         for k = 1:Sys.nElectrons
-          g(:,k) = eig(Sys.g((1:3)+(k-1)*3,:));
+          g(:,k) = eig(Sys.g((1:3)+(k-1)*3,:));  %#ok
         end
         g = g(:);
       else

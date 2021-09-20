@@ -7,7 +7,7 @@
 %                            release branch (stable or development)
 %   easyspinupdate('5.2.22') downloads specific EasySpin version
 
-function varargout = easyspinupdate(OnlineVersion)
+function easyspinupdate(OnlineVersion)
 
 % ---------------------------------------------------------------
 % If easyspinupdate is called without argument, a version check is run.
@@ -99,7 +99,7 @@ catch
     delete([zipName '.html']); 
     errMsg = ['The file ' zipName ' was not found on easyspin.org.'];
   else
-    errMsg = ['It appears the connection has timed out. Please try again.'];
+    errMsg = 'It appears the connection has timed out. Please try again.';
   end
   error(errMsg);
 end

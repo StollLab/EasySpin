@@ -13,7 +13,7 @@
 
 function I = nucspin(varargin)
 
-if (nargin==0), help(mfilename); return; end
+if nargin==0, help(mfilename); return; end
 
 I = nucdata(varargin);
 

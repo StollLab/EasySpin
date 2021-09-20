@@ -116,7 +116,7 @@ if ~isfield(System,'AFrame'); System.AFrame = zeros(nNucs,3); end
 if ~isfield(System,'Q'); System.Q = zeros(nNucs,3); end
 if ~isfield(System,'QFrame'); System.QFrame = zeros(nNucs,3); end
 
-for iNuc = 1:nNucs
+for iNuc = nNucs:-1:1
   R_A2M = erot(System.AFrame(iNuc,:)).'; % A frame -> molecular frame
   diagA = System.A(iNuc,:);
   if numel(diagA)==2, diagA = diagA([1 1 2]); end

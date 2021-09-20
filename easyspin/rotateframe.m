@@ -48,7 +48,7 @@ skipFitting = true;
 for irho = 1:numel(rho)
   R = rotaxi2mat(nRot,rho(irho));
   xyzC_L_rotated = R.'*xyzC_L;
-  angles_rotated(irho,:) = eulang(xyzC_L_rotated,skipFitting);
+  angles_rotated(irho,:) = eulang(xyzC_L_rotated,skipFitting);  %#ok
 end
 
 out = angles_rotated;

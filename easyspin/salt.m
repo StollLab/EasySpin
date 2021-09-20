@@ -91,8 +91,8 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
   end
   
   for c = 1:nComponents
-    SysList{c} = isotopologues(Sys{c},Opt.IsoCutoff);
-    nIsotopologues(c) = numel(SysList{c});
+    SysList{c} = isotopologues(Sys{c},Opt.IsoCutoff);  %#ok
+    nIsotopologues(c) = numel(SysList{c});  %#ok
     logmsg(1,'  component %d: %d isotopologues',c,nIsotopologues(c));
   end
   
@@ -100,9 +100,11 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
     error('Multiple components: Please specify frequency range manually using Exp.Range or Exp.CenterSweep.');
   end
   
+  %{
   PowderSimulation = ~isfield(Exp,'CrystalOrientation') || ...
     isempty(Exp.CrystalOrientation) || ...
     (isfield(Exp,'Ordering') && ~isempty(Exp.Ordering));
+  %}
   separateSpectra = ~summedOutput && ...
     (nComponents>1 || sum(nIsotopologues)>1);
   if separateSpectra
@@ -123,7 +125,7 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
       
       % Accumulate or append spectra
       if separateSpectra
-        spec = [spec; spec_*Sys_.weight];
+        spec = [spec; spec_*Sys_.weight];  %#ok
       else
         spec = spec + spec_*Sys_.weight;
       end
@@ -388,6 +390,10 @@ if isfield(Opt,'nKnots')
   error('Options.nKnots is obsolete. Use Options.GridSize instead, e.g. Options.GridSize = 91.');
 end
 
+if isfield(Opt,'Symmetry')
+  error('Options.Symmetry is obsolete. Use Options.GridSymmetry instead, e.g. Options.GridSymmetry = ''D2h''.');
+end
+
 if isfield(Opt,'Convolution')
   error('Options.Convolution is obsolete! Please remove from code!');
 end
@@ -489,10 +495,9 @@ nTransitions = size(Pdat,1);
 AnisotropicWidths = 0;
 
 if nTransitions==0
-  err = sprintf(['No ENDOR resonances between %g and %g MHz (%g mT).\n'...
+  error(['No ENDOR resonances between %g and %g MHz (%g mT).\n'...
       'Check frequency range, magnetic field and transition selection.'],...
     Exp.Range(1),Exp.Range(2),Exp.Field);
-  error(err);
 end
 logmsg(1,'  %d transitions with resonances in range',nTransitions);
 logmsg(2,'  positions min %g MHz, max %g MHz',min(Pdat(:)),max(Pdat(:)));

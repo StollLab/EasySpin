@@ -100,11 +100,11 @@ end
 %-----------------------------------------------------------
 
 % Check input signal is consistent with mode
-if any(strcmpi(type,{'DSB','USB','LSB','IQdemod'}));
+if any(strcmpi(type,{'DSB','USB','LSB','IQdemod'}))
   if ~isreal(signal)
     error('A real input signal is required for the selected mixer type.')
   end
-elseif any(strcmpi(type,{'IQmod','IQshift'}));
+elseif any(strcmpi(type,{'IQmod','IQshift'}))
   if isreal(signal)
 %     warning(['Both input and quadrature components of the input signal are ',...
 %            'required for the selected mixer type. The quadrature component ',...

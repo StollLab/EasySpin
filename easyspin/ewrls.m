@@ -127,7 +127,7 @@ end
 
 % Plot results
 %-------------------------------------------------------------
-if (nargout==0)
+if nargout==0
   clf
   yavg_f = y;
   yavg_c = mean(data,2);

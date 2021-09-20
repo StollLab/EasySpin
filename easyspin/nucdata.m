@@ -87,7 +87,7 @@ else
 end
 
 for k = numel(Nucs):-1:1
-  idx = find(strcmp(Nucs{k},IsotopeList.Symbols));
+  idx = find(strcmp(Nucs{k},IsotopeList.Symbols),1);
   if isempty(idx)
     % check if element without #nucleons is given
     RequestedElement = Nucs{k};
@@ -97,7 +97,7 @@ for k = numel(Nucs):-1:1
     if ~isempty(iidx)
       Message = [];
       for iIsotope = 1:numel(iidx)
-        Message = [Message sprintf(IsotopeList.Symbols{iidx(iIsotope)}) ', '];
+        Message = [Message sprintf(IsotopeList.Symbols{iidx(iIsotope)}) ', ']; %#ok
       end
       Message = [sprintf('Problem in isotopes list, entry %d (''%s''): Please specify one of ',k,Nucs{k}) Message(1:end-2) '.'];
     else

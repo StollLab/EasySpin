@@ -114,8 +114,8 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
   
   % Determine isotopologues for each components
   for c = 1:nComponents
-    SysList{c} = isotopologues(Sys{c},Opt.IsoCutoff);
-    nIsotopologues(c) = numel(SysList{c});
+    SysList{c} = isotopologues(Sys{c},Opt.IsoCutoff);  %#ok
+    nIsotopologues(c) = numel(SysList{c});  %#ok
     logmsg(1,'  component %d: %d isotopologues',c,nIsotopologues(c));
   end
   
@@ -148,7 +148,7 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
       
       % Accumulate or append spectra
       if separateSpectra
-        spec = [spec; spec_*Sys_.weight];
+        spec = [spec; spec_*Sys_.weight];  %#ok
       else
         spec = spec + spec_*Sys_.weight;
       end
@@ -234,8 +234,8 @@ if isfield(Sys,'lambda') && ~isempty(Sys.lambda)
   LMK = [2 0 0; 2 0 2; 4 0 0; 4 0 2];
   str = '    Sys.Potential = [';
   for p = 1:numel(lam)
-    str = [str sprintf('%d %d %d %g',LMK(p,1),LMK(p,2),LMK(p,3),lam(p))];
-    if p~=numel(lam), str = [str '; ']; end
+    str = [str sprintf('%d %d %d %g',LMK(p,1),LMK(p,2),LMK(p,3),lam(p))];  %#ok
+    if p~=numel(lam), str = [str '; ']; end  %#ok
   end
   str = [str ']'];
   error('\n  Sys.lambda is obsolete.\n  Use the following instead:\n\n%s;    % L M K lambda\n',str);
@@ -541,6 +541,9 @@ if ~isfield(Opt,'GridSymmetry'), Opt.GridSymmetry = 'Dinfh'; end
 if isfield(Opt,'nKnots')
   error('Options.nKnots is obsolete. Use Options.GridSize instead, e.g. Options.GridSize = 91.');
 end
+if isfield(Opt,'Symmetry')
+  error('Options.Symmetry is obsolete. Use Options.GridSymmetry instead, e.g. Options.GridSymmetry = ''D2h''.');
+end
 
 % Undocumented
 if ~isfield(Opt,'Rescale'), Opt.Rescale = true; end
@@ -756,7 +759,7 @@ if generalLiouvillian
   logmsg(1,'  construction of Liouvillian: general code');
   
   % calculate spin operators
-  for iSpin = 1:numel(Sys.Spins)
+  for iSpin = numel(Sys.Spins):-1:1
     SpinOps{iSpin,1} = sop(Sys.Spins,[iSpin,1],'sparse'); % Sx
     SpinOps{iSpin,2} = sop(Sys.Spins,[iSpin,2],'sparse'); % Sy
     SpinOps{iSpin,3} = sop(Sys.Spins,[iSpin,3],'sparse'); % Sz
@@ -807,7 +810,7 @@ Basis = processbasis(Basis,max(Potential.K),Sys.I,Symmetry);
 if Sys.fullg
   idx = 1:3;
   for iElectron = 1:Sys.nElectrons
-    mean_g(iElectron) = mean(eig(Sys.g(idx,:)));
+    mean_g(iElectron) = mean(eig(Sys.g(idx,:)));  %#ok
     idx = idx + 3;
   end
   gavg = mean(mean_g);
@@ -857,6 +860,7 @@ if PowderSimulation
     phi = 0;
     theta = 0;
     GridWeights = 4*pi;
+    Opt.GridSymmetry = 'O3';
   else
     grid = sphgrid(Opt.GridSymmetry,Opt.GridSize(1));
     Vecs = grid.vecs;
@@ -868,7 +872,7 @@ if PowderSimulation
       [phi,theta] = vec2ang(Opt.GridFrame*Vecs);
     end
   end
-  logmsg(1,'  powder simulation with %d orientations',numel(phi));
+  logmsg(1,'  powder simulation with %d orientations, grid symmetry %s (director frame relative to lab frame)',numel(phi),Opt.GridSymmetry);
 else
   if ~isempty(Exp.CrystalOrientation)
     phi = Exp.CrystalOrientation(1);
@@ -1121,7 +1125,7 @@ for iOri = 1:nOrientations
       if any(F.F1(:))
         for i = 1:3
           for j = 1:3
-            Q1{i,j} = Q1B{i,j} + Q1G{i,j};
+            Q1{i,j} = Q1B{i,j} + Q1G{i,j};  %#ok
           end
         end
       else
@@ -1129,7 +1133,7 @@ for iOri = 1:nOrientations
       end
       for i = 1:5
         for j = 1:5
-          Q2{i,j} = Q2B{i,j} + Q2G{i,j};
+          Q2{i,j} = Q2B{i,j} + Q2G{i,j};  %#ok
         end
       end
       if Opt.useLMKbasis
@@ -1153,7 +1157,7 @@ for iOri = 1:nOrientations
       EZ2_ = Sys.EZ2;
       if isfield(Sys,'NZ0')
         for iNuc = 1:numel(Sys.NZ0)
-          NZ0_(iNuc) = Sys.NZ0(iNuc);
+          NZ0_(iNuc) = Sys.NZ0(iNuc);  %#ok
         end
       end
     end
@@ -1197,7 +1201,7 @@ for iOri = 1:nOrientations
       maxL = numel(XLMK)-1; % maxmimum L in XLMK ( = 2*L from potential)
       xlk = [];
       for L_ = 0:maxL
-        xlk(L_+1,1:2*L_+1) = XLMK{L_+1}(L_+1,:);
+        xlk(L_+1,1:2*L_+1) = XLMK{L_+1}(L_+1,:);  %#ok
       end
       Dynamics.xlk = xlk;
       Dynamics.maxL = maxL;      
@@ -1474,8 +1478,8 @@ if fwhmG>0 && ConvolutionBroadening
     fwhmG = fwhmG/1e3; % MHz -> GHz
   end
   dx = xAxis(2) - xAxis(1);
-  AlwaysConvolve = true;
-  if AlwaysConvolve%(fwhmG/dx>2)
+  alwaysConvolve = true;
+  if alwaysConvolve%(fwhmG/dx>2)
     logmsg(1,'Convoluting with Gaussian (FWHM %g %s)...',fwhmG,unitstr);
     spec = convspec(spec,dx,fwhmG,Exp.ConvHarmonic,1);
     Exp.ConvHarmonic = 0;

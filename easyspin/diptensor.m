@@ -44,7 +44,7 @@ end
 %-------------------------------------------------------------------------------
 spins = {spin1,spin2};
 
-for iSpin = 1:2
+for iSpin = 2:-1:1
   if strcmp(spins{iSpin},'e')
     mug(iSpin) = +bmagn*gfree;
   else

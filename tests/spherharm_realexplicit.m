@@ -1,4 +1,4 @@
-function ok = test(opt,olddata)
+function ok = test()
 
 % Test against a few explicit values
 %===============================================================================
