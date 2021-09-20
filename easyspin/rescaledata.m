@@ -161,7 +161,7 @@ else
   end
   
   % Make sure signal is not inverted
-  if real(scalefactor(1))<0 && ModeID>3
+  if real(scalefactor(1))<0 && ModeID>2
     scalefactor(1) = abs(scalefactor(1));
     ynew = D*scalefactor;
   end
