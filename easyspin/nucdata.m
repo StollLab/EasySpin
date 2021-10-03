@@ -4,6 +4,7 @@
 %   [Spin,gn] = nucdata(Isotopes)
 %   [Spin,gn,qm] = nucdata(Isotopes)
 %   [Spin,gn,qm,abund] = nucdata(Isotopes)
+%   IsotopeList = nucdata()
 %
 %   Returns nuclear spin, gyromagnetic
 %   ratio, quadrupole moment and natural
@@ -20,16 +21,16 @@
 
 function varargout = nucdata(Isotopes)
 
-if (nargin==0), help(mfilename); return; end
+if nargin==0, help(mfilename); return; end
 
 if iscell(Isotopes)
   if numel(Isotopes)==1
     Isotopes = Isotopes{1};
   end
 end
+
 %--------------------------------------------------------------
-global IsotopeList
-persistent Elements IsotopeMatrix
+persistent Elements IsotopeList
 % Read isotope data file only once per MATLAB session!
 if isempty(IsotopeList)
   %disp('Loading nuclear isotope database...');
@@ -52,15 +53,6 @@ if isempty(IsotopeList)
     IsotopeList.Symbols{k} = sprintf('%d%s',IsotopeList.Nucleons(k),IsotopeList.Element{k});
   end
 
-  IsotopeMatrix = zeros(max(IsotopeList.Protons),max(IsotopeList.Nucleons));
-  for k=1:numel(IsotopeList.Spins)
-    idxP = IsotopeList.Protons(k);
-    idxN = IsotopeList.Nucleons(k);
-    if (idxN>0)
-      IsotopeMatrix(idxP,idxN) = 1;
-    end
-  end
-  
   elmidx = IsotopeList.Protons(k);
   for k = 1:numel(IsotopeList.Spins)
     Elements(elmidx).Symbol = IsotopeList.Element{k};
@@ -71,8 +63,7 @@ end
 %--------------------------------------------------------------
 
 if isempty(Isotopes)
-  varargout = {[],[],[],[],{}};
-  varargout = varargout(1:nargout);
+  varargout = {IsotopeList};
   return
 end
 

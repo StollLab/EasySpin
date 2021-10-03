@@ -18,4 +18,4 @@ if nargin==0, help(mfilename); return; end
 
 [~,~,Q] = nucdata(varargin);
 
-return
+end
