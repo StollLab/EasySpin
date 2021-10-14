@@ -62,7 +62,7 @@ if isempty(IsotopeList)
 end
 %--------------------------------------------------------------
 
-if isempty(Isotopes)
+if nargin==0
   varargout = {IsotopeList};
   return
 end
@@ -75,6 +75,12 @@ if ~iscell(Isotopes)
   Nucs = nucstring2list(Isotopes);
 else
   Nucs = Isotopes;
+end
+
+if isempty(Isotopes)
+  varargout = {[],[],[],[],[]};
+  varargout = varargout(1:nargout);
+  return
 end
 
 for k = numel(Nucs):-1:1
@@ -107,7 +113,7 @@ for k = numel(Nucs):-1:1
   Abund(k) = IsotopeList.Abundances(idx)/100; % percent -> fraction between 0 and 1
 end
 
-if (nargout==0)
+if nargout==0
   fprintf('Isotope  Spin  gn   qm/b   abundance\n');
   for k = numel(Nucs):-1:1
     fprintf('%-5s    %g   %g  %g  %g\n',Nucs{k},Spin(k),gn(k),qm(k),Abund(k));
