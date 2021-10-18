@@ -80,6 +80,9 @@ end
 if isfield(Sys,'nn') && any(Sys.nn(:)~=0)
   err = 'Perturbation theory not available for nuclear-nuclear couplings (Sys.nn).';
 end
+if isfield(Sys,'Pop') && any(Sys.Pop(:))
+  err = 'Sys.Pop is not supported by resfreqs_perturb.';
+end
 error(err);
 
 if ~isfield(Sys,'gAStrainCorr')

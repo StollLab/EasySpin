@@ -460,6 +460,9 @@ if nonEquiPops
   if max(Sys.Pop)==min(Sys.Pop)
     error('Populations in Sys.Pop cannot be all equal!');
   end
+  if ~isfield(Sys,'PopMode')
+    logmsg(1,'  no population mode specified, defualting to zerofield');
+  end
 else
   if isfinite(Exp.Temperature)
     msg = sprintf('  temperature %g K',Exp.Temperature);

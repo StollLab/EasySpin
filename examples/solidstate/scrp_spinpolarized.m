@@ -42,7 +42,7 @@ Sys.Pop = r;
 % which is the previous behavior, and calculated the population of the levels
 % based on the  zero field Hamiltonian. Changing the Sys.PopBasis
 % to 'eigenbasis' results in population as described above. 
-Sys.PopBasis = 'eigenbasis';
+Sys.PopMode = 'eigenbasis';
 
 Opt = [];
 Opt.Output = 'separate';

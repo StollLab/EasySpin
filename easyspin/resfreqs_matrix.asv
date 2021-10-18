@@ -178,7 +178,6 @@ if computeNonEquiPops
   end
   if strcmp(PopMode,'zerofield')
   elseif strcmp(PopMode,'eigenbasis')
-  elseif strcmp(PopMode,'highfield')
   else
     error('Sys.PopMode must be ''zerofield'', ''highfield'' or ''eigenbasis''.');
   end
@@ -716,8 +715,11 @@ for iOri = 1:nOrientations
         Polarization = Populations(u) - Populations(v);
       case 'highfield'
         for iState = 1:nCore
-          Populations(iState) = ZFPopulations(iState);
+          dE = E(iState) - E(1);
+          if dE<1e-10, dE = 0; end % assure we recognize degenerate state even if numerically non-degenerate
+          Populations(iState) = exp(BoltzmannPreFactor*dE);
         end
+        Populations(isnan(Populations)) = 1;
         Populations = Populations/sum(Populations);
       
         Polarization = Populations(u) - Populations(v);  

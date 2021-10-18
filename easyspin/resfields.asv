@@ -158,15 +158,16 @@ if computeNonEquiPops
   if numel(System.Pop)~=nElectronStates
     error('Sys.Pop must have %d elements.',nElectronStates);
   end
-  if ~isfield(System,'PopBasis')
-    PopBasis = 'zerofield';
+  if ~isfield(System,'PopMode')
+    PopMode = 'zerofield';
   else
-    PopBasis = System.PopBasis;
+    PopMode = System.PopMode;
   end
-  if strcmp(PopBasis,'perpendicular')
-  elseif strcmp(PopBasis,'parallel')
+  if strcmp(PopMode,'zerofield')
+  elseif strcmp(PopMode,'eigenbasis')
+  elseif strcmp(PopMode,'highfield')
   else
-    error('Exp.'PopBasis' must be either ''perpendicular'' or ''parallel''.');
+    error('Sys.PopMode must be ''zerofield'', ''highfield'' or ''eigenbasis''.');
   end
   computeBoltzmannPopulations = false;
 elseif isempty(Exp.Temperature)
@@ -433,7 +434,7 @@ if computeNonEquiPops
   if numel(Pop) == nElectronStates
     % Vector of zero-field populations for the core system
     ZFPopulations = Pop(:);
-    if strcmp(PopBasis,'zerofield')
+    if strcmp(PopMode,'zerofield')
       ZFPopulations = ZFPopulations/sum(ZFPopulations);
     end
     ZFPopulations = kron(ZFPopulations,ones(nCore/nElStates,1));
@@ -1181,15 +1182,21 @@ for iOri = 1:nOrientations
               Polarization = Polarization/prod(2*System.I+1);            
             end
           elseif computeNonEquiPops
-            switch PopBasis
+            switch PopMode
               case 'zerofield'
                 PopulationU = (abs(ZFStates'*U).^2).'*ZFPopulations; % lower level
                 PopulationV = (abs(ZFStates'*V).^2).'*ZFPopulations; % upper level
+                Polarization = PopulationU - PopulationV;
               case 'eigenbasis'
                 PopulationU = abs(ZFPopulations.'*U).^2; % lower level
                 PopulationV = abs(ZFPopulations.'*V).^2; % upper level
+                Polarization = PopulationU - PopulationV;
+              case 'highfield'
+                Polarization = (ZFPopulations(u(iTrans)) - ZFPopulations(v(iTrans)))/sum(ZFPopulations);
+                if nPerturbNuclei>0
+                  Polarization = Polarization/prod(2*System.I+1);            
+                end
             end
-            Polarization = PopulationU - PopulationV;
           else
             % no temperature given
             Polarization = 1; % same polarization for each electron transition
