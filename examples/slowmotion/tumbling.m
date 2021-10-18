@@ -16,10 +16,10 @@ Opt.LLMK = [30 10 10 10]; % need a larger basis for slow tumbling
 tcorr = [1 3 10 30 100 300]*1e-9; % seconds
 for k=1:numel(tcorr)
   Sys.tcorr = tcorr(k);
-  [x,y(k,:)] =  chili(Sys,Exp,Opt);
+  [B,spc(k,:)] =  chili(Sys,Exp,Opt);
 end
 
 % Plot simulated spectra
 %-------------------------------------------------------------------------------
-stackplot(x,y);
+stackplot(B,spc);
 xlabel('magnetic field (mT)');

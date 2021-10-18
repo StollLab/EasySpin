@@ -113,11 +113,11 @@ guidata(handles.eprconvert,handles);
 
 %-----------------------------------------------------------------
 function ComputeFieldButton_Callback(hObject, eventdata, handles)
-if isempty(handles.FreqSI),
+if isempty(handles.FreqSI)
   errordlg('Invalid frequency value!');
   return;
 end
-if isempty(handles.gVal),
+if isempty(handles.gVal)
   errordlg('Invalid g value!');
   return;
 end
@@ -126,11 +126,11 @@ UpdateDisplay(handles);
 guidata(handles.eprconvert,handles);
 
 function ComputegButton_Callback(hObject, eventdata, handles)
-if isempty(handles.FreqSI),
+if isempty(handles.FreqSI)
   errordlg('Invalid frequency value!');
   return;
 end
-if isempty(handles.FieldSI),
+if isempty(handles.FieldSI)
   errordlg('Invalid field value!');
   return;
 end
@@ -139,11 +139,11 @@ guidata(handles.eprconvert,handles);
 UpdateDisplay(handles);
 
 function ComputeFreqButton_Callback(hObject, eventdata, handles)
-if isempty(handles.FieldSI),
+if isempty(handles.FieldSI)
   errordlg('Invalid field value!');
   return;
 end
-if isempty(handles.gVal),
+if isempty(handles.gVal)
   errordlg('Invalid g value!');
   return;
 end

@@ -202,7 +202,11 @@ if strcmp(Opt.SimulationMode,'thyme')
 end
 
 if strcmp(Opt.SimulationMode,'fast')
-   
+  for iField = 1 : length(saffronSpecificFieldsExp)
+    if isfield(Exp,saffronSpecificFieldsExp{iField})
+      Exp_oldSyntax.(saffronSpecificFieldsExp{iField}) = Exp.(saffronSpecificFieldsExp{iField});
+    end
+  end
   Exp_oldSyntax.Processed = true;
   varargout{1} = [];
   varargout{2} = [];

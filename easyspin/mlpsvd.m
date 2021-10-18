@@ -119,7 +119,7 @@ if ischar(order)
         aic(k+1) = 2*N*( (M-k)*log((sum(S(k+1:M))/(M-k))) - sum(log(S(k+1:M)))) ...
           + 2*k*(2*M-k);
       end
-      [dummy, m] = min(aic);
+      [~, m] = min(aic);
       m = m - 1;
     case 'mdl'
       M = length(S);
@@ -128,7 +128,7 @@ if ischar(order)
         mdl(k+1) = N*( (M-k)*log((sum(S(k+1:M))/(M-k))) - sum(log(S(k+1:M))))...
           + k*(2*M-k)*log(N)/2;
       end
-      [dummy, m] = min(mdl);
+      [~, m] = min(mdl);
       m = m - 1;
   end
 end
@@ -168,7 +168,7 @@ switch method
     Umb = Um(1:end-1,:);
     
     % obtain the SVD of the augmented matrix
-    [dummy,dummy,Vu] = svd([Umb Umt],'econ');
+    [~,~,Vu] = svd([Umb Umt],'econ');
     
     % calculate Zprime
     Zp = -Vu(1:m,m+1:2*m)/Vu(m+1:2*m,m+1:2*m);

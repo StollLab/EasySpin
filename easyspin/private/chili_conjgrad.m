@@ -43,8 +43,8 @@ for iStep = 1:length(b)
   r = r - alpha_*Ap;
   
   % Store CG scalars
-  alpha(iStep) = alpha_;
-  beta(iStep) = beta_;
+  alpha(iStep) = alpha_;  %#ok
+  beta(iStep) = beta_;  %#ok
   
   % Terminate if residual is sufficiently small
   err = sum(abs(r));
@@ -69,9 +69,9 @@ err = full(err);
 if nargout>1
   for k = 2:stepsDone
     t1 = sqrt(beta(k))/alpha(k-1);
-    T1(k-1) = t1*sign(real(t1));
+    T1(k-1) = t1*sign(real(t1));  %#ok
     %T1(k-1) = t1;
-    T0(k)  = 1/alpha(k) + beta(k)/alpha(k-1);
+    T0(k)  = 1/alpha(k) + beta(k)/alpha(k-1);  %#ok
   end
   T0(1) = 1/alpha(1);
   T0 = T0 - shift;

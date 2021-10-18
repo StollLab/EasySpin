@@ -73,7 +73,7 @@ q3 = q(4,Index{2:end});
 
 sy = 2*sqrt((q2.*q3+q1.*q0).^2 + (q1.*q3-q2.*q0).^2);
 
-idx = sy < 1e-10;
+%idx = sy < 1e-10;
 
 alpha = atan2( 2.*(q2.*q3 ...
                  - q0.*q1), ...

@@ -17,7 +17,7 @@ function w = faddeeva(z,N)
 % Weideman, J. A. C., Computation of the complex error function.
 % SIAM J. Numer. Anal. 31 (1994), no. 5, 1497-1518.
 
-if (nargin<2), N = 38; end
+if nargin<2, N = 38; end
 
 M = 2*N;
 % M2 = no. of sampling points

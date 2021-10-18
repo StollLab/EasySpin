@@ -12,8 +12,8 @@
 
 function gn = nucgval(varargin)
 
-if (nargin==0), help(mfilename); return; end
+if nargin==0, help(mfilename); return; end
 
-[ignore,gn] = nucdata(varargin);
+[~,gn] = nucdata(varargin);
 
-return
+end

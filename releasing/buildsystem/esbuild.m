@@ -29,8 +29,8 @@ ExpiryDate = datestr(datenum(Year,Month+MonthsToExpiry+1,1)-1);
 HorizonDate = datestr(datenum(Year+4,12,31));
 
 % Folders
-SourceDir = ['%SourceDir%'];
-ZipDestDir = ['%ZipDestDir%'];
+SourceDir = '%SourceDir%';
+ZipDestDir = '%ZipDestDir%';
 
 %========================================================================
 

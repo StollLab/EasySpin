@@ -37,13 +37,15 @@ function [y1,y2] = gaussian(x,x0,fwhm,diff,phase)
 
 if nargin==0, help(mfilename); return; end
 
+% Check number of input arguments
+%-------------------------------------------------------------------------------
 if nargin<3
   error('gaussian needs three inputs: x, x0, and fwhm.');
 end
 if nargin<4, diff = 0; end
 if nargin<5, phase = 0; end
 
-% Check arguments
+% Check input arguments
 %-------------------------------------------------------------------------------
 if numel(x0)~=1 || ~isreal(x0)
   error('2nd input (x0) must be a real number.');
@@ -64,10 +66,11 @@ end
 nonzeroPhase = mod(phase,2*pi)~=0;
 
 if diff<0 && nonzeroPhase
-  error('Cannot compute phased lineshape for integral.');
+  error('Integrated Gaussian lineshape with non-zero phase is not implemented.');
 end
 
-calcDispersion = nonzeroPhase || nargout>1;
+returnDispersion = nargout>1;
+calcDispersion = nonzeroPhase || returnDispersion;
 
 % Compute Gaussian lineshape
 %-------------------------------------------------------------------------------
@@ -76,7 +79,10 @@ sig = fwhm/sqrt(2*log(2))/2;
 
 if diff==-1
   
+  % absorption
   yabs = 1/2*(1+erf((x-x0)/sig/sqrt(2)));
+
+  % dispersion not implemented
   ydisp = NaN(size(yabs));
   
 else
@@ -106,17 +112,20 @@ else
   end
 end
 
-return
+end
 %===============================================================================
 
-function y = dawsonFderiv(k,n)
-y = (-1)^n * (hermitepoly(k,n).*dawsonF(k) - Gpoly(k,n-1));
-return
-
-
 function y = dawsonF(x)
-y = real(sqrt(pi)/2i*(faddeeva(x,38)-exp(-x.^2)));
-return
+% Calculates the Dawson function F(x) (one-sided Fourier-Laplace sine transform
+% of the Gaussian function)
+y = sqrt(pi)/2i * (faddeeva(x)-exp(-x.^2));
+y = real(y);
+end
+
+function y = dawsonFderiv(x,n)
+% Calculates the n-the derivative of the Dawson function, d^F(x)/dx^n
+y = (-1)^n * (hermitepoly(x,n).*dawsonF(x) - Gpoly(x,n-1));
+end
 
 function y = Gpoly(x,n)
 % Calculates the G_n(x) polynomial as given in
@@ -134,17 +143,17 @@ switch n
   otherwise
     y = 2*x.*Gpoly(x,n-1) - 2*n*Gpoly(x,n-2);
 end
-return
+end
 
 function y = hermitepoly(x,n)
 % Calculates the Hermite polynomial of n-th order
-% (probabilist definition, where highest order coefficient = 1 for all n)
+% (physics definition, where highest-order coefficient = 2^n)
 switch n
   case 0
     y = 1;
   case 1
     y = 2*x;
   otherwise
-    y = 2*x.*hermitepoly(x,n-1)-2*(n-1)*hermitepoly(x,n-2);
+    y = 2*x.*hermitepoly(x,n-1) - 2*(n-1)*hermitepoly(x,n-2);
 end
-return
+end

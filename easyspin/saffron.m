@@ -218,8 +218,8 @@ if strcmp(Opt.SimulationMode,'fast')
     end
     
     for c = 1:nComponents
-      SysList{c} = isotopologues(Sys{c},Opt.IsoCutoff);
-      nIsotopologues(c) = numel(SysList{c});
+      SysList{c} = isotopologues(Sys{c},Opt.IsoCutoff);  %#ok
+      nIsotopologues(c) = numel(SysList{c});  %#ok
       logmsg(1,'  component %d: %d isotopologues',c,nIsotopologues(c));
     end
     
@@ -843,7 +843,7 @@ if strcmp(Opt.SimulationMode,'fast')
     if ~isempty(shfNuclei)
       if all(idealPulse) && isfield(Exp,'ExciteWidth')
         if Sys.fullA
-          for iNuc = 1:shfNuclei
+          for iNuc = 1:Sys.nNuclei
             Amatrix = Sys.A((iNuc-1)*3+(1:3),:);
             idxStrongNuclei(iNuc) = max(max(abs(Amatrix)))>Exp.ExciteWidth;
           end

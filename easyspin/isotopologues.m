@@ -112,11 +112,7 @@ if isempty(NucList)
   return
 end
 
-global IsotopeList % initialized by nucdata()
-if isempty(IsotopeList)
-  % if not initialized yet, call nucdata()
-  dummy = nucdata('1H');  %#ok<NASGU>
-end
+IsotopeList = nucdata('');
 
 customMixtures = any(NucList=='(');
 NucList = nucstring2list(NucList,'m');
