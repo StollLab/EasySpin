@@ -1,6 +1,6 @@
 function symbol = elementno2symbol(no)
 
-if no<1 || no>112, symbol = ''; return; end
+if (no<1) || (no>112), symbol = ''; end
 
 ElementSymbols = [...
   'H He'...

@@ -4,10 +4,10 @@
 % [offsets,Mag] = exciteprofile(t,IQ,offsets)
 %
 % Input:
-%   t           = time axis for defined waveform in ï¿½s
+%   t           = time axis for defined waveform in µs
 %   IQ          = in-phase and quadrature part of the pulse function
 %   offsets     = axis of frequency offsets in MHz for which to compute the
-%                 excitation profile (default: approximately ï¿½2*BW centered
+%                 excitation profile (default: approximately ±2*BW centered
 %                 at the pulse center frequency, 201 points)
 % Output:
 %   offsets     = axis of frequency offsets in MHz
@@ -252,7 +252,7 @@ S = varargin{3}; % get calling handle structure
 
 for i = 1:numel(S.tick)
   val = get(S.tick(i),'Value');
-  if val==1
+  if val==1;
     set(S.handles(i),'Visible','on')
   else
     set(S.handles(i),'Visible','off');

@@ -43,7 +43,7 @@ error(chkmlver);
 switch nargin
   case 0, help(mfilename); return;
   case 2, Opt = struct;
-  case 3
+  case 3,
   otherwise
     error('Use two or three inputs: refields_perturb(Sys,Exp) or refields_perturb(Sys,Exp,Opt)!');
 end
@@ -517,7 +517,7 @@ else
   Transitions = [];
   Manifold = (1:nI).';
   for k = 1:2*S
-    Transitions = [Transitions; [Manifold Manifold+nI]];  %#ok
+    Transitions = [Transitions; [Manifold Manifold+nI]];
     Manifold = Manifold + nI;
   end
   

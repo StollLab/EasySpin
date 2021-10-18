@@ -107,8 +107,8 @@ else
   
   % Rescaling with reference
   %----------------------------------------------------
-  ModeID = find(strcmp(Mode,{'maxabs','minmax','lsq','lsq0','lsq1','lsq2','lsq3','none'}));
-  equalLengthNeeded = [0 0 1 1 1 1 1 0];
+  ModeID = find(strcmp(Mode,{'maxabs','minmax','shift','lsq','lsq0','lsq1','lsq2','lsq3','none'}));
+  equalLengthNeeded = [0 0 0 1 1 1 1 1 0];
   if isempty(ModeID)
     error('Unknown scaling mode ''%s''',Mode);
   end
@@ -132,36 +132,40 @@ else
     case 2 % minmax
       scalefactor = (max(yref_notnan)-min(yref_notnan))/(max(y_notnan)-min(y_notnan));
       ynew = scalefactor*(y-min(y_notnan)) + min(yref_notnan);
-    case 3 % lsq
+    case 3 % shift
+      shift = mean(y_notnan) - mean(yref_notnan);
+      ynew = y - shift;
+      scalefactor = shift;
+    case 4 % lsq
       D = y;
       scalefactor = y(notnan_both)\yref(notnan_both);
       ynew = scalefactor*D;
-    case 4 % lsq0
+    case 5 % lsq0
       D = [y ones(N,1)];
       scalefactor = D(notnan_both,:)\yref(notnan_both);
       ynew = D*scalefactor;
-    case 5 % lsq1
+    case 6 % lsq1
       x = (1:N).'/N;
       D = [y ones(N,1) x];
       scalefactor = D(notnan_both,:)\yref(notnan_both);
       ynew = D*scalefactor;
-    case 6 % lsq2
+    case 7 % lsq2
       x = (1:N).'/N;
       D = [y ones(N,1) x x.^2];
       scalefactor = D(notnan_both,:)\yref(notnan_both);
       ynew = D*scalefactor;
-    case 7 % lsq3
+    case 8 % lsq3
       x = (1:N).'/N;
       D = [y ones(N,1) x x.^2 x.^3];
       scalefactor = D(notnan_both,:)\yref(notnan_both);
       ynew = D*scalefactor;
-    case 8 % no scaling
+    case 9 % no scaling
       ynew = y;
       scalefactor = 1;
   end
   
   % Make sure signal is not inverted
-  if real(scalefactor(1))<0 && ModeID>2
+  if real(scalefactor(1))<0 && ModeID>3
     scalefactor(1) = abs(scalefactor(1));
     ynew = D*scalefactor;
   end

@@ -1,4 +1,4 @@
-function ok = test()
+function ok = test(opt,olddata)
 
 % Isotopologues with several equivalent groups of nuclei
 

@@ -124,8 +124,8 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
   end
   
   for c = 1:nComponents
-    SysList{c} = isotopologues(Sys{c},Opt.IsoCutoff);  %#ok
-    nIsotopologues(c) = numel(SysList{c});  %#ok
+    SysList{c} = isotopologues(Sys{c},Opt.IsoCutoff);
+    nIsotopologues(c) = numel(SysList{c});
     logmsg(1,'  component %d: %d isotopologues',c,nIsotopologues(c));
   end
   
@@ -158,7 +158,7 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
       
       % Accumulate or append spectra
       if separateSpectra
-        spec = [spec; spec_*Sys_.weight];  %#ok
+        spec = [spec; spec_*Sys_.weight];
       else
         spec = spec + spec_*Sys_.weight;
       end
@@ -514,7 +514,7 @@ if Sys.nNuclei>0
   else
     for iNuc=1:Sys.nNuclei
       Adiag_ = eig(Sys.A((iNuc-1)*3+(1:3),:));
-      a_all(iNuc) = mean(Adiag_)*1e6; %#ok % isotropic A values, MHz -> Hz  
+      a_all(iNuc) = mean(Adiag_)*1e6; % isotropic A values, MHz -> Hz
     end
   end
   n_all = Sys.n;
@@ -592,10 +592,10 @@ for iNucGrp = 1:Sys.nNuclei
         end
         if iter>maxIterationsDone, maxIterationsDone = iter; end
         if iter==Opt.MaxIterations
-          error('Breit-Rabi solver didn''t converge after %d iterations!',iter);
+          error(sprintf('Breit-Rabi solver didn''t converge after %d iterations!',iter));
         end
-        Positions = [Positions B_];  %#ok
-        Intensities = [Intensities nn(iF)/nLines*ones(size(B_))];  %#ok
+        Positions = [Positions B_];
+        Intensities = [Intensities nn(iF)/nLines*ones(size(B_))];
       end
       logmsg(1,'  maximum %d iterations done',maxIterationsDone);
       
@@ -634,8 +634,8 @@ for iNucGrp = 1:Sys.nNuclei
           if iter==Opt.MaxIterations
             error('Newton-Raphson has convergence problem!');
           end
-          Positions(end+1) = Bb;  %#ok % T
-          Intensities(end+1) = nn(iF)/nLines;  %#ok
+          Positions(end+1) = Bb; % T
+          Intensities(end+1) = nn(iF)/nLines;
         end
       end
       logmsg(1,'  maximum %d iterations done',maxIterationsDone);
@@ -662,8 +662,8 @@ for iNucGrp = 1:Sys.nNuclei
         E1 = -aiso/4-gnbB*(mI+1/2)+(I+1/2)*aiso/2*sqrt(1+2*(mI+1/2)/(I+1/2)*alpha+alpha^2);
         E2 = -aiso/4-gnbB*(mI-1/2)-(I+1/2)*aiso/2*sqrt(1+2*(mI-1/2)/(I+1/2)*alpha+alpha^2);
         nu_ = (E1-E2)/planck; % J -> Hz
-        Positions = [Positions nu_];   %#ok % Hz
-        Intensities = [Intensities nn(iF)/nLines*ones(size(nu_))];  %#ok
+        Positions = [Positions nu_]; % Hz
+        Intensities = [Intensities nn(iF)/nLines*ones(size(nu_))];
       end
       
     else
@@ -684,8 +684,8 @@ for iNucGrp = 1:Sys.nNuclei
           c(6) = pre(4) * mI * (1+6*(I-1)*I*(I+1)*(I+2)-10*(-3+2*I*(I+1))*mI^2+14*mI^4);
           dE = sum(c(1:PerturbOrder+1));
           nu_ = dE/planck; % Joule -> Hz
-          Positions(end+1) = nu_;   %#ok % Hz
-          Intensities(end+1) = nn(iF)/nLines;  %#ok
+          Positions(end+1) = nu_; % Hz
+          Intensities(end+1) = nn(iF)/nLines;
         end
       end
       

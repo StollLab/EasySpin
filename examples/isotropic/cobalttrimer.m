@@ -18,11 +18,11 @@ Sys.lwpp = 0.8;
 Exp.mwFreq = 9.5;
 
 Opt.Method = 'perturb1';
-[B,y1] = garlic(Sys,Exp,Opt);
+[x,y1] = garlic(Sys,Exp,Opt);
 Opt.Method = 'perturb2';
-[B,y2] = garlic(Sys,Exp,Opt);
+[x,y2] = garlic(Sys,Exp,Opt);
 Opt.Method = 'exact';
-[B,y0] = garlic(Sys,Exp,Opt);
+[x,y0] = garlic(Sys,Exp,Opt);
 
-plot(B,y1,B,y2,B,y0);
+plot(x,y1,x,y2,x,y0);
 legend('1st order','2nd order','exact');

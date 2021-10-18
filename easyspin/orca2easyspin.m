@@ -227,11 +227,35 @@ end
 
 if nAtoms>0
   
-  % Convert electric field gradient principal values to Q tensor principal values
+  % Convert electric field gradient to Q tensor principal values
   if anyQuadrupole
     for iAtom = nAtoms:-1:1
       if ~any(efg(iAtom,:)), continue; end
-      Qpv(iAtom,:) = efg2Q(efg(iAtom,:),Atoms(iAtom),'SI');
+      % List of quadrupole reference isotopes for all elements
+      %  (most naturally abundant with I>1/2)
+      qrefMassNo = [...
+        2  0  7  9  11 0  14 17 0  21 ... % 1-10
+        23 25 27 0  0  33 35 0  39 43 ... % 11-20
+        45 47 51 53 55 0  59 61 63 67 ...% 21-30
+        69 73 75 0  79 83 85 87 0  91 ... % 31-40
+        93 95 0  101 0 105 0 0 115 0 ... % 41-50
+        121 0 127 131 133 137 139 0 141 143 ... % 51-60
+        0 147 153 157 159 163 165 167 0 173 ... % 61-70
+        175 177 181 0 187 189 193 0 197 201 ... % 71-80
+        0 0 209 0 0 0 0 0 227 0 ... % 81-90
+        0 235 237 0 243 0 0 0 0 0 ... % 91-100
+        0 0 0 0 0 0 0 0 0 0 ... % 101-110
+        0 0 0 0 0 0 0 0]; % 111-118
+      massNo = qrefMassNo(Atoms(iAtom));
+      if massNo==0
+        Qpv(iAtom,:) = [0 0 0];
+      else
+        qrefIso = sprintf('%d%s',massNo,elementno2symbol(Atoms(iAtom)));
+        eQ = echarge*nucqmom(qrefIso)*barn; % nuclear electric quadrupole moment, SI unit (C m^2)
+        I = nucspin(qrefIso);
+        Qpv_ = eQ/2/I/(2*I-1)*efg(iAtom,:); % quadrupole tensor principal values, SI unit (J)
+        Qpv(iAtom,:) = Qpv_/planck/1e6; % J -> MHz
+      end
     end
   end
   
@@ -270,9 +294,7 @@ if nAtoms>0
     Sys.QFrame = efgFrame(hfkeep,:);
   end
   
-end % if nAtoms>0
-
-end % function
+end
 %===============================================================================
 
 
@@ -338,55 +360,4 @@ switch ID
   
   otherwise, s = 'unknown';
   
-end
-end
-
-function Qpv = efg2Q(efgpv,elem,units)
-% Given the principal values of the electric field gradient (EFG) tensor,
-% calculate the principal values for the nuclear quadrupole (Q) tensor for
-% the most naturally abundant isotope with spin > 1/2.
-%
-% Input:
-%   efgpv   principal values of EFG tensor, in SI units (V/m^2) or atomic
-%           units (Eh/e/a0^2)
-%   elem    element number
-%   units   unit of EFG tensor principal values, 'SI' or 'au'
-%
-% Output:
-%   Qpv     principal values of Q tensor, in MHz
-
-switch units
-  case 'SI'
-    % nop
-  case 'au'
-    efgpv = efgpv*(hartree/evolt/bohrrad^2);  % Eh/e/a0^2 -> V/m^2
-  otherwise
-    error('Unrecognized unit ''%s'' for EFG. Use ''SI'' or ''au''.',unit);
-end
-
-% List of quadrupole reference isotopes for all elements
-%  (most naturally abundant with I>1/2)
-qrefMassNo = [...
-  2  0  7  9  11 0  14 17 0  21 ... % 1-10
-  23 25 27 0  0  33 35 0  39 43 ... % 11-20
-  45 47 51 53 55 0  59 61 63 67 ...% 21-30
-  69 73 75 0  79 83 85 87 0  91 ... % 31-40
-  93 95 0  101 0 105 0 0 115 0 ... % 41-50
-  121 0 127 131 133 137 139 0 141 143 ... % 51-60
-  0 147 153 157 159 163 165 167 0 173 ... % 61-70
-  175 177 181 0 187 189 193 0 197 201 ... % 71-80
-  0 0 209 0 0 0 0 0 227 0 ... % 81-90
-  0 235 237 0 243 0 0 0 0 0 ... % 91-100
-  0 0 0 0 0 0 0 0 0 0 ... % 101-110
-  0 0 0 0 0 0 0 0]; % 111-118
-massNo = qrefMassNo(elem);
-if massNo==0
-  Qpv = [0 0 0];
-else
-  qrefIso = sprintf('%d%s',massNo,elementno2symbol(elem));
-  eQ = echarge*nucqmom(qrefIso)*barn; % nuclear electric quadrupole moment, SI unit (C m^2)
-  I = nucspin(qrefIso);
-  Qpv_ = eQ/2/I/(2*I-1)*efgpv; % quadrupole tensor principal values, SI unit (J)
-  Qpv = Qpv_/planck/1e6; % J -> MHz
-end
 end

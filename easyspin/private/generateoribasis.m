@@ -78,7 +78,7 @@ for L = Basis.Llist
       Mmx = min(L,Mmax);
       for M = -Mmx:1:Mmx
         iBasis = iBasis + 1;
-        basisList(iBasis,:) = [L jK K M];  %#ok
+        basisList(iBasis,:) = [L jK K M];
       end % M
     end % K
   end % jK
@@ -110,7 +110,7 @@ for L = Basis.Llist
       if (K==0), jK = (-1)^L; else, jK= sign(K); end
       if jK<jKmin, continue; end
       iBasis = iBasis + 1;
-      basisList(iBasis,:) = [L M abs(K) jK];  %#ok
+      basisList(iBasis,:) = [L M abs(K) jK];
     end % K
   end % M
 end % L
@@ -140,7 +140,7 @@ for L = Basis.Llist
     Kmx = min(L,Kmax);
     for K = -Kmx:deltaK:Kmx
       iBasis = iBasis + 1;
-      basisList(iBasis,:) = [L M K];  %#ok
+      basisList(iBasis,:) = [L M K];
     end % K
   end % M
 end % L

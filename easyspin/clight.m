@@ -11,5 +11,3 @@ function [c,sigma] = clight
 
 c = 299792458;
 sigma = 0;
-
-return

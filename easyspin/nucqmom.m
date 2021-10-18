@@ -14,8 +14,8 @@
 
 function Q = nucqmom(varargin)
 
-if nargin==0, help(mfilename); return; end
+if (nargin==0), help(mfilename); return; end
 
-[~,~,Q] = nucdata(varargin);
+[ignore,ignore,Q] = nucdata(varargin);
 
-end
+return

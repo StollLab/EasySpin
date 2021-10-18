@@ -18,7 +18,7 @@ for iField = 1:numel(Fields)
     v_num = '';
     continue
   else
-    [v_num,~,errormsg,~] = sscanf(v,'%e');
+    [v_num,cnt,errormsg,nxt] = sscanf(v,'%e');
     % Converts '3345 G' to [3345] plus an error message...
     % Unclear whether conversion makes sense for the user. If not,
     % exclude such cases with

@@ -217,6 +217,7 @@ updateplot;
         end
     end
     
+    
     % Set tensor ellipsoid orientation
     settensor();
     if showTensor
@@ -227,11 +228,11 @@ updateplot;
     set(findobj('Tag','tensor'),'Visible',st);
    
     v = {xA,yA,zA,xB,yB,zB,y1,-y1,x1,x2};
-    for k = 1:10
+    for k=1:10
       p_ = v{k};
       set(hline(k),'XData',[0 p_(1)],'YData',[0 p_(2)],'ZData',[0 p_(3)]);
     end
-    for k = 1:6
+    for k=1:6
       set(t(k),'Position',v{k}*1.1);
     end
     set(pz,'XData',zzplane(1,:),'YData',zzplane(2,:),'ZData',zzplane(3,:));

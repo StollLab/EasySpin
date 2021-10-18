@@ -1,4 +1,4 @@
-function ok = test()
+function ok = test(opt,olddata)
 
 % Check values of Legendre polynomials (M=0)
 

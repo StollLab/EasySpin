@@ -154,10 +154,10 @@ hFig = findobj('Tag','isotopesfig');
 d = guidata(hFig);
 v = get(d.hSort,'Value');
 switch v
-case 1, [~,idx] = sort(d.Data.Nucleons);
-case 2, [~,idx] = sort(abs(d.Data.gn),'descend');
-case 3, [~,idx] = sort(d.Data.Spin,'descend');
-case 4, [~,idx] = sort(d.Data.Abundance,'descend');
+case 1, [dum,idx] = sort(d.Data.Nucleons);
+case 2, [dum,idx] = sort(abs(d.Data.gn),'descend');
+case 3, [dum,idx] = sort(d.Data.Spin,'descend');
+case 4, [dum,idx] = sort(d.Data.Abundance,'descend');
 end
 
 d.Data.Protons = d.Data.Protons(idx);
@@ -262,7 +262,7 @@ esPath = fileparts(which(mfilename));
 DataFile = [esPath filesep 'private' filesep 'isotopedata.txt'];
 %DataFile = [esPath filesep 'nucmoments.txt'];
 if ~exist(DataFile,'file')
-  error('Could not open nuclear data file %s',DataFile);
+  error(sprintf('Could not open nuclear data file %s',DataFile));
 end
 
 fh = fopen(DataFile);
@@ -286,6 +286,7 @@ return
 %--------------------------------------------------------------
 function [Period,Group,Class] = elementclass(N)
 
+Period = 0;
 Class = 0;
 
 PeriodLimits = [0 2 10 18 36 54 86 1000];
@@ -299,29 +300,24 @@ Period = Period - 1;
 %Determine group and class of element
 %Class 0 - main groups, 1 - transition metals, 2 - rare earths
 Group = N - PeriodLimits(Period);
-switch Period
-case 1
+switch Period,
+case 1,
   Class = 0;
   if Group~=1, Group=18; end
-case {2,3}
+case {2,3},
   Class = 0;
   if Group>2, Group = Group + 10; end
-case {4,5}
+case {4,5},
   Class = 1;
-  if (Group<3) || (Group>12), Class = 0; end
-case {6,7}
-  if (Group<3) || (Group>26)
-    Class = 0;
+  if (Group<3) | (Group>12), Class = 0; end
+case {6,7},
+  if (Group<3) | (Group>26), Class = 0;
   else
-    if (Group>16)
-      Class = 1;
-    else
-      Class = 2;
+    if (Group>16), Class = 1;
+    else Class = 2;
     end
   end
-  if (Class<2) && (Group>16)
-    Group = Group - 14;
-  end
+  if (Class<2) & (Group>16), Group = Group - 14; end
 end
 
 return

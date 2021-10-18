@@ -22,7 +22,7 @@ dataLines = allLines(idx+1:end);
 nPoints = numel(dataLines);
 
 for idx = 1:nPoints
-  data(idx,:) = sscanf(dataLines{idx},'%f',2);  %#ok
+  data(idx,:) = sscanf(dataLines{idx},'%f',2);
 end
 Abscissa = data(:,1);
 Data = data(:,2);

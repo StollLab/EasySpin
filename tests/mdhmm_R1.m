@@ -6,7 +6,7 @@ rng(1)
 
 % Load pre-processed MD frame trajectory
 % -------------------------------------------------------------------------
-load(['.' filesep 'mdfiles' filesep 'MTSSL_polyAla_traj.mat'])
+load('.\mdfiles\MTSSL_polyAla_traj.mat')
 
 tScale = 2.5;  % diffusion constant of TIP3P model water molecules in MD 
                % simulations is ~2.5x too high, so we scale the time axis

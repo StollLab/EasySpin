@@ -286,7 +286,7 @@ if isempty(Opt.Transitions)
   clear Vs E EE sGpM sGxM sGyM sGzM st ct sp cp TRWeights idx;
   
   % Remove transitions completely out of range.
-  if ~isempty(Exp.Range) && ~any(isnan(Exp.Range))
+  if ~isempty(Exp.Range) & ~isnan(Exp.Range)
     TransitionRates((maxE<Exp.Range(1))|(minE>Exp.Range(2))) = 0;
   end
   clear maxE minE;
@@ -549,7 +549,7 @@ for iOri = 1:nOrientations
     end
 
     % Total intensity.
-    Idat(:,iOri) = NuclearPolarization .* ExcitationFactor .* EndorIntensity(TRidx);  %#ok
+    Idat(:,iOri) = NuclearPolarization .* ExcitationFactor .* EndorIntensity(TRidx);
     
   end % if ComputeIntensity
   

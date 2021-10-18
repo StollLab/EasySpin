@@ -199,9 +199,9 @@ else  % full Hamiltonian is provided
   else
     Field = varargin{1};
   end
-  if nargin<3, Spins = []; else, Spins = varargin{2}; end
-  if nargin<4, opt = ''; else, opt = varargin{3}; end
-  if nargin<5, lBlist=0:8; else, lBlist = varargin{4}; end
+  if nargin<3, Spins = []; else Spins = varargin{2}; end
+  if nargin<4, opt = ''; else opt = varargin{3}; end
+  if nargin<5, lBlist=0:8; else lBlist = varargin{4}; end
   
   
   if ~ischar(opt)

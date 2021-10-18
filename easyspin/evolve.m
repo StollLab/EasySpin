@@ -92,14 +92,14 @@ end
 N = size(Sig,1);
 
 if nDimensions==1
-  for iDet = nDetectors:-1:1
+  for iDet = 1:nDetectors
     Signal{iDet} = zeros(n,1);
   end
   if iscell(Ham), Ham = Ham{1}; end
 else
   if numel(dt)==1, dt = [dt dt]; end
   if numel(n)==1, n = [n n]; end
-  for iDet = nDetectors:-1:1
+  for iDet = 1:nDetectors
     Signal{iDet} = zeros(n);
   end
 end
@@ -124,7 +124,7 @@ if ~iscell(Ham)
     for iMix = 1:nMixingBlocks
       Mix{iMix} = Vecs'*Mix{iMix}*Vecs;
     end
-    for iDet = nDetectors:-1:1
+    for iDet = 1:nDetectors
       Detector{iDet} = Vecs'*Det{iDet}*Vecs;
     end
   end
@@ -157,7 +157,7 @@ else
     for iMix = 1:nMixingBlocks
       Mix{iMix} = Vecs{d(iMix+1)}'*Mix{iMix}*Vecs{d(iMix)};
     end
-    for iDet = nDetectors:-1:1
+    for iDet = 1:nDetectors
       Detector{iDet} = Vecs{d(end)}'*Det{iDet}*Vecs{d(end)};
     end
     

@@ -611,7 +611,7 @@ if nNuclei>0
       % Expand axial A into 3 principal values
       idx = [1 1 2];
       for k = 2:nElectrons
-        idx = [idx, 2*k-[1 1 0]];  %#ok
+        idx = [idx, 2*k-[1 1 0]];
       end
       Sys.A = Sys.A(:,idx);
     elseif issize(Sys.A,[nNuclei,3*nElectrons])

@@ -57,7 +57,7 @@ for f = 1:nFiles
   catch
     fprintf('  failed\n');
     disp(lasterr);
-    ok(f) = false;  %#ok
+    ok(f) = false;
   end
 end
 

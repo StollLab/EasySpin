@@ -8,9 +8,9 @@
 
 function C = commute(A,B)
 
-if nargin==0, help(mfilename); return; end
+if (nargin==0), help(mfilename); return; end
 
-if ~isnumeric(A) || ~isnumeric(B)
+if ~isnumeric(A) | ~isnumeric(B)
   error('A and B must be matrices!');
 end
 

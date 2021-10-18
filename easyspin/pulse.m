@@ -586,7 +586,7 @@ else
     A0ft = abs(fftshift(fft(A0,zf)));
     f = fdaxis(dt,zf);
     intg = cumtrapz(A0ft);
-    [~,indmax] = min(abs(intg-0.5*max(intg)));
+    [dummy,indmax] = min(abs(intg-0.5*max(intg)));
     indbw = find(A0ft(indmax:end)>0.1*max(A0ft));
     AM_BW = 2*(f(indmax+indbw(end))-f(indmax));
     
@@ -840,14 +840,14 @@ else
             %   Garwood, M., DelaBarre, L., J. Magn. Reson. 153, 155-177
             %   (2001).
             %   http://dx.doi.org/10.1006/jmre.2001.2340
-            [~,ind] = min(abs(ti));
+            [dummy,ind] = min(abs(ti));
             dnu = abs(diff(2*pi*modulation.freq/(t(2)-t(1))));
             sweeprate = dnu(ind)/(2*pi*(modulation.A(ind))^2);
         end
       else
         % Numerical computation
         % Q = w1max^2*A(t)^2/(BW*dnu/dt)
-        [~,ind] = min(abs(ti));
+        [dummy,ind] = min(abs(ti));
         dnu = abs(diff(2*pi*modulation.freq/(t(2)-t(1))));
         sweeprate = dnu(ind)/(2*pi*(modulation.A(ind))^2);
       end

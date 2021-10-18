@@ -22,27 +22,21 @@ function varargout = basecorr(Spectrum,Dimension,Order)
 
 Defaults.maxOrder = 6;
 
+if (nargin==0), help(mfilename); return; end
+
 switch nargin
-  case 0
-    help(mfilename);
-    return;
-  case 1
-    Dimension = 1;
-    if size(Spectrum,1)==1
-      Dimension = 2;
-    end
-    Order = 1;
-  case 2
-    Order = 1;
-  case 3
+  case 0, help(mfilename); return;
+  case 1, Dimension = 1; if size(Spectrum,1)==1, Dimension = 2; end; Order = 1;
+  case 2, Order = 1;
+  case 3,
   otherwise
     error('basecorr() needs 3 inputs: basecorr(Spectrum,Dimension,Order)');
 end
 
-if nargout<1, error('Not enough output arguments.'); end
-if nargout>2, error('Too many output arguments.'); end
+if (nargout<1), error('Not enough output arguments.'); end
+if (nargout>2), error('Too many output arguments.'); end
 
-if ~isnumeric(Spectrum) || isempty(Spectrum)
+if ~isnumeric(Spectrum) || isempty(Spectrum),
   error('Spectrum must be a non-empty numerical array!');
 end
 
@@ -58,7 +52,7 @@ if isempty(Dimension)
   if numel(Spectrum)==length(Spectrum)
     error('Multidimensional fitting not possible for 1D data!');
   end
-  if ndims(Spectrum)>2  %#ok
+  if ndims(Spectrum)>2
     error('Multidimensional fitting for %dD arrays not implemented!',ndims(Spectrum));
   end
   if numel(Order)~=ndims(Spectrum)
@@ -72,10 +66,10 @@ if isempty(Dimension)
   y = repmat(1:n,m,1); y = y(:);
   % Build the design matrix
   q = 0;
-  for j = 0:Order(2)  % each column a x^i*y^j monomial vector
-    for i = 0:Order(1)
+  for j = 0:Order(2),  % each column a x^i*y^j monomial vector
+    for i = 0:Order(1),
       q = q+1;
-      D(:,q) = x.^i .* y.^j;  %#ok
+      D(:,q) = x.^i .* y.^j;
     end
   end
   % Solve least squares problem
@@ -105,7 +99,7 @@ else
   CorrSpectrum = Spectrum;
   for q = 1:numel(Dimension)
     d = Dimension(q);
-    if Order(q)>=size(Spectrum,d)
+    if Order(q)>=size(Spectrum,d),
       error('Dimension %d has %d points. Polynomial order %d not possible. Check Order and Dimension!',...
         d,size(Spectrum,d),Order(q));
     end
@@ -118,9 +112,9 @@ else
         thisBaseLine(:,c) = p(c);
       end
     else
-      [p,~,mu] = polyfitvec(x,thisSpectrum,Order(q));
+      [p,dummy,mu] = polyfitvec(x,thisSpectrum,Order(q));
       for c = size(thisSpectrum,2):-1:1
-        %[p,~,mu] = polyfit(x,thisSpectrum(:,c),Order(q));
+        %[p,dummy,mu] = polyfit(x,thisSpectrum(:,c),Order(q));
         %thisBaseLine(:,c) = thisBaseLine(:,c) + polyval(p,(x-mu(1))/mu(2));
         thisBaseLine(:,c) = thisBaseLine(:,c) + polyval(p(c,:),(x-mu(1))/mu(2));
       end

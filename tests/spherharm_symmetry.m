@@ -1,4 +1,4 @@
-function ok = test()
+function ok = test(opt,olddata)
 
 % Test symmetry (L,M) <-> (L,-M)
 %-------------------------------------------------------------------------------

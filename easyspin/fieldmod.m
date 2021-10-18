@@ -27,7 +27,7 @@
 
 % References
 % --------------------------------------------------
-% Berger, GÃ¼nthart, Z.Angew.Math.Phys. 13, 310 (1962)
+% Berger, Günthart, Z.Angew.Math.Phys. 13, 310 (1962)
 % Wilson, J.Appl.Phys. 34, 3276 (1963)
 % Haworth, Richards, Prog.Nmr.Spectrosc. 1, 1 (1966)
 % Hyde et al., Appl.Magn.Reson. 1, 483-496 (1990)

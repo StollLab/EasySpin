@@ -36,7 +36,7 @@ if numel(SliceLabels)~=nSlices
 end
 for k = 1:nSlices
   yy = y(:,k);
-  shift(k) = (k-1)*step;  %#ok
+  shift(k) = (k-1)*step;
   if scale<0
     y(:,k) = yy/max(abs((yy)))*abs(scale) + shift(k);
   elseif scale>0

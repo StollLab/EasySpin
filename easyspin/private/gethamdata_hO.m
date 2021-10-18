@@ -77,7 +77,7 @@ if (B==0)
   VV_ = [];
   for k=1:max(blk)
     ix = find(blk==k);
-    [v,~] = eig(GG(ix,ix));
+    [v,e] = eig(GG(ix,ix));
     VV_ = blkdiag(VV_,v);
   end
   V = V*VV_;

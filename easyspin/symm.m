@@ -137,7 +137,7 @@ if isfield(Sys,'DFrame'), pa = [pa; Sys.DFrame]; end
 if isfield(Sys,'AFrame')
   % make sure it works for more than 1 electron spin
   for k = 0:3:size(Sys.AFrame,2)-1
-    pa = [pa; Sys.AFrame(:,k+(1:3))]; %#ok
+    pa = [pa; Sys.AFrame(:,k+(1:3))];
   end
 end
 if isfield(Sys,'QFrame'), pa = [pa; Sys.QFrame]; end
@@ -267,7 +267,7 @@ for iFrame = 1:nFrames % loop over all potential frames
       pg = 1; % Ci
     else % D2h, C2h
       if HigherZeemanPresent, sigmaxz = eqeig(eA,eig(sham(Sys,B(:,11))));
-      else, sigmaxz = eqeig(eA,eig(F+B(1,11)*Gx+B(2,11)*Gy+B(3,11)*Gz));
+      else sigmaxz = eqeig(eA,eig(F+B(1,11)*Gx+B(2,11)*Gy+B(3,11)*Gz));
       end
       if sigmaxz
         pg = 3; % D2h
@@ -278,36 +278,36 @@ for iFrame = 1:nFrames % loop over all potential frames
     
   case 1 % C3 axis: S6,D3d,Th,C6h,D6h
     if HigherZeemanPresent, sigmaxy = eqeig(eA,eig(sham(Sys,B(:,7))));
-    else, sigmaxy = eqeig(eA,eig(F+B(1,7)*Gx+B(2,7)*Gy+B(3,7)*Gz));
+    else sigmaxy = eqeig(eA,eig(F+B(1,7)*Gx+B(2,7)*Gy+B(3,7)*Gz));
     end
     if sigmaxy % Th, C6h, D6h
       if HigherZeemanPresent,C2z = eqeig(eC,eig(sham(Sys,B(:,6))));
-      else, C2z = eqeig(eC,eig(F+B(1,6)*Gx+B(2,6)*Gy+B(3,6)*Gz));
+      else C2z = eqeig(eC,eig(F+B(1,6)*Gx+B(2,6)*Gy+B(3,6)*Gz));
       end
       if C2z % C6h, D6h
         if HigherZeemanPresent,C2x = eqeig(eC,eig(sham(Sys,B(:,8)))); 
-        else, C2x = eqeig(eC,eig(F+B(1,8)*Gx+B(2,8)*Gy+B(3,8)*Gz));  
+        else C2x = eqeig(eC,eig(F+B(1,8)*Gx+B(2,8)*Gy+B(3,8)*Gz));  
         end
-        if C2x, pg = 9; else, pg = 8; end
+        if C2x, pg = 9; else pg = 8; end
       else
         pg = 10;
       end
     else % S6, D3d
       if HigherZeemanPresent,C2x = eqeig(eC,eig(sham(Sys,B(:,8))));
-      else, C2x = eqeig(eC,eig(F+B(1,8)*Gx+B(2,8)*Gy+B(3,8)*Gz));
+      else C2x = eqeig(eC,eig(F+B(1,8)*Gx+B(2,8)*Gy+B(3,8)*Gz));
       end
       if ~C2x
         if HigherZeemanPresent, C2y = eqeig(eA,eig(sham(Sys,B(:,9))));
-        else, C2y = eqeig(eA,eig(F+B(1,9)*Gx+B(2,9)*Gy+B(3,9)*Gz));
+        else C2y = eqeig(eA,eig(F+B(1,9)*Gx+B(2,9)*Gy+B(3,9)*Gz));
         end
       end
-      if C2x||C2y; pg = 7; else, pg = 6; end
+      if C2x||C2y; pg = 7; else pg = 6; end
     end
     
   case 2 % C4 axis: C4h,D4h,Oh
     
     if HigherZeemanPresent, C2x = eqeig(eC,eig(sham(Sys,B(:,8))));
-    else, C2x = eqeig(eC,eig(F+B(1,8)*Gx+B(2,8)*Gy+B(3,8)*Gz));
+    else C2x = eqeig(eC,eig(F+B(1,8)*Gx+B(2,8)*Gy+B(3,8)*Gz));
     end
     if C2x % D4h, Oh
       if HigherZeemanPresent

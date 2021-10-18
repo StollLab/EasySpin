@@ -16,8 +16,8 @@
 
 function x_MHz = mt2mhz(x_mT,g)
 
-if nargin<1, x_mT = 1; end
-if nargin<2, g = gfree; end
+if (nargin<1), x_mT = 1; end
+if (nargin<2), g = gfree; end
 
 x_MHz = x_mT.*g*(1e-3*bmagn/planck/1e6);
 

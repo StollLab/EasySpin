@@ -303,7 +303,7 @@ for k = 1:numel(allLines)
   line = allLines{k};
   if isempty(line), continue; end
   
-  [Key,~,~,idx] = sscanf(line,'%s',1);
+  [Key,n,err_,idx] = sscanf(line,'%s',1);
   if isempty(Key); continue; end
   
   if ~isletter(Key(1)), continue; end

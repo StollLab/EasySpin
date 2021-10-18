@@ -1,4 +1,4 @@
-function ok = test()
+function ok = test(opt,olddata)
 
 % Simple simulation with full g and A tensors (2 nuclei)
 

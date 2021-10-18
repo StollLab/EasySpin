@@ -169,7 +169,7 @@ end
 %----------------------------------------------------------
 hasQuadrupole = (Sys.I>1/2);
 
-for iNuc = nNuclei:-1:1
+for iNuc = 1:nNuclei
   A_ = A{iNuc};
   detA(iNuc) = det(A_);
   invA{iNuc} = inv(A_);
@@ -355,7 +355,7 @@ Info.Selectivity = Selectivity;
 %-------------------------------------------------------------------
 EndorFreqs = [];
 for iNuc = Opt.Nuclei
-  EndorFreqs = [EndorFreqs; EndorFrequencies{iNuc}.'];  %#ok
+  EndorFreqs = [EndorFreqs; EndorFrequencies{iNuc}.'];
 end
 
 % Intensities
@@ -378,7 +378,7 @@ for iNuc = Opt.Nuclei
   % transitions(=rows) ordered by 1) mI of lower level, 2) mS
   % e.g. (-I,+1/2), (-I,-1/2), (-I+1,+1/2), (-I+1,-1/2), etc
   % (identical to ordering of EndorFreqs).
-  EndorIntensities = [EndorIntensities; newIntensities];  %#ok
+  EndorIntensities = [EndorIntensities; newIntensities];
   
 end
 EndorIntensities = EndorIntensities*prod(2*Sys.I+1);

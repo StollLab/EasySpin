@@ -16,8 +16,8 @@
 
 function x_mT = mhz2mt(x_MHz,g)
 
-if nargin<1, x_MHz = 1; end
-if nargin<2, g = gfree; end
+if (nargin<1), x_MHz = 1; end
+if (nargin<2), g = gfree; end
 
 if ~isnumeric(g)
   error('Second input (g) must be numeric.');

@@ -49,7 +49,7 @@ switch nargin
     else
       if size(j,2)==6
         for k=1:size(j,1)
-          value(k) = wigner6j(j(k,:));  %#ok
+          value(k) = wigner6j(j(k,:));
         end
         return;
       else
@@ -72,7 +72,7 @@ end
 %[j1 j2 j3; j4 j5 j6]
 
 % A 6j symbol must satisfy 4 triangle relations to be nonzero.
-if ~(istriangle(j1,j2,j3) && istriangle(j1,j5,j6) && istriangle(j4,j2,j6) && istriangle(j4,j5,j3))
+if ~(istriangle(j1,j2,j3) & istriangle(j1,j5,j6) & istriangle(j4,j2,j6) & istriangle(j4,j5,j3))
   value = 0;
   return;
 end
@@ -162,16 +162,16 @@ return
 
 %------------------------------------------------------------
 
-%{
 function v = tricoeff(a,b,c)
 v = sqrt(factorial(a+b-c)*factorial(a-b+c)/factorial(a+b+c+1)*factorial(-a+b+c));
 return
+
 
 function v = facln(x)
 v = gammaln(x+1);
 return
 
+
 function v = tricoeffln(a,b,c)
 v = (facln(a+b-c) + facln(a-b+c) + facln(-a+b+c) - facln(a+b+c+1));
 return
-%}

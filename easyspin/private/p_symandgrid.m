@@ -1,27 +1,7 @@
-% Symmetry determination and orientational grid
-%
-% requires
-%   Exp.PowderSimulation (required)
-%   Exp.CrystalOrientation (for crystal sims)
-%   Sys (for symm() call)
-%   Sys.Pop (optional)
-%   Opt.GridSymmetry (optional)
-%   Opt.GridFrame (optional)
-%
-% sets
-%   Exp.phi
-%   Exp.theta
-%   Exp.OriWeights
-%   Exp.tri
-%   Exp.CrystalOrientation
-%   Exp.OriWeights
-%   Opt.GridSymmetry
-%   Opt.GridFrame
-%   Opt.nOctants
-%   Opt.GridParams
-
 function [Exp,Opt] = p_symandgrid(Sys,Exp,Opt)
-
+%==========================================================================
+% Symmetry determination and orientational grid
+%==========================================================================
 logmsg(1,'-orientations------------------------------------------');
 
 if Exp.PowderSimulation
@@ -30,7 +10,6 @@ if Exp.PowderSimulation
   
   if isempty(Opt.GridSymmetry)
     
-    % Determine grid symmetry from Hamiltonian symmetry
     msg = 'automatic determination of grid symmetry and orientation';
     [Opt.GridSymmetry,Opt.GridFrame] = symm(Sys);
     nonEquiPops = isfield(Sys,'Pop') && ~isempty(Sys.Pop);

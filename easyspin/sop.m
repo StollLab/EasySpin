@@ -102,9 +102,9 @@ else
     
     for k = 1:numel(OperatorSpec)
       if useSparseMatrices
-        varargout{k} = sop(SpinVec,OperatorSpec{k},'sparse');  %#ok
+        varargout{k} = sop(SpinVec,OperatorSpec{k},'sparse');
       else
-        varargout{k} = sop(SpinVec,OperatorSpec{k});  %#ok
+        varargout{k} = sop(SpinVec,OperatorSpec{k});
       end
     end
     return
@@ -185,10 +185,10 @@ else
           spinIndexPresent(itoken) = ~isempty(token{2});
           if ~spinIndexPresent(itoken)
             % ... from the counter.
-            Spins(itoken) = itoken;  %#ok
+            Spins(itoken) = itoken;
           else
             %... if a spin index was provided.
-            Spins(itoken) = str2double(token{2});  %#ok
+            Spins(itoken) = str2double(token{2});
           end
           
         else
@@ -207,9 +207,9 @@ else
           % Get spin index if available
           spinIndexPresent(itoken) = ~isempty(token{4});
           if ~spinIndexPresent(itoken)
-            Spins(itoken) = itoken;  %#ok
+            Spins(itoken) = itoken;
           else
-            Spins(itoken) = str2double(token{4});  %#ok
+            Spins(itoken) = str2double(token{4});
           end
           
           % Get transition/level information

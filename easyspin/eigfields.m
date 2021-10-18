@@ -244,7 +244,7 @@ for iOri = 1:nOrientations
         dBdE = [];
         for iVec = 1:size(Vecs,3)
           V = Vecs(:,:,iVec);
-          dBdE(iVec) = 1/abs(trace(GzL*commute(V,V')));  %#ok
+          dBdE(iVec) = 1/abs(trace(GzL*commute(V,V')));
         end
       else
         dBdE = ones(size(TransitionRate));
