@@ -112,7 +112,7 @@ if isempty(NucList)
   return
 end
 
-IsotopeList = nucdata('');
+IsotopeList = nucdata;
 
 customMixtures = any(NucList=='(');
 NucList = nucstring2list(NucList,'m');

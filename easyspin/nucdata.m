@@ -21,13 +21,7 @@
 
 function varargout = nucdata(Isotopes)
 
-if nargin==0, help(mfilename); return; end
-
-if iscell(Isotopes)
-  if numel(Isotopes)==1
-    Isotopes = Isotopes{1};
-  end
-end
+if nargout==0, help(mfilename); return; end
 
 %--------------------------------------------------------------
 persistent Elements IsotopeList
@@ -65,6 +59,12 @@ end
 if nargin==0
   varargout = {IsotopeList};
   return
+end
+
+if iscell(Isotopes)
+  if numel(Isotopes)==1
+    Isotopes = Isotopes{1};
+  end
 end
 
 if ~ischar(Isotopes) && ~iscell(Isotopes)
