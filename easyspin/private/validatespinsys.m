@@ -921,6 +921,7 @@ if ~isempty(Sys.Pop)
     err = 'Sys.Pop must be a row or column vector.';
     return
   end
+  Sys.Pop = Sys.Pop(:);
 end
 
 

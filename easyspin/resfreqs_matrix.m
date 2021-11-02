@@ -167,10 +167,6 @@ p_excitationgeometry;
 % Temperature, non-equilibrium populations
 computeNonEquiPops = isfield(Sys,'Pop') && ~isempty(Sys.Pop);
 if computeNonEquiPops
-  nElectronStates = prod(2*Sys.S+1);
-  if numel(Sys.Pop)~=nElectronStates
-    error('Sys.Pop must have %d elements.',nElectronStates);
-  end
   if ~isfield(Sys,'PopMode')
     PopMode = 'zerofield';
   else
@@ -396,16 +392,30 @@ if computeNonEquiPops
 
   Pop = Sys.Pop;
   nElStates = prod(2*Sys.S+1);
-  if numel(Pop) == nElectronStates
-    % Vector of zero-field populations for the core system
-    ZFPopulations = Pop(:);
-    if strcmp(PopMode,'zerofield')
-      ZFPopulations = ZFPopulations/sum(ZFPopulations);
-    end
-    ZFPopulations = kron(ZFPopulations,ones(nCore/nElStates,1));
+  
+  % setup vector of populations for the core system
+  if length(Pop)==nCore && ~strcmp(PopMode,'eigenbasis')
+    ZFPopulations = Pop;
+  elseif length(Pop)~=nCore && length(Pop)==nElStates && ~strcmp(PopMode,'eigenbasis')
+    ZFPopulations = kron(Pop,ones(nCore/nElStates,1));
+  elseif length(Pop)==nElStates && strcmp(PopMode,'eigenbasis')
+      Pop = Pop*Pop';
+      ZFPopulations = kron(Pop,eye(nCore/nElStates));
   else
-    ZFPopulations = Pop;%/sum(diag(Pop));
-    ZFPopulations = kron(ZFPopulations,diag(ones(nCore/nElStates,1)));
+    if strcmp(PopMode,'eigenbasis')
+      error('Sys.Pop must have %d elements.',nElStates);
+    else
+      error('Sys.Pop must have %d or %d elements.',nElStates,nCore);
+    end
+  end
+
+  % renormalize the populations
+  if strcmp(PopMode,'zerofield')
+    ZFPopulations = ZFPopulations/sum(ZFPopulations);
+  elseif strcmp(PopMode,'eigenbasis')
+    ZFPopulations = ZFPopulations/trace(ZFPopulations);
+  elseif strcmp(PopMode,'highfield')
+    ZFPopulations = ZFPopulations/sum(ZFPopulations);
   end
   
   % Pre-compute zero-field energies and eigenstates
@@ -711,7 +721,7 @@ for iOri = 1:nOrientations
         Polarization = Populations(u) - Populations(v);
       case 'eigenbasis'
         for iState = 1:nCore
-          Populations(iState) = (abs(ZFPopulations.'*Vs(:,iState)).^2);
+          Populations(iState) = Vs(:,iState)'*ZFPopulations*Vs(:,iState);
         end
         Polarization = Populations(u) - Populations(v);
       case 'highfield'
