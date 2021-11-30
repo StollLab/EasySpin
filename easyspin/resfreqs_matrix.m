@@ -165,16 +165,35 @@ Exp.Range = Exp.Range*1e3; % GHz -> MHz, for comparison with Pdat
 p_excitationgeometry;
 
 % Temperature, non-equilibrium populations
-computeNonEquiPops = isfield(Sys,'Pop') && ~isempty(Sys.Pop);
+NonEquiPops = (isfield(Sys,'Pop') && ~isempty(Sys.Pop));
+initState = (isfield(Sys,'initState') && ~isempty(Sys.initState));
+if NonEquiPops && initState
+  error('Simultaneous input of initial density matrix (initState) and list of population not allowed.')  
+end
+computeNonEquiPops = NonEquiPops || initState;
 if computeNonEquiPops
   nElectronStates = prod(2*Sys.S+1);
-  if numel(Sys.Pop)~=nElectronStates
-    error('Sys.Pop must have %d elements.',nElectronStates);
-  end
-  if ~isfield(Sys,'PopBasis')
-    PopBasis = 'Molecular';
-  else
-    PopBasis = Sys.PopBasis;
+  nStates = hsdim(Sys);
+  if NonEquiPops
+    if numel(Sys.Pop)~=nElectronStates || numel(Sys.Pop)~=nStates
+      error('Sys.Pop must have %d elements.',nElectronStates);
+    end
+    if ~isfield(Sys,'PopMode')
+      PopMode = 'zerofield';
+    else
+      PopMode = Sys.PopMode;
+    end
+    if ~strcmp(PopMode,'zerofield') && ~strcmp(PopMode,'highfield')
+      error('Sys.PopMode must be either ''zerofield'' or ''highfield''.');
+    end
+  elseif initState
+    PopMode = 'densitymatrix';
+    [a, b] = size(Sys.initState);
+    if ischar(Sys.initState)
+      error('String input for initial state not yet supported.')
+    elseif ~(nElectronStates==a && nElectronStates==b) && ~(nStates==a || nStates==b)
+      error('Initial state has to be a density matrix.')
+    end
   end
   computeBoltzmannPopulations = false;
 elseif isempty(Exp.Temperature)
@@ -387,19 +406,27 @@ end
 
 % Spin-polarized systems: precompute zero-field energies, states, populations
 if computeNonEquiPops
-
-  Pop = Sys.Pop;
-  nElStates = prod(2*Sys.S+1);
-  if numel(Pop) == nElectronStates
-    % Vector of zero-field populations for the core system
-    ZFPopulations = Pop(:);
-    if strcmp(PopBasis,'Molecular')
+  
+  switch PopMode
+    case {'zerofield','highfield'}
+      
+      % Vector of zero/high-field populations for the core system
+      ZFPopulations = Sys.Pop(:);
+      ZFPopulations = kron(ZFPopulations,ones(nCore/nElectronStates,1));
       ZFPopulations = ZFPopulations/sum(ZFPopulations);
-    end
-    ZFPopulations = kron(ZFPopulations,ones(nCore/nElStates,1));
-  else
-    ZFPopulations = Pop;%/sum(diag(Pop));
-    ZFPopulations = kron(ZFPopulations,diag(ones(nCore/nElStates,1)));
+      
+    case 'densitymatrix'
+      
+      % Initial density matrix for the core system in the uncoupled basis
+      if numel(Sys.initState) == nElectronStates^2
+        Sigma0 = kron(Sys.initState,eye(nCore/nElectronStates));
+      elseif numel(Sys.initState) == nStates^2
+        Sigma0 = Sys.initState;
+      else
+        error('Initial density matrix provided in Sys.initState has wrong size for given spin system.')
+      end
+      Sigma0 = Sigma0/trace(Sigma0);
+      
   end
   
   % Pre-compute zero-field energies and eigenstates
@@ -696,15 +723,19 @@ for iOri = 1:nOrientations
       end
       
     elseif computeNonEquiPops
-      switch PopBasis
-      	case 'Molecular'
+      switch PopMode
+      	case 'zerofield'
         % Compute level populations by projection from zero-field populations and states
         for iState = 1:nCore
           Populations(iState) = (abs(ZFStates'*Vs(:,iState)).^2).'*ZFPopulations;
         end
-      case 'Spin'
+        case 'highfield'
+          for iState = 1:nCore
+            Populations(iState) = ZFPopulations(iState);
+          end
+      case 'densitymatrix'
         for iState = 1:nCore
-          Populations(iState) = (abs(ZFPopulations.'*Vs(:,iState)).^2);
+          Populations(iState) = Vs(:,iState)'*Sigma0*Vs(:,iState);
         end  
       end
       Polarization = Populations(u) - Populations(v);
@@ -715,7 +746,7 @@ for iOri = 1:nOrientations
     else
       % no temperature given
       % same polarization for each electron transition
-      %Polarization = Polarization/prod(2*System.S+1); % needed to make consistent with high-temp limit
+      %Polarization = Polarization/prod(2*Sys.S+1); % needed to make consistent with high-temp limit
       Polarization = 1/prod(2*Sys.I+1);
     end
     Idat(:,iOri) = TransitionRates(:).*Polarization(:);

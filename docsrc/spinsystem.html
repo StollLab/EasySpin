@@ -1306,7 +1306,9 @@ For a full documentation of the line broadening fields in the spin system struct
 <a name="pop"><div class="subtitle">Non-equilibrium populations</div></a>
 
 <p>
-Specify non-equilibrium populations in <code>Sys.Pop</code>. For a spin system with <code>N</code> electron states (e.g. 4 for a biradical, 3 for a triplet state), it must be a vector with <code>N</code> elements giving the populations of the zero-field electron states, from lowest to highest in energy.
+For the simulation of spin-polarised systems with non-equilibrium populations, the populations of the zero-field or the high-field eigenstates of the spin system can be specified in <code>Sys.Pop</code>, with <code>Sys.PopMode</code> set to <code>'zerofield'</code> (default) or <code>'highfield'</code>, respectively.
+For a spin system with <code>N</code> electron states (e.g. 4 for a biradical, 3 for a triplet state), it must be a vector with <code>N</code> elements giving the populations of the eigenstates, from lowest to highest in energy.
+In the presence of coupled nuclei, individual nuclear populations can also be specified in <code>Sys.Pop</code> (vector with <code>Nelectron*Nnuclear</code> elements), if not, it is assumed that the populations of the nuclear sublevels corresponding to the same electron sublevel are equal.
 </p>
 
 <p>
@@ -1314,11 +1316,15 @@ E.g., if <code>Sys.Pop = [0.85 0.95 1.2]</code> for a triplet system (S=1), the 
 </p>
 
 <p>
-If <code>Sys.Pop</code> is given, the temperature specified in <code>Exp.Temperature</code> is ignored.
+Simulations of spin-polarised systems with non-equilibrium populations can alternatively be performed by specifying the initial density matrix of the system in the uncoupled basis in <code>Sys.initState</code> (the required structure of density matrices, i.e. ordering of operators in terms of product Zeeman basis states, is explained in the documentation for <a href="sop.html">spin operators</a>.). For a spin system with <code>N</code> electron states (e.g. 4 for a radical pair, 3 for a triplet state), it must be a matrix with <code>NxN</code> elements.
 </p>
 
 <p>
-For examples of spin-polarized systems (ISC triplets, recombination triplets), see the <a href="spinpolarization.html">user guide on spin-polarized systems</a>.
+If <code>Sys.Pop</code> or <code>Sys.initState</code> are given, the temperature specified in <code>Exp.Temperature</code> is ignored.
+</p>
+
+<p>
+For examples of spin-polarized systems (ISC triplets, recombination triplets, spin-correlated radical pairs), see the <a href="spinpolarization.html">user guide on spin-polarized systems</a>.
 </p>
 
 <hr>

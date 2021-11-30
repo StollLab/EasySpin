@@ -152,16 +152,35 @@ end
 p_excitationgeometry;
 
 % Temperature, non-equilibrium populations
-computeNonEquiPops = isfield(System,'Pop') && ~isempty(System.Pop);
+NonEquiPops = (isfield(System,'Pop') && ~isempty(System.Pop));
+initState = (isfield(System,'initState') && ~isempty(System.initState));
+if NonEquiPops && initState
+  error('Simultaneous input of initial density matrix (initState) and list of population not allowed.')  
+end
+computeNonEquiPops = NonEquiPops || initState;
 if computeNonEquiPops
   nElectronStates = prod(2*System.S+1);
-  if numel(System.Pop)~=nElectronStates
-    error('Sys.Pop must have %d elements.',nElectronStates);
-  end
-  if ~isfield(System,'PopBasis')
-    PopBasis = 'Molecular';
-  else
-    PopBasis = System.PopBasis;
+  nStates = hsdim(System);
+  if NonEquiPops
+    if numel(System.Pop)~=nElectronStates || numel(System.Pop)~=nStates
+      error('Sys.Pop must have %d elements.',nElectronStates);
+    end
+    if ~isfield(System,'PopMode')
+      PopMode = 'zerofield';
+    else
+      PopMode = System.PopMode;
+    end
+    if ~strcmp(PopMode,'zerofield') && ~strcmp(PopMode,'highfield')
+      error('Sys.PopMode must be either ''zerofield'' or ''highfield''.');
+    end
+  elseif initState
+    PopMode = 'densitymatrix';
+    [a, b] = size(System.initState);
+    if ischar(System.initState)
+      error('String input for initial state not yet supported.')
+    elseif ~(nElectronStates==a && nElectronStates==b) && ~(nStates==a || nStates==b)
+      error('Initial state has to be a density matrix.')
+    end
   end
   computeBoltzmannPopulations = false;
 elseif isempty(Exp.Temperature)
@@ -423,18 +442,26 @@ end
 % Spin-polarized systems: precompute zero-field energies, states, populations
 if computeNonEquiPops
   
-  Pop = System.Pop;
-  nElStates = prod(2*System.S+1);
-  if numel(Pop) == nElectronStates
-    % Vector of zero-field populations for the core system
-    ZFPopulations = Pop(:);
-    if strcmp(PopBasis,'Molecular')
+  switch PopMode
+    case {'zerofield','highfield'}
+      
+      % Vector of zero/high-field populations for the core system
+      ZFPopulations = System.Pop(:);
+      ZFPopulations = kron(ZFPopulations,ones(nCore/nElectronStates,1));
       ZFPopulations = ZFPopulations/sum(ZFPopulations);
-    end
-    ZFPopulations = kron(ZFPopulations,ones(nCore/nElStates,1));
-  else
-    ZFPopulations = Pop;%/sum(diag(Pop));    
-    ZFPopulations = kron(ZFPopulations,diag(ones(nCore/nElStates,1)));
+      
+    case 'densitymatrix'
+      
+      % Initial density matrix for the core system in the uncoupled basis
+      if numel(System.initState) == nElectronStates^2
+        Sigma0 = kron(System.initState,eye(nCore/nElectronStates));
+      elseif numel(System.initState) == nStates^2
+        Sigma0 = System.initState;
+      else
+        error('Initial density matrix provided in Sys.initState has wrong size for given spin system.')
+      end
+      Sigma0 = Sigma0/trace(Sigma0);
+      
   end
     
   % Pre-compute zero-field energies and eigenstates
@@ -1176,13 +1203,16 @@ for iOri = 1:nOrientations
               Polarization = Polarization/prod(2*System.I+1);            
             end
           elseif computeNonEquiPops
-            switch PopBasis
-              case 'Molecular'
+            switch PopMode
+              case 'zerofield'
                 PopulationU = (abs(ZFStates'*U).^2).'*ZFPopulations; % lower level
                 PopulationV = (abs(ZFStates'*V).^2).'*ZFPopulations; % upper level
-              case 'Spin'
-                PopulationU = abs(ZFPopulations.'*U).^2; % lower level
-                PopulationV = abs(ZFPopulations.'*V).^2; % upper level
+              case 'highfield'
+                PopulationU = ZFPopulations(uv(1)); % lower level
+                PopulationV = ZFPopulations(uv(2)); % upper level
+              case 'densitymatrix'
+                PopulationU = U'*Sigma0*U; % lower level
+                PopulationV = V'*Sigma0*V; % upper level
             end
             Polarization = PopulationU - PopulationV;
           else
