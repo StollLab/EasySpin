@@ -2,7 +2,7 @@
 %
 %   esfit(data,fcn,p0,vary)
 %   esfit(data,fcn,p0,lb,ub)
-%   esfit(___,Opt)
+%   esfit(___,FitOpt)
 %
 %   pfit = esfit(___)
 %   [pfit,datafit] = esfit(___)
@@ -26,7 +26,7 @@
 %     ub          upper bounds of parameters
 %                   EasySpin-style functions: {ubSys,ubExp} or {ubSys,ubExp,ubOpt}
 %                   other functions: vector
-%     Opt         options for esfit
+%     FitOpt      options for esfit
 %        .Method  string containing kewords for
 %           -algorithm: 'simplex','levmar','montecarlo','genetic','grid','swarm'
 %           -target function: 'fcn', 'int', 'dint', 'diff', 'fft'
@@ -34,6 +34,8 @@
 %        .OutArg  two numbers [nOut iOut], where nOut is the number of
 %                 outputs of the simulation function and iOut is the index
 %                 of the output argument to use for fitting
+%        .mask    array of 1 and 0 the same size as data vector
+%                 values with mask 0 are excluded from the fit
 % Output:
 %     fit           structure with fitting results
 %       .pfit       fitted parameter vector
@@ -49,34 +51,34 @@
 function result = esfit(data,fcn,p0,varargin)
 
 if nargin==0
-    
-    Sys.g = 2.00123;
-    Sys.lwpp = [0.0 0.8];
-    Exp.mwFreq = 9.5;
-    Exp.Range = [330 350];
-    [B,spc] = pepper(Sys,Exp);
-    rng(123415);
-    Ampl = 100;
-    spc = Ampl*addnoise(spc,30,'n');
-    
-    Sys0.g = 2.003;
-    Sys0.lwpp = [0.0 0.7];
-    vSys.g = 0.01;
-    vSys.lwpp = [0.0 0.25];
-    
-    Opt = struct;
-    Opt = struct;
-    Opt.Method = 'simplex fcn';
-    Opt.TolFun = 1e-6;
-    Opt.PrintLevel = 2;
-    
-    result = esfit(spc,@pepper,{Sys0,Exp,Opt},{vSys},Opt);
-    
-    subplot(2,1,1)
-    plot(B,spc,B,result.fit);
-    subplot(2,1,2)
-    plot(B,spc-result.fit);
-    return
+
+  Sys.g = 2.00123;
+  Sys.lwpp = [0.0 0.8];
+  Exp.mwFreq = 9.5;
+  Exp.Range = [330 350];
+  [B,spc] = pepper(Sys,Exp);
+  rng(123415);
+  Ampl = 100;
+  spc = Ampl*addnoise(spc,30,'n');
+
+  Sys0.g = 2.003;
+  Sys0.lwpp = [0.0 0.7];
+  vSys.g = 0.01;
+  vSys.lwpp = [0.0 0.25];
+
+  Opt = struct;
+  FitOpt.Method = 'simplex fcn';
+  FitOpt.TolFun = 1e-6;
+  FitOpt.PrintLevel = 2;
+
+  result = esfit(spc,@pepper,{Sys0,Exp,Opt},{vSys},FitOpt);
+
+  subplot(2,1,1)
+  plot(B,spc,B,result.fit);
+  subplot(2,1,2)
+  plot(B,spc-result.fit);
+  return
+
 end
 
 if nargin==0, help(mfilename); return; end
@@ -138,8 +140,8 @@ argspar = esfit_argsparams();
 
 % Experimental data
 %-------------------------------------------------------------------------------
-if isstruct(data) || ~isnumeric(data) || ~isvector(data)
-    error('First argument must be numeric experimental data in the form of a vector.');
+if ~isnumeric(data) || ~isvector(data) || isempty(data)
+  error('First argument must be numeric experimental data in the form of a vector.');
 end
 fitdat.data = data;
 
@@ -156,7 +158,7 @@ end
 try
   nargin(fcn);
 catch
-  error('The simulation/model function given as second input cannot be found.');
+  error('The simulation/model function given as second input cannot be found. Check the name.');
 end
 
 fitdat.fcn = fcn;
@@ -164,13 +166,14 @@ fitdat.fcnName = func2str(fcn);
 
 fitdat.lastSetID = 0;
 
-% Determine if the model function is an EasySpin simulation function
+% Determine if the model function is an EasySpin simulation function that
+% takes structure inputs
 EasySpinFunction = any(strcmp(fitdat.fcnName,{'pepper','garlic','chili','salt','curry'}));
 
 
 % Parameters
 %-------------------------------------------------------------------------------
-structureInputs = iscell(p0) || isstruct(p0);
+structureInputs = isstruct(p0) || iscell(p0);
 fitdat.structureInputs = structureInputs;
 
 % Determine parameter intervals, either from p0 and pvary, or from lower/upper bounds
@@ -246,7 +249,7 @@ fitdat.pvec_ub = pvec_ub;
 fitdat.nParameters = numel(pvec_0);
 fitdat.fixedParams = false(1,numel(pvec_0));
 if fitdat.nParameters-sum(fitdat.fixedParams)==0
-    error('No variable parameters to fit.');
+  error('No variable parameters to fit.');
 end
 
 
@@ -347,6 +350,12 @@ TargetNames{4} = 'derivative';
 TargetNames{5} = 'Fourier transform';
 fitdat.TargetNames = TargetNames;
 
+% Mask
+if ~isfield(Opt,'mask')
+  Opt.mask = 1;
+end
+Opt.mask = logical(Opt.mask);
+
 % Scale fitting
 if ~isfield(Opt,'AutoScale')
   Opt.AutoScale = 1;
@@ -369,6 +378,7 @@ fitdat.GUI = nargout==0;
 
 if ~isfield(Opt,'PrintLevel'), Opt.PrintLevel = 1; end
 
+% Algorithm parameters
 if ~isfield(Opt,'nTrials'), Opt.nTrials = 20000; end
 if ~isfield(Opt,'TolFun'), Opt.TolFun = 1e-4; end
 if ~isfield(Opt,'TolStep'), Opt.TolStep = 1e-6; end
@@ -413,7 +423,7 @@ if fitdat.Opts.PrintLevel
   fprintf('-- esfit ------------------------------------------------\n');
   fprintf('Number of datapoints:     %d\n',numel(fitdat.data));
   fprintf('Model function name:      %s\n',fitdat.fcnName);
-  fprintf('Number of parameters:     %d\n',fitdat.nParameters);
+  fprintf('Number of fit parameters: %d\n',fitdat.nParameters);
   fprintf('Minimization algorithm:   %s\n',fitdat.AlgorithmNames{fitdat.Opts.AlgorithmID});
   fprintf('Residuals computed from:  %s\n',fitdat.TargetNames{fitdat.Opts.TargetID});
   fprintf('Autoscaling:              %d\n',fitdat.Opts.AutoScale);
@@ -673,7 +683,7 @@ else
 end
 
 % Compute residuals ------------------------------------------------------------
-residuals = calculateResiduals(simdata(:),expdata(:),Opt.TargetID);
+residuals = calculateResiduals(simdata(:),expdata(:),Opt.TargetID,Opt.mask(:));
 rmsd = sqrt(mean(abs(residuals).^2));
 
 % Keep track of errors ---------------------------------------------------------
@@ -848,18 +858,22 @@ end
 
 
 %===============================================================================
-function residuals = calculateResiduals(A,B,mode)
+function residuals = calculateResiduals(A,B,mode,mask)
+AB = A - B;
+if nargin>3
+  AB(~mask) = 0;
+end
 switch mode
-    case 1 % fcn
-        residuals = A-B;
-    case 2 % int
-        residuals = cumsum(A-B);
-    case 3 % iint
-        residuals = cumsum(cumsum(A-B));
-    case 4 % fft
-        residuals = abs(fft(A-B));
-    case 5 % diff
-        residuals = deriv(A-B);
+  case 1  % fcn
+    residuals = AB;
+  case 2  % int
+    residuals = cumsum(AB);
+  case 3  % iint
+    residuals = cumsum(cumsum(AB));
+  case 4  % fft
+    residuals = abs(fft(AB));
+  case 5  % diff
+    residuals = deriv(AB);
 end
 idxNaN = isnan(A) | isnan(B);
 residuals(idxNaN) = 0; % ignore residual if A or B is NaN
@@ -1272,24 +1286,23 @@ else
   clf(hFig);
 end
 
-sz = [1200 600]; % figure size
+sz = [1400 800]; % figure size
 screensize = get(0,'ScreenSize');
 xpos = ceil((screensize(3)-sz(1))/2); % center the figure on the screen horizontally
 ypos = ceil((screensize(4)-sz(2))/2); % center the figure on the screen vertically
 set(hFig,'position',[xpos, ypos, sz(1), sz(2)],'units','pixels');
 set(hFig,'WindowStyle','normal','DockControls','off','MenuBar','none');
 set(hFig,'Resize','off');
-set(hFig,'Name','EasySpin Least-Squares Fitting','NumberTitle','off');
+set(hFig,'Name','esfit - Least-Squares Fitting','NumberTitle','off');
 set(hFig,'CloseRequestFcn',...
     'global UserCommand; UserCommand = 99; drawnow; delete(gcf);');
 
 % Axes
 %---------------------------------------------------------------------------
-excludedRegions = [];
 % data display
 hAx = axes('Parent',hFig,'Units','pixels',...
-    'Position',[30 30 810 560],'FontSize',8,'Layer','top');
-x0 = 860; % Start of display to the right of the axes
+    'Position',[30 30 1010 740],'FontSize',8,'Layer','top');
+x0 = 1060; % Start of display to the right of the axes
 
 NaNdata = ones(1,numel(data))*NaN;
 dispData = fitdat.data;
@@ -1298,11 +1311,17 @@ miny = min(dispData);
 YLimits = [miny maxy] + [-1 1]*Opt.PlotStretchFactor*(maxy-miny);
 minx = min(fitdat.Opts.x);
 maxx = max(fitdat.Opts.x);
+x = fitdat.Opts.x;
+
+% show masked-out regions
+maskColor = [1 1 1]*0.95;
+edges = find(diff([1; fitdat.Opts.mask(:); 1]));
+excludedRegions = reshape(edges,[],2);
 for r = 1:size(excludedRegions,1)
-  h = patch(excludedRegions(r,[1 2 2 1]),YLimits([1 1 2 2]),[1 1 1]*0.8);
+  h = patch(excludedRegions(r,[1 2 2 1]),YLimits([1 1 2 2]),maskColor);
   set(h,'EdgeColor','none');
 end
-x = 1:numel(data);
+
 h(1) = line(x,NaNdata,'Color','k','Marker','.','LineStyle','none');
 h(2) = line(x,NaNdata,'Color',[0 0.6 0]);
 h(3) = line(x,NaNdata,'Color','r');
@@ -1348,10 +1367,10 @@ for p = 1:numel(fitdat.pinfo)
   data{p,5} = sprintf('%0.6g',fitdat.pvec_lb(p));
   data{p,6} = sprintf('%0.6g',fitdat.pvec_ub(p));
 end
-y0 = 400; dx = 80;
+y0 = 500; dx = 80;
 uitable('Tag','ParameterTable',...
     'FontSize',8,...
-    'Position',[x0 y0 330 150],...
+    'Position',[x0 y0 330 250],...
     'ColumnFormat',columnformat,...
     'ColumnName',columnname,...
     'ColumnEditable',colEditable,...
@@ -1360,22 +1379,22 @@ uitable('Tag','ParameterTable',...
     'RowName',[],...
     'Data',data);
 uicontrol('Style','text',...
-    'Position',[x0 y0+150 230 20],...
+    'Position',[x0 y0+250 230 20],...
     'BackgroundColor',get(gcf,'Color'),...
     'FontWeight','bold','String','Parameters',...
     'HorizontalAl','left');
 uicontrol('Style','pushbutton','Tag','selectInvButton',...
-    'Position',[x0+210 y0+150 50 20],...
+    'Position',[x0+210 y0+250 50 20],...
     'String','invert','Enable','on','Callback',@selectInvButtonCallback,...
     'HorizontalAl','left',...
     'Tooltip','Invert selection of parameters');
 uicontrol('Style','pushbutton','Tag','selectAllButton',...
-    'Position',[x0+260 y0+150 30 20],...
+    'Position',[x0+260 y0+250 30 20],...
     'String','all','Enable','on','Callback',@selectAllButtonCallback,...
     'HorizontalAl','left',...
     'Tooltip','Select all parameters');
 uicontrol('Style','pushbutton','Tag','selectNoneButton',...
-    'Position',[x0+290 y0+150 40 20],...
+    'Position',[x0+290 y0+250 40 20],...
     'String','none','Enable','on','Callback',@selectNoneButtonCallback,...
     'HorizontalAl','left',...
     'Tooltip','Unselect all parameters');
@@ -1385,7 +1404,7 @@ uicontrol(hFig,'Style','text',...
     'FontWeight','bold',...
     'HorizontalAlign','left',...
     'BackgroundColor',get(gcf,'Color'),...
-    'Position',[x0 y0+170 dx 20]);
+    'Position',[x0 y0+270 dx 20]);
 uicontrol(hFig,'Style','text','Tag','statusText',...
     'String','',...
     'Tooltip','status',...
@@ -1393,18 +1412,18 @@ uicontrol(hFig,'Style','text','Tag','statusText',...
     'ForegroundColor','r',...
     'HorizontalAlign','right',...
     'BackgroundColor',get(gcf,'Color'),...
-    'Position',[x0+270 y0+170 60 20]);
+    'Position',[x0+270 y0+270 60 20]);
 uicontrol(hFig,'Style','text',...
     'String',fitdat.fcnName,...
     'ForeGroundColor','b',...
     'Tooltip',sprintf('using output no. %d of %d',fitdat.nOutArguments,fitdat.OutArgument),...
     'HorizontalAlign','left',...
     'BackgroundColor',get(gcf,'Color'),...
-    'Position',[x0+dx y0+170 dx 20]);
+    'Position',[x0+dx y0+270 dx 20]);
 
 % popup menus
 %---------------------------------------------------------------------------
-dx = 60; y0 = 290; dy = 24;
+dx = 60; y0 = 390; dy = 24;
 uicontrol(hFig,'Style','text',...
     'String','Algorithm',...
     'FontWeight','bold',...
