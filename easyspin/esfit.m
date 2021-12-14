@@ -273,7 +273,6 @@ if EasySpinFunction
   end
 end
 
-
 if structureInputs
   fitdat.p2args = @(pars) argspar.setparamvalues(p0,pinfo,pars);
 end
@@ -374,8 +373,6 @@ StartpointNames{2} = 'random within range';
 StartpointNames{3} = 'selected parameter set';
 fitdat.StartpointNames = StartpointNames;
 
-fitdat.GUI = nargout==0;
-
 if ~isfield(Opt,'PrintLevel'), Opt.PrintLevel = 1; end
 
 % Algorithm parameters
@@ -408,6 +405,9 @@ end
 Opt.IterationPrintFunction = @iterationprint;
 
 fitdat.Opts = Opt;
+
+fitdat.GUI = nargout==0;
+fitdat.maskSelectMode = false;
 
 
 % Setup GUI and return if in GUI mode
@@ -1300,7 +1300,7 @@ set(hFig,'CloseRequestFcn',...
 % Axes
 %---------------------------------------------------------------------------
 % data display
-hAx = axes('Parent',hFig,'Units','pixels',...
+hAx = axes('Parent',hFig,'Tag','dataaxes','Units','pixels',...
     'Position',[30 30 1010 740],'FontSize',8,'Layer','top');
 x0 = 1060; % Start of display to the right of the axes
 
@@ -1313,15 +1313,6 @@ minx = min(fitdat.Opts.x);
 maxx = max(fitdat.Opts.x);
 x = fitdat.Opts.x;
 
-% show masked-out regions
-maskColor = [1 1 1]*0.95;
-edges = find(diff([1; fitdat.Opts.mask(:); 1]));
-excludedRegions = reshape(edges,[],2);
-for r = 1:size(excludedRegions,1)
-  h = patch(excludedRegions(r,[1 2 2 1]),YLimits([1 1 2 2]),maskColor);
-  set(h,'EdgeColor','none');
-end
-
 h(1) = line(x,NaNdata,'Color','k','Marker','.','LineStyle','none');
 h(2) = line(x,NaNdata,'Color',[0 0.6 0]);
 h(3) = line(x,NaNdata,'Color','r');
@@ -1330,10 +1321,12 @@ set(h(2),'Tag','bestsimdata');
 set(h(3),'Tag','currsimdata');
 hAx.XLim = [minx maxx];
 hAx.YLim = YLimits;
-hAx.Tag = 'dataaxes';
+hAx.ButtonDownFcn = @axesButtonDownFcn;
 grid(hAx,'on');
 %set(hAx,'XTick',[],'YTick',[]);
 box on
+
+showmaskedregions();
 
 % iteration and rms error displays
 %-----------------------------------------------------------------
@@ -1543,5 +1536,54 @@ uicontrol(hFig,'Style','pushbutton','Tag','sortRMSDSetButton',...
 drawnow
 
 set(hFig,'NextPlot','new');
+
+end
+
+function axesButtonDownFcn(~,~)
+global fitdat
+hAx = findobj('Tag','dataaxes');
+cp = hAx.CurrentPoint;
+x = fitdat.Opts.x;
+maskSelectMode = fitdat.maskSelectMode;
+if maskSelectMode
+  x1 = fitdat.maskSelect.x1;
+  x2 = cp(1,1);
+  maskrange = sort([x1 x2]);
+  fitdat.Opts.mask(x>maskrange(1) & x<maskrange(2)) = 0;
+  showmaskedregions();
+else
+  fitdat.maskSelect.x1 = cp(1,1);
+end
+fitdat.maskSelectMode = ~fitdat.maskSelectMode;
+end
+
+
+function showmaskedregions()
+global fitdat
+hAx = findobj('Tag','dataaxes');
+
+% Delete existing mask patches
+hMaskPatches = findobj(hAx,'Tag','maskPatch');
+delete(hMaskPatches);
+
+nChildren = numel(hAx.Children);
+
+% show masked-out regions
+maskColor = [1 1 1]*0.95;
+edges = find(diff([1; fitdat.Opts.mask(:); 1]));
+excludedRegions = reshape(edges,2,[]).';
+excludedRegions = fitdat.Opts.x(excludedRegions);
+
+% Add a patch for each masked region
+for r = 1:size(excludedRegions,1)
+  x_patch = excludedRegions(r,[1 2 2 1]);
+  y_patch = hAx.YLim([1 1 2 2]);
+  patch(hAx,x_patch,y_patch,maskColor,'Tag','maskPatch','EdgeColor','none');
+end
+
+% Reorder so that mask patches are in the back
+c = hAx.Children([nChildren+1:end 1:nChildren]);
+hAx.Children = c;
+drawnow
 
 end
