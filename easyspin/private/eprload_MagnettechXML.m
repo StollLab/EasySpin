@@ -89,6 +89,7 @@ for iCurve = 1:numel(CurveList)
       error('Data is not Base64 encoded. Cannot read file.');
     end
     if ~oldJavaClass
+      data(data=='=') = 'A';
       data = typecast(int8(data),'uint8'); % typecast without changing the underlying data
       bytestream_ = base64.decode(data); % decode
       bytestream_(9:9:end) = []; % remove termination zeros
