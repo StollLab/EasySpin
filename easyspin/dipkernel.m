@@ -38,6 +38,9 @@ else
   g2 = gfree;
 end
 
+t = t(:);
+r = r(:);
+
 D = (mu0/4/pi)*bmagn^2*g1*g2;
 D = D/planck*1e21;  % J m^3 -> MHz nm^3
 wdd = 2*pi*D./r.^3;
