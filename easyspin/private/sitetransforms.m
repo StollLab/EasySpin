@@ -1,17 +1,17 @@
 % sitetransforms   Rotation matrices for space groups
 %
 %   R = sitetransforms(ID)
-%   vrot = sitetransforms(ID,vec);
+%   vrot = sitetransforms(ID,vec)
 %
 % Provides sets of rotation matrices of the rotation point group belonging
-% to the space group given in ID. The rotation matrices are used to transform
-% tensors between different equivalent sites.
+% to the space group given in ID. The rotation matrices are used to
+% transform vectors and tensors between different equivalent sites.
 %
 % Input:
 %   ID    One of the following:
 %         - Schoenflies or Hermann-Mauguin symbol for crystallographic point group
-%         - Hermann-Mauguin symbol for space group
-%         - Space group number
+%         - Hermann-Mauguin symbol for space group (e.g. P121)
+%         - Space group number (between 1 and 230)
 %   vec   vector to transform (optional)
 % Output:
 %   R     cell array of active rotation matrices
@@ -29,8 +29,10 @@ if transformVector
   end
 end
 
-persistent SpaceGroupNames SpaceGroupNo SpaceGroupNotes
-if isempty(SpaceGroupNames)
+% Load space group data
+%--------------------------------------------------------------------------
+persistent SpaceGroups
+if isempty(SpaceGroups)
   EasySpinPath = fileparts(which(mfilename));
   SpaceGroupDataFile = [EasySpinPath filesep 'spacegroups.txt'];
   
@@ -39,38 +41,33 @@ if isempty(SpaceGroupNames)
   fh = fopen(SpaceGroupDataFile);
   C = textscan(fh,'%f %s %s','commentstyle','%');
   fclose(fh);
-  [SpaceGroupNo,SpaceGroupNames,SpaceGroupNotes] = C{:};
+  [SpaceGroups.No,SpaceGroups.Names,SpaceGroups.Axes] = C{:};
 end
 
 % Determine Laue class from input ID
-%--------------------------------------------------------
+%--------------------------------------------------------------------------
 
 % Process input if it is a character array or string
 if ischar(ID)
-  PointGroupsSchoenflies = {'C1','Ci','C2','Cs','C2h','D2','C2v','D2h',...
-    'C4','S4','C4h','D4','C4v','D2d','D4h','C3','C3i','D3','C3v','D3d',...
-    'C6','C3h','C6h','D6','C6v','D3h','D6h','T','Th','O','Td','Oh'};
-  PointGroupsHermannMauguin = {'1','-1','2','m','2/m','222','mm2','mmm',...
-    '4','-4','4/m','422','4mm','-42m','4/mmm','3','-3','32','3m','-3m',...
-    '6','-6','6/m','622','6mm','-6m2','6/mmm','23','m-3','432','-43m','m-3m'};
-  LaueClasses = [1 1 2 2 2 3 3 3 4 4 4 5 5 5 5 6 6 7 7 7 8 8 8 9 9 9 9 10 10 11 11 11];
-  idx = find(strcmp(ID,PointGroupsSchoenflies));
-  if isempty(idx)
-    idx = find(strcmp(ID,PointGroupsHermannMauguin));
-  end
-  if ~isempty(idx) % if it's a point group symbol (Schoenflies or H-M)
-    LaueClass = LaueClasses(idx);
-    % set default unique axis
-    if LaueClass==2 % monclinic space groups
-      AxisConvention = 'b'; % b is commonly used as default -> yC is unique axis
-    else
-      AxisConvention = 'z'; % set zC as unique axis
-    end
+  idx = find(strcmp(ID,SpaceGroups.Names));
+  if ~isempty(idx) % if it's a space group symbol
+    LaueClass = groupnumber2laueclass(SpaceGroups.No(idx));
+    AxisConvention = SpaceGroups.Axes{idx};
   else
-    idx = find(strcmp(ID,SpaceGroupNames));
-    if ~isempty(idx) % if it's a space group symbol
-      LaueClass = groupnumber2laueclass(SpaceGroupNo(idx));
-      AxisConvention = SpaceGroupNotes{idx};
+    PointGroupsSchoenflies = {'C1','Ci','C2','Cs','C2h','D2','C2v','D2h',...
+      'C4','S4','C4h','D4','C4v','D2d','D4h','C3','C3i','D3','C3v','D3d',...
+      'C6','C3h','C6h','D6','C6v','D3h','D6h','T','Th','O','Td','Oh'};
+    PointGroupsHermannMauguin = {'1','-1','2','m','2/m','222','mm2','mmm',...
+      '4','-4','4/m','422','4mm','-42m','4/mmm','3','-3','32','3m','-3m',...
+      '6','-6','6/m','622','6mm','-6m2','6/mmm','23','m-3','432','-43m','m-3m'};
+    LaueClasses = [1 1 2 2 2 3 3 3 4 4 4 5 5 5 5 6 6 7 7 7 8 8 8 9 9 9 9 10 10 11 11 11];
+    idx = find(strcmp(ID,PointGroupsSchoenflies));
+    if isempty(idx)
+      idx = find(strcmp(ID,PointGroupsHermannMauguin));
+    end
+    if ~isempty(idx) % if it's a point group symbol (Schoenflies or H-M)
+      LaueClass = LaueClasses(idx);
+      AxisConvention = 'default';
     else
       error('Point or space group symmetry symbol ''%s'' is unknown.',ID);
     end
@@ -87,7 +84,12 @@ if ~ischar(ID)
     error('Invalid space group number %g. Must be between 1 and 230.',ID);
   end
   LaueClass = groupnumber2laueclass(ID);
-  if LaueClass==2
+  AxisConvention = 'default';
+end
+
+% Supplement default unique axis
+if strcmp(AxisConvention,'default')
+  if LaueClass==2 % monoclinic space groups
     AxisConvention = 'b'; % b is commonly used as default -> yC is unique axis
   else
     AxisConvention = 'z'; % set zC as unique axis
