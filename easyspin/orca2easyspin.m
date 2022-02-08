@@ -85,7 +85,7 @@ else
   if ~isempty(binaryPropFile)
     Sys = orca2easyspin_propbin(binaryPropFile,HyperfineCutoff);
   elseif ~isempty(textPropFile)
-    Sys = orca2easyspin_proptxt(binaryPropFile,HyperfineCutoff);
+    Sys = orca2easyspin_proptxt(textPropFile,HyperfineCutoff);
   end
 end
 
