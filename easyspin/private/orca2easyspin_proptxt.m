@@ -2,6 +2,7 @@
 
 function Sys = orca2easyspin_proptxt(propfilename,HyperfineCutoff)
 
+% Read entire file into cell array
 fh = fopen(propfilename);
 allLines = textscan(fh,'%s','whitespace','','delimiter','\n');
 allLines = allLines{1};
@@ -11,48 +12,56 @@ if ~contains(allLines{2},"!PROPERTIES!")
   error('This is not a valid text-based ORCA property file.');
 end
 
+% Locate lines with section titles
 sections = find(cellfun(@(L)L(1)=='$',allLines));
 
 S = [];
 g = [];
 gFrame = [];
-E = [];  % total energy, hartree
 A = [];
 AFrame = [];
 Q = [];
 QFrame = [];
+E = [];  % total energy, hartree
+charge = [];  % total charge, e
 
-for s = 1:numel(sections)
-  idx = sections(s);
-  sectionTitle = allLines{idx};
+% Loop over all sections and parse relevant information
+for iSection = 1:numel(sections)
+  idx0 = sections(iSection);
+  sectionTitle = allLines{idx0};
   switch sectionTitle
     case '$ SCF_Energy'
-      E = readvalue(allLines{idx+4});
+      E = readvalue(allLines{idx0+4});
+
+      if allLines{idx0+6}(1)~='$'
+        error('Section SCF_Energy is longer than expected. Abording.');
+      end
 
     case '$ DFT_Energy'
       % not relevant
 
     case '$ Calculation_Info'
-      multiplicity = readvalue(allLines{idx+4});
+      multiplicity = readvalue(allLines{idx0+4});
       S = (multiplicity-1)/2;
+      charge = readvalue(allLines{idx0+5});
 
     case '$ SCF_Electric_Properties'
       % not relevant
 
     case '$ EPRNMR_GTensor'
-      g_raw = readmatrix(allLines(idx+(8:10)));
-      g_vecs = readmatrix(allLines(idx+(13:15)));
-      g_vals = readvec(allLines(idx+18));
+      g_raw = readmatrix(allLines(idx0+(8:10)));
+      g_vecs = readmatrix(allLines(idx0+(13:15)));
+      g_vals = readvec(allLines(idx0+18));
       g = g_vals;
       gFrame = eulang(g_vecs);
 
     case '$ EPRNMR_ATensor'
       % colon is missing after "Number of stored nuclei"
-      valuestr = regexp(allLines{idx+4},'\d+$','match','once');
+      valuestr = regexp(allLines{idx0+4},'\d+$','match','once');
       nNuclei = str2double(valuestr);
       A = zeros(nNuclei,3);
       AFrame = zeros(nNuclei,3);
-      i = idx+7;
+      i = idx0 + 7;
       for n = 1:nNuclei
         A_raw = readmatrix(allLines(i+(6:8)));
         A_vecs = readmatrix(allLines(i+(11:13)));
@@ -63,14 +72,14 @@ for s = 1:numel(sections)
         else
           AFrame(n,:) = [0 0 0];
         end
-        i = i+18;
+        i = i + 18;
       end
 
     case '$ EPRNMR_QTensor'
       % colon is missing after "Number of stored nuclei"
-      valuestr = regexp(allLines{idx+4},'\d+$','match','once');
+      valuestr = regexp(allLines{idx0+4},'\d+$','match','once');
       nNuclei = str2double(valuestr);
-      i = idx+8;
+      i = idx0 + 8;
       Q = zeros(nNuclei,3);
       QFrame = zeros(nNuclei,3);
       for n = 1:nNuclei
@@ -79,7 +88,7 @@ for s = 1:numel(sections)
         Q_vals = readvec(allLines(i+16));
         Q(n,:) = Q_vals;
         QFrame(n,:) = eulang(Q_vecs);
-        i = i+18;
+        i = i + 18;
       end
 
     otherwise
@@ -88,6 +97,14 @@ for s = 1:numel(sections)
   end
 end
 
+% Remove nuclei with hyperfine coupling below cutoff
+if ~isempty(A)
+  keep = max(abs(A),[],2) >= abs(HyperfineCutoff);
+  A = A(keep,:);
+  AFrame = AFrame(keep,:);
+end
+
+% Collect imported data into spin system structure
 Sys = struct;
 if ~isempty(S), Sys.S = S; end
 if ~isempty(g), Sys.g = g; end
@@ -96,9 +113,11 @@ if ~isempty(A), Sys.A = A; end
 if ~isempty(AFrame), Sys.AFrame = AFrame; end
 if ~isempty(Q), Sys.Q = Q; end
 if ~isempty(QFrame), Sys.QFrame = QFrame; end
-if ~isempty(E), Sys.Energy = E; end
-
+if ~isempty(E), Sys.Energy_Eh = E; end
+if ~isempty(charge), Sys.charge = charge; end
 end
+
+%==========================================================================
 
 function M = readmatrix(lines)
 M(1,:) = sscanf(lines{1},'%g').';
