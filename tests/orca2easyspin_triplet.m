@@ -4,7 +4,7 @@ function ok = test(opt)
 %-------------------------------------------------
 BaseDir = 'orca/';
 
-Files{1} = 'dioxygen_g';
+Files{1} = 'dioxygen_g.oof';
 
 hfCutoff = 0.1;
 

@@ -2,7 +2,7 @@ function ok = test(opt)
 
 % Read binary ORCA property files
 
-filename = 'orca/nx4me';
+filename = 'orca/nx4me.prop';
 
 Sys = orca2easyspin(filename);
 

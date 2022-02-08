@@ -8,8 +8,8 @@ function ok = test()
 ok = true;
 
 % test doublet and triplet
-FileName{1} = 'orca/hydroxyl_098_orca400';
-FileName{2} = 'orca/dioxygen_gD_orca400';
+FileName{1} = 'orca/hydroxyl_098_orca400.oof';
+FileName{2} = 'orca/dioxygen_gD_orca400.oof';
 spin = [1/2, 1];
 
 for f = 1:numel(FileName)

@@ -1,6 +1,6 @@
 function ok = test()
 
-thisFileName = 'orca/dioxygen_gD';
+thisFileName = 'orca/dioxygen_gD.oof';
 
 Sys = orca2easyspin(thisFileName);
 

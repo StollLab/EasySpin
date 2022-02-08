@@ -4,12 +4,12 @@ function ok = test(opt)
 
 BaseDir = 'orca/';
 
-Files{1} = 'hydroxyl_g';
-Files{2} = 'hydroxyl_gA';
-Files{3} = 'hydroxyl_gAiso';
-Files{4} = 'hydroxyl_gQ';
-Files{5} = 'hydroxyl_Q';
-Files{6} = 'hydroxyl_HO';
+Files{1} = 'hydroxyl_g.oof';
+Files{2} = 'hydroxyl_gA.oof';
+Files{3} = 'hydroxyl_gAiso.oof';
+Files{4} = 'hydroxyl_gQ.oof';
+Files{5} = 'hydroxyl_Q.oof';
+Files{6} = 'hydroxyl_HO.oof';
 
 hfCutoff = 1;
 
