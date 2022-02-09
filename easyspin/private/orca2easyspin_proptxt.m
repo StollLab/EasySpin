@@ -24,6 +24,8 @@ Q = [];
 QFrame = [];
 E = [];  % total energy, hartree
 charge = [];  % total charge, e
+atoms = [];  % list of atoms (element symbols)
+xyz = [];  % atom coordinates (in ångstrom)
 
 % Loop over all sections and parse relevant information
 for iSection = 1:numel(sections)
@@ -51,7 +53,7 @@ for iSection = 1:numel(sections)
     case '$ EPRNMR_GTensor'
       g_raw = readmatrix(allLines(idx0+(8:10)));
       g_vecs = readmatrix(allLines(idx0+(13:15)));
-      g_vals = readvec(allLines(idx0+18));
+      g_vals = readvec(allLines{idx0+18}(9:end));
       g = g_vals;
       gFrame = eulang(g_vecs);
 
@@ -65,7 +67,7 @@ for iSection = 1:numel(sections)
       for n = 1:nNuclei
         A_raw = readmatrix(allLines(i+(6:8)));
         A_vecs = readmatrix(allLines(i+(11:13)));
-        A_vals = readvec(allLines(i+16));
+        A_vals = readvec(allLines{i+16}(9:end));
         A(n,:) = A_vals;
         if ~all(A_vecs==00,'all')
           AFrame(n,:) = eulang(A_vecs);
@@ -79,16 +81,24 @@ for iSection = 1:numel(sections)
       % colon is missing after "Number of stored nuclei"
       valuestr = regexp(allLines{idx0+4},'\d+$','match','once');
       nNuclei = str2double(valuestr);
+      rho_present = contains(allLines{idx0+7},'true');
+      d = 18;
+      if rho_present
+        d = 19;
+      end
       i = idx0 + 8;
       Q = zeros(nNuclei,3);
       QFrame = zeros(nNuclei,3);
       for n = 1:nNuclei
+        m = regexp(allLines{i},'(\d+)\W+(\w+)\W*$','tokens','once');
+        atomno = str2double(m{1});
+        element = m{2};
         Q_raw = readmatrix(allLines(i+(6:8)));
         Q_vecs = readmatrix(allLines(i+(11:13)));
-        Q_vals = readvec(allLines(i+16));
+        Q_vals = readvec(allLines{i+16}(:,end));
         Q(n,:) = Q_vals;
         QFrame(n,:) = eulang(Q_vecs);
-        i = i + 18;
+        i = i + d;
       end
 
     otherwise
@@ -97,11 +107,28 @@ for iSection = 1:numel(sections)
   end
 end
 
+% Read geometry
+geometrySection = find(contains(allLines,'!GEOMETRY!'));
+if ~isempty(geometrySection)
+  idx0 = geometrySection;
+  nAtoms = readvalue(allLines{idx0+1});
+  idx = idx0+3;
+  for iAtom = 1:nAtoms
+    idx = idx + 1;
+    xyz(iAtom,:) = readvec(allLines{idx}(22:end));
+    atoms{iAtom} = regexp(allLines{idx}(1:22),'[a-zA-Z]+','match','once');
+  end
+end
+
 % Remove nuclei with hyperfine coupling below cutoff
 if ~isempty(A)
   keep = max(abs(A),[],2) >= abs(HyperfineCutoff);
   A = A(keep,:);
   AFrame = AFrame(keep,:);
+  if ~isempty(Q)
+    Q = Q(keep,:);
+    QFrame = QFrame(keep,:);
+  end
 end
 
 % Collect imported data into spin system structure
@@ -115,6 +142,8 @@ if ~isempty(Q), Sys.Q = Q; end
 if ~isempty(QFrame), Sys.QFrame = QFrame; end
 if ~isempty(E), Sys.Energy_Eh = E; end
 if ~isempty(charge), Sys.charge = charge; end
+if ~isempty(atoms), Sys.atoms = atoms; end
+if ~isempty(xyz), Sys.xyz = xyz; end
 end
 
 %==========================================================================
@@ -132,6 +161,6 @@ val = str2double(L(i+1:end));
 end
 
 function vec = readvec(lines)
-vec(1,:) = sscanf(lines{1},'%g').';
-vec = vec(2:end);
+if iscell(lines), lines = lines{1}; end
+vec(1,:) = sscanf(lines,'%g').';
 end

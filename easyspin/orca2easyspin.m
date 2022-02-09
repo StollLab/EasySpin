@@ -30,7 +30,7 @@
 %    Sys = orca2easyspin('nitroxide.out')
 %    Sys = orca2easyspin('nitroxide.out',0.5)  % 0.5 MHz hf cutoff
 
-function Sys = orca2easyspin(OrcaOutput,HyperfineCutoff)
+function Sys = orca2easyspin(OrcaOutput,HyperfineCutoff,readmode)
 
 if nargin==0 && nargout==0
   help(mfilename);
