@@ -58,7 +58,7 @@ end
 
 % Loop over all structures and read properties
 %--------------------------------------------------------------------------
-for iStructure = 1:nStructures
+for iStructure = nStructures:-1:1
 
   kstart = startIdx(iStructure);
   if iStructure<nStructures
@@ -88,6 +88,26 @@ for iStructure = 1:nStructures
   data(iStructure).NucId = NucId;
   data(iStructure).Element = Element;
   data(iStructure).xyz = xyz;
+
+  % Total charge
+  %------------------------------------------------------------------------
+  for k = kstart:kend
+    if regexp(L{k},'^\s*Total Charge','match','once')
+      break
+    end
+  end
+  Charge = str2double(regexp(L{k},'\d+$','match','once'));
+  data(iStructure).Charge = Charge;
+
+  % Spin multiplicity
+  %------------------------------------------------------------------------
+  for k = kstart:kend
+    if regexp(L{k},'^\s*Multiplicity','match','once')
+      break
+    end
+  end
+  Multiplicity = str2double(regexp(L{k},'\d+$','match','once'));
+  data(iStructure).Multiplicity = Multiplicity;
 
   % Mulliken atomic charges and spin populations
   %------------------------------------------------------------------------
@@ -138,7 +158,7 @@ for iStructure = 1:nStructures
     gFrame = eulang(V);
   else
     g_raw = [];
-    g = [];
+    g_sym = [];
     gvals = [];
     gFrame = [];
   end
@@ -223,12 +243,11 @@ for iStructure = 1:nStructures
 
 end % for iStructure = 1:nStructures
 
-data
 Sys = data;
 
-return
 % Build spin system(s)
 %--------------------------------------------------------------------------
+%{
 Sys = struct;
 for iStructure = 1:nStructures
   if gMatrixData
@@ -263,7 +282,6 @@ for iStructure = 1:nStructures
   end
 end
 
-data
-Sys
+%}
 
 end
