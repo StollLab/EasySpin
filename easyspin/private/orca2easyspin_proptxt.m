@@ -18,6 +18,8 @@ sections = find(cellfun(@(L)L(1)=='$',allLines));
 S = [];
 g = [];
 gFrame = [];
+D = [];
+DFrame = [];
 A = [];
 AFrame = [];
 Q = [];
@@ -56,6 +58,16 @@ for iSection = 1:numel(sections)
       g_vals = readvec(allLines{idx0+18}(9:end));
       g = g_vals;
       gFrame = eulang(g_vecs);
+
+    case '$ EPRNMR_DTensor'
+      % Bug in ORCA 5.0.2: D_vals is all-zero, even though D_raw is correct
+      D_raw = readmatrix(allLines(idx0+(8:10)));
+      %D_vals = readvec(allLines{idx0+13}(9:end));
+      %D_vecs = readmatrix(allLines(idx0+(16:18)));
+      [D_vecs,D_vals] = eig(D_raw);
+      D_vals = diag(D_vals).';
+      D = D_vals;
+      DFrame = eulang(D_vecs);
 
     case '$ EPRNMR_ATensor'
       % colon is missing after "Number of stored nuclei"
@@ -136,6 +148,8 @@ Sys = struct;
 if ~isempty(S), Sys.S = S; end
 if ~isempty(g), Sys.g = g; end
 if ~isempty(gFrame), Sys.gFrame = gFrame; end
+if ~isempty(D), Sys.D = D; end
+if ~isempty(DFrame), Sys.DFrame = DFrame; end
 if ~isempty(A), Sys.A = A; end
 if ~isempty(AFrame), Sys.AFrame = AFrame; end
 if ~isempty(Q), Sys.Q = Q; end

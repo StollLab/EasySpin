@@ -2,7 +2,6 @@
 %
 %  Sys = orca2easyspin(OrcaFileName)
 %  Sys = orca2easyspin(OrcaFileName,HyperfineCutoff)
-%  Sys = orca2easyspin(OrcaFileName,HyperfineCutoff,readmode)
 %
 %  Loads the spin Hamiltonian parameters from the binary ORCA property
 %  output file given in OrcaFileName and returns them as an EasySpin
@@ -24,8 +23,9 @@
 %  coupling are included.
 %
 %  Examples:
-%    Sys = orca2easyspin('nitroxide.out')
-%    Sys = orca2easyspin('nitroxide.out')
+%    Sys = orca2easyspin('nitroxide.out')   % all versions
+%    Sys = orca2easyspin('nitroxide.prop')   % before ORCA 5
+%    Sys = orca2easyspin('nitroxide_property.txt')   % ORCA 5 and later
 %    Sys = orca2easyspin('nitroxide.out',0.5)  % 0.5 MHz hf cutoff
 
 function Sys = orca2easyspin(OrcaOutput,HyperfineCutoff)
@@ -46,13 +46,13 @@ end
 if output_ext==".prop"
   % binary properry file (ORCA versions < 5.0)
   readmode = 'propbin';
-  mainOutputFile = fullfile(output_path,[output_name]);
+  mainOutputFile = fullfile(output_path,output_name);
   binaryPropFile = fullfile(output_path,[output_name output_ext]);
   textPropFile = '';
 elseif output_ext==".txt" && numel(output_name)>9 && output_name(end-8:end)=="_property"
   % text property file (ORCA versions >= 5.0)
   readmode = 'proptxt';
-  mainOutputFile = fullfile(output_path,[output_name(1:end-9)]);
+  mainOutputFile = fullfile(output_path,output_name(1:end-9));
   binaryPropFile = '';
   textPropFile = fullfile(output_path,[output_name output_ext]);
 else

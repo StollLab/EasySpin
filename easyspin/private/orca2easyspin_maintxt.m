@@ -41,24 +41,34 @@ info.InputFile = char(inputFile);
 
 % Determine whether it's a multiple-structure file
 %--------------------------------------------------------------------------
-MultiXYZHeader = '* Multiple XYZ Scan Calculation *';
-multiXYZ = false;
+MultiXYZHeader{1} = '* Multiple XYZ Scan Calculation *'; % ORCA 3
+multiStepTitle{1} = 'MULTIPLE XYZ STEP'; % ORCA 3
+MultiXYZHeader{2} = '* Parameter Scan Calculation *';
+multiStepTitle{2} = 'TRAJECTORY STEP';
+MultiXYZHeader{3} = '*    Relaxed Surface Scan    *';
+multiStepTitle{3} = 'RELAXED SURFACE SCAN STEP';
 startIdx = k;
 nStructures = 1;
-while k<=nLines
-  if strcmp(L{k},MultiXYZHeader), multiXYZ = true; break; end
+multipleStructures = 0;
+while k<=nLines && ~multipleStructures
+  for q = 1:3
+    if contains(L{k},MultiXYZHeader{q})
+      multipleStructures = q;
+      break
+    end
+  end
   k = k + 1;
 end
-if multiXYZ
-  multiStepTitle = 'MULTIPLE XYZ STEP';
-  startIdx = find(strncmp(multiStepTitle,L,numel(multiStepTitle)));
+if multipleStructures>0
+  startIdx = find(contains(L,multiStepTitle{multipleStructures}));
   nStructures = numel(startIdx);
 end
 
 
 % Loop over all structures and read properties
 %--------------------------------------------------------------------------
-for iStructure = nStructures:-1:1
+data = struct;
+for iStructure = 1:nStructures
 
   kstart = startIdx(iStructure);
   if iStructure<nStructures
@@ -67,15 +77,17 @@ for iStructure = nStructures:-1:1
     kend = nLines;
   end
 
-  % Atom info, and Cartesian coordinates in ångstrom
+  % Atom info, and Cartesian coordinates
   %------------------------------------------------------------------------
   CoordinateHeader = 'CARTESIAN COORDINATES (ANGSTROEM)';
   for k = kstart:kend
-    if strcmp(L{k},CoordinateHeader), break; end
+    if strcmp(L{k},CoordinateHeader)
+      break;
+    end
   end
-  k = k+2;
+  k = k + 2;
   iAtom = 1;
-  clear xyz Element
+  clear xyz Element NucId
   while L{k}(1)~='-'
     xyz(iAtom,:) = sscanf(L{k},'%*s %f %f %f');
     Element{iAtom} = sscanf(L{k},'%s',1);
@@ -108,6 +120,8 @@ for iStructure = nStructures:-1:1
   end
   Multiplicity = str2double(regexp(L{k},'\d+$','match','once'));
   data(iStructure).Multiplicity = Multiplicity;
+  data(iStructure).S = (Multiplicity-1)/2;
+  
 
   % Mulliken atomic charges and spin populations
   %------------------------------------------------------------------------
@@ -123,14 +137,14 @@ for iStructure = nStructures:-1:1
     end
   end
   if MullikenSection
-    clear Mulliken
     k = k+2;
+    Mulliken = zeros(nAtoms,2);
     for iAtom = 1:nAtoms
       Mulliken(iAtom,:) = sscanf(L{k+iAtom-1}(9:end),'%f %f').';
     end
   else
     Mulliken = zeros(0,2);
-    fprintf('No Mulliken analysis found for structure %2d of %d.\n',iStructure,nStructures);
+    fprintf('No Mulliken analysis found for structure %d of %d.\n',iStructure,nStructures);
   end
   data(iStructure).MullikenCharge = Mulliken(:,1);
   data(iStructure).MullikenSpin = Mulliken(:,2);
@@ -140,9 +154,12 @@ for iStructure = nStructures:-1:1
   gMatrixHeader = 'ELECTRONIC G-MATRIX';
   gMatrixData = false;
   for k = kstart:kend
-    if strcmp(L{k},gMatrixHeader), gMatrixData = true; break; end
+    if strcmp(L{k},gMatrixHeader)
+      gMatrixData = true;
+      break
+    end
   end
-
+  
   if gMatrixData
     k = k+3;
     % read raw asymmetric g matrix
@@ -153,7 +170,11 @@ for iStructure = nStructures:-1:1
     g_sym = (g_sym+g_sym.')/2; % symmetrize numerically
 
     [V,g] = eig(g_sym);
-    if det(V)<0, V = V(:,[1 3 2]); g = g([1 3 2],[1 3 2]); end
+    if det(V)<0
+      idx = [1 3 2];
+      V = V(:,idx);
+      g = g(idx,idx);
+    end
     gvals = diag(g).';
     gFrame = eulang(V);
   else
@@ -172,31 +193,35 @@ for iStructure = nStructures:-1:1
   DMatrixHeader = 'ZERO-FIELD-SPLITTING TENSOR';
   DMatrixData = false;
   for k = kstart:kend
-    if strcmp(L{k},DMatrixHeader), DMatrixData = true; break; end
+    if strcmp(L{k},DMatrixHeader)
+      DMatrixData = true;
+      break
+    end
   end
 
   if DMatrixData
     k = k+3;
-    % read raw asymmetric g matrix
+    % read raw D matrix
     D_raw(1,:) = sscanf(L{k+0},'%f %f %f').';
     D_raw(2,:) = sscanf(L{k+1},'%f %f %f').';
     D_raw(3,:) = sscanf(L{k+2},'%f %f %f').';
-    D_sym = (D_raw.'*D_raw)^(1/2);
-    D_sym = (D_sym+D_sym.')/2; % symmetrize numerically
 
-    [V,D] = eig(D_sym);
-    if det(V)<0, V = V(:,[1 3 2]); D = D([1 3 2],[1 3 2]); end
+    [V,D] = eig(D_raw);
+    if det(V)<0
+      % make sure eigenvectors form right-handed coordinate frame
+      idx = [1 3 2];
+      V = V(:,idx);
+      D = D(idx,idx);
+    end
     Dvals = diag(D).';
     DFrame = eulang(V);
   else
     D_raw = [];
-    D_sym = [];
     Dvals = [];
     DFrame = [];
   end
 
   data(iStructure).D_raw = D_raw;
-  data(iStructure).D = D_sym;
   data(iStructure).Dvals = Dvals;
   data(iStructure).DFrame = DFrame;
 
@@ -204,11 +229,16 @@ for iStructure = nStructures:-1:1
   %-----------------------------------------------------------------
   hfc = cell(1,nAtoms);
   efg = cell(1,nAtoms);
+  Q = cell(1,nAtoms);
+  QFrame = cell(1,nAtoms);
 
   nuclearHeader = 'ELECTRIC AND MAGNETIC HYPERFINE STRUCTURE';
   HyperfineEFGData = false;
   for k = kstart:kend
-    if strcmp(L{k},nuclearHeader), HyperfineEFGData = true; break; end
+    if strcmp(L{k},nuclearHeader)
+      HyperfineEFGData = true;
+      break
+    end
   end
 
   if HyperfineEFGData
@@ -220,7 +250,9 @@ for iStructure = nStructures:-1:1
         iAtom = sscanf(L{k}(9:end),'%d',1)+1;
       elseif regexp(L{k},'^\s*Raw HFC matrix\s*')
         idx = k+1;
-        if strncmp(L{k+1}(2:4),'---',3), idx = k+2; end
+        if strncmp(L{k+1}(2:4),'---',3)
+          idx = k+2;
+        end
         hfc_(1,:) = sscanf(L{idx},'%f %f %f');
         hfc_(2,:) = sscanf(L{idx+1},'%f %f %f').';
         hfc_(3,:) = sscanf(L{idx+2},'%f %f %f').';
@@ -231,7 +263,25 @@ for iStructure = nStructures:-1:1
         efg_(1,:) = sscanf(L{idx+1},'%f %f %f');
         efg_(2,:) = sscanf(L{idx+2},'%f %f %f').';
         efg_(3,:) = sscanf(L{idx+3},'%f %f %f').';
-        efg{iAtom} = efg_;
+        efg{iAtom} = efg_; % atomic unit
+
+        efg_ = efg{iAtom}*hartree/echarge/bohrrad^2; % atomic unit -> SI unit
+        [R,eq] = eig(efg_);
+        if det(R)<0
+          % make sure eigenvectors form right-handed coordinate frame
+          idx = [1 3 2];
+          R = R(:,idx);
+          eq = eq(idx,idx);
+        end
+        eq = diag(eq);
+        eta = (eq(1)-eq(2))/eq(3);
+        el = Element{iAtom};
+        Qmom = nucqmom('17O')*barn;
+        I = nucspin('17O');
+        e2qQh = echarge*Qmom*eq(3)/planck/1e6;
+        K = e2qQh/(4*I)/(2*I-1);
+        Q{iAtom} = K*[1-eta,1+eta,-2];
+        QFrame{iAtom} = eulang(R);
         k = k+3;
       end
       k = k+1;
@@ -243,6 +293,7 @@ for iStructure = nStructures:-1:1
 
 end % for iStructure = 1:nStructures
 
+% Copy relevant data to spin system structure
 Sys = data;
 
 % Build spin system(s)
