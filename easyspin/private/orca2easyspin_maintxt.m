@@ -89,12 +89,7 @@ for iStructure = 1:nStructures
 
   % Atom info, and Cartesian coordinates
   %------------------------------------------------------------------------
-  CoordinateHeader = 'CARTESIAN COORDINATES (ANGSTROEM)';
-  for k = krange
-    if strcmp(L{k},CoordinateHeader)
-      break
-    end
-  end
+  k = findheader('CARTESIAN COORDINATES (ANGSTROEM)',L,krange);
   k = k + 2;
   iAtom = 0;
   clear xyz Element NucId
@@ -159,21 +154,11 @@ for iStructure = 1:nStructures
 
   % g matrix
   %------------------------------------------------------------------------
-  gMatrixHeader = 'ELECTRONIC G-MATRIX';
-  gMatrixData = false;
-  for k = krange
-    if strcmp(L{k},gMatrixHeader)
-      gMatrixData = true;
-      break
-    end
-  end
-  
-  if gMatrixData
+  k = findheader('ELECTRONIC G-MATRIX',L,krange);
+  if ~isempty(k)
     k = k+3;
     % read raw asymmetric g matrix
-    g_raw(1,:) = sscanf(L{k+0},'%f %f %f').';
-    g_raw(2,:) = sscanf(L{k+1},'%f %f %f').';
-    g_raw(3,:) = sscanf(L{k+2},'%f %f %f').';
+    g_raw = readmatrix(L(k:k+2));
     g_sym = (g_raw.'*g_raw)^(1/2);
     g_sym = (g_sym+g_sym.')/2; % symmetrize numerically
 
@@ -196,24 +181,12 @@ for iStructure = 1:nStructures
   data(iStructure).gvals = gvals;
   data(iStructure).gFrame = gFrame;
 
-  % D matrix
+  % Zero-field splitting tensor
   %------------------------------------------------------------------------
-  DMatrixHeader = 'ZERO-FIELD-SPLITTING TENSOR';
-  DMatrixData = false;
-  for k = krange
-    if strcmp(L{k},DMatrixHeader)
-      DMatrixData = true;
-      break
-    end
-  end
-
-  if DMatrixData
-    k = k+3;
+  k = findheader('ZERO-FIELD-SPLITTING TENSOR',L,krange);
+  if ~isempty(k)
     % read raw D matrix (cm^-1)
-    D_raw(1,:) = sscanf(L{k+0},'%f %f %f').';
-    D_raw(2,:) = sscanf(L{k+1},'%f %f %f').';
-    D_raw(3,:) = sscanf(L{k+2},'%f %f %f').';
-
+    D_raw = readmatrix(L(k+3:k+5));
     [V,D] = eig(D_raw);
     D = diag(D).';
     if det(V)<0
@@ -235,7 +208,7 @@ for iStructure = 1:nStructures
   data(iStructure).DFrame = DFrame;
 
   % Hyperfine and electric field gradient
-  %-----------------------------------------------------------------
+  %------------------------------------------------------------------------
   hfc = cell(1,nAtoms);
   efg = cell(1,nAtoms);
   Q = cell(1,nAtoms);
@@ -243,31 +216,22 @@ for iStructure = 1:nStructures
   A = cell(1,nAtoms);
   AFrame = cell(1,nAtoms);
 
-  nuclearHeader = 'ELECTRIC AND MAGNETIC HYPERFINE STRUCTURE';
-  HyperfineEFGData = false;
-  for k = krange
-    if strcmp(L{k},nuclearHeader)
-      HyperfineEFGData = true;
-      break
-    end
-  end
-
-  if HyperfineEFGData
+  k = findheader('ELECTRIC AND MAGNETIC HYPERFINE STRUCTURE',L,krange);
+  if ~isempty(k)
     iAtom = 0;
     hfc = cell(1,nAtoms);
     efg = cell(1,nAtoms);
     while k<=krange(end)
       if regexp(L{k},'^\s*Nucleus\s*')
         iAtom = sscanf(L{k}(9:end),'%d',1)+1;
-        [grefEl,qrefEl] = referenceisotope(Element{iAtom});
+        [~,qrefEl] = referenceisotope(Element{iAtom});
       elseif regexp(L{k},'^\s*Raw HFC matrix\s*')
-        idx = k+1;
         if strncmp(L{k+1}(2:4),'---',3)
           idx = k+2;
+        else
+          idx = k+1;
         end
-        hfc_(1,:) = sscanf(L{idx},'%f %f %f');
-        hfc_(2,:) = sscanf(L{idx+1},'%f %f %f').';
-        hfc_(3,:) = sscanf(L{idx+2},'%f %f %f').';
+        hfc_ = readmatrix(L(idx:idx+2));
         hfc{iAtom} = hfc_;
         [R,A_] = eig(hfc_);
         A_ = diag(A_);
@@ -281,13 +245,12 @@ for iStructure = 1:nStructures
         AFrame{iAtom} = eulang(R);
         k = k+3;
       elseif regexp(L{k},'^\s*Raw EFG matrix\s*')
-        idx = k+1;
         if strncmp(L{k+1}(2:4),'---',3)
           idx = k+2;
+        else
+          idx = k+1;
         end
-        efg_(1,:) = sscanf(L{idx},'%f %f %f');
-        efg_(2,:) = sscanf(L{idx+1},'%f %f %f').';
-        efg_(3,:) = sscanf(L{idx+2},'%f %f %f').';
+        efg_ = readmatrix(L(idx:idx+2));
         efg{iAtom} = efg_; % atomic unit
 
         efg_ = efg{iAtom}*hartree/echarge/bohrrad^2; % atomic unit -> SI unit
@@ -361,43 +324,24 @@ for iStructure = 1:nStructures
   Sys(iStructure).data = data;
 end
 
-% Build spin system(s)
-%--------------------------------------------------------------------------
-%{
-Sys = struct;
-for iStructure = 1:nStructures
-  if gMatrixData
-    Sys(iStructure).g = data(iStructure).gvals;
-    Sys(iStructure).gFrame = data(iStructure).gFrame;
-  end
-  if DMatrixData
-    Sys(iStructure).D = data(iStructure).Dvals;
-    Sys(iStructure).DFrame = data(iStructure).DFrame;
-  end
-  idx = 1;
-  for k = 1:numel(hfc)
-    A = data(iStructure).hfc{k};
-    if isempty(A), continue; end
-    [V,A] = eig(A); A = diag(A).';
-    if det(V)<0, V = V(:,[1 3 2]); end
-    Apa = eulang(V);
-    efg = data(iStructure).efg{k};
-    if ~isempty(efg)
-      [V,efg] = eig(efg);
-      efg = diag(efg).';
-      if det(V)<0, V = V(:,[1 3 2]); end
-      Qpa = eulang(V);
-      eta = data(iStructure).eta(k);
-      eeqQscaled = data(iStructure).eeqQscaled(k);
-      P = eeqQscaled*[-(1-eta),-(1+eta),2];
-      Sys(iStructure) = nucspinadd(Sys(iStructure),data(iStructure).Element{k},A,Apa,P,Qpa);
-    else
-      Sys(iStructure) = nucspinadd(Sys(iStructure),data(iStructure).Element{k},A,Apa);
-    end
-    idx = idx + 1;
-  end
 end
 
-%}
 
+function M = readmatrix(L)
+M(1,:) = sscanf(L{1},'%f %f %f').';
+M(2,:) = sscanf(L{2},'%f %f %f').';
+M(3,:) = sscanf(L{3},'%f %f %f').';
+end
+
+function k = findheader(header,L,krange)
+header_found = false;
+for k = krange
+  if strcmp(L{k},header)
+    header_found = true;
+    break
+  end
+end
+if ~header_found
+  k = [];
+end
 end
