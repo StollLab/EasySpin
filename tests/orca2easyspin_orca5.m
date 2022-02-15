@@ -4,8 +4,8 @@ function ok = test()
 
 BaseDir = 'orca/5.0.2';
 
-Sys = orca2easyspin([BaseDir filesep 'dioxygen_g.oof']);
-Sys = orca2easyspin([BaseDir filesep 'hydroxyl_gA.oof']);
-Sys = orca2easyspin([BaseDir filesep 'hydroxyl_gQ.oof']);
+Sys = orca2easyspin([BaseDir filesep 'dioxygen_singlepoint.oof']);
+Sys = orca2easyspin([BaseDir filesep 'hydroxyl_optscan.oof']);
+Sys = orca2easyspin([BaseDir filesep 'hydroxyl_parascan.oof']);
 
 ok = true;

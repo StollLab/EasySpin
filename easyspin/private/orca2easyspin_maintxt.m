@@ -209,19 +209,20 @@ for iStructure = 1:nStructures
 
   if DMatrixData
     k = k+3;
-    % read raw D matrix
+    % read raw D matrix (cm^-1)
     D_raw(1,:) = sscanf(L{k+0},'%f %f %f').';
     D_raw(2,:) = sscanf(L{k+1},'%f %f %f').';
     D_raw(3,:) = sscanf(L{k+2},'%f %f %f').';
 
     [V,D] = eig(D_raw);
+    D = diag(D).';
     if det(V)<0
       % make sure eigenvectors form right-handed coordinate frame
       idx = [1 3 2];
       V = V(:,idx);
-      D = D(idx,idx);
+      D = D(idx);
     end
-    Dvals = diag(D).';
+    Dvals = D*100*clight/1e6;  % cm^-1 -> MHz
     DFrame = eulang(V);
   else
     D_raw = [];
@@ -281,9 +282,12 @@ for iStructure = 1:nStructures
         k = k+3;
       elseif regexp(L{k},'^\s*Raw EFG matrix\s*')
         idx = k+1;
-        efg_(1,:) = sscanf(L{idx+1},'%f %f %f');
-        efg_(2,:) = sscanf(L{idx+2},'%f %f %f').';
-        efg_(3,:) = sscanf(L{idx+3},'%f %f %f').';
+        if strncmp(L{k+1}(2:4),'---',3)
+          idx = k+2;
+        end
+        efg_(1,:) = sscanf(L{idx},'%f %f %f');
+        efg_(2,:) = sscanf(L{idx+1},'%f %f %f').';
+        efg_(3,:) = sscanf(L{idx+2},'%f %f %f').';
         efg{iAtom} = efg_; % atomic unit
 
         efg_ = efg{iAtom}*hartree/echarge/bohrrad^2; % atomic unit -> SI unit
@@ -301,7 +305,7 @@ for iStructure = 1:nStructures
           I = qrefEl.I;
           e2qQh = echarge*Qmom*eq(3)/planck/1e6;
           K = e2qQh/(4*I)/(2*I-1);
-          Q{iAtom} = K*[1-eta,1+eta,-2];
+          Q{iAtom} = K*[-(1-eta),-(1+eta),2];
           QFrame{iAtom} = eulang(R);
         end
         k = k+3;
@@ -353,7 +357,6 @@ for iStructure = 1:nStructures
       end
     end
   end
-  Sys(iStructure).Nucs = nuclist2string(Sys(iStructure).Nucs);
 
   Sys(iStructure).data = data;
 end
