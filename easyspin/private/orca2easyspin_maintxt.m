@@ -163,12 +163,10 @@ for iStructure = 1:nStructures
     g_sym = (g_sym+g_sym.')/2; % symmetrize numerically
 
     [V,g] = eig(g_sym);
-    if det(V)<0
-      idx = [1 3 2];
-      V = V(:,idx);
-      g = g(idx,idx);
-    end
     gvals = diag(g).';
+    if det(V)<0
+      V(:,1) = -V(:,1);
+    end
     gFrame = eulang(V);
   else
     g_raw = [];
@@ -185,15 +183,12 @@ for iStructure = 1:nStructures
   %------------------------------------------------------------------------
   k = findheader('ZERO-FIELD-SPLITTING TENSOR',L,krange);
   if ~isempty(k)
-    % read raw D matrix (cm^-1)
+    % read raw D matrix (cm^-1) and diagonalize
     D_raw = readmatrix(L(k+3:k+5));
     [V,D] = eig(D_raw);
     D = diag(D).';
     if det(V)<0
-      % make sure eigenvectors form right-handed coordinate frame
-      idx = [1 3 2];
-      V = V(:,idx);
-      D = D(idx);
+      V(:,1) = -V(:,1);
     end
     Dvals = D*100*clight/1e6;  % cm^-1 -> MHz
     DFrame = eulang(V);
@@ -202,7 +197,6 @@ for iStructure = 1:nStructures
     Dvals = [];
     DFrame = [];
   end
-
   data(iStructure).D_raw = D_raw;
   data(iStructure).Dvals = Dvals;
   data(iStructure).DFrame = DFrame;
@@ -234,12 +228,9 @@ for iStructure = 1:nStructures
         hfc_ = readmatrix(L(idx:idx+2));
         hfc{iAtom} = hfc_;
         [R,A_] = eig(hfc_);
-        A_ = diag(A_);
+        A_ = diag(A_).';
         if det(R)<0
-          % make sure eigenvectors form right-handed coordinate frame
-          idx = [1 3 2];
-          R = R(:,idx);
-          A_ = A_(idx);
+          R(:,1) = -R(:,1);
         end
         A{iAtom} = A_;
         AFrame{iAtom} = eulang(R);
@@ -251,23 +242,28 @@ for iStructure = 1:nStructures
           idx = k+1;
         end
         efg_ = readmatrix(L(idx:idx+2));
-        efg{iAtom} = efg_; % atomic unit
+        efg{iAtom} = efg_; % atomic unit (Eh/e/a0^2)
 
-        efg_ = efg{iAtom}*hartree/echarge/bohrrad^2; % atomic unit -> SI unit
-        [R,eq] = eig(efg_);
-        if det(R)<0
-          % make sure eigenvectors form right-handed coordinate frame
-          idx = [1 3 2];
-          R = R(:,idx);
-          eq = eq(idx,idx);
-        end
-        eq = diag(eq);
-        eta = (eq(1)-eq(2))/eq(3);
         if ~isempty(qrefEl)  % element has I>=1 isotopes
+          % Get EFG tensor and diagonalize
+          efg_ = efg{iAtom}*hartree/echarge/bohrrad^2; % atomic unit -> SI unit
+          [R,eq] = eig(efg_);
+          eq = diag(eq).';
+
+          % Sort by eigenvalue magnitude (this is the common convention)
+          [~,idx] = sort(abs(eq));
+          eq = eq(idx);
+          R = R(:,idx);
+          if det(R)<0
+            R(:,1) = -R(:,1);
+          end
+
+          % Calculate quadrupole parameters and quadrupole tensor
           Qmom = qrefEl.qm*barn;
           I = qrefEl.I;
           e2qQh = echarge*Qmom*eq(3)/planck/1e6;
           K = e2qQh/(4*I)/(2*I-1);
+          eta = (eq(1)-eq(2))/eq(3);
           Q{iAtom} = K*[-(1-eta),-(1+eta),2];
           QFrame{iAtom} = eulang(R);
         end
