@@ -80,9 +80,9 @@ end
 %--------------------------------------------------------------------------
 if existMain
   vOrca = getOrcaVersion(mainOutputFile);
-
-  if (vOrca=="5.0.1" || vOrca=="5.0.0") && readmode=="proptxt"
-    error('Cannot read text-based property file for ORCA versions 5.0.0 and 5.0.1, since it''s buggy. Use main file instead.');
+  buggyVersion = vOrca=="5.0.2" || vOrca=="5.0.1" || vOrca=="5.0.0";
+  if buggyVersion && readmode=="proptxt"
+    error('Cannot read text-based property file for ORCA versions 5.0.0, 5.0.1, 5.0.2, since it''s buggy. Use main output file instead.');
   end
 end
 

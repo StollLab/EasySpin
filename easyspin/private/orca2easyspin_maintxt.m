@@ -2,15 +2,15 @@
 
 function [Sys,info] = orca2easyspin_maintxt(mainfile,HyperfineCutoff)
 
-% File import and basic checks
+% File import and checks
 %--------------------------------------------------------------------------
 % Read entire file into cell array
 fh = fopen(mainfile);
-allLines = textscan(fh,'%s','whitespace','','delimiter','\n');
+allLines = textscan(fh,'%s','Whitespace','','Delimiter','\n');
 fclose(fh);
 L = allLines{1};
 
-% Remove empty line or those containing a single (non-printable) character
+% Remove empty lines and lines containing a single (non-printable) character
 rmv = cellfun(@(x)length(strtrim(x))<=1,L);
 L(rmv) = [];
 nLines = numel(L);
@@ -39,29 +39,40 @@ inputFile = regexprep(inputFile,'^\|\s*\d+>\s+','');
 info.InputFile = char(inputFile);
 
 
-% Determine whether it's a multiple-structure file
+% Determine whether the file contains multiple structures
 %--------------------------------------------------------------------------
-MultiXYZHeader{1} = '* Multiple XYZ Scan Calculation *'; % ORCA 3
-multiStepTitle{1} = 'MULTIPLE XYZ STEP'; % ORCA 3
-MultiXYZHeader{2} = '* Parameter Scan Calculation *';
-multiStepTitle{2} = 'TRAJECTORY STEP';
-MultiXYZHeader{3} = '*    Relaxed Surface Scan    *';
-multiStepTitle{3} = 'RELAXED SURFACE SCAN STEP';
-startIdx = k;
-nStructures = 1;
-multipleStructures = 0;
-while k<=nLines && ~multipleStructures
-  for q = 1:3
-    if contains(L{k},MultiXYZHeader{q})
-      multipleStructures = q;
+RunType(1).Header = '* Single Point Calculation *';
+RunType(1).Step = '';
+RunType(2).Header = '* Multiple XYZ Scan Calculation *'; % < v4
+RunType(2).Step = 'MULTIPLE XYZ STEP'; % < v4
+RunType(3).Header = '* Parameter Scan Calculation *';
+RunType(3).Step = 'TRAJECTORY STEP';
+RunType(4).Header = '*    Relaxed Surface Scan    *';
+RunType(4).Step = 'RELAXED SURFACE SCAN STEP';
+
+% Look for overall header
+type = 0;
+while k<=nLines && type==0
+  for iType = 1:4
+    if contains(L{k},RunType(iType).Header)
+      type = iType;
       break
     end
   end
   k = k + 1;
 end
-if multipleStructures>0
-  startIdx = find(contains(L,multiStepTitle{multipleStructures}));
+if k>nLines
+  error('Could not determine type of run (single points, relaxed scan, etc.) from file.')
+end
+
+% Look for step titles
+multipleStructures = type~=1;
+if multipleStructures
+  startIdx = find(contains(L,RunType(type).Step));
   nStructures = numel(startIdx);
+else
+  startIdx = k;
+  nStructures = 1;
 end
 
 
@@ -70,30 +81,29 @@ end
 data = struct;
 for iStructure = 1:nStructures
 
-  kstart = startIdx(iStructure);
   if iStructure<nStructures
-    kend = startIdx(iStructure+1)-1;
+    krange = startIdx(iStructure):startIdx(iStructure+1)-1;
   else
-    kend = nLines;
+    krange = startIdx(iStructure):nLines;
   end
 
   % Atom info, and Cartesian coordinates
   %------------------------------------------------------------------------
   CoordinateHeader = 'CARTESIAN COORDINATES (ANGSTROEM)';
-  for k = kstart:kend
+  for k = krange
     if strcmp(L{k},CoordinateHeader)
-      break;
+      break
     end
   end
   k = k + 2;
-  iAtom = 1;
+  iAtom = 0;
   clear xyz Element NucId
   while L{k}(1)~='-'
+    iAtom = iAtom + 1;
     xyz(iAtom,:) = sscanf(L{k},'%*s %f %f %f');
     Element{iAtom} = sscanf(L{k},'%s',1);
     NucId(iAtom) = elementsymbol2no(Element{iAtom});
     k = k+1;
-    iAtom = iAtom + 1;
   end
   nAtoms = size(xyz,1);
   data(iStructure).nAtoms = nAtoms;
@@ -103,7 +113,7 @@ for iStructure = 1:nStructures
 
   % Total charge
   %------------------------------------------------------------------------
-  for k = kstart:kend
+  for k = krange
     if regexp(L{k},'^\s*Total Charge','match','once')
       break
     end
@@ -113,7 +123,7 @@ for iStructure = 1:nStructures
 
   % Spin multiplicity
   %------------------------------------------------------------------------
-  for k = kstart:kend
+  for k = krange
     if regexp(L{k},'^\s*Multiplicity','match','once')
       break
     end
@@ -125,13 +135,11 @@ for iStructure = 1:nStructures
 
   % Mulliken atomic charges and spin populations
   %------------------------------------------------------------------------
-  % versions prior to 2.7
-  MullikenHeader26 = 'MULLIKEN ATOMIC CHARGES AND SPIN DENSITIES';
-  % version 2.7 and later
-  MullikenHeader = 'MULLIKEN ATOMIC CHARGES AND SPIN POPULATIONS';
+  MullikenTitle{1} = 'MULLIKEN ATOMIC CHARGES AND SPIN DENSITIES';  % <2.7
+  MullikenTitle{2} = 'MULLIKEN ATOMIC CHARGES AND SPIN POPULATIONS'; % >=2.7
   MullikenSection = false;
-  for k = kstart:kend
-    if strcmp(L{k},MullikenHeader26) || strcmp(L{k},MullikenHeader)
+  for k = krange
+    if strcmp(L{k},MullikenTitle{1}) || strcmp(L{k},MullikenTitle{2})
       MullikenSection = true;
       break
     end
@@ -153,7 +161,7 @@ for iStructure = 1:nStructures
   %------------------------------------------------------------------------
   gMatrixHeader = 'ELECTRONIC G-MATRIX';
   gMatrixData = false;
-  for k = kstart:kend
+  for k = krange
     if strcmp(L{k},gMatrixHeader)
       gMatrixData = true;
       break
@@ -192,7 +200,7 @@ for iStructure = 1:nStructures
   %------------------------------------------------------------------------
   DMatrixHeader = 'ZERO-FIELD-SPLITTING TENSOR';
   DMatrixData = false;
-  for k = kstart:kend
+  for k = krange
     if strcmp(L{k},DMatrixHeader)
       DMatrixData = true;
       break
@@ -231,10 +239,12 @@ for iStructure = 1:nStructures
   efg = cell(1,nAtoms);
   Q = cell(1,nAtoms);
   QFrame = cell(1,nAtoms);
+  A = cell(1,nAtoms);
+  AFrame = cell(1,nAtoms);
 
   nuclearHeader = 'ELECTRIC AND MAGNETIC HYPERFINE STRUCTURE';
   HyperfineEFGData = false;
-  for k = kstart:kend
+  for k = krange
     if strcmp(L{k},nuclearHeader)
       HyperfineEFGData = true;
       break
@@ -245,9 +255,10 @@ for iStructure = 1:nStructures
     iAtom = 0;
     hfc = cell(1,nAtoms);
     efg = cell(1,nAtoms);
-    while k<=kend
+    while k<=krange(end)
       if regexp(L{k},'^\s*Nucleus\s*')
         iAtom = sscanf(L{k}(9:end),'%d',1)+1;
+        [grefEl,qrefEl] = referenceisotope(Element{iAtom});
       elseif regexp(L{k},'^\s*Raw HFC matrix\s*')
         idx = k+1;
         if strncmp(L{k+1}(2:4),'---',3)
@@ -257,6 +268,16 @@ for iStructure = 1:nStructures
         hfc_(2,:) = sscanf(L{idx+1},'%f %f %f').';
         hfc_(3,:) = sscanf(L{idx+2},'%f %f %f').';
         hfc{iAtom} = hfc_;
+        [R,A_] = eig(hfc_);
+        A_ = diag(A_);
+        if det(R)<0
+          % make sure eigenvectors form right-handed coordinate frame
+          idx = [1 3 2];
+          R = R(:,idx);
+          A_ = A_(idx);
+        end
+        A{iAtom} = A_;
+        AFrame{iAtom} = eulang(R);
         k = k+3;
       elseif regexp(L{k},'^\s*Raw EFG matrix\s*')
         idx = k+1;
@@ -275,13 +296,14 @@ for iStructure = 1:nStructures
         end
         eq = diag(eq);
         eta = (eq(1)-eq(2))/eq(3);
-        el = Element{iAtom};
-        Qmom = nucqmom('17O')*barn;
-        I = nucspin('17O');
-        e2qQh = echarge*Qmom*eq(3)/planck/1e6;
-        K = e2qQh/(4*I)/(2*I-1);
-        Q{iAtom} = K*[1-eta,1+eta,-2];
-        QFrame{iAtom} = eulang(R);
+        if ~isempty(qrefEl)  % element has I>=1 isotopes
+          Qmom = qrefEl.qm*barn;
+          I = qrefEl.I;
+          e2qQh = echarge*Qmom*eq(3)/planck/1e6;
+          K = e2qQh/(4*I)/(2*I-1);
+          Q{iAtom} = K*[1-eta,1+eta,-2];
+          QFrame{iAtom} = eulang(R);
+        end
         k = k+3;
       end
       k = k+1;
@@ -290,11 +312,51 @@ for iStructure = 1:nStructures
 
   data(iStructure).hfc = hfc;
   data(iStructure).efg = efg;
+  data(iStructure).Q = Q;
+  data(iStructure).QFrame = QFrame;
+  data(iStructure).A = A;
+  data(iStructure).AFrame = AFrame;
 
 end % for iStructure = 1:nStructures
 
 % Copy relevant data to spin system structure
-Sys = data;
+%--------------------------------------------------------------------------
+Sys.S = data.S;
+for iStructure = 1:nStructures
+  d = data(iStructure);
+  if ~isempty(d.g)
+    Sys(iStructure).g = d.gvals;
+  end
+  if ~isempty(d.gFrame)
+    Sys(iStructure).gFrame = d.gFrame;
+  end
+  if ~isempty(d.Dvals)
+    Sys(iStructure).D = d.Dvals;
+  end
+  if ~isempty(d.DFrame)
+    Sys(iStructure).DFrame = d.DFrame;
+  end
+
+  % Compile nuclear data (isotopes, hyperfine coupling, quuadropole coupling)
+  idx = 0;
+  for iAtom = 1:nAtoms
+    if ~isempty(d.A{iAtom}) || ~isempty(d.Q{iAtom})
+      idx = idx + 1;
+      Sys(iStructure).Nucs{idx} = d.Element{iAtom};
+      if ~isempty(d.A{iAtom})
+        Sys(iStructure).A(idx,1:3) = d.A{iAtom};
+        Sys(iStructure).AFrame(idx,1:3) = d.AFrame{iAtom};
+      end
+      if ~isempty(d.Q{iAtom})
+        Sys(iStructure).Q(idx,1:3) = d.Q{iAtom};
+        Sys(iStructure).QFrame(idx,1:3) = d.QFrame{iAtom};
+      end
+    end
+  end
+  Sys(iStructure).Nucs = nuclist2string(Sys(iStructure).Nucs);
+
+  Sys(iStructure).data = data;
+end
 
 % Build spin system(s)
 %--------------------------------------------------------------------------
