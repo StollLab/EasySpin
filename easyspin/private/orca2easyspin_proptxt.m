@@ -77,6 +77,10 @@ for iSection = 1:numel(sections)
       AFrame = zeros(nNuclei,3);
       i = idx0 + 7;
       for n = 1:nNuclei
+        m = regexp(allLines{i},'(\d+)\W+(\w+)\W*$','tokens','once');
+        atomno = str2double(m{1});
+        element = m{2};
+        Nucs{atomno} = element;
         A_raw = readmatrix(allLines(i+(6:8)));
         A_vecs = readmatrix(allLines(i+(11:13)));
         A_vals = readvec(allLines{i+16}(9:end));
@@ -105,6 +109,7 @@ for iSection = 1:numel(sections)
         m = regexp(allLines{i},'(\d+)\W+(\w+)\W*$','tokens','once');
         atomno = str2double(m{1});
         element = m{2};
+        Nucs{atomno} = element;
         Q_raw = readmatrix(allLines(i+(6:8)));
         Q_vecs = readmatrix(allLines(i+(11:13)));
         Q_vals = readvec(allLines{i+16}(12:end));
@@ -114,7 +119,7 @@ for iSection = 1:numel(sections)
       end
 
     otherwise
-      fprintf('Skipping section %s\n',sectionTitle);
+      %fprintf('Skipping section %s\n',sectionTitle);
 
   end
 end
@@ -132,17 +137,6 @@ if ~isempty(geometrySection)
   end
 end
 
-% Remove nuclei with hyperfine coupling below cutoff
-if ~isempty(A)
-  keep = max(abs(A),[],2) >= abs(HyperfineCutoff);
-  A = A(keep,:);
-  AFrame = AFrame(keep,:);
-  if ~isempty(Q)
-    Q = Q(keep,:);
-    QFrame = QFrame(keep,:);
-  end
-end
-
 % Collect imported data into spin system structure
 Sys = struct;
 if ~isempty(S), Sys.S = S; end
@@ -150,6 +144,7 @@ if ~isempty(g), Sys.g = g; end
 if ~isempty(gFrame), Sys.gFrame = gFrame; end
 if ~isempty(D), Sys.D = D; end
 if ~isempty(DFrame), Sys.DFrame = DFrame; end
+if ~isempty(A), Sys.Nucs = A; end
 if ~isempty(A), Sys.A = A; end
 if ~isempty(AFrame), Sys.AFrame = AFrame; end
 if ~isempty(Q), Sys.Q = Q; end

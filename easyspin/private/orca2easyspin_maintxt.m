@@ -1,6 +1,6 @@
 % orca2easyspin_maintxt   Read EPR properties from main ORCA output file
 
-function [Sys,info] = orca2easyspin_maintxt(mainfile,HyperfineCutoff)
+function [Sys,info] = orca2easyspin_maintxt(mainfile)
 
 % File import and checks
 %--------------------------------------------------------------------------
@@ -127,7 +127,6 @@ for iStructure = 1:nStructures
   data(iStructure).Multiplicity = Multiplicity;
   data(iStructure).S = (Multiplicity-1)/2;
   
-
   % Mulliken atomic charges and spin populations
   %------------------------------------------------------------------------
   MullikenTitle{1} = 'MULLIKEN ATOMIC CHARGES AND SPIN DENSITIES';  % <2.7
@@ -284,9 +283,9 @@ end % for iStructure = 1:nStructures
 
 % Copy relevant data to spin system structure
 %--------------------------------------------------------------------------
-Sys.S = data.S;
 for iStructure = 1:nStructures
   d = data(iStructure);
+  Sys(iStructure).S = d.S;
   if ~isempty(d.g)
     Sys(iStructure).g = d.gvals;
   end
@@ -317,6 +316,7 @@ for iStructure = 1:nStructures
     end
   end
 
+  % Store all other data in spin system structure
   Sys(iStructure).data = data;
 end
 

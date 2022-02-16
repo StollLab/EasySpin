@@ -2,10 +2,6 @@
 
 function Sys = orca2easyspin_propbin(propfilename,HyperfineCutoff)
 
-if nargin==1
-  HyperfineCutoff = 0;
-end
-
 % Whether or not to use least-squares fitting for
 % rotation matrix -> Euler angle conversion using eulang()
 skipFitting = true;
@@ -208,39 +204,26 @@ if nAtoms>0
     end
   end
   
-  % Determine which nuclei are above hyperfine cutoff
-  hfkeep = false(1,nAtoms);
-  if anyHyperfine
-    Amax = max(abs(Apv),[],2);
-    hfkeep = Amax>HyperfineCutoff;
-  end
-  
   % Build Sys.Nucs
   NucStr = [];
-  keepidx = 1:nAtoms;
   for iAtom = 1:nAtoms
-    if ~hfkeep(iAtom)
-        keepidx(iAtom) = false;
-        continue
-    end
     NucStr = [NucStr ',' elementno2symbol(Atoms(iAtom))]; %#ok<AGROW>
   end
   if ~isempty(NucStr)
     NucStr(1) = [];
   end
   Sys.Nucs = NucStr;
-  Sys.NucsIdx = find(keepidx);
   
   % Build Sys.A and Sys.AFrame
   if anyHyperfine
-    Sys.A = Apv(hfkeep,:);
-    Sys.AFrame = AFrame(hfkeep,:);
+    Sys.A = Apv;
+    Sys.AFrame = AFrame;
   end
   
   % Build Sys.Q and Sys.QFrame
   if anyQuadrupole
-    Sys.Q = Qpv(hfkeep,:);
-    Sys.QFrame = efgFrame(hfkeep,:);
+    Sys.Q = Qpv;
+    Sys.QFrame = efgFrame;
   end
   
 end % if nAtoms>0
