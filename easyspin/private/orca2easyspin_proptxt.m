@@ -1,6 +1,6 @@
 % orca2easyspin_maintxt   Read EPR properties from main ORCA output file
 
-function Sys = orca2easyspin_proptxt(propfilename,HyperfineCutoff)
+function Sys = orca2easyspin_proptxt(propfilename)
 
 % Read entire file into cell array
 fh = fopen(propfilename);
@@ -12,62 +12,70 @@ if ~contains(allLines{2},"!PROPERTIES!")
   error('This is not a valid text-based ORCA property file.');
 end
 
-% Locate lines with section titles
-sections = find(cellfun(@(L)L(1)=='$',allLines));
+% Read geometry
+%--------------------------------------------------------------------------
+geometrySection = find(contains(allLines,'!GEOMETRIES!'),1);
+if isempty(geometrySection)
+  error('Cannot find !GEOMETRIES! section.')
+end
+geometrySection = find(contains(allLines,'!GEOMETRY!'));
+nStructures = numel(geometrySection);
+for k = 1:numel(geometrySection)
+  idx0 = geometrySection(k);
+  nAtoms = readvalue(allLines{idx0+1});
+  data(k).nAtoms = nAtoms;
+  idx = idx0+3;
+  for iAtom = 1:nAtoms
+    idx = idx + 1;
+    data(k).xyz(iAtom,:) = readvec(allLines{idx}(22:end));
+    tok = regexp(allLines{idx}(1:22),'(\d+)\s+([a-zA-Z]+)','tokens','once');
+    data(k).atoms{iAtom} = tok{2};
+  end
+end
 
-S = [];
-g = [];
-gFrame = [];
-D = [];
-DFrame = [];
-A = [];
-AFrame = [];
-Q = [];
-QFrame = [];
-E = [];  % total energy, hartree
-charge = [];  % total charge, e
-atoms = [];  % list of atoms (element symbols)
-xyz = [];  % atom coordinates (in ångstrom)
 
 % Loop over all sections and parse relevant information
+%--------------------------------------------------------------------------
+% Locate lines with section titles
+sections = find(cellfun(@(L)L(1)=='$',allLines));
 for iSection = 1:numel(sections)
   idx0 = sections(iSection);
   sectionTitle = allLines{idx0};
+  iStructure = str2double(regexp(allLines{sections(iSection)+2},'(\d+)$','match','once'));
+  data(iStructure).Nucs = data(iStructure).atoms;
   switch sectionTitle
     case '$ SCF_Energy'
-      E = readvalue(allLines{idx0+4});
-
-      if allLines{idx0+6}(1)~='$'
-        error('Section SCF_Energy is longer than expected. Abording.');
-      end
+      data(iStructure).E = readvalue(allLines{idx0+4});
 
     case '$ DFT_Energy'
       % not relevant
 
+    case '$ Mayer_Pop'
+      % not relevant
+
     case '$ Calculation_Info'
       multiplicity = readvalue(allLines{idx0+4});
-      S = (multiplicity-1)/2;
-      charge = readvalue(allLines{idx0+5});
+      data(iStructure).S = (multiplicity-1)/2;
+      data(iStructure).charge = readvalue(allLines{idx0+5});
 
     case '$ SCF_Electric_Properties'
       % not relevant
 
     case '$ EPRNMR_GTensor'
-      g_raw = readmatrix(allLines(idx0+(8:10)));
+      %g_raw = readmatrix(allLines(idx0+(8:10)));
       g_vecs = readmatrix(allLines(idx0+(13:15)));
       g_vals = readvec(allLines{idx0+18}(9:end));
-      g = g_vals;
-      gFrame = eulang(g_vecs);
+      data(iStructure).g = g_vals;
+      data(iStructure).gFrame = eulang(g_vecs);
 
     case '$ EPRNMR_DTensor'
-      % Bug in ORCA 5.0.2: D_vals is all-zero, even though D_raw is correct
       D_raw = readmatrix(allLines(idx0+(8:10)));
-      %D_vals = readvec(allLines{idx0+13}(9:end));
-      %D_vecs = readmatrix(allLines(idx0+(16:18)));
-      [D_vecs,D_vals] = eig(D_raw);
-      D_vals = diag(D_vals).';
-      D = D_vals;
-      DFrame = eulang(D_vecs);
+      D_vals = readvec(allLines{idx0+13}(9:end));
+      D_vecs = readmatrix(allLines(idx0+(16:18)));
+      %[D_vecs,D_vals] = eig(D_raw);
+      %D_vals = diag(D_vals).';
+      data(iStructure).D = D_vals;
+      data(iStructure).DFrame = eulang(D_vecs);
 
     case '$ EPRNMR_ATensor'
       % colon is missing after "Number of stored nuclei"
@@ -78,10 +86,13 @@ for iSection = 1:numel(sections)
       i = idx0 + 7;
       for n = 1:nNuclei
         m = regexp(allLines{i},'(\d+)\W+(\w+)\W*$','tokens','once');
-        atomno = str2double(m{1});
+        if isempty(m)
+          break
+        end
+        atomno = str2double(m{1}); % 0-based
         element = m{2};
-        Nucs{atomno} = element;
-        A_raw = readmatrix(allLines(i+(6:8)));
+        Nucs{atomno+1} = element;
+        %A_raw = readmatrix(allLines(i+(6:8)));
         A_vecs = readmatrix(allLines(i+(11:13)));
         A_vals = readvec(allLines{i+16}(9:end));
         A(n,:) = A_vals;
@@ -92,6 +103,8 @@ for iSection = 1:numel(sections)
         end
         i = i + 18;
       end
+      data(iStructure).A = A;
+      data(iStructure).AFrame = AFrame;
 
     case '$ EPRNMR_QTensor'
       % colon is missing after "Number of stored nuclei"
@@ -109,14 +122,16 @@ for iSection = 1:numel(sections)
         m = regexp(allLines{i},'(\d+)\W+(\w+)\W*$','tokens','once');
         atomno = str2double(m{1});
         element = m{2};
-        Nucs{atomno} = element;
-        Q_raw = readmatrix(allLines(i+(6:8)));
+        Nucs{atomno+1} = element;
+        %Q_raw = readmatrix(allLines(i+(6:8)));
         Q_vecs = readmatrix(allLines(i+(11:13)));
         Q_vals = readvec(allLines{i+16}(12:end));
         Q(n,:) = Q_vals;
         QFrame(n,:) = eulang(Q_vecs);
         i = i + d;
       end
+      data(iStructure).Q = Q;
+      data(iStructure).QFrame = QFrame;
 
     otherwise
       %fprintf('Skipping section %s\n',sectionTitle);
@@ -124,35 +139,13 @@ for iSection = 1:numel(sections)
   end
 end
 
-% Read geometry
-geometrySection = find(contains(allLines,'!GEOMETRY!'));
-if ~isempty(geometrySection)
-  idx0 = geometrySection;
-  nAtoms = readvalue(allLines{idx0+1});
-  idx = idx0+3;
-  for iAtom = 1:nAtoms
-    idx = idx + 1;
-    xyz(iAtom,:) = readvec(allLines{idx}(22:end));
-    atoms{iAtom} = regexp(allLines{idx}(1:22),'[a-zA-Z]+','match','once');
-  end
+% Collect imported data into spin system structure
+
+Sys = data;
+for iStructure = 1:nStructures
+  Sys(iStructure).Nucs = data(iStructure).atoms;
 end
 
-% Collect imported data into spin system structure
-Sys = struct;
-if ~isempty(S), Sys.S = S; end
-if ~isempty(g), Sys.g = g; end
-if ~isempty(gFrame), Sys.gFrame = gFrame; end
-if ~isempty(D), Sys.D = D; end
-if ~isempty(DFrame), Sys.DFrame = DFrame; end
-if ~isempty(A), Sys.Nucs = A; end
-if ~isempty(A), Sys.A = A; end
-if ~isempty(AFrame), Sys.AFrame = AFrame; end
-if ~isempty(Q), Sys.Q = Q; end
-if ~isempty(QFrame), Sys.QFrame = QFrame; end
-if ~isempty(E), Sys.Energy_Eh = E; end
-if ~isempty(charge), Sys.charge = charge; end
-if ~isempty(atoms), Sys.atoms = atoms; end
-if ~isempty(xyz), Sys.xyz = xyz; end
 end
 
 %==========================================================================

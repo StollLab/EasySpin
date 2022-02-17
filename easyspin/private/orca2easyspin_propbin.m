@@ -1,6 +1,6 @@
 % orca2easyspin_propbin Read ORCA 3.x binary .prop file
 
-function Sys = orca2easyspin_propbin(propfilename,HyperfineCutoff)
+function Sys = orca2easyspin_propbin(propfilename)
 
 % Whether or not to use least-squares fitting for
 % rotation matrix -> Euler angle conversion using eulang()

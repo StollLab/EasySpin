@@ -79,10 +79,10 @@ if readmode=="mainout" && ~existMain
   error('Cannot access ORCA output file %s.',mainOutputFile);
 end
 if readmode=="propbin" && ~existBin
-  error('Cannot access ORCA property file %s. Consider using the main ORCA output file.',binaryPropFile);
+  error('Cannot access ORCA property file %s.',binaryPropFile);
 end
-if readmode=="`proptxt" && ~existTxt
-  error('Cannot access ORCA property file %s. Consider using the main ORCA output file.',textPropFile);
+if readmode=="proptxt" && ~existTxt
+  error('Cannot access ORCA property file %s.',textPropFile);
 end
 
 % Determine ORCA version, if possible
@@ -116,7 +116,10 @@ if isfield(Sys,'A')
   for iSys = 1:numel(Sys)
     Amax = max(abs(Sys(iSys).A),[],2);
     keep = Amax > abs(HyperfineCutoff);
-    Nucs = nucstring2list(Sys(iSys).Nucs);
+    Nucs = Sys(iSys).Nucs;
+    if ischar(Nucs)
+      Nucs = nucstring2list(Nucs);
+    end
     Sys(iSys).NucsIdx = find(keep);
     Sys(iSys).Nucs = nuclist2string(Nucs(keep));
     Sys(iSys).A = Sys(iSys).A(keep,:);

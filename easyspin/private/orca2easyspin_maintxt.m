@@ -95,9 +95,9 @@ for iStructure = 1:nStructures
   clear xyz Element NucId
   while L{k}(1)~='-'
     iAtom = iAtom + 1;
-    xyz(iAtom,:) = sscanf(L{k},'%*s %f %f %f');
-    Element{iAtom} = sscanf(L{k},'%s',1);
-    NucId(iAtom) = elementsymbol2no(Element{iAtom});
+    xyz(iAtom,:) = sscanf(L{k},'%*s %f %f %f');  %#ok<AGROW>
+    Element{iAtom} = sscanf(L{k},'%s',1);  %#ok<AGROW>
+    NucId(iAtom) = elementsymbol2no(Element{iAtom});  %#ok<AGROW>
     k = k+1;
   end
   nAtoms = size(xyz,1);
@@ -218,22 +218,27 @@ for iStructure = 1:nStructures
       if regexp(L{k},'^\s*Nucleus\s*')
         iAtom = sscanf(L{k}(9:end),'%d',1)+1;
         [~,qrefEl] = referenceisotope(Element{iAtom});
-      elseif regexp(L{k},'^\s*Raw HFC matrix\s*')
+      elseif regexp(L{k},'^\s*Raw HFC matrix')
         if strncmp(L{k+1}(2:4),'---',3)
           idx = k+2;
         else
           idx = k+1;
         end
+        % Read raw HFC matrix
         hfc_ = readmatrix(L(idx:idx+2));
         hfc{iAtom} = hfc_;
-        [R,A_] = eig(hfc_);
-        A_ = diag(A_).';
-        if det(R)<0
-          R(:,1) = -R(:,1);
+        % Move to line starting with A(Tot) (version-dependent)
+        idx = idx+3;
+        while L{idx}(1:7)~=" A(Tot)"
+          idx = idx+1;
         end
+        % Read principal values and eigenvectors
+        A_ = sscanf(L{idx}(13:end),'%f %f %f').';
+        R = readmatrix(L(idx+2:idx+4),5);
         A{iAtom} = A_;
         AFrame{iAtom} = eulang(R);
-        k = k+3;
+        k = k+5;
+
       elseif regexp(L{k},'^\s*Raw EFG matrix\s*')
         if strncmp(L{k+1}(2:4),'---',3)
           idx = k+2;
@@ -283,9 +288,9 @@ end % for iStructure = 1:nStructures
 
 % Copy relevant data to spin system structure
 %--------------------------------------------------------------------------
-for iStructure = 1:nStructures
+for iStructure = nStructures:-1:1
   d = data(iStructure);
-  Sys(iStructure).S = d.S;
+  Sys(iStructure).S = d.S; 
   if ~isempty(d.g)
     Sys(iStructure).g = d.gvals;
   end
@@ -323,10 +328,11 @@ end
 end
 
 
-function M = readmatrix(L)
-M(1,:) = sscanf(L{1},'%f %f %f').';
-M(2,:) = sscanf(L{2},'%f %f %f').';
-M(3,:) = sscanf(L{3},'%f %f %f').';
+function M = readmatrix(L,startidx)
+if nargin<2, startidx = 1; end
+M(1,:) = sscanf(L{1}(startidx:end),'%f %f %f').';
+M(2,:) = sscanf(L{2}(startidx:end),'%f %f %f').';
+M(3,:) = sscanf(L{3}(startidx:end),'%f %f %f').';
 end
 
 function k = findheader(header,L,krange)
