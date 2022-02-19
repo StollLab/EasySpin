@@ -29,7 +29,7 @@ for k = 1:numel(geometrySection)
     idx = idx + 1;
     data(k).xyz(iAtom,:) = readvec(allLines{idx}(22:end));
     tok = regexp(allLines{idx}(1:22),'(\d+)\s+([a-zA-Z]+)','tokens','once');
-    data(k).atoms{iAtom} = tok{2};
+    data(k).Element{iAtom} = tok{2};
   end
 end
 
@@ -42,7 +42,7 @@ for iSection = 1:numel(sections)
   idx0 = sections(iSection);
   sectionTitle = allLines{idx0};
   iStructure = str2double(regexp(allLines{sections(iSection)+2},'(\d+)$','match','once'));
-  data(iStructure).Nucs = data(iStructure).atoms;
+  data(iStructure).Nucs = data(iStructure).Element;
   switch sectionTitle
     case '$ SCF_Energy'
       data(iStructure).E = readvalue(allLines{idx0+4});
@@ -62,75 +62,79 @@ for iSection = 1:numel(sections)
       % not relevant
 
     case '$ EPRNMR_GTensor'
-      %g_raw = readmatrix(allLines(idx0+(8:10)));
+      g_raw = readmatrix(allLines(idx0+(8:10)));
+      g_sym = (g_raw.'*g_raw)^(1/2);
+      g_sym = (g_sym+g_sym.')/2; % symmetrize numerically
       g_vecs = readmatrix(allLines(idx0+(13:15)));
       g_vals = readvec(allLines{idx0+18}(9:end));
-      data(iStructure).g = g_vals;
+      data(iStructure).graw = g_raw;
+      data(iStructure).g = g_sym;
+      data(iStructure).gvals = g_vals;
       data(iStructure).gFrame = eulang(g_vecs);
 
     case '$ EPRNMR_DTensor'
       D_raw = readmatrix(allLines(idx0+(8:10)));
       D_vals = readvec(allLines{idx0+13}(9:end));
       D_vecs = readmatrix(allLines(idx0+(16:18)));
-      %[D_vecs,D_vals] = eig(D_raw);
-      %D_vals = diag(D_vals).';
-      data(iStructure).D = D_vals;
+      data(iStructure).Draw = D_raw;
+      data(iStructure).Dvals = D_vals;
       data(iStructure).DFrame = eulang(D_vecs);
 
     case '$ EPRNMR_ATensor'
       % colon is missing after "Number of stored nuclei"
       valuestr = regexp(allLines{idx0+4},'\d+$','match','once');
-      nNuclei = str2double(valuestr);
-      A = zeros(nNuclei,3);
-      AFrame = zeros(nNuclei,3);
+      nStoredNuclei = str2double(valuestr);
+      A = cell(1,nAtoms);
+      Araw = cell(1,nAtoms);
+      AFrame = cell(1,nAtoms);
       i = idx0 + 7;
-      for n = 1:nNuclei
+      for n = 1:nStoredNuclei
         m = regexp(allLines{i},'(\d+)\W+(\w+)\W*$','tokens','once');
         if isempty(m)
           break
         end
-        atomno = str2double(m{1}); % 0-based
-        element = m{2};
-        Nucs{atomno+1} = element;
-        %A_raw = readmatrix(allLines(i+(6:8)));
+        atomno = str2double(m{1})+1; % 0-based -> 1 -based
+        A_raw = readmatrix(allLines(i+(6:8)));
         A_vecs = readmatrix(allLines(i+(11:13)));
         A_vals = readvec(allLines{i+16}(9:end));
-        A(n,:) = A_vals;
-        if ~all(A_vecs==00,'all')
-          AFrame(n,:) = eulang(A_vecs);
+        Araw{atomno} = A_raw;
+        A{atomno} = A_vals;
+        if ~all(A_vecs==0,'all')
+          AFrame{atomno} = eulang(A_vecs);
         else
-          AFrame(n,:) = [0 0 0];
+          AFrame{atomno} = [0 0 0];
         end
         i = i + 18;
       end
+      data(iStructure).Araw = Araw;
       data(iStructure).A = A;
       data(iStructure).AFrame = AFrame;
 
     case '$ EPRNMR_QTensor'
-      % colon is missing after "Number of stored nuclei"
       valuestr = regexp(allLines{idx0+4},'\d+$','match','once');
-      nNuclei = str2double(valuestr);
+      nStoredNuclei = str2double(valuestr);
       rho_present = contains(allLines{idx0+7},'true');
       d = 18;
       if rho_present
         d = 19;
       end
       i = idx0 + 8;
-      Q = zeros(nNuclei,3);
-      QFrame = zeros(nNuclei,3);
-      for n = 1:nNuclei
+      Q = cell(1,nAtoms);
+      Qraw = cell(1,nAtoms);
+      QFrame = cell(1,nAtoms);
+      for n = 1:nStoredNuclei
         m = regexp(allLines{i},'(\d+)\W+(\w+)\W*$','tokens','once');
-        atomno = str2double(m{1});
-        element = m{2};
-        Nucs{atomno+1} = element;
-        %Q_raw = readmatrix(allLines(i+(6:8)));
+        atomno = str2double(m{1})+1;  % 0-based -> 1-based
+        Q_raw = readmatrix(allLines(i+(6:8)));
         Q_vecs = readmatrix(allLines(i+(11:13)));
         Q_vals = readvec(allLines{i+16}(12:end));
-        Q(n,:) = Q_vals;
-        QFrame(n,:) = eulang(Q_vecs);
+        Qraw{atomno} = Q_raw;
+        Q{atomno} = Q_vals;
+        QFrame{atomno} = eulang(Q_vecs);
         i = i + d;
       end
       data(iStructure).Q = Q;
+      data(iStructure).Qraw = Qraw;
       data(iStructure).QFrame = QFrame;
 
     otherwise
@@ -139,11 +143,44 @@ for iSection = 1:numel(sections)
   end
 end
 
-% Collect imported data into spin system structure
+% Copy relevant data to spin system structure
+%--------------------------------------------------------------------------
+for iStructure = nStructures:-1:1
+  d = data(iStructure);
+  
+  Sys(iStructure).S = d.S; 
+  if ~isempty(d.g)
+    Sys(iStructure).g = d.gvals;
+  end
+  if ~isempty(d.gFrame)
+    Sys(iStructure).gFrame = d.gFrame;
+  end
+  if ~isempty(d.Dvals)
+    Sys(iStructure).D = d.Dvals;
+  end
+  if ~isempty(d.DFrame)
+    Sys(iStructure).DFrame = d.DFrame;
+  end
 
-Sys = data;
-for iStructure = 1:nStructures
-  Sys(iStructure).Nucs = data(iStructure).atoms;
+  % Compile nuclear data (isotopes, hyperfine coupling, quuadropole coupling)
+  idx = 0;
+  for iAtom = 1:nAtoms
+    if ~isempty(d.A{iAtom}) || ~isempty(d.Q{iAtom})
+      idx = idx + 1;
+      Sys(iStructure).Nucs{idx} = d.Element{iAtom};
+      if ~isempty(d.A{iAtom})
+        Sys(iStructure).A(idx,1:3) = d.A{iAtom};
+        Sys(iStructure).AFrame(idx,1:3) = d.AFrame{iAtom};
+      end
+      if ~isempty(d.Q{iAtom})
+        Sys(iStructure).Q(idx,1:3) = d.Q{iAtom};
+        Sys(iStructure).QFrame(idx,1:3) = d.QFrame{iAtom};
+      end
+    end
+  end
+
+  % Store all other data in spin system structure
+  Sys(iStructure).data = data;
 end
 
 end

@@ -120,7 +120,7 @@ if isfield(Sys,'A')
     if ischar(Nucs)
       Nucs = nucstring2list(Nucs);
     end
-    Sys(iSys).NucsIdx = find(keep);
+    Sys(iSys).NucsIdx = find(keep).';
     Sys(iSys).Nucs = nuclist2string(Nucs(keep));
     Sys(iSys).A = Sys(iSys).A(keep,:);
     Sys(iSys).AFrame = Sys(iSys).AFrame(keep,:);

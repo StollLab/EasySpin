@@ -173,7 +173,7 @@ for iStructure = 1:nStructures
     gvals = [];
     gFrame = [];
   end
-  data(iStructure).g_raw = g_raw;
+  data(iStructure).graw = g_raw;
   data(iStructure).g = g_sym;
   data(iStructure).gvals = gvals;
   data(iStructure).gFrame = gFrame;
@@ -196,13 +196,13 @@ for iStructure = 1:nStructures
     Dvals = [];
     DFrame = [];
   end
-  data(iStructure).D_raw = D_raw;
+  data(iStructure).Draw = D_raw;
   data(iStructure).Dvals = Dvals;
   data(iStructure).DFrame = DFrame;
 
   % Hyperfine and electric field gradient
   %------------------------------------------------------------------------
-  hfc = cell(1,nAtoms);
+  Araw = cell(1,nAtoms);
   efg = cell(1,nAtoms);
   Q = cell(1,nAtoms);
   QFrame = cell(1,nAtoms);
@@ -212,7 +212,7 @@ for iStructure = 1:nStructures
   k = findheader('ELECTRIC AND MAGNETIC HYPERFINE STRUCTURE',L,krange);
   if ~isempty(k)
     iAtom = 0;
-    hfc = cell(1,nAtoms);
+    Araw = cell(1,nAtoms);
     efg = cell(1,nAtoms);
     while k<=krange(end)
       if regexp(L{k},'^\s*Nucleus\s*')
@@ -225,17 +225,17 @@ for iStructure = 1:nStructures
           idx = k+1;
         end
         % Read raw HFC matrix
-        hfc_ = readmatrix(L(idx:idx+2));
-        hfc{iAtom} = hfc_;
+        Araw_ = readmatrix(L(idx:idx+2));
+        Araw{iAtom} = Araw_;
         % Move to line starting with A(Tot) (version-dependent)
         idx = idx+3;
         while L{idx}(1:7)~=" A(Tot)"
           idx = idx+1;
         end
         % Read principal values and eigenvectors
-        A_ = sscanf(L{idx}(13:end),'%f %f %f').';
+        A_vals = sscanf(L{idx}(13:end),'%f %f %f').';
         R = readmatrix(L(idx+2:idx+4),5);
-        A{iAtom} = A_;
+        A{iAtom} = A_vals;
         AFrame{iAtom} = eulang(R);
         k = k+5;
 
@@ -277,7 +277,7 @@ for iStructure = 1:nStructures
     end
   end
 
-  data(iStructure).hfc = hfc;
+  data(iStructure).hfc = Araw;
   data(iStructure).efg = efg;
   data(iStructure).Q = Q;
   data(iStructure).QFrame = QFrame;
@@ -290,6 +290,7 @@ end % for iStructure = 1:nStructures
 %--------------------------------------------------------------------------
 for iStructure = nStructures:-1:1
   d = data(iStructure);
+  
   Sys(iStructure).S = d.S; 
   if ~isempty(d.g)
     Sys(iStructure).g = d.gvals;
