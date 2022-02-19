@@ -3,22 +3,33 @@
 %  K = dipkernel(t,r)
 %  K = dipkernel(t,r,[g1 g2])
 %
-%  Provides the kernel matrix for DEER spectroscopy, a complete powder average,
-%  and no orientation selection.
+%  Provides the dipolar kernel matrix for DEER spectroscopy, assuming a
+%  complete powder average and no orientation selection.
 %
 %  Inputs:
 %    t ...       array of time values (microseconds)
 %    r ...       array of distance values (nanometers)
-%    [g1 g2] ... the g values of the two spins, assumed 2.002319 if not
+%    [gA gB] ... the g values of the two spins, assumed 2.002319 if not
 %                given
 %
 %  Output:
 %    K ... kernel matrix where K(i,j) is K(t(i),r(j))
 %
+%  Example: Calculate the DEER signal from a distance distribution P(r)
+%
+%  r = linspace(0,6,1001);   % distance range
+%  P = gaussian(r,3.5,0.3);  % distance distribution
+%  t = linspace(-0.2,4,301); % time range
+%  K = dipkernel(t,r);       % dipolar kernel
+%  V = K*P(:);               % dipolar signal averaged over distribution
+%  plot(t,V);
+%  
 
-function K = dipkernel(t,r,g12)
+function K = dipkernel(t,r,gAB)
 
-if nargin==0, help(mfilename); end
+if nargin==0 && nargout==0
+  help(mfilename);
+end
 
 if nargin<2
   error('At least two inputs are required: t and r.')
@@ -28,20 +39,20 @@ if nargin>3
 end
 
 if nargin>2
-  if numel(g12)~=2
+  if numel(gAB)~=2
     error('Third input (g12) must be an array with two elements, [g1 g2].');
   end
-  g1 = g12(1);
-  g2 = g12(2);
+  gA = gAB(1);
+  gB = gAB(2);
 else
-  g1 = gfree;
-  g2 = gfree;
+  gA = gfree;
+  gB = gfree;
 end
 
 t = t(:);
 r = r(:);
 
-D = (mu0/4/pi)*bmagn^2*g1*g2;
+D = (mu0/4/pi)*bmagn^2*gA*gB;
 D = D/planck*1e21;  % J m^3 -> MHz nm^3
 wdd = 2*pi*D./r.^3;
 
