@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>dipkernel</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/academy" target="_blank">Academy</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">dipkernel</div>
+
+<p>
+Calculate dipolar EPR (DEER) signal.
+</p>
+
+<!-- =================================================================== -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+K = dipkernel(t,r)
+K = dipkernel(t,r,gAB)
+</pre>
+
+<!-- =================================================================== -->
+<div class="subtitle">Description</div>W
+
+<p>
+<code>dipkernel</code> calculates the DEER signal for two coupled electron spins-1/2 spaced a distance <code>r</code>r apart. <code>t</code> is the pump pulse position time axis (in microseconds), and <code>r</code> is the distance or array of distances (in nanometers).
+</p>
+
+<p>
+If <code>r</code> is a single value, then the output <code>K</code> contains a single vector. If <code>r</code> is a vector, <code>K</code> is matrix, with <code>K(i,j)</code> corresponding to <code>K(t(i),r(j))</code>.
+</p>
+
+<p>
+The optional input <code>gAB</code> contains the g factors of the two electron spins, <code>[gA gB</code>. If omitted, the free-electron g value 2.002319 (see <code>gfree</code>) is used for both spins.
+</p>
+
+<p>
+<code>dipkernel</code> assumes a complete powder average, and absence of exchange couplings and orientation selection.
+</p>
+<!-- ========================================================== -->
+<div class="subtitle">Examples</div>
+
+<p>
+Calculate the DEER signal for two electron spins spaced 3.1 nm apart:
+</p>
+<pre class="matlab">
+r = 3.1;   % nm
+t = linspace(-0.2,3,301);  % µs
+V = dipkernel(t,r);
+plot(t,V)
+</pre>
+
+<p>
+Calculate the DEER signal for two electron spins with a distribution of distances:
+</p>
+<pre class="matlab">
+r = linspace(0,6,1001);   % distance range
+P = gaussian(r,3.5,0.3);  % distance distribution
+t = linspace(-0.2,4,301); % time range
+K = dipkernel(t,r);       % dipolar kernel
+V = K*P(:);
+plot(t,V);
+</pre>
+     
+<!-- =================================================================== -->
+<div class="subtitle">See also</div>
+<p>
+<a class="esf" href="diptensor.html">diptensor</a>,
+<a class="esf" href="eeint.html">eeint</a>,
+<a class="esf" href="gfree.html">gfree</a>
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+</html>
