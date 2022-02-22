@@ -143,26 +143,41 @@ for iSection = 1:numel(sections)
   end
 end
 
+if ~isfield(data,'S')
+  error('Spin multiplicity is missing in property file.');
+end
+
 % Copy relevant data to spin system structure
 %--------------------------------------------------------------------------
 for iStructure = nStructures:-1:1
   d = data(iStructure);
   
-  Sys(iStructure).S = d.S; 
-  if ~isempty(d.g)
-    Sys(iStructure).g = d.gvals;
-  end
-  if ~isempty(d.gFrame)
-    Sys(iStructure).gFrame = d.gFrame;
-  end
-  if ~isempty(d.Dvals)
-    Sys(iStructure).D = d.Dvals;
-  end
-  if ~isempty(d.DFrame)
-    Sys(iStructure).DFrame = d.DFrame;
-  end
+  % Coordinates
   if ~isempty(d.xyz)
     Sys(iStructure).xyz = d.xyz;
+  end
+
+  % Spin multiplicity
+  Sys(iStructure).S = d.S;
+
+  % g tensor
+  if isfield(d,'g')
+    if ~isempty(d.g)
+      Sys(iStructure).g = d.gvals;
+    end
+    if ~isempty(d.gFrame)
+      Sys(iStructure).gFrame = d.gFrame;
+    end
+  end
+
+  % D tensor
+  if isfield(d,'Dvals')
+    if ~isempty(d.Dvals)
+      Sys(iStructure).D = d.Dvals;
+    end
+    if ~isempty(d.DFrame)
+      Sys(iStructure).DFrame = d.DFrame;
+    end
   end
 
   % Compile nuclear data (isotopes, hyperfine coupling, quuadropole coupling)

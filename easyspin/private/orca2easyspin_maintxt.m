@@ -291,21 +291,28 @@ end % for iStructure = 1:nStructures
 for iStructure = nStructures:-1:1
   d = data(iStructure);
   
+  % Coordinates
+  if ~isempty(d.xyz)
+    Sys(iStructure).xyz= d.xyz;
+  end
+
+  % Spin multiplicity
   Sys(iStructure).S = d.S; 
+
+  % g tensor
   if ~isempty(d.g)
     Sys(iStructure).g = d.gvals;
   end
   if ~isempty(d.gFrame)
     Sys(iStructure).gFrame = d.gFrame;
   end
+
+  % D tensor
   if ~isempty(d.Dvals)
     Sys(iStructure).D = d.Dvals;
   end
   if ~isempty(d.DFrame)
     Sys(iStructure).DFrame = d.DFrame;
-  end
-  if ~isempty(d.xyz)
-    Sys(iStructure).xyz= d.xyz;
   end
 
   % Compile nuclear data (isotopes, hyperfine coupling, quuadropole coupling)

@@ -11,7 +11,7 @@ files{3} = 'methyl_all_property.txt';
 S = [0 1 1/2];
 
 for k = 1:numel(files)
-  filename = [BaseDir filesep files{k}]
+  filename = [BaseDir filesep files{k}];
   Sys = orca2easyspin(filename);
   ok(k) = Sys.S==S(k);
 end
