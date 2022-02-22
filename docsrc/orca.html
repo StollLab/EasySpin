@@ -26,19 +26,21 @@
 
 <section>
 
-<h1>Import ORCA data</h1>
+<h1>Import ORCA calculation results</h1>
 
 <p>
-<a href="http://orcaforum.kofo.mpg.de/" target="_blank">ORCA</a> is a quantum chemistry program that can calculate molecular EPR properties such as the g tensor, A tensors, electric field gradients, and D tensors.
+<a href="http://orcaforum.kofo.mpg.de/" target="_blank">ORCA</a> is a quantum chemistry program that can calculate molecular EPR properties such as the g tensor, the zero-field splitting tensor, hyperfine coupling tensors, and electric field gradients for nuclear quadrupole coupling tensors.
+</p>
 
 <p>
 Here, we show how you can import these ORCA-calculated tensors from ORCA output files into EasySpin, using the function <a class="esf" href="orca2easyspin.html">orca2easyspin</a>.
+</p>
 
 <!-- --------------------------------------------------------------------- -->
 <div class="subtitle">Calculating EPR properties using ORCA</div>
 
 <p>
-In order to get EPR parameters from an ORCA calculation, you have to tell ORCA to calculate these parameters. Here is a very simple example of an ORCA input file for the hydroxyl radical. Let's name the file <code>hydroxyl.oif</code>:
+In order to get EPR parameters from an ORCA calculation, you have to tell ORCA to calculate these parameters. Here is a simple example of an ORCA input file for the hydroxyl radical. Let's name the file <code>hydroxyl.oif</code>:
 
 <pre class="nohighlight">
 ! UKS B3LYP 6-31G
@@ -54,47 +56,52 @@ end
 </pre>
 
 <p>
-The <code>%eprnmr...end</code> block specifies which EPR parameters you want ORCA to calculate. <code>gtensor 1</code> instructs ORCA to calculate the g tensor. The <code>Nuclei</code> line tells ORCA to calculate for all hydrogens the following properties: Fermi contact hyperfine coupling (<code>aiso</code>), dipolar hyperfine coupling (<code>adip</code>), orbital contribution to hyperfine coupling (<code>aorb</code>), electric field gradient at nucleus (<code>fgrad</code>), and spin density at nucleus (<code>rho</code>).
+The <code>%eprnmr...end</code> block specifies which EPR parameters you want ORCA to calculate. <code>gtensor 1</code> instructs ORCA to calculate the g tensor. The <code>Nuclei</code> line tells ORCA to calculate for all hydrogens the following properties: Fermi contact hyperfine coupling (<code>aiso</code>), dipolar hyperfine coupling (<code>adip</code>), orbital contribution to hyperfine coupling (<code>aorb</code>), the electric field gradient tensor at the nucleus (<code>fgrad</code>), and the spin density at the nucleus (<code>rho</code>).
+</p>
 
 <p>
 For details about ORCA calculations, see the ORCA manual.
 </p>
 
 <p>
-Next, you need to run the ORCA calculation. On the Windows/Linux/MacOS command/shell prompt, type
+Next, run the ORCA calculation. On the Windows/Linux/MacOS command/shell prompt, type
 
 <pre class="matlab">
 orca hydroxyl.oif > hydroxyl.oof
 </pre>
 
 <p>
-This will generate a long output text file <code>hydroxyl.oof</code>. Additionally, it generates a smaller binary file <code>hydroxyl.prop</code> that contains all the calculated properties.
+This generate a long output text file <code>hydroxyl.oof</code>. Additionally, it generates a smaller file <code>hydroxyl_property.txt</code> that contains all the calculated properties. (Prior to version 5, ORCA generated a binary property file instead <code>hydroxyl.prop</code>.)
+</p>
 
 <!-- --------------------------------------------------------------------- -->
 <div class="subtitle">Importing the results of the ORCA calculation</div>
 
 <p>
-You can now use EasySpin's function <a class="esf" href="orca2easyspin.html">orca2easyspin</a> to read the ORCA output and generate a spin system structure for you. EasySpin will not parse through the long text output file, but will directly read the binary propery file <code>hydroxyl.prop</code>. Here is how it works:
+Next, use EasySpin's function <a class="esf" href="orca2easyspin.html">orca2easyspin</a> to read the ORCA output and generate a spin system structure for you. Here is how it works:
 
 <pre class="matlab">
-Sys = orca2easyspin('hydroxyl.prop')
+Sys = orca2easyspin('hydroxyl.oof')
 </pre>
 <pre class="mloutput">
-Spin not provided in the ORCA hydroxyl.prop file. Assuming S = 1/2.
-Sys = 
-         S: 0.5000
-       xyz: [2x3 double]
-         g: [2.0023 2.0065 2.0774]
-    gFrame: [0.1744 0 0]
-      Nucs: 'H'
-         A: [-9.7731 -116.1546 -140.4956]
-    AFrame: [2.9791e-12 1.5708 1.3965]
-         Q: [-0.0866 -0.1350 0.2216]
-    QFrame: [-2.9672 0 0]
+  Sys = 
+  struct with fields:
+
+          S: 0.5000
+          g: [2.0021 2.0071 2.0768]
+     gFrame: [0.7254 0 0]
+       Nucs: 'H'
+          A: [21.9560 -102.4794 -140.8393]
+     AFrame: [0 1.5708 5.4378]
+          Q: [-0.0644 -0.0897 0.1541]
+     QFrame: [0.7254 0 0]
+       data: [1×1 struct]
+    NucsIdx: 1
 </pre>
 
 <p>
 <code>Sys</code> is an EasySpin <a href="spinsystem.html">spin system structure</a>. All the fields are in the required units (MHz for tensors, radians for Euler angles). <code>Sys</code> is almost ready for use in EasySpin. The only additional information you need to supply is some <a href="broadenings.html">line broadening</a>, e.g. in <code>Sys.lwpp</code>.
+</p>
 
 <pre class="matlab">
 Sys.lwpp = 1;          % mT
@@ -107,21 +114,27 @@ pepper(Sys,Exp);
 <div class="subtitle">Hyperfine and quadrupole data for isotope mixtures</div>
 
 <p>
-If you look at the <code>Sys</code> structure above, you will see that the <code>Sys.Nucs</code> field contains an element (hydrogen), without specifying a specific isotope (1H or 2H). In this case, EasySpin simulates all the spectra of all isotopologues with significant natural abundance and combines the results.
+In the imported <code>Sys</code> structure above, the <code>Sys.Nucs</code> field contains an element (hydrogen), without specifying a specific isotope (1H or 2H). In this case, EasySpin simulates all the spectra of all isotopologues with significant natural abundance and combines the results. You can adjust the isotopologue cutoff using <code>Opt.IsoCutoff</code>.
+</p>
 
 <p>
-Of course, the hyperfine values are isotope-specific. For example, in the absence of any isotope effects, the hyperfine values of 2H are about 6.5 times smaller than those of 1H. The same holds for nuclear quadrupole coupling constants: They also depend on the isotope.
+Of course, the hyperfine values are isotope-specific. For example, in the absence of any isotope effects, the hyperfine values of <sup>2</sup>H are about 6.5 times smaller than those of <sup>1</sup>>H. The same holds for nuclear quadrupole coupling constants: They also depend on the isotope.
+</p>
 
 <p>
-EasySpin has simple rules to decide which isotope of a given element the values in <code>Sys.A</code> and in <code>Sys.Q</code> refer to:
+EasySpin uses the following convention to decide isotope of a given element the values in <code>Sys.A</code> and in <code>Sys.Q</code> refer to:
 
 <ol>
-<li><code>Sys.A</code> refers to the most abundant among the isotopes with spin 1/2 or larger.
-<li><code>Sys.Q</code> refers to the most abundant among the isotopes with spin 1 or larger.
+<li><code>Sys.A</code> refers to the most abundant isotope among the isotopes with spin 1/2 or larger.
+<li><code>Sys.Q</code> refers to the most abundant isotope among the isotopes with spin 1 or larger.
 </ol>
 
 <p>
-All conversions from these leading isotopes to the others are automatically performed by EasySpin internally.
+All conversions from these reference isotopes to the others are automatically performed by EasySpin internally.
+</p>
+
+<p>
+For almost all elements that have an isotope with spin 1 or larger, the reference isotopes for A and Q happen to be the same. For example, for Cu, both are <sup>63</sup>Cu. The only exceptions are H (<sup>1</sup>H for A and <sup>2</sup>H for Q), Xe (<sup>129</sup>Xe for A and <sup>131</sup>Xe for Q), and Hg (<sup>199</sup>Hg for A and <sup>201</sup>Hg for Q). Several elements (He, C, F, Si, P, Fe, Se, etc.) do not have isotopes with spin 1 or larger.
 </p>
 
 <hr>
