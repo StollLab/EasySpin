@@ -304,6 +304,9 @@ for iStructure = nStructures:-1:1
   if ~isempty(d.DFrame)
     Sys(iStructure).DFrame = d.DFrame;
   end
+  if ~isempty(d.xyz)
+    Sys(iStructure).xyz= d.xyz;
+  end
 
   % Compile nuclear data (isotopes, hyperfine coupling, quuadropole coupling)
   idx = 0;
