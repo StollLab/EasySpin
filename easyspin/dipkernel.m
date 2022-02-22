@@ -66,4 +66,13 @@ K = cos(ph).*C + sin(ph).*S;
 % Replace NaN values (at time zero) with 1
 K(isnan(K)) = 1;
 
+% Include dr
+if numel(r)>1
+  dr = r(2)-r(1);
+  if abs(dr/mean(diff(r))-1)>1e-8
+    error('Distance vector must have equidistant increments.')
+  end
+  K = dr*K;
+end
+
 end
