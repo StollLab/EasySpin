@@ -184,20 +184,27 @@ for iStructure = 1:nStructures
   if ~isempty(k)
     % read raw D matrix (cm^-1) and diagonalize
     D_raw = readmatrix(L(k+3:k+5));
-    [V,D] = eig(D_raw);
-    D = diag(D).';
-    if det(V)<0
-      V(:,1) = -V(:,1);
+    recalcVecs = true;
+    if recalcVecs
+      [D_vecs,D_vals] = eig(D_raw);
+      D_vals = diag(D_vals).';
+      if det(D_vecs)<0
+        D_vecs(:,1) = -D_vecs(:,1);
+      end
+    else
+      D_vals = sscanf(L{k+8},'%f %f %f').';
+      D_vecs = readmatrix(L(k+9:k+11));
     end
-    Dvals = D*100*clight/1e6;  % cm^-1 -> MHz
-    DFrame = eulang(V);
+    D_raw = D_raw*100*clight/1e6;  % cm^-1 -> MHz
+    D_vals = D_vals*100*clight/1e6;  % cm^-1 -> MHz
+    DFrame = eulang(D_vecs);
   else
     D_raw = [];
-    Dvals = [];
+    D_vals = [];
     DFrame = [];
   end
   data(iStructure).Draw = D_raw;
-  data(iStructure).Dvals = Dvals;
+  data(iStructure).Dvals = D_vals;
   data(iStructure).DFrame = DFrame;
 
   % Hyperfine and electric field gradient

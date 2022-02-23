@@ -64,21 +64,42 @@ for iSection = 1:numel(sections)
     case '$ EPRNMR_GTensor'
       g_raw = readmatrix(allLines(idx0+(8:10)));
       g_sym = (g_raw.'*g_raw)^(1/2);
-      g_sym = (g_sym+g_sym.')/2; % symmetrize numerically
-      g_vecs = readmatrix(allLines(idx0+(13:15)));
-      g_vals = readvec(allLines{idx0+18}(9:end));
+      recalcVecs = true;
+      if recalcVecs
+        g_sym = (g_sym+g_sym.')/2; % symmetrize numerically
+        [g_vecs,g_vals] = eig(g_sym);
+        g_vals = diag(g_vals).';
+        if det(g_vecs)<0
+          g_vecs(:,1) = -g_vecs(:,1);
+        end
+      else
+        g_vecs = readmatrix(allLines(idx0+(13:15)));
+        g_vals = readvec(allLines{idx0+18}(9:end));
+      end
       data(iStructure).graw = g_raw;
-      data(iStructure).g = g_sym;
+      data(iStructure).g = g_vecs;
       data(iStructure).gvals = g_vals;
       data(iStructure).gFrame = eulang(g_vecs);
 
     case '$ EPRNMR_DTensor'
       D_raw = readmatrix(allLines(idx0+(8:10)));
-      D_vals = readvec(allLines{idx0+13}(9:end));
-      D_vecs = readmatrix(allLines(idx0+(16:18)));
+      recalcVecs = true;
+      if recalcVecs
+        [D_vecs,D_vals] = eig(D_raw);
+        D_vals = diag(D_vals).';
+        if det(D_vecs)<0
+          D_vecs(:,1) = -D_vecs(:,1);
+        end
+      else
+        D_vals = readvec(allLines{idx0+13}(9:end));
+        D_vecs = readmatrix(allLines(idx0+(16:18)));
+      end
+      D_raw = D_raw*100*clight/1e6; % cm^-1 -> MHz
+      D_vals = D_vals*100*clight/1e6; % cm^-1 -> MHz
+      D_frame = eulang(D_vecs);
       data(iStructure).Draw = D_raw;
       data(iStructure).Dvals = D_vals;
-      data(iStructure).DFrame = eulang(D_vecs);
+      data(iStructure).DFrame = D_frame;
 
     case '$ EPRNMR_ATensor'
       % colon is missing after "Number of stored nuclei"
@@ -111,6 +132,9 @@ for iSection = 1:numel(sections)
       data(iStructure).AFrame = AFrame;
 
     case '$ EPRNMR_QTensor'
+      error('EPRNMR_QTensor is not supported.');
+
+    case '$ EPRNMR_EFGTensor'
       valuestr = regexp(allLines{idx0+4},'\d+$','match','once');
       nStoredNuclei = str2double(valuestr);
       rho_present = contains(allLines{idx0+7},'true');
@@ -183,14 +207,16 @@ for iStructure = nStructures:-1:1
   % Compile nuclear data (isotopes, hyperfine coupling, quuadropole coupling)
   idx = 0;
   for iAtom = 1:nAtoms
-    if ~isempty(d.A{iAtom}) || ~isempty(d.Q{iAtom})
+    Agiven = isfield(d,'A') && ~isempty(d.A{iAtom});
+    Qgiven = isfield(d,'Q') && ~isempty(d.Q{iAtom});
+    if Agiven || Qgiven
       idx = idx + 1;
       Sys(iStructure).Nucs{idx} = d.Element{iAtom};
-      if ~isempty(d.A{iAtom})
+      if Agiven
         Sys(iStructure).A(idx,1:3) = d.A{iAtom};
         Sys(iStructure).AFrame(idx,1:3) = d.AFrame{iAtom};
       end
-      if ~isempty(d.Q{iAtom})
+      if Qgiven
         Sys(iStructure).Q(idx,1:3) = d.Q{iAtom};
         Sys(iStructure).QFrame(idx,1:3) = d.QFrame{iAtom};
       end

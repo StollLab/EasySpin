@@ -15,10 +15,10 @@ $ DFT_Energy
    Number of Alpha Electrons                  4.9999980882 
    Number of Beta  Electrons                  3.9999998270 
    Total number of  Electrons                 8.9999979153 
-   Exchange energy                           -4.9152090854 
+   Exchange energy                           -4.9152090852 
    Correlation energy                        -0.3099268813 
    Correlation energy NL                      0.0000000000 
-   Exchange-Correlation energy               -5.2251359667 
+   Exchange-Correlation energy               -5.2251359665 
    Embedding correction                       0.0000000000 
    Total DFT Energy (No VdW correction)     -39.8065105898 
 # -----------------------------------------------------------
@@ -67,12 +67,12 @@ $ SCF_Electric_Properties
    description: The SCF Calculated Electric Properties
    geom. index: 1
    prop. index: 1
-       Filename                          : .\methyl_tilted_all.scfp 
+       Filename                          : methyl_tilted_all.scfp 
        Do Dipole Moment Calculation      : true 
        Do Quadrupole Moment Calculation  : false 
        Do Polarizability Calculation     : false 
 ** Dipole moment part of electric properties **
-        Magnitude of dipole moment (Debye) :        0.0002293702
+        Magnitude of dipole moment (Debye) :        0.0002293675
         Electronic Contribution:
                   0    
       0      -0.000081
@@ -97,17 +97,17 @@ $ EPRNMR_GTensor
  Spin multiplicity: 2 
  raw g tensor: 
                   0          1          2    
-      0       2.002755   0.000037   0.000145
-      1       0.000037   2.002765  -0.000127
-      2       0.000145  -0.000127   2.002304
+      0       2.002757   0.000037   0.000145
+      1       0.000037   2.002767  -0.000127
+      2       0.000145  -0.000127   2.002305
  g tensor: 
                   0          1          2    
-      0      -0.273238  -0.303871   0.912690
-      1       0.238928  -0.940501  -0.241601
-      2       0.931802   0.152053   0.329584
+      0      -0.273238   0.296531  -0.915101
+      1       0.238927   0.942411   0.234040
+      2       0.931802  -0.154694  -0.328352
  G eigenvalues: 
                   0          1          2    
-      0       2.002229   2.002798   2.002798
+      0       2.002230   2.002799   2.002799
 # -----------------------------------------------------------
 $ EPRNMR_ATensor
    description: Hyperfine A tensor
@@ -122,43 +122,43 @@ $ EPRNMR_ATensor
  Prefactor (MHz): 134.190303 
  Raw A tensor (MHz): 
                   0          1          2    
-      0      83.122932 -14.461320 -56.399729
-      1     -14.461320  79.227340  49.314949
-      2     -56.399728  49.314953 258.911909
+      0      83.122938 -14.461321 -56.399729
+      1     -14.461320  79.227346  49.314949
+      2     -56.399728  49.314953 258.911915
  A Tensor eigenvectors:
                    0          1          2    
-      0       0.045911   0.960847  -0.273248
-      1      -0.964321   0.114022   0.238922
-      2       0.260724   0.252530   0.931800
+      0       0.045771   0.960854  -0.273248
+      1      -0.964338   0.113882   0.238922
+      2       0.260687   0.252568   0.931800
  A Eigenvalues: 
                   0          1          2    
-      0      66.582547  66.583869 288.095765
-A(iso)  140.420727
+      0      66.582552  66.583875 288.095771
+A(iso)  140.420733
  Nucleus: 1 H  
  Isotope: 1 
  Nuclear Spin:  0.5 
  Prefactor (MHz): 533.551395 
  Raw A tensor (MHz): 
                   0          1          2    
-      0     -40.598726 -32.766023  14.001444
-      1     -32.766033 -80.914460  -4.166791
-      2      14.001452  -4.166792 -54.508622
+      0     -40.598730 -32.766023  14.001444
+      1     -32.766033 -80.914463  -4.166791
+      2      14.001452  -4.166791 -54.508625
  A Tensor eigenvectors:
                    0          1          2    
-      0      -0.822640  -0.273319   0.498558
-      1       0.443980   0.238957   0.863586
-      2      -0.355169   0.931770  -0.075227
+      0       0.822640   0.273319   0.498558
+      1      -0.443980  -0.238957   0.863586
+      2       0.355169  -0.931770  -0.075227
  A Eigenvalues: 
                   0          1          2    
-      0     -16.869820 -59.684308 -99.467680
-A(iso)  -58.673936
+      0     -16.869823 -59.684311 -99.467683
+A(iso)  -58.673939
  Nucleus: 2 H  
  Isotope: 1 
  Nuclear Spin:  0.5 
  Prefactor (MHz): 533.551395 
  Raw A tensor (MHz): 
                   0          1          2    
-      0     -96.464079  -0.963606 -10.538350
+      0     -96.464078  -0.963606 -10.538350
       1      -0.963606 -19.499912 -10.583289
       2     -10.538353 -10.583294 -60.062520
  A Tensor eigenvectors:
@@ -168,8 +168,8 @@ A(iso)  -58.673936
       2       0.242639  -0.931816   0.269897
  A Eigenvalues: 
                   0          1          2    
-      0     -16.872556 -59.685013 -99.468942
-A(iso)  -58.675504
+      0     -16.872556 -59.685012 -99.468941
+A(iso)  -58.675503
  Nucleus: 3 H  
  Isotope: 1 
  Nuclear Spin:  0.5 
@@ -181,16 +181,16 @@ A(iso)  -58.675504
       2      -2.306845  13.736845 -63.879990
  A Tensor eigenvectors:
                    0          1          2    
-      0       0.843105  -0.273172   0.463197
-      1       0.525894   0.238974  -0.816288
-      2       0.112295   0.931809   0.345140
+      0       0.843105   0.273172  -0.463197
+      1       0.525894  -0.238974   0.816288
+      2       0.112295  -0.931809  -0.345140
  A Eigenvalues: 
                   0          1          2    
       0     -16.868052 -59.680720 -99.464840
 A(iso)  -58.671204
 # -----------------------------------------------------------
-$ EPRNMR_QTensor
-   description: Electric Field Gradient Q tensor
+$ EPRNMR_EFGTensor
+   description: Electric Field Gradient tensor
    geom. index: 1
    prop. index: 1
  Number of stored nuclei 4
@@ -201,69 +201,69 @@ $ EPRNMR_QTensor
  Isotope: 13 
  Nuclear Spin:  0.5 
  Prefactor (MHz): 0.000000 
- Raw Q tensor (au**-3): 
+ Raw EFG tensor (au**-3): 
                   0          1          2    
       0      -0.055711  -0.014042  -0.054785
       1      -0.014042  -0.059415   0.047965
       2      -0.054785   0.047965   0.115126
- Q Tensor eigenvectors:
+ EFG Tensor eigenvectors:
                    0          1          2    
-      0       0.358955  -0.892502  -0.273113
-      1       0.923982   0.298432   0.239158
-      2      -0.131944  -0.338198   0.931779
+      0       0.358957   0.892502   0.273113
+      1       0.923981  -0.298433  -0.239158
+      2      -0.131943   0.338199  -0.931779
  EFG Eigenvalues (atomic units): 
                   0          1          2    
       0      -0.071720  -0.071775   0.143495
-   Q(iso)  -0.000000
+   EFG(iso)  -0.000000
  Electron density at nucleus 120.622094
  Nucleus: 1 H  
  Isotope: 1 
  Nuclear Spin:  0.5 
  Prefactor (MHz): 0.002858 
- Raw Q tensor (au**-3): 
+ Raw EFG tensor (au**-3): 
                   0          1          2    
       0       0.179863  -0.184203   0.153723
       1      -0.184203  -0.063454  -0.084729
       2       0.153723  -0.084729  -0.116410
- Q Tensor eigenvectors:
+ EFG Tensor eigenvectors:
                    0          1          2    
-      0       0.498468  -0.273415   0.822662
-      1       0.863660   0.238693  -0.443979
-      2      -0.074974   0.931810   0.355118
+      0       0.498468   0.273415  -0.822662
+      1       0.863660  -0.238693   0.443979
+      2      -0.074974  -0.931810  -0.355118
  EFG Eigenvalues (atomic units): 
                   0          1          2    
       0      -0.162413  -0.183220   0.345633
-   Q(iso)  -0.000000
+   EFG(iso)  -0.000000
  Electron density at nucleus 0.369099
  Nucleus: 2 H  
  Isotope: 1 
  Nuclear Spin:  0.5 
  Prefactor (MHz): 0.002858 
- Raw Q tensor (au**-3): 
+ Raw EFG tensor (au**-3): 
                   0          1          2    
       0      -0.163763   0.011400   0.002787
       1       0.011400   0.314321  -0.124219
       2       0.002787  -0.124219  -0.150559
- Q Tensor eigenvectors:
+ EFG Tensor eigenvectors:
                    0          1          2    
-      0       0.961688  -0.273389  -0.020378
-      1       0.047360   0.238892  -0.969890
-      2       0.270026   0.931767   0.242687
+      0       0.961688   0.273389   0.020378
+      1       0.047360  -0.238892   0.969890
+      2       0.270026  -0.931767  -0.242687
  EFG Eigenvalues (atomic units): 
                   0          1          2    
       0      -0.162419  -0.183224   0.345643
-   Q(iso)  0.000000
+   EFG(iso)  0.000000
  Electron density at nucleus 0.369107
  Nucleus: 3 H  
  Isotope: 1 
  Nuclear Spin:  0.5 
  Prefactor (MHz): 0.002858 
- Raw Q tensor (au**-3): 
+ Raw EFG tensor (au**-3): 
                   0          1          2    
       0       0.197168   0.226635   0.053418
       1       0.226635  -0.023089   0.025387
       2       0.053418   0.025387  -0.174079
- Q Tensor eigenvectors:
+ EFG Tensor eigenvectors:
                    0          1          2    
       0       0.463219   0.273177   0.843091
       1      -0.816308  -0.238883   0.525906
@@ -271,7 +271,7 @@ $ EPRNMR_QTensor
  EFG Eigenvalues (atomic units): 
                   0          1          2    
       0      -0.162426  -0.183231   0.345657
-   Q(iso)  -0.000000
+   EFG(iso)  0.000000
  Electron density at nucleus 0.369121
 # -------------------------------------------------------------
 ----------------------- !GEOMETRIES! ------------------------
