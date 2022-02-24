@@ -4,9 +4,9 @@ function ok = test(opt)
 
 BaseDir = 'orca/';
 
-Files{1} = 'tp051512_opt';
-Files{2} = 'dioxygen_g';
-Files{3} = 'nx4me';
+Files{1} = 'tp051512_opt.prop';
+Files{2} = 'dioxygen_g.prop';
+Files{3} = 'nx4me.prop';
 
 hfCutoff = 1; % MHz
 

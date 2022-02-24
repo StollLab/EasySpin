@@ -1,0 +1,14 @@
+! UKS B3LYP cc-pVDZ
+
+*xyz 0 2
+C         0         0         0
+H    0.8868   -0.4786    0.3828
+H    0.0220    1.0455   -0.2616
+H   -0.9088   -0.5669   -0.1211
+*
+
+%eprnmr
+  gtensor true
+  Nuclei = all C {aiso, adip, aorb, fgrad, rho}
+  Nuclei = all H {aiso, adip, aorb, fgrad, rho}
+end

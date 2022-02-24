@@ -20,7 +20,7 @@
 %      Abundances    cell array of nuclear abundances
 %      relThreshold  isotopologue abundance threshold, relative to
 %                       abundance of most abundant isotopologue
-%                       (default 0.001)
+%                       (between 0 and 1, default 0.001)
 %
 %    out                 structure array containing a list of all isotopologues
 %       out(k).Nucs      string with list of isotopes
