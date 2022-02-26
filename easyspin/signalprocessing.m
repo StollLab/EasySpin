@@ -128,7 +128,6 @@ try
       % Indices for splitting the signal
       BreakIndices = [1  find(diffTime ~= dt)+1 length(DCTimeAxis)+1];
       
-      
       % Does the downconversion, if no down conversion is requested for the
       % current detection operator, the cleaned up signal is written to
       % ProcessedSignal
@@ -192,11 +191,11 @@ end
 
 % If only one acquisition point, singleton dimension is removed
 if ~iscell(ProcessedSignal)
-  if ndims(ProcessedSignal) == 3 && size(ProcessedSignal,1) == 1
+  nDims = ndims(ProcessedSignal);
+  if nDims==3 && size(ProcessedSignal,1)==1
     ProcessedSignal = squeeze(ProcessedSignal);
   end
-  if ndims(ProcessedSignal) == 2 && size(ProcessedSignal,1) == 1 && nDetectionOperators == 1
+  if nDims==2 && size(ProcessedSignal,1)==1 && nDetectionOperators==1
     ProcessedSignal = permute(ProcessedSignal,[2 1]);
   end
 end
-

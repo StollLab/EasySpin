@@ -23,52 +23,55 @@
 %
 %  For matrices, rcfilt operates along columns.
 
-function varargout = rcfilt(y,SampTime,TimeConstant,UpDown)
+function varargout = rcfilt(y,SampleTime,TimeConstant,UpDown)
 
-if (nargin==0), help(mfilename); return; end
-if (nargin<4), UpDown = 'up'; end
+if nargin==0, help(mfilename); return; end
+if nargin<4, UpDown = 'up'; end
 
 % Check input arguments
 err = '';
 if ~isreal(TimeConstant), err = 'Time constant must be real!'; end
-if ~isreal(SampTime), err = 'Sampling time must be real!'; end
+if ~isreal(SampleTime), err = 'Sampling time must be real!'; end
 if numel(TimeConstant)~=1, err = 'Time constant must be a scalar!'; end
-if numel(SampTime)~=1, err = 'Sampling time must be a scalar!'; end
-if (TimeConstant<0), err = 'Time constant must be positive or zero!'; end
-if (SampTime<=0), err = 'Sampling time must be positive!'; end
+if numel(SampleTime)~=1, err = 'Sampling time must be a scalar!'; end
+if TimeConstant<0, err = 'Time constant must be positive or zero!'; end
+if SampleTime<=0, err = 'Sampling time must be positive!'; end
 if all(~strcmp(UpDown,{'up','down','dn'})), err = 'Specify either ''up'' or ''down''.'; end
 error(err);
 
-[m, n] = size(y);
-RowVector = (m==1)&(n>1);
-if RowVector, y = y.'; end
-N = size(y,1);
+RowVector = isrow(y);
+if RowVector
+  y = y.';
+end
 
-Invert = any(strcmp(UpDown,{'down','dn'}));
-if (Invert), y = y(end:-1:1,:); end
+Invert = UpDown=="dn" || UpDown=="down";
+if Invert
+  y = y(end:-1:1,:);
+end
 
 % Apply low-pass RC filter
 if TimeConstant==0
-  e = 0;
+  yFiltered = y;
 else
-  e = exp(-SampTime/TimeConstant);
-end
-for iCol = 1:size(y,2)
-  yFiltered(:,iCol) = filter(1-e,[1 -e],y(:,iCol));  %#ok
+  e = exp(-SampleTime/TimeConstant);
+  for iCol = size(y,2):-1:1
+    yFiltered(:,iCol) = filter(1-e,[1 -e],y(:,iCol));
+  end
 end
 
-if (Invert)
+if Invert
   y = y(end:-1:1,:);
   yFiltered = yFiltered(end:-1:1,:);
 end
-if (RowVector)
+if RowVector
   y = y.';
   yFiltered  = yFiltered.';
 end
 
 switch nargout
   case 0
-    plot(1:N,y,'b',1:N,yFiltered,'g');
+    x = 1:size(y,1);
+    plot(x,y,'b',x,yFiltered,'g');
     legend('raw','filtered');
     xlabel('data point #');
     ylabel('value');
@@ -80,4 +83,4 @@ switch nargout
     error('Wrong number of output arguments.');
 end
 
-return
+end

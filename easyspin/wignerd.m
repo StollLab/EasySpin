@@ -75,7 +75,7 @@ switch numel(J)
     m2 = J(3);
     J = J(1);
   otherwise
-    error('First input must be either J or [J m1 m2]');
+    error('First input must be either J or [J m1 m2].');
 end
 
 if numel(J)~=1 || ~isreal(J) || mod(J,0.5) || J<0 || ~isnumeric(J)
@@ -97,8 +97,10 @@ if ~ischar(phase) || numel(phase)~=1
 end
 if phase=='-'
   phase = -1;
-else
+elseif phase=='+'
   phase = +1;
+else
+  error('Phase must be either ''-'' or ''+''.')
 end
 
 if calculateMatrix
@@ -107,7 +109,7 @@ if calculateMatrix
   %-----------------------------------------------------------------------------
   if ~any(beta) && (betaonly || (~any(alpha) && ~any(gamma)))
     D = eye(2*J+1);
-    return;
+    return
   end
   
   % Calculate Wigner little-d matrix via Jy operator matrix exponential
