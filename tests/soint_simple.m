@@ -1,21 +1,16 @@
 function ok = test()
 
-% Test against explicit values for simple case
+S = 1/2;
+L = 1;
+soc = 4545;
 
-Sys.S = 1/2;
-Sys.L = 1;
-Sys.soc = 1;
-
+Sys.S = S;
+Sys.L = L;
+Sys.soc = soc;
 H = soint(Sys);
 
-a = 0.5;
-b = 1/sqrt(2);
-Href = ...
-  [a 0 0 0 0 0;
-    0 0 0 b 0 0;
-    0 0 -a 0 b 0;
-    0 b 0 -a 0 0;
-    0 0 b 0 0 0;
-    0 0 0 0 0 a];
+[Sx,Sy,Sz] = sop([S L],'x1','y1','z1');
+[Lx,Ly,Lz] = sop([S L],'x2','y2','z2');
+Href = soc*(Sx*Lx + Sy*Ly + Sz*Lz);
 
 ok = areequal(H,Href,1e-10,'abs');
