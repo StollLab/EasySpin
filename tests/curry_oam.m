@@ -9,14 +9,14 @@ SysSL.S = 1/2;
 SysSL.g = diag([2 2.1 2.2]);
 SysSL.L = 1;
 SysSL.soc = rand(1,2)*1000;
-SysSL.orf = rand;
+SysSL.gL = rand;
 lenS = length(SysSL.S);
 
 PureSpin.S = [SysSL.S,SysSL.L];
 % build array of g matrices
 PureSpin.g = [SysSL.g;zeros(3*n,3)];
 for k = 1:n
-  gL = diag(SysSL.orf(k)*ones(1,3));
+  gL = diag(SysSL.gL(k)*ones(1,3));
   PureSpin.g(3*(n+k-1)+1:3*(n+k),:) = gL;
 end
 
@@ -28,8 +28,8 @@ PureSpin.ee = zeros(eelen,1);
 PureSpin.ee2 = zeros(eelen,1);
 for m = 1:lenS
   x = (k(:,1)==m) & (k(:,2)==m+lenS);
-  PureSpin.ee(x) = SysSL.orf(m)*SysSL.soc(m,1);
-  PureSpin.ee2(x) = SysSL.orf(m)*SysSL.orf(m)*SysSL.soc(m,2);
+  PureSpin.ee(x) = SysSL.soc(m,1);
+  PureSpin.ee2(x) = SysSL.soc(m,2);
 end
 
 % build zero-field splitting part

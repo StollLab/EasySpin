@@ -1173,7 +1173,7 @@ This is fully analogous to <code>eeFrame</code> (see above). Check out the page 
 </div>
 
 <a name="soi"><div class="subtitle">Orbital angular momenta and spin-orbit interaction</div></a>
-Each electron spin in the spin system can be coupled to an orbital angular momentum, with the assocaited quantum number defined in the field <code>L</code>. Spin-orbit coupling is specified via the fields <code>soc</code> (coupling strength) and <code>orf</code> (orbital reduction factor). Orbital angular momenta are supported by the simulation functions <a class="esf" href="pepper.html">pepper</a> (solid-state EPR) and <a class="esf" href="curry.html">curry</a> (magnetometry).
+Each electron spin in the spin system can be coupled to an orbital angular momentum, with the associated quantum number defined in the field <code>L</code> and the associated isotropic orbital g factors in the field <code>gL</code> . Spin-orbit coupling is specified via the field <code>soc</code>. Orbital angular momenta are supported by the simulation functions <a class="esf" href="pepper.html">pepper</a> (solid-state EPR) and <a class="esf" href="curry.html">curry</a> (magnetometry).
 
 <p>
 <div class="optionfield"><code>L</code></div>
@@ -1246,13 +1246,13 @@ Sys.CF2 = CF2.';
 
 </div>
 
-<div class="optionfield"><code>orf</code></div>  
+<div class="optionfield"><code>gL</code></div>  
 <div class="optiondescr">
-Orbital reduction factors (orf) entering in the Zeeman Hamiltonian and the spin-orbit interaction, one for each orbital angular momentum in <code>L</code>. <code>orf</code> is an optional field, if omitted it is assumed equal to 1 for all orbital angular momenta. The number of elements in <code>orf</code> must match the number of elements in <code>L</code>.
+Orbital g values entering in the Zeeman Hamiltonian, one for each orbital angular momentum in <code>L</code>. <code>gL</code> is an optional field, if omitted it is assumed equal to 1 for all orbital angular momenta. The number of elements in <code>gL</code> must match the number of elements in <code>L</code>.
 
 <pre class="matlab">
-Sys.orf = 3/2;          % orf for a single orbital angular momentum
-Sys.orf = [0.97 0.93];  % orf for two orbital angular momenta
+Sys.gL = 3/2;          % gL for a single orbital angular momentum
+Sys.gL = [0.97 0.93];  % gL for two orbital angular momenta
 </pre>
 </div>
 

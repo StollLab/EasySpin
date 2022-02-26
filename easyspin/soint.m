@@ -7,8 +7,8 @@
 %   Returns the spin orbit interaction (SOI) Hamiltonian, in MHz.
 %
 %   Input:
-%   - SpinSystem: Spin system structure. SOI parameters are the spin-orbit
-%       coupling in soc and the orbital reduction facotr in orf.
+%   - SpinSystem: Spin system structure. The spin-orbit coupling is
+%       in SpinSystem.soc.
 %   - Spins: If given, specifies electron spins for which the SOI should be
 %       computed. If absent, all electrons are included.
 %   - 'sparse': If given, the matrix is returned in sparse format.
@@ -74,7 +74,7 @@ for k = 1:length(eSpins)
   
   % Add SOC terms to Hamiltonian
   for order = find(soc_)
-    H = H + soc_(order) * (System.orf(iS)*SL)^order;
+    H = H + soc_(order) * SL^order;
   end
   
 end

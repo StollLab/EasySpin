@@ -10,7 +10,7 @@ Sys.S = 1/2*ones(1,3);%randi(3,1,n)/2;
 Sys.g = rand(3*n,3);
 Sys.L = 1*ones(1,3);%randi(2,1,n);
 Sys.soc = rand(n,2)*1000;
-Sys.orf = rand(n,1);
+Sys.gL = rand(n,1);
 lenS = length(Sys.S);
 kS =0;
 if n>1
@@ -24,7 +24,7 @@ PureSpin.S = [Sys.S,Sys.L];
 % build array of g matrices:
 PureSpin.g = [Sys.g;zeros(3*n,3)];
 for k=1:n
-  PureSpin.g(3*(n+k-1)+1:3*(n+k),:) = diag(Sys.orf(k)*ones(1,3));
+  PureSpin.g(3*(n+k-1)+1:3*(n+k),:) = diag(Sys.gL(k)*ones(1,3));
 end
 
 % distribute soc over ee and ee2
@@ -35,8 +35,8 @@ PureSpin.ee = zeros(eelen,1);
 PureSpin.ee2 = zeros(eelen,1);
 for m=1:lenS
   x = logical((k(:,1)==m).*(k(:,2)==m+lenS));
-  PureSpin.ee(x) = Sys.orf(m)*Sys.soc(m,1);
-  PureSpin.ee2(x) = Sys.orf(m)*Sys.orf(m)*Sys.soc(m,2);
+  PureSpin.ee(x) = Sys.soc(m,1);
+  PureSpin.ee2(x) = Sys.soc(m,2);
   if m<=kS
     y = logical((k(:,1)==coup(m,1).*(k(:,2)==coup(m,2))));
     PureSpin.ee(y) = Sys.ee(m);
