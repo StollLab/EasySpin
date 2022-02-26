@@ -50,7 +50,7 @@ $ReleaseID$
 <li>The field <code>Sys.aF</code> in <a class="esf" href="spinsystem.html">spin systems</a> is no longer supported. Use <code>Sys.B4</code> and <code>Sys.B4Frame</code> instead.</li>
 <li>Interconvert between spherical and cartesian tensors with the new functions <a class="esf" href="tensor_cart2sph.html">tensor_cart2sph</a> and <a class="esf" href="tensor_sph2cart.html">tensor_sph2cart</a>.</li>
 <li><a class="esf" href="rotview.html">rotview</a> provides a graphical interface to visualize and explore Euler angles and their associated rotations.</li>
-<li><a class="esf" href="orca2easyspin.html">orca2easyspin</a> supports ORCA5 and can do read in the main output file.
+<li><a class="esf" href="orca2easyspin.html">orca2easyspin</a> supports ORCA5 and can now directly read in the main ORCA output file.
 </ul>
 
 <p>Major bug fixes</p>
@@ -63,6 +63,7 @@ $ReleaseID$
 
 <p>Incompatible changes</p>
 <ul>
+<li>The field <code>Sys.orf</code> (orbital reduction factor) has been removed. Instead, use <code>Sys.gL</code> to specify the orbital g factor, and <code>Sys.soc</code> to specify the strength of the spin-orbit coupling.</li>
 <li>The function <code>rescale</code> has been renamed to </code><a class="esf" href="rescaledata.html">rescaledata</a> to avoid conflict with an identically named MATLAB function.
 <li><a class="esf" href="chili.html">saffron</a>: The input syntax has changed significantly. See the <a href="saffron.html">reference page</a>, the <a href="userguide_saffron.html">user guide</a>, and the <a href="examplesmain.html">examples</a>.
 <li><a class="esf" href="chili.html">chili</a>: The input field name and syntax for orienting potentials has changed. Instead of <code>Sys.lambda</code>, use <code>Sys.Potential</code>. The new input syntax allows the specification of general orientational potentials.
@@ -72,7 +73,7 @@ $ReleaseID$
 <li><a class="esf" href="sphgrid.html">sphgrid</a> now returns angles, vectors, and weights together in a structure.</li>
 <li>The function <code>sphtri</code> has been removed; it's functionality is now incorporated into <a class="esf" href="sphgrid.html">sphgrid</a>.</li>
 <li>The option name to specify powder averages has changed. Instead of <code>Opt.nKnots</code>, use the new field <code>Opt.GridSize</code>.</li>
-<li>The oldest supported Matlab version is now R2014b (8.4).
+<li>The oldest supported Matlab version is now R2016b.
 </ul>
 
 <div class="subtitle">
