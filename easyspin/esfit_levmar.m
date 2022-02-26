@@ -2,7 +2,7 @@
 %
 %   xfit = esfit_levmar(funfcn,x0,lb,ub)
 %   ... = esfit_levmar(funfcn,x0,lb,ub,Opt)
-%   [xfit,Info] = ...
+%   [xfit,info] = ...
 %
 %   Find  xm = argmin{F(x)} , where  x = [x_1, ..., x_n]  and
 %   F(x) = sum(f_i(x)^2)/2. The functions  f_i(x) (i=1,...,m)
@@ -26,19 +26,16 @@
 %
 % Output
 %   xfit    Converged vector in parameter space
-%   Info    Performance information, vector with 7 elements:
-%           info(1) = final value of F(x)
-%           info(2) = final value of ||F'||inf
-%           info(3) = final value of ||dx||2
-%           info(4) = final value of mu/max(A(i,i)) with A = Je'* Je
-%           info(5) = number of iterations
-%           info(6) = 1 :  stopped by small gradient
-%                     2 :  stopped by small x-step
-%                     3 :  max no. of iterations exceeded 
-%                    -4 :  dimension mismatch in x, f, B0
-%                    -5 :  overflow during computation
-%                    -6 :  error in approximate Jacobian
-%           info(7) = number of function evaluations
+%   info    structure with fitting information
+%            .F  function value at minimum
+%            .norm_g
+%            .norm_h
+%            .Je Jacobian estimate
+%            .lambda
+%            .nIterations  number of interations
+%            .stop
+%            .nEvals  number of evaluations
+%            .msg  message
 
 % Method:
 % Approximate Gauss-Newton with Levenberg-Marquardt damping and 
@@ -251,12 +248,12 @@ info.norm_g = norm_g;
 info.norm_h = norm_h;
 info.Je = Je;
 info.lambda = FitOpt.lambda;
-info.nIter = iIteration-1;
+info.nIterations = iIteration-1;
 info.stop = stopCode;
 info.nEvals = nEvals;
 info.msg = msg;
 
-return
+end
 %======================================================================
 
 
@@ -287,6 +284,7 @@ else
   err = 0;
 end
 
+end
 
 %======================================================================
 function [h,mu] = computeLMStep(A,g,mu)
@@ -306,6 +304,8 @@ end
 
 % Solve  (R'*R)*h = -g
 h = R\(R'\(-g));
+
+end
 
 %======================================================================
 function  [errCode,F,f] = funeval(funfcn,x)
@@ -332,3 +332,5 @@ end
 F = f'*f;
 
 if isinf(F), errCode = -5; end
+
+end

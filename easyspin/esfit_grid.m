@@ -6,6 +6,7 @@ if isempty(UserCommand), UserCommand = NaN; end
 if ~isfield(FitOpt,'TolFun'), FitOpt.TolFun = 1e-5; end
 if ~isfield(FitOpt,'GridSize'), FitOpt.GridSize = 7; end
 if ~isfield(FitOpt,'RandomizeGrid'), FitOpt.RandomizeGrid = true; end
+if ~isfield(FitOpt,'maxGridPoints'), FitOpt.maxGridPoints = 1e5; end
 
 lb = lb(:);
 ub = ub(:);
@@ -25,7 +26,7 @@ if numel(GridSize)~=nParams
   error('FitOpt.GridSize must have as many elements as there are fitting parameters.');
 end
 if any(GridSize<2)
-  error('At least one grid point per parameter is needed.');
+  error('At least two grid points per parameter are needed.');
 end
 
 nGridPoints = prod(GridSize);
@@ -33,32 +34,39 @@ if nGridPoints>FitOpt.maxGridPoints
   error('Cannot do grid search with more than %d points. Reduce number of parameters.',FitOpt.maxGridPoints);
 end
 
-for p = 1:nParams
-  grid{p} = linspace(lb(p),ub(p),GridSize(p));
+if FitOpt.PrintLevel
+  fprintf('%d parameters, %d grid points total\n',nParams,nGridPoints);
 end
 
+% Set up grid
+%--------------------------------------------------------------------------
+for p = nParams:-1:1
+  gridvals{p} = linspace(lb(p),ub(p),GridSize(p));
+end
 X = cell(1,nParams);
-[X{:}] = ndgrid(grid{:});
-for k=1:nParams, X{k} = X{k}(:); end
+[X{:}] = ndgrid(gridvals{:});
+for k = 1:nParams
+  X{k} = X{k}(:);
+end
 X = [X{:}];
 
+% Randomize order if requested
+gridPoints = 1:nGridPoints;
 if FitOpt.RandomizeGrid
-  X = X(randperm(nGridPoints),:);
+  gridPoints = gridPoints(randperm(nGridPoints));
 end
 
+% Evaluate function over grid
+%--------------------------------------------------------------------------
 minF = inf;
-bestx = zeros(nParams,1);
+bestx = NaN(nParams,1);
 startTime = cputime;
-
-if FitOpt.PrintLevel
-  fprintf('%d parameters, %d grid points total\n',...
-    nParams,nGridPoints);
-end
-
 stopCode = 0;
-for k = 1:nGridPoints
+nEvals = 0;
+for k = gridPoints
   
   F = fcn(X(k,:));
+  nEvals = nEvals + 1;
   
   if F<minF
     minF = F;
@@ -85,6 +93,12 @@ switch stopCode
   case 3, msg = sprintf('Terminated: Found a parameter set with error less than %g.',FitOpt.TolFun);
 end
 
-if FitOpt.PrintLevel>1, disp(msg); end
+if FitOpt.PrintLevel>1
+  disp(msg);
+end
 
-return
+info.F = F;
+info.nEvals = nEvals;
+info.stop = stopCode;
+
+end

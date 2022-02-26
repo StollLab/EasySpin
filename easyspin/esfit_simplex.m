@@ -257,4 +257,4 @@ if FitOpt.PrintLevel>0
   fprintf('Terminated: %s\n',msg);
 end
 
-return
+end
