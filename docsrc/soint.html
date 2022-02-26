@@ -7,7 +7,7 @@
    <link rel="stylesheet" href="highlight/matlab.css">
    <script src="highlight/highlight.pack.js"></script>
    <script>hljs.initHighlightingOnLoad();</script>
-   <title>zfield</title>
+   <title>soint</title>
 </head>
 
 <body>
@@ -26,73 +26,59 @@
 
 <section>
 
-<div class="functitle">zfield</div>
+<div class="functitle">soint</div>
 
 <p>
-Electronic zero-field interaction Hamiltonian.
+Spin-orbit interaction Hamiltonian.
 </p>
 
 <!-- ====================================================== -->
 <div class="subtitle">Syntax</div>
 
 <pre class="matlab">
-F = zfield(SpinSystem)
-F = zfield(SpinSystem,Spins)
-F = zfield(SpinSystem,Spins,'sparse')
+H = soint(SpinSystem)
+H = soint(SpinSystem,eSpins)
+H = soint(SpinSystem,eSpins,'sparse')
 </pre>
 
 <!-- ====================================================== -->
 <div class="subtitle">Description</div>
 
 <p>
-This function computes the Hamiltonian of all electronic zero-field
-interactions (ZFIs) in the spin system described by the structure
-<code>SpinSystem</code>. For formulas see <code>internal</code>.
+This function computes the Hamiltonian of all spin-orbit coupling interactions (SOCs) in the spin system described by the structure <code>SpinSystem</code>.
 </p>
 
 <p>
-If the vector <code>Spins</code> is given, the ZFI of only the specified electron spins is returned (1 is the first electron spin, 2 the
-second, etc). Otherwise, all electrons are included.
+If the vector <code>eSpins</code> is given, the SOC of only the specified electron spins is returned (1 is the first electron spin, 2 the second, etc). Otherwise, all electrons are included.
 </p>
 
 <p>
-If <code>'sparse'</code> is given as third argument, the Hamiltonian matrix is returned in sparse format
-instead of full format.
+If <code>'sparse'</code> is given as third argument, the Hamiltonian matrix is returned in sparse format instead of full format.
 </p>
 
 <!-- ====================================================== -->
 <div class="subtitle">Examples</div>
 
 <p>
-The zero-field term <img src="eqn/zfield1.png" alt="[eqn]"><!--MATH $\boldsymbol{S}^\mr{T}D\boldsymbol{S}$ --> of a
-simple spin system
+The spin-orbit coupling Hamiltonian between an electron spin-1/2 with orbital angular momentum L=2 is
 </p>
 
 <pre class="matlab">
-Sy = struct('S',1,'g',2,'D',[1680 110]);
+Sys.S = 1/2;
+Sys.L = 1;
+Sys.soc = 13e3;
+soint(Sys)
 </pre>
 
-<p>
-in GHz is
-</p>
-
-<pre class="matlab">
-zfield(Sy)/1e3
-</pre>
 <pre class="mloutput">
 ans =
-    0.5600         0    0.1100
-         0   -1.1200         0
-    0.1100         0    0.5600
-</pre>
-
-<p>
-The same result is obtained by using 3 values instead of 2 in the <code>D</code> field.
-
-<pre class="matlab">
-D = 1680; E = 110;
-Dvalues = [-1,-1,+2]/3*D + [+1,-1,0]*E;
-Sy = struct('S',1,'g',2,'D',Dvalues);
+   1.0e+03 *
+    6.5000         0         0         0         0         0
+         0         0         0    9.1924         0         0
+         0         0   -6.5000         0    9.1924         0
+         0    9.1924         0   -6.5000         0         0
+         0         0    9.1924         0         0         0
+         0         0         0         0         0    6.5000
 </pre>
 
 
@@ -105,8 +91,8 @@ Sy = struct('S',1,'g',2,'D',Dvalues);
 <a class="esf" href="nnint.html">nnint</a>,
 <a class="esf" href="nquad.html">nquad</a>,
 <a class="esf" href="sham.html">sham</a>,
-<a class="esf" href="soint.html">soint</a>,
 <a class="esf" href="zeeman.html">zeeman</a>,
+<a class="esf" href="zfield.html">zfield</a>
 <a class="esf" href="zfsframes.html">zfsframes</a>
 </p>
 
