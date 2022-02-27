@@ -3,6 +3,7 @@ function ok = test()
 % full hyperfine matrices with Euler angles
 
 rng(3388);
+
 A1 = rand(3);
 A2 = rand(3);
 AFrame1 = rand(1,3)*pi;
