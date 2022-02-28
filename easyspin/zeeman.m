@@ -92,7 +92,7 @@ ZzM = sparse(nStates,nStates);
 
 % Complete prefactors, in MHz/mT
 elFactor = +bmagn/(planck*1e9)*Sys.g;
-orbFactor = +bmagn/(planck*1e9)*Sys.orf;
+orbFactor = +bmagn/(planck*1e9)*Sys.gL;
 nucFactor = -nmagn/(planck*1e9)*Sys.gn.*Sys.gnscale;
 
 % Loop over all angular momenta (electron spins, nuclear spins, orbitals) selected

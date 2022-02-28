@@ -1,23 +1,41 @@
 % hfine  Hyperfine interaction Hamiltonian 
 %
-%   F = hfine(System)
-%   F = hfine(System,Spins)
-%   F = hfine(System,Spins,'sparse')
+%   Hhf = hfine(System)
+%   Hhf = hfine(System,eSpins)
+%   Hhf = hfine(System,eSpins,nSpins)
+%   Hhf = hfine(System,eSpins,nSpins,'sparse')
 %
-%   Returns the hyperfine interaction Hamiltonian
-%   [MHz] of the spins 'Spins' of the system
-%   'SpinSystem'. Spins = 1 is the first electron.
+%   Returns the hyperfine interaction Hamiltonian (in units of MHz) between
+%   electron spins 'eSpins' and nuclear spins 'nSpins' of the system
+%   'System'. eSpins=1 is the first electron spins, nSpins=1 is the first
+%   nuclear spin.
 %
 %   If 'sparse' is given, the matrix is returned in sparse format.
 
-function F = hfine(System,Spins,opt)
+function Hhf = hfine(System,elSpins,nucSpins,opt)
 
-if nargin==0, help(mfilename); return; end
+if nargin==0
+  help(mfilename);
+  return
+end
 
-if nargin<2, Spins = []; end
-if nargin<3, opt = ''; end
+switch nargin
+  case 1
+    elSpins = [];
+    nucSpins = [];
+    opt = '';
+  case 2
+    nucSpins = [];
+    opt = '';
+  case 3
+    opt = '';
+  case 4
+  otherwise
+    error('Incorrect number of input arguments.')
+end
+
 if ~ischar(opt)
-  error('Third input must be a string, ''sparse''.');
+  error('Fourth input must be a string, ''sparse''.');
 end
 useSparseMatrices = strcmp(opt,'sparse');
 
@@ -31,66 +49,62 @@ nStates = Sys.nStates;
 nElectrons = Sys.nElectrons;
 nNuclei = Sys.nNuclei;
 
-F = sparse(nStates,nStates); % sparse zero matrix
+Hhf = sparse(nStates,nStates); % sparse zero matrix
 
 % Special case: no nuclei present, so no hyperfine
 if nNuclei==0
   if ~useSparseMatrices
-    F = full(F);
+    Hhf = full(Hhf);
   end
   return
 end
 
-% Get spin list
-if isempty(Spins) % no 'Spins' specified -> all nuclei and all electrons
-  NucSpins = nElectrons+1:(nElectrons+nNuclei);
-  ElSpins = 1:nElectrons;
+% Get electron spin list
+if isempty(elSpins)
+  elSpins = 1:nElectrons;
 else
-  if any(Spins<1) || any(Spins>numel(SpinVec))
-    error('Spins (2nd argument) contains out-of-range values!');
+  if any(elSpins<1) || any(elSpins>nElectrons)
+    error('Electron spins (2nd argument) contains out-of-range values!');
   end
-  NucSpins = Spins;
-  ElSpins = Spins;
-  NucSpins(NucSpins<=nElectrons) = []; % remove electron spins
-  NucSpins(NucSpins>(nElectrons+nNuclei)) = []; % remove orbitla nagular momentum  
-  ElSpins(ElSpins>nElectrons) = []; % remove nuclear spins
 end
 
-if numel(NucSpins)<1 || numel(ElSpins)<1
-  error('At least one electron and one nuclear spin must be specified!');
+% Get electron spin list
+if isempty(nucSpins)
+  nucSpins = 1:nNuclei;
+else
+  if any(nucSpins<1) || any(nucSpins>nNuclei)
+    error('Nuclear spins (3rd argument) contains out-of-range values!');
+  end
 end
-
 
 fullAMatrix = size(System.A,1)>nNuclei;
 
-% Generate Hamiltonian for hyperfine interaction.
-for edx = 1:length(ElSpins)
-  eSp = ElSpins(edx);
-  idx = (eSp-1)*3+(1:3);
-  for ndx = 1:length(NucSpins)
-    nSp = NucSpins(ndx);
-    if Sys.I(nSp-nElectrons)<=0, continue; end
+% Generate Hamiltonian for hyperfine interaction
+for eSp = elSpins
+  eidx = (eSp-1)*3+(1:3);
+  for nSp = nucSpins
+    if Sys.I(nSp)==0, continue; end
     % Construct full hyperfine matrix.
     if fullAMatrix
-      A = Sys.A((nSp-nElectrons-1)*3+(1:3),idx);
+      A = Sys.A((nSp-1)*3+(1:3),eidx);
     else
-      A = diag(Sys.A(nSp-nElectrons,idx));
+      A = diag(Sys.A(nSp,eidx));
     end
-    R_M2A = erot(Sys.AFrame(nSp-nElectrons,idx)); % mol frame -> A frame
+    R_M2A = erot(Sys.AFrame(nSp,eidx)); % mol frame -> A frame
     R_A2M = R_M2A.'; % A frame -> mol frame
     A = R_A2M*A*R_A2M.';
-    % Construct hyperfine Hamiltonian.
+    % Construct hyperfine Hamiltonian
     for c1 = 1:3
       for c2 = 1:3
-        F = F + A(c1,c2)*sop(SpinVec,[eSp c1; nSp c2],'sparse');
+        Hhf = Hhf + A(c1,c2)*sop(SpinVec,[eSp c1; nElectrons+nSp c2],'sparse');
       end
     end
   end % for all specified nuclei
 end % for all specified electrons
 
-F = (F+F')/2; % hermitianise, e.g. guards against small imaginary remainders on the diagonal
+Hhf = (Hhf+Hhf')/2; % hermitianise, e.g. guards against small imaginary remainders on the diagonal
 if ~useSparseMatrices
-  F = full(F); % convert sparse to full
+  Hhf = full(Hhf); % convert sparse to full
 end
 
-return
+end

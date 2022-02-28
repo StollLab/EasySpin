@@ -119,22 +119,18 @@ The following groups of parameters can be specified in the spin system structure
 </ul>
 
 <p>
-All interaction
-matrices and tensors can have arbitrary orientations with respect
-to a molecule-fixed frame of reference (the so-called molecular frame).
+All interaction matrices and tensors can have arbitrary orientations with respect to a molecule-fixed frame of reference (the so-called molecular frame).
 </p>
 
 <p>
-Below we list and describe all possible spin system structure fields containing
-<a href="hamiltonian.html">spin Hamiltonian</a>
+Below we list and describe all possible spin system structure fields containing <a href="hamiltonian.html">spin Hamiltonian</a>
 parameters.
 </p>
 
 <a name="S"><div class="subtitle">The spins</div></a>
 
 <p>
-The two fields <code>S</code> and <code>Nucs</code>
-are used to specify the electron and nuclear spins constituting the spin system. Both are optional. If <code>S</code> is not given, <code>S=1/2</code> is assumed. If <code>Nucs</code> is not specified, <code>Nucs=''</code> is used.
+The two fields <code>S</code> and <code>Nucs</code> are used to specify the electron and nuclear spins constituting the spin system. Both are optional. If <code>S</code> is not given, <code>S=1/2</code> is assumed. If <code>Nucs</code> is not specified, <code>Nucs=''</code> is used.
 </p>
 
 <div class="optionfield"><code>S</code></div>
@@ -142,14 +138,13 @@ are used to specify the electron and nuclear spins constituting the spin system.
 Gives the electron spin quantum number(s). An arbitrary number of electron spins can be specified. Examples:
 <pre class="matlab">
 Sys.S = 1/2;            % one electron spin with S=1/2
-Sys.S = 5/2;            % an S=5/2 spin
-Sys.S = [1/2, 1/2];     % two S=1/2 spins
-Sys.S = [1, 1, 1/2];    % two S=1 spins and one S=1/2 spin
+Sys.S = 5/2;            % an S=5/2 electron spin
+Sys.S = [1/2, 1/2];     % two S=1/2 electron spins
+Sys.S = [1, 1, 1/2];    % two S=1 electron spins and one S=1/2 electron spin
 </pre>
 
 <p>
-If <code>S</code> is not given, it is automatically
-set to 1/2.
+If <code>S</code> is not specified, it is automatically set to 1/2.
 </p>
 
 </div>
@@ -179,11 +174,11 @@ Sys.Nucs = 'F,C';         % 100% 19F, plus a mixture of 99% 12C and 1% 13C
 </pre>
 
 <p>
-EasySpin will automatically simulate the spectra of all possible isotopologues (isotopes combinations) and combine them with the appropriate weights. Hyperfine constants and quadrupole couplings are automatically converted between isotopes. The values given by you in the spin system are taken to apply for the most abundant isotope with an appropriate spin (e.g. 63Cu in the case of Cu, 1H for H, 14N of N, 119Sn for Sn).
+EasySpin will automatically simulate the spectra of all possible isotopologues (isotopes combinations) and combine them with the appropriate weights. Hyperfine constants and quadrupole couplings are automatically converted between isotopes. The values given in the spin system are taken to apply for the most abundant isotope with an appropriate spin (e.g. Cu: 63Cu for both gn and quadrupole moment; H: 1H for g value, 2H for quadrupole moment; N: 14N for both; Sn: 119Sn for both; the only three cases where the reference isotopes for gn and quadrupole moment differ are H, Xe and Hg, for all others either the most abundant isotope has spin 1 or larger [N], or there is no isotope with spin 1 or larger [C]).
 </p>
 
 <p>
-It is also possible to give custom/enriched isotope mixtures by explicitly giving a list of the mass numbers of all isotopes in parentheses in <code>Nucs</code>. Additionally, the abundances should be given in <code>Abund</code>. In the simplest case of one atom, this would be
+It is also possible to specify custom isotope mixtures by listing the mass numbers of all isotopes in parentheses in <code>Nucs</code> and giving the associated abundances in <code>Abund</code>. In the simplest case of one atom, this would be
 </p>
 
 <pre class="matlab">
@@ -191,7 +186,7 @@ Sys.Nucs = '(12,13)C';     % for a mixture of 12C and 13C
 Sys.Abund = [0.3 0.7];     % 30% of 12C, the rest 13C
 
 Sys.Nucs = '(1,2)H';       % for a mixture of protons and deuterons
-Sys.Abund = [0.05 0.95];   % 95% deuterium
+Sys.Abund = [0.05 0.95];   % 5% 1H, 95% 2H
 </pre>
 
 <p>
@@ -231,7 +226,7 @@ Sys.n = [2 3];        % 2 protons and 3 carbon-13 spins
 <code>Sys.n</code> can be omitted if all nuclei in <code>Sys.Nucs</code> occur only once.
 
 <p>
-Important: <code>pepper</code> does currently not support <code>Sys.n</code>. If you have multiple equivalent nuclei, you have to enter each separately.
+Important: <code>pepper</code> does not support <code>Sys.n</code>. If you have multiple equivalent nuclei, enter each separately.
 </p>
 
 </div>
@@ -380,22 +375,20 @@ To convert old <code>gpa</code> values to <code>gFrame</code>, invert the order 
 <a name="A"><div class="subtitle">Hyperfine couplings</div></a>
 
 <p>
-For each electron-nucleus pair, a hyperfine coupling tensor
-can be specified. The following fields are used.
+For each electron-nucleus pair, a hyperfine coupling tensor can be specified. The following fields are used.
 </p>
 
 <div class="optionfield"><code>A</code></div>
 <div class="optiondescr">
-Principal values of the <a href="hamiltonian.html#hfi">hyperfine interaction</a> matrices A/h, in MHz. Each row contains the principal values of the A tensors of one
-nucleus. <code>A(k,:)</code> refers to nuclear spin <code>k</code>. The orientations of the A matrices are given in <code>AFrame</code>.
+Principal values of the <a href="hamiltonian.html#hfi">hyperfine interaction</a> matrices A/h, in MHz. Each row contains the principal values of the A tensors of one nucleus. <code>A(k,:)</code> refers to nuclear spin <code>k</code>. The orientations of the A matrices are given in <code>AFrame</code>.
 
 <pre class="matlab">
 Sys.A = [-6 12 23];            % 1 electron and 1 nucleus
 Sys.A = [10 10 -20; 30 40 50]; % 1 electron and 2 nuclei
 </pre>
 
-<p>For axial and isotropic hyperfine tensors, the notation can be shortened,
-just as in the case of the g tensor.
+<p>
+For axial and isotropic hyperfine tensors, the notation can be shortened, just as in the case of the g tensor.
 
 <pre class="matlab">
 Sys.A = [4 10];       % = [4 4 10]  (axial, 1 electron and 1 nucleus)
@@ -414,15 +407,17 @@ Sys.A = [10 10 -20 30 40 50; 1 1 -2 3 4 5];  % 2 electrons and 2 nuclei
 </pre>
 
 <p>
-It is possible to specify full A matrices in <code>A</code>. The 3x3 matrices have to be combined like the 1x3 vectors used when only principal values are
-defined: For different electrons, put the 3x3 matrices side by side, for different nuclei, on top of each other. If full matrices are given in <code>A</code>,
-<code>AFrame</code> is ignored.
+It is possible to specify full A matrices in <code>A</code>. The 3x3 matrices have to be combined like the 1x3 vectors used when only principal values are defined: For different electrons, put the 3x3 matrices side by side, for different nuclei, on top of each other. If full matrices are given in <code>A</code>, <code>AFrame</code> is ignored.
 
 <pre class="matlab">
 Sys.A = [5 0 0; 0 5 0; 0 0 5]                          % 1 electron and 1 nucleus
 Sys.A = [[5 0 0; 0 5 0; 0 0 5]; [10 0 0; 0 10 0; 0 0 10]]     % 1 electron and 2 nuclei
 Sys.A = [[5 0 0; 0 5 0; 0 0 5], [10 0 0; 0 10 0; 0 0 10]]     % 2 electrons and 1 nucleus
 </pre>
+
+<p>
+In the case where the associated nucleus is a natural or custom isotope mixture, the given hyperfine value refers to the I>=1/2 isotope with the highest abundance. See the description under <code>Sys.Nucs</code>.
+</p>
 
 </div>
 
@@ -574,6 +569,11 @@ eta = (Q(1)-Q(2))/Q(3)    % unitless
 See also the reference page on <a href="hamiltonian.html#nqi">nuclear quadrupole coupling</a>.
 </p>
 
+
+<p>
+In the case where the associated nucleus is a natural or custom isotope mixture, the given quadrupole data refers to the I>=1 isotope with the highest abundance. See the description under <code>Sys.Nucs</code>.
+</p>
+    
 </div>
 
 <div class="optionfield"><code>QFrame</code></div>
@@ -1173,7 +1173,7 @@ This is fully analogous to <code>eeFrame</code> (see above). Check out the page 
 </div>
 
 <a name="soi"><div class="subtitle">Orbital angular momenta and spin-orbit interaction</div></a>
-Each electron spin in the spin system can be coupled to an orbital angular momentum, with the assocaited quantum number defined in the field <code>L</code>. Spin-orbit coupling is specified via the fields <code>soc</code> (coupling strength) and <code>orf</code> (orbital reduction factor). Orbital angular momenta are supported by the simulation functions <a class="esf" href="pepper.html">pepper</a> (solid-state EPR) and <a class="esf" href="curry.html">curry</a> (magnetometry).
+Each electron spin in the spin system can be coupled to an orbital angular momentum, with the associated quantum number defined in the field <code>L</code> and the associated isotropic orbital g factors in the field <code>gL</code> . Spin-orbit coupling is specified via the field <code>soc</code>. Orbital angular momenta are supported by the simulation functions <a class="esf" href="pepper.html">pepper</a> (solid-state EPR) and <a class="esf" href="curry.html">curry</a> (magnetometry).
 
 <p>
 <div class="optionfield"><code>L</code></div>
@@ -1246,13 +1246,13 @@ Sys.CF2 = CF2.';
 
 </div>
 
-<div class="optionfield"><code>orf</code></div>  
+<div class="optionfield"><code>gL</code></div>  
 <div class="optiondescr">
-Orbital reduction factors (orf) entering in the Zeeman Hamiltonian and the spin-orbit interaction, one for each orbital angular momentum in <code>L</code>. <code>orf</code> is an optional field, if omitted it is assumed equal to 1 for all orbital angular momenta. The number of elements in <code>orf</code> must match the number of elements in <code>L</code>.
+Orbital g values entering in the Zeeman Hamiltonian, one for each orbital angular momentum in <code>L</code>. <code>gL</code> is an optional field, if omitted it is assumed equal to 1 for all orbital angular momenta. The number of elements in <code>gL</code> must match the number of elements in <code>L</code>.
 
 <pre class="matlab">
-Sys.orf = 3/2;          % orf for a single orbital angular momentum
-Sys.orf = [0.97 0.93];  % orf for two orbital angular momenta
+Sys.gL = 3/2;          % gL for a single orbital angular momentum
+Sys.gL = [0.97 0.93];  % gL for two orbital angular momenta
 </pre>
 </div>
 

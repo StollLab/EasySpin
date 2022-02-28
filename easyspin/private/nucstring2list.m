@@ -1,9 +1,8 @@
-function Nucs = nucstring2list(NucString,ParseMode)
-
 % Converts a nuclear spin string to a cell array
 
 % Input
-%  NucString: string containing comma separated list of nuclear spins
+%  NucString: string or character array containing comma-separated list
+% %           of nuclear spins
 %    Syntax: 'X,Y,Z' where X, Y, Z can be either
 %    - single isotopes: 13C, 14N, 1H, 63Cu
 %    - natural mixtures: C, N, H, Cu
@@ -18,35 +17,33 @@ function Nucs = nucstring2list(NucString,ParseMode)
 % e.g. '63Cu,14N,14N,1H'  -> {'63Cu','14N','14N','1H'}
 %      '(63,65)Cu,N,35Cl' -> {'(63,54)Cu','N','35Cl'}
 
-if (nargin==0)
-  NucString = '(63,65)Cu,N,14N,13C';
-end
+function Nucs = nucstring2list(NucString,ParseMode)
 
 if iscell(NucString)
   Nucs = NucString;
-  return;
+  return
 end
 
 if isempty(NucString)
   Nucs = [];
-  return;
+  return
 end
 
-if (nargin<2)
+if nargin<2
   ParseMode = 's';
 end
 
-if (ParseMode=='s')
+if ParseMode=='s'
   SingleIsotopologueMode = true;
-elseif (ParseMode=='m')
+elseif ParseMode=='m'
   SingleIsotopologueMode = false;
 else
-  error('Unknown parse mode.');
+  error('Unknown parse mode - should be ''s'' or ''m''.');
 end
 
 str = NucString;
 
-if ~ischar(str)
+if ~ischar(str) && ~isstring(str)
   error('Isotope list must be a string, not numeric.');
 end
 
@@ -58,14 +55,18 @@ if any(str==';')
   error('Use , and not ; in nuclear spin string. You gave ''%s''.',str);
 end
 
+if isstring(str)
+  str = char(str);
+end
+
 str(isspace(str)) = []; % remove whitespace
-if (str(end)==',')
+if str(end)==','
   str(end) = []; % remove trailing comma if present
 end 
 N = length(str);
 
-if (SingleIsotopologueMode)
-  commaidx = (str==',');
+if SingleIsotopologueMode
+  commaidx = str==',';
 else
   % Determine level (1 inside parentheses, 0 outside)
   level = zeros(1,N);

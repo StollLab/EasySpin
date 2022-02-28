@@ -125,7 +125,7 @@ end
 
 NewSys = cleanemptyfields(NewSys);
 
-return
+end
 
 %-------------------------------------------------------------------------------
 function NewSys = cleanemptyfields(Sys)
@@ -141,7 +141,7 @@ for f = 1:numel(fields)
   end
 end
 
-return
+end
 
 %-------------------------------------------------------------------------------
 function Afull = fullifyA(A,AFrame)
@@ -161,7 +161,7 @@ end
 R_T2M = erot(AFrame); % tensor frame -> molecular frame
 Afull = R_T2M*diag(A)*R_T2M.';
 
-return
+end
 
 %-------------------------------------------------------------------------------
 function Qfull = fullifyQ(Q,QFrame,I)
@@ -188,7 +188,7 @@ end
 R_T2M = erot(QFrame); % tensor frame -> molecular frame
 Qfull = R_T2M*diag(Qpv)*R_T2M.';
 
-return
+end
 
 %-------------------------------------------------------------------------------
 function Tnew = appendtensor(T0,T0Frame,T,TFrame,nNuclei,AQ,I)
@@ -267,4 +267,5 @@ else
     end
   end
 end
-return
+
+end

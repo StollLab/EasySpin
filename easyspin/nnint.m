@@ -67,7 +67,7 @@ Hnn = sparse(n,n);
 
 % Compile list of wanted interactions
 nucSpins = sort(nucSpins);
-[idx1,idx2] = find(tril(ones(numel(nucSpins)),-1));
+[idx1,idx2] = find(tril(ones(numel(nucSpins)),-1));  %#ok
 idx = [idx2,idx1];
 
 nucPairs = nucSpins(idx);
