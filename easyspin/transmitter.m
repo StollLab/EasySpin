@@ -27,7 +27,7 @@
 function signal = transmitter(signal0,Ain,Aout,option,varargin)
 
 % Input argument check
-% ----------------------------------------------------------------------- %
+% -------------------------------------------------------------------------
 if nargin==0
   help(mfilename);
   return
@@ -69,7 +69,7 @@ if ~isfield(Opt,'N') || isempty(Opt.N)
 end
 
 % Transmitter power transfer curve
-% ----------------------------------------------------------------------- %
+% -------------------------------------------------------------------------
 Ain = Ain(:);
 Aout = Aout(:);
 
@@ -83,7 +83,7 @@ coeff = [V\Aout; 0];
 Aout = polyval(coeff,Ain);
 
 % Transmitter nonlinearity simulation and compensation
-% ----------------------------------------------------------------------- %
+% -------------------------------------------------------------------------
 if verLessThan('Matlab','7.13') % R2011b
   % because of calls to griddedInterpolant
   error('Your Matlab version does not support this feature. At least R2011b is needed.');
@@ -111,7 +111,7 @@ if isreal(signal0)
   signal = sign(signal0).*F(abs(signal0));
 else
   signal = sign(real(signal0)).*F(abs(real(signal0))) + ...
-    1i*sign(imag(signal0)).*F(abs(imag(signal0)));
+        1i*sign(imag(signal0)).*F(abs(imag(signal0)));
 end
 
-return
+end

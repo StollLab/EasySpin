@@ -34,17 +34,21 @@
 
 function varargout = resfields_perturb(Sys,Exp,Opt)
 
+if nargin==0, help(mfilename); return; end
+
 % Compute resonance fields based on formulas from
-% Iwasaki, J.Magn.Reson. 16, 417-423 (1974)
+% M. Iwasaki, J.Magn.Reson. 16, 417-423 (1974)
+% Second-order perturbation treatment of the general spin hamiltonian in an
+% arbitrary coordinate system
+% https://doi.org/10.1016/0022-2364(74)90223-6
 
 % Assert correct Matlab version
 error(chkmlver);
 
 % Check number of input arguments.
-switch (nargin)
-  case 0, help(mfilename); return;
+switch nargin
   case 2, Opt = struct;
-  case 3,
+  case 3
   otherwise
     error('Use two or three inputs: refields_perturb(Sys,Exp) or refields_perturb(Sys,Exp,Opt)!');
 end
@@ -52,7 +56,7 @@ end
 % A global variable sets the level of log display. The global variable
 % is used in logmsg(), which does the log display.
 if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 0; end
-global EasySpinLogLevel;
+global EasySpinLogLevel  %#ok
 EasySpinLogLevel = Opt.Verbosity;
 
 % Spin system
@@ -108,7 +112,7 @@ nTransitions = 2*S; % number of allowed transitions for one electron spin
 
 I = Sys.I;
 nNuclei = Sys.nNuclei;
-if (nNuclei>0)
+if nNuclei>0
   nNucStates = 2*I+1;
 else
   nNucStates = 1;
@@ -124,7 +128,7 @@ if nNuclei>0
   end
 end
 
-for iNuc = 1:nNuclei
+for iNuc = nNuclei:-1:1
   if Sys.fullA
     A{iNuc} = Sys.A((iNuc-1)*3+(1:3),:);
   else
@@ -195,7 +199,7 @@ if ~isfield(Opt,'Sites'), Opt.Sites = []; end
 
 if ~isfield(Opt,'PerturbOrder'), Opt.PerturbOrder = 2; end
 
-if (numel(Opt.PerturbOrder)~=1) || ~isreal(Opt.PerturbOrder)
+if numel(Opt.PerturbOrder)~=1 || ~isreal(Opt.PerturbOrder)
   error('Opt.PerturbOrder must be either 1 or 2.');
 end
 switch Opt.PerturbOrder
@@ -217,7 +221,7 @@ if ~isfield(Opt,'ImmediateBinning'), Opt.ImmediateBinning = 0; end
 
 E0 = Exp.mwFreq*1e3; % MHz
 
-for iNuc = 1:nNuclei
+for iNuc = nNuclei:-1:1
   A_ = A{iNuc};
   detA(iNuc) = det(A_);
   invA{iNuc} = inv(A_); % gives an error with zero hf couplings
@@ -233,7 +237,7 @@ immediateBinning = Opt.ImmediateBinning;
 
 if immediateBinning
 else
-  if (nNuclei>0)
+  if nNuclei>0
     idxn = allcombinations(idxn{:});
   else
     idxn = 1;
@@ -282,30 +286,30 @@ for iOri = nOrientations:-1:1
   %----------------------------------------------------------------
 
   % Compute quantum-mechanical transition rate
-  if (AverageOverChi)
-    if (linearpolarizedMode)
+  if AverageOverChi
+    if linearpolarizedMode
       TransitionRate(:,iOri) = c2/2*(1-xi1^2)*(trgg-norm(g*u)^2);
-    elseif (unpolarizedMode)
+    elseif unpolarizedMode
       TransitionRate(:,iOri) = c2/4*(1+xik^2)*(trgg-norm(g*u)^2);
-    elseif (circpolarizedMode)
+    elseif circpolarizedMode
       TransitionRate(:,iOri) = c2/2*(1+xik^2)*(trgg-norm(g*u)^2) + ...
         circSense*2*c2*xik^2*det(g)/norm(g.'*n0);
     end
   else
-    if (linearpolarizedMode)
+    if linearpolarizedMode
       nB1_ = R.'*nB1; % transform to molecular frame representation
       TransitionRate(:,iOri) = c2*norm(cross(g.'*nB1_,u))^2;
-    elseif (unpolarizedMode)
+    elseif unpolarizedMode
       nk_ = R.'*nk; % transform to molecular frame representation
       TransitionRate(:,iOri) = c2/2*(trgg-norm(g*u)^2-norm(cross(g.'*nk_,u))^2);
-    elseif (circpolarizedMode)
+    elseif circpolarizedMode
       nk_ = R.'*nk; % transform to molecular frame representation
       TransitionRate(:,iOri) = c2*(trgg-norm(g*u)^2-norm(cross(g.'*nk_,u))^2) + ...
         circSense*2*c2*det(g)*xik/norm(g.'*n0);
     end
   end
 
-  % Compute Aasa-V�nng�rd 1/g factor (frequency-to-field conversion factor)
+  % Compute Aasa-Vänngård 1/g factor (frequency-to-field conversion factor)
   dBdE = (planck/bmagn*1e9)/geff(iOri);
   
   % Combine all factors into overall line intensity
@@ -329,7 +333,7 @@ for iOri = nOrientations:-1:1
     else
       E1D = 0;
     end
-    if (nNuclei>0)
+    if nNuclei>0
       for iNuc = 1:nNuclei
         K = A{iNuc}*u;
         nK = norm(K);
@@ -355,7 +359,7 @@ for iOri = nOrientations:-1:1
       else
         E2DA = 0;
       end
-      if (nNuclei>0)
+      if nNuclei>0
         for n = 1:nNuclei
           k_ = k(:,n);
           Ak = A{n}.'*k_;
@@ -422,18 +426,15 @@ if immediateBinning
 else
   % Positions
   %-------------------------------------------------------------------
-  B = [];
-  for iTrans = 1:nTransitions
-    B = [B Bfinal{iTrans}];
-  end
-  B = B.'*1e3; % T -> mT
+  B = [Bfinal{:}].';
+  B = B*1e3;  % T -> mT
   
   % Intensities
   %-------------------------------------------------------------------
   nNucSublevels = prod(nNucStates);
   Int = [];
   for iTrans = nTransitions:-1:1
-    Int = [Int; repmat(Intensity(iTrans,:),nNucSublevels,1)];
+    Int = [Int; repmat(Intensity(iTrans,:),nNucSublevels,1)];  %#ok
   end
   Int = Int/nNucSublevels;
   
@@ -459,7 +460,7 @@ else
       gStrainMatrix = zeros(3);
     end
     
-    if any(Sys.AStrain) && (Sys.nNuclei>0)
+    if any(Sys.AStrain) && Sys.nNuclei>0
       AStrainMatrix = diag(Sys.AStrain);
       if isfield(Sys,'AFrame')
         Rp = erot(Sys.AFrame(1,:)).'; % A frame -> molecular frame
@@ -533,7 +534,7 @@ else
   Transitions = [];
   Manifold = (1:nI).';
   for k = 1:2*S
-    Transitions = [Transitions; [Manifold Manifold+nI]];
+    Transitions = [Transitions; [Manifold Manifold+nI]];  %#ok
     Manifold = Manifold + nI;
   end
   
@@ -555,4 +556,4 @@ end
 Output = {B,Int,Wid,Transitions,spec};
 varargout = Output(1:max(nargout,1));
 
-return
+end

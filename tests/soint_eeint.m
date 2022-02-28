@@ -9,13 +9,13 @@ nSpins = randi(3);
 S = randi(3,1,nSpins)/2;
 L = randi(2,1,nSpins);
 soc = rand(nSpins,2);
-orf = rand(nSpins,1);
+gL = rand(nSpins,1);
 
 % System containing S and L
 SysSL.S = S;
 SysSL.L = L;
 SysSL.soc = soc;
-SysSL.orf = orf;
+SysSL.gL = gL;
 if nSpins>1
   SysSL.ee = zeros(nchoosek(nSpins,2),1);
 end
@@ -29,8 +29,8 @@ SysPureSpin.ee = zeros(eelen,1);
 SysPureSpin.ee2 = zeros(eelen,1);
 for m = 1:nSpins
   idx = (k(:,1)==m) & (k(:,2)==m+nSpins);
-  SysPureSpin.ee(idx) = orf(m)*soc(m,1);
-  SysPureSpin.ee2(idx) = orf(m)^2*soc(m,2);
+  SysPureSpin.ee(idx) = soc(m,1);
+  SysPureSpin.ee2(idx) = soc(m,2);
 end
 
 % Calculate Hamiltonians

@@ -23,7 +23,7 @@ if nGridPoints>FitOpt.maxGridPoints
   error('Cannot do grid search with more than %d points. Reduce number of parameters.',FitOpt.maxGridPoints);
 end
 
-for p = 1:nParams
+for p = nParams:-1:1
   if GridSize(p)==1
     grid{p} = 0;
   else

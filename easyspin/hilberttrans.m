@@ -24,7 +24,7 @@ function y_h = hilberttrans(y)
 
 if nargin==0
   help(mfilename);
-  return;
+  return
 end
 
 if ~isreal(y)
@@ -39,7 +39,6 @@ end
 if numel(dim)>2
   error('Input must be a row or column vector.');
 end
-
 
 % Build Hilbert kernel
 n = max(dim);
@@ -62,5 +61,4 @@ y_h = ifft(fft(y(:)).*h(:));
 % shift back to original dimensions
 y_h = reshape(y_h,dim);
 
-return
-
+end

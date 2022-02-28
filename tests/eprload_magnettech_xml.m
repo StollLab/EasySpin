@@ -1,6 +1,6 @@
 function ok = test(opt)
 
-% Read Magnettech spectrometer files (new XML format)
+% Read Magnettech spectrometer files (XML format)
 
 BaseDir = 'eprfiles/magnettech/';
 
@@ -11,24 +11,22 @@ for iFile = 1:numel(Files)
   if (opt.Display)
     disp(thisFile);
   end
-  clear data pars;
+  clear data pars
   thisFileName = [BaseDir thisFile];
  
   data = eprload(thisFileName);
-  [x,data] = eprload(thisFileName);
-  [x,data,pars] = eprload(thisFileName);
-  
-  readerr(iFile) = false;
+  [B,data] = eprload(thisFileName);
+  [B,data,pars] = eprload(thisFileName);
+
+  ok(iFile) = numel(B)==numel(data) && numel(B)>1 && isfield(pars,'MwFreq');
   if ~iscell(data)
     if any(isnan(data(:)))
-      readerr(iFile) = true;
+      ok(iFile) = true;
       disp([  '   ' Files(iFile).name]);
     end
   end
   if opt.Display
-    plot(x,data);
+    plot(B,data);
     pause
   end
 end
-
-ok = ~readerr;
