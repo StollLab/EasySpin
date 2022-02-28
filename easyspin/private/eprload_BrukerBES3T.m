@@ -277,7 +277,7 @@ for k=1:numel(allLines)
     end
     line(end) = '';
     % Replace all \n with newline character
-    line = sprintf(line);
+    line = strrep(line,'\n',newline);
   end
   
   [Key,Value] = strtok(line);
