@@ -12,8 +12,8 @@
 %     data        experimental data, a vector of data points
 %     fcn         simulation/model function handle (@pepper, @garlic, ...
 %                   @salt, @chili, or handle to user-defined function)
-%                   a suer-defined fcn should take a parameter vector p and
-%                   return simulated data datasim: datasim = fcn(p)
+%                   a user-defined fcn should take a parameter vector p
+%                   and return simulated data datasim: datasim = fcn(p)
 %     p0          starting values for parameters
 %                   EasySpin-style functions: {Sys0,Exp0} or {Sys0,Exp0,Opt0}
 %                   other functions: vector
@@ -49,37 +49,6 @@
 %
 
 function result = esfit(data,fcn,p0,varargin)
-
-if nargin==0
-
-  Sys.g = 2.00123;
-  Sys.lwpp = [0.0 0.8];
-  Exp.mwFreq = 9.5;
-  Exp.Range = [330 350];
-  [B,spc] = pepper(Sys,Exp);
-  rng(123415);
-  Ampl = 100;
-  spc = Ampl*addnoise(spc,30,'n');
-
-  Sys0.g = 2.003;
-  Sys0.lwpp = [0.0 0.7];
-  vSys.g = 0.01;
-  vSys.lwpp = [0.0 0.25];
-
-  Opt = struct;
-  FitOpt.Method = 'simplex fcn';
-  FitOpt.TolFun = 1e-6;
-  FitOpt.PrintLevel = 2;
-
-  result = esfit(spc,@pepper,{Sys0,Exp,Opt},{vSys},FitOpt);
-
-  subplot(2,1,1)
-  plot(B,spc,B,result.fit);
-  subplot(2,1,2)
-  plot(B,spc-result.fit);
-  return
-
-end
 
 if nargin==0, help(mfilename); return; end
 
@@ -311,7 +280,7 @@ if EasySpinFunction
   end
 end
 
-keywords = strread(Opt.Method,'%s'); %#ok<DSTRRD>
+keywords = strread(Opt.Method,'%s'); %#ok
 for k = 1:numel(keywords)
   switch keywords{k}
     case 'simplex',    Opt.AlgorithmID = 1;
@@ -408,13 +377,13 @@ Opt.IterationPrintFunction = @iterationprint;
 
 fitdat.Opts = Opt;
 
-fitdat.GUI = nargout==0;
 fitdat.maskSelectMode = false;
 
 
 % Setup GUI and return if in GUI mode
 %--------------------------------------------------------------------------
-if fitdat.GUI
+GUI = nargout==0;
+if GUI
   setupGUI(data);
   return
 end
@@ -422,8 +391,9 @@ end
 % Report parsed inputs
 %--------------------------------------------------------------------------
 if fitdat.Opts.PrintLevel
+  siz = size(fitdata.data);
   fprintf('-- esfit ------------------------------------------------\n');
-  fprintf('Number of datapoints:     %d\n',numel(fitdat.data));
+  fprintf('Data size:                %d x %d\n',siz(1),siz(2));
   fprintf('Model function name:      %s\n',fitdat.fcnName);
   fprintf('Number of fit parameters: %d\n',fitdat.nParameters);
   fprintf('Minimization algorithm:   %s\n',fitdat.AlgorithmNames{fitdat.Opts.AlgorithmID});
@@ -438,7 +408,7 @@ result = runFitting();
 
 % Report fit results
 %--------------------------------------------------------------------------
-if fitdat.Opts.PrintLevel && UserCommand~=99
+if fitdat.Opts.PrintLevel
   disp('---------------------------------------------------------');
   fprintf('Goodness of fit:\n');
   fprintf('   ssr             %g\n',result.ssr);
@@ -481,7 +451,9 @@ end
 %==========================================================================
 % Run fitting algorithm
 %==========================================================================
-function result = runFitting()
+function result = runFitting(GUI)
+
+if nargin<1, GUI = false; end
 
 global fitdat
 nParameters = numel(fitdat.pvec_0);
@@ -501,7 +473,7 @@ switch fitdat.Opts.Startpoint
     p_start = lb + rand(nParameters,1).*(ub-lb);
     p_start(fixedParams) = p0(fixedParams);
   case 3 % selected parameter set
-    if fitdat.GUI
+    if GUI
       h = findobj('Tag','SetListBox');
       s = h.String;
       if ~isempty(s)
@@ -524,8 +496,10 @@ fitdat.p_start = p_start;
 
 % Run minimization over space of active parameters
 %--------------------------------------------------------------------------
-pfit = p_start;
 fitOpt = fitdat.Opts;
+if GUI
+  fitOpt.IterFcn = @iterupdateGUI;
+end
 if sum(activeParams)>0
   residualfun = @(x) residuals_(x,data_,fitOpt);
   rmsdfun = @(x) rmsd_(x,data_,fitOpt);
@@ -549,7 +523,10 @@ if sum(activeParams)>0
     case 7 % lsqnonlin from Optimization Toolbox
       pfit_a = lsqnonlin(residualfun,p0_a,lb_a,ub_a);
   end
+  pfit = p_start;
   pfit(activeParams) = pfit_a;
+else
+  pfit = p_start;
 end
 
 % Simulate model fit
@@ -588,7 +565,7 @@ if printLevel
   disp('  Estimating Jacobian...');
 end
 %maxRelStep = min((ub-pfit),(pfit-lb))./pfit;
-residualfun = @(x)residuals_(x,data_,fitOpt,false);
+residualfun = @(x)residuals_(x,data_,fitOpt);
 J = jacobianest(residualfun,pfit);
 if ~any(isnan(J(:)))
   if printLevel
@@ -648,7 +625,7 @@ end
 
 
 %==========================================================================
-function [residuals,rmsd,simdata,simscale] = residuals_(x,expdata,Opt,updateGUI)
+function [residuals,rmsd,simdata,simscale] = residuals_(x,expdata,Opt)
 
 % reads:
 %   fitdat.p_start
@@ -667,7 +644,6 @@ function [residuals,rmsd,simdata,simscale] = residuals_(x,expdata,Opt,updateGUI)
 %   etc
 
 global fitdat
-if nargin<4, updateGUI = true; end
 
 % Assemble full parameter vector ------------------------------------------
 par = fitdat.p_start;
@@ -721,10 +697,18 @@ if isNewBest
   fitdat.bestpar = par;
 end
 
-% Update GUI
+end
+%==========================================================================
+
+
+%==========================================================================
+% Function to update GUI at each iteration
 %--------------------------------------------------------------------------
+function userstop = iterupdateGUI(info)
 global UserCommand
-if fitdat.GUI && UserCommand~=99 && updateGUI
+userstop = UserCommand~=0;
+windowClosing = UserCommand==99;
+if ~windowClosing && updateGUI
 
   % update plot
   x = fitdat.Opts.x(:);
@@ -741,7 +725,7 @@ if fitdat.GUI && UserCommand~=99 && updateGUI
   drawnow
 
   % update numbers parameter table
-  if UserCommand~=99
+  if ~windowClosing
 
     % update column with current parameter values
     hParamTable = findobj('Tag','ParameterTable');
@@ -763,9 +747,9 @@ if fitdat.GUI && UserCommand~=99 && updateGUI
     end
 
     % update column with best values if current parameter set is new best
-    if isNewBest
+    if info.newbest
 
-      str = sprintf(' best RMSD: %g\n',(fitdat.smallestError));
+      str = sprintf(' best RMSD: %g\n',fitdat.smallestError);
       hRmsText = findobj('Tag','RmsText');
       set(hRmsText,'String',str);
 
@@ -799,15 +783,6 @@ if fitdat.GUI && UserCommand~=99 && updateGUI
   end
 
 end
-
-if UserCommand==2
-  UserCommand = 0;
-  str = printparlist(pfit,fitdat.pinfo);
-  disp('--- current best fit parameters -------------')
-  fprintf(str);
-  disp('---------------------------------------------')
-end
-
 end
 %==========================================================================
 
@@ -901,8 +876,8 @@ end
 %==========================================================================
 function startButtonCallback(~,~)
 
-global fitdat UserCommand
-
+global fitdat
+global UserCommand
 UserCommand = 0;
 
 % Update GUI
@@ -953,7 +928,8 @@ end
 
 % Run fitting
 %-------------------------------------------------------------------------------
-result = runFitting();
+useGUI = true;
+result = runFitting(useGUI);
 
 % Save result to fit set list
 fitdat.currFitSet = result;
@@ -971,7 +947,7 @@ for p = 1:size(Data,1), Data{p,4} = '-'; end
 set(hTable,'Data',Data);
 
 % Hide current sim plot in data axes
-set(findobj('Tag','currsimdata'),'YData',NaN*ones(1,numel(fitdat.data)));
+set(findobj('Tag','currsimdata'),'YData',NaN(1,numel(fitdat.data)));
 hErrorLine = findobj('Tag','errorline');
 set(hErrorLine,'XData',1,'YData',NaN);
 axis(hErrorLine.Parent,'tight');
@@ -1112,7 +1088,7 @@ if ~isempty(str)
     end
 else
     h = findobj('Tag','bestsimdata');
-    set(h,'YData',h.YData*NaN);
+    set(h,'YData',NaN(size(h.YData)));
     drawnow
 end
 
@@ -1322,7 +1298,7 @@ hAx = axes('Parent',hFig,'Tag','dataaxes','Units','pixels',...
     'Position',[30 30 1010 740],'FontSize',8,'Layer','top');
 x0 = 1060; % Start of display to the right of the axes
 
-NaNdata = ones(1,numel(data))*NaN;
+NaNdata = NaN(1,numel(data));
 dispData = fitdat.data;
 maxy = max(dispData);
 miny = min(dispData);
