@@ -104,6 +104,7 @@ constrain = @(x)max(min(x,ub),lb); unconstrain = @(x)x;
 
 iIteration = 0;
 nEvals = 0;
+stopCode = 0;
 startTime = cputime;
 
 % Set up a initial simplex near the initial guess.
@@ -241,13 +242,17 @@ while true
   else
     UserStop = false;
   end
-  if UserStop, stopCode = 2; end
+  if UserStop
+    stopCode = 2;
+  end
   
   if Opt.PrintLevel>0
     thisstep = max(max(abs(v(:,2:nParams+1)-v(:,ones(1,nParams)))));
     str = sprintf(logStringFormat,iIteration,fv(1),thisstep,Procedure);
     Opt.IterationPrintFunction(str);
   end
+
+  if stopCode~=0, break; end
 
 end
 

@@ -111,6 +111,7 @@ for idx = 1:nGridPoints
   info.minF = minF;
   info.nEvals = nEvals;
   info.iter = iIteration;
+  info.newbest = F<minF;
   UserStop = opt.IterFcn(info);
   
   elapsedTime = (cputime-startTime)/60;

@@ -32,9 +32,10 @@
 <!-- ============================================================= -->
 
 <p>
-This user guide explains how to extract magnetic parameters from experimental EPR spectra by fitting an EasySpin simulation result to the experimental spectra using least-squares fitting techniques. EasySpin's function <a class="esf" href="esfit.html">esfit</a> contains all the necessary machinery and is easy to use.
+This user guide explains how to extract magnetic parameters from experimental EPR spectra by fitting an EasySpin simulation result to the experimental spectra using least-squares fitting techniques. EasySpin's function <a class="esf" href="esfit.html">esfit</a> contains all the necessary machinery and is easy to use. The function can also be used for least-squares fitting arbitrary models to arbitratry data. <a class="esf" href="esfit.html">esfit</a> calculates uncertainties (error bars) for the fitted parameters.
 </p>
 
+<p>
 This tutorial contains the following topics:
 
 <ul>
@@ -53,6 +54,7 @@ There are the following advanced topics:
 <li><a href = "#hybrid">Hybrid methods</a></li>
 <li><a href = "#stop">Termination criteria</a></li>
 <li><a href = "#multicomp">Multiple components</a></li>
+<li><a href = "#experimentalparams">Fitting experimental parameters</a></li>
 <li><a href = "#customfunction">User-defined simulation functions</a></li>
 </ul>
 
@@ -66,13 +68,14 @@ To get the most out of the EasySpin fitting features, you should work through th
 </a>
 
 <p>
-EasySpin's fitting function is <a class="esf" href="esfit.html">esfit</a> and can be called with up to seven parameters:
+EasySpin's function that performs least-squares fitting is <a class="esf" href="esfit.html">esfit</a> and can be called with up to seven parameters:
 </p>
 
 <pre class="matlab">
-esfit(spc,@pepper,{Sys0,Exp},{Vary})
-esfit(spc,@pepper,{Sys0,Exp,SimOpt},{Vary})
-esfit(spc,@pepper,{Sys0,Exp,SimOpt},{Vary},FitOpt)
+esfit(spc,@pepper,{Sys0,Exp},{SysVary})
+esfit(spc,@pepper,{Sys0,Exp0},{SysVary,ExpVary})
+esfit(spc,@pepper,{Sys0,Exp,SimOpt},{SysVary})
+esfit(spc,@pepper,{Sys0,Exp,SimOpt},{SysVary},FitOpt)
 </pre>
 
 Here is what the various parameters mean:
@@ -83,11 +86,13 @@ Here is what the various parameters mean:
 <li>
 <code>spc</code> is the array containing the experimental spectral data. For the fitting, the abscissa values are not needed.
 <li>
-<code>Sys0</code> is a structure collecting magnetic parameters of the spin system. The parameters in this structure are used as first guesses in the fitting procedure. For a multi-component fit, this is a list of spin systems, one for each component, e.g. <code>{Sys1, Sys2}</code>.
+<code>Sys0</code> is a structure collecting magnetic parameters of the spin system. The parameter values in this structure are used as starting point in the fitting procedure. For a multi-component fit, this is a list of spin systems, one for each component, e.g. <code>{Sys1, Sys2}</code>.
 <li>
-<code>Vary</code> is a structure similar to <code>Sys0</code> containing the search ranges of the parameters that should be fitted. For a multi-component fit, this is again a list of structures, one for each component, e.g. <code>{Vary1, Vary2}</code>.
+<code>SysVary</code> is a structure similar to <code>Sys0</code> containing the search ranges of the parameters that should be fitted. For example, <code>SysVary.lwpp = 3</code> indicates that the <code>lwpp</code> parameter can be varied by up to 3 from the center value. For a multi-component fit, <code>SysVary</code>> is again a list of structures, one for each component, e.g. <code>{Vary1, Vary2}</code>.
 <li>
-<code>Exp</code> is a structure containing the experimental parameters for the simulation function.
+<code>Exp</code> (or <code>Exp0</code>) is a structure containing the experimental parameters for the simulation function.
+<li>
+<code>ExpVary</code> is a structure containing variation ranges for the experimental parameters to be fitted.
 </ul>
 
 The following two parameters are optional
@@ -438,6 +443,20 @@ These weights are used as prefactors when constructing the total spectrum as a w
 Vary1.weight = 0.3;
 </pre>
 
+
+<!-- ============================================================= -->
+<a name="experimentalparams"><div class="subtitle">Fitting non-spin system parameters</div></a>
+
+<p>
+If you want to fit experimental parameters, it is not necessary to write a custom function. You can use <code>ExpVary</code>. Here is an example that shows how to fit the microwave phase along with the g value of the spin system
+<pre class="matlab">
+Sys0.g = 2;
+SysVary.g = 0.2;
+Exp0.mwPhase = 0;
+ExpVary.mwPhase = 20*pi/180;    % 20 degrees
+esfit(data,@pepper,{Sys0,Exp0},{SysVary,ExpVary});
+</pre>
+
 <!-- ============================================================= -->
 <a name="customfunction"><div class="subtitle">User-defined simulation functions</div></a>
 
@@ -453,17 +472,17 @@ For these and similar cases, you can define your own custom simulation function 
 </ul>
 
 <p>
-<span style="font-weight:bold;">Example: Constraint between systems</span>
+<span style="font-weight:bold;">Example: Constraints between parameters</span>
 
 <p>
 Here is an example of a function <code>mymy.m</code> that simulates a spectrum constraining two hyperfine tensors to be identical:
 
 <pre class="matlab">
-function y = mymy(Sys,Exp,Opt)
+function spc = mymy(Sys,Exp,Opt)
 fullSys = Sys;
 fullSys.A = [Sys.A; Sys.A];
 fullSys.Nucs = '1H,1H';
-[x,y] = pepper(fullSys,Exp,Opt)
+[B,spc] = pepper(fullSys,Exp,Opt)
 </pre>
 
 <p>
@@ -477,28 +496,6 @@ Sys.lwpp = 0.1;
 Vary.A = [1 1 3];
 esfit(data,@mymy,{Sys,Exp},Vary);
 </pre>
-
-<p>
-<span style="font-weight:bold;">Example: Varying non-spin system parameters</span>
-
-<p>
-Here is a second example. If you want to fit the microwave phase, use this custom function:
-<pre class="matlab">
-function y = mymy(Sys,Exp,Opt);
-Exp.mwPhase = Sys.mwPhase;
-[x,y] = pepper(Sys,Exp,Opt);
-</pre>
-<p>
-and call it as follows:
-<pre class="matlab">
-Sys.mwPhase = 0;
-Vary.mwPhase = 20*pi/180;    % 20 degrees
-esfit(data,@mymy,{Sys,Exp},Vary);
-</pre>
-
-<p>
-As you can see, you have to put the parameter you want to fit into the first input structure (called <code>Sys</code>), even if it is not a spin system parameter. This won't confuse EasySpin's simulation functions, since they disregard any field they do not use. In other words, as long as the new field name (in this case <code>Sys.mwPhase</code>), does not clash with any existing field names that EasySpin simulation functions use in the spin system (e.g. <code>Sys.Nucs</code>, <code>Sys.A</code>, etc.), a user-defined simulation function should work and allows for a great deal of customization. To ensure that there is no field name clashing, check the documentation for the <a class="esf" href="spinsystem.html">spin system</a> and the relevant simulation function.
-</p>
 
 <p>
 <span style="font-weight:bold;">Example: globally fitting multiple spectra</span>

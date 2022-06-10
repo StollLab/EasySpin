@@ -177,6 +177,7 @@ while ~stopCode
   info.minF = Fnew;
   info.nEvals = nEvals;
   info.iter = iIteration;
+  info.newbest = true;
   if ~isempty(Opt.IterFcn)
     UserStop = Opt.IterFcn(info);
   else
