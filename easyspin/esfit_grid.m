@@ -66,20 +66,20 @@ end
 
 % Set up grid
 %--------------------------------------------------------------------------
-for p = nParams:-1:1
+gridvals = cell(1,nParams);
+for p = 1:nParams
   gridvals{p} = linspace(lb(p),ub(p),GridSize(p));
 end
 X = cell(1,nParams);
 [X{:}] = ndgrid(gridvals{:});
-for k = 1:nParams
-  X{k} = X{k}(:);
+for p = 1:nParams
+  X{p} = X{p}(:);
 end
-X = [X{:}];
+X = [X{:}].'; % each column represents one point in parameter space
 
 % Randomize order of gridpoints if requested
-gridPoints = 1:nGridPoints;
 if opt.randGrid
-  gridPoints = gridPoints(randperm(nGridPoints));
+  X = X(:,randperm(nGridPoints));
 end
 
 % Evaluate function over grid
@@ -90,22 +90,22 @@ startTime = cputime;
 stopCode = 0;
 nEvals = 0;
 iIteration = 0;
-for idx = gridPoints
+for idx = 1:nGridPoints
   
-  F = fcn(X(idx,:));
+  F = fcn(X(:,idx));
   nEvals = nEvals+1;
   iIteration = iIteration+1;
   
   if F<minF
     minF = F;
-    bestx = X(idx,:);
+    bestx = X(:,idx);
     if opt.PrintLevel
       str = sprintf('  Point %4d/%d:   error %0.5e  best so far',iIteration,nGridPoints,F);
       opt.IterationPrintFunction(str);
     end
   end
   
-  info.currx = X(idx,:);
+  info.currx = X(:,idx);
   info.currF = F;
   info.bestx = bestx;
   info.minF = minF;

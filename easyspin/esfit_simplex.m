@@ -140,6 +140,7 @@ end
 %    equal to TolFun.
 
 while true
+  fv_old = fv;
 
   % Check whether to stop the iteration loop
   %-----------------------------------------------------------
@@ -234,6 +235,7 @@ while true
   info.minF = fv(1);
   info.nEvals = nEvals;
   info.iter = iIteration;
+  info.newbest = fv(1)<fv_old(1);
   if ~isempty(Opt.IterFcn)
     UserStop = Opt.IterFcn(info);
   else

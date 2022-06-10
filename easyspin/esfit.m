@@ -16,16 +16,16 @@
 %                   and return simulated data datasim: datasim = fcn(p)
 %     p0          starting values for parameters
 %                   EasySpin-style functions: {Sys0,Exp0} or {Sys0,Exp0,Opt0}
-%                   other functions: vector
+%                   other functions: n-element vector
 %     vary        allowed variation of parameters
 %                   EasySpin-style functions: {vSys} or {vSys,vExp} or {vSys,vExp,vOpt}
-%                   other functions: vector
+%                   other functions: n-element vector
 %     lb          lower bounds of parameters
 %                   EasySpin-style functions: {lbSys,lbExp} or {lbSys,lbExp,lbOpt}
-%                   other functions: vector
+%                   other functions: n-element vector
 %     ub          upper bounds of parameters
 %                   EasySpin-style functions: {ubSys,ubExp} or {ubSys,ubExp,ubOpt}
-%                   other functions: vector
+%                   other functions: n-element vector
 %     FitOpt      options for esfit
 %        .Method  string containing kewords for
 %           -algorithm: 'simplex','levmar','montecarlo','genetic','grid','swarm'
@@ -39,10 +39,10 @@
 % Output:
 %     fit           structure with fitting results
 %       .pfit       fitted parameter vector
-%       .argsfit    fitter input arguments (if EasySpin-style)
-%       .fitraw     simulated data, as returned by the simulation/model function
-%       .fit        simulated data, scaled to the experimental ones
-%       .scale      scale factor
+%       .argsfit    fitted input arguments (if EasySpin-style)
+%       .fitraw     fit, as returned by the simulation/model function
+%       .fit        fit, including the fitted scale factor
+%       .scale      fitted scale factor
 %       .ci95       95% confidence intervals for all parameters
 %       .corr       correlation matrix for all parameters
 %       .cov        covariance matrix for all parameters
@@ -54,13 +54,6 @@ if nargin==0, help(mfilename); return; end
 
 % Check expiry date
 error(eschecker);
-
-if nargin<4
-  error('At least 4 inputs are required (data, fcn, p0, pvary).');
-end
-if nargin>6
-  error('At most 6 inputs are accepted (data, fcn, p0, lb, up, Opt).');
-end
 
 % Parse argument list
 switch nargin
@@ -85,22 +78,30 @@ switch nargin
     ub = varargin{2};
     Opt = varargin{3};
   otherwise
-    error('esfit requires 4, 5, or 6 input arguments.');
+    str = ['You provided %d inputs, but esfit requires 4, 5, or 6.\n',...
+           'Examples:\n',...
+           '   esfit(data, fcn, p0, pvary)\n',...
+           '   esfit(data, fcn, p0, pvary, Opt)\n',...
+           '   esfit(data, fcn, p0, lb, ub)\n',...
+           '   esfit(data, fcn, p0, lb, ub, Opt)'
+           ];
+    error(str,nargin);
 end
 
 if isempty(Opt)
   Opt = struct;
-end
-if ~isstruct(Opt)
-  error('Opt (last input argument) must be a structure.');
+else
+  if ~isstruct(Opt)
+    error('Opt (last input argument) must be a structure.');
+  end
 end
 
 % Set up global structure for data sharing among local functions
-global fitdat
-fitdat = [];
+global fitdat  %#ok
+fitdat = struct;  % initialize; removes fitdat from previous esfit run
 fitdat.currFitSet = [];
 
-global UserCommand
+global UserCommand  %#ok
 UserCommand = 0;
 
 % Load utility functions
@@ -108,14 +109,14 @@ argspar = esfit_argsparams();
 
 
 % Experimental data
-%--------------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 if ~isnumeric(data) || ~isvector(data) || isempty(data)
   error('First argument must be numeric experimental data in the form of a vector.');
 end
 fitdat.data = data;
 
 % Model function
-%--------------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 if ~isa(fcn,'function_handle')
   str = 'The simulation/model function (2nd input) must be a function handle.';
   if ischar(fcn)
@@ -141,7 +142,7 @@ EasySpinFunction = any(strcmp(fitdat.fcnName,{'pepper','garlic','chili','salt','
 
 
 % Parameters
-%--------------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 structureInputs = isstruct(p0) || iscell(p0);
 fitdat.structureInputs = structureInputs;
 
@@ -177,7 +178,7 @@ else
     pvec_lb = lb;
     pvec_ub = ub;
   end
-  % Autogenerate parameter names
+  % Generate parameter names
   for k = numel(p0):-1:1
     pinfo(k).Name = sprintf('p(%d)',k);
   end
@@ -223,7 +224,7 @@ end
 
 
 % Experimental parameters (for EasySpin functions)
-%--------------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 if EasySpinFunction
   % Set Exp.nPoints
   if isfield(p0{2},'nPoints')
@@ -248,7 +249,7 @@ end
 
 
 % Options
-%==========================================================================
+%===============================================================================
 if isfield(Opt,'Scaling')
   error('Fitting option Opt.Scaling has been replaced by Opt.AutoScale.');
 end
@@ -379,42 +380,53 @@ fitdat.Opts = Opt;
 
 fitdat.maskSelectMode = false;
 
-
-% Setup GUI and return if in GUI mode
-%--------------------------------------------------------------------------
-GUI = nargout==0;
-if GUI
+% Setup GUI and return if in interactive mode
+%-------------------------------------------------------------------------------
+interactiveMode = nargout==0;
+if interactiveMode
   setupGUI(data);
   return
 end
 
+% Close GUI window if running in script mode
+%-------------------------------------------------------------------------------
+hFig = findobj('Tag','esfitFigure');
+if ~isempty(hFig)
+  close(hFig);
+end
+
 % Report parsed inputs
-%--------------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 if fitdat.Opts.PrintLevel
-  siz = size(fitdata.data);
+  siz = size(fitdat.data);
+  if fitdat.Opts.AutoScale
+    autoScaleStr = 'on';
+  else
+    autoScaleStr = 'off';
+  end
   fprintf('-- esfit ------------------------------------------------\n');
-  fprintf('Data size:                %d x %d\n',siz(1),siz(2));
+  fprintf('Data size:                [%d, %d]\n',siz(1),siz(2));
   fprintf('Model function name:      %s\n',fitdat.fcnName);
   fprintf('Number of fit parameters: %d\n',fitdat.nParameters);
   fprintf('Minimization algorithm:   %s\n',fitdat.AlgorithmNames{fitdat.Opts.AlgorithmID});
   fprintf('Residuals computed from:  %s\n',fitdat.TargetNames{fitdat.Opts.TargetID});
-  fprintf('Autoscaling:              %d\n',fitdat.Opts.AutoScale);
+  fprintf('Autoscaling:              %s\n',autoScaleStr);
   fprintf('---------------------------------------------------------\n');
 end
 
 % Run least-squares fitting
-%--------------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 result = runFitting();
 
 % Report fit results
-%--------------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 if fitdat.Opts.PrintLevel
   disp('---------------------------------------------------------');
   fprintf('Goodness of fit:\n');
   fprintf('   ssr             %g\n',result.ssr);
   fprintf('   rmsd            %g\n',result.rmsd);
-  fprintf('   noise std       %g (estimated from residuals)\n',std(result.residuals));
-  fprintf('   chi^2           %g (using noise std estimate; upper limit)\n',result.rmsd^2/var(result.residuals));
+  fprintf('   noise std       %g (estimated from residuals; assumes excellent fit)\n',std(result.residuals));
+  fprintf('   chi-squared     %g (using noise std estimate; upper limit)\n',result.rmsd^2/var(result.residuals));
   if Opt.AutoScale
     fprintf('Fitted scale:       %g\n',result.scale);
   end
@@ -443,26 +455,27 @@ clear global UserCommand
 
 end
 
-%==========================================================================
-%==========================================================================
-%==========================================================================
+%===============================================================================
+%===============================================================================
+%===============================================================================
 
 
-%==========================================================================
+%===============================================================================
 % Run fitting algorithm
-%==========================================================================
-function result = runFitting(GUI)
+%===============================================================================
+function result = runFitting(useGUI)
 
-if nargin<1, GUI = false; end
+if nargin<1, useGUI = false; end
 
-global fitdat
+global fitdat  %#ok
 nParameters = numel(fitdat.pvec_0);
 data_ = fitdat.data;
 fixedParams = fitdat.fixedParams;
 activeParams = ~fixedParams;
+printLevel = fitdat.Opts.PrintLevel;
 
 % Set starting point
-%--------------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 lb = fitdat.pvec_lb;
 ub = fitdat.pvec_ub;
 p0 = fitdat.pvec_0;
@@ -473,7 +486,7 @@ switch fitdat.Opts.Startpoint
     p_start = lb + rand(nParameters,1).*(ub-lb);
     p_start(fixedParams) = p0(fixedParams);
   case 3 % selected parameter set
-    if GUI
+    if useGUI
       h = findobj('Tag','SetListBox');
       s = h.String;
       if ~isempty(s)
@@ -489,77 +502,71 @@ switch fitdat.Opts.Startpoint
         error('No saved parameter set yet.');
       end
     else
-        error('Setting can only be used in GUI mode.');
+      error('Setting can only be used in GUI mode.');
     end
 end
 fitdat.p_start = p_start;
 
 % Run minimization over space of active parameters
-%--------------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 fitOpt = fitdat.Opts;
-if GUI
-  fitOpt.IterFcn = @iterupdateGUI;
-end
-if sum(activeParams)>0
+nActiveParams = sum(activeParams);
+if nActiveParams>0
+  if printLevel
+    fprintf('Running optimization algorithm with %d active parameters...\n',nActiveParams);
+  end
+  if useGUI
+    fitOpt.IterFcn = @iterupdateGUI;
+  end
   residualfun = @(x) residuals_(x,data_,fitOpt);
   rmsdfun = @(x) rmsd_(x,data_,fitOpt);
-  p0_a = p_start(activeParams);
-  lb_a = lb(activeParams);
-  ub_a = ub(activeParams);
+  p0_active = p_start(activeParams);
+  lb_active = lb(activeParams);
+  ub_active = ub(activeParams);
   switch fitOpt.AlgorithmID
     case 1 % Nelder-Mead simplex
-      pfit_a = esfit_simplex(rmsdfun,p0_a,lb_a,ub_a,fitOpt);
+      pfit_active = esfit_simplex(rmsdfun,p0_active,lb_active,ub_active,fitOpt);
     case 2 % Levenberg-Marquardt
       fitOpt.Gradient = fitOpt.TolFun;
-      pfit_a = esfit_levmar(residualfun,p0_a,lb_a,ub_a,fitOpt);
+      pfit_active = esfit_levmar(residualfun,p0_active,lb_active,ub_active,fitOpt);
     case 3 % Monte Carlo
-      pfit_a = esfit_montecarlo(rmsdfun,lb_a,ub_a,fitOpt);
+      pfit_active = esfit_montecarlo(rmsdfun,lb_active,ub_active,fitOpt);
     case 4 % Genetic
-      pfit_a = esfit_genetic(rmsdfun,lb_a,ub_a,fitOpt);
+      pfit_active = esfit_genetic(rmsdfun,lb_active,ub_active,fitOpt);
     case 5 % Grid search
-      pfit_a = esfit_grid(rmsdfun,lb_a,ub_a,fitOpt);
+      pfit_active = esfit_grid(rmsdfun,lb_active,ub_active,fitOpt);
     case 6 % Particle swarm
-      pfit_a = esfit_swarm(rmsdfun,lb_a,ub_a,fitOpt);
+      pfit_active = esfit_swarm(rmsdfun,lb_active,ub_active,fitOpt);
     case 7 % lsqnonlin from Optimization Toolbox
-      pfit_a = lsqnonlin(residualfun,p0_a,lb_a,ub_a);
+      pfit_active = lsqnonlin(residualfun,p0_active,lb_active,ub_active);
   end
   pfit = p_start;
-  pfit(activeParams) = pfit_a;
+  pfit(activeParams) = pfit_active;
 else
+  if printLevel
+    disp('No active parameters; skipping optimization');
+  end
   pfit = p_start;
 end
 
-% Simulate model fit
-%--------------------------------------------------------------------------
-% (This should not be necessary; fitraw should be returned by the optimization functions!)
 if fitdat.structureInputs
   argsfit = fitdat.p2args(pfit);
-  [out{1:fitdat.nOutArguments}] = fitdat.fcn(argsfit{:});
 else
   argsfit = [];
-  [out{1:fitdat.nOutArguments}] = fitdat.fcn(pfit);
 end
-fitraw = out{fitdat.OutArgument}; % pick relevant output argument
-fitraw = reshape(fitraw,size(fitdat.data));
-
-% Rescale fitted model
-if fitOpt.AutoScale
-  [fit,scale] = rescaledata(fitraw,fitdat.data,'lsq');
-else
-  fit = fitraw;
-  scale = 1;
-end
+fit = fitdat.bestfit;  % bestfit is set in residuals_
+scale = fitdat.bestscale;  % bestscale is set in residuals_
+fitraw = fit/scale;
 
 % Calculate metrics for goodness of fit
-%--------------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 residuals = calculateResiduals(fit(:),fitdat.data(:),fitdat.Opts.TargetID);
 residuals = residuals.'; % col -> row
 ssr = sum(abs(residuals).^2); % sum of squared residuals
 rmsd = sqrt(mean(residuals.^2)); % root-mean-square deviation
 
 % Calculate parameter uncertainties
-%--------------------------------------------------------------------------
-printLevel = fitdat.Opts.PrintLevel;
+%-------------------------------------------------------------------------------
 if printLevel
   disp('Calculating parameter uncertainties...');
   disp('  Estimating Jacobian...');
@@ -598,14 +605,15 @@ else
   ci95 = [];
 end
 
-% Assemble output
+% Assemble output structure
 %-------------------------------------------------------------------------------
 result.argsfit = argsfit;
 result.fit = fit;
 result.scale = scale;
 result.fitraw = fitraw;
-result.residuals = residuals;
 result.pfit = pfit;
+
+result.residuals = residuals;
 result.pstd = pstd;
 result.ci95 = ci95;
 result.cov = covmatrix;
@@ -617,14 +625,14 @@ end
 
 
 
-%==========================================================================
+%===============================================================================
 function rmsd = rmsd_(x,data,Opt)
 [~,rmsd] = residuals_(x,data,Opt);
 end
-%==========================================================================
+%===============================================================================
 
 
-%==========================================================================
+%===============================================================================
 function [residuals,rmsd,simdata,simscale] = residuals_(x,expdata,Opt)
 
 % reads:
@@ -635,22 +643,22 @@ function [residuals,rmsd,simdata,simscale] = residuals_(x,expdata,Opt)
 %   fitdat.nOutArguments
 %   fitdat.OutArgument
 %   fitdat.fcn
-%   etc
 % writes:
 %   fitdat.smallestError
 %   fitdat.bestfit
 %   fitdat.bestpar
 %   fitdat.errorlist
-%   etc
 
-global fitdat
+global fitdat  %#ok
 
-% Assemble full parameter vector ------------------------------------------
+% Assemble full parameter vector
+%-------------------------------------------------------------------------------
 par = fitdat.p_start;
 active = ~fitdat.fixedParams;
 par(active) = x;
 
-% Evaluate model function -------------------------------------------------
+% Evaluate model function
+%-------------------------------------------------------------------------------
 out = cell(1,fitdat.nOutArguments);
 if fitdat.structureInputs
   args = fitdat.p2args(par);
@@ -675,12 +683,17 @@ else
   simdata = simdata(:);
   simscale = 1;
 end
+fitdat.currsim = simdata;
+fitdat.currpar = par;
+fitdat.currscale = simscale;
 
-% Compute residuals -------------------------------------------------------
+% Compute residuals
+%-------------------------------------------------------------------------------
 residuals = calculateResiduals(simdata(:),expdata(:),Opt.TargetID,Opt.mask(:));
 rmsd = sqrt(mean(abs(residuals).^2));
 
-% Keep track of errors ----------------------------------------------------
+% Keep track of errors
+%-------------------------------------------------------------------------------
 if ~isfield(fitdat,'smallestError') || isempty(fitdat.smallestError)
   fitdat.smallestError = inf;
 end
@@ -694,100 +707,109 @@ isNewBest = rmsd<fitdat.smallestError;
 if isNewBest
   fitdat.smallestError = rmsd;
   fitdat.bestfit = simdata;
+  fitdat.bestscale = simscale;
   fitdat.bestpar = par;
 end
 
 end
-%==========================================================================
+%===============================================================================
 
 
-%==========================================================================
+%===============================================================================
 % Function to update GUI at each iteration
-%--------------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 function userstop = iterupdateGUI(info)
-global UserCommand
+global UserCommand fitdat  %#ok
 userstop = UserCommand~=0;
 windowClosing = UserCommand==99;
-if ~windowClosing && updateGUI
+if windowClosing, return; end
 
-  % update plot
-  x = fitdat.Opts.x(:);
-  set(findobj('Tag','expdata'),'XData',x,'YData',expdata(:));
-  set(findobj('Tag','bestsimdata'),'XData',x,'YData',real(fitdat.bestfit));
-  set(findobj('Tag','currsimdata'),'XData',x,'YData',real(simdata));
+% Get relevant quantities
+x = fitdat.Opts.x(:);
+expdata = fitdat.data(:);
+bestsim = real(fitdat.bestfit(:));
+currsim = real(fitdat.currsim(:));
+currpar = fitdat.currpar;
+bestx = info.bestx;
 
-  % readjust vertical range
-  dispData = [expdata(:); real(fitdat.bestfit(:)); real(simdata(:))];
-  maxy = max(dispData);
-  miny = min(dispData);
-  YLimits = [miny maxy] + [-1 1]*Opt.PlotStretchFactor*(maxy-miny);
-  set(findobj('Tag','dataaxes'),'YLim',YLimits);
+% Update plotted data
+set(findobj('Tag','expdata'),'XData',x,'YData',expdata);
+set(findobj('Tag','bestsimdata'),'XData',x,'YData',bestsim);
+set(findobj('Tag','currsimdata'),'XData',x,'YData',currsim);
+
+% Readjust vertical range
+plottedData = [expdata; bestsim; currsim];
+maxy = max(plottedData);
+miny = min(plottedData);
+YLimits = [miny maxy] + [-1 1]*fitdat.Opts.PlotStretchFactor*(maxy-miny);
+set(findobj('Tag','dataaxes'),'YLim',YLimits);
+drawnow
+
+% Update column with current parameter values
+hParamTable = findobj('Tag','ParameterTable');
+data = get(hParamTable,'data');
+nParams = size(data,1);
+for p = 1:nParams
+  oldvaluestring = striphtml(data{p,4});
+  newvaluestring = sprintf('%0.6f',currpar(p));
+  % Find first character at which the new value differs from the old one
+  idx = 1;
+  while idx<=min(length(oldvaluestring),length(newvaluestring))
+    if oldvaluestring(idx)~=newvaluestring(idx), break; end
+    idx = idx + 1;
+  end
+  active = data{p,1};
+  if active
+    str = ['<html><font color="#000000">' newvaluestring(1:idx-1) '</font><font color="#ff0000">' newvaluestring(idx:end) '</font></html>'];
+  else
+    str = ['<html><font color="#888888">' newvaluestring '</font></html>'];
+  end
+  data{p,4} = str;
+end
+
+% Update column with best values if current parameter set is new best
+if info.newbest
+
+  str = sprintf(' best RMSD: %g\n',fitdat.smallestError);
+  hRmsText = findobj('Tag','RmsText');
+  set(hRmsText,'String',str);
+
+  for p = 1:nParams
+    oldvaluestring = striphtml(data{p,3});
+    newvaluestring = sprintf('%0.6g',bestx(p));
+    % Find first character at which the new value differs from the old one
+    idx = 1;
+    while idx<=min(length(oldvaluestring),length(newvaluestring))
+      if oldvaluestring(idx)~=newvaluestring(idx), break; end
+      idx = idx + 1;
+    end
+    active = data{p,1};
+    if active
+      str = ['<html><font color="#000000">' newvaluestring(1:idx-1) '</font><font color="#009900">' newvaluestring(idx:end) '</font></html>'];
+    else
+      str = ['<html><font color="#888888">' newvaluestring '</font></html>'];
+    end
+    data{p,3} = str;
+  end
+end
+
+hParamTable.Data = data;
+
+% Update rmsd plot
+hErrorLine = findobj('Tag','errorline');
+if ~isempty(hErrorLine)
+  n = min(100,numel(fitdat.errorlist));
+  set(hErrorLine,'XData',1:n,'YData',log10(fitdat.errorlist(end-n+1:end)));
+  ax = hErrorLine.Parent;
+  axis(ax,'tight');
   drawnow
-
-  % update numbers parameter table
-  if ~windowClosing
-
-    % update column with current parameter values
-    hParamTable = findobj('Tag','ParameterTable');
-    data = get(hParamTable,'data');
-    for p = 1:numel(par)
-      olddata = striphtml(data{p,4});
-      newdata = sprintf('%0.6f',par(p));
-      idx = 1;
-      while idx<=length(olddata) && idx<=length(newdata)
-        if olddata(idx)~=newdata(idx), break; end
-        idx = idx + 1;
-      end
-      active = data{p,1};
-      if active
-        data{p,4} = ['<html><font color="#000000">' newdata(1:idx-1) '</font><font color="#ff0000">' newdata(idx:end) '</font></html>'];
-      else
-        data{p,4} = ['<html><font color="#888888">' newdata '</font></html>'];
-      end
-    end
-
-    % update column with best values if current parameter set is new best
-    if info.newbest
-
-      str = sprintf(' best RMSD: %g\n',fitdat.smallestError);
-      hRmsText = findobj('Tag','RmsText');
-      set(hRmsText,'String',str);
-
-      for p = 1:numel(par)
-        olddata = striphtml(data{p,3});
-        newdata = sprintf('%0.6g',par(p));
-        idx = 1;
-        while idx<=length(olddata) && idx<=length(newdata)
-          if olddata(idx)~=newdata(idx), break; end
-          idx = idx + 1;
-        end
-        active = data{p,1};
-        if active
-          data{p,3} = ['<html><font color="#000000">' newdata(1:idx-1) '</font><font color="#009900">' newdata(idx:end) '</font></html>'];
-        else
-          data{p,3} = ['<html><font color="#888888">' newdata '</font></html>'];
-        end
-      end
-    end
-    set(hParamTable,'Data',data);
-
-  end
-
-  hErrorLine = findobj('Tag','errorline');
-  if ~isempty(hErrorLine)
-    n = min(100,numel(fitdat.errorlist));
-    set(hErrorLine,'XData',1:n,'YData',log10(fitdat.errorlist(end-n+1:end)));
-    ax = hErrorLine.Parent;
-    axis(ax,'tight');
-    drawnow
-  end
+end
 
 end
-end
-%==========================================================================
+%===============================================================================
 
 
-%==========================================================================
+%===============================================================================
 % Print parameters, and their uncertainties if availabe.
 function str = printparlist(par,pinfo,pstd,pci95)
 
@@ -802,14 +824,14 @@ if printUncertainties
   for p = 1:nParams
     pname = pad(pinfo(p).Name,maxNameLength);
     str_ = sprintf('%s  %-#12.7g %-#12.7g (%6.3f %%)   %-#12.7g - %-#12.7g',pname,par(p),pstd(p),pstd(p)/par(p)*100,pci95(p,1),pci95(p,2));
-    str = [str newline indent str_];
+    str = [str newline indent str_];  %#ok
   end
 else
   str = [indent sprintf('name%svalue',repmat(' ',1,max(maxNameLength-4,0)+2))];
   for p = 1:nParams
     pname = pad(pinfo(p).Name,maxNameLength);
     str_ = sprintf('%s  %-#12.7g',pname,par(p));
-    str = [str newline indent str_];
+    str = [str newline indent str_];  %#ok
   end
 end
 
@@ -819,6 +841,7 @@ end
 
 return
 
+%{
 % Determine least-significant digit
 lsd = floor(log10(err)); % lowest significant digit
 lsd = max(lsd,log10(par)-4); % catch cases where err==0
@@ -845,12 +868,13 @@ end
 if nargout==0
   fprintf(str);
 end
+%}
 
 end
-%==========================================================================
+%===============================================================================
 
 
-%==========================================================================
+%===============================================================================
 function residuals = calculateResiduals(A,B,mode,mask)
 AB = A - B;
 if nargin>3
@@ -871,13 +895,12 @@ end
 idxNaN = isnan(A) | isnan(B);
 residuals(idxNaN) = 0; % ignore residual if A or B is NaN
 end
-%==========================================================================
+%===============================================================================
 
-%==========================================================================
+%===============================================================================
 function startButtonCallback(~,~)
 
-global fitdat
-global UserCommand
+global fitdat UserCommand  %#ok
 UserCommand = 0;
 
 % Update GUI
@@ -988,9 +1011,9 @@ end
 function iterationprint(str)
 hLogLine = findobj('Tag','logLine');
 if isempty(hLogLine)
-    disp(str);
+  disp(str);
 else
-    set(hLogLine,'String',str);
+  set(hLogLine,'String',str);
 end
 end
 %===============================================================================
@@ -1000,13 +1023,13 @@ end
 function str = striphtml(str)
 html = false;
 for k = numel(str):-1:1
-    if ~html
-        rmv(k) = false;
-        if str(k)=='<', html = true; rmv(k) = true; end
-    else
-        rmv(k) = true;
-        if str(k)=='>', html = false; end
-    end
+  if ~html
+    rmv(k) = false;
+    if str(k)=='<', html = true; rmv(k) = true; end
+  else
+    rmv(k) = true;
+    if str(k)=='>', html = false; end
+  end
 end
 str(rmv) = [];
 end
@@ -1015,7 +1038,7 @@ end
 
 %===============================================================================
 function deleteSetButtonCallback(~,~)
-global fitdat
+global fitdat  %#ok
 h = findobj('Tag','SetListBox');
 idx = h.Value;
 str = h.String;
@@ -1063,33 +1086,33 @@ end
 
 %===============================================================================
 function displayFitSet
-global FitResults
+global FitResults  %#ok
 h = findobj('Tag','SetListBox');
 idx = h.Value;
 str = h.String;
 if ~isempty(str)
-    ID = sscanf(str{idx},'%d');
-    k = find([FitResults.FitSets.ID]==ID);
-    if k>0
-        fitset = FitResults.FitSets(k);
-        values = fitset.bestx;
-        
-        % Set column with best-fit parameter values
-        hTable = findobj('Tag','ParameterTable');
-        data = get(hTable,'data');
-        for p = 1:numel(values)
-            data{p,3} = sprintf('%0.6g',values(p));
-        end
-        set(hTable,'Data',data);
-        
-        h = findobj('Tag','bestsimdata');
-        set(h,'YData',fitset.fit);
-        drawnow
+  ID = sscanf(str{idx},'%d');
+  k = find([FitResults.FitSets.ID]==ID);
+  if k>0
+    fitset = FitResults.FitSets(k);
+    values = fitset.bestx;
+
+    % Set column with best-fit parameter values
+    hTable = findobj('Tag','ParameterTable');
+    data = get(hTable,'data');
+    for p = 1:numel(values)
+      data{p,3} = sprintf('%0.6g',values(p));
     end
-else
+    set(hTable,'Data',data);
+
     h = findobj('Tag','bestsimdata');
-    set(h,'YData',NaN(size(h.YData)));
+    set(h,'YData',fitset.fit);
     drawnow
+  end
+else
+  h = findobj('Tag','bestsimdata');
+  set(h,'YData',NaN(size(h.YData)));
+  drawnow
 end
 
 end
@@ -1098,7 +1121,7 @@ end
 
 %===============================================================================
 function exportSetButtonCallback(~,~)
-global FitResults
+global FitResults  %#ok
 h = findobj('Tag','SetListBox');
 v = h.Value;
 s = h.String;
@@ -1147,7 +1170,7 @@ end
 
 %===============================================================================
 function sortIDSetButtonCallback(~,~)
-global FitResults
+global FitResults %#ok
 ID = [FitResults.FitSets.ID];
 [~,idx] = sort(ID);
 FitResults.FitSets = FitResults.FitSets(idx);
@@ -1158,7 +1181,7 @@ end
 
 %===============================================================================
 function sortRMSDSetButtonCallback(~,~)
-global FitResults
+global FitResults %#ok
 rmsd = [FitResults.FitSets.rmsd];
 [~,idx] = sort(rmsd);
 FitResults.FitSets = FitResults.FitSets(idx);
@@ -1169,13 +1192,13 @@ end
 
 %===============================================================================
 function refreshFitsetList(idx)
-global FitResults
+global FitResults  %#ok
 h = findobj('Tag','SetListBox');
 nSets = numel(FitResults.FitSets);
 s = cell(1,nSets);
 for k = 1:nSets
-    s{k} = sprintf('%d. rmsd %g (%s)',...
-        FitResults.FitSets(k).ID,FitResults.FitSets(k).rmsd,FitResults.FitSets(k).Target);
+  s{k} = sprintf('%d. rmsd %g (%s)',...
+    FitResults.FitSets(k).ID,FitResults.FitSets(k).rmsd,FitResults.FitSets(k).Target);
 end
 set(h,'String',s);
 if idx>0, set(h,'Value',idx); end
@@ -1194,13 +1217,13 @@ end
 
 %===============================================================================
 function saveFitsetCallback(~,~)
-global FitResults
+global FitResults  %#ok
 FitResults.lastSetID = FitResults.lastSetID+1;
 FitResults.currFitSet.ID = FitResults.lastSetID;
 if ~isfield(FitResults,'FitSets') || isempty(FitResults.FitSets)
-    FitResults.FitSets(1) = FitResults.currFitSet;
+  FitResults.FitSets(1) = FitResults.currFitSet;
 else
-    FitResults.FitSets(end+1) = FitResults.currFitSet;
+  FitResults.FitSets(end+1) = FitResults.currFitSet;
 end
 refreshFitsetList(-1);
 end
@@ -1209,56 +1232,51 @@ end
 
 %===============================================================================
 function tableCellEditCallback(~,callbackData)
-global fitdat
+global fitdat  %#ok
 
+% Get handle of table and row/column index of edited table cell
 hTable = callbackData.Source;
-
-% Get row and column index of edited table cell
 ridx = callbackData.Indices(1);
 cidx = callbackData.Indices(2);
 
-% Return unless it's the last two columns
-if cidx<5, return; end
-
-% Revert if user-entered string does not cleanly convert to a scalar.
-newval = str2double(callbackData.EditData);
-if numel(newval)~=1 || isnan(newval)
-    hTable.Data{ridx,cidx} = callbackData.PreviousData;
-    warning('Input is not a number.');
-    return
-end
+% Return unless it's a cell that contains lower or upper bound
+lbColumn = 5; % lower-bound column
+ubColumn = 6; % upper-bound column
+lbedit = cidx==lbColumn;
+ubedit = cidx==ubColumn;
+if ~lbedit && ~ubedit, return; end
 
 % Get lower and upper bounds of interval from table
-if cidx==5
-    lower = newval;
-    upper = str2double(hTable.Data{ridx,6});
-elseif cidx==6
-    lower = str2double(hTable.Data{ridx,5});
-    upper = newval;
+lower = str2double(hTable.Data{ridx,lbColumn});
+upper = str2double(hTable.Data{ridx,ubColumn});
+
+% Convert user-entered string to number
+newval = str2double(callbackData.EditData);
+
+% Revert if conversion didn't yield a scalar
+if numel(newval)~=1 || isnan(newval) || ~isreal(newval)
+  warning('Input ''%s'' is not a number. Reverting edit.',callbackData.EditData);
+  hTable.Data{ridx,cidx} = callbackData.PreviousData;
+  return
+end
+
+% Set new lower/upper bound
+if lbedit
+  lower = newval;
+elseif ubedit
+  upper = newval;
 end
 
 % Revert if lower bound would be above upper bound
 if lower>upper
-    warning('Lower bound is above upper bound.');
-    hTable.Data{ridx,cidx} = callbackData.PreviousData;
-    return
+  warning('Lower bound is above upper bound. Reverting edit.');
+  hTable.Data{ridx,cidx} = callbackData.PreviousData;
+  return
 end
 
-% Get parameter string (e.g. 'g(1)', or 'B.g(2)' for more than 1 system)
-% and determine system index
-parName = hTable.Data{ridx,2};
-if fitdat.nSystems>1
-    parName = parName(3:end); % disregard 'A.' etc.
-    iSys = parName(1)-64; % 'A' -> 1, 'B' -> 2, etc
-else
-    iSys = 1;
-end
-
-% Update appropriate field in FitData.Sys0 and FitData.Vary
-center = (lower+upper)/2;
-vary = (upper-lower)/2;
-eval(sprintf('FitData.Sys0{%d}.%s = %g;',iSys,parName,center));
-eval(sprintf('FitData.Vary{%d}.%s = %g;',iSys,parName,vary));
+% Update lower and upper bounds
+fitdat.pvec_lb(ridx) = lower;
+fitdat.pvec_ub(ridx) = upper;
 
 end
 %===============================================================================
@@ -1267,11 +1285,11 @@ end
 %===============================================================================
 function setupGUI(data)
 
-global fitdat
+global fitdat  %#ok
 Opt = fitdat.Opts;
 
 % Main figure
-%---------------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 hFig = findobj('Tag','esfitFigure');
 if isempty(hFig)
   hFig = figure('Tag','esfitFigure','WindowStyle','normal');
@@ -1292,7 +1310,7 @@ set(hFig,'CloseRequestFcn',...
     'global UserCommand; UserCommand = 99; drawnow; delete(gcf);');
 
 % Axes
-%---------------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 % data display
 hAx = axes('Parent',hFig,'Tag','dataaxes','Units','pixels',...
     'Position',[30 30 1010 740],'FontSize',8,'Layer','top');
@@ -1323,7 +1341,7 @@ box on
 showmaskedregions();
 
 % iteration and rms error displays
-%-----------------------------------------------------------------
+%-------------------------------------------------------------------------------
 y0 = 160;
 hAx = axes('Parent',hFig,'Units','pixels','Position',[x0 y0 100 80],'Layer','top');
 h = plot(hAx,1,NaN,'.');
@@ -1341,7 +1359,7 @@ set(h,'Horizontal','left');
 
 
 % Parameter table
-%---------------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 columnname = {'','Name','best','current','lower','upper'};
 columnformat = {'logical','char','char','char','char','char'};
 colEditable = [true false false false true true];
@@ -1409,7 +1427,7 @@ uicontrol(hFig,'Style','text',...
     'Position',[x0+dx y0+270 dx 20]);
 
 % popup menus
-%---------------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 dx = 60; y0 = 390; dy = 24;
 uicontrol(hFig,'Style','text',...
     'String','Algorithm',...
@@ -1492,7 +1510,7 @@ uicontrol(hFig,'Style','pushbutton',...
     'Position',pos1);
 
 % Fitset list
-%--------------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 y0 = 10;
 uicontrol('Style','text','Tag','SetListTitle',...
     'Position',[x0 y0+100 230 20],...
@@ -1534,7 +1552,7 @@ set(hFig,'NextPlot','new');
 end
 
 function axesButtonDownFcn(~,~)
-global fitdat
+global fitdat  %#ok
 hAx = findobj('Tag','dataaxes');
 cp = hAx.CurrentPoint;
 x = fitdat.Opts.x;
@@ -1553,7 +1571,7 @@ end
 
 
 function showmaskedregions()
-global fitdat
+global fitdat  %#ok
 hAx = findobj('Tag','dataaxes');
 
 % Delete existing mask patches
