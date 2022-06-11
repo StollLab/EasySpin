@@ -27,7 +27,7 @@
 %                   EasySpin-style functions: {ubSys,ubExp} or {ubSys,ubExp,ubOpt}
 %                   other functions: n-element vector
 %     FitOpt      options for esfit
-%        .Method  string containing kewords for
+%        .Method  string containing keywords for
 %           -algorithm: 'simplex','levmar','montecarlo','genetic','grid','swarm'
 %           -target function: 'fcn', 'int', 'dint', 'diff', 'fft'
 %        .AutoScale either 1 (on) or 0 (off); default 1
@@ -208,13 +208,21 @@ if any(idx)
   error('Parameter #%d: start value is larger than upper bound.',find(idx,1));
 end
 
+% Eliminate fixed parameters
+keep = pvec_lb~=pvec_ub;
+pinfo = pinfo(keep);
+pvec_0 = pvec_0(keep);
+pvec_lb = pvec_lb(keep);
+pvec_ub = pvec_ub(keep);
+
+% Store parameter information in global data structure
 esfitdata.args = p0;
 esfitdata.pinfo = pinfo;
 esfitdata.pvec_0 = pvec_0;
 esfitdata.pvec_lb = pvec_lb;
 esfitdata.pvec_ub = pvec_ub;
-
 esfitdata.nParameters = numel(pvec_0);
+
 esfitdata.fixedParams = false(1,numel(pvec_0));
 if esfitdata.nParameters-sum(esfitdata.fixedParams)==0
   error('No variable parameters to fit.');
@@ -565,7 +573,7 @@ rmsd = sqrt(mean(residuals.^2)); % root-mean-square deviation
 
 % Calculate parameter uncertainties
 %-------------------------------------------------------------------------------
-calculateUncertainties = esfitdata.UserCommand==0;
+calculateUncertainties = esfitdata.UserCommand==0 && nActiveParams>0;
 if calculateUncertainties
   if printLevel>=1
     disp('Calculating parameter uncertainties...');
@@ -573,7 +581,7 @@ if calculateUncertainties
   end
   %maxRelStep = min((ub-pfit),(pfit-lb))./pfit;
   residualfun = @(x)residuals_(x,data_,fitOpt);
-  J = jacobianest(residualfun,pfit);
+  J = jacobianest(residualfun,pfit_active);
   if ~any(isnan(J(:)))
     if printLevel>=1
       disp('  Calculating parameter covariance matrix...');
@@ -587,7 +595,7 @@ if calculateUncertainties
     norm_icdf = @(p)-sqrt(2)*erfcinv(2*p); % inverse of standard normal cdf
     ci = @(pctl)norm_icdf(1/2+pctl/2)*sqrt(diag(covmatrix));
     pctl = 0.95;
-    ci95 = pfit + ci(pctl)*[-1 1];
+    ci95 = pfit_active + ci(pctl)*[-1 1];
 
     % Calculate correlation matrix
     if printLevel>=1
@@ -620,7 +628,10 @@ result.argsfit = argsfit;
 result.fit = fit;
 result.scale = scale;
 result.fitraw = fitraw;
-result.pfit = pfit;
+
+result.pfit = pfit_active;
+result.pnames = {esfitdata.pinfo.Name}.';
+result.pnames = result.pnames(~esfitdata.fixedParams);
 
 result.residuals = residuals;
 result.ssr = ssr;
@@ -629,6 +640,7 @@ result.pstd = pstd;
 result.ci95 = ci95;
 result.cov = covmatrix;
 result.corr = corrmatrix;
+result
 
 end
 
@@ -739,7 +751,8 @@ expdata = esfitdata.data(:);
 bestsim = real(esfitdata.bestfit(:));
 currsim = real(esfitdata.currsim(:));
 currpar = esfitdata.currpar;
-bestx = info.bestx;
+bestx = currpar;
+bestx(~esfitdata.fixedParams) = info.bestx;
 
 % Update plotted data
 set(findobj('Tag','expdata'),'XData',x,'YData',expdata);

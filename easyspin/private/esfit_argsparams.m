@@ -11,70 +11,63 @@ end
 
 %===============================================================================
 % function for parsing vary, lower, or upper-bound inputs
-function parinfo = getparaminfo(args,mode)
+function parinfo = getparaminfo(args)
 
 if ~iscell(args)
-    error('Model function arguments are expected as a cell array.')
+  error('Model function arguments are expected as a cell array.')
 end
 nArgs = numel(args);
-
-if nargin<2, mode = 'nz'; end
-nonzeroonly = strcmp(mode,'nz');
 
 p = 1; % parameter index
 parinfo = struct;
 for a = 1:nArgs
-    par = args{a};
-    if isempty(par), continue; end
-    noCell = ~iscell(par);
-    if noCell, par = {par}; end
-    for c = 1:numel(par)
-        if ~isstruct(par{c})
-            error('Arg %d, cell %d: struct expected.',a,c);
+  par = args{a};
+  if isempty(par), continue; end
+  noCell = ~iscell(par);
+  if noCell, par = {par}; end
+  for c = 1:numel(par)
+    if ~isstruct(par{c})
+      error('Arg %d, cell %d: struct expected.',a,c);
+    end
+    allFields = fieldnames(par{c});
+    allValues = struct2cell(par{c});
+    for iField = 1:numel(allFields)
+      value = allValues{iField};
+      siz = size(value);
+      if ~isfloat(value)
+        continue
+      end
+      idx = 1:numel(value);
+      [irow,icol] = ind2sub(size(value),idx);
+      for i = 1:numel(idx)
+        parinfo(p).Arg = a;
+        if noCell
+          parinfo(p).Cell = 0;
+        else
+          parinfo(p).Cell = c;
         end
-        allFields = fieldnames(par{c});
-        allValues = struct2cell(par{c});
-        for iField = 1:numel(allFields)
-            value = allValues{iField};
-            siz = size(value);
-            if ~isfloat(value)
-                continue
-            end
-            if nonzeroonly
-                idx = find(value);
-            else
-                idx = 1:numel(value);
-            end
-            [irow,icol] = ind2sub(size(value),idx);
-            for i = 1:numel(idx)
-                parinfo(p).Arg = a;
-                if noCell
-                    parinfo(p).Cell = 0;
-                else
-                    parinfo(p).Cell = c;
-                end
-                parinfo(p).FieldName = allFields{iField};
-                parinfo(p).Index = idx(i); % linear index
-                parinfo(p).Subscipts = [irow(i) icol(i)]; % 2D subscripts
-                parinfo(p).FieldSize = siz;
-                
-                % Build parameter name
-                idxName = '';
-                if ~isscalar(value)
-                    idxName = sprintf('(%d,%d)',irow(i),icol(i));
-                end
-                cellName = '';
-                if ~noCell
-                    cellName = sprintf('{%d}',c);
-                end
-                Name = sprintf('arg%1d%s.%s%s',a,cellName,allFields{iField},idxName);
-                parinfo(p).Name = Name;
-                
-                p = p + 1;
-                
-            end % index
-        end % field
-    end % cell
+        parinfo(p).FieldName = allFields{iField};
+        parinfo(p).Index = idx(i); % linear index
+        parinfo(p).Subscripts = [irow(i) icol(i)]; % 2D subscripts
+        parinfo(p).FieldSize = siz;
+
+        % Build parameter name
+        idxName = '';
+        if ~isscalar(value)
+          idxName = sprintf('(%d,%d)',irow(i),icol(i));
+        end
+        cellName = '';
+        if ~noCell
+          cellName = sprintf('{%d}',c);
+        end
+        Name = sprintf('arg%1d%s.%s%s',a,cellName,allFields{iField},idxName);
+        parinfo(p).Name = Name;
+
+        p = p + 1;
+
+      end % index
+    end % field
+  end % cell
 end % argument
 
 end
