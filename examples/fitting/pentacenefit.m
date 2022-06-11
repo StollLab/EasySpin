@@ -9,21 +9,29 @@
 % as thoroughly as possible before you try to least-squares
 % fit the spectra.
 
+clear, clc
+
 % Compute a noisy spectrum
-clear
-Sys = struct('g',2,'Nucs','1H,1H,1H,1H','n',[2 4 4 4]);
-Sys.lwpp = [0,0.01]; % Lorentzian lines
-Sys.A =  [11.9 8.5 2.6 2.4];
-Exp = struct('mwFreq',9.5,'CenterSweep',[339.4 4],'nPoints',2e3);
+Pentacene.g = 2;
+Pentacene.Nucs = '1H,1H,1H,1H';
+Pentacene.n = [2 4 4 4];
+Pentacene.lwpp = [0 0.01]; % Lorentzian broadening
+Pentacene.A =  [11.9 8.5 2.6 2.4];  % MHz
+
+Exp.mwFreq = 9.5;  % GHz
+Exp.CenterSweep = [339.4 5];  % mT
+Exp.nPoints = 3e3;
 Exp.Harmonic = 1;
-[xa,ya] = garlic(Sys,Exp);
+
+[xa,ya] = garlic(Pentacene,Exp);
 ya = addnoise(ya,150,'n');
 
 % Modify the hyperfine values and set up a rather wide
 % search range for them.
 
-Sys.A = [12 8.5 2.6 2.4];
-Vary.A = [2 2 1 1];
+Pentacene.A = [12 8.5 2.6 2.4];
+Vary.A = [2 2 1 1];  % MHz
 
+% Run fitting
 FitOpt.Method = 'genetic int';
-BestSys = esfit(@garlic,ya,Sys,Vary,Exp,[],FitOpt);
+fit = esfit(ya,@garlic,{Pentacene,Exp},{Vary},FitOpt);
