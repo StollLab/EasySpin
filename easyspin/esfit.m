@@ -214,6 +214,11 @@ pinfo = pinfo(keep);
 pvec_0 = pvec_0(keep);
 pvec_lb = pvec_lb(keep);
 pvec_ub = pvec_ub(keep);
+nParameters = numel(pvec_0);
+
+if nParameters==0
+  error('No variable parameters to fit.');
+end
 
 % Store parameter information in global data structure
 esfitdata.args = p0;
@@ -221,18 +226,15 @@ esfitdata.pinfo = pinfo;
 esfitdata.pvec_0 = pvec_0;
 esfitdata.pvec_lb = pvec_lb;
 esfitdata.pvec_ub = pvec_ub;
-esfitdata.nParameters = numel(pvec_0);
+esfitdata.nParameters = nParameters;
 
+% Initialize parameter fixing mask used in GUI table
 esfitdata.fixedParams = false(1,numel(pvec_0));
-if esfitdata.nParameters-sum(esfitdata.fixedParams)==0
-  error('No variable parameters to fit.');
-end
-
 
 % Experimental parameters (for EasySpin functions)
 %-------------------------------------------------------------------------------
 if EasySpinFunction
-  % Set Exp.nPoints
+  % Check or set Exp.nPoints
   if isfield(p0{2},'nPoints')
     if p0{2}.nPoints~=numel(data)
       error('Exp.nPoints is %d, but the data vector has %d elements.',...
@@ -327,9 +329,14 @@ esfitdata.TargetNames = TargetNames;
 
 % Mask
 if ~isfield(Opt,'mask')
-  Opt.mask = 1;
+  Opt.mask = true(size(data));
+else
+  Opt.mask = logical(Opt.mask);
+  if numel(Opt.mask)~=numel(data)
+    error('Opt.mask has %d elements, but the data has %d elements.',numel(Opt.mask),numel(data));
+  end
 end
-Opt.mask = logical(Opt.mask);
+Opt.useMask = true;
 
 % Scale fitting
 if ~isfield(Opt,'AutoScale')
@@ -631,7 +638,7 @@ result.fitraw = fitraw;
 
 result.pfit = pfit_active;
 result.pnames = {esfitdata.pinfo.Name}.';
-result.pnames = result.pnames(~esfitdata.fixedParams);
+result.pnames = result.pnames(activeParams);
 
 result.residuals = residuals;
 result.ssr = ssr;
@@ -640,7 +647,6 @@ result.pstd = pstd;
 result.ci95 = ci95;
 result.cov = covmatrix;
 result.corr = corrmatrix;
-result
 
 end
 
@@ -672,6 +678,12 @@ function [residuals,rmsd,simdata,simscale] = residuals_(x,expdata,Opt)
 
 global esfitdata
 
+if esfitdata.Opts.useMask
+  mask = Opt.mask;
+else
+  mask = true(size(Opt.mask));
+end
+
 % Assemble full parameter vector
 %-------------------------------------------------------------------------------
 par = esfitdata.p_start;
@@ -699,7 +711,8 @@ simdata = out{esfitdata.OutArgument}; % pick appropriate output argument
 
 % Rescale simulated data if scale should be ignored
 if Opt.AutoScale
-  [simdata,simscale] = rescaledata(simdata(:),expdata(:),'lsq');
+  [~,simscale] = rescaledata(simdata(mask),expdata(mask),'lsq');
+  simdata = simdata*simscale;
 else
   simdata = simdata(:);
   simscale = 1;
@@ -710,7 +723,7 @@ esfitdata.currscale = simscale;
 
 % Compute residuals
 %-------------------------------------------------------------------------------
-residuals = calculateResiduals(simdata(:),expdata(:),Opt.TargetID,Opt.mask(:));
+residuals = calculateResiduals(simdata(:),expdata(:),Opt.TargetID,mask(:));
 rmsd = sqrt(mean(abs(residuals).^2));
 
 % Keep track of errors
@@ -760,12 +773,19 @@ set(findobj('Tag','bestsimdata'),'XData',x,'YData',bestsim);
 set(findobj('Tag','currsimdata'),'XData',x,'YData',currsim);
 
 % Readjust vertical range
-plottedData = [expdata; bestsim; currsim];
+mask = esfitdata.Opts.mask;
+plottedData = [expdata(mask); bestsim; currsim];
 maxy = max(plottedData);
 miny = min(plottedData);
 YLimits = [miny maxy] + [-1 1]*esfitdata.Opts.PlotStretchFactor*(maxy-miny);
 set(findobj('Tag','dataaxes'),'YLim',YLimits);
 drawnow
+
+% Readjust mask patches
+maskPatches = findobj('Tag','maskPatch');
+for mp = 1:numel(maskPatches)
+  maskPatches(mp).YData = YLimits([1 1 2 2]).';
+end
 
 % Update column with current parameter values
 hParamTable = findobj('Tag','ParameterTable');
@@ -866,10 +886,10 @@ end
 
 
 %===============================================================================
-function residuals = calculateResiduals(A,B,mode,mask)
+function residuals = calculateResiduals(A,B,mode,includemask)
 AB = A - B;
 if nargin>3
-  AB(~mask) = 0;
+  AB(~includemask) = 0;
 end
 switch mode
   case 1  % fcn
@@ -919,6 +939,10 @@ set(findobj('Tag','exportSetButton'),'Enable','off');
 set(findobj('Tag','sortIDSetButton'),'Enable','off');
 set(findobj('Tag','sortRMSDSetButton'),'Enable','off');
 
+% Disable mask tools
+set(findobj('Tag','clearMaskButton'),'Enable','off');
+set(findobj('Tag','MaskMenu'),'Enable','off');
+
 % Change GUI status
 h = findobj('Tag','statusText');
 if ~strcmp(h.String,'running')
@@ -933,6 +957,7 @@ esfitdata.Opts.AlgorithmID = get(findobj('Tag','AlgorithMenu'),'Value');
 esfitdata.Opts.TargetID = get(findobj('Tag','TargetMenu'),'Value');
 esfitdata.Opts.AutoScale = esfitdata.AutoScaleSettings{get(findobj('Tag','AutoScaleMenu'),'Value')};
 esfitdata.Opts.Startpoint = get(findobj('Tag','StartpointMenu'),'Value');
+esfitdata.Opts.useMask = get(findobj('Tag','MaskMenu'),'Value')==1;
 
 % Get fixed parameters
 data = get(findobj('Tag','ParameterTable'),'Data');
@@ -994,6 +1019,10 @@ set(findobj('Tag','selectAllButton'),'Enable','on');
 set(findobj('Tag','selectNoneButton'),'Enable','on');
 set(findobj('Tag','selectInvButton'),'Enable','on');
 set(findobj('Tag','ParameterTable'),'Enable','on');
+
+% Re-enable mask tools
+set(findobj('Tag','clearMaskButton'),'Enable','on');
+set(findobj('Tag','MaskMenu'),'Enable','on');
 
 end
 %===============================================================================
@@ -1208,6 +1237,15 @@ end
 
 
 %===============================================================================
+function clearMaskCallback(~,~)
+global esfitdata
+esfitdata.Opts.mask = true(size(esfitdata.Opts.mask));
+showmaskedregions();
+end
+%===============================================================================
+
+
+%===============================================================================
 function saveFitsetCallback(~,~)
 global esfitdata
 esfitdata.lastSetID = esfitdata.lastSetID+1;
@@ -1309,9 +1347,10 @@ hAx = axes('Parent',hFig,'Tag','dataaxes','Units','pixels',...
 x0 = 1060; % Start of display to the right of the axes
 
 NaNdata = NaN(1,numel(data));
+mask = esfitdata.Opts.mask;
 dispData = esfitdata.data;
-maxy = max(dispData);
-miny = min(dispData);
+maxy = max(dispData(mask));
+miny = min(dispData(mask));
 YLimits = [miny maxy] + [-1 1]*Opt.PlotStretchFactor*(maxy-miny);
 minx = min(esfitdata.Opts.x);
 maxx = max(esfitdata.Opts.x);
@@ -1434,6 +1473,7 @@ uicontrol(hFig,'Style','popupmenu',...
     'BackgroundColor','w',...
     'Tooltip','Fitting algorithm',...
     'Position',[x0+dx y0+3*dy 150 20]);
+
 uicontrol(hFig,'Style','text',...
     'String','Target',...
     'FontWeight','bold',...
@@ -1447,6 +1487,7 @@ uicontrol(hFig,'Style','popupmenu',...
     'BackgroundColor','w',...
     'Tooltip','Target function',...
     'Position',[x0+dx y0+2*dy 150 20]);
+
 uicontrol(hFig,'Style','text',...
     'String','AutoScale',...
     'FontWeight','bold',...
@@ -1460,6 +1501,7 @@ uicontrol(hFig,'Style','popupmenu',...
     'BackgroundColor','w',...
     'Tooltip','Autoscaling',...
     'Position',[x0+dx y0+dy 150 20]);
+
 uicontrol(hFig,'Style','text',...
     'String','Startpoint',...
     'FontWeight','bold',...
@@ -1475,10 +1517,26 @@ h = uicontrol(hFig,'Style','popupmenu',...
     'Position',[x0+dx y0 150 20]);
 if esfitdata.Opts.Startpoint==2, set(h,'Value',2); end
 
+uicontrol(hFig,'Style','text',...
+    'String','Use mask',...
+    'FontWeight','bold',...
+    'HorizontalAlign','left',...
+    'BackgroundColor',get(gcf,'Color'),...
+    'Position',[x0 y0-4-dy dx 20]);
+uicontrol(hFig,'Style','popupmenu',...
+    'Tag','MaskMenu',...
+    'String',{'on','off'},...
+    'Value',1,...
+    'BackgroundColor','w',...
+    'Tooltip','Use mask',...
+    'Position',[x0+dx y0-dy 150 20]);
+
+
 % Start/Stop buttons
 %--------------------------------------------------------------------------
 pos =  [x0+220 y0-3+30 110 67];
 pos1 = [x0+220 y0-3    110 30];
+pos2 = [x0+220 y0-3-30    110 30];
 uicontrol(hFig,'Style','pushbutton',...
     'Tag','StartButton',...
     'String','Start',...
@@ -1500,6 +1558,13 @@ uicontrol(hFig,'Style','pushbutton',...
     'Enable','off',...
     'Tooltip','Save latest fitting result',...
     'Position',pos1);
+uicontrol(hFig,'Style','pushbutton',...
+    'Tag','SaveButton',...
+    'String','Clear mask',...
+    'Callback',@clearMaskCallback,...
+    'Enable','on',...
+    'Tooltip','Clear mask',...
+    'Position',pos2);
 
 % Fitset list
 %-------------------------------------------------------------------------------
@@ -1570,23 +1635,22 @@ hAx = findobj('Tag','dataaxes');
 hMaskPatches = findobj(hAx,'Tag','maskPatch');
 delete(hMaskPatches);
 
-nChildren = numel(hAx.Children);
-
-% show masked-out regions
+% Show masked-out regions
 maskColor = [1 1 1]*0.95;
 edges = find(diff([1; esfitdata.Opts.mask(:); 1]));
 excludedRegions = reshape(edges,2,[]).';
 excludedRegions = esfitdata.Opts.x(excludedRegions);
 
 % Add a patch for each masked region
-for r = 1:size(excludedRegions,1)
+nMaskPatches = size(excludedRegions,1);
+for r = 1:nMaskPatches
   x_patch = excludedRegions(r,[1 2 2 1]);
   y_patch = hAx.YLim([1 1 2 2]);
   patch(hAx,x_patch,y_patch,maskColor,'Tag','maskPatch','EdgeColor','none');
 end
 
 % Reorder so that mask patches are in the back
-c = hAx.Children([nChildren+1:end 1:nChildren]);
+c = hAx.Children([nMaskPatches+1:end, 1:nMaskPatches]);
 hAx.Children = c;
 drawnow
 
