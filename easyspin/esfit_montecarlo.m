@@ -28,9 +28,7 @@ if ~isfield(FitOpt,'IterationPrintFunction') || ...
   isempty(FitOpt.IterationPrintFunction)
   FitOpt.IterationPrintFunction = @iterationprint;
 end
-
-global UserCommand
-if isempty(UserCommand), UserCommand = NaN; end
+if ~isfield(FitOpt,'IterFcn'), FitOpt.IterFcn = []; end
 
 lb = lb(:);
 ub = ub(:);
@@ -52,7 +50,8 @@ for iTrial = 1:FitOpt.nTrials
   X = lb + (ub-lb).*rand(nParams,1);
   F = fcn(X);
   
-  if F<Fmin
+  newbest = F<Fmin;
+  if newbest
     Fmin = F;
     bestx = X;
     if FitOpt.PrintLevel
@@ -61,9 +60,20 @@ for iTrial = 1:FitOpt.nTrials
     end
   end
     
+  info.bestx = bestx;
+  info.minF = Fmin;
+  info.nEvals = iTrial;
+  info.iter = iTrial;
+  info.newbest = newbest;
+  if ~isempty(FitOpt.IterFcn)
+    UserStop = FitOpt.IterFcn(info);
+  else
+    UserStop = false;
+  end
+  if UserStop, stopCode = 2; end
+  
   elapsedTime = (cputime-startTime)/60;
   if elapsedTime>FitOpt.maxTime, stopCode = 1; end
-  if UserCommand==1, stopCode = 2; end
   if F<FitOpt.TolFun, stopCode = 3; end
   
   if stopCode, break; end

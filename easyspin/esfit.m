@@ -351,12 +351,12 @@ esfitdata.AutoScale = AutoScale;
 esfitdata.AutoScaleSettings = {1, 0};
 esfitdata.AutoScaleStrings = {'on', 'off'};
 
-StartpointNames{1} = 'center of range';
+StartpointNames{1} = 'centreser of range';
 StartpointNames{2} = 'random within range';
 StartpointNames{3} = 'selected parameter set';
 esfitdata.StartpointNames = StartpointNames;
 
-if ~isfield(Opt,'PrintLevel'), Opt.PrintLevel = 1; end
+if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 1; end
 
 % Algorithm parameters
 if ~isfield(Opt,'nTrials'), Opt.nTrials = 20000; end
@@ -410,7 +410,7 @@ end
 
 % Report parsed inputs
 %-------------------------------------------------------------------------------
-if esfitdata.Opts.PrintLevel>=1
+if esfitdata.Opts.Verbosity>=1
   siz = size(esfitdata.data);
   if esfitdata.Opts.AutoScale
     autoScaleStr = 'on';
@@ -433,7 +433,7 @@ result = runFitting();
 
 % Report fit results
 %-------------------------------------------------------------------------------
-if esfitdata.Opts.PrintLevel>=1
+if esfitdata.Opts.Verbosity>=1
   disp('---------------------------------------------------------');
   fprintf('Goodness of fit:\n');
   fprintf('   ssr             %g\n',result.ssr);
@@ -485,7 +485,7 @@ nParameters = numel(esfitdata.pvec_0);
 data_ = esfitdata.data;
 fixedParams = esfitdata.fixedParams;
 activeParams = ~fixedParams;
-printLevel = esfitdata.Opts.PrintLevel;
+Verbosity = esfitdata.Opts.Verbosity;
 
 % Set starting point
 %-------------------------------------------------------------------------------
@@ -525,12 +525,13 @@ esfitdata.p_start = p_start;
 fitOpt = esfitdata.Opts;
 nActiveParams = sum(activeParams);
 if nActiveParams>0
-  if printLevel>=1
+  if Verbosity>=1
     fprintf('Running optimization algorithm with %d active parameters...\n',nActiveParams);
   end
   if useGUI
     fitOpt.IterFcn = @iterupdateGUI;
   end
+  fitOpt.track = true;
   residualfun = @(x) residuals_(x,data_,fitOpt);
   rmsdfun = @(x) rmsd_(x,data_,fitOpt);
   p0_active = p_start(activeParams);
@@ -556,7 +557,7 @@ if nActiveParams>0
   pfit = p_start;
   pfit(activeParams) = pfit_active;
 else
-  if printLevel>=1
+  if Verbosity>=1
     disp('No active parameters; skipping optimization');
   end
   pfit = p_start;
@@ -567,34 +568,38 @@ if esfitdata.structureInputs
 else
   argsfit = [];
 end
+
+% Get best-fit spectrum
 fit = esfitdata.bestfit;  % bestfit is set in residuals_
 scale = esfitdata.bestscale;  % bestscale is set in residuals_
 fitraw = fit/scale;
 
 % Calculate metrics for goodness of fit
 %-------------------------------------------------------------------------------
-residuals = calculateResiduals(fit(:),esfitdata.data(:),esfitdata.Opts.TargetID);
-residuals = residuals.'; % col -> row
-ssr = sum(abs(residuals).^2); % sum of squared residuals
-rmsd = sqrt(mean(residuals.^2)); % root-mean-square deviation
+residuals0 = esfitdata.bestresiduals0;
+ssr0 = sum(abs(residuals0).^2); % sum of squared residuals
+rmsd0 = esfitdata.bestrmsd0;
 
 % Calculate parameter uncertainties
 %-------------------------------------------------------------------------------
 calculateUncertainties = esfitdata.UserCommand==0 && nActiveParams>0;
 if calculateUncertainties
-  if printLevel>=1
+  if Verbosity>=1
     disp('Calculating parameter uncertainties...');
     disp('  Estimating Jacobian...');
   end
   %maxRelStep = min((ub-pfit),(pfit-lb))./pfit;
+  fitOpt.track = false;
   residualfun = @(x)residuals_(x,data_,fitOpt);
   J = jacobianest(residualfun,pfit_active);
   if ~any(isnan(J(:)))
-    if printLevel>=1
+    if Verbosity>=1
       disp('  Calculating parameter covariance matrix...');
     end
 
     % Calculate covariance matrix and standard deviations
+    residuals = calculateResiduals(fit(:),esfitdata.data(:),esfitdata.Opts.TargetID);
+    residuals = residuals.'; % col -> row
     covmatrix = hccm(J,residuals,'HC1');
     pstd = sqrt(diag(covmatrix));
 
@@ -605,13 +610,13 @@ if calculateUncertainties
     ci95 = pfit_active + ci(pctl)*[-1 1];
 
     % Calculate correlation matrix
-    if printLevel>=1
+    if Verbosity>=1
       disp('  Calculating parameter correlation matrix...');
     end
     Q = diag(diag(covmatrix).^(-1/2));
     corrmatrix = Q*covmatrix*Q;
   else
-    if printLevel>=1
+    if Verbosity>=1
       disp('  NaN elements in Jacobian, cannot calculate parameter uncertainties.');
     end
     pstd = [];
@@ -620,7 +625,7 @@ if calculateUncertainties
     corrmatrix = [];
   end
 else
-  if printLevel>=1
+  if Verbosity>=1
     disp('Fitting stopped by user. Skipping uncertainty quantification.');
   end
   pstd = [];
@@ -640,9 +645,10 @@ result.pfit = pfit_active;
 result.pnames = {esfitdata.pinfo.Name}.';
 result.pnames = result.pnames(activeParams);
 
-result.residuals = residuals;
-result.ssr = ssr;
-result.rmsd = rmsd;
+result.residuals = residuals0;
+result.ssr = ssr0;
+result.rmsd = rmsd0;
+
 result.pstd = pstd;
 result.ci95 = ci95;
 result.cov = covmatrix;
@@ -660,7 +666,7 @@ end
 
 
 %===============================================================================
-function [residuals,rmsd,simdata,simscale] = residuals_(x,expdata,Opt)
+function [residuals,rmsd] = residuals_(x,expdata,Opt)
 
 % reads:
 %   esfitdata.p_start
@@ -671,10 +677,10 @@ function [residuals,rmsd,simdata,simscale] = residuals_(x,expdata,Opt)
 %   esfitdata.OutArgument
 %   esfitdata.fcn
 % writes:
-%   esfitdata.smallestError
+%   esfitdata.bestrmsd
 %   esfitdata.bestfit
 %   esfitdata.bestpar
-%   esfitdata.errorlist
+%   esfitdata.rmsdlist
 
 global esfitdata
 
@@ -710,6 +716,7 @@ end
 simdata = out{esfitdata.OutArgument}; % pick appropriate output argument
 
 % Rescale simulated data if scale should be ignored
+%-------------------------------------------------------------------------------
 if Opt.AutoScale
   [~,simscale] = rescaledata(simdata(mask),expdata(mask),'lsq');
   simdata = simdata*simscale;
@@ -723,26 +730,32 @@ esfitdata.currscale = simscale;
 
 % Compute residuals
 %-------------------------------------------------------------------------------
-residuals = calculateResiduals(simdata(:),expdata(:),Opt.TargetID,mask(:));
+[residuals,residuals0] = calculateResiduals(simdata(:),expdata(:),Opt.TargetID,mask(:));
 rmsd = sqrt(mean(abs(residuals).^2));
+rmsd0 = sqrt(mean(abs(residuals0).^2));
 
 % Keep track of errors
 %-------------------------------------------------------------------------------
-if ~isfield(esfitdata,'smallestError') || isempty(esfitdata.smallestError)
-  esfitdata.smallestError = inf;
-end
-if ~isfield(esfitdata,'errorlist')
-  esfitdata.errorlist = [];
-end
+if Opt.track
+  if ~isfield(esfitdata,'bestrmsd') || isempty(esfitdata.bestrmsd)
+    esfitdata.bestrmsd = inf;
+  end
+  if ~isfield(esfitdata,'rmsdlist')
+    esfitdata.rmsdlist = [];
+  end
 
-esfitdata.errorlist = [esfitdata.errorlist rmsd];
+  esfitdata.rmsdlist = [esfitdata.rmsdlist rmsd0];
 
-isNewBest = rmsd<esfitdata.smallestError;
-if isNewBest
-  esfitdata.smallestError = rmsd;
-  esfitdata.bestfit = simdata;
-  esfitdata.bestscale = simscale;
-  esfitdata.bestpar = par;
+  isNewBest = rmsd<esfitdata.bestrmsd;
+  if isNewBest
+    esfitdata.bestresiduals = residuals;
+    esfitdata.bestresiduals0 = residuals0;
+    esfitdata.bestrmsd0 = rmsd0;
+    esfitdata.bestrmsd = rmsd;
+    esfitdata.bestfit = simdata;
+    esfitdata.bestscale = simscale;
+    esfitdata.bestpar = par;
+  end
 end
 
 end
@@ -812,7 +825,7 @@ end
 % Update column with best values if current parameter set is new best
 if info.newbest
 
-  str = sprintf(' best RMSD: %g\n',esfitdata.smallestError);
+  str = sprintf(' best RMSD: %g\n',esfitdata.bestrmsd);
   hRmsText = findobj('Tag','RmsText');
   set(hRmsText,'String',str);
 
@@ -838,11 +851,11 @@ end
 hParamTable.Data = data;
 
 % Update rmsd plot
-hErrorLine = findobj('Tag','errorline');
-if ~isempty(hErrorLine)
-  n = min(100,numel(esfitdata.errorlist));
-  set(hErrorLine,'XData',1:n,'YData',log10(esfitdata.errorlist(end-n+1:end)));
-  ax = hErrorLine.Parent;
+hrmsdline = findobj('Tag','rmsdline');
+if ~isempty(hrmsdline)
+  n = min(100,numel(esfitdata.rmsdlist));
+  set(hrmsdline,'XData',1:n,'YData',log10(esfitdata.rmsdlist(end-n+1:end)));
+  ax = hrmsdline.Parent;
   axis(ax,'tight');
   drawnow
 end
@@ -886,25 +899,31 @@ end
 
 
 %===============================================================================
-function residuals = calculateResiduals(A,B,mode,includemask)
-AB = A - B;
+function [residuals,residuals0] = calculateResiduals(A,B,mode,includemask)
+
+residuals0 = A - B;
 if nargin>3
-  AB(~includemask) = 0;
+  residuals0(~includemask) = 0;
 end
+
 switch mode
   case 1  % fcn
-    residuals = AB;
+    residuals = residuals0;
   case 2  % int
-    residuals = cumsum(AB);
+    residuals = cumsum(residuals0);
   case 3  % iint
-    residuals = cumsum(cumsum(AB));
+    residuals = cumsum(cumsum(residuals0));
   case 4  % fft
-    residuals = abs(fft(AB));
+    residuals = abs(fft(residuals0));
   case 5  % diff
-    residuals = deriv(AB);
+    residuals = deriv(residuals0);
 end
+
+% ignore residual if A or B is NaN
 idxNaN = isnan(A) | isnan(B);
-residuals(idxNaN) = 0; % ignore residual if A or B is NaN
+residuals0(idxNaN) = 0;
+residuals(idxNaN) = 0;
+
 end
 %===============================================================================
 
@@ -988,11 +1007,7 @@ set(hTable,'Data',Data);
 
 % Hide current sim plot in data axes
 set(findobj('Tag','currsimdata'),'YData',NaN(1,numel(esfitdata.data)));
-hErrorLine = findobj('Tag','errorline');
-set(hErrorLine,'XData',1,'YData',NaN);
-axis(hErrorLine.Parent,'tight');
 drawnow
-set(findobj('Tag','logLine'),'String','');
 
 % Reactivate UI components
 set(findobj('Tag','SaveButton'),'Enable','on');
@@ -1376,7 +1391,7 @@ showmaskedregions();
 y0 = 160;
 hAx = axes('Parent',hFig,'Units','pixels','Position',[x0 y0 100 80],'Layer','top');
 h = plot(hAx,1,NaN,'.');
-set(h,'Tag','errorline','MarkerSize',5,'Color',[0.2 0.2 0.8]);
+set(h,'Tag','rmsdline','MarkerSize',5,'Color',[0.2 0.2 0.8]);
 set(gca,'FontSize',7,'YScale','lin','XTick',[],'YAxisLoc','right','Layer','top','YGrid','on');
 title('log10(RMSD)','Color','k','FontSize',7,'FontWeight','normal');
 
