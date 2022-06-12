@@ -1,7 +1,7 @@
 function [gX,info] = esfit_swarm(fcn,lb,ub,FitOpt)
 
 if ~isfield(FitOpt,'maxTime'), FitOpt.maxTime = inf; end
-if ~isfield(FitOpt,'PrintLevel'); FitOpt.PrintLevel = 1; end
+if ~isfield(FitOpt,'Verbosity'); FitOpt.Verbosity = 1; end
 if ~isfield(FitOpt,'TolFun'), FitOpt.TolFun = 1e-5; end
 if ~isfield(FitOpt,'IterationPrintFunction'), FitOpt.IterationPrintFunction = []; end
 if ~isfield(FitOpt,'SwarmParams'), FitOpt.SwarmParams = [0.2 0.5 2 1]; end
@@ -29,7 +29,7 @@ w = FitOpt.SwarmParams(2); % inertial coefficient
 c1 = FitOpt.SwarmParams(3); % cognitive coefficient
 c2 = FitOpt.SwarmParams(4); % social coefficient
 
-if FitOpt.PrintLevel
+if FitOpt.Verbosity
   fprintf('Particle swarm optimization parameters:\n');
   fprintf('   n = %d (number of particles)\n',nParticles);
   fprintf('   k = %g (velocity clampling)\n',k);
@@ -38,7 +38,7 @@ if FitOpt.PrintLevel
   fprintf('   c2 = %g (social coefficient)\n',c2);
 end
 
-if FitOpt.PrintLevel
+if FitOpt.Verbosity
   fprintf('Initializing swarm...\n');
 end
 
@@ -54,7 +54,7 @@ globalbestF = inf;
 startTime = cputime;
 nStalledIterations = 0; % counts the number of iterations globalbestF hasn't changed
 
-if FitOpt.PrintLevel
+if FitOpt.Verbosity
   fprintf('Starting iterations...\n');
 end
 iIteration = 0;
@@ -91,7 +91,7 @@ while stopCode==0
     X(:,p) = min(max(X(:,p),lb),ub); % constrain to [lb ub]
   end
   
-  if FitOpt.PrintLevel && ~isempty(FitOpt.IterationPrintFunction)
+  if FitOpt.Verbosity && ~isempty(FitOpt.IterationPrintFunction)
     str = sprintf('  Iteration %4d:   value %0.5e  best so far (%d)',iIteration,globalbestF,nStalledIterations);
     FitOpt.IterationPrintFunction(str);
   end
@@ -104,7 +104,7 @@ while stopCode==0
   
 end
 
-if FitOpt.PrintLevel>1
+if FitOpt.Verbosity>1
   switch stopCode
     case 1, msg = sprintf('Terminated: Time limit of %f minutes reached.',FitOpt.maxTime);
     case 2, msg = 'Terminated: Stopped by user.';

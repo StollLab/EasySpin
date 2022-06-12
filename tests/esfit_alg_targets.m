@@ -18,7 +18,7 @@ Exp.mwRange = [9.5 10.5];
 spc = pepper(Sys,Exp);
 
 Vary.g = [0.02 0.02];
-FitOpt.PrintLevel = 0;
+FitOpt.Verbosity = 0;
 
 rmsd = zeros(1,nMethods);
 

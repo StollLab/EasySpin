@@ -56,7 +56,7 @@ if nGridPoints>opt.maxGridPoints
   error('Cannot do grid search with more than %d points. Reduce number of parameters.',opt.maxGridPoints);
 end
 
-if opt.PrintLevel
+if opt.Verbosity
   fprintf('%d parameters, %d grid points total\n',nParams,nGridPoints);
 end
 
@@ -99,7 +99,7 @@ for idx = 1:nGridPoints
   if F<minF
     minF = F;
     bestx = X(:,idx);
-    if opt.PrintLevel
+    if opt.Verbosity
       str = sprintf('  Point %4d/%d:   error %0.5e  best so far',iIteration,nGridPoints,F);
       opt.IterationPrintFunction(str);
     end
@@ -123,7 +123,7 @@ for idx = 1:nGridPoints
   
 end
 
-if opt.PrintLevel>1
+if opt.Verbosity>1
   switch stopCode
     case 0, msg = 'Terminated: all grid points searched.';
     case 1, msg = sprintf('Terminated: Time limit of %f minutes reached.',opt.maxTime);

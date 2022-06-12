@@ -17,7 +17,7 @@ Exp.nPoints = 500;
 
 Vary.g = [0 0.02]; 
 
-FitOpt.PrintLevel = 0;
+FitOpt.Verbosity = 0;
 FitOpt.maxGenerations = 30;
 
 FitOpt.Method = [fitAlg ' ' dataMethod];

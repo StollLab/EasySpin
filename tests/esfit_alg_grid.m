@@ -14,7 +14,7 @@ spc = pepper(Sys,Exp);
 Vary.g = [0.02 0.02]; 
 Opt = struct;
 
-FitOpt.PrintLevel = 0;
+FitOpt.Verbosity = 0;
 FitOpt.GridSize = 3;
 FitOpt.RandomizeGrid = false;
 

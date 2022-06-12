@@ -12,7 +12,7 @@ Vary.lw = 2;
 
 rng(123);
 FitOpt.RandomStart = 1;
-FitOpt.PrintLevel = 0;
+FitOpt.Verbosity = 0;
 
 result = esfit(spc,@pepper,{Sys,Exp},{Vary},FitOpt);
 

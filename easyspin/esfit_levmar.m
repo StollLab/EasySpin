@@ -18,7 +18,7 @@
 %     .TolStep   termination threshold for step
 %     .maxTime   termination threshold for time
 %     .delta     step width for Jacobian approximation
-%     .PrintLevel print detail level
+%     .Verbosity print detail level
 %     .IterFcn   function that is called after each iteration
 %
 % Output
@@ -55,7 +55,7 @@ if ~isfield(Opt,'TolStep'), Opt.TolStep = 1e-4; end
 if ~isfield(Opt,'delta'), Opt.delta = 1e-7; end
 delta = Opt.delta;
 
-if ~isfield(Opt,'PrintLevel'), Opt.PrintLevel = 1; end
+if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 1; end
 if ~isfield(Opt,'maxTime'), Opt.maxTime = inf; end
 if ~isfield(Opt,'IterationPrintFunction') || ...
     isempty(Opt.IterationPrintFunction)
@@ -156,7 +156,7 @@ while ~stopCode
   [h,mu] = computeLMStep(A,g,mu);
   norm_h = norm(h);
   
-  if Opt.PrintLevel
+  if Opt.Verbosity
     str = sprintf(' iteration %4d:  value %0.5e    gradient %0.5e    step %0.5e',iIteration,sqrt(F*2),norm_g,norm_h);
     Opt.IterationPrintFunction(str);
   end
@@ -242,7 +242,7 @@ switch stopCode
   case 4, msg = sprintf('Stopped by user');
 end
 
-if Opt.PrintLevel>1
+if Opt.Verbosity>1
   fprintf('Terminated: %s\n',msg);
 end
 

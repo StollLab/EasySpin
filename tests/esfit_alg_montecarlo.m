@@ -20,7 +20,7 @@ rng(100)
 Vary.g = [0.01 0.01]; 
 Opt = struct;
 
-FitOpt.PrintLevel = 0;
+FitOpt.Verbosity = 0;
 FitOpt.nTrials = 300;
 
 FitOpt.Method = [fitAlg ' ' dataMethod];

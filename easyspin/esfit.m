@@ -31,6 +31,7 @@
 %           -algorithm: 'simplex','levmar','montecarlo','genetic','grid','swarm'
 %           -target function: 'fcn', 'int', 'dint', 'diff', 'fft'
 %        .AutoScale either 1 (on) or 0 (off); default 1
+%        .BaseLine 0, 1, 2 or []
 %        .OutArg  two numbers [nOut iOut], where nOut is the number of
 %                 outputs of the simulation function and iOut is the index
 %                 of the output argument to use for fitting
@@ -351,6 +352,11 @@ esfitdata.AutoScale = AutoScale;
 esfitdata.AutoScaleSettings = {1, 0};
 esfitdata.AutoScaleStrings = {'on', 'off'};
 
+if ~isfield(Opt,'BaseLine')
+  Opt.BaseLine = [];
+end
+esfitdata.BaseLine = Opt.BaseLine;
+
 StartpointNames{1} = 'centreser of range';
 StartpointNames{2} = 'random within range';
 StartpointNames{3} = 'selected parameter set';
@@ -573,6 +579,7 @@ end
 fit = esfitdata.bestfit;  % bestfit is set in residuals_
 scale = esfitdata.bestscale;  % bestscale is set in residuals_
 fitraw = fit/scale;
+baseline = esfitdata.bestbaseline;
 
 % Calculate metrics for goodness of fit
 %-------------------------------------------------------------------------------
@@ -640,6 +647,7 @@ result.argsfit = argsfit;
 result.fit = fit;
 result.scale = scale;
 result.fitraw = fitraw;
+result.baseline = baseline;
 
 result.pfit = pfit_active;
 result.pnames = {esfitdata.pinfo.Name}.';
@@ -717,16 +725,45 @@ simdata = out{esfitdata.OutArgument}; % pick appropriate output argument
 
 % Rescale simulated data if scale should be ignored
 %-------------------------------------------------------------------------------
-if Opt.AutoScale
-  [~,simscale] = rescaledata(simdata(mask),expdata(mask),'lsq');
-  simdata = simdata*simscale;
+simdata = simdata(:);
+expdata = expdata(:);
+order = Opt.BaseLine;
+if ~isempty(order)
+  N = numel(simdata);
+  x = (1:N).'/N;  
+  q = 0;
+  for j = 0:order  % each column a x^j monomial vector
+    q = q+1;
+    D(:,q) = x.^j;
+  end
+  if Opt.AutoScale
+    D = [simdata D];
+    coeffs = D(mask,:)\expdata(mask);
+    baseline = D(:,2:end)*coeffs(2:end);
+    simdata = D*coeffs;
+    simscale = coeffs(1);
+  else
+    coeffs = D(mask,:)\(expdata(mask)-simdata(mask));
+    baseline = D*coeffs;
+    simdata = simdata + baseline;
+    simscale = 1;
+  end
 else
-  simdata = simdata(:);
-  simscale = 1;
+  if Opt.AutoScale
+    D = simdata;
+    coeffs = D(mask)\expdata(mask);
+    simdata = D*coeffs;
+    baseline = zeros(size(simdata));
+    simscale = coeffs(1);
+  else
+    baseline = zeros(size(simdata));
+    simscale = 1;
+  end
 end
 esfitdata.currsim = simdata;
 esfitdata.currpar = par;
 esfitdata.currscale = simscale;
+esfitdata.currbaseline = baseline;
 
 % Compute residuals
 %-------------------------------------------------------------------------------
@@ -755,6 +792,7 @@ if Opt.track
     esfitdata.bestfit = simdata;
     esfitdata.bestscale = simscale;
     esfitdata.bestpar = par;
+    esfitdata.bestbaseline = baseline;
   end
 end
 

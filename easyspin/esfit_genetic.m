@@ -8,7 +8,7 @@
 %       .PopulationSize   number of individuals per generation
 %       .EliteCount       number of elite individuals
 %       .maxGenerations   maximum number of generations
-%       .PrintLevel       1, if progress information should be printed
+%       .Verbosity       1, if progress information should be printed
 %       .TolFun           error threshold below which fitting stops
 
 function bestx = esfit_genetic(fcn,lb,ub,Opt)
@@ -22,7 +22,7 @@ if ~isfield(Opt,'maxGenerations'), Opt.maxGenerations = 10000; end
 if ~isfield(Opt,'EliteCount')
   Opt.EliteCount = max(2,ceil(0.1*Opt.PopulationSize));
 end
-if ~isfield(Opt,'PrintLevel'), Opt.PrintLevel = 0; end
+if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 0; end
 if ~isfield(Opt,'Range'); Opt.Range = 1; end
 if ~isfield(Opt,'TolFun'); Opt.TolFun = 1e-5; end
 if ~isfield(Opt,'IterFcn'), Opt.IterFcn = []; end
@@ -39,7 +39,7 @@ if any(lb>ub)
 end
 nParams = numel(lb);
 
-if Opt.PrintLevel
+if Opt.Verbosity
   fprintf('  %d parameters, range %g to %g\n',nParams,-Opt.Range,Opt.Range);
   fprintf('  population %d, elite %d\n',Opt.PopulationSize,Opt.EliteCount);
   fprintf('  %d generations\n',Opt.maxGenerations);
@@ -54,7 +54,7 @@ bestScore = inf;
 bestx = zeros(size(Population(1,:)));
 
 % Score initial population
-if Opt.PrintLevel
+if Opt.Verbosity
   Opt.IterationPrintFunction('initial population');
 end
 Scores = ones(1,Opt.PopulationSize)*inf;
@@ -87,7 +87,7 @@ while true
 
   if min(Scores)<bestScore, bestScore = min(Scores); end
   
-  if Opt.PrintLevel
+  if Opt.Verbosity
     str = sprintf('gen %5d:  min %g   mean %g',gen,min(Scores),mean(Scores));
     Opt.IterationPrintFunction(str);
   end
@@ -172,7 +172,7 @@ while true
   gen = gen + 1;
 end
 
-if Opt.PrintLevel>1
+if Opt.Verbosity>1
   switch stopCode
     case 1, msg = sprintf('Maximum number of generations (%d) reached.',Opt.maxGenerations);
     case 2, msg = sprintf('Error below threshold %g.',Opt.TolFun);

@@ -8,7 +8,7 @@
 %    FitOpt ... options
 %       nTrials       number of trials
 %       maxTime       maximum time to run, in minutes
-%       PrintLevel    1, if progress information should be printed
+%       Verbosity    1, if progress information should be printed
 %       TolFun        error threshold below which fitting stops
 
 function [bestx,info] = esfit_montecarlo(fcn,lb,ub,FitOpt)
@@ -21,7 +21,7 @@ if nargin<4
 end
 
 if ~isfield(FitOpt,'nTrials'); FitOpt.nTrials = 20000; end
-if ~isfield(FitOpt,'PrintLevel'); FitOpt.PrintLevel = 1; end
+if ~isfield(FitOpt,'Verbosity'); FitOpt.Verbosity = 1; end
 if ~isfield(FitOpt,'maxTime'), FitOpt.maxTime = inf; end
 if ~isfield(FitOpt,'TolFun'), FitOpt.TolFun = 1e-5; end
 if ~isfield(FitOpt,'IterationPrintFunction') || ...
@@ -54,7 +54,7 @@ for iTrial = 1:FitOpt.nTrials
   if newbest
     Fmin = F;
     bestx = X;
-    if FitOpt.PrintLevel
+    if FitOpt.Verbosity
       str = sprintf('%d:   error %0.5e  best so far',iTrial,F);
       FitOpt.IterationPrintFunction(str);
     end
@@ -80,7 +80,7 @@ for iTrial = 1:FitOpt.nTrials
   
 end
 
-if FitOpt.PrintLevel>1
+if FitOpt.Verbosity>1
   switch stopCode
     case 0, msg = 'Terminated: maximum number of trials reached.';
     case 1, msg = sprintf('Terminated: Time limit of %f minutes reached.',FitOpt.maxTime);

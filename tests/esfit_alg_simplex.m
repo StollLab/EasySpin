@@ -17,7 +17,7 @@ spc = pepper(Sys,Exp);
 %data = addnoise(spc,50,'u');
 
 Vary.g = [0.02 0.02];
-FitOpt.PrintLevel = 0;
+FitOpt.Verbosity = 0;
 
 FitOpt.Method = [fitAlg ' ' dataMethod];
 result = esfit(spc,@pepper,{Sys,Exp},{Vary},FitOpt);

@@ -58,7 +58,7 @@ sigma = Opt.SimplexPars(4); % reduction coefficient
 
 if ~isfield(Opt,'TolEdgeLength'), Opt.TolEdgeLength = 1e-4; end
 if ~isfield(Opt,'TolFun'), Opt.TolFun = 1e-4; end
-if ~isfield(Opt,'PrintLevel'), Opt.PrintLevel = 1; end
+if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 1; end
 if ~isfield(Opt,'IterFcn'), Opt.IterFcn = []; end
 
 if ~isfield(Opt,'IterationPrintFunction') || ...
@@ -128,7 +128,7 @@ v = v(:,idx);
 Procedure = 'initial simplex';
 iIteration = iIteration + 1;
 
-if Opt.PrintLevel>0
+if Opt.Verbosity>0
   logStringFormat = ' iteration %3d: value %0.5e   edge %0.5e   %s';
   str = sprintf(logStringFormat,iIteration,fv(1),delta,Procedure);
   Opt.IterationPrintFunction(str);
@@ -246,7 +246,7 @@ while true
     stopCode = 2;
   end
   
-  if Opt.PrintLevel>0
+  if Opt.Verbosity>0
     thisstep = max(max(abs(v(:,2:nParams+1)-v(:,ones(1,nParams)))));
     str = sprintf(logStringFormat,iIteration,fv(1),thisstep,Procedure);
     Opt.IterationPrintFunction(str);
@@ -267,7 +267,7 @@ info.F = fv(:,1);
 info.nIterations = iIteration;
 info.elapsedTime = elapsedTime;
 
-if Opt.PrintLevel>0
+if Opt.Verbosity>0
   switch stopCode
     case 1, msg = sprintf('Time limit of %f minutes reached.',Opt.maxTime);
     case 2, msg = sprintf('Stopped by user.');

@@ -17,7 +17,7 @@ spc = addnoise(spc,80,'u');
 Vary1.g = [0.02 0.02]; 
 Vary2.g = [0.02 0.02]; 
 Opt = struct;
-FitOpt.PrintLevel = 0;
+FitOpt.Verbosity = 0;
 FitOpt.Method = 'levmar fcn';
 result = esfit(spc,@pepper,{{Sys1,Sys2},Exp,Opt},{{Vary1,Vary2}},FitOpt);
 
