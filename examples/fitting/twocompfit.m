@@ -8,13 +8,15 @@ clear, clc
 % your experimental data.
 
 Sys1.g = [2 2.1 2.2];
-Sys1.lwpp = 1;
+Sys1.lwpp = 1;  % mT
 Sys1.weight = 0.7;
 Sys2.g = [1.85 1.9 2.05];
-Sys2.lwpp = 2;
+Sys2.lwpp = 2;  % mT
 Sys2.weight = 0.3;
-Exp.mwFreq = 10;
-Exp.Range = [300 400];
+
+Exp.mwFreq = 10;  % GHz
+Exp.Range = [300 400];  % mT
+
 [B,spc] = pepper({Sys1,Sys2},Exp);
 spc = addnoise(spc,50,'n');
 plot(B,spc);
@@ -34,7 +36,10 @@ Vary2.lwpp = 0.9;
 Vary2.weight = 0.3;
 Vary = {Vary1,Vary2};
 
-% Calling the fitting function
+% Call the fitting function
 SimOpt.Method = 'perturb';
 FitOpt.Method = 'simplex int'; % simplex algorithm, integrals of spectra
-fit = esfit(spc,@pepper,{Sys,Exp,SimOpt},{Vary},FitOpt);
+result = esfit(spc,@pepper,{Sys,Exp,SimOpt},{Vary},FitOpt);
+
+% Plot the fit result
+plot(B,spc,B,result.fit)
