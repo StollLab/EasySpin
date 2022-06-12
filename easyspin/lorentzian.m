@@ -24,10 +24,10 @@
 
 function [yabs,ydisp] = lorentzian(x,x0,fwhm,diff,phase)
 
-if (nargin==0), help(mfilename); return; end
+if nargin==0, help(mfilename); return; end
 
-if (nargin<4), diff = 0; end
-if (nargin<5), phase = 0; end
+if nargin<4, diff = 0; end
+if nargin<5, phase = 0; end
 
 if any(fwhm<=0) || any(~isreal(fwhm))
   error('fwhm must be positive and real!');
@@ -41,18 +41,13 @@ if any(diff<-1) || any(diff>2)
   error('Cannot compute Lorentzian lineshape derivative %d.',diff);
 end
 
-DoPhase = 0;
-if (nargin>4)
-  DoPhase = 1;
-  if numel(phase)>1
-    error('phase must contain 1 element.');
-  elseif ~isreal(phase)
-    error('phase must be real.');
-  elseif (diff<0)
-    error('Cannot compute phased lineshape for integral.');
-  end
+if numel(phase)>1
+  error('phase must contain 1 element.');
+elseif ~isreal(phase)
+  error('phase must be real.');
+elseif (diff<0)
+  error('Cannot compute phased lineshape for integral.');
 end
-
 
 % Compute Lorentzian lineshape
 %------------------------------------------------------------------
@@ -76,10 +71,10 @@ switch diff
 end
 
 % Phase rotation
-if (DoPhase)
+if phase~=0
   yabs1 =  yabs*cos(phase) + ydisp*sin(phase);
   ydisp = -yabs*sin(phase) + ydisp*cos(phase);
   yabs = yabs1;
 end
 
-return
+end

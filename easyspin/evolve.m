@@ -140,7 +140,7 @@ if ~iscell(Ham)
 else
   
   % Check if Hamiltonians are already diagonal
-  if (nnz(Ham{1})==nnz(diag(Ham{1})) && nnz(Ham{1})==nnz(diag(Ham{1})))
+  if (nnz(Ham{1})==nnz(diag(Ham{1})) && nnz(Ham{2})==nnz(diag(Ham{2})))
     Ex = Ham{1};
     Ey = Ham{2};
     Density = Sig;
@@ -528,4 +528,4 @@ else
   
 end
 
-return
+end

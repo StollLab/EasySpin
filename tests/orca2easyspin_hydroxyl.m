@@ -1,24 +1,24 @@
 function ok = test(opt)
 
-% Read binary ORCA property files
+% Read ORCA output files
 
 BaseDir = 'orca/';
 
-Files{1} = 'hydroxyl_g';
-Files{2} = 'hydroxyl_gA';
-Files{3} = 'hydroxyl_gAiso';
-Files{4} = 'hydroxyl_gQ';
-Files{5} = 'hydroxyl_Q';
-Files{6} = 'hydroxyl_HO';
+Files{1} = 'hydroxyl_g.oof';
+Files{2} = 'hydroxyl_gA.oof';
+Files{3} = 'hydroxyl_gAiso.oof';
+Files{4} = 'hydroxyl_gQ.oof';
+Files{5} = 'hydroxyl_Q.oof';
+Files{6} = 'hydroxyl_HO.oof';
 
-hfCutoff = 1;
+hfCutoff = 1;  % MHz
 
 for iFile = 1:numel(Files)
   thisFile = Files{iFile};
-  if (opt.Display)
+  if opt.Display
     disp(thisFile);
   end
-  clear data pars;
+  clear data pars
   thisFileName = [BaseDir thisFile];
  
   Sys = orca2easyspin(thisFileName);
@@ -29,7 +29,7 @@ for iFile = 1:numel(Files)
     readerr(iFile) = true;
     disp([  '   error reading ' Files(iFile).name]);
   end
-  if (opt.Display)
+  if opt.Display
     Sys
     pause
   end

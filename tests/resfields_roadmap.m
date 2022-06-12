@@ -1,9 +1,8 @@
 function ok = test()
 
-% Check that resfields() returns all sites in a crystal roadmap
-% calculation
+% Check that resfields() returns all sites in a crystal roadmap calculation
 
-clear, clf
+clear
 
 % Spin parameters
 Sys.g = [2, 2.1, 2.2];

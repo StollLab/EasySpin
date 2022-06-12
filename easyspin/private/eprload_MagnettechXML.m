@@ -3,17 +3,12 @@ function [Data, Abscissa, Parameters] = eprload_MagnettechXML(FileName)
 %-------------------------------------------------------------------------------
 %   XML file format of newer Magnettech spectrometers (MS5000)
 %-------------------------------------------------------------------------------
-% Preparation for Base64 decoding: Use Java class depending on Matlab version
-if exist('org.apache.commons.codec.binary.Base64','class')
-  % seen on R2012b and R2017b
-  base64 = org.apache.commons.codec.binary.Base64;
-  oldJavaClass = false;
-elseif exist('org.apache.axis.encoding.Base64','class')
-  % seen on R2007b
-  base64 = org.apache.axis.encoding.Base64; 
-  oldJavaClass = true;
-else
+% Preparation for Base64 decoding: Use Java class of Apache Commons Code
+% (seen available in R2012b, R2017b, R2021b)
+if ~exist('org.apache.commons.codec.binary.Base64','class')
   error('No Java Base64 decoder available to read Magnettech XML data.');
+else
+  base64 = org.apache.commons.codec.binary.Base64;    
 end
 
 % Read XML file and convert to Matlab structure for easy access
@@ -88,13 +83,9 @@ for iCurve = 1:numel(CurveList)
     if ~strcmp(thisCurve.Attributes.Compression,'Base64')
       error('Data is not Base64 encoded. Cannot read file.');
     end
-    if ~oldJavaClass
-      data = typecast(int8(data),'uint8'); % typecast without changing the underlying data
-      bytestream_ = base64.decode(data); % decode
-      bytestream_(9:9:end) = []; % remove termination zeros
-    else
-      bytestream_ = base64.decode(data); % decode
-    end
+    data(data=='=') = 'A'; % append 6 zero bits to pad to 9 bytes
+    bytestream_ = base64.decode(int8(data)); % decode (9 bytes per double)
+    bytestream_(9:9:end) = []; % remove last byte
     data = typecast(bytestream_,'double'); % typecast without changing the underlying data
   end
   Curves.(Name).data = data;

@@ -400,7 +400,7 @@ for t=2:T
     scale(t) = 1/n;
   end
 end
-[p, path(T)] = max(delta(:,T));
+[~, path(T)] = max(delta(:,T));
 for t=T-1:-1:1
   path(t) = psi(path(t+1),t+1);
 end

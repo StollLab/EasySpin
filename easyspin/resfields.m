@@ -45,30 +45,26 @@ if nargin==0, help(mfilename); return; end
 error(chkmlver);
 
 % Check number of input arguments.
-switch (nargin)
-case 0, help(mfilename); return;
-case 2, Opt = [];
-case 3
-otherwise
-  error('Incorrect number of inputs!');
+switch nargin
+  case 2, Opt = struct;
+  case 3
+  otherwise
+    error('Incorrect number of inputs!');
 end
 
 if nargout<0, error('Not enough output arguments.'); end
 if nargout>5, error('Too many output arguments.'); end
 
-if isempty(Opt)
-  Opt = struct('ununsed',NaN);
-end
+if isempty(Opt), Opt = struct; end
 
-if ~(isstruct(System) && isstruct(Exp) && isstruct(Opt))
+if ~isstruct(System) || ~isstruct(Exp) || ~isstruct(Opt)
   error('SpinSystem, Parameters and Options must be structures!');
 end
-
 
 % A global variable sets the level of log display. The global variable
 % is used in logmsg(), which does the log display.
 if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 0; end
-global EasySpinLogLevel;
+global EasySpinLogLevel  %#ok
 EasySpinLogLevel = Opt.Verbosity;
 
 % Process Spin system.
@@ -85,8 +81,8 @@ DefaultSystem.gAStrainCorr = +1;
 
 System = adddefaults(System,DefaultSystem);
 
-if (numel(System.gAStrainCorr)~=1) || ~isnumeric(System.gAStrainCorr) || ...
-    (System.gAStrainCorr==0) || ~isfinite(System.gAStrainCorr)
+if numel(System.gAStrainCorr)~=1 || ~isnumeric(System.gAStrainCorr) || ...
+    System.gAStrainCorr==0 || ~isfinite(System.gAStrainCorr)
   error('Sys.gAStrainCorr must be a single number, either +1 or -1.');
 end
 System.gAStrainCorr = sign(System.gAStrainCorr);
@@ -139,8 +135,7 @@ if ~isnan(Exp.CenterSweep)
 end
 
 if isnan(Exp.Range), error('Exp.Range/Exp.CenterSweep is missing!'); end
-if any(diff(Exp.Range)<=0) || any(~isfinite(Exp.Range)) || ...
-    ~isreal(Exp.Range)
+if any(diff(Exp.Range)<=0) || any(~isfinite(Exp.Range)) || ~isreal(Exp.Range)
   error('Exp.Range is not valid!');
 end
 if any(Exp.Range<0)
@@ -185,10 +180,10 @@ if ~isfield(Opt,'Sites'), Opt.Sites = []; end
 % Options parsing and setting.
 %---------------------------------------------------------------------
 % obsolete fields
-ObsoleteOptions = {''};
-for iOpt = 1:numel(ObsoleteOptions)
-  if isfield(Opt,ObsoleteOptions{iOpt})
-    error('Options.%s is obsolete. Please remove from code!',ObsoleteOptions{iOpt});
+obsoleteOptions = {''};
+for iOpt = 1:numel(obsoleteOptions)
+  if isfield(Opt,obsoleteOptions{iOpt})
+    error('Options.%s is obsolete. Please remove from code!',obsoleteOptions{iOpt});
   end
 end
 
@@ -215,7 +210,7 @@ DefaultOptions.HybridCoreNuclei = [];
 % undocumented fields
 DefaultOptions.nTRKnots = 3;
 DefaultOptions.FuzzLevel = 1e-10;
-DefaultOptions.Freq2Field = 1;
+DefaultOptions.Freq2Field = true;
 DefaultOptions.maxSegments = 2000;
 DefaultOptions.ModellingAccuracy = 2e-6;
 DefaultOptions.RediagLimit = 0.95;
@@ -251,7 +246,7 @@ end
 IntensitySwitch = Opt.Intensity;
 GradientSwitch = Opt.Gradient;
 
-if (Opt.Freq2Field~=1) && (Opt.Freq2Field~=0)
+if Opt.Freq2Field~=1 && Opt.Freq2Field~=0
   error('Options.Freq2Field incorrect!');
 end
 computeFreq2Field = Opt.Freq2Field;
@@ -481,13 +476,13 @@ else
 end
 
 % Check whether looping transitions are possible.
-MaxZeroFieldSplit = ZFEnergies(end) - ZFEnergies(1);
-if MaxZeroFieldSplit>1e3
-  logmsg(2,'  ## maximum splitting at zero field: %g GHz',MaxZeroFieldSplit/1e3);
+maxZeroFieldSplit = ZFEnergies(end) - ZFEnergies(1);
+if maxZeroFieldSplit>1e3
+  logmsg(2,'  ## maximum splitting at zero field: %g GHz',maxZeroFieldSplit/1e3);
 else
-  logmsg(2,'  ## maximum splitting at zero field: %g MHz',MaxZeroFieldSplit);
+  logmsg(2,'  ## maximum splitting at zero field: %g MHz',maxZeroFieldSplit);
 end
-LoopFields = MaxZeroFieldSplit/mwFreq > 1 - 1e-6;
+LoopFields = maxZeroFieldSplit/mwFreq > 1 - 1e-6;
 if LoopFields
   msg = '  looping transitions possible';
 else
@@ -550,7 +545,7 @@ else % Automatic pre-selection
   if Opt.Threshold(1)==0
     logmsg(1,'  selection threshold is zero -> using all transitions');
     TransitionRates = ones(nCore);
-  elseif (CoreSys.nElectrons==1) && (CoreSys.nNuclei==0) ...
+  elseif CoreSys.nElectrons==1 && CoreSys.nNuclei==0 ...
       && (~any(CoreSys.L))
     logmsg(1,'  one electron spin and no nuclei -> using all transitions');
     TransitionRates = ones(nCore);
@@ -594,20 +589,20 @@ else % Automatic pre-selection
       % Determine orientation dependent operators.
       EpM = ctp(iOri,2)*ExM + stp(iOri,2)*EyM;
       if higherOrder
-        [Vs,E] = gethamdata_hO(centerB,[stp(iOri,1)/sqrt(2)*[1,1],ctp(iOri,1)],CoreSys,Opt.Sparse,[],nLevels);
-%         if Opt.Sparse
-%           [E,idx_] = sort(diag(E));
-%           Vs = Vs(:,idx_);
-%         end
+        [Vs,~] = gethamdata_hO(centerB,[stp(iOri,1)/sqrt(2)*[1,1],ctp(iOri,1)],CoreSys,Opt.Sparse,[],nLevels);
+        % if Opt.Sparse
+        %   [E,idx_] = sort(diag(E));
+        %   Vs = Vs(:,idx_);
+        % end
       else
         kGpM = ctp(iOri,2)*kGxM + stp(iOri,2)*kGyM;
         % Solve eigenproblem.
         if Opt.Sparse
           [Vs,E] = eigs(kF + centerB*(stp(iOri,1)*kGpM + ctp(iOri,1)*kGzM),length(kF));
-          [E,idx_] = sort(diag(E));
+          [~,idx_] = sort(diag(E));
           Vs = Vs(:,idx_);
         else
-          [Vs,E] = eig(kF + centerB*(stp(iOri,1)*kGpM + ctp(iOri,1)*kGzM));
+          [Vs,~] = eig(kF + centerB*(stp(iOri,1)*kGpM + ctp(iOri,1)*kGzM));
         end
       end
       % Sum up transition rates. Or take the maximum.
@@ -629,7 +624,7 @@ else % Automatic pre-selection
   % Remove lower triangular part
   idxLowerTriangle = logical(tril(ones(nCore)));
   % Remove nuclear transitions
-  if (max(HFIStrength)<0.5) && (Opt.Threshold(1)>0)
+  if max(HFIStrength)<0.5 && Opt.Threshold(1)>0
     idxNuclearTransitions = logical(kron(eye(nElStates_),ones(nCore/nElStates_)));
     keepidx = ~(idxLowerTriangle | idxNuclearTransitions);
   else
@@ -682,8 +677,8 @@ logmsg(1,'  %d transitions pre-selected',nTransitions);
 %=======================================================================
 logmsg(1,'- Broadenings');
 simplegStrain = true;
-UsegStrain = false;
-UseAStrain = false;
+usegStrain = false;
+useAStrain = false;
 if computeStrains
   logmsg(1,'  using strains');
   
@@ -701,11 +696,11 @@ if computeStrains
   % A strain tensor is taken to be aligned with the A tensor
   % g strain can be specified for each electron spin
   % A strain is limited to the first electron and first nuclear spin
-  UsegStrain = any(CoreSys.gStrain(:));
-  if UsegStrain
+  usegStrain = any(CoreSys.gStrain(:));
+  if usegStrain
     logmsg(1,'  g strain present');
     simplegStrain = CoreSys.nElectrons==1;
-    for iEl = 1:CoreSys.nElectrons
+    for iEl = CoreSys.nElectrons:-1:1
       gStrainMatrix{iEl} = diag(CoreSys.gStrain(iEl,:)./CoreSys.g(iEl,:))*mwFreq; % MHz
       if any(CoreSys.gFrame(iEl,:))
         R_g2M = erot(CoreSys.gFrame(iEl,:)).'; % g frame -> molecular frame
@@ -714,20 +709,20 @@ if computeStrains
     end
     if ~simplegStrain
       logmsg(1,'  multiple g strains present');
-      for iEl = 1:CoreSys.nElectrons
+      for iEl = CoreSys.nElectrons:-1:1
         kSxM{iEl} = sop(CoreSys,[iEl,1]);
         kSyM{iEl} = sop(CoreSys,[iEl,2]);
         kSzM{iEl} = sop(CoreSys,[iEl,3]);
       end
     end
   else
-    for e = 1:CoreSys.nElectrons
+    for e = CoreSys.nElectrons:-1:1
       gStrainMatrix{e} = zeros(3);
     end
   end
   
-  UseAStrain = (CoreSys.nNuclei>0) && any(CoreSys.AStrain);
-  if UseAStrain
+  useAStrain = (CoreSys.nNuclei>0) && any(CoreSys.AStrain);
+  if useAStrain
     % Transform A strain matrix to molecular frame.
     AStrainMatrix = diag(CoreSys.AStrain);
     if isfield(CoreSys,'AFrame')
@@ -737,7 +732,7 @@ if computeStrains
     % Diagonalize Hamiltonian at center field.
     centerB = mean(Exp.Range);
     [Vs,E] = eig(kF + centerB*kGzM);
-    [E,idx] = sort(real(diag(E)));
+    [~,idx] = sort(real(diag(E)));
     Vs = Vs(:,idx);
     % Calculate effective mI of nucleus 1 for all eigenstates.
     mI = real(diag(Vs'*sop(CoreSys,[2,3])*Vs));
@@ -746,12 +741,12 @@ if computeStrains
     AStrainMatrix = reshape(mITr(:,ones(1,9)).',[3,3,nTransitions]).*...
       repmat(AStrainMatrix,[1,1,nTransitions]);
     corr = System.gAStrainCorr;
-    for e = 1:System.nElectrons
+    for e = System.nElectrons:-1:1
       gAslw2{e} = (repmat(gStrainMatrix{e},[1,1,nTransitions])+corr*AStrainMatrix).^2;
     end
     clear AStrainMatrix Vs E idx mI mITr
   else
-    for e = 1:System.nElectrons
+    for e = System.nElectrons:-1:1
       gAslw2{e} = repmat(gStrainMatrix{e}.^2,[1,1,nTransitions]);
     end
   end
@@ -760,7 +755,7 @@ if computeStrains
   % for each transition piled up along the third dimension.
   
   if any(HStrain2), logmsg(2,'  ## using H strain'); end
-  if UsegStrain || UseAStrain, logmsg(2,'  ## using g/A strain'); end
+  if usegStrain || useAStrain, logmsg(2,'  ## using g/A strain'); end
   if useDStrain, logmsg(2,'  ## using D strain'); end
   
 else
@@ -792,8 +787,8 @@ if computeIntensities
     end
   end
   if computeBoltzmannPopulations
-    % Pre-factor for thermal equilibrium populations computations.
-    BoltzmannPreFactor = -1e6*planck/boltzm/Exp.Temperature; % MHz^-1
+    % Pre-factor for thermal equilibrium populations computations
+    BoltzmannPreFactor = 1e6*planck/boltzm/Exp.Temperature; % MHz^-1
   end
   msg = [msg ', intensities'];
 else
@@ -874,19 +869,19 @@ for iOri = 1:nOrientations
   
   % Set up Hamiltonians for 3 lab principal directions
   %-----------------------------------------------------
+  % xLab, yLab, zLab represented in the molecular frame M
   [xLab_M,yLab_M,zLab_M] = erot(Orientations(iOri,:),'rows');
-  % xLab_M, yLab_M, zLab_M represented in the molecular frame
   
   if ~higherOrder
-    % z laboratoy axis: external static field
+    % zLab axis: external static field
     kGzL = zLab_M(1)*kGxM + zLab_M(2)*kGyM + zLab_M(3)*kGzM;
-    % x laboratory axis: mw excitation field
+    % xLab axis: mw excitation field
     kGxL = xLab_M(1)*kGxM + xLab_M(2)*kGyM + xLab_M(3)*kGzM;
-    % y laboratory axis: needed for gradient calculation
-    % and the integration over all mw field orientations.
+    % yLab axis: needed for gradient calculation
+    % and the integration over all mw field orientations
     kGyL = yLab_M(1)*kGxM + yLab_M(2)*kGyM + yLab_M(3)*kGzM;
-    if UsegStrain && ~simplegStrain
-      for e = 1:System.nElectrons
+    if usegStrain && ~simplegStrain
+      for e = System.nElectrons:-1:1
         kSzL{e} = zLab_M(1)*kSxM{e} + zLab_M(2)*kSyM{e} + zLab_M(3)*kSzM{e};
       end
     end
@@ -916,7 +911,7 @@ for iOri = 1:nOrientations
   unfinished = true;
   
   % Iterative bisection until energy level diagram is accurately modeled.
-  while any(unfinished) && (nSegments<Opt.maxSegments)
+  while any(unfinished) && nSegments<Opt.maxSegments
     
     s = find(unfinished,1); % find first unfinished segment
     dB = Bknots(s+1) - Bknots(s);
@@ -1000,10 +995,10 @@ for iOri = 1:nOrientations
       % Problem here: cubicsolve should only be called if a resonance
       % is possible. This can be determined as above using maxSlope etc.
       % cubicsolve takes too long to find this out (esp. for LoopFields=1).
-      Zeros = cubicsolve(C,LoopFields);
-      if isempty(Zeros), continue, end
+      cubicZeros = cubicsolve(C,LoopFields);
+      if isempty(cubicZeros), continue, end
 
-      ResonanceFields = Bknots(s) + dB(s)*Zeros;
+      ResonanceFields = Bknots(s) + dB(s)*cubicZeros;
 
       for iReson=1:numel(ResonanceFields) % loop over all resonances for transition iTrans in the current segment
 
@@ -1040,7 +1035,7 @@ for iOri = 1:nOrientations
 
         % Compute eigenvectors, eigenvalues and 1/(dE/dB) if needed.
         %--------------------------------------------------
-        if computeEigenPairs || (nPerturbNuclei>0)
+        if computeEigenPairs || nPerturbNuclei>0
           % Compute resonant state vectors
           % u: lower level, v: higher level
           uv = Transitions(idxTr(iiTrans),:);
@@ -1079,7 +1074,7 @@ for iOri = 1:nOrientations
             logmsg(3,sprintf('   %d-%d: stabilities %f and %f ===> rediagonalization',uv,StateStability(uv,s)));
           else
 
-            z = Zeros(iReson);
+            z = cubicZeros(iReson);
 
             Ua = Vectors{s}(:,uv(1)); Ub = Vectors{s+1}(:,uv(1));
             [~,idx] = max(abs(Ua));
@@ -1093,10 +1088,9 @@ for iOri = 1:nOrientations
             V = Va*(1-z) + z*phase/abs(phase)*Vb;
             V = V/norm(V);
 
-            t = Zeros(iReson);
             if computeBoltzmannPopulations
-              t = [t^3 t^2 t 1];
-              Energies = t*SplineModelCoeffs{s};
+              t = cubicZeros(iReson);
+              Energies = [t^3 t^2 t 1]*SplineModelCoeffs{s};
             end
           end
 
@@ -1138,7 +1132,7 @@ for iOri = 1:nOrientations
           end
         end
 
-        % Calculate intensity if requested.
+        % Calculate intensity if requested
         %--------------------------------------------------
         if computeIntensities
           
@@ -1163,14 +1157,17 @@ for iOri = 1:nOrientations
                 circSense*(nk.'*cross(1i*mu,conj(mu)));
             end
           end
-          if abs(TransitionRate)<1e-10, TransitionRate = 0; end
+          if abs(TransitionRate)<1e-10
+            TransitionRate = 0;
+          end
           
           % Compute polarizations if temperature or zero-field populations are given.
           if computeBoltzmannPopulations
-            Populations = exp(BoltzmannPreFactor*(Energies-Energies(1)));
-            Polarization = (Populations(u(iTrans)) - Populations(v(iTrans)))/sum(Populations);
+            Populations = exp(-BoltzmannPreFactor*(Energies-Energies(1)));
+            Populations = Populations/sum(Populations);
+            Polarization = Populations(u(iTrans)) - Populations(v(iTrans));
             if Polarization<0
-              if abs(Polarization)<2e16, Polarization = 0; end
+              error('Negative thermal polarization for transition %d<->%d: %f',u(iTrans),v(iTrans),Polarization);
             end
             if nPerturbNuclei>0
               Polarization = Polarization/prod(2*System.I+1);            
@@ -1185,10 +1182,12 @@ for iOri = 1:nOrientations
                 PopulationV = abs(ZFPopulations.'*V).^2; % upper level
             end
             Polarization = PopulationU - PopulationV;
+            if nPerturbNuclei>0
+              Polarization = Polarization/prod(2*System.I+1);            
+            end
           else
             % no temperature given
             Polarization = 1; % same polarization for each electron transition
-            %Polarization = Polarization/prod(2*System.S+1); % needed to make consistent with high-temp limit
             Polarization = Polarization/prod(2*System.I+1);
           end
           
@@ -1197,7 +1196,7 @@ for iOri = 1:nOrientations
           % dBdE proportionality not valid near looping field coalescences!
         end
         
-        % Calculate gradient of resonance frequency.
+        % Calculate gradient of resonance frequency
         %---------------------------------------------------
         if computeGradient
           Gradient2 = real((V'-U')*kGxL*(V+U)).^2 + real((V'-U')*kGyL*(V+U)).^2;
@@ -1205,11 +1204,11 @@ for iOri = 1:nOrientations
           Gdat(iiTrans,iOri) = dBdE * ResonanceFields(iReson) * sqrt(Gradient2);
         end
         
-        % Calculate width if requested.
+        % Calculate width if requested
         %--------------------------------------------------
         if computeStrains
           %m = @(Op) real(V'*Op*V) - real(U'*Op*U);
-          m = @(Op) real((V'-U')*Op*(V+U));
+          m = @(Op) real((V'-U')*Op*(V+U)); % equivalent to prev. line
 
           % H strain
           LineWidth2 = LineWidthSquared;
@@ -1223,7 +1222,7 @@ for iOri = 1:nOrientations
           end
           
           % g and A strain
-          if UsegStrain || UseAStrain
+          if usegStrain || useAStrain
             if simplegStrain
               gA2 = gAslw2{1}(:,:,iTrans);
             else
@@ -1291,6 +1290,7 @@ for iOri = 1:nOrientations
     end  % for all segments
   end % for all transitions
 end % for all orientations
+
 clear fH1 fVu fVv Hu Hv pVu pVv NucTransitionRates vidx uidx
 idxTr(end) = [];
 %=======================================================================
@@ -1302,7 +1302,6 @@ logmsg(2,'  ## %2d resonances total from %d level pairs',size(Pdat,1),nTransitio
 
 % Remove resonances with max intensity below post-selection threshold
 %-----------------------------------------------------------------------
-
 idxWeakResonances = [];
 if computeIntensities
   if numel(Opt.Threshold)==1
@@ -1415,7 +1414,7 @@ if nPerturbNuclei>0
   logmsg(1,'  combining shifts from perturbational nuclei');
 
   % Prepare index matrices for line combinations
-  for iiNuc = 2:nPerturbNuclei
+  for iiNuc = nPerturbNuclei:-1:2
     [idxComb2{iiNuc},idxComb1{iiNuc}] = ...
        find(ones(nPertShifts(iiNuc),prod(nPertShifts(1:iiNuc-1))));
   end
@@ -1499,7 +1498,7 @@ if nSites==1
   if ~isempty(Gdat), Gdat = Gdat(I,:); end
 end
 
-% Arrange the output.
+% Arrange the output
 Output = {Pdat,Idat,Wdat,Transitions,Gdat};
 varargout = Output(1:max(nargout,1));
 

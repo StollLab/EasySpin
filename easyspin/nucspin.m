@@ -17,4 +17,4 @@ if nargin==0, help(mfilename); return; end
 
 I = nucdata(varargin);
 
-return
+end

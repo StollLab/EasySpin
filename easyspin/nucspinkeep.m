@@ -38,4 +38,4 @@ rmvidx(keepidx) = [];
 
 NewSys = nucspinrmv(Sys,rmvidx);
 
-return
+end

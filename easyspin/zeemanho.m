@@ -1,6 +1,5 @@
 % zeemanho  Multiple Order Zeeman interaction Hamiltonian 
 %
-%
 %   H = zeemanho(SpinSystem, B)
 %   H = zeemanho(SpinSystem, B, Spins)
 %   H = zeemanho(SpinSystem, B, Spins, 'sparse')
@@ -55,19 +54,21 @@ if nargin==0, help(mfilename); return; end
 if nargin<1 || nargin>5, error('Wrong number of input arguments!'); end
 
 if nargout>1 || nargin<2
-% if no B value is given or several outputs are provided
+  % if no B value is given or several outputs are provided
   TensorOutput = true;
 elseif nargin>2 && isempty(varargin{1})
   % check if field is non-numeric
-   TensorOutput = true;
+  TensorOutput = true;
 elseif nargin==1
   TensorOutput = true;
 else
   TensorOutput = false;
 end
 
-% zero-field Hamiltonian and field dependent tensors up to 3rd order in B are provided
 if TensorOutput
+  % zero-field Hamiltonian and field dependent tensors up to 3rd order in B
+  % are output
+
   if nargout>4
     error('Incorrect number of outputs! Tensor output implemented only up to 3th order in B0');
   end
@@ -98,7 +99,7 @@ if TensorOutput
    % get highest order in B0
    fields = fieldnames(SpinSystem);
    for n = 0:3
-    if any(strncmp(fields,['Ham',num2str(n,'%i')],4))
+    if any(strncmp(fields,sprintf('Ham%i',n),4))
       highest = n;
     end
    end
@@ -113,7 +114,9 @@ if TensorOutput
      error('Incorrect number of outputs!');
    end
 
-  if any(lb==0), GO = zeemanho(SpinSystem, [0,0,0], Spins, opt,0); end
+  if any(lb==0)
+    GO = zeemanho(SpinSystem, [0,0,0], Spins, opt,0);
+  end
   xyz = 1:3;
   if any(lb==1)
     for n = 3:-1:1
@@ -174,26 +177,28 @@ if TensorOutput
     end
   end
 
-    if nargout == 1
-      for n = length(lb):-1:1
-        switch lb(n)
-          case 0, varargout{1}{n} = GO;
-          case 1, varargout{1}{n} = G1;
-          case 2, varargout{1}{n} = G2;
-          case 3, varargout{1}{n} = G3;
-        end
-      end
-    else
-      for n = length(lb):-1:1
-        switch lb(n)
-          case 0, varargout{n} = GO;
-          case 1, varargout{n} = G1;
-          case 2, varargout{n} = G2;
-          case 3, varargout{n} = G3;
-        end
+  if nargout == 1
+    for n = length(lb):-1:1
+      switch lb(n)
+        case 0, varargout{1}{n} = GO;
+        case 1, varargout{1}{n} = G1;
+        case 2, varargout{1}{n} = G2;
+        case 3, varargout{1}{n} = G3;
       end
     end
-else  % full Hamiltonian is provided
+  else
+    for n = length(lb):-1:1
+      switch lb(n)
+        case 0, varargout{n} = GO;
+        case 1, varargout{n} = G1;
+        case 2, varargout{n} = G2;
+        case 3, varargout{n} = G3;
+      end
+    end
+  end
+
+else  % full Hamiltonian is output
+
   if nargin<2
     Field = zeros(1,3);
   else
@@ -201,8 +206,7 @@ else  % full Hamiltonian is provided
   end
   if nargin<3, Spins = []; else, Spins = varargin{2}; end
   if nargin<4, opt = ''; else, opt = varargin{3}; end
-  if nargin<5, lBlist=0:8; else, lBlist = varargin{4}; end
-  
+  if nargin<5, lBlist = 0:8; else, lBlist = varargin{4}; end
   
   if ~ischar(opt)
     error('Last input must be a string, ''sparse''.');
@@ -228,15 +232,15 @@ else  % full Hamiltonian is provided
   if any(Spins<1) || any(Spins>nElectrons)
     error('Spin indices (2nd input argument) invalid!');
   end
-
-
   
-  % Convert B form cartesian to spherical
-  [phiB, t, rB]= cart2sph(Field(1),Field(2),Field(3));
-  ctheta= cos(pi/2-t); %dull definition of cart2sph
+  % Convert B form cartesian to spherical coordinates
+  rB = norm(Field);
+  [phiB,theta] = vec2ang(Field);
+  ctheta = cos(theta);
   
   % Table of conversion factors for spherical harmonics
-  alphapm1 = 1./sqrt([1, 1,3/2,5/2,35/8,63/8,231/16,429,16,6435/128]);
+  alphapm1 = [1, 1, 3/2, 5/2, 35/8, 63/8, 231/16, 429, 16, 6435/128];
+  alphapm1 = 1./sqrt(alphapm1);
   
   % Table of conversion factors for Stevens operator
   Alm(8,:) = [24*sqrt(1430),2*sqrt(1430),4*sqrt(143/7),2*sqrt(78/7), ...
@@ -251,26 +255,26 @@ else  % full Hamiltonian is provided
   Alm(2,1:3) = [sqrt(6), 1/sqrt(2), sqrt(2)];
   Alm(1,1:2) = [1,1];
 
-  hZ = sparse(nStates,nStates);
+  H = sparse(nStates,nStates); % Hamiltonian
   for idx = 1:numel(Spins)
     iSpin = Spins(idx);
     
     % Run over all ranks lb in B (ZB^lb,ls = ZB1l, ZB2l, ZB3l, ZB4l, ...)
     for k = 1:length(lBlist)
-      lB =lBlist(k);
-      strlB = ['Ham', num2str(lB)];
+      lB = lBlist(k);
+      strlB = sprintf('Ham%i',lB);
       sysnames = fieldnames(Sys);
       paramtext = sysnames(strncmp(sysnames,strlB,4));
       if ~isempty(paramtext)
         for n = length(paramtext):-1:1
-          lStemp(n) = str2num(paramtext{n}(5));
+          lStemp(n) = str2double(paramtext{n}(5));
         end
         lStemp = unique(lStemp);
         
         % run over all allowed ranks ls in S
         for n = find(mod(lB+lStemp,2)-1) %lb+ls has to be even, time-inversion sym of Hamiltonian
           lS = lStemp(n);
-          strlBlS = ['Ham', num2str([lB,lS],'%i%i')];          
+          strlBlS = sprintf('Ham%i%i',lB,lS);          
           mB = lB:-1:-lB;
           amB =abs(mB);
           LlBmB = legendre(lB,ctheta);
@@ -283,18 +287,16 @@ else  % full Hamiltonian is provided
           minl = abs(lB-lS);
           maxl = lB+lS;
           paramtext = sysnames(strncmp(sysnames,strlBlS,5));
-          clear l_
-          len = length(paramtext);
-          if len == 0, l_ =[]; end
-          for n = len:-1:1
-            l_(n) = str2num(paramtext{n}(6:end));
+          l_ = [];
+          for n_ = length(paramtext):-1:1
+            l_(n_) = str2double(paramtext{n_}(6:end));
           end
          
           for l = l_(minl<=l_ & l_ <=maxl & ~mod(l_,2))
-            strlBlSl =['Ham', num2str([lB,lS,l],'%i%i%i')];
+            strlBlSl = sprintf('Ham%i%i%i',lB,lS,l);
             ZBlBlSlm = Sys.(strlBlSl)(iSpin,:);
             if ~any(ZBlBlSlm), continue; end
-            %construc a^lB lS_l m from ZB^lS lM
+            % construct a^lB lS_l m from ZB^lS lM
             for m = l:-1:1
               lm = l+1+m;
               lp = l+1-m;
@@ -304,7 +306,7 @@ else  % full Hamiltonian is provided
             alBlSlm(l+1) = Glb * sqrt(2) * ZBlBlSlm(l+1);
             
             for iq = find(alBlSlm~=0)
-              %identify m
+              % identify m
               m = l+1-iq;
               pre = (-1)^m*sqrt(2*l+1);
               for mB = lB:-1:-lB
@@ -320,7 +322,7 @@ else  % full Hamiltonian is provided
                     TlSmS = 1/(Alm(lS,abs(mS)+1)*sqrt(2))*...
                       (stev(SpinVec,[lS,-mS,iSpin],sparseResult)-1i*stev(SpinVec,[lS,mS,iSpin],sparseResult));
                   end
-                  hZ = hZ + alBlSlm(iq)*pre*wigner3j(lB,lS,l,mB,mS,-m)*...
+                  H = H + alBlSlm(iq)*pre*wigner3j(lB,lS,l,mB,mS,-m)*...
                     TlBmB(lB-mB+1)*TlSmS;
                 end
               end % mB loop
@@ -330,10 +332,12 @@ else  % full Hamiltonian is provided
         end % loop over lS values
       end % if lS parameters provided
     end % loop over lB
-  end %loop over spin centers
+  end % loop over spins
   
   if ~sparseResult
-    hZ = full(hZ);
+    H = full(H);
   end
-  varargout = {hZ};
+  varargout = {H};
+end
+
 end

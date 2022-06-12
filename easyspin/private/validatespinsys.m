@@ -50,7 +50,7 @@ correctFields = {'S','Nucs','Abund','n',...
   'A','A_','AFrame','AStrain',...
   'Q','QFrame',...
   'HStrain',...
-  'L', 'soc', 'orf',...
+  'L', 'soc', 'gL',...
   'lw','lwpp','lwEndor',...
   'tcorr','logtcorr','Diff','logDiff'};
 fieldlist = @(str,irange)arrayfun(@(x)sprintf('%s%d',str,x),irange,'UniformOutput',false);
@@ -1000,7 +1000,7 @@ if any(strncmp('Ham',fieldnames(Sys),3))
 end
 
 
-% Orbital angular momentum (Sys.L, Sys.soc, Sys.orf, Sys.CF*)
+% Orbital angular momentum (Sys.L, Sys.soc, Sys.gL, Sys.CF*)
 %===============================================================================
 if isfield(Sys,'L') && ~isempty(Sys.L)
   % Guard against invalid type
@@ -1028,15 +1028,15 @@ if isfield(Sys,'L') && ~isempty(Sys.L)
       return
     end
   end
-  if ~isfield(Sys,'orf')
-    Sys.orf = ones(nElectrons,1);
+  if ~isfield(Sys,'gL')
+    Sys.gL = ones(nElectrons,1);
   else
-    if length(Sys.orf)~=nElectrons
-      err ='Number of orbital reduction factors must match number of orbital angular momenta!';
+    if length(Sys.gL)~=nElectrons
+      err ='Number of orbital g factors must match number of orbital angular momenta!';
       return
     end
-    if isempty(Sys.orf) || any(~isreal(Sys.orf))
-      err = 'Orbital reduction factors in Sys.orf must be real numbers.';
+    if isempty(Sys.gL) || any(~isreal(Sys.gL))
+      err = 'Orbital g factors in Sys.gL must be real numbers.';
       return
     end
   end
@@ -1062,8 +1062,8 @@ if isfield(Sys,'L') && ~isempty(Sys.L)
     Sys.(fieldname) = CFk;
   end
 else
-  if isfield(Sys,'orf') && ~isempty(Sys.orf)
-    err = 'Sys.orf is given, but Sys.L is missing. Specify Sys.L.';
+  if isfield(Sys,'gL') && ~isempty(Sys.gL)
+    err = 'Sys.gL is given, but Sys.L is missing. Specify Sys.L.';
     return
   end
   if isfield(Sys,'soc') && ~isempty(Sys.soc)
@@ -1078,7 +1078,7 @@ else
     end
   end
   Sys.L = [];
-  Sys.orf = [];
+  Sys.gL = [];
 end
 Sys.nL = numel(Sys.L);
 

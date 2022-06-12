@@ -1,2 +1,5 @@
 documentation/
 releasing/latextemp/
+easyspin/*.asv
+easyspin/private/*.asv
+tests/*.asv

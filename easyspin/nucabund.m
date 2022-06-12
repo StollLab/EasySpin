@@ -16,8 +16,8 @@
 
 function w = nucabund(varargin)
 
-if (nargin==0), help(mfilename); return; end
+if nargin==0, help(mfilename); return; end
 
 [~,~,~,w] = nucdata(varargin);
 
-return
+end
