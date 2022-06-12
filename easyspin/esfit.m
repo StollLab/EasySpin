@@ -504,6 +504,7 @@ Verbosity = esfitdata.Opts.Verbosity;
 lb = esfitdata.pvec_lb;
 ub = esfitdata.pvec_ub;
 p0 = esfitdata.pvec_0;
+
 switch esfitdata.Opts.Startpoint
   case 1 % provided start value
     p_start = p0;
@@ -519,7 +520,11 @@ switch esfitdata.Opts.Startpoint
         ID = sscanf(s,'%d');
         idx = find([esfitdata.FitSets.ID]==ID);
         if ~isempty(idx)
-          p_start = esfitdata.FitSets(idx).bestx;
+          if numel(esfitdata.FitSets(idx).pfit)==nParameters
+            p_start = esfitdata.FitSets(idx).pfit;
+          else
+            error('Selected parameter set does not contain the same number of fitting parameters.');
+          end
         else
           error('Could not locate selected parameter set.');
         end
@@ -667,6 +672,11 @@ result.pstd = pstd;
 result.ci95 = ci95;
 result.cov = covmatrix;
 result.corr = corrmatrix;
+
+esfitdata.bestpstd = pstd;
+esfitdata.bestci95 = ci95;
+esfitdata.bestcov = covmatrix;
+esfitdata.bestcorr = corrmatrix;
 
 end
 
@@ -821,8 +831,8 @@ expdata = esfitdata.data(:);
 bestsim = real(esfitdata.bestfit(:));
 currsim = real(esfitdata.currsim(:));
 currpar = esfitdata.currpar;
-bestx = currpar;
-bestx(~esfitdata.fixedParams) = info.bestx;
+bestpar = currpar;
+bestpar(~esfitdata.fixedParams) = info.bestx;
 
 % Update plotted data
 set(findobj('Tag','expdata'),'XData',x,'YData',expdata);
@@ -875,7 +885,7 @@ if info.newbest
 
   for p = 1:nParams
     oldvaluestring = striphtml(data{p,3});
-    newvaluestring = sprintf('%0.6g',bestx(p));
+    newvaluestring = sprintf('%0.6g',bestpar(p));
     % Find first character at which the new value differs from the old one
     idx = 1;
     while idx<=min(length(oldvaluestring),length(newvaluestring))
@@ -884,7 +894,7 @@ if info.newbest
     end
     active = data{p,1};
     if active
-      if bestx(p)==esfitdata.pvec_lb(p) ||  bestx(p)==esfitdata.pvec_ub(p)
+      if bestpar(p)==esfitdata.pvec_lb(p) ||  bestpar(p)==esfitdata.pvec_ub(p)
         fontcolor = 'EE4B2B';
       else
         fontcolor = '009900';
@@ -1052,7 +1062,20 @@ set(findobj('Tag','statusText'),'String','');
 % Remove current values from parameter table
 hTable = findobj('Tag','ParameterTable');
 Data = hTable.Data;
-for p = 1:size(Data,1), Data{p,4} = '-'; end
+pi = 1;
+for p = 1:size(Data,1)
+  Data{p,4} = '-'; 
+  if ~esfitdata.fixedParams(p)
+    Data{p,7} = sprintf('%0.6g',esfitdata.bestpstd(pi));
+    Data{p,8} = sprintf('%0.6g',esfitdata.bestci95(pi,1));
+    Data{p,9} = sprintf('%0.6g',esfitdata.bestci95(pi,2));
+    pi = pi+1;
+  else
+    Data{p,7} = '-';
+    Data{p,8} = '-';
+    Data{p,9} = '-';
+  end
+end
 set(hTable,'Data',Data);
 
 % Hide current sim plot in data axes
@@ -1213,7 +1236,7 @@ v = h.Value;
 s = h.String;
 ID = sscanf(s{v},'%d');
 idx = [esfitdata.FitSets.ID]==ID;
-fitSet = rmfield(esfitdata.FitSets(idx),'bestx');
+fitSet = rmfield(esfitdata.FitSets(idx),'bestpar');
 varname = sprintf('fit%d',ID);
 assignin('base',varname,fitSet);
 fprintf('Fit set %d assigned to variable ''%s''.\n',ID,varname);
@@ -1456,10 +1479,10 @@ set(h,'Horizontal','left');
 
 % Parameter table
 %-------------------------------------------------------------------------------
-columnname = {'','Name','best','current','lower','upper'};
-columnformat = {'logical','char','char','char','char','char'};
-colEditable = [true false false false true true];
-data = cell(numel(esfitdata.pinfo),6);
+columnname = {'','Name','best','current','lower','upper','std','ci95 lower','ci95 upper'};
+columnformat = {'logical','char','char','char','char','char','char','char','char'};
+colEditable = [true false false false true true false false false];
+data = cell(numel(esfitdata.pinfo),9);
 for p = 1:numel(esfitdata.pinfo)
   data{p,1} = true;
   data{p,2} = char(esfitdata.pinfo(p).Name);
@@ -1467,8 +1490,12 @@ for p = 1:numel(esfitdata.pinfo)
   data{p,4} = '-';
   data{p,5} = sprintf('%0.6g',esfitdata.pvec_lb(p));
   data{p,6} = sprintf('%0.6g',esfitdata.pvec_ub(p));
+  data{p,7} = '-';
+  data{p,8} = '-';
+  data{p,9} = '-';
 end
 y0 = 500; dx = 80;
+colw = 60;
 uitable('Tag','ParameterTable',...
     'FontSize',8,...
     'Position',[x0 y0 330 250],...
@@ -1476,7 +1503,7 @@ uitable('Tag','ParameterTable',...
     'ColumnName',columnname,...
     'ColumnEditable',colEditable,...
     'CellEditCallback',@tableCellEditCallback,...
-    'ColumnWidth',{20,62,62,62,62,60},...
+    'ColumnWidth',{20,colw,colw,colw,colw,colw,colw,colw,colw},...
     'RowName',[],...
     'Data',data);
 uicontrol('Style','text',...
