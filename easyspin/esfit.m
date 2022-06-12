@@ -884,7 +884,12 @@ if info.newbest
     end
     active = data{p,1};
     if active
-      str = ['<html><font color="#000000">' newvaluestring(1:idx-1) '</font><font color="#009900">' newvaluestring(idx:end) '</font></html>'];
+      if bestx(p)==esfitdata.pvec_lb(p) ||  bestx(p)==esfitdata.pvec_ub(p)
+        fontcolor = 'EE4B2B';
+      else
+        fontcolor = '009900';
+      end
+      str = ['<html><font color="#000000">' newvaluestring(1:idx-1) sprintf('</font><font color="#%s">',fontcolor) newvaluestring(idx:end) '</font></html>'];
     else
       str = ['<html><font color="#888888">' newvaluestring '</font></html>'];
     end
