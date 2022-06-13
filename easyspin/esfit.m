@@ -225,6 +225,7 @@ end
 esfitdata.args = p0;
 esfitdata.pinfo = pinfo;
 esfitdata.pvec_0 = pvec_0;
+esfitdata.p_start = pvec_0;
 esfitdata.pvec_lb = pvec_lb;
 esfitdata.pvec_ub = pvec_ub;
 esfitdata.nParameters = nParameters;
@@ -389,6 +390,8 @@ if ~isfield(Opt,'x')
   Opt.x = 1:numel(esfitdata.data);
 end
 
+esfitdata.rmsdhistory = [];
+
 % Internal parameters
 if ~isfield(Opt,'PlotStretchFactor'), Opt.PlotStretchFactor = 0.05; end
 if ~isfield(Opt,'maxParameters'), Opt.maxParameters = 30; end
@@ -491,45 +494,24 @@ function result = runFitting(useGUI)
 if nargin<1, useGUI = false; end
 
 global esfitdata
-nParameters = numel(esfitdata.pvec_0);
 data_ = esfitdata.data;
 fixedParams = esfitdata.fixedParams;
 activeParams = ~fixedParams;
 Verbosity = esfitdata.Opts.Verbosity;
 
+if useGUI
+  esfitdata.modelErrorHandler = @(ME) set(findobj('Tag','ErrorLogBox'),'String',ME.message);
+else
+  esfitdata.modelErrorHandler = @(ME) error('\nThe model simulation function raised the following error:\n  %s\n',ME.message);
+end
+
 % Set starting point
 %-------------------------------------------------------------------------------
+p_start = esfitdata.p_start;
 lb = esfitdata.pvec_lb;
 ub = esfitdata.pvec_ub;
-p0 = esfitdata.pvec_0;
 
-switch esfitdata.Opts.Startpoint
-  case 1 % provided start value
-    p_start = p0;
-  case 2 % random
-    p_start = lb + rand(nParameters,1).*(ub-lb);
-    p_start(fixedParams) = p0(fixedParams);
-  case 3 % selected parameter set
-    if useGUI
-      h = findobj('Tag','SetListBox');
-      s = h.String;
-      if ~isempty(s)
-        s = s{h.Value};
-        ID = sscanf(s,'%d');
-        idx = find([esfitdata.FitSets.ID]==ID);
-        if ~isempty(idx)
-          p_start = esfitdata.FitSets(idx).pfit_full;
-        else
-          error('Could not locate selected parameter set.');
-        end
-      else
-        error('No saved parameter set yet.');
-      end
-    else
-      error('Setting can only be used in GUI mode.');
-    end
-end
-esfitdata.p_start = p_start;
+esfitdata.best.rmsd = inf;
 
 % Run minimization over space of active parameters
 %-------------------------------------------------------------------------------
@@ -574,6 +556,10 @@ else
   pfit = p_start;
 end
 
+if esfitdata.modelEvalError
+  return;
+end
+
 if esfitdata.structureInputs
   argsfit = esfitdata.p2args(pfit);
 else
@@ -581,16 +567,16 @@ else
 end
 
 % Get best-fit spectrum
-fit = esfitdata.bestfit;  % bestfit is set in residuals_
-scale = esfitdata.bestscale;  % bestscale is set in residuals_
+fit = esfitdata.best.fit;  % bestfit is set in residuals_
+scale = esfitdata.best.scale;  % bestscale is set in residuals_
 fitraw = fit/scale;
-baseline = esfitdata.bestbaseline;
+baseline = esfitdata.best.baseline;
 
 % Calculate metrics for goodness of fit
 %-------------------------------------------------------------------------------
-residuals0 = esfitdata.bestresiduals0;
+residuals0 = esfitdata.best.residuals;
 ssr0 = sum(abs(residuals0).^2); % sum of squared residuals
-rmsd0 = esfitdata.bestrmsd0;
+rmsd0 = esfitdata.best.rmsd;
 
 % Calculate parameter uncertainties
 %-------------------------------------------------------------------------------
@@ -654,6 +640,7 @@ result.scale = scale;
 result.fitraw = fitraw;
 result.baseline = baseline;
 
+result.p_start = p_start;
 result.pfit = pfit_active;
 result.pfit_full = pfit;
 result.pnames = {esfitdata.pinfo.Name}.';
@@ -668,10 +655,7 @@ result.ci95 = ci95;
 result.cov = covmatrix;
 result.corr = corrmatrix;
 
-esfitdata.bestpstd = pstd;
-esfitdata.bestci95 = ci95;
-esfitdata.bestcov = covmatrix;
-esfitdata.bestcorr = corrmatrix;
+esfitdata.best = result;
 
 end
 
@@ -686,20 +670,6 @@ end
 
 %===============================================================================
 function [residuals,rmsd] = residuals_(x,expdata,Opt)
-
-% reads:
-%   esfitdata.p_start
-%   esfitdata.fixedParams
-%   esfitdata.structureInputs
-%   esfitdata.p2args
-%   esfitdata.nOutArguments
-%   esfitdata.OutArgument
-%   esfitdata.fcn
-% writes:
-%   esfitdata.bestrmsd
-%   esfitdata.bestfit
-%   esfitdata.bestpar
-%   esfitdata.rmsdlist
 
 global esfitdata
 
@@ -718,23 +688,23 @@ par(active) = x;
 % Evaluate model function
 %-------------------------------------------------------------------------------
 out = cell(1,esfitdata.nOutArguments);
-if esfitdata.structureInputs
-  args = esfitdata.p2args(par);
-  try
+try
+  if esfitdata.structureInputs
+    args = esfitdata.p2args(par);
     [out{:}] = esfitdata.fcn(args{:});
-  catch ME
-    error('\nThe model simulation function raised the following error:\n  %s\n',ME.message);
-  end
-else
-  try
+  else
     [out{:}] = esfitdata.fcn(par);
-  catch ME
-    error('\nThe model simulation function raised the following error:\n  %s\n',ME.message);
   end
+  esfitdata.modelEvalError = false;
+catch ME
+  esfitdata.modelErrorHandler(ME);
+  esfitdata.modelEvalError = true;
+  return
 end
+
 simdata = out{esfitdata.OutArgument}; % pick appropriate output argument
 
-% Rescale simulated data if scale should be ignored
+% Rescale simulated data if scale should be ignored; include baseline if wanted
 %-------------------------------------------------------------------------------
 simdata = simdata(:);
 expdata = expdata(:);
@@ -771,10 +741,6 @@ else
     simscale = 1;
   end
 end
-esfitdata.currsim = simdata;
-esfitdata.currpar = par;
-esfitdata.currscale = simscale;
-esfitdata.currbaseline = baseline;
 
 % Compute residuals
 %-------------------------------------------------------------------------------
@@ -782,28 +748,24 @@ esfitdata.currbaseline = baseline;
 rmsd = sqrt(mean(abs(residuals).^2));
 rmsd0 = sqrt(mean(abs(residuals0).^2));
 
+esfitdata.curr.sim = simdata;
+esfitdata.curr.par = par;
+esfitdata.curr.scale = simscale;
+esfitdata.curr.baseline = baseline;
+
 % Keep track of errors
 %-------------------------------------------------------------------------------
 if Opt.track
-  if ~isfield(esfitdata,'bestrmsd') || isempty(esfitdata.bestrmsd)
-    esfitdata.bestrmsd = inf;
-  end
-  if ~isfield(esfitdata,'rmsdlist')
-    esfitdata.rmsdlist = [];
-  end
+  esfitdata.rmsdhistory = [esfitdata.rmsdhistory rmsd0];
 
-  esfitdata.rmsdlist = [esfitdata.rmsdlist rmsd0];
-
-  isNewBest = rmsd<esfitdata.bestrmsd;
+  isNewBest = rmsd<esfitdata.best.rmsd;
   if isNewBest
-    esfitdata.bestresiduals = residuals;
-    esfitdata.bestresiduals0 = residuals0;
-    esfitdata.bestrmsd0 = rmsd0;
-    esfitdata.bestrmsd = rmsd;
-    esfitdata.bestfit = simdata;
-    esfitdata.bestscale = simscale;
-    esfitdata.bestpar = par;
-    esfitdata.bestbaseline = baseline;
+    esfitdata.best.residuals = residuals0;
+    esfitdata.best.rmsd = rmsd0;
+    esfitdata.best.fit = simdata;
+    esfitdata.best.scale = simscale;
+    esfitdata.best.par = par;
+    esfitdata.best.baseline = baseline;
   end
 end
 
@@ -823,9 +785,9 @@ if windowClosing, return; end
 % Get relevant quantities
 x = esfitdata.Opts.x(:);
 expdata = esfitdata.data(:);
-bestsim = real(esfitdata.bestfit(:));
-currsim = real(esfitdata.currsim(:));
-currpar = esfitdata.currpar;
+bestsim = real(esfitdata.best.fit(:));
+currsim = real(esfitdata.curr.sim(:));
+currpar = esfitdata.curr.par;
 bestpar = currpar;
 bestpar(~esfitdata.fixedParams) = info.bestx;
 
@@ -854,7 +816,7 @@ hParamTable = findobj('Tag','ParameterTable');
 data = get(hParamTable,'data');
 nParams = size(data,1);
 for p = 1:nParams
-  oldvaluestring = striphtml(data{p,5});
+  oldvaluestring = striphtml(data{p,6});
   newvaluestring = sprintf('%0.6f',currpar(p));
   % Find first character at which the new value differs from the old one
   idx = 1;
@@ -868,18 +830,18 @@ for p = 1:nParams
   else
     str = ['<html><font color="#888888">' newvaluestring '</font></html>'];
   end
-  data{p,5} = str;
+  data{p,6} = str;
 end
 
 % Update column with best values if current parameter set is new best
 if info.newbest
 
-  str = sprintf(' best RMSD: %g\n',esfitdata.bestrmsd);
+  str = sprintf('Current best RMSD: %g\n',esfitdata.best.rmsd);
   hRmsText = findobj('Tag','RmsText');
   set(hRmsText,'String',str);
 
   for p = 1:nParams
-    oldvaluestring = striphtml(data{p,6});
+    oldvaluestring = striphtml(data{p,7});
     newvaluestring = sprintf('%0.6g',bestpar(p));
     % Find first character at which the new value differs from the old one
     idx = 1;
@@ -898,25 +860,39 @@ if info.newbest
     else
       str = ['<html><font color="#888888">' newvaluestring '</font></html>'];
     end
-    data{p,6} = str;
+    data{p,7} = str;
   end
 end
 
 hParamTable.Data = data;
 
-% Update rmsd plot
-hrmsdline = findobj('Tag','rmsdline');
-if ~isempty(hrmsdline)
-  n = min(100,numel(esfitdata.rmsdlist));
-  set(hrmsdline,'XData',1:n,'YData',log10(esfitdata.rmsdlist(end-n+1:end)));
-  ax = hrmsdline.Parent;
-  axis(ax,'tight');
-  drawnow
-end
+updatermsdplot;
 
 end
 %===============================================================================
 
+%===============================================================================
+function updatermsdplot()
+global esfitdata
+% Update rmsd plot
+hRmsText = findobj('Tag','RmsText');
+if isfield(esfitdata,'best') && ~isempty(esfitdata.best) && ~isempty(esfitdata.best.rmsd)
+  str = sprintf('Current best RMSD: %g\n',esfitdata.best.rmsd);
+else
+  str = sprintf('Current best RMSD: -\n');
+end
+set(hRmsText,'String',str);
+
+hrmsdline = findobj('Tag','rmsdline');
+if ~isempty(hrmsdline)
+  n = min(100,numel(esfitdata.rmsdhistory));
+  set(hrmsdline,'XData',1:n,'YData',esfitdata.rmsdhistory(end-n+1:end));
+  ax = hrmsdline.Parent;
+  axis(ax,'tight');
+  drawnow
+end
+end
+%===============================================================================
 
 %===============================================================================
 % Print parameters, and their uncertainties if availabe.
@@ -1007,14 +983,15 @@ set(findobj('Tag','selectNoneButton'),'Enable','off');
 set(findobj('Tag','selectInvButton'),'Enable','off');
 set(findobj('Tag','ParameterTable'),'Enable','off');
 
-% Remove displayed uncertainties
+% Remove displayed best fit and uncertainties
 hTable = findobj('Tag','ParameterTable');
 Data = hTable.Data;
 for p = 1:size(Data,1)
-  Data{p,5} = '-';
+  Data{p,6} = '-';
   Data{p,7} = '-';
   Data{p,8} = '-';
   Data{p,9} = '-';
+  Data{p,10} = '-';
 end
 set(hTable,'Data',Data);
 
@@ -1057,7 +1034,7 @@ result = runFitting(useGUI);
 
 % Save result to fit set list
 esfitdata.currFitSet = result;
-esfitdata.currFitSet.Target = esfitdata.TargetNames{esfitdata.Opts.TargetID};
+esfitdata.currFitSet.Mask = esfitdata.Opts.useMask && ~all(esfitdata.Opts.mask);
 
 
 % Update GUI with fit results
@@ -1070,16 +1047,16 @@ hTable = findobj('Tag','ParameterTable');
 Data = hTable.Data;
 pi = 1;
 for p = 1:size(Data,1)
-  Data{p,5} = '-'; 
-  if ~esfitdata.fixedParams(p) && ~isempty(esfitdata.bestpstd)
-    Data{p,7} = sprintf('%0.6g',esfitdata.bestpstd(pi));
-    Data{p,8} = sprintf('%0.6g',esfitdata.bestci95(pi,1));
-    Data{p,9} = sprintf('%0.6g',esfitdata.bestci95(pi,2));
+  Data{p,6} = '-'; 
+  if ~esfitdata.fixedParams(p) && ~isempty(esfitdata.best.pstd)
+    Data{p,8} = sprintf('%0.6g',esfitdata.best.pstd(pi));
+    Data{p,9} = sprintf('%0.6g',esfitdata.best.ci95(pi,1));
+    Data{p,10} = sprintf('%0.6g',esfitdata.best.ci95(pi,2));
     pi = pi+1;
   else
-    Data{p,7} = '-';
     Data{p,8} = '-';
     Data{p,9} = '-';
+    Data{p,10} = '-';
   end
 end
 set(hTable,'Data',Data);
@@ -1161,6 +1138,30 @@ end
 %===============================================================================
 function resetCallback(~,~)
 % Reset best fit
+global esfitdata
+
+% Remove best fit simulation from plot
+hBestSim = findobj('Tag','bestsimdata');
+hBestSim.YData = NaN(size(hBestSim.YData));
+esfitdata.best = [];
+
+% Reset rmsdhistory plot
+esfitdata.rmsdhistory = [];
+updatermsdplot;
+iterationprint('');
+
+% Remove displayed best fit and uncertainties
+hTable = findobj('Tag','ParameterTable');
+Data = hTable.Data;
+for p = 1:size(Data,1)
+  Data{p,6} = '-';
+  Data{p,7} = '-';
+  Data{p,8} = '-';
+  Data{p,9} = '-';
+  Data{p,10} = '-';
+end
+set(hTable,'Data',Data);
+
 end
 %===============================================================================
 
@@ -1229,7 +1230,7 @@ if ~isempty(str)
     hTable = findobj('Tag','ParameterTable');
     data = get(hTable,'data');
     for p = 1:numel(values)
-      data{p,6} = sprintf('%0.6g',values(p));
+      data{p,7} = sprintf('%0.6g',values(p));
     end
     set(hTable,'Data',data);
 
@@ -1255,9 +1256,9 @@ v = h.Value;
 s = h.String;
 ID = sscanf(s{v},'%d');
 idx = [esfitdata.FitSets.ID]==ID;
-fitSet = rmfield(esfitdata.FitSets(idx),'bestpar');
+fitresult = esfitdata.FitSets(idx);
 varname = sprintf('fit%d',ID);
-assignin('base',varname,fitSet);
+assignin('base',varname,fitresult);
 fprintf('Fit set %d assigned to variable ''%s''.\n',ID,varname);
 evalin('base',varname);
 end
@@ -1325,8 +1326,13 @@ h = findobj('Tag','SetListBox');
 nSets = numel(esfitdata.FitSets);
 s = cell(1,nSets);
 for k = 1:nSets
-  s{k} = sprintf('%d. rmsd %g (%s)',...
-    esfitdata.FitSets(k).ID,esfitdata.FitSets(k).rmsd,esfitdata.FitSets(k).Target);
+  if esfitdata.FitSets(k).Mask
+    maskstr = ' (mask)';
+  else
+    maskstr = '';
+  end
+  s{k} = sprintf('%d. rmsd %g%s',...
+    esfitdata.FitSets(k).ID,esfitdata.FitSets(k).rmsd,maskstr);
 end
 set(h,'String',s);
 if idx>0, set(h,'Value',idx); end
@@ -1348,6 +1354,10 @@ function clearMaskCallback(~,~)
 global esfitdata
 esfitdata.Opts.mask = true(size(esfitdata.Opts.mask));
 showmaskedregions();
+hBestSim = findobj('Tag','bestsimdata');
+hBestSim.YData = NaN(size(hBestSim.YData));
+esfitdata.best = [];
+esfitdata.rmsdhistory = [];
 end
 %===============================================================================
 
@@ -1376,16 +1386,14 @@ hTable = callbackData.Source;
 ridx = callbackData.Indices(1);
 cidx = callbackData.Indices(2);
 
-% Return unless it's a cell that contains lower or upper bound
-lbColumn = 3; % lower-bound column
-ubColumn = 4; % upper-bound column
+% Return unless it's a cell that contains start value or lower or upper bound
+startColumn = 3; % start value column
+lbColumn = 4; % lower-bound column
+ubColumn = 5; % upper-bound column
+startedit = cidx==startColumn;
 lbedit = cidx==lbColumn;
 ubedit = cidx==ubColumn;
-if ~lbedit && ~ubedit, return; end
-
-% Get lower and upper bounds of interval from table
-lower = str2double(hTable.Data{ridx,lbColumn});
-upper = str2double(hTable.Data{ridx,ubColumn});
+if ~startedit && ~lbedit && ~ubedit, return; end
 
 % Convert user-entered string to number
 newval = str2double(callbackData.EditData);
@@ -1397,11 +1405,29 @@ if numel(newval)~=1 || isnan(newval) || ~isreal(newval)
   return
 end
 
+% Get start value, lower and upper bounds of interval from table
+start = str2double(hTable.Data{ridx,startColumn});
+lower = str2double(hTable.Data{ridx,lbColumn});
+upper = str2double(hTable.Data{ridx,ubColumn});
+
 % Set new lower/upper bound
-if lbedit
+if startedit
+  start = newval;
+  if start<lower || start>upper
+    warning('Start value outside range. Reverting edit.');
+    hTable.Data{ridx,cidx} = callbackData.PreviousData;
+    return
+  end
+elseif lbedit
   lower = newval;
+  if lower>start
+    start = lower;
+  end
 elseif ubedit
   upper = newval;
+  if upper<start
+    start = upper;
+  end
 end
 
 % Revert if lower bound would be above upper bound
@@ -1411,7 +1437,8 @@ if lower>upper
   return
 end
 
-% Update lower and upper bounds
+% Update start value, lower and upper bounds
+esfitdata.p_start(ridx) = start;
 esfitdata.pvec_lb(ridx) = lower;
 esfitdata.pvec_ub(ridx) = upper;
 
@@ -1435,7 +1462,7 @@ else
   clf(hFig);
 end
 
-sz = [1250 800]; % figure size
+sz = [1350 800]; % figure size
 screensize = get(0,'ScreenSize');
 xpos = ceil((screensize(3)-sz(1))/2); % center the figure on the screen horizontally
 ypos = ceil((screensize(4)-sz(2))/2); % center the figure on the screen vertically
@@ -1465,7 +1492,7 @@ ParTableh = hPtop-spacing;
 ParTablex0 = spacing;
 ParTabley0 = sz(2)-hPtop-spacing;
 ParTableColw = 85;
-ParTablew = 8*ParTableColw+hElement+dh;
+ParTablew = 9*ParTableColw+hElement+dh;
 
 Optionsx0 = ParTablex0+ParTablew+spacing;
 Optionsy0 = ParTabley0+44;
@@ -1523,20 +1550,21 @@ showmaskedregions();
 
 % Parameter table
 %-------------------------------------------------------------------------------
-columnname = {'','Name','lower','upper','current','best','std','ci95 lower','ci95 upper'};
-columnformat = {'logical','char','char','char','char','char','char','char','char'};
-colEditable = [true false true true false false false false false];
-data = cell(numel(esfitdata.pinfo),9);
+columnname = {'','Name','start','lower','upper','current','best','stdev','ci95 lower','ci95 upper'};
+columnformat = {'logical','char','char','char','char','char','char','char','char','char'};
+colEditable = [true false true true true false false false false false];
+data = cell(numel(esfitdata.pinfo),10);
 for p = 1:numel(esfitdata.pinfo)
   data{p,1} = true;
   data{p,2} = char(esfitdata.pinfo(p).Name);
-  data{p,3} = sprintf('%0.6g',esfitdata.pvec_lb(p));
-  data{p,4} = sprintf('%0.6g',esfitdata.pvec_ub(p));
-  data{p,5} = '-';
+  data{p,3} = sprintf('%0.6g',esfitdata.p_start(p));
+  data{p,4} = sprintf('%0.6g',esfitdata.pvec_lb(p));
+  data{p,5} = sprintf('%0.6g',esfitdata.pvec_ub(p));
   data{p,6} = '-';
   data{p,7} = '-';
   data{p,8} = '-';
   data{p,9} = '-';
+  data{p,10} = '-';
 end
 uitable('Tag','ParameterTable',...
     'FontSize',8,...
@@ -1545,7 +1573,7 @@ uitable('Tag','ParameterTable',...
     'ColumnName',columnname,...
     'ColumnEditable',colEditable,...
     'CellEditCallback',@tableCellEditCallback,...
-    'ColumnWidth',{hElement,ParTableColw,ParTableColw,ParTableColw,ParTableColw,ParTableColw,ParTableColw,ParTableColw,ParTableColw},...
+    'ColumnWidth',{hElement,ParTableColw,ParTableColw,ParTableColw,ParTableColw,ParTableColw,ParTableColw,ParTableColw,ParTableColw,ParTableColw},...
     'RowName',[],...
     'Data',data);
 x0shift = ParTablew-3*wButton1;
@@ -1713,27 +1741,26 @@ uicontrol(hFig,'Style','pushbutton',...
     'Tag','ResetButton',...
     'String','Reset',...
     'Callback',@resetCallback,...
-    'Enable','off',...
-    'Tooltip','Reset simulation',...
+    'Enable','on',...
+    'Tooltip','Clear fit history',...
     'Position',[Buttonsx0 Buttonsy0-dh wButton2 1.5*hElement]);
 
-% Iteration and rms error displays
+% Iteration and rmsd history displays
 %-------------------------------------------------------------------------------
 uicontrol('Style','text',...
     'Position',[Rmsdx0 Rmsdy0+Rmsdh+4.5*hElement Rmsdw hElement],...
     'BackgroundColor',get(gcf,'Color'),...
-    'FontWeight','bold','String','RMSD',...
+    'FontWeight','bold','String','RMSD history',...
     'HorizontalAl','left');
 
 h = uicontrol('Style','text','Position',[Rmsdx0 Rmsdy0+Rmsdh+3.5*hElement Rmsdw hElement]);
-set(h,'FontSize',8,'String',' RMSD: -','ForegroundColor',[0 0 1],'Tooltip','Current best RMSD');
+set(h,'FontSize',8,'String',' RMSD: -','ForegroundColor',[0 0.6 0],'Tooltip','Current best RMSD');
 set(h,'Tag','RmsText','HorizontalAl','left');
 
 hAx = axes('Parent',hFig,'Units','pixels','Position',[Rmsdx0 Rmsdy0+2.5*hElement Rmsdw-spacing Rmsdh],'Layer','top');
 h = plot(hAx,1,NaN,'.');
 set(h,'Tag','rmsdline','MarkerSize',5,'Color',[0.2 0.2 0.8]);
 set(gca,'FontSize',7,'YScale','lin','XTick',[],'YAxisLoc','right','Layer','top','YGrid','on');
-title('log10(RMSD)','Color','k','FontSize',7,'FontWeight','normal');
 
 h = uicontrol('Style','text','Position',[Rmsdx0 Rmsdy0 0.9*Rmsdw 2*hElement]);
 set(h,'FontSize',7,'Tag','logLine','Tooltip','Information from fitting algorithm');
