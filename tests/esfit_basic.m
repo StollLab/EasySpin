@@ -10,19 +10,17 @@ Exp.mwRange = [9.5 10.5];
 
 [nu,spc] = pepper(Sys,Exp);
 rng(1)
-spc = addnoise(spc,50,'u');
+spc = addnoise(spc,50,'n');
 
 Vary.g = [0.02 0.02]; 
 Opt = struct;
-FitOpt.PrintLevel = 0;
+FitOpt.Verbosity = 0;
 FitOpt.Method = 'levmar fcn';
-[~,spcfit,resid] = esfit(@pepper,spc,Sys,Vary,Exp,Opt,FitOpt);
+result = esfit(spc,@pepper,{Sys,Exp,Opt},{Vary},FitOpt);
 
-rmsd = sqrt(mean(resid.^2));
-
-ok = rmsd<3e-2;
+ok = result.rmsd/max(result.fit)<3e-2;
 
 if opt.Display
-  plot(nu,spc,nu,spcfit);
+  plot(nu,spc,nu,result.fit);
   legend('exp','fit');
 end

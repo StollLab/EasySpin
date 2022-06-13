@@ -198,8 +198,8 @@ for iTest = 1:numel(TestFileNames)
   
   outcomeStr = OutcomeStrings{testResults(iTest).outcome+1};
   
-  if ~all(ok) && ~displayTimings
-    outcomeStr = [outcomeStr '  ' num2str(find(~ok))];
+  if ~all(ok(:)) && ~displayTimings
+    outcomeStr = [outcomeStr '  ' num2str(find(~ok(:)))];
   end
   
   if ~isempty(data)

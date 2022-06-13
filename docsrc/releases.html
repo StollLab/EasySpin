@@ -34,6 +34,7 @@ $ReleaseID$
 
 <p>Major new features</p>
 <ul>
+<li>Major overhaul of <a class="esf" href="esfit.html">esfit</a>, including calculation of parameter uncertainties.</li>
 <li><a class="esf" href="cardamom.html">cardamom</a> can simulate dynamic cw EPR spectra from stochastic trajectories, molecular dynamics (MD) trajectories, and Markov-state jump models.
 <li><a class="esf" href="stochtraj_diffusion.html">stochtraj_diffusion</a> and <a class="esf" href="stochtraj_jump.html">stochtraj_jump</a> calculate stochastic rotational trajectories for Brownian diffusion and discrete jump models.
 <li><a class="esf" href="chili.html">chili</a> supports arbitrary spin systems as well as general orientational potentials (for hindered diffusion).
@@ -63,6 +64,8 @@ $ReleaseID$
 
 <p>Incompatible changes</p>
 <ul>
+<li>The interface of <a class="esf">esfit</a> has changed completely. Refer to the <a class="esf">esfit</a>" documentation for details.
+<li>The <code>Scaling</code> option of </code><a class="esf" href="esfit.html">esfit</a> has been removed. Use <code>FitOpt.AutoScale</code> instead.
 <li>The interface of <a class="esf" href="hfine.html">hfine</class> has changed.
 <li>The field <code>Sys.orf</code> (orbital reduction factor) has been removed. Instead, use <code>Sys.gL</code> to specify the orbital g factor, and <code>Sys.soc</code> to specify the strength of the spin-orbit coupling.</li>
 <li>The function <code>rescale</code> has been renamed to </code><a class="esf" href="rescaledata.html">rescaledata</a> to avoid conflict with an identically named MATLAB function.

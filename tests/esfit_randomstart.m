@@ -12,15 +12,13 @@ Vary.lw = 2;
 
 rng(123);
 FitOpt.RandomStart = 1;
-FitOpt.PrintLevel = 0;
+FitOpt.Verbosity = 0;
 
-[spcfit,~,residuals] = esfit(@pepper,spc,Sys,Vary,Exp,[],FitOpt);
+result = esfit(spc,@pepper,{Sys,Exp},{Vary},FitOpt);
 
-rmsd = sqrt(sum(residuals.^2));
-
-ok = rmsd<0.01;
+ok = result.rmsd/max(result.fit)<0.01;
 
 if opt.Display
-  plot(B,spc,B,spcfit);
+  plot(B,spc,B,result.fit);
   legend('exp','fit');
 end

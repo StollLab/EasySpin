@@ -20,11 +20,11 @@ rng(100)
 Vary.g = [0.01 0.01]; 
 Opt = struct;
 
-FitOpt.PrintLevel = 0;
+FitOpt.Verbosity = 0;
 FitOpt.nTrials = 300;
 
 FitOpt.Method = [fitAlg ' ' dataMethod];
-[~,~,resid] = esfit(@pepper,spc,Sys,Vary,Exp,Opt,FitOpt);
-rmsd = sqrt(mean(resid.^2));
+result = esfit(spc,@pepper,{Sys,Exp,Opt},{Vary},FitOpt);
+rmsd = result.rmsd/max(result.fit);
 
 ok = rmsd<0.005;
