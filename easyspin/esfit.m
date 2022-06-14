@@ -502,6 +502,7 @@ lb = esfitdata.pvec_lb;
 ub = esfitdata.pvec_ub;
 
 esfitdata.best.rmsd = inf;
+esfitdata.best.rmsdtarget = inf;
 
 % Run minimization over space of active parameters
 %-------------------------------------------------------------------------------
@@ -748,9 +749,10 @@ esfitdata.curr.baseline = baseline;
 if Opt.track
   esfitdata.rmsdhistory = [esfitdata.rmsdhistory rmsd0];
 
-  isNewBest = rmsd<esfitdata.best.rmsd;
+  isNewBest = rmsd<esfitdata.best.rmsdtarget;
   if isNewBest
     esfitdata.best.residuals = residuals0;
+    esfitdata.best.rmsdtarget = rmsd;
     esfitdata.best.rmsd = rmsd0;
     esfitdata.best.fit = simdata;
     esfitdata.best.scale = simscale;
@@ -828,7 +830,7 @@ if info.newbest
 
   str = sprintf('Current best RMSD: %g\n',esfitdata.best.rmsd);
   hRmsText = findobj('Tag','RmsText');
-  set(hRmsText,'String',str);
+  set(hRmsText,'String',str,'ForegroundColor',[0 0.6 0]);
 
   for p = 1:nParams
     oldvaluestring = striphtml(data{p,7});
@@ -984,6 +986,11 @@ for p = 1:size(Data,1)
 end
 set(hTable,'Data',Data);
 
+% Get fixed parameters
+for p = 1:esfitdata.nParameters
+  esfitdata.fixedParams(p) = Data{p,1}==0;
+end
+
 % Disable fitset list controls
 set(findobj('Tag','deleteSetButton'),'Enable','off');
 set(findobj('Tag','exportSetButton'),'Enable','off');
@@ -1002,11 +1009,6 @@ esfitdata.Opts.TargetID = get(findobj('Tag','TargetMenu'),'Value');
 esfitdata.Opts.AutoScale = get(findobj('Tag','AutoScaleCheckbox'),'Value');
 esfitdata.Opts.BaseLine = esfitdata.BaseLineSettings{get(findobj('Tag','BaseLineMenu'),'Value')};
 esfitdata.Opts.useMask = get(findobj('Tag','MaskCheckbox'),'Value')==1;
-
-% Get fixed parameters
-for p = 1:esfitdata.nParameters
-  esfitdata.fixedParams(p) = Data{p,1}==0;
-end
 
 % Run fitting
 %-------------------------------------------------------------------------------
@@ -1110,6 +1112,50 @@ end
 %===============================================================================
 function evaluateCallback(~,~)
 % Evaluate for selected parameters
+global esfitdata
+p_eval = esfitdata.p_start;
+active = ~esfitdata.fixedParams;
+p_eval = p_eval(active);
+expdata = esfitdata.data(:);
+esfitdata.Opts.AutoScale = get(findobj('Tag','AutoScaleCheckbox'),'Value');
+esfitdata.Opts.BaseLine = esfitdata.BaseLineSettings{get(findobj('Tag','BaseLineMenu'),'Value')};
+esfitdata.Opts.useMask = get(findobj('Tag','MaskCheckbox'),'Value')==1;
+Opt = esfitdata.Opts;
+Opt.track = false;
+[~,rmsd] = residuals_(p_eval,expdata,Opt);
+
+% Get current spectrum
+currsim = real(esfitdata.curr.sim(:));
+
+% Update plotted data
+x = esfitdata.Opts.x(:);
+set(findobj('Tag','currsimdata'),'XData',x,'YData',currsim);
+
+% Readjust vertical range
+mask = esfitdata.Opts.mask;
+if isfield(esfitdata,'best') && isfield(esfitdata.best,'fit')
+  bestsim = real(esfitdata.best.fit(:));
+else
+  bestsim = zeros(size(currsim));
+end
+plottedData = [expdata(mask); bestsim; currsim];
+maxy = max(plottedData);
+miny = min(plottedData);
+YLimits = [miny maxy] + [-1 1]*esfitdata.Opts.PlotStretchFactor*(maxy-miny);
+set(findobj('Tag','dataaxes'),'YLim',YLimits);
+drawnow
+
+% Readjust mask patches
+maskPatches = findobj('Tag','maskPatch');
+for mp = 1:numel(maskPatches)
+  maskPatches(mp).YData = YLimits([1 1 2 2]).';
+end
+
+% Update column with best values if current parameter set is new best
+str = sprintf('Current RMSD: %g\n',rmsd);
+hRmsText = findobj('Tag','RmsText');
+set(hRmsText,'String',str,'ForegroundColor',[1 0 0]);
+
 end
 %===============================================================================
 
@@ -1209,6 +1255,15 @@ if ~isempty(str)
     data = get(hTable,'data');
     for p = 1:numel(values)
       data{p,7} = sprintf('%0.6g',values(p));
+      if ~isempty(fitset.pstd)
+        data{p,8} = sprintf('%0.6g',fitset.pstd(p));
+        data{p,9} = sprintf('%0.6g',fitset.ci95(p,1));
+        data{p,10} = sprintf('%0.6g',fitset.ci95(p,2));
+      else
+        data{p,8} = '-';
+        data{p,9} = '-';
+        data{p,10} = '-';
+      end
     end
     set(hTable,'Data',data);
 
@@ -1364,6 +1419,15 @@ hTable = callbackData.Source;
 ridx = callbackData.Indices(1);
 cidx = callbackData.Indices(2);
 
+if cidx==1
+  allParamsFixed = all(~cell2mat(hTable.Data(:,1)));
+  if allParamsFixed
+    set(findobj('Tag','StartButton'),'Enable','off');
+  else
+    set(findobj('Tag','StartButton'),'Enable','on');
+  end
+end
+
 % Return unless it's a cell that contains start value or lower or upper bound
 startColumn = 3; % start value column
 lbColumn = 4; % lower-bound column
@@ -1439,8 +1503,9 @@ else
   figure(hFig);
   clf(hFig);
 end
+set(hFig,'Visible','off')
 
-sz = [1350 800]; % figure size
+sz = [1330 800]; % figure size
 screensize = get(0,'ScreenSize');
 xpos = ceil((screensize(3)-sz(1))/2); % center the figure on the screen horizontally
 ypos = ceil((screensize(4)-sz(2))/2); % center the figure on the screen vertically
@@ -1452,8 +1517,8 @@ set(hFig,'CloseRequestFcn',...
     'global esfitdata; esfitdata.UserCommand = 99; drawnow; delete(gcf);');
   
 spacing = 30;
-hPtop = 200;
-wPright = 250;
+hPtop = 180;
+wPright = 230;
 
 Axesw = sz(1)-2*spacing-wPright;
 Axesh = sz(2)-2.5*spacing-hPtop;
@@ -1461,24 +1526,26 @@ Axesh = sz(2)-2.5*spacing-hPtop;
 Prightstart = sz(1)-wPright-0.5*spacing; % Start of display to the right of the axes
 
 hElement = 20; % height of popup menu, checkboxes, small buttons
-wButton1 = 50;
-wButton2 = 170;
-hButton2 = 70;
+wButton1 = 60;
+hButton1 = 1.2*hElement;
+wButton2 = wPright-spacing;
+hButton2 = 80;
+hButton2b = 0.5*hButton2;
 dh = 4; % spacing (height)
 
-ParTableh = hPtop-spacing;
+ParTableh = hPtop-10;
 ParTablex0 = spacing;
 ParTabley0 = sz(2)-hPtop-spacing;
 ParTableColw = 85;
 ParTablew = 9*ParTableColw+hElement+dh;
 
-Optionsx0 = ParTablex0+ParTablew+spacing;
+Optionsx0 = ParTablex0+ParTablew+0.5*spacing;
 Optionsy0 = ParTabley0+44;
 wOptionsLabel = 80;
 wOptionsSel = 150;
 
-Buttonsx0 = ParTablex0+ParTablew+wOptionsLabel+wOptionsSel+2.5*spacing;
-Buttonsy0 = 608;
+Buttonsx0 = ParTablex0+ParTablew+wOptionsLabel+wOptionsSel+1.5*spacing;
+Buttonsy0 = sz(2)-hPtop-spacing+dh;
 
 ErrorLogx0 = Prightstart;
 ErrorLogy0 = spacing;
@@ -1486,14 +1553,14 @@ ErrorLogw = wPright;
 ErrorLogh = 110;
 
 FitSetx0 = Prightstart;
-FitSety0 = ErrorLogy0+ErrorLogh+1.5*hElement;
+FitSety0 = ErrorLogy0+ErrorLogh+2*hElement;
 FitSetw = wPright;
-FitSeth = 110;
+FitSeth = 125;
 
 Rmsdx0 = Prightstart;
 Rmsdy0 = FitSety0+FitSeth+2*hElement;
 Rmsdw = wPright;
-Rmsdh = 120;
+Rmsdh = 125;
 
 % Axes
 %-------------------------------------------------------------------------------
@@ -1554,35 +1621,37 @@ uitable('Tag','ParameterTable',...
     'ColumnWidth',{hElement,ParTableColw,ParTableColw,ParTableColw,ParTableColw,ParTableColw,ParTableColw,ParTableColw,ParTableColw,ParTableColw},...
     'RowName',[],...
     'Data',data);
+ParTableLabely0 = ParTabley0+ParTableh+dh;
 uicontrol('Style','text',...
-    'Position',[ParTablex0 ParTabley0+ParTableh 2*wButton1 hElement],...
+    'Position',[ParTablex0 ParTableLabely0 2*wButton1 hElement],...
     'BackgroundColor',get(gcf,'Color'),...
     'FontWeight','bold','String','Parameters',...
     'HorizontalAl','left');
 
-x0shift = ParTablew-4.5*wButton1-7*wButton1;
+x0shift = ParTablew-4.5*wButton1-6*wButton1;
+ParTableButtony0 = ParTableLabely0+dh/4;
 uicontrol('Style','text',...
-    'Position',[ParTablex0+x0shift-0.5*wButton1 ParTabley0+ParTableh 1.5*wButton1 hElement],...
+    'Position',[ParTablex0+x0shift-0.2*wButton1 ParTableLabely0 1.2*wButton1 hElement],...
     'BackgroundColor',get(gcf,'Color'),...
     'FontWeight','bold','String','Start point:',...
     'HorizontalAl','left');
 uicontrol('Style','pushbutton','Tag','selectStartPointButtonCenter',...
-    'Position',[ParTablex0+x0shift+wButton1 ParTabley0+ParTableh+dh/2 wButton1 hElement],...
+    'Position',[ParTablex0+x0shift+wButton1 ParTableButtony0 wButton1 hButton1],...
     'String','center','Enable','on','Callback',@(src,evt) setStartPoint('center'),...
     'HorizontalAl','left',...
     'Tooltip','Set start values to center of range');
 uicontrol('Style','pushbutton','Tag','selectStartPointButtonRandom',...
-    'Position',[ParTablex0+x0shift+2*wButton1 ParTabley0+ParTableh+dh/2 wButton1 hElement],...
+    'Position',[ParTablex0+x0shift+2*wButton1 ParTableButtony0 wButton1 hButton1],...
     'String','random','Enable','on','Callback',@(src,evt) setStartPoint('random'),...
     'HorizontalAl','left',...
     'Tooltip','Set random start values');
 uicontrol('Style','pushbutton','Tag','selectStartPointButtonSelected',...
-    'Position',[ParTablex0+x0shift+3*wButton1 ParTabley0+ParTableh+dh/2 wButton1 hElement],...
+    'Position',[ParTablex0+x0shift+3*wButton1 ParTableButtony0 wButton1 hButton1],...
     'String','selected','Enable','on','Callback',@(src,evt) setStartPoint('selected'),...
     'HorizontalAl','left',...
     'Tooltip','Set start values from selected fit result');
 uicontrol('Style','pushbutton','Tag','selectStartPointButtonBest',...
-    'Position',[ParTablex0+x0shift+4*wButton1 ParTabley0+ParTableh+dh/2 wButton1 hElement],...
+    'Position',[ParTablex0+x0shift+4*wButton1 ParTableButtony0 wButton1 hButton1],...
     'String','best','Enable','on','Callback',@(src,evt) setStartPoint('best'),...
     'HorizontalAl','left',...
     'Tooltip','Set start values to current best fit');
@@ -1590,22 +1659,22 @@ uicontrol('Style','pushbutton','Tag','selectStartPointButtonBest',...
   
 x0shift = ParTablew-4*wButton1;
 uicontrol('Style','text',...
-    'Position',[ParTablex0+x0shift-0.5*wButton1 ParTabley0+ParTableh 1.5*wButton1 hElement],...
+    'Position',[ParTablex0+x0shift-0.2*wButton1 ParTableLabely0 1.2*wButton1 hElement],...
     'BackgroundColor',get(gcf,'Color'),...
     'FontWeight','bold','String','Selection:',...
     'HorizontalAl','left');
 uicontrol('Style','pushbutton','Tag','selectInvButton',...
-    'Position',[ParTablex0+x0shift+wButton1 ParTabley0+ParTableh+dh/2 wButton1 hElement],...
+    'Position',[ParTablex0+x0shift+wButton1 ParTableButtony0 wButton1 hButton1],...
     'String','invert','Enable','on','Callback',@selectInvButtonCallback,...
     'HorizontalAl','left',...
     'Tooltip','Invert selection of parameters');
 uicontrol('Style','pushbutton','Tag','selectAllButton',...
-    'Position',[ParTablex0+x0shift+2*wButton1 ParTabley0+ParTableh+dh/2 wButton1 hElement],...
+    'Position',[ParTablex0+x0shift+2*wButton1 ParTableButtony0 wButton1 hButton1],...
     'String','all','Enable','on','Callback',@selectAllButtonCallback,...
     'HorizontalAl','left',...
     'Tooltip','Select all parameters');
 uicontrol('Style','pushbutton','Tag','selectNoneButton',...
-    'Position',[ParTablex0+x0shift+3*wButton1 ParTabley0+ParTableh+dh/2 wButton1 hElement],...
+    'Position',[ParTablex0+x0shift+3*wButton1 ParTableButtony0 wButton1 hButton1],...
     'String','none','Enable','on','Callback',@selectNoneButtonCallback,...
     'HorizontalAl','left',...
     'Tooltip','Unselect all parameters');
@@ -1695,7 +1764,7 @@ uicontrol(hFig,'Style','pushbutton',...
     'Callback',@clearMaskCallback,...
     'Enable','on',...
     'Tooltip','Clear mask',...
-    'Position',[Optionsx0+wMaskEl Optionsy0-dh wMaskEl 1.2*hElement]);
+    'Position',[Optionsx0+wMaskEl Optionsy0-dh wMaskEl hButton1]);
 
 % Start/Stop buttons
 %--------------------------------------------------------------------------
@@ -1705,45 +1774,45 @@ uicontrol(hFig,'Style','pushbutton',...
     'Callback',@startButtonCallback,...
     'Visible','on',...
     'Tooltip','Start fitting',...
-    'Position',[Buttonsx0 Buttonsy0-dh+4.5*hElement wButton2 hButton2]);
+    'Position',[Buttonsx0 Buttonsy0-dh+3*hButton2b wButton2 hButton2]);
 uicontrol(hFig,'Style','pushbutton',...
     'Tag','StopButton',...
     'String','Stop fitting',...
     'Visible','off',...
     'Tooltip','Stop fitting',...
     'Callback','global esfitdata; esfitdata.UserCommand = 1;',...
-    'Position',[Buttonsx0 Buttonsy0-dh+4.5*hElement wButton2 hButton2]);
+    'Position',[Buttonsx0 Buttonsy0-dh+3*hButton2b wButton2 hButton2]);
 uicontrol(hFig,'Style','pushbutton',...
     'Tag','SaveButton',...
     'String','Save parameter set',...
     'Callback',@saveFitsetCallback,...
     'Enable','off',...
     'Tooltip','Save latest fitting result',...
-    'Position',[Buttonsx0 Buttonsy0-dh+3*hElement wButton2 1.5*hElement]);
+    'Position',[Buttonsx0 Buttonsy0-dh+2*hButton2b wButton2 hButton2b]);
 uicontrol(hFig,'Style','pushbutton',...
     'Tag','EvaluateButton',...
-    'String','Evaluate at current point',...
+    'String','Evaluate at start point',...
     'Callback',@evaluateCallback,...
-    'Enable','off',...
-    'Tooltip','Run simulation for current parameters',...
-    'Position',[Buttonsx0 Buttonsy0-dh+1.5*hElement wButton2 1.5*hElement]);
+    'Enable','on',...
+    'Tooltip','Run simulation for current start parameters',...
+    'Position',[Buttonsx0 Buttonsy0-dh+hButton2b wButton2 hButton2b]);
 uicontrol(hFig,'Style','pushbutton',...
     'Tag','ResetButton',...
     'String','Reset',...
     'Callback',@resetCallback,...
     'Enable','on',...
     'Tooltip','Clear fit history',...
-    'Position',[Buttonsx0 Buttonsy0-dh wButton2 1.5*hElement]);
+    'Position',[Buttonsx0 Buttonsy0-dh wButton2 hButton2b]);
 
 % Iteration and rmsd history displays
 %-------------------------------------------------------------------------------
 uicontrol('Style','text',...
-    'Position',[Rmsdx0 Rmsdy0+Rmsdh+4.5*hElement Rmsdw hElement],...
+    'Position',[Rmsdx0 Rmsdy0+Rmsdh+4*hElement Rmsdw hElement],...
     'BackgroundColor',get(gcf,'Color'),...
     'FontWeight','bold','String','RMSD history',...
     'HorizontalAl','left');
 
-h = uicontrol('Style','text','Position',[Rmsdx0 Rmsdy0+Rmsdh+3.5*hElement Rmsdw hElement]);
+h = uicontrol('Style','text','Position',[Rmsdx0 Rmsdy0+Rmsdh+3*hElement Rmsdw hElement]);
 set(h,'FontSize',8,'String',' RMSD: -','ForegroundColor',[0 0.6 0],'Tooltip','Current best RMSD');
 set(h,'Tag','RmsText','HorizontalAl','left');
 
@@ -1758,7 +1827,6 @@ set(h,'Horizontal','left');
 
 % Fitset list
 %-------------------------------------------------------------------------------
-% x0shift = FitSetw - 4*wButton1;
 x0shift = 0;
 wButton1 = FitSetw/4;
 uicontrol('Style','text','Tag','SetListTitle',...
@@ -1799,16 +1867,19 @@ uicontrol(hFig,'Style','pushbutton','Tag','deleteSetButton',...
 uicontrol('Style','text',...
     'Position',[ErrorLogx0 ErrorLogy0+ErrorLogh ErrorLogw hElement],...
     'BackgroundColor',get(gcf,'Color'),...
-    'FontWeight','bold','String','Error log',...
+    'FontWeight','bold','String','Error messages',...
     'Tooltip','Error message logging',...
     'HorizontalAl','left');
-uicontrol(hFig,'Style','listbox','Tag','ErrorLogBox',...
+uicontrol(hFig,'Style','text','Tag','ErrorLogBox',...
     'Position',[ErrorLogx0 ErrorLogy0 ErrorLogw ErrorLogh],...
     'String','','Tooltip','',...
+    'Min',1,'Max',25,...
+    'HorizontalAlignment','left',...
     'BackgroundColor',[1 1 1])
 
 drawnow
 
+set(hFig,'Visible','on')
 set(hFig,'NextPlot','new');
 
 end
@@ -1850,7 +1921,7 @@ switch sel
     end
   case 'best'
     if isfield(esfitdata,'best') && ~isempty(esfitdata.best)
-      p_start = esfitdata.best.pfit;
+      p_start(activeParams) = esfitdata.best.pfit;
     end
 end
 esfitdata.p_start = p_start;
