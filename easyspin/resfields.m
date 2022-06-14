@@ -173,6 +173,16 @@ end
 
 if ~isfield(Opt,'Sites'), Opt.Sites = []; end
 
+% Laser photoexcitation
+if ~isfield(Exp,'laserPolDir'), Exp.laserMode = ''; end
+usePhotoExcitation = ~isempty(Exp.laserPolDir); 
+if ~isfield(Exp,'laserDepolarization'), Exp.laserDepolarization = 0; end
+
+if usePhotoExcitation
+  if ~isfield(System,'tdm')
+    error('To include photoexcitation weights, Sys.tdm must be given.');
+  end
+end
 
 % Process crystal orientations, crystal symmetry, and frame transforms
 [Orientations,nOrientations,nSites,averageOverChi] = p_crystalorientations(Exp,Opt);
@@ -889,6 +899,16 @@ for iOri = 1:nOrientations
   if computeStrains
     LineWidthSquared = HStrain2*zLab_M.^2;
   end
+
+  % Pre-calculate photoexcitation weight if needed
+  if usePhotoExcitation
+    ori = Orientations(iOri,1:2);
+    photoWeight1 = photoexcitationweight(System.tdm,Exp.laserPolDir,[ori 0],Exp.laserDepolarization);
+    photoWeight2 = photoexcitationweight(System.tdm,Exp.laserPolDir,[ori pi/2],Exp.laserDepolarization);
+    photoWeight = (photoWeight1+photoWeight2)/2; % integrated over chi
+  else
+    photoWeight = 1;
+  end
   
   %===========================================================
   % Iterative bisection
@@ -1192,7 +1212,7 @@ for iOri = 1:nOrientations
           end
           
           % Update intensity results array
-          Idat(iiTrans,iOri) = dBdE * TransitionRate * Polarization;
+          Idat(iiTrans,iOri) = dBdE * TransitionRate * Polarization * photoWeight;
           % dBdE proportionality not valid near looping field coalescences!
         end
         
