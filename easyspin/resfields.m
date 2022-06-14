@@ -173,10 +173,10 @@ end
 
 if ~isfield(Opt,'Sites'), Opt.Sites = []; end
 
-% Laser photoexcitation
-if ~isfield(Exp,'laserPolDir'), Exp.laserMode = ''; end
-usePhotoExcitation = ~isempty(Exp.laserPolDir); 
-if ~isfield(Exp,'laserDepolarization'), Exp.laserDepolarization = 0; end
+% Photoexcitation
+if ~isfield(Exp,'lightPolDir'), Exp.lightPolDir = ''; end
+usePhotoExcitation = ~isempty(Exp.lightPolDir); 
+if ~isfield(Exp,'lightPolarization'), Exp.lightPolarization = 1; end
 
 if usePhotoExcitation
   if ~isfield(System,'tdm')
@@ -903,8 +903,8 @@ for iOri = 1:nOrientations
   % Pre-calculate photoexcitation weight if needed
   if usePhotoExcitation
     ori = Orientations(iOri,1:2);
-    photoWeight1 = photoexcitationweight(System.tdm,Exp.laserPolDir,[ori 0],Exp.laserDepolarization);
-    photoWeight2 = photoexcitationweight(System.tdm,Exp.laserPolDir,[ori pi/2],Exp.laserDepolarization);
+    photoWeight1 = photoexcitationweight(System.tdm,Exp.lightPolDir,[ori 0],Exp.lightPolarization);
+    photoWeight2 = photoexcitationweight(System.tdm,Exp.lightPolDir,[ori pi/2],Exp.lightPolarization);
     photoWeight = (photoWeight1+photoWeight2)/2; % integrated over chi
   else
     photoWeight = 1;

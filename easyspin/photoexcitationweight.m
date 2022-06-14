@@ -1,6 +1,6 @@
 % photoexcitationweight Calculate photoexcitation weight
 %
-% weight = photoexcitationweight(tdmAngles,poldir,labFrame,depol)
+% weight = photoexcitationweight(tdmAngles,poldir,labFrame,pol)
 %
 % Inputs:
 %   tdmAngles       [phi theta] angles of transition dipole moment vector
@@ -12,17 +12,22 @@
 %   labFrame        [phi theta chi] angles of lab frame in molecular frame;
 %                     phi and theta determine the direction of B0 (lab z)
 %                     chi additionally determines the direction of lab x and y
-%   depol           fraction of depolarized light, between 0 and 1
+%   pol             degree of polarization, between 0 and 1
 %
 % Outputs:
 %   weight          photoexcitation weight, between 0 and 1
 %                   0 means no, 1 indicates maximal photoexcitation
 
-function weight = photoexcitationweight(tdmAngles,poldir,labFrame,depol)
+function weight = photoexcitationweight(tdmAngles,poldir,labFrame,pol)
 
 if isempty(poldir)
   weight = 1;
   return
+end
+
+% Assume full polarization if pol is not given
+if nargin<4
+  pol = 1;
 end
 
 % Calculate tdm unit vector in lab frame representation
@@ -47,8 +52,8 @@ end
 % Calculate weight for polarized excitation
 weight_pol = abs(tdm_lab'*Edir_lab)^2;
 
-% Calculate total weight, including depolarized contribution
-weight_depol = 1; % weight for complete depolarization
-weight = depol*weight_depol + (1-depol)*weight_pol;
+% Calculate total weight, including unpolarized contribution
+weight_unpol = 1; % weight for completely unpolarized light
+weight = pol*weight_pol + (1-pol)*weight_unpol;
 
 end
