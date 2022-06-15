@@ -271,40 +271,39 @@ else
   logmsg(1,'  using full matrices');
 end
 
-CoreSys = Sys;
-
 % Perturbational treatment of SHF nuclei
-if (CoreSys.nNuclei>=1) && Opt.Hybrid
+if Sys.nNuclei>=1 && Opt.Hybrid
   if Opt.Sparse
     error('Cannot use sparse matrices in hybrid mode.');
+  end 
+  if any(Opt.HybridCoreNuclei>Sys.nNuclei)
+    error('At least one entry in Opt.HybridCoreNuclei is incorrect. There are only %d nuclei.',Sys.nNuclei);
   end
-    
-  if any(Opt.HybridCoreNuclei>CoreSys.nNuclei)
-    error('Opt.HybridCoreNuclei is incorrect!');
-  end
-  perturbNuclei = ones(1,CoreSys.nNuclei);
-  perturbNuclei(Opt.HybridCoreNuclei) = 0;
-  
-  idx = find(perturbNuclei);
+
+  perturbNuclei = true(1,Sys.nNuclei);
+  perturbNuclei(Opt.HybridCoreNuclei) = false;  
+  idxPerturbNuclei = find(perturbNuclei);
   % :TODO: Allow 1st-order PT only if (2nd-order) error smaller than field increment.
-  nPerturbNuclei = numel(idx);
-  str1 = sprintf('%d ',idx);
-  if isempty(str1), str1 = 'none'; end
-  logmsg(1,['  nuclei with first-order treatment: ' str1]);
+  nPerturbNuclei = numel(idxPerturbNuclei);
+  if nPerturbNuclei==0
+    str_ = 'none';
+  else
+    str_ = sprintf('%d ',idxPerturbNuclei);
+  end
+  logmsg(1,['  nuclei with first-order perturbation treatment: ' str_]);
   
   % Remove perturbational nuclei from core system
-  CoreSys = nucspinrmv(CoreSys,idx);
-  CoreSys.processed = 0;
+  CoreSys = nucspinrmv(Sys,idxPerturbNuclei);
+  CoreSys.processed = false;
   CoreSys = rmfield(CoreSys,'lwpp');
   [CoreSys,err] = validatespinsys(CoreSys);
   error(err);
   
   % Prepare terms for nuclear Hamiltonians
   for iiNuc = nPerturbNuclei:-1:1
-    iNuc = idx(iiNuc);
+    iNuc = idxPerturbNuclei(iiNuc);
     I = Sys.I(iNuc);
     [Ix,Iy,Iz] = sop(I,'x','y','z');
-    nPerturbTransitions(iiNuc) = (2*I+1)^2;
     
     % Hyperfine interaction
     for iElectron = 1:Sys.nElectrons
@@ -351,7 +350,7 @@ if (CoreSys.nNuclei>=1) && Opt.Hybrid
     
   end
   
-  % Components of S vectors for computing <u|S|u>
+  % Components of S vector operator for computing <u|S|u>
   for iEl = Sys.nElectrons:-1:1
     S(iEl).x = sop(CoreSys,[iEl,1]);
     S(iEl).y = sop(CoreSys,[iEl,2]);
@@ -360,6 +359,7 @@ if (CoreSys.nNuclei>=1) && Opt.Hybrid
   
 else
   nPerturbNuclei = 0;
+  CoreSys = Sys;
 end
 
 % Hamiltonian components for the core system.
@@ -386,8 +386,8 @@ end
 % This is a very crude workaround to prevent numerical issues due to degeneracies.
 % It probably adds noise in a lot of situations where it is not necessary.
 if Opt.FuzzLevel>0 && ~higherOrder && (CoreSys.nNuclei>1 || CoreSys.nElectrons>1)
-  noise = 2*rand(size(kF))-1;
-  noise = 1+Opt.FuzzLevel*(noise+noise.')/2; % make sure it's Hermitian
+  noise = 1 + Opt.FuzzLevel*(2*rand(size(kF))-1);
+  noise = (noise+noise.')/2; % make sure it's Hermitian
   kF = kF.*noise;
   kGxM = kGxM.*noise;
   kGyM = kGyM.*noise;
@@ -519,17 +519,16 @@ if computeStrains
   
   % D strain
   %-----------------------------------------------
-  [UseDStrain,dHdD,dHdE] = getdstrainops(CoreSys);
+  [useDStrain,dHdD,dHdE] = getdstrainops(CoreSys);
   
   % g-A strain
   %-------------------------------------------------
   % g strain tensor is taken to be along the g tensor itself.
-  UsegStrain = any(CoreSys.gStrain(:));
+  usegStrain = any(CoreSys.gStrain(:));
   simplegStrain = CoreSys.nElectrons==1;
-  if UsegStrain
+  if usegStrain
     logmsg(1,'  g strain present');
-    usegAStrain = true;
-    for iEl = 1:CoreSys.nElectrons
+    for iEl = CoreSys.nElectrons:-1:1
       gStrainMatrix{iEl} = diag(CoreSys.gStrain(iEl,:)./CoreSys.g(iEl,:));
       if any(CoreSys.gFrame(iEl,:))
         R_g2M = erot(CoreSys.gFrame(iEl,:)).'; % g frame -> molecular frame
@@ -538,21 +537,20 @@ if computeStrains
     end
     if ~simplegStrain
       logmsg(1,'  multiple g strains present');
-      for iEl = 1:CoreSys.nElectrons
+      for iEl = CoreSys.nElectrons:-1:1
         kSxM{iEl} = sop(CoreSys,[iEl,1]);
         kSyM{iEl} = sop(CoreSys,[iEl,2]);
         kSzM{iEl} = sop(CoreSys,[iEl,3]);
       end
     end
   else
-    usegAstrain = false;
-    for iEl = 1:CoreSys.nElectrons
+    for iEl = CoreSys.nElectrons:-1:1
       gStrainMatrix{iEl} = 0;
     end
   end
   
-  UseAStrain = (CoreSys.nNuclei>0) && any(CoreSys.AStrain(:));
-  if UseAStrain
+  useAStrain = (CoreSys.nNuclei>0) && any(CoreSys.AStrain(:));
+  if useAStrain
     if isfield(CoreSys,'AFrame')
       R = erot(CoreSys.AFrame(1,:)).'; % A frame -> molecular frame
     else
@@ -574,9 +572,9 @@ if computeStrains
     clear Ix_ Iy_ Iz_ Sx_ Sy_ Sz_
   end
   if any(CoreSys.HStrain), logmsg(2,'  ## using H strain'); end
-  if UsegStrain, logmsg(2, ' ## using g strain'); end
-  if UseAStrain, logmsg(2,'  ## using A strain'); end
-  if UseDStrain, logmsg(2,'  ## using D strain'); end
+  if usegStrain, logmsg(2, ' ## using g strain'); end
+  if useAStrain, logmsg(2,'  ## using A strain'); end
+  if useDStrain, logmsg(2,'  ## using D strain'); end
   
 else
   logmsg(1,'  no strains specified',nTransitions);
@@ -658,11 +656,7 @@ for iOri = 1:nOrientations
     % y laboratory vector: needed for integration over all B1 field orientations.
     kGyL = yLab(1)*kGxM + yLab(2)*kGyM + yLab(3)*kGzM;
     
-    if issparse(kF)
-      [Vs,E] = gethamdata(Exp.Field, kF, kGzL, [], nLevels);
-    else
-      [Vs,E] = gethamdata(Exp.Field, kF, kGzL, [], nLevels);
-    end
+    [Vs,E] = gethamdata(Exp.Field, kF, kGzL, [], nLevels);
   end
   Pdat(:,iOri) = E(v) - E(u);
   
@@ -764,7 +758,7 @@ for iOri = 1:nOrientations
       LineWidth2 = LineWidthSquared;
       
       % D strain
-      if UseDStrain
+      if useDStrain
         for iEl = 1:CoreSys.nElectrons
           LineWidth2 = LineWidth2 + abs(m(dHdD{iEl}))^2;
           LineWidth2 = LineWidth2 + abs(m(dHdE{iEl}))^2;
@@ -772,14 +766,14 @@ for iOri = 1:nOrientations
       end
       
       % A strain
-      if UseAStrain
+      if useAStrain
         LineWidth2 = LineWidth2 + abs(m(dHdAx))^2;
         LineWidth2 = LineWidth2 + abs(m(dHdAy))^2;
         LineWidth2 = LineWidth2 + abs(m(dHdAz))^2;
       end
       
       % g strain
-      if UsegStrain
+      if usegStrain
         dg2 = (m(kGzL)*Exp.Field*zLab.'*gStrainMatrix{1}*zLab)^2;
         LineWidth2 = LineWidth2 + abs(dg2);
       end
@@ -1018,4 +1012,4 @@ if ~isempty(Wdat), Wdat = Wdat(I,:); end
 Output = {Pdat,Idat,Wdat,Transitions};
 varargout = Output(1:max(nargout,1));
 
-return
+end

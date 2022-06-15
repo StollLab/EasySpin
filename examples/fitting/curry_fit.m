@@ -32,7 +32,7 @@ plot(Exp.mField,MvsBData,'+')
 title('M(B)for S = 3 /2 with D = -20 cm^{-1} and g = 2.3');
 ylim([0 2.2])
 
-%% now we have 'data', let's do a least square fit
+%% now we have 'data', let's do a least-squares fit
 % make a first guess for the fit system
 FitSys.S = 3/2;
 FitSys.D = 20*clight*1e-4;
@@ -44,7 +44,7 @@ Vary.g = 0.5;
 
 % no scaling! Assuming correct diamagnetic corrections and 
 % sample weight measure the absolute value contain valuable information!
-FitOpt.Scaling = 'none';
+FitOpt.AutoScale = 0;
 
 % fit chiT and mag seperately
 ChiOpt.Output = 'ChiTCGs OneColoumn'; 
@@ -79,7 +79,7 @@ Opt.Output = 'ChiTCGs MvsB OneColoumn';
 
 % no scaling! Assuming correct diamagnetic corrections and 
 % sample weight measure the absolute value contain valuable information!
-FitOpt.Scaling = 'none';
+FitOpt.AutoScale = 0;
 
 % Let's go and hope for the best!
 [bestsys,bestspc] = esfit(@curry,fitdata,FitSys,Vary,Exp,Opt,FitOpt);

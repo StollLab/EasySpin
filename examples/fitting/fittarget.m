@@ -1,6 +1,6 @@
 % Fitting the spectrum vs fitting its integral
 
-clear, clf
+clear, clf, clc
 
 % This example illustrates how important it is to tell esfit
 % whether to fit the spectrum directly or to fit its
@@ -22,7 +22,7 @@ y = addnoise(y,60,'n');
 
 Sys0 = Sys;
 Sys0.g(3) = 2.22;
-Vary.g = [0 0 0.02];
+Vary.g = [0 0 0.04];
 SimOpt.Method = 'perturb';
 
 % Using 'fcn', the spectra are directly compared. For
@@ -30,7 +30,7 @@ SimOpt.Method = 'perturb';
 % 'fcn' ends up in wrong minima much more often than 'int'.
 
 FitOpt.Method = 'simplex fcn';
-esfit(@pepper,y,Sys0,Vary,Exp,SimOpt,FitOpt);
+esfit(y,@pepper,{Sys0,Exp,SimOpt},{Vary},FitOpt);
 
 FitOpt.Method = 'simplex int';
-esfit(@pepper,y,Sys0,Vary,Exp,SimOpt,FitOpt);
+esfit(y,@pepper,{Sys0,Exp,SimOpt},{Vary},FitOpt);

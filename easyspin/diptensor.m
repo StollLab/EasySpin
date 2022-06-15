@@ -6,7 +6,8 @@
 % and spin2, using the inter-spin distance vector rvec (in nm).
 %
 % The tensor T is for the Hamiltonian H = J1*T*J2, where J1 is the spin vector
-% operator of spin1, and J2 is the spin vector operator for spin2.
+% operator of spin1, and J2 is the spin vector operator for spin2, both in
+% units of hbar.
 %
 % Inputs:
 %   spin1  type of first spin: 'e', '1H', '14N', etc.
@@ -19,6 +20,11 @@
 % For electrons, g = gfree = 2.002319... is used.
 
 function T = diptensor(spin1,spin2,rvec)
+
+if nargin==0
+  help(mfilename);
+  return
+end
 
 % Input checks
 %-------------------------------------------------------------------------------
@@ -69,5 +75,4 @@ n = rvec(:)/r;
 T = -(mu0/4/pi)*r^-3*mug(1)*mug(2)*(3*(n*n')-eye(3)); % J
 T = T/planck/1e6; % J -> MHz
 
-return
-
+end

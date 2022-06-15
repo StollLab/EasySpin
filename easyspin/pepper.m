@@ -1178,7 +1178,7 @@ if ConvolutionBroadening
       if HarmonicL==0
         % Skip convolution, since it has no effect with such a narrow delta-like Lorentzian.
       else
-        error('Lorentzian linewidth (FWHM %g %s) is smaller than 2 increments (2x%g = %g %s) - cannot do convolution.\nIncrease linewidth or decrease increment.',fwhmL,unitstr,Exp.deltaX,2*Exp.deltaX,unitstr);
+        error('Lorentzian linewidth (FWHM %g %s) is smaller than 2 increments (2x%g = %g %s) - cannot do convolution.\nIncrease linewidth, or increment number of points in Exp.nPoints.',fwhmL,unitstr,Exp.deltaX,2*Exp.deltaX,unitstr);
       end
     end
   end
@@ -1193,7 +1193,7 @@ if ConvolutionBroadening
       if HarmonicG==0
         % Skip convolution, since it has no effect with such a narrow delta-like Gaussian.
       else
-        error('Gaussian linewidth (FWHM %g %s) is smaller than 2 increments (2x%g = %g %s) - cannot do convolution.\nIncrease linewidth or decrease increment.',fwhmG,unitstr,Exp.deltaX,2*Exp.deltaX,unitstr);
+        error('Gaussian linewidth (FWHM %g %s) is smaller than 2 increments (2x%g = %g %s) - cannot do convolution.\nIncrease linewidth, increment number of points in Exp.nPoints.',fwhmG,unitstr,Exp.deltaX,2*Exp.deltaX,unitstr);
       end
     end
   end
