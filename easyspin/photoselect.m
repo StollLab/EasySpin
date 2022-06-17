@@ -1,11 +1,11 @@
 % photoselect Calculate orientation-dependent photo-selection weight
 %
-%   weight = photoselect(tdm,labFrame,k,alpha)
+%   weight = photoselect(tdm,ori,k,alpha)
 %
 % This function calculates a selection weight between 0 and 1 for photo-excited
 % spin centers, 1 indicating full excitation and 0 indicating no
 % excitation. It needs information about the electric transition dipole moment
-% orientation (tdm), the spin center orientation (labFrame), the light
+% orientation (tdm), the spin center orientation (ori), the light
 % excitation direction (k) and polarization (alpha).
 %
 % Inputs:
@@ -14,12 +14,12 @@
 %               - a letter or letter combination, e.g. 'x', 'z', 'xz', '-y', etc.
 %               - a three-element vector [mx my mz]
 %               - two spherical angles [phim thetam] (in radians)
-%   labFrame    [phi theta chi] angles of lab frame in molecular frame;
+%   ori         [phi theta chi] angles of lab frame in molecular frame;
 %               phi and theta determine the direction of the lab z axis (zL, aligned
 %               with B0), chi additionally determines the direction of lab x and y
 %               (xL and yL)
 %   k           Orientation of the propagation direction of the light excitation beam
-%               in the lab frame
+%               in the lab frame.
 %               There are three ways to input this:
 %               - a letter or letter combination, e.g. 'x', 'z', 'xz', '-y', etc.
 %               - a three-element vector [kx ky kz]
@@ -40,10 +40,10 @@
 % Example:
 %
 %   k = 'y';  % propagation direction along lab y axis
-%   photoselect(tdm,labFrame,k,pi/2)  % E-field along lab x axis
-%   photoselect(tdm,labFrame,k,0)     % E-field along lab z axis
+%   photoselect(tdm,ori,k,pi/2)  % E-field along lab x axis
+%   photoselect(tdm,ori,k,0)     % E-field along lab z axis
 
-function weight = photoselect(tdm,labFrame,k,alpha)
+function weight = photoselect(tdm,ori,k,alpha)
 
 % Parse tdm orientation, calculate tdm unit vector in lab frame representation
 if ischar(tdm)
@@ -53,7 +53,7 @@ elseif numel(tdm)==3
 elseif numel(tdm)==2
   tdm_mol = ang2vec(tdm(1),tdm(2));
 else
-  error('`tdmOri (first input) must be a letter designating a direction, a 3-vector, or an array with two angles.');
+  error('`tdm (first input) must be a letter designating a direction, a 3-vector, or an array with two angles.');
 end
 
 % Parse k orientation
@@ -83,7 +83,7 @@ lightFrame = [kOri(1) kOri(2) alpha];
 [p_lab,~,k_lab] = erot(lightFrame,'rows');
 
 % Calculate tdm unit vector in lab frame representation
-R_M2L = erot(labFrame);
+R_M2L = erot(ori);
 tdm_lab = R_M2L*tdm_mol; % mol frame -> lab frame
 
 % Calculate photoselection weight

@@ -37,7 +37,7 @@ Calculate orientation-dependent photo-selection weight
 <div class="subtitle">Syntax</div>
 
 <pre class="matlab">
-w = photoselect(tdmOri,labFrame,k,alpha)
+w = photoselect(tdm,ori,k,alpha)
 </pre>
 
 <!-- ============================================================= -->
@@ -48,11 +48,11 @@ For photo-generated paramagnetic centers (such as photo-excited triplet states),
 </p>
 
 <p>
-<code>tdmOri</code> specifies the orientation in the molecular frame of the electric transition dipole moment (tdm) of the the optical transition that is being excited. There are three ways to specify this orientation: (1) via a letter code, such as <code>'y'</code>, <code>'z'</code>, <code>'xy'</code>, etc.; (2) via a 3-element unit vector, such as <code>[0;1;0]</code>; and (3) as an array of the two spherical angles (in radians) <code>[phi_tdm,theta_tdm]</code>. For example, <code>'y'</code>, <code>[0;1;0]</code> and </code><code>[pi/2 pi/2]</code> all represents a tdm along the molecular y axis.
+<code>tdm</code> specifies the orientation in the molecular frame of the electric transition dipole moment (tdm) of the the optical transition that is being excited. There are three ways to specify this orientation: (1) via a letter code, such as <code>'y'</code>, <code>'z'</code>, <code>'xy'</code>, etc.; (2) via a 3-element unit vector, such as <code>[0;1;0]</code>; and (3) as an array of the two spherical angles (in radians) <code>[phi_tdm,theta_tdm]</code>. For example, <code>'y'</code>, <code>[0;1;0]</code> and </code><code>[pi/2 pi/2]</code> all represents a tdm along the molecular y axis.
 </p>
 
 <p>
-<code>labFrame</code> gives the three Euler angles (in radians) <code>[phi theta chi]</code> that describe the orientation of lab frame relative to the molecular frame. <code>phi</code> and <code>theta</code> determine the direction of the lab z axis (zL, aligned with the static magnetic field), <code>chi</code> additionally determines the direction of lab x and y (xL and yL).
+<code>ori</code> gives the three Euler angles (in radians) <code>[phi theta chi]</code> that describe the orientation of lab frame relative to the molecular frame. <code>phi</code> and <code>theta</code> determine the direction of the lab z axis (zL, aligned with the static magnetic field), <code>chi</code> additionally determines the direction of lab x and y (xL and yL).
 </p>
 
 <p>
