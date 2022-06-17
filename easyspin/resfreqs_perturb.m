@@ -182,7 +182,10 @@ end
 if ~isfield(Exp,'lightMode'), Exp.lightMode = ''; end
 if ~isfield(Exp,'lightScatter'), Exp.lightScatter = 0; end
 
-usePhotoSelection = ~isempty(Exp.lightMode) && ~strcmp(Exp.lightMode,'iso') && Exp.lightScatter<1;
+usePhotoSelection = ~isempty(Exp.lightMode) && Exp.lightScatter<1;
+if ischar(Exp.lightMode)
+  usePhotoSelection = usePhotoSelection &&~strcmp(Exp.lightMode,'iso');
+end
 
 if usePhotoSelection
   if ~isfield(System,'tdm')
