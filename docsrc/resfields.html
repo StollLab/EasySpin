@@ -168,7 +168,7 @@ nB1 = [sin(alpha_pol); -cos(alpha_pol)*cos(k_tilt); cos(alpha_pol)*sin(k_tilt)]
 
 <div class="optionfield"><code>lightMode</code></div>
 <div class="optiondescr">
-Specifies mode of photoexcitation. If photoexcitation is present, photoselection weights will be included into the spectral line intensities.
+Specifies mode of photoexcitation. If photoexcitation is present, photoselection weights will be calculated included into the spectral line intensities. For this, the transition dipole moment direction must be provided in <code>Sys.tdm</code> (see <a href="spinsystem.html#light">here</a>). Possible settings for <code>lightMode</code> are
 <ul>
 <li><code>Exp.lightMode = ''</code> - no photoexcitation (default)
 <li><code>Exp.lightMode = 'perp'</code> - polarized light incident along the lab y direction (perpendicular to B0) with E-field along the lab x direction (also perpendicular to B0)
