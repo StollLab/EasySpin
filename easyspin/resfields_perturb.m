@@ -189,8 +189,38 @@ else
 end
 error(err);
 
+% Photoselection
+if ~isfield(Exp,'lightMode'), Exp.lightMode = ''; end
+if ~isfield(Exp,'lightScatter'), Exp.lightScatter = 0; end
+
+usePhotoSelection = ~isempty(Exp.lightMode) && ~strcmp(Exp.lightMode,'iso') && Exp.lightScatter<1;
+
+if usePhotoSelection
+  if ~isfield(Sys,'tdm')
+    error('To include photoselection weights, Sys.tdm must be given.');
+  end
+  if ischar(Exp.lightMode)
+    k = [0;1;0]; % beam propagating along yL
+    switch Exp.lightMode
+      case 'perp'
+        alpha = pi/2; % gives E-field along +-xL
+      case 'para'
+        alpha = 0; % gives E-field along +-zL
+      case 'unpol'
+        alpha = NaN; % unpolarized beam
+      otherwise
+        error('Unknown string in Exp.lightMode. Use ''iso'', ''perp'', ''para'' or ''unpol''.');
+    end
+    Exp.lightMode = {k alpha};
+  else
+    if ~iscell(Exp.lightMode) || numel(Exp.lightMode)~=2
+      error('Exp.lightMode should be a 2-element cell {k alpha}.')
+    end
+  end
+end
+
 % Process crystal orientations, crystal symmetry, and frame transforms
-[Orientations,nOrientations,nSites,AverageOverChi] = p_crystalorientations(Exp,Opt);
+[Orientations,nOrientations,nSites,averageOverChi] = p_crystalorientations(Exp,Opt);
 
 
 % Options
@@ -284,9 +314,27 @@ for iOri = nOrientations:-1:1
   
   % Compute intensities
   %----------------------------------------------------------------
+  % Compute photoselection weight if needed
+  if usePhotoSelection
+    k = Exp.lightMode{1};  % propagation direction
+    alpha = Exp.lightMode{2};  % polarization angle
+    if averageOverChi
+      ori = Orientations(iOri,1:2);
+      photoWeight = photoselect(Sys.tdm,[ori 0],k,alpha);
+      photoWeight2 = photoselect(Sys.tdm,[ori pi/2],k,alpha);
+      photoWeight = (photoWeight+photoWeight2)/2;
+    else
+      ori = Orientations(iOri,1:3);
+      photoWeight = photoselect(Sys.tdm,ori,k,alpha);
+    end
+    % Add isotropic contribution (from scattering)
+    photoWeight = (1-Exp.lightScatter)*photoWeight + Exp.lightScatter;
+  else
+    photoWeight = 1;
+  end
 
   % Compute quantum-mechanical transition rate
-  if AverageOverChi
+  if averageOverChi
     if linearpolarizedMode
       TransitionRate(:,iOri) = c2/2*(1-xi1^2)*(trgg-norm(g*u)^2);
     elseif unpolarizedMode
@@ -313,7 +361,7 @@ for iOri = nOrientations:-1:1
   dBdE = (planck/bmagn*1e9)/geff(iOri);
   
   % Combine all factors into overall line intensity
-  Intensity(:,iOri) = Polarization.*TransitionRate(:,iOri)*dBdE;
+  Intensity(:,iOri) = Polarization.*TransitionRate(:,iOri)*dBdE*photoWeight;
   
   if highSpin
     Du = D*u;

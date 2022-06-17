@@ -189,10 +189,40 @@ else
   computeBoltzmannPopulations = ~isnan(Exp.Temperature);
 end
 
+% Photoselection
+if ~isfield(Exp,'lightMode'), Exp.lightMode = ''; end
+if ~isfield(Exp,'lightScatter'), Exp.lightScatter = 0; end
+
+usePhotoSelection = ~isempty(Exp.lightMode) && ~strcmp(Exp.lightMode,'iso') && Exp.lightScatter<1;
+
+if usePhotoSelection
+  if ~isfield(Sys,'tdm')
+    error('To include photoselection weights, Sys.tdm must be given.');
+  end
+  if ischar(Exp.lightMode)
+    k = [0;1;0]; % beam propagating along yL
+    switch Exp.lightMode
+      case 'perp'
+        alpha = pi/2; % gives E-field along +-xL
+      case 'para'
+        alpha = 0; % gives E-field along +-zL
+      case 'unpol'
+        alpha = NaN; % unpolarized beam
+      otherwise
+        error('Unknown string in Exp.lightMode. Use ''iso'', ''perp'', ''para'' or ''unpol''.');
+    end
+    Exp.lightMode = {k alpha};
+  else
+    if ~iscell(Exp.lightMode) || numel(Exp.lightMode)~=2
+      error('Exp.lightMode should be a 2-element cell {k alpha}.')
+    end
+  end
+end
+
 if ~isfield(Opt,'Sites'), Opt.Sites = []; end
 
 % Process crystal orientations, crystal symmetry, and frame transforms
-[Orientations,nOrientations,nSites,AverageOverChi] = p_crystalorientations(Exp,Opt);
+[Orientations,nOrientations,nSites,averageOverChi] = p_crystalorientations(Exp,Opt);
 
 
 % Options parsing and setting.
@@ -635,14 +665,33 @@ for iOri = 1:nOrientations
   
   % Calculate intensities if requested
   if computeIntensities
-        
+
+    % Calculate photoselection weight if needed
+    if usePhotoSelection
+      k = Exp.lightMode{1};  % propagation direction
+      alpha = Exp.lightMode{2};  % polarization angle
+      if averageOverChi
+        ori = Orientations(iOri,1:2);
+        photoWeight = photoselect(Sys.tdm,[ori 0],k,alpha);
+        photoWeight2 = photoselect(Sys.tdm,[ori pi/2],k,alpha);
+        photoWeight = (photoWeight+photoWeight2)/2;
+      else
+        ori = Orientations(iOri,1:3);
+        photoWeight = photoselect(Sys.tdm,ori,k,alpha);
+      end
+      % Add isotropic contribution (from scattering)
+      photoWeight = (1-Exp.lightScatter)*photoWeight + Exp.lightScatter;
+    else
+      photoWeight = 1;
+    end
+
     % Compute quantum-mechanical transition rate
     for iTrans = nTransitions:-1:1
       
       U = Vs(:,u(iTrans)); % lower-energy state (u)
       V = Vs(:,v(iTrans)); % higher-energy state (v, Ev>Eu)
       mu = [V'*kGxL*U; V'*kGyL*U; V'*kGzL*U]; % magnetic transition dipole moment
-      if AverageOverChi
+      if averageOverChi
         if linearpolarizedMode
           TransitionRate = ((1-xi1^2)*norm(mu)^2+(3*xi1^2-1)*abs(nB0.'*mu)^2)/2;
         elseif unpolarizedMode
@@ -712,7 +761,7 @@ for iOri = 1:nOrientations
       %Polarization = Polarization/prod(2*System.S+1); % needed to make consistent with high-temp limit
       Polarization = 1/prod(2*Sys.I+1);
     end
-    Idat(:,iOri) = TransitionRates(:).*Polarization(:);
+    Idat(:,iOri) = TransitionRates(:).*Polarization(:)*photoWeight;
     
   end
   

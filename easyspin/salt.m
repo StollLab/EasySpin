@@ -222,6 +222,11 @@ DefaultExp.Harmonic = 0;
 % Make user-given fields case-insensitive.
 Exp = adddefaults(Exp,DefaultExp);
 
+% Photoselection is not supported
+if isfield(Exp,'lightMode') && ~isempty(Exp.lightMode)
+  error('Photoselection (via Exp.lightMode) is not supported.')
+end
+
 % Error if vital parameters are missing.
 if isnan(Exp.Field), error('Experiment.Field is missing!'); end
   

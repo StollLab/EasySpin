@@ -151,7 +151,7 @@ For conventional experiments involving linear polarized microwave in a standard 
 For beam experiments, specify the angle between the propagation vector k and the static magnetic field B<sub>0</sub> in <code>k_tilt</code>, in radians. <code>k_tilt = 0</code> corresponds to Faraday geometry, where B<sub>0</sub> and k are parallel. <code>k_tilt = pi/2</code> corresponds to Voigt geometry, where B<sub>0</sub> and k are perpendicular. B<sub>0</sub> is along the laboratory z axis (zL), <code>[0; 0; 1]</code> in the lab frame, and k is tilted from B<sub>0</sub> towards the laboratory y axis (yL) by the angle <code>k_tilt</code>.
 
 <p>
-For linearly polarized mw irradiation, you also need to provide <code>alpha_pol</code>, the polarization angle of the radiation. <code>alpha_pol</code> is the angle between the microwave magnetic field vector B1 and the intersection of the zL-yL plane and the plane perpendicular to the propagation vector k. In other words, if <code>alpha_pol<code> is zero, then B1 is in the zL-yL plane, and if <code>alpha_pol</code> is <code>pi/2</code>, then B1 is along xL. </code><code>alpha_pol</code> is only allowed for linearly polarized excitation (<code>Param.mwPolarization = 'linear'</code>).
+For linearly polarized mw irradiation, you also need to provide <code>alpha_pol</code>, the polarization angle of the radiation. <code>alpha_pol</code> is the angle between the microwave magnetic field vector B1 and the intersection of the zL-yL plane and the plane perpendicular to the propagation vector k. In other words, if <code>alpha_pol</code> is zero, then B1 is in the zL-yL plane, and if <code>alpha_pol</code> is <code>pi/2</code>, then B1 is along xL. </code><code>alpha_pol</code> is only allowed for linearly polarized excitation (<code>Param.mwPolarization = 'linear'</code>).
 
 <p>
 In the lab frame, the direction of propagation is
@@ -164,6 +164,23 @@ nB1 = [sin(alpha_pol); -cos(alpha_pol)*cos(k_tilt); cos(alpha_pol)*sin(k_tilt)]
 </pre>
 </ul>
 
+</div>
+
+<div class="optionfield"><code>lightMode</code></div>
+<div class="optiondescr">
+Specifies mode of photoexcitation. If photoexcitation is present, photoselection weights will be included into the spectral line intensities.
+<ul>
+<li><code>Exp.lightMode = ''</code> - no photoexcitation (default)
+<li><code>Exp.lightMode = 'perp'</code> - polarized light incident along the lab y direction (perpendicular to B0) with E-field along the lab x direction (also perpendicular to B0)
+<li><code>Exp.lightMode = 'para'</code> - polarized light incident along the lab y direction (perpendicular to B0) with E-field along the lab z direction (parallel to B0)
+<li><code>Exp.lightMode = 'unpol'</code> - unpolarized light incident along the lab y direction (perpendicular to B0) with E-field uniformly distributed in the lab xz plane
+<li><code>Exp.lightMode = {k alpha}</code> - light incident along propagation direction <code>k</code> and polarization angle <code>alpha</code>. There are three ways to specify <code>k</code>: (i) a letter code for the direction, e.g. <code>'y'</code>, <code>'z'</code>, <code>'xy'</code>; (ii) a 3-element vector, e.g. <code>[0;1;0]</code> specifies the lab y axis; (iii) two angles <code>[phi_k theta_k]</code> that specify the orientation. <code>theta_k</code> is the angle between propagation vector and the lab z axis, and <code>phi_k</code> is the angle between the lab x axis and the projection of the propagation vector onto the lab xy plane. For example, <code>[pi/2 pi/2]</code> gives the lab y axis. <code>alpha</code> is the polarization angle, in radians. To represent an unpolarized beam, set <code>alpha=NaN</code>.
+</ul>
+</div>
+
+<div class="optionfield"><code>lightScatter</code></div>
+<div class="optiondescr">
+Contribution of isotropically scatter light to photoexcitation (see <code>lightMode</code>), as a value between 0 and 1. 0 means no isotropic contribution (only direct excitation by polarized or unpolarized beam), 1 indicates 100 percent isotropic contribution (essentially beam direction and polarization have no effect).
 </div>
 
 <div class="subtitle2">Input: Options</div>
