@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>photoselect</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/academy" target="_blank">Academy</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+
+<div class="functitle">photoselect</div>
+
+<p>
+Calculate orientation-dependent photo-selection weight
+</p>
+
+<!-- ============================================================= -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+w = photoselect(tdmOri,labFrame,k,alpha)
+</pre>
+
+<!-- ============================================================= -->
+<div class="subtitle">Description</div>
+
+<p>
+For photo-generated paramagnetic centers (such as photo-excited triplet states), <code>photoselect</code> calculates the photo-excitation selection weight <code>w</code> for a given light excitation geometry, molecular orientation, and transition dipole moment. <code>w=0</code> indicates no excitation at all (E-field is perpendicular to transition dipole moment), and <code>w=1</code> indicates full excitation (E-field parallel to transition dipole moment).
+</p>
+
+<p>
+<code>tdmOri</code> specifies the orientation in the molecular frame of the electric transition dipole moment (tdm) of the the optical transition that is being excited. There are three ways to specify this orientation: (1) via a letter code, such as <code>'y'</code>, <code>'z'</code>, <code>'xy'</code>, etc.; (2) via a 3-element unit vector, such as <code>[0;1;0]</code>; and (3) as an array of the two spherical angles (in radians) <code>[phi_tdm,theta_tdm]</code>. For example, <code>'y'</code>, <code>[0;1;0]</code> and </code><code>[pi/2 pi/2]</code> all represents a tdm along the molecular y axis.
+</p>
+
+<p>
+<code>labFrame</code> gives the three Euler angles (in radians) <code>[phi theta chi]</code> that describe the orientation of lab frame relative to the molecular frame. <code>phi</code> and <code>theta</code> determine the direction of the lab z axis (zL, aligned with the static magnetic field), <code>chi</code> additionally determines the direction of lab x and y (xL and yL).
+</p>
+
+<p>
+<code>kOri</code> specifies the propagation direction of the excitation light beam in the laboratory frame, again either as a letter code, a 3-element vector, or a set of two spherical angles. For example, <code>'y'</code> or <code>[0;1;0]</code> or <code>[pi/2 pi/2]</code> indicate propagation along the laboratory y axis (perpendicular to the static magnetic field), and <code>'z'</code> or <code>[0;0;1]</code> or <code>[0 0]</code> indicate propagation along the laboratuory z axis (parallel to the static magnetic field).
+</p>
+
+<p>
+<code>alpha</code> indicates the polarization angle, in radians. It determines the direction of the E-field vector in the plane perpendicular to the propagation direction.
+</p>
+
+<!-- ============================================================= -->
+<div class="subtitle">Examples</div>
+
+<pre class="matlab">
+tdm = 'xy';  % tdm along bisector of xy plane
+ori = [0 0 0];  % lab frame aligned with molecular frame
+k = 'y'; % propagation along lab y axis
+alpha = pi/2;  % gives E-field parallel to B0
+w = photoselect(tdm,ori,k,alpha)
+</pre>
+<pre class="mloutput">
+ans =
+    0.5000
+</pre>
+
+<!-- ============================================================= -->
+<div class="subtitle">See also</div>
+
+<p>
+<a class="esf" href="pepper.html">pepper</a>,
+<a class="esf" href="resfields.html">resfields</a>,
+<a class="esf" href="resfreqs_matrix.html">resfreqs_matrix</a>,
+<a class="esf" href="resfreqs_perturb.html">resfreqs_perturb</a>
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+</html>

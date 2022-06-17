@@ -173,14 +173,14 @@ end
 
 if ~isfield(Opt,'Sites'), Opt.Sites = []; end
 
-% Photoexcitation
-if ~isfield(Exp,'lightPolDir'), Exp.lightPolDir = ''; end
-usePhotoExcitation = ~isempty(Exp.lightPolDir); 
-if ~isfield(Exp,'lightPolarization'), Exp.lightPolarization = 1; end
+% Photoselection
+if ~isfield(Exp,'lightPolAngle'), Exp.lightPolAngle = NaN; end
+if ~isfield(Exp,'lightScatter'), Exp.lightScatter = 1; end
+usePhotoSelection = Exp.lightScatter<1;
 
-if usePhotoExcitation
+if usePhotoSelection
   if ~isfield(System,'tdm')
-    error('To include photoexcitation weights, Sys.tdm must be given.');
+    error('To include photoselection weights, Sys.tdm must be given.');
   end
 end
 
@@ -900,12 +900,20 @@ for iOri = 1:nOrientations
     LineWidthSquared = HStrain2*zLab_M.^2;
   end
 
-  % Pre-calculate photoexcitation weight if needed
-  if usePhotoExcitation
-    ori = Orientations(iOri,1:2);
-    photoWeight1 = photoexcitationweight(System.tdm,Exp.lightPolDir,[ori 0],Exp.lightPolarization);
-    photoWeight2 = photoexcitationweight(System.tdm,Exp.lightPolDir,[ori pi/2],Exp.lightPolarization);
-    photoWeight = (photoWeight1+photoWeight2)/2; % integrated over chi
+  % Pre-calculate photoselection weight if needed
+  if usePhotoSelection
+    k = 'y';  % propagation direction
+    alpha = Exp.lightPolAngle;  % polarization angle
+    if averageOverChi
+      ori = Orientations(iOri,1:2);
+      photoWeight = photoselect(System.tdm,[ori 0],k,alpha);
+      photoWeight2 = photoselect(System.tdm,[ori pi/2],k,alpha);
+      photoWeight = (photoWeight+photoWeight2)/2;
+    else
+      ori = Orientations(iOri,1:3);
+      photoWeight = photoselect(System.tdm,ori,k,alpha);
+    end
+    photoWeight = (1-Exp.lightScatter)*photoWeight + Exp.lightScatter;
   else
     photoWeight = 1;
   end
