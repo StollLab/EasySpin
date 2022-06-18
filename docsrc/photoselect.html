@@ -44,38 +44,60 @@ w = photoselect(tdm,ori,k,alpha)
 <div class="subtitle">Description</div>
 
 <p>
-For photo-generated paramagnetic centers (such as photo-excited triplet states), <code>photoselect</code> calculates the photo-excitation selection weight <code>w</code> for a given light excitation geometry, molecular orientation, and transition dipole moment. <code>w=0</code> indicates no excitation at all (E-field is perpendicular to transition dipole moment), and <code>w=1</code> indicates full excitation (E-field parallel to transition dipole moment).
+For photo-generated paramagnetic centers (such as photo-excited triplet states), <code>photoselect</code> calculates the photo-excitation selection weight <code>w</code> for a given light excitation geometry, molecular orientation, and transition dipole moment orientation. <code>w=0</code> indicates no excitation at all (E-field is perpendicular to transition dipole moment), and <code>w=1</code> indicates full excitation (E-field is parallel to transition dipole moment).
 </p>
 
 <p>
-<code>tdm</code> specifies the orientation in the molecular frame of the electric transition dipole moment (tdm) of the the optical transition that is being excited. There are three ways to specify this orientation: (1) via a letter code, such as <code>'y'</code>, <code>'z'</code>, <code>'xy'</code>, etc.; (2) via a 3-element unit vector, such as <code>[0;1;0]</code>; and (3) as an array of the two spherical angles (in radians) <code>[phi_tdm,theta_tdm]</code>. For example, <code>'y'</code>, <code>[0;1;0]</code> and </code><code>[pi/2 pi/2]</code> all represents a tdm along the molecular y axis.
+<code>tdm</code> specifies the orientation in the molecular frame of the electric transition dipole moment (tdm) of the the optical transition that is being excited. There are three ways to specify this orientation: (1) via a letter code, such as <code>'y'</code>, <code>'z'</code>, <code>'xy'</code>, etc.; (2) via a 3-element unit vector, such as <code>[0;1;0]</code>; and (3) as an array of the two polar angles (in radians) <code>[phi_tdm, theta_tdm]</code>. For example, <code>'y'</code>, <code>[0;1;0]</code> and </code><code>[pi/2 pi/2]</code> all represents a transition dipole moment along the molecular y axis.
 </p>
 
 <p>
-<code>ori</code> gives the three Euler angles (in radians) <code>[phi theta chi]</code> that describe the orientation of lab frame relative to the molecular frame. <code>phi</code> and <code>theta</code> determine the direction of the lab z axis (zL, aligned with the static magnetic field), <code>chi</code> additionally determines the direction of lab x and y (xL and yL).
+<code>ori</code> gives the three <a href="eulerangles.html">Euler angles</a> (in radians) <code>[phi theta chi]</code> that describe the orientation of the <a href="frames.html#;labframe">lab frame</a> relative to the <a href="frames.html#molframe">molecular frame</a>. <code>phi</code> and <code>theta</code> determine the direction of the lab z axis (zL, aligned with the static magnetic field), and <code>chi</code> additionally determines the direction of the lab x and y axes (xL and yL). To get the vectors of xL, yL and zL represented in the molecular frame, use <code>[xL,yL,zL] = erot(ori,'rows')</code>. To get the molecular-frame vectors of zM, yM and zM represented in the lab frame, use <code>[xM,yM,zM] = erot(ori,'cols')</code>.
 </p>
 
 <p>
-<code>kOri</code> specifies the propagation direction of the excitation light beam in the laboratory frame, again either as a letter code, a 3-element vector, or a set of two spherical angles. For example, <code>'y'</code> or <code>[0;1;0]</code> or <code>[pi/2 pi/2]</code> indicate propagation along the laboratory y axis (perpendicular to the static magnetic field), and <code>'z'</code> or <code>[0;0;1]</code> or <code>[0 0]</code> indicate propagation along the laboratuory z axis (parallel to the static magnetic field).
+<code>k</code> specifies the propagation direction of the excitation light beam in the laboratory frame, again either as a letter code, a 3-element vector, or a set of two spherical angles. For example, <code>'y'</code> and <code>[0;1;0]</code> and <code>[pi/2 pi/2]</code> are equivalent ways to indicate propagation along the laboratory y axis (perpendicular to the static magnetic field), and <code>'z'</code> and <code>[0;0;1]</code> and <code>[0 0]</code> are equivalent ways to indicate propagation along the laboratory z axis (parallel to the static magnetic field).
 </p>
 
 <p>
-<code>alpha</code> indicates the polarization angle, in radians. It determines the direction of the E-field vector in the plane perpendicular to the propagation direction.
+<code>alpha</code> indicates the polarization angle, in radians. It determines the direction of the E-field vector in the plane perpendicular to the propagation direction. You can calculate the E-field direction in the lab frame <code>[Edir,~,k] = erot([phik thetak alpha])</code>, where <code>phik</code> and <code>thetak</code> are the polar angles indicating the direction of the propagation vector <code>k</code>.
+</p>
+
+<p>
+To obtain the photoselection weight for an unpolarized beam (i.e. a beam with a uniform distribution of E-field directions in the plane perpendicular to its propagation direction), set <code>alpha=NaN</code>.
+</p>
+
+<p>
+This function is called by <a class="esf" href="pepper">pepper</a> and other functions that support photoselection via the experiment parameter <code>Exp.lightMode</code>.
 </p>
 
 <!-- ============================================================= -->
 <div class="subtitle">Examples</div>
 
+<p>
+Here is a simple example
+</p>
 <pre class="matlab">
-tdm = 'xy';  % tdm along bisector of xy plane
-ori = [0 0 0];  % lab frame aligned with molecular frame
-k = 'y'; % propagation along lab y axis
-alpha = pi/2;  % gives E-field parallel to B0
+tdm = 'xy';                % tdm along bisector of molecular xy plane
+ori = [10 50 210]*pi/180;  % lab frame aligned with molecular frame
+k = 'y';                   % propagation along lab y axis
+alpha = pi/2;              % gives E-field parallel to B0
 w = photoselect(tdm,ori,k,alpha)
 </pre>
 <pre class="mloutput">
-ans =
-    0.5000
+w =
+    0.5517
+</pre>
+
+<p>
+To get the photoselection weight for an unpolarized beam, use
+</p>
+<pre>
+w = photoselect(tdm,ori,k,NaN)
+</pre>
+<pre class="mloutput">
+w =
+    0.4727
 </pre>
 
 <!-- ============================================================= -->

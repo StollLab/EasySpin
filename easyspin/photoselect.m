@@ -45,7 +45,7 @@
 
 function weight = photoselect(tdm,ori,k,alpha)
 
-% Parse tdm orientation, calculate tdm unit vector in lab frame representation
+% Parse tdm input, calculate tdm unit vector in lab frame representation
 if ischar(tdm)
   tdm_mol = letter2vec(tdm);
 elseif numel(tdm)==3
@@ -56,7 +56,7 @@ else
   error('`tdm (first input) must be a letter designating a direction, a 3-vector, or an array with two angles.');
 end
 
-% Parse k orientation
+% Parse k input, calculate polar angles of k vector
 if ischar(k)
   kOri = vec2ang(letter2vec(k));
 elseif numel(k)==3
@@ -73,10 +73,10 @@ if ~isfloat(alpha) || ~isscalar(alpha)
 end
 unpolarized = isnan(alpha);
 if unpolarized
-  alpha = 0; % to prevent NaN-issues with erot
+  alpha = 0; % to prevent NaN issues with erot
 end
 
-% Calculate unit vectors of light frame (p,q,k)
+% Calculate unit vectors of light excitation frame (p,q,k)
 % k = propagation direction
 % p = E-field direction
 lightFrame = [kOri(1) kOri(2) alpha];
@@ -88,10 +88,9 @@ tdm_lab = R_M2L*tdm_mol; % mol frame -> lab frame
 
 % Calculate photoselection weight
 if unpolarized
-  weight = (1 - abs(tdm_lab'*k_lab)^2)/2;
-  %weight = (abs(tdm_lab'*p_lab)^2 + abs(tdm_lab'*q_lab)^2)/2; % equivalent
+  weight = (1 - abs(tdm_lab.'*k_lab)^2)/2;
 else
-  weight = abs(tdm_lab'*p_lab)^2;
+  weight = abs(tdm_lab.'*p_lab)^2;
 end
 
 end
