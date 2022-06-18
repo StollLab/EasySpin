@@ -29,17 +29,70 @@
 <h1>Spin-polarized systems</h1>
 
 <p>
-EasySpin can simulate some spin-polarized systems such as triplets. Depending on the mechanism of spin polarization, you need to use different approaches.
+EasySpin can simulate some spin-polarized systems such as triplets. Depending on the mechanism of spin polarization, you need to use different approaches. In this user guide, there are the following topics:
 </p>
 
 <ul>
+<li><a href="#photoselection">Photoselection</a>
 <li><a href="#isc">Inter-system crossing (ISC) triplets</a>
 <li><a href="#recomb">Recombination triplets</a>
 <li><a href="#radpairs">Spin-correlated radical pairs</a>
 </ul>
 
 <p>
-Although the first two sections focus on triplets, the methods can easily be extended to spin-polarized states of spins with higher multiplicity.
+Although the second and third section focus on triplets, the methods can easily be extended to spin-polarized states of spins with higher multiplicity.
+</p>
+
+<!-- ----------------------------------------------------------------------------- -->
+<div class="subtitle"><a name="photoselection">Photoselection</a></div>
+
+<p>
+Spin-polarized systems are typically generated using photoexcitation with a laser. Excited triplet states are a common example. The triplet yield upon photoexcitation depends on the relative orientation between the E-field vector of the incident laser beam and the electric transition dipole moment vector associated with the optical transition that is being excited at the wavelength of the indicent laser beam. If the E-field is parallel to the transition dipole moment, the excitation is maximal, and if the E-field is perpendicular to the transition dipole moment, the excitation is zero. This phenomenon is called photoselection. As a consequence, in a powder or frozen-solution sample, not all orientation contribute equally to the EPR spectrum.
+</p>
+
+<p>
+To take photoselection into account when simulating an EPR spectrum  with <a class="esf" href="pepper.html">pepper</a>, you need to provide information about the transition dipole moment orientation and about the laser excitation geometry.
+</p>
+
+<p>
+Use <code>Sys.tdm</code> to provide the orienttion of the transition dipole moment in the molecule. For example, for the transition dipole moment along the molecular y axis, use one of the following three equivalent ways:
+</p>
+
+<pre class="matlab">
+Sys.tdm = 'y';          % letter code
+Sys.tdm = [0;1;0];      % unit vector
+Sys.tdm = [pi/2 pi/2];  % polar angles (in radians)
+</pre>
+
+<p>
+Use <code>Exp.lightMode</code> to specify the laser excitation geometry, i.e. the laser propagation direction and the polarization angle (if the laser light is polarized). Several common geometries can be provided via keywords. They all assume a laser beam, polarized or unpolarized, propagating along the laboratory y axis, wich is perpendicular to the magnetic field (lab z axis).
+</p>
+
+<pre class="matlab">
+Exp.lightMode = 'unpol';  % unpolarized beam
+Exp.lightMode = 'perp';   % polarized beam with E-field along lab x, perpendicular to B0
+Exp.lightMode = 'para';   % polarized beam with E-field along lab z, parallel to B0
+</pre>
+
+<p>
+For other geometries, the propagation direction and the polarization angle can be provided explicitly as <code>Exp.lightMode = {k alpha}</code>. Refer to the documentation of <a class="esf" href="pepper.html">pepper</a> for details about this.
+</p>
+
+<p>
+The photoselection weights are calculated via the function <a class="esf" href="photoselect.html">photoselect</a>, which you can use directly for examining the orientation dependence of the photoexcitaiton yield.
+</p>
+
+<p>
+Occasionally, when fitting experimental spectra of photo-excited species, it is necessary to include a small contribution with isotropically excitation (i.e. with E-field uniformly distributed in all directions). The fraction of this contribution, betwenn 0 and 1, is provided in <code>Exp.lightScatter</code>.
+</p>
+
+<pre class="matlab">
+Exp.lightScatter = 0.2;  % 20% isotropic contribution
+</pre>
+
+<p>
+If you don't specify <code>Exp.lightMode</code>, full istropic excitation is assumed.
+</p>
 
 <!-- ----------------------------------------------------------------------------- -->
 <div class="subtitle"><a name="isc">Inter-system crossing (ISC) triplets</a></div>
@@ -60,11 +113,11 @@ clear
 
 T.S = 1;
 T.D = [500 100];   % MHz
-T.lwpp = 1;
+T.lwpp = 1;   % mT
 T.Pop = [0.1 1 0.2]; % zero-field populations
 
-Exp.mwFreq = 9.5;
-Exp.Range = [310 370];
+Exp.mwFreq = 9.5;  % GHz
+Exp.Range = [310 370];  % mT
 Exp.Harmonic = 0;     % no field modulation
 
 pepper(T,Exp);
@@ -77,7 +130,7 @@ The shape of the EPR spectrum only depends on the <em>polarizations</em> of the 
 EasySpin can handle ISC-polarized spins of higher multiplicity as well. For example,to simulate spectra from an ISC-generated quartet state, provide 4 numbers in <code>Sys.Pop</code>.
 
 <!-- ----------------------------------------------------------------------------- -->
-<div class="subtitle"><a <a name="recomb">Recombination triplets</a></div>
+<div class="subtitle"><a name="recomb">Recombination triplets</a></div>
 
 <p>
 To simulate the spin-polarized EPR spectrum of a triplet generated by recombination of two radicals, use the following two-step procedure. First, simulate the spectrum of the unpolarized triplet and ask EasySpin to return the two transitions separately. Second, combine the transitions using weighing factors corresponding to the polarizations of the transitions.
@@ -109,7 +162,7 @@ plot(B,spc)
 </pre>
 
 
-<div class="subtitle"><a <a name="radpairs">Spin-correlated radical pairs</a></div>
+<div class="subtitle"><a name="radpairs">Spin-correlated radical pairs</a></div>
 
 <p>
 Currently, EasySpin does not have built-in capabilities for simulating EPR spectra from spin-correlated radical pairs.
