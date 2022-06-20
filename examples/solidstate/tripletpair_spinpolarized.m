@@ -17,7 +17,7 @@ Sys.J = 20000;
 
 % [++ +0 +- 0+ 00 0- -+ -0 --]
 Sys.Pop = [0 0 1 0 1 0 1 0 0];
-% With Sys.PopBasis = 'Spin', the populations of the sublevels are 
+% With Sys.PopBasis = 'eigenbasis', the populations of the sublevels are 
 % calculated as the overlap between the eigenvectors and the provided state vector  
 Sys.PopMode = 'eigenbasis'; 
 
