@@ -1,4 +1,4 @@
-function [Orientations,nOrientations,nSites,averageOverChi,R_sample] = p_crystalorientations(Exp,Opt)
+function [Orientations,nOrientations,nSites,averageOverChi] = p_crystalorientations(Exp,Opt)
 
 % Function that takes care of crystal frame setups for single-crystal simulation
 %    and a few related things.

@@ -471,8 +471,7 @@ end
 logmsg(1,msg);
 
 % Sample rotation
-rotateSample = isfield(Exp,'SampleRotation') && ~isempty(Exp.SampleRotation);
-if rotateSample
+if isfield(Exp,'SampleRotation') && ~isempty(Exp.SampleRotation)
   if isnumeric(Exp.SampleRotation)
     rho = Exp.SampleRotation;
     nRot = [1;0;0]; % lab x axis (xL_L) as default
@@ -488,6 +487,12 @@ if rotateSample
   if numel(rho)~=1
     error('Exp.SampleRotation: the first element must the rotation angle rho.');
   end
+else
+  rho = 0;
+  nRot = [1;0;0];
+end
+rotateSample = rho~=0;
+if rotateSample
   Exp.R_sample = rotaxi2mat(nRot,rho).'; % transpose because it's an active rotation
 else
   Exp.R_sample = [];
@@ -956,7 +961,7 @@ elseif ~BruteForceSum
       if ~isempty(Exp.Ordering)
         centreTheta = (fthe(1:end-1)+fthe(2:end))/2;
         centrePhi = zeros(1,numel(centreTheta));
-        if ~isempty(Exp.R_sample)
+        if rotateSample
           v = ang2vec(centrePhi,centreTheta);
           [centrePhi_,centreTheta_] = vec2ang(Exp.R_sample*v);
           OrderingWeights = orifun(centrePhi_,centreTheta_);
@@ -986,7 +991,7 @@ elseif ~BruteForceSum
       if ~isempty(Exp.Ordering)
         centreTheta = mean(fthe(idxTri));
         centrePhi = mean(fphi(idxTri));
-        if ~isempty(Exp.R_sample)
+        if rotateSample
           v = ang2vec(centrePhi,centreTheta);
           [centrePhi_,centreTheta_] = vec2ang(Exp.R_sample*v);
           OrderingWeights = orifun(centrePhi_,centreTheta_);
