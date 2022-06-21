@@ -183,9 +183,6 @@ if ~isfield(Exp,'lightMode'), Exp.lightMode = ''; end
 if ~isfield(Exp,'lightScatter'), Exp.lightScatter = 0; end
 
 usePhotoSelection = ~isempty(Exp.lightMode) && Exp.lightScatter<1;
-if ischar(Exp.lightMode)
-  usePhotoSelection = usePhotoSelection &&~strcmp(Exp.lightMode,'iso');
-end
 
 if usePhotoSelection
   if ~isfield(System,'tdm')
@@ -195,13 +192,13 @@ if usePhotoSelection
     k = [0;1;0]; % beam propagating along yL
     switch Exp.lightMode
       case 'perp'
-        alpha = pi/2; % gives E-field along +-xL
+        alpha = -pi/2; % gives E-field along xL
       case 'para'
-        alpha = 0; % gives E-field along +-zL
+        alpha = pi; % gives E-field along zL
       case 'unpol'
         alpha = NaN; % unpolarized beam
       otherwise
-        error('Unknown string in Exp.lightMode. Use ''iso'', ''perp'', ''para'' or ''unpol''.');
+        error('Unknown string in Exp.lightMode. Use '''', ''perp'', ''para'' or ''unpol''.');
     end
     Exp.lightMode = {k alpha};
   else

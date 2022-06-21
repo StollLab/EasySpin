@@ -56,11 +56,15 @@ For photo-generated paramagnetic centers (such as photo-excited triplet states),
 </p>
 
 <p>
-<code>k</code> specifies the propagation direction of the excitation light beam in the laboratory frame, again either as a letter code, a 3-element vector, or a set of two spherical angles. For example, <code>'y'</code> and <code>[0;1;0]</code> and <code>[pi/2 pi/2]</code> are equivalent ways to indicate propagation along the laboratory y axis (perpendicular to the static magnetic field), and <code>'z'</code> and <code>[0;0;1]</code> and <code>[0 0]</code> are equivalent ways to indicate propagation along the laboratory z axis (parallel to the static magnetic field).
+<code>k</code> specifies the propagation direction of the excitation light beam in the laboratory frame, again either as a letter code, a 3-element vector, or a set of two polar angles. For example, <code>'y'</code> and <code>[0;1;0]</code> and <code>[pi/2 pi/2]</code> are equivalent ways to indicate propagation along the laboratory y axis (perpendicular to the static magnetic field), and <code>'z'</code> and <code>[0;0;1]</code> and <code>[0 0]</code> are equivalent ways to indicate propagation along the laboratory z axis (parallel to the static magnetic field).
 </p>
 
 <p>
 <code>alpha</code> indicates the polarization angle, in radians. It determines the direction of the E-field vector in the plane perpendicular to the propagation direction. You can calculate the E-field direction in the lab frame <code>[Edir,~,k] = erot([phik thetak alpha])</code>, where <code>phik</code> and <code>thetak</code> are the polar angles indicating the direction of the propagation vector <code>k</code>.
+</p>
+
+<p>
+For the common case of <code>k='y'</code>, <code>alpha=pi/2</code> or <code>-pi/2</code> puts the E-field along the laboratory x axis (perpendicular to the magnetic field), and <code>alpha=0</code> or <code>pi</code> puts the E-field along laboratory z axis (parallel to the magnetic field).
 </p>
 
 <p>
@@ -81,12 +85,12 @@ Here is a simple example
 tdm = 'xy';                % tdm along bisector of molecular xy plane
 ori = [10 50 210]*pi/180;  % lab frame aligned with molecular frame
 k = 'y';                   % propagation along lab y axis
-alpha = pi/2;              % gives E-field parallel to B0
+alpha = pi;                % gives E-field parallel to B0
 w = photoselect(tdm,ori,k,alpha)
 </pre>
 <pre class="mloutput">
 w =
-    0.5517
+    0.3938
 </pre>
 
 <p>

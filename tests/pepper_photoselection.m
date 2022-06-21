@@ -19,7 +19,7 @@ Opt.GridSymmetry = 'D2h';
 iso = 0.2;
 Exp.lightScatter = iso;  % isotropic contribution
 
-Exp.lightMode = 'iso';
+Exp.lightMode = '';
 [B,spc_iso] = pepper(Triplet,Exp,Opt);
 Exp.lightMode = 'perp';
 [B,spc_perp] = pepper(Triplet,Exp,Opt);

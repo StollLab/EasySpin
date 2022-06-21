@@ -21,8 +21,8 @@ Exp.Harmonic = 0;  % for transient EPR, turn off field modulation
 Opt.GridSymmetry = 'D2h';
 
 % Simulate spectra under various forms of photoexcitation
-Exp.lightMode = 'iso';
-[B,spc_iso] = pepper(Triplet,Exp,Opt);
+Exp.lightMode = '';
+[B,spc_complete] = pepper(Triplet,Exp,Opt);
 
 Exp.lightScatter = 0.2;  % include 20% isotropic contribution
 Exp.lightMode = 'perp';
@@ -33,6 +33,6 @@ Exp.lightMode = 'unpol';
 [B,spc_unpol] = pepper(Triplet,Exp,Opt);
 
 % Plotting
-plot(B,spc_iso,B,spc_perp,B,spc_para,B,spc_unpol);
-legend('iso','perp','para','unpol')
+plot(B,spc_complete,B,spc_perp,B,spc_para,B,spc_unpol);
+legend('complete','perp','para','unpol')
 legend boxoff
