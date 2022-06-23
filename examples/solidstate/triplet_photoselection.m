@@ -25,14 +25,14 @@ Exp.lightMode = '';
 [B,spc_complete] = pepper(Triplet,Exp,Opt);
 
 Exp.lightScatter = 0.2;  % include 20% isotropic contribution
-Exp.lightMode = 'perp';
+Exp.lightMode = 'perpendicular';
 [B,spc_perp] = pepper(Triplet,Exp,Opt);
-Exp.lightMode = 'para';
+Exp.lightMode = 'parallel';
 [B,spc_para] = pepper(Triplet,Exp,Opt);
-Exp.lightMode = 'unpol';
+Exp.lightMode = 'unpolarized';
 [B,spc_unpol] = pepper(Triplet,Exp,Opt);
 
 % Plotting
 plot(B,spc_complete,B,spc_perp,B,spc_para,B,spc_unpol);
-legend('complete','perp','para','unpol')
+legend('complete','perpendicular','parallel','unpolarized')
 legend boxoff

@@ -16,10 +16,10 @@ Exp.CrystalOrientation = [pi/3 pi/2 pi/8];
 Exp.lightMode = '';
 [~,Iiso] = resfreqs_matrix(Triplet,Exp);
 
-Exp.lightMode = 'para';
+Exp.lightMode = 'parallel';
 [~,Iperp] = resfreqs_matrix(Triplet,Exp);
 
-Exp.lightMode = 'perp';
+Exp.lightMode = 'perpendicular';
 [~,Ipara] = resfreqs_matrix(Triplet,Exp);
 
 ok(1) = all(Iiso~=Iperp);

@@ -18,10 +18,10 @@ Exp.CrystalOrientation = [pi/3 pi/2 pi/8];
 Exp.lightMode = '';
 [~,Iiso] = resfields_perturb(Triplet,Exp);
 
-Exp.lightMode = 'para';
+Exp.lightMode = 'parallel';
 [~,Iperp] = resfields_perturb(Triplet,Exp);
 
-Exp.lightMode = 'perp';
+Exp.lightMode = 'perpendicular';
 [~,Ipara] = resfields_perturb(Triplet,Exp);
 
 ok(1) = all(Iiso~=Iperp);

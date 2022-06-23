@@ -21,9 +21,9 @@ Exp.lightScatter = iso;  % isotropic contribution
 
 Exp.lightMode = '';
 [B,spc_iso] = pepper(Triplet,Exp,Opt);
-Exp.lightMode = 'perp';
+Exp.lightMode = 'perpendicular';
 [B,spc_perp] = pepper(Triplet,Exp,Opt);
-Exp.lightMode = 'para';
+Exp.lightMode = 'parallel';
 [B,spc_para] = pepper(Triplet,Exp,Opt);
 
 spc_sum = (spc_para+2*spc_perp) - 2*iso*spc_iso;

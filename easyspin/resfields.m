@@ -186,14 +186,14 @@ if usePhotoSelection
   if ischar(Exp.lightMode)
     k = [0;1;0]; % beam propagating along yL
     switch Exp.lightMode
-      case 'perp'
+      case 'perpendicular'
         alpha = -pi/2; % gives E-field along xL
-      case 'para'
+      case 'parallel'
         alpha = pi; % gives E-field along zL
-      case 'unpol'
+      case 'unpolarized'
         alpha = NaN; % unpolarized beam
       otherwise
-        error('Unknown string in Exp.lightMode. Use '''', ''perp'', ''para'' or ''unpol''.');
+        error('Unknown string in Exp.lightMode. Use '''', ''perpendicular'', ''parallel'' or ''unpolarized''.');
     end
     Exp.lightMode = {k alpha};
   else
