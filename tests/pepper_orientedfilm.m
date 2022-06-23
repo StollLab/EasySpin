@@ -20,6 +20,4 @@ Sys.g = Sys.g([1 3 2]);
 Exp.SampleRotation = pi/2;
 [B,spc2] = pepper(Sys,Exp);
 
-plot(B,spc1,B,spc2);
-
 ok = areequal(spc1,spc2,1e-2,'rel');
