@@ -53,7 +53,15 @@ elseif numel(tdm)==3
 elseif numel(tdm)==2
   tdm_mol = ang2vec(tdm(1),tdm(2));
 else
-  error('`tdm (first input) must be a letter designating a direction, a 3-vector, or an array with two angles.');
+  error('tdm (first input) must be a letter designating a direction, a 3-vector, or an array with two angles.');
+end
+
+% Parse orientation input
+if ~any(size(ori)==3)
+  error('ori (second input) must consist of three angles ([phi theta chi]) or an array with several sets of three angles.');
+end
+if size(ori,2)~=3
+  ori = ori.';
 end
 
 % Parse k input, calculate polar angles of k vector
@@ -82,15 +90,22 @@ end
 lightFrame = [kOri(1) kOri(2) alpha];
 [p_lab,~,k_lab] = erot(lightFrame,'rows');
 
-% Calculate tdm unit vector in lab frame representation
-R_M2L = erot(ori);
-tdm_lab = R_M2L*tdm_mol; % mol frame -> lab frame
-
-% Calculate photoselection weight
-if unpolarized
-  weight = (1 - abs(tdm_lab.'*k_lab)^2)/2;
-else
-  weight = abs(tdm_lab.'*p_lab)^2;
+% Loop over different lab frame orientations (if given)
+nOri = size(ori,1);
+weight = zeros(1,nOri);
+for iOri = 1:nOri
+  
+  % Calculate tdm unit vector in lab frame representation
+  R_M2L = erot(ori(iOri,:));
+  tdm_lab = R_M2L*tdm_mol; % mol frame -> lab frame
+  
+  % Calculate photoselection weight
+  if unpolarized
+    weight(iOri) = (1 - abs(tdm_lab.'*k_lab)^2)/2;
+  else
+    weight(iOri) = abs(tdm_lab.'*p_lab)^2;
+  end
+  
 end
 
 end

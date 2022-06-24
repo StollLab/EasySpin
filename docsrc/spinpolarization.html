@@ -47,7 +47,7 @@ Although the second and third section focus on triplets, the methods can easily 
 <div class="subtitle"><a name="photoselection">Photoselection</a></div>
 
 <p>
-Spin-polarized systems are typically generated using photoexcitation with a laser. Excited triplet states are a common example. The triplet yield upon photoexcitation depends on the relative orientation between the E-field vector of the incident laser beam and the electric transition dipole moment vector associated with the optical transition that is being excited at the wavelength of the indicent laser beam. If the E-field is parallel to the transition dipole moment, the excitation is maximal, and if the E-field is perpendicular to the transition dipole moment, the excitation is zero. This phenomenon is called photoselection. As a consequence, in a powder or frozen-solution sample, not all orientation contribute equally to the EPR spectrum.
+Spin-polarized systems are typically generated using photoexcitation with a laser. Excited triplet states are a common example. The triplet yield upon photoexcitation depends on the relative orientation between the E-field vector of the incident laser beam and the electric transition dipole moment vector associated with the optical transition that is being excited at the wavelength of the indicent laser beam. If the E-field is parallel to the transition dipole moment, the excitation is maximal, and if the E-field is perpendicular to the transition dipole moment, the excitation is zero. This phenomenon is called photoselection. As a consequence, in a powder or frozen-solution sample, not all orientations contribute equally to the EPR spectrum.
 </p>
 
 <p>
@@ -75,15 +75,15 @@ Exp.lightMode = 'parallel';        % polarized beam with E-field along lab z, pa
 </pre>
 
 <p>
-For other geometries, the propagation direction and the polarization angle can be provided explicitly as <code>Exp.lightMode = {k alpha}</code>. Refer to the documentation of <a class="esf" href="pepper.html">pepper</a> for details about this.
+For other geometries, the propagation direction <code>k</code> and the polarization angle <code>alpha</code> can be provided explicitly as <code>Exp.lightMode = {k alpha}</code>. Refer to the documentation of <a class="esf" href="pepper.html">pepper</a> for details about this.
 </p>
 
 <p>
-The photoselection weights are calculated via the function <a class="esf" href="photoselect.html">photoselect</a>, which you can use directly for examining the orientation dependence of the photoexcitaiton yield.
+The photoselection weights are calculated via the function <a class="esf" href="photoselect.html">photoselect</a>, which you can use directly for examining the orientation dependence of the photoexcitation yield.
 </p>
 
 <p>
-Occasionally, when fitting experimental spectra of photo-excited species, it is necessary to include a small contribution with isotropically excitation (i.e. with E-field uniformly distributed in all directions). The fraction of this contribution, betwenn 0 and 1, is provided in <code>Exp.lightScatter</code>.
+Occasionally, when fitting experimental spectra of photo-excited species, it is necessary to include a small contribution with isotropic excitation (i.e. with E-field uniformly distributed in all directions) to account for scattering. The fraction of this contribution, betwenn 0 and 1, is provided in <code>Exp.lightScatter</code>.
 </p>
 
 <pre class="matlab">
@@ -91,7 +91,7 @@ Exp.lightScatter = 0.2;  % 20% isotropic contribution
 </pre>
 
 <p>
-If you don't specify <code>Exp.lightMode</code>, full istropic excitation is assumed.
+If you don't specify <code>Exp.lightMode</code>, full isotropic excitation is assumed.
 </p>
 
 <!-- ----------------------------------------------------------------------------- -->
