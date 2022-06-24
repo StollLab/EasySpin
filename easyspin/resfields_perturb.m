@@ -190,18 +190,18 @@ end
 error(err);
 
 % Photoselection
-if ~isfield(Exp,'lightMode'), Exp.lightMode = ''; end
+if ~isfield(Exp,'lightBeam'), Exp.lightBeam = ''; end
 if ~isfield(Exp,'lightScatter'), Exp.lightScatter = 0; end
 
-usePhotoSelection = ~isempty(Exp.lightMode) && Exp.lightScatter<1;
+usePhotoSelection = ~isempty(Exp.lightBeam) && Exp.lightScatter<1;
 
 if usePhotoSelection
   if ~isfield(Sys,'tdm')
     error('To include photoselection weights, Sys.tdm must be given.');
   end
-  if ischar(Exp.lightMode)
+  if ischar(Exp.lightBeam)
     k = [0;1;0]; % beam propagating along yL
-    switch Exp.lightMode
+    switch Exp.lightBeam
       case 'perpendicular'
         alpha = -pi/2; % gives E-field along xL
       case 'parallel'
@@ -209,12 +209,12 @@ if usePhotoSelection
       case 'unpolarized'
         alpha = NaN; % unpolarized beam
       otherwise
-        error('Unknown string in Exp.lightMode. Use '''', ''perpendicular'', ''parallel'' or ''unpolarized''.');
+        error('Unknown string in Exp.lightBeam. Use '''', ''perpendicular'', ''parallel'' or ''unpolarized''.');
     end
-    Exp.lightMode = {k alpha};
+    Exp.lightBeam = {k alpha};
   else
-    if ~iscell(Exp.lightMode) || numel(Exp.lightMode)~=2
-      error('Exp.lightMode should be a 2-element cell {k alpha}.')
+    if ~iscell(Exp.lightBeam) || numel(Exp.lightBeam)~=2
+      error('Exp.lightBeam should be a 2-element cell {k alpha}.')
     end
   end
 end
@@ -316,8 +316,8 @@ for iOri = nOrientations:-1:1
   %----------------------------------------------------------------
   % Compute photoselection weight if needed
   if usePhotoSelection
-    k = Exp.lightMode{1};  % propagation direction
-    alpha = Exp.lightMode{2};  % polarization angle
+    k = Exp.lightBeam{1};  % propagation direction
+    alpha = Exp.lightBeam{2};  % polarization angle
     if averageOverChi
       ori = Orientations(iOri,1:2);
       photoWeight = photoselect(Sys.tdm,[ori 0],k,alpha);

@@ -310,8 +310,8 @@ if ~isfield(Exp,'Ordering'), Exp.Ordering = []; end
 if ~isfield(Exp,'CrystalOrientation'), Exp.CrystalOrientation = []; end
 
 % Photoselection is not supported
-if isfield(Exp,'lightMode') && ~isempty(Exp.lightMode)
-  error('Photoselection (via Exp.lightMode) is not supported.')
+if isfield(Exp,'lightBeam') && ~isempty(Exp.lightBeam)
+  error('Photoselection (via Exp.lightBeam) is not supported.')
 end
 
 % Number of points

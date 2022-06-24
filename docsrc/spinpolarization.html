@@ -65,17 +65,17 @@ Sys.tdm = [pi/2 pi/2];  % polar angles (in radians)
 </pre>
 
 <p>
-Use <code>Exp.lightMode</code> to specify the laser excitation geometry, i.e. the laser propagation direction and the polarization angle (if the laser light is polarized). Several common geometries can be provided via keywords. They all assume a laser beam, polarized or unpolarized, propagating along the laboratory y axis, wich is perpendicular to the magnetic field (lab z axis).
+Use <code>Exp.lightBeam</code> to specify the laser excitation geometry, i.e. the laser propagation direction and the polarization angle (if the laser light is polarized). Several common geometries can be provided via keywords. They all assume a laser beam, polarized or unpolarized, propagating along the laboratory y axis, wich is perpendicular to the magnetic field (lab z axis).
 </p>
 
 <pre class="matlab">
-Exp.lightMode = 'unpolarized';     % unpolarized beam
-Exp.lightMode = 'perpendicular';   % polarized beam with E-field along lab x, perpendicular to B0
-Exp.lightMode = 'parallel';        % polarized beam with E-field along lab z, parallel to B0
+Exp.lightBeam = 'unpolarized';     % unpolarized beam
+Exp.lightBeam = 'perpendicular';   % polarized beam with E-field along lab x, perpendicular to B0
+Exp.lightBeam = 'parallel';        % polarized beam with E-field along lab z, parallel to B0
 </pre>
 
 <p>
-For other geometries, the propagation direction <code>k</code> and the polarization angle <code>alpha</code> can be provided explicitly as <code>Exp.lightMode = {k alpha}</code>. Refer to the documentation of <a class="esf" href="pepper.html">pepper</a> for details about this.
+For other geometries, the propagation direction <code>k</code> and the polarization angle <code>alpha</code> can be provided explicitly as <code>Exp.lightBeam = {k alpha}</code>. Refer to the documentation of <a class="esf" href="pepper.html">pepper</a> for details about this.
 </p>
 
 <p>
@@ -91,7 +91,7 @@ Exp.lightScatter = 0.2;  % 20% isotropic contribution
 </pre>
 
 <p>
-If you don't specify <code>Exp.lightMode</code>, full isotropic excitation is assumed.
+If you don't specify <code>Exp.lightBeam</code>, full isotropic excitation is assumed.
 </p>
 
 <!-- ----------------------------------------------------------------------------- -->

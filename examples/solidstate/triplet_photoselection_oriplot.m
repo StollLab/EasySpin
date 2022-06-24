@@ -26,15 +26,15 @@ alpha = [0 pi/2];
 % Calculate triplet spectra for excitation along two perpendicular optical TDMs
 %===============================================================================
 Triplet.tdm = 'x';  % orientation of tdm in molecular frame
-Exp.lightMode = {k alpha(1)};
+Exp.lightBeam = {k alpha(1)};
 [B,spcx_para] = pepper(Triplet,Exp);
-Exp.lightMode = {k alpha(2)};
+Exp.lightBeam = {k alpha(2)};
 [B,spcx_perp] = pepper(Triplet,Exp);
 
 Triplet.tdm = 'y';  % orientation of tdm in molecular frame
-Exp.lightMode = {k alpha(1)};
+Exp.lightBeam = {k alpha(1)};
 [B,spcy_para] = pepper(Triplet,Exp);
-Exp.lightMode = {k alpha(2)};
+Exp.lightBeam = {k alpha(2)};
 [B,spcy_perp] = pepper(Triplet,Exp);
 
 % Calculate photoselection weights for different orientations

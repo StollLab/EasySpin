@@ -19,11 +19,11 @@ Opt.GridSymmetry = 'D2h';
 iso = 0.2;
 Exp.lightScatter = iso;  % isotropic contribution
 
-Exp.lightMode = '';
+Exp.lightBeam = '';
 [B,spc_iso] = pepper(Triplet,Exp,Opt);
-Exp.lightMode = 'perpendicular';
+Exp.lightBeam = 'perpendicular';
 [B,spc_perp] = pepper(Triplet,Exp,Opt);
-Exp.lightMode = 'parallel';
+Exp.lightBeam = 'parallel';
 [B,spc_para] = pepper(Triplet,Exp,Opt);
 
 spc_sum = (spc_para+2*spc_perp) - 2*iso*spc_iso;

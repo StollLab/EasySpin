@@ -21,15 +21,15 @@ Exp.Harmonic = 0;  % for transient EPR, turn off field modulation
 Opt.GridSymmetry = 'D2h';
 
 % Simulate spectra under various forms of photoexcitation
-Exp.lightMode = '';
+Exp.lightBeam = '';
 [B,spc_complete] = pepper(Triplet,Exp,Opt);
 
 Exp.lightScatter = 0.2;  % include 20% isotropic contribution
-Exp.lightMode = 'perpendicular';
+Exp.lightBeam = 'perpendicular';
 [B,spc_perp] = pepper(Triplet,Exp,Opt);
-Exp.lightMode = 'parallel';
+Exp.lightBeam = 'parallel';
 [B,spc_para] = pepper(Triplet,Exp,Opt);
-Exp.lightMode = 'unpolarized';
+Exp.lightBeam = 'unpolarized';
 [B,spc_unpol] = pepper(Triplet,Exp,Opt);
 
 % Plotting

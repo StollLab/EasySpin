@@ -13,13 +13,13 @@ Exp.Field = 330;  % mT
 
 Exp.CrystalOrientation = [pi/3 pi/2 pi/8];
 
-Exp.lightMode = '';
+Exp.lightBeam = '';
 [~,Iiso] = resfreqs_matrix(Triplet,Exp);
 
-Exp.lightMode = 'parallel';
+Exp.lightBeam = 'parallel';
 [~,Iperp] = resfreqs_matrix(Triplet,Exp);
 
-Exp.lightMode = 'perpendicular';
+Exp.lightBeam = 'perpendicular';
 [~,Ipara] = resfreqs_matrix(Triplet,Exp);
 
 ok(1) = all(Iiso~=Iperp);

@@ -15,13 +15,13 @@ Exp.Harmonic = 0;
 
 Exp.CrystalOrientation = [pi/3 pi/2 pi/8];
 
-Exp.lightMode = '';
+Exp.lightBeam = '';
 [~,Iiso] = resfields_perturb(Triplet,Exp);
 
-Exp.lightMode = 'parallel';
+Exp.lightBeam = 'parallel';
 [~,Iperp] = resfields_perturb(Triplet,Exp);
 
-Exp.lightMode = 'perpendicular';
+Exp.lightBeam = 'perpendicular';
 [~,Ipara] = resfields_perturb(Triplet,Exp);
 
 ok(1) = all(Iiso~=Iperp);

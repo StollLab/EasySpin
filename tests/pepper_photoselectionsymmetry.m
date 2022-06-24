@@ -21,19 +21,19 @@ Opt = struct();
 % Transition dipole moment at 45 deg
 Triplet.tdm = [0 45]*pi/180;  % orientation of tdm in molecular frame
     
-Exp.lightMode = 'parallel';
+Exp.lightBeam = 'parallel';
 [~,spc_para1] = pepper(Triplet,Exp,Opt);
 
-Exp.lightMode = 'perpendicular';
+Exp.lightBeam = 'perpendicular';
 [~,spc_perp1] = pepper(Triplet,Exp,Opt);
     
 % Transition dipole moment at -45 deg
 Triplet.tdm = -Triplet.tdm;
     
-Exp.lightMode = 'parallel';
+Exp.lightBeam = 'parallel';
 [~,spc_para2] = pepper(Triplet,Exp,Opt);
 
-Exp.lightMode = 'perpendicular';
+Exp.lightBeam = 'perpendicular';
 [~,spc_perp2] = pepper(Triplet,Exp,Opt);
 
 ok(1) = areequal(spc_para1,spc_para2,1e-2,'rel');
