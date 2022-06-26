@@ -11,7 +11,7 @@
 %       .Verbosity       1, if progress information should be printed
 %       .TolFun           error threshold below which fitting stops
 
-function bestx = esfit_genetic(fcn,lb,ub,Opt)
+function [bestx,info] = esfit_genetic(fcn,lb,ub,Opt)
 
 if nargin==0, help(mfilename); return; end
 
@@ -61,7 +61,8 @@ Scores = ones(1,Opt.PopulationSize)*inf;
 for k = 1:Opt.PopulationSize
   Scores(k) = fcn(Population(k,:));
   nEvals = nEvals+1;
-  if Scores(k)<bestScore
+  newbest = Scores(k)<bestScore;
+  if newbest
     bestx = Population(k,:);
     bestScore = Scores(k);
   end
@@ -69,6 +70,7 @@ for k = 1:Opt.PopulationSize
   info.minF = bestScore;
   info.nEvals = nEvals;
   info.iter = 0;
+  info.newbest = newbest;
   if ~isempty(Opt.IterFcn)
     UserStop = Opt.IterFcn(info);
   else
@@ -153,7 +155,8 @@ while true
 
   [Scores,idx] = sort(Scores);
   Population = Population(idx,:);
-  if Scores(1)<bestScore
+  newbest = Scores(1)<bestScore;
+  if newbest
     bestScore = Scores(1);
     bestx = Population(1,:);
   end
@@ -163,6 +166,7 @@ while true
   info.minF = bestScore;
   info.nEvals = nEvals;
   info.iter = gen;
+  info.newbest = newbest;
   if ~isempty(Opt.IterFcn)
     UserStop = Opt.IterFcn(info);
   else
@@ -179,6 +183,7 @@ if Opt.Verbosity>1
     case 3, msg = sprintf('Stopped by user.');
   end
   fprintf('Terminated: %s\n',msg);
+  info.msg = sprintf('Terminated: %s\n',msg);
 end
 
 return
