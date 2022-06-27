@@ -924,14 +924,11 @@ for iOri = 1:nOrientations
     k = Exp.lightBeam{1};  % propagation direction
     alpha = Exp.lightBeam{2};  % polarization angle
     if averageOverChi
-      ori = Orientations(iOri,1:2);
-      photoWeight = photoselect(System.tdm,[ori 0],k,alpha);
-      photoWeight2 = photoselect(System.tdm,[ori pi/2],k,alpha);
-      photoWeight = (photoWeight+photoWeight2)/2;
+      ori = Orientations(iOri,1:2);  % omit chi
     else
       ori = Orientations(iOri,1:3);
-      photoWeight = photoselect(System.tdm,ori,k,alpha);
     end
+    photoWeight = photoselect(System.tdm,ori,k,alpha);
     % Add isotropic contribution (from scattering)
     photoWeight = (1-Exp.lightScatter)*photoWeight + Exp.lightScatter;
   else

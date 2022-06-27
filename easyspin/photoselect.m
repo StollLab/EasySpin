@@ -14,10 +14,11 @@
 %               - a letter or letter combination, e.g. 'x', 'z', 'xz', '-y', etc.
 %               - a three-element vector [mx my mz]
 %               - two spherical angles [phim thetam] (in radians)
-%   ori         [phi theta chi] angles of lab frame in molecular frame.
+%   ori         [phi theta chi] or [phi theta] angles of lab frame in molecular frame.
 %               phi and theta determine the direction of the lab z axis (zL, aligned
 %               with B0), chi additionally determines the direction of lab x and y
-%               (xL and yL)
+%               (xL and yL). If chi is omitted, the integral over chi from
+%               0 to 2*pi is calculated.
 %   k           Orientation of the propagation direction of the light excitation beam
 %               in the lab frame.
 %               There are three ways to input this:
@@ -57,12 +58,15 @@ else
 end
 
 % Parse orientation input
-if ~any(size(ori)==3)
-  error('ori (second input) must consist of three angles ([phi theta chi]) or an array with several sets of three angles.');
+switch size(ori,2)
+  case 2
+    integrateChi = true;
+  case 3
+    integrateChi = false;
+  otherwise
+    error('ori (second input) must consist of an array with two or three Euler angles on each row ([phi theta] or [phi theta chi]).');
 end
-if size(ori,2)~=3
-  ori = ori.';
-end
+nOrientations = size(ori,1);
 
 % Parse k input, calculate polar angles of k vector
 if ischar(k)
@@ -91,19 +95,43 @@ lightFrame = [kOri(1) kOri(2) alpha];
 [p_lab,~,k_lab] = erot(lightFrame,'rows');
 
 % Loop over different lab frame orientations (if given)
-nOri = size(ori,1);
-weight = zeros(1,nOri);
-for iOri = 1:nOri
+weight = zeros(1,nOrientations);
+for iOri = 1:nOrientations
   
-  % Calculate tdm unit vector in lab frame representation
-  R_M2L = erot(ori(iOri,:));
-  tdm_lab = R_M2L*tdm_mol; % mol frame -> lab frame
-  
-  % Calculate photoselection weight
-  if unpolarized
-    weight(iOri) = (1 - abs(tdm_lab.'*k_lab)^2)/2;
+  if integrateChi
+    
+    % Calculate tdm unit vector in lab frame representation, for chi=0
+    R_M2L = erot([ori(iOri,:) 0]);
+    tdm_lab = R_M2L*tdm_mol; % mol frame -> lab frame
+
+    % Calculate photoselection weight integrated over chi
+    % (expressions determined using Mathematica)
+    if unpolarized
+      weight_k = ...
+        (tdm_lab(1)^2+tdm_lab(2)^2)*(k_lab(1)^2+k_lab(2)^2)/2 + ...
+        tdm_lab(3)^2*k_lab(3)^2;
+      weight(iOri) = (1-weight_k)/2;
+    else
+      % Analytical integral, evaluated using Mathematica
+      weight(iOri) = ...
+        (tdm_lab(1)^2+tdm_lab(2)^2)*(p_lab(1)^2+p_lab(2)^2)/2 + ...
+        tdm_lab(3)^2*p_lab(3)^2;
+    end
+
   else
-    weight(iOri) = abs(tdm_lab.'*p_lab)^2;
+    
+    % Calculate tdm unit vector in lab frame representation
+    R_M2L = erot(ori(iOri,:));
+    tdm_lab = R_M2L*tdm_mol; % mol frame -> lab frame
+
+    % Calculate photoselection weight
+    if unpolarized
+      weight_k = abs(tdm_lab.'*k_lab)^2;
+      weight(iOri) = (1 - weight_k)/2;
+    else
+      weight(iOri) = abs(tdm_lab.'*p_lab)^2;
+    end
+
   end
   
 end
