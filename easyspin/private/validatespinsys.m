@@ -785,7 +785,7 @@ end
 % Check Sys.lw
 if ~isfield(Sys,'lw'), Sys.lw = [0 0]; end
 if numel(Sys.lw)==1, Sys.lw(2) = 0; end
-if numel(Sys.lw)~=2, err = ('System.lw has wrong size.'); end
+if ~all(size(Sys.lw)==[1 2]), err = ('System.lw has wrong size.'); end
 if ~isempty(err), return; end
 if any(Sys.lw<0), err = ('System.lw cannot be negative.'); end
 if ~isempty(err), return; end
@@ -801,7 +801,7 @@ if ~isempty(err), return; end
 % Check Sys.lwpp
 if ~isfield(Sys,'lwpp'), Sys.lwpp = [0 0]; end
 if numel(Sys.lwpp)==1, Sys.lwpp(2) = 0; end
-if numel(Sys.lwpp)~=2, err = ('System.lwpp has wrong size.'); end
+if ~all(size(Sys.lwpp)==[1 2]), err = ('System.lwpp has wrong size.'); end
 if ~isempty(err), return; end
 if any(Sys.lwpp<0), err = ('Linewidths cannot be negative.'); end
 if ~isempty(err), return; end

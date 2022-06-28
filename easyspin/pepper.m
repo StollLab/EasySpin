@@ -248,6 +248,7 @@ DefaultExp.Mode = 'perpendicular';
 DefaultExp.Ordering = [];
 DefaultExp.ModAmp = 0;
 DefaultExp.mwPhase = 0;
+DefaultExp.SampleRotation = [];
 
 DefaultExp.CrystalOrientation = [];
 DefaultExp.CrystalSymmetry = '';
@@ -471,6 +472,36 @@ else
   end
 end
 logmsg(1,msg);
+
+% Sample rotation
+if isfield(Exp,'SampleRotation') && ~isempty(Exp.SampleRotation)
+  if isnumeric(Exp.SampleRotation)
+    rho = Exp.SampleRotation;
+    nRot = [1;0;0]; % lab x axis (xL_L) as default
+  elseif iscell(Exp.SampleRotation) && numel(Exp.SampleRotation)==2
+    rho = Exp.SampleRotation{1};
+    nRot = Exp.SampleRotation{2};
+    if ischar(nRot)
+      nRot = letter2vec(nRot);
+    end
+  else
+    error('Exp.SampleRotation must be of the form {rho,nL}, with the rotation angle rho and the lab-frame rotation axis nL.');
+  end
+  if numel(rho)~=1
+    error('Exp.SampleRotation: the first element must the rotation angle rho.');
+  end
+else
+  rho = 0;
+  nRot = [1;0;0];
+end
+rotateSample = rho~=0;
+if rotateSample
+  Exp.R_sample = rotaxi2mat(nRot,rho).'; % transpose because it's an active rotation
+else
+  Exp.R_sample = [];
+end
+
+
 %=======================================================================
 
 
@@ -936,7 +967,13 @@ elseif ~BruteForceSum
       if ~isempty(Exp.Ordering)
         centreTheta = (fthe(1:end-1)+fthe(2:end))/2;
         centrePhi = zeros(1,numel(centreTheta));
-        OrderingWeights = orifun(centrePhi,centreTheta);
+        if rotateSample
+          v = ang2vec(centrePhi,centreTheta);
+          [centrePhi_,centreTheta_] = vec2ang(Exp.R_sample*v);
+          OrderingWeights = orifun(centrePhi_,centreTheta_);
+        else
+          OrderingWeights = orifun(centrePhi,centreTheta);
+        end
         if any(OrderingWeights<0), error('User-supplied orientation distribution gives negative values.'); end
         if all(OrderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end
         fSegWeights = fSegWeights(:).*OrderingWeights(:);
@@ -960,7 +997,13 @@ elseif ~BruteForceSum
       if ~isempty(Exp.Ordering)
         centreTheta = mean(fthe(idxTri));
         centrePhi = mean(fphi(idxTri));
-        OrderingWeights = orifun(centrePhi,centreTheta);
+        if rotateSample
+          v = ang2vec(centrePhi,centreTheta);
+          [centrePhi_,centreTheta_] = vec2ang(Exp.R_sample*v);
+          OrderingWeights = orifun(centrePhi_,centreTheta_);
+        else
+          OrderingWeights = orifun(centrePhi,centreTheta);
+        end
         if any(OrderingWeights<0), error('User-supplied orientation distribution gives negative values!'); end
         if all(OrderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end
         Areas = Areas(:).*OrderingWeights(:);

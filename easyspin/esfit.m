@@ -490,7 +490,7 @@ activeParams = ~fixedParams;
 Verbosity = esfitdata.Opts.Verbosity;
 
 if useGUI
-  esfitdata.modelErrorHandler = @(ME) set(findobj('Tag','ErrorLogBox'),'String',ME.message);
+  esfitdata.modelErrorHandler = @(ME) updateLogBox(ME.message);
 else
   esfitdata.modelErrorHandler = @(ME) error('\nThe model simulation function raised the following error:\n  %s\n',ME.message);
 end
@@ -510,39 +510,62 @@ fitOpt = esfitdata.Opts;
 nActiveParams = sum(activeParams);
 if nActiveParams>0
   if Verbosity>=1
-    fprintf('Running optimization algorithm with %d active parameters...\n',nActiveParams);
+    msg = sprintf('Running optimization algorithm with %d active parameters...',nActiveParams);
+    if useGUI
+      updateLogBox({'',msg})
+    else
+      disp(msg);
+    end
   end
   if useGUI
     fitOpt.IterFcn = @iterupdateGUI;
   end
   fitOpt.track = true;
-  residualfun = @(x) residuals_(x,data_,fitOpt);
-  rmsdfun = @(x) rmsd_(x,data_,fitOpt);
+  if fitOpt.AlgorithmID==7
+    iterupdate = true;
+  else
+    iterupdate = false;
+  end
+  residualfun = @(x) residuals_(x,data_,fitOpt,iterupdate);
+  rmsdfun = @(x) rmsd_(x,data_,fitOpt,iterupdate);
   p0_active = p_start(activeParams);
   lb_active = lb(activeParams);
   ub_active = ub(activeParams);
   switch fitOpt.AlgorithmID
     case 1 % Nelder-Mead simplex
-      pfit_active = esfit_simplex(rmsdfun,p0_active,lb_active,ub_active,fitOpt);
+      [pfit_active,info] = esfit_simplex(rmsdfun,p0_active,lb_active,ub_active,fitOpt);
     case 2 % Levenberg-Marquardt
       fitOpt.Gradient = fitOpt.TolFun;
-      pfit_active = esfit_levmar(residualfun,p0_active,lb_active,ub_active,fitOpt);
+      [pfit_active,info] = esfit_levmar(residualfun,p0_active,lb_active,ub_active,fitOpt);
     case 3 % Monte Carlo
-      pfit_active = esfit_montecarlo(rmsdfun,lb_active,ub_active,fitOpt);
+      [pfit_active,info] = esfit_montecarlo(rmsdfun,lb_active,ub_active,fitOpt);
     case 4 % Genetic
-      pfit_active = esfit_genetic(rmsdfun,lb_active,ub_active,fitOpt);
+      [pfit_active,info] = esfit_genetic(rmsdfun,lb_active,ub_active,fitOpt);
     case 5 % Grid search
-      pfit_active = esfit_grid(rmsdfun,lb_active,ub_active,fitOpt);
+      updateLogBox(sprintf('%d parameters, %d grid points total\n',nActiveParams,prod(fitOpt.GridSize)));
+      [pfit_active,info] = esfit_grid(rmsdfun,lb_active,ub_active,fitOpt);
     case 6 % Particle swarm
-      pfit_active = esfit_swarm(rmsdfun,lb_active,ub_active,fitOpt);
+      [pfit_active,info] = esfit_swarm(rmsdfun,lb_active,ub_active,fitOpt);
     case 7 % lsqnonlin from Optimization Toolbox
       pfit_active = lsqnonlin(residualfun,p0_active,lb_active,ub_active);
+      info.bestx = pfit_active;
+      info.newbest = true;
+      iterupdateGUI(info)
+      info.msg = 'Terminated';
   end
   pfit = p_start;
   pfit(activeParams) = pfit_active;
+  if Verbosity>=1 && useGUI && isfield(info,'msg')
+    updateLogBox(info.msg);
+  end
 else
   if Verbosity>=1
-    disp('No active parameters; skipping optimization');
+    msg = 'No active parameters; skipping optimization';
+    if useGUI
+      updateLogBox(msg);
+    else
+      disp(msg);
+    end
   end
   pfit = p_start;
 end
@@ -574,16 +597,28 @@ rmsd0 = esfitdata.best.rmsd;
 calculateUncertainties = esfitdata.UserCommand==0 && nActiveParams>0;
 if calculateUncertainties
   if Verbosity>=1
-    disp('Calculating parameter uncertainties...');
-    disp('  Estimating Jacobian...');
+    if useGUI
+      clear msg
+      msg{1} = 'Calculating parameter uncertainties...';
+      msg{2} = '  Estimating Jacobian...';
+      updateLogBox(msg);
+    else
+      disp('Calculating parameter uncertainties...');
+      disp('  Estimating Jacobian...');
+    end
   end
   %maxRelStep = min((ub-pfit),(pfit-lb))./pfit;
   fitOpt.track = false;
-  residualfun = @(x)residuals_(x,data_,fitOpt);
+  residualfun = @(x)residuals_(x,data_,fitOpt,useGUI);
   J = jacobianest(residualfun,pfit_active);
   if ~any(isnan(J(:)))
     if Verbosity>=1
-      disp('  Calculating parameter covariance matrix...');
+      msg = '  Calculating parameter covariance matrix...';
+      if useGUI
+        updateLogBox(msg);
+      else
+        disp(msg);
+      end
     end
 
     % Calculate covariance matrix and standard deviations
@@ -600,13 +635,23 @@ if calculateUncertainties
 
     % Calculate correlation matrix
     if Verbosity>=1
-      disp('  Calculating parameter correlation matrix...');
+      msg = '  Calculating parameter correlation matrix...';
+      if useGUI
+        updateLogBox(msg);
+      else
+        disp(msg);
+      end
     end
     Q = diag(diag(covmatrix).^(-1/2));
     corrmatrix = Q*covmatrix*Q;
   else
     if Verbosity>=1
-      disp('  NaN elements in Jacobian, cannot calculate parameter uncertainties.');
+      msg = '  NaN elements in Jacobian, cannot calculate parameter uncertainties.';
+      if useGUI
+        updateLogBox(msg);
+      else
+        disp(msg);
+      end
     end
     pstd = [];
     ci95 = [];
@@ -615,7 +660,12 @@ if calculateUncertainties
   end
 else
   if Verbosity>=1
-    disp('Fitting stopped by user. Skipping uncertainty quantification.');
+    msg = 'Fitting stopped by user. Skipping uncertainty quantification.';
+    if useGUI
+      updateLogBox(msg);
+    else
+      disp(msg);
+    end
   end
   pstd = [];
   ci95 = [];
@@ -654,14 +704,14 @@ end
 
 
 %===============================================================================
-function rmsd = rmsd_(x,data,Opt)
-[~,rmsd] = residuals_(x,data,Opt);
+function rmsd = rmsd_(x,data,Opt,useGUI)
+[~,rmsd] = residuals_(x,data,Opt,useGUI);
 end
 %===============================================================================
 
 
 %===============================================================================
-function [residuals,rmsd] = residuals_(x,expdata,Opt)
+function [residuals,rmsd] = residuals_(x,expdata,Opt,useGUI)
 
 global esfitdata
 
@@ -760,6 +810,12 @@ if Opt.track
     esfitdata.best.par = par;
     esfitdata.best.baseline = baseline;
   end
+  
+  if useGUI
+    info.newbest = isNewBest;
+    iterupdateGUI(info);
+  end
+
 end
 
 end
@@ -781,8 +837,7 @@ expdata = esfitdata.data(:);
 bestsim = real(esfitdata.best.fit(:));
 currsim = real(esfitdata.curr.sim(:));
 currpar = esfitdata.curr.par;
-bestpar = currpar;
-bestpar(~esfitdata.fixedParams) = info.bestx;
+bestpar = esfitdata.best.par;
 
 % Update plotted data
 set(findobj('Tag','expdata'),'XData',x,'YData',expdata);
@@ -822,6 +877,10 @@ for p = 1:nParams
     str = ['<html><font color="#000000">' newvaluestring(1:idx-1) '</font><font color="#ff0000">' newvaluestring(idx:end) '</font></html>'];
   else
     str = ['<html><font color="#888888">' newvaluestring '</font></html>'];
+  end
+  % Indicate parameters have hit limit
+  if currpar(p)==esfitdata.pvec_lb(p) ||  currpar(p)==esfitdata.pvec_ub(p)
+    str = ['<html><font color="#EE4B2B">' newvaluestring '</font></html>'];
   end
   data{p,6} = str;
 end
@@ -963,6 +1022,10 @@ set(findobj('Tag','StopButton'),'Visible','on');
 set(findobj('Tag','StartButton'),'Visible','off');
 set(findobj('Tag','SaveButton'),'Enable','off');
 
+% Disable other buttons
+set(findobj('Tag','EvaluateButton'),'Enable','off');
+set(findobj('Tag','ResetButton'),'Enable','off');
+
 % Disable listboxes
 set(findobj('Tag','AlgorithMenu'),'Enable','off');
 set(findobj('Tag','TargetMenu'),'Enable','off');
@@ -1061,6 +1124,10 @@ end
 set(findobj('Tag','StopButton'),'Visible','off');
 set(findobj('Tag','StartButton'),'Visible','on');
 
+% Re-enable other buttons
+set(findobj('Tag','EvaluateButton'),'Enable','on');
+set(findobj('Tag','ResetButton'),'Enable','on');
+
 % Re-enable listboxes
 set(findobj('Tag','AlgorithMenu'),'Enable','on');
 set(findobj('Tag','TargetMenu'),'Enable','on');
@@ -1123,7 +1190,7 @@ esfitdata.Opts.BaseLine = esfitdata.BaseLineSettings{get(findobj('Tag','BaseLine
 esfitdata.Opts.useMask = get(findobj('Tag','MaskCheckbox'),'Value')==1;
 Opt = esfitdata.Opts;
 Opt.track = false;
-[~,rmsd] = residuals_(p_eval,expdata,Opt);
+[~,rmsd] = residuals_(p_eval,expdata,Opt,1);
 
 % Get current spectrum
 currsim = real(esfitdata.curr.sim(:));
@@ -1164,6 +1231,10 @@ end
 function resetCallback(~,~)
 % Reset best fit
 global esfitdata
+
+% Remove messages from log
+set(findobj('Tag','LogBox'),'ListboxTop',1)
+set(findobj('Tag','LogBox'),'String',{''})
 
 % Remove best fit simulation from plot
 hBestSim = findobj('Tag','bestsimdata');
@@ -1396,6 +1467,28 @@ displayFitSet;
 end
 %===============================================================================
 
+%===============================================================================
+function updateLogBox(msg)
+
+txt = get(findobj('Tag','LogBox'),'String');
+if numel(txt)==1 && isempty(txt{1})
+  txt = {};
+end
+if iscell(msg)
+  for i = 1:numel(msg)
+    txt{end+1} = strrep(msg{i},'\n','');
+  end
+else
+  txt{end+1} = strrep(msg,'\n','');
+end
+nval = numel(txt);
+set(findobj('Tag','LogBox'),'String',txt)
+if nval>6
+  drawnow;
+  set(findobj('Tag','LogBox'),'ListBoxTop',nval-5);
+end
+
+end
 
 %===============================================================================
 function clearMaskCallback(~,~)
@@ -1577,13 +1670,13 @@ wOptionsSel = 150*scalefact;
 Buttonsx0 = ParTablex0+ParTablew+wOptionsLabel+wOptionsSel+1.5*spacing;
 Buttonsy0 = sz(2)-hPtop-spacing+dh;
 
-ErrorLogx0 = Prightstart;
-ErrorLogy0 = spacing;
-ErrorLogw = wPright;
-ErrorLogh = 110*scalefact;
+Logx0 = Prightstart;
+Logy0 = spacing;
+Logw = wPright;
+Logh = 110*scalefact;
 
 FitSetx0 = Prightstart;
-FitSety0 = ErrorLogy0+ErrorLogh+2*hElement;
+FitSety0 = Logy0+Logh+2*hElement;
 FitSetw = wPright;
 FitSeth = 125*scalefact;
 
@@ -1609,11 +1702,11 @@ maxx = max(esfitdata.Opts.x);
 x = esfitdata.Opts.x;
 
 h(1) = line(x,NaNdata,'Color','k','Marker','.','LineStyle','none');
-h(2) = line(x,NaNdata,'Color',[0 0.6 0]);
-h(3) = line(x,NaNdata,'Color','r');
+h(2) = line(x,NaNdata,'Color','r');
+h(3) = line(x,NaNdata,'Color',[0 0.6 0]);
 set(h(1),'Tag','expdata','XData',esfitdata.Opts.x,'YData',dispData);
-set(h(2),'Tag','bestsimdata');
-set(h(3),'Tag','currsimdata');
+set(h(2),'Tag','currsimdata');
+set(h(3),'Tag','bestsimdata');
 hAx.XLim = [minx maxx];
 hAx.YLim = YLimits;
 hAx.ButtonDownFcn = @axesButtonDownFcn;
@@ -1895,16 +1988,17 @@ uicontrol('Parent',hFig,'Style','pushbutton','Tag','deleteSetButton',...
 % Error log panel
 %-------------------------------------------------------------------------------
 uicontrol('Parent',hFig,'Style','text',...
-    'Position',[ErrorLogx0 ErrorLogy0+ErrorLogh ErrorLogw hElement],...
+    'Position',[Logx0 Logy0+Logh Logw hElement],...
     'BackgroundColor',get(gcf,'Color'),...
-    'FontWeight','bold','String','Error messages',...
-    'Tooltip','Error message logging',...
+    'FontWeight','bold','String','Log',...
+    'Tooltip','Fitting information and error log',...
     'HorizontalAl','left');
-uicontrol('Parent',hFig,'Style','text','Tag','ErrorLogBox',...
-    'Position',[ErrorLogx0 ErrorLogy0 ErrorLogw ErrorLogh],...
-    'String','','Tooltip','',...
-    'Min',1,'Max',25,...
+uicontrol('Parent',hFig,'Style','listbox','Tag','LogBox',...
+    'Position',[Logx0 Logy0 Logw Logh],...
+    'String',{''},'Tooltip','',...
     'HorizontalAlignment','left',...
+    'Min',0,'Max',2,...
+    'Value',[],'Enable','inactive',...
     'BackgroundColor',[1 1 1])
 
 drawnow

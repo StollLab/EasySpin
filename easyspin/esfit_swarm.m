@@ -4,6 +4,7 @@ if ~isfield(FitOpt,'maxTime'), FitOpt.maxTime = inf; end
 if ~isfield(FitOpt,'Verbosity'); FitOpt.Verbosity = 1; end
 if ~isfield(FitOpt,'TolFun'), FitOpt.TolFun = 1e-5; end
 if ~isfield(FitOpt,'IterationPrintFunction'), FitOpt.IterationPrintFunction = []; end
+if ~isfield(FitOpt,'IterFcn'), FitOpt.IterFcn = []; end
 if ~isfield(FitOpt,'SwarmParams'), FitOpt.SwarmParams = [0.2 0.5 2 1]; end
 if ~isfield(FitOpt,'TolStallIter'), FitOpt.TolStallIter = 6; end
 
@@ -76,7 +77,8 @@ while stopCode==0
   
   % Find overall best fit so far
   [~,idx] = min(F);
-  if F(idx)<globalbestF
+  newbest = F(idx)<globalbestF;
+  if newbest
     nStalledIterations = 0;
     globalbestF = F(idx);
     gX = X(:,idx);
@@ -101,6 +103,13 @@ while stopCode==0
   if UserCommand==1, stopCode = 2; end
   if globalbestF<FitOpt.TolFun, stopCode = 3; end
   if nStalledIterations==FitOpt.TolStallIter, stopCode = 4; end
+  if ~isempty(FitOpt.IterFcn)
+    info.newbest = newbest;
+    UserStop = FitOpt.IterFcn(info);
+    if UserStop
+      stopCode = 2;
+    end
+  end
   
 end
 
@@ -112,9 +121,10 @@ if FitOpt.Verbosity>1
     case 4, msg = sprintf('Terminated: Function value didn''t change for %d iterations.',FitOpt.TolStallIter);
   end
   disp(msg);
+  info.msg = msg;
 end
 
 info.nIterations = iIteration;
 info.elapsedTime = elapsedTime;
-
+info.newbest = newbest;
 end

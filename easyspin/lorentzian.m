@@ -45,7 +45,7 @@ if numel(phase)>1
   error('phase must contain 1 element.');
 elseif ~isreal(phase)
   error('phase must be real.');
-elseif (diff<0)
+elseif phase~=0 && (diff<0)
   error('Cannot compute phased lineshape for integral.');
 end
 

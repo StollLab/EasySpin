@@ -11,6 +11,7 @@ Inputs:
   Exp.SampleRotation      rotation of the sample in the lab frame
   Exp.CrystalSymmetry:    space group, only used for crystal simulations
   Exp.MolFrame:           molecular frame orientation in crystal frame, only used for crystal sims
+  Exp.R_sample            sample rotation matrix
   Opt.Sites:              list of sites to include, e.g. [1 3] in a 4-site group
 
 Outputs:
@@ -20,27 +21,11 @@ Outputs:
   AverageOverChi:  whether to compute average over third angle
 %}
 
+rotateSample = isfield(Exp,'R_sample') && ~isempty(Exp.R_sample);
+
 % Exp.PowderSimulation is set only if this function is called from an EasySpin
 % function that does a powder simulation (pepper, salt, saffron, curry, etc).
 PowderSimulation = isfield(Exp,'PowderSimulation') && Exp.PowderSimulation;
-
-% If sample rotation is requested, prepare rotation matrices
-rotateSample = isfield(Exp,'SampleRotation') && ~isempty(Exp.SampleRotation);
-if rotateSample
-  if isnumeric(Exp.SampleRotation)
-    rho = Exp.SampleRotation;
-    nRot = [1;0;0]; % lab x axis (xL_L) as default
-  elseif iscell(Exp.SampleRotation) && numel(Exp.SampleRotation)==2
-    rho = Exp.SampleRotation{1};
-    nRot = Exp.SampleRotation{2};
-  else
-    error('Exp.SampleRotation must be of the form {rho,nL}, with the rotation angle rho and the lab-frame rotation axis nL.');
-  end
-  if numel(rho)~=1
-    error('Exp.SampleRotation: the first element must the rotation angle rho.');
-  end
-  R_sample = rotaxi2mat(nRot,rho).'; % transpose because it's an active rotation
-end
 
 if ~PowderSimulation
   
@@ -118,7 +103,7 @@ if ~PowderSimulation
   % Apply sample rotation
   if rotateSample
     for iR = 1:numel(R_CL)
-      R_CL{iR} = R_sample*R_CL{iR};
+      R_CL{iR} = Exp.R_sample*R_CL{iR};
     end
   end
   
