@@ -43,7 +43,7 @@ Exp.lightBeam = {k alpha(2)};
 Opt.GridSymmetry = 'C1';
 Opt.GridSize = 91;
 [gridstruct,tri] = sphgrid(Opt.GridSymmetry,Opt.GridSize);
-Orientations = [gridstruct.phi; gridstruct.theta; zeros(size(gridstruct.theta))];
+Orientations = [gridstruct.phi; gridstruct.theta].';
 vecs = gridstruct.vecs;
 
 % Calculate weights for all orientations
