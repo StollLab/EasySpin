@@ -32,17 +32,17 @@ Exp.CrystalOrientation = [0 0 0];
 
 [x1, y1] = saffron(Sys1,Exp);
 
-Exp.CrystalOrientation = angles;
+Exp.CrystalOrientation = -fliplr(angles);
 
 [x2, y2] = saffron(Sys2,Exp);
 
 if (opt.Display)
     clf
-    plot(x1,real(y1),x2,real(y2));
-    legend({'external rotation' 'roation with saffron'})
+    plot(x1,real(y1),x2,real(y2),'--');
+    legend({'external rotation' 'rotation with saffron'})
     axis tight
     ylabel('Signal')
     xlabel('time [us]');
 end
 
-ok = isequal(y1, y2);
+ok = areequal(y1, y2, 1e-12, 'abs');
