@@ -96,7 +96,8 @@ for idx = 1:nGridPoints
   nEvals = nEvals+1;
   iIteration = iIteration+1;
   
-  if F<minF
+  newbest = F<minF;
+  if newbest
     minF = F;
     bestx = X(:,idx);
     if opt.Verbosity
@@ -111,7 +112,7 @@ for idx = 1:nGridPoints
   info.minF = minF;
   info.nEvals = nEvals;
   info.iter = iIteration;
-  info.newbest = F<minF;
+  info.newbest = newbest;
   UserStop = opt.IterFcn(info);
   
   elapsedTime = (cputime-startTime)/60;
@@ -131,6 +132,7 @@ if opt.Verbosity>1
     case 3, msg = sprintf('Terminated: Found a parameter set with error less than %g.',opt.TolFun);
   end
   disp(msg);
+  info.msg = msg;
 end
 
 info.stop = stopCode;

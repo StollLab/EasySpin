@@ -88,6 +88,7 @@ if FitOpt.Verbosity>1
     case 3, msg = sprintf('Terminated: Found a parameter set with error less than %g.',FitOpt.TolFun);
   end
   disp(msg);
+  info.msg = msg;
 end
 
 info.nTrials = iTrial;

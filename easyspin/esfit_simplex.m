@@ -274,6 +274,7 @@ if Opt.Verbosity>0
     case 3, msg = sprintf('Converged (edge length < %g and all errors < %g).',Opt.TolEdgeLength,Opt.TolFun);
   end
   fprintf('Terminated: %s\n',msg);
+  info.msg = sprintf('Terminated: %s\n',msg);
 end
 
 info.stop = stopCode;
