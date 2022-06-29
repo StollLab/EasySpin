@@ -45,7 +45,7 @@ H = sham(Sys,B)
 <div class="subtitle">Description</div>
 
 <p>
-This function returns the <a href="hamiltonian.html">spin Hamiltonian</a> or its components. <code>Sys</code> is the structure defining the spin system, the optional <code>B</code> is the 3-element external magnetic field vector (in mT) in the molecular frame of the spin system.
+This function returns the <a href="hamiltonian.html">spin Hamiltonian</a> or its components. <code>Sys</code> is the structure defining the <a href="spinsystem.html">spin system</a>, the optional <code>B</code> is the 3-element external magnetic field vector (in mT) in the molecular frame of the spin system.
 </p>
 
 <p>
@@ -77,8 +77,8 @@ The Hamiltonian of a simple S=I=1/2 system is
 
 <pre class="matlab">
 g = [2 2 2]; A = [1 1 2]*100; B = [0 0 340];
-Sy = struct('S',.5,'g',g,'Nucs','1H','A',A);
-H = sham(Sy,B)
+Sys = struct('S',.5,'g',g,'Nucs','1H','A',A);
+H = sham(Sys,B)
 </pre>
 <pre class="mloutput">
 H =

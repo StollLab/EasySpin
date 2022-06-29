@@ -52,7 +52,6 @@ There are the following advanced topics:
 <ul>
 <li><a href = "#multicomponent">Multiple components</a></li>
 <li><a href = "#manynuclei">Systems with several nuclei</a></li>
-<li><a href = "#nonequivpop">Non-equilibrium populations</a></li>
 <li><a href = "#ordering">Partially ordered systems</a></li>
 <li><a href = "#freqsweep">Frequency-swept spectra</a></li>
 </ul>
@@ -562,62 +561,6 @@ Opt.Method = 'perturb2';
 plot(x,y1,'r',x,y2,'b');
 </pre>
 
-
-<!-- ============================================================= -->
-<a name="nonequivpop"><div class="subtitle">Non-equilibrium populations</div></a>
-
-<p>
-<code>pepper</code> can handle both thermal equilibrium and non-equilibrium
-populations. Both are specified in the field <code>Temperature</code> of the
-experimental settings structure.
-</p>
-
-<p>
-For thermal equilibrium, just give the temperature in kelvin:
-</p>
-
-<pre class="matlab">
-Exp.Temperature = 77; % 77K, boiling point of liquid nitrogen
-</pre>
-
-<p>
-For non-equilibirum populations, <code>Temperature</code> must be a
-vector. If the spin systems contains <em>N</em> electron states, then
-this vector must contain <em>N</em> elements, each specifying the population
-of one of the electron states at <em>zero field</em>, sorted according to
-their energy from lowest to highest.
-
-<p>
-E.g., an organic triplet with S=1 and I=1 has 3 electron states, each
-further split into three sublevels by the coupling to the nuclear spin. The
-population vector in this case should contain three elements:
-
-<pre class="matlab">
-Exp.Temperature = [0.6 0.8 1.1]; % highest state is most populated
-</pre>
-
-<p>
-This specifies that all the sublevels of the lowest zero-field electron states
-have a population of 0.6, etc. The sublevels of the highest-energy zero-field
-electron state have a population of 1.1. The populations don't have to be normalized,
-<code>pepper</code> takes care about that.
-
-<p>
-To compute the state populations for a non-zero field state,
-<code>pepper</code> decomposes it into a linear combination of zero-field
-states and combines the zero-field populations using the resulting linear
-combination coefficients.
-
-<p>
-A simple example of a non-equilibrium triplet system is
-
-<pre class="matlab">
-Sys.S = 1; Sys.g = 2; Sys.lw = 0.2;
-Sys.D = 100;
-Exp.mwFreq = 9.5; Exp.Range = [320 360]; Exp.Harmonic = 0;
-Exp.Temperature = [0.5 0.6 0.9];
-pepper(Sys,Exp);
-</pre>
 
 <!-- ============================================================= -->
 <a name="ordering"><div class="subtitle">Partially ordered systems</div></a>
