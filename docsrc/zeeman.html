@@ -36,26 +36,26 @@ Zeeman interaction Hamiltonian and its components.
 </p>
 
 <pre class="matlab">
-H = zeeman(SpinSystem, B)
-H = zeeman(SpinSystem, B, idx)
-H = zeeman(SpinSystem, B, idx, 'sparse')
-[Zx, Zy, Zz] = zeeman(SpinSystem)
-[Zx, Zy, Zz] = zeeman(SpinSystem, idx)
-[Zx, Zy, Zz] = zeeman(SpinSystem, idx, 'sparse')
+H = zeeman(Sys, B)
+H = zeeman(Sys, B, idx)
+H = zeeman(Sys, B, idx, 'sparse')
+[Zx, Zy, Zz] = zeeman(Sys)
+[Zx, Zy, Zz] = zeeman(Sys, idx)
+[Zx, Zy, Zz] = zeeman(Sys, idx, 'sparse')
 </pre>
 
 <!-- ============================================================= -->
 <div class="subtitle">Description</div>
 
 <p>
-<code>zeeman</code> calculates the Zeeman interaction Hamiltonian for the spin system given in <code>SpinSystem</code>.
+<code>zeeman</code> calculates the Zeeman interaction Hamiltonian for the <a href="spinsystem.html">spin system</a> given in <code>Sys</code>.
 
 <p>
-<code>SpinSystem</code> is a spin system structure, defining electron spins, nuclear spins and orbital angular momenta as well as and their g values.
+<code>Sys</code> is a spin system structure, defining electron spins, nuclear spins and orbital angular momenta as well as and their g values.
 </p>
           
 <p>
-If <code>idx</code> is omitted, all electron and nuclear spins as well as all orbital angular momenta defined in the spin system are included in the operators. If <code>idx</code> is given, only a part of the spins of the system is included. <code>idx</code> must then be a vector of indices specifying which spins should be included. For a system with n electron spins and k nuclear spins, a number between 1 and n indicates an electron spin (from <code>Sys.S</code>), and a number between n+1 and n+k specifies a nuclear spin, if present (from <code>Sys.Nucs</code>). Orbital angular momemta given in <code>Sys.L</code> are included by including numbers above n+k in <code>idx</code>.
+If <code>idx</code> is omitted, all electron and nuclear spins as well as all orbital angular momenta defined in the spin system are included in the operators. If <code>idx</code> is given, only a part of the spins of the system is included. <code>idx</code> must then be a vector of indices specifying which spins should be included. For a system with n electron spins and k nuclear spins, a number between 1 and n indicates an electron spin (from <code>Sys.S</code>), and a number between n+1 and n+k specifies a nuclear spin, if present (from <code>Sys.Nucs</code>). Orbital angular momenta given in <code>Sys.L</code> are included by including numbers above n+k in <code>idx</code>.
 </p>
 
 <p>

@@ -35,8 +35,8 @@ Generates spherical grids including solid angles.
 <div class="subtitle">Syntax</div>
 
 <pre class="matlab">
-grid = sphgrid(Symmetry,GridSize)
-[grid,tri] = sphgrid(Symmetry,GridSize)
+grid = sphgrid(GridSymmetry,GridSize)
+[grid,tri] = sphgrid(GridSymmetry,GridSize)
 </pre>
 
 <!-- ====================================================== -->
@@ -47,11 +47,11 @@ grid = sphgrid(Symmetry,GridSize)
 </p>
 
 <p>
-<code>Symmetry</code> specifies the symmetry of the grid. The higher the symmetry, the smaller can the needed sphere surface be, since rotational and reflectional symmetry makes parts of the surface redundant for EPR calculations.
+<code>GridSymmetry</code> specifies the symmetry of the grid. The higher the symmetry, the smaller can the needed sphere surface be, since rotational and reflectional symmetry makes parts of the surface redundant for EPR calculations.
 </p>
 
 <p>
-Since all spectra in EPR are invariant with respect to inversion of the system, only centrosymmetric point groups are supported. For each point group, <code>sphgrid</code> returns a grid only over its unique surface. The following table lists the possible values for <code>Symmetry</code> together with the unique surface boundaries.
+Since all spectra in EPR are invariant with respect to inversion of the system, only centrosymmetric point groups are supported. For each point group, <code>sphgrid</code> returns a grid only over its unique surface. The following table lists the possible values for <code>GridSymmetry</code> together with the unique surface boundaries.
 </p>
 
 <pre class="eqn">
@@ -90,6 +90,9 @@ Note that some unique surfaces have open &phi; borders. This is treated correctl
 
 <p>
 The output <code>grid</code> is a structure with the fields <code>vecs</code>, <code>phi</code>, <code>theta</code>, and <code>weights</code>. <code>vecs</code> is a 3xn array containing the orientations as column vectors. <code>phi</code> and <code>theta</code> are the polar angles in radians. <code>weights</code> is a vector giving the solid angle of the surface patch that can be attributed to each knot, i.e. the (spherical) area of the Voronoi cell. The sum of all weight is normalised to 4&pi;.
+
+<p>
+<code>tri</code> is a structure with the fields <code>idx</code> and <code>areas</code> from a Delaunay triangulation of the orientational grid. <code>idx</code> is a nX3 array containing indices for the triangles along the rows. <code>areas</code> is a vector giving the (spherical) area of each Delaunay triangle.
 
 <div class="subtitle">Examples</div>
 

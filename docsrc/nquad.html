@@ -29,16 +29,16 @@
 <div class="functitle">nquad</div>
 
 <p>
-Construct Hamiltonian of nuclear quadrupole interactions.
+Nuclear quadrupole interaction Hamiltonian.
 </p>
 
 <!-- ====================================================== -->
 <div class="subtitle">Syntax</div>
 
 <pre class="matlab">
-Hnq = nquad(SpinSystem)
-Hnq = nquad(SpinSystem,Nuclei)
-Hnq = nquad(SpinSystem,Nuclei,'sparse')
+Hnq = nquad(Sys)
+Hnq = nquad(Sys,nucSpins)
+Hnq = nquad(Sys,nucSpins,'sparse')
 </pre>
 
 <!-- ====================================================== -->
@@ -52,7 +52,7 @@ If only one argument is given, the NQI of all nuclei of the system are added. If
 </p>
 
 <p>
-See the section about <a href="spinsystem.html">spin system structures</a> on how to specify NQI parameters. See the section on and <a href="hamiltonian.html#nqi">nuclear quadrupole interaction</a> for more details about the Hamiltonian.
+See the section about <a href="spinsystem.html#Q">spin system structures</a> on how to specify NQI parameters. See the section on and <a href="hamiltonian.html#nqi">nuclear quadrupole interaction</a> for more details about the Hamiltonian.
 
 <p>
 If <code>'sparse'</code> is given as third argument, the Hamiltonian matrix is returned in sparse format instead of full format.
