@@ -188,10 +188,17 @@ if computeNonEquiPops
     end
   elseif initState
     PopMode = 'densitymatrix';
-    [a, b] = size(Sys.initState);
     if ischar(Sys.initState)
-      error('String input for initial state not yet supported.')
-    elseif ~(nElectronStates==a && nElectronStates==b) && ~(nStates==a || nStates==b)
+      if strcmp(Sys.initState,'singlet') && Sys.nElectrons==2
+        % Singlet-born spin-correlated radical pair
+        S = 1/sqrt(2)*[0 1 -1 0];
+        Sys.initState = S'*S;
+      else
+        error('String input for initial state not yet supported for selected spin system and initial state.')
+      end
+    end
+    [a, b] = size(Sys.initState);
+    if ~(nElectronStates==a && nElectronStates==b) && ~(nStates==a || nStates==b)
       error('Initial state has to be a density matrix.')
     end
   end
@@ -411,9 +418,9 @@ if computeNonEquiPops
     case {'zerofield','highfield'}
       
       % Vector of zero/high-field populations for the core system
-      ZFPopulations = Sys.Pop(:);
-      ZFPopulations = kron(ZFPopulations,ones(nCore/nElectronStates,1));
-      ZFPopulations = ZFPopulations/sum(ZFPopulations);
+      PopInput = Sys.Pop(:);
+      PopInput = kron(PopInput,ones(nCore/nElectronStates,1));
+      PopInput = PopInput/sum(PopInput);
       
     case 'densitymatrix'
       
@@ -721,11 +728,11 @@ for iOri = 1:nOrientations
       	case 'zerofield'
         % Compute level populations by projection from zero-field populations and states
         for iState = 1:nCore
-          Populations(iState) = (abs(ZFStates'*Vs(:,iState)).^2).'*ZFPopulations;
+          Populations(iState) = (abs(ZFStates'*Vs(:,iState)).^2).'*PopInput;
         end
         case 'highfield'
           for iState = 1:nCore
-            Populations(iState) = ZFPopulations(iState);
+            Populations(iState) = PopInput(iState);
           end
       case 'densitymatrix'
         for iState = 1:nCore

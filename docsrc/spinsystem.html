@@ -1318,6 +1318,9 @@ E.g., if <code>Sys.Pop = [0.85 0.95 1.2]</code> for a triplet system (S=1), the 
 <p>
 Simulations of spin-polarised systems with non-equilibrium populations can alternatively be performed by specifying the initial density matrix of the system in the uncoupled basis in <code>Sys.initState</code> (the required structure of density matrices, i.e. ordering of operators in terms of product Zeeman basis states, is explained in the documentation for <a href="sop.html">spin operators</a>.). For a spin system with <code>N</code> electron states (e.g. 4 for a radical pair, 3 for a triplet state), it must be a matrix with <code>NxN</code> elements.
 </p>
+<p>
+For a singlet-born spin-correlated radical pair, the shortcut <code>Sys.initState = 'singlet'</code> can be used.
+</p>
 
 <p>
 If <code>Sys.Pop</code> or <code>Sys.initState</code> are given, the temperature specified in <code>Exp.Temperature</code> is ignored.

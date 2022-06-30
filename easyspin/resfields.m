@@ -64,7 +64,7 @@ end
 % A global variable sets the level of log display. The global variable
 % is used in logmsg(), which does the log display.
 if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 0; end
-global EasySpinLogLevel  %#ok
+global EasySpinLogLevel
 EasySpinLogLevel = Opt.Verbosity;
 
 % Process Spin system.
@@ -170,10 +170,17 @@ if computeNonEquiPops
     end
   elseif initState
     PopMode = 'densitymatrix';
-    [a, b] = size(System.initState);
     if ischar(System.initState)
-      error('String input for initial state not yet supported.')
-    elseif ~(nElectronStates==a && nElectronStates==b) && ~(nStates==a || nStates==b)
+      if strcmp(System.initState,'singlet') && System.nElectrons==2
+        % Singlet-born spin-correlated radical pair
+        S = 1/sqrt(2)*[0 1 -1 0];
+        System.initState = S'*S;
+      else
+        error('String input for initial state not yet supported for selected spin system and initial state.')
+      end
+    end
+    [a, b] = size(System.initState);
+    if ~(nElectronStates==a && nElectronStates==b) && ~(nStates==a || nStates==b)
       error('Initial state has to be a density matrix.')
     end
   end
@@ -441,9 +448,9 @@ if computeNonEquiPops
     case {'zerofield','highfield'}
       
       % Vector of zero/high-field populations for the core system
-      ZFPopulations = System.Pop(:);
-      ZFPopulations = kron(ZFPopulations,ones(nCore/nElectronStates,1));
-      ZFPopulations = ZFPopulations/sum(ZFPopulations);
+      PopInput = System.Pop(:);
+      PopInput = kron(PopInput,ones(nCore/nElectronStates,1));
+      PopInput = PopInput/sum(PopInput);
       
     case 'densitymatrix'
       
@@ -1202,11 +1209,11 @@ for iOri = 1:nOrientations
           elseif computeNonEquiPops
             switch PopMode
               case 'zerofield'
-                PopulationU = (abs(ZFStates'*U).^2).'*ZFPopulations; % lower level
-                PopulationV = (abs(ZFStates'*V).^2).'*ZFPopulations; % upper level
+                PopulationU = (abs(ZFStates'*U).^2).'*PopInput; % lower level
+                PopulationV = (abs(ZFStates'*V).^2).'*PopInput; % upper level
               case 'highfield'
-                PopulationU = ZFPopulations(uv(1)); % lower level
-                PopulationV = ZFPopulations(uv(2)); % upper level
+                PopulationU = PopInput(uv(1)); % lower level
+                PopulationV = PopInput(uv(2)); % upper level
               case 'densitymatrix'
                 PopulationU = U'*Sigma0*U; % lower level
                 PopulationV = V'*Sigma0*V; % upper level

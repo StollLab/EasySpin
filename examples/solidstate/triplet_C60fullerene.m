@@ -25,6 +25,6 @@ Exp.Range = [310 350];      % mT
 % The three numbers in Exp.Temperature give the relative
 % populations of the three sublevels at zero-field (where
 % T0 is lowest in energy) in order of increasing energy.
-Exp.Temperature = [1 0 0];
+Sys.Pop = [1 0 0];
 
 pepper(Sys,Exp);
