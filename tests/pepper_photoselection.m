@@ -20,9 +20,9 @@ iso = 0.2;
 Exp.lightScatter = iso;  % isotropic contribution
 
 Exp.lightBeam = '';
-[B,spc_iso] = pepper(Triplet,Exp,Opt);
+[~,spc_iso] = pepper(Triplet,Exp,Opt);
 Exp.lightBeam = 'perpendicular';
-[B,spc_perp] = pepper(Triplet,Exp,Opt);
+[~,spc_perp] = pepper(Triplet,Exp,Opt);
 Exp.lightBeam = 'parallel';
 [B,spc_para] = pepper(Triplet,Exp,Opt);
 

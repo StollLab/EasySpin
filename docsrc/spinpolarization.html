@@ -47,7 +47,7 @@ Although the second and third section focus on triplets, the methods can easily 
 <div class="subtitle"><a name="photoselection">Photoselection</a></div>
 
 <p>
-Spin-polarized systems are typically generated using photoexcitation with a laser. Excited triplet states are a common example. The triplet yield upon photoexcitation depends on the relative orientation between the E-field vector of the incident laser beam and the electric transition dipole moment vector associated with the optical transition that is being excited at the wavelength of the indicent laser beam. If the E-field is parallel to the transition dipole moment, the excitation is maximal, and if the E-field is perpendicular to the transition dipole moment, the excitation is zero. This phenomenon is called photoselection. As a consequence, in a powder or frozen-solution sample, not all orientations contribute equally to the EPR spectrum.
+Spin-polarized systems are typically generated using photoexcitation with a laser. Excited triplet states are a common example. The triplet yield upon photoexcitation depends on the relative orientation between the E-field vector of the incident laser beam and the electric transition dipole moment vector associated with the optical transition that is being excited at the wavelength of the indicent laser beam. If the E-field is parallel to the transition dipole moment, the excitation is maximal, and if the E-field is perpendicular to the transition dipole moment, the excitation is zero. As a consequence, in a powder or frozen-solution sample, not all orientations contribute equally to the EPR spectrum. This phenomenon is called photoselection or magnetophotoselection.
 </p>
 
 <p>
@@ -65,13 +65,13 @@ Sys.tdm = [pi/2 pi/2];  % polar angles (in radians)
 </pre>
 
 <p>
-Use <code>Exp.lightBeam</code> to specify the laser excitation geometry, i.e. the laser propagation direction and the polarization angle (if the laser light is polarized). Several common geometries can be provided via keywords. They all assume a laser beam, polarized or unpolarized, propagating along the laboratory y axis, wich is perpendicular to the magnetic field (lab z axis).
+Use <code>Exp.lightBeam</code> to specify the laser excitation geometry, i.e. the laser propagation direction and the polarization angle (if the laser light is polarized). Several common geometries can be provided via keywords. They all assume a laser beam, polarized or unpolarized, propagating along the laboratory y axis, which is perpendicular to the magnetic field (lab z axis).
 </p>
 
 <pre class="matlab">
-Exp.lightBeam = 'unpolarized';     % unpolarized beam
-Exp.lightBeam = 'perpendicular';   % polarized beam with E-field along lab x, perpendicular to B0
-Exp.lightBeam = 'parallel';        % polarized beam with E-field along lab z, parallel to B0
+Exp.lightBeam = 'unpolarized';     % unpolarized beam along lab y
+Exp.lightBeam = 'perpendicular';   % polarized beam along lab y with E-field along lab x, perpendicular to B0
+Exp.lightBeam = 'parallel';        % polarized beam along lab y with E-field along lab z, parallel to B0
 </pre>
 
 <p>
@@ -79,15 +79,28 @@ For other geometries, the propagation direction <code>k</code> and the polarizat
 </p>
 
 <p>
-The photoselection weights are calculated via the function <a class="esf" href="photoselect.html">photoselect</a>, which you can use directly for examining the orientation dependence of the photoexcitation yield.
+The photoexcitation probabilities are calculated via the function <a class="esf" href="photoselect.html">photoselect</a>. This function returns values between 0 (no excitation) and 1 (maximal excitation), and you can use it directly for exploring the orientation dependence of the photoexcitation yield.
 </p>
 
 <p>
-Occasionally, when fitting experimental spectra of photo-excited species, it is necessary to include a small contribution with isotropic excitation (i.e. with E-field uniformly distributed in all directions) to account for scattering. The fraction of this contribution, betwenn 0 and 1, is provided in <code>Exp.lightScatter</code>.
+Occasionally, when fitting experimental spectra of photo-excited species, it is necessary to include a small contribution with isotropic excitation (i.e. with E-field uniformly distributed in all directions) to account for effects like scattering or energy transfer. The fraction of this contribution, between 0 and 1, is provided in <code>Exp.lightScatter</code>.
 </p>
 
 <pre class="matlab">
 Exp.lightScatter = 0.2;  % 20% isotropic contribution
+</pre>
+
+<p>
+Alternatively, you might want to mix <code>'perpendicular'</code> and <code>'parallel'</code>, or <code>'perpendicular'</code> and <code>'unpolarized'</code>. For this, just simulate two separate spectra and add them as desired:
+</p>
+
+<pre class="matlab">
+Exp.lightBeam = 'perpendicular';
+[~,spc_perp] = pepper(Sys,Exp);
+Exp.lightBeam = 'parallel';
+[B,spc_para] = pepper(Sys,Exp);
+w_perp = 0.8;   % weight for perpendicular contribution
+spc = w_para*spc_para + (1-w_para)*spc_perp;  % weighted sum
 </pre>
 
 <p>

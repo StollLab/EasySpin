@@ -38,7 +38,7 @@ Exp.lightBeam = 'parallel';
 [B,spc_para] = pepper(Sys,Exp);
 
 % Weighted sum of spc_para and spc_perp to give isotropic spectrum
-spc_sum = (spc_para+2*spc_perp);
+spc_sum = spc_para + 2*spc_perp;
 
 % Plot
 hold on; box on;
