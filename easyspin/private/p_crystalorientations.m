@@ -21,7 +21,7 @@ Outputs:
   AverageOverChi:  whether to compute average over third angle
 %}
 
-rotateSample = ~isempty(Exp.R_sample);
+rotateSample = isfield(Exp,'R_sample') && ~isempty(Exp.R_sample);
 
 % Exp.PowderSimulation is set only if this function is called from an EasySpin
 % function that does a powder simulation (pepper, salt, saffron, curry, etc).
