@@ -36,16 +36,16 @@ Hyperfine interaction Hamiltonian.
 <div class="subtitle">Syntax</div>
 
 <pre class="matlab">
-Hhf = hfine(System)
-Hhf = hfine(System,eSpins,nSpins)
-Hhf = hfine(System,eSpins,nSpins,'sparse')
+Hhf = hfine(Sys)
+Hhf = hfine(Sys,eSpins,nucSpins)
+Hhf = hfine(Sys,eSpins,nucSpins,'sparse')
 </pre>
 
 <!-- ====================================================== -->
 <div class="subtitle">Description</div>
 
 <p>
-<code>hfine</code> constructs the hyperfine interaction part of the spin Hamiltonian of spin system <code>System</code>, that is
+<code>hfine</code> constructs the hyperfine interaction part of the <a href="hamiltonian.html#hfi">spin Hamiltonian</a> of <a href="spinsystem.html#A">spin system</a> spin system <code>Sys</code>, that is
 </p>
 
 <pre class="eqn">
@@ -63,10 +63,10 @@ Hhf = hfine(System,eSpins,nSpins,'sparse')
 
 <p>
 The operator matrix <code>Hhf</code> is in units of MHz.
-If <code>eSpins</code> and <ode>nSpins</ode> are specified, they select the electron and nuclear spins to include.
+If <code>eSpins</code> and <code>nucSpins</code> are specified, they select the electron and nuclear spins to include.
 For <code>eSpins</code>, 1 indicated the first electron spin.
-For <code>nSpins</code>, 1 indicates the first nuclear spin.
-For exmaple, for a system with 3 electron spins and 2 nuclei, <code>eSpins=2</code> and <code>nSpins=[1 2]</code> indicates the hyperfine interactions of electron 2 with both nuclei.
+For <code>nucSpins</code>, 1 indicates the first nuclear spin.
+For example, for a system with 3 electron spins and 2 nuclei, <code>eSpins=2</code> and <code>nucSpins=[1 2]</code> indicates the hyperfine interactions of electron 2 with both nuclei.
 </p>
 
 <p>

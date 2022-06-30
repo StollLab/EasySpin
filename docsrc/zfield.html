@@ -36,22 +36,22 @@ Electronic zero-field interaction Hamiltonian.
 <div class="subtitle">Syntax</div>
 
 <pre class="matlab">
-F = zfield(SpinSystem)
-F = zfield(SpinSystem,Spins)
-F = zfield(SpinSystem,Spins,'sparse')
+F = zfield(Sys)
+F = zfield(Sys,eSpins)
+F = zfield(Sys,eSpins,'sparse')
 </pre>
 
 <!-- ====================================================== -->
 <div class="subtitle">Description</div>
 
 <p>
-This function computes the Hamiltonian of all electronic zero-field
-interactions (ZFIs) in the spin system described by the structure
-<code>SpinSystem</code>. For formulas see <code>internal</code>.
+This function computes the <a href="hamiltonian.html#zfi">Hamiltonian</a> of all electronic zero-field
+interactions (ZFIs) in the <a href="spinsystem.html#D">spin system</a> described by the structure
+<code>Sys</code>.
 </p>
 
 <p>
-If the vector <code>Spins</code> is given, the ZFI of only the specified electron spins is returned (1 is the first electron spin, 2 the
+If the vector <code>eSpins</code> is given, the ZFI of only the specified electron spins is returned (1 is the first electron spin, 2 the
 second, etc). Otherwise, all electrons are included.
 </p>
 
@@ -69,7 +69,7 @@ simple spin system
 </p>
 
 <pre class="matlab">
-Sy = struct('S',1,'g',2,'D',[1680 110]);
+Sys = struct('S',1,'g',2,'D',[1680 110]);
 </pre>
 
 <p>
@@ -77,7 +77,7 @@ in GHz is
 </p>
 
 <pre class="matlab">
-zfield(Sy)/1e3
+zfield(Sys)/1e3
 </pre>
 <pre class="mloutput">
 ans =
@@ -92,7 +92,7 @@ The same result is obtained by using 3 values instead of 2 in the <code>D</code>
 <pre class="matlab">
 D = 1680; E = 110;
 Dvalues = [-1,-1,+2]/3*D + [+1,-1,0]*E;
-Sy = struct('S',1,'g',2,'D',Dvalues);
+Sys = struct('S',1,'g',2,'D',Dvalues);
 </pre>
 
 
