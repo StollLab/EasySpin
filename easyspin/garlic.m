@@ -268,6 +268,11 @@ DefaultExp.Temperature = NaN; % don't compute thermal equilibrium polarizations
 
 Exp = adddefaults(Exp,DefaultExp);
 
+% Photoselection is not supported
+if isfield(Exp,'lightBeam') && ~isempty(Exp.lightBeam)
+  error('Photoselection (via Exp.lightBeam) is not supported.')
+end
+
 % Microwave frequency
 if ~isfield(Exp,'mwFreq') || isempty(Exp.mwFreq)
   if ~isfield(Exp,'Field')

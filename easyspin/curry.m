@@ -89,6 +89,11 @@ end
 %-------------------------------------------------------------------------------
 logmsg(1,'Experimental parameters');
 
+% Photoselection is not supported
+if isfield(Exp,'lightBeam') && ~isempty(Exp.lightBeam)
+  error('Photoselection (via Exp.lightBeam) is not supported.')
+end
+
 % Field
 if ~isfield(Exp,'Field')
   Exp.Field = 0;

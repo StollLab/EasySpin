@@ -126,6 +126,11 @@ DefaultExp.CrystalSymmetry = '';
 DefaultExp.MolFrame = [];
 Exp = adddefaults(Exp,DefaultExp);
 
+% Photoselection is not supported
+if isfield(Exp,'lightBeam') && ~isempty(Exp.lightBeam)
+  error('Photoselection (via Exp.lightBeam) is not supported.')
+end
+
 % Field
 if ~isfield(Exp,'Field')
   error('Exp.Field is missing. Give a magnetic field in mT.');

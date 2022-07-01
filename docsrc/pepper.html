@@ -247,6 +247,23 @@ If the custom distribution provided via <code>Exp.Ordering</code> is very narrow
 
 </div>
 
+<div class="optionfield"><code>lightBeam</code></div>
+<div class="optiondescr">
+   Specifies mode of photoexcitation. If photoexcitation is present, photoselection weights will be calculated and included into the spectral line intensities. For this, the transition dipole moment direction must be provided in <code>Sys.tdm</code> (see <a href="spinsystem.html#light">here</a>). Possible settings for <code>lightBeam</code> are
+   <ul>
+<li><code>Exp.lightBeam = ''</code> - no photoexcitation (default)
+<li><code>Exp.lightBeam = 'perpendicular'</code> - polarized light incident along the lab y direction (perpendicular to B0) with E-field along the lab x direction (also perpendicular to B0)
+<li><code>Exp.lightBeam = 'parallel'</code> - polarized light incident along the lab y direction (perpendicular to B0) with E-field along the lab z direction (parallel to B0)
+<li><code>Exp.lightBeam = 'unpolarized'</code> - unpolarized light incident along the lab y direction (perpendicular to B0) with E-field uniformly distributed in the lab xz plane
+<li><code>Exp.lightBeam = {k alpha}</code> - light incident along propagation direction <code>k</code> and polarization angle <code>alpha</code>. There are three ways to specify <code>k</code>: (i) a letter code for the direction, e.g. <code>'y'</code>, <code>'z'</code>, <code>'xy'</code>; (ii) a 3-element vector, e.g. <code>[0;1;0]</code> specifying the lab y axis; (iii) two angles <code>[phi_k theta_k]</code> that specify the orientation. <code>theta_k</code> is the angle between propagation vector and the lab z axis, and <code>phi_k</code> is the angle between the lab x axis and the projection of the propagation vector onto the lab xy plane. For example, <code>[pi/2 pi/2]</code> gives the lab y axis. <code>alpha</code> is the polarization angle, in radians. To represent an unpolarized beam, set <code>alpha=NaN</code>.
+</ul>
+</div>
+
+<div class="optionfield"><code>lightScatter</code></div>
+<div class="optiondescr">
+Contribution of isotropically scattered light to photoexcitation (see <code>lightBeam</code>), as a value between 0 and 1. 0 means no isotropic contribution (only direct excitation by polarized or unpolarized beam), 1 indicates 100 percent isotropic contribution (essentially beam direction and polarization have no effect).
+</div>
+
 <p>
 <code>mwFreq</code> (for field sweeps) and <code>Field</code> (for frequency sweeps) have to be provided by the user. All other fields are optional and have default values. Often, EasySpin can determine the sweep ranges automatically from the given spin system and fixed mw frequency or static field.
 </p>

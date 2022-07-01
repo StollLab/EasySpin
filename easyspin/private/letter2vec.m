@@ -2,8 +2,8 @@
 
 function n = letter2vec(s)
 
-if ~ischar(s)
-  error('First argument must be a character array.');
+if ~ischar(s) && ~isstring(s)
+  error('Input argument must be a string or character array.');
 end
 
 switch s
@@ -22,7 +22,10 @@ switch s
   case '-yz', n = -[0;1;1];
   case '-xyz', n = -[1;1;1];
   otherwise
-    error('Unknown value ''%s'' for rotation axis (2nd input argument).',s);
+    error('Unknown value ''%s'' for direction.',s);
 end
 
+% Convert to unit-length vector
 n = n/norm(n);
+
+end
