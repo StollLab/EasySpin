@@ -82,6 +82,11 @@ if ~any(nargout==[0 1 3])
   error('Wrong number of outputs!');
 end
 
+% Check angles
+if isnan(alpha) || isnan(beta) || isnan(gamma)
+  error('At least one of the angles is NaN. Angles must be numbers.');
+end
+
 % Precalculate trigonometric functions of angles
 sa = sin(alpha);
 ca = cos(alpha);

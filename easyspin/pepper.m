@@ -248,6 +248,7 @@ DefaultExp.Mode = 'perpendicular';
 DefaultExp.Ordering = [];
 DefaultExp.ModAmp = 0;
 DefaultExp.mwPhase = 0;
+DefaultExp.lightBeam = '';  % no photoexcitation
 DefaultExp.SampleRotation = [];
 
 DefaultExp.CrystalOrientation = [];

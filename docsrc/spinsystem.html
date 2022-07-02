@@ -1330,6 +1330,17 @@ If <code>Sys.Pop</code> or <code>Sys.initState</code> are given, the temperature
 For examples of spin-polarized systems (ISC triplets, recombination triplets, spin-correlated radical pairs), see the <a href="spinpolarization.html">user guide on spin-polarized systems</a>.
 </p>
 
+<a name="light"><div class="subtitle">Optical transition dipole moment</div></a>
+
+<p>
+To simulate the EPR spectra of photo-generated paramagnetic species, it might be necessary to take into account photoselection, i.e. the dependence of excitation yield on the polarization direction of the incident light beam relative to the electric transition dipole moment (tdm) of the excited optical transition. For this, the spin system has a field <code>Sys.tdm</code> that allows you to specify the orientation of the tdm in the molecular frame. There are three ways to do this:
+<ul>
+<li>Give a letter code for the direction, e.g. <code>Sys.tdm = 'y'</code> specifies that the tdm is along the molecular y axis.</li>
+<li>Give a vector, e.g. <code>Sys.tdm = [0;1;0]</code> specifies that the tdm is along the molecular y axis.</li>
+<li>Give two polar angles, phi and theta, in radians, e.g. <code>Sys.tdm = [pi/2 pi/2]</code> specifies that the tdm is along the molecular y axis.</li>
+</ul>
+</p>
+
 <hr>
 
 </section>

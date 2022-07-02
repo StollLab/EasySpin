@@ -51,6 +51,7 @@ correctFields = {'S','Nucs','Abund','n',...
   'Q','QFrame',...
   'HStrain',...
   'L', 'soc', 'gL',...
+  'tdm',...
   'lw','lwpp','lwEndor',...
   'tcorr','logtcorr','Diff','logDiff'};
 fieldlist = @(str,irange)arrayfun(@(x)sprintf('%s%d',str,x),irange,'UniformOutput',false);
@@ -920,6 +921,24 @@ if ~isempty(Sys.Pop)
   if ~isvector(Sys.Pop)
     err = 'Sys.Pop must be a row or column vector.';
     return
+  end
+end
+
+
+% Optical transition dipole moment (Sys.tdm)
+%===============================================================================
+if ~isfield(Sys,'tdm')
+  Sys.tdm = [];
+end
+if ~isempty(Sys.tdm)
+  if ischar(Sys.tdm)
+    Sys.tdm = letter2vec(Sys.tdm);
+  elseif numel(Sys.tdm)==3
+    Sys.tdm = Sys.tdm(:)/norm(Sys.tdm(:));
+  elseif numel(Sys.tdm)==2
+    Sys.tdm = ang2vec(Sys.tdm(1),Sys.tdm(2));
+  else
+    error('tdm (first input) must be a letter designating a direction, a 3-vector, or an array with two angles.');
   end
 end
 

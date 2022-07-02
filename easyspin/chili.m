@@ -309,6 +309,11 @@ if ~isfield(Exp,'Mode'), Exp.Mode = 'perpendicular'; end
 if ~isfield(Exp,'Ordering'), Exp.Ordering = []; end
 if ~isfield(Exp,'CrystalOrientation'), Exp.CrystalOrientation = []; end
 
+% Photoselection is not supported
+if isfield(Exp,'lightBeam') && ~isempty(Exp.lightBeam)
+  error('Photoselection (via Exp.lightBeam) is not supported.')
+end
+
 % Number of points
 if any(~isreal(Exp.nPoints)) || numel(Exp.nPoints)>1 || (Exp.nPoints<2)
   error('Problem with Exp.nPoints. Needs to be a number >= 2.')

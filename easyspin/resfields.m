@@ -199,6 +199,35 @@ end
 
 if ~isfield(Opt,'Sites'), Opt.Sites = []; end
 
+% Photoselection
+if ~isfield(Exp,'lightBeam'), Exp.lightBeam = ''; end
+if ~isfield(Exp,'lightScatter'), Exp.lightScatter = 0; end
+
+usePhotoSelection = ~isempty(Exp.lightBeam) && Exp.lightScatter<1;
+
+if usePhotoSelection
+  if ~isfield(System,'tdm') || isempty(System.tdm)
+    error('To include photoselection weights, Sys.tdm must be given.');
+  end
+  if ischar(Exp.lightBeam)
+    k = [0;1;0]; % beam propagating along yL
+    switch Exp.lightBeam
+      case 'perpendicular'
+        alpha = -pi/2; % gives E-field along xL
+      case 'parallel'
+        alpha = pi; % gives E-field along zL
+      case 'unpolarized'
+        alpha = NaN; % unpolarized beam
+      otherwise
+        error('Unknown string in Exp.lightBeam. Use '''', ''perpendicular'', ''parallel'' or ''unpolarized''.');
+    end
+    Exp.lightBeam = {k alpha};
+  else
+    if ~iscell(Exp.lightBeam) || numel(Exp.lightBeam)~=2
+      error('Exp.lightBeam should be a 2-element cell {k alpha}.')
+    end
+  end
+end
 
 % Process crystal orientations, crystal symmetry, and frame transforms
 [Orientations,nOrientations,nSites,averageOverChi] = p_crystalorientations(Exp,Opt);
@@ -924,6 +953,22 @@ for iOri = 1:nOrientations
     LineWidthSquared = HStrain2*zLab_M.^2;
   end
   
+  % Pre-calculate photoselection weight if needed
+  if usePhotoSelection
+    k = Exp.lightBeam{1};  % propagation direction
+    alpha = Exp.lightBeam{2};  % polarization angle
+    if averageOverChi
+      ori = Orientations(iOri,1:2);  % omit chi
+    else
+      ori = Orientations(iOri,1:3);
+    end
+    photoWeight = photoselect(System.tdm,ori,k,alpha);
+    % Add isotropic contribution (from scattering)
+    photoWeight = (1-Exp.lightScatter)*photoWeight + Exp.lightScatter;
+  else
+    photoWeight = 1;
+  end
+  
   %===========================================================
   % Iterative bisection
   %-----------------------------------------------------------  
@@ -1229,7 +1274,7 @@ for iOri = 1:nOrientations
           end
           
           % Update intensity results array
-          Idat(iiTrans,iOri) = dBdE * TransitionRate * Polarization;
+          Idat(iiTrans,iOri) = dBdE * TransitionRate * Polarization * photoWeight;
           % dBdE proportionality not valid near looping field coalescences!
         end
         

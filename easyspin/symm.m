@@ -55,6 +55,8 @@ if any(cf)
   end
 end
 
+tdmPresent = ~isempty(Sys.tdm);
+
 if DebugMode
   if highOrderTermsPresent
     fprintf('High-order terms present!\n');
@@ -110,6 +112,14 @@ if doQMAnalysis
 else
   [PGroup, RMatrix] = symm_geom(Sys,DebugMode);
 end
+
+% For calculations using photoselection accurate results are in general
+% only obtained if considering the full sphere (for specific combinations
+% of tdm and laser polarization, lower symmetry should give an accurate
+% result too, but this is safer in general).
+if tdmPresent
+  PGroup = 'C1';
+end  
 
 return
 %@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
