@@ -25,11 +25,9 @@ Vary.g = [1 1 1]*0.02;
 
 % We perform a global search using the genetic algorithm on
 % the integral of the spectrum.
-% When you run this code, a small button labelled "local"
-% will appear on the bottom left corner of the plot window.
-% If you click it, esfit will switch to local search using
-% the simplex algorithm, starting from the current best fit
+% This can then be followed by a local search using the simplex 
+% algorithm, starting from the current best fit 
 % (plotted in green).
 SimOpt.Method = 'perturb';
 FitOpt.Method = 'genetic int';
-a = esfit(@pepper,y,Sys0,Vary,Exp,SimOpt,FitOpt);
+esfit(y,@pepper,{Sys0,Exp,SimOpt},{Vary},FitOpt);

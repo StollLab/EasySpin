@@ -2,9 +2,9 @@
 
 clear, clf, clc
 
-% This example illustrates how important it is to tell esfit
-% whether to fit the spectrum directly or to fit its
-% integral.
+% This example illustrates how important it is to use good
+% starting values and to tell esfit whether to fit the
+% spectrum directly or to fit its integral.
 
 % Generate a simple spectrum of one unpaired electron and
 % a hydrogen nucleus
@@ -21,7 +21,7 @@ y = addnoise(y,60,'n');
 % For fitting, slightly shift the g value.
 
 Sys0 = Sys;
-Sys0.g(3) = 2.22;
+Sys0.g(3) = 2.21;
 Vary.g = [0 0 0.04];
 SimOpt.Method = 'perturb';
 
