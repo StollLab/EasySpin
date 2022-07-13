@@ -196,7 +196,7 @@ if ~isfield(Exp,'lightScatter'), Exp.lightScatter = 0; end
 usePhotoSelection = ~isempty(Exp.lightBeam) && Exp.lightScatter<1;
 
 if usePhotoSelection
-  if ~isfield(Sys,'tdm') || isempty(System,'tdm')
+  if ~isfield(Sys,'tdm') || isempty(Sys.tdm)
     error('To include photoselection weights, Sys.tdm must be given.');
   end
   if ischar(Exp.lightBeam)

@@ -175,8 +175,8 @@ if computeNonEquiPops
   nElectronStates = prod(2*Sys.S+1);
   nStates = hsdim(Sys);
   if NonEquiPops
-    if numel(Sys.Pop)~=nElectronStates || numel(Sys.Pop)~=nStates
-      error('Sys.Pop must have %d elements.',nElectronStates);
+    if numel(Sys.Pop)~=nElectronStates && numel(Sys.Pop)~=nStates
+      error('Sys.Pop must have %d or %d elements.',nElectronStates,nStates);
     end
     if ~isfield(Sys,'PopMode')
       PopMode = 'zerofield';
@@ -222,7 +222,7 @@ if ~isfield(Exp,'lightScatter'), Exp.lightScatter = 0; end
 usePhotoSelection = ~isempty(Exp.lightBeam) && Exp.lightScatter<1;
 
 if usePhotoSelection
-  if ~isfield(Sys,'tdm') || isempty(System,'tdm')
+  if ~isfield(Sys,'tdm') || isempty(Sys.tdm)
     error('To include photoselection weights, Sys.tdm must be given.');
   end
   if ischar(Exp.lightBeam)
@@ -449,7 +449,9 @@ if computeNonEquiPops
       
       % Vector of zero/high-field populations for the core system
       PopInput = Sys.Pop(:);
-      PopInput = kron(PopInput,ones(nCore/nElectronStates,1));
+      if numel(PopInput)==nElectronStates && numel(PopInput)~=nCore
+        PopInput = kron(PopInput,ones(nCore/nElectronStates,1));
+      end
       PopInput = PopInput/sum(PopInput);
       
     case 'densitymatrix'
