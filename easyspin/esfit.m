@@ -137,7 +137,7 @@ esfitdata.lastSetID = 0;
 
 % Determine if the model function is an EasySpin simulation function that
 % takes structure inputs
-EasySpinFunction = any(strcmp(esfitdata.fcnName,{'pepper','garlic','chili','salt','curry'}));
+EasySpinFunction = any(strcmp(esfitdata.fcnName,{'pepper','garlic','chili','salt'}));
 
 
 % Parameters
@@ -382,6 +382,9 @@ end
 
 esfitdata.rmsdhistory = [];
 
+esfitdata.besthistory.rmsd = [];
+esfitdata.besthistory.par = [];
+
 % Internal parameters
 if ~isfield(Opt,'PlotStretchFactor'), Opt.PlotStretchFactor = 0.05; end
 if ~isfield(Opt,'maxParameters'), Opt.maxParameters = 30; end
@@ -393,8 +396,6 @@ end
 Opt.IterationPrintFunction = @iterationprint;
 
 esfitdata.Opts = Opt;
-
-esfitdata.maskSelectMode = false;
 
 % Setup GUI and return if in interactive mode
 %-------------------------------------------------------------------------------
@@ -489,8 +490,12 @@ fixedParams = esfitdata.fixedParams;
 activeParams = ~fixedParams;
 Verbosity = esfitdata.Opts.Verbosity;
 
+% Reset best fit history
+esfitdata.besthistory.rmsd = [];
+esfitdata.besthistory.par = [];
+
 if useGUI
-  esfitdata.modelErrorHandler = @(ME) updateLogBox(ME.message);
+  esfitdata.modelErrorHandler = @(ME) GUIErrorHandler(ME);
 else
   esfitdata.modelErrorHandler = @(ME) error('\nThe model simulation function raised the following error:\n  %s\n',ME.message);
 end
@@ -697,6 +702,9 @@ result.ci95 = ci95;
 result.cov = covmatrix;
 result.corr = corrmatrix;
 
+result.bestfithistory.rmsd = esfitdata.besthistory.rmsd;
+result.bestfithistory.pfit = esfitdata.besthistory.par;
+
 esfitdata.best = result;
 
 end
@@ -704,14 +712,14 @@ end
 
 
 %===============================================================================
-function rmsd = rmsd_(x,data,Opt,useGUI)
-[~,rmsd] = residuals_(x,data,Opt,useGUI);
+function rmsd = rmsd_(x,data,Opt,iterupdate)
+[~,rmsd] = residuals_(x,data,Opt,iterupdate);
 end
 %===============================================================================
 
 
 %===============================================================================
-function [residuals,rmsd] = residuals_(x,expdata,Opt,useGUI)
+function [residuals,rmsd] = residuals_(x,expdata,Opt,iterupdate)
 
 global esfitdata
 
@@ -809,9 +817,13 @@ if Opt.track
     esfitdata.best.scale = simscale;
     esfitdata.best.par = par;
     esfitdata.best.baseline = baseline;
+    
+    esfitdata.besthistory.rmsd = [esfitdata.besthistory.rmsd rmsd0];
+    esfitdata.besthistory.par = [esfitdata.besthistory.par par];
+    
   end
   
-  if useGUI
+  if iterupdate
     info.newbest = isNewBest;
     iterupdateGUI(info);
   end
@@ -1062,6 +1074,8 @@ set(findobj('Tag','sortIDSetButton'),'Enable','off');
 set(findobj('Tag','sortRMSDSetButton'),'Enable','off');
 
 % Disable mask tools
+hAx = findobj('Tag','dataaxes');
+hAx.ButtonDownFcn = [];
 set(findobj('Tag','clearMaskButton'),'Enable','off');
 set(findobj('Tag','MaskCheckbox'),'Enable','off');
 
@@ -1077,7 +1091,15 @@ esfitdata.Opts.useMask = get(findobj('Tag','MaskCheckbox'),'Value')==1;
 % Run fitting
 %-------------------------------------------------------------------------------
 useGUI = true;
-result = runFitting(useGUI);
+try
+  result = runFitting(useGUI);
+catch ME
+  if esfitdata.modelEvalError
+    return
+  else
+    error(ME.message)
+  end
+end
 
 % Save result to fit set list
 esfitdata.currFitSet = result;
@@ -1141,6 +1163,8 @@ set(findobj('Tag','selectInvButton'),'Enable','on');
 set(findobj('Tag','ParameterTable'),'Enable','on');
 
 % Re-enable mask tools
+hAx = findobj('Tag','dataaxes');
+hAx.ButtonDownFcn = @axesButtonDownFcn;
 set(findobj('Tag','clearMaskButton'),'Enable','on');
 set(findobj('Tag','MaskCheckbox'),'Enable','on');
 
@@ -1152,9 +1176,9 @@ end
 function iterationprint(str)
 hLogLine = findobj('Tag','logLine');
 if isempty(hLogLine)
-  disp(str(2:end));
+  disp(strtrim(str));
 else
-  set(hLogLine,'String',str(2:end));
+  set(hLogLine,'String',strtrim(str));
 end
 end
 %===============================================================================
@@ -1259,6 +1283,10 @@ drawnow
 esfitdata.rmsdhistory = [];
 updatermsdplot;
 iterationprint('');
+
+% Reset besthistory 
+esfitdata.besthistory.rmsd = [];
+esfitdata.besthistory.par = [];
 
 % Remove displayed best fit and uncertainties
 hTable = findobj('Tag','ParameterTable');
@@ -1376,6 +1404,7 @@ s = h.String;
 ID = sscanf(s{v},'%d');
 idx = [esfitdata.FitSets.ID]==ID;
 fitresult = esfitdata.FitSets(idx);
+fitresult = rmfield(fitresult,'Mask');
 varname = sprintf('fit%d',ID);
 assignin('base',varname,fitresult);
 fprintf('Fit set %d assigned to variable ''%s''.\n',ID,varname);
@@ -1468,18 +1497,69 @@ end
 %===============================================================================
 
 %===============================================================================
+function GUIErrorHandler(ME)
+global esfitdata
+
+% Reactivate UI components
+set(findobj('Tag','SaveButton'),'Enable','on');
+
+if isfield(esfitdata,'FitSets') && numel(esfitdata.FitSets)>0
+  set(findobj('Tag','deleteSetButton'),'Enable','on');
+  set(findobj('Tag','exportSetButton'),'Enable','on');
+  set(findobj('Tag','sortIDSetButton'),'Enable','on');
+  set(findobj('Tag','sortRMSDSetButton'),'Enable','on');
+end
+
+% Hide stop button, show start button
+set(findobj('Tag','StopButton'),'Visible','off');
+set(findobj('Tag','StartButton'),'Visible','on');
+
+% Re-enable other buttons
+set(findobj('Tag','EvaluateButton'),'Enable','on');
+set(findobj('Tag','ResetButton'),'Enable','on');
+
+% Re-enable listboxes
+set(findobj('Tag','AlgorithMenu'),'Enable','on');
+set(findobj('Tag','TargetMenu'),'Enable','on');
+set(findobj('Tag','BaseLineMenu'),'Enable','on');
+set(findobj('Tag','AutoScaleCheckbox'),'Enable','on');
+
+% Re-enable parameter table and its selection controls
+set(findobj('Tag','selectAllButton'),'Enable','on');
+set(findobj('Tag','selectNoneButton'),'Enable','on');
+set(findobj('Tag','selectInvButton'),'Enable','on');
+set(findobj('Tag','ParameterTable'),'Enable','on');
+
+% Re-enable mask tools
+set(findobj('Tag','clearMaskButton'),'Enable','on');
+set(findobj('Tag','MaskCheckbox'),'Enable','on');
+
+updateLogBox({'Simulation function error:',ME.message})
+
+end
+%===============================================================================
+
+%===============================================================================
 function updateLogBox(msg)
 
 txt = get(findobj('Tag','LogBox'),'String');
 if numel(txt)==1 && isempty(txt{1})
   txt = {};
 end
-if iscell(msg)
-  for i = 1:numel(msg)
-    txt{end+1} = strrep(msg{i},'\n','');
+if ~iscell(msg)
+  msg = cellstr(msg);
+end
+% Highlight errors
+iserror = false;
+if any(contains(msg,'Simulation function error','IgnoreCase',true))
+  iserror = true;
+end
+for i = 1:numel(msg)
+  msg{i} = strrep(msg{i},'\n','');
+  if iserror
+    msg{i} = ['<html><font color="#EE4B2B">' msg{i} '</font></html>'];
   end
-else
-  txt{end+1} = strrep(msg,'\n','');
+  txt{end+1} = msg{i};
 end
 nval = numel(txt);
 set(findobj('Tag','LogBox'),'String',txt)
@@ -1499,6 +1579,8 @@ hBestSim = findobj('Tag','bestsimdata');
 hBestSim.YData = NaN(size(hBestSim.YData));
 esfitdata.best = [];
 esfitdata.rmsdhistory = [];
+esfitdata.besthistory.rmsd = [];
+esfitdata.besthistory.par = [];
 
 % Readjust vertical range
 mask = esfitdata.Opts.mask;
@@ -2063,21 +2145,40 @@ end
 function axesButtonDownFcn(~,~)
 global esfitdata
 hAx = findobj('Tag','dataaxes');
+
+% Get mouse-click point on axes
 cp = hAx.CurrentPoint;
 x = esfitdata.Opts.x;
-maskSelectMode = esfitdata.maskSelectMode;
-if maskSelectMode
-  x1 = esfitdata.maskSelect.x1;
-  x2 = cp(1,1);
-  maskrange = sort([x1 x2]);
-  esfitdata.Opts.mask(x>maskrange(1) & x<maskrange(2)) = 0;
-  showmaskedregions();
-else
-  esfitdata.maskSelect.x1 = cp(1,1);
-end
-esfitdata.maskSelectMode = ~esfitdata.maskSelectMode;
+x1 = cp(1,1);
+
+% Create temporary patch updating with user mouse motion
+maskColor = [1 1 1]*0.95;
+tmpmask = patch(hAx,x1*ones(1,4),hAx.YLim([1 1 2 2]),maskColor,'Tag','maskPatch','EdgeColor','none');
+
+% Move new patch to the back
+c = hAx.Children([2:end 1]);
+hAx.Children = c;
+
+% Continuously update patch based on mouse position until next user click
+set(gcf,'WindowButtonMotionFcn',@(hObject,eventdata) drawmaskedregion(tmpmask));
+waitforbuttonpress;
+set(gcf,'WindowButtonMotionFcn',[])
+
+% Update masked regions
+cp = hAx.CurrentPoint;
+x2 = cp(1,1);
+maskrange = sort([x1 x2]);
+esfitdata.Opts.mask(x>maskrange(1) & x<maskrange(2)) = 0;
+delete(tmpmask);
+showmaskedregions();
 end
 
+function drawmaskedregion(tmpmask)
+cp = get (gca,'CurrentPoint');
+xdata = tmpmask.XData;
+xdata(2:3) = cp(1,1);
+set(tmpmask,'XData',xdata);
+end
 
 function showmaskedregions()
 global esfitdata
@@ -2091,6 +2192,8 @@ delete(hMaskPatches);
 maskColor = [1 1 1]*0.95;
 edges = find(diff([1; esfitdata.Opts.mask(:); 1]));
 excludedRegions = reshape(edges,2,[]).';
+upperlimit = numel(esfitdata.Opts.x);
+excludedRegions(excludedRegions>upperlimit) = upperlimit;
 excludedRegions = esfitdata.Opts.x(excludedRegions);
 
 % Add a patch for each masked region
