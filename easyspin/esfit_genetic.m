@@ -123,8 +123,8 @@ while true
   if Variance<0, Variance = 0; end
   Offspring = Offspring + randn(Opt.PopulationSize,nParams).*Variance;
   for p = 1:nParams
-    Offspring(Offspring(:,p)<lb,p) = lb(p);
-    Offspring(Offspring(:,p)>ub,p) = ub(p);
+    Offspring(Offspring(:,p)<lb(p),p) = lb(p);
+    Offspring(Offspring(:,p)>ub(p),p) = ub(p);
   end
   
   % (4) Reinsertion

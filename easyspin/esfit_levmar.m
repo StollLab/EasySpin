@@ -183,7 +183,7 @@ while ~stopCode
   else
     UserStop = false;
   end
-  if UserStop, stopCode = 2; end
+  if UserStop, stopCode = 4; break; end
 
   % Update Jacobian estimate Je
   j = mod(j,n) + 1;
