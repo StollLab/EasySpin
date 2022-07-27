@@ -26,6 +26,14 @@ if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 0; end
 if ~isfield(Opt,'Range'); Opt.Range = 1; end
 if ~isfield(Opt,'TolFun'); Opt.TolFun = 1e-5; end
 if ~isfield(Opt,'IterFcn'), Opt.IterFcn = []; end
+if ~isfield(Opt,'IterationPrintFunction') || ...
+    isempty(Opt.IterationPrintFunction)
+  Opt.IterationPrintFunction = @(str)str;
+end
+if ~isfield(Opt,'InfoPrintFunction') || ...
+    isempty(Opt.InfoPrintFunction)
+  Opt.InfoPrintFunction = @(str)str;
+end
 
 stopCode = 0;
 
@@ -40,9 +48,10 @@ end
 nParams = numel(lb);
 
 if Opt.Verbosity
-  fprintf('  %d parameters, range %g to %g\n',nParams,-Opt.Range,Opt.Range);
-  fprintf('  population %d, elite %d\n',Opt.PopulationSize,Opt.EliteCount);
-  fprintf('  %d generations\n',Opt.maxGenerations);
+  msg{1} = sprintf('  %d parameters, range %g to %g',nParams,-Opt.Range,Opt.Range);
+  msg{2} = sprintf('  population %d, elite %d',Opt.PopulationSize,Opt.EliteCount);
+  msg{3} = sprintf('  %d generations',Opt.maxGenerations);
+  Opt.InfoPrintFunction(msg);
 end
 
 nEvals = 0;  % number of function evaluations
@@ -182,8 +191,7 @@ if Opt.Verbosity>1
     case 2, msg = sprintf('Error below threshold %g.',Opt.TolFun);
     case 3, msg = sprintf('Stopped by user.');
   end
-  fprintf('Terminated: %s\n',msg);
-  info.msg = sprintf('Terminated: %s\n',msg);
+  Opt.InfoPrintFunction(sprintf('Terminated: %s\n',msg));
 end
 
 return
