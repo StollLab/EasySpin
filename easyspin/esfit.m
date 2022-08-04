@@ -908,7 +908,7 @@ hParamTable = findobj('Tag','ParameterTable');
 data = get(hParamTable,'data');
 nParams = size(data,1);
 for p = 1:nParams
-  oldvaluestring = striphtml(data{p,6});
+  oldvaluestring = striphtml(data{p,7});
   newvaluestring = sprintf('%0.6f',currpar(p));
   % Find first character at which the new value differs from the old one
   idx = 1;
@@ -916,7 +916,7 @@ for p = 1:nParams
     if oldvaluestring(idx)~=newvaluestring(idx), break; end
     idx = idx + 1;
   end
-  active = data{p,1};
+  active = data{p,2};
   if active
     str = ['<html><font color="#000000">' newvaluestring(1:idx-1) '</font><font color="#888888">' newvaluestring(idx:end) '</font></html>'];
   else
@@ -926,7 +926,7 @@ for p = 1:nParams
   if currpar(p)==esfitdata.pvec_lb(p) ||  currpar(p)==esfitdata.pvec_ub(p)
     str = ['<html><font color="#ff0000">' newvaluestring '</font></html>'];
   end
-  data{p,6} = str;
+  data{p,7} = str;
 end
 
 % Update column with best values if current parameter set is new best
@@ -937,7 +937,7 @@ if info.newbest
   set(hRmsText,'String',str,'ForegroundColor',[0 0.6 0]);
 
   for p = 1:nParams
-    oldvaluestring = striphtml(data{p,7});
+    oldvaluestring = striphtml(data{p,8});
     newvaluestring = sprintf('%0.6g',bestpar(p));
     % Find first character at which the new value differs from the old one
     idx = 1;
@@ -945,7 +945,7 @@ if info.newbest
       if oldvaluestring(idx)~=newvaluestring(idx), break; end
       idx = idx + 1;
     end
-    active = data{p,1};
+    active = data{p,2};
     if active
       if bestpar(p)==esfitdata.pvec_lb(p) ||  bestpar(p)==esfitdata.pvec_ub(p)
         str = ['<html><font color="#ff0000">' newvaluestring '</font></html>'];
@@ -955,7 +955,7 @@ if info.newbest
     else
       str = ['<html><font color="#888888">' newvaluestring '</font></html>'];
     end
-    data{p,7} = str;
+    data{p,8} = str;
   end
 end
 
@@ -1007,17 +1007,17 @@ indent = '   ';
 
 printUncertainties = nargin>2 && ~isempty(pstd);
 if printUncertainties
-  str = [indent sprintf('name%svalue        standard deviation        95%% confidence interval',repmat(' ',1,max(maxNameLength-4,0)+2))];
+  str = [indent sprintf('    name%svalue        standard deviation        95%% confidence interval',repmat(' ',1,max(maxNameLength-4,0)+2))];
   for p = 1:nParams
     pname = pad(pinfo(p).Name,maxNameLength);
-    str_ = sprintf('%s  %-#12.7g %-#12.7g (%6.3f %%)   %-#12.7g - %-#12.7g',pname,par(p),pstd(p),pstd(p)/par(p)*100,pci95(p,1),pci95(p,2));
+    str_ = sprintf('%2.0i  %s  %-#12.7g %-#12.7g (%6.3f %%)   %-#12.7g - %-#12.7g',p,pname,par(p),pstd(p),pstd(p)/par(p)*100,pci95(p,1),pci95(p,2));
     str = [str newline indent str_];
   end
 else
-  str = [indent sprintf('name%svalue',repmat(' ',1,max(maxNameLength-4,0)+2))];
+  str = [indent sprintf('    name%svalue',repmat(' ',1,max(maxNameLength-4,0)+2))];
   for p = 1:nParams
     pname = pad(pinfo(p).Name,maxNameLength);
-    str_ = sprintf('%s  %-#12.7g',pname,par(p));
+    str_ = sprintf('%2.0i  %s  %-#12.7g',pname,par(p));
     str = [str newline indent str_];
   end
 end
@@ -1098,17 +1098,17 @@ set(findobj('Tag','ParameterTable'),'CellEditCallback',[]);
 hTable = findobj('Tag','ParameterTable');
 Data = hTable.Data;
 for p = 1:size(Data,1)
-  Data{p,6} = '-';
   Data{p,7} = '-';
   Data{p,8} = '-';
   Data{p,9} = '-';
   Data{p,10} = '-';
+  Data{p,11} = '-';
 end
 set(hTable,'Data',Data);
 
 % Get fixed parameters
 for p = 1:esfitdata.nParameters
-  esfitdata.fixedParams(p) = Data{p,1}==0;
+  esfitdata.fixedParams(p) = Data{p,2}==0;
 end
 
 % Disable fitset list controls
@@ -1158,16 +1158,16 @@ hTable = findobj('Tag','ParameterTable');
 Data = hTable.Data;
 pi = 1;
 for p = 1:size(Data,1)
-  Data{p,6} = '-'; 
+  Data{p,7} = '-'; 
   if ~esfitdata.fixedParams(p) && ~isempty(esfitdata.best.pstd)
-    Data{p,8} = sprintf('%0.6g',esfitdata.best.pstd(pi));
-    Data{p,9} = sprintf('%0.6g',esfitdata.best.ci95(pi,1));
-    Data{p,10} = sprintf('%0.6g',esfitdata.best.ci95(pi,2));
+    Data{p,9} = sprintf('%0.6g',esfitdata.best.pstd(pi));
+    Data{p,10} = sprintf('%0.6g',esfitdata.best.ci95(pi,1));
+    Data{p,11} = sprintf('%0.6g',esfitdata.best.ci95(pi,2));
     pi = pi+1;
   else
-    Data{p,8} = '-';
     Data{p,9} = '-';
     Data{p,10} = '-';
+    Data{p,11} = '-';
   end
 end
 set(hTable,'Data',Data);
@@ -1357,11 +1357,11 @@ esfitdata.besthistory.par = [];
 hTable = findobj('Tag','ParameterTable');
 Data = hTable.Data;
 for p = 1:size(Data,1)
-  Data{p,6} = '-';
   Data{p,7} = '-';
   Data{p,8} = '-';
   Data{p,9} = '-';
   Data{p,10} = '-';
+  Data{p,11} = '-';
 end
 set(hTable,'Data',Data);
 
@@ -1434,16 +1434,16 @@ if ~isempty(str)
 
     pi = 1;
     for p = 1:size(data,1)
-      data{p,7} = sprintf('%0.6g',fitset.pfit_full(p));
+      data{p,8} = sprintf('%0.6g',fitset.pfit_full(p));
       if ~fitset.fixedParams(p) && ~isempty(fitset.pstd)
-        data{p,8} = sprintf('%0.6g',fitset.pstd(pi));
-        data{p,9} = sprintf('%0.6g',fitset.ci95(pi,1));
-        data{p,10} = sprintf('%0.6g',fitset.ci95(pi,2));
+        data{p,9} = sprintf('%0.6g',fitset.pstd(pi));
+        data{p,10} = sprintf('%0.6g',fitset.ci95(pi,1));
+        data{p,11} = sprintf('%0.6g',fitset.ci95(pi,2));
         pi = pi+1;
       else
-        data{p,8} = '-';
         data{p,9} = '-';
         data{p,10} = '-';
+        data{p,11} = '-';
       end
     end
     set(hTable,'Data',data);
@@ -1480,7 +1480,7 @@ end
 function selectAllButtonCallback(~,~)
 h = findobj('Tag','ParameterTable');
 d = h.Data;
-d(:,1) = {true};
+d(:,2) = {true};
 set(h,'Data',d);
 end
 %===============================================================================
@@ -1490,7 +1490,7 @@ end
 function selectNoneButtonCallback(~,~)
 h = findobj('Tag','ParameterTable');
 d = h.Data;
-d(:,1) = {false};
+d(:,2) = {false};
 set(h,'Data',d);
 end
 %===============================================================================
@@ -1500,8 +1500,8 @@ end
 function selectInvButtonCallback(~,~)
 h = findobj('Tag','ParameterTable');
 d = h.Data;
-for k=1:size(d,1)
-    d{k,1} = ~d{k,1};
+for k=1:size(d,2)
+    d{k,2} = ~d{k,2};
 end
 set(h,'Data',d);
 end
@@ -1719,9 +1719,9 @@ if cidx==1
 end
 
 % Return unless it's a cell that contains start value or lower or upper bound
-startColumn = 3; % start value column
-lbColumn = 4; % lower-bound column
-ubColumn = 5; % upper-bound column
+startColumn = 4; % start value column
+lbColumn = 5; % lower-bound column
+ubColumn = 6; % upper-bound column
 startedit = cidx==startColumn;
 lbedit = cidx==lbColumn;
 ubedit = cidx==ubColumn;
@@ -1841,12 +1841,12 @@ ParTableh = hPtop-10;
 ParTablex0 = spacing;
 ParTabley0 = sz(2)-hPtop-spacing;
 ParTableColw = 85*scalefact;
-ParTablew = 9*ParTableColw+hElement+dh;
+ParTablew = 9*ParTableColw+2*hElement+dh;
 
 Optionsx0 = ParTablex0+ParTablew+0.5*spacing;
 Optionsy0 = ParTabley0+44*scalefact;
-wOptionsLabel = 80*scalefact;
-wOptionsSel = 150*scalefact;
+wOptionsLabel = 70*scalefact;
+wOptionsSel = 145*scalefact;
 
 Buttonsx0 = ParTablex0+ParTablew+wOptionsLabel+wOptionsSel+1.5*spacing;
 Buttonsy0 = sz(2)-hPtop-spacing+dh;
@@ -1899,21 +1899,22 @@ showmaskedregions();
 
 % Parameter table
 %-------------------------------------------------------------------------------
-columnname = {'','Name','start','lower','upper','current','best','stdev','ci95 lower','ci95 upper'};
-columnformat = {'logical','char','char','char','char','char','char','char','char','char'};
-colEditable = [true false true true true false false false false false];
+columnname = {'','','Name','start','lower','upper','current','best','stdev','ci95 lower','ci95 upper'};
+columnformat = {'char','logical','char','char','char','char','char','char','char','char','char'};
+colEditable = [false true false true true true false false false false false];
 data = cell(numel(esfitdata.pinfo),10);
 for p = 1:numel(esfitdata.pinfo)
-  data{p,1} = true;
-  data{p,2} = char(esfitdata.pinfo(p).Name);
-  data{p,3} = sprintf('%0.6g',esfitdata.p_start(p));
-  data{p,4} = sprintf('%0.6g',esfitdata.pvec_lb(p));
-  data{p,5} = sprintf('%0.6g',esfitdata.pvec_ub(p));
-  data{p,6} = '-';
+  data{p,1} = num2str(p);
+  data{p,2} = true;
+  data{p,3} = char(esfitdata.pinfo(p).Name);
+  data{p,4} = sprintf('%0.6g',esfitdata.p_start(p));
+  data{p,5} = sprintf('%0.6g',esfitdata.pvec_lb(p));
+  data{p,6} = sprintf('%0.6g',esfitdata.pvec_ub(p));
   data{p,7} = '-';
   data{p,8} = '-';
   data{p,9} = '-';
   data{p,10} = '-';
+  data{p,11} = '-';
 end
 uitable('Parent',hFig,'Tag','ParameterTable',...
     'FontSize',8,...
@@ -1922,7 +1923,7 @@ uitable('Parent',hFig,'Tag','ParameterTable',...
     'ColumnName',columnname,...
     'ColumnEditable',colEditable,...
     'CellEditCallback',@tableCellEditCallback,...
-    'ColumnWidth',{hElement,ParTableColw,ParTableColw,ParTableColw,ParTableColw,ParTableColw,ParTableColw,ParTableColw,ParTableColw,ParTableColw},...
+    'ColumnWidth',{hElement,hElement,ParTableColw,ParTableColw,ParTableColw,ParTableColw,ParTableColw,ParTableColw,ParTableColw,ParTableColw,ParTableColw},...
     'RowName',[],...
     'Data',data,...
     'UserData',colEditable);
@@ -2265,10 +2266,10 @@ end
 hParamTable = findobj('Tag','ParameterTable');
 data = get(hParamTable,'data');
 for p = 1:numel(p_start)
-  data{p,3} = sprintf('%0.6g',p_start(p));
+  data{p,4} = sprintf('%0.6g',p_start(p));
   if updatebounds
-    data{p,4} = sprintf('%0.6g',esfitdata.pvec_lb(p));
-    data{p,5} = sprintf('%0.6g',esfitdata.pvec_ub(p));
+    data{p,5} = sprintf('%0.6g',esfitdata.pvec_lb(p));
+    data{p,6} = sprintf('%0.6g',esfitdata.pvec_ub(p));
   end
 end
 hParamTable.Data = data;
