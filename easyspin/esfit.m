@@ -5,8 +5,6 @@
 %   esfit(___,FitOpt)
 %
 %   pfit = esfit(___)
-%   [pfit,datafit] = esfit(___)
-%   [pfit,datafit,residuals] = esfit(___)
 %
 % Input:
 %     data        experimental data, a vector of data points
@@ -39,14 +37,30 @@
 %                 values with mask 0 are excluded from the fit
 % Output:
 %     fit           structure with fitting results
-%       .pfit       fitted parameter vector
+%       .pfit       fitted parameter vector (contains only active fitting parameters)
+%       .pnames     variable names of the fitted parameters
+%       .pfit_full  parameter vector including inactive fitting parameters (in GUI)
 %       .argsfit    fitted input arguments (if EasySpin-style)
+%       .pstd       standard deviation for all parameters
+%       .ci95       95% confidence intervals for all parameters
+%       .cov        covariance matrix for all parameters
+%       .corr       correlation matrix for all parameters
+%       .p_start    starting parameter vector for fit
 %       .fitraw     fit, as returned by the simulation/model function
 %       .fit        fit, including the fitted scale factor
 %       .scale      fitted scale factor
-%       .ci95       95% confidence intervals for all parameters
-%       .corr       correlation matrix for all parameters
-%       .cov        covariance matrix for all parameters
+%       .baseline   fitted baseline
+%       .mask       mask used for fitting
+%       .residuals  residuals
+%       .ssr        sum of squared residuals
+%       .rmsd       root-mean square deviation between input data and fit
+%       .bestfithistory  structure containing a list of fitting parameters
+%                        corresponding to progressively improved rmsd
+%                        values during fitting process and corresponding
+%                        rmsd values, for EasySpin functions, a conversion
+%                        function returning the EasySpin input structures
+%                        given a selected set of fitting parameters is also
+%                        included
 %
 
 function result = esfit(data,fcn,p0,varargin)
@@ -395,11 +409,11 @@ if esfitdata.nParameters>Opt.maxParameters
 end
 Opt.IterationPrintFunction = @iterationprint;
 
-esfitdata.Opts = Opt;
-
 % Setup GUI and return if in interactive mode
 %-------------------------------------------------------------------------------
 interactiveMode = nargout==0;
+Opt.InfoPrintFunction = @(str) infoprint(str,interactiveMode);
+esfitdata.Opts = Opt;
 if interactiveMode
   setupGUI(data);
   return
@@ -410,6 +424,7 @@ end
 hFig = findobj('Tag','esfitFigure');
 if ~isempty(hFig)
   close(hFig);
+  esfitdata.UserCommand = 0;
 end
 
 % Report parsed inputs
@@ -434,39 +449,6 @@ end
 % Run least-squares fitting
 %-------------------------------------------------------------------------------
 result = runFitting();
-
-% Report fit results
-%-------------------------------------------------------------------------------
-if esfitdata.Opts.Verbosity>=1
-  disp('---------------------------------------------------------');
-  fprintf('Goodness of fit:\n');
-  fprintf('   ssr             %g\n',result.ssr);
-  fprintf('   rmsd            %g\n',result.rmsd);
-  fprintf('   noise std       %g (estimated from residuals; assumes excellent fit)\n',std(result.residuals));
-  fprintf('   chi-squared     %g (using noise std estimate; upper limit)\n',result.rmsd^2/var(result.residuals));
-  if Opt.AutoScale
-    fprintf('Fitted scale:       %g\n',result.scale);
-  end
-  fprintf('Parameters:\n');
-  printparlist(result.pfit,esfitdata.pinfo,result.pstd,result.ci95);
-  if ~isempty(result.corr) && numel(result.pfit)>1
-    fprintf('Correlation matrix:\n');
-    Sigma = result.corr;
-    disp(Sigma);
-    triuCorr = triu(abs(Sigma),1);
-    fprintf('Strongest correlations:\n');
-    [~,idx] = sort(triuCorr(:),'descend');
-    [i1,i2] = ind2sub(size(Sigma),idx);
-    np = numel(result.pfit);
-    for k = 1:min(5,(np-1)*np/2)
-      fprintf('    p(%d)-p(%d):    %g\n',i1(k),i2(k),Sigma(i1(k),i2(k)));
-    end
-    if any(reshape(triuCorr,1,[])>0.8)
-      disp('    WARNING! Strong correlations between parameters.');
-    end
-  end
-  disp('=========================================================');
-end
 
 clear global esfitdata
 
@@ -517,7 +499,7 @@ if nActiveParams>0
   if Verbosity>=1
     msg = sprintf('Running optimization algorithm with %d active parameters...',nActiveParams);
     if useGUI
-      updateLogBox({'',msg})
+      updateLogBox(msg)
     else
       disp(msg);
     end
@@ -526,7 +508,7 @@ if nActiveParams>0
     fitOpt.IterFcn = @iterupdateGUI;
   end
   fitOpt.track = true;
-  if fitOpt.AlgorithmID==7
+  if useGUI && (fitOpt.AlgorithmID==6 || fitOpt.AlgorithmID==7)
     iterupdate = true;
   else
     iterupdate = false;
@@ -538,31 +520,30 @@ if nActiveParams>0
   ub_active = ub(activeParams);
   switch fitOpt.AlgorithmID
     case 1 % Nelder-Mead simplex
-      [pfit_active,info] = esfit_simplex(rmsdfun,p0_active,lb_active,ub_active,fitOpt);
+      pfit_active = esfit_simplex(rmsdfun,p0_active,lb_active,ub_active,fitOpt);
     case 2 % Levenberg-Marquardt
       fitOpt.Gradient = fitOpt.TolFun;
-      [pfit_active,info] = esfit_levmar(residualfun,p0_active,lb_active,ub_active,fitOpt);
+      pfit_active = esfit_levmar(residualfun,p0_active,lb_active,ub_active,fitOpt);
     case 3 % Monte Carlo
-      [pfit_active,info] = esfit_montecarlo(rmsdfun,lb_active,ub_active,fitOpt);
+      pfit_active = esfit_montecarlo(rmsdfun,lb_active,ub_active,fitOpt);
     case 4 % Genetic
-      [pfit_active,info] = esfit_genetic(rmsdfun,lb_active,ub_active,fitOpt);
+      pfit_active = esfit_genetic(rmsdfun,lb_active,ub_active,fitOpt);
+      pfit_active = pfit_active(:);
     case 5 % Grid search
-      updateLogBox(sprintf('%d parameters, %d grid points total\n',nActiveParams,prod(fitOpt.GridSize)));
-      [pfit_active,info] = esfit_grid(rmsdfun,lb_active,ub_active,fitOpt);
+      pfit_active = esfit_grid(rmsdfun,lb_active,ub_active,fitOpt);
     case 6 % Particle swarm
-      [pfit_active,info] = esfit_swarm(rmsdfun,lb_active,ub_active,fitOpt);
+      pfit_active = esfit_swarm(rmsdfun,lb_active,ub_active,fitOpt);
     case 7 % lsqnonlin from Optimization Toolbox
-      pfit_active = lsqnonlin(residualfun,p0_active,lb_active,ub_active);
+      [pfit_active,~,~,~,output] = lsqnonlin(residualfun,p0_active,lb_active,ub_active);
       info.bestx = pfit_active;
       info.newbest = true;
-      iterupdateGUI(info)
-      info.msg = 'Terminated';
+      iterupdateGUI(info);
+      if Verbosity>=1 && useGUI && isfield(info,'msg')
+        updateLogBox(output.message);
+      end
   end
   pfit = p_start;
   pfit(activeParams) = pfit_active;
-  if Verbosity>=1 && useGUI && isfield(info,'msg')
-    updateLogBox(info.msg);
-  end
 else
   if Verbosity>=1
     msg = 'No active parameters; skipping optimization';
@@ -604,8 +585,9 @@ if calculateUncertainties
   if Verbosity>=1
     if useGUI
       clear msg
-      msg{1} = 'Calculating parameter uncertainties...';
-      msg{2} = '  Estimating Jacobian...';
+      msg{1} = '';
+      msg{2} = 'Calculating parameter uncertainties...';
+      msg{3} = '  Estimating Jacobian...';
       updateLogBox(msg);
     else
       disp('Calculating parameter uncertainties...');
@@ -649,6 +631,53 @@ if calculateUncertainties
     end
     Q = diag(diag(covmatrix).^(-1/2));
     corrmatrix = Q*covmatrix*Q;
+
+    % Report fit results
+    %---------------------------------------------------------------------------
+    if esfitdata.Opts.Verbosity>=1 || useGUI
+      clear msg
+      msg{1} = '';
+      msg{2} = 'Goodness of fit:';
+      msg{3} = sprintf('   ssr             %g',ssr0);
+      msg{4} = sprintf('   rmsd            %g',rmsd0);
+      msg{5} = sprintf('   noise std       %g (estimated from residuals; assumes excellent fit)',std(residuals0));
+      msg{6} = sprintf('   chi-squared     %g (using noise std estimate; upper limit)',rmsd0^2/var(residuals0));
+      if esfitdata.Opts.AutoScale
+        msg{end+1} = ' ';
+        msg{end+1} = sprintf('Fitted scale:      %g\n',scale);
+      end
+      if ~useGUI
+        msg{end+1} = 'Parameters:';
+        msg{end+1} = printparlist(pfit_active,esfitdata.pinfo,pstd,ci95);
+        msg{end+1} = ' ';
+      end
+      if ~isempty(corrmatrix) && numel(pfit_active)>1
+        msg{end+1} = sprintf('Correlation matrix:');
+        Sigma = corrmatrix;
+        msg{end+1} = sprintf(['    ',repmat('%f  ',1,size(Sigma,1)),'\n'],Sigma);
+        triuCorr = triu(abs(Sigma),1);
+        msg{end+1} = sprintf('Strongest correlations:');
+        [~,idx] = sort(triuCorr(:),'descend');
+        [i1,i2] = ind2sub(size(Sigma),idx);
+        np = numel(pfit_active);
+        for k = 1:min(5,(np-1)*np/2)
+          msg{end+1} = sprintf('    p(%d)-p(%d):    %g',i1(k),i2(k),Sigma(i1(k),i2(k))); %#ok<*AGROW> 
+        end
+        if any(reshape(triuCorr,1,[])>0.8)
+          msg{end+1} = '    WARNING! Strong correlations between parameters.';
+        end
+      end
+      if useGUI
+        msg{end+1} = '';
+        updateLogBox(msg);
+      else
+        disp(repmat('-',1,110));
+        for i = 1:numel(msg)
+          disp(msg{i});
+        end
+        disp(repmat('-',1,110));
+      end
+    end
   else
     if Verbosity>=1
       msg = '  NaN elements in Jacobian, cannot calculate parameter uncertainties.';
@@ -667,7 +696,7 @@ else
   if Verbosity>=1
     msg = 'Fitting stopped by user. Skipping uncertainty quantification.';
     if useGUI
-      updateLogBox(msg);
+      updateLogBox({msg,''});
     else
       disp(msg);
     end
@@ -680,30 +709,33 @@ end
 
 % Assemble output structure
 %-------------------------------------------------------------------------------
-result.argsfit = argsfit;
-result.fit = fit;
-result.scale = scale;
-result.fitraw = fitraw;
-result.baseline = baseline;
-result.mask = esfitdata.Opts.mask;
-
-result.p_start = p_start;
 result.pfit = pfit_active;
-result.pfit_full = pfit;
 result.pnames = {esfitdata.pinfo.Name}.';
 result.pnames = result.pnames(activeParams);
-
-result.residuals = residuals0;
-result.ssr = ssr0;
-result.rmsd = rmsd0;
+result.pfit_full = pfit;
+result.argsfit = argsfit;
 
 result.pstd = pstd;
 result.ci95 = ci95;
 result.cov = covmatrix;
 result.corr = corrmatrix;
+result.p_start = p_start;
+
+result.fitraw = fitraw;
+result.fit = fit;
+result.scale = scale;
+result.baseline = baseline;
+result.mask = esfitdata.Opts.mask;
+
+result.residuals = residuals0;
+result.ssr = ssr0;
+result.rmsd = rmsd0;
 
 result.bestfithistory.rmsd = esfitdata.besthistory.rmsd;
 result.bestfithistory.pfit = esfitdata.besthistory.par;
+if esfitdata.structureInputs
+  result.bestfithistory.pfit2structs = esfitdata.p2args;
+end
 
 esfitdata.best = result;
 
@@ -876,7 +908,7 @@ hParamTable = findobj('Tag','ParameterTable');
 data = get(hParamTable,'data');
 nParams = size(data,1);
 for p = 1:nParams
-  oldvaluestring = striphtml(data{p,6});
+  oldvaluestring = striphtml(data{p,7});
   newvaluestring = sprintf('%0.6f',currpar(p));
   % Find first character at which the new value differs from the old one
   idx = 1;
@@ -884,17 +916,17 @@ for p = 1:nParams
     if oldvaluestring(idx)~=newvaluestring(idx), break; end
     idx = idx + 1;
   end
-  active = data{p,1};
+  active = data{p,2};
   if active
-    str = ['<html><font color="#000000">' newvaluestring(1:idx-1) '</font><font color="#ff0000">' newvaluestring(idx:end) '</font></html>'];
+    str = ['<html><font color="#000000">' newvaluestring(1:idx-1) '</font><font color="#888888">' newvaluestring(idx:end) '</font></html>'];
   else
     str = ['<html><font color="#888888">' newvaluestring '</font></html>'];
   end
   % Indicate parameters have hit limit
   if currpar(p)==esfitdata.pvec_lb(p) ||  currpar(p)==esfitdata.pvec_ub(p)
-    str = ['<html><font color="#EE4B2B">' newvaluestring '</font></html>'];
+    str = ['<html><font color="#ff0000">' newvaluestring '</font></html>'];
   end
-  data{p,6} = str;
+  data{p,7} = str;
 end
 
 % Update column with best values if current parameter set is new best
@@ -905,7 +937,7 @@ if info.newbest
   set(hRmsText,'String',str,'ForegroundColor',[0 0.6 0]);
 
   for p = 1:nParams
-    oldvaluestring = striphtml(data{p,7});
+    oldvaluestring = striphtml(data{p,8});
     newvaluestring = sprintf('%0.6g',bestpar(p));
     % Find first character at which the new value differs from the old one
     idx = 1;
@@ -913,18 +945,17 @@ if info.newbest
       if oldvaluestring(idx)~=newvaluestring(idx), break; end
       idx = idx + 1;
     end
-    active = data{p,1};
+    active = data{p,2};
     if active
       if bestpar(p)==esfitdata.pvec_lb(p) ||  bestpar(p)==esfitdata.pvec_ub(p)
-        fontcolor = 'EE4B2B';
+        str = ['<html><font color="#ff0000">' newvaluestring '</font></html>'];
       else
-        fontcolor = '009900';
+        str = ['<html><font color="#009900">' newvaluestring(1:idx-1) '</font><font color="#000000">' newvaluestring(idx:end) '</font></html>'];
       end
-      str = ['<html><font color="#000000">' newvaluestring(1:idx-1) sprintf('</font><font color="#%s">',fontcolor) newvaluestring(idx:end) '</font></html>'];
     else
       str = ['<html><font color="#888888">' newvaluestring '</font></html>'];
     end
-    data{p,7} = str;
+    data{p,8} = str;
   end
 end
 
@@ -936,7 +967,7 @@ end
 %===============================================================================
 
 %===============================================================================
-function updatermsdplot()
+function updatermsdplot(~,~)
 global esfitdata
 % Update rmsd plot
 hRmsText = findobj('Tag','RmsText');
@@ -947,12 +978,19 @@ else
 end
 set(hRmsText,'String',str);
 
+hRmsLogPlot = findobj('Tag','RmsLogPlot');
+
 hrmsdline = findobj('Tag','rmsdline');
 if ~isempty(hrmsdline)
   n = min(100,numel(esfitdata.rmsdhistory));
   set(hrmsdline,'XData',1:n,'YData',esfitdata.rmsdhistory(end-n+1:end));
   ax = hrmsdline.Parent;
   axis(ax,'tight');
+  if hRmsLogPlot.Value
+    set(ax,'yscale','log')
+  else
+    set(ax,'yscale','linear')
+  end
   drawnow
 end
 end
@@ -969,17 +1007,17 @@ indent = '   ';
 
 printUncertainties = nargin>2 && ~isempty(pstd);
 if printUncertainties
-  str = [indent sprintf('name%svalue        standard deviation        95%% confidence interval',repmat(' ',1,max(maxNameLength-4,0)+2))];
+  str = [indent sprintf('    name%svalue        standard deviation        95%% confidence interval',repmat(' ',1,max(maxNameLength-4,0)+2))];
   for p = 1:nParams
     pname = pad(pinfo(p).Name,maxNameLength);
-    str_ = sprintf('%s  %-#12.7g %-#12.7g (%6.3f %%)   %-#12.7g - %-#12.7g',pname,par(p),pstd(p),pstd(p)/par(p)*100,pci95(p,1),pci95(p,2));
+    str_ = sprintf('%2.0i  %s  %-#12.7g %-#12.7g (%6.3f %%)   %-#12.7g - %-#12.7g',p,pname,par(p),pstd(p),pstd(p)/par(p)*100,pci95(p,1),pci95(p,2));
     str = [str newline indent str_];
   end
 else
-  str = [indent sprintf('name%svalue',repmat(' ',1,max(maxNameLength-4,0)+2))];
+  str = [indent sprintf('    name%svalue',repmat(' ',1,max(maxNameLength-4,0)+2))];
   for p = 1:nParams
     pname = pad(pinfo(p).Name,maxNameLength);
-    str_ = sprintf('%s  %-#12.7g',pname,par(p));
+    str_ = sprintf('%2.0i  %s  %-#12.7g',pname,par(p));
     str = [str newline indent str_];
   end
 end
@@ -1048,23 +1086,29 @@ set(findobj('Tag','AutoScaleCheckbox'),'Enable','off');
 set(findobj('Tag','selectAllButton'),'Enable','off');
 set(findobj('Tag','selectNoneButton'),'Enable','off');
 set(findobj('Tag','selectInvButton'),'Enable','off');
-set(findobj('Tag','ParameterTable'),'Enable','off');
+set(findobj('Tag','selectStartPointButtonCenter'),'Enable','off');
+set(findobj('Tag','selectStartPointButtonRandom'),'Enable','off');
+set(findobj('Tag','selectStartPointButtonSelected'),'Enable','off');
+set(findobj('Tag','selectStartPointButtonBest'),'Enable','off');
+colEditable = get(findobj('Tag','ParameterTable'),'UserData');
+set(findobj('Tag','ParameterTable'),'ColumnEditable',false(size(colEditable)));
+set(findobj('Tag','ParameterTable'),'CellEditCallback',[]);
 
 % Remove displayed best fit and uncertainties
 hTable = findobj('Tag','ParameterTable');
 Data = hTable.Data;
 for p = 1:size(Data,1)
-  Data{p,6} = '-';
   Data{p,7} = '-';
   Data{p,8} = '-';
   Data{p,9} = '-';
   Data{p,10} = '-';
+  Data{p,11} = '-';
 end
 set(hTable,'Data',Data);
 
 % Get fixed parameters
 for p = 1:esfitdata.nParameters
-  esfitdata.fixedParams(p) = Data{p,1}==0;
+  esfitdata.fixedParams(p) = Data{p,2}==0;
 end
 
 % Disable fitset list controls
@@ -1114,16 +1158,16 @@ hTable = findobj('Tag','ParameterTable');
 Data = hTable.Data;
 pi = 1;
 for p = 1:size(Data,1)
-  Data{p,6} = '-'; 
+  Data{p,7} = '-'; 
   if ~esfitdata.fixedParams(p) && ~isempty(esfitdata.best.pstd)
-    Data{p,8} = sprintf('%0.6g',esfitdata.best.pstd(pi));
-    Data{p,9} = sprintf('%0.6g',esfitdata.best.ci95(pi,1));
-    Data{p,10} = sprintf('%0.6g',esfitdata.best.ci95(pi,2));
+    Data{p,9} = sprintf('%0.6g',esfitdata.best.pstd(pi));
+    Data{p,10} = sprintf('%0.6g',esfitdata.best.ci95(pi,1));
+    Data{p,11} = sprintf('%0.6g',esfitdata.best.ci95(pi,2));
     pi = pi+1;
   else
-    Data{p,8} = '-';
     Data{p,9} = '-';
     Data{p,10} = '-';
+    Data{p,11} = '-';
   end
 end
 set(hTable,'Data',Data);
@@ -1160,7 +1204,12 @@ set(findobj('Tag','AutoScaleCheckbox'),'Enable','on');
 set(findobj('Tag','selectAllButton'),'Enable','on');
 set(findobj('Tag','selectNoneButton'),'Enable','on');
 set(findobj('Tag','selectInvButton'),'Enable','on');
-set(findobj('Tag','ParameterTable'),'Enable','on');
+set(findobj('Tag','selectStartPointButtonCenter'),'Enable','on');
+set(findobj('Tag','selectStartPointButtonRandom'),'Enable','on');
+set(findobj('Tag','selectStartPointButtonSelected'),'Enable','on');
+set(findobj('Tag','selectStartPointButtonBest'),'Enable','on');
+set(findobj('Tag','ParameterTable'),'ColumnEditable',colEditable);
+set(findobj('Tag','ParameterTable'),'CellEditCallback',@tableCellEditCallback);
 
 % Re-enable mask tools
 hAx = findobj('Tag','dataaxes');
@@ -1183,11 +1232,27 @@ end
 end
 %===============================================================================
 
+%===============================================================================
+function infoprint(str,useGUI)
+if useGUI
+  updateLogBox(str);
+else
+  if iscell(str)
+    for i = 1:numel(str)
+      disp(str{i});
+    end
+  else
+    disp(str);
+  end
+end
+end
+%===============================================================================
+
 
 %===============================================================================
 function str = striphtml(str)
 html = false;
-for k = numel(str):-1:1
+for k = 1:numel(str)
   if ~html
     rmv(k) = false;
     if str(k)=='<', html = true; rmv(k) = true; end
@@ -1292,11 +1357,11 @@ esfitdata.besthistory.par = [];
 hTable = findobj('Tag','ParameterTable');
 Data = hTable.Data;
 for p = 1:size(Data,1)
-  Data{p,6} = '-';
   Data{p,7} = '-';
   Data{p,8} = '-';
   Data{p,9} = '-';
   Data{p,10} = '-';
+  Data{p,11} = '-';
 end
 set(hTable,'Data',Data);
 
@@ -1362,21 +1427,23 @@ if ~isempty(str)
   k = find([esfitdata.FitSets.ID]==ID);
   if k>0
     fitset = esfitdata.FitSets(k);
-    values = fitset.pfit;
 
     % Set column with best-fit parameter values
     hTable = findobj('Tag','ParameterTable');
     data = get(hTable,'data');
-    for p = 1:numel(values)
-      data{p,7} = sprintf('%0.6g',values(p));
-      if ~isempty(fitset.pstd)
-        data{p,8} = sprintf('%0.6g',fitset.pstd(p));
-        data{p,9} = sprintf('%0.6g',fitset.ci95(p,1));
-        data{p,10} = sprintf('%0.6g',fitset.ci95(p,2));
+
+    pi = 1;
+    for p = 1:size(data,1)
+      data{p,8} = sprintf('%0.6g',fitset.pfit_full(p));
+      if ~fitset.fixedParams(p) && ~isempty(fitset.pstd)
+        data{p,9} = sprintf('%0.6g',fitset.pstd(pi));
+        data{p,10} = sprintf('%0.6g',fitset.ci95(pi,1));
+        data{p,11} = sprintf('%0.6g',fitset.ci95(pi,2));
+        pi = pi+1;
       else
-        data{p,8} = '-';
         data{p,9} = '-';
         data{p,10} = '-';
+        data{p,11} = '-';
       end
     end
     set(hTable,'Data',data);
@@ -1385,10 +1452,6 @@ if ~isempty(str)
     set(h,'YData',fitset.fit);
     drawnow
   end
-else
-  h = findobj('Tag','bestsimdata');
-  set(h,'YData',NaN(size(h.YData)));
-  drawnow
 end
 
 end
@@ -1417,7 +1480,7 @@ end
 function selectAllButtonCallback(~,~)
 h = findobj('Tag','ParameterTable');
 d = h.Data;
-d(:,1) = {true};
+d(:,2) = {true};
 set(h,'Data',d);
 end
 %===============================================================================
@@ -1427,7 +1490,7 @@ end
 function selectNoneButtonCallback(~,~)
 h = findobj('Tag','ParameterTable');
 d = h.Data;
-d(:,1) = {false};
+d(:,2) = {false};
 set(h,'Data',d);
 end
 %===============================================================================
@@ -1437,8 +1500,8 @@ end
 function selectInvButtonCallback(~,~)
 h = findobj('Tag','ParameterTable');
 d = h.Data;
-for k=1:size(d,1)
-    d{k,1} = ~d{k,1};
+for k=1:size(d,2)
+    d{k,2} = ~d{k,2};
 end
 set(h,'Data',d);
 end
@@ -1528,7 +1591,13 @@ set(findobj('Tag','AutoScaleCheckbox'),'Enable','on');
 set(findobj('Tag','selectAllButton'),'Enable','on');
 set(findobj('Tag','selectNoneButton'),'Enable','on');
 set(findobj('Tag','selectInvButton'),'Enable','on');
-set(findobj('Tag','ParameterTable'),'Enable','on');
+set(findobj('Tag','selectStartPointButtonCenter'),'Enable','on');
+set(findobj('Tag','selectStartPointButtonRandom'),'Enable','on');
+set(findobj('Tag','selectStartPointButtonSelected'),'Enable','on');
+set(findobj('Tag','selectStartPointButtonBest'),'Enable','on');
+colEditable = get(findobj('Tag','ParameterTable'),'UserData');
+set(findobj('Tag','ParameterTable'),'ColumnEditable',colEditable);
+set(findobj('Tag','ParameterTable'),'CellEditCallback',@tableCellEditCallback);
 
 % Re-enable mask tools
 set(findobj('Tag','clearMaskButton'),'Enable','on');
@@ -1556,27 +1625,47 @@ if any(contains(msg,'Simulation function error','IgnoreCase',true))
 end
 for i = 1:numel(msg)
   msg{i} = strrep(msg{i},'\n','');
-  if iserror
-    msg{i} = ['<html><font color="#EE4B2B">' msg{i} '</font></html>'];
+  msgs = strsplit(msg{i},newline);
+  for j = 1:numel(msgs)
+    if iserror
+      msgs{j} = ['<html><font color="#ff0000">' msgs{j} '</font></html>'];
+    end
+    txt{end+1} = msgs{j};
   end
-  txt{end+1} = msg{i};
+end
+if iserror
+  txt{end+1} = '';
 end
 nval = numel(txt);
 set(findobj('Tag','LogBox'),'String',txt)
+drawnow
 if nval>6
-  drawnow;
-  set(findobj('Tag','LogBox'),'ListBoxTop',nval-5);
+  txt = get(findobj('Tag','LogBox'),'String');
+  set(findobj('Tag','LogBox'),'ListBoxTop',numel(txt)-5);
 end
 
 end
+%===============================================================================
+
+%===============================================================================
+function copyLog(~,~)
+% Copy log to clipboard
+txt = get(findobj('Tag','LogBox'),'String');
+str = [];
+for i = 1:numel(txt)
+  row = sprintf('%s\t', txt{i});
+  row(end) = newline;
+  str = [str row];
+end
+clipboard('copy',str)
+end
+%===============================================================================
 
 %===============================================================================
 function clearMaskCallback(~,~)
 global esfitdata
 esfitdata.Opts.mask = true(size(esfitdata.Opts.mask));
 showmaskedregions();
-hBestSim = findobj('Tag','bestsimdata');
-hBestSim.YData = NaN(size(hBestSim.YData));
 esfitdata.best = [];
 esfitdata.rmsdhistory = [];
 esfitdata.besthistory.rmsd = [];
@@ -1600,6 +1689,7 @@ function saveFitsetCallback(~,~)
 global esfitdata
 esfitdata.lastSetID = esfitdata.lastSetID+1;
 esfitdata.currFitSet.ID = esfitdata.lastSetID;
+esfitdata.currFitSet.fixedParams = esfitdata.fixedParams;
 if ~isfield(esfitdata,'FitSets') || isempty(esfitdata.FitSets)
   esfitdata.FitSets(1) = esfitdata.currFitSet;
 else
@@ -1629,9 +1719,9 @@ if cidx==1
 end
 
 % Return unless it's a cell that contains start value or lower or upper bound
-startColumn = 3; % start value column
-lbColumn = 4; % lower-bound column
-ubColumn = 5; % upper-bound column
+startColumn = 4; % start value column
+lbColumn = 5; % lower-bound column
+ubColumn = 6; % upper-bound column
 startedit = cidx==startColumn;
 lbedit = cidx==lbColumn;
 ubedit = cidx==ubColumn;
@@ -1642,7 +1732,7 @@ newval = str2double(callbackData.EditData);
 
 % Revert if conversion didn't yield a scalar
 if numel(newval)~=1 || isnan(newval) || ~isreal(newval)
-  warning('Input ''%s'' is not a number. Reverting edit.',callbackData.EditData);
+  updateLogBox(sprintf('Input ''%s'' is not a number. Reverting edit.',callbackData.EditData));
   hTable.Data{ridx,cidx} = callbackData.PreviousData;
   return
 end
@@ -1656,27 +1746,36 @@ upper = str2double(hTable.Data{ridx,ubColumn});
 if startedit
   start = newval;
   if start<lower || start>upper
-    warning('Start value outside range. Reverting edit.');
+    updateLogBox('Start value outside range. Reverting edit.');
     hTable.Data{ridx,cidx} = callbackData.PreviousData;
     return
   end
 elseif lbedit
   lower = newval;
-  if lower>start
-    start = lower;
-  end
 elseif ubedit
   upper = newval;
-  if upper<start
-    start = upper;
-  end
 end
 
 % Revert if lower bound would be above upper bound
 if lower>upper
-  warning('Lower bound is above upper bound. Reverting edit.');
+  updateLogBox('Lower bound is above upper bound. Reverting edit.');
   hTable.Data{ridx,cidx} = callbackData.PreviousData;
   return
+end
+
+% Adapt start value if it falls outside new range
+updatestartvalue = false;
+if lower>start
+  start = lower;
+  updatestartvalue = true;
+end
+if upper<start
+  start = upper;
+  updatestartvalue = true;
+end
+if updatestartvalue
+  updateLogBox('Start value outside new range. Adapting start value.');
+  hTable.Data{ridx,startColumn} = sprintf('%0.6g',start);
 end
 
 % Update start value, lower and upper bounds
@@ -1742,12 +1841,12 @@ ParTableh = hPtop-10;
 ParTablex0 = spacing;
 ParTabley0 = sz(2)-hPtop-spacing;
 ParTableColw = 85*scalefact;
-ParTablew = 9*ParTableColw+hElement+dh;
+ParTablew = 9*ParTableColw+2*hElement+dh;
 
 Optionsx0 = ParTablex0+ParTablew+0.5*spacing;
 Optionsy0 = ParTabley0+44*scalefact;
-wOptionsLabel = 80*scalefact;
-wOptionsSel = 150*scalefact;
+wOptionsLabel = 70*scalefact;
+wOptionsSel = 145*scalefact;
 
 Buttonsx0 = ParTablex0+ParTablew+wOptionsLabel+wOptionsSel+1.5*spacing;
 Buttonsy0 = sz(2)-hPtop-spacing+dh;
@@ -1800,21 +1899,22 @@ showmaskedregions();
 
 % Parameter table
 %-------------------------------------------------------------------------------
-columnname = {'','Name','start','lower','upper','current','best','stdev','ci95 lower','ci95 upper'};
-columnformat = {'logical','char','char','char','char','char','char','char','char','char'};
-colEditable = [true false true true true false false false false false];
+columnname = {'','','Name','start','lower','upper','current','best','stdev','ci95 lower','ci95 upper'};
+columnformat = {'char','logical','char','char','char','char','char','char','char','char','char'};
+colEditable = [false true false true true true false false false false false];
 data = cell(numel(esfitdata.pinfo),10);
 for p = 1:numel(esfitdata.pinfo)
-  data{p,1} = true;
-  data{p,2} = char(esfitdata.pinfo(p).Name);
-  data{p,3} = sprintf('%0.6g',esfitdata.p_start(p));
-  data{p,4} = sprintf('%0.6g',esfitdata.pvec_lb(p));
-  data{p,5} = sprintf('%0.6g',esfitdata.pvec_ub(p));
-  data{p,6} = '-';
+  data{p,1} = num2str(p);
+  data{p,2} = true;
+  data{p,3} = char(esfitdata.pinfo(p).Name);
+  data{p,4} = sprintf('%0.6g',esfitdata.p_start(p));
+  data{p,5} = sprintf('%0.6g',esfitdata.pvec_lb(p));
+  data{p,6} = sprintf('%0.6g',esfitdata.pvec_ub(p));
   data{p,7} = '-';
   data{p,8} = '-';
   data{p,9} = '-';
   data{p,10} = '-';
+  data{p,11} = '-';
 end
 uitable('Parent',hFig,'Tag','ParameterTable',...
     'FontSize',8,...
@@ -1823,9 +1923,10 @@ uitable('Parent',hFig,'Tag','ParameterTable',...
     'ColumnName',columnname,...
     'ColumnEditable',colEditable,...
     'CellEditCallback',@tableCellEditCallback,...
-    'ColumnWidth',{hElement,ParTableColw,ParTableColw,ParTableColw,ParTableColw,ParTableColw,ParTableColw,ParTableColw,ParTableColw,ParTableColw},...
+    'ColumnWidth',{hElement,hElement,ParTableColw,ParTableColw,ParTableColw,ParTableColw,ParTableColw,ParTableColw,ParTableColw,ParTableColw,ParTableColw},...
     'RowName',[],...
-    'Data',data);
+    'Data',data,...
+    'UserData',colEditable);
 ParTableLabely0 = ParTabley0+ParTableh+dh;
 uicontrol('Parent',hFig,'Style','text',...
     'Position',[ParTablex0 ParTableLabely0 2*wButton1 hElement],...
@@ -2017,9 +2118,13 @@ uicontrol('Parent',hFig,'Style','text',...
     'FontWeight','bold','String','RMSD history',...
     'HorizontalAl','left');
 
-h = uicontrol('Parent',hFig,'Style','text','Position',[Rmsdx0 Rmsdy0+Rmsdh+3*hElement Rmsdw hElement]);
+h = uicontrol('Parent',hFig,'Style','text','Position',[Rmsdx0 Rmsdy0+Rmsdh+3*hElement 0.75*Rmsdw hElement]);
 set(h,'FontSize',8,'String',' RMSD: -','ForegroundColor',[0 0.6 0],'Tooltip','Current best RMSD');
 set(h,'Tag','RmsText','HorizontalAl','left');
+
+h = uicontrol('Parent',hFig,'Style','checkbox','Position',[Rmsdx0+0.75*Rmsdw Rmsdy0+Rmsdh+3.2*hElement 0.30*Rmsdw hElement]);
+set(h,'FontSize',8,'String','logscale','Tooltip','Set log scale on/off','Value',0);
+set(h,'Tag','RmsLogPlot','Callback',@updatermsdplot);
 
 hAx = axes('Parent',hFig,'Units','pixels','Position',[Rmsdx0 Rmsdy0+2.5*hElement Rmsdw-spacing Rmsdh],'Layer','top');
 h = plot(hAx,1,NaN,'.');
@@ -2075,12 +2180,15 @@ uicontrol('Parent',hFig,'Style','text',...
     'FontWeight','bold','String','Log',...
     'Tooltip','Fitting information and error log',...
     'HorizontalAl','left');
+copymenu = uicontextmenu(hFig);
+uimenu(copymenu,'Text','Copy to clipboard','Callback',@copyLog);
 uicontrol('Parent',hFig,'Style','listbox','Tag','LogBox',...
     'Position',[Logx0 Logy0 Logw Logh],...
     'String',{''},'Tooltip','',...
     'HorizontalAlignment','left',...
     'Min',0,'Max',2,...
     'Value',[],'Enable','inactive',...
+    'ContextMenu',copymenu,...
     'BackgroundColor',[1 1 1])
 
 drawnow
@@ -2089,7 +2197,9 @@ set(hFig,'Visible','on')
 set(hFig,'NextPlot','new');
 
 end
+%===============================================================================
 
+%===============================================================================
 function setStartPoint(sel)
 
 global esfitdata
@@ -2132,16 +2242,42 @@ switch sel
 end
 esfitdata.p_start = p_start;
 
+% Check if new start values fall within bound range, adapt bounds if not
+updatebounds = false;
+if strcmp(sel,'selected') || strcmp(sel,'best')
+  newlb = p_start<lb;
+  if any(newlb)
+    updatebounds = true;
+    db = (ub(newlb)-lb(newlb))/2;
+    esfitdata.pvec_lb(newlb) = p_start(newlb)-db;
+  end
+  newub = p_start>ub;
+  if any(newub)
+    updatebounds = true;
+    db = (ub(newub)-lb(newub))/2;
+    esfitdata.pvec_ub(newub) = p_start(newub)+db;
+  end
+  if updatebounds
+    updateLogBox('Selected parameter set outside range. Adapting range.')
+  end
+end
+
 % Update parameter table
 hParamTable = findobj('Tag','ParameterTable');
 data = get(hParamTable,'data');
 for p = 1:numel(p_start)
-  data{p,3} = sprintf('%0.6g',p_start(p));
+  data{p,4} = sprintf('%0.6g',p_start(p));
+  if updatebounds
+    data{p,5} = sprintf('%0.6g',esfitdata.pvec_lb(p));
+    data{p,6} = sprintf('%0.6g',esfitdata.pvec_ub(p));
+  end
 end
 hParamTable.Data = data;
 
 end
+%===============================================================================
 
+%===============================================================================
 function axesButtonDownFcn(~,~)
 global esfitdata
 hAx = findobj('Tag','dataaxes');
@@ -2172,14 +2308,18 @@ esfitdata.Opts.mask(x>maskrange(1) & x<maskrange(2)) = 0;
 delete(tmpmask);
 showmaskedregions();
 end
+%===============================================================================
 
+%===============================================================================
 function drawmaskedregion(tmpmask)
 cp = get (gca,'CurrentPoint');
 xdata = tmpmask.XData;
 xdata(2:3) = cp(1,1);
 set(tmpmask,'XData',xdata);
 end
+%===============================================================================
 
+%===============================================================================
 function showmaskedregions()
 global esfitdata
 hAx = findobj('Tag','dataaxes');
@@ -2210,3 +2350,4 @@ hAx.Children = c;
 drawnow
 
 end
+%===============================================================================

@@ -26,7 +26,11 @@ if ~isfield(FitOpt,'maxTime'), FitOpt.maxTime = inf; end
 if ~isfield(FitOpt,'TolFun'), FitOpt.TolFun = 1e-5; end
 if ~isfield(FitOpt,'IterationPrintFunction') || ...
   isempty(FitOpt.IterationPrintFunction)
-  FitOpt.IterationPrintFunction = @iterationprint;
+  FitOpt.IterationPrintFunction = @(str)str;
+end
+if ~isfield(FitOpt,'InfoPrintFunction') || ...
+  isempty(FitOpt.InfoPrintFunction)
+  FitOpt.InfoPrintFunction = @(str)str;
 end
 if ~isfield(FitOpt,'IterFcn'), FitOpt.IterFcn = []; end
 
@@ -87,20 +91,10 @@ if FitOpt.Verbosity>1
     case 2, msg = 'Terminated: Stopped by user.';
     case 3, msg = sprintf('Terminated: Found a parameter set with error less than %g.',FitOpt.TolFun);
   end
-  disp(msg);
-  info.msg = msg;
+  FitOpt.InfoPrintFunction(msg);
 end
 
 info.nTrials = iTrial;
 info.elapsedTime = elapsedTime;
 
-end
-
-function iterationprint(str)
-hLogLine = findobj('Tag','logLine');
-if isempty(hLogLine)
-  disp(str);
-else
-  set(hLogLine,'String',str);
-end
 end

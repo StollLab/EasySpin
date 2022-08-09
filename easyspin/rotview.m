@@ -52,6 +52,27 @@ showTensor = true;
 xA = 0; yA = 0; zA = 0; xB = 0; yB = 0; zB = 0;
 x1 = 0; x2 = 0; y1 = 0; zzplane = 0; xyAplane = 0; xyBplane = 0;
 R = [];
+minangle = [-360 -360 -360]; % [0 0 0];
+maxangle =  [360 360 360]; % [360 180 360];
+
+if alpha<minangle(1)
+  alpha = minangle(1);
+end
+if alpha>maxangle(1)
+  alpha = maxangle(1);
+end
+if beta<minangle(2)
+  beta = minangle(2);
+end
+if beta>maxangle(2)
+  beta = maxangle(2);
+end
+if gamma<minangle(3)
+  gamma = minangle(3);
+end
+if gamma>maxangle(3)
+  gamma = maxangle(3);
+end
 
 calculateframes();
 
@@ -72,36 +93,39 @@ x0 = 10;
 y0 = 10;
 uicontrol('Style','slider','Tag','alphaslider',...
   'Position',[x0+50 y0 120 15],...
-  'Min',0,'Max',360,'Value',alpha,'SliderStep',[1 10]/360,...
-  'callback',@rotview_alphaslider);
+  'Min',minangle(1),'Max',maxangle(1),'Value',alpha,'SliderStep',[1 10]/360,...
+  'callback',@(src,evt) rotview_updateangle(1,src));
 uicontrol('Style','text','Position',[x0,y0,50,15],...
   'String','alpha (deg)','HorizontalA','left',...
   'Background','w','ForegroundColor','k');
 uicontrol('Style','edit','Tag','alphatext',...
-  'Position',[x0+180,y0,40,15],...
-  'String','','HorizontalA','left');
+  'Position',[x0+180,y0,50,15],...
+  'String','','HorizontalA','left',...
+  'callback',@(src,evt) rotview_updateangle(1,src));
 
 uicontrol('Style','slider','Tag','betaslider',...
   'Position',[x0+50 y0+20 120 15],...
-  'Min',0,'Max',180,'Value',beta,'SliderStep',[1 10]/180,...
-  'callback',@rotview_betaslider);
+  'Min',minangle(2),'Max',maxangle(2),'Value',beta,'SliderStep',[1 10]/180,...
+  'callback',@(src,evt) rotview_updateangle(2,src));
 uicontrol('Style','text','Position',[x0,y0+20,50,15],...
   'String','beta (deg)','HorizontalA','left',...
   'Background','w','ForegroundColor','k');
 uicontrol('Style','edit','Tag','betatext',...
-  'Position',[x0+180,y0+20,40,15],...
-  'String','','HorizontalA','left');
+  'Position',[x0+180,y0+20,50,15],...
+  'String','','HorizontalA','left',...
+  'callback',@(src,evt) rotview_updateangle(2,src));
 
 uicontrol('Style','slider','Tag','gammaslider',...
   'Position',[x0+50 y0+40 120 15],...
-  'Min',0,'Max',360,'Value',gamma,'SliderStep',[1 10]/360,...
-  'callback',@rotview_gammaslider);
+  'Min',minangle(3),'Max',maxangle(3),'Value',gamma,'SliderStep',[1 10]/360,...
+  'callback',@(src,evt) rotview_updateangle(3,src));
 uicontrol('Style','text','Position',[x0,y0+40,50,15],...
   'String','gamma (deg)','HorizontalA','left',...
   'Background','w','ForegroundColor','k');
 uicontrol('Style','edit','Tag','gammatext',...
-  'Position',[x0+180,y0+40,40,15],...
-  'String','','HorizontalA','left');
+  'Position',[x0+180,y0+40,50,15],...
+  'String','','HorizontalA','left',...
+  'callback',@(src,evt) rotview_updateangle(3,src));
 
 labelStrings = {'gFrame','AFrame','DFrame','QFrame','eeFrame','DiffFrame','MolFrame'};
 labelID = 1;
@@ -205,6 +229,9 @@ updateplot;
     set(findobj('Tag','alphatext'),'String',sprintf('%2.3f',alpha));
     set(findobj('Tag','betatext'),'String',sprintf('%2.3f',beta));
     set(findobj('Tag','gammatext'),'String',sprintf('%2.3f',gamma));
+    set(findobj('Tag','alphaslider'),'Value',alpha);
+    set(findobj('Tag','betaslider'),'Value',beta);
+    set(findobj('Tag','gammaslider'),'Value',gamma);
 
     % Names of the start and end frame
     setaxislabels();
@@ -239,18 +266,26 @@ updateplot;
     set(pB,'XData',xyBplane(1,:),'YData',xyBplane(2,:),'ZData',xyBplane(3,:));
   end
 
-  function rotview_alphaslider(~,~)
-    h = findobj('Tag','alphaslider');
-    val = get(h,'Value');
-    alpha = val;
-    calculateframes;
-    updateplot;
-  end
-
-  function rotview_betaslider(~,~)
-    h = findobj('Tag','betaslider');
-    val = get(h,'Value');
-    beta = val;
+  function rotview_updateangle(iangle,src)
+    if strcmp(src.Style,'slider')
+      newval = src.Value;
+    elseif strcmp(src.Style,'edit')
+      newval = str2double(src.String);
+    end
+    if newval<minangle(iangle)
+      newval = minangle(iangle);
+    end
+    if newval>maxangle(iangle)
+      newval = maxangle(iangle);
+    end
+    switch iangle
+      case 1
+        alpha = newval;
+      case 2
+        beta = newval;
+      case 3
+        gamma = newval;
+    end
     calculateframes;
     updateplot;
   end
@@ -259,14 +294,6 @@ updateplot;
     h = findobj('Tag','labelpopupmenu');
     val = get(h,'Value');
     labelID = val;
-    calculateframes;
-    updateplot;
-  end
-
-  function rotview_gammaslider(~,~)
-    h = findobj('Tag','gammaslider');
-    val = get(h,'Value');
-    gamma = val;
     calculateframes;
     updateplot;
   end

@@ -65,6 +65,10 @@ if ~isfield(Opt,'IterationPrintFunction') || ...
     isempty(Opt.IterationPrintFunction)
   Opt.IterationPrintFunction = @(str)str;
 end
+if ~isfield(Opt,'InfoPrintFunction') || ...
+    isempty(Opt.InfoPrintFunction)
+  Opt.InfoPrintFunction = @(str)str;
+end
 
 x0 = x0(:);
 lb = lb(:);
@@ -273,8 +277,8 @@ if Opt.Verbosity>0
     case 2, msg = sprintf('Stopped by user.');
     case 3, msg = sprintf('Converged (edge length < %g and all errors < %g).',Opt.TolEdgeLength,Opt.TolFun);
   end
-  fprintf('Terminated: %s\n',msg);
-  info.msg = sprintf('Terminated: %s\n',msg);
+  str = sprintf('Terminated: %s\n',msg);
+  Opt.InfoPrintFunction(str);
 end
 
 info.stop = stopCode;

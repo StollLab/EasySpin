@@ -24,7 +24,14 @@ if ~isfield(opt,'TolFun'), opt.TolFun = 1e-5; end
 if ~isfield(opt,'GridSize'), opt.GridSize = 7; end
 if ~isfield(opt,'randGrid'), opt.randGrid = true; end
 if ~isfield(opt,'maxGridPoints'), opt.maxGridPoints = 1e5; end
-
+if ~isfield(opt,'IterationPrintFunction') || ...
+    isempty(opt.IterationPrintFunction)
+  opt.IterationPrintFunction = @(str)str;
+end
+if ~isfield(opt,'InfoPrintFunction') || ...
+    isempty(opt.InfoPrintFunction)
+  opt.InfoPrintFunction = @(str)str;
+end
 if ~isfield(opt,'IterFcn') || isempty(opt.IterFcn)
   opt.IterFcn = @(info)false;
 end
@@ -57,7 +64,7 @@ if nGridPoints>opt.maxGridPoints
 end
 
 if opt.Verbosity
-  fprintf('%d parameters, %d grid points total\n',nParams,nGridPoints);
+  opt.InfoPrintFunction(sprintf('%d parameters, %d grid points total\n',nParams,nGridPoints));
 end
 
 if ~isempty(opt.IterFcn) && ~isa(opt.IterFcn,'function_handle')
@@ -131,8 +138,7 @@ if opt.Verbosity>1
     case 2, msg = 'Terminated: Stopped by user.';
     case 3, msg = sprintf('Terminated: Found a parameter set with error less than %g.',opt.TolFun);
   end
-  disp(msg);
-  info.msg = msg;
+  opt.InfoPrintFunction(msg);
 end
 
 info.stop = stopCode;
