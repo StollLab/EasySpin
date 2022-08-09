@@ -9,7 +9,6 @@ Exp = struct('mwFreq',9.5,'Range',[290 390],'Harmonic',0);
 
 % User-specified population vector
 Sys.initState = {[0.1 0.5 0.4],'zerofield'};
-% Sys.Pop = [0.1 0.5 0.4];
 
 % Simulation options
 Opt = struct;

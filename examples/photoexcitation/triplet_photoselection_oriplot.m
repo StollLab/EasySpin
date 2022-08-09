@@ -12,7 +12,7 @@ clear, clc, clf
 Triplet.S = 1;
 Triplet.D = [1045 -282];  % MHz
 Triplet.lwpp = 3;  % mT
-Triplet.Pop = [0.9 0 0.1];  % non-equilibrium populations
+Triplet.initState = {[0.1 0 0.9],'xyz'};  % non-equilibrium populations
 
 % Define experimental parameters
 Exp.mwFreq = 9.5;  % GHz
@@ -65,6 +65,7 @@ legend('parallel','perpendicular')
 legend boxoff
 xlim(B([1 end]))
 ylim([-1 1]*8)
+xlabel('{\itB} (mT)')
 
 subplot(2,4,[3 4])
 title('TDM || x_M')
@@ -74,6 +75,7 @@ legend('parallel','perpendicular')
 legend boxoff
 xlim(B([1 end]))
 ylim([-1 1]*8)
+xlabel('{\itB} (mT)')
 
 % Plot orientations
 subplot(2,4,5)

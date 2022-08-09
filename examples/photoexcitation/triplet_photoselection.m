@@ -9,10 +9,10 @@ clear, clc, clf
 
 % Define spin system
 Triplet.S = 1;
-Triplet.D = [900 160];  % MHz
+Triplet.D = [900 -160];  % MHz
 Triplet.lwpp = 1;  % mT
-Triplet.tdm = 'y';  % orientation of tdm in molecular frame
-Triplet.Pop = [1 0 0];  % non-equilibrium populations
+Triplet.tdm = 'x';  % orientation of tdm in molecular frame
+Triplet.initState = {[0 0 1],'xyz'};  % non-equilibrium populations
 
 Exp.mwFreq = 9.5;  % GHz
 Exp.Range = [280 400];  % mT
@@ -34,5 +34,6 @@ Exp.lightBeam = 'unpolarized';
 
 % Plotting
 plot(B,spc_complete,B,spc_perp,B,spc_para,B,spc_unpol);
+xlabel('magnetic field (mT)')
 legend('complete','perpendicular','parallel','unpolarized')
 legend boxoff

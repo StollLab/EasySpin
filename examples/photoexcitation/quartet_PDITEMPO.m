@@ -10,10 +10,6 @@
 
 clear; clc; clf;
 
-A = readmatrix('TREPR_c-PDI-t_tol_34,0GHz_535nm_05mJ_80K_norm_corr.txt');
-field = A(:, 1);
-spc = A(:, 2);
-
 % Spin system parameters
 Sys.S = [1 1/2];
 Sys.g = [2.0043 2.0043 2.0027;  % PDI
@@ -31,8 +27,8 @@ Sys.Nucs = '14N';
 Sys.A = [0 0 19 96]; % MHz
 
 % High-field state populations (different populations of nuclear sublevels)
-Sys.Pop = [0 0 0 0.50 0.63 0.77 0.13 0.00 0.80 0.85 0.54 0.48 0.04 0.96 0.04 0 0 0];
-Sys.PopMode = 'highfield';
+Pop = [0 0 0 0.50 0.63 0.77 0.13 0.00 0.80 0.85 0.54 0.48 0.04 0.96 0.04 0 0 0];
+Sys.initState = {Pop,'eigen'};
 
 Sys.lw = 0.65; % mT
 

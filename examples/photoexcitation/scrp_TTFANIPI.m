@@ -8,7 +8,7 @@
 %    https://doi.org/10.1021/acs.jpca.8b07556
 %
 
-clear; clc;
+clear; clc; clf;
 
 % Spin system parameters
 Sys.S = [1/2 1/2];

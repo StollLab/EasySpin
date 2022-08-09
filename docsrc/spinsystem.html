@@ -1306,28 +1306,77 @@ For a full documentation of the line broadening fields in the spin system struct
 <a name="pop"><div class="subtitle">Non-equilibrium populations</div></a>
 
 <p>
-For the simulation of spin-polarised systems with non-equilibrium populations, the populations of the zero-field or the high-field eigenstates of the spin system can be specified in <code>Sys.Pop</code>, with <code>Sys.PopMode</code> set to <code>'zerofield'</code> (default) or <code>'highfield'</code>, respectively.
-For a spin system with <code>N</code> electron states (e.g. 4 for a biradical, 3 for a triplet state), it must be a vector with <code>N</code> elements giving the populations of the eigenstates, from lowest to highest in energy.
-In the presence of coupled nuclei, individual nuclear populations can also be specified in <code>Sys.Pop</code> (vector with <code>Nelectron*Nnuclear</code> elements), if not, it is assumed that the populations of the nuclear sublevels corresponding to the same electron sublevel are equal.
+For the simulation of spin-polarised systems, the non-equilibrium populations need to be specified in the field <code>Sys.initState</code>. The non-equilibrium state can be defined by providing the density matrix or a population vector and the corresponding basis. The available basis keywords are 
+<ul>
+<li> <code>'uncoupled'</code>, corresponding to the product Zeeman basis states
+<li> <code>'eigen'</code>, corresponding to the eigenbasis of the full spin Hamiltonian
+<li> <code>'zerofield'</code>, corresponding to the eigenbasis of the spin Hamitlonian at zero field
+</ul>
+In all cases, the basis states are assumed to be in order of increasing energy.
+For triplet states, there is the additional option to provide the populations of the X, Y and Z eigenstates of the zero-field Hamiltonian using the <code>'xyz'</code> basis. The provided populations of the X, Y and Z sublevels are converted into energy-ordered populations based on the standard definition of the zero-field energy levels for a set of given ZFS parameters <code>D</code> and <code>E</code> and their signs.
+<pre class="matlab">
+  % Energies of eigenstates of the zero-field splitting Hamiltonian for a triplet state
+  En(1) = (1/3)*D - E; % X
+  En(2) = (1/3)*D + E; % Y
+  En(3) = -(2/3)*D;    % Z
+</pre>
+
+The options for defining non-equilibrium states through <code>Sys.initState</code> are the following:
+<ul>
+<li>Give the population vector and the corresponding basis.
+
+Energy-ordered populations of the eigenstates of the spin Hamiltonian at zero field:
+<pre class="matlab">
+Sys.initState = {[p1 p2 p3],'zerofield'};
+</pre>
+E.g., if <code>Sys.initState = {[0.85 0.95 1.2],'zerofield'}</code> for a triplet system (S=1), the population of the lowest-energy zero-field state has a population of 0.85, the middle one has 0.95, and the highest-energy zero-field state has a population of 1.2. If there are coupled nuclei, the populations of all nuclear sublevels within each electron spin manifold are assumed to be equal.
+
+Populations of the eigenstates of the full spin Hamiltonian in order of increasing energy
+<pre class="matlab">
+Sys.initState = {[p1 p2 p3],'eigen'};
+</pre>
+E.g. <code>Sys.initState = {[0 1 0],'eigen'}</code> for a triplet system (S=1) corresponds to a triplet state populated only in the high-field T0 level, for example from recombination from a radical pair state.
+
+Populations of the X, Y and Z eigenstates of the ZFS interaction Hamiltonian (for <code>Sys.S = 1</code> only)
+<pre class="matlab">
+Sys.initState = {[px py pz],'xyz'};
+</pre>
+</p>
+
+<li>Give the density matrix and the corresponding basis (if no basis is given, the uncoupled basis, i.e. ordering of operators in terms of product Zeeman basis states as explained in <a class="esf" href="sop.html">sop</a>, is assumed).
+<pre class="matlab">
+Sys.initState = sigma;
+</pre>
+E.g. for a a spin-correlated radical pair with singlet-precursor the initial density matrix can be defined based on the state vector for the singlet state as
+<pre class="matlab">
+S = 1/sqrt(2)*[0; 1; -1; 0];
+Sigma = S*S';
+Sys.initState = Sigma; 
+% equivalent to
+Sys.initState = {Sigma,'uncoupled'};
+</pre> 
+</p>
+
+<li>Give a string specifying the initial state, currently possible for a singlet-born spin-correlated radical pair <code>Sys.S = [1/2 1/2]</code>.
+<pre class="matlab">
+% Spin-correlated radical pair with singlet-precursor
+Sys.initState = 'singlet';
+</pre> 
+</ul>
 </p>
 
 <p>
-E.g., if <code>Sys.Pop = [0.85 0.95 1.2]</code> for a triplet system (S=1), the population of the lowest-energy zero-field state has a population of 0.85, the middle one has 0.95, and the highest-energy zero-field state has a population of 1.2. If there are coupled nuclei, the populations of all nuclear sublevels within each electron spin manifold are assumed to be equal.
+For a spin system with <code>N</code> electron states (e.g. 4 for a biradical, 3 for a triplet state), the population vector must contain <code>N</code> elements and the density matrix must contain <code>N*N</code> elements.
+In the presence of coupled nuclei, individual nuclear populations can also be specified in <code>Sys.initState</code> (with <code>Nelectron*Nnuclear</code> elements), if not, it is assumed that the populations of the nuclear sublevels corresponding to the same electron sublevel are equal.
+</p>
+
+
+<p>
+If <code>Sys.initState</code> is given, the temperature specified in <code>Exp.Temperature</code> is ignored.
 </p>
 
 <p>
-Simulations of spin-polarised systems with non-equilibrium populations can alternatively be performed by specifying the initial density matrix of the system in the uncoupled basis in <code>Sys.initState</code> (the required structure of density matrices, i.e. ordering of operators in terms of product Zeeman basis states, is explained in the documentation for <a href="sop.html">spin operators</a>.). For a spin system with <code>N</code> electron states (e.g. 4 for a radical pair, 3 for a triplet state), it must be a matrix with <code>NxN</code> elements.
-</p>
-<p>
-For a singlet-born spin-correlated radical pair, the shortcut <code>Sys.initState = 'singlet'</code> can be used.
-</p>
-
-<p>
-If <code>Sys.Pop</code> or <code>Sys.initState</code> are given, the temperature specified in <code>Exp.Temperature</code> is ignored.
-</p>
-
-<p>
-For examples of spin-polarized systems (ISC triplets, recombination triplets, spin-correlated radical pairs), see the <a href="spinpolarization.html">user guide on spin-polarized systems</a>.
+For examples of spin-polarized systems (ISC triplets, recombination triplets, spin-correlated radical pairs), see the <a href="spinpolarization.html">user guide on spin-polarized systems</a> and the corresponding <a href="examplesmain.html">examples</a>.
 </p>
 
 <a name="light"><div class="subtitle">Optical transition dipole moment</div></a>

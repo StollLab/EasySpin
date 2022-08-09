@@ -955,7 +955,7 @@ if ~isempty(Sys.initState)
       initStateBasis = 'zerofield';
     end
 
-  elseif ismatrix(Sys.initState)
+  elseif isnumeric(Sys.initState)
     % Full density matrix input (in default EasySpin basis)
     
     % Density matrix input in default EasySpin basis

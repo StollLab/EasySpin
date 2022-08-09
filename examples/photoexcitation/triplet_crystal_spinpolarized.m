@@ -8,7 +8,6 @@ Exp.mwFreq = 9.7;
 Exp.Range = [0 450];
 Exp.Harmonic = 0;
 
-
 % Orientation of the crystal frame in the lab frame.
 % Change this value to turn the crystal in the spectrometer.
 Exp.CrystalOrientation = pi/180*[0 0 0];
@@ -19,12 +18,12 @@ Opt.Verbosity = 0;
 %-----------------------------------------------------------------------
 D = 0.06; % cm^-1
 Sys = struct('S',1,'g',2,'lw',5);
-Sys.Pop = [0 1 0];
+Sys.initState = {[0 1 0],'zerofield'};
 
 Sys1 = Sys;
-Sys1.D = clight/1e4*[D 0];
+Sys1.D = clight/1e4*[D -1e-6*D];
 Sys2 = Sys;
-Sys2.D = clight/1e4*[D 0.1*D];
+Sys2.D = clight/1e4*[D -0.1*D];
 
 % Simulations & Graphical rendering
 %-------------------------------------------------------------

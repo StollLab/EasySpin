@@ -22,8 +22,8 @@ D = [0 0 0 -1 -5 -10]; % MHz
 Sys.lwpp = 0.04; % mT
 
 % Set up the initial density matrix (in the uncoupled basis of EasySpin)
-S = 1/sqrt(2)*[0 1 -1 0];
-Sys.initState = S'*S;
+S = 1/sqrt(2)*[0; 1; -1; 0];
+Sys.initState = S*S';
 
 Exp.Range = [346.5 349.5]; % mT
 Exp.mwFreq = 9.75; % GHz
