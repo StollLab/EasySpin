@@ -456,15 +456,9 @@ if ~isempty(Exp.Ordering)
 end
 
 % Temperature and non-equilibrium populations
-nonEquiPops = isfield(Sys,'Pop') && ~isempty(Sys.Pop);
-initState = isfield(Sys,'initState') && ~isempty(Sys.initState);
+nonEquiPops = isfield(Sys,'initState') && ~isempty(Sys.initState);
 if nonEquiPops
-  msg = '  user-specified non-equilibrium populations';
-  if max(Sys.Pop)==min(Sys.Pop)
-    error('Populations in Sys.Pop cannot be all equal!');
-  end
-elseif initState
-  msg = '  user-specified initial density matrix';  
+  msg = '  user-specified non-equilibrium state';
 else
   if isfinite(Exp.Temperature)
     msg = sprintf('  temperature %g K',Exp.Temperature);
@@ -575,7 +569,7 @@ usePerturbationTheory = any(Method==[3 4 5 12 13 14]);
 if Opt.ImmediateBinning && ~usePerturbationTheory
   error('Opt.ImmediateBinning works only with perturbation theory.');
 end
-if usePerturbationTheory && (nonEquiPops || initState)
+if usePerturbationTheory && nonEquiPops
   error('Perturbation theory not available for systems with non-equilibrium populations.');
 end
 
@@ -1042,7 +1036,7 @@ elseif ~BruteForceSum
       end
       
       msg1 = '';
-      if ~(nonEquiPops || initState) && any(fInt(:)<0), msg1 = 'intensities'; end
+      if ~nonEquiPops && any(fInt(:)<0), msg1 = 'intensities'; end
       if any(fWid(:)<0), msg1 = 'widths'; end
       if ~isempty(msg1)
         error('Negative %s encountered! Please report!',msg1);

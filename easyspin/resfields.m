@@ -142,60 +142,8 @@ if any(Exp.Range<0)
   error('Negative magnetic fields in Exp.Range are not possible.');
 end
 
-
 % Determine excitation mode
 p_excitationgeometry;
-
-% Temperature, non-equilibrium populations
-NonEquiPops = (isfield(Sys,'Pop') && ~isempty(Sys.Pop));
-initState = (isfield(Sys,'initState') && ~isempty(Sys.initState));
-if NonEquiPops && initState
-  error('Simultaneous input of initial density matrix (initState) and list of population not allowed.')  
-end
-computeNonEquiPops = NonEquiPops || initState;
-if computeNonEquiPops
-  nElectronStates = prod(2*Sys.S+1);
-  nStates = hsdim(Sys);
-  if NonEquiPops
-    if numel(Sys.Pop)~=nElectronStates && numel(Sys.Pop)~=nStates
-      error('Sys.Pop must have %d or %d elements.',nElectronStates,nStates);
-    end
-    if ~isfield(Sys,'PopMode')
-      PopMode = 'zerofield';
-    else
-      PopMode = Sys.PopMode;
-    end
-    if ~strcmp(PopMode,'zerofield') && ~strcmp(PopMode,'highfield')
-      error('Sys.PopMode must be either ''zerofield'' or ''highfield''.');
-    end
-  elseif initState
-    PopMode = 'densitymatrix';
-    if ischar(Sys.initState)
-      if strcmp(Sys.initState,'singlet') && Sys.nElectrons==2
-        % Singlet-born spin-correlated radical pair
-        S = 1/sqrt(2)*[0 1 -1 0];
-        Sys.initState = S'*S;
-      else
-        error('String input for initial state not yet supported for selected spin system and initial state.')
-      end
-    end
-    [a, b] = size(Sys.initState);
-    if ~(nElectronStates==a && nElectronStates==b) && ~(nStates==a || nStates==b)
-      error('Initial state has to be a density matrix.')
-    end
-  end
-  computeBoltzmannPopulations = false;
-elseif isempty(Exp.Temperature)
-  computeBoltzmannPopulations = false;
-else
-  if numel(Exp.Temperature)~=1
-    error('If given, Exp.Temperature must be a single number.');
-  end
-  if isinf(Exp.Temperature)
-    error('If given, Exp.Temperature must be a finite value.');
-  end
-  computeBoltzmannPopulations = ~isnan(Exp.Temperature);
-end
 
 if ~isfield(Opt,'Sites'), Opt.Sites = []; end
 
@@ -448,11 +396,61 @@ end
 nFull = hsdim(Sys);
 nSHFNucStates = nFull/nCore;
 
+% Temperature, non-equilibrium populations
+computeNonEquiPops = (isfield(Sys,'initState') && ~isempty(Sys.initState));
+if computeNonEquiPops
+
+  initState = Sys.initState{1};
+  initStateBasis = Sys.initState{2};
+
+  % Check and adapt input dimensions
+  nElectronStates = prod(2*Sys.S+1);
+
+  [sz1,sz2] = size(initState);
+  if sz1==sz2
+    % Density matrix
+    if nElectronStates~=sz1 && nCore~=sz1
+      error('The density matrix in Sys.initState must have dimensions of nxn with n = %d or %d.',nElectronStates,nCore)
+    end
+    if numel(initState)==nElectronStates^2 && numel(initState)~=nCore^2
+      initState = kron(initState,eye(nCore/nElectronStates));
+    end
+    initState = initState/trace(initState);
+  else
+    % Vector of populations
+    if numel(initState)~=nElectronStates && numel(initState)~=nCore
+      error('The population vector in Sys.initState must have %d or %d elements.',nElectronStates,nCore);
+    end
+    initState = initState(:);
+    if numel(initState)==nElectronStates && numel(initState)~=nCore
+      initState = kron(initState,ones(nCore/nElectronStates,1));
+    end
+    initState = initState/sum(initState);
+    % Convert population vector to density matrix for populations provided in eigenbasis
+    if strcmp(initStateBasis,'eigen')
+      initState = diag(initState); 
+    end
+
+  end
+
+  computeBoltzmannPopulations = false;
+elseif isempty(Exp.Temperature)
+  computeBoltzmannPopulations = false;
+else
+  if numel(Exp.Temperature)~=1
+    error('If given, Exp.Temperature must be a single number.');
+  end
+  if isinf(Exp.Temperature)
+    error('If given, Exp.Temperature must be a finite value.');
+  end
+  computeBoltzmannPopulations = ~isnan(Exp.Temperature);
+end
+
 % Add slight numerical noise to non-zero elements in the Hamiltonian to break
 % possible degeneracies. Apply if there are more than one electrons or nuclei.
 % This is a very crude workaround to prevent numerical issues due to degeneracies.
 % It probably adds noise in a lot of situations where it is not necessary.
-if Opt.FuzzLevel>0 && ~higherOrder && (CoreSys.nNuclei>1 || CoreSys.nElectrons>1)
+if Opt.FuzzLevel>0 && ~higherOrder && (CoreSys.nNuclei>1 || CoreSys.nElectrons>1) && ~computeNonEquiPops
   noise = 2*rand(size(kF))-1;
   noise = 1+Opt.FuzzLevel*(noise+noise.')/2; % make sure it's Hermitian
   kF = kF.*noise;
@@ -471,31 +469,7 @@ else
 end
 
 % Spin-polarized systems: precompute zero-field energies, states, populations
-if computeNonEquiPops
-  
-  switch PopMode
-    case {'zerofield','highfield'}
-      
-      % Vector of zero/high-field populations for the core system
-      PopInput = Sys.Pop(:);
-      if numel(PopInput)==nElectronStates && numel(PopInput)~=nCore
-        PopInput = kron(PopInput,ones(nCore/nElectronStates,1));
-      end
-      PopInput = PopInput/sum(PopInput);
-      
-    case 'densitymatrix'
-      
-      % Initial density matrix for the core system in the uncoupled basis
-      if numel(Sys.initState) == nElectronStates^2
-        Sigma0 = kron(Sys.initState,eye(nCore/nElectronStates));
-      elseif numel(Sys.initState) == nStates^2
-        Sigma0 = Sys.initState;
-      else
-        error('Initial density matrix provided in Sys.initState has wrong size for given spin system.')
-      end
-      Sigma0 = Sigma0/trace(Sigma0);
-      
-  end
+if computeNonEquiPops && strcmp(initStateBasis,'zerofield')
     
   % Pre-compute zero-field energies and eigenstates
   if higherOrder
@@ -524,6 +498,14 @@ if computeNonEquiPops
       ZFStates(:,2) = (v1-v2)/sqrt(2);
       ZFStates(:,1) = (v1+v2)/sqrt(2);
     end
+  end
+  
+  if isvector(initState)
+    % Convert population vector to density matrix
+    initState = ZFStates*diag(initState)*ZFStates';
+  else
+    % Convert density matrix in zero-field basis to uncoupled basis
+    initState = ZFStates*initState*ZFStates';
   end
   
 else
@@ -1254,16 +1236,13 @@ for iOri = 1:nOrientations
               Polarization = Polarization/prod(2*Sys.I+1);            
             end
           elseif computeNonEquiPops
-            switch PopMode
-              case 'zerofield'
-                PopulationU = (abs(ZFStates'*U).^2).'*PopInput; % lower level
-                PopulationV = (abs(ZFStates'*V).^2).'*PopInput; % upper level
-              case 'highfield'
-                PopulationU = PopInput(uv(1)); % lower level
-                PopulationV = PopInput(uv(2)); % upper level
-              case 'densitymatrix'
-                PopulationU = U'*Sigma0*U; % lower level
-                PopulationV = V'*Sigma0*V; % upper level
+            switch initStateBasis
+              case 'eigen'
+                PopulationU = initState(uv(1),uv(1)); % lower level
+                PopulationV = initState(uv(2),uv(2)); % upper level
+              otherwise
+                PopulationU = U'*initState*U; % lower level
+                PopulationV = V'*initState*V; % upper level
             end
             Polarization = PopulationU - PopulationV;
             if nPerturbNuclei>0

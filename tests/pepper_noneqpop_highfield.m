@@ -9,8 +9,7 @@ Sys = struct('S',1,'g',2,'lw',0.3,'D',[300 30]);
 Exp = struct('mwFreq',9.5,'Range',[325 355],'Harmonic',0);
 
 % User-specified high-field population vector
-Sys.PopMode = 'highfield';
-Sys.Pop = [0 1 0];
+Sys.initState = {[0 1 0],'eigen'};
 
 % Simulation options
 Opt = struct;
@@ -34,14 +33,14 @@ if opt.Display
   else
     subplot(4,2,[1 3 5]);
     plot(x,spc,'k',x,olddata.spc,'r');
-    legend('old','new');
+    legend('new','old');
     subplot(4,2,7);
     plot(x,spc-olddata.spc);
     xlabel('magnetic field (mT)');
     ylabel('intensity (a.u.)');
     subplot(4,2,[2 4 6]);
     plot(f,spcf,'k',f,olddata.spcf,'r');
-    legend('old','new');
+    legend('new','old');
     subplot(4,2,8);
     plot(f,spcf-olddata.spcf);
     xlabel('microwave frequency (GHz)');

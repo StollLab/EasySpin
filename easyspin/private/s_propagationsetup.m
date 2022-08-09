@@ -81,13 +81,14 @@ logmsg(1,'  setting up the initial state');
 if isfield(Sys,'initState') && ~isempty(Sys.initState)
   % if some initial state was provided, this checks if the dimensions are
   % correct
-  [a, b] = size(Sys.initState);
-  if ischar(Sys.initState)
-    error('String input for initial state not yet supported.')
-  elseif Sys.nStates ~= a || Sys.nStates ~= b
+  if ~strcmp(Sys.initState{2},'uncoupled')
+    error('spidyan only accepts a density matrix in the uncoupled basis in Sys.initState.')
+  end
+  [a, b] = size(Sys.initState{1});
+  if Sys.nStates ~= a || Sys.nStates ~= b
     error('Initial state has to be a density matrix.')
   end
-  Sigma0 = Sys.initState;
+  Sigma0 = Sys.initState{1};
 else
   % builds initial state, all electrons are -Sz, nuclei are not defined
   Sigma0 = -totSpinOps{3};

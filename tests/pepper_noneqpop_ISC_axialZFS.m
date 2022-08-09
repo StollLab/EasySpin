@@ -1,15 +1,16 @@
 function [ok,data] = test(opt,olddata)
 
-% Regression test: Non-equilibrium populations
-%                  (zero-field)
+% Regression test: ISC triplet state with axial
+%                  ZFS
 %===============================================
 
 % Spin system and experimental parameters
-Sys = struct('S',1,'g',2,'lw',0.3,'D',300);
-Exp = struct('mwFreq',9.5,'Range',[325 355],'Harmonic',0);
+Sys = struct('S',1,'g',2,'lw',0.3,'D',500);
+Exp = struct('mwFreq',9.5,'Range',[310 370],'Harmonic',0);
 
 % User-specified population vector
-Sys.initState = {[0.85 1 0.95],'zerofield'};
+Sys.initState = {[0.3 0.6 0.1],'zerofield'};
+% Sys.Pop = [0.3 0.6 0.1];
 
 % Simulation options
 Opt = struct;
@@ -18,7 +19,7 @@ Opt = struct;
 
 % Frequency sweep
 Sys.lw = mt2mhz(Sys.lw);
-Expf = struct('Field',340);
+Expf = struct('Field',340,'mwRange',[8.5 10.5]);
 
 [f,spcf] = pepper(Sys,Expf,Opt);
 
@@ -33,14 +34,14 @@ if opt.Display
   else
     subplot(4,2,[1 3 5]);
     plot(x,spc,'k',x,olddata.spc,'r');
-    legend('new','old');
+    legend('old','new');
     subplot(4,2,7);
     plot(x,spc-olddata.spc);
     xlabel('magnetic field (mT)');
     ylabel('intensity (a.u.)');
     subplot(4,2,[2 4 6]);
     plot(f,spcf,'k',f,olddata.spcf,'r');
-    legend('new','old');
+    legend('old','new');
     subplot(4,2,8);
     plot(f,spcf-olddata.spcf);
     xlabel('microwave frequency (GHz)');

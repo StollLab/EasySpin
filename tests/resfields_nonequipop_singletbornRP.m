@@ -7,8 +7,8 @@ Sys.S = [1/2 1/2];
 Sys.g = [2.00 1.99];
 Sys.J = -5; % MHz
 
-S = 1/sqrt(2)*[0 1 -1 0];
-Sys.initState = S'*S;
+S = 1/sqrt(2)*[0; 1; -1; 0];
+Sys.initState = S*S';
 
 % Field sweep
 Exp = struct('mwFreq',9.75,'Range',[345 353]);

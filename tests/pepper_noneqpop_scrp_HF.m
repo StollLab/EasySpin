@@ -11,8 +11,8 @@ Sys.ee = [1 1 -2]*5; % electron-electron coupling in MHz
 Exp = struct('mwFreq',9.5,'Range',[337 343],'Harmonic',0);
 
 % User-specified population vector
-S = 1/sqrt(2)*[0 1 -1 0];
-Sys.initState = S'*S;
+S = 1/sqrt(2)*[0; 1; -1; 0];
+Sys.initState = S*S';
 
 % Simulation options
 Opt = struct;
@@ -32,13 +32,13 @@ if opt.Display
   else
     subplot(4,2,[1 3 5]);
     h1 = plot(x,spc,'k',x,olddata.spc,'r');
-    legend('old','new');
+    legend('new','old');
     %set(h1(1),'LineWidth',2);
     subplot(4,2,7);
     plot(x,spc-olddata.spc);
     subplot(4,2,[2 4 6]);
     h2 = plot(x,spcHF,'k',x,olddata.spcHF,'r');
-    legend('old','new');
+    legend('new','old');
     %set(h2(1),'LineWidth',2);
     subplot(4,2,8);
     plot(x,spcHF-olddata.spcHF);

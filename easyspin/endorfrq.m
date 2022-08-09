@@ -91,13 +91,9 @@ Exp = adddefaults(Exp,DefaultExp);
 
 mwFreq = Exp.mwFreq*1e3; % GHz -> MHz
 
-computeNonEquiPops = isfield(Sys,'Pop') && ~isempty(Sys.Pop);
+computeNonEquiPops = isfield(Sys,'initState') && ~isempty(Sys.initState);
 if computeNonEquiPops
   computeBoltzmann = false;
-  nElectronStates = prod(2*Sys.S+1);
-  if nPop~=nElectronStates
-    error('Params.Temperature must either be a scalar or a %d-vector',nElectronStates);
-  end
 else
   if isinf(Exp.Temperature)
     error('If given, Params.Temperature must be a finite value.');
@@ -182,32 +178,74 @@ end
 
 % For polarized systems, pre-compute ZF eigenstates.
 if computeNonEquiPops
-  
-  ZFPopulations = Sys.Pop(:);
-  ZFPopulations = ZFPopulations/sum(ZFPopulations);
-  ZFPopulations = kron(ZFPopulations,ones(prod(Sys.I*2+1),1));
-  
-  [ZFStates,ZFEnergies] = eig(F);
-  [ZFEnergies,idx] = sort(real(diag(ZFEnergies)));
-  ZFStates = ZFStates(:,idx);
-  % Correct zero-field states for S=1 and axial D
-  if Sys.S==1
-    if ZFEnergies(2)==ZFEnergies(3)
-      logmsg(1,'  >>>> manual zero-field states (D>0)');
-      v1 = ZFStates(:,2);
-      v2 = ZFStates(:,3);
-      ZFStates(:,2) = (v1-v2)/sqrt(2);
-      ZFStates(:,3) = (v1+v2)/sqrt(2);
-    elseif (ZFEnergies(2)==ZFEnergies(1))
-      logmsg(1,'  >>>> manual zero-field states (D<0)');
-      v1 = ZFStates(:,1);
-      v2 = ZFStates(:,2);
-      ZFStates(:,2) = (v1-v2)/sqrt(2);
-      ZFStates(:,1) = (v1+v2)/sqrt(2);
+
+  initState = Sys.initState{1};
+  initStateBasis = Sys.initState{2};
+
+  % Check and adapt input dimensions
+  nElectronStates = prod(2*Sys.S+1);
+  nNucStates = prod(Sys.I*2+1);
+  nStates = nElectronStates*nNucStates;
+
+  [sz1,sz2] = size(initState);
+  if sz1==sz2
+    % Density matrix
+    if nElectronStates~=sz1 && nStates~=sz1
+      error('The density matrix in Sys.initState must have dimensions of nxn with n = %d or %d.',nElectronStates,nStates)
+    end
+    if numel(initState)==nElectronStates^2 && numel(initState)~=nStates^2
+      initState = kron(initState,eye(nStates/nElectronStates));
+    end
+    initState = initState/trace(initState);
+  else
+    % Vector of populations
+    if numel(initState)~=nElectronStates && numel(initState)~=nStates
+      error('The population vector in Sys.initState must have %d or %d elements.',nElectronStates,nStates);
+    end
+    initState = initState(:);
+    if numel(initState)==nElectronStates && numel(initState)~=nStates
+      initState = kron(initState,ones(nStates/nElectronStates,1));
+    end
+    initState = initState/sum(initState);
+    % Convert population vector to density matrix for populations provided in eigenbasis
+    if strcmp(initStateBasis,'eigen')
+      initState = diag(initState);
     end
   end
+
+  if strcmp(initStateBasis,'zerofield')
+    % Pre-compute zero-field energies and eigenstates
+    [ZFStates,ZFEnergies] = eig(F);
+    [ZFEnergies,idx] = sort(real(diag(ZFEnergies)));
+    ZFStates = ZFStates(:,idx);
+    % Correct zero-field states for S=1 and axial D
+    if CoreSys.S==1
+      if ZFEnergies(2)==ZFEnergies(3)
+        logmsg(1,'  >>>> manual zero-field states (D>0)');
+        v1 = ZFStates(:,2);
+        v2 = ZFStates(:,3);
+        ZFStates(:,2) = (v1-v2)/sqrt(2);
+        ZFStates(:,3) = (v1+v2)/sqrt(2);
+      elseif ZFEnergies(2)==ZFEnergies(1)
+        logmsg(1,'  >>>> manual zero-field states (D<0)');
+        v1 = ZFStates(:,1);
+        v2 = ZFStates(:,2);
+        ZFStates(:,2) = (v1-v2)/sqrt(2);
+        ZFStates(:,1) = (v1+v2)/sqrt(2);
+      end
+    end
+
+    if isvector(initState)
+      % Convert population vector to density matrix
+      initState = ZFStates*diag(initState)*ZFStates';
+    else
+      % Convert density matrix in zero-field basis to uncoupled basis
+      initState = ZFStates*initState*ZFStates';
+    end
+  end
+
 else
-  %ZFEnergies = sort(real(eig(F)));
+%   ZFEnergies = sort(real(eig(F)));
 end
 
 % Intensities are computed if option settings are positive and
@@ -506,8 +544,19 @@ for iOri = 1:nOrientations
         Populations = exp(BoltzmannPreFactor*(E0-E0(1)));
         %Polarization = (Populations(u) - Populations(v))/sum(Populations);
       elseif computeNonEquiPops
-        Populations = (abs(ZFStates'*Vs).^2).'*ZFPopulations; % lower level
-        %Polarization = PopulationU - PopulationV;
+%         Populations = (abs(ZFStates'*Vs).^2).'*ZFPopulations; % lower level
+%         %Polarization = PopulationU - PopulationV;
+        Populations = zeros(size(dE));
+        switch initStateBasis
+          case 'eigen'
+            for iState = 1:nStates
+              Populations(iState) = initState(iState,iState);
+            end
+          otherwise
+            for iState = 1:nStates
+              Populations(iState) = Vs(:,iState)'*initState*Vs(:,iState);
+            end
+        end
       end
       if isempty(Populations)
         Polarizations = ones(size(dE));

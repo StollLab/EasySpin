@@ -7,7 +7,7 @@ function ok = test(opt)
 Triplet.S = 1;
 Triplet.D = [900 160];  % MHz
 Triplet.lwpp = 1;  % mT
-Triplet.Pop = [1 0 1];
+Triplet.initState = {[1 0 1],'zerofield'};
 Triplet.tdm = 'y';  % transition dipole moment along yMol
 
 Exp.mwFreq = 9.5;  % GHz

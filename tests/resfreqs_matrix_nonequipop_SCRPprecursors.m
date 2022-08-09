@@ -72,25 +72,25 @@ Exp.Field = B0;
 
 % State vectors
 V = cgmatrix(Sys.S(1), Sys.S(2));
-Tp = V(1,:);
-T0 = V(2,:);
-Tm = V(3,:);
-S = V(4,:);
+Tp = V(1,:)';
+T0 = V(2,:)';
+Tm = V(3,:)';
+S = V(4,:)';
 
 % Singlet precursor
-Sys.initState = S'*S;
+Sys.initState = S*S';
 [f,InumS] = resfreqs_matrix(Sys,Exp);
 
 % Thermalised triplet
-Sys.initState = 1/3*(Tp'*Tp + T0'*T0 + Tm'*Tm);
+Sys.initState = 1/3*(Tp*Tp' + T0*T0' + Tm*Tm');
 [~,InumTterm] = resfreqs_matrix(Sys,Exp);
 
 % ISC triplet precursor
-Sys.initState = (1/3-1/15)*(Tp'*Tp) + (1/3)*(T0'*T0) + (1/3+1/15)*(Tm'*Tm);
+Sys.initState = (1/3-1/15)*(Tp*Tp') + (1/3)*(T0*T0') + (1/3+1/15)*(Tm*Tm');
 [~,InumTisc] = resfreqs_matrix(Sys,Exp);
 
 % T0 triplet precursor
-Sys.initState = T0'*T0;
+Sys.initState = T0*T0';
 [~,InumT0] = resfreqs_matrix(Sys,Exp);
 
 [f,idx] = sort(f);
