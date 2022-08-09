@@ -5,7 +5,7 @@ function [ok,data] = test(opt,olddata)
 %===============================================
 
 % Spin system and experimental parameters
-Sys = struct('S',1,'g',2,'lw',0.3,'D',300);
+Sys = struct('S',1,'g',2,'lw',0.3,'D',[300 10]);
 Exp = struct('mwFreq',9.5,'Range',[325 355],'Harmonic',0);
 
 % User-specified population vector

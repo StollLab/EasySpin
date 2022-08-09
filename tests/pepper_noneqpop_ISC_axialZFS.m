@@ -1,16 +1,38 @@
 function [ok,data] = test(opt,olddata)
 
-% Regression test: ISC triplet state with axial
-%                  ZFS
-%===============================================
+% Regression test: ISC triplet state with axial ZFS
+%===================================================
 
 % Spin system and experimental parameters
 Sys = struct('S',1,'g',2,'lw',0.3,'D',500);
 Exp = struct('mwFreq',9.5,'Range',[310 370],'Harmonic',0);
 
 % User-specified population vector
-Sys.initState = {[0.3 0.6 0.1],'zerofield'};
-% Sys.Pop = [0.3 0.6 0.1];
+pop = [0.3 0.6 0.1]; % populations of zero-field levels
+
+% Get zero-field states and order in terms of energy
+[F,~,~,~] = sham(Sys);
+[ZFStates,ZFEnergies] = eig(F);
+[ZFEnergies,idx] = sort(real(diag(ZFEnergies)));
+ZFStates = ZFStates(:,idx);
+
+% Correct zero-field states for S=1 and axial D
+if ZFEnergies(2)==ZFEnergies(3)
+  % Manual zero-field states (D>0)
+  v1 = ZFStates(:,2);
+  v2 = ZFStates(:,3);
+  ZFStates(:,2) = (v1-v2)/sqrt(2);
+  ZFStates(:,3) = (v1+v2)/sqrt(2);
+elseif ZFEnergies(2)==ZFEnergies(1)
+  % Manual zero-field states (D<0)
+  v1 = ZFStates(:,1);
+  v2 = ZFStates(:,2);
+  ZFStates(:,2) = (v1-v2)/sqrt(2);
+  ZFStates(:,1) = (v1+v2)/sqrt(2);
+end
+
+% Convert population vector to density matrix
+Sys.initState = ZFStates*diag(pop)*ZFStates';
 
 % Simulation options
 Opt = struct;

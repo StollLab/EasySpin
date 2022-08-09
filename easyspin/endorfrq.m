@@ -218,21 +218,11 @@ if computeNonEquiPops
     [ZFStates,ZFEnergies] = eig(F);
     [ZFEnergies,idx] = sort(real(diag(ZFEnergies)));
     ZFStates = ZFStates(:,idx);
-    % Correct zero-field states for S=1 and axial D
-    if CoreSys.S==1
-      if ZFEnergies(2)==ZFEnergies(3)
-        logmsg(1,'  >>>> manual zero-field states (D>0)');
-        v1 = ZFStates(:,2);
-        v2 = ZFStates(:,3);
-        ZFStates(:,2) = (v1-v2)/sqrt(2);
-        ZFStates(:,3) = (v1+v2)/sqrt(2);
-      elseif ZFEnergies(2)==ZFEnergies(1)
-        logmsg(1,'  >>>> manual zero-field states (D<0)');
-        v1 = ZFStates(:,1);
-        v2 = ZFStates(:,2);
-        ZFStates(:,2) = (v1-v2)/sqrt(2);
-        ZFStates(:,1) = (v1+v2)/sqrt(2);
-      end
+    % Check for degeneracies and issue error
+    if numel(unique(ZFEnergies))~=numel(ZFEnergies)
+      error(['Degenerate energy levels detected at zero-field. This prevents unambiguous assignment of ' ...
+             'the provided sublevel populations to the zero-field states. Please provide the non-equilibrium' ...
+             'state using the full density matrix. See documentation for details.'])
     end
 
     if isvector(initState)
