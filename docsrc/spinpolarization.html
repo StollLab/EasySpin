@@ -66,15 +66,17 @@ The first input to <code>Sys.initState</code> should contain a list of populatio
 <p>
 The energy order of the zero-field triplet states depends on the signs of the zero-field splitting parameters D and E. 
 <div class="eqn">
-<img src="eqn/ZFenergies.png" alt="[eqn]"><!--MATH
+<img src="eqn/spinpolarization1.png" alt="[eqn]"><!--MATH
 \begin{equation*}
-  E_X = \frac{1}{3}D - E
-  E_Y = \frac{1}{3}D + E
-  E_Z = -\frac{2}{3}*D
+ \begin{split}
+  E_X &= \frac{1}{3}D - E \\
+  E_Y &= \frac{1}{3}D + E \\
+  E_Z &= -\frac{2}{3}D \\
+ \end{split}
 \end{equation*}
 -->
 </div>
-By convention, <code>D</code> and <code>E</code> are defined such that <code>-1 &le; 3 E/D &le; 1</code>, so <code>|D| > 3|E|</code> and <code>|Dz| > |Dx| > |Dy|</code>, as described by Poole, C. P. J., Farach, H. A. and Jackson, W. K. in Standardization of convention for zero field splitting parameters, <i>J. Chem. Phys.</i> 61, 2220–2221 (<b>1974</b>), DOI: <a href="http://dx.doi.org/10.1063/1.1682294">10.1063/1.1682294</a>
+By convention, <code>D</code> and <code>E</code> are defined such that <code>-1 &le; 3 E/D &le; 1</code>, so <code>|D| > 3|E|</code> and <code>|Dz| > |Dx| > |Dy|</code>, as described by Poole, C. P. J., Farach, H. A. and Jackson, W. K. in Standardization of convention for zero field splitting parameters, <i>J. Chem. Phys.</i> 61, 2220–2221 (<b>1974</b>), DOI: <a href="http://dx.doi.org/10.1063/1.1682294">10.1063/1.1682294</a>.
 
 <p>
 Be careful in determining the order of the zero-field triplet states correctly when using <code>Sys.initState</code> with the <code>zerofield</code> basis to simulate spectra from the literature, or when interpreting results from least-squares fitting.
