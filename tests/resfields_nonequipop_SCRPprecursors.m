@@ -2,8 +2,8 @@ function ok = test(opt)
 
 % Test spin polarization of spin-correlated radical pair spectra for different precursors
 %
-% see Mi, Q., Ratner, M. A., Wasielewski, M. R. 
-% Time-Resolved EPR Spectra of Spin-Correlated Radical Pairs: Spectral and Kinetic Modulation Resulting from Electron - Nuclear Hyperfine Interactions. 
+% see Mi, Q., Ratner, M. A., Wasielewski, M. R.
+% Time-Resolved EPR Spectra of Spin-Correlated Radical Pairs: Spectral and Kinetic Modulation Resulting from Electron - Nuclear Hyperfine Interactions.
 % J. Phys. Chem. A 114, 162–171 (2010).
 % DOI: 10.1021/jp907476q
 %
@@ -29,9 +29,9 @@ theta = atan(Q/(J+d/2));
 
 % Energy levels
 E = [(-v -J + d/2);...
-     (-Omega - d/2);...
-     (Omega - d/2);...
-     (v - J + d/2)];
+  (-Omega - d/2);...
+  (Omega - d/2);...
+  (v - J + d/2)];
 
 transind = [3 1; 4 2; 2 1; 4 3]; % indices of levels connected by transitions
 
@@ -83,22 +83,36 @@ S = V(4,:)';
 Sys.initState = S*S';
 [B,InumS] = resfields(Sys,Exp);
 
+Sys.initState = {[0 0 0 1],'coupled'};
+[~,InumS_] = resfields(Sys,Exp);
+
 % Thermalised triplet
 Sys.initState = 1/3*(Tp*Tp' + T0*T0' + Tm*Tm');
 [~,InumTterm] = resfields(Sys,Exp);
+
+Sys.initState = {[1/3 1/3 1/3 0],'coupled'};
+[~,InumTterm_] = resfields(Sys,Exp);
 
 % ISC triplet precursor
 Sys.initState = (1/3-1/15)*(Tp*Tp') + (1/3)*(T0*T0') + (1/3+1/15)*(Tm*Tm');
 [~,InumTisc] = resfields(Sys,Exp);
 
+Sys.initState = {[(1/3-1/15) 1/3 (1/3+1/15) 0],'coupled'};
+[~,InumTisc_] = resfields(Sys,Exp);
+
 % T0 triplet precursor
 Sys.initState = T0*T0';
 [~,InumT0] = resfields(Sys,Exp);
 
+Sys.initState = {[0 1 0 0],'coupled'};
+[~,InumT0_] = resfields(Sys,Exp);
+
 [B,idx] = sort(B);
 Inum = [InumS(idx); InumTterm(idx); InumTisc(idx); InumT0(idx)].';
+Inum_ = [InumS_(idx); InumTterm_(idx); InumTisc_(idx); InumT0_(idx)].';
 normfact = max(Ian)/max(Inum);
 Inum = Inum*normfact;
+Inum_ = Inum_*normfact;
 
 if opt.Display
   for i = 1:4
@@ -116,5 +130,5 @@ if opt.Display
   end
 end
 
-ok = areequal(Ian,Inum,1e-3,'rel');
+ok = areequal(Ian,Inum,1e-3,'rel') && areequal(Inum,Inum_,1e-12,'abs');
 

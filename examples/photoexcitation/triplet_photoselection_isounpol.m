@@ -20,6 +20,7 @@ Sys.g = [2.002 2.002 2.000];
 Sys.D = [563.6 95.9]; % MHz
 Sys.lwpp = 1.3; % mT
 
+% T0-populated triplet state
 Sys.initState = {[0 1 0],'eigen'};
 
 % Experimental parameters

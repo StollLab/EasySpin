@@ -17,7 +17,7 @@ Sys.S = 1;
 Sys.g = [2.0041 2.0038 2.0006];
 Sys.D = [1033 -272];  % MHz
 Sys.lwpp = 2.5;  % mT
-Sys.initState = {[0.90 0.10 0.00],'zerofield'};
+Sys.initState = {[0 0.10 0.90],'xyz'};
 
 % Optical transition dipole moment
 Sys.tdm = [74 -3]*pi/180;

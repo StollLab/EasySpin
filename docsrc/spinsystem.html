@@ -1308,11 +1308,16 @@ For a full documentation of the line broadening fields in the spin system struct
 <p>
 For the simulation of spin-polarised systems, the non-equilibrium populations need to be specified in the field <code>Sys.initState</code>. The non-equilibrium state can be defined by providing the density matrix or a population vector and the corresponding basis. The available basis keywords are 
 <ul>
-<li> <code>'uncoupled'</code>, corresponding to the product Zeeman basis states
-<li> <code>'eigen'</code>, corresponding to the eigenbasis of the full spin Hamiltonian
-<li> <code>'zerofield'</code>, corresponding to the eigenbasis of the spin Hamitlonian at zero field
+<li> <code>'uncoupled'</code>: product Zeeman basis states
+<li> <code>'coupled'</code>: coupled spin representation for a system with two spins
+<li> <code>'eigen'</code>: eigenbasis of the full spin Hamiltonian
+<li> <code>'zerofield'</code>: eigenbasis of the spin Hamiltonian at zero field
 </ul>
-In all cases, the basis states are assumed to be in order of increasing energy.
+The ordering of the basis states for the <code>'uncoupled'</code> basis is in descending order of m<sub>s</sub> (see the <a href="sop.html">documentation for sop</a> for details). For the <code>'coupled'</code> basis, the basis states are ordered in descending order of S<sub>tot</sub> (see the <a href="cgmatrix.html">documentation for cgmatrix</a> for details).
+<br>
+For the <code>'eigen'</code> and <code>'zerofield'</code> bases, the states are assumed to be in order of increasing energy.
+
+<p>
 For triplet states, there is the additional option to provide the populations of the X, Y and Z eigenstates of the zero-field Hamiltonian using the <code>'xyz'</code> basis. The provided populations of the X, Y and Z sublevels are converted into energy-ordered populations based on the standard definition of the zero-field energy levels for a set of given ZFS parameters <code>D</code> and <code>E</code> and their signs.
 <pre class="matlab">
   % Energies of eigenstates of the zero-field splitting Hamiltonian for a triplet state
@@ -1321,27 +1326,37 @@ For triplet states, there is the additional option to provide the populations of
   En(3) = -(2/3)*D;    % Z
 </pre>
 
+<p>
 The options for defining non-equilibrium states through <code>Sys.initState</code> are the following:
 <ul>
 <li>Give the population vector and the corresponding basis.
 
-Energy-ordered populations of the eigenstates of the spin Hamiltonian at zero field:
+<ul>
+<li> Energy-ordered populations of the eigenstates of the spin Hamiltonian at zero field:
 <pre class="matlab">
 Sys.initState = {[p1 p2 p3],'zerofield'};
 </pre>
 E.g., if <code>Sys.initState = {[0.85 0.95 1.2],'zerofield'}</code> for a triplet system (S=1), the population of the lowest-energy zero-field state has a population of 0.85, the middle one has 0.95, and the highest-energy zero-field state has a population of 1.2. If there are coupled nuclei, the populations of all nuclear sublevels within each electron spin manifold are assumed to be equal.
-
-Populations of the eigenstates of the full spin Hamiltonian in order of increasing energy
-<pre class="matlab">
-Sys.initState = {[p1 p2 p3],'eigen'};
-</pre>
-E.g. <code>Sys.initState = {[0 1 0],'eigen'}</code> for a triplet system (S=1) corresponds to a triplet state populated only in the high-field T0 level, for example from recombination from a radical pair state.
-
-Populations of the X, Y and Z eigenstates of the ZFS interaction Hamiltonian (for <code>Sys.S = 1</code> only)
+</p>
+<li> Populations of the X, Y and Z eigenstates of the ZFS interaction Hamiltonian (for <code>Sys.S = 1</code> only)
 <pre class="matlab">
 Sys.initState = {[px py pz],'xyz'};
 </pre>
 </p>
+<li> Populations of the eigenstates of the full spin Hamiltonian in order of increasing energy
+<pre class="matlab">
+Sys.initState = {[p1 p2 p3],'eigen'};
+</pre>
+E.g. <code>Sys.initState = {[0 1 0],'eigen'}</code> for a triplet system (S=1) corresponds to a triplet state populated only in the high-field T0 level, for example from recombination from a radical pair state.
+</p>
+<li> Populations of the coupled basis states for systems of two spins
+<pre class="matlab">
+Sys.initState = {[p1 p2 p3 p4],'coupled'};
+</pre>
+E.g. <code>Sys.initState = {[1/3 1/3 1/3 0],'coupled'}</code> for two coupled spins S = 1/2 corresponds to a spin-correlated radical pair originating from a thermalized triplet precursor (equal population of the triplet levels).
+</p>
+</p>
+</ul>
 
 <li>Give the density matrix and the corresponding basis (if no basis is given, the uncoupled basis, i.e. ordering of operators in terms of product Zeeman basis states as explained in <a class="esf" href="sop.html">sop</a>, is assumed).
 <pre class="matlab">
@@ -1349,18 +1364,31 @@ Sys.initState = sigma;
 </pre>
 E.g. for a a spin-correlated radical pair with singlet-precursor the initial density matrix can be defined based on the state vector for the singlet state as
 <pre class="matlab">
-S = 1/sqrt(2)*[0; 1; -1; 0];
+S = 1/sqrt(2)*[0; 1; -1; 0]; % alternatively, S = cgmatrix(1/2,1/2,0).';
 Sigma = S*S';
 Sys.initState = Sigma; 
 % equivalent to
 Sys.initState = {Sigma,'uncoupled'};
 </pre> 
+The same result is obtained by defining the density matrix in the coupled basis as follows
+<pre class="matlab">
+S = [0; 0; 0; 1];
+Sigma = S*S';
+Sys.initState = {Sigma,'coupled'};
+</pre> 
 </p>
 
-<li>Give a string specifying the initial state, currently possible for a singlet-born spin-correlated radical pair <code>Sys.S = [1/2 1/2]</code>.
+<li>Give a string specifying the initial state. The currently available options are:
+
+<ul>
+<li> Spin polarisation arising from population of the singlet state for two coupled identical spins (e.g. spin-correlated radical pair with singlet precursor)
 <pre class="matlab">
-% Spin-correlated radical pair with singlet-precursor
 Sys.initState = 'singlet';
+</pre> 
+</p>
+<li> Spin polarisation arising from population of the T<sub>0</sub> sublevel in a triplet state (e.g. for a triplet formed by recombination from a spin-correlated radical pair state)
+<pre class="matlab">
+Sys.initState = 'T0';
 </pre> 
 </ul>
 </p>

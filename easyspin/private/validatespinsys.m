@@ -931,15 +931,38 @@ if ~isempty(Sys.initState)
 
     % Check validity of basis keyword
     if ~ischar(initStateBasis) || ...
-        (~strcmp(initStateBasis,'uncoupled') && ~strcmp(initStateBasis,'eigen') && ...
+        (~strcmp(initStateBasis,'uncoupled') && ~strcmp(initStateBasis,'coupled') && ...
+         ~strcmp(initStateBasis,'eigen') && ...
          ~strcmp(initStateBasis,'zerofield') && ~strcmp(initStateBasis,'xyz') )
-      err = 'The basis specified in Sys.initState must be either ''zerofield'',  ''xyz'', ''eigen'' or ''uncoupled''.';
+      err = 'The basis specified in Sys.initState must be either ''zerofield'',  ''xyz'', ''eigen'', ''coupled'' or ''uncoupled''.';
     end
 
     % Check if input is density matrix or population vector
     [sz1,sz2] = size(initState);
     if sz1~=sz2 && ~isvector(initState)
       err = 'A density matrix or a population vector must be specified within Sys.initState.';
+    end
+
+    % Conversion from coupled to uncoupled basis
+    if strcmp(initStateBasis,'coupled')
+      if Sys.nElectrons~=2 
+        err = 'Sys.initState in the coupled basis is only available for systems with two electron spins.';
+      else
+        C2U = cgmatrix(Sys.S(1),Sys.S(2))';
+        nElectronStates = size(C2U,1);
+        if max([sz1 sz2])~=nElectronStates
+          nStates = hsdim([Sys.S(:); Sys.I(:)].');
+          C2U = kron(C2U,eye(nStates/nElectronStates));
+        end
+        if sz1==sz2
+          % Transform density matrix from coupled to the uncoupled basis
+          initState = C2U*initState*C2U';
+        else
+          % Get density matrix in uncoupled basis for population vector given in the coupled basis
+          initState = C2U*diag(initState)*C2U';
+        end
+        initStateBasis = 'uncoupled';
+      end
     end
 
     % Convert sublevel population from XYZ order to energy order (lowest to highest) for triplet states
@@ -970,11 +993,23 @@ if ~isempty(Sys.initState)
     % Shorthand notation for common situations
 
     % Shortcut for singlet-born radical pair
-    if strcmp(Sys.initState,'singlet') && Sys.nElectrons==2
-      % Singlet-born spin-correlated radical pair
-      S = 1/sqrt(2)*[0; 1; -1; 0];
-      initState = S*S';
-      initStateBasis = 'uncoupled';
+    if strcmp(Sys.initState,'singlet')
+      if Sys.nElectrons~=2 || Sys.S(1)~=Sys.S(2)
+        err = 'Sys.initState = ''singlet'' is only available for systems of two identical electron spins.';
+      else
+        % Population of singlet state (e.g. singlet-born spin-correlated radical pair)
+        S = cgmatrix(Sys.S(1),Sys.S(2),0).';
+        initState = S*S';
+        initStateBasis = 'uncoupled';
+      end
+    elseif strcmp(Sys.initState,'T0')
+      if Sys.S~=1
+        err = 'Sys.initState = ''T0'' is only available for triplet states (Sys.S = 1).';
+      else
+        % T0 populated triplet state
+        initState = [0 1 0];
+        initStateBasis = 'eigen';
+      end
     else
       err = 'String input for initial state not yet supported for selected spin system and initial state.';
     end

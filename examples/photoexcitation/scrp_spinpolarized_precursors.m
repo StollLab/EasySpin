@@ -24,6 +24,40 @@ Exp.Harmonic = 0;
 
 Opt.Output = 'separate';
 
+%% Option 1: Provide populations in coupled basis
+% Population vector: [popTp popT0 popTm popS] 
+% (see sop documentation for order)
+
+% Singlet precursor
+Sys.initState = {[0 0 0 1],'coupled'};
+[B,spc{1}] = pepper(Sys,Exp,Opt);
+
+% Thermalised triplet precursor
+Sys.initState = {[1/3 1/3 1/3 0],'coupled'};
+[~,spc{2}] = pepper(Sys,Exp,Opt);
+
+% ISC triplet precursor
+Sys.initState = {[(1/3-1/15) 1/3 (1/3+1/15) 0],'coupled'};
+[~,spc{3}] = pepper(Sys,Exp,Opt);
+
+% T0 triplet precursor
+Sys.initState = {[0 1 0 0],'coupled'};
+[~,spc{4}] = pepper(Sys,Exp,Opt);
+
+% Plot
+label = {'singlet','thermalised triplet','ISC triplet','T_0 triplet'};
+for i = 1:4
+  h(i) = subplot(2,2,i);
+  title(['Precursor: ',label{i}])
+  hold on; box on;
+  plot(B,spc{i})
+  plot(B,sum(spc{i}),'--k')
+  xlabel('Magnetic field (mT)')
+end
+linkaxes(h,'xy')
+
+%% Option 2: Build density matrix in uncoupled basis
+
 % State vectors
 V = cgmatrix(Sys.S(1),Sys.S(2));
 Tp = V(1,:)';
