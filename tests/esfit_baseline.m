@@ -18,7 +18,6 @@ pv = [50 20];
 autoscaleopts = [true false];
 baselineopts = {[] 0 1 2};
 
-tiledlayout(2,4)
 for j = 1:numel(baselineopts)
   
   FitOpt.BaseLine = baselineopts{j};

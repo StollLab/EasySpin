@@ -53,6 +53,8 @@ $ReleaseID$
 <li><a class="esf" href="rotview.html">rotview</a> provides a graphical interface to visualize and explore Euler angles and their associated rotations.</li>
 <li><a class="esf" href="orca2easyspin.html">orca2easyspin</a> supports ORCA5 and can now directly read in the main ORCA output file.
 <li>Photoselection is now supported when simulating EPR spectra of photo-generated species. See function <a class="esf" href="photoselect.html">photoselect</a>.</li>
+<li>Significantly extended support for spin-polarized systems (triplets, radical pairs, etc.) in <a class="esf" href="pepper.html">pepper</a> with the new fields <a class="matlab">Sys.initState</a>.</li>
+<li><a class="esf" href="cgmatrix.html">cgmatrix</a> has additional input and output options.</li>
 </ul>
 
 <p>Major bug fixes</p>
@@ -65,6 +67,7 @@ $ReleaseID$
 
 <p>Incompatible changes</p>
 <ul>
+<li>To specify spin-polarized system, use <code>Sys.initState</code> instead of <code>Exp.Temperature</code>.</li>
 <li>The interface of <a class="esf">esfit</a> has changed completely. Refer to the <a class="esf">esfit</a>" documentation for details.
 <li>The <code>Scaling</code> option of </code><a class="esf" href="esfit.html">esfit</a> has been removed. Use <code>FitOpt.AutoScale</code> instead.
 <li>The interface of <a class="esf" href="hfine.html">hfine</class> has changed.
