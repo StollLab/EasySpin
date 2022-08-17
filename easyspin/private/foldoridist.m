@@ -37,7 +37,8 @@ switch GridSymmetry
       f(phi,theta)+...       % E
       f(phi+pi,pi-theta);    % i
   case 'C1'
-    orifun = ExpOrdering;    % E
+    orifun = @(phi,theta)...
+      f(phi,theta);          % E
   otherwise
     error('Orientational distribution folding are not supported for grid symmetry ''%s''.',GridSymmetry);
 end

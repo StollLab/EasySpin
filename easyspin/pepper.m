@@ -460,6 +460,9 @@ nonEquiPops = isfield(Sys,'initState') && ~isempty(Sys.initState);
 if nonEquiPops
   msg = '  user-specified non-equilibrium state';
 else
+  if numel(Exp.Temperature)~=1
+    error('If given, Exp.Temperature must be a single number.');
+  end
   if isfinite(Exp.Temperature)
     msg = sprintf('  temperature %g K',Exp.Temperature);
   else

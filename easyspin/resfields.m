@@ -430,7 +430,6 @@ if computeNonEquiPops
     if strcmp(initStateBasis,'eigen')
       initState = diag(initState); 
     end
-
   end
 
   computeBoltzmannPopulations = false;
