@@ -12,19 +12,18 @@ Sys.S = 1;
 Sys.g = 2.00; % neglecting small anisotropy
 
 % Wasielewski 1991 values for zero-field splitting
-D = 0.0114 * 100*clight/1e6;     % cm^-1 -> MHz
-E = 0.00069 * 100*clight/1e6;    % cm^-1 -> MHz
+D = -0.0114 * 100*clight/1e6; % cm^-1 -> MHz
+E = 0.00069 * 100*clight/1e6; % cm^-1 -> MHz
 
 Sys.D = [D E]; % MHz
 
-Sys.lwpp = 0.9;   % mT
+Sys.lwpp = 0.9; % mT
 
-Exp.mwFreq = 9.248;  % GHz
-Exp.Range = [310 350];      % mT
+Exp.mwFreq = 9.248; % GHz
+Exp.Range = [310 350]; % mT
 
-% The three numbers in Exp.Temperature give the relative
-% populations of the three sublevels at zero-field (where
-% T0 is lowest in energy) in order of increasing energy.
-Exp.Temperature = [1 0 0];
+% The three numbers in the first input to Sys.initState give the
+% relative populations of the three sublevels, X, Y and Z at zero-field
+Sys.initState = {[0.5 0.5 0],'xyz'};
 
 pepper(Sys,Exp);

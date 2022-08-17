@@ -5,19 +5,19 @@ clear, clf, clc
 
 % Spin system and experimental parameters
 Triplet.S = 1;
-Triplet.g = 2;
-Triplet.D = 100; % MHz
-Triplet.lw = 0.2; % MHz
+Triplet.g = 2.0023;
+Triplet.D = [200 -30]; % MHz
+Triplet.lw = 0.2; % mT
 
 % Population vector for Tx,Ty,Tz states
-% (The triplet is assumed to be generated via inter-system crossing)
-Triplet.Pop = [0.85 1 0.95];
+% (The triplet is assumed to be generated via inter-system crossing.)
+Triplet.initState = {[0.48 0.52 0],'xyz'};
 
 Exp.mwFreq = 9.5; % GHz
-Exp.Range = [330 350]; % mT
+Exp.Range = [328 350]; % mT
 Exp.Harmonic = 0;
 
-[x,y_polarized] = pepper(Triplet,Exp);
+[B,y_polarized] = pepper(Triplet,Exp);
 
-plot(x,y_polarized);
-xlabel('magnetic field [mT]');
+plot(B,y_polarized);
+xlabel('magnetic field (mT)');

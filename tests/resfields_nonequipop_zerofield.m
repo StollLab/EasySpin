@@ -5,13 +5,13 @@ function ok = test()
 
 Sys.S = 1;
 Sys.g = [2 2 2];
-D = 0.06; E = 0;
+D = 0.06; E = 0.001;
 Sys.D = 100*clight/1e6*[-D/3 + E, -D/3 - E, 2*D/3];
 
 Exp = struct('mwFreq',9.67739,'nPoints',426,'Range',[260 430]);
 Exp.Harmonic = 0;
 pop = [1 0 0];
-Sys.Pop = pop;
+Sys.initState = {pop,'zerofield'};
 
 Exp.CrystalOrientation = [0 0 0];
 [Bpara,Apara] = resfields(Sys,Exp);

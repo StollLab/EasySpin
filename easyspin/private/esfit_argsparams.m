@@ -32,40 +32,54 @@ for a = 1:nArgs
     allFields = fieldnames(par{c});
     allValues = struct2cell(par{c});
     for iField = 1:numel(allFields)
-      value = allValues{iField};
-      siz = size(value);
-      if ~isfloat(value)
-        continue
-      end
-      idx = 1:numel(value);
-      [irow,icol] = ind2sub(size(value),idx);
-      for i = 1:numel(idx)
-        parinfo(p).Arg = a;
-        if noCell
-          parinfo(p).Cell = 0;
-        else
-          parinfo(p).Cell = c;
+      FieldValue = allValues{iField};
+      noParCell = ~iscell(FieldValue);
+      if noParCell, FieldValue = {FieldValue}; end
+      for pc = 1:numel(FieldValue)
+        value = FieldValue{pc};
+        siz = size(value);
+        if ~isfloat(value)
+          continue
         end
-        parinfo(p).FieldName = allFields{iField};
-        parinfo(p).Index = idx(i); % linear index
-        parinfo(p).Subscripts = [irow(i) icol(i)]; % 2D subscripts
-        parinfo(p).FieldSize = siz;
+        idx = 1:numel(value);
+        [irow,icol] = ind2sub(size(value),idx);
+        for i = 1:numel(idx)
+          parinfo(p).Arg = a;
+          if noCell
+            parinfo(p).Cell = 0;
+          else
+            parinfo(p).Cell = c;
+          end
+          if noParCell
+            parinfo(p).ParCellIndex = 0;
+          else
+            parinfo(p).ParCellIndex = pc;
+          end
+          parinfo(p).FieldName = allFields{iField};
+          parinfo(p).Index = idx(i); % linear index
+          parinfo(p).Subscripts = [irow(i) icol(i)]; % 2D subscripts
+          parinfo(p).FieldSize = siz;
 
-        % Build parameter name
-        idxName = '';
-        if ~isscalar(value)
-          idxName = sprintf('(%d,%d)',irow(i),icol(i));
-        end
-        cellName = '';
-        if ~noCell
-          cellName = sprintf('{%d}',c);
-        end
-        Name = sprintf('arg%1d%s.%s%s',a,cellName,allFields{iField},idxName);
-        parinfo(p).Name = Name;
+          % Build parameter name
+          idxName = '';
+          if ~isscalar(value)
+            idxName = sprintf('(%d,%d)',irow(i),icol(i));
+          end
+          cellName = '';
+          if ~noCell
+            cellName = sprintf('{%d}',c);
+          end
+          ParCellName = '';
+          if ~noParCell
+            ParCellName = sprintf('{%d}',pc);
+          end
+          Name = sprintf('arg%1d%s.%s%s%s',a,cellName,allFields{iField},ParCellName,idxName);
+          parinfo(p).Name = Name;
 
-        p = p + 1;
+          p = p + 1;
 
-      end % index
+        end % index
+      end % cell index
     end % field
   end % cell
 end % argument
@@ -84,12 +98,21 @@ end
 for p = 1:nParams
     a = parinfo(p).Arg;
     c = parinfo(p).Cell;
+    pc = parinfo(p).ParCellIndex;
     f = parinfo(p).FieldName;
     i = parinfo(p).Index;
     if c>0
+      if pc>0
+        args{a}{c}.(f){pc}(i) = newvals(p);
+      else
         args{a}{c}.(f)(i) = newvals(p);
+      end
     else
+      if pc>0
+        args{a}.(f){pc}(i) = newvals(p);
+      else
         args{a}.(f)(i) = newvals(p);
+      end
     end
 end
 
@@ -105,12 +128,21 @@ vals = NaN(nParams,1);
 for p = 1:nParams
     a = parinfo(p).Arg;
     c = parinfo(p).Cell;
+    pc = parinfo(p).ParCellIndex;
     f = parinfo(p).FieldName;
     i = parinfo(p).Index;
     if c>0
+      if pc>0
+        vals(p) = args{a}{c}.(f){pc}(i);
+      else
         vals(p) = args{a}{c}.(f)(i);
+      end
     else
+      if pc>0
+        vals(p) = args{a}.(f){pc}(i);
+      else
         vals(p) = args{a}.(f)(i);
+      end
     end
 end
 
@@ -126,6 +158,7 @@ nArgs = numel(args);
 for p = 1:nParams
     a = parinfo(p).Arg;
     c = parinfo(p).Cell;
+    pc = parinfo(p).ParCellIndex;
     f = parinfo(p).FieldName;
     i = parinfo(p).Index;
     
@@ -145,7 +178,12 @@ for p = 1:nParams
     if ~isfield(arg_,f)
         error('Parameter %d: Field .%s is missing in input %d.',p,f,a);
     end
-    if i>numel(arg_.(f))
+    if iscell(arg_.(f))
+      N = numel(arg_.(f){pc});
+    else
+      N = numel(arg_.(f));
+    end
+    if i>N
         error('Parameter %d: Field .%s doesn''t have enough elements - at least %d expected.',p,f,i);
     end
     

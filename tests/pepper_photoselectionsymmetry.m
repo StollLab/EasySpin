@@ -8,7 +8,7 @@ function ok = test()
 Triplet.S = 1;
 Triplet.D = [-1000 150]; % MHz
 Triplet.lwpp = 1; % mT
-Triplet.Pop = [0.2 0.2 0.6];  % non-equilibrium populations
+Triplet.initState = {[0.2 0.2 0.6],'zerofield'};  % non-equilibrium populations
 
 Exp.mwFreq = 9.7;  % GHz
 Exp.Range = [280 400];  % mT

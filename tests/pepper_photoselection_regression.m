@@ -6,7 +6,7 @@ function [ok,data] = test(opt,olddata)
 
 Sys = struct( 'S',1,'g',2,'lw',1.5,'D',[800,-120] ) ;
 Sys.tdm = [ pi/2 0 ] ;
-Sys.Pop = [ 1 0 0 ] ;
+Sys.initState = {[1 0 0],'zerofield'};
 
 Exp = struct( 'mwFreq',9.75,'Range',[ 300 400 ],'Harmonic',0 ) ;
 Exp.lightBeam = 'parallel' ;

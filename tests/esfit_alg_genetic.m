@@ -34,5 +34,5 @@ if opt.Display
   legend('sim','fit');
   legend boxoff
   subplot(4,1,4);
-  plot(nu,spc-spcFit);
+  plot(nu,spc-result.fit.');
 end

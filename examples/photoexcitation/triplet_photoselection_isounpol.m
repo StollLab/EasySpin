@@ -20,30 +20,21 @@ Sys.g = [2.002 2.002 2.000];
 Sys.D = [563.6 95.9]; % MHz
 Sys.lwpp = 1.3; % mT
 
+% T0-populated triplet state
+Sys.initState = {[0 1 0],'eigen'};
+
 % Experimental parameters
 Exp.mwFreq = 9.5; % GHz
 Exp.Range = [310 370]; % mT
 Exp.Harmonic = 0;
 
-% Construct recombination triplet spectrum from separate transitions
-% (see documentation on spin polarization and the example
-%  triplet_recombination.m)
-Opt.Output = 'separate'; 
-% Vector of populations, lowest to highest energy level
-Pop = [0 1 0];      % vector of populations for the three levels
-Pola = -diff(Pop);  % vector of polarization across the two transitions
-
 % Isotropic excitation
-[~,spcsepiso] = pepper(Sys,Exp,Opt);
+[~,spciso] = pepper(Sys,Exp);
 
 % Excitation with unpolarized light
 Sys.tdm = [84 82]*pi/180;
 Exp.lightBeam = 'unpolarized';
-[B,spcsepunpol] = pepper(Sys,Exp,Opt);
-
-% EPR spectra are polarization-weighted sum of individual transitions
-spciso = Pola(1)*spcsepiso(1,:) + Pola(2)*spcsepiso(2,:); % polarized spectrum
-spcunpol = Pola(1)*spcsepunpol(1,:) + Pola(2)*spcsepunpol(2,:); % polarized spectrum##
+[B,spcunpol] = pepper(Sys,Exp);
 
 % Plot
 hold on; box on;

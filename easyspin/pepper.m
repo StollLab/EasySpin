@@ -456,13 +456,13 @@ if ~isempty(Exp.Ordering)
 end
 
 % Temperature and non-equilibrium populations
-nonEquiPops = isfield(Sys,'Pop') && ~isempty(Sys.Pop);
+nonEquiPops = isfield(Sys,'initState') && ~isempty(Sys.initState);
 if nonEquiPops
-  msg = '  user-specified non-equilibrium populations';
-  if max(Sys.Pop)==min(Sys.Pop)
-    error('Populations in Sys.Pop cannot be all equal!');
-  end
+  msg = '  user-specified non-equilibrium state';
 else
+  if numel(Exp.Temperature)~=1
+    error('If given, Exp.Temperature must be a single number.');
+  end
   if isfinite(Exp.Temperature)
     msg = sprintf('  temperature %g K',Exp.Temperature);
   else
@@ -571,6 +571,9 @@ useEigenFields = Method==1;
 usePerturbationTheory = any(Method==[3 4 5 12 13 14]);
 if Opt.ImmediateBinning && ~usePerturbationTheory
   error('Opt.ImmediateBinning works only with perturbation theory.');
+end
+if usePerturbationTheory && nonEquiPops
+  error('Perturbation theory not available for systems with non-equilibrium populations.');
 end
 
 if ~isfield(Opt,'GridSize')

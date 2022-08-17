@@ -35,7 +35,7 @@
 %    Wid     Gaussian line widths, full width half maximum (FWHM)
 %    Trans   list of transitions included in the computation
 
-function varargout = resfields(System,Exp,Opt)
+function varargout = resfields(Sys,Exp,Opt)
 
 if nargin==0, help(mfilename); return; end
 
@@ -57,54 +57,54 @@ if nargout>5, error('Too many output arguments.'); end
 
 if isempty(Opt), Opt = struct; end
 
-if ~isstruct(System) || ~isstruct(Exp) || ~isstruct(Opt)
+if ~isstruct(Sys) || ~isstruct(Exp) || ~isstruct(Opt)
   error('SpinSystem, Parameters and Options must be structures!');
 end
 
 % A global variable sets the level of log display. The global variable
 % is used in logmsg(), which does the log display.
 if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 0; end
-global EasySpinLogLevel  %#ok
+global EasySpinLogLevel
 EasySpinLogLevel = Opt.Verbosity;
 
 % Process Spin system.
 %---------------------------------------------------------------------
-[System,err] = validatespinsys(System);
+[Sys,err] = validatespinsys(Sys);
 error(err);
 
-DefaultSystem.lw = 0;
-DefaultSystem.HStrain = [0 0 0];
-DefaultSystem.gStrain = [0 0 0];
-DefaultSystem.AStrain = [0 0 0];
-DefaultSystem.DStrain = 0;
-DefaultSystem.gAStrainCorr = +1;
+DefaultSys.lw = 0;
+DefaultSys.HStrain = [0 0 0];
+DefaultSys.gStrain = [0 0 0];
+DefaultSys.AStrain = [0 0 0];
+DefaultSys.DStrain = 0;
+DefaultSys.gAStrainCorr = +1;
 
-System = adddefaults(System,DefaultSystem);
+Sys = adddefaults(Sys,DefaultSys);
 
-if numel(System.gAStrainCorr)~=1 || ~isnumeric(System.gAStrainCorr) || ...
-    System.gAStrainCorr==0 || ~isfinite(System.gAStrainCorr)
+if numel(Sys.gAStrainCorr)~=1 || ~isnumeric(Sys.gAStrainCorr) || ...
+    Sys.gAStrainCorr==0 || ~isfinite(Sys.gAStrainCorr)
   error('Sys.gAStrainCorr must be a single number, either +1 or -1.');
 end
-System.gAStrainCorr = sign(System.gAStrainCorr);
+Sys.gAStrainCorr = sign(Sys.gAStrainCorr);
 
-if System.nElectrons>1
-  if any(System.AStrain(:))
+if Sys.nElectrons>1
+  if any(Sys.AStrain(:))
     error('AStrain is not supported in spin systems with more than one electron spin.');
   end
 end
 
-if any(System.gStrain(:)) || any(System.AStrain(:))
-  gFull = size(System.g,1)==3*numel(System.S);
+if any(Sys.gStrain(:)) || any(Sys.AStrain(:))
+  gFull = size(Sys.g,1)==3*numel(Sys.S);
   %aFull = size(System.A,1)==3*(1+sum(System.Nucs==','));
   if gFull
     error('gStrain and AStrain are not supported when full g matrices are given!');
   end
-  if any(System.DStrain)
+  if any(Sys.DStrain)
     error('D strain and g/A strain cannot be used at the same time.');
   end
 end
 
-higherOrder = any(strncmp(fieldnames(System),'Ham',3));
+higherOrder = any(strncmp(fieldnames(Sys),'Ham',3));
 
 % Process experimental parameters
 %---------------------------------------------------------------------
@@ -142,34 +142,8 @@ if any(Exp.Range<0)
   error('Negative magnetic fields in Exp.Range are not possible.');
 end
 
-
 % Determine excitation mode
 p_excitationgeometry;
-
-% Temperature, non-equilibrium populations
-computeNonEquiPops = isfield(System,'Pop') && ~isempty(System.Pop);
-if computeNonEquiPops
-  nElectronStates = prod(2*System.S+1);
-  if numel(System.Pop)~=nElectronStates
-    error('Sys.Pop must have %d elements.',nElectronStates);
-  end
-  if ~isfield(System,'PopBasis')
-    PopBasis = 'Molecular';
-  else
-    PopBasis = System.PopBasis;
-  end
-  computeBoltzmannPopulations = false;
-elseif isempty(Exp.Temperature)
-  computeBoltzmannPopulations = false;
-else
-  if numel(Exp.Temperature)~=1
-    error('If given, Exp.Temperature must be a single number.');
-  end
-  if isinf(Exp.Temperature)
-    error('If given, Exp.Temperature must be a finite value.');
-  end
-  computeBoltzmannPopulations = ~isnan(Exp.Temperature);
-end
 
 if ~isfield(Opt,'Sites'), Opt.Sites = []; end
 
@@ -180,7 +154,7 @@ if ~isfield(Exp,'lightScatter'), Exp.lightScatter = 0; end
 usePhotoSelection = ~isempty(Exp.lightBeam) && Exp.lightScatter<1;
 
 if usePhotoSelection
-  if ~isfield(System,'tdm') || isempty(System.tdm)
+  if ~isfield(Sys,'tdm') || isempty(Sys.tdm)
     error('To include photoselection weights, Sys.tdm must be given.');
   end
   if ischar(Exp.lightBeam)
@@ -280,7 +254,7 @@ if Opt.Freq2Field~=1 && Opt.Freq2Field~=0
 end
 computeFreq2Field = Opt.Freq2Field;
 
-StrainsPresent = any([System.HStrain(:); System.DStrain(:); System.gStrain(:); System.AStrain(:)]);
+StrainsPresent = any([Sys.HStrain(:); Sys.DStrain(:); Sys.gStrain(:); Sys.AStrain(:)]);
 computeStrains = StrainsPresent && (nargout>2);
 
 computeGradient = (computeStrains || (nargout>4)) && GradientSwitch;
@@ -298,19 +272,19 @@ else
   logmsg(1,'  using full matrices');
 end
 
-CoreSys = System;
+CoreSys = Sys;
 
 % HFI splitting at zero field relative to mw frequency
 HFIStrength = 0;
-if System.nNuclei>0
-  if System.fullA
-    for iNuc = System.nNuclei:-1:1
-      maxHF(iNuc) = max(max(System.A((iNuc-1)*3+(1:3))));
+if Sys.nNuclei>0
+  if Sys.fullA
+    for iNuc = Sys.nNuclei:-1:1
+      maxHF(iNuc) = max(max(Sys.A((iNuc-1)*3+(1:3))));
     end
   else
-    maxHF = max(abs(System.A),[],2);
+    maxHF = max(abs(Sys.A),[],2);
   end
-  HFIStrength = maxHF(:).'.*(1/2+nucspin(System.Nucs))/mwFreq;
+  HFIStrength = maxHF(:).'.*(1/2+nucspin(Sys.Nucs))/mwFreq;
 end
 
 % Perturbational treatment of SHF nuclei
@@ -342,20 +316,20 @@ if CoreSys.nNuclei>=1 && Opt.Hybrid
   % Prepare terms for nuclear Hamiltonians
   for iiNuc = nPerturbNuclei:-1:1
     iNuc = idx(iiNuc);
-    I = System.I(iNuc);
+    I = Sys.I(iNuc);
     [Ix,Iy,Iz] = sop(I,'x','y','z');
     nPerturbTransitions(iiNuc) = (2*I+1)^2;
     
     % Hyperfine interaction
-    for iElectron = 1:System.nElectrons
+    for iElectron = 1:Sys.nElectrons
       idxE = 3*(iElectron-1)+(1:3);
-      if System.fullA
-        A = System.A(3*(iNuc-1)+(1:3),idxE);
+      if Sys.fullA
+        A = Sys.A(3*(iNuc-1)+(1:3),idxE);
       else
-        A = System.A(iNuc,idxE);
+        A = Sys.A(iNuc,idxE);
         R_A2M = eye(3);
-        if isfield(System,'AFrame')
-          R_A2M = erot(System.AFrame(iNuc,idxE)).'; % A frame -> molecular frame
+        if isfield(Sys,'AFrame')
+          R_A2M = erot(Sys.AFrame(iNuc,idxE)).'; % A frame -> molecular frame
         end
         A = R_A2M*diag(A)*R_A2M.';
       end
@@ -366,7 +340,7 @@ if CoreSys.nNuclei>=1 && Opt.Hybrid
     
     if ~Opt.HybridOnlyHFI
       % Nuclear Zeeman interaction
-      prefactor = -nmagn/planck/1e9*System.gn(iNuc);
+      prefactor = -nmagn/planck/1e9*Sys.gn(iNuc);
       Hzeem(iiNuc).x = prefactor*Ix;
       Hzeem(iiNuc).y = prefactor*Iy;
       Hzeem(iiNuc).z = prefactor*Iz;
@@ -375,11 +349,11 @@ if CoreSys.nNuclei>=1 && Opt.Hybrid
       if I>=1
         Q = [0 0 0];
         R_Q2M = eye(3);
-        if isfield(System,'Q')
-          Q = System.Q(iNuc,:);
+        if isfield(Sys,'Q')
+          Q = Sys.Q(iNuc,:);
         end
-        if isfield(System,'QFrame')
-          R_Q2M = erot(System.QFrame(iNuc,:)).'; % Q frame -> molecular frame
+        if isfield(Sys,'QFrame')
+          R_Q2M = erot(Sys.QFrame(iNuc,:)).'; % Q frame -> molecular frame
         end
         Q = R_Q2M*diag(Q)*R_Q2M.';
         Ivec = {Ix,Iy,Iz};
@@ -394,7 +368,7 @@ if CoreSys.nNuclei>=1 && Opt.Hybrid
   end
   
   % Components of S vectors for computing <u|S|u>
-  for iEl = System.nElectrons:-1:1
+  for iEl = Sys.nElectrons:-1:1
     S(iEl).x = sop(CoreSys,[iEl,1]);
     S(iEl).y = sop(CoreSys,[iEl,2]);
     S(iEl).z = sop(CoreSys,[iEl,3]);
@@ -419,14 +393,63 @@ else
   end
   nCore = length(kF);
 end
-nFull = hsdim(System);
+nFull = hsdim(Sys);
 nSHFNucStates = nFull/nCore;
+
+% Temperature, non-equilibrium populations
+computeNonEquiPops = (isfield(Sys,'initState') && ~isempty(Sys.initState));
+if computeNonEquiPops
+
+  initState = Sys.initState{1};
+  initStateBasis = Sys.initState{2};
+
+  % Check and adapt input dimensions
+  nElectronStates = prod(2*Sys.S+1);
+
+  [sz1,sz2] = size(initState);
+  if sz1==sz2
+    % Density matrix
+    if nElectronStates~=sz1 && nCore~=sz1
+      error('The density matrix in Sys.initState must have dimensions of nxn with n = %d or %d.',nElectronStates,nCore)
+    end
+    if numel(initState)==nElectronStates^2 && numel(initState)~=nCore^2
+      initState = kron(initState,eye(nCore/nElectronStates));
+    end
+    initState = initState/trace(initState);
+  else
+    % Vector of populations
+    if numel(initState)~=nElectronStates && numel(initState)~=nCore
+      error('The population vector in Sys.initState must have %d or %d elements.',nElectronStates,nCore);
+    end
+    initState = initState(:);
+    if numel(initState)==nElectronStates && numel(initState)~=nCore
+      initState = kron(initState,ones(nCore/nElectronStates,1));
+    end
+    initState = initState/sum(initState);
+    % Convert population vector to density matrix for populations provided in eigenbasis
+    if strcmp(initStateBasis,'eigen')
+      initState = diag(initState); 
+    end
+  end
+
+  computeBoltzmannPopulations = false;
+elseif isempty(Exp.Temperature)
+  computeBoltzmannPopulations = false;
+else
+  if numel(Exp.Temperature)~=1
+    error('If given, Exp.Temperature must be a single number.');
+  end
+  if isinf(Exp.Temperature)
+    error('If given, Exp.Temperature must be a finite value.');
+  end
+  computeBoltzmannPopulations = ~isnan(Exp.Temperature);
+end
 
 % Add slight numerical noise to non-zero elements in the Hamiltonian to break
 % possible degeneracies. Apply if there are more than one electrons or nuclei.
 % This is a very crude workaround to prevent numerical issues due to degeneracies.
 % It probably adds noise in a lot of situations where it is not necessary.
-if Opt.FuzzLevel>0 && ~higherOrder && (CoreSys.nNuclei>1 || CoreSys.nElectrons>1)
+if Opt.FuzzLevel>0 && ~higherOrder && (CoreSys.nNuclei>1 || CoreSys.nElectrons>1) && ~computeNonEquiPops
   noise = 2*rand(size(kF))-1;
   noise = 1+Opt.FuzzLevel*(noise+noise.')/2; % make sure it's Hermitian
   kF = kF.*noise;
@@ -445,21 +468,7 @@ else
 end
 
 % Spin-polarized systems: precompute zero-field energies, states, populations
-if computeNonEquiPops
-  
-  Pop = System.Pop;
-  nElStates = prod(2*System.S+1);
-  if numel(Pop) == nElectronStates
-    % Vector of zero-field populations for the core system
-    ZFPopulations = Pop(:);
-    if strcmp(PopBasis,'Molecular')
-      ZFPopulations = ZFPopulations/sum(ZFPopulations);
-    end
-    ZFPopulations = kron(ZFPopulations,ones(nCore/nElStates,1));
-  else
-    ZFPopulations = Pop;%/sum(diag(Pop));    
-    ZFPopulations = kron(ZFPopulations,diag(ones(nCore/nElStates,1)));
-  end
+if computeNonEquiPops && strcmp(initStateBasis,'zerofield')
     
   % Pre-compute zero-field energies and eigenstates
   if higherOrder
@@ -473,21 +482,19 @@ if computeNonEquiPops
   end
   [ZFEnergies,idx] = sort(real(diag(ZFEnergies)));
   ZFStates = ZFStates(:,idx);
-  % Correct zero-field states for S=1 and axial D
-  if CoreSys.S==1
-    if ZFEnergies(2)==ZFEnergies(3)
-      logmsg(1,'  >>>> manual zero-field states (D>0)');
-      v1 = ZFStates(:,2);
-      v2 = ZFStates(:,3);
-      ZFStates(:,2) = (v1-v2)/sqrt(2);
-      ZFStates(:,3) = (v1+v2)/sqrt(2);
-    elseif ZFEnergies(2)==ZFEnergies(1)
-      logmsg(1,'  >>>> manual zero-field states (D<0)');
-      v1 = ZFStates(:,1);
-      v2 = ZFStates(:,2);
-      ZFStates(:,2) = (v1-v2)/sqrt(2);
-      ZFStates(:,1) = (v1+v2)/sqrt(2);
-    end
+  % Check for degeneracies and issue error
+  if numel(unique(ZFEnergies))~=numel(ZFEnergies)
+    error(['Degenerate energy levels detected at zero-field. This prevents unambiguous assignment of ' ...
+           'the provided sublevel populations to the zero-field states. Please provide the non-equilibrium ' ...
+           'state using the full density matrix. See documentation for details.'])
+  end
+  
+  if isvector(initState)
+    % Convert population vector to density matrix
+    initState = ZFStates*diag(initState)*ZFStates';
+  else
+    % Convert density matrix in zero-field basis to uncoupled basis
+    initState = ZFStates*initState*ZFStates';
   end
   
 else
@@ -769,13 +776,13 @@ if computeStrains
     % compute A strain array
     AStrainMatrix = reshape(mITr(:,ones(1,9)).',[3,3,nTransitions]).*...
       repmat(AStrainMatrix,[1,1,nTransitions]);
-    corr = System.gAStrainCorr;
-    for e = System.nElectrons:-1:1
+    corr = Sys.gAStrainCorr;
+    for e = Sys.nElectrons:-1:1
       gAslw2{e} = (repmat(gStrainMatrix{e},[1,1,nTransitions])+corr*AStrainMatrix).^2;
     end
     clear AStrainMatrix Vs E idx mI mITr
   else
-    for e = System.nElectrons:-1:1
+    for e = Sys.nElectrons:-1:1
       gAslw2{e} = repmat(gStrainMatrix{e}.^2,[1,1,nTransitions]);
     end
   end
@@ -910,7 +917,7 @@ for iOri = 1:nOrientations
     % and the integration over all mw field orientations
     kGyL = yLab_M(1)*kGxM + yLab_M(2)*kGyM + yLab_M(3)*kGzM;
     if usegStrain && ~simplegStrain
-      for e = System.nElectrons:-1:1
+      for e = Sys.nElectrons:-1:1
         kSzL{e} = zLab_M(1)*kSxM{e} + zLab_M(2)*kSyM{e} + zLab_M(3)*kSzM{e};
       end
     end
@@ -928,7 +935,7 @@ for iOri = 1:nOrientations
     else
       ori = Orientations(iOri,1:3);
     end
-    photoWeight = photoselect(System.tdm,ori,k,alpha);
+    photoWeight = photoselect(Sys.tdm,ori,k,alpha);
     % Add isotropic contribution (from scattering)
     photoWeight = (1-Exp.lightScatter)*photoWeight + Exp.lightScatter;
   else
@@ -1215,25 +1222,25 @@ for iOri = 1:nOrientations
               error('Negative thermal polarization for transition %d<->%d: %f',u(iTrans),v(iTrans),Polarization);
             end
             if nPerturbNuclei>0
-              Polarization = Polarization/prod(2*System.I+1);            
+              Polarization = Polarization/prod(2*Sys.I+1);            
             end
           elseif computeNonEquiPops
-            switch PopBasis
-              case 'Molecular'
-                PopulationU = (abs(ZFStates'*U).^2).'*ZFPopulations; % lower level
-                PopulationV = (abs(ZFStates'*V).^2).'*ZFPopulations; % upper level
-              case 'Spin'
-                PopulationU = abs(ZFPopulations.'*U).^2; % lower level
-                PopulationV = abs(ZFPopulations.'*V).^2; % upper level
+            switch initStateBasis
+              case 'eigen'
+                PopulationU = initState(uv(1),uv(1)); % lower level
+                PopulationV = initState(uv(2),uv(2)); % upper level
+              otherwise
+                PopulationU = U'*initState*U; % lower level
+                PopulationV = V'*initState*V; % upper level
             end
             Polarization = PopulationU - PopulationV;
             if nPerturbNuclei>0
-              Polarization = Polarization/prod(2*System.I+1);            
+              Polarization = Polarization/prod(2*Sys.I+1);            
             end
           else
             % no temperature given
             Polarization = 1; % same polarization for each electron transition
-            Polarization = Polarization/prod(2*System.I+1);
+            Polarization = Polarization/prod(2*Sys.I+1);
           end
           
           % Update intensity results array
@@ -1272,7 +1279,7 @@ for iOri = 1:nOrientations
               gA2 = gAslw2{1}(:,:,iTrans);
             else
               gA2 = 0;
-              for iEl = 1:System.nElectrons
+              for iEl = 1:Sys.nElectrons
                 gA2 = gA2 + abs(m(kSzL{iEl}))*gAslw2{iEl}(:,:,iTrans);
               end
             end
@@ -1290,7 +1297,7 @@ for iOri = 1:nOrientations
         %-------------------------------------------------------
         if nPerturbNuclei>0
           % Compute S vector expectation values for all electron spins
-          for iEl = System.nElectrons:-1:1
+          for iEl = Sys.nElectrons:-1:1
             Su(:,iEl) = [U'*S(iEl).x*U; U'*S(iEl).y*U; U'*S(iEl).z*U];
             Sv(:,iEl) = [V'*S(iEl).x*V; V'*S(iEl).y*V; V'*S(iEl).z*V];
           end
@@ -1299,7 +1306,7 @@ for iOri = 1:nOrientations
             Hu = 0;
             Hv = 0;
             % Hyperfine (dependent on S)
-            for iEl = 1:System.nElectrons
+            for iEl = 1:Sys.nElectrons
               Hu = Hu + Su(1,iEl)*Hhfi(iEl,iiNuc).x + Su(2,iEl)*Hhfi(iEl,iiNuc).y + Su(3,iEl)*Hhfi(iEl,iiNuc).z;
               Hv = Hv + Sv(1,iEl)*Hhfi(iEl,iiNuc).x + Sv(2,iEl)*Hhfi(iEl,iiNuc).y + Sv(3,iEl)*Hhfi(iEl,iiNuc).z;
             end
