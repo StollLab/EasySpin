@@ -932,9 +932,7 @@ if ~isempty(Sys.initState)
 
     % Check validity of basis keyword
     if ~ischar(initStateBasis) || ...
-        (~strcmp(initStateBasis,'uncoupled') && ~strcmp(initStateBasis,'coupled') && ...
-         ~strcmp(initStateBasis,'eigen') && ...
-         ~strcmp(initStateBasis,'zerofield') && ~strcmp(initStateBasis,'xyz') )
+        ~any(strcmp(initStateBasis,{'uncoupled','coupled','eigen','zerofield','xyz'}))
       err = 'The basis specified in Sys.initState must be either ''zerofield'',  ''xyz'', ''eigen'', ''coupled'' or ''uncoupled''.';
     end
 

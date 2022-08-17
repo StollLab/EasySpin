@@ -116,6 +116,7 @@ The following groups of parameters can be specified in the spin system structure
 <li><a href = "#Ham">General parameters for spin Hamiltonian expanded in magnetic field and electron spin</a></li>
 <li><a href = "#lw">Broadenings</a></li>
 <li><a href = "#pop">Non-equilibrium populations</a></li>
+<li><a href = "#tdm">Optical transition dipole moment</a></li>
 </ul>
 
 <p>
@@ -1306,7 +1307,17 @@ For a full documentation of the line broadening fields in the spin system struct
 <a name="pop"><div class="subtitle">Non-equilibrium populations</div></a>
 
 <p>
-For the simulation of spin-polarised systems, the non-equilibrium populations need to be specified in the field <code>Sys.initState</code>. The non-equilibrium state can be defined by providing a list of populations or the full density matrix and the corresponding basis. The available basis keywords are 
+For the simulation of spin-polarised systems, the non-equilibrium populations need to be specified in the field <code>Sys.initState</code>. The general syntax is
+</p>
+
+<pre class="matlab">
+Sys.initState = {state, basis}
+</pre>
+
+<p>
+where <code>state</code> is a list of populations or the full density matrix, and <code>basis</code> is a keyword indicating the corresponding basis. The available basis keywords are 
+</p>
+
 <ul>
 <li> <code>'uncoupled'</code>: uncoupled Zeeman basis (default)
 <li> <code>'coupled'</code>: coupled basis for a system of two coupled spins
@@ -1314,19 +1325,23 @@ For the simulation of spin-polarised systems, the non-equilibrium populations ne
 <li> <code>'zerofield'</code>: eigenbasis of the spin Hamiltonian at zero field
 <li> <code>'xyz'</code>: (T<sub>x</sub>,T<sub>y</sub>,T<sub>z</sub>) basis for triplet states
 </ul>
+
 <p>
-The ordering of the basis states for the <code>'uncoupled'</code> basis is in descending order of m<sub>s</sub> (see the <a href="sop.html">documentation for sop</a> for details). For the <code>'coupled'</code> basis, the basis states are ordered in descending order of S<sub>tot</sub> (see the <a href="cgmatrix.html">documentation for cgmatrix</a> for details).
+The ordering of the basis states for the <code>'uncoupled'</code> basis is in descending order of m<sub>s</sub> (refer to <a href="sop.html">sop</a> for details). For the <code>'coupled'</code> basis, the basis states are ordered in descending order of S<sub>tot</sub> (refer to <a href="cgmatrix.html">cgmatrix</a> for details).
 </p>
+
 <p>
 For the <code>'eigen'</code> and <code>'zerofield'</code> bases, the states are assumed to be in order of increasing energy.
 </p>
+
 <p>
-The <code>'xyz'</code> basis is available for triplet states only and takes the populations of the X, Y and Z eigenstates of the zero-field Hamiltonian as input. The provided populations of the X, Y and Z sublevels are converted into energy-ordered populations based on the standard definition of the zero-field energy levels for a set of given ZFS parameters <code>D</code> and <code>E</code> and their signs.
+The <code>'xyz'</code> basis is for triplet states only and takes the populations of the T<code>X</code>, T<code>Y</code> and T<code>Z</code> states as input. The provided populations of the X, Y and Z sublevels are converted into energy-ordered populations based on the standard definition of the zero-field energy levels for a set of given ZFS parameters <code>D</code> and <code>E</code> and their signs.
+</p>
+
 <pre class="matlab">
-  % Energies of eigenstates of the zero-field splitting Hamiltonian for a triplet state
-  En(1) = (1/3)*D - E; % X
-  En(2) = (1/3)*D + E; % Y
-  En(3) = -(2/3)*D;    % Z
+  En(1) = (1/3)*D - E; % Tx
+  En(2) = (1/3)*D + E; % Ty
+  En(3) = -(2/3)*D;    % Tz
 </pre>
 For a triplet state, the <code>'xyz'</code> and <code>'zerofield'</code> bases are therefore equivalent, except for the ordering of the populations in the input vector.
 </p>
@@ -1372,7 +1387,6 @@ Sys.initState = {sigma,'uncoupled'};
 Sys.initState = sigma;
 </pre>
 If no basis is given, the uncoupled basis, i.e. ordering of operators in terms of product Zeeman basis states as explained in <a class="esf" href="sop.html">sop</a>, is assumed.
-<br>
 For example, for a spin-correlated radical pair with singlet-precursor the initial density matrix can be defined based on the state vector for the singlet state as
 <pre class="matlab">
 S = 1/sqrt(2)*[0; 1; -1; 0]; % alternatively, S = cgmatrix(1/2,1/2,0).';
@@ -1389,7 +1403,7 @@ Sys.initState = {Sigma,'coupled'};
 </ul>
 </p>
 
-<li>Give a string specifying the initial state. The currently available shorthands are:
+<li>Give a string specifying the initial state. The available shorthands are:
 
 <ul>
 <li> Spin polarisation arising from population of the singlet state for two coupled identical spins (e.g. spin-correlated radical pair with singlet precursor)
@@ -1421,14 +1435,15 @@ If <code>Sys.initState</code> is given, the temperature specified in <code>Exp.T
 For examples of spin-polarized systems (ISC triplets, recombination triplets, spin-correlated radical pairs), see the <a href="spinpolarization.html">user guide on spin-polarized systems</a> and the corresponding <a href="examplesmain.html#photoexcitation">examples</a>.
 </p>
 
-<a name="light"><div class="subtitle">Optical transition dipole moment</div></a>
+<a name="tdm"><div class="subtitle">Optical transition dipole moment</div></a>
 
 <p>
 To simulate the EPR spectra of photo-generated paramagnetic species, it might be necessary to take into account photoselection, i.e. the dependence of excitation yield on the polarization direction of the incident light beam relative to the electric transition dipole moment (tdm) of the excited optical transition. For this, the spin system has a field <code>Sys.tdm</code> that allows you to specify the orientation of the tdm in the molecular frame. There are three ways to do this:
+</p>
 <ul>
 <li>Give a letter code for the direction, e.g. <code>Sys.tdm = 'y'</code> specifies that the tdm is along the molecular y axis.</li>
 <li>Give a vector, e.g. <code>Sys.tdm = [0;1;0]</code> specifies that the tdm is along the molecular y axis.</li>
-<li>Give two polar angles, phi and theta, in radians, e.g. <code>Sys.tdm = [pi/2 pi/2]</code> specifies that the tdm is along the molecular y axis.</li>
+<li>Give two polar angles, phi and theta (in radians), for the orientation of the tdm in the molecular frame. E.g. <code>Sys.tdm = [pi/2 pi/2]</code> specifies that the tdm is along the molecular y axis.</li>
 </ul>
 </p>
 
