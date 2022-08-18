@@ -3,47 +3,56 @@ function ok = test(opt)
 % ISC triplet: compare results for population vector provided in xyz or
 % energy-ordered basis
 
-D = [900 -600]; % MHz
-E = [-280 50]; % MHz
+rng(6445)
+
+D = 900*[1  1 -1 -1];  % MHz
+E = 280*[1 -1  1 -1];  % MHz
+
+Exp.mwFreq = 9.5;  % GHz
+Exp.Range = [290 390];  % mT
+Exp.Harmonic = 0;
+
+Triplet.S = 1;
+Triplet.lwpp = 1;  % mT
+Triplet.DFrame = rand(1,3);
+
+xyzpops = rand(1,3);
 
 for i = 1:numel(D)
 
-  Triplet.S = 1;
   Triplet.D = [D(i) E(i)];  % MHz
-  Triplet.lwpp = 1;  % mT
 
-  Triplet.DFrame = rand(1,3);
-
-  Exp.mwFreq = 9.5;  % GHz
-  Exp.Range = [290 390];  % mT
-  Exp.Harmonic = 0;
-
-  % Provide population vector as [px py pz]
-  xyzpops = rand(1,3);
-  xyzpops = xyzpops/sum(xyzpops);
+  % Provide populations for Tx, Ty, Tz
   Triplet.initState = {xyzpops,'xyz'};
-  [~,spc_xyz] = pepper(Triplet,Exp);
+  [B,spc_xyz] = pepper(Triplet,Exp);
 
-  % Corresponding energy-ordered population vector
-  px = xyzpops(1); py = xyzpops(2); pz = xyzpops(3);
-  if D(i)>0 && E(i)<0
-    p1 = pz; p2 = py; p3 = px;
-  elseif D(i)>0 && E(i)>0
-    p1 = pz; p2 = px; p3 = py;
-  elseif D(i)<0 && E(i)>0
-    p1 = px; p2 = py; p3 = pz;
-  elseif D(i)<0 && E(i)<0
-    p1 = py; p2 = px; p3 = pz;
+  % Get energy-ordered population vector
+  if D(i)>0
+    if E(i)<0
+      energyorder = [3 2 1];
+    else
+      energyorder = [3 1 2];
+    end
+  else
+    if E(i)>0
+      energyorder = [1 2 3];
+    else
+      energyorder = [2 1 3];
+    end
   end
-  Triplet.initState = {[p1 p2 p3],'zerofield'};
-  [B,spc_Eorder] = pepper(Triplet,Exp);
+  zfpops = xyzpops(energyorder);
+
+  Triplet.initState = {zfpops,'zerofield'};
+  [~,spc_zf] = pepper(Triplet,Exp);
 
   if opt.Display
     hold on
-    plot(B,spc_xyz,B,spc_Eorder,'--')
+    plot(B,spc_xyz,B,spc_zf,'--')
+    title(sprintf('D = %g MHz, E= %g MHz',D(i),E(i)));
+    pause
   end
 
-  ok(i) = areequal(spc_xyz,spc_Eorder,1e-12,'abs');
+  ok(i) = areequal(spc_xyz,spc_zf,1e-12,'abs');
 
 end
 

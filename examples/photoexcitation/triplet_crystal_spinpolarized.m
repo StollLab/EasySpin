@@ -1,5 +1,5 @@
-% Single-crystal spectra of triplet with non-equilibrium populations
-%===================================================================
+% Single-crystal spectra of inter-system crossing spin-polarized triplet
+%==========================================================================
 clear, clf, clc
   
 % Experimental parameters and simulation options
@@ -16,14 +16,15 @@ Opt.Verbosity = 0;
 
 % Defining two spin systems, one with axial and one with orthorhombic D
 %-----------------------------------------------------------------------
-D = 0.06; % cm^-1
+D_cm = 0.06;  % cm^-1
+D = D_cm*100*clight/1e6;  % cm^-1 -> MHz
 Sys = struct('S',1,'g',2,'lw',5);
-Sys.initState = {[0 1 0],'xyz'};
+Sys.initState = {[0 1 0],'xyz'};  % selective population ot the Ty state
 
 Sys1 = Sys;
-Sys1.D = clight/1e4*[D -1e-6*D];
+Sys1.D = D*[1 0];
 Sys2 = Sys;
-Sys2.D = clight/1e4*[D -0.1*D];
+Sys2.D = D*[1 -0.1];
 
 % Simulations & Graphical rendering
 %-------------------------------------------------------------
@@ -36,7 +37,7 @@ pepper(Sys1,Exp,Opt);
 
 subplot(3,2,2);
 levelsplot(Sys2,Exp.CrystalOrientation,Exp.Range,Exp.mwFreq);
-title('Slightly orthorhombic D tensor');
+title('Non-axial D tensor');
 
 subplot(3,2,4);
 pepper(Sys2,Exp,Opt);

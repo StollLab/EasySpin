@@ -22,7 +22,7 @@ D = [0 0 0 -1 -5 -10]; % MHz
 Sys.lwpp = 0.04; % mT
 
 % Set up the initial density matrix (in the uncoupled basis of EasySpin)
-S = cgmatrix(Sys.S(1),Sys.S(2),0).';
+S = cgmatrix(Sys.S(1),Sys.S(2),0).';  % singlet state
 Sys.initState = S*S';
 
 Exp.Range = [346.5 349.5]; % mT

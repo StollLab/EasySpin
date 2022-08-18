@@ -13,11 +13,11 @@ Triplet.lw = 0.2; % mT
 % (The triplet is assumed to be generated via inter-system crossing.)
 Triplet.initState = {[0.48 0.52 0],'xyz'};
 
-Exp.mwFreq = 9.5; % GHz
-Exp.Range = [328 350]; % mT
-Exp.Harmonic = 0;
+Exp.mwFreq = 9.5;  % GHz
+Exp.Range = [328 350];  % mT
+Exp.Harmonic = 0;  % no field modulation
 
-[B,y_polarized] = pepper(Triplet,Exp);
+[B,spc_polarized] = pepper(Triplet,Exp);
 
-plot(B,y_polarized);
+plot(B,spc_polarized);
 xlabel('magnetic field (mT)');

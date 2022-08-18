@@ -4,18 +4,18 @@ clc, clf, clear
 
 % Spin Hamiltonian parameters and broadening
 Triplet.S = 1;
-Triplet.D = 500*[1 0.1]; % MHz
-Triplet.lwpp = 1; % mT
+Triplet.D = 500*[1 0.1];  % MHz
+Triplet.lwpp = 1;  % mT
 
 % Experimental parameters
-Exp.mwFreq = 9.5; % GHz
-Exp.Range = [310 370]; % mT
-Exp.Harmonic = 0; % time-resolved EPR: no field modulation
+Exp.mwFreq = 9.5;  % GHz
+Exp.Range = [310 370];  % mT
+Exp.Harmonic = 0;  % time-resolved EPR: no field modulation
 
 % Shortcut for recombination triplet: exclusive population of T0 level
 Triplet.initState = 'T0';
 
-% % General input: population vector in eigenbasis
+% General input: population vector in eigenbasis, in order of increasing energy
 % Triplet.initState = {[0 1 0],'eigen'};
 
 [B,spc] = pepper(Triplet,Exp);
