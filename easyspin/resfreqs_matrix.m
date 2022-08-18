@@ -210,10 +210,9 @@ DefaultOptions.Hybrid = 0;
 DefaultOptions.HybridCoreNuclei = [];
 
 % undocumented fields
-DefaultOptions.nTRKnots = 4;
 DefaultOptions.FuzzLevel = 1e-10;
-DefaultOptions.MaxKnots = 2000;
-DefaultOptions.RediagLimit = 0.95;
+%DefaultOptions.MaxKnots = 2000;
+%DefaultOptions.RediagLimit = 0.95;
 
 DefaultOptions.Intensity = 1;
 DefaultOptions.Sparse = false;

@@ -143,7 +143,8 @@ DefaultOpt.PowderSimulation = 0;
 % Undocumented fields
 DefaultOpt.OriWeights = [];
 DefaultOpt.OriThreshold = 1e-4;
-DefaultOpt.nTRKnots = 4;
+DefaultOpt.TPSGridSize = 4;      % grid size for transition pre-selection
+DefaultOpt.TPSGridSymm = 'D2h';  % grid symmetry for transition pre-selection
 
 %DefaultOpt.PreSelection = 1;
 DefaultOpt.SelectionThreshold = 0.01;
@@ -268,18 +269,20 @@ nStates = Sys.nStates; % state space dimension
 
 if isempty(Opt.Transitions)
   logmsg(1,'  automatic transition selection');
-  logmsg(2,'    (threshold %g, knots %d)',Opt.Threshold,Opt.nTRKnots);
+  logmsg(2,'    (threshold %g, grid size %d, grid symmetry %s)',Opt.Threshold,Opt.TPSGridSize,Opt.TPSGridSymm);
   
   % Set a coarse grid, independent of the effective symmetry of
   % the Hamiltonian.
-  grid = sphgrid('D2h',Opt.nTRKnots);
+  grid = sphgrid(Opt.TPSGridSymm,Opt.TPSGridSize);
   phi = grid.phi;
   theta = grid.theta;
   TRWeights = grid.weights;
   
   % pre-compute trigonometric functions
-  st = sin(theta); sp = sin(phi);
-  ct = cos(theta); cp = cos(phi);
+  st = sin(theta);
+  sp = sin(phi);
+  ct = cos(theta);
+  cp = cos(phi);
   
   % Compute selection detection operators (NMR transitions only!)
   [sGxM,sGyM,sGzM] = zeeman(Sys,Opt.Nuclei);
@@ -288,6 +291,7 @@ if isempty(Opt.Transitions)
   TransitionRates = zeros(nStates);
   maxE = zeros(nStates);
   minE = ones(nStates)*inf;
+  
   % calculate transition rates over all orientations
   for iOri = 1:length(theta)
     
@@ -299,8 +303,8 @@ if isempty(Opt.Transitions)
     % sum up transition rates
     sGpM = cp(iOri)*sGxM+ sp(iOri)*sGyM;
     TransitionRates = TransitionRates + TRWeights(iOri) * ...
-      (abs(Vs'*(ct(iOri)*sGpM - st(iOri)*sGzM)*Vs).^2 + ...
-       abs(Vs'*(-sp(iOri)*sGxM + cp(iOri)*sGyM)*Vs).^2);
+      (abs(Vs'*( ct(iOri)*sGpM - st(iOri)*sGzM)*Vs).^2 + ...
+       abs(Vs'*(-sp(iOri)*sGxM + cp(iOri)*sGyM)*Vs).^2)/2;
        
     % Determine minima and maxima of transition frequencies
     EE = E(:,ones(1,nStates));
@@ -309,8 +313,7 @@ if isempty(Opt.Transitions)
     idx = EE < minE; minE(idx) = EE(idx);
   end
   
-  % Remove unused matrices. With high nStates, they take a lot
-  % of space.
+  % Remove unused matrices. With high nStates, they take a lot of space.
   clear Vs E EE sGpM sGxM sGyM sGzM st ct sp cp TRWeights idx;
   
   % Remove transitions completely out of range.

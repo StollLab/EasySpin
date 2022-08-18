@@ -355,7 +355,6 @@ DefaultOpt.GridFrame = [];
 DefaultOpt.Output = 'summed';
 
 % Undocumented fields
-%DefaultOpt.nTRKnots = 4; % endorfrq
 DefaultOpt.Smoothing = 2;
 DefaultOpt.minEffKnots = 5;
 

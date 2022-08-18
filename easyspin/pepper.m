@@ -540,8 +540,9 @@ DefaultOpt.Output = 'summed';
 DefaultOpt.Method = 'matrix'; % 'matrix', 'eig', 'perturb1', 'perturb2'='perturb' 
 
 % Undocumented fields, pepper
-%DefaultOpt.nTRKnots = 3; % resfields
-%DefaultOpt.Weak = []; % resfields
+%DefaultOptions.TPSGridSize = 4;      % resfields
+%DefaultOptions.TPSGridSymm = 'D2h';  % resfields
+%DefaultOpt.Weak = [];                % resfields
 DefaultOpt.Smoothing = 2;
 DefaultOpt.GridSizeMinimum = 10;
 DefaultOpt.Debug = 0;
