@@ -218,9 +218,8 @@ DefaultOptions.Freq2Field = true;
 DefaultOptions.maxSegments = 2000;
 DefaultOptions.ModellingAccuracy = 2e-6;
 DefaultOptions.RediagLimit = 0.95;
-DefaultOptions.Sparse = 0;
+DefaultOptions.Sparse = false;
 DefaultOptions.nLevels = [];
-
 DefaultOptions.Gradient = 1;
 DefaultOptions.Intensity = 1;
 
@@ -451,8 +450,8 @@ end
 % This is a very crude workaround to prevent numerical issues due to degeneracies.
 % It probably adds noise in a lot of situations where it is not necessary.
 if Opt.FuzzLevel>0 && ~higherOrder && (CoreSys.nNuclei>1 || CoreSys.nElectrons>1) && ~computeNonEquiPops
-  noise = 2*rand(size(kF))-1;
-  noise = 1+Opt.FuzzLevel*(noise+noise.')/2; % make sure it's Hermitian
+  noise = 1 + Opt.FuzzLevel*(2*rand(size(kF))-1);
+  noise = (noise+noise.')/2; % make sure it's Hermitian
   kF = kF.*noise;
   kGxM = kGxM.*noise;
   kGyM = kGyM.*noise;

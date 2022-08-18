@@ -204,16 +204,13 @@ if ~isfield(Opt,'Sites'), Opt.Sites = []; end
 %---------------------------------------------------------------------
 
 % documented fields
-DefaultOptions.Transitions = [];
-DefaultOptions.Threshold = 1e-4;
+DefaultOptions.Transitions = [];  % list of transitions to include
+DefaultOptions.Threshold = 1e-4;  % cutoff threshold for transition pre-selection
 DefaultOptions.Hybrid = 0;
 DefaultOptions.HybridCoreNuclei = [];
 
 % undocumented fields
 DefaultOptions.FuzzLevel = 1e-10;
-%DefaultOptions.MaxKnots = 2000;
-%DefaultOptions.RediagLimit = 0.95;
-
 DefaultOptions.Intensity = 1;
 DefaultOptions.Sparse = false;
 
