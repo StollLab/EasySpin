@@ -393,10 +393,6 @@ if computeNonEquiPops
       initState = kron(initState,ones(nCore/nElectronStates,1));
     end
     initState = initState/sum(initState);
-    % Convert population vector to density matrix for populations provided in eigenbasis
-    if strcmp(initStateBasis,'eigen')
-      initState = diag(initState);
-    end
   end
   
   computeBoltzmannPopulations = false;

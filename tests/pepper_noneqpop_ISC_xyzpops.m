@@ -12,6 +12,8 @@ for i = 1:numel(D)
   Triplet.D = [D(i) E(i)];  % MHz
   Triplet.lwpp = 1;  % mT
 
+  Triplet.DFrame = rand(1,3);
+
   Exp.mwFreq = 9.5;  % GHz
   Exp.Range = [290 390];  % mT
   Exp.Harmonic = 0;
@@ -38,10 +40,10 @@ for i = 1:numel(D)
 
   if opt.Display
     hold on
-    plot(B,spc_xyz,B,spc_Eorder)
+    plot(B,spc_xyz,B,spc_Eorder,'--')
   end
 
-  ok(i) = areequal(spc_xyz,spc_Eorder,1e-16,'rel');
+  ok(i) = areequal(spc_xyz,spc_Eorder,1e-12,'abs');
 
 end
 

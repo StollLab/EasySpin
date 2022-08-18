@@ -923,7 +923,7 @@ if ~isfield(Sys,'initState')
 end
 if ~isempty(Sys.initState)
 
-  if iscell(Sys.initState)  
+  if iscell(Sys.initState)
     % Cell input with format Sys.initState = {densitymatrix,'basis'} or {popvector,'basis'}
 
     % Density matrix or population vector and basis input
@@ -942,44 +942,67 @@ if ~isempty(Sys.initState)
       err = 'A density matrix or a population vector must be specified within Sys.initState.';
     end
 
-    % Conversion from coupled to uncoupled basis
-    if strcmp(initStateBasis,'coupled')
-      if Sys.nElectrons~=2 
-        err = 'Sys.initState in the coupled basis is only available for systems with two electron spins.';
-      else
-        C2U = cgmatrix(Sys.S(1),Sys.S(2))';
-        nElectronStates = size(C2U,1);
-        if max([sz1 sz2])~=nElectronStates
-          nStates = hsdim([Sys.S(:); Sys.I(:)].');
-          C2U = kron(C2U,eye(nStates/nElectronStates));
-        end
-        if sz1==sz2
-          % Transform density matrix from coupled to the uncoupled basis
-          initState = C2U*initState*C2U';
-        else
-          % Get density matrix in uncoupled basis for population vector given in the coupled basis
-          initState = C2U*diag(initState)*C2U';
-        end
-        initStateBasis = 'uncoupled';
-      end
-    end
+    % Conversion between bases
+    switch initStateBasis
+      case 'coupled'
 
-    % Convert sublevel population from XYZ order to energy order (lowest to highest) for triplet states
-    if strcmp(initStateBasis,'xyz')
-      if Sys.S~=1
-        err = 'Sys.initState population input with ''xyz'' basis only allowed for triplet states (Sys.S = 1).';
-      end
-      if numel(initState)~=3
-        err = 'Sys.initState population input with ''xyz'' basis requires three population values [px py pz].';
-      end
-      if ~isempty(err), return; end
-      initState = tripletpoporder(Sys.D,initState);
-      initStateBasis = 'zerofield';
+        % Conversion from coupled to uncoupled basis
+        if Sys.nElectrons~=2
+          err = 'Sys.initState in the coupled basis is only available for systems with two electron spins.';
+        else
+          C2U = cgmatrix(Sys.S(1),Sys.S(2))';
+          nElectronStates = size(C2U,1);
+          if max([sz1 sz2])~=nElectronStates
+            nStates = hsdim([Sys.S(:); Sys.I(:)].');
+            C2U = kron(C2U,eye(nStates/nElectronStates));
+          end
+          if sz1==sz2
+            % Transform density matrix from coupled to the uncoupled basis
+            initState = C2U*initState*C2U';
+          else
+            % Get density matrix in uncoupled basis for population vector given in the coupled basis
+            initState = C2U*diag(initState)*C2U';
+          end
+          initStateBasis = 'uncoupled';
+        end
+
+      case 'xyz'
+
+        % Conversion from xyz to uncoupled basis
+        if Sys.S~=1
+          err = 'Sys.initState population input with ''xyz'' basis only allowed for triplet states (Sys.S = 1).';
+        end
+        if numel(initState)~=3
+          err = 'Sys.initState population input with ''xyz'' basis requires three population values [px py pz].';
+        end
+        if ~isempty(err), return; end
+
+        % Tx, Ty and Tz in uncoupled basis
+        Tx = (1/sqrt(2))*[1;0;-1];
+        Ty = (1/sqrt(2))*[1;0;1];
+        Tz = [0;1;0];
+        ZFStates = [Tx Ty Tz];
+
+        if any(Sys.DFrame)
+          D = wignerd(1,Sys.DFrame(1),Sys.DFrame(2),Sys.DFrame(3));
+          ZFStates = D*ZFStates;
+        end
+
+        initState = ZFStates*diag(initState)*ZFStates';
+        initStateBasis = 'uncoupled';
+
+      case 'eigen'
+
+        % Convert population vector to density matrix for populations provided in eigenbasis
+        if isvector(initState)
+          initState = diag(initState);
+        end
+
     end
 
   elseif isnumeric(Sys.initState)
     % Full density matrix input (in default EasySpin basis)
-    
+
     % Density matrix input in default EasySpin basis
     initState = Sys.initState;
     [sz1,sz2] = size(initState);
@@ -1006,7 +1029,7 @@ if ~isempty(Sys.initState)
         err = 'Sys.initState = ''T0'' is only available for triplet states (Sys.S = 1).';
       else
         % T0 populated triplet state
-        initState = [0 1 0];
+        initState = diag([0 1 0]);
         initStateBasis = 'eigen';
       end
     else
