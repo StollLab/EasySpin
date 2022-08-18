@@ -211,7 +211,7 @@ DefaultOptions.Hybrid = 0;
 DefaultOptions.HybridCoreNuclei = [];
 
 % undocumented fields
-DefaultOptions.nTRKnots = 3;
+DefaultOptions.nTRKnots = 4;
 DefaultOptions.FuzzLevel = 1e-10;
 DefaultOptions.Freq2Field = true;
 DefaultOptions.maxSegments = 2000;
