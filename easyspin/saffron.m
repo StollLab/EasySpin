@@ -216,21 +216,18 @@ if strcmp(Opt.SimulationMode,'fast')
     if ~iscell(Sys), Sys = {Sys}; end
     
     nComponents = numel(Sys);
-    if nComponents>1
-      logmsg(1,'  %d component spin systems...');
-    else
-      logmsg(1,'  single spin system');
-    end
+    logmsg(1,'  number of component spin systems: %d',nComponents);
     
     for c = 1:nComponents
       SysList{c} = isotopologues(Sys{c},Opt.IsoCutoff);  %#ok
       nIsotopologues(c) = numel(SysList{c});  %#ok
       logmsg(1,'  component %d: %d isotopologues',c,nIsotopologues(c));
     end
+    nTotalComponents = sum(nIsotopologues);
     
     ysum = 0; % direct domain (TD for ESEEM, FD for ENDOR)
     zsum = 0; % inverse domain (FD for ESEEM)
-    for iComponent = 1:numel(SysList)
+    for iComponent = 1:nComponents
       for iIsotopologue = 1:nIsotopologues(iComponent)
         
         % Simulate single-isotopologue spectrum

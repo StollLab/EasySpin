@@ -84,19 +84,17 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
   if ~iscell(Sys), Sys = {Sys}; end
   
   nComponents = numel(Sys);
-  if nComponents>1
-    logmsg(1,'  %d component spin systems...');
-  else
-    logmsg(1,'  single spin system');
-  end
+  logmsg(1,'  number of component spin systems: %d',nComponents);
   
-  for c = 1:nComponents
+   % Determine isotopologues for each component
+   for c = 1:nComponents
     SysList{c} = isotopologues(Sys{c},Opt.IsoCutoff);  %#ok
     nIsotopologues(c) = numel(SysList{c});  %#ok
     logmsg(1,'  component %d: %d isotopologues',c,nIsotopologues(c));
   end
+  nTotalComponents = sum(nIsotopologues);
   
-  if sum(nIsotopologues)>1 && FrequencyAutoRange
+  if nTotalComponents>1 && FrequencyAutoRange
     error('Multiple components: Please specify frequency range manually using Exp.Range or Exp.CenterSweep.');
   end
   
@@ -105,9 +103,8 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
     isempty(Exp.CrystalOrientation) || ...
     (isfield(Exp,'Ordering') && ~isempty(Exp.Ordering));
   %}
-  separateSpectra = ~summedOutput && ...
-    (nComponents>1 || sum(nIsotopologues)>1);
-  if separateSpectra
+  separateComponentSpectra = ~summedOutput && nTotalComponents>1;
+  if separateComponentSpectra
     spec = [];
     Opt.Output = 'summed'; % summed spectrum for each isotopologue
   else
@@ -124,7 +121,7 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
       [xAxis,spec_,Transitions] = salt(Sys_,Exp,Opt);
       
       % Accumulate or append spectra
-      if separateSpectra
+      if separateComponentSpectra
         spec = [spec; spec_*Sys_.weight];  %#ok
       else
         spec = spec + spec_*Sys_.weight;
