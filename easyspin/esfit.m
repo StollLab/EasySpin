@@ -802,6 +802,7 @@ if order~=-1
   if Opt.AutoScale
     D = [simdata D];
     coeffs = D(mask,:)\expdata(mask);
+    coeffs(1) = abs(coeffs(1));
     baseline = D(:,2:end)*coeffs(2:end);
     simdata = D*coeffs;
     simscale = coeffs(1);
@@ -815,6 +816,7 @@ else
   if Opt.AutoScale
     D = simdata;
     coeffs = D(mask)\expdata(mask);
+    coeffs(1) = abs(coeffs(1));
     simdata = D*coeffs;
     baseline = zeros(size(simdata));
     simscale = coeffs(1);
