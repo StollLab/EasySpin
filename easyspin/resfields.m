@@ -409,14 +409,14 @@ if computeNonEquiPops
   [sz1,sz2] = size(initState);
   if sz1==sz2
     % Density matrix
-    if nElectronStates~=sz1 && nCore~=sz1
+    if sz1~=nElectronStates && sz1~=nCore
       error('The density matrix in Sys.initState must have dimensions of nxn with n = %d or %d.',nElectronStates,nCore)
     end
-    if numel(initState)==nElectronStates^2 && numel(initState)~=nCore^2
+    if numel(initState)==nElectronStates^2 && nCore>nElectronStates
       initState = kron(initState,eye(nCore/nElectronStates));
     end
     initState = initState/trace(initState);
-  else
+  elseif isvector(initState)
     % Vector of populations
     if numel(initState)~=nElectronStates && numel(initState)~=nCore
       error('The population vector in Sys.initState must have %d or %d elements.',nElectronStates,nCore);
@@ -426,6 +426,9 @@ if computeNonEquiPops
       initState = kron(initState,ones(nCore/nElectronStates,1));
     end
     initState = initState/sum(initState);
+    initState = diag(initState);
+  else
+    error('Sys.initState must contain either a population vector or a density matrix.');
   end
 
   computeBoltzmannPopulations = false;
@@ -485,13 +488,8 @@ if computeNonEquiPops && strcmp(initStateBasis,'zerofield')
            'state using the full density matrix. See documentation for details.'])
   end
   
-  if isvector(initState)
-    % Convert population vector to density matrix
-    initState = ZFStates*diag(initState)*ZFStates';
-  else
-    % Convert density matrix in zero-field basis to uncoupled basis
-    initState = ZFStates*initState*ZFStates';
-  end
+  % Convert density matrix in zero-field basis to uncoupled basis
+  initState = ZFStates*initState*ZFStates';
   
 else
   if higherOrder
