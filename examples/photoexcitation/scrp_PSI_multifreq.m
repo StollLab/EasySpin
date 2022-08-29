@@ -7,7 +7,8 @@
 %  - van der Est et al, J. Phys. Chem. B 101, 1437–1443 (1997)
 %    https://doi.org/10.1021/jp9622086
 %    (Fig. 3, parameters Table 1)
-%
+% see also
+%  - Poluektov et al, J. Am. Chem. Soc. 127, 11910-11911 (2005)
 
 clear; clc; clf;
 
@@ -38,19 +39,18 @@ Exp(2).mwFreq = 24.269; % GHz
 Exp(3).Range = [336.5 350]; % mT
 Exp(3).mwFreq = 9.706; % GHz
 
-% Plot spectra at different microwave frequencies
-for i = 1:numel(Exp)
-  
+% Simulate spectra at different microwave frequencies
+for i = 1:numel(Exp)  
   Exp(i).nPoints = 4096;
   Exp(i).Harmonic = 0;
-  
-  [B,spc] = pepper(Sys,Exp(i));
-  
+  [B{i},spc{i}] = pepper(Sys,Exp(i));
+end
+
+% Plotting
+for i = 1:numel(Exp)
   subplot(3,1,i)
+  plot(B{i},spc{i})
   title(['\nu_{mw} = ',num2str(Exp(i).mwFreq,'%1.2f'),'GHz'])
-  hold on; box on;
-  plot(B,spc)
   xlim(Exp(i).Range)
   xlabel('{\itB} (mT)')
-  
 end
