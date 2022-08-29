@@ -34,9 +34,9 @@ sysfields = fieldnames(Sys);
 highOrderTermsPresent = ~isempty(Sys.B);
 
 higherZeemanPresent = false;
-higherzeemanFields = strncmp(sysfields,'Ham',3).';
-if any(higherzeemanFields) 
-  for n = find(higherzeemanFields)
+higherZeemanFields = strncmp(sysfields,'Ham',3).';
+if any(higherZeemanFields) 
+  for n = find(higherZeemanFields)
     if any(Sys.(sysfields{n})(:))
         highOrderTermsPresent = true;
         higherZeemanPresent = true;

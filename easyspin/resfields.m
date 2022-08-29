@@ -600,11 +600,18 @@ else % Automatic transition pre-selection
     % Prepare detection operators
     if higherOrder
       if Opt.Sparse
-        g1 = ham_ezho(CoreSys,[],'sparse',1);
-        [g0{1},g0{2},g0{3}] = zeeman(CoreSys,[],'sparse');
+        sp = 'sparse';
+        g1 = ham_ezho(CoreSys,[],sp,1);
       else
-        g1 = ham_ezho(CoreSys,[],[],'',1);
-        [g0{1},g0{2},g0{3}] = zeeman(CoreSys,[],'');
+        sp = '';
+        g1 = ham_ezho(CoreSys,[],[],sp,1);
+      end
+      [g0{1},g0{2},g0{3}] = ham_ez(CoreSys,[],sp);
+      if Sys.nNuclei>0
+        [g0n{1},g0n{2},g0n{3}] = ham_nz(CoreSys,[],sp);
+        for k = 1:3
+          g0{k} = g0{k} + g0n{k};
+        end
       end
       ExM = g1{1}{1} + g0{1};
       EyM = g1{1}{2} + g0{2};
@@ -1142,11 +1149,17 @@ for iOri = 1:nOrientations
 
           if higherOrder
             if Opt.Sparse
-              g1 = ham_ezho(CoreSys,[],[],'sparse',1);
-              [g0{1},g0{2},g0{3}]= zeeman(CoreSys,[],'sparse');
+              sp = 'sparse';
             else
-              g1 = ham_ezho(CoreSys,[],[],'',1);
-              [g0{1},g0{2},g0{3}] = zeeman(CoreSys,[],'');
+              sp = '';
+            end
+            g1 = ham_ezho(CoreSys,[],[],sp,1);
+            [g0{1},g0{2},g0{3}] = ham_ez(CoreSys,[],sp);
+            if Sys.nNuclei>0
+              [g0n{1},g0n{2},g0n{3}] = ham_nz(CoreSys,[],sp);
+              for k = 1:3
+                g0{k} = g0{k} + g0n{k};
+              end
             end
             for n =3:-1:1
               kGM{n} = g1{1}{n}+g0{n};

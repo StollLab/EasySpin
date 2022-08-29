@@ -285,7 +285,7 @@ if isempty(Opt.Transitions)
   cp = cos(phi);
   
   % Compute selection detection operators (NMR transitions only!)
-  [sGxM,sGyM,sGzM] = zeeman(Sys,Opt.Nuclei);
+  [sGxM,sGyM,sGzM] = ham_nz(Sys);
   
   % preallocate the transition rate matrix
   TransitionRates = zeros(nStates);

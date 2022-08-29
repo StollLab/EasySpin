@@ -1,6 +1,6 @@
 function ok = test()
 
-% ham vs zeeman/ham_hf
+% ham vs ham_ez/ham_nz/ham_hf
 
 Sys = struct('S',1/2,'g',[2 3 4],'Nucs','63Cu','A',[50 50 350]);
 
