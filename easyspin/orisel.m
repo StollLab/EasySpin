@@ -107,7 +107,7 @@ end
 
 %-----------------------------------------------------------------------
 % Prepare Hamiltonian and get state space dimension
-[F,GxM,GyM,GzM] = sham(Sys);
+[F,GxM,GyM,GzM] = ham(Sys);
 N = length(F);
 
 % Transition map and level indices

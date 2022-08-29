@@ -174,7 +174,7 @@ end
 % Preparing Hamiltonian representations etc.
 %-----------------------------------------------------------------------
 % The first and only compilation of the full Hamiltonian.
-[F,GxM,GyM,GzM] = sham(Sys);
+[F,GxM,GyM,GzM] = ham(Sys);
 
 
 % For polarized systems, pre-compute ZF eigenstates.
@@ -367,7 +367,7 @@ end
 %------------------------------------------------------------------------
 %if Opt.PowderSimulation & Opt.PreSelection
 %  selSys = anisosubsys(Sys);
-%  [selF,selGx,selGy,selGz] = sham(selSys);
+%  [selF,selGx,selGy,selGz] = ham(selSys);
 %  selN = length(selF);
 %  lev = repmat(1:selN,selN,1);
 %  logmsg(2,'  anisotropic spin system contains %d of %d nuclei',...

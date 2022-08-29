@@ -78,7 +78,7 @@ end
 [Sys,err] = validatespinsys(SpinSystem);
 error(err);
 
-[F,GxM,GyM,GzM] = sham(Sys);
+[F,GxM,GyM,GzM] = ham(Sys);
 
 if OriList
 

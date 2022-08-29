@@ -207,7 +207,7 @@ if computeResonances
 
     % compute and plot lower and upper energy levels of transitions
     n = ang2vec(phi,theta);
-    [F,G] = sham(Sys,n);
+    [F,G] = ham(Sys,n);
     for iF = 1:numel(resonFields)
       if tp(iF)<Par.PlotThreshold, continue; end
       H = F + G*resonFields(iF);

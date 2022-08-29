@@ -385,10 +385,10 @@ if higherOrder
   % spin Hamiltonian is calculated later
 else
   if Opt.Sparse
-    [kF,kGxM,kGyM,kGzM] = sham(CoreSys,[],'sparse');
+    [kF,kGxM,kGyM,kGzM] = ham(CoreSys,[],'sparse');
     nLevels = length(kF);
   else
-    [kF,kGxM,kGyM,kGzM] = sham(CoreSys);
+    [kF,kGxM,kGyM,kGzM] = ham(CoreSys);
     nLevels = length(kF);
   end
   nCore = length(kF);
@@ -468,7 +468,7 @@ if computeNonEquiPops && strcmp(initStateBasis,'zerofield')
     
   % Pre-compute zero-field energies and eigenstates
   if higherOrder
-    [ZFStates,ZFEnergies] =  eig(sham(CoreSys,zeros(1,3)));
+    [ZFStates,ZFEnergies] =  eig(ham(CoreSys,zeros(1,3)));
   else
     if Opt.Sparse
       [ZFStates,ZFEnergies] = eigs(kF,length(kF));
@@ -495,7 +495,7 @@ if computeNonEquiPops && strcmp(initStateBasis,'zerofield')
   
 else
   if higherOrder
-    ZFEnergies = eig(sham(CoreSys,zeros(1,3)));
+    ZFEnergies = eig(ham(CoreSys,zeros(1,3)));
     ZFEnergies = sort(real(ZFEnergies));
   else
     if issparse(kF)
@@ -600,10 +600,10 @@ else % Automatic transition pre-selection
     % Prepare detection operators
     if higherOrder
       if Opt.Sparse
-        g1 = zeemanho(CoreSys,[],'sparse',1);
+        g1 = ham_ezho(CoreSys,[],'sparse',1);
         [g0{1},g0{2},g0{3}] = zeeman(CoreSys,[],'sparse');
       else
-        g1 = zeemanho(CoreSys,[],[],'',1);
+        g1 = ham_ezho(CoreSys,[],[],'',1);
         [g0{1},g0{2},g0{3}] = zeeman(CoreSys,[],'');
       end
       ExM = g1{1}{1} + g0{1};
@@ -1142,10 +1142,10 @@ for iOri = 1:nOrientations
 
           if higherOrder
             if Opt.Sparse
-              g1 = zeemanho(CoreSys,[],[],'sparse',1);
+              g1 = ham_ezho(CoreSys,[],[],'sparse',1);
               [g0{1},g0{2},g0{3}]= zeeman(CoreSys,[],'sparse');
             else
-              g1 = zeemanho(CoreSys,[],[],'',1);
+              g1 = ham_ezho(CoreSys,[],[],'',1);
               [g0{1},g0{2},g0{3}] = zeeman(CoreSys,[],'');
             end
             for n =3:-1:1

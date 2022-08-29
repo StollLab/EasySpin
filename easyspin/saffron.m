@@ -937,7 +937,7 @@ if strcmp(Opt.SimulationMode,'fast')
       coreSys = rmfield(coreSys,'A');
     end
     % Operators for constructing Hamiltonian
-    [F,Gx,Gy,Gz] = sham(coreSys);
+    [F,Gx,Gy,Gz] = ham(coreSys);
     % Operators for computing <i|S|i>
     Sx = sop(coreSys,[1,1]); % works only for one electron spin
     Sy = sop(coreSys,[1,2]);
@@ -2000,7 +2000,7 @@ else
     
     Sys_ = rotatesystem(Sys,Orientations(iOrientation,:));
        
-    Ham = sham(Sys_,Field*[0 0 1]);
+    Ham = ham(Sys_,Field*[0 0 1]);
     
     Relaxation_ = Relaxation;
     if ~isempty(Relaxation_)

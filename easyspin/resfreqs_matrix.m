@@ -352,10 +352,10 @@ if higherOrder
   nSHFNucStates = nFull/nCore;
 else
   if Opt.Sparse
-    [kF,kGxM,kGyM,kGzM] = sham(CoreSys,[],'sparse');
+    [kF,kGxM,kGyM,kGzM] = ham(CoreSys,[],'sparse');
     nLevels = length(kF);
   else
-    [kF,kGxM,kGyM,kGzM] = sham(CoreSys);
+    [kF,kGxM,kGyM,kGzM] = ham(CoreSys);
     nLevels = length(kF);
   end
   nCore = length(kF);
@@ -436,7 +436,7 @@ if computeNonEquiPops && strcmp(initStateBasis,'zerofield')
   
   % Pre-compute zero-field energies and eigenstates
   if higherOrder
-    [ZFStates,ZFEnergies] = eig(sham(CoreSys, zeros(1,3)));
+    [ZFStates,ZFEnergies] = eig(ham(CoreSys, zeros(1,3)));
   else
     if Opt.Sparse
       [ZFStates,ZFEnergies] = eigs(kF,length(kF));
@@ -636,13 +636,14 @@ for iOri = 1:nOrientations
   [xLab,yLab,zLab] = erot(Orientations(iOri,:),'rows');
   if higherOrder
     [Vs,E] = gethamdata_hO(Exp.Field,zLab, CoreSys,Opt.Sparse, [], nLevels);
-    if Opt.Sparse
-      g1 = zeemanho(CoreSys,[],[],'sparse',1);
-      [g0{1},g0{2},g0{3}] = zeeman(CoreSys,[],'sparse');
-    else
-      g1 = zeemanho(CoreSys,[],[],'',1);
-      [g0{1},g0{2},g0{3}] = zeeman(CoreSys,[],'');
+    if Opt.Sparse, sp = 'sparse'; else, sp = ''; end
+    [g0e{1},g0e{2},g0e{3}] = ham_ez(CoreSys,[],sp);
+    [g0n{1},g0n{2},g0n{3}] = ham_nz(CoreSys,[],sp);
+    [g0o{1},g0o{2},g0o{3}] = ham_oz(CoreSys,[],sp);
+    for k = 1:3
+      g0{k} = g0e{k} + g0n{k} + g0o{k};
     end
+    g1 = ham_ezho(CoreSys,[],[],sp,1);
     for n =3:-1:1
       kGM{n} = g1{1}{n}+g0{n};
     end

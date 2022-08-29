@@ -143,7 +143,7 @@ logmsg(1,'  computing %s',msg);
 if iscell(SpinSystem)
   [F,Gx,Gy,Gz] = deal(SpinSystem);
 else
-  [F,Gx,Gy,Gz] = sham(SpinSystem);
+  [F,Gx,Gy,Gz] = ham(SpinSystem);
 end
 
 % Build Liouville space operators.

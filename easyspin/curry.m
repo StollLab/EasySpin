@@ -244,7 +244,7 @@ end
 % zero-field Hamiltonian F (MHz)
 % magnetic dipole moment operators muOpxM,muOpyM,muOpzM (MHz/mT)
 % all are in the molecular frame
-[H0,GxM,GyM,GzM] = sham(Sys);
+[H0,GxM,GyM,GzM] = ham(Sys);
 if ~isempty(Opt.Spins)
   [GxM,GyM,GzM] = zeeman(Sys,Opt.Spins);
 end

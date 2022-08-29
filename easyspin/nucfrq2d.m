@@ -52,7 +52,7 @@ if nargin<3, tau = 0; end
 computeBlindSpots = all(tau>0) & ~Options.QuadraticAxes;
 
 % Construct spin Hamiltonian and get state space dimension.
-[F,Gx,Gy,Gz] = sham(sys);
+[F,Gx,Gy,Gz] = ham(sys);
 N = size(F,1);
 
 % Construct masks for alpha and beta manifold transitions.

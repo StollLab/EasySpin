@@ -11,7 +11,7 @@ Exp = struct('mwFreq',9.5,'Range',[310 370],'Harmonic',0);
 pop = [0.3 0.6 0.1]; % populations of zero-field levels
 
 % Get zero-field states and order in terms of energy
-[F,~,~,~] = sham(Sys);
+[F,~,~,~] = ham(Sys);
 [ZFStates,ZFEnergies] = eig(F);
 [ZFEnergies,idx] = sort(real(diag(ZFEnergies)));
 ZFStates = ZFStates(:,idx);
