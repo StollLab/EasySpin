@@ -73,7 +73,7 @@ if ~testing
   
   
   if isOffline
-    msg = 'You need to be connect to the internet to check for a new EasySpin version or to update.';
+    msg = 'Could not reach EasySpin server. You need to be connect to the internet to check for a new EasySpin version or to update.';
     if messages; disp(msg); end
     varargout = {0 []};
     return

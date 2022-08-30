@@ -12,7 +12,7 @@ error(chkmlver);
 % Determine EasySpin path.
 %-------------------------------------------------------------------------------
 esPath = fileparts(which(mfilename));
-AllFiles = what(esPath);
+allFiles = what(esPath);
 
 % Get release information.
 %-------------------------------------------------------------------------------
@@ -43,7 +43,7 @@ platform(platform<31) = [];
 % Check if mex files are available, compile if necessary
 %-------------------------------------------------------------------------------
 % Get list of mex files from C source files in private subfolder
-SrcFiles = dir([esPath '/private/*.c']);
+SrcFiles = dir([esPath filesep 'private' filesep '*.c']);
 nSrcFiles = numel(SrcFiles);
 for k = 1:nSrcFiles
   MexFiles{k} = SrcFiles(k).name(1:end-2);
@@ -73,13 +73,14 @@ clear functions
 %-------------------------------------------------------------------------------
 if Display
   fprintf('==================================================================\n');
+  fprintf('Information about the installed EasySpin version\n');
+  fprintf('==================================================================\n');
   fprintf('  Release:          %s (%s)\n',esVersion,esDate);
 end
 
-Diagnostics = true;
-if Diagnostics && Display
+if Display
   fprintf('  Expiry date:      %s\n',esExpiryDate);
-  fprintf('  Folder:           %s\n',esPath);
+  fprintf('  Root folder:      %s\n',esPath(1:end-length('\easyspin')));
   fprintf('  MATLAB version:   %s\n',builtin('version'));
   fprintf('  Platform:         %s\n',platform);
   MexFiles = dir([esPath filesep 'private' filesep '*.c']);
@@ -95,6 +96,15 @@ if Diagnostics && Display
   fprintf('\n');
   fprintf('  System date:      %s\n',datestr(now));
   fprintf('  Temp dir:         %s\n',tempdir);
+  fprintf('------------------------------------------------------------------\n');
+
+  % Display information about how to access the documentation
+  docEntry = easyspindoc;
+  fprintf('  To access the documentation:\n');
+  fprintf('  - Click <a href="%s">here</a>\n',docEntry);
+  fprintf('  - In the command window, type easyspin doc\n')
+  fprintf('  - In the command window, type easyspindoc\n')
+  fprintf('  - Point your browser to <a href="%s">%s</a>\n',docEntry,docEntry);
   fprintf('==================================================================\n');
   
   % Check online for update
@@ -127,9 +137,9 @@ if Display
 end
 Shadowing = {};
 Shadowed = {};
-for iFunction = 1:length(AllFiles.m)
-  if ~isempty(strfind(AllFiles.m{iFunction},'Contents')); continue; end
-  Instances = which(AllFiles.m{iFunction},'-all');
+for iFunction = 1:length(allFiles.m)
+  if ~isempty(strfind(allFiles.m{iFunction},'Contents')); continue; end
+  Instances = which(allFiles.m{iFunction},'-all');
 
   % Remove MATLAB class methods.
   % Class methods are only called for objects of their class.

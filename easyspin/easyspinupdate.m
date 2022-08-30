@@ -44,7 +44,7 @@ elseif isunix
 end
 
 if isOffline
-  msg = 'You have to be connect to the internet to update EasySpin.';
+  msg = 'Could not reach EasySpin server. You have to be connect to the internet to update EasySpin.';
   disp(msg)
   return
 end

@@ -26,42 +26,54 @@
 
 <section>
 
-<div class="functitle">easyspincompile</div>
+<div class="functitle">easyspin</div>
 
 <p>
-Compile EasySpin.
+Information and tasks relating to the EasySpin installation.
 </p>
 
 <!-- ============================================================= -->
 <div class="subtitle">Syntax</div>
 
 <pre class="matlab">
-easyspincompile
+easyspin info
+easyspin doc
+easyspin compile
+easyspin ?
+easyspin
 </pre>
 
 <!-- ============================================================= -->
 <div class="subtitle">Description</div>
 
 <p>
-The command tries to compile the components of EasySpin that are
-platform dependent and need to be compiled: all *.c files in the
-private subdirectory.
+<code>easyspin info</code>> displays information about your current EasySpin installation. See <a class="esf" href="easyspininfo.html">easyspininfo</a>.
 </p>
 
 <p>
-If the <code>mex</code> system in Matlab is not set up, it should
-be set up first with <code>mex -setup</code>.
+<code>easyspin doc</code>> opens the documentation of your current EasySpin installation. See <a class="esf" href="easyspindoc.html">easyspininfo</a>.
+</p>
+
+<p>
+<code>easyspin compile</code>> compiles the C files of your current EasySpin installation using <code>mex</code>.  See <a class="esf" href="easyspincompile.html">easyspincompile</a>.
+</p>
+
+<p>
+<code>easyspin ?</code>> displays al possible options for <code>easyspin</code>.
+</p>
+
+<p>
+<code>easyspin</code>> is equivalent to <code>easyspin info</code>.
 </p>
 
 <!-- ====================================================== -->
 <div class="subtitle">See also</div>
 
 <p>
-<a class="esf" href="easyspin.html">easyspin</a>,
+<a class="esf" href="easyspincompile.html">easyspincompile</a>,
 <a class="esf" href="easyspindoc.html">easyspindoc</a>,
 <a class="esf" href="easyspininfo.html">easyspininfo</a>
 </p>
-
 
 <hr>
 </section>

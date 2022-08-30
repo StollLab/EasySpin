@@ -1,7 +1,5 @@
 function easyspincompile
 
-warning('off','MATLAB:oldPfileVersion');
-
 disp('EasySpin compilation');
 
 % Determine directory containing mex source files
