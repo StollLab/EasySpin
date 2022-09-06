@@ -12,7 +12,7 @@
 % 
 % Input: 
 %   InstallInfo             structure, get it by running: 
-%                           InstallInfo = easyspininfo
+%                           InstallInfo = easyspin('info')
 %         .ReleaseChannel   release channel of current installation
 %         .Version          EasySpin version
 %         .Path             Installation path
@@ -88,8 +88,8 @@ end
 % Computer is online, continue by processing info of installed version
 %--------------------------------------------------------------
 if nargin == 0
-  % get version from easyspininfo if called without input argument
-  VersionInfo = easyspininfo;
+  % get version if called without input argument
+  VersionInfo = easyspin_info;
 end
 
 if nargin == 2 && isfield(Opt,'Branch')
@@ -102,7 +102,7 @@ end
 
 % stop looking for an update if EasySpin is on source control
 if strcmp(ReleaseChannel,'$ReleaseChannel$')
-  msg = 'Your EasySpin installation appears to be on version control, use your source control tool to check for a newer version.';
+  msg = 'Your EasySpin installation appears to be on version control. Use your source control tool to check for a newer version.';
   if messages; disp(msg); end
   if nargout > 0
     varargout = {false []};

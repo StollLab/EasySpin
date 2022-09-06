@@ -22,7 +22,7 @@ if nargin == 0
 end
 
 if all(isstrprop(OnlineVersion,'alpha'))
-  InstalledVersion = easyspininfo;
+  InstalledVersion = easyspin('info');
   UpdateOpt.Branch = OnlineVersion;
   UpdateOpt.Silent = true;
   [~, OnlineVersion] = easyspinversioncheck(InstalledVersion,UpdateOpt);
@@ -61,7 +61,7 @@ end
 VersionToGet = OnlineVersion;
 
 % Determine installation path of currently installed EasySpin
-InstalledVersion = easyspininfo;
+InstalledVersion = easyspin('info');
 InstallationPath = InstalledVersion.Path;
 
 % The installation target is two directories above the easyspin functions:

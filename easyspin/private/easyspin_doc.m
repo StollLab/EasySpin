@@ -1,10 +1,10 @@
-% easyspindoc  Provide access to the EasySpin documentation
+% easyspin_doc  Provide access to the EasySpin documentation
 
-function varargout = easyspindoc()
+function varargout = easyspin_doc()
 
 % Determine entry point for documentation
 esPath = fileparts(which(mfilename));
-esRoot = esPath(1:end-length('\easyspin'));
+esRoot = esPath(1:end-length('\easyspin\private'));
 docEntry = [esRoot filesep 'documentation' filesep 'index.html'];
 if ~exist(docEntry,'file')
   docEntry = [esRoot filesep 'docsrc' filesep 'index.html'];

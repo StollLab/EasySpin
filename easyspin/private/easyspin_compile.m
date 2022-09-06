@@ -1,11 +1,12 @@
-function easyspincompile
+function easyspin_compile()
 
 disp('EasySpin compilation');
 
 % Determine directory containing mex source files
 %-------------------------------------------------------------------------------
 esPath = fileparts(which(mfilename));
-mexDirectory = [esPath filesep 'private'];
+esPrivateFolder = esPath;
+mexDirectory = esPrivateFolder;
 disp(['  directory: ' mexDirectory]);
 disp(['  version: ' version]);
 

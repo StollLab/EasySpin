@@ -14,25 +14,42 @@
 %
 %  If no parameter is given, 'info' is used by default.
 
-function easyspin(str)
+function varargout = easyspin(str)
 
 if nargin==0
   str = 'info';
 end
 
 switch str
+
   case '?'
-    dips(' easyspin info       Display information about EasySpin');
+    disp(' easyspin info       Display information about EasySpin');
     disp(' easyspin doc        Display EasySpin documentation');
     disp(' easyspin compile    Compile MEX files for EasySpin');
+    varargout = {};
+
   case 'info'
-    easyspininfo;
+    if nargout==0
+      easyspin_info;
+    else
+      out = easyspin_info;
+      varargout = {out};
+    end
+
   case 'doc'
-    easyspindoc;
+    if nargout==0
+      easyspin_doc;
+    else
+      out = easyspin_doc;
+      varargout = {out};
+    end
+
   case 'compile'
-    easyspincompile;
+    easyspin_compile;
+
   otherwise
     error('Unknown option ''%s''.',str);
+
 end
 
 end
