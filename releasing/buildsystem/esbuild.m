@@ -140,8 +140,8 @@ replacestr(esinfo,'$ReleaseID$',ReleaseID);
 replacestr(esinfo,'$ReleaseChannel$',ReleaseChannel);
 replacestr(esinfo,'$ReleaseDate$',ReleaseDate);
 replacestr(esinfo,'$ExpiryDate$',ExpiryDate);
-replacestr([TbxFolder filesep 'private' filesep 'eschecker.m'],'888888',num2str(datenum(ExpiryDate)));
-replacestr([TbxFolder filesep 'private' filesep 'eschecker.m'],'999999',num2str(datenum(HorizonDate)));
+replacestr([TbxFolder filesep 'eschecker.m'],'888888',num2str(datenum(ExpiryDate)));
+replacestr([TbxFolder filesep 'eschecker.m'],'999999',num2str(datenum(HorizonDate)));
 fprintf(' ok\n');
 
 
