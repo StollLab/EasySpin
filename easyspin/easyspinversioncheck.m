@@ -15,7 +15,7 @@
 %                           InstallInfo = easyspin('info')
 %         .ReleaseChannel   release channel of current installation
 %         .Version          EasySpin version
-%         .Path             Installation path
+%         .Root             Installation path
 % 
 %   Opt                     options
 %         .Silent           T/F - if T supress messages

@@ -8,6 +8,7 @@ Display = nargout==0;
 
 error(chkmlver);
 
+MATLABversion = builtin('version');
 
 % Determine EasySpin paths
 %-------------------------------------------------------------------------------
@@ -25,17 +26,6 @@ esExpiryDate = '$ExpiryDate$'; % replaced with actual date by build script
 esReleaseChannel = '$ReleaseChannel$'; % replaced with release channel by build script
 
 
-% Prepare output
-%-------------------------------------------------------------------------------
-VersionInfo.ReleaseChannel = esReleaseChannel;
-VersionInfo.Version = esVersion;
-VersionInfo.Path = esRoot;
-if nargout>0
-  varargout = {VersionInfo};
-  return
-end
-
-
 % Determine operating system
 %-------------------------------------------------------------------------------
 if isunix
@@ -44,6 +34,21 @@ else
   [~,platform] = dos('ver');
 end
 platform(platform<31) = [];
+
+
+% Prepare output
+%-------------------------------------------------------------------------------
+VersionInfo.ReleaseChannel = esReleaseChannel;
+VersionInfo.Version = esVersion;
+VersionInfo.Root = esRoot;
+VersionInfo.Date = esDate;
+VersionInfo.ExpiryDate = esExpiryDate;
+VersionInfo.MATLABversion = MATLABversion;
+VersionInfo.Platform = platform;
+if nargout>0
+  varargout = {VersionInfo};
+  return
+end
 
 
 % Check if mex files are available, compile if necessary
@@ -57,17 +62,17 @@ end
 
 % Check whether mex files are present
 for k = 1:nSrcFiles
-  mexFilesPresent(k) = exist(mexFiles{k})==3;
+  mexed(k) = exist(mexFiles{k})==3;
 end
 
 % If not, try to compile and check again
-if ~all(mexFilesPresent)
-  fprintf('\nEasySpin not yet compiled for this platform (%d/%d files). Attempting to compile.\n\n',sum(mexFilesPresent),numel(mexFilesPresent));
+if ~all(mexed)
+  fprintf('\nEasySpin not yet compiled for this platform (%d/%d files). Attempting to compile.\n\n',sum(mexed),numel(mexed));
   easyspin_compile;
   for k = 1:nSrcFiles
-    mexFilesPresent(k) = exist(mexFiles{k})==3;
+    mexed(k) = exist(mexFiles{k})==3;
   end
-  if all(mexFilesPresent)
+  if all(mexed)
     fprintf('\nEasySpin is now compiled for this platform.\n\n');
   else
     fprintf('\nEasySpin compilation unsuccessful.\n\n');
@@ -82,7 +87,8 @@ if Display
   fprintf('==================================================================\n');
   fprintf('Information about the installed EasySpin version\n');
   fprintf('==================================================================\n');
-  if strcmp(esVersion,"$ReleaseID$")
+  isDevelopmentVersion = esVersion(1)=='$';
+  if isDevelopmentVersion
     fprintf('  Version:          development\n');
     fprintf('  Expiration date:  none\n');
   else
@@ -93,19 +99,18 @@ end
 
 if Display
   fprintf('  Root folder:      %s\n',esRoot);
-  fprintf('  MATLAB version:   %s\n',builtin('version'));
-  fprintf('  Platform:         %s\n',platform);
-  mexFiles = dir([esFunctionsFolder filesep 'private' filesep '*.c']);
-  for k=1:nSrcFiles
-    mexed(k) = exist(mexFiles(k).name(1:end-2))==3;
-  end
-  fprintf('  mex-files:        ');
+  fprintf('  mex files:        ');
   if all(mexed)
-    fprintf([mexext, ', all %d ok'],numel(mexed));
+    fprintf([mexext, ', all present']);
   else
     fprintf([mexext, ', %d/%d missing'],sum(~mexed)/numel(mexed));
   end
   fprintf('\n');
+
+  % Display information about MATLAB and system
+  fprintf('------------------------------------------------------------------\n');
+  fprintf('  MATLAB version:   %s\n',VersionInfo.MATLABversion);
+  fprintf('  Platform:         %s\n',platform);
   fprintf('  System date:      %s\n',datestr(now));
   fprintf('  Temp dir:         %s\n',tempdir);
   fprintf('------------------------------------------------------------------\n');

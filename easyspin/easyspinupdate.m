@@ -62,7 +62,7 @@ VersionToGet = OnlineVersion;
 
 % Determine installation path of currently installed EasySpin
 InstalledVersion = easyspin('info');
-InstallationPath = InstalledVersion.Path;
+InstallationPath = InstalledVersion.Root;
 
 % The installation target is two directories above the easyspin functions:
 Path = strsplit(InstallationPath,filesep);
