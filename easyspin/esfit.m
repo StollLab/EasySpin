@@ -897,7 +897,6 @@ maxy = max(plottedData);
 miny = min(plottedData);
 YLimits = [miny maxy] + [-1 1]*esfitdata.Opts.PlotStretchFactor*(maxy-miny);
 set(findobj('Tag','dataaxes'),'YLim',YLimits);
-drawnow
 
 % Readjust mask patches
 maskPatches = findobj('Tag','maskPatch');
@@ -965,6 +964,8 @@ hParamTable.Data = data;
 
 updatermsdplot;
 
+drawnow
+
 end
 %===============================================================================
 
@@ -993,7 +994,6 @@ if ~isempty(hrmsdline)
   else
     set(ax,'yscale','linear')
   end
-  drawnow
 end
 end
 %===============================================================================
