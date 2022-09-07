@@ -35,7 +35,7 @@ end
 %-------------------------------------------------------------------------------
 fileName = 'cubicsolve';
 if exist(fileName,'file')~=3
- easyspincompile;
+ easyspin_compile;
   if exist(fileName,'file')~=3
     error('EasySpin: Generation of mex files failed.');
   end

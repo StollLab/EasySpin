@@ -29,13 +29,13 @@ Release tagging (happens automatically on tag)
   `releasing/esbuild.m`) - these values can be adapted in `config.pl`
 - make sure all files that contain `$ReleaseID$`, `$ReleaseDate$`, `$ExpiryDate$` are
   explicitly listed in `esbuild.m` (in source tree)
-  (currently `easyspininfo.m`, `eschecker.m`)
+  (currently `easyspin_info.m`, `eschecker.m`)
 
 ## Build (happens automatically on tag)
 Execute esbuild in MATLAB, done by script `esbuild.m`:
 - set release tag in documentation
-- set release tag in `easyspininfo.m`
-- set release date in `eschecker.m` and `easyspininfo.m`
+- set release tag in `easyspin_info.m`
+- set release date in `eschecker.m` and `easyspin_info.m`
 - generate all `p` files using oldest supported Matlab on any platform
 - extract file help from all m files
 - set release info file

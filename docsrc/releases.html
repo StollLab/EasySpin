@@ -55,6 +55,7 @@ $ReleaseID$
 <li>Photoselection is now supported when simulating EPR spectra of photo-generated species. See function <a class="esf" href="photoselect.html">photoselect</a>.</li>
 <li>Significantly extended support for spin-polarized systems (triplets, radical pairs, etc.) in <a class="esf" href="pepper.html">pepper</a> with the new fields <a class="matlab">Sys.initState</a>.</li>
 <li><a class="esf" href="cgmatrix.html">cgmatrix</a> has additional input and output options.</li>
+<li>The command <a class="esf" href="easyspin.html">easyspin</a> is new. Call <code>easyspin doc</code> to see the documentation. Call <code>easyspin info</code> to display information about the currently installed EasySpin version. Call <code>easyspin compile</code> to complie the C files contained in EasySpin.</li>
 </ul>
 
 <p>Major bug fixes</p>
@@ -81,6 +82,7 @@ $ReleaseID$
 <li><a class="esf" href="sphgrid.html">sphgrid</a> now returns angles, vectors, and weights together in a structure.</li>
 <li>The function <code>sphtri</code> has been removed; it's functionality is now incorporated into <a class="esf" href="sphgrid.html">sphgrid</a>.</li>
 <li>The option name to specify powder averages has changed. Instead of <code>Opt.nKnots</code>, use the new field <code>Opt.GridSize</code>.</li>
+<li><code>easyspininfo</code> and <code>easyspincompile</code> are no longer supported. Use <code>easyspin info</code> and <code>easyspin compile</code> instead. See help for the <a class="esf" href="easyspin.htlm">easyspin</a> command.</li>
 <li>The oldest supported Matlab version is now R2016b.
 </ul>
 
