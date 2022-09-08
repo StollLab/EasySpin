@@ -241,24 +241,12 @@ end
 
 % Set up Hamiltonian and magnetic dipole moment operators
 %-------------------------------------------------------------------------------
-% zero-field Hamiltonian F (MHz)
-% magnetic dipole moment operators muOpxM,muOpyM,muOpzM (MHz/mT)
-% all are in the molecular frame
+% zero-field Hamiltonian H0 (MHz)
+% magnetic dipole moment operators muOpxM, muOpyM, muOpzM (MHz/mT)
+%   all are in the molecular frame
 [H0,GxM,GyM,GzM] = ham(Sys);
 if ~isempty(Opt.Spins)
   [GxM,GyM,GzM] = ham_ez(Sys,Opt.Spins);
-  if Sys.nNuclei>0
-    [GxMn,GyMn,GzMn] = ham_nz(Sys,Opt.Spins);
-    GxM = GxM + GxMn;
-    GyM = GyM + GyMn;
-    GzM = GzM + GzMn;
-  end
-  if Sys.nL>0
-    [GxMo,GyMo,GzMo] = ham_oz(Sys,Opt.Spins);
-    GxM = GxM + GxMo;
-    GyM = GyM + GyMo;
-    GzM = GzM + GzMo;
-  end
 end
 
 % zero-field spin Hamiltonian

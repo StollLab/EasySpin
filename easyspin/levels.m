@@ -78,7 +78,7 @@ end
 [Sys,err] = validatespinsys(SpinSystem);
 error(err);
 
-[F,GxM,GyM,GzM] = ham(Sys);
+[H0,GxM,GyM,GzM] = ham(Sys);
 
 if OriList
 
@@ -93,9 +93,9 @@ if OriList
   nOri = size(Ori,1);
   
   % Pre-allocate results array
-  Energies = zeros(nOri,numel(MagnField),length(F));
+  Energies = zeros(nOri,numel(MagnField),length(H0));
   if computeVectors
-    Vectors = zeros(nOri,numel(MagnField),length(F),length(F));
+    Vectors = zeros(nOri,numel(MagnField),length(H0),length(H0));
   end
   
   % Loop over all parameter combinations
@@ -103,7 +103,7 @@ if OriList
   for iOri = 1:nOri
     G = zL(1,iOri)*GxM + zL(2,iOri)*GyM + zL(3,iOri)*GzM;
     for iField = 1:length(MagnField)
-      H = F + MagnField(iField)*G;
+      H = H0 + MagnField(iField)*G;
       if computeVectors
         [V_,E] = eig(H);
         E = diag(E);
@@ -127,9 +127,9 @@ else
   sintheta = sin(theta);
   
   % Pre-allocate results array
-  Energies = zeros(numel(phi),numel(theta),numel(MagnField),length(F));
+  Energies = zeros(numel(phi),numel(theta),numel(MagnField),length(H0));
   if computeVectors
-    Vectors = zeros(numel(phi),numel(theta),numel(MagnField),length(F),length(F));
+    Vectors = zeros(numel(phi),numel(theta),numel(MagnField),length(H0),length(H0));
   end
   
   % Loop over all parameter combinations
@@ -139,10 +139,10 @@ else
       G = sintheta(itheta)*GxyM + costheta(itheta)*GzM;
       for iField = 1:length(MagnField)
         if computeVectors
-          [Vectors(iphi,itheta,iField,:,:),E] = eig(F + MagnField(iField)*G);
+          [Vectors(iphi,itheta,iField,:,:),E] = eig(H0 + MagnField(iField)*G);
           E = diag(E);
         else
-          E = sort(eig(F + MagnField(iField)*G));
+          E = sort(eig(H0 + MagnField(iField)*G));
         end
         Energies(iphi,itheta,iField,:) = E;
       end

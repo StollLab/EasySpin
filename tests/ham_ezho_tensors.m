@@ -4,15 +4,17 @@ function ok = test() %#ok<FNDEF>
 
 rng(5);
 
-Sys.S = 5/2;
+Sys.S = 3/2;
 
-% Generate Ham* fields and populate with random numbers
+% Populate some Ham* fields with random numbers
 for lB = 0:3
-  for lS = 1:4
+  for lS = 1:2*Sys.S
     if mod(lB+lS,2) ~= 0, continue; end
     for l = abs(lB-lS):(lB+lS)
-      field = sprintf('Ham%i%i%i',lB,lS,l);
-      Sys.(field) = rand(1,2*l+1);
+      if rand<0.2  % do not populate all fields
+        field = sprintf('Ham%i%i%i',lB,lS,l);
+        Sys.(field) = rand(1,2*l+1);
+      end
     end
   end
 end

@@ -39,9 +39,9 @@ Nuclear Zeeman interaction Hamiltonian and its components.
 H = ham_nz(Sys, B)
 H = ham_nz(Sys, B, idx)
 H = ham_nz(Sys, B, idx, 'sparse')
-[Zx, Zy, Zz] = ham_nz(Sys)
-[Zx, Zy, Zz] = ham_nz(Sys, idx)
-[Zx, Zy, Zz] = ham_nz(Sys, idx, 'sparse')
+[Gx, Gy, Gz] = ham_nz(Sys)
+[Gx, Gy, Gz] = ham_nz(Sys, idx)
+[Gx, Gy, Gz] = ham_nz(Sys, idx, 'sparse')
 </pre>
 
 <!-- ============================================================= -->
@@ -49,67 +49,23 @@ H = ham_nz(Sys, B, idx, 'sparse')
 
 <p>
 <code>ham_nz</code> calculates the nuclear Zeeman interaction Hamiltonian for the <a href="spinsystem.html">spin system</a> given in <code>Sys</code>.
+</p>
 
 <p>
 <code>Sys</code> is a spin system structure.
 </p>
 
 <p>
-If <code>idx</code> is omitted, all nuclear spins defined in the spin system are included in the operators. If <code>idx</code> is given, only the specified subset of nuclear spins is included. <code>idx</code>> must be an array of numbers between 1 and n for a spin system with n nuclear spins.
+If <code>idx</code> is omitted, all nuclear spins defined in the spin system are included in the operators. If <code>idx</code> is given, only the specified subset of nuclear spins is included. <code>idx</code> must be an array of numbers between 1 and n for a spin system with n nuclear spins.
 </p>
 
 <p>
-If a magnetic field vector (in mT) is given in <code>B</code>, the complete nuclear Zeeman Hamiltonian is returned
+If a magnetic field vector (in mT) is given in <code>B</code>, the complete nuclear Zeeman Hamiltonian is returned.
 </p>
-
-<pre class="eqn">
-<img src="eqn/zeeman1.png" alt="[eqn]"><!--MATH
-\begin{equation*}
-\Op{H}_\mr{NZ} =
--\frac{1}{h}\vc{B}^\trp
-\sum_l \mu_\mr{N} g_{\mr{n},l} \opvc{I}_l
-\end{equation*}
--->
-</pre>
 
 <p>
-If no magnetic field is given, the function returns the three operators involved in constructing the nuclear Zeeman interaction Hamiltonian. These three operators <code>Zx</code>, <code>Zy</code> and <code>Zz</code> are the cartesian components of the vector derivative
-<img src="eqn/zeeman2.png" alt="[eqn]"><!--MATH$\opvc{Z} = \partial\Op{H}/\partial{\vc{B}}$-->,
-i.e.
+If no magnetic field is given, the function returns the three operators involved in constructing the nuclear Zeeman interaction Hamiltonian. These three operators <code>Gx</code>, <code>Gy</code> and <code>Gz</code> are the negatives of the nuclear magnetic moment components. To get the complete nuclear Zeeman interaction Hamiltonian, they have to be multiplied by the respective B field components and summed up: <code>Gx*B(1)+Gy*B(2)+Gz*B(3)</code>.
 </p>
-
-<pre class="eqn">
-<img src="eqn/zeeman3.png" alt="[eqn]"><!--MATH
-\begin{equation*}
-\Op{Z}_q
-=
-\frac{\partial\Op{H}_\mr{ZI}}{\partial B_q}
-=
--
-\frac{1}{h}
-\sum_l \mu_\mr{N} g_{\mr{n},l} \Op{I}_{l,q}
-\qquad
-q = \mr{x, y, z}
-\end{equation*}
--->
-</pre>
-
-<p>
-They correspond to the negative of the nuclear magnetic moment components. To get the complete nuclear Zeeman interaction Hamiltonian, they have to be multiplied by the respective B field components and summed up.
-</p>
-
-<pre class="eqn">
-<img src="eqn/zeeman4.png" alt="[eqn]"><!--MATH
-\begin{equation*}
-\Op{H} =
-\vc{B}^\trp\opvc{Z}
-=
-B_\mr{x}\Op{Z}_\mr{x}+
-B_\mr{y}\Op{Z}_\mr{y}+
-B_\mr{z}\Op{Z}_\mr{z}
-\end{equation*}
--->
-</pre>
 
 <p>
 If <code>'sparse'</code> is given as third argument, results are returned in sparse format instead of full format.

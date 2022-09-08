@@ -107,8 +107,8 @@ end
 
 %-----------------------------------------------------------------------
 % Prepare Hamiltonian and get state space dimension
-[F,GxM,GyM,GzM] = ham(Sys);
-N = length(F);
+[H0,GxM,GyM,GzM] = ham(Sys);
+N = length(H0);
 
 % Transition map and level indices
 uv = find(triu(ones(N),1));
@@ -136,12 +136,12 @@ if isfinite(Params.ExciteWidth)
     GyL = yLab(1)*GxM + yLab(2)*GyM + yLab(3)*GzM;
     GzL = zLab(1)*GxM + zLab(2)*GyM + zLab(3)*GzM;
     % Eigenvalues
-    [V,E] = eig(F + Params.Field*GzL);
+    [V,E] = eig(H0 + Params.Field*GzL);
     E = diag(E);
     [E,idx] = sort(E); % because of a bug in eig() in Matlab 7.0.0 (fixed in 7.0.1)
     V = V(idx,:);
     
-    if (Options.AveragedIntensity)
+    if Options.AveragedIntensity
       TransitionRate = (abs(V'*GxL*V).^2 + abs(V'*GyL*V).^2)/2;
     else
       TransitionRate = abs(V'*kGxL*V).^2;

@@ -29,27 +29,28 @@
 <div class="functitle">ham</div>
 
 <p>
-Constructs spin Hamiltonian operators.
+Constructs spin Hamiltonian matrix
 </p>
 
 <!-- ====================================================== -->
 <div class="subtitle">Syntax</div>
 
 <pre class="matlab">
-[F,Gx,Gy,Gz] = ham(Sys)
+[H0,GxM,GyM,GzM] = ham(Sys)
+[H0,GxM,GyM,GzM] = ham(Sys,'sparse')
 H = ham(Sys,B)
-... = ham(Sys,B,'sparse')
+H = ham(Sys,B,'sparse')
 </pre>
 
 <!-- ====================================================== -->
 <div class="subtitle">Description</div>
 
 <p>
-This function returns the <a href="hamiltonian.html">spin Hamiltonian</a> or its components. <code>Sys</code> is the structure defining the <a href="spinsystem.html">spin system</a>, the optional <code>B</code> is the 3-element external magnetic field vector (in mT) in the molecular frame of the spin system.
+This function returns the matrix representation of the <a href="hamiltonian.html">spin Hamiltonian</a> or its components. <code>Sys</code> is the structure defining the <a href="spinsystem.html">spin system</a>. The optional <code>B</code> is the 3-element external magnetic field vector (in mT) defined in the molecular frame of the spin system.
 </p>
 
 <p>
-If no magnetic field is given, <code>ham</code> returns the four Hamiltonian components <code>F</code>, <code>Gx</code>, <code>Gy</code> and <code>Gz</code>. <code>F</code> is the Hamiltonian containing all field-independent interactions, and the other three matrices are the components of the Zeeman interaction Hamiltonian for the three principal directions of the molecular frame of the spin system (see <a class="esf" href="zeeman.html">zeeman</a>).
+If no magnetic field is given, <code>ham</code> returns the four Hamiltonian components <code>H0</code>, <code>GxM</code>, <code>GyM</code> and <code>GzM</code>. <code>H0</code> is the Hamiltonian containing all field-independent interactions, and the other three matrices are the components of the Zeeman interaction Hamiltonian for the three principal directions of the molecular frame of the spin system (see <a class="esf" href="ham_ez.html">ham_ez</a>, <a class="esf" href="ham_nz.html">ham_nz</a> and <a class="esf" href="ham_oz.html">ham_oz</a>).
 </p>
 
 <p>
@@ -57,15 +58,15 @@ If a magnetic field <code>B</code> is given, <code>ham</code> returns the overal
 </p>
 
 <p>
-<code>F</code> and <code>H</code> are in MHz, the components <code>Gx</code>, <code>Gy</code> and <code>Gz</code> are in MHz/mT.
+<code>H</code> and <code>H0</code> are in units of MHz, the components <code>GxM</code>, <code>GyM</code> and <code>GzM</code> are in MHz/mT (= GHz/T).
 </p>
 
 <p>
-The general form of the spin Hamiltonian and the terms contained in it are explained in the section about the <a class="esf" href="spinsystem.html">spin system structure</a>.
+The general form of the spin Hamiltonian and the terms contained in it are explained in the section about the <a href="spinsystem.html">spin system structure</a>.
 </p>
 
 <p>
-If <code>'sparse'</code> is given as third argument, the Hamiltonian matrix is returned in sparse format instead of full format.
+If <code>'sparse'</code> is given as last input argument, the Hamiltonian matrix is returned in sparse format instead of full format.
 </p>
 
 <!-- ====================================================== -->
@@ -76,8 +77,10 @@ The Hamiltonian of a simple S=I=1/2 system is
 </p>
 
 <pre class="matlab">
-g = [2 2 2]; A = [1 1 2]*100; B = [0 0 340];
-Sys = struct('S',.5,'g',g,'Nucs','1H','A',A);
+Sys.g = 2;
+Sys.A = [1 1 2]*180;
+Sys.Nucs = '1H';
+B = [0 0 340];
 H = ham(Sys,B)
 </pre>
 <pre class="mloutput">
@@ -94,7 +97,9 @@ To get its eigenvalues in GHz and their associated eigenvectors, use
 </p>
 
 <pre class="matlab">
-[V,E] = eig(H); E = diag(E).'/1e3, V
+[V,E] = eig(H);
+E = diag(E).'/1e3;
+E, V
 </pre>
 
 <pre class="mloutput">
@@ -117,7 +122,9 @@ V =
 <a class="esf" href="ham_nn.html">ham_nn</a>,
 <a class="esf" href="ham_nq.html">ham_nq</a>,
 <a class="esf" href="ham_so.html">ham_so</a>,
-<a class="esf" href="zeeman.html">zeeman</a>,
+<a class="esf" href="ham_ez.html">ham_ez</a>,
+<a class="esf" href="ham_nz.html">ham_nz</a>,
+<a class="esf" href="ham_oz.html">ham_oz</a>,
 <a class="esf" href="ham_zf.html">ham_zf</a>
 </p>
 

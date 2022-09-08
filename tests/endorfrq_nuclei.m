@@ -16,4 +16,7 @@ p3 = endorfrq(Sys,Par,Opt);
 Opt.Nuclei = [1 2];
 p4 = endorfrq(Sys,Par,Opt);
 
-ok = (numel(p1)==4) && (numel(p2)==4) && (numel(p3)==8) && (numel(p4)==8);
+ok(1) = numel(p1)==4;
+ok(2) = numel(p2)==4;
+ok(3) = numel(p3)==8;
+ok(4) = numel(p4)==8;

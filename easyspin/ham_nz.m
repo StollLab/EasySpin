@@ -3,9 +3,9 @@
 %   H = ham_nz(SpinSystem, B)
 %   H = ham_nz(SpinSystem, B, nSpins)
 %   H = ham_nz(SpinSystem, B, nSpins, 'sparse')
-%   [Zx, Zy, Zz] = ham_nz(SpinSystem)
-%   [Zx, Zy, Zz] = ham_nz(SpinSystem, nSpins)
-%   [Zx, Zy, Zz] = ham_nz(SpinSystem, nSpins, 'sparse')
+%   [Gx, Gy, Gz] = ham_nz(SpinSystem)
+%   [Gx, Gy, Gz] = ham_nz(SpinSystem, nSpins)
+%   [Gx, Gy, Gz] = ham_nz(SpinSystem, nSpins, 'sparse')
 %
 %   Returns the nuclear Zeeman interaction Hamiltonian matrix for
 %   the nuclear spins 'nSpins' of the spin system 'SpinSystem'.
@@ -18,20 +18,20 @@
 %   - 'sparse': If given, results returned in sparse format.
 %
 %   Output:
-%   - Zx, Zy, Zz: Components of the Zeeman interaction Hamiltonian matrix
-%     for the selected nuclear spins as defined by Hi=d(H)/d(B_i)
+%   - Gx, Gy, Gz: Components of the Zeeman interaction Hamiltonian matrix
+%     for the selected nuclear spins as defined by Gi=d(H)/d(B_i)
 %     i=x,y,z where B_i are the cartesian components of
 %     the external field in the molecular frame. Units are MHz/mT = GHz/T.
-%     To get the full Hamiltonian, use H = Zx*B(1)+Zy*B(2)+Zz*B(3), where
-%     B is the magnetic field in mT.
+%     To get the full nuclear Zeeman Hamiltonian, use H = Gx*B(1)+Gy*B(2)+Gz*B(3),
+%     where B is the magnetic field vector in mT.
 %   - H: Nuclear Zeeman Hamiltonian matrix.
 
 function varargout = ham_nz(SpinSystem,varargin)
 
 if nargin==0, help(mfilename); return; end
 
-if nargout==2 || nargout>3, error('Wrong number of output arguments!'); end
-singleOutput = nargout<2;
+if nargout~=1 && nargout~=3, error('Wrong number of output arguments!'); end
+singleOutput = nargout==1;
 
 if singleOutput
   if nargin<1 || nargin>4, error('Wrong number of input arguments!'); end
@@ -78,9 +78,9 @@ end
 
 % Initialize Zeeman interaction component matrices to zero
 nStates = Sys.nStates;
-ZxM = sparse(nStates,nStates);
-ZyM = sparse(nStates,nStates);
-ZzM = sparse(nStates,nStates);
+GxM = sparse(nStates,nStates);
+GyM = sparse(nStates,nStates);
+GzM = sparse(nStates,nStates);
 
 % Calculate prefactors
 pre = -nmagn/planck*Sys.gn.*Sys.gnscale; % Hz/T
@@ -106,22 +106,22 @@ for iNuc = nSpins
   % Build nuclear Zeeman Hamiltonian in MHz/mT
   for k = 1:3
     Ik = sop(spins,[nElectrons+iNuc,k],'sparse');
-    ZxM = ZxM + pre(iNuc)*sigma(1,k)*Ik;
-    ZyM = ZyM + pre(iNuc)*sigma(2,k)*Ik;
-    ZzM = ZzM + pre(iNuc)*sigma(3,k)*Ik;
+    GxM = GxM + pre(iNuc)*sigma(1,k)*Ik;
+    GyM = GyM + pre(iNuc)*sigma(2,k)*Ik;
+    GzM = GzM + pre(iNuc)*sigma(3,k)*Ik;
   end
 
 end
 
 if isempty(B0)
   if ~useSparseMatrices
-    ZxM = full(ZxM);
-    ZyM = full(ZyM);
-    ZzM = full(ZzM);
+    GxM = full(GxM);
+    GyM = full(GyM);
+    GzM = full(GzM);
   end
-  varargout = {ZxM, ZyM, ZzM};
+  varargout = {GxM, GyM, GzM};
 else
-  H = ZxM*B0(1) + ZyM*B0(2) + ZzM*B0(3);
+  H = GxM*B0(1) + GyM*B0(2) + GzM*B0(3);
   if ~useSparseMatrices
     H = full(H);
   end

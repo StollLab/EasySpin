@@ -3,9 +3,9 @@
 %   H = ham_oz(SpinSystem, B)
 %   H = ham_oz(SpinSystem, B, oam)
 %   H = ham_oz(SpinSystem, B, oam, 'sparse')
-%   [Zx, Zy, Zz] = ham_oz(SpinSystem)
-%   [Zx, Zy, Zz] = ham_oz(SpinSystem, oam)
-%   [Zx, Zy, Zz] = ham_oz(SpinSystem, oam, 'sparse')
+%   [Gx, Gy, Gz] = ham_oz(SpinSystem)
+%   [Gx, Gy, Gz] = ham_oz(SpinSystem, oam)
+%   [Gx, Gy, Gz] = ham_oz(SpinSystem, oam, 'sparse')
 %
 %   Returns the orbital Zeeman interaction Hamiltonian matrix for
 %   the orbital angular momenta 'oam' of the spin system 'SpinSystem'.
@@ -18,20 +18,20 @@
 %   - 'sparse': If given, results returned in sparse format.
 %
 %   Output:
-%   - Zx, Zy, Zz: Components of the Zeeman interaction Hamiltonian matrix
-%     for the selected orbital angular momenta as defined by Hi=d(H)/d(B_i)
+%   - Gx, Gy, Gz: Components of the Zeeman interaction Hamiltonian matrix
+%     for the selected orbital angular momenta as defined by Gi=d(H)/d(B_i)
 %     i=x,y,z where B_i are the cartesian components of
 %     the external field in the molecular frame. Units are MHz/mT = GHz/T.
-%     To get the full Hamiltonian, use H = Zx*B(1)+Zy*B(2)+Zz*B(3), where
-%     B is the magnetic field in mT.
+%     To get the full orbital Zeeman Hamiltonian, use H = Gx*B(1)+Gy*B(2)+Gz*B(3),
+%     where B is the magnetic field vector in mT.
 %   - H: Orbital Zeeman Hamiltonian matrix.
 
 function varargout = ham_oz(SpinSystem,varargin)
 
 if nargin==0, help(mfilename); return; end
 
-if nargout==2 || nargout>3, error('Wrong number of output arguments!'); end
-singleOutput = nargout<2;
+if nargout~=1 && nargout~=3, error('Wrong number of output arguments!'); end
+singleOutput = nargout==1;
 
 if singleOutput
   if nargin<1 || nargin>4, error('Wrong number of input arguments!'); end
@@ -80,9 +80,9 @@ end
 
 % Initialize Zeeman interaction component matrices to zero
 nStates = Sys.nStates;
-ZxM = sparse(nStates,nStates);
-ZyM = sparse(nStates,nStates);
-ZzM = sparse(nStates,nStates);
+GxM = sparse(nStates,nStates);
+GyM = sparse(nStates,nStates);
+GzM = sparse(nStates,nStates);
 
 % Calculate prefactor
 pre = +bmagn/planck*Sys.gL; % Hz/T
@@ -94,21 +94,21 @@ for i = oam
   % Orbital angular momenta, isotropic
   % Build orbital Zeeman Hamiltonian in MHz/mT
   iSpin = nElectrons + nNuclei + i;
-  ZxM = ZxM + pre(i)*sop(spins,[iSpin,1],'sparse');
-  ZyM = ZyM + pre(i)*sop(spins,[iSpin,2],'sparse');
-  ZzM = ZzM + pre(i)*sop(spins,[iSpin,3],'sparse');
+  GxM = GxM + pre(i)*sop(spins,[iSpin,1],'sparse');
+  GyM = GyM + pre(i)*sop(spins,[iSpin,2],'sparse');
+  GzM = GzM + pre(i)*sop(spins,[iSpin,3],'sparse');
 
 end
 
 if isempty(B0)
   if ~useSparseMatrices
-    ZxM = full(ZxM);
-    ZyM = full(ZyM);
-    ZzM = full(ZzM);
+    GxM = full(GxM);
+    GyM = full(GyM);
+    GzM = full(GzM);
   end
-  varargout = {ZxM, ZyM, ZzM};
+  varargout = {GxM, GyM, GzM};
 else
-  H = ZxM*B0(1) + ZyM*B0(2) + ZzM*B0(3);
+  H = GxM*B0(1) + GyM*B0(2) + GzM*B0(3);
   if ~useSparseMatrices
     H = full(H);
   end

@@ -8,16 +8,16 @@ Sys.gn = nucgval(Sys.Nucs);
 Sys.A = 0; % needed to pass validation
 
 % Calculate operators using ham_nz()
-[Gx,Gy,Gz] = ham_nz(Sys,1);
+[Gx,Gy,Gz] = ham_nz(Sys);
 
 % Calculate operators explicitly
 [I{1:3}] = sop(Sys,'x2','y2','z2');
 
 pre = -nmagn/(planck*1e9)*Sys.gn.*Sys.gnscale;
 
-sigma = diag(Sys.sigma);
+sigma = diag(Sys.sigma);  % eigenframe of sigma
 R = erot(Sys.sigmaFrame);
-sigma = R.'*sigma*R;
+sigma = R.'*sigma*R;  % transform to molecular frame
 
 Gx0 = 0;
 Gy0 = 0;
