@@ -215,7 +215,7 @@ for iTest = 1:numel(TestFileNames)
   end
 
   nameStr = testResults(iTest).name;
-  str = sprintf('%-45s  %-12s%-8s%s\n%s',...
+  str = sprintf('%-47s  %-12s%-8s%s\n%s',...
        nameStr,typeStr,outcomeStr,timeStr,errorStr);
   str(str=='\') = '/';
   
