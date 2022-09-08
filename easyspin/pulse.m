@@ -341,10 +341,6 @@ else
           error(['Pulse AM function ''quartersin'' not sufficiently defined. ',...
             'Specify Par.trise for the quartersin envelope.']);
         end
-        if Par.trise>Par.tp/2
-          error(['Pulse amplitude quartersin rise time (%g µs) must not be larger '...
-            'than half the pulse length (%g µs).'],Par.trise,Par.tp/2);
-        end
 
       case 'tanh2'
         if ~isfield(Par,'trise') || isempty(Par.trise)
