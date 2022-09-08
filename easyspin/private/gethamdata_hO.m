@@ -20,7 +20,7 @@ function [V,E,dEdB,dE] = gethamdata_hO(B,n0, Sys,sparse,idxT,nLevels)
 % Compute eigenvalues and eigenvectors of Hamiltonian
 dB = 0.01;
 if sparse
-  H = sham(Sys,B*n0,'sparse');
+  H = ham(Sys,B*n0,'sparse');
   [V,E] = eigs(H,nLevels);
   E = diag(E).';
   if sum(abs(imag(E)))>1e-6, error('Imaginary energies obtained! Please report!'); end
@@ -30,13 +30,13 @@ if sparse
   if nargout >2
     %calculate energies for numerical derivative
     dB = 0.01;
-    H2 = sham(Sys,(B+dB)*n0,'sparse');
+    H2 = ham(Sys,(B+dB)*n0,'sparse');
     E2 = eigs(H2,nLevels);
     if sum(abs(imag(E2)))>1e-6, error('Imaginary energies obtained! Please report!'); end
     E2 = sort(real(E2));
   end
 else
-  H = sham(Sys,B*n0);
+  H = ham(Sys,B*n0);
   [V,E] = eig(H);
   E = diag(E).';
   if sum(abs(imag(E)))>1e-6, error('Imaginary energies obtained! Please report!'); end
@@ -48,7 +48,7 @@ else
   end
   if nargout >2
     %calculate energies for numerical derivative   
-    H2= sham(Sys,(B+dB)*n0);
+    H2= ham(Sys,(B+dB)*n0);
     E2 = eig(H2);
     if sum(abs(imag(E2)))>1e-6, error('Imaginary energies obtained! Please report!'); end
     E2 = sort(real(E2));
@@ -66,7 +66,7 @@ if (B==0)
   if nargout > 2
     G = H2-H; 
   else
-    H2= sham(Sys,(B+dB)*n0);
+    H2= ham(Sys,(B+dB)*n0);
     G = H2-H;
   end
   dE = abs(diff(E)).';

@@ -157,7 +157,6 @@ if isempty(Opt.Nuclei), Opt.Nuclei = 1:Sys.nNuclei; end
 if any(Opt.Nuclei<1) || any(Opt.Nuclei>Sys.nNuclei)
   error('Opt.Nuclei is out of range.');
 end
-Opt.Nuclei = Opt.Nuclei + numel(Sys.S); % spin index for zeeman()
 
 IntensitySwitch = parseoption(Opt,'Intensity',{'off','on'}) - 1;
 
@@ -174,7 +173,7 @@ end
 % Preparing Hamiltonian representations etc.
 %-----------------------------------------------------------------------
 % The first and only compilation of the full Hamiltonian.
-[F,GxM,GyM,GzM] = sham(Sys);
+[H0,GxM,GyM,GzM] = ham(Sys);
 
 
 % For polarized systems, pre-compute ZF eigenstates.
@@ -216,7 +215,7 @@ if computeNonEquiPops
 
   if strcmp(initStateBasis,'zerofield')
     % Pre-compute zero-field energies and eigenstates
-    [ZFStates,ZFEnergies] = eig(F);
+    [ZFStates,ZFEnergies] = eig(H0);
     [ZFEnergies,idx] = sort(real(diag(ZFEnergies)));
     ZFStates = ZFStates(:,idx);
     % Check for degeneracies and issue error
@@ -285,7 +284,7 @@ if isempty(Opt.Transitions)
   cp = cos(phi);
   
   % Compute selection detection operators (NMR transitions only!)
-  [sGxM,sGyM,sGzM] = zeeman(Sys,Opt.Nuclei);
+  [sGxM,sGyM,sGzM] = ham_nz(Sys,Opt.Nuclei);
   
   % preallocate the transition rate matrix
   TransitionRates = zeros(nStates);
@@ -296,7 +295,7 @@ if isempty(Opt.Transitions)
   for iOri = 1:length(theta)
     
     % solve eigenproblem
-    [Vs,E] = eig(F + Exp.Field*...
+    [Vs,E] = eig(H0 + Exp.Field*...
       (st(iOri)*(cp(iOri)*GxM + sp(iOri)*GyM) + ct(iOri)*GzM));
     E = diag(E);
     
@@ -367,7 +366,7 @@ end
 %------------------------------------------------------------------------
 %if Opt.PowderSimulation & Opt.PreSelection
 %  selSys = anisosubsys(Sys);
-%  [selF,selGx,selGy,selGz] = sham(selSys);
+%  [selF,selGx,selGy,selGz] = ham(selSys);
 %  selN = length(selF);
 %  lev = repmat(1:selN,selN,1);
 %  logmsg(2,'  anisotropic spin system contains %d of %d nuclei',...
@@ -398,21 +397,20 @@ if ComputeIntensities, Idat = zeros(nTransitions,nOrientations); end
 % Other preparations.
 if ComputeIntensities
   % Set detection operators for intensity computations.
+  [DxM,DyM,DzM] = ham_nz(Sys,Opt.Nuclei);
   if EnhancementSwitch
     % Zeeman interaction including electronic Zeeman interaction,
     % includes implicitely hyperfine enhancement
-    %DxM = GxM; DyM = GyM; DzM = GzM;
-    Nuc = [1:numel(Sys.S) Opt.Nuclei];
-  else
-    % exclusively nuclear Zeeman interaction
-    Nuc = Opt.Nuclei;
+   [DxMe,DyMe,DzMe] = ham_ez(Sys);
+   DxM = DxM + DxMe;
+   DyM = DyM + DyMe;
+   DzM = DzM + DzMe;
   end
-  [DxM,DyM,DzM] = zeeman(Sys,Nuc);
   
   if OrientationSelection
     % Electron Zeeman interaction operators for EPR transition
     % rate computation
-    [ExM,EyM,EzM] = zeeman(Sys,1);
+    [ExM,EyM,EzM] = ham_ez(Sys,1);
     % pre-square line width
     lwExcite2 = Exp.ExciteWidth^2;
   end
@@ -425,14 +423,14 @@ end
 
 % Initialize parameters for orientation selectivity determination.
 % Selectivity = (maxEPRfreq-minEPRfreq)/minExWidth
-if (OrientationSelection)
+if OrientationSelection
   maxEPRfreq = -inf;
   minEPRfreq = inf;
   minExWidth = inf;
 end
 
 % Keep only orientations with weights above weight threshold.
-if (UseOriWeights)
+if UseOriWeights
   logmsg(1,'  user-supplied orientation pre-selection: skipping %d of %d orientations',...
     sum(Opt.OriWeights<Opt.OriThreshold),nOrientations);
 end
@@ -443,8 +441,8 @@ startTime = cputime;
 logstr = '';
 for iOri = 1:nOrientations
   
-  if (EasySpinLogLevel>=1)
-    if (iOri>1)
+  if EasySpinLogLevel>=1
+    if iOri>1
       remainingTime = (cputime-startTime)/(iOri-1)*(nOrientations-iOri+1);
       backspace = repmat(sprintf('\b'),1,numel(logstr));
       hours = fix(remainingTime/3600);
@@ -454,15 +452,15 @@ for iOri = 1:nOrientations
         iOri, nOrientations, hours, minutes, seconds);
       fprintf([backspace logstr]);
     else
-      if (nOrientations>1)
+      if nOrientations>1
         logstr = sprintf('  1/%d orientations, remaining time unknown\n',nOrientations);
         fprintf(logstr);
       end
     end
   end
   
-  if (UseOriWeights)
-    if (Opt.OriWeights(iOri)<Opt.OriThreshold); continue; end
+  if UseOriWeights
+    if Opt.OriWeights(iOri)<Opt.OriThreshold; continue; end
   end
   
   % Lab frame axes in molecular frame representation.
@@ -484,8 +482,8 @@ for iOri = 1:nOrientations
   
   
   % Compute eigenstate energies and vectors.
-  H = F + Exp.Field*(zLab(1)*GxM + zLab(2)*GyM + zLab(3)*GzM);
-  if (ComputeVectors)
+  H = H0 + Exp.Field*(zLab(1)*GxM + zLab(2)*GyM + zLab(3)*GzM);
+  if ComputeVectors
     [Vs,E0] = eig(H);
     E0 = sort(diag(E0));
   else
@@ -495,7 +493,7 @@ for iOri = 1:nOrientations
   % Position data
   Pdat(:,iOri) = E0(v) - E0(u);
   
-  if (ComputeIntensities)
+  if ComputeIntensities
       
     % mw: xLab, RF: yLab
     DyL = yLab(1)*DxM + yLab(2)*DyM + yLab(3)*DzM;
@@ -524,7 +522,7 @@ for iOri = 1:nOrientations
     end
     
     % Compute excitation factor
-    if (OrientationSelection)
+    if OrientationSelection
       lw2 = sum((Sys.HStrain(:).*zLab).^2) + lwExcite2;
       
       % weighting with EPR line width and excitation band width
@@ -537,8 +535,8 @@ for iOri = 1:nOrientations
         Populations = exp(BoltzmannPreFactor*(E0-E0(1)));
         %Polarization = (Populations(u) - Populations(v))/sum(Populations);
       elseif computeNonEquiPops
-%         Populations = (abs(ZFStates'*Vs).^2).'*ZFPopulations; % lower level
-%         %Polarization = PopulationU - PopulationV;
+        %Populations = (abs(ZFStates'*Vs).^2).'*ZFPopulations; % lower level
+        %Polarization = PopulationU - PopulationV;
         Populations = zeros(size(dE));
         switch initStateBasis
           case 'eigen'
@@ -574,23 +572,23 @@ for iOri = 1:nOrientations
       dE(dE<0.3*mwFreq) = [];
       minFreq = min(dE);
       maxFreq = max(dE);
-      if (minFreq<minEPRfreq), minEPRfreq = minFreq; end
-      if (maxFreq>maxEPRfreq), maxEPRfreq = maxFreq; end
-      if (lw2<minExWidth^2), minExWidth = sqrt(lw2); end
+      if minFreq<minEPRfreq, minEPRfreq = minFreq; end
+      if maxFreq>maxEPRfreq, maxEPRfreq = maxFreq; end
+      if lw2<minExWidth^2, minExWidth = sqrt(lw2); end
 
     else
       ExcitationFactor = 1;
     end % if OrientationSelection else
         
     % Compute polarization if temperature or zero-field populations are given.
-    if (computeBoltzmann)
+    if computeBoltzmann
       Populations = exp(BoltzmannPreFactor*(E0-E0(1)));
       NuclearPolarization = (Populations(u) - Populations(v))/sum(Populations);
     else
       NuclearPolarization = 1;
     end
 
-    % Total intensity.
+    % Total intensity
     Idat(:,iOri) = NuclearPolarization .* ExcitationFactor .* EndorIntensity(TRidx);  %#ok
     
   end % if ComputeIntensity

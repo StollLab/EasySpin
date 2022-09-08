@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>ham_ez</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/academy" target="_blank">Academy</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">ham_ez</div>
+
+<!-- ============================================================= -->
+<div class="subtitle">Syntax</div>
+
+<p>
+Electron Zeeman interaction Hamiltonian and its components.
+</p>
+
+<pre class="matlab">
+H = ham_ez(Sys, B)
+H = ham_ez(Sys, B, idx)
+H = ham_ez(Sys, B, idx, 'sparse')
+[Gx, Gy, Gz] = ham_ez(Sys)
+[Gx, Gy, Gz] = ham_ez(Sys, idx)
+[Gx, Gy, Gz] = ham_ez(Sys, idx, 'sparse')
+</pre>
+
+<!-- ============================================================= -->
+<div class="subtitle">Description</div>
+
+<p>
+<code>ham_ez</code> calculates the electron Zeeman interaction Hamiltonian for the <a href="spinsystem.html">spin system</a> given in <code>Sys</code>.
+
+<p>
+<code>Sys</code> is a spin system structure.
+</p>
+
+<p>
+If <code>idx</code> is omitted, all electron spins defined in the spin system are included in the operators. If <code>idx</code> is given, only the specified subset of electron spins is included. For a system with n electron spins, a number between 1 and n indicates an electron spin.
+</p>
+
+<p>
+If a magnetic field vector (in mT) is given in <code>B</code>, the complete electron Zeeman Hamiltonian is returned.
+</p>
+
+<p>
+If no magnetic field is given, the function returns the three operators involved in constructing the electron Zeeman interaction Hamiltonian. These three operators <code>Gx</code>, <code>Gy</code> and <code>Gz</code> are the negatives of the electron magnetic moment components. To get the complete electron Zeeman interaction Hamiltonian, they have to be multiplied by the respective B field components and summed up: <code>Gx*B(1)+Gy*B(2)+Gz*B(3)</code>.
+</p>
+
+<p>
+If <code>'sparse'</code> is given as third argument, results are returned in sparse format instead of full format.
+</p>
+
+<p>
+All quantities are formulated in the molecular frame, i.e. x refers to the x axis of the molecular frame etc. The three component operators are in units of MHz/mT, and the overall operator is in units of MHz.
+</p>
+
+
+<!-- ============================================================= -->
+<div class="subtitle">Examples</div>
+
+<p>
+For the spin system
+</p>
+
+<pre class="matlab">
+ABC = struct('S',1/2,'g',[2.1 2.1 2],'Nucs','14N','A',[1 1 1]);
+</pre>
+
+<p>
+the electron Zeeman Hamiltonian for a given magnetic field along the molecular x axis is
+</p>
+
+<pre class="matlab">
+B = [340;0;0];
+H = ham_ez(ABC,B)
+</pre>
+
+<pre class="mloutput">
+H =
+ 1.0e+03 *
+       0         0         0    4.9967         0         0
+       0         0         0         0    4.9967         0
+       0         0         0         0         0    4.9967
+  4.9967         0         0         0         0         0
+       0    4.9967         0         0         0         0
+       0         0    4.9967         0         0         0
+</pre>
+
+<!-- ============================================================= -->
+<div class="subtitle">See also</div>
+
+<p>
+<a class="esf" href="ham.html">ham</a>,
+<a class="esf" href="ham_ee.html">ham_ee</a>,
+<a class="esf" href="ham_hf.html">ham_hf</a>,
+<a class="esf" href="ham_nn.html">ham_nn</a>,
+<a class="esf" href="ham_nq.html">ham_nq</a>,
+<a class="esf" href="ham_so.html">ham_so</a>,
+<a class="esf" href="ham_zf.html">ham_zf</a>
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+
+</html>

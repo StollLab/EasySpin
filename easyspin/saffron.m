@@ -937,7 +937,7 @@ if strcmp(Opt.SimulationMode,'fast')
       coreSys = rmfield(coreSys,'A');
     end
     % Operators for constructing Hamiltonian
-    [F,Gx,Gy,Gz] = sham(coreSys);
+    [H0,Gx,Gy,Gz] = ham(coreSys);
     % Operators for computing <i|S|i>
     Sx = sop(coreSys,[1,1]); % works only for one electron spin
     Sy = sop(coreSys,[1,2]);
@@ -1208,7 +1208,7 @@ if strcmp(Opt.SimulationMode,'fast')
       
       % transition selection
       %------------------------------------------------------------
-      H = F + Exp.Field*(zLab_M(1)*Gx + zLab_M(2)*Gy + zLab_M(3)*Gz);
+      H = H0 + Exp.Field*(zLab_M(1)*Gx + zLab_M(2)*Gy + zLab_M(3)*Gz);
       [eV,eE] = eig(H);
       eE = real(diag(eE));
       SyLab = yLab_M(1)*Sx + yLab_M(2)*Sy + yLab_M(3)*Sz;
@@ -2000,7 +2000,7 @@ else
     
     Sys_ = rotatesystem(Sys,Orientations(iOrientation,:));
        
-    Ham = sham(Sys_,Field*[0 0 1]);
+    Ham = ham(Sys_,Field*[0 0 1]);
     
     Relaxation_ = Relaxation;
     if ~isempty(Relaxation_)

@@ -141,13 +141,13 @@ logmsg(1,'  computing %s',msg);
 % Build Hamiltonian components.
 %===================================================================
 if iscell(SpinSystem)
-  [F,Gx,Gy,Gz] = deal(SpinSystem);
+  [H0,Gx,Gy,Gz] = deal(SpinSystem);
 else
-  [F,Gx,Gy,Gz] = sham(SpinSystem);
+  [H0,Gx,Gy,Gz] = ham(SpinSystem);
 end
 
 % Build Liouville space operators.
-A = eyekron(F) - kroneye(conj(F)) + mwFreq*eye(length(F)^2);
+A = eyekron(H0) - kroneye(conj(H0)) + mwFreq*eye(length(H0)^2);
 
 % Check if is positive-definite. If yes, a simple eigenvalue
 % problem has to be solved, not the general one.
@@ -239,7 +239,7 @@ for iOri = 1:nOrientations
         % 1/(<v|G|v>-<u|G|u>) = 1/(trace(G|v><v|) - trace(G|u><u|)) =
         %   1/trace(A*(|v><v|-|u><u|)) = 1/trace(A*commute(|u><v|,|v><u|))
         % |u><u| = (|u><v|)(|v><u|)
-        n = length(F);
+        n = length(H0);
         Vecs = reshape(Vecs,n,n,numel(Vecs)/n^2);
         dBdE = [];
         for iVec = 1:size(Vecs,3)

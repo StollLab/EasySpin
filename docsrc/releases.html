@@ -189,6 +189,17 @@ $ReleaseID$
 <li> In <a class="esf" href="chili.html">chili</a>, <code>Exp.psi</code> is moved to <code>Sys.psi</code>, and <code>Exp.MOMD</code> is abolished.
 <li> In <a class="esf" href="saffron.html">saffron</a>, <code>Exp.T1T2</code> is moved to <code>Sys.T1T2</code>.
 <li><code>Sys.aFrame</code> (frame direction for <code>aF</code> high-order term) renamed to <code>Sys.aFFrame</code>.
+<li>All functions providing Hamiltonians have been renamed to more systematic names:
+<a>sham</a> to <a class="esf">ham</a>,
+<a>hfine</a> to <a class="esf">ham_zf</a>,
+<a>nquad</a> to <a class="esf">ham_nq</a>,
+<a>zfield</a> to <a class="esf">ham_zf</a>,
+<a>eeint</a> to <a class="esf">ham_ee</a>,
+<a>nnint</a> to <a class="esf">ham_nn</a>,
+<a>soint</a> to <a class="esf">ham_so</a>,
+<a>crystalfield</a> to <a class="esf">ham_cf</a>,
+<a>zeemanho</a> to <a class="esf">ham_ezho</a>, and
+<a>zeeman</a> has been split into <a class="esf">ham_ez</a>, <a class="esf">ham_nz</a>, and <a class="esf">ham_oz</a>.
 </ul>
 
 <p>Major bug fixes</p>
