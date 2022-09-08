@@ -60,7 +60,7 @@
 %
 % Available pulse modulation functions:
 %   - Amplitude modulation: rectangular, gaussian, sinc, halfsin, quartersin,
-%                           sech, WURST, Gaussian pulse cascades (G3, G4, Q3, Q5
+%                           tanh2, sech, WURST, Gaussian pulse cascades (G3, G4, Q3, Q5
 %                           custom coefficients using 'GaussianCascade', see
 %                           private/GaussianCascadeCoefficients.txt for 
 %                           details), Fourier-series pulses (I-BURP 1/2,
@@ -89,6 +89,7 @@
 % 'halfsin'             - none
 % 'quartersin'          - trise     = rise time in µs for quarter sine
 %                                     weighting at the pulse edges
+% 'tanh2'               - trise     = rise time in µs for tanh^2 pulse edges
 % 'GaussianCascade'     - A0        = list of relative amplitudes
 %                       - x0        = list of positions (in fractions of tp)
 %                       - FWHM      = list of FWHM (in fractions of tp)
@@ -337,14 +338,24 @@ else
       case 'quartersin'
         
         if ~isfield(Par,'trise') || isempty(Par.trise)
-          error(['Pulse AM function not sufficiently defined. ',...
-            'Specify Par.trise for the quartersine envelope.']);
+          error(['Pulse AM function ''quartersin'' not sufficiently defined. ',...
+            'Specify Par.trise for the quartersin envelope.']);
         end
-        
+        if Par.trise>Par.tp/2
+          error(['Pulse amplitude quartersin rise time (%g µs) must not be larger '...
+            'than half the pulse length (%g µs).'],Par.trise,Par.tp/2);
+        end
+
+      case 'tanh2'
+        if ~isfield(Par,'trise') || isempty(Par.trise)
+          error(['Pulse AM function ''tanh2'' not sufficiently defined. ',...
+            'Specify Par.trise for the tanh2 envelope.']);
+        end
+
       case 'sech'
         
         if ~isfield(Par,'beta') || isempty(Par.beta)
-          error(['Pulse AM function not sufficiently defined. ',...
+          error(['Pulse AM function ''sech'' not sufficiently defined. ',...
             'Specify Par.beta parameter (in 1/us) for the sech envelope.']);
         end
         if ~isfield(Par,'n') || isempty(Par.n)
@@ -558,6 +569,10 @@ else
             A1(end-npts+1:end) = A1(npts:-1:1);
           end
           A0 = A0.*A1;
+        case 'tanh2'
+          A1 = coth(Par.tp/2/Par.trise)^4*...
+               tanh(t0/Par.trise).^2 .* tanh((Par.tp-t0)/Par.trise).^2;
+          A0 = A0.*A1;
         case 'sech'
           n = min(Par.n); % Par.n contains two fields for asymmetric pulses
           A0 = A0.*sech(Par.beta*2^(n-1)*(ti0/Par.tp).^n);
@@ -651,6 +666,12 @@ else
           A(end-npts+1:end) = A(npts:-1:1);
         end
         
+      case 'tanh2'
+
+        A = coth(Par.tp/2/Par.trise)^4 * ...
+            tanh(t/Par.trise).^2 .* ...
+            tanh((Par.tp-t)/Par.trise).^2;
+
       case 'sech'
         
         if numel(Par.n)==1 % symmetric sech pulse
