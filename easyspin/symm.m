@@ -208,7 +208,7 @@ end
 %--------------------------------------------------
 % Orientation-independent spin Hamiltonian components.
 if ~HigherZeemanPresent
-  [H0,Gx,Gy,Gz] = ham(Sys);
+  [H0,mux,muy,muz] = ham(Sys);
 end
 
 % Set of field vectors for the test operations.
@@ -256,9 +256,9 @@ for iFrame = 1:nFrames % loop over all potential frames
     eB = eig(ham(Sys,B(:,2)));
     eC = eig(ham(Sys,B(:,3)));
   else
-    eA = eig(H0 + B(1,1)*Gx + B(2,1)*Gy + B(3,1)*Gz);
-    eB = eig(H0 + B(1,2)*Gx + B(2,2)*Gy + B(3,2)*Gz);
-    eC = eig(H0 + B(1,3)*Gx + B(2,3)*Gy + B(3,3)*Gz);
+    eA = eig(H0 - B(1,1)*mux - B(2,1)*muy - B(3,1)*muz);
+    eB = eig(H0 - B(1,2)*mux - B(2,2)*muy - B(3,2)*muz);
+    eC = eig(H0 - B(1,3)*mux - B(2,3)*muy - B(3,3)*muz);
 
   end
   C3 = eqeig(eB,eA); % is there a C3 along z?
@@ -273,13 +273,13 @@ for iFrame = 1:nFrames % loop over all potential frames
     if HigherZeemanPresent
       C2z = eqeig(eA,eig(ham(Sys,B(:,12))));
     else
-      C2z = eqeig(eA,eig(H0+B(1,12)*Gx+B(2,12)*Gy+B(3,12)*Gz));
+      C2z = eqeig(eA,eig(H0-B(1,12)*mux-B(2,12)*muy-B(3,12)*muz));
     end
     if ~C2z
       pg = 1; % Ci
     else % D2h, C2h
       if HigherZeemanPresent, sigmaxz = eqeig(eA,eig(ham(Sys,B(:,11))));
-      else, sigmaxz = eqeig(eA,eig(H0+B(1,11)*Gx+B(2,11)*Gy+B(3,11)*Gz));
+      else, sigmaxz = eqeig(eA,eig(H0-B(1,11)*mux-B(2,11)*muy-B(3,11)*muz));
       end
       if sigmaxz
         pg = 3; % D2h
@@ -290,15 +290,15 @@ for iFrame = 1:nFrames % loop over all potential frames
     
   case 1 % C3 axis: S6,D3d,Th,C6h,D6h
     if HigherZeemanPresent, sigmaxy = eqeig(eA,eig(ham(Sys,B(:,7))));
-    else, sigmaxy = eqeig(eA,eig(H0+B(1,7)*Gx+B(2,7)*Gy+B(3,7)*Gz));
+    else, sigmaxy = eqeig(eA,eig(H0-B(1,7)*mux-B(2,7)*muy-B(3,7)*muz));
     end
     if sigmaxy % Th, C6h, D6h
       if HigherZeemanPresent,C2z = eqeig(eC,eig(ham(Sys,B(:,6))));
-      else, C2z = eqeig(eC,eig(H0+B(1,6)*Gx+B(2,6)*Gy+B(3,6)*Gz));
+      else, C2z = eqeig(eC,eig(H0-B(1,6)*mux-B(2,6)*muy-B(3,6)*muz));
       end
       if C2z % C6h, D6h
         if HigherZeemanPresent,C2x = eqeig(eC,eig(ham(Sys,B(:,8)))); 
-        else, C2x = eqeig(eC,eig(H0+B(1,8)*Gx+B(2,8)*Gy+B(3,8)*Gz));  
+        else, C2x = eqeig(eC,eig(H0-B(1,8)*mux-B(2,8)*muy-B(3,8)*muz));  
         end
         if C2x, pg = 9; else, pg = 8; end
       else
@@ -306,11 +306,11 @@ for iFrame = 1:nFrames % loop over all potential frames
       end
     else % S6, D3d
       if HigherZeemanPresent,C2x = eqeig(eC,eig(ham(Sys,B(:,8))));
-      else, C2x = eqeig(eC,eig(H0+B(1,8)*Gx+B(2,8)*Gy+B(3,8)*Gz));
+      else, C2x = eqeig(eC,eig(H0-B(1,8)*mux-B(2,8)*muy-B(3,8)*muz));
       end
       if ~C2x
         if HigherZeemanPresent, C2y = eqeig(eA,eig(ham(Sys,B(:,9))));
-        else, C2y = eqeig(eA,eig(H0+B(1,9)*Gx+B(2,9)*Gy+B(3,9)*Gz));
+        else, C2y = eqeig(eA,eig(H0-B(1,9)*mux-B(2,9)*muy-B(3,9)*muz));
         end
       end
       if C2x||C2y; pg = 7; else, pg = 6; end
@@ -319,15 +319,15 @@ for iFrame = 1:nFrames % loop over all potential frames
   case 2 % C4 axis: C4h,D4h,Oh
     
     if HigherZeemanPresent, C2x = eqeig(eC,eig(ham(Sys,B(:,8))));
-    else, C2x = eqeig(eC,eig(H0+B(1,8)*Gx+B(2,8)*Gy+B(3,8)*Gz));
+    else, C2x = eqeig(eC,eig(H0-B(1,8)*mux-B(2,8)*muy-B(3,8)*muz));
     end
     if C2x % D4h, Oh
       if HigherZeemanPresent
         Bs  = [B(2,10),B(3,10),B(1,10)];
         C3d = eqeig(eig(ham(Sys,B(:,10))),eig(ham(Sys,Bs)));
       else
-        C3d = eqeig(eig(H0+B(2,10)*Gx+B(3,10)*Gy+B(1,10)*Gz),...
-                  eig(H0+B(1,10)*Gx+B(2,10)*Gy+B(3,10)*Gz));
+        C3d = eqeig(eig(H0-B(2,10)*mux-B(3,10)*muy-B(1,10)*muz),...
+                    eig(H0-B(1,10)*mux-B(2,10)*muy-B(3,10)*muz));
       end
       if C3d, pg = 11; else, pg = 5; end
     else
@@ -338,7 +338,7 @@ for iFrame = 1:nFrames % loop over all potential frames
     if HigherZeemanPresent
       Cinfx = eqeig(eC,eig(ham(Sys,B(:,4))));
     else
-      Cinfx = eqeig(eC,eig(H0+B(1,4)*Gx+B(2,4)*Gy+B(3,4)*Gz));
+      Cinfx = eqeig(eC,eig(H0-B(1,4)*mux-B(2,4)*muy-B(3,4)*muz));
     end
     if Cinfx, pg=13; else, pg=12; end
     

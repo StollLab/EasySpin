@@ -32,47 +32,42 @@
 <div class="subtitle">Syntax</div>
 
 <p>
-Nuclear Zeeman interaction Hamiltonian and its components.
+Nuclear Zeeman Hamiltonian, nuclear magnetic dipole moment.
 </p>
 
 <pre class="matlab">
 H = ham_nz(Sys, B)
 H = ham_nz(Sys, B, idx)
 H = ham_nz(Sys, B, idx, 'sparse')
-[Gx, Gy, Gz] = ham_nz(Sys)
-[Gx, Gy, Gz] = ham_nz(Sys, idx)
-[Gx, Gy, Gz] = ham_nz(Sys, idx, 'sparse')
+[mux, muy, muz] = ham_nz(Sys)
+[mux, muy, muz] = ham_nz(Sys, idx)
+[mux, muy, muz] = ham_nz(Sys, idx, 'sparse')
 </pre>
 
 <!-- ============================================================= -->
 <div class="subtitle">Description</div>
 
 <p>
-<code>ham_nz</code> calculates the nuclear Zeeman interaction Hamiltonian for the <a href="spinsystem.html">spin system</a> given in <code>Sys</code>.
-</p>
+<code>ham_nz</code> calculates the matrix representing the nuclear Zeeman Hamiltonian (in units of MHz) for the <a href="spinsystem.html">spin system</a> given in <code>Sys</code>.
 
 <p>
 <code>Sys</code> is a spin system structure.
 </p>
 
 <p>
-If <code>idx</code> is omitted, all nuclear spins defined in the spin system are included in the operators. If <code>idx</code> is given, only the specified subset of nuclear spins is included. <code>idx</code> must be an array of numbers between 1 and n for a spin system with n nuclear spins.
+<code>idx</code> is a number or array that indicates which nuclear spins should be included. For example, <code>1</code> indicates the first nuclear spin, and <code>[2 3]</code> indicates the second and third nuclear spin. If <code>idx</code> is omitted, all nuclear spins are included in the operators.
 </p>
 
 <p>
-If a magnetic field vector (in mT) is given in <code>B</code>, the complete nuclear Zeeman Hamiltonian is returned.
+<code>B</code> is a 3-element magnetic field vector (in mT). If given, the complete nuclear Zeeman Hamiltonian is returned. <code>B</code> is understood to be in the <a href="frames.html">molecular frame</a>, for example <code>[0 0 340]</code> indicates a field along the molecular z axis.
 </p>
 
 <p>
-If no magnetic field is given, the function returns the three operators involved in constructing the nuclear Zeeman interaction Hamiltonian. These three operators <code>Gx</code>, <code>Gy</code> and <code>Gz</code> are the negatives of the nuclear magnetic moment components. To get the complete nuclear Zeeman interaction Hamiltonian, they have to be multiplied by the respective B field components and summed up: <code>Gx*B(1)+Gy*B(2)+Gz*B(3)</code>.
+If <code>B</code> is omitted, the function returns the three nuclear magnetic dipole moment component operators <code>mux</code>, <code>muy</code> and <code>muz</code>, defined along the principal axes of the molecular frame. They are in units of MHz/mT. The complete nuclear Zeeman Hamiltonian is obtained via <code>H = -(mux*B(1)+muy*B(2)+muz*B(3))</code>.
 </p>
 
 <p>
 If <code>'sparse'</code> is given as third argument, results are returned in sparse format instead of full format.
-</p>
-
-<p>
-All quantities are formulated in the molecular frame, i.e. x refers to the x axis of the molecular frame etc. The three component operators are in units of MHz/mT, and the overall operator is in units of MHz.
 </p>
 
 

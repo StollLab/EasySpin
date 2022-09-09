@@ -1,7 +1,7 @@
 % ham  Spin Hamiltonian 
 %
-%   [H0,GxM,GyM,GzM] = ham(Sys)
-%   [H0,GzL] = ham(Sys,B0)
+%   [H0,mux,muy,muz] = ham(Sys)
+%   [H0,muzL] = ham(Sys,B0)
 %   H = ham(Sys,B0)
 %   H = ham(Sys)
 %   __ = ham(__,'sparse')
@@ -18,14 +18,14 @@
 %   Output:
 %     H            complete spin Hamiltonian (MHz)
 %     H0           field-independent part of spin Hamiltonian (MHz)
-%     GxM,GyM,GzM  field-dependent spin Hamiltonian components (MHz/mT)
+%     mux,muy,muz  magnetic dipole moment operators (MHz/mT)
 %                  along x, y, z axes of molecular frame
-%     GzL          field-dependent spin Hamiltonian (MHz/mT), with field
+%     muzL         magnetic dipole moment operator (MHz/mT)
 %                  along z axis of lab frame
 %
 %   The spin Hamiltonian components are defined such that
-%           H = H0 + B0(1)*GxM + B0(2)*GyM + B0(3)*GzM
-%           H = H0 + norm(B0)*GzL
+%           H = H0 - B0(1)*mux - B0(2)*muy - B0(3)*muz
+%           H = H0 - norm(B0)*muzL
 
 function varargout = ham(SpinSystem,B0,opt)
 
@@ -61,19 +61,21 @@ H0 = ham_zf(Sys,[],sp) + ...
      ham_so(Sys,[],sp) + ...
      ham_cf(Sys,[],sp);
 
-% Build field-dependent part of Hamiltonian
-[GxM,GyM,GzM] = ham_ez(Sys,[],sp);
+% Build magnetic-moment operators
+[muxM,muyM,muzM] = ham_ez(Sys,[],sp);  % total electron magnetic moment
 if Sys.nNuclei>0
-  [GxMnuc,GyMnuc,GzMnuc] = ham_nz(Sys,[],sp);
-  GxM = GxM + GxMnuc;
-  GyM = GyM + GyMnuc;
-  GzM = GzM + GzMnuc;
+  % Add total nuclear magnetic moment
+  [muxMnuc,muyMnuc,muzMnuc] = ham_nz(Sys,[],sp);
+  muxM = muxM + muxMnuc;
+  muyM = muyM + muyMnuc;
+  muzM = muzM + muzMnuc;
 end
 if Sys.nL>0
-  [GxMorb,GyMorb,GzMorb] = ham_oz(Sys,[],sp);
-  GxM = GxM + GxMorb;
-  GyM = GyM + GyMorb;
-  GzM = GzM + GzMorb;
+  % Add total orbital magnetic moment
+  [muxMorb,muyMorb,muzMorb] = ham_oz(Sys,[],sp);
+  muxM = muxM + muxMorb;
+  muyM = muyM + muyMorb;
+  muzM = muzM + muzMorb;
 end
 
 % Look for higher-order Zeeman terms
@@ -99,23 +101,23 @@ if isempty(B0)
     switch highest
       case 0
         if nargout==4
-          varargout = {H0+zHo,GxM,GyM,GzM};
+          varargout = {H0+zHo,muxM,muyM,muzM};
         elseif nargout==1
-          varargout{1} = {H0+zHo,GxM,GyM,GzM};
+          varargout{1} = {H0+zHo,muxM,muyM,muzM};
         else
           error('1 or 4 output arguments expected!');
         end
       case 1
         if nargout==4
-          varargout = {H0+zHo{1},GxM+zHo{2}{1},GyM+zHo{2}{2},GzM+zHo{2}{3}};
+          varargout = {H0+zHo{1},muxM+zHo{2}{1},muyM+zHo{2}{2},muzM+zHo{2}{3}};
         elseif nargout==1
-          varargout{1} = {H0+zHo{1},GxM+zHo{2}{1},GyM+zHo{2}{2},GzM+zHo{2}{3}};
+          varargout{1} = {H0+zHo{1},muxM+zHo{2}{1},muyM+zHo{2}{2},muzM+zHo{2}{3}};
         else
           error('1 or 4 output arguments expected!');
         end
       otherwise
         zHo{1} = zHo{1}+H0;
-        Gn = {GxM,GyM,GzM};
+        Gn = {muxM,muyM,muzM};
         for k = 3:-1:1
           zHo{2}{k} = zHo{2}{k}+Gn{k};
         end
@@ -131,9 +133,9 @@ if isempty(B0)
   else
     
     if nargout==4
-      varargout = {H0,GxM,GyM,GzM};
+      varargout = {H0,muxM,muyM,muzM};
     elseif nargout==1
-      varargout{1} = {{H0,GxM,GyM,GzM}};
+      varargout{1} = {{H0,muxM,muyM,muzM}};
     else
       error('1 or 4 output arguments expected!');
     end
@@ -151,28 +153,28 @@ if norm(B0)>0
 else
   nB0 = [0 0 0];
 end
-GzL = nB0(1)*GxM + nB0(2)*GyM + nB0(3)*GzM;
+muzL = nB0(1)*muxM + nB0(2)*muyM + nB0(3)*muzM;
 
 if higherOrderZeeman
   if nargout==1 || nargout==0
-    varargout = {H0 + norm(B0)*GzL + ham_ezho(Sys,B0,[],opt)};
+    varargout = {H0 - norm(B0)*muzL + ham_ezho(Sys,B0,[],opt)};
   elseif nargout==2 && highest<2
     zHo = ham_ezho(Sys,[],opt);
     if highest==1
-      GzL = GzL + nB0(1)*zHo{2}{1} + nB0(2)*zHo{2}{2} + nB0(3)*zHo{2}{3};
+      muzL = muzL + nB0(1)*zHo{2}{1} + nB0(2)*zHo{2}{2} + nB0(3)*zHo{2}{3};
       H0 = H0 + zHo{1};
     else
       H0 = H0 + zHo;
     end
-    varargout = {H0,GzL};
+    varargout = {H0,muzL};
   else
     error('Wrong number of output arguments!');
   end
 else
   if nargout==1 || nargout==0
-    varargout = {H0 + norm(B0)*GzL};
+    varargout = {H0 - norm(B0)*muzL};
   elseif nargout==2
-    varargout = {H0,GzL};
+    varargout = {H0,muzL};
   else
     error('Wrong number of output arguments!');
   end

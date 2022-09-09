@@ -3,15 +3,17 @@ function ok = test()
 % Test whether the 1th order in B of ham_ezho is identical to the usual
 % Zeeman Hamiltonian
 
-Sys1.S = ceil(rand*10)/2;
+rng(262);
+
+Sys1.S = 5/2;
 
 B = rand(1,3);
 
-Sys1.Ham110 = rand; % lB = 1, lS =1 l, = 0, m= 0
-Sys1.Ham112 = rand(5,1); % lB = 1, lS =1 l, = 2, m= l,...,-l
-a = Sys1.Ham110;
-b = Sys1.Ham112;
+a = rand;
+b = rand(5,1);
 
+Sys1.Ham110 = a; % lB = 1, lS =1 l, = 0, m= 0
+Sys1.Ham112 = b; % lB = 1, lS =1 l, = 2, m= l,...,-l
 
 Sys2.S = Sys1.S;
 Sys2.g = zeros(3);
@@ -20,23 +22,25 @@ Sys2.g(1,2) = b(5)/sqrt(2);
 Sys2.g(1,3) = b(2)/sqrt(2);
 Sys2.g(2,3) = b(4)/sqrt(2);
 
-Sys2.g = Sys2.g +Sys2.g'; %symmetrize before diagonal elements
+Sys2.g = Sys2.g + Sys2.g'; % symmetrize before diagonal elements
 
 Sys2.g(3,3) = (-a+sqrt(2)*b(3))/sqrt(3);
 Sys2.g(2,2) = (-sqrt(2)*a-b(3)-sqrt(3)*b(1))/sqrt(6);
 Sys2.g(1,1) = (-sqrt(2)*a-b(3)+sqrt(3)*b(1))/sqrt(6);
 
-% Hamm11l are given in MHz/mT, conversion require division by the Bohr
-% magneton
+% Hamm11l are given in MHz/mT, conversion require division by the Bohr magneton
 Sys2.g = Sys2.g *(planck*1e9)/bmagn;
 
 Hz{1} = ham(Sys1,B);
-H{1} = ham(Sys2,B);
-
 [Hz{2},Hz{3}] = ham(Sys1,B);
-[H{2},H{3}] = ham(Sys2,B);
-
 [Hz{4},Hz{5},Hz{6},Hz{7}] = ham(Sys1);
+Hz{3} = -Hz{3};
+Hz{5} = -Hz{5};
+Hz{6} = -Hz{6};
+Hz{7} = -Hz{7};
+
+H{1} = ham(Sys2,B);
+[H{2},H{3}] = ham(Sys2,B);
 [H{4},H{5},H{6},H{7}] = ham(Sys2);
 
 % test

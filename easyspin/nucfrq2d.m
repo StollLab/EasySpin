@@ -52,7 +52,7 @@ if nargin<3, tau = 0; end
 computeBlindSpots = all(tau>0) & ~Options.QuadraticAxes;
 
 % Construct spin Hamiltonian and get state space dimension.
-[H0,Gx,Gy,Gz] = ham(sys);
+[H0,mux,muy,muz] = ham(sys);
 N = size(H0,1);
 
 % Construct masks for alpha and beta manifold transitions.
@@ -76,7 +76,7 @@ B = B0*x;
 
 % Loop over all orientations and compute nuclear transitions.
 for k = 1:nOri
-  H = H0 + B(1,k)*Gx + B(2,k)*Gy + B(3,k)*Gz;
+  H = H0 - (B(1,k)*mux + B(2,k)*muy + B(3,k)*muz);
   E = sort(eig(H));
   EE = E(:,ones(1,N));
   EE = EE.' - EE;

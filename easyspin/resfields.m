@@ -385,13 +385,13 @@ if higherOrder
   % spin Hamiltonian is calculated later
 else
   if Opt.Sparse
-    [kF,kGxM,kGyM,kGzM] = ham(CoreSys,[],'sparse');
-    nLevels = length(kF);
+    [kH0,kmuxM,kmuyM,kmuzM] = ham(CoreSys,[],'sparse');
+    nLevels = length(kH0);
   else
-    [kF,kGxM,kGyM,kGzM] = ham(CoreSys);
-    nLevels = length(kF);
+    [kH0,kmuxM,kmuyM,kmuzM] = ham(CoreSys);
+    nLevels = length(kH0);
   end
-  nCore = length(kF);
+  nCore = length(kH0);
 end
 nFull = hsdim(Sys);
 nSHFNucStates = nFull/nCore;
@@ -449,12 +449,12 @@ end
 % This is a very crude workaround to prevent numerical issues due to degeneracies.
 % It probably adds noise in a lot of situations where it is not necessary.
 if Opt.FuzzLevel>0 && ~higherOrder && (CoreSys.nNuclei>1 || CoreSys.nElectrons>1) && ~computeNonEquiPops
-  noise = 1 + Opt.FuzzLevel*(2*rand(size(kF))-1);
+  noise = 1 + Opt.FuzzLevel*(2*rand(size(kH0))-1);
   noise = (noise+noise.')/2; % make sure it's Hermitian
-  kF = kF.*noise;
-  kGxM = kGxM.*noise;
-  kGyM = kGyM.*noise;
-  kGzM = kGzM.*noise;
+  kH0 = kH0.*noise;
+  kmuxM = kmuxM.*noise;
+  kmuyM = kmuyM.*noise;
+  kmuzM = kmuzM.*noise;
 end
 
 if nPerturbNuclei>0
@@ -474,9 +474,9 @@ if computeNonEquiPops && strcmp(initStateBasis,'zerofield')
     [ZFStates,ZFEnergies] =  eig(ham(CoreSys,zeros(1,3)));
   else
     if Opt.Sparse
-      [ZFStates,ZFEnergies] = eigs(kF,length(kF));
+      [ZFStates,ZFEnergies] = eigs(kH0,length(kH0));
     else
-      [ZFStates,ZFEnergies] = eig(kF);
+      [ZFStates,ZFEnergies] = eig(kH0);
     end
   end
   [ZFEnergies,idx] = sort(real(diag(ZFEnergies)));
@@ -496,11 +496,11 @@ else
     ZFEnergies = eig(ham(CoreSys,zeros(1,3)));
     ZFEnergies = sort(real(ZFEnergies));
   else
-    if issparse(kF)
-      ZFEnergies(1) = eigs(kF,1,-2*max(abs(kF(:))));
-      ZFEnergies(2) = eigs(kF,1,+2*max(abs(kF(:))));
+    if issparse(kH0)
+      ZFEnergies(1) = eigs(kH0,1,-2*max(abs(kH0(:))));
+      ZFEnergies(2) = eigs(kH0,1,+2*max(abs(kH0(:))));
     else
-      ZFEnergies = sort(real(eig(kF)));
+      ZFEnergies = sort(real(eig(kH0)));
     end
   end
 end
@@ -606,18 +606,18 @@ else % Automatic transition pre-selection
       end
       [g0{1},g0{2},g0{3}] = ham_ez(CoreSys,[],sp);
       if Sys.nNuclei>0
-        [g0n{1},g0n{2},g0n{3}] = ham_nz(CoreSys,[],sp);
+        [mu0n{1},mu0n{2},mu0n{3}] = ham_nz(CoreSys,[],sp);
         for k = 1:3
-          g0{k} = g0{k} + g0n{k};
+          g0{k} = g0{k} - mu0n{k};
         end
       end
       ExM = g1{1}{1} + g0{1};
       EyM = g1{1}{2} + g0{2};
       EzM = g1{1}{3} + g0{3};
     else
-      ExM = kGxM;
-      EyM = kGyM;
-      EzM = kGzM;
+      ExM = -kmuxM;
+      EyM = -kmuyM;
+      EzM = -kmuzM;
     end
     
     % Pre-compute trigonometric functions
@@ -634,14 +634,14 @@ else % Automatic transition pre-selection
       if higherOrder
         [Vecs,~] = gethamdata_hO(centerB,[st(iOri)/sqrt(2)*[1,1],ct(iOri)],CoreSys,Opt.Sparse,[],nLevels);
       else
-        kGzL = st(iOri)*(cp(iOri)*kGxM + sp(iOri)*kGyM) + ct(iOri)*kGzM;
+        kmuzL = st(iOri)*(cp(iOri)*kmuxM + sp(iOri)*kmuyM) + ct(iOri)*kmuzM;
         % Solve eigenproblem
         if Opt.Sparse
-          [Vecs,E] = eigs(kF + centerB*kGzL,nCore);
+          [Vecs,E] = eigs(kH0 - centerB*kmuzL,nCore);
           [~,idx_] = sort(diag(E));
           Vecs = Vecs(:,idx_);
         else
-          [Vecs,~] = eig(kF + centerB*kGzL);
+          [Vecs,~] = eig(kH0 - centerB*kmuzL);
         end
       end
       % Calculate transition rate matrix and take the maximum
@@ -656,7 +656,7 @@ else % Automatic transition pre-selection
       end
     end
     % Free unused memory
-    clear Vecs E idx kGzL ExM EyM EzM ExyM ExL EyL EzL
+    clear Vecs E idx kmuzL ExM EyM EzM ExyM ExL EyL EzL
   end
   
   % Remove lower triangular part
@@ -766,7 +766,7 @@ if computeStrains
     end
     % Diagonalize Hamiltonian at center field.
     centerB = mean(Exp.Range);
-    [Vecs,E] = eig(kF + centerB*kGzM);
+    [Vecs,E] = eig(kH0 - centerB*kmuzM);
     [~,idx] = sort(real(diag(E)));
     Vecs = Vecs(:,idx);
     % Calculate effective mI of nucleus 1 for all eigenstates.
@@ -863,10 +863,10 @@ if higherOrder
   end
 else
   if Opt.Sparse
-    maxSlope = max(max([eigs(kGxM,1) eigs(kGyM,1) eigs(kGzM,1)]));
+    maxSlope = max(max([eigs(-kmuxM,1) eigs(-kmuyM,1) eigs(-kmuzM,1)]));
     maxSlope = abs(maxSlope);
   else
-    maxSlope = max(max([eig(kGxM) eig(kGyM) eig(kGzM)]));
+    maxSlope = max(max([eig(-kmuxM) eig(-kmuyM) eig(-kmuzM)]));
   end
 end
 nDiagonalizations = 0; % or 4? (1 for F and 3 for maxSlope)
@@ -909,12 +909,12 @@ for iOri = 1:nOrientations
   
   if ~higherOrder
     % zLab axis: external static field
-    kGzL = zLab_M(1)*kGxM + zLab_M(2)*kGyM + zLab_M(3)*kGzM;
+    kmuzL = zLab_M(1)*kmuxM + zLab_M(2)*kmuyM + zLab_M(3)*kmuzM;
     % xLab axis: mw excitation field
-    kGxL = xLab_M(1)*kGxM + xLab_M(2)*kGyM + xLab_M(3)*kGzM;
+    kmuxL = xLab_M(1)*kmuxM + xLab_M(2)*kmuyM + xLab_M(3)*kmuzM;
     % yLab axis: needed for gradient calculation
     % and the integration over all mw field orientations
-    kGyL = yLab_M(1)*kGxM + yLab_M(2)*kGyM + yLab_M(3)*kGzM;
+    kmuyL = yLab_M(1)*kmuxM + yLab_M(2)*kmuyM + yLab_M(3)*kmuzM;
     if usegStrain && ~simplegStrain
       for e = Sys.nElectrons:-1:1
         kSzL{e} = zLab_M(1)*kSxM{e} + zLab_M(2)*kSyM{e} + zLab_M(3)*kSzM{e};
@@ -955,8 +955,8 @@ for iOri = 1:nOrientations
     [Vectors{2},E{2},dEdB{2},deltaE{2}] = gethamdata_hO(Bknots(2),zLab_M,CoreSys,Opt.Sparse,Trans,nLevels);
     [Vectors{1},E{1},dEdB{1},deltaE{1}] = gethamdata_hO(Bknots(1),zLab_M,CoreSys,Opt.Sparse,Trans,nLevels);
   else
-    [Vectors{2},E{2},dEdB{2},deltaE{2}] = gethamdata(Bknots(2),kF,kGzL,Trans,nLevels);
-    [Vectors{1},E{1},dEdB{1},deltaE{1}] = gethamdata(Bknots(1),kF,kGzL,Trans,nLevels);
+    [Vectors{2},E{2},dEdB{2},deltaE{2}] = gethamdata(Bknots(2),kH0,kmuzL,Trans,nLevels);
+    [Vectors{1},E{1},dEdB{1},deltaE{1}] = gethamdata(Bknots(1),kH0,kmuzL,Trans,nLevels);
   end
   nDiagonalizations = nDiagonalizations + 2;
   unfinished = true;
@@ -982,7 +982,7 @@ for iOri = 1:nOrientations
       if higherOrder
         [Ve,En,Di1,dEn] = gethamdata_hO(newB,zLab_M,CoreSys,Opt.Sparse,Trans,nLevels);
       else
-        [Ve,En,Di1,dEn] = gethamdata(newB,kF,kGzL,Trans,nLevels);
+        [Ve,En,Di1,dEn] = gethamdata(newB,kH0,kmuzL,Trans,nLevels);
       end
       nDiagonalizations = nDiagonalizations+1;
       Error = 2*(1/2*(E{s}+E{s+1}) + dB/8*(dEdB{s}-dEdB{s+1}) - En);
@@ -1103,8 +1103,8 @@ for iOri = 1:nOrientations
                 Vectors_ = Vectors_(:,ind);
               end
             else
-              if issparse(kF)
-                [Vectors_,Energies] = eigs(kF+ResonanceFields(iReson)*kGzL,nLevels);
+              if issparse(kH0)
+                [Vectors_,Energies] = eigs(kH0-ResonanceFields(iReson)*kmuzL,nLevels);
                 % A sort of workaround for diagonalization using eigs, the
                 % energies are not ordered which results in a miscalculation
                 % of mu
@@ -1114,7 +1114,7 @@ for iOri = 1:nOrientations
                 
                 %[Vectors_,Energies] = eig(full(kF+ResonanceFields(iReson)*kGzL));
               else
-                [Vectors_,Energies] = eig(kF+ResonanceFields(iReson)*kGzL);
+                [Vectors_,Energies] = eig(kH0-ResonanceFields(iReson)*kmuzL);
               end
               Energies = diag(Energies);
             end
@@ -1154,27 +1154,27 @@ for iOri = 1:nOrientations
             g1 = ham_ezho(CoreSys,[],[],sp,1);
             [g0{1},g0{2},g0{3}] = ham_ez(CoreSys,[],sp);
             if Sys.nNuclei>0
-              [g0n{1},g0n{2},g0n{3}] = ham_nz(CoreSys,[],sp);
+              [mu0n{1},mu0n{2},mu0n{3}] = ham_nz(CoreSys,[],sp);
               for k = 1:3
-                g0{k} = g0{k} + g0n{k};
+                g0{k} = g0{k} - mu0n{k};
               end
             end
             for n =3:-1:1
-              kGM{n} = g1{1}{n}+g0{n};
+              kmuM{n} = -(g1{1}{n}+g0{n});
             end
             % z laboratoy axis: external static field
-            kGzL = zLab_M(1)*kGM{1} + zLab_M(2)*kGM{2} + zLab_M(3)*kGM{3};
+            kmuzL = zLab_M(1)*kmuM{1} + zLab_M(2)*kmuM{2} + zLab_M(3)*kmuM{3};
             % x laboratory axis: B1 excitation field
-            kGxL = xLab_M(1)*kGM{1} + xLab_M(2)*kGM{2} + xLab_M(3)*kGM{3};
+            kmuxL = xLab_M(1)*kmuM{1} + xLab_M(2)*kmuM{2} + xLab_M(3)*kmuM{3};
             % y laboratory vector: needed for integration over all B1 field orientations.
-            kGyL = yLab_M(1)*kGM{1} + yLab_M(2)*kGM{2} + yLab_M(3)*kGM{3};
+            kmuyL = yLab_M(1)*kmuM{1} + yLab_M(2)*kmuM{2} + yLab_M(3)*kmuM{3};
           end
           
           % Compute dB/dE
           % dBdE is the general form of the famous 1/g factor
           % dBdE = (d(Ev-Eu)/dB)^(-1) = 1/(<v|dH/dB|v>-<u|dH/dB|u>)
           if computeFreq2Field
-            dBdE = 1/abs(real((V-U)'*kGzL*(V+U)));
+            dBdE = 1/abs(real((V-U)'*(-kmuzL)*(V+U)));
             % It might be quicker to take it from the first derivative
             % of the transition energy!
             %dBdE = dB(s)/abs(Diff1(iReson));
@@ -1194,7 +1194,7 @@ for iOri = 1:nOrientations
         if computeIntensities
           
           % Compute quantum-mechanical transition rate
-          mu = [V'*kGxL*U; V'*kGyL*U; V'*kGzL*U]; % magnetic transition dipole moment
+          mu = [V'*kmuxL*U; V'*kmuyL*U; V'*kmuzL*U]; % magnetic transition dipole moment
           if averageOverChi
             if linearpolarizedMode
               TransitionRate = ((1-xi1^2)*norm(mu)^2+(3*xi1^2-1)*abs(nB0.'*mu)^2)/2;
@@ -1256,7 +1256,7 @@ for iOri = 1:nOrientations
         % Calculate gradient of resonance frequency
         %---------------------------------------------------
         if computeGradient
-          Gradient2 = real((V'-U')*kGxL*(V+U)).^2 + real((V'-U')*kGyL*(V+U)).^2;
+          Gradient2 = real((V'-U')*kmuxL*(V+U)).^2 + real((V'-U')*kmuyL*(V+U)).^2;
           % dBdE proportionality not valid near looping field coalescences
           Gdat(iiTrans,iOri) = dBdE * ResonanceFields(iReson) * sqrt(Gradient2);
         end

@@ -3,9 +3,9 @@
 %   H = ham_oz(SpinSystem, B)
 %   H = ham_oz(SpinSystem, B, oam)
 %   H = ham_oz(SpinSystem, B, oam, 'sparse')
-%   [Gx, Gy, Gz] = ham_oz(SpinSystem)
-%   [Gx, Gy, Gz] = ham_oz(SpinSystem, oam)
-%   [Gx, Gy, Gz] = ham_oz(SpinSystem, oam, 'sparse')
+%   [mux, muy, muz] = ham_oz(SpinSystem)
+%   [mux, muy, muz] = ham_oz(SpinSystem, oam)
+%   [mux, muy, muz] = ham_oz(SpinSystem, oam, 'sparse')
 %
 %   Returns the orbital Zeeman interaction Hamiltonian matrix for
 %   the orbital angular momenta 'oam' of the spin system 'SpinSystem'.
@@ -18,12 +18,12 @@
 %   - 'sparse': If given, results returned in sparse format.
 %
 %   Output:
-%   - Gx, Gy, Gz: Components of the Zeeman interaction Hamiltonian matrix
-%     for the selected orbital angular momenta as defined by Gi=d(H)/d(B_i)
+%   - mux, muy, muz: Components of the magnetic dipole moment operator
+%     for the selected orbital angular momenta as defined by mui=d(H)/d(B_i)
 %     i=x,y,z where B_i are the cartesian components of
 %     the external field in the molecular frame. Units are MHz/mT = GHz/T.
-%     To get the full orbital Zeeman Hamiltonian, use H = Gx*B(1)+Gy*B(2)+Gz*B(3),
-%     where B is the magnetic field vector in mT.
+%     To get the full orbital Zeeman Hamiltonian, use
+%     H = -(mux*B(1)+muy*B(2)+muz*B(3)), where B is the magnetic field vector in mT.
 %   - H: Orbital Zeeman Hamiltonian matrix.
 
 function varargout = ham_oz(SpinSystem,varargin)
@@ -80,12 +80,12 @@ end
 
 % Initialize Zeeman interaction component matrices to zero
 nStates = Sys.nStates;
-GxM = sparse(nStates,nStates);
-GyM = sparse(nStates,nStates);
-GzM = sparse(nStates,nStates);
+muxM = sparse(nStates,nStates);
+muyM = sparse(nStates,nStates);
+muzM = sparse(nStates,nStates);
 
 % Calculate prefactor
-pre = +bmagn/planck*Sys.gL; % Hz/T
+pre = -bmagn/planck*Sys.gL; % Hz/T
 pre = pre/1e9;  % Hz/T -> GHz/T = MHz/mT
 
 % Loop over all orbital angular momenta
@@ -94,21 +94,21 @@ for i = oam
   % Orbital angular momenta, isotropic
   % Build orbital Zeeman Hamiltonian in MHz/mT
   iSpin = nElectrons + nNuclei + i;
-  GxM = GxM + pre(i)*sop(spins,[iSpin,1],'sparse');
-  GyM = GyM + pre(i)*sop(spins,[iSpin,2],'sparse');
-  GzM = GzM + pre(i)*sop(spins,[iSpin,3],'sparse');
+  muxM = muxM + pre(i)*sop(spins,[iSpin,1],'sparse');
+  muyM = muyM + pre(i)*sop(spins,[iSpin,2],'sparse');
+  muzM = muzM + pre(i)*sop(spins,[iSpin,3],'sparse');
 
 end
 
 if isempty(B0)
   if ~useSparseMatrices
-    GxM = full(GxM);
-    GyM = full(GyM);
-    GzM = full(GzM);
+    muxM = full(muxM);
+    muyM = full(muyM);
+    muzM = full(muzM);
   end
-  varargout = {GxM, GyM, GzM};
+  varargout = {muxM, muyM, muzM};
 else
-  H = GxM*B0(1) + GyM*B0(2) + GzM*B0(3);
+  H = -(muxM*B0(1) + muyM*B0(2) + muzM*B0(3));
   if ~useSparseMatrices
     H = full(H);
   end

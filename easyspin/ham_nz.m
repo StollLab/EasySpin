@@ -3,9 +3,9 @@
 %   H = ham_nz(SpinSystem, B)
 %   H = ham_nz(SpinSystem, B, nSpins)
 %   H = ham_nz(SpinSystem, B, nSpins, 'sparse')
-%   [Gx, Gy, Gz] = ham_nz(SpinSystem)
-%   [Gx, Gy, Gz] = ham_nz(SpinSystem, nSpins)
-%   [Gx, Gy, Gz] = ham_nz(SpinSystem, nSpins, 'sparse')
+%   [mux, muy, muz] = ham_nz(SpinSystem)
+%   [mux, muy, muz] = ham_nz(SpinSystem, nSpins)
+%   [mux, muy, muz] = ham_nz(SpinSystem, nSpins, 'sparse')
 %
 %   Returns the nuclear Zeeman interaction Hamiltonian matrix for
 %   the nuclear spins 'nSpins' of the spin system 'SpinSystem'.
@@ -18,12 +18,12 @@
 %   - 'sparse': If given, results returned in sparse format.
 %
 %   Output:
-%   - Gx, Gy, Gz: Components of the Zeeman interaction Hamiltonian matrix
-%     for the selected nuclear spins as defined by Gi=d(H)/d(B_i)
+%   - mux, muy, muz: Components of the magnetic dipole moment operator
+%     for the selected nuclear spins as defined by mui=-d(H)/d(B_i)
 %     i=x,y,z where B_i are the cartesian components of
 %     the external field in the molecular frame. Units are MHz/mT = GHz/T.
-%     To get the full nuclear Zeeman Hamiltonian, use H = Gx*B(1)+Gy*B(2)+Gz*B(3),
-%     where B is the magnetic field vector in mT.
+%     To get the full nuclear Zeeman Hamiltonian, use
+%     H = -(mux*B(1)+muy*B(2)+muz*B(3)), where B is the magnetic field vector in mT.
 %   - H: Nuclear Zeeman Hamiltonian matrix.
 
 function varargout = ham_nz(SpinSystem,varargin)
@@ -78,12 +78,12 @@ end
 
 % Initialize Zeeman interaction component matrices to zero
 nStates = Sys.nStates;
-GxM = sparse(nStates,nStates);
-GyM = sparse(nStates,nStates);
-GzM = sparse(nStates,nStates);
+muxM = sparse(nStates,nStates);
+muyM = sparse(nStates,nStates);
+muzM = sparse(nStates,nStates);
 
 % Calculate prefactors
-pre = -nmagn/planck*Sys.gn.*Sys.gnscale; % Hz/T
+pre = +nmagn/planck*Sys.gn.*Sys.gnscale; % Hz/T
 pre = pre/1e9;  % Hz/T -> GHz/T = MHz/mT
 
 % Loop over all nuclear spins
@@ -106,22 +106,22 @@ for iNuc = nSpins
   % Build nuclear Zeeman Hamiltonian in MHz/mT
   for k = 1:3
     Ik = sop(spins,[nElectrons+iNuc,k],'sparse');
-    GxM = GxM + pre(iNuc)*sigma(1,k)*Ik;
-    GyM = GyM + pre(iNuc)*sigma(2,k)*Ik;
-    GzM = GzM + pre(iNuc)*sigma(3,k)*Ik;
+    muxM = muxM + pre(iNuc)*sigma(1,k)*Ik;
+    muyM = muyM + pre(iNuc)*sigma(2,k)*Ik;
+    muzM = muzM + pre(iNuc)*sigma(3,k)*Ik;
   end
 
 end
 
 if isempty(B0)
   if ~useSparseMatrices
-    GxM = full(GxM);
-    GyM = full(GyM);
-    GzM = full(GzM);
+    muxM = full(muxM);
+    muyM = full(muyM);
+    muzM = full(muzM);
   end
-  varargout = {GxM, GyM, GzM};
+  varargout = {muxM, muyM, muzM};
 else
-  H = GxM*B0(1) + GyM*B0(2) + GzM*B0(3);
+  H = muxM*B0(1) + muyM*B0(2) + muzM*B0(3);
   if ~useSparseMatrices
     H = full(H);
   end

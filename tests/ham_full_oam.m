@@ -54,8 +54,8 @@ for m = 1:lenS
   end
 end
 
-[H1,GX1,GY1,GZ1] = ham(pureSpin);
-[H2,GX2,GY2,GZ2] = ham(Sys);
+[H01,muX1,muY1,muZ1] = ham(pureSpin);
+[H02,muX2,muY2,muZ2] = ham(Sys);
 
 % comparison including nuclear spins will be done on basis of the
 % eigenvalues, as the order in the spin-vector differ between the two
@@ -68,8 +68,8 @@ field = rand(1,3)*1e3;
 E1 = eig(ham(pureSpin,field));
 E2 = eig(ham(Sys,field));
 
-ok(1) = areequal(H1,H2,1e-10,'abs');
-ok(2) = areequal(GX1,GX2,1e-10,'abs');
-ok(3) = areequal(GY1,GY2,1e-10,'abs');
-ok(4) = areequal(GZ1,GZ2,1e-10,'abs');
+ok(1) = areequal(H01,H02,1e-10,'abs');
+ok(2) = areequal(muX1,muX2,1e-10,'abs');
+ok(3) = areequal(muY1,muY2,1e-10,'abs');
+ok(4) = areequal(muZ1,muZ2,1e-10,'abs');
 ok(5) = areequal(E1,E2,1e-6,'abs');

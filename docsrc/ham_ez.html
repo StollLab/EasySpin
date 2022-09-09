@@ -32,48 +32,43 @@
 <div class="subtitle">Syntax</div>
 
 <p>
-Electron Zeeman interaction Hamiltonian and its components.
+Electron Zeeman Hamiltonian, electron magnetic dipole moment.
 </p>
 
 <pre class="matlab">
 H = ham_ez(Sys, B)
 H = ham_ez(Sys, B, idx)
 H = ham_ez(Sys, B, idx, 'sparse')
-[Gx, Gy, Gz] = ham_ez(Sys)
-[Gx, Gy, Gz] = ham_ez(Sys, idx)
-[Gx, Gy, Gz] = ham_ez(Sys, idx, 'sparse')
+[mux, muy, muz] = ham_ez(Sys)
+[mux, muy, muz] = ham_ez(Sys, idx)
+[mux, muy, muz] = ham_ez(Sys, idx, 'sparse')
 </pre>
 
 <!-- ============================================================= -->
 <div class="subtitle">Description</div>
 
 <p>
-<code>ham_ez</code> calculates the electron Zeeman interaction Hamiltonian for the <a href="spinsystem.html">spin system</a> given in <code>Sys</code>.
+<code>ham_ez</code> calculates the matrix representing the electron Zeeman Hamiltonian (in units of MHz) for the <a href="spinsystem.html">spin system</a> given in <code>Sys</code>.
 
 <p>
 <code>Sys</code> is a spin system structure.
 </p>
 
 <p>
-If <code>idx</code> is omitted, all electron spins defined in the spin system are included in the operators. If <code>idx</code> is given, only the specified subset of electron spins is included. For a system with n electron spins, a number between 1 and n indicates an electron spin.
+<code>idx</code> is a number or array that indicates which electron spins should be included. For example, <code>1</code> indicates the first electron spin, and <code>[2 3]</code> indicates the second and third electron spin. If <code>idx</code> is omitted, all electron spins are included in the operators.
 </p>
 
 <p>
-If a magnetic field vector (in mT) is given in <code>B</code>, the complete electron Zeeman Hamiltonian is returned.
+<code>B</code> is a 3-element magnetic field vector (in mT). If given, the complete electron Zeeman Hamiltonian is returned. <code>B</code> is understood to be in the <a href="frames.html">molecular frame</a>, for example <code>[0 0 340]</code> indicates a field along the molecular z axis.
 </p>
 
 <p>
-If no magnetic field is given, the function returns the three operators involved in constructing the electron Zeeman interaction Hamiltonian. These three operators <code>Gx</code>, <code>Gy</code> and <code>Gz</code> are the negatives of the electron magnetic moment components. To get the complete electron Zeeman interaction Hamiltonian, they have to be multiplied by the respective B field components and summed up: <code>Gx*B(1)+Gy*B(2)+Gz*B(3)</code>.
+If <code>B</code> is omitted, the function returns the three electron spin magnetic dipole moment component operators <code>mux</code>, <code>muy</code> and <code>muz</code>, defined along the principal axes of the molecular frame. They are in units of MHz/mT. The complete electron Zeeman Hamiltonian is obtained via <code>H = -(mux*B(1)+muy*B(2)+muz*B(3))</code>.
 </p>
 
 <p>
 If <code>'sparse'</code> is given as third argument, results are returned in sparse format instead of full format.
 </p>
-
-<p>
-All quantities are formulated in the molecular frame, i.e. x refers to the x axis of the molecular frame etc. The three component operators are in units of MHz/mT, and the overall operator is in units of MHz.
-</p>
-
 
 <!-- ============================================================= -->
 <div class="subtitle">Examples</div>

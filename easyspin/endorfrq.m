@@ -173,7 +173,7 @@ end
 % Preparing Hamiltonian representations etc.
 %-----------------------------------------------------------------------
 % The first and only compilation of the full Hamiltonian.
-[H0,GxM,GyM,GzM] = ham(Sys);
+[H0,muxM,muyM,muzM] = ham(Sys);
 
 
 % For polarized systems, pre-compute ZF eigenstates.
@@ -284,7 +284,7 @@ if isempty(Opt.Transitions)
   cp = cos(phi);
   
   % Compute selection detection operators (NMR transitions only!)
-  [sGxM,sGyM,sGzM] = ham_nz(Sys,Opt.Nuclei);
+  [smuxM,smuyM,smuzM] = ham_nz(Sys,Opt.Nuclei);
   
   % preallocate the transition rate matrix
   TransitionRates = zeros(nStates);
@@ -295,15 +295,15 @@ if isempty(Opt.Transitions)
   for iOri = 1:length(theta)
     
     % solve eigenproblem
-    [Vs,E] = eig(H0 + Exp.Field*...
-      (st(iOri)*(cp(iOri)*GxM + sp(iOri)*GyM) + ct(iOri)*GzM));
+    [Vs,E] = eig(H0 - Exp.Field*...
+      (st(iOri)*(cp(iOri)*muxM + sp(iOri)*muyM) + ct(iOri)*muzM));
     E = diag(E);
     
     % sum up transition rates
-    sGpM = cp(iOri)*sGxM+ sp(iOri)*sGyM;
+    smupM = cp(iOri)*smuxM+ sp(iOri)*smuyM;
     TransitionRates = TransitionRates + TRWeights(iOri) * ...
-      (abs(Vs'*( ct(iOri)*sGpM - st(iOri)*sGzM)*Vs).^2 + ...
-       abs(Vs'*(-sp(iOri)*sGxM + cp(iOri)*sGyM)*Vs).^2)/2;
+      (abs(Vs'*( ct(iOri)*smupM - st(iOri)*smuzM)*Vs).^2 + ...
+       abs(Vs'*(-sp(iOri)*smuxM + cp(iOri)*smuyM)*Vs).^2)/2;
        
     % Determine minima and maxima of transition frequencies
     EE = E(:,ones(1,nStates));
@@ -313,7 +313,7 @@ if isempty(Opt.Transitions)
   end
   
   % Remove unused matrices. With high nStates, they take a lot of space.
-  clear Vs E EE sGpM sGxM sGyM sGzM st ct sp cp TRWeights idx;
+  clear Vs E EE smupM smuxM smuyM smuzM st ct sp cp TRWeights idx;
   
   % Remove transitions completely out of range.
   if ~isempty(Exp.Range) && ~any(isnan(Exp.Range))
@@ -401,10 +401,10 @@ if ComputeIntensities
   if EnhancementSwitch
     % Zeeman interaction including electronic Zeeman interaction,
     % includes implicitely hyperfine enhancement
-   [DxMe,DyMe,DzMe] = ham_ez(Sys);
-   DxM = DxM + DxMe;
-   DyM = DyM + DyMe;
-   DzM = DzM + DzMe;
+    [DxMe,DyMe,DzMe] = ham_ez(Sys);
+    DxM = DxM + DxMe;
+    DyM = DyM + DyMe;
+    DzM = DzM + DzMe;
   end
   
   if OrientationSelection
@@ -482,7 +482,7 @@ for iOri = 1:nOrientations
   
   
   % Compute eigenstate energies and vectors.
-  H = H0 + Exp.Field*(zLab(1)*GxM + zLab(2)*GyM + zLab(3)*GzM);
+  H = H0 - Exp.Field*(zLab(1)*muxM + zLab(2)*muyM + zLab(3)*muzM);
   if ComputeVectors
     [Vs,E0] = eig(H);
     E0 = sort(diag(E0));
@@ -501,7 +501,7 @@ for iOri = 1:nOrientations
       % average over lab xy plane
       DxL = xLab(1)*DxM + xLab(2)*DyM + xLab(3)*DzM;
       EndorIntensity = (abs(Vs'*DxL*Vs).^2 + abs(Vs'*DyL*Vs).^2)/2;
-      if (OrientationSelection)
+      if OrientationSelection
         ExL = xLab(1)*ExM + xLab(2)*EyM + xLab(3)*EzM;
         EyL = yLab(1)*ExM + yLab(2)*EyM + yLab(3)*EzM;
         EPRIntensity = (2*pi)*(abs(Vs'*ExL*Vs).^2+abs(Vs'*EyL*Vs).^2)/2;

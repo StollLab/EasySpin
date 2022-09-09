@@ -18,4 +18,3 @@ if ~isempty(olddata)
 else
   ok = [];
 end
-

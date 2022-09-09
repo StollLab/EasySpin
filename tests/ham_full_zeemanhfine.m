@@ -5,12 +5,15 @@ function ok = test()
 Sys = struct('S',1/2,'g',[2 3 4],'Nucs','63Cu','A',[50 50 350]);
 
 B = rand(1,3)*400;
-[F1,G1] = ham(Sys,B);
 
+% Construct Hamiltonian using ham()
+[F1,mu1] = ham(Sys,B);
+H1 = F1 - norm(B)*mu1;
+
+% Construct Hamiltonian using ham_*()
 F = ham_nq(Sys) + ham_hf(Sys);
-[eGx,eGy,eGz] = ham_ez(Sys);
-[nGx,nGy,nGz] = ham_nz(Sys);
-G = B(1)*(eGx+nGx) + B(2)*(eGy+nGy) + B(3)*(eGz+nGz);
-G = G/norm(B);
+[muxe,muye,muze] = ham_ez(Sys);
+[muxn,muyn,muzn] = ham_nz(Sys);
+H = F - B(1)*(muxe+muxn) - B(2)*(muye+muyn) - B(3)*(muze+muzn);
 
-ok = areequal(F1+norm(B)*G1,F+norm(B)*G,1e-10,'rel');
+ok = areequal(H1,H,1e-10,'rel');

@@ -141,9 +141,9 @@ logmsg(1,'  computing %s',msg);
 % Build Hamiltonian components.
 %===================================================================
 if iscell(SpinSystem)
-  [H0,Gx,Gy,Gz] = deal(SpinSystem);
+  [H0,mux,muy,muz] = deal(SpinSystem);
 else
-  [H0,Gx,Gy,Gz] = ham(SpinSystem);
+  [H0,mux,muy,muz] = ham(SpinSystem);
 end
 
 % Build Liouville space operators.
@@ -163,9 +163,9 @@ clear V E;
 
 % Prepare vectors for intensity computation.
 if computeIntensities
-  vGx = reshape(Gx.',numel(Gx),1);
-  vGy = reshape(Gy.',numel(Gy),1);
-  vGz = reshape(Gz.',numel(Gz),1);
+  mux_vec = reshape(mux.',numel(mux),1);
+  muy_vec = reshape(muy.',numel(muy),1);
+  muz_vec = reshape(muz.',numel(muz),1);
 end
 
 % Loop over all orientations of the spin system.
@@ -176,9 +176,9 @@ for iOri = 1:nOrientations
   logmsg(3,'  orientation %d of %d',iOri,nOrientations);
   
   [xLab,yLab,zLab] = erot(Orientations(iOri,:),'rows');
-  GzL = zLab(1)*Gx + zLab(2)*Gy + zLab(3)*Gz;
+  muzL = zLab(1)*mux + zLab(2)*muy + zLab(3)*muz;
 
-  B = kroneye(conj(GzL)) - eyekron(GzL);
+  B = - kroneye(conj(muzL)) + eyekron(muzL);
   if SimpleEigenproblem, BB = A\B; end
 
   if computeIntensities
@@ -212,21 +212,17 @@ for iOri = 1:nOrientations
       
       % Compute quantum-mechanical transition rate
       idx = ones(1,length(EigenFields{iOri}));
-      if (ParallelMode)
-        vGzL = zLab(1)*vGx + zLab(2)*vGy + zLab(3)*vGz;
-        if averageOverChi
-          TransitionRate = abs(sum(vGzL(:,idx).*Vecs)).^2;
-        else
-          TransitionRate = abs(sum(vGzL(:,idx).*Vecs)).^2;
-        end
+      if ParallelMode
+        muzL_vec = zLab(1)*mux_vec + zLab(2)*muy_vec + zLab(3)*muz_vec;
+        TransitionRate = abs(sum(muzL_vec(:,idx).*Vecs)).^2;
       else
-        vGxL = xLab(1)*vGx + xLab(2)*vGy + xLab(3)*vGz;
+        muxL_vec = xLab(1)*mux_vec + xLab(2)*muy_vec + xLab(3)*muz_vec;
         if averageOverChi
-          vGyL = yLab(1)*vGx + yLab(2)*vGy + yLab(3)*vGz;
+          muyL_vec = yLab(1)*mux_vec + yLab(2)*muy_vec + yLab(3)*muz_vec;
           % Calculate transition rate using <v|A|u> = trace(A|u><v|)
-          TransitionRate = (abs(sum(vGxL(:,idx).*Vecs)).^2 + abs(sum(vGyL(:,idx).*Vecs)).^2)/2;
+          TransitionRate = (abs(sum(muxL_vec(:,idx).*Vecs)).^2 + abs(sum(muyL_vec(:,idx).*Vecs)).^2)/2;
         else
-          TransitionRate = abs(sum(vGxL(:,idx).*Vecs)).^2;
+          TransitionRate = abs(sum(muxL_vec(:,idx).*Vecs)).^2;
         end
       end
       
@@ -244,7 +240,7 @@ for iOri = 1:nOrientations
         dBdE = [];
         for iVec = 1:size(Vecs,3)
           V = Vecs(:,:,iVec);
-          dBdE(iVec) = 1/abs(trace(GzL*commute(V,V')));  %#ok
+          dBdE(iVec) = 1/abs(trace(-muzL*commute(V,V')));  %#ok
         end
       else
         dBdE = ones(size(TransitionRate));

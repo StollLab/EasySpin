@@ -36,8 +36,8 @@ Constructs spin Hamiltonian matrix
 <div class="subtitle">Syntax</div>
 
 <pre class="matlab">
-[H0,GxM,GyM,GzM] = ham(Sys)
-[H0,GxM,GyM,GzM] = ham(Sys,'sparse')
+[H0,mux,muy,muz] = ham(Sys)
+[H0,mux,muy,muz] = ham(Sys,'sparse')
 H = ham(Sys,B)
 H = ham(Sys,B,'sparse')
 </pre>
@@ -50,7 +50,7 @@ This function returns the matrix representation of the <a href="hamiltonian.html
 </p>
 
 <p>
-If no magnetic field is given, <code>ham</code> returns the four Hamiltonian components <code>H0</code>, <code>GxM</code>, <code>GyM</code> and <code>GzM</code>. <code>H0</code> is the Hamiltonian containing all field-independent interactions, and the other three matrices are the components of the Zeeman interaction Hamiltonian for the three principal directions of the molecular frame of the spin system (see <a class="esf" href="ham_ez.html">ham_ez</a>, <a class="esf" href="ham_nz.html">ham_nz</a> and <a class="esf" href="ham_oz.html">ham_oz</a>).
+If no magnetic field is given, <code>ham</code> returns the four Hamiltonian components <code>H0</code>, <code>mux</code>, <code>muy</code> and <code>muz</code>. <code>H0</code> is the Hamiltonian containing all field-independent interactions, and the other three matrices are the components of the magnetic dipole moment operator along the three principal directions of the molecular frame of the spin system (see <a class="esf" href="ham_ez.html">ham_ez</a>, <a class="esf" href="ham_nz.html">ham_nz</a> and <a class="esf" href="ham_oz.html">ham_oz</a>).
 </p>
 
 <p>
@@ -58,7 +58,11 @@ If a magnetic field <code>B</code> is given, <code>ham</code> returns the overal
 </p>
 
 <p>
-<code>H</code> and <code>H0</code> are in units of MHz, the components <code>GxM</code>, <code>GyM</code> and <code>GzM</code> are in MHz/mT (= GHz/T).
+To construct <code>H</code> from <code>H0</code>, <code>mux</code>, <code>muy</code>, <code>muz</code> and <code>B</code>, use <code>H = H0 - B(1)*mux - B(2)*muy - B(3)*muz</code>.
+</p>
+
+<p>
+<code>H</code> and <code>H0</code> are in units of MHz, and <code>mux</code>, <code>muy</code> and <code>muz</code> are in units of MHz/mT (= GHz/T).
 </p>
 
 <p>

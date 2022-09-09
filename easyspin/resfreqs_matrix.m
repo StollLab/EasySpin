@@ -352,13 +352,13 @@ if higherOrder
   nSHFNucStates = nFull/nCore;
 else
   if Opt.Sparse
-    [kF,kGxM,kGyM,kGzM] = ham(CoreSys,[],'sparse');
-    nLevels = length(kF);
+    [kH0,kmuxM,kmuyM,kmuzM] = ham(CoreSys,[],'sparse');
+    nLevels = length(kH0);
   else
-    [kF,kGxM,kGyM,kGzM] = ham(CoreSys);
-    nLevels = length(kF);
+    [kH0,kmuxM,kmuyM,kmuzM] = ham(CoreSys);
+    nLevels = length(kH0);
   end
-  nCore = length(kF);
+  nCore = length(kH0);
   nFull = hsdim(Sys);
   nSHFNucStates = nFull/nCore;
 end
@@ -413,12 +413,12 @@ end
 % This is a very crude workaround to prevent numerical issues due to degeneracies.
 % It probably adds noise in a lot of situations where it is not necessary.
 if Opt.FuzzLevel>0 && ~higherOrder && (CoreSys.nNuclei>1 || CoreSys.nElectrons>1) && ~computeNonEquiPops
-  noise = 1 + Opt.FuzzLevel*(2*rand(size(kF))-1);
+  noise = 1 + Opt.FuzzLevel*(2*rand(size(kH0))-1);
   noise = (noise+noise.')/2; % make sure it's Hermitian
-  kF = kF.*noise;
-  kGxM = kGxM.*noise;
-  kGyM = kGyM.*noise;
-  kGzM = kGzM.*noise;
+  kH0 = kH0.*noise;
+  kmuxM = kmuxM.*noise;
+  kmuyM = kmuyM.*noise;
+  kmuzM = kmuzM.*noise;
 end
 
 if nPerturbNuclei>0
@@ -439,9 +439,9 @@ if computeNonEquiPops && strcmp(initStateBasis,'zerofield')
     [ZFStates,ZFEnergies] = eig(ham(CoreSys, zeros(1,3)));
   else
     if Opt.Sparse
-      [ZFStates,ZFEnergies] = eigs(kF,length(kF));
+      [ZFStates,ZFEnergies] = eigs(kH0,length(kH0));
     else
-      [ZFStates,ZFEnergies] = eig(kF);
+      [ZFStates,ZFEnergies] = eig(kH0);
     end
   end
   [ZFEnergies,idx] = sort(real(diag(ZFEnergies)));
@@ -645,23 +645,23 @@ for iOri = 1:nOrientations
     end
     g1 = ham_ezho(CoreSys,[],[],sp,1);
     for n =3:-1:1
-      kGM{n} = g1{1}{n}+g0{n};
+      kGM{n} = g0{n}-g1{1}{n};
     end
     % z laboratoy axis: external static field
-    kGzL = zLab(1)*kGM{1} + zLab(2)*kGM{2} + zLab(3)*kGM{3};
+    kmuzL = zLab(1)*kGM{1} + zLab(2)*kGM{2} + zLab(3)*kGM{3};
     % x laboratory axis: B1 excitation field
-    kGxL = xLab(1)*kGM{1} + xLab(2)*kGM{2} + xLab(3)*kGM{3};
+    kmuxL = xLab(1)*kGM{1} + xLab(2)*kGM{2} + xLab(3)*kGM{3};
     % y laboratory vector: needed for integration over all B1 field orientations.
-    kGyL = yLab(1)*kGM{1} + yLab(2)*kGM{2} + yLab(3)*kGM{3};
+    kmuyL = yLab(1)*kGM{1} + yLab(2)*kGM{2} + yLab(3)*kGM{3};
   else
     % z laboratoy axis: external static field
-    kGzL = zLab(1)*kGxM + zLab(2)*kGyM + zLab(3)*kGzM;
+    kmuzL = zLab(1)*kmuxM + zLab(2)*kmuyM + zLab(3)*kmuzM;
     % x laboratory axis: B1 excitation field
-    kGxL = xLab(1)*kGxM + xLab(2)*kGyM + xLab(3)*kGzM;
+    kmuxL = xLab(1)*kmuxM + xLab(2)*kmuyM + xLab(3)*kmuzM;
     % y laboratory vector: needed for integration over all B1 field orientations.
-    kGyL = yLab(1)*kGxM + yLab(2)*kGyM + yLab(3)*kGzM;
+    kmuyL = yLab(1)*kmuxM + yLab(2)*kmuyM + yLab(3)*kmuzM;
     
-    [Vs,E] = gethamdata(Exp.Field, kF, kGzL, [], nLevels);
+    [Vs,E] = gethamdata(Exp.Field, kH0, kmuzL, [], nLevels);
   end
   Pdat(:,iOri) = E(v) - E(u);
   
@@ -689,7 +689,7 @@ for iOri = 1:nOrientations
       
       U = Vs(:,u(iTrans)); % lower-energy state (u)
       V = Vs(:,v(iTrans)); % higher-energy state (v, Ev>Eu)
-      mu = [V'*kGxL*U; V'*kGyL*U; V'*kGzL*U]; % magnetic transition dipole moment
+      mu = [V'*kmuxL*U; V'*kmuyL*U; V'*kmuzL*U]; % magnetic transition dipole moment
       if averageOverChi
         if linearpolarizedMode
           TransitionRate = ((1-xi1^2)*norm(mu)^2+(3*xi1^2-1)*abs(nB0.'*mu)^2)/2;
@@ -790,7 +790,7 @@ for iOri = 1:nOrientations
       
       % g strain
       if usegStrain
-        dg2 = (m(kGzL)*Exp.Field*zLab.'*gStrainMatrix{1}*zLab)^2;
+        dg2 = (m(kmuzL)*Exp.Field*zLab.'*gStrainMatrix{1}*zLab)^2;
         LineWidth2 = LineWidth2 + abs(dg2);
       end
       Wdat(iTrans,iOri) = sqrt(LineWidth2);
