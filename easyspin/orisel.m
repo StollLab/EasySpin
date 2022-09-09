@@ -144,7 +144,7 @@ if isfinite(Params.ExciteWidth)
     if Options.AveragedIntensity
       TransitionRate = (abs(V'*muxL*V).^2 + abs(V'*muyL*V).^2)/2;
     else
-      TransitionRate = abs(V'*kGxL*V).^2;
+      TransitionRate = abs(V'*muxL*V).^2;
     end
 
     % Orientation selectivity weights
