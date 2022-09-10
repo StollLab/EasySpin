@@ -2192,14 +2192,19 @@ hLogBox = uicontrol('Parent',hFig,'Style','listbox','Tag','LogBox',...
 
 copymenu = uicontextmenu(hFig);
 
-if ~verLessThan('Matlab','9.2')  % >R2016b
-  % In R2016b, uimenu does not support Text, and uicontrol does
-  % not support ContextMenu.
-  uimenu(copymenu,'Text','Copy to clipboard','Callback',@copyLog);
-  hLogBox.ContextMenu = copymenu;
+% Before R2017b (9.3), uimenu used Label instead of Text
+if verLessThan('Matlab','9.3')
+  menuTextProperty = 'Label';
 else
-  uimenu(copymenu,'Label','Copy to clipboard','Callback',@copyLog);
+  menuTextProperty = 'Text';
+end
+uimenu(copymenu,menuTextProperty,'Copy to clipboard','Callback',@copyLog);
+
+% Before R2020a (9.8), uicontrol used UIContextMenu instead of ContextMenu
+if verLessThan('Matlab','9.8')
   hLogBox.UIContextMenu = copymenu;
+else
+  hLogBox.ContextMenu = copymenu;
 end
 
 drawnow
