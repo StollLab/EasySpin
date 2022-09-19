@@ -34,10 +34,10 @@ $ReleaseID$
 
 <p>Major new features</p>
 <ul>
-<li>Major overhaul of <a class="esf" href="esfit.html">esfit</a>, including calculation of parameter uncertainties.</li>
-<li><a class="esf" href="cardamom.html">cardamom</a> can simulate dynamic cw EPR spectra from stochastic trajectories, molecular dynamics (MD) trajectories, and Markov-state jump models.
+<li>Major overhaul of <a class="esf" href="esfit.html">esfit</a>, it now calculates uncertainties of fitted parameters as well as correlations.</li>
+<li>The new function <a class="esf" href="cardamom.html">cardamom</a> simulates dynamic cw EPR spectra from stochastic trajectories, molecular dynamics (MD) trajectories, and Markov-state jump models.
 <li><a class="esf" href="stochtraj_diffusion.html">stochtraj_diffusion</a> and <a class="esf" href="stochtraj_jump.html">stochtraj_jump</a> calculate stochastic rotational trajectories for Brownian diffusion and discrete jump models.
-<li><a class="esf" href="chili.html">chili</a> supports arbitrary spin systems as well as general orientational potentials (for hindered diffusion).
+<li><a class="esf" href="chili.html">chili</a> now supports arbitrary spin systems as well as general orientational potentials (for hindered diffusion).
 <li><a class="esf" href="saffron.html">saffron</a> now supports general pulse experiments, including shaped pulses.
 <li><a href="spidyan.html">spidyan</a> fully integrates the package SPIDYAN for more fundamental spin dynamics simulations.
 <li>A set of new functions provides support for basic manipulations with quaternions: <a href="euler2quat.html">euler2quat</a>, <a class="esf" href="rotmat2quat.html">rotmat2quat</a>, <a class="esf" href="quat2euler.html">quat2euler</a>, <a class="esf" href="quat2rotmat.html">quat2rotmat</a>, <a class="esf" href="quatvecmult.html">quatvecmult</a>, <a class="esf" href="quatmult.html">quatmult</a>, <a class="esf" href="quatinv.html">quatinv</a>.
@@ -53,9 +53,9 @@ $ReleaseID$
 <li><a class="esf" href="rotview.html">rotview</a> provides a graphical interface to visualize and explore Euler angles and their associated rotations.</li>
 <li><a class="esf" href="orca2easyspin.html">orca2easyspin</a> supports ORCA5 and can now directly read in the main ORCA output file.
 <li>Photoselection is now supported when simulating EPR spectra of photo-generated species. See function <a class="esf" href="photoselect.html">photoselect</a>.</li>
-<li>Significantly extended support for spin-polarized systems (triplets, radical pairs, etc.) in <a class="esf" href="pepper.html">pepper</a> with the new fields <a class="matlab">Sys.initState</a>.</li>
+<li>Significantly extended support for spin-polarized systems (triplets, radical pairs, etc.) in <a class="esf" href="pepper.html">pepper</a> with the new fields <code>Sys.initState</code>.</li>
 <li><a class="esf" href="cgmatrix.html">cgmatrix</a> has additional input and output options.</li>
-<li>The command <a class="esf" href="easyspin.html">easyspin</a> is new. Call <code>easyspin doc</code> to see the documentation. Call <code>easyspin info</code> to display information about the currently installed EasySpin version. Call <code>easyspin compile</code> to complie the C files contained in EasySpin.</li>
+<li>The command <a class="esf" href="easyspin.html">easyspin</a> is new. Call <code>easyspin doc</code> to see the documentation. Call <code>easyspin info</code> to display information about the currently installed EasySpin version. Call <code>easyspin compile</code> to compile the C files contained in EasySpin.</li>
 <li><a class="esf" href="pulse.html">pulse</a> has a new amplitude modulation function <code>tanh2</code>, which adds tanh<sup>2</sup> roll-offs to the pulse edges.</li>
 </ul>
 
@@ -69,10 +69,10 @@ $ReleaseID$
 
 <p>Incompatible changes</p>
 <ul>
-<li>To specify spin-polarized system, use <code>Sys.initState</code> instead of <code>Exp.Temperature</code>.</li>
-<li>The interface of <a class="esf">esfit</a> has changed completely. Refer to the <a class="esf">esfit</a>" documentation for details.
+<li>To specify spin-polarized system, use <code>Sys.initState</code> instead of <code>Exp.Temperature</code> or <code>Sys.Pop</code>.</li>
+<li>The interface of <a class="esf" href="esfit.html">esfit</a> has changed completely. Refer to the <a class="esf" href="esfit.html">esfit</a> documentation for details.
 <li>The <code>Scaling</code> option of </code><a class="esf" href="esfit.html">esfit</a> has been removed. Use <code>FitOpt.AutoScale</code> instead.
-<li>The interface of <a class="esf" href="hfine.html">hfine</class> has changed.
+<li>The interface of <a class="esf" href="hfine.html">hfine</a> has changed.
 <li>The field <code>Sys.orf</code> (orbital reduction factor) has been removed. Instead, use <code>Sys.gL</code> to specify the orbital g factor, and <code>Sys.soc</code> to specify the strength of the spin-orbit coupling.</li>
 <li>The function <code>rescale</code> has been renamed to </code><a class="esf" href="rescaledata.html">rescaledata</a> to avoid conflict with an identically named MATLAB function.
 <li><a class="esf" href="chili.html">saffron</a>: The input syntax has changed significantly. See the <a href="saffron.html">reference page</a>, the <a href="userguide_saffron.html">user guide</a>, and the <a href="examplesmain.html">examples</a>.
@@ -88,7 +88,7 @@ $ReleaseID$
 </ul>
 
 <div class="subtitle">
-5.2.0
+5.2.x
 </div>
 
 <p>Major new features</p>

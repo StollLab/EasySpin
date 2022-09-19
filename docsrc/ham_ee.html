@@ -71,7 +71,7 @@ For a two-electron system <code>AB</code>
 <pre class="matlab">
 AB.S = [1/2 1/2];
 AB.g = [2 2.1];
-AB.ee = [1 1 -2]*40;
+AB.ee = [1 1 -2]*40;  % MHz
 </pre>
 
 <p>
@@ -79,10 +79,10 @@ the electron-electron interaction Hamiltonian (in MHz) is
 </p>
 
 <pre class="matlab">
-eeHam = ham_ee(AB)
+H = ham_ee(AB)
 </pre>
 <pre class="mloutput">
-eeHam =
+H =
     20     0     0     0
      0   -20   -20     0
      0   -20   -20     0
@@ -90,26 +90,30 @@ eeHam =
 </pre>
 with the energies
 <pre class="matlab">
-E = eig(eeInt)
+E = eig(H)
 </pre>
 <pre class="mloutput">
 E =
-   -40
+   -20
+   -20
      0
-    20
-    20
+    40
 </pre>
 
 <!-- ====================================================== -->
 <div class="subtitle">See also</div>
 
 <p>
+<a class="esf" href="ham.html">ham</a>,
+<a class="esf" href="ham_cf.html">ham_cf</a>,
+<a class="esf" href="ham_ez.html">ham_ez</a>,
+<a class="esf" href="ham_ezho.html">ham_ezho</a>,
 <a class="esf" href="ham_hf.html">ham_hf</a>,
 <a class="esf" href="ham_nn.html">ham_nn</a>,
 <a class="esf" href="ham_nq.html">ham_nq</a>,
-<a class="esf" href="ham.html">ham</a>,
+<a class="esf" href="ham_nz.html">ham_nz</a>,
+<a class="esf" href="ham_oz.html">ham_oz</a>,
 <a class="esf" href="ham_so.html">ham_so</a>,
-<a class="esf" href="zeeman.html">zeeman</a>,
 <a class="esf" href="ham_zf.html">ham_zf</a>
 </p>
 
