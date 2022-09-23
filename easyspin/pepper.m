@@ -639,9 +639,9 @@ if FieldSweep
     Exp1 = Exp;
     Exp1.Range = [0 1e8];
     
-    logmsg(2,'  -entering eigfields----------------------------------');
-    [Pdat,Idat] = eigfields(Sys,Exp1,Opt);
-    logmsg(2,'  -exiting eigfields-----------------------------------');
+    logmsg(2,'  -entering resfields_eig----------------------------------');
+    [Pdat,Idat] = resfields_eig(Sys,Exp1,Opt);
+    logmsg(2,'  -exiting resfields_eig-----------------------------------');
     Wdat = [];
     %Gdat = [];
     Transitions = [];

@@ -276,7 +276,7 @@ There are up to five outputs from <code>resfields</code>, <code>resfields_pertur
 <div class="subtitle">Examples</div>
 
 <p>
-A comparison between the resonance field position obtained from <code>resfields</code> (spline modelling approach) and <code>eigfields</code> (exact solution) shows that differences are negligible.
+A comparison between the resonance field position obtained from <code>resfields</code> (spline modelling approach) and <code>resfields_eig</code> (exact solution) shows that differences are negligible.
 </p>
 
 <p>
@@ -293,13 +293,13 @@ x = resfields(Sys,Param);
 </pre>
 
 <p>
-Next we compute line positions using <code>eigfields</code>, which is much slower.
+Next we compute line positions using <code>resfields_eig</code>, which is much slower.
 </p>
 <pre class="matlab">
 xr = [];
 for i=1:length(p)
   Param.CrystalOrientation = [p(i),t(i)];
-  xr(:,i) = eigfields(Sys,Param);
+  xr(:,i) = resfields_eig(Sys,Param);
 end
 </pre>
 
@@ -320,7 +320,7 @@ we see that the resonances obtained by the two methods are practically identical
 <div class="subtitle">See also</div>
 
 <p>
-<a class="esf" href="eigfields.html">eigfields</a>,
+<a class="esf" href="resfields_eig.html">resfields_eig</a>,
 <a class="esf" href="garlic.html">garlic</a>,
 <a class="esf" href="levels.html">levels</a>,
 <a class="esf" href="levelsplot.html">levelsplot</a>,

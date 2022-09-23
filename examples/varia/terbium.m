@@ -45,8 +45,8 @@ mwFreq = 10.^linspace(1,log10(500),601); % GHz
 for iFreq = 1:numel(mwFreq)
   Exp.mwFreq = mwFreq(iFreq); % GHz
   
-  % Compute the resonance fields using EasySpins's eigfields()
-  resB = eigfields(Tb,Exp);
+  % Compute the resonance fields using EasySpins's resfields_eig()
+  resB = resfields_eig(Tb,Exp);
   
   % Delete old transition lines
   delete(findobj('Tag','resonance'));

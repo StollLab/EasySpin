@@ -2,7 +2,7 @@ function [Orientations,nOrientations,nSites,averageOverChi] = p_crystalorientati
 
 % Function that takes care of crystal frame setups for single-crystal simulation
 %    and a few related things.
-% Used in resfields*, resfreqs*, endorfrq*, curry, saffron, eigfields
+% Used in resfields*, resfreqs*, endorfrq*, curry, saffron, resfields_eig
 
 %{
 Inputs:

@@ -1,7 +1,7 @@
 function ok = test()
 
 %=======================================================
-% eigfields should give the same integral intensity as matrix diagonalization
+% resfields_eig should give the same integral intensity as matrix diagonalization
 % (tested for isotropic powder and single crystal)
 %=======================================================
 clear Sys Exp
@@ -23,9 +23,9 @@ Opt.Method = 'eig';
 dx = x(2)-x(1);
 
 integral_matrix = sum(y1)*dx;
-integral_eigfields = sum(y2)*dx;
+integral_resfields_eig = sum(y2)*dx;
 
-ok(1) = areequal(integral_matrix,integral_eigfields,0.001,'abs');
+ok(1) = areequal(integral_matrix,integral_resfields_eig,0.001,'abs');
 
 % single crystal
 Exp.CrystalOrientation = rand(1,3)*pi;
@@ -36,6 +36,6 @@ Opt.Method = 'eig';
 dx = x(2)-x(1);
 
 integral_matrix = sum(y1)*dx;
-integral_eigfields = sum(y2)*dx;
+integral_resfields_eig = sum(y2)*dx;
 
-ok(2) = areequal(integral_matrix,integral_eigfields,0.001,'abs');
+ok(2) = areequal(integral_matrix,integral_resfields_eig,0.001,'abs');

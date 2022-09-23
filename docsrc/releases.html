@@ -85,6 +85,7 @@ $ReleaseID$
 <li>The option name to specify powder averages has changed. Instead of <code>Opt.nKnots</code>, use the new field <code>Opt.GridSize</code>.</li>
 <li><code>easyspininfo</code> and <code>easyspincompile</code> are no longer supported. Use <code>easyspin info</code> and <code>easyspin compile</code> instead. See help for the <a class="esf" href="easyspin.htlm">easyspin</a> command.</li>
 <li><code>Exp.mwPolarization</code> and <code>Exp.Mode</code> have been removed and replaced with <code>Exp.mwMode</code>.</li>
+<li>The function <code>eigfields</code> has been renamed to <a href="resfields_eig.html">resfields_eig</a>.</li>
 <li>The oldest supported Matlab version is now R2016b.
 </ul>
 
@@ -492,7 +493,7 @@ The following changes are incompatible with older versions and might require ada
 <p>
 <ul>
 <li>The order of outputs of <a class="esf" href="eprload.html">eprload</a> has changed from <code>[spc,Params,B]</code> to <code>[B,spc,Params]</code>.
-<li>The input syntax for <a class="esf" href="resfields.html">resfields</a> and <a class="esf" href="eigfields.html">eigfields</a> has
+<li>The input syntax for <a class="esf" href="resfields.html">resfields</a> and <a class="esf" href="resfields_eig.html">resfields_eig</a> has
 changed from <code>(Sys,Exp,Ori,Opt)</code> to <code>(Sys,Exp,Opt)</code>. The orientations are now given in <code>Exp.Orientations</code>.
 <li>The new function <a class="esf" href="fieldmod.html">fieldmod</a> replaces the old function <code>pseumod</code>.
 </ul>
@@ -845,7 +846,7 @@ the help for this function is displayed.
 </div>
 
 <ul>
-<li><code>resbef</code> renamed to <code>eigfields</code> and
+<li><code>resbef</code> renamed to <code>resfields_eig</code> and
 substantially extended in functionality.
 <li>
 <code>eulang</code> restrictions relaxed, it now works for

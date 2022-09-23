@@ -9,7 +9,7 @@ Opt = struct('Threshold',0,'Verbosity',0,'Perturb',0);
 Opt.RejectionRatio = 1e-3;
 
 % should give 36 transitions
-[B,A] = eigfields(Sys,Exp,Opt);
+[B,A] = resfields_eig(Sys,Exp,Opt);
 
 data.B = B;
 data.A = A;
