@@ -1,3 +1,5 @@
+function [xi1,xik,nB1,nk,nB0,mode] = p_excitationgeometry(mwMode)
+
 % Parse microwave excitation mode
 %===============================================================================
 % Exp.mwMode:
@@ -17,8 +19,8 @@
 
 % Microwave excitation mode
 %-------------------------------------------------------------------------------
-if ~isfield(Exp,'mwMode') || isempty(Exp.mwMode)
-  Exp.mwMode = 'perpendicular';
+if isempty(mwMode)
+  mwMode = 'perpendicular';
 end
 
 unpolarizedMode = false;
@@ -27,21 +29,21 @@ linearpolarizedMode = false;
 circSense = NaN;
 parallelMode = false;
 
-if ischar(Exp.mwMode)
+if ischar(mwMode)
   linearpolarizedMode = true;
-  switch Exp.mwMode
+  switch mwMode
     case 'perpendicular'
       k_tilt = pi/2; alpha_pol = pi/2; logstr = 'perpendicular';
     case 'parallel'
       k_tilt = pi/2; alpha_pol = 0; logstr = 'parallel';
       parallelMode = true;
     otherwise
-      error('Unrecognized Exp.mwMode: ''%s''.',Exp.mwMode);
+      error('Unrecognized Exp.mwMode: ''%s''.',mwMode);
   end
   logmsg(1,'  resonator mode: %s',logstr);
-elseif iscell(Exp.mwMode) && numel(Exp.mwMode)==2
-  k_tilt = Exp.mwMode{1};
-  Mode2 = Exp.mwMode{2};
+elseif iscell(mwMode) && numel(mwMode)==2
+  k_tilt = mwMode{1};
+  Mode2 = mwMode{2};
   if isnumeric(Mode2)
     linearpolarizedMode = true;
     alpha_pol = Mode2;
@@ -88,3 +90,9 @@ nB1 = [sa; -ca*ck; ca*sk]; % unit vector along mw field vector B1, in lab coordi
 % projections of k and B1 unit vectors onto B0 direction
 xik = nk.'*nB0;
 xi1 = nB1.'*nB0;
+
+mode.unpolarizedMode = unpolarizedMode;
+mode.circpolarizedMode = circpolarizedMode;
+mode.linearpolarizedMode = linearpolarizedMode;
+mode.circSense = circSense;
+mode.parallelMode = parallelMode;
