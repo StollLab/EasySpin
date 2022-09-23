@@ -29,22 +29,22 @@
 <h1>Coordinate frames in EasySpin</h1>
 
 <p>
-To simulate EPR spectra, EasySpin needs to know about the relative orientations of the various tensors within a paramagnetic molecule or center, of the molecule within a crystal, and of the crystal within the spectrometer in the lab.
-For this purpose, EasySpin defines a set of standard cartesian coordinate frames. As a user, you specify the relative orientation between these frames in order to describe the geometry of your sample and your experiment.
+To simulate EPR spectra, EasySpin needs to know about the relative orientations of the various tensors within a paramagnetic molecule or center, of the molecule within a crystal or other sample, and of the sample within the spectrometer in the lab. For this purpose, EasySpin defines a set of standard cartesian coordinate frames. As a user, specify the relative orientation between these frames in order to describe the geometry of your sample and your experiment.
+</p>
 
 <!-- ======================================================================================= -->
 
-<div class="subtitle"><a name="frametypes">Four types of frames</a></div>
+<div class="subtitle"><a name="frametypes">Overview</a></div>
 
 <p>
-The figure below summarizes EasySpin's frames. There are four frame types: the lab frame, the crystal frame, the molecular frame, and a set of tensor frames (one for each tensor). The orientation of the crystal in the lab frame is given in <code>Exp.CrystalOrientation</code>, the orientation of the molecule in the crystal frame is given in <code>Exp.MolFrame</code>, and the orientations of the various tensors in the molecular frame are given in <code>Sys.gFrame</code>, <code>Sys.AFrame</code>, <code>Sys.DFrame</code>, <code>Sys.QFrame</code>, <code>Sys.eeFrame</code>, <code>Sys.nnFrame</code>, and <code>Sys.DiffFrame</code>.
+The figure below summarizes EasySpin's frames. There are four frame types: the lab frame, the crystal frame, the molecular frame, and a set of tensor frames (one for each tensor). The orientation of the sample (crystal, etc.) in the lab frame is given in <code>Exp.CrystalOrientation</code>, the orientation of the molecule in the crystal frame is given in <code>Exp.MolFrame</code>, and the orientations of the various tensors in the molecular frame are given in <code>Sys.gFrame</code>, <code>Sys.AFrame</code>, <code>Sys.DFrame</code>, <code>Sys.QFrame</code>, <code>Sys.eeFrame</code>, <code>Sys.nnFrame</code>, and <code>Sys.DiffFrame</code>.
 
 <div align="center">
 <img src="img/frames.png" width="600">
 </div>
 
 <p>
-In the following, we explain at how these frames are defined in EasySpin and show how you can specify the relative orientations between them. All frames are right-handed cartesian with orthonormal axes.
+This overview explains at how these frames are defined in EasySpin and shows how you can specify the relative orientations between them. All frames are right-handed cartesian with orthonormal axes.
 
 <ul>
 <li><a href="#labframe">Lab frame</a>
@@ -61,12 +61,29 @@ In the following, we explain at how these frames are defined in EasySpin and sho
 <div class="subtitle"><a name="labframe">Lab frame</a></div>
 
 <p>
-The <em>lab frame</em> L is fixed in the laboratory. Its three unit vectors are denoted xL, yL, zL. By universal convention, zL is along the static magnetic field. The directions of xL and yL depend on the microwave excitation mode:
+The <em>lab frame</em> L is fixed in the laboratory. Its three unit vectors are denoted xL, yL, zL. EasySpin defines the three axes of the lab frame as follows:
+</p>
 <ul>
-<li>For a standard perpendicular-mode EPR resonator setup, xL is along the linearly oscillating microwave magnetic field. yL is perpendicular to both zL and xL.
-<li>In the special case of a parallel-mode EPR resonator setup, you are free to choose how yL and xL are related to your spectrometer - as long as they are perpendicular to zL.
-<li>In the unusual case of a resonator-free beam transmission setup, yL is in the plane of the microwave propagation vector k and perpendicular to zL. xL is perpendicular to both yL and zL.
+<li>zL is along the static magnetic field B<sub>0</sub>, in agreement with the universal convention in magnetic resonance. For a spectrometer with an electromagnet (X and Q band), zL is horizontal and points to the left. For a spectrometer with a standard superconducting magnet (W band and higher), zL is vertical and points up.</li>
+<li>yL points away from the user.</li>
+<li>xL is defined such that the (xL, yL, zL) coordinate frame is right-handed. For an electromagnet, xL is vertical and points up. For a standard superconducting magnet, xL is horizontal and points to the right.</li>
 </ul>
+
+<p>
+The following figure illustrates this.
+</p>
+
+<div align="center">
+<img src="img/labframe.png" width="400">
+</div>
+
+<p>
+By default, the B<sub>1</sub> field of the incident microwave excitation is along xL for the standard perpendicular mode. For parallel-mode EPR, B<sub>1</sub> is along zL. You can specify non-standard mirowave excitation geometries using <code>Exp.mwMode</code>.
+</p>
+
+<p>
+For photoexcited samples, the incident optical excitation beam (from a laser) is assumed to travel along yL by default, which is the common setup used with electromagnets. To specify other laser excitation geometries, use <code>Exp.lightBeam</code>.
+</p>
 
 <div class="subtitle"><a name="crystalframe">Crystal frame</a></div>
 
