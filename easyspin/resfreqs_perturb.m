@@ -157,7 +157,7 @@ Exp = adddefaults(Exp,DefaultExp);
 err = '';
 if ~isfield(Exp,'Field'), err = 'Exp.Field is missing.'; end
 
-p_excitationgeometry;
+[xi1,xik,nB1,nk,nB0,mwmode] = p_excitationgeometry(Exp.mwMode);
 
 if isfield(Exp,'Temperature')
   if numel(Exp.Temperature)>1
@@ -316,22 +316,22 @@ for iOri = nOrientations:-1:1
 
   % Compute quantum-mechanical transition rate
   if averageOverChi
-    if linearpolarizedMode
+    if mwmode.linearpolarizedMode
       TransitionRate(:,iOri) = c2/2*(1-xi1^2)*(trgg-norm(g*u)^2);
-    elseif unpolarizedMode
+    elseif mwmode.unpolarizedMode
       TransitionRate(:,iOri) = c2/4*(1+xik^2)*(trgg-norm(g*u)^2);
-    elseif circpolarizedMode
+    elseif mwmode.circpolarizedMode
       TransitionRate(:,iOri) = c2/2*(1+xik^2)*(trgg-norm(g*u)^2) + ...
         circSense*2*c2*xik^2*det(g)/norm(g.'*n0);
     end
   else
-    if linearpolarizedMode
+    if mwmode.linearpolarizedMode
       nB1_ = R.'*nB1; % transform to molecular frame representation
       TransitionRate(:,iOri) = c2*norm(cross(g.'*nB1_,u))^2;
-    elseif unpolarizedMode
+    elseif mwmode.unpolarizedMode
       nk_ = R.'*nk; % transform to molecular frame representation
       TransitionRate(:,iOri) = c2/2*(trgg-norm(g*u)^2-norm(cross(g.'*nk_,u))^2);
-    elseif circpolarizedMode
+    elseif mwmode.circpolarizedMode
       nk_ = R.'*nk; % transform to molecular frame representation
       TransitionRate(:,iOri) = c2*(trgg-norm(g*u)^2-norm(cross(g.'*nk_,u))^2) + ...
         circSense*2*c2*det(g)*xik/norm(g.'*n0);

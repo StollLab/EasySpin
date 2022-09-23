@@ -104,8 +104,16 @@ To specify non-equilibrium populations, use the spin system field <code>Sys.init
 </div>
 
 
-<div class="optionfield"><code>Mode</code></div>
-<div class="optiondescr">Specifies the microwave excitation mode. Possible values: <code>'perpendicular'</code> (default), <code>'parallel'</code>, <code>{k_tilt alpha_pol}</code>.
+<div class="optionfield"><code>mwMode</code></div>
+<div class="optiondescr">
+<p>
+Specifies the microwave excitation mode. Possible settings are
+</p>
+<pre class="matlab">
+Exp.mwMode = 'perpendicular';  % default
+Exp.mwMode = 'parallel';
+Exp.mwMode = {k pol};
+</pre>
 
 <p>
 <em>Resonator experiments:</em><br>
@@ -114,21 +122,20 @@ For conventional experiments with linearly polarized microwave in a resonator, u
 
 <p>
 <em>Beam experiments:</em><br>
-For experiments with a microwave (or THz) beam, use <code>k_tilt</code> to specify the angle between the propagation vector k and the static magnetic field B<sub>0</sub>, in radians. <code>k_tilt = 0</code> corresponds to Faraday geometry, where B<sub>0</sub> and k are parallel. <code>k_tilt = pi/2</code> corresponds to Voigt geometry, where B<sub>0</sub> and k are perpendicular. B<sub>0</sub> is along the laboratory z axis (zL), <code>[0; 0; 1]</code> in the lab frame, and k is tilted from B<sub>0</sub> towards the laboratory y axis (yL) by the angle <code>k_tilt</code>. For linearly polarized mw irradiation, provide <code>alpha_pol</code>, the polarization angle of the radiation. <code>alpha_pol</code> is the angle between the microwave magnetic field vector B1 and the intersection of the zL-yL plane and the plane perpendicular to the propagation vector k. In other words, if <code>alpha_pol</code> is zero, then B1 is in the zL-yL plane, and if <code>alpha_pol</code> is <code>pi/2</code>, then B1 is along xL.
+For experiments with a microwave (or THz) beam, use <code>Exp.mwMode = {k pol}</code>. <code>k</code> specifies the propagation direction, in one of three possible ways: (i) a letter code for the direction, e.g. <code>'y'</code>, <code>'z'</code>, <code>'xy'</code>; (ii) a 3-element cartesian vector, e.g. <code>[0;1;0]</code> specifies the lab y axis; (iii) two polar angles <code>[phi_k theta_k]</code> that specify the orientation. <code>theta_k</code> is the angle between the microwave propagation direction and the lab z axis, and <code>phi_k</code> is the angle between the lab x axis and the projection of the propagation vector onto the lab xy plane. For example, <code>[pi/2 pi/2]</code> gives the lab y axis.
 </p>
 
 <p>
-In the lab frame, the direction of propagation is
+For linearly polarized mw irradiation, additionally provide <code>pol</code>, the polarization angle of the radiation, in radians. To calculate the microwave propagation direction <code>nk</code> and the B1 direction <code>nB1</code> from <code>k</code> and <code>pol</code>, use
 <pre class="matlab">
-nk  = [0; sin(k_tilt); cos(k_tilt)]
-</pre>
-and the direction of the linearly polarized B1 field is
-<pre class="matlab">
-nB1 = [sin(alpha_pol); -cos(alpha_pol)*cos(k_tilt); cos(alpha_pol)*sin(k_tilt)]
+k = 'y';   % propagation along y lab axis
+pol = -pi/2; % B1 along x lab axis
+[phi,theta] = vec2ang(k);  % convert to angles
+[nB1,~,nk]  = erot([phi,theta,pol],'rows')
 </pre>
 
 <p>
-For unpolarized excitation, set <code>alpha_pol='unpolarized'</code>. For circular polarized radiation set <code>alpha_pol='circular+'</code> or <code>alpha_pol='circular-'</code>, depending on the sense of rotation of the circularly polarized excitation.
+For unpolarized excitation, set <code>pol='unpolarized'</code>. For circularly polarized radiation, set <code>pol='circular+'</code> or <code>pol='circular-'</code>, depending on the sense of rotation.
 </p>
 
 </ul>

@@ -12,7 +12,15 @@ Exp.CrystalOrientation = [grid.phi(:) grid.theta(:) chi(:)];
 [p,i] = resfields(Sys,Exp);
 
 if opt.Display
-  plot(theta,p,'.');
+  theta = grid.theta*180/pi;
+  subplot(2,1,1)
+  plot(theta,p,'r.',theta,olddata.p,'ko');
+  xlabel('theta (deg)')
+  ylabel('resonance field (mT)')
+  subplot(2,1,2)
+  plot(theta,i,'r.',theta,olddata.i,'ko');
+  xlabel('theta (deg)')
+  ylabel('intensity (arb.u.)')
 end
 
 data.p = p;
