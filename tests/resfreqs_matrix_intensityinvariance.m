@@ -16,7 +16,7 @@ Opt.Transitions = [1 2; 1 3; 2 3];
 beta = linspace(0,pi/2,31);
 
 for a = numel(beta):-1:1
-  Exp.Mode = [beta(a) alpha];
+  Exp.mwMode = {beta(a) alpha};
   [~,Intensity(:,a)] = resfreqs_matrix(Sys,Exp,Opt);
 end
 

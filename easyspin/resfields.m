@@ -19,8 +19,7 @@
 %      CrystalOrientation  nx3 array of Euler angles (in radians) for crystal orientations
 %      CrystalSymmetry     crystal symmetry (space group etc.)
 %      MolFrame            Euler angles (in radians) for molecular frame orientation
-%      mwPolarization      'linear', 'circular+', 'circular-', 'unpolarized'
-%      Mode                excitation mode: 'perpendicular', 'parallel', [k_tilt alpha_pol]
+%      Mode                excitation mode: 'perpendicular', 'parallel', {k_tilt alpha_pol}
 %    Opt: additional computational options
 %      Verbosity           level of detail of printing; 0, 1, 2
 %      Transitions         nx2 array of level pairs
@@ -112,8 +111,7 @@ DefaultExp.mwFreq = NaN;
 DefaultExp.Range = NaN;
 DefaultExp.CenterSweep = NaN;
 DefaultExp.Temperature = NaN;
-DefaultExp.Mode = '';
-DefaultExp.mwPolarization = '';
+DefaultExp.mwMode = '';
 
 DefaultExp.CrystalOrientation = [];
 DefaultExp.CrystalSymmetry = '';
@@ -646,7 +644,7 @@ else % Automatic transition pre-selection
       end
       % Calculate transition rate matrix and take the maximum
       ExyM = cp(iOri)*ExM + sp(iOri)*EyM;
-      if ParallelMode
+      if parallelMode
         EzL = st(iOri)*ExyM + ct(iOri)*EzM;
         TransitionRates = max(TransitionRates,TPSweights(iOri) * abs(Vecs'*EzL*Vecs).^2);
       else % perpendicular

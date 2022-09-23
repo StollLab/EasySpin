@@ -305,7 +305,7 @@ if ~isfield(Exp,'Harmonic'), Exp.Harmonic = []; end
 if ~isfield(Exp,'mwPhase'), Exp.mwPhase = 0; end
 if ~isfield(Exp,'Temperature'), Exp.Temperature = NaN; end
 if ~isfield(Exp,'ModAmp'), Exp.ModAmp = 0; end
-if ~isfield(Exp,'Mode'), Exp.Mode = 'perpendicular'; end
+if ~isfield(Exp,'mwMode'), Exp.mwMode = 'perpendicular'; end
 if ~isfield(Exp,'Ordering'), Exp.Ordering = []; end
 if ~isfield(Exp,'CrystalOrientation'), Exp.CrystalOrientation = []; end
 
@@ -467,12 +467,12 @@ else
 end
 
 % Resonator mode
-switch Exp.Mode
+switch Exp.mwMode
   case 'perpendicular', ParallelMode = false;
   case 'parallel', ParallelMode = true;
-  otherwise, error('Exp.Mode must be either ''perpendicular'' or ''parallel''.');
+  otherwise, error('Exp.mwMode must be either ''perpendicular'' or ''parallel''.');
 end
-logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.Mode);
+logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.mwMode);
 if ParallelMode
   error('chili does not support parallel-mode spectra.');
 end

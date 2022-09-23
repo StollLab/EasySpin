@@ -1,15 +1,12 @@
-% Determine excitation mode
-%-----------------------------------------------------------------
-% Exp.mwPolarization:
-%   'linear' (default)
-%   'circular' ( = 'circular+')
-%   'circular+'
-%   'circular-'
-%   'unpolarized'
-% Exp.Mode:
-%   'perpendicular'
+% Parse microwave excitation mode
+%===============================================================================
+% Exp.mwMode:
+%   'perpendicular' (default)
 %   'parallel'
-%   [k_tilt alpha_pol]
+%   {k_tilt alpha_pol}  % linear
+%   {k_tilt 'circular+'}
+%   {k_tilt 'circular-'}
+%   {k_tilt 'unpolarized'}
 
 % B0 defines z(Lab) axis, B0 and k define z(Lab)y(Lab) plane, y(Lab) is such
 %  that k points into the half-plane with y(Lab)>0
@@ -18,84 +15,58 @@
 %   in the plane perpendicular to k; for alpha_pol = 0, B1 is along
 %   x(Lab) axis.
 
-% Microwave polarization mode
-%--------------------------------------------------------------------
-if ~isfield(Exp,'mwPolarization'), Exp.mwPolarization = ''; end
+% Microwave excitation mode
+%-------------------------------------------------------------------------------
+if ~isfield(Exp,'mwMode') || isempty(Exp.mwMode)
+  Exp.mwMode = 'perpendicular';
+end
 
 unpolarizedMode = false;
 circpolarizedMode = false;
 linearpolarizedMode = false;
 circSense = NaN;
-if ~isempty(Exp.mwPolarization)
-  if ~ischar(Exp.mwPolarization)
-    error('Exp.mwPolarization must be a string.');
-  end
-  switch Exp.mwPolarization
-    case 'linear', linearpolarizedMode = true; logstr = 'linear';
-    case 'circular', circpolarizedMode = true; circSense = +1; logstr = 'circular+';
-    case 'circular+', circpolarizedMode = true; circSense = +1; logstr = 'circular+';
-    case 'circular-', circpolarizedMode = true; circSense = -1; logstr = 'circular-';
-    case 'unpolarized', unpolarizedMode = true; logstr = 'unpolarized';
-    otherwise
-      error('Unrecognized Exp.mwPolarization: ''%s''.',Exp.mwPolarization);
-  end
-else
+parallelMode = false;
+
+if ischar(Exp.mwMode)
   linearpolarizedMode = true;
-  logstr = 'linear';
-end
-logmsg(1,'  microwave polarization mode: %s',logstr);
-
-% Excitation mode
-%--------------------------------------------------------------------
-if ~isfield(Exp,'Mode'), Exp.Mode = ''; end
-
-if isempty(Exp.Mode)
-  if linearpolarizedMode
-    Exp.Mode = [pi/2 pi/2]; % perpendicular
-  else
-    Exp.Mode = 0;
-  end
-end
-
-ParallelMode = false;
-k_tilt = 0;
-alpha_pol = 0;
-if ischar(Exp.Mode)
-  switch Exp.Mode
+  switch Exp.mwMode
     case 'perpendicular'
       k_tilt = pi/2; alpha_pol = pi/2; logstr = 'perpendicular';
     case 'parallel'
-      k_tilt = pi/2; alpha_pol = 0; logstr = 'parallel'; ParallelMode = true;
+      k_tilt = pi/2; alpha_pol = 0; logstr = 'parallel';
+      parallelMode = true;
     otherwise
-      error('Unrecognized Exp.Mode: ''%s''.',Exp.Mode);
+      error('Unrecognized Exp.mwMode: ''%s''.',Exp.mwMode);
   end
   logmsg(1,'  resonator mode: %s',logstr);
-else
-  switch numel(Exp.Mode)
-    case 0
-    case 1
-      if linearpolarizedMode
-        error('For linear mw polarization, Exp.Mode must contain 2 angles (k tilt angle, polarization angle.');
-      end
-      k_tilt = Exp.Mode(1);
-    case 2
-      if circpolarizedMode || unpolarizedMode
-        error('For circular polarized or unpolarized mw, Exp.Mode must contain only 1 angle (k tilt angle).');
-      end
-      k_tilt = Exp.Mode(1);
-      alpha_pol = Exp.Mode(2);
-    otherwise
-      error('Exp.Mode must contain 1 or 2 angles (k tilt angle, polarization angle');
+elseif iscell(Exp.mwMode) && numel(Exp.mwMode)==2
+  k_tilt = Exp.mwMode{1};
+  Mode2 = Exp.mwMode{2};
+  if isnumeric(Mode2)
+    linearpolarizedMode = true;
+    alpha_pol = Mode2;
+  else
+    switch Mode2
+      case 'unpolarized', unpolarizedMode = true;
+      case 'circular+', circpolarizedMode = true; circSense = +1;
+      case 'circular-', circpolarizedMode = true; circSense = -1;
+      otherwise
+        error('Unrecognized 2nd element in Exp.mwMode: ''%s''',Mode2);
+    end
+    alpha_pol = 0;
   end
+else
+  error('Exp.mwMode must be ''perpendicular'' or ''parallel'' or a 2-element cell array.');
 end
+
 logmsg(1,'  mode angles: k tilt %g deg, polarization angle %g deg',k_tilt*180/pi,alpha_pol*180/pi);
 
-if (k_tilt<0) || (k_tilt>pi)
-  error('  The k tilt angle in Exp.Mode must be between 0 and pi.');
+if k_tilt<0 || k_tilt>pi
+  error('  The k tilt angle in Exp.mwMode must be between 0 and pi.');
 end
 
 % Set up vectors for transition rate calculations
-%---------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 % all vectors are in lab frame coordinates
 nB0 = [0; 0; 1]; % unit vector along B0, in lab coordinates
 

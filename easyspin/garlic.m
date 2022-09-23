@@ -259,7 +259,7 @@ ConvolutionBroadening = any(Sys.lw>0) || FastMotionRegime;
 DefaultExp.Harmonic = [];
 DefaultExp.nPoints = 1024;
 DefaultExp.ModAmp = 0;
-DefaultExp.Mode = 'perpendicular';
+DefaultExp.mwMode = 'perpendicular';
 DefaultExp.mwPhase = 0;
 DefaultExp.Temperature = NaN; % don't compute thermal equilibrium polarizations
 
@@ -366,14 +366,14 @@ if noBroadening && (Exp.Harmonic~=0)
 end
 
 % Resonator mode
-if strcmp(Exp.Mode,'perpendicular')
-  ParallelMode = 0;
-elseif strcmp(Exp.Mode,'parallel')
-  ParallelMode = 1;
+if strcmp(Exp.mwMode,'perpendicular')
+  ParallelMode = false;
+elseif strcmp(Exp.mwMode,'parallel')
+  ParallelMode = true;
 else
-  error('Exp.Mode must be either ''perpendicular'' or ''parallel''.');
+  error('Exp.mwMode must be either ''perpendicular'' or ''parallel''.');
 end
-logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.Mode);
+logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.mwMode);
 
 % Temperature
 if ~isnan(Exp.Temperature)

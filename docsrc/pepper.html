@@ -59,6 +59,7 @@ can calculate both field-swept and frequency-swept spectra.
 
 <p>
 There are up to three possible output arguments.
+</p>
 
 <ul>
 <li>
@@ -103,24 +104,18 @@ To specify non-equilibrium populations, use the spin system field <code>Sys.init
 </div>
 
 
-<div class="optionfield"><code>mwPolarization</code></div>
-<div class="optiondescr">
-Gives the polarization of the incident radiation. The following values are possible: <code>'linear'</code> (default), <code>'circular+'</code>, <code>'circular-'</code>, <code>'unpolarized'</code>. <code>'circular+'</code> (<code>'circular-</code>) means that the magnetic field component of the radiation is rotating in the positive (negative) sense around the propagation direction.
-</div>
-
 <div class="optionfield"><code>Mode</code></div>
-<div class="optiondescr">Determines the excitation mode. Possible values: <code>'perpendicular'</code> (default), <code>'parallel'</code>, <code>[k_tilt alpha_pol]</code>, <code>k_tilt</code>.
+<div class="optiondescr">Specifies the microwave excitation mode. Possible values: <code>'perpendicular'</code> (default), <code>'parallel'</code>, <code>{k_tilt alpha_pol}</code>.
 
 <p>
 <em>Resonator experiments:</em><br>
-For conventional experiments involving linear polarized microwave in a standard resonator, use <code>'perpendicular'</code> (default) or <code>'parallel'</code>. In the perpendicular mode, the microwave field B<sub>1</sub> is along the laboratory x axis (xL), in the parallel mode it is along the z axis (zL), parallel to the external static field B<sub>0</sub>. The perpendicular detection mode is by far the most common.
+For conventional experiments with linearly polarized microwave in a resonator, use <code>'perpendicular'</code> (default) or <code>'parallel'</code>. In the perpendicular mode, the microwave magnetic field B<sub>1</sub> is oscillating along the laboratory x axis (xL), perpendicular to the external static magnetic field B<sub>0</sub>. In the parallel mode, it is oscillating along the laboratory z axis (zL), parallel to B<sub>0</sub>. The perpendicular mode is by far the most common.
+</p>
 
 <p>
 <em>Beam experiments:</em><br>
-For beam experiments, specify the angle between the propagation vector k and the static magnetic field B<sub>0</sub> in <code>k_tilt</code>, in radians. <code>k_tilt = 0</code> corresponds to Faraday geometry, where B<sub>0</sub> and k are parallel. <code>k_tilt = pi/2</code> corresponds to Voigt geometry, where B<sub>0</sub> and k are perpendicular. B<sub>0</sub> is along the laboratory z axis (zL), <code>[0; 0; 1]</code> in the lab frame, and k is tilted from B<sub>0</sub> towards the laboratory y axis (yL) by the angle <code>k_tilt</code>.
-
-<p>
-For linearly polarized mw irradiation, you also need to provide <code>alpha_pol</code>, the polarization angle of the radiation. <code>alpha_pol</code> is the angle between the microwave magnetic field vector B1 and the intersection of the zL-yL plane and the plane perpendicular to the propagation vector k. In other words, if <code>alpha_pol</code> is zero, then B1 is in the zL-yL plane, and if <code>alpha_pol</code> is <code>pi/2</code>, then B1 is along xL. </code><code>alpha_pol</code> is only allowed for linearly polarized excitation (<code>Param.mwPolarization = 'linear'</code>).
+For experiments with a microwave (or THz) beam, use <code>k_tilt</code> to specify the angle between the propagation vector k and the static magnetic field B<sub>0</sub>, in radians. <code>k_tilt = 0</code> corresponds to Faraday geometry, where B<sub>0</sub> and k are parallel. <code>k_tilt = pi/2</code> corresponds to Voigt geometry, where B<sub>0</sub> and k are perpendicular. B<sub>0</sub> is along the laboratory z axis (zL), <code>[0; 0; 1]</code> in the lab frame, and k is tilted from B<sub>0</sub> towards the laboratory y axis (yL) by the angle <code>k_tilt</code>. For linearly polarized mw irradiation, provide <code>alpha_pol</code>, the polarization angle of the radiation. <code>alpha_pol</code> is the angle between the microwave magnetic field vector B1 and the intersection of the zL-yL plane and the plane perpendicular to the propagation vector k. In other words, if <code>alpha_pol</code> is zero, then B1 is in the zL-yL plane, and if <code>alpha_pol</code> is <code>pi/2</code>, then B1 is along xL.
+</p>
 
 <p>
 In the lab frame, the direction of propagation is
@@ -131,6 +126,11 @@ and the direction of the linearly polarized B1 field is
 <pre class="matlab">
 nB1 = [sin(alpha_pol); -cos(alpha_pol)*cos(k_tilt); cos(alpha_pol)*sin(k_tilt)]
 </pre>
+
+<p>
+For unpolarized excitation, set <code>alpha_pol='unpolarized'</code>. For circular polarized radiation set <code>alpha_pol='circular+'</code> or <code>alpha_pol='circular-'</code>, depending on the sense of rotation of the circularly polarized excitation.
+</p>
+
 </ul>
 
 </div>
