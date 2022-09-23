@@ -19,8 +19,7 @@
 %      CrystalOrientation  nx3 array of Euler angles (in radians) for crystal orientations
 %      CrystalSymmetry     crystal symmetry (space group etc.)
 %      MolFrame            Euler angles (in radians) for molecular frame orientation
-%      mwPolarization      'linear', 'circular+', 'circular-', 'unpolarized'
-%      Mode                excitation mode: 'perpendicular', 'parallel', [k_tilt alpha_pol]
+%      Mode                excitation mode: 'perpendicular', 'parallel', {[}k_tilt alpha_pol}
 %    Opt: additional computational options
 %      Verbosity           level of detail of printing; 0, 1, 2
 %      PerturbOrder        perturbation order; 1 or 2
@@ -147,8 +146,7 @@ DefaultExp.mwFreq = NaN;
 DefaultExp.Range = NaN;
 DefaultExp.CenterSweep = NaN;
 DefaultExp.Temperature = NaN;
-DefaultExp.Mode = '';
-DefaultExp.mwPolarization = '';
+DefaultExp.mwMode = '';
 
 DefaultExp.CrystalOrientation = [];
 DefaultExp.CrystalSymmetry = '';
@@ -174,7 +172,7 @@ if any(diff(Exp.Range)<=0) || any(~isfinite(Exp.Range)) || ~isreal(Exp.Range) ||
 end
 
 % Determine excitation mode
-p_excitationgeometry;
+[xi1,xik,nB1,nk,nB0,mwmode] = p_excitationgeometry(Exp.mwMode);
 
 % Temperature, non-equilibrium populations
 if isfield(Exp,'Temperature')
@@ -332,25 +330,25 @@ for iOri = nOrientations:-1:1
 
   % Compute quantum-mechanical transition rate
   if averageOverChi
-    if linearpolarizedMode
+    if mwmode.linearpolarizedMode
       TransitionRate(:,iOri) = c2/2*(1-xi1^2)*(trgg-norm(g*u)^2);
-    elseif unpolarizedMode
+    elseif mwmode.unpolarizedMode
       TransitionRate(:,iOri) = c2/4*(1+xik^2)*(trgg-norm(g*u)^2);
-    elseif circpolarizedMode
+    elseif mwmode.circpolarizedMode
       TransitionRate(:,iOri) = c2/2*(1+xik^2)*(trgg-norm(g*u)^2) + ...
-        circSense*2*c2*xik^2*det(g)/norm(g.'*n0);
+        mwmode.circSense*2*c2*xik^2*det(g)/norm(g.'*n0);
     end
   else
-    if linearpolarizedMode
+    if mwmode.linearpolarizedMode
       nB1_ = R.'*nB1; % transform to molecular frame representation
       TransitionRate(:,iOri) = c2*norm(cross(g.'*nB1_,u))^2;
-    elseif unpolarizedMode
+    elseif mwmode.unpolarizedMode
       nk_ = R.'*nk; % transform to molecular frame representation
       TransitionRate(:,iOri) = c2/2*(trgg-norm(g*u)^2-norm(cross(g.'*nk_,u))^2);
-    elseif circpolarizedMode
+    elseif mwmode.circpolarizedMode
       nk_ = R.'*nk; % transform to molecular frame representation
       TransitionRate(:,iOri) = c2*(trgg-norm(g*u)^2-norm(cross(g.'*nk_,u))^2) + ...
-        circSense*2*c2*det(g)*xik/norm(g.'*n0);
+        mwmode.circSense*2*c2*det(g)*xik/norm(g.'*n0);
     end
   end
 

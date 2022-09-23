@@ -19,8 +19,7 @@
 %      CrystalOrientation  nx3 array of Euler angles (in radians) for crystal orientations
 %      CrystalSymmetry     crystal symmetry (space group etc.)
 %      MolFrame            Euler angles (in radians) for molecular frame orientation
-%      mwPolarization      'linear', 'circular+', 'circular-', 'unpolarized'
-%      Mode                excitation mode: 'perpendicular', 'parallel', [k_tilt alpha_pol]
+%      Mode                excitation mode: 'perpendicular', 'parallel', {k_tilt alpha_pol}
 %    Opt: additional computational options
 %      Verbosity           level of detail of printing; 0, 1, 2
 %      Transitions         nx2 array of level pairs
@@ -132,8 +131,7 @@ DefaultExp.Range = NaN;
 DefaultExp.Field = NaN;
 DefaultExp.CenterSweep = NaN;
 DefaultExp.Temperature = NaN;
-DefaultExp.Mode = 'perpendicular';
-DefaultExp.mwPolarization = '';
+DefaultExp.mwMode = 'perpendicular';
 
 DefaultExp.CrystalOrientation = [];
 DefaultExp.CrystalSymmetry = '';
@@ -162,7 +160,7 @@ end
 Exp.Range = Exp.Range*1e3; % GHz -> MHz, for comparison with Pdat
 
 % Determine excitation mode
-p_excitationgeometry;
+[xi1,xik,nB1,nk,nB0,mwmode] = p_excitationgeometry(Exp.mwMode);
 
 % Photoselection
 if ~isfield(Exp,'lightBeam'), Exp.lightBeam = ''; end
@@ -691,22 +689,22 @@ for iOri = 1:nOrientations
       V = Vs(:,v(iTrans)); % higher-energy state (v, Ev>Eu)
       mu = [V'*kmuxL*U; V'*kmuyL*U; V'*kmuzL*U]; % magnetic transition dipole moment
       if averageOverChi
-        if linearpolarizedMode
+        if mwmode.linearpolarizedMode
           TransitionRate = ((1-xi1^2)*norm(mu)^2+(3*xi1^2-1)*abs(nB0.'*mu)^2)/2;
-        elseif unpolarizedMode
+        elseif mwmode.unpolarizedMode
           TransitionRate = ((1+xik^2)*norm(mu)^2-(3*xik^2-1)*abs(nB0.'*mu)^2)/4;
-        elseif circpolarizedMode
+        elseif mwmode.circpolarizedMode
           TransitionRate = ((1+xik^2)*norm(mu)^2-(3*xik^2-1)*abs(nB0.'*mu)^2)/2 - ...
-            circSense*xik*(nB0.'*cross(1i*mu,conj(mu)));
+            mwmode.circSense*xik*(nB0.'*cross(1i*mu,conj(mu)));
         end
       else
-        if linearpolarizedMode
+        if mwmode.linearpolarizedMode
           TransitionRate = abs(nB1.'*mu)^2;
-        elseif unpolarizedMode
+        elseif mwmode.unpolarizedMode
           TransitionRate = (norm(mu)^2-abs(nk.'*mu)^2)/2;
-        elseif circpolarizedMode
+        elseif mwmode.circpolarizedMode
           TransitionRate = (norm(mu)^2-abs(nk.'*mu)^2) - ...
-            circSense*(nk.'*cross(1i*mu,conj(mu)));
+            mwmode.circSense*(nk.'*cross(1i*mu,conj(mu)));
         end
       end
       if abs(TransitionRate)<1e-12, TransitionRate = 0; end

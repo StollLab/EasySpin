@@ -75,12 +75,12 @@ error(err);
 % Process Parameter structure.
 %===================================================================
 if isfield(Exp,'Detection')
-  error('Exp.Detection is obsolete. Use Exp.Mode instead.');
+  error('Exp.Detection is obsolete. Use Exp.mwMode instead.');
 end
 
 DefaultParameters.mwFreq = NaN;
 DefaultParameters.Range = [0 realmax];
-DefaultParameters.Mode = 'perpendicular';
+DefaultParameters.mwMode = 'perpendicular';
 DefaultParameters.Temperature = NaN; % not implemented!!
 
 DefaultParameters.CrystalSymmetry = '';
@@ -96,9 +96,9 @@ if (diff(Exp.Range)<=0) || any(~isfinite(Exp.Range)) || ...
   error('Parameters.Range is not valid!');
 end
 
-if isempty(Exp.Mode), Exp.Mode = 'perpendicular'; end
+if isempty(Exp.mwMode), Exp.mwMode = 'perpendicular'; end
 
-ParallelMode = (2==parseoption(Exp,'Mode',{'perpendicular','parallel'}));
+ParallelMode = (2==parseoption(Exp,'mwMode',{'perpendicular','parallel'}));
 
 if ~isnan(Exp.Temperature)
   warning('Thermal equilibrium populations not implemented. Parameters.Temperature is ignored!');

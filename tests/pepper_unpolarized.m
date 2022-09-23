@@ -8,8 +8,7 @@ Sys.lwpp = 10;
 
 Exp.mwFreq = 9.5;
 Exp.Range = [180 380];
-Exp.mwPolarization = 'unpolarized';
-Exp.Mode = rand*pi/2;
+Exp.mwMode = {rand*pi/2 'unpolarized'};
 
 Opt.Method = 'matrix';
 [x,y1] = pepper(Sys,Exp,Opt);

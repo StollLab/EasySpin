@@ -19,7 +19,7 @@ switch program
     DefaultExp.nPoints = 1024;
     DefaultExp.Temperature = NaN;
     DefaultExp.Harmonic = NaN;
-    DefaultExp.Mode = '';
+    DefaultExp.mwMode = '';
     DefaultExp.Ordering = [];
     DefaultExp.ModAmp = 0;
     DefaultExp.mwPhase = 0;
@@ -191,14 +191,14 @@ switch program
     end
 
     % Resonator mode
-    if ischar(Exp.Mode) && ~isempty(Exp.Mode)
-      if strcmp(Exp.Mode,'perpendicular')
-      elseif strcmp(Exp.Mode,'parallel')
+    if ischar(Exp.mwMode) && ~isempty(Exp.mwMode)
+      if strcmp(Exp.mwMode,'perpendicular')
+      elseif strcmp(Exp.mwMode,'parallel')
       else
-        error('Exp.Mode must be either ''perpendicular'' or ''parallel''.');
+        error('Exp.mwMode must be either ''perpendicular'' or ''parallel''.');
       end
     end
-    logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.Mode);
+    logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.mwMode);
 
     % Powder vs. crystal simulation
     if isfield(Exp,'Orientation') || isfield(Exp,'Orientations')
@@ -254,7 +254,7 @@ switch program
     if ~isfield(Exp,'mwPhase'), Exp.mwPhase = 0; end
     if ~isfield(Exp,'Temperature'), Exp.Temperature = NaN; end
     if ~isfield(Exp,'ModAmp'), Exp.ModAmp = 0; end
-    if ~isfield(Exp,'Mode'), Exp.Mode = 'perpendicular'; end
+    if ~isfield(Exp,'mwMode'), Exp.mwMode = 'perpendicular'; end
     if ~isfield(Exp,'Ordering'), Exp.Ordering = []; end
     if ~isfield(Exp,'CrystalOrientation'), Exp.CrystalOrientation = []; end
 
@@ -409,12 +409,12 @@ switch program
     end
 
     % Resonator mode
-    switch Exp.Mode
+    switch Exp.mwMode
       case 'perpendicular', ParallelMode = false;
       case 'parallel', ParallelMode = true;
-      otherwise, error('Exp.Mode must be either ''perpendicular'' or ''parallel''.');
+      otherwise, error('Exp.mwMode must be either ''perpendicular'' or ''parallel''.');
     end
-    logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.Mode);
+    logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.mwMode);
 
     % Complain if fields only valid in pepper() are given
     if isfield(Exp,'Orientations')
@@ -469,7 +469,7 @@ switch program
     if ~isfield(Exp,'mwPhase'), Exp.mwPhase = 0; end
     if ~isfield(Exp,'Temperature'), Exp.Temperature = NaN; end
     if ~isfield(Exp,'ModAmp'), Exp.ModAmp = 0; end
-    if ~isfield(Exp,'Mode'), Exp.Mode = 'perpendicular'; end
+    if ~isfield(Exp,'mwMode'), Exp.mwMode = 'perpendicular'; end
     if ~isfield(Exp,'Ordering'), Exp.Ordering = []; end
     if ~isfield(Exp,'CrystalOrientation'), Exp.CrystalOrientation = []; end
 
@@ -625,12 +625,12 @@ switch program
 %     end
 
 %     % Resonator mode  TODO implement in cardamom
-%     switch Exp.Mode
+%     switch Exp.mwMode
 %       case 'perpendicular', ParallelMode = false;
 %       case 'parallel', ParallelMode = true;
-%       otherwise, error('Exp.Mode must be either ''perpendicular'' or ''parallel''.');
+%       otherwise, error('Exp.mwMode must be either ''perpendicular'' or ''parallel''.');
 %     end
-%     logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.Mode);
+%     logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.mwMode);
 % 
 %     % Complain if fields only valid in pepper() are given
 %     if isfield(Exp,'Orientations')

@@ -219,7 +219,7 @@ for iTest = 1:numel(TestFileNames)
        nameStr,typeStr,outcomeStr,timeStr,errorStr);
   str(str=='\') = '/';
   
-  nBlanks = max(45-length(nameStr),0);
+  nBlanks = max(47-length(nameStr),0);
   nameStrLink = sprintf('<a href="matlab: edit %s">%s</a>%s',nameStr,nameStr,repmat(' ',1,nBlanks));
   strLink = sprintf('%s  %-12s%-8s%s\n%s',...
        nameStrLink,typeStr,outcomeStr,timeStr,errorStr);

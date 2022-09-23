@@ -105,11 +105,11 @@ Exp = adddefaults(Exp,DefaultExp);
 err = '';
 %if ~isfield(Exp,'mwFreq'), err = 'Exp.mwFreq is missing.'; end
 if isfield(Exp,'Detection')
-  error('Exp.Detection is obsolete. Use Exp.Mode instead.');
+  error('Exp.Detection is obsolete. Use Exp.mwMode instead.');
 end
 
-if isfield(Exp,'Mode')
-  if strcmp(Exp.Mode,'parallel')
+if isfield(Exp,'mwMode')
+  if strcmp(Exp.mwMode,'parallel')
     err = 'Parallel mode ENDOR not supported with perturbation theory. Use matrix diagonalization.';
   end
 end

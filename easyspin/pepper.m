@@ -31,8 +31,7 @@
 %      CrystalOrientation  nx3 array of Euler angles (in radians) for crystal orientations
 %      CrystalSymmetry     crystal symmetry (space group etc.)
 %      MolFrame            Euler angles (in radians) for molecular frame orientation
-%      mwPolarization      'linear', 'circular+', 'circular-', 'unpolarized'
-%      Mode                excitation mode: 'perpendicular', 'parallel', k_tilt, [k_tilt alpha_pol]
+%      Mode                excitation mode: 'perpendicular', 'parallel', {k_tilt alpha_pol}
 %      Ordering            coefficient for non-isotropic orientational distribution
 %    Opt: computational options
 %      Method              'matrix', 'perturb1', 'perturb2'='perturb'
@@ -241,7 +240,7 @@ DefaultExp.mwRange = NaN;
 DefaultExp.nPoints = 1024;
 DefaultExp.Temperature = NaN;
 DefaultExp.Harmonic = NaN;
-DefaultExp.Mode = 'perpendicular';
+DefaultExp.mwMode = 'perpendicular';
 DefaultExp.Ordering = [];
 DefaultExp.ModAmp = 0;
 DefaultExp.mwPhase = 0;
@@ -423,14 +422,14 @@ else
 end
 
 % Resonator mode
-if ischar(Exp.Mode) && ~isempty(Exp.Mode)
-  if strcmp(Exp.Mode,'perpendicular')
-  elseif strcmp(Exp.Mode,'parallel')
+if ischar(Exp.mwMode) && ~isempty(Exp.mwMode)
+  if strcmp(Exp.mwMode,'perpendicular')
+  elseif strcmp(Exp.mwMode,'parallel')
   else
-    error('Exp.Mode must be either ''perpendicular'' or ''parallel''.');
+    error('Exp.mwMode must be either ''perpendicular'' or ''parallel''.');
   end
 end
-logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.Mode);
+logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.mwMode);
 
 % Powder vs. crystal simulation
 PowderSimulation = isempty(Exp.CrystalOrientation);
