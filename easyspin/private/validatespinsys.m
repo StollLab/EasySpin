@@ -925,6 +925,9 @@ if ~isempty(Sys.initState)
 
   if iscell(Sys.initState)
     % Cell input with format Sys.initState = {densitymatrix,'basis'} or {popvector,'basis'}
+    if numel(Sys.initState)~=2
+      error('Sys.initState must be a cell array with two elements, {popvector,basis}.');
+    end
 
     % Density matrix or population vector and basis input
     initState = Sys.initState{1};
