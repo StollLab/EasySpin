@@ -7,7 +7,7 @@
 %   from spin system Sys at external magnetic field magnitude B0
 %   (in mT) and plots the result.
 %
-%   alpha-beta correlations are in green, beta-alpha correlations are in red.
+%   alpha-beta correlations are in blue, beta-alpha correlations are in red.
 %
 %   Only S=1/2 systems are supported.
 %
@@ -43,7 +43,7 @@ Options.GridSize = 31;
 Options.nPoints = 100;
 Options.expand = 1.1;
 Options.baColor = [1 0 0]*0.6;
-Options.abColor = [0 1 0]*0.6;
+Options.abColor = [0 0 1]*0.6;
 Options.QuadraticAxes = 0;
 %===============================================================================
 
@@ -104,19 +104,21 @@ if computeBlindSpots
   Modulation = Modulation/max(Modulation(:));
 end
 
-% Do the correlation plot
+% Plotting
 %===============================================================================
 
 clf
 
+% Blindspot pattern
 if computeBlindSpots
   if Options.QuadraticAxes
-    pcolor(freq.^2,freq.^2,Modulation);
+    xy = freq.^2;
   else
-    pcolor(freq,freq,Modulation);
+    xy = freq;
   end
-  ColMap = gray(128);
-  colormap(ColMap(65:end,:))
+  pcolor(xy,xy,Modulation);
+  ColMap = gray(256);
+  colormap(ColMap(200:end,:))
   shading interp
 end
 
