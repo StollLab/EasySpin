@@ -298,6 +298,44 @@
       }
     ]
   },
+  "cgmatrix": {
+    "description": "Transformation between uncoupled and coupled representations",
+    "inputs": [
+      {
+        "name": "S1",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "scalar",
+          "positive"
+        ],
+        "purpose": "quantum number for spin 1"
+      },
+      {
+        "name": "S2",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "scalar",
+          "positive"
+        ],
+        "purpose": "quantum number for spin 2"
+      },
+      {
+        "name": "Stot",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "real",
+          "scalar",
+          "positive"
+        ],
+        "purpose": "limit to coupled basis states with given total spin"
+      }
+    ]
+  },
   "chili": {
     "description": "Slow-motional regime cw EPR spectra",
     "inputs": [
@@ -751,68 +789,19 @@
       }
     ]
   },
-  "easyspincompile": {
-    "description": "Compile EasySpin"
-  },
-  "easyspininfo": {
-    "description": "Information about EasySpin installation"
+  "easyspin": {
+    "description": "Information and tasks relating to the EasySpin installation",
+    "inputs": [
+      {
+        "name": "task",
+        "kind": "ordered",
+        "type": ["char", "choices={'?', 'doc', 'info', 'compile'}"],
+        "purpose": "Tasks performed, default='info'"
+      }
+    ]
   },
   "echarge": {
     "description": "Elementary electric charge"
-  },
-  "eeint": {
-    "description": "Electron-electron interaction Hamiltonian",
-    "inputs": [
-      {
-        "name": "Sys",
-        "kind": "required",
-        "type": "struct",
-        "purpose": "spin system"
-      },
-      {
-        "name": "eSpins",
-        "kind": "ordered",
-        "type": [
-          "numeric",
-          "real",
-          "integer",
-          "positive"
-        ],
-        "purpose": "if specified, only the interactions between electron spins listed are computed, default all"
-      },
-      {
-        "name": "sparse",
-        "kind": "ordered",
-        "type": [
-          "char",
-          "choices={'sparse'}"
-        ],
-        "purpose": "Hamiltonian matrix is returned in sparse format"
-      }
-    ]
-  },
-  "eigfields": {
-    "description": "Resonance fields using eigenfield equation",
-    "inputs": [
-      {
-        "name": "Sys",
-        "kind": "required",
-        "type": "struct",
-        "purpose": "spin system"
-      },
-      {
-        "name": "Exp",
-        "kind": "required",
-        "type": "struct",
-        "purpose": "experimental parameters"
-      },
-      {
-        "name": "Opt",
-        "kind": "ordered",
-        "type": "struct",
-        "purpose": "calculation options"
-      }
-    ]
   },
   "emass": {
     "description": "Mass of electron"
@@ -1695,13 +1684,296 @@
   "gfree": {
     "description": "g value of the free electron"
   },
-  "hartree": {
-    "description": "Atomic unit of energy"
+  "ham": {
+    "description": "Full spin Hamiltonian",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "sparse",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'sparse'}"
+        ],
+        "purpose": "if given, matrix returned in sparse format"
+      }
+    ]
   },
-  "hbar": {
-    "description": "Reduced Planck constant"
+  "ham": {
+    "description": "Full spin Hamiltonian",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "B",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "vector",
+          "numel=3",
+          "real"
+        ],
+        "purpose": "magnetic field vector, mT"
+      },
+      {
+        "name": "sparse",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'sparse'}"
+        ],
+        "purpose": "if given, matrix returned in sparse format"
+      }
+    ]
   },
-  "hfine": {
+  "ham_cf": {
+    "description": "Crystal field Hamiltonian",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "idx",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "vector"
+        ],
+        "purpose": "orbital angular momenta to include, default=all"
+      },
+      {
+        "name": "sparse",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'sparse'}"
+        ],
+        "purpose": "if given, matrix returned in sparse format"
+      }
+    ]
+  },
+  "ham_ee": {
+    "description": "Electron-electron interaction Hamiltonian",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": "struct",
+        "purpose": "spin system"
+      },
+      {
+        "name": "idx",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "real",
+          "integer",
+          "positive"
+        ],
+        "purpose": "electron spins to include computed, default all"
+      },
+      {
+        "name": "sparse",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'sparse'}"
+        ],
+        "purpose": "Hamiltonian matrix is returned in sparse format"
+      }
+    ]
+  },
+  "ham_ez": {
+    "description": "Electron Zeeman interaction Hamiltonian",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "B",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "size=3,1"
+        ],
+        "purpose": "external magnetic field 3-vector, mT"
+      },
+      {
+        "name": "idx",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "real",
+          "integer",
+          "positive"
+        ],
+        "purpose": "electron spins to include, default all"
+      },
+      {
+        "name": "sparse",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'sparse'}"
+        ],
+        "purpose": "if given, matrix returned in sparse format"
+      }
+    ]
+  },
+  "ham_ez": {
+    "description": "Electron Zeeman interaction Hamiltonian",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "idx",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "real",
+          "integer",
+          "positive"
+        ],
+        "purpose": "electron spins to include, default all"
+      },
+      {
+        "name": "sparse",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'sparse'}"
+        ],
+        "purpose": "if given, matrix returned in sparse format"
+      }
+    ]
+  },
+  "ham_ezho": {
+    "description": "Higher-order electron Zeeman interaction Hamiltonian",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "B",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "size=3,1"
+        ],
+        "purpose": "external magnetic field 3-vector, mT"
+      },
+      {
+        "name": "idx",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "real",
+          "integer",
+          "positive"
+        ],
+        "purpose": "electron spin to include, default all"
+      },
+      {
+        "name": "sparse",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'sparse'}"
+        ],
+        "purpose": "if given, matrix returned in sparse format"
+      },
+      {
+        "name": "1B",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "real",
+          "integer",
+          "positive"
+        ],
+        "purpose": "terms of order 1B to return, default=0:8"
+      }
+    ]
+  },
+  "ham_ezho": {
+    "description": "Higher-order electron Zeeman interaction Hamiltonian",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "idx",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "real",
+          "integer",
+          "positive"
+        ],
+        "purpose": "spin indices to include, default all"
+      },
+      {
+        "name": "sparse",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'sparse'}"
+        ],
+        "purpose": "if given, matrix returned in sparse format"
+      },
+      {
+        "name": "1B",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "real",
+          "integer",
+          "positive"
+        ],
+        "purpose": "terms of order 1B to return, default=0:highest"
+      }
+    ]
+  },
+  "ham_hf": {
     "description": "Hyperfine interaction Hamiltonian",
     "inputs": [
       {
@@ -1713,7 +1985,7 @@
         "purpose": "spin system"
       },
       {
-        "name": "eSpins",
+        "name": "eIdx",
         "kind": "ordered",
         "type": [
           "numeric",
@@ -1721,10 +1993,10 @@
           "integer",
           "positive"
         ],
-        "purpose": "electron spins to include"
+        "purpose": "electron spins to include, default=all"
       },
       {
-        "name": "nSpins",
+        "name": "nucIdx",
         "kind": "ordered",
         "type": [
           "numeric",
@@ -1732,7 +2004,7 @@
           "integer",
           "positive"
         ],
-        "purpose": "nuclear spins to include"
+        "purpose": "nuclear spins to include, default=all"
       },
       {
         "name": "sparse",
@@ -1744,6 +2016,304 @@
         "purpose": "if given, Hamiltonian matrix returned in sparse format"
       }
     ]
+  },
+  "ham_nq": {
+    "description": "Nuclear quadrupole interaction Hamiltonian",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "nucIdx",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "real",
+          "integer",
+          "positive"
+        ],
+        "purpose": "nuclear spins to include, default all"
+      },
+      {
+        "name": "sparse",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'sparse'}"
+        ],
+        "purpose": "if given, Hamiltonian matrix returned in sparse format"
+      }
+    ]
+  },
+  "ham_nn": {
+    "description": "Nucleus-nucleus interaction Hamiltonian",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "nucIdx",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "real",
+          "integer",
+          "positive"
+        ],
+        "purpose": "nuclear spins to include, default all"
+      },
+      {
+        "name": "sparse",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'sparse'}"
+        ],
+        "purpose": "if given, Hamiltonian matrix returned in sparse format"
+      }
+    ]
+  },
+  "ham_nz": {
+    "description": "Nuclear Zeeman interaction Hamiltonian",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "B",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "size=3,1"
+        ],
+        "purpose": "external magnetic field 3-vector, mT"
+      },
+      {
+        "name": "idx",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "real",
+          "integer",
+          "positive"
+        ],
+        "purpose": "nuclear spin indices to include, default all"
+      },
+      {
+        "name": "sparse",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'sparse'}"
+        ],
+        "purpose": "if given, matrix returned in sparse format"
+      }
+    ]
+  },
+  "ham_nz": {
+    "description": "Nuclear Zeeman interaction Hamiltonian",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "idx",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "real",
+          "integer",
+          "positive"
+        ],
+        "purpose": "nuclear spin indices to include, default all"
+      },
+      {
+        "name": "sparse",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'sparse'}"
+        ],
+        "purpose": "if given, matrix returned in sparse format"
+      }
+    ]
+  },
+  "ham_oz": {
+    "description": "Orbital Zeeman interaction Hamiltonian",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "B",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "size=3,1"
+        ],
+        "purpose": "external magnetic field 3-vector, mT"
+      },
+      {
+        "name": "idx",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "real",
+          "integer",
+          "positive"
+        ],
+        "purpose": "orbital angular momenta to include, default=all"
+      },
+      {
+        "name": "sparse",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'sparse'}"
+        ],
+        "purpose": "if given, matrix returned in sparse format"
+      }
+    ]
+  },
+  "ham_oz": {
+    "description": "Orbital Zeeman interaction Hamiltonian",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "idx",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "real",
+          "integer",
+          "positive"
+        ],
+        "purpose": "orbital angular momenta to include, default=all"
+      },
+      {
+        "name": "sparse",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'sparse'}"
+        ],
+        "purpose": "if given, matrix returned in sparse format"
+      }
+    ]
+  },
+  "ham_so": {
+    "description": "Spin-orbit coupling Hamiltonian",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "idx",
+        "kind": "ordered",
+        "type": [
+          [
+            "numeric",
+            "positive",
+            "integer",
+            "real",
+            "scalar"
+          ],
+          [
+            "numeric",
+            "positive",
+            "integer",
+            "real",
+            "vector"
+          ]
+        ],
+        "purpose": "indices of electrons to consider, default all"
+      },
+      {
+        "name": "sparse",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'sparse'}"
+        ],
+        "purpose": "if given, matrix returned in sparse format"
+      }
+    ]
+  },
+  "ham_zf": {
+    "description": "Electronic zero-field interaction Hamiltonian",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "idx",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "real",
+          "integer",
+          "positive"
+        ],
+        "purpose": "spin indices to include, default all"
+      },
+      {
+        "name": "sparse",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'sparse'}"
+        ],
+        "purpose": "if given, matrix returned in sparse format"
+      }
+    ]
+  },
+  "hartree": {
+    "description": "Atomic unit of energy"
+  },
+  "hbar": {
+    "description": "Reduced Planck constant"
   },
   "hilberttrans": {
     "description": "Hilbert transform",
@@ -1849,7 +2419,7 @@
         "purpose": "spin quantum number(s)"
       },
       {
-        "name": "[k,q,iSpin]",
+        "name": "[k,q,idx]",
         "kind": "required",
         "type": [
           "numeric"
@@ -2425,72 +2995,6 @@
   "nmass": {
     "description": "Mass of neutron"
   },
-  "nquad": {
-    "description": "Nuclear quadrupole interaction Hamiltonian",
-    "inputs": [
-      {
-        "name": "Sys",
-        "kind": "required",
-        "type": [
-          "struct"
-        ],
-        "purpose": "spin system"
-      },
-      {
-        "name": "nucSpins",
-        "kind": "ordered",
-        "type": [
-          "numeric",
-          "real",
-          "integer",
-          "positive"
-        ],
-        "purpose": "nuclear spins to include, default all"
-      },
-      {
-        "name": "sparse",
-        "kind": "ordered",
-        "type": [
-          "char",
-          "choices={'sparse'}"
-        ],
-        "purpose": "if given, Hamiltonian matrix returned in sparse format"
-      }
-    ]
-  },
-  "nnint": {
-    "description": "nucleus--nucleus interaction Hamiltonian",
-    "inputs": [
-      {
-        "name": "Sys",
-        "kind": "required",
-        "type": [
-          "struct"
-        ],
-        "purpose": "spin system"
-      },
-      {
-        "name": "nucSpins",
-        "kind": "ordered",
-        "type": [
-          "numeric",
-          "real",
-          "integer",
-          "positive"
-        ],
-        "purpose": "nuclear spins to include, default all"
-      },
-      {
-        "name": "sparse",
-        "kind": "ordered",
-        "type": [
-          "char",
-          "choices={'sparse'}"
-        ],
-        "purpose": "if given, Hamiltonian matrix returned in sparse format"
-      }
-    ]
-  },
   "nucabund": {
     "description": "Natural abundance of nuclear isotopes",
     "inputs": [
@@ -2538,7 +3042,7 @@
         "purpose": "external magnetic field magnitude, mT"
       },
       {
-        "name": "tauvec",
+        "name": "tauVec",
         "kind": "ordered",
         "type": [
           "numeric"
@@ -2668,7 +3172,7 @@
         "purpose": "spin system"
       },
       {
-        "name": "keepidx",
+        "name": "keepIdx",
         "kind": "required",
         "type": [
           "numeric",
@@ -2692,7 +3196,7 @@
         "purpose": "spin system"
       },
       {
-        "name": "rmvidx",
+        "name": "rmvIdx",
         "kind": "required",
         "type": [
           "numeric",
@@ -2751,7 +3255,7 @@
         "purpose": "spin system"
       },
       {
-        "name": "Par",
+        "name": "Exp",
         "kind": "required",
         "type": [
           "struct"
@@ -2794,6 +3298,73 @@
           "struct"
         ],
         "purpose": "simulation options"
+      }
+    ]
+  },
+  "photoselect": {
+    "description": "Photoselection weights",
+    "inputs": [
+      {
+        "name": "tdm",
+        "kind": "required",
+        "type": [
+          [
+            "char"
+          ],
+          [
+            "numeric",
+            "real",
+            "size=3,1"
+          ],
+          [
+            "numeric",
+            "real",
+            "size=1,2"
+          ]
+        ],
+        "purpose": "orientation of tdm in molecular frame"
+      },
+      {
+        "name": "ori",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "row"
+        ],
+        "purpose": "[phi theta chi(optional)]"
+      },
+      {
+        "name": "k",
+        "kind": "required",
+        "type": [
+          [
+            "char"
+          ],
+          [
+            "numeric",
+            "real",
+            "size=3,1"
+          ],
+          [
+            "numeric",
+            "real",
+            "size=1,2"
+          ]
+        ],
+        "purpose": "propagation direction of light beam in the lab frame"
+      },
+      {
+        "name": "alpha",
+        "kind": "required",
+        "type": [
+          [
+            "numeric",
+            "real",
+            "scalar"
+          ]
+        ],
+        "purpose": "polarization angle, radians"
       }
     ]
   },
@@ -3388,7 +3959,7 @@
         "purpose": "spin system"
       },
       {
-        "name": "Param",
+        "name": "Exp",
         "kind": "required",
         "type": [
           "struct"
@@ -3405,6 +3976,29 @@
       }
     ]
   },
+  "resfields_eig": {
+    "description": "Resonance fields using eigenfield equation",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": "struct",
+        "purpose": "spin system"
+      },
+      {
+        "name": "Exp",
+        "kind": "required",
+        "type": "struct",
+        "purpose": "experimental parameters"
+      },
+      {
+        "name": "Opt",
+        "kind": "ordered",
+        "type": "struct",
+        "purpose": "calculation options"
+      }
+    ]
+  },
   "resfields_perturb": {
     "description": "Resonance fields and amplitudes, perturbation theory",
     "inputs": [
@@ -3417,7 +4011,7 @@
         "purpose": "spin system"
       },
       {
-        "name": "Param",
+        "name": "Exp",
         "kind": "required",
         "type": [
           "struct"
@@ -3446,7 +4040,7 @@
         "purpose": "spin system"
       },
       {
-        "name": "Param",
+        "name": "Exp",
         "kind": "required",
         "type": [
           "struct"
@@ -3475,7 +4069,7 @@
         "purpose": "spin system"
       },
       {
-        "name": "Param",
+        "name": "Exp",
         "kind": "required",
         "type": [
           "struct"
@@ -3944,52 +4538,6 @@
       }
     ]
   },
-  "sham": {
-    "description": "Full spin Hamiltonian",
-    "inputs": [
-      {
-        "name": "Sys",
-        "kind": "required",
-        "type": [
-          "struct"
-        ],
-        "purpose": "spin system"
-      }
-    ]
-  },
-  "sham": {
-    "description": "Full spin Hamiltonian",
-    "inputs": [
-      {
-        "name": "Sys",
-        "kind": "required",
-        "type": [
-          "struct"
-        ],
-        "purpose": "spin system"
-      },
-      {
-        "name": "B",
-        "kind": "required",
-        "type": [
-          "numeric",
-          "vector",
-          "numel=3",
-          "real"
-        ],
-        "purpose": "magnetic field vector, mT"
-      },
-      {
-        "name": "sparse",
-        "kind": "ordered",
-        "type": [
-          "char",
-          "choices={'sparse'}"
-        ],
-        "purpose": "if given, matrix returned in sparse format"
-      }
-    ]
-  },
   "sigeq": {
     "description": "Thermal equilibrium density matrix",
     "inputs": [
@@ -4023,49 +4571,6 @@
       }
     ]
   },
-  "soint": {
-    "description": "Spin-orbit coupling Hamiltonian",
-    "inputs": [
-      {
-        "name": "Sys",
-        "kind": "required",
-        "type": [
-          "struct"
-        ],
-        "purpose": "spin system"
-      },
-      {
-        "name": "eSpins",
-        "kind": "ordered",
-        "type": [
-          [
-            "numeric",
-            "positive",
-            "integer",
-            "real",
-            "scalar"
-          ],
-          [
-            "numeric",
-            "positive",
-            "integer",
-            "real",
-            "vector"
-          ]
-        ],
-        "purpose": "indices of electrons to consider, default all"
-      },
-      {
-        "name": "sparse",
-        "kind": "ordered",
-        "type": [
-          "char",
-          "choices={'sparse'}"
-        ],
-        "purpose": "if given, matrix returned in sparse format"
-      }
-    ]
-  },
   "sop": {
     "description": "Spin operator matrices",
     "inputs": [
@@ -4089,7 +4594,8 @@
         "type": [
           "char"
         ],
-        "purpose": "operator components"
+        "purpose": "operator components",
+        "repeating": true
       },
       {
         "name": "sparse",
@@ -4368,7 +4874,7 @@
         "purpose": "spin quantum number"
       },
       {
-        "name": "[k,q,iSpin]",
+        "name": "[k,q,idx]",
         "kind": "required",
         "type": [
           "numeric",
@@ -4944,114 +5450,6 @@
           "size=1,6"
         ],
         "purpose": "[j1 j2 j3 J1 J2 J3]"
-      }
-    ]
-  },
-  "zeeman": {
-    "description": "Zeeman Hamiltonian",
-    "inputs": [
-      {
-        "name": "Sys",
-        "kind": "required",
-        "type": [
-          "struct"
-        ],
-        "purpose": "spin system"
-      },
-      {
-        "name": "B",
-        "kind": "required",
-        "type": [
-          "numeric",
-          "size=3,1"
-        ],
-        "purpose": "external magnetic field 3-vector, mT"
-      },
-      {
-        "name": "idx",
-        "kind": "ordered",
-        "type": [
-          "numeric",
-          "real",
-          "integer",
-          "positive"
-        ],
-        "purpose": "spin indices to include, default all"
-      },
-      {
-        "name": "sparse",
-        "kind": "ordered",
-        "type": [
-          "char",
-          "choices={'sparse'}"
-        ],
-        "purpose": "if given, matrix returned in sparse format"
-      }
-    ]
-  },
-  "zeeman": {
-    "description": "Zeeman Hamiltonian",
-    "inputs": [
-      {
-        "name": "Sys",
-        "kind": "required",
-        "type": [
-          "struct"
-        ],
-        "purpose": "spin system"
-      },
-      {
-        "name": "idx",
-        "kind": "ordered",
-        "type": [
-          "numeric",
-          "real",
-          "integer",
-          "positive"
-        ],
-        "purpose": "spin indices to include, default all"
-      },
-      {
-        "name": "sparse",
-        "kind": "ordered",
-        "type": [
-          "char",
-          "choices={'sparse'}"
-        ],
-        "purpose": "if given, matrix returned in sparse format"
-      }
-    ]
-  },
-  "zfield": {
-    "description": "Electronic zero-field interaction Hamiltonian",
-    "inputs": [
-      {
-        "name": "Sys",
-        "kind": "required",
-        "type": [
-          "struct"
-        ],
-        "purpose": "spin system"
-      },
-      {
-        "name": "idx",
-        "kind": "ordered",
-        "type": [
-          "numeric",
-          "real",
-          "integer",
-          "positive"
-        ],
-        "purpose": "spin indices to include, default all"
-      },
-      {
-        "name": "sparse",
-        "kind": "ordered",
-        "type": [
-          "char",
-          "choices={'sparse'}"
-        ],
-        "purpose": "if given, matrix returned in sparse format"
       }
     ]
   },
