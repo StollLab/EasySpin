@@ -7,7 +7,7 @@
 %   from spin system Sys at external magnetic field magnitude B0
 %   (in mT) and plots the result.
 %
-%   alpha-beta correlations are in green, beta-alpha correlations are in red.
+%   alpha-beta correlations are in blue, beta-alpha correlations are in red.
 %
 %   Only S=1/2 systems are supported.
 %
@@ -43,7 +43,7 @@ Options.GridSize = 31;
 Options.nPoints = 100;
 Options.expand = 1.1;
 Options.baColor = [1 0 0]*0.6;
-Options.abColor = [0 1 0]*0.6;
+Options.abColor = [0 0 1]*0.6;
 Options.QuadraticAxes = 0;
 %===============================================================================
 
@@ -52,8 +52,8 @@ if nargin<3, tau = 0; end
 computeBlindSpots = all(tau>0) & ~Options.QuadraticAxes;
 
 % Construct spin Hamiltonian and get state space dimension.
-[F,Gx,Gy,Gz] = sham(sys);
-N = size(F,1);
+[H0,mux,muy,muz] = ham(sys);
+N = size(H0,1);
 
 % Construct masks for alpha and beta manifold transitions.
 nn = N/2;
@@ -76,7 +76,7 @@ B = B0*x;
 
 % Loop over all orientations and compute nuclear transitions.
 for k = 1:nOri
-  H = F + B(1,k)*Gx + B(2,k)*Gy + B(3,k)*Gz;
+  H = H0 - (B(1,k)*mux + B(2,k)*muy + B(3,k)*muz);
   E = sort(eig(H));
   EE = E(:,ones(1,N));
   EE = EE.' - EE;
@@ -104,19 +104,21 @@ if computeBlindSpots
   Modulation = Modulation/max(Modulation(:));
 end
 
-% Do the correlation plot
+% Plotting
 %===============================================================================
 
 clf
 
+% Blindspot pattern
 if computeBlindSpots
   if Options.QuadraticAxes
-    pcolor(freq.^2,freq.^2,Modulation);
+    xy = freq.^2;
   else
-    pcolor(freq,freq,Modulation);
+    xy = freq;
   end
-  ColMap = gray(128);
-  colormap(ColMap(65:end,:))
+  pcolor(xy,xy,Modulation);
+  ColMap = gray(256);
+  colormap(ColMap(200:end,:))
   shading interp
 end
 

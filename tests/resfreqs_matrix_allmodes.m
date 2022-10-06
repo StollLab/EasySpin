@@ -8,19 +8,15 @@ Sys.D = 30e3*rand*10*[1 0.1];
 Exp.CrystalOrientation = rand(1,3)*pi;
 Opt.Transitions = [1 3];
 
-mwPolarization{1} = 'linear'; Mode{1} = {rand(1,2)*pi, [],'perpendicular','parallel'};
-mwPolarization{2} = 'circular'; Mode{2} = {rand*pi,[],'perpendicular','parallel'};
-mwPolarization{3} = 'circular+'; Mode{3} = {rand*pi,[],'perpendicular','parallel'};
-mwPolarization{4} = 'circular-'; Mode{4} = {rand*pi,[],'perpendicular','parallel'};
-mwPolarization{5} = 'unpolarized'; Mode{5} = {rand*pi,[],'perpendicular','parallel'};
-mwPolarization{6} = ''; Mode{6} = {rand(1,2)*pi,[],'perpendicular','parallel'};
+Mode{1} = 'perpendicular';
+Mode{2} = 'parallel';
+Mode{3} = {pi/6, pi/4};
+Mode{4} = {pi/6, 'circular+'};
+Mode{5} = {pi/6, 'circular-'};
+Mode{6} = {pi/6, 'unpolarized'};
 
-for k = 1:numel(mwPolarization)
-  for q = 1:numel(Mode{k})
-    Exp.mwPolarization = mwPolarization{k};
-    Exp.Mode = Mode{k}{q};
-    [a,b] = resfreqs_matrix(Sys,Exp,Opt);
-  end
+for k = 1:numel(Mode)
+  [~,~] = resfreqs_matrix(Sys,Exp,Opt);
 end
 
 ok = true;

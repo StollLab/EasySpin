@@ -61,17 +61,55 @@ Add the <i>EasySpin</i> subfolder <code>easyspin-x.y.z/easyspin</code> to the MA
 In MATLAB, type <code>easyspin</code> at the command prompt. This will display information about the installed version of EasySpin. Also, it might try to compile a few files from the <code>easyspin/private</code> folder. Possibly you are asked to select or install a C compiler. See below for information on how to proceed in that case.
 
 <li><b>Documentation</b><br>
-Set up bookmarks for the EasySpin documentation. Online, you can go to <a href="easyspin.org">easyspin.org</a> to view the online documentation. To view the offline documentation, point your web browser to <code>documentation/index.html</code> in your <i>EasySpin</i> installation directory and bookmark that page.
+There are several ways to access the documentation. To view the documentation of your local EasySpin installation, type <code>easyspin doc</code> in the command window, or point your web browser to <code>documentation/index.html</code> in your <i>EasySpin</i> folder and bookmark that page. Alternatively, you can go to <a href="easyspin.org">easyspin.org</a> to view the online documentation of the most recent stable version of EasySpin (which might be different from the one you installed locally).
 </ol>
 
-<div class="subtitle">Installation of support software</div>
+<div class="subtitle">Compiling mex files</div>
 
-A few small but performance-critical parts of <i>EasySpin</i> are not written in MATLAB, but in C. These parts come pre-compiled with the EasySpin distribution. However, in some cases it might be necessary to recompile them for your platform. For this, some support software might need to be installed, depending on the platform.
+<p>
+A few small but performance-critical parts of <i>EasySpin</i> are not written in MATLAB, but in C. These parts come pre-compiled with the EasySpin distribution, and most often you don't have to do anything.
+
+<p>
+However, in some cases it might be necessary to recompile them for your platform using a C compiler.
+For this, run the following in the MATLAB command window:
+</p>
+
+<pre class="matlab">
+easyspin compile
+</pre>
+
+<p>
+This calls <a href="https://www.mathworks.com/help/matlab/ref/mex.html">mex</a> to compile the <code>*.c</code> files in the <code>easyspin/private</code> folder and generate the associated binary files <code>*.mexa64</code> (Linux), <code>*.mexw64</code> (Windows) or <code>*.mexmaci</code> (Mac).
+
+<p>
+If this process throws an error, it indicates that there is a problem with the installed compiler, or that no compiler is installed. You might have to download and install a C compiler for your platform. To display information about the default C compiler used by MATLAB for compiling mex files, run the following in the MATLAB command window:
+</p>
+
+<pre class="matlab">
+mex -setup C
+</pre>
+
+<p>
+If no compiler is configured, or the configured one is not installed, do the following:
+</p>
+
 <ul>
-<li>Windows: Download and install one of the compiler supported for your MATLAB version - see <a href="https://www.mathworks.com/support/sysreq/previous_releases.html">list of compatible compilers</a>.
-<li>Mac OS X: Install Xcode.
-<li>Linux: A C compiler (gcc) is installed on most Linux distributions.
+<li>Windows: Download and install the C compiler MinGW - see <a href="https://www.mathworks.com/support/requirements/supported-compilers.html">list of compatible compilers</a> for supported versions.
+<li>Mac: The C compiler Clang is already pre-installed on recent versions of macOS. If not, download and install <a href="https://apps.apple.com/us/app/xcode/id497799835>">Xcode</a>.
+<li>Linux: The C compiler gcc is already pre-installed on most Linux distributions.
 </ul>
+
+<p>
+You can use the <a href="https://www.mathworks.com/help/matlab/ref/mex.html">mex</a> command with <code>mex -setup</code> to change the default compiler.
+</p>
+
+<p>
+After installing the compiler, run the following again:
+</p>
+
+<pre class="matlab">
+easyspin compile
+</pre>
 
 
 <div class="subtitle">License</div>

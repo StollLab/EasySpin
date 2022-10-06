@@ -110,16 +110,17 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
   if ~iscell(Sys), Sys = {Sys}; end
   
   nComponents = numel(Sys);
-  logmsg(1,'%d component(s)',nComponents);
+  logmsg(1,'  number of component spin systems: %d',nComponents);
   
-  % Determine isotopologues for each components
+  % Determine isotopologues for each component
   for c = 1:nComponents
     SysList{c} = isotopologues(Sys{c},Opt.IsoCutoff);  %#ok
     nIsotopologues(c) = numel(SysList{c});  %#ok
     logmsg(1,'  component %d: %d isotopologues',c,nIsotopologues(c));
   end
-  
-  if sum(nIsotopologues)>1 && SweepAutoRange
+  nTotalComponents = sum(nIsotopologues);
+
+  if nTotalComponents>1 && SweepAutoRange
     if FrequencySweep
       str = 'Exp.mwRange or Exp.mwCenterSweep';
     else
@@ -128,9 +129,8 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
     error('Multiple components: Please specify sweep range manually using %s.',str);
   end
   
-  separateSpectra = ~summedOutput && ...
-    (nComponents>1 || sum(nIsotopologues)>1);
-  if separateSpectra
+  separateComponentSpectra = ~summedOutput && nTotalComponents>1;
+  if separateComponentSpectra
     spec = [];
     Opt.Output = 'summed'; % summed spectrum for each isotopologue
   else
@@ -147,7 +147,7 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
       [xAxis,spec_] = chili(Sys_,Exp,Opt);
       
       % Accumulate or append spectra
-      if separateSpectra
+      if separateComponentSpectra
         spec = [spec; spec_*Sys_.weight];  %#ok
       else
         spec = spec + spec_*Sys_.weight;
@@ -305,9 +305,14 @@ if ~isfield(Exp,'Harmonic'), Exp.Harmonic = []; end
 if ~isfield(Exp,'mwPhase'), Exp.mwPhase = 0; end
 if ~isfield(Exp,'Temperature'), Exp.Temperature = NaN; end
 if ~isfield(Exp,'ModAmp'), Exp.ModAmp = 0; end
-if ~isfield(Exp,'Mode'), Exp.Mode = 'perpendicular'; end
+if ~isfield(Exp,'mwMode'), Exp.mwMode = 'perpendicular'; end
 if ~isfield(Exp,'Ordering'), Exp.Ordering = []; end
 if ~isfield(Exp,'CrystalOrientation'), Exp.CrystalOrientation = []; end
+
+% Photoselection is not supported
+if isfield(Exp,'lightBeam') && ~isempty(Exp.lightBeam)
+  error('Photoselection (via Exp.lightBeam) is not supported.')
+end
 
 % Number of points
 if any(~isreal(Exp.nPoints)) || numel(Exp.nPoints)>1 || (Exp.nPoints<2)
@@ -462,12 +467,12 @@ else
 end
 
 % Resonator mode
-switch Exp.Mode
+switch Exp.mwMode
   case 'perpendicular', ParallelMode = false;
   case 'parallel', ParallelMode = true;
-  otherwise, error('Exp.Mode must be either ''perpendicular'' or ''parallel''.');
+  otherwise, error('Exp.mwMode must be either ''perpendicular'' or ''parallel''.');
 end
-logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.Mode);
+logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.mwMode);
 if ParallelMode
   error('chili does not support parallel-mode spectra.');
 end

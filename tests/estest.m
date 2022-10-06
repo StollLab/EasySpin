@@ -199,7 +199,7 @@ for iTest = 1:numel(TestFileNames)
   outcomeStr = OutcomeStrings{testResults(iTest).outcome+1};
   
   if ~all(ok(:)) && ~displayTimings
-    outcomeStr = [outcomeStr '  ' num2str(find(~ok(:)))];
+    outcomeStr = [outcomeStr '  ' num2str(find(~ok(:))).'];
   end
   
   if ~isempty(data)
@@ -215,11 +215,11 @@ for iTest = 1:numel(TestFileNames)
   end
 
   nameStr = testResults(iTest).name;
-  str = sprintf('%-45s  %-12s%-8s%s\n%s',...
+  str = sprintf('%-47s  %-12s%-8s%s\n%s',...
        nameStr,typeStr,outcomeStr,timeStr,errorStr);
   str(str=='\') = '/';
   
-  nBlanks = max(45-length(nameStr),0);
+  nBlanks = max(47-length(nameStr),0);
   nameStrLink = sprintf('<a href="matlab: edit %s">%s</a>%s',nameStr,nameStr,repmat(' ',1,nBlanks));
   strLink = sprintf('%s  %-12s%-8s%s\n%s',...
        nameStrLink,typeStr,outcomeStr,timeStr,errorStr);

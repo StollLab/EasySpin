@@ -1,7 +1,7 @@
 function [ok,data] = test(opt,olddata)
 
 Sys = struct('S',3/2,'g',[2 2 2],'D',[-1 -1 2]*3000);
-H = sham(Sys,[0 0 350]);
+H = ham(Sys,[0 0 350]);
 Temps = [1 2 5 10];
 clear s
 for k=1:numel(Temps)
@@ -18,4 +18,3 @@ if ~isempty(olddata)
 else
   ok = [];
 end
-

@@ -7,7 +7,7 @@ Sys.S = 2;
 Sys.D = 3*30e3*[1 0];
 Sys.lwpp = 2000;
 
-Exp.Mode = 'perpendicular';
+Exp.mwMode = 'perpendicular';
 Exp.Temperature = 2;
 
 Opt.Transitions = [1 3];

@@ -193,7 +193,7 @@ logmsg(1,'  parsing the Sys structure...');
 
 % Get Hamiltonian
 logmsg(1,'  computing lab frame Hamiltonian');
-Ham = sham(Sys,Exp.Field*[0 0 1]);
+Ham = ham(Sys,Exp.Field*[0 0 1]);
 
 %----------------------------------------------------------------------
 % Propagation

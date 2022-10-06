@@ -22,7 +22,7 @@ if nargin == 0
 end
 
 if all(isstrprop(OnlineVersion,'alpha'))
-  InstalledVersion = easyspininfo;
+  InstalledVersion = easyspin('info');
   UpdateOpt.Branch = OnlineVersion;
   UpdateOpt.Silent = true;
   [~, OnlineVersion] = easyspinversioncheck(InstalledVersion,UpdateOpt);
@@ -44,7 +44,7 @@ elseif isunix
 end
 
 if isOffline
-  msg = 'You have to be connect to the internet to update EasySpin.';
+  msg = 'Could not reach EasySpin server. You have to be connect to the internet to update EasySpin.';
   disp(msg)
   return
 end
@@ -61,8 +61,8 @@ end
 VersionToGet = OnlineVersion;
 
 % Determine installation path of currently installed EasySpin
-InstalledVersion = easyspininfo;
-InstallationPath = InstalledVersion.Path;
+InstalledVersion = easyspin('info');
+InstallationPath = InstalledVersion.Root;
 
 % The installation target is two directories above the easyspin functions:
 Path = strsplit(InstallationPath,filesep);

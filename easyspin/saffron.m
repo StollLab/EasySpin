@@ -126,6 +126,11 @@ DefaultExp.CrystalSymmetry = '';
 DefaultExp.MolFrame = [];
 Exp = adddefaults(Exp,DefaultExp);
 
+% Photoselection is not supported
+if isfield(Exp,'lightBeam') && ~isempty(Exp.lightBeam)
+  error('Photoselection (via Exp.lightBeam) is not supported.')
+end
+
 % Field
 if ~isfield(Exp,'Field')
   error('Exp.Field is missing. Give a magnetic field in mT.');
@@ -211,21 +216,18 @@ if strcmp(Opt.SimulationMode,'fast')
     if ~iscell(Sys), Sys = {Sys}; end
     
     nComponents = numel(Sys);
-    if nComponents>1
-      logmsg(1,'  %d component spin systems...');
-    else
-      logmsg(1,'  single spin system');
-    end
+    logmsg(1,'  number of component spin systems: %d',nComponents);
     
     for c = 1:nComponents
       SysList{c} = isotopologues(Sys{c},Opt.IsoCutoff);  %#ok
       nIsotopologues(c) = numel(SysList{c});  %#ok
       logmsg(1,'  component %d: %d isotopologues',c,nIsotopologues(c));
     end
+    nTotalComponents = sum(nIsotopologues);
     
     ysum = 0; % direct domain (TD for ESEEM, FD for ENDOR)
     zsum = 0; % inverse domain (FD for ESEEM)
-    for iComponent = 1:numel(SysList)
+    for iComponent = 1:nComponents
       for iIsotopologue = 1:nIsotopologues(iComponent)
         
         % Simulate single-isotopologue spectrum
@@ -382,15 +384,22 @@ if strcmp(Opt.SimulationMode,'fast')
           
         else
           
-          subplot(1,2,1);
+          % Plot time-domain data matrix
+          subplot(1,3,1);
           
-          pcolor(x1,x2,real(out.td.')); shading flat; axis equal tight;
+          surf(x1,x2,real(out.td.'));
+          view([0 90]);
+          grid off
+          shading flat
+          axis equal tight
+          box on
           set(gca,'Layer','top');
           title('Time domain (real part)');
-          xlabel('t_1 (\mus)');
-          ylabel('t_2 (\mus)');
+          xlabel('{\itt}_1 (µs)');
+          ylabel('{\itt}_2 (µs)');
           
-          subplot(1,2,2);
+          % Plot spectrum (first and second quadrant only)
+          subplot(1,3,[2 3]);
           
           fx1 = fdaxis(Exp.dt(1),size(out.fd,1));
           if numel(Exp.dt)<2, Exp.dt(2) = Exp.dt(1); end
@@ -401,18 +410,26 @@ if strcmp(Opt.SimulationMode,'fast')
             maxfd = max(max(fd));
             fd(fd<maxfd-6) = maxfd-6;
           end
-          pcolor(fx1,fx2,fd.'); shading flat; axis equal tight
+          contour(fx1,fx2,fd.',20);
+          shading flat
+          axis equal tight
+          grid on
+          xti = xticks;
+          set(gca,'YTick',xti);
+          colorbar
           set(gca,'Layer','top');
           title('Frequency domain');
           xlabel('\nu_1 (MHz)');
           ylabel('\nu_2 (MHz)');
+
           fm1 = max(abs(fx1));
           fm2 = max(abs(fx2));
           fm = max(fm1,fm2);
-          line([-1 1]*fm,[0 0],'Color','w');
-          line([0 0],[-1 1]*fm,'Color','w');
-          line([-1 1]*fm,[-1 1]*fm,'Color','w','LineStyle',':');
-          line([1 -1]*fm,[-1 1]*fm,'Color','w','LineStyle',':');
+          linecol = 'k';
+          %line([-1 1]*fm,[0 0],'Color',linecol);
+          line([0 0],[-1 1]*fm,'Color',linecol);
+          line([-1 1]*fm,[-1 1]*fm,'Color',linecol,'LineStyle',':');
+          line([1 -1]*fm,[-1 1]*fm,'Color',linecol,'LineStyle',':');
           ylim([0 1]*fm);
         end
         
@@ -935,7 +952,7 @@ if strcmp(Opt.SimulationMode,'fast')
       coreSys = rmfield(coreSys,'A');
     end
     % Operators for constructing Hamiltonian
-    [F,Gx,Gy,Gz] = sham(coreSys);
+    [H0,mux,muy,muz] = ham(coreSys);
     % Operators for computing <i|S|i>
     Sx = sop(coreSys,[1,1]); % works only for one electron spin
     Sy = sop(coreSys,[1,2]);
@@ -1206,7 +1223,8 @@ if strcmp(Opt.SimulationMode,'fast')
       
       % transition selection
       %------------------------------------------------------------
-      H = F + Exp.Field*(zLab_M(1)*Gx + zLab_M(2)*Gy + zLab_M(3)*Gz);
+      muzL = zLab_M(1)*mux + zLab_M(2)*muy + zLab_M(3)*muz;
+      H = H0 - Exp.Field*muzL;
       [eV,eE] = eig(H);
       eE = real(diag(eE));
       SyLab = yLab_M(1)*Sx + yLab_M(2)*Sy + yLab_M(3)*Sz;
@@ -1998,7 +2016,7 @@ else
     
     Sys_ = rotatesystem(Sys,Orientations(iOrientation,:));
        
-    Ham = sham(Sys_,Field*[0 0 1]);
+    Ham = ham(Sys_,Field*[0 0 1]);
     
     Relaxation_ = Relaxation;
     if ~isempty(Relaxation_)

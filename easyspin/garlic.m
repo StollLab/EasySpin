@@ -117,19 +117,17 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
   if ~iscell(Sys), Sys = {Sys}; end
   
   nComponents = numel(Sys);
-  if nComponents>1
-    logmsg(1,'  %d component spin systems...');
-  else
-    logmsg(1,'  single spin system');
-  end
+  logmsg(1,'  number of component spin systems: %d',nComponents);
   
-  for c = 1:nComponents
+   % Determine isotopologues for each component
+   for c = 1:nComponents
     SysList{c} = isotopologues(Sys{c},Opt.IsoCutoff);  %#ok
     nIsotopologues(c) = numel(SysList{c});  %#ok
     logmsg(1,'  component %d: %d isotopologues',c,nIsotopologues(c));
   end
+  nTotalComponents = sum(nIsotopologues);
   
-  if sum(nIsotopologues)>1 && SweepAutoRange
+  if nTotalComponents>1 && SweepAutoRange
     if FrequencySweep
       str = 'Exp.mwRange or Exp.mwCenterSweep';
     else
@@ -138,9 +136,8 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
     error('Multiple components: Please specify sweep range manually using %s.',str);
   end
   
-  separateSpectra = ~summedOutput && ...
-    (nComponents>1 || sum(nIsotopologues)>1);
-  if separateSpectra
+  separateComponentSpectra = ~summedOutput && nTotalComponents>1;
+  if separateComponentSpectra
     spec = [];
     Opt.Output = 'summed'; % summed spectrum for each isotopologue
   else
@@ -157,7 +154,7 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
       [xAxis,spec_,Transitions] = garlic(Sys_,Exp,Opt);
       
       % Accumulate or append spectra
-      if separateSpectra
+      if separateComponentSpectra
         spec = [spec; spec_*Sys_.weight];  %#ok
       else
         spec = spec + spec_*Sys_.weight;
@@ -262,11 +259,16 @@ ConvolutionBroadening = any(Sys.lw>0) || FastMotionRegime;
 DefaultExp.Harmonic = [];
 DefaultExp.nPoints = 1024;
 DefaultExp.ModAmp = 0;
-DefaultExp.Mode = 'perpendicular';
+DefaultExp.mwMode = 'perpendicular';
 DefaultExp.mwPhase = 0;
 DefaultExp.Temperature = NaN; % don't compute thermal equilibrium polarizations
 
 Exp = adddefaults(Exp,DefaultExp);
+
+% Photoselection is not supported
+if isfield(Exp,'lightBeam') && ~isempty(Exp.lightBeam)
+  error('Photoselection (via Exp.lightBeam) is not supported.')
+end
 
 % Microwave frequency
 if ~isfield(Exp,'mwFreq') || isempty(Exp.mwFreq)
@@ -364,14 +366,14 @@ if noBroadening && (Exp.Harmonic~=0)
 end
 
 % Resonator mode
-if strcmp(Exp.Mode,'perpendicular')
-  ParallelMode = 0;
-elseif strcmp(Exp.Mode,'parallel')
-  ParallelMode = 1;
+if strcmp(Exp.mwMode,'perpendicular')
+  ParallelMode = false;
+elseif strcmp(Exp.mwMode,'parallel')
+  ParallelMode = true;
 else
-  error('Exp.Mode must be either ''perpendicular'' or ''parallel''.');
+  error('Exp.mwMode must be either ''perpendicular'' or ''parallel''.');
 end
-logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.Mode);
+logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.mwMode);
 
 % Temperature
 if ~isnan(Exp.Temperature)

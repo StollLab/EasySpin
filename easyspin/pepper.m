@@ -31,8 +31,7 @@
 %      CrystalOrientation  nx3 array of Euler angles (in radians) for crystal orientations
 %      CrystalSymmetry     crystal symmetry (space group etc.)
 %      MolFrame            Euler angles (in radians) for molecular frame orientation
-%      mwPolarization      'linear', 'circular+', 'circular-', 'unpolarized'
-%      Mode                excitation mode: 'perpendicular', 'parallel', k_tilt, [k_tilt alpha_pol]
+%      Mode                excitation mode: 'perpendicular', 'parallel', {k_tilt alpha_pol}
 %      Ordering            coefficient for non-isotropic orientational distribution
 %    Opt: computational options
 %      Method              'matrix', 'perturb1', 'perturb2'='perturb'
@@ -118,19 +117,17 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
   if ~iscell(Sys), Sys = {Sys}; end
   
   nComponents = numel(Sys);
-  if nComponents>1
-    logmsg(1,'  %d component spin systems...');
-  else
-    logmsg(1,'  single spin system');
-  end
+  logmsg(1,'  number of component spin systems: %d',nComponents);
   
-  for c = 1:nComponents
+   % Determine isotopologues for each component
+   for c = 1:nComponents
     SysList{c} = isotopologues(Sys{c},Opt.IsoCutoff);  %#ok
     nIsotopologues(c) = numel(SysList{c});  %#ok
     logmsg(1,'    component %d: %d isotopologues',c,nIsotopologues(c));
   end
+  nTotalComponents = sum(nIsotopologues);
   
-  if sum(nIsotopologues)>1 && SweepAutoRange
+  if nTotalComponents>1 && SweepAutoRange
     if FrequencySweep
       str = 'Exp.mwRange or Exp.mwCenterSweep';
     else
@@ -139,9 +136,8 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
     error('Multiple components: Please specify sweep range manually using %s.',str);
   end
   
-  separateSpectra = ~summedOutput && ...
-    (nComponents>1 || sum(nIsotopologues)>1);
-  if separateSpectra
+  separateComponentSpectra = ~summedOutput && nTotalComponents>1;
+  if separateComponentSpectra
     spec = [];
     Opt.Output = 'summed'; % summed spectrum for each isotopologue
   else
@@ -158,7 +154,7 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
       [xAxis,spec_,Transitions] = pepper(Sys_,Exp,Opt);
       
       % Accumulate or append spectra
-      if separateSpectra
+      if separateComponentSpectra
         spec = [spec; spec_*Sys_.weight];  %#ok
       else
         spec = spec + spec_*Sys_.weight;
@@ -244,10 +240,11 @@ DefaultExp.mwRange = NaN;
 DefaultExp.nPoints = 1024;
 DefaultExp.Temperature = NaN;
 DefaultExp.Harmonic = NaN;
-DefaultExp.Mode = 'perpendicular';
+DefaultExp.mwMode = 'perpendicular';
 DefaultExp.Ordering = [];
 DefaultExp.ModAmp = 0;
 DefaultExp.mwPhase = 0;
+DefaultExp.lightBeam = '';  % no photoexcitation
 DefaultExp.SampleRotation = [];
 
 DefaultExp.CrystalOrientation = [];
@@ -425,14 +422,14 @@ else
 end
 
 % Resonator mode
-if ischar(Exp.Mode) && ~isempty(Exp.Mode)
-  if strcmp(Exp.Mode,'perpendicular')
-  elseif strcmp(Exp.Mode,'parallel')
+if ischar(Exp.mwMode) && ~isempty(Exp.mwMode)
+  if strcmp(Exp.mwMode,'perpendicular')
+  elseif strcmp(Exp.mwMode,'parallel')
   else
-    error('Exp.Mode must be either ''perpendicular'' or ''parallel''.');
+    error('Exp.mwMode must be either ''perpendicular'' or ''parallel''.');
   end
 end
-logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.Mode);
+logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.mwMode);
 
 % Powder vs. crystal simulation
 PowderSimulation = isempty(Exp.CrystalOrientation);
@@ -455,13 +452,13 @@ if ~isempty(Exp.Ordering)
 end
 
 % Temperature and non-equilibrium populations
-nonEquiPops = isfield(Sys,'Pop') && ~isempty(Sys.Pop);
+nonEquiPops = isfield(Sys,'initState') && ~isempty(Sys.initState);
 if nonEquiPops
-  msg = '  user-specified non-equilibrium populations';
-  if max(Sys.Pop)==min(Sys.Pop)
-    error('Populations in Sys.Pop cannot be all equal!');
-  end
+  msg = '  user-specified non-equilibrium state';
 else
+  if numel(Exp.Temperature)~=1
+    error('If given, Exp.Temperature must be a single number.');
+  end
   if isfinite(Exp.Temperature)
     msg = sprintf('  temperature %g K',Exp.Temperature);
   else
@@ -542,8 +539,9 @@ DefaultOpt.Output = 'summed';
 DefaultOpt.Method = 'matrix'; % 'matrix', 'eig', 'perturb1', 'perturb2'='perturb' 
 
 % Undocumented fields, pepper
-%DefaultOpt.nTRKnots = 3; % resfields
-%DefaultOpt.Weak = []; % resfields
+%DefaultOptions.TPSGridSize = 4;      % resfields
+%DefaultOptions.TPSGridSymm = 'D2h';  % resfields
+%DefaultOpt.Weak = [];                % resfields
 DefaultOpt.Smoothing = 2;
 DefaultOpt.GridSizeMinimum = 10;
 DefaultOpt.Debug = 0;
@@ -570,6 +568,9 @@ useEigenFields = Method==1;
 usePerturbationTheory = any(Method==[3 4 5 12 13 14]);
 if Opt.ImmediateBinning && ~usePerturbationTheory
   error('Opt.ImmediateBinning works only with perturbation theory.');
+end
+if usePerturbationTheory && nonEquiPops
+  error('Perturbation theory not available for systems with non-equilibrium populations.');
 end
 
 if ~isfield(Opt,'GridSize')
@@ -638,9 +639,9 @@ if FieldSweep
     Exp1 = Exp;
     Exp1.Range = [0 1e8];
     
-    logmsg(2,'  -entering eigfields----------------------------------');
-    [Pdat,Idat] = eigfields(Sys,Exp1,Opt);
-    logmsg(2,'  -exiting eigfields-----------------------------------');
+    logmsg(2,'  -entering resfields_eig----------------------------------');
+    [Pdat,Idat] = resfields_eig(Sys,Exp1,Opt);
+    logmsg(2,'  -exiting resfields_eig-----------------------------------');
     Wdat = [];
     %Gdat = [];
     Transitions = [];

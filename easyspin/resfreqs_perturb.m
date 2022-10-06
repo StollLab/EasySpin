@@ -19,8 +19,7 @@
 %      CrystalOrientation  nx3 array of Euler angles (in radians) for crystal orientations
 %      CrystalSymmetry     crystal symmetry (space group etc.)
 %      MolFrame            Euler angles (in radians) for molecular frame orientation
-%      mwPolarization      'linear', 'circular+', 'circular-', 'unpolarized'
-%      Mode                excitation mode: 'perpendicular', 'parallel', [k_tilt alpha_pol]
+%      Mode                excitation mode: 'perpendicular', 'parallel', {k_tilt alpha_pol}
 %    Opt: additional computational options
 %      Verbosity           level of detail of printing; 0, 1, 2
 %      PerturbOrder        perturbation order; 1 or 2
@@ -51,7 +50,7 @@ end
 % A global variable sets the level of log display. The global variable
 % is used in logmsg(), which does the log display.
 if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 0; end
-global EasySpinLogLevel;
+global EasySpinLogLevel
 EasySpinLogLevel = Opt.Verbosity;
 
 % Spin system
@@ -79,8 +78,8 @@ end
 if isfield(Sys,'nn') && any(Sys.nn(:)~=0)
   err = 'Perturbation theory not available for nuclear-nuclear couplings (Sys.nn).';
 end
-if isfield(Sys,'Pop') && any(Sys.Pop(:))
-  err = 'Sys.Pop is not supported by resfreqs_perturb.';
+if isfield(Sys,'initState') && any(Sys.initState(:))
+  err = 'Sys.initState is not supported by resfreqs_perturb.';
 end
 error(err);
 
@@ -147,8 +146,7 @@ DefaultExp.Range = NaN;
 DefaultExp.Field = NaN;
 DefaultExp.CenterSweep = NaN;
 DefaultExp.Temperature = NaN;
-DefaultExp.Mode = 'perpendicular';
-DefaultExp.mwPolarization = '';
+DefaultExp.mwMode = 'perpendicular';
 
 DefaultExp.CrystalOrientation = [];
 DefaultExp.CrystalSymmetry = '';
@@ -159,7 +157,7 @@ Exp = adddefaults(Exp,DefaultExp);
 err = '';
 if ~isfield(Exp,'Field'), err = 'Exp.Field is missing.'; end
 
-p_excitationgeometry;
+[xi1,xik,nB1,nk,nB0,mwmode] = p_excitationgeometry(Exp.mwMode);
 
 if isfield(Exp,'Temperature')
   if numel(Exp.Temperature)>1
@@ -178,8 +176,38 @@ if ~isfield(Opt,'Sites')
 end
 
 
+% Photoselection
+if ~isfield(Exp,'lightBeam'), Exp.lightBeam = ''; end
+if ~isfield(Exp,'lightScatter'), Exp.lightScatter = 0; end
+
+usePhotoSelection = ~isempty(Exp.lightBeam) && Exp.lightScatter<1;
+
+if usePhotoSelection
+  if ~isfield(System,'tdm') || isempty(System,'tdm')
+    error('To include photoselection weights, Sys.tdm must be given.');
+  end
+  if ischar(Exp.lightBeam)
+    k = [0;1;0]; % beam propagating along yL
+    switch Exp.lightBeam
+      case 'perpendicular'
+        alpha = -pi/2; % gives E-field along xL
+      case 'parallel'
+        alpha = pi; % gives E-field along zL
+      case 'unpolarized'
+        alpha = NaN; % unpolarized beam
+      otherwise
+        error('Unknown string in Exp.lightBeam. Use '''', ''perpendicular'', ''parallel'' or ''unpolarized''.');
+    end
+    Exp.lightBeam = {k alpha};
+  else
+    if ~iscell(Exp.lightBeam) || numel(Exp.lightBeam)~=2
+      error('Exp.lightBeam should be a 2-element cell {k alpha}.')
+    end
+  end
+end
+
 % Process crystal orientations, crystal symmetry, and frame transforms
-[Orientations,nOrientations,nSites,AverageOverChi] = p_crystalorientations(Exp,Opt);
+[Orientations,nOrientations,nSites,averageOverChi] = p_crystalorientations(Exp,Opt);
 
 
 % Options
@@ -270,24 +298,40 @@ for iOri = nOrientations:-1:1
   % Compute intensities
   %----------------------------------------------------------------
 
+  % Compute photoselection weight if needed
+  if usePhotoSelection
+    k = Exp.lightBeam{1};  % propagation direction
+    alpha = Exp.lightBeam{2};  % polarization angle
+    if averageOverChi
+      ori = Orientations(iOri,1:2);  % omit chi
+    else
+      ori = Orientations(iOri,1:3);
+    end
+    photoWeight = photoselect(System.tdm,ori,k,alpha);
+    % Add isotropic contribution (from scattering)
+    photoWeight = (1-Exp.lightScatter)*photoWeight + Exp.lightScatter;
+  else
+    photoWeight = 1;
+  end
+
   % Compute quantum-mechanical transition rate
-  if AverageOverChi
-    if linearpolarizedMode
+  if averageOverChi
+    if mwmode.linearpolarizedMode
       TransitionRate(:,iOri) = c2/2*(1-xi1^2)*(trgg-norm(g*u)^2);
-    elseif unpolarizedMode
+    elseif mwmode.unpolarizedMode
       TransitionRate(:,iOri) = c2/4*(1+xik^2)*(trgg-norm(g*u)^2);
-    elseif circpolarizedMode
+    elseif mwmode.circpolarizedMode
       TransitionRate(:,iOri) = c2/2*(1+xik^2)*(trgg-norm(g*u)^2) + ...
         circSense*2*c2*xik^2*det(g)/norm(g.'*n0);
     end
   else
-    if linearpolarizedMode
+    if mwmode.linearpolarizedMode
       nB1_ = R.'*nB1; % transform to molecular frame representation
       TransitionRate(:,iOri) = c2*norm(cross(g.'*nB1_,u))^2;
-    elseif unpolarizedMode
+    elseif mwmode.unpolarizedMode
       nk_ = R.'*nk; % transform to molecular frame representation
       TransitionRate(:,iOri) = c2/2*(trgg-norm(g*u)^2-norm(cross(g.'*nk_,u))^2);
-    elseif circpolarizedMode
+    elseif mwmode.circpolarizedMode
       nk_ = R.'*nk; % transform to molecular frame representation
       TransitionRate(:,iOri) = c2*(trgg-norm(g*u)^2-norm(cross(g.'*nk_,u))^2) + ...
         circSense*2*c2*det(g)*xik/norm(g.'*n0);
@@ -295,7 +339,7 @@ for iOri = nOrientations:-1:1
   end
 
   % Combine all factors into overall line intensity
-  Intensity(:,iOri) = Polarization.*TransitionRate(:,iOri);
+  Intensity(:,iOri) = Polarization.*TransitionRate(:,iOri)*photoWeight;
   
   if highSpin
     Du = D*u;

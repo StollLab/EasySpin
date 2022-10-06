@@ -5,7 +5,7 @@
 % spectrum of a spin triplet is very sensitive to the line broadening model
 % included (DStrain, HStrain, lwpp).
 
-clear, clc
+clear, clc, clf
 
 D0 = 2000;  % center of Gaussian distribution of D values, MHz
 Dfwhm = 500;  % full width at half maximum of Gaussian distribution of D values, MHz

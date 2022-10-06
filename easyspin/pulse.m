@@ -7,8 +7,8 @@
 %
 % Input:
 %   Par = structure containing the following fields:
-%     Par.tp          = pulse length, in ?s
-%     Par.TimeStep    = time step for waveform definition, in ?s (default:
+%     Par.tp          = pulse length, in us
+%     Par.TimeStep    = time step for waveform definition, in us (default:
 %                       determined automatically based on pulse parameters)
 %     Par.Flip        = pulse flip angle, in radians (see Ref. 1)
 %                       (default: pi), ignored if Par.Amplitude or
@@ -60,7 +60,7 @@
 %
 % Available pulse modulation functions:
 %   - Amplitude modulation: rectangular, gaussian, sinc, halfsin, quartersin,
-%                           sech, WURST, Gaussian pulse cascades (G3, G4, Q3, Q5
+%                           tanh2, sech, WURST, Gaussian pulse cascades (G3, G4, Q3, Q5
 %                           custom coefficients using 'GaussianCascade', see
 %                           private/GaussianCascadeCoefficients.txt for 
 %                           details), Fourier-series pulses (I-BURP 1/2,
@@ -89,6 +89,7 @@
 % 'halfsin'             - none
 % 'quartersin'          - trise     = rise time in µs for quarter sine
 %                                     weighting at the pulse edges
+% 'tanh2'               - trise     = rise time in µs for tanh^2 pulse edges
 % 'GaussianCascade'     - A0        = list of relative amplitudes
 %                       - x0        = list of positions (in fractions of tp)
 %                       - FWHM      = list of FWHM (in fractions of tp)
@@ -107,7 +108,7 @@
 %                       general to obtain offset-independent adiabaticity
 %                       pulses, see Ref. 3.
 %
-% Output:   t          = time axis for defined waveform in ?s
+% Output:   t          = time axis for defined waveform in us
 %           IQ         = real and imaginary part of the pulse function
 %           modulation = structure with amplitude (modulation.A, in MHz),
 %                        frequency (modulation.freq, in MHz) and phase
@@ -118,7 +119,7 @@
 %    is performed using the approximations described in:
 %    Jeschke, G., Pribitzer, S., Doll, A. Coherence Transfer by Passage
 %    Pulses in Electron Paramagnetic Resonance Spectroscopy.
-%    J. Phys. Chem. B 119, 13570?13582 (2015). (DOI: 10.1021/acs.jpcb.5b02964)
+%    J. Phys. Chem. B 119, 13570-13582 (2015). (DOI: 10.1021/acs.jpcb.5b02964)
 % 2. Chirps with variable rate to compensate for the resonator bandwidth.
 %    The bandwidth compensation is implemented as described in:
 %    Doll, A., Pribitzer, S., Tschaggelar, R., Jeschke, G., Adiabatic and
@@ -127,7 +128,7 @@
 %    and
 %    Pribitzer, S., Doll, A. & Jeschke, G. SPIDYAN, a MATLAB library for
 %    simulating pulse EPR experiments with arbitrary waveform excitation.
-%    J. Magn. Reson. 263, 45?54 (2016). (DOI: 10.1016/j.jmr.2015.12.014)
+%    J. Magn. Reson. 263, 45-54 (2016). (DOI: 10.1016/j.jmr.2015.12.014)
 % 3. Shaped pulses with offset-independent adiabaticity and determination
 %    of their frequency modulation functions is described in:
 %    Garwood, M., DelaBarre, L., The return of the frequency sweep: 
@@ -337,15 +338,21 @@ else
       case 'quartersin'
         
         if ~isfield(Par,'trise') || isempty(Par.trise)
-          error(['Pulse AM function not sufficiently defined. ',...
-            'Specify Par.trise for the quartersine envelope.']);
+          error(['Pulse AM function ''quartersin'' not sufficiently defined. ',...
+            'Specify Par.trise for the quartersin envelope.']);
         end
-        
+
+      case 'tanh2'
+        if ~isfield(Par,'trise') || isempty(Par.trise)
+          error(['Pulse AM function ''tanh2'' not sufficiently defined. ',...
+            'Specify Par.trise for the tanh2 envelope.']);
+        end
+
       case 'sech'
         
         if ~isfield(Par,'beta') || isempty(Par.beta)
-          error(['Pulse AM function not sufficiently defined. ',...
-            'Specify Par.beta parameter (in 1/?s) for the sech envelope.']);
+          error(['Pulse AM function ''sech'' not sufficiently defined. ',...
+            'Specify Par.beta parameter (in 1/us) for the sech envelope.']);
         end
         if ~isfield(Par,'n') || isempty(Par.n)
           Par.n = 1;
@@ -558,6 +565,10 @@ else
             A1(end-npts+1:end) = A1(npts:-1:1);
           end
           A0 = A0.*A1;
+        case 'tanh2'
+          A1 = coth(Par.tp/2/Par.trise)^4*...
+               tanh(t0/Par.trise).^2 .* tanh((Par.tp-t0)/Par.trise).^2;
+          A0 = A0.*A1;
         case 'sech'
           n = min(Par.n); % Par.n contains two fields for asymmetric pulses
           A0 = A0.*sech(Par.beta*2^(n-1)*(ti0/Par.tp).^n);
@@ -601,7 +612,7 @@ else
       Nyquist_dt = 1/(2*maxFreq);
       Par.TimeStep = Nyquist_dt/Opt.OverSampleFactor;
     else
-      Par.TimeStep = 0.002; % ?s
+      Par.TimeStep = 0.002; % us
     end
     if Par.TimeStep>Par.tp
       Par.TimeStep = Par.tp;
@@ -651,6 +662,12 @@ else
           A(end-npts+1:end) = A(npts:-1:1);
         end
         
+      case 'tanh2'
+
+        A = coth(Par.tp/2/Par.trise)^4 * ...
+            tanh(t/Par.trise).^2 .* ...
+            tanh((Par.tp-t)/Par.trise).^2;
+
       case 'sech'
         
         if numel(Par.n)==1 % symmetric sech pulse
@@ -741,16 +758,16 @@ else
     % described in:
     %   Doll, A., Pribitzer, S., Tschaggelar, R., Jeschke, G.,
     %   Adiabatic and fast passage ultra-wideband inversion in
-    %   pulsed EPR. J. Magn. Reson. 230, 27?39 (2013).
+    %   pulsed EPR. J. Magn. Reson. 230, 27-39 (2013).
     %   http://dx.doi.org/10.1016/j.jmr.2013.01.002
     % and
     %   Doll, A., Frequency-swept microwave pulses for electron spin
-    %   resonance, PhD Dissertation (2016), ETH Z?rich, (for sech pulses
+    %   resonance, PhD Dissertation (2016), ETH Zürich, (for sech pulses
     %   see chapter 8, section 8.3.2, p. 133).
     % Implemented as in SPIDYAN, see:
     %   Pribitzer, S., Doll, A. & Jeschke, G. SPIDYAN, a MATLAB library
     %   for simulating pulse EPR experiments with arbitrary waveform
-    %   excitation. J. Magn. Reson. 263, 45?54 (2016).
+    %   excitation. J. Magn. Reson. 263, 45-54 (2016).
     %   http://dx.doi.org/10.1016/j.jmr.2015.12.014
     
     % Original amplitude and frequency modulation functions
@@ -817,7 +834,7 @@ else
       % Frequency-modulated pulses
       
       % Q_crit = (2*pi*v1max)^2/k = minimum adiabaticity on resonance
-      %   see Jeschke et al. (2015) J. Phys. Chem. B, 119, 13570?13582.
+      %   see Jeschke et al. (2015) J. Phys. Chem. B, 119, 13570-13582.
       %   http://dx.doi.org/10.1021/acs.jpcb.5b02964
       
       if ((~isfield(Par,'Qcrit') || isempty(Par.Qcrit)) && ...

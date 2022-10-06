@@ -1,4 +1,4 @@
-function esbuild
+function esbuild()
 %========================================================================
 %                 EasySpin build script
 %========================================================================
@@ -128,10 +128,18 @@ fprintf(' ok\n');
 % Release tag and expiry date
 fprintf('  Setting release information and expiry date... ');
 replacestr([TbxFolder filesep 'info.xml'],'$ReleaseID$',ReleaseID);
-replacestr([TbxFolder filesep 'easyspininfo.m'],'$ReleaseID$',ReleaseID);
-replacestr([TbxFolder filesep 'easyspininfo.m'],'$ReleaseChannel$',ReleaseChannel);
-replacestr([TbxFolder filesep 'easyspininfo.m'],'$ReleaseDate$',ReleaseDate);
-replacestr([TbxFolder filesep 'easyspininfo.m'],'$ExpiryDate$',ExpiryDate);
+
+esinfo = [TbxFolder filesep 'private' filesep 'easyspin_info.m'];
+if ~exist(esinfo,'file')
+  esinfo = [TbxFolder filesep 'easyspin_info.m'];
+end
+if ~exist(esinfo,'file')
+  esinfo = [TbxFolder filesep 'easyspininfo.m'];
+end
+replacestr(esinfo,'$ReleaseID$',ReleaseID);
+replacestr(esinfo,'$ReleaseChannel$',ReleaseChannel);
+replacestr(esinfo,'$ReleaseDate$',ReleaseDate);
+replacestr(esinfo,'$ExpiryDate$',ExpiryDate);
 replacestr([TbxFolder filesep 'eschecker.m'],'888888',num2str(datenum(ExpiryDate)));
 replacestr([TbxFolder filesep 'eschecker.m'],'999999',num2str(datenum(HorizonDate)));
 fprintf(' ok\n');

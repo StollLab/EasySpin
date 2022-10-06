@@ -539,24 +539,8 @@ switch LocalDynamicsModel
     switch LocalDynamicsModel
       case 'MD-HBD'
         
-        % calculate orienting potential energy function
-        qTemp = squeeze(rotmat2quat(MD.FrameTraj));
-        [phi,theta,psi] = quat2euler(qTemp,'active');
-        clear qTemp
-        
-        phi = phi + 2*pi*(phi<0);
-        psi = psi + 2*pi*(psi<0);
-        
-        nBins = 90;
-        phiEdges = linspace(0, 2*pi, nBins+1);
-        thetaEdges = linspace(0, pi, nBins/2+1);
-        psiEdges = linspace(0, 2*pi, nBins+1);
-        
-        pdf = histcountsn([phi(:),theta(:),psi(:)],{phiEdges,thetaEdges,psiEdges});
-        pdf = smooth3(pdf,'gaussian');
-        pdf(pdf<1e-14) = 1e-14;  % put a finite floor on histogram
         useLocalPotential = true;
-        LocalPotential = -log(pdf);
+        LocalPotential = mdtraj2oripot(MD.FrameTraj);
         
       case 'MD-HMM'
         

@@ -116,6 +116,7 @@ The following groups of parameters can be specified in the spin system structure
 <li><a href = "#Ham">General parameters for spin Hamiltonian expanded in magnetic field and electron spin</a></li>
 <li><a href = "#lw">Broadenings</a></li>
 <li><a href = "#pop">Non-equilibrium populations</a></li>
+<li><a href = "#tdm">Optical transition dipole moment</a></li>
 </ul>
 
 <p>
@@ -327,6 +328,7 @@ Sys.gFrame = [0 0 0; 0 pi/4 0; 0 -pi/4 0];   % three electron spins
 
 <p>
 With these angles, EasySpin can transform a g tensor from its diagonal eigenframe representation to the molecular frame representation. Here is an explicit example how this is done:
+</p>
 
 <pre class="matlab">
 gpv = [2.1 1.97 2.04];       % principal values
@@ -339,6 +341,7 @@ g_M = R_M2g.'*g_g*R_M2g      % g in molecular frame
 
 <p>
 which gives the following output
+</p>
 
 <pre class="mloutput">
 R_M2g =
@@ -545,6 +548,7 @@ Sys.Q = [Q1; Q2]; % for two nuclei
 
 <p>
 Here is an example of how to convert from e<sup>2</sup>Qq/h and &eta; to the three principal Q values:
+</p>
 
 <pre class="matlab">
 eeQqh = 1;     % MHz
@@ -588,6 +592,7 @@ Sys.QFrame = [30 45 0; 10 -30 0]*pi/180;    % two nuclei
 
 <p>
 Here is how principal values and angles can be converted to a full matrix:
+</p>
 
 <pre class="matlab">
 Qpv = [-0.9 -1.1 2]*0.125;        % principal values, MHz
@@ -718,7 +723,7 @@ See the page on <a href="frames.html">frames</a> for more details.
 <p>
 Prior to EasySpin 5, the field <code>Dpa</code> was used instead of <code>DFrame</code>.
 To convert old <code>Dpa</code> values to <code>DFrame</code>, invert the order and flip the sign of the three Euler angles.
-    
+</p>
 
 </div>
 &nbsp;<br>
@@ -819,6 +824,7 @@ Sys.B2Frame = [0 pi/3 0];  % in radians
 
 <p>
 For each pair of electron spins, a <a href="hamiltonian.html#eei">bilinear coupling matrix</a> (composed of isotropic, anisotropic, and antisymmetric terms) can be given. You can enter it in one of several ways:
+</p>
 <ul>
 <li>Give the isotropic, symmetric, and antisymemtric parts separately in <code>Sys.J</code>, <code>Sys.dip</code>, and <code>Sys.dvec</code>.
 <li>Give the principal values of the coupling matrix in <code>Sys.ee</code> (with <code>Sys.eeFrame</code>).
@@ -936,6 +942,7 @@ Nx3 array of real
 </em>
 <p>
 List of vectors (one per row, in units of MHz) that describe the antisymmetric part of the coupling between two electron spins (Dzyaloshinskii-Moriya interaction). The associated <a href="hamiltonian.html#eei">spin Hamiltonian</a> is d<sub>12</sub>.(S<sub>1</sub>xS<sub>2</sub>), where d<sub>12</sub> is the interaction vector. 
+</p>
 
 <pre class="matlab">
 Sys.S = [1/2 1/2];    % two spins
@@ -945,6 +952,7 @@ Sys.dvec = d12;       % one interaction vector
 
 <p>
 For more than two spins, the vectors are ordered in lexicographic order, for example 1-2, 1-3, 2-3 for a three-spin system.
+</p>
 
 <pre class="matlab">
 Sys.S = [1 1 1];        % three spins
@@ -956,6 +964,7 @@ Sys.dvec = [d12;d13;d23];  % three interaction vectors, one per row
 
 <p>
 You can use either <code>Sys.J</code> (together with <code>Sys.dip</code> and <code>Sys.dvec</code> if needed) or <code>Sys.ee</code> (with <code>Sys.eeFrame</code>), but not both at the same time.
+</p>
 </div>
 </div>
 
@@ -989,10 +998,10 @@ Sys.ee = [ee12; ee13; ee14; ee23; ee24; ee34];  % 6 coupling matrices, MHz
 
 <p>
 If only isotropic couplings are needed, use <code>Sys.J</code> (see above).
-
+</p>
 <p>
 It is also possible to specify the full 3x3 interaction matrices instead of the 3 principal values and 3 Euler angles. These matrices combine the isotropic, antisymmetric and symmetric parts of the interaction. For a 2-electron system, <code>ee</code> is a single 3x3 array.
-
+</p>
 <pre class="matlab">
 Sys.S = [1/2 1/2];                   % two spins
 Sys.ee = [80 0 0;0 80 0; 0 0 20];   % one coupling matrix, MHz
@@ -1000,6 +1009,7 @@ Sys.ee = [80 0 0;0 80 0; 0 0 20];   % one coupling matrix, MHz
 
 <p>
 For more electrons, the 3x3 matrices are stacked on top of each other, to give a 3Nx3 array.
+</p>
 
 <pre>
 Sys.S = [1/2 1/2 1/2];                   % three spins
@@ -1175,7 +1185,6 @@ This is fully analogous to <code>eeFrame</code> (see above). Check out the page 
 <a name="soi"><div class="subtitle">Orbital angular momenta and spin-orbit interaction</div></a>
 Each electron spin in the spin system can be coupled to an orbital angular momentum, with the associated quantum number defined in the field <code>L</code> and the associated isotropic orbital g factors in the field <code>gL</code> . Spin-orbit coupling is specified via the field <code>soc</code>. Orbital angular momenta are supported by the simulation functions <a class="esf" href="pepper.html">pepper</a> (solid-state EPR) and <a class="esf" href="curry.html">curry</a> (magnetometry).
 
-<p>
 <div class="optionfield"><code>L</code></div>
 <div class="optiondescr">
 Gives the quantum numbers for orbital angular momenta to which the electron spins are coupled. <code>L</code> is an optional field. If given, it must have the same number of entries as <code>S</code> and the entries have to be nonnegative integers. The kth orbital angular momentum is coupled to the kth spin angular momentum. Examples:
@@ -1202,6 +1211,7 @@ All coefficients should be real, and are understood in units of MHz. The number 
 
 <p>
 Each field that is given should contain a row vector of 2k+1 parameters, in order of decreasing q, running from +k to -k. For example:
+</p>
 
 <pre class="matlab">
 Sys.CF2 = [0 0 560 0 0];          % CF(2,q) with q = +2,+1,0,-1,-2
@@ -1211,6 +1221,7 @@ The only nonzero elements in the above examples are therefore CF(2,0) and CF(4,+
 
 <p>
 In the common case that only the q=0 element is needed for a given k, it can be given alone in an abbreviated syntax valid for any k.
+</p>
 
 <pre class="matlab">
 Sys.CF2 = [0 0 99 0 0];  % CF(2,0) only, full form
@@ -1222,6 +1233,7 @@ Sys.CF4 = -8700;                    % equivalent abbreviated form
 
 <p>
 If more than one electron spin (and therefore more than one orbital angular moment) is present, specify one row of 2k+1 elements for each orbital angular moment. The first row is for the first orbital angular moment, etc.
+</p>
 
 <pre class="matlab">
 Sys.S = [5/2 2];     % two spins
@@ -1277,13 +1289,15 @@ Sys.soc = [200; 100]*clight*1e-4;
 <a name="Ham"><div class="subtitle">General parameters for spin Hamiltonian expanded in magnetic field and electron spin</div></a>
 <p>
 The Spin-Hamiltonian is in general a polynom of the magnetic field and the spin operator. This general expansion is implemented for electron spins (not for nuclei). Currently, general parameter are supported by the simulation functions <a class="esf" href="pepper.html">pepper</a> (solid-state EPR)and <a class="esf" href="curry.html">curry</a>. The coefficients can be provided in the following way:
+</p>
 <div class="optionfield"><code>Ham</code></div>  
 <div class="optiondescr">
 The coefficients C(p<sub>B</sub>, p<sub>S</sub>, p, q) should be real and in units of MHz (mT)<sup>-p<sub>B</sub></sup>.The p<sub>B</sub>, p<sub>S</sub>, p are integrated in the field name in this order. If any of these fields are not given, they are treated as zero.
 Each field that is given should contain a row vector of 2p+1 parameters, in order of decreasing q, running from +p to -p. For example: 
 <pre class="matlab">
 Sys.Ham134 = [0 0 36 0 0 0 12 0 0 0]; % pB = 1, pS = 3, p = 4, q = +4,+3,+2,+1,0,-1,-2,-3,-4
-</pre></p>
+</pre>
+
 <pre class="matlab">
 %convert the more common D and E:
 Sys.Ham022 = [sqrt(2)*E 0 sqrt(2/3)*D 0 0];
@@ -1306,19 +1320,149 @@ For a full documentation of the line broadening fields in the spin system struct
 <a name="pop"><div class="subtitle">Non-equilibrium populations</div></a>
 
 <p>
-Specify non-equilibrium populations in <code>Sys.Pop</code>. For a spin system with <code>N</code> electron states (e.g. 4 for a biradical, 3 for a triplet state), it must be a vector with <code>N</code> elements giving the populations of the zero-field electron states, from lowest to highest in energy.
+For the simulation of spin-polarised systems, the non-equilibrium populations need to be specified in the field <code>Sys.initState</code>. The general syntax is
+</p>
+
+<pre class="matlab">
+Sys.initState = {state, basis}
+</pre>
+
+<p>
+where <code>state</code> is a list of populations or the full density matrix, and <code>basis</code> is a keyword indicating the corresponding basis. The available basis keywords are 
+</p>
+
+<ul>
+<li> <code>'uncoupled'</code>: uncoupled Zeeman basis (default)
+<li> <code>'coupled'</code>: coupled basis for a system of two coupled spins
+<li> <code>'eigen'</code>: eigenbasis of the full spin Hamiltonian
+<li> <code>'zerofield'</code>: eigenbasis of the spin Hamiltonian at zero field
+<li> <code>'xyz'</code>: (T<sub>x</sub>,T<sub>y</sub>,T<sub>z</sub>) basis for triplet states
+</ul>
+
+<p>
+The ordering of the basis states for the <code>'uncoupled'</code> basis is in descending order of m<sub>s</sub> (refer to <a href="sop.html">sop</a> for details). For the <code>'coupled'</code> basis, the basis states are ordered in descending order of S<sub>tot</sub> (refer to <a href="cgmatrix.html">cgmatrix</a> for details).
 </p>
 
 <p>
-E.g., if <code>Sys.Pop = [0.85 0.95 1.2]</code> for a triplet system (S=1), the population of the lowest-energy zero-field state has a population of 0.85, the middle one has 0.95, and the highest-energy zero-field state has a population of 1.2. If there are coupled nuclei, the populations of all nuclear sublevels within each electron spin manifold are assumed to be equal.
+For the <code>'eigen'</code> and <code>'zerofield'</code> bases, the states are assumed to be in order of increasing energy.
 </p>
 
 <p>
-If <code>Sys.Pop</code> is given, the temperature specified in <code>Exp.Temperature</code> is ignored.
+The <code>'xyz'</code> basis is for triplet states only and takes the populations of the T<code>X</code>, T<code>Y</code> and T<code>Z</code> states as input. The provided populations of the X, Y and Z sublevels are converted into energy-ordered populations based on the standard definition of the zero-field energy levels for a set of given ZFS parameters <code>D</code> and <code>E</code> and their signs.
+</p>
+
+<pre class="matlab">
+  En(1) = (1/3)*D - E; % Tx
+  En(2) = (1/3)*D + E; % Ty
+  En(3) = -(2/3)*D;    % Tz
+</pre>
+For a triplet state, the <code>'xyz'</code> and <code>'zerofield'</code> bases are therefore equivalent, except for the ordering of the populations in the input vector.
 </p>
 
 <p>
-For examples of spin-polarized systems (ISC triplets, recombination triplets), see the <a href="spinpolarization.html">user guide on spin-polarized systems</a>.
+The options for defining non-equilibrium states through <code>Sys.initState</code> are the following:
+</p>
+
+<ul>
+<li>Population vector and the corresponding basis.
+
+<ul>
+
+<li>
+Populations of the T<sub>X</sub>, T<sub>Y</sub> and T<sub>Z</sub> states (for triplets only)
+<pre class="matlab">
+Sys.initState = {[pTx pTy pTz],'xyz'};
+</pre>
+
+<li>
+Populations of the eigenstates of the spin Hamiltonian at zero field, in order of increasing energy:
+<pre class="matlab">
+Sys.initState = {[p1 p2 p3],'zerofield'};
+</pre>
+E.g., if <code>Sys.initState = {[0.85 0.95 1.2],'zerofield'}</code> for a triplet system (S=1), the population of the lowest-energy zero-field state has a population of 0.85, the middle one has 0.95, and the highest-energy zero-field state has a population of 1.2. If there are coupled nuclei, the populations of all nuclear sublevels within each electron spin manifold are assumed to be equal.
+
+<li> Populations of the eigenstates of the full spin Hamiltonian, in order of increasing energy
+<pre class="matlab">
+Sys.initState = {[p1 p2 p3],'eigen'};
+</pre>
+E.g. <code>Sys.initState = {[0 1 0],'eigen'}</code> for a triplet system (S=1) corresponds to a triplet state populated only in the high-field T<sub>0</sub> level, for example from recombination from a radical pair.
+
+<li> Populations of the coupled basis states for systems of two spins
+<pre class="matlab">
+Sys.initState = {[pTp pT0 pTm pS],'coupled'}; % for two coupled S = 1/2
+</pre>
+E.g. <code>Sys.initState = {[1/3 1/3 1/3 0],'coupled'}</code> for two coupled spins S = 1/2 corresponds to a spin-correlated radical pair originating from a thermalized triplet precursor (equal population of the triplet levels).
+</p>
+</p>
+</ul>
+
+<li>Density matrix and the corresponding basis.
+<ul>
+<li>
+<pre class="matlab">
+Sys.initState = {sigma,'uncoupled'};
+% or
+Sys.initState = sigma;
+</pre>
+If no basis is given, the uncoupled basis, i.e. ordering of operators in terms of product Zeeman basis states as explained in <a class="esf" href="sop.html">sop</a>, is assumed.
+For example, for a spin-correlated radical pair with singlet-precursor the initial density matrix can be defined based on the state vector for the singlet state as
+<pre class="matlab">
+S = 1/sqrt(2)*[0; 1; -1; 0]; % alternatively, S = cgmatrix(1/2,1/2,0).';
+sigma = S*S';
+Sys.initState = sigma; 
+</pre> 
+The same result is obtained by defining the density matrix in the coupled basis as follows
+<pre class="matlab">
+S = [0; 0; 0; 1];
+Sigma = S*S';
+Sys.initState = {Sigma,'coupled'};
+</pre> 
+</li>
+</ul>
+</p>
+
+<li>String shorthand specifying the initial state. The available shorthands are:
+
+<ul>
+<li> Spin polarisation arising from population of the singlet state for two coupled identical spins (e.g. spin-correlated radical pair with singlet precursor)
+<pre class="matlab">
+Sys.initState = 'singlet';   % only possible if Sys.S = [1/2 1/2]
+</pre> 
+</p>
+<li> Spin polarisation arising from population of the T<sub>0</sub> sublevel in a triplet state (e.g. for a triplet formed by recombination from a spin-correlated radical pair state)
+<pre class="matlab">
+Sys.initState = 'T0';
+</pre> 
+</ul>
+</p>
+
+<p>
+For a spin system with <code>N</code> electron states (e.g. 4 for a biradical, 3 for a triplet state), the population vector must contain <code>N</code> elements and the density matrix must contain <code>N*N</code> elements.
+In the presence of coupled nuclei, individual nuclear populations can also be specified in <code>Sys.initState</code> (with <code>Nelectron*Nnuclear</code> elements), if not, it is assumed that the populations of the nuclear sublevels corresponding to the same electron sublevel are equal.
+</p>
+
+<p>
+In the presence of degenerate energy levels at zero field, the states for the <code>'zerofield'</code> basis are not uniquely defined, preventing unambiguous assignment of the provided energy-ordered populations to basis states within EasySpin. In order to simulate spectra for these cases, the full non-equilibrium density matrix should be provided in the uncoupled basis (see <a href="../examples/photoexcitation/triplet_axialZFS_spinpolarized.m">triplet_axialZFS_spinpolarized.m</a> for an example illustrating this for a triplet state with axial ZFS).
+</p>
+
+<p>
+If <code>Sys.initState</code> is given, the temperature specified in <code>Exp.Temperature</code> is ignored.
+</p>
+
+<p>
+For examples of spin-polarized systems (ISC triplets, recombination triplets, spin-correlated radical pairs), see the <a href="spinpolarization.html">user guide on spin-polarized systems</a> and the corresponding <a href="examplesmain.html#photoexcitation">examples</a>.
+</p>
+
+<a name="tdm"><div class="subtitle">Optical transition dipole moment</div></a>
+
+<p>
+To simulate the EPR spectra of photo-generated paramagnetic species, it might be necessary to take into account photoselection, i.e. the dependence of excitation yield on the polarization direction of the incident light beam relative to the electric transition dipole moment (tdm) of the excited optical transition. For this, the spin system has a field <code>Sys.tdm</code> that allows you to specify the orientation of the tdm in the molecular frame. There are three ways to do this:
+</p>
+<ul>
+<li>Give a letter code for the direction, e.g. <code>Sys.tdm = 'y'</code> specifies that the tdm is along the molecular y axis.</li>
+<li>Give a vector, e.g. <code>Sys.tdm = [0;1;0]</code> specifies that the tdm is along the molecular y axis.</li>
+<li>Give two polar angles, phi and theta (in radians), for the orientation of the tdm in the molecular frame. E.g. <code>Sys.tdm = [pi/2 pi/2]</code> specifies that the tdm is along the molecular y axis.</li>
+</ul>
 </p>
 
 <hr>

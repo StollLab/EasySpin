@@ -61,6 +61,10 @@ if ~isfield(Opt,'IterationPrintFunction') || ...
     isempty(Opt.IterationPrintFunction)
   Opt.IterationPrintFunction = @(str)str;
 end
+if ~isfield(Opt,'InfoPrintFunction') || ...
+    isempty(Opt.InfoPrintFunction)
+  Opt.InfoPrintFunction = @(str)str;
+end
 if ~isfield(Opt,'IterFcn'), Opt.IterFcn = []; end
 
 startTime = cputime;
@@ -183,7 +187,7 @@ while ~stopCode
   else
     UserStop = false;
   end
-  if UserStop, stopCode = 2; end
+  if UserStop, stopCode = 4; break; end
 
   % Update Jacobian estimate Je
   j = mod(j,n) + 1;
@@ -243,7 +247,7 @@ switch stopCode
 end
 
 if Opt.Verbosity>1
-  fprintf('Terminated: %s\n',msg);
+  Opt.InfoPrintFunction(sprintf('Terminated: %s\n',msg));
 end
 
 if transformParams
@@ -258,7 +262,6 @@ info.lambda = Opt.lambda;
 info.nIterations = iIteration-1;
 info.stop = stopCode;
 info.nEvals = nEvals;
-info.msg = msg;
 
 end
 %======================================================================

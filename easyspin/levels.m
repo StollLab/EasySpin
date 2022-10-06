@@ -78,7 +78,7 @@ end
 [Sys,err] = validatespinsys(SpinSystem);
 error(err);
 
-[F,GxM,GyM,GzM] = sham(Sys);
+[H0,muxM,muyM,muzM] = ham(Sys);
 
 if OriList
 
@@ -93,17 +93,17 @@ if OriList
   nOri = size(Ori,1);
   
   % Pre-allocate results array
-  Energies = zeros(nOri,numel(MagnField),length(F));
+  Energies = zeros(nOri,numel(MagnField),length(H0));
   if computeVectors
-    Vectors = zeros(nOri,numel(MagnField),length(F),length(F));
+    Vectors = zeros(nOri,numel(MagnField),length(H0),length(H0));
   end
   
   % Loop over all parameter combinations
   zL = ang2vec(Ori(:,1),Ori(:,2)); % z direction in lab frame
   for iOri = 1:nOri
-    G = zL(1,iOri)*GxM + zL(2,iOri)*GyM + zL(3,iOri)*GzM;
+    muzL = zL(1,iOri)*muxM + zL(2,iOri)*muyM + zL(3,iOri)*muzM;
     for iField = 1:length(MagnField)
-      H = F + MagnField(iField)*G;
+      H = H0 - MagnField(iField)*muzL;
       if computeVectors
         [V_,E] = eig(H);
         E = diag(E);
@@ -127,22 +127,22 @@ else
   sintheta = sin(theta);
   
   % Pre-allocate results array
-  Energies = zeros(numel(phi),numel(theta),numel(MagnField),length(F));
+  Energies = zeros(numel(phi),numel(theta),numel(MagnField),length(H0));
   if computeVectors
-    Vectors = zeros(numel(phi),numel(theta),numel(MagnField),length(F),length(F));
+    Vectors = zeros(numel(phi),numel(theta),numel(MagnField),length(H0),length(H0));
   end
   
   % Loop over all parameter combinations
   for iphi = 1:length(phi)
-    GxyM = cosphi(iphi)*GxM + sinphi(iphi)*GyM;
+    muxyM = cosphi(iphi)*muxM + sinphi(iphi)*muyM;
     for itheta = 1:length(theta)
-      G = sintheta(itheta)*GxyM + costheta(itheta)*GzM;
+      muzL = sintheta(itheta)*muxyM + costheta(itheta)*muzM;
       for iField = 1:length(MagnField)
         if computeVectors
-          [Vectors(iphi,itheta,iField,:,:),E] = eig(F + MagnField(iField)*G);
+          [Vectors(iphi,itheta,iField,:,:),E] = eig(H0 - MagnField(iField)*muzL);
           E = diag(E);
         else
-          E = sort(eig(F + MagnField(iField)*G));
+          E = sort(eig(H0 - MagnField(iField)*muzL));
         end
         Energies(iphi,itheta,iField,:) = E;
       end

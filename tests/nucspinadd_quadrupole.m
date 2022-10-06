@@ -12,7 +12,7 @@ Sys = struct('S',1/2,'g',[2 2 2.2]);
 Sys1 = nucspinadd(Sys,'14N',A,[],[eeqQ eta],[]);
 Sys2 = nucspinadd(Sys,'14N',A,[],Q,[]);
 
-H1 = nquad(Sys1);
-H2 = nquad(Sys2);
+H1 = ham_nq(Sys1);
+H2 = ham_nq(Sys2);
 
 ok = all(H1(:)==H2(:));

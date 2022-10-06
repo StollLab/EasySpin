@@ -89,6 +89,11 @@ end
 %-------------------------------------------------------------------------------
 logmsg(1,'Experimental parameters');
 
+% Photoselection is not supported
+if isfield(Exp,'lightBeam') && ~isempty(Exp.lightBeam)
+  error('Photoselection (via Exp.lightBeam) is not supported.')
+end
+
 % Field
 if ~isfield(Exp,'Field')
   Exp.Field = 0;
@@ -236,12 +241,12 @@ end
 
 % Set up Hamiltonian and magnetic dipole moment operators
 %-------------------------------------------------------------------------------
-% zero-field Hamiltonian F (MHz)
-% magnetic dipole moment operators muOpxM,muOpyM,muOpzM (MHz/mT)
-% all are in the molecular frame
-[H0,GxM,GyM,GzM] = sham(Sys);
+% zero-field Hamiltonian H0 (MHz)
+% magnetic dipole moment operators muOpxM, muOpyM, muOpzM (MHz/mT)
+%   all are in the molecular frame
+[H0,muOpxM,muOpyM,muOpzM] = ham(Sys);
 if ~isempty(Opt.Spins)
-  [GxM,GyM,GzM] = zeeman(Sys,Opt.Spins);
+  [muOpxM,muOpyM,muOpzM] = ham_ez(Sys,Opt.Spins);
 end
 
 % zero-field spin Hamiltonian
@@ -249,9 +254,9 @@ H0 = H0*1e6*planck; % MHz -> J
 
 % magnetic-dipole operators, in molecular frame
 c = 1e6*1e3*planck; % conversion factor, MHz/mT -> J/T
-muOpxM = -GxM*c; % MHz/mT -> J/T
-muOpyM = -GyM*c; % MHz/mT -> J/T
-muOpzM = -GzM*c; % MHz/mT -> J/T
+muOpxM = muOpxM*c; % MHz/mT -> J/T
+muOpyM = muOpyM*c; % MHz/mT -> J/T
+muOpzM = muOpzM*c; % MHz/mT -> J/T
 
 % Set up sample orientations
 %-------------------------------------------------

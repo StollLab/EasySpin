@@ -3,7 +3,8 @@ function [gX,info] = esfit_swarm(fcn,lb,ub,FitOpt)
 if ~isfield(FitOpt,'maxTime'), FitOpt.maxTime = inf; end
 if ~isfield(FitOpt,'Verbosity'); FitOpt.Verbosity = 1; end
 if ~isfield(FitOpt,'TolFun'), FitOpt.TolFun = 1e-5; end
-if ~isfield(FitOpt,'IterationPrintFunction'), FitOpt.IterationPrintFunction = []; end
+if ~isfield(FitOpt,'IterationPrintFunction'), FitOpt.IterationPrintFunction = @(str)str; end
+if ~isfield(FitOpt,'InfoPrintFunction'), FitOpt.InfoPrintFunction = @(str)str; end
 if ~isfield(FitOpt,'IterFcn'), FitOpt.IterFcn = []; end
 if ~isfield(FitOpt,'SwarmParams'), FitOpt.SwarmParams = [0.2 0.5 2 1]; end
 if ~isfield(FitOpt,'TolStallIter'), FitOpt.TolStallIter = 6; end
@@ -31,16 +32,17 @@ c1 = FitOpt.SwarmParams(3); % cognitive coefficient
 c2 = FitOpt.SwarmParams(4); % social coefficient
 
 if FitOpt.Verbosity
-  fprintf('Particle swarm optimization parameters:\n');
-  fprintf('   n = %d (number of particles)\n',nParticles);
-  fprintf('   k = %g (velocity clampling)\n',k);
-  fprintf('   k = %g (inertial coefficient)\n',w);
-  fprintf('   c1 = %g (cognitive coefficient)\n',c1);
-  fprintf('   c2 = %g (social coefficient)\n',c2);
+  msg{1} = sprintf('Particle swarm optimization parameters:');
+  msg{2} = sprintf('   n = %d (number of particles)',nParticles);
+  msg{3} = sprintf('   k = %g (velocity clampling)',k);
+  msg{4} = sprintf('   k = %g (inertial coefficient)',w);
+  msg{5} = sprintf('   c1 = %g (cognitive coefficient)',c1);
+  msg{6} = sprintf('   c2 = %g (social coefficient)',c2);
+  FitOpt.InfoPrintFunction(msg);
 end
 
 if FitOpt.Verbosity
-  fprintf('Initializing swarm...\n');
+  FitOpt.InfoPrintFunction(sprintf('Initializing swarm...'));
 end
 
 % Initial particle positions and velocities
@@ -56,7 +58,7 @@ startTime = cputime;
 nStalledIterations = 0; % counts the number of iterations globalbestF hasn't changed
 
 if FitOpt.Verbosity
-  fprintf('Starting iterations...\n');
+  FitOpt.InfoPrintFunction(sprintf('Starting iterations...'));
 end
 iIteration = 0;
 stopCode = 0;
@@ -93,7 +95,7 @@ while stopCode==0
     X(:,p) = min(max(X(:,p),lb),ub); % constrain to [lb ub]
   end
   
-  if FitOpt.Verbosity && ~isempty(FitOpt.IterationPrintFunction)
+  if FitOpt.Verbosity
     str = sprintf('  Iteration %4d:   value %0.5e  best so far (%d)',iIteration,globalbestF,nStalledIterations);
     FitOpt.IterationPrintFunction(str);
   end
@@ -120,8 +122,7 @@ if FitOpt.Verbosity>1
     case 3, msg = sprintf('Terminated: Found a parameter set with function value less than %g.',FitOpt.TolFun);
     case 4, msg = sprintf('Terminated: Function value didn''t change for %d iterations.',FitOpt.TolStallIter);
   end
-  disp(msg);
-  info.msg = msg;
+  FitOpt.InfoPrintFunction(msg);
 end
 
 info.nIterations = iIteration;
