@@ -144,7 +144,7 @@ if ~isfield(Opt,'HilbertThreshold'), Opt.HilbertThreshold = 0.05; end
 % Hilbert transform corresponds to quadrature signal only if amplitude
 % and cos(phase) FT do not overlap.
 % (based on Bedrosian's product theorem; see
-%  Boashash, Proc. IEEE 80, 1992, 520, http://dx.doi.org/10.1109/5.135376)
+%  Boashash, Proc. IEEE 80, 1992, 520, https://doi.org/10.1109/5.135376)
 
 % Signal resampling
 %-----------------------------------------------------------

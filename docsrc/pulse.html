@@ -109,7 +109,7 @@ Additional parameters are required to fully specify the various AM and FM functi
 Pulse flip angle, in radians. If absent, <code>Par.Flip = pi</code> is used as default.
 
 <p>
-<code>Flip</code> is used to calculate the pulse amplitude. For amplitude-modulated pulses, it is calculated via the integral of the amplitude modulation function. For frequency-modulated pulses, the procedure described in Jeschke, G., Pribitzer, S., Doll, A. Coherence Transfer by Passage Pulses in Electron Paramagnetic Resonance Spectroscopy. <i>J. Phys. Chem. B</i> 119, 13570–13582 (<b>2015</b>) (DOI: <a href="http://dx.doi.org/10.1021/acs.jpcb.5b02964">10.1021/acs.jpcb.5b02964</a>) is used.
+<code>Flip</code> is used to calculate the pulse amplitude. For amplitude-modulated pulses, it is calculated via the integral of the amplitude modulation function. For frequency-modulated pulses, the procedure described in Jeschke, G., Pribitzer, S., Doll, A. Coherence Transfer by Passage Pulses in Electron Paramagnetic Resonance Spectroscopy. <i>J. Phys. Chem. B</i> 119, 13570–13582 (<b>2015</b>) (DOI: <a href="https://doi.org/10.1021/acs.jpcb.5b02964">10.1021/acs.jpcb.5b02964</a>) is used.
 </div>
 
 <div class="optionfield"><code>Amplitude</code></div>
@@ -122,7 +122,7 @@ Pulse amplitude, in MHz. If <code>Par.Flip</code> is given, <code>Par.Amplitude<
 <div class="optiondescr">
 Critical adiabaticity for the calculation of pulse amplitudes for frequency-swept pulses. If <code>Par.Qcrit</code> is given, <code>Par.Amplitude</code> and <code>Par.Flip</code> are ignored.
 
-<p>The pulse amplitude is calculated from the critical adiabaticity as described in Jeschke, G., Pribitzer, S., Doll, A. Coherence Transfer by Passage Pulses in Electron Paramagnetic Resonance Spectroscopy. <i>J. Phys. Chem. B</i> 119, 13570–13582 (<b>2015</b>) (DOI: <a href="http://dx.doi.org/10.1021/acs.jpcb.5b02964">10.1021/acs.jpcb.5b02964</a>).
+<p>The pulse amplitude is calculated from the critical adiabaticity as described in Jeschke, G., Pribitzer, S., Doll, A. Coherence Transfer by Passage Pulses in Electron Paramagnetic Resonance Spectroscopy. <i>J. Phys. Chem. B</i> 119, 13570–13582 (<b>2015</b>) (DOI: <a href="https://doi.org/10.1021/acs.jpcb.5b02964">10.1021/acs.jpcb.5b02964</a>).
 </div>
 
 <div class="optionfield"><code>Frequency</code></div>
@@ -191,7 +191,7 @@ asymmetric sech pulses can be obtained by specifying two values for <code>n</cod
 </ul>
 <li><code>'GaussianCascade'</code></li>
 <p>
-If <code>Par.Type</code> is set to <code>'G3'</code>, <code>'G4'</code>, <code>'Q3'</code> or <code>'Q5'</code>, the Gaussian pulse cascades are computed with the parameters listed in Emsley, L., Bodenhausen, G., Gaussian pulse cascades: New analytical functions for rectangular selective inversion and in-phase excitation in NMR, <i>Chem. Phys. Lett.</i> 165, 469-476 (<b>1990</b>), DOI: <a href="http://dx.doi.org/10.1016/0009-2614(90)87025-M">10.1016/0009-2614(90)87025-M</a> (Table 1 on p. 473, Cycle 3 or Table 2 on p. 474, Cycle 11) and Emsley, L., Bodenhausen, G., Optimization of shaped selective pulses for NMR using a quaternion description of their overall propagators, <i>J. Magn. Reson.</i> 97, 135-148 (<b>1992</b>), DOI: <a href="http://dx.doi.org/10.1016/0022-2364(92)90242-Y">10.1016/0022-2364(92)90242-Y</a> (Table 2 on p. 142), respectively. Otherwise the following parameters need to be specified:
+If <code>Par.Type</code> is set to <code>'G3'</code>, <code>'G4'</code>, <code>'Q3'</code> or <code>'Q5'</code>, the Gaussian pulse cascades are computed with the parameters listed in Emsley, L., Bodenhausen, G., Gaussian pulse cascades: New analytical functions for rectangular selective inversion and in-phase excitation in NMR, <i>Chem. Phys. Lett.</i> 165, 469-476 (<b>1990</b>), DOI: <a href="https://doi.org/10.1016/0009-2614(90)87025-M">10.1016/0009-2614(90)87025-M</a> (Table 1 on p. 473, Cycle 3 or Table 2 on p. 474, Cycle 11) and Emsley, L., Bodenhausen, G., Optimization of shaped selective pulses for NMR using a quaternion description of their overall propagators, <i>J. Magn. Reson.</i> 97, 135-148 (<b>1992</b>), DOI: <a href="https://doi.org/10.1016/0022-2364(92)90242-Y">10.1016/0022-2364(92)90242-Y</a> (Table 2 on p. 142), respectively. Otherwise the following parameters need to be specified:
 </p>
 <ul style="list-style-type:none;padding:2px;">
 <li><code>A0</code> - list of relative amplitudes
@@ -200,7 +200,7 @@ If <code>Par.Type</code> is set to <code>'G3'</code>, <code>'G4'</code>, <code>'
 </ul>
 <li><code>'FourierSeries'</code></li>
 <p>
-If <code>Par.Type</code> is set to <code>'I-BURP 1'</code>, <code>'I-BURP 2'</code>, <code>'SNOB i2'</code> or <code>'SNOB i3'</code>, the finite Fourier series pulses are computed with the coefficients listed in Geen, H., Freeman, R., Band-selective radiofrequency pulses, <i>J. Magn. Reson.</i> 93, 93-141 (<b>1991</b>), DOI: <a href="http://dx.doi.org/10.1016/0022-2364(91)90034-Q">10.1016/0022-2364(91)90034-Q</a> (Table 5 on p. 117 for I-BURP 1 and Table 6 on p. 119 for I-BURP 2, Np = 256) and Kupce, E., Boyd, J., Campbell, I. D., Short Selective Pulses for Biochemical Applications, <i>J. Magn. Reson. B</i> 106, 300-303 (<b>1995</b>), DOI: <a href="http://dx.doi.org/10.1006/jmrb.1995.1049">10.1006/jmrb.1995.1049</a> (Table 1 on p. 300 for SNOB i2 and SNOB i3). Otherwise the following parameters need to be specified:
+If <code>Par.Type</code> is set to <code>'I-BURP 1'</code>, <code>'I-BURP 2'</code>, <code>'SNOB i2'</code> or <code>'SNOB i3'</code>, the finite Fourier series pulses are computed with the coefficients listed in Geen, H., Freeman, R., Band-selective radiofrequency pulses, <i>J. Magn. Reson.</i> 93, 93-141 (<b>1991</b>), DOI: <a href="https://doi.org/10.1016/0022-2364(91)90034-Q">10.1016/0022-2364(91)90034-Q</a> (Table 5 on p. 117 for I-BURP 1 and Table 6 on p. 119 for I-BURP 2, Np = 256) and Kupce, E., Boyd, J., Campbell, I. D., Short Selective Pulses for Biochemical Applications, <i>J. Magn. Reson. B</i> 106, 300-303 (<b>1995</b>), DOI: <a href="https://doi.org/10.1006/jmrb.1995.1049">10.1006/jmrb.1995.1049</a> (Table 1 on p. 300 for SNOB i2 and SNOB i3). Otherwise the following parameters need to be specified:
 </p>
 <ul style="list-style-type:none;padding:2px;">
 <li><code>A0</code> - initial amplitude coefficient
@@ -430,7 +430,7 @@ Frequency and phase modulation functions (<i>BW</i> is the difference between en
 
 <li><code>'uniformQ'</code>:
 <p>
-The frequency modulation function is calculated as the integral of the squared amplitude modulation function and multiplied by the specified bandwidth (centered at zero). This can be used for <i>n</i>th order sech pulses or in general to obtain offset-independent adiabaticity pulses given a certain amplitude function (see Garwood, M., DelaBarre, L., <i>J. Magn. Reson.</i> 153, 155-177 (<b>2001</b>), DOI: <a href="http://dx.doi.org/10.1006/jmre.2001.2340">10.1006/jmre.2001.2340</a>). The phase modulation function is obtained by integration and the phase is set to zero at the center of the pulse.
+The frequency modulation function is calculated as the integral of the squared amplitude modulation function and multiplied by the specified bandwidth (centered at zero). This can be used for <i>n</i>th order sech pulses or in general to obtain offset-independent adiabaticity pulses given a certain amplitude function (see Garwood, M., DelaBarre, L., <i>J. Magn. Reson.</i> 153, 155-177 (<b>2001</b>), DOI: <a href="https://doi.org/10.1006/jmre.2001.2340">10.1006/jmre.2001.2340</a>). The phase modulation function is obtained by integration and the phase is set to zero at the center of the pulse.
 <p/>
 
 </ul>
@@ -454,7 +454,7 @@ where the different terms are the amplitude modulation, the phase modulation, th
 </p>
 
 <p>
-Compensation for the resonator bandwidth by adaptation of the chirp rates in frequency-swept pulses is implemented as described in Doll, A., Pribitzer, S., Tschaggelar, R., Jeschke, G., Adiabatic and fast passage ultra-wideband inversion in pulsed EPR, <i>J. Magn. Reson.</i> 230, 27-39 (<b>2013</b>), DOI: <a href="http://dx.doi.org/10.1016/j.jmr.2013.01.002">10.1016/j.jmr.2013.01.002</a> and Pribitzer, S., Doll, A., Jeschke, G., SPIDYAN, a MATLAB library for simulating pulse EPR experiments with arbitrary waveform excitation. <i>J. Magn. Reson.</i> 263, 45-54 (<b>2016</b>) (DOI: <a href="http://dx.doi.org/10.1016/j.jmr.2015.12.014">10.1016/j.jmr.2015.12.014</a>). For pulses with uniform adiabaticity (sech/tanh and any pulse with a frequency modulation function set to <code>'uniformQ'</code>) both the frequency and the amplitude modulation functions defined above are adjusted to compensate for the resonator profile. For all other pulses, the amplitude modulation function is preserved and only the frequency modulation function is adapted to the provided resonator profile. The phase modulation function is obtained by integration and the phase is set to zero at the center of the pulse.
+Compensation for the resonator bandwidth by adaptation of the chirp rates in frequency-swept pulses is implemented as described in Doll, A., Pribitzer, S., Tschaggelar, R., Jeschke, G., Adiabatic and fast passage ultra-wideband inversion in pulsed EPR, <i>J. Magn. Reson.</i> 230, 27-39 (<b>2013</b>), DOI: <a href="https://doi.org/10.1016/j.jmr.2013.01.002">10.1016/j.jmr.2013.01.002</a> and Pribitzer, S., Doll, A., Jeschke, G., SPIDYAN, a MATLAB library for simulating pulse EPR experiments with arbitrary waveform excitation. <i>J. Magn. Reson.</i> 263, 45-54 (<b>2016</b>) (DOI: <a href="https://doi.org/10.1016/j.jmr.2015.12.014">10.1016/j.jmr.2015.12.014</a>). For pulses with uniform adiabaticity (sech/tanh and any pulse with a frequency modulation function set to <code>'uniformQ'</code>) both the frequency and the amplitude modulation functions defined above are adjusted to compensate for the resonator profile. For all other pulses, the amplitude modulation function is preserved and only the frequency modulation function is adapted to the provided resonator profile. The phase modulation function is obtained by integration and the phase is set to zero at the center of the pulse.
 <p/>
 
 <!-- ============================================================= -->

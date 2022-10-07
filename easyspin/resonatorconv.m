@@ -178,11 +178,11 @@ function [f,H] = transferfunction(type,varargin)
 % 1. Doll, A., Pribitzer, S., Tschaggelar, R., Jeschke, G.,
 %    Adiabatic and fast passage ultra-wideband inversion in
 %    pulsed EPR. J. Magn. Reson. 230, 27�39 (2013).
-%    http://dx.doi.org/10.1016/j.jmr.2013.01.002
+%    https://doi.org/10.1016/j.jmr.2013.01.002
 % 2. Pribitzer, S., Doll, A. & Jeschke, G. SPIDYAN, a MATLAB library
 %    for simulating pulse EPR experiments with arbitrary waveform
 %    excitation. J. Magn. Reson. 263, 45�54 (2016). 
-%    http://dx.doi.org/10.1016/j.jmr.2015.12.014
+%    https://doi.org/10.1016/j.jmr.2015.12.014
 
 % Ideal transfer function (RLC series circuit)
 Hideal = @(f,f0,Q,nu_max) nu_max./(1+1i*Q*(f/f0-f0./f));

@@ -740,7 +740,7 @@ else
       % squared amplitude modulation function (for nth order sech/tanh or
       % in general to obtain offset-independent adiabaticity pulses, see
       %   Garwood, M., DelaBarre, L., J. Magn. Reson. 153, 155-177 (2001).
-      %   http://dx.doi.org/10.1006/jmre.2001.2340
+      %   https://doi.org/10.1006/jmre.2001.2340
       
       modulation.freq = cumtrapz(ti,modulation.A.^2)/trapz(ti,modulation.A.^2); % F2
       modulation.freq = (Par.Frequency(2)-Par.Frequency(1))*(modulation.freq-1/2);
@@ -759,7 +759,7 @@ else
     %   Doll, A., Pribitzer, S., Tschaggelar, R., Jeschke, G.,
     %   Adiabatic and fast passage ultra-wideband inversion in
     %   pulsed EPR. J. Magn. Reson. 230, 27-39 (2013).
-    %   http://dx.doi.org/10.1016/j.jmr.2013.01.002
+    %   https://doi.org/10.1016/j.jmr.2013.01.002
     % and
     %   Doll, A., Frequency-swept microwave pulses for electron spin
     %   resonance, PhD Dissertation (2016), ETH Zürich, (for sech pulses
@@ -768,7 +768,7 @@ else
     %   Pribitzer, S., Doll, A. & Jeschke, G. SPIDYAN, a MATLAB library
     %   for simulating pulse EPR experiments with arbitrary waveform
     %   excitation. J. Magn. Reson. 263, 45-54 (2016).
-    %   http://dx.doi.org/10.1016/j.jmr.2015.12.014
+    %   https://doi.org/10.1016/j.jmr.2015.12.014
     
     % Original amplitude and frequency modulation functions
     nu0 = modulation.freq;
@@ -835,7 +835,7 @@ else
       
       % Q_crit = (2*pi*v1max)^2/k = minimum adiabaticity on resonance
       %   see Jeschke et al. (2015) J. Phys. Chem. B, 119, 13570-13582.
-      %   http://dx.doi.org/10.1021/acs.jpcb.5b02964
+      %   https://doi.org/10.1021/acs.jpcb.5b02964
       
       if ((~isfield(Par,'Qcrit') || isempty(Par.Qcrit)) && ...
          (isfield(Par,'Flip') && ~isempty(Par.Flip)))
@@ -856,7 +856,7 @@ else
             % Q = w1max^2*A(t)^2/(BW*dnu/dt) see eq. 17 in
             %   Garwood, M., DelaBarre, L., J. Magn. Reson. 153, 155-177
             %   (2001).
-            %   http://dx.doi.org/10.1006/jmre.2001.2340
+            %   https://doi.org/10.1006/jmre.2001.2340
             [~,ind] = min(abs(ti));
             dnu = abs(diff(2*pi*modulation.freq/(t(2)-t(1))));
             sweeprate = dnu(ind)/(2*pi*(modulation.A(ind))^2);

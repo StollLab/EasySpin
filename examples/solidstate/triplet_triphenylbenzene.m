@@ -3,7 +3,7 @@
 % see
 % - Weil/Bolton, chapter 6.3.3, Fig. 6.6
 % - Jesse et al, Mol.Phys. 6, 633 (1963)
-%   http://dx.doi.org/10.1080/00268976300100741
+%   https://doi.org/10.1080/00268976300100741
 
 clear, clf
 

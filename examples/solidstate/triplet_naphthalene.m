@@ -2,9 +2,9 @@
 %==========================================================================
 % see
 %  - Hutchison et al, J.Chem.Phys. 34, 908-922 (1961)
-%    http://dx.doi.org/10.1063/1.1731693
+%    https://doi.org/10.1063/1.1731693
 %  - Wasserman et al, J.Chem.Phys. 41, 1763-1772 (1964)
-%    http://dx.doi.org/10.1063/1.1726156
+%    https://doi.org/10.1063/1.1726156
 %  - Weil/Bolton, chapter 6.3.4
 
 % Here we simulate the X-band EPR powder spectrum of the photo-excited

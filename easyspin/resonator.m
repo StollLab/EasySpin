@@ -31,7 +31,7 @@
 %    J. Magn. Reson. 230, 27-39 (2013). (DOI: 10.1016/j.jmr.2013.01.002)
 %
 %  Input:
-%   - t0                   = time axis for the input signal (in µs)
+%   - t0                   = time axis for the input signal (in ï¿½s)
 %   - signal0              = input signal vector
 %   - mwFreq               = microwave frequency for the input signal
 %                            in GHz
@@ -46,7 +46,7 @@
 %                               convolution/deconvolution with the resonator
 %                               transfer function
 %                               (default:1/1000)
-%        Opt.TimeStep         = time step in µs (if it is not provided the
+%        Opt.TimeStep         = time step in ï¿½s (if it is not provided the
 %                               ideal time step is estimated based on the 
 %                               Nyquist condition with an oversampling factor)
 %        Opt.OverSampleFactor = oversampling factor for the determination of the 
@@ -64,7 +64,7 @@
 %                               Opt.Window (see apowin() for details) (default: 0.6)
 %
 %  Output:
-%   - t         = time axis for the output signal (in µs)
+%   - t         = time axis for the output signal (in ï¿½s)
 %   - signal    = signal modified by the resonator transfer function or
 %                 compensated for the resonator transfer function
 %
@@ -243,12 +243,12 @@ function [f,H] = transferfunction(type,varargin)
 % See:
 % 1. Doll, A., Pribitzer, S., Tschaggelar, R., Jeschke, G.,
 %    Adiabatic and fast passage ultra-wideband inversion in
-%    pulsed EPR. J. Magn. Reson. 230, 27–39 (2013).
-%    http://dx.doi.org/10.1016/j.jmr.2013.01.002
+%    pulsed EPR. J. Magn. Reson. 230, 27ï¿½39 (2013).
+%    https://doi.org/10.1016/j.jmr.2013.01.002
 % 2. Pribitzer, S., Doll, A. & Jeschke, G. SPIDYAN, a MATLAB library
 %    for simulating pulse EPR experiments with arbitrary waveform
-%    excitation. J. Magn. Reson. 263, 45–54 (2016). 
-%    http://dx.doi.org/10.1016/j.jmr.2015.12.014
+%    excitation. J. Magn. Reson. 263, 45ï¿½54 (2016). 
+%    https://doi.org/10.1016/j.jmr.2015.12.014
 
 % Ideal transfer function (RLC series circuit)
 Hideal = @(f,f0,Q,nu_max) nu_max./(1+1i*Q*(f/f0-f0./f));

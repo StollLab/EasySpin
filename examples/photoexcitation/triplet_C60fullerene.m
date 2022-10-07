@@ -2,9 +2,9 @@
 %===========================================================
 % see
 %  Wasielewski et al, J.Am.Chem.Soc. 113, 2774-2776 (1991)
-%     http://dx.doi.org/10.1021/ja00007a074
+%     https://doi.org/10.1021/ja00007a074
 %  Dauw et al, J.Chem.Phys. 112, 7102-7110 (2000)
-%     http://dx.doi.org/10.1063/1.481305
+%     https://doi.org/10.1063/1.481305
 
 clear
 
