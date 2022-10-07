@@ -1,46 +1,46 @@
 function ok = test()
 
-% Test whether the 1th order in B of ham_ezho is identical to the usual
-% Zeeman Hamiltonian
+% Assert that ham_ezho with 1st order in B gives the same result as ham_ez.
 
 rng(5);
 
-Sys.S = ceil(rand*20)/2;
+B = rand(1,3);  % magnetic field, mT
 
-B = rand(1,3);
+S = 5/2;
+Ham110 = rand; % (lB,lS,l)=(1,1,0), m=0; MHz/mT
+Ham112 = rand(5,1); % (lB=1,lS,l)=(1,1,2), m= l,...,-l; MHz/mT
 
-Sys.Ham110 = rand; % lB=1, lS=1, l=0, m= 0
-Sys.Ham112 = rand(5,1); % lB=1, lS=1, l=2, m= l,...,-l
-a = Sys.Ham110;
-b = Sys.Ham112;
+% Construct g matrix equivalent to Ham110 and Ham112 input to ham_ezho
+g = zeros(3);
+g(1,2) = Ham112(5)/sqrt(2);
+g(1,3) = Ham112(2)/sqrt(2);
+g(2,3) = Ham112(4)/sqrt(2);
+g = g + g';
+g(3,3) = (-Ham110+sqrt(2)*Ham112(3))/sqrt(3);
+g(2,2) = (-sqrt(2)*Ham110-Ham112(3)-sqrt(3)*Ham112(1))/sqrt(6);
+g(1,1) = (-sqrt(2)*Ham110-Ham112(3)+sqrt(3)*Ham112(1))/sqrt(6);
+g = g *(planck*1e9)/bmagn; % MHz/mT -> unitless
 
-Sys2.S = Sys.S;
-Sys2.g = zeros(3);
+% Assemble spin systems
+Sys.S = S;
+Sys.Ham110 = Ham110;
+Sys.Ham112 = Ham112;
 
-Sys2.g(1,2) = b(5)/sqrt(2);
-Sys2.g(1,3) = b(2)/sqrt(2);
-Sys2.g(2,3) = b(4)/sqrt(2);
+Sys2.S = S;
+Sys2.g = g;
 
-Sys2.g = Sys2.g +Sys2.g'; %symmetrize before diagonal elements
-
-Sys2.g(3,3) = (-a+sqrt(2)*b(3))/sqrt(3);
-Sys2.g(2,2) = (-sqrt(2)*a-b(3)-sqrt(3)*b(1))/sqrt(6);
-Sys2.g(1,1) = (-sqrt(2)*a-b(3)+sqrt(3)*b(1))/sqrt(6);
-
-% Hamm11l are given in MHz/mT, conversion require division by the Bohr magneton
-Sys2.g = Sys2.g *(planck*1e9)/bmagn;
-
-Hz{1} = ham_ezho(Sys,B);
+% Evaluate using ham_ez and ham_ezho, with and without field input
 zHo = ham_ezho(Sys);
-Hz{2} = -zHo{2}{1};
-Hz{3} = -zHo{2}{2};
-Hz{4} = -zHo{2}{3};
+H_ezho{1} = -zHo{2}{1};
+H_ezho{2} = -zHo{2}{2};
+H_ezho{3} = -zHo{2}{3};
+H_ezho{4} = ham_ezho(Sys,B);
 
-H{1} = ham_ez(Sys2,B);
-[H{2},H{3},H{4}] = ham_ez(Sys2);
+[H_ez{1},H_ez{2},H_ez{3}] = ham_ez(Sys2);
+H_ez{4} = ham_ez(Sys2,B);
 
-% test
+% Comparison
 threshold = 1e-8;
 for n = 4:-1:1
-  ok(n) = areequal(H{n},Hz{n},threshold,'abs');
+  ok(n) = areequal(H_ezho{n},H_ez{n},threshold,'abs');
 end

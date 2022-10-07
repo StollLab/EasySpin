@@ -165,7 +165,7 @@ if TensorOutput
     for a = 1:3
       for b = 1:3
         for c = 1:3
-          if (size(G3{a,b,c}) == si)
+          if size(G3{a,b,c}) == si
             dif = dif + G3{a,b,c};
           end
         end
@@ -223,7 +223,6 @@ else  % full Hamiltonian is output
   % Get number of electrons, nuclei and states
   nElectrons = Sys.nElectrons;
   nStates = Sys.nStates;
-  error(err);
   
   % No 'Spins' specified -> use all
   if isempty(Spins), Spins = 1:nElectrons; end
@@ -263,15 +262,15 @@ else  % full Hamiltonian is output
     for k = 1:length(lBlist)
       lB = lBlist(k);
       strlB = sprintf('Ham%i',lB);
-      sysnames = fieldnames(Sys);
-      paramtext = sysnames(strncmp(sysnames,strlB,4));
+      fields = fieldnames(Sys);
+      paramtext = fields(strncmp(fields,strlB,4));
       if ~isempty(paramtext)
         for n = length(paramtext):-1:1
           lStemp(n) = str2double(paramtext{n}(5));
         end
         lStemp = unique(lStemp);
         
-        % run over all allowed ranks ls in S
+        % Run over all allowed ranks ls in S
         for n = find(mod(lB+lStemp,2)-1) %lb+ls has to be even, time-inversion sym of Hamiltonian
           lS = lStemp(n);
           strlBlS = sprintf('Ham%i%i',lB,lS);          
@@ -286,13 +285,14 @@ else  % full Hamiltonian is output
           Glb = rB^lB/sqrt(2);
           minl = abs(lB-lS);
           maxl = lB+lS;
-          paramtext = sysnames(strncmp(sysnames,strlBlS,5));
+          paramtext = fields(strncmp(fields,strlBlS,5));
           l_ = [];
           for n_ = length(paramtext):-1:1
             l_(n_) = str2double(paramtext{n_}(6:end));
           end
+          l_ = l_(minl<=l_ & l_<=maxl & ~mod(l_,2));
          
-          for l = l_(minl<=l_ & l_ <=maxl & ~mod(l_,2))
+          for l = l_
             strlBlSl = sprintf('Ham%i%i%i',lB,lS,l);
             ZBlBlSlm = Sys.(strlBlSl)(iSpin,:);
             if ~any(ZBlBlSlm), continue; end
