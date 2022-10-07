@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>ham_ez</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/academy" target="_blank">Academy</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">ham_ezho</div>
+
+<!-- ============================================================= -->
+<div class="subtitle">Syntax</div>
+
+<p>
+Higher-order electron Zeeman Hamiltonian, electron magnetic dipole moment.
+</p>
+
+<pre class="matlab">
+H = ham_ezho(Sys, B)
+H = ham_ezho(Sys, B, idx)
+H = ham_ezho(Sys, B, idx, 'sparse')
+H = ham_ezho(Sys, B, idx, 'sparse', lB)
+[G0, G1, G2, G3] = ham_ezho(Sys)
+[G0,...] = ham_ezho(Sys, idx)
+[G0,...] = ham_ezho(Sys, idx, 'sparse')
+GlB = ham_ezho(Sys, idx, 'sparse', lB)
+cG = ham_ezho(Sys)
+cG = ham_ezho(Sys, idx, 'sparse', lB)
+
+</pre>
+
+<!-- ============================================================= -->
+<div class="subtitle">Description</div>
+
+<p>
+<code>ham_ezho</code> calculates the matrix representing the multiple-order electron Zeeman interaction Hamiltonian (in units of MHz) for the <a href="spinsystem.html">spin system</a> given in <code>Sys</code>.
+
+<p>
+<code>Sys</code> is a spin system structure.
+</p>
+
+<p>
+<code>idx</code> is a number or array that indicates which electron spins should be included. For example, <code>1</code> indicates the first electron spin, and <code>[2 3]</code> indicates the second and third electron spin. If <code>idx</code> is omitted, all electron spins are included in the operators.
+</p>
+
+<p>
+<code>B</code> is a 3-element magnetic field vector (in mT). If given, the complete electron Zeeman Hamiltonian is returned. <code>B</code> is understood to be in the <a href="frames.html">molecular frame</a>, for example <code>[0 0 340]</code> indicates a field along the molecular z axis.
+</p>
+
+<p>
+If <code>B</code> is omitted, the function returns the components of the multiple-order electron Zeeman interaction Hamiltonian, defined by the nth order derivative. <code>Gn</code> contain (d^n/dB^n) H, a tensor of rank n. They are in units of MHz/(mT)^n.
+</p>
+
+<p>
+If <code>'sparse'</code> is given as third argument, results are returned in sparse format instead of full format.
+</p>
+
+<p>
+If only terms of order <code>lB</code> in magnetic field are required, a scalar/vector fourth argument can be supplied.
+</p>
+
+<p>
+The <code>Gn</code> can also be returned as a cell array, <code>cG</code>
+</p>
+
+<!-- ============================================================= -->
+<div class="subtitle">Examples</div>
+
+
+
+<!-- ============================================================= -->
+<div class="subtitle">See also</div>
+
+<p>
+<a class="esf" href="ham.html">ham</a>,
+<a class="esf" href="ham_cf.html">ham_cf</a>,
+<a class="esf" href="ham_ee.html">ham_ee</a>,
+<a class="esf" href="ham_ez.html">ham_ez</a>,
+<a class="esf" href="ham_hf.html">ham_hf</a>,
+<a class="esf" href="ham_nn.html">ham_nn</a>,
+<a class="esf" href="ham_nq.html">ham_nq</a>,
+<a class="esf" href="ham_nz.html">ham_nz</a>,
+<a class="esf" href="ham_oz.html">ham_oz</a>,
+<a class="esf" href="ham_so.html">ham_so</a>,
+<a class="esf" href="ham_zf.html">ham_zf</a>
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+
+</html>
