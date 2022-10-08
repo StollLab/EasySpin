@@ -56,7 +56,7 @@ if ~isfield(Options,'Verbosity'), Options.Verbosity = 0; end
 global EasySpinLogLevel
 EasySpinLogLevel = Options.Verbosity;
 
-logmsg(1,['=begin=blochsteady======' datestr(now) '=================']);
+logmsg(1,['=begin=blochsteady======' char(datetime) '=================']);
 
 if ~isfield(Options,'nPoints')
   Options.nPoints = 1000;
@@ -309,6 +309,6 @@ switch nargout
     ylabel('modulation field (mT)');
 end
 
-logmsg(1,'=end=blochsteady========%s=================\n',datestr(now));
+logmsg(1,'=end=blochsteady========%s=================\n',char(datetime));
 
 clear global EasySpinLogLevel

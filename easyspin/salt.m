@@ -152,7 +152,7 @@ end
 %==================================================================
 
 
-logmsg(1,'=begin=salt=======%s=================',datestr(now));
+logmsg(1,'=begin=salt=======%s=================',char(datetime));
 logmsg(2,'  log level %d',EasySpinLogLevel);
 logmsg(1,'-general-----------------------------------------------');
 
@@ -997,7 +997,7 @@ end
 msg = sprintf('cpu time %dh%dm%0.2fs',Hours,Minutes,Seconds);
 logmsg(1,msg);
 
-logmsg(1,'=end=salt=========%s=================\n',datestr(now));
+logmsg(1,'=end=salt=========%s=================\n',char(datetime));
 
 clear global EasySpinLogLevel
 

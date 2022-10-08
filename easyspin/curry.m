@@ -71,7 +71,7 @@ if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 0; end
 global EasySpinLogLevel
 EasySpinLogLevel = Opt.Verbosity;
 
-logmsg(1,['=begin=curry======' datestr(now) '=================']);
+logmsg(1,['=begin=curry======' char(datetime) '=================']);
 
 doPlot = (nargout==0);
 
@@ -623,6 +623,6 @@ for n = numel(keywords):-1:1
   
 end
 
-logmsg(1,'=end=curry========%s=================\n',datestr(now));
+logmsg(1,'=end=curry========%s=================\n',char(datetime));
 
 clear global EasySpinLogLevel

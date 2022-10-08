@@ -202,7 +202,7 @@ end
 %==================================================================
 
 % Now we can start simulating the spectrum
-logmsg(1,['=begin=pepper=====' datestr(now) '=================']);
+logmsg(1,['=begin=pepper=====' char(datetime) '=================']);
 logmsg(2,'  log level %d',EasySpinLogLevel);
 logmsg(1,'-general-----------------------------------------------');
 
@@ -1287,7 +1287,7 @@ end
 msg = sprintf('cpu time %dh%dm%0.3fs',Hours,Minutes,Seconds);
 logmsg(1,msg);
 
-logmsg(1,'=end=pepper=======%s=================\n',datestr(now));
+logmsg(1,'=end=pepper=======%s=================\n',char(datetime));
 
 clear global EasySpinLogLevel
 

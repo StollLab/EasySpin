@@ -441,7 +441,7 @@ if strcmp(Opt.SimulationMode,'fast')
   end
   %==================================================================
   
-  logmsg(1,['=begin=saffron====' datestr(now) '=================']);
+  logmsg(1,['=begin=saffron====' char(datetime) '=================']);
   logmsg(2,'  log level %d',EasySpinLogLevel);
   logmsg(1,'-general-----------------------------------------------');
   
@@ -2167,7 +2167,7 @@ else
 end
 logmsg(1,msg);
 
-logmsg(1,'=end=saffron======%s=================\n',datestr(now));
+logmsg(1,'=end=saffron======%s=================\n',char(datetime));
 
 clear global EasySpinLogLevel
 

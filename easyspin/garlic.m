@@ -197,7 +197,7 @@ end
 %==================================================================
 
 if EasySpinLogLevel>=1
-  logmsg(1,['=begin=garlic=====' datestr(now) '=================']);
+  logmsg(1,['=begin=garlic=====' char(datetime) '=================']);
 end
 
 %-------------------------------------------------------------------------
@@ -969,7 +969,7 @@ switch nargout
   case 3, varargout = {xAxis,spec,Positions};
 end
 if EasySpinLogLevel>=1
-  logmsg(1,'=end=garlic=======%s=================\n',datestr(now));
+  logmsg(1,'=end=garlic=======%s=================\n',char(datetime));
 end
 clear global EasySpinLogLevel
 

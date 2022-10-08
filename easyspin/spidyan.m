@@ -58,7 +58,7 @@ if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 0; end
 global EasySpinLogLevel
 EasySpinLogLevel = Opt.Verbosity;
 
-logmsg(1,['=begin=spidyan====' datestr(now) '=================']);
+logmsg(1,['=begin=spidyan====' char(datetime) '=================']);
 logmsg(2,'  log level %d',EasySpinLogLevel);
 
 %----------------------------------------------------------------------
@@ -342,7 +342,7 @@ else
 end
 logmsg(1,msg);
 
-logmsg(1,'=end=spidyan======%s=================\n',datestr(now));
+logmsg(1,'=end=spidyan======%s=================\n',char(datetime));
 
 function PhasedSignal = applyPhaseShift(RawSignal, Phase)
 

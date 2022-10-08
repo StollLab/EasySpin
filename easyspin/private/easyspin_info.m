@@ -111,7 +111,7 @@ if Display
   fprintf('------------------------------------------------------------------\n');
   fprintf('  MATLAB version:   %s\n',VersionInfo.MATLABversion);
   fprintf('  Platform:         %s\n',platform);
-  fprintf('  System date:      %s\n',datestr(now));
+  fprintf('  System date:      %s\n',char(datetime));
   fprintf('  Temp dir:         %s\n',tempdir);
   fprintf('------------------------------------------------------------------\n');
 
