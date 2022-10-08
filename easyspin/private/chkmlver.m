@@ -9,8 +9,8 @@
 
 function ErrorString = chkmlver
 
-MinimalVersion = '9.1';
-MinimalVersionString = '9.1 (R2016b)';
+MinimalVersion = '9.2';
+MinimalVersionString = '9.2 (R2017a)';
 
 if verLessThan('matlab',MinimalVersion)
   ErrorString = sprintf('\n  Easyspin MATLAB version support\n  =======================================================\n  EasySpin supports MATLAB %s and later.\n  Your MATLAB version %s is not supported.\n.',MinimalVersionString,version);
