@@ -25,8 +25,8 @@ Documentation (happens automatically on tag)
 
 Release tagging (happens automatically on tag)
 - set release version tag (`ReleaseID` in `esbuild.m`)
-- set expiry and horizon dates (`ExpiryData` and `HorizonDate` in 
-  `releasing/esbuild.m`) - these values can be adapted in `config.pl`
+- set expiry date (`ExpiryData` in 
+  `releasing/esbuild.m`) - this value can be adapted in `config.pl`
 - make sure all files that contain `$ReleaseID$`, `$ReleaseDate$`, `$ExpiryDate$` are
   explicitly listed in `esbuild.m` (in source tree)
   (currently `easyspin_info.m`, `eschecker.m`)

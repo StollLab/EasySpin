@@ -19,14 +19,11 @@ v_syntax = %v_syntax%; % version tag with v or not (used for creating zip file)
 ReleaseChannel = '%ReleaseChannel%'; % release channel, used for automatic updates
 
 % Expiry date of release, see eschecker.m
-% Months to add:
-MonthsToExpiry = %Months; % Will be replaced by build.pl
+monthsToExpiry = %Months; % Months to add; will be replaced by build.pl
 
-[Year, Month, Day] = datevec(now);
-ExpiryDate = datestr(datenum(Year,Month+MonthsToExpiry+1,1)-1);
-
-% Cutoff date for date checking, see eschecker.m
-HorizonDate = datestr(datenum(Year+4,12,31));
+nowDate = datetime('today');
+expiryDate = nowDate + calendarDuration(0,monthsToExpiry,0);
+expiryDate = char(expiryDate);
 
 % Folders
 SourceDir = '%SourceDir%';
@@ -38,14 +35,10 @@ ZipDestDir = '%ZipDestDir%';
 %------------------------------------------------------------------------
 clc
 v = sscanf(version,'%f',1);
-% if v>8.4
-%   error('EasySpin build must be done with Matlab 8.4 (R2014b).');
-% end
+if v>9.2
+  error('EasySpin build must be done with Matlab 9.2 (R2017a).');
+end
 
-%error('Must include perl script that replaces $ReleaseID$ and $ReleaseDate$ globally.');
-
-BuildTimeStamp = datestr(now,'yyyymmdd-HHMMSS');
-% BuildID = sprintf('%s+%s',ReleaseID,BuildTimeStamp);
 BuildID = sprintf('%s',ReleaseID);
 ReleaseDate = sprintf('%04d-%02d-%02d',Year,Month,Day);
 
@@ -139,9 +132,8 @@ end
 replacestr(esinfo,'$ReleaseID$',ReleaseID);
 replacestr(esinfo,'$ReleaseChannel$',ReleaseChannel);
 replacestr(esinfo,'$ReleaseDate$',ReleaseDate);
-replacestr(esinfo,'$ExpiryDate$',ExpiryDate);
-replacestr([TbxFolder filesep 'eschecker.m'],'888888',num2str(datenum(ExpiryDate)));
-replacestr([TbxFolder filesep 'eschecker.m'],'999999',num2str(datenum(HorizonDate)));
+replacestr(esinfo,'$ExpiryDate$',expiryDate);
+replacestr([TbxFolder filesep 'eschecker.m'],'$ExpiryDate$',expiryDate);
 fprintf(' ok\n');
 
 

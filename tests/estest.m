@@ -63,7 +63,7 @@ end
 TestFileNames = sort({FileList.name});
 
 fprintf(fid,'=======================================================================\n');
-fprintf(fid,'EasySpin test set                      %s\n(MATLAB %s)\n',datestr(now),version);
+fprintf(fid,'EasySpin test set                      %s\n(MATLAB %s)\n',char(datetime),version);
 fprintf(fid,'EasySpin location: %s\n',EasySpinPath);
 fprintf(fid,'=======================================================================\n');
 fprintf(fid,'Display: %d, Regenerate: %d, Verbosity: %d\n',...
