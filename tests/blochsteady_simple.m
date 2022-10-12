@@ -1,8 +1,8 @@
 function [ok,data] = test(options,olddata)
 
 g = gfree;       % g value
-T1 = 20;         % longitudinal relaxation time, us
-T2 = 1;          % transverse relaxation time, us
+T1 = 20;         % longitudinal relaxation time, in µs
+T2 = 1;          % transverse relaxation time, in µs
 deltaB0 = 0.1;   % field offset, in mT
 B1 = 0.02;       % microwave field, in mT
 ModAmp = 0.5;    % peak-to-peak field modulation amplitude, in mT
@@ -10,18 +10,10 @@ ModFreq = 50;    % field modulation frequency, in kHz
 
 [t,Mx,My,Mz] = blochsteady(g,T1,T2,deltaB0,B1,ModAmp,ModFreq);
 
+data.t = t;
 data.Mx = Mx;
 data.My = My;
 data.Mz = Mz;
-
-if ~isempty(olddata)
-  thr = 1e-6;
-  ok = areequal(data.Mx,olddata.Mx,thr,'rel') && ...
-       areequal(data.My,olddata.My,thr,'rel') && ...
-       areequal(data.Mz,olddata.Mz,thr,'rel');
-else
-  ok = [];
-end
 
 if options.Display
   subplot(3,1,1)
@@ -39,4 +31,13 @@ if options.Display
   ylabel('M_z');
   xlabel('time (us)');
   grid on
+end
+
+if ~isempty(olddata)
+  thr = 1e-6;
+  ok = areequal(data.Mx,olddata.Mx,thr,'rel') && ...
+       areequal(data.My,olddata.My,thr,'rel') && ...
+       areequal(data.Mz,olddata.Mz,thr,'rel');
+else
+  ok = [];
 end
