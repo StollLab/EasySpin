@@ -25,7 +25,7 @@ Sys.initState = {[1/3 1/3 1/3 0],'coupled'};
 [x,spc1] = pepper(Sys,Exp);
 
 % Population vector in coupled basis (electron and nuclear states)
-Sys.initState = {[1/3 1/3 1/3 1/3 1/3 1/3 1/3 1/3 1/3 0 0 0],'coupled'};
+Sys.initState = {[1/9 1/9 1/9 1/9 1/9 1/9 1/9 1/9 1/9 0 0 0],'coupled'};
 [~,spc2] = pepper(Sys,Exp);
 
 % Density matrix in uncoupled basis (electron states only)

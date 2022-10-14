@@ -17,7 +17,7 @@ Sys.S = [1/2 1/2];
 Sys.g = [2.0023; 2.0002];
 
 J = [0 -1 -20 0 0 -10]; % MHz
-D = [0 0 0 -1 -5 -10]; % MHz
+d = [0 0 0 -1 -5 -10]; % MHz
 
 Sys.lwpp = 0.04; % mT
 
@@ -35,13 +35,13 @@ Opt.Output = 'separate';
 
 for i = 1:numel(J)
   
-  Sys.ee = J(i) + [1 1 -2]*D(i); % MHz
+  Sys.ee = J(i) + [1 1 -2]*d(i); % MHz
       
   [B,spc,tr] = pepper(Sys,Exp,Opt);
   
   subplot(2,3,i)
   hold on; box on;
-  title(sprintf('J = %1.0f MHz, D = %1.0f MHz',J(i),D(i)))
+  title(sprintf('J = %1.0f MHz, D = %1.0f MHz',J(i),d(i)))
   plot(B,spc,'--')
   plot(B,sum(spc),'k','LineWidth',1)
   xlim(Exp.Range)

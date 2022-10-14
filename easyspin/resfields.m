@@ -411,9 +411,8 @@ if computeNonEquiPops
       error('The density matrix in Sys.initState must have dimensions of nxn with n = %d or %d.',nElectronStates,nCore)
     end
     if numel(initState)==nElectronStates^2 && nCore>nElectronStates
-      initState = kron(initState,eye(nCore/nElectronStates));
+      initState = kron(initState,eye(nCore/nElectronStates))/(nCore/nElectronStates);
     end
-    initState = initState/trace(initState);
   elseif isvector(initState)
     % Vector of populations
     if numel(initState)~=nElectronStates && numel(initState)~=nCore
@@ -421,9 +420,8 @@ if computeNonEquiPops
     end
     initState = initState(:);
     if numel(initState)==nElectronStates && numel(initState)~=nCore
-      initState = kron(initState,ones(nCore/nElectronStates,1));
+      initState = kron(initState,ones(nCore/nElectronStates,1))/(nCore/nElectronStates);
     end
-    initState = initState/sum(initState);
     initState = diag(initState);
   else
     error('Sys.initState must contain either a population vector or a density matrix.');

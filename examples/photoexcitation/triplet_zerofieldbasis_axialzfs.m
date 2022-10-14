@@ -39,7 +39,7 @@ Sys.initState = {xyzpops,'xyz'};
 %--------------------------------------------------------------------------
 
 % Get zero-field states and order in terms of energy
-[F,~,~,~] = sham(Sys);
+[F,~,~,~] = ham(Sys);
 [ZFStates,ZFEnergies] = eig(F);
 [ZFEnergies,idx] = sort(real(diag(ZFEnergies)));
 ZFStates = ZFStates(:,idx);

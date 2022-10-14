@@ -19,7 +19,7 @@ Opt = struct;
 [x,spc] = pepper(Sys,Exp,Opt);
 
 % User-specified population vector for all sublevels
-Sys.initState = {[0.1 0.1 0.1 0.5 0.5 0.5 0.4 0.4 0.4],'zerofield'};
+Sys.initState = {[0.1 0.1 0.1 0.5 0.5 0.5 0.4 0.4 0.4]/3,'zerofield'};
 
 [x,spcshortcut] = pepper(Sys,Exp,Opt);
 
@@ -27,7 +27,7 @@ if opt.Display
     plot(x,spc,x,spcshortcut);
   xlabel('magnetic field [mT]');
   ylabel('intensity [a.u.]');
-  title('pepper: Spin-correlated radical pair');
+  title('pepper: Triplet state coupled to 14N');
 end
 
 ok = areequal(spc,spcshortcut,1e-4,'rel');

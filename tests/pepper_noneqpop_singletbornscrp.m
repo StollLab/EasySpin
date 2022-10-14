@@ -39,4 +39,4 @@ if opt.Display
   title('pepper: Spin-correlated radical pair');
 end
 
-ok = areequal(spc1,spc2,1e-12,'abs') && areequal(spc1,spc3,1e-12,'abs') && areequal(spc1,spc4,1e-12,'abs');
+ok = areequal(spc1,spc2,1e-10,'abs') && areequal(spc1,spc3,1e-10,'abs') && areequal(spc1,spc4,1e-10,'abs');
