@@ -19,7 +19,7 @@ Exp.Harmonic = 0;  % show absorption spectrum
 % or diffusion rates are changed. Essentially, increase each number until no
 % further changes are seen in the spectra. The numbers must be the higher the
 % slower the diffusion.
-Opt.LLMK = [20 20 10 10];
+Opt.LLMK = [20 19 10 10];
 
 
 % Simulation
