@@ -2014,9 +2014,9 @@ else
 
   parfor iOrientation = 1 : nOrientations
     
-    Sys_ = rotatesystem(Sys,Orientations(iOrientation,:));
+    Sys_L = rotatesystem(Sys,Orientations(iOrientation,:)); % mol->lab frame
        
-    Ham = ham(Sys_,Field*[0 0 1]);
+    Ham = ham(Sys_L,Field*[0 0 1]);  % lab frame
     
     Relaxation_ = Relaxation;
     if ~isempty(Relaxation_)
@@ -2350,27 +2350,29 @@ if Display
   end
 end
 
-function [Sys] = rotatesystem(Sys,angles)
+% Returns spin system Sys transformed from the molecular frame to the lab
+% frame, with Euler angles angles_M2L = [phi theta chi] that describe the
+% transformation from molecular frame to lab frame.
+function Sys_L = rotatesystem(Sys,angles_M2L)
 
-R_L2M = erot(angles).'; % lab frame -> molecular frame
+Sys_L = Sys;
+
+R_M2L = erot(angles_M2L);  % molecular frame -> lab frame
+R_L2M = R_M2L.'; % lab frame -> molecular frame
 
 tensors = {'g', 'A', 'Q', 'D', 'ee', 'nn'};
 tensors2rotate = tensors(isfield(Sys,tensors));
 
-for t = 1 : numel(tensors2rotate)
-  
+for t = 1:numel(tensors2rotate)
   tFrame_ = [tensors2rotate{t} 'Frame'];
-  
-  ang = Sys.(tFrame_);
-  
-  for iRow = 1 : size(ang,1)
-    for iCol = 1 : size(ang,2)/3
+  ang_M2T = Sys.(tFrame_);
+  for iRow = 1:size(ang_M2T,1)
+    for iCol = 1:size(ang_M2T,2)/3
       colidx = 3*(iCol-1)+1:3*iCol;
-      R_M2T = erot(ang(iRow,colidx)); % molecular frame -> tensor frame
-      ang(iRow,colidx) = eulang(R_M2T*R_L2M);
+      R_M2T = erot(ang_M2T(iRow,colidx)); % molecular frame -> tensor eigenframe
+      R_L2T = R_M2T*R_L2M;  % lab frame -> tensor eigenframe
+      ang_L2T(iRow,colidx) = eulang(R_L2T);
     end
   end
-  
-  Sys.(tFrame_) = ang;
-  
+  Sys_L.(tFrame_) = ang_L2T;
 end
