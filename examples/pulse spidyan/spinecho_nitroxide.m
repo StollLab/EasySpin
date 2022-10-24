@@ -1,76 +1,89 @@
 % Spin echo of a nitroxide using spidyan (spidyan)
 %==========================================================================
-% This demonstrates how to simulate the spin echo of a nitroxide with
-% shapd pulses.
+% This example demonstrates how to simulate the spin echo of a nitroxide with
+% shaped pulses, using spidyan() and an explicit powder average.
 
-clear
+clear, clc
 
-% Define spin system
+% Define spin system for nitroxide
 Sys.S = 1/2;
-Sys.g = diag([2.00906 2.0062 2.0023]);
-Sys.A = diag([11.5 11.5 95]);  % MHz
+Sys.g = diag([2.00906 2.0062 2.0023]);  % full tensor
 Sys.Nucs = '14N';
-
+Sys.A = diag([11.5 11.5 95]);  % full tensor, MHz
+Sys.lw = 5;  % MHz
 Exp.Field = 324.9;  % mT
+
 % Use pepper to simulate the frequency-swept spectrum and to make sure
 % pulse excitation bands are set appropriately.
-pepper(Sys,Exp)
+[nu,spc_cw] = pepper(Sys,Exp);
+plot(nu,spc_cw)
+xlabel('frequency (GHz)')
 
 %%
 % Set up pulses
-Chirp90.Type = 'quartersin/linear'; 
-Chirp90.trise = 0.030;  % rise time for smoothed edges, µs
-Chirp90.tp = 0.200;  % pulse length, µs
-Chirp90.Flip = pi/2;  % flip angle, rad
-Chirp90.Frequency = [-120 120];  % excitation band, MHz
-Chirp90.Phase = pi; 
+p90.Type = 'quartersin/linear'; 
+p90.trise = 0.030;  % rise time for smoothed edges, µs
+p90.tp = 0.200;  % pulse length, µs
+p90.Flip = pi/2;  % flip angle, rad
+p90.Frequency = [-120 120];  % excitation band, MHz
+p90.Phase = pi; 
 
-Chirp180.Type = 'quartersin/linear';
-Chirp180.trise = 0.030;  % rise time for smoothed edges, µs
-Chirp180.tp = 0.100;  % pulse length, µs
-Chirp180.Flip = pi;  % flip angle, rad
-Chirp180.Frequency = [-120 120];  % excitation band, MHz
-Chirp180.Phase = pi;
+p180 = p90;
+p180.tp = 0.100;  % pulse length, µs
+p180.Flip = pi;  % flip angle, rad
 
 % Define pulse sequence
-tau = 0.5;  % delay between pulses, µs
-Exp.Sequence = {Chirp90, tau, Chirp180, tau+Chirp180.tp};
+tau = 0.500;  % delay between pulses, µs
+Exp.Sequence = {p90, tau, p180, tau+p180.tp};
 
-Exp.mwFreq = 9.1;  % center excitation frequency, GHz
+Exp.mwFreq = 9.1;  % excitation carrier frequency, GHz
 Exp.DetFreq = 9.1;  % detection frequency, GHz
 
-% Detect transient over time window around last time point in sequence
-Exp.DetWindow = [-0.05 0.05]; % start and end time, µs
+% Detect echo transient over time window around end time point in sequence
+Exp.DetWindow = [-0.15 0.15]; % start and end time, µs
 
 % Set up orientational grid for powder averaging
-GridSize = 20;
+GridSize = 30;  % reduce number for faster, but less converged simulation
 Symmetry = symm(Sys);
 grid = sphgrid(Symmetry,GridSize);
 nOrientations = numel(grid.weights);
 
+%%
 Signal = 0;
-for iOrientation = 1:nOrientations
+for iOrientation = 1:nOrientations  
   
-  
-  % Rotate all tensors of spin system
-  Sys_ = Sys; % create temporary copy of Sys
-  R = erot(grid.phi(iOrientation),grid.theta(iOrientation),0); % rotation matrix
-  Sys_.g = R'*Sys_.g*R; % rotate Sys.g
-  Sys_.A = R'*Sys_.A*R; % rotate Sys.A
+  % Rotation matrix for transformation from molecular to lab frame
+  R_M2L = erot(grid.phi(iOrientation),grid.theta(iOrientation),0);
+
+  % Rotate all tensors of spin system so that they are relative to the lab
+  % frame and not to the molecular frame
+  Sys_L = Sys;
+  Sys_L.g = R_M2L*Sys_L.g*R_M2L.';
+  Sys_L.A = R_M2L*Sys_L.A*R_M2L.';
   
   % Simulate signal and accumulate
-  [t, signal_] = spidyan(Sys_,Exp);
-  Signal = Signal + signal_*grid.weights(iOrientation); % accumulate signals
+  [t,signal_] = spidyan(Sys_L,Exp);
+  Signal = Signal + signal_*grid.weights(iOrientation);
   
-  progress = [num2str(iOrientation/nOrientations*100,'%.2f'),' %'];
-  disp(progress)
+  fprintf('%d/%d\n',iOrientation,nOrientations);
   
 end
 
-% Plotting
-figure(1)
-clf
+%%
+% Plot echo transient and its FT spectrum
+
+subplot(2,1,1)
 plot(t,real(Signal),t,imag(Signal));
-xlabel('time relative to sequence start time (µs)');
+xlabel('time after pulse sequence start (µs)');
 ylabel('signal (arb.u.)');
 legend('in phase (I)','out-of-phase (Q)')
+title('echo transient')
+
+subplot(2,1,2)
+spc_fft = abs(fftshift(fft(Signal)));
+nu_fft = fdaxis(t)/1e3 + Exp.DetFreq;  % GHz
+plot(nu_fft,spc_fft/max(spc_fft),nu,spc_cw/max(spc_cw));
+xlim(Exp.DetFreq+[-1 1]*0.130)
+legend('FT of echo','CW EPR');
+xlabel('frequency (GHz)')
+title('spectrum')
