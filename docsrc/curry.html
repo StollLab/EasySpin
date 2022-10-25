@@ -29,7 +29,7 @@
 <div class="functitle">curry</div>
 
 <p>
-Calculates magnetometry data: magnetic moment, static magnetic susceptibility.
+Calculates magnetometry data: magnetic moment, static magnetic susceptibility, etc.
 </p>
 
 <!-- ============================================================= -->
@@ -40,7 +40,7 @@ curry(Sys,Exp);
 curry(Sys,Exp,Opt);
 muBM = curry(...);
 [muBM,chimol] = curry(...);
-[...] = curry(...);
+... = curry(...);
 </pre>
 
 <p>
@@ -51,13 +51,13 @@ See also the <a href="userguide_curry.html">user guide</a> on how to use <code>c
 <div class="subtitle">Description</div>
 
 <p>
-<code>curry</code> calculates the magnetic moment, the static magnetic susceptibility and related quantities for given fields and temperatures.
+<code>curry</code> calculates the magnetic moment, the static magnetic susceptibility and related quantities for the spin system <code>Sys</code> for given magnetic fields and temperatures.
 </p>
 
 <div class="subtitle2">Outputs</div>
 
 <p>
-There are up to two default output arguments (in the absence of <code>Opt.Output</code> - see below). If <code>Opt.Output</code> is given, the number of outputs depends on the number of entries in <code>Opt.Output</code>. If no output argument is requested, <code>curry</code> plots the calculated curves.
+There are up to two default output arguments (in the absence of <code>Opt.Output</code> - see below), <code>muBM</code> and <code>chimol</code>. If <code>Opt.Output</code> is given, the number and types of outputs depends on the entries in <code>Opt.Output</code>. If no output argument is requested, <code>curry</code> plots the calculated curves.
 
 <div class="optionfield"><code>muBM</code></div>
 <div class="optiondescr">
@@ -67,7 +67,7 @@ There are up to two default output arguments (in the absence of <code>Opt.Output
 To convert the molar magnetic moment to SI units (J T<sup>-1</sup> mol<sup>-1</sup>), use
 
 <pre class="matlab">
-mumol_SI = muBM*bmagn*avogadro;   % unit conversion to J T^-1 mol^-1
+mumol_SI = muBM*bmagn*avogadro;   % unit conversion from Bohr magnetons to J T^-1 mol^-1
 </pre>
 </div>
 
@@ -91,9 +91,11 @@ There are three inputs to the function, the last one is optional.
 
 <p>
 <code>Sys</code> is a <a href="spinsystem.html">spin system structure</a> containing the spin quantum numbers and the spin Hamiltonian parameters. It can be used to define a spin Hamiltonian with an arbitrary number of spins and pair-wise interactions between all of them.
+</p>
 
 <p>
 In addition, there is one field that is specific to <code>curry</code>:
+</p>
 
 <div class="optionfield"><code>TIP</code></div>
 <div class="optiondescr">
@@ -101,7 +103,7 @@ Temperature-independent paramagnetism that is added to the magnetic susceptibili
 <pre class="matlab">
 TIP_CGS = 7e-4;                 % TIP in CGS-emu units (cm^3 mol^-1)
 TIP_SI = (4*pi*1e-6) * TIP_CGS; % TIP in SI units (m^3 mol^-1)
-Sys.TIP = TIP_SI;
+Sys.TIP = TIP_SI;               % required in SI units
 </pre>
 
 </div>
@@ -117,8 +119,12 @@ This gives the temperature, or list of temperatures, for which magnetization dat
 
 <p>
 Populations are computed for all energy levels assuming thermal (Boltzmann) equilibrium and are included in the calculation of the magnetic moment and the magnetic susceptibility.
+</p>
+
 <p>
 <code>Temperature</code> has to be provided. 
+</p>
+
 </div>
 
 <div class="optionfield"><code>Field</code></div>
@@ -126,16 +132,16 @@ Populations are computed for all energy levels assuming thermal (Boltzmann) equi
 <code>Field</code> gives the magnetic field strength, in mT, for which magnetization data should be calculated. If an array of values is given, data are calculated for each field value in the array.
 <p>
 If <code>Field</code> is missing, EasySpin assumes that no field is applied (equivalent to <code>Exp.Field = 0</code>).
-</div></p>
+</div>
 
 <p>
-<code>curry</code> calculates magnetic susceptibility as numeric derivative of the magnetic moment at the given field value. However, the experimental data is often obtained by measuring the magnetization at a given field value and divide it by the field strength. For sufficiently small field strength this correspond to the derivative at zero field. In cases the field strength is not small experimental results might be better reproduced by:
+<code>curry</code> calculates magnetic susceptibility as numeric derivative of the magnetic moment at the given field value. However, the experimental data is often obtained by measuring the magnetization at a given field value and divide it by the field strength. For sufficiently small field strength this correspond to the derivative at zero field. In cases the field strength is not small, experimental results might be better reproduced by:
 
 <pre class="matlab">
 m4chi =  curry(Sys,Exp,Opt);          % magnetic moment at the field used in the experiment
 % divide magnetic moment by magnetic field and unit conversion
-chisim_cgs = m4chi*avogadro*bmagn*1e2./repmat(Exp.Field(:),1,numel(Exp.Temperature));
-chisim_si = (4*pi*1e-6) *chisim_cgs ; % convert to SI units
+chi_cgs = m4chi*avogadro*bmagn*1e2./Exp.Field(:);
+chi_si = (4*pi*1e-6) *chisim_cgs ;  % convert to SI units
 </pre>
 </p>
 
@@ -185,11 +191,13 @@ The structure <code>Opt</code> collects computational parameters. <code>Opt</cod
 
 <div class="optionfield"><code>Units</code></div>
 <div class="optiondescr">
+<p>
 Specifies the system of units in which the results are returned. Two values are possible:
+</p>
 
 <ul>
-<li><code>'SI'</code> returns all outputs in SI units (joule, tesla, etc.). This is the default.
-<li><code>'CGS'</code> returns all outputs in old-style CGS-emu units (erg, gauss, etc.).
+<li><code>'SI'</code> returns all outputs in SI units (joule, tesla, m<sup>3</sup>, etc.). This is the default.
+<li><code>'CGS'</code> returns all outputs in old-style CGS-emu units (erg, gauss, cm<sup>3</sup>, etc.).
 </ul>
 
 <p>
@@ -201,8 +209,9 @@ Opt.Units = 'CGS';      % use CGS-emu system of units
 
 <div class="optionfield"><code>Output</code></div>
 <div class="optiondescr">
-Contains a list of keywords that specify the output <code>curry</code> should provide. Keywords should be separated by blanks. The number and order of the outputs corresponds to the number and order of the keywords in <code>Opt.Output</code>. The following keywords are available:
 <p>
+Contains a list of keywords that specify the output <code>curry</code> should provide. Keywords should be separated by blanks. The number and order of the outputs corresponds to the number and order of the keywords in <code>Opt.Output</code>. The following keywords are available:
+</p>
 <ul>
 <li><code>'mu'</code>: single-center magnetic moment (SI unit: J T<sup>-1</sup>; CGS-emu unit: erg G<sup>-1</sup>)
 <li><code>'muBM'</code>: single-center magnetic moment in Bohr magnetons (unitless and numerically identical in SI and CGS-emu)
@@ -215,6 +224,7 @@ Contains a list of keywords that specify the output <code>curry</code> should pr
 
 <p>
 Here are a few examples:
+</p>
 <pre class="matlab">
 Opt.Output = 'chimolT';               % one output
 chimolT = curry(Sys,Exp,Opt);
@@ -232,19 +242,27 @@ Opt.Output = 'chimolT muBM mueff';    % three outputs
 
 <div class="optionfield"><code>deltaB</code></div>
 <div class="optiondescr">
+<p>
 Determines the field increment (in mT) used for calculating numerical derivatives when calculating the susceptibility. Its default value is 1 mT. Lower it if a strong field dependence is present.
+</p>
 </div>
 
 <div class="optionfield"><code>Verbosity</code></div>
 <div class="optiondescr">
+<p>
 Determines how much information is printed to the command window. If set to 0, <code>curry</code> is silent. 1 logs relevant information, 2 gives more details.
+</p>
 </div>
 
 <div class="optionfield"><code>GridSize</code></div>
 <div class="optiondescr">
+<p>
 Determines the number of orientations in a powder for which moment and susceptibility are calculated.
+</p>
 
+<p>
 <code>GridSize</code> gives the number of orientations between &theta;=0&deg; and &theta;=90&deg; for which data are calculated. Common values for <code>GridSize</code> are between 10 (10&deg; increments) and 91 (1&deg; increments). The larger the anisotropy of the spin Hamiltonian, the higher <code>GridSize</code> must be to yield accurate values.
+</p>
 
 <pre class="matlab">
 Opt.GridSize = 19;       % 5&deg; increments
@@ -255,26 +273,33 @@ Opt.GridSize = 91;       % 1&deg; increments
 
 <div class="optionfield"><code>Method</code></div>
 <div class="optiondescr">
+<p>
 Specifies the calculation method used by <code>curry</code>, either <code>'operator'</code> or <code>'partitionfunction'</code>.
+</p>
 
-The two methods give essentially the same results within numerical accuracy. <code>'operator'</code> is the default and the method described in Algorithm is used. <code>'partitionfunction'</code> is slightly faster for large spin systems, but can be slower for smaller spin systems. In this method, magnetic moments and susceptibilities are obtained as first and second numerical derivative of the thermodynamic free energy (via the natural logarithm of the partition function).
+<p>The two methods give essentially the same results within numerical accuracy. <code>'operator'</code> is the default and the method described in the <a href="#algo">Algorithm section</a> below is used. <code>'partitionfunction'</code> is slightly faster for large spin systems, but can be slower for smaller spin systems. In this method, magnetic moments and susceptibilities are obtained as first and second numerical derivative of the thermodynamic free energy (via the natural logarithm of the partition function).
+</p>
 </div>
 
 <div class="optionfield"><code>Spins</code></div>
 <div class="optiondescr">
-List of electron spin indices to include in a spin-selective magnetic moments and susceptibilities. For example, for a spin system with two electron spins (two entries in <code>Sys.S</code>), <code>Opt.Spins = 1</code> requests spin-specific magnetic moments and susceptibilties for the first spin, <code>Opt.Spins = 2</code> the same for the second spin. If this field is omitted, all spins are included in the calculation by default.
+<p>
+List of indices of the electron spins to include in the calculation. For example, for a spin system with two electron spins (two entries in <code>Sys.S</code>), <code>Opt.Spins = 1</code> requests spin-specific magnetic moments and susceptibilties for the first spin, <code>Opt.Spins = 2</code> the same for the second spin. If this field is omitted, all spins are included in the calculation by default.
+</p>
 
 </div>
 
 
 <!-- ============================================================= -->
-<div class="subtitle">Algorithm</div>
+<a name="algo"><div class="subtitle">Algorithm</div></a>
 
 <p>
 <code>curry</code> calculates the magnetic moment as follows: For each of the given values of the applied magnetic field, the spin Hamiltonian matrix is set up and diagonalized to obtain all eigenvalues and eigenstate vectors. Then, the operator matrix for the projection of the magnetic dipole moment onto the field axis (zL, z axis in the laboratory frame) is set up. Next, its expectation value for each eigenstate is calculated. Lastly, these expectation values are summed using thermal Boltzmann population factors corresponding to the given temperature as weights.
+</p>
 
 <p>
 To obtain the zz-component of the magnetic susceptibility tensor, the numerical derivative of the zL-component of the magnetic moment with respect to the applied magnetic field along zL is calculated.
+</p>
 
 <!-- ============================================================= -->
 <div class="subtitle">References</div>
