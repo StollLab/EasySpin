@@ -1,4 +1,4 @@
-% levelsplot    plot energy level (Zeeman) diagram 
+% levelsplot    Plot energy level (Zeeman) diagram 
 %
 %  levelsplot(Sys,Ori,B)
 %  levelsplot(Sys,Ori,B,mwFreq)
@@ -33,32 +33,33 @@ if nargin==0, help(mfilename); return; end
 
 % Default parameters
 Ori = 'z';
-B = [0 1400]; % mT
-mwFreq = inf; % GHz
+B = [0 1400];  % mT
+mwFreq = inf;  % GHz
 Par = struct;
 
 % Parse input arguments
-switch (nargin)
-case 5
-  Ori = varargin{1};
-  B = varargin{2};
-  mwFreq = varargin{3};
-  Par = varargin{4};
-case 4
-  Ori = varargin{1};
-  B = varargin{2};
-  mwFreq = varargin{3};
-case 3
-  Ori = varargin{1};
-  B = varargin{2};
-case 2
-  Ori = varargin{1};
-  fprintf('Third input (magnetic field range [Bmin Bmax]) missing; assuming [%d %d] mT.\n',B(1),B(2));
-case 1
-  fprintf('Second input argument (orientation) missing; assuming ''%s'' (phi=0, theta=0, chi=0).\n',Ori);
-  fprintf('Third input (magnetic field range [Bmin Bmax]) missing; assuming [%d %d] mT.\n',B(1),B(2));
-otherwise
-  error('Too many input arguments!');
+%-------------------------------------------------------------------------------
+switch nargin
+  case 5
+    Ori = varargin{1};
+    B = varargin{2};
+    mwFreq = varargin{3};
+    Par = varargin{4};
+  case 4
+    Ori = varargin{1};
+    B = varargin{2};
+    mwFreq = varargin{3};
+  case 3
+    Ori = varargin{1};
+    B = varargin{2};
+  case 2
+    Ori = varargin{1};
+    fprintf('Third input (magnetic field range [Bmin Bmax]) missing; assuming [%d %d] mT.\n',B(1),B(2));
+  case 1
+    fprintf('Second input argument (orientation) missing; assuming ''%s'' (phi=0, theta=0, chi=0).\n',Ori);
+    fprintf('Third input (magnetic field range [Bmin Bmax]) missing; assuming [%d %d] mT.\n',B(1),B(2));
+  otherwise
+    error('Too many input arguments!');
 end
 
 % Check number of output arguments
@@ -101,11 +102,11 @@ if ischar(Ori)
   Ori = vec2ang(n);
 end
 
-if (numel(Ori)==2)
+if numel(Ori)==2
   phi = Ori(1);
   theta = Ori(2);
   chi = 0;
-elseif (numel(Ori)==3)
+elseif numel(Ori)==3
   phi = Ori(1);
   theta = Ori(2);
   chi = Ori(3);
@@ -113,6 +114,8 @@ else
   error('Orientation (2nd input argument) must be a string (''x'',''y'',''z'',''xy'',''xz'',''yz'',''xyz''), a two-element array [phi theta], or a three-element array [phi theta chi].');
 end
 
+% Set ranges and units
+%-------------------------------------------------------------------------------
 switch numel(B)
   case 1
     B = [0 B];
@@ -127,11 +130,11 @@ E_MHz = levels(Sys,[phi theta chi],Bvec);
 E = unitconvert(E_MHz,Par.Units);
 
 % Set horizontal and vertical units, scaling and labels
-if max(Bvec)>=2000 % mT
+if max(Bvec)>=2000  % mT
   Bscale = 1e-3;  % use tesla for plotting
   xLabel = 'magnetic field (T)';
 else
-  Bscale = 1; % use millitesla for plotting
+  Bscale = 1;  % use millitesla for plotting
   xLabel = 'magnetic field (mT)';
 end
 
@@ -160,14 +163,22 @@ switch Par.Units
 end
 yLabel = ['energy (' yUnits ')'];
 
+% Plot energy levels
+%-------------------------------------------------------------------------------
 h = plot(Bvec*Bscale,E*Escale,'b');
 set(h,'Color',[0 0.4470 0.7410]);
 axis tight
 xlabel(xLabel);
 ylabel(yLabel);
 
-computeResonances = isfinite(mwFreq);
+for iLevel = 1:numel(h)
+  h(iLevel).Tag = 'level';
+  h(iLevel).UserData = iLevel;
+end
 
+% Calculate and plot transitions
+%-------------------------------------------------------------------------------
+computeResonances = isfinite(mwFreq);
 if computeResonances
   if ~isfield(Sys,'S')
     nElectrons = 1;
@@ -183,52 +194,51 @@ if computeResonances
   Opt = struct('Threshold',0,'Freq2Field',0);
   Exp = struct('mwFreq',mwFreq,'Range',B([1 end]));
   Exp.CrystalOrientation = [phi theta chi];
-  [resonFields,tp,w,Transitions] = resfields(Sys,Exp,Opt); %#ok<ASGLU>
-  tp = abs(tp); % to cover emissive transitions (in spin-polarized systems)
+  [resonFields,intensity,~,Transitions] = resfields(Sys,Exp,Opt);
+  intensity = abs(intensity); % to handle emissive transitions (in spin-polarized systems)
+
   if ~isempty(resonFields)
-    if nElectrons==1
-      % one electron spin: normalize amplitudes
-      %n = ang2vec(phi,theta);
-      %geff = norm(diag(Sys.g)*n);
-      %c = geff*bmagn/planck/1e9;
-      %tpMax = floor(Sys.S+0.5)*ceil(Sys.S+0.5)/4*c^2;
-      %tp(tp>tpMax) = tpMax; % guard against round-off problems
-      tpMax = max(tp);
-    else
-      tpMax = max(tp);
-    end
-    if (tpMax>0), tp = tp/tpMax; end
+    tpMax = max(intensity);
+    if tpMax>0, intensity = intensity/tpMax; end
     
     % sort transitions according to intensity to ensure more intense
     % lines are plotted on top of less intense ones
-    [tp,ix] = sort(tp);
+    [intensity,ix] = sort(intensity);
     resonFields = resonFields(ix);
     Transitions = Transitions(ix,:);
 
     % compute and plot lower and upper energy levels of transitions
-    n = ang2vec(phi,theta);
-    [H0,GzL] = ham(Sys,n);
+    zL = ang2vec(phi,theta);  % lab z direction in molecular frame representation
+    [H0,muzL] = ham(Sys,zL);
     for iF = 1:numel(resonFields)
-      if tp(iF)<Par.PlotThreshold, continue; end
-      H = H0 + GzL*resonFields(iF);
+      if intensity(iF)<Par.PlotThreshold, continue; end
+
+      H = H0 - muzL*resonFields(iF);
       E_MHz = sort(eig(H));
       E = unitconvert(E_MHz,Par.Units);
-      h = line(resonFields(iF)*[1 1]*Bscale,Escale*E(Transitions(iF,:)));
-      Color = tp(iF)*Par.AllowedColor + (1-tp(iF))*Par.ForbiddenColor;
-      set(h,'Color',Color);
-      if tp(iF)>Par.ColorThreshold, set(h,'Marker','.'); end
-      set(h,'ButtonDownFcn',sprintf('disp(''%d<->%d  transition probability = %0.4g'');',...
-        Transitions(iF,1),Transitions(iF,2),tp(iF)));
+
+      h = line(resonFields(iF)*[1 1]*Bscale,Escale*E(Transitions(iF,:)),'Tag','transition');
+      h.UserData = [Transitions(iF,:) intensity(iF)];
+      transitionColor = intensity(iF)*Par.AllowedColor + (1-intensity(iF))*Par.ForbiddenColor;
+      h.Color = transitionColor;
+      if intensity(iF)>Par.ColorThreshold
+        h.Marker = '.';
+      end
+      h.ButtonDownFcn = @(src,~)fprintf('transition %d-%d:  relative intensity = %0.4g\n',...
+        Transitions(iF,1),Transitions(iF,2),intensity(iF));
     end
     
   else
     % no resonance fields
-    xl = xlim; yl = ylim;
+    xl = xlim;
+    yl = ylim;
     h = text(xl(1),yl(1),' no resonances in field range');
     set(h,'Color','r','VerticalAl','bottom');
   end
 end
 
+% Display microwave frequency if given
+%-------------------------------------------------------------------------------
 if isfinite(mwFreq)
   switch Par.Units
     case 'GHz'
@@ -242,11 +252,14 @@ if isfinite(mwFreq)
         str = sprintf('  %0.3g eV (%g GHz)',mwFreq*1e9*planck/evolt,mwFreq);
       end
   end
-  xl = xlim; yl = ylim;
+  xl = xlim;
+  yl = ylim;
   text(xl(1),yl(2),str,'VerticalAl','top');
 end
 
-return
+set(gcf,'WindowButtonMotionFcn',@windowButtonMotionFcn);
+
+end
 
 function Eout = unitconvert(E_MHz,toUnit)
 
@@ -256,4 +269,19 @@ switch toUnit
   case 'eV', Eout = planck*E_MHz*1e6/evolt;
   otherwise
     error('Unknown unit ''%s'' in Par.Units.',toUnit);
+end
+
+end
+
+function windowButtonMotionFcn(~,~,~)
+h = hittest();  % obtain handle of object under mouse pointer
+if h.Type=="line"
+  switch h.Tag
+    case 'level'
+      title(sprintf('level %d',h.UserData));
+    case 'transition'
+      title(sprintf('transition %d-%d: relative intensity %0.4f ',...
+        h.UserData(1),h.UserData(2),h.UserData(3)));
+  end
+end
 end
