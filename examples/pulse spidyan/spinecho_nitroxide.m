@@ -21,7 +21,8 @@ xlabel('frequency (GHz)')
 
 %%
 % Set up pulses
-p90.Type = 'quartersin/linear'; 
+p90.Type = 'sech/tanh';
+p90.beta = 5;
 p90.trise = 0.030;  % rise time for smoothed edges, µs
 p90.tp = 0.200;  % pulse length, µs
 p90.Flip = pi/2;  % flip angle, rad
