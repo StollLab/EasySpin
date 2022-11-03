@@ -38,7 +38,7 @@ Display energy level diagram and resonances.
 <pre class="matlab">
 levelsplot(Sys,Ori,B)
 levelsplot(Sys,Ori,B,mwFreq)
-levelsplot(Sys,Ori,B,mwFreq,Par)
+levelsplot(Sys,Ori,B,mwFreq,Opt)
 </pre>
 
 <!-- ====================================================== -->
@@ -53,14 +53,18 @@ Displays the energy level diagram (Zeeman diagram) for the spin system specified
 </p>
 
 <p>
-<code>B</code> contains the magnetic field range, in mT. If it is an array with two numbers <code>[Bmin Bmax]</code>, they are understood to be the lower and upper limit of the field range. If it is a single number, it is understood to be the upper field limit (<code>Bmax</code>), and the lower one is assumed to be zero. The number of field values between the two limits is set automatically, but can be modified via <code>Par.nPoints</code>. If <code>B</code> is a full vector of field values, they are used directly.
+<code>B</code> contains the magnetic field range, in mT. If it is an array with two numbers <code>[Bmin Bmax]</code>, they are understood to be the lower and upper limit of the field range. If it is a single number, it is understood to be the upper field limit (<code>Bmax</code>), and the lower one is assumed to be zero. The number of field values between the two limits is set automatically, but can be modified via <code>Opt.nPoints</code>. If <code>B</code> is a full vector of field values, they are used directly.
 
 <p>
-If <code>mwFreq</code>, the spectrometer frequency in GHz is given, resonances for this frequency are plotted as well. Their colour indicates the transition amplitude: Red lines indicated allowed resonances, gray ones indicate forbidden ones. If the lines are terminated with dots, the relative transition intensity is above 1%. Clicking on a resonance line will print its relative transition probability to the command window.
+If <code>mwFreq</code>, the spectrometer frequency in GHz is given, resonances for this frequency are plotted as well. Their color indicates the transition amplitude: Red lines indicated allowed resonances, gray ones indicate forbidden ones. If the lines are terminated with dots, the relative transition intensity is above 1%. Clicking on a resonance line will print its relative transition probability to the command window.
 </p>
 
 <p>
-<code>Par</code> is an optional structure to provide additional settings. It can have the following fields:
+Hovering with the mouse pointer over an energy level displays its number, and hovering over a transition (if the microwave frequency was provided) will display the relative intensity of this transition, with 1 being the value for the most intense transition.
+</p>
+
+<p>
+<code>Opt</code> is an optional structure to provide additional settings. It can have the following fields:
 </p>
 
 <div class="optionfield"><code>Units</code></div>
@@ -83,6 +87,11 @@ Coloring threshold. If <code>mwFreq</code> is given, then transitions with relat
 Transitons with relative intensity below this value will not be plotted.
 </div>
 
+<div class="optionfield"><code>SlopeColor</code></div>
+<div class="optiondescr">
+True or false (default). It set to true, energy level lines are colored according to the magnitude of their slope. This corresponds to the expectation value for |m<sub>S</sub>| for the corresponding state. At anticrossing, this reveals that the state character changes rapidly as a function of field.
+</div>
+
 <!-- ====================================================== -->
 <div class="subtitle">Examples</div>
 
@@ -91,9 +100,15 @@ To see resonances at X band for the system in the example for the function <a cl
 </p>
 
 <pre class="matlab">
-mySystem = struct('S',5/2,'g',[2 2 2],'D',[-250 -1750 2000]);
-Ori = [0 0]; FieldRange = [0 500]; Freq = 9.5;
-levelsplot(mySystem,Ori,FieldRange,Freq);
+clear
+mySystem.S = 5/2;
+mySystem.g = 2;
+mySystem.D = [-250 -1750 2000];  % MHz
+Ori = 'z';
+FieldRange = [0 500];  % mT
+Freq = 9.5;  % GHz
+Opt.SlopeColor = true;
+levelsplot(mySystem,Ori,FieldRange,Freq,Opt);
 </pre>
 
 <!-- ====================================================== -->
