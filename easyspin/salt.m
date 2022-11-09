@@ -212,6 +212,7 @@ DefaultExp.Ordering = [];
 DefaultExp.CrystalOrientation = [];
 DefaultExp.CrystalSymmetry = '';
 DefaultExp.MolFrame = [];
+DefaultExp.SampleRotation = [];
 
 % Undocumented and unused fields
 DefaultExp.Harmonic = 0;
@@ -331,6 +332,7 @@ if isfield(Exp,'Orientation')
   disp('Exp.Orientation given, did you mean Exp.Orientations?');
 end
 
+[Exp.R_sample,rotateSample] = p_samplerotmatrix(Exp.SampleRotation);
 
 %==========================================================================
 

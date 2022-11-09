@@ -97,6 +97,7 @@ end
 DefaultExp.CrystalOrientation = [];
 DefaultExp.CrystalSymmetry = '';
 DefaultExp.MolFrame = [];
+DefaultExp.SampleRotation = [];
 
 if ~isfield(Exp,'Field'), error('Exp.Field is missing.'); end
 
@@ -127,6 +128,8 @@ lwExcite2 = Exp.ExciteWidth^2;
 if ~isfield(Opt,'Sites')
   Opt.Sites = [];
 end
+
+Exp.R_sample = p_samplerotmatrix(Exp.SampleRotation);
 
 % Process crystal orientations, crystal symmetry, and frame transforms
 [Orientations,nOrientations,~,AverageOverChi] = p_crystalorientations(Exp,Opt);

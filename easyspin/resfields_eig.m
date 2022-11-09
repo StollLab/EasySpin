@@ -86,6 +86,7 @@ DefaultParameters.Temperature = NaN; % not implemented!!
 DefaultParameters.CrystalSymmetry = '';
 DefaultParameters.CrystalOrientation = [];
 DefaultParameters.MolFrame = [];
+DefaultParameters.SampleRotation = [];
 
 Exp = adddefaults(Exp,DefaultParameters);
 
@@ -105,6 +106,8 @@ if ~isnan(Exp.Temperature)
 end
 
 mwFreq = Exp.mwFreq*1e3;
+
+Exp.R_sample = p_samplerotmatrix(Exp.SampleRotation);
 
 % Process crystal orientations, crystal symmetry, and frame transforms
 [Orientations,nOrientations,~,averageOverChi] = p_crystalorientations(Exp,Opt);

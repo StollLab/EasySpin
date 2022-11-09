@@ -467,34 +467,7 @@ else
 end
 logmsg(1,msg);
 
-% Sample rotation
-if isfield(Exp,'SampleRotation') && ~isempty(Exp.SampleRotation)
-  if isnumeric(Exp.SampleRotation)
-    rho = Exp.SampleRotation;
-    nRot = [1;0;0]; % lab x axis (xL_L) as default
-  elseif iscell(Exp.SampleRotation) && numel(Exp.SampleRotation)==2
-    rho = Exp.SampleRotation{1};
-    nRot = Exp.SampleRotation{2};
-    if ischar(nRot)
-      nRot = letter2vec(nRot);
-    end
-  else
-    error('Exp.SampleRotation must be of the form {rho,nL}, with the rotation angle rho and the lab-frame rotation axis nL.');
-  end
-  if numel(rho)~=1
-    error('Exp.SampleRotation: the first element must the rotation angle rho.');
-  end
-else
-  rho = 0;
-  nRot = [1;0;0];
-end
-rotateSample = rho~=0;
-if rotateSample
-  Exp.R_sample = rotaxi2mat(nRot,rho).'; % transpose because it's an active rotation
-else
-  Exp.R_sample = [];
-end
-
+[Exp.R_sample,rotateSample] = p_samplerotmatrix(Exp.SampleRotation);
 
 %=======================================================================
 

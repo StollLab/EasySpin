@@ -134,6 +134,9 @@ end
 if ~isfield(Exp,'MolFrame')
   Exp.MolFrame = [];
 end
+if ~isfield(Exp,'SampleRotation')
+  Exp.SampleRotation = [];
+end
 
 doPowderSimulation = isempty(Exp.CrystalOrientation);
 
@@ -269,6 +272,9 @@ muOpzM = muOpzM*c;  % MHz/mT -> J/T
 % Set up sample orientations
 %-------------------------------------------------
 Exp.PowderSimulation = doPowderSimulation; % for communication with p_*
+
+Exp.R_sample = p_samplerotmatrix(Exp.SampleRotation);
+
 [Exp,Opt] = p_symandgrid(Sys,Exp,Opt);
 
 % Process crystal orientations, crystal symmetry, and frame transforms

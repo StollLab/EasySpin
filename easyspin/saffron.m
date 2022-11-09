@@ -124,6 +124,7 @@ DefaultExp.Ordering = [];
 DefaultExp.CrystalOrientation = [];
 DefaultExp.CrystalSymmetry = '';
 DefaultExp.MolFrame = [];
+DefaultExp.SampleRotation = [];
 Exp = adddefaults(Exp,DefaultExp);
 
 % Photoselection is not supported
@@ -172,7 +173,7 @@ if ~iscell(Sys)
   if ~isfield(Exp,'OriWeights')
     [Exp,Opt] = p_symandgrid(Sys,Exp,Opt);
   end
-  
+  Exp.R_sample = p_samplerotmatrix(Exp.SampleRotation);
   [Orientations,nOrientations,nSites] = p_crystalorientations(Exp,Opt);
   if numel(Exp.OriWeights)~=nOrientations
     Exp.OriWeights = repmat(Exp.OriWeights,1,nSites);

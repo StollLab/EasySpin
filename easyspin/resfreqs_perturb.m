@@ -151,6 +151,7 @@ DefaultExp.mwMode = 'perpendicular';
 DefaultExp.CrystalOrientation = [];
 DefaultExp.CrystalSymmetry = '';
 DefaultExp.MolFrame = [];
+DefaultExp.SampleRotation = [];
 
 Exp = adddefaults(Exp,DefaultExp);
 
@@ -205,6 +206,8 @@ if usePhotoSelection
     end
   end
 end
+
+Exp.R_sample = p_samplerotmatrix(Exp.SampleRotation);
 
 % Process crystal orientations, crystal symmetry, and frame transforms
 [Orientations,nOrientations,nSites,averageOverChi] = p_crystalorientations(Exp,Opt);

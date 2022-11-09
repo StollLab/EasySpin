@@ -82,6 +82,7 @@ DefaultExp.Field = NaN;
 DefaultExp.CrystalOrientation = [];
 DefaultExp.CrystalSymmetry = '';
 DefaultExp.MolFrame = [];
+DefaultExp.SampleRotation = [];
 
 DefaultExp.Range = []; % for compatibility, internal
 
@@ -109,6 +110,7 @@ if ~isfield(Opt,'Sites')
   Opt.Sites = [];
 end
 
+Exp.R_sample = p_samplerotmatrix(Exp.SampleRotation);
 
 % Process crystal orientations, crystal symmetry, and frame transforms
 [Orientations,nOrientations,nSites,AverageOverChi] = p_crystalorientations(Exp,Opt);
