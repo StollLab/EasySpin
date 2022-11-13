@@ -87,7 +87,7 @@ gamma = bmagn/hbar*g; % gyromagnetic ratio
 
 % Some range checks
 if numel(T1)~=1 || T1<=0
-  error('T2 must be a single positive number.');
+  error('T1 must be a single positive number.');
 end
 if numel(T2)~=1 || T2<=0
   error('T2 must be a single positive number.');
