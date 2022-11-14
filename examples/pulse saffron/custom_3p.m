@@ -8,7 +8,7 @@ clear
 
 Sys.S = 1/2;
 Sys.Nucs = '1H';
-Sys.A_ = [5 2];^% MHz
+Sys.A_ = [5 2];  % MHz
 
 tau = 0.01; % mus
 p90.Flip = pi/2; % rad

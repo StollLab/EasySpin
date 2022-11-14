@@ -345,12 +345,12 @@ if strcmp(Opt.SimulationMode,'fast')
           
           if PredefinedExperiment
             ExperimentID = find(strcmp(Exp.Sequence,ExperimentNames));
-            xlb = {'\tau (\mus)','\tau+T (\mus)','T (\mus)','...','frequency (MHz)'};
+            xlb = {'\tau (µs)','\tau+T (µs)','T (µs)','...','frequency (MHz)'};
             xlabel(xlb{ExperimentID});
             ylabel('echo amplitude');
             title([ExperimentNames{ExperimentID},', TD signal']);
           else
-            xlabel('t (\mus)');
+            xlabel('t (µs)');
             ylabel('echo amplitude (arb.u.)');
             title('User-defined experiment, TD signal');
           end
