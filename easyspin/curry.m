@@ -188,8 +188,12 @@ logmsg(1,'  output: %s',Opt.Output);
 calculateMu = nargout==0;
 calculateChi = nargout==0 || nargout>1;
 calculateMuVec = false;
-keywords = textscan(Opt.Output,'%s');
-keywords = keywords{1};
+if ~isempty(Opt.Output)
+  keywords = textscan(Opt.Output,'%s');
+  keywords = keywords{1};
+else
+  keywords = {};
+end
 for k = 1:numel(keywords)
   switch keywords{k}
     case 'mu', calculateMu = true;
