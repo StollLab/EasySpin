@@ -598,7 +598,7 @@ if calculateUncertainties
   fitOpt.track = false;
   residualfun = @(x)residuals_(x,data_,fitOpt,useGUI);
   J = jacobianest(residualfun,pfit_active);
-  if ~any(isnan(J(:)))
+  if ~any(isnan(J(:))) && ~isempty(J)
     if Verbosity>=1
       msg = '  Calculating parameter covariance matrix...';
       if useGUI
@@ -680,7 +680,11 @@ if calculateUncertainties
     end
   else
     if Verbosity>=1
-      msg = '  NaN elements in Jacobian, cannot calculate parameter uncertainties.';
+      if isempty(J)
+        msg = '  Jacobian estimation interrupted by user, cannot calculate parameter uncertainties.';
+      else
+        msg = '  NaN elements in Jacobian, cannot calculate parameter uncertainties.';
+      end
       if useGUI
         updateLogBox(msg);
       else
@@ -744,16 +748,18 @@ end
 
 
 %===============================================================================
-function rmsd = rmsd_(x,data,Opt,iterupdate)
-[~,rmsd] = residuals_(x,data,Opt,iterupdate);
+function [rmsd,userstop] = rmsd_(x,data,Opt,iterupdate)
+[~,rmsd,userstop] = residuals_(x,data,Opt,iterupdate);
 end
 %===============================================================================
 
 
 %===============================================================================
-function [residuals,rmsd] = residuals_(x,expdata,Opt,iterupdate)
+function [residuals,rmsd,userstop] = residuals_(x,expdata,Opt,iterupdate)
 
 global esfitdata
+
+userstop = esfitdata.UserCommand~=0;
 
 if esfitdata.Opts.useMask
   mask = Opt.mask;
@@ -1140,8 +1146,11 @@ useGUI = true;
 try
   result = runFitting(useGUI);
 catch ME
-  if esfitdata.modelEvalError
+  if isfield(esfitdata,'modelEvalError') && esfitdata.modelEvalError
     return
+  elseif contains(ME.stack(1).name,'esfit')
+    GUIErrorHandler(ME);
+    return;
   else
     error(ME.message)
   end
@@ -1605,7 +1614,11 @@ set(findobj('Tag','ParameterTable'),'CellEditCallback',@tableCellEditCallback);
 set(findobj('Tag','clearMaskButton'),'Enable','on');
 set(findobj('Tag','MaskCheckbox'),'Enable','on');
 
-updateLogBox({'Simulation function error:',ME.message})
+if contains(ME.stack(1).name,'esfit')
+  updateLogBox({ME.stack(1).name,' error:',ME.message})
+else
+  updateLogBox({'Simulation function error:',ME.message})
+end
 
 end
 %===============================================================================

@@ -149,6 +149,7 @@ nEvals = 0;
 iIteration = 0;
 while ~stopCode
   
+  drawnow
   iIteration = iIteration + 1;
   
   if norm_g<=Opt.Gradient
@@ -280,9 +281,13 @@ nVariables = numel(x0);
 J = zeros(numel(f0),nVariables);
 
 for ix = 1:nVariables
+  drawnow % allows loop to be interruptible
   x1 = x0;
   x1(ix) = x0(ix) + delta;
-  f1 = funfcn(x1);
+  [f1,~,userstop] = funfcn(x1);
+  if userstop % interrupt Jacobian estimation
+    err = 5; return;
+  end
   f1 = f1(:);
   J(:,ix) = (f1-f0)/delta;
 end
@@ -322,7 +327,10 @@ function  [errCode,F,f] = funeval(funfcn,x)
 
 errCode = 0;
 
-f = funfcn(x);
+[f,~,stopCode] = funfcn(x);
+if stopCode % stopped by user
+  errCode = 4; 
+end
 f = f(:);
 
 if any(isnan(f))

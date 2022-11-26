@@ -113,9 +113,13 @@ for i = 1:nx % loop over all variables
   % difference to give a second-order estimate
   fdel = zeros(n,nsteps);
   for j = 1:nsteps
-    fdif = fun(swapelement(x0,i,x0_i + delta(j))) - ...
-           fun(swapelement(x0,i,x0_i - delta(j)));
-    fdel(:,j) = fdif(:);
+    drawnow % allows loop to be interruptible
+    fp = fun(swapelement(x0,i,x0_i + delta(j)));
+    [fm,~,UserStop] = fun(swapelement(x0,i,x0_i - delta(j)));
+    if UserStop % interrupt Jacobian estimation
+      jac = []; err = []; return;
+    end
+    fdel(:,j) = fp(:) - fm(:);
   end
   
   % these are pure second-order estimates of the

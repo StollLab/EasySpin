@@ -81,9 +81,10 @@ for k = 1:Opt.PopulationSize
   info.iter = 0;
   info.newbest = newbest;
   if ~isempty(Opt.IterFcn)
-    UserStop = Opt.IterFcn(info);
+    stopCode = Opt.IterFcn(info);
+    if stopCode, break; end
   else
-    UserStop = false;
+    stopCode = false;
   end
 end
 [Scores,idx] = sort(Scores);
@@ -181,6 +182,7 @@ while true
   else
     UserStop = false;
   end
+  if UserStop, stopCode = 3; break; end
   
   gen = gen + 1;
 end

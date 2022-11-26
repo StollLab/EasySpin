@@ -9,9 +9,6 @@ if ~isfield(FitOpt,'IterFcn'), FitOpt.IterFcn = []; end
 if ~isfield(FitOpt,'SwarmParams'), FitOpt.SwarmParams = [0.2 0.5 2 1]; end
 if ~isfield(FitOpt,'TolStallIter'), FitOpt.TolStallIter = 6; end
 
-global UserCommand
-if isempty(UserCommand), UserCommand = NaN; end
-
 lb = lb(:);
 ub = ub(:);
 if numel(lb)~=numel(ub)
@@ -68,8 +65,8 @@ while stopCode==0
   
   % Evaluate functions for all particles
   for p = 1:nParticles
-    if UserCommand==1, stopCode = 2; break; end
-    F(p) = fcn(X(:,p));
+    [F(p),UserStop] = fcn(X(:,p));
+    if UserStop==1, stopCode = 2; break; end
   end
   
   % Update best fit so far for each particle
@@ -102,7 +99,6 @@ while stopCode==0
   
   elapsedTime = (cputime-startTime)/60;
   if elapsedTime>FitOpt.maxTime, stopCode = 1; end
-  if UserCommand==1, stopCode = 2; end
   if globalbestF<FitOpt.TolFun, stopCode = 3; end
   if nStalledIterations==FitOpt.TolStallIter, stopCode = 4; end
   if ~isempty(FitOpt.IterFcn)

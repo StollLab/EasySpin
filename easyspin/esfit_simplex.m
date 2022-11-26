@@ -120,9 +120,13 @@ info.simplex_initial = v;
 
 % Evaluate function at vertices of the simplex
 for iVertex = nVertices:-1:1
+  drawnow % allows loop to be interruptible
   x = constrain(v(:,iVertex));
-  fv(iVertex) = fcn(x);
+  [fv(iVertex),UserStop] = fcn(x);
   nEvals = nEvals + 1;
+  if UserStop % stop function evaluation
+    info.stop = 2; return;
+  end
 end
 
 % Sort so v(1,:) is the best vertex
@@ -222,11 +226,16 @@ while true
   if doReduction
     Procedure = 'reduction';
     for iVertex = 2:nVertices
+      drawnow % allows loop to be interruptible
       xshr = v(:,1) + sigma*(v(:,iVertex)-v(:,1));
       xshr = constrain(xshr);
-      fv(:,iVertex) = fcn(xshr);
+      [fv(:,iVertex),UserStop] = fcn(xshr);
       nEvals = nEvals + 1;
       v(:,iVertex) = xshr;
+      if UserStop
+        stopCode = 2;
+        break;
+      end
     end
   end
   
