@@ -6,6 +6,8 @@ function ok = test()
 % Rectangular pulse at resonant frequency
 %--------------------------------------------------------------------------
 Par.tp = 0.200; % us
+Par.Flip = pi;
+Par.Type = 'rectangular';
 [tpulse,IQ] = pulse(Par);
 
 % Transfer function
@@ -33,6 +35,8 @@ ok(1) = areequal(IQtest(2:end-1),IQ(2:end-1),0.01*max(IQ),'abs');
 %--------------------------------------------------------------------------
 clear Par Opt
 Par.tp = 0.200; % us
+Par.Flip = pi;
+Par.Type = 'rectangular';
 [tpulse,IQ] = pulse(Par);
 
 % Transfer function
@@ -61,6 +65,7 @@ ok(2) = areequal(IQtest(2:end-1),IQ(2:end-1),0.01*max(IQ),'abs');
 %--------------------------------------------------------------------------
 clear Par
 Par.tp = 0.200; % us
+Par.Flip = pi;
 Par.Type = 'gaussian';
 Par.tFWHM = 0.050; % us
 [tpulse,IQ] = pulse(Par);
@@ -90,6 +95,7 @@ ok(3) = areequal(IQtest,IQ,0.01*max(IQ),'abs');
 clear Par
 
 Par.tp = 0.200; % us
+Par.Flip = pi;
 Par.Type = 'sech/tanh';
 Par.beta = 10;
 Par.Frequency = [-50 50]; % MHz

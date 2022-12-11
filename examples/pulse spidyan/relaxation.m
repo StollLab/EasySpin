@@ -13,6 +13,7 @@ Sys.T1 = 1; % us
 Sys.T2 = 0.5; % us
 
 % Pulse Definitions
+Rectangular.Type = 'rectangular';
 Rectangular.tp = 0.02; % us
 Rectangular.Flip = pi; % rad
 

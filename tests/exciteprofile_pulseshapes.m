@@ -4,9 +4,11 @@ function ok = test()
 %--------------------------------------------------------------------------
 
 % Rectangular pulses
+Params(1).Type = 'rectangular';
 Params(1).Flip = pi/2;
 Params(1).tp = 0.016; % us
 Params(1).Phase = pi/2;
+Params(2).Type = 'rectangular';
 Params(2).Flip = pi;
 Params(2).tp = 0.032; % us
 Params(2).Phase = pi/2;

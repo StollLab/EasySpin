@@ -9,6 +9,7 @@ function ok = test()
 % Resonator defined through Q and resonance frequency
 %--------------------------------------------------------------------------
 Par.tp = 0.200; % us
+Par.Flip = pi;
 Par.Type = 'rectangular';
 Par.TimeStep = 0.00025;
 
@@ -46,6 +47,7 @@ ok(1) = ~any(suberr);
 clear Par
 
 Par.tp = 0.200; % us
+Par.Flip = pi;
 Par.Type = 'rectangular';
 Par.TimeStep = 0.00025;
 
@@ -88,6 +90,7 @@ ok(2) = ~any(suberr);
 clear Par
 
 Par.tp = 0.200; % us
+Par.Flip = pi;
 Par.Type = 'rectangular';
 Par.TimeStep = 0.00025;
 

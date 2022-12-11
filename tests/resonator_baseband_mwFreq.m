@@ -13,6 +13,7 @@ ResonatorQL = 500;
 % Pulse at baseband
 %--------------------------------------------------------------------------
 Par.tp = 0.100; % us
+Par.Flip = pi;
 Par.Type = 'gaussian';
 Par.tFWHM = 0.050; % us
 Par.Frequency = 0;

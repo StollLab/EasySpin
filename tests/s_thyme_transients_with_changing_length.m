@@ -7,6 +7,7 @@ Sys.ZeemanFreq = 9.400;
 
 Pulse.tp = 0.030;
 Pulse.Flip = pi;
+Pulse.Type = 'rectangular';
 Pulse.Frequency =  200;
 
 % Experiment/Sequence
