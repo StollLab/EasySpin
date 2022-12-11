@@ -34,39 +34,25 @@ if numel(SNR)~=1 || SNR<=0
   error('The second input, the signal-to-noise ratio (SNR), must be a positive number.');
 end
 
-if ~any(noisemodel=='unf')
-  error('The third input, the noise model, must be ''u'', ''n'', or ''f''.');
-end
-
 dims = size(y);
-
-complexData = ~isreal(y); % check for complex data
 
 switch noisemodel
   case 'u' % uniform distribution [-0.5,0.5]
-    rnoise = rand(dims)-0.5;
-    if complexData
-      inoise = rand(dims)-0.5;
-    end
+    noisefun = @() rand(dims)-0.5;
   case 'n' % normal distribution with mean 0 and standard dev. 1
-    rnoise = randn(dims);
-    if complexData
-      inoise = randn(dims);
-    end
+    noisefun = @() randn(dims);
   case 'f' % general 1/f^alpha noise
     alpha = 1;
-    rnoise = oneoverfnoise(dims,alpha);
-    if complexData
-      inoise = oneoverfnoise(dims,alpha);
-    end
+    noisefun = @() oneoverfnoise(dims,alpha);
   otherwise
-    error('Wrong noise model. Use ''n'', ''u'', or ''f''.');
+    error('Unknown noise type ''%s''. Use ''n'', ''u'', or ''f''.',noisemodel);
 end
   
+complexData = ~isreal(y); % check for complex data
 if complexData
-  noise = complex(rnoise,inoise);
+  noise = complex(noisefun(),noisefun());
 else
-  noise = rnoise;
+  noise = noisefun();
 end
 
 noise = noise/std(noise(:)); % scale to stddev = 1
@@ -83,7 +69,7 @@ end
 
 yn = y + noise*noiselevel;
 
-return
+end
 %===============================================================================
 
 % construct frequency domain with 1/f^alpha power characteristics and random phases
@@ -104,4 +90,4 @@ noise = real(ifft(d));
 isColVec = dims(1)>dims(2);
 if isColVec, noise = noise(:); end
 
-return
+end
