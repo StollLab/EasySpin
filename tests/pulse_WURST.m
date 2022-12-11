@@ -1,14 +1,13 @@
 function ok = test()
 
 % Compare pulse() output pulse shapes with mathematical expressions
-%--------------------------------------------------------------------------
 
 % HS8
-Params.tp = 0.500; % us
+Params.tp = 0.500;  % µs
 Params.Type = 'WURST/linear';
-Params.Frequency = [-250 250]+100; % MHz
+Params.Frequency = [-250 250]+100;  % MHz
 Params.nwurst = 15;
-Params.Amplitude = 15; % MHz
+Params.Amplitude = 15;  % MHz
 
 [t,IQ,modulation] = pulse(Params);
 

@@ -45,7 +45,7 @@ pulse(Par,Opt)
 
 <p>
 See also the <a href="examplesmain.html#pulse shaping">examples</a> on <code>pulse shaping</code> and the <a href="userguide_pulse.html">pulse</a> and <a href="userguide_spidyan.html">spidyan</a> userguides.
-   
+</p>
 
 <!-- ============================================================= -->
 <div class="subtitle">Description</div>
@@ -60,12 +60,12 @@ The output contains the time axis data in <code>t</code> (time in microseconds).
 
 <p>
 The third (optional) output argument contains the structure <code>modulation</code> with the calculated modulation functions for the pulse:
+</p>
 <ul>
 <li><code>modulation.A</code>: amplitude modulation function (in MHz)
 <li><code>modulation.freq</code>: frequency modulation function (in MHz)
 <li><code>modulation.phase</code>: phase modulation function (in radians)
 </ul>
-</p>
 
 <p>
 If you don't request any output, <code>pulse</code> plots the calculated pulse shape, modulation functions and excitation profiles.
@@ -73,10 +73,12 @@ If you don't request any output, <code>pulse</code> plots the calculated pulse s
 
 <p>
 The input arguments to <code>pulse</code> are <code>Par</code>, a structure containing pulse parameter definitions, and <code>Opt</code>, an optional structure containing options for the calculation.
+</p>
 </ul>
 
 <p>
 <code>Par</code> is a structure containing all parameters necessary to specify the pulse shape. The available fields are listed below.
+</p>
 
 <div class="optionfield"><code>tp</code></div>
 <div class="optiondescr">
@@ -87,13 +89,13 @@ Pulse length, in microseconds.
 <div class="optiondescr">
 Pulse shape name in a character array structured as <code>'AM/FM'</code> (or just <code>'AM'</code>), where AM refers to the amplitude modulation function and FM to the frequency modulation function.
 <p>
-The available amplitude modulation functions are <code>'rectangular'</code>, <code>'gaussian'</code>, <code>'sinc'</code>, <code>'halfsin'</code>, <code>'quartersin'</code>, <code>'tanh2'</code>, <code>'sech'</code>, <code>'WURST'</code>, <code>'GaussianCascade'</code>, <code>'FourierSeries'</code>. Different AM functions can be multiplied by concatenating the keywords as <code>'AM1*AM2/FM'</code>. The default is <code>'rectangular'</code>.
-
+The available amplitude modulation functions are <code>'rectangular'</code>, <code>'gaussian'</code>, <code>'sinc'</code>, <code>'halfsin'</code>, <code>'quartersin'</code>, <code>'tanh2'</code>, <code>'sech'</code>, <code>'WURST'</code>, <code>'GaussianCascade'</code>, <code>'FourierSeries'</code>. Different AM functions can be multiplied by concatenating the keywords as <code>'AM1*AM2/FM'</code>.
+</p>
 <p>
 The available options for frequency modulation are <code>'none'</code>, <code>'linear'</code>, <code>'tanh'</code>, <code>'uniformQ'</code>. If only an AM keyword is given, the FM function is set to <code>'none'</code>.
 </p>
 
-Here are a few examples:
+<p>Here are a few examples:</p>
 <pre class="matlab">
 Par.Type = 'sech/tanh';     % hyperbolic-secant pulse
 Par.Type = 'WURST/linear';  % linear chirp pulse with WURST amplitude envelope
@@ -102,11 +104,13 @@ Par.Type = 'gaussian';      % constant-frequency gaussian-amplitude pulse
 
 <p>
 Additional parameters are required to fully specify the various AM and FM functions, see <a href = "#pulsepars">below</a>.
+</p>
+
 </div>
 
 <div class="optionfield"><code>Flip</code></div>
 <div class="optiondescr">
-Pulse flip angle, in radians. If absent, <code>Par.Flip = pi</code> is used as default.
+Pulse flip angle, in radians. For example, <code>Par.Flip = pi</code> specifies a 180-degree pulse.
 
 <p>
 <code>Flip</code> is used to calculate the pulse amplitude. For amplitude-modulated pulses, it is calculated via the integral of the amplitude modulation function. For frequency-modulated pulses, the procedure described in Jeschke, G., Pribitzer, S., Doll, A. Coherence Transfer by Passage Pulses in Electron Paramagnetic Resonance Spectroscopy. <i>J. Phys. Chem. B</i> 119, 13570–13582 (<b>2015</b>) (DOI: <a href="https://doi.org/10.1021/acs.jpcb.5b02964">10.1021/acs.jpcb.5b02964</a>) is used.
@@ -431,7 +435,7 @@ Frequency and phase modulation functions (<i>BW</i> is the difference between en
 <li><code>'uniformQ'</code>:
 <p>
 The frequency modulation function is calculated as the integral of the squared amplitude modulation function and multiplied by the specified bandwidth (centered at zero). This can be used for <i>n</i>th order sech pulses or in general to obtain offset-independent adiabaticity pulses given a certain amplitude function (see Garwood, M., DelaBarre, L., <i>J. Magn. Reson.</i> 153, 155-177 (<b>2001</b>), DOI: <a href="https://doi.org/10.1006/jmre.2001.2340">10.1006/jmre.2001.2340</a>). The phase modulation function is obtained by integration and the phase is set to zero at the center of the pulse.
-<p/>
+</p>
 
 </ul>
 
@@ -455,7 +459,7 @@ where the different terms are the amplitude modulation, the phase modulation, th
 
 <p>
 Compensation for the resonator bandwidth by adaptation of the chirp rates in frequency-swept pulses is implemented as described in Doll, A., Pribitzer, S., Tschaggelar, R., Jeschke, G., Adiabatic and fast passage ultra-wideband inversion in pulsed EPR, <i>J. Magn. Reson.</i> 230, 27-39 (<b>2013</b>), DOI: <a href="https://doi.org/10.1016/j.jmr.2013.01.002">10.1016/j.jmr.2013.01.002</a> and Pribitzer, S., Doll, A., Jeschke, G., SPIDYAN, a MATLAB library for simulating pulse EPR experiments with arbitrary waveform excitation. <i>J. Magn. Reson.</i> 263, 45-54 (<b>2016</b>) (DOI: <a href="https://doi.org/10.1016/j.jmr.2015.12.014">10.1016/j.jmr.2015.12.014</a>). For pulses with uniform adiabaticity (sech/tanh and any pulse with a frequency modulation function set to <code>'uniformQ'</code>) both the frequency and the amplitude modulation functions defined above are adjusted to compensate for the resonator profile. For all other pulses, the amplitude modulation function is preserved and only the frequency modulation function is adapted to the provided resonator profile. The phase modulation function is obtained by integration and the phase is set to zero at the center of the pulse.
-<p/>
+</p>
 
 <!-- ============================================================= -->
 <div class="subtitle">See also</div>

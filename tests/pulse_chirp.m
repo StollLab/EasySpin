@@ -4,13 +4,13 @@ function ok = test()
 %--------------------------------------------------------------------------
 
 % Linear chirp with frequency offset
-Params.tp = 0.064; % us
+Params.tp = 0.064;  % µs
 Params.Type = 'rectangular/linear';
-Params.Frequency = [-60 60] + 120; % MHz
+Params.Frequency = [-60 60] + 120;  % MHz
 Params.Flip = pi/2;
-Params.TimeStep = 0.0001; % us
+Params.TimeStep = 0.0001;  % µs
 
-t0 = 0:Params.TimeStep:Params.tp; % us
+t0 = 0:Params.TimeStep:Params.tp;  % µs
 % Pulse amplitude (Qcrit = 2ln2/pi for a pi/2 pulse)
 BW = Params.Frequency(2)-Params.Frequency(1);
 Amplitude = sqrt((4*log(2)*BW/Params.tp))/(2*pi);
@@ -22,17 +22,17 @@ phi = phi+abs(min(phi));
 % Pulse
 IQ0 = Amplitude*exp(2i*pi*(phi+mean(Params.Frequency)*t0));
 
-[t,IQ] = pulse(Params);
+[~,IQ] = pulse(Params);
 
-err(1) = ~areequal(IQ0,IQ,1e-12,'abs');
+ok(1) = areequal(IQ0,IQ,1e-12,'abs');
 
 % Quartersin weighted chirp
 clear Params
-Params.tp = 0.128; % us
+Params.tp = 0.128;  % µs
 Params.Type = 'quartersin/linear';
-Params.trise = 0.010; % us
-Params.Frequency = [-50 50]; % MHz
-Params.Amplitude = 20; % MHz
+Params.trise = 0.010;  % µs
+Params.Frequency = [-50 50];  % MHz
+Params.Amplitude = 20;  % MHz
 Opt.OverSampleFactor = 10;
 
 BW = Params.Frequency(2)-Params.Frequency(1);
@@ -52,20 +52,19 @@ phi = phi+abs(min(phi));
 % Pulse
 IQ0 = Params.Amplitude*A.*exp(2i*pi*phi);
 
-[t,IQ,modulation] = pulse(Params);
+[~,IQ,modulation] = pulse(Params);
 
-ok(1) = ~areequal(IQ0,IQ,1e-12,'abs');
-ok(2) = ~areequal(Params.Amplitude*A,modulation.A,1e-12,'abs');
-ok(3) = ~areequal(f,modulation.freq,1e-12,'abs');
+ok(2) = areequal(IQ0,IQ,1e-12,'abs');
+ok(3) = areequal(Params.Amplitude*A,modulation.A,1e-12,'abs');
+ok(4) = areequal(f,modulation.freq,1e-12,'abs');
 
-err(2) = any(ok);
 
 % Halfsin weighted chirp
 clear Params
-Params.tp = 0.128; % us
+Params.tp = 0.128;  % µs
 Params.Type = 'halfsin/linear';
-Params.Frequency = [-50 50]; % MHz
-Params.Amplitude = 20; % MHz
+Params.Frequency = [-50 50];  % MHz
+Params.Amplitude = 20;  % MHz
 Opt.OverSampleFactor = 10;
 
 BW = Params.Frequency(2)-Params.Frequency(1);
@@ -82,8 +81,8 @@ phi = phi+abs(min(phi));
 % Pulse
 IQ0 = Params.Amplitude*A.*exp(2i*pi*phi);
 
-[t,IQ,modulation] = pulse(Params);
+[~,IQ,modulation] = pulse(Params);
 
-ok(1) = areequal(IQ0,IQ,1e-12,'abs');
-ok(2) = areequal(Params.Amplitude*A,modulation.A,1e-12,'abs');
-ok(3) = areequal(f,modulation.freq,1e-12,'abs');
+ok(5) = areequal(IQ0,IQ,1e-12,'abs');
+ok(6) = areequal(Params.Amplitude*A,modulation.A,1e-12,'abs');
+ok(7) = areequal(f,modulation.freq,1e-12,'abs');

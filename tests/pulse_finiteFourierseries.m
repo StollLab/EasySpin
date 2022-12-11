@@ -25,7 +25,7 @@ end
 A = A/max([-min(A) max(A)]);
 IQ0 = A/max(A);
 
-[t,IQ] = pulse(Params);
+[~,IQ] = pulse(Params);
 
 ok(1) = areequal(IQ0,IQ,1e-12,'abs');
 
@@ -50,7 +50,7 @@ end
 A = A/max([-min(A) max(A)]);
 IQ0 = A/max(A);
 
-[t,IQ] = pulse(Params);
+[~,IQ] = pulse(Params);
 
 ok(2) = areequal(IQ0,IQ,1e-12,'abs');
 
@@ -75,7 +75,7 @@ end
 A = A/max([-min(A) max(A)]);
 IQ0 = A/max(A);
 
-[t,IQ] = pulse(Params);
+[~,IQ] = pulse(Params);
 
 ok(3) = areequal(IQ0,IQ,1e-12,'abs');
 
@@ -100,7 +100,7 @@ end
 A = A/max([-min(A) max(A)]);
 IQ0 = A/max(A);
 
-[t,IQ] = pulse(Params);
+[~,IQ] = pulse(Params);
 
 ok(4) = areequal(IQ0,IQ,1e-12,'abs');
 
@@ -129,6 +129,6 @@ Params.A0 = A0;
 Params.An = An;
 Params.Bn = Bn;
 
-[t,IQ] = pulse(Params);
+[~,IQ] = pulse(Params);
 
 ok(5) = areequal(IQ0,IQ,1e-12,'abs');

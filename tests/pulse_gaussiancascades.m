@@ -6,9 +6,9 @@ function ok = test()
 % Gaussian pulse cascades
 % G3
 clear Params
-Params.tp = 0.800; % us
+Params.tp = 0.800;  % 탎
 Params.Type = 'G3';
-Params.TimeStep = 0.001; % us
+Params.TimeStep = 0.001;  % 탎
 Params.Amplitude = 1;
 
 t0 = 0:Params.TimeStep:Params.tp;
@@ -26,16 +26,16 @@ for j = 1:3
 end
 IQ0 = A/max(A);
 
-[t,IQ] = pulse(Params);
+[~,IQ] = pulse(Params);
 
 ok(1) = areequal(IQ0,IQ,1e-12,'abs');
 
 % Gaussian pulse cascades
 % G4
 clear Params
-Params.tp = 0.800; % us
+Params.tp = 0.800;  % 탎
 Params.Type = 'G4';
-Params.TimeStep = 0.001; % us
+Params.TimeStep = 0.001;  % 탎
 Params.Amplitude = 1;
 
 t0 = 0:Params.TimeStep:Params.tp;
@@ -53,7 +53,7 @@ for j = 1:4
 end
 IQ0 = A/max(A);
 
-[t,IQ] = pulse(Params);
+[~,IQ] = pulse(Params);
 
 ok(2) = areequal(IQ0,IQ,1e-12,'abs');
 
@@ -79,7 +79,7 @@ for j = 1:3
 end
 IQ0 = A/max(A);
 
-[t,IQ] = pulse(Params);
+[~,IQ] = pulse(Params);
 
 ok(3) = areequal(IQ0,IQ,1e-12,'abs');
 
@@ -105,7 +105,7 @@ for j = 1:5
 end
 IQ0 = A/max(A);
 
-[t,IQ] = pulse(Params);
+[~,IQ] = pulse(Params);
 
 ok(4) = areequal(IQ0,IQ,1e-12,'abs');
 
@@ -131,6 +131,6 @@ Params.A0 = A0;
 Params.x0 = x0/Params.tp;
 Params.FWHM = FWHM/Params.tp;
 
-[t,IQ] = pulse(Params);
+[~,IQ] = pulse(Params);
 
 ok(5) = areequal(IQ0,IQ,1e-12,'abs');
