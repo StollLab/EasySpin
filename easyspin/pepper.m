@@ -1237,7 +1237,13 @@ end
 if FieldSweep
   if Exp.ModAmp>0
     logmsg(1,'  applying field modulation');
-    spec = fieldmod(xAxis,spec,Exp.ModAmp,Exp.ModHarmonic);
+    if summedOutput
+      spec = fieldmod(xAxis,spec,Exp.ModAmp,Exp.ModHarmonic);
+    else
+      for iSpec = 1:size(spec,1)
+        spec(iSpec,:) = fieldmod(xAxis,spec(iSpec,:),Exp.ModAmp,Exp.ModHarmonic);
+      end
+    end
   else
     % derivatives already included in convolutions etc.
   end
