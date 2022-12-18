@@ -250,6 +250,11 @@ esfitdata.fixedParams = false(1,numel(pvec_0));
 % Experimental parameters (for EasySpin functions)
 %-------------------------------------------------------------------------------
 if EasySpinFunction
+
+  if ~iscell(p0) || numel(p0)<2
+    error('The third input must contain the initial parameters, e.g. {Sys0,Exp} or {Sys0,Exp,Opt}.');
+  end
+
   % Check or set Exp.nPoints
   if isfield(p0{2},'nPoints')
     if p0{2}.nPoints~=numel(data)
