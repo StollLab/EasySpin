@@ -317,7 +317,7 @@ if strcmp(Opt.SimulationMode,'fast')
         if isfield(Exp,'tau') && (Exp.tau<1)
           h=title(sprintf('Mims ENDOR, %g mT, tau = %g ns',Exp.Field,1000*Exp.tau));
         else
-          h=title(sprintf('Mims ENDOR, %g mT, tau = %g us',Expx,Exp.tau));
+          h=title(sprintf('Mims ENDOR, %g mT, tau = %g µs',Exp.Field,Exp.tau));
         end
         set(h,'FontWeight','b');
         
