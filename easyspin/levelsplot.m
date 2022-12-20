@@ -108,10 +108,9 @@ end
 % Convert string in Ori input to angles
 if ischar(Ori)
   n = letter2vec(Ori);
-  Ori = vec2ang(n);
-end
-
-if numel(Ori)==2
+  [phi,theta] = vec2ang(n);
+  chi = 0;
+elseif numel(Ori)==2
   phi = Ori(1);
   theta = Ori(2);
   chi = 0;
@@ -240,7 +239,7 @@ if computeResonances
       E = unitconvert(E_MHz,Opt.Units);
 
       h = line(resonFields(iF)*[1 1]*Bscale,Escale*E(Transitions(iF,:)),'Tag','transition');
-      h.UserData = [Transitions(iF,:) intensity(iF)];
+      h.UserData = [Transitions(iF,:) resonFields(iF) intensity(iF)];
       transitionColor = intensity(iF)*Opt.AllowedColor + (1-intensity(iF))*Opt.ForbiddenColor;
       h.Color = transitionColor;
       if intensity(iF)>Opt.ColorThreshold
@@ -264,20 +263,39 @@ end
 if isfinite(mwFreq)
   switch Opt.Units
     case 'GHz'
-      str = sprintf('  %g GHz',mwFreq);
+      str = sprintf('  %g GHz\n',mwFreq);
     case 'cm^-1'
-      str = sprintf('  %0.3g cm^{-1} (%g GHz)',mwFreq*1e9/clight/100,mwFreq);
+      str = sprintf('  %0.3g cm^{-1} (%g GHz)\n',mwFreq*1e9/clight/100,mwFreq);
     case 'eV'
       if Escale==1e3
-        str = sprintf('  %0.3g meV (%g GHz)',mwFreq*1e9*planck/evolt*1e3,mwFreq);
+        str = sprintf('  %0.3g meV (%g GHz)\n',mwFreq*1e9*planck/evolt*1e3,mwFreq);
       else
-        str = sprintf('  %0.3g eV (%g GHz)',mwFreq*1e9*planck/evolt,mwFreq);
+        str = sprintf('  %0.3g eV (%g GHz)\n',mwFreq*1e9*planck/evolt,mwFreq);
       end
   end
-  xl = xlim;
-  yl = ylim;
-  text(xl(1),yl(2),str,'VerticalAl','top');
+else
+  str = '';
 end
+
+if ischar(Ori)
+  oristr = ['''' Ori '''' ', '];
+  chiGiven = false;
+else
+  oristr = '';
+  chiGiven = numel(Ori)==3;
+end
+
+if chiGiven
+  str = sprintf('%s %s (φ,θ,χ) = (%0.1f, %0.1f, %0.1f)°',...
+                str,oristr,phi*180/pi,theta*180/pi,chi*180/pi);
+else
+  str = sprintf('%s %s (φ,θ) = (%0.1f, %0.1f)°',...
+                str,oristr,phi*180/pi,theta*180/pi);
+end
+
+xl = xlim;
+yl = ylim;
+text(xl(1),yl(2),str,'VerticalAl','top');
 
 set(gcf,'WindowButtonMotionFcn',@windowButtonMotionFcn);
 
@@ -301,7 +319,7 @@ switch h.Tag
   case 'level'
     title(sprintf('level %d',h.UserData));
   case 'transition'
-    title(sprintf('transition %d-%d: relative intensity %0.4f ',...
-      h.UserData(1),h.UserData(2),h.UserData(3)));
+    title(sprintf('transition %d-%d: %0.2f mT, relative intensity %0.4f ',...
+      h.UserData(1),h.UserData(2),h.UserData(3),h.UserData(4)));
 end
 end
