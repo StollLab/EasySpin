@@ -85,28 +85,30 @@ omegam = 2*pi*modFreq; % modulation angular frequency; Hz -> rad/s
 M0 = 1;  % equilibrium magnetization
 gamma = bmagn/hbar*g; % gyromagnetic ratio
 
-% Some range checks
+% Some input checks
+if numel(g)~=1
+  error('g (1st input) must be a single number.');
+end
 if numel(T1)~=1 || T1<=0
-  error('T1 must be a single positive number.');
+  error('T1 (2nd input) must be a single positive number.');
 end
 if numel(T2)~=1 || T2<=0
-  error('T2 must be a single positive number.');
+  error('T2 (3rd input) must be a single positive number.');
 end
 if T2>T1
   error('T2 cannot be larger than T1.');
 end
-
-if numel(B1)~=1 || B1<=0
-  error('The microwave field amplitude B1 must be a single positive number.');
+if numel(DeltaB0)~=1
+  error('The field offset (4th input_ must be a single number.');
 end
-if numel(modFreq)~=1 || modFreq<=0
-  error('The modulation frequency ModFreq must be a single positive number.');
+if numel(B1)~=1 || B1<=0
+  error('The microwave field amplitude B1 (5th input) must be a single positive number.');
 end
 if numel(modAmp)~=1 || modAmp<=0
-  error('The modulation amplitude ModAmp must be a single positive number.');
+  error('The modulation amplitude (6th input) must be a single positive number.');
 end
-if numel(DeltaB0)~=1
-  error('The field offset must be a single number.');
+if numel(modFreq)~=1 || modFreq<=0
+  error('The modulation frequency (7th input) must be a single positive number.');
 end
 
 logmsg(1,'Determination of maximum Fourier order (kmax)');
