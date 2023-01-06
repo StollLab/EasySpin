@@ -2,8 +2,8 @@
 %==========================================================================
 % this demonstrates how to simulate the spin echo of a gaussian line.
 % simulating a gaussian line instead of spectrum, which can be done with 
-% saffront. this might be advantageous for example when you are only 
-% interested in the dynamics during your pulse sequence and dont need to 
+% saffron. this might be advantageous for example when you are only 
+% interested in the dynamics during your pulse sequence and don't need to 
 % simulate an entire spectrum. or it can help you speed up simulations
 % This script calculates two echos:
 %  - first with rectangular pulses
@@ -13,10 +13,10 @@ clear
 
 %% set up a Gaussian line of spin packets
 CenterFrequency = 9.5; % center frequency of Gaussian distribution, GHz
-GWidth = 0.01;     % width of Gaussian distribution, GHz
+GWidth = 0.02;     % width of Gaussian distribution, GHz
 FreqStart = 9.45;  % starting value for sampling
 FreqEnd = 9.55;  % final value for sampling
-Sampling = 0.0005;   % stepsize for sampling
+Sampling = 0.0010;   % stepsize for sampling
 ZeemanFreqVec = FreqStart:Sampling:FreqEnd; % vector with resonance frequencies
 P = exp(-((CenterFrequency-ZeemanFreqVec)/GWidth).^2); % probabilities
 P = P/trapz(P); % normalization
@@ -33,7 +33,7 @@ Pulse180.Type = 'rectangular';
 Pulse180.tp = 0.025; % pulse length, us
 Pulse180.Flip = pi;  % flip angle, rad
 
-Exp.Sequence = {Pulse90 0.25 Pulse90 0.5}; 
+Exp.Sequence = {Pulse90 0.1 Pulse90 0.2}; 
 Exp.mwFreq = 9.5; % GHz
 
 % If you want to see only the free evolution after the second pulse use:
@@ -58,9 +58,9 @@ for i = 1 : nSpinpackets
 end
 
 % plotting
-figure(1)
-clf
-plot(t,real(Signal));
+figure
+subplot(2,1,1)
+plot(t,real(Signal),t,imag(Signal));
 xlabel('transient (\mus)')
 axis tight
 
@@ -80,7 +80,7 @@ Chirp180.tp = 0.025; % pulse length, us
 Chirp180.Frequency = [-80 80]; % frequency band
 Chirp180.Flip = pi; % flip angle in rad
 
-Exp.Sequence = {Chirp90 0.25 Chirp180 0.5}; % free evolution events in us
+Exp.Sequence = {Chirp90 0.1 Chirp180 0.2}; % free evolution events in us
 % Exp.DetPhase = 0; % rad, for proper phasing of the signal
 
 
@@ -98,8 +98,7 @@ for i = 1 : nSpinpackets
   
 end
 
-figure(2)
-clf
-plot(t,real(Signal));
+subplot(2,1,2)
+plot(t,real(Signal),t,imag(Signal));
 xlabel('transient (\mus)')
 axis tight

@@ -17,13 +17,13 @@ Sys.Potential = [2 0 0 0.5];      % orientational potential with
 Exp.mwFreq = 9.4;
 
 % cardamom parameters
-dt = Sys.tcorr/10;      % use a smaller time step to ensure that each 
+dt = Sys.tcorr/5;      % use a smaller time step to ensure that each 
                         % trajectory "feels" the orientational 
                         % restriction
 Par.dtSpatial = dt;
 Par.dtSpin = 2e-9;
 
-Par.nSteps = ceil(200e-9/Par.dtSpin);
+Par.nSteps = ceil(100e-9/Par.dtSpin);
 
 Par.Model = 'diffusion';
 Par.nTraj = 200;

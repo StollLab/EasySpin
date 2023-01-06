@@ -34,4 +34,4 @@ Vary.A = [2 2 1 1];  % MHz
 
 % Run fitting
 FitOpt.Method = 'genetic int';
-fit = esfit(spc,@garlic,{Pentacene,Exp},{Vary},FitOpt);
+esfit(spc,@garlic,{Pentacene,Exp},{Vary},FitOpt);

@@ -27,10 +27,10 @@ logmsg(1,'  setting up figures...');
 if ~Opt.SinglePointDetection || (Opt.SinglePointDetection && isfield(Exp,'nPoints') && length(Exp.nPoints) < 3 && nDataPoints > 1)
   LabelsDetectionOp = cell(1,nDetOps);
   for iDetOp = 1 : nDetOps
-    figure
+%     figure
     if ischar(Exp.DetOperator{iDetOp})
       % title for detection operators that used the sop syntax
-      title(['Signal of ' Exp.DetOperator{iDetOp}])
+%       title(['Signal of ' Exp.DetOperator{iDetOp}])
       if strcmp(Exp.DetOperator{iDetOp},'electron coherence') 
         LabelsDetectionOp{iDetOp} = 'signal (arb.u.)';
       else
@@ -38,10 +38,10 @@ if ~Opt.SinglePointDetection || (Opt.SinglePointDetection && isfield(Exp,'nPoint
       end
     else
       % title of detection operators that were provided in matrix form
-      title(['Signal detected with detection operator no.' num2str(iDetOp)])
+%       title(['Signal detected with detection operator no.' num2str(iDetOp)])
       LabelsDetectionOp{iDetOp} = 'expectation value';
     end
-    hold on
+%     hold on
   end
 end
 

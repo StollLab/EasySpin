@@ -20,7 +20,7 @@ Exp.mwFreqX = 9.4;
 Exp.mwFreqQ = 34;
 
 % Normal vary (these vary the normal fields)
-Vary.A = mt2mhz([0.1, 0.15]);
+% Vary.A = mt2mhz([0.1, 0.15]);
 Vary.logDiff = 0.5;
 
 % Custom vary (these vary the custom fields)

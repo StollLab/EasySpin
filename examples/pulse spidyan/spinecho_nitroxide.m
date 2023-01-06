@@ -3,7 +3,7 @@
 % This example demonstrates how to simulate the spin echo of a nitroxide with
 % shaped pulses, using spidyan() and an explicit powder average.
 
-clear, clc
+clear, clc, clf
 
 % Define spin system for nitroxide
 Sys.S = 1/2;
@@ -41,10 +41,10 @@ Exp.mwFreq = 9.1;  % excitation carrier frequency, GHz
 Exp.DetFreq = 9.1;  % detection frequency, GHz
 
 % Detect echo transient over time window around end time point in sequence
-Exp.DetWindow = [-0.15 0.15]; % start and end time, µs
+Exp.DetWindow = [-0.10 0.10]; % start and end time, µs
 
 % Set up orientational grid for powder averaging
-GridSize = 30;  % reduce number for faster, but less converged simulation
+GridSize = 20;  % increase number for slower, but more converged simulation
 Symmetry = symm(Sys);
 grid = sphgrid(Symmetry,GridSize);
 nOrientations = numel(grid.weights);

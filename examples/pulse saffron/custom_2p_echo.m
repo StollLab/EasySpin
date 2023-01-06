@@ -32,7 +32,7 @@ p180.tp = 0.100;   % µs
 p180.Flip = pi;    % rad
 
 % Define pulse sequence
-tau = 0.5;  % µs
+tau = 0.2;  % µs
 Exp.Sequence = {p90 tau p180 tau+p180.tp};
 
 % Define detection
@@ -41,5 +41,6 @@ Exp.DetPhase = pi;             % rad, for proper phasing of the signal
 
 % Use grid resolution sufficient to get converged echo tails
 Opt.GridSize = 30;
+Opt.Verbosity = true;
 
 saffron(Sys,Exp,Opt);

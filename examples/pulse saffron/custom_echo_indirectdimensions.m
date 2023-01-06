@@ -35,4 +35,7 @@ Exp.DetWindow = [-0.02 0.02]; % detection window, mus
 Exp.nPoints = 10; % number of data points in indirect dimension
 Exp.Dim1 = {'p1.Flip' -pi/20}; % change flip angle of 1st pulse, in rad
 
-saffron(Sys,Exp);
+Opt.GridSize = 10; % increase for better accuracy
+Opt.Verbosity = true; 
+
+saffron(Sys,Exp,Opt);
