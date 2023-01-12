@@ -1516,7 +1516,7 @@ end
 function selectInvButtonCallback(~,~)
 h = findobj('Tag','ParameterTable');
 d = h.Data;
-for k=1:size(d,2)
+for k=1:size(d,1)
     d{k,2} = ~d{k,2};
 end
 set(h,'Data',d);
@@ -1580,7 +1580,7 @@ function GUIErrorHandler(ME)
 global esfitdata
 
 % Reactivate UI components
-set(findobj('Tag','SaveButton'),'Enable','on');
+set(findobj('Tag','SaveButton'),'Enable','off');
 
 if isfield(esfitdata,'FitSets') && numel(esfitdata.FitSets)>0
   set(findobj('Tag','deleteSetButton'),'Enable','on');
@@ -1707,15 +1707,17 @@ end
 %===============================================================================
 function saveFitsetCallback(~,~)
 global esfitdata
-esfitdata.lastSetID = esfitdata.lastSetID+1;
-esfitdata.currFitSet.ID = esfitdata.lastSetID;
-esfitdata.currFitSet.fixedParams = esfitdata.fixedParams;
-if ~isfield(esfitdata,'FitSets') || isempty(esfitdata.FitSets)
-  esfitdata.FitSets(1) = esfitdata.currFitSet;
-else
-  esfitdata.FitSets(end+1) = esfitdata.currFitSet;
+if ~isempty(esfitdata.currFitSet)
+  esfitdata.lastSetID = esfitdata.lastSetID+1;
+  esfitdata.currFitSet.ID = esfitdata.lastSetID;
+  esfitdata.currFitSet.fixedParams = esfitdata.fixedParams;
+  if ~isfield(esfitdata,'FitSets') || isempty(esfitdata.FitSets)
+    esfitdata.FitSets(1) = esfitdata.currFitSet;
+  else
+    esfitdata.FitSets(end+1) = esfitdata.currFitSet;
+  end
+  refreshFitsetList(-1);
 end
-refreshFitsetList(-1);
 end
 %===============================================================================
 
