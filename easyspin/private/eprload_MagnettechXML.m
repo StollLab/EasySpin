@@ -1,15 +1,17 @@
 %-------------------------------------------------------------------------------
+%   Read XML file format of Magnettech spectrometers (MS5000)
+%-------------------------------------------------------------------------------
+
 function [Data, Abscissa, Parameters] = eprload_MagnettechXML(FileName)
-%-------------------------------------------------------------------------------
-%   XML file format of newer Magnettech spectrometers (MS5000)
-%-------------------------------------------------------------------------------
+
 % Preparation for Base64 decoding: Use Java class of Apache Commons Code
 % (seen available in R2012b, R2017b, R2021b)
 if ~exist('org.apache.commons.codec.binary.Base64','class')
   error('No Java Base64 decoder available to read Magnettech XML data.');
 else
-  base64 = org.apache.commons.codec.binary.Base64;    
+  base64 = org.apache.commons.codec.binary.Base64;
 end
+% Since R2016b: matlab.net.base64decode is available, but it is much slower
 
 % Read XML file and convert to Matlab structure for easy access
 Document = xml2struct(FileName);
@@ -77,24 +79,37 @@ for iCurve = 1:numel(CurveList)
   end
   
   % Read curve data (if they are base64 encoded)
-  data = thisCurve.Text;
-  if ~isempty(data)
+  data_txt = thisCurve.Text;
+  if ~isempty(data_txt)
     % Check whether it is base64 compression
     if ~strcmp(thisCurve.Attributes.Compression,'Base64')
       error('Data is not Base64 encoded. Cannot read file.');
     end
-    data(data=='=') = 'A'; % append 6 zero bits to pad to 9 bytes
-    bytestream_ = base64.decode(int8(data)); % decode (9 bytes per double)
-    bytestream_(9:9:end) = []; % remove last byte
+
+    % Append 6 zero bits to each double (64 bits) to pad to 9 base64
+    % chars per entry (9*6=72 bits=9 chars)
+    data_txt(data_txt=='=') = 'A';
+
+    % Decode (9 bytes per double). int8 conversion is needed for older
+    % versions of the Java class
+    bytestream_ = base64.decode(int8(data_txt));
+    
+    bytestream_(9:9:end) = []; % remove every ninth byte (double has 8 bytes)
     data = typecast(bytestream_,'double'); % typecast without changing the underlying data
+    Curves.(Name).data = data;
+
+    % Check whether all chars got decoded and typecast.
+    if numel(data)~=numel(data_txt)/12
+      error('Number of base64 chars and number of data points are inconsistent.');
+    end
+
+    % Horizontal axis (equal to time for most data types [except for Frequency[Raw],
+    % ADC_24bit[Raw])
+    XOffset = sscanf(thisCurve.Attributes.XOffset,'%f');
+    XSlope = sscanf(thisCurve.Attributes.XSlope,'%f');
+    Curves.(Name).x = XOffset + (0:numel(data)-1)*XSlope;
   end
-  Curves.(Name).data = data;
   
-  % Horizontal axis (equal to time for most data types [except for Frequency[Raw],
-  % ADC_24bit[Raw])
-  XOffset = sscanf(thisCurve.Attributes.XOffset,'%f');
-  XSlope = sscanf(thisCurve.Attributes.XSlope,'%f');
-  Curves.(Name).x = XOffset + (0:numel(data)-1)*XSlope;
 end
 
 if isfield(Curves,'BField')
@@ -133,5 +148,4 @@ Parameters = parsefieldparams(Parameters);
 % (incl. sin and cos MW absorption data)
 Parameters.Curves = Curves;
 
-return
-%-------------------------------------------------------------------------------
+end
