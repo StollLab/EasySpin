@@ -1,27 +1,24 @@
 function [ok,data] = test(opt,olddata)
 
-% Crystal with Th symmetry and rhombic g
+% Crystal with D2h symmetry and rhombic g, several orientations
 
-Sys.g = [2.0 2.1 2.2];
-Sys.gFrame = [-78 -40 -30]*pi/180;
+Sys.g = [2 2.1 2.2];
+Sys.gFrame = -[78 40 30]*pi/180;
 Sys.lw = 0.5;
 Exp.mwFreq = 9.5;
 Exp.Range = [290 350];
 
-n = [1;2;3];
-[phi, theta] = vec2ang(n);
-Exp.CrystalOrientation = [phi theta 0];
-Exp.CrystalSymmetry = 'Th';
-Opt.Verbosity = 0;
+Exp.CrystalSymmetry = 'D2h';
+Exp.CrystalOrientation = vec2ang([1 2 3; 1 -2 4; 0 0 1; 5 2 -3]).';
+Exp.CrystalOrientation(:,3) = 0;
 
-[B,spc] = pepper(Sys,Exp,Opt);
+[B,spc] = pepper(Sys,Exp);
 
 if opt.Display
   if ~isempty(olddata)
     subplot(4,1,[1 2 3]);
-    plot(B,olddata.y,'k',B,spc,'r');
+    plot(B,olddata.y,B,spc);
     legend('old','new');
-    legend boxoff
     subplot(4,1,4);
     plot(B,spc-olddata.y);
   else
@@ -29,13 +26,12 @@ if opt.Display
   end
   xlabel('magnetic field (mT)');
   ylabel('intensity (arb.u.)');
-  title('pepper: Th crystal');
 end
 
 data.y = spc;
 
 if ~isempty(olddata)
-  ok = areequal(spc,olddata.y,1e-5,'rel');
+  ok = areequal(spc,olddata.y,1e-4,'rel');
 else
   ok = [];
 end

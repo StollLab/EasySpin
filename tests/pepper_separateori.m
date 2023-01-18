@@ -23,9 +23,15 @@ Exp.CrystalOrientation = ori2;
 spc2 = pepper(Sys,Exp,Opt);
 
 ok(1) = size(spc3,1)==2;
-ok(2) = areequal([spc1;spc2],spc3,1e-10,'abs');
+ok(2) = areequal([spc1;spc2]/2,spc3,1e-10,'abs');
 
 if opt.Display
-  plot(B,spc3-[spc1;spc2]);
+  subplot(2,1,1)
+  plot(B,spc3)
+  title('Opt.Output=''separate''');
+  xlabel('magnetic field (mT)');
+  subplot(2,1,2)
+  plot(B,[spc1;spc2]/2)
+  title('two separate sims');
   xlabel('magnetic field (mT)');
 end

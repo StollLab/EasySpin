@@ -5,15 +5,16 @@ function ok = test()
 Sys.g = 2;
 Sys.A = 300;
 Sys.Nucs = '1H';
-Sys.lwpp = 0.2;
+Sys.lwpp = 1.5;
 
 Exp.mwFreq = 9.5;
 Exp.Range = [320 360];
 Exp.Harmonic = 0;
+Exp.nPoints = 1e4;
 
 [x,yp] = pepper(Sys,Exp);
 [x,yg] = garlic(Sys,Exp);
 
 maxyp = max(yp);
 
-ok = areequal(max(yg)/maxyp,1,1e-3,'abs');
+ok = areequal(max(yg)/maxyp,1,1e-3,'rel');

@@ -817,10 +817,10 @@ switch Opt.AccumMethod
     logmsg(1,'Constructing spectrum using Lorentzian lineshape template...');
   
     if LorentzianLw==0
-      error('Cannot use templated linshape accumulation with zero linewidth.');
+      error('Cannot use templated linshape accumulation with zero Lorentzian linewidth.');
     end
     if Exp.mwPhase~=0
-      error('Cannot use templated linshape accumulation with non-zero Exp.mwPhase.');
+      error('Cannot use templated lineshape accumulation with non-zero Exp.mwPhase.');
     end
     
     dxFine = min(xAxis(2)-xAxis(1),min(LorentzianLw)/5);
@@ -828,13 +828,14 @@ switch Opt.AccumMethod
     xAxisFine = linspace(SweepRange(1),SweepRange(2),nPointsFine);
     dxFine = xAxisFine(2) - xAxisFine(1);
     
-    xT = 1e5;
-    wT = xT/20; % 0.0025 at borders for Harmonic = -1
-    Template = lorentzian(0:2*xT-1,xT,wT,Exp.Harmonic-1);
+    x0T = 1e5;
+    wT = x0T/20; % 0.0025 at borders for Harmonic = -1
+    xT = 0:2*x0T-1;
+    Template = lorentzian(xT,x0T,wT,Exp.Harmonic-1);
     if numel(LorentzianLw)==1
       LorentzianLw = LorentzianLw*ones(size(Positions));
     end
-    spec = lisum1i(Template,xT,wT,Positions,Intensities,LorentzianLw,xAxisFine);
+    spec = lisum1i(Template,x0T,wT,Positions,Intensities,LorentzianLw,xAxisFine);
     Exp.ConvHarmonic = 0;
     LorentzianLw = 0;
 

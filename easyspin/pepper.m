@@ -266,6 +266,10 @@ else
   FieldSweep = true;
 end
 
+if ~FieldSweep
+  Sys.lw = Sys.lw/1e3;  % MHz -> GHz
+end
+
 if FieldSweep
   if numel(Exp.mwFreq)~=1 || any(Exp.mwFreq<=0) || ~isreal(Exp.mwFreq)
     error('Uninterpretable microwave frequency in Exp.mwFreq.');
@@ -725,7 +729,7 @@ if ~FieldSweep && SweepAutoRange
   if anisotropicWidths
     padding = max(padding,5*max(Wdat(:)));
   end
-  padding = max(padding,5*sum(Sys.lw)/1e3);
+  padding = max(padding,5*sum(Sys.lw));
   minRange = max(0,minFreq-padding);
   maxRange = maxFreq + padding;
   Exp.mwRange = [minRange maxRange]; % GHz
@@ -792,25 +796,9 @@ if Opt.ImmediateBinning
   
 elseif ~BruteForceSum
   
-  % Determine methods: projection/summation, interpolation on/off
-  %-----------------------------------------------------------------------
-  doProjection = ~anisotropicWidths && usingGrid;
-  doInterpolation = Opt.GridSize(2)>1 && usingGrid;
-  
-  % Preparations for projection
-  %-----------------------------------------------------------------------
-  if doProjection
-    msg = 'triangle/segment projection';
-  else
-    msg = 'summation';
-    xT = 5e4;
-    wT = xT/2.5; %<1e-8 at borders for Harmonic = -1
-    Template = gaussian(0:2*xT-1,xT,wT,-1);
-  end
-  logmsg(1,'  %s',msg);
-  
   % Preparations for interpolation
   %-----------------------------------------------------------------------
+  doInterpolation = Opt.GridSize(2)>1 && usingGrid;
   if doInterpolation
     % Set an option for the sparse tridiagonal matrix \ solver in global cubic
     % spline interpolation. This function needs some time, so it was taken
@@ -838,7 +826,50 @@ elseif ~BruteForceSum
   nfKnots = (Opt.GridSize(1)-1)*Opt.GridSize(2) + 1;
   logmsg(1,msg);
   
-  % Pre-allocation of spectral array.
+  % Preparations for summation/projection
+  %-----------------------------------------------------------------------
+  doProjection = ~anisotropicWidths && usingGrid;
+  if ~doProjection
+    msg = 'summation';
+    % Construct Gaussian template lineshape
+    x0T = 5e4;  % center
+    wT = x0T/2.5;  % width; results in <2e-9 at borders
+    xT = 0:2*x0T-1;  % needs to be zero-based and with increment 1 (for lisum1i)
+    Template = gaussian(xT,x0T,wT,-1);
+    if ~anisotropicWidths
+      if Sys.lw(1)>0
+        % If present, use convolutional Gaussian for spectrum construction
+        thisWid = Sys.lw(1);
+        Sys.lw(1) = 0;
+        ConvolutionBroadening = Sys.lw(2)>0;
+        % In the absence of additional convolutional broadening, use derivative
+        % to calculate harmonic
+        if ~ConvolutionBroadening
+          Exp.DerivHarmonic = Exp.DerivHarmonic+Exp.ConvHarmonic;
+          Exp.ConvHarmonic = 0;
+        end
+      else
+        % Summation & Lorentzian only: use Lorentzian template
+        x0T = 1e5;
+        wT = x0T/20; % 0.0025 at borders for Harmonic = -1
+        xT = 0:2*x0T-1;
+        Template = lorentzian(xT,x0T,wT,Exp.ConvHarmonic-1);
+        thisWid = Sys.lw(2);
+        Sys.lw(2) = 0;
+        ConvolutionBroadening = false;
+      end
+      if ~PowderSimulation
+        thisWid = repmat(thisWid,nTransitions,1);
+      end
+    else
+      % thisWid is assigned inside the transition/orientation/site loop
+    end
+  else
+    msg = 'triangle/segment projection';
+  end
+  logmsg(1,'  %s',msg);
+
+  % Pre-allocation of spectral array
   %-----------------------------------------------------------------------
   if summedOutput
     nRows = 1;
@@ -863,7 +894,7 @@ elseif ~BruteForceSum
     
     if nTransitions>0
       if ~anisotropicIntensities, thisInt = ones(nTransitions,1); end
-      if ~anisotropicWidths, thisWid = zeros(nTransitions,1); end
+      %if ~anisotropicWidths, thisWid = zeros(nTransitions,1); end
       
       idx = 1;
       for iOri = 1:nOrientations
@@ -873,8 +904,8 @@ elseif ~BruteForceSum
           if anisotropicIntensities, thisInt = Idat(:,idx); end
           if anisotropicWidths, thisWid = Wdat(:,idx); end
           
-          thisspec = lisum1i(Template,xT,wT,thisPos,thisInt,thisWid,xAxis);
-          thisspec = thisspec/nSites;
+          thisspec = lisum1i(Template,x0T,wT,thisPos,thisInt,thisWid,xAxis);
+          thisspec = thisspec/nSites/nOrientations;
           thisspec = (2*pi)*thisspec; % for consistency with powder spectra (factor from integral over chi)
           thisspec = Exp.OriWeights(iOri)*thisspec; % integral over (phi,theta)
           
@@ -896,7 +927,7 @@ elseif ~BruteForceSum
     %=======================================================================
     
     if ~anisotropicIntensities, thisInt = 1; end
-    if ~anisotropicWidths, thisWid = 0; end
+    %if ~anisotropicWidths, thisWid = 0; end
     
     for iTrans = 1:nTransitions
       %logmsg(3,'  transition %d of %d',iTrans,nTransitions);
@@ -905,7 +936,7 @@ elseif ~BruteForceSum
       if anisotropicIntensities, thisInt = Idat(iTrans,:); end
       if anisotropicWidths, thisWid = Wdat(iTrans,:); end
       
-      thisspec = lisum1i(Template,xT,wT,thisPos,thisInt,thisWid,xAxis);
+      thisspec = lisum1i(Template,x0T,wT,thisPos,thisInt,thisWid,xAxis);
       thisspec = (2*pi)*thisspec; % integral over chi (0..2*pi)
       thisspec = Exp.OriWeights*thisspec; % integral over (phi,theta)
       
@@ -1045,7 +1076,7 @@ elseif ~BruteForceSum
         gam(isinf(gam)) = 0;
         fWidC = fWidM.*(1 + Opt.Smoothing*gam);
         
-        thisspec = lisum1i(Template,xT,wT,fPosC,fIntC,fWidC,xAxis);
+        thisspec = lisum1i(Template,x0T,wT,fPosC,fIntC,fWidC,xAxis);
         
         minBroadening = min(minBroadening,min(Lambda));
         sumBroadenings = sumBroadenings + sum(Lambda);
@@ -1149,8 +1180,6 @@ if ConvolutionBroadening
   if FieldSweep
     unitstr = 'mT';
   else
-    fwhmG = fwhmG/1e3; % MHz -> GHz
-    fwhmL = fwhmL/1e3; % MHz -> GHz
     unitstr = 'GHz';
   end
   

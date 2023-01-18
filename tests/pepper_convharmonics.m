@@ -1,14 +1,15 @@
-function ok = test()
+function ok = test(opt)
 
 % Test whether Gaussian, Lorentzian, and Gaussian+Lorentzian broadenings always
 % give requested harmonic.
 
-Sys.g = 2;
+Sys.g = 1.9995;
 Exp.mwFreq = 9.5;
+Exp.Range = [339 340];
+lwppG = 0.1;
+lwppL = 0.08;
 
-lwppG = 0.1; lwppL = 0.1;
-
-isfirstharmonic = @(s)areequal(max(s),-min(s),1e-3,'abs');
+isfirstharmonic = @(spc) areequal(max(spc),-min(spc),1e-3,'rel');
 
 % Gaussian only
 Sys.lwpp = lwppG;
@@ -29,3 +30,18 @@ ok(3) = isfirstharmonic(spc3);
 Sys.lwpp = [lwppG lwppL];
 [B,spc4] = pepper(Sys,Exp);
 ok(4) = isfirstharmonic(spc4);
+
+if opt.Display
+  subplot(2,2,1)
+  plot(B,spc1)
+  title('1: Gaussian only')
+  subplot(2,2,2)
+  plot(B,spc2)
+  title('2: Gaussian with zero Lorentzian')
+  subplot(2,2,3)
+  plot(B,spc3)
+  title('3: Lorentzian with zero Gaussian')
+  subplot(2,2,4)
+  plot(B,spc4)
+  title('4: Gaussian and Lorentzian')
+end
