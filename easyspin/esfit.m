@@ -561,7 +561,7 @@ else
   pfit = p_start;
 end
 
-if esfitdata.modelEvalError
+if isfield(esfitdata,'modelEvalError') && esfitdata.modelEvalError
   return;
 end
 
@@ -1286,6 +1286,9 @@ end
 function evaluateCallback(~,~)
 % Evaluate for selected parameters
 global esfitdata
+
+esfitdata.modelErrorHandler = @(ME) GUIErrorHandler(ME);
+
 p_eval = esfitdata.p_start;
 active = ~esfitdata.fixedParams;
 p_eval = p_eval(active);
@@ -1295,7 +1298,19 @@ esfitdata.Opts.BaseLine = esfitdata.BaseLineSettings{get(findobj('Tag','BaseLine
 esfitdata.Opts.useMask = get(findobj('Tag','MaskCheckbox'),'Value')==1;
 Opt = esfitdata.Opts;
 Opt.track = false;
-[~,rmsd] = residuals_(p_eval,expdata,Opt,1);
+
+try
+  [~,rmsd] = residuals_(p_eval,expdata,Opt,1);
+catch ME
+  if isfield(esfitdata,'modelEvalError') && esfitdata.modelEvalError
+    return
+  elseif contains(ME.stack(1).name,'esfit')
+    GUIErrorHandler(ME);
+    return;
+  else
+    error(ME.message)
+  end
+end
 
 % Get current spectrum
 currsim = real(esfitdata.curr.sim(:));

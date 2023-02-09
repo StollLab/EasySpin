@@ -377,11 +377,16 @@ in one generation. The default value is 20, but for fittings with many parameter
 should be increased.
 </div>
 
+<div class="optionfield"><code>FitOpt.EliteCount</code></div>
+<div class="optiondescr">
+A number specifying the number of populations (ordered in terms of decreasing score) carried over to the next generation without recombination and mutation. The default value is 2 or 10% of the population size, whichever is larger.
+</div>
+
 <div class="optionfield"><code>FitOpt.maxGenerations</code></div>
 <div class="optiondescr">
 A number specifying the maximum number of generations the algorithm should run. After this number
 has been reached, the algorithm terminates, no matter how good or bad the best fit so far is. The
-default value is 40, but has to be increased for fittings with many parameters. If only very few parameters
+default value is 10000. A large value is appropriate for fittings with many parameters, if only very few parameters
 are fitted, <code>maxGenerations</code> can be decreased.
 </div>
 

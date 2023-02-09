@@ -123,15 +123,30 @@ while true
   d = 0.1;
   a = rand(1,Opt.PopulationSize)*(1+2*d)-d;
   for k = 1:Opt.PopulationSize
-    Offspring(k,:) = a(k)*Population(r(1,k),:) + (1-a(k))*Population(r(2,k));
+    Offspring(k,:) = a(k)*Population(r(1,k),:) + (1-a(k))*Population(r(2,k),:);
   end
   
   % (3) Mutation
   %-----------------------------------------------
-  InitialVariance = 0.3*(ub-lb);
-  Variance = InitialVariance*(1-gen/Opt.maxGenerations);
-  if Variance<0, Variance = 0; end
-  Offspring = Offspring + randn(Opt.PopulationSize,nParams).*Variance;
+  % Mutation with consideration of limits
+  % (to avoid excessive weight of lb and ub values)
+  % based on: Blume C., Wilfried J.
+  % "GLEAM - An Evolutionary Algorithm for Planning 
+  % and Control Based on Evolution Strategy." 
+  % Conf. Proc. of Genetic and Evolutionary Computation Conference
+  % Late Breaking Papers (2002)
+  nk = 10; % number of sections
+  r = 2*randi([0 1],1,Opt.PopulationSize)-1;
+  j = randi(nk-1,1,Opt.PopulationSize); % select random section
+  for k = 1:Opt.PopulationSize
+    if r(k)==-1 % decrease
+      rangelim = [lb; Offspring(k,:)];
+    elseif r(k)==1 % increase
+      rangelim = [Offspring(k,:); ub];
+    end
+    delta = (rangelim(2,:)-rangelim(1,:))/nk;
+    Offspring(k,:) = Offspring(k,:) + r(k)*rand(1,nParams).*delta*j(k);
+  end
   for p = 1:nParams
     Offspring(Offspring(:,p)<lb(p),p) = lb(p);
     Offspring(Offspring(:,p)>ub(p),p) = ub(p);
@@ -144,8 +159,6 @@ while true
   for k = 1:Opt.PopulationSize
     offScores(k) = fcn(Offspring(k,:));
     nEvals = nEvals+1;
-    info.bestx = bestx;
-    info.minF = bestScore;
     info.nEvals = nEvals;
     info.iter = gen;
     if ~isempty(Opt.IterFcn)
