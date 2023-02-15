@@ -84,21 +84,33 @@ for eSp = elSpins
   eidx = (eSp-1)*3+(1:3);
   for nSp = nucSpins
     if Sys.I(nSp)==0, continue; end
-    % Construct full hyperfine matrix.
+
+    % Construct full hyperfine matrix
     if fullAMatrix
       A = Sys.A((nSp-1)*3+(1:3),eidx);
     else
       A = diag(Sys.A(nSp,eidx));
     end
-    R_M2A = erot(Sys.AFrame(nSp,eidx)); % mol frame -> A frame
-    R_A2M = R_M2A.'; % A frame -> mol frame
-    A = R_A2M*A*R_A2M.';
+
+    if ~any(A(:))
+      continue
+    end
+
+    % Transform matrix into molecular frame representation
+    ang = Sys.AFrame(nSp,eidx);
+    if any(ang)
+      R_M2A = erot(ang);  % mol frame -> A frame
+      R_A2M = R_M2A.';    % A frame -> mol frame
+      A = R_A2M*A*R_A2M.';
+    end
+
     % Construct hyperfine Hamiltonian
     for c1 = 1:3
       for c2 = 1:3
         Hhf = Hhf + A(c1,c2)*sop(SpinVec,[eSp c1; nElectrons+nSp c2],'sparse');
       end
     end
+
   end % for all specified nuclei
 end % for all specified electrons
 

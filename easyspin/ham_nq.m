@@ -45,7 +45,7 @@ nElectrons = Sys.nElectrons;
 %---------------------------------------------------------
 for iNuc = Nuclei
   
-  % Construct Q matrix.
+  % Construct Q matrix
   if Sys.fullQ
     Q = Sys.Q(3*(iNuc-1)+(1:3),:);
   else
@@ -56,14 +56,15 @@ for iNuc = Nuclei
     continue
   end
   
-  % Apply tensor frame transformation if given.
-  if any(Sys.QFrame(iNuc,:))
-    R_M2Q = erot(Sys.QFrame(iNuc,:)); % mol frame -> Q frame
-    R_Q2M = R_M2Q.'; % Q frame -> mol frame
+  % Apply tensor frame transformation if given
+  ang = Sys.QFrame(iNuc,:);
+  if any(ang)
+    R_M2Q = erot(ang);  % mol frame -> Q frame
+    R_Q2M = R_M2Q.';    % Q frame -> mol frame
     Q = R_Q2M*Q*R_Q2M.';
   end
   
-  % Construct NQI term of spin hamiltonian.
+  % Construct NQI term of spin hamiltonian
   for k = 1:3
     I{k} = sop(spvc,[nElectrons+iNuc,k],'sparse'); %#ok
   end

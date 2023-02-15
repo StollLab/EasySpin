@@ -96,13 +96,15 @@ for iNuc = nSpins
   else
     sigma = diag(Sys.sigma(iNuc,:));
   end
+
   % Transform CS tensor to molecular frame
   ang = Sys.sigmaFrame(iNuc,:);
   if any(ang)
-    R_M2CS = erot(ang); % mol frame -> CS frame
-    R_CS2M = R_M2CS.'; % CS frame -> mol frame
+    R_M2CS = erot(ang);  % mol frame -> CS frame
+    R_CS2M = R_M2CS.';   % CS frame -> mol frame
     sigma = R_CS2M*sigma*R_CS2M.';
   end
+
   % Build nuclear Zeeman Hamiltonian in MHz/mT
   for k = 1:3
     Ik = sop(spins,[nElectrons+iNuc,k],'sparse');

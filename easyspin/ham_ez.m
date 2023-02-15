@@ -92,16 +92,22 @@ pre = pre/1e9;  % Hz/T -> GHz/T = MHz/mT
 % Loop over all electron spins
 for i = eSpins
 
+  % Get full g matrix
   if Sys.fullg
     g = pre((i-1)*3+(1:3),:);
   else
     g = diag(pre(i,:));
   end
+
   % Transform g matrix to molecular frame
-  R_M2g = erot(Sys.gFrame(i,:));  % mol frame -> g frame
-  R_g2M = R_M2g.';  % g frame -> mol frame
-  g = R_g2M*g*R_g2M.';
-  % Build electon Zeeman Hamiltonian in MHz/mT
+  ang = Sys.gFrame(i,:);
+  if any(ang)
+    R_M2g = erot(ang);  % mol frame -> g frame
+    R_g2M = R_M2g.';  % g frame -> mol frame
+    g = R_g2M*g*R_g2M.';
+  end
+
+  % Build magnetic dipole moment components in MHz/mT
   for k = 1:3
     Sk = sop(spins,[i,k],'sparse');
     muxM = muxM + g(1,k)*Sk;
@@ -112,6 +118,7 @@ for i = eSpins
 end
 
 if isempty(B0)
+  % Return magnetic dipole moment components
   if ~useSparseMatrices
     muxM = full(muxM);
     muyM = full(muyM);
@@ -119,6 +126,7 @@ if isempty(B0)
   end
   varargout = {muxM, muyM, muzM};
 else
+  % Return Zeeman Hamiltonian
   H = -(muxM*B0(1) + muyM*B0(2) + muzM*B0(3));
   if ~useSparseMatrices
     H = full(H);

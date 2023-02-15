@@ -336,10 +336,7 @@ if nElectrons>1 && ~reprocessing
       err = sizecheck(Sys,'ee',[nElPairs 3]);
       if ~isempty(err), return; end
     end
-    
-    err = pa_obsolete_message(Sys,'eepa','eeFrame');
-    if ~isempty(err), return; end
-    
+        
   else
     % Bilinear coupling defined via J, dip, and dvec
     % J:    isotropic exchange +J*S1*S2
@@ -412,16 +409,12 @@ if nElectrons>1 && ~reprocessing
   end
   
   % Check for eeFrame, and supplement or error if necessary
-  if fullee
-    if isfield(Sys,'eeFrame')
-      err = sprintf('Full matrices are specified in ee, so eeFrame is not allowed.');
-      if ~isempty(err), return; end
-    end
-  else
-    if ~isfield(Sys,'eeFrame'), Sys.eeFrame = zeros(nElPairs,3); end
-    err = sizecheck(Sys,'eeFrame',[nElPairs 3]);
-    if ~isempty(err), return; end
-  end
+  err = pa_obsolete_message(Sys,'eepa','eeFrame');
+  if ~isempty(err), return; end
+  if ~isfield(Sys,'eeFrame'), Sys.eeFrame = zeros(nElPairs,3); end
+  err = sizecheck(Sys,'eeFrame',[nElPairs 3]);
+  if ~isempty(err), return; end
+
 end
 
 
@@ -735,16 +728,9 @@ else
   end
   
   % Check for nnFrame, supplement or error if necessary
-  if Sys.fullnn
-    if isfield(Sys,'nnFrame') && ~isempty(Sys.nnFrame)
-      err = sprintf('Full matrices are specified in Sys.nn, so nnFrame is not allowed.');
-      if ~isempty(err), return; end
-    end
-  else
-    if ~isfield(Sys,'nnFrame'), Sys.nnFrame = zeros(nNucPairs,3); end
-    err = sizecheck(Sys,'nnFrame',[nNucPairs 3]);
-    if ~isempty(err), return; end
-  end
+  if ~isfield(Sys,'nnFrame'), Sys.nnFrame = zeros(nNucPairs,3); end
+  err = sizecheck(Sys,'nnFrame',[nNucPairs 3]);
+  if ~isempty(err), return; end
   
 end
 

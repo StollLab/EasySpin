@@ -38,57 +38,67 @@ end
 H = sparse(Sys.nStates,Sys.nStates);
 Spins = Sys.Spins;
 
+% Quadratic term S*D*S
+%-------------------------------------------------------------------------------
 for iSpin = idxElectrons
     
-  % Quadratic term S*D*S
-  %----------------------------------------------------------
   % Prepare full 3x3 D matrix
   if Sys.fullD
     D = Sys.D(3*(iSpin-1)+(1:3),:);
   else
     D = diag(Sys.D(iSpin,:));
   end
-  if any(D(:))
-    % Apply rotation if DFrame is given
-    if any(Sys.DFrame(iSpin,:))
-      R_M2D = erot(Sys.DFrame(iSpin,:)); % mol frame -> D frame
-      R_D2M = R_M2D.';                   % D frame -> mol frame
-      D = R_D2M*D*R_D2M.';
-    end
-    % Construct spin operator matrices
-    for c = 3:-1:1
-      Sxyz{c} = sop(Spins,[iSpin,c],'sparse');
-    end
-    % Construct SDS term
-    for c1 = 1:3
-      for c2 = 1:3
-        H = H + D(c1,c2)*(Sxyz{c1}*Sxyz{c2});
-      end
+
+  if ~any(D(:))
+    continue
+  end
+
+  % Transform D tensor to molecular frame
+  ang = Sys.DFrame(iSpin,:);
+  if any(ang)
+    R_M2D = erot(ang);  % mol frame -> D frame
+    R_D2M = R_M2D.';    % D frame -> mol frame
+    D = R_D2M*D*R_D2M.';
+  end
+
+  % Construct spin operator matrices
+  for c = 3:-1:1
+    Sxyz{c} = sop(Spins,[iSpin,c],'sparse');
+  end
+
+  % Construct SDS term
+  for c1 = 1:3
+    for c2 = 1:3
+      H = H + D(c1,c2)*(Sxyz{c1}*Sxyz{c2});
     end
   end
 
-  % Fourth-order terms a and F
-  %-----------------------------------------------------------------------------
-  % Spin system fields: a and F
-  
-  % Abragam/Bleaney, pp. 142, 437
-  % Bleaney/Trenam, Proc.Roy.Soc.A, 223(1152), 1-14, (1954)
-  % Doetschman/McCool, Chem.Phys. 8, 1-16 (1975)
-  % Scullane, J.Magn.Reson. 47, 383-397 (1982)
-  % Jain/Lehmann, phys.stat.sol.(b) 159, 495-544 (1990)
-  
-  % These terms are no longer supported.
-  if isfield(Sys,'aF')
-    error('Sys.aF is no longer supported. Use Sys.B4 and Sys.B4Frame instead.');
-  end
+end
 
-  % High-order terms in extended Stevens operator format
-  %-----------------------------------------------------------------------------
-  % Spin system fields:
-  %   B1, B2, B3, ... (k = 1...12) -> processed to Sys.B
-  %   B1Frame, B2Frame, B3Frame, ...
-  %   BFrame
+% Fourth-order terms a and F
+%-----------------------------------------------------------------------------
+% Spin system fields: a and F
+
+% Abragam/Bleaney, pp. 142, 437
+% Bleaney/Trenam, Proc.Roy.Soc.A, 223(1152), 1-14, (1954)
+% Doetschman/McCool, Chem.Phys. 8, 1-16 (1975)
+% Scullane, J.Magn.Reson. 47, 383-397 (1982)
+% Jain/Lehmann, phys.stat.sol.(b) 159, 495-544 (1990)
+
+% These terms are no longer supported.
+if isfield(Sys,'aF')
+  error('Sys.aF is no longer supported. Use Sys.B4 and Sys.B4Frame instead.');
+end
+
+% High-order terms in extended Stevens operator format
+%-----------------------------------------------------------------------------
+% Spin system fields:
+%   B1, B2, B3, ... (k = 1...12) -> processed to Sys.B
+%   B1Frame, B2Frame, B3Frame, ...
+%   BFrame
   
+for iSpin = idxElectrons
+
   % If D is used, skip corresponding Stevens operator terms
   D_present = any(Sys.D(iSpin,:));
   

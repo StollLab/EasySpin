@@ -79,9 +79,6 @@ Coupl = nucPairs(:,1) + (nucPairs(:,2)-1)*System.nNuclei;
 allPairsIdx = n1 + (n2-1)*System.nNuclei;
 
 nn = System.nn;
-if ~System.fullnn
-  nnFrame = System.nnFrame;
-end
 
 % Bilinear coupling term I1*nn*I2
 %-------------------------------------------------------------------------------
@@ -92,9 +89,19 @@ for iNucPair = 1:nNucPairs
   if System.fullnn
     J = nn(3*(iCoupling-1)+(1:3),:);
   else
-    R_M2nn = erot(nnFrame(iCoupling,:)); % mol frame -> nn frame
-    R_nn2M = R_M2nn.';  % nn frame -> mol frame
-    J = R_nn2M*diag(nn(iCoupling,:))*R_nn2M.';
+    J = diag(nn(iCoupling,:));
+  end
+
+  if ~any(J)
+    continue
+  end
+
+  % Transform matrix to molecular frame
+  ang = System.nnFrame(iCoupling,:);
+  if any(ang)
+    R_M2nn = erot(ang);  % mol frame -> nn frame
+    R_nn2M = R_M2nn.';   % nn frame -> mol frame
+    J = R_nn2M*J*R_nn2M.';
   end
   
   % Sum up Hamiltonian terms
