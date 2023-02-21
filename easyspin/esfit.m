@@ -665,8 +665,10 @@ if calculateUncertainties
         [~,idx] = sort(triuCorr(:),'descend');
         [i1,i2] = ind2sub(size(Sigma),idx);
         np = numel(pfit_active);
+        parind = 1:numel(activeParams);
+        parind = parind(activeParams);
         for k = 1:min(5,(np-1)*np/2)
-          msg{end+1} = sprintf('    p(%d)-p(%d):    %g',i1(k),i2(k),Sigma(i1(k),i2(k))); %#ok<*AGROW> 
+          msg{end+1} = sprintf('    p(%d)-p(%d):    %g',parind(i1(k)),parind(i2(k)),Sigma(i1(k),i2(k))); %#ok<*AGROW> 
         end
         if any(reshape(triuCorr,1,[])>0.8)
           msg{end+1} = '    WARNING! Strong correlations between parameters.';

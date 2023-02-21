@@ -234,6 +234,18 @@ while ~stopCode
 
 end
 
+if stopCode && iIteration==1
+  % Update GUI
+  info.bestx = x;
+  info.minF = F;
+  info.nEvals = nEvals;
+  info.iter = iIteration;
+  info.newbest = true;
+  if ~isempty(Opt.IterFcn)
+    Opt.IterFcn(info);
+  end
+end
+
 if stopCode<0
   Opt.lambda = NaN;
 else
