@@ -5453,6 +5453,326 @@
       }
     ]
   },
+  "wignerd": {
+    "description": "Wigner D matrix",
+    "inputs": [
+      {
+        "name": "J",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,1"
+        ],
+        "purpose": "J = 0, 1/2, 1, 3/2, ..."
+      },
+      {
+        "name": "alpha",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,1"
+        ],
+        "purpose": "first Euler angle, radians"
+      },
+      {
+        "name": "beta",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,1"
+        ],
+        "purpose": "second Euler angle, radians"
+      },
+      {
+        "name": "gamma",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,1"
+        ],
+        "purpose": "third Euler angle, radians"
+      }
+    ]
+  },
+  "wignerd": {
+    "description": "Wigner D matrix",
+    "inputs": [
+      {
+        "name": "J",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,1"
+        ],
+        "purpose": "J = 0, 1/2, 1, 3/2, ..."
+      },
+      {
+        "name": "alpha",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,1"
+        ],
+        "purpose": "first Euler angle, radians"
+      },
+      {
+        "name": "beta",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,1"
+        ],
+        "purpose": "second Euler angle, radians"
+      },
+      {
+        "name": "gamma",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,1"
+        ],
+        "purpose": "third Euler angle, radians"
+      },
+      {
+        "name": "phase",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,1"
+        ],
+        "purpose": "phase ('+' or '-')"
+      }
+    ]
+  },
+  "wignerd": {
+    "description": "Wigner D matrix",
+    "inputs": [
+      {
+        "name": "Jm1m2",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,3"
+        ],
+        "purpose": "J = 0, 1/2, 1, ... m1 and m2 = -J, ..., +J"
+      },
+      {
+        "name": "alpha",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,1"
+        ],
+        "purpose": "first Euler angle, radians"
+      },
+      {
+        "name": "beta",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,1"
+        ],
+        "purpose": "second Euler angle, radians"
+      },
+      {
+        "name": "gamma",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,1"
+        ],
+        "purpose": "third Euler angle, radians"
+      }
+    ]
+  },
+  "wignerd": {
+    "description": "Wigner D matrix",
+    "inputs": [
+      {
+        "name": "Jm1m2",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,3"
+        ],
+        "purpose": "J = 0, 1/2, 1, ... m1 and m2 = -J, ..., +J"
+      },
+      {
+        "name": "alpha",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,1"
+        ],
+        "purpose": "first Euler angle, radians"
+      },
+      {
+        "name": "beta",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,1"
+        ],
+        "purpose": "second Euler angle, radians"
+      },
+      {
+        "name": "gamma",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,1"
+        ],
+        "purpose": "third Euler angle, radians"
+      },
+      {
+        "name": "phase",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,1"
+        ],
+        "purpose": "phase ('+' or '-')"
+      }
+    ]
+  },
+  "wignerd": {
+    "description": "Wigner D matrix",
+    "inputs": [
+      {
+        "name": "J",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,1"
+        ],
+        "purpose": "J = 0, 1/2, 1, 3/2, ..."
+      },
+      {
+        "name": "beta",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,1"
+        ],
+        "purpose": "second Euler angle, radians"
+      }
+    ]
+  },
+  "wignerd": {
+    "description": "Wigner D matrix",
+    "inputs": [
+      {
+        "name": "J",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,1"
+        ],
+        "purpose": "J = 0, 1/2, 1, 3/2, ..."
+      },
+      {
+        "name": "beta",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,1"
+        ],
+        "purpose": "second Euler angle, radians"
+      },
+      {
+        "name": "phase",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,1"
+        ],
+        "purpose": "phase ('+' or '-')"
+      }
+    ]
+  },
+  "wignerd": {
+    "description": "Wigner D matrix",
+    "inputs": [
+      {
+        "name": "Jm1m2",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,3"
+        ],
+        "purpose": "J = 0, 1/2, 1, ... m1 and m2 = -J, ..., +J"
+      },
+      {
+        "name": "beta",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,1"
+        ],
+        "purpose": "second Euler angle, radians"
+      }
+    ]
+  },
+  "wignerd": {
+    "description": "Wigner D matrix",
+    "inputs": [
+      {
+        "name": "Jm1m2",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,3"
+        ],
+        "purpose": "J = 0, 1/2, 1, ... m1 and m2 = -J, ..., +J"
+      },
+      {
+        "name": "beta",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,1"
+        ],
+        "purpose": "second Euler angle, radians"
+      },
+      {
+        "name": "phase",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,1"
+        ],
+        "purpose": "phase ('+' or '-')"
+      }
+    ]
+  },
   "zfsframes": {
     "description": "Zero-field splitting tensor frames analysis",
     "inputs": [
