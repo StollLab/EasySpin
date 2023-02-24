@@ -1,6 +1,6 @@
 function ok = test()
 
-% string('...') is used instead of "..." for compatibility with R2016b
+% string('...') is used instead of "..." for compatibility with versions prior to R2017a
 FilePaths = {'./eprfiles/00012107','./eprfiles/00011201',...
   string('./eprfiles/00012107'),string('./eprfiles/00012107.dta'),...
   string('./eprfiles/00011201'),string('./eprfiles/00011201.spc')};
